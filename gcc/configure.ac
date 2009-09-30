@@ -4231,7 +4231,7 @@ if test x"$enable_plugin" = x"yes"; then
   fi
 
   # Check -ldl
-  LDFLAGS="$LDFLAGS -ldl"
+  LIBS="$LIBS -ldl"
   AC_MSG_CHECKING([for -ldl])
   AC_TRY_LINK(
     [#include <dlfcn.h>],

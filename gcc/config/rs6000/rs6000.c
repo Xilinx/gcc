@@ -846,6 +846,7 @@ static void rs6000_output_mi_thunk (FILE *, tree, HOST_WIDE_INT, HOST_WIDE_INT,
 				    tree);
 static rtx rs6000_emit_set_long_const (rtx, HOST_WIDE_INT, HOST_WIDE_INT);
 static bool rs6000_return_in_memory (const_tree, const_tree);
+static rtx rs6000_function_value (const_tree, const_tree, bool);
 static void rs6000_file_start (void);
 #if TARGET_ELF
 static int rs6000_elf_reloc_rw_mask (void);
@@ -1094,6 +1095,7 @@ static const enum reg_class *rs6000_ira_cover_classes (void);
 const int INSN_NOT_AVAILABLE = -1;
 static enum machine_mode rs6000_eh_return_filter_mode (void);
 static bool rs6000_can_eliminate (const int, const int);
+static void rs6000_trampoline_init (rtx, tree, rtx);
 
 /* Hash table stuff for keeping track of TOC entries.  */
 
@@ -1466,6 +1468,12 @@ static const struct attribute_spec rs6000_attribute_table[] =
 
 #undef TARGET_CAN_ELIMINATE
 #define TARGET_CAN_ELIMINATE rs6000_can_eliminate
+
+#undef TARGET_TRAMPOLINE_INIT
+#define TARGET_TRAMPOLINE_INIT rs6000_trampoline_init
+
+#undef TARGET_FUNCTION_VALUE
+#define TARGET_FUNCTION_VALUE rs6000_function_value
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 
@@ -5694,12 +5702,6 @@ rs6000_legitimate_address_p (enum machine_mode mode, rtx x, bool reg_ok_strict)
       && legitimate_indexed_address_p (x, reg_ok_strict))
     return 1;
   if (GET_CODE (x) == PRE_MODIFY
-      && VECTOR_MEM_VSX_P (mode)
-      && TARGET_UPDATE
-      && legitimate_indexed_address_p (XEXP (x, 1), reg_ok_strict)
-      && rtx_equal_p (XEXP (XEXP (x, 1), 0), XEXP (x, 0)))
-    return 1;
-  if (GET_CODE (x) == PRE_MODIFY
       && mode != TImode
       && mode != TFmode
       && mode != TDmode
@@ -5707,7 +5709,7 @@ rs6000_legitimate_address_p (enum machine_mode mode, rtx x, bool reg_ok_strict)
 	  || TARGET_POWERPC64
 	  || ((mode != DFmode && mode != DDmode) || TARGET_E500_DOUBLE))
       && (TARGET_POWERPC64 || mode != DImode)
-      && !VECTOR_MEM_ALTIVEC_P (mode)
+      && !VECTOR_MEM_ALTIVEC_OR_VSX_P (mode)
       && !SPE_VECTOR_MODE (mode)
       /* Restrict addressing for DI because of our SUBREG hackery.  */
       && !(TARGET_E500_DOUBLE
@@ -8640,10 +8642,10 @@ static struct builtin_description bdesc_2arg[] =
   { MASK_ALTIVEC, CODE_FOR_vector_eqv4sf, "__builtin_altivec_vcmpeqfp", ALTIVEC_BUILTIN_VCMPEQFP },
   { MASK_ALTIVEC, CODE_FOR_vector_gev4sf, "__builtin_altivec_vcmpgefp", ALTIVEC_BUILTIN_VCMPGEFP },
   { MASK_ALTIVEC, CODE_FOR_vector_gtuv16qi, "__builtin_altivec_vcmpgtub", ALTIVEC_BUILTIN_VCMPGTUB },
-  { MASK_ALTIVEC, CODE_FOR_vector_gtuv8hi, "__builtin_altivec_vcmpgtsb", ALTIVEC_BUILTIN_VCMPGTSB },
-  { MASK_ALTIVEC, CODE_FOR_vector_gtuv4si, "__builtin_altivec_vcmpgtuh", ALTIVEC_BUILTIN_VCMPGTUH },
-  { MASK_ALTIVEC, CODE_FOR_vector_gtv16qi, "__builtin_altivec_vcmpgtsh", ALTIVEC_BUILTIN_VCMPGTSH },
-  { MASK_ALTIVEC, CODE_FOR_vector_gtv8hi, "__builtin_altivec_vcmpgtuw", ALTIVEC_BUILTIN_VCMPGTUW },
+  { MASK_ALTIVEC, CODE_FOR_vector_gtv16qi, "__builtin_altivec_vcmpgtsb", ALTIVEC_BUILTIN_VCMPGTSB },
+  { MASK_ALTIVEC, CODE_FOR_vector_gtuv8hi, "__builtin_altivec_vcmpgtuh", ALTIVEC_BUILTIN_VCMPGTUH },
+  { MASK_ALTIVEC, CODE_FOR_vector_gtv8hi, "__builtin_altivec_vcmpgtsh", ALTIVEC_BUILTIN_VCMPGTSH },
+  { MASK_ALTIVEC, CODE_FOR_vector_gtuv4si, "__builtin_altivec_vcmpgtuw", ALTIVEC_BUILTIN_VCMPGTUW },
   { MASK_ALTIVEC, CODE_FOR_vector_gtv4si, "__builtin_altivec_vcmpgtsw", ALTIVEC_BUILTIN_VCMPGTSW },
   { MASK_ALTIVEC, CODE_FOR_vector_gtv4sf, "__builtin_altivec_vcmpgtfp", ALTIVEC_BUILTIN_VCMPGTFP },
   { MASK_ALTIVEC, CODE_FOR_altivec_vctsxs, "__builtin_altivec_vctsxs", ALTIVEC_BUILTIN_VCTSXS },
@@ -10904,7 +10906,7 @@ static void
 rs6000_init_builtins (void)
 {
   tree tdecl;
-  
+
   V2SI_type_node = build_vector_type (intSI_type_node, 2);
   V2SF_type_node = build_vector_type (float_type_node, 2);
   V2DI_type_node = build_vector_type (intDI_type_node, 2);
@@ -19107,6 +19109,8 @@ rs6000_output_function_prologue (FILE *file,
 
   if (! HAVE_prologue)
     {
+      rtx prologue;
+
       start_sequence ();
 
       /* A NOTE_INSN_DELETED is supposed to be at the start and end of
@@ -19126,10 +19130,14 @@ rs6000_output_function_prologue (FILE *file,
 	  }
       }
 
-      if (TARGET_DEBUG_STACK)
-	debug_rtx_list (get_insns (), 100);
-      final (get_insns (), file, FALSE);
+      prologue = get_insns ();
       end_sequence ();
+
+      if (TARGET_DEBUG_STACK)
+	debug_rtx_list (prologue, 100);
+
+      emit_insn_before_noloc (prologue, BB_HEAD (ENTRY_BLOCK_PTR->next_bb),
+			      ENTRY_BLOCK_PTR);
     }
 
   rs6000_pic_labelno++;
@@ -21752,8 +21760,9 @@ is_nonpipeline_insn (rtx insn)
 static int
 rs6000_issue_rate (void)
 {
-  /* Use issue rate of 1 for first scheduling pass to decrease degradation.  */
-  if (!reload_completed)
+  /* Unless scheduling for register pressure, use issue rate of 1 for
+     first scheduling pass to decrease degradation.  */
+  if (!reload_completed && !flag_sched_pressure)
     return 1;
 
   switch (rs6000_cpu_attr) {
@@ -22962,32 +22971,38 @@ rs6000_trampoline_size (void)
    FNADDR is an RTX for the address of the function's pure code.
    CXT is an RTX for the static chain value for the function.  */
 
-void
-rs6000_initialize_trampoline (rtx addr, rtx fnaddr, rtx cxt)
+static void
+rs6000_trampoline_init (rtx m_tramp, tree fndecl, rtx cxt)
 {
   int regsize = (TARGET_32BIT) ? 4 : 8;
+  rtx fnaddr = XEXP (DECL_RTL (fndecl), 0);
   rtx ctx_reg = force_reg (Pmode, cxt);
+  rtx addr = force_reg (Pmode, XEXP (m_tramp, 0));
 
   switch (DEFAULT_ABI)
     {
     default:
       gcc_unreachable ();
 
-/* Macros to shorten the code expansions below.  */
-#define MEM_DEREF(addr) gen_rtx_MEM (Pmode, memory_address (Pmode, addr))
-#define MEM_PLUS(addr,offset) \
-  gen_rtx_MEM (Pmode, memory_address (Pmode, plus_constant (addr, offset)))
-
     /* Under AIX, just build the 3 word function descriptor */
     case ABI_AIX:
       {
+	rtx fnmem = gen_const_mem (Pmode, force_reg (Pmode, fnaddr));
 	rtx fn_reg = gen_reg_rtx (Pmode);
 	rtx toc_reg = gen_reg_rtx (Pmode);
-	emit_move_insn (fn_reg, MEM_DEREF (fnaddr));
-	emit_move_insn (toc_reg, MEM_PLUS (fnaddr, regsize));
-	emit_move_insn (MEM_DEREF (addr), fn_reg);
-	emit_move_insn (MEM_PLUS (addr, regsize), toc_reg);
-	emit_move_insn (MEM_PLUS (addr, 2*regsize), ctx_reg);
+
+  /* Macro to shorten the code expansions below.  */
+# define MEM_PLUS(MEM, OFFSET) adjust_address (MEM, Pmode, OFFSET)
+
+	m_tramp = replace_equiv_address (m_tramp, addr);
+
+	emit_move_insn (fn_reg, MEM_PLUS (fnmem, 0));
+	emit_move_insn (toc_reg, MEM_PLUS (fnmem, regsize));
+	emit_move_insn (MEM_PLUS (m_tramp, 0), fn_reg);
+	emit_move_insn (MEM_PLUS (m_tramp, regsize), toc_reg);
+	emit_move_insn (MEM_PLUS (m_tramp, 2*regsize), ctx_reg);
+
+# undef MEM_PLUS
       }
       break;
 
@@ -23002,8 +23017,6 @@ rs6000_initialize_trampoline (rtx addr, rtx fnaddr, rtx cxt)
 			 ctx_reg, Pmode);
       break;
     }
-
-  return;
 }
 
 
@@ -25085,10 +25098,7 @@ rs6000_complex_function_value (enum machine_mode mode)
   return gen_rtx_PARALLEL (mode, gen_rtvec (2, r1, r2));
 }
 
-/* Define how to find the value returned by a function.
-   VALTYPE is the data type of the value (as a tree).
-   If the precise function being called is known, FUNC is its FUNCTION_DECL;
-   otherwise, FUNC is 0.
+/* Target hook for TARGET_FUNCTION_VALUE.
 
    On the SPE, both FPs and vectors are returned in r3.
 
@@ -25096,7 +25106,9 @@ rs6000_complex_function_value (enum machine_mode mode)
    fp1, unless -msoft-float.  */
 
 rtx
-rs6000_function_value (const_tree valtype, const_tree func ATTRIBUTE_UNUSED)
+rs6000_function_value (const_tree valtype,
+		       const_tree fn_decl_or_type ATTRIBUTE_UNUSED,
+		       bool outgoing ATTRIBUTE_UNUSED)
 {
   enum machine_mode mode;
   unsigned int regno;
@@ -25395,7 +25407,7 @@ static bool
 rs6000_scalar_mode_supported_p (enum machine_mode mode)
 {
   if (DECIMAL_FLOAT_MODE_P (mode))
-    return true;
+    return default_decimal_float_supported_p ();
   else
     return default_scalar_mode_supported_p (mode);
 }

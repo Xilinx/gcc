@@ -2001,6 +2001,7 @@ remove_useless_stmts_tc (gimple_stmt_iterator *gsi, struct rus_data *data)
 
     case GIMPLE_EH_MUST_NOT_THROW:
       this_may_throw = false;
+      gsi_next (gsi);
       break;
 
     default:
@@ -3574,7 +3575,7 @@ verify_gimple_call (gimple stmt)
     }
 
   /* If there is a static chain argument, this should not be an indirect
-     call, and the decl should not have DECL_NO_STATIC_CHAIN set.  */
+     call, and the decl should have DECL_STATIC_CHAIN set.  */
   if (gimple_call_chain (stmt))
     {
       if (TREE_CODE (fn) != ADDR_EXPR
@@ -3585,7 +3586,7 @@ verify_gimple_call (gimple stmt)
 	}
       fn = TREE_OPERAND (fn, 0);
 
-      if (DECL_NO_STATIC_CHAIN (fn))
+      if (!DECL_STATIC_CHAIN (fn))
 	{
 	  error ("static chain with function that doesn't use one");
 	  return true;
@@ -4354,6 +4355,7 @@ verify_types_in_gimple_stmt (gimple stmt)
     case GIMPLE_PREDICT:
     case GIMPLE_RESX:
     case GIMPLE_EH_DISPATCH:
+    case GIMPLE_EH_MUST_NOT_THROW:
       return false;
 
     CASE_GIMPLE_OMP:

@@ -1,3 +1,383 @@
+2009-09-30  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/22093
+	* gcc.target/alpha/pr22093.c: New test.
+
+2009-09-29  John Freeman  <jfreeman08@gmail.com>
+	    Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/lambda/lambda-array.C: New.
+	* g++.dg/cpp0x/lambda/lambda-capture-const-ref.C: New.
+	* g++.dg/cpp0x/lambda/lambda-capture-const-ref-neg.C: New.
+	* g++.dg/cpp0x/lambda/lambda-const.C: New.
+	* g++.dg/cpp0x/lambda/lambda-copy-default-neg.C: New.
+	* g++.dg/cpp0x/lambda/lambda-copy-default.C: New.
+	* g++.dg/cpp0x/lambda/lambda-copy-neg.C: New.
+	* g++.dg/cpp0x/lambda/lambda-copy.C: New.
+	* g++.dg/cpp0x/lambda/lambda-ctor-neg.C: New.
+	* g++.dg/cpp0x/lambda/lambda-ctors.C: New.
+	* g++.dg/cpp0x/lambda/lambda-deduce-ext-neg.C: New.
+	* g++.dg/cpp0x/lambda/lambda-deduce-ext-neg2.C: New.
+	* g++.dg/cpp0x/lambda/lambda-deduce-ext.C: New.
+	* g++.dg/cpp0x/lambda/lambda-deduce-neg.C: New.
+	* g++.dg/cpp0x/lambda/lambda-deduce.C: New.
+	* g++.dg/cpp0x/lambda/lambda-defarg.C: New.
+	* g++.dg/cpp0x/lambda/lambda-eh.C: New.
+	* g++.dg/cpp0x/lambda/lambda-errloc.C: New.
+	* g++.dg/cpp0x/lambda/lambda-field-names.C: New.
+	* g++.dg/cpp0x/lambda/lambda-in-class-neg.C: New.
+	* g++.dg/cpp0x/lambda/lambda-in-class.C: New.
+	* g++.dg/cpp0x/lambda/lambda-lookup-neg.C: New.
+	* g++.dg/cpp0x/lambda/lambda-mangle.C: New.
+	* g++.dg/cpp0x/lambda/lambda-mixed.C: New.
+	* g++.dg/cpp0x/lambda/lambda-mutable.C: New.
+	* g++.dg/cpp0x/lambda/lambda-nested.C: New.
+	* g++.dg/cpp0x/lambda/lambda-non-const.C: New.
+	* g++.dg/cpp0x/lambda/lambda-nop.C: New.
+	* g++.dg/cpp0x/lambda/lambda-ns-scope.C: New.
+	* g++.dg/cpp0x/lambda/lambda-pass.C: New.
+	* g++.dg/cpp0x/lambda/lambda-recursive.C: New.
+	* g++.dg/cpp0x/lambda/lambda-ref-default.C: New.
+	* g++.dg/cpp0x/lambda/lambda-ref.C: New.
+	* g++.dg/cpp0x/lambda/lambda-std-function.C: New.
+	* g++.dg/cpp0x/lambda/lambda-template.C: New.
+	* g++.dg/cpp0x/lambda/lambda-this.C: New.
+	* g++.dg/cpp0x/lambda/lambda-type.C: New.
+	* g++.dg/cpp0x/lambda/lambda-use.C: New.
+	* lib/prune.exp: Accept "In lambda function".
+
+2009-09-29  Harsha Jagasia  <harsha.jagasia@amd.com>
+
+	* gcc.target/i386/fma4-check.h
+	* gcc.target/i386/fma4-fma.c
+	* gcc.target/i386/fma4-maccXX.c
+	* gcc.target/i386/fma4-msubXX.c
+	* gcc.target/i386/fma4-nmaccXX.c
+	* gcc.target/i386/fma4-nmsubXX.c
+	* gcc.target/i386/fma4-vector.c
+	* gcc.target/i386/fma4-256-maccXX.c
+	* gcc.target/i386/fma4-256-msubXX.c
+	* gcc.target/i386/fma4-256-nmaccXX.c
+	* gcc.target/i386/fma4-256-nmsubXX.c
+	* gcc.target/i386/fma4-256-vector.c
+	* gcc.target/i386/funcspec-2.c: New file.
+
+	* gcc.target/i386/funcspec-4.c: Test error conditions
+	related to FMA4.
+
+	* gcc.target/i386/funcspec-5.c
+	* gcc.target/i386/funcspec-6.c
+	* gcc.target/i386/funcspec-8.c: Add FMA4.
+
+	* gcc.target/i386/funcspec-9.c: New file.
+
+	* gcc.target/i386/i386.exp: Add check_effective_target_fma4.
+
+	* gcc.target/i386/isa-10.c
+	* gcc.target/i386/isa-11.c
+	* gcc.target/i386/isa-12.c
+	* gcc.target/i386/isa-13.c
+	* gcc.target/i386/isa-2.c
+	* gcc.target/i386/isa-3.c
+	* gcc.target/i386/isa-4.c
+	* gcc.target/i386/isa-7.c
+	* gcc.target/i386/isa-8.c
+	* gcc.target/i386/isa-9.c: New file.
+
+	* gcc.target/i386/isa-14.c
+	* gcc.target/i386/isa-1.c
+	* gcc.target/i386/isa-5.c
+	* gcc.target/i386/isa-6.c: Add FMA4.
+
+	* gcc.target/i386/sse-12.c
+	* gcc.target/i386/sse-13.c
+	* gcc.target/i386/sse-14.c
+	* gcc.target/i386/sse-22.c: New file.
+
+	* g++.dg/other/i386-2.C
+	* g++.dg/other/i386-3.C
+	* g++.dg/other/i386-5.C
+	* g++.dg/other/i386-6.C: Add -mfma4 in dg-options.
+
+2009-09-29  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR testsuite/41496
+	* g++.dg/dfp/dfp.exp: Unset DEFAULT_CXXFLAGS if it didn't exist
+	before.
+
+2009-09-29  Janis Johnson  <janis187@us.ibm.com>
+
+	* gcc.test-framework/dg-bogus-exp-XF.c: Move dg-bogus directive.
+	* gcc.test-framework/dg-warning-exp-P.c: Move dg-warning directives.
+
+2009-09-29  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/41438
+	* gcc.dg/debug/dwarf2/const-1.c: Add dg-require-visibility, make x
+	hidden.
+	* g++.dg/debug/dwarf2/const-1.C: Likewise.
+
+2009-09-29  Harsha Jagasia  <harsha.jagasia@amd.com>
+
+	* gcc.target/i386/i386.exp: Remove check_effective_target_sse5.
+	* gcc.target/i386/isa-1.c
+	* gcc.target/i386/isa-5.c
+	* gcc.target/i386/isa-6.c: Remove SSE5.
+	* gcc.target/i386/funcspec-4.c: Remove error conditions related to SSE5.
+	* gcc.target/i386/avx-1.c
+	* gcc.target/i386/avx-2.c
+	* gcc.target/i386/sse-23.c: Remove comments to mmintrin-common.h.
+	* gcc.target/i386/funcspec-9.c: Delete.
+	
+2009-09-29  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.dg/guality/guality.exp (gdb-test): New proc for use in dg-final.
+	* gcc.dg/guality/pr41353-1.c: New test.
+
+	PR testsuite/41444
+	* gcc.dg/guality/guality.h (GUALITY_GDB_REDIRECT): Fix a typo
+	in macro name definition for non-unix/win32/msdos.
+
+2009-09-29  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/39626
+	* gfortran.dg/block_1.f08: New test.
+	* gfortran.dg/block_2.f08: New test.
+	* gfortran.dg/block_3.f90: New test.
+	* gfortran.dg/block_4.f08: New test.
+	* gfortran.dg/block_5.f08: New test.
+	* gfortran.dg/block_6.f08: New test.
+	* gfortran.dg/block_7.f08: New test.
+	* gfortran.dg/block_8.f08: New test.
+
+2009-09-28  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/35862
+	* gfortran.dg/round_1.f03: New test.
+	* gfortran.dg/f2003_io_3.f03: Update test.
+
+2009-09-28  Easwaran Raman  <eraman@google.com>
+
+	* gcc.target/i386/ifcvt-onecmpl-abs-1.c: New file.
+	* gcc.c-torture/execute/ifcvt-onecmpl-abs-1.c: New file.
+
+2009-09-28  Janis Johnson  <janis187@us.ibm.com>
+
+	* g++.dg/dfp/dfp.exp: Run tests from c-c++-common/dfp.
+	* c-c++-common/dfp/func-vararg-alternate-d32.c: XFAIL for C++.
+	* c-c++-common/dfp/func-vararg-dfp.c: Ditto.
+	* c-c++-common/dfp/func-vararg-mixed.c: Ditto.
+	* c-c++-common/dfp/func-vararg-mixed-2.c: Ditto.
+
+	* g++.dg/dfp/dfp.exp: Fix typo.
+
+	* lib/target-supports.exp (check-effective-target-dfp-nocache):
+	Fix typo that breaks the check.
+
+2009-09-28  Olivier Hainque  <hainque@adacore.com>
+
+	* gnat.dg (tagged_alloc_free.adb): New testcase.
+	
+2009-09-28  Janis Johnson  <janis187@us.ibm.com>
+
+	* g++.dg/dfp: New directory.
+	* g++.dg/dg.exp: Prune tests in dfp directory.
+	* g++.dg/dfp/dfp.exp: New.
+	* g++.dg/dfp/mangle-mode.C: New test.
+
+2009-09-28  Michael Matz  <matz@suse.de>
+
+	* gcc.dg/builtins-44.c: Use __builtin_isinf_sign when checking
+	for sign of -Inf.
+
+2009-09-27  Richard Henderson  <rth@redhat.com>
+
+	* gcc.c-torture/compile/pr41469.c: Add -fexceptions.
+	* testsuite/gcc.dg/tree-ssa/pr41469-1.c: New.
+
+2009-09-26  Andreas Schwab  <schwab@linux-m68k.org>
+
+	PR c/41476
+	* gcc.dg/cond-constqual-1.c: New test.
+
+2009-09-26  Michael Matz  <matz@suse.de>
+
+	PR lto/40758
+	PR middle-end/41470
+	* gcc.dg/pr41470.c: New test.
+
+2009-09-26  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/array9.adb: New test.
+
+2009-09-26  Michael Matz  <matz@suse.de>
+
+	PR tree-optimization/41454
+	* gcc.dg/pr41454.c: New test.
+
+2009-09-25  Dodji Seketeli  <dodji@redhat.com>
+
+	* g++.dg/debug/dwarf2/template-func-params-4.C: Adjust after renaming
+	DW_TAG_template_parameter_pack and DW_TAG_formal_parameter_pack
+	into DW_TAG_GNU_template_parameter_pack and
+	DW_TAG_GNU_formal_parameter_pack.
+	* g++.dg/debug/dwarf2/template-params-4.C: Likewise.
+	* g++.dg/debug/dwarf2/template-func-params-7.C: Likewise.
+
+2009-09-25  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* gcc.dg/vect/vect.exp: Append extra parameters as separate
+	parameters for alignment-sensitive -fsection-anchors tests.
+
+2009-09-25  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/41463
+	* gcc.c-torture/execute/pr41463.c: New testcase.
+
+2009-09-25  Olivier Hainque  <hainque@adacore.com>
+
+	* gnat.dg/sse_nolib.adb: New testcase.
+
+2009-09-25  Revital Eres  <ERES@il.ibm.com>
+
+	* gcc.target/powerpc/vsx-vectorize-8.c: New test.
+	* gcc.target/powerpc/vsx-vectorize-1.c: Likewise.
+	* gcc.target/powerpc/vsx-vectorize-2.c: Likewise.
+	* gcc.target/powerpc/vsx-vectorize-3.c: Likewise.
+	* gcc.target/powerpc/vsx-vectorize-4.c: Likewise.
+	* gcc.target/powerpc/vsx-vectorize-5.c: Likewise.
+	* gcc.target/powerpc/vsx-vectorize-6.c: Likewise.
+	* gcc.target/powerpc/vsx-vectorize-7.c: Likewise.
+	* gcc.dg/vect/vect.exp: Add Power7 flags.
+	* g++.dg/vect/vect.exp: Likewise.
+	* gfortran.dg/vect/vect.exp: Likewise.
+
+2009-09-24  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	PR fortran/41459
+	* gfortran.dg/empty_label.f: New test.
+	* gfortran.dg/empty_label.f90: Ditto.
+	* gfortran.dg/warnings_are_errors_1.f: Fix to emit a single warning.
+
+2009-09-24  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* gcc.dg/torture/builtin-math-7.c: Test complex int division at
+	compile-time.
+
+2009-09-24  Adam Nemet  <anemet@caviumnetworks.com>
+
+	* lib/scanasm.exp (make_pattern_printable): New function.
+	(dg-scan, scan-assembler-times, scan-assembler-dem,
+	scan-assembler-dem-not): Use it.
+
+2009-09-24  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc.target/i386/pr12329.c (dg-do): Changed to run.
+	(test_nested): Renamed to ...
+	(test_nested1): This.
+	(test_nested2): New.
+	(main): Likewise.
+
+2009-09-24  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/36143
+	PR tree-optimization/38747
+	* gcc.dg/tree-ssa/fre-vce-1.c: XFAIL.
+	* gcc.dg/tree-ssa/forwprop-6.c: Likewise.
+	* g++.dg/torture/pr38747.C: New testcase.
+	* g++.dg/tree-ssa/pr19637.C: Un-XFAIL.
+
+2009-09-24  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/nested_proc.adb: New test.
+
+2009-09-24  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.target/i386/pr12329.c: Adjust.
+
+2009-09-23  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/41248
+	* gcc.dg/pr41248.c: New.
+
+2009-09-23  Dodji Seketeli  <dodji@redhat.com>
+
+	PR debug/41065
+	* gcc.dg/debug/dwarf2/global-used-types.c: New test.
+
+2009-09-23  Andreas Schwab  <schwab@redhat.com>
+
+	* lib/profopt.exp (profopt-get-options): Set tool_flags for
+	current_compiler_flags.  Fix typos.
+
+2009-09-23  Yuri Gribov  <tetra2005@googlemail.com>
+
+	* gcc.c-torture/execute/980526-2.c: Skip if sizeof (int) > 4.
+
+2009-09-23  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR c/39779
+	* gcc.c-torture/compile/pr39779.c: New test.
+
+2009-09-22  Dodji Seketeli  <dodji@redhat.com>
+
+	* g++.dg/debug/dwarf2/template-func-params-4.C: Adjust.
+	* g++.dg/debug/dwarf2/template-func-params-7.C: Likewise.
+	* g++.dg/debug/dwarf2/template-params-4.C: Likewise.
+
+2009-09-22  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/41295
+	* gcc.dg/pr41295.c: New.
+
+2009-09-22  Neil Vachharajani  <nvachhar@google.com>
+
+	* gcc.dg/pr40209.c: Add test case.
+
+2009-09-22  Adam Nemet  <anemet@caviumnetworks.com>
+
+	* gcc.target/mips/code-readable-1.c: Change \. to \\. when
+	matching assembly.
+	* gcc.target/mips/code-readable-2.c: Likewise.
+	* gcc.target/mips/code-readable-3.c: Likewise.
+
+2009-09-22  Janis Johnson  <janis187@us.ibm.com>
+
+	* lib/target-supports.exp (check_effective_target_dfp_nocache):
+	Check support via mode instead of C type.
+	(check_effective_target_dfprt_nocache): Ditto.
+	(check_effective_target_hard_dfp): Ditto.
+
+2009-09-22  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/41395
+	* gcc.c-torture/execute/pr41395-1.c: New testcase.
+	* gcc.c-torture/execute/pr41395-2.c: Likewise.
+
+2009-09-22  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.dg/20090922-1.c: New test.
+
+	PR bootstrap/41405
+	* gfortran.dg/debug/pr37738.f: Add -gno-strict-dwarf to dg-options.
+	* gfortran.dg/debug/pr35154-dwarf2.f: Likewise.
+	* g++.dg/debug/dwarf2/explicit-constructor.C: Likewise.
+	* g++.dg/debug/dwarf2/imported-module-2.C: Likewise.
+	* g++.dg/debug/dwarf2/imported-module-3.C: Likewise.
+	* g++.dg/debug/dwarf2/imported-module-4.C: Likewise.
+	* g++.dg/debug/dwarf2/namespace-1.C: Likewise.
+	* objc.dg/dwarf-2.m: Likewise.
+
+2009-09-22  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/41428
+	* g++.dg/tree-ssa/pr41428.C: New testcase.
+
+2009-09-22  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/41429
+	* g++.dg/gomp/pr41429.C: New test.
+
 2009-09-21  Giuseppe Scrivano <gscrivano@gnu.org>
 
 	* gcc.dg/tree-ssa/tailrecursion-6.c: New file.
@@ -83,8 +463,11 @@
 2009-09-18  Jason Merrill  <jason@redhat.com>
 
 	* g++.dg/cpp0x/nolinkage1{.C,.h,a.cc}: New.
-
 	* g++.dg/cpp0x/initlist-deduce.C: New.
+
+2009-09-18  Neil Vachharajani  <nvachhar@google.com>
+
+	* gcc.dg/tree-prof/val-prof-7.c: Added test case.
 
 2009-09-18  Janis Johnson  <janis187@us.ibm.com>
 
@@ -265,28 +648,26 @@
 2009-09-17  Andrew Pinski  <pinskia@gcc.gnu.org>
 
 	PR c++/39365
-	* typeck.c (cp_build_unary_op): Check TREE_CODE for bools instead of
-	using same_type_p.
-	(convert_for_assignment): Likewise.
-	* cvt.c (type_promotes_to): Likewise.
+	* g++.dg/expr/bool3.C: New test.
+	* g++.dg/expr/bool4.C: New test.
 
 2009-09-17  Janis Johnson  <janis187@us.ibm.com>
 
-	* gcc/testsuite/gcc.dg/dfp/dfp-dbg.h: Define EXTERN.
-	* gcc/testsuite/gcc.dg/dfp/signbit-2.c: Use it.
-	* gcc/testsuite/gcc.dg/dfp/func-vararg-alternate.h: Change two
+	* gcc.dg/dfp/dfp-dbg.h: Define EXTERN.
+	* gcc.dg/dfp/signbit-2.c: Use it.
+	* gcc.dg/dfp/func-vararg-alternate.h: Change two
 	arguments to unsigned int.
-	* gcc/testsuite/gcc.dg/dfp/convert-bfp-10.c: Don't include float.h.
-	* gcc/testsuite/gcc.dg/dfp/convert-bfp-fold.c: Include dfp-dbg.h.
-	* gcc/testsuite/gcc.dg/dfp/convert-dfp-fold.c: Ditto
-	* gcc/testsuite/gcc.dg/dfp/convert-int-max-fold.c: Ditto.
-	* gcc/testsuite/gcc.dg/dfp/operator-arith-fold.c: Ditto.
-	* gcc/testsuite/gcc.dg/dfp/pr39986.c: Ditto.
-	* gcc/testsuite/gcc.dg/dfp/usual-arith-conv-const.c: Ditto.
-	* gcc/testsuite/gcc.dg/dfp/pr31385.c: Use mode in typedef, not C type.
-	* gcc/testsuite/gcc.dg/dfp/pr35620.c: Define typedef for C++.
-	* gcc/testsuite/gcc.dg/dfp/convert-int.c: Define BOOL for C++.
-	* gcc/testsuite/gcc.dg/dfp/convert-int-fold.c: Ditto.
+	* gcc.dg/dfp/convert-bfp-10.c: Don't include float.h.
+	* gcc.dg/dfp/convert-bfp-fold.c: Include dfp-dbg.h.
+	* gcc.dg/dfp/convert-dfp-fold.c: Ditto
+	* gcc.dg/dfp/convert-int-max-fold.c: Ditto.
+	* gcc.dg/dfp/operator-arith-fold.c: Ditto.
+	* gcc.dg/dfp/pr39986.c: Ditto.
+	* gcc.dg/dfp/usual-arith-conv-const.c: Ditto.
+	* gcc.dg/dfp/pr31385.c: Use mode in typedef, not C type.
+	* gcc.dg/dfp/pr35620.c: Define typedef for C++.
+	* gcc.dg/dfp/convert-int.c: Define BOOL for C++.
+	* gcc.dg/dfp/convert-int-fold.c: Ditto.
 
 2009-09-17  Jakub Jelinek  <jakub@redhat.com>
 
@@ -760,20 +1141,20 @@
 2009-09-03  Alon Dayan  <alond@il.ibm.com>
 
 	PR tree-optimization/38275
-	* testsuite/gcc.dg/autopar/reduc-1char.c: Increase number
+	* gcc.dg/autopar/reduc-1char.c: Increase number
 	of iterations. Adjust the logic accordingly.
-	* testsuite/gcc.dg/autopar/reduc-2char.c: Ditto.
-	* testsuite/gcc.dg/autopar/reduc-1.c: Ditto.
-	* testsuite/gcc.dg/autopar/reduc-2.c: Ditto.
-	* testsuite/gcc.dg/autopar/reduc-3.c: Ditto.
-	* testsuite/gcc.dg/autopar/reduc-6.c: Ditto.
-	* testsuite/gcc.dg/autopar/reduc-7.c: Ditto.
-	* testsuite/gcc.dg/autopar/reduc-8.c: Ditto.
-	* testsuite/gcc.dg/autopar/reduc-9.c: Ditto.
-	* testsuite/gcc.dg/autopar/pr39500-1.c: Ditto.
-	* testsuite/gcc.dg/autopar/reduc-1short.c: Ditto.
-	* testsuite/gcc.dg/autopar/reduc-2short.c: Ditto.
-	* testsuite/gcc.dg/autopar/parallelization-1.c: Ditto.
+	* gcc.dg/autopar/reduc-2char.c: Ditto.
+	* gcc.dg/autopar/reduc-1.c: Ditto.
+	* gcc.dg/autopar/reduc-2.c: Ditto.
+	* gcc.dg/autopar/reduc-3.c: Ditto.
+	* gcc.dg/autopar/reduc-6.c: Ditto.
+	* gcc.dg/autopar/reduc-7.c: Ditto.
+	* gcc.dg/autopar/reduc-8.c: Ditto.
+	* gcc.dg/autopar/reduc-9.c: Ditto.
+	* gcc.dg/autopar/pr39500-1.c: Ditto.
+	* gcc.dg/autopar/reduc-1short.c: Ditto.
+	* gcc.dg/autopar/reduc-2short.c: Ditto.
+	* gcc.dg/autopar/parallelization-1.c: Ditto.
 
 2009-09-03  Jakub Jelinek  <jakub@redhat.com>
 
@@ -1399,6 +1780,15 @@
 
 	PR middle-end/40980
 	* gfortran.dg/graphite/id-17.f: New.
+
+2009-08-12  Konrad Trifunovic  <konrad.trifunovic@gmail.com>
+	    Sebastian Pop  <sebastian.pop@amd.com>
+
+	* gcc.dg/graphite/interchange-1.c: XFAILed.
+	* gcc.dg/graphite/interchange-2.c: XFAILed.
+	* gcc.dg/graphite/interchange-3.c: XFAILed.
+	* gcc.dg/graphite/interchange-4.c: XFAILed.
+	* gcc.dg/graphite/interchange-7.c: XFAILed.
 
 2009-08-12  Sebastian Pop  <sebastian.pop@amd.com>
 
@@ -3893,6 +4283,11 @@
 	PR middle-end/40328
 	* gcc.dg/torture/pr40328.c: New testcase.
 
+2009-06-03  Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	* gcc.dg/falign-labels.c (dg-options): Don't restrict for
+	m68k and fido.
+
 2009-06-03  Martin Jambor  <mjambor@suse.cz>
 
 	* g++.dg/torture/pr40323.C: New file.
@@ -6352,6 +6747,12 @@
 	PR fortran/37614
 	* gfortran.dg/common_align_2.f90: New test.
 
+2009-04-04  Richard Earnshaw  <rearnsha@arm.com>
+
+	PR target/39501
+	* gcc.c-torture/execute/pr39501.c: New file.
+	* gcc.c-torture/execute/pr39501.x: New file.
+
 2009-04-04  Richard Guenther  <rguenther@suse.de>
 
 	PR tree-optimization/8781
@@ -7937,6 +8338,10 @@
 	PR c/35435
 	* gcc.dg/tls/diag-6.c: New test.
 
+2009-02-04  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* gcc.dg/graphite/scop-19.c: New
+
 2009-02-04  H.J. Lu  <hongjiu.lu@intel.com>
 
 	AVX Programming Reference (January, 2009)
@@ -8658,6 +9063,11 @@
 2009-01-12  Eric Botcazou  <ebotcazou@adacore.com>
 
 	* gnat.dg/unchecked_convert3.adb: New test.
+
+2009-01-12  Tomas Bily  <tbily@suse.cz>
+
+	PR middlend/38385
+	* gcc.dg/tree-ssa/pr38385.c: New file.
 
 2009-01-12  Jakub Jelinek  <jakub@redhat.com>
 

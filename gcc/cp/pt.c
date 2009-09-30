@@ -294,10 +294,13 @@ get_template_info (const_tree t)
 {
   tree tinfo = NULL_TREE;
 
+  if (!t || t == error_mark_node)
+    return NULL;
+
   if (DECL_P (t) && DECL_LANG_SPECIFIC (t))
     tinfo = DECL_TEMPLATE_INFO (t);
 
-  if (!tinfo && TREE_CODE (t) == TYPE_DECL)
+  if (!tinfo && DECL_IMPLICIT_TYPEDEF_P (t))
     t = TREE_TYPE (t);
 
   if (TAGGED_TYPE_P (t))
@@ -2617,6 +2620,7 @@ comp_template_parms (const_tree parms1, const_tree parms2)
 }
 
 /* Determine whether PARM is a parameter pack.  */
+
 bool 
 template_parameter_pack_p (const_tree parm)
 {
@@ -2635,8 +2639,49 @@ template_parameter_pack_p (const_tree parm)
 	  && TEMPLATE_TYPE_PARAMETER_PACK (parm));
 }
 
+/* Determine if T is a function parameter pack.  */
+
+bool
+function_parameter_pack_p (const_tree t)
+{
+  if (t && TREE_CODE (t) == PARM_DECL)
+    return FUNCTION_PARAMETER_PACK_P (t);
+  return false;
+}
+
+/* Return the function template declaration of PRIMARY_FUNC_TMPL_INST.
+   PRIMARY_FUNC_TMPL_INST is a primary function template instantiation.  */
+
+tree
+get_function_template_decl (const_tree primary_func_tmpl_inst)
+{
+  if (! primary_func_tmpl_inst
+      || TREE_CODE (primary_func_tmpl_inst) != FUNCTION_DECL
+      || ! primary_template_instantiation_p (primary_func_tmpl_inst))
+    return NULL;
+
+  return DECL_TEMPLATE_RESULT (DECL_TI_TEMPLATE (primary_func_tmpl_inst));
+}
+
+/* Return true iff the function parameter PARAM_DECL was expanded
+   from the function parameter pack PACK.  */
+
+bool
+function_parameter_expanded_from_pack_p (tree param_decl, tree pack)
+{
+    if (! function_parameter_pack_p (pack))
+      return false;
+
+    gcc_assert (DECL_NAME (param_decl) && DECL_NAME (pack));
+
+    /* The parameter pack and its pack arguments have the same
+       DECL_PARM_INDEX.  */
+    return DECL_PARM_INDEX (pack) == DECL_PARM_INDEX (param_decl);
+}
+
 /* Determine whether ARGS describes a variadic template args list,
    i.e., one that is terminated by a template argument pack.  */
+
 static bool 
 template_args_variadic_p (tree args)
 {
@@ -2659,6 +2704,7 @@ template_args_variadic_p (tree args)
 
 /* Generate a new name for the parameter pack name NAME (an
    IDENTIFIER_NODE) that incorporates its */
+
 static tree
 make_ith_pack_parameter_name (tree name, int i)
 {
@@ -2735,7 +2781,8 @@ get_template_innermost_arguments (const_tree t)
   return args;
 }
 
-/* Return the arguments pack of T if T is a template, NULL otherwise.  */
+/* Return the argument pack elements of T if T is a template argument pack,
+   NULL otherwise.  */
 
 tree
 get_template_argument_pack_elems (const_tree t)
@@ -6183,6 +6230,7 @@ lookup_template_class (tree d1,
 
       if (!is_partial_instantiation
 	  && !PRIMARY_TEMPLATE_P (gen_tmpl)
+	  && !LAMBDA_TYPE_P (TREE_TYPE (gen_tmpl))
 	  && TREE_CODE (CP_DECL_CONTEXT (gen_tmpl)) == NAMESPACE_DECL)
 	{
 	  found = xref_tag_from_type (TREE_TYPE (gen_tmpl),
@@ -8825,6 +8873,10 @@ tsubst_decl (tree t, tree args, tsubst_flags_t complain)
             if (DECL_TEMPLATE_PARM_P (t))
               SET_DECL_TEMPLATE_PARM_P (r);
 
+	    /* An argument of a function parameter pack is not a parameter
+	       pack.  */
+	    FUNCTION_PARAMETER_PACK_P (r) = false;
+
             if (expanded_types)
               /* We're on the Ith parameter of the function parameter
                  pack.  */
@@ -9110,6 +9162,22 @@ tsubst_decl (tree t, tree args, tsubst_flags_t complain)
 	    register_specialization (r, gen_tmpl, argvec, false, hash);
 	    DECL_TEMPLATE_INFO (r) = tree_cons (tmpl, argvec, NULL_TREE);
 	    SET_DECL_IMPLICIT_INSTANTIATION (r);
+	  }
+	else if (cp_unevaluated_operand)
+	  {
+	    /* We're substituting this var in a decltype outside of its
+	       scope, such as for a lambda return type.  Don't add it to
+	       local_specializations, do perform auto deduction.  */
+	    tree auto_node = type_uses_auto (type);
+	    tree init
+	      = tsubst_expr (DECL_INITIAL (t), args, complain, in_decl,
+			     /*constant_expression_p=*/false);
+
+	    if (auto_node && init && describable_type (init))
+	      {
+		type = do_auto_deduction (type, init, auto_node);
+		TREE_TYPE (r) = type;
+	      }
 	  }
 	else
 	  register_local_specialization (r, t);
@@ -10102,9 +10170,13 @@ tsubst (tree t, tree args, tsubst_flags_t complain, tree in_decl)
 	--cp_unevaluated_operand;
 	--c_inhibit_evaluation_warnings;
 
-	type =
-          finish_decltype_type (type,
-                                DECLTYPE_TYPE_ID_EXPR_OR_MEMBER_ACCESS_P (t));
+	if (DECLTYPE_FOR_LAMBDA_CAPTURE (t))
+	  type = lambda_capture_field_type (type);
+	else if (DECLTYPE_FOR_LAMBDA_RETURN (t))
+	  type = lambda_return_type (type);
+	else
+	  type = finish_decltype_type
+	    (type, DECLTYPE_TYPE_ID_EXPR_OR_MEMBER_ACCESS_P (t));
 	return cp_build_qualified_type_real (type,
 					     cp_type_quals (t)
 					     | cp_type_quals (type),
@@ -12307,6 +12379,39 @@ tsubst_copy_and_build (tree t,
 	  return DECL_INITIAL (t);
 	}
       return t;
+
+    case LAMBDA_EXPR:
+      {
+	tree r = build_lambda_expr ();
+
+	tree type = tsubst (TREE_TYPE (t), args, complain, NULL_TREE);
+	TREE_TYPE (r) = type;
+	CLASSTYPE_LAMBDA_EXPR (type) = r;
+
+	LAMBDA_EXPR_DEFAULT_CAPTURE_MODE (r)
+	  = LAMBDA_EXPR_DEFAULT_CAPTURE_MODE (t);
+	LAMBDA_EXPR_MUTABLE_P (r) = LAMBDA_EXPR_MUTABLE_P (t);
+	LAMBDA_EXPR_DISCRIMINATOR (r)
+	  = (LAMBDA_EXPR_DISCRIMINATOR (t));
+	LAMBDA_EXPR_CAPTURE_LIST (r)
+	  = RECUR (LAMBDA_EXPR_CAPTURE_LIST (t));
+	LAMBDA_EXPR_THIS_CAPTURE (r)
+	  = RECUR (LAMBDA_EXPR_THIS_CAPTURE (t));
+	LAMBDA_EXPR_EXTRA_SCOPE (r)
+	  = RECUR (LAMBDA_EXPR_EXTRA_SCOPE (t));
+
+	/* Do this again now that LAMBDA_EXPR_EXTRA_SCOPE is set.  */
+	determine_visibility (TYPE_NAME (type));
+	/* Now that we know visibility, instantiate the type so we have a
+	   declaration of the op() for later calls to lambda_function.  */
+	complete_type (type);
+
+	type = tsubst (LAMBDA_EXPR_RETURN_TYPE (t), args, complain, in_decl);
+	if (type)
+	  apply_lambda_return_type (r, type);
+
+	return build_lambda_object (r);
+      }
 
     default:
       /* Handle Objective-C++ constructs, if appropriate.  */
@@ -15908,10 +16013,11 @@ instantiate_decl (tree d, int defer_ok,
       SET_DECL_IMPLICIT_INSTANTIATION (d);
     }
 
-  if (!defer_ok)
+  /* Recheck the substitutions to obtain any warning messages
+     about ignoring cv qualifiers.  Don't do this for artificial decls,
+     as it breaks the context-sensitive substitution for lambda op(). */
+  if (!defer_ok && !DECL_ARTIFICIAL (d))
     {
-      /* Recheck the substitutions to obtain any warning messages
-	 about ignoring cv qualifiers.  */
       tree gen = DECL_TEMPLATE_RESULT (gen_tmpl);
       tree type = TREE_TYPE (gen);
 

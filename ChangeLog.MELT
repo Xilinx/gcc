@@ -1,4 +1,10 @@
 
+2009-09-30  Basile Starynkevitch  <basile@starynkevitch.net>
+	[merged with trunk while LTO is merging inside trunk, however the
+	trunk's gengtype should now work for MELT, unchanged except by
+	addition of "melt-runtime.h"]
+	MELT branch merged with trunk rev 152324
+
 2009-09-22  Basile Starynkevitch  <basile@starynkevitch.net>
 	MELT branch merged with trunk rev 151961
 

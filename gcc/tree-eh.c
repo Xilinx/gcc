@@ -2849,10 +2849,26 @@ lower_resx (basic_block bb, gimple stmt, struct pointer_map_t *mnt_map)
     dst_r = NULL;
 
   src_r = get_eh_region_from_number (gimple_resx_region (stmt));
-  src_nr = build_int_cst (NULL, src_r->index);
   gsi = gsi_last_bb (bb);
 
-  if (dst_r)
+  if (src_r == NULL)
+    {
+      /* We can wind up with no source region when pass_cleanup_eh shows
+	 that there are no entries into an eh region and deletes it, but
+	 then the block that contains the resx isn't removed.  This can
+	 happen without optimization when the switch statement created by
+	 lower_try_finally_switch isn't simplified to remove the eh case.
+
+	 Resolve this by expanding the resx node to an abort.  */
+
+      fn = implicit_built_in_decls[BUILT_IN_TRAP];
+      x = gimple_build_call (fn, 0);
+      gsi_insert_before (&gsi, x, GSI_SAME_STMT);
+
+      while (EDGE_COUNT (bb->succs) > 0)
+	remove_edge (EDGE_SUCC (bb, 0));
+    }
+  else if (dst_r)
     {
       /* When we have a destination region, we resolve this by copying
 	 the excptr and filter values into place, and changing the edge
@@ -2903,6 +2919,7 @@ lower_resx (basic_block bb, gimple stmt, struct pointer_map_t *mnt_map)
 	  tree dst_nr = build_int_cst (NULL, dst_r->index);
 
 	  fn = implicit_built_in_decls[BUILT_IN_EH_COPY_VALUES];
+	  src_nr = build_int_cst (NULL, src_r->index);
 	  x = gimple_build_call (fn, 2, dst_nr, src_nr);
 	  gsi_insert_before (&gsi, x, GSI_SAME_STMT);
 
@@ -2932,22 +2949,18 @@ lower_resx (basic_block bb, gimple stmt, struct pointer_map_t *mnt_map)
 	 up the call chain.  We resolve this by generating a call to the
 	 _Unwind_Resume library function.  */
 
-      /* ??? The ARM EABI redefines _Unwind_Resume as __cxa_end_cleanup
+      /* The ARM EABI redefines _Unwind_Resume as __cxa_end_cleanup
 	 with no arguments for C++ and Java.  Check for that.  */
-      switch (targetm.arm_eabi_unwinder)
+      if (src_r->use_cxa_end_cleanup)
 	{
-	default:
-	  fn = implicit_built_in_decls[BUILT_IN_UNWIND_RESUME];
-	  if (TYPE_ARG_TYPES (TREE_TYPE (fn)) == void_list_node)
-	    {
-	      x = gimple_build_call (fn, 0);
-	      gsi_insert_before (&gsi, x, GSI_SAME_STMT);
-	      break;
-	    }
-	  /* FALLTHRU */
-
-	case 0:
+	  fn = implicit_built_in_decls[BUILT_IN_CXA_END_CLEANUP];
+	  x = gimple_build_call (fn, 0);
+	  gsi_insert_before (&gsi, x, GSI_SAME_STMT);
+	}
+      else
+	{
 	  fn = implicit_built_in_decls[BUILT_IN_EH_POINTER];
+	  src_nr = build_int_cst (NULL, src_r->index);
 	  x = gimple_build_call (fn, 1, src_nr);
 	  var = create_tmp_var (ptr_type_node, NULL);
 	  var = make_ssa_name (var, x);
@@ -2957,7 +2970,6 @@ lower_resx (basic_block bb, gimple stmt, struct pointer_map_t *mnt_map)
 	  fn = implicit_built_in_decls[BUILT_IN_UNWIND_RESUME];
 	  x = gimple_build_call (fn, 1, var);
 	  gsi_insert_before (&gsi, x, GSI_SAME_STMT);
-	  break;
 	}
 
       gcc_assert (EDGE_COUNT (bb->succs) == 0);
@@ -3000,9 +3012,9 @@ execute_lower_resx (void)
 }
 
 static bool
-gate_lower_ehcontrol (void)
+gate_lower_resx (void)
 {
-  return cfun->eh->region_tree != NULL;
+  return flag_exceptions != 0;
 }
 
 struct gimple_opt_pass pass_lower_resx =
@@ -3010,7 +3022,7 @@ struct gimple_opt_pass pass_lower_resx =
  {
   GIMPLE_PASS,
   "resx",				/* name */
-  gate_lower_ehcontrol,			/* gate */
+  gate_lower_resx,			/* gate */
   execute_lower_resx,			/* execute */
   NULL,					/* sub */
   NULL,					/* next */
@@ -3175,12 +3187,18 @@ execute_lower_eh_dispatch (void)
   return any_rewritten ? TODO_update_ssa_only_virtuals : 0;
 }
 
+static bool
+gate_lower_eh_dispatch (void)
+{
+  return cfun->eh->region_tree != NULL;
+}
+
 struct gimple_opt_pass pass_lower_eh_dispatch =
 {
  {
   GIMPLE_PASS,
   "ehdisp",				/* name */
-  gate_lower_ehcontrol,			/* gate */
+  gate_lower_eh_dispatch,		/* gate */
   execute_lower_eh_dispatch,		/* execute */
   NULL,					/* sub */
   NULL,					/* next */
@@ -3350,6 +3368,12 @@ unsplit_eh (eh_landing_pad lp)
       if (lp_nr && get_eh_region_from_lp_number (lp_nr) != lp->region)
 	return false;
     }
+
+  /* The new destination block must not already be a destination of
+     the source block, lest we merge fallthru and eh edges and get
+     all sorts of confused.  */
+  if (find_edge (e_in->src, e_out->dest))
+    return false;
 
   /* ??? I can't imagine there would be PHI nodes, since by nature
      of critical edge splitting this block should never have been

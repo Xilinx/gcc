@@ -4574,7 +4574,7 @@ c_define_builtins (tree va_list_ref_type_node, tree va_list_arg_type_node)
 
   targetm.init_builtins ();
 
-  build_common_builtin_nodes (c_dialect_cxx ());
+  build_common_builtin_nodes ();
 
   if (flag_mudflap)
     mudflap_init ();
@@ -9180,6 +9180,31 @@ is_typedef_decl (tree x)
 {
   return (x && TREE_CODE (x) == TYPE_DECL
           && DECL_ORIGINAL_TYPE (x) != NULL_TREE);
+}
+
+/* Record the types used by the current global variable declaration
+   being parsed, so that we can decide later to emit their debug info.
+   Those types are in types_used_by_cur_var_decl, and we are going to
+   store them in the types_used_by_vars_hash hash table.
+   DECL is the declaration of the global variable that has been parsed.  */
+
+void
+record_types_used_by_current_var_decl (tree decl)
+{
+  gcc_assert (decl && DECL_P (decl) && TREE_STATIC (decl));
+
+  if (types_used_by_cur_var_decl)
+    {
+      tree node;
+      for (node = types_used_by_cur_var_decl;
+	   node;
+	   node = TREE_CHAIN (node))
+      {
+	tree type = TREE_PURPOSE (node);
+	types_used_by_var_decl_insert (type, decl);
+      }
+      types_used_by_cur_var_decl = NULL;
+    }
 }
 
 /* The C and C++ parsers both use vectors to hold function arguments.

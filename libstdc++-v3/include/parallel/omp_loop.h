@@ -44,14 +44,14 @@ namespace __gnu_parallel
 /** @brief Embarrassingly parallel algorithm for random access
   * iterators, using an OpenMP for loop.
   *
-  *  @param __begin Begin iterator of element __sequence.
-  *  @param __end End iterator of element __sequence.
+  *  @param __begin Begin iterator of element sequence.
+  *  @param __end End iterator of element sequence.
   *  @param __o User-supplied functor (comparator, predicate, adding
   *  functor, etc.).
   *  @param __f Functor to "process" an element with __op (depends on
   *  desired functionality, e. g. for std::for_each(), ...).
   *  @param __r Functor to "add" a single __result to the already
-  *  processed __elements (depends on functionality).
+  *  processed elements (depends on functionality).
   *  @param __base Base value for reduction.
   *  @param __output Pointer to position where final result is written to
   *  @param __bound Maximum number of elements processed (e. g. for
@@ -64,7 +64,7 @@ template<typename _RAIter,
          typename _Red,
          typename _Result>
   _Op
-  for_each_template_random_access_omp_loop(
+  __for_each_template_random_access_omp_loop(
     _RAIter __begin, _RAIter __end, _Op __o, _Fu& __f, _Red __r,
     _Result __base, _Result& __output,
     typename std::iterator_traits<_RAIter>::difference_type __bound)

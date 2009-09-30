@@ -1995,9 +1995,22 @@ const_binop (enum tree_code code, tree arg1, tree arg2, int notrunc)
 	    return do_mpc_arg2 (arg1, arg2, type,
                                 /* do_nonfinite= */ folding_initializer,
 				mpc_div);
+	  /* Fallthru ... */
 #endif
 
+	case TRUNC_DIV_EXPR:
+	case CEIL_DIV_EXPR:
+	case FLOOR_DIV_EXPR:
+	case ROUND_DIV_EXPR:
+	  if (flag_complex_method == 0)
 	  {
+	    /* Keep this algorithm in sync with
+	       tree-complex.c:expand_complex_div_straight().
+
+	       Expand complex division to scalars, straightforward algorithm.
+	       a / b = ((ar*br + ai*bi)/t) + i((ai*br - ar*bi)/t)
+	       t = br*br + bi*bi
+	    */
 	    tree magsquared
 	      = const_binop (PLUS_EXPR,
 			     const_binop (MULT_EXPR, r2, r2, notrunc),
@@ -2014,11 +2027,63 @@ const_binop (enum tree_code code, tree arg1, tree arg2, int notrunc)
 			     const_binop (MULT_EXPR, r1, i2, notrunc),
 			     notrunc);
 
-	    if (INTEGRAL_TYPE_P (TREE_TYPE (r1)))
-	      code = TRUNC_DIV_EXPR;
-
 	    real = const_binop (code, t1, magsquared, notrunc);
 	    imag = const_binop (code, t2, magsquared, notrunc);
+	  }
+	  else
+	  {
+	    /* Keep this algorithm in sync with
+               tree-complex.c:expand_complex_div_wide().
+
+	       Expand complex division to scalars, modified algorithm to minimize
+	       overflow with wide input ranges.  */
+	    tree inner_type = TREE_TYPE (type);
+	    tree absr2 = fold_build1 (ABS_EXPR, inner_type, r2);
+	    tree absi2 = fold_build1 (ABS_EXPR, inner_type, i2);
+	    tree compare = fold_build2 (LT_EXPR, boolean_type_node, absr2, absi2);
+	    if (integer_nonzerop (compare))
+	      {
+		/* In the TRUE branch, we compute
+		   ratio = br/bi;
+		   div = (br * ratio) + bi;
+		   tr = (ar * ratio) + ai;
+		   ti = (ai * ratio) - ar;
+		   tr = tr / div;
+		   ti = ti / div;  */
+		tree ratio = fold_build2 (code, inner_type, r2, i2);
+		tree div = fold_build2 (PLUS_EXPR, inner_type, i2,
+					fold_build2 (MULT_EXPR, inner_type,
+						     r2, ratio));
+		real = fold_build2 (MULT_EXPR, inner_type, r1, ratio);
+		real = fold_build2 (PLUS_EXPR, inner_type, real, i1);
+		real = fold_build2 (code, inner_type, real, div);
+
+		imag = fold_build2 (MULT_EXPR, inner_type, i1, ratio);
+		imag = fold_build2 (MINUS_EXPR, inner_type, imag, r1);
+		imag = fold_build2 (code, inner_type, imag, div);
+	      }
+	    else
+	      {
+		/* In the FALSE branch, we compute
+		   ratio = d/c;
+		   divisor = (d * ratio) + c;
+		   tr = (b * ratio) + a;
+		   ti = b - (a * ratio);
+		   tr = tr / div;
+		   ti = ti / div;  */
+		tree ratio = fold_build2 (code, inner_type, i2, r2);
+		tree div = fold_build2 (PLUS_EXPR, inner_type, r2,
+                                        fold_build2 (MULT_EXPR, inner_type,
+                                                     i2, ratio));
+
+		real = fold_build2 (MULT_EXPR, inner_type, i1, ratio);
+		real = fold_build2 (PLUS_EXPR, inner_type, real, r1);
+		real = fold_build2 (code, inner_type, real, div);
+
+		imag = fold_build2 (MULT_EXPR, inner_type, r1, ratio);
+		imag = fold_build2 (MINUS_EXPR, inner_type, i1, imag);
+		imag = fold_build2 (code, inner_type, imag, div);
+	      }
 	  }
 	  break;
 
@@ -2765,8 +2830,6 @@ maybe_lvalue_p (const_tree x)
   case TARGET_EXPR:
   case COND_EXPR:
   case BIND_EXPR:
-  case MIN_EXPR:
-  case MAX_EXPR:
     break;
 
   default:
@@ -6447,7 +6510,19 @@ extract_muldiv_1 (tree t, tree c, enum tree_code code, tree wide_type,
       /* If this was a subtraction, negate OP1 and set it to be an addition.
 	 This simplifies the logic below.  */
       if (tcode == MINUS_EXPR)
-	tcode = PLUS_EXPR, op1 = negate_expr (op1);
+	{
+	  tcode = PLUS_EXPR, op1 = negate_expr (op1);
+	  /* If OP1 was not easily negatable, the constant may be OP0.  */
+	  if (TREE_CODE (op0) == INTEGER_CST)
+	    {
+	      tree tem = op0;
+	      op0 = op1;
+	      op1 = tem;
+	      tem = t1;
+	      t1 = t2;
+	      t2 = tem;
+	    }
+	}
 
       if (TREE_CODE (op1) != INTEGER_CST)
 	break;
@@ -12538,6 +12613,11 @@ fold_binary_loc (location_t loc,
           && code == EQ_EXPR)
         return fold_build1_loc (loc, TRUTH_NOT_EXPR, type,
 			    fold_convert_loc (loc, type, arg0));
+
+      /* !exp != 0 becomes !exp */
+      if (TREE_CODE (arg0) == TRUTH_NOT_EXPR && integer_zerop (arg1)
+	  && code == NE_EXPR)
+        return non_lvalue_loc (loc, fold_convert_loc (loc, type, arg0));
 
       /* If this is an equality comparison of the address of two non-weak,
 	 unaliased symbols neither of which are extern (since we do not

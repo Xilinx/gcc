@@ -10508,14 +10508,14 @@ meltgc_simple_ipa_execute(void)
    Non-simple IPA passes are not yet implemented! */
 void
 meltgc_register_pass (melt_ptr_t pass_p, 
-			 const char* positioning, 
-			 const char*refpassname,
-			 int refpassnum)
+		      const char* positioning, 
+		      const char*refpassname,
+		      int refpassnum)
 {
   static const char*modstr;
-  /* the plugin_pass can be local, since it is only locally used in
-     plugin.c */
-  struct plugin_pass plugpass = { NULL, NULL, 0, PASS_POS_INSERT_AFTER };
+  /* the register_pass_info can be local, since it is only locally
+     used in passes.c */
+  struct register_pass_info plugpassinf = { NULL, NULL, 0, PASS_POS_INSERT_AFTER };
   enum pass_positioning_ops posop = PASS_POS_INSERT_AFTER;
   unsigned long propreq=0, propprov=0, propdest=0, todostart=0, todofinish=0;
   MELT_ENTERFRAME (7, NULL);
@@ -10587,14 +10587,14 @@ meltgc_register_pass (melt_ptr_t pass_p,
     gimpass->pass.properties_destroyed = propdest;
     gimpass->pass.todo_flags_start = todostart;
     gimpass->pass.todo_flags_finish = todofinish;
-    plugpass.pass = (struct opt_pass*) gimpass;
-    plugpass.reference_pass_name = refpassname;
-    plugpass.ref_pass_instance_number = refpassnum;
-    plugpass.pos_op = posop;
+    plugpassinf.pass = (struct opt_pass*) gimpass;
+    plugpassinf.reference_pass_name = refpassname;
+    plugpassinf.ref_pass_instance_number = refpassnum;
+    plugpassinf.pos_op = posop;
     debugeprintf ("meltgc_register_pass name %s GIMPLE_PASS %p refpassname %s",
 		  melt_string_str ((melt_ptr_t) namev), (void*)gimpass, refpassname);
     register_callback(melt_plugin_name, PLUGIN_PASS_MANAGER_SETUP, 
-		      NULL, &plugpass);
+		      NULL, &plugpassinf);
     /* add the pass into the pass dict */
     meltgc_put_mapstrings((struct meltmapstrings_st*) passdictv,
 			  gimpass->pass.name, (melt_ptr_t) passv);
@@ -10616,14 +10616,14 @@ meltgc_register_pass (melt_ptr_t pass_p,
     rtlpass->pass.properties_destroyed = propdest;
     rtlpass->pass.todo_flags_start = todostart;
     rtlpass->pass.todo_flags_finish = todofinish;
-    plugpass.pass = (struct opt_pass*)rtlpass;
-    plugpass.reference_pass_name = refpassname;
-    plugpass.ref_pass_instance_number = refpassnum;
-    plugpass.pos_op = posop;
+    plugpassinf.pass = (struct opt_pass*)rtlpass;
+    plugpassinf.reference_pass_name = refpassname;
+    plugpassinf.ref_pass_instance_number = refpassnum;
+    plugpassinf.pos_op = posop;
     debugeprintf ("meltgc_register_pass name %s RTL_PASS %p refpassname %s",
 		  melt_string_str ((melt_ptr_t) namev), (void*)rtlpass, refpassname);
     register_callback(melt_plugin_name, PLUGIN_PASS_MANAGER_SETUP, 
-		      NULL, &plugpass);
+		      NULL, &plugpassinf);
     /* add the pass into the pass dict */
     meltgc_put_mapstrings((struct meltmapstrings_st*) passdictv,
 			  rtlpass->pass.name, (melt_ptr_t) passv);
@@ -10645,14 +10645,14 @@ meltgc_register_pass (melt_ptr_t pass_p,
     sipapass->pass.properties_destroyed = propdest;
     sipapass->pass.todo_flags_start = todostart;
     sipapass->pass.todo_flags_finish = todofinish;
-    plugpass.pass = (struct opt_pass*) sipapass;
-    plugpass.reference_pass_name = refpassname;
-    plugpass.ref_pass_instance_number = refpassnum;
-    plugpass.pos_op = posop;
+    plugpassinf.pass = (struct opt_pass*) sipapass;
+    plugpassinf.reference_pass_name = refpassname;
+    plugpassinf.ref_pass_instance_number = refpassnum;
+    plugpassinf.pos_op = posop;
     debugeprintf ("meltgc_register_pass name %s SIMPLE_IPA_PASS %p refpassname %s",
 		  melt_string_str ((melt_ptr_t) namev), (void*)sipapass, refpassname);
     register_callback(melt_plugin_name, PLUGIN_PASS_MANAGER_SETUP, 
-		      NULL, &plugpass);
+		      NULL, &plugpassinf);
     /* add the pass into the pass dict */
     meltgc_put_mapstrings((struct meltmapstrings_st*) passdictv,
 			  sipapass->pass.name, (melt_ptr_t) passv);
