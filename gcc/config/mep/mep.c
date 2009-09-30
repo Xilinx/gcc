@@ -1211,6 +1211,20 @@ mep_multi_slot (rtx x)
 }
 
 
+bool
+mep_legitimate_constant_p (rtx x)
+{
+  /* We can't convert symbol values to gp- or tp-rel values after
+     reload, as reload might have used $gp or $tp for other
+     purposes.  */
+  if (GET_CODE (x) == SYMBOL_REF && (reload_in_progress || reload_completed))
+    {
+      char e = mep_section_tag (x);
+      return (e != 't' && e != 'b');
+    }
+  return 1;
+}
+
 /* Be careful not to use macros that need to be compiled one way for
    strict, and another way for not-strict, like REG_OK_FOR_BASE_P.  */
 
@@ -1982,7 +1996,7 @@ mep_emit_cbranch (rtx *operands, int ne)
 {
   if (GET_CODE (operands[1]) == REG)
     return ne ? "bne\t%0, %1, %l2" : "beq\t%0, %1, %l2";
-  else if (INTVAL (operands[1]) == 0)
+  else if (INTVAL (operands[1]) == 0 && !mep_vliw_function_p(cfun->decl))
     return ne ? "bnez\t%0, %l2" : "beqz\t%0, %l2";
   else
     return ne ? "bnei\t%0, %1, %l2" : "beqi\t%0, %1, %l2";
@@ -3297,6 +3311,7 @@ const conversions[] =
   { 0, "m+ri", "3(2)" },
   { 0, "mr", "(1)" },
   { 0, "ms", "(1)" },
+  { 0, "ml", "(1)" },
   { 0, "mLrs", "%lo(3)(2)" },
   { 0, "mLr+si", "%lo(4+5)(2)" },
   { 0, "m+ru2s", "%tpoff(5)(2)" },
@@ -4563,6 +4578,8 @@ mep_encode_section_info (tree decl, rtx rtl, int first)
       idp = get_identifier (newname);
       XEXP (rtl, 0) =
 	gen_rtx_SYMBOL_REF (Pmode, IDENTIFIER_POINTER (idp));
+      SYMBOL_REF_WEAK (XEXP (rtl, 0)) = DECL_WEAK (decl);
+      SET_SYMBOL_REF_DECL (XEXP (rtl, 0), decl);
 
       switch (encoding)
 	{

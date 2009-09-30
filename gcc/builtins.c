@@ -6236,6 +6236,7 @@ static void
 expand_builtin_synchronize (void)
 {
   gimple x;
+  VEC (tree, gc) *v_clobbers;
 
 #ifdef HAVE_memory_barrier
   if (HAVE_memory_barrier)
@@ -6253,8 +6254,10 @@ expand_builtin_synchronize (void)
 
   /* If no explicit memory barrier instruction is available, create an
      empty asm stmt with a memory clobber.  */
-  x = gimple_build_asm ("", 0, 0, 1,
-			tree_cons (NULL, build_string (6, "memory"), NULL));
+  v_clobbers = VEC_alloc (tree, gc, 1);
+  VEC_quick_push (tree, v_clobbers,
+		  tree_cons (NULL, build_string (6, "memory"), NULL));
+  x = gimple_build_asm_vec ("", NULL, NULL, v_clobbers, NULL);
   gimple_asm_set_volatile (x, true);
   expand_asm_stmt (x);
 }
@@ -6940,6 +6943,12 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
 #endif
     case BUILT_IN_EXTEND_POINTER:
       return expand_builtin_extend_pointer (CALL_EXPR_ARG (exp, 0));
+    case BUILT_IN_EH_POINTER:
+      return expand_builtin_eh_pointer (exp);
+    case BUILT_IN_EH_FILTER:
+      return expand_builtin_eh_filter (exp);
+    case BUILT_IN_EH_COPY_VALUES:
+      return expand_builtin_eh_copy_values (exp);
 
     case BUILT_IN_VA_START:
       return expand_builtin_va_start (exp);

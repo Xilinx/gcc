@@ -210,6 +210,14 @@ ptr_deref_may_alias_decl_p (tree ptr, tree decl)
   if (!pi)
     return true;
 
+  /* If the decl can be used as a restrict tag and we have a restrict
+     pointer and that pointers points-to set doesn't contain this decl
+     then they can't alias.  */
+  if (DECL_RESTRICTED_P (decl)
+      && TYPE_RESTRICT (TREE_TYPE (ptr))
+      && pi->pt.vars_contains_restrict)
+    return bitmap_bit_p (pi->pt.vars, DECL_UID (decl));
+
   return pt_solution_includes (&pi->pt, decl);
 }
 
@@ -792,6 +800,12 @@ refs_may_alias_p_1 (ao_ref *ref1, ao_ref *ref2, bool tbaa_p)
       || is_gimple_min_invariant (base2))
     return false;
 
+  /* We can end up refering to code via function decls.  As we likely
+     do not properly track code aliases conservatively bail out.  */
+  if (TREE_CODE (base1) == FUNCTION_DECL
+      || TREE_CODE (base2) == FUNCTION_DECL)
+    return true;
+
   /* Defer to simple offset based disambiguation if we have
      references based on two decls.  Do this before defering to
      TBAA to handle must-alias cases in conformance with the
@@ -1029,10 +1043,6 @@ process_args:
   for (i = 0; i < gimple_call_num_args (call); ++i)
     {
       tree op = gimple_call_arg (call, i);
-
-      if (TREE_CODE (op) == EXC_PTR_EXPR
-	  || TREE_CODE (op) == FILTER_EXPR)
-	continue;
 
       if (TREE_CODE (op) == WITH_SIZE_EXPR)
 	op = TREE_OPERAND (op, 0);

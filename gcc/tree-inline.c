@@ -65,7 +65,7 @@ along with GCC; see the file COPYING3.  If not see
    MODIFY_EXPRs that store to a dedicated returned-value variable.
    The duplicated eh_region info of the copy will later be appended
    to the info for the caller; the eh_region info in copied throwing
-   statements and RESX_EXPRs is adjusted accordingly.
+   statements and RESX statements are adjusted accordingly.
 
    Cloning: (only in C++) We have one body for a con/de/structor, and
    multiple function decls, each with a unique parameter list.
@@ -343,6 +343,10 @@ remap_type_1 (tree type, copy_body_data *id)
       new_tree = build_pointer_type_for_mode (remap_type (TREE_TYPE (type), id),
 					 TYPE_MODE (type),
 					 TYPE_REF_CAN_ALIAS_ALL (type));
+      if (TYPE_ATTRIBUTES (type) || TYPE_QUALS (type))
+	new_tree = build_type_attribute_qual_variant (new_tree,
+						      TYPE_ATTRIBUTES (type),
+						      TYPE_QUALS (type));
       insert_decl_map (id, type, new_tree);
       return new_tree;
     }
@@ -351,6 +355,10 @@ remap_type_1 (tree type, copy_body_data *id)
       new_tree = build_reference_type_for_mode (remap_type (TREE_TYPE (type), id),
 					    TYPE_MODE (type),
 					    TYPE_REF_CAN_ALIAS_ALL (type));
+      if (TYPE_ATTRIBUTES (type) || TYPE_QUALS (type))
+	new_tree = build_type_attribute_qual_variant (new_tree,
+						      TYPE_ATTRIBUTES (type),
+						      TYPE_QUALS (type));
       insert_decl_map (id, type, new_tree);
       return new_tree;
     }
@@ -537,6 +545,7 @@ remap_decls (tree decls, VEC(tree,gc) **nonlocalized_list, copy_body_data *id)
       if (can_be_nonlocal (old_var, id))
 	{
 	  if (TREE_CODE (old_var) == VAR_DECL
+	      && ! DECL_EXTERNAL (old_var)
 	      && (var_ann (old_var) || !gimple_in_ssa_p (cfun)))
 	    cfun->local_decls = tree_cons (NULL_TREE, old_var,
 						   cfun->local_decls);
@@ -1105,12 +1114,6 @@ copy_tree_body_r (tree *tp, int *walk_subtrees, void *data)
 	  TREE_BLOCK (*tp) = new_block;
 	}
 
-      if (TREE_CODE (*tp) == RESX_EXPR && id->eh_region_offset)
-	TREE_OPERAND (*tp, 0) =
-	  build_int_cst (NULL_TREE,
-			 id->eh_region_offset
-			 + TREE_INT_CST_LOW (TREE_OPERAND (*tp, 0)));
-
       if (TREE_CODE (*tp) != OMP_CLAUSE)
 	TREE_TYPE (*tp) = remap_type (TREE_TYPE (*tp), id);
 
@@ -1150,6 +1153,35 @@ copy_tree_body_r (tree *tp, int *walk_subtrees, void *data)
   return NULL_TREE;
 }
 
+/* Helper for remap_gimple_stmt.  Given an EH region number for the
+   source function, map that to the duplicate EH region number in
+   the destination function.  */
+
+static int
+remap_eh_region_nr (int old_nr, copy_body_data *id)
+{
+  eh_region old_r, new_r;
+  void **slot;
+
+  old_r = get_eh_region_from_number_fn (id->src_cfun, old_nr);
+  slot = pointer_map_contains (id->eh_map, old_r);
+  new_r = (eh_region) *slot;
+
+  return new_r->index;
+}
+
+/* Similar, but operate on INTEGER_CSTs.  */
+
+static tree
+remap_eh_region_tree_nr (tree old_t_nr, copy_body_data *id)
+{
+  int old_nr, new_nr;
+
+  old_nr = tree_low_cst (old_t_nr, 0);
+  new_nr = remap_eh_region_nr (old_nr, id);
+
+  return build_int_cst (NULL, new_nr);
+}
 
 /* Helper for copy_bb.  Remap statement STMT using the inlining
    information in ID.  Return the new statement copy.  */
@@ -1339,9 +1371,59 @@ remap_gimple_stmt (gimple stmt, copy_body_data *id)
 	  VEC_safe_push (gimple, heap, id->debug_stmts, copy);
 	  return copy;
 	}
-      else
-	/* Create a new deep copy of the statement.  */
-	copy = gimple_copy (stmt);
+
+      /* Create a new deep copy of the statement.  */
+      copy = gimple_copy (stmt);
+
+      /* Remap the region numbers for __builtin_eh_{pointer,filter},
+	 RESX and EH_DISPATCH.  */
+      if (id->eh_map)
+	switch (gimple_code (copy))
+	  {
+	  case GIMPLE_CALL:
+	    {
+	      tree r, fndecl = gimple_call_fndecl (copy);
+	      if (fndecl && DECL_BUILT_IN_CLASS (fndecl) == BUILT_IN_NORMAL)
+		switch (DECL_FUNCTION_CODE (fndecl))
+		  {
+		  case BUILT_IN_EH_COPY_VALUES:
+		    r = gimple_call_arg (copy, 1);
+		    r = remap_eh_region_tree_nr (r, id);
+		    gimple_call_set_arg (copy, 1, r);
+		    /* FALLTHRU */
+
+		  case BUILT_IN_EH_POINTER:
+		  case BUILT_IN_EH_FILTER:
+		    r = gimple_call_arg (copy, 0);
+		    r = remap_eh_region_tree_nr (r, id);
+		    gimple_call_set_arg (copy, 0, r);
+		    break;
+
+		  default:
+		    break;
+		  }
+	    }
+	    break;
+
+	  case GIMPLE_RESX:
+	    {
+	      int r = gimple_resx_region (copy);
+	      r = remap_eh_region_nr (r, id);
+	      gimple_resx_set_region (copy, r);
+	    }
+	    break;
+
+	  case GIMPLE_EH_DISPATCH:
+	    {
+	      int r = gimple_eh_dispatch_region (copy);
+	      r = remap_eh_region_nr (r, id);
+	      gimple_eh_dispatch_set_region (copy, r);
+	    }
+	    break;
+
+	  default:
+	    break;
+	  }
     }
 
   /* If STMT has a block defined, map it to the newly constructed
@@ -1377,12 +1459,6 @@ remap_gimple_stmt (gimple stmt, copy_body_data *id)
       gimple_set_vuse (copy, NULL_TREE);
     }
 
-  /* We have to handle EH region remapping of GIMPLE_RESX specially because
-     the region number is not an operand.  */
-  if (gimple_code (stmt) == GIMPLE_RESX && id->eh_region_offset)
-    {
-      gimple_resx_set_region (copy, gimple_resx_region (stmt) + id->eh_region_offset);
-    }
   return copy;
 }
 
@@ -1617,43 +1693,8 @@ copy_bb (copy_body_data *id, basic_block bb, int frequency_scale,
 		cfun->calls_setjmp = true;
 	    }
 
-	  /* If you think we can abort here, you are wrong.
-	     There is no region 0 in gimple.  */
-	  gcc_assert (lookup_stmt_eh_region_fn (id->src_cfun, orig_stmt) != 0);
-
-	  if (stmt_could_throw_p (stmt)
-	      /* When we are cloning for inlining, we are supposed to
-		 construct a clone that calls precisely the same functions
-		 as original.  However IPA optimizers might've proved
-		 earlier some function calls as non-trapping that might
-		 render some basic blocks dead that might become
-		 unreachable.
-
-		 We can't update SSA with unreachable blocks in CFG and thus
-		 we prevent the scenario by preserving even the "dead" eh
-		 edges until the point they are later removed by
-		 fixup_cfg pass.  */
-	      || (id->transform_call_graph_edges == CB_CGE_MOVE_CLONES
-		  && lookup_stmt_eh_region_fn (id->src_cfun, orig_stmt) > 0))
-	    {
-	      int region = lookup_stmt_eh_region_fn (id->src_cfun, orig_stmt);
-
-	      /* Add an entry for the copied tree in the EH hashtable.
-		 When cloning or versioning, use the hashtable in
-		 cfun, and just copy the EH number.  When inlining, use the
-		 hashtable in the caller, and adjust the region number.  */
-	      if (region > 0)
-		add_stmt_to_eh_region (stmt, region + id->eh_region_offset);
-
-	      /* If this tree doesn't have a region associated with it,
-		 and there is a "current region,"
-		 then associate this tree with the current region
-		 and add edges associated with this region.  */
-	      if (lookup_stmt_eh_region_fn (id->src_cfun, orig_stmt) <= 0
-		  && id->eh_region > 0
-		  && stmt_could_throw_p (stmt))
-		add_stmt_to_eh_region (stmt, id->eh_region);
-	    }
+	  maybe_duplicate_eh_stmt_fn (cfun, stmt, id->src_cfun, orig_stmt,
+				      id->eh_map, id->eh_lp_nr);
 
 	  if (gimple_in_ssa_p (cfun) && !is_gimple_debug (stmt))
 	    {
@@ -1822,7 +1863,9 @@ copy_edges_for_bb (basic_block bb, gcov_type count_scale, basic_block ret_bb)
 	    }
 	}
 
-      if (can_throw)
+      if (gimple_code (copy_stmt) == GIMPLE_EH_DISPATCH)
+	make_eh_dispatch_edges (copy_stmt);
+      else if (can_throw)
 	make_eh_edges (copy_stmt);
 
       if (nonlocal_goto)
@@ -2025,11 +2068,8 @@ copy_cfg_body (copy_body_data * id, gcov_type count, int frequency,
 
   /* Duplicate any exception-handling regions.  */
   if (cfun->eh)
-    {
-      id->eh_region_offset
-	= duplicate_eh_regions (cfun_to_copy, remap_decl_1, id,
-				0, id->eh_region);
-    }
+    id->eh_map = duplicate_eh_regions (cfun_to_copy, NULL, id->eh_lp_nr,
+				       remap_decl_1, id);
 
   /* Use aux pointers to map the original blocks to copy.  */
   FOR_EACH_BB_FN (bb, cfun_to_copy)
@@ -2061,6 +2101,12 @@ copy_cfg_body (copy_body_data * id, gcov_type count, int frequency,
     BASIC_BLOCK (last)->aux = NULL;
   entry_block_map->aux = NULL;
   exit_block_map->aux = NULL;
+
+  if (id->eh_map)
+    {
+      pointer_map_destroy (id->eh_map);
+      id->eh_map = NULL;
+    }
 
   return new_fndecl;
 }
@@ -3195,14 +3241,6 @@ estimate_num_insns (gimple stmt, eni_weights *weights)
       lhs = gimple_assign_lhs (stmt);
       rhs = gimple_assign_rhs1 (stmt);
 
-      /* EH magic stuff is most probably going to be optimized out.
-         We rarely really need to save EH info for unwinding
-         nested exceptions.  */
-      if (TREE_CODE (lhs) == FILTER_EXPR
-	  || TREE_CODE (lhs) == EXC_PTR_EXPR
-          || TREE_CODE (rhs) == FILTER_EXPR
-	  || TREE_CODE (rhs) == EXC_PTR_EXPR)
-	return 0;
       if (is_gimple_reg (lhs))
 	cost = 0;
       else
@@ -3313,8 +3351,18 @@ estimate_num_insns (gimple stmt, eni_weights *weights)
       return 0;
 
     case GIMPLE_ASM:
-    case GIMPLE_RESX:
       return 1;
+
+    case GIMPLE_RESX:
+      /* This is either going to be an external function call with one
+	 argument, or two register copy statements plus a goto.  */
+      return 2;
+
+    case GIMPLE_EH_DISPATCH:
+      /* ??? This is going to turn into a switch statement.  Ideally
+	 we'd have a look at the eh region and estimate the number of
+	 edges involved.  */
+      return 10;
 
     case GIMPLE_BIND:
       return estimate_num_insns_seq (gimple_bind_body (stmt), weights);
@@ -3510,6 +3558,13 @@ expand_call_inline (basic_block bb, gimple stmt, copy_body_data *id)
 
   cg_edge = cgraph_edge (id->dst_node, stmt);
 
+  /* Don't inline functions with different EH personalities.  */
+  if (DECL_FUNCTION_PERSONALITY (cg_edge->caller->decl)
+      && DECL_FUNCTION_PERSONALITY (cg_edge->callee->decl)
+      && (DECL_FUNCTION_PERSONALITY (cg_edge->caller->decl)
+	  != DECL_FUNCTION_PERSONALITY (cg_edge->callee->decl)))
+    goto egress;
+
   /* Don't try to inline functions that are not well-suited to
      inlining.  */
   if (!cgraph_inline_p (cg_edge, &reason))
@@ -3549,7 +3604,12 @@ expand_call_inline (basic_block bb, gimple stmt, copy_body_data *id)
 #endif
 
   /* We will be inlining this callee.  */
-  id->eh_region = lookup_stmt_eh_region (stmt);
+  id->eh_lp_nr = lookup_stmt_eh_lp (stmt);
+
+  /* Update the callers EH personality.  */
+  if (DECL_FUNCTION_PERSONALITY (cg_edge->callee->decl))
+    DECL_FUNCTION_PERSONALITY (cg_edge->caller->decl)
+      = DECL_FUNCTION_PERSONALITY (cg_edge->callee->decl);
 
   /* Split the block holding the GIMPLE_CALL.  */
   e = split_block (bb, stmt);
@@ -4752,6 +4812,7 @@ tree_function_versioning (tree old_decl, tree new_decl,
 
   DECL_ARTIFICIAL (new_decl) = 1;
   DECL_ABSTRACT_ORIGIN (new_decl) = DECL_ORIGIN (old_decl);
+  DECL_FUNCTION_PERSONALITY (new_decl) = DECL_FUNCTION_PERSONALITY (old_decl);
 
   /* Prepare the data structures for the tree copy.  */
   memset (&id, 0, sizeof (id));
@@ -4944,7 +5005,7 @@ maybe_inline_call_in_expr (tree exp)
       id.do_not_unshare = true;
 
       /* We're not inside any EH region.  */
-      id.eh_region = -1;
+      id.eh_lp_nr = 0;
 
       t = copy_tree_body (&id);
       pointer_map_destroy (decl_map);
@@ -5021,6 +5082,18 @@ tree_can_inline_p (struct cgraph_edge *e)
 
   caller = e->caller->decl;
   callee = e->callee->decl;
+
+  /* We cannot inline a function that uses a different EH personality
+     than the caller.  */
+  if (DECL_FUNCTION_PERSONALITY (caller)
+      && DECL_FUNCTION_PERSONALITY (callee)
+      && (DECL_FUNCTION_PERSONALITY (caller)
+	  != DECL_FUNCTION_PERSONALITY (callee)))
+    {
+      e->inline_failed = CIF_UNSPECIFIED;
+      gimple_call_set_cannot_inline (e->call_stmt, true);
+      return false;
+    }
 
   /* Allow the backend to decide if inlining is ok.  */
   if (!targetm.target_option.can_inline_p (caller, callee))

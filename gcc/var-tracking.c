@@ -723,12 +723,24 @@ static inline bool
 dv_is_decl_p (decl_or_value dv)
 {
   if (!dv)
-    return false;
+    return true;
 
-  if (GET_CODE ((rtx)dv) == VALUE)
-    return false;
+  /* Make sure relevant codes don't overlap.  */
+  switch ((int)TREE_CODE ((tree)dv))
+    {
+    case (int)VAR_DECL:
+    case (int)PARM_DECL:
+    case (int)RESULT_DECL:
+    case (int)FUNCTION_DECL:
+    case (int)COMPONENT_REF:
+      return true;
 
-  return true;
+    case (int)VALUE:
+      return false;
+
+    default:
+      gcc_unreachable ();
+    }
 }
 
 /* Return true if a decl_or_value is a VALUE rtl.  */
@@ -790,21 +802,13 @@ dv_pool (decl_or_value dv)
   return dv_onepart_p (dv) ? valvar_pool : var_pool;
 }
 
-#define IS_DECL_CODE(C) ((C) == VAR_DECL || (C) == PARM_DECL \
-			 || (C) == RESULT_DECL || (C) == COMPONENT_REF)
-
-/* Check that VALUE won't ever look like a DECL.  */
-static char check_value_is_not_decl [(!IS_DECL_CODE ((enum tree_code)VALUE))
-				     ? 1 : -1] ATTRIBUTE_UNUSED;
-
-
 /* Build a decl_or_value out of a decl.  */
 static inline decl_or_value
 dv_from_decl (tree decl)
 {
   decl_or_value dv;
-  gcc_assert (!decl || IS_DECL_CODE (TREE_CODE (decl)));
   dv = decl;
+  gcc_assert (dv_is_decl_p (dv));
   return dv;
 }
 
@@ -813,8 +817,8 @@ static inline decl_or_value
 dv_from_value (rtx value)
 {
   decl_or_value dv;
-  gcc_assert (value);
   dv = value;
+  gcc_assert (dv_is_value_p (dv));
   return dv;
 }
 
@@ -6239,7 +6243,8 @@ check_wrap_constant (enum machine_mode mode, rtx result)
 }
 
 /* Callback for cselib_expand_value, that looks for expressions
-   holding the value in the var-tracking hash tables.  */
+   holding the value in the var-tracking hash tables.  Return X for
+   standard processing, anything else is to be used as-is.  */
 
 static rtx
 vt_expand_loc_callback (rtx x, bitmap regs, int max_depth, void *data)
@@ -6250,19 +6255,46 @@ vt_expand_loc_callback (rtx x, bitmap regs, int max_depth, void *data)
   location_chain loc;
   rtx result;
 
-  gcc_assert (GET_CODE (x) == VALUE);
+  if (GET_CODE (x) == SUBREG)
+    {
+      rtx subreg = SUBREG_REG (x);
+
+      if (GET_CODE (SUBREG_REG (x)) != VALUE)
+	return x;
+
+      subreg = cselib_expand_value_rtx_cb (SUBREG_REG (x), regs,
+					   max_depth - 1,
+					   vt_expand_loc_callback, data);
+
+      if (!subreg)
+	return NULL;
+
+      result = simplify_gen_subreg (GET_MODE (x), subreg,
+				    GET_MODE (SUBREG_REG (x)),
+				    SUBREG_BYTE (x));
+
+      /* Invalid SUBREGs are ok in debug info.  ??? We could try
+	 alternate expansions for the VALUE as well.  */
+      if (!result && (REG_P (subreg) || MEM_P (subreg)))
+	result = gen_rtx_raw_SUBREG (GET_MODE (x), subreg, SUBREG_BYTE (x));
+
+      return result;
+    }
+
+  if (GET_CODE (x) != VALUE)
+    return x;
 
   if (VALUE_RECURSED_INTO (x))
-    return NULL;
+    return x;
 
   dv = dv_from_value (x);
   var = (variable) htab_find_with_hash (vars, dv, dv_htab_hash (dv));
 
   if (!var)
-    return NULL;
+    return x;
 
   if (var->n_var_parts == 0)
-    return NULL;
+    return x;
 
   gcc_assert (var->n_var_parts == 1);
 
@@ -6279,7 +6311,10 @@ vt_expand_loc_callback (rtx x, bitmap regs, int max_depth, void *data)
     }
 
   VALUE_RECURSED_INTO (x) = false;
-  return result;
+  if (result)
+    return result;
+  else
+    return x;
 }
 
 /* Expand VALUEs in LOC, using VARS as well as cselib's equivalence

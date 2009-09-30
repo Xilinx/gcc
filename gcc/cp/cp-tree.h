@@ -3805,7 +3805,7 @@ extern int at_eof;
    TREE_PURPOSE slot.  */
 extern GTY(()) tree static_aggregates;
 
-enum overload_flags { NO_SPECIAL = 0, DTOR_FLAG, OP_FLAG, TYPENAME_FLAG };
+enum overload_flags { NO_SPECIAL = 0, DTOR_FLAG, TYPENAME_FLAG };
 
 /* These are uses as bits in flags passed to various functions to
    control their behavior.  Despite the LOOKUP_ prefix, many of these
@@ -4419,8 +4419,7 @@ extern tree begin_function_body			(void);
 extern void finish_function_body		(tree);
 extern tree outer_curly_brace_block		(tree);
 extern tree finish_function			(int);
-extern tree start_method			(cp_decl_specifier_seq *, const cp_declarator *, tree);
-extern tree finish_method			(tree);
+extern tree grokmethod				(cp_decl_specifier_seq *, const cp_declarator *, tree);
 extern void maybe_register_incomplete_var	(tree);
 extern void maybe_commonize_var			(tree);
 extern void complete_vars			(tree);
@@ -4526,6 +4525,7 @@ extern void choose_personality_routine		(enum languages);
 extern tree eh_type_info			(tree);
 extern tree begin_eh_spec_block			(void);
 extern void finish_eh_spec_block		(tree, tree);
+extern tree build_eh_type_type			(tree);
 
 /* in expr.c */
 extern tree cplus_expand_constant		(tree);
@@ -4824,7 +4824,8 @@ enum {
 extern tree begin_compound_stmt			(unsigned int);
 
 extern void finish_compound_stmt		(tree);
-extern tree finish_asm_stmt			(int, tree, tree, tree, tree);
+extern tree finish_asm_stmt			(int, tree, tree, tree, tree,
+						 tree);
 extern tree finish_label_stmt			(tree);
 extern void finish_label_decl			(tree);
 extern tree finish_parenthesized_expr		(tree);

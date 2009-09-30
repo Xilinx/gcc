@@ -46,6 +46,7 @@ extern bool lhd_do_nothing_t_return_bool (tree);
 extern int lhd_do_nothing_t_t_return_int (tree, tree);
 extern bool lhd_do_nothing_t_vp_return_bool (tree, void *);
 extern void lhd_do_nothing_f (struct function *);
+extern tree lhd_pass_through_t (tree);
 extern bool lhd_post_options (const char **);
 extern alias_set_type lhd_get_alias_set (tree);
 extern tree lhd_return_null_tree_v (void);
@@ -115,6 +116,8 @@ extern void lhd_omp_firstprivatize_type_sizes (struct gimplify_omp_ctx *,
 #define LANG_HOOKS_EXPR_TO_DECL		lhd_expr_to_decl
 #define LANG_HOOKS_TO_TARGET_CHARSET	lhd_to_target_charset
 #define LANG_HOOKS_INIT_TS		lhd_do_nothing
+#define LANG_HOOKS_EH_PERSONALITY	lhd_gcc_personality
+#define LANG_HOOKS_EH_RUNTIME_TYPE	lhd_pass_through_t
 
 /* Attribute hooks.  */
 #define LANG_HOOKS_ATTRIBUTE_TABLE		NULL
@@ -314,6 +317,8 @@ extern tree lhd_make_node (enum tree_code);
   LANG_HOOKS_USER_CONV_FUNCTION, \
   LANG_HOOKS_INIT_TS,          \
   LANG_HOOKS_EXPR_TO_DECL, \
+  LANG_HOOKS_EH_PERSONALITY, \
+  LANG_HOOKS_EH_RUNTIME_TYPE, \
 }
 
 #endif /* GCC_LANG_HOOKS_DEF_H */

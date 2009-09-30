@@ -575,6 +575,7 @@ init_optimization_passes (void)
 	  NEXT_PASS (pass_copy_prop);
 	  NEXT_PASS (pass_merge_phi);
 	  NEXT_PASS (pass_cd_dce);
+	  NEXT_PASS (pass_early_ipa_sra);
 	  NEXT_PASS (pass_tail_recursion);
 	  NEXT_PASS (pass_convert_switch);
           NEXT_PASS (pass_cleanup_eh);
@@ -600,6 +601,7 @@ init_optimization_passes (void)
      output to the assembler file.  */
   p = &all_passes;
   NEXT_PASS (pass_direct_call_profile);
+  NEXT_PASS (pass_lower_eh_dispatch);
   NEXT_PASS (pass_all_optimizations);
     {
       struct opt_pass **p = &pass_all_optimizations.pass.sub;
@@ -723,6 +725,7 @@ init_optimization_passes (void)
       NEXT_PASS (pass_local_pure_const);
     }
   NEXT_PASS (pass_cleanup_eh);
+  NEXT_PASS (pass_lower_resx);
   NEXT_PASS (pass_nrv);
   NEXT_PASS (pass_mudflap_2);
   NEXT_PASS (pass_cleanup_cfg_post_optimizing);

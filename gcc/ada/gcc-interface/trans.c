@@ -1026,14 +1026,14 @@ Pragma_to_gnu (Node_Id gnat_node)
 	  asm_constraint = build_string (strlen (comment), comment);
 	  free (comment);
 #endif
-	  gnu_expr = build4 (ASM_EXPR, void_type_node,
+	  gnu_expr = build5 (ASM_EXPR, void_type_node,
 			     asm_constraint,
 			     NULL_TREE,
 			     tree_cons
 			     (build_tree_list (NULL_TREE,
 					       build_string (1, "g")),
 			      gnu_expr, NULL_TREE),
-			     NULL_TREE);
+			     NULL_TREE, NULL_TREE);
 	  ASM_VOLATILE_P (gnu_expr) = 1;
 	  set_expr_location_from_node (gnu_expr, gnat_node);
 	  append_to_statement_list (gnu_expr, &gnu_result);
@@ -1279,9 +1279,16 @@ Attribute_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, int attribute)
     case Attr_Max_Size_In_Storage_Elements:
       gnu_expr = gnu_prefix;
 
-      /* Remove NOPs from GNU_EXPR and conversions from GNU_PREFIX.
-	 We only use GNU_EXPR to see if a COMPONENT_REF was involved.  */
-      while (TREE_CODE (gnu_expr) == NOP_EXPR)
+      /* Remove NOPs and conversions between original and packable version
+	 from GNU_EXPR, and conversions from GNU_PREFIX.  We use GNU_EXPR
+	 to see if a COMPONENT_REF was involved.  */
+      while (TREE_CODE (gnu_expr) == NOP_EXPR
+	     || (TREE_CODE (gnu_expr) == VIEW_CONVERT_EXPR
+		 && TREE_CODE (TREE_TYPE (gnu_expr)) == RECORD_TYPE
+		 && TREE_CODE (TREE_TYPE (TREE_OPERAND (gnu_expr, 0)))
+		    == RECORD_TYPE
+		 && TYPE_NAME (TREE_TYPE (gnu_expr))
+		    == TYPE_NAME (TREE_TYPE (TREE_OPERAND (gnu_expr, 0)))))
 	gnu_expr = TREE_OPERAND (gnu_expr, 0);
 
       gnu_prefix = remove_conversions (gnu_prefix, true);
@@ -3304,7 +3311,7 @@ Exception_Handler_to_gnu_zcx (Node_Id gnat_node)
      a new occurrence on top of the stack, which means that this top does not
      necessarily match the occurrence this handler was dealing with.
 
-     The EXC_PTR_EXPR object references the exception occurrence being
+     __builtin_eh_pointer references the exception occurrence being
      propagated. Upon handler entry, this is the exception for which the
      handler is triggered. This might not be the case upon handler exit,
      however, as we might have a new occurrence propagated by the handler's
@@ -3312,7 +3319,10 @@ Exception_Handler_to_gnu_zcx (Node_Id gnat_node)
 
      We use a local variable to retrieve the incoming value at handler entry
      time, and reuse it to feed the end_handler hook's argument at exit.  */
-  gnu_current_exc_ptr = build0 (EXC_PTR_EXPR, ptr_type_node);
+
+  gnu_current_exc_ptr
+    = build_call_expr (built_in_decls [BUILT_IN_EH_POINTER],
+		       1, integer_zero_node);
   gnu_incoming_exc_ptr = create_var_decl (get_identifier ("EXPTR"), NULL_TREE,
 					  ptr_type_node, gnu_current_exc_ptr,
 					  false, false, false, false, NULL,
@@ -5085,9 +5095,9 @@ gnat_to_gnu (Node_Id gnat_node)
 	      TREE_VALUE (tail) = input;
 	    }
 
-	  gnu_result = build4 (ASM_EXPR,  void_type_node,
+	  gnu_result = build5 (ASM_EXPR,  void_type_node,
 			       gnu_template, gnu_outputs,
-			       gnu_inputs, gnu_clobbers);
+			       gnu_inputs, gnu_clobbers, NULL_TREE);
 	  ASM_VOLATILE_P (gnu_result) = Is_Asm_Volatile (gnat_node);
 	}
       else

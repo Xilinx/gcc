@@ -1,3 +1,19 @@
+2009-09-16  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* hashtab.c [HAVE_INTTYPES_H]: Include <inttypes.h>.
+
+2009-09-15  Tristan Gingold  <gingold@adacore.com>
+
+	* config.h-vms (intptr_t): Define to compile hashtab.c
+
+2009-09-04  Ozkan Sezer  <sezeroz@gmail.com>
+
+	PR target/39065
+	* configure.ac: Replace AC_CHECK_TYPE() for intptr_t and uintptr_t
+	with AC_TYPE_INTPTR_T and AC_TYPE_UINTPTR_T.
+	* config.in: Regenerated.
+	* configure: Regenerated.
+
 2009-09-03  Ozkan Sezer  <sezeroz@gmail.com>
 
 	PR target/39065

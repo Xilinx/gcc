@@ -335,7 +335,7 @@ Objective-C and Objective-C++ Dialects}.
 -fcse-follow-jumps -fcse-skip-blocks -fcx-fortran-rules -fcx-limited-range @gol
 -fdata-sections -fdce -fdce @gol
 -fdelayed-branch -fdelete-null-pointer-checks -fdse -fdse @gol
--fearly-inlining -fexpensive-optimizations -ffast-math @gol
+-fearly-inlining -fipa-sra -fexpensive-optimizations -ffast-math @gol
 -ffinite-math-only -ffloat-store -fexcess-precision=@var{style} @gol
 -fforward-propagate -ffunction-sections @gol
 -fgcse -fgcse-after-reload -fgcse-las -fgcse-lm @gol
@@ -5670,6 +5670,7 @@ also turns on the following optimization flags:
 -fgcse  -fgcse-lm  @gol
 -finline-small-functions @gol
 -findirect-inlining @gol
+-fipa-sra @gol
 -foptimize-sibling-calls @gol
 -fpeephole2 @gol
 -fregmove @gol
@@ -5829,6 +5830,14 @@ makes profiling significantly cheaper and usually inlining faster on programs
 having large chains of nested wrapper functions.
 
 Enabled by default.
+
+@item -fipa-sra
+@opindex fipa-sra
+Perform interprocedural scalar replacement of aggregates, removal of
+unused parameters and replacement of parameters passed by reference
+by parameters passed by value.
+
+Enabled at levels @option{-O2}, @option{-O3} and @option{-Os}.
 
 @item -finline-limit=@var{n}
 @opindex finline-limit
@@ -6880,7 +6889,7 @@ Enabled at levels @option{-O2}, @option{-O3}, @option{-Os}.
 
 @item -fstrict-aliasing
 @opindex fstrict-aliasing
-Allows the compiler to assume the strictest aliasing rules applicable to
+Allow the compiler to assume the strictest aliasing rules applicable to
 the language being compiled.  For C (and C++), this activates
 optimizations based on the type of expressions.  In particular, an
 object of one type is assumed never to reside at the same address as an
@@ -6897,7 +6906,7 @@ union a_union @{
 @};
 
 int f() @{
-  a_union t;
+  union a_union t;
   t.d = 3.0;
   return t.i;
 @}
@@ -6910,7 +6919,7 @@ expected.  @xref{Structures unions enumerations and bit-fields
 implementation}.  However, this code might not:
 @smallexample
 int f() @{
-  a_union t;
+  union a_union t;
   int* ip;
   t.d = 3.0;
   ip = &t.i;
@@ -7661,7 +7670,7 @@ a lot of functions that would otherwise not be considered for inlining
 by the compiler will be investigated.  To those functions, a different
 (more restrictive) limit compared to functions declared inline can
 be applied.
-The default value is 60.
+The default value is 50.
 
 @item large-function-insns
 The limit specifying really large functions.  For functions larger than this
@@ -7741,7 +7750,7 @@ whose probability exceeds given threshold (in percents).  The default value is
 
 @item early-inlining-insns
 Specify growth that early inliner can make.  In effect it increases amount of
-inlining for code having large abstraction penalty.  The default value is 12.
+inlining for code having large abstraction penalty.  The default value is 8.
 
 @item max-early-inliner-iterations
 @itemx max-early-inliner-iterations
@@ -8153,6 +8162,12 @@ Use uids starting at this parameter for nondebug insns.  The range below
 the parameter is reserved exclusively for debug insns created by
 @option{-fvar-tracking-assignments}, but debug insns may get
 (non-overlapping) uids above it if the reserved range is exhausted.
+
+@item ipa-sra-ptr-growth-factor
+IPA-SRA will replace a pointer to an aggregate with one or more new
+parameters only when their cumulative size is less or equal to
+@option{ipa-sra-ptr-growth-factor} times the size of the original
+pointer parameter.
 
 @end table
 @end table
@@ -8867,7 +8882,16 @@ and @option{-imultilib} as necessary.
 @item %s
 Current argument is the name of a library or startup file of some sort.
 Search for that file in a standard list of directories and substitute
-the full name found.
+the full name found.  The current working directory is included in the
+list of directories scanned.
+
+@item %T
+Current argument is the name of a linker script.  Search for that file
+in the current list of directories to scan for libraries. If the file
+is located insert a @option{--script} option into the command line
+followed by the full path name found.  If the file is not found then
+generate an error message.  Note: the current working directory is not
+searched.
 
 @item %e@var{str}
 Print @var{str} as an error message.  @var{str} is terminated by a newline.
@@ -9716,6 +9740,7 @@ can be one of @samp{bf512}, @samp{bf514}, @samp{bf516}, @samp{bf518},
 @samp{bf527}, @samp{bf531}, @samp{bf532}, @samp{bf533},
 @samp{bf534}, @samp{bf536}, @samp{bf537}, @samp{bf538}, @samp{bf539},
 @samp{bf542}, @samp{bf544}, @samp{bf547}, @samp{bf548}, @samp{bf549},
+@samp{bf542m}, @samp{bf544m}, @samp{bf547m}, @samp{bf548m}, @samp{bf549m},
 @samp{bf561}.
 The optional @var{sirevision} specifies the silicon revision of the target
 Blackfin processor.  Any workarounds available for the targeted silicon revision

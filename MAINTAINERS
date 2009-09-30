@@ -245,6 +245,7 @@ outside of the parts of the compiler they maintain.
 dataflow		Paolo Bonzini		bonzini@gnu.org
 dataflow		Seongbae Park		seongbae.park@gmail.com
 dataflow 		Kenneth Zadeck		zadeck@naturalbridge.com
+driver			Joseph Myers		jsm@polyomino.org.uk
 Fortran			Janne Blomqvist		jb@gcc.gnu.org
 Fortran			Tobias Burnus		burnus@net-b.de
 Fortran			Jerry DeLisle		jvdelisle@gcc.gnu.org
@@ -337,6 +338,7 @@ Jon Grimm					jgrimm2@us.ibm.com
 Laurent Guerby					laurent@guerby.net
 Xuepeng Guo					xuepeng.guo@intel.com
 Wei Guozhi					carrot@google.com
+Daniel Gutson					dgutson@codesourcery.com
 Mostafa Hagog					hagog@gcc.gnu.org
 Olivier Hainque					hainque@act-europe.fr
 Stuart Hastings					stuart@apple.com
@@ -425,7 +427,6 @@ Dwarakanath Rajagopal				dwarak.rajagopal@amd.com
 Ramana Radhakrishnan				ramana.r@gmail.com
 Rolf Rasmussen					rolfwr@gcc.gnu.org
 Volker Reichelt					v.reichelt@netcologne.de
-Joern Rennecke					joern.rennecke@arc.com
 Bernhard Reutner-Fischer			rep.dot.nop@gmail.com
 Tom Rix						trix@redhat.com
 Craig Rodrigues					rodrigc@gcc.gnu.org
@@ -476,6 +477,10 @@ Jie Zhang					jie.zhang@analog.com
 Jon Ziegler					jonz@apple.com
 Roman Zippel					zippel@linux-m68k.org
 Josef Zlomek					josef.zlomek@email.cz
+
+Waiting for paperwork:
+
+Joern Rennecke					joern.rennecke@embecosm.com
 
 Bug database only accounts
 
