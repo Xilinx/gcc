@@ -219,6 +219,8 @@ vector-size: improvement = 3: call stack = 0x804842c ...
 <sect1 id="manual.ext.profile_mode.design" xreflabel="Design">
   <title>Design</title>
 
+<para>
+</para>
 <table frame='all'>
 <title>Code Location</title>
 <tgroup cols='2' align='left' colsep='1' rowsep='1'>
@@ -250,6 +252,8 @@ vector-size: improvement = 3: call stack = 0x804842c ...
 </tgroup>
 </table>
 
+<para>
+</para>
 
 <sect2 id="manual.ext.profile_mode.design.wrapper" 
  xreflabel="Wrapper">
@@ -677,14 +681,10 @@ it helps the user focus on the key problems and ignore the uninteresting ones.
 
   <para>Add documentation in file <code>doc/xml/manual/profile_mode.xml</code>.
   </para>
-
 </sect2>
-
 </sect1>
 
-
-<sect1 id="manual.ext.profile_mode.diagnostics"
- xreflabel="Diagnostics">
+<sect1 id="manual.ext.profile_mode.diagnostics">
 <title>Diagnostics</title>
 
   <para>
@@ -878,7 +878,7 @@ it helps the user focus on the key problems and ignore the uninteresting ones.
 </tgroup>
 </table>
 
-<sect3 id="manual.ext.profile_mode.analysis.template" 
+<sect2 id="manual.ext.profile_mode.analysis.template" 
  xreflabel="Template">
 <title>Diagnostic Template</title>
 <itemizedlist>
@@ -909,7 +909,7 @@ advice sample
 </programlisting>
 </para></listitem>
 </itemizedlist>
-</sect3>
+</sect2>
 
 
 <sect2 id="manual.ext.profile_mode.analysis.containers" 

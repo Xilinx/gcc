@@ -1,3 +1,10 @@
+2009-09-30  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* doc/xml/manual/profile_mode.xml: Fix validation errors.
+	* doc/xml/manual/extensions.xml: Renumber comments.
+
+	* doc/doxygen/user.cfg.in: Find profile includes.
+
 2009-07-14  Silvius Rus  <silvius.rus@gmail.com>
 	* doc/xml/manual/profile_mode.xml: Add developer information.
 	* include/profile/impl/profiler.h: Fix global state macro names.
