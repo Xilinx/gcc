@@ -1,3 +1,6 @@
+// { dg-options "-D_GLIBCXX_DEBUG -D_GLIBCXX_PROFILE" }
+// { dg-do compile }
+
 // -*- C++ -*-
 
 // Copyright (C) 2006, 2007, 2009 Free Software Foundation, Inc.
@@ -17,9 +20,7 @@
 // with this library; see the file COPYING3.  If not see
 // <http://www.gnu.org/licenses/>.
 
-// { dg-options "-D_GLIBCXX_DEBUG -D_GLIBCXX_PROFILE" }
-// { dg-do compile }
-
 #include <vector>
 
-// { dg-error "Cannot use -D_GLIBCXX_PROFILE with -D_GLIBCXX_DEBUG" }
+// { dg-error "Cannot use -D_GLIBCXX_PROFILE with " "" { target *-*-* } 166 }
+// { dg-excess-errors "In file included from" }

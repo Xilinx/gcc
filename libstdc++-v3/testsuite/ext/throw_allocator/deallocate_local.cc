@@ -29,7 +29,6 @@ typedef std::basic_string<char_t, traits_t, allocator_t> string_t;
 
 int main()
 {
-  size_t alloc_cnt_before = alloc_cnt;
   {
     string_t s;
     s += "bayou bend";
@@ -37,6 +36,5 @@ int main()
 
   if (__gnu_test::counter::count() != 0)
     throw std::runtime_error("count not zero");
-
   return 0;
 }
