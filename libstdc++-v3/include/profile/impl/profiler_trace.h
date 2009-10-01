@@ -116,7 +116,7 @@ inline __warning_data::__warning_data(float __m, __stack_t __c,
 {
 }
 
-bool __warning_data::operator>(const struct __warning_data& other) const
+inline bool __warning_data::operator>(const struct __warning_data& other) const
 {
   return __magnitude > other.__magnitude;
 }
