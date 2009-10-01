@@ -1,3 +1,8 @@
+2009-10-01  Basile Starynkevitch  <basile@starynkevitch.net>
+	[http://gcc.gnu.org/ml/gcc-patches/2009-10/msg00014.html]
+	* gengtype.c (write_types): Moved call to write_func_for_structure
+	into separate loops to ensure that all the functions are emitted
+	after their declarations and #define-d macros.
 
 2009-09-30  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in: melt-runtime.o does not need -Wno-error.

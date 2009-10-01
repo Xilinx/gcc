@@ -2723,6 +2723,9 @@ write_types (outf_p output_header, type_p structures, type_p param_structs,
   type_p s;
 
   oprintf (output_header, "\n/* %s*/\n", wtd->comment);
+  /* We first emit the macros and the declarations. Function codes is
+     emitted afterward. */
+  oprintf (output_header, "/* macros and declarations */\n");
   for (s = structures; s; s = s->next)
     if (s->gc_used == GC_POINTED_TO
 	|| s->gc_used == GC_MAYBE_POINTED_TO)
@@ -2771,21 +2774,11 @@ write_types (outf_p output_header, type_p structures, type_p param_structs,
 		     s->u.s.tag);
 	    continue;
 	  }
-
-	if (s->kind == TYPE_LANG_STRUCT)
-	  {
-	    type_p ss;
-	    for (ss = s->u.s.lang_struct; ss; ss = ss->next)
-	      write_func_for_structure (s, ss, NULL, wtd);
-	  }
-	else
-	  write_func_for_structure (s, s, NULL, wtd);
       }
 
   for (s = param_structs; s; s = s->next)
     if (s->gc_used == GC_POINTED_TO)
       {
-	type_p * param = s->u.param_struct.param;
 	type_p stru = s->u.param_struct.stru;
 
 	/* Declare the marker procedure.  */
@@ -2799,7 +2792,41 @@ write_types (outf_p output_header, type_p structures, type_p param_structs,
 		     s->u.s.tag);
 	    continue;
 	  }
+      }
+  
+  /* At last we emit the functions code. */ 
+  oprintf (output_header, "\n/* functions code */\n");
+  for (s = structures; s; s = s->next)
+    if (s->gc_used == GC_POINTED_TO
+	|| s->gc_used == GC_MAYBE_POINTED_TO)
+      {
+	options_p opt;
 
+	if (s->gc_used == GC_MAYBE_POINTED_TO
+	    && s->u.s.line.file == NULL)
+	  continue;
+	for (opt = s->u.s.opt; opt; opt = opt->next)
+	  if (strcmp (opt->name, "ptr_alias") == 0)
+	    break;
+	if (opt)
+	  continue;
+	
+	if (s->kind == TYPE_LANG_STRUCT)
+	  {
+	    type_p ss;
+	    for (ss = s->u.s.lang_struct; ss; ss = ss->next)
+	      write_func_for_structure (s, ss, NULL, wtd);
+	  }
+	else
+	  write_func_for_structure (s, s, NULL, wtd);
+      };
+  for (s = param_structs; s; s = s->next)
+    if (s->gc_used == GC_POINTED_TO)
+      {
+	type_p * param = s->u.param_struct.param;
+	type_p stru = s->u.param_struct.stru;
+	if (stru->u.s.line.file == NULL)
+	    continue;
 	if (stru->kind == TYPE_LANG_STRUCT)
 	  {
 	    type_p ss;
