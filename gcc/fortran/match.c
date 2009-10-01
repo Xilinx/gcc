@@ -4262,6 +4262,8 @@ gfc_match_class_is (void)
   new_st.op = EXEC_SELECT_TYPE;
   new_st.ext.case_list = c;
 
+  gfc_error_now ("CLASS IS specification at %C is not yet supported");
+
   return MATCH_YES;
 
 syntax:

@@ -2654,7 +2654,7 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
 
 	  /* The derived type needs to be converted to a temporary
 	     CLASS object.  */
-          gfc_init_se (&parmse, se);
+	  gfc_init_se (&parmse, se);
 	  type = gfc_typenode_for_spec (&fsym->ts);
 	  var = gfc_create_var (type, "class");
 

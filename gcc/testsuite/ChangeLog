@@ -1,3 +1,188 @@
+2009-10-01  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/41515
+	* gfortran.dg/parameter_array_init_5.f90: New test.
+
+2009-10-01  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/defaulted13.C: New.
+
+2009-09-30  Dennis Wassel  <dennis.wassel@gmail.com>
+
+	* gcc/testsuite/gfortran.dg/bounds_check_7.f90: Adapted error message.
+	* gcc/testsuite/gfortran.dg/bounds_check_11.f90: Likewise.
+	* gcc/testsuite/gfortran.dg/bounds_check_fail_1.f90: Likewise.
+
+2009-09-30  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.dg/select_type_4.f90: New test.
+
+2009-09-30  Janus Weil  <janus@gcc.gnu.org>
+
+	* gfortran.dg/same_type_as_1.f03: New test.
+	* gfortran.dg/same_type_as_2.f03: Ditto.
+
+2009-09-30  Janus Weil  <janus@gcc.gnu.org>
+
+	* gfortran.dg/select_type_1.f03: Extended.
+	* gfortran.dg/select_type_3.f03: New test.
+
+2009-09-30  Janus Weil  <janus@gcc.gnu.org>
+
+	* gfortran.dg/class_allocate_1.f03: New test.
+
+2009-09-30  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/40996
+	* gfortran.dg/allocatable_scalar_3.f90: New test.
+	* gfortran.dg/select_type_2.f03: Ditto.
+	* gfortran.dg/typebound_proc_5.f03: Changed error messages.
+
+2009-09-30  Janus Weil  <janus@gcc.gnu.org>
+
+	* gfortran.dg/block_name_2.f90: Modified error message.
+	* gfortran.dg/select_6.f90: Ditto.
+	* gfortran.dg/select_type_1.f03: New test.
+
+2009-09-30  Janus Weil  <janus@gcc.gnu.org>
+
+	* gfortran.dg/allocate_derived_1.f90: Remove -w option.
+	* gfortran.dg/class_1.f03: Ditto.
+	* gfortran.dg/class_2.f03: Ditto.
+	* gfortran.dg/proc_ptr_comp_pass_1.f90: Ditto.
+	* gfortran.dg/proc_ptr_comp_pass_2.f90: Ditto.
+	* gfortran.dg/proc_ptr_comp_pass_3.f90: Ditto.
+	* gfortran.dg/typebound_call_10.f03: Ditto.
+	* gfortran.dg/typebound_call_2.f03: Ditto.
+	* gfortran.dg/typebound_call_3.f03: Ditto.
+	* gfortran.dg/typebound_call_4.f03: Ditto.
+	* gfortran.dg/typebound_call_9.f03: Ditto.
+	* gfortran.dg/typebound_generic_3.f03: Ditto.
+	* gfortran.dg/typebound_generic_4.f03: Ditto.
+	* gfortran.dg/typebound_operator_1.f03: Ditto.
+	* gfortran.dg/typebound_operator_2.f03: Ditto.
+	* gfortran.dg/typebound_operator_3.f03: Ditto.
+	* gfortran.dg/typebound_operator_4.f03: Ditto.
+	* gfortran.dg/typebound_proc_1.f08: Ditto.
+	* gfortran.dg/typebound_proc_5.f03: Ditto.
+	* gfortran.dg/typebound_proc_6.f03: Ditto.
+
+2009-09-30  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/eh/init-temp1.C: Improve test.
+
+2009-09-30  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/22093
+	* gcc.target/alpha/pr22093.c: New test.
+
+2009-09-29  John Freeman  <jfreeman08@gmail.com>
+	    Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/lambda/lambda-array.C: New.
+	* g++.dg/cpp0x/lambda/lambda-capture-const-ref.C: New.
+	* g++.dg/cpp0x/lambda/lambda-capture-const-ref-neg.C: New.
+	* g++.dg/cpp0x/lambda/lambda-const.C: New.
+	* g++.dg/cpp0x/lambda/lambda-copy-default-neg.C: New.
+	* g++.dg/cpp0x/lambda/lambda-copy-default.C: New.
+	* g++.dg/cpp0x/lambda/lambda-copy-neg.C: New.
+	* g++.dg/cpp0x/lambda/lambda-copy.C: New.
+	* g++.dg/cpp0x/lambda/lambda-ctor-neg.C: New.
+	* g++.dg/cpp0x/lambda/lambda-ctors.C: New.
+	* g++.dg/cpp0x/lambda/lambda-deduce-ext-neg.C: New.
+	* g++.dg/cpp0x/lambda/lambda-deduce-ext-neg2.C: New.
+	* g++.dg/cpp0x/lambda/lambda-deduce-ext.C: New.
+	* g++.dg/cpp0x/lambda/lambda-deduce-neg.C: New.
+	* g++.dg/cpp0x/lambda/lambda-deduce.C: New.
+	* g++.dg/cpp0x/lambda/lambda-defarg.C: New.
+	* g++.dg/cpp0x/lambda/lambda-eh.C: New.
+	* g++.dg/cpp0x/lambda/lambda-errloc.C: New.
+	* g++.dg/cpp0x/lambda/lambda-field-names.C: New.
+	* g++.dg/cpp0x/lambda/lambda-in-class-neg.C: New.
+	* g++.dg/cpp0x/lambda/lambda-in-class.C: New.
+	* g++.dg/cpp0x/lambda/lambda-lookup-neg.C: New.
+	* g++.dg/cpp0x/lambda/lambda-mangle.C: New.
+	* g++.dg/cpp0x/lambda/lambda-mixed.C: New.
+	* g++.dg/cpp0x/lambda/lambda-mutable.C: New.
+	* g++.dg/cpp0x/lambda/lambda-nested.C: New.
+	* g++.dg/cpp0x/lambda/lambda-non-const.C: New.
+	* g++.dg/cpp0x/lambda/lambda-nop.C: New.
+	* g++.dg/cpp0x/lambda/lambda-ns-scope.C: New.
+	* g++.dg/cpp0x/lambda/lambda-pass.C: New.
+	* g++.dg/cpp0x/lambda/lambda-recursive.C: New.
+	* g++.dg/cpp0x/lambda/lambda-ref-default.C: New.
+	* g++.dg/cpp0x/lambda/lambda-ref.C: New.
+	* g++.dg/cpp0x/lambda/lambda-std-function.C: New.
+	* g++.dg/cpp0x/lambda/lambda-template.C: New.
+	* g++.dg/cpp0x/lambda/lambda-this.C: New.
+	* g++.dg/cpp0x/lambda/lambda-type.C: New.
+	* g++.dg/cpp0x/lambda/lambda-use.C: New.
+	* lib/prune.exp: Accept "In lambda function".
+
+2009-09-29  Harsha Jagasia  <harsha.jagasia@amd.com>
+
+	* gcc.target/i386/fma4-check.h
+	* gcc.target/i386/fma4-fma.c
+	* gcc.target/i386/fma4-maccXX.c
+	* gcc.target/i386/fma4-msubXX.c
+	* gcc.target/i386/fma4-nmaccXX.c
+	* gcc.target/i386/fma4-nmsubXX.c
+	* gcc.target/i386/fma4-vector.c
+	* gcc.target/i386/fma4-256-maccXX.c
+	* gcc.target/i386/fma4-256-msubXX.c
+	* gcc.target/i386/fma4-256-nmaccXX.c
+	* gcc.target/i386/fma4-256-nmsubXX.c
+	* gcc.target/i386/fma4-256-vector.c
+	* gcc.target/i386/funcspec-2.c: New file.
+
+	* gcc.target/i386/funcspec-4.c: Test error conditions
+	related to FMA4.
+
+	* gcc.target/i386/funcspec-5.c
+	* gcc.target/i386/funcspec-6.c
+	* gcc.target/i386/funcspec-8.c: Add FMA4.
+
+	* gcc.target/i386/funcspec-9.c: New file.
+
+	* gcc.target/i386/i386.exp: Add check_effective_target_fma4.
+
+	* gcc.target/i386/isa-10.c
+	* gcc.target/i386/isa-11.c
+	* gcc.target/i386/isa-12.c
+	* gcc.target/i386/isa-13.c
+	* gcc.target/i386/isa-2.c
+	* gcc.target/i386/isa-3.c
+	* gcc.target/i386/isa-4.c
+	* gcc.target/i386/isa-7.c
+	* gcc.target/i386/isa-8.c
+	* gcc.target/i386/isa-9.c: New file.
+
+	* gcc.target/i386/isa-14.c
+	* gcc.target/i386/isa-1.c
+	* gcc.target/i386/isa-5.c
+	* gcc.target/i386/isa-6.c: Add FMA4.
+
+	* gcc.target/i386/sse-12.c
+	* gcc.target/i386/sse-13.c
+	* gcc.target/i386/sse-14.c
+	* gcc.target/i386/sse-22.c: New file.
+
+	* g++.dg/other/i386-2.C
+	* g++.dg/other/i386-3.C
+	* g++.dg/other/i386-5.C
+	* g++.dg/other/i386-6.C: Add -mfma4 in dg-options.
+
+2009-09-29  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR testsuite/41496
+	* g++.dg/dfp/dfp.exp: Unset DEFAULT_CXXFLAGS if it didn't exist
+	before.
+
+2009-09-29  Janis Johnson  <janis187@us.ibm.com>
+
+	* gcc.test-framework/dg-bogus-exp-XF.c: Move dg-bogus directive.
+	* gcc.test-framework/dg-warning-exp-P.c: Move dg-warning directives.
+
 2009-09-29  Jakub Jelinek  <jakub@redhat.com>
 
 	PR debug/41438
@@ -70,7 +255,7 @@
 
 	* g++.dg/dfp: New directory.
 	* g++.dg/dg.exp: Prune tests in dfp directory.
-	* g++.dg/dfp/dfp/exp: New.
+	* g++.dg/dfp/dfp.exp: New.
 	* g++.dg/dfp/mangle-mode.C: New test.
 
 2009-09-28  Michael Matz  <matz@suse.de>

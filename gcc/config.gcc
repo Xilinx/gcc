@@ -286,8 +286,9 @@ i[34567]86-*-*)
 	cxx_target_objs="i386-c.o"
 	extra_headers="cpuid.h mmintrin.h mm3dnow.h xmmintrin.h emmintrin.h
 		       pmmintrin.h tmmintrin.h ammintrin.h smmintrin.h
-		       nmmintrin.h bmmintrin.h wmmintrin.h immintrin.h
-		       x86intrin.h avxintrin.h ia32intrin.h cross-stdarg.h"
+		       nmmintrin.h bmmintrin.h fma4intrin.h wmmintrin.h
+		       immintrin.h x86intrin.h avxintrin.h 
+		       ia32intrin.h cross-stdarg.h"
 	;;
 x86_64-*-*)
 	cpu_type=i386
@@ -295,8 +296,9 @@ x86_64-*-*)
 	cxx_target_objs="i386-c.o"
 	extra_headers="cpuid.h mmintrin.h mm3dnow.h xmmintrin.h emmintrin.h
 		       pmmintrin.h tmmintrin.h ammintrin.h smmintrin.h
-		       nmmintrin.h bmmintrin.h wmmintrin.h immintrin.h
-		       x86intrin.h avxintrin.h ia32intrin.h cross-stdarg.h"
+		       nmmintrin.h bmmintrin.h fma4intrin.h wmmintrin.h
+		       immintrin.h x86intrin.h avxintrin.h 
+		       ia32intrin.h cross-stdarg.h"
 	need_64bit_hwint=yes
 	;;
 ia64-*-*)
@@ -2182,7 +2184,8 @@ sh-*-symbianelf* | sh[12346l]*-*-symbianelf* | \
 	*-*-symbianelf*)
 		tmake_file="sh/t-symbian"
 		tm_file="sh/symbian-pre.h sh/little.h ${tm_file} sh/symbian-post.h"
-		extra_objs="symbian.o"
+		c_target_objs="symbian-base.o symbian-c.o"
+		cxx_target_objs="symbian-base.o symbian-cxx.o"
 		extra_parts="crt1.o crti.o crtn.o crtbegin.o crtend.o crtbeginS.o crtendS.o"
 		;;
 	*-*-elf*)

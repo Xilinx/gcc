@@ -1,3 +1,240 @@
+2009-10-01  David Daney  <ddaney@caviumnetworks.com>
+
+	* gcc/config/mips/mips.c (mips_process_sync_loop) Emit syncw
+	instructions for TARGET_OCTEON.
+
+2009-10-01  Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
+
+	* config/arm/arm.c (arm_override_options): Turn off
+	flag_dwarf2_cfi_asm for AAPCS variants.
+
+2009-10-01  Martin Jambor  <mjambor@suse.cz>
+
+	PR middle-end/12392
+	* tree-sra.c (convert_callers): Do not call
+	compute_inline_parameters on one caller more than once.
+
+2009-10-01  Nick Clifton  <nickc@redhat.com>
+
+	* config/vax/netbsd-elf.h (NETBSD_CC1_AND_CC1PLUS_SPEC): Define as
+	an empty string if not already defined.
+
+2009-10-01  Martin Jambor  <mjambor@suse.cz>
+
+	PR bootstrap/41395
+	* tree-sra.c (is_va_list_type): New function.
+	(find_var_candidates): Call is_va_list_type.
+	(find_param_candidates): Check that the type or the type pointed
+	to are not va_list types.
+
+2009-10-01  Martin Jambor  <mjambor@suse.cz>
+
+	PR c++/41503
+	* cp/pt.c (function_parameter_expanded_from_pack_p): Return false if
+	DECL_ARTIFICIAL (param_decl) is true.
+	
+2009-09-30  Gabriel Dos Reis  <gdr@cs.tamu.edu>
+
+	* tree.h (tree_decl_common::lang_flag_8): New.
+	* c-common.c (c_common_reswords): Include "constexpr" as C++0x
+	keyword. 
+	* c-common.h (RID_CONSTEXPR): New.
+
+2009-09-30  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/alpha/alpha.c (alpha_gimplify_va_arg_1):
+	Use ref-all pointers.
+	(alpha_gimplify_va_arg): Ditto.
+
+2009-09-30  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/41279
+	* cfgloopanal.c (num_loop_insns): Don't increment ninsns for each bb
+	before insn counting loop now that BB_END (bb) is counted.  Ensure
+	the return value isn't zero.
+
+2009-09-30  Nick Clifton  <nickc@redhat.com>
+
+	* config.gcc (sh-symbianelf): Replace definition of extra_objs
+	with separate definitions of c_target_objs and cxx_target_objs.
+	* config/sh/t-sh: Add rules to build symbian-cxx.o, symbian-c.o
+	and symbian-base.o.
+	* config/sh/sh.c (TARGET_CXX_INPUT_EXPORT_CLASS): Use
+	sh_symbian_import_export_class.
+	* config/sh/sh-protos.h: Fix names of exported symbian functions.
+	* config/sh/symbian.c: Delete, moving code into...
+	* config/sh/symbian-base.c: ... here
+	* config/sh/symbian-c.c: ... and here
+	* config/sh/symbian-cxx.c: ... and here.
+
+2009-09-30  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/22093
+	* config/alpha/alpha.md (unaligned_storehi_be): Force operand
+	of plus RTX into register.
+
+2009-09-30  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* doc/install.texi: Linguistic and markup fixes.
+	(Configuration) <--disable-cpp>: Remove description.
+	<--enable-maintainer-mode>: Autotools files are affected, too.
+	<--with-sysroot>: Improve description.
+	(Building): Bump required GNU make version.
+
+2009-09-29  Harsha Jagasia  <harsha.jagasia@amd.com>
+
+	* config.gcc (i[34567]86-*-*): Include fma4intrin.h.
+	(x86_64-*-*): Ditto.
+
+	* config/i386/fma4intrin.h: New file, provide common x86 compiler
+	intrinisics for FMA4.
+	* config/i386/cpuid.h (bit_FMA4): Define FMA4 bit.
+	* config/i386/x86intrin.h: Fix typo to SSE4A instead of SSE4a.
+	Add FMA4 check and fma4intrin.h.
+	* config/i386/i386-c.c(ix86_target_macros_internal): Check
+	ISA_FLAG for FMA4.
+	* config/i386/i386.h(TARGET_FMA4): New macro for FMA4.
+	* config/i386/i386.md (UNSPEC_FMA4_INTRINSIC): Add new UNSPEC
+	constant for FMA4 support.
+	(UNSPEC_FMA4_FMADDSUB): Ditto.
+	(UNSPEC_FMA4_FMSUBADD): Ditto.
+	* config/i386/i386.opt (-mfma4): New switch for FMA4 support.
+	* config/i386/i386-protos.h (ix86_fma4_valid_op_p): Add declaration.
+	(ix86_expand_fma4_multiple_memory): Ditto.
+	* config/i386/i386.c (OPTION_MASK_ISA_FMA4_SET): New.
+	(OPTION_MASK_ISA_FMA4_UNSET): New.
+	(OPTION_MASK_ISA_SSE4A_UNSET): Change definition to depend on FMA4.
+	(OPTION_MASK_ISA_AVX_UNSET): Change definition to depend on FMA4.
+	(ix86_handle_option): Handle -mfma4.
+	(isa_opts): Handle -mfma4.
+	(enum pta_flags): Add PTA_FMA4.
+	(override_options): Add FMA4 support.
+	(IX86_BUILTIN_VFMADDSS): New for FMA4 intrinsic.
+	(IX86_BUILTIN_VFMADDSD): Ditto.
+	(IX86_BUILTIN_VFMADDPS): Ditto.
+	(IX86_BUILTIN_VFMADDPD): Ditto.
+	(IX86_BUILTIN_VFMSUBSS): Ditto.
+	(IX86_BUILTIN_VFMSUBSD): Ditto.
+	(IX86_BUILTIN_VFMSUBPS): Ditto.
+	(IX86_BUILTIN_VFMSUBPD): Ditto.
+	(IX86_BUILTIN_VFMADDSUBPS): Ditto.
+	(IX86_BUILTIN_VFMADDSUBPD): Ditto.
+	(IX86_BUILTIN_VFMSUBADDPS): Ditto.
+	(IX86_BUILTIN_VFMSUBADDPD): Ditto.
+	(IX86_BUILTIN_VFNMADDSS): Ditto.
+	(IX86_BUILTIN_VFNMADDSD): Ditto.
+	(IX86_BUILTIN_VFNMADDPS): Ditto.
+	(IX86_BUILTIN_VFNMADDPD): Ditto.
+	(IX86_BUILTIN_VFNMSUBSS): Ditto.
+	(IX86_BUILTIN_VFNMSUBSD): Ditto.
+	(IX86_BUILTIN_VFNMSUBPS): Ditto.
+	(IX86_BUILTIN_VFNMSUBPD): Ditto.
+	(IX86_BUILTIN_VFMADDPS256): Ditto.
+	(IX86_BUILTIN_VFMADDPD256): Ditto.
+	(IX86_BUILTIN_VFMSUBPS256): Ditto.
+	(IX86_BUILTIN_VFMSUBPD256): Ditto.
+	(IX86_BUILTIN_VFMADDSUBPS256): Ditto.
+	(IX86_BUILTIN_VFMADDSUBPD256): Ditto.
+	(IX86_BUILTIN_VFMSUBADDPS256): Ditto.
+	(IX86_BUILTIN_VFMSUBADDPD256): Ditto.
+	(IX86_BUILTIN_VFNMADDPS256): Ditto.
+	(IX86_BUILTIN_VFNMADDPD256): Ditto.
+	(IX86_BUILTIN_VFNMSUBPS256): Ditto.
+	(IX86_BUILTIN_VFNMSUBPD256): Ditto.
+	(enum multi_arg_type): New enum for describing the various FMA4
+	intrinsic argument types.
+	(bdesc_multi_arg): New table for FMA4 intrinsics.
+	(ix86_init_mmx_sse_builtins): Add FMA4 intrinsic support.
+	(ix86_expand_multi_arg_builtin): New function for creating FMA4
+	intrinsics.
+	(ix86_expand_builtin): Add FMA4 intrinsic support.
+	(ix86_fma4_valid_op_p): New function to validate FMA4 3 and 4
+	operand instructions.
+	(ix86_expand_fma4_multiple_memory): New function to split the
+	second memory reference from FMA4 instructions.
+	* config/i386/sse.md (ssemodesuffixf4): New mode attribute for FMA4.
+	(ssemodesuffixf2s): Ditto.
+	(fma4_fmadd<mode>4): Add FMA4 floating point multiply/add
+	instructions.
+	(fma4_fmsub<mode>4): Ditto.
+	(fma4_fnmadd<mode>4): Ditto.
+	(fma4_fnmsub<mode>4): Ditto.
+	(fma4_vmfmadd<mode>4): Ditto.
+	(fma4_vmfmsub<mode>4): Ditto.
+	(fma4_vmfnmadd<mode>4): Ditto.
+	(fma4_vmfnmsub<mode>4): Ditto.
+	(fma4_fmadd<mode>4256): Ditto.
+	(fma4_fmsub<mode>4256): Ditto.
+	(fma4_fnmadd<mode>4256): Ditto.
+	(fma4_fnmsub<mode>4256): Ditto.
+	(fma4_fmaddsubv8sf4): Ditto.
+	(fma4_fmaddsubv4sf4): Ditto.
+	(fma4_fmaddsubv4df4): Ditto.
+	(fma4_fmaddsubv2df4): Ditto.
+	(fma4_fmsubaddv8sf4): Ditto.
+	(fma4_fmsubaddv4sf4): Ditto.
+	(fma4_fmsubaddv4df4): Ditto.
+	(fma4_fmsubaddv2df4): Ditto.
+	(fma4i_fmadd<mode>4): Add FMA4 floating point multiply/add
+	instructions for intrinsics.
+	(fma4i_fmsub<mode>4): Ditto.
+	(fma4i_fnmadd<mode>4): Ditto.
+	(fma4i_fnmsub<mode>4): Ditto.
+	(fma4i_vmfmadd<mode>4): Ditto.
+	(fma4i_vmfmsub<mode>4): Ditto.
+	(fma4i_vmfnmadd<mode>4): Ditto.
+	(fma4i_vmfnmsub<mode>4): Ditto.
+	(fma4i_fmadd<mode>4256): Ditto.
+	(fma4i_fmsub<mode>4256): Ditto.
+	(fma4i_fnmadd<mode>4256): Ditto.
+	(fma4i_fnmsub<mode>4256): Ditto.
+	(fma4i_fmaddsubv8sf4): Ditto.
+	(fma4i_fmaddsubv4sf4): Ditto.
+	(fma4i_fmaddsubv4df4): Ditto.
+	(fma4i_fmaddsubv2df4): Ditto.
+	(fma4i_fmsubaddv8sf4): Ditto.
+	(fma4i_fmsubaddv4sf4): Ditto.
+	(fma4i_fmsubaddv4df4): Ditto.
+	(fma4i_fmsubaddv2df4): Ditto.
+
+	* doc/invoke.texi (-mfma4): Add documentation.
+	* doc/extend.texi (x86 intrinsics): Add FMA4 intrinsics.
+
+2009-09-29  Richard Henderson  <rth@redhat.com>
+
+	* tree-eh.c (unsplit_eh): Do not unsplit if there's already
+	an edge to the new destination block.
+
+2009-09-29  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR target/41393
+	* pa.c (hppa_profile_hook): Use
+	make_reg_eh_region_note_nothrow_nononlocal to add REG_EH_REGION note.
+
+2009-09-29  Steve Ellcey  <sje@cup.hp.com>
+	    Alexander Monakov  <amonakov@ispras.ru>
+
+	PR target/41365
+	* config/ia64/predicates.md (not_postinc_destination_operand): New.
+	(not_postinc_memory_operand): New.
+	(not_postinc_move_operand): New.
+	* config/ia64/ia64.md (*cmovdi_internal): Disallow autoincrement.
+	(*cmovsi_internal): Ditto.
+
+2009-09-29  Pat Haugen  <pthaugen@us.ibm.com>
+
+	* config/rs6000/rs6000.c (rs6000_issue_rate): Don't artificially
+	restrict issue_rate in first pass when scheduling for register
+	pressure.
+
+2009-09-29  Basile Starynkevitch  <basile@starynkevitch.net>
+            Rafael Avila de Espindola  <espindola@google.com>
+
+	* gengtype.c (plugin_output): New.
+	(get_output_file_with_visibility): Return plugin_output for plugins.
+	(main): Parse and use the -P option.
+	* gty.texi: Update the command line format.
+
 2009-09-29  Jakub Jelinek  <jakub@redhat.com>
 
 	PR debug/41438
@@ -13,14 +250,13 @@
 2009-09-29  Harsha Jagasia  <harsha.jagasia@amd.com>
 
 	* config.gcc (i[34567]86-*-*): Remove mmintrin-common.h.
-	(x86_64-*-*): Ditto.	
+	(x86_64-*-*): Ditto.
 	* config/i386/smmintrin.h: Move instructions in mmintrin-common.h
 	back to smmintrin.h.
 	* config/i386/cpuid.h: (bit_SSE5): Remove SSE5 bit.
 	* config/i386/x86intrin.h: Remove SSE5.
-	* config/i386/mmintrin-common.h: Delete file.	
-	* doc/extend.texi (x86 intrinsics): Remove SSE5 flags
-	and builtins.
+	* config/i386/mmintrin-common.h: Delete file.
+	* doc/extend.texi (x86 intrinsics): Remove SSE5 flags and builtins.
 
 2009-09-29  Richard Guenther  <rguenther@suse.de>
 
@@ -34,7 +270,7 @@
 
 2009-09-28  Sriraman Tallam  <tmsriram@google.com>
 
-	* tree-pass.h (register_pass_info): New structure.	
+	* tree-pass.h (register_pass_info): New structure.
 	(pass_positioning_ops): Move enum from gcc-plugin.h.
 	(register_pass): New function.
 	* gcc-plugin.h (plugin_pass): Delete structure.
@@ -141,7 +377,7 @@
 	multiple instructions).
 	* tree-ssa-dom.c (optimize_stmt): Resolve __builtin_constant_p
 	calls into zero at this time.
-	* tree-ssa-propagate.c (substitute_and_fold): Ignore multiple 
+	* tree-ssa-propagate.c (substitute_and_fold): Ignore multiple
 	statements generated by builtin folding.
 
 2009-09-28  Nick Clifton  <nickc@redhat.com>

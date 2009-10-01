@@ -30,8 +30,9 @@
     i = 1
   type is (t2)
     i = 2
-  class is (t1)
-    i = 3
+! FIXME: CLASS IS is not yet supported
+!  class is (t1)
+!    i = 3
   end select
 
   if (i /= 1) call abort()
@@ -44,8 +45,9 @@
     i = 1
   type is (t2)
     i = 2
-  class is (t2)
-    i = 3
+! FIXME: CLASS IS is not yet supported
+!  class is (t2)
+!    i = 3
   end select
 
   if (i /= 2) call abort()
