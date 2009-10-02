@@ -1,7 +1,6 @@
 // Profiling multimap implementation -*- C++ -*-
 
-// Copyright (C) 2003, 2004, 2005, 2006, 2007, 2009
-// Free Software Foundation, Inc.
+// Copyright (C) 2009 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -36,6 +35,7 @@ namespace std
 {
 namespace __profile
 {
+  /** @brief Multimap wrapper with performance instrumentation.  */
   template<typename _Key, typename _Tp, typename _Compare = std::less<_Key>,
 	   typename _Allocator = std::allocator<std::pair<const _Key, _Tp> > >
     class multimap
@@ -107,8 +107,8 @@ namespace __profile
       operator=(multimap&& __x)
       {
         // NB: DR 675.
-	clear();
-	swap(__x);
+	this->clear();
+	this->swap(__x);
 	return *this;
       }
 
@@ -203,11 +203,19 @@ namespace __profile
 	  _Base::insert(__first, __last);
 	}
 
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      iterator
+      erase(iterator __position)
+      {
+        return _Base::erase(__position);
+      }
+#else
       void
       erase(iterator __position)
       {
 	_Base::erase(__position);
       }
+#endif
 
       size_type
       erase(const key_type& __x)

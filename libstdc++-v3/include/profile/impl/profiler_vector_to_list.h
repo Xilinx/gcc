@@ -1,6 +1,6 @@
 // -*- C++ -*-
 //
-// Copyright (C) 2008 Free Software Foundation, Inc.
+// Copyright (C) 2009 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the terms
@@ -53,7 +53,7 @@
 namespace __cxxprof_impl
 {
 
-// Class for vector to list 
+/** @brief A vector-to-list instrumentation line in the object table.  */
 class __vector2list_info: public __object_info_base
 {
  public:
@@ -123,12 +123,14 @@ inline void __vector2list_info::__resize(size_t __from, size_t __to)
   _M_resize += __from;
 }
 
+/** @brief A vector-to-list instrumentation line in the stack table.  */
 class __vector2list_stack_info: public __vector2list_info {
  public:
   __vector2list_stack_info(const __vector2list_info& __o) 
       : __vector2list_info(__o) {}
 };
 
+/** @brief Vector-to-list instrumentation producer.  */
 class __trace_vector_to_list
     : public __trace_base<__vector2list_info, __vector2list_stack_info> 
 {

@@ -1,7 +1,6 @@
 // Profiling unordered_map/unordered_multimap implementation -*- C++ -*-
 
-// Copyright (C) 2003, 2004, 2005, 2006, 2007
-// Free Software Foundation, Inc.
+// Copyright (C) 2009 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -52,6 +51,7 @@ namespace std
 {
 namespace __profile
 {
+  /** @brief Unordered_map wrapper with performance instrumentation.  */
   template<typename _Key, typename _Tp,
 	   typename _Hash  = std::hash<_Key>,
 	   typename _Pred = std::equal_to<_Key>,
@@ -133,8 +133,8 @@ namespace __profile
       operator=(unordered_map&& __x)
       {
         // NB: DR 675.
-	clear();
-	swap(__x);
+	this->clear();
+	this->swap(__x);
 	return *this;
       }
 
@@ -228,8 +228,9 @@ namespace __profile
         _M_profile_resize(__old_size, _Base::bucket_count()); 
         return __res;
       }   
+
       void
-      swap(unordered_map&& __x)
+      swap(unordered_map& __x)
       {
         _Base::swap(__x);
       }
@@ -274,25 +275,12 @@ namespace __profile
      unordered_map<_Key, _Tp, _Hash, _Pred, _Alloc>& __y)
     { __x.swap(__y); }
 
-  template<typename _Key, typename _Tp, typename _Hash,
-       typename _Pred, typename _Alloc>
-    inline void
-    swap(unordered_map<_Key, _Tp, _Hash, _Pred, _Alloc>&& __x,
-     unordered_map<_Key, _Tp, _Hash, _Pred, _Alloc>& __y)
-    { __x.swap(__y); }
-
-  template<typename _Key, typename _Tp, typename _Hash,
-       typename _Pred, typename _Alloc>
-    inline void
-    swap(unordered_map<_Key, _Tp, _Hash, _Pred, _Alloc>& __x,
-     unordered_map<_Key, _Tp, _Hash, _Pred, _Alloc>&& __y)
-    { __x.swap(__y); }
-
 #undef _GLIBCXX_BASE
 #undef _GLIBCXX_STD_BASE
 #define _GLIBCXX_BASE unordered_multimap<_Key, _Tp, _Hash, _Pred, _Alloc>
 #define _GLIBCXX_STD_BASE _GLIBCXX_STD_PR::_GLIBCXX_BASE
 
+  /** @brief Unordered_multimap wrapper with performance instrumentation.  */
   template<typename _Key, typename _Tp,
 	   typename _Hash  = std::hash<_Key>,
 	   typename _Pred = std::equal_to<_Key>,
@@ -368,8 +356,8 @@ namespace __profile
       operator=(unordered_multimap&& __x)
       {
         // NB: DR 675.
-	clear();
-	swap(__x);
+	this->clear();
+	this->swap(__x);
 	return *this;
       }
 
@@ -454,7 +442,7 @@ namespace __profile
       }
 
       void
-      swap(unordered_multimap&& __x)
+      swap(unordered_multimap& __x)
       {
         _Base::swap(__x);
       }
@@ -499,20 +487,6 @@ namespace __profile
     inline void
     swap(unordered_multimap<_Key, _Tp, _Hash, _Pred, _Alloc>& __x,
      unordered_multimap<_Key, _Tp, _Hash, _Pred, _Alloc>& __y)
-    { __x.swap(__y); }
-
-  template<typename _Key, typename _Tp, typename _Hash,
-       typename _Pred, typename _Alloc>
-    inline void
-    swap(unordered_multimap<_Key, _Tp, _Hash, _Pred, _Alloc>&& __x,
-     unordered_multimap<_Key, _Tp, _Hash, _Pred, _Alloc>& __y)
-    { __x.swap(__y); }
-
-  template<typename _Key, typename _Tp, typename _Hash,
-       typename _Pred, typename _Alloc>
-    inline void
-    swap(unordered_multimap<_Key, _Tp, _Hash, _Pred, _Alloc>& __x,
-     unordered_multimap<_Key, _Tp, _Hash, _Pred, _Alloc>&& __y)
     { __x.swap(__y); }
 
 } // namespace __profile

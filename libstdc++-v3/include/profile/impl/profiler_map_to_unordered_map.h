@@ -1,6 +1,6 @@
 // -*- C++ -*-
 //
-// Copyright (C) 2008 Free Software Foundation, Inc.
+// Copyright (C) 2009 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the terms
@@ -100,7 +100,7 @@ inline float __map_find_cost(size_t __size)
   return __map_find_cost_factor * static_cast<float>(__log2(__size));
 }
 
-// Class for vector to list 
+/** @brief A map-to-unordered_map instrumentation line in the object table.  */
 class __map2umap_info: public __object_info_base
 {
  public:
@@ -199,12 +199,14 @@ inline void __map2umap_info::__write(FILE* __f) const
           _M_valid ? "valid" : "invalid");
 }
 
+/** @brief A map-to-unordered_map instrumentation line in the stack table.  */
 class __map2umap_stack_info: public __map2umap_info
 {
  public:
   __map2umap_stack_info(const __map2umap_info& o) : __map2umap_info(o) {}
 };
 
+/** @brief Map-to-unordered_map instrumentation producer.  */
 class __trace_map2umap
     : public __trace_base<__map2umap_info, __map2umap_stack_info> 
 {

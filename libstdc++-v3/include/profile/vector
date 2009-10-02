@@ -1,7 +1,6 @@
 // Profiling vector implementation -*- C++ -*-
 
-// Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008
-// Free Software Foundation, Inc.
+// Copyright (C) 2009 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -43,6 +42,7 @@ namespace std
 {
 namespace __profile
 {
+  /** @brief Vector wrapper with performance instrumentation.  */
   template<typename _Tp,
 	   typename _Allocator = std::allocator<_Tp> >
     class vector
@@ -141,8 +141,8 @@ namespace __profile
       operator=(vector&& __x)
       {
         // NB: DR 675.
-        clear();
-        swap(__x);
+        this->clear();
+        this->swap(__x);
         return *this;
       }
 
@@ -262,11 +262,8 @@ namespace __profile
 #endif
 
       void
-#ifdef __GXX_EXPERIMENTAL_CXX0X__
-      swap(vector&& __x)
-#else
+
       swap(vector& __x)
-#endif
       {
         _Base::swap(__x);
       }
@@ -364,18 +361,6 @@ namespace __profile
     inline void
     swap(vector<_Tp, _Alloc>& __lhs, vector<_Tp, _Alloc>& __rhs)
     { __lhs.swap(__rhs); }
-
-#ifdef __GXX_EXPERIMENTAL_CXX0X__
-  template<typename _Tp, typename _Alloc>
-    inline void
-    swap(vector<_Tp, _Alloc>&& __lhs, vector<_Tp, _Alloc>& __rhs)
-    { __lhs.swap(__rhs); }
-
-  template<typename _Tp, typename _Alloc>
-    inline void
-    swap(vector<_Tp, _Alloc>& __lhs, vector<_Tp, _Alloc>&& __rhs)
-    { __lhs.swap(__rhs); }
-#endif
 
 } // namespace __profile
   using _GLIBCXX_STD_D::_S_word_bit;

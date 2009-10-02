@@ -1,6 +1,6 @@
 // -*- C++ -*-
 //
-// Copyright (C) 2008 Free Software Foundation, Inc.
+// Copyright (C) 2009 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the terms
@@ -54,7 +54,7 @@
 namespace __cxxprof_impl
 {
 
-// Class for container size node. 
+/** @brief A container size instrumentation line in the object table.  */
 class __container_size_info: public __object_info_base 
 {
  public:
@@ -180,6 +180,7 @@ inline __container_size_info::__container_size_info(
   _M_resize      = __o._M_resize;
 }
 
+/** @brief A container size instrumentation line in the stack table.  */
 class __container_size_stack_info: public __container_size_info
 {
  public:
@@ -187,6 +188,7 @@ class __container_size_stack_info: public __container_size_info
       : __container_size_info(__o) {}
 };
 
+/** @brief Container size instrumentation trace producer.  */
 class __trace_container_size
     : public __trace_base<__container_size_info, __container_size_stack_info> 
 {

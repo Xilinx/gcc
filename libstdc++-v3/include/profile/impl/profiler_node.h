@@ -1,6 +1,6 @@
 // -*- C++ -*-
 //
-// Copyright (C) 2008 Free Software Foundation, Inc.
+// Copyright (C) 2009 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the terms
@@ -97,7 +97,7 @@ inline void __write(FILE* __f, const __stack_t __stack)
   }
 }
 
-// Hash function for summary trace using stack as index.
+/** @brief Hash function for summary trace using call stack as index.  */
 class __stack_hash 
 {
  public:
@@ -126,6 +126,7 @@ class __stack_hash
   }
 };
 
+/** @brief Base class for a line in the object table.  */
 class __object_info_base
 {
  public:
@@ -154,6 +155,7 @@ inline __object_info_base::__object_info_base(const __object_info_base& __o)
   _M_valid = __o._M_valid;
 }
 
+/** @brief Base class for a line in the stack table.  */
 template<typename __object_info>
 class __stack_info_base
 {

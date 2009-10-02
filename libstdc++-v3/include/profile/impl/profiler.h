@@ -1,6 +1,6 @@
 // -*- C++ -*-
 //
-// Copyright (C) 2008 Free Software Foundation, Inc.
+// Copyright (C) 2009 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the terms
@@ -43,13 +43,19 @@
 #include <stddef.h>
 #endif
 
-// Define a mechanism to protect all __cxxprof_impl operations against
-// threaded and exception reentrance.
+/**
+ * @namespace std::__cxxprof_guard
+ * @brief Mechanism to protect all __cxxprof_impl operations against
+ * multithreaded and exception reentrance.
+ */
 namespace __cxxprof_guard
 {
 
-// Thread safe reentrance guard.
-// Get in using __get_in.  Get out using the destructor.
+/** @brief Reentrance guard.
+ *
+ * Mechanism to protect all __cxxprof_impl operations against recursion,
+ * multithreaded and exception reentrance.
+ */
 template <int _Unused=0>
 class __reentrance_guard
 {
@@ -85,11 +91,15 @@ bool __reentrance_guard<_Unused>::__get_in()
     }                                                              \
   }
 
+/**
+ * @namespace std::__cxxprof_impl
+ * @brief Implementation of profile extension.
+ */
+namespace __cxxprof_impl
+{
 // Forward declarations of implementation functions.
 // Don't use any __cxxprof_impl:: in user code.
 // Instead, use the __profcxx... macros, which offer guarded access.
-namespace __cxxprof_impl
-{
 void __turn_on();
 void __turn_off();
 bool __is_invalid();

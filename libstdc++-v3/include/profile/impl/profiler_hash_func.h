@@ -1,6 +1,6 @@
 // -*- C++ -*-
 //
-// Copyright (C) 2008 Free Software Foundation, Inc.
+// Copyright (C) 2009 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the terms
@@ -53,7 +53,7 @@
 namespace __cxxprof_impl
 {
 
-// Class for inefficient hash function. 
+/** @brief A hash performance instrumentation line in the object table.  */
 class __hashfunc_info: public __object_info_base
 {
  public:
@@ -100,11 +100,13 @@ inline void __hashfunc_info::__destruct(size_t __chain, size_t __accesses,
   _M_hops          += __hops;
 }
 
+/** @brief A hash performance instrumentation line in the stack table.  */
 class __hashfunc_stack_info: public __hashfunc_info {
  public:
   __hashfunc_stack_info(const __hashfunc_info& __o) : __hashfunc_info(__o) {}
 };
 
+/** @brief Hash performance instrumentation producer.  */
 class __trace_hash_func
     : public __trace_base<__hashfunc_info, __hashfunc_stack_info> 
 {

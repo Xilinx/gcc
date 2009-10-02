@@ -1,7 +1,6 @@
 // Profiling list implementation -*- C++ -*-
 
-// Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009
-// Free Software Foundation, Inc.
+// Copyright (C) 2009 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -36,6 +35,7 @@ namespace std
 {
 namespace __profile
 {
+  /** @brief List wrapper with performance instrumentation.  */
   template<typename _Tp, typename _Allocator = std::allocator<_Tp> >
     class list
     : public _GLIBCXX_STD_D::list<_Tp, _Allocator>
@@ -104,8 +104,8 @@ namespace __profile
       operator=(list&& __x)
       {
         // NB: DR 675.
-	clear();
-	swap(__x);
+	this->clear();
+	this->swap(__x);
 	return *this;
       }
 

@@ -1,6 +1,6 @@
 // -*- C++ -*-
 //
-// Copyright (C) 2008 Free Software Foundation, Inc.
+// Copyright (C) 2009 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the terms
@@ -55,6 +55,7 @@
 namespace __cxxprof_impl
 {
 
+/** @brief Hashtable size instrumentation trace producer.  */
 class __trace_vector_size : public __trace_container_size
 {
  public:

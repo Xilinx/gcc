@@ -1683,5 +1683,36 @@ sharing in multithreaded access at foo.cc:4.  Detected N shared cache lines.
 </sect1>
 
 
+<bibliography id="profile_mode.biblio">
+<title>Bibliography</title>
+
+  <biblioentry>
+    <title>
+      Perflint: A Context Sensitive Performance Advisor for C++ Programs
+    </title>
+
+    <author>
+      <firstname>Lixia</firstname>
+      <surname>Liu</surname>
+    </author>
+    <author>
+      <firstname>Silvius</firstname>
+      <surname>Rus</surname>
+    </author>
+
+    <copyright>
+      <year>2009</year>
+      <holder></holder>
+    </copyright>
+
+    <publisher>
+      <publishername>
+	Proceedings of the 2009 International Symposium on Code Generation
+        and Optimization
+      </publishername>
+    </publisher>
+  </biblioentry> 
+</bibliography>
+
 
 </chapter>

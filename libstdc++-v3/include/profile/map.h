@@ -1,7 +1,6 @@
 // Profiling map implementation -*- C++ -*-
 
-// Copyright (C) 2003, 2004, 2005, 2006, 2007
-// Free Software Foundation, Inc.
+// Copyright (C) 2009 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -35,8 +34,6 @@
 #ifndef _GLIBCXX_PROFILE_MAP_H
 #define _GLIBCXX_PROFILE_MAP_H 1
 
-//#include <profile/safe_sequence.h>
-//#include <profile/safe_iterator.h>
 #include <utility>
 #include <profile/base.h>
 
@@ -44,6 +41,7 @@ namespace std
 {
 namespace __profile
 {
+  /** @brief Map wrapper with performance instrumentation.  */
   template<typename _Key, typename _Tp, typename _Compare = std::less<_Key>,
 	   typename _Allocator = std::allocator<std::pair<const _Key, _Tp> > >
     class map
@@ -63,12 +61,6 @@ namespace __profile
 
       typedef typename _Base::iterator       iterator;
       typedef typename _Base::const_iterator       const_iterator;
-
-//       typedef __gnu_profile::_Safe_iterator<typename _Base::iterator, map>
-//                                                     iterator;
-//       typedef __gnu_profile::_Safe_iterator<typename _Base::const_iterator, map>
-//                                                     const_iterator;
-
       typedef typename _Base::size_type             size_type;
       typedef typename _Base::difference_type       difference_type;
       typedef typename _Base::pointer               pointer;
@@ -130,8 +122,8 @@ namespace __profile
       operator=(map&& __x)
       {
         // NB: DR 675.
-	clear();
-	swap(__x);
+	this->clear();
+	this->swap(__x);
 	return *this;
       }
 
@@ -285,12 +277,22 @@ namespace __profile
                                                 size() - size_before);
 	}
 
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      iterator
+      erase(iterator __position)
+      {
+	iterator __i = _Base::erase(__position);
+        __profcxx_map_to_unordered_map_erase(this, size(), 1);
+        return __i;
+      }
+#else
       void
       erase(iterator __position)
       {
 	_Base::erase(__position);
         __profcxx_map_to_unordered_map_erase(this, size(), 1);
       }
+#endif
 
       size_type
       erase(const key_type& __x)
@@ -315,11 +317,8 @@ namespace __profile
       }
 
       void
-#ifdef __GXX_EXPERIMENTAL_CXX0X__
-      swap(map&& __x)
-#else
+
       swap(map& __x)
-#endif
       {
 	_Base::swap(__x);
       }
@@ -483,22 +482,6 @@ namespace __profile
     swap(map<_Key, _Tp, _Compare, _Allocator>& __lhs,
 	 map<_Key, _Tp, _Compare, _Allocator>& __rhs)
     { __lhs.swap(__rhs); }
-
-#ifdef __GXX_EXPERIMENTAL_CXX0X__
-  template<typename _Key, typename _Tp,
-	   typename _Compare, typename _Allocator>
-    inline void
-    swap(map<_Key, _Tp, _Compare, _Allocator>&& __lhs,
-	 map<_Key, _Tp, _Compare, _Allocator>& __rhs)
-    { __lhs.swap(__rhs); }
-
-  template<typename _Key, typename _Tp,
-	   typename _Compare, typename _Allocator>
-    inline void
-    swap(map<_Key, _Tp, _Compare, _Allocator>& __lhs,
-	 map<_Key, _Tp, _Compare, _Allocator>&& __rhs)
-    { __lhs.swap(__rhs); }
-#endif
 
 } // namespace __profile
 } // namespace std

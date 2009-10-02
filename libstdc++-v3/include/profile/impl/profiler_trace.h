@@ -1,6 +1,6 @@
 // -*- C++ -*-
 //
-// Copyright (C) 2008 Free Software Foundation, Inc.
+// Copyright (C) 2009 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the terms
@@ -69,6 +69,7 @@ namespace __cxxprof_impl
 #if defined _GLIBCXX_PROFILE_THREADS && defined HAVE_TLS
 #define _GLIBCXX_IMPL_MUTEX_INITIALIZER PTHREAD_MUTEX_INITIALIZER
 typedef pthread_mutex_t __mutex_t;
+/** @brief Pthread mutex wrapper.  */
 template <int _Unused=0>
 class __mutex {
  public:
@@ -79,6 +80,7 @@ class __mutex {
 #else
 #define _GLIBCXX_IMPL_MUTEX_INITIALIZER 0
 typedef int __mutex_t;
+/** @brief Mock mutex interface.  */
 template <int _Unused=0>
 class __mutex {
  public:
@@ -91,6 +93,7 @@ class __mutex {
 template <int _Unused>
 __mutex_t __mutex<_Unused>::__global_lock = _GLIBCXX_IMPL_MUTEX_INITIALIZER;
 
+/** @brief Representation of a warning.  */
 struct __warning_data
 {
   float __magnitude;
@@ -151,7 +154,7 @@ inline size_t __min(size_t __a, size_t __b)
   return __a <= __b ? __a : __b;
 }
 
-// Diagnostic tables.
+/** @brief Storage for diagnostic table entries.  Has only static fields.  */
 template <int _Unused=0>
 class __tables
 {
@@ -174,7 +177,7 @@ __trace_vector_size* __tables<_Unused>::_S_vector_size = NULL;
 template <int _Unused>
 __trace_vector_to_list* __tables<_Unused>::_S_vector_to_list = NULL;
 
-// Settings.
+/** @brief Storage for user defined parameters.  Has only static fields.  */
 template <int _Unused=0>
 class __settings {
  public:
@@ -207,6 +210,7 @@ inline size_t __max_mem()
   return __settings<0>::_S_max_mem;
 }
 
+/** @brief Base class for all trace producers.  */
 template <typename __object_info, typename __stack_info>
 class __trace_base
 {
@@ -448,11 +452,13 @@ inline FILE* __open_output_file(const char* extension)
   }
 }
 
-// Final report, registered by "atexit".
-// This can also be called directly by user code, including signal handlers.
-// It is protected against deadlocks by the reentrance guard in profiler.h.
-// However, when called from a signal handler that triggers while within
-// __cxxprof_impl (under the guarded zone), no output will be produced.
+/** @brief Final report method, registered with "atexit".
+ *
+ * This can also be called directly by user code, including signal handlers.
+ * It is protected against deadlocks by the reentrance guard in profiler.h.
+ * However, when called from a signal handler that triggers while within
+ * __cxxprof_impl (under the guarded zone), no output will be produced.
+ */
 inline void __report(void)
 {
   __mutex<0>::__lock(__mutex<0>::__global_lock);
@@ -540,8 +546,10 @@ inline void __profcxx_init_unconditional()
   __mutex<0>::__unlock(__mutex<0>::__global_lock);
 }
 
-// This function must be called by each instrumentation point.
-// The common path is inlined fully.
+/** @brief This function must be called by each instrumentation point.
+ *
+ * The common path is inlined fully.
+ */
 inline bool __profcxx_init(void)
 {
   if (__is_invalid()) {

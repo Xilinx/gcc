@@ -1,3 +1,30 @@
+2009-10-02  Silvius Rus  <silvius.rus@gmail.com>
+	* doc/xml/manual/profile_mode.xml: Add bibliography.
+	* doc/doxygen/user.cfg.in: Add files under include/profile/impl/.
+	* include/profile/bitset: Add doc strings.
+	* include/profile/base.h: Same.
+	* include/profile/map: Same.
+	* include/profile/set: Same.
+	* include/profile/impl/profiler_container_size.h: Same.
+	* include/profile/impl/profiler_vector_size.h: Same.
+	* include/profile/impl/profiler_hash_func.h: Same.
+	* include/profile/impl/profiler_trace.h: Same.
+	* include/profile/impl/profiler_vector_to_list.h: Same.
+	* include/profile/impl/profiler.h: Same.
+	* include/profile/impl/profiler_state.h: Same.
+	* include/profile/impl/profiler_map_to_unordered_map.h: Same.
+	* include/profile/impl/profiler_hashtable_size.h: Same.
+	* include/profile/impl/profiler_node.h: Same.
+	* include/profile/vector: Add doc strings. (operator=) Fix bug.
+	* include/profile/deque: Same.
+	* include/profile/list: Same.
+	* include/profile/set.h: Add doc strings. (operator=,erase) Fix bug.
+	* include/profile/map.h: Same.
+	* include/profile/unordered_map: Same.
+	* include/profile/multiset.h: Same.
+	* include/profile/unordered_set: Same.
+	* include/profile/multimap.h: Same.
+
 2009-09-30  Benjamin Kosnik  <bkoz@redhat.com>
 
 	* testsuite/ext/profile/mutex_extensions.cc: Add excess-errors,
