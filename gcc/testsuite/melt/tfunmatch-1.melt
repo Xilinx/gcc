@@ -2,10 +2,10 @@
 ;; file tfunmatch-1.melt
 
 #| run in buildir/gcc
- ./cc1 -fmelt=translatefile -fmelt-dynlibdir=. \
+ ./cc1 -fmelt=translatefile -fmelt-module-path=. -fmelt-source-path=.:$GCCMELTSOURCE/gcc/melt \
     -fmelt-compile-script=./built-melt-cc-script \
-    -fmelt-gensrcdir=. -fmelt-tempdir=/tmp -fmelt-init=@warmelt2 \
-    -fmelt-arg=.../tfunmatch-1.melt -fmelt-debug
+    -fmelt-tempdir=/tmp -fmelt-init=@warmelt2 \
+    -fmelt-arg=$GCCMELTSOURCE/gcc/testsuite/melt/tfunmatch-1.melt -fmelt-debug
 |#
 
 
@@ -45,7 +45,7 @@
   matchbiggereven applybiggereven)
 	      
 
-#|
+
 (defun tfunmatch (o :long x)
   (debug_msg o "start tfunmatch o=")
   (messagenum_dbg "start tfunmatch x=" x)
@@ -61,6 +61,6 @@
 (tfunmatch 'one 1)
 (tfunmatch 'four 4)
 (tfunmatch 'ten 10)
-|#
+
 (isbiggereven 'six 6)
 ;; eof tfunmatch-1.melt

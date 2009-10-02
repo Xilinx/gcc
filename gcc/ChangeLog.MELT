@@ -1,3 +1,10 @@
+2009-10-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	* testsuite/melt/tfunmatch-1.melt: changed comment; this test is
+	passing!
+	* melt/warmelt-macro.melt: typos..
+	* melt/warmelt-normal.melt: normexp_funmatchexpr completed.
+	normexp_msend is testing the compatibility of method signature.
+
 2009-10-01  Basile Starynkevitch  <basile@starynkevitch.net>
 	[http://gcc.gnu.org/ml/gcc-patches/2009-10/msg00014.html]
 	* gengtype.c (write_types): Moved call to write_func_for_structure

@@ -1402,6 +1402,7 @@
 	 (sfmat (unsafe_get_field :sfmatx_fmatcher recv))
 	 (sfbind (unsafe_get_field :sfmatx_fmatbind recv))
 	 (sargs (unsafe_get_field :sfmatx_args recv)) 
+	 (nbind (make_list discr_list))
 	 )
     (assert_msg "check sfmat" (is_a sfmat class_funmatcher))
     (assert_msg "check sfbind" (is_a sfbind class_any_binding))
@@ -1411,15 +1412,56 @@
       (assert_msg "check good sfbind" (== sfbind (find_env env fmatsym)))
       (let ( (nfmat (normal_exp fmatsym env ncx psloc)) )
 	(debug_msg nfmat "normexp_funmatchexpr nfmat")
-	;; should create a binding to hold the nfmat's fmatch_applyf field
-	(multicall 
-	 (nargs nbind)
-	 (normalize_tuple sargs env ncx sloc)
-	 (debug_msg nargs "normexp_funmatchexpr nargs")
-	 (debug_msg recv "@$@unimplemented normexp_funmatchexpr recv")
-	 (assert_msg "@$@unimplemented normexp_funmatchexpr" ())
-	 (compile_warning "@$@unimplemented normexp_funmatchexpr" ())
-	 )))))
+	;; should create a normlet binding to hold the nfmat's
+	;; fmatch_applyf field
+	(let ( (csym (clone_symbol fmatsym))
+	       (cbind (instance class_normlet_binding
+				:letbind_loc sloc
+				:binder csym
+				:letbind_type ctype_value 
+				:letbind_expr 
+				(instance class_nrep_unsafe_get_field
+					  :nrep_loc sloc
+					  :nuget_obj nfmat
+					  :nuget_field fmatch_applyf)
+				))
+	       (clocc (instance  class_nrep_locsymocc
+				 :nrep_loc sloc
+				 :nocc_ctyp ctype_value
+				 :nocc_symb csym
+				 :nocc_bind cbind))
+	       )
+	  (list_append nbind cbind)
+	  (multicall 
+	   (nargs nargbind)
+	   (normalize_tuple sargs env ncx sloc)
+	   (debug_msg nargs "normexp_funmatchexpr nargs")
+	   (debug_msg nargbind "normexp_funmatchexpr nargbind")
+	   (list_append2list nbind nargbind)
+	   (let (
+		 (asym (clone_symbol fmatsym))
+		 (abind  (instance class_normlet_binding
+				   :letbind_loc sloc
+				   :binder asym
+				   :letbind_type ctype_value 
+				   :letbind_expr 
+				   (instance class_nrep_apply
+					     :nrep_loc sloc
+					     :napp_fun clocc
+					     :napp_args nargs
+					     ))) 
+		 (calocc  (instance  class_nrep_locsymocc
+				     :nrep_loc sloc
+				     :nocc_ctyp ctype_value
+				     :nocc_symb asym
+				     :nocc_bind abind
+				     )) 
+		 )
+	     (list_append nbind abind)
+	     (debug_msg calocc "normexp_funmatchexpr final calocc")
+	     (debug_msg nbind "normexp_funmatchexpr finale nbind")
+	     (return calocc nbind)
+	     )))))))
 (install_method class_src_funmatchexpr normal_exp normexp_funmatchexpr)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1471,10 +1513,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; normalize a message send
 (defun normexp_msend (msnd env ncx psloc)
-  (assert_msg "check env" (is_a msnd class_src_msend))
+  (assert_msg "check msnd" (is_a msnd class_src_msend))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
-					; (debug_msg ncx "normexp_msend ncx")
   (debug_msg msnd "normexp_msend msnd")
   (let ( (msrecv (unsafe_get_field :msend_recv msnd))
 	 (msargs (unsafe_get_field :msend_args msnd))
@@ -1482,9 +1523,11 @@
 	 (curproc (unsafe_get_field :nctx_curproc ncx))
 	 (sloc (unsafe_get_field :loca_location msnd))
 	 (nsel (normexp_symbol selnam env ncx sloc))
+	 (selbind (find_env env selnam))
 	 )
     (debug_msg curproc "normexp_msend curproc")
-    ;;;; we should add the constant selector into the current routine's constant pool
+    (debug_msg selbind "normexp_msend selbind")
+;;;; we should add the constant selector into the current routine's constant pool
     (multicall
      (nrecv nbindrecv)
      (normal_exp msrecv env ncx sloc)
@@ -1496,32 +1539,75 @@
 	   (error_strv sloc "non value reciever for message send of selector"
 		       (unsafe_get_field :named_name selnam)))
        )
-     (compile_warning "in normexp_msend we should check the formals
-     inside the selector if they are available")
      (multicall
       (nargs nbindargs)
       (normalize_tuple msargs env ncx sloc)
       (assert_msg "check nbindargs" (is_list_or_null nbindargs))
       (setq nbindrecv (list_append2list nbindrecv nbindargs))
       (check_ctype_nargs nargs env sloc)
-      (let (
-	    (csym (clone_symbol selnam)) 
-	    (nsend (instance class_nrep_msend
-			     :nrep_loc sloc
-			     :nsend_sel nsel
-			     :nsend_recv nrecv
-			     :nsend_args nargs)) 
-	    (cbind (instance class_normlet_binding
-			     :letbind_loc sloc
-			     :binder csym
-			     :letbind_type ctype_value 
-			     :letbind_expr nsend))
-	    (clocc  (instance  class_nrep_locsymocc
-			       :nrep_loc sloc
-			       :nocc_ctyp ctype_value
-			       :nocc_symb csym
-			       :nocc_bind cbind)) 
-	    )
+      (let ( (selformals
+	      (cond ( (is_a selbind class_selector_binding)
+		      (get_field  :sdefsel_formals (get_field :sbind_selectordef selbind) 
+				  )
+		      )
+		    ( (is_a selbind class_value_binding)
+		      (let ( (valsel (get_field :vbind_value selbind)) )
+			(assert_msg "check valsel" (is_a valsel class_selector))
+			(get_field  :sel_signature valsel))
+		      )
+		    (:else 
+		     (assert_msg "invalid selbind" ())
+		     ())))
+	     (csym (clone_symbol selnam)) 
+	     (nsend (instance class_nrep_msend
+			      :nrep_loc sloc
+			      :nsend_sel nsel
+			      :nsend_recv nrecv
+			      :nsend_args nargs)) 
+	     (cbind (instance class_normlet_binding
+			      :letbind_loc sloc
+			      :binder csym
+			      :letbind_type ctype_value 
+			      :letbind_expr nsend))
+	     (clocc  (instance  class_nrep_locsymocc
+				:nrep_loc sloc
+				:nocc_ctyp ctype_value
+				:nocc_symb csym
+				:nocc_bind cbind)) 
+	     )
+	(if (is_multiple selformals)
+	    (let ( (recvformal (multiple_nth selformals 0))
+		   (:long nbformals (multiple_length selformals))
+		   )
+	      (debug_msg selformals "normexp_msend")
+	      (assert_msg "check recvformal" (== (get_field :fbind_type recvformal) ctype_value))
+	      (if (!=i nbformals (+i 1 (multiple_length nargs)))
+		  (warning_strv sloc "unexpected number of arguments for method"
+				(get_field :named_name selnam))
+		)
+	      (foreach_in_multiple 
+	       (nargs)
+	       (curnarg :long nix)
+	       (let ( (curformal (multiple_nth selformals (+i nix 1)))
+		      (curctyp (get_ctype curnarg env))
+		      (formctyp (get_field :fbind_type curformal))
+		      (formbinder (get_field :binder curformal))
+		      )
+		 (assert_msg "check curformal"
+			     (is_a curformal class_formal_binding))
+		 (if (!= curctyp formctyp)
+		     (progn
+		       (warning_strv sloc "c-type mismatch in method send argument"
+				     (get_field :named_name selnam))
+		       (inform_strv sloc "mismatched method formal name"
+				    (get_field :named_name formbinder))
+		       (inform_strv sloc "mismatched method actual type"
+				    (get_field :named_name curctyp))
+		       (inform_strv sloc "mismatched method expected type"
+				    (get_field :named_name formctyp))
+		       )
+		   )
+		 ))))
 	(unsafe_put_fields clocc :nocc_bind cbind)
 	(if (not (is_list nbindrecv))
 	    (setq nbindrecv (make_list discr_list)))
@@ -3972,6 +4058,7 @@
 ;;; put the data in the binding
 	 (unsafe_put_fields fmbind :fixbind_data insdata)
 ;;; make a funmatcher binding
+	 (debug_msg fmbind "normexp_defunmatcher final fmbind")
 	 (compile_warning "$@$incomplete normexp_defunmatcher" ())
 ;;; return insdata and resbinds
 	 (debug_msg insdata "normexp_defunmatcher return insdata")
