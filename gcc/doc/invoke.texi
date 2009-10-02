@@ -313,7 +313,8 @@ Objective-C and Objective-C++ Dialects}.
 -ftest-coverage  -ftime-report -fvar-tracking @gol
 -fvar-tracking-assigments  -fvar-tracking-assignments-toggle @gol
 -g  -g@var{level}  -gtoggle  -gcoff  -gdwarf-@var{version} @gol
--ggdb  -gstabs  -gstabs+  -gvms  -gxcoff  -gxcoff+ @gol
+-ggdb  -gstabs  -gstabs+  -gstrict-dwarf  -gno-strict-dwarf @gol
+-gvms  -gxcoff  -gxcoff+ @gol
 -fno-merge-debug-strings -fno-dwarf2-cfi-asm @gol
 -fdebug-prefix-map=@var{old}=@var{new} @gol
 -femit-struct-debug-baseonly -femit-struct-debug-reduced @gol
@@ -591,7 +592,7 @@ Objective-C and Objective-C++ Dialects}.
 -mcld -mcx16 -msahf -mmovbe -mcrc32 -mrecip @gol
 -mmmx  -msse  -msse2 -msse3 -mssse3 -msse4.1 -msse4.2 -msse4 -mavx @gol
 -maes -mpclmul @gol
--msse4a -m3dnow -mpopcnt -mabm @gol
+-msse4a -m3dnow -mpopcnt -mabm -mfma4 @gol
 -mthreads  -mno-align-stringops  -minline-all-stringops @gol
 -minline-stringops-dynamically -mstringop-strategy=@var{alg} @gol
 -mpush-args  -maccumulate-outgoing-args  -m128bit-long-double @gol
@@ -3024,20 +3025,6 @@ requiring a non-null value by the @code{nonnull} function attribute.
 @option{-Wnonnull} is included in @option{-Wall} and @option{-Wformat}.  It
 can be disabled with the @option{-Wno-nonnull} option.
 
-@item -Wjump-misses-init @r{(C, Objective-C only)}
-@opindex Wjump-misses-init
-@opindex Wno-jump-misses-init
-Warn if a @code{goto} statement or a @code{switch} statement jumps
-forward across the initialization of a variable, or jumps backward to a
-label after the variable has been initialized.  This only warns about
-variables which are initialized when they are declared.  This warning is
-only supported for C and Objective C; in C++ this sort of branch is an
-error in any case.
-
-@option{-Wjump-misses-init} is included in @option{-Wall} and
-@option{-Wc++-compat}.  It can be disabled with the
-@option{-Wno-jump-misses-init} option.
-
 @item -Winit-self @r{(C, C++, Objective-C and Objective-C++ only)}
 @opindex Winit-self
 @opindex Wno-init-self
@@ -3849,6 +3836,19 @@ Warn about a comparison between values of different enum types. In C++
 this warning is enabled by default.  In C this warning is enabled by
 @option{-Wall}.
 
+@item -Wjump-misses-init @r{(C, Objective-C only)}
+@opindex Wjump-misses-init
+@opindex Wno-jump-misses-init
+Warn if a @code{goto} statement or a @code{switch} statement jumps
+forward across the initialization of a variable, or jumps backward to a
+label after the variable has been initialized.  This only warns about
+variables which are initialized when they are declared.  This warning is
+only supported for C and Objective C; in C++ this sort of branch is an
+error in any case.
+
+@option{-Wjump-misses-init} is included in @option{-Wc++-compat}.  It
+can be disabled with the @option{-Wno-jump-misses-init} option.
+
 @item -Wsign-compare
 @opindex Wsign-compare
 @opindex Wno-sign-compare
@@ -4427,6 +4427,17 @@ use, some non-conflicting DWARF 3 extensions in the unwind tables.
 
 Version 4 may require GDB 7.0 and @option{-fvar-tracking-assignments}
 for maximum benefit.
+
+@item -gstrict-dwarf
+@opindex gstrict-dwarf
+Disallow using extensions of later DWARF standard version than selected
+with @option{-gdwarf-@var{version}}.  On most targets using non-conflicting
+DWARF extensions from later standard versions is allowed.
+
+@item -gno-strict-dwarf
+@opindex gno-strict-dwarf
+Allow using extensions of later DWARF standard version than selected with
+@option{-gdwarf-@var{version}}.
 
 @item -gvms
 @opindex gvms
@@ -11716,6 +11727,8 @@ preferred alignment to @option{-mpreferred-stack-boundary=2}.
 @itemx -mno-pclmul
 @itemx -msse4a
 @itemx -mno-sse4a
+@itemx -mfma4
+@itemx -mno-fma4
 @itemx -m3dnow
 @itemx -mno-3dnow
 @itemx -mpopcnt
@@ -11729,7 +11742,7 @@ preferred alignment to @option{-mpreferred-stack-boundary=2}.
 @opindex m3dnow
 @opindex mno-3dnow
 These switches enable or disable the use of instructions in the MMX,
-SSE, SSE2, SSE3, SSSE3, SSE4.1, AVX, AES, PCLMUL, SSE4A, ABM or
+SSE, SSE2, SSE3, SSSE3, SSE4.1, AVX, AES, PCLMUL, SSE4A, FMA4, ABM or
 3DNow!@: extended instruction sets.
 These extensions are also available as built-in functions: see
 @ref{X86 Built-in Functions}, for details of the functions enabled and
@@ -14372,7 +14385,7 @@ Supported values for @var{cpu_type} are @samp{401}, @samp{403},
 @samp{860}, @samp{970}, @samp{8540}, @samp{e300c2}, @samp{e300c3},
 @samp{e500mc}, @samp{ec603e}, @samp{G3}, @samp{G4}, @samp{G5},
 @samp{power}, @samp{power2}, @samp{power3}, @samp{power4},
-@samp{power5}, @samp{power5+}, @samp{power6}, @samp{power6x}, @samp{power7}
+@samp{power5}, @samp{power5+}, @samp{power6}, @samp{power6x}, @samp{power7},
 @samp{common}, @samp{powerpc}, @samp{powerpc64}, @samp{rios},
 @samp{rios1}, @samp{rios2}, @samp{rsc}, and @samp{rs64}.
 

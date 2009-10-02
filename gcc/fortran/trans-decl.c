@@ -64,6 +64,10 @@ static GTY(()) tree saved_parent_function_decls;
 static struct pointer_set_t *nonlocal_dummy_decl_pset;
 static GTY(()) tree nonlocal_dummy_decls;
 
+/* Holds the variable DECLs that are locals.  */
+
+static GTY(()) tree saved_local_decls;
+
 /* The namespace of the module we're currently generating.  Only used while
    outputting decls for module variables.  Do not rely on this being set.  */
 
@@ -178,6 +182,16 @@ gfc_add_decl_to_function (tree decl)
   DECL_CONTEXT (decl) = current_function_decl;
   TREE_CHAIN (decl) = saved_function_decls;
   saved_function_decls = decl;
+}
+
+static void
+add_decl_as_local (tree decl)
+{
+  gcc_assert (decl);
+  TREE_USED (decl) = 1;
+  DECL_CONTEXT (decl) = current_function_decl;
+  TREE_CHAIN (decl) = saved_local_decls;
+  saved_local_decls = decl;
 }
 
 
@@ -504,8 +518,11 @@ gfc_finish_var_decl (tree decl, gfc_symbol * sym)
   if (current_function_decl != NULL_TREE)
     {
       if (sym->ns->proc_name->backend_decl == current_function_decl
-          || sym->result == sym)
+	  || sym->result == sym)
 	gfc_add_decl_to_function (decl);
+      else if (sym->ns->proc_name->attr.flavor == FL_LABEL)
+	/* This is a BLOCK construct.  */
+	add_decl_as_local (decl);
       else
 	gfc_add_decl_to_parent_function (decl);
     }
@@ -2974,7 +2991,8 @@ gfc_init_default_dt (gfc_symbol * sym, tree body)
   gfc_set_sym_referenced (sym);
   e = gfc_lval_expr_from_sym (sym);
   tmp = gfc_trans_assignment (e, sym->value, false);
-  if (sym->attr.dummy)
+  if (sym->attr.dummy && (sym->attr.optional
+			  || sym->ns->proc_name->attr.entry_master))
     {
       present = gfc_conv_expr_present (sym);
       tmp = build3 (COND_EXPR, TREE_TYPE (tmp), present,
@@ -3006,21 +3024,23 @@ init_intent_out_dt (gfc_symbol * proc_sym, tree body)
 	&& !f->sym->attr.pointer
 	&& f->sym->ts.type == BT_DERIVED)
       {
-	if (f->sym->ts.u.derived->attr.alloc_comp)
+	if (f->sym->ts.u.derived->attr.alloc_comp && !f->sym->value)
 	  {
 	    tmp = gfc_deallocate_alloc_comp (f->sym->ts.u.derived,
 					     f->sym->backend_decl,
 					     f->sym->as ? f->sym->as->rank : 0);
 
-	    present = gfc_conv_expr_present (f->sym);
-	    tmp = build3 (COND_EXPR, TREE_TYPE (tmp), present,
-			  tmp, build_empty_stmt (input_location));
+	    if (f->sym->attr.optional
+		|| f->sym->ns->proc_name->attr.entry_master)
+	      {
+		present = gfc_conv_expr_present (f->sym);
+		tmp = build3 (COND_EXPR, TREE_TYPE (tmp), present,
+			      tmp, build_empty_stmt (input_location));
+	      }
 
 	    gfc_add_expr_to_block (&fnblock, tmp);
 	  }
-
-	if (!f->sym->ts.u.derived->attr.alloc_comp
-	      && f->sym->value)
+       else if (f->sym->value)
 	  body = gfc_init_default_dt (f->sym, body);
       }
 
@@ -3036,7 +3056,7 @@ init_intent_out_dt (gfc_symbol * proc_sym, tree body)
     Initialization and possibly repacking of dummy arrays.
     Initialization of ASSIGN statement auxiliary variable.  */
 
-static tree
+tree
 gfc_trans_deferred_vars (gfc_symbol * proc_sym, tree fnbody)
 {
   locus loc;
@@ -4549,6 +4569,30 @@ gfc_generate_block_data (gfc_namespace * ns)
 
   pushdecl (decl);
   rest_of_decl_compilation (decl, 1, 0);
+}
+
+
+/* Process the local variables of a BLOCK construct.  */
+
+void
+gfc_process_block_locals (gfc_namespace* ns)
+{
+  tree decl;
+
+  gcc_assert (saved_local_decls == NULL_TREE);
+  generate_local_vars (ns);
+
+  decl = saved_local_decls;
+  while (decl)
+    {
+      tree next;
+
+      next = TREE_CHAIN (decl);
+      TREE_CHAIN (decl) = NULL_TREE;
+      pushdecl (decl);
+      decl = next;
+    }
+  saved_local_decls = NULL_TREE;
 }
 
 

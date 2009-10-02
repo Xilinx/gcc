@@ -2507,7 +2507,6 @@ assemble_static_space (unsigned HOST_WIDE_INT size)
 
 static GTY(()) rtx initial_trampoline;
 
-#ifdef TRAMPOLINE_TEMPLATE
 rtx
 assemble_trampoline_template (void)
 {
@@ -2515,6 +2514,8 @@ assemble_trampoline_template (void)
   const char *name;
   int align;
   rtx symbol;
+
+  gcc_assert (targetm.asm_out.trampoline_template != NULL);
 
   if (initial_trampoline)
     return initial_trampoline;
@@ -2530,12 +2531,10 @@ assemble_trampoline_template (void)
   /* Write the assembler code to define one.  */
   align = floor_log2 (TRAMPOLINE_ALIGNMENT / BITS_PER_UNIT);
   if (align > 0)
-    {
-      ASM_OUTPUT_ALIGN (asm_out_file, align);
-    }
+    ASM_OUTPUT_ALIGN (asm_out_file, align);
 
   targetm.asm_out.internal_label (asm_out_file, "LTRAMP", 0);
-  TRAMPOLINE_TEMPLATE (asm_out_file);
+  targetm.asm_out.trampoline_template (asm_out_file);
 
   /* Record the rtl to refer to it.  */
   ASM_GENERATE_INTERNAL_LABEL (label, "LTRAMP", 0);
@@ -2543,12 +2542,12 @@ assemble_trampoline_template (void)
   symbol = gen_rtx_SYMBOL_REF (Pmode, name);
   SYMBOL_REF_FLAGS (symbol) = SYMBOL_FLAG_LOCAL;
 
-  initial_trampoline = gen_rtx_MEM (BLKmode, symbol);
+  initial_trampoline = gen_const_mem (BLKmode, symbol);
   set_mem_align (initial_trampoline, TRAMPOLINE_ALIGNMENT);
+  set_mem_size (initial_trampoline, GEN_INT (TRAMPOLINE_SIZE));
 
   return initial_trampoline;
 }
-#endif
 
 /* A and B are either alignments or offsets.  Return the minimum alignment
    that may be assumed after adding the two together.  */
@@ -4213,8 +4212,7 @@ initializer_constant_valid_p (tree value, tree endtype)
 	    /* Taking the address of a nested function involves a trampoline,
 	       unless we don't need or want one.  */
 	    if (TREE_CODE (op0) == FUNCTION_DECL
-		&& decl_function_context (op0)
-		&& !DECL_NO_STATIC_CHAIN (op0)
+		&& DECL_STATIC_CHAIN (op0)
 		&& !TREE_NO_TRAMPOLINE (value))
 	      return NULL_TREE;
 	    /* "&{...}" requires a temporary to hold the constructed
@@ -5999,8 +5997,13 @@ default_elf_asm_named_section (const char *name, unsigned int flags,
       if (flags & SECTION_ENTSIZE)
 	fprintf (asm_out_file, ",%d", flags & SECTION_ENTSIZE);
       if (HAVE_COMDAT_GROUP && (flags & SECTION_LINKONCE))
-	fprintf (asm_out_file, ",%s,comdat",
-		 IDENTIFIER_POINTER (DECL_COMDAT_GROUP (decl)));
+	{
+	  if (TREE_CODE (decl) == IDENTIFIER_NODE)
+	    fprintf (asm_out_file, ",%s,comdat", IDENTIFIER_POINTER (decl));
+	  else
+	    fprintf (asm_out_file, ",%s,comdat",
+		     IDENTIFIER_POINTER (DECL_COMDAT_GROUP (decl)));
+	}
     }
 
   putc ('\n', asm_out_file);
@@ -6417,8 +6420,8 @@ default_encode_section_info (tree decl, rtx rtl, int first ATTRIBUTE_UNUSED)
     flags |= SYMBOL_FLAG_FUNCTION;
   if (targetm.binds_local_p (decl))
     flags |= SYMBOL_FLAG_LOCAL;
-  if (targetm.have_tls && TREE_CODE (decl) == VAR_DECL
-      && DECL_THREAD_LOCAL_P (decl))
+  if (TREE_CODE (decl) == VAR_DECL && DECL_THREAD_LOCAL_P (decl)
+      && DECL_TLS_MODEL (decl) != TLS_MODEL_EMULATED)
     flags |= DECL_TLS_MODEL (decl) << SYMBOL_FLAG_TLS_SHIFT;
   else if (targetm.in_small_data_p (decl))
     flags |= SYMBOL_FLAG_SMALL;
