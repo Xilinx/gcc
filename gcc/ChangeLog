@@ -1,3 +1,93 @@
+2009-10-02  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/41404
+	PR debug/41353
+	* cfgexpand.c (expand_debug_expr) <case STRING_CST>: Don't create
+	CONST_STRING if STRING_CST contains embedded '\0's or doesn't end with
+	'\0'.
+	(expand_debug_expr) <case VAR_DECL>: For TREE_STATIC !DECL_EXTERNAL
+	vars use DECL_RTL with resetting it back to NULL afterwards.
+	* dwarf2out.c (same_dw_val_p): For dw_val_class_addr compare with
+	rtx_equal_p instead of asserting it is a SYMBOL_REF.
+	(value_format): For dw_val_class_addr only use DW_FORM_addr if
+	the attribute type allows it, otherwise use DW_FORM_dataN.
+	(mem_loc_descriptor): Handle CONST_STRING.
+	(add_const_value_attribute): Handle CONST_STRING using add_AT_addr.
+	Handle MEM with CONST_STRING address using add_AT_string.
+	(rtl_for_decl_init): Return MEM with CONST_STRING address instead of
+	CONST_STRING for const arrays initialized with a string literal.
+	(resolve_one_addr, resolve_addr_in_expr, resolve_addr): New functions.
+	(dwarf2out_finish): Call resolve_addr.
+
+2009-10-02  Andreas Schwab  <schwab@linux-m68k.org>
+	    Maxim Kuvyrkov  <maxim@codesourcery.com>
+ 
+	* config/m68k/lb1sf68.asm (PICCALL): Use variable sized branch.
+
+2009-10-02  Nick Clifton  <nickc@redhat.com>
+
+	* config/mn10300/mn10300.h (USER_LABEL_PREFIX): Define.
+	(ASM_OUTPUT_LABELREF): Use asm_fprintf and %U.
+
+2009-10-01  Jan Hubicka  <jh@suse.cz>
+
+	* cgraph.c (cgraph_clone_node): Add redirect_callers parameter.
+	(cgraph_create_virtual_clone): Just pass redirect_callers
+	around.
+	* cgraph.h (cgraph_clone_node): Update prototype.
+	* ipa-pure-const.c (self_recursive_p): New function.
+	(propagate): Use it.
+	* ipa-inline.c (cgraph_clone_inlined_nodes,
+	cgraph_decide_recursive_inlining): Update.
+
+2009-10-01  David Daney  <ddaney@caviumnetworks.com>
+
+	* gcc/config/mips/mips.c (mips_process_sync_loop) Emit syncw
+	instructions for TARGET_OCTEON.
+
+2009-10-01  Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
+
+	* config/arm/arm.c (arm_override_options): Turn off
+	flag_dwarf2_cfi_asm for AAPCS variants.
+
+2009-10-01  Martin Jambor  <mjambor@suse.cz>
+
+	PR middle-end/12392
+	* tree-sra.c (convert_callers): Do not call
+	compute_inline_parameters on one caller more than once.
+
+2009-10-01  Nick Clifton  <nickc@redhat.com>
+
+	* config/vax/netbsd-elf.h (NETBSD_CC1_AND_CC1PLUS_SPEC): Define as
+	an empty string if not already defined.
+
+2009-10-01  Martin Jambor  <mjambor@suse.cz>
+
+	PR bootstrap/41395
+	* tree-sra.c (is_va_list_type): New function.
+	(find_var_candidates): Call is_va_list_type.
+	(find_param_candidates): Check that the type or the type pointed
+	to are not va_list types.
+
+2009-10-01  Martin Jambor  <mjambor@suse.cz>
+
+	PR c++/41503
+	* cp/pt.c (function_parameter_expanded_from_pack_p): Return false if
+	DECL_ARTIFICIAL (param_decl) is true.
+	
+2009-09-30  Gabriel Dos Reis  <gdr@cs.tamu.edu>
+
+	* tree.h (tree_decl_common::lang_flag_8): New.
+	* c-common.c (c_common_reswords): Include "constexpr" as C++0x
+	keyword. 
+	* c-common.h (RID_CONSTEXPR): New.
+
+2009-09-30  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/alpha/alpha.c (alpha_gimplify_va_arg_1):
+	Use ref-all pointers.
+	(alpha_gimplify_va_arg): Ditto.
+
 2009-09-30  Jakub Jelinek  <jakub@redhat.com>
 
 	PR target/41279
@@ -37,33 +127,30 @@
 
 	* config.gcc (i[34567]86-*-*): Include fma4intrin.h.
 	(x86_64-*-*): Ditto.
-	
+
 	* config/i386/fma4intrin.h: New file, provide common x86 compiler
 	intrinisics for FMA4.
 	* config/i386/cpuid.h (bit_FMA4): Define FMA4 bit.
 	* config/i386/x86intrin.h: Fix typo to SSE4A instead of SSE4a.
 	Add FMA4 check and fma4intrin.h.
 	* config/i386/i386-c.c(ix86_target_macros_internal): Check
-	ISA_FLAG for FMA4. 
+	ISA_FLAG for FMA4.
 	* config/i386/i386.h(TARGET_FMA4): New macro for FMA4.
 	* config/i386/i386.md (UNSPEC_FMA4_INTRINSIC): Add new UNSPEC
 	constant for FMA4 support.
 	(UNSPEC_FMA4_FMADDSUB): Ditto.
 	(UNSPEC_FMA4_FMSUBADD): Ditto.
 	* config/i386/i386.opt (-mfma4): New switch for FMA4 support.
-	* config/i386/i386-protos.h (ix86_fma4_valid_op_p): Add
-	declaration.
+	* config/i386/i386-protos.h (ix86_fma4_valid_op_p): Add declaration.
 	(ix86_expand_fma4_multiple_memory): Ditto.
 	* config/i386/i386.c (OPTION_MASK_ISA_FMA4_SET): New.
-	(OPTION_MASK_ISA_FMA4_UNSET): New.	
-	(OPTION_MASK_ISA_SSE4A_UNSET): Change definition to
-	depend on FMA4.
-	(OPTION_MASK_ISA_AVX_UNSET): Change definition to
-	depend on FMA4.
+	(OPTION_MASK_ISA_FMA4_UNSET): New.
+	(OPTION_MASK_ISA_SSE4A_UNSET): Change definition to depend on FMA4.
+	(OPTION_MASK_ISA_AVX_UNSET): Change definition to depend on FMA4.
 	(ix86_handle_option): Handle -mfma4.
 	(isa_opts): Handle -mfma4.
 	(enum pta_flags): Add PTA_FMA4.
-	(override_options): Add FMA4 support.	
+	(override_options): Add FMA4 support.
 	(IX86_BUILTIN_VFMADDSS): New for FMA4 intrinsic.
 	(IX86_BUILTIN_VFMADDSD): Ditto.
 	(IX86_BUILTIN_VFMADDPS): Ditto.
@@ -169,7 +256,7 @@
 2009-09-29  Steve Ellcey  <sje@cup.hp.com>
 	    Alexander Monakov  <amonakov@ispras.ru>
 
-	PR target/41365 
+	PR target/41365
 	* config/ia64/predicates.md (not_postinc_destination_operand): New.
 	(not_postinc_memory_operand): New.
 	(not_postinc_move_operand): New.
@@ -205,14 +292,13 @@
 2009-09-29  Harsha Jagasia  <harsha.jagasia@amd.com>
 
 	* config.gcc (i[34567]86-*-*): Remove mmintrin-common.h.
-	(x86_64-*-*): Ditto.	
+	(x86_64-*-*): Ditto.
 	* config/i386/smmintrin.h: Move instructions in mmintrin-common.h
 	back to smmintrin.h.
 	* config/i386/cpuid.h: (bit_SSE5): Remove SSE5 bit.
 	* config/i386/x86intrin.h: Remove SSE5.
-	* config/i386/mmintrin-common.h: Delete file.	
-	* doc/extend.texi (x86 intrinsics): Remove SSE5 flags
-	and builtins.
+	* config/i386/mmintrin-common.h: Delete file.
+	* doc/extend.texi (x86 intrinsics): Remove SSE5 flags and builtins.
 
 2009-09-29  Richard Guenther  <rguenther@suse.de>
 
@@ -226,7 +312,7 @@
 
 2009-09-28  Sriraman Tallam  <tmsriram@google.com>
 
-	* tree-pass.h (register_pass_info): New structure.	
+	* tree-pass.h (register_pass_info): New structure.
 	(pass_positioning_ops): Move enum from gcc-plugin.h.
 	(register_pass): New function.
 	* gcc-plugin.h (plugin_pass): Delete structure.
@@ -333,7 +419,7 @@
 	multiple instructions).
 	* tree-ssa-dom.c (optimize_stmt): Resolve __builtin_constant_p
 	calls into zero at this time.
-	* tree-ssa-propagate.c (substitute_and_fold): Ignore multiple 
+	* tree-ssa-propagate.c (substitute_and_fold): Ignore multiple
 	statements generated by builtin folding.
 
 2009-09-28  Nick Clifton  <nickc@redhat.com>

@@ -2484,10 +2484,11 @@ struct GTY(()) tree_decl_minimal {
 
 
 /* For any sort of a ..._DECL node, this points to the original (abstract)
-   decl node which this decl is an instance of, or else it is NULL indicating
-   that this decl is not an instance of some other decl.  For example,
-   in a nested declaration of an inline function, this points back to the
-   definition.  */
+   decl node which this decl is an inlined/cloned instance of, or else it
+   is NULL indicating that this decl is not an instance of some other decl.
+
+   The C front-end also uses this in a nested declaration of an inline
+   function, to point back to the definition.  */
 #define DECL_ABSTRACT_ORIGIN(NODE) (DECL_COMMON_CHECK (NODE)->decl_common.abstract_origin)
 
 /* Like DECL_ABSTRACT_ORIGIN, but returns NODE if there's no abstract
@@ -2597,6 +2598,7 @@ struct GTY(()) tree_decl_minimal {
 #define DECL_LANG_FLAG_5(NODE) (DECL_COMMON_CHECK (NODE)->decl_common.lang_flag_5)
 #define DECL_LANG_FLAG_6(NODE) (DECL_COMMON_CHECK (NODE)->decl_common.lang_flag_6)
 #define DECL_LANG_FLAG_7(NODE) (DECL_COMMON_CHECK (NODE)->decl_common.lang_flag_7)
+#define DECL_LANG_FLAG_8(NODE) (DECL_COMMON_CHECK (NODE)->decl_common.lang_flag_8)
 
 /* Nonzero for a decl which is at file scope.  */
 #define DECL_FILE_SCOPE_P(EXP) 					\
@@ -2639,6 +2641,7 @@ struct GTY(()) tree_decl_common {
   unsigned lang_flag_5 : 1;
   unsigned lang_flag_6 : 1;
   unsigned lang_flag_7 : 1;
+  unsigned lang_flag_8 : 1;
 
   /* In LABEL_DECL, this is DECL_ERROR_ISSUED.
      In VAR_DECL and PARM_DECL, this is DECL_REGISTER.  */
@@ -2657,8 +2660,9 @@ struct GTY(()) tree_decl_common {
   unsigned decl_by_reference_flag : 1;
   /* In VAR_DECL, PARM_DECL and RESULT_DECL, this is DECL_RESTRICTED_P.  */
   unsigned decl_restricted_flag : 1;
+
   /* Padding so that 'off_align' can be on a 32-bit boundary.  */
-  unsigned decl_common_unused : 3;
+  unsigned decl_common_unused : 2;
 
   /* DECL_OFFSET_ALIGN, used only for FIELD_DECLs.  */
   unsigned int off_align : 8;

@@ -5203,6 +5203,87 @@ float_const_decimal64_p (void)
   return 0;
 }
 
+/* Return true if T is a literal type.   */
+
+bool
+literal_type_p (tree t)
+{
+  if (SCALAR_TYPE_P (t))
+    return true;
+  if (CLASS_TYPE_P (t))
+    return CLASSTYPE_LITERAL_P (t);
+  if (TREE_CODE (t) == ARRAY_TYPE)
+    return literal_type_p (strip_array_types (t));
+  return false;
+}
+
+
+/* If DECL is a variable declared `constexpr', require its type
+   be literal.  Return the DECL if OK, otherwise NULL.  */
+
+tree
+ensure_literal_type_for_constexpr_object (tree decl)
+{
+  tree type = TREE_TYPE (decl);
+  if (TREE_CODE (decl) == VAR_DECL && DECL_DECLARED_CONSTEXPR_P (decl)
+      && !processing_template_decl && !literal_type_p (type))
+    {
+      error ("the type %qT of constexpr variable %qD is not literal",
+             type, decl);
+      return NULL;
+    }
+  return decl;
+}
+
+/* Return non-null if FUN certainly designates a valid constexpr function
+   declaration.  Otherwise return NULL.  Issue appropriate diagnostics
+   if necessary.  Note that we only check the declaration, not the body
+   of the function.  */
+
+tree
+validate_constexpr_fundecl (tree fun)
+{
+  tree rettype = NULL;
+  tree parm = NULL;
+
+  /* Don't bother if FUN is not marked constexpr.  */
+  if (!DECL_DECLARED_CONSTEXPR_P (fun))
+    return NULL;
+
+  /* For a function template, we have absolutely no guarantee that all
+     instantiations will be constexpr.  */
+  if (TREE_CODE (fun) == TEMPLATE_DECL)
+    return NULL;
+  
+  parm = FUNCTION_FIRST_USER_PARM (fun);
+  for (; parm != NULL; parm = TREE_CHAIN (parm))
+    {
+      tree type = TREE_TYPE (parm);
+      if (dependent_type_p (type))
+        return NULL;
+      if (!literal_type_p (type))
+        {
+           error ("parameter %q#D is not of literal type", parm);
+          return NULL;
+        }
+    }
+
+  if (DECL_CONSTRUCTOR_P (fun))
+    return fun;
+
+  rettype = TREE_TYPE (TREE_TYPE (fun));
+  if (dependent_type_p (rettype))
+    return NULL;
+  if (!literal_type_p (rettype))
+    {
+      error ("return type %qT of function %qD is not a literal type",
+             TREE_TYPE (TREE_TYPE (fun)), fun);
+      return NULL;
+    }
+  return fun;
+}
+
+
 /* Constructor for a lambda expression.  */
 
 tree
@@ -5540,7 +5621,6 @@ add_default_capture (tree lambda_stack, tree id, tree initializer)
   current_class_type = saved_class_type;
 
   return member;
-
 }
 
 /* Return the capture pertaining to a use of 'this' in LAMBDA, in the form of an
@@ -5559,6 +5639,7 @@ lambda_expr_this_capture (tree lambda)
     {
       tree containing_function = TYPE_CONTEXT (TREE_TYPE (lambda));
       tree lambda_stack = tree_cons (NULL_TREE, lambda, NULL_TREE);
+      tree init = NULL_TREE;
 
       /* If we are in a lambda function, we can move out until we hit:
            1. a non-lambda function,
@@ -5569,9 +5650,20 @@ lambda_expr_this_capture (tree lambda)
           tree lambda
             = CLASSTYPE_LAMBDA_EXPR (DECL_CONTEXT (containing_function));
 
-          if (LAMBDA_EXPR_THIS_CAPTURE (lambda)
-              || LAMBDA_EXPR_DEFAULT_CAPTURE_MODE (lambda) == CPLD_NONE)
-            break;
+          if (LAMBDA_EXPR_THIS_CAPTURE (lambda))
+	    {
+	      /* An outer lambda has already captured 'this'.  */
+	      tree cap = LAMBDA_EXPR_THIS_CAPTURE (lambda);
+	      tree lthis
+		= cp_build_indirect_ref (DECL_ARGUMENTS (containing_function),
+					 "", tf_warning_or_error);
+	      init = finish_non_static_data_member (cap, lthis, NULL_TREE);
+	      break;
+	    }
+
+	  if (LAMBDA_EXPR_DEFAULT_CAPTURE_MODE (lambda) == CPLD_NONE)
+	    /* An outer lambda won't let us capture 'this'.  */
+	    break;
 
           lambda_stack = tree_cons (NULL_TREE,
                                     lambda,
@@ -5580,15 +5672,15 @@ lambda_expr_this_capture (tree lambda)
           containing_function = decl_function_context (containing_function);
         }
 
-      if (DECL_NONSTATIC_MEMBER_FUNCTION_P (containing_function))
-        {
-          this_capture = add_default_capture (lambda_stack,
-                                              /*id=*/get_identifier ("__this"),
-                                              /* First parameter is 'this'.  */
-                                              /*initializer=*/DECL_ARGUMENTS
-                                                (containing_function));
-        }
+      if (!init && DECL_NONSTATIC_MEMBER_FUNCTION_P (containing_function)
+	  && !LAMBDA_FUNCTION_P (containing_function))
+	/* First parameter is 'this'.  */
+	init = DECL_ARGUMENTS (containing_function);
 
+      if (init)
+	this_capture = add_default_capture (lambda_stack,
+					    /*id=*/get_identifier ("__this"),
+					    init);
     }
 
   if (!this_capture)

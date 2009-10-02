@@ -1348,8 +1348,12 @@ register_specialization (tree spec, tree tmpl, tree args, bool is_friend,
 		to the primary function; now copy the inline bits to
 		the various clones.  */
 	      FOR_EACH_CLONE (clone, fn)
-		DECL_DECLARED_INLINE_P (clone)
-		  = DECL_DECLARED_INLINE_P (fn);
+		{
+		  DECL_DECLARED_INLINE_P (clone)
+		    = DECL_DECLARED_INLINE_P (fn);
+		  DECL_SOURCE_LOCATION (clone)
+		    = DECL_SOURCE_LOCATION (fn);
+		}
 	      check_specialization_namespace (fn);
 
 	      return fn;
@@ -2669,7 +2673,8 @@ get_function_template_decl (const_tree primary_func_tmpl_inst)
 bool
 function_parameter_expanded_from_pack_p (tree param_decl, tree pack)
 {
-    if (! function_parameter_pack_p (pack))
+    if (DECL_ARTIFICIAL (param_decl)
+	|| !function_parameter_pack_p (pack))
       return false;
 
     gcc_assert (DECL_NAME (param_decl) && DECL_NAME (pack));
@@ -3013,7 +3018,7 @@ make_pack_expansion (tree arg)
       pointer_set_destroy (ppd.visited);
 
       /* Create the pack expansion type for the base type.  */
-      purpose = make_node (TYPE_PACK_EXPANSION);
+      purpose = cxx_make_type (TYPE_PACK_EXPANSION);
       SET_PACK_EXPANSION_PATTERN (purpose, TREE_PURPOSE (arg));
       PACK_EXPANSION_PARAMETER_PACKS (purpose) = parameter_packs;
 
@@ -3028,7 +3033,9 @@ make_pack_expansion (tree arg)
     for_types = true;
 
   /* Build the PACK_EXPANSION_* node.  */
-  result = make_node (for_types ? TYPE_PACK_EXPANSION : EXPR_PACK_EXPANSION);
+  result = for_types
+     ? cxx_make_type (TYPE_PACK_EXPANSION)
+     : make_node (EXPR_PACK_EXPANSION);
   SET_PACK_EXPANSION_PATTERN (result, arg);
   if (TREE_CODE (result) == EXPR_PACK_EXPANSION)
     {
@@ -3538,7 +3545,7 @@ current_template_args (void)
                           tree vec = make_tree_vec (1);
                           TREE_VEC_ELT (vec, 0) = make_pack_expansion (t);
                           
-                          t = make_node (TYPE_ARGUMENT_PACK);
+                          t = cxx_make_type (TYPE_ARGUMENT_PACK);
                           SET_ARGUMENT_PACK_ARGS (t, vec);
                         }
                     }
@@ -5575,7 +5582,7 @@ coerce_template_parameter_pack (tree parms,
 
   if (TREE_CODE (TREE_VALUE (parm)) == TYPE_DECL
       || TREE_CODE (TREE_VALUE (parm)) == TEMPLATE_DECL)
-    argument_pack = make_node (TYPE_ARGUMENT_PACK);
+    argument_pack = cxx_make_type (TYPE_ARGUMENT_PACK);
   else
     {
       argument_pack = make_node (NONTYPE_ARGUMENT_PACK);
@@ -6261,7 +6268,7 @@ lookup_template_class (tree d1,
                  the values for the enumeration constants may involve
                  template parameters.  And, no one should be interested
                  in the enumeration constants for such a type.  */
-              t = make_node (ENUMERAL_TYPE);
+              t = cxx_make_type (ENUMERAL_TYPE);
               SET_SCOPED_ENUM_P (t, SCOPED_ENUM_P (template_type));
             }
 	}
@@ -7816,7 +7823,7 @@ make_fnparm_pack (tree spec_parm)
   tree parmvec;
   tree parmtypevec;
   tree argpack = make_node (NONTYPE_ARGUMENT_PACK);
-  tree argtypepack = make_node (TYPE_ARGUMENT_PACK);
+  tree argtypepack = cxx_make_type (TYPE_ARGUMENT_PACK);
   int i, len = list_length (spec_parm);
 
   /* Fill in PARMVEC and PARMTYPEVEC with all of the parameters.  */
@@ -8147,7 +8154,9 @@ tsubst_template_args (tree t, tree args, tsubst_flags_t complain, tree in_decl)
       else if (ARGUMENT_PACK_P (orig_arg))
         {
           /* Substitute into each of the arguments.  */
-          new_arg = make_node (TREE_CODE (orig_arg));
+          new_arg = TYPE_P (orig_arg)
+            ? cxx_make_type (TREE_CODE (orig_arg))
+            : make_node (TREE_CODE (orig_arg));
           
           SET_ARGUMENT_PACK_ARGS (
             new_arg,
@@ -10186,7 +10195,9 @@ tsubst (tree t, tree args, tsubst_flags_t complain, tree in_decl)
     case TYPE_ARGUMENT_PACK:
     case NONTYPE_ARGUMENT_PACK:
       {
-        tree r = make_node (TREE_CODE (t));
+        tree r = TYPE_P (t)
+          ? cxx_make_type (TREE_CODE (t))
+          : make_node (TREE_CODE (t));
         tree packed_out = 
           tsubst_template_args (ARGUMENT_PACK_ARGS (t), 
                                 args,
@@ -13167,7 +13178,7 @@ type_unification_real (tree tparms,
                   TREE_CONSTANT (arg) = 1;
                 }
               else
-                arg = make_node (TYPE_ARGUMENT_PACK);
+                arg = cxx_make_type (TYPE_ARGUMENT_PACK);
 
               SET_ARGUMENT_PACK_ARGS (arg, make_tree_vec (0));
 
@@ -13744,7 +13755,7 @@ unify_pack_expansion (tree tparms, tree targs, tree packed_parms,
               TREE_CONSTANT (result) = 1;
             }
           else
-            result = make_node (TYPE_ARGUMENT_PACK);
+            result = cxx_make_type (TYPE_ARGUMENT_PACK);
 
           SET_ARGUMENT_PACK_ARGS (result, new_args);
 

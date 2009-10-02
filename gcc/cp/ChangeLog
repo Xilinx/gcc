@@ -1,3 +1,62 @@
+2009-10-01  Jason Merrill  <jason@redhat.com>
+
+	* parser.c (cp_parser_lambda_expression): Compute visibility.
+	(no_linkage_lambda_type_p): Remove.
+	* cp-tree.h: Remove declaration.
+	* tree.c (no_linkage_check): Don't call it.  Don't check template
+	args.  Don't check TREE_PUBLIC Types.
+
+2009-10-01  Gabriel Dos Reis  <gdr@cse.tamu.edu>
+	    Jason Merrill <jason@redhat.com>
+
+	* decl.c (grokdeclarator): Set constexprness before announcing
+	friendship.
+
+2009-10-01  Gabriel Dos Reis  <gdr@cs.tamu.edu>
+
+	* decl.c (record_builtin_java_type): Undo unintended change.
+	(cxx_init_decl_processing): Likewise.
+
+2009-10-01  Jason Merrill  <jason@redhat.com>
+
+	* pt.c (register_specialization): Push DECL_SOURCE_LOCATION to the
+	clones.
+
+	* decl.c (grok_special_member_properties): Only adjust
+	TYPE_HAS_COMPLEX_* if the function is defaulted in the class body.
+	(cp_finish_decl): Push DECL_DELETED_FN/DECL_DEFAULTED_FN to the
+	clones.
+
+2009-09-30  Gabriel Dos Reis  <gdr@cs.tamu.edu>
+
+	* decl.c (check_for_uninitialized_const_var): Check constexpr
+	variables too.
+	(grokdeclarator): Handle `constexpr'.
+	(check_tag_decl): Reject `constexpr'.
+	(check_function_type): Check constexpr functions.
+	* cp-tree.h (ds_constexpr): New cp_decl_spec enumerator.
+	(CLASSTYPE_LITERAL_P): New.
+	(lang_type_class::is_literal): New.
+	(lang_type_class::dummy): Adjust width.
+	(literal_type_p): Declare.
+	* parser.c (cp_parser_check_decl_spec): Print it.
+	(cp_parser_decl_specifier_seq): Accept "constexpr".
+	* semantics.c (validate_constexpr_fundecl): Define.
+	(literal_type_p): Define.
+
+2009-09-30  Jason Merrill  <jason@redhat.com>
+
+	* semantics.c (lambda_expr_this_capture): Fix default capture
+	of explicit capture of 'this'.
+
+2009-09-30  Jason Merrill  <jason@redhat.com>
+
+	* parser.c (cp_parser_lambda_expression): Don't add __ to __this.
+
+2009-09-30  Jason Merrill  <jason@redhat.com>
+
+	* cp-tree.h (LANG_DECL_U2_CHECK): Check LANG_DECL_HAS_MIN.
+
 2009-09-29  John Freeman  <jfreeman08@gmail.com>
 	    Jason Merrill  <jason@redhat.com>
 

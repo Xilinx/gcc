@@ -2195,6 +2195,7 @@ cp_parser_check_decl_spec (cp_decl_specifier_seq *decl_specs,
 	    "explicit",
 	    "friend",
 	    "typedef",
+            "constexpr",
 	    "__complex",
 	    "__thread"
 	  };
@@ -7004,31 +7005,6 @@ finish_lambda_scope (void)
   VEC_pop (tree_int, lambda_scope_stack);
 }
 
-/* We want to determine the linkage of a lambda type at pushtag time,
-   before CLASSTYPE_LAMBDA_EXPR has been set.  So this callback allows us
-   to find out whether the current lambda mangling scope will give us
-   linkage or not.  */
-
-bool
-no_linkage_lambda_type_p (tree type)
-{
-  tree lambda, scope;
-  if (!LAMBDA_TYPE_P (type))
-    return false;
-
-  lambda = CLASSTYPE_LAMBDA_EXPR (type);
-  if (lambda)
-    scope = LAMBDA_EXPR_EXTRA_SCOPE (lambda);
-  else if (CLASSTYPE_TEMPLATE_INSTANTIATION (type))
-    /* We can't use lambda_scope, and CLASSTYPE_TEMPLATE_INFO won't be set
-       yet either, so guess it's public for now.  */
-    return false;
-  else
-    scope = lambda_scope;
-
-  return (scope == NULL_TREE);
-}
-
 /* Parse a lambda expression.
 
    lambda-expression:
@@ -7052,6 +7028,9 @@ cp_parser_lambda_expression (cp_parser* parser)
   type = begin_lambda_type (lambda_expr);
 
   record_lambda_scope (lambda_expr);
+
+  /* Do this again now that LAMBDA_EXPR_EXTRA_SCOPE is set.  */
+  determine_visibility (TYPE_NAME (type));
 
   {
     /* Inside the class, surrounding template-parameter-lists do not apply.  */
@@ -7077,21 +7056,26 @@ cp_parser_lambda_expression (cp_parser* parser)
       for (elt = LAMBDA_EXPR_CAPTURE_LIST (lambda_expr);
 	   elt; elt = next)
 	{
-	  /* Also add __ to the beginning of the field name so that code
-	     outside the lambda body can't see the captured name.  We could
-	     just remove the name entirely, but this is more useful for
-	     debugging.  */
 	  tree field = TREE_PURPOSE (elt);
-	  char *buf
-	    = (char *) alloca (IDENTIFIER_LENGTH (DECL_NAME (field)) + 3);
-	  buf[1] = buf[0] = '_';
-	  memcpy (buf + 2, IDENTIFIER_POINTER (DECL_NAME (field)),
-		  IDENTIFIER_LENGTH (DECL_NAME (field)) + 1);
-	  DECL_NAME (field) = get_identifier (buf);
+	  char *buf;
 
 	  next = TREE_CHAIN (elt);
 	  TREE_CHAIN (elt) = newlist;
 	  newlist = elt;
+
+	  /* Also add __ to the beginning of the field name so that code
+	     outside the lambda body can't see the captured name.  We could
+	     just remove the name entirely, but this is more useful for
+	     debugging.  */
+	  if (field == LAMBDA_EXPR_THIS_CAPTURE (lambda_expr))
+	    /* The 'this' capture already starts with __.  */
+	    continue;
+
+	  buf = (char *) alloca (IDENTIFIER_LENGTH (DECL_NAME (field)) + 3);
+	  buf[1] = buf[0] = '_';
+	  memcpy (buf + 2, IDENTIFIER_POINTER (DECL_NAME (field)),
+		  IDENTIFIER_LENGTH (DECL_NAME (field)) + 1);
+	  DECL_NAME (field) = get_identifier (buf);
 	}
       LAMBDA_EXPR_CAPTURE_LIST (lambda_expr) = newlist;
     }
@@ -7403,13 +7387,13 @@ cp_parser_lambda_body (cp_parser* parser, tree lambda_expr)
     /* 5.1.1.4 of the standard says:
          If a lambda-expression does not include a trailing-return-type, it
          is as if the trailing-return-type denotes the following type:
-           — if the compound-statement is of the form
+	  * if the compound-statement is of the form
                { return attribute-specifier [opt] expression ; }
              the type of the returned expression after lvalue-to-rvalue
              conversion (_conv.lval_ 4.1), array-to-pointer conversion
              (_conv.array_ 4.2), and function-to-pointer conversion
              (_conv.func_ 4.3);
-           — otherwise, void.  */
+          * otherwise, void.  */
 
     /* In a lambda that has neither a lambda-return-type-clause
        nor a deducible form, errors should be reported for return statements
@@ -9025,7 +9009,8 @@ cp_parser_decl_specifier_seq (cp_parser* parser,
       switch (token->keyword)
 	{
 	  /* decl-specifier:
-	       friend  */
+	       friend
+               constexpr */
 	case RID_FRIEND:
 	  if (!at_class_scope_p ())
 	    {
@@ -9039,6 +9024,11 @@ cp_parser_decl_specifier_seq (cp_parser* parser,
 	      cp_lexer_consume_token (parser->lexer);
 	    }
 	  break;
+
+        case RID_CONSTEXPR:
+          ++decl_specs->specs[(int) ds_constexpr];
+          cp_lexer_consume_token (parser->lexer);
+          break;
 
 	  /* function-specifier:
 	       inline
