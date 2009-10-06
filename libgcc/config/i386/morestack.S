@@ -55,6 +55,8 @@
 # __generic_releasestack to retrieve the old stack pointer and
 # release the newly allocated stack.
 
+# void *__generic_releasestack (size_t *available);
+
 # We do a little dance so that the processor's call/return return
 # address prediction works out.  The compiler arranges for the caller
 # to look like this:
@@ -69,8 +71,30 @@
 # the call to __generic_morestack.  That then returns to the caller of
 # the original caller.
 
+# This entry point is for split-stack code which calls non-split-stack
+# code.  When the linker sees this case, it converts the call to
+# __morestack to call __morestack_non_split instead.  We just bump the
+# requested stack space by 16K.
 
-# void *__generic_releasestack (void);
+	.global __morestack_non_split
+
+#ifdef __ELF__
+       .type	__morestack_non_split,@function
+#endif
+
+__morestack_non_split:
+
+#ifndef __x86_64__
+	addl	$0x4000,4(%esp)
+#else
+	addq	$0x4000,%r10
+#endif
+
+#ifdef __ELF__
+	.size	__morestack_non_split, . - __morestack_non_split
+#endif
+
+# __morestack_non_split falls through into __morestack.
 
 	.global	__morestack
 
@@ -144,7 +168,17 @@ __morestack:
 	pushl	%eax
 	pushl	%edx
 
+	pushl	$0			# Where the available space is returned.
+	leal	0(%esp),%eax		# Push its address.
+	push	%eax
+
 	call	__generic_releasestack
+
+	subl	4(%esp),%eax		# Subtract available space.
+	addl	$256,%eax		# Back off 256 bytes.
+	movl	%eax,%gs:0x30		# Save the new stack boundary.
+
+	addl	$8,%esp			# Remove values from stack.
 
 	popl	%edx			# Restore possible return value
 	popl	%eax
@@ -223,7 +257,16 @@ __morestack:
 	pushq	%rax
 	pushq	%rdx
 
+	pushq	$0			# Where the available space is returned.
+	leaq	0(%rsp),%rdi		# Pass its address.
+
 	call	__generic_releasestack
+
+	subq	0(%rsp),%rax		# Subtract available space.
+	addq	$256,%rax		# Back off 256 bytes.
+	movq	%rax,%fs:0x70		# Save the new stack boundary.
+
+	addq	$8,%rsp			# Remove value from stack.
 
 	popq	%rdx			# Restore possible return value
 	popq	%rax
@@ -287,4 +330,6 @@ __stack_split_initialize:
 
 #ifdef __ELF__
 	.section	.note.GNU-stack,"",@progbits
+	.section	.note.GNU-split-stack,"",@progbits
+	.section	.note.GNU-no-split-stack,"",@progbits
 #endif

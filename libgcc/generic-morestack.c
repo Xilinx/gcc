@@ -58,7 +58,7 @@ __generic_morestack (size_t *frame_size, void *old_stack, size_t param_size)
   __attribute__ ((no_split_stack, flatten, visibility ("hidden")));
 
 extern void *
-__generic_releasestack (void)
+__generic_releasestack (size_t *pavailable)
   __attribute__ ((no_split_stack, flatten, visibility ("hidden")));
 
 /* When we allocate a stack segment we put this header at the
@@ -318,7 +318,7 @@ __generic_morestack (size_t *pframe_size, void *old_stack, size_t param_size)
 
 #ifdef STACK_GROWS_DOWNWARD
   {
-    char *bottom = (char *) current + current->size;
+    char *bottom = (char *) (current + 1) + current->size;
     __builtin_memcpy (bottom - param_size, old_stack, param_size);
     return bottom - param_size;
   }
@@ -335,12 +335,14 @@ __generic_morestack (size_t *pframe_size, void *old_stack, size_t param_size)
    release at a later date.  It returns a pointer to the new stack
    segment to use, which is the one saved by a previous call to
    __generic_morestack.  The processor specific function is then
-   responsible for actually updating the stack pointer.  */
+   responsible for actually updating the stack pointer.  This sets
+   *PAVAILABLE to the amount of stack space now available.  */
 
 void *
-__generic_releasestack (void)
+__generic_releasestack (size_t *pavailable)
 {
   struct stack_segment *current;
+  void *old_stack;
 
   current = current_segment;
 
@@ -350,9 +352,17 @@ __generic_releasestack (void)
       current->next = NULL;
     }
 
-  current_segment = current->prev;
+  old_stack = current->old_stack;
+  current = current->prev;
+  current_segment = current;
 
-  return current->old_stack;
+#ifdef STACK_GROWS_DOWNWARD
+  *pavailable = (char *) old_stack - (char *) (current + 1);
+#else
+  *pavailable = (char *) (current + 1) + current->size - (char *) old_stack;
+#endif
+
+  return old_stack;
 }
 
 /* Pass information from the pthread_create wrapper to

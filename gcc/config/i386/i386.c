@@ -7545,6 +7545,9 @@ ix86_file_end (void)
 
   if (NEED_INDICATE_EXEC_STACK)
     file_end_indicate_exec_stack ();
+
+  if (flag_split_stack)
+    file_end_indicate_split_stack ();
 }
 
 /* Emit code for the SET_GOT patterns.  */
@@ -9157,7 +9160,7 @@ ix86_expand_split_stack_prologue (void)
      the stack boundary in the TCB.  The stack boundary always gives
      us SPLIT_STACK_AVAILABLE bytes, so if we need less than that we
      can compare directly.  Otherwise we need to do an addition.  */
-  if (allocate <= SPLIT_STACK_AVAILABLE)
+  if (allocate < SPLIT_STACK_AVAILABLE)
     emit_jump_insn (gen_split_stack_check_small (label));
   else
     {

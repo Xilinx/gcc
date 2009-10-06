@@ -1,3 +1,17 @@
+2009-10-06  Ian Lance Taylor  <iant@google.com>
+
+	* varasm.c (saw_no_split_stack): New static variable.
+	(assemble_start_function): Check for no_split_stack attribute and
+	set saw_no_split_stack if we find it.
+	(file_end_indicate_split_stack): New function.
+	* output.h (file_end_indicate_split_stack): Declare.
+	* config/i386/i386.c (ix86_file_end): Call
+	file_end_indicate_split_stack.
+	(ix86_expand_split_stack_prologue): Use small test if <
+	SPLIT_STACK_AVAILABLE, not <=.
+	* config/i386/i386.md (split_stack_check_small): Use GEU.
+	(split_stack_check_large): Likewise.
+
 2009-09-30  Ian Lance Taylor  <iant@google.com>
 
 	* config/i386/i386.c (ix86_expand_split_stack_prologue): Never
