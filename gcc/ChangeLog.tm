@@ -1,3 +1,32 @@
+2009-10-03  Aldy Hernandez  <aldyh@redhat.com>
+
+	* tree.h (BUILTIN_TM_LOAD_STORE_P): New.
+	(BUILTIN_TM_LOAD_P): New.
+	(BUILTIN_TM_STORE_P): New.
+	(CASE_BUILT_IN_TM_LOAD): New.
+	(CASE_BUILT_IN_TM_STORE): New.
+	* testsuite/gcc.dg/tm/memopt-2.c: Update for new dump code.
+	* tree-ssa-alias.c (ref_maybe_used_by_call_p_1): Replace load
+	cases by a call to BUILTIN_TM_LOAD_P.
+	(call_may_clobber_ref_p_1): Replace store cases by a call to
+	BUILTIN_TM_STORE_P.
+	* trans-mem.c (is_tm_load): Replace load cases by a call to
+	BUILTIN_TM_LOAD_P.
+	(is_tm_store): Replace store cases by a call to
+	BUILTIN_TM_STORE_P.
+	(dump_tm_memopt_transform): Do not use prefix; just dump the new
+	statement.
+	(TRANSFORM_*): New macros.
+	(tm_memopt_transform_stmt): Do the actual transformation.
+	(tm_memopt_transform_blocks): Change calls to
+	dump_tm_memopt_transform into calls to tm_memopt_transform_stmt.
+	* calls.c (special_function_p): Change TM load/store cases into a
+	call to BUILTIN_TM_LOAD_STORE_P.
+	* gtm-builtins.def: New builtins for the following variants: WaR,
+	WaW, RaR, RaW, RfW.
+	* tree-ssa-structalias.c (find_func_aliases): Use BUILTIN_TM_*_P
+	macros.
+
 2009-09-29  Aldy Hernandez  <aldyh@redhat.com>
 
 	* trans-mem.c (tm_memopt_compute_antic): New.

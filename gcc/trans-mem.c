@@ -294,22 +294,8 @@ is_tm_load (gimple stmt)
     return false;
 
   fndecl = gimple_call_fndecl (stmt);
-  if (fndecl && DECL_BUILT_IN_CLASS (fndecl) == BUILT_IN_NORMAL)
-    switch (DECL_FUNCTION_CODE (fndecl))
-      {
-      case BUILT_IN_TM_LOAD_1:
-      case BUILT_IN_TM_LOAD_2:
-      case BUILT_IN_TM_LOAD_4:
-      case BUILT_IN_TM_LOAD_8:
-      case BUILT_IN_TM_LOAD_FLOAT:
-      case BUILT_IN_TM_LOAD_DOUBLE:
-      case BUILT_IN_TM_LOAD_LDOUBLE:
-	return true;
-      default:
-	break;
-      }
-
-  return false;
+  return (fndecl && DECL_BUILT_IN_CLASS (fndecl) == BUILT_IN_NORMAL
+	  && BUILTIN_TM_LOAD_P (DECL_FUNCTION_CODE (fndecl)));
 }
 
 /* Return true if STMT is a TM store.  */
@@ -323,22 +309,8 @@ is_tm_store (gimple stmt)
     return false;
 
   fndecl = gimple_call_fndecl (stmt);
-  if (fndecl && DECL_BUILT_IN_CLASS (fndecl) == BUILT_IN_NORMAL)
-    switch (DECL_FUNCTION_CODE (fndecl))
-      {
-      case BUILT_IN_TM_STORE_1:
-      case BUILT_IN_TM_STORE_2:
-      case BUILT_IN_TM_STORE_4:
-      case BUILT_IN_TM_STORE_8:
-      case BUILT_IN_TM_STORE_FLOAT:
-      case BUILT_IN_TM_STORE_DOUBLE:
-      case BUILT_IN_TM_STORE_LDOUBLE:
-	return true;
-      default:
-	break;
-      }
-
-  return false;
+  return (fndecl && DECL_BUILT_IN_CLASS (fndecl) == BUILT_IN_NORMAL
+	  && BUILTIN_TM_STORE_P (DECL_FUNCTION_CODE (fndecl)));
 }
 
 /* Return true if FNDECL is BUILT_IN_TM_ABORT.  */
@@ -1733,21 +1705,6 @@ tm_memopt_accumulate_memops (basic_block bb)
     }
 }
 
-/* Inform about an upcoming load/store optimization.  STMT is the
-   statement about to be transformed.  PREFIX is the type of
-   optimization to be done.  */
-
-static void
-dump_tm_memopt_transform (const char *prefix, gimple stmt)
-{
-  if (dump_file)
-    {
-      fprintf (dump_file, "TM memopt: transforming into %s: ", prefix);
-      print_gimple_stmt (dump_file, stmt, 0, 0);
-      fprintf (dump_file, "\n");
-    }
-}
-
 /* Prettily dump one of the memopt sets.  BITS is the bitmap to dump.  */
 
 static void
@@ -2015,6 +1972,47 @@ tm_memopt_compute_antic (struct tm_region *region,
     dump_tm_memopt_sets (blocks);
 }
 
+/* Offsets of load variants from TM_LOAD.  For example,
+   BUILT_IN_TM_LOAD_RAR* is an offset of 1 from BUILT_IN_TM_LOAD*.
+   See gtm-builtins.def.  */
+#define TRANSFORM_RAR 1
+#define TRANSFORM_RAW 2
+#define TRANSFORM_RFW 3
+/* Offsets of store variants from TM_STORE.  */
+#define TRANSFORM_WAR 1
+#define TRANSFORM_WAW 2
+
+/* Inform about a load/store optimization.  */
+
+static void
+dump_tm_memopt_transform (gimple stmt)
+{
+  if (dump_file)
+    {
+      fprintf (dump_file, "TM memopt: transforming: ");
+      print_gimple_stmt (dump_file, stmt, 0, 0);
+      fprintf (dump_file, "\n");
+    }
+}
+
+/* Perform a read/write optimization.  Replaces the TM builtin in STMT
+   by a builtin that is OFFSET entries down in the builtins table in
+   gtm-builtins.def.  */
+
+static void
+tm_memopt_transform_stmt (unsigned int offset,
+			  gimple stmt,
+			  gimple_stmt_iterator *gsi)
+{
+  tree fn = gimple_call_fn (stmt);
+  gcc_assert (TREE_CODE (fn) == ADDR_EXPR);
+  TREE_OPERAND (fn, 0)
+    = built_in_decls[DECL_FUNCTION_CODE (TREE_OPERAND (fn, 0)) + offset];
+  gimple_call_set_fn (stmt, fn);
+  gsi_replace (gsi, stmt, true);
+  dump_tm_memopt_transform (stmt);
+}
+
 /* Perform the actual TM memory optimization transformations in the
    basic blocks in BLOCKS.  */
 
@@ -2035,40 +2033,34 @@ tm_memopt_transform_blocks (VEC (basic_block, heap) *blocks)
 	  bitmap store_antic = STORE_ANTIC_OUT (bb);
 	  unsigned int loc;
 
+	  /* FIXME: Make sure we're not transforming something like a
+	     user-coded read-after-write, etc.  Check for simple
+	     loads, not the optimized variants.  Similarly for
+	     is_tm_store below.  */
 	  if (is_tm_load (stmt))
 	    {
 	      loc = tm_memopt_value_number (stmt, NO_INSERT);
 	      if (store_avail && bitmap_bit_p (store_avail, loc))
-		{
-		  dump_tm_memopt_transform ("RaW", stmt);
-		}
+		tm_memopt_transform_stmt (TRANSFORM_RAW, stmt, &gsi);
 	      else if (store_antic && bitmap_bit_p (store_antic, loc))
 		{
-		  dump_tm_memopt_transform ("RfW", stmt);
+		  tm_memopt_transform_stmt (TRANSFORM_RFW, stmt, &gsi);
 		  bitmap_set_bit (store_avail, loc);
 		}
 	      else if (read_avail && bitmap_bit_p (read_avail, loc))
-		{
-		  dump_tm_memopt_transform ("RaR", stmt);
-		}
+		tm_memopt_transform_stmt (TRANSFORM_RAR, stmt, &gsi);
 	      else
-		{
-		  bitmap_set_bit (read_avail, loc);
-		}
+		bitmap_set_bit (read_avail, loc);
 	    }
 	  else if (is_tm_store (stmt))
 	    {
 	      loc = tm_memopt_value_number (stmt, NO_INSERT);
 	      if (store_avail && bitmap_bit_p (store_avail, loc))
-		{
-		  dump_tm_memopt_transform ("WaW", stmt);
-		}
+		tm_memopt_transform_stmt (TRANSFORM_WAW, stmt, &gsi);
 	      else
 		{
 		  if (read_avail && bitmap_bit_p (read_avail, loc))
-		    {
-		      dump_tm_memopt_transform ("WaR", stmt);
-		    }
+		    tm_memopt_transform_stmt (TRANSFORM_WAR, stmt, &gsi);
 		  bitmap_set_bit (store_avail, loc);
 		}
 	    }

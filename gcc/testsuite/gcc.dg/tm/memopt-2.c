@@ -10,5 +10,5 @@ f()
   }
 }
 
-/* { dg-final { scan-tree-dump-times "RfW.*RU1 \\(&c\\);" 1 "tmmemopt" } } */
-/* { dg-final { scan-tree-dump-times "WaW.*WU1 \\(&c," 1 "tmmemopt" } } */
+/* { dg-final { scan-tree-dump-times "transforming.*RfWU1 \\(&c" 1 "tmmemopt" } } */
+/* { dg-final { scan-tree-dump-times "transforming.*WaWU1 \\(&c" 1 "tmmemopt" } } */

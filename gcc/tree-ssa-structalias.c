@@ -3751,13 +3751,13 @@ find_func_aliases (gimple t)
 	      VEC_free (ce_s, heap, lhsc);
 	      return;
 	    }
-	  case BUILT_IN_TM_STORE_1:
-	  case BUILT_IN_TM_STORE_2:
-	  case BUILT_IN_TM_STORE_4:
-	  case BUILT_IN_TM_STORE_8:
-	  case BUILT_IN_TM_STORE_FLOAT:
-	  case BUILT_IN_TM_STORE_DOUBLE:
-	  case BUILT_IN_TM_STORE_LDOUBLE:
+	  CASE_BUILT_IN_TM_STORE (1):
+	  CASE_BUILT_IN_TM_STORE (2):
+	  CASE_BUILT_IN_TM_STORE (4):
+	  CASE_BUILT_IN_TM_STORE (8):
+	  CASE_BUILT_IN_TM_STORE (FLOAT):
+	  CASE_BUILT_IN_TM_STORE (DOUBLE):
+	  CASE_BUILT_IN_TM_STORE (LDOUBLE):
 	    {
 	      tree addr = gimple_call_arg (t, 0);
 	      tree src = gimple_call_arg (t, 1);
@@ -3770,13 +3770,13 @@ find_func_aliases (gimple t)
 	      VEC_free (ce_s, heap, rhsc);
 	      return;
 	    }
-	  case BUILT_IN_TM_LOAD_1:
-	  case BUILT_IN_TM_LOAD_2:
-	  case BUILT_IN_TM_LOAD_4:
-	  case BUILT_IN_TM_LOAD_8:
-	  case BUILT_IN_TM_LOAD_FLOAT:
-	  case BUILT_IN_TM_LOAD_DOUBLE:
-	  case BUILT_IN_TM_LOAD_LDOUBLE:
+	  CASE_BUILT_IN_TM_LOAD (1):
+	  CASE_BUILT_IN_TM_LOAD (2):
+	  CASE_BUILT_IN_TM_LOAD (4):
+	  CASE_BUILT_IN_TM_LOAD (8):
+	  CASE_BUILT_IN_TM_LOAD (FLOAT):
+	  CASE_BUILT_IN_TM_LOAD (DOUBLE):
+	  CASE_BUILT_IN_TM_LOAD (LDOUBLE):
 	    {
 	      tree dest = gimple_call_lhs (t);
 	      tree addr = gimple_call_arg (t, 0);

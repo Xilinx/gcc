@@ -3147,6 +3147,29 @@ struct GTY(())
 #define DECL_IS_TM_CLONE(NODE) \
   (FUNCTION_DECL_CHECK (NODE)->function_decl.tm_clone_flag)
 
+/* Nonzero if a FUNCTION_CODE is a TM load/store.  */
+#define BUILTIN_TM_LOAD_STORE_P(FN) \
+  ((FN) >= BUILT_IN_TM_STORE_1 && (FN) <= BUILT_IN_TM_LOAD_RFW_LDOUBLE)
+
+/* Nonzero if a FUNCTION_CODE is a TM load.  */
+#define BUILTIN_TM_LOAD_P(FN) \
+  ((FN) >= BUILT_IN_TM_LOAD_1 && (FN) <= BUILT_IN_TM_LOAD_RFW_LDOUBLE)
+
+/* Nonzero if a FUNCTION_CODE is a TM store.  */
+#define BUILTIN_TM_STORE_P(FN) \
+  ((FN) >= BUILT_IN_TM_STORE_1 && (FN) <= BUILT_IN_TM_STORE_WAW_LDOUBLE)
+
+#define CASE_BUILT_IN_TM_LOAD(FN)	\
+  case BUILT_IN_TM_LOAD_##FN:		\
+  case BUILT_IN_TM_LOAD_RAR_##FN:	\
+  case BUILT_IN_TM_LOAD_RAW_##FN:	\
+  case BUILT_IN_TM_LOAD_RFW_##FN
+
+#define CASE_BUILT_IN_TM_STORE(FN)	\
+  case BUILT_IN_TM_STORE_##FN:		\
+  case BUILT_IN_TM_STORE_WAR_##FN:	\
+  case BUILT_IN_TM_STORE_WAW_##FN
+
 /* Nonzero in a FUNCTION_DECL that should be always inlined by the inliner
    disregarding size and cost heuristics.  This is equivalent to using
    the always_inline attribute without the required diagnostics if the
