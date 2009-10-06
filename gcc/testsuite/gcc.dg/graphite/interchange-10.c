@@ -7,12 +7,12 @@ int foo(int N, int *res)
   double sum = 0.0;
 
   for (i = 0; i < N; i++)
-    {
-      for (j = 0; j < N; j++)
-	sum = sum + u[i + 1335 * j];
+    for (j = 0; j < N; j++)
+      sum = sum + u[i + 1335 * j];
 
-      u[1336 * i] *= 2;
-    }
+  for (i = 0; i < N; i++)
+    u[1336 * i] *= 2;
+
   *res = sum + N;
 }
 
