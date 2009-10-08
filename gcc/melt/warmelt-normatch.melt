@@ -314,8 +314,6 @@
 	   (debug_msg ctyp "scanpat_srcpatcomposite mismatched ctyp")
 	   (debug_msg matctyp "scanpat_srcpatcomposite mismatched matctyp")
 	   (debug_msg recv "scanpat_srcpatcomposite mismatched recv")
-	   ;;@@@TEMPORARY@@
-	   (assert_msg "temporary hack scanpat_srcpatcomposite mismatch crash here" ())
 	   ;;
 	   (return)))
     (multicall 

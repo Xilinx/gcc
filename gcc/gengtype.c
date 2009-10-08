@@ -141,8 +141,7 @@ static void oprintf (outf_p o, const char *S, ...)
 static outf_p output_files;
 
 /* The plugin input files and their number; in that case only
-   corresponding gt-<plugin>.h are generated in the current
-   directory.  */
+   a single file is produced.  */
 static char** plugin_files;
 static size_t nb_plugin_files;
 /* the generated plugin output name & file */
@@ -2723,8 +2722,8 @@ write_types (outf_p output_header, type_p structures, type_p param_structs,
   type_p s;
 
   oprintf (output_header, "\n/* %s*/\n", wtd->comment);
-  /* We first emit the macros and the declarations. Function codes is
-     emitted afterward. */
+  /* We first emit the macros and the declarations. Functions' code is
+     emitted afterwards.  This is needed in plugin mode.  */
   oprintf (output_header, "/* macros and declarations */\n");
   for (s = structures; s; s = s->next)
     if (s->gc_used == GC_POINTED_TO
@@ -2794,7 +2793,7 @@ write_types (outf_p output_header, type_p structures, type_p param_structs,
 	  }
       }
   
-  /* At last we emit the functions code. */ 
+  /* At last we emit the functions code.  */ 
   oprintf (output_header, "\n/* functions code */\n");
   for (s = structures; s; s = s->next)
     if (s->gc_used == GC_POINTED_TO
@@ -2819,14 +2818,14 @@ write_types (outf_p output_header, type_p structures, type_p param_structs,
 	  }
 	else
 	  write_func_for_structure (s, s, NULL, wtd);
-      };
+      }
   for (s = param_structs; s; s = s->next)
     if (s->gc_used == GC_POINTED_TO)
       {
-	type_p * param = s->u.param_struct.param;
+	type_p *param = s->u.param_struct.param;
 	type_p stru = s->u.param_struct.stru;
 	if (stru->u.s.line.file == NULL)
-	    continue;
+	  continue;
 	if (stru->kind == TYPE_LANG_STRUCT)
 	  {
 	    type_p ss;

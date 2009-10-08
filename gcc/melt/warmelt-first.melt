@@ -1438,7 +1438,7 @@ Returns a boxed integer.}#
   ()
   strsam
   :doc #{The $CSTRING_SAME c-matcher match a string $STR and test if
-  it equal to the constant string $CSTR. The match fails if $STR is a
+  it equals to the constant string $CSTR. The match fails if $STR is a
   null string or different from $CSTR.}# 
 
 #{/*$strsam test*/ ($str && $cstr && !strcmp($str, $cstr)) }#
