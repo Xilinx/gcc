@@ -1055,7 +1055,6 @@ gbb_from_bb (basic_block bb)
 static void
 build_loop_iteration_domains (scop_p scop, struct loop *loop,
                               ppl_Polyhedron_t outer_ph, int nb)
-
 {
   int i;
   ppl_Polyhedron_t ph;
