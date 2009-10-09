@@ -224,6 +224,8 @@ HOST_EXPORTS = \
 	CLOOGINC="$(HOST_CLOOGINC)"; export CLOOGINC; \
 	GDBMLIBS="$(HOST_GDBMLIBS)"; export GDBMLIBS; \
 	GDBMINC="$(HOST_GDBMINC)"; export GDBMINC; \
+	LIBELFLIBS="$(HOST_LIBELFLIBS)" ; export LIBELFLIBS; \
+	LIBELFINC="$(HOST_LIBELFINC)" ; export LIBELFINC; \
 @if gcc-bootstrap
 	$(RPATH_ENVVAR)=`echo "$(TARGET_LIB_PATH)$$$(RPATH_ENVVAR)" | sed 's,::*,:,g;s,^:*,,;s,:*$$,,'`; export $(RPATH_ENVVAR); \
 @endif gcc-bootstrap
@@ -301,6 +303,10 @@ HOST_CLOOGINC = @clooginc@
 # Where to find GDBM
 HOST_GDBMLIBS = @gdbmlibs@
 HOST_GDBMINC = @gdbminc@
+
+# Where to find libelf
+HOST_LIBELFLIBS = @libelflibs@
+HOST_LIBELFINC = @libelfinc@
 
 # ----------------------------------------------
 # Programs producing files for the BUILD machine

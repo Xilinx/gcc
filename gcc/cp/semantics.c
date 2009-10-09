@@ -4741,6 +4741,7 @@ finish_decltype_type (tree expr, bool id_expression_or_member_access_p)
 
   /* The type denoted by decltype(e) is defined as follows:  */
 
+  expr = resolve_nondeduced_context (expr);
   if (id_expression_or_member_access_p)
     {
       /* If e is an id-expression or a class member access (5.2.5
@@ -4766,9 +4767,13 @@ finish_decltype_type (tree expr, bool id_expression_or_member_access_p)
         /* See through BASELINK nodes to the underlying functions.  */
         expr = BASELINK_FUNCTIONS (expr);
 
+      if (TREE_CODE (expr) == TEMPLATE_ID_EXPR)
+	expr = TREE_OPERAND (expr, 0);
+
       if (TREE_CODE (expr) == OVERLOAD)
         {
-          if (OVL_CHAIN (expr))
+          if (OVL_CHAIN (expr)
+	      || TREE_CODE (OVL_FUNCTION (expr)) == TEMPLATE_DECL)
             {
               error ("%qE refers to a set of overloaded functions", orig_expr);
               return error_mark_node;
@@ -5328,6 +5333,20 @@ build_lambda_object (tree lambda_expr)
 	 do some magic to make it work here.  */
       if (TREE_CODE (TREE_TYPE (field)) == ARRAY_TYPE)
 	val = build_array_copy (val);
+      else if (DECL_NORMAL_CAPTURE_P (field)
+	       && TREE_CODE (TREE_TYPE (field)) != REFERENCE_TYPE)
+	{
+	  /* "the entities that are captured by copy are used to
+	     direct-initialize each corresponding non-static data
+	     member of the resulting closure object."
+
+	     There's normally no way to express direct-initialization
+	     from an element of a CONSTRUCTOR, so we build up a special
+	     TARGET_EXPR to bypass the usual copy-initialization.  */
+	  val = force_rvalue (val);
+	  if (TREE_CODE (val) == TARGET_EXPR)
+	    TARGET_EXPR_DIRECT_INIT_P (val) = true;
+	}
 
       CONSTRUCTOR_APPEND_ELT (elts, DECL_NAME (field), val);
     }
@@ -5545,7 +5564,8 @@ capture_decltype (tree decl)
    and return it.  */
 
 tree
-add_capture (tree lambda, tree id, tree initializer, bool by_reference_p)
+add_capture (tree lambda, tree id, tree initializer, bool by_reference_p,
+	     bool explicit_init_p)
 {
   tree type;
   tree member;
@@ -5560,6 +5580,13 @@ add_capture (tree lambda, tree id, tree initializer, bool by_reference_p)
 
   /* Make member variable.  */
   member = build_lang_decl (FIELD_DECL, id, type);
+  if (!explicit_init_p)
+    /* Normal captures are invisible to name lookup but uses are replaced
+       with references to the capture field; we implement this by only
+       really making them invisible in unevaluated context; see
+       qualify_lookup.  For now, let's make explicitly initialized captures
+       always visible.  */
+    DECL_NORMAL_CAPTURE_P (member) = true;
 
   /* Add it to the appropriate closure class.  */
   finish_member_declaration (member);
@@ -5605,7 +5632,8 @@ add_default_capture (tree lambda_stack, tree id, tree initializer)
                             /*by_reference_p=*/
 			    (!this_capture_p
 			     && (LAMBDA_EXPR_DEFAULT_CAPTURE_MODE (lambda)
-				 == CPLD_REFERENCE)));
+				 == CPLD_REFERENCE)),
+			    /*explicit_init_p=*/false);
 
       {
         /* Have to get the old value of current_class_ref.  */

@@ -1,3 +1,72 @@
+2009-10-08  Jason Merrill  <jason@redhat.com>
+
+	PR c++/36816
+	* pt.c (maybe_adjust_types_for_deduction): Do rvalue ref adjustment
+	even when DEDUCE_EXACT.
+
+	PR c++/37177
+	* pt.c (resolve_nondeduced_context): New.
+	* cvt.c (convert_to_void): Call it.
+	* semantics.c (finish_decltype_type): Likewise.
+	* typeck.c (decay_conversion): Here too.
+	* pt.c (tsubst_decl): Don't clobber input_location.
+	Don't register a bad specialization.
+
+2009-10-07  Gabriel Dos Reis  <gdr@cs.tamu.edu>
+
+	* cp-tree.h: Fix location of documentation for DECL_LANG_FLAG_7.
+
+2009-10-07  Jason Merrill  <jason@redhat.com>
+
+	PR c++/39863
+	* pt.c (tsubst_pack_expansion): Don't do anything now if we
+	have incomplete packs of different lengths.
+
+	PR c++/41038
+	* tree.c (build_qualified_name): Call convert_from_reference.
+
+2009-10-06  Jason Merrill  <jason@redhat.com>
+
+	Fix lookup of initialized captures in unevaluated context.
+	* cp-tree.h (DECL_NORMAL_CAPTURE_P): New.
+	* name-lookup.c (qualify_lookup): Check it.
+	* parser.c (cp_parser_lambda_introducer): Pass explicit_init_p
+	to add_capture.
+	* semantics.c (add_capture): Set DECL_NORMAL_CAPTURE_P
+	on captures without explicit init.
+	(add_default_capture): Pass explicit_init_p.
+
+	Fix capture by copy of types with explicit copy constructor.
+	* cp-tree.h (TARGET_EXPR_DIRECT_INIT_P): New.
+	(DIRECT_INIT_EXPR_P): New.
+	* typeck.c (convert_for_initialization): Just return if
+	DIRECT_INIT_EXPR_P.
+	* semantics.c (build_lambda_object): Use
+	TARGET_EXPR_DIRECT_INIT_P for normal captures.
+
+2009-10-05  Jason Merrill  <jason@redhat.com>
+
+	* parser.c: Mark lambda_scope and lambda_count for PCH.
+
+2009-10-03  Jason Merrill  <jason@redhat.com>
+
+	PR c++/41553
+	* parser.c (cp_parser_lambda_introducer): Avoid infinite loop on
+	parse error.
+
+2009-10-02  Jason Merrill  <jason@redhat.com>
+
+	* mangle.c (write_unnamed_type_name): Implement.
+	(local_class_index): Split out from...
+	(discriminator_for_local_entity): ...here.
+	(nested_anon_class_index): New.
+	* cp-tree.h (TYPE_FUNCTION_SCOPE_P): New.
+
+2009-10-02  Janis Johnson  <janis187@us.ibm.com>
+
+	* call.c (convert_arg_to_ellipsis): Avoid promoting decimal32
+	to double.
+
 2009-10-01  Jason Merrill  <jason@redhat.com>
 
 	* parser.c (cp_parser_lambda_expression): Compute visibility.

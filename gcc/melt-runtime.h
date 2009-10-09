@@ -59,6 +59,10 @@ along with GCC; see the file COPYING3.   If not see
 #define dbgprintf(Fmt,...) dbgprintf_raw("@%s:%d: " Fmt "\n", \
  basename(__FILE__), __LINE__, ##__VA_ARGS__)
 
+/* the version string of GCC when MELT was initialized */
+extern char* melt_gccversionstr;
+
+
 extern long melt_dbgcounter;
 extern long melt_debugskipcount;
 

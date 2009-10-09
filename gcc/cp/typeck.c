@@ -1613,6 +1613,7 @@ decay_conversion (tree exp)
   if (type == error_mark_node)
     return error_mark_node;
 
+  exp = resolve_nondeduced_context (exp);
   if (type_unknown_p (exp))
     {
       cxx_incomplete_type_error (exp, TREE_TYPE (exp));
@@ -6892,6 +6893,11 @@ convert_for_initialization (tree exp, tree type, tree rhs, int flags,
   rhstype = non_reference (rhstype);
 
   type = complete_type (type);
+
+  if (DIRECT_INIT_EXPR_P (type, rhs))
+    /* Don't try to do copy-initialization if we already have
+       direct-initialization.  */
+    return rhs;
 
   if (MAYBE_CLASS_TYPE_P (type))
     return ocp_convert (type, rhs, CONV_IMPLICIT|CONV_FORCE_TEMP, flags);

@@ -797,6 +797,25 @@ struct processor_costs power7_cost = {
   12,			/* prefetch streams */
 };
 
+/* Instruction costs on POWER A2 processors.  */
+static const
+struct processor_costs ppca2_cost = {
+  COSTS_N_INSNS (16),    /* mulsi */
+  COSTS_N_INSNS (16),    /* mulsi_const */
+  COSTS_N_INSNS (16),    /* mulsi_const9 */
+  COSTS_N_INSNS (16),   /* muldi */
+  COSTS_N_INSNS (22),   /* divsi */
+  COSTS_N_INSNS (28),   /* divdi */
+  COSTS_N_INSNS (3),    /* fp */
+  COSTS_N_INSNS (3),    /* dmul */
+  COSTS_N_INSNS (59),   /* sdiv */
+  COSTS_N_INSNS (72),   /* ddiv */
+  64,
+  16,			/* l1 cache */
+  2048,			/* l2 cache */
+  16,			/* prefetch streams */
+};
+
 
 static bool rs6000_function_ok_for_sibcall (tree, tree);
 static const char *rs6000_invalid_within_doloop (const_rtx);
@@ -984,7 +1003,6 @@ static void rs6000_init_dwarf_reg_sizes_extra (tree);
 static rtx rs6000_legitimize_address (rtx, rtx, enum machine_mode);
 static rtx rs6000_debug_legitimize_address (rtx, rtx, enum machine_mode);
 static rtx rs6000_legitimize_tls_address (rtx, enum tls_model);
-static rtx rs6000_delegitimize_address (rtx);
 static void rs6000_output_dwarf_dtprel (FILE *, int, rtx) ATTRIBUTE_UNUSED;
 static rtx rs6000_tls_get_addr (void);
 static rtx rs6000_got_sym (void);
@@ -1444,9 +1462,6 @@ static const struct attribute_spec rs6000_attribute_table[] =
 #define TARGET_MAX_ANCHOR_OFFSET 0x7fffffff
 #undef TARGET_USE_BLOCKS_FOR_CONSTANT_P
 #define TARGET_USE_BLOCKS_FOR_CONSTANT_P rs6000_use_blocks_for_constant_p
-
-#undef TARGET_DELEGITIMIZE_ADDRESS
-#define TARGET_DELEGITIMIZE_ADDRESS rs6000_delegitimize_address
 
 #undef TARGET_BUILTIN_RECIPROCAL
 #define TARGET_BUILTIN_RECIPROCAL rs6000_builtin_reciprocal
@@ -2149,6 +2164,9 @@ rs6000_override_options (const char *default_cpu)
 	 /* 8548 has a dummy entry for now.  */
 	 {"8548", PROCESSOR_PPC8540, POWERPC_BASE_MASK | MASK_STRICT_ALIGN
 	  | MASK_ISEL},
+ 	 {"a2", PROCESSOR_PPCA2,
+ 	  POWERPC_BASE_MASK | MASK_PPC_GFXOPT | MASK_POWERPC64 | MASK_POPCNTB
+ 	  | MASK_CMPB | MASK_NO_UPDATE },
 	 {"e300c2", PROCESSOR_PPCE300C2, POWERPC_BASE_MASK | MASK_SOFT_FLOAT},
 	 {"e300c3", PROCESSOR_PPCE300C3, POWERPC_BASE_MASK},
 	 {"e500mc", PROCESSOR_PPCE500MC, POWERPC_BASE_MASK | MASK_PPC_GFXOPT
@@ -2216,7 +2234,7 @@ rs6000_override_options (const char *default_cpu)
 		     | MASK_PPC_GFXOPT | MASK_POWERPC64 | MASK_ALTIVEC
 		     | MASK_MFCRF | MASK_POPCNTB | MASK_FPRND | MASK_MULHW
 		     | MASK_DLMZB | MASK_CMPB | MASK_MFPGPR | MASK_DFP
-		     | MASK_POPCNTD | MASK_VSX | MASK_ISEL)
+		     | MASK_POPCNTD | MASK_VSX | MASK_ISEL | MASK_NO_UPDATE)
   };
 
   /* Set the pointer size.  */
@@ -2495,6 +2513,7 @@ rs6000_override_options (const char *default_cpu)
 			&& rs6000_cpu != PROCESSOR_POWER5
 			&& rs6000_cpu != PROCESSOR_POWER6
 			&& rs6000_cpu != PROCESSOR_POWER7
+			&& rs6000_cpu != PROCESSOR_PPCA2
 			&& rs6000_cpu != PROCESSOR_CELL);
   rs6000_sched_groups = (rs6000_cpu == PROCESSOR_POWER4
 			 || rs6000_cpu == PROCESSOR_POWER5
@@ -2711,6 +2730,10 @@ rs6000_override_options (const char *default_cpu)
 
       case PROCESSOR_POWER7:
 	rs6000_cost = &power7_cost;
+	break;
+
+      case PROCESSOR_PPCA2:
+	rs6000_cost = &ppca2_cost;
 	break;
 
       default:
@@ -5126,33 +5149,6 @@ rs6000_debug_legitimize_address (rtx x, rtx oldx, enum machine_mode mode)
     emit_insn (insns);
 
   return ret;
-}
-
-/* If ORIG_X is a constant pool reference, return its known value,
-   otherwise ORIG_X.  */
-
-static rtx
-rs6000_delegitimize_address (rtx x)
-{
-  rtx orig_x = delegitimize_mem_from_attrs (x);
-
-  x = orig_x;
-
-  if (!MEM_P (x))
-    return orig_x;
-
-  x = XEXP (x, 0);
-
-  if (legitimate_constant_pool_address_p (x)
-      && GET_CODE (XEXP (x, 1)) == CONST
-      && GET_CODE (XEXP (XEXP (x, 1), 0)) == MINUS
-      && GET_CODE (XEXP (XEXP (XEXP (x, 1), 0), 0)) == SYMBOL_REF
-      && constant_pool_expr_p (XEXP (XEXP (XEXP (x, 1), 0), 0))
-      && GET_CODE (XEXP (XEXP (XEXP (x, 1), 0), 1)) == SYMBOL_REF
-      && toc_relative_expr_p (XEXP (XEXP (XEXP (x, 1), 0), 1)))
-    return get_pool_constant (XEXP (XEXP (XEXP (x, 1), 0), 0));
-
-  return orig_x;
 }
 
 /* This is called from dwarf2out.c via TARGET_ASM_OUTPUT_DWARF_DTPREL.
@@ -20052,8 +20048,10 @@ rs6000_output_function_epilogue (FILE *file,
 	 use language_string.
 	 C is 0.  Fortran is 1.  Pascal is 2.  Ada is 3.  C++ is 9.
 	 Java is 13.  Objective-C is 14.  Objective-C++ isn't assigned
-	 a number, so for now use 9.  */
-      if (! strcmp (language_string, "GNU C"))
+	 a number, so for now use 9.  LTO isn't assigned a number either,
+	 so for now use 0.  */
+      if (! strcmp (language_string, "GNU C")
+	  || ! strcmp (language_string, "GNU GIMPLE"))
 	i = 0;
       else if (! strcmp (language_string, "GNU F77")
 	       || ! strcmp (language_string, "GNU Fortran"))

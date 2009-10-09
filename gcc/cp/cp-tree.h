@@ -97,6 +97,7 @@ framework extensions, you must include this file before toplev.h, not after.
       STATEMENT_LIST_TRY_BLOCK (in STATEMENT_LIST)
       TYPENAME_IS_RESOLVING_P (in TYPE_NAME_TYPE)
       LAMBDA_EXPR_DEDUCE_RETURN_TYPE_P (in LAMBDA_EXPR)
+      TARGET_EXPR_DIRECT_INIT_P (in TARGET_EXPR)
    3: (TREE_REFERENCE_EXPR) (in NON_LVALUE_EXPR) (commented-out).
       ICS_BAD_FLAG (in _CONV)
       FN_TRY_BLOCK_P (in TRY_BLOCK)
@@ -112,8 +113,6 @@ framework extensions, you must include this file before toplev.h, not after.
    6: IDENTIFIER_REPO_CHOSEN (in IDENTIFIER_NODE)
       DECL_CONSTRUCTION_VTABLE_P (in VAR_DECL)
       TYPE_MARKED_P (in _TYPE)
-   7: DECL_DEAD_FOR_LOCAL (in VAR_DECL)
-   8: DECL_DECLARED_CONSTEXPR_P (in VAR_DECL, FUNCTION_DECL)
 
    Usage of TYPE_LANG_FLAG_?:
    0: TYPE_DEPENDENT_P
@@ -147,6 +146,8 @@ framework extensions, you must include this file before toplev.h, not after.
       DECL_FIELD_IS_BASE (in FIELD_DECL)
    7: DECL_DEAD_FOR_LOCAL (in VAR_DECL).
       DECL_THUNK_P (in a member FUNCTION_DECL)
+      DECL_NORMAL_CAPTURE_P (in FIELD_DECL)
+   8: DECL_DECLARED_CONSTEXPR_P (in VAR_DECL, FUNCTION_DECL)
 
    Usage of language-independent fields in a language-dependent manner:
 
@@ -2249,6 +2250,9 @@ struct GTY(()) lang_decl {
   (DECL_CONTEXT (NODE) \
    && TREE_CODE (DECL_CONTEXT (NODE)) == FUNCTION_DECL)
 
+#define TYPE_FUNCTION_SCOPE_P(NODE) \
+  (TYPE_CONTEXT (NODE) && TREE_CODE (TYPE_CONTEXT (NODE)) == FUNCTION_DECL)
+
 /* 1 iff VAR_DECL node NODE is a type-info decl.  This flag is set for
    both the primary typeinfo object and the associated NTBS name.  */
 #define DECL_TINFO_P(NODE) TREE_LANG_FLAG_4 (VAR_DECL_CHECK (NODE))
@@ -3196,6 +3200,12 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
 #define DECL_FIELD_IS_BASE(NODE) \
   DECL_LANG_FLAG_6 (FIELD_DECL_CHECK (NODE))
 
+/* Nonzero for FIELD_DECL node means that this field is a simple (no
+   explicit initializer) lambda capture field, making it invisible to
+   name lookup in unevaluated contexts.  */
+#define DECL_NORMAL_CAPTURE_P(NODE) \
+  DECL_LANG_FLAG_7 (FIELD_DECL_CHECK (NODE))
+
 /* Nonzero if TYPE is an anonymous union or struct type.  We have to use a
    flag for this because "A union for which objects or pointers are
    declared is not an anonymous union" [class.union].  */
@@ -3629,6 +3639,16 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
    temporary.  */
 #define TARGET_EXPR_LIST_INIT_P(NODE) \
   TREE_LANG_FLAG_1 (TARGET_EXPR_CHECK (NODE))
+
+/* True if this TARGET_EXPR expresses direct-initialization of an object
+   to be named later.  */
+#define TARGET_EXPR_DIRECT_INIT_P(NODE) \
+  TREE_LANG_FLAG_2 (TARGET_EXPR_CHECK (NODE))
+
+/* True if EXPR expresses direct-initialization of a TYPE.  */
+#define DIRECT_INIT_EXPR_P(TYPE,EXPR)					\
+  (TREE_CODE (EXPR) == TARGET_EXPR && TREE_LANG_FLAG_2 (EXPR)		\
+   && same_type_ignoring_top_level_qualifiers_p (TYPE, TREE_TYPE (EXPR)))
 
 /* An enumeration of the kind of tags that C++ accepts.  */
 enum tag_types {
@@ -4825,7 +4845,9 @@ bool template_template_parameter_p		(const_tree);
 extern tree get_primary_template_innermost_parameters	(const_tree);
 extern tree get_template_innermost_arguments	(const_tree);
 extern tree get_template_argument_pack_elems	(const_tree);
-extern tree get_function_template_decl (const_tree);
+extern tree get_function_template_decl		(const_tree);
+extern tree resolve_nondeduced_context		(tree);
+
 /* in repo.c */
 extern void init_repo				(void);
 extern int repo_emit_p				(tree);
@@ -5038,7 +5060,7 @@ extern tree lambda_capture_field_type		(tree);
 extern tree lambda_return_type			(tree);
 extern tree lambda_function			(tree);
 extern void apply_lambda_return_type            (tree, tree);
-extern tree add_capture                         (tree, tree, tree, bool);
+extern tree add_capture                         (tree, tree, tree, bool, bool);
 extern tree add_default_capture                 (tree, tree, tree);
 extern tree lambda_expr_this_capture            (tree);
 

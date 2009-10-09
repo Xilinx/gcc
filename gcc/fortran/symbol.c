@@ -2479,6 +2479,12 @@ gfc_find_sym_tree (const char *name, gfc_namespace *ns, int parent_flag,
       st = gfc_find_symtree (ns->sym_root, name);
       if (st != NULL)
 	{
+	  /* Special case: If we're in a SELECT TYPE block,
+	    replace the selector variable by a temporary.  */
+	  if (gfc_current_state () == COMP_SELECT_TYPE
+	      && st && st->n.sym == type_selector)
+	    st = select_type_tmp;
+
 	  *result = st;
 	  /* Ambiguous generic interfaces are permitted, as long
 	     as the specific interfaces are different.  */
@@ -2644,12 +2650,6 @@ gfc_get_ha_sym_tree (const char *name, gfc_symtree **result)
   int i;
 
   i = gfc_find_sym_tree (name, gfc_current_ns, 0, &st);
-
-  /* Special case: If we're in a SELECT TYPE block,
-     replace the selector variable by a temporary.  */
-  if (gfc_current_state () == COMP_SELECT_TYPE
-      && st && st->n.sym == type_selector)
-    st = select_type_tmp;
 
   if (st != NULL)
     {
@@ -4579,9 +4579,12 @@ gfc_type_compatible (gfc_typespec *ts1, gfc_typespec *ts2)
   if ((ts1->type == BT_DERIVED || ts1->type == BT_CLASS)
       && (ts2->type == BT_DERIVED || ts2->type == BT_CLASS))
     {
-      if (ts1->type == BT_CLASS)
+      if (ts1->type == BT_CLASS && ts2->type == BT_DERIVED)
 	return gfc_type_is_extension_of (ts1->u.derived->components->ts.u.derived,
 					 ts2->u.derived);
+      else if (ts1->type == BT_CLASS && ts2->type == BT_CLASS)
+	return gfc_type_is_extension_of (ts1->u.derived->components->ts.u.derived,
+					 ts2->u.derived->components->ts.u.derived);
       else if (ts2->type != BT_CLASS)
 	return gfc_compare_derived_types (ts1->u.derived, ts2->u.derived);
       else

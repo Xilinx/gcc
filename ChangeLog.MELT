@@ -1,6 +1,10 @@
 
+2009-10-09  Basile Starynkevitch  <basile@starynkevitch.net>
+	MELT branch merged with trunk rev 152583 after the LTO merge
+	inside trunk.
+
 2009-10-02  Basile Starynkevitch  <basile@starynkevitch.net>
-	MELT branch merged with trunk rev 152404 
+	MELT branch merged with trunk rev 152404
 
 2009-09-30  Basile Starynkevitch  <basile@starynkevitch.net>
 	[merged with trunk while LTO is merging inside trunk, however the

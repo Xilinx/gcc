@@ -1,3 +1,23 @@
+2009-10-09  Basile Starynkevitch  <basile@starynkevitch.net>
+	[during merge with trunk 152583 the version information from GCC
+	is used, not the checksum of the executable!]
+	* melt-runtime.h (melt_gccversionstr): added extern declaration.
+	* melt-runtime.c: Moved the #include before everything else.
+	Updated comment NOTE about gengtype - which is now compatible
+	with the trunk's.
+	(melt_gccversionstr): added declaration.
+	(load_checked_dynamic_module_index): use a gcc version string in
+	modules, not a checksum of the executable.
+	(melt_really_initialize): get a second argument for the gcc
+	version string. Initialize melt_gccversionstr with it.
+	(plugin_init): Build the gccversionstr out of gcc_version
+	structure.
+	(melt_initialize): calls melt_really_initialize with
+	version_string.
+	(melt_output_cfile_decl_impl): generates a genversionstr_melt
+	instead of a genchecksum_melt.
+
+
 2009-10-08  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-first.melt: typos...
 	* melt/warmelt-normatch.melt: typos...

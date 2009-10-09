@@ -27,6 +27,8 @@ along with GCC; see the file COPYING3.   If not see
 
 #ifdef MELT_IS_PLUGIN
 #include "gcc-plugin.h"
+#else
+#include "version.h"
 #endif
 
 
@@ -63,43 +65,27 @@ along with GCC; see the file COPYING3.   If not see
 #include "plugin.h" 
 #include "cppdefault.h" /*notpluginexported*/
 
-/* executable_checksum is declared in c-common.h which we can't
-   include here.. */
-extern const unsigned char executable_checksum[16];
+/* some system or library headers needed to MELT */
+#include <dirent.h>
+#include <dlfcn.h>
+#include <ppl_c.h>
+/* meltgc_sort_multiple needs setjmp */
+#include <setjmp.h>
+#include <gdbm.h>
+
+#include "melt-runtime.h"
 
 /* the generating GGC marking routine */
 extern void gt_ggc_mx_melt_un (void *);
 
 
-
-
-#include <dirent.h>
-
-#include <dlfcn.h>
-
-
-#include <ppl_c.h>
-
-
-/* meltgc_sort_multiple needs setjmp */
-#include <setjmp.h>
-
-/* we need GDBM here */
-#include <gdbm.h>
-
-#include "melt-runtime.h"
-
-
 #ifdef MELT_IS_PLUGIN
 int flag_melt_debug;
 /**
-   NOTE:  july 2009
-  
-   This code does not yet compile in plugin mode, unless the gengtype
-   is suitably patched.
+   NOTE:  october 2009
 
-   in addition, libiberty is not fully available from a plugin. So we
-   need to reproduce here some functions provided in libiberty.h
+   libiberty is not fully available from a plugin. So we need to
+   reproduce here some functions provided in libiberty.h
 **/
 char *
 xstrndup (const char *s, size_t n)
@@ -190,6 +176,10 @@ bool melt_prohibit_garbcoll;
 long melt_dbgcounter;
 long melt_debugskipcount;
 
+
+/* an strdup-ed version string of gcc */
+char* melt_gccversionstr;
+				      
 
 int melt_last_global_ix = MELTGLOB__LASTGLOB;
 
@@ -5158,7 +5148,7 @@ load_checked_dynamic_module_index (const char *dypath, char *md5src)
 {
   int ix = 0;
   char *dynmd5 = NULL;
-  char *dynchecksum = NULL;
+  char *dynversion = NULL;
   void *dlh = NULL;
   char *dyncomptimstamp = NULL;
   typedef melt_ptr_t startroutine_t (melt_ptr_t);
@@ -5198,11 +5188,15 @@ load_checked_dynamic_module_index (const char *dypath, char *md5src)
       warning (0, "missing timestamp in MELT module %s", dypath);
       goto bad;
     };
-  /* check the checksum of the generating compiler with current */
-  dynchecksum  =
-    (char *) dlsym ((void *) dlh, "genchecksum_melt");
-  if (dynchecksum && memcmp(dynchecksum, executable_checksum, 16))
-    warning(0, "loaded MELT plugin %s with a checksum mismatch!", dypath);
+  /* check the version of the generating compiler with current */
+  dynversion  =
+    (char *) dlsym ((void *) dlh, "genversionstr_melt");
+  if (dynversion && strcmp (dynversion, melt_gccversionstr))
+    {
+      warning(0, "loaded MELT module %s with a version mismatch!", dypath);
+      inform (UNKNOWN_LOCATION, "MELT module compiled for %s", dynversion);
+      inform (UNKNOWN_LOCATION, "This GCC version is %s", melt_gccversionstr);
+    };
   PTR_UNION_AS_VOID_PTR(startrout_uf) =
     dlsym ((void *) dlh, "start_module_melt");
   if (!PTR_UNION_AS_VOID_PTR(startrout_uf))
@@ -7876,7 +7870,7 @@ melt_finishall_callback(void *gcc_data ATTRIBUTE_UNUSED,
  * Should become the MELT plugin initializer.
  ****/
 static void
-melt_really_initialize (const char* pluginame)
+melt_really_initialize (const char* pluginame, const char*versionstr)
 {
   static int inited;
   long seed;
@@ -7887,7 +7881,10 @@ melt_really_initialize (const char* pluginame)
   const char *countdbgstr = 0;
   if (inited)
     return;
-  gcc_assert(pluginame && pluginame[0]);
+  gcc_assert (pluginame && pluginame[0]);
+  gcc_assert (versionstr && versionstr[0]);
+  /* These are probably never freed! */
+  melt_gccversionstr = xstrdup (versionstr);
   melt_plugin_name = xstrdup(pluginame);
   modstr = melt_argument ("mode");
   inistr = melt_argument ("init");
@@ -8064,13 +8061,20 @@ int plugin_is_GPL_compatible = 1;
 
 /* the plugin initialization code has to be exactly plugin_init */
 int
-plugin_init(struct plugin_name_args* plugin_info,
-	    struct plugin_gcc_version* version) 
+plugin_init (struct plugin_name_args* plugin_info,
+	     struct plugin_gcc_version* gcc_version) 
 {
-  gcc_assert (plugin_info);
+  char* gccversionstr = NULL;
+  gcc_assert (plugin_info != NULL);
+  gcc_assert (gcc_version != NULL);
   melt_plugin_argc = plugin_info->argc;
   melt_plugin_argv = plugin_info->argv;
-  melt_really_initialize (plugin_info->base_name);
+  gccversionstr = concat (gcc_version->baseversion, " ",
+			  gcc_version->datestamp, " (",
+			  gcc_version->devphase, ") [MELT plugin]",
+			  NULL);
+  melt_really_initialize (plugin_info->base_name, gccversionstr);
+  free (gccversionstr);
   debugeprintf ("end of melt plugin_init");
   return 0; /* success */
 }
@@ -8079,7 +8083,8 @@ plugin_init(struct plugin_name_args* plugin_info,
 void
 melt_initialize (void)
 {
-  melt_really_initialize ("/_MELT/_buitin");
+  debugeprintf ("start of melt_initialize [builtin MELT] version_string %s", version_string);
+  melt_really_initialize ("/_MELT/_builtin", version_string);
   debugeprintf ("end of melt_initialize [builtin MELT] meltruntime %s", __DATE__);
 }
 #endif
@@ -9776,23 +9781,25 @@ melt_output_cfile_decl_impl (melt_ptr_t unitnam,
     if (strlen (nowtimstr) > 2)
       fprintf (cfil, "/* generated on %s */\n\n", nowtimstr);
   }
-  /* we protect genchecksum_melt with MELTGCC_DYNAMIC_OBJSTRUCT since
+  /* we protect genversionstr_melt with MELTGCC_DYNAMIC_OBJSTRUCT since
      for sure when compiling the warmelt*0.c it would mismatch, and we
      want to avoid a useless warning */
   fprintf (cfil, "\n#ifndef MELTGCC_DYNAMIC_OBJSTRUCT\n"
-	   "/* checksum of the gcc executable generating this file: */\n"
-	   "const unsigned char genchecksum_melt[16]=\n {");
+	   "/* version string of the gcc executable generating this file: */\n"
+	   "const char genversionstr_melt[]=\n ");
   {
-    int i;
-    for (i=0; i<16; i++) {
-      if (i>0) 
-	fputc(',', cfil);
-      if (i==8) 
-	fputs("\n   ", cfil);
-      fprintf (cfil, " %#x", executable_checksum[i]);
-    }
+    const char* pc;
+    fputc ('\"', cfil);
+    for (pc = melt_gccversionstr; *pc; pc++)
+      {
+	if (*pc == ' ' || ISALNUM(*pc) || strchr("(){}[]<>@.,+-*/", *pc))
+	  fputc (*pc, cfil);
+	else
+	  fprintf (cfil, "\\%03o", (int) 0xff & pc[0]);
+      };    
+    fputc ('\"', cfil);
   };
-  fprintf (cfil, "};\n" "#endif\n" "\n");
+  fprintf (cfil, ";\n" "#endif\n" "\n");
   fprintf (cfil, "#include \"run-melt.h\"\n");
   fprintf (cfil, "\n/**** %s declarations ****/\n",
 	   melt_string_str (unitnam));
