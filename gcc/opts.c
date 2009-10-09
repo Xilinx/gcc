@@ -877,6 +877,7 @@ decode_options (unsigned int argc, const char **argv)
   flag_graphite_identity = opt2;
   flag_loop_strip_mine = opt2;
   flag_loop_interchange = opt2;
+  flag_loop_block = opt2;
 #endif
   flag_inline_small_functions = opt2;
   flag_indirect_inlining = opt2;

@@ -315,9 +315,6 @@ gate_graphite_transforms (void)
   if (optimize < 2)
     flag_graphite = 0;
 
-  if (flag_loop_block)
-    sorry ("loop blocking not implemented");
-
   return flag_graphite != 0;
 }
 
