@@ -1565,8 +1565,12 @@ struct tm_memopt_bitmaps
   bitmap read_local;
   /* Writes performed in this BB.  */
   bitmap store_local;
-  /* Temporary storage for pass.  Is the current BB in the worklist.  */
+
+  /* Temporary storage for pass.  */
+  /* Is the current BB in the worklist?  */
   bool avail_in_worklist_p;
+  /* Have we visited this BB?  */
+  bool visited_p;
 };
 
 static bitmap_obstack tm_memopt_obstack;
@@ -1594,6 +1598,8 @@ static htab_t tm_memopt_value_numbers;
   ((struct tm_memopt_bitmaps *) ((BB)->aux))->store_local
 #define AVAIL_IN_WORKLIST_P(BB) \
   ((struct tm_memopt_bitmaps *) ((BB)->aux))->avail_in_worklist_p
+#define BB_VISITED_P(BB) \
+  ((struct tm_memopt_bitmaps *) ((BB)->aux))->visited_p
 
 /* Return the list of basic-blocks in REGION.  */
 
@@ -1752,52 +1758,70 @@ dump_tm_memopt_sets (VEC (basic_block, heap) *blocks)
     }
 }
 
-/* Compute {STORE,READ}_AVAIL_IN for the basic block BB in REGION.  */
+/* Compute {STORE,READ}_AVAIL_IN for the basic block BB.  */
 
 static void
-tm_memopt_compute_avin (struct tm_region *region, basic_block bb)
+tm_memopt_compute_avin (basic_block bb)
 {
   edge e;
   unsigned ix;
-
-  /* The entry block has an AVIN of NULL.  */
-  if (bb == region->entry_block)
-    return;
 
   /* Seed with the AVOUT of any predecessor.  */
-  e = EDGE_PRED (bb, 0);
-  bitmap_copy (STORE_AVAIL_IN (bb), STORE_AVAIL_OUT (e->src));
-  bitmap_copy (READ_AVAIL_IN (bb), READ_AVAIL_OUT (e->src));
-
-  for (ix = 1; ix < EDGE_COUNT (bb->preds); ix++)
+  for (ix = 0; ix < EDGE_COUNT (bb->preds); ix++)
     {
       e = EDGE_PRED (bb, ix);
-      bitmap_and_into (STORE_AVAIL_IN (bb), STORE_AVAIL_OUT (e->src));
-      bitmap_and_into (READ_AVAIL_IN (bb), READ_AVAIL_OUT (e->src));
+      /* Make sure we have already visited this BB, and is thus
+	 initialized.  */
+      if (BB_VISITED_P (e->src))
+	{
+	  bitmap_copy (STORE_AVAIL_IN (bb), STORE_AVAIL_OUT (e->src));
+	  bitmap_copy (READ_AVAIL_IN (bb), READ_AVAIL_OUT (e->src));
+	  break;
+	}
     }
+
+  for (; ix < EDGE_COUNT (bb->preds); ix++)
+    {
+      e = EDGE_PRED (bb, ix);
+      if (BB_VISITED_P (e->src))
+	{
+	  bitmap_and_into (STORE_AVAIL_IN (bb), STORE_AVAIL_OUT (e->src));
+	  bitmap_and_into (READ_AVAIL_IN (bb), READ_AVAIL_OUT (e->src));
+	}
+    }
+
+  BB_VISITED_P (bb) = true;
 }
 
-/* Compute the STORE_ANTIC_IN for the basic block BB in REGION.  */
+/* Compute the STORE_ANTIC_IN for the basic block BB.  */
 
 static void
-tm_memopt_compute_antin (struct tm_region *region, basic_block bb)
+tm_memopt_compute_antin (basic_block bb)
 {
   edge e;
   unsigned ix;
 
-  /* Exit blocks have an ANTIC_IN of NULL.  */
-  if (bitmap_bit_p (region->exit_blocks, bb->index))
-    return;
-
   /* Seed with the ANTIC_OUT of any successor.  */
-  e = EDGE_SUCC (bb, 0);
-  bitmap_copy (STORE_ANTIC_IN (bb), STORE_ANTIC_OUT (e->dest));
-
-  for (ix = 1; ix < EDGE_COUNT (bb->succs); ix++)
+  for (ix = 0; ix < EDGE_COUNT (bb->succs); ix++)
     {
       e = EDGE_SUCC (bb, ix);
-      bitmap_and_into (STORE_ANTIC_IN (bb), STORE_ANTIC_OUT (e->dest));
+      /* Make sure we have already visited this BB, and is thus
+	 initialized.  */
+      if (BB_VISITED_P (e->dest))
+	{
+	  bitmap_copy (STORE_ANTIC_IN (bb), STORE_ANTIC_OUT (e->dest));
+	  break;
+	}
     }
+
+  for (; ix < EDGE_COUNT (bb->succs); ix++)
+    {
+      e = EDGE_SUCC (bb, ix);
+      if (BB_VISITED_P  (e->dest))
+	bitmap_and_into (STORE_ANTIC_IN (bb), STORE_ANTIC_OUT (e->dest));
+    }
+
+  BB_VISITED_P (bb) = true;
 }
 
 /* Compute the AVAIL sets for every basic block in BLOCKS.
@@ -1845,6 +1869,9 @@ tm_memopt_compute_available (struct tm_region *region,
 	*qin++ = bb;
     }
 
+  /* The entry block has been initialized with the local sets.  */
+  BB_VISITED_P (region->entry_block) = true;
+
   qin = worklist;
   qend = &worklist[qlen];
 
@@ -1860,7 +1887,7 @@ tm_memopt_compute_available (struct tm_region *region,
 
       /* This block can be added to the worklist again if necessary.  */
       AVAIL_IN_WORKLIST_P (bb) = false;
-      tm_memopt_compute_avin (region, bb);
+      tm_memopt_compute_avin (bb);
 
       /* Note: We do not add the LOCAL sets here because we already
 	 seeded the AVAIL_OUT sets with them.  */
@@ -1931,6 +1958,14 @@ tm_memopt_compute_antic (struct tm_region *region,
 	}
     }
 
+  /* The exit blocks have been initialized with the local sets.  */
+  {
+    unsigned int i;
+    bitmap_iterator bi;
+    EXECUTE_IF_SET_IN_BITMAP (region->exit_blocks, 0, i, bi)
+      BB_VISITED_P (BASIC_BLOCK (i)) = true;
+  }
+
   qin = worklist;
   qend = &worklist[qlen];
 
@@ -1946,7 +1981,7 @@ tm_memopt_compute_antic (struct tm_region *region,
 
       /* This block can be added to the worklist again if necessary.  */
       AVAIL_IN_WORKLIST_P (bb) = false;
-      tm_memopt_compute_antin (region, bb);
+      tm_memopt_compute_antin (bb);
 
       /* Note: We do not add the LOCAL sets here because we already
 	 seeded the ANTIC_OUT sets with them.  */
@@ -2102,6 +2137,18 @@ tm_memopt_free_sets (VEC (basic_block, heap) *blocks)
     bb->aux = NULL;
 }
 
+/* Clear the visited bit for every basic block in BLOCKS.  */
+
+static void
+tm_memopt_clear_visited (VEC (basic_block, heap) *blocks)
+{
+  size_t i;
+  basic_block bb;
+
+  for (i = 0; VEC_iterate (basic_block, blocks, i, bb); ++i)
+    BB_VISITED_P (bb) = false;
+}
+
 /* Replace TM load/stores with hints for the runtime.  We handle
    things like read-after-write, write-after-read, read-after-read,
    read-for-write, etc.  */
@@ -2132,7 +2179,9 @@ execute_tm_memopt (void)
 	 tm_memopt_accumulate_memops (bb);
        }
      /* Solve data flow equations and transform each block accordingly.  */
+     tm_memopt_clear_visited (bbs);
      tm_memopt_compute_available (region, bbs);
+     tm_memopt_clear_visited (bbs);
      tm_memopt_compute_antic (region, bbs);
      tm_memopt_transform_blocks (bbs);
 

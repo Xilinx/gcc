@@ -1,3 +1,12 @@
+2009-10-08  Aldy Hernandez  <aldyh@redhat.com>
+
+	* trans-mem.c (tm_memopt_compute_avin): Do not special case entry
+	block.  Do not seed with uninitialized blocks.
+	(tm_memopt_compute_antin): Do not special case exit blocks.  Do
+	not seed with uninitialized blocks.
+	(execute_tm_memopt): Call tm_memopt_clear_visited.
+	(tm_memopt_clear_visited): New.
+
 2009-10-03  Aldy Hernandez  <aldyh@redhat.com>
 
 	* tree.h (BUILTIN_TM_LOAD_STORE_P): New.
