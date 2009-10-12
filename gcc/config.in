@@ -211,6 +211,12 @@
 #endif
 
 
+/* Define if your assembler supports the DCI/ICI instructions. */
+#ifndef USED_FOR_TARGET
+#undef HAVE_AS_DCI
+#endif
+
+
 /* Define if your assembler supports the --debug-prefix-map option. */
 #ifndef USED_FOR_TARGET
 #undef HAVE_AS_DEBUG_PREFIX_MAP
@@ -306,6 +312,12 @@
 /* Define if your assembler supports the sahf mnemonic. */
 #ifndef USED_FOR_TARGET
 #undef HAVE_AS_IX86_SAHF
+#endif
+
+
+/* Define if your assembler supports the swap suffix. */
+#ifndef USED_FOR_TARGET
+#undef HAVE_AS_IX86_SWAP
 #endif
 
 

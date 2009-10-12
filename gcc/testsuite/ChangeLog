@@ -1,3 +1,125 @@
+2009-10-12  Janis Johnson  <janis187@us.ibm.com>
+
+	PR testsuite/41659
+	* gcc.dg/lto/20090914-2.c: Use dg-skip-if to skip test.
+	* lib/lto.exp (lto-get-options-main): Report error for using "target"
+	or "xfail" with dg-lto-do.
+
+2009-10-12  Stefan Dösinger  <stefan@codeweavers.com>
+
+	* gcc.target/i386/ms_hook_prologue.c: New testcase.
+
+2009-10-12  Michael Matz  <matz@suse.de>
+
+	* gcc.dg/plugin/one_time_plugin.c: Update test to use the cfg
+	pass.
+
+2009-10-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/41680
+	* g++.dg/torture/pr41680.C: New test.
+
+2009-10-12  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/41570
+	* gcc/testsuite/g++.dg/debug/dwarf2/template-params-7.C: New test.
+
+2009-10-12  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/41616
+	* gcc.dg/guality/pr41616-1.c: New.
+
+2009-10-11  Jason Merrill  <jason@redhat.com>
+
+	PR c++/37204
+	* g++.dg/cpp0x/rv-reinterpret.C: New.
+
+2009-10-11  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/38439
+	* gfortran.dg/fmt_error_9.f: New test.
+	* gfortran.dg/fmt_error_10.f: New test.
+	
+2009-10-11  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/41583
+	* gfortran.dg/class_4a.f03: New test with class_4b,c and d.f03.
+	* gfortran.dg/class_4b.f03: As above.
+	* gfortran.dg/class_4c.f03: As above.
+	* gfortran.dg/class_4d.f03: As above.
+
+2009-10-11  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/41555
+	* gcc.dg/torture/pr41555.c: New testcase.
+
+2009-10-10  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/35862
+	* gfortran.dg/round_2.f03: Eliminate possible compile error. Use max
+	function correctly.
+
+2009-10-10  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/35862
+	* gfortran.dg/round_2.f03: Update test to also test for smaller kind.
+	Add conditions to avoid runtime errors if not supported.
+
+2009-10-10  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/41654
+	* gfortran.fortran-torture/compile/pr41654.f90: New testcase.
+
+2009-10-09  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp/ucn-1.C: New.
+
+2009-10-09  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/41585
+	* gfortran.dg/class_2.f03: Extended test case.
+
+2009-10-09  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/41582
+	* gfortran.dg/class_allocate_1.f03: Modify code such that
+	it compiles with the gfc_warning->gfc_error change.
+	* gfortran.dg/class_allocate_1.f03: New test.
+
+2009-10-09  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/41579
+	* gfortran.dg/select_type_6.f03: New test.
+
+2009-10-09  Jakub Jelinek  <jakub@redhat.com>
+
+	PR preprocessor/41445
+	* gcc.dg/cpp/separate-1.c: Adjust.
+	* gcc.dg/cpp/spacing1.c: Add -P to dg-options.
+	* gcc.dg/debug/dwarf2/pr41445-1.c: New test.
+	* gcc.dg/debug/dwarf2/pr41445-2.c: New test.
+	* gcc.dg/debug/dwarf2/pr41445-3.c: New test.
+	* gcc.dg/debug/dwarf2/pr41445-4.c: New test.
+	* gcc.dg/debug/dwarf2/pr41445-5.c: New test.
+	* gcc.dg/debug/dwarf2/pr41445-6.c: New test.
+
+	PR rtl-optimization/41646
+	* gcc.c-torture/compile/pr41646.c: New test.
+
+2009-10-09  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/41634
+	* gcc.c-torture/compile/pr41634.c: New testcase.
+
+2009-10-09  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gfortran.dg/block_2.f08: Cleanup "original" tree dump.
+
+2009-10-09  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/opt3.adb: New test.
+	* gnat.dg/opt3_pkg.ads: New helper.
+
 2009-10-08  Doug Kwan  <dougkwan@google.com>
 
 	PR rtl-optimization/41574
@@ -14,6 +136,7 @@
 
 2009-10-08  Jason Merrill  <jason@redhat.com>
 
+	PR c++/36816
 	* g++.dg/cpp0x/rv-deduce.C: New.
 
 	PR c++/37177
@@ -414,7 +537,7 @@
 
 2009-10-02  Jack Howarth  <howarth@bromo.med.uc.edu>
 
-        * gcc.dg/guality/guality.exp: Disable on darwin.
+	* gcc.dg/guality/guality.exp: Disable on darwin.
 
 2009-10-02  Janis Johnson  <janis187@us.ibm.com>
 
@@ -5509,7 +5632,7 @@
 2009-05-12  David Billinghurst <billingd@gcc.gnu.org>
 
 	* lib/target-supports.exp (check_profiling_available): Return
- 	false for -p on *-*-cygwin* targets.
+	false for -p on *-*-cygwin* targets.
 
 2009-05-11  H.J. Lu  <hongjiu.lu@intel.com>
 

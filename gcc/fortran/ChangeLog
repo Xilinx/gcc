@@ -1,3 +1,46 @@
+2009-10-11 Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/38439
+	* io.c (check_format): Fix locus for error messages and fix a comment.
+
+2009-10-11  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/41583
+	* decl.c (hash_value): New function.
+	(gfc_match_derived_decl): Call it.
+
+2009-10-09  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/41585
+	* decl.c (build_struct): Bugfix for CLASS components.
+
+2009-10-09  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/41582
+	* decl.c (encapsulate_class_symbol): Save attr.abstract.
+	* resolve.c (resolve_allocate_expr): Reject class allocate
+	without typespec or source=.
+	* trans-stmt.c (gfc_trans_allocate): Change gfc_warning
+	into gfc_error for "not yet implemented".
+
+2009-10-09  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/41579
+	* gfortran.h (gfc_select_type_stack): New struct, to be used as a stack
+	for SELECT TYPE statements.
+	(select_type_stack): New global variable.
+	(type_selector,select_type_tmp): Removed.
+	* match.c (type_selector,type_selector): Removed.
+	(select_type_stack): New variable, serving as a stack for
+	SELECT TYPE statements.
+	(select_type_push,select_type_set_tmp): New functions.
+	(gfc_match_select_type): Call select_type_push.
+	(gfc_match_type_is): Call select_type_set_tmp.
+	* parse.c (select_type_pop): New function.
+	(parse_select_type_block): Call select_type_pop.
+	* symbol.c (select_type_insert_tmp): New function.
+	(gfc_find_sym_tree): Call select_type_insert_tmp.
+
 2009-10-07  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
 
 	* arith.c (arith_power): Use mpc_pow_z.
@@ -31,8 +74,8 @@
 
 2009-10-07  Paul Thomas <pault@gcc.gnu.org>
 
-        PR fortran/41613
-        * resolve.c (check_class_members): Reset compcall.assign.
+	PR fortran/41613
+	* resolve.c (check_class_members): Reset compcall.assign.
 
 2009-10-05  Paul Thomas  <pault@gcc.gnu.org>
 
@@ -355,7 +398,6 @@
 	* parse.c (next_free): Improve error locus printing.
 	(next_fixed): Change gfc_warn to gfc_warning_now, and improve
 	locus reporting.
- 
 
 2009-09-16  Michael Matz  <matz@suse.de>
 

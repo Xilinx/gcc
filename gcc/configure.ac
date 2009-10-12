@@ -3047,6 +3047,12 @@ foo:	nop
       [AC_DEFINE(HAVE_AS_IX86_SAHF, 1,
         [Define if your assembler supports the sahf mnemonic.])])
 
+    gcc_GAS_CHECK_FEATURE([swap suffix],
+      gcc_cv_as_ix86_swap,,,
+      [movl.s %esp, %ebp],,
+      [AC_DEFINE(HAVE_AS_IX86_SWAP, 1,
+        [Define if your assembler supports the swap suffix.])])
+
     gcc_GAS_CHECK_FEATURE([different section symbol subtraction],
       gcc_cv_as_ix86_diff_sect_delta,,,
       [.section .rodata
@@ -3248,6 +3254,21 @@ LCF0:
       [$conftest_s],,
       [AC_DEFINE(HAVE_AS_LWSYNC, 1,
 	  [Define if your assembler supports LWSYNC instructions.])])
+
+    case $target in
+      *-*-aix*) conftest_s='	.machine "476"
+	.csect .text[[PR]]
+	dci 0';;
+      *) conftest_s='	.machine "476"
+	.text
+	dci 0';;
+    esac
+
+    gcc_GAS_CHECK_FEATURE([data cache invalidate support],
+      gcc_cv_as_powerpc_dci, [9,99,0], -a32,
+      [$conftest_s],,
+      [AC_DEFINE(HAVE_AS_DCI, 1,
+	  [Define if your assembler supports the DCI/ICI instructions.])])
 
     gcc_GAS_CHECK_FEATURE([.gnu_attribute support],
       gcc_cv_as_powerpc_gnu_attribute, [2,18,0],,
@@ -4256,14 +4277,8 @@ if test x"$enable_plugin" = x"yes"; then
   fi
 
   # Check -ldl
-  LIBS="$LIBS -ldl"
-  AC_MSG_CHECKING([for -ldl])
-  AC_TRY_LINK(
-    [#include <dlfcn.h>],
-    [volatile int f = 0; if (f) dlopen ("dummy", 0);],
-    [AC_MSG_RESULT([yes]); have_dl=yes],
-    [AC_MSG_RESULT([no])])
-  if test x"$have_dl" = x"yes"; then
+  AC_SEARCH_LIBS([dlopen], [dl])
+  if test x"$ac_cv_search_dlopen" = x"-ldl"; then
     pluginlibs="$pluginlibs -ldl"
   fi
 
@@ -4274,7 +4289,7 @@ if test x"$enable_plugin" = x"yes"; then
     [extern int X;],[return X == 0;],
     [AC_MSG_RESULT([yes]); have_pic_shared=yes],
     [AC_MSG_RESULT([no]); have_pic_shared=no])
-  if test x"$have_pic_shared" != x"yes"; then
+  if test x"$have_pic_shared" != x"yes" -o x"$ac_cv_search_dlopen" = x"no"; then
     pluginlibs=
     enable_plugin=no
   fi
