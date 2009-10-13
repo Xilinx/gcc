@@ -7926,7 +7926,7 @@ fi
 
 # On IRIX 5.3, sys/types and inttypes.h are conflicting.
 for ac_header in sys/types.h sys/stat.h stdlib.h string.h memory.h strings.h \
-		  inttypes.h stdint.h unistd.h
+		  inttypes.h stdint.h unistd.h execinfo.h
 do :
   as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
 ac_fn_c_check_header_compile "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default
@@ -12336,7 +12336,7 @@ with_gnu_ld=$lt_cv_prog_gnu_ld
       # Commands to make compiler produce verbose output that lists
       # what "hidden" libraries, object files and flags are used when
       # linking a shared library.
-      output_verbose_link_cmd='$CC -shared $CFLAGS -v conftest.$objext 2>&1 | $GREP "\-L"'
+      output_verbose_link_cmd='$CC -shared $CFLAGS -v conftest.$objext 2>&1 | $GREP "^ .* -L"'
 
     else
       GXX=no
@@ -12673,7 +12673,7 @@ if test -z "$aix_libpath"; then aix_libpath="/usr/lib:/lib"; fi
             # explicitly linking system object files so we need to strip them
             # from the output so that they don't get included in the library
             # dependencies.
-            output_verbose_link_cmd='templist=`($CC -b $CFLAGS -v conftest.$objext 2>&1) | $EGREP "\-L"`; list=""; for z in $templist; do case $z in conftest.$objext) list="$list $z";; *.$objext);; *) list="$list $z";;esac; done; $ECHO "X$list" | $Xsed'
+            output_verbose_link_cmd='templist=`($CC -b $CFLAGS -v conftest.$objext 2>&1) | $GREP "^ .* -L"`; list=""; for z in $templist; do case $z in conftest.$objext) list="$list $z";; *.$objext);; *) list="$list $z";;esac; done; $ECHO "X$list" | $Xsed'
             ;;
           *)
             if test "$GXX" = yes; then
@@ -12738,7 +12738,7 @@ if test -z "$aix_libpath"; then aix_libpath="/usr/lib:/lib"; fi
 	    # explicitly linking system object files so we need to strip them
 	    # from the output so that they don't get included in the library
 	    # dependencies.
-	    output_verbose_link_cmd='templist=`($CC -b $CFLAGS -v conftest.$objext 2>&1) | $GREP "\-L"`; list=""; for z in $templist; do case $z in conftest.$objext) list="$list $z";; *.$objext);; *) list="$list $z";;esac; done; $ECHO "X$list" | $Xsed'
+	    output_verbose_link_cmd='templist=`($CC -b $CFLAGS -v conftest.$objext 2>&1) | $GREP "^ .* -L"`; list=""; for z in $templist; do case $z in conftest.$objext) list="$list $z";; *.$objext);; *) list="$list $z";;esac; done; $ECHO "X$list" | $Xsed'
 	    ;;
           *)
 	    if test "$GXX" = yes; then
@@ -13082,7 +13082,7 @@ if test -z "$aix_libpath"; then aix_libpath="/usr/lib:/lib"; fi
 	      # Commands to make compiler produce verbose output that lists
 	      # what "hidden" libraries, object files and flags are used when
 	      # linking a shared library.
-	      output_verbose_link_cmd='$CC -shared $CFLAGS -v conftest.$objext 2>&1 | $GREP "\-L"'
+	      output_verbose_link_cmd='$CC -shared $CFLAGS -v conftest.$objext 2>&1 | $GREP "^ .* -L"'
 
 	    else
 	      # FIXME: insert proper C++ library support
@@ -13166,7 +13166,7 @@ if test -z "$aix_libpath"; then aix_libpath="/usr/lib:/lib"; fi
 	        # Commands to make compiler produce verbose output that lists
 	        # what "hidden" libraries, object files and flags are used when
 	        # linking a shared library.
-	        output_verbose_link_cmd='$CC -shared $CFLAGS -v conftest.$objext 2>&1 | $GREP "\-L"'
+	        output_verbose_link_cmd='$CC -shared $CFLAGS -v conftest.$objext 2>&1 | $GREP "^ .* -L"'
 	      else
 	        # g++ 2.7 appears to require `-G' NOT `-shared' on this
 	        # platform.
@@ -13177,7 +13177,7 @@ if test -z "$aix_libpath"; then aix_libpath="/usr/lib:/lib"; fi
 	        # Commands to make compiler produce verbose output that lists
 	        # what "hidden" libraries, object files and flags are used when
 	        # linking a shared library.
-	        output_verbose_link_cmd='$CC -G $CFLAGS -v conftest.$objext 2>&1 | $GREP "\-L"'
+	        output_verbose_link_cmd='$CC -G $CFLAGS -v conftest.$objext 2>&1 | $GREP "^ .* -L"'
 	      fi
 
 	      hardcode_libdir_flag_spec_CXX='${wl}-R $wl$libdir'
@@ -19507,8 +19507,8 @@ $as_echo_n "checking for ld version... " >&6; }
     if $LD --version 2>/dev/null | grep 'GNU gold' >/dev/null 2>&1; then
       glibcxx_ld_is_gold=yes
     fi
-    ldver=`$LD --version 2>/dev/null | head -1 | \
-           sed -e 's/GNU \(go\)\{0,1\}ld \(version \)\{0,1\}\(([^)]*) \)\{0,1\}\([0-9.][0-9.]*\).*/\4/'`
+    ldver=`$LD --version 2>/dev/null |
+	   sed -e 's/GNU g*o*ld v*e*r*s*i*o*n* *\(([^)]*)* *\) \([0-9.][0-9.]*\).*/\2/; q'`
 
     glibcxx_gnu_ld_version=`echo $ldver | \
            $AWK -F. '{ if (NF<3) $3=0; print ($1*100+$2)*100+$3 }'`
@@ -26409,8 +26409,8 @@ $as_echo_n "checking for ld version... " >&6; }
     if $LD --version 2>/dev/null | grep 'GNU gold' >/dev/null 2>&1; then
       glibcxx_ld_is_gold=yes
     fi
-    ldver=`$LD --version 2>/dev/null | head -1 | \
-           sed -e 's/GNU \(go\)\{0,1\}ld \(version \)\{0,1\}\(([^)]*) \)\{0,1\}\([0-9.][0-9.]*\).*/\4/'`
+    ldver=`$LD --version 2>/dev/null |
+	   sed -e 's/GNU g*o*ld v*e*r*s*i*o*n* *\(([^)]*)* *\) \([0-9.][0-9.]*\).*/\2/; q'`
 
     glibcxx_gnu_ld_version=`echo $ldver | \
            $AWK -F. '{ if (NF<3) $3=0; print ($1*100+$2)*100+$3 }'`
@@ -32224,8 +32224,8 @@ $as_echo_n "checking for ld version... " >&6; }
     if $LD --version 2>/dev/null | grep 'GNU gold' >/dev/null 2>&1; then
       glibcxx_ld_is_gold=yes
     fi
-    ldver=`$LD --version 2>/dev/null | head -1 | \
-           sed -e 's/GNU \(go\)\{0,1\}ld \(version \)\{0,1\}\(([^)]*) \)\{0,1\}\([0-9.][0-9.]*\).*/\4/'`
+    ldver=`$LD --version 2>/dev/null |
+	   sed -e 's/GNU g*o*ld v*e*r*s*i*o*n* *\(([^)]*)* *\) \([0-9.][0-9.]*\).*/\2/; q'`
 
     glibcxx_gnu_ld_version=`echo $ldver | \
            $AWK -F. '{ if (NF<3) $3=0; print ($1*100+$2)*100+$3 }'`
@@ -43869,8 +43869,8 @@ $as_echo_n "checking for ld version... " >&6; }
     if $LD --version 2>/dev/null | grep 'GNU gold' >/dev/null 2>&1; then
       glibcxx_ld_is_gold=yes
     fi
-    ldver=`$LD --version 2>/dev/null | head -1 | \
-           sed -e 's/GNU \(go\)\{0,1\}ld \(version \)\{0,1\}\(([^)]*) \)\{0,1\}\([0-9.][0-9.]*\).*/\4/'`
+    ldver=`$LD --version 2>/dev/null |
+	   sed -e 's/GNU g*o*ld v*e*r*s*i*o*n* *\(([^)]*)* *\) \([0-9.][0-9.]*\).*/\2/; q'`
 
     glibcxx_gnu_ld_version=`echo $ldver | \
            $AWK -F. '{ if (NF<3) $3=0; print ($1*100+$2)*100+$3 }'`
@@ -44083,8 +44083,8 @@ $as_echo_n "checking for ld version... " >&6; }
     if $LD --version 2>/dev/null | grep 'GNU gold' >/dev/null 2>&1; then
       glibcxx_ld_is_gold=yes
     fi
-    ldver=`$LD --version 2>/dev/null | head -1 | \
-           sed -e 's/GNU \(go\)\{0,1\}ld \(version \)\{0,1\}\(([^)]*) \)\{0,1\}\([0-9.][0-9.]*\).*/\4/'`
+    ldver=`$LD --version 2>/dev/null |
+	   sed -e 's/GNU g*o*ld v*e*r*s*i*o*n* *\(([^)]*)* *\) \([0-9.][0-9.]*\).*/\2/; q'`
 
     glibcxx_gnu_ld_version=`echo $ldver | \
            $AWK -F. '{ if (NF<3) $3=0; print ($1*100+$2)*100+$3 }'`
@@ -44558,8 +44558,8 @@ $as_echo_n "checking for ld version... " >&6; }
     if $LD --version 2>/dev/null | grep 'GNU gold' >/dev/null 2>&1; then
       glibcxx_ld_is_gold=yes
     fi
-    ldver=`$LD --version 2>/dev/null | head -1 | \
-           sed -e 's/GNU \(go\)\{0,1\}ld \(version \)\{0,1\}\(([^)]*) \)\{0,1\}\([0-9.][0-9.]*\).*/\4/'`
+    ldver=`$LD --version 2>/dev/null |
+	   sed -e 's/GNU g*o*ld v*e*r*s*i*o*n* *\(([^)]*)* *\) \([0-9.][0-9.]*\).*/\2/; q'`
 
     glibcxx_gnu_ld_version=`echo $ldver | \
            $AWK -F. '{ if (NF<3) $3=0; print ($1*100+$2)*100+$3 }'`
@@ -50727,8 +50727,8 @@ $as_echo_n "checking for ld version... " >&6; }
     if $LD --version 2>/dev/null | grep 'GNU gold' >/dev/null 2>&1; then
       glibcxx_ld_is_gold=yes
     fi
-    ldver=`$LD --version 2>/dev/null | head -1 | \
-           sed -e 's/GNU \(go\)\{0,1\}ld \(version \)\{0,1\}\(([^)]*) \)\{0,1\}\([0-9.][0-9.]*\).*/\4/'`
+    ldver=`$LD --version 2>/dev/null |
+	   sed -e 's/GNU g*o*ld v*e*r*s*i*o*n* *\(([^)]*)* *\) \([0-9.][0-9.]*\).*/\2/; q'`
 
     glibcxx_gnu_ld_version=`echo $ldver | \
            $AWK -F. '{ if (NF<3) $3=0; print ($1*100+$2)*100+$3 }'`
@@ -56527,8 +56527,8 @@ $as_echo_n "checking for ld version... " >&6; }
     if $LD --version 2>/dev/null | grep 'GNU gold' >/dev/null 2>&1; then
       glibcxx_ld_is_gold=yes
     fi
-    ldver=`$LD --version 2>/dev/null | head -1 | \
-           sed -e 's/GNU \(go\)\{0,1\}ld \(version \)\{0,1\}\(([^)]*) \)\{0,1\}\([0-9.][0-9.]*\).*/\4/'`
+    ldver=`$LD --version 2>/dev/null |
+	   sed -e 's/GNU g*o*ld v*e*r*s*i*o*n* *\(([^)]*)* *\) \([0-9.][0-9.]*\).*/\2/; q'`
 
     glibcxx_gnu_ld_version=`echo $ldver | \
            $AWK -F. '{ if (NF<3) $3=0; print ($1*100+$2)*100+$3 }'`
@@ -56694,8 +56694,8 @@ $as_echo_n "checking for ld version... " >&6; }
     if $LD --version 2>/dev/null | grep 'GNU gold' >/dev/null 2>&1; then
       glibcxx_ld_is_gold=yes
     fi
-    ldver=`$LD --version 2>/dev/null | head -1 | \
-           sed -e 's/GNU \(go\)\{0,1\}ld \(version \)\{0,1\}\(([^)]*) \)\{0,1\}\([0-9.][0-9.]*\).*/\4/'`
+    ldver=`$LD --version 2>/dev/null |
+	   sed -e 's/GNU g*o*ld v*e*r*s*i*o*n* *\(([^)]*)* *\) \([0-9.][0-9.]*\).*/\2/; q'`
 
     glibcxx_gnu_ld_version=`echo $ldver | \
            $AWK -F. '{ if (NF<3) $3=0; print ($1*100+$2)*100+$3 }'`
@@ -56843,8 +56843,8 @@ $as_echo_n "checking for ld version... " >&6; }
     if $LD --version 2>/dev/null | grep 'GNU gold' >/dev/null 2>&1; then
       glibcxx_ld_is_gold=yes
     fi
-    ldver=`$LD --version 2>/dev/null | head -1 | \
-           sed -e 's/GNU \(go\)\{0,1\}ld \(version \)\{0,1\}\(([^)]*) \)\{0,1\}\([0-9.][0-9.]*\).*/\4/'`
+    ldver=`$LD --version 2>/dev/null |
+	   sed -e 's/GNU g*o*ld v*e*r*s*i*o*n* *\(([^)]*)* *\) \([0-9.][0-9.]*\).*/\2/; q'`
 
     glibcxx_gnu_ld_version=`echo $ldver | \
            $AWK -F. '{ if (NF<3) $3=0; print ($1*100+$2)*100+$3 }'`
@@ -57010,8 +57010,8 @@ $as_echo_n "checking for ld version... " >&6; }
     if $LD --version 2>/dev/null | grep 'GNU gold' >/dev/null 2>&1; then
       glibcxx_ld_is_gold=yes
     fi
-    ldver=`$LD --version 2>/dev/null | head -1 | \
-           sed -e 's/GNU \(go\)\{0,1\}ld \(version \)\{0,1\}\(([^)]*) \)\{0,1\}\([0-9.][0-9.]*\).*/\4/'`
+    ldver=`$LD --version 2>/dev/null |
+	   sed -e 's/GNU g*o*ld v*e*r*s*i*o*n* *\(([^)]*)* *\) \([0-9.][0-9.]*\).*/\2/; q'`
 
     glibcxx_gnu_ld_version=`echo $ldver | \
            $AWK -F. '{ if (NF<3) $3=0; print ($1*100+$2)*100+$3 }'`
@@ -57182,8 +57182,8 @@ $as_echo_n "checking for ld version... " >&6; }
     if $LD --version 2>/dev/null | grep 'GNU gold' >/dev/null 2>&1; then
       glibcxx_ld_is_gold=yes
     fi
-    ldver=`$LD --version 2>/dev/null | head -1 | \
-           sed -e 's/GNU \(go\)\{0,1\}ld \(version \)\{0,1\}\(([^)]*) \)\{0,1\}\([0-9.][0-9.]*\).*/\4/'`
+    ldver=`$LD --version 2>/dev/null |
+	   sed -e 's/GNU g*o*ld v*e*r*s*i*o*n* *\(([^)]*)* *\) \([0-9.][0-9.]*\).*/\2/; q'`
 
     glibcxx_gnu_ld_version=`echo $ldver | \
            $AWK -F. '{ if (NF<3) $3=0; print ($1*100+$2)*100+$3 }'`

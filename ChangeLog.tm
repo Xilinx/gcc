@@ -1,3 +1,7 @@
+2009-10-13  Richard Henderson  <rth@redhat.com>
+
+	* Merge from mainline rev 152433.
+
 2009-09-09  Aldy Hernandez  <aldyh@redhat.com>
 
 	* Merge from mainline rev 150253:151506.

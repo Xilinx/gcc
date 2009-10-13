@@ -254,7 +254,7 @@ maybe_retrofit_in_chrg (tree fn)
    FUNCTION is a FUNCTION_DECL.  It was created by `grokdeclarator'.
 
    FLAGS contains bits saying what's special about today's
-   arguments.  1 == DESTRUCTOR.  2 == OPERATOR.
+   arguments.  DTOR_FLAG == DESTRUCTOR.
 
    If FUNCTION is a destructor, then we must add the `auto-delete' field
    as a second parameter.  There is some hair associated with the fact
@@ -764,6 +764,7 @@ grokfield (const cp_declarator *declarator,
   tree value;
   const char *asmspec = 0;
   int flags = LOOKUP_ONLYCONVERTING;
+  tree name;
 
   if (init
       && TREE_CODE (init) == TREE_LIST
@@ -792,11 +793,21 @@ grokfield (const cp_declarator *declarator,
       && DECL_CONTEXT (value) != current_class_type)
     return value;
 
-  if (DECL_NAME (value) != NULL_TREE
-      && IDENTIFIER_POINTER (DECL_NAME (value))[0] == '_'
-      && ! strcmp (IDENTIFIER_POINTER (DECL_NAME (value)), "_vptr"))
-    error ("member %qD conflicts with virtual function table field name",
-	   value);
+  name = DECL_NAME (value);
+
+  if (name != NULL_TREE)
+    {
+      if (TREE_CODE (name) == TEMPLATE_ID_EXPR)
+	{
+	  error ("explicit template argument list not allowed");
+	  return error_mark_node;
+	}
+
+      if (IDENTIFIER_POINTER (name)[0] == '_'
+	  && ! strcmp (IDENTIFIER_POINTER (name), "_vptr"))
+	error ("member %qD conflicts with virtual function table field name",
+	       value);
+    }
 
   /* Stash away type declarations.  */
   if (TREE_CODE (value) == TYPE_DECL)
@@ -1594,6 +1605,22 @@ maybe_make_one_only (tree decl)
     }
 }
 
+/* Returns true iff DECL, a FUNCTION_DECL, has vague linkage.  This
+   predicate will give the right answer during parsing of the function,
+   which other tests may not.  */
+
+bool
+vague_linkage_fn_p (tree fn)
+{
+  /* Unfortunately, import_export_decl has not always been called
+     before the function is processed, so we cannot simply check
+     DECL_COMDAT.  */
+  return (DECL_COMDAT (fn)
+	  || ((DECL_DECLARED_INLINE_P (fn)
+	       || DECL_TEMPLATE_INSTANTIATION (fn))
+	      && TREE_PUBLIC (fn)));
+}
+
 /* Determine whether or not we want to specifically import or export CTYPE,
    using various heuristics.  */
 
@@ -2064,6 +2091,16 @@ determine_visibility (tree decl)
 	  || ! DECL_VISIBILITY_SPECIFIED (decl))
 	constrain_visibility (decl, tvis);
     }
+  else if (no_linkage_check (TREE_TYPE (decl), /*relaxed_p=*/true))
+    /* DR 757: A type without linkage shall not be used as the type of a
+       variable or function with linkage, unless
+       o the variable or function has extern "C" linkage (7.5 [dcl.link]), or
+       o the variable or function is not used (3.2 [basic.def.odr]) or is
+       defined in the same translation unit.
+
+       Since non-extern "C" decls need to be defined in the same
+       translation unit, we can make the type internal.  */
+    constrain_visibility (decl, VISIBILITY_ANON);
 
   /* If visibility changed and DECL already has DECL_RTL, ensure
      symbol flags are updated.  */
@@ -3955,7 +3992,7 @@ mark_used (tree decl)
    o the variable or function has extern "C" linkage (7.5 [dcl.link]), or
    o the variable or function is not used (3.2 [basic.def.odr]) or is
    defined in the same translation unit.  */
-  if (TREE_PUBLIC (decl)
+  if (decl_linkage (decl) != lk_none
       && !DECL_EXTERN_C_P (decl)
       && !DECL_ARTIFICIAL (decl)
       && !decl_defined_p (decl)

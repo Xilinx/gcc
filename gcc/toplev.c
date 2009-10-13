@@ -711,7 +711,7 @@ output_file_directive (FILE *asm_file, const char *input_name)
 #else
   fprintf (asm_file, "\t.file\t");
   output_quoted_string (asm_file, na);
-  fputc ('\n', asm_file);
+  putc ('\n', asm_file);
 #endif
 }
 
@@ -1272,7 +1272,7 @@ print_to_asm_out_file (print_switch_type type, const char * text)
     case SWITCH_TYPE_ENABLED:
       if (prepend_sep)
 	fputc (' ', asm_out_file);
-      fprintf (asm_out_file, text);
+      fputs (text, asm_out_file);
       /* No need to return the length here as
 	 print_single_switch has already done it.  */
       return 0;
@@ -1301,7 +1301,7 @@ print_to_stderr (print_switch_type type, const char * text)
       /* Drop through.  */
 
     case SWITCH_TYPE_DESCRIPTIVE:
-      fprintf (stderr, text);
+      fputs (text, stderr);
       /* No need to return the length here as
 	 print_single_switch has already done it.  */
       return 0;
@@ -1461,7 +1461,7 @@ init_asm_output (const char *name)
 	     into the assembler file as comments.  */
 	  print_version (asm_out_file, ASM_COMMENT_START);
 	  print_switch_values (print_to_asm_out_file);
-	  fprintf (asm_out_file, "\n");
+	  putc ('\n', asm_out_file);
 	}
 #endif
     }
@@ -1884,7 +1884,12 @@ process_options (void)
   if (flag_gtoggle)
     {
       if (debug_info_level == DINFO_LEVEL_NONE)
-	debug_info_level = DINFO_LEVEL_NORMAL;
+	{
+	  debug_info_level = DINFO_LEVEL_NORMAL;
+
+	  if (write_symbols == NO_DEBUG)
+	    write_symbols = PREFERRED_DEBUGGING_TYPE;
+	}
       else
 	debug_info_level = DINFO_LEVEL_NONE;
     }
@@ -1905,6 +1910,11 @@ process_options (void)
 	  flag_dump_final_insns = NULL;
 	}
     }
+
+  /* Unless over-ridden for the target, assume that all DWARF levels
+     may be emitted, if DWARF2_DEBUG is selected.  */
+  if (dwarf_strict < 0) 
+    dwarf_strict = 0;
 
   /* A lot of code assumes write_symbols == NO_DEBUG if the debugging
      level is 0.  */

@@ -117,7 +117,7 @@ enum rid
   RID_IS_UNION,
 
   /* C++0x */
-  RID_STATIC_ASSERT, RID_DECLTYPE,
+  RID_STATIC_ASSERT, RID_CONSTEXPR, RID_DECLTYPE,
 
   /* Objective-C */
   RID_AT_ENCODE,   RID_AT_END,
@@ -363,8 +363,8 @@ c_language_kind;
    front end.  For "ObjC features" or "not C++" use the macros.  */
 extern c_language_kind c_language;
 
-#define c_dialect_cxx()		(c_language & clk_cxx)
-#define c_dialect_objc()	(c_language & clk_objc)
+#define c_dialect_cxx()		((c_language & clk_cxx) != 0)
+#define c_dialect_objc()	((c_language & clk_objc) != 0)
 
 /* Information about a statement tree.  */
 
@@ -1148,6 +1148,7 @@ extern enum omp_clause_default_kind c_omp_predetermined_sharing (tree);
 /* Not in c-omp.c; provided by the front end.  */
 extern bool c_omp_sharing_predetermined (tree);
 extern tree c_omp_remap_decl (tree, bool);
+extern void record_types_used_by_current_var_decl (tree);
 
 /* In order for the format checking to accept the C frontend
    diagnostic framework extensions, you must include this file before

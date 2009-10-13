@@ -84,6 +84,7 @@ The callgraph:
 #include "tree-dump.h"
 #include "tree-flow.h"
 #include "value-prof.h"
+#include "except.h"
 
 static void cgraph_node_remove_callers (struct cgraph_node *node);
 static inline void cgraph_edge_remove_caller (struct cgraph_edge *e);
@@ -1655,11 +1656,13 @@ cgraph_clone_edge (struct cgraph_edge *e, struct cgraph_node *n,
    by node.  */
 struct cgraph_node *
 cgraph_clone_node (struct cgraph_node *n, gcov_type count, int freq,
-		   int loop_nest, bool update_original)
+		   int loop_nest, bool update_original,
+		   VEC(cgraph_edge_p,heap) *redirect_callers)
 {
   struct cgraph_node *new_node = cgraph_create_node ();
   struct cgraph_edge *e;
   gcov_type count_scale;
+  unsigned i;
 
   new_node->decl = n->decl;
   new_node->origin = n->origin;
@@ -1689,6 +1692,14 @@ cgraph_clone_node (struct cgraph_node *n, gcov_type count, int freq,
       if (n->count < 0)
 	n->count = 0;
     }
+
+  for (i = 0; VEC_iterate (cgraph_edge_p, redirect_callers, i, e); i++)
+    {
+      /* Redirect calls to the old version node to point to its new
+	 version.  */
+      cgraph_redirect_edge_callee (e, new_node);
+    }
+
 
   for (e = n->callees;e; e=e->next_callee)
     cgraph_clone_edge (e, new_node, e->call_stmt, count_scale, freq, loop_nest,
@@ -1743,8 +1754,6 @@ cgraph_create_virtual_clone (struct cgraph_node *old_node,
   struct cgraph_node *new_node = NULL;
   tree new_decl;
   struct cgraph_node key, **slot;
-  unsigned i;
-  struct cgraph_edge *e;
 
   gcc_assert  (tree_versionable_function_p (old_decl));
 
@@ -1761,7 +1770,8 @@ cgraph_create_virtual_clone (struct cgraph_node *old_node,
   SET_DECL_RTL (new_decl, NULL);
 
   new_node = cgraph_clone_node (old_node, old_node->count,
-  				CGRAPH_FREQ_BASE, 0, false);
+				CGRAPH_FREQ_BASE, 0, false,
+				redirect_callers);
   new_node->decl = new_decl;
   /* Update the properties.
      Make clone visible only within this translation unit.  Make sure
@@ -1820,13 +1830,7 @@ cgraph_create_virtual_clone (struct cgraph_node *old_node,
       gcc_assert (!*aslot);
       *aslot = new_node;
     }
-   for (i = 0; VEC_iterate (cgraph_edge_p, redirect_callers, i, e); i++)
-     {
-       /* Redirect calls to the old version node to point to its new
-	  version.  */
-       cgraph_redirect_edge_callee (e, new_node);
-     }
-  
+
   return new_node;
 }
 
@@ -1953,6 +1957,12 @@ cgraph_add_new_function (tree fndecl, bool lowered)
 	current_function_decl = NULL;
 	break;
     }
+
+  /* Set a personality if required and we already passed EH lowering.  */
+  if (lowered
+      && (function_needs_eh_personality (DECL_STRUCT_FUNCTION (fndecl))
+	  == eh_personality_lang))
+    DECL_FUNCTION_PERSONALITY (fndecl) = lang_hooks.eh_personality ();
 }
 
 /* Return true if NODE can be made local for API change.

@@ -4977,13 +4977,31 @@ add_with_sets (rtx insn, struct cselib_set *sets, int n_sets)
   note_uses (&PATTERN (insn), add_uses_1, &cui);
   n2 = VTI (bb)->n_mos - 1;
 
-  /* Order the MO_USEs to be before MO_USE_NO_VARs,
-     MO_VAL_LOC and MO_VAL_USE.  */
+  /* Order the MO_USEs to be before MO_USE_NO_VARs and MO_VAL_USE, and
+     MO_VAL_LOC last.  */
   while (n1 < n2)
     {
       while (n1 < n2 && VTI (bb)->mos[n1].type == MO_USE)
 	n1++;
       while (n1 < n2 && VTI (bb)->mos[n2].type != MO_USE)
+	n2--;
+      if (n1 < n2)
+	{
+	  micro_operation sw;
+
+	  sw = VTI (bb)->mos[n1];
+	  VTI (bb)->mos[n1] = VTI (bb)->mos[n2];
+	  VTI (bb)->mos[n2] = sw;
+	}
+    }
+
+  n2 = VTI (bb)->n_mos - 1;
+
+  while (n1 < n2)
+    {
+      while (n1 < n2 && VTI (bb)->mos[n1].type != MO_VAL_LOC)
+	n1++;
+      while (n1 < n2 && VTI (bb)->mos[n2].type == MO_VAL_LOC)
 	n2--;
       if (n1 < n2)
 	{
@@ -6243,7 +6261,8 @@ check_wrap_constant (enum machine_mode mode, rtx result)
 }
 
 /* Callback for cselib_expand_value, that looks for expressions
-   holding the value in the var-tracking hash tables.  */
+   holding the value in the var-tracking hash tables.  Return X for
+   standard processing, anything else is to be used as-is.  */
 
 static rtx
 vt_expand_loc_callback (rtx x, bitmap regs, int max_depth, void *data)
@@ -6254,19 +6273,46 @@ vt_expand_loc_callback (rtx x, bitmap regs, int max_depth, void *data)
   location_chain loc;
   rtx result;
 
-  gcc_assert (GET_CODE (x) == VALUE);
+  if (GET_CODE (x) == SUBREG)
+    {
+      rtx subreg = SUBREG_REG (x);
+
+      if (GET_CODE (SUBREG_REG (x)) != VALUE)
+	return x;
+
+      subreg = cselib_expand_value_rtx_cb (SUBREG_REG (x), regs,
+					   max_depth - 1,
+					   vt_expand_loc_callback, data);
+
+      if (!subreg)
+	return NULL;
+
+      result = simplify_gen_subreg (GET_MODE (x), subreg,
+				    GET_MODE (SUBREG_REG (x)),
+				    SUBREG_BYTE (x));
+
+      /* Invalid SUBREGs are ok in debug info.  ??? We could try
+	 alternate expansions for the VALUE as well.  */
+      if (!result && (REG_P (subreg) || MEM_P (subreg)))
+	result = gen_rtx_raw_SUBREG (GET_MODE (x), subreg, SUBREG_BYTE (x));
+
+      return result;
+    }
+
+  if (GET_CODE (x) != VALUE)
+    return x;
 
   if (VALUE_RECURSED_INTO (x))
-    return NULL;
+    return x;
 
   dv = dv_from_value (x);
   var = (variable) htab_find_with_hash (vars, dv, dv_htab_hash (dv));
 
   if (!var)
-    return NULL;
+    return x;
 
   if (var->n_var_parts == 0)
-    return NULL;
+    return x;
 
   gcc_assert (var->n_var_parts == 1);
 
@@ -6283,7 +6329,10 @@ vt_expand_loc_callback (rtx x, bitmap regs, int max_depth, void *data)
     }
 
   VALUE_RECURSED_INTO (x) = false;
-  return result;
+  if (result)
+    return result;
+  else
+    return x;
 }
 
 /* Expand VALUEs in LOC, using VARS as well as cselib's equivalence

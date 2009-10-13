@@ -5104,7 +5104,8 @@ convert_arg_to_ellipsis (tree arg)
      promoted type before the call.  */
   if (TREE_CODE (TREE_TYPE (arg)) == REAL_TYPE
       && (TYPE_PRECISION (TREE_TYPE (arg))
-	  < TYPE_PRECISION (double_type_node)))
+	  < TYPE_PRECISION (double_type_node))
+      && !DECIMAL_FLOAT_MODE_P (TYPE_MODE (TREE_TYPE (arg))))
     arg = convert_to_real (double_type_node, arg);
   else if (INTEGRAL_OR_ENUMERATION_TYPE_P (TREE_TYPE (arg)))
     arg = perform_integral_promotions (arg);
@@ -5567,6 +5568,28 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
 	  && COMPLETE_TYPE_P (complete_type (type))
 	  && !TREE_ADDRESSABLE (type))
 	conv = conv->u.next;
+
+      /* Warn about initializer_list deduction that isn't currently in the
+	 working draft.  */
+      if (cxx_dialect > cxx98
+	  && flag_deduce_init_list
+	  && cand->template_decl
+	  && is_std_init_list (non_reference (type)))
+	{
+	  tree tmpl = TI_TEMPLATE (cand->template_decl);
+	  tree realparm = chain_index (j, DECL_ARGUMENTS (cand->fn));
+	  tree patparm = get_pattern_parm (realparm, tmpl);
+
+	  if (!is_std_init_list (non_reference (TREE_TYPE (patparm))))
+	    {
+	      pedwarn (input_location, 0, "deducing %qT as %qT",
+		       non_reference (TREE_TYPE (patparm)),
+		       non_reference (type));
+	      pedwarn (input_location, 0, "  in call to %q+D", cand->fn);
+	      pedwarn (input_location, 0,
+		       "  (you can disable this with -fno-deduce-init-list)");
+	    }
+	}
 
       val = convert_like_with_context
 	(conv, VEC_index (tree, args, arg_index), fn, i - is_method,
