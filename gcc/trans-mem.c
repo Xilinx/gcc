@@ -2822,8 +2822,8 @@ ipa_tm_insert_gettmclone_call (struct cgraph_node *node,
 			       struct tm_region *region,
 			       gimple_stmt_iterator *gsi, gimple stmt)
 {
-  tree gettm_fn, ret, old_fn;
-  gimple g;
+  tree gettm_fn, ret, old_fn, callfn;
+  gimple g, g2;
   bool safe;
 
   old_fn = gimple_call_fn (stmt);
@@ -2831,7 +2831,7 @@ ipa_tm_insert_gettmclone_call (struct cgraph_node *node,
   safe = is_tm_safe (TREE_TYPE (old_fn));
   gettm_fn = built_in_decls[safe ? BUILT_IN_TM_GETTMCLONE_SAFE
 			    : BUILT_IN_TM_GETTMCLONE_IRR];
-  ret = create_tmp_var (TREE_TYPE (old_fn), NULL);
+  ret = create_tmp_var (ptr_type_node, NULL);
   add_referenced_var (ret);
 
   if (!safe)
@@ -2858,6 +2858,16 @@ ipa_tm_insert_gettmclone_call (struct cgraph_node *node,
 
   cgraph_create_edge (node, cgraph_node (gettm_fn), g, 0, 0, 0);
 
+  /* Cast return value from tm_gettmclone* into appropriate function
+     pointer.  */
+  callfn = create_tmp_var (TREE_TYPE (old_fn), NULL);
+  add_referenced_var (callfn);
+  g2 = gimple_build_assign (callfn,
+			    fold_build1 (NOP_EXPR, TREE_TYPE (callfn), ret));
+  callfn = make_ssa_name (callfn, g2);
+  gimple_assign_set_lhs (g2, callfn);
+  gsi_insert_before (gsi, g2, GSI_SAME_STMT);
+
   /* ??? This is a hack to preserve the NOTHROW bit on the call,
      which we would have derived from the decl.  Failure to save
      this bit means we might have to split the basic block.  */
@@ -2870,7 +2880,7 @@ ipa_tm_insert_gettmclone_call (struct cgraph_node *node,
      and thus requiring extra EH edges.  */
   gimple_call_set_noinline_p (stmt);
 
-  gimple_call_set_fn (stmt, ret);
+  gimple_call_set_fn (stmt, callfn);
   update_stmt (stmt);
 
   return safe;

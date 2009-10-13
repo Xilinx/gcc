@@ -1,3 +1,8 @@
+2009-10-13  Aldy Hernandez  <aldyh@redhat.com>
+
+	* trans-mem.c (ipa_tm_insert_gettmclone_call): Cast return value
+	from gettmclone.
+
 2009-10-12  Richard Henderson  <rth@redhat.com>
 
 	* calls.c (emit_call_1): Don't add REG_TM note here.
