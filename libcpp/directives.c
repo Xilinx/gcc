@@ -151,11 +151,11 @@ D(error,	T_ERROR,	STDC89,    0)		   /*    475 */ \
 D(pragma,	T_PRAGMA,	STDC89,    IN_I)	   /*    195 */ \
 D(warning,	T_WARNING,	EXTENSION, 0)		   /*     22 */ \
 D(include_next,	T_INCLUDE_NEXT,	EXTENSION, INCL | EXPAND)  /*     19 */ \
-D(ident,	T_IDENT,	EXTENSION, IN_I | DEPRECATED) /*     11 */ \
+D(ident,	T_IDENT,	EXTENSION, IN_I)           /*     11 */ \
 D(import,	T_IMPORT,	EXTENSION, INCL | EXPAND)  /* 0 ObjC */	\
 D(assert,	T_ASSERT,	EXTENSION, DEPRECATED)	   /* 0 SVR4 */	\
 D(unassert,	T_UNASSERT,	EXTENSION, DEPRECATED)	   /* 0 SVR4 */	\
-D(sccs,		T_SCCS,		EXTENSION, IN_I | DEPRECATED) /* 0 SVR4? */
+D(sccs,		T_SCCS,		EXTENSION, IN_I)           /* 0 SVR4? */
 
 /* #sccs is synonymous with #ident.  */
 #define do_sccs do_ident
@@ -2156,7 +2156,8 @@ do_unassert (cpp_reader *pfile)
 void
 cpp_define (cpp_reader *pfile, const char *str)
 {
-  char *buf, *p;
+  char *buf;
+  const char *p;
   size_t count;
 
   /* Copy the entire option so we can modify it.

@@ -427,7 +427,7 @@ or with constant text in a single argument.
  %b     substitute the basename of the input file being processed.
 	This is the substring up to (and not including) the last period
 	and not including the directory unless -save-temps was specified
-	to put temporaries in a different location.	
+	to put temporaries in a different location.
  %B	same as %b, but include the file suffix (text after the last period).
  %gSUFFIX
 	substitute a file name that has suffix SUFFIX and is chosen
@@ -564,7 +564,7 @@ or with constant text in a single argument.
  %{!.S:X} substitutes X, if NOT processing a file with suffix S.
  %{,S:X}  substitutes X, if processing a file which will use spec S.
  %{!,S:X} substitutes X, if NOT processing a file which will use spec S.
-	  
+
  %{S|T:X} substitutes X if either -S or -T was given to GCC.  This may be
 	  combined with '!', '.', ',', and '*' as above binding stronger
 	  than the OR.
@@ -764,10 +764,24 @@ proper position among the other output files.  */
 /* We want %{T*} after %{L*} and %D so that it can be used to specify linker
    scripts which exist in user specified directories, or in standard
    directories.  */
+/* We pass any -flto and -fwhopr flags on to the linker, which is expected
+   to understand them.  In practice, this means it had better be collect2.  */
 #ifndef LINK_COMMAND_SPEC
 #define LINK_COMMAND_SPEC "\
 %{!fsyntax-only:%{!c:%{!M:%{!MM:%{!E:%{!S:\
-    %(linker) %l " LINK_PIE_SPEC "%X %{o*} %{A} %{d} %{e*} %{m} %{N} %{n} %{r}\
+    %(linker) \
+    %{use-linker-plugin: \
+    -plugin %(linker_plugin_file) \
+    -plugin-opt=%(lto_wrapper) \
+    -plugin-opt=%(lto_gcc) \
+    %{static|static-libgcc:-plugin-opt=-pass-through=%(lto_libgcc)}	\
+    %{static:-plugin-opt=-pass-through=-lc}	\
+    %{O*:-plugin-opt=-O%*} \
+    %{w:-plugin-opt=-w} \
+    %{f*:-plugin-opt=-f%*} \
+    } \
+    %{flto} %{fwhopr} %l " LINK_PIE_SPEC \
+   "%X %{o*} %{A} %{d} %{e*} %{m} %{N} %{n} %{r}\
     %{s} %{t} %{u*} %{x} %{z} %{Z} %{!A:%{!nostdlib:%{!nostartfiles:%S}}}\
     %{static:} %{L*} %(mfwrap) %(link_libgcc) %o\
     %{fopenmp|ftree-parallelize-loops=*:%:include(libgomp.spec)%(link_gomp)} %(mflib)\
@@ -815,6 +829,10 @@ static const char *endfile_spec = ENDFILE_SPEC;
 static const char *startfile_spec = STARTFILE_SPEC;
 static const char *switches_need_spaces = SWITCHES_NEED_SPACES;
 static const char *linker_name_spec = LINKER_NAME;
+static const char *linker_plugin_file_spec = "";
+static const char *lto_wrapper_spec = "";
+static const char *lto_gcc_spec = "";
+static const char *lto_libgcc_spec = "";
 static const char *link_command_spec = LINK_COMMAND_SPEC;
 static const char *link_libgcc_spec = LINK_LIBGCC_SPEC;
 static const char *startfile_prefix_spec = STARTFILE_PREFIX_SPEC;
@@ -891,11 +909,15 @@ static const char *asm_options =
 
 static const char *invoke_as =
 #ifdef AS_NEEDS_DASH_FOR_PIPED_INPUT
-"%{fcompare-debug=*:%:compare-debug-dump-opt()}\
- %{!S:-o %|.s |\n as %(asm_options) %|.s %A }";
+"%{!fwpa:\
+   %{fcompare-debug=*|fdump-final-insns=*:%:compare-debug-dump-opt()}\
+   %{!S:-o %|.s |\n as %(asm_options) %|.s %A }\
+  }";
 #else
-"%{fcompare-debug=*:%:compare-debug-dump-opt()}\
- %{!S:-o %|.s |\n as %(asm_options) %m.s %A }";
+"%{!fwpa:\
+   %{fcompare-debug=*|fdump-final-insns=*:%:compare-debug-dump-opt()}\
+   %{!S:-o %|.s |\n as %(asm_options) %m.s %A }\
+  }";
 #endif
 
 /* Some compilers have limits on line lengths, and the multilib_select
@@ -926,6 +948,7 @@ static const char *const multilib_defaults_raw[] = MULTILIB_DEFAULTS;
 #endif
 
 static const char *const driver_self_specs[] = {
+  "%{fdump-final-insns:-fdump-final-insns=.} %<fdump-final-insns",
   DRIVER_SELF_SPECS, GOMP_SELF_SPECS
 };
 
@@ -1652,6 +1675,10 @@ static struct spec_list static_specs[] =
   INIT_STATIC_SPEC ("multilib_exclusions",	&multilib_exclusions),
   INIT_STATIC_SPEC ("multilib_options",		&multilib_options),
   INIT_STATIC_SPEC ("linker",			&linker_name_spec),
+  INIT_STATIC_SPEC ("linker_plugin_file",	&linker_plugin_file_spec),
+  INIT_STATIC_SPEC ("lto_wrapper",		&lto_wrapper_spec),
+  INIT_STATIC_SPEC ("lto_gcc",			&lto_gcc_spec),
+  INIT_STATIC_SPEC ("lto_libgcc",		&lto_libgcc_spec),
   INIT_STATIC_SPEC ("link_libgcc",		&link_libgcc_spec),
   INIT_STATIC_SPEC ("md_exec_prefix",		&md_exec_prefix),
   INIT_STATIC_SPEC ("md_startfile_prefix",	&md_startfile_prefix),
@@ -3442,7 +3469,7 @@ add_linker_option (const char *option, int len)
   if (! linker_options)
     linker_options = XNEWVEC (char *, n_linker_options);
   else
-    linker_options = XRESIZEVEC (char *, linker_options, n_linker_options);  
+    linker_options = XRESIZEVEC (char *, linker_options, n_linker_options);
 
   linker_options [n_linker_options - 1] = save_string (option, len);
 }
@@ -4161,7 +4188,10 @@ process_command (int argc, const char **argv)
 		argv[i] = convert_filename (argv[i], ! have_c, 0);
 #endif
 	      /* Save the output name in case -save-temps=obj was used.  */
-	      save_temps_prefix = xstrdup ((p[1] == 0) ? argv[i + 1] : argv[i] + 1);
+	      if ((p[1] == 0) && argv[i + 1])
+		save_temps_prefix = xstrdup(argv[i + 1]);
+	      else
+		save_temps_prefix = xstrdup(argv[i] + 1);
 	      goto normal_switch;
 
 	    default:
@@ -4607,11 +4637,6 @@ set_collect_gcc_options (void)
       if ((switches[i].live_cond & SWITCH_IGNORE) != 0)
 	continue;
 
-      /* Don't use -fwhole-program when compiling the init and fini routines,
-	 since we'd wrongly assume that the routines aren't needed.  */
-      if (strcmp (switches[i].part1, "fwhole-program") == 0)
-	continue;
-
       obstack_grow (&collect_obstack, "'-", 2);
       q = switches[i].part1;
       while ((p = strchr (q, '\'')))
@@ -4684,6 +4709,13 @@ static int this_is_output_file;
    search dirs for it.  */
 static int this_is_library_file;
 
+/* Nonzero means %T has been seen; the next arg to be terminated
+   is the name of a linker script and we should try all of the
+   standard search dirs for it.  If it is found insert a --script
+   command line switch and then substitute the full path in place,
+   otherwise generate an error message.  */
+static int this_is_linker_script;
+
 /* Nonzero means that the input of this command is coming from a pipe.  */
 static int input_from_pipe;
 
@@ -4704,6 +4736,19 @@ end_going_arg (void)
       string = XOBFINISH (&obstack, const char *);
       if (this_is_library_file)
 	string = find_file (string);
+      if (this_is_linker_script)
+	{
+	  char * full_script_path = find_a_file (&startfile_prefixes, string, R_OK, true);
+
+	  if (full_script_path == NULL)
+	    {
+	      error (_("unable to locate default linker script '%s' in the library search paths"), string);
+	      /* Script was not found on search path.  */
+	      return;
+	    }
+	  store_arg ("--script", false, false);
+	  string = full_script_path;
+	}
       store_arg (string, delete_this_arg, this_is_output_file);
       if (this_is_output_file)
 	outfiles[input_file_number] = string;
@@ -4793,6 +4838,7 @@ do_spec_2 (const char *spec)
   delete_this_arg = 0;
   this_is_output_file = 0;
   this_is_library_file = 0;
+  this_is_linker_script = 0;
   input_from_pipe = 0;
   suffix_subst = NULL;
 
@@ -5080,6 +5126,7 @@ do_spec_1 (const char *spec, int inswitch, const char *soft_matched_part)
 	delete_this_arg = 0;
 	this_is_output_file = 0;
 	this_is_library_file = 0;
+	this_is_linker_script = 0;
 	input_from_pipe = 0;
 	break;
 
@@ -5099,6 +5146,7 @@ do_spec_1 (const char *spec, int inswitch, const char *soft_matched_part)
 	delete_this_arg = 0;
 	this_is_output_file = 0;
 	this_is_library_file = 0;
+	this_is_linker_script = 0;
 	break;
 
       case '%':
@@ -5546,6 +5594,10 @@ do_spec_1 (const char *spec, int inswitch, const char *soft_matched_part)
 	    this_is_library_file = 1;
 	    break;
 
+	  case 'T':
+	    this_is_linker_script = 1;
+	    break;
+
 	  case 'V':
 	    outfiles[input_file_number] = NULL;
 	    break;
@@ -5920,6 +5972,7 @@ eval_spec_function (const char *func, const char *args)
   int save_this_is_output_file;
   int save_this_is_library_file;
   int save_input_from_pipe;
+  int save_this_is_linker_script;
   const char *save_suffix_subst;
 
 
@@ -5936,6 +5989,7 @@ eval_spec_function (const char *func, const char *args)
   save_delete_this_arg = delete_this_arg;
   save_this_is_output_file = this_is_output_file;
   save_this_is_library_file = this_is_library_file;
+  save_this_is_linker_script = this_is_linker_script;
   save_input_from_pipe = input_from_pipe;
   save_suffix_subst = suffix_subst;
 
@@ -5961,6 +6015,7 @@ eval_spec_function (const char *func, const char *args)
   delete_this_arg = save_delete_this_arg;
   this_is_output_file = save_this_is_output_file;
   this_is_library_file = save_this_is_library_file;
+  this_is_linker_script = save_this_is_linker_script;
   input_from_pipe = save_input_from_pipe;
   suffix_subst = save_suffix_subst;
 
@@ -6205,7 +6260,7 @@ handle_braces (const char *p)
 	    {
 	      if ((a_is_suffix || a_is_spectype) && a_is_starred)
 		goto invalid;
-	      
+
 	      if (!a_is_starred)
 		disj_starred = false;
 
@@ -6219,7 +6274,7 @@ handle_braces (const char *p)
 		    a_matched = input_spec_matches (atom, end_atom);
 		  else
 		    a_matched = switch_matches (atom, end_atom, a_is_starred);
-		  
+
 		  if (a_matched != a_is_negated)
 		    {
 		      disj_matched = true;
@@ -6803,14 +6858,6 @@ main (int argc, char **argv)
     multilib_defaults = XOBFINISH (&multilib_obstack, const char *);
   }
 
-  /* Set up to remember the pathname of gcc and any options
-     needed for collect.  We use argv[0] instead of programname because
-     we need the complete pathname.  */
-  obstack_init (&collect_obstack);
-  obstack_grow (&collect_obstack, "COLLECT_GCC=", sizeof ("COLLECT_GCC=") - 1);
-  obstack_grow (&collect_obstack, argv[0], strlen (argv[0]) + 1);
-  xputenv (XOBFINISH (&collect_obstack, char *));
-
 #ifdef INIT_ENVIRONMENT
   /* Set up any other necessary machine specific environment variables.  */
   xputenv (INIT_ENVIRONMENT);
@@ -7023,6 +7070,27 @@ main (int argc, char **argv)
   /* Now that we have the switches and the specs, set
      the subdirectory based on the options.  */
   set_multilib_dir ();
+
+  /* Set up to remember the pathname of gcc and any options
+     needed for collect.  We use argv[0] instead of programname because
+     we need the complete pathname.  */
+  obstack_init (&collect_obstack);
+  obstack_grow (&collect_obstack, "COLLECT_GCC=", sizeof ("COLLECT_GCC=") - 1);
+  obstack_grow (&collect_obstack, argv[0], strlen (argv[0]) + 1);
+  xputenv (XOBFINISH (&collect_obstack, char *));
+
+  /* Set up to remember the pathname of the lto wrapper. */
+
+  lto_wrapper_spec = find_a_file (&exec_prefixes, "lto-wrapper", X_OK, false);
+  if (lto_wrapper_spec)
+    {
+      obstack_init (&collect_obstack);
+      obstack_grow (&collect_obstack, "COLLECT_LTO_WRAPPER=",
+		    sizeof ("COLLECT_LTO_WRAPPER=") - 1);
+      obstack_grow (&collect_obstack, lto_wrapper_spec,
+		    strlen (lto_wrapper_spec) + 1);
+      xputenv (XOBFINISH (&collect_obstack, char *));
+    }
 
   /* Warn about any switches that no pass was interested in.  */
 
@@ -7444,6 +7512,7 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
   if (num_linker_inputs > 0 && error_count == 0 && print_subprocess_help < 2)
     {
       int tmp = execution_count;
+      const char *use_linker_plugin = "use-linker-plugin";
 
       /* We'll use ld if we can't find collect2.  */
       if (! strcmp (linker_name_spec, "collect2"))
@@ -7452,6 +7521,23 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
 	  if (s == NULL)
 	    linker_name_spec = "ld";
 	}
+
+      if (switch_matches (use_linker_plugin,
+			  use_linker_plugin + strlen (use_linker_plugin), 0))
+	{
+	  linker_plugin_file_spec = find_a_file (&exec_prefixes,
+						 "liblto_plugin.so", X_OK,
+						 false);
+	  if (!linker_plugin_file_spec)
+	    fatal ("-use-linker-plugin, but liblto_plugin.so not found");
+
+	  lto_libgcc_spec = find_a_file (&startfile_prefixes, "libgcc.a",
+					 R_OK, true);
+	  if (!lto_libgcc_spec)
+	    fatal ("could not find libgcc.a");
+	}
+      lto_gcc_spec = argv[0];
+
       /* Rebuild the COMPILER_PATH and LIBRARY_PATH environment variables
 	 for collect.  */
       putenv_from_prefixes (&exec_prefixes, "COMPILER_PATH", false);
@@ -8672,6 +8758,33 @@ print_asm_header_spec_function (int arg ATTRIBUTE_UNUSED,
   return NULL;
 }
 
+/* Compute a timestamp to initialize flag_random_seed.  */
+
+static unsigned
+get_local_tick (void)
+{
+  unsigned ret = 0;
+
+  /* Get some more or less random data.  */
+#ifdef HAVE_GETTIMEOFDAY
+  {
+    struct timeval tv;
+
+    gettimeofday (&tv, NULL);
+    ret = tv.tv_sec * 1000 + tv.tv_usec / 1000;
+  }
+#else
+  {
+    time_t now = time (NULL);
+
+    if (now != (time_t)-1)
+      ret = (unsigned) now;
+  }
+#endif
+
+  return ret;
+}
+
 /* %:compare-debug-dump-opt spec function.  Save the last argument,
    expected to be the last -fdump-final-insns option, or generate a
    temporary.  */
@@ -8683,41 +8796,61 @@ compare_debug_dump_opt_spec_function (int arg,
   const char *ret;
   char *name;
   int which;
+  static char random_seed[HOST_BITS_PER_WIDE_INT / 4 + 3];
 
   if (arg != 0)
     fatal ("too many arguments to %%:compare-debug-dump-opt");
 
-  if (!compare_debug)
-    return NULL;
-
   do_spec_2 ("%{fdump-final-insns=*:%*}");
   do_spec_1 (" ", 0, NULL);
 
-  if (argbuf_index > 0)
+  if (argbuf_index > 0 && strcmp (argv[argbuf_index - 1], "."))
     {
+      if (!compare_debug)
+	return NULL;
+
       name = xstrdup (argv[argbuf_index - 1]);
       ret = NULL;
     }
   else
     {
-#define OPT "-fdump-final-insns="
-      ret = "-fdump-final-insns=%g.gkd";
+      const char *ext = NULL;
 
-      do_spec_2 (ret + sizeof (OPT) - 1);
+      if (argbuf_index > 0)
+	{
+	  do_spec_2 ("%{o*:%*}%{!o:%{!S:%b%O}%{S:%b.s}}");
+	  ext = ".gkd";
+	}
+      else if (!compare_debug)
+	return NULL;
+      else
+	do_spec_2 ("%g.gkd");
+
       do_spec_1 (" ", 0, NULL);
-#undef OPT
 
       gcc_assert (argbuf_index > 0);
 
-      name = xstrdup (argbuf[argbuf_index - 1]);
+      name = concat (argbuf[argbuf_index - 1], ext, NULL);
+
+      ret = concat ("-fdump-final-insns=", name, NULL);
     }
 
   which = compare_debug < 0;
   debug_check_temp_file[which] = name;
 
-#if 0
-  error ("compare-debug: [%i]=\"%s\", ret %s", which, name, ret);
-#endif
+  if (!which)
+    {
+      unsigned HOST_WIDE_INT value = get_local_tick () ^ getpid ();
+
+      sprintf (random_seed, HOST_WIDE_INT_PRINT_HEX, value);
+    }
+
+  if (*random_seed)
+    ret = concat ("%{!frandom-seed=*:-frandom-seed=", random_seed, "} ",
+		  ret, NULL);
+
+  if (which)
+    *random_seed = 0;
 
   return ret;
 }
@@ -8790,6 +8923,8 @@ compare_debug_auxbase_opt_spec_function (int arg,
   memcpy (name, OPT, sizeof (OPT) - 1);
   memcpy (name + sizeof (OPT) - 1, argv[0], len);
   name[sizeof (OPT) - 1 + len] = '\0';
+
+#undef OPT
 
   return name;
 }

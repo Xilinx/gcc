@@ -4435,7 +4435,7 @@ expand_assignment (tree to, tree from, bool nontemporal)
 /* Emits nontemporal store insn that moves FROM to TO.  Returns true if this
    succeeded, false otherwise.  */
 
-static bool
+bool
 emit_storent_insn (rtx to, rtx from)
 {
   enum machine_mode mode = GET_MODE (to), imode;
@@ -4485,7 +4485,6 @@ store_expr (tree exp, rtx target, int call_param_p, bool nontemporal)
 {
   rtx temp;
   rtx alt_rtl = NULL_RTX;
-  int dont_return_target = 0;
   location_t loc = EXPR_LOCATION (exp);
 
   if (VOID_TYPE_P (TREE_TYPE (exp)))
@@ -4646,19 +4645,6 @@ store_expr (tree exp, rtx target, int call_param_p, bool nontemporal)
 			       (call_param_p
 				? EXPAND_STACK_PARM : EXPAND_NORMAL),
 			       &alt_rtl);
-      /* Return TARGET if it's a specified hardware register.
-	 If TARGET is a volatile mem ref, either return TARGET
-	 or return a reg copied *from* TARGET; ANSI requires this.
-
-	 Otherwise, if TEMP is not TARGET, return TEMP
-	 if it is constant (for efficiency),
-	 or if we really want the correct value.  */
-      if (!(target && REG_P (target)
-	    && REGNO (target) < FIRST_PSEUDO_REGISTER)
-	  && !(MEM_P (target) && MEM_VOLATILE_P (target))
-	  && ! rtx_equal_p (temp, target)
-	  && CONSTANT_P (temp))
-	dont_return_target = 1;
     }
 
   /* If TEMP is a VOIDmode constant and the mode of the type of EXP is not
@@ -4707,15 +4693,7 @@ store_expr (tree exp, rtx target, int call_param_p, bool nontemporal)
 	  && GET_MODE (temp) != VOIDmode)
 	{
 	  int unsignedp = TYPE_UNSIGNED (TREE_TYPE (exp));
-	  if (dont_return_target)
-	    {
-	      /* In this case, we will return TEMP,
-		 so make sure it has the proper mode.
-		 But don't forget to store the value into TARGET.  */
-	      temp = convert_to_mode (GET_MODE (target), temp, unsignedp);
-	      emit_move_insn (target, temp);
-	    }
-	  else if (GET_MODE (target) == BLKmode
+	  if (GET_MODE (target) == BLKmode
 		   || GET_MODE (temp) == BLKmode)
 	    emit_block_move (target, temp, expr_size (exp),
 			     (call_param_p
@@ -7128,14 +7106,11 @@ expand_constructor (tree exp, rtx target, enum expand_modifier modifier,
    COMPOUND_EXPR whose second argument is such a VAR_DECL, and so on
    recursively.  */
 
-static rtx expand_expr_real_1 (tree, rtx, enum machine_mode,
-			       enum expand_modifier, rtx *);
-
 rtx
 expand_expr_real (tree exp, rtx target, enum machine_mode tmode,
 		  enum expand_modifier modifier, rtx *alt_rtl)
 {
-  int rn = -1;
+  int lp_nr = 0;
   rtx ret, last = NULL;
 
   /* Handle ERROR_MARK before anybody tries to access its type.  */
@@ -7148,10 +7123,8 @@ expand_expr_real (tree exp, rtx target, enum machine_mode tmode,
 
   if (flag_non_call_exceptions)
     {
-      rn = lookup_expr_eh_region (exp);
-
-      /* If rn < 0, then either (1) tree-ssa not used or (2) doesn't throw.  */
-      if (rn >= 0)
+      lp_nr = lookup_expr_eh_lp (exp);
+      if (lp_nr)
 	last = get_last_insn ();
     }
 
@@ -7184,7 +7157,7 @@ expand_expr_real (tree exp, rtx target, enum machine_mode tmode,
   /* If using non-call exceptions, mark all insns that may trap.
      expand_call() will mark CALL_INSNs before we get to this code,
      but it doesn't handle libcalls, and these may trap.  */
-  if (rn >= 0)
+  if (lp_nr)
     {
       rtx insn;
       for (insn = next_real_insn (last); insn;
@@ -7195,15 +7168,15 @@ expand_expr_real (tree exp, rtx target, enum machine_mode tmode,
 		 may_trap_p instruction may throw.  */
 	      && GET_CODE (PATTERN (insn)) != CLOBBER
 	      && GET_CODE (PATTERN (insn)) != USE
-	      && (CALL_P (insn) || may_trap_p (PATTERN (insn))))
-	    add_reg_note (insn, REG_EH_REGION, GEN_INT (rn));
+	      && insn_could_throw_p (insn))
+	    make_reg_eh_region_note (insn, 0, lp_nr);
 	}
     }
 
   return ret;
 }
 
-static rtx
+rtx
 expand_expr_real_2 (sepops ops, rtx target, enum machine_mode tmode,
 		    enum expand_modifier modifier)
 {
@@ -7264,6 +7237,7 @@ expand_expr_real_2 (sepops ops, rtx target, enum machine_mode tmode,
 
   switch (code)
     {
+    case NON_LVALUE_EXPR:
     case PAREN_EXPR:
     CASE_CONVERT:
       if (treeop0 == error_mark_node)
@@ -8251,7 +8225,7 @@ expand_expr_real_2 (sepops ops, rtx target, enum machine_mode tmode,
 }
 #undef REDUCE_BIT_FIELD
 
-static rtx
+rtx
 expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 		    enum expand_modifier modifier, rtx *alt_rtl)
 {
@@ -8611,12 +8585,6 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
         return ret;
       }
 
-    case GOTO_EXPR:
-      if (TREE_CODE (treeop0) == LABEL_DECL)
-	expand_goto (treeop0);
-      else
-	expand_computed_goto (treeop0);
-      return const0_rtx;
 
     case CONSTRUCTOR:
       /* If we don't need the result, just ensure we evaluate any
@@ -9505,13 +9473,6 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	return const0_rtx;
       }
 
-    case RETURN_EXPR:
-      if (!treeop0)
-	expand_null_return ();
-      else
-	expand_return (treeop0);
-      return const0_rtx;
-
     case ADDR_EXPR:
       return expand_expr_addr_expr (exp, target, tmode, modifier);
 
@@ -9523,9 +9484,13 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
       op0 = expand_normal (treeop0);
       return read_complex_part (op0, true);
 
-    case RESX_EXPR:
-      expand_resx_expr (exp);
-      return const0_rtx;
+    case RETURN_EXPR:
+    case LABEL_EXPR:
+    case GOTO_EXPR:
+    case SWITCH_EXPR:
+    case ASM_EXPR:
+      /* Expanded in cfgexpand.c.  */
+      gcc_unreachable ();
 
     case TRY_CATCH_EXPR:
     case CATCH_EXPR:
@@ -9552,28 +9517,10 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
       /* Lowered by gimplify.c.  */
       gcc_unreachable ();
 
-    case EXC_PTR_EXPR:
-      return get_exception_pointer ();
-
-    case FILTER_EXPR:
-      return get_exception_filter ();
-
     case FDESC_EXPR:
       /* Function descriptors are not valid except for as
 	 initialization constants, and should not be expanded.  */
       gcc_unreachable ();
-
-    case SWITCH_EXPR:
-      expand_case (exp);
-      return const0_rtx;
-
-    case LABEL_EXPR:
-      expand_label (treeop0);
-      return const0_rtx;
-
-    case ASM_EXPR:
-      expand_asm_expr (exp);
-      return const0_rtx;
 
     case WITH_SIZE_EXPR:
       /* WITH_SIZE_EXPR expands to its first argument.  The caller should
@@ -10259,4 +10206,52 @@ const_vector_from_tree (tree exp)
 
   return gen_rtx_CONST_VECTOR (mode, v);
 }
+
+
+/* Build a decl for a EH personality function named NAME. */
+
+tree
+build_personality_function (const char *name)
+{
+  tree decl, type;
+
+  type = build_function_type_list (integer_type_node, integer_type_node,
+				   long_long_unsigned_type_node,
+				   ptr_type_node, ptr_type_node, NULL_TREE);
+  decl = build_decl (UNKNOWN_LOCATION, FUNCTION_DECL,
+		     get_identifier (name), type);
+  DECL_ARTIFICIAL (decl) = 1;
+  DECL_EXTERNAL (decl) = 1;
+  TREE_PUBLIC (decl) = 1;
+
+  /* Zap the nonsensical SYMBOL_REF_DECL for this.  What we're left with
+     are the flags assigned by targetm.encode_section_info.  */
+  SET_SYMBOL_REF_DECL (XEXP (DECL_RTL (decl), 0), NULL);
+
+  return decl;
+}
+
+/* Extracts the personality function of DECL and returns the corresponding
+   libfunc.  */
+
+rtx
+get_personality_function (tree decl)
+{
+  tree personality = DECL_FUNCTION_PERSONALITY (decl);
+  enum eh_personality_kind pk;
+
+  pk = function_needs_eh_personality (DECL_STRUCT_FUNCTION (decl));
+  if (pk == eh_personality_none)
+    return NULL;
+
+  if (!personality
+      && pk == eh_personality_any)
+    personality = lang_hooks.eh_personality ();
+
+  if (pk == eh_personality_lang)
+    gcc_assert (personality != NULL_TREE);
+
+  return XEXP (DECL_RTL (personality), 0);
+}
+
 #include "gt-expr.h"

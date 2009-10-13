@@ -83,6 +83,12 @@
 #define ASM_CPU_POWER7_SPEC "-mpower4 -maltivec"
 #endif
 
+#ifdef HAVE_AS_DCI
+#define ASM_CPU_476_SPEC "-m476"
+#else
+#define ASM_CPU_476_SPEC "-mpower4"
+#endif
+
 /* Common ASM definitions used by ASM_SPEC among the various targets for
    handling -mcpu=xxx switches.  There is a parallel list in driver-rs6000.c to
    provide the default assembler options if the user uses -mcpu=native, so if
@@ -107,6 +113,7 @@
 %{mcpu=power6: %(asm_cpu_power6) -maltivec} \
 %{mcpu=power6x: %(asm_cpu_power6) -maltivec} \
 %{mcpu=power7: %(asm_cpu_power7)} \
+%{mcpu=a2: -ma2} \
 %{mcpu=powerpc: -mppc} \
 %{mcpu=rios: -mpwr} \
 %{mcpu=rios1: -mpwr} \
@@ -122,6 +129,8 @@
 %{mcpu=440fp: -m440} \
 %{mcpu=464: -m440} \
 %{mcpu=464fp: -m440} \
+%{mcpu=476: %(asm_cpu_476)} \
+%{mcpu=476fp: %(asm_cpu_476)} \
 %{mcpu=505: -mppc} \
 %{mcpu=601: -m601} \
 %{mcpu=602: -mppc} \
@@ -177,6 +186,7 @@
   { "asm_cpu_power5",		ASM_CPU_POWER5_SPEC },			\
   { "asm_cpu_power6",		ASM_CPU_POWER6_SPEC },			\
   { "asm_cpu_power7",		ASM_CPU_POWER7_SPEC },			\
+  { "asm_cpu_476",		ASM_CPU_476_SPEC },			\
   SUBTARGET_EXTRA_SPECS
 
 /* -mcpu=native handling only makes sense with compiler running on
@@ -317,6 +327,7 @@ enum processor_type
    PROCESSOR_PPC403,
    PROCESSOR_PPC405,
    PROCESSOR_PPC440,
+   PROCESSOR_PPC476,
    PROCESSOR_PPC601,
    PROCESSOR_PPC603,
    PROCESSOR_PPC604,
@@ -334,7 +345,8 @@ enum processor_type
    PROCESSOR_POWER5,
    PROCESSOR_POWER6,
    PROCESSOR_POWER7,
-   PROCESSOR_CELL
+   PROCESSOR_CELL,
+   PROCESSOR_PPCA2
 };
 
 /* FPU operations supported. 
@@ -743,14 +755,18 @@ extern unsigned rs6000_pointer_size;
 /* Make arrays of chars word-aligned for the same reasons.
    Align vectors to 128 bits.  Align SPE vectors and E500 v2 doubles to
    64 bits.  */
-#define DATA_ALIGNMENT(TYPE, ALIGN)		\
-  (TREE_CODE (TYPE) == VECTOR_TYPE ? ((TARGET_SPE_ABI \
-   || TARGET_PAIRED_FLOAT) ? 64 : 128)	\
-   : (TARGET_E500_DOUBLE			\
-      && TYPE_MODE (TYPE) == DFmode) ? 64 \
-   : TREE_CODE (TYPE) == ARRAY_TYPE		\
-   && TYPE_MODE (TREE_TYPE (TYPE)) == QImode	\
-   && (ALIGN) < BITS_PER_WORD ? BITS_PER_WORD : (ALIGN))
+#define DATA_ALIGNMENT(TYPE, ALIGN)					\
+  (TREE_CODE (TYPE) == VECTOR_TYPE					\
+   ? (((TARGET_SPE && SPE_VECTOR_MODE (TYPE_MODE (TYPE)))		\
+       || (TARGET_PAIRED_FLOAT && PAIRED_VECTOR_MODE (TYPE_MODE (TYPE)))) \
+      ? 64 : 128)							\
+   : ((TARGET_E500_DOUBLE						\
+       && TREE_CODE (TYPE) == REAL_TYPE					\
+       && TYPE_MODE (TYPE) == DFmode)					\
+      ? 64								\
+      : (TREE_CODE (TYPE) == ARRAY_TYPE					\
+	 && TYPE_MODE (TREE_TYPE (TYPE)) == QImode			\
+	 && (ALIGN) < BITS_PER_WORD) ? BITS_PER_WORD : (ALIGN)))
 
 /* Nonzero if move instructions will actually fail to work
    when given unaligned data.  */
@@ -1514,13 +1530,6 @@ extern enum rs6000_abi rs6000_current_abi;	/* available for use by subtarget */
 
 #define RETURN_POPS_ARGS(FUNDECL,FUNTYPE,SIZE) 0
 
-/* Define how to find the value returned by a function.
-   VALTYPE is the data type of the value (as a tree).
-   If the precise function being called is known, FUNC is its FUNCTION_DECL;
-   otherwise, FUNC is 0.  */
-
-#define FUNCTION_VALUE(VALTYPE, FUNC) rs6000_function_value ((VALTYPE), (FUNC))
-
 /* Define how to find the value returned by a library function
    assuming the value has mode MODE.  */
 
@@ -1723,18 +1732,9 @@ typedef struct rs6000_args
        && (REGNO) == 2))
 
 
-/* TRAMPOLINE_TEMPLATE deleted */
-
 /* Length in units of the trampoline for entering a nested function.  */
 
 #define TRAMPOLINE_SIZE rs6000_trampoline_size ()
-
-/* Emit RTL insns to initialize the variable parts of a trampoline.
-   FNADDR is an RTX for the address of the function's pure code.
-   CXT is an RTX for the static chain value for the function.  */
-
-#define INITIALIZE_TRAMPOLINE(ADDR, FNADDR, CXT)		\
-  rs6000_initialize_trampoline (ADDR, FNADDR, CXT)
 
 /* Definitions for __builtin_return_address and __builtin_frame_address.
    __builtin_return_address (0) should give link register (65), enable
@@ -3171,18 +3171,12 @@ enum rs6000_builtins
   RS6000_BUILTIN_BSWAP_HI,
 
   /* VSX builtins.  */
-  VSX_BUILTIN_LXSDUX,
   VSX_BUILTIN_LXSDX,
-  VSX_BUILTIN_LXVD2UX,
   VSX_BUILTIN_LXVD2X,
   VSX_BUILTIN_LXVDSX,
-  VSX_BUILTIN_LXVW4UX,
   VSX_BUILTIN_LXVW4X,
-  VSX_BUILTIN_STXSDUX,
   VSX_BUILTIN_STXSDX,
-  VSX_BUILTIN_STXVD2UX,
   VSX_BUILTIN_STXVD2X,
-  VSX_BUILTIN_STXVW4UX,
   VSX_BUILTIN_STXVW4X,
   VSX_BUILTIN_XSABSDP,
   VSX_BUILTIN_XSADDDP,

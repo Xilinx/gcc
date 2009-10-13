@@ -2677,6 +2677,10 @@ add_implicitly_declared_members (tree t,
       CLASSTYPE_LAZY_COPY_CTOR (t) = 1;
     }
 
+  /* Currently only lambdas get a lazy move ctor.  */
+  if (LAMBDA_TYPE_P (t))
+    CLASSTYPE_LAZY_MOVE_CTOR (t) = 1;
+
   /* If there is no assignment operator, one will be created if and
      when it is needed.  For now, just record whether or not the type
      of the parameter to the assignment operator will be a const or
@@ -4449,6 +4453,20 @@ check_bases_and_members (tree t)
 				   cant_have_const_ctor,
 				   no_const_asn_ref);
 
+  if (LAMBDA_TYPE_P (t))
+    {
+      /* "The closure type associated with a lambda-expression has a deleted
+	 default constructor and a deleted copy assignment operator."  */
+      TYPE_NEEDS_CONSTRUCTING (t) = 1;
+      TYPE_HAS_DEFAULT_CONSTRUCTOR (t) = 0;
+      CLASSTYPE_LAZY_DEFAULT_CTOR (t) = 0;
+      TYPE_HAS_ASSIGN_REF (t) = 0;
+      CLASSTYPE_LAZY_ASSIGNMENT_OP (t) = 0;
+
+      /* "This class type is not an aggregate."  */
+      CLASSTYPE_NON_AGGREGATE (t) = 1;
+    }
+
   /* Create the in-charge and not-in-charge variants of constructors
      and destructors.  */
   clone_constructors_and_destructors (t);
@@ -5846,6 +5864,8 @@ currently_open_class (tree t)
   if (!CLASS_TYPE_P (t))
     return false;
 
+  t = TYPE_MAIN_VARIANT (t);
+
   /* We start looking from 1 because entry 0 is from global scope,
      and has no type.  */
   for (i = current_class_depth; i > 0; --i)
@@ -6610,7 +6630,8 @@ maybe_note_name_used_in_class (tree name, tree decl)
 
   /* If we're not defining a class, there's nothing to do.  */
   if (!(innermost_scope_kind() == sk_class
-	&& TYPE_BEING_DEFINED (current_class_type)))
+	&& TYPE_BEING_DEFINED (current_class_type)
+	&& !LAMBDA_TYPE_P (current_class_type)))
     return;
 
   /* If there's already a binding for this NAME, then we don't have

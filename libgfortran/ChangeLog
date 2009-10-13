@@ -1,3 +1,124 @@
+2009-10-12  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/41683
+	* io/format.c (parse_format_list): Allow a repeat specifier immediately
+	after a P specifier.
+	
+2009-10-11  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/38439
+	* io/format.c (parse_format_list): Correct logic for FMT_F reading vs
+	writing. Code clean-up.
+
+2009-10-11  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/38439
+	* io/format.c (parse_format_list): Add check for tokens not allowed
+	after P specifier. Fix comments.  Remove un-needed code. Fix the
+	default exponent list. Correct pointer assignment error.
+
+2009-10-05  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/35862
+	* write_float.def (outout_float): Fix handling of special case where no
+	digits after the decimal point and values less than 1.0. Adjust index
+	into digits string. (WRITE_FLOAT): Remove special case code from macro.
+
+2009-09-28  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/35862
+	* io.h (gfc_unit): Add round_status.
+	(format_token): Add enumerators for rounding format specifiers.
+	* transfer.c (round_opt): New options table.
+	(formatted_transfer_scalar_read): Add set round_status for each rounding
+	format token. (formatted_transfer_scalar_write): Likewise.
+	* format.c (format_lex): Tokenize the rounding format specifiers.
+	(parse_format_list): Parse the rounding format specifiers.
+	* write_float.def (outout_float): Modify rounding code to use new
+	variable rchar to set the appropriate rounding. Fix some whitespace.
+	* unit.c (get_internal_unit): Initialize rounding mode for internal
+	units. (init_units): Likewise.
+
+2009-09-19  Iain Sandoe  <iain.sandoe@sandoe-acoustics.co.uk>
+
+	* configure.ac: Check for GFORTRAN_C99_1.1 funcs in OS libm.
+        * configure: Regenerate.
+        * config.h.in: Ditto.
+
+2009-09-18  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/41328
+	* io/transfer.c (read_sf): Set at_eof flag on short read if any
+	characters were successfully read so that EOF condition with no EOR
+	marker succeeds.
+
+2009-09-12  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/41328
+	* io/transfer.c (read_sf): Adjust fbuf position and do proper
+	fbuf reads to traverse CR, CR-LF, and LF style line ends.
+
+2009-09-12  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/41219
+	* io/write.c (write_a_char4): Use correct type for crlf constant.
+
+2009-09-11  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* Makefile.am (libgfortranbegin_la_LINK): New.
+	* Makefile.in: Regenerate.
+
+2009-09-09  Paolo Bonzini  <bonzini@gnu.org>
+
+	* configure: Regenerate.
+
+2009-09-08  Paolo Bonzini  <bonzini@gnu.org>
+
+	* configure: Regenerate.
+
+2009-09-07  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/41192
+	* io/list_read.c (eat_line): Enable eat_line to function on
+	internal units.
+
+	PR libgfortran/41219
+	* io/list_read.c (nml_read_obj): Replace GFC_DTYPE_UNKNOWN with
+	BT_NULL to get rid of warning.
+	
+2009-09-04  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/41219
+	* intrinsics/getlog.c: Define _POSIX for MINGW32.
+
+2009-09-03  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/41219
+	* intrinsics/iso_c_binding.c (c_f_pointer_u0): Move variable
+	declaration out of the loop.
+
+2009-08-30  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	* m4/pack.m4 (pack_'rtype_code`): Use count_0 for counting true
+	values in a logical array.  Mark bounds checking tests as
+	unlikely.
+	* intrinsics/pack_generic.c (pack_internal): Likewise.
+	* runtime/bounds.c (count_0):  Fix off-by-one error in detecting
+	empty arrays.
+	* generated/pack_c4.c: Regenerated.
+	* generated/pack_c8.c: Regenerated.
+	* generated/pack_c10.c: Regenerated.
+	* generated/pack_c16.c: Regenerated.
+	* generated/pack_i1.c: Regenerated.
+	* generated/pack_i16.c: Regenerated.
+	* generated/pack_i2.c: Regenerated.
+	* generated/pack_i4.c: Regenerated.
+	* generated/pack_i8.c: Regenerated.
+	* generated/pack_r4.c: Regenerated.
+	* generated/pack_r8.c: Regenerated.
+	* generated/pack_r10.c: Regenerated.
+	* generated/pack_r16.c: Regenerated.
+
 2009-08-25  Thomas Koenig  <tkoenig@gcc.gnu.org>
 
 	PR libfortran/34670

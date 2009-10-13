@@ -414,6 +414,14 @@ extern void *calloc (size_t, size_t);
 extern void *realloc (void *, size_t);
 #endif
 
+#ifdef HAVE_STDINT_H
+#include <stdint.h>
+#endif
+
+#ifdef HAVE_INTTYPES_H
+#include <inttypes.h>
+#endif
+
 /* If the system doesn't provide strsignal, we get it defined in
    libiberty but no declaration is supplied.  */
 #if !defined (HAVE_STRSIGNAL) \
@@ -699,7 +707,8 @@ extern void fancy_abort (const char *, int, const char *) ATTRIBUTE_NORETURN;
         VECTOR_MODE_SUPPORTED_P TARGET_SUPPORTS_HIDDEN 			\
 	FUNCTION_ARG_PARTIAL_NREGS ASM_OUTPUT_DWARF_DTPREL		\
 	ALLOCATE_INITIAL_VALUE LEGITIMIZE_ADDRESS FRAME_POINTER_REQUIRED \
-	CAN_ELIMINATE
+	CAN_ELIMINATE TRAMPOLINE_TEMPLATE INITIALIZE_TRAMPOLINE		\
+	TRAMPOLINE_ADJUST_ADDRESS STATIC_CHAIN STATIC_CHAIN_INCOMING
 
 /* Other obsolete target macros, or macros that used to be in target
    headers and were not used, and may be obsolete or may never have

@@ -764,6 +764,7 @@ rewrite_reciprocal (gimple_stmt_iterator *bsi)
   gimple stmt, stmt1, stmt2;
   tree var, name, lhs, type;
   tree real_one;
+  gimple_stmt_iterator gsi;
 
   stmt = gsi_stmt (*bsi);
   lhs = gimple_assign_lhs (stmt);
@@ -798,8 +799,9 @@ rewrite_reciprocal (gimple_stmt_iterator *bsi)
   /* Replace division stmt with reciprocal and multiply stmts.
      The multiply stmt is not invariant, so update iterator
      and avoid rescanning.  */
-  gsi_replace (bsi, stmt1, true);
-  gsi_insert_after (bsi, stmt2, GSI_NEW_STMT);
+  gsi = *bsi;
+  gsi_insert_before (bsi, stmt1, GSI_NEW_STMT);
+  gsi_replace (&gsi, stmt2, true);
 
   /* Continue processing with invariant reciprocal statement.  */
   return stmt1;
@@ -858,6 +860,8 @@ rewrite_bittest (gimple_stmt_iterator *bsi)
   if (outermost_invariant_loop (b, loop_containing_stmt (stmt1)) != NULL
       && outermost_invariant_loop (a, loop_containing_stmt (stmt1)) == NULL)
     {
+      gimple_stmt_iterator rsi;
+
       /* 1 << B */
       var = create_tmp_var (TREE_TYPE (a), "shifttmp");
       add_referenced_var (var);
@@ -878,8 +882,14 @@ rewrite_bittest (gimple_stmt_iterator *bsi)
       SET_USE (use, name);
       gimple_cond_set_rhs (use_stmt, build_int_cst_type (TREE_TYPE (name), 0));
 
-      gsi_insert_before (bsi, stmt1, GSI_SAME_STMT);
-      gsi_replace (bsi, stmt2, true);
+      /* Don't use gsi_replace here, none of the new assignments sets
+	 the variable originally set in stmt.  Move bsi to stmt1, and
+	 then remove the original stmt, so that we get a chance to
+	 retain debug info for it.  */
+      rsi = *bsi;
+      gsi_insert_before (bsi, stmt1, GSI_NEW_STMT);
+      gsi_insert_before (&rsi, stmt2, GSI_SAME_STMT);
+      gsi_remove (&rsi, true);
 
       return stmt1;
     }

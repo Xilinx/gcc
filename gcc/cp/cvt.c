@@ -956,6 +956,7 @@ convert_to_void (tree expr, const char *implicit, tsubst_flags_t complain)
 
     default:;
     }
+  expr = resolve_nondeduced_context (expr);
   {
     tree probe = expr;
 
@@ -1287,7 +1288,7 @@ type_promotes_to (tree type)
 
   /* bool always promotes to int (not unsigned), even if it's the same
      size.  */
-  if (type == boolean_type_node)
+  if (TREE_CODE (type) == BOOLEAN_TYPE)
     type = integer_type_node;
 
   /* Normally convert enums to int, but convert wide enums to something

@@ -91,6 +91,9 @@ struct lang_hooks_for_types
      e.g. C++ template implicit specializations.  */
   bool (*generic_p) (const_tree);
 
+  /* Returns the TREE_VEC of elements of a given generic argument pack.  */
+  tree (*get_argument_pack_elems) (const_tree);
+
   /* Given a type, apply default promotions to unnamed function
      arguments and return the new type.  Return the same type if no
      change.  Required by any language that supports variadic
@@ -165,6 +168,17 @@ struct lang_hooks_for_decls
   /* Returns true if DECL is explicit member function.  */
   bool (*function_decl_explicit_p) (tree);
 
+  /* Returns True if the parameter is a generic parameter decl
+     of a generic type, e.g a template template parameter for the C++ FE.  */
+  bool (*generic_generic_parameter_decl_p) (const_tree);
+
+  /* Determine if a function parameter got expanded from a
+     function parameter pack.  */
+  bool (*function_parm_expanded_from_pack_p) (tree, tree);
+
+  /* Returns the generic declaration of a generic function instantiations.  */
+  tree (*get_generic_function_decl) (const_tree);
+
   /* Returns true when we should warn for an unused global DECL.
      We will already have checked that it has static binding.  */
   bool (*warn_unused_global) (const_tree);
@@ -217,6 +231,23 @@ struct lang_hooks_for_decls
   void (*omp_finish_clause) (tree clause);
 };
 
+/* Language hooks related to LTO serialization.  */
+
+struct lang_hooks_for_lto
+{
+  /* Begin a new LTO section named NAME.  */
+  void (*begin_section) (const char *name);
+
+  /* Write DATA of length LEN to the currently open LTO section.  BLOCK is a
+     pointer to the dynamically allocated memory containing DATA.  The
+     append_data function is responsible for freeing it when it is no longer
+     needed.  */
+  void (*append_data) (const void *data, size_t len, void *block);
+
+  /* End the previously begun LTO section.  */
+  void (*end_section) (void);
+};
+
 /* Language-specific hooks.  See langhooks-def.h for defaults.  */
 
 struct lang_hooks
@@ -227,6 +258,9 @@ struct lang_hooks
   /* sizeof (struct lang_identifier), so make_node () creates
      identifier nodes long enough for the language-specific slots.  */
   size_t identifier_size;
+
+  /* Remove any parts of the tree that are used only by the FE. */
+  void (*free_lang_data) (tree);
 
   /* Determines the size of any language-specific tcc_constant or
      tcc_exceptional nodes.  Since it is called from make_node, the
@@ -291,11 +325,6 @@ struct lang_hooks
      compilation.  Default hook is does nothing.  */
   void (*finish_incomplete_decl) (tree);
 
-  /* Mark EXP saying that we need to be able to take the address of
-     it; it should not be allocated in a register.  Return true if
-     successful.  */
-  bool (*mark_addressable) (tree);
-
   /* Replace the DECL_LANG_SPECIFIC data, which may be NULL, of the
      DECL_NODE with a newly GC-allocated copy.  */
   void (*dup_lang_specific_decl) (tree);
@@ -346,12 +375,6 @@ struct lang_hooks
   void (*print_error_function) (struct diagnostic_context *, const char *,
 				struct diagnostic_info *);
 
-  /* Called from expr_size to calculate the size of the value of an
-     expression in a language-dependent way.  Returns a tree for the size
-     in bytes.  A frontend can call lhd_expr_size to get the default
-     semantics in cases that it doesn't want to handle specially.  */
-  tree (*expr_size) (const_tree);
-
   /* Convert a character from the host's to the target's character
      set.  The character should be in what C calls the "basic source
      character set" (roughly, the set of characters defined by plain
@@ -380,6 +403,19 @@ struct lang_hooks
 
   struct lang_hooks_for_types types;
 
+  struct lang_hooks_for_lto lto;
+
+  /* Returns the generic parameters of an instantiation of
+     a generic type or decl, e.g. C++ template instantiation.  */
+  tree (*get_innermost_generic_parms) (const_tree);
+
+  /* Returns the TREE_VEC of arguments of an instantiation
+     of a generic type of decl, e.g. C++ template instantiation.  */
+  tree (*get_innermost_generic_args) (const_tree);
+
+  /* Determine if a tree is a function parameter pack.  */
+  bool (*function_parameter_pack_p) (const_tree);
+
   /* Perform language-specific gimplification on the argument.  Returns an
      enum gimplify_status, though we can't see that type here.  */
   int (*gimplify_expr) (tree *, gimple_seq *, gimple_seq *);
@@ -407,12 +443,22 @@ struct lang_hooks
      if in the process TREE_CONSTANT or TREE_SIDE_EFFECTS need updating.  */
   tree (*expr_to_decl) (tree expr, bool *tc, bool *se);
 
+  /* The EH personality function decl.  */
+  tree (*eh_personality) (void);
+
+  /* Map a type to a runtime object to match type.  */
+  tree (*eh_runtime_type) (tree);
+
+  /* True if this language uses __cxa_end_cleanup when the ARM EABI
+     is enabled.  */
+  bool eh_use_cxa_end_cleanup;
+
   /* Whenever you add entries here, make sure you adjust langhooks-def.h
      and langhooks.c accordingly.  */
 };
 
 /* Each front end provides its own.  */
-extern const struct lang_hooks lang_hooks;
+extern struct lang_hooks lang_hooks;
 extern tree add_builtin_function (const char *name, tree type,
 				  int function_code, enum built_in_class cl,
 				  const char *library_name,

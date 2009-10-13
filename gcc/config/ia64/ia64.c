@@ -302,6 +302,7 @@ static enum machine_mode ia64_promote_function_mode (const_tree,
 						     int *,
 						     const_tree,
 						     int);
+static void ia64_trampoline_init (rtx, tree, rtx);
 
 /* Table of valid machine attributes.  */
 static const struct attribute_spec ia64_attribute_table[] =
@@ -531,6 +532,9 @@ static const struct attribute_spec ia64_attribute_table[] =
 
 #undef TARGET_CAN_ELIMINATE
 #define TARGET_CAN_ELIMINATE ia64_can_eliminate
+
+#undef TARGET_TRAMPOLINE_INIT
+#define TARGET_TRAMPOLINE_INIT ia64_trampoline_init
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 
@@ -3945,10 +3949,35 @@ ia64_dbx_register_number (int regno)
     return regno;
 }
 
-void
-ia64_initialize_trampoline (rtx addr, rtx fnaddr, rtx static_chain)
+/* Implement TARGET_TRAMPOLINE_INIT.
+
+   The trampoline should set the static chain pointer to value placed
+   into the trampoline and should branch to the specified routine.
+   To make the normal indirect-subroutine calling convention work,
+   the trampoline must look like a function descriptor; the first
+   word being the target address and the second being the target's
+   global pointer.
+
+   We abuse the concept of a global pointer by arranging for it
+   to point to the data we need to load.  The complete trampoline
+   has the following form:
+
+		+-------------------+ \
+	TRAMP:	| __ia64_trampoline | |
+		+-------------------+  > fake function descriptor
+		| TRAMP+16          | |
+		+-------------------+ /
+		| target descriptor |
+		+-------------------+
+		| static link	    |
+		+-------------------+
+*/
+
+static void
+ia64_trampoline_init (rtx m_tramp, tree fndecl, rtx static_chain)
 {
-  rtx addr_reg, tramp, eight = GEN_INT (8);
+  rtx fnaddr = XEXP (DECL_RTL (fndecl), 0);
+  rtx addr, addr_reg, tramp, eight = GEN_INT (8);
 
   /* The Intel assembler requires that the global __ia64_trampoline symbol
      be declared explicitly */
@@ -3965,13 +3994,13 @@ ia64_initialize_trampoline (rtx addr, rtx fnaddr, rtx static_chain)
     }
 
   /* Make sure addresses are Pmode even if we are in ILP32 mode. */
-  addr = convert_memory_address (Pmode, addr);
+  addr = convert_memory_address (Pmode, XEXP (m_tramp, 0));
   fnaddr = convert_memory_address (Pmode, fnaddr);
   static_chain = convert_memory_address (Pmode, static_chain);
 
   /* Load up our iterator.  */
-  addr_reg = gen_reg_rtx (Pmode);
-  emit_move_insn (addr_reg, addr);
+  addr_reg = copy_to_reg (addr);
+  m_tramp = adjust_automodify_address (m_tramp, Pmode, addr_reg, 0);
 
   /* The first two words are the fake descriptor:
      __ia64_trampoline, ADDR+16.  */
@@ -3989,19 +4018,21 @@ ia64_initialize_trampoline (rtx addr, rtx fnaddr, rtx static_chain)
       emit_move_insn (reg, gen_rtx_MEM (Pmode, reg));
       tramp = reg;
    }
-  emit_move_insn (gen_rtx_MEM (Pmode, addr_reg), tramp);
+  emit_move_insn (m_tramp, tramp);
   emit_insn (gen_adddi3 (addr_reg, addr_reg, eight));
+  m_tramp = adjust_automodify_address (m_tramp, VOIDmode, NULL, 8);
 
-  emit_move_insn (gen_rtx_MEM (Pmode, addr_reg),
-		  copy_to_reg (plus_constant (addr, 16)));
+  emit_move_insn (m_tramp, force_reg (Pmode, plus_constant (addr, 16)));
   emit_insn (gen_adddi3 (addr_reg, addr_reg, eight));
+  m_tramp = adjust_automodify_address (m_tramp, VOIDmode, NULL, 8);
 
   /* The third word is the target descriptor.  */
-  emit_move_insn (gen_rtx_MEM (Pmode, addr_reg), fnaddr);
+  emit_move_insn (m_tramp, force_reg (Pmode, fnaddr));
   emit_insn (gen_adddi3 (addr_reg, addr_reg, eight));
+  m_tramp = adjust_automodify_address (m_tramp, VOIDmode, NULL, 8);
 
   /* The fourth word is the static chain.  */
-  emit_move_insn (gen_rtx_MEM (Pmode, addr_reg), static_chain);
+  emit_move_insn (m_tramp, static_chain);
 }
 
 /* Do any needed setup for a variadic function.  CUM has not been updated
@@ -5521,6 +5552,8 @@ ia64_safe_itanium_class (rtx insn)
 {
   if (recog_memoized (insn) >= 0)
     return get_attr_itanium_class (insn);
+  else if (DEBUG_INSN_P (insn))
+    return ITANIUM_CLASS_IGNORE;
   else
     return ITANIUM_CLASS_UNKNOWN;
 }
@@ -6277,6 +6310,7 @@ group_barrier_needed (rtx insn)
   switch (GET_CODE (insn))
     {
     case NOTE:
+    case DEBUG_INSN:
       break;
 
     case BARRIER:
@@ -6434,7 +6468,7 @@ emit_insn_group_barriers (FILE *dump)
 	  init_insn_group_barriers ();
 	  last_label = 0;
 	}
-      else if (INSN_P (insn))
+      else if (NONDEBUG_INSN_P (insn))
 	{
 	  insns_since_last_label = 1;
 
@@ -6482,7 +6516,7 @@ emit_all_insn_group_barriers (FILE *dump ATTRIBUTE_UNUSED)
 
 	  init_insn_group_barriers ();
 	}
-      else if (INSN_P (insn))
+      else if (NONDEBUG_INSN_P (insn))
 	{
 	  if (recog_memoized (insn) == CODE_FOR_insn_group_barrier)
 	    init_insn_group_barriers ();
@@ -6975,6 +7009,9 @@ ia64_variable_issue (FILE *dump ATTRIBUTE_UNUSED,
 	pending_data_specs--;
     }
 
+  if (DEBUG_INSN_P (insn))
+    return 1;
+
   last_scheduled_insn = insn;
   memcpy (prev_cycle_state, curr_state, dfa_state_size);
   if (reload_completed)
@@ -7057,6 +7094,10 @@ ia64_dfa_new_cycle (FILE *dump, int verbose, rtx insn, int last_clock,
   int setup_clocks_p = FALSE;
 
   gcc_assert (insn && INSN_P (insn));
+
+  if (DEBUG_INSN_P (insn))
+    return 0;
+
   /* When a group barrier is needed for insn, last_scheduled_insn
      should be set.  */
   gcc_assert (!(reload_completed && safe_group_barrier_needed (insn))
@@ -9043,7 +9084,7 @@ final_emit_insn_group_barriers (FILE *dump ATTRIBUTE_UNUSED)
 	  need_barrier_p = 0;
 	  prev_insn = NULL_RTX;
 	}
-      else if (INSN_P (insn))
+      else if (NONDEBUG_INSN_P (insn))
 	{
 	  if (recog_memoized (insn) == CODE_FOR_insn_group_barrier)
 	    {
@@ -9605,15 +9646,18 @@ ia64_emit_deleted_label_after_insn (rtx insn)
 /* Define the CFA after INSN with the steady-state definition.  */
 
 static void
-ia64_dwarf2out_def_steady_cfa (rtx insn)
+ia64_dwarf2out_def_steady_cfa (rtx insn, bool frame)
 {
   rtx fp = frame_pointer_needed
     ? hard_frame_pointer_rtx
     : stack_pointer_rtx;
+  const char *label = ia64_emit_deleted_label_after_insn (insn);
+
+  if (!frame)
+    return;
 
   dwarf2out_def_cfa
-    (ia64_emit_deleted_label_after_insn (insn),
-     REGNO (fp),
+    (label, REGNO (fp),
      ia64_initial_elimination_offset
      (REGNO (arg_pointer_rtx), REGNO (fp))
      + ARG_POINTER_CFA_OFFSET (current_function_decl));
@@ -9706,8 +9750,7 @@ process_set (FILE *asm_out_file, rtx pat, rtx insn, bool unwind, bool frame)
 	      if (unwind)
 		fprintf (asm_out_file, "\t.fframe "HOST_WIDE_INT_PRINT_DEC"\n",
 			 -INTVAL (op1));
-	      if (frame)
-		ia64_dwarf2out_def_steady_cfa (insn);
+	      ia64_dwarf2out_def_steady_cfa (insn, frame);
 	    }
 	  else
 	    process_epilogue (asm_out_file, insn, unwind, frame);
@@ -9765,8 +9808,7 @@ process_set (FILE *asm_out_file, rtx pat, rtx insn, bool unwind, bool frame)
 	  if (unwind)
 	    fprintf (asm_out_file, "\t.vframe r%d\n",
 		     ia64_dbx_register_number (dest_regno));
-	  if (frame)
-	    ia64_dwarf2out_def_steady_cfa (insn);
+	  ia64_dwarf2out_def_steady_cfa (insn, frame);
 	  return 1;
 
 	default:
@@ -9911,8 +9953,8 @@ process_for_unwind_directive (FILE *asm_out_file, rtx insn)
 		  fprintf (asm_out_file, "\t.copy_state %d\n",
 			   cfun->machine->state_num);
 		}
-	      if (IA64_CHANGE_CFA_IN_EPILOGUE && frame)
-		ia64_dwarf2out_def_steady_cfa (insn);
+	      if (IA64_CHANGE_CFA_IN_EPILOGUE)
+		ia64_dwarf2out_def_steady_cfa (insn, frame);
 	      need_copy_state = false;
 	    }
 	}

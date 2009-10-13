@@ -311,6 +311,7 @@ AC_CHECK_SIZEOF(int)
 AC_CHECK_SIZEOF(long)
 AC_CHECK_TYPES([long long], [AC_CHECK_SIZEOF(long long)])
 AC_CHECK_TYPES([__int64], [AC_CHECK_SIZEOF(__int64)])
+GCC_STDINT_TYPES
 
 # ---------------------
 # Warnings and checking
@@ -2300,6 +2301,17 @@ AC_DEFINE_UNQUOTED(HAVE_GAS_CFI_PERSONALITY_DIRECTIVE,
     then echo 1; else echo 0; fi`],
   [Define 0/1 if your assembler supports .cfi_personality.])
 
+gcc_GAS_CHECK_FEATURE([cfi sections directive],
+  gcc_cv_as_cfi_sections_directive, ,,
+[	.text
+	.cfi_sections .debug_frame, .eh_frame
+	.cfi_startproc
+	.cfi_endproc])
+AC_DEFINE_UNQUOTED(HAVE_GAS_CFI_SECTIONS_DIRECTIVE,
+  [`if test $gcc_cv_as_cfi_sections_directive = yes;
+    then echo 1; else echo 0; fi`],
+  [Define 0/1 if your assembler supports .cfi_sections.])
+
 # GAS versions up to and including 2.11.0 may mis-optimize
 # .eh_frame data.
 gcc_GAS_CHECK_FEATURE(eh_frame optimization, gcc_cv_as_eh_frame,
@@ -3035,6 +3047,12 @@ foo:	nop
       [AC_DEFINE(HAVE_AS_IX86_SAHF, 1,
         [Define if your assembler supports the sahf mnemonic.])])
 
+    gcc_GAS_CHECK_FEATURE([swap suffix],
+      gcc_cv_as_ix86_swap,,,
+      [movl.s %esp, %ebp],,
+      [AC_DEFINE(HAVE_AS_IX86_SWAP, 1,
+        [Define if your assembler supports the swap suffix.])])
+
     gcc_GAS_CHECK_FEATURE([different section symbol subtraction],
       gcc_cv_as_ix86_diff_sect_delta,,,
       [.section .rodata
@@ -3237,6 +3255,21 @@ LCF0:
       [AC_DEFINE(HAVE_AS_LWSYNC, 1,
 	  [Define if your assembler supports LWSYNC instructions.])])
 
+    case $target in
+      *-*-aix*) conftest_s='	.machine "476"
+	.csect .text[[PR]]
+	dci 0';;
+      *) conftest_s='	.machine "476"
+	.text
+	dci 0';;
+    esac
+
+    gcc_GAS_CHECK_FEATURE([data cache invalidate support],
+      gcc_cv_as_powerpc_dci, [9,99,0], -a32,
+      [$conftest_s],,
+      [AC_DEFINE(HAVE_AS_DCI, 1,
+	  [Define if your assembler supports the DCI/ICI instructions.])])
+
     gcc_GAS_CHECK_FEATURE([.gnu_attribute support],
       gcc_cv_as_powerpc_gnu_attribute, [2,18,0],,
       [.gnu_attribute 4,1],,
@@ -3278,6 +3311,87 @@ x:
 	.dtprelword x+0x8000],,
       [AC_DEFINE(HAVE_AS_DTPRELWORD, 1,
 	  [Define if your assembler supports .dtprelword.])])
+
+    AC_MSG_CHECKING(assembler and linker for explicit JALR relocation)
+    gcc_cv_as_ld_jalr_reloc=no
+    if test $gcc_cv_as_mips_explicit_relocs = yes; then
+      if test $in_tree_ld = yes ; then
+        if test "$gcc_cv_gld_major_version" -eq 2 -a "$gcc_cv_gld_minor_version" -ge 20 -o "$gcc_cv_gld_major_version" -gt 2 \
+           && test $in_tree_ld_is_elf = yes; then
+          gcc_cv_as_ld_jalr_reloc=yes
+        fi
+      elif test x$gcc_cv_as != x -a x$gcc_cv_ld != x -a x$gcc_cv_objdump != x; then
+        echo '	.ent x' > conftest.s
+        echo 'x:	ld $2,%got_disp(y)($3)' >> conftest.s
+        echo '	ld $25,%call16(y)($28)' >> conftest.s
+        echo '	.reloc	1f,R_MIPS_JALR,y' >> conftest.s
+        echo '1:	jalr $25' >> conftest.s
+        echo '	.reloc	1f,R_MIPS_JALR,x' >> conftest.s
+        echo '1:	jalr $25' >> conftest.s
+        echo '	.end x' >> conftest.s
+        if $gcc_cv_as -o conftest.o conftest.s >/dev/null 2>&AS_MESSAGE_LOG_FD \
+           && $gcc_cv_ld -shared -o conftest.so conftest.o >/dev/null 2>&AS_MESSAGE_LOG_FD; then
+	  if $gcc_cv_objdump -d conftest.so | grep -q jalr \
+	     && $gcc_cv_objdump -d conftest.so | grep -q "bal.*<x>"; then
+            gcc_cv_as_ld_jalr_reloc=yes
+	  fi
+        fi
+        rm -f conftest.*
+      fi
+    fi
+    if test $gcc_cv_as_ld_jalr_reloc = yes; then
+      if test x$target_cpu_default = x; then
+        target_cpu_default=MASK_RELAX_PIC_CALLS
+      else
+        target_cpu_default="($target_cpu_default)|MASK_RELAX_PIC_CALLS"
+      fi
+    fi
+    AC_MSG_RESULT($gcc_cv_as_ld_jalr_reloc)
+
+    AC_CACHE_CHECK([linker for .eh_frame personality relaxation],
+      [gcc_cv_ld_mips_personality_relaxation],
+      [gcc_cv_ld_mips_personality_relaxation=no
+       if test $in_tree_ld = yes ; then
+	 if test "$gcc_cv_gld_major_version" -eq 2 \
+		 -a "$gcc_cv_gld_minor_version" -ge 21 \
+		 -o "$gcc_cv_gld_major_version" -gt 2; then
+	   gcc_cv_ld_mips_personality_relaxation=yes
+	 fi
+       elif test x$gcc_cv_as != x \
+       	    	 -a x$gcc_cv_ld != x \
+		 -a x$gcc_cv_readelf != x ; then
+	 cat > conftest.s <<EOF
+	.cfi_startproc
+	.cfi_personality 0x80,indirect_ptr
+	.ent test
+test:
+	nop
+	.end test
+	.cfi_endproc
+
+	.section .data,"aw",@progbits
+indirect_ptr:
+	.dc.a personality
+EOF
+	 if $gcc_cv_as -KPIC -o conftest.o conftest.s > /dev/null 2>&1 \
+	    && $gcc_cv_ld -o conftest conftest.o -shared > /dev/null 2>&1; then
+	   if $gcc_cv_readelf -d conftest 2>&1 \
+	      | grep TEXTREL > /dev/null 2>&1; then
+	     :
+	   elif $gcc_cv_readelf --relocs conftest 2>&1 \
+	        | grep 'R_MIPS_REL32 *$' > /dev/null 2>&1; then
+	     :
+	   else
+	     gcc_cv_ld_mips_personality_relaxation=yes
+	   fi
+	 fi
+       fi
+       rm -f conftest.s conftest.o conftest])
+    if test x$gcc_cv_ld_mips_personality_relaxation = xyes; then
+	    AC_DEFINE(HAVE_LD_PERSONALITY_RELAXATION, 1,
+      [Define if your linker can relax absolute .eh_frame personality
+pointers into PC-relative form.])
+    fi
     ;;
 esac
 
@@ -3390,7 +3504,7 @@ Valid choices are 'yes' and 'no'.]) ;;
   esac],
  [gcc_GAS_CHECK_FEATURE([gnu_unique_object], gcc_cv_as_gnu_unique_object,
    [elf,2,19,52],,
-   [.type foo, @gnu_unique_object],
+   [.type foo, @gnu_unique_object],,
 # Also check for ld.so support, i.e. glibc 2.11 or higher.
    [if test x$host = x$build -a x$host = x$target &&
        glibcver=`ldd --version 2>/dev/null`; then
@@ -3398,10 +3512,9 @@ Valid choices are 'yes' and 'no'.]) ;;
       glibcminor=`expr "$glibcver" : "ldd (GNU libc) [[0-9]]*\.\([[0-9]]*\)"`
       glibcnum=`expr $glibcmajor \* 1000 + $glibcminor`
       if test "$glibcnum" -ge 2011 ; then
-        gcc_cv_as_gnu_unique_object=yes
+        enable_gnu_unique_object=yes
       fi
-    fi],
-   [enable_gnu_unique_object=yes])])
+    fi])])
 if test x$enable_gnu_unique_object = xyes; then
   AC_DEFINE(HAVE_GAS_GNU_UNIQUE_OBJECT, 1,
    [Define if your assembler supports @gnu_unique_object.])
@@ -3720,7 +3833,7 @@ AC_CACHE_CHECK(__stack_chk_fail in target C library,
 	 # simply assert that glibc does provide this, which is true for all
 	 # realistically usable GNU/Hurd configurations.
 	 gcc_cv_libc_provides_ssp=yes;;
-       *-*-darwin*)
+       *-*-darwin* | *-*-freebsd*)
 	 AC_CHECK_FUNC(__stack_chk_fail,[gcc_cv_libc_provides_ssp=yes],
            [echo "no __stack_chk_fail on this target"])
         ;;
@@ -3949,6 +4062,14 @@ changequote([,])dnl
 	all_compilers="$all_compilers $compilers"
 	all_outputs="$all_outputs $outputs"
 	all_gtfiles="$all_gtfiles [[$subdir]] $gtfiles"
+        case ",$enable_languages," in
+        	*,lto,*)
+		    AC_DEFINE(ENABLE_LTO, 1, [Define to enable LTO support.])
+		    enable_lto=yes
+		    AC_SUBST(enable_lto)
+		    ;;
+		*) ;;
+	esac
 done
 
 # Pick up gtfiles for c
@@ -4121,6 +4242,12 @@ if test "x${CLOOGLIBS}" != "x" ; then
    AC_DEFINE(HAVE_cloog, 1, [Define if cloog is in use.])
 fi
 
+AC_ARG_VAR(LIBELFLIBS,[How to link libelf])
+AC_ARG_VAR(LIBELFINC,[How to find libelf include files])
+if test "x${LIBELFLIBS}" != "x" ; then 
+   AC_DEFINE(HAVE_libelf, 1, [Define if libelf is in use.])
+fi
+
 # Check for plugin support
 AC_ARG_ENABLE(plugin,
 [  --enable-plugin         enable plugin support],
@@ -4147,14 +4274,8 @@ if test x"$enable_plugin" = x"yes"; then
   fi
 
   # Check -ldl
-  LDFLAGS="$LDFLAGS -ldl"
-  AC_MSG_CHECKING([for -ldl])
-  AC_TRY_LINK(
-    [#include <dlfcn.h>],
-    [volatile int f = 0; if (f) dlopen ("dummy", 0);],
-    [AC_MSG_RESULT([yes]); have_dl=yes],
-    [AC_MSG_RESULT([no])])
-  if test x"$have_dl" = x"yes"; then
+  AC_SEARCH_LIBS([dlopen], [dl])
+  if test x"$ac_cv_search_dlopen" = x"-ldl"; then
     pluginlibs="$pluginlibs -ldl"
   fi
 
@@ -4165,7 +4286,7 @@ if test x"$enable_plugin" = x"yes"; then
     [extern int X;],[return X == 0;],
     [AC_MSG_RESULT([yes]); have_pic_shared=yes],
     [AC_MSG_RESULT([no]); have_pic_shared=no])
-  if test x"$have_pic_shared" != x"yes"; then
+  if test x"$have_pic_shared" != x"yes" -o x"$ac_cv_search_dlopen" = x"no"; then
     pluginlibs=
     enable_plugin=no
   fi

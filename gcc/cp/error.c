@@ -84,7 +84,7 @@ static void dump_template_bindings (tree, tree, VEC(tree,gc) *);
 static void dump_scope (tree, int);
 static void dump_template_parms (tree, int, int);
 
-static int count_non_default_template_args (tree, tree);
+static int count_non_default_template_args (tree, tree, int);
 
 static const char *function_category (tree);
 static void maybe_print_instantiation_context (diagnostic_context *);
@@ -163,13 +163,20 @@ dump_template_argument (tree arg, int flags)
    match the (optional) default template parameter in PARAMS  */
 
 static int
-count_non_default_template_args (tree args, tree params)
+count_non_default_template_args (tree args, tree params, int flags)
 {
   tree inner_args = INNERMOST_TEMPLATE_ARGS (args);
   int n = TREE_VEC_LENGTH (inner_args);
   int last;
 
-  if (params == NULL_TREE || !flag_pretty_templates)
+  if (params == NULL_TREE
+      /* We use this flag when generating debug information.  We don't
+	 want to expand templates at this point, for this may generate
+	 new decls, which gets decl counts out of sync, which may in
+	 turn cause codegen differences between compilations with and
+	 without -g.  */
+      || (flags & TFF_NO_OMIT_DEFAULT_TEMPLATE_ARGUMENTS) != 0
+      || !flag_pretty_templates)
     return n;
 
   for (last = n - 1; last >= 0; --last)
@@ -201,7 +208,7 @@ count_non_default_template_args (tree args, tree params)
 static void
 dump_template_argument_list (tree args, tree parms, int flags)
 {
-  int n = count_non_default_template_args (args, parms);
+  int n = count_non_default_template_args (args, parms, flags);
   int need_comma = 0;
   int i;
 
@@ -589,6 +596,15 @@ dump_aggr_type (tree t, int flags)
 	pp_string (cxx_pp, M_("<anonymous>"));
       else
 	pp_printf (pp_base (cxx_pp), M_("<anonymous %s>"), variety);
+    }
+  else if (LAMBDANAME_P (name))
+    {
+      /* A lambda's "type" is essentially its signature.  */
+      pp_string (cxx_pp, M_("<lambda"));
+      if (lambda_function (t))
+	dump_parameters (FUNCTION_FIRST_USER_PARMTYPE (lambda_function (t)),
+			 flags);
+      pp_character(cxx_pp, '>');
     }
   else
     pp_cxx_tree_identifier (cxx_pp, name);
@@ -1152,7 +1168,8 @@ dump_template_decl (tree t, int flags)
 }
 
 /* find_typenames looks through the type of the function template T
-   and returns a VEC containing any typedefs or TYPENAME_TYPEs it finds.  */
+   and returns a VEC containing any typedefs, decltypes or TYPENAME_TYPEs
+   it finds.  */
 
 struct find_typenames_t
 {
@@ -1169,7 +1186,8 @@ find_typenames_r (tree *tp, int *walk_subtrees ATTRIBUTE_UNUSED, void *data)
   if (TYPE_P (*tp) && is_typedef_decl (TYPE_NAME (*tp)))
     /* Add the type of the typedef without any additional cv-quals.  */
     mv = TREE_TYPE (TYPE_NAME (*tp));
-  else if (TREE_CODE (*tp) == TYPENAME_TYPE)
+  else if (TREE_CODE (*tp) == TYPENAME_TYPE
+	   || TREE_CODE (*tp) == DECLTYPE_TYPE)
     /* Add the typename without any cv-qualifiers.  */
     mv = TYPE_MAIN_VARIANT (*tp);
 
@@ -1214,6 +1232,14 @@ dump_function_decl (tree t, int flags)
   int do_outer_scope = ! (flags & TFF_UNQUALIFIED_NAME);
   tree exceptions;
   VEC(tree,gc) *typenames = NULL;
+
+  if (LAMBDA_FUNCTION_P (t))
+    {
+      /* A lambda's signature is essentially its "type", so defer.  */
+      gcc_assert (LAMBDA_TYPE_P (DECL_CONTEXT (t)));
+      dump_type (DECL_CONTEXT (t), flags);
+      return;
+    }
 
   flags &= ~TFF_UNQUALIFIED_NAME;
   if (TREE_CODE (t) == TEMPLATE_DECL)
@@ -1392,7 +1418,12 @@ dump_function_name (tree t, int flags)
   /* Don't let the user see __comp_ctor et al.  */
   if (DECL_CONSTRUCTOR_P (t)
       || DECL_DESTRUCTOR_P (t))
-    name = constructor_name (DECL_CONTEXT (t));
+    {
+      if (LAMBDA_TYPE_P (DECL_CONTEXT (t)))
+	name = get_identifier ("<lambda>");
+      else
+	name = constructor_name (DECL_CONTEXT (t));
+    }
 
   if (DECL_DESTRUCTOR_P (t))
     {
@@ -1448,7 +1479,7 @@ dump_template_parms (tree info, int primary, int flags)
 		     ? DECL_INNERMOST_TEMPLATE_PARMS (TI_TEMPLATE (info))
 		     : NULL_TREE);
 
-      len = count_non_default_template_args (args, params);
+      len = count_non_default_template_args (args, params, flags);
 
       args = INNERMOST_TEMPLATE_ARGS (args);
       for (ix = 0; ix != len; ix++)
@@ -2667,6 +2698,8 @@ function_category (tree fn)
 	return _("In constructor %qs");
       else if (DECL_DESTRUCTOR_P (fn))
 	return _("In destructor %qs");
+      else if (LAMBDA_FUNCTION_P (fn))
+	return _("In lambda function");
       else
 	return _("In member function %qs");
     }

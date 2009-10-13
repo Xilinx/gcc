@@ -1,3 +1,23 @@
+2009-10-03  H.J. Lu  <hongjiu.lu@intel.com>
+	    Richard Guenther  <rguenther@suse.de>
+
+	PR lto/39216
+	* gcc_update: Adjust file timestamps for lto-plugin.
+
+2009-09-10  Iain Sandoe  <iain.sandoe@sandoe-acoustics.co.uk>
+
+	PR bootstrap/41245
+	* compare-debug: Handle stripping of dwarf debug sections from darwin
+	mach-o objects.
+
+2009-09-04  Alexandre Oliva  <aoliva@redhat.com>
+
+	* compare-debug: Grep for blank before dash to avoid grep -e.
+
+2009-09-01  Alexandre Oliva  <aoliva@redhat.com>
+
+	* compare-debug: Look for .gkd files and compare them.
+
 2009-08-27  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
 
 	PR testsuite/41166

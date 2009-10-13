@@ -343,6 +343,7 @@ c_common_handle_option (size_t scode, const char *arg, int value)
     case OPT_MD:
     case OPT_MMD:
       cpp_opts->deps.style = (code == OPT_MD ? DEPS_SYSTEM: DEPS_USER);
+      cpp_opts->deps.need_preprocessor_output = true;
       deps_file = arg;
       break;
 
@@ -396,8 +397,6 @@ c_common_handle_option (size_t scode, const char *arg, int value)
 	warn_strict_overflow = value;
       warn_array_bounds = value;
       warn_volatile_register_var = value;
-      if (warn_jump_misses_init == -1)
-	warn_jump_misses_init = value;
 
       /* Only warn about unknown pragmas that are not in system
 	 headers.  */
@@ -449,7 +448,7 @@ c_common_handle_option (size_t scode, const char *arg, int value)
       if (warn_enum_compare == -1 && value)
 	warn_enum_compare = value;
       /* Because C++ always warns about a goto which misses an
-	 initialization, -Wc++-compat turns on -Wgoto-misses-init.  */
+	 initialization, -Wc++-compat turns on -Wjump-misses-init.  */
       if (warn_jump_misses_init == -1 && value)
 	warn_jump_misses_init = value;
       cpp_opts->warn_cxx_operator_names = value;
@@ -1033,6 +1032,29 @@ c_common_post_options (const char **pfilename)
      language-specific options.  */
   C_COMMON_OVERRIDE_OPTIONS;
 #endif
+
+  if (flag_lto || flag_whopr)
+    {
+#ifdef ENABLE_LTO
+      flag_generate_lto = 1;
+
+      /* When generating IL, do not operate in whole-program mode.
+	 Otherwise, symbols will be privatized too early, causing link
+	 errors later.  */
+      flag_whole_program = 0;
+
+      /* FIXME lto.  Disable var-tracking until debug information
+	 is properly handled in free_lang_data.  */
+      flag_var_tracking = 0;
+#else
+      error ("LTO support has not been enabled in this configuration");
+#endif
+    }
+
+  /* Reconcile -flto and -fwhopr.  Set additional flags as appropriate and
+     check option consistency.  */
+  if (flag_lto && flag_whopr)
+    error ("-flto and -fwhopr are mutually exclusive");
 
   /* Excess precision other than "fast" requires front-end
      support.  */

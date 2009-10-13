@@ -1257,7 +1257,6 @@ check_for_out_of_scope_variable (tree decl)
 static bool keep_next_level_flag;
 
 static int binding_depth = 0;
-static int is_class_level = 0;
 
 static void
 indent (int depth)
@@ -1339,7 +1338,6 @@ push_binding_level (struct cp_binding_level *scope)
       scope->binding_depth = binding_depth;
       indent (binding_depth);
       cxx_scope_debug (scope, input_line, "push");
-      is_class_level = 0;
       binding_depth++;
     }
 }
@@ -1427,12 +1425,6 @@ leave_scope (void)
     {
       indent (--binding_depth);
       cxx_scope_debug (scope, input_line, "leave");
-      if (is_class_level != (scope == class_binding_level))
-	{
-	  indent (binding_depth);
-	  verbatim ("XXX is_class_level != (current_scope == class_scope)\n");
-	}
-      is_class_level = 0;
     }
 
   /* Move one nesting level up.  */
@@ -1482,7 +1474,6 @@ resume_scope (struct cp_binding_level* b)
       b->binding_depth = binding_depth;
       indent (binding_depth);
       cxx_scope_debug (b, input_line, "resume");
-      is_class_level = 0;
       binding_depth++;
     }
 }
@@ -1840,6 +1831,23 @@ make_anon_name (void)
   char buf[32];
 
   sprintf (buf, ANON_AGGRNAME_FORMAT, anon_cnt++);
+  return get_identifier (buf);
+}
+
+/* This code is practically identical to that for creating
+   anonymous names, but is just used for lambdas instead.  This is necessary
+   because anonymous names are recognized and cannot be passed to template
+   functions.  */
+/* FIXME is this still necessary? */
+
+static GTY(()) int lambda_cnt = 0;
+
+tree
+make_lambda_name (void)
+{
+  char buf[32];
+
+  sprintf (buf, LAMBDANAME_FORMAT, lambda_cnt++);
   return get_identifier (buf);
 }
 
@@ -2562,9 +2570,6 @@ pop_inner_scope (tree outer, tree inner)
 void
 pushlevel_class (void)
 {
-  if (ENABLE_SCOPE_CHECKING)
-    is_class_level = 1;
-
   class_binding_level = begin_scope (sk_class, current_class_type);
 }
 
@@ -2602,9 +2607,7 @@ poplevel_class (void)
 
   /* Now, pop out of the binding level which we created up in the
      `pushlevel_class' routine.  */
-  if (ENABLE_SCOPE_CHECKING)
-    is_class_level = 1;
-
+  gcc_assert (current_binding_level == level);
   leave_scope ();
   timevar_pop (TV_NAME_LOOKUP);
 }
@@ -2650,6 +2653,11 @@ pushdecl_class_level (tree x)
 {
   tree name;
   bool is_valid = true;
+
+  /* Do nothing if we're adding to an outer lambda closure type,
+     outer_binding will add it later if it's needed.  */
+  if (current_class_type != class_binding_level->this_entity)
+    return true;
 
   timevar_push (TV_NAME_LOOKUP);
   /* Get the name of X.  */
@@ -2765,6 +2773,9 @@ push_class_level_binding (tree name, tree x)
 
   /* Check for invalid member names.  */
   gcc_assert (TYPE_BEING_DEFINED (current_class_type));
+  /* Check that we're pushing into the right binding level.  */
+  gcc_assert (current_class_type == class_binding_level->this_entity);
+
   /* We could have been passed a tree list if this is an ambiguous
      declaration. If so, pull the declaration out because
      check_template_shadow will not handle a TREE_LIST.  */
@@ -3745,6 +3756,10 @@ qualify_lookup (tree val, int flags)
       && (TREE_CODE (val) == TYPE_DECL || TREE_CODE (val) == TEMPLATE_DECL))
     return true;
   if (flags & (LOOKUP_PREFER_NAMESPACES | LOOKUP_PREFER_TYPES))
+    return false;
+  /* In unevaluated context, look past normal capture fields.  */
+  if (cp_unevaluated_operand && TREE_CODE (val) == FIELD_DECL
+      && DECL_NORMAL_CAPTURE_P (val))
     return false;
   return true;
 }
@@ -5125,7 +5140,8 @@ pushtag (tree name, tree type, tag_scope scope)
 	{
 	  tree cs = current_scope ();
 
-	  if (scope == ts_current)
+	  if (scope == ts_current
+	      || (cs && TREE_CODE (cs) == FUNCTION_DECL))
 	    context = cs;
 	  else if (cs != NULL_TREE && TYPE_P (cs))
 	    /* When declaring a friend class of a local class, we want

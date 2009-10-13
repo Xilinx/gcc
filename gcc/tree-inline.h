@@ -22,7 +22,7 @@ along with GCC; see the file COPYING3.  If not see
 #ifndef GCC_TREE_INLINE_H
 #define GCC_TREE_INLINE_H
 
-#include "pointer-set.h"
+#include "gimple.h"
 
 struct cgraph_edge;
 
@@ -77,12 +77,12 @@ typedef struct copy_body_data
      is not.  */
   gimple gimple_call;
 
-  /* Exception region the inlined call lie in.  */
-  int eh_region;
+  /* Exception landing pad the inlined call lies in.  */
+  int eh_lp_nr;
 
-  /* Take region number in the function being copied, add this value and
-     get eh region number of the duplicate in the function we inline into.  */
-  int eh_region_offset;
+  /* Maps region and landing pad structures from the function being copied
+     to duplicates created within the function we inline into.  */
+  struct pointer_map_t *eh_map;
 
   /* We use the same mechanism do all sorts of different things.  Rather
      than enumerating the different cases, we categorize the behavior
@@ -117,6 +117,15 @@ typedef struct copy_body_data
 
   /* Entry basic block to currently copied body.  */
   struct basic_block_def *entry_bb;
+
+  /* Debug statements that need processing.  */
+  VEC(gimple,heap) *debug_stmts;
+
+  /* A map from local declarations in the inlined function to
+     equivalents in the function into which it is being inlined, where
+     the originals have been mapped to a value rather than to a
+     variable.  */
+  struct pointer_map_t *debug_map;
 } copy_body_data;
 
 /* Weights of constructions for estimate_num_insns.  */

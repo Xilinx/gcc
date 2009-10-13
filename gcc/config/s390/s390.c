@@ -205,13 +205,13 @@ struct processor_costs z10_cost =
   COSTS_N_INSNS (10),    /* MSGFR */
   COSTS_N_INSNS (10),    /* MSGR  */
   COSTS_N_INSNS (10),    /* MSR   */
-  COSTS_N_INSNS (10),    /* multiplication in DFmode */
+  COSTS_N_INSNS (1) ,    /* multiplication in DFmode */
   COSTS_N_INSNS (50),    /* MXBR */
   COSTS_N_INSNS (120),   /* SQXBR */
   COSTS_N_INSNS (52),    /* SQDBR */
   COSTS_N_INSNS (38),    /* SQEBR */
-  COSTS_N_INSNS (10),    /* MADBR */
-  COSTS_N_INSNS (10),    /* MAEBR */
+  COSTS_N_INSNS (1),     /* MADBR */
+  COSTS_N_INSNS (1),     /* MAEBR */
   COSTS_N_INSNS (111),   /* DXBR */
   COSTS_N_INSNS (39),    /* DDBR */
   COSTS_N_INSNS (32),    /* DEBR */
@@ -366,7 +366,7 @@ static bool
 s390_scalar_mode_supported_p (enum machine_mode mode)
 {
   if (DECIMAL_FLOAT_MODE_P (mode))
-    return true;
+    return default_decimal_float_supported_p ();
   else
     return default_scalar_mode_supported_p (mode);
 }
@@ -5297,6 +5297,7 @@ s390_agen_dep_p (rtx dep_insn, rtx insn)
    A STD instruction should be scheduled earlier,
    in order to use the bypass.  */
 
+
 static int
 s390_adjust_priority (rtx insn ATTRIBUTE_UNUSED, int priority)
 {
@@ -5304,7 +5305,8 @@ s390_adjust_priority (rtx insn ATTRIBUTE_UNUSED, int priority)
     return priority;
 
   if (s390_tune != PROCESSOR_2084_Z990
-      && s390_tune != PROCESSOR_2094_Z9_109)
+      && s390_tune != PROCESSOR_2094_Z9_109
+      && s390_tune != PROCESSOR_2097_Z10)
     return priority;
 
   switch (s390_safe_attr_type (insn))
@@ -5322,6 +5324,7 @@ s390_adjust_priority (rtx insn ATTRIBUTE_UNUSED, int priority)
     }
   return priority;
 }
+
 
 /* The number of instructions that can be issued per cycle.  */
 
@@ -8860,8 +8863,8 @@ s390_expand_builtin (tree exp, rtx target, rtx subtarget ATTRIBUTE_UNUSED,
    On S/390, we use gpr 1 internally in the trampoline code;
    gpr 0 is used to hold the static chain.  */
 
-void
-s390_trampoline_template (FILE *file)
+static void
+s390_asm_trampoline_template (FILE *file)
 {
   rtx op[2];
   op[0] = gen_rtx_REG (Pmode, 0);
@@ -8887,15 +8890,19 @@ s390_trampoline_template (FILE *file)
    FNADDR is an RTX for the address of the function's pure code.
    CXT is an RTX for the static chain value for the function.  */
 
-void
-s390_initialize_trampoline (rtx addr, rtx fnaddr, rtx cxt)
+static void
+s390_trampoline_init (rtx m_tramp, tree fndecl, rtx cxt)
 {
-  emit_move_insn (gen_rtx_MEM (Pmode,
-		   memory_address (Pmode,
-		   plus_constant (addr, (TARGET_64BIT ? 16 : 8)))), cxt);
-  emit_move_insn (gen_rtx_MEM (Pmode,
-		   memory_address (Pmode,
-		   plus_constant (addr, (TARGET_64BIT ? 24 : 12)))), fnaddr);
+  rtx fnaddr = XEXP (DECL_RTL (fndecl), 0);
+  rtx mem;
+  
+  emit_block_move (m_tramp, assemble_trampoline_template (),
+		   GEN_INT (2*UNITS_PER_WORD), BLOCK_OP_NORMAL);
+
+  mem = adjust_address (m_tramp, Pmode, 2*UNITS_PER_WORD);
+  emit_move_insn (mem, cxt);
+  mem = adjust_address (m_tramp, Pmode, 3*UNITS_PER_WORD);
+  emit_move_insn (mem, fnaddr);
 }
 
 /* Output assembler code to FILE to increment profiler label # LABELNO
@@ -8996,6 +9003,7 @@ s390_encode_section_info (tree decl, rtx rtl, int first)
       && GET_CODE (XEXP (rtl, 0)) == SYMBOL_REF
       && TREE_CONSTANT_POOL_ADDRESS_P (XEXP (rtl, 0))
       && (MEM_ALIGN (rtl) == 0
+	  || GET_MODE_BITSIZE (GET_MODE (rtl)) == 0
 	  || MEM_ALIGN (rtl) < GET_MODE_BITSIZE (GET_MODE (rtl))))
     SYMBOL_REF_FLAGS (XEXP (rtl, 0)) |= SYMBOL_FLAG_NOT_NATURALLY_ALIGNED;
 }
@@ -10148,6 +10156,11 @@ s390_reorg (void)
 
 #undef TARGET_CAN_ELIMINATE
 #define TARGET_CAN_ELIMINATE s390_can_eliminate
+
+#undef TARGET_ASM_TRAMPOLINE_TEMPLATE
+#define TARGET_ASM_TRAMPOLINE_TEMPLATE s390_asm_trampoline_template
+#undef TARGET_TRAMPOLINE_INIT
+#define TARGET_TRAMPOLINE_INIT s390_trampoline_init
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 

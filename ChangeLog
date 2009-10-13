@@ -1,3 +1,200 @@
+2009-10-13  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure.ac: Add 'lto' to enable_languages, not
+	new_enable_languages, and only if not already present.
+	* configure: Regenerate.
+
+2009-10-10  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* README: Refer to the various COPYING* files instead of just
+	COPYING.
+	Refer to http://gcc.gnu.org/bugs/ for bug reporting instructions.
+
+2009-10-07 Rafael Avila de Espindola  <espindola@google.com>
+
+	* MAINTAINERS: Change my email address. Change plugi-in to plugin.
+	
+2009-10-07  Richard Guenther  <rguenther@suse.de>
+
+	* MAINTAINERS (LTO): List Diego Novillo, Rafael Avila de Espindola,
+	and Richard Guenther as reviewers.
+	(LTO plugin): List Rafael Avila de Espindola and Cary Coutant
+	as reviewers.
+
+2009-10-07  Hariharan Sandanagobalane  <hariharan@picochip.com>
+
+	* config.sub: Update from upstream sources.
+
+2009-10-06  Ian Lance Taylor  <iant@google.com>
+
+	* Makefile.def: check-gold depends upon all-gas.
+	* Makefile.in: Rebuild.
+
+2009-10-05  Phil Muldoon  <pmuldoon@redhat.com>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2009-10-03  2009-02-05  Rafael Avila de Espindola  <espindola@google.com>
+
+	* Makefile.def: all-lto-plugin depends on all-libiberty.
+	set bootstrap=true for lto-plugin.
+	Add lto-plugin.
+	* Makefile.in: Regenerate.
+	* configure.ac (host_libs): Add lto-plugin.
+	* configure: Regenerate.
+
+2009-10-03  Diego Novillo  <dnovillo@google.com>
+
+	* Makefile.tpl (HOST_EXPORTS): Add LIBELFLIBS and LIBELFINC.
+	(HOST_LIBELFLIBS): Define.
+	(HOST_LIBELFINC): Define.
+	* Makefile.in: Regenerate.
+	* configure.ac: Add --enable-lto.
+	Add --with-libelf, --with-libelf-include and --with-libelf-lib.
+	If --enable-lto is used, add 'lto' to new_enable_languages.
+	If --enable-lto is used and gold is enabled, add
+	lto-plugin to configdirs.
+	* configure: Regenerate.
+
+2009-10-03  Simon Baldwin  <simonb@google.com>
+
+	* configure.ac: If --with-system-zlib, suppress local zlib and
+	pass --with-system-zlib to subdir configure scripts.
+	* configure: Regenerate.
+
+2009-10-01  Loren J. Rittle <ljrittle@acm.org>
+	    Paolo Bonzini  <bonzini@gnu.org>
+
+	* Makefile.tpl (POSTSTAGE1_HOST_EXPORTS): Use $$s rather than
+	$(srcdir).
+	* Makefile.in: Rebuilt.
+
+2009-09-26  Gary Funck <gary@intrepid.com>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2009-09-26  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* configure.ac: Update minimum MPC version to 0.7.
+	* configure: Regenerate.
+
+2009-09-25  Nick Clifton  <nickc@redhat.com>
+
+	* configure.ac: Pass any --cache-file=/dev/null option on to
+	subconfigures.
+	* configure: Regenerate.
+
+2009-09-23  Nick Clifton  <nickc@redhat.com>
+
+	* config.sub, config.guess: Update from upstream sources.
+
+2009-09-22  Loren J. Rittle <ljrittle@acm.org>
+
+	* Makefile.tpl (POSTSTAGE1_HOST_EXPORTS): Remove stray $$r/.
+	* Makefile.in: Rebuilt.
+
+2009-09-22  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	PR bootstrap/32272
+	* configure.ac: Error out if $srcdir isn't '.' but contains
+	host-${host_noncanonical}.
+	* configure: Regenerate.
+
+2009-09-22  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* MAINTAINERS (OS Port Maintainers): Add myself as Solaris
+	maintainer.
+
+2009-09-21  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure.ac: If bootstrapping a combined tree with
+	--enable-gold, require c++ in stage1_languages.
+	* configure: Regenerate.
+
+	* configure.ac: Also add target_libs of stage1_languages to
+	bootstrap_target_libs.
+	* configure: Regenerate.
+
+	* configure.ac: Diagnose --enable-build-with-cxx bootstrap
+	with --enable-languages not containing c++.
+	* configure: Regenerate.
+
+2009-09-15  Jie Zhang  <jie.zhang@analog.com>
+
+	* configure.ac: Disable java and boehm-gc for bfin-*-*.
+	* configure: Regenerate.
+
+2009-09-12  Joern Rennecke <joern.rennecke@embecosm.com>
+
+	* MAINTAINERS (Write After Approval): Update my e-mail address,
+	and move from from here...
+	(Waiting for paperwork): To here.
+
+2009-09-09  Joseph Myers  <joseph@codesourcery.com>
+
+	* MAINTAINERS (Reviewers): Add self as driver reviewer.
+
+2009-09-08  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure.ac: Do not use $extrasub for replacing @if/@endif
+	parts in Makefile; instead, use additional arguments to
+	AC_CONFIG_COMMANDS to do the replacement manually, with several
+	sed invocations, to avoid HP-UX sed command limits.
+	* configure: Regenerate.
+
+2009-09-08  Alexandre Oliva  <aoliva@redhat.com>
+
+	* libtool.m4 (output_verbose_link_cmd): Require leading blank, and
+	blank before -L.
+
+2009-09-04  Alexandre Oliva  <aoliva@redhat.com>
+
+	* configure.ac (with-build-config): Document.  Handle without.
+	Handle missing argument.
+	* configure: Rebuilt.
+
+2009-09-03  Alexandre Oliva  <aoliva@redhat.com>
+
+	* configure.ac (--with-build-config): New.  Set BUILD_CONFIG.
+	Default to bootstrap-debug only if compare-debug works.
+	* configure: Rebuilt.
+	* Makefile.tpl: Make BUILD_CONFIG configure-configurable.
+	* Makefile.in: Rebuilt.
+
+2009-09-02  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* MAINTAINERS (OS Port Maintainers): Update my email address.
+
+2009-09-01  Alexandre Oliva  <aoliva@redhat.com>
+
+	* Makefile.tpl (BUILD_CONFIG): Default to bootstrap-debug.
+	* Makefile.in: Rebuilt.
+
+2009-09-01  Chris Demetriou  <cgd@google.com>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2009-08-31  Dodji Seketeli  <dodji@redhat.com>
+
+	PR debug/30161
+	* include/dwarf2.h (enum dwarf_tag): Added
+	DW_TAG_GNU_template_template_param
+	(enum dwarf_attribute): Added DW_AT_GNU_template_name.
+
+2009-08-30  Paolo Bonzini  <bonzini@gnu.org>
+
+	* Makefile.tpl (AWK): Fix typo.
+	* Makefile.in: Regenerate.
+
+2009-08-30  Paolo Bonzini  <bonzini@gnu.org>
+
+	* configure.ac: Detect awk and sed.
+	* Makefile.def (flags_to_pass): Add AWK and SED.
+	* Makefile.tpl (AWK, SED): New.
+	(BASE_FLAGS_TO_PASS): Add AWK and SED.
+	* configure: Regenerate.
+	* Makefile.in: Regenerate.
+
 2009-08-26  Dave Korn  <dave.korn.cygwin@gmail.com>
 
 	* ltmain.sh (removedotparts): Don't use comma as 's' separator.

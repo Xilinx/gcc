@@ -143,6 +143,8 @@ BASE_EXPORTS = \
 	BISON="$(BISON)"; export BISON; \
 	YACC="$(YACC)"; export YACC; \
 	M4="$(M4)"; export M4; \
+	SED="$(SED)"; export SED; \
+	AWK="$(AWK)"; export AWK; \
 	MAKEINFO="$(MAKEINFO)"; export MAKEINFO;
 
 # This is the list of variables to export in the environment when
@@ -220,6 +222,8 @@ HOST_EXPORTS = \
 	PPLINC="$(HOST_PPLINC)"; export PPLINC; \
 	CLOOGLIBS="$(HOST_CLOOGLIBS)"; export CLOOGLIBS; \
 	CLOOGINC="$(HOST_CLOOGINC)"; export CLOOGINC; \
+	LIBELFLIBS="$(HOST_LIBELFLIBS)" ; export LIBELFLIBS; \
+	LIBELFINC="$(HOST_LIBELFINC)" ; export LIBELFINC; \
 @if gcc-bootstrap
 	$(RPATH_ENVVAR)=`echo "$(TARGET_LIB_PATH)$$$(RPATH_ENVVAR)" | sed 's,::*,:,g;s,^:*,,;s,:*$$,,'`; export $(RPATH_ENVVAR); \
 @endif gcc-bootstrap
@@ -236,7 +240,7 @@ POSTSTAGE1_HOST_EXPORTS = \
 	  -B$$r/$(HOST_SUBDIR)/prev-gcc/ -B$(build_tooldir)/bin/ -nostdinc++ \
 	  -I$$r/prev-$(TARGET_SUBDIR)/libstdc++-v3/include/$(TARGET_SUBDIR) \
 	  -I$$r/prev-$(TARGET_SUBDIR)/libstdc++-v3/include \
-	  -I$$r/$(srcdir)/libstdc++-v3/libsupc++ \
+	  -I$$s/libstdc++-v3/libsupc++ \
 	  -L$$r/prev-$(TARGET_SUBDIR)/libstdc++-v3/src/.libs"; export CXX; \
 	CXX_FOR_BUILD="$$CXX"; export CXX_FOR_BUILD; \
 	GNATBIND="$$r/$(HOST_SUBDIR)/prev-gcc/gnatbind"; export GNATBIND; \
@@ -294,6 +298,10 @@ HOST_PPLINC = @pplinc@
 HOST_CLOOGLIBS = @clooglibs@
 HOST_CLOOGINC = @clooginc@
 
+# Where to find libelf
+HOST_LIBELFLIBS = @libelflibs@
+HOST_LIBELFINC = @libelfinc@
+
 # ----------------------------------------------
 # Programs producing files for the BUILD machine
 # ----------------------------------------------
@@ -337,6 +345,8 @@ BOOT_CFLAGS= -g -O2
 BOOT_LDFLAGS=
 BOOT_ADAFLAGS=-gnatpg -gnata
 
+AWK = @AWK@
+SED = @SED@
 BISON = @BISON@
 YACC = @YACC@
 FLEX = @FLEX@
@@ -615,7 +625,7 @@ EXTRA_GCC_FLAGS = \
 GCC_FLAGS_TO_PASS = $(BASE_FLAGS_TO_PASS) $(EXTRA_HOST_FLAGS) $(EXTRA_GCC_FLAGS)
 
 @if gcc
-BUILD_CONFIG =
+BUILD_CONFIG = @BUILD_CONFIG@
 ifneq ($(BUILD_CONFIG),)
 include $(foreach CONFIG, $(BUILD_CONFIG), $(srcdir)/config/$(CONFIG).mk)
 endif
