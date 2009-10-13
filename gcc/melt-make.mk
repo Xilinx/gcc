@@ -79,7 +79,7 @@ warm%.n.so: warm%.c $(melt_make_compile_script)
 	$(melt_make_compile_script) -n $< $@
 ## warmeltbig*.c is so big that it can only be compiled with -O0
 warmeltbig-%.so: warmeltbig-%.c $(melt_make_compile_script)
-	$(melt_make_compile_script) -O0 -d $< $@
+	$(melt_make_compile_script) -O0 $< $@
 warm%.so: warm%.c $(melt_make_compile_script)
 	$(melt_make_compile_script) $< $@
 
@@ -239,17 +239,17 @@ warmelt-%-h2.c: $(melt_make_source_dir)/warmelt-%.melt $(melt_cc1) \
 ## compiled without any optimisation, otherwise the C compiler suffers
 ## too much..
 
-warmeltbig-1.c: $(WARMELT_SRCFILES) warmelt0.modlis $(melt_cc1)  $(WARMELT_BASE0DSO) empty-file-for-melt.c
+warmeltbig-1.c: $(WARMELT_SRCFILES) warmelt0.modlis $(melt_cc1)  $(WARMELT_BASE0DSO) empty-file-for-melt.c warmelt-predef.melt $(WARMELT_SRCFILES)
 	$(MELTCCINIT1) $(meltarg_init)=$(WARMELT_BASE0DROW) \
 	      $(meltarg_arglist)=$(WARMELT_SRCARGLIST) \
 	      $(meltarg_output)=$@  empty-file-for-melt.c
 
-warmeltbig-2.c: $(WARMELT_SRCFILES) warmeltbig-1.so $(melt_cc1) empty-file-for-melt.c
+warmeltbig-2.c: $(WARMELT_SRCFILES) warmeltbig-1.so $(melt_cc1) empty-file-for-melt.c warmelt-predef.melt $(WARMELT_SRCFILES)
 	$(MELTCCINIT1) $(meltarg_init)=warmeltbig-1 \
 	      $(meltarg_arglist)=$(WARMELT_SRCARGLIST) \
 	      $(meltarg_output)=$@  empty-file-for-melt.c
 
-warmeltbig-3.c: $(WARMELT_SRCFILES) warmeltbig-2.so $(melt_cc1) empty-file-for-melt.c
+warmeltbig-3.c: $(WARMELT_SRCFILES) warmeltbig-2.so $(melt_cc1) empty-file-for-melt.c warmelt-predef.melt $(WARMELT_SRCFILES)
 	$(MELTCCINIT1) $(meltarg_init)=warmeltbig-2 \
 	      $(meltarg_arglist)=$(WARMELT_SRCARGLIST) \
 	      $(meltarg_output)=$@  empty-file-for-melt.c
@@ -265,7 +265,7 @@ warmeltallbig: $(melt_cc1) $(melt_compile_script)  warmeltbig-1.c warmeltbig-3.s
 	wc warmeltbig*.c
 	$(MELTCCINIT1) $(meltarg_init)=warmeltbig-3 \
 	      $(meltarg_arg)=$(melt_make_source_dir)/warmelt-first.melt  \
-	      $(meltarg_output)=warmelt-first-3.c  empty-file-for-melt.c
+	      $(meltarg_output)=warmelt-first-0.c  empty-file-for-melt.c
 	for f in $(WARMELT_SRCRESTFILES); do \
 	   $(MELTCCFILE1) \
 	     $(meltarg_init)=warmeltbig-3 \
@@ -337,7 +337,7 @@ warmelt-outobj-1.c: $(melt_make_source_dir)/warmelt-outobj.melt $(melt_cc1) \
 	 warmelt-normal-1.so \
 	 warmelt-normatch-1.so \
 	 warmelt-genobj-1.so \
-	 warmelt-outobj-0.d.so   empty-file-for-melt.c
+	 warmelt-outobj-0.d.so warmelt-predef.melt  empty-file-for-melt.c
 	$(MELTCCFILE1) \
 	$(meltarg_init)=warmelt-first-1:warmelt-macro-1:warmelt-normal-1:warmelt-normatch-1:warmelt-genobj-1:warmelt-outobj-0.d \
 	      $(meltarg_arg)=$< \
@@ -368,7 +368,7 @@ warmelt-normal-3.c: warmelt-predef.melt
 ## apparently, these dependencies are explicitly needed... because
 ## melt.encap target is making explicitly these
 warmelt-normatch-2.so: warmelt-normatch-2.c
-warmelt-outobj-3.so: warmelt-outobj-3.c
+warmelt-outobj-3.so: warmelt-outobj-3.c 
 
 warmelt2n.modlis: $(WARMELT_BASE2NSO)
 	date +"#$@ generated %c" > $@-tmp

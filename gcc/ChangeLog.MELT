@@ -1,4 +1,33 @@
 2009-10-13  Basile Starynkevitch  <basile@starynkevitch.net>
+	[renamed command to mode]
+	* doc/melt.texi: updated.
+	* melt-make.mk: added dependency on warmelt-predef.melt.
+	warmeltallbig produces the warmelt*0.c file in build directory!
+	* run-melt.h: removed temporary #define-s of
+	MELTGLOB_CLASS_MELT_COMMAND & FSYSDAT_COMMAND_DICT.
+	* testsuite/melt/testrun1.melt: removed file.
+	* melt-runtime.c: renamed command to mode everywhere!
+	(melt_garbcoll) when not quiet_mode, show stats on stderr!
+	(readmacrostringsequence): added warnings when macrostring
+	contains #{ without escapes. This probably means a badly closed
+	previous macrostring.
+	(do_initial_mode): renamed, it was do_initial_command before.
+	(load_melt_modules_and_do_mode): renamed, it was
+	load_melt_modules_and_do_command before.
+	(melt_really_initialize) call changed to load_melt_modules_and_do_mode.
+	* melt/ana-simple.melt: renamed command as mode everywhere.
+	* melt/warmelt-outobj.melt: renamed install_melt_command as
+	install_melt_mode. and fields meltcmd_* as meltmode_*, eg
+	meltmode_help meltmode_fun.
+	[regenerated since renamed command as mode etc...]
+	* melt/warmelt-macro-0.c: regenerated.
+	* melt/warmelt-outobj-0.c: regenerated.
+	* melt/warmelt-genobj-0.c: regenerated.
+	* melt/warmelt-normatch-0.c: regenerated.
+	* melt/warmelt-normal-0.c: regenerated.
+	* melt/warmelt-first-0.c: regenerated.
+
+2009-10-13  Basile Starynkevitch  <basile@starynkevitch.net>
 	[begin renaming commands to modes]
 	* melt-make.mk: added more dependencies on
 	$(melt_make_compile_script)
@@ -6,7 +35,7 @@
 	MELTGLOB_CLASS_MELT_COMMAND & FSYSDAT_COMMAND_DICT
 	* melt-runtime.h: renamed FSYSDAT_COMMAND_DICT as
 	FSYSDAT_MODE_DICT
-	* melt-predef.list: renamed CLASS_MELT_COMMAND as CLASS_MELT_MODE 
+	* melt-predef.list: renamed CLASS_MELT_COMMAND as CLASS_MELT_MODE
 	* melt-runtime.c: (meltgc_add_out_raw_len) we got a buffer
 	overflow; replaced strcpy with strncpy ...!
 	(READ_ERROR): use LINEMAP_POSITION_FOR_COLUMN to give a more

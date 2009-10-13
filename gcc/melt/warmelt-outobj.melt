@@ -3063,13 +3063,14 @@
   :doc #{Retrieve a MELT program argument as a string}#
   #{melt_argument($nam)}#)
 
-(defun install_melt_command (cmd)
-  (debug_msg cmd "install_melt_command cmd")
-  (assert_msg "check cmd" (is_a cmd class_melt_command))
-  (let ( (cmdict (get_field :sysdata_command_dict initial_system_data))
-	 (cnam (get_field :named_name cmd))
+(defun install_melt_mode (mode)
+  :doc #{$INSTALL_MELT_MODE installs a new MELT mode, ie an instance of $CLASS_MELT_MODE.}#
+  (debug_msg mode "install_melt_mode mode")
+  (assert_msg "check mode" (is_a mode class_melt_mode))
+  (let ( (cmdict (get_field :sysdata_mode_dict initial_system_data))
+	 (cnam (get_field :named_name mode))
 	 )
-    (mapstring_putstr cmdict cnam cmd)
+    (mapstring_putstr cmdict cnam mode)
 ))
 
 
@@ -3096,7 +3097,7 @@
        (informsg_strv "reading from file" curfile)
        (let ( (curead (read_file curfile))
 	      )
-	 (debug_msg curead "compilefile_command curead")
+	 (debug_msg curead "compilefile_mode curead")
 	 (assert_msg "check curead" (is_list_or_null curead))
 	 (list_append2list rlist curead))))
      (:else
@@ -3135,13 +3136,13 @@
       (compile_one_or_more_files inarg basnam curenv)
       )))
 
-(definstance translatefile_command
-  class_melt_command
+(definstance translatefile_mode
+  class_melt_mode
   :named_name '"translatefile"
-  :meltcmd_help '"MELT 'translatefile' command: ARGUMENT= input file; OUTPUT= generated file"
-  :meltcmd_fun translatefile_docmd
+  :meltmode_help '"MELT 'translatefile' mode: ARGUMENT= input file; OUTPUT= generated file"
+  :meltmode_fun translatefile_docmd
 )
-(install_melt_command translatefile_command)
+(install_melt_mode translatefile_mode)
 
 
 
@@ -3156,8 +3157,8 @@
 	(inarg (make_stringconst discr_string (melt_argument "arg")))
 	(outarg (make_stringconst discr_string (melt_argument "output")))
 	)
-    (debug_msg parmodenv "before read runfile_command parmodenv")
-    (debug_msg initial_environment "before read runfile_command initial_environment")
+    (debug_msg parmodenv "before read runfile_mode parmodenv")
+    (debug_msg initial_environment "before read runfile_mode initial_environment")
     (assert_msg "check curenv" (is_a curenv class_environment))
     (let ( (modulnam ()) 
 	   (modsrcname
@@ -3174,26 +3175,26 @@
 	      )))
 	   )
       (compile_one_or_more_files inarg modsrcname curenv)
-      (debug_msg modsrcname "after compilation runfile_command modsrcname")
-      (debug_msg modulnam "after compilation runfile_command modulnam")
+      (debug_msg modsrcname "after compilation runfile_mode modsrcname")
+      (debug_msg modulnam "after compilation runfile_mode modulnam")
       ;; the new environment is silently discarded
       (ignore (load_melt_module curenv modulnam))
       )))
 ;;;;
-(definstance runfile_command
-  class_melt_command
+(definstance runfile_mode
+  class_melt_mode
   :named_name '"runfile"
-  :meltcmd_help '"MELT 'runfile' command: ARGUMENT= input file; [OUTPUT=generated C]"
-  :meltcmd_fun runfile_docmd
+  :meltmode_help '"MELT 'runfile' mode: ARGUMENT= input file; [OUTPUT=generated C]"
+  :meltmode_fun runfile_docmd
 )
-(install_melt_command runfile_command)
+(install_melt_mode runfile_mode)
 
 
 ;;;;;;;;;;;;;;;;
 (defun translateinit_docmd (cmd moduldata)
-  (debug_msg cmd "start translateinit_command arg")
-  (debug_msg moduldata "start translateinit_command moduldata")
-  (debug_msg initial_environment "before read translateinit_command initial_environment")
+  (debug_msg cmd "start translateinit_mode arg")
+  (debug_msg moduldata "start translateinit_mode moduldata")
+  (debug_msg initial_environment "before read translateinit_mode initial_environment")
   (let ( (rlist (make_list discr_list))
 	 (:cstring progarg (melt_argument "arg"))
 	 (:cstring progarglist (melt_argument "arglist"))
@@ -3225,22 +3226,22 @@
 			   )
 		      (assert_msg "check rlist" (is_list rlist))
 		      (assert_msg "check curead" (is_list_or_null curead))
-		      (debug_msg curead "translateinit_command curead")
+		      (debug_msg curead "translateinit_mode curead")
 		      (list_append2list rlist curead)))))
      )
-    (debug_msg rlist "after read translateinit_command rlist")
+    (debug_msg rlist "after read translateinit_mode rlist")
     (compile_list_sexpr rlist initial_environment basnam)
     (return)
     ))
 
 ;;;
-(definstance translateinit_command
-  class_melt_command
+(definstance translateinit_mode
+  class_melt_mode
   :named_name '"translateinit"
-  :meltcmd_help '"MELT 'translateinit' command: ARGUMENT= input file; OUTPUT= generated file"
-  :meltcmd_fun translateinit_docmd
+  :meltmode_help '"MELT 'translateinit' mode: ARGUMENT= input file; OUTPUT= generated file"
+  :meltmode_fun translateinit_docmd
 )
-(install_melt_command translateinit_command)
+(install_melt_mode translateinit_mode)
 
 
 
@@ -3319,8 +3320,8 @@
      informxlist
      #{ inform (UNKNOWN_LOCATION,
 		"MELT makedoc [#%ld]: read and expanded %ld expressions from %ld files",
-		melt_dbgcounter, $xlistlen, $nbfil) ; 
-     }#)
+		melt_dbgcounter, $xlistlen, $nbfil); }#
+      )
     (list_every
      xlist
      (lambda (curexp)
@@ -3366,8 +3367,8 @@
 		     (setq curancsubcl (make_list discr_list))
 		     (mapobject_put 
 		      (get_field :mkdoc_subclassmap mdinfo) curanc curancsubcl)
-		   ))
-		   (list_append curancsubcl clas)
+		     ))
+	       (list_append curancsubcl clas)
 	       )
 	     )))
 ;;;;
@@ -4322,18 +4323,18 @@
   )
 
 ;;;
-(definstance makedoc_command
-  class_melt_command
+(definstance makedoc_mode
+  class_melt_mode
   :named_name '"makedoc"
-  :meltcmd_help '"MELT 'makedoc' command: ARGLIST= input file, ...; OUTPUT= generated file"
-  :meltcmd_fun makedoc_docmd
+  :meltmode_help '"MELT 'makedoc' mode: ARGLIST= input file, ...; OUTPUT= generated file"
+  :meltmode_fun makedoc_docmd
 )
-(install_melt_command makedoc_command)
+(install_melt_mode makedoc_mode)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (export_values 
  compile_list_sexpr
- install_melt_command
+ install_melt_mode
  melt_argument
  )
 ;;;;;;;;;;;;;;;;

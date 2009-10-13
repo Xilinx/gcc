@@ -196,8 +196,9 @@ $DEFUNMATCHER macro.}#
 (defclass class_located
   :super class_proped
   :fields (loca_location)
-  :doc #{The $CLASS_LOCATED is the super-class for located stuff, have a
-  source file location given by the $LOCA_LOCATION field.}#
+  :doc #{The $CLASS_LOCATED is the super-class for located stuff,
+  having a source file location given by the $LOCA_LOCATION field,
+  conventionally a mixed location box with $DISCR_MIXEDLOC.}#
   :predef CLASS_LOCATED)
 
 ;; class of source expressions
@@ -206,8 +207,9 @@ $DEFUNMATCHER macro.}#
   :super class_located
   :fields (sexp_contents		;list of contents
 	   )
-  :doc #{The $CLASS_SEXPR is the class of source expressions, as parsed by
-the reader. The $SEXP_CONTENTS field is a list of contents.}# )
+  :doc #{The $CLASS_SEXPR is the class of source expressions, as
+parsed by the reader before their macro expansion. The $SEXP_CONTENTS
+field is a list of contents.}# )
 
 ;; class of message selectors
 (defclass class_selector
@@ -223,9 +225,10 @@ a formal argument list) and the $SEL_DATA is for additional data.}#
 (defclass class_symbol
   :predef CLASS_SYMBOL
   :super class_named
-  :doc #{The $CLASS_SYMBOL is the class of symbols. The $SYMB_DATA is a
-  field for some additional data. The reader may create instances of
-  $CLASS_SYMBOL when encoutering new symbols.}#
+  :doc #{The $CLASS_SYMBOL is the class of symbols. The $SYMB_DATA is
+  a field for some additional data. The reader may create instances of
+  $CLASS_SYMBOL when encoutering new symbols. Symbols are interned
+  inside the $INITIAL_SYSTEM_DATA.}#
   :fields (symb_data))
 
 ;; class of generated (ie cloned) symbols - like lisp gensym-ed
@@ -237,15 +240,16 @@ a formal argument list) and the $SEL_DATA is for additional data.}#
 e.g. like GENSYM-ed symbols is many Lisps.  Cloned symbols are
 internally generated inside the MELT translator by the $CLONE_SYMBOL
 function. Their $CSYM_URANK field gives their unique rank as a boxed
-integer.}#)
+integer. Cloned symbols are not interned.}#)
 
 ;; class of keyword symbols
 (defclass class_keyword
   :predef CLASS_KEYWORD
   :super class_symbol
-  :doc #{The $CLASS_KEYWORD is the sub-class of keywords, handled
-specially. The reader parses as keyword any symbol starting with a
-colon.}#
+  :doc #{The $CLASS_KEYWORD is the sub-class of keywords, that is
+symbols starting with a colon, which are handled specially. The reader
+parses as keyword any symbol starting with a colon. Keywords are
+interned inside the $INITIAL_SYSTEM_DATA.}#
   :fields ())
 
 ;; class of C types keywords - it is predefined to ensure
@@ -271,7 +275,7 @@ $CTYPE_PARCHAR (for the character) and $CTYPE_PARSTRING (for the
 corresponding C string). Argument member in union is given by
 $CTYPE_ARGFIELD, and by $CTYPE_RESFIELD for results.  The marking
 routine is $CTYPE_MARKER and $CTYPE_DESCR is some descriptive string
-or data.}# )
+or data. Adding new c-types requires an update of MELT runtime!}# )
 
 
 ;; class of system data -- be careful to keep the FSYSDAT_*
@@ -284,7 +288,7 @@ $INITIAL_SYSTEM_DATA. It contains lots of fields, starting by
 SYSDATA_, for various system facilities.  It is very magical, and
 should be kept in sync with the MELT runtime.  Only for gurus! So
 don't instanciate this class!}#
-  :fields (sysdata_command_dict			;stringmap for commands
+  :fields (sysdata_mode_dict			;stringmap for commands
 	   sysdata_cont_fresh_env			;closure to make a fresh environment
 	   sysdata_value_exporter		;closure to export a value
 	   sysdata_macro_exporter		;closure to export a macro
@@ -349,7 +353,8 @@ $PARENT_MODULE_ENVIRONMENT macros.}#
   :super class_environment
   :fields (denv_descr
 	   )
-  :doc #{The $CLASS_DESCRIBED_ENVIRONMENT provides an extra descriptor.}#)
+  :doc #{The $CLASS_DESCRIBED_ENVIRONMENT provides an extra descriptor
+$DENV_DESCR which can for example be a descriptive string.}#)
 
 ;; the (super-)class of any binding
 (defclass class_any_binding
@@ -594,19 +599,19 @@ list of them.}# )
 descriptors. }# )
 
 
-;;;; commands 
-(defclass class_melt_command
+;;;; mode 
+(defclass class_melt_mode
   :super class_named
-  :predef CLASS_MELT_COMMAND
-  :fields (meltcmd_help
-	   meltcmd_fun
-	   meltcmd_data
+  :predef CLASS_MELT_MODE
+  :fields (meltmode_help
+	   meltmode_fun
+	   meltmode_data
 	   )
-  :doc #{ The $CLASS_MELT_COMMAND describe commands, as given by the
+  :doc #{ The $CLASS_MELT_MODE describe mode handlers, as given by the
 @code{-fmelt=} or @code{-fplugin-arg-melt-mode=} GCC program flag. The
-$MELTCMD_HELP is a help string. The $MELTCMD_FUN is the function to
-run the command, and the $MELTCMD_DATA gives additional client
-data. See the $INSTALL_MELT_COMMAND function. }# )
+$MELTMODE_HELP is a help string. The $MELTMODE_FUN is the function to
+run the command, and the $MELTMODE_DATA gives additional client
+data. See the $INSTALL_MELT_MODE function. }# )
 	   
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; ================  source program elements
@@ -2859,7 +2864,7 @@ obtained by quoting an integer.}#
 (definstance initial_system_data class_system_data
   :predef INITIAL_SYSTEM_DATA
   :named_name '"INITIAL_SYSTEM_DATA"
-  :sysdata_command_dict  (make_mapstring discr_mapstrings 40) ;stringmap for commands
+  :sysdata_mode_dict  (make_mapstring discr_mapstrings 40) ;stringmap for modes
   :sysdata_cont_fresh_env initfresh_contenvmaker	;fresh environment maker in module
   :sysdata_value_exporter initvalue_exporter ;value exporter in module
   :sysdata_macro_exporter initmacro_exporter ;macro exporter in module
@@ -4576,7 +4581,7 @@ list.}#
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; a special function to be called when compiling with compilinit command.
+;;; a special function to be called when compiling with compilinit mode.
 ;;; which magically adds a call to it at end of the read list
 (defun post_initialization (unusedarg :cstring meltfilnam)
   (let ( (curmodenvcont (current_module_environment_container)) )
@@ -4668,7 +4673,7 @@ list.}#
  class_let_binding
  class_located
  class_macro_binding
- class_melt_command
+ class_melt_mode
  class_modulecontext
  class_named
  class_normcontext

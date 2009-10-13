@@ -178,12 +178,12 @@ The table below lists all MELT specific options, in alphabetical order.
 @opindex fmelt
 This flag (called the MELT mode flag) is required for every MELT
 enabled compilation. If it is not given, no MELT specific processing
-is done.  If given, this gives the command to be executed before any
-MELT passes. It uses the @code{:sysdata_cmd_fundict} field of
+is done.  If given, this gives the mode to be used before any
+MELT passes. It uses the @code{:sysdata_mode_dict} field of
 @code{INITIAL_SYSTEM_DATA} internal object of MELT to determine the
-MELT function applied to execute the command. If this application
+MELT function applied to execute the mode. If this application
 returns nil, no GCC compilation occur (i.e. no @code{*.c} or
-@code{*.cc} etc@dots{} source file is read). Hence, some commands may
+@code{*.cc} etc@dots{} source file is read). Hence, some modes may
 be used for their side-effects. In particular, the compilation of MELT
 lisp source file @code{*.melt} into C code @code{*.c} is done this
 way.

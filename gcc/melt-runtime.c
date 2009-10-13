@@ -795,7 +795,14 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
 	  memset (specp, 0, sizeof (*specp));
 	  ggc_free (specp);
 	  *prevspecptr = nextspecp;
-	}
+	};
+      if (!quiet_flag) {
+	/* when not quiet, the GGC collector displays data, so we can
+	   add a message and end the line! "*/
+	fprintf (stderr, " MELT full gc#%ld/%ld [%ld Kw]\n",
+		 melt_nb_full_garbcoll, melt_nb_garbcoll, melt_kilowords_sincefull);
+	fflush (stderr);
+      }
       melt_kilowords_sincefull = 0;
     }
   melt_check_call_frames (MELT_NOYOUNG, "after garbage collection");
@@ -6602,6 +6609,7 @@ static melt_ptr_t
 readmacrostringsequence (struct reading_st *rd) 
 {
   int lineno = rd->rlineno;
+  int escaped = 0;
   location_t loc = 0;
   MELT_ENTERFRAME (6, NULL);
 #define readv    curfram__.varptr[0]
@@ -6627,6 +6635,10 @@ readmacrostringsequence (struct reading_st *rd)
 	strv = meltgc_new_stringdup ((meltobject_ptr_t) MELT_PREDEF(DISCR_STRING),
 					melt_strbuf_str((melt_ptr_t) sbufv));
 	meltgc_append_list((melt_ptr_t) seqv, (melt_ptr_t) strv);
+	if (!escaped && strstr (melt_string_str((melt_ptr_t) strv), "}#"))
+	  warning_at(rd->rsrcloc, 0, "MELT macrostring starting at line %d containing }# might be suspicious", lineno);
+	if (!escaped && strstr (melt_string_str((melt_ptr_t) strv), "#{"))
+	  warning_at(rd->rsrcloc, 0, "MELT macrostring starting at line %d containing #{ might be suspicious", lineno);
 	sbufv = NULL;
 	strv = NULL;
       }
@@ -6672,6 +6684,7 @@ readmacrostringsequence (struct reading_st *rd)
       }
       /* $. is silently skipped */
       else if (rdfollowc(1) == '.') {
+	escaped = 1;
 	rdnext(); 
 	rdnext();
       }
@@ -6685,6 +6698,7 @@ readmacrostringsequence (struct reading_st *rd)
       }
       /* $# is handled as a single hash # */
       else if (rdfollowc(1) == '#') {
+	escaped = 1;
 	if (!sbufv)
 	  sbufv = meltgc_new_strbuf((meltobject_ptr_t) MELT_PREDEF(DISCR_STRBUF), (char*)0);
 	meltgc_add_strbuf_raw_len((melt_ptr_t)sbufv, "#", 1);
@@ -7482,7 +7496,7 @@ end:
 }
 
 static void
-do_initial_command (melt_ptr_t modata_p)
+do_initial_mode (melt_ptr_t modata_p)
 {
 #if 0 && uselesscode
   int oldmode = 0;
@@ -7500,31 +7514,31 @@ do_initial_command (melt_ptr_t modata_p)
 #define cmdv      curfram__.varptr[8]
   modatav = modata_p;
   modstr = melt_argument ("mode");
-  debugeprintf ("do_initial_command mode_string %s modatav %p",
+  debugeprintf ("do_initial_mode mode_string %s modatav %p",
 		modstr, (void *) modatav);
   if (!modstr || !modstr[0]) 
     {
-      debugeprintf("do_initial_command do nothing without mode modata %p",
+      debugeprintf("do_initial_mode do nothing without mode modata %p",
 		   modatav);
       goto end;
     }
   if (!MELT_PREDEF (INITIAL_SYSTEM_DATA)) 
     {
-      error("MELT cannot execute initial command mode %s without INITIAL_SYSTEM_DATA", modstr);
+      error("MELT cannot execute initial mode mode %s without INITIAL_SYSTEM_DATA", modstr);
       goto end;
     }
   dictv = melt_get_inisysdata(FSYSDAT_MODE_DICT);
-  debugeprintf ("do_initial_command dictv=%p", dictv);
-  debugeprintvalue ("do_initial_command dictv", dictv);
+  debugeprintf ("do_initial_mode dictv=%p", dictv);
+  debugeprintvalue ("do_initial_mode dictv", dictv);
   if (melt_magic_discr ((melt_ptr_t) dictv) != OBMAG_MAPSTRINGS)
     {
-      debugeprintf("do_initial_command invalid dictv %p", dictv);
+      debugeprintf("do_initial_mode invalid dictv %p", dictv);
       goto end;
     };
   cmdv =
     melt_get_mapstrings ((struct meltmapstrings_st *) dictv,
 			 modstr);
-  debugeprintf ("do_initial_command cmdv=%p", cmdv);
+  debugeprintf ("do_initial_mode cmdv=%p", cmdv);
 #if 0 && uselesscode
   /* this is a temporary hack to maintain compatibility with old stuff */
   if (melt_magic_discr ((melt_ptr_t) cmdv) == OBMAG_CLOSURE)
@@ -7532,7 +7546,7 @@ do_initial_command (melt_ptr_t modata_p)
       closv = cmdv;
       cmdv = NULL;
       oldmode = 1;
-      warning (0, "MELT command %s is associated with a closure, not a command object",
+      warning (0, "MELT mode %s is associated with a closure, not a mode object",
 	       modstr);
       goto got_closure;
     }
@@ -7540,8 +7554,8 @@ do_initial_command (melt_ptr_t modata_p)
   if (!melt_is_instance_of ((melt_ptr_t) cmdv,
 			    (melt_ptr_t) MELT_PREDEF (CLASS_MELT_MODE)))
     {
-      debugeprintf ("do_initial_command invalid cmdv %p", cmdv);
-      error ("unknown MELT command %s", modstr);
+      debugeprintf ("do_initial_mode invalid cmdv %p", cmdv);
+      error ("unknown MELT mode %s", modstr);
       goto end;
     };
   closv = melt_object_nth_field ((melt_ptr_t) cmdv, FMELTCMD_FUN);
@@ -7550,8 +7564,8 @@ do_initial_command (melt_ptr_t modata_p)
 #endif
   if (melt_magic_discr ((melt_ptr_t) closv) != OBMAG_CLOSURE)
     {
-      debugeprintf ("do_initial_command invalid closv %p", closv);
-      error ("no closure for melt command %s", modstr);
+      debugeprintf ("do_initial_mode invalid closv %p", closv);
+      error ("no closure for melt mode %s", modstr);
       goto end;
     };
   {
@@ -7577,27 +7591,27 @@ do_initial_command (melt_ptr_t modata_p)
 	pararg[0].bp_aptr = (melt_ptr_t *) &cstrv;
 	pararg[1].bp_aptr = (melt_ptr_t *) &csecstrv;
 	pararg[2].bp_aptr = (melt_ptr_t *) &modatav;
-	debugeprintf ("do_initial_command before old apply closv %p", closv);
-	MELT_LOCATION_HERE ("do_initial_command before apply");
+	debugeprintf ("do_initial_mode before old apply closv %p", closv);
+	MELT_LOCATION_HERE ("do_initial_mode before apply");
 	resv = melt_apply ((meltclosure_ptr_t) closv,
 			   (melt_ptr_t) MELT_PREDEF  (INITIAL_SYSTEM_DATA),
 			   BPARSTR_PTR BPARSTR_PTR BPARSTR_PTR, pararg, "",
 			   NULL);
-	debugeprintf ("do_initial_command after old apply closv %p resv %p",
+	debugeprintf ("do_initial_mode after old apply closv %p resv %p",
 		      closv, resv);
       }
     else
 #endif
       {
-	/* apply the closure to the command & the module data */
+	/* apply the closure to the mode & the module data */
 	pararg[0].bp_aptr = (melt_ptr_t *) & modatav;
-	debugeprintf ("do_initial_command before apply closv %p", closv);
-	MELT_LOCATION_HERE ("do_initial_command before apply");
+	debugeprintf ("do_initial_mode before apply closv %p", closv);
+	MELT_LOCATION_HERE ("do_initial_mode before apply");
 	resv = melt_apply ((meltclosure_ptr_t) closv,
 			   (melt_ptr_t) cmdv,
 			   BPARSTR_PTR, pararg, "",
 			   NULL);
-	debugeprintf ("do_initial_command after apply closv %p resv %p",
+	debugeprintf ("do_initial_mode after apply closv %p resv %p",
 		      closv, resv);
       }
     exit_after_options = (resv == NULL);
@@ -7605,7 +7619,7 @@ do_initial_command (melt_ptr_t modata_p)
     melt_garbcoll (0, MELT_ONLY_MINOR);
   }
  end:
-  debugeprintf ("do_initial_command end %s", modstr);
+  debugeprintf ("do_initial_mode end %s", modstr);
   MELT_EXITFRAME ();
 #undef dictv
 #undef closv
@@ -7619,13 +7633,13 @@ do_initial_command (melt_ptr_t modata_p)
 
 
 /****
- * load the initial modules do the initial command if needed
+ * load the initial modules do the initial mode if needed
  * the initstring is a semi-colon separated list of module names
- * and do the initial command
+ * and do the initial mode
  ****/
 
 static void
-load_melt_modules_and_do_command (void)
+load_melt_modules_and_do_mode (void)
 {
   char *dupmodpath = 0;
   char *curmod = 0;
@@ -7638,11 +7652,11 @@ load_melt_modules_and_do_command (void)
 #define dumpv  curfram__.varptr[1]
   modstr = melt_argument ("mode");
   inistr = melt_argument ("init");
-  debugeprintf ("load_melt_modules_and_do_command start init=%s command=%s",
+  debugeprintf ("load_melt_modules_and_do_mode start init=%s mode=%s",
 		inistr, modstr);
   if (!modstr || !modstr[0])
     {
-      debugeprintf ("load_melt_modules_and_do_command do nothing without mode (inistr=%s)",
+      debugeprintf ("load_melt_modules_and_do_mode do nothing without mode (inistr=%s)",
 		    inistr);
       goto end;
     }
@@ -7670,7 +7684,7 @@ load_melt_modules_and_do_command (void)
 	{
 	  time_t now = 0;
 	  time (&now);
-	  debugeprintf ("load_melt_modules_and_do_command dbgtracefile %s",
+	  debugeprintf ("load_melt_modules_and_do_mode dbgtracefile %s",
 			tracenam);
 	  fprintf (melt_dbgtracefile, "**MELT TRACE %s pid %d at %s",
 		   tracenam, (int) getpid (), ctime (&now));
@@ -7722,38 +7736,38 @@ load_melt_modules_and_do_command (void)
       curmod = nextmod;
     }
   /**
-   * then we do the command if needed 
+   * then we do the mode if needed 
    **/
-  /* the command exit is builtin */
+  /* the mode exit is builtin */
   if (modstr && !strcmp (modstr, "exit"))
     exit_after_options = true;
-  /* other commands */
+  /* other modes */
   else if (melt_get_inisysdata (FSYSDAT_MODE_DICT) && modstr
 	   && modstr[0])
     {
       debugeprintf
-	("load_melt_modules_and_do_command sets exit_after_options for command %s",
+	("load_melt_modules_and_do_mode sets exit_after_options for mode %s",
 	 modstr);
       MELT_LOCATION_HERE
-	("load_initial_melt_modules before do_initial_command");
-      do_initial_command ((melt_ptr_t) modatv);
+	("load_initial_melt_modules before do_initial_mode");
+      do_initial_mode ((melt_ptr_t) modatv);
       debugeprintf
-	("load_melt_modules_and_do_command after do_initial_command  command_string %s",
+	("load_melt_modules_and_do_mode after do_initial_mode  mode_string %s",
 	 modstr);
       if (dump_file == stderr && dbgstr)
 	{
 	  debugeprintf
-	    ("load_melt_modules_and_do_command dump_file cleared was %p",
+	    ("load_melt_modules_and_do_mode dump_file cleared was %p",
 	     (void *) dump_file);
 	  fflush (dump_file);
 	  dump_file = 0;
 	}
     }
   else if (modstr)
-    fatal_error ("melt with command string %s without command dispatcher",
+    fatal_error ("melt with mode string %s without mode dispatcher",
 		 modstr);
   debugeprintf
-    ("load_melt_modules_and_do_command ended with %ld GarbColl, %ld fullGc",
+    ("load_melt_modules_and_do_mode ended with %ld GarbColl, %ld fullGc",
      melt_nb_garbcoll, melt_nb_full_garbcoll);
 #if ENABLE_CHECKING
   if (melt_dbgtracefile)
@@ -7765,7 +7779,7 @@ load_melt_modules_and_do_command (void)
 #endif
   free (dupmodpath);
   debugeprintf
-    ("load_melt_modules_and_do_command done modules %s command %s",
+    ("load_melt_modules_and_do_mode done modules %s mode %s",
      inistr, modstr);
  end:
   MELT_EXITFRAME ();
@@ -7983,8 +7997,8 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
   debugeprintf ("melt_really_initialize inistr=%s", inistr);
   if (ppl_set_error_handler(melt_ppl_error_handler))
     fatal_error ("failed to set PPL handler");
-  load_melt_modules_and_do_command ();
-  debugeprintf ("melt_really_initialize ended init=%s command=%s",
+  load_melt_modules_and_do_mode ();
+  debugeprintf ("melt_really_initialize ended init=%s mode=%s",
 		inistr, modstr);
 }
 
