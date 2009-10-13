@@ -69,27 +69,27 @@ vpath %.melt $(melt_make_source_dir) . $(melt_source_dir)
 ## all the warm*.so need ./built-melt-cc-script to be built, but we
 ## don't add a dependency to avoid them being rebuilt at install time.
 ##
-warmelt-%-0.d.so: warmelt-%-0.c 
+warmelt-%-0.d.so: warmelt-%-0.c $(melt_make_compile_script)
 	$(melt_make_compile_script) -d $< $@
-warmelt-%-h.d.so: warmelt-%-h.c 
+warmelt-%-h.d.so: warmelt-%-h.c $(melt_make_compile_script)
 	$(melt_make_compile_script) -d $< $@
-warmelt-%-h2.d.so: warmelt-%-h2.c 
+warmelt-%-h2.d.so: warmelt-%-h2.c $(melt_make_compile_script)
 	$(melt_make_compile_script) -d $< $@
-warm%.n.so: warm%.c 
+warm%.n.so: warm%.c $(melt_make_compile_script)
 	$(melt_make_compile_script) -n $< $@
 ## warmeltbig*.c is so big that it can only be compiled with -O0
-warmeltbig-%.so: warmeltbig-%.c 
+warmeltbig-%.so: warmeltbig-%.c $(melt_make_compile_script)
 	$(melt_make_compile_script) -O0 -d $< $@
-warm%.so: warm%.c 
+warm%.so: warm%.c $(melt_make_compile_script)
 	$(melt_make_compile_script) $< $@
 
 ###
 
-ana%.n.so: ana%.c 
+ana%.n.so: ana%.c $(melt_make_compile_script)
 	$(melt_make_compile_script) -n $< $@
-ana%.d.so: ana%.c 
+ana%.d.so: ana%.c $(melt_make_compile_script)
 	$(melt_make_compile_script) -d $< $@
-ana%.so: ana%.c 
+ana%.so: ana%.c $(melt_make_compile_script)
 	$(melt_make_compile_script)  $< $@
 
 ## the warmelt files - order is important!
@@ -261,7 +261,7 @@ warmeltbig-3.c: $(WARMELT_SRCFILES) warmeltbig-2.so $(melt_cc1) empty-file-for-m
 ### this is only useful rarely ... it regenerated the warmelt*0.c
 ### files using the big monolithic version of the translator... to be
 ### used carefully when desperate!
-warmeltallbig: warmeltbig-3.so
+warmeltallbig: $(melt_cc1) $(melt_compile_script)  warmeltbig-1.c warmeltbig-3.so
 	wc warmeltbig*.c
 	$(MELTCCINIT1) $(meltarg_init)=warmeltbig-3 \
 	      $(meltarg_arg)=$(melt_make_source_dir)/warmelt-first.melt  \

@@ -167,7 +167,7 @@
   DISCR_STRBUF
 # the initial discriminant of mixedbigint 
   DISCR_MIXBIGINT
-# the class of MELT commands
-  CLASS_MELT_COMMAND
+# the class of MELT modes
+  CLASS_MELT_MODE
 
 #eof melt-predef.list

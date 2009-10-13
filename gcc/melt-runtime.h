@@ -2845,7 +2845,7 @@ enum
    varying objects or non objects */
 enum
 {
-  FSYSDAT_COMMAND_DICT = FNAMED__LAST,	/* the stringdict of commands */
+  FSYSDAT_MODE_DICT = FNAMED__LAST,	/* the stringdict of modes */
   FSYSDAT_BOX_FRESH_ENV,			/* closure to make a fresh environment box */
   FSYSDAT_VALUE_EXPORTER,	       /* closure to export a value */
   FSYSDAT_MACRO_EXPORTER,	       /* closure to export a macro */

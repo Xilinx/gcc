@@ -2067,7 +2067,7 @@ meltgc_add_out_raw_len (melt_ptr_t outbuf_p, const char *str, int slen)
 		&& buf_outbufv->bufend < (unsigned) blen);
     if ((int) buf_outbufv->bufend + slen + 2 < blen)
       {				/* simple case, just copy at end */
-	strcpy (buf_outbufv->bufzn + buf_outbufv->bufend, str);
+	strncpy (buf_outbufv->bufzn + buf_outbufv->bufend, str, slen);
 	buf_outbufv->bufend += slen;
 	buf_outbufv->bufzn[buf_outbufv->bufend] = 0;
       }
@@ -2081,7 +2081,7 @@ meltgc_add_out_raw_len (melt_ptr_t outbuf_p, const char *str, int slen)
 	  memmove (buf_outbufv->bufzn,
 		   buf_outbufv->bufzn + buf_outbufv->bufstart, siz);
 	  buf_outbufv->bufstart = 0;
-	  strcpy (buf_outbufv->bufzn + siz, str);
+	  strncpy (buf_outbufv->bufzn + siz, str, slen);
 	  buf_outbufv->bufend = siz + slen;
 	  buf_outbufv->bufzn[buf_outbufv->bufend] = 0;
 	}
@@ -2120,7 +2120,7 @@ meltgc_add_out_raw_len (melt_ptr_t outbuf_p, const char *str, int slen)
 	      newb = (char *) melt_allocatereserved (newblen + 1, 0);
 	      gcc_assert (melt_is_young (buf_outbufv));
 	      memcpy (newb, buf_outbufv->bufzn + buf_outbufv->bufstart, siz);
-	      strcpy (newb + siz, str);
+	      strncpy (newb + siz, str, slen);
 	      memset (buf_outbufv->bufzn, 0, oldblen);
 	      buf_outbufv->bufzn = newb;
 	    }
@@ -2132,7 +2132,7 @@ meltgc_add_out_raw_len (melt_ptr_t outbuf_p, const char *str, int slen)
 	      gcc_assert (!melt_is_young (buf_outbufv));
 	      newb = (char *) ggc_alloc_cleared (newblen + 1);
 	      memcpy (newb, buf_outbufv->bufzn + buf_outbufv->bufstart, siz);
-	      strcpy (newb + siz, str);
+	      strncpy (newb + siz, str, slen);
 	      memset (buf_outbufv->bufzn, 0, oldblen);
 	      ggc_free (buf_outbufv->bufzn);
 	      buf_outbufv->bufzn = newb;
@@ -5845,10 +5845,12 @@ static struct obstack bstring_obstack;
 #define rdcurc() rd->rcurlin[rd->rcol]
 #define rdfollowc(Rk) rd->rcurlin[rd->rcol + (Rk)]
 #define rdeof() ((rd->rfil?feof(rd->rfil):1) && rd->rcurlin[rd->rcol]==0)
-#define READ_ERROR(Fmt,...)	do {		\
-  error_at(rd->rsrcloc, Fmt, ##__VA_ARGS__);	\
-  fatal_error("MELT read failure <%s:%d>",	\
-	      basename(__FILE__), __LINE__);	\
+#define READ_ERROR(Fmt,...)	do {					\
+  if (rd->rcol>0)							\
+    LINEMAP_POSITION_FOR_COLUMN (rd->rsrcloc, line_table, rd->rcol);	\
+  error_at(rd->rsrcloc, Fmt, ##__VA_ARGS__);				\
+  fatal_error("MELT read failure <%s:%d>",				\
+	      basename(__FILE__), __LINE__);				\
 } while(0)
 /* readval returns the read value and sets *PGOT to true if something
    was read */
@@ -6640,6 +6642,7 @@ readmacrostringsequence (struct reading_st *rd)
 	if (sbufv && melt_strbuf_usedlength((melt_ptr_t)sbufv)>0) {
 	  strv = meltgc_new_stringdup((meltobject_ptr_t) MELT_PREDEF(DISCR_STRING),
 					 melt_strbuf_str((melt_ptr_t) sbufv));
+	  gcc_assert (strv != NULL);
 	  meltgc_append_list((melt_ptr_t) seqv, (melt_ptr_t) strv);
 	  sbufv = NULL;
 	  strv = NULL;
@@ -6893,6 +6896,7 @@ readval (struct reading_st *rd, bool * pgot)
 {
   int c = 0;
   char *nam = 0;
+  int lineno = rd->rlineno;
   MELT_ENTERFRAME (4, NULL);
 #define readv   curfram__.varptr[0]
 #define compv   curfram__.varptr[1]
@@ -6936,6 +6940,13 @@ readval (struct reading_st *rd, bool * pgot)
       *pgot = TRUE;
       goto end;
     }				/* end if '(' */
+  else if (c == ')')
+    {
+      readv = NULL;
+      *pgot = FALSE;
+      READ_ERROR ("MELT: unexpected closing parenthesis %.20s", &rdcurc ());
+      goto end;
+    }
   else if (c == '[')
     {
       rdnext ();
@@ -6960,7 +6971,6 @@ readval (struct reading_st *rd, bool * pgot)
     }
   else if (c == '\'')
     {
-      int lineno = rd->rlineno;
       bool got = false;
       location_t loc = 0;
       rdnext ();
@@ -6978,7 +6988,6 @@ readval (struct reading_st *rd, bool * pgot)
     }
   else if (c == '`')
     {
-      int lineno = rd->rlineno;
       bool got = false;
       location_t loc = 0;
       rdnext ();
@@ -6997,7 +7006,6 @@ readval (struct reading_st *rd, bool * pgot)
     }
   else if (c == ',')
     {
-      int lineno = rd->rlineno;
       bool got = false;
       location_t loc = 0;
       rdnext ();
@@ -7015,7 +7023,6 @@ readval (struct reading_st *rd, bool * pgot)
     }
   else if (c == '?')
     {
-      int lineno = rd->rlineno;
       bool got = false;
       location_t loc = 0;
       rdnext ();
@@ -7506,7 +7513,7 @@ do_initial_command (melt_ptr_t modata_p)
       error("MELT cannot execute initial command mode %s without INITIAL_SYSTEM_DATA", modstr);
       goto end;
     }
-  dictv = melt_get_inisysdata(FSYSDAT_COMMAND_DICT);
+  dictv = melt_get_inisysdata(FSYSDAT_MODE_DICT);
   debugeprintf ("do_initial_command dictv=%p", dictv);
   debugeprintvalue ("do_initial_command dictv", dictv);
   if (melt_magic_discr ((melt_ptr_t) dictv) != OBMAG_MAPSTRINGS)
@@ -7531,7 +7538,7 @@ do_initial_command (melt_ptr_t modata_p)
     }
 #endif
   if (!melt_is_instance_of ((melt_ptr_t) cmdv,
-			    (melt_ptr_t) MELT_PREDEF (CLASS_MELT_COMMAND)))
+			    (melt_ptr_t) MELT_PREDEF (CLASS_MELT_MODE)))
     {
       debugeprintf ("do_initial_command invalid cmdv %p", cmdv);
       error ("unknown MELT command %s", modstr);
@@ -7721,7 +7728,7 @@ load_melt_modules_and_do_command (void)
   if (modstr && !strcmp (modstr, "exit"))
     exit_after_options = true;
   /* other commands */
-  else if (melt_get_inisysdata (FSYSDAT_COMMAND_DICT) && modstr
+  else if (melt_get_inisysdata (FSYSDAT_MODE_DICT) && modstr
 	   && modstr[0])
     {
       debugeprintf

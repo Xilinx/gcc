@@ -1,3 +1,24 @@
+2009-10-13  Basile Starynkevitch  <basile@starynkevitch.net>
+	[begin renaming commands to modes]
+	* melt-make.mk: added more dependencies on
+	$(melt_make_compile_script)
+	* run-melt.h: added temporary #define-s of
+	MELTGLOB_CLASS_MELT_COMMAND & FSYSDAT_COMMAND_DICT
+	* melt-runtime.h: renamed FSYSDAT_COMMAND_DICT as
+	FSYSDAT_MODE_DICT
+	* melt-predef.list: renamed CLASS_MELT_COMMAND as CLASS_MELT_MODE 
+	* melt-runtime.c: (meltgc_add_out_raw_len) we got a buffer
+	overflow; replaced strcpy with strncpy ...!
+	(READ_ERROR): use LINEMAP_POSITION_FOR_COLUMN to give a more
+	precise location in parsing errors!
+	(readmacrostringsequence): added assert.
+	(readval): moved lineno declaration and handled closing
+	parenthesis with a better error message.
+	(do_initial_command): replaced FSYSDAT_COMMAND_DICT with
+	FSYSDAT_MODE_DICT & CLASS_MELT_COMMAND with CLASS_MELT_MODE.
+	(load_melt_modules_and_do_command): likewise.
+	* Makefile.in: added $(melt_make_compile_script) dependency.
+
 2009-10-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	[during merge with trunk 152583 the version information from GCC
 	is used, not the checksum of the executable!]

@@ -5126,6 +5126,7 @@ melt_is_plugin=
 include $(srcdir)/melt-make.mk
 
 
+$(melt_make_compile_script): built-melt-cc-script
 ####
 #### installing melt generated shared object plugins (at MELT 3rd
 #### stage) and the default melt module list
