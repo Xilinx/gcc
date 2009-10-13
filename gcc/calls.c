@@ -392,9 +392,6 @@ emit_call_1 (rtx funexp, tree fntree ATTRIBUTE_UNUSED, tree fndecl ATTRIBUTE_UNU
       cfun->calls_setjmp = 1;
     }
 
-  if (ecf_flags & ECF_TM_OPS)
-    add_reg_note (call_insn, REG_TM, const0_rtx);
-
   SIBLING_CALL_P (call_insn) = ((ecf_flags & ECF_SIBCALL) != 0);
 
   /* Restore this now, so that we do defer pops for this call's args

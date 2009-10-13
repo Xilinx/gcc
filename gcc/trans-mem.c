@@ -34,6 +34,7 @@
 #include "demangle.h"
 #include "output.h"
 #include "trans-mem.h"
+#include "ggc.h"
 
 
 #define PROB_VERY_UNLIKELY	(REG_BR_PROB_BASE / 2000 - 1)
@@ -631,18 +632,28 @@ lower_tm_atomic (gimple_stmt_iterator *gsi, struct walk_stmt_info *wi)
   if (flag_exceptions)
     {
       tree ptr;
-      gimple g2;
+      gimple_seq n_seq, e_seq;
 
-      ptr = build0 (EXC_PTR_EXPR, ptr_type_node);
-      g2 = gimple_build_call (built_in_decls[BUILT_IN_TM_COMMIT_EH], 1, ptr);
+      n_seq = gimple_seq_alloc_with_stmt (g);
+      e_seq = gimple_seq_alloc ();
 
-      g = gimple_build_eh_else (gimple_seq_alloc_with_stmt (g),
-				gimple_seq_alloc_with_stmt (g2));
+      g = gimple_build_call (built_in_decls[BUILT_IN_EH_POINTER],
+			     1, integer_zero_node);
+      ptr = create_tmp_var (ptr_type_node, NULL);
+      gimple_call_set_lhs (g, ptr);
+      gimple_seq_add_stmt (&e_seq, g);
+
+      g = gimple_build_call (built_in_decls[BUILT_IN_TM_COMMIT_EH], 1, ptr);
+      gimple_seq_add_stmt (&e_seq, g);
+
+      g = gimple_build_eh_else (n_seq, e_seq);
     }
 
   g = gimple_build_try (gimple_tm_atomic_body (stmt),
 			gimple_seq_alloc_with_stmt (g), GIMPLE_TRY_FINALLY);
-  gimple_tm_atomic_set_body (stmt, gimple_seq_alloc_with_stmt (g));
+  gsi_insert_after (gsi, g, GSI_CONTINUE_LINKING);
+
+  gimple_tm_atomic_set_body (stmt, NULL);
 
   /* If the transaction calls abort, add an "over" label afterwards.  */
   if (this_state & GTMA_HAVE_ABORT)
@@ -761,6 +772,12 @@ struct tm_region
   /* Link to the next unnested transaction.  */
   struct tm_region *next;
 
+  /* Link to the next inner transaction.  */
+  struct tm_region *inner;
+
+  /* Link to the next outer transaction.  */
+  struct tm_region *outer;
+
   /* The GIMPLE_TM_ATOMIC statement beginning this transaction.  */
   gimple tm_atomic_stmt;
 
@@ -769,33 +786,40 @@ struct tm_region
 
   /* The set of all blocks that end the region; NULL if only EXIT_BLOCK.  */
   bitmap exit_blocks;
-
-  /* The EH region number assigned to this transaction.  */
-  int region_nr;
 };
 
 static struct tm_region *all_tm_regions;
 static bitmap_obstack tm_obstack;
 
 
-/* A subroutine of gate_tm_init, callback via for_each_tm_atomic.
-   Record the existance of the GIMPLE_TM_ATOMIC statement in a linked
-   list of tm_region elements.  */
+/* A subroutine of tm_region_init.  Record the existance of the
+   GIMPLE_TM_ATOMIC statement in a tree of tm_region elements.  */
 
-static void
-tm_region_init_1 (gimple stmt, void *xdata)
+static struct tm_region *
+tm_region_init_0 (struct tm_region *outer, basic_block bb, gimple stmt)
 {
-  struct tm_region **pptr = (struct tm_region **) xdata;
   struct tm_region *region;
-  basic_block bb = gimple_bb (stmt);
 
   /* ??? Verify that the statement (and the block) haven't been deleted.  */
-  gcc_assert (bb != NULL);
+  gcc_assert (gimple_bb (stmt) == bb);
   gcc_assert (gimple_code (stmt) == GIMPLE_TM_ATOMIC);
 
   region = (struct tm_region *)
     obstack_alloc (&tm_obstack.obstack, sizeof (struct tm_region));
-  region->next = *pptr;
+
+  if (outer)
+    {
+      region->next = outer->inner;
+      outer->inner = region;
+    }
+  else
+    {
+      region->next = all_tm_regions;
+      all_tm_regions = region;
+    }
+  region->inner = NULL;
+  region->outer = outer;
+
   region->tm_atomic_stmt = stmt;
 
   /* There are either one or two edges out of the block containing
@@ -805,71 +829,62 @@ tm_region_init_1 (gimple stmt, void *xdata)
   region->entry_block = FALLTHRU_EDGE (bb)->dest;
 
   region->exit_blocks = BITMAP_ALLOC (&tm_obstack);
-  region->region_nr = lookup_stmt_eh_region (stmt);
 
-  *pptr = region;
+  return region;
 }
 
+/* A subroutine of tm_region_init.  Process BB and its dominated blocks.
+   Record exit blocks for REGION and find nested regions.  */
+
 static void
-tm_region_init_2 (struct tm_region *region, VEC (basic_block, heap) **pqueue)
+tm_region_init_1 (struct tm_region *region, basic_block bb)
 {
-  gcc_assert (VEC_empty (basic_block, *pqueue));
+  gimple_stmt_iterator gsi;
+  gimple g;
 
-  VEC_quick_push (basic_block, *pqueue, region->entry_block);
-  do
+  /* Check to see if this is the end of a region by seeing if it 
+     contains a call to __builtin_tm_commit{,_eh}.  Note that the
+     outermost region for DECL_IS_TM_CLONE need not collect this.  */
+  if (region && region->exit_blocks)
     {
-      basic_block bb = VEC_pop (basic_block, *pqueue);
-      gimple_stmt_iterator gsi;
-
-      /* Check to see if this is the end of the region by seeing if it
-	 ends in a call to __tm_commit.  */
       for (gsi = gsi_last_bb (bb); !gsi_end_p (gsi); gsi_prev (&gsi))
 	{
-	  gimple g = gsi_stmt (gsi);
+	  g = gsi_stmt (gsi);
 	  if (gimple_code (g) == GIMPLE_CALL)
 	    {
 	      tree fn = gimple_call_fndecl (g);
 	      if (fn && DECL_BUILT_IN_CLASS (fn) == BUILT_IN_NORMAL
 		  && (DECL_FUNCTION_CODE (fn) == BUILT_IN_TM_COMMIT
-		      || DECL_FUNCTION_CODE (fn) == BUILT_IN_TM_COMMIT_EH)
-		  && lookup_stmt_eh_region (g) == region->region_nr)
+		      || DECL_FUNCTION_CODE (fn) == BUILT_IN_TM_COMMIT_EH))
 		{
 		  bitmap_set_bit (region->exit_blocks, bb->index);
-		  goto skip;
+		  region = region->outer;
+		  break;
 		}
 	    }
 	}
-
-      for (bb = first_dom_son (CDI_DOMINATORS, bb); bb;
-	   bb = next_dom_son (CDI_DOMINATORS, bb))
-	VEC_safe_push (basic_block, heap, *pqueue, bb);
-
-    skip:;
     }
-  while (!VEC_empty (basic_block, *pqueue));
+
+  /* Check for the last statement in the block beginning a new region.  */
+  g = last_stmt (bb);
+  if (g && gimple_code (g) == GIMPLE_TM_ATOMIC)
+    region = tm_region_init_0 (region, bb, g);
+
+  /* Process dominated blocks.  */
+  for (bb = first_dom_son (CDI_DOMINATORS, bb); bb;
+       bb = next_dom_son (CDI_DOMINATORS, bb))
+    tm_region_init_1 (region, bb);
 }
 
-static struct tm_region *
-tm_region_init (void)
+/* Collect all of the transaction regions within the current function
+   and record them in ALL_TM_REGIONS.  The REGION parameter may specify
+   an "outermost" region for use by tm clones.  */
+
+static void
+tm_region_init (struct tm_region *region)
 {
-  struct tm_region *r, *regions = NULL;
-  VEC (basic_block, heap) *queue;
-
-  /* Find each GIMPLE_TM_ATOMIC statement.  This data is stored
-     in the exception handling tables, so it's quickest to get
-     it out that way than actually search the function.  */
-  for_each_tm_atomic (false, tm_region_init_1, &regions);
-
-  if (regions == NULL)
-    return NULL;
-
-  /* Find the exit blocks for each region.  */
-  queue = VEC_alloc (basic_block, heap, 10);
-  for (r = regions; r; r = r->next)
-    tm_region_init_2 (r, &queue);
-  VEC_free (basic_block, heap, queue);
-
-  return regions;
+  all_tm_regions = region;
+  tm_region_init_1 (region, single_succ (ENTRY_BLOCK_PTR));
 }
 
 /* The "gate" function for all transactional memory expansion and optimization
@@ -891,24 +906,22 @@ gate_tm_init (void)
     {
       struct tm_region *region = (struct tm_region *)
 	obstack_alloc (&tm_obstack.obstack, sizeof (struct tm_region));
-      region->next = NULL;
-      region->tm_atomic_stmt = NULL;
+      memset (region, 0, sizeof (*region));
       region->entry_block = ENTRY_BLOCK_PTR;
-      region->exit_blocks = NULL;
-      region->region_nr = -1;
-      all_tm_regions = region;
 
-      return true;
+      tm_region_init (region);
     }
-
-  all_tm_regions = tm_region_init ();
-
-  /* If we didn't find any regions, cleanup and skip the whole tree
-     of tm-related optimizations.  */
-  if (all_tm_regions == NULL)
+  else
     {
-      bitmap_obstack_release (&tm_obstack);
-      return false;
+      tm_region_init (NULL);
+
+      /* If we didn't find any regions, cleanup and skip the whole tree
+	 of tm-related optimizations.  */
+      if (all_tm_regions == NULL)
+	{
+	  bitmap_obstack_release (&tm_obstack);
+	  return false;
+	}
     }
 
   return true;
@@ -942,16 +955,6 @@ tm_atomic_subcode_ior (struct tm_region *region, unsigned flags)
   if (region->tm_atomic_stmt)
     gimple_tm_atomic_set_subcode (region->tm_atomic_stmt,
       gimple_tm_atomic_subcode (region->tm_atomic_stmt) | flags);
-}
-
-
-/* Add STMT to the EH region for the given TM region.  */
-
-static void
-add_stmt_to_tm_region (struct tm_region *region, gimple stmt)
-{
-  if (region->region_nr >= 0)
-    add_stmt_to_eh_region (stmt, region->region_nr);
 }
 
 
@@ -1144,7 +1147,7 @@ expand_assign_tm (struct tm_region *region, gimple_stmt_iterator *gsi)
       gcall = build_tm_store (lhs, rhs, gsi);
     }
 
-  add_stmt_to_tm_region  (region, gcall);
+  /* add_stmt_to_tm_region  (region, gcall); */
 }
 
 
@@ -1319,11 +1322,35 @@ struct gimple_opt_pass pass_tm_mark =
 };
 
 /* Create an abnormal call edge from BB to the first block of the region
-   represented by STATE.  */
+   represented by STATE.  Also record the edge in the TM_RESTART map.  */
 
 static inline void
-make_tm_edge (basic_block bb, struct tm_region *region)
+make_tm_edge (gimple stmt, basic_block bb, struct tm_region *region)
 {
+  void **slot;
+  struct tm_restart_node *n, dummy;
+
+  if (cfun->tm_restart == NULL)
+    cfun->tm_restart = htab_create_ggc (31, struct_ptr_hash,
+					struct_ptr_eq, ggc_free);
+
+  dummy.stmt = stmt;
+  dummy.label_or_list = gimple_block_label (region->entry_block); 
+  slot = htab_find_slot (cfun->tm_restart, &dummy, INSERT);
+  n = (struct tm_restart_node *) *slot;
+  if (n == NULL)
+    {
+      n = GGC_NEW (struct tm_restart_node);
+      *n = dummy;
+    }
+  else
+    { 
+      tree old = n->label_or_list;
+      if (TREE_CODE (old) == LABEL_DECL)
+	old = tree_cons (NULL, old, NULL);
+      n->label_or_list = tree_cons (NULL, dummy.label_or_list, old);
+    }
+
   make_edge (bb, region->entry_block, EDGE_ABNORMAL | EDGE_ABNORMAL_CALL);
 }
 
@@ -1342,7 +1369,7 @@ expand_block_edges (struct tm_region *region, basic_block bb)
 
       /* ??? TM_COMMIT (and any other ECF_TM_OPS function) in a nested
 	 transaction has an abnormal edge back to the outer-most transaction
-	 (there are no nested retries), while a TM_ABORT has an abnormal
+	 (there are no nested retries), while a TM_ABORT also has an abnormal
 	 backedge to the inner-most transaction.  We havn't actually saved
 	 the inner-most transaction here.  We should be able to get to it
 	 via the region_nr saved on STMT, and read the tm_atomic_stmt from
@@ -1350,16 +1377,15 @@ expand_block_edges (struct tm_region *region, basic_block bb)
       if (gimple_code (stmt) == GIMPLE_CALL
 	  && (gimple_call_flags (stmt) & ECF_TM_OPS) != 0)
 	{
-	  if (!gsi_one_before_end_p (gsi))
+	  if (gsi_one_before_end_p (gsi))
+	    make_tm_edge (stmt, bb, region);
+	  else
 	    {
 	      edge e = split_block (bb, stmt);
-	      make_tm_edge (bb, region);
+	      make_tm_edge (stmt, bb, region);
 	      bb = e->dest;
 	      gsi = gsi_start_bb (bb);
-	      continue;
 	    }
-
-	  make_tm_edge (bb, region);
 	}
 
       gsi_next (&gsi);
@@ -1449,14 +1475,6 @@ expand_tm_atomic (struct tm_region *region)
 
       e = make_edge (atomic_bb, empty_bb, EDGE_FALLTHRU);
     }
-
-  /* Record an EH label for the region.  This will be where the 
-     transaction restart backedge goes.  This is sort of fake,
-     since the runtime actually uses longjmp to get back here,
-     but its existance makes it easier to interface with the
-     rest of the EH code in creating the CFG.  */
-  set_eh_region_tree_label (get_eh_region_from_number (region->region_nr),
-			    gimple_block_label (region->entry_block));
 
   /* The GIMPLE_TM_ATOMIC statement no longer exists.  */
   region->tm_atomic_stmt = NULL;
@@ -2685,7 +2703,9 @@ ipa_tm_region_init (struct cgraph_node *node)
   push_cfun (DECL_STRUCT_FUNCTION (node->decl));
   calculate_dominance_info (CDI_DOMINATORS);
 
-  regions = tm_region_init ();
+  tm_region_init (NULL);
+  regions = all_tm_regions;
+  all_tm_regions = NULL;
 
   pop_cfun ();
   current_function_decl = NULL;
@@ -2785,7 +2805,6 @@ ipa_tm_insert_irr_call (struct cgraph_node *node, struct tm_region *region,
   tm_atomic_subcode_ior (region, GTMA_MAY_ENTER_IRREVOCABLE);
 
   g = gimple_build_call (built_in_decls[BUILT_IN_TM_IRREVOCABLE], 0);
-  add_stmt_to_tm_region (region, g);
 
   e = split_block_after_labels (bb);
   gsi = gsi_after_labels (bb);
@@ -2833,10 +2852,7 @@ ipa_tm_insert_gettmclone_call (struct cgraph_node *node,
      can get away with ignoring it, since the indirect function that
      we're about to call should also have the back edge.  */
   if (0 && !safe)
-    {
-      gimple_call_set_in_tm_atomic (g, true);
-      add_stmt_to_tm_region (region, g);
-    }
+    gimple_call_set_in_tm_atomic (g, true);
 
   gsi_insert_before (gsi, g, GSI_SAME_STMT);
 

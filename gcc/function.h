@@ -457,6 +457,14 @@ extern GTY(()) struct rtl_data x_rtl;
    want to do differently.  */
 #define crtl (&x_rtl)
 
+/* This structure is used to map a gimple statement to a label,
+   or list of labels to represent transaction restart.  */
+
+struct GTY(()) tm_restart_node {
+  gimple stmt;
+  tree label_or_list;
+};
+
 /* This structure can save all the important global and static variables
    describing the status of the current function.  */
 
@@ -477,6 +485,10 @@ struct GTY(()) function {
 
   /* Value histograms attached to particular statements.  */
   htab_t GTY((skip)) value_histograms;
+
+  /* Map gimple stmt to tree label (or list of labels) for transaction
+     restart and abort.  */
+  htab_t GTY ((param_is (struct tm_restart_node))) tm_restart;
 
   /* For function.c.  */
 

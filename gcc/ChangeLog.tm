@@ -1,3 +1,33 @@
+2009-10-12  Richard Henderson  <rth@redhat.com>
+
+	* calls.c (emit_call_1): Don't add REG_TM note here.
+	* cfgbuild.c (make_edges): Add edges for REG_TM notes.
+	* cfgexpand.c (expand_gimple_stmt): Add REG_TM notes.
+	(gimple_expand_cfg): Free the tm_restart map.
+	* cfgrtl.c (purge_dead_edges): Look for REG_TM notes.
+	* combine.c (distribute_notes): Handle REG_TM notes.
+	* emit-rtl.c (try_split): Likewise.
+	* recog.c (peephole2_optimize): Likewise.
+	* rtlanal.c (alloc_reg_note): Likewise.
+	* function.h (struct tm_restart_node): New.
+	(struct function): Add tm_restart member.
+	* trans-mem.c (lower_tm_atomic): Use __builtin_eh_pointer; flatten
+	GIMPLE_TM_ATOMIC immediately.
+	(struct tm_region): Add inner and outer members; remove region_nr.
+	(tm_region_init_0): New.
+	(tm_region_init_1, tm_region_init): Rewrite for a direct scan.
+	(tm_region_init_2): Remove.
+	(gate_tm_init): Adjust for tm_region_init interface change.
+	(make_tm_edge): Record edge in tm_restart map.
+	(expand_block_edges): Tidy.
+	(expand_tm_atomic): Don't call set_eh_region_tree_label.
+	(ipa_tm_region_init): Adjust for tm_region_init changes.
+	(add_stmt_to_tm_region): Remove.
+	(ipa_tm_insert_irr_call): Don't call it.
+	(ipa_tm_insert_gettmclone_call): Likewise.
+	* tree-eh.c (struct_ptr_eq, struct_ptr_hash): Export.
+	* tree.h (struct_ptr_eq, struct_ptr_hash): Declare.
+
 2009-10-08  Aldy Hernandez  <aldyh@redhat.com>
 
 	* trans-mem.c (tm_memopt_compute_avin): Do not special case entry

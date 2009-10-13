@@ -59,7 +59,7 @@ using_eh_for_cleanups (void)
    pointer.  Assumes all pointers are interchangeable, which is sort
    of already assumed by gcc elsewhere IIRC.  */
 
-static int
+int
 struct_ptr_eq (const void *a, const void *b)
 {
   const void * const * x = (const void * const *) a;
@@ -67,7 +67,7 @@ struct_ptr_eq (const void *a, const void *b)
   return *x == *y;
 }
 
-static hashval_t
+hashval_t
 struct_ptr_hash (const void *a)
 {
   const void * const * x = (const void * const *) a;

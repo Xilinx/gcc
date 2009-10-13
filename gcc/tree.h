@@ -4726,6 +4726,8 @@ extern void expand_return (tree);
 
 /* In tree-eh.c */
 extern void using_eh_for_cleanups (void);
+extern int struct_ptr_eq (const void *, const void *);
+extern hashval_t struct_ptr_hash (const void *);
 
 /* In fold-const.c */
 

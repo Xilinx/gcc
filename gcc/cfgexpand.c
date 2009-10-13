@@ -2007,6 +2007,32 @@ expand_gimple_stmt (gimple stmt)
 	}
     }
 
+  /* Mark all calls that can have a transaction restart.  */
+  if (cfun->tm_restart && is_gimple_call (stmt))
+    {
+      struct tm_restart_node dummy;
+      void **slot;
+
+      dummy.stmt = stmt;
+      slot = htab_find_slot (cfun->tm_restart, &dummy, NO_INSERT);
+      if (slot)
+	{
+	  struct tm_restart_node *n = (struct tm_restart_node *) *slot;
+	  tree list = n->label_or_list;
+	  rtx insn;
+
+	  for (insn = next_real_insn (last); !CALL_P (insn);
+	       insn = next_real_insn (insn))
+	    continue;
+
+	  if (TREE_CODE (list) == LABEL_DECL)
+	    add_reg_note (insn, REG_TM, label_rtx (list));
+	  else
+	    for (; list ; list = TREE_CHAIN (list))
+	      add_reg_note (insn, REG_TM, label_rtx (TREE_VALUE (list)));
+	}
+    }
+
   return last;
 }
 
@@ -3708,10 +3734,15 @@ gimple_expand_cfg (void)
   /* After expanding, the return labels are no longer needed. */
   return_label = NULL;
   naked_return_label = NULL;
+
+  /* After expanding, the tm_restart map is no longer needed.  */
+  cfun->tm_restart = NULL;
+
   /* Tag the blocks with a depth number so that change_scope can find
      the common parent easily.  */
   set_block_levels (DECL_INITIAL (cfun->decl), 0);
   default_rtl_profile ();
+
   return 0;
 }
 

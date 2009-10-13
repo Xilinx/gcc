@@ -3188,6 +3188,7 @@ peephole2_optimize (void)
 			  {
 			  case REG_NORETURN:
 			  case REG_SETJMP:
+			  case REG_TM:
 			    add_reg_note (new_insn, REG_NOTE_KIND (note),
 					  XEXP (note, 0));
 			    break;
