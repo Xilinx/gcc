@@ -1,4 +1,10 @@
 2009-10-13  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.melt: added a lot more documentations and
+	using more macrostrings. Removed output_cfile_decl_impl.
+	* melt/warmelt-outobj.melt: use a code_chunk to call
+	melt_output_cfile_decl_impl.
+
+2009-10-13  Basile Starynkevitch  <basile@starynkevitch.net>
 	[renamed command to mode]
 	* doc/melt.texi: updated.
 	* melt-make.mk: added dependency on warmelt-predef.melt.

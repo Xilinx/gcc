@@ -334,7 +334,8 @@ same object. The boxed maximal depth is $DBGI_MAXDEPTH.}# )
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; ================ classes for environments & bindings
 
-;;;; the class for environments - predefined to ensure all environment have the same (super*)class
+;;;; the class for environments - predefined to ensure all
+;;;; environments have the same (super*)class
 (defclass class_environment
   :predef CLASS_ENVIRONMENT
   :super class_root
@@ -996,13 +997,11 @@ from $IMIN to $IMAX included.}#
   :doc #{Output on stderr the stringbuffer value $sbuf.}#
   #{melt_putstrbuf(stderr,(melt_ptr_t)($sbuf))}#)
 (defprimitive outnewline_err () :void
+  :doc #{Output on stderr a newline and flush.}#
   "melt_newlineflush(stderr)")
 (defprimitive outstr_err (str) :void
+  :doc #{Output on stderr a MELT string.}#
   #{melt_putstr(stderr, (melt_ptr_t)($str))}#)
-
-(defprimitive output_cfile_decl_impl (uninam declbuf implbuf) :void
-  #{melt_output_cfile_decl_impl((melt_ptr_t)($uninam), (melt_ptr_t)($declbuf), 
-				(melt_ptr_t)($implbuf))}#)
 
 (defprimitive message_dbg (:cstring msg) :void :doc #{Debug message $msg}#
   #{debugeputs(($msg))}#)
@@ -1024,8 +1023,8 @@ from $IMIN to $IMAX included.}#
 #endif
 }#)
 (defprimitive checkval_dbg (val :cstring msg) :value
-  :doc #{Low level costly check of value $VAL with message $MSG.}#
-  #{melt_checked_assignmsg(($val),($msg))}#)
+  :doc #{Low-level costly check of value $VAL with message $MSG. Mostly useful for gurus.}#
+  #{melt_checked_assignmsg (($val),($msg))}#)
 (defprimitive debugcstring (:cstring msg str) :void
   :doc #{Debug cstring $MSG $STR.}#
   #{debugeprintf("debugcstring %s '%s'", $msg, $str)}#)
@@ -1222,56 +1221,80 @@ from $IMIN to $IMAX included.}#
 
 ;; primitive to add a strbuf, C encoded, into a outbuf
 (defprimitive add2out_ccomstrbuf (out asbuf) :void 
+  :doc #{Add to $OUT the C-comment encoded stringbuffer $ASBUF.}#
   #{meltgc_add_out_ccomment((melt_ptr_t)($out), melt_out_str((melt_ptr_t)($asbuf)))}#)
 
 ;; primitive to add a cstring const, Ccomment encoded, into a outbuf
 (defprimitive add2out_ccomconst (out :cstring cstr) :void 
-  "meltgc_add_out_ccomment((" out "), "  cstr ")")
+  :doc #{Add to $OUT the constant C-comment encoded raw $CSTR.}#
+  #{meltgc_add_out_ccomment(($out), $cstr)}#)
 
 ;; primitive to add into a outbuf a string as C ident (nonalphanum
 ;; replaced by _)
 (defprimitive add2out_cident (out str) :void
-  "meltgc_add_out_cident((melt_ptr_t)(" out 
-  "), melt_string_str((melt_ptr_t)(" str ")))")
+  :doc #{Add to $OUT the MELT string $STR encocded as a C identifier, so
+with every non-alnum character replaced with an underscore.}#
+  #{meltgc_add_out_cident((melt_ptr_t)($out), 
+			  melt_string_str((melt_ptr_t)($str)))}#)
 
 ;; primitive to add into a outbuf the prefix of a string as C ident (nonalphanum
 ;; replaced by _) limited by a small length 
 (defprimitive add2out_cidentprefix  (out str :long preflen) :void
-  "meltgc_add_out_cidentprefix((melt_ptr_t)(" out "), melt_string_str((melt_ptr_t)(" str ")), (" preflen "))")
+  :doc #{Add to $OUT the prefix of a string encoded as a C identifier,
+limited by a small length $PREFLEN.}#
+  #{meltgc_add_out_cidentprefix((melt_ptr_t)($out), 
+				melt_string_str((melt_ptr_t)($str)), 
+				($preflen))}#)
 
 ;; primitive to add a long in decimal into a outbuf
 (defprimitive add2out_longdec (out :long num) :void
-  "meltgc_add_out_dec((melt_ptr_t)(" out "), (" num "))")
+  :doc #{Add to $OUT the number $NUM in decimal.}#
+  #{meltgc_add_out_dec((melt_ptr_t)($out), ($num))}#)
 
 ;; primitive to add a long in hex into a outbuf
 (defprimitive add2out_longhex (out :long num) :void
-  "meltgc_add_out_hex((melt_ptr_t)(" out "), (" num "))")
+  :doc #{Add to $OUT the number $NUM in hex.}#
+  #{meltgc_add_out_hex((melt_ptr_t)($out), ($num))}#)
 
 ;; primitive to add a routine descr into a outbuf
 (defprimitive add2out_routinedescr (out rout) :void
-  "meltgc_add_out((melt_ptr_t)(" out "), melt_routine_descrstr((melt_ptr_t)(" rout ")))")
+  :doc #{Add to $OUT the routine desscriptor $ROUT.}#
+  #{meltgc_add_out((melt_ptr_t)($out), 
+		   melt_routine_descrstr((melt_ptr_t)($rout)))}#)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; STRING primitives
 ;; primitive for testing if a value is a string
 (defprimitive is_string (str) :long
-  " (melt_magic_discr((melt_ptr_t)(" str ")) == OBMAG_STRING)")
+  :doc #{Test that $STR is a string values.}#
+  #{(melt_magic_discr((melt_ptr_t)($str)) == OBMAG_STRING)}#)
 ;; string equal
 (defprimitive ==s (s1 s2) :long
-  "melt_string_same((melt_ptr_t)(" s1 "), (melt_ptr_t)(" s2 "))")
+  :doc #{Test that $S1 and $S2 are both string values and are equal.}#
+  #{melt_string_same((melt_ptr_t)($s1), (melt_ptr_t)($s2))}#)
 ;;; make a string
 (defprimitive make_string (dis str) :value
-  "(meltgc_new_stringdup((meltobject_ptr_t)(" dis 
-  "), melt_string_str((melt_ptr_t)(" str "))))")
+  :doc #{Make a new string of discriminant $DIS from string value $STR.}#
+  #{(meltgc_new_stringdup((meltobject_ptr_t)($dis), 
+			  melt_string_str((melt_ptr_t)($str))))}#)
 (defprimitive make_stringconst (dis :cstring cstr) :value
-  "(meltgc_new_stringdup((meltobject_ptr_t)(" dis "), (" cstr ")))")
+  :doc #{Make a new string of distriminant $DIS from raw string constant $CSTR.}#
+  #{(meltgc_new_stringdup((meltobject_ptr_t)($dis), ($cstr)))}#)
 (defprimitive is_stringconst (str :cstring cs) :long
-  "(melt_is_string_const((melt_ptr_t)(" str "), (" cs ")))")
+  :doc #{Test that value string $STR is the raw string constant $CS.}#
+  #{(melt_is_string_const((melt_ptr_t)($str), ($cs)))}#)
 (defprimitive string_length (str) :long
-  "melt_string_length((melt_ptr_t)(" str "))")
-(defprimitive string= (s1 s2) :long "melt_string_same((" s1 "), (" s2 "))")
-(defprimitive string< (s1 s2) :long "melt_string_less((melt_ptr_t)(" s1 "), (melt_ptr_t)(" s2 "))")
-(defprimitive string> (s1 s2) :long "melt_string_less((melt_ptr_t)(" s2 "), (melt_ptr_t)(" s1 "))")
+  :doc #{Give the length of string value $STR.}#
+  #{melt_string_length((melt_ptr_t)($str))}#)
+(defprimitive string= (s1 s2) :long 
+  :doc #{Test that value strings $S1 and $S2 are equal as strings.}#
+  #{melt_string_same(($s1), ($s2))}#)
+(defprimitive string< (s1 s2) :long 
+  :doc #{Test that value string $S1 is less than $S2, compared alphanumerically as strings.}#
+  #{melt_string_less((melt_ptr_t)($s1), (melt_ptr_t)($s2))}#)
+(defprimitive string> (s1 s2) :long 
+  :doc #{Test that value string $S1 is greater than $S2.}#
+  #{melt_string_less((melt_ptr_t)($s2), (melt_ptr_t)($s1))}#)
 
 (defprimitive split_string_space (dis :cstring cs) :value
   :doc #{Split a cstring $CS into a list of space separated strings of
@@ -1315,8 +1338,10 @@ discriminant $DIS.}#
 
 ;; generate a loadable module from a MELT generated C source file; the
 ;;  out is the dynloaded module without any *.so suffix 
-(defprimitive generate_melt_module (src out) :void
-  #{meltgc_generate_melt_module($src,$out);}#)
+(defprimitive generate_melt_module (src outnam) :void
+  :doc #{Generate and load a module whose source is named after $SRC 
+and whose binary is named after $OUTNAM without any '.so' suffix.}#
+  #{meltgc_generate_melt_module($src,$outnam);}#)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; OBJECT primitives
@@ -1428,6 +1453,9 @@ Returns a boxed integer.}#
   (matchedtup :long matchedrk)				;match & ins
   (outcomp)				;out
   tupnth				;statesymb
+  :doc #{The $TUPLE_NTH matcher with input number $MATCHEDRK matches a
+tuple of length greater than $MATCHEDRK and retrieve the component
+of that index, and matches it against the sub-pattern.}#
   ;;test expansion
    #{/*$TUPNTH ?*/ (melt_is_multiple_at_least(((melt_ptr_t)$matchedtup), 1+ (int)($matchedrk)))}#
    ;;fill expansion
@@ -1453,7 +1481,7 @@ Returns a boxed integer.}#
 ;; primitive to compute the length of a cstring
 (defprimitive cstring_length
   (:cstring cstr) :long
-  :doc #{ compute safely the length a C-string $cstr. Gives 0 if null argument. }#
+  :doc #{Compute safely the length a C-string $cstr. Gives 0 if null argument. }#
   #{(($cstr)?strlen($cstr):0)}#)
 
 ;; cmatcher for a tuple of a given exact size
@@ -1461,6 +1489,7 @@ Returns a boxed integer.}#
   (tup :long ln)			;match & ins
   () 					;outs
   tupsiz				;statesymb
+  :doc #{Match a tuple of given exact size.}#
   ;;test expansion
    #{(melt_is_multiple_of_length((melt_ptr_t)($tup), (int) ($ln)))}#
   ;; no fill expansion
@@ -1631,6 +1660,7 @@ make a $CURAT string.}#
 )
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; ROUTINEs primitives
+(compile_warning "should document the routine primitives below")
 ;; test
 (defprimitive is_routine (rou) :long
   "(melt_magic_discr((melt_ptr_t)(" rou ")) == OBMAG_ROUTINE)")
@@ -4883,7 +4913,6 @@ list.}#
  outnewline_err
  outnum_dbg
  outnum_err
- output_cfile_decl_impl
  output_sbuf_strconst
  output_sbuf_strval
  outstr_dbg
