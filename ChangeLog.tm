@@ -1,3 +1,7 @@
+2009-10-14  Richard Henderson  <rth@redhat.com>
+
+	* Merge from mainline rev 152728.
+
 2009-10-13  Richard Henderson  <rth@redhat.com>
 
 	* Merge from mainline rev 152433.

@@ -1284,6 +1284,8 @@ build_qualified_name (tree type, tree scope, tree name, bool template_p)
     return error_mark_node;
   t = build2 (SCOPE_REF, type, scope, name);
   QUALIFIED_NAME_IS_TEMPLATE (t) = template_p;
+  if (type)
+    t = convert_from_reference (t);
   return t;
 }
 
@@ -3126,6 +3128,17 @@ cp_free_lang_data (tree t)
 	 in this TU.  So make it an external reference.  */
       DECL_EXTERNAL (t) = 1;
       TREE_STATIC (t) = 0;
+    }
+  if (CP_AGGREGATE_TYPE_P (t)
+      && TYPE_NAME (t))
+    {
+      tree name = TYPE_NAME (t);
+      if (TREE_CODE (name) == TYPE_DECL)
+	name = DECL_NAME (name);
+      /* Drop anonymous names.  */
+      if (name != NULL_TREE
+	  && ANON_AGGRNAME_P (name))
+	TYPE_NAME (t) = NULL_TREE;
     }
 }
 

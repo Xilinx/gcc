@@ -6967,8 +6967,8 @@ cp_parser_trait_expr (cp_parser* parser, enum rid keyword)
 /* Lambdas that appear in variable initializer or default argument scope
    get that in their mangling, so we need to record it.  We might as well
    use the count for function and namespace scopes as well.  */
-static tree lambda_scope;
-static int lambda_count;
+static GTY(()) tree lambda_scope;
+static GTY(()) int lambda_count;
 typedef struct GTY(()) tree_int
 {
   tree t;
@@ -7137,6 +7137,7 @@ cp_parser_lambda_introducer (cp_parser* parser, tree lambda_expr)
       tree capture_id;
       tree capture_init_expr;
       cp_id_kind idk = CP_ID_KIND_NONE;
+      bool explicit_init_p = false;
 
       enum capture_kind_type
       {
@@ -7163,7 +7164,8 @@ cp_parser_lambda_introducer (cp_parser* parser, tree lambda_expr)
 	  add_capture (lambda_expr,
 		       /*id=*/get_identifier ("__this"),
 		       /*initializer=*/finish_this_expr(),
-		       /*by_reference_p=*/false);
+		       /*by_reference_p=*/false,
+		       explicit_init_p);
 	  continue;
 	}
 
@@ -7202,6 +7204,7 @@ cp_parser_lambda_introducer (cp_parser* parser, tree lambda_expr)
 	  capture_init_expr = cp_parser_assignment_expression (parser,
 							       /*cast_p=*/true,
 							       &idk);
+	  explicit_init_p = true;
 	}
       else
 	{
@@ -7243,7 +7246,8 @@ cp_parser_lambda_introducer (cp_parser* parser, tree lambda_expr)
       add_capture (lambda_expr,
 		   capture_id,
 		   capture_init_expr,
-		   /*by_reference_p=*/capture_kind == BY_REFERENCE);
+		   /*by_reference_p=*/capture_kind == BY_REFERENCE,
+		   explicit_init_p);
     }
 
   cp_parser_require (parser, CPP_CLOSE_SQUARE, "%<]%>");
@@ -9561,12 +9565,25 @@ cp_parser_decltype (cp_parser *parser)
     cp_parser_parse_definitely (parser);
   else
     {
+      bool saved_greater_than_is_operator_p;
+
       /* Abort our attempt to parse an id-expression or member access
          expression.  */
       cp_parser_abort_tentative_parse (parser);
 
+      /* Within a parenthesized expression, a `>' token is always
+	 the greater-than operator.  */
+      saved_greater_than_is_operator_p
+	= parser->greater_than_is_operator_p;
+      parser->greater_than_is_operator_p = true;
+
       /* Parse a full expression.  */
       expr = cp_parser_expression (parser, /*cast_p=*/false, NULL);
+
+      /* The `>' token might be the end of a template-id or
+	 template-parameter-list now.  */
+      parser->greater_than_is_operator_p
+	= saved_greater_than_is_operator_p;
     }
 
   /* Go back to evaluating expressions.  */
@@ -18470,17 +18487,12 @@ cp_parser_function_definition_after_declarator (cp_parser* parser,
   saved_num_template_parameter_lists
     = parser->num_template_parameter_lists;
   parser->num_template_parameter_lists = 0;
-<<<<<<< .working
-  /* If the next token is `try' or `__tm_atomic', then we are looking at
-     either function-try-block or function-atomic-block.  Note that both
-     of these include the function-body.  */
-=======
 
   start_lambda_scope (current_function_decl);
 
-  /* If the next token is `try', then we are looking at a
-     function-try-block.  */
->>>>>>> .merge-right.r152433
+  /* If the next token is `try' or `__tm_atomic', then we are looking at
+     either function-try-block or function-atomic-block.  Note that both
+     of these include the function-body.  */
   if (cp_lexer_next_token_is_keyword (parser->lexer, RID_TRY))
     ctor_initializer_p = cp_parser_function_try_block (parser);
   else if (cp_lexer_next_token_is_keyword (parser->lexer, RID_TM_ATOMIC))

@@ -1028,7 +1028,8 @@ verify_c_interop_param (gfc_symbol *sym)
 /* Build a polymorphic CLASS entity, using the symbol that comes from build_sym.
    A CLASS entity is represented by an encapsulating type, which contains the
    declared type as '$data' component, plus an integer component '$vindex'
-   which determines the dynamic type.  */
+   which determines the dynamic type, and another integer '$size', which
+   contains the size of the dynamic type structure.  */
 
 static gfc_try
 encapsulate_class_symbol (gfc_typespec *ts, symbol_attribute *attr,
@@ -1077,12 +1078,21 @@ encapsulate_class_symbol (gfc_typespec *ts, symbol_attribute *attr,
       c->attr.pointer = attr->pointer || attr->dummy;
       c->attr.allocatable = attr->allocatable;
       c->attr.dimension = attr->dimension;
+      c->attr.abstract = ts->u.derived->attr.abstract;
       c->as = (*as);
       c->initializer = gfc_get_expr ();
       c->initializer->expr_type = EXPR_NULL;
 
       /* Add component '$vindex'.  */
       if (gfc_add_component (fclass, "$vindex", &c) == FAILURE)
+   	return FAILURE;
+      c->ts.type = BT_INTEGER;
+      c->ts.kind = 4;
+      c->attr.access = ACCESS_PRIVATE;
+      c->initializer = gfc_int_expr (0);
+
+      /* Add component '$size'.  */
+      if (gfc_add_component (fclass, "$size", &c) == FAILURE)
    	return FAILURE;
       c->ts.type = BT_INTEGER;
       c->ts.kind = 4;
@@ -1463,9 +1473,9 @@ build_struct (const char *name, gfc_charlen *cl, gfc_expr **init,
 {
   gfc_component *c;
 
-  /* If the current symbol is of the same derived type that we're
+  /* F03:C438/C439. If the current symbol is of the same derived type that we're
      constructing, it must have the pointer attribute.  */
-  if (current_ts.type == BT_DERIVED
+  if ((current_ts.type == BT_DERIVED || current_ts.type == BT_CLASS)
       && current_ts.u.derived == gfc_current_block ()
       && current_attr.pointer == 0)
     {
@@ -6746,8 +6756,44 @@ gfc_get_type_attr_spec (symbol_attribute *attr, char *name)
 }
 
 
-/* Counter for assigning a unique vindex number to each derived type.  */
-static int vindex_counter = 0;
+/* Assign a hash value for a derived type. The algorithm is that of
+   SDBM. The hashed string is '[module_name #] derived_name'.  */
+static unsigned int
+hash_value (gfc_symbol *sym)
+{
+  unsigned int hash = 0;
+  const char *c;
+  int i, len;
+
+  /* Hash of the module or procedure name.  */
+  if (sym->module != NULL)
+    c = sym->module;
+  else if (sym->ns && sym->ns->proc_name
+	     && sym->ns->proc_name->attr.flavor == FL_MODULE)
+    c = sym->ns->proc_name->name;
+  else
+    c = NULL;
+
+  if (c)
+    { 
+      len = strlen (c);
+      for (i = 0; i < len; i++, c++)
+	hash =  (hash << 6) + (hash << 16) - hash + (*c);
+
+      /* Disambiguate between 'a' in 'aa' and 'aa' in 'a'.  */ 
+      hash =  (hash << 6) + (hash << 16) - hash + '#';
+    }
+
+  /* Hash of the derived type name.  */
+  len = strlen (sym->name);
+  c = sym->name;
+  for (i = 0; i < len; i++, c++)
+    hash = (hash << 6) + (hash << 16) - hash + (*c);
+
+  /* Return the hash but take the modulus for the sake of module read,
+     even though this slightly increases the chance of collision.  */
+  return (hash % 100000000);
+}
 
 
 /* Match the beginning of a derived type declaration.  If a type name
@@ -6871,8 +6917,8 @@ gfc_match_derived_decl (void)
     }
 
   if (!sym->vindex)
-    /* Set the vindex for this type and increment the counter.  */
-    sym->vindex = ++vindex_counter;
+    /* Set the vindex for this type.  */
+    sym->vindex = hash_value (sym);
 
   /* Take over the ABSTRACT attribute.  */
   sym->attr.abstract = attr.abstract;

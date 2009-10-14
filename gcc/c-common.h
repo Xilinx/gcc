@@ -795,6 +795,7 @@ extern tree c_build_bitfield_integer_type (unsigned HOST_WIDE_INT, int);
 extern bool decl_with_nonnull_addr_p (const_tree);
 extern tree c_fully_fold (tree, bool, bool *);
 extern tree decl_constant_value_for_optimization (tree);
+extern tree c_wrap_maybe_const (tree, bool);
 extern tree c_save_expr (tree);
 extern tree c_common_truthvalue_conversion (location_t, tree);
 extern void c_apply_type_quals_to_decl (int, tree);
@@ -841,8 +842,6 @@ extern tree c_build_qualified_type (tree, int);
 /* Build tree nodes and builtin functions common to both C and C++ language
    frontends.  */
 extern void c_common_nodes_and_builtins (void);
-
-extern void set_builtin_user_assembler_name (tree decl, const char *asmspec);
 
 extern void disable_builtin_function (const char *);
 

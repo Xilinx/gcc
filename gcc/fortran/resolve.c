@@ -367,15 +367,26 @@ resolve_contained_fntype (gfc_symbol *sym, gfc_namespace *ns)
   /* Fortran 95 Draft Standard, page 51, Section 5.1.1.5, on the Character 
      type, lists the only ways a character length value of * can be used:
      dummy arguments of procedures, named constants, and function results
-     in external functions.  Internal function results are not on that list;
-     ergo, not permitted.  */
+     in external functions.  Internal function results and results of module
+     procedures are not on this list, ergo, not permitted.  */
 
   if (sym->result->ts.type == BT_CHARACTER)
     {
       gfc_charlen *cl = sym->result->ts.u.cl;
       if (!cl || !cl->length)
-	gfc_error ("Character-valued internal function '%s' at %L must "
-		   "not be assumed length", sym->name, &sym->declared_at);
+	{
+	  /* See if this is a module-procedure and adapt error message
+	     accordingly.  */
+	  bool module_proc;
+	  gcc_assert (ns->parent && ns->parent->proc_name);
+	  module_proc = (ns->parent->proc_name->attr.flavor == FL_MODULE);
+
+	  gfc_error ("Character-valued %s '%s' at %L must not be"
+		     " assumed length",
+		     module_proc ? _("module procedure")
+				 : _("internal function"),
+		     sym->name, &sym->declared_at);
+	}
     }
 }
 
@@ -4997,25 +5008,39 @@ resolve_typebound_call (gfc_code* c)
   c->op = (c->expr1->value.compcall.assign ? EXEC_ASSIGN_CALL : EXEC_CALL);
 
   gcc_assert (!c->expr1->ref && !c->expr1->value.compcall.actual);
+
   gfc_free_expr (c->expr1);
-  c->expr1 = NULL;
+  c->expr1 = gfc_get_expr ();
+  c->expr1->expr_type = EXPR_FUNCTION;
+  c->expr1->symtree = target;
+  c->expr1->where = c->loc;
 
   return resolve_call (c);
 }
 
 
-/* Resolve a component-call expression.  */
-
+/* Resolve a component-call expression.  This originally was intended
+   only to see functions.  However, it is convenient to use it in 
+   resolving subroutine class methods, since we do not have to add a
+   gfc_code each time. */
 static gfc_try
-resolve_compcall (gfc_expr* e)
+resolve_compcall (gfc_expr* e, bool fcn)
 {
   gfc_actual_arglist* newactual;
   gfc_symtree* target;
 
   /* Check that's really a FUNCTION.  */
-  if (!e->value.compcall.tbp->function)
+  if (fcn && !e->value.compcall.tbp->function)
     {
       gfc_error ("'%s' at %L should be a FUNCTION",
+		 e->value.compcall.name, &e->where);
+      return FAILURE;
+    }
+  else if (!fcn && !e->value.compcall.tbp->subroutine)
+    {
+      /* To resolve class member calls, we borrow this bit
+         of code to select the specific procedures.  */
+      gfc_error ("'%s' at %L should be a SUBROUTINE",
 		 e->value.compcall.name, &e->where);
       return FAILURE;
     }
@@ -5043,12 +5068,212 @@ resolve_compcall (gfc_expr* e)
   e->value.function.actual = newactual;
   e->value.function.name = e->value.compcall.name;
   e->value.function.esym = target->n.sym;
+  e->value.function.class_esym = NULL;
   e->value.function.isym = NULL;
   e->symtree = target;
   e->ts = target->n.sym->ts;
   e->expr_type = EXPR_FUNCTION;
 
-  return gfc_resolve_expr (e);
+  /* Resolution is not necessary if this is a class subroutine; this
+     function only has to identify the specific proc. Resolution of
+     the call will be done next in resolve_typebound_call.  */
+  return fcn ? gfc_resolve_expr (e) : SUCCESS;
+}
+
+
+/* Resolve a typebound call for the members in a class.  This group of
+   functions implements dynamic dispatch in the provisional version
+   of f03 OOP.  As soon as vtables are in place and contain pointers
+   to methods, this will no longer be necessary.  */
+static gfc_expr *list_e;
+static void check_class_members (gfc_symbol *);
+static gfc_try class_try;
+static bool fcn_flag;
+static gfc_symbol *class_object;
+
+
+static void
+check_members (gfc_symbol *derived)
+{
+  if (derived->attr.flavor == FL_DERIVED)
+    check_class_members (derived);
+}
+
+
+static void 
+check_class_members (gfc_symbol *derived)
+{
+  gfc_symbol* tbp_sym;
+  gfc_expr *e;
+  gfc_symtree *tbp;
+  gfc_class_esym_list *etmp;
+
+  e = gfc_copy_expr (list_e);
+
+  tbp = gfc_find_typebound_proc (derived, &class_try,
+				 e->value.compcall.name,
+				 false, &e->where);
+
+  if (tbp == NULL)
+    {
+      gfc_error ("no typebound available procedure named '%s' at %L",
+		 e->value.compcall.name, &e->where);
+      return;
+    }
+
+  if (tbp->n.tb->is_generic)
+    {
+      tbp_sym = NULL;
+
+      /* If we have to match a passed class member, force the actual
+	 expression to have the correct type.  */
+      if (!tbp->n.tb->nopass)
+	{
+	  if (e->value.compcall.base_object == NULL)
+	    e->value.compcall.base_object =
+			extract_compcall_passed_object (e);
+
+          e->value.compcall.base_object->ts.type = BT_DERIVED;
+          e->value.compcall.base_object->ts.u.derived = derived;
+	}
+    }
+  else
+    tbp_sym = tbp->n.tb->u.specific->n.sym;
+
+  e->value.compcall.tbp = tbp->n.tb;
+  e->value.compcall.name = tbp->name;
+
+  /* Let the original expresssion catch the assertion in
+     resolve_compcall, since this flag does not appear to be reset or
+     copied in some systems.  */
+  e->value.compcall.assign = 0;
+
+  /* Do the renaming, PASSing, generic => specific and other
+     good things for each class member.  */
+  class_try = (resolve_compcall (e, fcn_flag) == SUCCESS)
+				? class_try : FAILURE;
+
+  /* Now transfer the found symbol to the esym list.  */
+  if (class_try == SUCCESS)
+    {
+      etmp = list_e->value.function.class_esym;
+      list_e->value.function.class_esym
+		= gfc_get_class_esym_list();
+      list_e->value.function.class_esym->next = etmp;
+      list_e->value.function.class_esym->derived = derived;
+      list_e->value.function.class_esym->class_object
+		= class_object;
+      list_e->value.function.class_esym->esym
+		= e->value.function.esym;
+    }
+
+  gfc_free_expr (e);
+  
+  /* Burrow down into grandchildren types.  */
+  if (derived->f2k_derived)
+    gfc_traverse_ns (derived->f2k_derived, check_members);
+}
+
+
+/* Eliminate esym_lists where all the members point to the
+   typebound procedure of the declared type; ie. one where
+   type selection has no effect..  */
+static void
+resolve_class_esym (gfc_expr *e)
+{
+  gfc_class_esym_list *p, *q;
+  bool empty = true;
+
+  gcc_assert (e && e->expr_type == EXPR_FUNCTION);
+
+  p = e->value.function.class_esym;
+  if (p == NULL)
+    return;
+
+  for (; p; p = p->next)
+    empty = empty && (e->value.function.esym == p->esym);
+
+  if (empty)
+    {
+      p = e->value.function.class_esym;
+      for (; p; p = q)
+	{
+	  q = p->next;
+	  gfc_free (p);
+	}
+      e->value.function.class_esym = NULL;
+   }
+}
+
+
+/* Resolve a CLASS typebound function, or 'method'.  */
+static gfc_try
+resolve_class_compcall (gfc_expr* e)
+{
+  gfc_symbol *derived;
+
+  class_object = e->symtree->n.sym;
+
+  /* Get the CLASS type.  */
+  derived = e->symtree->n.sym->ts.u.derived;
+
+  /* Get the data component, which is of the declared type.  */
+  derived = derived->components->ts.u.derived;
+
+  /* Resolve the function call for each member of the class.  */
+  class_try = SUCCESS;
+  fcn_flag = true;
+  list_e = gfc_copy_expr (e);
+  check_class_members (derived);
+
+  class_try = (resolve_compcall (e, true) == SUCCESS)
+		 ? class_try : FAILURE;
+
+  /* Transfer the class list to the original expression.  Note that
+     the class_esym list is cleaned up in trans-expr.c, as the calls
+     are translated.  */
+  e->value.function.class_esym = list_e->value.function.class_esym;
+  list_e->value.function.class_esym = NULL;
+  gfc_free_expr (list_e);
+
+  resolve_class_esym (e);
+
+  return class_try;
+}
+
+/* Resolve a CLASS typebound subroutine, or 'method'.  */
+static gfc_try
+resolve_class_typebound_call (gfc_code *code)
+{
+  gfc_symbol *derived;
+
+  class_object = code->expr1->symtree->n.sym;
+
+  /* Get the CLASS type.  */
+  derived = code->expr1->symtree->n.sym->ts.u.derived;
+
+  /* Get the data component, which is of the declared type.  */
+  derived = derived->components->ts.u.derived;
+
+  class_try = SUCCESS;
+  fcn_flag = false;
+  list_e = gfc_copy_expr (code->expr1);
+  check_class_members (derived);
+
+  class_try = (resolve_typebound_call (code) == SUCCESS)
+		 ? class_try : FAILURE;
+
+  /* Transfer the class list to the original expression.  Note that
+     the class_esym list is cleaned up in trans-expr.c, as the calls
+     are translated.  */
+  code->expr1->value.function.class_esym
+			= list_e->value.function.class_esym;
+  list_e->value.function.class_esym = NULL;
+  gfc_free_expr (list_e);
+
+  resolve_class_esym (code->expr1);
+
+  return class_try;
 }
 
 
@@ -5162,7 +5387,10 @@ gfc_resolve_expr (gfc_expr *e)
       break;
 
     case EXPR_COMPCALL:
-      t = resolve_compcall (e);
+      if (e->symtree && e->symtree->n.sym->ts.type == BT_CLASS)
+	t = resolve_class_compcall (e);
+      else
+	t = resolve_compcall (e, true);
       break;
 
     case EXPR_SUBSTRING:
@@ -5612,11 +5840,10 @@ gfc_expr_to_initialize (gfc_expr *e)
 static gfc_try
 resolve_allocate_expr (gfc_expr *e, gfc_code *code)
 {
-  int i, pointer, allocatable, dimension, check_intent_in;
+  int i, pointer, allocatable, dimension, check_intent_in, is_abstract;
   symbol_attribute attr;
   gfc_ref *ref, *ref2;
   gfc_array_ref *ar;
-  gfc_code *init_st;
   gfc_symbol *sym;
   gfc_alloc *a;
   gfc_component *c;
@@ -5634,6 +5861,9 @@ resolve_allocate_expr (gfc_expr *e, gfc_code *code)
   if (e->symtree)
     sym = e->symtree->n.sym;
 
+  /* Check whether ultimate component is abstract and CLASS.  */
+  is_abstract = 0;
+
   if (e->expr_type != EXPR_VARIABLE)
     {
       allocatable = 0;
@@ -5648,6 +5878,7 @@ resolve_allocate_expr (gfc_expr *e, gfc_code *code)
 	  allocatable = sym->ts.u.derived->components->attr.allocatable;
 	  pointer = sym->ts.u.derived->components->attr.pointer;
 	  dimension = sym->ts.u.derived->components->attr.dimension;
+	  is_abstract = sym->ts.u.derived->components->attr.abstract;
 	}
       else
 	{
@@ -5675,12 +5906,14 @@ resolve_allocate_expr (gfc_expr *e, gfc_code *code)
 		    allocatable = c->ts.u.derived->components->attr.allocatable;
 		    pointer = c->ts.u.derived->components->attr.pointer;
 		    dimension = c->ts.u.derived->components->attr.dimension;
+		    is_abstract = c->ts.u.derived->components->attr.abstract;
 		  }
 		else
 		  {
 		    allocatable = c->attr.allocatable;
 		    pointer = c->attr.pointer;
 		    dimension = c->attr.dimension;
+		    is_abstract = c->attr.abstract;
 		  }
 		break;
 
@@ -5699,46 +5932,19 @@ resolve_allocate_expr (gfc_expr *e, gfc_code *code)
       return FAILURE;
     }
 
+  if (is_abstract && !code->expr3 && code->ext.alloc.ts.type == BT_UNKNOWN)
+    {
+      gcc_assert (e->ts.type == BT_CLASS);
+      gfc_error ("Allocating %s of ABSTRACT base type at %L requires a "
+		 "type-spec or SOURCE=", sym->name, &e->where);
+      return FAILURE;
+    }
+
   if (check_intent_in && sym->attr.intent == INTENT_IN)
     {
       gfc_error ("Cannot allocate INTENT(IN) variable '%s' at %L",
 		 sym->name, &e->where);
       return FAILURE;
-    }
-
-  if (e->ts.type == BT_CLASS)
-    {
-      /* Initialize VINDEX for CLASS objects.  */
-      init_st = gfc_get_code ();
-      init_st->loc = code->loc;
-      init_st->expr1 = gfc_expr_to_initialize (e);
-      init_st->op = EXEC_ASSIGN;
-      gfc_add_component_ref (init_st->expr1, "$vindex");
-      if (code->expr3 && code->expr3->ts.type == BT_CLASS)
-	{
-	  /* vindex must be determined at run time.  */
-	  init_st->expr2 = gfc_copy_expr (code->expr3);
-	  gfc_add_component_ref (init_st->expr2, "$vindex");
-	}
-      else
-	{
-	  /* vindex is fixed at compile time.  */
-	  int vindex;
-	  if (code->expr3)
-	    vindex = code->expr3->ts.u.derived->vindex;
-	  else if (code->ext.alloc.ts.type == BT_DERIVED)
-	    vindex = code->ext.alloc.ts.u.derived->vindex;
-	  else if (e->ts.type == BT_CLASS)
-	    vindex = e->ts.u.derived->components->ts.u.derived->vindex;
-	  else
-	    vindex = e->ts.u.derived->vindex;
-	  init_st->expr2 = gfc_int_expr (vindex);
-	}
-      init_st->expr2->where = init_st->expr1->where = init_st->loc;
-      init_st->next = code->next;
-      code->next = init_st;
-      /* Only allocate the DATA component.  */
-      gfc_add_component_ref (e, "$data");
     }
 
   if (pointer || dimension == 0)
@@ -6444,8 +6650,15 @@ resolve_select_type (gfc_code *code)
   gfc_case *c, *default_case;
   gfc_symtree *st;
   char name[GFC_MAX_SYMBOL_LEN];
+  gfc_namespace *ns;
 
-  selector_type = code->expr1->ts.u.derived->components->ts.u.derived;
+  ns = code->ext.ns;
+  gfc_resolve (ns);
+
+  if (code->expr2)
+    selector_type = code->expr2->ts.u.derived->components->ts.u.derived;
+  else
+    selector_type = code->expr1->ts.u.derived->components->ts.u.derived;
 
   /* Assume there is no DEFAULT case.  */
   default_case = NULL;
@@ -6487,6 +6700,32 @@ resolve_select_type (gfc_code *code)
 	}
     }
 
+  if (code->expr2)
+    {
+      /* Insert assignment for selector variable.  */
+      new_st = gfc_get_code ();
+      new_st->op = EXEC_ASSIGN;
+      new_st->expr1 = gfc_copy_expr (code->expr1);
+      new_st->expr2 = gfc_copy_expr (code->expr2);
+      ns->code = new_st;
+    }
+
+  /* Put SELECT TYPE statement inside a BLOCK.  */
+  new_st = gfc_get_code ();
+  new_st->op = code->op;
+  new_st->expr1 = code->expr1;
+  new_st->expr2 = code->expr2;
+  new_st->block = code->block;
+  if (!ns->code)
+    ns->code = new_st;
+  else
+    ns->code->next = new_st;
+  code->op = EXEC_BLOCK;
+  code->expr1 = code->expr2 =  NULL;
+  code->block = NULL;
+
+  code = new_st;
+
   /* Transform to EXEC_SELECT.  */
   code->op = EXEC_SELECT;
   gfc_add_component_ref (code->expr1, "$vindex");
@@ -6506,7 +6745,7 @@ resolve_select_type (gfc_code *code)
 	continue;
       /* Assign temporary to selector.  */
       sprintf (name, "tmp$%s", c->ts.u.derived->name);
-      st = gfc_find_symtree (code->expr1->symtree->n.sym->ns->sym_root, name);
+      st = gfc_find_symtree (ns->sym_root, name);
       new_st = gfc_get_code ();
       new_st->op = EXEC_POINTER_ASSIGN;
       new_st->expr1 = gfc_get_variable_expr (st);
@@ -7292,44 +7531,6 @@ resolve_ordinary_assign (gfc_code *code, gfc_namespace *ns)
 }
 
 
-/* Check an assignment to a CLASS object (pointer or ordinary assignment).  */
-
-static void
-resolve_class_assign (gfc_code *code)
-{
-  gfc_code *assign_code = gfc_get_code ();
-
-  if (code->expr2->ts.type != BT_CLASS)
-    {
-      /* Insert an additional assignment which sets the vindex.  */
-      assign_code->next = code->next;
-      code->next = assign_code;
-      assign_code->op = EXEC_ASSIGN;
-      assign_code->expr1 = gfc_copy_expr (code->expr1);
-      gfc_add_component_ref (assign_code->expr1, "$vindex");
-      if (code->expr2->ts.type == BT_DERIVED)
-	/* vindex is constant, determined at compile time.  */
-	assign_code->expr2 = gfc_int_expr (code->expr2->ts.u.derived->vindex);
-      else if (code->expr2->ts.type == BT_CLASS)
-	{
-	  /* vindex must be determined at run time.  */
-	  assign_code->expr2 = gfc_copy_expr (code->expr2);
-	  gfc_add_component_ref (assign_code->expr2, "$vindex");
-	}
-      else if (code->expr2->expr_type == EXPR_NULL)
-	assign_code->expr2 = gfc_int_expr (0);
-      else
-	gcc_unreachable ();
-    }
-
-  /* Modify the actual pointer assignment.  */
-  if (code->expr2->ts.type == BT_CLASS)
-    code->op = EXEC_ASSIGN;
-  else
-    gfc_add_component_ref (code->expr1, "$data");
-}
-
-
 /* Given a block of code, recursively resolve everything pointed to by this
    code block.  */
 
@@ -7452,9 +7653,6 @@ resolve_code (gfc_code *code, gfc_namespace *ns)
 	  if (t == FAILURE)
 	    break;
 
-	  if (code->expr1->ts.type == BT_CLASS)
-	    resolve_class_assign (code);
-
 	  if (resolve_ordinary_assign (code, ns))
 	    {
 	      if (code->op == EXEC_COMPCALL)
@@ -7462,7 +7660,6 @@ resolve_code (gfc_code *code, gfc_namespace *ns)
 	      else
 		goto call;
 	    }
-
 	  break;
 
 	case EXEC_LABEL_ASSIGN:
@@ -7483,11 +7680,7 @@ resolve_code (gfc_code *code, gfc_namespace *ns)
 	  if (t == FAILURE)
 	    break;
 
-	  if (code->expr1->ts.type == BT_CLASS)
-	    resolve_class_assign (code);
-
 	  gfc_check_pointer_assign (code->expr1, code->expr2);
-
 	  break;
 
 	case EXEC_ARITHMETIC_IF:
@@ -7517,7 +7710,11 @@ resolve_code (gfc_code *code, gfc_namespace *ns)
 
 	case EXEC_COMPCALL:
 	compcall:
-	  resolve_typebound_call (code);
+	  if (code->expr1->symtree
+		&& code->expr1->symtree->n.sym->ts.type == BT_CLASS)
+	    resolve_class_typebound_call (code);
+	  else
+	    resolve_typebound_call (code);
 	  break;
 
 	case EXEC_CALL_PPC:

@@ -585,6 +585,7 @@ rtx_equal_for_cselib_p (rtx x, rtx y)
     {
     case CONST_DOUBLE:
     case CONST_FIXED:
+    case DEBUG_EXPR:
       return 0;
 
     case LABEL_REF:
@@ -702,6 +703,11 @@ cselib_hash_rtx (rtx x, int create)
 	return 0;
 
       return e->value;
+
+    case DEBUG_EXPR:
+      hash += ((unsigned) DEBUG_EXPR << 7)
+	      + DEBUG_TEMP_UID (DEBUG_EXPR_TREE_DECL (x));
+      return hash ? hash : (unsigned int) DEBUG_EXPR;
 
     case CONST_INT:
       hash += ((unsigned) CONST_INT << 7) + INTVAL (x);
@@ -1213,6 +1219,13 @@ cselib_expand_value_rtx_1 (rtx orig, struct expand_value_data *evd,
 	result = expand_loc (CSELIB_VAL_PTR (orig)->locs, evd, max_depth);
 	return result;
       }
+
+    case DEBUG_EXPR:
+      if (evd->callback)
+	return evd->callback (orig, evd->regs_active, max_depth,
+			      evd->callback_arg);
+      return orig;
+
     default:
       break;
     }
