@@ -1369,7 +1369,7 @@ and whose binary is named after $OUTNAM without any '.so' suffix.}#
   #{(melt_magic_discr((melt_ptr_t)($mul)) == OBMAG_MULTIPLE)}#)
 (defprimitive is_multiple_or_null (mul) :long
   :doc #{Safely test if $MUL is a tuple or null.}#
-  #{(($mul) == NULL || (melt_magic_discr((melt_ptr_t)($mul)) == OBMAG_MULTIPLE))}#)
+  #{(($mul) == NULL || (melt_unsafe_magic_discr((melt_ptr_t)($mul)) == OBMAG_MULTIPLE))}#)
 ;;; make
 (defprimitive make_multiple (discr :long ln) :value
   :doc #{Make a tuple of given discriminant $DISCR and length $LN - gives null otherwise.}#
@@ -1660,40 +1660,49 @@ make a $CURAT string.}#
 )
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; ROUTINEs primitives
-(compile_warning "should document the routine primitives below")
 ;; test
 (defprimitive is_routine (rou) :long
-  "(melt_magic_discr((melt_ptr_t)(" rou ")) == OBMAG_ROUTINE)")
+  :doc #{Test if value $ROU is a routine.}#
+  #{(melt_magic_discr((melt_ptr_t)($rou)) == OBMAG_ROUTINE)}#)
 ;;; descriptive string of a routine
 (defprimitive routine_descr (rou) :value
-  "(meltgc_new_stringdup(melt_routine_descrstr((melt_ptr_t)(" rou "))))")
+  :doc #{Retrieve the descriptive value string of a routine $ROU or else null.}#
+  #{(meltgc_new_stringdup(melt_routine_descrstr((melt_ptr_t)($rou))))}#)
 ;;; size of a routine
 (defprimitive routine_size  (rou) :long
-  "(melt_routine_size((melt_ptr_t)(" rou ")))")
+  :doc #{Gives the size of a routine value $ROU, i.e. its number of constants.}#
+  #{(melt_routine_size((melt_ptr_t)($rou)))}#)
 ;;; nth comp in routine
 (defprimitive routine_nth (rou :long ix) :value
-  "(melt_routine_nth((melt_ptr_t)(" rou "), (int) (" ix ")))")
+  :doc #{Retrieve in routine value $ROU its component of index $IX.}#
+  #{(melt_routine_nth((melt_ptr_t)($rou), (int) ($ix)))}#)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; CLOSUREs primitives
 ;; test
 (defprimitive is_closure (clo) :long
-  " (melt_magic_discr((melt_ptr_t)(" clo ")) == OBMAG_CLOSURE)")
+  :doc #{Test if value $CLO is a closure, i.e. a functional value.}#
+  #{(melt_magic_discr((melt_ptr_t)($clo)) == OBMAG_CLOSURE)}#)
 (defprimitive closure_size (clo) :long
-  " (melt_closure_size((melt_ptr_t)(" clo ")))")
+  :doc #{Give the size of a closure value $CLO, i.e. the number of closed values.}#
+  #{(melt_closure_size((melt_ptr_t)($clo)))}#)
 (defprimitive closure_routine (clo) :value
-  " (melt_closure_routine((melt_ptr_t)(" clo ")))")
+  :doc #{Give the routine value inside a closure value $CLO or else null.}#
+  #{(melt_closure_routine((melt_ptr_t)($clo)))}#)
 (defprimitive closure_nth (clo :long ix) :value
-  "(melt_closure_nth((melt_ptr_t)(" clo "), (int)(" ix ")))")
+  :doc #{Retrieve in closure value $CLO its component of index $IX.}#
+  #{(melt_closure_nth((melt_ptr_t)($clo), (int)($ix)))}#)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; boxed INTEGERs primitives
 ;; test
 (defprimitive is_integerbox (ib) :long
-  "(melt_magic_discr((melt_ptr_t)(" ib ")) == OBMAG_INT)")
+  :doc #{Test if a value $IB is a boxed integer.}#
+  #{(melt_magic_discr((melt_ptr_t)($ib)) == OBMAG_INT)}#)
 ;; to get the boxed integer use get_int
 ;; make
 (defprimitive make_integerbox (discr :long n) :value
-  "(meltgc_new_int((meltobject_ptr_t)(" discr "), (" n ")))")
+  :doc #{Make a boxed integer of given discrimant $DISCR and integer $N.}#
+  #{(meltgc_new_int((meltobject_ptr_t)($discr), ($n)))}#)
 
 ;;; pattern
 (defcmatcher integerbox_of 
@@ -1711,100 +1720,136 @@ make a $CURAT string.}#
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;; BOX primitives (boxed values)
+;;;;; BOX primitives (boxed values, i.e. reference)
 ;; test
-(defprimitive is_box (bx) :long
-  "(melt_magic_discr((melt_ptr_t)(" bx ")) == OBMAG_BOX)")
+(defprimitive is_box (box) :long
+  :doc #{Test if value $BOX is a box, ie a reference.}#
+  #{(melt_magic_discr((melt_ptr_t)($box)) == OBMAG_BOX)}#)
 ;; safe fetch content
 (defprimitive box_content (box) :value
-  "melt_box_content((meltbox_ptr_t)(" box "))")
+  :doc #{Safely retrieve the content of a box value $BOX or else null.}#
+  #{melt_box_content((meltbox_ptr_t)($box))}#)
 ;; put into a box
 (defprimitive box_put (box val) :void
-  "meltgc_box_put((melt_ptr_t)(" box "), (melt_ptr_t)(" val "))")
+  :doc #{Safely put into box value $BOX the value $VAL.}#
+  #{meltgc_box_put((melt_ptr_t)($box), (melt_ptr_t)($val))}#)
 ;; make a box
 (defprimitive make_box (discr valb) :value
-  "meltgc_new_box((meltobject_ptr_t)(" discr "), (melt_ptr_t)(" valb "))")
+  :doc #{Make a box value of discriminant $DISCR and content $VALB.}#
+  #{meltgc_new_box((meltobject_ptr_t)($discr), (melt_ptr_t)($valb))}#)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; LIST primitives
 ;; test
 (defprimitive is_list (li) :long
-  "(melt_magic_discr((melt_ptr_t)(" li ")) == OBMAG_LIST)")
+  :doc #{Test if value $LI is a list.}#
+  #{(melt_magic_discr((melt_ptr_t)($li)) == OBMAG_LIST)}#)
 (defprimitive is_list_or_null (li) :long
-  "((" li ") == NULL || (melt_magic_discr((melt_ptr_t)(" li ")) == OBMAG_LIST))")
+  :doc #{Test iv value $LI is null or a list.}#
+  #{(($li) == NULL 
+     || (melt_unsafe_magic_discr((melt_ptr_t)($li)) == OBMAG_LIST))}#)
 ;; first pair of list
 (defprimitive list_first (li) :value
-  "(melt_list_first((melt_ptr_t)(" li ")))")
+  :doc #{Safely retrieve the first pair of list value $LI, or null.}#
+  #{(melt_list_first((melt_ptr_t)($li)))}#)
 ;; last pair of list
 (defprimitive list_last (li) :value
-  "(melt_list_last((melt_ptr_t)(" li ")))")
+  :doc #{Safely retrieve the last pair of list value $LI, or null.}#
+  #{(melt_list_last((melt_ptr_t)($li)))}#)
 ;; length of list
 (defprimitive list_length (li) :long
-  "(melt_list_length((melt_ptr_t)(" li ")))")
+  :doc #{Safely compute the length of list value $LI, or else 0.}#
+  #{(melt_list_length((melt_ptr_t)($li)))}#)
 ;; append into list
 (defprimitive list_append (li el) :void
-  "meltgc_append_list((melt_ptr_t)(" li "), (melt_ptr_t)(" el "))")
+  :doc #{Safely append to list value $LI an element $EL thru a new pair.}#
+  #{meltgc_append_list((melt_ptr_t)($li), (melt_ptr_t)($el))}#)
 ;; prepend into list
 (defprimitive list_prepend (li el) :void
-  "meltgc_prepend_list((melt_ptr_t)(" li "), (melt_ptr_t)(" el "))")
+  :doc #{Safely prepend to list value $LI an element $EL thru a new pair.}#
+  #{meltgc_prepend_list((melt_ptr_t)($li), (melt_ptr_t)($el))}#)
 ;; pop first from list
 (defprimitive list_popfirst (li) :value
-  "(meltgc_popfirst_list((melt_ptr_t)(" li ")))")
+  :doc #{Pop the first element from a list $LI and give it, or else null.}#
+  #{(meltgc_popfirst_list((melt_ptr_t)($li)))}#)
 ;; make list
 (defprimitive make_list (discr) :value
-  "(meltgc_new_list((meltobject_ptr_t)(" discr ")))")
+  :doc #{Make a new list value of given discriminant $DISCR.}#
+  #{(meltgc_new_list((meltobject_ptr_t)($discr)))}#)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; PAIR primitives
 ;; test
 (defprimitive is_pair (pa) :long
-  "(melt_magic_discr((melt_ptr_t)(" pa ")) == OBMAG_PAIR)")
+  :doc #{Test if a value $PA is a pair.}#
+  #{(melt_magic_discr((melt_ptr_t)($pa)) == OBMAG_PAIR)}#)
 ;; head
 (defprimitive pair_head (pa) :value
-  "(melt_pair_head((melt_ptr_t)(" pa ")))")
+  :doc #{Safely retrieve the head of pair value $PA or else null.}#
+  #{(melt_pair_head((melt_ptr_t)($pa)))}#)
 ;; tail
 (defprimitive pair_tail (pa) :value
-  "(melt_pair_tail((melt_ptr_t)(" pa ")))")
+  :doc #{Safely retrieve the tail pair of pair value $PA or else null.}#
+  #{(melt_pair_tail((melt_ptr_t)($pa)))}#)
 ;; change the head of a pair
 (defprimitive pair_set_head (pa hd) :void
-  "meltgc_pair_set_head((melt_ptr_t)(" pa "), (" hd "))")
+  :doc #{Safely set in pair $PA its head to $HD. 
+Please avoid using that to introduce circularities in lists.}#
+ #{meltgc_pair_set_head((melt_ptr_t)($pa), ($hd))}#)
 ;; length of a pair list
 (defprimitive pair_listlength (pa) :long
-  "(melt_pair_listlength((melt_ptr_t)(" pa ")))")
+  :doc #{Compute the linked length of given pair value $PA or else 0.}#
+  #{(melt_pair_listlength((melt_ptr_t)($pa)))}#)
 ;; make
 (defprimitive make_pair (discr hd tl) :value
-  "(meltgc_new_pair((meltobject_ptr_t)(" discr "), (melt_ptr_t)(" hd "), (melt_ptr_t)(" tl ")))")
+  :doc #{Create a new pair of given discrimiant $DISCR head $HD and
+tail $TL or else null.}#
+  #{(meltgc_new_pair((meltobject_ptr_t)($discr), (melt_ptr_t)($hd), (melt_ptr_t)($tl)))}#)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; MIXINT primitives (use get_int to get the integer)
 ;; test
 (defprimitive is_mixint (mi) :long
-  "(melt_magic_discr((melt_ptr_t)(" mi ")) == OBMAG_MIXINT)")
+  :doc #{Test if value $MI is a mixedint value.}#
+  #{(melt_magic_discr((melt_ptr_t)($mi)) == OBMAG_MIXINT)}#)
 ;; get the value
 (defprimitive mixint_val (mi) :value
-  "(melt_val_mixint((melt_ptr_t)(" mi ")))")
+  :doc #{Get the value inside a mixedint value $MI. The integer can be retrieved using $GET_INT.}#
+  #{(melt_val_mixint((melt_ptr_t)($mi)))}#)
 ;; make a mixint
 (defprimitive make_mixint (dis val :long num) :value
-  "(meltgc_new_mixint((meltobject_ptr_t)(" dis "), (melt_ptr_t)(" val "), (" num ")))")
+  :doc #{Make a mixint value of given discriminant $DIS value $VAL and number $NUM or else null.}#
+  #{(meltgc_new_mixint((meltobject_ptr_t)($dis), (melt_ptr_t)($val), ($num)))}#)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; MIXLOC primitives (use get_int to get the integer)
 ;; test
 (defprimitive is_mixloc (mi) :long
-  "(melt_magic_discr((melt_ptr_t)(" mi ")) == OBMAG_MIXLOC)")
+  :doc #{Test if value $MI is a mixed location value.}#
+  #{(melt_magic_discr((melt_ptr_t)($mi)) == OBMAG_MIXLOC)}#)
 ;; get the value
 (defprimitive mixloc_val (mi) :value
-  "(melt_val_mixloc((melt_ptr_t)(" mi ")))")
+  :doc #{Safely retrieve the value inside a mixed location value $MI.}#
+  #{(melt_val_mixloc((melt_ptr_t)($mi)))}#)
 (defprimitive mixloc_location (mi) :long
-  "(melt_location_mixloc((melt_ptr_t)(" mi ")))")
+  :doc #{Safely retrieve as an opaque long the location of a mixed location value $MI.}#
+  #{((long) melt_location_mixloc((melt_ptr_t)($mi)))}#)
 (defprimitive mixloc_locline (mi) :long
-  "(LOCATION_LINE(melt_location_mixloc((melt_ptr_t)" mi ")))")
+  :doc #{Retrieve the line of the location of a mixed location value $MI.}#
+  #{(LOCATION_LINE(melt_location_mixloc((melt_ptr_t)$mi)))}#)
 (defprimitive mixloc_locfile (mi) :cstring
-  "(LOCATION_FILE(melt_location_mixloc((melt_ptr_t)" mi ")))")
+  :doc #{Retrieve the filename as a raw cstring of a mixed location value $MI.}#
+  #{(LOCATION_FILE(melt_location_mixloc((melt_ptr_t)$mi)))}#)
 
 ;; make a mixloc
 (defprimitive make_mixloc (dis val :long num loc) :value
-  "(meltgc_new_mixloc((meltobject_ptr_t)(" dis "), (melt_ptr_t)(" val "), (" num "), (location_t)(" loc "))")
+  :doc #{Make a mixed location value of given discriminant $DIS value $VAL
+number $NUM opaque location number $LOC.}#
+  #{(meltgc_new_mixloc((meltobject_ptr_t)($dis), (melt_ptr_t)($val), 
+		       ($num), (location_t)($loc))}#)
 
+
+
+(compile_warning "should document below this.")
 ;; test for mixbigint
 (defprimitive is_mixbigint (mb) :long
   "(melt_magic_discr((melt_ptr_t)(" mb ")) == OBMAG_MIXBIGINT)")

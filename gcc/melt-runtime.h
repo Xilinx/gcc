@@ -974,6 +974,13 @@ melt_magic_discr (melt_ptr_t p)
   return p->u_discr->object_magic;
 }
 
+/* likewise, but without testing for null */
+static inline int
+melt_unsafe_magic_discr (melt_ptr_t p)
+{
+  return p->u_discr->object_magic;
+}
+
 /* test if a pointer is an output - either a string buffer or a file */
 static inline bool
 melt_is_out (melt_ptr_t p)

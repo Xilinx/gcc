@@ -1,3 +1,9 @@
+2009-10-14  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (melt_unsafe_magic_discr): added new inlined
+	function.
+	* melt/warmelt-first.melt: added more documentation. use
+	melt_unsafe_magic_discr in *_or_null tests.
+
 2009-10-13  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-first.melt: added a lot more documentations and
 	using more macrostrings. Removed output_cfile_decl_impl.
