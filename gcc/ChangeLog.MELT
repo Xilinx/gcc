@@ -1,3 +1,23 @@
+2009-10-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	[adding machinery to ease renaming, notably alternate keywords in
+	ctypes & export_synonym.]
+	* melt/warmelt-first.melt: added ctype_altkeyword to class_ctype.
+	* melt/warmelt-macro.melt: added export_synonym macro &
+	class_src_export_synonym and its mexpander. In bindings and
+	primitives, ctypes can be given by their alternate keyword -
+	producing a warning.
+	* melt/warmelt-normal.melt: added implementation of export_synonym
+	in normexp_export_synonym.
+	* testsuite/melt/tsynonym.melt: added new testcase for
+	export_synonym. it works!
+	[regenerated since will soon rename a lot of stuff...]
+	* melt/warmelt-macro-0.c: regenerated.
+	* melt/warmelt-outobj-0.c: regenerated.
+	* melt/warmelt-genobj-0.c: regenerated.
+	* melt/warmelt-normatch-0.c: regenerated.
+	* melt/warmelt-normal-0.c: regenerated.
+	* melt/warmelt-first-0.c: regenerated.
+
 2009-10-14  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (melt_unsafe_magic_discr): added new inlined
 	function.

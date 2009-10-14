@@ -147,6 +147,19 @@
 	   sexppat_pval			;value of patternexpander
 	   ))
 
+
+
+;;; export a synonym (export_synonym <newname> <oldname> [:doc <docum>)
+(defclass class_src_export_synonym
+  :doc #{$CLASS_SRC_EXPORT_SYNONYM represent synonym declarations: the
+$SEXPSYN_NEWNAME is a new name synonym of $EXPSYN_OLDNAME and
+documentation $SEXPSYN_DOC.}#
+  :super class_src
+  :fields (sexpsyn_newname
+	   sexpsyn_oldname
+	   sexpsyn_doc))
+
+
 ;;; superclass for all source definitions
 (defclass class_srcdef
   :super class_src
@@ -1238,18 +1251,28 @@ with a formal arguments binding tuple given in $SFORMAL_ARGS.}# )
 	     (let ( (curarg (pair_head curpair)) )
 	       (cond
 		( (is_a curarg class_keyword)
-		  (let ( (cty (unsafe_get_field :symb_data curarg)) )
-		    (if (and (is_a cty class_ctype) 
-			     (== (unsafe_get_field :ctype_keyword cty) curarg))
-			(setq argtype cty)
-		      (progn
-			(error_strv argloc "invalid keyword in formal arglist"_
-				    (unsafe_get_field :named_name curarg))
-			()
-			)
-		      ))
-		  ()			;to make the compiler happy we explicitly gives nil
-		  )
+		  (let ( (cty (unsafe_get_field :symb_data curarg)) 
+			 (curargname (unsafe_get_field :named_name curarg))
+			 )
+		    (cond 
+		     ( (is_not_a cty class_ctype)
+		       (error_strv argloc "invalid keyword in formal arglist"_
+				   curargname))
+		     ( (== (unsafe_get_field :ctype_keyword cty) curarg)
+		       (setq argtype cty))
+		     ( (== (unsafe_get_field :ctype_altkeyword cty) curarg)
+		       (warning_strv argloc "usage of alternate keyword as formal's ctype is deprecated"
+				     curargname)
+		       (inform_strv argloc "prefered ctype keyword is"
+				    (get_field :named_name (get_field :ctype_keyword cty)))
+		       (setq argtype cty))
+		     (:else
+		      (error_strv argloc "invalid keyword in formal arglist"_
+				  (unsafe_get_field :named_name curarg))
+		      ())
+		     )
+		    () ;to make the compiler happy we explicitly gives nil
+		    ))
 		( (is_a curarg class_symbol)
 		  (if (mapobject_get argmap curarg)
 		      (error_strv argloc "duplicate argument in formal arglist"_
@@ -1477,21 +1500,28 @@ with a formal arguments binding tuple given in $SFORMAL_ARGS.}# )
       (let ( (typkw  (pair_head curpair)) )
 	(if (is_not_a typkw class_keyword)
 	    (error_plain loc "missing type keyword for (DEFPRIMITIVE symb args type [:doc documentation] expansion...)"_))
-	(let ( (cty (unsafe_get_field :symb_data typkw)) )
+	(let ( (cty (unsafe_get_field :symb_data typkw)) 
+	       (typknam (unsafe_get_field :named_name typkw))
+	       )
 	  (if (is_not_a cty class_ctype)
 	      (progn
 		(debug_msg typkw "mexpand_defprimitive bad cty")
-		(error_strv loc "bad type keyword for "_
-			    (unsafe_get_field :named_name typkw))
+		(error_strv loc "bad type keyword for "_  typknam)
 		(return ())
 		))
-	  (if (!= (unsafe_get_field :ctype_keyword cty) typkw)
-	      (progn
-		(debug_msg typkw "mexpand_defprimitive strange typkw")
-		(error_strv loc "invalid type keyword for DEFPRIMITIVE"_
-			    (unsafe_get_field :named_name typkw)) 
-		(return ())   
-		))
+	  (cond ( (== (unsafe_get_field :ctype_keyword cty) typkw)
+		  ()
+		  )
+		( (== (unsafe_get_field :ctype_altkeyword cty) typkw)
+		  (warning_strv loc "using obsolete ctype keyword" typknam)
+		  (inform_strv loc "prefererd ctype is" (get_field :named_name (get_field :ctype_keyword cty)))
+		  )
+		(:else
+		 (debug_msg typkw "mexpand_defprimitive strange typkw")
+		 (error_strv loc "invalid type keyword for DEFPRIMITIVE"_
+			     typknam)
+		 (return ())   
+		 ))
 	  ;; parse the rest as to be expanded
 	  (setq curpair (pair_tail curpair))
 	  (if (== (pair_head curpair) ':doc)
@@ -1500,7 +1530,7 @@ with a formal arguments binding tuple given in $SFORMAL_ARGS.}# )
 		(if docv (error_plain loc "duplicate :doc in DEFPRIMITIVE"))
 		(setq docv (pair_head curpair))
 		(setq curpair (pair_tail curpair))
-	      ))
+		))
 	  (let (
 		(etuple (parse_pairlist_c_code_expansion loc curpair))
 		(substmap (make_mapobject discr_mapobjects
@@ -3577,12 +3607,23 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
 	)
     (setq curarg (pair_head curpair))
     (if (is_a curarg class_keyword)
-	(let ( (cty (unsafe_get_field :symb_data curarg)) )
-	  (if (and (is_a cty class_ctype) 
-		   (== (unsafe_get_field :ctype_keyword cty) curarg))
-	      (setq ctyp cty)
+	(let ( (cty (unsafe_get_field :symb_data curarg)) 
+	       (tynam (unsafe_get_field :named_name curarg))
+	       )
+	  (cond
+	   ( (is_not_a cty class_ctype)
+	     (error_strv loc "letbinding with invalid type keyword"_ tynam))
+	   ( (== (unsafe_get_field :ctype_keyword cty) curarg)
+	     (setq ctyp cty))
+	   ( (== (unsafe_get_field :ctype_altkeyword cty) curarg)
+	     (setq ctyp cty)
+	     (warning_strv loc "obsolete alternate ctype keyword in let binding"
+			   tynam)
+	     (inform_strv loc "prefered ctype keyword" (get_field :named_name (get_field :ctype_keyword ctyp)))
+	     )
+	   (:else
 	    (error_strv loc "letbinding with invalid type keyword"_
-			(unsafe_get_field :named_name curarg)))
+			tynam)))
 	  (setq curpair (pair_tail curpair))
 	  (setq curarg (pair_head curpair))
 	  ))
@@ -4193,6 +4234,9 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
 (install_initial_macro 'export_macro mexpand_export_macro)
 (export_macro export_macro mexpand_export_macro)
 
+
+
+
 ;;;;
 ;;; export_patmacro macro (export_patmacro <symbol> <patexpander> <macexpander> [:doc <docum>])
 (defun mexpand_export_patmacro (sexpr env mexpander)
@@ -4266,6 +4310,50 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
     ))
 (install_initial_macro 'export_class mexpand_export_class)
 (export_macro export_class mexpand_export_class)
+
+;;; export_synonym macro (export_synonym <newname> <oldname>  [:doc <documentation>])
+(defun mexpand_export_synonym (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (debug_msg sexpr "mexpand_export_synonym sexpr")
+  (let (
+	(cont (unsafe_get_field :sexp_contents sexpr))
+	(loc  (unsafe_get_field :loca_location sexpr))
+	(curpair (pair_tail (list_first cont)))
+	(newsymb ())
+	(oldsymb ())
+	(doc ())
+	)
+    ;; handle the newsymb
+    (setq newsymb (macroexpand_1 (pair_head curpair) env mexpander))
+    (debug_msg newsymb "mexpander_export_synonym newsymb")
+    (if (is_not_a newsymb class_symbol)
+	(error_plain loc "bad new name in (EXPORT_SYNONYM <newname> <oldname> [:doc <docum>])"))	
+    (setq curpair (pair_tail curpair))
+    ;; handle the oldsymb
+    (setq oldsymb (macroexpand_1 (pair_head curpair) env mexpander))
+    (debug_msg oldsymb "mexpander_export_synonym oldsymb")
+    (if (is_not_a oldsymb class_symbol)
+	(error_plain loc "bad old name in (EXPORT_SYNONYM <newname> <oldname> [:doc <docum>])"))	
+    (setq curpair (pair_tail curpair))
+    (if (== (pair_head curpair) ':doc)
+	(progn
+	  (setq curpair (pair_tail curpair))
+	  (setq doc (pair_head curpair))
+	  ))
+    (debug_msg doc "mexpander_export_synonym doc")
+    (let ( 
+	  (res (instance class_src_export_synonym
+			 :loca_location loc
+			 :sexpsyn_newname newsymb
+			 :sexpsyn_oldname oldsymb
+			 :sexpsyn_doc doc))
+	  )
+      (debug_msg res "mexpander_export_synonym result")
+      (return res)
+      )))
+(install_initial_macro 'export_synonym mexpand_export_synonym)
+(export_macro export_synonym mexpand_export_synonym)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; current_module_environment_container macro 
@@ -4424,6 +4512,7 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
  class_src_export_class
  class_src_export_macro
  class_src_export_patmacro
+ class_src_export_synonym
  class_src_export_values
  class_src_exportcommon
  class_src_fetch_predefined

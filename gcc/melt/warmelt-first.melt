@@ -266,6 +266,7 @@ interned inside the $INITIAL_SYSTEM_DATA.}#
 	   ctype_resfield ;the name of the melt result union field (eg bp_longptr)
 	   ctype_marker	  ;the name of the marker routine
 	   ctype_descr	  ;descriptive string
+	   ctype_altkeyword ;the alternate keyword associated to the ctype (e.g. :longinteger)
 	   )
   :doc #{The $CLASS_CTYPE is for predefined descriptors of C
 types (like long or tree). $CTYPE_KEYWORD gives the associated
@@ -275,7 +276,8 @@ $CTYPE_PARCHAR (for the character) and $CTYPE_PARSTRING (for the
 corresponding C string). Argument member in union is given by
 $CTYPE_ARGFIELD, and by $CTYPE_RESFIELD for results.  The marking
 routine is $CTYPE_MARKER and $CTYPE_DESCR is some descriptive string
-or data. Adding new c-types requires an update of MELT runtime!}# )
+or data. A possible alternate keyword is given by $CTYPE_ALTKEYWORD.
+ Adding new c-types requires an update of MELT runtime!}# )
 
 
 ;; class of system data -- be careful to keep the FSYSDAT_*
@@ -2225,15 +2227,20 @@ obtained by quoting an integer.}#
 ;;; initialization, we are sure it is called once for each, because
 ;;; ctype-s are predefined
 (defun install_ctype_descr (ctyp :cstring descr)
+  :doc #{Install a new ctype $CTYP with descriptive string $DESCR. 
+Also add the ctype as symbol data in the keyword and the alternate keyword if provided.}#
 					;(debug_msg ctyp "install_ctype_descr")
   (assert_msg "check ctyp" (is_a ctyp class_ctype)) 
   (if (unsafe_get_field :ctype_descr ctyp)
       (return))
   (let ( (ckw (unsafe_get_field :ctype_keyword ctyp)) 
+	 (altkw (unsafe_get_field :ctype_altkeyword ctyp)) 
 	 (ds (make_stringconst discr_string descr))
 	 )
     (assert_msg "check ctype ckw" (is_a ckw class_keyword))
     (unsafe_put_fields ckw :symb_data ctyp)
+    (if (is_a altkw class_keyword)
+	(put_fields altkw :symb_data ctyp))
     ds
     ))
 

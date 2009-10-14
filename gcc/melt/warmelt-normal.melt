@@ -4590,6 +4590,43 @@
 
 (install_method class_src_export_values normal_exp normexp_export_values)
 
+;;;; normalize an export_synonym
+(defun normexp_export_synonym (recv env ncx psloc)
+  ;; it should be a bit like export_values, since it create a value binding..
+  (assert_msg "check exportsyn recv" (is_a recv class_src_export_synonym))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
+  (debug_msg recv "normexp_export_synonym recv")
+  (let ( 
+	(sloc (unsafe_get_field :loca_location recv))
+	(newname (unsafe_get_field :sexpsyn_newname recv))
+	(oldname (unsafe_get_field :sexpsyn_oldname recv))
+	(bindslist (make_list discr_list))
+	(nvaluexporter (normal_value_exporter env ncx sloc bindslist))
+	(nilnrep (instance class_nrep_nil
+			   :nrep_loc sloc))
+	)
+    (debug_msg nvaluexporter "normexp_export_synonym nvaluexporter")
+    (debug_msg newname "normexp_export_synonym newname")
+    (debug_msg oldname "normexp_export_synonym oldname")
+    (assert_msg "check newname" (is_a newname class_symbol))
+    (assert_msg "check oldname" (is_a oldname class_symbol))
+    (multicall
+     (noldsym noldsymbinds)
+     (normal_exp oldname env ncx sloc)
+     (debug_msg noldsym "normexp_export_synonym noldsym")
+     (debug_msg noldsymbinds "normexp_export_synonym noldsymbinds")
+     (list_append2list bindslist noldsymbinds)
+     (let ( (nexpv (normal_exported_value newname noldsym nvaluexporter env ncx sloc bindslist))
+	    )
+       (debug_msg nexpv "normexp_export_synonym normal_exported_value gave nexpv")
+       (debug_msg nilnrep "normexp_export_synonym final nilnrep")
+       (debug_msg bindslist "normexp_export_synonym final bindslist")
+       (return nilnrep bindslist)
+       ))))
+      
+(install_method class_src_export_synonym normal_exp normexp_export_synonym)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; normalize an export_class
 (defun normexp_export_class (recv env ncx psloc)
