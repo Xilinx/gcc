@@ -2934,7 +2934,7 @@ static inline meltobject_ptr_t
 melt_discr (melt_ptr_t p)
 {
   if (!p)
-    return (meltobject_ptr_t) MELT_PREDEF (DISCR_NULLRECV);
+    return (meltobject_ptr_t) MELT_PREDEF (DISCR_NULL_RECEIVER);
   return p->u_discr;
 }
 
@@ -2971,7 +2971,7 @@ melt_is_instance_of (melt_ptr_t inst_p, melt_ptr_t class_p)
 
 
 
-/* since melt_put_int uses DISCR_CONSTINTEGER it should be here */
+/* since melt_put_int uses DISCR_CONSTANT_INTEGER it should be here */
 static inline bool
 melt_put_int (melt_ptr_t v, long x)
 {
@@ -2980,7 +2980,7 @@ melt_put_int (melt_ptr_t v, long x)
   switch (melt_magic_discr (v))
     {
     case OBMAG_INT:
-      if (v->u_discr == (meltobject_ptr_t)MELT_PREDEF(DISCR_CONSTINTEGER))
+      if (v->u_discr == (meltobject_ptr_t)MELT_PREDEF(DISCR_CONSTANT_INTEGER))
 	return FALSE;
       ((struct meltint_st *) (v))->val = x;
       return TRUE;

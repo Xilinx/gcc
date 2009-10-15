@@ -1,3 +1,29 @@
+2009-10-16  Basile Starynkevitch  <basile@starynkevitch.net>
+	[starting renaming...]
+	* melt-predef.list: sorted alphabetically & some renamed...
+	* melt-runtime.h: renamed DISCR_NULLRECV as DISCR_NULL_RECEIVER &
+	DISCR_CONSTINTEGER as DISCR_CONSTANT_INTEGER.
+	* melt-runtime.c (meltgc_new_mixbigint_mpz): renamed
+	DISCR_MIXBIGINT as DISCR_MIXED_BIGINT.
+	(meltgc_send): renamed DISCR_NULLRECV as DISCR_NULL_RECEIVER.
+	(makesexpr): renamed DISCR_MIXEDINT as DISCR_MIXED_INTEGER &
+	DISCR_MIXEDLOC as DISCR_MIXED_LOCATION.
+	* run-melt.h: temporary added #define-s [oldpredef
+	newpredefname]. Should remove them as soon as possible.
+	* melt/warmelt-first.melt: renaming
+	    class_discr => class_discriminant
+	    discr_anyrecv => discr_any_receiver
+	    discr_constinteger => discr_constant_integer
+	    discr_mixbigint => discr_mixed_bigint
+	    discr_mixedint => discr_mixed_integer
+	    discr_mixedloc => discr_mixed_location
+	    discr_namestring => discr_name_string
+	    discr_nullrecv => discr_null_receiver
+	    discr_verbatimstring => discr_verbatim_string
+	    discr_seqclass => discr_class_sequence
+	    discr_seqfield => discr_field_sequence
+	with temporary export_synonym for old compatibility.
+
 2009-10-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	[adding machinery to ease renaming, notably alternate keywords in
 	ctypes & export_synonym.]

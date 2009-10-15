@@ -72,21 +72,21 @@ references). The contained value is $CONTAINER_VALUE.}#)
 $NAMED_NAME field is conventionally a string.}# )
 
 ;; class of discriminants
-(defclass class_discr 
+(defclass class_discriminant 
   :super class_named 
   :fields (disc_methodict 
 	   disc_sender
 	   disc_super)
-  :predef CLASS_DISCR
-  :doc #{The $CLASS_DISCR is the class of every discriminant. It has the
-method dictionnary $DISCR_METHODICT and the super-discriminant
+  :predef CLASS_DISCRIMINANT
+  :doc #{The $CLASS_DISCRIMINANT is the class of every discriminant. It has the
+method dictionnary $DISC_METHODICT and the super-discriminant
 $DISC_SUPER. The $DISC_SENDER can hold a closure doing the send if the
 selector is not found. Otherwise, the default is to send thru the
 super-discriminant.}# )
 
 ;; class of classes
 (defclass class_class
-  :super class_discr
+  :super class_discriminant
   :fields (class_ancestors class_fields class_data)
   :doc #{The $CLASS_CLASS is the class of all classes - which are
 therefore discriminants.  The $CLASS_ANCESTORS field holds the
@@ -198,7 +198,7 @@ $DEFUNMATCHER macro.}#
   :fields (loca_location)
   :doc #{The $CLASS_LOCATED is the super-class for located stuff,
   having a source file location given by the $LOCA_LOCATION field,
-  conventionally a mixed location box with $DISCR_MIXEDLOC.}#
+  conventionally a mixed location box with $DISCR_MIXED_LOCATION.}#
   :predef CLASS_LOCATED)
 
 ;; class of source expressions
@@ -1946,212 +1946,212 @@ number $NUM opaque location number $LOC.}#
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;; the discriminant for name strings
-(definstance discr_namestring class_discr
-  :predef DISCR_NAMESTRING
+(definstance discr_name_string class_discriminant
+  :predef DISCR_NAME_STRING
   :obj_num OBMAG_STRING
-;;; :named_name '"DISCR_NAMESTRING"
+;;; :named_name '"DISCR_NAME_STRING"
 ;;; :disc_super discr_string   ;; forward reference not allowed
   )
 
 ;;; the discriminant for strings
-(definstance discr_string class_discr
+(definstance discr_string class_discriminant
   :predef DISCR_STRING
   :obj_num OBMAG_STRING
   :named_name '"DISCR_STRING")
 
-(unsafe_put_fields discr_namestring :disc_super discr_string)
-(unsafe_put_fields discr_namestring :named_name
-		   '"DISCR_NAMESTRING")
+(unsafe_put_fields discr_name_string :disc_super discr_string)
+(unsafe_put_fields discr_name_string :named_name
+		   '"DISCR_NAME_STRING")
 ;;; the discriminant for verbatim strings (used for defprimitive)
-(definstance discr_verbatimstring class_discr
+(definstance discr_verbatim_string class_discriminant
   :obj_num OBMAG_STRING
-  :predef DISCR_VERBATIMSTRING
-  :named_name '"DISCR_VERBATIMSTRING"
+  :predef DISCR_VERBATIM_STRING
+  :named_name '"DISCR_VERBATIM_STRING"
   :disc_super discr_string
   )
 
-;;; the discriminant for any reciever (used for sending to everything)
-(definstance discr_anyrecv class_discr
-  :named_name '"DISCR_ANYRECV"
+;;; the discriminant for any receiver (used for sending to everything)
+(definstance discr_any_receiver class_discriminant
+  :named_name '"DISCR_ANY_RECEIVER"
   )
 
-(unsafe_put_fields discr_string :disc_super discr_anyrecv)
+(unsafe_put_fields discr_string :disc_super discr_any_receiver)
 
 ;;; the discriminant for null reciever (used for sending to nil)
-(definstance discr_nullrecv class_discr
-  :predef DISCR_NULLRECV
-  :disc_super discr_anyrecv
-  :named_name '"DISCR_NULLRECV")
+(definstance discr_null_receiver class_discriminant
+  :predef DISCR_NULL_RECEIVER
+  :disc_super discr_any_receiver
+  :named_name '"DISCR_NULL_RECEIVER")
 
 ;;; the discriminant for strbuf
-(definstance discr_strbuf class_discr
+(definstance discr_strbuf class_discriminant
   :predef DISCR_STRBUF
   :obj_num OBMAG_STRBUF  
-  :disc_super discr_anyrecv
+  :disc_super discr_any_receiver
   :named_name '"DISCR_STRBUF")
 
 ;;; the discriminant for integers
-(definstance discr_integer class_discr
+(definstance discr_integer class_discriminant
   :predef DISCR_INTEGER
   :obj_num OBMAG_INT 
-  :disc_super discr_anyrecv
+  :disc_super discr_any_receiver
   :named_name '"DISCR_INTEGER")
 
 ;;; the discriminant for constant integers, like '123
-(definstance discr_constinteger class_discr
-  :predef DISCR_CONSTINTEGER
+(definstance discr_constant_integer class_discriminant
+  :predef DISCR_CONSTANT_INTEGER
   :obj_num OBMAG_INT
   :disc_super discr_integer
-  :named_name '"DISCR_CONSTINTEGER"
+  :named_name '"DISCR_CONSTANT_INTEGER"
   :doc #{The discriminant for constant integers, in particular those
 obtained by quoting an integer.}# 
 )
 
 ;;; the discriminant for lists
-(definstance discr_list class_discr
+(definstance discr_list class_discriminant
   :predef DISCR_LIST
   :obj_num OBMAG_LIST 
-  :disc_super discr_anyrecv
+  :disc_super discr_any_receiver
   :named_name '"DISCR_LIST")
 
 ;;; the discriminant for pairs
-(definstance discr_pair class_discr
+(definstance discr_pair class_discriminant
   :predef DISCR_PAIR
   :obj_num OBMAG_PAIR 
-  :disc_super discr_anyrecv
+  :disc_super discr_any_receiver
   :named_name '"DISCR_PAIR")
 
 ;;; the discriminant for multiples
-(definstance discr_multiple class_discr
+(definstance discr_multiple class_discriminant
   :predef DISCR_MULTIPLE
   :obj_num OBMAG_MULTIPLE
-  :disc_super discr_anyrecv
+  :disc_super discr_any_receiver
   :named_name '"DISCR_MULTIPLE")
 
 ;;; the discriminant for sequence of fields
-(definstance discr_seqfield class_discr
-  :predef DISCR_SEQFIELD
+(definstance discr_field_sequence class_discriminant
+  :predef DISCR_FIELD_SEQUENCE
   :obj_num OBMAG_MULTIPLE
-  :named_name '"DISCR_SEQFIELD"
+  :named_name '"DISCR_FIELD_SEQUENCE"
   :disc_super discr_multiple
   )
 
 ;;; the discriminant for boxes
-(definstance discr_box class_discr
+(definstance discr_box class_discriminant
   :predef DISCR_BOX
   :obj_num OBMAG_BOX
-  :disc_super discr_anyrecv
+  :disc_super discr_any_receiver
   :named_name '"DISCR_BOX")
 
 ;;; the discriminant for trees
-(definstance discr_tree class_discr
+(definstance discr_tree class_discriminant
   :predef DISCR_TREE
   :obj_num OBMAG_TREE
-  :disc_super discr_anyrecv
+  :disc_super discr_any_receiver
   :named_name '"DISCR_TREE")
 
 ;;; the discriminant for gimples
-(definstance discr_gimple class_discr
+(definstance discr_gimple class_discriminant
   :predef DISCR_GIMPLE
   :obj_num OBMAG_GIMPLE
-  :disc_super discr_anyrecv
+  :disc_super discr_any_receiver
   :named_name '"DISCR_GIMPLE")
 
 ;;; the discriminant for gimpleseqs
-(definstance discr_gimpleseq class_discr
+(definstance discr_gimpleseq class_discriminant
   :predef DISCR_GIMPLESEQ
   :obj_num OBMAG_GIMPLESEQ
-  :disc_super discr_anyrecv
+  :disc_super discr_any_receiver
   :named_name '"DISCR_GIMPLESEQ")
 
 ;;; the discriminant for edges
-(definstance discr_edge class_discr
+(definstance discr_edge class_discriminant
   :predef DISCR_EDGE
   :obj_num OBMAG_EDGE
-  :disc_super discr_anyrecv
+  :disc_super discr_any_receiver
   :named_name '"DISCR_EDGE")
 
-(definstance discr_basicblock class_discr
+(definstance discr_basicblock class_discriminant
   :predef DISCR_BASICBLOCK
   :obj_num OBMAG_BASICBLOCK
-  :disc_super discr_anyrecv
+  :disc_super discr_any_receiver
   :named_name '"DISCR_BASICBLOCK")
 
 ;;; the discriminant for maps of objects
-(definstance discr_mapobjects class_discr
+(definstance discr_mapobjects class_discriminant
   :predef DISCR_MAPOBJECTS
   :obj_num OBMAG_MAPOBJECTS
-  :disc_super discr_anyrecv
+  :disc_super discr_any_receiver
   :named_name '"DISCR_MAPOBJECTS")
 
 ;;; the discriminant for maps of strings
-(definstance discr_mapstrings class_discr
+(definstance discr_mapstrings class_discriminant
   :predef DISCR_MAPSTRINGS
   :obj_num OBMAG_MAPSTRINGS
-  :disc_super discr_anyrecv
+  :disc_super discr_any_receiver
   :named_name '"DISCR_MAPSTRINGS")
 
 ;;; the discriminant for maps of trees
-(definstance discr_maptrees class_discr
+(definstance discr_maptrees class_discriminant
   :predef DISCR_MAPTREES
   :obj_num OBMAG_MAPTREES
-  :disc_super discr_anyrecv
+  :disc_super discr_any_receiver
   :named_name '"DISCR_MAPTREES")
 
 ;;; the discriminant for maps of gimples
-(definstance discr_mapgimples class_discr
+(definstance discr_mapgimples class_discriminant
   :predef DISCR_MAPGIMPLES
   :obj_num OBMAG_MAPGIMPLES
-  :disc_super discr_anyrecv
+  :disc_super discr_any_receiver
   :named_name '"DISCR_MAPGIMPLES")
 
 ;;; the discriminant for maps of gimpleseqs
-(definstance discr_mapgimpleseqs class_discr
+(definstance discr_mapgimpleseqs class_discriminant
   :predef DISCR_MAPGIMPLESEQS
   :obj_num OBMAG_MAPGIMPLESEQS
-  :disc_super discr_anyrecv
+  :disc_super discr_any_receiver
   :named_name '"DISCR_MAPGIMPLESEQS")
 
 ;;; the discriminant for maps of edges
-(definstance discr_mapedges class_discr
+(definstance discr_mapedges class_discriminant
   :predef DISCR_MAPEDGES
   :obj_num OBMAG_MAPEDGES
-  :disc_super discr_anyrecv
+  :disc_super discr_any_receiver
   :named_name '"DISCR_MAPEDGES")
 
 ;;; the discriminant for maps of basicblocks
-(definstance discr_mapbasicblocks class_discr
+(definstance discr_mapbasicblocks class_discriminant
   :predef DISCR_MAPBASICBLOCKS
   :obj_num OBMAG_MAPBASICBLOCKS
-  :disc_super discr_anyrecv
+  :disc_super discr_any_receiver
   :named_name '"DISCR_MAPBASICBLOCKS")
 
 
 ;;; the discriminant for PPL constraint system (not predefined)
-(definstance discr_ppl_constraint_system class_discr
+(definstance discr_ppl_constraint_system class_discriminant
   :obj_num OBMAG_SPECPPL_CONSTRAINT_SYSTEM
-  :disc_super discr_anyrecv
+  :disc_super discr_any_receiver
   :named_name '"DISCR_PPL_CONSTRAINT_SYSTEM"
   )
 
 ;;; the discriminant for PPL polyhedron
-(definstance discr_ppl_polyhedron class_discr
+(definstance discr_ppl_polyhedron class_discriminant
   :obj_num OBMAG_SPECPPL_POLYHEDRON
-  :disc_super discr_anyrecv
+  :disc_super discr_any_receiver
   :named_name '"DISCR_PPL_POLYHEDRON"
   )
 
 ;;; the discriminant for files [closed by the garbage collector] (not
 ;;; predefined)
-(definstance discr_file class_discr
+(definstance discr_file class_discriminant
   :obj_num OBMAG_SPEC_FILE
-  :disc_super discr_anyrecv
+  :disc_super discr_any_receiver
   :named_name '"DISCR_FILE"
   )
 
 ;; the discrimiant for raw files [not closed implicitly] (not
 ;;; predefined)
-(definstance discr_rawfile class_discr
+(definstance discr_rawfile class_discriminant
   :obj_num OBMAG_SPEC_RAWFILE
   :disc_super discr_file
   :named_name '"DISCR_RAWFILE"
@@ -2159,23 +2159,23 @@ obtained by quoting an integer.}#
 
 
 ;;; the discriminant for sequence of classes 
-(definstance discr_seqclass class_discr
-  :predef DISCR_SEQCLASS
+(definstance discr_class_sequence class_discriminant
+  :predef DISCR_CLASS_SEQUENCE
   :obj_num OBMAG_MULTIPLE
-  :named_name '"DISCR_SEQCLASS"
+  :named_name '"DISCR_CLASS_SEQUENCE"
   :disc_super discr_multiple
   )
 
 
 ;;; the discriminant for method dictionnary maps
-(definstance discr_methodmap class_discr
+(definstance discr_methodmap class_discriminant
   :predef DISCR_METHODMAP
   :obj_num OBMAG_MAPOBJECTS
   :disc_super discr_mapobjects
   :named_name '"DISCR_METHODMAP")
 
 ;;; the discriminant for charcode integers
-(definstance discr_charinteger class_discr
+(definstance discr_charinteger class_discriminant
   :predef DISCR_CHARINTEGER
   :obj_num OBMAG_INT
   :named_name '"DISCR_CHARINTEGER"
@@ -2184,42 +2184,42 @@ obtained by quoting an integer.}#
 
 
 ;;; the discriminant for mixedintegers
-(definstance discr_mixedint class_discr
-  :predef DISCR_MIXEDINT
+(definstance discr_mixed_integer class_discriminant
+  :predef DISCR_MIXED_INTEGER
   :obj_num OBMAG_MIXINT
-  :disc_super discr_anyrecv
-  :named_name '"DISCR_MIXEDINT")
+  :disc_super discr_any_receiver
+  :named_name '"DISCR_MIXED_INTEGER")
 
 
 ;;; the discriminant for mixedintegers
-(definstance discr_mixbigint class_discr
-  :predef DISCR_MIXBIGINT
+(definstance discr_mixed_bigint class_discriminant
+  :predef DISCR_MIXED_BIGINT
   :obj_num OBMAG_MIXBIGINT
-  :disc_super discr_anyrecv
-  :named_name '"DISCR_MIXBIGINT")
+  :disc_super discr_any_receiver
+  :named_name '"DISCR_MIXED_BIGINT")
 
 
 
 ;;; the discriminant for mixed locations
-(definstance discr_mixedloc class_discr
-  :predef DISCR_MIXEDLOC
+(definstance discr_mixed_location class_discriminant
+  :predef DISCR_MIXED_LOCATION
   :obj_num OBMAG_MIXLOC
-  :disc_super discr_anyrecv
-  :named_name '"DISCR_MIXEDLOC")
+  :disc_super discr_any_receiver
+  :named_name '"DISCR_MIXED_LOCATION")
 
 
 ;;; the discriminant for closures
-(definstance discr_closure class_discr
+(definstance discr_closure class_discriminant
   :predef DISCR_CLOSURE
   :obj_num OBMAG_CLOSURE
-  :disc_super discr_anyrecv
+  :disc_super discr_any_receiver
   :named_name '"DISCR_CLOSURE")
 
 ;;; the discriminant for routines
-(definstance discr_routine class_discr
+(definstance discr_routine class_discriminant
   :predef DISCR_ROUTINE
   :obj_num OBMAG_ROUTINE
-  :disc_super discr_anyrecv
+  :disc_super discr_any_receiver
   :named_name '"DISCR_ROUTINE")
 
 
@@ -2428,7 +2428,7 @@ Also add the ctype as symbol data in the keyword and the alternate keyword if pr
   :predef CTYPE_CSTRING
   :named_name  '"CTYPE_CSTRING"
   :ctype_keyword ':cstring
-  :ctype_cname  (stringconst2val discr_namestring "const char*")
+  :ctype_cname  (stringconst2val discr_name_string "const char*")
   :ctype_parchar '"BPAR_CSTRING"
   :ctype_parstring '"BPARSTR_CSTRING"
   :ctype_argfield '"bp_cstring"
@@ -3400,7 +3400,7 @@ list.}#
 ;;; installation of a method in a class or discriminant
 (defun install_method (cla sel fun)
   (if 
-      (is_a cla class_discr)
+      (is_a cla class_discriminant)
       (if 
 	  (is_a sel class_selector)
 	  (if 
@@ -3553,8 +3553,8 @@ list.}#
   (let (  (out  (unsafe_get_field :dbgi_out dbgi))
 	  )
     (add2out_strconst out "()")))
-(install_method discr_nullrecv dbg_output dbgout_null_method)
-(install_method discr_nullrecv dbg_outputagain dbgout_null_method)
+(install_method discr_null_receiver dbg_output dbgout_null_method)
+(install_method discr_null_receiver dbg_outputagain dbgout_null_method)
 
 ;; string debug output
 (defun dbgout_string_method (self dbgi :long depth)
@@ -3577,8 +3577,8 @@ list.}#
 	))))
 
 (install_method discr_string  dbg_output dbgout_string_method)
-					;(install_method discr_namestring  dbg_output dbgout_string_method)
-					;(install_method discr_verbatimstring  dbg_output dbgout_string_method)
+					;(install_method discr_name_string  dbg_output dbgout_string_method)
+					;(install_method discr_verbatim_string  dbg_output dbgout_string_method)
 
 ;; integer debug output
 (defun dbgout_integer_method (self dbgi :long depth)
@@ -3606,7 +3606,7 @@ list.}#
   (let ( (dis (discrim self)) 
 	 (sbuf  (unsafe_get_field :dbgi_out dbgi))
 	 )
-    (if (== dis DISCR_MIXEDINT)
+    (if (== dis discr_mixed_integer)
 	(progn 
 	  (add2sbuf_strconst sbuf " #[")
 	  (add2sbuf_longdec sbuf (get_int self)))
@@ -3625,7 +3625,7 @@ list.}#
       )
     (add2sbuf_strconst sbuf "]")
     ))
-(install_method discr_mixedint dbg_output dbgout_mixint_method)
+(install_method discr_mixed_integer dbg_output dbgout_mixint_method)
 
 ;; mixloc debug value
 (defun dbgout_mixloc_method (self dbgi :long depth)
@@ -3634,7 +3634,7 @@ list.}#
   (let ( (dis (discrim self)) 
 	 (sbuf  (unsafe_get_field :dbgi_out dbgi))
 	 )
-    (if (== dis DISCR_MIXEDLOC)
+    (if (== dis DISCR_MIXED_LOCATION)
 	(progn 
 	  (add2sbuf_strconst sbuf " #![")
 	  (add2sbuf_longdec sbuf (get_int self)))
@@ -3653,7 +3653,7 @@ list.}#
       )
     (add2sbuf_strconst sbuf "]")
     ))
-(install_method discr_mixedloc dbg_output dbgout_mixloc_method)
+(install_method discr_mixed_location dbg_output dbgout_mixloc_method)
 
 
 ;; mixbigint debug value
@@ -3676,7 +3676,7 @@ list.}#
     )
   (add2sbuf_strconst sbuf "]")
   ))
-(install_method discr_mixbigint dbg_output dbgout_mixbigint_method)
+(install_method discr_mixed_bigint dbg_output dbgout_mixbigint_method)
 
 ;; multiple debug out
 (defun dbgout_multiple_method (self dbgi :long depth)
@@ -4173,7 +4173,7 @@ list.}#
     (if (is_a dis class_named) (add2sbuf_string sbuf (unsafe_get_field :named_name dis)))
     (add2sbuf_strconst sbuf ".? ")
     ))
-(install_method discr_anyrecv dbg_output dbgout_anyrecv_method)
+(install_method discr_any_receiver dbg_output dbgout_anyrecv_method)
 
 ;;; generic object debug outputagain
 (defun dbgoutagain_anyobject_method (self dbgi :long depth)
@@ -4732,7 +4732,7 @@ list.}#
  class_ctype
  class_debuginfo 
  class_described_environment
- class_discr 
+ class_discriminant 
  class_environment
  class_exported_binding
  class_field
@@ -5021,13 +5021,15 @@ list.}#
  ctype_void  
  dbg_output
  dbg_outputagain
- discr_anyrecv                        
+ discr_any_receiver                        
  discr_basicblock   
  discr_box 
  discr_charinteger                    
- discr_constinteger
+ discr_class_sequence                       
  discr_closure                        
+ discr_constant_integer
  discr_edge
+ discr_field_sequence                       
  discr_file
  discr_gimple
  discr_gimpleseq
@@ -5041,23 +5043,21 @@ list.}#
  discr_mapstrings                     
  discr_maptrees
  discr_methodmap 
- discr_mixbigint
- discr_mixedint                       
- discr_mixedloc                       
+ discr_mixed_bigint
+ discr_mixed_integer                       
+ discr_mixed_location                       
  discr_multiple                       
- discr_namestring                     
- discr_nullrecv                       
+ discr_name_string                     
+ discr_null_receiver                       
  discr_pair  
  discr_ppl_constraint_system 
  discr_ppl_polyhedron 
  discr_rawfile
  discr_routine                        
- discr_seqclass                       
- discr_seqfield                       
  discr_strbuf                         
  discr_string                         
  discr_tree
- discr_verbatimstring                 
+ discr_verbatim_string                 
  get_value
  initial_environment                  
  initial_system_data
@@ -5143,4 +5143,18 @@ list.}#
  )
 
 
+;;; synonyms for compatibility with older versions
+(compile_warning "temporary synonyms")
+;;; (export_synonym previousname currentname)
+(export_synonym class_discr class_discriminant)
+(export_synonym discr_anyrecv discr_any_receiver)
+(export_synonym discr_constinteger discr_constant_integer)
+(export_synonym discr_mixbigint discr_mixed_bigint)
+(export_synonym discr_mixedint discr_mixed_integer)
+(export_synonym discr_mixedloc discr_mixed_location)
+(export_synonym discr_namestring discr_name_string)
+(export_synonym discr_nullrecv discr_null_receiver)
+(export_synonym discr_verbatimstring discr_verbatim_string)
+(export_synonym discr_seqclass discr_class_sequence)
+(export_synonym discr_seqfield discr_field_sequence)
 ;; eof warmelt-first.melt

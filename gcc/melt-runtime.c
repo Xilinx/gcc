@@ -1854,7 +1854,7 @@ meltgc_new_mixbigint_mpz (meltobject_ptr_t discr_p,
   newbig = NULL;
   discrv = (void *) discr_p;
   if (!discrv)
-    discrv = (meltobject_ptr_t) MELT_PREDEF (DISCR_MIXBIGINT);
+    discrv = (meltobject_ptr_t) MELT_PREDEF (DISCR_MIXED_BIGINT);
   valv = val_p;
   if (melt_magic_discr ((melt_ptr_t) (discrv)) != OBMAG_OBJECT)
     goto end;
@@ -4510,12 +4510,12 @@ melt_is_subclass_of (meltobject_ptr_t subclass_p,
   superanc =
     (struct meltmultiple_st *) superclass_p->obj_vartab[FCLASS_ANCESTORS];
   if (melt_magic_discr ((melt_ptr_t) subanc) != OBMAG_MULTIPLE
-      || subanc->discr != (meltobject_ptr_t) MELT_PREDEF (DISCR_SEQCLASS))
+      || subanc->discr != (meltobject_ptr_t) MELT_PREDEF (DISCR_CLASS_SEQUENCE))
     {
       return FALSE;
     }
   if (melt_magic_discr ((melt_ptr_t) superanc) != OBMAG_MULTIPLE
-      || superanc->discr != (meltobject_ptr_t) MELT_PREDEF (DISCR_SEQCLASS))
+      || superanc->discr != (meltobject_ptr_t) MELT_PREDEF (DISCR_CLASS_SEQUENCE))
     {
       return FALSE;
     }
@@ -4848,7 +4848,7 @@ meltgc_send (melt_ptr_t recv_p,
 #define mul_ancv  ((struct meltmultiple_st*)(ancv))
   recv = recv_p;
   selv = sel_p;
-  /* the reciever can be null, using DISCR_NULLRECV */
+  /* the reciever can be null, using DISCR_NULL_RECEIVER */
 #ifdef ENABLE_CHECKING
   (void) sendnum;		/* to use it */
 #endif
@@ -4870,7 +4870,7 @@ meltgc_send (melt_ptr_t recv_p,
     }
   else
     {
-      discrv = ((meltobject_ptr_t) MELT_PREDEF (DISCR_NULLRECV));
+      discrv = ((meltobject_ptr_t) MELT_PREDEF (DISCR_NULL_RECEIVER));
       gcc_assert (discrv != NULL);
     };
   while (discrv)
@@ -6121,10 +6121,10 @@ makesexpr (struct reading_st *rd, int lineno, melt_ptr_t contents_p,
   contsv = contents_p;
   gcc_assert (melt_magic_discr ((melt_ptr_t) contsv) == OBMAG_LIST);
   if (loc == 0)
-    locmixv = meltgc_new_mixint ((meltobject_ptr_t) MELT_PREDEF (DISCR_MIXEDINT),
+    locmixv = meltgc_new_mixint ((meltobject_ptr_t) MELT_PREDEF (DISCR_MIXED_INTEGER),
 				    *rd->rpfilnam, (long) lineno);
   else
-    locmixv = meltgc_new_mixloc ((meltobject_ptr_t) MELT_PREDEF (DISCR_MIXEDLOC),
+    locmixv = meltgc_new_mixloc ((meltobject_ptr_t) MELT_PREDEF (DISCR_MIXED_LOCATION),
 				    *rd->rpfilnam, (long) lineno, loc);
   sexprv = meltgc_new_raw_object ((meltobject_ptr_t) MELT_PREDEF (CLASS_SEXPR), FSEXPR__LAST);
   ((meltobject_ptr_t) (sexprv))->obj_vartab[FSEXPR_LOCATION] =
