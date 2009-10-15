@@ -48,7 +48,7 @@
 
 
 ;; this inspired gcc/testsuite/melt/tmatch-4.melt 
-(defun makegreen_transform (grdata :tree decl :basicblock bb)
+(defun makegreen_transform (grdata :tree decl :basic_block bb)
   (debug_msg grdata "makegreen_transform start grdata")
   (assert_msg "check grdata" (is_a grdata class_makegreen_data))
   (debugtree "makegreen_transform decl" decl)
@@ -123,7 +123,7 @@
   (debugtree "makegreenpass_exec start cfundecl" (cfun_decl))
   (let ( (grdata (instance class_makegreen_data 
 			   :mkgreen_pass pass
-			   :mkgreen_stdout_ssa (make_maptree discr_maptrees 10)
+			   :mkgreen_stdout_ssa (make_maptree discr_map_trees 10)
 			   )) )
     ;; add our grdata associated to the cfun_decl in the pass data,
     ;; hence the gate will avoid running the pass twice
@@ -133,7 +133,7 @@
     ;; gimple ssa passes have a cfg..
     (each_bb_cfun 
      ()
-     (:basicblock bb :tree fundecl)
+     (:basic_block bb :tree fundecl)
      (debug_msg grdata "makegreenpass_exec grdata before makegreen_transform")
      (makegreen_transform grdata fundecl bb)
      )
@@ -149,7 +149,7 @@
 		    :named_name '"melt_greenpass"
 		    :gccpass_gate makegreenpass_gate
 		    :gccpass_exec makegreenpass_exec
-		    :gccpass_data (make_maptree discr_maptrees 100)
+		    :gccpass_data (make_maptree discr_map_trees 100)
 		    :gccpass_properties_required ()
 	      )
         ) )
@@ -219,7 +219,7 @@
 (defun fresh_abstrenv (abpar)
   (assert_msg "check abpar" (is_a abpar class_smallabstractenv))
   (let ( (newabenv (instance class_smallabstractenv
-			     :abenv_maptree (make_maptree discr_maptrees 10)
+			     :abenv_maptree (make_maptree discr_map_trees 10)
 			     :abenv_parenv abpar)) )
     (return newabenv)
 ))
@@ -306,12 +306,12 @@
 (install_method class_smallabstractenv dbg_output dbgout_smallabstractenv)
 
 (definstance initial_smallabstractenv class_smallabstractenv
-  :abenv_maptree (make_maptree discr_maptrees 20))
+  :abenv_maptree (make_maptree discr_map_trees 20))
 
 (definstance smallana_cont class_container)
 
 
-(defun smallana_cfun_entbb (sman :tree decltree :basicblock bbent)
+(defun smallana_cfun_entbb (sman :tree decltree :basic_block bbent)
   (debug_msg sman "smallana_cfun_entbb sman")
   (debugtree "smallana_cfun_entbb start decltree" decltree)
   (match 
@@ -353,7 +353,7 @@
 	    (scf (instance class_smallcfun
 			    :named_name fname
 			    :scfun_decl (make_tree discr_tree decltree)
-			    :scfun_entbb (make_basicblock discr_basicblock bbent)))
+			    :scfun_entbb (make_basicblock discr_basic_block bbent)))
 	     )
 	(debug_msg fname "smallana_cfun_entbb fname")
 	(list_append (get_field :sman_cfuns sman) scf)
@@ -467,7 +467,7 @@
    )
   )
 
-(defun smallana_bb (sman :basicblock bb)
+(defun smallana_bb (sman :basic_block bb)
   (debug_msg sman "smallana_bb start sman")
   (assert_msg "check sman" (is_a sman class_smallanalysis))
   (debugbasicblock "smallana_bb bb" bb)
@@ -477,7 +477,7 @@
     (let ( (sbb (mapbasicblock_get bbtab bb)) )
       (if sbb (return))
       (setq sbb (instance class_smallbb
-			  :sbb_bbcont (make_basicblock discr_basicblock bb)))
+			  :sbb_bbcont (make_basicblock discr_basic_block bb)))
       (mapbasicblock_put bbtab bb sbb)
       (eachgimple_in_basicblock 
        (bb)
@@ -488,7 +488,7 @@
       )))
 
 
-(defun smallana_cfun_bb (sman :tree cfdecl :basicblock fbb)
+(defun smallana_cfun_bb (sman :tree cfdecl :basic_block fbb)
   (debug_msg sman "smallana_bb_cfun start sman")
   (debugtree "smallana_bb_cfun cfdecl" cfdecl)
   (assert_msg "check sman" (is_a sman class_smallanalysis))
@@ -510,7 +510,7 @@
   (assert_msg "check sman" (is_a sman class_smallanalysis))
   (assert_msg "check abenv" (is_a abenv class_smallabstractenv))
   (assert_msg "check cfun" (is_a cfun class_smallcfun))
-  (let ( (:basicblock bbent 
+  (let ( (:basic_block bbent 
 		      (basicblock_content (get_field :scfun_entbb cfun)))
 	 (:tree fundecl (tree_content (get_field :scfun_decl cfun)))
 	 )
@@ -522,7 +522,7 @@
     ))
 
 
-(defun smaninterp_basicblock (sman abenv :basicblock bb)
+(defun smaninterp_basicblock (sman abenv :basic_block bb)
   (debug_msg abenv "smaninterp_basicblock abenv")
   (assert_msg "check sman" (is_a sman class_smallanalysis))
   (assert_msg "check abenv" (is_a abenv class_smallabstractenv))
@@ -749,7 +749,7 @@
 (defun sman_arithm_compare
   (sman abenv
 ;;; the entire gimple and its containing basicblock
-	:gimple g :basicblock bb 
+	:gimple g :basic_block bb 
 ;;; the extracted lefthandside righthandside truelab falselab
 	:tree lhs rhs truelab falselab 
 ;;; the relation string [eg "<="] its opposite for negative numbers [eg ">="] and
@@ -784,7 +784,7 @@
 	 (:edge eg :long eix)
 	 (debugedge "sman_arithm_compare true succedge eg" eg)
 	 (if (edge_for_true_value eg)
-	     (let ( (:basicblock tbb (edge_dest_bb eg)) 
+	     (let ( (:basic_block tbb (edge_dest_bb eg)) 
 		    (oldpolyv (get_field :abenv_pplpoly abenv))
 		    )
 	       ;; in the true case, the oldpolyv should be polyv
@@ -813,7 +813,7 @@
 	 (:edge eg :long eix)
 	 (debugedge "sman_arithm_compare false succedge eg" eg)
 	 (if (edge_for_false_value eg)
-	     (let ( (:basicblock fbb (edge_dest_bb eg)) 
+	     (let ( (:basic_block fbb (edge_dest_bb eg)) 
 		    (oldpolyv (get_field :abenv_pplpoly abenv))
 		    )
 	       (debugbasicblock "sman_arithm_compare falsesucc fbb" fbb)
@@ -830,7 +830,7 @@
 )
 
 ;;;;;;;;;;;;;;;;
-(defun smaninterp_gimple (sman abenv :gimple g :basicblock bb)
+(defun smaninterp_gimple (sman abenv :gimple g :basic_block bb)
   (assert_msg "check sman" (is_a sman class_smallanalysis))
   (assert_msg "check abenv" (is_a abenv class_smallabstractenv))
   (debug_msg abenv "smaninterp_gimple abenv")
@@ -1038,20 +1038,20 @@
 (defun smallanapass_exec (latessapass)
   (debug_msg latessapass "smallanapass_exec start")
   (let ( (cfuns (make_list discr_list))
-	 (cfundict (make_mapstring discr_mapstrings 20))
-	 (cfuntreemap (make_maptree discr_maptrees 20))
+	 (cfundict (make_mapstring discr_map_strings 20))
+	 (cfuntreemap (make_maptree discr_map_trees 20))
 	 (sman (instance class_smallanalysis
 			 :sman_cfuns cfuns
 			 :sman_cfundict cfundict
 			 :sman_cfuntreemap cfuntreemap
-			 :sman_bbtable (make_mapbasicblock discr_mapbasicblocks 20)
+			 :sman_bbtable (make_mapbasicblock discr_map_basic_blocks 20)
 			 )) 
 	 )
     (debug_msg sman "smallanapass_exec sman at start")
     ;; don't bother do_each_cfun_body here.. it is not done...
     (each_cgraph_fun_entryblock
      ()
-     (:tree decl :basicblock bbent)
+     (:tree decl :basic_block bbent)
      (debugtree "smallana exec eachcgraph decl" decl)
      (smallana_cfun_entbb sman decl bbent)
      )
@@ -1060,7 +1060,7 @@
     ;;
     (each_bb_cfun
      ()
-     (:basicblock cfbb :tree cfdecl)
+     (:basic_block cfbb :tree cfdecl)
      (smallana_cfun_bb sman cfdecl cfbb)
      )
     ;;
@@ -1135,7 +1135,7 @@
     ;; gimple ssa passes have a cfg..
     (each_bb_cfun 
      ()
-     (:basicblock bb :tree fundecl)
+     (:basic_block bb :tree fundecl)
      (put_fields jsdata :juscan_fundecl (make_tree discr_tree fundecl))
      (if bb (justscan_bb jsdata bb))
      )
@@ -1258,12 +1258,12 @@
        )
     ))
 
-(defun justscan_bb (jsdata :basicblock bb)
+(defun justscan_bb (jsdata :basic_block bb)
   (debug_msg jsdata "justscan_bbdcl jsdata start")
   (if bb
       (let ( (oldbb (get_field :juscan_curbb jsdata)) )
 	(debugbasicblock "justscan_bb bb" bb)
-	(put_fields jsdata :juscan_curbb (make_basicblock discr_basicblock bb))
+	(put_fields jsdata :juscan_curbb (make_basicblock discr_basic_block bb))
 	(eachgimple_in_basicblock 
 	 (bb)
 	 (:gimple g)
@@ -1281,7 +1281,7 @@
 		    :named_name '"melt_justscanpass"
 		    :gccpass_gate justscanpass_gate
 		    :gccpass_exec justscanpass_exec
-		    :gccpass_data (make_maptree discr_maptrees 100)
+		    :gccpass_data (make_maptree discr_map_trees 100)
 		    :gccpass_properties_required ()
 	      ))
         )

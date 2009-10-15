@@ -1240,7 +1240,7 @@ with a formal arguments binding tuple given in $SFORMAL_ARGS.}# )
 	 (argtype ctype_value)
 	 (arglist (unsafe_get_field :sexp_contents formalsexp))
 	 (argloc (unsafe_get_field :loca_location formalsexp))
-	 (argmap (make_mapobject discr_mapobjects (+i 4 (list_length arglist))))
+	 (argmap (make_mapobject discr_map_objects (+i 4 (list_length arglist))))
 	 (bndlist (make_list discr_list)) 
 	 (curpair (list_first arglist))
 	 )
@@ -1398,7 +1398,7 @@ with a formal arguments binding tuple given in $SFORMAL_ARGS.}# )
      (list_append flatlist comp)
      )
    ( (is_string comp)
-     (list_append flatlist (make_string discr_verbatimstring comp))
+     (list_append flatlist (make_string discr_verbatim_string comp))
      )
    ( (is_list comp)
      (foreach_in_list
@@ -1533,7 +1533,7 @@ with a formal arguments binding tuple given in $SFORMAL_ARGS.}# )
 		))
 	  (let (
 		(etuple (parse_pairlist_c_code_expansion loc curpair))
-		(substmap (make_mapobject discr_mapobjects
+		(substmap (make_mapobject discr_map_objects
 					  (+i 5 (*i 2 (multiple_length btup)))))
 		(sdefpri
 		 (instance class_src_defprimitive
@@ -1669,7 +1669,7 @@ $CLASS_PRIMITIVE_BINDING and the $CODE_CHUNK macro.}# )
 			    :sformal_args bstartup
 			    :sciterdef_citerator citer))
 	   (substmap (make_mapobject 
-		      discr_mapobjects
+		      discr_map_objects
 		      (+i 7 (+i (*i 2 (multiple_length bstartup))
 				(*i 2 (multiple_length blocvtup))))))
 	   )      ;; fill the substmap
@@ -1850,7 +1850,7 @@ $EXPORT_VALUES. See also $CLASS_CITERATOR. }#)
 			    :cmbind_matcher cmatch))
 	  (substmap 
 	   (make_mapobject 
-	    discr_mapobjects
+	    discr_map_objects
 	    (+i 7 (*i 2 (+i (multiple_length informals)
 			    (multiple_length outformals))))))
 	  )
@@ -2234,7 +2234,7 @@ $LAMBDA macros. A function defined by $DEFUN has to be exported with $EXPORT_VAL
 	 (ancestors (if (is_object superclass)
 			(let ( (superancestors (unsafe_get_field :class_ancestors superclass))
 			       (:long nbsuperanc (multiple_length superancestors))
-			       (anctuple (make_multiple discr_seqclass (+i 1 nbsuperanc)))
+			       (anctuple (make_multiple discr_class_sequence (+i 1 nbsuperanc)))
 			       (:long ix 0)
 			       )
 			  (assert_msg "check superclass" (is_a superclass class_class))
@@ -2247,14 +2247,14 @@ $LAMBDA macros. A function defined by $DEFUN has to be exported with $EXPORT_VAL
 			  (multiple_put_nth anctuple nbsuperanc superclass)
 			  anctuple
 			  )
-		      (make_multiple discr_seqclass 0)))
+		      (make_multiple discr_class_sequence 0)))
 	 (superfields (if (is_object superclass)
 			  (unsafe_get_field :class_fields superclass)))
 	 (:long nbsuperfields (multiple_length superfields))
 	 (:long nbfieldnames (multiple_length fieldnams))
 	 (boxnbsuperfields (make_integerbox discr_integer nbsuperfields))
-	 (fieldstrmap (make_mapstring discr_mapstrings (+i 3 (*i 2 (+i nbsuperfields nbfieldnames)))))
-	 (fieldtup (make_multiple discr_seqfield (+i nbsuperfields nbfieldnames)))
+	 (fieldstrmap (make_mapstring discr_map_strings (+i 3 (*i 2 (+i nbsuperfields nbfieldnames)))))
+	 (fieldtup (make_multiple discr_field_sequence (+i nbsuperfields nbfieldnames)))
 	 (ownfieldbindings (make_multiple discr_multiple nbfieldnames))
 	 (newclass (instance class_class
 			     :named_name (unsafe_get_field :named_name symb)
@@ -2936,7 +2936,7 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
        (chkcont)
        (curpair curcomp)
        (cond ( (is_string curcomp)
-	       (list_append chklist (make_string discr_verbatimstring curcomp))
+	       (list_append chklist (make_string discr_verbatim_string curcomp))
 	       )
 	     ( (is_a curcomp class_symbol)
 	       (list_append chklist curcomp))
@@ -3537,7 +3537,7 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
 			 (curpatctx (instance class_pattexpcontext
 					      :pctx_mexpander mexpander
 					      :pctx_pexpander patternexpand_1
-					      :pctx_varmap (make_mapobject discr_mapobjects 13)))
+					      :pctx_varmap (make_mapobject discr_map_objects 13)))
 			 (curpat (patternexpand_1 swhenpat env curpatctx curmatch))
 			 (curcase (instance class_src_casewhenmatch
 					    :loca_location curmatchloc
@@ -3558,7 +3558,7 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
 			 (curpatctx (instance class_pattexpcontext
 					      :pctx_mexpander mexpander
 					      :pctx_pexpander patternexpand_1
-					      :pctx_varmap (make_mapobject discr_mapobjects 13)))
+					      :pctx_varmap (make_mapobject discr_map_objects 13)))
 			 (curpat (let ( (cp (patternexpand_1 curmatchpatx env curpatctx curmatchloc)) )
 					(debug_msg cp "mexpand_match curpat")
 					(assert_msg "check curpat" cp)

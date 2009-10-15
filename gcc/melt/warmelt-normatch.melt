@@ -73,7 +73,7 @@
 		"unimplemented scan_pattern for any " myclassname)
     (assert_msg "catchall scan_pattern unimplemented for any reciever" ())
     ))
-(install_method discr_anyrecv scan_pattern scanpat_anyrecv)
+(install_method discr_any_receiver scan_pattern scanpat_anyrecv)
 
 
 ;;;;;;;;;;;;;;;;
@@ -578,7 +578,7 @@
 		"unimplemented normal_pattern for any " myclassname)
     (assert_msg "catchall normal_pattern unimplemented" ())
     ))
-(install_method discr_anyrecv normal_pattern normpat_anyrecv)
+(install_method discr_any_receiver normal_pattern normpat_anyrecv)
 
 ;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;
@@ -1418,7 +1418,7 @@
 	 (tupcstmap (make_multiple discr_multiple nbcases))
 	 (tupbindlist (make_multiple discr_multiple nbcases))
 	 ;; the bindlist & the stuffmap are shared for all match cases
-	 (stuffmap (make_mapobject discr_mapobjects 
+	 (stuffmap (make_mapobject discr_map_objects 
 				   (+i 20 (*i 5 nbcases))))
 	 (bindlist (make_list discr_list))
 	 (testlist (make_list discr_list))
@@ -1469,9 +1469,9 @@
 	      (curloc (unsafe_get_field :loca_location curcas))
 	      (curpat (unsafe_get_field :scam_patt curcas))
 	      (curbody (unsafe_get_field :scam_body curcas))
-	      (mapvar (make_mapobject discr_mapobjects 13))
-	      (mapcst (make_mapobject discr_mapobjects 11))
-	      (pvarmap (make_mapobject discr_mapobjects 23))
+	      (mapvar (make_mapobject discr_map_objects 13))
+	      (mapcst (make_mapobject discr_map_objects 11))
+	      (pvarmap (make_mapobject discr_map_objects 23))
 	      (pcn (instance class_patterncontext
 			     :pctn_normctxt ncx
 			     :pctn_src recv

@@ -1240,10 +1240,10 @@
    mpz_init ($treeinty#_minz);
    mpz_init ($treeinty#_maxz);
    get_type_static_bounds($tr, $treeinty#_minz, $treeinty#_maxz);
-   $minbig = meltgc_new_mixbigint_mpz((meltobject_ptr_t) MELT_PREDEF (DISCR_MIXBIGINT), 
+   $minbig = meltgc_new_mixbigint_mpz((meltobject_ptr_t) MELT_PREDEF (DISCR_MIXED_BIGINT), 
 					 NULL, 
 					 $treeinty#_minz);
-   $maxbig =  meltgc_new_mixbigint_mpz((meltobject_ptr_t) MELT_PREDEF (DISCR_MIXBIGINT), 
+   $maxbig =  meltgc_new_mixbigint_mpz((meltobject_ptr_t) MELT_PREDEF (DISCR_MIXED_BIGINT), 
 					 NULL, 
 					 $treeinty#_maxz);
    mpz_clear ($treeinty#_minz);
@@ -1649,7 +1649,7 @@
     (add2out_strconst out "}/ ")
     )
   )
-(install_method discr_gimpleseq dbg_output dbgout_boxgimpleseq_method)
+(install_method discr_gimple_seq dbg_output dbgout_boxgimpleseq_method)
 
 ;;;; boxed tree debug
 (defun dbgout_boxtree_method (self dbgi :long depth)
@@ -1677,7 +1677,7 @@
     (add2out_strconst out "}/ ")
     )
   )
-(install_method discr_basicblock dbg_output dbgout_boxbasicblock_method)
+(install_method discr_basic_block dbg_output dbgout_boxbasicblock_method)
 
 
 
@@ -1705,7 +1705,7 @@
     (add2out_strconst out "}!")
     (add2out_indentnl out depth)
     ))
-(install_method discr_mapbasicblocks dbg_output dbgout_mapbasicblock_method)
+(install_method discr_map_basic_blocks dbg_output dbgout_mapbasicblock_method)
 
 
 ;;;; treemap debug
@@ -1732,7 +1732,7 @@
     (add2out_strconst out "}!")
     (add2out_indentnl out depth)
     ))
-(install_method discr_maptrees dbg_output dbgout_maptree_method)
+(install_method discr_map_trees dbg_output dbgout_maptree_method)
 
 
 

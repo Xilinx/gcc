@@ -564,8 +564,8 @@
 (defun create_normcontext (modctx)
   (let ( (:long maxpredefix (last_globpredef_index))
 	 (:long ix 1)
-	 (predefmap (make_mapobject discr_mapobjects (+i 19 (*i 2 maxpredefix))))
-	 (valmap (make_mapobject discr_mapobjects 350))
+	 (predefmap (make_mapobject discr_map_objects (+i 19 (*i 2 maxpredefix))))
+	 (valmap (make_mapobject discr_map_objects 350))
 	 )
     (assert_msg "check modctx" (is_a modctx class_modulecontext))
     (forever predefloop
@@ -586,13 +586,13 @@
 		 :nctx_proclist (make_list discr_list)
 		 :nctx_datalist (make_list discr_list)
 		 :nctx_valuelist (make_list discr_list)
-		 :nctx_symbmap  (make_mapstring discr_mapstrings 50)
-		 :nctx_keywmap  (make_mapstring discr_mapstrings 40)
+		 :nctx_symbmap  (make_mapstring discr_map_strings 50)
+		 :nctx_keywmap  (make_mapstring discr_map_strings 40)
 		 :nctx_predefmap predefmap
 		 :nctx_valmap valmap
-		 :nctx_valbindmap (make_mapobject discr_mapobjects 20)
+		 :nctx_valbindmap (make_mapobject discr_map_objects 20)
 		 ;; we need a symbcachemap for the toplevel expressions
-		 :nctx_symbcachemap (make_mapobject discr_mapobjects 30)
+		 :nctx_symbcachemap (make_mapobject discr_map_objects 30)
 		 :nctx_curproc inipro
 		 :nctx_modulcontext modctx
 		 :nctx_qdatcurmodenvbox (instance class_nrep_quasidata_current_module_environment_container
@@ -631,7 +631,7 @@
   (debug_msg recv "normexp_identical recv")
   recv)
 
-(install_method discr_anyrecv normal_exp  normexp_identical)
+(install_method discr_any_receiver normal_exp  normexp_identical)
 
 ;; I'm not sure to understand why we need this.
 (install_method discr_string normal_exp  normexp_identical)
@@ -643,7 +643,7 @@
     (debug_msg normnull "normexp_null normnull")
     normnull
     ))
-(install_method discr_nullrecv normal_exp normexp_null)
+(install_method discr_null_receiver normal_exp normexp_null)
 
 ;;; catchall for src
 (defun normexp_src_catchall (recv env ncx psloc)
@@ -677,7 +677,7 @@
 
 ;;; most stuff are really ctype_value
 (defun gectyp_anyrecv (recv env) ctype_value)
-(install_method discr_anyrecv get_ctype gectyp_anyrecv)
+(install_method discr_any_receiver get_ctype gectyp_anyrecv)
 
 (defun gectyp_root (recv env) ctype_value)
 (install_method class_root get_ctype gectyp_root)
@@ -1108,7 +1108,7 @@
 			 sopnamstr)
 	     (return ()))
 	 )
-       (let ( (bmap (make_mapobject  discr_mapobjects (+i 5 (/iraw (*i 3 nbarg) 2))))
+       (let ( (bmap (make_mapobject  discr_map_objects (+i 5 (/iraw (*i 3 nbarg) 2))))
 	      (expargs (make_multiple discr_multiple nbexp))
 	      )
 	 (multiple_every
@@ -1223,7 +1223,7 @@
 		    (add2sbuf_string sbuf (get_field :named_name csym))
 		    (add2sbuf_strconst sbuf "__")
 		    (add2sbuf_longdec sbuf (get_int (get_field :csym_urank csym)))
-		    (strbuf2string discr_verbatimstring sbuf)
+		    (strbuf2string discr_verbatim_string sbuf)
 		    ))
 	 (nchk (multiple_map 
 		schk
@@ -1294,7 +1294,7 @@
 			 cmanamstr)
 	     (return))
 	 )
-       (let ( (bmap (make_mapobject  discr_mapobjects (+i 5 (/iraw (*i 3 nbarg) 2))))
+       (let ( (bmap (make_mapobject  discr_map_objects (+i 5 (/iraw (*i 3 nbarg) 2))))
 	      (expargs (make_multiple discr_multiple nbexp))
 	      )
 	 (multiple_every
@@ -2838,7 +2838,7 @@
 	 )
     (unsafe_put_fields ncx 
 		       :nctx_curproc nproc
-		       :nctx_symbcachemap (make_mapobject discr_mapobjects 40))
+		       :nctx_symbcachemap (make_mapobject discr_map_objects 40))
     (add_nctx_data ncx ndatarout)
     (add_nctx_data ncx ndataclos)
     (assert_msg "check sfubind" (is_a sfubind class_function_binding))
@@ -2932,7 +2932,7 @@
     ;; update the context for the new proc & a fresh symbol cache map
     (unsafe_put_fields ncx 
 		       :nctx_curproc nproc
-		       :nctx_symbcachemap (make_mapobject discr_mapobjects 40))
+		       :nctx_symbcachemap (make_mapobject discr_map_objects 40))
     (unsafe_put_fields nproc :nrpro_datarout ndatarout)
     (multiple_every
      sargs
@@ -3247,7 +3247,7 @@
 	   ( (is_integerbox quoted)
 	     (let (
 		   (nintdata (instance class_nrep_databoxedinteger
-				       :ndata_discrx (normal_predef discr_constinteger ncx sloc "discr_constinteger") 
+				       :ndata_discrx (normal_predef discr_constant_integer ncx sloc "discr_constant_integer") 
 				       :nboxint_num quoted))
 		   )
 	       (add_nctx_data ncx nintdata)
@@ -3398,11 +3398,11 @@
    (lambda (expcomp :long ix)
      (let ( (discrcomp (discrim expcomp)) 
 	    (compdata 
-	     (cond ( (== discrcomp discr_verbatimstring)
+	     (cond ( (== discrcomp discr_verbatim_string)
 		     (add_nctx_data ncx
 				    (instance 
 				     class_nrep_datastring
-				     :ndata_discrx (normal_predef discr_verbatimstring ncx sloc "discr_verbatimstring") 
+				     :ndata_discrx (normal_predef discr_verbatim_string ncx sloc "discr_verbatim_string") 
 				     :nstr_string expcomp
 				     )))
 		   ( (== discrcomp class_symbol)
@@ -3451,7 +3451,7 @@
 			      :ninst_slots nslotuple)) 
 	 (nsymdata (normal_symbol_data sname ncx sloc))
 	 ;; map of formal symbol -> data of formal_binding
-	 (formsymbmap (make_mapobject discr_mapobjects (+i 3 (*i (multiple_length sargs) 2))))
+	 (formsymbmap (make_mapobject discr_map_objects (+i 3 (*i (multiple_length sargs) 2))))
 	 )
     (add_nctx_data ncx nprimdata)
     (add_nctx_data ncx nexpdata)
@@ -3510,7 +3510,7 @@
 	(citexpaft (unsafe_get_field :citer_expafter sciter))
 	(expafttup (make_multiple discr_multiple (multiple_length citexpaft)))
 	;; map of formal symbol -> data of formal_binding
-	(formsymbmap (make_mapobject discr_mapobjects
+	(formsymbmap (make_mapobject discr_map_objects
 				     (+i 5 (*i (+i (multiple_length citstafor) (multiple_length citbodfor)) 2))))
 	(namstrdata (instance class_nrep_datastring
 			      :nrep_loc sloc
@@ -3725,7 +3725,7 @@
 				     :nocc_bind citstbind))
 		 (citexpbefore (unsafe_get_field :citer_expbefore soper))
 		 (citexpafter (unsafe_get_field :citer_expafter soper))
-		 (citlocmap (make_mapobject discr_mapobjects (+i 10 nbcitbform)))
+		 (citlocmap (make_mapobject discr_map_objects (+i 10 nbcitbform)))
 		 (citexpander 
 		  (lambda (xtup)
 		    (debug_msg xtup "normexp_citeration expanding xtup")
@@ -3843,7 +3843,7 @@
 	 (filltup (if fillcma (make_multiple discr_multiple (multiple_length fillcma))))
 	 (opertup (if opercma (make_multiple discr_multiple (multiple_length opercma))))
 	 ;; map of formal symbol -> data of formal_binding
-	 (formsymbmap (make_mapobject discr_mapobjects
+	 (formsymbmap (make_mapobject discr_map_objects
 				      (+i 5 (*i (+i (multiple_length inscma) (multiple_length outscma)) 2))))
 	 (namstrdata (instance class_nrep_datastring
 			       :nrep_loc sloc
@@ -4009,7 +4009,7 @@
 	     (instup (make_multiple discr_multiple (multiple_length insfma)))
 	     (outstup (make_multiple discr_multiple (multiple_length souts)))
 	     ;; map of formal symbol -> data of formal_binding
-	     (formsymbmap (make_mapobject discr_mapobjects
+	     (formsymbmap (make_mapobject discr_map_objects
 					  (+i 5 (*i (+i (multiple_length insfma) 
 							(multiple_length souts)) 2))))
 	     )
@@ -4111,7 +4111,7 @@
 		     class_nrep_datatuple
 		     :nrep_loc sloc
 		     :ndata_name sname
-		     :ndata_discrx (normal_predef discr_seqclass ncx sloc "discr_seqclass")
+		     :ndata_discrx (normal_predef discr_class_sequence ncx sloc "discr_class_sequence")
 		     :ntup_comp anctup
 		     ))
 	   (fldseq (unsafe_get_field :class_fields claobj))
@@ -4124,7 +4124,7 @@
 		     class_nrep_datatuple
 		     :nrep_loc sloc
 		     :ndata_name sname
-		     :ndata_discrx (normal_predef discr_seqfield ncx sloc "discr_seqfield")
+		     :ndata_discrx (normal_predef discr_field_sequence ncx sloc "discr_field_sequence")
 		     :ntup_comp fldtup
 		     ))
 	   ;; the data representing the superclass
@@ -4379,7 +4379,7 @@
 			     :ninst_slots slotup
 			     :ninst_objnum sinstobjnum
 			     )) 
-	  (formsymbmap (make_mapobject discr_mapobjects (+i 3 (*i (multiple_length sformals) 2))))
+	  (formsymbmap (make_mapobject discr_map_objects (+i 3 (*i (multiple_length sformals) 2))))
 	  (nformtup (if sformals
 			(let ( (:long nbformals (multiple_length sformals))
 			       (nformaltuple (make_multiple discr_multiple nbformals))

@@ -6786,7 +6786,7 @@ readhashescape (struct reading_st *rd)
 	    READ_ERROR ("MELT: invalid char escape %s starting line %d", nam, lineno);
 	  obstack_free (&bname_obstack, nam);
 	char_escape:
-	  readv = meltgc_new_int ((meltobject_ptr_t) MELT_PREDEF (DISCR_CHARINTEGER), c);
+	  readv = meltgc_new_int ((meltobject_ptr_t) MELT_PREDEF (DISCR_CHARACTER_INTEGER), c);
 	}
       else if (rdcurc () == 'x' && ISXDIGIT (rdfollowc (1)))
 	{

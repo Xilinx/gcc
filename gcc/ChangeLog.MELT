@@ -1,4 +1,33 @@
 2009-10-16  Basile Starynkevitch  <basile@starynkevitch.net>
+	[most important renaming done]
+	* run-melt.h: commented out uneeded #define
+	* melt-predef.list: renamed:
+	   ATOM_TRUE => TRUE == :true
+	   DISCR_CHARINTEGER => DISCR_CHARACTER_INTEGER,
+	   DISCR_METHODMAP => DISCR_METHOD_MAP.
+	* melt-runtime.c (readhashescape) replaced
+	    DISCR_CHARINTEGER => DISCR_CHARACTER_INTEGER
+
+	* melt/warmelt-first.melt: above renaming, and commented all
+	export_synonym, and :ctype_altkeyword, and handling :true
+	specially by calling MELT_STORE_PREDEF on it.
+	* melt/warmelt-macro.melt: renaming as above.
+	* melt/warmelt-normal.melt: renaming as above.
+	* melt/warmelt-normatch.melt: renaming as above.
+	* melt/warmelt-genobj.melt: renaming as above.
+	* melt/warmelt-outobj.melt: renaming as above.
+	* melt/ana-base.melt: renaming as above.
+	* melt/ana-simple.melt: renaming as above.
+	
+	[regenerated painfully a lot of times!]
+	* melt/warmelt-macro-0.c: regenerated.
+	* melt/warmelt-outobj-0.c: regenerated.
+	* melt/warmelt-genobj-0.c: regenerated.
+	* melt/warmelt-normatch-0.c: regenerated.
+	* melt/warmelt-normal-0.c: regenerated.
+	* melt/warmelt-first-0.c: regenerated.
+
+2009-10-16  Basile Starynkevitch  <basile@starynkevitch.net>
 	[still renaming...]
 	* melt-predef.list: renaming *BASICBLOCK *GIMPLE_SEQ *MAP*
 	* melt-runtime.c (meltgc_new_gimpleseq) renamed DISCR_GIMPLESEQ as

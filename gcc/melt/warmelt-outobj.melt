@@ -586,12 +586,12 @@
   (outnewline_err)
   (assert_msg "@@ outpucod_anydiscr not able to output" ())
   )
-(install_method discr_anyrecv output_c_code outpucod_anydiscr)
+(install_method discr_any_receiver output_c_code outpucod_anydiscr)
 
 (defun outpucod_null (nul declbuf implbuf :long depth)
   (add2sbuf_strconst implbuf "NULL")
   )
-(install_method discr_nullrecv output_c_code outpucod_null)
+(install_method discr_null_receiver output_c_code outpucod_null)
 
 ;;; catchall for outputting any stuff
 (defun outpucod_catchall_root (anyr declbuf implbuf :long depth)
@@ -2835,12 +2835,12 @@
 
 ;;; output a verbatim string
 (defun outpucod_verbatimstring (vstr declbuf implbuf :long depth)
-  (assert_msg "check vstr" (== (discrim vstr) discr_verbatimstring))
+  (assert_msg "check vstr" (== (discrim vstr) discr_verbatim_string))
   (add2sbuf_string implbuf vstr)
   )
 
 
-(install_method discr_verbatimstring output_c_code outpucod_verbatimstring)
+(install_method discr_verbatim_string output_c_code outpucod_verbatimstring)
 
 
 
@@ -2942,8 +2942,8 @@
   (let (
 	(modctx (instance class_modulecontext
 			  :mocx_modulename modnamstr
-			  :mocx_expfieldict (make_mapstring discr_mapstrings 90)
-			  :mocx_expclassdict (make_mapstring discr_mapstrings 40)
+			  :mocx_expfieldict (make_mapstring discr_map_strings 90)
+			  :mocx_expclassdict (make_mapstring discr_map_strings 40)
 			  :mocx_initialenv inienv
 			  ))
 	(ncx (create_normcontext modctx)) )
@@ -3005,7 +3005,7 @@
 		    )))))))
       (let ( (prolist (unsafe_get_field :nctx_proclist ncx)) 
 	     (objlist (make_list discr_list))
-	     (compicache (make_mapobject discr_mapobjects (+i 10 (*i 20 (list_length xlist)))))
+	     (compicache (make_mapobject discr_map_objects (+i 10 (*i 20 (list_length xlist)))))
 	     (countbox (make_integerbox discr_integer 0))
 	     ) 
 	(debug_msg prolist "compile_list_sexpr prolist")  
@@ -4298,10 +4298,10 @@
 		   :mkdoc_instances (make_list discr_list)
 		   :mkdoc_macros (make_list discr_list)
 		   :mkdoc_patmacros (make_list discr_list)
-		   :mkdoc_formaloccmap (make_mapobject discr_mapobjects 1000)
-		   :mkdoc_predefmap (make_mapobject discr_mapobjects 200)
-		   :mkdoc_docsymap (make_mapobject discr_mapobjects 400)
-		   :mkdoc_subclassmap (make_mapobject discr_mapobjects 400)
+		   :mkdoc_formaloccmap (make_mapobject discr_map_objects 1000)
+		   :mkdoc_predefmap (make_mapobject discr_map_objects 200)
+		   :mkdoc_docsymap (make_mapobject discr_map_objects 400)
+		   :mkdoc_subclassmap (make_mapobject discr_map_objects 400)
 		   ))
 	)
     (debug_msg arglist "makedoc_docmd arglist")

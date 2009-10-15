@@ -596,7 +596,7 @@
     (outstr_err (unsafe_get_field :named_name discr)))
   (outnewline_err)
   (assert_msg "@@ unexpected catchall putobjdest anydiscr" ()))
-(install_method discr_anyrecv put_objdest putobjdest_catchall_anydiscr)
+(install_method discr_any_receiver put_objdest putobjdest_catchall_anydiscr)
 
 
 (defun getctype_objvalue (recv env)
@@ -708,16 +708,16 @@
 			    :oprout_loc nloc
 			    :oprout_funam routfunam
 			    )) 
-	  (locmap (make_mapobject discr_mapobjects (+i 20 (*i 3 (multiple_length nargb)))))
+	  (locmap (make_mapobject discr_map_objects (+i 20 (*i 3 (multiple_length nargb)))))
 	  (gcx (instance class_genercontext
 			 :gncx_objrout obrout
 			 :gncx_locmap locmap
 			 :gncx_freeptrlist (make_list discr_list)
 			 :gncx_freelonglist (make_list discr_list)
-			 :gncx_freeothermaps (make_mapobject discr_mapobjects 20)
+			 :gncx_freeothermaps (make_mapobject discr_map_objects 20)
 			 :gncx_compicache compicache
 			 :gncx_modulcontext modctx
-			 :gncx_matchmap (make_mapobject discr_mapobjects 40)
+			 :gncx_matchmap (make_mapobject discr_map_objects 40)
 			 ))
 	  (retloc 
 	   (let ( (retl (get_free_objlocptr gcx '_retval_)) )
@@ -803,7 +803,7 @@
   (debug_msg compicache "compile2obj_initproc compicache")
   (debug_msg procurmodenvlist "compile2obj_initproc start procurmodenvlist")
   (debug_msg importvalues "compile2obj_initproc start importvalues")
-  (let ((locmap (make_mapobject discr_mapobjects 50))
+  (let ((locmap (make_mapobject discr_map_objects 50))
 	(oiniprolog (make_list discr_list))
 	(oinibody (make_list discr_list))
 	(oinitrout
@@ -818,17 +818,17 @@
 		   :oirout_fill (make_list discr_list)
 		   :oirout_prolog oiniprolog
 		   ))
-	(importmap (make_mapobject discr_mapobjects 50))
+	(importmap (make_mapobject discr_map_objects 50))
 	(gcx (instance 
 	      class_initgenercontext
 	      :gncx_objrout oinitrout
 	      :gncx_locmap locmap
 	      :gncx_freeptrlist (make_list discr_list)
 	      :gncx_freelonglist (make_list discr_list)
-	      :gncx_freeothermaps (make_mapobject discr_mapobjects 20)
+	      :gncx_freeothermaps (make_mapobject discr_map_objects 20)
 	      :gncx_compicache compicache
 	      :gncx_modulcontext modctx
-	      :gncx_matchmap (make_mapobject discr_mapobjects 60)
+	      :gncx_matchmap (make_mapobject discr_map_objects 60)
 	      :igncx_procurmodenvlist
 	      (list_map 
 	       procurmodenvlist
@@ -879,16 +879,16 @@
 	      (instance class_objcompute
 			:obcpt_expr (make_tuple7
 				     discr_multiple
-				     (make_stringconst discr_verbatimstring 
+				     (make_stringconst discr_verbatim_string 
 						       "if ((") 
 				     oprevenv
-				     (make_stringconst discr_verbatimstring 
+				     (make_stringconst discr_verbatim_string 
 						       ") && melt_magic_discr((melt_ptr_t)(")
 				     ofreshenv
-				     (make_stringconst discr_verbatimstring 
+				     (make_stringconst discr_verbatim_string 
 						       ")) != OBMAG_CLOSURE) warning(0, \"bad MELT fresh_env @%p in system data <%s:%d>\", ")
 				     ofreshenv
-				     (make_stringconst discr_verbatimstring ", __FILE__, __LINE__);"))))
+				     (make_stringconst discr_verbatim_string ", __FILE__, __LINE__);"))))
 	     ;; generate the apply of ofreshenv
 	     (list_append
 	      bodfel
@@ -911,7 +911,7 @@
 		      :obx_cont (make_tuple2 
 				 discr_multiple
 				 boxloc
-				 (make_stringconst discr_verbatimstring
+				 (make_stringconst discr_verbatim_string
 						   " || melt_object_length((melt_ptr_t) MELT_PREDEF (INITIAL_SYSTEM_DATA))<FSYSDAT_BOX_FRESH_ENV"
 						   )
 				 ))
@@ -941,7 +941,7 @@
 	(list_append oiniprolog
 		     (instance class_objcompute
 			       :obdi_destlist lisdest
-			       :obcpt_expr (make_stringconst discr_verbatimstring "modargp_"))
+			       :obcpt_expr (make_stringconst discr_verbatim_string "modargp_"))
 		     )
 	)
       (append_commentconst oiniprolog "compute boxloc")
@@ -1075,10 +1075,10 @@
 		 :obdi_destlist (list1 retinit)
 		 :obcpt_expr
 		 (make_tuple3 discr_multiple
-			      (make_stringconst discr_verbatimstring
+			      (make_stringconst discr_verbatim_string
 						"/*final freshenv get*/ melt_container_value((melt_ptr_t)(")
 			      boxloc	
-			      (make_stringconst discr_verbatimstring "))")	
+			      (make_stringconst discr_verbatim_string "))")	
 			      )
 		 ))
 	       )
@@ -1322,7 +1322,7 @@
 		   nexp
 		   (lambda (comp :long ix)
 		     (debug_msg comp "compobj nrepchunk comp")
-		     (if (== (discrim comp) discr_verbatimstring)
+		     (if (== (discrim comp) discr_verbatim_string)
 			 comp
 		       (compile_obj comp gcx)))
 		   ))
@@ -1373,7 +1373,7 @@
     (add2sbuf_strconst sbuf "/**!* ")
     (add2sbuf_ccomstring sbuf coms)
     (add2sbuf_strconst sbuf " *!**/")
-    (let ( (ostr (strbuf2string discr_verbatimstring sbuf)) 
+    (let ( (ostr (strbuf2string discr_verbatim_string sbuf)) 
 	   (res  (instance class_objcompute
 			   :obi_loc nloc
 			   :obdi_destlist ()
@@ -1615,7 +1615,7 @@
 		(add2sbuf_strconst sbuf "/*quasi.cur.mod.env.cont ")
 		(add2sbuf_ccomstring sbuf scomm)
 		(add2sbuf_strconst sbuf "*/\n")
-		(strbuf2string discr_verbatimstring sbuf)
+		(strbuf2string discr_verbatim_string sbuf)
 		)
 	      )
 	 (ores (instance class_objlocatedexpv
@@ -1729,7 +1729,7 @@
 					;  (debug_msg anyv "compilobj_discrany anyv")
   anyv
   )
-(install_method discr_anyrecv compile_obj compilobj_discrany)
+(install_method discr_any_receiver compile_obj compilobj_discrany)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_nrep_let (rlet gcx)
@@ -1905,7 +1905,7 @@
 	      (add2sbuf_longdec sbu cnt)
 	      (add2sbuf_strconst sbu "__")
 	      (add2sbuf_cident sbu (unsafe_get_field :named_name nstatsy))
-	      (strbuf2string discr_verbatimstring sbu)
+	      (strbuf2string discr_verbatim_string sbu)
 	      ))
 	   )
       (unsafe_put_fields 
@@ -2060,11 +2060,11 @@
 		  (tcont 
 		   (make_tuple5 
 		    discr_multiple
-		    (make_stringconst discr_verbatimstring "/*multacc*/(melt_multiple_nth((")
+		    (make_stringconst discr_verbatim_string "/*multacc*/(melt_multiple_nth((")
 		    cmul
-		    (make_stringconst discr_verbatimstring "), (")
+		    (make_stringconst discr_verbatim_string "), (")
 		    ix
-		    (make_stringconst discr_verbatimstring ")))")
+		    (make_stringconst discr_verbatim_string ")))")
 		    ))
 		  (res 
 		   (instance class_objexpv
@@ -2113,11 +2113,11 @@
 	    (let ( 
 		  (tcont 
 		   (make_tuple5 discr_multiple  
-				(make_stringconst discr_verbatimstring "/*fieldacc*/(melt_field_object((melt_ptr_t)(")
+				(make_stringconst discr_verbatim_string "/*fieldacc*/(melt_field_object((melt_ptr_t)(")
 				cobj
-				(make_stringconst discr_verbatimstring "),")
+				(make_stringconst discr_verbatim_string "),")
 				boxfldoff
-				(make_stringconst discr_verbatimstring "))")
+				(make_stringconst discr_verbatim_string "))")
 				)) 
 		  (res 
 		   (instance class_objexpv
@@ -2639,7 +2639,7 @@
     (debug_msg obc "putobjdest_null return obc")
     obc
     ))
-(install_method discr_nullrecv put_objdest putobjdest_null)
+(install_method discr_null_receiver put_objdest putobjdest_null)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun putobjdest_objblock (recv desto)
@@ -2768,13 +2768,13 @@
 	   (otest (instance class_objexpv
 			    :obx_cont
 			    (make_tuple5 discr_multiple
-					 (make_stringconst discr_verbatimstring
+					 (make_stringconst discr_verbatim_string
 							   "/*ifisa*/ melt_is_instance_of((melt_ptr_t)(")
 					 oval
-					 (make_stringconst discr_verbatimstring
+					 (make_stringconst discr_verbatim_string
 							   "), (melt_ptr_t)(")
 					 ocla
-					 (make_stringconst discr_verbatimstring
+					 (make_stringconst discr_verbatim_string
 							   "))"))
 			    ))
 	   (obif (instance class_objcond
@@ -3096,11 +3096,11 @@
 		  (instance 
 		   class_objexpv
 		   :obx_cont (make_tuple3 discr_multiple
-					  (make_stringconst discr_verbatimstring 
+					  (make_stringconst discr_verbatim_string 
 							    "MELTPREDEFIX(predefinited,")
-					  (make_string discr_verbatimstring 
+					  (make_string discr_verbatim_string 
 						       (unsafe_get_field :named_name ipredef))
-					  (make_stringconst discr_verbatimstring 
+					  (make_stringconst discr_verbatim_string 
 							    ")")
 					  ))
 		  )
@@ -3108,10 +3108,10 @@
 		  (instance
 		   class_objexpv
 		   :obx_cont (make_tuple3 discr_multiple
-					  (make_stringconst discr_verbatimstring 
+					  (make_stringconst discr_verbatim_string 
 							    "predefinited[")
 					  ipredef
-					  (make_stringconst discr_verbatimstring 
+					  (make_stringconst discr_verbatim_string 
 							    "]")
 					  ))
 		  )
@@ -3768,13 +3768,13 @@
 		       :obcpt_expr 
 		       (make_tuple5
 			discr_multiple
-			(make_stringconst discr_verbatimstring
+			(make_stringconst discr_verbatim_string
 					  "MELT_STORE_PREDEF(")
-			(make_string discr_verbatimstring 
+			(make_string discr_verbatim_string 
 				     (get_field :named_name npred))
-			(make_stringconst discr_verbatimstring ", (")
+			(make_stringconst discr_verbatim_string ", (")
 			oval
-			(make_stringconst discr_verbatimstring "))"))
+			(make_stringconst discr_verbatim_string "))"))
 		       ))
        )
      ( (is_integerbox npred)
@@ -3784,12 +3784,12 @@
 		       :obcpt_expr 
 		       (make_tuple5
 			discr_multiple
-			(make_stringconst discr_verbatimstring
+			(make_stringconst discr_verbatim_string
 					  "melt_store_predefined(")
 			npred
-			(make_stringconst discr_verbatimstring ", (")
+			(make_stringconst discr_verbatim_string ", (")
 			oval
-			(make_stringconst discr_verbatimstring "))"))
+			(make_stringconst discr_verbatim_string "))"))
 		       ))
        )
      (:else
@@ -3975,7 +3975,7 @@
 		    (add2sbuf_strconst labuf "mtch")
 		    (add2sbuf_longdec labuf (+i nbmat 1))
 		    (add2sbuf_strconst labuf "_")
-		    (let ( (labstr (strbuf2string discr_verbatimstring labuf)) )
+		    (let ( (labstr (strbuf2string discr_verbatim_string labuf)) )
 		      (mapobject_put matmap  nmat labstr)
 		      (debug_msg labstr "compilobj_nrep_match matlabel")
 		      labstr
@@ -3985,7 +3985,7 @@
 			)
 		    (add2sbuf_string labuf matlabel)
 		    (add2sbuf_strconst labuf "_end")
-		    (strbuf2string discr_verbatimstring labuf)))
+		    (strbuf2string discr_verbatim_string labuf)))
 	;; the list of suborders for putobjdest dispatch...
 	;; should be the *last* of each sequence added...
 	(subcomplist (make_list discr_list))
@@ -4243,7 +4243,7 @@
 	  (goins (instance 
 		  class_objgotoinstr
 		  :obi_loc nloc
-		  :obgoto_prefix (strbuf2string discr_verbatimstring labuf)
+		  :obgoto_prefix (strbuf2string discr_verbatim_string labuf)
 		  :obgoto_rank ()))
 	  )
       (debug_msg goins "endmatch_gotoinstr goins")
@@ -4269,7 +4269,7 @@
 	  (goins (instance 
 		  class_objgotoinstr
 		  :obi_loc nloc
-		  :obgoto_prefix (strbuf2string discr_verbatimstring labuf)
+		  :obgoto_prefix (strbuf2string discr_verbatim_string labuf)
 		  :obgoto_rank ()))
 	  )
       (debug_msg goins "testmatch_gotoinstr goins")
@@ -4431,12 +4431,12 @@
 		:obcx_loc nloc
 		:obx_cont (make_tuple5
 			   discr_multiple
-			   (make_stringconst discr_verbatimstring 
+			   (make_stringconst discr_verbatim_string 
 					     "/*normtesterinst*/ (melt_is_instance_of((")
 			   omatched
-			   (make_stringconst discr_verbatimstring "), (")
+			   (make_stringconst discr_verbatim_string "), (")
 			   oclass
-			   (make_stringconst discr_verbatimstring ")))"))
+			   (make_stringconst discr_verbatim_string ")))"))
 		))
 	(ocond (instance class_objcond
 			 :obi_loc nloc
@@ -4534,12 +4534,12 @@
 		:obcx_loc nloc
 		:obx_cont (make_tuple5
 			   discr_multiple
-			   (make_stringconst discr_verbatimstring 
+			   (make_stringconst discr_verbatim_string 
 					     "/*same*/ ((")
 			   omatched
-			   (make_stringconst discr_verbatimstring ") == (")
+			   (make_stringconst discr_verbatim_string ") == (")
 			   oidentical
-			   (make_stringconst discr_verbatimstring "))"))
+			   (make_stringconst discr_verbatim_string "))"))
 		))
 	(ocond (instance class_objcond
 			 :obi_loc nloc
@@ -4651,7 +4651,7 @@
 	;; the normtester
 	(normtester (unsafe_get_field :mcx_normtester mcx))
 	;; the subsitution map
-	(substmap (make_mapobject discr_mapobjects 
+	(substmap (make_mapobject discr_map_objects 
 				  (+i 5
 				      (*i 2 (+i (multiple_length cmins)
 						(multiple_length cmouts))))))
@@ -4666,7 +4666,7 @@
 		     (add2sbuf_string sbuf (get_field :mcx_suffix mcx))
 		     (add2sbuf_strconst sbuf "_")
 		     (add2sbuf_longdec sbuf mcxcount)
-		     (strbuf2string discr_verbatimstring sbuf)))
+		     (strbuf2string discr_verbatim_string sbuf)))
 	;; fetch the olist to add instructions into
 	(olist (get_field :mcx_olist mcx))
 	)
@@ -4730,7 +4730,7 @@
 		   (error_plain (get_field :mcx_loc mcx)
 				"invalid object to expand for cmatcher"))
 		 ( (is_string c)
-		   (make_string discr_verbatimstring c))
+		   (make_string discr_verbatim_string c))
 		 (:else
 		  (error_plain (get_field :mcx_loc mcx)
 			       "invalid stuff to expand for cmatcher")))))))

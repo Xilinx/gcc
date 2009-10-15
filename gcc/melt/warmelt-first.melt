@@ -2168,17 +2168,17 @@ obtained by quoting an integer.}#
 
 
 ;;; the discriminant for method dictionnary maps
-(definstance discr_methodmap class_discriminant
-  :predef DISCR_METHODMAP
+(definstance discr_method_map class_discriminant
+  :predef DISCR_METHOD_MAP
   :obj_num OBMAG_MAPOBJECTS
   :disc_super discr_map_objects
-  :named_name '"DISCR_METHODMAP")
+  :named_name '"DISCR_METHOD_MAP")
 
 ;;; the discriminant for charcode integers
-(definstance discr_charinteger class_discriminant
-  :predef DISCR_CHARINTEGER
+(definstance discr_character_integer class_discriminant
+  :predef DISCR_CHARACTER_INTEGER
   :obj_num OBMAG_INT
-  :named_name '"DISCR_CHARINTEGER"
+  :named_name '"DISCR_CHARACTER_INTEGER"
   :disc_super discr_integer
   )
 
@@ -2310,7 +2310,7 @@ Also add the ctype as symbol data in the keyword and the alternate keyword if pr
   :predef CTYPE_GIMPLE_SEQ
   :named_name  '"CTYPE_GIMPLE_SEQ"
   :ctype_keyword ':gimple_seq
-  :ctype_altkeyword ':gimpleseq
+  ; :ctype_altkeyword ':gimpleseq
   :ctype_cname  '"gimple_seq"
   :ctype_parchar '"BPAR_GIMPLESEQ"
   :ctype_parstring '"BPARSTR_GIMPLESEQ"
@@ -2325,7 +2325,7 @@ Also add the ctype as symbol data in the keyword and the alternate keyword if pr
   :predef CTYPE_BASIC_BLOCK
   :named_name  '"CTYPE_BASIC_BLOCK"
   :ctype_keyword ':basic_block
-  :ctype_altkeyword ':basicblock
+  ; :ctype_altkeyword ':basicblock
   :ctype_cname  '"basic_block"
   :ctype_parchar '"BPAR_BB"
   :ctype_parstring '"BPARSTR_BB"
@@ -2474,6 +2474,7 @@ Also add the ctype as symbol data in the keyword and the alternate keyword if pr
 					;		(messageval_dbg "warm interning symbol" symb)
 	symb))
     ))
+
 
 ;; function to intern a keyword (or return the previous one)
 (defun intern_keyword (inidat keyw)
@@ -2970,6 +2971,7 @@ Also add the ctype as symbol data in the keyword and the alternate keyword if pr
   :sysdata_unit_finisher init_unitfinisher
   )
 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;; general purpose utility functions
 
@@ -3412,7 +3414,7 @@ list.}#
 		     (unsafe_get_field :disc_methodict cla)) )
 		(if (is_mapobject mapdict)
 		    (mapobject_put mapdict sel fun)
-		  (let ( (newmapdict (make_mapobject discr_methodmap 35)) )
+		  (let ( (newmapdict (make_mapobject discr_method_map 35)) )
 		    (unsafe_put_fields cla :disc_methodict newmapdict)
 		    (mapobject_put newmapdict sel fun)
 		    ))))))
@@ -3600,7 +3602,7 @@ list.}#
       )))
 
 (install_method discr_integer dbg_output dbgout_integer_method)
-(install_method discr_charinteger dbg_output dbgout_integer_method)
+(install_method discr_character_integer dbg_output dbgout_integer_method)
 
 ;; mixint debug value
 (defun dbgout_mixint_method (self dbgi :long depth)
@@ -5026,7 +5028,7 @@ list.}#
  discr_any_receiver                        
  discr_basic_block   
  discr_box 
- discr_charinteger                    
+ discr_character_integer                    
  discr_class_sequence                       
  discr_closure                        
  discr_constant_integer
@@ -5044,7 +5046,7 @@ list.}#
  discr_map_objects                     
  discr_map_strings                     
  discr_map_trees
- discr_methodmap 
+ discr_method_map 
  discr_mixed_bigint
  discr_mixed_integer                       
  discr_mixed_location                       
@@ -5144,29 +5146,34 @@ list.}#
  integerbox_of 
  )
 
+;; we predefine :true as the TRUE. Currently no handcoded C function
+;; use it, but perhaps that could change!!
 
+(let ( ( truekeyword :true) )
+  (code_chunk storetruekeyword #{MELT_STORE_PREDEF(TRUE,$truekeyword)}#))
+
+;;;;;;;;;;;;;;;;
 ;;; synonyms for compatibility with older versions
-(compile_warning "temporary synonyms")
+;(compile_warning "temporary synonyms")
+;(export_synonym discr_seqclass discr_class_sequence)
+;(export_synonym discr_seqfield discr_field_sequence)
+;(export_synonym discr_mapobjects discr_map_objects)
+;(export_synonym discr_mapstrings discr_map_strings)
+
+;; export_synonym discr_maptrees discr_map_trees)
+;; export_synonym discr_mapbasicblocks discr_map_basic_blocks)
+;; export_synonym discr_mapedges discr_map_edges)
+;; export_synonym discr_mapgimples discr_map_gimples)
+;; export_synonym discr_mapgimpleseqs discr_map_gimple_seqs)
 ;;; (export_synonym previousname currentname)
-(export_synonym class_discr class_discriminant)
-(export_synonym ctype_gimpleseq ctype_gimple_seq)
-(export_synonym discr_anyrecv discr_any_receiver)
-(export_synonym discr_constinteger discr_constant_integer)
-(export_synonym discr_mixbigint discr_mixed_bigint)
-(export_synonym discr_mixedint discr_mixed_integer)
-(export_synonym discr_mixedloc discr_mixed_location)
-(export_synonym discr_namestring discr_name_string)
-(export_synonym discr_nullrecv discr_null_receiver)
-(export_synonym discr_verbatimstring discr_verbatim_string)
-(export_synonym discr_seqclass discr_class_sequence)
-(export_synonym discr_seqfield discr_field_sequence)
-(export_synonym discr_basicblock discr_basic_block)
-(export_synonym discr_gimpleseq discr_gimple_seq)
-(export_synonym discr_mapobjects discr_map_objects)
-(export_synonym discr_mapbasicblocks discr_map_basic_blocks)
-(export_synonym discr_mapedges discr_map_edges)
-(export_synonym discr_mapgimples discr_map_gimples)
-(export_synonym discr_mapgimpleseqs discr_map_gimple_seqs)
-(export_synonym discr_mapstrings discr_map_strings)
-(export_synonym discr_maptrees discr_map_trees)
+;; export_synonym class_discr class_discriminant)
+;; export_synonym ctype_gimpleseq ctype_gimple_seq)
+;(export_synonym discr_anyrecv discr_any_receiver)
+;(export_synonym discr_constinteger discr_constant_integer)
+;(export_synonym discr_mixbigint discr_mixed_bigint)
+;; export_synonym discr_mixedint discr_mixed_integer)
+;; export_synonym discr_mixedloc discr_mixed_location)
+;; export_synonym discr_namestring discr_name_string)
+;(export_synonym discr_nullrecv discr_null_receiver)
+;(export_synonym discr_verbatimstring discr_verbatim_string)
 ;; eof warmelt-first.melt
