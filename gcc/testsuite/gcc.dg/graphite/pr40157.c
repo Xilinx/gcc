@@ -1,4 +1,4 @@
-/* { dg-options "-O2 -fgraphite-identity" } */
+/* { dg-options "-O2 -floop-block" } */
 
 int buffer[256*256];
 int main(void)
