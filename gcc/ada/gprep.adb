@@ -6,18 +6,17 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2002-2006, Free Software Foundation, Inc.         --
+--          Copyright (C) 2002-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -27,7 +26,6 @@
 with Csets;
 with Err_Vars; use Err_Vars;
 with Errutil;
-with Gnatvsn;  use Gnatvsn;
 with Namet;    use Namet;
 with Opt;
 with Osint;    use Osint;
@@ -37,13 +35,16 @@ with Scng;
 with Sinput.C;
 with Snames;
 with Stringt;  use Stringt;
+with Switch;   use Switch;
 with Types;    use Types;
 
-with Ada.Text_IO;               use Ada.Text_IO;
+with Ada.Text_IO;     use Ada.Text_IO;
+
 with GNAT.Case_Util;            use GNAT.Case_Util;
 with GNAT.Command_Line;
 with GNAT.Directory_Operations; use GNAT.Directory_Operations;
-with GNAT.OS_Lib;               use GNAT.OS_Lib;
+
+with System.OS_Lib; use System.OS_Lib;
 
 package body GPrep is
 
@@ -136,10 +137,7 @@ package body GPrep is
    procedure Display_Copyright is
    begin
       if not Copyright_Displayed then
-         Write_Line ("GNAT Preprocessor " & Gnatvsn.Gnat_Version_String);
-         Write_Line ("Copyright 1996-" &
-                     Current_Year &
-                     ", Free Software Foundation, Inc.");
+         Display_Version ("GNAT Preprocessor", "1996");
          Copyright_Displayed := True;
       end if;
    end Display_Copyright;
@@ -506,12 +504,13 @@ package body GPrep is
 
          Scanner.Initialize_Scanner (Infile);
 
-         --  Output the SFN pragma if asked to
+         --  Output the pragma Source_Reference if asked to
 
          if Source_Ref_Pragma then
-            Put_Line (Outfile.all, "pragma Source_Reference (1, """ &
-                      Get_Name_String (Sinput.File_Name (Infile)) &
-                      """);");
+            Put_Line
+              (Outfile.all,
+               "pragma Source_Reference (1, """ &
+                 Get_Name_String (Sinput.Full_File_Name (Infile)) & """);");
          end if;
 
          --  Preprocess the input file
@@ -700,8 +699,18 @@ package body GPrep is
    procedure Scan_Command_Line is
       Switch : Character;
 
+      procedure Check_Version_And_Help is new Check_Version_And_Help_G (Usage);
+
+      --  Start of processing for Scan_Command_Line
+
    begin
-      --  Parse the switches
+      --  First check for --version or --help
+
+      Check_Version_And_Help ("GNATPREP", "1996");
+
+      --  Now scan the other switches
+
+      GNAT.Command_Line.Initialize_Option_Scan;
 
       loop
          begin

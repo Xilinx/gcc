@@ -577,7 +577,7 @@ extern int fixuplabelno;
 /* Override svr4.h definition.  */
 #undef	ASM_SPEC
 #define	ASM_SPEC "%(asm_cpu) \
-%{.s: %{mregnames} %{mno-regnames}} %{.S: %{mregnames} %{mno-regnames}} \
+%{,assembler|,assembler-with-cpp: %{mregnames} %{mno-regnames}} \
 %{v:-V} %{Qy:} %{!Qn:-Qy} %{n} %{T} %{Ym,*} %{Yd,*} %{Wa,*:%*} \
 %{mrelocatable} %{mrelocatable-lib} %{fpic|fpie|fPIC|fPIE:-K PIC} \
 %{memb|msdata|msdata=eabi: -memb} \
@@ -607,7 +607,7 @@ extern int fixuplabelno;
 #endif
 
 /* Pass -G xxx to the compiler and set correct endian mode.  */
-#define	CC1_SPEC "%{G*} \
+#define	CC1_SPEC "%{G*} %(cc1_cpu) \
 %{mlittle|mlittle-endian: %(cc1_endian_little);           \
   mbig   |mbig-endian   : %(cc1_endian_big);              \
   mcall-aixdesc |					  \
@@ -633,7 +633,7 @@ extern int fixuplabelno;
 %{profile: -p}"
 
 /* Don't put -Y P,<path> for cross compilers.  */
-#ifndef CROSS_COMPILE
+#ifndef CROSS_DIRECTORY_STRUCTURE
 #define LINK_PATH_SPEC "\
 %{!R*:%{L*:-R %*}} \
 %{!nostdlib: %{!YP,*: \
@@ -755,7 +755,7 @@ extern int fixuplabelno;
   mcall-openbsd: %(startfile_openbsd)     ; \
                : %(startfile_default)     }"
 
-#define	STARTFILE_DEFAULT_SPEC ""
+#define	STARTFILE_DEFAULT_SPEC "ecrti.o%s crtbegin.o%s"
 
 /* Override svr4.h definition.  */
 #undef	LIB_SPEC
@@ -772,7 +772,7 @@ extern int fixuplabelno;
   mcall-openbsd: %(lib_openbsd)     ; \
                : %(lib_default)     }"
 
-#define LIB_DEFAULT_SPEC ""
+#define LIB_DEFAULT_SPEC "-lc"
 
 /* Override svr4.h definition.  */
 #undef	ENDFILE_SPEC
@@ -791,7 +791,7 @@ extern int fixuplabelno;
 
 #define CRTSAVRES_DEFAULT_SPEC "crtsavres.o%s"
 
-#define	ENDFILE_DEFAULT_SPEC ""
+#define	ENDFILE_DEFAULT_SPEC "crtend.o%s ecrtn.o%s"
 
 /* Motorola ADS support.  */
 #define LIB_ADS_SPEC "--start-group -lads -lc --end-group"

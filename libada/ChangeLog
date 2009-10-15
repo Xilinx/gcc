@@ -1,22 +1,32 @@
-2008-05-19  Release Manager
+2009-08-04  Release Manager
 
-	* GCC 4.2.4 released.
+	* GCC 4.3.4 released.
 
-2008-02-01  Release Manager
+2009-01-24  Release Manager
 
-	* GCC 4.2.3 released.
+	* GCC 4.3.3 released.
 
-2007-10-07  Release Manager
+2008-08-27  Release Manager
 
-	* GCC 4.2.2 released.
+	* GCC 4.3.2 released.
 
-2007-07-19  Release Manager
+2008-06-06  Release Manager
 
-	* GCC 4.2.1 released.
+	* GCC 4.3.1 released.
 
-2007-05-13  Release Manager
+2008-03-05  Release Manager
 
-	* GCC 4.2.0 released.
+	* GCC 4.3.0 released.
+
+2007-03-01  Brooks Moses  <brooks.moses@codesourcery.com>
+
+	* Makefile.in: Add dummy install-pdf target.
+
+2007-01-23  Richard Guenther  <rguenther@suse.de>
+
+	PR bootstrap/30541
+	* Makefile.in (STAGE_PREFIX): Do not define.
+	(FLAGS_TO_PASS): Do not pass STAGE_PREFIX.
 
 2006-11-16  Paolo Bonzini  <bonzini@gnu.org>
 

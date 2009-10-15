@@ -6,7 +6,7 @@
 #define N 3001
 
 
-int
+__attribute__ ((noinline))
 main1 (float *pa)
 {
   int i;
@@ -65,12 +65,21 @@ int main (void)
   return 0;
 }
 
-/* in main1 */
-/* { dg-final { scan-tree-dump-times "vectorized 2 loops" 1 "vect" } } */
-/* { dg-final { scan-tree-dump-times "Alignment of access forced using peeling" 2 "vect" { target vect_no_align } } } */
-/* { dg-final { scan-tree-dump-times "Alignment of access forced using peeling" 3 "vect" { xfail vect_no_align } } } */
+/* 2 loops vectorized in main1, 2 loops vectorized in main:
+   the first loop in main requires vectorization of conversions,
+   the second loop in main requires vectorization of misaligned load.  */
 
-/* in main */
-/* { dg-final { scan-tree-dump-times "vectorized 1 loops" 1 "vect" { xfail vect_no_align } } } */
+/* main && main1 together: */
+/* { dg-final { scan-tree-dump-times "vectorized 2 loops" 2 "vect" { target powerpc*-*-* i?86-*-* x86_64-*-* } } } */
+/* { dg-final { scan-tree-dump-times "Alignment of access forced using peeling" 2 "vect" { target { vect_no_align && {! vector_alignment_reachable} } } } } */
+/* { dg-final { scan-tree-dump-times "Alignment of access forced using peeling" 3 "vect" { xfail { vect_no_align || {! vector_alignment_reachable} } } } } */
+
+/* in main1: */
+/* { dg-final { scan-tree-dump-times "vectorized 2 loops" 1 "vect" { target !powerpc*-*-* !i?86-*-* !x86_64-*-* } } } */
+/* { dg-final { scan-tree-dump-times "vectorized 2 loops" 1 "vect" { target vect_no_align } } } */
+
+/* in main: */
+/* { dg-final { scan-tree-dump-times "vectorized 0 loops" 1 "vect" { target vect_no_align } } } */
 /* { dg-final { scan-tree-dump-times "Vectorizing an unaligned access" 1 "vect" { xfail vect_no_align } } } */
+
 /* { dg-final { cleanup-tree-dump "vect" } } */

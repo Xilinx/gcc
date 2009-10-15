@@ -5,10 +5,13 @@
 
 #define N 16
 
+int a[N];
+
+__attribute__ ((noinline))
 int main1 (int n)
 {
   int i, j, k;
-  int a[N], b[N];
+  int b[N];
 
   for (i = 0; i < n; i++)
     {

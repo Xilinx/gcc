@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2004, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -33,8 +33,8 @@
 
 with Alloc;
 with Hostparm; use Hostparm;
-with Namet;    use Namet;
 with Table;
+with Types;    use Types;
 
 package body Fname is
 
@@ -120,22 +120,22 @@ package body Fname is
 
       Predef_Names : constant array (1 .. 11) of Str8 :=
         ("ada     ",       -- Ada
-         "calendar",       -- Calendar
          "interfac",       -- Interfaces
          "system  ",       -- System
-         "machcode",       -- Machine_Code
-         "unchconv",       -- Unchecked_Conversion
-         "unchdeal",       -- Unchecked_Deallocation
 
          --  Remaining entries are only considered if Renamings_Included true
 
+         "calendar",       -- Calendar
+         "machcode",       -- Machine_Code
+         "unchconv",       -- Unchecked_Conversion
+         "unchdeal",       -- Unchecked_Deallocation
          "directio",       -- Direct_IO
          "ioexcept",       -- IO_Exceptions
          "sequenio",       -- Sequential_IO
          "text_io ");      -- Text_IO
 
          Num_Entries : constant Natural :=
-                         7 + 4 * Boolean'Pos (Renamings_Included);
+                         3 + 8 * Boolean'Pos (Renamings_Included);
 
    begin
       --  Remove extension (if present)

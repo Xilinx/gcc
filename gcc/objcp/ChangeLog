@@ -1,16 +1,35 @@
-2008-05-19  Release Manager
+2009-08-04  Release Manager
 
-	* GCC 4.2.4 released.
+	* GCC 4.3.4 released.
 
-2008-02-01  Release Manager
+2009-01-24  Release Manager
 
-	* GCC 4.2.3 released.
+	* GCC 4.3.3 released.
 
-2007-10-07  Release Manager
+2008-08-27  Release Manager
 
-	* GCC 4.2.2 released.
+	* GCC 4.3.2 released.
 
-2007-08-29  Nick Clifton  <nickc@redhat.com>
+2008-06-06  Release Manager
+
+	* GCC 4.3.1 released.
+
+2008-03-05  Release Manager
+
+	* GCC 4.3.0 released.
+
+2008-02-07  Andreas Tobler  <andreast-list@fgznet.ch>
+            Douglas Gregor  <doug.gregor@gmail.com>
+ 
+	PR bootstrap/35115
+	* objcp-decl.c (objcp_comptypes): Call cp_comptypes, not comptypes.
+
+2008-02-06  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	PR other/35107
+	* Make-lang.in (cc1objplus-dummy, cc1objplus): Add $(GMPLIBS).
+
+2007-08-02  Nick Clifton  <nickc@redhat.com>
 
 	* Make-lang.in: Change copyright header to refer to version 3 of
 	the GNU General Public License and to point readers at the
@@ -18,13 +37,13 @@
 	* lang-specs.h, objcp-decl.c, objcp-decl.h, config-lang.in,
 	objcp-lang.c: Likewise.
 
-2007-07-19  Release Manager
+2007-03-01  Brooks Moses  <brooks.moses@codesourcery.com>
 
-	* GCC 4.2.1 released.
+	* Make-lang.in: Add dummy lang.install-pdf target.
 
-2007-05-13  Release Manager
+2006-10-23 Rafael Avila de Espindola  <rafael.espindola@gmail.com>
 
-	* GCC 4.2.0 released.
+	* objcp-decl.h (objcp_builtin_function): Remove.
 
 2006-10-10  Brooks Moses  <bmoses@stanford.edu>
 

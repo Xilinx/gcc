@@ -1,6 +1,6 @@
 // Win32Process.java - Subclass of Process for Win32 systems.
 
-/* Copyright (C) 2002, 2003  Free Software Foundation
+/* Copyright (C) 2002, 2003, 2006, 2007  Free Software Foundation
 
    This file is part of libgcj.
 
@@ -22,9 +22,7 @@ import java.io.IOException;
 
 // This is entirely internal to our implementation.
 
-// This file is copied to `ConcreteProcess.java' before compilation.
-// Hence the class name apparently does not match the file name.
-final class ConcreteProcess extends Process
+final class Win32Process extends Process
 {
   public native void destroy ();
 
@@ -53,9 +51,8 @@ final class ConcreteProcess extends Process
 
   public native int waitFor () throws InterruptedException;
 
-  public ConcreteProcess (String[] progarray,
-                          String[] envp,
-                          File dir)
+  public Win32Process (String[] progarray, String[] envp, File dir,
+		       boolean redirect)
     throws IOException
   {
     for (int i = 0; i < progarray.length; i++)
@@ -66,7 +63,7 @@ final class ConcreteProcess extends Process
           progarray[i] = "\"" + s + "\"";
       }
 
-    startProcess (progarray, envp, dir);
+    startProcess (progarray, envp, dir, redirect);
   }
 
   // The standard streams (stdin, stdout and stderr, respectively)
@@ -83,8 +80,18 @@ final class ConcreteProcess extends Process
 
   private native boolean hasExited ();
   private native void startProcess (String[] progarray,
-           String[] envp,
-           File dir)
+				    String[] envp,
+				    File dir,
+				    boolean redirect)
     throws IOException;
   private native void cleanup ();
+
+  private static class EOFInputStream extends InputStream
+  {
+    static EOFInputStream instance = new EOFInputStream();
+    public int read()
+    {
+      return -1;
+    }
+  }
 }

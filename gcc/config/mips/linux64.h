@@ -20,9 +20,11 @@ along with GCC; see the file COPYING3.  If not see
 
 /* Force the default endianness and ABI flags onto the command line
    in order to make the other specs easier to write.  */
+#undef DRIVER_SELF_SPECS
 #define DRIVER_SELF_SPECS \
-"%{!EB:%{!EL:%(endian_spec)}}", \
-"%{!mabi=*: -mabi=n32}"
+NO_SHARED_SPECS \
+" %{!EB:%{!EL:%(endian_spec)}}" \
+" %{!mabi=*: -mabi=n32}"
 
 #undef SUBTARGET_ASM_SPEC
 #define SUBTARGET_ASM_SPEC "\
@@ -31,9 +33,10 @@ along with GCC; see the file COPYING3.  If not see
 
 #undef LIB_SPEC
 #define LIB_SPEC "\
-%{shared: -lc} \
-%{!shared: %{pthread:-lpthread} \
-  %{profile:-lc_p} %{!profile: -lc}}"
+%{pthread:-lpthread} \
+%{shared:-lc} \
+%{!shared: \
+  %{profile:-lc_p} %{!profile:-lc}}"
 
 #define GLIBC_DYNAMIC_LINKER32 "/lib/ld.so.1"
 #define GLIBC_DYNAMIC_LINKER64 "/lib64/ld.so.1"

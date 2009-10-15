@@ -6,18 +6,17 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---                     Copyright (C) 1999-2005, AdaCore                     --
+--                     Copyright (C) 1999-2007, AdaCore                     --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -26,11 +25,11 @@
 
 with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Interfaces.C.Strings;
+with System;
 
 with Hostparm;
 with Opt;
 with Output; use Output;
-with Namet;  use Namet;
 
 with MLib.Utl; use MLib.Utl;
 
@@ -46,20 +45,18 @@ package body MLib is
 
    procedure Build_Library
      (Ofiles      : Argument_List;
-      Afiles      : Argument_List;
       Output_File : String;
       Output_Dir  : String)
    is
-      pragma Warnings (Off, Afiles);
-
    begin
-      if not Opt.Quiet_Output then
+      if Opt.Verbose_Mode and not Opt.Quiet_Output then
          Write_Line ("building a library...");
          Write_Str  ("   make ");
          Write_Line (Output_File);
       end if;
 
-      Ar (Output_Dir & "/lib" & Output_File & ".a", Objects => Ofiles);
+      Ar (Output_Dir & Directory_Separator &
+          "lib" & Output_File & ".a", Objects => Ofiles);
    end Build_Library;
 
    ------------------------
@@ -97,7 +94,7 @@ package body MLib is
 
    procedure Copy_ALI_Files
      (Files      : Argument_List;
-      To         : Name_Id;
+      To         : Path_Name_Type;
       Interfaces : String_List)
    is
       Success      : Boolean := False;
@@ -123,6 +120,8 @@ package body MLib is
          end if;
       end Verbose_Copy;
 
+   --  Start of processing for Copy_ALI_Files
+
    begin
       if Interfaces'Length = 0 then
 
@@ -130,6 +129,10 @@ package body MLib is
 
          for Index in Files'Range loop
             Verbose_Copy (Index);
+            Set_Writable
+              (To_Dir &
+               Directory_Separator &
+               Base_Name (Files (Index).all));
             Copy_File
               (Files (Index).all,
                To_Dir,
@@ -148,6 +151,7 @@ package body MLib is
 
             declare
                File_Name : String := Base_Name (Files (Index).all);
+
             begin
                Canonical_Case_File_Name (File_Name);
 
@@ -169,15 +173,19 @@ package body MLib is
                if Is_Interface then
                   Success := False;
                   Verbose_Copy (Index);
+                  Set_Writable
+                    (To_Dir &
+                     Directory_Separator &
+                     Base_Name (Files (Index).all));
 
                   declare
-                     FD         : File_Descriptor;
-                     Len        : Integer;
-                     Actual_Len : Integer;
-                     S          : String_Access;
-                     Curr       : Natural;
+                     FD           : File_Descriptor;
+                     Len          : Integer;
+                     Actual_Len   : Integer;
+                     S            : String_Access;
+                     Curr         : Natural;
                      P_Line_Found : Boolean;
-                     Status     : Boolean;
+                     Status       : Boolean;
 
                   begin
                      --  Open the file
@@ -206,9 +214,9 @@ package body MLib is
                         end loop;
 
                         --  We are done with the input file, so we close it
+                        --  ignoring any bad status.
 
                         Close (FD, Status);
-                        --  We simply ignore any bad status
 
                         P_Line_Found := False;
 
@@ -266,11 +274,10 @@ package body MLib is
                      end if;
                   end;
 
+               --  This is not an interface ALI
+
                else
-                  --  This is not an interface ALI
-
                   Success := True;
-
                end if;
             end;
 
@@ -280,6 +287,76 @@ package body MLib is
          end loop;
       end if;
    end Copy_ALI_Files;
+
+   ----------------------
+   -- Create_Sym_Links --
+   ----------------------
+
+   procedure Create_Sym_Links
+     (Lib_Path    : String;
+      Lib_Version : String;
+      Lib_Dir     : String;
+      Maj_Version : String)
+   is
+      function Symlink
+        (Oldpath : System.Address;
+         Newpath : System.Address) return Integer;
+      pragma Import (C, Symlink, "__gnat_symlink");
+
+      Version_Path : String_Access;
+
+      Success : Boolean;
+      Result  : Integer;
+      pragma Unreferenced (Success, Result);
+
+   begin
+      if Is_Absolute_Path (Lib_Version) then
+         Version_Path := new String (1 .. Lib_Version'Length + 1);
+         Version_Path (1 .. Lib_Version'Length) := Lib_Version;
+
+      else
+         Version_Path :=
+           new String (1 .. Lib_Dir'Length + 1 + Lib_Version'Length + 1);
+         Version_Path (1 .. Version_Path'Last - 1) :=
+           Lib_Dir & Directory_Separator & Lib_Version;
+      end if;
+
+      Version_Path (Version_Path'Last) := ASCII.NUL;
+
+      if Maj_Version'Length = 0 then
+         declare
+            Newpath : String (1 .. Lib_Path'Length + 1);
+         begin
+            Newpath (1 .. Lib_Path'Length) := Lib_Path;
+            Newpath (Newpath'Last)         := ASCII.NUL;
+            Delete_File (Lib_Path, Success);
+            Result := Symlink (Version_Path (1)'Address, Newpath'Address);
+         end;
+
+      else
+         declare
+            Newpath1 : String (1 .. Lib_Path'Length + 1);
+            Maj_Path : constant String :=
+                         Lib_Dir & Directory_Separator & Maj_Version;
+            Newpath2 : String (1 .. Maj_Path'Length + 1);
+
+         begin
+            Newpath1 (1 .. Lib_Path'Length) := Lib_Path;
+            Newpath1 (Newpath1'Last)        := ASCII.NUL;
+
+            Newpath2 (1 .. Maj_Path'Length) := Maj_Path;
+            Newpath2 (Newpath2'Last)        := ASCII.NUL;
+
+            Delete_File (Maj_Path, Success);
+
+            Result := Symlink (Version_Path (1)'Address, Newpath2'Address);
+
+            Delete_File (Lib_Path, Success);
+
+            Result := Symlink (Newpath2'Address, Newpath1'Address);
+         end;
+      end if;
+   end Create_Sym_Links;
 
    --------------------------------
    -- Linker_Library_Path_Option --
@@ -302,6 +379,66 @@ package body MLib is
          return new String'(S);
       end if;
    end Linker_Library_Path_Option;
+
+   -------------------
+   -- Major_Id_Name --
+   -------------------
+
+   function Major_Id_Name
+     (Lib_Filename : String;
+      Lib_Version  : String)
+      return String
+   is
+      Maj_Version : constant String := Lib_Version;
+      Last_Maj    : Positive;
+      Last        : Positive;
+      Ok_Maj      : Boolean := False;
+
+   begin
+      Last_Maj := Maj_Version'Last;
+      while Last_Maj > Maj_Version'First loop
+         if Maj_Version (Last_Maj) in '0' .. '9' then
+            Last_Maj := Last_Maj - 1;
+
+         else
+            Ok_Maj := Last_Maj /= Maj_Version'Last and then
+            Maj_Version (Last_Maj) = '.';
+
+            if Ok_Maj then
+               Last_Maj := Last_Maj - 1;
+            end if;
+
+            exit;
+         end if;
+      end loop;
+
+      if Ok_Maj then
+         Last := Last_Maj;
+         while Last > Maj_Version'First loop
+            if Maj_Version (Last) in '0' .. '9' then
+               Last := Last - 1;
+
+            else
+               Ok_Maj := Last /= Last_Maj and then
+               Maj_Version (Last) = '.';
+
+               if Ok_Maj then
+                  Last := Last - 1;
+                  Ok_Maj :=
+                    Maj_Version (Maj_Version'First .. Last) = Lib_Filename;
+               end if;
+
+               exit;
+            end if;
+         end loop;
+      end if;
+
+      if Ok_Maj then
+         return Maj_Version (Maj_Version'First .. Last_Maj);
+      else
+         return "";
+      end if;
+   end Major_Id_Name;
 
 --  Package elaboration
 

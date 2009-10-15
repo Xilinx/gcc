@@ -1,22 +1,101 @@
-2008-05-19  Release Manager
+2009-08-04  Release Manager
 
-	* GCC 4.2.4 released.
+	* GCC 4.3.4 released.
 
-2008-02-01  Release Manager
+2009-01-24  Release Manager
 
-	* GCC 4.2.3 released.
+	* GCC 4.3.3 released.
 
-2007-10-07  Release Manager
+2008-08-27  Release Manager
 
-	* GCC 4.2.2 released.
+	* GCC 4.3.2 released.
 
-2007-07-19  Release Manager
+2008-06-06  Release Manager
 
-	* GCC 4.2.1 released.
+	* GCC 4.3.1 released.
 
-2007-05-13  Release Manager
+2008-03-05  Release Manager
 
-	* GCC 4.2.0 released.
+	* GCC 4.3.0 released.
+
+2008-01-24  David Edelsohn  <edelsohn@gnu.org>
+
+	* configure: Regenerate.
+
+2007-10-14  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* configure.ac: Don't run config-ml.in directly.
+	(multilib_arg): New.
+	* configure: Regenerated.
+
+2007-08-06  Andrew Pinski  <pinskia@gmail.com>
+
+	PR libobjc/30731
+	* exception.c (parse_lsda_header): Use _uleb128_t/_sleb128_t instead
+	of _Unwind_Word for variables which are used in
+	read_uleb128/read_sleb128.
+	(PERSONALITY_FUNCTION): Likewise.
+
+2007-07-05  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* aclocal.m4: Regenerated.
+
+2007-06-03  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	* configure.ac: Fix a typo in *-*-darwin clause.
+	* configure: Regenerated.
+
+2007-06-02  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* configure.ac: Fix a typo.
+	* configure: Regenerated.
+
+2007-06-02  Paolo Bonzini  <bonzini@gnu.org>
+
+	* configure: Regenerate.
+
+2007-06-01  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	* Makefile.in: Replace all uses of libext with libsuffix.
+	* configure.ac: Likewise.
+	* configure: Regenerate.
+
+	Revert:
+	* Makefile.in: Remove all uses of $(libext).
+
+2007-05-23  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	* Makefile.in: Remove all uses of $(libext).
+
+2007-05-23  Steve Ellcey  <sje@cup.hp.com>
+
+	* configure: Regenerate.
+	* aclocal.m4: Regenerate.
+
+2007-04-21  Andrew Ruder  <andy@aeruder.net>
+
+	* sendmsg.c (__objc_get_forward_imp): Call
+	__objc_msg_forward2 for real.
+
+2007-04-09  Andrew Ruder  <andy@aeruder.net>
+
+	* sendmsg.c: Added __objc_msg_forward2, a hook that allows
+	external libraries to provide a function that returns the real
+	forwarding function based on both the selector and the receiver.
+	* objc/objc-api.h: Define __objc_msg_forward2.
+
+2007-03-01  Brooks Moses  <brooks.moses@codesourcery.com>
+
+	* Makefile.in: Add dummy install-pdf target.
+
+2007-02-18  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	* objc/objc-list.h (list_free): Add keyword 'inline' to avoid
+	unused warning.
+	
+2006-10-31  Geoffrey Keating  <geoffk@apple.com>
+
+	* encoding.c (darwin_rs6000_special_round_type_align): New.
 
 2006-10-14  Geoffrey Keating  <geoffk@apple.com>
 

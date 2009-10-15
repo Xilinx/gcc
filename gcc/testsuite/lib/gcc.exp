@@ -29,6 +29,7 @@
 load_lib libgloss.exp
 load_lib prune.exp
 load_lib gcc-defs.exp
+load_lib timeout.exp
 
 #
 # GCC_UNDER_TEST is the compiler under test.
@@ -93,6 +94,8 @@ proc gcc_init { args } {
     global gcc_initialized
     global GCC_UNDER_TEST
     global TOOL_EXECUTABLE
+    global gcc_warning_prefix
+    global gcc_error_prefix
 
     if { $gcc_initialized == 1 } { return; }
 
@@ -107,6 +110,9 @@ proc gcc_init { args } {
     if ![info exists tmpdir] then {
 	set tmpdir /tmp
     }
+
+    set gcc_warning_prefix "warning:"
+    set gcc_error_prefix "error:"
 
     gcc_maybe_build_wrapper "${tmpdir}/gcc-testglue.o"
 }
@@ -142,9 +148,7 @@ proc gcc_target_compile { source dest type options } {
     if [info exists TOOL_OPTIONS] {
 	set options [concat "{additional_flags=$TOOL_OPTIONS}" $options]
     }
-    if [target_info exists gcc,timeout] {
-	lappend options "timeout=[target_info gcc,timeout]"
-    }
+    lappend options "timeout=[timeout_value]"
     lappend options "additional_flags=-fno-show-column"
     lappend options "compiler=$GCC_UNDER_TEST"
     set options [dg-additional-files-options $options $source]

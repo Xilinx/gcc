@@ -1,6 +1,6 @@
 // Debugging map implementation -*- C++ -*-
 
-// Copyright (C) 2003, 2004, 2005
+// Copyright (C) 2003, 2004, 2005, 2006, 2007
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -46,10 +46,10 @@ namespace __debug
   template<typename _Key, typename _Tp, typename _Compare = std::less<_Key>,
 	   typename _Allocator = std::allocator<std::pair<const _Key, _Tp> > >
     class map
-    : public _GLIBCXX_STD::map<_Key, _Tp, _Compare, _Allocator>,
+    : public _GLIBCXX_STD_D::map<_Key, _Tp, _Compare, _Allocator>,
       public __gnu_debug::_Safe_sequence<map<_Key, _Tp, _Compare, _Allocator> >
     {
-      typedef _GLIBCXX_STD::map<_Key, _Tp, _Compare, _Allocator> _Base;
+      typedef _GLIBCXX_STD_D::map<_Key, _Tp, _Compare, _Allocator> _Base;
       typedef __gnu_debug::_Safe_sequence<map> _Safe_base;
 
     public:
@@ -88,20 +88,38 @@ namespace __debug
 	: _Base(__gnu_debug::__check_valid_range(__first, __last), __last,
 		__comp, __a), _Safe_base() { }
 
-      map(const map<_Key,_Tp,_Compare,_Allocator>& __x)
+      map(const map& __x)
       : _Base(__x), _Safe_base() { }
 
-      map(const _Base& __x) : _Base(__x), _Safe_base() { }
+      map(const _Base& __x)
+      : _Base(__x), _Safe_base() { }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      map(map&& __x)
+      : _Base(std::forward<map>(__x)), _Safe_base()
+      { this->_M_swap(__x); }
+#endif
 
       ~map() { }
 
-      map<_Key,_Tp,_Compare,_Allocator>&
-      operator=(const map<_Key,_Tp,_Compare,_Allocator>& __x)
+      map&
+      operator=(const map& __x)
       {
 	*static_cast<_Base*>(this) = __x;
 	this->_M_invalidate_all();
 	return *this;
       }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      map&
+      operator=(map&& __x)
+      {
+        // NB: DR 675.
+	clear();
+	swap(__x);
+	return *this;
+      }
+#endif
 
       // _GLIBCXX_RESOLVE_LIB_DEFECTS
       // 133. map missing get_allocator()
@@ -139,6 +157,24 @@ namespace __debug
       const_reverse_iterator
       rend() const
       { return const_reverse_iterator(begin()); }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      const_iterator
+      cbegin() const
+      { return const_iterator(_Base::begin(), this); }
+
+      const_iterator
+      cend() const
+      { return const_iterator(_Base::end(), this); }
+
+      const_reverse_iterator
+      crbegin() const
+      { return const_reverse_iterator(end()); }
+
+      const_reverse_iterator
+      crend() const
+      { return const_reverse_iterator(begin()); }
+#endif
 
       // capacity:
       using _Base::empty;
@@ -210,7 +246,11 @@ namespace __debug
       }
 
       void
-      swap(map<_Key,_Tp,_Compare,_Allocator>& __x)
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      swap(map&& __x)
+#else
+      swap(map& __x)
+#endif
       {
 	_Base::swap(__x);
 	this->_M_swap(__x);
@@ -287,47 +327,71 @@ namespace __debug
       }
     };
 
-  template<typename _Key,typename _Tp,typename _Compare,typename _Allocator>
+  template<typename _Key, typename _Tp,
+	   typename _Compare, typename _Allocator>
     inline bool
-    operator==(const map<_Key,_Tp,_Compare,_Allocator>& __lhs,
-	       const map<_Key,_Tp,_Compare,_Allocator>& __rhs)
+    operator==(const map<_Key, _Tp, _Compare, _Allocator>& __lhs,
+	       const map<_Key, _Tp, _Compare, _Allocator>& __rhs)
     { return __lhs._M_base() == __rhs._M_base(); }
 
-  template<typename _Key,typename _Tp,typename _Compare,typename _Allocator>
+  template<typename _Key, typename _Tp,
+	   typename _Compare, typename _Allocator>
     inline bool
-    operator!=(const map<_Key,_Tp,_Compare,_Allocator>& __lhs,
-	       const map<_Key,_Tp,_Compare,_Allocator>& __rhs)
+    operator!=(const map<_Key, _Tp, _Compare, _Allocator>& __lhs,
+	       const map<_Key, _Tp, _Compare, _Allocator>& __rhs)
     { return __lhs._M_base() != __rhs._M_base(); }
 
-  template<typename _Key,typename _Tp,typename _Compare,typename _Allocator>
+  template<typename _Key, typename _Tp,
+	   typename _Compare, typename _Allocator>
     inline bool
-    operator<(const map<_Key,_Tp,_Compare,_Allocator>& __lhs,
-	      const map<_Key,_Tp,_Compare,_Allocator>& __rhs)
+    operator<(const map<_Key, _Tp, _Compare, _Allocator>& __lhs,
+	      const map<_Key, _Tp, _Compare, _Allocator>& __rhs)
     { return __lhs._M_base() < __rhs._M_base(); }
 
-  template<typename _Key,typename _Tp,typename _Compare,typename _Allocator>
+  template<typename _Key, typename _Tp,
+	   typename _Compare, typename _Allocator>
     inline bool
-    operator<=(const map<_Key,_Tp,_Compare,_Allocator>& __lhs,
-	       const map<_Key,_Tp,_Compare,_Allocator>& __rhs)
+    operator<=(const map<_Key, _Tp, _Compare, _Allocator>& __lhs,
+	       const map<_Key, _Tp, _Compare, _Allocator>& __rhs)
     { return __lhs._M_base() <= __rhs._M_base(); }
 
-  template<typename _Key,typename _Tp,typename _Compare,typename _Allocator>
+  template<typename _Key, typename _Tp,
+	   typename _Compare, typename _Allocator>
     inline bool
-    operator>=(const map<_Key,_Tp,_Compare,_Allocator>& __lhs,
-	       const map<_Key,_Tp,_Compare,_Allocator>& __rhs)
+    operator>=(const map<_Key, _Tp, _Compare, _Allocator>& __lhs,
+	       const map<_Key, _Tp, _Compare, _Allocator>& __rhs)
     { return __lhs._M_base() >= __rhs._M_base(); }
 
-  template<typename _Key,typename _Tp,typename _Compare,typename _Allocator>
+  template<typename _Key, typename _Tp,
+	   typename _Compare, typename _Allocator>
     inline bool
-    operator>(const map<_Key,_Tp,_Compare,_Allocator>& __lhs,
-	      const map<_Key,_Tp,_Compare,_Allocator>& __rhs)
+    operator>(const map<_Key, _Tp, _Compare, _Allocator>& __lhs,
+	      const map<_Key, _Tp, _Compare, _Allocator>& __rhs)
     { return __lhs._M_base() > __rhs._M_base(); }
 
-  template<typename _Key,typename _Tp,typename _Compare,typename _Allocator>
+  template<typename _Key, typename _Tp,
+	   typename _Compare, typename _Allocator>
     inline void
-    swap(map<_Key,_Tp,_Compare,_Allocator>& __lhs,
-	 map<_Key,_Tp,_Compare,_Allocator>& __rhs)
+    swap(map<_Key, _Tp, _Compare, _Allocator>& __lhs,
+	 map<_Key, _Tp, _Compare, _Allocator>& __rhs)
     { __lhs.swap(__rhs); }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+  template<typename _Key, typename _Tp,
+	   typename _Compare, typename _Allocator>
+    inline void
+    swap(map<_Key, _Tp, _Compare, _Allocator>&& __lhs,
+	 map<_Key, _Tp, _Compare, _Allocator>& __rhs)
+    { __lhs.swap(__rhs); }
+
+  template<typename _Key, typename _Tp,
+	   typename _Compare, typename _Allocator>
+    inline void
+    swap(map<_Key, _Tp, _Compare, _Allocator>& __lhs,
+	 map<_Key, _Tp, _Compare, _Allocator>&& __rhs)
+    { __lhs.swap(__rhs); }
+#endif
+
 } // namespace __debug
 } // namespace std
 

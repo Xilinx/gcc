@@ -1,10 +1,22 @@
-2008-05-19  Release Manager
+2009-08-04  Release Manager
 
-	* GCC 4.2.4 released.
+	* GCC 4.3.4 released.
 
-2008-02-01  Release Manager
+2009-01-24  Release Manager
 
-	* GCC 4.2.3 released.
+	* GCC 4.3.3 released.
+
+2008-08-27  Release Manager
+
+	* GCC 4.3.2 released.
+
+2008-06-06  Release Manager
+
+	* GCC 4.3.1 released.
+
+2008-03-05  Release Manager
+
+	* GCC 4.3.0 released.
 
 2008-01-28  Joseph Myers  <joseph@codesourcery.com>
 
@@ -12,13 +24,28 @@
 	gcc_build.
 	(SVN): Don't use full path.
 
-2007-10-07  Release Manager
+2008-01-21  Jonathan Wakely  <jwakely.gcc@gmail.com>
 
-	* GCC 4.2.2 released.
+	* update_web_docs_libstdcxx_svn: "docs" dir moved to "doc".
 
-2007-07-19  Release Manager
+2007-10-01  Gerald Pfeifer  <gerald@pfeifer.com>
 
-	* GCC 4.2.1 released.
+	* gcc_release: Do not include copies of faq.html in releases,
+	and remove all the explicit support code to pull in web pages.
+
+2007-08-21  Paul Brook  <paul@codesourcery.com>
+	    Nathan Sidwell  <nathan@codesourcery.com>
+	    Mark Mitchell  <mark@codesourcery.com>
+	    Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc_release: Do not include copies of bugs.html in releases.
+	* update_web_docs_svn: Set VERSION_PACKAGE and BUGURL in
+	gcc-vers.texi.
+
+2007-07-06  Joseph Myers  <joseph@codesourcery.com>
+
+	* update_web_docs_svn: Use -o with makeinfo, texi2dvi and texi2pdf
+	commands.
 
 2007-06-28  Mike Stump  <mrs@apple.com>
 
@@ -28,9 +55,35 @@
 
 	* gcc_release: Adjust placement of release candidates.
 
-2007-05-13  Release Manager
+2007-04-01  Gerald Pfeifer  <gerald@pfeifer.com>
 
-	* GCC 4.2.0 released.
+	* update_web_docs_svn (MANUALS): Move towards the top of the
+	script.  Reformat for easier editing/diffing.
+
+2006-03-31  Tobias Burnus  <burnus@net-b.de>
+
+	* update_web_docs_svn: Build also gfc-internals.
+
+2007-02-25  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* update_version_svn (IGNORE_BRANCHES): Add 4_0-branch.
+
+2007-01-29  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* crontab: No longer build snapshots for 4.0.x.
+
+2007-01-21  Tobias Burnus  <burnus@net-b.de>
+
+	* update_web_docs_svn: Build also libgomp documentation.
+
+2007-01-05  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* crontab: Spread snapshots more evenly throughout the week, and
+	in "ascending" order.  Build all at the same time of the day.
+
+2006-10-20  Mark Mitchell  <mark@codesourcery.com>
+
+	* crontab: Add 4.2 branch.  Set trunk to 4.3.
 
 2006-09-17  Gerald Pfeifer  <gerald@pfeifer.com>
 

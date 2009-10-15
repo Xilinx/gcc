@@ -1,5 +1,5 @@
 /* Generic implementation of the UNPACK intrinsic
-   Copyright 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   Copyright 2002, 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
    Contributed by Paul Brook <paul@nowt.org>
 
 This file is part of the GNU Fortran 95 runtime library (libgfortran).
@@ -28,15 +28,14 @@ License along with libgfortran; see the file COPYING.  If not,
 write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
 Boston, MA 02110-1301, USA.  */
 
-#include "config.h"
+#include "libgfortran.h"
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
-#include "libgfortran.h"
 
 static void
 unpack_internal (gfc_array_char *ret, const gfc_array_char *vector,
-		 const gfc_array_l4 *mask, const gfc_array_char *field,
+		 const gfc_array_l1 *mask, const gfc_array_char *field,
 		 index_type size, index_type fsize)
 {
   /* r.* indicates the return array.  */
@@ -54,12 +53,37 @@ unpack_internal (gfc_array_char *ret, const gfc_array_char *vector,
   /* m.* indicates the mask array.  */
   index_type mstride[GFC_MAX_DIMENSIONS];
   index_type mstride0;
-  const GFC_LOGICAL_4 *mptr;
+  const GFC_LOGICAL_1 *mptr;
 
   index_type count[GFC_MAX_DIMENSIONS];
   index_type extent[GFC_MAX_DIMENSIONS];
   index_type n;
   index_type dim;
+
+  int empty;
+  int mask_kind;
+
+  empty = 0;
+
+  mptr = mask->data;
+
+  /* Use the same loop for all logical types, by using GFC_LOGICAL_1
+     and using shifting to address size and endian issues.  */
+
+  mask_kind = GFC_DESCRIPTOR_SIZE (mask);
+
+  if (mask_kind == 1 || mask_kind == 2 || mask_kind == 4 || mask_kind == 8
+#ifdef HAVE_GFC_LOGICAL_16
+      || mask_kind == 16
+#endif
+      )
+    {
+      /*  Don't convert a NULL pointer as we use test for NULL below.  */
+      if (mptr)
+	mptr = GFOR_POINTER_TO_L1 (mptr, mask_kind);
+    }
+  else
+    runtime_error ("Funny sized logical array");
 
   if (ret->data == NULL)
     {
@@ -74,9 +98,10 @@ unpack_internal (gfc_array_char *ret, const gfc_array_char *vector,
 	  ret->dim[n].lbound = 0;
 	  ret->dim[n].ubound = mask->dim[n].ubound - mask->dim[n].lbound;
 	  extent[n] = ret->dim[n].ubound + 1;
+	  empty = empty || extent[n] <= 0;
 	  rstride[n] = ret->dim[n].stride * size;
 	  fstride[n] = field->dim[n].stride * fsize;
-	  mstride[n] = mask->dim[n].stride;
+	  mstride[n] = mask->dim[n].stride * mask_kind;
 	  rs *= extent[n];
 	}
       ret->offset = 0;
@@ -89,13 +114,18 @@ unpack_internal (gfc_array_char *ret, const gfc_array_char *vector,
 	{
 	  count[n] = 0;
 	  extent[n] = ret->dim[n].ubound + 1 - ret->dim[n].lbound;
+	  empty = empty || extent[n] <= 0;
 	  rstride[n] = ret->dim[n].stride * size;
 	  fstride[n] = field->dim[n].stride * fsize;
-	  mstride[n] = mask->dim[n].stride;
+	  mstride[n] = mask->dim[n].stride * mask_kind;
 	}
       if (rstride[0] == 0)
 	rstride[0] = size;
     }
+
+  if (empty)
+    return;
+
   if (fstride[0] == 0)
     fstride[0] = fsize;
   if (mstride[0] == 0)
@@ -109,19 +139,7 @@ unpack_internal (gfc_array_char *ret, const gfc_array_char *vector,
   mstride0 = mstride[0];
   rptr = ret->data;
   fptr = field->data;
-  mptr = mask->data;
   vptr = vector->data;
-
-  /* Use the same loop for both logical types. */
-  if (GFC_DESCRIPTOR_SIZE (mask) != 4)
-    {
-      if (GFC_DESCRIPTOR_SIZE (mask) != 8)
-        runtime_error ("Funny sized logical array");
-      for (n = 0; n < dim; n++)
-        mstride[n] <<= 1;
-      mstride0 <<= 1;
-      mptr = GFOR_POINTER_L8_TO_L4 (mptr);
-    }
 
   while (rptr)
     {
@@ -171,12 +189,12 @@ unpack_internal (gfc_array_char *ret, const gfc_array_char *vector,
 }
 
 extern void unpack1 (gfc_array_char *, const gfc_array_char *,
-		     const gfc_array_l4 *, const gfc_array_char *);
+		     const gfc_array_l1 *, const gfc_array_char *);
 export_proto(unpack1);
 
 void
 unpack1 (gfc_array_char *ret, const gfc_array_char *vector,
-	 const gfc_array_l4 *mask, const gfc_array_char *field)
+	 const gfc_array_l1 *mask, const gfc_array_char *field)
 {
   unpack_internal (ret, vector, mask, field,
 		   GFC_DESCRIPTOR_SIZE (vector),
@@ -184,7 +202,7 @@ unpack1 (gfc_array_char *ret, const gfc_array_char *vector,
 }
 
 extern void unpack1_char (gfc_array_char *, GFC_INTEGER_4,
-			  const gfc_array_char *, const gfc_array_l4 *,
+			  const gfc_array_char *, const gfc_array_l1 *,
 			  const gfc_array_char *, GFC_INTEGER_4,
 			  GFC_INTEGER_4);
 export_proto(unpack1_char);
@@ -192,7 +210,7 @@ export_proto(unpack1_char);
 void
 unpack1_char (gfc_array_char *ret,
 	      GFC_INTEGER_4 ret_length __attribute__((unused)),
-	      const gfc_array_char *vector, const gfc_array_l4 *mask,
+	      const gfc_array_char *vector, const gfc_array_l1 *mask,
 	      const gfc_array_char *field, GFC_INTEGER_4 vector_length,
 	      GFC_INTEGER_4 field_length)
 {
@@ -200,34 +218,36 @@ unpack1_char (gfc_array_char *ret,
 }
 
 extern void unpack0 (gfc_array_char *, const gfc_array_char *,
-		     const gfc_array_l4 *, char *);
+		     const gfc_array_l1 *, char *);
 export_proto(unpack0);
 
 void
 unpack0 (gfc_array_char *ret, const gfc_array_char *vector,
-	 const gfc_array_l4 *mask, char *field)
+	 const gfc_array_l1 *mask, char *field)
 {
   gfc_array_char tmp;
 
+  memset (&tmp, 0, sizeof (tmp));
   tmp.dtype = 0;
   tmp.data = field;
   unpack_internal (ret, vector, mask, &tmp, GFC_DESCRIPTOR_SIZE (vector), 0);
 }
 
 extern void unpack0_char (gfc_array_char *, GFC_INTEGER_4,
-			  const gfc_array_char *, const gfc_array_l4 *,
+			  const gfc_array_char *, const gfc_array_l1 *,
 			  char *, GFC_INTEGER_4, GFC_INTEGER_4);
 export_proto(unpack0_char);
 
 void
 unpack0_char (gfc_array_char *ret,
 	      GFC_INTEGER_4 ret_length __attribute__((unused)),
-	      const gfc_array_char *vector, const gfc_array_l4 *mask,
+	      const gfc_array_char *vector, const gfc_array_l1 *mask,
 	      char *field, GFC_INTEGER_4 vector_length,
 	      GFC_INTEGER_4 field_length __attribute__((unused)))
 {
   gfc_array_char tmp;
 
+  memset (&tmp, 0, sizeof (tmp));
   tmp.dtype = 0;
   tmp.data = field;
   unpack_internal (ret, vector, mask, &tmp, vector_length, 0);

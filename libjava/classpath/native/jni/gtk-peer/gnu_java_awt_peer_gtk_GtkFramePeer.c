@@ -49,7 +49,7 @@ Java_gnu_java_awt_peer_gtk_GtkFramePeer_removeMenuBarPeer
 
   gdk_threads_enter ();
 
-  ptr = NSA_GET_PTR (env, obj);
+  ptr = gtkpeer_get_widget (env, obj);
 
   fixed = gtk_container_get_children (GTK_CONTAINER (ptr))->data;
   children = gtk_container_get_children (GTK_CONTAINER (fixed));
@@ -84,11 +84,11 @@ Java_gnu_java_awt_peer_gtk_GtkFramePeer_setMenuBarPeer
 
   gdk_threads_enter ();
 
-  ptr = NSA_GET_PTR (env, obj);
+  ptr = gtkpeer_get_widget (env, obj);
 
   if (menubar)
     {
-      mptr = NSA_GET_PTR (env, menubar);
+      mptr = gtkpeer_get_widget (env, menubar);
 
       fixed = gtk_container_get_children (GTK_CONTAINER (ptr))->data;
       gtk_fixed_put (GTK_FIXED (fixed), mptr, 0, 0);
@@ -107,7 +107,7 @@ Java_gnu_java_awt_peer_gtk_GtkFramePeer_getMenuBarHeight
 
   gdk_threads_enter ();
 
-  ptr = NSA_GET_PTR (env, menubar);
+  ptr = gtkpeer_get_widget (env, menubar);
 
   gtk_widget_size_request (ptr, &requisition);
 
@@ -137,7 +137,7 @@ Java_gnu_java_awt_peer_gtk_GtkFramePeer_setMenuBarWidthUnlocked
 
   if (menubar)
     {
-      ptr = NSA_GET_PTR (env, menubar);
+      ptr = gtkpeer_get_widget (env, menubar);
 
       /* Get the menubar's natural size request. */
       gtk_widget_set_size_request (GTK_WIDGET (ptr), -1, -1);
@@ -158,7 +158,7 @@ Java_gnu_java_awt_peer_gtk_GtkFramePeer_gtkFixedSetVisible
 
   gdk_threads_enter ();
 
-  ptr = NSA_GET_PTR (env, obj);
+  ptr = gtkpeer_get_widget (env, obj);
 
   fixed = gtk_container_get_children (GTK_CONTAINER (ptr))->data;
 
@@ -182,9 +182,53 @@ Java_gnu_java_awt_peer_gtk_GtkFramePeer_nativeSetIconImage
   pixbuf = cp_gtk_image_get_pixbuf (env, gtkimage);
   g_assert (pixbuf != NULL);
 
-  ptr = NSA_GET_PTR (env, obj);
+  ptr = gtkpeer_get_widget (env, obj);
 
   gtk_window_set_icon (GTK_WINDOW (ptr), pixbuf);
 
+  gdk_threads_leave ();
+}
+
+JNIEXPORT void JNICALL
+Java_gnu_java_awt_peer_gtk_GtkFramePeer_maximize
+(JNIEnv *env, jobject obj)
+{
+  void *ptr;
+  gdk_threads_enter ();
+  ptr = gtkpeer_get_widget (env, obj);
+  gtk_window_maximize (GTK_WINDOW (ptr));
+  gdk_threads_leave ();
+}
+
+JNIEXPORT void JNICALL
+Java_gnu_java_awt_peer_gtk_GtkFramePeer_unmaximize
+(JNIEnv *env, jobject obj)
+{
+  void *ptr;
+  gdk_threads_enter ();
+  ptr = gtkpeer_get_widget (env, obj);
+  gtk_window_unmaximize (GTK_WINDOW (ptr));
+  gdk_threads_leave ();
+}
+
+JNIEXPORT void JNICALL
+Java_gnu_java_awt_peer_gtk_GtkFramePeer_iconify
+(JNIEnv *env, jobject obj)
+{
+  void *ptr;
+  gdk_threads_enter ();
+  ptr = gtkpeer_get_widget (env, obj);
+  gtk_window_iconify (GTK_WINDOW (ptr));
+  gdk_threads_leave ();
+}
+
+JNIEXPORT void JNICALL
+Java_gnu_java_awt_peer_gtk_GtkFramePeer_deiconify
+(JNIEnv *env, jobject obj)
+{
+  void *ptr;
+  gdk_threads_enter ();
+  ptr = gtkpeer_get_widget (env, obj);
+  gtk_window_deiconify (GTK_WINDOW (ptr));
   gdk_threads_leave ();
 }

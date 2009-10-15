@@ -1,4 +1,4 @@
-/* Copyright (C) 2002-2003, 2005, 2006 Free Software Foundation, Inc.
+/* Copyright (C) 2002-2003, 2005, 2006, 2007 Free Software Foundation, Inc.
    Contributed by Andy Vaught and Janne Blomqvist
 
 This file is part of the GNU Fortran runtime library (libgfortran).
@@ -27,10 +27,8 @@ along with Libgfortran; see the file COPYING.  If not, write to
 the Free Software Foundation, 51 Franklin Street, Fifth Floor,
 Boston, MA 02110-1301, USA.  */
 
-#include "config.h"
-#include <string.h>
-#include "libgfortran.h"
 #include "io.h"
+#include <string.h>
 
 /* file_pos.c-- Implement the file positioning statements, i.e. BACKSPACE,
    ENDFILE, and REWIND as well as the FLUSH statement.  */
@@ -92,7 +90,7 @@ formatted_backspace (st_parameter_filepos *fpp, gfc_unit *u)
   return;
 
  io_error:
-  generate_error (&fpp->common, ERROR_OS, NULL);
+  generate_error (&fpp->common, LIBERROR_OS, NULL);
 }
 
 
@@ -124,8 +122,8 @@ unformatted_backspace (st_parameter_filepos *fpp, gfc_unit *u)
       if (p == NULL || length_read != length)
 	goto io_error;
 
-      /* Only CONVERT_NATIVE and CONVERT_SWAP are valid here.  */
-      if (u->flags.convert == CONVERT_NATIVE)
+      /* Only GFC_CONVERT_NATIVE and GFC_CONVERT_SWAP are valid here.  */
+      if (u->flags.convert == GFC_CONVERT_NATIVE)
 	{
 	  switch (length)
 	    {
@@ -180,7 +178,7 @@ unformatted_backspace (st_parameter_filepos *fpp, gfc_unit *u)
   return;
 
  io_error:
-  generate_error (&fpp->common, ERROR_OS, NULL);
+  generate_error (&fpp->common, LIBERROR_OS, NULL);
 }
 
 
@@ -197,32 +195,54 @@ st_backspace (st_parameter_filepos *fpp)
   u = find_unit (fpp->common.unit);
   if (u == NULL)
     {
-      generate_error (&fpp->common, ERROR_BAD_UNIT, NULL);
+      generate_error (&fpp->common, LIBERROR_BAD_UNIT, NULL);
       goto done;
     }
 
-  /* Ignore direct access.  Non-advancing I/O is only allowed for formatted
-     sequential I/O and the next direct access transfer repositions the file 
-     anyway.  */
+  /* Direct access is prohibited, and so is unformatted stream access.  */
 
-  if (u->flags.access == ACCESS_DIRECT || u->flags.access == ACCESS_STREAM)
-    goto done;
+
+  if (u->flags.access == ACCESS_DIRECT)
+    {
+      generate_error (&fpp->common, LIBERROR_OPTION_CONFLICT,
+		      "Cannot BACKSPACE a file opened for DIRECT access");
+      goto done;
+    }
+
+    if (u->flags.access == ACCESS_STREAM && u->flags.form == FORM_UNFORMATTED)
+      {
+	generate_error (&fpp->common, LIBERROR_OPTION_CONFLICT,
+			"Cannot BACKSPACE an unformatted stream file");
+	goto done;
+      }
 
   /* Check for special cases involving the ENDFILE record first.  */
 
   if (u->endfile == AFTER_ENDFILE)
     {
       u->endfile = AT_ENDFILE;
+      u->flags.position = POSITION_APPEND;
       flush (u->s);
-      struncate (u->s);
     }
   else
     {
       if (file_position (u->s) == 0)
-	goto done;		/* Common special case */
+	{
+	  u->flags.position = POSITION_REWIND;
+	  goto done;		/* Common special case */
+	}
 
       if (u->mode == WRITING)
 	{
+	  /* If there are previously written bytes from a write with
+	     ADVANCE="no", add a record marker before performing the
+	     BACKSPACE.  */
+
+	  if (u->previous_nonadvancing_write)
+	    finish_last_advance_record (u);
+
+	  u->previous_nonadvancing_write = 0;
+
 	  flush (u->s);
 	  struncate (u->s);
 	  u->mode = READING;
@@ -233,6 +253,7 @@ st_backspace (st_parameter_filepos *fpp)
       else
 	unformatted_backspace (fpp, u);
 
+      update_position (u);
       u->endfile = NO_ENDFILE;
       u->current_record = 0;
       u->bytes_left = 0;
@@ -259,6 +280,22 @@ st_endfile (st_parameter_filepos *fpp)
   u = find_unit (fpp->common.unit);
   if (u != NULL)
     {
+      if (u->flags.access == ACCESS_DIRECT)
+	{
+	  generate_error (&fpp->common, LIBERROR_OPTION_CONFLICT,
+			  "Cannot perform ENDFILE on a file opened"
+			  " for DIRECT access");
+	  goto done;
+	}
+
+      /* If there are previously written bytes from a write with ADVANCE="no",
+	 add a record marker before performing the ENDFILE.  */
+
+      if (u->previous_nonadvancing_write)
+	finish_last_advance_record (u);
+
+      u->previous_nonadvancing_write = 0;
+
       if (u->current_record)
 	{
 	  st_parameter_dt dtp;
@@ -271,6 +308,8 @@ st_endfile (st_parameter_filepos *fpp)
       flush (u->s);
       struncate (u->s);
       u->endfile = AFTER_ENDFILE;
+      update_position (u);
+    done:
       unlock_unit (u);
     }
 
@@ -292,10 +331,18 @@ st_rewind (st_parameter_filepos *fpp)
   if (u != NULL)
     {
       if (u->flags.access == ACCESS_DIRECT)
-	generate_error (&fpp->common, ERROR_BAD_OPTION,
+	generate_error (&fpp->common, LIBERROR_BAD_OPTION,
 			"Cannot REWIND a file opened for DIRECT access");
       else
 	{
+	  /* If there are previously written bytes from a write with ADVANCE="no",
+	     add a record marker before performing the ENDFILE.  */
+
+	  if (u->previous_nonadvancing_write)
+	    finish_last_advance_record (u);
+
+	  u->previous_nonadvancing_write = 0;
+
 	  /* Flush the buffers.  If we have been writing to the file, the last
 	       written record is the last record in the file, so truncate the
 	       file now.  Reset to read mode so two consecutive rewind
@@ -306,14 +353,27 @@ st_rewind (st_parameter_filepos *fpp)
 
 	  u->mode = READING;
 	  u->last_record = 0;
-	  if (sseek (u->s, 0) == FAILURE)
-	    generate_error (&fpp->common, ERROR_OS, NULL);
 
-	  u->endfile = NO_ENDFILE;
+	  if (file_position (u->s) != 0 && sseek (u->s, 0) == FAILURE)
+	    generate_error (&fpp->common, LIBERROR_OS, NULL);
+
+	  /* Handle special files like /dev/null differently.  */
+	  if (!is_special (u->s))
+	    {
+	      /* We are rewinding so we are not at the end.  */
+	      u->endfile = NO_ENDFILE;
+	    }
+	  else
+	    {
+	      /* Set this for compatibilty with g77 for /dev/null.  */
+	      if (file_length (u->s) == 0  && file_position (u->s) == 0)
+		u->endfile = AT_ENDFILE;
+	      /* Future refinements on special files can go here.  */
+	    }
+
 	  u->current_record = 0;
 	  u->strm_pos = 1;
 	  u->read_bad = 0;
-	  test_endfile (u);
 	}
       /* Update position for INQUIRE.  */
       u->flags.position = POSITION_REWIND;
@@ -342,7 +402,7 @@ st_flush (st_parameter_filepos *fpp)
     }
   else
     /* FLUSH on unconnected unit is illegal: F95 std., 9.3.5. */ 
-    generate_error (&fpp->common, ERROR_BAD_OPTION,
+    generate_error (&fpp->common, LIBERROR_BAD_OPTION,
 			"Specified UNIT in FLUSH is not connected");
 
   library_end ();

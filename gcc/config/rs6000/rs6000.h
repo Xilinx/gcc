@@ -56,6 +56,10 @@
 #define PPC405_ERRATUM77 0
 #endif
 
+#ifndef TARGET_PAIRED_FLOAT
+#define TARGET_PAIRED_FLOAT 0
+#endif
+
 /* Common ASM definitions used by ASM_SPEC among the various targets
    for handling -mcpu=xxx switches.  */
 #define ASM_CPU_SPEC \
@@ -67,6 +71,7 @@
   %{mno-power: %{!mpowerpc*: -mcom}} \
   %{!mno-power: %{!mpower*: %(asm_default)}}} \
 %{mcpu=common: -mcom} \
+%{mcpu=cell: -mcell} \
 %{mcpu=power: -mpwr} \
 %{mcpu=power2: -mpwrx} \
 %{mcpu=power3: -mppc64} \
@@ -74,6 +79,7 @@
 %{mcpu=power5: -mpower4} \
 %{mcpu=power5+: -mpower4} \
 %{mcpu=power6: -mpower4 -maltivec} \
+%{mcpu=power6x: -mpower4 -maltivec} \
 %{mcpu=powerpc: -mppc} \
 %{mcpu=rios: -mpwr} \
 %{mcpu=rios1: -mpwr} \
@@ -110,6 +116,7 @@
 %{mcpu=970: -mpower4 -maltivec} \
 %{mcpu=G5: -mpower4 -maltivec} \
 %{mcpu=8540: -me500} \
+%{mcpu=8548: -me500} \
 %{maltivec: -maltivec} \
 -many"
 
@@ -133,7 +140,29 @@
   { "cpp_default",		CPP_DEFAULT_SPEC },			\
   { "asm_cpu",			ASM_CPU_SPEC },				\
   { "asm_default",		ASM_DEFAULT_SPEC },			\
+  { "cc1_cpu",			CC1_CPU_SPEC },				\
   SUBTARGET_EXTRA_SPECS
+
+/* -mcpu=native handling only makes sense with compiler running on
+   an PowerPC chip.  If changing this condition, also change
+   the condition in driver-rs6000.c.  */
+#if defined(__powerpc__) || defined(__POWERPC__) || defined(_AIX)
+/* In driver-rs6000.c.  */
+extern const char *host_detect_local_cpu (int argc, const char **argv);
+#define EXTRA_SPEC_FUNCTIONS \
+  { "local_cpu_detect", host_detect_local_cpu },
+#define HAVE_LOCAL_CPU_DETECT
+#endif
+
+#ifndef CC1_CPU_SPEC
+#ifdef HAVE_LOCAL_CPU_DETECT
+#define CC1_CPU_SPEC \
+"%{mcpu=native:%<mcpu=native %:local_cpu_detect(cpu)} \
+ %{mtune=native:%<mtune=native %:local_cpu_detect(tune)}"
+#else
+#define CC1_CPU_SPEC ""
+#endif
+#endif
 
 /* Architecture type.  */
 
@@ -159,6 +188,29 @@
 #ifndef HAVE_AS_FPRND
 #undef  TARGET_FPRND
 #define TARGET_FPRND 0
+#endif
+
+/* Define TARGET_CMPB if the target assembler does not support the
+   cmpb instruction.  */
+
+#ifndef HAVE_AS_CMPB
+#undef  TARGET_CMPB
+#define TARGET_CMPB 0
+#endif
+
+/* Define TARGET_MFPGPR if the target assembler does not support the
+   mffpr and mftgpr instructions. */
+
+#ifndef HAVE_AS_MFPGPR
+#undef  TARGET_MFPGPR
+#define TARGET_MFPGPR 0
+#endif
+
+/* Define TARGET_DFP if the target assembler does not support decimal
+   floating point instructions.  */
+#ifndef HAVE_AS_DFP
+#undef  TARGET_DFP
+#define TARGET_DFP 0
 #endif
 
 #ifndef TARGET_SECURE_PLT
@@ -211,7 +263,9 @@ enum processor_type
    PROCESSOR_PPC7450,
    PROCESSOR_PPC8540,
    PROCESSOR_POWER4,
-   PROCESSOR_POWER5
+   PROCESSOR_POWER5,
+   PROCESSOR_POWER6,
+   PROCESSOR_CELL
 };
 
 extern enum processor_type rs6000_cpu;
@@ -328,6 +382,7 @@ extern enum rs6000_nop_insertion rs6000_sched_insert_nops;
 #define TARGET_FPRS 1
 #define TARGET_E500_SINGLE 0
 #define TARGET_E500_DOUBLE 0
+#define CHECK_E500_OPTIONS do { } while (0)
 
 /* E500 processors only support plain "sync", not lwsync.  */
 #define TARGET_NO_LWSYNC TARGET_E500
@@ -422,6 +477,7 @@ extern enum rs6000_nop_insertion rs6000_sched_insert_nops;
 #define UNITS_PER_FP_WORD 8
 #define UNITS_PER_ALTIVEC_WORD 16
 #define UNITS_PER_SPE_WORD 8
+#define UNITS_PER_PAIRED_WORD 8
 
 /* Type used for ptrdiff_t, as a string used in a declaration.  */
 #define PTRDIFF_TYPE "int"
@@ -504,9 +560,12 @@ extern enum rs6000_nop_insertion rs6000_sched_insert_nops;
    that the object would ordinarily have.  */
 #define LOCAL_ALIGNMENT(TYPE, ALIGN)				\
   ((TARGET_ALTIVEC && TREE_CODE (TYPE) == VECTOR_TYPE) ? 128 :	\
-    (TARGET_E500_DOUBLE && TYPE_MODE (TYPE) == DFmode) ? 64 : \
-    (TARGET_SPE && TREE_CODE (TYPE) == VECTOR_TYPE \
-     && SPE_VECTOR_MODE (TYPE_MODE (TYPE))) ? 64 : ALIGN)
+    (TARGET_E500_DOUBLE						\
+     && (TYPE_MODE (TYPE) == DFmode || TYPE_MODE (TYPE) == DDmode)) ? 64 : \
+    ((TARGET_SPE && TREE_CODE (TYPE) == VECTOR_TYPE \
+     && SPE_VECTOR_MODE (TYPE_MODE (TYPE))) || (TARGET_PAIRED_FLOAT \
+        && TREE_CODE (TYPE) == VECTOR_TYPE \
+        && PAIRED_VECTOR_MODE (TYPE_MODE (TYPE)))) ? 64 : ALIGN)
 
 /* Alignment of field after `int : 0' in a structure.  */
 #define EMPTY_FIELD_BOUNDARY 32
@@ -528,7 +587,7 @@ extern enum rs6000_nop_insertion rs6000_sched_insert_nops;
    fit into 1, whereas DI still needs two.  */
 #define MEMBER_TYPE_FORCES_BLK(FIELD, MODE) \
   ((TARGET_SPE && TREE_CODE (TREE_TYPE (FIELD)) == VECTOR_TYPE) \
-   || (TARGET_E500_DOUBLE && (MODE) == DFmode))
+   || (TARGET_E500_DOUBLE && ((MODE) == DFmode || (MODE) == DDmode)))
 
 /* A bit-field declared as `int' forces `int' alignment for the struct.  */
 #define PCC_BITFIELD_TYPE_MATTERS 1
@@ -545,8 +604,10 @@ extern enum rs6000_nop_insertion rs6000_sched_insert_nops;
    Align vectors to 128 bits.  Align SPE vectors and E500 v2 doubles to
    64 bits.  */
 #define DATA_ALIGNMENT(TYPE, ALIGN)		\
-  (TREE_CODE (TYPE) == VECTOR_TYPE ? (TARGET_SPE_ABI ? 64 : 128)	\
-   : (TARGET_E500_DOUBLE && TYPE_MODE (TYPE) == DFmode) ? 64 \
+  (TREE_CODE (TYPE) == VECTOR_TYPE ? ((TARGET_SPE_ABI \
+   || TARGET_PAIRED_FLOAT) ? 64 : 128)	\
+   : (TARGET_E500_DOUBLE			\
+      && (TYPE_MODE (TYPE) == DFmode || TYPE_MODE (TYPE) == DDmode)) ? 64 \
    : TREE_CODE (TYPE) == ARRAY_TYPE		\
    && TYPE_MODE (TREE_TYPE (TYPE)) == QImode	\
    && (ALIGN) < BITS_PER_WORD ? BITS_PER_WORD : (ALIGN))
@@ -561,6 +622,7 @@ extern enum rs6000_nop_insertion rs6000_sched_insert_nops;
 #define SLOW_UNALIGNED_ACCESS(MODE, ALIGN)				\
   (STRICT_ALIGNMENT							\
    || (((MODE) == SFmode || (MODE) == DFmode || (MODE) == TFmode	\
+	|| (MODE) == SDmode || (MODE) == DDmode || (MODE) == TDmode	\
 	|| (MODE) == DImode)						\
        && (ALIGN) < 32))
 
@@ -694,21 +756,7 @@ extern enum rs6000_nop_insertion rs6000_sched_insert_nops;
    , 0, 0, 0                                       \
 }
 
-#define MQ_REGNO     64
-#define CR0_REGNO    68
-#define CR1_REGNO    69
-#define CR2_REGNO    70
-#define CR3_REGNO    71
-#define CR4_REGNO    72
-#define MAX_CR_REGNO 75
-#define XER_REGNO    76
-#define FIRST_ALTIVEC_REGNO	77
-#define LAST_ALTIVEC_REGNO	108
 #define TOTAL_ALTIVEC_REGS	(LAST_ALTIVEC_REGNO - FIRST_ALTIVEC_REGNO + 1)
-#define VRSAVE_REGNO		109
-#define VSCR_REGNO		110
-#define SPE_ACC_REGNO		111
-#define SPEFSCR_REGNO		112
 
 #define FIRST_SAVED_ALTIVEC_REGNO (FIRST_ALTIVEC_REGNO+20)
 #define FIRST_SAVED_FP_REGNO    (14+32)
@@ -782,10 +830,10 @@ extern enum rs6000_nop_insertion rs6000_sched_insert_nops;
 #define FP_REGNO_P(N) ((N) >= 32 && (N) <= 63)
 
 /* True if register is a condition register.  */
-#define CR_REGNO_P(N) ((N) >= 68 && (N) <= 75)
+#define CR_REGNO_P(N) ((N) >= CR0_REGNO && (N) <= CR7_REGNO)
 
 /* True if register is a condition register, but not cr0.  */
-#define CR_REGNO_NOT_CR0_P(N) ((N) >= 69 && (N) <= 75)
+#define CR_REGNO_NOT_CR0_P(N) ((N) >= CR1_REGNO && (N) <= CR7_REGNO)
 
 /* True if register is an integer register.  */
 #define INT_REGNO_P(N) \
@@ -793,6 +841,9 @@ extern enum rs6000_nop_insertion rs6000_sched_insert_nops;
 
 /* SPE SIMD registers are just the GPRs.  */
 #define SPE_SIMD_REGNO_P(N) ((N) <= 31)
+
+/* PAIRED SIMD registers are just the FPRs.  */
+#define PAIRED_SIMD_REGNO_P(N) ((N) >= 32 && (N) <= 63)
 
 /* True if register is the XER register.  */
 #define XER_REGNO_P(N) ((N) == XER_REGNO)
@@ -822,9 +873,13 @@ extern enum rs6000_nop_insertion rs6000_sched_insert_nops;
          || (MODE) == V1DImode          \
          || (MODE) == V2SImode)
 
-#define UNITS_PER_SIMD_WORD					\
-        (TARGET_ALTIVEC ? UNITS_PER_ALTIVEC_WORD		\
-	 : (TARGET_SPE ? UNITS_PER_SPE_WORD : UNITS_PER_WORD))
+#define PAIRED_VECTOR_MODE(MODE)        \
+         ((MODE) == V2SFmode)            
+
+#define UNITS_PER_SIMD_WORD					     \
+	(TARGET_ALTIVEC ? UNITS_PER_ALTIVEC_WORD		     \
+	 : (TARGET_SPE ? UNITS_PER_SPE_WORD : (TARGET_PAIRED_FLOAT ? \
+	 UNITS_PER_PAIRED_WORD : UNITS_PER_WORD)))
 
 /* Value is TRUE if hard register REGNO can hold a value of
    machine-mode MODE.  */
@@ -858,7 +913,7 @@ extern enum rs6000_nop_insertion rs6000_sched_insert_nops;
    emitted the vrsave mask.  */
 
 #define HARD_REGNO_RENAME_OK(SRC, DST) \
-  (! ALTIVEC_REGNO_P (DST) || regs_ever_live[DST])
+  (! ALTIVEC_REGNO_P (DST) || df_regs_ever_live_p (DST))
 
 /* A C expression returning the cost of moving data from a register of class
    CLASS1 to one of CLASS2.  */
@@ -883,18 +938,12 @@ extern enum rs6000_nop_insertion rs6000_sched_insert_nops;
 
 #define LOGICAL_OP_NON_SHORT_CIRCUIT 0
 
-/* A fixed register used at prologue and epilogue generation to fix
-   addressing modes.  The SPE needs heavy addressing fixes at the last
-   minute, and it's best to save a register for it.
+/* A fixed register used at epilogue generation to address SPE registers
+   with negative offsets.  The 64-bit load/store instructions on the SPE
+   only take positive offsets (and small ones at that), so we need to
+   reserve a register for consing up negative offsets.  */
 
-   AltiVec also needs fixes, but we've gotten around using r11, which
-   is actually wrong because when use_backchain_to_restore_sp is true,
-   we end up clobbering r11.
-
-   The AltiVec case needs to be fixed.  Dunno if we should break ABI
-   compatibility and reserve a register for it as well..  */
-
-#define FIXED_SCRATCH (TARGET_SPE ? 14 : 11)
+#define FIXED_SCRATCH 0
 
 /* Define this macro to change register usage conditional on target
    flags.  */
@@ -928,11 +977,6 @@ extern enum rs6000_nop_insertion rs6000_sched_insert_nops;
 /* Place to put static chain when calling a function that requires it.  */
 #define STATIC_CHAIN_REGNUM 11
 
-/* Link register number.  */
-#define LINK_REGISTER_REGNUM 65
-
-/* Count register number.  */
-#define COUNT_REGISTER_REGNUM 66
 
 /* Define the classes of registers for register constraints in the
    machine description.  Also define ranges of constants.
@@ -1061,8 +1105,8 @@ enum reg_class
   : (REGNO) == CR0_REGNO ? CR0_REGS		\
   : CR_REGNO_P (REGNO) ? CR_REGS		\
   : (REGNO) == MQ_REGNO ? MQ_REGS		\
-  : (REGNO) == LINK_REGISTER_REGNUM ? LINK_REGS	\
-  : (REGNO) == COUNT_REGISTER_REGNUM ? CTR_REGS	\
+  : (REGNO) == LR_REGNO ? LINK_REGS	\
+  : (REGNO) == CTR_REGNO ? CTR_REGS	\
   : (REGNO) == ARG_POINTER_REGNUM ? BASE_REGS	\
   : (REGNO) == XER_REGNO ? XER_REGS		\
   : (REGNO) == VRSAVE_REGNO ? VRSAVE_REGS	\
@@ -1111,13 +1155,30 @@ enum reg_class
   rs6000_secondary_reload_class (CLASS, MODE, IN)
 
 /* If we are copying between FP or AltiVec registers and anything
-   else, we need a memory location.  */
+   else, we need a memory location.  The exception is when we are
+   targeting ppc64 and the move to/from fpr to gpr instructions
+   are available.*/
 
-#define SECONDARY_MEMORY_NEEDED(CLASS1,CLASS2,MODE) 		\
- ((CLASS1) != (CLASS2) && ((CLASS1) == FLOAT_REGS		\
-			   || (CLASS2) == FLOAT_REGS		\
-			   || (CLASS1) == ALTIVEC_REGS		\
+#define SECONDARY_MEMORY_NEEDED(CLASS1,CLASS2,MODE)			\
+ ((CLASS1) != (CLASS2) && (((CLASS1) == FLOAT_REGS			\
+                            && (!TARGET_MFPGPR || !TARGET_POWERPC64	\
+				|| ((MODE != DFmode)			\
+				    && (MODE != DDmode)			\
+				    && (MODE != DImode))))		\
+			   || ((CLASS2) == FLOAT_REGS			\
+                               && (!TARGET_MFPGPR || !TARGET_POWERPC64	\
+				   || ((MODE != DFmode)			\
+				       && (MODE != DDmode)		\
+				       && (MODE != DImode))))		\
+			   || (CLASS1) == ALTIVEC_REGS			\
 			   || (CLASS2) == ALTIVEC_REGS))
+
+/* For cpus that cannot load/store SDmode values from the 64-bit
+   FP registers without using a full 64-bit load/store, we need
+   to allocate a full 64-bit stack slot for them.  */
+
+#define SECONDARY_MEMORY_NEEDED_RTX(MODE) \
+  rs6000_secondary_memory_needed_rtx (MODE)
 
 /* Return the maximum number of consecutive registers
    needed to represent mode MODE in a register of class CLASS.
@@ -1127,7 +1188,8 @@ enum reg_class
 #define CLASS_MAX_NREGS(CLASS, MODE)					\
  (((CLASS) == FLOAT_REGS) 						\
   ? ((GET_MODE_SIZE (MODE) + UNITS_PER_FP_WORD - 1) / UNITS_PER_FP_WORD) \
-  : (TARGET_E500_DOUBLE && (CLASS) == GENERAL_REGS && (MODE) == DFmode) \
+  : (TARGET_E500_DOUBLE && (CLASS) == GENERAL_REGS			\
+     && ((MODE) == DFmode || (MODE) == DDmode))				\
   ? 1                                                                   \
   : ((GET_MODE_SIZE (MODE) + UNITS_PER_WORD - 1) / UNITS_PER_WORD))
 
@@ -1140,6 +1202,9 @@ enum reg_class
       && reg_classes_intersect_p (FLOAT_REGS, CLASS))			\
    : (((TARGET_E500_DOUBLE						\
 	&& ((((TO) == DFmode) + ((FROM) == DFmode)) == 1		\
+	    || (((TO) == TFmode) + ((FROM) == TFmode)) == 1		\
+	    || (((TO) == DDmode) + ((FROM) == DDmode)) == 1		\
+	    || (((TO) == TDmode) + ((FROM) == TDmode)) == 1		\
 	    || (((TO) == DImode) + ((FROM) == DImode)) == 1))		\
        || (TARGET_SPE							\
 	   && (SPE_VECTOR_MODE (FROM) + SPE_VECTOR_MODE (TO)) == 1))	\
@@ -1241,7 +1306,7 @@ extern enum rs6000_abi rs6000_current_abi;	/* available for use by subtarget */
 
 /* Define this if the above stack space is to be considered part of the
    space allocated by the caller.  */
-#define OUTGOING_REG_PARM_STACK_SPACE
+#define OUTGOING_REG_PARM_STACK_SPACE 1
 
 /* This is the difference between the logical top of stack and the actual sp.
 
@@ -1441,10 +1506,6 @@ typedef struct rs6000_args
 #define FUNCTION_ARG_BOUNDARY(MODE, TYPE) \
   function_arg_boundary (MODE, TYPE)
 
-/* Implement `va_start' for varargs and stdarg.  */
-#define EXPAND_BUILTIN_VA_START(valist, nextarg) \
-  rs6000_va_start (valist, nextarg)
-
 #define PAD_VARARGS_DOWN \
    (FUNCTION_ARG_PADDING (TYPE_MODE (type), type) == downward)
 
@@ -1468,7 +1529,7 @@ typedef struct rs6000_args
    needed.  */
 
 #define	EPILOGUE_USES(REGNO)					\
-  ((reload_completed && (REGNO) == LINK_REGISTER_REGNUM)	\
+  ((reload_completed && (REGNO) == LR_REGNO)			\
    || (TARGET_ALTIVEC && (REGNO) == VRSAVE_REGNO)		\
    || (current_function_calls_eh_return				\
        && TARGET_AIX						\
@@ -1563,6 +1624,8 @@ typedef struct rs6000_args
 
 #define HAVE_PRE_DECREMENT 1
 #define HAVE_PRE_INCREMENT 1
+#define HAVE_PRE_MODIFY_DISP 1
+#define HAVE_PRE_MODIFY_REG 1
 
 /* Macros to check register numbers against specific register classes.  */
 
@@ -1663,11 +1726,11 @@ typedef struct rs6000_args
    refers to a constant pool entry of an address (or the sum of it
    plus a constant), a short (16-bit signed) constant plus a register,
    the sum of two registers, or a register indirect, possibly with an
-   auto-increment.  For DFmode and DImode with a constant plus register,
-   we must ensure that both words are addressable or PowerPC64 with offset
-   word aligned.
+   auto-increment.  For DFmode, DDmode and DImode with a constant plus
+   register, we must ensure that both words are addressable or PowerPC64
+   with offset word aligned.
 
-   For modes spanning multiple registers (DFmode in 32-bit GPRs,
+   For modes spanning multiple registers (DFmode and DDmode in 32-bit GPRs,
    32-bit DImode, TImode), indexed addressing cannot be used because
    adjacent memory cells are accessed by adding word-sized offsets
    during assembly output.  */
@@ -1821,10 +1884,10 @@ do {								\
 
 /* The cntlzw and cntlzd instructions return 32 and 64 for input of zero.  */
 #define CLZ_DEFINED_VALUE_AT_ZERO(MODE, VALUE) \
-  ((VALUE) = ((MODE) == SImode ? 32 : 64))
+  ((VALUE) = ((MODE) == SImode ? 32 : 64), 1)
 
 /* The CTZ patterns return -1 for input of zero.  */
-#define CTZ_DEFINED_VALUE_AT_ZERO(MODE, VALUE) ((VALUE) = -1)
+#define CTZ_DEFINED_VALUE_AT_ZERO(MODE, VALUE) ((VALUE) = -1, 1)
 
 /* Specify the machine mode that pointers have.
    After generation of rtl, the compiler makes no further distinction
@@ -2207,8 +2270,8 @@ extern char rs6000_reg_names[][8];	/* register names (0 vs. %r0).  */
    dwarf2 unwind information.  This also enables the table driven
    mechanism.  */
 
-#define INCOMING_RETURN_ADDR_RTX   gen_rtx_REG (Pmode, LINK_REGISTER_REGNUM)
-#define DWARF_FRAME_RETURN_COLUMN  DWARF_FRAME_REGNUM (LINK_REGISTER_REGNUM)
+#define INCOMING_RETURN_ADDR_RTX   gen_rtx_REG (Pmode, LR_REGNO)
+#define DWARF_FRAME_RETURN_COLUMN  DWARF_FRAME_REGNUM (LR_REGNO)
 
 /* Describe how we implement __builtin_eh_return.  */
 #define EH_RETURN_DATA_REGNO(N) ((N) < 4 ? (N) + 3 : INVALID_REGNUM)
@@ -2909,6 +2972,40 @@ enum rs6000_builtins
   SPE_BUILTIN_MTSPEFSCR,
   SPE_BUILTIN_MFSPEFSCR,
   SPE_BUILTIN_BRINC,
+
+  /* PAIRED builtins.  */
+  PAIRED_BUILTIN_DIVV2SF3,
+  PAIRED_BUILTIN_ABSV2SF2,
+  PAIRED_BUILTIN_NEGV2SF2,
+  PAIRED_BUILTIN_SQRTV2SF2,
+  PAIRED_BUILTIN_ADDV2SF3,
+  PAIRED_BUILTIN_SUBV2SF3,
+  PAIRED_BUILTIN_RESV2SF2,
+  PAIRED_BUILTIN_MULV2SF3,
+  PAIRED_BUILTIN_MSUB,
+  PAIRED_BUILTIN_MADD,
+  PAIRED_BUILTIN_NMSUB,
+  PAIRED_BUILTIN_NMADD,
+  PAIRED_BUILTIN_NABSV2SF2,
+  PAIRED_BUILTIN_SUM0,
+  PAIRED_BUILTIN_SUM1,
+  PAIRED_BUILTIN_MULS0,
+  PAIRED_BUILTIN_MULS1,
+  PAIRED_BUILTIN_MERGE00,
+  PAIRED_BUILTIN_MERGE01,
+  PAIRED_BUILTIN_MERGE10,
+  PAIRED_BUILTIN_MERGE11,
+  PAIRED_BUILTIN_MADDS0,
+  PAIRED_BUILTIN_MADDS1,
+  PAIRED_BUILTIN_STX,
+  PAIRED_BUILTIN_LX,
+  PAIRED_BUILTIN_SELV2SF4,
+  PAIRED_BUILTIN_CMPU0,
+  PAIRED_BUILTIN_CMPU1,
+
+  RS6000_BUILTIN_RECIP,
+  RS6000_BUILTIN_RECIPF,
+  RS6000_BUILTIN_RSQRTF,
 
   RS6000_BUILTIN_COUNT
 };

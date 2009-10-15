@@ -1,4 +1,4 @@
-// { dg-options "-fsigned-char -Wconversion" }
+// { dg-options "-fsigned-char -Wsign-conversion" }
 
 char c1 = 1024; // { dg-warning "overflow" }
 char c2 = char(1024);
@@ -9,4 +9,4 @@ unsigned char uc1 = -129; // { dg-warning "unsigned" }
 
 bool b1 = -3;
 
-int i1 = 0x80000000;
+int i1 = 0x80000000; // { dg-warning "conversion" }

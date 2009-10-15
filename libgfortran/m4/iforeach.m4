@@ -36,11 +36,22 @@ name`'rtype_qual`_'atype_code (rtype * const restrict retarray,
     }
   else
     {
-      if (GFC_DESCRIPTOR_RANK (retarray) != 1)
-	runtime_error ("rank of return array does not equal 1");
+      if (compile_options.bounds_check)
+	{
+	  int ret_rank;
+	  index_type ret_extent;
 
-      if (retarray->dim[0].ubound + 1 - retarray->dim[0].lbound != rank)
-        runtime_error ("dimension of return array incorrect");
+	  ret_rank = GFC_DESCRIPTOR_RANK (retarray);
+	  if (ret_rank != 1)
+	    runtime_error ("rank of return array in u_name intrinsic"
+			   " should be 1, is %ld", (long int) ret_rank);
+
+	  ret_extent = retarray->dim[0].ubound + 1 - retarray->dim[0].lbound;
+	  if (ret_extent != rank)
+	    runtime_error ("Incorrect extent in return value of"
+			   " u_name intrnisic: is %ld, should be %ld",
+			   (long int) ret_extent, (long int) rank);
+	}
     }
 
   dstride = retarray->dim[0].stride;
@@ -106,13 +117,13 @@ define(FINISH_FOREACH_FUNCTION,
 define(START_MASKED_FOREACH_FUNCTION,
 `
 extern void `m'name`'rtype_qual`_'atype_code (rtype * const restrict, 
-	atype * const restrict, gfc_array_l4 * const restrict);
+	atype * const restrict, gfc_array_l1 * const restrict);
 export_proto(`m'name`'rtype_qual`_'atype_code);
 
 void
 `m'name`'rtype_qual`_'atype_code (rtype * const restrict retarray, 
 	atype * const restrict array,
-	gfc_array_l4 * const restrict mask)
+	gfc_array_l1 * const restrict mask)
 {
   index_type count[GFC_MAX_DIMENSIONS];
   index_type extent[GFC_MAX_DIMENSIONS];
@@ -121,9 +132,10 @@ void
   index_type dstride;
   rtype_name *dest;
   const atype_name *base;
-  GFC_LOGICAL_4 *mbase;
+  GFC_LOGICAL_1 *mbase;
   int rank;
   index_type n;
+  int mask_kind;
 
   rank = GFC_DESCRIPTOR_RANK (array);
   if (rank <= 0)
@@ -140,19 +152,62 @@ void
     }
   else
     {
-      if (GFC_DESCRIPTOR_RANK (retarray) != 1)
-	runtime_error ("rank of return array does not equal 1");
+      if (compile_options.bounds_check)
+	{
+	  int ret_rank, mask_rank;
+	  index_type ret_extent;
+	  int n;
+	  index_type array_extent, mask_extent;
 
-      if (retarray->dim[0].ubound + 1 - retarray->dim[0].lbound != rank)
-        runtime_error ("dimension of return array incorrect");
+	  ret_rank = GFC_DESCRIPTOR_RANK (retarray);
+	  if (ret_rank != 1)
+	    runtime_error ("rank of return array in u_name intrinsic"
+			   " should be 1, is %ld", (long int) ret_rank);
+
+	  ret_extent = retarray->dim[0].ubound + 1 - retarray->dim[0].lbound;
+	  if (ret_extent != rank)
+	    runtime_error ("Incorrect extent in return value of"
+			   " u_name intrnisic: is %ld, should be %ld",
+			   (long int) ret_extent, (long int) rank);
+	
+	  mask_rank = GFC_DESCRIPTOR_RANK (mask);
+	  if (rank != mask_rank)
+	    runtime_error ("rank of MASK argument in u_name intrnisic"
+	                   "should be %ld, is %ld", (long int) rank,
+			   (long int) mask_rank);
+
+	  for (n=0; n<rank; n++)
+	    {
+	      array_extent = array->dim[n].ubound + 1 - array->dim[n].lbound;
+	      mask_extent = mask->dim[n].ubound + 1 - mask->dim[n].lbound;
+	      if (array_extent != mask_extent)
+		runtime_error ("Incorrect extent in MASK argument of"
+			       " u_name intrinsic in dimension %ld:"
+			       " is %ld, should be %ld", (long int) n + 1,
+			       (long int) mask_extent, (long int) array_extent);
+	    }
+	}
     }
+
+  mask_kind = GFC_DESCRIPTOR_SIZE (mask);
+
+  mbase = mask->data;
+
+  if (mask_kind == 1 || mask_kind == 2 || mask_kind == 4 || mask_kind == 8
+#ifdef HAVE_GFC_LOGICAL_16
+      || mask_kind == 16
+#endif
+      )
+    mbase = GFOR_POINTER_TO_L1 (mbase, mask_kind);
+  else
+    runtime_error ("Funny sized logical array");
 
   dstride = retarray->dim[0].stride;
   dest = retarray->data;
   for (n = 0; n < rank; n++)
     {
       sstride[n] = array->dim[n].stride;
-      mstride[n] = mask->dim[n].stride;
+      mstride[n] = mask->dim[n].stride * mask_kind;
       extent[n] = array->dim[n].ubound + 1 - array->dim[n].lbound;
       count[n] = 0;
       if (extent[n] <= 0)
@@ -165,17 +220,6 @@ void
     }
 
   base = array->data;
-  mbase = mask->data;
-
-  if (GFC_DESCRIPTOR_SIZE (mask) != 4)
-    {
-      /* This allows the same loop to be used for all logical types.  */
-      assert (GFC_DESCRIPTOR_SIZE (mask) == 8);
-      for (n = 0; n < rank; n++)
-        mstride[n] <<= 1;
-      mbase = (GFOR_POINTER_L8_TO_L4 (mbase));
-    }
-
 
   /* Initialize the return value.  */
   for (n = 0; n < rank; n++)
@@ -267,11 +311,20 @@ void
     }
   else
     {
-      if (GFC_DESCRIPTOR_RANK (retarray) != 1)
-	runtime_error ("rank of return array does not equal 1");
+      if (compile_options.bounds_check)
+	{
+	  int ret_rank;
+	  index_type ret_extent;
 
-      if (retarray->dim[0].ubound + 1 - retarray->dim[0].lbound != rank)
-        runtime_error ("dimension of return array incorrect");
+	  ret_rank = GFC_DESCRIPTOR_RANK (retarray);
+	  if (ret_rank != 1)
+	    runtime_error ("rank of return array in u_name intrinsic"
+			   " should be 1, is %ld", (long int) ret_rank);
+
+	  ret_extent = retarray->dim[0].ubound + 1 - retarray->dim[0].lbound;
+	    if (ret_extent != rank)
+	      runtime_error ("dimension of return array incorrect");
+	}
     }
 
   dstride = retarray->dim[0].stride;

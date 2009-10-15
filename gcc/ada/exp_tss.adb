@@ -6,18 +6,17 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2005, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -29,7 +28,6 @@ with Einfo;    use Einfo;
 with Elists;   use Elists;
 with Exp_Util; use Exp_Util;
 with Lib;      use Lib;
-with Namet;    use Namet;
 with Sem_Util; use Sem_Util;
 with Sinfo;    use Sinfo;
 
@@ -44,7 +42,7 @@ package body Exp_Tss is
       Proc      : Entity_Id;
 
    begin
-      pragma Assert (Ekind (Typ) in Type_Kind);
+      pragma Assert (Is_Type (Typ));
 
       if Is_Private_Type (Typ) then
          Full_Type := Underlying_Type (Base_Type (Typ));
@@ -238,6 +236,21 @@ package body Exp_Tss is
       return Make_TSS_Name (Typ, TSS_Init_Proc);
    end Make_Init_Proc_Name;
 
+   -------------------
+   -- Make_TSS_Name --
+   -------------------
+
+   function Make_TSS_Name
+     (Typ : Entity_Id;
+      Nam : TSS_Name_Type) return Name_Id
+   is
+   begin
+      Get_Name_String (Chars (Typ));
+      Add_Char_To_Name_Buffer (Nam (1));
+      Add_Char_To_Name_Buffer (Nam (2));
+      return Name_Find;
+   end Make_TSS_Name;
+
    -------------------------
    -- Make_TSS_Name_Local --
    -------------------------
@@ -254,21 +267,6 @@ package body Exp_Tss is
       Add_Char_To_Name_Buffer (Nam (2));
       return Name_Find;
    end Make_TSS_Name_Local;
-
-   -------------------
-   -- Make_TSS_Name --
-   -------------------
-
-   function Make_TSS_Name
-     (Typ : Entity_Id;
-      Nam : TSS_Name_Type) return Name_Id
-   is
-   begin
-      Get_Name_String (Chars (Typ));
-      Add_Char_To_Name_Buffer (Nam (1));
-      Add_Char_To_Name_Buffer (Nam (2));
-      return Name_Find;
-   end Make_TSS_Name;
 
    --------------
    -- Same_TSS --

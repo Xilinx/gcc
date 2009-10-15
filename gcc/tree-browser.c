@@ -162,7 +162,8 @@ browse_tree (tree begin)
 
 	case TB_MAX:
 	  if (head && (INTEGRAL_TYPE_P (head)
-		       || TREE_CODE (head) == REAL_TYPE))
+		       || TREE_CODE (head) == REAL_TYPE
+		       || TREE_CODE (head) == FIXED_POINT_TYPE))
 	    TB_SET_HEAD (TYPE_MAX_VALUE (head));
 	  else
 	    TB_WF;
@@ -170,7 +171,8 @@ browse_tree (tree begin)
 
 	case TB_MIN:
 	  if (head && (INTEGRAL_TYPE_P (head)
-		       || TREE_CODE (head) == REAL_TYPE))
+		       || TREE_CODE (head) == REAL_TYPE
+		       || TREE_CODE (head) == FIXED_POINT_TYPE))
 	    TB_SET_HEAD (TYPE_MIN_VALUE (head));
 	  else
 	    TB_WF;
@@ -729,45 +731,16 @@ store_child_info (tree *tp, int *walk_subtrees ATTRIBUTE_UNUSED,
   node = *tp;
 
   /* 'node' is the parent of 'TREE_OPERAND (node, *)'.  */
-  if (EXPRESSION_CLASS_P (node))
+  if (EXPR_P (node))
     {
-
-#define STORE_CHILD(N) do {                                                \
-  tree op = TREE_OPERAND (node, N);                                        \
-  slot = htab_find_slot (TB_up_ht, op, INSERT);                               \
-  *slot = (void *) node;                                                   \
-} while (0)
-
-      switch (TREE_CODE_LENGTH (TREE_CODE (node)))
+      int n = TREE_OPERAND_LENGTH (node);
+      int i;
+      for (i = 0; i < n; i++)
 	{
-	case 4:
-	  STORE_CHILD (0);
-	  STORE_CHILD (1);
-	  STORE_CHILD (2);
-	  STORE_CHILD (3);
-	  break;
-
-	case 3:
-	  STORE_CHILD (0);
-	  STORE_CHILD (1);
-	  STORE_CHILD (2);
-	  break;
-
-	case 2:
-	  STORE_CHILD (0);
-	  STORE_CHILD (1);
-	  break;
-
-	case 1:
-	  STORE_CHILD (0);
-	  break;
-
-	case 0:
-	default:
-	  /* No children: nothing to do.  */
-	  break;
+	  tree op = TREE_OPERAND (node, i);
+	  slot = htab_find_slot (TB_up_ht, op, INSERT);
+	  *slot = (void *) node;
 	}
-#undef STORE_CHILD
     }
 
   /* Never stop walk_tree.  */
@@ -779,53 +752,20 @@ store_child_info (tree *tp, int *walk_subtrees ATTRIBUTE_UNUSED,
 static int
 TB_parent_eq (const void *p1, const void *p2)
 {
-  tree node, parent;
-  node = (tree) p2;
-  parent = (tree) p1;
+  const_tree const node = (const_tree)p2;
+  const_tree const parent = (const_tree) p1;
 
   if (p1 == NULL || p2 == NULL)
     return 0;
 
-  if (EXPRESSION_CLASS_P (parent))
+  if (EXPR_P (parent))
     {
-
-#define TEST_CHILD(N) do {               \
-  if (node == TREE_OPERAND (parent, N))  \
-    return 1;                            \
-} while (0)
-
-    switch (TREE_CODE_LENGTH (TREE_CODE (parent)))
-      {
-      case 4:
-	TEST_CHILD (0);
-	TEST_CHILD (1);
-	TEST_CHILD (2);
-	TEST_CHILD (3);
-	break;
-
-      case 3:
-	TEST_CHILD (0);
-	TEST_CHILD (1);
-	TEST_CHILD (2);
-	break;
-
-      case 2:
-	TEST_CHILD (0);
-	TEST_CHILD (1);
-	break;
-
-      case 1:
-	TEST_CHILD (0);
-	break;
-
-      case 0:
-      default:
-	/* No children: nothing to do.  */
-	break;
-      }
-#undef TEST_CHILD
+      int n = TREE_OPERAND_LENGTH (parent);
+      int i;
+      for (i = 0; i < n; i++)
+	if (node == TREE_OPERAND (parent, i))
+	  return 1;
     }
-
   return 0;
 }
 

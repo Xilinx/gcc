@@ -1,5 +1,5 @@
 /* SysV FPU-related code (for systems not otherwise supported).
-   Copyright 2005 Free Software Foundation, Inc.
+   Copyright 2005, 2007 Free Software Foundation, Inc.
    Contributed by Francois-Xavier Coudert <coudert@clipper.ens.fr>
 
 This file is part of the GNU Fortran 95 runtime library (libgfortran).
@@ -30,9 +30,6 @@ Boston, MA 02110-1301, USA.  */
 
 
 /* FPU-related code for SysV platforms with fpsetmask().  */
-#ifdef HAVE_IEEEFP_H
-#include <ieeefp.h>
-#endif
 
 void
 set_fpu (void)

@@ -2,7 +2,7 @@
    Functionally similar to Sun's javap.
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
-   2006, 2007  Free Software Foundation, Inc.
+   2006, 2007, 2008 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -95,6 +95,7 @@ int flag_javap_compatible = 0;
 
 static void print_access_flags (FILE *, uint16, char);
 static void print_constant_terse (FILE*, JCF*, int, int);
+static void print_constant_terse_with_index (FILE *, JCF *, int, int);
 static void print_constant (FILE *, JCF *, int, int);
 static void print_constant_ref (FILE *, JCF *, int);
 static void disassemble_method (JCF*, const unsigned char *, int);
@@ -108,6 +109,11 @@ static void process_class (struct JCF *);
 static void print_constant_pool (struct JCF *);
 static void print_exception_table (struct JCF *, const unsigned char *entries,
 				   int);
+static void indent (FILE *, int);
+static void print_element_value (FILE *, JCF *, int);
+static void print_annotation (FILE *, JCF *, int);
+static void print_annotations (FILE *, JCF *, int);
+static void print_parameter_annotations (FILE *, JCF *, int);
 
 #define PRINT_SIGNATURE_RESULT_ONLY 1
 #define PRINT_SIGNATURE_ARGS_ONLY 2
@@ -131,7 +137,7 @@ utf8_equal_string (JCF *jcf, int index, const char * value)
   if (flag_print_class_info) \
     fprintf (out, \
              "Magic number: 0x%0lx, minor_version: %ld, major_version: %ld.\n",\
-	     (long) MAGIC, (long) MINOR, (long) MAJOR)
+	     (unsigned long) MAGIC, (long) MINOR, (long) MAJOR)
 
 #define HANDLE_START_CONSTANT_POOL(COUNT) \
   if (flag_print_constant_pool) \
@@ -183,7 +189,7 @@ utf8_equal_string (JCF *jcf, int index, const char * value)
     { fprintf (out, "Field name:"); \
       print_constant_terse (out, jcf, NAME, CONSTANT_Utf8); \
       print_access_flags (out, ACCESS_FLAGS, 'f'); \
-      fprintf (out, " Signature: "); \
+      fprintf (out, " Descriptor: "); \
       if (flag_print_constant_pool) \
         fprintf (out, "%d=", SIGNATURE); \
       print_signature (out, jcf, SIGNATURE, 0); \
@@ -226,7 +232,7 @@ utf8_equal_string (JCF *jcf, int index, const char * value)
 	  fprintf (out, "\nMethod name:"); \
 	  print_constant_terse (out, jcf, NAME, CONSTANT_Utf8); \
 	  print_access_flags (out, ACCESS_FLAGS, 'm'); \
-	  fprintf (out, " Signature: "); \
+	  fprintf (out, " Descriptor: "); \
 	  if (flag_print_constant_pool) \
 	    fprintf (out, "%d=", SIGNATURE); \
 	  print_signature (out, jcf, SIGNATURE, 0); \
@@ -294,6 +300,26 @@ utf8_equal_string (JCF *jcf, int index, const char * value)
     print_signature (out, jcf, signature_index, 0); \
     fprintf (out, " (pc: %d length: %d)\n", start_pc, length); }}
 
+#define HANDLE_LOCALVARIABLETYPETABLE_ATTRIBUTE(COUNT)			\
+{ int n = (COUNT); int i;						\
+  COMMON_HANDLE_ATTRIBUTE(JCF, attribute_name, attribute_length);	\
+  fprintf (out, ", count: %d\n", n);					\
+  for (i = 0; i < n; i++) {						\
+    int start_pc = JCF_readu2 (jcf);					\
+    int length = JCF_readu2 (jcf);					\
+    int name_index = JCF_readu2 (jcf);					\
+    int signature_index = JCF_readu2 (jcf);				\
+    int slot = JCF_readu2 (jcf);					\
+    fprintf (out, "  slot#%d: name: ", slot);				\
+    if (flag_print_constant_pool)					\
+      fprintf (out, "%d=", name_index);					\
+    print_name (out, jcf, name_index);					\
+    fprintf (out, ", type: ");						\
+    if (flag_print_constant_pool)					\
+      fprintf (out, "%d=", signature_index);				\
+    print_signature (out, jcf, signature_index, 0);			\
+    fprintf (out, " (pc: %d length: %d)\n", start_pc, length); }}
+
 #define HANDLE_LINENUMBERTABLE_ATTRIBUTE(COUNT) \
 { int n = (COUNT); int i; \
   COMMON_HANDLE_ATTRIBUTE(jcf, attribute_name, attribute_length); \
@@ -356,6 +382,60 @@ utf8_equal_string (JCF *jcf, int index, const char * value)
   for (i = 0;  i < n;  i++) { c = JCF_readu(jcf); fputc(c, out); } \
   if (c != '\r' && c != '\n') fputc('\n', out); }
 
+#define HANDLE_ENCLOSINGMETHOD_ATTRIBUTE()				\
+  { uint16 class_index, method_index;					\
+  COMMON_HANDLE_ATTRIBUTE(jcf, attribute_name, attribute_length);	\
+  class_index = JCF_readu2 (jcf);					\
+  method_index = JCF_readu2 (jcf);					\
+  fprintf (out, "\n  Class: ");						\
+  print_constant_terse_with_index (out, jcf, class_index, CONSTANT_Class); \
+  fprintf (out, "\n  Method: ");					\
+  print_constant_terse_with_index (out, jcf, method_index,		\
+				   CONSTANT_NameAndType);		\
+  fputc ('\n', out);							\
+}
+
+#define HANDLE_SIGNATURE_ATTRIBUTE()					\
+{									\
+  uint16 signature;							\
+  COMMON_HANDLE_ATTRIBUTE(jcf, attribute_name, attribute_length);	\
+  signature = JCF_readu2 (jcf);						\
+  fprintf (out, "\n  Value: ");						\
+  print_constant_terse_with_index (out, jcf, signature, CONSTANT_Utf8);	\
+  fputc ('\n', out);							\
+}
+
+#define HANDLE_RUNTIMEVISIBLEANNOTATIONS_ATTRIBUTE()			\
+{									\
+  COMMON_HANDLE_ATTRIBUTE(jcf, attribute_name, attribute_length);	\
+  print_annotations (out, jcf, 1);					\
+}
+
+#define HANDLE_RUNTIMEINVISIBLEANNOTATIONS_ATTRIBUTE()			\
+{									\
+  COMMON_HANDLE_ATTRIBUTE(jcf, attribute_name, attribute_length);	\
+  print_annotations (out, jcf, 1);					\
+}
+
+#define HANDLE_RUNTIMEVISIBLEPARAMETERANNOTATIONS_ATTRIBUTE()		\
+{									\
+  COMMON_HANDLE_ATTRIBUTE(jcf, attribute_name, attribute_length);	\
+  print_parameter_annotations (out, jcf, 1);				\
+}
+
+#define HANDLE_RUNTIMEINVISIBLEPARAMETERANNOTATIONS_ATTRIBUTE()		\
+{									\
+  COMMON_HANDLE_ATTRIBUTE(jcf, attribute_name, attribute_length);	\
+  print_parameter_annotations (out, jcf, 1);				\
+}
+
+#define HANDLE_ANNOTATIONDEFAULT_ATTRIBUTE()				\
+{									\
+  COMMON_HANDLE_ATTRIBUTE(jcf, attribute_name, attribute_length);	\
+  print_element_value (out, jcf, 1);					\
+}
+
+
 #define PROCESS_OTHER_ATTRIBUTE(JCF, INDEX, LENGTH) \
 { COMMON_HANDLE_ATTRIBUTE(JCF, INDEX, LENGTH); \
   fputc ('\n', out); JCF_SKIP (JCF, LENGTH); }
@@ -365,6 +445,158 @@ utf8_equal_string (JCF *jcf, int index, const char * value)
     fprintf (out, "\nAttributes (count: %d):\n", attributes_count);
 
 #include "javaop.h"
+
+
+
+static void
+indent (FILE *stream, int level)
+{
+  int i;
+  for (i = 0; i < level; ++i)
+    fprintf (stream, "  ");
+}
+
+static void
+print_element_value (FILE *stream, JCF *jcf, int level)
+{
+  uint8 tag = JCF_readu (jcf);
+  indent (stream, level);
+  switch (tag)
+    {
+    case 'B':
+    case 'C':
+    case 'S':
+    case 'Z':
+    case 'I':
+      {
+	uint16 cindex = JCF_readu2 (jcf);
+	print_constant_terse_with_index (stream, jcf, cindex,
+					 CONSTANT_Integer);
+      }
+      break;
+    case 'D':
+      {
+	uint16 cindex = JCF_readu2 (jcf);
+	print_constant_terse_with_index (stream, jcf, cindex,
+					 CONSTANT_Double);
+      }
+      break;
+    case 'F':
+      {
+	uint16 cindex = JCF_readu2 (jcf);
+	print_constant_terse_with_index (stream, jcf, cindex,
+					 CONSTANT_Float);
+      }
+      break;
+    case 'J':
+      {
+	uint16 cindex = JCF_readu2 (jcf);
+	print_constant_terse_with_index (stream, jcf, cindex,
+					 CONSTANT_Long);
+      }
+      break;
+    case 's':
+      {
+	uint16 cindex = JCF_readu2 (jcf);
+	/* Despite what the JVM spec says, compilers generate a Utf8
+	   constant here, not a String.  */
+	print_constant_terse_with_index (stream, jcf, cindex,
+					 CONSTANT_Utf8);
+      }
+      break;
+
+    case 'e':
+      {
+	uint16 type_name_index = JCF_readu2 (jcf);
+	uint16 const_name_index = JCF_readu2 (jcf);
+	fprintf (stream, "enum class: ");
+	print_constant_terse_with_index (stream, jcf, type_name_index,
+					 CONSTANT_Utf8);
+	fprintf (stream, "\n");
+	indent (stream, level);
+	fprintf (stream, "Field: ");
+	print_constant_terse_with_index (stream, jcf, const_name_index,
+					 CONSTANT_Utf8);
+      }
+      break;
+    case 'c':
+      {
+	uint16 class_info_index = JCF_readu2 (jcf);
+	print_constant_terse_with_index (stream, jcf, class_info_index,
+					 CONSTANT_Utf8);
+      }
+      break;
+    case '@':
+      {
+	fprintf (stream, "Annotation:\n");
+	print_annotation (stream, jcf, level + 1);
+      }
+      break;
+    case '[':
+      {
+	uint16 n_array_elts = JCF_readu2 (jcf);
+	fprintf (stream, "array[%d]: [\n", (int) n_array_elts);
+	while (n_array_elts--)
+	  print_element_value (stream, jcf, level + 1);
+	indent (stream, level);
+	fprintf (stream, "]");
+      }
+      break;
+    default:
+      fprintf (stream, "Unexpected tag value: %d", (int) tag);
+      break;
+    }
+  fputc ('\n', stream);
+}
+
+static void
+print_annotation (FILE *stream, JCF *jcf, int level)
+{
+  uint16 type_index = JCF_readu2 (jcf);
+  uint16 npairs = JCF_readu2 (jcf);
+  fprintf (stream, "\n");
+  indent (stream, level);
+  fprintf (stream, "Annotation name: ");
+  print_constant_terse_with_index (stream, jcf, type_index,
+				   CONSTANT_Utf8);
+  if (npairs)
+    {
+      fprintf (stream, "\n");
+      while (npairs--)
+	{
+	  uint16 name_index = JCF_readu2 (jcf);
+	  indent (stream, level + 1);
+	  fprintf (stream, "Name: ");
+	  print_constant_terse_with_index (stream, jcf, name_index,
+					   CONSTANT_Utf8);
+	  fprintf (stream, "\n");
+	  print_element_value (stream, jcf, level + 2);
+	}
+    }
+}
+
+static void
+print_annotations (FILE *stream, JCF *jcf, int level)
+{
+  uint16 num = JCF_readu2 (jcf);
+  while (num--)
+    print_annotation (stream, jcf, level);
+}
+
+static void
+print_parameter_annotations (FILE *stream, JCF *jcf, int level)
+{
+  uint8 nparams = JCF_readu (jcf);
+  uint8 i;
+  for (i = 0; i < nparams; ++i)
+    {
+      indent (stream, level);
+      fprintf (stream, "Parameter annotations (%d):\n", (int) i);
+      print_annotations (stream, jcf, level + 1);
+    }
+}
+
+
 
 static void
 print_constant_ref (FILE *stream, JCF *jcf, int index)
@@ -578,7 +810,7 @@ print_constant (FILE *out, JCF *jcf, int index, int verbosity)
 	  }
 
 	if (verbosity > 1)
-	  fprintf (out, ", bits = 0x%08lx", (long) JPOOL_UINT (jcf, index));
+	  fprintf (out, ", bits = 0x%08lx", (unsigned long) JPOOL_UINT (jcf, index));
 	
 	break;
       }
@@ -627,7 +859,8 @@ print_constant (FILE *out, JCF *jcf, int index, int verbosity)
 	    int32 hi, lo;
 	    hi = JPOOL_UINT (jcf, index);
 	    lo = JPOOL_UINT (jcf, index + 1);
-	    fprintf (out, ", bits = 0x%08lx%08lx", (long) hi, (long) lo);
+	    fprintf (out, ", bits = 0x%08lx%08lx", (unsigned long) hi,
+		     (unsigned long) lo);
 	  }
 	break;
       }
@@ -931,8 +1164,8 @@ help (void)
 static void
 version (void)
 {
-  printf ("jcf-dump (GCC) %s\n\n", version_string);
-  printf ("Copyright %s 2006 Free Software Foundation, Inc.\n", _("(C)"));
+  printf ("jcf-dump %s%s\n\n", pkgversion_string, version_string);
+  printf ("Copyright %s 2008 Free Software Foundation, Inc.\n", _("(C)"));
   printf (_("This is free software; see the source for copying conditions.  There is NO\n"
 	    "warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"));
   exit (0);
@@ -1057,7 +1290,7 @@ main (int argc, char** argv)
       for (argi = optind; argi < argc; argi++)
 	{
 	  char *arg = argv[argi];
-	  const char *class_filename = find_class (arg, strlen (arg), jcf, 0);
+	  const char *class_filename = find_class (arg, strlen (arg), jcf);
 	  if (class_filename == NULL)
 	    class_filename = find_classfile (arg, jcf, NULL);
 	  if (class_filename == NULL)

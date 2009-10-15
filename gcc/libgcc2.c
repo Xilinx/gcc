@@ -1,7 +1,7 @@
 /* More subroutines needed by GCC output code on some machines.  */
 /* Compile this one with gcc.  */
 /* Copyright (C) 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005  Free Software Foundation, Inc.
+   2000, 2001, 2002, 2003, 2004, 2005, 2007  Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -406,16 +406,16 @@ __mulvDI3 (DWtype u, DWtype v)
 
 
 /* Unless shift functions are defined with full ANSI prototypes,
-   parameter b will be promoted to int if word_type is smaller than an int.  */
+   parameter b will be promoted to int if shift_count_type is smaller than an int.  */
 #ifdef L_lshrdi3
 DWtype
-__lshrdi3 (DWtype u, word_type b)
+__lshrdi3 (DWtype u, shift_count_type b)
 {
   if (b == 0)
     return u;
 
   const DWunion uu = {.ll = u};
-  const word_type bm = (sizeof (Wtype) * BITS_PER_UNIT) - b;
+  const shift_count_type bm = (sizeof (Wtype) * BITS_PER_UNIT) - b;
   DWunion w;
 
   if (bm <= 0)
@@ -437,13 +437,13 @@ __lshrdi3 (DWtype u, word_type b)
 
 #ifdef L_ashldi3
 DWtype
-__ashldi3 (DWtype u, word_type b)
+__ashldi3 (DWtype u, shift_count_type b)
 {
   if (b == 0)
     return u;
 
   const DWunion uu = {.ll = u};
-  const word_type bm = (sizeof (Wtype) * BITS_PER_UNIT) - b;
+  const shift_count_type bm = (sizeof (Wtype) * BITS_PER_UNIT) - b;
   DWunion w;
 
   if (bm <= 0)
@@ -465,13 +465,13 @@ __ashldi3 (DWtype u, word_type b)
 
 #ifdef L_ashrdi3
 DWtype
-__ashrdi3 (DWtype u, word_type b)
+__ashrdi3 (DWtype u, shift_count_type b)
 {
   if (b == 0)
     return u;
 
   const DWunion uu = {.ll = u};
-  const word_type bm = (sizeof (Wtype) * BITS_PER_UNIT) - b;
+  const shift_count_type bm = (sizeof (Wtype) * BITS_PER_UNIT) - b;
   DWunion w;
 
   if (bm <= 0)
@@ -492,6 +492,30 @@ __ashrdi3 (DWtype u, word_type b)
 }
 #endif
 
+#ifdef L_bswapsi2
+SItype
+__bswapsi2 (SItype u)
+{
+  return ((((u) & 0xff000000) >> 24)
+	  | (((u) & 0x00ff0000) >>  8)
+	  | (((u) & 0x0000ff00) <<  8)
+	  | (((u) & 0x000000ff) << 24));
+}
+#endif
+#ifdef L_bswapdi2
+DItype
+__bswapdi2 (DItype u)
+{
+  return ((((u) & 0xff00000000000000ull) >> 56)
+	  | (((u) & 0x00ff000000000000ull) >> 40)
+	  | (((u) & 0x0000ff0000000000ull) >> 24)
+	  | (((u) & 0x000000ff00000000ull) >>  8)
+	  | (((u) & 0x00000000ff000000ull) <<  8)
+	  | (((u) & 0x0000000000ff0000ull) << 24)
+	  | (((u) & 0x000000000000ff00ull) << 40)
+	  | (((u) & 0x00000000000000ffull) << 56));
+}
+#endif
 #ifdef L_ffssi2
 #undef int
 int
@@ -1058,7 +1082,7 @@ __udivmoddi4 (UDWtype n, UDWtype d, UDWtype *rp)
 DWtype
 __divdi3 (DWtype u, DWtype v)
 {
-  word_type c = 0;
+  Wtype c = 0;
   DWunion uu = {.ll = u};
   DWunion vv = {.ll = v};
   DWtype w;
@@ -1082,7 +1106,7 @@ __divdi3 (DWtype u, DWtype v)
 DWtype
 __moddi3 (DWtype u, DWtype v)
 {
-  word_type c = 0;
+  Wtype c = 0;
   DWunion uu = {.ll = u};
   DWunion vv = {.ll = v};
   DWtype w;
@@ -1122,7 +1146,7 @@ __udivdi3 (UDWtype n, UDWtype d)
 #endif
 
 #ifdef L_cmpdi2
-word_type
+cmp_return_type
 __cmpdi2 (DWtype a, DWtype b)
 {
   const DWunion au = {.ll = a};
@@ -1141,7 +1165,7 @@ __cmpdi2 (DWtype a, DWtype b)
 #endif
 
 #ifdef L_ucmpdi2
-word_type
+cmp_return_type
 __ucmpdi2 (DWtype a, DWtype b)
 {
   const DWunion au = {.ll = a};
@@ -1160,7 +1184,7 @@ __ucmpdi2 (DWtype a, DWtype b)
 #endif
 
 #if defined(L_fixunstfdi) && LIBGCC2_HAS_TF_MODE
-DWtype
+UDWtype
 __fixunstfDI (TFtype a)
 {
   if (a < 0)
@@ -1196,7 +1220,7 @@ __fixtfdi (TFtype a)
 #endif
 
 #if defined(L_fixunsxfdi) && LIBGCC2_HAS_XF_MODE
-DWtype
+UDWtype
 __fixunsxfDI (XFtype a)
 {
   if (a < 0)
@@ -1232,7 +1256,7 @@ __fixxfdi (XFtype a)
 #endif
 
 #if defined(L_fixunsdfdi) && LIBGCC2_HAS_DF_MODE
-DWtype
+UDWtype
 __fixunsdfDI (DFtype a)
 {
   /* Get high part of result.  The division here will just moves the radix
@@ -1261,7 +1285,7 @@ __fixdfdi (DFtype a)
 #endif
 
 #if defined(L_fixunssfdi) && LIBGCC2_HAS_SF_MODE
-DWtype
+UDWtype
 __fixunssfDI (SFtype a)
 {
 #if LIBGCC2_HAS_DF_MODE
@@ -1396,11 +1420,7 @@ __floatunditf (UDWtype u)
 #define F_MODE_OK(SIZE) \
   (SIZE < DI_SIZE							\
    && SIZE > (DI_SIZE - SIZE + FSSIZE)					\
-   /* Don't use IBM Extended Double TFmode for TI->SF calculations.	\
-      The conversion from long double to float suffers from double	\
-      rounding, because we convert via double.  In any case, the	\
-      fallback code is faster.  */					\
-   && !IS_IBM_EXTENDED (SIZE))
+   && !AVOID_FP_TYPE_CONVERSION(SIZE))
 #if defined(L_floatdisf)
 #define FUNC __floatdisf
 #define FSTYPE SFtype
@@ -1491,13 +1511,21 @@ FUNC (DWtype u)
   hi = u >> shift;
 
   /* If we lost any nonzero bits, set the lsb to ensure correct rounding.  */
-  if (u & (((DWtype)1 << shift) - 1))
+  if ((UWtype)u << (W_TYPE_SIZE - shift))
     hi |= 1;
 
   /* Convert the one word of data, and rescale.  */
-  FSTYPE f = hi;
-  f *= (UDWtype)1 << shift;
-  return f;
+  FSTYPE f = hi, e;
+  if (shift == W_TYPE_SIZE)
+    e = Wtype_MAXp1_F;
+  /* The following two cases could be merged if we knew that the target
+     supported a native unsigned->float conversion.  More often, we only
+     have a signed conversion, and have to add extra fixup code.  */
+  else if (shift == W_TYPE_SIZE - 1)
+    e = Wtype_MAXp1_F / 2;
+  else
+    e = (Wtype)1 << shift;
+  return f * e;
 #endif
 }
 #endif
@@ -1508,11 +1536,7 @@ FUNC (DWtype u)
 #define F_MODE_OK(SIZE) \
   (SIZE < DI_SIZE							\
    && SIZE > (DI_SIZE - SIZE + FSSIZE)					\
-   /* Don't use IBM Extended Double TFmode for TI->SF calculations.	\
-      The conversion from long double to float suffers from double	\
-      rounding, because we convert via double.  In any case, the	\
-      fallback code is faster.  */					\
-   && !IS_IBM_EXTENDED (SIZE))
+   && !AVOID_FP_TYPE_CONVERSION(SIZE))
 #if defined(L_floatundisf)
 #define FUNC __floatundisf
 #define FSTYPE SFtype
@@ -1596,13 +1620,21 @@ FUNC (UDWtype u)
   hi = u >> shift;
 
   /* If we lost any nonzero bits, set the lsb to ensure correct rounding.  */
-  if (u & (((UDWtype)1 << shift) - 1))
+  if ((UWtype)u << (W_TYPE_SIZE - shift))
     hi |= 1;
 
   /* Convert the one word of data, and rescale.  */
-  FSTYPE f = hi;
-  f *= (UDWtype)1 << shift;
-  return f;
+  FSTYPE f = hi, e;
+  if (shift == W_TYPE_SIZE)
+    e = Wtype_MAXp1_F;
+  /* The following two cases could be merged if we knew that the target
+     supported a native unsigned->float conversion.  More often, we only
+     have a signed conversion, and have to add extra fixup code.  */
+  else if (shift == W_TYPE_SIZE - 1)
+    e = Wtype_MAXp1_F / 2;
+  else
+    e = (Wtype)1 << shift;
+  return f * e;
 #endif
 }
 #endif
@@ -1748,7 +1780,11 @@ NAME (TYPE x, int m)
 # define MTYPE	TFtype
 # define CTYPE	TCtype
 # define MODE	tc
-# define CEXT	l
+# if LIBGCC2_LONG_DOUBLE_TYPE_SIZE == 128
+#  define CEXT l
+# else
+#  define CEXT LIBGCC2_TF_CEXT
+# endif
 # define NOTRUNC 1
 #else
 # error
@@ -1862,7 +1898,7 @@ CONCAT3(__div,MODE,3) (MTYPE a, MTYPE b, MTYPE c, MTYPE d)
 {
   MTYPE denom, ratio, x, y;
 
-  /* ??? We can get better behavior from logarithmic scaling instead of 
+  /* ??? We can get better behavior from logarithmic scaling instead of
      the division.  But that would mean starting to link libgcc against
      libm.  We could implement something akin to ldexp/frexp as gcc builtins
      fairly easily...  */

@@ -54,7 +54,8 @@ import java.util.Set;
  * @author Rolf W. Rasmussen (rolfwr@ii.uib.no)
  * @author Eric Blake (ebb9@email.byu.edu)
  */
-public class RenderingHints implements Map, Cloneable
+public class RenderingHints
+  implements Map<Object,Object>, Cloneable
 {
   /**
    * The base class used to represent keys.
@@ -157,7 +158,7 @@ public class RenderingHints implements Map, Cloneable
     }
   } // class KeyImpl
 
-  private HashMap hintMap = new HashMap();
+  private HashMap<Object,Object> hintMap = new HashMap<Object,Object>();
 
   /**
    * A key for the 'antialiasing' hint.  Permitted values are:
@@ -550,7 +551,7 @@ public class RenderingHints implements Map, Cloneable
    * @param init  a map containing a collection of hints (<code>null</code> 
    *              permitted).
    */
-  public RenderingHints(Map init)
+  public RenderingHints(Map<Key,?> init)
   {
     if (init != null)
       putAll(init);
@@ -704,15 +705,15 @@ public class RenderingHints implements Map, Cloneable
    * @throws IllegalArgumentException if the map contains a value that is
    *         not compatible with its key.
    */
-  public void putAll(Map m)
+  public void putAll(Map<?,?> m)
   {
     // preprocess map to generate appropriate exceptions
     Iterator iterator = m.keySet().iterator();
     while (iterator.hasNext())
       {
-	Key key = (Key) iterator.next();
-	if (!key.isCompatibleValue(m.get(key)))
-	  throw new IllegalArgumentException();
+        Key key = (Key) iterator.next();
+        if (!key.isCompatibleValue(m.get(key)))
+          throw new IllegalArgumentException();
       }
     // map is OK, update
     hintMap.putAll(m);
@@ -723,7 +724,7 @@ public class RenderingHints implements Map, Cloneable
    * 
    * @return A set of keys.
    */
-  public Set keySet()
+  public Set<Object> keySet()
   {
     return hintMap.keySet();
   }
@@ -735,7 +736,7 @@ public class RenderingHints implements Map, Cloneable
    * 
    * @return A collection of values.
    */
-  public Collection values()
+  public Collection<Object> values()
   {
     return hintMap.values();
   }
@@ -745,7 +746,7 @@ public class RenderingHints implements Map, Cloneable
    * 
    * @return A set of entries.
    */
-  public Set entrySet()
+  public Set<Map.Entry<Object,Object>> entrySet()
   {
     return Collections.unmodifiableSet(hintMap.entrySet());
   }
@@ -782,7 +783,7 @@ public class RenderingHints implements Map, Cloneable
     try
       {
         RenderingHints copy = (RenderingHints) super.clone();
-        copy.hintMap = (HashMap) hintMap.clone();
+        copy.hintMap = new HashMap<Object,Object>(hintMap);
         return copy;
       }
     catch (CloneNotSupportedException e)

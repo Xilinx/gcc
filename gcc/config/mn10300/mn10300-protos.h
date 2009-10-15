@@ -20,10 +20,6 @@ along with GCC; see the file COPYING3.  If not see
 
 #ifdef RTX_CODE
 
-#ifdef TREE_CODE
-extern void mn10300_va_start (tree, rtx);
-#endif /* TREE_CODE */
-
 extern void mn10300_override_options (void);
 extern struct rtx_def *legitimize_address (rtx, rtx, enum machine_mode);
 extern rtx legitimize_pic_address (rtx, rtx);
@@ -48,7 +44,7 @@ extern bool mn10300_wide_const_load_uses_clr (rtx operands[2]);
 #ifdef TREE_CODE
 extern struct rtx_def *function_arg (CUMULATIVE_ARGS *,
 				     enum machine_mode, tree, int);
-extern rtx mn10300_function_value (tree, tree, int);
+extern rtx mn10300_function_value (const_tree, const_tree, int);
 #endif /* TREE_CODE */
 
 extern void expand_prologue (void);

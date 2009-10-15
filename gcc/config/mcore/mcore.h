@@ -451,17 +451,17 @@ extern const enum reg_class reg_class_from_letter[];
         U: constant 0
         xxxS: 1 cleared bit out of 32 (complement of power of 2). for bclri
         xxxT: 2 cleared bits out of 32. for pairs of bclris.  */
-#define CONST_OK_FOR_I(VALUE) (((int)(VALUE)) >= 0 && ((int)(VALUE)) <= 0x7f)
-#define CONST_OK_FOR_J(VALUE) (((int)(VALUE)) >  0 && ((int)(VALUE)) <= 32)
-#define CONST_OK_FOR_L(VALUE) (((int)(VALUE)) <  0 && ((int)(VALUE)) >= -32)
-#define CONST_OK_FOR_K(VALUE) (((int)(VALUE)) >= 0 && ((int)(VALUE)) <= 31)
-#define CONST_OK_FOR_M(VALUE) (exact_log2 (VALUE) >= 0)
-#define CONST_OK_FOR_N(VALUE) (((int)(VALUE)) == -1 || exact_log2 ((VALUE) + 1) >= 0)
+#define CONST_OK_FOR_I(VALUE) (((HOST_WIDE_INT)(VALUE)) >= 0 && ((HOST_WIDE_INT)(VALUE)) <= 0x7f)
+#define CONST_OK_FOR_J(VALUE) (((HOST_WIDE_INT)(VALUE)) >  0 && ((HOST_WIDE_INT)(VALUE)) <= 32)
+#define CONST_OK_FOR_L(VALUE) (((HOST_WIDE_INT)(VALUE)) <  0 && ((HOST_WIDE_INT)(VALUE)) >= -32)
+#define CONST_OK_FOR_K(VALUE) (((HOST_WIDE_INT)(VALUE)) >= 0 && ((HOST_WIDE_INT)(VALUE)) <= 31)
+#define CONST_OK_FOR_M(VALUE) (exact_log2 (VALUE) >= 0 && exact_log2 (VALUE) <= 30)
+#define CONST_OK_FOR_N(VALUE) (((HOST_WIDE_INT)(VALUE)) == -1 || (exact_log2 ((VALUE) + 1) >= 0 && exact_log2 ((VALUE) + 1) <= 30))
 #define CONST_OK_FOR_O(VALUE) (CONST_OK_FOR_I(VALUE) || \
                                CONST_OK_FOR_M(VALUE) || \
                                CONST_OK_FOR_N(VALUE) || \
-                               CONST_OK_FOR_M((int)(VALUE) - 1) || \
-                               CONST_OK_FOR_N((int)(VALUE) + 1))
+                               CONST_OK_FOR_M((HOST_WIDE_INT)(VALUE) - 1) || \
+                               CONST_OK_FOR_N((HOST_WIDE_INT)(VALUE) + 1))
 
 #define CONST_OK_FOR_P(VALUE) (mcore_const_ok_for_inline (VALUE)) 
 
@@ -697,7 +697,8 @@ extern const enum reg_class reg_class_from_letter[];
    It is given that X satisfies CONSTANT_P or is a CONST_DOUBLE.
 
    On the MCore, allow anything but a double.  */
-#define LEGITIMATE_CONSTANT_P(X) (GET_CODE(X) != CONST_DOUBLE)
+#define LEGITIMATE_CONSTANT_P(X) (GET_CODE(X) != CONST_DOUBLE \
+				  && CONSTANT_P (X))
 
 /* The macros REG_OK_FOR..._P assume that the arg is a REG rtx
    and check its validity for a certain class.
@@ -754,15 +755,15 @@ extern const enum reg_class reg_class_from_letter[];
       if (GET_CODE (OP) == CONST_INT) 					\
         {								\
 	  if (GET_MODE_SIZE (MODE) >= 4					\
-	      && (((unsigned)INTVAL (OP)) % 4) == 0			\
-	      &&  ((unsigned)INTVAL (OP)) <= 64 - GET_MODE_SIZE (MODE))	\
+	      && (((unsigned HOST_WIDE_INT) INTVAL (OP)) % 4) == 0	\
+	      &&  ((unsigned HOST_WIDE_INT) INTVAL (OP)) <= 64 - GET_MODE_SIZE (MODE))	\
 	    goto LABEL;							\
 	  if (GET_MODE_SIZE (MODE) == 2 				\
-	      && (((unsigned)INTVAL (OP)) % 2) == 0			\
-	      &&  ((unsigned)INTVAL (OP)) <= 30)			\
+	      && (((unsigned HOST_WIDE_INT) INTVAL (OP)) % 2) == 0	\
+	      &&  ((unsigned HOST_WIDE_INT) INTVAL (OP)) <= 30)		\
 	    goto LABEL;							\
 	  if (GET_MODE_SIZE (MODE) == 1 				\
-	      && ((unsigned)INTVAL (OP)) <= 15)				\
+	      && ((unsigned HOST_WIDE_INT) INTVAL (OP)) <= 15)		\
 	    goto LABEL;							\
         }								\
     }									\
@@ -785,12 +786,7 @@ extern const enum reg_class reg_class_from_letter[];
 								   
 /* Go to LABEL if ADDR (a legitimate address expression)
    has an effect that depends on the machine mode it is used for.  */
-#define GO_IF_MODE_DEPENDENT_ADDRESS(ADDR,LABEL)  \
-{									\
-  if (   GET_CODE (ADDR) == PRE_DEC || GET_CODE (ADDR) == POST_DEC	\
-      || GET_CODE (ADDR) == PRE_INC || GET_CODE (ADDR) == POST_INC)	\
-    goto LABEL;								\
-}
+#define GO_IF_MODE_DEPENDENT_ADDRESS(ADDR,LABEL)
 
 /* Specify the machine mode that this machine uses
    for the index in the tablejump instruction.  */
@@ -857,7 +853,7 @@ extern const enum reg_class reg_class_from_letter[];
 #define DATA_SECTION_ASM_OP  "\t.data"
 
 /* Switch into a generic section.  */
-#undef TARGET_ASM_NAMED_SECTION
+#undef  TARGET_ASM_NAMED_SECTION
 #define TARGET_ASM_NAMED_SECTION  mcore_asm_named_section
 
 /* This is how to output an insn to push a register on the stack.

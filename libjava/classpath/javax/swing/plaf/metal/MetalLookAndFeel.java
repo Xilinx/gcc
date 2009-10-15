@@ -38,6 +38,8 @@ exception statement from your version. */
 
 package javax.swing.plaf.metal;
 
+import gnu.classpath.SystemProperties;
+
 import java.awt.Color;
 import java.awt.Font;
 
@@ -73,24 +75,20 @@ public class MetalLookAndFeel extends BasicLookAndFeel
   /** The current theme. */
   private static MetalTheme theme;
   
-  /** The look and feel defaults. */
-  private UIDefaults LAF_defaults;
-
   /**
    * Creates a new instance of the Metal look and feel.
    */
   public MetalLookAndFeel()
   {
-    createDefaultTheme();
+    // Nothing to do here.
   }
 
   /**
-   * Sets the current theme to a new instance of {@link OceanTheme}.
+   * Sets the current theme to a new instance of {@link DefaultMetalTheme}.
    */
   protected void createDefaultTheme()
   {
-    if (theme == null)
-      setCurrentTheme(new OceanTheme());
+    getCurrentTheme();
   }
 
   /**
@@ -149,17 +147,11 @@ public class MetalLookAndFeel extends BasicLookAndFeel
 
   public UIDefaults getDefaults()
   {
-    if (LAF_defaults == null)
-      {
-        LAF_defaults = super.getDefaults();
+    createDefaultTheme();
+    UIDefaults def = super.getDefaults();
 
-        // add custom theme entries to the table
-        if (theme != null)
-          theme.addCustomEntriesToTable(LAF_defaults);
-      }
-    
-    // Returns the default values for this look and feel. 
-    return LAF_defaults;
+    theme.addCustomEntriesToTable(def);
+    return def;
   }
 
   /**
@@ -887,7 +879,7 @@ public class MetalLookAndFeel extends BasicLookAndFeel
       "CheckBox.border", MetalBorders.getButtonBorder(),
       "CheckBox.disabledText", getInactiveControlTextColor(),
       "CheckBox.focus", getFocusColor(),
-      "CheckBox.font", new FontUIResource("Dialog", Font.BOLD, 12),
+      "CheckBox.font", getControlTextFont(),
       "CheckBox.foreground", getControlTextColor(),
       "CheckBox.icon",
       new UIDefaults.ProxyLazyValue("javax.swing.plaf.metal.MetalCheckBoxIcon"),
@@ -903,7 +895,7 @@ public class MetalLookAndFeel extends BasicLookAndFeel
       "CheckBoxMenuItem.commandSound", "sounds/MenuItemCommand.wav",
       "CheckBoxMenuItem.checkIcon", MetalIconFactory.getCheckBoxMenuItemIcon(),
       "CheckBoxMenuItem.disabledForeground", getMenuDisabledForeground(),
-      "CheckBoxMenuItem.font", new FontUIResource("Dialog", Font.BOLD, 12),
+      "CheckBoxMenuItem.font", getMenuTextFont(),
       "CheckBoxMenuItem.foreground", getMenuForeground(),
       "CheckBoxMenuItem.selectionBackground", getMenuSelectedBackground(),
       "CheckBoxMenuItem.selectionForeground", getMenuSelectedForeground(),
@@ -922,7 +914,7 @@ public class MetalLookAndFeel extends BasicLookAndFeel
       "ComboBox.buttonShadow", getControlShadow(),
       "ComboBox.disabledBackground", getControl(),
       "ComboBox.disabledForeground", getInactiveSystemTextColor(),
-      "ComboBox.font", new FontUIResource("Dialog", Font.BOLD, 12),
+      "ComboBox.font", getControlTextFont(),
       "ComboBox.foreground", getControlTextColor(),
       "ComboBox.selectionBackground", getPrimaryControlShadow(),
       "ComboBox.selectionForeground", getControlTextColor(),
@@ -933,10 +925,11 @@ public class MetalLookAndFeel extends BasicLookAndFeel
       "DesktopIcon.foreground", getControlTextColor(),
       "DesktopIcon.width", new Integer(160),
       "DesktopIcon.border", MetalBorders.getDesktopIconBorder(),
+      "DesktopIcon.font", getControlTextFont(),
 
       "EditorPane.background", getWindowBackground(),
       "EditorPane.caretForeground", getUserTextColor(),
-      "EditorPane.font", new FontUIResource("Dialog", Font.BOLD, 12),
+      "EditorPane.font", getControlTextFont(),
       "EditorPane.foreground",  getUserTextColor(),
       "EditorPane.inactiveForeground",  getInactiveSystemTextColor(),
       "EditorPane.selectionBackground", getTextHighlightColor(),
@@ -1021,7 +1014,7 @@ public class MetalLookAndFeel extends BasicLookAndFeel
       "Menu.borderPainted", Boolean.TRUE,
       "MenuItem.commandSound", "sounds/MenuItemCommand.wav",
       "Menu.disabledForeground", getMenuDisabledForeground(),
-      "Menu.font", getControlTextFont(),
+      "Menu.font", getMenuTextFont(),
       "Menu.foreground", getMenuForeground(),
       "Menu.selectionBackground", getMenuSelectedBackground(),
       "Menu.selectionForeground", getMenuSelectedForeground(),
@@ -1030,7 +1023,7 @@ public class MetalLookAndFeel extends BasicLookAndFeel
 
       "MenuBar.background", getMenuBackground(),
       "MenuBar.border", new MetalBorders.MenuBarBorder(),
-      "MenuBar.font", getControlTextFont(),
+      "MenuBar.font", getMenuTextFont(),
       "MenuBar.foreground", getMenuForeground(),
       "MenuBar.highlight", getControlHighlight(),
       "MenuBar.shadow", getControlShadow(),
@@ -1044,7 +1037,7 @@ public class MetalLookAndFeel extends BasicLookAndFeel
       "MenuItem.border", new MetalBorders.MenuItemBorder(),
       "MenuItem.borderPainted", Boolean.TRUE,
       "MenuItem.disabledForeground", getMenuDisabledForeground(),
-      "MenuItem.font", getControlTextFont(),
+      "MenuItem.font", getMenuTextFont(),
       "MenuItem.foreground", getMenuForeground(),
       "MenuItem.selectionBackground", getMenuSelectedBackground(),
       "MenuItem.selectionForeground", getMenuSelectedForeground(),
@@ -1085,13 +1078,13 @@ public class MetalLookAndFeel extends BasicLookAndFeel
 
       "PopupMenu.background", getMenuBackground(),
       "PopupMenu.border", new MetalBorders.PopupMenuBorder(),
-      "PopupMenu.font", new FontUIResource("Dialog", Font.BOLD, 12),
+      "PopupMenu.font", getMenuTextFont(),
       "PopupMenu.foreground", getMenuForeground(),
       "PopupMenu.popupSound", "sounds/PopupMenuPopup.wav",
 
       "ProgressBar.background", getControl(),
       "ProgressBar.border", new BorderUIResource.LineBorderUIResource(getControlDarkShadow(), 1),
-      "ProgressBar.font", new FontUIResource("Dialog", Font.BOLD, 12),
+      "ProgressBar.font", getControlTextFont(),
       "ProgressBar.foreground", getPrimaryControlShadow(),
       "ProgressBar.selectionBackground", getPrimaryControlDarkShadow(),
       "ProgressBar.selectionForeground", getControl(),
@@ -1125,7 +1118,7 @@ public class MetalLookAndFeel extends BasicLookAndFeel
         MetalIconFactory.getRadioButtonMenuItemIcon(),
       "RadioButtonMenuItem.commandSound", "sounds/MenuItemCommand.wav",
       "RadioButtonMenuItem.disabledForeground", getMenuDisabledForeground(),
-      "RadioButtonMenuItem.font", MetalLookAndFeel.getControlTextFont(),
+      "RadioButtonMenuItem.font", getMenuTextFont(),
       "RadioButtonMenuItem.foreground", getMenuForeground(),
       "RadioButtonMenuItem.margin", new InsetsUIResource(2, 2, 2, 2),
       "RadioButtonMenuItem.selectionBackground", 
@@ -1172,7 +1165,7 @@ public class MetalLookAndFeel extends BasicLookAndFeel
       "Spinner.arrowButtonInsets", new InsetsUIResource(0, 0, 0, 0),
       "Spinner.background", getControl(),
       "Spinner.border", MetalBorders.getTextFieldBorder(),
-      "Spinner.font", new FontUIResource("Dialog", Font.BOLD, 12),
+      "Spinner.font", getControlTextFont(),
       "Spinner.foreground", getControl(),
 
       "SplitPane.background", getControl(),
@@ -1189,7 +1182,7 @@ public class MetalLookAndFeel extends BasicLookAndFeel
       "TabbedPane.contentOpaque", Boolean.TRUE,
       "TabbedPane.darkShadow", getControlDarkShadow(),
       "TabbedPane.focus", getPrimaryControlDarkShadow(),
-      "TabbedPane.font", new FontUIResource("Dialog", Font.BOLD, 12),
+      "TabbedPane.font", getControlTextFont(),
       "TabbedPane.foreground", getControlTextColor(),
       "TabbedPane.highlight", getControlHighlight(),
       "TabbedPane.light", getControl(),
@@ -1200,7 +1193,7 @@ public class MetalLookAndFeel extends BasicLookAndFeel
       "TabbedPane.tabAreaBackground", getControl(), // overridden in OceanTheme
       "TabbedPane.tabAreaInsets", new InsetsUIResource(4, 2, 0, 6), // dito
       "TabbedPane.tabInsets", new InsetsUIResource(0, 9, 1, 9),
-      
+
       // new properties in OceanTheme:
       // TabbedPane.contentAreaColor
       // TabbedPane.unselectedBackground
@@ -1252,7 +1245,7 @@ public class MetalLookAndFeel extends BasicLookAndFeel
       "TextPane.selectionForeground", getHighlightedTextColor(),
 
       "TitledBorder.border", new LineBorderUIResource(getPrimaryControl(), 1),
-      "TitledBorder.font", new FontUIResource("Dialog", Font.BOLD, 12),
+      "TitledBorder.font", getControlTextFont(),
       "TitledBorder.titleColor", getSystemTextColor(),
 
       "ToggleButton.background", getControl(),
@@ -1274,7 +1267,7 @@ public class MetalLookAndFeel extends BasicLookAndFeel
       "ToolBar.dockingForeground", getPrimaryControlDarkShadow(),
       "ToolBar.floatingBackground", getMenuBackground(),
       "ToolBar.floatingForeground", getPrimaryControl(),
-      "ToolBar.font", new FontUIResource("Dialog", Font.BOLD, 12),
+      "ToolBar.font", getMenuTextFont(),
       "ToolBar.foreground", getMenuForeground(),
       "ToolBar.highlight", getControlHighlight(),
       "ToolBar.light", getControlHighlight(),
@@ -1354,7 +1347,14 @@ public class MetalLookAndFeel extends BasicLookAndFeel
   public static MetalTheme getCurrentTheme()
   {
     if (theme == null)
-      theme = new OceanTheme();
+      {
+        // swing.metalTheme property documented here:
+        // http://java.sun.com/j2se/1.5.0/docs/guide/swing/1.5/index.html
+        if ("steel".equals(SystemProperties.getProperty("swing.metalTheme")))
+          theme = new DefaultMetalTheme();
+        else
+          theme = new OceanTheme();
+      }
     return theme;
   }
 

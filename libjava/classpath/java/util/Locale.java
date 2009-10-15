@@ -1,5 +1,5 @@
 /* Locale.java -- i18n locales
-   Copyright (C) 1998, 1999, 2001, 2002, 2005  Free Software Foundation, Inc.
+   Copyright (C) 1998, 1999, 2001, 2002, 2005, 2006  Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -45,6 +45,8 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+
+import java.util.spi.LocaleNameProvider;
 
 /**
  * Locales represent a specific country and culture. Classes which can be
@@ -161,6 +163,11 @@ public final class Locale implements Serializable, Cloneable
   /** Locale which represents the French speaking portion of Canada. */
   public static final Locale CANADA_FRENCH = getLocale("fr", "CA");
 
+  /** The root locale, used as the base case in lookups by
+   *  locale-sensitive operations.
+   */
+  public static final Locale ROOT = new Locale("","","");
+
   /**
    * Compatible with JDK 1.1+.
    */
@@ -192,7 +199,7 @@ public final class Locale implements Serializable, Cloneable
    *
    * @serial should be -1 in serial streams
    */
-  private transient int hashcode;
+  private int hashcode;
 
   /**
    * Array storing all available locales.
@@ -674,6 +681,8 @@ public final class Locale implements Serializable, Cloneable
    */
   public String getDisplayLanguage(Locale inLocale)
   {
+    if (language.isEmpty())
+      return "";
     try
       {
 	ResourceBundle res =
@@ -685,8 +694,27 @@ public final class Locale implements Serializable, Cloneable
       }
     catch (MissingResourceException e)
       {
-	return language;
+	/* This means runtime support for the locale
+	 * is not available, so we check providers. */
       }
+    for (LocaleNameProvider p :
+	   ServiceLoader.load(LocaleNameProvider.class))
+      {
+	for (Locale loc : p.getAvailableLocales())
+	  {
+	    if (loc.equals(inLocale))
+	      {
+		String locLang = p.getDisplayLanguage(language,
+						      inLocale);
+		if (locLang != null)
+		  return locLang;
+		break;
+	      }
+	  }
+      }
+    if (inLocale.equals(Locale.ROOT)) // Base case
+      return language;
+    return getDisplayLanguage(LocaleHelper.getFallbackLocale(inLocale));
   }
 
   /**
@@ -732,6 +760,8 @@ public final class Locale implements Serializable, Cloneable
    */
   public String getDisplayCountry(Locale inLocale)
   {
+    if (country.isEmpty())
+      return "";
     try
       {
         ResourceBundle res =
@@ -743,8 +773,27 @@ public final class Locale implements Serializable, Cloneable
       }
     catch (MissingResourceException e)
       {
-        return country;
+	/* This means runtime support for the locale
+	 * is not available, so we check providers. */
       }
+    for (LocaleNameProvider p :
+	   ServiceLoader.load(LocaleNameProvider.class))
+      {
+	for (Locale loc : p.getAvailableLocales())
+	  {
+	    if (loc.equals(inLocale))
+	      {
+		String locCountry = p.getDisplayCountry(country,
+							inLocale);
+		if (locCountry != null)
+		  return locCountry;
+		break;
+	      }
+	  }
+      }
+    if (inLocale.equals(Locale.ROOT)) // Base case
+      return country;
+    return getDisplayCountry(LocaleHelper.getFallbackLocale(inLocale));
   }
 
   /**
@@ -791,6 +840,8 @@ public final class Locale implements Serializable, Cloneable
    */
   public String getDisplayVariant(Locale inLocale)
   {
+    if (variant.isEmpty())
+      return "";
     try
       {
         ResourceBundle res =
@@ -802,8 +853,27 @@ public final class Locale implements Serializable, Cloneable
       }
     catch (MissingResourceException e)
       {
-        return variant;
+	/* This means runtime support for the locale
+	 * is not available, so we check providers. */
       }
+    for (LocaleNameProvider p :
+	   ServiceLoader.load(LocaleNameProvider.class))
+      {
+	for (Locale loc : p.getAvailableLocales())
+	  {
+	    if (loc.equals(inLocale))
+	      {
+		String locVar = p.getDisplayVariant(variant,
+						    inLocale);
+		if (locVar != null)
+		  return locVar;
+		break;
+	      }
+	  }
+      }
+    if (inLocale.equals(Locale.ROOT)) // Base case
+      return country;
+    return getDisplayVariant(LocaleHelper.getFallbackLocale(inLocale));
   }
 
   /**
@@ -917,8 +987,8 @@ public final class Locale implements Serializable, Cloneable
       return false;
     Locale l = (Locale) obj;
 
-    return (language == l.language
-            && country == l.country
+    return (language == l.language 
+            && country == l.country 
             && variant == l.variant);
   }
 
@@ -935,11 +1005,9 @@ public final class Locale implements Serializable, Cloneable
   private void writeObject(ObjectOutputStream s)
     throws IOException
   {
-    s.writeObject(language);
-    s.writeObject(country);
-    s.writeObject(variant);
-    // Hashcode field is always written as -1.
-    s.writeInt(-1);
+    ObjectOutputStream.PutField fields = s.putFields();
+    fields.put("hashcode", -1);
+    s.defaultWriteObject();
   }
 
   /**
@@ -953,10 +1021,10 @@ public final class Locale implements Serializable, Cloneable
   private void readObject(ObjectInputStream s)
     throws IOException, ClassNotFoundException
   {
-    language = ((String) s.readObject()).intern();
-    country = ((String) s.readObject()).intern();
-    variant = ((String) s.readObject()).intern();
-    // Recompute hashcode.
+    s.defaultReadObject();
+    language = language.intern();
+    country = country.intern();
+    variant = variant.intern();
     hashcode = language.hashCode() ^ country.hashCode() ^ variant.hashCode();
   }
 } // class Locale

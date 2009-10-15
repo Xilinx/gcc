@@ -25,6 +25,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "gfortran.h"
 #include "arith.h"
 #include "intrinsic.h"
+#include "target-memory.h"
 
 gfc_expr gfc_bad_expr;
 
@@ -67,8 +68,10 @@ gfc_expr gfc_bad_expr;
    node, otherwise returns &gfc_bad_expr and frees the node.  */
 
 static gfc_expr *
-range_check (gfc_expr * result, const char *name)
+range_check (gfc_expr *result, const char *name)
 {
+  if (result == NULL)
+    return &gfc_bad_expr;
 
   switch (gfc_range_check (result))
     {
@@ -76,11 +79,13 @@ range_check (gfc_expr * result, const char *name)
 	return result;
  
       case ARITH_OVERFLOW:
-	gfc_error ("Result of %s overflows its kind at %L", name, &result->where);
+	gfc_error ("Result of %s overflows its kind at %L", name,
+		   &result->where);
 	break;
 
       case ARITH_UNDERFLOW:
-	gfc_error ("Result of %s underflows its kind at %L", name, &result->where);
+	gfc_error ("Result of %s underflows its kind at %L", name,
+		   &result->where);
 	break;
 
       case ARITH_NAN:
@@ -88,7 +93,8 @@ range_check (gfc_expr * result, const char *name)
 	break;
 
       default:
-	gfc_error ("Result of %s gives range error for its kind at %L", name, &result->where);
+	gfc_error ("Result of %s gives range error for its kind at %L", name,
+		   &result->where);
 	break;
     }
 
@@ -101,7 +107,7 @@ range_check (gfc_expr * result, const char *name)
    kind parameter.  Returns the kind, -1 if something went wrong.  */
 
 static int
-get_kind (bt type, gfc_expr * k, const char *name, int default_kind)
+get_kind (bt type, gfc_expr *k, const char *name, int default_kind)
 {
   int kind;
 
@@ -112,19 +118,31 @@ get_kind (bt type, gfc_expr * k, const char *name, int default_kind)
     {
       gfc_error ("KIND parameter of %s at %L must be an initialization "
 		 "expression", name, &k->where);
-
       return -1;
     }
 
   if (gfc_extract_int (k, &kind) != NULL
       || gfc_validate_kind (type, kind, true) < 0)
     {
-
       gfc_error ("Invalid KIND parameter of %s at %L", name, &k->where);
       return -1;
     }
 
   return kind;
+}
+
+
+/* Helper function to get an integer constant with a kind number given
+   by an integer constant expression.  */
+static gfc_expr *
+int_expr_with_kind (int i, gfc_expr *kind, const char *name)
+{
+  gfc_expr *res = gfc_int_expr (i);
+  res->ts.kind = get_kind (BT_INTEGER, kind, name, gfc_default_integer_kind); 
+  if (res->ts.kind == -1)
+    return NULL;
+  else
+    return res;
 }
 
 
@@ -164,7 +182,6 @@ convert_mpz_to_unsigned (mpz_t x, int bitsize)
    If the bitsize-1 bit is set, this is taken as a sign bit and
    the number is converted to the corresponding negative number.  */
 
-
 static void
 convert_mpz_to_signed (mpz_t x, int bitsize)
 {
@@ -180,9 +197,9 @@ convert_mpz_to_signed (mpz_t x, int bitsize)
       mpz_sub_ui (mask, mask, 1);
 
       /* We negate the number by hand, zeroing the high bits, that is
-        make it the corresponding positive number, and then have it
-        negated by GMP, giving the correct representation of the
-        negative number.  */
+	 make it the corresponding positive number, and then have it
+	 negated by GMP, giving the correct representation of the
+	 negative number.  */
       mpz_com (x, x);
       mpz_add_ui (x, x, 1);
       mpz_and (x, x, mask);
@@ -197,7 +214,7 @@ convert_mpz_to_signed (mpz_t x, int bitsize)
 /********************** Simplification functions *****************************/
 
 gfc_expr *
-gfc_simplify_abs (gfc_expr * e)
+gfc_simplify_abs (gfc_expr *e)
 {
   gfc_expr *result;
 
@@ -240,17 +257,21 @@ gfc_simplify_abs (gfc_expr * e)
 }
 
 /* We use the processor's collating sequence, because all
-   sytems that gfortran currently works on are ASCII.  */
+   systems that gfortran currently works on are ASCII.  */
 
 gfc_expr *
-gfc_simplify_achar (gfc_expr * e)
+gfc_simplify_achar (gfc_expr *e, gfc_expr *k)
 {
   gfc_expr *result;
-  int c;
+  int c, kind;
   const char *ch;
 
   if (e->expr_type != EXPR_CONSTANT)
     return NULL;
+
+  kind = get_kind (BT_CHARACTER, k, "ACHAR", gfc_default_character_kind);
+  if (kind == -1)
+    return &gfc_bad_expr;
 
   ch = gfc_extract_int (e, &c);
 
@@ -261,8 +282,7 @@ gfc_simplify_achar (gfc_expr * e)
     gfc_warning ("Argument of ACHAR function at %L outside of range [0,127]",
 		 &e->where);
 
-  result = gfc_constant_result (BT_CHARACTER, gfc_default_character_kind,
-				&e->where);
+  result = gfc_constant_result (BT_CHARACTER, kind, &e->where);
 
   result->value.character.string = gfc_getmem (2);
 
@@ -274,14 +294,15 @@ gfc_simplify_achar (gfc_expr * e)
 
 
 gfc_expr *
-gfc_simplify_acos (gfc_expr * x)
+gfc_simplify_acos (gfc_expr *x)
 {
   gfc_expr *result;
 
   if (x->expr_type != EXPR_CONSTANT)
     return NULL;
 
-  if (mpfr_cmp_si (x->value.real, 1) > 0 || mpfr_cmp_si (x->value.real, -1) < 0)
+  if (mpfr_cmp_si (x->value.real, 1) > 0
+      || mpfr_cmp_si (x->value.real, -1) < 0)
     {
       gfc_error ("Argument of ACOS at %L must be between -1 and 1",
 		 &x->where);
@@ -296,7 +317,7 @@ gfc_simplify_acos (gfc_expr * x)
 }
 
 gfc_expr *
-gfc_simplify_acosh (gfc_expr * x)
+gfc_simplify_acosh (gfc_expr *x)
 {
   gfc_expr *result;
 
@@ -318,7 +339,7 @@ gfc_simplify_acosh (gfc_expr * x)
 }
 
 gfc_expr *
-gfc_simplify_adjustl (gfc_expr * e)
+gfc_simplify_adjustl (gfc_expr *e)
 {
   gfc_expr *result;
   int count, i, len;
@@ -343,15 +364,10 @@ gfc_simplify_adjustl (gfc_expr * e)
     }
 
   for (i = 0; i < len - count; ++i)
-    {
-      result->value.character.string[i] =
-	e->value.character.string[count + i];
-    }
+    result->value.character.string[i] = e->value.character.string[count + i];
 
   for (i = len - count; i < len; ++i)
-    {
-      result->value.character.string[i] = ' ';
-    }
+    result->value.character.string[i] = ' ';
 
   result->value.character.string[len] = '\0';	/* For debugger */
 
@@ -360,7 +376,7 @@ gfc_simplify_adjustl (gfc_expr * e)
 
 
 gfc_expr *
-gfc_simplify_adjustr (gfc_expr * e)
+gfc_simplify_adjustr (gfc_expr *e)
 {
   gfc_expr *result;
   int count, i, len;
@@ -385,15 +401,10 @@ gfc_simplify_adjustr (gfc_expr * e)
     }
 
   for (i = 0; i < count; ++i)
-    {
-      result->value.character.string[i] = ' ';
-    }
+    result->value.character.string[i] = ' ';
 
   for (i = count; i < len; ++i)
-    {
-      result->value.character.string[i] =
-	e->value.character.string[i - count];
-    }
+    result->value.character.string[i] = e->value.character.string[i - count];
 
   result->value.character.string[len] = '\0';	/* For debugger */
 
@@ -402,9 +413,8 @@ gfc_simplify_adjustr (gfc_expr * e)
 
 
 gfc_expr *
-gfc_simplify_aimag (gfc_expr * e)
+gfc_simplify_aimag (gfc_expr *e)
 {
-
   gfc_expr *result;
 
   if (e->expr_type != EXPR_CONSTANT)
@@ -418,7 +428,7 @@ gfc_simplify_aimag (gfc_expr * e)
 
 
 gfc_expr *
-gfc_simplify_aint (gfc_expr * e, gfc_expr * k)
+gfc_simplify_aint (gfc_expr *e, gfc_expr *k)
 {
   gfc_expr *rtrunc, *result;
   int kind;
@@ -442,7 +452,7 @@ gfc_simplify_aint (gfc_expr * e, gfc_expr * k)
 
 
 gfc_expr *
-gfc_simplify_dint (gfc_expr * e)
+gfc_simplify_dint (gfc_expr *e)
 {
   gfc_expr *rtrunc, *result;
 
@@ -461,7 +471,7 @@ gfc_simplify_dint (gfc_expr * e)
 
 
 gfc_expr *
-gfc_simplify_anint (gfc_expr * e, gfc_expr * k)
+gfc_simplify_anint (gfc_expr *e, gfc_expr *k)
 {
   gfc_expr *result;
   int kind;
@@ -482,7 +492,7 @@ gfc_simplify_anint (gfc_expr * e, gfc_expr * k)
 
 
 gfc_expr *
-gfc_simplify_and (gfc_expr * x, gfc_expr * y)
+gfc_simplify_and (gfc_expr *x, gfc_expr *y)
 {
   gfc_expr *result;
   int kind;
@@ -507,7 +517,7 @@ gfc_simplify_and (gfc_expr * x, gfc_expr * y)
 
 
 gfc_expr *
-gfc_simplify_dnint (gfc_expr * e)
+gfc_simplify_dnint (gfc_expr *e)
 {
   gfc_expr *result;
 
@@ -523,14 +533,15 @@ gfc_simplify_dnint (gfc_expr * e)
 
 
 gfc_expr *
-gfc_simplify_asin (gfc_expr * x)
+gfc_simplify_asin (gfc_expr *x)
 {
   gfc_expr *result;
 
   if (x->expr_type != EXPR_CONSTANT)
     return NULL;
 
-  if (mpfr_cmp_si (x->value.real, 1) > 0 || mpfr_cmp_si (x->value.real, -1) < 0)
+  if (mpfr_cmp_si (x->value.real, 1) > 0
+      || mpfr_cmp_si (x->value.real, -1) < 0)
     {
       gfc_error ("Argument of ASIN at %L must be between -1 and 1",
 		 &x->where);
@@ -539,14 +550,14 @@ gfc_simplify_asin (gfc_expr * x)
 
   result = gfc_constant_result (x->ts.type, x->ts.kind, &x->where);
 
-  mpfr_asin(result->value.real, x->value.real, GFC_RND_MODE);
+  mpfr_asin (result->value.real, x->value.real, GFC_RND_MODE);
 
   return range_check (result, "ASIN");
 }
 
 
 gfc_expr *
-gfc_simplify_asinh (gfc_expr * x)
+gfc_simplify_asinh (gfc_expr *x)
 {
   gfc_expr *result;
 
@@ -555,14 +566,14 @@ gfc_simplify_asinh (gfc_expr * x)
 
   result = gfc_constant_result (x->ts.type, x->ts.kind, &x->where);
 
-  mpfr_asinh(result->value.real, x->value.real, GFC_RND_MODE);
+  mpfr_asinh (result->value.real, x->value.real, GFC_RND_MODE);
 
   return range_check (result, "ASINH");
 }
 
 
 gfc_expr *
-gfc_simplify_atan (gfc_expr * x)
+gfc_simplify_atan (gfc_expr *x)
 {
   gfc_expr *result;
 
@@ -571,22 +582,22 @@ gfc_simplify_atan (gfc_expr * x)
     
   result = gfc_constant_result (x->ts.type, x->ts.kind, &x->where);
 
-  mpfr_atan(result->value.real, x->value.real, GFC_RND_MODE);
+  mpfr_atan (result->value.real, x->value.real, GFC_RND_MODE);
 
   return range_check (result, "ATAN");
 }
 
 
 gfc_expr *
-gfc_simplify_atanh (gfc_expr * x)
+gfc_simplify_atanh (gfc_expr *x)
 {
   gfc_expr *result;
 
   if (x->expr_type != EXPR_CONSTANT)
     return NULL;
 
-  if (mpfr_cmp_si (x->value.real, 1) >= 0 ||
-      mpfr_cmp_si (x->value.real, -1) <= 0)
+  if (mpfr_cmp_si (x->value.real, 1) >= 0
+      || mpfr_cmp_si (x->value.real, -1) <= 0)
     {
       gfc_error ("Argument of ATANH at %L must be inside the range -1 to 1",
 		 &x->where);
@@ -595,14 +606,14 @@ gfc_simplify_atanh (gfc_expr * x)
 
   result = gfc_constant_result (x->ts.type, x->ts.kind, &x->where);
 
-  mpfr_atanh(result->value.real, x->value.real, GFC_RND_MODE);
+  mpfr_atanh (result->value.real, x->value.real, GFC_RND_MODE);
 
   return range_check (result, "ATANH");
 }
 
 
 gfc_expr *
-gfc_simplify_atan2 (gfc_expr * y, gfc_expr * x)
+gfc_simplify_atan2 (gfc_expr *y, gfc_expr *x)
 {
   gfc_expr *result;
 
@@ -613,25 +624,20 @@ gfc_simplify_atan2 (gfc_expr * y, gfc_expr * x)
 
   if (mpfr_sgn (y->value.real) == 0 && mpfr_sgn (x->value.real) == 0)
     {
-      gfc_error
-	("If first argument of ATAN2 %L is zero, then the second argument "
-	  "must not be zero", &x->where);
+      gfc_error ("If first argument of ATAN2 %L is zero, then the "
+		 "second argument must not be zero", &x->where);
       gfc_free_expr (result);
       return &gfc_bad_expr;
     }
 
-#if defined(GFC_MPFR_TOO_OLD)
-  arctangent2 (y->value.real, x->value.real, result->value.real);
-#else
   mpfr_atan2 (result->value.real, y->value.real, x->value.real, GFC_RND_MODE);
-#endif
 
   return range_check (result, "ATAN2");
 }
 
 
 gfc_expr *
-gfc_simplify_bit_size (gfc_expr * e)
+gfc_simplify_bit_size (gfc_expr *e)
 {
   gfc_expr *result;
   int i;
@@ -645,7 +651,7 @@ gfc_simplify_bit_size (gfc_expr * e)
 
 
 gfc_expr *
-gfc_simplify_btest (gfc_expr * e, gfc_expr * bit)
+gfc_simplify_btest (gfc_expr *e, gfc_expr *bit)
 {
   int b;
 
@@ -660,7 +666,7 @@ gfc_simplify_btest (gfc_expr * e, gfc_expr * bit)
 
 
 gfc_expr *
-gfc_simplify_ceiling (gfc_expr * e, gfc_expr * k)
+gfc_simplify_ceiling (gfc_expr *e, gfc_expr *k)
 {
   gfc_expr *ceil, *result;
   int kind;
@@ -677,7 +683,7 @@ gfc_simplify_ceiling (gfc_expr * e, gfc_expr * k)
   ceil = gfc_copy_expr (e);
 
   mpfr_ceil (ceil->value.real, e->value.real);
-  gfc_mpfr_to_mpz(result->value.integer, ceil->value.real);
+  gfc_mpfr_to_mpz (result->value.integer, ceil->value.real);
 
   gfc_free_expr (ceil);
 
@@ -686,7 +692,7 @@ gfc_simplify_ceiling (gfc_expr * e, gfc_expr * k)
 
 
 gfc_expr *
-gfc_simplify_char (gfc_expr * e, gfc_expr * k)
+gfc_simplify_char (gfc_expr *e, gfc_expr *k)
 {
   gfc_expr *result;
   int c, kind;
@@ -723,7 +729,7 @@ gfc_simplify_char (gfc_expr * e, gfc_expr * k)
 /* Common subroutine for simplifying CMPLX and DCMPLX.  */
 
 static gfc_expr *
-simplify_cmplx (const char *name, gfc_expr * x, gfc_expr * y, int kind)
+simplify_cmplx (const char *name, gfc_expr *x, gfc_expr *y, int kind)
 {
   gfc_expr *result;
 
@@ -734,7 +740,8 @@ simplify_cmplx (const char *name, gfc_expr * x, gfc_expr * y, int kind)
   switch (x->ts.type)
     {
     case BT_INTEGER:
-      mpfr_set_z (result->value.complex.r, x->value.integer, GFC_RND_MODE);
+      if (!x->is_boz)
+	mpfr_set_z (result->value.complex.r, x->value.integer, GFC_RND_MODE);
       break;
 
     case BT_REAL:
@@ -755,7 +762,9 @@ simplify_cmplx (const char *name, gfc_expr * x, gfc_expr * y, int kind)
       switch (y->ts.type)
 	{
 	case BT_INTEGER:
-	  mpfr_set_z (result->value.complex.i, y->value.integer, GFC_RND_MODE);
+	  if (!y->is_boz)
+	    mpfr_set_z (result->value.complex.i, y->value.integer,
+			GFC_RND_MODE);
 	  break;
 
 	case BT_REAL:
@@ -767,12 +776,33 @@ simplify_cmplx (const char *name, gfc_expr * x, gfc_expr * y, int kind)
 	}
     }
 
+  /* Handle BOZ.  */
+  if (x->is_boz)
+    {
+      gfc_typespec ts;
+      ts.kind = result->ts.kind;
+      ts.type = BT_REAL;
+      if (!gfc_convert_boz (x, &ts))
+	return &gfc_bad_expr;
+      mpfr_set (result->value.complex.r, x->value.real, GFC_RND_MODE);
+    }
+
+  if (y && y->is_boz)
+    {
+      gfc_typespec ts;
+      ts.kind = result->ts.kind;
+      ts.type = BT_REAL;
+      if (!gfc_convert_boz (y, &ts))
+	return &gfc_bad_expr;
+      mpfr_set (result->value.complex.i, y->value.real, GFC_RND_MODE);
+    }
+
   return range_check (result, name);
 }
 
 
 gfc_expr *
-gfc_simplify_cmplx (gfc_expr * x, gfc_expr * y, gfc_expr * k)
+gfc_simplify_cmplx (gfc_expr *x, gfc_expr *y, gfc_expr *k)
 {
   int kind;
 
@@ -789,7 +819,7 @@ gfc_simplify_cmplx (gfc_expr * x, gfc_expr * y, gfc_expr * k)
 
 
 gfc_expr *
-gfc_simplify_complex (gfc_expr * x, gfc_expr * y)
+gfc_simplify_complex (gfc_expr *x, gfc_expr *y)
 {
   int kind;
 
@@ -817,7 +847,7 @@ gfc_simplify_complex (gfc_expr * x, gfc_expr * y)
 
 
 gfc_expr *
-gfc_simplify_conjg (gfc_expr * e)
+gfc_simplify_conjg (gfc_expr *e)
 {
   gfc_expr *result;
 
@@ -832,7 +862,7 @@ gfc_simplify_conjg (gfc_expr * e)
 
 
 gfc_expr *
-gfc_simplify_cos (gfc_expr * x)
+gfc_simplify_cos (gfc_expr *x)
 {
   gfc_expr *result;
   mpfr_t xp, xq;
@@ -854,7 +884,7 @@ gfc_simplify_cos (gfc_expr * x)
 
       mpfr_cos  (xp, x->value.complex.r, GFC_RND_MODE);
       mpfr_cosh (xq, x->value.complex.i, GFC_RND_MODE);
-      mpfr_mul(result->value.complex.r, xp, xq, GFC_RND_MODE);
+      mpfr_mul (result->value.complex.r, xp, xq, GFC_RND_MODE);
 
       mpfr_sin  (xp, x->value.complex.r, GFC_RND_MODE);
       mpfr_sinh (xq, x->value.complex.i, GFC_RND_MODE);
@@ -874,7 +904,7 @@ gfc_simplify_cos (gfc_expr * x)
 
 
 gfc_expr *
-gfc_simplify_cosh (gfc_expr * x)
+gfc_simplify_cosh (gfc_expr *x)
 {
   gfc_expr *result;
 
@@ -890,7 +920,7 @@ gfc_simplify_cosh (gfc_expr * x)
 
 
 gfc_expr *
-gfc_simplify_dcmplx (gfc_expr * x, gfc_expr * y)
+gfc_simplify_dcmplx (gfc_expr *x, gfc_expr *y)
 {
 
   if (x->expr_type != EXPR_CONSTANT
@@ -902,7 +932,7 @@ gfc_simplify_dcmplx (gfc_expr * x, gfc_expr * y)
 
 
 gfc_expr *
-gfc_simplify_dble (gfc_expr * e)
+gfc_simplify_dble (gfc_expr *e)
 {
   gfc_expr *result;
 
@@ -912,7 +942,8 @@ gfc_simplify_dble (gfc_expr * e)
   switch (e->ts.type)
     {
     case BT_INTEGER:
-      result = gfc_int2real (e, gfc_default_double_kind);
+      if (!e->is_boz)
+	result = gfc_int2real (e, gfc_default_double_kind);
       break;
 
     case BT_REAL:
@@ -927,12 +958,22 @@ gfc_simplify_dble (gfc_expr * e)
       gfc_internal_error ("gfc_simplify_dble(): bad type at %L", &e->where);
     }
 
+  if (e->ts.type == BT_INTEGER && e->is_boz)
+    {
+      gfc_typespec ts;
+      ts.type = BT_REAL;
+      ts.kind = gfc_default_double_kind;
+      result = gfc_copy_expr (e);
+      if (!gfc_convert_boz (result, &ts))
+	return &gfc_bad_expr;
+    }
+
   return range_check (result, "DBLE");
 }
 
 
 gfc_expr *
-gfc_simplify_digits (gfc_expr * x)
+gfc_simplify_digits (gfc_expr *x)
 {
   int i, digits;
 
@@ -957,7 +998,7 @@ gfc_simplify_digits (gfc_expr * x)
 
 
 gfc_expr *
-gfc_simplify_dim (gfc_expr * x, gfc_expr * y)
+gfc_simplify_dim (gfc_expr *x, gfc_expr *y)
 {
   gfc_expr *result;
   int kind;
@@ -980,7 +1021,8 @@ gfc_simplify_dim (gfc_expr * x, gfc_expr * y)
 
     case BT_REAL:
       if (mpfr_cmp (x->value.real, y->value.real) > 0)
-	mpfr_sub (result->value.real, x->value.real, y->value.real, GFC_RND_MODE);
+	mpfr_sub (result->value.real, x->value.real, y->value.real,
+		  GFC_RND_MODE);
       else
 	mpfr_set_ui (result->value.real, 0, GFC_RND_MODE);
 
@@ -995,15 +1037,14 @@ gfc_simplify_dim (gfc_expr * x, gfc_expr * y)
 
 
 gfc_expr *
-gfc_simplify_dprod (gfc_expr * x, gfc_expr * y)
+gfc_simplify_dprod (gfc_expr *x, gfc_expr *y)
 {
   gfc_expr *a1, *a2, *result;
 
   if (x->expr_type != EXPR_CONSTANT || y->expr_type != EXPR_CONSTANT)
     return NULL;
 
-  result =
-    gfc_constant_result (BT_REAL, gfc_default_double_kind, &x->where);
+  result = gfc_constant_result (BT_REAL, gfc_default_double_kind, &x->where);
 
   a1 = gfc_real2real (x, gfc_default_double_kind);
   a2 = gfc_real2real (y, gfc_default_double_kind);
@@ -1018,7 +1059,7 @@ gfc_simplify_dprod (gfc_expr * x, gfc_expr * y)
 
 
 gfc_expr *
-gfc_simplify_epsilon (gfc_expr * e)
+gfc_simplify_epsilon (gfc_expr *e)
 {
   gfc_expr *result;
   int i;
@@ -1034,7 +1075,7 @@ gfc_simplify_epsilon (gfc_expr * e)
 
 
 gfc_expr *
-gfc_simplify_exp (gfc_expr * x)
+gfc_simplify_exp (gfc_expr *x)
 {
   gfc_expr *result;
   mpfr_t xp, xq;
@@ -1047,7 +1088,7 @@ gfc_simplify_exp (gfc_expr * x)
   switch (x->ts.type)
     {
     case BT_REAL:
-      mpfr_exp(result->value.real, x->value.real, GFC_RND_MODE);
+      mpfr_exp (result->value.real, x->value.real, GFC_RND_MODE);
       break;
 
     case BT_COMPLEX:
@@ -1070,16 +1111,11 @@ gfc_simplify_exp (gfc_expr * x)
   return range_check (result, "EXP");
 }
 
-/* FIXME:  MPFR should be able to do this better */
 gfc_expr *
-gfc_simplify_exponent (gfc_expr * x)
+gfc_simplify_exponent (gfc_expr *x)
 {
   int i;
   gfc_expr *result;
-
-#if defined(GFC_MPFR_TOO_OLD)
-  mpfr_t tmp;
-#endif
 
   if (x->expr_type != EXPR_CONSTANT)
     return NULL;
@@ -1095,47 +1131,40 @@ gfc_simplify_exponent (gfc_expr * x)
       return result;
     }
 
-#if defined(GFC_MPFR_TOO_OLD)
-  /* PR fortran/28276 suffers from a buggy MPFR, and this block of code
-     does not function correctly.  */
-  mpfr_init (tmp);
-
-  mpfr_abs (tmp, x->value.real, GFC_RND_MODE);
-  mpfr_log2 (tmp, tmp, GFC_RND_MODE);
-
-  gfc_mpfr_to_mpz (result->value.integer, tmp);
-
-  /* The model number for tiny(x) is b**(emin - 1) where b is the base and emin
-     is the smallest exponent value.  So, we need to add 1 if x is tiny(x).  */
-  i = gfc_validate_kind (x->ts.type, x->ts.kind, false);
-  if (mpfr_cmp (x->value.real, gfc_real_kinds[i].tiny) == 0)
-    mpz_add_ui (result->value.integer,result->value.integer, 1);
-
-  mpfr_clear (tmp);
-#else
   i = (int) mpfr_get_exp (x->value.real);
   mpz_set_si (result->value.integer, i);
-#endif
 
   return range_check (result, "EXPONENT");
 }
 
 
 gfc_expr *
-gfc_simplify_float (gfc_expr * a)
+gfc_simplify_float (gfc_expr *a)
 {
   gfc_expr *result;
 
   if (a->expr_type != EXPR_CONSTANT)
     return NULL;
 
-  result = gfc_int2real (a, gfc_default_real_kind);
+  if (a->is_boz)
+    {
+      gfc_typespec ts;
+
+      ts.type = BT_REAL;
+      ts.kind = gfc_default_real_kind;
+
+      result = gfc_copy_expr (a);
+      if (!gfc_convert_boz (result, &ts))
+	return &gfc_bad_expr;
+    }
+  else
+    result = gfc_int2real (a, gfc_default_real_kind);
   return range_check (result, "FLOAT");
 }
 
 
 gfc_expr *
-gfc_simplify_floor (gfc_expr * e, gfc_expr * k)
+gfc_simplify_floor (gfc_expr *e, gfc_expr *k)
 {
   gfc_expr *result;
   mpfr_t floor;
@@ -1163,7 +1192,7 @@ gfc_simplify_floor (gfc_expr * e, gfc_expr * k)
 
 
 gfc_expr *
-gfc_simplify_fraction (gfc_expr * x)
+gfc_simplify_fraction (gfc_expr *x)
 {
   gfc_expr *result;
   mpfr_t absv, exp, pow2;
@@ -1204,7 +1233,25 @@ gfc_simplify_fraction (gfc_expr * x)
 
 
 gfc_expr *
-gfc_simplify_huge (gfc_expr * e)
+gfc_simplify_gamma (gfc_expr *x)
+{
+  gfc_expr *result;
+
+  if (x->expr_type != EXPR_CONSTANT)
+    return NULL;
+
+  result = gfc_constant_result (x->ts.type, x->ts.kind, &x->where);
+
+  gfc_set_model_kind (x->ts.kind);
+
+  mpfr_gamma (result->value.real, x->value.real, GFC_RND_MODE);
+
+  return range_check (result, "GAMMA");
+}
+
+
+gfc_expr *
+gfc_simplify_huge (gfc_expr *e)
 {
   gfc_expr *result;
   int i;
@@ -1231,10 +1278,10 @@ gfc_simplify_huge (gfc_expr * e)
 }
 
 /* We use the processor's collating sequence, because all
-   sytems that gfortran currently works on are ASCII.  */
+   systems that gfortran currently works on are ASCII.  */
 
 gfc_expr *
-gfc_simplify_iachar (gfc_expr * e)
+gfc_simplify_iachar (gfc_expr *e, gfc_expr *kind)
 {
   gfc_expr *result;
   int index;
@@ -1254,7 +1301,9 @@ gfc_simplify_iachar (gfc_expr * e)
     gfc_warning ("Argument of IACHAR function at %L outside of range 0..127",
 		 &e->where);
 
-  result = gfc_int_expr (index);
+  if ((result = int_expr_with_kind (index, kind, "IACHAR")) == NULL)
+    return &gfc_bad_expr;
+
   result->where = e->where;
 
   return range_check (result, "IACHAR");
@@ -1262,7 +1311,7 @@ gfc_simplify_iachar (gfc_expr * e)
 
 
 gfc_expr *
-gfc_simplify_iand (gfc_expr * x, gfc_expr * y)
+gfc_simplify_iand (gfc_expr *x, gfc_expr *y)
 {
   gfc_expr *result;
 
@@ -1278,7 +1327,7 @@ gfc_simplify_iand (gfc_expr * x, gfc_expr * y)
 
 
 gfc_expr *
-gfc_simplify_ibclr (gfc_expr * x, gfc_expr * y)
+gfc_simplify_ibclr (gfc_expr *x, gfc_expr *y)
 {
   gfc_expr *result;
   int k, pos;
@@ -1316,7 +1365,7 @@ gfc_simplify_ibclr (gfc_expr * x, gfc_expr * y)
 
 
 gfc_expr *
-gfc_simplify_ibits (gfc_expr * x, gfc_expr * y, gfc_expr * z)
+gfc_simplify_ibits (gfc_expr *x, gfc_expr *y, gfc_expr *z)
 {
   gfc_expr *result;
   int pos, len;
@@ -1364,17 +1413,11 @@ gfc_simplify_ibits (gfc_expr * x, gfc_expr * y, gfc_expr * z)
   for (i = 0; i < bitsize; i++)
     {
       if (bits[i] == 0)
-	{
-	  mpz_clrbit (result->value.integer, i);
-	}
+	mpz_clrbit (result->value.integer, i);
       else if (bits[i] == 1)
-	{
-	  mpz_setbit (result->value.integer, i);
-	}
+	mpz_setbit (result->value.integer, i);
       else
-	{
-	  gfc_internal_error ("IBITS: Bad bit");
-	}
+	gfc_internal_error ("IBITS: Bad bit");
     }
 
   gfc_free (bits);
@@ -1384,7 +1427,7 @@ gfc_simplify_ibits (gfc_expr * x, gfc_expr * y, gfc_expr * z)
 
 
 gfc_expr *
-gfc_simplify_ibset (gfc_expr * x, gfc_expr * y)
+gfc_simplify_ibset (gfc_expr *x, gfc_expr *y)
 {
   gfc_expr *result;
   int k, pos;
@@ -1422,7 +1465,7 @@ gfc_simplify_ibset (gfc_expr * x, gfc_expr * y)
 
 
 gfc_expr *
-gfc_simplify_ichar (gfc_expr * e)
+gfc_simplify_ichar (gfc_expr *e, gfc_expr *kind)
 {
   gfc_expr *result;
   int index;
@@ -1441,14 +1484,16 @@ gfc_simplify_ichar (gfc_expr * e)
   if (index < 0 || index > UCHAR_MAX)
     gfc_internal_error("Argument of ICHAR at %L out of range", &e->where);
 
-  result = gfc_int_expr (index);
+  if ((result = int_expr_with_kind (index, kind, "ICHAR")) == NULL)
+    return &gfc_bad_expr;
+
   result->where = e->where;
   return range_check (result, "ICHAR");
 }
 
 
 gfc_expr *
-gfc_simplify_ieor (gfc_expr * x, gfc_expr * y)
+gfc_simplify_ieor (gfc_expr *x, gfc_expr *y)
 {
   gfc_expr *result;
 
@@ -1464,7 +1509,7 @@ gfc_simplify_ieor (gfc_expr * x, gfc_expr * y)
 
 
 gfc_expr *
-gfc_simplify_index (gfc_expr * x, gfc_expr * y, gfc_expr * b)
+gfc_simplify_index (gfc_expr *x, gfc_expr *y, gfc_expr *b, gfc_expr *kind)
 {
   gfc_expr *result;
   int back, len, lensub;
@@ -1478,8 +1523,11 @@ gfc_simplify_index (gfc_expr * x, gfc_expr * y, gfc_expr * b)
   else
     back = 0;
 
-  result = gfc_constant_result (BT_INTEGER, gfc_default_integer_kind,
-				&x->where);
+  k = get_kind (BT_INTEGER, kind, "INDEX", gfc_default_integer_kind); 
+  if (k == -1)
+    return &gfc_bad_expr;
+
+  result = gfc_constant_result (BT_INTEGER, k, &x->where);
 
   len = x->value.character.length;
   lensub = y->value.character.length;
@@ -1492,7 +1540,6 @@ gfc_simplify_index (gfc_expr * x, gfc_expr * y, gfc_expr * b)
 
   if (back == 0)
     {
-
       if (lensub == 0)
 	{
 	  mpz_set_si (result->value.integer, 1);
@@ -1504,8 +1551,8 @@ gfc_simplify_index (gfc_expr * x, gfc_expr * y, gfc_expr * b)
 	    {
 	      for (j = 0; j < lensub; j++)
 		{
-		  if (y->value.character.string[j] ==
-		      x->value.character.string[i])
+		  if (y->value.character.string[j]
+		      == x->value.character.string[i])
 		    {
 		      index = i + 1;
 		      goto done;
@@ -1519,16 +1566,16 @@ gfc_simplify_index (gfc_expr * x, gfc_expr * y, gfc_expr * b)
 	    {
 	      for (j = 0; j < lensub; j++)
 		{
-		  if (y->value.character.string[j] ==
-		      x->value.character.string[i])
+		  if (y->value.character.string[j]
+		      == x->value.character.string[i])
 		    {
 		      start = i;
 		      count = 0;
 
 		      for (k = 0; k < lensub; k++)
 			{
-			  if (y->value.character.string[k] ==
-			      x->value.character.string[k + start])
+			  if (y->value.character.string[k]
+			      == x->value.character.string[k + start])
 			    count++;
 			}
 
@@ -1545,7 +1592,6 @@ gfc_simplify_index (gfc_expr * x, gfc_expr * y, gfc_expr * b)
     }
   else
     {
-
       if (lensub == 0)
 	{
 	  mpz_set_si (result->value.integer, len + 1);
@@ -1557,8 +1603,8 @@ gfc_simplify_index (gfc_expr * x, gfc_expr * y, gfc_expr * b)
 	    {
 	      for (j = 0; j < lensub; j++)
 		{
-		  if (y->value.character.string[j] ==
-		      x->value.character.string[len - i])
+		  if (y->value.character.string[j]
+		      == x->value.character.string[len - i])
 		    {
 		      index = len - i + 1;
 		      goto done;
@@ -1572,16 +1618,16 @@ gfc_simplify_index (gfc_expr * x, gfc_expr * y, gfc_expr * b)
 	    {
 	      for (j = 0; j < lensub; j++)
 		{
-		  if (y->value.character.string[j] ==
-		      x->value.character.string[len - i])
+		  if (y->value.character.string[j]
+		      == x->value.character.string[len - i])
 		    {
 		      start = len - i;
 		      if (start <= len - lensub)
 			{
 			  count = 0;
 			  for (k = 0; k < lensub; k++)
-			    if (y->value.character.string[k] ==
-				x->value.character.string[k + start])
+			    if (y->value.character.string[k]
+			        == x->value.character.string[k + start])
 			      count++;
 
 			  if (count == lensub)
@@ -1607,7 +1653,7 @@ done:
 
 
 gfc_expr *
-gfc_simplify_int (gfc_expr * e, gfc_expr * k)
+gfc_simplify_int (gfc_expr *e, gfc_expr *k)
 {
   gfc_expr *rpart, *rtrunc, *result;
   int kind;
@@ -1654,7 +1700,7 @@ gfc_simplify_int (gfc_expr * e, gfc_expr * k)
 
 
 static gfc_expr *
-gfc_simplify_intconv (gfc_expr * e, int kind, const char *name)
+gfc_simplify_intconv (gfc_expr *e, int kind, const char *name)
 {
   gfc_expr *rpart, *rtrunc, *result;
 
@@ -1694,27 +1740,30 @@ gfc_simplify_intconv (gfc_expr * e, int kind, const char *name)
   return range_check (result, name);
 }
 
+
 gfc_expr *
-gfc_simplify_int2 (gfc_expr * e)
+gfc_simplify_int2 (gfc_expr *e)
 {
   return gfc_simplify_intconv (e, 2, "INT2");
 }
 
+
 gfc_expr *
-gfc_simplify_int8 (gfc_expr * e)
+gfc_simplify_int8 (gfc_expr *e)
 {
   return gfc_simplify_intconv (e, 8, "INT8");
 }
 
+
 gfc_expr *
-gfc_simplify_long (gfc_expr * e)
+gfc_simplify_long (gfc_expr *e)
 {
   return gfc_simplify_intconv (e, 4, "LONG");
 }
 
 
 gfc_expr *
-gfc_simplify_ifix (gfc_expr * e)
+gfc_simplify_ifix (gfc_expr *e)
 {
   gfc_expr *rtrunc, *result;
 
@@ -1735,7 +1784,7 @@ gfc_simplify_ifix (gfc_expr * e)
 
 
 gfc_expr *
-gfc_simplify_idint (gfc_expr * e)
+gfc_simplify_idint (gfc_expr *e)
 {
   gfc_expr *rtrunc, *result;
 
@@ -1756,7 +1805,7 @@ gfc_simplify_idint (gfc_expr * e)
 
 
 gfc_expr *
-gfc_simplify_ior (gfc_expr * x, gfc_expr * y)
+gfc_simplify_ior (gfc_expr *x, gfc_expr *y)
 {
   gfc_expr *result;
 
@@ -1771,7 +1820,7 @@ gfc_simplify_ior (gfc_expr * x, gfc_expr * y)
 
 
 gfc_expr *
-gfc_simplify_ishft (gfc_expr * e, gfc_expr * s)
+gfc_simplify_ishft (gfc_expr *e, gfc_expr *s)
 {
   gfc_expr *result;
   int shift, ashift, isize, k, *bits, i;
@@ -1796,9 +1845,8 @@ gfc_simplify_ishft (gfc_expr * e, gfc_expr * s)
 
   if (ashift > isize)
     {
-      gfc_error
-	("Magnitude of second argument of ISHFT exceeds bit size at %L",
-	 &s->where);
+      gfc_error ("Magnitude of second argument of ISHFT exceeds bit size "
+		 "at %L", &s->where);
       return &gfc_bad_expr;
     }
 
@@ -1850,7 +1898,7 @@ gfc_simplify_ishft (gfc_expr * e, gfc_expr * s)
 
 
 gfc_expr *
-gfc_simplify_ishftc (gfc_expr * e, gfc_expr * s, gfc_expr * sz)
+gfc_simplify_ishftc (gfc_expr *e, gfc_expr *s, gfc_expr *sz)
 {
   gfc_expr *result;
   int shift, ashift, isize, ssize, delta, k;
@@ -1871,7 +1919,7 @@ gfc_simplify_ishftc (gfc_expr * e, gfc_expr * s, gfc_expr * sz)
   if (sz != NULL)
     {
       if (sz->expr_type != EXPR_CONSTANT)
-        return NULL;
+	return NULL;
 
       if (gfc_extract_int (sz, &ssize) != NULL || ssize <= 0)
 	{
@@ -1966,7 +2014,7 @@ gfc_simplify_ishftc (gfc_expr * e, gfc_expr * s, gfc_expr * sz)
 
 
 gfc_expr *
-gfc_simplify_kind (gfc_expr * e)
+gfc_simplify_kind (gfc_expr *e)
 {
 
   if (e->ts.type == BT_DERIVED)
@@ -1980,71 +2028,11 @@ gfc_simplify_kind (gfc_expr * e)
 
 
 static gfc_expr *
-simplify_bound (gfc_expr * array, gfc_expr * dim, int upper)
+simplify_bound_dim (gfc_expr *array, gfc_expr *kind, int d, int upper,
+		    gfc_array_spec *as)
 {
-  gfc_ref *ref;
-  gfc_array_spec *as;
   gfc_expr *l, *u, *result;
-  int d;
-
-  if (dim == NULL)
-    /* TODO: Simplify constant multi-dimensional bounds.  */
-    return NULL;
-
-  if (dim->expr_type != EXPR_CONSTANT)
-    return NULL;
-
-  if (array->expr_type != EXPR_VARIABLE)
-    return NULL;
-
-  /* Follow any component references.  */
-  as = array->symtree->n.sym->as;
-  for (ref = array->ref; ref; ref = ref->next)
-    {
-      switch (ref->type)
-	{
-	case REF_ARRAY:
-	  switch (ref->u.ar.type)
-	    {
-	    case AR_ELEMENT:
-	      as = NULL;
-	      continue;
-
-	    case AR_FULL:
-	      /* We're done because 'as' has already been set in the
-		 previous iteration.  */
-	      goto done;
-
-	    case AR_SECTION:
-	    case AR_UNKNOWN:
-	      return NULL;
-	    }
-
-	  gcc_unreachable ();
-
-	case REF_COMPONENT:
-	  as = ref->u.c.component->as;
-	  continue;
-
-	case REF_SUBSTRING:
-	  continue;
-	}
-    }
-
-  gcc_unreachable ();
-
- done:
-  if (as->type == AS_DEFERRED || as->type == AS_ASSUMED_SHAPE)
-    return NULL;
-
-  d = mpz_get_si (dim->value.integer);
-
-  if (d < 1 || d > as->rank
-      || (d == as->rank && as->type == AS_ASSUMED_SIZE && upper))
-    {
-      gfc_error ("DIM argument at %L is out of bounds", &dim->where);
-      return &gfc_bad_expr;
-    }
+  int k;
 
   /* The last dimension of an assumed-size array is special.  */
   if (d == as->rank && as->type == AS_ASSUMED_SIZE && !upper)
@@ -2062,8 +2050,12 @@ simplify_bound (gfc_expr * array, gfc_expr * dim, int upper)
   if (l->expr_type != EXPR_CONSTANT || u->expr_type != EXPR_CONSTANT)
     return NULL;
 
-  result = gfc_constant_result (BT_INTEGER, gfc_default_integer_kind,
-				&array->where);
+  k = get_kind (BT_INTEGER, kind, upper ? "UBOUND" : "LBOUND",
+		gfc_default_integer_kind); 
+  if (k == -1)
+    return &gfc_bad_expr;
+
+  result = gfc_constant_result (BT_INTEGER, k, &array->where);
 
   if (mpz_cmp (l->value.integer, u->value.integer) > 0)
     {
@@ -2086,51 +2078,197 @@ simplify_bound (gfc_expr * array, gfc_expr * dim, int upper)
 }
 
 
-gfc_expr *
-gfc_simplify_lbound (gfc_expr * array, gfc_expr * dim)
+static gfc_expr *
+simplify_bound (gfc_expr *array, gfc_expr *dim, gfc_expr *kind, int upper)
 {
-  return simplify_bound (array, dim, 0);
+  gfc_ref *ref;
+  gfc_array_spec *as;
+  int d;
+
+  if (array->expr_type != EXPR_VARIABLE)
+    return NULL;
+
+  /* Follow any component references.  */
+  as = array->symtree->n.sym->as;
+  for (ref = array->ref; ref; ref = ref->next)
+    {
+      switch (ref->type)
+	{
+	case REF_ARRAY:
+	  switch (ref->u.ar.type)
+	    {
+	    case AR_ELEMENT:
+	      as = NULL;
+	      continue;
+
+	    case AR_FULL:
+	      /* We're done because 'as' has already been set in the
+		 previous iteration.  */
+	      if (!ref->next)
+	        goto done;
+
+	    /* Fall through.  */
+
+	    case AR_SECTION:
+	    case AR_UNKNOWN:
+	      return NULL;
+	    }
+
+	  gcc_unreachable ();
+
+	case REF_COMPONENT:
+	  as = ref->u.c.component->as;
+	  continue;
+
+	case REF_SUBSTRING:
+	  continue;
+	}
+    }
+
+  gcc_unreachable ();
+
+ done:
+
+  if (as->type == AS_DEFERRED || as->type == AS_ASSUMED_SHAPE)
+    return NULL;
+
+  if (dim == NULL)
+    {
+      /* Multi-dimensional bounds.  */
+      gfc_expr *bounds[GFC_MAX_DIMENSIONS];
+      gfc_expr *e;
+      gfc_constructor *head, *tail;
+      int k;
+
+      /* UBOUND(ARRAY) is not valid for an assumed-size array.  */
+      if (upper && as->type == AS_ASSUMED_SIZE)
+	{
+	  /* An error message will be emitted in
+	     check_assumed_size_reference (resolve.c).  */
+	  return &gfc_bad_expr;
+	}
+
+      /* Simplify the bounds for each dimension.  */
+      for (d = 0; d < array->rank; d++)
+	{
+	  bounds[d] = simplify_bound_dim (array, kind, d + 1, upper, as);
+	  if (bounds[d] == NULL || bounds[d] == &gfc_bad_expr)
+	    {
+	      int j;
+
+	      for (j = 0; j < d; j++)
+		gfc_free_expr (bounds[j]);
+	      return bounds[d];
+	    }
+	}
+
+      /* Allocate the result expression.  */
+      e = gfc_get_expr ();
+      e->where = array->where;
+      e->expr_type = EXPR_ARRAY;
+      e->ts.type = BT_INTEGER;
+      k = get_kind (BT_INTEGER, kind, upper ? "UBOUND" : "LBOUND",
+		    gfc_default_integer_kind); 
+      if (k == -1)
+	return &gfc_bad_expr;
+      e->ts.kind = k;
+
+      /* The result is a rank 1 array; its size is the rank of the first
+	 argument to {L,U}BOUND.  */
+      e->rank = 1;
+      e->shape = gfc_get_shape (1);
+      mpz_init_set_ui (e->shape[0], array->rank);
+
+      /* Create the constructor for this array.  */
+      head = tail = NULL;
+      for (d = 0; d < array->rank; d++)
+	{
+	  /* Get a new constructor element.  */
+	  if (head == NULL)
+	    head = tail = gfc_get_constructor ();
+	  else
+	    {
+	      tail->next = gfc_get_constructor ();
+	      tail = tail->next;
+	    }
+
+	  tail->where = e->where;
+	  tail->expr = bounds[d];
+	}
+      e->value.constructor = head;
+
+      return e;
+    }
+  else
+    {
+      /* A DIM argument is specified.  */
+      if (dim->expr_type != EXPR_CONSTANT)
+	return NULL;
+
+      d = mpz_get_si (dim->value.integer);
+
+      if (d < 1 || d > as->rank
+	  || (d == as->rank && as->type == AS_ASSUMED_SIZE && upper))
+	{
+	  gfc_error ("DIM argument at %L is out of bounds", &dim->where);
+	  return &gfc_bad_expr;
+	}
+
+      return simplify_bound_dim (array, kind, d, upper, as);
+    }
 }
 
 
 gfc_expr *
-gfc_simplify_len (gfc_expr * e)
+gfc_simplify_lbound (gfc_expr *array, gfc_expr *dim, gfc_expr *kind)
+{
+  return simplify_bound (array, dim, kind, 0);
+}
+
+
+gfc_expr *
+gfc_simplify_len (gfc_expr *e, gfc_expr *kind)
 {
   gfc_expr *result;
+  int k = get_kind (BT_INTEGER, kind, "LEN", gfc_default_integer_kind);
+
+  if (k == -1)
+    return &gfc_bad_expr;
 
   if (e->expr_type == EXPR_CONSTANT)
     {
-      result = gfc_constant_result (BT_INTEGER, gfc_default_integer_kind,
-				    &e->where);
+      result = gfc_constant_result (BT_INTEGER, k, &e->where);
       mpz_set_si (result->value.integer, e->value.character.length);
       return range_check (result, "LEN");
     }
 
   if (e->ts.cl != NULL && e->ts.cl->length != NULL
-      && e->ts.cl->length->expr_type == EXPR_CONSTANT)
+      && e->ts.cl->length->expr_type == EXPR_CONSTANT
+      && e->ts.cl->length->ts.type == BT_INTEGER)
     {
-      result = gfc_constant_result (BT_INTEGER, gfc_default_integer_kind,
-				    &e->where);
+      result = gfc_constant_result (BT_INTEGER, k, &e->where);
       mpz_set (result->value.integer, e->ts.cl->length->value.integer);
       return range_check (result, "LEN");
     }
-  
+
   return NULL;
 }
 
 
 gfc_expr *
-gfc_simplify_len_trim (gfc_expr * e)
+gfc_simplify_len_trim (gfc_expr *e, gfc_expr *kind)
 {
   gfc_expr *result;
   int count, len, lentrim, i;
+  int k = get_kind (BT_INTEGER, kind, "LEN_TRIM", gfc_default_integer_kind);
+
+  if (k == -1)
+    return &gfc_bad_expr;
 
   if (e->expr_type != EXPR_CONSTANT)
     return NULL;
 
-  result = gfc_constant_result (BT_INTEGER, gfc_default_integer_kind,
-				&e->where);
-
+  result = gfc_constant_result (BT_INTEGER, k, &e->where);
   len = e->value.character.length;
 
   for (count = 0, i = 1; i <= len; i++)
@@ -2145,11 +2283,32 @@ gfc_simplify_len_trim (gfc_expr * e)
   return range_check (result, "LEN_TRIM");
 }
 
+gfc_expr *
+gfc_simplify_lgamma (gfc_expr *x __attribute__((unused)))
+{
+#if MPFR_VERSION >= MPFR_VERSION_NUM(2,3,0)
+  gfc_expr *result;
+  int sg;
+
+  if (x->expr_type != EXPR_CONSTANT)
+    return NULL;
+
+  result = gfc_constant_result (x->ts.type, x->ts.kind, &x->where);
+
+  gfc_set_model_kind (x->ts.kind);
+
+  mpfr_lgamma (result->value.real, &sg, x->value.real, GFC_RND_MODE);
+
+  return range_check (result, "LGAMMA");
+#else
+  return NULL;
+#endif
+}
+
 
 gfc_expr *
-gfc_simplify_lge (gfc_expr * a, gfc_expr * b)
+gfc_simplify_lge (gfc_expr *a, gfc_expr *b)
 {
-
   if (a->expr_type != EXPR_CONSTANT || b->expr_type != EXPR_CONSTANT)
     return NULL;
 
@@ -2158,9 +2317,8 @@ gfc_simplify_lge (gfc_expr * a, gfc_expr * b)
 
 
 gfc_expr *
-gfc_simplify_lgt (gfc_expr * a, gfc_expr * b)
+gfc_simplify_lgt (gfc_expr *a, gfc_expr *b)
 {
-
   if (a->expr_type != EXPR_CONSTANT || b->expr_type != EXPR_CONSTANT)
     return NULL;
 
@@ -2170,9 +2328,8 @@ gfc_simplify_lgt (gfc_expr * a, gfc_expr * b)
 
 
 gfc_expr *
-gfc_simplify_lle (gfc_expr * a, gfc_expr * b)
+gfc_simplify_lle (gfc_expr *a, gfc_expr *b)
 {
-
   if (a->expr_type != EXPR_CONSTANT || b->expr_type != EXPR_CONSTANT)
     return NULL;
 
@@ -2181,9 +2338,8 @@ gfc_simplify_lle (gfc_expr * a, gfc_expr * b)
 
 
 gfc_expr *
-gfc_simplify_llt (gfc_expr * a, gfc_expr * b)
+gfc_simplify_llt (gfc_expr *a, gfc_expr *b)
 {
-
   if (a->expr_type != EXPR_CONSTANT || b->expr_type != EXPR_CONSTANT)
     return NULL;
 
@@ -2192,7 +2348,7 @@ gfc_simplify_llt (gfc_expr * a, gfc_expr * b)
 
 
 gfc_expr *
-gfc_simplify_log (gfc_expr * x)
+gfc_simplify_log (gfc_expr *x)
 {
   gfc_expr *result;
   mpfr_t xr, xi;
@@ -2209,14 +2365,13 @@ gfc_simplify_log (gfc_expr * x)
     case BT_REAL:
       if (mpfr_sgn (x->value.real) <= 0)
 	{
-	  gfc_error
-	    ("Argument of LOG at %L cannot be less than or equal to zero",
-	     &x->where);
+	  gfc_error ("Argument of LOG at %L cannot be less than or equal "
+		     "to zero", &x->where);
 	  gfc_free_expr (result);
 	  return &gfc_bad_expr;
 	}
 
-      mpfr_log(result->value.real, x->value.real, GFC_RND_MODE);
+      mpfr_log (result->value.real, x->value.real, GFC_RND_MODE);
       break;
 
     case BT_COMPLEX:
@@ -2232,13 +2387,8 @@ gfc_simplify_log (gfc_expr * x)
       mpfr_init (xr);
       mpfr_init (xi);
 
-#if defined(GFC_MPFR_TOO_OLD)
-      arctangent2 (x->value.complex.i, x->value.complex.r, result->value.complex.i);
-#else
-      mpfr_atan2 (result->value.complex.i, x->value.complex.i, x->value.complex.r,
-		  GFC_RND_MODE);
-#endif
-
+      mpfr_atan2 (result->value.complex.i, x->value.complex.i,
+		  x->value.complex.r, GFC_RND_MODE);
 
       mpfr_mul (xr, x->value.complex.r, x->value.complex.r, GFC_RND_MODE);
       mpfr_mul (xi, x->value.complex.i, x->value.complex.i, GFC_RND_MODE);
@@ -2260,7 +2410,7 @@ gfc_simplify_log (gfc_expr * x)
 
 
 gfc_expr *
-gfc_simplify_log10 (gfc_expr * x)
+gfc_simplify_log10 (gfc_expr *x)
 {
   gfc_expr *result;
 
@@ -2271,9 +2421,8 @@ gfc_simplify_log10 (gfc_expr * x)
 
   if (mpfr_sgn (x->value.real) <= 0)
     {
-      gfc_error
-	("Argument of LOG10 at %L cannot be less than or equal to zero",
-	 &x->where);
+      gfc_error ("Argument of LOG10 at %L cannot be less than or equal "
+		 "to zero", &x->where);
       return &gfc_bad_expr;
     }
 
@@ -2286,7 +2435,7 @@ gfc_simplify_log10 (gfc_expr * x)
 
 
 gfc_expr *
-gfc_simplify_logical (gfc_expr * e, gfc_expr * k)
+gfc_simplify_logical (gfc_expr *e, gfc_expr *k)
 {
   gfc_expr *result;
   int kind;
@@ -2306,6 +2455,65 @@ gfc_simplify_logical (gfc_expr * e, gfc_expr * k)
 }
 
 
+/* Selects bewteen current value and extremum for simplify_min_max
+   and simplify_minval_maxval.  */
+static void
+min_max_choose (gfc_expr *arg, gfc_expr *extremum, int sign)
+{
+      switch (arg->ts.type)
+	{
+	case BT_INTEGER:
+	  if (mpz_cmp (arg->value.integer,
+		       extremum->value.integer) * sign > 0)
+	    mpz_set (extremum->value.integer, arg->value.integer);
+	  break;
+
+	case BT_REAL:
+	  /* We need to use mpfr_min and mpfr_max to treat NaN properly.  */
+	  if (sign > 0)
+	    mpfr_max (extremum->value.real, extremum->value.real,
+		      arg->value.real, GFC_RND_MODE);
+	  else
+	    mpfr_min (extremum->value.real, extremum->value.real,
+		      arg->value.real, GFC_RND_MODE);
+	  break;
+
+	case BT_CHARACTER:
+#define LENGTH(x) ((x)->value.character.length)
+#define STRING(x) ((x)->value.character.string)
+	  if (LENGTH(extremum) < LENGTH(arg))
+	    {
+	      char * tmp = STRING(extremum);
+
+	      STRING(extremum) = gfc_getmem (LENGTH(arg) + 1);
+	      memcpy (STRING(extremum), tmp, LENGTH(extremum));
+	      memset (&STRING(extremum)[LENGTH(extremum)], ' ',
+		      LENGTH(arg) - LENGTH(extremum));
+	      STRING(extremum)[LENGTH(arg)] = '\0';  /* For debugger  */
+	      LENGTH(extremum) = LENGTH(arg);
+	      gfc_free (tmp);
+	    }
+
+	  if (gfc_compare_string (arg, extremum) * sign > 0)
+	    {
+	      gfc_free (STRING(extremum));
+	      STRING(extremum) = gfc_getmem (LENGTH(extremum) + 1);
+	      memcpy (STRING(extremum), STRING(arg), LENGTH(arg));
+	      memset (&STRING(extremum)[LENGTH(arg)], ' ',
+		      LENGTH(extremum) - LENGTH(arg));
+	      STRING(extremum)[LENGTH(extremum)] = '\0';  /* For debugger  */
+	    }
+#undef LENGTH
+#undef STRING
+	  break;
+	      
+
+	default:
+	  gfc_internal_error ("simplify_min_max(): Bad type in arglist");
+	}
+}
+
+
 /* This function is special since MAX() can take any number of
    arguments.  The simplified expression is a rewritten version of the
    argument list containing at most one constant element.  Other
@@ -2314,7 +2522,7 @@ gfc_simplify_logical (gfc_expr * e, gfc_expr * k)
    MAX(), -1 for MIN().  */
 
 static gfc_expr *
-simplify_min_max (gfc_expr * expr, int sign)
+simplify_min_max (gfc_expr *expr, int sign)
 {
   gfc_actual_arglist *arg, *last, *extremum;
   gfc_intrinsic_sym * specific;
@@ -2336,26 +2544,7 @@ simplify_min_max (gfc_expr * expr, int sign)
 	  continue;
 	}
 
-      switch (arg->expr->ts.type)
-	{
-	case BT_INTEGER:
-	  if (mpz_cmp (arg->expr->value.integer,
-		       extremum->expr->value.integer) * sign > 0)
-	    mpz_set (extremum->expr->value.integer, arg->expr->value.integer);
-
-	  break;
-
-	case BT_REAL:
-	  if (mpfr_cmp (arg->expr->value.real, extremum->expr->value.real) *
-	      sign > 0)
-	    mpfr_set (extremum->expr->value.real, arg->expr->value.real,
-                      GFC_RND_MODE);
-
-	  break;
-
-	default:
-	  gfc_internal_error ("gfc_simplify_max(): Bad type in arglist");
-	}
+     min_max_choose (arg->expr, extremum->expr, sign);
 
       /* Delete the extra constant argument.  */
       if (last == NULL)
@@ -2387,21 +2576,84 @@ simplify_min_max (gfc_expr * expr, int sign)
 
 
 gfc_expr *
-gfc_simplify_min (gfc_expr * e)
+gfc_simplify_min (gfc_expr *e)
 {
   return simplify_min_max (e, -1);
 }
 
 
 gfc_expr *
-gfc_simplify_max (gfc_expr * e)
+gfc_simplify_max (gfc_expr *e)
 {
   return simplify_min_max (e, 1);
 }
 
 
+/* This is a simplified version of simplify_min_max to provide
+   simplification of minval and maxval for a vector.  */
+
+static gfc_expr *
+simplify_minval_maxval (gfc_expr *expr, int sign)
+{
+  gfc_constructor *ctr, *extremum;
+  gfc_intrinsic_sym * specific;
+
+  extremum = NULL;
+  specific = expr->value.function.isym;
+
+  ctr = expr->value.constructor;
+
+  for (; ctr; ctr = ctr->next)
+    {
+      if (ctr->expr->expr_type != EXPR_CONSTANT)
+	return NULL;
+
+      if (extremum == NULL)
+	{
+	  extremum = ctr;
+	  continue;
+	}
+
+      min_max_choose (ctr->expr, extremum->expr, sign);
+     }
+
+  if (extremum == NULL)
+    return NULL;
+
+  /* Convert to the correct type and kind.  */
+  if (expr->ts.type != BT_UNKNOWN) 
+    return gfc_convert_constant (extremum->expr,
+	expr->ts.type, expr->ts.kind);
+
+  if (specific->ts.type != BT_UNKNOWN) 
+    return gfc_convert_constant (extremum->expr,
+	specific->ts.type, specific->ts.kind); 
+ 
+  return gfc_copy_expr (extremum->expr);
+}
+
+
 gfc_expr *
-gfc_simplify_maxexponent (gfc_expr * x)
+gfc_simplify_minval (gfc_expr *array, gfc_expr* dim, gfc_expr *mask)
+{
+  if (array->expr_type != EXPR_ARRAY || array->rank != 1 || dim || mask)
+    return NULL;
+  
+  return simplify_minval_maxval (array, -1);
+}
+
+
+gfc_expr *
+gfc_simplify_maxval (gfc_expr *array, gfc_expr* dim, gfc_expr *mask)
+{
+  if (array->expr_type != EXPR_ARRAY || array->rank != 1 || dim || mask)
+    return NULL;
+  return simplify_minval_maxval (array, 1);
+}
+
+
+gfc_expr *
+gfc_simplify_maxexponent (gfc_expr *x)
 {
   gfc_expr *result;
   int i;
@@ -2416,7 +2668,7 @@ gfc_simplify_maxexponent (gfc_expr * x)
 
 
 gfc_expr *
-gfc_simplify_minexponent (gfc_expr * x)
+gfc_simplify_minexponent (gfc_expr *x)
 {
   gfc_expr *result;
   int i;
@@ -2431,7 +2683,7 @@ gfc_simplify_minexponent (gfc_expr * x)
 
 
 gfc_expr *
-gfc_simplify_mod (gfc_expr * a, gfc_expr * p)
+gfc_simplify_mod (gfc_expr *a, gfc_expr *p)
 {
   gfc_expr *result;
   mpfr_t quot, iquot, term;
@@ -2489,7 +2741,7 @@ gfc_simplify_mod (gfc_expr * a, gfc_expr * p)
 
 
 gfc_expr *
-gfc_simplify_modulo (gfc_expr * a, gfc_expr * p)
+gfc_simplify_modulo (gfc_expr *a, gfc_expr *p)
 {
   gfc_expr *result;
   mpfr_t quot, iquot, term;
@@ -2507,7 +2759,7 @@ gfc_simplify_modulo (gfc_expr * a, gfc_expr * p)
       if (mpz_cmp_ui (p->value.integer, 0) == 0)
 	{
 	  /* Result is processor-dependent. This processor just opts
-             to not handle it at all.  */
+	     to not handle it at all.  */
 	  gfc_error ("Second argument of MODULO at %L is zero", &a->where);
 	  gfc_free_expr (result);
 	  return &gfc_bad_expr;
@@ -2550,99 +2802,74 @@ gfc_simplify_modulo (gfc_expr * a, gfc_expr * p)
 
 /* Exists for the sole purpose of consistency with other intrinsics.  */
 gfc_expr *
-gfc_simplify_mvbits (gfc_expr * f  ATTRIBUTE_UNUSED,
-		     gfc_expr * fp ATTRIBUTE_UNUSED,
-		     gfc_expr * l  ATTRIBUTE_UNUSED,
-		     gfc_expr * to ATTRIBUTE_UNUSED,
-		     gfc_expr * tp ATTRIBUTE_UNUSED)
+gfc_simplify_mvbits (gfc_expr *f  ATTRIBUTE_UNUSED,
+		     gfc_expr *fp ATTRIBUTE_UNUSED,
+		     gfc_expr *l  ATTRIBUTE_UNUSED,
+		     gfc_expr *to ATTRIBUTE_UNUSED,
+		     gfc_expr *tp ATTRIBUTE_UNUSED)
 {
   return NULL;
 }
 
 
 gfc_expr *
-gfc_simplify_nearest (gfc_expr * x, gfc_expr * s)
+gfc_simplify_nearest (gfc_expr *x, gfc_expr *s)
 {
   gfc_expr *result;
-  mpfr_t tmp;
-  int sgn;
-#if defined(GFC_MPFR_TOO_OLD)
-  int direction;
-#endif
+  mp_exp_t emin, emax;
+  int kind;
 
   if (x->expr_type != EXPR_CONSTANT || s->expr_type != EXPR_CONSTANT)
     return NULL;
 
   if (mpfr_sgn (s->value.real) == 0)
     {
-      gfc_error ("Second argument of NEAREST at %L shall not be zero", &s->where);
+      gfc_error ("Second argument of NEAREST at %L shall not be zero",
+		 &s->where);
       return &gfc_bad_expr;
     }
 
   gfc_set_model_kind (x->ts.kind);
   result = gfc_copy_expr (x);
 
-#if defined(GFC_MPFR_TOO_OLD)
+  /* Save current values of emin and emax.  */
+  emin = mpfr_get_emin ();
+  emax = mpfr_get_emax ();
 
-  direction = mpfr_sgn (s->value.real);
-  sgn = mpfr_sgn (x->value.real);
+  /* Set emin and emax for the current model number.  */
+  kind = gfc_validate_kind (BT_REAL, x->ts.kind, 0);
+  mpfr_set_emin ((mp_exp_t) gfc_real_kinds[kind].min_exponent -
+		mpfr_get_prec(result->value.real) + 1);
+  mpfr_set_emax ((mp_exp_t) gfc_real_kinds[kind].max_exponent - 1);
 
-  if (sgn == 0)
+  if (mpfr_sgn (s->value.real) > 0)
     {
-      int k = gfc_validate_kind (BT_REAL, x->ts.kind, 0);
-
-      if (direction > 0)
-	mpfr_add (result->value.real,
-		  x->value.real, gfc_real_kinds[k].subnormal, GFC_RND_MODE);
-      else
-	mpfr_sub (result->value.real,
-		  x->value.real, gfc_real_kinds[k].subnormal, GFC_RND_MODE);
+      mpfr_nextabove (result->value.real);
+      mpfr_subnormalize (result->value.real, 0, GMP_RNDU);
     }
   else
     {
-      if (sgn < 0)
-	{
-	  direction = -direction;
-	  mpfr_neg (result->value.real, result->value.real, GFC_RND_MODE);
-	}
-
-      if (direction > 0)
-	mpfr_add_one_ulp (result->value.real, GFC_RND_MODE);
-      else
-	{
-	  /* In this case the exponent can shrink, which makes us skip
-	     over one number because we subtract one ulp with the
-	     larger exponent.  Thus we need to compensate for this.  */
-	  mpfr_init_set (tmp, result->value.real, GFC_RND_MODE);
-
-	  mpfr_sub_one_ulp (result->value.real, GFC_RND_MODE);
-	  mpfr_add_one_ulp (result->value.real, GFC_RND_MODE);
-
-	  /* If we're back to where we started, the spacing is one
-	     ulp, and we get the correct result by subtracting.  */
-	  if (mpfr_cmp (tmp, result->value.real) == 0)
-	    mpfr_sub_one_ulp (result->value.real, GFC_RND_MODE);
-
-	  mpfr_clear (tmp);
-	}
-
-      if (sgn < 0)
-	mpfr_neg (result->value.real, result->value.real, GFC_RND_MODE);
+      mpfr_nextbelow (result->value.real);
+      mpfr_subnormalize (result->value.real, 0, GMP_RNDD);
     }
-#else
-  sgn = mpfr_sgn (s->value.real); 
-  mpfr_init (tmp);
-  mpfr_set_inf (tmp, sgn);
-  mpfr_nexttoward (result->value.real, tmp);
-  mpfr_clear(tmp);
-#endif
 
-  return range_check (result, "NEAREST");
+  mpfr_set_emin (emin);
+  mpfr_set_emax (emax);
+
+  /* Only NaN can occur. Do not use range check as it gives an
+     error for denormal numbers.  */
+  if (mpfr_nan_p (result->value.real) && gfc_option.flag_range_check)
+    {
+      gfc_error ("Result of NEAREST is NaN at %L", &result->where);
+      return &gfc_bad_expr;
+    }
+
+  return result;
 }
 
 
 static gfc_expr *
-simplify_nint (const char *name, gfc_expr * e, gfc_expr * k)
+simplify_nint (const char *name, gfc_expr *e, gfc_expr *k)
 {
   gfc_expr *itrunc, *result;
   int kind;
@@ -2658,7 +2885,7 @@ simplify_nint (const char *name, gfc_expr * e, gfc_expr * k)
 
   itrunc = gfc_copy_expr (e);
 
-  mpfr_round(itrunc->value.real, e->value.real);
+  mpfr_round (itrunc->value.real, e->value.real);
 
   gfc_mpfr_to_mpz (result->value.integer, itrunc->value.real);
 
@@ -2669,17 +2896,12 @@ simplify_nint (const char *name, gfc_expr * e, gfc_expr * k)
 
 
 gfc_expr *
-gfc_simplify_new_line (gfc_expr * e)
+gfc_simplify_new_line (gfc_expr *e)
 {
   gfc_expr *result;
 
-  if (e->expr_type != EXPR_CONSTANT)
-    return NULL;
-
   result = gfc_constant_result (BT_CHARACTER, e->ts.kind, &e->where);
-
   result->value.character.string = gfc_getmem (2);
-
   result->value.character.length = 1;
   result->value.character.string[0] = '\n';
   result->value.character.string[1] = '\0';     /* For debugger */
@@ -2688,21 +2910,21 @@ gfc_simplify_new_line (gfc_expr * e)
 
 
 gfc_expr *
-gfc_simplify_nint (gfc_expr * e, gfc_expr * k)
+gfc_simplify_nint (gfc_expr *e, gfc_expr *k)
 {
   return simplify_nint ("NINT", e, k);
 }
 
 
 gfc_expr *
-gfc_simplify_idnint (gfc_expr * e)
+gfc_simplify_idnint (gfc_expr *e)
 {
   return simplify_nint ("IDNINT", e, NULL);
 }
 
 
 gfc_expr *
-gfc_simplify_not (gfc_expr * e)
+gfc_simplify_not (gfc_expr *e)
 {
   gfc_expr *result;
 
@@ -2718,7 +2940,7 @@ gfc_simplify_not (gfc_expr * e)
 
 
 gfc_expr *
-gfc_simplify_null (gfc_expr * mold)
+gfc_simplify_null (gfc_expr *mold)
 {
   gfc_expr *result;
 
@@ -2736,7 +2958,7 @@ gfc_simplify_null (gfc_expr * mold)
 
 
 gfc_expr *
-gfc_simplify_or (gfc_expr * x, gfc_expr * y)
+gfc_simplify_or (gfc_expr *x, gfc_expr *y)
 {
   gfc_expr *result;
   int kind;
@@ -2761,7 +2983,7 @@ gfc_simplify_or (gfc_expr * x, gfc_expr * y)
 
 
 gfc_expr *
-gfc_simplify_precision (gfc_expr * e)
+gfc_simplify_precision (gfc_expr *e)
 {
   gfc_expr *result;
   int i;
@@ -2776,7 +2998,7 @@ gfc_simplify_precision (gfc_expr * e)
 
 
 gfc_expr *
-gfc_simplify_radix (gfc_expr * e)
+gfc_simplify_radix (gfc_expr *e)
 {
   gfc_expr *result;
   int i;
@@ -2804,7 +3026,7 @@ gfc_simplify_radix (gfc_expr * e)
 
 
 gfc_expr *
-gfc_simplify_range (gfc_expr * e)
+gfc_simplify_range (gfc_expr *e)
 {
   gfc_expr *result;
   int i;
@@ -2835,7 +3057,7 @@ gfc_simplify_range (gfc_expr * e)
 
 
 gfc_expr *
-gfc_simplify_real (gfc_expr * e, gfc_expr * k)
+gfc_simplify_real (gfc_expr *e, gfc_expr *k)
 {
   gfc_expr *result;
   int kind;
@@ -2854,7 +3076,8 @@ gfc_simplify_real (gfc_expr * e, gfc_expr * k)
   switch (e->ts.type)
     {
     case BT_INTEGER:
-      result = gfc_int2real (e, kind);
+      if (!e->is_boz)
+	result = gfc_int2real (e, kind);
       break;
 
     case BT_REAL:
@@ -2870,12 +3093,21 @@ gfc_simplify_real (gfc_expr * e, gfc_expr * k)
       /* Not reached */
     }
 
+  if (e->ts.type == BT_INTEGER && e->is_boz)
+    {
+      gfc_typespec ts;
+      ts.type = BT_REAL;
+      ts.kind = kind;
+      result = gfc_copy_expr (e);
+      if (!gfc_convert_boz (result, &ts))
+	return &gfc_bad_expr;
+    }
   return range_check (result, "REAL");
 }
 
 
 gfc_expr *
-gfc_simplify_realpart (gfc_expr * e)
+gfc_simplify_realpart (gfc_expr *e)
 {
   gfc_expr *result;
 
@@ -2889,26 +3121,105 @@ gfc_simplify_realpart (gfc_expr * e)
 }
 
 gfc_expr *
-gfc_simplify_repeat (gfc_expr * e, gfc_expr * n)
+gfc_simplify_repeat (gfc_expr *e, gfc_expr *n)
 {
   gfc_expr *result;
-  int i, j, len, ncopies, nlen;
+  int i, j, len, ncop, nlen;
+  mpz_t ncopies;
+  bool have_length = false;
 
-  if (e->expr_type != EXPR_CONSTANT || n->expr_type != EXPR_CONSTANT)
+  /* If NCOPIES isn't a constant, there's nothing we can do.  */
+  if (n->expr_type != EXPR_CONSTANT)
     return NULL;
 
-  if (n != NULL && (gfc_extract_int (n, &ncopies) != NULL || ncopies < 0))
+  /* If NCOPIES is negative, it's an error.  */
+  if (mpz_sgn (n->value.integer) < 0)
     {
-      gfc_error ("Invalid second argument of REPEAT at %L", &n->where);
+      gfc_error ("Argument NCOPIES of REPEAT intrinsic is negative at %L",
+		 &n->where);
       return &gfc_bad_expr;
     }
 
+  /* If we don't know the character length, we can do no more.  */
+  if (e->ts.cl && e->ts.cl->length
+	&& e->ts.cl->length->expr_type == EXPR_CONSTANT)
+    {
+      len = mpz_get_si (e->ts.cl->length->value.integer);
+      have_length = true;
+    }
+  else if (e->expr_type == EXPR_CONSTANT
+	     && (e->ts.cl == NULL || e->ts.cl->length == NULL))
+    {
+      len = e->value.character.length;
+    }
+  else
+    return NULL;
+
+  /* If the source length is 0, any value of NCOPIES is valid
+     and everything behaves as if NCOPIES == 0.  */
+  mpz_init (ncopies);
+  if (len == 0)
+    mpz_set_ui (ncopies, 0);
+  else
+    mpz_set (ncopies, n->value.integer);
+
+  /* Check that NCOPIES isn't too large.  */
+  if (len)
+    {
+      mpz_t max, mlen;
+      int i;
+
+      /* Compute the maximum value allowed for NCOPIES: huge(cl) / len.  */
+      mpz_init (max);
+      i = gfc_validate_kind (BT_INTEGER, gfc_charlen_int_kind, false);
+
+      if (have_length)
+	{
+	  mpz_tdiv_q (max, gfc_integer_kinds[i].huge,
+		      e->ts.cl->length->value.integer);
+	}
+      else
+	{
+	  mpz_init_set_si (mlen, len);
+	  mpz_tdiv_q (max, gfc_integer_kinds[i].huge, mlen);
+	  mpz_clear (mlen);
+	}
+
+      /* The check itself.  */
+      if (mpz_cmp (ncopies, max) > 0)
+	{
+	  mpz_clear (max);
+	  mpz_clear (ncopies);
+	  gfc_error ("Argument NCOPIES of REPEAT intrinsic is too large at %L",
+		     &n->where);
+	  return &gfc_bad_expr;
+	}
+
+      mpz_clear (max);
+    }
+  mpz_clear (ncopies);
+
+  /* For further simplification, we need the character string to be
+     constant.  */
+  if (e->expr_type != EXPR_CONSTANT)
+    return NULL;
+
+  if (len || 
+      (e->ts.cl->length && 
+       mpz_sgn (e->ts.cl->length->value.integer)) != 0)
+    {
+      const char *res = gfc_extract_int (n, &ncop);
+      gcc_assert (res == NULL);
+    }
+  else
+    ncop = 0;
+
   len = e->value.character.length;
-  nlen = ncopies * len;
+  nlen = ncop * len;
 
   result = gfc_constant_result (BT_CHARACTER, e->ts.kind, &e->where);
 
-  if (ncopies == 0)
+  if (ncop == 0)
     {
       result->value.character.string = gfc_getmem (1);
       result->value.character.length = 0;
@@ -2919,23 +3230,46 @@ gfc_simplify_repeat (gfc_expr * e, gfc_expr * n)
   result->value.character.length = nlen;
   result->value.character.string = gfc_getmem (nlen + 1);
 
-  for (i = 0; i < ncopies; i++)
+  for (i = 0; i < ncop; i++)
     for (j = 0; j < len; j++)
-      result->value.character.string[j + i * len] =
-	e->value.character.string[j];
+      result->value.character.string[j + i * len]
+      = e->value.character.string[j];
 
   result->value.character.string[nlen] = '\0';	/* For debugger */
   return result;
 }
 
 
+/* Test that the expression is an constant array.  */
+
+static bool
+is_constant_array_expr (gfc_expr *e)
+{
+  gfc_constructor *c;
+
+  if (e == NULL)
+    return true;
+
+  if (e->expr_type != EXPR_ARRAY || !gfc_is_constant_expr (e))
+    return false;
+  
+  if (e->value.constructor == NULL)
+    return false;
+  
+  for (c = e->value.constructor; c; c = c->next)
+    if (c->expr->expr_type != EXPR_CONSTANT)
+      return false;
+
+  return true;
+}
+
+
 /* This one is a bear, but mainly has to do with shuffling elements.  */
 
 gfc_expr *
-gfc_simplify_reshape (gfc_expr * source, gfc_expr * shape_exp,
-		      gfc_expr * pad, gfc_expr * order_exp)
+gfc_simplify_reshape (gfc_expr *source, gfc_expr *shape_exp,
+		      gfc_expr *pad, gfc_expr *order_exp)
 {
-
   int order[GFC_MAX_DIMENSIONS], shape[GFC_MAX_DIMENSIONS];
   int i, rank, npad, x[GFC_MAX_DIMENSIONS];
   gfc_constructor *head, *tail;
@@ -2944,22 +3278,20 @@ gfc_simplify_reshape (gfc_expr * source, gfc_expr * shape_exp,
   size_t nsource;
   gfc_expr *e;
 
-  /* Unpack the shape array.  */
-  if (source->expr_type != EXPR_ARRAY || !gfc_is_constant_expr (source))
+  /* Check that argument expression types are OK.  */
+  if (!is_constant_array_expr (source))
     return NULL;
 
-  if (shape_exp->expr_type != EXPR_ARRAY || !gfc_is_constant_expr (shape_exp))
+  if (!is_constant_array_expr (shape_exp))
     return NULL;
 
-  if (pad != NULL
-      && (pad->expr_type != EXPR_ARRAY
-	  || !gfc_is_constant_expr (pad)))
+  if (!is_constant_array_expr (pad))
     return NULL;
 
-  if (order_exp != NULL
-      && (order_exp->expr_type != EXPR_ARRAY
-	  || !gfc_is_constant_expr (order_exp)))
+  if (!is_constant_array_expr (order_exp))
     return NULL;
+
+  /* Proceed with simplification, unpacking the array.  */
 
   mpz_init (index);
   rank = 0;
@@ -3011,11 +3343,9 @@ gfc_simplify_reshape (gfc_expr * source, gfc_expr * shape_exp,
     {
       for (i = 0; i < rank; i++)
 	order[i] = i;
-
     }
   else
     {
-
       for (i = 0; i < rank; i++)
 	x[i] = 0;
 
@@ -3024,9 +3354,8 @@ gfc_simplify_reshape (gfc_expr * source, gfc_expr * shape_exp,
 	  e = gfc_get_array_element (order_exp, i);
 	  if (e == NULL)
 	    {
-	      gfc_error
-		("ORDER parameter of RESHAPE at %L is not the same size "
-		 "as SHAPE parameter", &order_exp->where);
+	      gfc_error ("ORDER parameter of RESHAPE at %L is not the same "
+			 "size as SHAPE parameter", &order_exp->where);
 	      goto bad_reshape;
 	    }
 
@@ -3107,9 +3436,8 @@ gfc_simplify_reshape (gfc_expr * source, gfc_expr * shape_exp,
 
 	  if (npad == 0)
 	    {
-	      gfc_error
-		("PAD parameter required for short SOURCE parameter at %L",
-		 &source->where);
+	      gfc_error ("PAD parameter required for short SOURCE parameter "
+			 "at %L", &source->where);
 	      goto bad_reshape;
 	    }
 
@@ -3167,59 +3495,8 @@ bad_reshape:
 }
 
 
-#if defined(GFC_MPFR_TOO_OLD)
 gfc_expr *
-gfc_simplify_rrspacing (gfc_expr * x)
-{
-  gfc_expr *result;
-  mpfr_t absv, log2, exp, frac, pow2;
-  int i, p;
-
-  if (x->expr_type != EXPR_CONSTANT)
-    return NULL;
-
-  i = gfc_validate_kind (x->ts.type, x->ts.kind, false);
-
-  result = gfc_constant_result (BT_REAL, x->ts.kind, &x->where);
-
-  p = gfc_real_kinds[i].digits;
-
-  gfc_set_model_kind (x->ts.kind);
-
-  if (mpfr_sgn (x->value.real) == 0)
-    {
-      mpfr_set_ui (result->value.real, 0, GFC_RND_MODE);
-      return result;
-    }
-
-  mpfr_init (log2);
-  mpfr_init (absv);
-  mpfr_init (frac);
-  mpfr_init (pow2);
-  mpfr_init (exp);
-
-  mpfr_abs (absv, x->value.real, GFC_RND_MODE);
-  mpfr_log2 (log2, absv, GFC_RND_MODE);
-
-  mpfr_trunc (log2, log2);
-  mpfr_add_ui (exp, log2, 1, GFC_RND_MODE);
-
-  mpfr_ui_pow (pow2, 2, exp, GFC_RND_MODE);
-  mpfr_div (frac, absv, pow2, GFC_RND_MODE);
-
-  mpfr_mul_2exp (result->value.real, frac, (unsigned long)p, GFC_RND_MODE);
-
-  mpfr_clear (log2);
-  mpfr_clear (absv);
-  mpfr_clear (frac);
-  mpfr_clear (pow2);
-  mpfr_clear (exp);
-
-  return range_check (result, "RRSPACING");
-}
-#else
-gfc_expr *
-gfc_simplify_rrspacing (gfc_expr * x)
+gfc_simplify_rrspacing (gfc_expr *x)
 {
   gfc_expr *result;
   int i;
@@ -3234,7 +3511,7 @@ gfc_simplify_rrspacing (gfc_expr * x)
 
   mpfr_abs (result->value.real, x->value.real, GFC_RND_MODE);
 
-  /* Special case x = 0 and 0.  */
+  /* Special case x = -0 and 0.  */
   if (mpfr_sgn (result->value.real) == 0)
     {
       mpfr_set_ui (result->value.real, 0, GFC_RND_MODE);
@@ -3250,10 +3527,10 @@ gfc_simplify_rrspacing (gfc_expr * x)
 
   return range_check (result, "RRSPACING");
 }
-#endif
+
 
 gfc_expr *
-gfc_simplify_scale (gfc_expr * x, gfc_expr * i)
+gfc_simplify_scale (gfc_expr *x, gfc_expr *i)
 {
   int k, neg_flag, power, exp_range;
   mpfr_t scale, radix;
@@ -3312,12 +3589,16 @@ gfc_simplify_scale (gfc_expr * x, gfc_expr * i)
 
 
 gfc_expr *
-gfc_simplify_scan (gfc_expr * e, gfc_expr * c, gfc_expr * b)
+gfc_simplify_scan (gfc_expr *e, gfc_expr *c, gfc_expr *b, gfc_expr *kind)
 {
   gfc_expr *result;
   int back;
   size_t i;
   size_t indx, len, lenc;
+  int k = get_kind (BT_INTEGER, kind, "SCAN", gfc_default_integer_kind);
+
+  if (k == -1)
+    return &gfc_bad_expr;
 
   if (e->expr_type != EXPR_CONSTANT || c->expr_type != EXPR_CONSTANT)
     return NULL;
@@ -3327,8 +3608,7 @@ gfc_simplify_scan (gfc_expr * e, gfc_expr * c, gfc_expr * b)
   else
     back = 0;
 
-  result = gfc_constant_result (BT_INTEGER, gfc_default_integer_kind,
-				&e->where);
+  result = gfc_constant_result (BT_INTEGER, k, &e->where);
 
   len = e->value.character.length;
   lenc = c->value.character.length;
@@ -3340,27 +3620,27 @@ gfc_simplify_scan (gfc_expr * e, gfc_expr * c, gfc_expr * b)
   else
     {
       if (back == 0)
-        {
-          indx =
-            strcspn (e->value.character.string, c->value.character.string) + 1;
-          if (indx > len)
-            indx = 0;
-        }
+	{
+	  indx = strcspn (e->value.character.string, c->value.character.string)
+	       + 1;
+	  if (indx > len)
+	    indx = 0;
+	}
       else
-        {
-          i = 0;
-          for (indx = len; indx > 0; indx--)
-            {
-              for (i = 0; i < lenc; i++)
-                {
-                  if (c->value.character.string[i]
-                        == e->value.character.string[indx - 1])
-                    break;
-                }
-              if (i < lenc)
-                break;
-            }
-        }
+	{
+	  i = 0;
+	  for (indx = len; indx > 0; indx--)
+	    {
+	      for (i = 0; i < lenc; i++)
+		{
+		  if (c->value.character.string[i]
+		      == e->value.character.string[indx - 1])
+		    break;
+		}
+	      if (i < lenc)
+		break;
+	    }
+	}
     }
   mpz_set_ui (result->value.integer, indx);
   return range_check (result, "SCAN");
@@ -3368,7 +3648,7 @@ gfc_simplify_scan (gfc_expr * e, gfc_expr * c, gfc_expr * b)
 
 
 gfc_expr *
-gfc_simplify_selected_int_kind (gfc_expr * e)
+gfc_simplify_selected_int_kind (gfc_expr *e)
 {
   int i, kind, range;
   gfc_expr *result;
@@ -3394,7 +3674,7 @@ gfc_simplify_selected_int_kind (gfc_expr * e)
 
 
 gfc_expr *
-gfc_simplify_selected_real_kind (gfc_expr * p, gfc_expr * q)
+gfc_simplify_selected_real_kind (gfc_expr *p, gfc_expr *q)
 {
   int range, precision, i, kind, found_precision, found_range;
   gfc_expr *result;
@@ -3452,7 +3732,7 @@ gfc_simplify_selected_real_kind (gfc_expr * p, gfc_expr * q)
 
 
 gfc_expr *
-gfc_simplify_set_exponent (gfc_expr * x, gfc_expr * i)
+gfc_simplify_set_exponent (gfc_expr *x, gfc_expr *i)
 {
   gfc_expr *result;
   mpfr_t exp, absv, log2, pow2, frac;
@@ -3502,7 +3782,7 @@ gfc_simplify_set_exponent (gfc_expr * x, gfc_expr * i)
 
 
 gfc_expr *
-gfc_simplify_shape (gfc_expr * source)
+gfc_simplify_shape (gfc_expr *source)
 {
   mpz_t shape[GFC_MAX_DIMENSIONS];
   gfc_expr *result, *e, *f;
@@ -3510,7 +3790,11 @@ gfc_simplify_shape (gfc_expr * source)
   int n;
   try t;
 
-  if (source->rank == 0 || source->expr_type != EXPR_VARIABLE)
+  if (source->rank == 0)
+    return gfc_start_constructor (BT_INTEGER, gfc_default_integer_kind,
+				  &source->where);
+
+  if (source->expr_type != EXPR_VARIABLE)
     return NULL;
 
   result = gfc_start_constructor (BT_INTEGER, gfc_default_integer_kind,
@@ -3534,7 +3818,7 @@ gfc_simplify_shape (gfc_expr * source)
 	{
 	  mpz_set_ui (e->value.integer, n + 1);
 
-	  f = gfc_simplify_size (source, e);
+	  f = gfc_simplify_size (source, e, NULL);
 	  gfc_free_expr (e);
 	  if (f == NULL)
 	    {
@@ -3555,11 +3839,15 @@ gfc_simplify_shape (gfc_expr * source)
 
 
 gfc_expr *
-gfc_simplify_size (gfc_expr * array, gfc_expr * dim)
+gfc_simplify_size (gfc_expr *array, gfc_expr *dim, gfc_expr *kind)
 {
   mpz_t size;
   gfc_expr *result;
   int d;
+  int k = get_kind (BT_INTEGER, kind, "SIZE", gfc_default_integer_kind);
+
+  if (k == -1)
+    return &gfc_bad_expr;
 
   if (dim == NULL)
     {
@@ -3576,17 +3864,14 @@ gfc_simplify_size (gfc_expr * array, gfc_expr * dim)
 	return NULL;
     }
 
-  result = gfc_constant_result (BT_INTEGER, gfc_default_integer_kind,
-				&array->where);
-
+  result = gfc_constant_result (BT_INTEGER, k, &array->where);
   mpz_set (result->value.integer, size);
-
   return result;
 }
 
 
 gfc_expr *
-gfc_simplify_sign (gfc_expr * x, gfc_expr * y)
+gfc_simplify_sign (gfc_expr *x, gfc_expr *y)
 {
   gfc_expr *result;
 
@@ -3606,7 +3891,7 @@ gfc_simplify_sign (gfc_expr * x, gfc_expr * y)
 
     case BT_REAL:
       /* TODO: Handle -0.0 and +0.0 correctly on machines that support
-         it.  */
+	 it.  */
       mpfr_abs (result->value.real, x->value.real, GFC_RND_MODE);
       if (mpfr_sgn (y->value.real) < 0)
 	mpfr_neg (result->value.real, result->value.real, GFC_RND_MODE);
@@ -3622,7 +3907,7 @@ gfc_simplify_sign (gfc_expr * x, gfc_expr * y)
 
 
 gfc_expr *
-gfc_simplify_sin (gfc_expr * x)
+gfc_simplify_sin (gfc_expr *x)
 {
   gfc_expr *result;
   mpfr_t xp, xq;
@@ -3664,7 +3949,7 @@ gfc_simplify_sin (gfc_expr * x)
 
 
 gfc_expr *
-gfc_simplify_sinh (gfc_expr * x)
+gfc_simplify_sinh (gfc_expr *x)
 {
   gfc_expr *result;
 
@@ -3673,7 +3958,7 @@ gfc_simplify_sinh (gfc_expr * x)
 
   result = gfc_constant_result (x->ts.type, x->ts.kind, &x->where);
 
-  mpfr_sinh(result->value.real, x->value.real, GFC_RND_MODE);
+  mpfr_sinh (result->value.real, x->value.real, GFC_RND_MODE);
 
   return range_check (result, "SINH");
 }
@@ -3683,7 +3968,7 @@ gfc_simplify_sinh (gfc_expr * x)
    single precision.  TODO: Rounding!  */
 
 gfc_expr *
-gfc_simplify_sngl (gfc_expr * a)
+gfc_simplify_sngl (gfc_expr *a)
 {
   gfc_expr *result;
 
@@ -3694,60 +3979,9 @@ gfc_simplify_sngl (gfc_expr * a)
   return range_check (result, "SNGL");
 }
 
-#if defined(GFC_MPFR_TOO_OLD)
+
 gfc_expr *
-gfc_simplify_spacing (gfc_expr * x)
-{
-  gfc_expr *result;
-  mpfr_t absv, log2;
-  long diff;
-  int i, p;
-
-  if (x->expr_type != EXPR_CONSTANT)
-    return NULL;
-
-  i = gfc_validate_kind (x->ts.type, x->ts.kind, false);
-
-  p = gfc_real_kinds[i].digits;
-
-  result = gfc_constant_result (BT_REAL, x->ts.kind, &x->where);
-
-  gfc_set_model_kind (x->ts.kind);
-
-  /* Special case x = 0 and -0.  */
-  mpfr_init (absv);
-  mpfr_abs (absv, x->value.real, GFC_RND_MODE);
-  if (mpfr_sgn (absv) == 0)
-    {
-      mpfr_set (result->value.real, gfc_real_kinds[i].tiny, GFC_RND_MODE);
-      return result;
-    }
-
-  mpfr_init (log2);
-  mpfr_log2 (log2, absv, GFC_RND_MODE);
-  mpfr_trunc (log2, log2);
-
-  mpfr_add_ui (log2, log2, 1, GFC_RND_MODE);
-
-  /* FIXME: We should be using mpfr_get_si here, but this function is
-     not available with the version of mpfr distributed with gmp (as of
-     2004-09-17). Replace once mpfr has been imported into the gcc cvs
-     tree.  */
-  diff = (long)mpfr_get_d (log2, GFC_RND_MODE) - (long)p;
-  mpfr_set_ui (result->value.real, 1, GFC_RND_MODE);
-  mpfr_mul_2si (result->value.real, result->value.real, diff, GFC_RND_MODE);
-
-  mpfr_clear (log2);
-  mpfr_clear (absv);
-
-  if (mpfr_cmp (result->value.real, gfc_real_kinds[i].tiny) < 0)
-    mpfr_set (result->value.real, gfc_real_kinds[i].tiny, GFC_RND_MODE);
-
-  return range_check (result, "SPACING");
-}
-#else
-gfc_expr *
-gfc_simplify_spacing (gfc_expr * x)
+gfc_simplify_spacing (gfc_expr *x)
 {
   gfc_expr *result;
   int i;
@@ -3782,10 +4016,10 @@ gfc_simplify_spacing (gfc_expr * x)
 
   return range_check (result, "SPACING");
 }
-#endif
+
 
 gfc_expr *
-gfc_simplify_sqrt (gfc_expr * e)
+gfc_simplify_sqrt (gfc_expr *e)
 {
   gfc_expr *result;
   mpfr_t ac, ad, s, t, w;
@@ -3806,7 +4040,7 @@ gfc_simplify_sqrt (gfc_expr * e)
 
     case BT_COMPLEX:
       /* Formula taken from Numerical Recipes to avoid over- and
-         underflow.  */
+	 underflow.  */
 
       gfc_set_model (e->value.real);
       mpfr_init (ac);
@@ -3818,7 +4052,6 @@ gfc_simplify_sqrt (gfc_expr * e)
       if (mpfr_cmp_ui (e->value.complex.r, 0) == 0
 	  && mpfr_cmp_ui (e->value.complex.i, 0) == 0)
 	{
-
 	  mpfr_set_ui (result->value.complex.r, 0, GFC_RND_MODE);
 	  mpfr_set_ui (result->value.complex.i, 0, GFC_RND_MODE);
 	  break;
@@ -3902,7 +4135,7 @@ negative_arg:
 
 
 gfc_expr *
-gfc_simplify_tan (gfc_expr * x)
+gfc_simplify_tan (gfc_expr *x)
 {
   int i;
   gfc_expr *result;
@@ -3921,7 +4154,7 @@ gfc_simplify_tan (gfc_expr * x)
 
 
 gfc_expr *
-gfc_simplify_tanh (gfc_expr * x)
+gfc_simplify_tanh (gfc_expr *x)
 {
   gfc_expr *result;
 
@@ -3938,7 +4171,7 @@ gfc_simplify_tanh (gfc_expr * x)
 
 
 gfc_expr *
-gfc_simplify_tiny (gfc_expr * e)
+gfc_simplify_tiny (gfc_expr *e)
 {
   gfc_expr *result;
   int i;
@@ -3953,20 +4186,103 @@ gfc_simplify_tiny (gfc_expr * e)
 
 
 gfc_expr *
-gfc_simplify_transfer (gfc_expr * source, gfc_expr *mold, gfc_expr * size)
+gfc_simplify_transfer (gfc_expr *source, gfc_expr *mold, gfc_expr *size)
 {
+  gfc_expr *result;
+  gfc_expr *mold_element;
+  size_t source_size;
+  size_t result_size;
+  size_t result_elt_size;
+  size_t buffer_size;
+  mpz_t tmp;
+  unsigned char *buffer;
 
-  /* Reference mold and size to suppress warning.  */
-  if (gfc_init_expr && (mold || size))
-    gfc_error ("TRANSFER intrinsic not implemented for initialization at %L",
-	       &source->where);
+  if (!gfc_is_constant_expr (source)
+	|| (gfc_init_expr && !gfc_is_constant_expr (mold))
+	|| !gfc_is_constant_expr (size))
+    return NULL;
 
-  return NULL;
+  if (source->expr_type == EXPR_FUNCTION)
+    return NULL;
+
+  /* Calculate the size of the source.  */
+  if (source->expr_type == EXPR_ARRAY
+      && gfc_array_size (source, &tmp) == FAILURE)
+    gfc_internal_error ("Failure getting length of a constant array.");
+
+  source_size = gfc_target_expr_size (source);
+
+  /* Create an empty new expression with the appropriate characteristics.  */
+  result = gfc_constant_result (mold->ts.type, mold->ts.kind,
+				&source->where);
+  result->ts = mold->ts;
+
+  mold_element = mold->expr_type == EXPR_ARRAY
+		 ? mold->value.constructor->expr
+		 : mold;
+
+  /* Set result character length, if needed.  Note that this needs to be
+     set even for array expressions, in order to pass this information into 
+     gfc_target_interpret_expr.  */
+  if (result->ts.type == BT_CHARACTER && gfc_is_constant_expr (mold_element))
+    result->value.character.length = mold_element->value.character.length;
+  
+  /* Set the number of elements in the result, and determine its size.  */
+  result_elt_size = gfc_target_expr_size (mold_element);
+  if (result_elt_size == 0)
+    {
+      gfc_free_expr (result);
+      return NULL;
+    }
+
+  if (mold->expr_type == EXPR_ARRAY || mold->rank || size)
+    {
+      int result_length;
+
+      result->expr_type = EXPR_ARRAY;
+      result->rank = 1;
+
+      if (size)
+	result_length = (size_t)mpz_get_ui (size->value.integer);
+      else
+	{
+	  result_length = source_size / result_elt_size;
+	  if (result_length * result_elt_size < source_size)
+	    result_length += 1;
+	}
+
+      result->shape = gfc_get_shape (1);
+      mpz_init_set_ui (result->shape[0], result_length);
+
+      result_size = result_length * result_elt_size;
+    }
+  else
+    {
+      result->rank = 0;
+      result_size = result_elt_size;
+    }
+
+  if (gfc_option.warn_surprising && source_size < result_size)
+    gfc_warning("Intrinsic TRANSFER at %L has partly undefined result: "
+		"source size %ld < result size %ld", &source->where,
+		(long) source_size, (long) result_size);
+
+  /* Allocate the buffer to store the binary version of the source.  */
+  buffer_size = MAX (source_size, result_size);
+  buffer = (unsigned char*)alloca (buffer_size);
+
+  /* Now write source to the buffer.  */
+  gfc_target_encode_expr (source, buffer, buffer_size);
+
+  /* And read the buffer back into the new expression.  */
+  gfc_target_interpret_expr (buffer, buffer_size, result);
+
+  return result;
 }
 
 
 gfc_expr *
-gfc_simplify_trim (gfc_expr * e)
+gfc_simplify_trim (gfc_expr *e)
 {
   gfc_expr *result;
   int count, i, len, lentrim;
@@ -4001,19 +4317,23 @@ gfc_simplify_trim (gfc_expr * e)
 
 
 gfc_expr *
-gfc_simplify_ubound (gfc_expr * array, gfc_expr * dim)
+gfc_simplify_ubound (gfc_expr *array, gfc_expr *dim, gfc_expr *kind)
 {
-  return simplify_bound (array, dim, 1);
+  return simplify_bound (array, dim, kind, 1);
 }
 
 
 gfc_expr *
-gfc_simplify_verify (gfc_expr * s, gfc_expr * set, gfc_expr * b)
+gfc_simplify_verify (gfc_expr *s, gfc_expr *set, gfc_expr *b, gfc_expr *kind)
 {
   gfc_expr *result;
   int back;
   size_t index, len, lenset;
   size_t i;
+  int k = get_kind (BT_INTEGER, kind, "VERIFY", gfc_default_integer_kind);
+
+  if (k == -1)
+    return &gfc_bad_expr;
 
   if (s->expr_type != EXPR_CONSTANT || set->expr_type != EXPR_CONSTANT)
     return NULL;
@@ -4023,8 +4343,7 @@ gfc_simplify_verify (gfc_expr * s, gfc_expr * set, gfc_expr * b)
   else
     back = 0;
 
-  result = gfc_constant_result (BT_INTEGER, gfc_default_integer_kind,
-				&s->where);
+  result = gfc_constant_result (BT_INTEGER, k, &s->where);
 
   len = s->value.character.length;
   lenset = set->value.character.length;
@@ -4043,8 +4362,8 @@ gfc_simplify_verify (gfc_expr * s, gfc_expr * set, gfc_expr * b)
 	  return result;
 	}
 
-      index =
-	strspn (s->value.character.string, set->value.character.string) + 1;
+      index = strspn (s->value.character.string, set->value.character.string)
+	    + 1;
       if (index > len)
 	index = 0;
 
@@ -4057,16 +4376,16 @@ gfc_simplify_verify (gfc_expr * s, gfc_expr * set, gfc_expr * b)
 	  return result;
 	}
       for (index = len; index > 0; index --)
-        {
-          for (i = 0; i < lenset; i++)
-            {
-              if (s->value.character.string[index - 1]
-                    == set->value.character.string[i])
-                break;
-            }
-          if (i == lenset)
-            break;
-        }
+	{
+	  for (i = 0; i < lenset; i++)
+	    {
+	      if (s->value.character.string[index - 1]
+		  == set->value.character.string[i])
+		break;
+	    }
+	  if (i == lenset)
+	    break;
+	}
     }
 
   mpz_set_ui (result->value.integer, index);
@@ -4075,7 +4394,7 @@ gfc_simplify_verify (gfc_expr * s, gfc_expr * set, gfc_expr * b)
 
 
 gfc_expr *
-gfc_simplify_xor (gfc_expr * x, gfc_expr * y)
+gfc_simplify_xor (gfc_expr *x, gfc_expr *y)
 {
   gfc_expr *result;
   int kind;
@@ -4092,13 +4411,12 @@ gfc_simplify_xor (gfc_expr * x, gfc_expr * y)
   else /* BT_LOGICAL */
     {
       result = gfc_constant_result (BT_LOGICAL, kind, &x->where);
-      result->value.logical = (x->value.logical && ! y->value.logical)
-			      || (! x->value.logical && y->value.logical);
+      result->value.logical = (x->value.logical && !y->value.logical)
+			      || (!x->value.logical && y->value.logical);
     }
 
   return range_check (result, "XOR");
 }
-
 
 
 /****************** Constant simplification *****************/
@@ -4109,7 +4427,7 @@ gfc_simplify_xor (gfc_expr * x, gfc_expr * y)
    do_simplify().  */
 
 gfc_expr *
-gfc_convert_constant (gfc_expr * e, bt type, int kind)
+gfc_convert_constant (gfc_expr *e, bt type, int kind)
 {
   gfc_expr *g, *result, *(*f) (gfc_expr *, int);
   gfc_constructor *head, *c, *tail = NULL;

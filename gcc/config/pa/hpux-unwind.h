@@ -29,6 +29,9 @@ Boston, MA 02110-1301, USA.  */
 /* Do code reading to identify a signal frame, and set the frame
    state data appropriately.  See unwind-dw2.c for the structs.  */
 
+/* Don't use this if inhibit_libc is set.
+   The build for this target will fail trying to include missing headers. */
+#ifndef inhibit_libc
 #include <signal.h>
 #include <sys/ucontext.h>
 #include <unistd.h>
@@ -147,9 +150,9 @@ pa_fallback_frame_state (struct _Unwind_Context *context,
        && *(pc + 0) == 0x4bc23fd1		/* ldw -18(sp),rp */
        && *(pc + 1) == 0xe840d002))		/* bve,n (rp) */
     {
-      fs->cfa_how    = CFA_REG_OFFSET;
-      fs->cfa_reg    = 30;
-      fs->cfa_offset = 0;
+      fs->regs.cfa_how    = CFA_REG_OFFSET;
+      fs->regs.cfa_reg    = 30;
+      fs->regs.cfa_offset = 0;
 
       fs->retaddr_column = 0;
       fs->regs.reg[0].how = REG_SAVED_OFFSET;
@@ -167,9 +170,9 @@ pa_fallback_frame_state (struct _Unwind_Context *context,
 	   && (*(pc + 1) == 0xe840c002		/* bv,n r0(rp) */
 	       || *(pc + 1) == 0xe840d002))	/* bve,n (rp) */
     {
-      fs->cfa_how    = CFA_REG_OFFSET;
-      fs->cfa_reg    = 30;
-      fs->cfa_offset = 0;
+      fs->regs.cfa_how    = CFA_REG_OFFSET;
+      fs->regs.cfa_reg    = 30;
+      fs->regs.cfa_offset = 0;
 
       fs->retaddr_column = 0;
       fs->regs.reg[0].how = REG_SAVED_OFFSET;
@@ -239,9 +242,9 @@ pa_fallback_frame_state (struct _Unwind_Context *context,
 
       long new_cfa = GetSSReg (mc, ss_sp);
 
-      fs->cfa_how = CFA_REG_OFFSET;
-      fs->cfa_reg = 30;
-      fs->cfa_offset = new_cfa - (long) context->cfa;
+      fs->regs.cfa_how = CFA_REG_OFFSET;
+      fs->regs.cfa_reg = 30;
+      fs->regs.cfa_offset = new_cfa - (long) context->cfa;
 
       UPDATE_FS_FOR_GR (fs, 1, 1);
       UPDATE_FS_FOR_GR (fs, 2, 2);
@@ -358,3 +361,4 @@ pa_fallback_frame_state (struct _Unwind_Context *context,
 
   return _URC_END_OF_STACK;
 }
+#endif /* inhibit_libc */

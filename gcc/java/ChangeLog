@@ -1,6 +1,77 @@
-2008-05-19  Release Manager
+2009-08-04  Release Manager
 
-	* GCC 4.2.4 released.
+	* GCC 4.3.4 released.
+
+2009-01-24  Release Manager
+
+	* GCC 4.3.3 released.
+
+2008-12-04  Janis Johnson  <janis187@us.ibm.com>
+
+	Backport from mainline:
+	2008-10-18  Jakub Jelinek  <jakub@redhat.com>
+	            Janis Johnson  <janis187@us.ibm.com>
+
+	* Make-lang.in (check-java-subtargets): New target.
+
+contrib/
+	* dg-extract-results.sh: New file.
+gcc/
+	* Makefile.in (lang_checks_parallelized, check_gcc_parallelize,
+	check_p_tool, check_p_vars, check_p_subno, check_p_comma,
+	check_p_subwork, check_p_numbers, check_p_subdir, check_p_subdirs):
+	New variables.
+	(check-subtargets, check-%-subtargets, check-parallel-%): New
+	targets.
+	(check-%): For test targets listed in lang_checks_parallelized
+	if -j is used and RUNTESTFLAGS doesn't specify tests to execute,
+	run the testing in multiple make goals, possibly parallel, and
+	afterwards run dg-extract-results.sh to merge the sum and log files.
+gcc/cp/
+	* Make-lang.in (check-c++-subtargets): New alias for
+	check-g++-subtargets.
+	(lang_checks_parallelized): Add check-g++.
+	(check_g++_parallelize): New variable.
+gcc/fortran/
+	* Make-lang.in (check-f95-subtargets, check-fortran-subtargets): New
+	aliases for check-gfortran-subtargets.
+	(lang_checks_parallelized): Add check-gfortran.
+	(check_gfortran_parallelize): New variable.
+gcc/ada/
+	* Make-lang.in (check-ada-subtargets): Depend on
+	check-acats-subtargets and check-gnat-subtargets.
+	(check_acats_targets): New variable.
+	(check-acats-subtargets, check-acats%): New targets.
+	(check-acats): If -j is used and CHAPTERS is empty, run the testing
+	in multiple make goals, possibly parallel, and afterwards run
+	dg-extract-results.sh to merge the sum and log files.
+gcc/java/
+	* Make-lang.in (check-java-subtargets): New target.
+libstdc++-v3/
+	* testsuite/Makefile.am (AUTOMAKE_OPTIONS): Remove dejagnu.
+	(RUNTESTDEFAULTFLAGS, EXPECT, check_DEJAGNU_normal_targets): New
+	variables.
+	(%/site.exp, check-DEJAGNU%): New targets.
+	(check-am): Run $(MAKE) check-DEJAGNU.
+	* testsuite/Makefile.in: Regenerated.
+2008-10-14  Andrew Haley  <aph@redhat.com>
+
+	* constants.c (build_constant_data_ref): Make sure we only build
+	one copy of the decl for the constant pool.
+
+2008-08-27  Release Manager
+
+	* GCC 4.3.2 released.
+
+2008-06-14  Tom Tromey  <tromey@redhat.com>
+
+	PR java/36247:
+	* class.c (build_class_ref): Initialize this_classdollar when
+	needed.
+
+2008-06-06  Release Manager
+
+	* GCC 4.3.1 released.
 
 2008-04-01  Joseph Myers  <joseph@codesourcery.com>
 
@@ -8,15 +79,280 @@
 	* Make-lang.in (TEXI_JAVA_FILES): Include gpl_v3.texi instead of
 	gpl.texi.
 
-2008-02-01  Release Manager
+2008-03-06  Andrew Haley  <aph@redhat.com>
 
-	* GCC 4.2.3 released.
+	* jcf-parse.c (give_name_to_class): Call find_sourcefile to find
+	full pathname of source file.
 
-2007-10-07  Release Manager
+2008-03-05  Release Manager
 
-	* GCC 4.2.2 released.
+	* GCC 4.3.0 released.
 
-2007-08-29  Nick Clifton  <nickc@redhat.com>
+2008-03-02  Jakub Jelinek  <jakub@redhat.com>
+
+	* jcf-dump.c (version): Update copyright notice dates.
+
+2008-02-06  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	PR other/35107
+	* Make-lang.in (jc1): Add $(GMPLIBS).
+
+2008-01-23  David Daney  <ddaney@avtrex.com>
+
+	* class.c (hide)  Rename to...
+	(java_hide_decl) ... this throughout, and make public.
+	* resource.c (Jr_count): Remove.
+	(compile_resource_data): Call java_mangle_resource_name to generate
+	decl name.  Make resource decl public and hidden.
+	* mangle.c (java_mangle_resource_name): New function.
+	* java-tree.h (java_hide_decl, java_mangle_resource_name): Declare
+	functions.
+
+2008-01-04  Andrew Haley  <aph@redhat.com>
+
+	PR java/17779
+	* jcf-parse.c (parse_zip_file_entries): Move decl to compile on
+	C90.
+
+2008-01-03  Andrew Haley  <aph@redhat.com>
+
+	PR java/17779
+	* jcf-parse.c (parse_zip_file_entries): Unset TYPE_ALIAS_SET if
+	we're about to re-layout the type.
+
+2007-12-20  Alexandre Oliva  <aoliva@redhat.com>
+
+	* lang.c (java_classify_record): Don't return
+	RECORD_IS_INTERFACE for now.
+
+2007-12-18  Andrew Haley  <aph@redhat.com>
+
+	PR java/27643
+	* jcf-parse.c (java_parse_file): Remove call to
+	java_mark_class_local.
+	(parse_class_file): Reinstate call to java_mark_class_local here.
+	* decl.c (java_mark_cni_decl_local): If the ASSEMBLER_NAME is
+	already set, call java_mangle_decl() and make_decl_rtl() to
+	rewrite its name as a hidden alias.
+
+2007-12-15  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/7081
+	* lang.c (java_classify_record): New.
+	(LANG_HOOKS_CLASSIFY_RECORD): Override.
+
+2007-11-26  Andreas Krebbel  <krebbel1@de.ibm.com>
+
+	PR 34081/C++
+	* decl.c (finish_method): Pass 'false' for the new
+	allocate_struct_function parameter.
+
+2007-11-26  Alexandre Oliva  <aoliva@redhat.com>
+
+	* expr.c (build_jni_stub): Use the computed jni func type for
+	variable meth.
+
+2007-11-26  Alexandre Oliva  <aoliva@redhat.com>
+
+	* class.c (JAVA_TREEHASHHASH_H): Use TYPE_UID.
+
+2007-11-26  Alexandre Oliva  <aoliva@redhat.com>
+
+	* expr.c (type_assertion_hash): Hash type uids rather than
+	tree pointers.
+
+2007-11-17  David Daney  <ddaney@avtrex.com>
+	    Andrew Haley  <aph@redhat.com>
+
+	* constants.c (build_constants_constructor):  Use POINTER_SIZE
+	insead of BITS_PER_WORD in big-endian work around.
+
+2007-11-07  Tom Tromey  <tromey@redhat.com>
+
+	PR java/34019:
+	* gcj.texi (Input Options): Add missing noun.
+
+2007-11-02  Tom Tromey  <tromey@redhat.com>
+
+	PR java/33765:
+	* jcf-parse.c (java_parse_file): Ignore ZIPEMPTYMAGIC files.
+	* zipfile.h (ZIPEMPTYMAGIC): New define.
+
+2007-11-01  Tom Tromey  <tromey@redhat.com>
+
+	* Make-lang.in (java/jcf-dump.o): Depend on zipfile.h.
+	(java/jcf-parse.o): Depend on jcf-reader.c, zipfile.h, and jcf.h.
+	(java/jcf-io.o): Depend on zipfile.h.
+
+2007-10-17  Richard Guenther  <rguenther@suse.de>
+
+	* Make-lang.in (java/builtins.o): Add $(OPTABS_H) and $(EXPR_H)
+	dependencies.
+
+2007-10-03  Andrew Haley  <aph@redhat.com>
+
+	PR java/33639
+	* class.c (mangled_classname): Detect and replace illegal
+	characters in assembly language symbols.
+	(gen_indirect_dispatch_tables): Call mangled_classname() on
+	the type.
+
+2007-09-27  Jakub Jelinek  <jakub@redhat.com>
+
+	* lang.c (java_print_error_function): Add third argument.
+
+2007-09-15  Tom Tromey  <tromey@redhat.com>
+
+	* java-tree.h (struct lang_decl_func) <function_decl_body>:
+	Remove.
+	<init_final>: Likewise.
+	* lang.c (java_dump_tree): Update.
+	* java-tree.h (DECL_FUNCTION_BODY): Remove.
+
+2007-09-11  Jan Hubicka <jh@suse.cz>
+
+	* decl.c (java_expand_body): Kill.
+	(LANG_HOOKS_CALLGRAPH_EXPAND_FUNCTION): Kill.
+
+2007-09-06  Tom Tromey  <tromey@redhat.com>
+
+	* jcf-parse.c (parse_class_file): Re-enter the current file.
+
+2007-09-07  Roman Zippel  <zippel@linux-m68k.org>
+
+	* boehm.c (mark_reference_fields): Move misaligned pointer check
+	after JREFERENCE_TYPE_P test
+
+2007-09-06  Roman Zippel  <zippel@linux-m68k.org>
+
+	* boehm.c (mark_reference_fields): Don't use bitmap as gc_descr
+	if pointer is misaligned.
+
+2007-09-06  Tom Tromey  <tromey@redhat.com>
+
+	* lang.c (java_post_options): Update.
+	* jcf-parse.c (set_source_filename): Update.
+	(give_name_to_class): Update.
+	(jcf_parse): Update.
+	(duplicate_class_warning): Update.
+	(parse_class_file): Update.
+	(java_parse_file): Update.
+	* expr.c (expand_byte_code): Update.
+
+2007-09-05  Sandra Loosemore  <sandra@codesourcery.com>
+
+	* decl.c (finish_method): Use set_cfun.
+
+2007-09-04  Andrew Haley  <aph@redhat.com>
+
+	* decl.c (java_init_decl_processing): Call "__cxa_end_cleanup"
+	when using the ARM EABI.
+
+2007-09-03  Daniel Jacobowitz  <dan@codesourcery.com>
+
+	* Make-lang.in (jvspec.o): Remove SHLIB_MULTILIB.
+
+2007-09-03  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* jcf-parse.c (read_class, java_parse_file): Supply a TYPE for
+	CONST_CAST.
+	* jcf.h (JCF_FINISH): Likewise.
+
+2007-08-28  Tom Tromey  <tromey@redhat.com>
+
+	* Make-lang.in (java.tags): Don't tag '*.y' files.
+
+2007-08-25  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* lang.c (java_decl_ok_for_sibcall): Likewise.
+
+2007-08-21  Paul Brook  <paul@codesourcery.com>
+	    Nathan Sidwell  <nathan@codesourcery.com>
+	    Mark Mitchell  <mark@codesourcery.com>
+	    Joseph Myers  <joseph@codesourcery.com>
+
+	* jcf-dump.c (version): Use pkgversion_string.  Update copyright
+	date.
+
+2007-08-20  Richard Guenther  <rguenther@suse.de>
+
+	* lang.c (java_tree_inlining_walk_subtrees): Remove.
+	(LANG_HOOKS_TREE_INLINING_WALK_SUBTREES): Remove.
+
+2007-08-17  Tom Tromey  <tromey@redhat.com>
+
+	* typeck.c (find_method_in_interfaces): Update.
+	* jcf-parse.c (load_class): Update.
+	* java-gimplify.c (java_gimplify_component_ref): Removed.
+	(java_gimplify_modify_expr): Update.  Removed pre_p and post_p
+	arguments.
+	(java_gimplify_expr): Update.
+	* decl.c (java_init_decl_processing): Update.
+	* class.c (set_constant_value): Update.
+	(make_class_data): Update.
+	(finish_class): Update.
+	(build_static_field_ref): Update.
+	(is_compiled_class): Update.
+	(maybe_layout_super_class): Update.
+	(layout_class): Update.
+	(layout_class_method): Update.
+	* java-tree.h (CAN_COMPLETE_NORMALLY): Removed.
+	(lang_decl_var) <am, final_iud, cif>: Removed fields.
+	(lang_decl_func) <init_calls_this>: Removed field.
+	(lang_type) <dot_class, verify_method>: Removed fields.
+	(FIELD_NESTED_ACCESS): Removed.
+	(FIELD_NESTED_ACCESS_P): Removed.
+	(DECL_FIELD_FINAL_IUD): Removed.
+	(DECL_LOCAL_FINAL_IUD): Removed
+	(LOCAL_FINAL_P): Removed.
+	(FINAL_VARIABLE_P): Removed.
+	(CLASS_FINAL_VARIABLE_P): Removed.
+	(DECL_BIT_INDEX): Removed.
+	(DECL_INIT_CALLS_THIS): Removed.
+	(FIELD_LOCAL_ALIAS): Removed.
+	(FIELD_LOCAL_ALIAS_USED): Removed.
+	(FIELD_THISN): Removed.
+	(DECL_FUNCTION_INIT_TEST_CLASS): Removed.
+	(LOCAL_CLASS_INITIALIZATION_FLAG): Removed.
+	(LOCAL_CLASS_INITIALIZATION_FLAG_P): Removed.
+	(TYPE_DOT_CLASS): Removed.
+	(TYPE_VERIFY_METHOD): Removed.
+	(ID_CLASSDOLLAR_P): Removed.
+	(enum java_tree_index) <JTI_CLASSDOLLAR_IDENTIFIER_NODE>:
+	Removed.
+	(classdollar_identifier_node): Removed.
+	(TYPE_UNKNOWN): Removed.
+	(CLASS_FROM_SOURCE_P): Removed.
+	* expr.c (build_jni_stub): Update.
+	(force_evaluation_order): Update.
+	(build_java_empty_stmt): Update.
+	(build_class_init): Update.
+	(java_stack_swap): Update.
+	(build_jni_stub): Update.
+
+2007-08-17  Tom Tromey  <tromey@redhat.com>
+
+	* java-tree.h (LABEL_TYPE_STATE): Removed.
+	(load_type_state): Removed.
+	(LABEL_PC): Removed.
+	(LABEL_VERIFIED): Removed.
+	(type_states): Declare.
+	* expr.c (type_states): New global.
+	(load_type_state): Now static.  Use type_states.  Changed
+	argument.
+	(lookup_label): Don't set LABEL_PC.
+	(expand_byte_code): Don't use LABEL_VERIFIED.
+	(note_instructions): Initialize type_states.
+	* verify-glue.c (vfy_note_stack_depth): Rewrote.
+	(vfy_note_stack_type): Use type_states.
+	(vfy_note_local_type): Likewise.
+
+2007-08-10  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* jcf-parse.c (read_class, java_parse_file): Use CONST_CAST.
+	* jcf.h (JCF_FINISH): Likewise.
+
+2007-07-31  Nick Clifton  <nickc@redhat.com>
 
 	* java-gimplify.c: Change copyright header to refer to version 3
 	of the GNU General Public License and to point readers at the
@@ -29,30 +365,1023 @@
 	verify.h, java-except.h, win32-host.c, expr.c, jvgenmain.c,
 	parse.h, lang.c, java-tree.h, javaop.h, boehm.c: Likewise.
 
-2007-07-19  Release Manager
+2007-07-30  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
 
-	* GCC 4.2.1 released.
+	* jcf-io.c (find_class): Fix -Wcast-qual warnings.
 
-2007-05-13  Release Manager
+2007-07-29  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
 
-	* GCC 4.2.0 released.
+	* lang.c (java_get_callee_fndecl): Constify.
 
-2007-03-16  Mark Mitchell  <mark@codesourcery.com>
+2007-07-27  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
 
-	* Make-lang.in (java.srcextra): Remove dependency.
-	(java_parse_c): New variable.
-	(java/parse.c): Replace with ...
-	($(java_parse_c)): ... this.
-	(java/parse.o): Depend on $(java_parse_c).
-	
+	* mangle.c (set_type_package_list): Constify.
+	* verify-glue.c (vfy_make_string): Delete.
+	* verify.h (vfy_make_string): Likewise.
+
+2007-07-26  Tom Tromey  <tromey@redhat.com>
+
+	* java-tree.h (push_labeled_block, pop_labeled_block): Remove.
+	(LABELED_BLOCK_LABEL, LABELED_BLOCK_BODY,
+	EXIT_BLOCK_LABELED_BLOCK): Likewise.
+	* lang.c (java_tree_inlining_walk_subtrees): Update.
+	(java_dump_tree): Likewise.
+	* java-tree.def (LABELED_BLOCK_EXPR, EXIT_BLOCK_EXPR, TRY_EXPR):
+	Remove.
+	* decl.c (push_labeled_block, pop_labeled_block): Remove.
+	* java-gimplify.c (java_gimplify_labeled_block_expr,
+	java_gimplify_exit_block_expr, java_gimplify_try_expr): Remove.
+	(java_gimplify_expr): Update.
+
+2007-07-25  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* class.c (java_treetreehash_hash, java_treetreehash_compare):
+	Constify. 
+	* expr.c (type_assertion_eq): Likewise.
+	* jcf-io.c (compare_path): Likewise.
+	* jcf-parse.c (cmpstringp): Likewise.
+	* verify-impl.c (get_one_type, compute_argument_types,
+	compute_return_type): Likewise. 
+
+2007-07-16  Rainer Orth  <ro@TechFak.Uni-Bielefeld.DE>
+
+	PR target/32462
+	PR libgcj/32465
+	* class.c (hide): Wrap in HAVE_GAS_HIDDEN.
+
+2007-07-12  Richard Guenther  <rguenther@suse.de>
+
+	* expr.c (expand_java_return): RETURN_EXPR has void type.
+	(build_jni_stub): Likewise.  Use a comparison against zero
+	for null-pointer test in COND_EXPR.
+	(build_field_ref): Build POINTER_PLUS_EXPR with correct
+	type.  Convert result instead.
+	(build_invokevirtual): Likewise.
+
+2007-07-09  Geoffrey Keating  <geoffk@apple.com>
+
+	PR 32617
+	* lang.c (java_init): Remove setting of force_align_functions_log.
+	* class.c (add_method_1): Set DECL_ALIGN of non-static method
+	to cope with ptrmemfunc_vbit_in_pfn.
+
+2007-07-03  David Daney  <ddaney@avtrex.com>
+
+	* java/Make-lang.in (doc/gcj.info): Add $(gcc_docdir) to 
+	include path.
+	(doc/gcj.dvi): Same.
+	(doc/gcj.pdf): Same.
+	(java/index.html): Same.
+
+2007-06-15 Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	* class.c (make_class_data): Build the index in sizetype.
+	Use POINTER_PLUS_EXPR instead of PLUS_EXPR when
+	adding to a pointer type.
+	(build_symbol_entry): Likewise.
+	* expr.c (build_java_arrayaccess): Likewise.
+	(build_field_ref): Likewise.
+	(build_known_method_ref): Likewise.
+	(build_invokevirtual): Likewise.
+	* except.c (build_exception_object_ref): Do a
+	NEGATIVE and then a POINTER_PLUS_EXPR instead
+	of a MINUS_EXPR.
+
+2007-06-11  Rafael Avila de Espindola  <espindola@google.com>
+
+	* typeck.c (java_signed_type): Remove.
+	* lang.c (LANG_HOOKS_SIGNED_TYPE): Remove.
+	* java-tree.h (java_signed_type): Remove.
+
+2007-05-18  Geoffrey Keating  <geoffk@apple.com>
+
+	* jcf-dump.c (HANDLE_MAGIC): Use 'unsigned long' for %lx.
+	(print_constant): Likewise.
+
+2007-05-14  Rafael Avila de Espindola  <espindola@google.com>
+
+	* expr.c (build_java_binop): Use unsigned_type_for instead of
+	java_unsigned_type.
+	* java-tree.h (java_unsigned_type): Remove.
+	* lang.c (LANG_HOOKS_UNSIGNED_TYPE): Remove.
+	* typeck.c (java_unsigned_type): Remove.
+
+2007-04-21  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	* java-tree.h (lang_tree_node): Use GENERIC_NEXT
+	instead of checking GIMPLE_STMT_P in chain_next.
+
+2007-04-06  Colin Walters  <walters@redhat.com>
+
+	https://bugzilla.redhat.com/bugzilla/show_bug.cgi?id=161701
+	* jcf-io.c (open_class): Copy 'filename'.
+
+2007-04-03  Andrew Haley  <aph@redhat.com>
+
+        * jvgenmain.c (main): Change main to use class$, not class$$.
+        (do_mangle_classname): Likewise.
+        * class.c (hide): New function.
+        (add_field): Hide everything that shouldn't be visible outside a
+        DSO.
+        (build_static_class_ref): Likewise.
+        (build_classdollar_field): Likewise.
+        (make_class_data): Likewise.
+        (layout_class_method): Likewise.
+        * expr.c (special_method_p): New function.
+
+	* class.c (push_class): Don't bogusly guess the source filename.
+	* jcf-parse.c (give_name_to_class): Don't set input_location from
+	DECL_ARTIFICIAL decls.
+
+2007-03-30  Rafael Avila de Espindola  <espindola@google.com>
+
+	* typeck.c (java_signed_or_unsigned_type): Removed.
+	(java_signed_type): use get_signed_or_unsigned_type instead of
+	java_signed_or_unsigned_type.
+	(java_unsigned_type): Ditto.
+	* lang.c (LANG_HOOKS_SIGNED_OR_UNSIGNED_TYPE): Removed.
+	* java-tree.h (java_signed_or_unsigned_type): Removed.
+
+2007-03-26  Tom Tromey  <tromey@redhat.com>
+
+	* Make-lang.in (JAVA_MANFILES): Removed grmiregistry.1.
+	(java.maintainer-clean): Likewise.
+	(java.install-man): Likewise.
+	(.INTERMEDIATE): Removed grmiregistry.pod.
+	(grmiregistry.pod): Removed.
+	* gcj.texi (Invoking gcjh): Removed.
+	(Invoking gjnih): Likewise.
+	(Invoking grmiregistry): Likewise.
+	(direntry): Updated.
+	(Top): Likewise.
+	(which-gcj): Removed.
+
+2007-03-01  Brooks Moses  <brooks.moses@codesourcery.com>
+
+	* Make-lang.in: Add install-pdf target as copied from
+	automake v1.10 rules.
+
 2007-02-27  Brooks Moses  <brooks.moses@codesourcery.com>
 
 	* gcj.texi: Standardize title page.
+
+2007-02-18  Kazu Hirata  <kazu@codesourcery.com>
+
+	* class.c: Fix a comment typo.
+
+2007-02-15  Sandra Loosemore  <sandra@codesourcery.com>
+	    Brooks Moses  <brooks.moses@codesourcery.com>
+	    Lee Millward  <lee.millward@codesourcery.com>
+
+	* java-tree.h (BUILD_MONITOR_ENTER): Use build_call_nary instead
+	of build3.
+	(BUILD_MONITOR_EXIT): Likewise.
+
+	* java-gimplify.c (java_gimplify_component_ref): Use build_call_expr.
+	(java_gimplify_modify_expr): Likewise.
+
+	* class.c (cache_this_class_ref): Use build_call_expr.
+	(build_static_field_ref): Likewise.
+	(emit_indirect_register_classes): Likewise.
+	(emit_register_classes): Likewise.
+
+	* resource.c (write_resource_constructor): Use build_call_expr.
+
+	* builtins.c (builtin_creator_function): Change interpretation of
+	the second parameter to be the whole CALL_EXPR instead of the arglist.
+	(max_builtin): Tweak parameter list.  Use new CALL_EXPR accessors.
+	(min_builtin): Likewise.
+	(abs_builtin): Likewise.
+	(java_build_function_call_expr): Likewise.
+	(convert_real): Likewise.
+	(UNMARSHAL3): Likewise.
+	(UNMARSHAL4): Likewise.
+	(UNMARSHAL5): Likewise.
+	(build_arglist_for_builtin): Delete.  Fix callers to use
+	build_call_expr instead.
+	(putObject_builtin): Tweak parameter list.  Use new CALL_EXPR
+	accessors.
+	(compareAndSwapInt_builtin): Likewise.
+	(compareAndSwapLong_builtin): Likewise.
+	(compareAndSwapObject_builtin): Likewise.
+	(putVolatile_builtin): Likewise.
+	(getVolatile_builtin): Likewise.
+	(VMSupportsCS8_builtin): Likewise.
+	(check_for_builtin): Pass entire CALL_EXPR to builtin expander
+	instead of arglist.
+
+	* expr.c (build_java_athrow): Use build_call_nary instead of build3.
+	(build_java_throw_out_of_bounds_exception): Likewise.
+	(java_check_reference): Likewise.
+	(build_java_arraystore_check): Likewise.
+	(build_newarray): Likewise.
+	(build_anewarray): Likewise.
+	(expand_java_multinewarray): Use build_call_list instead of build3.
+	(build_java_monitor): Use build_call_nary instead of build3.
+	(java_create_object): Likewise.
+	(expand_java_NEW): Likewise.
+	(build_instanceof): Likewise.
+	(expand_java_CHECKCAST): Likewise.
+	(build_java_soft_divmod): Likewise.
+	(build_java_binop): Likewise.
+	(build_field_ref): Likewise.
+	(build_class_init): Likewise.
+	(rewrite_arglist_getcaller): Use build_call_expr.
+	(build_invokeinterface):  Use build_call_nary instead of build3.
+	(expand_invoke): Use build_call_list instead of build3.
+	(build_jni_stub): Use build_call_nary, build_call_list, or
+	build_call_expr instead	of build3.
+	(expand_java_field_op): Use build_call_expr instead of build3.
+	(force_evaluation_order): Use new CALL_EXPR accessors.
+
+	* lang.c (java_get_callee_fndecl): Use new CALL_EXPR accessors.
+
+2007-02-15  David Daney  <ddaney@avtrex.com>
+
+	* Make-lang.in (JAVA_MANFILES): Add doc/gc-analyze.1.
+	(java.maintainer-clean):Add gc-analyze.1.
+	(.INTERMEDIATE): Add gc-analyze.pod.
+	(gc-analyze.pod): New rule.
+	(java.install-man): Install gc-analyze.1
+	* gcj.texi: Add new section for the gc-analyze program.
+
+2007-02-07  Andrew Haley  <aph@redhat.com>
+
+	* class.c (uncache_this_class_ref): New.
+	* expr.c (build_jni_stub): Initialize the class.
+	(expand_byte_code): Call uncache_this_class_ref after generating
+	code.
+
+2007-02-06  Tom Tromey  <tromey@redhat.com>
+
+	PR java/30714:
+	* jvspec.c (lang_specific_driver): Check for the '-' in '-I'.
+
+2007-02-03  Kazu Hirata  <kazu@codesourcery.com>
+
+	* java-tree.h, javaop.def, jcf-parse.c: Fix comment typos.
+
+2007-02-02  Andrew Haley  <aph@redhat.com>
+
+	* expr.c (expand_byte_code): Call cache_this_class_ref() and
+	cache_cpool_data_ref().
+	Set TYPE_CPOOL_DATA_REF.
+	(cache_cpool_data_ref): New function.
+	* constants.c (build_ref_from_constant_pool): Remove special-case
+	code for flag_indirect_classes.
+	(build_constant_data_ref): Move special-case code for
+	flag_indirect_classes here from build_ref_from_constant_pool.
+	* decl.c (finish_method): Move class initialization from here to
+	cache_this_class_ref.
+	* class.c (cache_this_class_ref): New function.
+	(build_class_ref): Use this_classdollar for the ouput class.
+
+2007-02-02  David Daney  <ddaney@avtrex.com>
+
+	* class.c (is_compiled_class): Move check to avoid reloading
+	current class.
+	(layout_class_method): Don't calculate DECL_EXTERNAL if it is
+	already set.
+
+2007-02-01  Andrew Haley  <aph@redhat.com>
+
+	PR java/30641
+	* jcf-parse.c (jcf_parse): Clear the field_offsets bitmap.
+
+2007-01-31  Kazu Hirata  <kazu@codesourcery.com>
+
+	* class.c, jcf-parse.c: Fix comment typos.
+
+2007-01-30  Tom Tromey  <tromey@redhat.com>
+
+	* gcj.texi (Strings): Fix documentation for JvNewString.
+
+2007-01-30  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* gcj.texi (Invoking gcjh, Invoking gjnih, Arrays): Fix some
+	typos.
+
+2007-01-30  Ben Elliston  <bje@au.ibm.com>
+
+	* jvspec.c (lang_specific_driver): Remove unused classpath_args.
+
+2007-01-29  Tom Tromey  <tromey@redhat.com>
+
+	PR java/30607:
+	* jvspec.c (lang_specific_driver): Handle separate -I argument.
+	* lang.opt (-I): Add 'Separate'.
+
+2007-01-29  Andrew Haley  <aph@redhat.com>
+
+	* class.c (add_method_1): Mark fndecl as external unless we are
+	compiling it into this object file.
+
+2007-01-24  Andrew Haley  <aph@redhat.com>
+
+	* jcf-parse.c (HANDLE_SYNTHETIC_ATTRIBUTE): current_class is a
+	type node, not a decl, so use TYPE_SYNTHETIC not CLASS_SYNTHETIC.
+
+2007-01-22  Andrew Haley  <aph@redhat.com>
+
+	* builtins.c (VMSupportsCS8_builtin): New function.
+
+2007-01-23  Andrew Pinski  <pinskia@gmail.com>
+
+	PR java/30454
+	* jcf-io.c (opendir_in_zip): Close the file
+	and free zipf before returning after an error.
+
+2007-01-16  Tom Tromey  <tromey@redhat.com>
+
+	* java-tree.def: Added copyright header.
+
+2007-01-15  Tom Tromey  <tromey@redhat.com>
+
+	* lang.c (dump_compound_expr) <EXPR_WITH_FILE_LOCATION>: Removed
+	case.
+	* java-gimplify.c (java_gimplify_expr) <EXPR_WITH_FILE_LOCATION>:
+	Removed case.
+	* java-tree.h (EXPR_WFL_EMIT_LINE_NOTE): Removed.
+	(EXPR_WFL_NODE): Likewise.
+	(EXPR_WFL_LINECOL): Likewise.
+	(EXPR_WFL_FILENAME): Likewise.
+	(EXPR_WFL_LINENO): Likewise.
+	(build_expr_wfl, expr_add_location): Don't declare.
+	(build_unknown_wfl): Removed.
+	(EXPR_WFL_FILENAME_NODE): Removed.
+	(EXPR_WFL_COLNO): Removed.
+	(EXPR_WFL_SET_LINECOL): Removed.
+	(DECL_FUNCTION_WFL): Removed.
+	(DECL_FIELD_FINAL_WFL): Removed.
+	(struct lang_decl_func) <wfl>: Removed field.
+	<called_constructor>: Likewise.
+	<inner_access>: Likewise.
+	(struct lang_decl_var) <wfl>: Removed field.
+	(DECL_CONSTRUCTOR_CALLS): Removed.
+	(DECL_FUNCTION_ACCESS_DECL): Likewise.
+	(DECL_FUNCTION_INNER_ACCESS): Likewise.
+	(DECL_SPECIFIC_COUNT): Likewise.
+	* java-tree.def (EXPR_WITH_FILE_LOCATION): Removed.
+	* expr.c (build_expr_wfl): Removed.
+	(expr_add_location): Likewise.
+
+2007-01-12  Tom Tromey  <tromey@redhat.com>
+
+	* jcf-dump.c (main): Updated call to find_class.
+	* lang.c (java_init): Removed dead code.
+	* jcf-parse.c (read_class): Don't use java_source field.  Removed
+	dead code.
+	(parse_zip_file_entries): Don't use java_source field.
+	(process_zip_dir): Likewise.
+	(jcf_parse): Removed dead code.
+	(java_parse_file): Likewise.
+	(read_class): Updated call to find_class.
+	* jcf-io.c (find_class): Don't use java_source field.  Removed
+	'source_ok' argument, .java logic.
+	* jcf.h (JCF) <java_source>: Removed field.
+	(JCF_ZERO): Updated.	(find_class): Updated.
+	* decl.c: Removed dead code.
+	* class.c: Removed dead code.
+
+2007-01-11  Tom Tromey  <tromey@redhat.com>
+
+	* typeck.c (convert): Don't use flag_emit_class_files.
+	* lang.c (java_post_options): Don't use flag_emit_class_files.
+	(java_handle_option): Don't use flag_extraneous_semicolon or
+	flag_redundant.
+	* jcf-parse.c (HANDLE_CONSTANTVALUE): Don't use
+	flag_emit_class_files.
+	(load_class): Likewise.
+	* java-tree.h (flag_emit_class_files): Don't declare.
+	(STATIC_CLASS_INIT_OPT_P): Don't use flag_emit_class_files.
+	(flag_extraneous_semicolon): Don't declare.
+	(flag_not_overriding): Likewise.
+	(flag_static_local_jdk1_1): Likewise.
+	(flag_redundant): Likewise.
+	* expr.c (build_newarray): Don't use flag_emit_class_files.
+	* class.c (DEFAULT_ENABLE_ASSERT): Don't use
+	flag_emit_class_files.
+	(build_class_ref): Likewise.
+	* builtins.c (check_for_builtin): Don't use
+	flag_emit_class_files.
+
+2007-01-10  Tom Tromey  <tromey@redhat.com>
+
+	* lang.c (java_can_use_bit_fields_p): Removed.
+	(LANG_HOOKS_CAN_USE_BIT_FIELDS_P): Removed.
+
+2007-01-09  Andrew Haley  <aph@redhat.com>
+
+	* expr.c (build_java_arrayaccess): Rewrite to generate array
+	access in canonical form.
+	(expand_java_arraystore): Use build_fold_addr_expr() on address of
+	array access.
+
+2007-01-03  Andrew Haley  <aph@redhat.com>
+
+	PR java/28754
+	* expr.c (expand_java_field_op): If we're initializing a field's
+	declaring interface we should not also initialize the class
+	context in which it was referenced.
+
+2007-01-02  Tom Tromey  <tromey@redhat.com>
+
+	* java-tree.h (compiling_from_source, current_encoding,
+	JTI_FINIT_IDENTIFIER_NODE, JTI_INSTINIT_IDENTIFIER_NODE,
+	JTI_LENGTH_IDENTIFIER_NODE, JTI_SUPER_IDENTIFIER_NODE,
+	JTI_CONTINUE_IDENTIFIER_NODE, JTI_ACCESS0_IDENTIFIER_NODE,
+	JTI_WFL_OPERATOR): Removed
+	(finit_identifier_node, instinit_identifier_node,
+	length_identifier_node, super_identifier_node,
+	continue_identifier_node, access0_identifier_node, wfl_operator):
+	Removed.
+	(cyclic_inheritance_report,
+	DECL_FUNCTION_STATIC_METHOD_INVOCATION_COMPOUND,
+	DECL_FUNCTION_NAP, DECL_FUNCTION_SYNTHETIC_CTOR,
+	DECL_FIXED_CONSTRUCTOR_P): Removed.
+	(struct lang_decl_func) <smic, nap, synthetic_ctor, fixed_ctor>:
+	Removed.
+	(TYPE_FINIT_STMT_LIST, TYPE_CLINIT_STMT_LIST, TYPE_II_STMT_LIST,
+	TYPE_IMPORT_LIST, TYPE_IMPORT_DEMAND_LIST): Removed.
+	(struct lang_type) <finit_stmt_list, clinit_stmt_list, ii_block,
+	import_list, import_demand_list>: Removed.
+	(java_layout_seen_class_methods, init_jcf_parse, init_src_parse,
+	cxx_keyword_p): Removed.
+	(DECL_FINIT_P, DECL_INSTINIT_P, ID_FINIT_P, ID_INSTINIT_P,
+	TYPE_UNUSED, TYPE_UNDERFLOW, TYPE_UNEXPECTED,
+	CLASS_ACCESS0_GENERATED_P, CLASS_HAS_FINIT_P,
+	IS_A_SINGLE_IMPORT_CLASSFILE_NAME_P, IS_A_CLASSFILE_NAME,
+	IS_AN_IMPORT_ON_DEMAND_P, COMPOUND_ASSIGN_P, SWITCH_HAS_DEFAULT,
+	PRIMARY_P, MODIFY_EXPR_FROM_INITIALIZATION_P,
+	CLASS_METHOD_CHECKED_P, FOR_LOOP_P, ANONYMOUS_CLASS_P,
+	LOCAL_CLASS_P, ARG_FINAL_P, SUPPRESS_UNREACHABLE_ERROR,
+	RESOLVE_PACKAGE_NAME_P, RESOLVE_TYPE_NAME_P, IS_BREAK_STMT_P,
+	IS_CRAFTED_STRING_BUFFER_P, IS_INIT_CHECKED, CALL_USING_SUPER,
+	NESTED_FIELD_ACCESS_IDENTIFIER_P, TOPLEVEL_CLASS_DECL_P,
+	PURE_INNER_CLASS_TYPE_P, TOPLEVEL_CLASS_TYPE_P,
+	CALL_CONSTRUCTOR_P, CALL_EXPLICIT_CONSTRUCTOR_P,
+	CALL_THIS_CONSTRUCTOR_P, CALL_SUPER_CONSTRUCTOR_P,
+	FINALLY_EXPR_LABEL, FINALLY_EXPR_BLOCK, BLOCK_IS_IMPLICIT,
+	BLOCK_EMPTY_P, IS_UNCHECKED_EXCEPTION_P, java_error_count,
+	java_parse_abort_on_error, extract_field_decl): Removed.
+	(finput): Declare.
+	* lang.c: (compiling_from_source, current_encoding): Removed.
+	(java_handle_option): Ignore -fencoding.
+	* parse.h: Don't include lex.h.
+	(java_error_count, int_fits_type_p, stabilize_reference, RULE,
+	RECOVERED, DRECOVERED, RECOVER, DRECOVER, YYERROR_NOW,
+	YYNOT_TWICE, CLASS_MODIFIERS, FIELD_MODIFIERS, METHOD_MODIFIERS,
+	INTERFACE_MODIFIERS, INTERFACE_INNER_MODIFIERS,
+	INTERFACE_METHOD_MODIFIERS, INTERFACE_FIELD_MODIFIERS,
+	MODIFIER_WFL, THIS_MODIFIER_ONLY, parse_error_context,
+	ABSTRACT_CHECK, JCONSTRUCTOR_CHECK, exit_java_complete_class,
+	CLASS_OR_INTERFACE, GET_REAL_TYPE, GET_TYPE_NAME,
+	OBSOLETE_MODIFIER_WARNING, OBSOLETE_MODIFIER_WARNING2,
+	BUILD_PTR_FROM_NAME, INCOMPLETE_TYPE_P,
+	JAVA_MAYBE_GENERATE_DEBUG_INFO, JBSC_TYPE_P, JSTRING_P,
+	JNULLP_TYPE_P, JDECL_P, TYPE_INTERFACE_P, TYPE_CLASS_P,
+	IDENTIFIER_INNER_CLASS_OUTER_FIELD_ACCESS,
+	MANGLE_OUTER_LOCAL_VARIABLE_NAME,
+	MANGLE_ALIAS_INITIALIZER_PARAMETER_NAME_ID,
+	MANGLE_ALIAS_INITIALIZER_PARAMETER_NAME_STRING,
+	SKIP_THIS_AND_ARTIFICIAL_PARMS, MARK_FINAL_PARMS,
+	UNMARK_FINAL_PARMS, CRAFTED_PARAM_LIST_FIXUP,
+	AIPL_FUNCTION_CREATION, AIPL_FUNCTION_DECLARATION,
+	AIPL_FUNCTION_CTOR_INVOCATION, AIPL_FUNCTION_FINIT_INVOCATION,
+	ERROR_CANT_CONVERT_TO_BOOLEAN, ERROR_CANT_CONVERT_TO_NUMERIC,
+	ERROR_CAST_NEEDED_TO_INTEGRAL, ERROR_VARIABLE_NOT_INITIALIZED,
+	LOOP_EXPR_BODY_MAIN_BLOCK, LOOP_EXPR_BODY_UPDATE_BLOCK,
+	LOOP_EXPR_BODY_CONDITION_EXPR, LOOP_EXPR_BODY_LABELED_BODY,
+	LOOP_EXPR_BODY_BODY_EXPR, PUSH_LABELED_BLOCK, POP_LABELED_BLOCK,
+	PUSH_LOOP, POP_LOOP, PUSH_EXCEPTIONS, POP_EXCEPTIONS,
+	IN_TRY_BLOCK_P, EXCEPTIONS_P, ANONYMOUS_ARRAY_BASE_TYPE,
+	ANONYMOUS_ARRAY_DIMS_SIG, ANONYMOUS_ARRAY_INITIALIZER,
+	INVOKE_STATIC, INVOKE_NONVIRTUAL, INVOKE_SUPER, INVOKE_INTERFACE,
+	INVOKE_VIRTUAL, jdep_code, struct _jdep, JDEP_DECL, JDEP_DECL_WFL,
+	JDEP_KIND, JDEP_WFL, JDEP_MISC, JDEP_ENCLOSING, JDEP_CLASS,
+	JDEP_APPLY_PATCH, JDEP_GET_PATCH, JDEP_CHAIN, JDEP_TO_RESOLVE,
+	JDEP_RESOLVED_DECL, JDEP_RESOLVED, JDEP_RESOLVED_P, struct
+	jdeplist_s, jdeplists, CLASSD_FIRST, CLASSD_LAST, CLASSD_CHAIN,
+	JDEP_INSERT, SET_TYPE_FOR_RESOLUTION, WFL_STRIP_BRACKET,
+	STRING_STRIP_BRACKETS, PROMOTE_RECORD_IF_COMPLETE,
+	BLOCK_CHAIN_DECL, GET_CURRENT_BLOCK, EXPR_WFL_GET_LINECOL,
+	EXPR_WFL_QUALIFICATION, QUAL_WFL, QUAL_RESOLUTION, QUAL_DECL_TYPE,
+	GET_SKIP_TYPE, COMPLETE_CHECK_OP, COMPLETE_CHECK_OP_0,
+	COMPLETE_CHECK_OP_1, COMPLETE_CHECK_OP_2, BUILD_APPEND,
+	BUILD_STRING_BUFFER, BUILD_THROW, SET_WFL_OPERATOR,
+	PATCH_METHOD_RETURN_ERROR, CHECK_METHODS, CLEAR_DEPRECATED,
+	CHECK_DEPRECATED_NO_RESET, CHECK_DEPRECATED, REGISTER_IMPORT,
+	CURRENT_OSB, struct parser_ctxt, GET_CPC_LIST, CPC_INNER_P,
+	GET_CPC, GET_CPC_UN, GET_CPC_UN_MODE, GET_CPC_DECL_NODE,
+	GET_ENCLOSING_CPC, GET_NEXT_ENCLOSING_CPC,
+	GET_ENCLOSING_CPC_CONTEXT, INNER_ENCLOSING_SCOPE_CHECK, PUSH_CPC,
+	PUSH_ERROR, POP_CPC, DEBUG_CPC, CPC_INITIALIZER_LIST,
+	CPC_STATIC_INITIALIZER_LIST, CPC_INSTANCE_INITIALIZER_LIST,
+	CPC_INITIALIZER_STMT, CPC_STATIC_INITIALIZER_STMT,
+	CPC_INSTANCE_INITIALIZER_STMT, SET_CPC_INITIALIZER_STMT,
+	SET_CPC_STATIC_INITIALIZER_STMT,
+	SET_CPC_INSTANCE_INITIALIZER_STMT, JAVA_NOT_RADIX10_FLAG,
+	java_complete_class, java_check_circular_reference,
+	java_fix_constructors, java_layout_classes, java_reorder_fields,
+	java_method_add_stmt, java_get_line_col, reset_report,
+	java_init_lex, yyparse, java_parse, yyerror, java_expand_classes,
+	java_finish_classes, ctxp, ctxp_for_generation,
+	ctxp_for_generation_last): Removed.
+	* expr.c (force_evaluation_order): Don't mention NEW_CLASS_EXPR.
+	* mangle.c (utf8_cmp): New function.
+	(cxx_keywords): New global.
+	(cxx_keyword_p): New function.
+	* jvspec.c (JAVA_START_CHAR): Removed obsolete comment.
+	* java-tree.def (UNARY_PLUS_EXPR, NEW_ARRAY_EXPR,
+	NEW_ANONYMOUS_ARRAY_EXPR, NEW_CLASS_EXPR, THIS_EXPR,
+	CASE_EXPR, DEFAULT_EXPR, JAVA_CATCH_EXPR, SYNCHRONIZED_EXPR,
+	THROW_EXPR, CONDITIONAL_EXPR, INSTANCEOF_EXPR, NEW_ARRAY_INIT,
+	CLASS_LITERAL, JAVA_EXC_OBJ_EXPR): Removed.
+	* Make-lang.in (java.srcextra): Do nothing.
+	(parse.c, keyword.h, gt-java-parse.h): Removed targets.
+	(JAVA_OBJS): Don't mention deleted files.
+	(java.mostlyclean): Likewise.
+	(java.clean): Likewise.
+	(JAVA_LEX_C): Removed.
+	(buffer.o, check-init.o, parse.o): Remove unused targets.
+	(typeck.o): Updated.
+	* jcf-parse.c (read_class): Comment out unused code.
+	(java_layout_seen_class_methods): New function.
+	(parse_source_file_1, parse_source_file_2, parse_source_file_3):
+	Removed.
+	(java_parse_file): Comment out unused code.  Don't use 'ctxp'.
+	(init_jcf_parse): Removed.
+	* config-lang.in (gtfiles): Remove deleted files.
+	* decl.c (java_init_decl_processing): Don't initialize
+	finit_identifier_node, instinit_identifier_node,
+	length_identifier_node, super_identifier_node,
+	continue_identifier_node, access0_identifier_node.  Don't call
+	init_jcf_parse.
+	* class.c (cyclic_inheritance_report): New global.
+	(add_method_1): Don't use
+	DECL_FUNCTION_STATIC_METHOD_INVOCATION_COMPOUND.
+	(maybe_layout_super_class): Comment out code.
+	(safe_layout_class): New function.
+	* java-gimplify.c (java_gimplify_expr): Removed CASE_EXPR,
+	DEFAULT_EXPR, NEW_ARRAY_INIT, JAVA_CATCH_EXPR, JAVA_EXC_OBJ_EXPR,
+	UNARY_PLUS_EXPR, NEW_ARRAY_EXPR, NEW_ANONYMOUS_ARRAY_EXPR,
+	NEW_CLASS_EXPR, SYNCHRONIZED_EXPR, CONDITIONAL_EXPR,
+	INSTANCEOF_EXPR, CLASS_LITERAL, THIS_EXPR.
+	(java_gimplify_case_expr): Removed.
+	(java_gimplify_default_expr): Likewise.
+	(java_gimplify_new_array_init): Likewise.
+	* parse.y: Removed.
+	* keyword.gperf, keyword.h: Removed.
+	* chartables.h: Removed.
+	* check-init.c: Removed.
+	* buffer.c, buffer.h: Removed.
+	* convert.h: Removed.
+	* gen-table.pl: Removed.
+	* lex.c, lex.h: Removed.
+
+2007-01-02  Andrew Haley  <aph@redhat.com>
+
+	* expr.c (expand_java_arraystore): Make sure we perform a bounds
+	check at runtime before we perform a type check.
+
+2006-12-19  Andrew Haley  <aph@redhat.com>
+
+	* decl.c: Bump minor BC ABI version.
+
+2006-12-13  Gary Benson  <gbenson@redhat.com>
+
+	* jcf-depend.c (jcf_dependency_add_file): Mark filename unused.
+
+2006-12-12  Tom Tromey  <tromey@redhat.com>
+
+	* lang-specs.h: Pass -M options to jc1.
+	* jcf-depend.c (jcf_dependency_add_file): Don't emit
+	dependencies.
+
+2006-12-07  Mohan Embar  <gnustuff@thisiscool.com>
+
+	* jcf-path.c (jcf_path_compute): Use platform PATH_SEPARATOR.
+
+2006-12-06  Mohan Embar  <gnustuff@thisiscool.com>
+
+	* lang-specs.h: Pass '%U'-based options as separate arguments.
+
+2006-12-05  Tom Tromey  <tromey@redhat.com>
+
+	PR java/29495:
+	* jcf-parse.c (HANDLE_SYNTHETIC_ATTRIBUTE): Mark fields and
+	classes as well.
+	* class.c (add_field): Handle ACC_SYNTHETIC.
+	(add_method_1): Likewise.  Handle bridge and varargs.
+	(get_access_flags_from_decl): Handle synthetic, bridge, varargs,
+	annotation.
+	(set_class_decl_access_flags): Handle synthetic and annotation.
+	* java-tree.h (METHOD_BRIDGE): New macro.
+	(METHOD_VARARGS): Likewise.
+	(TYPE_SYNTHETIC): Likewise.
+	(TYPE_ANNOTATION): Likewise.
+	(lang_type): New fields 'synthetic' and 'annotation'.
+	(lang_decl_func): New fields 'varargs' and 'bridge'.
+
+2006-12-04  Andrew Haley  <aph@redhat.com>
+
+	* jcf-parse.c (rewrite_reflection_indexes): Don't do anything if
+	there's no map.
+
+2006-11-29  Gary Benson  <gbenson@redhat.com>
+
+	* expr.c (rewrite_arglist_getcaller): Reorder.
+
+2006-11-29  Andrew Haley  <aph@redhat.com>
+
+	* expr.c (rewrite_arglist_getcaller): Remove DECL_INLINE.
+	* lang.c (java_decl_ok_for_sibcall): Check for DECL_INLINE.
+
+2006-11-23  Andrew Haley  <aph@redhat.com>
+
+	* expr.c (rewrite_arglist_getcaller): New.
+	(rewrite_arglist_getclass): Fix indentation.
+	(rules): Add gnu.classpath.VMStackWalker.getCallingClass() and 
+	gnu.classpath.VMStackWalker.getCallingClassLoader().
+	* builtins.c (initialize_builtins): Remove duplicate def'n of
+	__sync_synchronize.
+	Add __builtin_return_address.
+
+2006-11-22  Andrew Haley  <aph@redhat.com>
+
+	* jcf-reader.c (get_attribute): Mark attr_type unused.
+
+	* builtins.c (compareAndSwapObject_builtin): Fix declaration.
+
+2007-01-08  Richard Guenther  <rguenther@suse.de>
+
+	* lex.c (do_java_lex): Use build_int_cst_wide_type.
+	* jcf-parse.c (get_constant): Likewise.
+
+2006-11-12  Jan Hubicka  <jh@suse.cz>
+
+	* resource.c (compile_resource_data): Update for new varpool names.
+	* java/class.c (build_utf8_ref): Likewise.
 
 2006-11-12  David Daney  <ddaney@avtrex.com>
 
 	PR java/29805
 	* typeck.c (build_java_array_type): Increase buffer sizes.
+
+2006-11-11  Richard Guenther  <rguenther@suse.de>
+
+	* check-init.c (check_init): Remove handling of FIX_CEIL_EXPR,
+	FIX_FLOOR_EXPR and FIX_ROUND_EXPR.
+
+2006-11-06  Andrew Haley  <aph@redhat.com>
+
+	* java-tree.h (CONSTANT_LazyFlag): New.
+	* constants.c (build_constants_constructor): Mask CONSTANT_LazyFlag.
+	* jcf-parse.c (handle_innerclass_attribute): Write attribute to
+	reflection_data.
+	(handle_constant): Return 0 for dummy cpool entries.
+	Handle constants of kind Class.
+	Handle constants of kind NameAndType.
+	(handle_enclosingmethod_attribute): New.
+	(handle_signature_attribute): New.
+	(HANDLE_ENCLOSINGMETHOD_ATTRIBUTE): New.
+	(HANDLE_SIGNATURE_ATTRIBUTE): New.
+	(handle_constant): Use unmangle_classname()rather than calling
+	identifier_subst() directly.
+
+2006-11-02  Andrew Haley  <aph@redhat.com>
+
+	* java-tree.h (FIELD_ENUM): New.
+	(lang_decl_var.field_enum): New.
+	(lang_type.enum_class): New.
+	(CLASS_ENUM): New.
+	* class.c (set_class_decl_access_flags): Handle enum types.
+	(add_field): Handle enum fields.
+	(get_access_flags_from_decl): Likewise.
+
+	* class.c (make_class_data): Put reflection_data into rodata.
+
+2006-11-01  Andrew Haley  <aph@redhat.com>
+
+	* jcf-parse.c (field_offsets, bit_obstack): New variables.
+	(jcf_parse): Write end marker to annotation_data.
+	(java_parse_file): Create field_offsets bitmap.  Destroy it.
+	(annotation_grow, annotation_rewrite_byte) 
+	(annotation_rewrite_short, annotation_rewrite_int) 
+	(annotation_read_short, annotation_write_byte) 
+	(annotation_write_short, annotation_write_int) 
+	(handle_long_constant, handle_constant, handle_element_value) 
+	(handle_annotation, handle_annotations) 
+	(handle_annotation_attribute, rewrite_reflection_indexes) 
+	(handle_member_annotations, handle_parameter_annotations) 
+	(handle_default_annotation): New functions.
+	(HANDLE_RUNTIMEVISIBLEANNOTATIONS_ATTRIBUTE) 
+	(HANDLE_RUNTIMEINVISIBLEANNOTATIONS_ATTRIBUTE) 
+	(HANDLE_RUNTIMEVISIBLEPARAMETERANNOTATIONS_ATTRIBUTE) 
+	(HANDLE_RUNTIMEINVISIBLEPARAMETERANNOTATIONS_ATTRIBUTE) 
+	(HANDLE_ANNOTATIONDEFAULT_ATTRIBUTE): New definitions.
+	* java-tree.h (enum jv_attr_type, enum jv_attr_kind): New. 
+	(TYPE_REFLECTION_DATA): New.
+	(TYPE_REFLECTION_DATASIZE): New.
+	* jcf.h (enum cpool_tag): Convert a bunch of #define constants to
+	an enum.
+	* jcf-reader.c (get_attribute): Pass field/method index and
+	attribute type to get_attribute().
+	* constants.c (find_class_or_string_constant): Make nonstatic.
+	(cpool_for_class): Likewise.
+	(build_constants_constructor): Separate string and scalar types.
+	* class.c (make_class_data): Generate field_indexes permutation.
+	Pass it to rewrite_reflection_indexes().
+	(make_class_data): Generate constructor for reflection_data field.
+
+2006-10-20  Tom Tromey  <tromey@redhat.com>
+
+	* gcj.texi (Top): Don't mention jv-scan.
+	(Invoking gcj): Likewise.
+	(Invoking gcjh): Likewise.
+	(Invoking gjnih): Likewise.
+	(Invoking gij): Likewise.
+	(Invoking gcj-dbtool): Likewise.
+	(Invoking jv-scan): Removed.
+	* parse-scan.y: Removed.
+	* jv-scan.c: Removed.
+	* config-lang.in (stagestuff): Don't mention jv-scan.
+	* Make-lang.in (java): Removed jv-scan.
+	(JAVA_TARGET_INDEPENDENT_BIN_TOOLS): Likewise.
+	(JVSCAN_OBJS): Removed.
+	(jv-scan$(exeext)): Likewise.
+	(JAVA_MANFILES): Removed jv-scan.1.
+	(java.uninstall): Don't mention jv-scan.
+	(java.mostlyclean): Likewise.
+	(java.maintainer-clean): Likewise.
+	(.INTERMEDIATE): Likewise.
+	(java/jv-scan.o): Removed.
+	(jv-scan.pod): Likewise.
+	(java.srcextra): Don't mention parse-scan.c.
+	(java.mostlyclean): Likewise.
+	(java/parse-scan.c): Removed.
+	(java/parse-scan.o-warn): Removed.
+	(java/parse-scan.o): Removed.
+
+2006-10-20  Tom Tromey  <tromey@redhat.com>
+
+	* lang.c (java_handle_option): Don't use
+	jcf_write_base_directory.
+	* jcf.h (jcf_write_base_directory): Removed.
+	* parse.y (java_expand_classes): Don't call write_classfile.
+	* config-lang.in (gtfiles): Removed jcf-write.c.
+	* Make-lang.in (JAVA_OBJS): Removed jcf-write.o.
+	(java/jcf-write.o): Removed.
+	* jcf-parse.c (parse_class_file): Don't call write_classfile.
+	* java-tree.h (write_classfile): Removed declaration.
+	* jcf-write.c: Removed.
+
+2006-10-20  Tom Tromey  <tromey@redhat.com>
+
+	* Make-lang.in (java): Removed gjnih, gcjh.
+	(JAVA_TARGET_INDEPENDENT_BIN_TOOLS): Likewise.
+	(GCJH_OBJS): Removed.
+	(GJNIH_OBJS): Likewise.
+	(gjnih$(exeext)): Likewise.
+	(gcjh$(exeext)): Likewise.
+	(JAVA_MANFILES): Removed gcjh.1, gjnih.1.
+	(java.install-common): Don't special case gcjh.
+	(java.uninstall): Don't mention gcjh, gjnih.
+	(java.mostlyclean): Likewise.
+	(java.maintainer-clean): Likewise.
+	(.INTERMEDIATE): Likewise.
+	(gcjh.pod): Removed.
+	(gjnih.pod): Likewise.
+	(GCJH_TARGET_INSTALL_NAME): Removed.
+	(java/gjavah-jni.o): Removed.
+	(java/gjavah.o): Likewise.
+	* config-lang.in (stagestuff): Removed gjnih, gcjh.
+	* gjavah.c: Removed.
+
+2006-10-17  Tom Tromey  <tromey@redhat.com>
+
+	* jcf-dump.c (print_element_value): Expect a utf8 constant in the
+	"string" case.
+
+2006-10-17  Tom Tromey  <tromey@redhat.com>
+
+	* jvgenmain.c (main): Handle -findirect-dispatch.
+	* jvspec.c (jvgenmain_spec): Pass -findirect-dispatch to
+	jvgenmain.
+
+2006-10-06  Andrew Haley  <aph@redhat.com>
+
+	* builtins.c (compareAndSwapInt_builtin): Check that we really do
+	have a compare_and_swap builtin.
+	(compareAndSwapLong_builtin): Likewise.
+	(compareAndSwapObject_builtin): Likewise.
+
+2006-10-04  Andrew Haley  <aph@redhat.com>
+
+	* builtins.c (java_builtins): Add compareAndSwapInt,
+	compareAndSwapLong, compareAndSwapObject, putOrderedInt,
+	putOrderedLong, putOrderedObject, putIntVolatile, putLongVolatile,
+	putObjectVolatile, getObjectVolatile, getIntVolatile,
+	getLongVolatile, getLong.
+	(UNMARSHAL3): New macro.
+	(UNMARSHAL4): Likewise.
+	(UNMARSHAL5): Likewise.
+	(build_arglist_for_builtin): New function.
+	(build_addr_sum, build_check_this): New functions.
+	(putObject_builtin. compareAndSwapInt_builtin,
+	compareAndSwapLong_builtin, compareAndSwapObject_builtin,
+	putVolatile_builtin, getVolatile_builtin): New builtins.
+
+2006-06-08  Andrew Haley  <aph@redhat.com>
+ 
+	* expr.c (build_field_ref): Pass NULL_TREE as SPECIAL arg to
+	get_symbol_table_index().
+	(maybe_rewrite_invocation): Set SPECIAL if we need to access a
+	private method.
+	(build_known_method_ref): New arg: special.  Pass it to
+	get_symbol_table_index.
+	(get_symbol_table_index): Put SPECIAL in the TREE_PURPOSE field of
+	the method list.
+	(build_invokevirtual): New arg: special.  Pass it to
+	get_symbol_table_index.
+	(expand_invoke): New variable: special.
+	Pass it to maybe_rewrite_invocation().
+	Pass it to build_known_method_ref().
+	* class.c (build_symbol_entry): Add new arg: special.  Use it to
+	build the symbol table conbstructor.
+	(emit_symbol_table): Extract SPECIAL from the method list and pass
+	it to build_symbol_entry().
+	* parse.y (patch_invoke): Call maybe_rewrite_invocation() and set
+	special accordingly.
+ 
+2006-09-08  Andrew Haley  <aph@redhat.com>
+
+	* class.c (layout_class_method): Use build_java_signature, not
+	build_java_argument_signature.  Use lookup_java_method, not
+	lookup_argument_method.
+
+2006-08-16  Jakub Jelinek  <jakub@redhat.com>
+	    Bryce McKinlay  <bryce@mckinlay.net.nz>
+
+	* jvspec.c (lang_specific_driver): Add -s-bc-abi when needed.
+
+2006-07-18  Tom Tromey  <tromey@redhat.com>
+
+	* lang.opt: Added missing -W options.
+
+2006-07-12  Tom Tromey  <tromey@redhat.com>
+
+	PR java/28329:
+	* lang-specs.h: Pass '%U'-based options as separate arguments.
+	Use -faux-classpath.
+	* lang.c (java_handle_option): Handle OPT_faux_classpath.
+	* lang.opt (faux-classpath): New option.
+
+2006-07-07  Tom Tromey  <tromey@redhat.com>
+
+	* class.c (make_class_data): Set value for reflection_data field.
+	* decl.c (java_init_decl_processing): Add reflection_data field.
+
+2006-07-07  Tom Tromey  <tromey@redhat.com>
+
+	* jcf-dump.c (HANDLE_ENCLOSINGMETHOD_ATTRIBUTE): Declare locals
+	earlier.
+	(HANDLE_SIGNATURE_ATTRIBUTE): Likewise.
+
+2006-07-07  Andrew Haley  <aph@redhat.com>
+
+        * jcf-parse.c (set_source_filename): Don't check for
+	CLASS_FROM_CURRENTLY_COMPILED_P.
+        Remove // comments.
+
+2006-07-07  Andrew Haley  <aph@redhat.com>
+
+	* java-tree.h (java_read_sourcefilenames): Declare.
+	* lang.c (java_handle_option): Call java_read_sourcefilenames().
+	* lang.opt (fsource-filename): New opt.
+	* lang-specs.h: Add -fsource-filename.
+	* jcf-parse.c (num_files, filenames): New variables.
+	(reverse, cmpstringp, java_read_sourcefilenames,
+	find_sourcefile): New.
+	(set_source_filename): Call find_sourcefile to find the real name
+	of a source file.
+
+2006-06-27  Tom Tromey  <tromey@redhat.com>
+
+	* jcf-reader.c (get_attribute): Handle EnclosingMethod,
+	Signature, LocalVariableTypeTable, annotation attributes.
+	* jcf-dump.c (HANDLE_ENCLOSINGMETHOD_ATTRIBUTE): New macro.
+	(HANDLE_SIGNATURE_ATTRIBUTE): Likewise.
+	(HANDLE_START_FIELD): Mention 'descriptor', not 'signature'.
+	(HANDLE_METHOD): Likewise.
+	(HANDLE_LOCALVARIABLETYPETABLE_ATTRIBUTE): New macro.
+	(print_annotation): New function.
+	(print_element_value): Likewise.
+	(indent): Likewise.
+	(HANDLE_RUNTIMEVISIBLEANNOTATIONS_ATTRIBUTE): New macro.
+	(HANDLE_RUNTIMEINVISIBLEANNOTATIONS_ATTRIBUTE): Likewise.
+	(print_parameter_annotations): New function.
+	(HANDLE_RUNTIMEVISIBLEPARAMETERANNOTATIONS_ATTRIBUTE): New macro.
+	(HANDLE_RUNTIMEINVISIBLEPARAMETERANNOTATIONS_ATTRIBUTE):
+	Likewise.
+	(HANDLE_ANNOTATIONDEFAULT_ATTRIBUTE): Likewise.
+	(print_annotations): New function.
+
+2006-06-23  Tom Tromey  <tromey@redhat.com>
+
+	* lang-specs.h: Default -fsource and -ftarget to 1.5.  If
+	emitting class files, always use 1.5.
+	* gcj.texi (Input Options): Document -fsource.
+	(Code Generation): Document -ftarget.
+
+2006-06-21  Tom Tromey  <tromey@redhat.com>
+
+	PR java/28089:
+	* expr.c (expand_java_field_op): Initialize field's declaring
+	class.
+
+2006-06-20  Tom Tromey  <tromey@redhat.com>
+
+	* expr.c (push_value): Always flush quick stack.
+
+2006-06-19  Tom Tromey  <tromey@redhat.com>
+
+	* expr.c (push_value): Also flush quick stack if value is a
+	component_ref.
+
+2006-06-19  Tom Tromey  <tromey@redhat.com>
+
+	* expr.c (push_value): Flush quick stack if value has side
+	effects.
+
+2006-06-13  Tom Tromey  <tromey@redhat.com>
+
+	* class.c (is_compiled_class): Explicitly check for current
+	class.
+
+2006-06-09  Tom Tromey  <tromey@redhat.com>
+
+	* gjavah.c (decompile_method): Don't decompile a static field
+	accessor method.
+
+2006-06-06  Tom Tromey  <tromey@redhat.com>
+
+	* lang-specs.h <jc1>: Add .jar file to command line if
+	-fsaw-java-file.  Also, remove -ffilelist-file in this case.
+
+2006-06-05  Tom Tromey  <tromey@redhat.com>
+
+	* jcf-dump.c (print_access_flags): Handle varargs, bridge,
+	synthetic, enum, annotation.
+	* jcf.h (ACC_BRIDGE): New macro.
+	(ACC_VARARGS): Likewise.
+	(ACC_SYNTHETIC): Likewise.
+	(ACC_ENUM): Likewise.
+	(ACC_ANNOTATION): Likewise.
+
+2006-06-04  Tom Tromey  <tromey@redhat.com>
+
+	* lang.opt (-fsaw-java-file, -fsource, -ftarget): New options.
+	* jvspec.c (jvgenmain_spec): Remove -fsaw-java-file, -fsource,
+	and -ftarget.
+	(lang_specific_driver): Removed dead code.  Add -fsaw-java-file
+	when needed.  Handle classpath-setting.
+	* Make-lang.in ($(GCJ)$(exeext)): Link in jcf-path.o.
+	* lang-specs.h: Rewrote.
+
+2006-06-04  Tom Tromey  <tromey@redhat.com>
+
+	* jcf-io.c (find_class): Set source_ok to 0.
+	* jcf-parse.c (jcf_parse): Disable gnu.gcj.gcj-compiled warning.
+	(parse_class_file): Don't call java_mark_class_local.
+	(java_parse_file): Skip .java files.  Call java_mark_class_local
+	before lowering any code.
+	(parse_zip_file_entries): Don't call duplicate_class_warning
+	here.
+	(process_zip_dir): ... call it here.
+	* class.c (add_field): Don't mark field external if it is being
+	compiled into this object.
+	(make_class_data): Handle situation where class_dtable_decl is
+	created before Class is compiled.
+	(is_compiled_class): Don't assume files in zip are compiled into
+	this object.
+	(layout_class_method): Don't mark method external if it is being
+	compiled into this object.
+
+2006-06-04  Tom Tromey  <tromey@redhat.com>
+
+	* jcf-path.c (jcf_path_compute): New function.
+	* jcf.h (jcf_path_compute): Declare.
+
+2006-10-23 Rafael Avila de Espindola  <rafael.espindola@gmail.com>
+
+	* decl.c: Include langhooks.h.
+	(builtin_function): Remove.
+	(java_init_decl_processing): Replace calls to builtin_function
+	with add_builtin_function.
+	* Make-lang.in (jc1$(exeext)): Depend on and link with attribs.o.
+	(java/decl.o): Depend on langhooks.h.
+	* java-tree.h (builtin_function): Remove.
 
 2006-10-10  Brooks Moses  <bmoses@stanford.edu>
 

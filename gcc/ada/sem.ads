@@ -6,18 +6,17 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2005, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -210,32 +209,28 @@ package Sem is
    -- Semantic Analysis Flags --
    -----------------------------
 
-   Explicit_Overriding : Boolean := False;
-   --  Switch to indicate whether checking mechanism described in AI-218
-   --  is enforced: subprograms that override inherited operations must be
-   --  be marked explicitly, to prevent accidental or omitted overriding.
-
    Full_Analysis : Boolean := True;
-   --  Switch to indicate whether we are doing a full analysis or a
-   --  pre-analysis. In normal analysis mode (Analysis-Expansion for
-   --  instructions or declarations) or (Analysis-Resolution-Expansion for
-   --  expressions) this flag is set. Note that if we are not generating
-   --  code the expansion phase merely sets the Analyzed flag to True in
-   --  this case. If we are in Pre-Analysis mode (see above) this flag is
-   --  set to False then the expansion phase is skipped.
-   --  When this flag is False the flag Expander_Active is also False
-   --  (the Expander_Activer flag defined in the spec of package Expander
-   --  tells you whether expansion is currently enabled).
-   --  You should really regard this as a read only flag.
+   --  Switch to indicate if we are doing a full analysis or a pre-analysis.
+   --  In normal analysis mode (Analysis-Expansion for instructions or
+   --  declarations) or (Analysis-Resolution-Expansion for expressions) this
+   --  flag is set. Note that if we are not generating code the expansion phase
+   --  merely sets the Analyzed flag to True in this case. If we are in
+   --  Pre-Analysis mode (see above) this flag is set to False then the
+   --  expansion phase is skipped.
+   --
+   --  When this flag is False the flag Expander_Active is also False (the
+   --  Expander_Activer flag defined in the spec of package Expander tells you
+   --  whether expansion is currently enabled). You should really regard this
+   --  as a read only flag.
 
    In_Default_Expression : Boolean := False;
    --  Switch to indicate that we are in a default expression, as described
    --  above. Note that this must be recursively saved on a Semantics call
-   --  since it is possible for the analysis of an expression to result in
-   --  a recursive call (e.g. to get the entity for System.Address as part
-   --  of the processing of an Address attribute reference).
-   --  When this switch is True then Full_Analysis above must be False.
-   --  You should really regard this as a read only flag.
+   --  since it is possible for the analysis of an expression to result in a
+   --  recursive call (e.g. to get the entity for System.Address as part of the
+   --  processing of an Address attribute reference). When this switch is True
+   --  then Full_Analysis above must be False. You should really regard this as
+   --  a read only flag.
 
    In_Deleted_Code : Boolean := False;
    --  If the condition in an if-statement is statically known, the branch
@@ -264,84 +259,7 @@ package Sem is
    --  about unused variables, since these warnings are unreliable in this
    --  case. We could perhaps do a more accurate job and retain some of the
    --  warnings, but it is quite a tricky job. See test 4323-002.
-
-   -----------------
-   -- Scope Stack --
-   -----------------
-
-   --  The scope stack holds all entries of the scope table. As in the parser,
-   --  we use Last as the stack pointer, so that we can always find the scope
-   --  that is currently open in Scope_Stack.Table (Scope_Stack.Last). The
-   --  oldest entry, at Scope_Stack (0) is Standard. The entries in the table
-   --  include the entity for the referenced scope, together with information
-   --  used to restore the proper setting of check suppressions on scope exit.
-
-   type Scope_Stack_Entry is record
-      Entity : Entity_Id;
-      --  Entity representing the scope
-
-      Last_Subprogram_Name : String_Ptr;
-      --  Pointer to name of last subprogram body in this scope. Used for
-      --  testing proper alpha ordering of subprogram bodies in scope.
-
-      Save_Scope_Suppress  : Suppress_Array;
-      --  Save contents of Scope_Suppress on entry
-
-      Save_Local_Entity_Suppress : Int;
-      --  Save contents of Local_Entity_Suppress.Last on entry
-
-      Is_Transient : Boolean;
-      --  Marks Transient Scopes (See Exp_Ch7 body for details)
-
-      Previous_Visibility : Boolean;
-      --  Used when installing the parent (s) of the current compilation
-      --  unit. The parent may already be visible because of an ongoing
-      --  compilation, and the proper visibility must be restored on exit.
-
-      Node_To_Be_Wrapped : Node_Id;
-      --  Only used in transient scopes. Records the node which will
-      --  be wrapped by the transient block.
-
-      Actions_To_Be_Wrapped_Before : List_Id;
-      Actions_To_Be_Wrapped_After  : List_Id;
-      --  Actions that have to be inserted at the start or at the end of a
-      --  transient block. Used to temporarily hold these actions until the
-      --  block is created, at which time the actions are moved to the
-      --  block.
-
-      Pending_Freeze_Actions : List_Id;
-      --  Used to collect freeze entity nodes and associated actions that
-      --  are generated in a inner context but need to be analyzed outside,
-      --  such as records and initialization procedures. On exit from the
-      --  scope, this list of actions is inserted before the scope construct
-      --  and analyzed to generate the corresponding freeze processing and
-      --  elaboration of other associated actions.
-
-      First_Use_Clause : Node_Id;
-      --  Head of list of Use_Clauses in current scope. The list is built
-      --  when the declarations in the scope are processed. The list is
-      --  traversed on scope exit to undo the effect of the use clauses.
-
-      Component_Alignment_Default : Component_Alignment_Kind;
-      --  Component alignment to be applied to any record or array types
-      --  that are declared for which a specific component alignment pragma
-      --  does not set the alignment.
-
-      Is_Active_Stack_Base : Boolean;
-      --  Set to true only when entering the scope for Standard_Standard from
-      --  from within procedure Semantics. Indicates the base of the current
-      --  active set of scopes. Needed by In_Open_Scopes to handle cases
-      --  where Standard_Standard can be pushed in the middle of the active
-      --  set of scopes (occurs for instantiations of generic child units).
-   end record;
-
-   package Scope_Stack is new Table.Table (
-     Table_Component_Type => Scope_Stack_Entry,
-     Table_Index_Type     => Int,
-     Table_Low_Bound      => 0,
-     Table_Initial        => Alloc.Scope_Stack_Initial,
-     Table_Increment      => Alloc.Scope_Stack_Increment,
-     Table_Name           => "Sem.Scope_Stack");
+   --  Should not reference TN's in the source comments ???
 
    -----------------------------------
    -- Handling of Check Suppression --
@@ -350,28 +268,34 @@ package Sem is
    --  There are two kinds of suppress checks: scope based suppress checks,
    --  and entity based suppress checks.
 
-   --  Scope based suppress chems (from initial command line arguments,
-   --  or from Suppress pragmas not including an entity name) are recorded
-   --  in the Sem.Supress variable, and all that is necessary is to save the
-   --  state of this variable on scope entry, and restore it on scope exit.
+   --  Scope based suppress checks for the predefined checks (from initial
+   --  command line arguments, or from Suppress pragmas not including an entity
+   --  entity name) are recorded in the Sem.Supress variable, and all that is
+   --  necessary is to save the state of this variable on scope entry, and
+   --  restore it on scope exit. This mechanism allows for fast checking of
+   --  the scope suppress state without needing complex data structures.
 
-   --  Entity based suppress checks, from Suppress pragmas giving an Entity_Id,
-   --  are handled as follows. If a suppress or unsuppress pragma is
-   --  encountered for a given entity, then the flag Checks_May_Be_Suppressed
-   --  is set in the entity and an entry is made in either the
-   --  Local_Entity_Suppress table (case of pragma that appears in other than
-   --  a package spec), or in the Global_Entity_Suppress table (case of pragma
-   --  that appears in a package spec, which is by the rule of RM 11.5(7)
-   --  applicable throughout the life of the entity).
+   --  Entity based checks, from Suppress/Unsuppress pragmas giving an
+   --  Entity_Id and scope based checks for non-predefined checks (introduced
+   --  using pragma Check_Name), are handled as follows. If a suppress or
+   --  unsuppress pragma is encountered for a given entity, then the flag
+   --  Checks_May_Be_Suppressed is set in the entity and an entry is made in
+   --  either the Local_Entity_Suppress stack (case of pragma that appears in
+   --  other than a package spec), or in the Global_Entity_Suppress stack (case
+   --  of pragma that appears in a package spec, which is by the rule of RM
+   --  11.5(7) applicable throughout the life of the entity). Similarly, a
+   --  Suppress/Unsuppress pragma for a non-predefined check which does not
+   --  specify an entity is also stored in one of these stacks.
 
    --  If the Checks_May_Be_Suppressed flag is set in an entity then the
    --  procedure is to search first the local and then the global suppress
-   --  tables (the local one being searched in reverse order, i.e. last in
-   --  searched first). The only other point is that we have to make sure
-   --  that we have proper nested interaction between such specific pragmas
-   --  and locally applied general pragmas applying to all entities. This
-   --  is achieved by including in the Local_Entity_Suppress table dummy
-   --  entries with an empty Entity field that are applicable to all entities.
+   --  stacks (we search these in reverse order, top element first). The only
+   --  other point is that we have to make sure that we have proper nested
+   --  interaction between such specific pragmas and locally applied general
+   --  pragmas applying to all entities. This is achieved by including in the
+   --  Local_Entity_Suppress table dummy entries with an empty Entity field
+   --  that are applicable to all entities. A similar search is needed for any
+   --  non-predefined check even if no specific entity is involved.
 
    Scope_Suppress : Suppress_Array := Suppress_Options;
    --  This array contains the current scope based settings of the suppress
@@ -388,46 +312,191 @@ package Sem is
    --  applies, and gives the right result when such pragmas are used even
    --  in complex cases of nested Suppress and Unsuppress pragmas.
 
-   type Entity_Check_Suppress_Record is record
+   --  The Local_Entity_Suppress and Global_Entity_Suppress stacks are handled
+   --  using dynamic allocation and linked lists. We do not often use this
+   --  approach in the compiler (preferring to use extensible tables instead).
+   --  The reason we do it here is that scope stack entries save a pointer to
+   --  the current local stack top, which is also saved and restored on scope
+   --  exit. Furthermore for processing of generics we save pointers to the
+   --  top of the stack, so that the local stack is actually a tree of stacks
+   --  rather than a single stack, a structure that is easy to represent using
+   --  linked lists, but impossible to represent using a single table. Note
+   --  that because of the generic issue, we never release entries in these
+   --  stacks, but that's no big deal, since we are unlikely to have a huge
+   --  number of Suppress/Unsuppress entries in a single compilation.
+
+   type Suppress_Stack_Entry;
+   type Suppress_Stack_Entry_Ptr is access all Suppress_Stack_Entry;
+
+   type Suppress_Stack_Entry is record
       Entity : Entity_Id;
-      --  Entity to which the check applies, or Empty for a local check
-      --  that has no entity name (and thus applies to all entities).
+      --  Entity to which the check applies, or Empty for a check that has
+      --  no entity name (and thus applies to all entities).
 
       Check : Check_Id;
-      --  Check which is set (note this cannot be All_Checks, if the All_Checks
-      --  case, a sequence of eentries appears for the individual checks.
+      --  Check which is set (can be All_Checks for the All_Checks case)
 
       Suppress : Boolean;
       --  Set True for Suppress, and False for Unsuppress
+
+      Prev : Suppress_Stack_Entry_Ptr;
+      --  Pointer to previous entry on stack
+
+      Next : Suppress_Stack_Entry_Ptr;
+      --  All allocated Suppress_Stack_Entry records are chained together in
+      --  a linked list whose head is Suppress_Stack_Entries, and the Next
+      --  field is used as a forward pointer (null ends the list). This is
+      --  used to free all entries in Sem.Init (which will be important if
+      --  we ever setup the compiler to be reused).
    end record;
 
-   --  The Local_Entity_Suppress table is a stack, to which new entries are
-   --  added for Suppress and Unsuppress pragmas appearing in other than
-   --  package specs. Such pragmas are effective only to the end of the scope
-   --  in which they appear. This is achieved by marking the stack on entry
-   --  to a scope and then cutting back the stack to that marked point on
-   --  scope exit.
+   Suppress_Stack_Entries : Suppress_Stack_Entry_Ptr := null;
+   --  Pointer to linked list of records (see comments for Next above)
 
-   package Local_Entity_Suppress is new Table.Table (
-     Table_Component_Type => Entity_Check_Suppress_Record,
+   Local_Suppress_Stack_Top : Suppress_Stack_Entry_Ptr;
+   --  Pointer to top element of local suppress stack. This is the entry that
+   --  is saved and restored in the scope stack, and also saved for generic
+   --  body expansion.
+
+   Global_Suppress_Stack_Top : Suppress_Stack_Entry_Ptr;
+   --  Pointer to top element of global suppress stack
+
+   procedure Push_Local_Suppress_Stack_Entry
+     (Entity   : Entity_Id;
+      Check    : Check_Id;
+      Suppress : Boolean);
+   --  Push a new entry on to the top of the local suppress stack, updating
+   --  the value in Local_Suppress_Stack_Top;
+
+   procedure Push_Global_Suppress_Stack_Entry
+     (Entity   : Entity_Id;
+      Check    : Check_Id;
+      Suppress : Boolean);
+   --  Push a new entry on to the top of the global suppress stack, updating
+   --  the value in Global_Suppress_Stack_Top;
+
+   -----------------
+   -- Scope Stack --
+   -----------------
+
+   --  The scope stack indicates the declarative regions that are currently
+   --  being processed (analyzed and/or expanded). The scope stack is one of
+   --  basic visibility structures in the compiler: entities that are declared
+   --  in a scope that is currently on the scope stack are immediately visible.
+   --  (leaving aside issues of hiding and overloading).
+
+   --  Initially, the scope stack only contains an entry for package Standard.
+   --  When a compilation unit, subprogram unit, block or declarative region
+   --  is being processed, the corresponding entity is pushed on the scope
+   --  stack. It is removed after the processing step is completed. A given
+   --  entity can be placed several times on the scope stack, for example
+   --  when processing derived type declarations, freeze nodes, etc. The top
+   --  of the scope stack is the innermost scope currently being processed.
+   --  It is obtained through function Current_Scope. After a compilation unit
+   --  has been processed, the scope stack must contain only Standard.
+   --  The predicate In_Open_Scopes specifies whether a scope is currently
+   --  on the scope stack.
+
+   --  This model is complicated by the need to compile units on the fly, in
+   --  the middle of the compilation of other units. This arises when compiling
+   --  instantiations, and when compiling run-time packages obtained through
+   --  rtsfind. Given that the scope stack is a single static and global
+   --  structure (not originally designed for the recursive processing required
+   --  by rtsfind for example) additional machinery is needed to indicate what
+   --  is currently being compiled. As a result, the scope stack holds several
+   --  contiguous sections that correspond to the compilation of a given
+   --  compilation unit. These sections are separated by distinct occurrences
+   --  of package Standard. The currently active section of the scope stack
+   --  goes from the current scope to the first occurrence of Standard, which
+   --  is additionally marked with the flag Is_Active_Stack_Base. The basic
+   --  visibility routine (Find_Direct_Name, sem_ch8) uses this contiguous
+   --  section of the scope stack to determine whether a given entity is or
+   --  is not visible at a point. In_Open_Scopes only examines the currently
+   --  active section of the scope stack.
+
+   --  Similar complications arise when processing child instances. These
+   --  must be compiled in the context of parent instances, and therefore the
+   --  parents must be pushed on the stack before compiling the child, and
+   --  removed afterwards. Routines Save_Scope_Stack and Restore_Scope_Stack
+   --  are used to set/reset the visibility of entities declared in scopes
+   --  that are currently on the scope stack, and are used when compiling
+   --  instance bodies on the fly.
+
+   --  It is clear in retrospect that all semantic processing and visibility
+   --  structures should have been fully recursive. The rtsfind mechanism,
+   --  and the complexities brought about by subunits and by generic child
+   --  units and their instantitions, have led to a hybrid model that carries
+   --  more state than one would wish.
+
+   type Scope_Stack_Entry is record
+      Entity : Entity_Id;
+      --  Entity representing the scope
+
+      Last_Subprogram_Name : String_Ptr;
+      --  Pointer to name of last subprogram body in this scope. Used for
+      --  testing proper alpha ordering of subprogram bodies in scope.
+
+      Save_Scope_Suppress  : Suppress_Array;
+      --  Save contents of Scope_Suppress on entry
+
+      Save_Local_Suppress_Stack_Top : Suppress_Stack_Entry_Ptr;
+      --  Save contents of Local_Suppress_Stack on entry to restore on exit
+
+      Is_Transient : Boolean;
+      --  Marks Transient Scopes (See Exp_Ch7 body for details)
+
+      Previous_Visibility : Boolean;
+      --  Used when installing the parent(s) of the current compilation unit.
+      --  The parent may already be visible because of an ongoing compilation,
+      --  and the proper visibility must be restored on exit. The flag is
+      --  typically needed when the context of a child unit requires
+      --  compilation of a sibling. In other cases the flag is set to False.
+      --  See Sem_Ch10 (Install_Parents, Remove_Parents).
+
+      Node_To_Be_Wrapped : Node_Id;
+      --  Only used in transient scopes. Records the node which will
+      --  be wrapped by the transient block.
+
+      Actions_To_Be_Wrapped_Before : List_Id;
+      Actions_To_Be_Wrapped_After  : List_Id;
+      --  Actions that have to be inserted at the start or at the end of a
+      --  transient block. Used to temporarily hold these actions until the
+      --  block is created, at which time the actions are moved to the block.
+
+      Pending_Freeze_Actions : List_Id;
+      --  Used to collect freeze entity nodes and associated actions that are
+      --  generated in a inner context but need to be analyzed outside, such as
+      --  records and initialization procedures. On exit from the scope, this
+      --  list of actions is inserted before the scope construct and analyzed
+      --  to generate the corresponding freeze processing and elaboration of
+      --  other associated actions.
+
+      First_Use_Clause : Node_Id;
+      --  Head of list of Use_Clauses in current scope. The list is built when
+      --  the declarations in the scope are processed. The list is traversed
+      --  on scope exit to undo the effect of the use clauses.
+
+      Component_Alignment_Default : Component_Alignment_Kind;
+      --  Component alignment to be applied to any record or array types that
+      --  are declared for which a specific component alignment pragma does not
+      --  set the alignment.
+
+      Is_Active_Stack_Base : Boolean;
+      --  Set to true only when entering the scope for Standard_Standard from
+      --  from within procedure Semantics. Indicates the base of the current
+      --  active set of scopes. Needed by In_Open_Scopes to handle cases where
+      --  Standard_Standard can be pushed anew on the scope stack to start a
+      --  new active section (see comment above).
+
+   end record;
+
+   package Scope_Stack is new Table.Table (
+     Table_Component_Type => Scope_Stack_Entry,
      Table_Index_Type     => Int,
      Table_Low_Bound      => 0,
-     Table_Initial        => Alloc.Entity_Suppress_Initial,
-     Table_Increment      => Alloc.Entity_Suppress_Increment,
-     Table_Name           => "Local_Entity_Suppress");
-
-   --  The Global_Entity_Suppress table is used for entities which have
-   --  a Suppress or Unsuppress pragma naming a specific entity in a
-   --  package spec. Such pragmas always refer to entities in the package
-   --  spec and are effective throughout the lifetime of the named entity.
-
-   package Global_Entity_Suppress is new Table.Table (
-     Table_Component_Type => Entity_Check_Suppress_Record,
-     Table_Index_Type     => Int,
-     Table_Low_Bound      => 0,
-     Table_Initial        => Alloc.Entity_Suppress_Initial,
-     Table_Increment      => Alloc.Entity_Suppress_Increment,
-     Table_Name           => "Global_Entity_Suppress");
+     Table_Initial        => Alloc.Scope_Stack_Initial,
+     Table_Increment      => Alloc.Scope_Stack_Increment,
+     Table_Name           => "Sem.Scope_Stack");
 
    -----------------
    -- Subprograms --

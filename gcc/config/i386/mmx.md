@@ -22,7 +22,7 @@
 ;; the same register file, and 3dNOW! adds a number of extensions to
 ;; the base integer MMX isa.
 
-;; Note!  Except for the basic move instructions, *all* of these 
+;; Note!  Except for the basic move instructions, *all* of these
 ;; patterns are outside the normal optabs namespace.  This is because
 ;; use of these registers requires the insertion of emms or femms
 ;; instructions to return to normal fpu mode.  The compiler doesn't
@@ -31,14 +31,14 @@
 ;; direction of the user via a builtin.
 
 ;; 8 byte integral modes handled by MMX (and by extension, SSE)
-(define_mode_macro MMXMODEI [V8QI V4HI V2SI])
+(define_mode_iterator MMXMODEI [V8QI V4HI V2SI])
 
 ;; All 8-byte vector modes handled by MMX
-(define_mode_macro MMXMODE [V8QI V4HI V2SI V2SF])
+(define_mode_iterator MMXMODE [V8QI V4HI V2SI V2SF])
 
 ;; Mix-n-match
-(define_mode_macro MMXMODE12 [V8QI V4HI])
-(define_mode_macro MMXMODE24 [V4HI V2SI])
+(define_mode_iterator MMXMODE12 [V8QI V4HI])
+(define_mode_iterator MMXMODE24 [V4HI V2SI])
 
 ;; Mapping from integer vector mode to mnemonic suffix
 (define_mode_attr mmxvecsize [(V8QI "b") (V4HI "w") (V2SI "d") (DI "q")])
@@ -63,14 +63,14 @@
 
 (define_insn "*mov<mode>_internal_rex64"
   [(set (match_operand:MMXMODEI 0 "nonimmediate_operand"
-				"=rm,r,*y,*y ,m ,*y,Y ,x,x ,m,r,x")
+				"=rm,r,*y,*y ,m ,*y,Y2,x,x ,m,r,x")
 	(match_operand:MMXMODEI 1 "vector_move_operand"
-				"Cr ,m,C ,*ym,*y,Y ,*y,C,xm,x,x,r"))]
+				"Cr ,m,C ,*ym,*y,Y2,*y,C,xm,x,x,r"))]
   "TARGET_64BIT && TARGET_MMX
-   && (GET_CODE (operands[0]) != MEM || GET_CODE (operands[1]) != MEM)"
+   && !(MEM_P (operands[0]) && MEM_P (operands[1]))"
   "@
-    movq\t{%1, %0|%0, %1}
-    movq\t{%1, %0|%0, %1}
+    mov{q}\t{%1, %0|%0, %1}
+    mov{q}\t{%1, %0|%0, %1}
     pxor\t%0, %0
     movq\t{%1, %0|%0, %1}
     movq\t{%1, %0|%0, %1}
@@ -87,11 +87,11 @@
 
 (define_insn "*mov<mode>_internal"
   [(set (match_operand:MMXMODEI 0 "nonimmediate_operand"
-			"=*y,*y ,m ,*y,*Y,*Y,*Y ,m ,*x,*x,*x,m ,?r ,?m")
+			"=*y,*y ,m ,*y ,*Y2,*Y2,*Y2 ,m  ,*x,*x,*x,m ,?r ,?m")
 	(match_operand:MMXMODEI 1 "vector_move_operand"
-			"C  ,*ym,*y,*Y,*y,C ,*Ym,*Y,C ,*x,m ,*x,irm,r"))]
+			"C  ,*ym,*y,*Y2,*y ,C  ,*Y2m,*Y2,C ,*x,m ,*x,irm,r"))]
   "TARGET_MMX
-   && (GET_CODE (operands[0]) != MEM || GET_CODE (operands[1]) != MEM)"
+   && !(MEM_P (operands[0]) && MEM_P (operands[1]))"
   "@
     pxor\t%0, %0
     movq\t{%1, %0|%0, %1}
@@ -122,14 +122,14 @@
 
 (define_insn "*movv2sf_internal_rex64"
   [(set (match_operand:V2SF 0 "nonimmediate_operand"
-				"=rm,r,*y ,*y ,m ,*y,Y ,x,x,x,m,r,x")
+				"=rm,r,*y ,*y ,m ,*y,Y2,x,x,x,m,r,x")
         (match_operand:V2SF 1 "vector_move_operand"
-				"Cr ,m ,C ,*ym,*y,Y ,*y,C,x,m,x,x,r"))]
+				"Cr ,m ,C ,*ym,*y,Y2,*y,C,x,m,x,x,r"))]
   "TARGET_64BIT && TARGET_MMX
-   && (GET_CODE (operands[0]) != MEM || GET_CODE (operands[1]) != MEM)"
+   && !(MEM_P (operands[0]) && MEM_P (operands[1]))"
   "@
-    movq\t{%1, %0|%0, %1}
-    movq\t{%1, %0|%0, %1}
+    mov{q}\t{%1, %0|%0, %1}
+    mov{q}\t{%1, %0|%0, %1}
     pxor\t%0, %0
     movq\t{%1, %0|%0, %1}
     movq\t{%1, %0|%0, %1}
@@ -147,11 +147,11 @@
 
 (define_insn "*movv2sf_internal"
   [(set (match_operand:V2SF 0 "nonimmediate_operand"
-					"=*y,*y ,m,*y,*Y,*x,*x,*x,m ,?r ,?m")
+			"=*y,*y ,m,*y ,*Y2,*x,*x,*x,m ,?r ,?m")
         (match_operand:V2SF 1 "vector_move_operand"
-					"C ,*ym,*y,*Y,*y,C ,*x,m ,*x,irm,r"))]
+			"C ,*ym,*y,*Y2,*y ,C ,*x,m ,*x,irm,r"))]
   "TARGET_MMX
-   && (GET_CODE (operands[0]) != MEM || GET_CODE (operands[1]) != MEM)"
+   && !(MEM_P (operands[0]) && MEM_P (operands[1]))"
   "@
     pxor\t%0, %0
     movq\t{%1, %0|%0, %1}
@@ -301,7 +301,7 @@
   "pfrsqrt\\t{%1, %0|%0, %1}"
   [(set_attr "type" "mmx")
    (set_attr "mode" "V2SF")])
-		
+
 (define_insn "mmx_rsqit1v2sf3"
   [(set (match_operand:V2SF 0 "register_operand" "=y")
 	(unspec:V2SF [(match_operand:V2SF 1 "register_operand" "0")
@@ -485,10 +485,12 @@
   DONE;
 })
 
+;; Avoid combining registers from different units in a single alternative,
+;; see comment above inline_secondary_memory_needed function in i386.c
 (define_insn_and_split "*vec_extractv2sf_0"
-  [(set (match_operand:SF 0 "nonimmediate_operand"     "=x,y,m,m,frxy")
+  [(set (match_operand:SF 0 "nonimmediate_operand"     "=x, m,y ,m,f,r")
 	(vec_select:SF
-	  (match_operand:V2SF 1 "nonimmediate_operand" " x,y,x,y,m")
+	  (match_operand:V2SF 1 "nonimmediate_operand" " xm,x,ym,y,m,m")
 	  (parallel [(const_int 0)])))]
   "TARGET_MMX && !(MEM_P (operands[0]) && MEM_P (operands[1]))"
   "#"
@@ -504,18 +506,23 @@
   DONE;
 })
 
+;; Avoid combining registers from different units in a single alternative,
+;; see comment above inline_secondary_memory_needed function in i386.c
 (define_insn "*vec_extractv2sf_1"
-  [(set (match_operand:SF 0 "nonimmediate_operand"     "=y,x,frxy")
+  [(set (match_operand:SF 0 "nonimmediate_operand"     "=y,x,y,x,f,r")
 	(vec_select:SF
-	  (match_operand:V2SF 1 "nonimmediate_operand" " 0,0,o")
+	  (match_operand:V2SF 1 "nonimmediate_operand" " 0,0,o,o,o,o")
 	  (parallel [(const_int 1)])))]
   "TARGET_MMX && !(MEM_P (operands[0]) && MEM_P (operands[1]))"
   "@
    punpckhdq\t%0, %0
    unpckhps\t%0, %0
+   #
+   #
+   #
    #"
-  [(set_attr "type" "mmxcvt,sselog1,*")
-   (set_attr "mode" "DI,V4SF,SI")])
+  [(set_attr "type" "mmxcvt,sselog1,mmxmov,ssemov,fmov,imov")
+   (set_attr "mode" "DI,V4SF,SF,SF,SF,SF")])
 
 (define_split
   [(set (match_operand:SF 0 "register_operand" "")
@@ -1151,10 +1158,12 @@
   DONE;
 })
 
+;; Avoid combining registers from different units in a single alternative,
+;; see comment above inline_secondary_memory_needed function in i386.c
 (define_insn_and_split "*vec_extractv2si_0"
-  [(set (match_operand:SI 0 "nonimmediate_operand"     "=x,y,m,m,frxy")
+  [(set (match_operand:SI 0 "nonimmediate_operand"     "=x,m,y, m,r")
 	(vec_select:SI
-	  (match_operand:V2SI 1 "nonimmediate_operand" " x,y,x,y,m")
+	  (match_operand:V2SI 1 "nonimmediate_operand" "xm,x,ym,y,m")
 	  (parallel [(const_int 0)])))]
   "TARGET_MMX && !(MEM_P (operands[0]) && MEM_P (operands[1]))"
   "#"
@@ -1170,10 +1179,12 @@
   DONE;
 })
 
+;; Avoid combining registers from different units in a single alternative,
+;; see comment above inline_secondary_memory_needed function in i386.c
 (define_insn "*vec_extractv2si_1"
-  [(set (match_operand:SI 0 "nonimmediate_operand"     "=y,Y,Y,x,frxy")
+  [(set (match_operand:SI 0 "nonimmediate_operand"     "=y,Y2,Y2,x,y,x,r")
 	(vec_select:SI
-	  (match_operand:V2SI 1 "nonimmediate_operand" " 0,0,Y,0,o")
+	  (match_operand:V2SI 1 "nonimmediate_operand" " 0,0 ,Y2,0,o,o,o")
 	  (parallel [(const_int 1)])))]
   "TARGET_MMX && !(MEM_P (operands[0]) && MEM_P (operands[1]))"
   "@
@@ -1181,9 +1192,11 @@
    punpckhdq\t%0, %0
    pshufd\t{$85, %1, %0|%0, %1, 85}
    unpckhps\t%0, %0
+   #
+   #
    #"
-  [(set_attr "type" "mmxcvt,sselog1,sselog1,sselog1,*")
-   (set_attr "mode" "DI,TI,TI,V4SF,SI")])
+  [(set_attr "type" "mmxcvt,sselog1,sselog1,sselog1,mmxmov,ssemov,imov")
+   (set_attr "mode" "DI,TI,TI,V4SF,SI,SI,SI")])
 
 (define_split
   [(set (match_operand:SI 0 "register_operand" "")
@@ -1354,8 +1367,8 @@
 
 (define_expand "mmx_maskmovq"
   [(set (match_operand:V8QI 0 "memory_operand" "")
-	(unspec:V8QI [(match_operand:V8QI 1 "register_operand" "y")
-		      (match_operand:V8QI 2 "register_operand" "y")
+	(unspec:V8QI [(match_operand:V8QI 1 "register_operand" "")
+		      (match_operand:V8QI 2 "register_operand" "")
 		      (match_dup 0)]
 		     UNSPEC_MASKMOV))]
   "TARGET_SSE || TARGET_3DNOW_A"
@@ -1429,4 +1442,4 @@
   "TARGET_3DNOW"
   "femms"
   [(set_attr "type" "mmx")
-   (set_attr "memory" "none")]) 
+   (set_attr "memory" "none")])

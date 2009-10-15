@@ -1,5 +1,5 @@
 /* ThreadLocal -- a variable with a unique value per thread
-   Copyright (C) 2000, 2002, 2003 Free Software Foundation, Inc.
+   Copyright (C) 2000, 2002, 2003, 2006 Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -37,9 +37,7 @@ exception statement from your version. */
 
 package java.lang;
 
-import java.util.Collections;
 import java.util.Map;
-import java.util.WeakHashMap;
 
 
 /**
@@ -86,35 +84,23 @@ import java.util.WeakHashMap;
  * @author Mark Wielaard (mark@klomp.org)
  * @author Eric Blake (ebb9@email.byu.edu)
  * @since 1.2
- * @status updated to 1.4
+ * @status updated to 1.5
  */
-public class ThreadLocal
+public class ThreadLocal<T>
 {
   /**
    * Placeholder to distinguish between uninitialized and null set by the
    * user. Do not expose this to the public. Package visible for use by
    * InheritableThreadLocal
    */
-  static final Object NULL = new Object();
+  static final Object sentinel = new Object();
 
-  /**
-   * The stored value. Package visible for use by InheritableThreadLocal. */
-  Object value;
-	
-  /**
-   * Maps Threads to values. Uses a WeakHashMap so if a Thread is garbage
-   * collected the reference to the Value will disappear. A null value means
-   * uninitialized, while NULL means a user-specified null. Only the
-   * <code>set(Thread, Object)</code> and <code>get(Thread)</code> methods
-   * access it. Package visible for use by InheritableThreadLocal.
-   */
-  final Map valueMap = Collections.synchronizedMap(new WeakHashMap());
-	
   /**
    * Creates a ThreadLocal object without associating any value to it yet.
    */
   public ThreadLocal()
   {
+    constructNative();
   }
 
   /**
@@ -125,7 +111,7 @@ public class ThreadLocal
    *
    * @return the initial value of the variable in this thread
    */
-  protected Object initialValue()
+  protected T initialValue()
   {
     return null;
   }
@@ -138,18 +124,20 @@ public class ThreadLocal
    *
    * @return the value of the variable in this thread
    */
-  public Object get()
+  public native T get();
+
+  private final Object internalGet()
   {
-    Thread currentThread = Thread.currentThread();
+    Map<ThreadLocal<T>,T> map = (Map<ThreadLocal<T>,T>) Thread.getThreadLocals();
     // Note that we don't have to synchronize, as only this thread will
-    // ever modify the returned value and valueMap is a synchronizedMap.
-    Object value = valueMap.get(currentThread);
+    // ever modify the map.
+    T value = map.get(this);
     if (value == null)
       {
         value = initialValue();
-        valueMap.put(currentThread, value == null ? NULL : value);
+        map.put(this, (T) (value == null ? sentinel : value));
       }
-    return value == NULL ? null : value;
+    return value == (T) sentinel ? null : value;
   }
 
   /**
@@ -160,10 +148,32 @@ public class ThreadLocal
    *
    * @param value the value to set this thread's view of the variable to
    */
-  public void set(Object value)
+  public native void set(T value);
+
+  private final void internalSet(Object value)
   {
+    Map map = Thread.getThreadLocals();
     // Note that we don't have to synchronize, as only this thread will
-    // ever modify the returned value and valueMap is a synchronizedMap.
-    valueMap.put(Thread.currentThread(), value == null ? NULL : value);
+    // ever modify the map.
+    map.put(this, value == null ? sentinel : value);
   }
+
+  /**
+   * Removes the value associated with the ThreadLocal object for the
+   * currently executing Thread.
+   * @since 1.5
+   */
+  public native void remove();
+
+  private final void internalRemove()
+  {
+    Map map = Thread.getThreadLocals();
+    map.remove(this);
+  }
+
+  protected native void finalize () throws Throwable;
+
+  private native void constructNative();
+
+  private gnu.gcj.RawData TLSPointer;
 }

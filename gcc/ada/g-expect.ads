@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---                     Copyright (C) 2000-2005, AdaCore                     --
+--                     Copyright (C) 2000-2007, AdaCore                     --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -188,48 +188,46 @@ package GNAT.Expect is
    procedure Close (Descriptor : in out Process_Descriptor);
    --  Terminate the process and close the pipes to it. It implicitly
    --  does the 'wait' command required to clean up the process table.
-   --  This also frees the buffer associated with the process id.
+   --  This also frees the buffer associated with the process id. Raise
+   --  Invalid_Process if the process id is invalid.
 
    procedure Close
      (Descriptor : in out Process_Descriptor;
       Status     : out Integer);
-   --  Same as above, but also returns the exit status of the process,
-   --  as set for example by the procedure GNAT.OS_Lib.OS_Exit.
+   --  Same as above, but also returns the exit status of the process, as set
+   --  for example by the procedure GNAT.OS_Lib.OS_Exit.
 
    procedure Send_Signal
      (Descriptor : Process_Descriptor;
       Signal     : Integer);
-   --  Send a given signal to the process
+   --  Send a given signal to the process. Raise Invalid_Process if the process
+   --  id is invalid.
 
    procedure Interrupt (Descriptor : in out Process_Descriptor);
    --  Interrupt the process (the equivalent of Ctrl-C on unix and windows)
    --  and call close if the process dies.
 
    function Get_Input_Fd
-     (Descriptor : Process_Descriptor)
-      return       GNAT.OS_Lib.File_Descriptor;
+     (Descriptor : Process_Descriptor) return GNAT.OS_Lib.File_Descriptor;
    --  Return the input file descriptor associated with Descriptor
 
    function Get_Output_Fd
-     (Descriptor : Process_Descriptor)
-      return       GNAT.OS_Lib.File_Descriptor;
+     (Descriptor : Process_Descriptor) return GNAT.OS_Lib.File_Descriptor;
    --  Return the output file descriptor associated with Descriptor
 
    function Get_Error_Fd
-     (Descriptor : Process_Descriptor)
-      return       GNAT.OS_Lib.File_Descriptor;
+     (Descriptor : Process_Descriptor) return GNAT.OS_Lib.File_Descriptor;
    --  Return the error output file descriptor associated with Descriptor
 
    function Get_Pid
-     (Descriptor : Process_Descriptor)
-      return       Process_Id;
+     (Descriptor : Process_Descriptor) return Process_Id;
    --  Return the process id assocated with a given process descriptor
 
    function Get_Command_Output
      (Command    : String;
       Arguments  : GNAT.OS_Lib.Argument_List;
       Input      : String;
-      Status     : access Integer;
+      Status     : not null access Integer;
       Err_To_Out : Boolean := False) return String;
    --  Execute Command with the specified Arguments and Input, and return the
    --  generated standard output data as a single string. If Err_To_Out is
@@ -403,7 +401,7 @@ package GNAT.Expect is
 
    type Regexp_Array is array (Positive range <>) of GNAT.OS_Lib.String_Access;
 
-   type Pattern_Matcher_Access is access GNAT.Regpat.Pattern_Matcher;
+   type Pattern_Matcher_Access is access all GNAT.Regpat.Pattern_Matcher;
    type Compiled_Regexp_Array is array (Positive range <>)
      of Pattern_Matcher_Access;
 
@@ -555,9 +553,9 @@ private
    procedure Set_Up_Communications
      (Pid        : in out Process_Descriptor;
       Err_To_Out : Boolean;
-      Pipe1      : access Pipe_Type;
-      Pipe2      : access Pipe_Type;
-      Pipe3      : access Pipe_Type);
+      Pipe1      : not null access Pipe_Type;
+      Pipe2      : not null access Pipe_Type;
+      Pipe3      : not null access Pipe_Type);
    --  Set up all the communication pipes and file descriptors prior to
    --  spawning the child process.
 
@@ -601,7 +599,7 @@ private
    --  possibly in future child units providing extensions to this package.
 
    procedure Portable_Execvp
-     (Pid  : access Process_Id;
+     (Pid  : not null access Process_Id;
       Cmd  : String;
       Args : System.Address);
    pragma Import (C, Portable_Execvp, "__gnat_expect_portable_execvp");

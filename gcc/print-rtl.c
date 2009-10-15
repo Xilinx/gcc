@@ -48,15 +48,15 @@ static int sawclose = 0;
 
 static int indent;
 
-static void print_rtx (rtx);
+static void print_rtx (const_rtx);
 
 /* String printed at beginning of each RTL when it is dumped.
    This string is set to ASM_COMMENT_START when the RTL is dumped in
    the assembly output file.  */
 const char *print_rtx_head = "";
 
-/* Nonzero means suppress output of instruction numbers and line number
-   notes in debugging dumps.
+/* Nonzero means suppress output of instruction numbers
+   in debugging dumps.
    This must be defined here so that programs like gencodes can be linked.  */
 int flag_dump_unnumbered = 0;
 
@@ -68,14 +68,14 @@ int dump_for_graph;
 
 #ifndef GENERATOR_FILE
 static void
-print_decl_name (FILE *outfile, tree node)
+print_decl_name (FILE *outfile, const_tree node)
 {
   if (DECL_NAME (node))
     fputs (IDENTIFIER_POINTER (DECL_NAME (node)), outfile);
   else
     {
       if (TREE_CODE (node) == LABEL_DECL && LABEL_DECL_UID (node) != -1)
-	fprintf (outfile, "L." HOST_WIDE_INT_PRINT_DEC, LABEL_DECL_UID (node));
+	fprintf (outfile, "L.%d", (int) LABEL_DECL_UID (node));
       else
         {
           char c = TREE_CODE (node) == CONST_DECL ? 'C' : 'D';
@@ -85,7 +85,7 @@ print_decl_name (FILE *outfile, tree node)
 }
 
 void
-print_mem_expr (FILE *outfile, tree expr)
+print_mem_expr (FILE *outfile, const_tree expr)
 {
   if (TREE_CODE (expr) == COMPONENT_REF)
     {
@@ -127,7 +127,7 @@ print_mem_expr (FILE *outfile, tree expr)
 /* Print IN_RTX onto OUTFILE.  This is the recursive part of printing.  */
 
 static void
-print_rtx (rtx in_rtx)
+print_rtx (const_rtx in_rtx)
 {
   int i = 0;
   int j;
@@ -269,7 +269,7 @@ print_rtx (rtx in_rtx)
 #endif
 	else if (i == 4 && NOTE_P (in_rtx))
 	  {
-	    switch (NOTE_LINE_NUMBER (in_rtx))
+	    switch (NOTE_KIND (in_rtx))
 	      {
 	      case NOTE_INSN_EH_REGION_BEG:
 	      case NOTE_INSN_EH_REGION_END:
@@ -298,14 +298,6 @@ print_rtx (rtx in_rtx)
 		  break;
 	        }
 
-	      case NOTE_INSN_EXPECTED_VALUE:
-		indent += 2;
-		if (!sawclose)
-		  fprintf (outfile, " ");
-		print_rtx (NOTE_EXPECTED_VALUE (in_rtx));
-		indent -= 2;
-		break;
-
 	      case NOTE_INSN_DELETED_LABEL:
 		{
 		  const char *label = NOTE_DELETED_LABEL_NAME (in_rtx);
@@ -332,29 +324,20 @@ print_rtx (rtx in_rtx)
 		print_mem_expr (outfile, NOTE_VAR_LOCATION_DECL (in_rtx));
 		fprintf (outfile, " ");
 		print_rtx (NOTE_VAR_LOCATION_LOC (in_rtx));
+		if (NOTE_VAR_LOCATION_STATUS (in_rtx) == 
+		                                 VAR_INIT_STATUS_UNINITIALIZED)
+		  fprintf (outfile, " [uninit]");
 		fprintf (outfile, ")");
 #endif
 		break;
 
 	      default:
-		{
-		  const char * const str = X0STR (in_rtx, i);
-
-		  if (NOTE_LINE_NUMBER (in_rtx) < 0)
-		    ;
-		  else if (str == 0)
-		    fputs (dump_for_graph ? " \\\"\\\"" : " \"\"", outfile);
-		  else
-		    {
-		      if (dump_for_graph)
-		        fprintf (outfile, " (\\\"%s\\\")", str);
-		      else
-		        fprintf (outfile, " (\"%s\")", str);
-		    }
-		  break;
-		}
+		break;
 	      }
 	  }
+	else if (i == 9 && JUMP_P (in_rtx) && XEXP (in_rtx, i) != NULL)
+	  /* Output the JUMP_LABEL reference.  */
+	  fprintf (outfile, "\n -> %d", INSN_UID (XEXP (in_rtx, i)));
 	break;
 
       case 'e':
@@ -419,7 +402,7 @@ print_rtx (rtx in_rtx)
 	  {
 	    /* This field is only used for NOTE_INSN_DELETED_LABEL, and
 	       other times often contains garbage from INSN->NOTE death.  */
-	    if (NOTE_LINE_NUMBER (in_rtx) == NOTE_INSN_DELETED_LABEL)
+	    if (NOTE_KIND (in_rtx) == NOTE_INSN_DELETED_LABEL)
 	      fprintf (outfile, " %d",  XINT (in_rtx, i));
 	  }
 	else
@@ -483,11 +466,7 @@ print_rtx (rtx in_rtx)
       /* Print NOTE_INSN names rather than integer codes.  */
 
       case 'n':
-	if (XINT (in_rtx, i) >= (int) NOTE_INSN_BIAS
-	    && XINT (in_rtx, i) < (int) NOTE_INSN_MAX)
-	  fprintf (outfile, " %s", GET_NOTE_INSN_NAME (XINT (in_rtx, i)));
-	else
-	  fprintf (outfile, " %d", XINT (in_rtx, i));
+	fprintf (outfile, " %s", GET_NOTE_INSN_NAME (XINT (in_rtx, i)));
 	sawclose = 0;
 	break;
 
@@ -500,7 +479,7 @@ print_rtx (rtx in_rtx)
 	    if (GET_CODE (in_rtx) == LABEL_REF)
 	      {
 		if (subc == NOTE
-		    && NOTE_LINE_NUMBER (sub) == NOTE_INSN_DELETED_LABEL)
+		    && NOTE_KIND (sub) == NOTE_INSN_DELETED_LABEL)
 		  {
 		    if (flag_dump_unnumbered)
 		      fprintf (outfile, " [# deleted]");
@@ -560,7 +539,8 @@ print_rtx (rtx in_rtx)
     {
 #ifndef GENERATOR_FILE
     case MEM:
-      fprintf (outfile, " [" HOST_WIDE_INT_PRINT_DEC, MEM_ALIAS_SET (in_rtx));
+      fprintf (outfile, " [" HOST_WIDE_INT_PRINT_DEC,
+	       (HOST_WIDE_INT) MEM_ALIAS_SET (in_rtx));
 
       if (MEM_EXPR (in_rtx))
 	print_mem_expr (outfile, MEM_EXPR (in_rtx));
@@ -626,7 +606,7 @@ print_rtx (rtx in_rtx)
    characters.  */
 
 void
-print_inline_rtx (FILE *outf, rtx x, int ind)
+print_inline_rtx (FILE *outf, const_rtx x, int ind)
 {
   int oldsaw = sawclose;
   int oldindent = indent;
@@ -642,7 +622,7 @@ print_inline_rtx (FILE *outf, rtx x, int ind)
 /* Call this function from the debugger to see what X looks like.  */
 
 void
-debug_rtx (rtx x)
+debug_rtx (const_rtx x)
 {
   outfile = stderr;
   sawclose = 0;
@@ -662,10 +642,10 @@ int debug_rtx_count = 0;	/* 0 is treated as equivalent to 1 */
    EG: -5 prints 2 rtx's on either side (in addition to the specified rtx).  */
 
 void
-debug_rtx_list (rtx x, int n)
+debug_rtx_list (const_rtx x, int n)
 {
   int i,count;
-  rtx insn;
+  const_rtx insn;
 
   count = n == 0 ? 1 : n < 0 ? -n : n;
 
@@ -689,7 +669,7 @@ debug_rtx_list (rtx x, int n)
 /* Call this function to print an rtx list from START to END inclusive.  */
 
 void
-debug_rtx_range (rtx start, rtx end)
+debug_rtx_range (const_rtx start, const_rtx end)
 {
   while (1)
     {
@@ -705,8 +685,8 @@ debug_rtx_range (rtx start, rtx end)
    and then call debug_rtx_list to print it, using DEBUG_RTX_COUNT.
    The found insn is returned to enable further debugging analysis.  */
 
-rtx
-debug_rtx_find (rtx x, int uid)
+const_rtx
+debug_rtx_find (const_rtx x, int uid)
 {
   while (x != 0 && INSN_UID (x) != uid)
     x = NEXT_INSN (x);
@@ -729,9 +709,9 @@ debug_rtx_find (rtx x, int uid)
    If RTX_FIRST is not an insn, then it alone is printed, with no newline.  */
 
 void
-print_rtl (FILE *outf, rtx rtx_first)
+print_rtl (FILE *outf, const_rtx rtx_first)
 {
-  rtx tmp_rtx;
+  const_rtx tmp_rtx;
 
   outfile = outf;
   sawclose = 0;
@@ -751,13 +731,11 @@ print_rtl (FILE *outf, rtx rtx_first)
       case CODE_LABEL:
       case BARRIER:
 	for (tmp_rtx = rtx_first; tmp_rtx != 0; tmp_rtx = NEXT_INSN (tmp_rtx))
-	  if (! flag_dump_unnumbered
-	      || !NOTE_P (tmp_rtx) || NOTE_LINE_NUMBER (tmp_rtx) < 0)
-	    {
-	      fputs (print_rtx_head, outfile);
-	      print_rtx (tmp_rtx);
-	      fprintf (outfile, "\n");
-	    }
+	  {
+	    fputs (print_rtx_head, outfile);
+	    print_rtx (tmp_rtx);
+	    fprintf (outfile, "\n");
+	  }
 	break;
 
       default:
@@ -770,19 +748,14 @@ print_rtl (FILE *outf, rtx rtx_first)
 /* Return nonzero if we actually printed anything.  */
 
 int
-print_rtl_single (FILE *outf, rtx x)
+print_rtl_single (FILE *outf, const_rtx x)
 {
   outfile = outf;
   sawclose = 0;
-  if (! flag_dump_unnumbered
-      || !NOTE_P (x) || NOTE_LINE_NUMBER (x) < 0)
-    {
-      fputs (print_rtx_head, outfile);
-      print_rtx (x);
-      putc ('\n', outf);
-      return 1;
-    }
-  return 0;
+  fputs (print_rtx_head, outfile);
+  print_rtx (x);
+  putc ('\n', outf);
+  return 1;
 }
 
 
@@ -790,7 +763,7 @@ print_rtl_single (FILE *outf, rtx x)
    if RTX is a CONST_INT then print in decimal format.  */
 
 void
-print_simple_rtl (FILE *outf, rtx x)
+print_simple_rtl (FILE *outf, const_rtx x)
 {
   flag_simple = 1;
   print_rtl (outf, x);

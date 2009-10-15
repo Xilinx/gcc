@@ -25,6 +25,7 @@
 using __gnu_test::test_container;
 using __gnu_test::random_access_iterator_wrapper;
 using std::nth_element;
+using std::partial_sort;
 
 typedef test_container<int, random_access_iterator_wrapper> Container;
 
@@ -48,6 +49,7 @@ test2()
 void 
 test3()
 {
+  bool test __attribute__((unused)) = true;
   int array[] = {6, 5, 4, 3, 2, 1, 0};
   Container con(array, array + 7);
   nth_element(con.begin(), con.it(3), con.end());
@@ -60,6 +62,7 @@ test3()
 void 
 test4()
 {
+  bool test __attribute__((unused)) = true;
   int array[] = {0, 6, 1, 5, 2, 4, 3};
   Container con(array,array + 7);
   nth_element(con.begin(), con.it(3), con.end());

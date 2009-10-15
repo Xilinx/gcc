@@ -7,7 +7,7 @@
 --                                 B o d y                                  --
 --                         (Version for Alpha/VMS)                          --
 --                                                                          --
---                     Copyright (C) 2001-2005, AdaCore                     --
+--                     Copyright (C) 2001-2007, AdaCore                     --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -37,7 +37,7 @@
 
 with System.Memory;
 with System.Aux_DEC; use System.Aux_DEC;
-with Unchecked_Conversion;
+with Ada.Unchecked_Conversion;
 
 package body System.Machine_State_Operations is
 
@@ -131,10 +131,10 @@ package body System.Machine_State_Operations is
 
    function Fetch is new Fetch_From_Address (Code_Loc);
 
-   function To_Invo_Handle_Access is new Unchecked_Conversion
+   function To_Invo_Handle_Access is new Ada.Unchecked_Conversion
      (Machine_State, Invo_Handle_Access_Type);
 
-   function To_Machine_State is new Unchecked_Conversion
+   function To_Machine_State is new Ada.Unchecked_Conversion
      (System.Address, Machine_State);
 
    ----------------------------
@@ -175,7 +175,7 @@ package body System.Machine_State_Operations is
    function Get_Code_Loc (M : Machine_State) return Code_Loc is
       procedure Get_Invo_Context (
          Result       : out Unsigned_Longword; -- return value
-         Invo_Handle  : in  Invo_Handle_Type;
+         Invo_Handle  : Invo_Handle_Type;
          Invo_Context : out Invo_Context_Blk_Type);
 
       pragma Interface (External, Get_Invo_Context);
@@ -221,7 +221,7 @@ package body System.Machine_State_Operations is
    procedure Pop_Frame (M : Machine_State) is
       procedure Get_Prev_Invo_Handle (
          Result : out Invo_Handle_Type; -- return value
-         ICB    : in  Invo_Handle_Type);
+         ICB    : Invo_Handle_Type);
 
       pragma Interface (External, Get_Prev_Invo_Handle);
 
@@ -255,7 +255,7 @@ package body System.Machine_State_Operations is
 
       procedure Get_Invo_Handle (
          Result       : out Invo_Handle_Type; -- return value
-         Invo_Context : in Invo_Context_Blk_Type);
+         Invo_Context : Invo_Context_Blk_Type);
 
       pragma Interface (External, Get_Invo_Handle);
 

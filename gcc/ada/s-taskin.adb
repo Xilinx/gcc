@@ -6,7 +6,7 @@
 --                                                                          --
 --                                  B o d y                                 --
 --                                                                          --
---          Copyright (C) 1992-2006, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -65,6 +65,17 @@ package body System.Tasking is
    ----------
 
    function Self return Task_Id renames STPO.Self;
+
+   ------------------
+   -- Storage_Size --
+   ------------------
+
+   function Storage_Size (T : Task_Id) return System.Parameters.Size_Type is
+   begin
+      return
+         System.Parameters.Size_Type
+           (T.Common.Compiler_Data.Pri_Stack_Info.Size);
+   end Storage_Size;
 
    ---------------------
    -- Initialize_ATCB --
@@ -149,8 +160,10 @@ package body System.Tasking is
 
    procedure Initialize is
       T             : Task_Id;
-      Success       : Boolean;
       Base_Priority : Any_Priority;
+
+      Success : Boolean;
+      pragma Warnings (Off, Success);
 
    begin
       if Initialized then

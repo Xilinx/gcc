@@ -6,18 +6,17 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2005, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -30,6 +29,7 @@ with Einfo;    use Einfo;
 with Errout;   use Errout;
 with Lib;      use Lib;
 with Lib.Xref; use Lib.Xref;
+with Namet;    use Namet;
 with Nlists;   use Nlists;
 with Nmake;    use Nmake;
 with Opt;      use Opt;
@@ -41,6 +41,7 @@ with Sem_Ch5;  use Sem_Ch5;
 with Sem_Ch8;  use Sem_Ch8;
 with Sem_Res;  use Sem_Res;
 with Sem_Util; use Sem_Util;
+with Sem_Warn; use Sem_Warn;
 with Sinfo;    use Sinfo;
 with Stand;    use Stand;
 with Uintp;    use Uintp;
@@ -54,16 +55,14 @@ package body Sem_Ch11 is
    procedure Analyze_Exception_Declaration (N : Node_Id) is
       Id : constant Entity_Id := Defining_Identifier (N);
       PF : constant Boolean   := Is_Pure (Current_Scope);
-
    begin
-      Generate_Definition (Id);
-      Enter_Name          (Id);
-      Set_Ekind           (Id, E_Exception);
-      Set_Exception_Code  (Id, Uint_0);
-      Set_Etype           (Id, Standard_Exception_Type);
-
+      Generate_Definition         (Id);
+      Enter_Name                  (Id);
+      Set_Ekind                   (Id, E_Exception);
+      Set_Exception_Code          (Id, Uint_0);
+      Set_Etype                   (Id, Standard_Exception_Type);
       Set_Is_Statically_Allocated (Id);
-      Set_Is_Pure (Id, PF);
+      Set_Is_Pure                 (Id, PF);
    end Analyze_Exception_Declaration;
 
    --------------------------------
@@ -181,28 +180,35 @@ package body Sem_Ch11 is
          --  Otherwise we have a real exception handler
 
          else
-            --  Deal with choice parameter. The exception handler is
-            --  a declarative part for it, so it constitutes a scope
-            --  for visibility purposes. We create an entity to denote
-            --  the whole exception part, and use it as the scope of all
-            --  the choices, which may even have the same name without
-            --  conflict. This scope plays no other role in expansion or
-            --  or code generation.
+            --  Deal with choice parameter. The exception handler is a
+            --  declarative part for the choice parameter, so it constitutes a
+            --  scope for visibility purposes. We create an entity to denote
+            --  the whole exception part, and use it as the scope of all the
+            --  choices, which may even have the same name without conflict.
+            --  This scope plays no other role in expansion or or code
+            --  generation.
 
             Choice := Choice_Parameter (Handler);
 
             if Present (Choice) then
-               if No (H_Scope) then
-                  H_Scope := New_Internal_Entity
-                    (E_Block, Current_Scope, Sloc (Choice), 'E');
+               Set_Local_Raise_Not_OK (Handler);
+
+               if Comes_From_Source (Choice) then
+                  Check_Restriction (No_Exception_Propagation, Choice);
                end if;
 
-               New_Scope (H_Scope);
+               if No (H_Scope) then
+                  H_Scope :=
+                    New_Internal_Entity
+                     (E_Block, Current_Scope, Sloc (Choice), 'E');
+               end if;
+
+               Push_Scope (H_Scope);
                Set_Etype (H_Scope, Standard_Void_Type);
 
                --  Set the Finalization Chain entity to Error means that it
-               --  should not be used at that level but the parent one
-               --  should be used instead.
+               --  should not be used at that level but the parent one should
+               --  be used instead.
 
                --  ??? this usage needs documenting in Einfo/Exp_Ch7 ???
                --  ??? using Error for this non-error condition is nasty ???
@@ -211,12 +217,18 @@ package body Sem_Ch11 is
 
                Enter_Name (Choice);
                Set_Ekind (Choice, E_Variable);
-               Set_Etype (Choice, RTE (RE_Exception_Occurrence));
+
+               if RTE_Available (RE_Exception_Occurrence) then
+                  Set_Etype (Choice, RTE (RE_Exception_Occurrence));
+               end if;
+
                Generate_Definition (Choice);
 
-               --  Set source assigned flag, since in effect this field
-               --  is always assigned an initial value by the exception.
+               --  Indicate that choice has an initial value, since in effect
+               --  this field is assigned an initial value by the exception.
+               --  We also consider that it is modified in the source.
 
+               Set_Has_Initial_Value (Choice, True);
                Set_Never_Set_In_Source (Choice, False);
             end if;
 
@@ -233,12 +245,35 @@ package body Sem_Ch11 is
                else
                   Analyze (Id);
 
+                  --  In most cases the choice has already been analyzed in
+                  --  Analyze_Handled_Statement_Sequence, in order to expand
+                  --  local handlers. This advance analysis does not take into
+                  --  account the case in which a choice has the same name as
+                  --  the choice parameter of the handler, which may hide an
+                  --  outer exception. This pathological case appears in ACATS
+                  --  B80001_3.adb, and requires an explicit check to verify
+                  --  that the id is not hidden.
+
                   if not Is_Entity_Name (Id)
                     or else Ekind (Entity (Id)) /= E_Exception
+                    or else
+                      (Nkind (Id) = N_Identifier
+                        and then Chars (Id) = Chars (Choice))
                   then
                      Error_Msg_N ("exception name expected", Id);
 
                   else
+                     --  Emit a warning at the declaration level when a local
+                     --  exception is never raised explicitly.
+
+                     if Warn_On_Redundant_Constructs
+                       and then not Is_Raised (Entity (Id))
+                       and then Scope (Entity (Id)) = Current_Scope
+                     then
+                        Error_Msg_NE
+                          ("?exception & is never raised", Entity (Id), Id);
+                     end if;
+
                      if Present (Renamed_Entity (Entity (Id))) then
                         if Entity (Id) = Standard_Numeric_Error then
                            Check_Restriction (No_Obsolescent_Features, Id);
@@ -246,7 +281,7 @@ package body Sem_Ch11 is
                            if Warn_On_Obsolescent_Feature then
                               Error_Msg_N
                                 ("Numeric_Error is an " &
-                                 "obsolescent feature ('R'M 'J.6(1))?", Id);
+                                 "obsolescent feature (RM J.6(1))?", Id);
                               Error_Msg_N
                                 ("\use Constraint_Error instead?", Id);
                            end if;
@@ -271,13 +306,7 @@ package body Sem_Ch11 is
                         while Scop /= Standard_Standard
                           and then Ekind (Scop) = E_Package
                         loop
-                           --  If the exception is declared in an inner
-                           --  instance, nothing else to check.
-
-                           if Is_Generic_Instance (Scop) then
-                              exit;
-
-                           elsif Nkind (Declaration_Node (Scop)) =
+                           if Nkind (Declaration_Node (Scop)) =
                                            N_Package_Specification
                              and then
                                Nkind (Original_Node (Parent
@@ -289,7 +318,13 @@ package body Sem_Ch11 is
                                  "generic formal package", Id, Ent);
                               Error_Msg_N
                                 ("\and therefore cannot appear in " &
-                                 "handler ('R'M 11.2(8))", Id);
+                                 "handler (RM 11.2(8))", Id);
+                              exit;
+
+                           --  If the exception is declared in an inner
+                           --  instance, nothing else to check.
+
+                           elsif Is_Generic_Instance (Scop) then
                               exit;
                            end if;
 
@@ -302,9 +337,9 @@ package body Sem_Ch11 is
                Next (Id);
             end loop;
 
-            --  Check for redundant handler (has only raise statement) and
-            --  is either an others handler, or is a specific handler when
-            --  no others handler is present.
+            --  Check for redundant handler (has only raise statement) and is
+            --  either an others handler, or is a specific handler when no
+            --  others handler is present.
 
             if Warn_On_Redundant_Constructs
               and then List_Length (Statements (Handler)) = 1
@@ -341,17 +376,54 @@ package body Sem_Ch11 is
 
    procedure Analyze_Handled_Statements (N : Node_Id) is
       Handlers : constant List_Id := Exception_Handlers (N);
+      Handler  : Node_Id;
+      Choice   : Node_Id;
 
    begin
       if Present (Handlers) then
          Kill_All_Checks;
       end if;
 
+      --  We are now going to analyze the statements and then the exception
+      --  handlers. We certainly need to do things in this order to get the
+      --  proper sequential semantics for various warnings.
+
+      --  However, there is a glitch. When we process raise statements, an
+      --  optimization is to look for local handlers and specialize the code
+      --  in this case.
+
+      --  In order to detect if a handler is matching, we must have at least
+      --  analyzed the choices in the proper scope so that proper visibility
+      --  analysis is performed. Hence we analyze just the choices first,
+      --  before we analyze the statement sequence.
+
+      Handler := First_Non_Pragma (Handlers);
+      while Present (Handler) loop
+         Choice := First_Non_Pragma (Exception_Choices (Handler));
+         while Present (Choice) loop
+            Analyze (Choice);
+            Next_Non_Pragma (Choice);
+         end loop;
+
+         Next_Non_Pragma (Handler);
+      end loop;
+
+      --  Analyze statements in sequence
+
       Analyze_Statements (Statements (N));
+
+      --  If the current scope is a subprogram, then this is the right place to
+      --  check for hanging useless assignments from the statement sequence of
+      --  the subprogram body.
+
+      if Is_Subprogram (Current_Scope) then
+         Warn_On_Useless_Assignments (Current_Scope);
+      end if;
+
+      --  Deal with handlers or AT END proc
 
       if Present (Handlers) then
          Analyze_Exception_Handlers (Handlers);
-
       elsif Present (At_End_Proc (N)) then
          Analyze (At_End_Proc (N));
       end if;
@@ -376,9 +448,9 @@ package body Sem_Ch11 is
          Check_Restriction (No_Exceptions, N);
       end if;
 
-      --  Check for useless assignment to OUT or IN OUT scalar
-      --  immediately preceding the raise. Right now we only look
-      --  at assignment statements, we could do more.
+      --  Check for useless assignment to OUT or IN OUT scalar immediately
+      --  preceding the raise. Right now we only look at assignment statements,
+      --  we could do more.
 
       if Is_List_Member (N) then
          declare
@@ -402,7 +474,7 @@ package body Sem_Ch11 is
                       P);
                   Error_Msg_N
                     ("\?RAISE statement may result in abnormal return" &
-                     " ('R'M 6.4.1(17))", P);
+                     " (RM 6.4.1(17))", P);
                end if;
             end if;
          end;
@@ -411,7 +483,6 @@ package body Sem_Ch11 is
       --  Reraise statement
 
       if No (Exception_Id) then
-
          P := Parent (N);
          Nkind_P := Nkind (P);
 
@@ -428,6 +499,14 @@ package body Sem_Ch11 is
          if Nkind (P) /= N_Exception_Handler then
             Error_Msg_N
               ("reraise statement must appear directly in a handler", N);
+
+         --  If a handler has a reraise, it cannot be the target of a local
+         --  raise (goto optimization is impossible), and if the no exception
+         --  propagation restriction is set, this is a violation.
+
+         else
+            Set_Local_Raise_Not_OK (P);
+            Check_Restriction (No_Exception_Propagation, N);
          end if;
 
       --  Normal case with exception id present
@@ -444,12 +523,19 @@ package body Sem_Ch11 is
          then
             Error_Msg_N
               ("exception name expected in raise statement", Exception_Id);
+         else
+            Set_Is_Raised (Exception_Name);
          end if;
 
+         --  Deal with RAISE WITH case
+
          if Present (Expression (N)) then
+            Check_Compiler_Unit (Expression (N));
             Analyze_And_Resolve (Expression (N), Standard_String);
          end if;
       end if;
+
+      Kill_Current_Values (Last_Assignment_Only => True);
    end Analyze_Raise_Statement;
 
    -----------------------------

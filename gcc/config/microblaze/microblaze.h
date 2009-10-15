@@ -201,9 +201,7 @@ extern char *microblaze_no_clearbss;
   { "-xl-mode-xmdstub", "-Zxl-mode-xmdstub" },  \
   { "-xl-mode-bootstrap", "-Zxl-mode-bootstrap" }, \
   { "-xl-mode-novectors", "-Zxl-mode-novectors" }, \
-  { "-xl-mode-xilkernel", "-Zxl-mode-xilkernel" },  \
-  { "-xl-blazeit", "-Zxl-blazeit" },    \
-  { "-xl-no-libxil", "-Zxl-no-libxil" }
+  { "-xl-mode-xilkernel", "-Zxl-mode-xilkernel" }
 
 /* Default target_flags if no switches are specified  */
 #define TARGET_DEFAULT      (MASK_SOFT_MUL | MASK_SOFT_DIV | MASK_SOFT_FLOAT)
@@ -253,7 +251,6 @@ while (0)
 
 #define DRIVER_SELF_SPECS    				\
 	"%{mxl-soft-mul:%<mno-xl-soft-mul}", 		\
-	"%{mno-xl-multiply-high:%<mxl-multiply-high}", 	\
 	"%{mno-xl-barrel-shift:%<mxl-barrel-shift}", 	\
 	"%{mno-xl-pattern-compare:%<mxl-pattern-compare}", \
 	"%{mxl-soft-div:%<mno-xl-soft-div}", 		\
@@ -318,10 +315,10 @@ while (0)
 %{G*} %{gline:%{!g:%{!g0:%{!g1:%{!g2: -g1}}}}} \
 %{save-temps: } \
 %(subtarget_cc1_spec) \
-%{Zxl-blazeit: -mno-xl-soft-mul -mno-xl-soft-div -mxl-barrel-shift \
--mxl-pattern-compare -mxl-multiply-high} \
+%{mxl-multiply-high:-mcpu=v6.00.a} \
 "
 #endif
+
 
 /* Preprocessor specs.  */
 
@@ -446,7 +443,9 @@ while (0)
 
 /* Initial state of return address on entry to func = R15.
    Actually, the RA is at R15+8, but gcc doesn't know how 
-   to generate this. */
+   to generate this. 
+   NOTE:  GDB has a workaround and expects this incorrect value.
+   If this is fixed, a corresponding fix to GDB is needed.  */
 #define INCOMING_RETURN_ADDR_RTX  			\
   gen_rtx_REG (VOIDmode, GP_REG_FIRST + MB_ABI_SUB_RETURN_ADDR_REGNUM)
 
@@ -1590,47 +1589,6 @@ do {									 \
 #define HOT_TEXT_SECTION_NAME   ".text.hot"
 #define UNLIKELY_EXECUTED_TEXT_SECTION_NAME \
                                 ".text.unlikely"
-#if 0
-#define READONLY_DATA_SECTION   rodata_section
-#define SDATA_SECTION           sdata_section
-#define READONLY_SDATA_SECTION  sdata2_section
-#define SBSS_SECTION            sbss_section
-#define READONLY_SBSS_SECTION   sbss2_section
-#define BSS_SECTION             bss_section
-
-/* A list of sections which the compiler might be "in" at any given time.  */
-#undef EXTRA_SECTIONS
-#define EXTRA_SECTIONS in_rodata, in_sdata, in_sdata2, in_sbss, in_sbss2, \
-   in_init, in_fini
-
-#undef EXTRA_SECTION_FUNCTIONS
-#define EXTRA_SECTION_FUNCTIONS 					\
-  SECTION_FUNCTION_TEMPLATE(rodata_section, in_rodata, 			\
-			    READONLY_DATA_SECTION_ASM_OP)		\
-  SECTION_FUNCTION_TEMPLATE(sdata_section,  in_sdata,  			\
-			    SDATA_SECTION_ASM_OP)        		\
-  SECTION_FUNCTION_TEMPLATE(sdata2_section, in_sdata2, 			\
-			    SDATA2_SECTION_ASM_OP)       		\
-  SECTION_FUNCTION_TEMPLATE(sbss_section,   in_sbss,   			\
-			    SBSS_SECTION_ASM_OP)         		\
-  SECTION_FUNCTION_TEMPLATE(sbss2_section,  in_sbss2,  			\
-			    SBSS2_SECTION_ASM_OP)        		\
-  SECTION_FUNCTION_TEMPLATE(init_section,  in_init,  			\
-			    INIT_SECTION_ASM_OP)           		\
-  SECTION_FUNCTION_TEMPLATE(fini_section,  in_fini,  			\
-			    FINI_SECTION_ASM_OP)
-		\
-			    
-#define SECTION_FUNCTION_TEMPLATE(FN, ENUM, OP)                		\
-void FN (void)								\
-{									\
-  if (in_section != ENUM)						\
-    {									\
-      fprintf (asm_out_file, "%s\n", OP);				\
-      in_section = ENUM;						\
-    }									\
-}
-#endif
 
 /* We do this to save a few 10s of code space that would be taken up
    by the call_FUNC () wrappers, used by the generic CRT_CALL_STATIC_FUNCTION
@@ -1642,10 +1600,11 @@ void FN (void)								\
 
 /* Don't set the target flags, this is done by the linker script */
 #undef LIB_SPEC
-#define LIB_SPEC "%{!pg:%{!nostdlib:%{!Zxl-no-libxil:-start-group -lgloss -lxil \
--lc -lm -end-group }}} %{pg:%{!nostdlib:-start-group -lxilprofile -lgloss -lxil \
--lc -lm -end-group }} 		\
-%{Zxl-no-libxil: %{!nostdlib: -start-group -lc -lm -end-group }}"
+#define LIB_SPEC \
+"%{!nostdlib: \
+%{pg:-start-group -lxilprofile -lgloss -lxil -lc -lm -end-group } \
+%{!pg:-start-group -lgloss -lxil -lc -lm -end-group }} "
+
 /* Xilinx: We need to group -lm as well, since some Newlib math functions 
    reference __errno! */
 

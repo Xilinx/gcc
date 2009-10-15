@@ -11,14 +11,6 @@ eabi.S: $(srcdir)/config/rs6000/eabi.asm
 tramp.S: $(srcdir)/config/rs6000/tramp.asm
 	cat $(srcdir)/config/rs6000/tramp.asm > tramp.S
 
-ifneq (,$(findstring gnu,$(target)))
-ifeq (,$(findstring spe,$(target)))
-TARGET_LIBGCC2_CFLAGS += -mlong-double-128
-
-SHLIB_MAPFILES += $(srcdir)/config/rs6000/libgcc-ppc-glibc.ver
-endif
-endif
-
 # Switch synonyms
 MULTILIB_MATCHES_ENDIAN	= mlittle=mlittle-endian mbig=mbig-endian
 MULTILIB_MATCHES_SYSV	= mcall-sysv=mcall-sysv-eabi mcall-sysv=mcall-sysv-noeabi mcall-sysv=mcall-linux mcall-sysv=mcall-netbsd

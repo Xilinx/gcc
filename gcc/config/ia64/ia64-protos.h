@@ -33,9 +33,6 @@ extern int ia64_st_address_bypass_p (rtx, rtx);
 extern int ia64_ld_address_bypass_p (rtx, rtx);
 extern int ia64_produce_address_p (rtx);
 
-extern bool ia64_const_ok_for_letter_p (HOST_WIDE_INT, char);
-extern bool ia64_const_double_ok_for_letter_p (rtx, char);
-extern bool ia64_extra_constraint (rtx, char);
 extern bool ia64_legitimate_constant_p (rtx);
 
 extern rtx ia64_expand_move (rtx, rtx);
@@ -80,7 +77,7 @@ extern rtx ia64_function_arg (CUMULATIVE_ARGS *, enum machine_mode,
 			      tree, int, int);
 extern rtx ia64_expand_builtin (tree, rtx, rtx, enum machine_mode, int);
 extern rtx ia64_va_arg (tree, tree);
-extern rtx ia64_function_value (tree, tree);
+extern rtx ia64_function_value (const_tree, const_tree);
 #endif /* RTX_CODE */
 
 extern void ia64_function_arg_advance (CUMULATIVE_ARGS *, enum machine_mode,
@@ -103,7 +100,7 @@ extern void ia64_split_return_addr_rtx (rtx);
 
 #ifdef ARGS_SIZE_RTX
 /* expr.h defines ARGS_SIZE_RTX and `enum direction'.  */
-extern enum direction ia64_hpux_function_arg_padding (enum machine_mode, tree);
+extern enum direction ia64_hpux_function_arg_padding (enum machine_mode, const_tree);
 #endif /* ARGS_SIZE_RTX */
 
 extern void ia64_hpux_handle_builtin_pragma (struct cpp_reader *);
@@ -111,3 +108,4 @@ extern void ia64_output_function_profiler (FILE *, int);
 extern void ia64_profile_hook (int);
 
 extern void ia64_optimization_options (int, int);
+extern void ia64_init_expanders (void);

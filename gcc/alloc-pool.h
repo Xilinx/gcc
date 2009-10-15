@@ -36,7 +36,18 @@ typedef struct alloc_pool_def
   ALLOC_POOL_ID_TYPE id;
 #endif
   size_t elts_per_block;
-  alloc_pool_list free_list;
+
+  /* These are the elements that have been allocated at least once and freed.  */
+  alloc_pool_list returned_free_list;
+
+  /* These are the elements that have not yet been allocated out of
+     the last block obtained from XNEWVEC.  */
+  char* virgin_free_list;
+
+  /* The number of elements in the virgin_free_list that can be
+     allocated before needing another block.  */ 
+  size_t virgin_elts_remaining;
+
   size_t elts_allocated;
   size_t elts_free;
   size_t blocks_allocated;
@@ -48,6 +59,7 @@ typedef struct alloc_pool_def
 
 extern alloc_pool create_alloc_pool (const char *, size_t, size_t);
 extern void free_alloc_pool (alloc_pool);
+extern void empty_alloc_pool (alloc_pool);
 extern void free_alloc_pool_if_empty (alloc_pool *);
 extern void *pool_alloc (alloc_pool);
 extern void pool_free (alloc_pool, void *);

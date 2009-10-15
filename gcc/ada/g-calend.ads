@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1999-2005, Free Software Foundation, Inc.         --
+--          Copyright (C) 1999-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -56,6 +56,10 @@ package GNAT.Calendar is
    subtype Day_In_Year_Number  is Positive range 1 .. 366;
    subtype Week_In_Year_Number is Positive range 1 .. 53;
 
+   No_Time : constant Ada.Calendar.Time;
+   --  A constant set to the first date that can be represented by the type
+   --  Time. It can be used to indicate an uninitialized date.
+
    function Hour       (Date : Ada.Calendar.Time) return Hour_Number;
    function Minute     (Date : Ada.Calendar.Time) return Minute_Number;
    function Second     (Date : Ada.Calendar.Time) return Second_Number;
@@ -72,7 +76,13 @@ package GNAT.Calendar is
    --  December is day 365 or 366 for leap year).
 
    function Week_In_Year (Date : Ada.Calendar.Time) return Week_In_Year_Number;
-   --  Returns the week number in the year with Monday as first day of week
+   --  Returns the week number as defined in ISO 8601. A week always starts on
+   --  a Monday and the first week of a particular year is the one containing
+   --  the first Thursday. A year may have 53 weeks when January 1st is a
+   --  Wednesday and the year is leap or January 1st is a Thursday. Note that
+   --  the last days of December may belong to the first week on the next year
+   --  and conversely, the first days of January may belong to the last week
+   --  of the last year.
 
    procedure Split
      (Date       : Ada.Calendar.Time;
@@ -106,7 +116,7 @@ package GNAT.Calendar is
 
    type timeval is private;
 
-   function To_Duration (T : access timeval) return Duration;
+   function To_Duration (T : not null access timeval) return Duration;
    function To_Timeval  (D : Duration) return timeval;
 
 private
@@ -124,5 +134,11 @@ private
    --  The code of this function is a modified version of algorithm 199 from
    --  the Collected Algorithms of the ACM. The author of algorithm 199 is
    --  Robert G. Tantzen.
+
+   No_Time : constant Ada.Calendar.Time :=
+               Ada.Calendar.Time_Of
+                 (Ada.Calendar.Year_Number'First,
+                  Ada.Calendar.Month_Number'First,
+                  Ada.Calendar.Day_Number'First);
 
 end GNAT.Calendar;

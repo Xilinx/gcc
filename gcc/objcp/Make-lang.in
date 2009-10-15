@@ -23,8 +23,8 @@
 # Each language makefile fragment must provide the following targets:
 #
 # foo.all.cross, foo.start.encap, foo.rest.encap,
-# foo.install-common, foo.install-man, foo.install-info, foo.dvi, foo.pdf
-# foo.uninstall,
+# foo.install-common, foo.install-man, foo.install-info, foo.install-pdf,
+# foo.info, foo.dvi, foo.pdf, foo.html, foo.uninstall,
 # foo.mostlyclean, foo.clean, foo.distclean,
 # foo.maintainer-clean, foo.stage1, foo.stage2, foo.stage3, foo.stage4
 #
@@ -54,7 +54,7 @@ OBJCXX_OBJS = objcp/objcp-act.o objcp/objcp-lang.o objcp/objcp-decl.o \
 cc1objplus-dummy$(exeext): $(OBJCXX_OBJS) dummy-checksum.o $(BACKEND) \
 		$(LIBDEPS)
 	$(CC) $(ALL_CFLAGS) $(LDFLAGS) -o $@ \
-		$(OBJCXX_OBJS) dummy-checksum.o $(BACKEND) $(LIBS)
+		$(OBJCXX_OBJS) dummy-checksum.o $(BACKEND) $(LIBS) $(GMPLIBS)
 
 cc1objplus-checksum.c : cc1objplus-dummy$(exeext) build/genchecksum$(build_exeext)
 	build/genchecksum$(build_exeext) cc1objplus-dummy$(exeext) > $@
@@ -63,7 +63,7 @@ cc1objplus-checksum.o : cc1objplus-checksum.c
 
 cc1objplus$(exeext): $(OBJCXX_OBJS) cc1objplus-checksum.o $(BACKEND) $(LIBDEPS)
 	$(CC) $(ALL_CFLAGS) $(LDFLAGS) -o $@ \
-		$(OBJCXX_OBJS) cc1objplus-checksum.o $(BACKEND) $(LIBS)
+		$(OBJCXX_OBJS) cc1objplus-checksum.o $(BACKEND) $(LIBS) $(GMPLIBS)
 
 # Objective C++ language specific files.
 
@@ -99,6 +99,7 @@ obj-c++.info:
 obj-c++.install-info:
 obj-c++.dvi:
 obj-c++.pdf:
+obj-c++.install-pdf:
 obj-c++.html:
 obj-c++.srcinfo:
 obj-c++.srcextra:

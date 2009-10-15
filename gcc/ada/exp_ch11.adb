@@ -6,18 +6,17 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2005, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -28,10 +27,10 @@ with Atree;    use Atree;
 with Casing;   use Casing;
 with Debug;    use Debug;
 with Einfo;    use Einfo;
+with Elists;   use Elists;
 with Errout;   use Errout;
 with Exp_Ch7;  use Exp_Ch7;
 with Exp_Util; use Exp_Util;
-with Hostparm; use Hostparm;
 with Namet;    use Namet;
 with Nlists;   use Nlists;
 with Nmake;    use Nmake;
@@ -53,6 +52,20 @@ with Tbuild;   use Tbuild;
 with Uintp;    use Uintp;
 
 package body Exp_Ch11 is
+
+   -----------------------
+   -- Local Subprograms --
+   -----------------------
+
+   procedure Warn_No_Exception_Propagation_Active (N : Node_Id);
+   --  Generates warning that pragma Restrictions (No_Exception_Propagation)
+   --  is in effect. Caller then generates appropriate continuation message.
+   --  N is the node on which the warning is placed.
+
+   procedure Warn_If_No_Propagation (N : Node_Id);
+   --  Called for an exception raise that is not a local raise (and thus can
+   --  not be optimized to a goto. Issues warning if No_Exception_Propagation
+   --  restriction is set. N is the node for the raise or equivalent call.
 
    ---------------------------
    -- Expand_At_End_Handler --
@@ -110,12 +123,16 @@ package body Exp_Ch11 is
          return;
       end if;
 
-      if Restriction_Active (No_Exception_Handlers) then
+      --  Don't expand an At End handler if we are not allowing exceptions
+      --  or if exceptions are transformed into local gotos, and never
+      --  propagated (No_Exception_Propagation).
+
+      if No_Exception_Handlers_Set then
          return;
       end if;
 
       if Present (Block) then
-         New_Scope (Block);
+         Push_Scope (Block);
       end if;
 
       Ohandle :=
@@ -124,11 +141,18 @@ package body Exp_Ch11 is
 
       Stmnts := New_List (
         Make_Procedure_Call_Statement (Loc,
-          Name => New_Occurrence_Of (Clean, Loc)),
-        Make_Raise_Statement (Loc));
+          Name => New_Occurrence_Of (Clean, Loc)));
+
+      --  Avoid generation of raise stmt if compiling with no exceptions
+      --  propagation
+
+      if not Restriction_Active (No_Exception_Propagation) then
+         Append_To (Stmnts,
+           Make_Raise_Statement (Loc));
+      end if;
 
       Set_Exception_Handlers (HSS, New_List (
-        Make_Exception_Handler (Loc,
+        Make_Implicit_Exception_Handler (Loc,
           Exception_Choices => New_List (Ohandle),
           Statements        => Stmnts)));
 
@@ -145,17 +169,664 @@ package body Exp_Ch11 is
    -------------------------------
 
    procedure Expand_Exception_Handlers (HSS : Node_Id) is
-      Handlrs       : constant List_Id := Exception_Handlers (HSS);
-      Loc           : Source_Ptr;
+      Handlrs       : constant List_Id    := Exception_Handlers (HSS);
+      Loc           : constant Source_Ptr := Sloc (HSS);
       Handler       : Node_Id;
       Others_Choice : Boolean;
       Obj_Decl      : Node_Id;
+      Next_Handler  : Node_Id;
+
+      procedure Expand_Local_Exception_Handlers;
+      --  This procedure handles the expansion of exception handlers for the
+      --  optimization of local raise statements into goto statements.
 
       procedure Prepend_Call_To_Handler
         (Proc : RE_Id;
          Args : List_Id := No_List);
       --  Routine to prepend a call to the procedure referenced by Proc at
       --  the start of the handler code for the current Handler.
+
+      procedure Replace_Raise_By_Goto (Raise_S : Node_Id; Goto_L1 : Node_Id);
+      --  Raise_S is a raise statement (possibly expanded, and possibly of the
+      --  form of a Raise_xxx_Error node with a condition. This procedure is
+      --  called to replace the raise action with the (already analyzed) goto
+      --  statement passed as Goto_L1. This procedure also takes care of the
+      --  requirement of inserting a Local_Raise call where possible.
+
+      -------------------------------------
+      -- Expand_Local_Exception_Handlers --
+      -------------------------------------
+
+      --  There are two cases for this transformation. First the case of
+      --  explicit raise statements. For this case, the transformation we do
+      --  looks like this. Right now we have for example (where L1, L2 are
+      --  exception labels)
+
+      --  begin
+      --     ...
+      --     raise_exception (excep1'identity);  -- was raise excep1
+      --     ...
+      --     raise_exception (excep2'identity);  -- was raise excep2
+      --     ...
+      --  exception
+      --     when excep1 =>
+      --        estmts1
+      --     when excep2 =>
+      --        estmts2
+      --  end;
+
+      --  This gets transformed into:
+
+      --  begin
+      --     L1 : label;                        -- marked Exception_Junk
+      --     L2 : label;                        -- marked Exception_Junk
+      --     L3 : label;                        -- marked Exception_Junk
+
+      --     begin                              -- marked Exception_Junk
+      --        ...
+      --        local_raise (excep1'address);   -- was raise excep1
+      --        goto L1;
+      --        ...
+      --        local_raise (excep2'address);   -- was raise excep2
+      --        goto L2;
+      --        ...
+      --     exception
+      --        when excep1 =>
+      --           goto L1;
+      --        when excep2 =>
+      --           goto L2;
+      --     end;
+
+      --     goto L3;        -- skip handler if no raise, marked Exception_Junk
+
+      --     <<L1>>          -- local excep target label, marked Exception_Junk
+      --        begin        -- marked Exception_Junk
+      --           estmts1
+      --        end;
+      --        goto L3;     -- marked Exception_Junk
+
+      --     <<L2>>          -- marked Exception_Junk
+      --        begin        -- marked Exception_Junk
+      --           estmts2
+      --        end;
+      --        goto L3;     -- marked Exception_Junk
+      --     <<L3>>          -- marked Exception_Junk
+      --  end;
+
+      --  Note: the reason we wrap the original statement sequence in an
+      --  inner block is that there may be raise statements within the
+      --  sequence of statements in the handlers, and we must ensure that
+      --  these are properly handled, and in particular, such raise statements
+      --  must not reenter the same exception handlers.
+
+      --  If the restriction No_Exception_Propagation is in effect, then we
+      --  can omit the exception handlers.
+
+      --  begin
+      --     L1 : label;                        -- marked Exception_Junk
+      --     L2 : label;                        -- marked Exception_Junk
+      --     L3 : label;                        -- marked Exception_Junk
+
+      --     begin                              -- marked Exception_Junk
+      --        ...
+      --        local_raise (excep1'address);   -- was raise excep1
+      --        goto L1;
+      --        ...
+      --        local_raise (excep2'address);   -- was raise excep2
+      --        goto L2;
+      --        ...
+      --     end;
+
+      --     goto L3;        -- skip handler if no raise, marked Exception_Junk
+
+      --     <<L1>>          -- local excep target label, marked Exception_Junk
+      --        begin        -- marked Exception_Junk
+      --           estmts1
+      --        end;
+      --        goto L3;     -- marked Exception_Junk
+
+      --     <<L2>>          -- marked Exception_Junk
+      --        begin        -- marked Exception_Junk
+      --           estmts2
+      --        end;
+
+      --     <<L3>>          -- marked Exception_Junk
+      --  end;
+
+      --  The second case is for exceptions generated by the back end in one
+      --  of three situations:
+
+      --    1. Front end generates N_Raise_xxx_Error node
+      --    2. Front end sets Do_xxx_Check flag in subexpression node
+      --    3. Back end detects a situation where an exception is appropriate
+
+      --  In all these cases, the current processing in gigi is to generate a
+      --  call to the appropriate Rcheck_xx routine (where xx encodes both the
+      --  exception message and the exception to be raised, Constraint_Error,
+      --  Program_Error, or Storage_Error.
+
+      --  We could handle some subcases of 1 using the same front end expansion
+      --  into gotos, but even for case 1, we can't handle all cases, since
+      --  generating gotos in the middle of expressions is not possible (it's
+      --  possible at the gigi/gcc level, but not at the level of the GNAT
+      --  tree).
+
+      --  In any case, it seems easier to have a scheme which handles all three
+      --  cases in a uniform manner. So here is how we proceed in this case.
+
+      --  This procedure detects all handlers for these three exceptions,
+      --  Constraint_Error, Program_Error and Storage_Error (including WHEN
+      --  OTHERS handlers that cover one or more of these cases).
+
+      --  If the handler meets the requirements for being the target of a local
+      --  raise, then the front end does the expansion described previously,
+      --  creating a label to be used as a goto target to raise the exception.
+      --  However, no attempt is made in the front end to convert any related
+      --  raise statements into gotos, e.g. all N_Raise_xxx_Error nodes are
+      --  left unchanged and passed to the back end.
+
+      --  Instead, the front end generates two nodes
+
+      --     N_Push_Constraint_Error_Label
+      --     N_Push_Program_Error_Label
+      --     N_Push_Storage_Error_Label
+
+      --       The Push node is generated at the start of the statements
+      --       covered by the handler, and has as a parameter the label to be
+      --       used as the raise target.
+
+      --     N_Pop_Constraint_Error_Label
+      --     N_Pop_Program_Error_Label
+      --     N_Pop_Storage_Error_Label
+
+      --       The Pop node is generated at the end of the covered statements
+      --       and undoes the effect of the preceding corresponding Push node.
+
+      --  In the case where the handler does NOT meet the requirements, the
+      --  front end will still generate the Push and Pop nodes, but the label
+      --  field in the Push node will be empty signifying that for this region
+      --  of code, no optimization is possible.
+
+      --  The back end must maintain three stacks, one for each exception case,
+      --  the Push node pushes an entry onto the corresponding stack, and Pop
+      --  node pops off the entry. Then instead of calling Rcheck_nn, if the
+      --  corresponding top stack entry has an non-empty label, a goto is
+      --  generated. This goto should be preceded by a call to Local_Raise as
+      --  described above.
+
+      --  An example of this transformation is as follows, given:
+
+      --  declare
+      --    A : Integer range 1 .. 10;
+      --  begin
+      --    A := B + C;
+      --  exception
+      --    when Constraint_Error =>
+      --       estmts
+      --  end;
+
+      --  gets transformed to:
+
+      --  declare
+      --    A : Integer range 1 .. 10;
+
+      --  begin
+      --     L1 : label;
+      --     L2 : label;
+
+      --     begin
+      --        %push_constraint_error_label (L1)
+      --        R1b : constant long_long_integer := long_long_integer?(b) +
+      --          long_long_integer?(c);
+      --        [constraint_error when
+      --          not (R1b in -16#8000_0000# .. 16#7FFF_FFFF#)
+      --          "overflow check failed"]
+      --        a := integer?(R1b);
+      --        %pop_constraint_error_Label
+
+      --     exception
+      --        ...
+      --        when constraint_error =>
+      --           goto L1;
+      --     end;
+
+      --     goto L2;       -- skip handler when exception not raised
+      --     <<L1>>         -- target label for local exception
+      --     estmts
+      --     <<L2>>
+      --  end;
+
+      --  Note: the generated labels and goto statements all have the flag
+      --  Exception_Junk set True, so that Sem_Ch6.Check_Returns will ignore
+      --  this generated exception stuff when checking for missing return
+      --  statements (see circuitry in Check_Statement_Sequence).
+
+      --  Note: All of the processing described above occurs only if
+      --  restriction No_Exception_Propagation applies or debug flag .g is
+      --  enabled.
+
+      CE_Locally_Handled : Boolean := False;
+      SE_Locally_Handled : Boolean := False;
+      PE_Locally_Handled : Boolean := False;
+      --  These three flags indicate whether a handler for the corresponding
+      --  exception (CE=Constraint_Error, SE=Storage_Error, PE=Program_Error)
+      --  is present. If so the switch is set to True, the Exception_Label
+      --  field of the corresponding handler is set, and appropriate Push
+      --  and Pop nodes are inserted into the code.
+
+      Local_Expansion_Required : Boolean := False;
+      --  Set True if we have at least one handler requiring local raise
+      --  expansion as described above.
+
+      procedure Expand_Local_Exception_Handlers is
+
+         procedure Add_Exception_Label (H : Node_Id);
+         --  H is an exception handler. First check for an Exception_Label
+         --  already allocated for H. If none, allocate one, set the field in
+         --  the handler node, add the label declaration, and set the flag
+         --  Local_Expansion_Required. Note: if Local_Raise_Not_OK is set
+         --  the call has no effect and Exception_Label is left empty.
+
+         procedure Add_Label_Declaration (L : Entity_Id);
+         --  Add an implicit declaration of the given label to the declaration
+         --  list in the parent of the current sequence of handled statements.
+
+         generic
+            Exc_Locally_Handled : in out Boolean;
+            --  Flag indicating whether a local handler for this exception
+            --  has already been generated.
+
+            with function Make_Push_Label (Loc : Source_Ptr) return Node_Id;
+            --  Function to create a Push_xxx_Label node
+
+            with function Make_Pop_Label (Loc : Source_Ptr) return Node_Id;
+            --  Function to create a Pop_xxx_Label node
+
+         procedure Generate_Push_Pop (H : Node_Id);
+         --  Common code for Generate_Push_Pop_xxx below, used to generate an
+         --  exception label and Push/Pop nodes for Constraint_Error,
+         --  Program_Error, or Storage_Error.
+
+         -------------------------
+         -- Add_Exception_Label --
+         -------------------------
+
+         procedure Add_Exception_Label (H : Node_Id) is
+         begin
+            if No (Exception_Label (H))
+              and then not Local_Raise_Not_OK (H)
+              and then not Special_Exception_Package_Used
+            then
+               Local_Expansion_Required := True;
+
+               declare
+                  L : constant Entity_Id :=
+                        Make_Defining_Identifier (Sloc (H),
+                          Chars => New_Internal_Name ('L'));
+               begin
+                  Set_Exception_Label (H, L);
+                  Add_Label_Declaration (L);
+               end;
+            end if;
+         end Add_Exception_Label;
+
+         ---------------------------
+         -- Add_Label_Declaration --
+         ---------------------------
+
+         procedure Add_Label_Declaration (L : Entity_Id) is
+            P : constant Node_Id := Parent (HSS);
+
+            Decl_L : constant Node_Id :=
+                       Make_Implicit_Label_Declaration (Loc,
+                         Defining_Identifier => L);
+
+         begin
+            if Declarations (P) = No_List then
+               Set_Declarations (P, Empty_List);
+            end if;
+
+            Append (Decl_L, Declarations (P));
+            Analyze (Decl_L);
+         end Add_Label_Declaration;
+
+         -----------------------
+         -- Generate_Push_Pop --
+         -----------------------
+
+         procedure Generate_Push_Pop (H : Node_Id) is
+         begin
+            if Exc_Locally_Handled then
+               return;
+            else
+               Exc_Locally_Handled := True;
+            end if;
+
+            Add_Exception_Label (H);
+
+            declare
+               F : constant Node_Id := First (Statements (HSS));
+               L : constant Node_Id := Last  (Statements (HSS));
+
+               Push : constant Node_Id := Make_Push_Label (Sloc (F));
+               Pop  : constant Node_Id := Make_Pop_Label  (Sloc (L));
+
+            begin
+               --  We make sure that a call to Get_Local_Raise_Call_Entity is
+               --  made during front end processing, so that when we need it
+               --  in the back end, it will already be available and loaded.
+
+               Discard_Node (Get_Local_Raise_Call_Entity);
+
+               --  Prepare and insert Push and Pop nodes
+
+               Set_Exception_Label (Push, Exception_Label (H));
+               Insert_Before (F, Push);
+               Set_Analyzed (Push);
+
+               Insert_After (L, Pop);
+               Set_Analyzed (Pop);
+            end;
+         end Generate_Push_Pop;
+
+         --  Local declarations
+
+         Loc    : constant Source_Ptr := Sloc (HSS);
+         Stmts  : List_Id := No_List;
+         Choice : Node_Id;
+         Excep  : Entity_Id;
+
+         procedure Generate_Push_Pop_For_Constraint_Error is
+           new Generate_Push_Pop
+             (Exc_Locally_Handled => CE_Locally_Handled,
+              Make_Push_Label     => Make_Push_Constraint_Error_Label,
+              Make_Pop_Label      => Make_Pop_Constraint_Error_Label);
+         --  If no Push/Pop has been generated for CE yet, then set the flag
+         --  CE_Locally_Handled, allocate an Exception_Label for handler H (if
+         --  not already done), and generate Push/Pop nodes for the exception
+         --  label at the start and end of the statements of HSS.
+
+         procedure Generate_Push_Pop_For_Program_Error is
+           new Generate_Push_Pop
+             (Exc_Locally_Handled => PE_Locally_Handled,
+              Make_Push_Label     => Make_Push_Program_Error_Label,
+              Make_Pop_Label      => Make_Pop_Program_Error_Label);
+         --  If no Push/Pop has been generated for PE yet, then set the flag
+         --  PE_Locally_Handled, allocate an Exception_Label for handler H (if
+         --  not already done), and generate Push/Pop nodes for the exception
+         --  label at the start and end of the statements of HSS.
+
+         procedure Generate_Push_Pop_For_Storage_Error is
+           new Generate_Push_Pop
+             (Exc_Locally_Handled => SE_Locally_Handled,
+              Make_Push_Label     => Make_Push_Storage_Error_Label,
+              Make_Pop_Label      => Make_Pop_Storage_Error_Label);
+         --  If no Push/Pop has been generated for SE yet, then set the flag
+         --  SE_Locally_Handled, allocate an Exception_Label for handler H (if
+         --  not already done), and generate Push/Pop nodes for the exception
+         --  label at the start and end of the statements of HSS.
+
+      --  Start of processing for Expand_Local_Exception_Handlers
+
+      begin
+         --  No processing if all exception handlers will get removed
+
+         if Debug_Flag_Dot_X then
+            return;
+         end if;
+
+         --  See for each handler if we have any local raises to expand
+
+         Handler := First_Non_Pragma (Handlrs);
+         while Present (Handler) loop
+
+            --  Note, we do not test Local_Raise_Not_OK here, because in the
+            --  case of Push/Pop generation we want to generate push with a
+            --  null label. The Add_Exception_Label routine has no effect if
+            --  Local_Raise_Not_OK is set, so this works as required.
+
+            if Present (Local_Raise_Statements (Handler)) then
+               Add_Exception_Label (Handler);
+            end if;
+
+            --  If we are doing local raise to goto optimization (restriction
+            --  No_Exception_Propagation set or debug flag .g set), then check
+            --  to see if handler handles CE, PE, SE and if so generate the
+            --  appropriate push/pop sequence for the back end.
+
+            if (Debug_Flag_Dot_G
+                 or else Restriction_Active (No_Exception_Propagation))
+              and then Has_Local_Raise (Handler)
+            then
+               Choice := First (Exception_Choices (Handler));
+               while Present (Choice) loop
+                  if Nkind (Choice) = N_Others_Choice
+                    and then not All_Others (Choice)
+                  then
+                     Generate_Push_Pop_For_Constraint_Error (Handler);
+                     Generate_Push_Pop_For_Program_Error    (Handler);
+                     Generate_Push_Pop_For_Storage_Error    (Handler);
+
+                  elsif Is_Entity_Name (Choice) then
+                     Excep := Get_Renamed_Entity (Entity (Choice));
+
+                     if Excep = Standard_Constraint_Error then
+                        Generate_Push_Pop_For_Constraint_Error (Handler);
+                     elsif Excep = Standard_Program_Error then
+                        Generate_Push_Pop_For_Program_Error    (Handler);
+                     elsif Excep = Standard_Storage_Error then
+                        Generate_Push_Pop_For_Storage_Error    (Handler);
+                     end if;
+                  end if;
+
+                  Next (Choice);
+               end loop;
+            end if;
+
+            Next_Non_Pragma (Handler);
+         end loop;
+
+         --  Nothing to do if no handlers requiring the goto transformation
+
+         if not (Local_Expansion_Required) then
+            return;
+         end if;
+
+         --  Prepare to do the transformation
+
+         declare
+            --  L3 is the label to exit the HSS
+
+            L3_Dent : constant Entity_Id :=
+                        Make_Defining_Identifier (Loc,
+                          Chars => New_Internal_Name ('L'));
+
+            Labl_L3 : constant Node_Id :=
+                        Make_Label (Loc,
+                          Identifier => New_Occurrence_Of (L3_Dent, Loc));
+
+            Blk_Stm : Node_Id;
+            Relmt   : Elmt_Id;
+
+         begin
+            Set_Exception_Junk (Labl_L3);
+            Add_Label_Declaration (L3_Dent);
+
+            --  Wrap existing statements and handlers in an inner block
+
+            Blk_Stm :=
+              Make_Block_Statement (Loc,
+                Handled_Statement_Sequence => Relocate_Node (HSS));
+            Set_Exception_Junk (Blk_Stm);
+
+            Rewrite (HSS,
+              Make_Handled_Sequence_Of_Statements (Loc,
+                Statements => New_List (Blk_Stm)));
+
+            --  Set block statement as analyzed, we don't want to actually call
+            --  Analyze on this block, it would cause a recursion in exception
+            --  handler processing which would mess things up.
+
+            Set_Analyzed (Blk_Stm);
+
+            --  Now loop through the exception handlers to deal with those that
+            --  are targets of local raise statements.
+
+            Handler := First_Non_Pragma (Handlrs);
+            while Present (Handler) loop
+               if Present (Exception_Label (Handler)) then
+
+                  --  This handler needs the goto expansion
+
+                  declare
+                     Loc : constant Source_Ptr := Sloc (Handler);
+
+                     --  L1 is the start label for this handler
+
+                     L1_Dent : constant Entity_Id := Exception_Label (Handler);
+
+                     Labl_L1 : constant Node_Id :=
+                                 Make_Label (Loc,
+                                   Identifier =>
+                                     New_Occurrence_Of (L1_Dent, Loc));
+
+                     --  Jump to L1 to be used as replacement for the original
+                     --  handler (used in the case where exception propagation
+                     --  may still occur).
+
+                     Name_L1 : constant Node_Id :=
+                                 New_Occurrence_Of (L1_Dent, Loc);
+
+                     Goto_L1 : constant Node_Id :=
+                                 Make_Goto_Statement (Loc,
+                                   Name => Name_L1);
+
+                     --  Jump to L3 to be used at the end of handler
+
+                     Name_L3 : constant Node_Id :=
+                                 New_Occurrence_Of (L3_Dent, Loc);
+
+                     Goto_L3 : constant Node_Id :=
+                                 Make_Goto_Statement (Loc,
+                                   Name => Name_L3);
+
+                     H_Stmts : constant List_Id := Statements (Handler);
+
+                  begin
+                     Set_Exception_Junk (Labl_L1);
+                     Set_Exception_Junk (Goto_L3);
+
+                     --  Note: we do NOT set Exception_Junk in Goto_L1, since
+                     --  this is a real transfer of control that we want the
+                     --  Sem_Ch6.Check_Returns procedure to recognize properly.
+
+                     --  Replace handler by a goto L1. We can mark this as
+                     --  analyzed since it is fully formed, and we don't
+                     --  want it going through any further checks. We save
+                     --  the last statement location in the goto L1 node for
+                     --  the benefit of Sem_Ch6.Check_Returns.
+
+                     Set_Statements (Handler, New_List (Goto_L1));
+                     Set_Analyzed (Goto_L1);
+                     Set_Etype (Name_L1, Standard_Void_Type);
+
+                     --  Now replace all the raise statements by goto L1
+
+                     if Present (Local_Raise_Statements (Handler)) then
+                        Relmt := First_Elmt (Local_Raise_Statements (Handler));
+                        while Present (Relmt) loop
+                           declare
+                              Raise_S : constant Node_Id := Node (Relmt);
+
+                              Name_L1 : constant Node_Id :=
+                                          New_Occurrence_Of (L1_Dent, Loc);
+
+                              Goto_L1 : constant Node_Id :=
+                                          Make_Goto_Statement (Loc,
+                                            Name => Name_L1);
+
+                           begin
+                              --  Replace raise by goto L1
+
+                              Set_Analyzed (Goto_L1);
+                              Set_Etype (Name_L1, Standard_Void_Type);
+                              Replace_Raise_By_Goto (Raise_S, Goto_L1);
+                           end;
+
+                           Next_Elmt (Relmt);
+                        end loop;
+                     end if;
+
+                     --  Add a goto L3 at end of statement list in block. The
+                     --  first time, this is what skips over the exception
+                     --  handlers in the normal case. Subsequent times, it
+                     --  terminates the execution of the previous handler code,
+                     --  and skips subsequent handlers.
+
+                     Stmts := Statements (HSS);
+
+                     Insert_After (Last (Stmts), Goto_L3);
+                     Set_Analyzed (Goto_L3);
+                     Set_Etype (Name_L3, Standard_Void_Type);
+
+                     --  Now we drop the label that marks the handler start,
+                     --  followed by the statements of the handler.
+
+                     Set_Etype (Identifier (Labl_L1), Standard_Void_Type);
+
+                     Insert_After_And_Analyze (Last (Stmts), Labl_L1);
+
+                     declare
+                        Loc : constant Source_Ptr := Sloc (First (H_Stmts));
+                        Blk : constant Node_Id :=
+                                Make_Block_Statement (Loc,
+                                  Handled_Statement_Sequence =>
+                                    Make_Handled_Sequence_Of_Statements (Loc,
+                                      Statements => H_Stmts));
+                     begin
+                        Set_Exception_Junk (Blk);
+                        Insert_After_And_Analyze (Last (Stmts), Blk);
+                     end;
+                  end;
+
+                  --  Here if we have local raise statements but the handler is
+                  --  not suitable for processing with a local raise. In this
+                  --  case we have to generate possible diagnostics.
+
+               elsif Has_Local_Raise (Handler)
+                 and then Local_Raise_Statements (Handler) /= No_Elist
+               then
+                  Relmt := First_Elmt (Local_Raise_Statements (Handler));
+                  while Present (Relmt) loop
+                     Warn_If_No_Propagation (Node (Relmt));
+                     Next_Elmt (Relmt);
+                  end loop;
+               end if;
+
+               Next (Handler);
+            end loop;
+
+            --  Only remaining step is to drop the L3 label and we are done
+
+            Set_Etype (Identifier (Labl_L3), Standard_Void_Type);
+
+            --  If we had at least one handler, then we drop the label after
+            --  the last statement of that handler.
+
+            if Stmts /= No_List then
+               Insert_After_And_Analyze (Last (Stmts), Labl_L3);
+
+            --  Otherwise we have removed all the handlers (this results from
+            --  use of pragma Restrictions (No_Exception_Propagation), and we
+            --  drop the label at the end of the statements of the HSS.
+
+            else
+               Insert_After_And_Analyze (Last (Statements (HSS)), Labl_L3);
+            end if;
+
+            return;
+         end;
+      end Expand_Local_Exception_Handlers;
 
       -----------------------------
       -- Prepend_Call_To_Handler --
@@ -185,146 +856,257 @@ package body Exp_Ch11 is
          end if;
       end Prepend_Call_To_Handler;
 
+      ---------------------------
+      -- Replace_Raise_By_Goto --
+      ---------------------------
+
+      procedure Replace_Raise_By_Goto (Raise_S : Node_Id; Goto_L1 : Node_Id) is
+         Loc   : constant Source_Ptr := Sloc (Raise_S);
+         Excep : Entity_Id;
+         LR    : Node_Id;
+         Cond  : Node_Id;
+         Orig  : Node_Id;
+
+      begin
+         --  If we have a null statement, it means that there is no replacement
+         --  needed (typically this results from a suppressed check).
+
+         if Nkind (Raise_S) = N_Null_Statement then
+            return;
+
+         --  Test for Raise_xxx_Error
+
+         elsif Nkind (Raise_S) = N_Raise_Constraint_Error then
+            Excep := Standard_Constraint_Error;
+            Cond  := Condition (Raise_S);
+
+         elsif Nkind (Raise_S) = N_Raise_Storage_Error then
+            Excep := Standard_Storage_Error;
+            Cond := Condition (Raise_S);
+
+         elsif Nkind (Raise_S) = N_Raise_Program_Error then
+            Excep := Standard_Program_Error;
+            Cond := Condition (Raise_S);
+
+            --  The only other possibility is a node that is or used to be a
+            --  simple raise statement.
+
+         else
+            Orig := Original_Node (Raise_S);
+            pragma Assert (Nkind (Orig) = N_Raise_Statement
+                             and then Present (Name (Orig))
+                             and then No (Expression (Orig)));
+            Excep := Entity (Name (Orig));
+            Cond := Empty;
+         end if;
+
+         --  Here Excep is the exception to raise, and Cond is the condition
+         --  First prepare the call to Local_Raise (excep'address).
+
+         if RTE_Available (RE_Local_Raise) then
+            LR :=
+              Make_Procedure_Call_Statement (Loc,
+                Name => New_Occurrence_Of (RTE (RE_Local_Raise), Loc),
+                Parameter_Associations => New_List (
+                  Unchecked_Convert_To (RTE (RE_Address),
+                    Make_Attribute_Reference (Loc,
+                      Prefix         => New_Occurrence_Of (Excep, Loc),
+                      Attribute_Name => Name_Identity))));
+
+            --  Use null statement if Local_Raise not available
+
+         else
+            LR :=
+              Make_Null_Statement (Loc);
+         end if;
+
+         --  If there is no condition, we rewrite as
+
+         --    begin
+         --       Local_Raise (excep'Identity);
+         --       goto L1;
+         --    end;
+
+         if No (Cond) then
+            Rewrite (Raise_S,
+              Make_Block_Statement (Loc,
+                Handled_Statement_Sequence =>
+                  Make_Handled_Sequence_Of_Statements (Loc,
+                    Statements => New_List (LR, Goto_L1))));
+            Set_Exception_Junk (Raise_S);
+
+         --  If there is a condition, we rewrite as
+
+         --    if condition then
+         --       Local_Raise (excep'Identity);
+         --       goto L1;
+         --    end if;
+
+         else
+            Rewrite (Raise_S,
+              Make_If_Statement (Loc,
+                Condition       => Cond,
+                Then_Statements => New_List (LR, Goto_L1)));
+         end if;
+
+         Analyze (Raise_S);
+      end Replace_Raise_By_Goto;
+
    --  Start of processing for Expand_Exception_Handlers
 
    begin
+      Expand_Local_Exception_Handlers;
+
       --  Loop through handlers
 
       Handler := First_Non_Pragma (Handlrs);
       Handler_Loop : while Present (Handler) loop
-         Loc := Sloc (Handler);
+         Next_Handler := Next_Non_Pragma (Handler);
 
          --  Remove source handler if gnat debug flag N is set
 
          if Debug_Flag_Dot_X and then Comes_From_Source (Handler) then
-            declare
-               H : constant Node_Id := Handler;
-            begin
-               Next_Non_Pragma (Handler);
-               Remove (H);
-               goto Continue_Handler_Loop;
-            end;
-         end if;
+            Remove (Handler);
 
-         --  If an exception occurrence is present, then we must declare it
-         --  and initialize it from the value stored in the TSD
+         --  Remove handler if no exception propagation, generating a warning
+         --  if a source generated handler was not the target of a local raise.
 
-         --     declare
-         --        name : Exception_Occurrence;
-         --
-         --     begin
-         --        Save_Occurrence (name, Get_Current_Excep.all)
-         --        ...
-         --     end;
-
-         if Present (Choice_Parameter (Handler)) then
-            declare
-               Cparm : constant Entity_Id  := Choice_Parameter (Handler);
-               Clc   : constant Source_Ptr := Sloc (Cparm);
-               Save  : Node_Id;
-
-            begin
-               Save :=
-                 Make_Procedure_Call_Statement (Loc,
-                   Name =>
-                     New_Occurrence_Of (RTE (RE_Save_Occurrence), Loc),
-                   Parameter_Associations => New_List (
-                     New_Occurrence_Of (Cparm, Clc),
-                     Make_Explicit_Dereference (Loc,
-                       Make_Function_Call (Loc,
-                         Name => Make_Explicit_Dereference (Loc,
-                           New_Occurrence_Of
-                             (RTE (RE_Get_Current_Excep), Loc))))));
-
-               Mark_Rewrite_Insertion (Save);
-               Prepend (Save, Statements (Handler));
-
-               Obj_Decl :=
-                 Make_Object_Declaration (Clc,
-                   Defining_Identifier => Cparm,
-                   Object_Definition   =>
-                     New_Occurrence_Of
-                       (RTE (RE_Exception_Occurrence), Clc));
-               Set_No_Initialization (Obj_Decl, True);
-
-               Rewrite (Handler,
-                 Make_Exception_Handler (Loc,
-                   Exception_Choices => Exception_Choices (Handler),
-
-                   Statements => New_List (
-                     Make_Block_Statement (Loc,
-                       Declarations => New_List (Obj_Decl),
-                       Handled_Statement_Sequence =>
-                         Make_Handled_Sequence_Of_Statements (Loc,
-                           Statements => Statements (Handler))))));
-
-               Analyze_List (Statements (Handler), Suppress => All_Checks);
-            end;
-         end if;
-
-         --  The processing at this point is rather different for the
-         --  JVM case, so we completely separate the processing.
-
-         --  For the JVM case, we unconditionally call Update_Exception,
-         --  passing a call to the intrinsic function Current_Target_Exception
-         --  (see JVM version of Ada.Exceptions in 4jexcept.adb for details).
-
-         if Hostparm.Java_VM then
-            declare
-               Arg : constant Node_Id :=
-                       Make_Function_Call (Loc,
-                         Name => New_Occurrence_Of
-                                   (RTE (RE_Current_Target_Exception), Loc));
-            begin
-               Prepend_Call_To_Handler (RE_Update_Exception, New_List (Arg));
-            end;
-
-         --  For the normal case, we have to worry about the state of abort
-         --  deferral. Generally, we defer abort during runtime handling of
-         --  exceptions. When control is passed to the handler, then in the
-         --  normal case we undefer aborts. In any case this entire handling
-         --  is relevant only if aborts are allowed!
-
-         elsif Abort_Allowed then
-
-            --  There are some special cases in which we do not do the
-            --  undefer. In particular a finalization (AT END) handler
-            --  wants to operate with aborts still deferred.
-
-            --  We also suppress the call if this is the special handler
-            --  for Abort_Signal, since if we are aborting, we want to keep
-            --  aborts deferred (one abort is enough thank you very much :-)
-
-            --  If abort really needs to be deferred the expander must add
-            --  this call explicitly, see Exp_Ch9.Expand_N_Asynchronous_Select.
-
-            Others_Choice :=
-              Nkind (First (Exception_Choices (Handler))) = N_Others_Choice;
-
-            if (Others_Choice
-                 or else Entity (First (Exception_Choices (Handler))) /=
-                                                      Stand.Abort_Signal)
-              and then not
-                (Others_Choice
-                   and then All_Others (First (Exception_Choices (Handler))))
-              and then Abort_Allowed
+         elsif Restriction_Active (No_Exception_Propagation) then
+            if not Has_Local_Raise (Handler)
+              and then Comes_From_Source (Handler)
+              and then Warn_On_Non_Local_Exception
             then
-               Prepend_Call_To_Handler (RE_Abort_Undefer);
+               Warn_No_Exception_Propagation_Active (Handler);
+               Error_Msg_N
+                 ("\?this handler can never be entered, and has been removed",
+                  Handler);
+            end if;
+
+            Remove (Handler);
+
+         --  Exception handler is active and retained and must be processed
+
+         else
+            --  If an exception occurrence is present, then we must declare it
+            --  and initialize it from the value stored in the TSD
+
+            --     declare
+            --        name : Exception_Occurrence;
+            --     begin
+            --        Save_Occurrence (name, Get_Current_Excep.all)
+            --        ...
+            --     end;
+
+            if Present (Choice_Parameter (Handler)) then
+               declare
+                  Cparm : constant Entity_Id  := Choice_Parameter (Handler);
+                  Clc   : constant Source_Ptr := Sloc (Cparm);
+                  Save  : Node_Id;
+
+               begin
+                  Save :=
+                    Make_Procedure_Call_Statement (Loc,
+                      Name =>
+                        New_Occurrence_Of (RTE (RE_Save_Occurrence), Loc),
+                      Parameter_Associations => New_List (
+                        New_Occurrence_Of (Cparm, Clc),
+                        Make_Explicit_Dereference (Loc,
+                          Make_Function_Call (Loc,
+                            Name => Make_Explicit_Dereference (Loc,
+                              New_Occurrence_Of
+                                (RTE (RE_Get_Current_Excep), Loc))))));
+
+                  Mark_Rewrite_Insertion (Save);
+                  Prepend (Save, Statements (Handler));
+
+                  Obj_Decl :=
+                    Make_Object_Declaration
+                      (Clc,
+                       Defining_Identifier => Cparm,
+                       Object_Definition   =>
+                         New_Occurrence_Of
+                           (RTE (RE_Exception_Occurrence), Clc));
+                  Set_No_Initialization (Obj_Decl, True);
+
+                  Rewrite (Handler,
+                    Make_Implicit_Exception_Handler (Loc,
+                      Exception_Choices => Exception_Choices (Handler),
+
+                      Statements => New_List (
+                        Make_Block_Statement (Loc,
+                          Declarations => New_List (Obj_Decl),
+                          Handled_Statement_Sequence =>
+                            Make_Handled_Sequence_Of_Statements (Loc,
+                              Statements => Statements (Handler))))));
+
+                  Analyze_List (Statements (Handler), Suppress => All_Checks);
+               end;
+            end if;
+
+            --  The processing at this point is rather different for the JVM
+            --  case, so we completely separate the processing.
+
+            --  For the JVM case, we unconditionally call Update_Exception,
+            --  passing a call to the intrinsic Current_Target_Exception (see
+            --  JVM version of Ada.Exceptions in 4jexcept.adb for details).
+
+            if VM_Target /= No_VM then
+               declare
+                  Arg : constant Node_Id :=
+                          Make_Function_Call (Loc,
+                            Name =>
+                              New_Occurrence_Of
+                                (RTE (RE_Current_Target_Exception), Loc));
+               begin
+                  Prepend_Call_To_Handler
+                    (RE_Update_Exception, New_List (Arg));
+               end;
+
+               --  For the normal case, we have to worry about the state of
+               --  abort deferral. Generally, we defer abort during runtime
+               --  handling of exceptions. When control is passed to the
+               --  handler, then in the normal case we undefer aborts. In any
+               --  case this entire handling is relevant only if aborts are
+               --  allowed!
+
+            elsif Abort_Allowed then
+
+               --  There are some special cases in which we do not do the
+               --  undefer. In particular a finalization (AT END) handler
+               --  wants to operate with aborts still deferred.
+
+               --  We also suppress the call if this is the special handler
+               --  for Abort_Signal, since if we are aborting, we want to keep
+               --  aborts deferred (one abort is enough).
+
+               --  If abort really needs to be deferred the expander must add
+               --  this call explicitly, see Expand_N_Asynchronous_Select.
+
+               Others_Choice :=
+                 Nkind (First (Exception_Choices (Handler))) = N_Others_Choice;
+
+               if (Others_Choice
+                   or else Entity (First (Exception_Choices (Handler))) /=
+                     Stand.Abort_Signal)
+                 and then not
+                   (Others_Choice
+                    and then All_Others (First (Exception_Choices (Handler))))
+                 and then Abort_Allowed
+               then
+                  Prepend_Call_To_Handler (RE_Abort_Undefer);
+               end if;
             end if;
          end if;
 
-         Next_Non_Pragma (Handler);
-
-      <<Continue_Handler_Loop>>
-         null;
+         Handler := Next_Handler;
       end loop Handler_Loop;
 
-      --  If all handlers got removed by gnatdN, then remove the list
+      --  If all handlers got removed, then remove the list. Note we cannot
+      --  reference HSS here, since expanding local handlers may have buried
+      --  the handlers in an inner block.
 
-      if Debug_Flag_Dot_X
-        and then Is_Empty_List (Exception_Handlers (HSS))
-      then
-         Set_Exception_Handlers (HSS, No_List);
+      if Is_Empty_List (Handlrs) then
+         Set_Exception_Handlers (Parent (Handlrs), No_List);
       end if;
    end Expand_Exception_Handlers;
 
@@ -366,7 +1148,7 @@ package body Exp_Ch11 is
       --  There is no expansion needed when compiling for the JVM since the
       --  JVM has a built-in exception mechanism. See 4jexcept.ads for details.
 
-      if Hostparm.Java_VM then
+      if VM_Target /= No_VM then
          return;
       end if;
 
@@ -424,7 +1206,7 @@ package body Exp_Ch11 is
 
       --  Register_Exception (except'Unchecked_Access);
 
-      if not Restriction_Active (No_Exception_Handlers)
+      if not No_Exception_Handlers_Set
         and then not Restriction_Active (No_Exception_Registration)
       then
          L := New_List (
@@ -475,53 +1257,69 @@ package body Exp_Ch11 is
 
    procedure Expand_N_Handled_Sequence_Of_Statements (N : Node_Id) is
    begin
+      --  Expand exception handlers
+
       if Present (Exception_Handlers (N))
         and then not Restriction_Active (No_Exception_Handlers)
       then
          Expand_Exception_Handlers (N);
       end if;
 
-      --  The following code needs comments ???
+      --  If local exceptions are being expanded, the previous call will
+      --  have rewritten the construct as a block and reanalyzed it. No
+      --  further expansion is needed.
+
+      if Analyzed (N) then
+         return;
+      end if;
+
+      --  Add clean up actions if required
 
       if Nkind (Parent (N)) /= N_Package_Body
         and then Nkind (Parent (N)) /= N_Accept_Statement
+        and then Nkind (Parent (N)) /= N_Extended_Return_Statement
         and then not Delay_Cleanups (Current_Scope)
       then
          Expand_Cleanup_Actions (Parent (N));
       else
          Set_First_Real_Statement (N, First (Statements (N)));
       end if;
-
    end Expand_N_Handled_Sequence_Of_Statements;
 
    -------------------------------------
    -- Expand_N_Raise_Constraint_Error --
    -------------------------------------
 
-   --  The only processing required is to adjust the condition to deal
-   --  with the C/Fortran boolean case. This may well not be necessary,
-   --  as all such conditions are generated by the expander and probably
-   --  are all standard boolean, but who knows what strange optimization
-   --  in future may require this adjustment!
-
    procedure Expand_N_Raise_Constraint_Error (N : Node_Id) is
    begin
+      --  We adjust the condition to deal with the C/Fortran boolean case. This
+      --  may well not be necessary, as all such conditions are generated by
+      --  the expander and probably are all standard boolean, but who knows
+      --  what strange optimization in future may require this adjustment!
+
       Adjust_Condition (Condition (N));
+
+      --  Now deal with possible local raise handling
+
+      Possible_Local_Raise (N, Standard_Constraint_Error);
    end Expand_N_Raise_Constraint_Error;
 
    ----------------------------------
    -- Expand_N_Raise_Program_Error --
    ----------------------------------
 
-   --  The only processing required is to adjust the condition to deal
-   --  with the C/Fortran boolean case. This may well not be necessary,
-   --  as all such conditions are generated by the expander and probably
-   --  are all standard boolean, but who knows what strange optimization
-   --  in future may require this adjustment!
-
    procedure Expand_N_Raise_Program_Error (N : Node_Id) is
    begin
+      --  We adjust the condition to deal with the C/Fortran boolean case. This
+      --  may well not be necessary, as all such conditions are generated by
+      --  the expander and probably are all standard boolean, but who knows
+      --  what strange optimization in future may require this adjustment!
+
       Adjust_Condition (Condition (N));
+
+      --  Now deal with possible local raise handling
+
+      Possible_Local_Raise (N, Standard_Program_Error);
    end Expand_N_Raise_Program_Error;
 
    ------------------------------
@@ -533,8 +1331,43 @@ package body Exp_Ch11 is
       Ehand : Node_Id;
       E     : Entity_Id;
       Str   : String_Id;
+      H     : Node_Id;
 
    begin
+      --  Debug_Flag_Dot_G := True;
+
+      --  Processing for locally handled exception (exclude reraise case)
+
+      if Present (Name (N)) and then Nkind (Name (N)) = N_Identifier then
+         if Debug_Flag_Dot_G
+           or else Restriction_Active (No_Exception_Propagation)
+         then
+            --  If we have a local handler, then note that this is potentially
+            --  able to be transformed into a goto statement.
+
+            H := Find_Local_Handler (Entity (Name (N)), N);
+
+            if Present (H) then
+               if Local_Raise_Statements (H) = No_Elist then
+                  Set_Local_Raise_Statements (H, New_Elmt_List);
+               end if;
+
+               --  Append the new entry if it is not there already. Sometimes
+               --  we have situations where due to reexpansion, the same node
+               --  is analyzed twice and would otherwise be added twice.
+
+               Append_Unique_Elmt (N, Local_Raise_Statements (H));
+               Set_Has_Local_Raise (H);
+
+            --  If no local handler, then generate no propagation warning
+
+            else
+               Warn_If_No_Propagation (N);
+            end if;
+
+         end if;
+      end if;
+
       --  If a string expression is present, then the raise statement is
       --  converted to a call:
 
@@ -560,10 +1393,10 @@ package body Exp_Ch11 is
 
       --  There is no expansion needed for statement "raise <exception>;" when
       --  compiling for the JVM since the JVM has a built-in exception
-      --  mechanism. However we need the keep the expansion for "raise;"
+      --  mechanism. However we need to keep the expansion for "raise;"
       --  statements. See 4jexcept.ads for details.
 
-      if Present (Name (N)) and then Hostparm.Java_VM then
+      if Present (Name (N)) and then VM_Target /= No_VM then
          return;
       end if;
 
@@ -629,7 +1462,7 @@ package body Exp_Ch11 is
             --  Build a C-compatible string in case of no exception handlers,
             --  since this is what the last chance handler is expecting.
 
-            if Restriction_Active (No_Exception_Handlers) then
+            if No_Exception_Handlers_Set then
 
                --  Generate an empty message if configuration pragma
                --  Suppress_Exception_Locations is set for this unit.
@@ -768,16 +1601,70 @@ package body Exp_Ch11 is
    -- Expand_N_Raise_Storage_Error --
    ----------------------------------
 
-   --  The only processing required is to adjust the condition to deal
-   --  with the C/Fortran boolean case. This may well not be necessary,
-   --  as all such conditions are generated by the expander and probably
-   --  are all standard boolean, but who knows what strange optimization
-   --  in future may require this adjustment!
-
    procedure Expand_N_Raise_Storage_Error (N : Node_Id) is
    begin
+      --  We adjust the condition to deal with the C/Fortran boolean case. This
+      --  may well not be necessary, as all such conditions are generated by
+      --  the expander and probably are all standard boolean, but who knows
+      --  what strange optimization in future may require this adjustment!
+
       Adjust_Condition (Condition (N));
+
+      --  Now deal with possible local raise handling
+
+      Possible_Local_Raise (N, Standard_Storage_Error);
    end Expand_N_Raise_Storage_Error;
+
+   --------------------------
+   -- Possible_Local_Raise --
+   --------------------------
+
+   procedure Possible_Local_Raise (N : Node_Id; E : Entity_Id) is
+   begin
+      --  Nothing to do if local raise optimization not active
+
+      if not Debug_Flag_Dot_G
+        and then not Restriction_Active (No_Exception_Propagation)
+      then
+         return;
+      end if;
+
+      --  Nothing to do if original node was an explicit raise, because in
+      --  that case, we already generated the required warning for the raise.
+
+      if Nkind (Original_Node (N)) = N_Raise_Statement then
+         return;
+      end if;
+
+      --  Otherwise see if we have a local handler for the exception
+
+      declare
+         H : constant Node_Id := Find_Local_Handler (E, N);
+
+      begin
+         --  If so, mark that it has a local raise
+
+         if Present (H) then
+            Set_Has_Local_Raise (H, True);
+
+         --  Otherwise, if the No_Exception_Propagation restriction is active
+         --  and the warning is enabled, generate the appropriate warnings.
+
+         elsif Warn_On_Non_Local_Exception
+           and then Restriction_Active (No_Exception_Propagation)
+         then
+            Warn_No_Exception_Propagation_Active (N);
+
+            if Configurable_Run_Time_Mode then
+               Error_Msg_NE
+                 ("\?& may call Last_Chance_Handler", N, E);
+            else
+               Error_Msg_NE
+                 ("\?& may result in unhandled exception", N, E);
+            end if;
+         end if;
+      end;
+   end Possible_Local_Raise;
 
    ------------------------------
    -- Expand_N_Subprogram_Info --
@@ -799,6 +1686,183 @@ package body Exp_Ch11 is
 
       Analyze_And_Resolve (N, RTE (RE_Code_Loc));
    end Expand_N_Subprogram_Info;
+
+   ------------------------
+   -- Find_Local_Handler --
+   ------------------------
+
+   function Find_Local_Handler
+     (Ename : Entity_Id;
+      Nod   : Node_Id) return Node_Id
+   is
+      N : Node_Id;
+      P : Node_Id;
+      H : Node_Id;
+      C : Node_Id;
+
+      SSE : Scope_Stack_Entry renames Scope_Stack.Table (Scope_Stack.Last);
+      --  This is used to test for wrapped actions below
+
+      ERaise  : Entity_Id;
+      EHandle : Entity_Id;
+      --  The entity Id's for the exception we are raising and handling, using
+      --  the renamed exception if a Renamed_Entity is present.
+
+   begin
+      --  Never any local handler if all handlers removed
+
+      if Debug_Flag_Dot_X then
+         return Empty;
+      end if;
+
+      --  Get the exception we are raising, allowing for renaming
+
+      ERaise := Get_Renamed_Entity (Ename);
+
+      --  We need to check if the node we are looking at is contained in
+      --
+
+      --  Loop to search up the tree
+
+      N := Nod;
+      loop
+         P := Parent (N);
+
+         --  If we get to the top of the tree, or to a subprogram, task, entry,
+         --  protected body, or accept statement without having found a
+         --  matching handler, then there is no local handler.
+
+         if No (P)
+           or else Nkind (P) = N_Subprogram_Body
+           or else Nkind (P) = N_Task_Body
+           or else Nkind (P) = N_Protected_Body
+           or else Nkind (P) = N_Entry_Body
+           or else Nkind (P) = N_Accept_Statement
+         then
+            return Empty;
+
+            --  Test for handled sequence of statements with at least one
+            --  exception handler which might be the one we are looking for.
+
+         elsif Nkind (P) = N_Handled_Sequence_Of_Statements
+           and then Present (Exception_Handlers (P))
+         then
+            --  Before we proceed we need to check if the node N is covered
+            --  by the statement part of P rather than one of its exception
+            --  handlers (an exception handler obviously does not cover its
+            --  own statements).
+
+            --  This test is more delicate than might be thought. It is not
+            --  just a matter of checking the Statements (P), because the node
+            --  might be waiting to be wrapped in a transient scope, in which
+            --  case it will end up in the block statements, even though it
+            --  is not there now.
+
+            if Is_List_Member (N)
+              and then (List_Containing (N) = Statements (P)
+                          or else
+                        List_Containing (N) = SSE.Actions_To_Be_Wrapped_Before
+                          or else
+                        List_Containing (N) = SSE.Actions_To_Be_Wrapped_After)
+            then
+               --  Loop through exception handlers
+
+               H := First (Exception_Handlers (P));
+               while Present (H) loop
+
+                  --  Loop through choices in one handler
+
+                  C := First (Exception_Choices (H));
+                  while Present (C) loop
+
+                     --  Deal with others case
+
+                     if Nkind (C) = N_Others_Choice then
+
+                        --  Matching others handler, but we need to ensure
+                        --  there is no choice parameter. If there is, then we
+                        --  don't have a local handler after all (since we do
+                        --  not allow choice parameters for local handlers).
+
+                        if No (Choice_Parameter (H)) then
+                           return H;
+                        else
+                           return Empty;
+                        end if;
+
+                     --  If not others must be entity name
+
+                     elsif Nkind (C) /= N_Others_Choice then
+                        pragma Assert (Is_Entity_Name (C));
+                        pragma Assert (Present (Entity (C)));
+
+                        --  Get exception being handled, dealing with renaming
+
+                        EHandle := Get_Renamed_Entity (Entity (C));
+
+                        --  If match, then check choice parameter
+
+                        if ERaise = EHandle then
+                           if No (Choice_Parameter (H)) then
+                              return H;
+                           else
+                              return Empty;
+                           end if;
+                        end if;
+                     end if;
+
+                     Next (C);
+                  end loop;
+
+                  Next (H);
+               end loop;
+            end if;
+         end if;
+
+         N := P;
+      end loop;
+   end Find_Local_Handler;
+
+   ---------------------------------
+   -- Get_Local_Raise_Call_Entity --
+   ---------------------------------
+
+   --  Note: this is primary provided for use by the back end in generating
+   --  calls to Local_Raise. But it would be too late in the back end to call
+   --  RTE if this actually caused a load/analyze of the unit. So what we do
+   --  is to ensure there is a dummy call to this function during front end
+   --  processing so that the unit gets loaded then, and not later.
+
+   Local_Raise_Call_Entity     : Entity_Id;
+   Local_Raise_Call_Entity_Set : Boolean := False;
+
+   function Get_Local_Raise_Call_Entity return Entity_Id is
+   begin
+      if not Local_Raise_Call_Entity_Set then
+         Local_Raise_Call_Entity_Set := True;
+
+         if RTE_Available (RE_Local_Raise) then
+            Local_Raise_Call_Entity := RTE (RE_Local_Raise);
+         else
+            Local_Raise_Call_Entity := Empty;
+         end if;
+      end if;
+
+      return Local_Raise_Call_Entity;
+   end Get_Local_Raise_Call_Entity;
+
+   -----------------------------
+   -- Get_RT_Exception_Entity --
+   -----------------------------
+
+   function Get_RT_Exception_Entity (R : RT_Exception_Code) return Entity_Id is
+   begin
+      case R is
+         when RT_CE_Exceptions => return Standard_Constraint_Error;
+         when RT_PE_Exceptions => return Standard_Program_Error;
+         when RT_SE_Exceptions => return Standard_Storage_Error;
+      end case;
+   end Get_RT_Exception_Entity;
 
    ----------------------
    -- Is_Non_Ada_Error --
@@ -822,5 +1886,36 @@ package body Exp_Ch11 is
 
       return True;
    end Is_Non_Ada_Error;
+
+   ----------------------------
+   -- Warn_If_No_Propagation --
+   ----------------------------
+
+   procedure Warn_If_No_Propagation (N : Node_Id) is
+   begin
+      if Restriction_Active (No_Exception_Propagation)
+        and then Warn_On_Non_Local_Exception
+      then
+         Warn_No_Exception_Propagation_Active (N);
+
+         if Configurable_Run_Time_Mode then
+            Error_Msg_N
+              ("\?Last_Chance_Handler will be called on exception", N);
+         else
+            Error_Msg_N
+              ("\?execution may raise unhandled exception", N);
+         end if;
+      end if;
+   end Warn_If_No_Propagation;
+
+   ------------------------------------------
+   -- Warn_No_Exception_Propagation_Active --
+   ------------------------------------------
+
+   procedure Warn_No_Exception_Propagation_Active (N : Node_Id) is
+   begin
+      Error_Msg_N
+        ("?pragma Restrictions (No_Exception_Propagation) in effect", N);
+   end Warn_No_Exception_Propagation_Active;
 
 end Exp_Ch11;

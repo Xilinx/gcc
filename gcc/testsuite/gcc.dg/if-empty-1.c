@@ -1,13 +1,13 @@
 /* Test diagnostics for empty bodies in if / else.  */
 /* Origin: Joseph Myers <joseph@codesourcery.com> */
 /* { dg-do compile } */
-/* { dg-options "-Wextra" } */
+/* { dg-options "-Wempty-body" } */
 
 void
 f (int x)
 {
   if (x)
-    ; /* { dg-warning "warning: empty body in an if-statement" } */
+    ; /* { dg-warning "suggest braces around empty body in an" } */
   if (x)
     ; /* By design we don't warn in this case.  */
   else
@@ -15,7 +15,7 @@ f (int x)
   if (x)
     (void)0;
   else
-    ; /* { dg-warning "warning: empty body in an else-statement" } */
+    ; /* { dg-warning "suggest braces around empty body in an" } */
   if (x)
     (void)0;
   else

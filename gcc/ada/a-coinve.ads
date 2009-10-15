@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 2004-2005, Free Software Foundation, Inc.         --
+--          Copyright (C) 2004-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- This specification is derived from the Ada Reference Manual for use with --
 -- GNAT. The copyright notice above, and the license provisions that follow --
@@ -33,8 +33,8 @@
 -- This unit was originally developed by Matthew J Heaney.                  --
 ------------------------------------------------------------------------------
 
-with Ada.Finalization;
-with Ada.Streams;
+private with Ada.Finalization;
+private with Ada.Streams;
 
 generic
    type Index_Type is range <>;
@@ -44,6 +44,7 @@ generic
 
 package Ada.Containers.Indefinite_Vectors is
    pragma Preelaborate;
+   pragma Remote_Types;
 
    subtype Extended_Index is Index_Type'Base
      range Index_Type'First - 1 ..
@@ -52,8 +53,10 @@ package Ada.Containers.Indefinite_Vectors is
    No_Index : constant Extended_Index := Extended_Index'First;
 
    type Vector is tagged private;
+   pragma Preelaborable_Initialization (Vector);
 
    type Cursor is private;
+   pragma Preelaborable_Initialization (Cursor);
 
    Empty_Vector : constant Vector;
 
@@ -299,12 +302,17 @@ private
    pragma Inline (Update_Element);
    pragma Inline (Replace_Element);
    pragma Inline (Contains);
+   pragma Inline (Next);
+   pragma Inline (Previous);
 
    type Element_Access is access Element_Type;
 
-   type Elements_Type is array (Index_Type range <>) of Element_Access;
+   type Elements_Array is array (Index_Type range <>) of Element_Access;
+   function "=" (L, R : Elements_Array) return Boolean is abstract;
 
-   function "=" (L, R : Elements_Type) return Boolean is abstract;
+   type Elements_Type (Last : Index_Type) is limited record
+      EA : Elements_Array (Index_Type'First .. Last);
+   end record;
 
    type Elements_Access is access Elements_Type;
 
@@ -317,8 +325,10 @@ private
       Lock     : Natural := 0;
    end record;
 
+   overriding
    procedure Adjust (Container : in out Vector);
 
+   overriding
    procedure Finalize (Container : in out Vector);
 
    use Ada.Streams;
@@ -334,8 +344,6 @@ private
       Container : out Vector);
 
    for Vector'Read use Read;
-
-   Empty_Vector : constant Vector := (Controlled with null, No_Index, 0, 0);
 
    type Vector_Access is access constant Vector;
    for Vector_Access'Storage_Size use 0;
@@ -356,6 +364,8 @@ private
       Position : out Cursor);
 
    for Cursor'Read use Read;
+
+   Empty_Vector : constant Vector := (Controlled with null, No_Index, 0, 0);
 
    No_Element : constant Cursor := Cursor'(null, Index_Type'First);
 

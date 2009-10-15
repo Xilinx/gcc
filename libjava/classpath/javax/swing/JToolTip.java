@@ -181,7 +181,7 @@ public class JToolTip extends JComponent implements Accessible
   {
     StringBuffer sb = new StringBuffer(super.paramString());
     sb.append(",tiptext=");
-    if (text != null);
+    if (text != null)
       sb.append(text);
     return sb.toString();
   }
@@ -224,5 +224,19 @@ public class JToolTip extends JComponent implements Accessible
   public void updateUI()
   {
     setUI((ToolTipUI) UIManager.getUI(this));
+  }
+
+  /**
+   * Returns <code>true</code> if the component is guaranteed to be painted
+   * on top of others. This returns false by default and is overridden by
+   * components like JMenuItem, JPopupMenu and JToolTip to return true for
+   * added efficiency.
+   *
+   * @return <code>true</code> if the component is guaranteed to be painted
+   *         on top of others
+   */
+  boolean onTop()
+  {
+    return true;
   }
 }

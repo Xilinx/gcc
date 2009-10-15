@@ -1,4 +1,4 @@
-!   Copyright 2002 Free Software Foundation, Inc.
+!   Copyright 2002, 2007 Free Software Foundation, Inc.
 !   Contributed by Paul Brook <paul@nowt.org>
 !
 !This file is part of the GNU Fortran 95 runtime library (libgfortran).
@@ -40,11 +40,11 @@
 #if defined (HAVE_GFC_REAL_10)
 #ifdef HAVE_COSHL
 
-elemental function specific__cosh_r10 (parm)
+elemental function _gfortran_specific__cosh_r10 (parm)
    real (kind=10), intent (in) :: parm
-   real (kind=10) :: specific__cosh_r10
+   real (kind=10) :: _gfortran_specific__cosh_r10
 
-   specific__cosh_r10 = cosh (parm)
+   _gfortran_specific__cosh_r10 = cosh (parm)
 end function
 
 #endif

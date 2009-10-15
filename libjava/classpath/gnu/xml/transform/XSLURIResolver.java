@@ -53,10 +53,15 @@ import javax.xml.transform.Source;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.URIResolver;
 import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.sax.SAXSource;
 import javax.xml.transform.stream.StreamSource;
+import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
+import org.xml.sax.XMLReader;
+import gnu.xml.dom.DomDocument;
+import gnu.xml.dom.ls.SAXEventSink;
 import gnu.xml.dom.ls.ReaderInputStream;
 
 /**
@@ -118,10 +123,9 @@ class XSLURIResolver
 
     try
       {
-        URL url = resolveURL(systemId, base, href);
         Node node = null;
         InputStream in = null;
-        if (source instanceof StreamSource)
+        if (source != null && source instanceof StreamSource)
           {
             StreamSource ss = (StreamSource) source;
             in = ss.getInputStream();
@@ -134,8 +138,22 @@ class XSLURIResolver
                   }
               }
           }
+        else if (source != null && source instanceof SAXSource)
+          {
+            SAXSource ss = (SAXSource) source;
+            InputSource input = ss.getInputSource();
+            if (input != null)
+              {
+                if (systemId == null)
+                  systemId = input.getSystemId();
+                XMLReader reader = ss.getXMLReader();
+                if (reader != null)
+                  return parse(input, reader);
+              }
+          }
         if (in == null)
           {
+            URL url = resolveURL(systemId, base, href);
             if (url != null)
               {
                 systemId = url.toString();
@@ -276,6 +294,27 @@ class XSLURIResolver
       {
         throw new TransformerException(e);
       }
+  }
+
+  DOMSource parse(InputSource source, XMLReader reader)
+    throws SAXException, IOException
+  {
+    SAXEventSink eventSink = new SAXEventSink();
+    eventSink.setReader(reader);
+    reader.setContentHandler(eventSink);
+    reader.setDTDHandler(eventSink);
+    reader.setProperty("http://xml.org/sax/properties/lexical-handler",
+            eventSink);
+    reader.setProperty("http://xml.org/sax/properties/declaration-handler",
+            eventSink);
+    // XXX entityResolver
+    // XXX errorHandler
+    reader.parse(source);
+    Document doc = eventSink.getDocument();
+    String systemId = source.getSystemId();
+    if (systemId != null && doc instanceof DomDocument)
+      ((DomDocument) doc).setDocumentURI(systemId);
+    return new DOMSource(doc, systemId);
   }
   
 }

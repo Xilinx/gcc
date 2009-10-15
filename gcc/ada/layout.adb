@@ -6,18 +6,17 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2001-2005, Free Software Foundation, Inc.         --
+--          Copyright (C) 2001-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -31,6 +30,7 @@ with Einfo;    use Einfo;
 with Errout;   use Errout;
 with Exp_Ch3;  use Exp_Ch3;
 with Exp_Util; use Exp_Util;
+with Namet;    use Namet;
 with Nlists;   use Nlists;
 with Nmake;    use Nmake;
 with Opt;      use Opt;
@@ -70,16 +70,10 @@ package body Layout is
    -- Local Subprograms --
    -----------------------
 
-   procedure Adjust_Esize_Alignment (E : Entity_Id);
-   --  E is the entity for a type or object. This procedure checks that the
-   --  size and alignment are compatible, and if not either gives an error
-   --  message if they cannot be adjusted or else adjusts them appropriately.
-
    function Assoc_Add
      (Loc        : Source_Ptr;
       Left_Opnd  : Node_Id;
-      Right_Opnd : Node_Id)
-      return       Node_Id;
+      Right_Opnd : Node_Id) return Node_Id;
    --  This is like Make_Op_Add except that it optimizes some cases knowing
    --  that associative rearrangement is allowed for constant folding if one
    --  of the operands is a compile time known value.
@@ -87,8 +81,7 @@ package body Layout is
    function Assoc_Multiply
      (Loc        : Source_Ptr;
       Left_Opnd  : Node_Id;
-      Right_Opnd : Node_Id)
-      return       Node_Id;
+      Right_Opnd : Node_Id) return Node_Id;
    --  This is like Make_Op_Multiply except that it optimizes some cases
    --  knowing that associative rearrangement is allowed for constant
    --  folding if one of the operands is a compile time known value
@@ -96,8 +89,7 @@ package body Layout is
    function Assoc_Subtract
      (Loc        : Source_Ptr;
       Left_Opnd  : Node_Id;
-      Right_Opnd : Node_Id)
-      return       Node_Id;
+      Right_Opnd : Node_Id) return Node_Id;
    --  This is like Make_Op_Subtract except that it optimizes some cases
    --  knowing that associative rearrangement is allowed for constant
    --  folding if one of the operands is a compile time known value
@@ -119,8 +111,7 @@ package body Layout is
    function Expr_From_SO_Ref
      (Loc  : Source_Ptr;
       D    : SO_Ref;
-      Comp : Entity_Id := Empty)
-      return Node_Id;
+      Comp : Entity_Id := Empty) return Node_Id;
    --  Given a value D from a size or offset field, return an expression
    --  representing the value stored. If the value is known at compile time,
    --  then an N_Integer_Literal is returned with the appropriate value. If
@@ -137,8 +128,7 @@ package body Layout is
      (Expr      : Node_Id;
       Ins_Type  : Entity_Id;
       Vtype     : Entity_Id := Empty;
-      Make_Func : Boolean   := False)
-      return      Dynamic_SO_Ref;
+      Make_Func : Boolean   := False) return Dynamic_SO_Ref;
    --  This routine is used in the case where a size/offset value is dynamic
    --  and is represented by the expression Expr. SO_Ref_From_Expr checks if
    --  the Expr contains a reference to the identifier V, and if so builds
@@ -307,8 +297,7 @@ package body Layout is
    function Assoc_Add
      (Loc        : Source_Ptr;
       Left_Opnd  : Node_Id;
-      Right_Opnd : Node_Id)
-      return       Node_Id
+      Right_Opnd : Node_Id) return Node_Id
    is
       L : Node_Id;
       R : Uint;
@@ -387,8 +376,7 @@ package body Layout is
    function Assoc_Multiply
      (Loc        : Source_Ptr;
       Left_Opnd  : Node_Id;
-      Right_Opnd : Node_Id)
-      return       Node_Id
+      Right_Opnd : Node_Id) return Node_Id
    is
       L : Node_Id;
       R : Uint;
@@ -446,8 +434,7 @@ package body Layout is
    function Assoc_Subtract
      (Loc        : Source_Ptr;
       Left_Opnd  : Node_Id;
-      Right_Opnd : Node_Id)
-      return       Node_Id
+      Right_Opnd : Node_Id) return Node_Id
    is
       L : Node_Id;
       R : Uint;
@@ -610,8 +597,7 @@ package body Layout is
    function Expr_From_SO_Ref
      (Loc  : Source_Ptr;
       D    : SO_Ref;
-      Comp : Entity_Id := Empty)
-      return Node_Id
+      Comp : Entity_Id := Empty) return Node_Id
    is
       Ent : Entity_Id;
 
@@ -833,6 +819,7 @@ package body Layout is
                OK  : Boolean;
                LLo : Uint;
                LHi : Uint;
+               pragma Warnings (Off, LHi);
 
             begin
                Set_Parent (Len, E);
@@ -1590,12 +1577,36 @@ package body Layout is
 
       procedure Layout_Component (Comp : Entity_Id; Prev_Comp : Entity_Id) is
          Ctyp  : constant Entity_Id := Etype (Comp);
+         ORC   : constant Entity_Id := Original_Record_Component (Comp);
          Npos  : SO_Ref;
          Fbit  : SO_Ref;
          NPMax : SO_Ref;
          Forc  : Boolean;
 
       begin
+         --  Increase alignment of record if necessary. Note that we do not
+         --  do this for packed records, which have an alignment of one by
+         --  default, or for records for which an explicit alignment was
+         --  specified with an alignment clause.
+
+         if not Is_Packed (E)
+           and then not Has_Alignment_Clause (E)
+           and then Alignment (Ctyp) > Alignment (E)
+         then
+            Set_Alignment (E, Alignment (Ctyp));
+         end if;
+
+         --  If original component set, then use same layout
+
+         if Present (ORC) and then ORC /= Comp then
+            Set_Normalized_Position     (Comp, Normalized_Position     (ORC));
+            Set_Normalized_First_Bit    (Comp, Normalized_First_Bit    (ORC));
+            Set_Normalized_Position_Max (Comp, Normalized_Position_Max (ORC));
+            Set_Component_Bit_Offset    (Comp, Component_Bit_Offset    (ORC));
+            Set_Esize                   (Comp, Esize                   (ORC));
+            return;
+         end if;
+
          --  Parent field is always at start of record, this will overlap
          --  the actual fields that are part of the parent, and that's fine
 
@@ -1616,18 +1627,6 @@ package body Layout is
 
          if Scope (Ctyp) = E then
             Layout_Type (Ctyp);
-         end if;
-
-         --  Increase alignment of record if necessary. Note that we do not
-         --  do this for packed records, which have an alignment of one by
-         --  default, or for records for which an explicit alignment was
-         --  specified with an alignment clause.
-
-         if not Is_Packed (E)
-           and then not Has_Alignment_Clause (E)
-           and then Alignment (Ctyp) > Alignment (E)
-         then
-            Set_Alignment (E, Alignment (Ctyp));
          end if;
 
          --  If component already laid out, then we are done
@@ -1764,10 +1763,33 @@ package body Layout is
             Esiz := Uint_0;
             RM_Siz := Uint_0;
 
+            --  If record subtype with non-static discriminants, then we don't
+            --  know which variant will be the one which gets chosen. We don't
+            --  just want to set the maximum size from the base, because the
+            --  size should depend on the particular variant.
+
+            --  What we do is to use the RM_Size of the base type, which has
+            --  the necessary conditional computation of the size, using the
+            --  size information for the particular variant chosen. Records
+            --  with default discriminants for example have an Esize that is
+            --  set to the maximum of all variants, but that's not what we
+            --  want for a constrained subtype.
+
+         elsif Ekind (E) = E_Record_Subtype
+           and then not Has_Static_Discriminants (E)
+         then
+            declare
+               BT : constant Node_Id := Base_Type (E);
+            begin
+               Esiz   := RM_Size (BT);
+               RM_Siz := RM_Size (BT);
+               Set_Alignment (E, Alignment (BT));
+            end;
+
          else
-            --  First the object size, for which we align past the last
-            --  field to the alignment of the record (the object size
-            --  is required to be a multiple of the alignment).
+            --  First the object size, for which we align past the last field
+            --  to the alignment of the record (the object size is required to
+            --  be a multiple of the alignment).
 
             Get_Next_Component_Location
               (Prev_Comp,
@@ -1778,10 +1800,10 @@ package body Layout is
                Force_SU => True);
 
             --  If the resulting normalized position is a dynamic reference,
-            --  then the size is dynamic, and is stored in storage units.
-            --  In this case, we set the RM_Size to the same value, it is
-            --  simply not worth distinguishing Esize and RM_Size values in
-            --  the dynamic case, since the RM has nothing to say about them.
+            --  then the size is dynamic, and is stored in storage units. In
+            --  this case, we set the RM_Size to the same value, it is simply
+            --  not worth distinguishing Esize and RM_Size values in the
+            --  dynamic case, since the RM has nothing to say about them.
 
             --  Note that a size cannot have been given in this case, since
             --  size specifications cannot be given for variable length types.
@@ -1793,11 +1815,11 @@ package body Layout is
                if Is_Dynamic_SO_Ref (End_Npos) then
                   RM_Siz := End_Npos;
 
-                  --  Set the Object_Size allowing for alignment. In the
-                  --  dynamic case, we have to actually do the runtime
-                  --  computation. We can skip this in the non-packed
-                  --  record case if the last component has a smaller
-                  --  alignment than the overall record alignment.
+                  --  Set the Object_Size allowing for the alignment. In the
+                  --  dynamic case, we must do the actual runtime computation.
+                  --  We can skip this in the non-packed record case if the
+                  --  last component has a smaller alignment than the overall
+                  --  record alignment.
 
                   if Is_Dynamic_SO_Ref (End_NPMax) then
                      Esiz := End_NPMax;
@@ -1805,8 +1827,8 @@ package body Layout is
                      if Is_Packed (E)
                        or else Alignment (Etype (Prev_Comp)) < Align
                      then
-                        --  The expression we build is
-                        --  (expr + align - 1) / align * align
+                        --  The expression we build is:
+                        --    (expr + align - 1) / align * align
 
                         Esiz :=
                           SO_Ref_From_Expr
@@ -1844,7 +1866,7 @@ package body Layout is
                   --  accordingly. We also adjust the size to match the
                   --  alignment here.
 
-                  Esiz  := (End_NPMax + Align - 1) / Align * Align * SSU;
+                  Esiz := (End_NPMax + Align - 1) / Align * Align * SSU;
 
                   --  Compute the resulting Value_Size (RM_Size). For this
                   --  purpose we do not force alignment of the record or
@@ -1872,7 +1894,6 @@ package body Layout is
       procedure Layout_Non_Variant_Record is
          Esiz   : SO_Ref;
          RM_Siz : SO_Ref;
-
       begin
          Layout_Components (First_Entity (E), Last_Entity (E), Esiz, RM_Siz);
          Set_Esize   (E, Esiz);
@@ -1884,10 +1905,13 @@ package body Layout is
       ---------------------------
 
       procedure Layout_Variant_Record is
-         Tdef   : constant Node_Id := Type_Definition (Decl);
-         Dlist  : constant List_Id := Discriminant_Specifications (Decl);
-         Esiz   : SO_Ref;
+         Tdef        : constant Node_Id := Type_Definition (Decl);
+         First_Discr : Entity_Id;
+         Last_Discr  : Entity_Id;
+         Esiz        : SO_Ref;
+
          RM_Siz : SO_Ref;
+         pragma Warnings (Off, SO_Ref);
 
          RM_Siz_Expr : Node_Id := Empty;
          --  Expression for the evolving RM_Siz value. This is typically a
@@ -1953,7 +1977,7 @@ package body Layout is
                if Is_Static_SO_Ref (RM_Siz) then
                   RM_Siz_Expr :=
                     Make_Integer_Literal (Loc,
-                      Intval => RM_Siz);
+                                          Intval => RM_Siz);
 
                else
                   RMS_Ent := Get_Dynamic_SO_Entity (RM_Siz);
@@ -2019,8 +2043,19 @@ package body Layout is
 
                      --  If either value is dynamic, then we have to generate
                      --  an appropriate Standard_Unsigned'Max attribute call.
+                     --  If one of the values is static then it needs to be
+                     --  converted from bits to storage units to be compatible
+                     --  with the dynamic value.
 
                      else
+                        if Is_Static_SO_Ref (Esiz) then
+                           Esiz := (Esiz + SSU - 1) / SSU;
+                        end if;
+
+                        if Is_Static_SO_Ref (EsizV) then
+                           EsizV := (EsizV + SSU - 1) / SSU;
+                        end if;
+
                         Esiz :=
                           SO_Ref_From_Expr
                             (Make_Attribute_Reference (Loc,
@@ -2140,9 +2175,15 @@ package body Layout is
 
          --  Lay out the discriminants
 
+         First_Discr := First_Discriminant (E);
+         Last_Discr  := First_Discr;
+         while Present (Next_Discriminant (Last_Discr)) loop
+            Next_Discriminant (Last_Discr);
+         end loop;
+
          Layout_Components
-           (From   => Defining_Identifier (First (Dlist)),
-            To     => Defining_Identifier (Last  (Dlist)),
+           (From   => First_Discr,
+            To     => Last_Discr,
             Esiz   => Esiz,
             RM_Siz => RM_Siz);
 
@@ -2150,7 +2191,7 @@ package body Layout is
          --  to lay out all component lists nested within variants).
 
          Layout_Component_List (Component_List (Tdef), Esiz, RM_Siz_Expr);
-         Set_Esize   (E, Esiz);
+         Set_Esize (E, Esiz);
 
          --  If the RM_Size is a literal, set its value
 
@@ -2176,7 +2217,8 @@ package body Layout is
       --  components themselves are all shared.
 
       if (Ekind (E) = E_Record_Subtype
-           or else Ekind (E) = E_Class_Wide_Subtype)
+            or else
+          Ekind (E) = E_Class_Wide_Subtype)
         and then Present (Cloned_Subtype (E))
       then
          Set_Esize     (E, Esize     (Cloned_Subtype (E)));
@@ -2208,12 +2250,9 @@ package body Layout is
 
          Prev_Comp := Empty;
 
-         Comp := First_Entity (E);
+         Comp := First_Component_Or_Discriminant (E);
          while Present (Comp) loop
-            if (Ekind (Comp) = E_Component
-                 or else Ekind (Comp) = E_Discriminant)
-              and then Present (Component_Clause (Comp))
-            then
+            if Present (Component_Clause (Comp)) then
                if No (Prev_Comp)
                  or else
                    Component_Bit_Offset (Comp) >
@@ -2223,7 +2262,7 @@ package body Layout is
                end if;
             end if;
 
-            Next_Entity (Comp);
+            Next_Component_Or_Discriminant (Comp);
          end loop;
 
          --  We have two separate circuits, one for non-variant records and
@@ -2261,6 +2300,8 @@ package body Layout is
    -----------------
 
    procedure Layout_Type (E : Entity_Id) is
+      Desig_Type : Entity_Id;
+
    begin
       --  For string literal types, for now, kill the size always, this
       --  is because gigi does not like or need the size to be set ???
@@ -2282,6 +2323,18 @@ package body Layout is
 
       if Is_Access_Type (E) then
 
+         Desig_Type :=  Underlying_Type (Designated_Type (E));
+
+         --  If we only have a limited view of the type, see whether the
+         --  non-limited view is available.
+
+         if From_With_Type (Designated_Type (E))
+           and then Ekind (Designated_Type (E)) = E_Incomplete_Type
+           and then Present (Non_Limited_View (Designated_Type (E)))
+         then
+            Desig_Type := Non_Limited_View (Designated_Type (E));
+         end if;
+
          --  If Esize already set (e.g. by a size clause), then nothing
          --  further to be done here.
 
@@ -2292,7 +2345,7 @@ package body Layout is
          --  backend figure out what is needed (it may be some kind
          --  of fat pointer, including the static link for example.
 
-         elsif Ekind (E) = E_Access_Protected_Subprogram_Type then
+         elsif Is_Access_Protected_Subprogram_Type (E) then
             null;
 
          --  For access subtypes, copy the size information from base type
@@ -2305,41 +2358,80 @@ package body Layout is
          --  a fat pointer is used (pointer-to-unconstrained array case),
          --  twice the address size to accommodate a fat pointer.
 
+         elsif Present (Desig_Type)
+            and then Is_Array_Type (Desig_Type)
+            and then not Is_Constrained (Desig_Type)
+            and then not Has_Completion_In_Body (Desig_Type)
+            and then not Debug_Flag_6
+         then
+            Init_Size (E, 2 * System_Address_Size);
+
+            --  Check for bad convention set
+
+            if Warn_On_Export_Import
+              and then
+                (Convention (E) = Convention_C
+                   or else
+                 Convention (E) = Convention_CPP)
+            then
+               Error_Msg_N
+                 ("?this access type does not correspond to C pointer", E);
+            end if;
+
+         --  If the designated type is a limited view it is unanalyzed. We
+         --  can examine the declaration itself to determine whether it will
+         --  need a fat pointer.
+
+         elsif Present (Desig_Type)
+            and then Present (Parent (Desig_Type))
+            and then Nkind (Parent (Desig_Type)) = N_Full_Type_Declaration
+            and then
+              Nkind (Type_Definition (Parent (Desig_Type)))
+                 = N_Unconstrained_Array_Definition
+         then
+            Init_Size (E, 2 * System_Address_Size);
+
+         --  When the target is AAMP, access-to-subprogram types are fat
+         --  pointers consisting of the subprogram address and a static
+         --  link (with the exception of library-level access types,
+         --  where a simple subprogram address is used).
+
+         elsif AAMP_On_Target
+           and then
+             (Ekind (E) = E_Anonymous_Access_Subprogram_Type
+               or else (Ekind (E) = E_Access_Subprogram_Type
+                         and then Present (Enclosing_Subprogram (E))))
+         then
+            Init_Size (E, 2 * System_Address_Size);
+
          else
-            declare
-               Desig : Entity_Id := Designated_Type (E);
+            Init_Size (E, System_Address_Size);
+         end if;
 
-            begin
-               if Is_Private_Type (Desig)
-                 and then Present (Full_View (Desig))
-               then
-                  Desig := Full_View (Desig);
-               end if;
+         --  On VMS, reset size to 32 for convention C access type if no
+         --  explicit size clause is given and the default size is 64. Really
+         --  we do not know the size, since depending on options for the VMS
+         --  compiler, the size of a pointer type can be 32 or 64, but
+         --  choosing 32 as the default improves compatibility with legacy
+         --  VMS code.
 
-               if Is_Array_Type (Desig)
-                 and then not Is_Constrained (Desig)
-                 and then not Has_Completion_In_Body (Desig)
-                 and then not Debug_Flag_6
-               then
-                  Init_Size (E, 2 * System_Address_Size);
+         --  Note: we do not use Has_Size_Clause in the test below, because we
+         --  want to catch the case of a derived type inheriting a size
+         --  clause.  We want to consider this to be an explicit size clause
+         --  for this purpose, since it would be weird not to inherit the size
+         --  in this case.
 
-                  --  Check for bad convention set
+         --  We do NOT do this if we are in -gnatdm mode on a non-VMS target
+         --  since in that case we want the normal pointer representation.
 
-                  if Warn_On_Export_Import
-                    and then
-                      (Convention (E) = Convention_C
-                         or else
-                       Convention (E) = Convention_CPP)
-                  then
-                     Error_Msg_N
-                       ("?this access type does not " &
-                        "correspond to C pointer", E);
-                  end if;
-
-               else
-                  Init_Size (E, System_Address_Size);
-               end if;
-            end;
+         if Opt.True_VMS_Target
+           and then (Convention (E) = Convention_C
+                      or else
+                     Convention (E) = Convention_CPP)
+           and then No (Get_Attribute_Definition_Clause (E, Attribute_Size))
+           and then Esize (E) = 64
+         then
+            Init_Size (E, 32);
          end if;
 
          Set_Elem_Alignment (E);
@@ -2423,9 +2515,8 @@ package body Layout is
                declare
                   A : constant Uint   := Alignment_In_Bits (E);
                   S : constant SO_Ref := RM_Size (E);
-
                begin
-                  Set_Esize (E, (S * A + A - 1) / A);
+                  Set_Esize (E, (S + A - 1) / A * A);
                end;
             end if;
 
@@ -2542,7 +2633,7 @@ package body Layout is
             if Has_Object_Size_Clause (E) then
                Error_Msg_Uint_1 := RM_Size (E);
                Error_Msg_F
-                 ("object size is too small, minimum is ^",
+                 ("object size is too small, minimum allowed is ^",
                   Expression (Get_Attribute_Definition_Clause
                                              (E, Attribute_Object_Size)));
             end if;
@@ -2730,10 +2821,13 @@ package body Layout is
 
          --  On VMS, also reset for odd "in between" sizes, e.g. a 17-bit
          --  record is given an alignment of 4. This is more consistent with
-         --  what DEC Ada does.
+         --  what DEC Ada does (-gnatd.a turns this off which can be used to
+         --  examine the value of this special transformation).
 
-         elsif OpenVMS_On_Target and then Siz > System_Storage_Unit then
-
+         elsif OpenVMS_On_Target
+           and then not Debug_Flag_Dot_A
+           and then Siz > System_Storage_Unit
+         then
             if Siz <= 2 * System_Storage_Unit then
                Align := 2;
             elsif Siz <= 4 * System_Storage_Unit then
@@ -2936,8 +3030,7 @@ package body Layout is
      (Expr      : Node_Id;
       Ins_Type  : Entity_Id;
       Vtype     : Entity_Id := Empty;
-      Make_Func : Boolean   := False)
-      return      Dynamic_SO_Ref
+      Make_Func : Boolean   := False) return Dynamic_SO_Ref
    is
       Loc  : constant Source_Ptr := Sloc (Ins_Type);
 
@@ -3027,7 +3120,7 @@ package body Layout is
              Handled_Statement_Sequence =>
                Make_Handled_Sequence_Of_Statements (Loc,
                  Statements => New_List (
-                   Make_Return_Statement (Loc,
+                   Make_Simple_Return_Statement (Loc,
                      Expression => Expr))));
 
       --  The caller requests that the expression be encapsulated in
@@ -3049,7 +3142,7 @@ package body Layout is
              Handled_Statement_Sequence =>
                Make_Handled_Sequence_Of_Statements (Loc,
                  Statements => New_List (
-                   Make_Return_Statement (Loc, Expression => Expr))));
+                   Make_Simple_Return_Statement (Loc, Expression => Expr))));
 
       --  No reference to V and function not requested, so create a constant
 

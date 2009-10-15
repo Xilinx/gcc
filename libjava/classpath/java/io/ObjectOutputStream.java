@@ -39,7 +39,7 @@ exception statement from your version. */
 
 package java.io;
 
-import gnu.java.io.ObjectIdentityWrapper;
+import gnu.java.io.ObjectIdentityMap2Int;
 import gnu.java.lang.reflect.TypeSignature;
 import gnu.java.security.action.SetAccessibleAction;
 
@@ -47,8 +47,7 @@ import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.security.AccessController;
-import java.util.Hashtable;
+
 
 /**
  * An <code>ObjectOutputStream</code> can be used to write objects
@@ -115,6 +114,11 @@ import java.util.Hashtable;
  * @see java.io.Externalizable
  * @see java.io.ObjectInputStream
  * @see java.io.Serializable
+ * @author Tom Tromey (tromey@redhat.com)
+ * @author Jeroen Frijters (jeroen@frijters.net)
+ * @author Guilhem Lavaux (guilhem@kaffe.org)
+ * @author Michael Koch (konqueror@gmx.de)
+ * @author Andrew John Hughes (gnu_andrew@member.fsf.org)
  */
 public class ObjectOutputStream extends OutputStream
   implements ObjectOutput, ObjectStreamConstants
@@ -140,7 +144,7 @@ public class ObjectOutputStream extends OutputStream
     replacementEnabled = false;
     isSerializing = false;
     nextOID = baseWireHandle;
-    OIDLookupTable = new Hashtable();
+    OIDLookupTable = new ObjectIdentityMap2Int();
     protocolVersion = defaultProtocolVersion;
     useSubclassMethod = false;
     writeStreamHeader();
@@ -166,6 +170,7 @@ public class ObjectOutputStream extends OutputStream
    * If an exception is thrown from this method, the stream is left in
    * an undefined state.
    *
+   * @param obj the object to serialize.
    * @exception NotSerializableException An attempt was made to
    * serialize an <code>Object</code> that is not serializable.
    *
@@ -174,8 +179,70 @@ public class ObjectOutputStream extends OutputStream
    *
    * @exception IOException Exception from underlying
    * <code>OutputStream</code>.
+   * @see #writeUnshared(Object)
    */
   public final void writeObject(Object obj) throws IOException
+  {
+    writeObject(obj, true);
+  }
+
+  /**
+   * Writes an object to the stream in the same manner as
+   * {@link #writeObject(Object)}, but without the use of
+   * references.  As a result, the object is always written
+   * to the stream in full.  Likewise, if an object is written
+   * by this method and is then later written again by
+   * {@link #writeObject(Object)}, both calls will write out
+   * the object in full, as the later call to
+   * {@link #writeObject(Object)} will know nothing of the
+   * earlier use of {@link #writeUnshared(Object)}.
+   *
+   * @param obj the object to serialize.
+   * @throws NotSerializableException if the object being
+   *                                  serialized does not implement
+   *                                  {@link Serializable}.
+   * @throws InvalidClassException if a problem occurs with
+   *                               the class of the object being
+   *                               serialized.
+   * @throws IOException if an I/O error occurs on the underlying
+   *                     <code>OutputStream</code>.
+   * @since 1.4
+   * @see #writeObject(Object)
+   */
+  public void writeUnshared(Object obj)
+    throws IOException
+  {
+    writeObject(obj, false);
+  }
+
+  /**
+   * Writes a representation of <code>obj</code> to the underlying
+   * output stream by writing out information about its class, then
+   * writing out each of the objects non-transient, non-static
+   * fields.  If any of these fields are other objects,
+   * they are written out in the same manner.
+   *
+   * This method can be overriden by a class by implementing
+   * <code>private void writeObject (ObjectOutputStream)</code>.
+   *
+   * If an exception is thrown from this method, the stream is left in
+   * an undefined state.
+   *
+   * @param obj the object to serialize.
+   * @param shared true if the serialized object should be
+   *               shared with later calls.
+   * @exception NotSerializableException An attempt was made to
+   * serialize an <code>Object</code> that is not serializable.
+   *
+   * @exception InvalidClassException Somebody tried to serialize
+   * an object which is wrongly formatted.
+   *
+   * @exception IOException Exception from underlying
+   * <code>OutputStream</code>.
+   * @see #writeUnshared(Object)
+   */
+  private final void writeObject(Object obj, boolean shared)
+    throws IOException
   {
     if (useSubclassMethod)
       {
@@ -187,7 +254,7 @@ public class ObjectOutputStream extends OutputStream
       }
 
     if (dump)
-      dumpElementln ("WRITE: " + obj);
+      dumpElementln ("WRITE: ", obj);
     
     depth += 2;    
 
@@ -207,11 +274,11 @@ public class ObjectOutputStream extends OutputStream
 		break;
 	      }
 
-	    Integer handle = findHandle(obj);
-	    if (handle != null)
+	    int handle = findHandle(obj);
+	    if (handle >= 0 && shared)
 	      {
 		realOutput.writeByte(TC_REFERENCE);
-		realOutput.writeInt(handle.intValue());
+		realOutput.writeInt(handle);
 		break;
 	      }
 
@@ -225,7 +292,7 @@ public class ObjectOutputStream extends OutputStream
 		    writeObject (osc);
 		  }
 		else
-		  {
+		  {System.err.println("1");
 		    realOutput.writeByte(TC_PROXYCLASSDESC);
 		    Class[] intfs = cl.getInterfaces();
 		    realOutput.writeInt(intfs.length);
@@ -239,7 +306,8 @@ public class ObjectOutputStream extends OutputStream
 		    
 		    writeObject(osc.getSuper());
 		  }
-		assignNewHandle(obj);
+		if (shared)
+		  assignNewHandle(obj);
 		break;
 	      }
 
@@ -259,7 +327,8 @@ public class ObjectOutputStream extends OutputStream
 		/* TC_ENUM classDesc newHandle enumConstantName */
 		realOutput.writeByte(TC_ENUM);
 		writeObject(osc);
-		assignNewHandle(obj);
+		if (shared)
+		  assignNewHandle(obj);
 		writeObject(((Enum) obj).name());
 		break;
 	      }
@@ -295,7 +364,8 @@ public class ObjectOutputStream extends OutputStream
 	    if (obj instanceof String)
 	      {
 		realOutput.writeByte(TC_STRING);
-		assignNewHandle(obj);
+		if (shared)
+		  assignNewHandle(obj);
 		realOutput.writeUTF((String)obj);
 		break;
 	      }
@@ -304,7 +374,8 @@ public class ObjectOutputStream extends OutputStream
 	      {
 		realOutput.writeByte(TC_ARRAY);
 		writeObject(osc);
-		assignNewHandle(obj);
+		if (shared)
+		  assignNewHandle(obj);
 		writeArraySizeAndElements(obj, clazz.getComponentType());
 		break;
 	      }
@@ -312,11 +383,12 @@ public class ObjectOutputStream extends OutputStream
 	    realOutput.writeByte(TC_OBJECT);
 	    writeObject(osc);
 
-	    if (replaceDone)
-	      assignNewHandle(replacedObject);
-	    else
-	      assignNewHandle(obj);
-
+	    if (shared)
+	      if (replaceDone)
+		assignNewHandle(replacedObject);
+	      else
+		assignNewHandle(obj);
+	    
 	    if (obj instanceof Externalizable)
 	      {
 		if (protocolVersion == PROTOCOL_VERSION_2)
@@ -338,8 +410,7 @@ public class ObjectOutputStream extends OutputStream
 		Object prevObject = this.currentObject;
 		ObjectStreamClass prevObjectStreamClass = this.currentObjectStreamClass;
 		currentObject = obj;
-		ObjectStreamClass[] hierarchy =
-		  ObjectStreamClass.getObjectStreamClasses(clazz);
+		ObjectStreamClass[] hierarchy = osc.hierarchy();
 		
 		for (int i = 0; i < hierarchy.length; i++)
 		  {
@@ -349,18 +420,18 @@ public class ObjectOutputStream extends OutputStream
 		    if (currentObjectStreamClass.hasWriteMethod())
 		      {
 			if (dump)
-			  dumpElementln ("WRITE METHOD CALLED FOR: " + obj);
+			  dumpElementln ("WRITE METHOD CALLED FOR: ", obj);
 			setBlockDataMode(true);
 			callWriteMethod(obj, currentObjectStreamClass);
 			setBlockDataMode(false);
 			realOutput.writeByte(TC_ENDBLOCKDATA);
 			if (dump)
-			  dumpElementln ("WRITE ENDBLOCKDATA FOR: " + obj);
+			  dumpElementln ("WRITE ENDBLOCKDATA FOR: ", obj);
 		      }
 		    else
 		      {
 			if (dump)
-			  dumpElementln ("WRITE FIELDS CALLED FOR: " + obj);
+			  dumpElementln ("WRITE FIELDS CALLED FOR: ", obj);
 			writeFields(obj, currentObjectStreamClass);
 		      }
 		  }
@@ -417,7 +488,7 @@ public class ObjectOutputStream extends OutputStream
 	depth -= 2;
 
 	if (dump)
-	  dumpElementln ("END: " + obj);
+	  dumpElementln ("END: ", obj);
       }
   }
 
@@ -604,11 +675,11 @@ public class ObjectOutputStream extends OutputStream
    *
    * @see ObjectInputStream#resolveClass(java.io.ObjectStreamClass)
    */
-  protected void annotateClass(Class cl) throws IOException
+  protected void annotateClass(Class<?> cl) throws IOException
   {
   }
 
-  protected void annotateProxyClass(Class cl) throws IOException
+  protected void annotateProxyClass(Class<?> cl) throws IOException
   {
   }
 
@@ -1104,17 +1175,16 @@ public class ObjectOutputStream extends OutputStream
 
   // lookup the handle for OBJ, return null if OBJ doesn't have a
   // handle yet
-  private Integer findHandle(Object obj)
+  private int findHandle(Object obj)
   {
-    return (Integer)OIDLookupTable.get(new ObjectIdentityWrapper(obj));
+    return OIDLookupTable.get(obj);
   }
 
 
   // assigns the next availible handle to OBJ
   private int assignNewHandle(Object obj)
   {
-    OIDLookupTable.put(new ObjectIdentityWrapper(obj),
-		       new Integer(nextOID));
+    OIDLookupTable.put(obj, nextOID);
     return nextOID++;
   }
 
@@ -1209,45 +1279,82 @@ public class ObjectOutputStream extends OutputStream
   }
 
 
+/* GCJ LOCAL */
   // writes out FIELDS of OBJECT for the specified ObjectStreamClass.
-  // FIELDS are already in canonical order.
+  // FIELDS are already supposed already to be in canonical order, but
+  // under some circumstances (to do with Proxies) this isn't the
+  // case, so we call ensureFieldsSet().
   private void writeFields(Object obj, ObjectStreamClass osc)
     throws IOException
   {
+    osc.ensureFieldsSet(osc.forClass());
+/* END GCJ LOCAL */
+
     ObjectStreamField[] fields = osc.fields;
     boolean oldmode = setBlockDataMode(false);
-    String field_name;
-    Class type;
 
+    try
+      {
+        writeFields(obj,fields);
+      }
+    catch (IllegalArgumentException _)
+      {
+        InvalidClassException e = new InvalidClassException
+          ("writing fields of class " + osc.forClass().getName());
+        e.initCause(_);
+        throw e;
+      }
+    catch (IOException e)
+      {
+        throw e;
+      }
+    catch (Exception _)
+      {
+        IOException e = new IOException("Unexpected exception " + _);
+        e.initCause(_);
+        throw(e);
+      }    
+
+    setBlockDataMode(oldmode);
+  }
+        
+
+  /**
+   * Helper function for writeFields(Object,ObjectStreamClass): write
+   * fields from given fields array.  Pass exception on.
+   *
+   * @param obj the object to be written
+   *
+   * @param fields the fields of obj to be written.
+   */
+  private void writeFields(Object obj, ObjectStreamField[] fields)
+    throws
+      IllegalArgumentException, IllegalAccessException, IOException
+  {
     for (int i = 0; i < fields.length; i++)
       {
-	field_name = fields[i].getName();
-	type = fields[i].getType();
-
-	if (dump)
-	  dumpElementln ("WRITE FIELD: " + field_name + " type=" + type);
-
-	if (type == Boolean.TYPE)
-	  realOutput.writeBoolean(getBooleanField(obj, osc.forClass(), field_name));
-	else if (type == Byte.TYPE)
-	  realOutput.writeByte(getByteField(obj, osc.forClass(), field_name));
-	else if (type == Character.TYPE)
-	  realOutput.writeChar(getCharField(obj, osc.forClass(), field_name));
-	else if (type == Double.TYPE)
-	  realOutput.writeDouble(getDoubleField(obj, osc.forClass(), field_name));
-	else if (type == Float.TYPE)
-	  realOutput.writeFloat(getFloatField(obj, osc.forClass(), field_name));
-	else if (type == Integer.TYPE)
-	  realOutput.writeInt(getIntField(obj, osc.forClass(), field_name));
-	else if (type == Long.TYPE)
-	  realOutput.writeLong(getLongField(obj, osc.forClass(), field_name));
-	else if (type == Short.TYPE)
-	  realOutput.writeShort(getShortField(obj, osc.forClass(), field_name));
-	else
-	  writeObject(getObjectField(obj, osc.forClass(), field_name,
-				     fields[i].getTypeString ()));
+        ObjectStreamField osf = fields[i];
+        Field field = osf.field;
+        
+        if (DEBUG && dump)
+          dumpElementln ("WRITE FIELD: " + osf.getName() + " type=" + osf.getType());
+        
+        switch (osf.getTypeCode())
+          {
+          case 'Z': realOutput.writeBoolean(field.getBoolean(obj)); break;
+          case 'B': realOutput.writeByte   (field.getByte   (obj)); break;
+          case 'S': realOutput.writeShort  (field.getShort  (obj)); break;
+          case 'C': realOutput.writeChar   (field.getChar   (obj)); break;
+          case 'I': realOutput.writeInt    (field.getInt    (obj)); break;
+          case 'F': realOutput.writeFloat  (field.getFloat  (obj)); break;
+          case 'J': realOutput.writeLong   (field.getLong   (obj)); break;
+          case 'D': realOutput.writeDouble (field.getDouble (obj)); break;
+          case 'L': 
+          case '[':            writeObject (field.get       (obj)); break;
+          default: 
+            throw new IOException("Unexpected type code " + osf.getTypeCode());
+          }
       }
-    setBlockDataMode(oldmode);
   }
 
 
@@ -1307,245 +1414,25 @@ public class ObjectOutputStream extends OutputStream
       }
   }
 
-  private boolean getBooleanField(Object obj, Class klass, String field_name)
-    throws IOException
+  private void dumpElementln (String msg, Object obj)
   {
     try
       {
-	Field f = getField(klass, field_name);
-	boolean b = f.getBoolean(obj);
-	return b;
-      }
-    catch (IllegalArgumentException _)
-      {
-	throw new InvalidClassException
-	  ("invalid requested type for field " + field_name + " in class " + klass.getName());
-      }
-    catch (IOException e)
-      {
-	throw e;
+	for (int i = 0; i < depth; i++)
+	  System.out.print (" ");
+	System.out.print (Thread.currentThread() + ": ");
+	System.out.print (msg);
+	if (java.lang.reflect.Proxy.isProxyClass(obj.getClass()))
+	  System.out.print (obj.getClass());
+	else
+	  System.out.print (obj);
       }
     catch (Exception _)
       {
-	throw new IOException("Unexpected exception " + _);
       }
-  }
-
-  private byte getByteField (Object obj, Class klass, String field_name)
-    throws IOException
-  {
-    try
+    finally
       {
-	Field f = getField (klass, field_name);
-	byte b = f.getByte (obj);
-	return b;
-      }
-    catch (IllegalArgumentException _)
-      {
-	throw new InvalidClassException
-	  ("invalid requested type for field " + field_name + " in class " + klass.getName());
-      }
-    catch (IOException e)
-      {
-	throw e;
-      }
-    catch (Exception _)
-      {
-	throw new IOException("Unexpected exception " + _);
-      }    
-  }
-
-  private char getCharField (Object obj, Class klass, String field_name)
-    throws IOException
-  {
-    try
-      {
-	Field f = getField (klass, field_name);
-	char b = f.getChar (obj);
-	return b;
-      }
-    catch (IllegalArgumentException _)
-      {
-	throw new InvalidClassException
-	  ("invalid requested type for field " + field_name + " in class " + klass.getName());
-      }
-    catch (IOException e)
-      {
-	throw e;
-      }
-    catch (Exception _)
-      {
-	throw new IOException("Unexpected exception " + _);
-      }    
-  }
-
-  private double getDoubleField (Object obj, Class klass, String field_name)
-    throws IOException
-  {
-    try
-      {
-	Field f = getField (klass, field_name);
-	double b = f.getDouble (obj);
-	return b;
-      }
-    catch (IllegalArgumentException _)
-      {
-	throw new InvalidClassException
-	  ("invalid requested type for field " + field_name + " in class " + klass.getName());
-      }
-    catch (IOException e)
-      {
-	throw e;
-      }
-    catch (Exception _)
-      {
-	throw new IOException("Unexpected exception " + _);
-      }    
-  }
-
-  private float getFloatField (Object obj, Class klass, String field_name)
-    throws IOException
-  {
-    try
-      {
-	Field f = getField (klass, field_name);
-	float b = f.getFloat (obj);
-	return b;
-      }
-    catch (IllegalArgumentException _)
-      {
-	throw new InvalidClassException
-	  ("invalid requested type for field " + field_name + " in class " + klass.getName());
-      }
-    catch (IOException e)
-      {
-	throw e;
-      }
-    catch (Exception _)
-      {
-	throw new IOException("Unexpected exception " + _);
-      }
-  }
-
-  private int getIntField (Object obj, Class klass, String field_name)
-    throws IOException
-  {
-    try
-      {
-	Field f = getField (klass, field_name);
-	int b = f.getInt (obj);
-	return b;
-      }
-    catch (IllegalArgumentException _)
-      {
-	throw new InvalidClassException
-	  ("invalid requested type for field " + field_name + " in class " + klass.getName());
-      }
-    catch (IOException e)
-      {
-	throw e;
-      }
-    catch (Exception _)
-      {
-	throw new IOException("Unexpected exception " + _);
-      }
-  }
-
-  private long getLongField (Object obj, Class klass, String field_name)
-    throws IOException
-  {
-    try
-      {
-	Field f = getField (klass, field_name);
-	long b = f.getLong (obj);
-	return b;
-      }
-    catch (IllegalArgumentException _)
-      {
-	throw new InvalidClassException
-	  ("invalid requested type for field " + field_name + " in class " + klass.getName());
-      }
-    catch (IOException e)
-      {
-	throw e;
-      }
-    catch (Exception _)
-      {
-	throw new IOException("Unexpected exception " + _);
-      }    
-  }
-
-  private short getShortField (Object obj, Class klass, String field_name)
-    throws IOException
-  {
-    try
-      {
-	Field f = getField (klass, field_name);
-	short b = f.getShort (obj);
-	return b;
-      }
-    catch (IllegalArgumentException _)
-      {
-	throw new InvalidClassException
-	  ("invalid requested type for field " + field_name + " in class " + klass.getName());
-      }
-    catch (IOException e)
-      {
-       throw e;
-      }
-    catch (Exception _)
-      {
-	throw new IOException("Unexpected exception " + _);
-      }
-  }
-
-  private Object getObjectField (Object obj, Class klass, String field_name,
-				 String type_code) throws IOException
-  {
-    try
-      {
-	Field f = getField (klass, field_name);
-	ObjectStreamField of = new ObjectStreamField(f.getName(), f.getType());
-
-	/* if of is primitive something went wrong
-	 * in the check for primitive classes in writeFields.
-	 */
-	if (of.isPrimitive())
-	  throw new InvalidClassException
-	    ("invalid type code for " + field_name + " in class " + klass.getName() + " : object stream field is primitive");
-
-	if (!of.getTypeString().equals(type_code))
-	    throw new InvalidClassException
-		("invalid type code for " + field_name + " in class " + klass.getName() + " : object stream field " + of + " has type string " + of.getTypeString() + " instead of " + type_code);
-
-	Object o = f.get (obj);
-	// FIXME: We should check the type_code here
-	return o;
-      }
-    catch (IOException e)
-      {
-	throw e;
-      }
-    catch (Exception e)
-      {
-	throw new IOException ();
-      }    
-  }
-
-  private Field getField (Class klass, String name)
-    throws java.io.InvalidClassException
-  {
-    try
-      {
-	final Field f = klass.getDeclaredField(name);
-	setAccessible.setMember(f);
-	AccessController.doPrivileged(setAccessible);
-	return f;
-      }
-    catch (java.lang.NoSuchFieldException e)
-      {
-	throw new InvalidClassException
-	  ("no field called " + name + " in class " + klass.getName());
+	System.out.println ();
       }
   }
 
@@ -1576,7 +1463,7 @@ public class ObjectOutputStream extends OutputStream
   private boolean replacementEnabled;
   private boolean isSerializing;
   private int nextOID;
-  private Hashtable OIDLookupTable;
+  private ObjectIdentityMap2Int OIDLookupTable;
   private int protocolVersion;
   private boolean useSubclassMethod;
   private SetAccessibleAction setAccessible = new SetAccessibleAction();

@@ -7,7 +7,7 @@
 --                                                                          --
 --                                B o d y                                   --
 --                                                                          --
---         Copyright (C) 1998-2005, Free Software Foundation, Inc.          --
+--         Copyright (C) 1998-2007, Free Software Foundation, Inc.          --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -211,7 +211,9 @@ package body System.Tasking.Protected_Objects.Single_Entry is
    is
       Self_Id  : constant Task_Id := Entry_Call.Self;
       Timedout : Boolean;
+
       Yielded  : Boolean;
+      pragma Unreferenced (Yielded);
 
       use type Ada.Exceptions.Exception_Id;
 
@@ -548,10 +550,8 @@ package body System.Tasking.Protected_Objects.Single_Entry is
       Uninterpreted_Data : System.Address;
       Mode               : Call_Modes)
    is
-      Self_Id           : constant Task_Id := STPO.Self;
-      Entry_Call        : Entry_Call_Record renames Self_Id.Entry_Calls (1);
-      Ceiling_Violation : Boolean;
-
+      Self_Id    : constant Task_Id := STPO.Self;
+      Entry_Call : Entry_Call_Record renames Self_Id.Entry_Calls (1);
    begin
       --  If pragma Detect_Blocking is active then Program_Error must be
       --  raised if this potentially blocking operation is called from a
@@ -564,11 +564,7 @@ package body System.Tasking.Protected_Objects.Single_Entry is
            (Program_Error'Identity, "potentially blocking operation");
       end if;
 
-      STPO.Write_Lock (Object.L'Access, Ceiling_Violation);
-
-      if Ceiling_Violation then
-         raise Program_Error;
-      end if;
+      Lock_Entry (Object);
 
       Entry_Call.Mode := Mode;
       Entry_Call.State := Now_Abortable;
@@ -669,7 +665,7 @@ package body System.Tasking.Protected_Objects.Single_Entry is
    -- Timed_Protected_Single_Entry_Call --
    ---------------------------------------
 
-   --  Compiler interface only. Do not call from within the RTS.
+   --  Compiler interface only (do not call from within the RTS)
 
    procedure Timed_Protected_Single_Entry_Call
      (Object                : Protection_Entry_Access;

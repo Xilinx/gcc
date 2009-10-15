@@ -1,20 +1,82 @@
-2008-05-19  Release Manager
+2009-08-04  Release Manager
 
-	* GCC 4.2.4 released.
+	* GCC 4.3.4 released.
 
-2008-02-01  Release Manager
+2009-01-24  Release Manager
 
-	* GCC 4.2.3 released.
+	* GCC 4.3.3 released.
 
-2007-10-07  Release Manager
+2008-08-27  Release Manager
 
-	* GCC 4.2.2 released.
+	* GCC 4.3.2 released.
 
-2007-08-29  Nick Clifton  <nickc@redhat.com>
+2008-06-06  Release Manager
+
+	* GCC 4.3.1 released.
+
+2008-03-05  Release Manager
+
+	* GCC 4.3.0 released.
+
+2008-02-06  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	PR other/35107
+	* Make-lang.in (tree1): Add $(GMPLIBS).
+
+2007-11-26  Andreas Krebbel  <krebbel1@de.ibm.com>
+
+	PR 34081/C++
+	* treetree.c (tree_code_create_function_wrapup): Pass 'false' 
+	for the new allocate_struct_function parameter.
+
+2007-09-12  Jan Hubicka  <jh@suse.cz>
+
+	* treetree.c (LANG_HOOKS_CALLGRAPH_EXPAND_FUNCTION): Kill.
+	(treelang_expand_function): Kill.
+
+2007-09-06  Tom Tromey  <tromey@redhat.com>
+
+	* tree1.c (treelang_init): Update.
+	(treelang_parse_file): Update.
+	(treelang_parse_file): Update.
+	(treelang_parse_file): Update.
+	* lex.l: Update.
+	(update_lineno_charno): Likewise.
+
+2007-09-05  Sandra Loosemore  <sandra@codesourcery.com>
+
+	* treetree.c (tree_code_create_function_wrapup):  Use set_cfun.
+
+2007-08-21  Paul Brook  <paul@codesourcery.com>
+	    Nathan Sidwell  <nathan@codesourcery.com>
+	    Mark Mitchell  <mark@codesourcery.com>
+	    Joseph Myers  <joseph@codesourcery.com>
+
+	* tree1.c (treelang_handle_option): Use pkgversion_string.
+	* treelang.texi (which-treelang): Define to use VERSION_PACKAGE.
+
+2007-07-27  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* lex.l (update_yylval): Constify.
+	* treelang.h (struct token_part, struct parameter_part):
+	Likewise.
+	* treetree.c (tree_code_create_function_prototype,
+	tree_code_create_variable, tree_code_get_integer_value):
+	Likewise.
+	* treetree.h (tree_code_get_integer_value,
+	tree_code_create_function_prototype, tree_code_create_variable):
+	Likewise.
+
+2007-07-25  Richard Guenther  <rguenther@suse.de>
+
+	* treetree.c (tree_code_generate_return): RETURN_EXPRs
+	have volatile type.
+
+2007-07-17  Nick Clifton  <nickc@redhat.com>
 
 	* parse.y: Change copyright header to refer to version 3 of the
 	GNU General Public License and to point readers at the COPYING3
-	file and the FSF's license web page.
+	file.
 	* lex.l: Likewise.
 	* lang.opt: Likewise.
 	* lang-specs.h: Likewise.
@@ -26,19 +88,35 @@
 	* Make-lang.in: Likewise.
 	* treetree.h: Likewise.
 	* spec.c: Likewise.
-	
-2007-07-19  Release Manager
 
-	* GCC 4.2.1 released.
+2007-06-11  Rafael Avila de Espindola  <espindola@google.com>
 
-2007-05-13  Release Manager
+	* treetree.c (tree_lang_signed_type): Remove.
+	(LANG_HOOKS_SIGNED_TYPE): Remove.
 
-	* GCC 4.2.0 released.
+2007-05-14  Rafael Avila de Espindola  <espindola@google.com>
+
+	* treetree.c (tree_lang_unsigned_type): Remove.
+	(LANG_HOOKS_UNSIGNED_TYPE): Remove.
+
+2007-03-30  Rafael Avila de Espindola  <espindola@google.com>
+
+	* treetree.c (tree_lang_signed_or_unsigned_type): Remove.
+	(LANG_HOOKS_SIGNED_OR_UNSIGNED_TYPE) Remove.
+
+2007-03-01  Brooks Moses  <brooks.moses@codesourcery.com>
+
+	* Make-lang.in: Add install-pdf target as copied from
+	automake v1.10 rules.
 
 2007-02-26  Brooks Moses  <brooks.moses@codesourcery.com>
 
 	* treelang.texi: Standardize title page, remove version number
 	from copyright page.
+
+2006-10-23 Rafael Avila de Espindola  <rafael.espindola@gmail.com>
+
+	* treetree.c (builtin_function): Remove.
 
 2006-10-10  Brooks Moses  <bmoses@stanford.edu>
 

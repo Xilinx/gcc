@@ -6,12 +6,16 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
--- This specification is adapted from the Ada Reference Manual for use with --
+-- This specification is derived from the Ada Reference Manual for use with --
 -- GNAT.  In accordance with the copyright of that document, you can freely --
 -- copy and modify this specification,  provided that if you redistribute a --
 -- modified version,  any changes that you have made are clearly indicated. --
 --                                                                          --
 ------------------------------------------------------------------------------
+
+pragma Warnings (Off);
+pragma Compiler_Unit;
+pragma Warnings (On);
 
 package Ada.Characters.Latin_1 is
    pragma Pure;
@@ -84,7 +88,6 @@ package Ada.Characters.Latin_1 is
    Equals_Sign          : constant Character := '=';  -- Character'Val(61)
    Greater_Than_Sign    : constant Character := '>';  -- Character'Val(62)
    Question             : constant Character := '?';  -- Character'Val(63)
-
    Commercial_At        : constant Character := '@';  -- Character'Val(64)
 
    --  Letters 'A' through 'Z' are at positions 65 through 90

@@ -1,40 +1,73 @@
 /* { dg-require-effective-target vect_int } */
 
+#include <stdlib.h>
 #include <stdarg.h>
 #include "tree-vect.h"
 
-#define N 16
+#define N 9
 
-int
-main1 (void)
-{
+static int a[N] = {1,2,3,4,5,6,7,8,9};
+static int b[N] = {2,3,4,5,6,7,8,9,0};
+
+__attribute__ ((noinline))
+int main1 () {
   int i;
-  short sb[N] = {0,3,6,9,12,15,18,21,24,27,30,33,36,39,42,45};
-  int ia[N];
+  int *p, *q, *p1, *q1;
+  p = (unsigned int *) malloc (sizeof (unsigned int) * N);
+  q = (unsigned int *) malloc (sizeof (unsigned int) * N);
 
-  /* Type cast.  */
+  p1 = p; q1 = q;
+
+  /* Vectorizable, before pointer plus we would get a redundant cast
+     (caused by pointer arithmetics), alias analysis fails to distinguish
+     between the pointers.  */
   for (i = 0; i < N; i++)
     {
-      ia[i] = (int) sb[i];
+      *(q + i) = a[i];
+      *(p + i) = b[i];
     }
 
-
-  /* Check results.  */
+  /* check results: */
   for (i = 0; i < N; i++)
     {
-      if (ia[i] != (int) sb[i])
-	abort();
+       if (*q != a[i] || *p != b[i])
+         abort();
+       q++; 
+       p++;
+    }
+  
+  q = q1;
+  p = p1;
+  /* Vectorizable.  */ 
+  for (i = 0; i < N; i++)
+    {
+      *q = b[i];
+      *p = a[i];
+      q++;
+      p++;
     }
 
-  return 0;
+  q = q1;
+  p = p1;
+  /* check results: */
+  for (i = 0; i < N; i++)
+    {
+       if (*q != b[i] || *p != a[i])
+         abort();
+       q++;
+       p++;
+    }
+
+  return 0; 
 }
 
 int main (void)
-{
+{ 
   check_vect ();
+
   return main1 ();
 }
 
-/* { dg-final { scan-tree-dump-times "vectorized 0 loops" 1 "vect" } } */ 
+/* { dg-final { scan-tree-dump-times "vectorized 2 loops" 1 "vect" } } */
 /* { dg-final { cleanup-tree-dump "vect" } } */
 

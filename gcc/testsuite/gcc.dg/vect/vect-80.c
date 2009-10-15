@@ -13,7 +13,7 @@ float fc[N] __attribute__ ((__aligned__(16))) = {0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 7
    the expression that represents the first location accessed - is
    more involved than just an ssa_name.  */
 
-int
+__attribute__ ((noinline)) int
 main1 (float * __restrict__ pa, float * __restrict__ pb, float *__restrict__ pc)
 {
   int i;
@@ -48,7 +48,9 @@ int main (void)
    two loads to be aligned).  */
 
 /* { dg-final { scan-tree-dump-times "vectorized 1 loops" 1 "vect" } } */
-/* { dg-final { scan-tree-dump-times "Vectorizing an unaligned access" 2 "vect" { xfail vect_no_align } } } */
-/* { dg-final { scan-tree-dump-times "Alignment of access forced using peeling" 1 "vect" { xfail vect_no_align } } } */
-/* { dg-final { scan-tree-dump-times "Alignment of access forced using versioning." 3 "vect" { target vect_no_align } } } */
+/* Uncomment when this testcase gets vectorized again:
+ dg-final { scan-tree-dump-times "Vectorizing an unaligned access" 2 "vect" { xfail vect_no_align } } 
+ dg-final { scan-tree-dump-times "Alignment of access forced using peeling" 1 "vect" { xfail vect_no_align } } 
+ dg-final { scan-tree-dump-times "Alignment of access forced using versioning." 3 "vect" { target vect_no_align } } 
+*/
 /* { dg-final { cleanup-tree-dump "vect" } } */

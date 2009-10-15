@@ -46,13 +46,20 @@ DIST_COMMON = README $(am__configure_deps) $(srcdir)/../config.guess \
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/../config/enable.m4 \
+	$(top_srcdir)/../config/futex.m4 \
+	$(top_srcdir)/../config/iconv.m4 \
 	$(top_srcdir)/../config/lead-dot.m4 \
+	$(top_srcdir)/../config/lib-ld.m4 \
+	$(top_srcdir)/../config/lib-link.m4 \
+	$(top_srcdir)/../config/lib-prefix.m4 \
 	$(top_srcdir)/../config/multi.m4 \
 	$(top_srcdir)/../config/no-executables.m4 \
 	$(top_srcdir)/../config/unwind_ipinfo.m4 \
-	$(top_srcdir)/../libtool.m4 $(top_srcdir)/crossconfig.m4 \
-	$(top_srcdir)/linkage.m4 $(top_srcdir)/acinclude.m4 \
-	$(top_srcdir)/../config/tls.m4 $(top_srcdir)/configure.ac
+	$(top_srcdir)/../libtool.m4 $(top_srcdir)/../ltoptions.m4 \
+	$(top_srcdir)/../ltsugar.m4 $(top_srcdir)/../ltversion.m4 \
+	$(top_srcdir)/crossconfig.m4 $(top_srcdir)/linkage.m4 \
+	$(top_srcdir)/acinclude.m4 $(top_srcdir)/../config/tls.m4 \
+	$(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
@@ -77,7 +84,7 @@ RECURSIVE_TARGETS = all-recursive check-recursive dvi-recursive \
 	uninstall-recursive
 ETAGS = etags
 CTAGS = ctags
-DIST_SUBDIRS = include libsupc++ libmath src po testsuite
+DIST_SUBDIRS = include libsupc++ libmath doc src po testsuite
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 distdir = $(PACKAGE)-$(VERSION)
 top_distdir = $(distdir)
@@ -97,6 +104,7 @@ AMTAR = @AMTAR@
 AR = @AR@
 AS = @AS@
 ATOMICITY_SRCDIR = @ATOMICITY_SRCDIR@
+ATOMIC_FLAGS = @ATOMIC_FLAGS@
 ATOMIC_WORD_SRCDIR = @ATOMIC_WORD_SRCDIR@
 AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
@@ -129,10 +137,13 @@ CYGPATH_W = @CYGPATH_W@
 C_INCLUDE_DIR = @C_INCLUDE_DIR@
 DEBUG_FLAGS = @DEBUG_FLAGS@
 DEFS = @DEFS@
+DUMPBIN = @DUMPBIN@
 ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
 EGREP = @EGREP@
+ENABLE_PARALLEL_FALSE = @ENABLE_PARALLEL_FALSE@
+ENABLE_PARALLEL_TRUE = @ENABLE_PARALLEL_TRUE@
 ENABLE_SYMVERS_DARWIN_FALSE = @ENABLE_SYMVERS_DARWIN_FALSE@
 ENABLE_SYMVERS_DARWIN_TRUE = @ENABLE_SYMVERS_DARWIN_TRUE@
 ENABLE_SYMVERS_FALSE = @ENABLE_SYMVERS_FALSE@
@@ -143,8 +154,10 @@ ENABLE_SYMVERS_GNU_TRUE = @ENABLE_SYMVERS_GNU_TRUE@
 ENABLE_SYMVERS_TRUE = @ENABLE_SYMVERS_TRUE@
 ENABLE_VISIBILITY_FALSE = @ENABLE_VISIBILITY_FALSE@
 ENABLE_VISIBILITY_TRUE = @ENABLE_VISIBILITY_TRUE@
+ERROR_CONSTANTS_SRCDIR = @ERROR_CONSTANTS_SRCDIR@
 EXEEXT = @EXEEXT@
 EXTRA_CXX_FLAGS = @EXTRA_CXX_FLAGS@
+FGREP = @FGREP@
 GLIBCXX_BUILD_DEBUG_FALSE = @GLIBCXX_BUILD_DEBUG_FALSE@
 GLIBCXX_BUILD_DEBUG_TRUE = @GLIBCXX_BUILD_DEBUG_TRUE@
 GLIBCXX_BUILD_PCH_FALSE = @GLIBCXX_BUILD_PCH_FALSE@
@@ -152,18 +165,25 @@ GLIBCXX_BUILD_PCH_TRUE = @GLIBCXX_BUILD_PCH_TRUE@
 GLIBCXX_C_HEADERS_COMPATIBILITY_FALSE = @GLIBCXX_C_HEADERS_COMPATIBILITY_FALSE@
 GLIBCXX_C_HEADERS_COMPATIBILITY_TRUE = @GLIBCXX_C_HEADERS_COMPATIBILITY_TRUE@
 GLIBCXX_C_HEADERS_C_FALSE = @GLIBCXX_C_HEADERS_C_FALSE@
+GLIBCXX_C_HEADERS_C_GLOBAL_FALSE = @GLIBCXX_C_HEADERS_C_GLOBAL_FALSE@
+GLIBCXX_C_HEADERS_C_GLOBAL_TRUE = @GLIBCXX_C_HEADERS_C_GLOBAL_TRUE@
 GLIBCXX_C_HEADERS_C_STD_FALSE = @GLIBCXX_C_HEADERS_C_STD_FALSE@
 GLIBCXX_C_HEADERS_C_STD_TRUE = @GLIBCXX_C_HEADERS_C_STD_TRUE@
 GLIBCXX_C_HEADERS_C_TRUE = @GLIBCXX_C_HEADERS_C_TRUE@
+GLIBCXX_C_HEADERS_EXTRA_FALSE = @GLIBCXX_C_HEADERS_EXTRA_FALSE@
+GLIBCXX_C_HEADERS_EXTRA_TRUE = @GLIBCXX_C_HEADERS_EXTRA_TRUE@
 GLIBCXX_HOSTED_FALSE = @GLIBCXX_HOSTED_FALSE@
 GLIBCXX_HOSTED_TRUE = @GLIBCXX_HOSTED_TRUE@
 GLIBCXX_INCLUDES = @GLIBCXX_INCLUDES@
 GLIBCXX_LDBL_COMPAT_FALSE = @GLIBCXX_LDBL_COMPAT_FALSE@
 GLIBCXX_LDBL_COMPAT_TRUE = @GLIBCXX_LDBL_COMPAT_TRUE@
+GREP = @GREP@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
+LD = @LD@
+LDFLAGS = @LDFLAGS@
 LIBICONV = @LIBICONV@
 LIBMATHOBJS = @LIBMATHOBJS@
 LIBOBJS = @LIBOBJS@
@@ -171,11 +191,13 @@ LIBS = @LIBS@
 LIBSUPCXX_PICFLAGS = @LIBSUPCXX_PICFLAGS@
 LIBTOOL = @LIBTOOL@
 LN_S = @LN_S@
+LTLIBICONV = @LTLIBICONV@
 LTLIBOBJS = @LTLIBOBJS@
 MAINT = @MAINT@
 MAINTAINER_MODE_FALSE = @MAINTAINER_MODE_FALSE@
 MAINTAINER_MODE_TRUE = @MAINTAINER_MODE_TRUE@
 MAKEINFO = @MAKEINFO@
+NM = @NM@
 OBJEXT = @OBJEXT@
 OPTIMIZE_CXXFLAGS = @OPTIMIZE_CXXFLAGS@
 OPT_LDFLAGS = @OPT_LDFLAGS@
@@ -190,6 +212,7 @@ PATH_SEPARATOR = @PATH_SEPARATOR@
 RANLIB = @RANLIB@
 SECTION_FLAGS = @SECTION_FLAGS@
 SECTION_LDFLAGS = @SECTION_LDFLAGS@
+SED = @SED@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 STRIP = @STRIP@
@@ -203,6 +226,7 @@ ac_ct_AR = @ac_ct_AR@
 ac_ct_AS = @ac_ct_AS@
 ac_ct_CC = @ac_ct_CC@
 ac_ct_CXX = @ac_ct_CXX@
+ac_ct_DUMPBIN = @ac_ct_DUMPBIN@
 ac_ct_RANLIB = @ac_ct_RANLIB@
 ac_ct_STRIP = @ac_ct_STRIP@
 am__leading_dot = @am__leading_dot@
@@ -243,6 +267,7 @@ libdir = @libdir@
 libexecdir = @libexecdir@
 libtool_VERSION = @libtool_VERSION@
 localstatedir = @localstatedir@
+lt_ECHO = @lt_ECHO@
 mandir = @mandir@
 mkdir_p = @mkdir_p@
 multi_basedir = @multi_basedir@
@@ -280,7 +305,7 @@ WARN_CXXFLAGS = \
 
 # -I/-D flags to pass when compiling.
 AM_CPPFLAGS = $(GLIBCXX_INCLUDES)
-@GLIBCXX_HOSTED_TRUE@hosted_source = libmath src po testsuite
+@GLIBCXX_HOSTED_TRUE@hosted_source = libmath doc src po testsuite
 SUBDIRS = include libsupc++ $(hosted_source)
 ACLOCAL_AMFLAGS = -I . -I .. -I ../config
 
@@ -759,42 +784,20 @@ uninstall-info: uninstall-info-recursive
 	uninstall uninstall-am uninstall-info-am
 
 
-# These rules are messy, but are hella worth it.
-doxygen:
-	-(srcdir=`cd ${top_srcdir}; ${PWD_COMMAND}`; \
-	  builddir=`${PWD_COMMAND}`; \
-	  ${SHELL} ${srcdir}/docs/doxygen/run_doxygen \
-	            --host_alias=${host_alias} \
-	            --mode=user $${srcdir} $${builddir})
-
-doxygen-maint:
-	-(srcdir=`cd ${top_srcdir}; ${PWD_COMMAND}`; \
-	  builddir=`${PWD_COMMAND}`; \
-	  ${SHELL} ${srcdir}/docs/doxygen/run_doxygen \
-	            --host_alias=${host_alias} \
-	            --mode=maint $${srcdir} $${builddir})
-
-doxygen-man:
-	-(srcdir=`cd ${top_srcdir}; ${PWD_COMMAND}`; \
-	  builddir=`${PWD_COMMAND}`; \
-	  ${SHELL} ${srcdir}/docs/doxygen/run_doxygen \
-	            --host_alias=${host_alias} \
-	            --mode=man $${srcdir} $${builddir})
-
-.PHONY: doxygen doxygen-maint doxygen-man
-
 # Handy forwarding targets.
 check-%:
 	cd testsuite && $(MAKE) $@
+
+doc-%:
+	cd doc && $(MAKE) $@
 
 # All the machinations with string instantiations messes up the
 # automake-generated TAGS rule. Make a simple one here.
 TAGS: tags-recursive $(LISP)
 
-# Installation of distribution html documentation not yet supported
-# TODO: Write custom install-html rule.
-.PHONY: install-html
+.PHONY: install-html install-pdf
 install-html:
+install-pdf:
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:

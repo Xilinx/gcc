@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2006, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -42,10 +42,6 @@ with Targparm; use Targparm;
 with Uintp;    use Uintp;
 
 package body Erroutc is
-
-   -----------------------
-   -- Local Subprograms --
-   -----------------------
 
    ---------------
    -- Add_Class --
@@ -370,7 +366,6 @@ package body Erroutc is
       while T /= No_Error_Msg
         and then Errors.Table (T).Line = Errors.Table (E).Line
         and then Errors.Table (T).Sfile = Errors.Table (E).Sfile
-
       loop
          Write_Str ("        >>> ");
          Output_Msg_Text (T);
@@ -437,18 +432,106 @@ package body Erroutc is
    ---------------------
 
    procedure Output_Msg_Text (E : Error_Msg_Id) is
+      Offs : constant Nat := Column - 1;
+      --  Offset to start of message, used for continuations
+
+      Max : Integer;
+      --  Maximum characters to output on next line
+
+      Length : Nat;
+      --  Maximum total length of lines
+
    begin
+      if Error_Msg_Line_Length = 0 then
+         Length := Nat'Last;
+      else
+         Length := Error_Msg_Line_Length;
+      end if;
+
+      Max := Integer (Length - Column + 1);
+
       if Errors.Table (E).Warn then
          Write_Str ("warning: ");
+         Max := Max - 9;
 
       elsif Errors.Table (E).Style then
          null;
 
       elsif Opt.Unique_Error_Tag then
          Write_Str ("error: ");
+         Max := Max - 7;
       end if;
 
-      Write_Str (Errors.Table (E).Text.all);
+      --  Here we have to split the message up into multiple lines
+
+      declare
+         Txt   : constant String_Ptr := Errors.Table (E).Text;
+         Len   : constant Natural    := Txt'Length;
+         Ptr   : Natural;
+         Split : Natural;
+         Start : Natural;
+
+      begin
+         Ptr := 1;
+         loop
+            --  Make sure we do not have ludicrously small line
+
+            Max := Integer'Max (Max, 20);
+
+            --  If remaining text fits, output it respecting LF and we are done
+
+            if Len - Ptr < Max then
+               for J in Ptr .. Len loop
+                  if Txt (J) = ASCII.LF then
+                     Write_Eol;
+                     Write_Spaces (Offs);
+                  else
+                     Write_Char (Txt (J));
+                  end if;
+               end loop;
+
+               return;
+
+            --  Line does not fit
+
+            else
+               Start := Ptr;
+
+               --  First scan forward looing for a hard end of line
+
+               for Scan in Ptr .. Ptr + Max - 1 loop
+                  if Txt (Scan) = ASCII.LF then
+                     Split := Scan - 1;
+                     Ptr := Scan + 1;
+                     goto Continue;
+                  end if;
+               end loop;
+
+               --  Otherwise scan backwards looking for a space
+
+               for Scan in reverse Ptr .. Ptr + Max - 1 loop
+                  if Txt (Scan) = ' ' then
+                     Split := Scan - 1;
+                     Ptr := Scan + 1;
+                     goto Continue;
+                  end if;
+               end loop;
+
+               --  If we fall through, no space, so split line arbitrarily
+
+               Split := Ptr + Max - 1;
+               Ptr := Split + 1;
+            end if;
+
+         <<Continue>>
+            if Start <= Split then
+               Write_Line (Txt (Start .. Split));
+               Write_Spaces (Offs);
+            end if;
+
+            Max := Integer (Length - Column + 1);
+         end loop;
+      end;
    end Output_Msg_Text;
 
    --------------------
@@ -590,32 +673,32 @@ package body Erroutc is
 
    procedure Set_Msg_Insertion_File_Name is
    begin
-      if Error_Msg_Name_1 = No_Name then
+      if Error_Msg_File_1 = No_File then
          null;
 
-      elsif Error_Msg_Name_1 = Error_Name then
+      elsif Error_Msg_File_1 = Error_File_Name then
          Set_Msg_Blank;
          Set_Msg_Str ("<error>");
 
       else
          Set_Msg_Blank;
-         Get_Name_String (Error_Msg_Name_1);
+         Get_Name_String (Error_Msg_File_1);
          Set_Msg_Quote;
          Set_Msg_Name_Buffer;
          Set_Msg_Quote;
       end if;
 
-      --  The following assignments ensure that the second and third percent
-      --  insertion characters will correspond to the Error_Msg_Name_2 and
-      --  Error_Msg_Name_3 as required. We suppress possible validity checks in
-      --  case operating in -gnatVa mode, and Error_Msg_Name_2/3 is not needed
-      --  and has not been set.
+      --  The following assignments ensure that the second and third {
+      --  insertion characters will correspond to the Error_Msg_File_2 and
+      --  Error_Msg_File_3 values and We suppress possible validity checks in
+      --  case operating in -gnatVa mode, and Error_Msg_File_2 or
+      --  Error_Msg_File_3 is not needed and has not been set.
 
       declare
          pragma Suppress (Range_Check);
       begin
-         Error_Msg_Name_1 := Error_Msg_Name_2;
-         Error_Msg_Name_2 := Error_Msg_Name_3;
+         Error_Msg_File_1 := Error_Msg_File_2;
+         Error_Msg_File_2 := Error_Msg_File_3;
       end;
    end Set_Msg_Insertion_File_Name;
 
@@ -774,6 +857,41 @@ package body Erroutc is
       end;
    end Set_Msg_Insertion_Name;
 
+   ------------------------------------
+   -- Set_Msg_Insertion_Name_Literal --
+   ------------------------------------
+
+   procedure Set_Msg_Insertion_Name_Literal is
+   begin
+      if Error_Msg_Name_1 = No_Name then
+         null;
+
+      elsif Error_Msg_Name_1 = Error_Name then
+         Set_Msg_Blank;
+         Set_Msg_Str ("<error>");
+
+      else
+         Set_Msg_Blank;
+         Get_Name_String (Error_Msg_Name_1);
+         Set_Msg_Quote;
+         Set_Msg_Name_Buffer;
+         Set_Msg_Quote;
+      end if;
+
+      --  The following assignments ensure that the second and third % or %%
+      --  insertion characters will correspond to the Error_Msg_Name_2 and
+      --  Error_Msg_Name_3 values and We suppress possible validity checks in
+      --  case operating in -gnatVa mode, and Error_Msg_Name_2 or
+      --  Error_Msg_Name_3 is not needed and has not been set.
+
+      declare
+         pragma Suppress (Range_Check);
+      begin
+         Error_Msg_Name_1 := Error_Msg_Name_2;
+         Error_Msg_Name_2 := Error_Msg_Name_3;
+      end;
+   end Set_Msg_Insertion_Name_Literal;
+
    -------------------------------------
    -- Set_Msg_Insertion_Reserved_Name --
    -------------------------------------
@@ -806,10 +924,19 @@ package body Erroutc is
          J := J + 1;
       end loop;
 
-      Set_Casing (Keyword_Casing (Flag_Source), All_Lower_Case);
-      Set_Msg_Quote;
-      Set_Msg_Name_Buffer;
-      Set_Msg_Quote;
+      --  Here is where we make the special exception for RM
+
+      if Name_Len = 2 and then Name_Buffer (1 .. 2) = "RM" then
+         Set_Msg_Name_Buffer;
+
+      --  Not RM: case appropriately and add surrounding quotes
+
+      else
+         Set_Casing (Keyword_Casing (Flag_Source), All_Lower_Case);
+         Set_Msg_Quote;
+         Set_Msg_Name_Buffer;
+         Set_Msg_Quote;
+      end if;
    end Set_Msg_Insertion_Reserved_Word;
 
    -------------------------------------
@@ -916,6 +1043,88 @@ package body Erroutc is
       end if;
    end Set_Next_Non_Deleted_Msg;
 
+   ------------------------------
+   -- Set_Specific_Warning_Off --
+   ------------------------------
+
+   procedure Set_Specific_Warning_Off
+     (Loc    : Source_Ptr;
+      Msg    : String;
+      Config : Boolean)
+   is
+      pragma Assert (Msg'First = 1);
+
+      Pattern : String  := Msg;
+      Patlen  : Natural := Msg'Length;
+
+      Star_Start : Boolean;
+      Star_End   : Boolean;
+
+   begin
+      if Pattern (1) = '*' then
+         Star_Start := True;
+         Pattern (1 .. Patlen - 1) := Pattern (2 .. Patlen);
+         Patlen := Patlen - 1;
+      else
+         Star_Start := False;
+      end if;
+
+      if Pattern (Patlen) = '*' then
+         Star_End := True;
+         Patlen := Patlen - 1;
+      else
+         Star_End := False;
+      end if;
+
+      Specific_Warnings.Append
+        ((Start      => Loc,
+          Msg        => new String'(Msg),
+          Pattern    => new String'(Pattern (1 .. Patlen)),
+          Patlen     => Patlen,
+          Stop       => Source_Last (Current_Source_File),
+          Open       => True,
+          Used       => False,
+          Star_Start => Star_Start,
+          Star_End   => Star_End,
+          Config     => Config));
+   end Set_Specific_Warning_Off;
+
+   -----------------------------
+   -- Set_Specific_Warning_On --
+   -----------------------------
+
+   procedure Set_Specific_Warning_On
+     (Loc : Source_Ptr;
+      Msg : String;
+      Err : out Boolean)
+   is
+   begin
+      for J in 1 .. Specific_Warnings.Last loop
+         declare
+            SWE : Specific_Warning_Entry renames Specific_Warnings.Table (J);
+         begin
+            if Msg = SWE.Msg.all
+              and then Loc > SWE.Start
+              and then SWE.Open
+              and then Get_Source_File_Index (SWE.Start) =
+                       Get_Source_File_Index (Loc)
+            then
+               SWE.Stop := Loc;
+               SWE.Open := False;
+               Err := False;
+
+               --  If a config pragma is specifically cancelled, consider
+               --  that it is no longer active as a configuration pragma.
+
+               SWE.Config := False;
+               return;
+            end if;
+         end;
+      end loop;
+
+      Err := True;
+   end Set_Specific_Warning_On;
+
    ---------------------------
    -- Set_Warnings_Mode_Off --
    ---------------------------
@@ -1017,12 +1226,157 @@ package body Erroutc is
       end if;
    end Test_Style_Warning_Serious_Msg;
 
+   --------------------------------
+   -- Validate_Specific_Warnings --
+   --------------------------------
+
+   procedure Validate_Specific_Warnings (Eproc : Error_Msg_Proc) is
+   begin
+      for J in Specific_Warnings.First .. Specific_Warnings.Last loop
+         declare
+            SWE : Specific_Warning_Entry renames Specific_Warnings.Table (J);
+         begin
+            if not SWE.Config then
+               if SWE.Open then
+                  Eproc.all
+                    ("?pragma Warnings Off with no matching Warnings On",
+                     SWE.Start);
+               elsif not SWE.Used then
+                  Eproc.all
+                    ("?no warning suppressed by this pragma", SWE.Start);
+               end if;
+            end if;
+         end;
+      end loop;
+   end Validate_Specific_Warnings;
+
+   -------------------------------------
+   -- Warning_Specifically_Suppressed --
+   -------------------------------------
+
+   function Warning_Specifically_Suppressed
+     (Loc : Source_Ptr;
+      Msg : String_Ptr) return Boolean
+   is
+      pragma Assert (Msg'First = 1);
+
+      Msglen : constant Natural := Msg'Length;
+      Patlen : Natural;
+      --  Length of message
+
+      Pattern : String_Ptr;
+      --  Pattern itself, excluding initial and final *
+
+      Star_Start : Boolean;
+      Star_End   : Boolean;
+      --  Indications of * at start and end of original pattern
+
+      Msgp : Natural;
+      Patp : Natural;
+      --  Scan pointers for message and pattern
+
+   begin
+      --  Loop through specific warning suppression entries
+
+      for J in Specific_Warnings.First .. Specific_Warnings.Last loop
+         declare
+            SWE : Specific_Warning_Entry renames Specific_Warnings.Table (J);
+
+         begin
+            --  Pragma applies if it is a configuration pragma, or if the
+            --  location is in range of a specific non-configuration pragma.
+
+            if SWE.Config
+              or else (SWE.Start <= Loc and then Loc <= SWE.Stop)
+            then
+               --  Check if message matches, dealing with * patterns
+
+               Patlen     := SWE.Patlen;
+               Pattern    := SWE.Pattern;
+               Star_Start := SWE.Star_Start;
+               Star_End   := SWE.Star_End;
+
+               --  Loop through possible starting positions in Msg
+
+               Outer : for M in 1 .. 1 + (Msglen - Patlen) loop
+
+                  --  See if pattern matches string starting at Msg (J)
+
+                  Msgp := M;
+                  Patp := 1;
+                  Inner : loop
+
+                     --  If pattern exhausted, then match if we are at end
+                     --  of message, or if pattern ended with an asterisk,
+                     --  otherwise match failure at this position.
+
+                     if Patp > Patlen then
+                        if Msgp > Msglen or else Star_End then
+                           SWE.Used := True;
+                           return True;
+                        else
+                           exit Inner;
+                        end if;
+
+                        --  Otherwise if message exhausted (and we still have
+                        --  pattern characters left), then match failure here.
+
+                     elsif Msgp > Msglen then
+                        exit Inner;
+                     end if;
+
+                     --  Here we have pattern and message characters left
+
+                     --  Handle "*" pattern match
+
+                     if Patp < Patlen - 1 and then
+                       Pattern (Patp .. Patp + 2) = """*"""
+                     then
+                        Patp := Patp + 3;
+
+                        --  Must have " and at least three chars in msg or we
+                        --  have no match at this position.
+
+                        exit Inner when Msg (Msgp) /= '"';
+                        Msgp := Msgp + 1;
+
+                        --  Scan out " string " in message
+
+                        Scan : loop
+                           exit Inner when Msgp = Msglen;
+                           Msgp := Msgp + 1;
+                           exit Scan when Msg (Msgp - 1) = '"';
+                        end loop Scan;
+
+                     --  If not "*" case, just compare character
+
+                     else
+                        exit Inner when Pattern (Patp) /= Msg (Msgp);
+                        Patp := Patp + 1;
+                        Msgp := Msgp + 1;
+                     end if;
+                  end loop Inner;
+
+                  --  Advance to next position if star at end of original
+                  --  pattern, otherwise no more match attempts are possible
+
+                  exit Outer when not Star_Start;
+               end loop Outer;
+            end if;
+         end;
+      end loop;
+
+      return False;
+   end Warning_Specifically_Suppressed;
+
    -------------------------
    -- Warnings_Suppressed --
    -------------------------
 
    function Warnings_Suppressed (Loc : Source_Ptr) return Boolean is
    begin
+      --  Loop through table of ON/OFF warnings
+
       for J in Warnings.First .. Warnings.Last loop
          if Warnings.Table (J).Start <= Loc
            and then Loc <= Warnings.Table (J).Stop

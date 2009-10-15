@@ -6,18 +6,17 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2006, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -27,26 +26,12 @@
 --  Package containing utility procedures used throughout the expander
 
 with Exp_Tss; use Exp_Tss;
+with Namet;   use Namet;
 with Rtsfind; use Rtsfind;
 with Sinfo;   use Sinfo;
 with Types;   use Types;
 
 package Exp_Util is
-
-   --  An enumeration type used to capture all the possible interface
-   --  kinds and their hierarchical relation. These values are used in
-   --  Find_Implemented_Interface and Implements_Interface.
-
-   type Interface_Kind is (
-     Any_Interface,               --  Any interface
-     Any_Limited_Interface,       --  Only limited interfaces
-     Any_Synchronized_Interface,  --  Only synchronized interfaces
-
-     Iface,                       --  Individual kinds
-     Limited_Interface,
-     Protected_Interface,
-     Synchronized_Interface,
-     Task_Interface);
 
    -----------------------------------------------
    -- Handling of Actions Associated with Nodes --
@@ -191,7 +176,7 @@ package Exp_Util is
    --  Add a new freeze action for the given type. The freeze action is
    --  attached to the freeze node for the type. Actions will be elaborated in
    --  the order in which they are added. Note that the added node is not
-   --  analyzed. The analyze call is found in Sem_Ch13.Expand_N_Freeze_Entity.
+   --  analyzed. The analyze call is found in Exp_Ch13.Expand_N_Freeze_Entity.
 
    procedure Append_Freeze_Actions (T : Entity_Id; L : List_Id);
    --  Adds the given list of freeze actions (declarations or statements) for
@@ -199,7 +184,7 @@ package Exp_Util is
    --  the type. Actions will be elaborated in the order in which they are
    --  added, and the actions within the list will be elaborated in list order.
    --  Note that the added nodes are not analyzed. The analyze call is found in
-   --  Sem_Ch13.Expand_N_Freeze_Entity.
+   --  Exp_Ch13.Expand_N_Freeze_Entity.
 
    function Build_Runtime_Call (Loc : Source_Ptr; RE : RE_Id) return Node_Id;
    --  Build an N_Procedure_Call_Statement calling the given runtime entity.
@@ -208,10 +193,10 @@ package Exp_Util is
    --  analyzed on return, the caller is responsible for analyzing it.
 
    function Build_Task_Image_Decls
-     (Loc    : Source_Ptr;
-      Id_Ref : Node_Id;
-      A_Type : Entity_Id)
-      return   List_Id;
+     (Loc          : Source_Ptr;
+      Id_Ref       : Node_Id;
+      A_Type       : Entity_Id;
+      In_Init_Proc : Boolean := False) return List_Id;
    --  Build declaration for a variable that holds an identifying string to be
    --  used as a task name. Id_Ref is an identifier if the task is a variable,
    --  and a selected or indexed component if the task is component of an
@@ -220,6 +205,11 @@ package Exp_Util is
    --  index values. For composite types, the result includes two declarations:
    --  one for a generated function that computes the image without using
    --  concatenation, and one for the variable that holds the result.
+   --  If In_Init_Proc is true, the call is part of the initialization of
+   --  a component of a composite type, and the enclosing initialization
+   --  procedure must be flagged as using the secondary stack. If In_Init_Proc
+   --  is false, the call is for a stand-alone object, and the generated
+   --  function itself must do its own cleanups.
 
    function Component_May_Be_Bit_Aligned (Comp : Entity_Id) return Boolean;
    --  This function is in charge of detecting record components that may cause
@@ -348,25 +338,16 @@ package Exp_Util is
 
    function Find_Interface_ADT
      (T     : Entity_Id;
-      Iface : Entity_Id) return Entity_Id;
+      Iface : Entity_Id) return Elmt_Id;
    --  Ada 2005 (AI-251): Given a type T implementing the interface Iface,
-   --  return the Access_Disp_Table value of the interface.
+   --  return the element of Access_Disp_Table containing the tag of the
+   --  interface.
 
    function Find_Interface_Tag
      (T     : Entity_Id;
       Iface : Entity_Id) return Entity_Id;
    --  Ada 2005 (AI-251): Given a type T implementing the interface Iface,
    --  return the record component containing the tag of Iface.
-
-   function Find_Implemented_Interface
-     (Typ          : Entity_Id;
-      Kind         : Interface_Kind;
-      Check_Parent : Boolean := False) return Entity_Id;
-   --  Ada 2005 (AI-345): Find a designated kind of interface implemented by
-   --  Typ or any parent subtype. Return the first encountered interface that
-   --  correspond to the selected class. Return Empty if no such interface is
-   --  found. Use Check_Parent to climb a potential derivation chain and
-   --  examine the parent subtypes for any implementation.
 
    function Find_Prim_Op (T : Entity_Id; Name : Name_Id) return Entity_Id;
    --  Find the first primitive operation of type T whose name is 'Name'.
@@ -407,17 +388,14 @@ package Exp_Util is
    --  on return Cond is set to N_Empty, and Val is set to Empty.
    --
    --  The other case is when Current_Value points to an N_If_Statement or an
-   --  N_Elsif_Part (while statement). Such a setting only occurs if the
-   --  condition of an IF or ELSIF is of the form X op Y, where is the variable
-   --  in question, Y is a compile-time known value, and op is one of the six
-   --  possible relational operators.
-   --
-   --  In this case, Get_Current_Condition digs out the condition, and then
-   --  checks if the condition is known false, known true, or not known at all.
-   --  In the first two cases, Get_Current_Condition will return with Op set to
-   --  the appropriate conditional operator (inverted if the condition is known
-   --  false), and Val set to the constant value. If the condition is not
-   --  known, then Cond and Val are set for the empty case (N_Empty and Empty).
+   --  N_Elsif_Part or a N_Iteration_Scheme node (see description in Einfo for
+   --  exact details). In this case, Get_Current_Condition digs out the
+   --  condition, and then checks if the condition is known false, known true,
+   --  or not known at all. In the first two cases, Get_Current_Condition will
+   --  return with Op set to the appropriate conditional operator (inverted if
+   --  the condition is known false), and Val set to the constant value. If the
+   --  condition is not known, then Op and Val are set for the empty case
+   --  (N_Empty and Empty).
    --
    --  The check for whether the condition is true/false unknown depends
    --  on the case:
@@ -434,6 +412,10 @@ package Exp_Util is
    --  N_Op_Eq), or to determine the result of some other test in other cases
    --  (e.g. no access check required if N_Op_Ne Null).
 
+   function Has_Controlled_Coextensions (Typ : Entity_Id) return Boolean;
+   --  Determine whether a record type has anonymous access discriminants with
+   --  a controlled designated type.
+
    function Homonym_Number (Subp : Entity_Id) return Nat;
    --  Here subp is the entity for a subprogram. This routine returns the
    --  homonym number used to disambiguate overloaded subprograms in the same
@@ -441,14 +423,6 @@ package Exp_Util is
    --  they are unique). The number is the ordinal position on the Homonym
    --  chain, counting only entries in the curren scope. If an entity is not
    --  overloaded, the returned number will be one.
-
-   function Implements_Interface
-     (Typ          : Entity_Id;
-      Kind         : Interface_Kind;
-      Check_Parent : Boolean := False) return Boolean;
-   --  Ada 2005 (AI-345): Determine whether Typ implements a designated kind
-   --  of interface. Use Check_Parent to climb a potential derivation chain
-   --  and examine the parent subtypes for any implementation.
 
    function Inside_Init_Proc return Boolean;
    --  Returns True if current scope is within an init proc
@@ -464,8 +438,12 @@ package Exp_Util is
    --  False otherwise. True for an empty list. It is an error to call this
    --  routine with No_List as the argument.
 
+   function Is_Library_Level_Tagged_Type (Typ : Entity_Id) return Boolean;
+   --  Return True if Typ is a library level tagged type. Currently we use
+   --  this information to build statically allocated dispatch tables.
+
    function Is_Predefined_Dispatching_Operation (E : Entity_Id) return Boolean;
-   --  Ada 2005 (AI-251): Determines if E is a predefined primitive operation.
+   --  Ada 2005 (AI-251): Determines if E is a predefined primitive operation
 
    function Is_Ref_To_Bit_Packed_Array (N : Node_Id) return Boolean;
    --  Determine whether the node P is a reference to a bit packed array, i.e.
@@ -505,14 +483,17 @@ package Exp_Util is
    --  Returns true if type T is not tagged and is a derived type,
    --  or is a private type whose completion is such a type.
 
-   procedure Kill_Dead_Code (N : Node_Id);
-   --  N represents a node for a section of code that is known to be dead. The
-   --  node is deleted, and any exception handler references and warning
-   --  messages relating to this code are removed.
+   procedure Kill_Dead_Code (N : Node_Id; Warn : Boolean := False);
+   --  N represents a node for a section of code that is known to be dead. Any
+   --  exception handler references and warning messages relating to this code
+   --  are removed. If Warn is True, a warning will be output at the start of N
+   --  indicating the deletion of the code. Note that the tree for the deleted
+   --  code is left intact so that e.g. cross-reference data is still valid.
 
-   procedure Kill_Dead_Code (L : List_Id);
+   procedure Kill_Dead_Code (L : List_Id; Warn : Boolean := False);
    --  Like the above procedure, but applies to every element in the given
-   --  list. Each of the entries is removed from the list before killing it.
+   --  list. If Warn is True, a warning will be output at the start of N
+   --  indicating the deletion of the code.
 
    function Known_Non_Negative (Opnd : Node_Id) return Boolean;
    --  Given a node for a subexpression, determines if it represents a value
@@ -548,6 +529,11 @@ package Exp_Util is
    --  caller has to check whether stack checking is actually enabled in order
    --  to guide the expansion (typically of a function call).
 
+   function Non_Limited_Designated_Type (T : Entity_Id) return Entity_Id;
+   --  An anonymous access type may designate a limited view. Check whether
+   --  non-limited view is available during expansion, to examine components
+   --  or other characteristics of the full type.
+
    function OK_To_Do_Constant_Replacement (E : Entity_Id) return Boolean;
    --  This function is used when testing whether or not to replace a reference
    --  to entity E by a known constant value. Such replacement must be done
@@ -559,6 +545,14 @@ package Exp_Util is
    --  also inhibit replacement of Volatile or aliased objects since their
    --  address might be captured in a way we do not detect. A value of True is
    --  returned only if the replacement is safe.
+
+   function Possible_Bit_Aligned_Component (N : Node_Id) return Boolean;
+   --  This function is used in processing the assignment of a record or
+   --  indexed component. The argument N is either the left hand or right
+   --  hand side of an assignment, and this function determines if there
+   --  is a record component reference where the record may be bit aligned
+   --  in a manner that causes trouble for the back end (see description
+   --  of Exp_Util.Component_May_Be_Bit_Aligned for further details).
 
    procedure Remove_Side_Effects
      (Exp          : Node_Id;
@@ -588,6 +582,13 @@ package Exp_Util is
    --  temporary. Note that the node need not be analyzed, and thus the Etype
    --  field may not be set, but in that case it must be the case that the
    --  Subtype_Mark field of the node is set/analyzed.
+
+   procedure Set_Current_Value_Condition (Cnode : Node_Id);
+   --  Cnode is N_If_Statement, N_Elsif_Part, or N_Iteration_Scheme (the latter
+   --  when a WHILE condition is present). This call checks whether Condition
+   --  (Cnode) has embedded expressions of a form that should result in setting
+   --  the Current_Value field of one or more entities, and if so sets these
+   --  fields to point to Cnode.
 
    procedure Set_Elaboration_Flag (N : Node_Id; Spec_Id : Entity_Id);
    --  N is the node for a subprogram or generic body, and Spec_Id is the
@@ -631,7 +632,7 @@ package Exp_Util is
    --  control to escape doing the undefer call.
 
 private
-   pragma Inline (Force_Evaluation);
    pragma Inline (Duplicate_Subexpr);
-
+   pragma Inline (Force_Evaluation);
+   pragma Inline (Is_Library_Level_Tagged_Type);
 end Exp_Util;

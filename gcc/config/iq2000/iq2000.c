@@ -1,5 +1,5 @@
 /* Subroutines used for code generation on Vitesse IQ2000 processors
-   Copyright (C) 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -157,18 +157,18 @@ static section *iq2000_select_rtx_section (enum machine_mode, rtx,
 					   unsigned HOST_WIDE_INT);
 static void iq2000_init_builtins      (void);
 static rtx  iq2000_expand_builtin     (tree, rtx, rtx, enum machine_mode, int);
-static bool iq2000_return_in_memory   (tree, tree);
+static bool iq2000_return_in_memory   (const_tree, const_tree);
 static void iq2000_setup_incoming_varargs (CUMULATIVE_ARGS *,
 					   enum machine_mode, tree, int *,
 					   int);
 static bool iq2000_rtx_costs          (rtx, int, int, int *);
 static int  iq2000_address_cost       (rtx);
 static section *iq2000_select_section (tree, int, unsigned HOST_WIDE_INT);
-static bool iq2000_return_in_memory   (tree, tree);
 static bool iq2000_pass_by_reference  (CUMULATIVE_ARGS *, enum machine_mode,
-				       tree, bool);
+				       const_tree, bool);
 static int  iq2000_arg_partial_bytes  (CUMULATIVE_ARGS *, enum machine_mode,
 				       tree, bool);
+static void iq2000_va_start	      (tree, rtx);
 
 #undef  TARGET_INIT_BUILTINS
 #define TARGET_INIT_BUILTINS 		iq2000_init_builtins
@@ -191,11 +191,11 @@ static int  iq2000_arg_partial_bytes  (CUMULATIVE_ARGS *, enum machine_mode,
 #define TARGET_HAVE_SWITCHABLE_BSS_SECTIONS false
 
 #undef  TARGET_PROMOTE_FUNCTION_ARGS
-#define TARGET_PROMOTE_FUNCTION_ARGS	hook_bool_tree_true
+#define TARGET_PROMOTE_FUNCTION_ARGS	hook_bool_const_tree_true
 #undef  TARGET_PROMOTE_FUNCTION_RETURN
-#define TARGET_PROMOTE_FUNCTION_RETURN	hook_bool_tree_true
+#define TARGET_PROMOTE_FUNCTION_RETURN	hook_bool_const_tree_true
 #undef  TARGET_PROMOTE_PROTOTYPES
-#define TARGET_PROMOTE_PROTOTYPES	hook_bool_tree_true
+#define TARGET_PROMOTE_PROTOTYPES	hook_bool_const_tree_true
 
 #undef  TARGET_RETURN_IN_MEMORY
 #define TARGET_RETURN_IN_MEMORY		iq2000_return_in_memory
@@ -210,6 +210,9 @@ static int  iq2000_arg_partial_bytes  (CUMULATIVE_ARGS *, enum machine_mode,
 #define TARGET_SETUP_INCOMING_VARARGS	iq2000_setup_incoming_varargs
 #undef  TARGET_STRICT_ARGUMENT_NAMING
 #define TARGET_STRICT_ARGUMENT_NAMING	hook_bool_CUMULATIVE_ARGS_true
+
+#undef	TARGET_EXPAND_BUILTIN_VA_START
+#define	TARGET_EXPAND_BUILTIN_VA_START	iq2000_va_start
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 
@@ -1184,7 +1187,7 @@ function_arg_advance (CUMULATIVE_ARGS *cum, enum machine_mode mode, tree type,
    and type TYPE in CUM, or 0 if the argument is to be passed on the stack.  */
 
 struct rtx_def *
-function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode, tree type,
+function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode, const_tree type,
 	      int named)
 {
   rtx ret;
@@ -1202,7 +1205,7 @@ function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode, tree type,
 	       "function_arg( {gp reg found = %d, arg # = %2d, words = %2d}, %4s, ",
 	       cum->gp_reg_found, cum->arg_number, cum->arg_words,
 	       GET_MODE_NAME (mode));
-      fprintf (stderr, "%p", (void *) type);
+      fprintf (stderr, "%p", (const void *) type);
       fprintf (stderr, ", %d ) = ", named);
     }
 
@@ -1358,7 +1361,7 @@ iq2000_arg_partial_bytes (CUMULATIVE_ARGS *cum, enum machine_mode mode,
 
 /* Implement va_start.  */
 
-void
+static void
 iq2000_va_start (tree valist, rtx nextarg)
 {
   int int_arg_words;
@@ -1963,13 +1966,6 @@ iq2000_expand_prologue (void)
 	  PUT_CODE (SET_SRC (pattern), ASHIFTRT);
 
 	  insn = emit_insn (pattern);
-
-	  /* Global life information isn't valid at this point, so we
-	     can't check whether these shifts are actually used.  Mark
-	     them MAYBE_DEAD so that flow2 will remove them, and not
-	     complain about dead code in the prologue.  */
-	  REG_NOTES(insn) = gen_rtx_EXPR_LIST (REG_MAYBE_DEAD, NULL_RTX,
-					       REG_NOTES (insn));
 	}
     }
 
@@ -2118,7 +2114,7 @@ iq2000_can_use_return_insn (void)
   if (! reload_completed)
     return 0;
 
-  if (regs_ever_live[31] || profile_flag)
+  if (df_regs_ever_live_p (31) || profile_flag)
     return 0;
 
   if (cfun->machine->initialized)
@@ -2206,7 +2202,7 @@ iq2000_select_section (tree decl, int reloc ATTRIBUTE_UNUSED,
    FUNC.  */
 
 rtx
-iq2000_function_value (tree valtype, tree func ATTRIBUTE_UNUSED)
+iq2000_function_value (const_tree valtype, const_tree func ATTRIBUTE_UNUSED)
 {
   int reg = GP_RETURN;
   enum machine_mode mode = TYPE_MODE (valtype);
@@ -2223,7 +2219,7 @@ iq2000_function_value (tree valtype, tree func ATTRIBUTE_UNUSED)
 
 static bool
 iq2000_pass_by_reference (CUMULATIVE_ARGS *cum, enum machine_mode mode,
-			  tree type, bool named ATTRIBUTE_UNUSED)
+			  const_tree type, bool named ATTRIBUTE_UNUSED)
 {
   int size;
 
@@ -2435,8 +2431,8 @@ iq2000_output_conditional_branch (rtx insn, rtx * operands, int two_operands_p,
 }
 
 #define def_builtin(NAME, TYPE, CODE)					\
-  lang_hooks.builtin_function ((NAME), (TYPE), (CODE), BUILT_IN_MD,	\
-			       NULL, NULL_TREE)
+  add_builtin_function ((NAME), (TYPE), (CODE), BUILT_IN_MD,	\
+		       NULL, NULL_TREE)
 
 static void
 iq2000_init_builtins (void)
@@ -2568,11 +2564,11 @@ void_ftype_int_int_int
   def_builtin ("__builtin_syscall", void_ftype, IQ2000_BUILTIN_SYSCALL);
 }
 
-/* Builtin for ICODE having ARGCOUNT args in ARGLIST where each arg
+/* Builtin for ICODE having ARGCOUNT args in EXP where each arg
    has an rtx CODE.  */
 
 static rtx
-expand_one_builtin (enum insn_code icode, rtx target, tree arglist,
+expand_one_builtin (enum insn_code icode, rtx target, tree exp,
 		    enum rtx_code *code, int argcount)
 {
   rtx pat;
@@ -2584,8 +2580,7 @@ expand_one_builtin (enum insn_code icode, rtx target, tree arglist,
   mode[0] = insn_data[icode].operand[0].mode;
   for (i = 0; i < argcount; i++)
     {
-      arg[i] = TREE_VALUE (arglist);
-      arglist = TREE_CHAIN (arglist);
+      arg[i] = CALL_EXPR_ARG (exp, i);
       op[i] = expand_expr (arg[i], NULL_RTX, VOIDmode, 0);
       mode[i] = insn_data[icode].operand[i].mode;
       if (code[i] == CONST_INT && GET_CODE (op[i]) != CONST_INT)
@@ -2654,8 +2649,7 @@ iq2000_expand_builtin (tree exp, rtx target, rtx subtarget ATTRIBUTE_UNUSED,
 		       enum machine_mode mode ATTRIBUTE_UNUSED,
 		       int ignore ATTRIBUTE_UNUSED)
 {
-  tree fndecl = TREE_OPERAND (TREE_OPERAND (exp, 0), 0);
-  tree arglist = TREE_OPERAND (exp, 1);
+  tree fndecl = TREE_OPERAND (CALL_EXPR_FN (exp), 0);
   int fcode = DECL_FUNCTION_CODE (fndecl);
   enum rtx_code code [5];
 
@@ -2670,162 +2664,162 @@ iq2000_expand_builtin (tree exp, rtx target, rtx subtarget ATTRIBUTE_UNUSED,
       break;
       
     case IQ2000_BUILTIN_ADO16:
-      return expand_one_builtin (CODE_FOR_ado16, target, arglist, code, 2);
+      return expand_one_builtin (CODE_FOR_ado16, target, exp, code, 2);
 
     case IQ2000_BUILTIN_RAM:
       code[1] = CONST_INT;
       code[2] = CONST_INT;
       code[3] = CONST_INT;
-      return expand_one_builtin (CODE_FOR_ram, target, arglist, code, 4);
+      return expand_one_builtin (CODE_FOR_ram, target, exp, code, 4);
       
     case IQ2000_BUILTIN_CHKHDR:
-      return expand_one_builtin (CODE_FOR_chkhdr, target, arglist, code, 2);
+      return expand_one_builtin (CODE_FOR_chkhdr, target, exp, code, 2);
       
     case IQ2000_BUILTIN_PKRL:
-      return expand_one_builtin (CODE_FOR_pkrl, target, arglist, code, 2);
+      return expand_one_builtin (CODE_FOR_pkrl, target, exp, code, 2);
 
     case IQ2000_BUILTIN_CFC0:
       code[0] = CONST_INT;
-      return expand_one_builtin (CODE_FOR_cfc0, target, arglist, code, 1);
+      return expand_one_builtin (CODE_FOR_cfc0, target, exp, code, 1);
 
     case IQ2000_BUILTIN_CFC1:
       code[0] = CONST_INT;
-      return expand_one_builtin (CODE_FOR_cfc1, target, arglist, code, 1);
+      return expand_one_builtin (CODE_FOR_cfc1, target, exp, code, 1);
 
     case IQ2000_BUILTIN_CFC2:
       code[0] = CONST_INT;
-      return expand_one_builtin (CODE_FOR_cfc2, target, arglist, code, 1);
+      return expand_one_builtin (CODE_FOR_cfc2, target, exp, code, 1);
 
     case IQ2000_BUILTIN_CFC3:
       code[0] = CONST_INT;
-      return expand_one_builtin (CODE_FOR_cfc3, target, arglist, code, 1);
+      return expand_one_builtin (CODE_FOR_cfc3, target, exp, code, 1);
 
     case IQ2000_BUILTIN_CTC0:
       code[1] = CONST_INT;
-      return expand_one_builtin (CODE_FOR_ctc0, target, arglist, code, 2);
+      return expand_one_builtin (CODE_FOR_ctc0, target, exp, code, 2);
 
     case IQ2000_BUILTIN_CTC1:
       code[1] = CONST_INT;
-      return expand_one_builtin (CODE_FOR_ctc1, target, arglist, code, 2);
+      return expand_one_builtin (CODE_FOR_ctc1, target, exp, code, 2);
 
     case IQ2000_BUILTIN_CTC2:
       code[1] = CONST_INT;
-      return expand_one_builtin (CODE_FOR_ctc2, target, arglist, code, 2);
+      return expand_one_builtin (CODE_FOR_ctc2, target, exp, code, 2);
 
     case IQ2000_BUILTIN_CTC3:
       code[1] = CONST_INT;
-      return expand_one_builtin (CODE_FOR_ctc3, target, arglist, code, 2);
+      return expand_one_builtin (CODE_FOR_ctc3, target, exp, code, 2);
 
     case IQ2000_BUILTIN_MFC0:
       code[0] = CONST_INT;
-      return expand_one_builtin (CODE_FOR_mfc0, target, arglist, code, 1);
+      return expand_one_builtin (CODE_FOR_mfc0, target, exp, code, 1);
 
     case IQ2000_BUILTIN_MFC1:
       code[0] = CONST_INT;
-      return expand_one_builtin (CODE_FOR_mfc1, target, arglist, code, 1);
+      return expand_one_builtin (CODE_FOR_mfc1, target, exp, code, 1);
 
     case IQ2000_BUILTIN_MFC2:
       code[0] = CONST_INT;
-      return expand_one_builtin (CODE_FOR_mfc2, target, arglist, code, 1);
+      return expand_one_builtin (CODE_FOR_mfc2, target, exp, code, 1);
 
     case IQ2000_BUILTIN_MFC3:
       code[0] = CONST_INT;
-      return expand_one_builtin (CODE_FOR_mfc3, target, arglist, code, 1);
+      return expand_one_builtin (CODE_FOR_mfc3, target, exp, code, 1);
 
     case IQ2000_BUILTIN_MTC0:
       code[1] = CONST_INT;
-      return expand_one_builtin (CODE_FOR_mtc0, target, arglist, code, 2);
+      return expand_one_builtin (CODE_FOR_mtc0, target, exp, code, 2);
 
     case IQ2000_BUILTIN_MTC1:
       code[1] = CONST_INT;
-      return expand_one_builtin (CODE_FOR_mtc1, target, arglist, code, 2);
+      return expand_one_builtin (CODE_FOR_mtc1, target, exp, code, 2);
 
     case IQ2000_BUILTIN_MTC2:
       code[1] = CONST_INT;
-      return expand_one_builtin (CODE_FOR_mtc2, target, arglist, code, 2);
+      return expand_one_builtin (CODE_FOR_mtc2, target, exp, code, 2);
 
     case IQ2000_BUILTIN_MTC3:
       code[1] = CONST_INT;
-      return expand_one_builtin (CODE_FOR_mtc3, target, arglist, code, 2);
+      return expand_one_builtin (CODE_FOR_mtc3, target, exp, code, 2);
 
     case IQ2000_BUILTIN_LUR:
-      return expand_one_builtin (CODE_FOR_lur, target, arglist, code, 2);
+      return expand_one_builtin (CODE_FOR_lur, target, exp, code, 2);
 
     case IQ2000_BUILTIN_RB:
-      return expand_one_builtin (CODE_FOR_rb, target, arglist, code, 2);
+      return expand_one_builtin (CODE_FOR_rb, target, exp, code, 2);
 
     case IQ2000_BUILTIN_RX:
-      return expand_one_builtin (CODE_FOR_rx, target, arglist, code, 2);
+      return expand_one_builtin (CODE_FOR_rx, target, exp, code, 2);
 
     case IQ2000_BUILTIN_SRRD:
-      return expand_one_builtin (CODE_FOR_srrd, target, arglist, code, 1);
+      return expand_one_builtin (CODE_FOR_srrd, target, exp, code, 1);
 
     case IQ2000_BUILTIN_SRWR:
-      return expand_one_builtin (CODE_FOR_srwr, target, arglist, code, 2);
+      return expand_one_builtin (CODE_FOR_srwr, target, exp, code, 2);
 
     case IQ2000_BUILTIN_WB:
-      return expand_one_builtin (CODE_FOR_wb, target, arglist, code, 2);
+      return expand_one_builtin (CODE_FOR_wb, target, exp, code, 2);
 
     case IQ2000_BUILTIN_WX:
-      return expand_one_builtin (CODE_FOR_wx, target, arglist, code, 2);
+      return expand_one_builtin (CODE_FOR_wx, target, exp, code, 2);
 
     case IQ2000_BUILTIN_LUC32L:
-      return expand_one_builtin (CODE_FOR_luc32l, target, arglist, code, 2);
+      return expand_one_builtin (CODE_FOR_luc32l, target, exp, code, 2);
 
     case IQ2000_BUILTIN_LUC64:
-      return expand_one_builtin (CODE_FOR_luc64, target, arglist, code, 2);
+      return expand_one_builtin (CODE_FOR_luc64, target, exp, code, 2);
 
     case IQ2000_BUILTIN_LUC64L:
-      return expand_one_builtin (CODE_FOR_luc64l, target, arglist, code, 2);
+      return expand_one_builtin (CODE_FOR_luc64l, target, exp, code, 2);
 
     case IQ2000_BUILTIN_LUK:
-      return expand_one_builtin (CODE_FOR_luk, target, arglist, code, 2);
+      return expand_one_builtin (CODE_FOR_luk, target, exp, code, 2);
 
     case IQ2000_BUILTIN_LULCK:
-      return expand_one_builtin (CODE_FOR_lulck, target, arglist, code, 1);
+      return expand_one_builtin (CODE_FOR_lulck, target, exp, code, 1);
 
     case IQ2000_BUILTIN_LUM32:
-      return expand_one_builtin (CODE_FOR_lum32, target, arglist, code, 2);
+      return expand_one_builtin (CODE_FOR_lum32, target, exp, code, 2);
 
     case IQ2000_BUILTIN_LUM32L:
-      return expand_one_builtin (CODE_FOR_lum32l, target, arglist, code, 2);
+      return expand_one_builtin (CODE_FOR_lum32l, target, exp, code, 2);
 
     case IQ2000_BUILTIN_LUM64:
-      return expand_one_builtin (CODE_FOR_lum64, target, arglist, code, 2);
+      return expand_one_builtin (CODE_FOR_lum64, target, exp, code, 2);
 
     case IQ2000_BUILTIN_LUM64L:
-      return expand_one_builtin (CODE_FOR_lum64l, target, arglist, code, 2);
+      return expand_one_builtin (CODE_FOR_lum64l, target, exp, code, 2);
 
     case IQ2000_BUILTIN_LURL:
-      return expand_one_builtin (CODE_FOR_lurl, target, arglist, code, 2);
+      return expand_one_builtin (CODE_FOR_lurl, target, exp, code, 2);
 
     case IQ2000_BUILTIN_MRGB:
       code[2] = CONST_INT;
-      return expand_one_builtin (CODE_FOR_mrgb, target, arglist, code, 3);
+      return expand_one_builtin (CODE_FOR_mrgb, target, exp, code, 3);
 
     case IQ2000_BUILTIN_SRRDL:
-      return expand_one_builtin (CODE_FOR_srrdl, target, arglist, code, 1);
+      return expand_one_builtin (CODE_FOR_srrdl, target, exp, code, 1);
 
     case IQ2000_BUILTIN_SRULCK:
-      return expand_one_builtin (CODE_FOR_srulck, target, arglist, code, 1);
+      return expand_one_builtin (CODE_FOR_srulck, target, exp, code, 1);
 
     case IQ2000_BUILTIN_SRWRU:
-      return expand_one_builtin (CODE_FOR_srwru, target, arglist, code, 2);
+      return expand_one_builtin (CODE_FOR_srwru, target, exp, code, 2);
 
     case IQ2000_BUILTIN_TRAPQFL:
-      return expand_one_builtin (CODE_FOR_trapqfl, target, arglist, code, 0);
+      return expand_one_builtin (CODE_FOR_trapqfl, target, exp, code, 0);
 
     case IQ2000_BUILTIN_TRAPQNE:
-      return expand_one_builtin (CODE_FOR_trapqne, target, arglist, code, 0);
+      return expand_one_builtin (CODE_FOR_trapqne, target, exp, code, 0);
 
     case IQ2000_BUILTIN_TRAPREL:
-      return expand_one_builtin (CODE_FOR_traprel, target, arglist, code, 1);
+      return expand_one_builtin (CODE_FOR_traprel, target, exp, code, 1);
 
     case IQ2000_BUILTIN_WBU:
-      return expand_one_builtin (CODE_FOR_wbu, target, arglist, code, 3);
+      return expand_one_builtin (CODE_FOR_wbu, target, exp, code, 3);
 
     case IQ2000_BUILTIN_SYSCALL:
-      return expand_one_builtin (CODE_FOR_syscall, target, arglist, code, 0);
+      return expand_one_builtin (CODE_FOR_syscall, target, exp, code, 0);
     }
   
   return NULL_RTX;
@@ -2834,7 +2828,7 @@ iq2000_expand_builtin (tree exp, rtx target, rtx subtarget ATTRIBUTE_UNUSED,
 /* Worker function for TARGET_RETURN_IN_MEMORY.  */
 
 static bool
-iq2000_return_in_memory (tree type, tree fntype ATTRIBUTE_UNUSED)
+iq2000_return_in_memory (const_tree type, const_tree fntype ATTRIBUTE_UNUSED)
 {
   return ((int_size_in_bytes (type) > (2 * UNITS_PER_WORD))
 	  || (int_size_in_bytes (type) == -1));

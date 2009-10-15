@@ -7,7 +7,7 @@
 --                                  S p e c                                 --
 --                                                                          --
 --             Copyright (C) 1991-1994, Florida State University            --
---             Copyright (C) 1995-2006, Free Software Foundation, Inc.      --
+--          Copyright (C) 1995-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -41,7 +41,7 @@
 --  Preelaborate. This package is designed to be a bottom-level (leaf) package.
 
 with Interfaces.C;
-with Unchecked_Conversion;
+with Ada.Unchecked_Conversion;
 
 package System.OS_Interface is
    pragma Preelaborate;
@@ -133,6 +133,7 @@ package System.OS_Interface is
    type sigset_t is private;
 
    type isr_address is access procedure (sig : int);
+   pragma Convention (C, isr_address);
 
    function intr_attach (sig : int; handler : isr_address) return long;
 
@@ -238,9 +239,10 @@ package System.OS_Interface is
 
    type Thread_Body is access
      function (arg : System.Address) return System.Address;
+   pragma Convention (C, Thread_Body);
 
    function Thread_Body_Access is new
-     Unchecked_Conversion (System.Address, Thread_Body);
+     Ada.Unchecked_Conversion (System.Address, Thread_Body);
 
    type pthread_t           is private;
    subtype Thread_Id        is pthread_t;
@@ -291,9 +293,8 @@ package System.OS_Interface is
      (how  : int;
       set  : access sigset_t;
       oset : access sigset_t) return int;
-   --  DCE THREADS does not have pthread_sigmask. Instead, it uses
-   --  sigprocmask to do the signal handling when the thread library is
-   --  sucked in.
+   --  DCE THREADS does not have pthread_sigmask. Instead, it uses sigprocmask
+   --  to do the signal handling when the thread library is sucked in.
    pragma Import (C, pthread_sigmask, "sigprocmask");
 
    --------------------------
@@ -302,7 +303,7 @@ package System.OS_Interface is
 
    function pthread_mutexattr_init
      (attr : access pthread_mutexattr_t) return int;
-   --  DCE_THREADS has a nonstandard pthread_mutexattr_init.
+   --  DCE_THREADS has a nonstandard pthread_mutexattr_init
 
    function pthread_mutexattr_destroy
      (attr : access pthread_mutexattr_t) return int;
@@ -427,6 +428,7 @@ package System.OS_Interface is
    --  DCE_THREADS has a nonstandard pthread_getspecific
 
    type destructor_pointer is access procedure (arg : System.Address);
+   pragma Convention (C, destructor_pointer);
 
    function pthread_key_create
      (key        : access pthread_key_t;

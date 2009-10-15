@@ -8,6 +8,7 @@
 float b[N] = {0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30};
 float a[N];
 
+__attribute__ ((noinline))
 int main1 (int n)
 {
   int i;
@@ -34,7 +35,5 @@ int main (void)
   return main1 (N);
 }
 
-/* Need misalignment support, or cgraph to delay emitting the arrays until
-   after vectorization can force-align them.  */
-/* { dg-final { scan-tree-dump-times "vectorized 1 loops" 1 "vect" { xfail vect_no_align } } } */
+/* { dg-final { scan-tree-dump-times "vectorized 1 loops" 1 "vect" } } */
 /* { dg-final { cleanup-tree-dump "vect" } } */

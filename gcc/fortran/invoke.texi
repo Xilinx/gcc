@@ -50,7 +50,7 @@ and the Info entries for @file{gcc}, @file{cpp}, @file{gfortran}, @file{as},
 @c man end
 @c man begin BUGS
 For instructions on reporting bugs, see
-@w{@uref{http://gcc.gnu.org/bugs.html}}.
+@w{@value{BUGURL}}.
 @c man end
 @c man begin AUTHOR
 See the Info entry for @command{gfortran} for contributors to GCC and
@@ -97,6 +97,7 @@ one is not the default.
 * Error and Warning Options::     How picky should the compiler be?
 * Debugging Options::   Symbol tables, measurements, and debugging dumps.
 * Directory Options::   Where to find module files
+* Link Options ::       Influencing the linking step
 * Runtime Options::     Influencing runtime behavior
 * Code Gen Options::    Specifying conventions for function calls, data layout
                         and register usage.
@@ -120,7 +121,7 @@ by type.  Explanations are in the following sections.
 -ffixed-line-length-@var{n}  -ffixed-line-length-none @gol
 -ffree-line-length-@var{n}  -ffree-line-length-none @gol
 -fdefault-double-8  -fdefault-integer-8  -fdefault-real-8 @gol
--fcray-pointer  -fopenmp  -frange-check -fno-backslash }
+-fcray-pointer  -fopenmp  -fno-range-check -fbackslash -fmodule-private}
 
 @item Error and Warning Options
 @xref{Error and Warning Options,,Options to request or suppress errors
@@ -129,27 +130,35 @@ and warnings}.
 -fsyntax-only  -pedantic  -pedantic-errors @gol
 -Wall  -Waliasing  -Wampersand  -Wcharacter-truncation  -Wconversion @gol
 -Wimplicit-interface  -Wline-truncation  -Wnonstd-intrinsics  -Wsurprising @gol
--Wno-tabs  -Wunderflow}
+-Wno-tabs  -Wunderflow -Wunused-parameter}
 
 @item Debugging Options
 @xref{Debugging Options,,Options for debugging your program or GNU Fortran}.
-@gccoptlist{-fdump-parse-tree  -ffpe-trap=@var{list}}
+@gccoptlist{-fdump-parse-tree  -ffpe-trap=@var{list} @gol
+-fdump-core -fbacktrace}
 
 @item Directory Options
 @xref{Directory Options,,Options for directory search}.
-@gccoptlist{-I@var{dir}  -J@var{dir}  -M@var{dir}}
+@gccoptlist{-I@var{dir}  -J@var{dir}  -M@var{dir}  -fintrinsic-modules-path @var{dir}}
+
+@item Link Options
+@xref{Link Options,,Options for influencing the linking step}.
+@gccoptlist{-static-libgfortran}
 
 @item Runtime Options
 @xref{Runtime Options,,Options for influencing runtime behavior}.
 @gccoptlist{-fconvert=@var{conversion}  -frecord-marker=@var{length} @gol
--fmax-subrecord-length=@var{length}}
+-fmax-subrecord-length=@var{length}  -fsign-zero}
 
 @item Code Generation Options
 @xref{Code Gen Options,,Options for code generation conventions}.
 @gccoptlist{-fno-automatic  -ff2c  -fno-underscoring
 -fsecond-underscore @gol
 -fbounds-check  -fmax-stack-var-size=@var{n} @gol
--fpack-derived  -frepack-arrays  -fshort-enums}
+-fpack-derived  -frepack-arrays  -fshort-enums  -fexternal-blas @gol
+-fblas-matmul-limit=@var{n} -frecursive -finit-local-zero @gol
+-finit-integer=@var{n} -finit-real=@var{<zero|inf|-inf|nan>} @gol
+-finit-logical=@var{<true|false>} -finit-character=@var{n}}
 @end table
 
 @menu
@@ -158,6 +167,7 @@ and warnings}.
 * Error and Warning Options::     How picky should the compiler be?
 * Debugging Options::   Symbol tables, measurements, and debugging dumps.
 * Directory Options::   Where to find module files
+* Link Options ::       Influencing the linking step
 * Runtime Options::     Influencing runtime behavior
 * Code Gen Options::    Specifying conventions for function calls, data layout
                         and register usage.
@@ -223,12 +233,25 @@ Do nothing if this is already the default.
 @cindex character set
 Allow @samp{$} as a valid character in a symbol name.
 
-@item -fno-backslash
-@opindex @code{fno-backslash}
+@item -fbackslash
+@opindex @code{backslash}
 @cindex backslash
 @cindex escape characters
-Change the interpretation of backslashes in string literals from
-``C-style'' escape characters to a single backslash character.
+Change the interpretation of backslashes in string literals
+from a single backslash character to ``C-style'' escape characters.
+The following combinations are expanded \a, \b, \f, \n, \r, \t,
+\v, \\, and \0 to the ASCII characters alert, backspace, form feed,
+newline, carriage return, horizontal tab, vertical tab, backslash,
+and NUL, respectively.  All other combinations of a character preceded
+by \ are unexpanded.
+
+@item -fmodule-private
+@opindex @code{fmodule-private}
+@cindex module entities
+@cindex private
+Set the default accessibility of module entities to @code{PRIVATE}.
+Use-associated entities will not be accessible unless they are explicitly
+declared as @code{PUBLIC}.
 
 @item -ffixed-line-length-@var{n}
 @opindex @code{ffixed-line-length-}@var{n}
@@ -280,15 +303,18 @@ and @code{c$omp}, @code{*$omp} and @code{!$omp} directives in fixed form,
 @code{!$} conditional compilation sentinels in free form
 and @code{c$}, @code{*$} and @code{!$} sentinels in fixed form, 
 and when linking arranges for the OpenMP runtime library to be linked
-in.
+in.  The option @option{-fopenmp} implies @option{-frecursive}.
 
-@item -frange-check
+@item -fno-range-check
 @opindex @code{frange-check}
-Enable range checking on results of simplification of constant
-expressions during compilation.  For example, by default, GNU Fortran
-will give an overflow error at compile time when simplifying @code{a =
-EXP(1000)}. With @option{-fno-range-check}, no error will be given and
-the variable @code{a} will be assigned the value @code{+Infinity}.
+Disable range checking on results of simplification of constant
+expressions during compilation.  For example, GNU Fortran will give
+an error at compile time when simplifying @code{a = 1. / 0}.
+With this option, no error will be given and @code{a} will be assigned
+the value @code{+Infinity}.  If an expression evaluates to a value
+outside of the relevant range of [@code{-HUGE()}:@code{HUGE()}],
+then the expression will be replaced by @code{-Inf} or @code{+Inf}
+as appropriate.
 Similarly, @code{DATA i/Z'FFFFFFFF'/} will result in an integer overflow
 on most systems, but with @option{-fno-range-check} the value will
 ``wrap around'' and @code{i} will be initialized to @math{-1} instead.
@@ -341,8 +367,8 @@ These options control the amount and kinds of errors and warnings produced
 by GNU Fortran:
 
 @table @gcctabopt
-@item -fmax-errors-@var{n}
-@opindex @code{fmax-errors-}@var{n}
+@item -fmax-errors=@var{n}
+@opindex @code{fmax-errors=}@var{n}
 @cindex errors, limiting
 Limits the maximum number of error messages to @var{n}, at which point
 GNU Fortran bails out rather than attempting to continue processing the
@@ -352,7 +378,9 @@ messages produced.
 @item -fsyntax-only
 @opindex @code{fsyntax-only}
 @cindex syntax checking
-Check the code for syntax errors, but don't do anything beyond that.
+Check the code for syntax errors, but don't actually compile it.  This
+will generate module files for each module present in the code, but no
+other output file.
 
 @item -pedantic
 @opindex @code{pedantic}
@@ -442,7 +470,7 @@ check that the declared interfaces are consistent across program units.
 
 @item -Wnonstd-intrinsics
 @opindex @code{Wnonstd-intrinsics}
-@cindex warnings, non-stdandard intrinsics
+@cindex warnings, non-standard intrinsics
 Warn if the user tries to use an intrinsic that does not belong to the 
 standard the user has chosen via the @option{-std} option.
 
@@ -461,6 +489,9 @@ lower value is greater than its upper value.
 
 @item
 A LOGICAL SELECT construct has three CASE statements.
+
+@item
+A TRANSFER specifies a source that is shorter than the destination.
 @end itemize
 
 @item -Wtabs
@@ -468,10 +499,11 @@ A LOGICAL SELECT construct has three CASE statements.
 @cindex warnings, tabs
 @cindex tabulators
 By default, tabs are accepted as whitespace, but tabs are not members
-of the Fortran Character Set.  @option{-Wno-tabs} will cause a warning
-to be issued if a tab is encountered. Note, @option{-Wno-tabs} is active
-for @option{-pedantic}, @option{-std=f95}, @option{-std=f2003}, and
-@option{-Wall}.
+of the Fortran Character Set.  For continuation lines, a tab followed
+by a digit between 1 and 9 is supported.  @option{-Wno-tabs} will cause
+a warning to be issued if a tab is encountered. Note, @option{-Wno-tabs}
+is active for @option{-pedantic}, @option{-std=f95}, @option{-std=f2003},
+and @option{-Wall}.
 
 @item -Wunderflow
 @opindex @code{Wunderflow}
@@ -479,6 +511,16 @@ for @option{-pedantic}, @option{-std=f95}, @option{-std=f2003}, and
 @cindex underflow
 Produce a warning when numerical constant expressions are
 encountered, which yield an UNDERFLOW during compilation.
+
+@item -Wunused-parameter
+@opindex @code{Wunused-parameter}
+@cindex warnings, unused parameter
+@cindex unused parameter
+Contrary to @command{gcc}'s meaning of @option{-Wunused-parameter},
+@command{gfortran}'s implementation of this option does not warn
+about unused dummy arguments, but about unused @code{PARAMETER} values.
+@option{-Wunused-parameter} is not included in @option{-Wall} but is
+implied by @option{-Wall -Wextra}.
 
 @item -Werror
 @opindex @code{Werror}
@@ -519,6 +561,28 @@ zero), @samp{overflow} (overflow in a floating point operation),
 @samp{underflow} (underflow in a floating point operation),
 @samp{precision} (loss of precision during operation) and @samp{denormal}
 (operation produced a denormal value).
+
+Some of the routines in the Fortran runtime library, like
+@samp{CPU_TIME}, are likely to to trigger floating point exceptions when
+@code{ffpe-trap=precision} is used. For this reason, the use of 
+@code{ffpe-trap=precision} is not recommended.
+
+@item -fbacktrace
+@opindex @code{fbacktrace}
+@cindex backtrace
+@cindex trace
+Specify that, when a runtime error is encountered or a deadly signal is
+emitted (segmentation fault, illegal instruction, bus error or
+floating-point exception), the Fortran runtime
+library should output a backtrace of the error.  This option
+only has influence for compilation of the Fortran main program.
+
+@item -fdump-core
+@cindex core, dump
+@opindex @code{fdump-core}
+Request that a core-dump file is written to disk when a runtime error
+is encountered on systems that support core dumps. This option is
+only effective for the compilation of the Fortran main program.
 @end table
 
 @xref{Debugging Options,,Options for Debugging Your Program or GCC,
@@ -577,7 +641,33 @@ The default is the current directory.
 
 @option{-J} is an alias for @option{-M} to avoid conflicts with existing
 GCC options.
+
+@item -fintrinsic-modules-path @var{dir}
+@opindex @code{fintrinsic-modules-path} @var{dir}
+@cindex paths, search
+@cindex module search path
+This option specifies the location of pre-compiled intrinsic modules, if
+they are not in the default location expected by the compiler.
 @end table
+
+@node Link Options
+@section Influencing the linking step
+@cindex options, linking
+@cindex linking, static
+
+These options come into play when the compiler links object files into an 
+executable output file. They are meaningless if the compiler is not doing 
+a link step.
+
+@table @gcctabopt
+@item -static-libgfortran
+@opindex @code{static-libgfortran}
+On systems that provide @file{libgfortran} as a shared and a static
+library, this option forces the use of the static version. If no
+shared version of @file{libgfortran} was built when the compiler was
+configured, this option has no effect.
+@end table
+
 
 @node Runtime Options
 @section Influencing runtime behavior
@@ -611,6 +701,12 @@ with earlier versions of @command{gfortran}, use @option{-frecord-marker=8}.
 Specify the maximum length for a subrecord.  The maximum permitted
 value for length is 2147483639, which is also the default.  Only
 really useful for use by the gfortran testsuite.
+
+@item -fsign-zero
+@opindex @code{fsign-zero}
+When writing zero values, show the negative sign if the sign bit is set.
+@code{fno-sign-zero} does not print the negative sign of zero values for
+compatibility with F77.  Default behavior is to show the negative sign.
 @end table
 
 @node Code Gen Options
@@ -633,10 +729,13 @@ it.
 @opindex @code{fno-automatic}
 @cindex @code{SAVE} statement
 @cindex statement, @code{SAVE}
-Treat each program unit as if the @code{SAVE} statement was specified for
-every local variable and array referenced in it. Does not affect common
-blocks. (Some Fortran compilers provide this option under the name
-@option{-static}.)
+Treat each program unit (except those marked as RECURSIVE) as if the
+@code{SAVE} statement were specified for every local variable and array
+referenced in it. Does not affect common blocks. (Some Fortran compilers
+provide this option under the name @option{-static} or @option{-save}.)
+The default, which is @option{-fautomatic}, uses the stack for local
+variables smaller than the value given by @option{-fmax-stack-var-size}.
+Use the option @option{-frecursive} to use no static memory. 
 
 @item -ff2c
 @opindex ff2c
@@ -693,8 +792,8 @@ tools.
 
 Use of @option{-fno-underscoring} is not recommended unless you are
 experimenting with issues such as integration of GNU Fortran into
-existing system environments (vis-a-vis existing libraries, tools, and
-so on).
+existing system environments (vis-@`{a}-vis existing libraries, tools,
+and so on).
 
 For example, with @option{-funderscoring}, and assuming other defaults like
 @option{-fcase-lower} and that @code{j()} and @code{max_count()} are
@@ -779,13 +878,19 @@ and against the declared minimum and maximum values.  It also
 checks array indices for assumed and deferred
 shape arrays against the actual allocated bounds.
 
+Some checks require that @option{-fbounds-check} is set for
+the compilation of the main program.
+
 In the future this may also include other forms of checking, e.g., checking
 substring references.
 
 @item -fmax-stack-var-size=@var{n}
 @opindex @code{fmax-stack-var-size}
 This option specifies the size in bytes of the largest array that will be put
-on the stack.
+on the stack; if the size is exceeded static memory is used (except in
+procedures marked as RECURSIVE). Use the option @option{-frecursive} to
+allow for recursive procedures which do not have a RECURSIVE attribute or
+for parallel programs. Use @option{-fno-automatic} to never use the stack.
 
 This option currently only affects local arrays declared with constant
 bounds, and may not apply to all character variables.
@@ -819,6 +924,59 @@ compiled with the @option{-fshort-enums} option.  It will make
 GNU Fortran choose the smallest @code{INTEGER} kind a given
 enumerator set will fit in, and give all its enumerators this kind.
 
+@item -fexternal-blas
+@opindex @code{fexternal-blas}
+This option will make @command{gfortran} generate calls to BLAS functions
+for some matrix operations like @code{MATMUL}, instead of using our own
+algorithms, if the size of the matrices involved is larger than a given
+limit (see @option{-fblas-matmul-limit}).  This may be profitable if an
+optimized vendor BLAS library is available.  The BLAS library will have
+to be specified at link time.
+
+@item -fblas-matmul-limit=@var{n}
+@opindex @code{fblas-matmul-limit}
+Only significant when @option{-fexternal-blas} is in effect.
+Matrix multiplication of matrices with size larger than (or equal to) @var{n}
+will be performed by calls to BLAS functions, while others will be
+handled by @command{gfortran} internal algorithms. If the matrices
+involved are not square, the size comparison is performed using the
+geometric mean of the dimensions of the argument and result matrices.
+
+The default value for @var{n} is 30.
+
+@item -frecursive
+@opindex @code{frecursive}
+Allow indirect recursion by forcing all local arrays to be allocated
+on the stack. This flag cannot be used together with
+@option{-fmax-stack-var-size=} or @option{-fno-automatic}.
+
+@item -finit-local-zero
+@item -finit-integer=@var{n}
+@item -finit-real=@var{<zero|inf|-inf|nan>} 
+@item -finit-logical=@var{<true|false>}
+@item -finit-character=@var{n}
+@opindex @code{finit-local-zero}
+@opindex @code{finit-integer}
+@opindex @code{finit-real}
+@opindex @code{finit-logical}
+@opindex @code{finit-character}
+The @option{-finit-local-zero} option instructs the compiler to
+initialize local @code{INTEGER}, @code{REAL}, and @code{COMPLEX}
+variables to zero, @code{LOGICAL} variables to false, and
+@code{CHARACTER} variables to a string of null bytes.  Finer-grained
+initialization options are provided by the
+@option{-finit-integer=@var{n}},
+@option{-finit-real=@var{<zero|inf|-inf|nan>}} (which also initializes
+the real and imaginary parts of local @code{COMPLEX} variables),
+@option{-finit-logical=@var{<true|false>}}, and
+@option{-finit-character=@var{n}} (where @var{n} is an ASCII character
+value) options.  These options do not initialize components of derived
+type variables, nor do they initialize variables that appear in an
+@code{EQUIVALENCE} statement.  (This limitation may be removed in
+future releases).
+
+Note that the @option{-finit-real=nan} option initializes @code{REAL}
+and @code{COMPLEX} variables with a quiet NaN.
 @end table
 
 @xref{Code Gen Options,,Options for Code Generation Conventions,

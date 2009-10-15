@@ -124,7 +124,7 @@ sem_t GC_suspend_ack_sem;
 
 void GC_suspend_handler_inner(ptr_t sig_arg);
 
-#if defined(IA64) || defined(HP_PA)
+#if defined(IA64) || defined(HP_PA) || defined(M68K)
 extern void GC_with_callee_saves_pushed();
 
 void GC_suspend_handler(int sig)
@@ -481,6 +481,14 @@ void GC_resume_thread(pthread_t thread) {
     ABORT("attempting to resume unknown thread");
 
   t -> flags &= ~SUSPENDED;
+}
+
+int GC_is_thread_suspended(pthread_t thread) {
+  GC_thread t = GC_lookup_thread(thread);
+  if (t == NULL)
+    ABORT("querying suspension state of unknown thread");
+
+  return (t -> flags & SUSPENDED);
 }
 
 /* Caller holds allocation lock, and has held it continuously since	*/

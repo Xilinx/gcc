@@ -1,13 +1,13 @@
 /* Test argument passing with SSE and local functions
    Written by Paolo Bonzini, 25 January 2005 */
 
-/* { dg-do compile { target i?86-*-* x86_64-*-* } } */
+/* { dg-do compile } */
 /* { dg-require-effective-target ilp32 } */
 /* { dg-final { scan-assembler "movss" } } */
 /* { dg-final { scan-assembler "mulss" } } */
 /* { dg-final { scan-assembler-not "movsd" } } */
 /* { dg-final { scan-assembler-not "mulsd" } } */
-/* { dg-options "-O2 -msse -mfpmath=sse -fno-inline" } */
+/* { dg-options "-O2 -march=i386 -msse -mfpmath=sse -fno-inline" } */
 
 static float xs (void)
 {
@@ -28,4 +28,3 @@ double yd (double a)
 {
   return xd () * a;
 }
-

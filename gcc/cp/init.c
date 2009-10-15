@@ -1,6 +1,7 @@
 /* Handle initialization things in C++.
    Copyright (C) 1987, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Free Software Foundation, Inc.
    Contributed by Michael Tiemann (tiemann@cygnus.com)
 
 This file is part of GCC.
@@ -50,7 +51,6 @@ static tree initializing_context (tree);
 static void expand_cleanup_for_base (tree, tree);
 static tree get_temp_regvar (tree, tree);
 static tree dfs_initialize_vtbl_ptrs (tree, void *);
-static tree build_default_init (tree, tree);
 static tree build_dtor_call (tree, special_function_kind, int);
 static tree build_field_list (tree, tree, int *);
 static tree build_vtbl_address (tree);
@@ -152,7 +152,7 @@ build_zero_init (tree type, tree nelts, bool static_storage_p)
 
   /* [dcl.init]
 
-     To zero-initialization storage for an object of type T means:
+     To zero-initialize an object of type T means:
 
      -- if T is a scalar type, the storage is set to the value of zero
 	converted to T.
@@ -209,8 +209,8 @@ build_zero_init (tree type, tree nelts, bool static_storage_p)
 	    break;
 	}
 
-	/* Build a constructor to contain the initializations.  */
-	init = build_constructor (type, v);
+      /* Build a constructor to contain the initializations.  */
+      init = build_constructor (type, v);
     }
   else if (TREE_CODE (type) == ARRAY_TYPE)
     {
@@ -276,7 +276,7 @@ build_zero_init (tree type, tree nelts, bool static_storage_p)
    returns NULL_TREE; the caller is responsible for arranging for the
    constructors to be called.  */
 
-static tree
+tree
 build_default_init (tree type, tree nelts)
 {
   /* [dcl.init]:
@@ -313,6 +313,153 @@ build_default_init (tree type, tree nelts)
   /* At this point, TYPE is either a POD class type, an array of POD
      classes, or something even more innocuous.  */
   return build_zero_init (type, nelts, /*static_storage_p=*/false);
+}
+
+/* Return a suitable initializer for value-initializing an object of type
+   TYPE, as described in [dcl.init].  If HAVE_CTOR is true, the initializer
+   for an enclosing object is already calling the constructor for this
+   object.  */
+
+static tree
+build_value_init_1 (tree type, bool have_ctor)
+{
+  /* [dcl.init]
+
+     To value-initialize an object of type T means:
+
+     - if T is a class type (clause 9) with a user-provided constructor
+       (12.1), then the default constructor for T is called (and the
+       initialization is ill-formed if T has no accessible default
+       constructor);
+
+     - if T is a non-union class type without a user-provided constructor,
+       then every non-static data member and base-class component of T is
+       value-initialized;92)
+
+     - if T is an array type, then each element is value-initialized;
+
+     - otherwise, the object is zero-initialized.
+
+     A program that calls for default-initialization or
+     value-initialization of an entity of reference type is ill-formed.
+
+     92) Value-initialization for such a class object may be implemented by
+     zero-initializing the object and then calling the default
+     constructor.  */
+
+  if (CLASS_TYPE_P (type))
+    {
+      if (TYPE_HAS_USER_CONSTRUCTOR (type) && !have_ctor)
+	return build_cplus_new
+	  (type,
+	   build_special_member_call (NULL_TREE, complete_ctor_identifier,
+				      NULL_TREE, type, LOOKUP_NORMAL));
+      else if (TREE_CODE (type) != UNION_TYPE)
+	{
+	  tree field, init;
+	  VEC(constructor_elt,gc) *v = NULL;
+	  bool call_ctor = !have_ctor && TYPE_NEEDS_CONSTRUCTING (type);
+
+	  /* Iterate over the fields, building initializations.  */
+	  for (field = TYPE_FIELDS (type); field; field = TREE_CHAIN (field))
+	    {
+	      tree ftype, value;
+
+	      if (TREE_CODE (field) != FIELD_DECL)
+		continue;
+
+	      ftype = TREE_TYPE (field);
+
+	      if (TREE_CODE (ftype) == REFERENCE_TYPE)
+		error ("value-initialization of reference");
+
+	      /* We could skip vfields and fields of types with
+		 user-defined constructors, but I think that won't improve
+		 performance at all; it should be simpler in general just
+		 to zero out the entire object than try to only zero the
+		 bits that actually need it.  */
+
+	      /* Note that for class types there will be FIELD_DECLs
+		 corresponding to base classes as well.  Thus, iterating
+		 over TYPE_FIELDs will result in correct initialization of
+		 all of the subobjects.  */
+	      value = build_value_init_1 (ftype, have_ctor || call_ctor);
+
+	      if (value)
+		CONSTRUCTOR_APPEND_ELT(v, field, value);
+	    }
+
+	  /* Build a constructor to contain the zero- initializations.  */
+	  init = build_constructor (type, v);
+	  if (call_ctor)
+	    {
+	      /* This is a class that needs constructing, but doesn't have
+		 a user-defined constructor.  So we need to zero-initialize
+		 the object and then call the implicitly defined ctor.
+		 Implement this by sticking the zero-initialization inside
+		 the TARGET_EXPR for the constructor call;
+		 cp_gimplify_init_expr will know how to handle it.  */
+	      tree ctor = build_special_member_call
+		(NULL_TREE, complete_ctor_identifier,
+		 NULL_TREE, type, LOOKUP_NORMAL);
+
+	      ctor = build_cplus_new (type, ctor);
+	      init = build2 (INIT_EXPR, void_type_node,
+			     TARGET_EXPR_SLOT (ctor), init);
+	      init = build2 (COMPOUND_EXPR, void_type_node, init,
+			     TARGET_EXPR_INITIAL (ctor));
+	      TARGET_EXPR_INITIAL (ctor) = init;
+	      return ctor;
+	    }
+	  return init;
+	}
+    }
+  else if (TREE_CODE (type) == ARRAY_TYPE)
+    {
+      VEC(constructor_elt,gc) *v = NULL;
+
+      /* Iterate over the array elements, building initializations.  */
+      tree max_index = array_type_nelts (type);
+
+      /* If we have an error_mark here, we should just return error mark
+	 as we don't know the size of the array yet.  */
+      if (max_index == error_mark_node)
+	return error_mark_node;
+      gcc_assert (TREE_CODE (max_index) == INTEGER_CST);
+
+      /* A zero-sized array, which is accepted as an extension, will
+	 have an upper bound of -1.  */
+      if (!tree_int_cst_equal (max_index, integer_minus_one_node))
+	{
+	  constructor_elt *ce;
+
+	  v = VEC_alloc (constructor_elt, gc, 1);
+	  ce = VEC_quick_push (constructor_elt, v, NULL);
+
+	  /* If this is a one element array, we just use a regular init.  */
+	  if (tree_int_cst_equal (size_zero_node, max_index))
+	    ce->index = size_zero_node;
+	  else
+	    ce->index = build2 (RANGE_EXPR, sizetype, size_zero_node,
+				max_index);
+
+	  ce->value = build_value_init_1 (TREE_TYPE (type), have_ctor);
+	}
+
+      /* Build a constructor to contain the initializations.  */
+      return build_constructor (type, v);
+    }
+
+  return build_zero_init (type, NULL_TREE, /*static_storage_p=*/false);
+}
+
+/* Return a suitable initializer for value-initializing an object of type
+   TYPE, as described in [dcl.init].  */
+
+tree
+build_value_init (tree type)
+{
+  return build_value_init_1 (type, false);
 }
 
 /* Initialize MEMBER, a FIELD_DECL, with INIT, a TREE_LIST of
@@ -682,12 +829,13 @@ emit_mem_initializers (tree mem_inits)
       tree subobject = TREE_PURPOSE (mem_inits);
       tree arguments = TREE_VALUE (mem_inits);
 
-      /* If these initializations are taking place in a copy
-	 constructor, the base class should probably be explicitly
-	 initialized.  */
+      /* If these initializations are taking place in a copy constructor,
+	 the base class should probably be explicitly initialized if there
+	 is a user-defined constructor in the base class (other than the
+	 default constructor, which will be called anyway).  */
       if (extra_warnings && !arguments
 	  && DECL_COPY_CONSTRUCTOR_P (current_function_decl)
-	  && TYPE_NEEDS_CONSTRUCTING (BINFO_TYPE (subobject)))
+	  && type_has_user_nondefault_constructor (BINFO_TYPE (subobject)))
 	warning (OPT_Wextra, "%Jbase class %q#T should be explicitly initialized in the "
 		 "copy constructor",
 		 current_function_decl, BINFO_TYPE (subobject));
@@ -786,7 +934,7 @@ expand_virtual_init (tree binfo, tree decl)
 
       /* Compute the value to use, when there's a VTT.  */
       vtt_parm = current_vtt_parm;
-      vtbl2 = build2 (PLUS_EXPR,
+      vtbl2 = build2 (POINTER_PLUS_EXPR,
 		      TREE_TYPE (vtt_parm),
 		      vtt_parm,
 		      vtt_index);
@@ -863,7 +1011,7 @@ construct_virtual_base (tree vbase, tree arguments)
      confuses the sjlj exception-handling code.  Therefore, we do not
      create a single conditional block, but one for each
      initialization.  (That way the cleanup regions always begin
-     in the outer block.)  We trust the back-end to figure out
+     in the outer block.)  We trust the back end to figure out
      that the FLAG will not change across initializations, and
      avoid doing multiple tests.  */
   flag = TREE_CHAIN (DECL_ARGUMENTS (current_function_decl));
@@ -1135,7 +1283,6 @@ build_aggr_init (tree exp, tree init, int flags)
     /* Just know that we've seen something for this node.  */
     TREE_USED (exp) = 1;
 
-  TREE_TYPE (exp) = TYPE_MAIN_VARIANT (type);
   is_global = begin_init_stmts (&stmt_expr, &compound_stmt);
   destroy_temps = stmts_are_full_exprs_p ();
   current_stmt_tree ()->stmts_are_full_exprs_p = 0;
@@ -1143,7 +1290,6 @@ build_aggr_init (tree exp, tree init, int flags)
 		      init, LOOKUP_NORMAL|flags);
   stmt_expr = finish_init_stmts (is_global, stmt_expr, compound_stmt);
   current_stmt_tree ()->stmts_are_full_exprs_p = destroy_temps;
-  TREE_TYPE (exp) = type;
   TREE_READONLY (exp) = was_const;
   TREE_THIS_VOLATILE (exp) = was_volatile;
 
@@ -1283,9 +1429,7 @@ is_aggr_type (tree type, int or_else)
   if (type == error_mark_node)
     return 0;
 
-  if (! IS_AGGR_TYPE (type)
-      && TREE_CODE (type) != TEMPLATE_TYPE_PARM
-      && TREE_CODE (type) != BOUND_TEMPLATE_TEMPLATE_PARM)
+  if (! IS_AGGR_TYPE (type))
     {
       if (or_else)
 	error ("%qT is not an aggregate type", type);
@@ -1492,6 +1636,15 @@ constant_value_1 (tree decl, bool integral_p)
 	}
       if (init == error_mark_node)
 	return decl;
+      /* Initializers in templates are generally expanded during
+	 instantiation, so before that for const int i(2)
+	 INIT is a TREE_LIST with the actual initializer as
+	 TREE_VALUE.  */
+      if (processing_template_decl
+	  && init
+	  && TREE_CODE (init) == TREE_LIST
+	  && TREE_CHAIN (init) == NULL_TREE)
+	init = TREE_VALUE (init);
       if (!init
 	  || !TREE_TYPE (init)
 	  || (integral_p
@@ -1522,7 +1675,7 @@ integral_constant_value (tree decl)
 }
 
 /* A more relaxed version of integral_constant_value, used by the
-   common C/C++ code and by the C++ front-end for optimization
+   common C/C++ code and by the C++ front end for optimization
    purposes.  */
 
 tree
@@ -1540,7 +1693,7 @@ static tree
 build_builtin_delete_call (tree addr)
 {
   mark_used (global_delete_fndecl);
-  return build_call (global_delete_fndecl, build_tree_list (NULL_TREE, addr));
+  return build_call_n (global_delete_fndecl, 1, addr);
 }
 
 /* Build and return a NEW_EXPR.  If NELTS is non-NULL, TYPE[NELTS] is
@@ -1563,6 +1716,55 @@ build_raw_new_expr (tree placement, tree type, tree nelts, tree init,
   TREE_SIDE_EFFECTS (new_expr) = 1;
 
   return new_expr;
+}
+
+/* Make sure that there are no aliasing issues with T, a placement new
+   expression applied to PLACEMENT, by recording the change in dynamic
+   type.  If placement new is inlined, as it is with libstdc++, and if
+   the type of the placement new differs from the type of the
+   placement location itself, then alias analysis may think it is OK
+   to interchange writes to the location from before the placement new
+   and from after the placement new.  We have to prevent type-based
+   alias analysis from applying.  PLACEMENT may be NULL, which means
+   that we couldn't capture it in a temporary variable, in which case
+   we use a memory clobber.  */
+
+static tree
+avoid_placement_new_aliasing (tree t, tree placement)
+{
+  tree type_change;
+
+  if (processing_template_decl)
+    return t;
+
+  /* If we are not using type based aliasing, we don't have to do
+     anything.  */
+  if (!flag_strict_aliasing)
+    return t;
+
+  /* If we have a pointer and a location, record the change in dynamic
+     type.  Otherwise we need a general memory clobber.  */
+  if (TREE_CODE (TREE_TYPE (t)) == POINTER_TYPE
+      && placement != NULL_TREE
+      && TREE_CODE (TREE_TYPE (placement)) == POINTER_TYPE)
+    type_change = build_stmt (CHANGE_DYNAMIC_TYPE_EXPR,
+			      TREE_TYPE (t),
+			      placement);
+  else
+    {
+      /* Build a memory clobber.  */
+      type_change = build_stmt (ASM_EXPR,
+				build_string (0, ""),
+				NULL_TREE,
+				NULL_TREE,
+				tree_cons (NULL_TREE,
+					   build_string (6, "memory"),
+					   NULL_TREE));
+
+      ASM_VOLATILE_P (type_change) = 1;
+    }
+
+  return build2 (COMPOUND_EXPR, TREE_TYPE (t), type_change, t);
 }
 
 /* Generate code for a new-expression, including calling the "operator
@@ -1608,6 +1810,7 @@ build_new_1 (tree placement, tree type, tree nelts, tree init,
      beginning of the storage allocated for an array-new expression in
      order to store the number of elements.  */
   tree cookie_size = NULL_TREE;
+  tree placement_expr = NULL_TREE;
   /* True if the function we are calling is a placement allocation
      function.  */
   bool placement_allocation_fn_p;
@@ -1641,6 +1844,7 @@ build_new_1 (tree placement, tree type, tree nelts, tree init,
          of the incomplete array type.  */
       full_type = build_distinct_type_copy (full_type);
       TYPE_DOMAIN (full_type) = index;
+      SET_TYPE_STRUCTURAL_EQUALITY (full_type);
     }
   else
     {
@@ -1653,9 +1857,6 @@ build_new_1 (tree placement, tree type, tree nelts, tree init,
 	  type = TREE_TYPE (type);
 	}
     }
-
-  if (!complete_type_or_else (type, NULL_TREE))
-    return error_mark_node;
 
   /* If our base type is an array, then make sure we know how many elements
      it has.  */
@@ -1729,6 +1930,11 @@ build_new_1 (tree placement, tree type, tree nelts, tree init,
 		    (alloc_fn,
 		     build_tree_list (NULL_TREE, class_addr)));
     }
+  else if (TYPE_FOR_JAVA (elt_type) && IS_AGGR_TYPE (elt_type))
+    {
+      error ("Java class %q#T object allocated using placement new", elt_type);
+      return error_mark_node;
+    }
   else
     {
       tree fnname;
@@ -1790,10 +1996,37 @@ build_new_1 (tree placement, tree type, tree nelts, tree init,
 
   gcc_assert (alloc_fn != NULL_TREE);
 
+  /* If PLACEMENT is a simple pointer type and is not passed by reference,
+     then copy it into PLACEMENT_EXPR.  */
+  if (!processing_template_decl
+      && placement != NULL_TREE
+      && TREE_CHAIN (placement) == NULL_TREE
+      && TREE_CODE (TREE_TYPE (TREE_VALUE (placement))) == POINTER_TYPE
+      && TREE_CODE (alloc_call) == CALL_EXPR
+      && call_expr_nargs (alloc_call) == 2
+      && TREE_CODE (TREE_TYPE (CALL_EXPR_ARG (alloc_call, 0))) == INTEGER_TYPE
+      && TREE_CODE (TREE_TYPE (CALL_EXPR_ARG (alloc_call, 1))) == POINTER_TYPE)
+    {
+      tree placement_arg = CALL_EXPR_ARG (alloc_call, 1);
+
+      if (INTEGRAL_TYPE_P (TREE_TYPE (TREE_TYPE (placement_arg)))
+	  || VOID_TYPE_P (TREE_TYPE (TREE_TYPE (placement_arg))))
+	{
+	  placement_expr = get_target_expr (TREE_VALUE (placement));
+	  CALL_EXPR_ARG (alloc_call, 1)
+	    = convert (TREE_TYPE (placement_arg), placement_expr);
+	}
+    }
+
   /* In the simple case, we can stop now.  */
   pointer_type = build_pointer_type (type);
   if (!cookie_size && !is_initialized)
-    return build_nop (pointer_type, alloc_call);
+    {
+      rval = build_nop (pointer_type, alloc_call);
+      if (placement != NULL)
+	rval = avoid_placement_new_aliasing (rval, placement_expr);
+      return rval;
+    }
 
   /* While we're working, use a pointer to the type we've actually
      allocated. Store the result of the call in a variable so that we
@@ -1848,16 +2081,19 @@ build_new_1 (tree placement, tree type, tree nelts, tree init,
     {
       tree cookie;
       tree cookie_ptr;
+      tree size_ptr_type;
 
       /* Adjust so we're pointing to the start of the object.  */
-      data_addr = get_target_expr (build2 (PLUS_EXPR, full_pointer_type,
+      data_addr = get_target_expr (build2 (POINTER_PLUS_EXPR, full_pointer_type,
 					   alloc_node, cookie_size));
 
       /* Store the number of bytes allocated so that we can know how
 	 many elements to destroy later.  We use the last sizeof
 	 (size_t) bytes to store the number of elements.  */
-      cookie_ptr = build2 (MINUS_EXPR, build_pointer_type (sizetype),
-			   data_addr, size_in_bytes (sizetype));
+      cookie_ptr = fold_build1 (NEGATE_EXPR, sizetype, size_in_bytes (sizetype));
+      size_ptr_type = build_pointer_type (sizetype);
+      cookie_ptr = build2 (POINTER_PLUS_EXPR, size_ptr_type,
+			   fold_convert (size_ptr_type, data_addr), cookie_ptr);
       cookie = build_indirect_ref (cookie_ptr, NULL);
 
       cookie_expr = build2 (MODIFY_EXPR, sizetype, cookie, nelts);
@@ -1865,8 +2101,10 @@ build_new_1 (tree placement, tree type, tree nelts, tree init,
       if (targetm.cxx.cookie_has_size ())
 	{
 	  /* Also store the element size.  */
-	  cookie_ptr = build2 (MINUS_EXPR, build_pointer_type (sizetype),
-			       cookie_ptr, size_in_bytes (sizetype));
+	  cookie_ptr = build2 (POINTER_PLUS_EXPR, size_ptr_type, cookie_ptr,
+			       fold_build1 (NEGATE_EXPR, sizetype,
+					    size_in_bytes (sizetype)));
+
 	  cookie = build_indirect_ref (cookie_ptr, NULL);
 	  cookie = build2 (MODIFY_EXPR, sizetype, cookie,
 			   size_in_bytes(elt_type));
@@ -2052,6 +2290,9 @@ build_new_1 (tree placement, tree type, tree nelts, tree init,
   /* A new-expression is never an lvalue.  */
   gcc_assert (!lvalue_p (rval));
 
+  if (placement != NULL)
+    rval = avoid_placement_new_aliasing (rval, placement_expr);
+
   return rval;
 }
 
@@ -2103,21 +2344,6 @@ build_new (tree placement, tree type, tree nelts, tree init,
       if (!build_expr_type_conversion (WANT_INT | WANT_ENUM, nelts, false))
 	pedwarn ("size in array new must have integral type");
       nelts = cp_save_expr (cp_convert (sizetype, nelts));
-      /* It is valid to allocate a zero-element array:
-
-	   [expr.new]
-
-	   When the value of the expression in a direct-new-declarator
-	   is zero, the allocation function is called to allocate an
-	   array with no elements.  The pointer returned by the
-	   new-expression is non-null.  [Note: If the library allocation
-	   function is called, the pointer returned is distinct from the
-	   pointer to any other object.]
-
-	 However, that is not generally useful, so we issue a
-	 warning.  */
-      if (integer_zerop (nelts))
-	warning (0, "allocating zero-element array");
     }
 
   /* ``A reference cannot be created by the new operator.  A reference
@@ -2134,6 +2360,12 @@ build_new (tree placement, tree type, tree nelts, tree init,
       error ("new cannot be applied to a function type");
       return error_mark_node;
     }
+
+  /* The type allocated must be complete.  If the new-type-id was
+     "T[N]" then we are just checking that "T" is complete here, but
+     that is equivalent, since the value of "N" doesn't matter.  */
+  if (!complete_type_or_else (type, NULL_TREE))
+    return error_mark_node;
 
   rval = build_new_1 (placement, type, nelts, init, use_global_new);
   if (rval == error_mark_node)
@@ -2228,6 +2460,7 @@ build_vec_delete_1 (tree base, tree maxindex, tree type,
      executing any other code in the loop.
      This is also the containing expression returned by this function.  */
   tree controller = NULL_TREE;
+  tree tmp;
 
   /* We should only have 1-D arrays here.  */
   gcc_assert (TREE_CODE (type) != ARRAY_TYPE);
@@ -2241,8 +2474,8 @@ build_vec_delete_1 (tree base, tree maxindex, tree type,
 
   tbase = create_temporary_var (ptype);
   tbase_init = build_modify_expr (tbase, NOP_EXPR,
-				  fold_build2 (PLUS_EXPR, ptype,
-					       base,
+				  fold_build2 (POINTER_PLUS_EXPR, ptype,
+					       fold_convert (ptype, base),
 					       virtual_size));
   DECL_REGISTER (tbase) = 1;
   controller = build3 (BIND_EXPR, void_type_node, tbase,
@@ -2252,9 +2485,10 @@ build_vec_delete_1 (tree base, tree maxindex, tree type,
   body = build1 (EXIT_EXPR, void_type_node,
 		 build2 (EQ_EXPR, boolean_type_node, tbase,
 			 fold_convert (ptype, base)));
+  tmp = fold_build1 (NEGATE_EXPR, sizetype, size_exp);
   body = build_compound_expr
     (body, build_modify_expr (tbase, NOP_EXPR,
-			      build2 (MINUS_EXPR, ptype, tbase, size_exp)));
+			      build2 (POINTER_PLUS_EXPR, ptype, tbase, tmp)));
   body = build_compound_expr
     (body, build_delete (ptype, tbase, sfk_complete_destructor,
 			 LOOKUP_NORMAL|LOOKUP_DESTRUCTOR, 1));
@@ -2477,7 +2711,7 @@ build_vec_init (tree base, tree maxindex, tree init,
      When copying from array to another, when the array elements have
      only trivial copy constructors, we should use __builtin_memcpy
      rather than generating a loop.  That way, we could take advantage
-     of whatever cleverness the back-end has for dealing with copies
+     of whatever cleverness the back end has for dealing with copies
      of blocks of memory.  */
 
   is_global = begin_init_stmts (&stmt_expr, &compound_stmt);
@@ -2981,10 +3215,11 @@ build_vec_delete (tree base, tree maxindex,
 	  base = TARGET_EXPR_SLOT (base_init);
 	}
       type = strip_array_types (TREE_TYPE (type));
-      cookie_addr = build2 (MINUS_EXPR,
+      cookie_addr = fold_build1 (NEGATE_EXPR, sizetype, TYPE_SIZE_UNIT (sizetype));
+      cookie_addr = build2 (POINTER_PLUS_EXPR,
 			    build_pointer_type (sizetype),
 			    base,
-			    TYPE_SIZE_UNIT (sizetype));
+			    cookie_addr);
       maxindex = build_indirect_ref (cookie_addr, NULL);
     }
   else if (TREE_CODE (type) == ARRAY_TYPE)

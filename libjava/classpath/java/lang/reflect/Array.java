@@ -95,7 +95,7 @@ public final class Array
    * @throws NegativeArraySizeException when length is less than 0
    * @throws OutOfMemoryError if memory allocation fails
    */
-  public static Object newInstance(Class componentType, int length)
+  public static Object newInstance(Class<?> componentType, int length)
   {
     if (! componentType.isPrimitive())
       return VMArray.createObjectArray(componentType, length);
@@ -143,12 +143,11 @@ public final class Array
    *         than 0
    * @throws OutOfMemoryError if memory allocation fails
    */
-  public static Object newInstance(Class componentType, int[] dimensions)
+  public static Object newInstance(Class<?> componentType, int[] dimensions)
   {
     if (dimensions.length <= 0)
       throw new IllegalArgumentException ("Empty dimensions array.");
-    return createMultiArray(componentType, dimensions,
-                                  dimensions.length - 1);
+    return createMultiArray(componentType, dimensions, 0);
   }
 
   /**
@@ -638,10 +637,10 @@ public final class Array
   private static Object createMultiArray(Class type, int[] dimensions,
                                          int index)
   {
-    if (index == 0)
-      return newInstance(type, dimensions[0]);
+    if (index == dimensions.length - 1)
+      return newInstance(type, dimensions[index]);
 
-    Object toAdd = createMultiArray(type, dimensions, index - 1);
+    Object toAdd = createMultiArray(type, dimensions, index + 1);
     Class thisType = toAdd.getClass();
     Object[] retval
       = (Object[]) VMArray.createObjectArray(thisType, dimensions[index]);
@@ -649,7 +648,7 @@ public final class Array
       retval[0] = toAdd;
     int i = dimensions[index];
     while (--i > 0)
-      retval[i] = createMultiArray(type, dimensions, index - 1);
+      retval[i] = createMultiArray(type, dimensions, index + 1);
     return retval;
   }
 

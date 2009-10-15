@@ -3,7 +3,7 @@
 // Written by David Megginson
 // and by David Brownell
 // NO WARRANTY!  This class is in the Public Domain.
-// $Id: XMLReaderFactory.java,v 1.14 2004/12/11 15:41:10 dog Exp $
+// $Id: XMLReaderFactory.java,v 1.1 2004/12/23 22:38:42 mark Exp $
 
 package org.xml.sax.helpers;
 import java.io.BufferedReader;
@@ -136,6 +136,11 @@ final public class XMLReaderFactory
 	// 3. Distro-specific fallback
 	if (className == null) {
 // BEGIN DISTRIBUTION-SPECIFIC
+
+	    // CLASSPATH LOCAL: have to code in the backup.
+	    // Among other things, see PR 31303, and this thread:
+	    // http://gcc.gnu.org/ml/java-patches/2007-q1/msg00661.html
+	    className = "gnu.xml.stream.SAXParser";
 
 	    // EXAMPLE:
 	    // className = "com.example.sax.XmlReader";

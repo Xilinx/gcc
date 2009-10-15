@@ -92,8 +92,38 @@ public class Arrays
    */
   public static int binarySearch(byte[] a, byte key)
   {
-    int low = 0;
-    int hi = a.length - 1;
+    if (a.length == 0)
+      return -1;
+    return binarySearch(a, 0, a.length - 1, key);
+  }
+
+  /**
+   * Perform a binary search of a range of a byte array for a key. The range
+   * must be sorted (as by the <code>sort(byte[], int, int)</code> method) -
+   * if it is not, the behaviour of this method is undefined, and may be an
+   * infinite loop. If the array contains the key more than once, any one of
+   * them may be found. Note: although the specification allows for an infinite
+   * loop if the array is unsorted, it will not happen in this implementation.
+   *
+   * @param a the array to search (must be sorted)
+   * @param low the lowest index to search from.
+   * @param hi the highest index to search to.
+   * @param key the value to search for
+   * @return the index at which the key was found, or -n-1 if it was not
+   *         found, where n is the index of the first value higher than key or
+   *         a.length if there is no such value.
+   * @throws IllegalArgumentException if <code>low > hi</code>
+   * @throws ArrayIndexOutOfBoundsException if <code>low < 0</code> or
+   *                                        <code>hi > a.length</code>.
+   */
+  public static int binarySearch(byte[] a, int low, int hi, byte key)
+  {
+    if (low > hi)
+      throw new IllegalArgumentException("The start index is higher than " +
+					 "the finish index.");
+    if (low < 0 || hi > a.length)
+      throw new ArrayIndexOutOfBoundsException("One of the indices is out " +
+					       "of bounds.");
     int mid = 0;
     while (low <= hi)
       {
@@ -126,8 +156,38 @@ public class Arrays
    */
   public static int binarySearch(char[] a, char key)
   {
-    int low = 0;
-    int hi = a.length - 1;
+    if (a.length == 0)
+      return -1;
+    return binarySearch(a, 0, a.length - 1, key);
+  }
+
+  /**
+   * Perform a binary search of a range of a char array for a key. The range
+   * must be sorted (as by the <code>sort(char[], int, int)</code> method) -
+   * if it is not, the behaviour of this method is undefined, and may be an
+   * infinite loop. If the array contains the key more than once, any one of
+   * them may be found. Note: although the specification allows for an infinite
+   * loop if the array is unsorted, it will not happen in this implementation.
+   *
+   * @param a the array to search (must be sorted)
+   * @param low the lowest index to search from.
+   * @param hi the highest index to search to.
+   * @param key the value to search for
+   * @return the index at which the key was found, or -n-1 if it was not
+   *         found, where n is the index of the first value higher than key or
+   *         a.length if there is no such value.
+   * @throws IllegalArgumentException if <code>low > hi</code>
+   * @throws ArrayIndexOutOfBoundsException if <code>low < 0</code> or
+   *                                        <code>hi > a.length</code>.
+   */
+  public static int binarySearch(char[] a, int low, int hi, char key)
+  {
+    if (low > hi)
+      throw new IllegalArgumentException("The start index is higher than " +
+					 "the finish index.");
+    if (low < 0 || hi > a.length)
+      throw new ArrayIndexOutOfBoundsException("One of the indices is out " +
+					       "of bounds.");
     int mid = 0;
     while (low <= hi)
       {
@@ -160,8 +220,38 @@ public class Arrays
    */
   public static int binarySearch(short[] a, short key)
   {
-    int low = 0;
-    int hi = a.length - 1;
+    if (a.length == 0)
+      return -1;
+    return binarySearch(a, 0, a.length - 1, key);
+  }
+
+  /**
+   * Perform a binary search of a range of a short array for a key. The range
+   * must be sorted (as by the <code>sort(short[], int, int)</code> method) -
+   * if it is not, the behaviour of this method is undefined, and may be an
+   * infinite loop. If the array contains the key more than once, any one of
+   * them may be found. Note: although the specification allows for an infinite
+   * loop if the array is unsorted, it will not happen in this implementation.
+   *
+   * @param a the array to search (must be sorted)
+   * @param low the lowest index to search from.
+   * @param hi the highest index to search to.
+   * @param key the value to search for
+   * @return the index at which the key was found, or -n-1 if it was not
+   *         found, where n is the index of the first value higher than key or
+   *         a.length if there is no such value.
+   * @throws IllegalArgumentException if <code>low > hi</code>
+   * @throws ArrayIndexOutOfBoundsException if <code>low < 0</code> or
+   *                                        <code>hi > a.length</code>.
+   */
+  public static int binarySearch(short[] a, int low, int hi, short key)
+  {
+    if (low > hi)
+      throw new IllegalArgumentException("The start index is higher than " +
+					 "the finish index.");
+    if (low < 0 || hi > a.length)
+      throw new ArrayIndexOutOfBoundsException("One of the indices is out " +
+					       "of bounds.");
     int mid = 0;
     while (low <= hi)
       {
@@ -194,8 +284,38 @@ public class Arrays
    */
   public static int binarySearch(int[] a, int key)
   {
-    int low = 0;
-    int hi = a.length - 1;
+    if (a.length == 0)
+      return -1;
+    return binarySearch(a, 0, a.length - 1, key);
+  }
+
+  /**
+   * Perform a binary search of a range of an integer array for a key. The range
+   * must be sorted (as by the <code>sort(int[], int, int)</code> method) -
+   * if it is not, the behaviour of this method is undefined, and may be an
+   * infinite loop. If the array contains the key more than once, any one of
+   * them may be found. Note: although the specification allows for an infinite
+   * loop if the array is unsorted, it will not happen in this implementation.
+   *
+   * @param a the array to search (must be sorted)
+   * @param low the lowest index to search from.
+   * @param hi the highest index to search to.
+   * @param key the value to search for
+   * @return the index at which the key was found, or -n-1 if it was not
+   *         found, where n is the index of the first value higher than key or
+   *         a.length if there is no such value.
+   * @throws IllegalArgumentException if <code>low > hi</code>
+   * @throws ArrayIndexOutOfBoundsException if <code>low < 0</code> or
+   *                                        <code>hi > a.length</code>.
+   */
+  public static int binarySearch(int[] a, int low, int hi, int key)
+  {
+    if (low > hi)
+      throw new IllegalArgumentException("The start index is higher than " +
+					 "the finish index.");
+    if (low < 0 || hi > a.length)
+      throw new ArrayIndexOutOfBoundsException("One of the indices is out " +
+					       "of bounds.");
     int mid = 0;
     while (low <= hi)
       {
@@ -228,8 +348,38 @@ public class Arrays
    */
   public static int binarySearch(long[] a, long key)
   {
-    int low = 0;
-    int hi = a.length - 1;
+    if (a.length == 0)
+      return -1;
+    return binarySearch(a, 0, a.length - 1, key);
+  }
+
+  /**
+   * Perform a binary search of a range of a long array for a key. The range
+   * must be sorted (as by the <code>sort(long[], int, int)</code> method) -
+   * if it is not, the behaviour of this method is undefined, and may be an
+   * infinite loop. If the array contains the key more than once, any one of
+   * them may be found. Note: although the specification allows for an infinite
+   * loop if the array is unsorted, it will not happen in this implementation.
+   *
+   * @param a the array to search (must be sorted)
+   * @param low the lowest index to search from.
+   * @param hi the highest index to search to.
+   * @param key the value to search for
+   * @return the index at which the key was found, or -n-1 if it was not
+   *         found, where n is the index of the first value higher than key or
+   *         a.length if there is no such value.
+   * @throws IllegalArgumentException if <code>low > hi</code>
+   * @throws ArrayIndexOutOfBoundsException if <code>low < 0</code> or
+   *                                        <code>hi > a.length</code>.
+   */
+  public static int binarySearch(long[] a, int low, int hi, long key)
+  {
+    if (low > hi)
+      throw new IllegalArgumentException("The start index is higher than " +
+					 "the finish index.");
+    if (low < 0 || hi > a.length)
+      throw new ArrayIndexOutOfBoundsException("One of the indices is out " +
+					       "of bounds.");
     int mid = 0;
     while (low <= hi)
       {
@@ -262,9 +412,39 @@ public class Arrays
    */
   public static int binarySearch(float[] a, float key)
   {
+    if (a.length == 0)
+      return -1;
+    return binarySearch(a, 0, a.length - 1, key);
+  }
+
+  /**
+   * Perform a binary search of a range of a float array for a key. The range
+   * must be sorted (as by the <code>sort(float[], int, int)</code> method) -
+   * if it is not, the behaviour of this method is undefined, and may be an
+   * infinite loop. If the array contains the key more than once, any one of
+   * them may be found. Note: although the specification allows for an infinite
+   * loop if the array is unsorted, it will not happen in this implementation.
+   *
+   * @param a the array to search (must be sorted)
+   * @param low the lowest index to search from.
+   * @param hi the highest index to search to.
+   * @param key the value to search for
+   * @return the index at which the key was found, or -n-1 if it was not
+   *         found, where n is the index of the first value higher than key or
+   *         a.length if there is no such value.
+   * @throws IllegalArgumentException if <code>low > hi</code>
+   * @throws ArrayIndexOutOfBoundsException if <code>low < 0</code> or
+   *                                        <code>hi > a.length</code>.
+   */
+  public static int binarySearch(float[] a, int low, int hi, float key)
+  {
+    if (low > hi)
+      throw new IllegalArgumentException("The start index is higher than " +
+					 "the finish index.");
+    if (low < 0 || hi > a.length)
+      throw new ArrayIndexOutOfBoundsException("One of the indices is out " +
+					       "of bounds.");
     // Must use Float.compare to take into account NaN, +-0.
-    int low = 0;
-    int hi = a.length - 1;
     int mid = 0;
     while (low <= hi)
       {
@@ -297,9 +477,39 @@ public class Arrays
    */
   public static int binarySearch(double[] a, double key)
   {
+    if (a.length == 0)
+      return -1;
+    return binarySearch(a, 0, a.length - 1, key);
+  }
+
+  /**
+   * Perform a binary search of a range of a double array for a key. The range
+   * must be sorted (as by the <code>sort(double[], int, int)</code> method) -
+   * if it is not, the behaviour of this method is undefined, and may be an
+   * infinite loop. If the array contains the key more than once, any one of
+   * them may be found. Note: although the specification allows for an infinite
+   * loop if the array is unsorted, it will not happen in this implementation.
+   *
+   * @param a the array to search (must be sorted)
+   * @param low the lowest index to search from.
+   * @param hi the highest index to search to.
+   * @param key the value to search for
+   * @return the index at which the key was found, or -n-1 if it was not
+   *         found, where n is the index of the first value higher than key or
+   *         a.length if there is no such value.
+   * @throws IllegalArgumentException if <code>low > hi</code>
+   * @throws ArrayIndexOutOfBoundsException if <code>low < 0</code> or
+   *                                        <code>hi > a.length</code>.
+   */
+  public static int binarySearch(double[] a, int low, int hi, double key)
+  {
+    if (low > hi)
+      throw new IllegalArgumentException("The start index is higher than " +
+					 "the finish index.");
+    if (low < 0 || hi > a.length)
+      throw new ArrayIndexOutOfBoundsException("One of the indices is out " +
+					       "of bounds.");
     // Must use Double.compare to take into account NaN, +-0.
-    int low = 0;
-    int hi = a.length - 1;
     int mid = 0;
     while (low <= hi)
       {
@@ -337,7 +547,30 @@ public class Arrays
    */
   public static int binarySearch(Object[] a, Object key)
   {
+    if (a.length == 0)
+      return -1;
     return binarySearch(a, key, null);
+  }
+
+  /**
+   * Perform a binary search of a range of an Object array for a key. The range
+   * must be sorted (as by the <code>sort(Object[], int, int)</code> method) -
+   * if it is not, the behaviour of this method is undefined, and may be an
+   * infinite loop. If the array contains the key more than once, any one of
+   * them may be found. Note: although the specification allows for an infinite
+   * loop if the array is unsorted, it will not happen in this implementation.
+   *
+   * @param a the array to search (must be sorted)
+   * @param low the lowest index to search from.
+   * @param hi the highest index to search to.
+   * @param key the value to search for
+   * @return the index at which the key was found, or -n-1 if it was not
+   *         found, where n is the index of the first value higher than key or
+   *         a.length if there is no such value.
+   */
+  public static int binarySearch(Object[] a, int low, int hi, Object key)
+  {
+    return binarySearch(a, low, hi, key, null);
   }
 
   /**
@@ -362,10 +595,46 @@ public class Arrays
    * @throws NullPointerException if a null element is compared with natural
    *         ordering (only possible when c is null)
    */
-  public static int binarySearch(Object[] a, Object key, Comparator c)
+  public static <T> int binarySearch(T[] a, T key, Comparator<? super T> c)
   {
-    int low = 0;
-    int hi = a.length - 1;
+    if (a.length == 0)
+      return -1;
+    return binarySearch(a, 0, a.length - 1, key, c);
+  }
+
+  /**
+   * Perform a binary search of a range of an Object array for a key using
+   * a {@link Comparator}. The range must be sorted (as by the
+   * <code>sort(Object[], int, int)</code> method) - if it is not, the
+   * behaviour of this method is undefined, and may be an infinite loop. If
+   * the array contains the key more than once, any one of them may be found.
+   * Note: although the specification allows for an infinite loop if the array
+   * is unsorted, it will not happen in this implementation.
+   *
+   * @param a the array to search (must be sorted)
+   * @param low the lowest index to search from.
+   * @param hi the highest index to search to.
+   * @param key the value to search for
+   * @param c the comparator by which the array is sorted; or null to
+   *        use the elements' natural order
+   * @return the index at which the key was found, or -n-1 if it was not
+   *         found, where n is the index of the first value higher than key or
+   *         a.length if there is no such value.
+   * @throws ClassCastException if key could not be compared with one of the
+   *         elements of a
+   * @throws IllegalArgumentException if <code>low > hi</code>
+   * @throws ArrayIndexOutOfBoundsException if <code>low < 0</code> or
+   *                                        <code>hi > a.length</code>.
+   */
+  public static <T> int binarySearch(T[] a, int low, int hi, T key,
+				     Comparator<? super T> c)
+  {
+    if (low > hi)
+      throw new IllegalArgumentException("The start index is higher than " +
+					 "the finish index.");
+    if (low < 0 || hi > a.length)
+      throw new ArrayIndexOutOfBoundsException("One of the indices is out " +
+					       "of bounds.");
     int mid = 0;
     while (low <= hi)
       {
@@ -1040,7 +1309,7 @@ public class Arrays
       }
 
     // Determine a good median element.
-    int mid = count / 2;
+    int mid = from + count / 2;
     int lo = from;
     int hi = from + count - 1;
 
@@ -1204,7 +1473,7 @@ public class Arrays
       }
 
     // Determine a good median element.
-    int mid = count / 2;
+    int mid = from + count / 2;
     int lo = from;
     int hi = from + count - 1;
 
@@ -1368,7 +1637,7 @@ public class Arrays
       }
 
     // Determine a good median element.
-    int mid = count / 2;
+    int mid = from + count / 2;
     int lo = from;
     int hi = from + count - 1;
 
@@ -1544,7 +1813,7 @@ public class Arrays
       }
 
     // Determine a good median element.
-    int mid = count / 2;
+    int mid = from + count / 2;
     int lo = from;
     int hi = from + count - 1;
 
@@ -1720,7 +1989,7 @@ public class Arrays
       }
 
     // Determine a good median element.
-    int mid = count / 2;
+    int mid = from + count / 2;
     int lo = from;
     int hi = from + count - 1;
 
@@ -1890,7 +2159,7 @@ public class Arrays
       }
 
     // Determine a good median element.
-    int mid = count / 2;
+    int mid = from + count / 2;
     int lo = from;
     int hi = from + count - 1;
 
@@ -2060,7 +2329,7 @@ public class Arrays
       }
 
     // Determine a good median element.
-    int mid = count / 2;
+    int mid = from + count / 2;
     int lo = from;
     int hi = from + count - 1;
 
@@ -2166,7 +2435,7 @@ public class Arrays
    * @throws NullPointerException if a null element is compared with natural
    *         ordering (only possible when c is null)
    */
-  public static void sort(Object[] a, Comparator c)
+  public static <T> void sort(T[] a, Comparator<? super T> c)
   {
     sort(a, 0, a.length, c);
   }
@@ -2216,7 +2485,8 @@ public class Arrays
    * @throws NullPointerException if a null element is compared with natural
    *         ordering (only possible when c is null)
    */
-  public static void sort(Object[] a, int fromIndex, int toIndex, Comparator c)
+  public static <T> void sort(T[] a, int fromIndex, int toIndex,
+			      Comparator<? super T> c)
   {
     if (fromIndex > toIndex)
       throw new IllegalArgumentException("fromIndex " + fromIndex
@@ -2238,7 +2508,7 @@ public class Arrays
               {
                 // not already sorted
                 int j = i;
-                Object elem = a[j];
+                T elem = a[j];
                 do
                   {
                     a[j] = a[j - 1];
@@ -2256,9 +2526,9 @@ public class Arrays
     if (len <= 6)
       return;
 
-    Object[] src = a;
-    Object[] dest = new Object[len];
-    Object[] t = null; // t is used for swapping src and dest
+    T[] src = a;
+    T[] dest = (T[]) new Object[len];
+    T[] t = null; // t is used for swapping src and dest
 
     // The difference of the fromIndex of the src and dest array.
     int srcDestDiff = -fromIndex;
@@ -2352,7 +2622,7 @@ public class Arrays
    * @see RandomAccess
    * @see Arrays.ArrayList
    */
-  public static List asList(final Object[] a)
+  public static <T> List<T> asList(final T... a)
   {
     return new Arrays.ArrayList(a);
   }
@@ -2549,11 +2819,10 @@ public class Arrays
   }
 
   /** 
-   * Returns the hashcode of an array of integer numbers.  If two arrays
+   * Returns the hashcode of an array of objects.  If two arrays
    * are equal, according to <code>equals()</code>, they should have the
    * same hashcode.  The hashcode returned by the method is equal to that
-   * obtained by the corresponding <code>List</code> object.  This has the same
-   * data, but represents ints in their wrapper class, <code>Integer</code>.
+   * obtained by the corresponding <code>List</code> object.  
    * For <code>null</code>, 0 is returned.
    *
    * @param v an array of integer numbers for which the hash code should be
@@ -2574,7 +2843,6 @@ public class Arrays
     return result;
   }
 
-  /** @since 1.5 */
   public static int deepHashCode(Object[] v)
   {
     if (v == null)
@@ -2917,7 +3185,7 @@ public class Arrays
    * @author Eric Blake (ebb9@email.byu.edu)
    * @status updated to 1.4
    */
-  private static final class ArrayList extends AbstractList
+  private static final class ArrayList<E> extends AbstractList<E>
     implements Serializable, RandomAccess
   {
     // We override the necessary methods, plus others which will be much
@@ -2932,14 +3200,14 @@ public class Arrays
      * The array we are viewing.
      * @serial the array
      */
-    private final Object[] a;
+    private final E[] a;
 
     /**
      * Construct a list view of the array.
      * @param a the array to view
      * @throws NullPointerException if a is null
      */
-    ArrayList(Object[] a)
+    ArrayList(E[] a)
     {
       // We have to explicitly check.
       if (a == null)
@@ -2954,7 +3222,7 @@ public class Arrays
      * @param index The index to retrieve an object from.
      * @return The object at the array index specified.
      */ 
-    public Object get(int index)
+    public E get(int index)
     {
       return a[index];
     }
@@ -2977,9 +3245,9 @@ public class Arrays
      * @param element The new object.
      * @return The object replaced by this operation.
      */
-    public Object set(int index, Object element)
+    public E set(int index, E element)
     {
-      Object old = a[index];
+      E old = a[index];
       a[index] = element;
       return old;
     }
@@ -3050,17 +3318,715 @@ public class Arrays
      * @return The array containing the objects in this list,
      *         which may or may not be == to array.
      */
-    public Object[] toArray(Object[] array)
+    public <T> T[] toArray(T[] array)
     {
       int size = a.length;
       if (array.length < size)
-        array = (Object[])
-          Array.newInstance(array.getClass().getComponentType(), size);
+        array = (T[]) Array.newInstance(array.getClass().getComponentType(),
+					size);
       else if (array.length > size)
         array[size] = null;
 
       System.arraycopy(a, 0, array, 0, size);
       return array;
     }
+  }
+
+  /**
+   * Returns a copy of the supplied array, truncating or padding as
+   * necessary with <code>false</code> to obtain the specified length.
+   * Indices that are valid for both arrays will return the same value.
+   * Indices that only exist in the returned array (due to the new length
+   * being greater than the original length) will return <code>false</code>.
+   * This is equivalent to calling
+   * <code>copyOfRange(original, 0, newLength)</code>.
+   *
+   * @param original the original array to be copied.
+   * @param newLength the length of the returned array.
+   * @return a copy of the original array, truncated or padded with
+   *         <code>false</code> to obtain the required length.
+   * @throws NegativeArraySizeException if <code>newLength</code> is negative.
+   * @throws NullPointerException if <code>original</code> is <code>null</code>.
+   * @since 1.6
+   * @see #copyOfRange(boolean[],int,int)
+   */
+  public static boolean[] copyOf(boolean[] original, int newLength)
+  {
+    if (newLength < 0)
+      throw new NegativeArraySizeException("The array size is negative.");
+    return copyOfRange(original, 0, newLength);
+  }
+
+  /**
+   * Copies the specified range of the supplied array to a new
+   * array, padding as necessary with <code>false</code>
+   * if <code>to</code> is greater than the length of the original
+   * array.  <code>from</code> must be in the range zero to
+   * <code>original.length</code> and can not be greater than
+   * <code>to</code>.  The initial element of the
+   * returned array will be equal to <code>original[from]</code>,
+   * except where <code>from</code> is equal to <code>to</code>
+   * (where a zero-length array will be returned) or <code>
+   * <code>from</code> is equal to <code>original.length</code>
+   * (where an array padded with <code>false</code> will be
+   * returned).  The returned array is always of length
+   * <code>to - from</code>.
+   *
+   * @param original the array from which to copy.
+   * @param from the initial index of the range, inclusive.
+   * @param to the final index of the range, exclusive.
+   * @return a copy of the specified range, with padding to
+   *         obtain the required length.
+   * @throws ArrayIndexOutOfBoundsException if <code>from < 0</code>
+   *                                        or <code>from > original.length</code>
+   * @throws IllegalArgumentException if <code>from > to</code>
+   * @throws NullPointerException if <code>original</code> is <code>null</code>.
+   * @since 1.6
+   * @see #copyOf(boolean[],int)
+   */
+  public static boolean[] copyOfRange(boolean[] original, int from, int to)
+  {
+    if (from > to)
+      throw new IllegalArgumentException("The initial index is after " +
+					 "the final index.");
+    boolean[] newArray = new boolean[to - from];
+    if (to > original.length)
+      {
+	System.arraycopy(original, from, newArray, 0,
+			 original.length - from);
+	fill(newArray, original.length, newArray.length, false);
+      }
+    else
+      System.arraycopy(original, from, newArray, 0, to - from);
+    return newArray;
+  }
+
+  /**
+   * Returns a copy of the supplied array, truncating or padding as
+   * necessary with <code>(byte)0</code> to obtain the specified length.
+   * Indices that are valid for both arrays will return the same value.
+   * Indices that only exist in the returned array (due to the new length
+   * being greater than the original length) will return <code>(byte)0</code>.
+   * This is equivalent to calling
+   * <code>copyOfRange(original, 0, newLength)</code>.
+   *
+   * @param original the original array to be copied.
+   * @param newLength the length of the returned array.
+   * @return a copy of the original array, truncated or padded with
+   *         <code>(byte)0</code> to obtain the required length.
+   * @throws NegativeArraySizeException if <code>newLength</code> is negative.
+   * @throws NullPointerException if <code>original</code> is <code>null</code>.
+   * @since 1.6
+   * @see #copyOfRange(byte[],int,int)
+   */
+  public static byte[] copyOf(byte[] original, int newLength)
+  {
+    if (newLength < 0)
+      throw new NegativeArraySizeException("The array size is negative.");
+    return copyOfRange(original, 0, newLength);
+  }
+
+  /**
+   * Copies the specified range of the supplied array to a new
+   * array, padding as necessary with <code>(byte)0</code>
+   * if <code>to</code> is greater than the length of the original
+   * array.  <code>from</code> must be in the range zero to
+   * <code>original.length</code> and can not be greater than
+   * <code>to</code>.  The initial element of the
+   * returned array will be equal to <code>original[from]</code>,
+   * except where <code>from</code> is equal to <code>to</code>
+   * (where a zero-length array will be returned) or <code>
+   * <code>from</code> is equal to <code>original.length</code>
+   * (where an array padded with <code>(byte)0</code> will be
+   * returned).  The returned array is always of length
+   * <code>to - from</code>.
+   *
+   * @param original the array from which to copy.
+   * @param from the initial index of the range, inclusive.
+   * @param to the final index of the range, exclusive.
+   * @return a copy of the specified range, with padding to
+   *         obtain the required length.
+   * @throws ArrayIndexOutOfBoundsException if <code>from < 0</code>
+   *                                        or <code>from > original.length</code>
+   * @throws IllegalArgumentException if <code>from > to</code>
+   * @throws NullPointerException if <code>original</code> is <code>null</code>.
+   * @since 1.6
+   * @see #copyOf(byte[],int)
+   */
+  public static byte[] copyOfRange(byte[] original, int from, int to)
+  {
+    if (from > to)
+      throw new IllegalArgumentException("The initial index is after " +
+					 "the final index.");
+    byte[] newArray = new byte[to - from];
+    if (to > original.length)
+      {
+	System.arraycopy(original, from, newArray, 0,
+			 original.length - from);
+	fill(newArray, original.length, newArray.length, (byte)0);
+      }
+    else
+      System.arraycopy(original, from, newArray, 0, to - from);
+    return newArray;
+  }
+
+  /**
+   * Returns a copy of the supplied array, truncating or padding as
+   * necessary with <code>'\0'</code> to obtain the specified length.
+   * Indices that are valid for both arrays will return the same value.
+   * Indices that only exist in the returned array (due to the new length
+   * being greater than the original length) will return <code>'\0'</code>.
+   * This is equivalent to calling
+   * <code>copyOfRange(original, 0, newLength)</code>.
+   *
+   * @param original the original array to be copied.
+   * @param newLength the length of the returned array.
+   * @return a copy of the original array, truncated or padded with
+   *         <code>'\0'</code> to obtain the required length.
+   * @throws NegativeArraySizeException if <code>newLength</code> is negative.
+   * @throws NullPointerException if <code>original</code> is <code>null</code>.
+   * @since 1.6
+   * @see #copyOfRange(char[],int,int)
+   */
+  public static char[] copyOf(char[] original, int newLength)
+  {
+    if (newLength < 0)
+      throw new NegativeArraySizeException("The array size is negative.");
+    return copyOfRange(original, 0, newLength);
+  }
+
+  /**
+   * Copies the specified range of the supplied array to a new
+   * array, padding as necessary with <code>'\0'</code>
+   * if <code>to</code> is greater than the length of the original
+   * array.  <code>from</code> must be in the range zero to
+   * <code>original.length</code> and can not be greater than
+   * <code>to</code>.  The initial element of the
+   * returned array will be equal to <code>original[from]</code>,
+   * except where <code>from</code> is equal to <code>to</code>
+   * (where a zero-length array will be returned) or <code>
+   * <code>from</code> is equal to <code>original.length</code>
+   * (where an array padded with <code>'\0'</code> will be
+   * returned).  The returned array is always of length
+   * <code>to - from</code>.
+   *
+   * @param original the array from which to copy.
+   * @param from the initial index of the range, inclusive.
+   * @param to the final index of the range, exclusive.
+   * @return a copy of the specified range, with padding to
+   *         obtain the required length.
+   * @throws ArrayIndexOutOfBoundsException if <code>from < 0</code>
+   *                                        or <code>from > original.length</code>
+   * @throws IllegalArgumentException if <code>from > to</code>
+   * @throws NullPointerException if <code>original</code> is <code>null</code>.
+   * @since 1.6
+   * @see #copyOf(char[],int)
+   */
+  public static char[] copyOfRange(char[] original, int from, int to)
+  {
+    if (from > to)
+      throw new IllegalArgumentException("The initial index is after " +
+					 "the final index.");
+    char[] newArray = new char[to - from];
+    if (to > original.length)
+      {
+	System.arraycopy(original, from, newArray, 0,
+			 original.length - from);
+	fill(newArray, original.length, newArray.length, '\0');
+      }
+    else
+      System.arraycopy(original, from, newArray, 0, to - from);
+    return newArray;
+  }
+
+  /**
+   * Returns a copy of the supplied array, truncating or padding as
+   * necessary with <code>0d</code> to obtain the specified length.
+   * Indices that are valid for both arrays will return the same value.
+   * Indices that only exist in the returned array (due to the new length
+   * being greater than the original length) will return <code>0d</code>.
+   * This is equivalent to calling
+   * <code>copyOfRange(original, 0, newLength)</code>.
+   *
+   * @param original the original array to be copied.
+   * @param newLength the length of the returned array.
+   * @return a copy of the original array, truncated or padded with
+   *         <code>0d</code> to obtain the required length.
+   * @throws NegativeArraySizeException if <code>newLength</code> is negative.
+   * @throws NullPointerException if <code>original</code> is <code>null</code>.
+   * @since 1.6
+   * @see #copyOfRange(double[],int,int)
+   */
+  public static double[] copyOf(double[] original, int newLength)
+  {
+    if (newLength < 0)
+      throw new NegativeArraySizeException("The array size is negative.");
+    return copyOfRange(original, 0, newLength);
+  }
+
+  /**
+   * Copies the specified range of the supplied array to a new
+   * array, padding as necessary with <code>0d</code>
+   * if <code>to</code> is greater than the length of the original
+   * array.  <code>from</code> must be in the range zero to
+   * <code>original.length</code> and can not be greater than
+   * <code>to</code>.  The initial element of the
+   * returned array will be equal to <code>original[from]</code>,
+   * except where <code>from</code> is equal to <code>to</code>
+   * (where a zero-length array will be returned) or <code>
+   * <code>from</code> is equal to <code>original.length</code>
+   * (where an array padded with <code>0d</code> will be
+   * returned).  The returned array is always of length
+   * <code>to - from</code>.
+   *
+   * @param original the array from which to copy.
+   * @param from the initial index of the range, inclusive.
+   * @param to the final index of the range, exclusive.
+   * @return a copy of the specified range, with padding to
+   *         obtain the required length.
+   * @throws ArrayIndexOutOfBoundsException if <code>from < 0</code>
+   *                                        or <code>from > original.length</code>
+   * @throws IllegalArgumentException if <code>from > to</code>
+   * @throws NullPointerException if <code>original</code> is <code>null</code>.
+   * @since 1.6
+   * @see #copyOf(double[],int)
+   */
+  public static double[] copyOfRange(double[] original, int from, int to)
+  {
+    if (from > to)
+      throw new IllegalArgumentException("The initial index is after " +
+					 "the final index.");
+    double[] newArray = new double[to - from];
+    if (to > original.length)
+      {
+	System.arraycopy(original, from, newArray, 0,
+			 original.length - from);
+	fill(newArray, original.length, newArray.length, 0d);
+      }
+    else
+      System.arraycopy(original, from, newArray, 0, to - from);
+    return newArray;
+  }
+
+  /**
+   * Returns a copy of the supplied array, truncating or padding as
+   * necessary with <code>0f</code> to obtain the specified length.
+   * Indices that are valid for both arrays will return the same value.
+   * Indices that only exist in the returned array (due to the new length
+   * being greater than the original length) will return <code>0f</code>.
+   * This is equivalent to calling
+   * <code>copyOfRange(original, 0, newLength)</code>.
+   *
+   * @param original the original array to be copied.
+   * @param newLength the length of the returned array.
+   * @return a copy of the original array, truncated or padded with
+   *         <code>0f</code> to obtain the required length.
+   * @throws NegativeArraySizeException if <code>newLength</code> is negative.
+   * @throws NullPointerException if <code>original</code> is <code>null</code>.
+   * @since 1.6
+   * @see #copyOfRange(float[],int,int)
+   */
+  public static float[] copyOf(float[] original, int newLength)
+  {
+    if (newLength < 0)
+      throw new NegativeArraySizeException("The array size is negative.");
+    return copyOfRange(original, 0, newLength);
+  }
+
+  /**
+   * Copies the specified range of the supplied array to a new
+   * array, padding as necessary with <code>0f</code>
+   * if <code>to</code> is greater than the length of the original
+   * array.  <code>from</code> must be in the range zero to
+   * <code>original.length</code> and can not be greater than
+   * <code>to</code>.  The initial element of the
+   * returned array will be equal to <code>original[from]</code>,
+   * except where <code>from</code> is equal to <code>to</code>
+   * (where a zero-length array will be returned) or <code>
+   * <code>from</code> is equal to <code>original.length</code>
+   * (where an array padded with <code>0f</code> will be
+   * returned).  The returned array is always of length
+   * <code>to - from</code>.
+   *
+   * @param original the array from which to copy.
+   * @param from the initial index of the range, inclusive.
+   * @param to the final index of the range, exclusive.
+   * @return a copy of the specified range, with padding to
+   *         obtain the required length.
+   * @throws ArrayIndexOutOfBoundsException if <code>from < 0</code>
+   *                                        or <code>from > original.length</code>
+   * @throws IllegalArgumentException if <code>from > to</code>
+   * @throws NullPointerException if <code>original</code> is <code>null</code>.
+   * @since 1.6
+   * @see #copyOf(float[],int)
+   */
+  public static float[] copyOfRange(float[] original, int from, int to)
+  {
+    if (from > to)
+      throw new IllegalArgumentException("The initial index is after " +
+					 "the final index.");
+    float[] newArray = new float[to - from];
+    if (to > original.length)
+      {
+	System.arraycopy(original, from, newArray, 0,
+			 original.length - from);
+	fill(newArray, original.length, newArray.length, 0f);
+      }
+    else
+      System.arraycopy(original, from, newArray, 0, to - from);
+    return newArray;
+  }
+
+  /**
+   * Returns a copy of the supplied array, truncating or padding as
+   * necessary with <code>0</code> to obtain the specified length.
+   * Indices that are valid for both arrays will return the same value.
+   * Indices that only exist in the returned array (due to the new length
+   * being greater than the original length) will return <code>0</code>.
+   * This is equivalent to calling
+   * <code>copyOfRange(original, 0, newLength)</code>.
+   *
+   * @param original the original array to be copied.
+   * @param newLength the length of the returned array.
+   * @return a copy of the original array, truncated or padded with
+   *         <code>0</code> to obtain the required length.
+   * @throws NegativeArraySizeException if <code>newLength</code> is negative.
+   * @throws NullPointerException if <code>original</code> is <code>null</code>.
+   * @since 1.6
+   * @see #copyOfRange(int[],int,int)
+   */
+  public static int[] copyOf(int[] original, int newLength)
+  {
+    if (newLength < 0)
+      throw new NegativeArraySizeException("The array size is negative.");
+    return copyOfRange(original, 0, newLength);
+  }
+
+  /**
+   * Copies the specified range of the supplied array to a new
+   * array, padding as necessary with <code>0</code>
+   * if <code>to</code> is greater than the length of the original
+   * array.  <code>from</code> must be in the range zero to
+   * <code>original.length</code> and can not be greater than
+   * <code>to</code>.  The initial element of the
+   * returned array will be equal to <code>original[from]</code>,
+   * except where <code>from</code> is equal to <code>to</code>
+   * (where a zero-length array will be returned) or <code>
+   * <code>from</code> is equal to <code>original.length</code>
+   * (where an array padded with <code>0</code> will be
+   * returned).  The returned array is always of length
+   * <code>to - from</code>.
+   *
+   * @param original the array from which to copy.
+   * @param from the initial index of the range, inclusive.
+   * @param to the final index of the range, exclusive.
+   * @return a copy of the specified range, with padding to
+   *         obtain the required length.
+   * @throws ArrayIndexOutOfBoundsException if <code>from < 0</code>
+   *                                        or <code>from > original.length</code>
+   * @throws IllegalArgumentException if <code>from > to</code>
+   * @throws NullPointerException if <code>original</code> is <code>null</code>.
+   * @since 1.6
+   * @see #copyOf(int[],int)
+   */
+  public static int[] copyOfRange(int[] original, int from, int to)
+  {
+    if (from > to)
+      throw new IllegalArgumentException("The initial index is after " +
+					 "the final index.");
+    int[] newArray = new int[to - from];
+    if (to > original.length)
+      {
+	System.arraycopy(original, from, newArray, 0,
+			 original.length - from);
+	fill(newArray, original.length, newArray.length, 0);
+      }
+    else
+      System.arraycopy(original, from, newArray, 0, to - from);
+    return newArray;
+  }
+
+  /**
+   * Returns a copy of the supplied array, truncating or padding as
+   * necessary with <code>0L</code> to obtain the specified length.
+   * Indices that are valid for both arrays will return the same value.
+   * Indices that only exist in the returned array (due to the new length
+   * being greater than the original length) will return <code>0L</code>.
+   * This is equivalent to calling
+   * <code>copyOfRange(original, 0, newLength)</code>.
+   *
+   * @param original the original array to be copied.
+   * @param newLength the length of the returned array.
+   * @return a copy of the original array, truncated or padded with
+   *         <code>0L</code> to obtain the required length.
+   * @throws NegativeArraySizeException if <code>newLength</code> is negative.
+   * @throws NullPointerException if <code>original</code> is <code>null</code>.
+   * @since 1.6
+   * @see #copyOfRange(long[],int,int)
+   */
+  public static long[] copyOf(long[] original, int newLength)
+  {
+    if (newLength < 0)
+      throw new NegativeArraySizeException("The array size is negative.");
+    return copyOfRange(original, 0, newLength);
+  }
+
+  /**
+   * Copies the specified range of the supplied array to a new
+   * array, padding as necessary with <code>0L</code>
+   * if <code>to</code> is greater than the length of the original
+   * array.  <code>from</code> must be in the range zero to
+   * <code>original.length</code> and can not be greater than
+   * <code>to</code>.  The initial element of the
+   * returned array will be equal to <code>original[from]</code>,
+   * except where <code>from</code> is equal to <code>to</code>
+   * (where a zero-length array will be returned) or <code>
+   * <code>from</code> is equal to <code>original.length</code>
+   * (where an array padded with <code>0L</code> will be
+   * returned).  The returned array is always of length
+   * <code>to - from</code>.
+   *
+   * @param original the array from which to copy.
+   * @param from the initial index of the range, inclusive.
+   * @param to the final index of the range, exclusive.
+   * @return a copy of the specified range, with padding to
+   *         obtain the required length.
+   * @throws ArrayIndexOutOfBoundsException if <code>from < 0</code>
+   *                                        or <code>from > original.length</code>
+   * @throws IllegalArgumentException if <code>from > to</code>
+   * @throws NullPointerException if <code>original</code> is <code>null</code>.
+   * @since 1.6
+   * @see #copyOf(long[],int)
+   */
+  public static long[] copyOfRange(long[] original, int from, int to)
+  {
+    if (from > to)
+      throw new IllegalArgumentException("The initial index is after " +
+					 "the final index.");
+    long[] newArray = new long[to - from];
+    if (to > original.length)
+      {
+	System.arraycopy(original, from, newArray, 0,
+			 original.length - from);
+	fill(newArray, original.length, newArray.length, 0L);
+      }
+    else
+      System.arraycopy(original, from, newArray, 0, to - from);
+    return newArray;
+  }
+
+  /**
+   * Returns a copy of the supplied array, truncating or padding as
+   * necessary with <code>(short)0</code> to obtain the specified length.
+   * Indices that are valid for both arrays will return the same value.
+   * Indices that only exist in the returned array (due to the new length
+   * being greater than the original length) will return <code>(short)0</code>.
+   * This is equivalent to calling
+   * <code>copyOfRange(original, 0, newLength)</code>.
+   *
+   * @param original the original array to be copied.
+   * @param newLength the length of the returned array.
+   * @return a copy of the original array, truncated or padded with
+   *         <code>(short)0</code> to obtain the required length.
+   * @throws NegativeArraySizeException if <code>newLength</code> is negative.
+   * @throws NullPointerException if <code>original</code> is <code>null</code>.
+   * @since 1.6
+   * @see #copyOfRange(short[],int,int)
+   */
+  public static short[] copyOf(short[] original, int newLength)
+  {
+    if (newLength < 0)
+      throw new NegativeArraySizeException("The array size is negative.");
+    return copyOfRange(original, 0, newLength);
+  }
+
+  /**
+   * Copies the specified range of the supplied array to a new
+   * array, padding as necessary with <code>(short)0</code>
+   * if <code>to</code> is greater than the length of the original
+   * array.  <code>from</code> must be in the range zero to
+   * <code>original.length</code> and can not be greater than
+   * <code>to</code>.  The initial element of the
+   * returned array will be equal to <code>original[from]</code>,
+   * except where <code>from</code> is equal to <code>to</code>
+   * (where a zero-length array will be returned) or <code>
+   * <code>from</code> is equal to <code>original.length</code>
+   * (where an array padded with <code>(short)0</code> will be
+   * returned).  The returned array is always of length
+   * <code>to - from</code>.
+   *
+   * @param original the array from which to copy.
+   * @param from the initial index of the range, inclusive.
+   * @param to the final index of the range, exclusive.
+   * @return a copy of the specified range, with padding to
+   *         obtain the required length.
+   * @throws ArrayIndexOutOfBoundsException if <code>from < 0</code>
+   *                                        or <code>from > original.length</code>
+   * @throws IllegalArgumentException if <code>from > to</code>
+   * @throws NullPointerException if <code>original</code> is <code>null</code>.
+   * @since 1.6
+   * @see #copyOf(short[],int)
+   */
+  public static short[] copyOfRange(short[] original, int from, int to)
+  {
+    if (from > to)
+      throw new IllegalArgumentException("The initial index is after " +
+					 "the final index.");
+    short[] newArray = new short[to - from];
+    if (to > original.length)
+      {
+	System.arraycopy(original, from, newArray, 0,
+			 original.length - from);
+	fill(newArray, original.length, newArray.length, (short)0);
+      }
+    else
+      System.arraycopy(original, from, newArray, 0, to - from);
+    return newArray;
+  }
+
+  /**
+   * Returns a copy of the supplied array, truncating or padding as
+   * necessary with <code>null</code> to obtain the specified length.
+   * Indices that are valid for both arrays will return the same value.
+   * Indices that only exist in the returned array (due to the new length
+   * being greater than the original length) will return <code>null</code>.
+   * This is equivalent to calling
+   * <code>copyOfRange(original, 0, newLength)</code>.
+   *
+   * @param original the original array to be copied.
+   * @param newLength the length of the returned array.
+   * @return a copy of the original array, truncated or padded with
+   *         <code>null</code> to obtain the required length.
+   * @throws NegativeArraySizeException if <code>newLength</code> is negative.
+   * @throws NullPointerException if <code>original</code> is <code>null</code>.
+   * @since 1.6
+   * @see #copyOfRange(T[],int,int)
+   */
+  public static <T> T[] copyOf(T[] original, int newLength)
+  {
+    if (newLength < 0)
+      throw new NegativeArraySizeException("The array size is negative.");
+    return copyOfRange(original, 0, newLength);
+  }
+
+  /**
+   * Copies the specified range of the supplied array to a new
+   * array, padding as necessary with <code>null</code>
+   * if <code>to</code> is greater than the length of the original
+   * array.  <code>from</code> must be in the range zero to
+   * <code>original.length</code> and can not be greater than
+   * <code>to</code>.  The initial element of the
+   * returned array will be equal to <code>original[from]</code>,
+   * except where <code>from</code> is equal to <code>to</code>
+   * (where a zero-length array will be returned) or <code>
+   * <code>from</code> is equal to <code>original.length</code>
+   * (where an array padded with <code>null</code> will be
+   * returned).  The returned array is always of length
+   * <code>to - from</code>.
+   *
+   * @param original the array from which to copy.
+   * @param from the initial index of the range, inclusive.
+   * @param to the final index of the range, exclusive.
+   * @return a copy of the specified range, with padding to
+   *         obtain the required length.
+   * @throws ArrayIndexOutOfBoundsException if <code>from < 0</code>
+   *                                        or <code>from > original.length</code>
+   * @throws IllegalArgumentException if <code>from > to</code>
+   * @throws NullPointerException if <code>original</code> is <code>null</code>.
+   * @since 1.6
+   * @see #copyOf(T[],int)
+   */
+  public static <T> T[] copyOfRange(T[] original, int from, int to)
+  {
+    if (from > to)
+      throw new IllegalArgumentException("The initial index is after " +
+					 "the final index.");
+    Class elemType = original.getClass().getComponentType();
+    T[] newArray = (T[]) Array.newInstance(elemType, to - from);
+    if (to > original.length)
+      {
+	System.arraycopy(original, from, newArray, 0,
+			 original.length - from);
+	fill(newArray, original.length, newArray.length, null);
+      }
+    else
+      System.arraycopy(original, from, newArray, 0, to - from);
+    return newArray;
+  }
+
+  /**
+   * Returns a copy of the supplied array, truncating or padding as
+   * necessary with <code>null</code> to obtain the specified length.
+   * Indices that are valid for both arrays will return the same value.
+   * Indices that only exist in the returned array (due to the new length
+   * being greater than the original length) will return <code>null</code>.
+   * This is equivalent to calling
+   * <code>copyOfRange(original, 0, newLength, newType)</code>.  The returned
+   * array will be of the specified type, <code>newType</code>.
+   *
+   * @param original the original array to be copied.
+   * @param newLength the length of the returned array.
+   * @param newType the type of the returned array.
+   * @return a copy of the original array, truncated or padded with
+   *         <code>null</code> to obtain the required length.
+   * @throws NegativeArraySizeException if <code>newLength</code> is negative.
+   * @throws NullPointerException if <code>original</code> is <code>null</code>.
+   * @since 1.6
+   * @see #copyOfRange(U[],int,int,Class)
+   */
+  public static <T,U> T[] copyOf(U[] original, int newLength,
+				 Class<? extends T[]> newType)
+  {
+    if (newLength < 0)
+      throw new NegativeArraySizeException("The array size is negative.");
+    return copyOfRange(original, 0, newLength, newType);
+  }
+
+  /**
+   * Copies the specified range of the supplied array to a new
+   * array, padding as necessary with <code>null</code>
+   * if <code>to</code> is greater than the length of the original
+   * array.  <code>from</code> must be in the range zero to
+   * <code>original.length</code> and can not be greater than
+   * <code>to</code>.  The initial element of the
+   * returned array will be equal to <code>original[from]</code>,
+   * except where <code>from</code> is equal to <code>to</code>
+   * (where a zero-length array will be returned) or <code>
+   * <code>from</code> is equal to <code>original.length</code>
+   * (where an array padded with <code>null</code> will be
+   * returned).  The returned array is always of length
+   * <code>to - from</code> and will be of the specified type,
+   * <code>newType</code>.
+   *
+   * @param original the array from which to copy.
+   * @param from the initial index of the range, inclusive.
+   * @param to the final index of the range, exclusive.
+   * @param newType the type of the returned array.
+   * @return a copy of the specified range, with padding to
+   *         obtain the required length.
+   * @throws ArrayIndexOutOfBoundsException if <code>from < 0</code>
+   *                                        or <code>from > original.length</code>
+   * @throws IllegalArgumentException if <code>from > to</code>
+   * @throws NullPointerException if <code>original</code> is <code>null</code>.
+   * @since 1.6
+   * @see #copyOf(T[],int)
+   */
+  public static <T,U> T[] copyOfRange(U[] original, int from, int to,
+				      Class<? extends T[]> newType)
+  {
+    if (from > to)
+      throw new IllegalArgumentException("The initial index is after " +
+					 "the final index.");
+    T[] newArray = (T[]) Array.newInstance(newType.getComponentType(),
+					   to - from);
+    if (to > original.length)
+      {
+	System.arraycopy(original, from, newArray, 0,
+			 original.length - from);
+	fill(newArray, original.length, newArray.length, null);
+      }
+    else
+      System.arraycopy(original, from, newArray, 0, to - from);
+    return newArray;
   }
 }

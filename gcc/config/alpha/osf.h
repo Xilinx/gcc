@@ -60,8 +60,8 @@ along with GCC; see the file COPYING3.  If not see
    instead of PTHREAD_USE_D4 since both have the same effect and the former
    doesn't invade the users' namespace.  */
 
-#undef CPP_SUBTARGET_SPEC
-#define CPP_SUBTARGET_SPEC \
+#undef CPP_SPEC
+#define CPP_SPEC \
 "%{pthread|threads:-D_REENTRANT} %{threads:-D_PTHREAD_USE_D4}"
 
 /* Under OSF4, -p and -pg require -lprof1, and -lprof1 requires -lpdf.  */
@@ -120,7 +120,7 @@ along with GCC; see the file COPYING3.  If not see
 		%{K: -I %b.o~} \
 		%{!K: %{save-temps: -I %b.o~}} \
 		%{c:%W{o*}%{!o*:-o %b.o}}%{!c:-o %U.o} \
-		%{.s:%i} %{!.s:%g.s}}}"
+		%{,assembler:%i;:%g.s}}}"
 
 #else
 #define ASM_FINAL_SPEC "\
@@ -129,15 +129,15 @@ along with GCC; see the file COPYING3.  If not see
 		%{K: -I %b.o~} \
 		%{!K: %{save-temps: -I %b.o~}} \
 		%{c:%W{o*}%{!o*:-o %b.o}}%{!c:-o %U.o} \
-		%{.s:%i} %{!.s:%g.s}}}"
+		%{,assembler:%i;:%g.s}}}"
 
 #endif
 
-#undef SUBTARGET_EXTRA_SPECS
-#define SUBTARGET_EXTRA_SPECS { "asm_oldas", ASM_OLDAS_SPEC }
+#undef EXTRA_SPECS
+#define EXTRA_SPECS { "asm_oldas", ASM_OLDAS_SPEC }
 
 /* Indicate that we have a stamp.h to use.  */
-#ifndef CROSS_COMPILE
+#ifndef CROSS_DIRECTORY_STRUCTURE
 #define HAVE_STAMP_H 1
 #endif
 

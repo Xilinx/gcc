@@ -24,11 +24,9 @@ along with GCC; see the file COPYING3.  If not see
 
 #include "gfortran.h"
 
-/* MPFR does not have mpfr_atan2(), which needs to return the principle
-   value of atan2().  MPFR also does not have the conversion of a mpfr_t
-   to a mpz_t, so declare a function for this as well.  */
+/* MPFR also does not have the conversion of a mpfr_t to a mpz_t, so declare
+   a function for this as well.  */
 
-void arctangent2 (mpfr_t, mpfr_t, mpfr_t);
 void gfc_mpfr_to_mpz (mpz_t, mpfr_t);
 void gfc_set_model_kind (int);
 void gfc_set_model (mpfr_t);
@@ -40,10 +38,11 @@ gfc_expr *gfc_constant_result (bt, int, locus *);
    for overflow and underflow.  */
 arith gfc_range_check (gfc_expr *);
 
-int gfc_compare_expr (gfc_expr *, gfc_expr *);
+int gfc_compare_expr (gfc_expr *, gfc_expr *, gfc_intrinsic_op);
 int gfc_compare_string (gfc_expr *, gfc_expr *);
 
 /* Constant folding for gfc_expr trees.  */
+gfc_expr *gfc_parentheses (gfc_expr * op);
 gfc_expr *gfc_uplus (gfc_expr * op);
 gfc_expr *gfc_uminus (gfc_expr * op);
 gfc_expr *gfc_add (gfc_expr *, gfc_expr *);
@@ -57,12 +56,12 @@ gfc_expr *gfc_or (gfc_expr *, gfc_expr *);
 gfc_expr *gfc_not (gfc_expr *);
 gfc_expr *gfc_eqv (gfc_expr *, gfc_expr *);
 gfc_expr *gfc_neqv (gfc_expr *, gfc_expr *);
-gfc_expr *gfc_eq (gfc_expr *, gfc_expr *);
-gfc_expr *gfc_ne (gfc_expr *, gfc_expr *);
-gfc_expr *gfc_gt (gfc_expr *, gfc_expr *);
-gfc_expr *gfc_ge (gfc_expr *, gfc_expr *);
-gfc_expr *gfc_lt (gfc_expr *, gfc_expr *);
-gfc_expr *gfc_le (gfc_expr *, gfc_expr *);
+gfc_expr *gfc_eq (gfc_expr *, gfc_expr *, gfc_intrinsic_op);
+gfc_expr *gfc_ne (gfc_expr *, gfc_expr *, gfc_intrinsic_op);
+gfc_expr *gfc_gt (gfc_expr *, gfc_expr *, gfc_intrinsic_op);
+gfc_expr *gfc_ge (gfc_expr *, gfc_expr *, gfc_intrinsic_op);
+gfc_expr *gfc_lt (gfc_expr *, gfc_expr *, gfc_intrinsic_op);
+gfc_expr *gfc_le (gfc_expr *, gfc_expr *, gfc_intrinsic_op);
 
 /* Convert strings to literal constants.  */
 gfc_expr *gfc_convert_integer (const char *, int, int, locus *);

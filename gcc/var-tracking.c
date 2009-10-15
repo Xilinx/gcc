@@ -134,7 +134,9 @@ typedef struct micro_operation_def
   enum micro_operation_type type;
 
   union {
-    /* Location.  */
+    /* Location.  For MO_SET and MO_COPY, this is the SET that performs
+       the assignment, if known, otherwise it is the target of the
+       assignment.  */
     rtx loc;
 
     /* Stack adjustment.  */
@@ -218,6 +220,12 @@ typedef struct location_chain_def
 
   /* The location (REG or MEM).  */
   rtx loc;
+
+  /* The "value" stored in this location.  */
+  rtx set_src;
+
+  /* Initialized? */
+  enum var_init_status init;
 } *location_chain;
 
 /* Structure describing one part of variable.  */
@@ -251,6 +259,7 @@ typedef struct variable_def
   /* The variable parts.  */
   variable_part var_part[MAX_VAR_PARTS];
 } *variable;
+typedef const struct variable_def *const_variable;
 
 /* Hash function for DECL for VARIABLE_HTAB.  */
 #define VARIABLE_HASH_VAL(decl) (DECL_UID (decl))
@@ -296,16 +305,19 @@ static void attrs_list_copy (attrs *, attrs);
 static void attrs_list_union (attrs *, attrs);
 
 static void vars_clear (htab_t);
-static variable unshare_variable (dataflow_set *set, variable var);
+static variable unshare_variable (dataflow_set *set, variable var, 
+				  enum var_init_status);
 static int vars_copy_1 (void **, void *);
 static void vars_copy (htab_t, htab_t);
 static tree var_debug_decl (tree);
-static void var_reg_set (dataflow_set *, rtx);
-static void var_reg_delete_and_set (dataflow_set *, rtx, bool);
+static void var_reg_set (dataflow_set *, rtx, enum var_init_status, rtx);
+static void var_reg_delete_and_set (dataflow_set *, rtx, bool, 
+				    enum var_init_status, rtx);
 static void var_reg_delete (dataflow_set *, rtx, bool);
 static void var_regno_delete (dataflow_set *, int);
-static void var_mem_set (dataflow_set *, rtx);
-static void var_mem_delete_and_set (dataflow_set *, rtx, bool);
+static void var_mem_set (dataflow_set *, rtx, enum var_init_status, rtx);
+static void var_mem_delete_and_set (dataflow_set *, rtx, bool, 
+				    enum var_init_status, rtx);
 static void var_mem_delete (dataflow_set *, rtx, bool);
 
 static void dataflow_set_init (dataflow_set *, int);
@@ -326,10 +338,10 @@ static bool track_expr_p (tree);
 static bool same_variable_part_p (rtx, tree, HOST_WIDE_INT);
 static int count_uses (rtx *, void *);
 static void count_uses_1 (rtx *, void *);
-static void count_stores (rtx, rtx, void *);
+static void count_stores (rtx, const_rtx, void *);
 static int add_uses (rtx *, void *);
 static void add_uses_1 (rtx *, void *);
-static void add_stores (rtx, rtx, void *);
+static void add_stores (rtx, const_rtx, void *);
 static bool compute_bb_dataflow (basic_block);
 static void vt_find_locations (void);
 
@@ -340,8 +352,10 @@ static void dump_dataflow_set (dataflow_set *);
 static void dump_dataflow_sets (void);
 
 static void variable_was_changed (variable, htab_t);
-static void set_variable_part (dataflow_set *, rtx, tree, HOST_WIDE_INT);
-static void clobber_variable_part (dataflow_set *, rtx, tree, HOST_WIDE_INT);
+static void set_variable_part (dataflow_set *, rtx, tree, HOST_WIDE_INT, 
+			       enum var_init_status, rtx);
+static void clobber_variable_part (dataflow_set *, rtx, tree, HOST_WIDE_INT, 
+				   rtx);
 static void delete_variable_part (dataflow_set *, rtx, tree, HOST_WIDE_INT);
 static int emit_note_insn_var_location (void **, void *);
 static void emit_notes_for_changes (rtx, enum emit_note_where);
@@ -592,7 +606,7 @@ adjust_stack_reference (rtx mem, HOST_WIDE_INT adjustment)
 static hashval_t
 variable_htab_hash (const void *x)
 {
-  const variable v = (const variable) x;
+  const_variable const v = (const_variable) x;
 
   return (VARIABLE_HASH_VAL (v->decl));
 }
@@ -602,8 +616,8 @@ variable_htab_hash (const void *x)
 static int
 variable_htab_eq (const void *x, const void *y)
 {
-  const variable v = (const variable) x;
-  const tree decl = (const tree) y;
+  const_variable const v = (const_variable) x;
+  const_tree const decl = (const_tree) y;
 
   return (VARIABLE_HASH_VAL (v->decl) == VARIABLE_HASH_VAL (decl));
 }
@@ -729,7 +743,8 @@ vars_clear (htab_t vars)
 /* Return a copy of a variable VAR and insert it to dataflow set SET.  */
 
 static variable
-unshare_variable (dataflow_set *set, variable var)
+unshare_variable (dataflow_set *set, variable var, 
+		  enum var_init_status initialized)
 {
   void **slot;
   variable new_var;
@@ -754,6 +769,14 @@ unshare_variable (dataflow_set *set, variable var)
 
 	  new_lc = pool_alloc (loc_chain_pool);
 	  new_lc->next = NULL;
+	  if (node->init > initialized)
+	    new_lc->init = node->init;
+	  else
+	    new_lc->init = initialized;
+	  if (node->set_src && !(MEM_P (node->set_src)))
+	    new_lc->set_src = node->set_src;
+	  else
+	    new_lc->set_src = NULL;
 	  new_lc->loc = node->loc;
 
 	  *nextp = new_lc;
@@ -821,7 +844,8 @@ var_debug_decl (tree decl)
 /* Set the register to contain REG_EXPR (LOC), REG_OFFSET (LOC).  */
 
 static void
-var_reg_set (dataflow_set *set, rtx loc)
+var_reg_set (dataflow_set *set, rtx loc, enum var_init_status initialized, 
+	     rtx set_src)
 {
   tree decl = REG_EXPR (loc);
   HOST_WIDE_INT offset = REG_OFFSET (loc);
@@ -834,7 +858,38 @@ var_reg_set (dataflow_set *set, rtx loc)
       break;
   if (!node)
     attrs_list_insert (&set->regs[REGNO (loc)], decl, offset, loc);
-  set_variable_part (set, loc, decl, offset);
+  set_variable_part (set, loc, decl, offset, initialized, set_src);
+}
+
+static int
+get_init_value (dataflow_set *set, rtx loc, tree decl)
+{
+  void **slot;
+  variable var;
+  int i;
+  int ret_val = VAR_INIT_STATUS_UNKNOWN;
+
+  if (! flag_var_tracking_uninit)
+    return VAR_INIT_STATUS_INITIALIZED;
+
+  slot = htab_find_slot_with_hash (set->vars, decl, VARIABLE_HASH_VAL (decl),
+				   NO_INSERT);
+  if (slot)
+    {
+      var = * (variable *) slot;
+      for (i = 0; i < var->n_var_parts && ret_val == VAR_INIT_STATUS_UNKNOWN; i++)
+	{
+	  location_chain nextp;
+	  for (nextp = var->var_part[i].loc_chain; nextp; nextp = nextp->next)
+	    if (rtx_equal_p (nextp->loc, loc))
+	      {
+		ret_val = nextp->init;
+		break;
+	      }
+	}
+    }
+
+  return ret_val;
 }
 
 /* Delete current content of register LOC in dataflow set SET and set
@@ -845,7 +900,8 @@ var_reg_set (dataflow_set *set, rtx loc)
    part.  */
 
 static void
-var_reg_delete_and_set (dataflow_set *set, rtx loc, bool modify)
+var_reg_delete_and_set (dataflow_set *set, rtx loc, bool modify, 
+			enum var_init_status initialized, rtx set_src)
 {
   tree decl = REG_EXPR (loc);
   HOST_WIDE_INT offset = REG_OFFSET (loc);
@@ -853,6 +909,9 @@ var_reg_delete_and_set (dataflow_set *set, rtx loc, bool modify)
   attrs *nextp;
 
   decl = var_debug_decl (decl);
+
+  if (initialized == VAR_INIT_STATUS_UNKNOWN)
+    initialized = get_init_value (set, loc, decl);
 
   nextp = &set->regs[REGNO (loc)];
   for (node = *nextp; node; node = next)
@@ -871,8 +930,8 @@ var_reg_delete_and_set (dataflow_set *set, rtx loc, bool modify)
 	}
     }
   if (modify)
-    clobber_variable_part (set, loc, decl, offset);
-  var_reg_set (set, loc);
+    clobber_variable_part (set, loc, decl, offset, set_src);
+  var_reg_set (set, loc, initialized, set_src);
 }
 
 /* Delete current content of register LOC in dataflow set SET.  If
@@ -892,7 +951,7 @@ var_reg_delete (dataflow_set *set, rtx loc, bool clobber)
 
       decl = var_debug_decl (decl);
 
-      clobber_variable_part (set, NULL, decl, offset);
+      clobber_variable_part (set, NULL, decl, offset, NULL);
     }
 
   for (node = *reg; node; node = next)
@@ -926,14 +985,15 @@ var_regno_delete (dataflow_set *set, int regno)
    Adjust the address first if it is stack pointer based.  */
 
 static void
-var_mem_set (dataflow_set *set, rtx loc)
+var_mem_set (dataflow_set *set, rtx loc, enum var_init_status initialized, 
+	     rtx set_src)
 {
   tree decl = MEM_EXPR (loc);
   HOST_WIDE_INT offset = INT_MEM_OFFSET (loc);
 
   decl = var_debug_decl (decl);
 
-  set_variable_part (set, loc, decl, offset);
+  set_variable_part (set, loc, decl, offset, initialized, set_src);
 }
 
 /* Delete and set the location part of variable MEM_EXPR (LOC) in
@@ -944,16 +1004,20 @@ var_mem_set (dataflow_set *set, rtx loc)
    Adjust the address first if it is stack pointer based.  */
 
 static void
-var_mem_delete_and_set (dataflow_set *set, rtx loc, bool modify)
+var_mem_delete_and_set (dataflow_set *set, rtx loc, bool modify, 
+			enum var_init_status initialized, rtx set_src)
 {
   tree decl = MEM_EXPR (loc);
   HOST_WIDE_INT offset = INT_MEM_OFFSET (loc);
 
   decl = var_debug_decl (decl);
 
+  if (initialized == VAR_INIT_STATUS_UNKNOWN)
+    initialized = get_init_value (set, loc, decl);
+
   if (modify)
-    clobber_variable_part (set, NULL, decl, offset);
-  var_mem_set (set, loc);
+    clobber_variable_part (set, NULL, decl, offset, set_src);
+  var_mem_set (set, loc, initialized, set_src);
 }
 
 /* Delete the location part LOC from dataflow set SET.  If CLOBBER is
@@ -968,7 +1032,7 @@ var_mem_delete (dataflow_set *set, rtx loc, bool clobber)
 
   decl = var_debug_decl (decl);
   if (clobber)
-    clobber_variable_part (set, NULL, decl, offset);
+    clobber_variable_part (set, NULL, decl, offset, NULL);
   delete_variable_part (set, loc, decl, offset);
 }
 
@@ -1080,7 +1144,14 @@ variable_union (void **slot, void *data)
 	    }
 	}
       if (k < src->n_var_parts)
-	unshare_variable (set, src);
+	{
+	  enum var_init_status status = VAR_INIT_STATUS_UNKNOWN;
+	  
+	  if (! flag_var_tracking_uninit)
+	    status = VAR_INIT_STATUS_INITIALIZED;
+
+	  unshare_variable (set, src, status);
+	}
       else
 	*dstp = src;
 
@@ -1114,7 +1185,13 @@ variable_union (void **slot, void *data)
   gcc_assert (k <= MAX_VAR_PARTS);
 
   if (dst->refcount > 1 && dst->n_var_parts != k)
-    dst = unshare_variable (set, dst);
+    {
+      enum var_init_status status = VAR_INIT_STATUS_UNKNOWN;
+      
+      if (! flag_var_tracking_uninit)
+	status = VAR_INIT_STATUS_INITIALIZED;
+      dst = unshare_variable (set, dst, status);
+    }
 
   i = src->n_var_parts - 1;
   j = dst->n_var_parts - 1;
@@ -1147,10 +1224,14 @@ variable_union (void **slot, void *data)
 			 && REG_P (node->loc)
 			 && REGNO (node2->loc) == REGNO (node->loc))
 			|| rtx_equal_p (node2->loc, node->loc)))
-		    break;
+		    {
+		      if (node2->init < node->init)
+		        node2->init = node->init;
+		      break;
+		    }
 		}
 	      if (node || node2)
-		dst = unshare_variable (set, dst);
+		dst = unshare_variable (set, dst, VAR_INIT_STATUS_UNKNOWN);
 	    }
 
 	  src_l = 0;
@@ -1196,6 +1277,11 @@ variable_union (void **slot, void *data)
 		  /* Copy the location from SRC.  */
 		  new_node = pool_alloc (loc_chain_pool);
 		  new_node->loc = node->loc;
+		  new_node->init = node->init;
+		  if (!node->set_src || MEM_P (node->set_src))
+		    new_node->set_src = NULL;
+		  else
+		    new_node->set_src = node->set_src;
 		  vui[n].lc = new_node;
 		  vui[n].pos_src = ii;
 		  vui[n].pos_dst = src_l + dst_l;
@@ -1242,6 +1328,11 @@ variable_union (void **slot, void *data)
 
 	      new_lc = pool_alloc (loc_chain_pool);
 	      new_lc->next = NULL;
+	      new_lc->init = node->init;
+	      if (!node->set_src || MEM_P (node->set_src))
+		new_lc->set_src = NULL;
+	      else
+		new_lc->set_src = node->set_src;
 	      new_lc->loc = node->loc;
 
 	      *nextp = new_lc;
@@ -1258,6 +1349,18 @@ variable_union (void **slot, void *data)
 	dst->var_part[k].cur_loc = dst->var_part[k].loc_chain->loc;
       else
 	dst->var_part[k].cur_loc = NULL;
+    }
+
+  for (i = 0; i < src->n_var_parts && i < dst->n_var_parts; i++)
+    {
+      location_chain node, node2;
+      for (node = src->var_part[i].loc_chain; node; node = node->next)
+	for (node2 = dst->var_part[i].loc_chain; node2; node2 = node2->next)
+	  if (rtx_equal_p (node->loc, node2->loc))
+	    {
+	      if (node->init > node2->init)
+		node2->init = node->init;
+	    }
     }
 
   /* Continue traversing the hash table.  */
@@ -1542,18 +1645,6 @@ track_expr_p (tree expr)
   return 1;
 }
 
-/* Return true if OFFSET is a valid offset for a register or memory
-   access we want to track.  This is used to reject out-of-bounds
-   accesses that can cause assertions to fail later.  Note that we
-   don't reject negative offsets because they can be generated for
-   paradoxical subregs on big-endian architectures.  */
-
-static inline bool
-offset_valid_for_tracked_p (HOST_WIDE_INT offset)
-{
-  return (-MAX_VAR_PARTS < offset) && (offset < MAX_VAR_PARTS);
-}
-
 /* Determine whether a given LOC refers to the same variable part as
    EXPR+OFFSET.  */
 
@@ -1588,6 +1679,92 @@ same_variable_part_p (rtx loc, tree expr, HOST_WIDE_INT offset)
   return (expr == expr2 && offset == offset2);
 }
 
+/* LOC is a REG or MEM that we would like to track if possible.
+   If EXPR is null, we don't know what expression LOC refers to,
+   otherwise it refers to EXPR + OFFSET.  STORE_REG_P is true if
+   LOC is an lvalue register.
+
+   Return true if EXPR is nonnull and if LOC, or some lowpart of it,
+   is something we can track.  When returning true, store the mode of
+   the lowpart we can track in *MODE_OUT (if nonnull) and its offset
+   from EXPR in *OFFSET_OUT (if nonnull).  */
+
+static bool
+track_loc_p (rtx loc, tree expr, HOST_WIDE_INT offset, bool store_reg_p,
+	     enum machine_mode *mode_out, HOST_WIDE_INT *offset_out)
+{
+  enum machine_mode mode;
+
+  if (expr == NULL || !track_expr_p (expr))
+    return false;
+
+  /* If REG was a paradoxical subreg, its REG_ATTRS will describe the
+     whole subreg, but only the old inner part is really relevant.  */
+  mode = GET_MODE (loc);
+  if (REG_P (loc) && !HARD_REGISTER_NUM_P (ORIGINAL_REGNO (loc)))
+    {
+      enum machine_mode pseudo_mode;
+
+      pseudo_mode = PSEUDO_REGNO_MODE (ORIGINAL_REGNO (loc));
+      if (GET_MODE_SIZE (mode) > GET_MODE_SIZE (pseudo_mode))
+	{
+	  offset += byte_lowpart_offset (pseudo_mode, mode);
+	  mode = pseudo_mode;
+	}
+    }
+
+  /* If LOC is a paradoxical lowpart of EXPR, refer to EXPR itself.
+     Do the same if we are storing to a register and EXPR occupies
+     the whole of register LOC; in that case, the whole of EXPR is
+     being changed.  We exclude complex modes from the second case
+     because the real and imaginary parts are represented as separate
+     pseudo registers, even if the whole complex value fits into one
+     hard register.  */
+  if ((GET_MODE_SIZE (mode) > GET_MODE_SIZE (DECL_MODE (expr))
+       || (store_reg_p
+	   && !COMPLEX_MODE_P (DECL_MODE (expr))
+	   && hard_regno_nregs[REGNO (loc)][DECL_MODE (expr)] == 1))
+      && offset + byte_lowpart_offset (DECL_MODE (expr), mode) == 0)
+    {
+      mode = DECL_MODE (expr);
+      offset = 0;
+    }
+
+  if (offset < 0 || offset >= MAX_VAR_PARTS)
+    return false;
+
+  if (mode_out)
+    *mode_out = mode;
+  if (offset_out)
+    *offset_out = offset;
+  return true;
+}
+
+/* Return the MODE lowpart of LOC, or null if LOC is not something we
+   want to track.  When returning nonnull, make sure that the attributes
+   on the returned value are updated.  */
+
+static rtx
+var_lowpart (enum machine_mode mode, rtx loc)
+{
+  unsigned int offset, reg_offset, regno;
+
+  if (!REG_P (loc) && !MEM_P (loc))
+    return NULL;
+
+  if (GET_MODE (loc) == mode)
+    return loc;
+
+  offset = byte_lowpart_offset (mode, GET_MODE (loc));
+
+  if (MEM_P (loc))
+    return adjust_address_nv (loc, mode, offset);
+
+  reg_offset = subreg_lowpart_offset (mode, GET_MODE (loc));
+  regno = REGNO (loc) + subreg_regno_offset (REGNO (loc), GET_MODE (loc),
+					     reg_offset, mode);
+  return gen_rtx_REG_offset (loc, mode, regno, offset);
+}
 
 /* Count uses (register and memory references) LOC which will be tracked.
    INSN is instruction which the LOC is part of.  */
@@ -1603,9 +1780,8 @@ count_uses (rtx *loc, void *insn)
       VTI (bb)->n_mos++;
     }
   else if (MEM_P (*loc)
-	   && MEM_EXPR (*loc)
-	   && track_expr_p (MEM_EXPR (*loc))
-	   && offset_valid_for_tracked_p (INT_MEM_OFFSET (*loc)))
+	   && track_loc_p (*loc, MEM_EXPR (*loc), INT_MEM_OFFSET (*loc),
+			   false, NULL, NULL))
     {
       VTI (bb)->n_mos++;
     }
@@ -1625,7 +1801,7 @@ count_uses_1 (rtx *x, void *insn)
    INSN is instruction which the LOC is part of.  */
 
 static void
-count_stores (rtx loc, rtx expr ATTRIBUTE_UNUSED, void *insn)
+count_stores (rtx loc, const_rtx expr ATTRIBUTE_UNUSED, void *insn)
 {
   count_uses (&loc, insn);
 }
@@ -1636,30 +1812,35 @@ count_stores (rtx loc, rtx expr ATTRIBUTE_UNUSED, void *insn)
 static int
 add_uses (rtx *loc, void *insn)
 {
+  enum machine_mode mode;
+
   if (REG_P (*loc))
     {
       basic_block bb = BLOCK_FOR_INSN ((rtx) insn);
       micro_operation *mo = VTI (bb)->mos + VTI (bb)->n_mos++;
 
-      if (REG_EXPR (*loc)
-	  && track_expr_p (REG_EXPR (*loc))
-	  && offset_valid_for_tracked_p (REG_OFFSET (*loc)))
-	mo->type = MO_USE;
+      if (track_loc_p (*loc, REG_EXPR (*loc), REG_OFFSET (*loc),
+		       false, &mode, NULL))
+	{
+	  mo->type = MO_USE;
+	  mo->u.loc = var_lowpart (mode, *loc);
+	}
       else
-	mo->type = MO_USE_NO_VAR;
-      mo->u.loc = *loc;
+	{
+	  mo->type = MO_USE_NO_VAR;
+	  mo->u.loc = *loc;
+	}
       mo->insn = (rtx) insn;
     }
   else if (MEM_P (*loc)
-	   && MEM_EXPR (*loc)
-	   && track_expr_p (MEM_EXPR (*loc))
-	   && offset_valid_for_tracked_p (INT_MEM_OFFSET (*loc)))
+	   && track_loc_p (*loc, MEM_EXPR (*loc), INT_MEM_OFFSET (*loc),
+			   false, &mode, NULL))
     {
       basic_block bb = BLOCK_FOR_INSN ((rtx) insn);
       micro_operation *mo = VTI (bb)->mos + VTI (bb)->n_mos++;
 
       mo->type = MO_USE;
-      mo->u.loc = *loc;
+      mo->u.loc = var_lowpart (mode, *loc);
       mo->insn = (rtx) insn;
     }
 
@@ -1679,50 +1860,152 @@ add_uses_1 (rtx *x, void *insn)
    INSN is instruction which the LOC is part of.  */
 
 static void
-add_stores (rtx loc, rtx expr, void *insn)
+add_stores (rtx loc, const_rtx expr, void *insn)
 {
+  enum machine_mode mode;
+
   if (REG_P (loc))
     {
       basic_block bb = BLOCK_FOR_INSN ((rtx) insn);
       micro_operation *mo = VTI (bb)->mos + VTI (bb)->n_mos++;
 
       if (GET_CODE (expr) == CLOBBER
-	  || !(REG_EXPR (loc)
-	       && track_expr_p (REG_EXPR (loc))
-	       && offset_valid_for_tracked_p (REG_OFFSET (loc))))
-	mo->type = MO_CLOBBER;
-      else if (GET_CODE (expr) == SET
-	       && SET_DEST (expr) == loc
-	       && same_variable_part_p (SET_SRC (expr),
-					REG_EXPR (loc),
-					REG_OFFSET (loc)))
-	mo->type = MO_COPY;
+	  || !track_loc_p (loc, REG_EXPR (loc), REG_OFFSET (loc),
+			   true, &mode, NULL))
+	{
+	  mo->type = MO_CLOBBER;
+	  mo->u.loc = loc;
+	}
       else
-	mo->type = MO_SET;
-      mo->u.loc = loc;
-      mo->insn = NEXT_INSN ((rtx) insn);
+	{
+	  rtx src = NULL;
+
+	  if (GET_CODE (expr) == SET && SET_DEST (expr) == loc)
+	    src = var_lowpart (mode, SET_SRC (expr));
+	  loc = var_lowpart (mode, loc);
+
+	  if (src == NULL)
+	    {
+	      mo->type = MO_SET;
+	      mo->u.loc = loc;
+	    }
+	  else
+	    {
+	      if (SET_SRC (expr) != src)
+		expr = gen_rtx_SET (VOIDmode, loc, src);
+	      if (same_variable_part_p (src, REG_EXPR (loc), REG_OFFSET (loc)))
+		mo->type = MO_COPY;
+	      else
+		mo->type = MO_SET;
+	      mo->u.loc = CONST_CAST_RTX (expr);
+	    }
+	}
+      mo->insn = (rtx) insn;
     }
   else if (MEM_P (loc)
-	   && MEM_EXPR (loc)
-	   && track_expr_p (MEM_EXPR (loc))
-	   && offset_valid_for_tracked_p (INT_MEM_OFFSET (loc)))
+	   && track_loc_p (loc, MEM_EXPR (loc), INT_MEM_OFFSET (loc),
+			   false, &mode, NULL))
     {
       basic_block bb = BLOCK_FOR_INSN ((rtx) insn);
       micro_operation *mo = VTI (bb)->mos + VTI (bb)->n_mos++;
 
       if (GET_CODE (expr) == CLOBBER)
-	mo->type = MO_CLOBBER;
-      else if (GET_CODE (expr) == SET
-	       && SET_DEST (expr) == loc
-	       && same_variable_part_p (SET_SRC (expr),
+	{
+	  mo->type = MO_CLOBBER;
+	  mo->u.loc = var_lowpart (mode, loc);
+	}
+      else
+	{
+	  rtx src = NULL;
+
+	  if (GET_CODE (expr) == SET && SET_DEST (expr) == loc)
+	    src = var_lowpart (mode, SET_SRC (expr));
+	  loc = var_lowpart (mode, loc);
+
+	  if (src == NULL)
+	    {
+	      mo->type = MO_SET;
+	      mo->u.loc = loc;
+	    }
+	  else
+	    {
+	      if (SET_SRC (expr) != src)
+		expr = gen_rtx_SET (VOIDmode, loc, src);
+	      if (same_variable_part_p (SET_SRC (expr),
 					MEM_EXPR (loc),
 					INT_MEM_OFFSET (loc)))
-	mo->type = MO_COPY;
-      else
-	mo->type = MO_SET;
-      mo->u.loc = loc;
-      mo->insn = NEXT_INSN ((rtx) insn);
+		mo->type = MO_COPY;
+	      else
+		mo->type = MO_SET;
+	      mo->u.loc = CONST_CAST_RTX (expr);
+	    }
+	}
+      mo->insn = (rtx) insn;
     }
+}
+
+static enum var_init_status
+find_src_status (dataflow_set *in, rtx src)
+{
+  tree decl = NULL_TREE;
+  enum var_init_status status = VAR_INIT_STATUS_UNINITIALIZED;
+
+  if (! flag_var_tracking_uninit)
+    status = VAR_INIT_STATUS_INITIALIZED;
+
+  if (src && REG_P (src))
+    decl = var_debug_decl (REG_EXPR (src));
+  else if (src && MEM_P (src))
+    decl = var_debug_decl (MEM_EXPR (src));
+
+  if (src && decl)
+    status = get_init_value (in, src, decl);
+
+  return status;
+}
+
+/* SRC is the source of an assignment.  Use SET to try to find what
+   was ultimately assigned to SRC.  Return that value if known,
+   otherwise return SRC itself.  */
+
+static rtx
+find_src_set_src (dataflow_set *set, rtx src)
+{
+  tree decl = NULL_TREE;   /* The variable being copied around.          */
+  rtx set_src = NULL_RTX;  /* The value for "decl" stored in "src".      */
+  void **slot;
+  variable var;
+  location_chain nextp;
+  int i;
+  bool found;
+
+  if (src && REG_P (src))
+    decl = var_debug_decl (REG_EXPR (src));
+  else if (src && MEM_P (src))
+    decl = var_debug_decl (MEM_EXPR (src));
+
+  if (src && decl)
+    {
+      slot = htab_find_slot_with_hash (set->vars, decl, 
+				       VARIABLE_HASH_VAL (decl), NO_INSERT);
+
+      if (slot)
+	{
+	  var = *(variable *) slot;
+	  found = false;
+	  for (i = 0; i < var->n_var_parts && !found; i++)
+	    for (nextp = var->var_part[i].loc_chain; nextp && !found; 
+		 nextp = nextp->next)
+	      if (rtx_equal_p (nextp->loc, src))
+		{
+		  set_src = nextp->set_src;
+		  found = true;
+		}
+	      
+	}
+    }
+
+  return set_src;
 }
 
 /* Compute the changes of variable locations in the basic block BB.  */
@@ -1754,33 +2037,64 @@ compute_bb_dataflow (basic_block bb)
 	  case MO_USE:
 	    {
 	      rtx loc = VTI (bb)->mos[i].u.loc;
+	      enum var_init_status status = VAR_INIT_STATUS_UNINITIALIZED;
+
+	      if (! flag_var_tracking_uninit)
+		status = VAR_INIT_STATUS_INITIALIZED;
 
 	      if (GET_CODE (loc) == REG)
-		var_reg_set (out, loc);
+		var_reg_set (out, loc, status, NULL);
 	      else if (GET_CODE (loc) == MEM)
-		var_mem_set (out, loc);
+		var_mem_set (out, loc, status, NULL);
 	    }
 	    break;
 
 	  case MO_SET:
 	    {
 	      rtx loc = VTI (bb)->mos[i].u.loc;
+	      rtx set_src = NULL;
+
+	      if (GET_CODE (loc) == SET)
+		{
+		  set_src = SET_SRC (loc);
+		  loc = SET_DEST (loc);
+		}
 
 	      if (REG_P (loc))
-		var_reg_delete_and_set (out, loc, true);
+		var_reg_delete_and_set (out, loc, true, VAR_INIT_STATUS_INITIALIZED,
+					set_src);
 	      else if (MEM_P (loc))
-		var_mem_delete_and_set (out, loc, true);
+		var_mem_delete_and_set (out, loc, true, VAR_INIT_STATUS_INITIALIZED,
+					set_src);
 	    }
 	    break;
 
 	  case MO_COPY:
 	    {
 	      rtx loc = VTI (bb)->mos[i].u.loc;
+	      enum var_init_status src_status;
+	      rtx set_src = NULL;
+
+	      if (GET_CODE (loc) == SET)
+		{
+		  set_src = SET_SRC (loc);
+		  loc = SET_DEST (loc);
+		}
+
+	      if (! flag_var_tracking_uninit)
+		src_status = VAR_INIT_STATUS_INITIALIZED;
+	      else
+		src_status = find_src_status (in, set_src);
+
+	      if (src_status == VAR_INIT_STATUS_UNKNOWN)
+		src_status = find_src_status (out, set_src);
+
+	      set_src = find_src_set_src (in, set_src);
 
 	      if (REG_P (loc))
-		var_reg_delete_and_set (out, loc, false);
+		var_reg_delete_and_set (out, loc, false, src_status, set_src);
 	      else if (MEM_P (loc))
-		var_mem_delete_and_set (out, loc, false);
+		var_mem_delete_and_set (out, loc, false, src_status, set_src);
 	    }
 	    break;
 
@@ -1944,8 +2258,13 @@ dump_variable (void **slot, void *data ATTRIBUTE_UNUSED)
   int i;
   location_chain node;
 
-  fprintf (dump_file, "  name: %s\n",
+  fprintf (dump_file, "  name: %s",
 	   IDENTIFIER_POINTER (DECL_NAME (var->decl)));
+  if (dump_flags & TDF_UID)
+    fprintf (dump_file, " D.%u\n", DECL_UID (var->decl));
+  else
+    fprintf (dump_file, "\n");
+
   for (i = 0; i < var->n_var_parts; i++)
     {
       fprintf (dump_file, "    offset %ld\n",
@@ -1953,6 +2272,8 @@ dump_variable (void **slot, void *data ATTRIBUTE_UNUSED)
       for (node = var->var_part[i].loc_chain; node; node = node->next)
 	{
 	  fprintf (dump_file, "      ");
+	  if (node->init == VAR_INIT_STATUS_UNINITIALIZED)
+	    fprintf (dump_file, "[uninit]");
 	  print_rtl_single (dump_file, node->loc);
 	}
     }
@@ -2098,7 +2419,8 @@ find_variable_location_part (variable var, HOST_WIDE_INT offset,
    part's location by LOC.  */
 
 static void
-set_variable_part (dataflow_set *set, rtx loc, tree decl, HOST_WIDE_INT offset)
+set_variable_part (dataflow_set *set, rtx loc, tree decl, HOST_WIDE_INT offset,
+		   enum var_init_status initialized, rtx set_src)
 {
   int pos;
   location_chain node, next;
@@ -2140,13 +2462,19 @@ set_variable_part (dataflow_set *set, rtx loc, tree decl, HOST_WIDE_INT offset)
 	    {
 	      /* LOC is in the beginning of the chain so we have nothing
 		 to do.  */
+	      if (node->init < initialized)
+		node->init = initialized;
+	      if (set_src != NULL)
+		node->set_src = set_src;
+
+	      *slot = var;
 	      return;
 	    }
 	  else
 	    {
 	      /* We have to make a copy of a shared variable.  */
 	      if (var->refcount > 1)
-		var = unshare_variable (set, var);
+		var = unshare_variable (set, var, initialized);
 	    }
 	}
       else
@@ -2155,7 +2483,7 @@ set_variable_part (dataflow_set *set, rtx loc, tree decl, HOST_WIDE_INT offset)
 
 	  /* We have to make a copy of the shared variable.  */
 	  if (var->refcount > 1)
-	    var = unshare_variable (set, var);
+	    var = unshare_variable (set, var, initialized);
 
 	  /* We track only variables whose size is <= MAX_VAR_PARTS bytes
 	     thus there are at most MAX_VAR_PARTS different offsets.  */
@@ -2182,6 +2510,12 @@ set_variable_part (dataflow_set *set, rtx loc, tree decl, HOST_WIDE_INT offset)
 	   && REGNO (node->loc) == REGNO (loc))
 	  || rtx_equal_p (node->loc, loc))
 	{
+	  /* Save these values, to assign to the new node, before
+	     deleting this one.  */
+	  if (node->init > initialized)
+	    initialized = node->init;
+	  if (node->set_src != NULL && set_src == NULL)
+	    set_src = node->set_src;
 	  pool_free (loc_chain_pool, node);
 	  *nextp = next;
 	  break;
@@ -2193,6 +2527,8 @@ set_variable_part (dataflow_set *set, rtx loc, tree decl, HOST_WIDE_INT offset)
   /* Add the location to the beginning.  */
   node = pool_alloc (loc_chain_pool);
   node->loc = loc;
+  node->init = initialized;
+  node->set_src = set_src;
   node->next = var->var_part[pos].loc_chain;
   var->var_part[pos].loc_chain = node;
 
@@ -2211,7 +2547,7 @@ set_variable_part (dataflow_set *set, rtx loc, tree decl, HOST_WIDE_INT offset)
 
 static void
 clobber_variable_part (dataflow_set *set, rtx loc, tree decl,
-		      HOST_WIDE_INT offset)
+		       HOST_WIDE_INT offset, rtx set_src)
 {
   void **slot;
 
@@ -2234,7 +2570,11 @@ clobber_variable_part (dataflow_set *set, rtx loc, tree decl,
 	  for (node = next; node; node = next)
 	    {
 	      next = node->next;
-	      if (node->loc != loc)
+	      if (node->loc != loc 
+		  && (!flag_var_tracking_uninit
+		      || !set_src 
+		      || MEM_P (set_src)
+		      || !rtx_equal_p (set_src, node->set_src)))
 		{
 		  if (REG_P (node->loc))
 		    {
@@ -2255,6 +2595,8 @@ clobber_variable_part (dataflow_set *set, rtx loc, tree decl,
 			      pool_free (attrs_pool, anode);
 			      *anextp = anext;
 			    }
+			  else
+			    anextp = &anode->next;
 			}
 		    }
 
@@ -2299,7 +2641,10 @@ delete_variable_part (dataflow_set *set, rtx loc, tree decl,
 		       && REGNO (node->loc) == REGNO (loc))
 		      || rtx_equal_p (node->loc, loc))
 		    {
-		      var = unshare_variable (set, var);
+		      enum var_init_status status = VAR_INIT_STATUS_UNKNOWN;
+		      if (! flag_var_tracking_uninit)
+			status = VAR_INIT_STATUS_INITIALIZED;
+		      var = unshare_variable (set, var, status);
 		      break;
 		    }
 		}
@@ -2366,12 +2711,16 @@ emit_note_insn_var_location (void **varp, void *data)
   rtx note;
   int i, j, n_var_parts;
   bool complete;
+  enum var_init_status initialized = VAR_INIT_STATUS_UNINITIALIZED;
   HOST_WIDE_INT last_limit;
   tree type_size_unit;
   HOST_WIDE_INT offsets[MAX_VAR_PARTS];
   rtx loc[MAX_VAR_PARTS];
 
   gcc_assert (var->decl);
+
+  if (! flag_var_tracking_uninit)
+    initialized = VAR_INIT_STATUS_INITIALIZED;
 
   complete = true;
   last_limit = 0;
@@ -2390,6 +2739,7 @@ emit_note_insn_var_location (void **varp, void *data)
       offsets[n_var_parts] = var->var_part[i].offset;
       loc[n_var_parts] = var->var_part[i].loc_chain->loc;
       mode = GET_MODE (loc[n_var_parts]);
+      initialized = var->var_part[i].loc_chain->init;
       last_limit = offsets[n_var_parts] + GET_MODE_SIZE (mode);
 
       /* Attempt to merge adjacent registers or memory.  */
@@ -2410,8 +2760,7 @@ emit_note_insn_var_location (void **varp, void *data)
 	  if (REG_P (loc[n_var_parts])
 	      && hard_regno_nregs[REGNO (loc[n_var_parts])][mode] * 2
 		 == hard_regno_nregs[REGNO (loc[n_var_parts])][wider_mode]
-	      && REGNO (loc[n_var_parts])
-		 + hard_regno_nregs[REGNO (loc[n_var_parts])][mode]
+	      && end_hard_regno (mode, REGNO (loc[n_var_parts]))
 		 == REGNO (loc2))
 	    {
 	      if (! WORDS_BIG_ENDIAN && ! BYTES_BIG_ENDIAN)
@@ -2469,10 +2818,13 @@ emit_note_insn_var_location (void **varp, void *data)
   else
     note = emit_note_before (NOTE_INSN_VAR_LOCATION, insn);
 
+  if (! flag_var_tracking_uninit)
+    initialized = VAR_INIT_STATUS_INITIALIZED;
+
   if (!complete)
     {
       NOTE_VAR_LOCATION (note) = gen_rtx_VAR_LOCATION (VOIDmode, var->decl,
-						       NULL_RTX);
+						       NULL_RTX, (int) initialized);
     }
   else if (n_var_parts == 1)
     {
@@ -2480,7 +2832,8 @@ emit_note_insn_var_location (void **varp, void *data)
 	= gen_rtx_EXPR_LIST (VOIDmode, loc[0], GEN_INT (offsets[0]));
 
       NOTE_VAR_LOCATION (note) = gen_rtx_VAR_LOCATION (VOIDmode, var->decl,
-						       expr_list);
+						       expr_list, 
+						       (int) initialized);
     }
   else if (n_var_parts)
     {
@@ -2493,7 +2846,8 @@ emit_note_insn_var_location (void **varp, void *data)
       parallel = gen_rtx_PARALLEL (VOIDmode,
 				   gen_rtvec_v (n_var_parts, loc));
       NOTE_VAR_LOCATION (note) = gen_rtx_VAR_LOCATION (VOIDmode, var->decl,
-						       parallel);
+						       parallel, 
+						       (int) initialized);
     }
 
   htab_clear_slot (changed_variables, varp);
@@ -2624,11 +2978,14 @@ emit_notes_in_bb (basic_block bb)
 	  case MO_USE:
 	    {
 	      rtx loc = VTI (bb)->mos[i].u.loc;
-
+      
+	      enum var_init_status status = VAR_INIT_STATUS_UNINITIALIZED;
+	      if (! flag_var_tracking_uninit)
+		status = VAR_INIT_STATUS_INITIALIZED;
 	      if (GET_CODE (loc) == REG)
-		var_reg_set (&set, loc);
+		var_reg_set (&set, loc, status, NULL);
 	      else
-		var_mem_set (&set, loc);
+		var_mem_set (&set, loc, status, NULL);
 
 	      emit_notes_for_changes (insn, EMIT_NOTE_AFTER_INSN);
 	    }
@@ -2637,26 +2994,46 @@ emit_notes_in_bb (basic_block bb)
 	  case MO_SET:
 	    {
 	      rtx loc = VTI (bb)->mos[i].u.loc;
+	      rtx set_src = NULL;
+
+	      if (GET_CODE (loc) == SET)
+		{
+		  set_src = SET_SRC (loc);
+		  loc = SET_DEST (loc);
+		}
 
 	      if (REG_P (loc))
-		var_reg_delete_and_set (&set, loc, true);
+		var_reg_delete_and_set (&set, loc, true, VAR_INIT_STATUS_INITIALIZED, 
+					set_src);
 	      else
-		var_mem_delete_and_set (&set, loc, true);
+		var_mem_delete_and_set (&set, loc, true, VAR_INIT_STATUS_INITIALIZED, 
+					set_src);
 
-	      emit_notes_for_changes (insn, EMIT_NOTE_BEFORE_INSN);
+	      emit_notes_for_changes (NEXT_INSN (insn), EMIT_NOTE_BEFORE_INSN);
 	    }
 	    break;
 
 	  case MO_COPY:
 	    {
 	      rtx loc = VTI (bb)->mos[i].u.loc;
+	      enum var_init_status src_status;
+	      rtx set_src = NULL;
+
+	      if (GET_CODE (loc) == SET)
+		{
+		  set_src = SET_SRC (loc);
+		  loc = SET_DEST (loc);
+		}
+
+	      src_status = find_src_status (&set, set_src);
+	      set_src = find_src_set_src (&set, set_src);
 
 	      if (REG_P (loc))
-		var_reg_delete_and_set (&set, loc, false);
+		var_reg_delete_and_set (&set, loc, false, src_status, set_src);
 	      else
-		var_mem_delete_and_set (&set, loc, false);
+		var_mem_delete_and_set (&set, loc, false, src_status, set_src);
 
-	      emit_notes_for_changes (insn, EMIT_NOTE_BEFORE_INSN);
+	      emit_notes_for_changes (NEXT_INSN (insn), EMIT_NOTE_BEFORE_INSN);
 	    }
 	    break;
 
@@ -2682,7 +3059,7 @@ emit_notes_in_bb (basic_block bb)
 	      else
 		var_mem_delete (&set, loc, true);
 
-	      emit_notes_for_changes (insn, EMIT_NOTE_BEFORE_INSN);
+	      emit_notes_for_changes (NEXT_INSN (insn), EMIT_NOTE_BEFORE_INSN);
 	    }
 	    break;
 
@@ -2767,6 +3144,7 @@ vt_add_function_parameters (void)
       rtx decl_rtl = DECL_RTL_IF_SET (parm);
       rtx incoming = DECL_INCOMING_RTL (parm);
       tree decl;
+      enum machine_mode mode;
       HOST_WIDE_INT offset;
       dataflow_set *out;
 
@@ -2783,25 +3161,38 @@ vt_add_function_parameters (void)
 	continue;
 
       if (!vt_get_decl_and_offset (incoming, &decl, &offset))
-	if (!vt_get_decl_and_offset (decl_rtl, &decl, &offset))
-	  continue;
+	{
+	  if (!vt_get_decl_and_offset (decl_rtl, &decl, &offset))
+	    continue;
+	  offset += byte_lowpart_offset (GET_MODE (incoming),
+					 GET_MODE (decl_rtl));
+	}
 
       if (!decl)
 	continue;
 
       gcc_assert (parm == decl);
 
+      if (!track_loc_p (incoming, parm, offset, false, &mode, &offset))
+	continue;
+
       out = &VTI (ENTRY_BLOCK_PTR)->out;
 
       if (REG_P (incoming))
 	{
+	  incoming = var_lowpart (mode, incoming);
 	  gcc_assert (REGNO (incoming) < FIRST_PSEUDO_REGISTER);
 	  attrs_list_insert (&out->regs[REGNO (incoming)],
 			     parm, offset, incoming);
-	  set_variable_part (out, incoming, parm, offset);
+	  set_variable_part (out, incoming, parm, offset, VAR_INIT_STATUS_INITIALIZED, 
+			     NULL);
 	}
       else if (MEM_P (incoming))
-	set_variable_part (out, incoming, parm, offset);
+	{
+	  incoming = var_lowpart (mode, incoming);
+	  set_variable_part (out, incoming, parm, offset,
+			     VAR_INIT_STATUS_INITIALIZED, NULL);
+	}
     }
 }
 
@@ -3028,7 +3419,7 @@ struct tree_opt_pass pass_variable_tracking =
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
   0,                                    /* todo_flags_start */
-  TODO_dump_func,                       /* todo_flags_finish */
+  TODO_dump_func | TODO_verify_rtl_sharing,/* todo_flags_finish */
   'V'                                   /* letter */
 };
 

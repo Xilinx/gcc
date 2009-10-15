@@ -244,9 +244,13 @@ expr_size (tree exp)
   if (TREE_CODE (exp) == WITH_SIZE_EXPR)
     size = TREE_OPERAND (exp, 1);
   else
-    size = SUBSTITUTE_PLACEHOLDER_IN_EXPR (lang_hooks.expr_size (exp), exp);
+    {
+      size = lang_hooks.expr_size (exp);
+      gcc_assert (size);
+      size = SUBSTITUTE_PLACEHOLDER_IN_EXPR (size, exp);
+    }
 
-  return expand_expr (size, NULL_RTX, TYPE_MODE (sizetype), 0);
+  return expand_expr (size, NULL_RTX, TYPE_MODE (sizetype), EXPAND_NORMAL);
 }
 
 /* Return a wide integer for the size in bytes of the value of EXP, or -1
@@ -260,7 +264,10 @@ int_expr_size (tree exp)
   if (TREE_CODE (exp) == WITH_SIZE_EXPR)
     size = TREE_OPERAND (exp, 1);
   else
-    size = lang_hooks.expr_size (exp);
+    {
+      size = lang_hooks.expr_size (exp);
+      gcc_assert (size);
+    }
 
   if (size == 0 || !host_integerp (size, 0))
     return -1;
@@ -298,7 +305,7 @@ break_out_memory_refs (rtx x)
       rtx op1 = break_out_memory_refs (XEXP (x, 1));
 
       if (op0 != XEXP (x, 0) || op1 != XEXP (x, 1))
-	x = gen_rtx_fmt_ee (GET_CODE (x), Pmode, op0, op1);
+	x = simplify_gen_binary (GET_CODE (x), Pmode, op0, op1);
     }
 
   return x;
@@ -374,12 +381,15 @@ convert_memory_address (enum machine_mode to_mode ATTRIBUTE_UNUSED,
     case MULT:
       /* For addition we can safely permute the conversion and addition
 	 operation if one operand is a constant and converting the constant
-	 does not change it.  We can always safely permute them if we are
-	 making the address narrower.  */
+	 does not change it or if one operand is a constant and we are
+	 using a ptr_extend instruction  (POINTERS_EXTEND_UNSIGNED < 0).
+	 We can always safely permute them if we are making the address
+	 narrower.  */
       if (GET_MODE_SIZE (to_mode) < GET_MODE_SIZE (from_mode)
 	  || (GET_CODE (x) == PLUS
 	      && GET_CODE (XEXP (x, 1)) == CONST_INT
-	      && XEXP (x, 1) == convert_memory_address (to_mode, XEXP (x, 1))))
+	      && (XEXP (x, 1) == convert_memory_address (to_mode, XEXP (x, 1))
+                 || POINTERS_EXTEND_UNSIGNED < 0)))
 	return gen_rtx_fmt_ee (GET_CODE (x), to_mode,
 			       convert_memory_address (to_mode, XEXP (x, 0)),
 			       XEXP (x, 1));
@@ -421,18 +431,21 @@ memory_address (enum machine_mode mode, rtx x)
 
       /* At this point, any valid address is accepted.  */
       if (memory_address_p (mode, x))
-	goto win;
+	goto done;
 
       /* If it was valid before but breaking out memory refs invalidated it,
 	 use it the old way.  */
       if (memory_address_p (mode, oldx))
-	goto win2;
+	{
+	  x = oldx;
+	  goto done;
+	}
 
       /* Perform machine-dependent transformations on X
 	 in certain cases.  This is not necessary since the code
 	 below can handle all possible cases, but machine-dependent
 	 transformations can make better code.  */
-      LEGITIMIZE_ADDRESS (x, oldx, mode, win);
+      LEGITIMIZE_ADDRESS (x, oldx, mode, done);
 
       /* PLUS and MULT can appear in special ways
 	 as the result of attempts to make an address usable for indexing.
@@ -472,17 +485,6 @@ memory_address (enum machine_mode mode, rtx x)
 	 the register is a valid address.  */
       else
 	x = force_reg (Pmode, x);
-
-      goto done;
-
-    win2:
-      x = oldx;
-    win:
-      if (flag_force_addr && ! cse_not_expected && !REG_P (x))
-	{
-	  x = force_operand (x, NULL_RTX);
-	  x = force_reg (Pmode, x);
-	}
     }
 
  done:
@@ -505,20 +507,6 @@ memory_address (enum machine_mode mode, rtx x)
   return x;
 }
 
-/* Like `memory_address' but pretend `flag_force_addr' is 0.  */
-
-rtx
-memory_address_noforce (enum machine_mode mode, rtx x)
-{
-  int ambient_force_addr = flag_force_addr;
-  rtx val;
-
-  flag_force_addr = 0;
-  val = memory_address (mode, x);
-  flag_force_addr = ambient_force_addr;
-  return val;
-}
-
 /* Convert a mem ref into one with a valid memory address.
    Pass through anything else unchanged.  */
 
@@ -528,8 +516,7 @@ validize_mem (rtx ref)
   if (!MEM_P (ref))
     return ref;
   ref = use_anchored_address (ref);
-  if (! (flag_force_addr && CONSTANT_ADDRESS_P (XEXP (ref, 0)))
-      && memory_address_p (GET_MODE (ref), XEXP (ref, 0)))
+  if (memory_address_p (GET_MODE (ref), XEXP (ref, 0)))
     return ref;
 
   /* Don't alter REF itself, since that is probably a stack slot.  */
@@ -709,10 +696,8 @@ force_reg (enum machine_mode mode, rtx x)
 
 	align = MIN (sa, ca);
       }
-    else if (MEM_P (x) && MEM_POINTER (x))
-      align = MEM_ALIGN (x);
 
-    if (align)
+    if (align || (MEM_P (x) && MEM_POINTER (x)))
       mark_reg_pointer (temp, align);
   }
 
@@ -768,10 +753,10 @@ copy_to_suggested_reg (rtx x, rtx target, enum machine_mode mode)
 #endif
 
 enum machine_mode
-promote_mode (tree type, enum machine_mode mode, int *punsignedp,
+promote_mode (const_tree type, enum machine_mode mode, int *punsignedp,
 	      int for_call ATTRIBUTE_UNUSED)
 {
-  enum tree_code code = TREE_CODE (type);
+  const enum tree_code code = TREE_CODE (type);
   int unsignedp = *punsignedp;
 
 #ifndef PROMOTE_MODE
@@ -783,7 +768,7 @@ promote_mode (tree type, enum machine_mode mode, int *punsignedp,
     {
 #ifdef PROMOTE_FUNCTION_MODE
     case INTEGER_TYPE:   case ENUMERAL_TYPE:   case BOOLEAN_TYPE:
-    case REAL_TYPE:      case OFFSET_TYPE:
+    case REAL_TYPE:      case OFFSET_TYPE:     case FIXED_POINT_TYPE:
 #ifdef PROMOTE_MODE
       if (for_call)
 	{
@@ -1466,7 +1451,7 @@ probe_stack_range (HOST_WIDE_INT first, rtx size)
    and 0 otherwise.  */
 
 rtx
-hard_function_value (tree valtype, tree func, tree fntype,
+hard_function_value (const_tree valtype, const_tree func, const_tree fntype,
 		     int outgoing ATTRIBUTE_UNUSED)
 {
   rtx val;

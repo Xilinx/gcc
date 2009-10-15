@@ -1,30 +1,72 @@
-2008-05-19  Release Manager
+2009-08-04  Release Manager
 
-	* GCC 4.2.4 released.
+	* GCC 4.3.4 released.
 
-2008-02-01  Release Manager
+2009-06-22  Steven Bosscher  <steven@gcc.gnu.org>
+	    Matthias Klose  <doko@ubuntu.com>
 
-	* GCC 4.2.3 released.
+	PR objc/28050
+	* objc-act.c (objc_build_message_args): Return if ARGS is the
+	error_mark_node.
+	
+2009-01-24  Release Manager
 
-2007-10-07  Release Manager
+	* GCC 4.3.3 released.
 
-	* GCC 4.2.2 released.
+2008-08-27  Release Manager
 
-2007-08-29  Nick Clifton  <nickc@redhat.com>
+	* GCC 4.3.2 released.
 
-	*  Make-lang.in: Change copyright header to refer to version 3 of
+2008-06-06  Release Manager
+
+	* GCC 4.3.1 released.
+
+2008-03-05  Release Manager
+
+	* GCC 4.3.0 released.
+
+2008-02-06  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	PR other/35107
+	* Make-lang.in (cc1obj-dummy, cc1obj): Add $(GMPLIBS).
+
+2007-07-30  Nick Clifton  <nickc@redhat.com>
+
+	* Make-lang.in: Change copyright header to refer to version 3 of
 	the GNU General Public License and to point readers at the
 	COPYING3 file and the FSF's license web page.
 	* lang-specs.h, objc-act.c, objc-tree.def, objc-act.h,
 	config-lang.in, objc-lang.c: Likewise.
 
-2007-07-19  Release Manager
+2007-07-29  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
 
-	* GCC 4.2.1 released.
+	* objc-act.c (objc_get_callee_fndecl): Constify.
+	* objc-act.h (objc_get_callee_fndecl): Likewise.
 
-2007-05-13  Release Manager
+2007-07-25  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
 
-	* GCC 4.2.0 released.
+	* objc-act.c (volatilized_hash, volatilized_eq, string_hash,
+	string_eq): Constify.
+
+2007-04-04  Stuart Hastings  <stuart@apple.com>
+
+	PR 31281
+	* objc/objc-act.c (next_sjlj_build_catch_list): Delete volatile from rethrow decl.
+
+2007-03-01  Brooks Moses  <brooks.moses@codesourcery.com>
+
+	* Make-lang.in: Add dummy lang.install-pdf target.
+
+2007-02-18  Kazu Hirata  <kazu@codesourcery.com>
+
+	* objc/objc-act.c: Fix comment typos.
+
+2007-02-15  Sandra Loosemore  <sandra@codesourcery.com>
+	    Brooks Moses  <brooks.moses@codesourcery.com>
+	    Lee Millward  <lee.millward@codesourcery.com>
+
+	* objc-act.c (receiver_is_class_object): Use new CALL_EXPR accessors.
+	(objc_get_callee_fndecl): Likewise.
 
 2007-01-23  Andrew Pinski  <pinskia@gmail.com>
 
@@ -39,6 +81,26 @@
 	of htab_hash_pointer.
 	(lookup_interface): Likewise.
 	(add_class): Likewise.
+
+2007-01-02  Douglas Gregor  <doug.gregor@gmail.com>
+	
+	* objc-act.c (objc_build_volatilized_type): Keep track of
+	canonical types.
+	(objc_get_protocol_qualified_type): Ditto.
+	
+2006-11-02  Andreas Tobler  <a.tobler@schweiz.org>
+
+	* objc-act.c (objc_finish_file): Remove ifdef clause for OBJCPLUS and
+	content where we called cp_finish_file.
+
+2006-10-23 Rafael Avila de Espindola  <rafael.espindola@gmail.com>
+
+	* objc-act.c (synth_module_prologue): Replace calls to
+	builtin_function with add_builtin_function.
+	(build_next_objc_exception_stuff): Replace calls to
+	builtin_function with add_builtin_function.
+	(build_objc_exception_stuff): Replace calls to
+	builtin_function with add_builtin_function.
 
 2006-10-10  Brooks Moses  <bmoses@stanford.edu>
 

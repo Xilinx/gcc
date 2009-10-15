@@ -1,5 +1,5 @@
 /* DynValue.java --
-   Copyright (C) 2005 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2006, 2007 Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -51,6 +51,8 @@ import org.omg.CORBA.DynAnyPackage.InvalidSeq;
  * The value types can have both public and private members. They support
  * inheritance. Value types can also be abstract.
  *
+ * @deprecated by {@link org.omg.DynamicAny.DynValue}
+ *
  * @author Audrius Meskauskas, Lithuania (AudriusA@Bioinformatics.org)
  */
 public interface DynValue
@@ -72,7 +74,7 @@ public interface DynValue
 
   /**
    * Get all members of the enclosed value type object.
-   * @return
+   * @return members, as an array of the name - value pairs.
    */
   NameValuePair[] get_members();
 

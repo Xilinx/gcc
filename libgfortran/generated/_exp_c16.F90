@@ -1,4 +1,4 @@
-!   Copyright 2002 Free Software Foundation, Inc.
+!   Copyright 2002, 2007 Free Software Foundation, Inc.
 !   Contributed by Paul Brook <paul@nowt.org>
 !
 !This file is part of the GNU Fortran 95 runtime library (libgfortran).
@@ -40,11 +40,11 @@
 #if defined (HAVE_GFC_COMPLEX_16)
 #ifdef HAVE_CEXPL
 
-elemental function specific__exp_c16 (parm)
+elemental function _gfortran_specific__exp_c16 (parm)
    complex (kind=16), intent (in) :: parm
-   complex (kind=16) :: specific__exp_c16
+   complex (kind=16) :: _gfortran_specific__exp_c16
 
-   specific__exp_c16 = exp (parm)
+   _gfortran_specific__exp_c16 = exp (parm)
 end function
 
 #endif

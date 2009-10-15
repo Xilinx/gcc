@@ -121,7 +121,7 @@ along with GCC; see the file COPYING3.  If not see
   which reduces code duplication since the rewriting phase is inherently
   a walk of the dominator tree.
 
-  And (of course), we use the dominator walker to drive a our dominator
+  And (of course), we use the dominator walker to drive our dominator
   optimizer, which is a semi-global optimizer.
 
   TODO:
@@ -151,7 +151,9 @@ walk_dominator_tree (struct dom_walk_data *walk_data, basic_block bb)
   while (true)
     {
       /* Don't worry about unreachable blocks.  */
-      if (EDGE_COUNT (bb->preds) > 0 || bb == ENTRY_BLOCK_PTR)
+      if (EDGE_COUNT (bb->preds) > 0
+	  || bb == ENTRY_BLOCK_PTR
+	  || bb == EXIT_BLOCK_PTR)
 	{
 	  /* If block BB is not interesting to the caller, then none of the
 	     callbacks that walk the statements in BB are going to be

@@ -6,18 +6,17 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2005, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -48,43 +47,48 @@ procedure XSnames is
    InH  : File_Type;
    OutH : File_Type;
 
-   A, B    : VString := Nul;
-   Line    : VString := Nul;
-   Name    : VString := Nul;
-   Name1   : VString := Nul;
-   Oname   : VString := Nul;
-   Oval    : VString := Nul;
-   Restl   : VString := Nul;
+   pragma Warnings (Off);
+   --  Variables below are modifed by * operator
 
-   Tdigs : Pattern := Any (Decimal_Digit_Set) &
-                      Any (Decimal_Digit_Set) &
-                      Any (Decimal_Digit_Set);
+   A, B  : VString := Nul;
+   Line  : VString := Nul;
+   Name  : VString := Nul;
+   Name1 : VString := Nul;
+   Oname : VString := Nul;
+   Oval  : VString := Nul;
+   Restl : VString := Nul;
 
-   Name_Ref : Pattern := Span (' ') * A & Break (' ') * Name
-                           & Span (' ') * B
-                           & ": constant Name_Id := N + " & Tdigs
-                           & ';' & Rest * Restl;
+   pragma Warnings (On);
 
-   Get_Name : Pattern := "Name_" & Rest * Name1;
+   Tdigs : constant Pattern := Any (Decimal_Digit_Set) &
+                               Any (Decimal_Digit_Set) &
+                               Any (Decimal_Digit_Set);
 
-   Chk_Low  : Pattern := Pos (0) & Any (Lower_Set) & Rest & Pos (1);
+   Name_Ref : constant Pattern := Span (' ') * A & Break (' ') * Name
+                                  & Span (' ') * B
+                                  & ": constant Name_Id := N + " & Tdigs
+                                  & ';' & Rest * Restl;
 
-   Findu    : Pattern := Span ('u') * A;
+   Get_Name : constant Pattern := "Name_" & Rest * Name1;
+   Chk_Low  : constant Pattern := Pos (0) & Any (Lower_Set) & Rest & Pos (1);
+   Findu    : constant Pattern := Span ('u') * A;
 
    Val : Natural;
 
-   Xlate_U_Und : Character_Mapping := To_Mapping ("u", "_");
+   Xlate_U_Und : constant Character_Mapping := To_Mapping ("u", "_");
 
    M : Match_Result;
 
    type Header_Symbol is (None, Attr, Conv, Prag);
    --  A symbol in the header file
 
-   --  Prefixes used in the header file
+   procedure Output_Header_Line (S : Header_Symbol);
+   --  Output header line
 
    Header_Attr : aliased String := "Attr";
    Header_Conv : aliased String := "Convention";
    Header_Prag : aliased String := "Pragma";
+   --  Prefixes used in the header file
 
    type String_Ptr is access all String;
    Header_Prefix : constant array (Header_Symbol) of String_Ptr :=
@@ -95,9 +99,12 @@ procedure XSnames is
 
    --  Patterns used in the spec file
 
-   Get_Attr : Pattern := Span (' ') & "Attribute_" & Break (",)") * Name1;
-   Get_Conv : Pattern := Span (' ') & "Convention_" & Break (",)") * Name1;
-   Get_Prag : Pattern := Span (' ') & "Pragma_" & Break (",)") * Name1;
+   Get_Attr : constant Pattern := Span (' ') & "Attribute_"
+                                  & Break (",)") * Name1;
+   Get_Conv : constant Pattern := Span (' ') & "Convention_"
+                                  & Break (",)") * Name1;
+   Get_Prag : constant Pattern := Span (' ') & "Pragma_"
+                                  & Break (",)") * Name1;
 
    type Header_Symbol_Counter is array (Header_Symbol) of Natural;
    Header_Counter : Header_Symbol_Counter := (0, 0, 0, 0);
@@ -118,7 +125,7 @@ procedure XSnames is
 
       if Header_Current_Symbol /= S then
          declare
-            Pat : String := "#define  " & Header_Prefix (S).all;
+            Pat : constant String := "#define  " & Header_Prefix (S).all;
             In_Pat : Boolean := False;
 
          begin
@@ -130,7 +137,7 @@ procedure XSnames is
                Line := Get_Line (InH);
 
                if Match (Line, Pat) then
-                  In_Pat := true;
+                  In_Pat := True;
                elsif In_Pat then
                   Header_Pending_Line := Line;
                   exit;

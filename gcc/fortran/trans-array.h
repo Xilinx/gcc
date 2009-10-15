@@ -1,6 +1,6 @@
 /* Header for array handling functions
-   Copyright (C) 2002, 2003, 2006, 2007
-   Free Software Foundation, Inc.
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007 Free Software
+   Foundation, Inc.
    Contributed by Paul Brook
 
 This file is part of GCC.
@@ -104,7 +104,9 @@ void gfc_conv_tmp_ref (gfc_se *);
 /* Evaluate an array expression.  */
 void gfc_conv_expr_descriptor (gfc_se *, gfc_expr *, gfc_ss *);
 /* Convert an array for passing as an actual function parameter.  */
-void gfc_conv_array_parameter (gfc_se *, gfc_expr *, gfc_ss *, int);
+void gfc_conv_array_parameter (gfc_se *, gfc_expr *, gfc_ss *, int,
+			       const gfc_symbol *);
+
 /* Evaluate and transpose a matrix expression.  */
 void gfc_conv_array_transpose (gfc_se *, gfc_expr *);
 
@@ -118,7 +120,11 @@ tree gfc_conv_array_ubound (tree, int);
 
 /* Build expressions for accessing components of an array descriptor.  */
 tree gfc_conv_descriptor_data_get (tree);
-void gfc_conv_descriptor_data_set (stmtblock_t *, tree, tree);
+void gfc_conv_descriptor_data_set_internal (stmtblock_t *, tree, tree, bool);
+#define gfc_conv_descriptor_data_set(BLOCK, T1, T2)			\
+  gfc_conv_descriptor_data_set_internal ((BLOCK), (T1), (T2), false)
+#define gfc_conv_descriptor_data_set_tuples(BLOCK, T1, T2)		\
+  gfc_conv_descriptor_data_set_internal ((BLOCK), (T1), (T2), true)
 tree gfc_conv_descriptor_data_addr (tree);
 tree gfc_conv_descriptor_offset (tree);
 tree gfc_conv_descriptor_dtype (tree);
@@ -129,3 +135,10 @@ tree gfc_conv_descriptor_ubound (tree, tree);
 /* Add pre-loop scalarization code for intrinsic functions which require
    special handling.  */
 void gfc_add_intrinsic_ss_code (gfc_loopinfo *, gfc_ss *);
+
+/* Functions for constant array constructor processing.  */
+unsigned HOST_WIDE_INT gfc_constant_array_constructor_p (gfc_constructor *);
+tree gfc_build_constant_array_constructor (gfc_expr *, tree);
+
+/* Copy a string from src to dest.  */
+void gfc_trans_string_copy (stmtblock_t *, tree, tree, tree, tree);

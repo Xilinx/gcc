@@ -19,16 +19,15 @@ along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
 
 
-#undef  SUBTARGET_EXTRA_SPECS
-#define SUBTARGET_EXTRA_SPECS \
+#undef  EXTRA_SPECS
+#define EXTRA_SPECS \
   { "fbsd_dynamic_linker", FBSD_DYNAMIC_LINKER }
 
-/* Provide a CPP_SPEC appropriate for FreeBSD/alpha.  Besides the
-   dealing with the GCC option `-posix', we must deal with the Alpha's
-   FP issues.  */
+/* Provide a CPP_SPEC appropriate for FreeBSD/alpha -- dealing with
+   the GCC option `-posix'.  */
 
 #undef  CPP_SPEC
-#define CPP_SPEC "%(cpp_subtarget) %{posix:-D_POSIX_SOURCE}"
+#define CPP_SPEC "%{posix:-D_POSIX_SOURCE}"
 
 #define LINK_SPEC "%{G*} %{relax:-relax}				\
   %{p:%nconsider using `-pg' instead of `-p' with gprof(1)}		\

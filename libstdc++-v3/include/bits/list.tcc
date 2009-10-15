@@ -1,6 +1,6 @@
 // List implementation (out of line) -*- C++ -*-
 
-// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -62,7 +62,7 @@
 #ifndef _LIST_TCC
 #define _LIST_TCC 1
 
-_GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
+_GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
 
   template<typename _Tp, typename _Alloc>
     void
@@ -79,6 +79,19 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
 	  _M_put_node(__tmp);
 	}
     }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+  template<typename _Tp, typename _Alloc>
+    template<typename... _Args>
+      typename list<_Tp, _Alloc>::iterator
+      list<_Tp, _Alloc>::
+      emplace(iterator __position, _Args&&... __args)
+      {
+	_Node* __tmp = _M_create_node(std::forward<_Args>(__args)...);
+	__tmp->hook(__position._M_node);
+	return iterator(__tmp);
+      }
+#endif
 
   template<typename _Tp, typename _Alloc>
     typename list<_Tp, _Alloc>::iterator
@@ -176,14 +189,25 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
     {
       iterator __first = begin();
       iterator __last = end();
+      iterator __extra = __last;
       while (__first != __last)
 	{
 	  iterator __next = __first;
 	  ++__next;
 	  if (*__first == __value)
-	    _M_erase(__first);
+	    {
+	      // _GLIBCXX_RESOLVE_LIB_DEFECTS
+	      // 526. Is it undefined if a function in the standard changes
+	      // in parameters?
+	      if (&*__first != &__value)
+		_M_erase(__first);
+	      else
+		__extra = __first;
+	    }
 	  __first = __next;
 	}
+      if (__extra != __last)
+	_M_erase(__extra);
     }
 
   template<typename _Tp, typename _Alloc>
@@ -209,7 +233,11 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
   template<typename _Tp, typename _Alloc>
     void
     list<_Tp, _Alloc>::
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+    merge(list&& __x)
+#else
     merge(list& __x)
+#endif
     {
       // _GLIBCXX_RESOLVE_LIB_DEFECTS
       // 300. list::merge() specification incomplete
@@ -239,7 +267,11 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
     template <typename _StrictWeakOrdering>
       void
       list<_Tp, _Alloc>::
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      merge(list&& __x, _StrictWeakOrdering __comp)
+#else
       merge(list& __x, _StrictWeakOrdering __comp)
+#endif
       {
 	// _GLIBCXX_RESOLVE_LIB_DEFECTS
 	// 300. list::merge() specification incomplete

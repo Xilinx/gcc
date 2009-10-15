@@ -83,7 +83,7 @@ VXWORKS_ADDITIONAL_CPP_SPEC
 
 #define ASM_SPEC \
 "%(asm_cpu) \
- %{.s: %{mregnames} %{mno-regnames}} %{.S: %{mregnames} %{mno-regnames}} \
+ %{,assembler|,assembler-with-cpp: %{mregnames} %{mno-regnames}} \
  %{v:-v} %{Qy:} %{!Qn:-Qy} %{n} %{T} %{Ym,*} %{Yd,*} %{Wa,*:%*} \
  %{mrelocatable} %{mrelocatable-lib} %{fpic:-K PIC} %{fPIC:-K PIC} -mbig"
 
@@ -115,19 +115,6 @@ VXWORKS_ADDITIONAL_CPP_SPEC
 #define STACK_BOUNDARY (16*BITS_PER_UNIT)
 /* Override sysv4.h, reset to the default.  */
 #undef  PREFERRED_STACK_BOUNDARY
-
-/* Enable SPE */
-#undef TARGET_SPE_ABI
-#undef TARGET_SPE
-#undef TARGET_E500
-#undef TARGET_ISEL
-#undef TARGET_FPRS
-
-#define TARGET_SPE_ABI rs6000_spe_abi
-#define TARGET_SPE rs6000_spe
-#define TARGET_E500 (rs6000_cpu == PROCESSOR_PPC8540)
-#define TARGET_ISEL rs6000_isel
-#define TARGET_FPRS (!rs6000_float_gprs)
 
 /* Make -mcpu=8540 imply SPE.  ISEL is automatically enabled, the
    others must be done by hand.  Handle -mrtp.  Disable -fPIC

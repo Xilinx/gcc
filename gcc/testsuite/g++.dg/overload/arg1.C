@@ -10,14 +10,14 @@ struct A {};
 
 struct B : A
 {
-  B(int); // { dg-error "" "" }
-  B(B &); // { dg-error "" "" }
-  B(A); // { dg-error "" "" }
+  B(int);
+  B(B &);
+  B(A);
 };
 
 void foo(B);
 
 void bar()
 {
-  foo(0); // { dg-error "no matching function|initializing" "" }
+  foo(0);
 }

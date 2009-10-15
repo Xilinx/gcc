@@ -98,7 +98,7 @@ public class QtFontPeer extends ClasspathFontPeer
 
   // ****************** ClasspathFontPeer Methods.
 
-  public boolean canDisplay (Font font, char c)
+  public boolean canDisplay (Font font, int c)
   {
     return metrics.canDisplay( c );
   }
@@ -194,15 +194,4 @@ public class QtFontPeer extends ClasspathFontPeer
     throw new UnsupportedOperationException();
   }
 
-  public Rectangle2D getStringBounds (Font font, 
-				      CharacterIterator ci, 
-				      int begin, int limit, 
-				      FontRenderContext frc)
-  {
-    int index = begin;
-    String s = "" + ci.setIndex( index );
-    while( index++ <= limit )
-      s = s + ci.next();
-    return metrics.getStringBounds(s);
-  }
 }

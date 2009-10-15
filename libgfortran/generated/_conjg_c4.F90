@@ -1,4 +1,4 @@
-!   Copyright 2002 Free Software Foundation, Inc.
+!   Copyright 2002, 2007 Free Software Foundation, Inc.
 !   Contributed by Paul Brook <paul@nowt.org>
 !
 !This file is part of the GNU Fortran 95 runtime library (libgfortran).
@@ -40,11 +40,11 @@
 #if defined (HAVE_GFC_COMPLEX_4)
 
 
-elemental function specific__conjg_4 (parm)
+elemental function _gfortran_specific__conjg_4 (parm)
    complex (kind=4), intent (in) :: parm
-   complex (kind=4) :: specific__conjg_4
+   complex (kind=4) :: _gfortran_specific__conjg_4
 
-   specific__conjg_4 = conjg (parm)
+   _gfortran_specific__conjg_4 = conjg (parm)
 end function
 
 

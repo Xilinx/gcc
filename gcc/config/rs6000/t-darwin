@@ -8,7 +8,7 @@ LIB2FUNCS_STATIC_EXTRA = \
 	$(srcdir)/config/rs6000/darwin-fpsave.asm  \
 	$(srcdir)/config/rs6000/darwin-vecsave.asm
 
-DARWIN_EXTRA_CRT_BUILD_CFLAGS = -mlongcall
+DARWIN_EXTRA_CRT_BUILD_CFLAGS = -mlongcall -mmacosx-version-min=10.4
 
 # The .asm files above are designed to run on all processors,
 # even though they use AltiVec instructions.  -Wa is used because
@@ -23,8 +23,6 @@ TARGET_LIBGCC2_CFLAGS = -Wa,-force_cpusubtype_ALL -pipe -mmacosx-version-min=10.
 # Export the _xlq* symbols from darwin-ldouble.c.
 SHLIB_MAPFILES += $(srcdir)/config/rs6000/libgcc-ppc64.ver
 
-SHLIB_VERPFX = $(srcdir)/config/rs6000/darwin-libgcc
-
 LIB2ADDEH += $(srcdir)/config/rs6000/darwin-fallback.c
 
 darwin-fpsave.o:	$(srcdir)/config/rs6000/darwin-asm.h
@@ -34,4 +32,5 @@ darwin-tramp.o:		$(srcdir)/config/rs6000/darwin-asm.h
 $(T)crt2$(objext): $(srcdir)/config/darwin-crt2.c $(GCC_PASSES) \
 	$(TCONFIG_H) stmp-int-hdrs tsystem.h
 	$(GCC_FOR_TARGET) $(GCC_CFLAGS) $(INCLUDES) $(MULTILIB_CFLAGS) \
+	  $(DARWIN_EXTRA_CRT_BUILD_CFLAGS) \
 	  -c $(srcdir)/config/darwin-crt2.c -o $(T)crt2$(objext)

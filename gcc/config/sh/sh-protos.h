@@ -1,6 +1,6 @@
 /* Definitions of target machine for GNU compiler for Renesas / SuperH SH.
    Copyright (C) 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2003,
-   2004, 2005, 2007
+   2004, 2005, 2006, 2007
    Free Software Foundation, Inc.
    Contributed by Steve Chamberlain (sac@cygnus.com).
    Improved by Jim Wilson (wilson@cygnus.com).
@@ -68,6 +68,10 @@ extern void print_operand (FILE *, rtx, int);
 extern void output_pic_addr_const (FILE *, rtx);
 extern int expand_block_move (rtx *);
 extern int prepare_move_operands (rtx[], enum machine_mode mode);
+extern enum rtx_code prepare_cbranch_operands (rtx *, enum machine_mode mode,
+					       enum rtx_code comparison);
+extern void expand_cbranchsi4 (rtx *operands, enum rtx_code comparison, int);
+extern bool expand_cbranchdi4 (rtx *operands, enum rtx_code comparison);
 extern void from_compare (rtx *, int);
 extern int shift_insns_rtx (rtx);
 extern void gen_ashift (int, int, rtx);
@@ -116,9 +120,6 @@ extern void sh_expand_binop_v2sf (enum rtx_code, rtx, rtx, rtx);
 extern int sh_expand_t_scc (enum rtx_code code, rtx target);
 extern rtx sh_gen_truncate (enum machine_mode, rtx, int);
 extern bool sh_vector_mode_supported_p (enum machine_mode);
-#ifdef TREE_CODE
-extern void sh_va_start (tree, rtx);
-#endif /* TREE_CODE */
 #endif /* RTX_CODE */
 
 extern const char *output_jump_label_table (void);
@@ -133,7 +134,7 @@ extern int initial_elimination_offset (int, int);
 extern int fldi_ok (void);
 extern int sh_hard_regno_rename_ok (unsigned int, unsigned int);
 extern int sh_cfun_interrupt_handler_p (void);
-extern int sh_attr_renesas_p (tree);
+extern int sh_attr_renesas_p (const_tree);
 extern int sh_cfun_attr_renesas_p (void);
 extern void sh_initialize_trampoline (rtx, rtx, rtx);
 extern bool sh_cannot_change_mode_class
@@ -157,12 +158,13 @@ extern rtx sh_function_arg (CUMULATIVE_ARGS *, enum machine_mode, tree, int);
 extern void sh_function_arg_advance (CUMULATIVE_ARGS *, enum machine_mode, tree, int);
 extern int sh_pass_in_reg_p (CUMULATIVE_ARGS *, enum machine_mode, tree);
 extern void sh_init_cumulative_args (CUMULATIVE_ARGS *, tree, rtx, tree, signed int, enum machine_mode);
-extern bool sh_promote_prototypes (tree);
+extern bool sh_promote_prototypes (const_tree);
 
 extern rtx replace_n_hard_rtx (rtx, rtx *, int , int);
 extern int shmedia_cleanup_truncate (rtx *, void *);
 
 extern int sh_contains_memref_p (rtx);
+extern int sh_loads_bankedreg_p (rtx);
 extern rtx shmedia_prepare_call_address (rtx fnaddr, int is_sibcall);
 struct secondary_reload_info;
 extern enum reg_class sh_secondary_reload (bool, rtx, enum reg_class,

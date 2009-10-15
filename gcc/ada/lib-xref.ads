@@ -6,18 +6,17 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1998-2005, Free Software Foundation, Inc.         --
+--          Copyright (C) 1998-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -114,6 +113,21 @@ package Lib.Xref is
    --          enumeration literals (points to enum type)  LR={}
    --          objects and components (points to type)     LR={}
 
+   --          For a type that implements multiple interfaces, there is an
+   --          entry of the form  LR=<> for each of the interfaces appearing
+   --          in the type declaration. In the data structures of ali.ads,
+   --          the type that the entity extends (or the first interface if
+   --          there is no such type) is stored in Xref_Entity_Record.Tref*,
+   --          additional interfaces are stored in the list of references
+   --          with a special type of Interface_Reference.
+
+   --          For an array type, there is an entry of the form LR=<> for
+   --          each of the index types appearing in the type declaration.
+   --          The index types follow the entry for the component type.
+   --          In the data structures of ali.ads, however, the list of index
+   --          types are output in the list of references with a special
+   --          Rtype set to Array_Index_Reference.
+
    --          In the above list LR shows the brackets used in the output,
    --          which has one of the two following forms:
 
@@ -166,6 +180,7 @@ package Lib.Xref is
    --              p = primitive operation
    --              P = overriding primitive operation
    --              r = reference
+   --              R = subprogram reference in dispatching call
    --              t = end of body
    --              w = WITH line
    --              x = type extension
@@ -222,8 +237,33 @@ package Lib.Xref is
    --           source node that generates the implicit reference, and it is
    --           useful to record this one.
 
-   --           k is used to denote a reference to the parent unit, in the
-   --           cross-reference line for a child unit.
+   --           k is another non-standard reference type, used to record a
+   --           reference from a child unit to its parent. For various cross-
+   --           referencing tools, we need a pointer from the xref entries for
+   --           the child to the parent. This is the opposite way round from
+   --           normal xref entries, since the reference is *from* the child
+   --           unit *to* the parent unit, yet appears in the xref entries for
+   --           the child. Consider this example:
+   --
+   --             package q is
+   --             end;
+   --             package q.r is
+   --             end q.r;
+   --
+   --           The ali file for q-r.ads has these entries
+   --
+   --             D q.ads
+   --             D q-r.ads
+   --             D system.ads
+   --             X 1 q.ads
+   --             1K9*q 2e4 2|1r9 2r5
+   --             X 2 q-r.ads
+   --             1K11*r 1|1k9 2|2l7 2e8
+   --
+   --           Here the 2|1r9 entry appearing in the section for the parent
+   --           is the normal reference from the child to the parent. The 1k9
+   --           entry in the section for the child duplicates this information
+   --           but appears in the child rather than the parent.
 
    --           l is used to identify the occurrence in the source of the
    --           name on an end line. This is just a syntactic reference
@@ -245,6 +285,10 @@ package Lib.Xref is
    --           If the primitive operation overrides an inherited primitive
    --           operation of the parent type, the letter 'P' is used in the
    --           corresponding entry.
+
+   --           R is used to mark a dispatching call. The reference is to
+   --           the specification of the primitive operation of the root
+   --           type when the call has a controlling argument in its class.
 
    --           t is similar to e. It identifies the end of a corresponding
    --           body (such a reference always links up with a b reference)
@@ -441,30 +485,32 @@ package Lib.Xref is
       E_Limited_Private_Subtype                    => '+',
 
       E_Incomplete_Type                            => '+',
+      E_Incomplete_Subtype                         => '+',
       E_Task_Type                                  => 'T',
       E_Task_Subtype                               => 'T',
       E_Protected_Type                             => 'W',
-      E_Protected_Subtype                          => 'W',
 
+      E_Protected_Subtype                          => 'W',
       E_Exception_Type                             => ' ',
       E_Subprogram_Type                            => ' ',
       E_Enumeration_Literal                        => 'n',
       E_Function                                   => 'V',
-      E_Operator                                   => 'V',
 
+      E_Operator                                   => 'V',
       E_Procedure                                  => 'U',
       E_Entry                                      => 'Y',
       E_Entry_Family                               => 'Y',
       E_Block                                      => 'q',
-      E_Entry_Index_Parameter                      => '*',
 
+      E_Entry_Index_Parameter                      => '*',
       E_Exception                                  => 'X',
       E_Generic_Function                           => 'v',
       E_Generic_Package                            => 'k',
       E_Generic_Procedure                          => 'u',
-      E_Label                                      => 'L',
 
+      E_Label                                      => 'L',
       E_Loop                                       => 'l',
+      E_Return_Statement                           => ' ',
       E_Package                                    => 'K',
 
       --  The following entities are not ones to which we gather
@@ -491,7 +537,7 @@ package Lib.Xref is
    --    e     non-Boolean enumeration object  non_Boolean enumeration type
    --    f     floating-point object           floating-point type
    --    g     (unused)                        (unused)
-   --    h     (unused)                        Abstract type
+   --    h     Interface (Ada 2005)            Abstract type
    --    i     signed integer object           signed integer type
    --    j     (unused)                        (unused)
    --    k     generic package                 package
@@ -591,22 +637,22 @@ package Lib.Xref is
    --    the node N is not an identifier, defining identifier, or expanded name
    --    the type is 'p' and the entity is not in the extended main source
    --
-   --  If all these conditions are met, then the Is_Referenced flag of E
-   --  is set (unless Set_Ref is False) and a cross-reference entry is
-   --  recorded for later output when Output_References is called.
+   --  If all these conditions are met, then the Is_Referenced flag of E is set
+   --  (unless Set_Ref is False) and a cross-reference entry is recorded for
+   --  later output when Output_References is called.
    --
    --  Note: the dummy space entry is for the convenience of some callers,
    --  who find it easier to pass a space to suppress the entry than to do
    --  a specific test. The call has no effect if the type is a space.
    --
-   --  The parameter Set_Ref is normally True, and indicates that in
-   --  addition to generating a cross-reference, the Referenced flag
-   --  of the specified entity should be set. If this parameter is
-   --  False, then setting of the Referenced flag is inhibited.
+   --  The parameter Set_Ref is normally True, and indicates that in addition
+   --  to generating a cross-reference, the Referenced flag of the specified
+   --  entity should be set. If this parameter is False, then setting of the
+   --  Referenced flag is inhibited.
    --
-   --  The parameter Force is set to True to force a reference to be
-   --  generated even if Comes_From_Source is false. This is used for
-   --  certain implicit references, and also for end label references.
+   --  The parameter Force is set to True to force a reference to be generated
+   --  even if Comes_From_Source is false. This is used for certain implicit
+   --  references, and also for end label references.
 
    procedure Generate_Reference_To_Formals (E : Entity_Id);
    --  Add a reference to the definition of each formal on the line for

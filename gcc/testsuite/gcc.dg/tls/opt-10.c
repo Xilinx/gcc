@@ -1,4 +1,5 @@
 /* { dg-do compile } */
+/* { dg-require-effective-target fpic } */
 /* { dg-options "-O3 -fpic" } */
 /* { dg-require-effective-target tls } */
 

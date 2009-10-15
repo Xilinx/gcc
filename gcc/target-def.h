@@ -64,6 +64,10 @@
 #define TARGET_ASM_GLOBALIZE_LABEL default_globalize_label
 #endif
 
+#ifndef TARGET_ASM_GLOBALIZE_DECL_NAME
+#define TARGET_ASM_GLOBALIZE_DECL_NAME default_globalize_decl_name
+#endif
+
 #ifndef TARGET_ASM_EMIT_UNWIND_LABEL
 #define TARGET_ASM_EMIT_UNWIND_LABEL default_emit_unwind_label
 #endif
@@ -138,7 +142,7 @@
 #endif
 
 #define TARGET_ASM_OUTPUT_MI_THUNK NULL
-#define TARGET_ASM_CAN_OUTPUT_MI_THUNK hook_bool_tree_hwi_hwi_tree_false
+#define TARGET_ASM_CAN_OUTPUT_MI_THUNK hook_bool_const_tree_hwi_hwi_const_tree_false
 
 #if !defined(TARGET_HAVE_CTORS_DTORS)
 # if defined(TARGET_ASM_CONSTRUCTOR) && defined(TARGET_ASM_DESTRUCTOR)
@@ -170,7 +174,7 @@
 #endif
 
 #ifndef TARGET_VALID_DLLIMPORT_ATTRIBUTE_P
-#define TARGET_VALID_DLLIMPORT_ATTRIBUTE_P hook_bool_tree_true
+#define TARGET_VALID_DLLIMPORT_ATTRIBUTE_P hook_bool_const_tree_true
 #endif
 
 #ifndef TARGET_HAVE_TLS
@@ -190,6 +194,7 @@
 #endif
 
 #define TARGET_DWARF_REGISTER_SPAN hook_rtx_rtx_null
+#define TARGET_INIT_DWARF_REG_SIZES_EXTRA hook_void_tree
 
 #ifndef TARGET_ASM_FILE_START
 #define TARGET_ASM_FILE_START default_file_start
@@ -231,6 +236,13 @@
 #define TARGET_ASM_OUTPUT_DWARF_DTPREL NULL
 #endif
 
+#ifndef TARGET_ASM_RECORD_GCC_SWITCHES
+#define TARGET_ASM_RECORD_GCC_SWITCHES NULL
+#endif
+#ifndef TARGET_ASM_RECORD_GCC_SWITCHES_SECTION
+#define TARGET_ASM_RECORD_GCC_SWITCHES_SECTION ".GCC.command.line"
+#endif
+
 #define TARGET_ASM_ALIGNED_INT_OP				\
 		       {TARGET_ASM_ALIGNED_HI_OP,		\
 			TARGET_ASM_ALIGNED_SI_OP,		\
@@ -250,6 +262,7 @@
 			TARGET_ASM_UNALIGNED_INT_OP,		\
 			TARGET_ASM_INTEGER,			\
 			TARGET_ASM_GLOBALIZE_LABEL,		\
+			TARGET_ASM_GLOBALIZE_DECL_NAME,		\
                         TARGET_ASM_EMIT_UNWIND_LABEL,           \
 			TARGET_ASM_EMIT_EXCEPT_TABLE_LABEL,	\
 			TARGET_UNWIND_EMIT,			\
@@ -275,6 +288,8 @@
                         TARGET_ASM_FILE_END,			\
 			TARGET_ASM_EXTERNAL_LIBCALL,            \
                         TARGET_ASM_MARK_DECL_PRESERVED,		\
+			TARGET_ASM_RECORD_GCC_SWITCHES,		\
+			TARGET_ASM_RECORD_GCC_SWITCHES_SECTION,	\
 			TARGET_ASM_OUTPUT_ANCHOR,		\
 			TARGET_ASM_OUTPUT_DWARF_DTPREL}
 
@@ -295,18 +310,19 @@
 #define TARGET_SCHED_DFA_PRE_CYCLE_INSN 0
 #define TARGET_SCHED_INIT_DFA_POST_CYCLE_INSN 0
 #define TARGET_SCHED_DFA_POST_CYCLE_INSN 0
+#define TARGET_SCHED_DFA_PRE_ADVANCE_CYCLE 0
+#define TARGET_SCHED_DFA_POST_ADVANCE_CYCLE 0
 #define TARGET_SCHED_FIRST_CYCLE_MULTIPASS_DFA_LOOKAHEAD 0
 #define TARGET_SCHED_FIRST_CYCLE_MULTIPASS_DFA_LOOKAHEAD_GUARD 0
 #define TARGET_SCHED_DFA_NEW_CYCLE 0
 #define TARGET_SCHED_IS_COSTLY_DEPENDENCE 0
-#define TARGET_SCHED_ADJUST_COST_2 0
 #define TARGET_SCHED_H_I_D_EXTENDED 0
 #define TARGET_SCHED_SPECULATE_INSN 0
 #define TARGET_SCHED_NEEDS_BLOCK_P 0
 #define TARGET_SCHED_GEN_CHECK 0
 #define TARGET_SCHED_FIRST_CYCLE_MULTIPASS_DFA_LOOKAHEAD_GUARD_SPEC 0
 #define TARGET_SCHED_SET_SCHED_FLAGS 0
-
+#define TARGET_SCHED_SMS_RES_MII 0
 
 #define TARGET_SCHED						\
   {TARGET_SCHED_ADJUST_COST,					\
@@ -323,33 +339,57 @@
    TARGET_SCHED_INIT_DFA_PRE_CYCLE_INSN,			\
    TARGET_SCHED_DFA_PRE_CYCLE_INSN,				\
    TARGET_SCHED_INIT_DFA_POST_CYCLE_INSN,			\
-   TARGET_SCHED_DFA_POST_CYCLE_INSN,				\
+   TARGET_SCHED_DFA_POST_CYCLE_INSN,			        \
+   TARGET_SCHED_DFA_PRE_ADVANCE_CYCLE,                          \
+   TARGET_SCHED_DFA_POST_ADVANCE_CYCLE,                         \
    TARGET_SCHED_FIRST_CYCLE_MULTIPASS_DFA_LOOKAHEAD,		\
    TARGET_SCHED_FIRST_CYCLE_MULTIPASS_DFA_LOOKAHEAD_GUARD,	\
    TARGET_SCHED_DFA_NEW_CYCLE,					\
    TARGET_SCHED_IS_COSTLY_DEPENDENCE,                           \
-   TARGET_SCHED_ADJUST_COST_2,                                  \
    TARGET_SCHED_H_I_D_EXTENDED,					\
    TARGET_SCHED_SPECULATE_INSN,                                 \
    TARGET_SCHED_NEEDS_BLOCK_P,                                  \
    TARGET_SCHED_GEN_CHECK,                                      \
    TARGET_SCHED_FIRST_CYCLE_MULTIPASS_DFA_LOOKAHEAD_GUARD_SPEC, \
-   TARGET_SCHED_SET_SCHED_FLAGS}
+   TARGET_SCHED_SET_SCHED_FLAGS,                                \
+   TARGET_SCHED_SMS_RES_MII}
 
 #define TARGET_VECTORIZE_BUILTIN_MASK_FOR_LOAD 0
+#define TARGET_VECTORIZE_BUILTIN_VECTORIZED_FUNCTION \
+  default_builtin_vectorized_function
+#define TARGET_VECTORIZE_BUILTIN_CONVERSION \
+  default_builtin_vectorized_conversion
+#define TARGET_VECTORIZE_BUILTIN_MUL_WIDEN_EVEN 0
+#define TARGET_VECTORIZE_BUILTIN_MUL_WIDEN_ODD 0
+#define TARGET_VECTORIZE_BUILTIN_VECTORIZATION_COST 0
 #define TARGET_VECTOR_ALIGNMENT_REACHABLE \
   default_builtin_vector_alignment_reachable
 
 #define TARGET_VECTORIZE                                                \
-  {TARGET_VECTORIZE_BUILTIN_MASK_FOR_LOAD,				\
-   TARGET_VECTOR_ALIGNMENT_REACHABLE}
+  {									\
+    TARGET_VECTORIZE_BUILTIN_MASK_FOR_LOAD,				\
+    TARGET_VECTORIZE_BUILTIN_VECTORIZED_FUNCTION,			\
+    TARGET_VECTORIZE_BUILTIN_CONVERSION,				\
+    TARGET_VECTORIZE_BUILTIN_MUL_WIDEN_EVEN,                            \
+    TARGET_VECTORIZE_BUILTIN_MUL_WIDEN_ODD,				\
+    TARGET_VECTORIZE_BUILTIN_VECTORIZATION_COST,			\
+    TARGET_VECTOR_ALIGNMENT_REACHABLE					\
+  }
 
 #define TARGET_DEFAULT_TARGET_FLAGS 0
 
 #define TARGET_HANDLE_OPTION hook_bool_size_t_constcharptr_int_true
+#define TARGET_HELP NULL
 
 /* In except.c */
 #define TARGET_EH_RETURN_FILTER_MODE  default_eh_return_filter_mode
+
+/* In libgcc2.c */
+#define TARGET_LIBGCC_CMP_RETURN_MODE  default_libgcc_cmp_return_mode
+#define TARGET_LIBGCC_SHIFT_COUNT_MODE default_libgcc_shift_count_mode
+
+/* In unwind-generic.h.  */
+#define TARGET_UNWIND_WORD_MODE default_unwind_word_mode
 
 /* In tree.c.  */
 #define TARGET_MERGE_DECL_ATTRIBUTES merge_decl_attributes
@@ -364,6 +404,9 @@
 #define TARGET_EXPAND_BUILTIN default_expand_builtin
 #define TARGET_RESOLVE_OVERLOADED_BUILTIN NULL
 #define TARGET_FOLD_BUILTIN hook_tree_tree_tree_bool_null
+
+/* In tree-ssa-math-opts.c  */
+#define TARGET_BUILTIN_RECIPROCAL default_builtin_reciprocal
 
 /* In varasm.c.  */
 #ifndef TARGET_SECTION_TYPE_FLAGS
@@ -402,12 +445,16 @@
 #define TARGET_DECIMAL_FLOAT_SUPPORTED_P default_decimal_float_supported_p
 #endif
 
+#ifndef TARGET_FIXED_POINT_SUPPORTED_P
+#define TARGET_FIXED_POINT_SUPPORTED_P default_fixed_point_supported_p
+#endif
+
 #ifndef TARGET_VECTOR_MODE_SUPPORTED_P
 #define TARGET_VECTOR_MODE_SUPPORTED_P hook_bool_mode_false
 #endif
 
 #ifndef TARGET_VECTOR_OPAQUE_P
-#define TARGET_VECTOR_OPAQUE_P hook_bool_tree_false
+#define TARGET_VECTOR_OPAQUE_P hook_bool_const_tree_false
 #endif
 
 /* In hooks.c.  */
@@ -416,32 +463,42 @@
 #define TARGET_BRANCH_TARGET_REGISTER_CALLEE_SAVED hook_bool_bool_false
 #define TARGET_CANNOT_FORCE_CONST_MEM hook_bool_rtx_false
 #define TARGET_CANNOT_COPY_INSN_P NULL
-#define TARGET_COMMUTATIVE_P hook_bool_rtx_commutative_p
+#define TARGET_COMMUTATIVE_P hook_bool_const_rtx_commutative_p
 #define TARGET_DELEGITIMIZE_ADDRESS hook_rtx_rtx_identity
-#define TARGET_USE_BLOCKS_FOR_CONSTANT_P hook_bool_mode_rtx_false
+#define TARGET_USE_BLOCKS_FOR_CONSTANT_P hook_bool_mode_const_rtx_false
 #define TARGET_MIN_ANCHOR_OFFSET 0
 #define TARGET_MAX_ANCHOR_OFFSET 0
 #define TARGET_USE_ANCHORS_FOR_SYMBOL_P default_use_anchors_for_symbol_p
 #define TARGET_FUNCTION_OK_FOR_SIBCALL hook_bool_tree_tree_false
-#define TARGET_COMP_TYPE_ATTRIBUTES hook_int_tree_tree_1
+#define TARGET_COMP_TYPE_ATTRIBUTES hook_int_const_tree_const_tree_1
 #ifndef TARGET_SET_DEFAULT_TYPE_ATTRIBUTES
 #define TARGET_SET_DEFAULT_TYPE_ATTRIBUTES hook_void_tree
 #endif
 #define TARGET_INSERT_ATTRIBUTES hook_void_tree_treeptr
-#define TARGET_FUNCTION_ATTRIBUTE_INLINABLE_P hook_bool_tree_false
-#define TARGET_MS_BITFIELD_LAYOUT_P hook_bool_tree_false
+#define TARGET_FUNCTION_ATTRIBUTE_INLINABLE_P hook_bool_const_tree_false
+#define TARGET_MS_BITFIELD_LAYOUT_P hook_bool_const_tree_false
 #define TARGET_ALIGN_ANON_BITFIELD hook_bool_void_false
 #define TARGET_NARROW_VOLATILE_BITFIELD hook_bool_void_false
 #define TARGET_RTX_COSTS hook_bool_rtx_int_int_intp_false
-#define TARGET_MANGLE_FUNDAMENTAL_TYPE hook_constcharptr_tree_null
+#define TARGET_MANGLE_TYPE hook_constcharptr_const_tree_null
 #define TARGET_ALLOCATE_INITIAL_VALUE NULL
+
+#define TARGET_UNSPEC_MAY_TRAP_P default_unspec_may_trap_p
+
+#ifndef TARGET_SET_CURRENT_FUNCTION
+#define TARGET_SET_CURRENT_FUNCTION hook_void_tree
+#endif
 
 #ifndef TARGET_INIT_LIBFUNCS
 #define TARGET_INIT_LIBFUNCS hook_void_void
 #endif
 
 #ifndef TARGET_IN_SMALL_DATA_P
-#define TARGET_IN_SMALL_DATA_P hook_bool_tree_false
+#define TARGET_IN_SMALL_DATA_P hook_bool_const_tree_false
+#endif
+
+#ifndef TARGET_MANGLE_DECL_ASSEMBLER_NAME
+#define TARGET_MANGLE_DECL_ASSEMBLER_NAME default_mangle_decl_assembler_name
 #endif
 
 #ifndef TARGET_ENCODE_SECTION_INFO
@@ -452,9 +509,9 @@
 #define TARGET_INVALID_ARG_FOR_UNPROTOTYPED_FN hook_invalid_arg_for_unprototyped_fn
 #endif
 
-#define TARGET_INVALID_CONVERSION hook_constcharptr_tree_tree_null
-#define TARGET_INVALID_UNARY_OP hook_constcharptr_int_tree_null
-#define TARGET_INVALID_BINARY_OP hook_constcharptr_int_tree_tree_null
+#define TARGET_INVALID_CONVERSION hook_constcharptr_const_tree_const_tree_null
+#define TARGET_INVALID_UNARY_OP hook_constcharptr_int_const_tree_null
+#define TARGET_INVALID_BINARY_OP hook_constcharptr_int_const_tree_const_tree_null
 
 #define TARGET_FIXED_CONDITION_CODE_REGS hook_bool_uintp_uintp_false
 
@@ -463,6 +520,7 @@
 #define TARGET_MACHINE_DEPENDENT_REORG 0
 
 #define TARGET_BUILD_BUILTIN_VA_LIST std_build_builtin_va_list
+#define TARGET_EXPAND_BUILTIN_VA_START 0
 
 #define TARGET_GET_PCH_VALIDITY default_get_pch_validity
 #define TARGET_PCH_VALID_P default_pch_valid_p
@@ -474,7 +532,7 @@
 
 #define TARGET_MD_ASM_CLOBBERS hook_tree_tree_tree_tree_3rd_identity
 
-#define TARGET_DWARF_CALLING_CONVENTION hook_int_tree_0
+#define TARGET_DWARF_CALLING_CONVENTION hook_int_const_tree_0
 
 #define TARGET_DWARF_HANDLE_FRAME_UNSPEC 0
 
@@ -485,13 +543,13 @@
 
 #define TARGET_ARM_EABI_UNWINDER false
 
-#define TARGET_PROMOTE_FUNCTION_ARGS hook_bool_tree_false
-#define TARGET_PROMOTE_FUNCTION_RETURN hook_bool_tree_false
-#define TARGET_PROMOTE_PROTOTYPES hook_bool_tree_false
+#define TARGET_PROMOTE_FUNCTION_ARGS hook_bool_const_tree_false
+#define TARGET_PROMOTE_FUNCTION_RETURN hook_bool_const_tree_false
+#define TARGET_PROMOTE_PROTOTYPES hook_bool_const_tree_false
 
 #define TARGET_STRUCT_VALUE_RTX hook_rtx_tree_int_null
 #define TARGET_RETURN_IN_MEMORY default_return_in_memory
-#define TARGET_RETURN_IN_MSB hook_bool_tree_false
+#define TARGET_RETURN_IN_MSB hook_bool_const_tree_false
 
 #define TARGET_EXPAND_BUILTIN_SAVEREGS default_expand_builtin_saveregs
 #define TARGET_SETUP_INCOMING_VARARGS default_setup_incoming_varargs
@@ -549,6 +607,23 @@
 #define TARGET_SECONDARY_RELOAD default_secondary_reload
 #endif
 
+#ifndef TARGET_EXPAND_TO_RTL_HOOK
+#define TARGET_EXPAND_TO_RTL_HOOK hook_void_void
+#endif
+
+#ifndef TARGET_INSTANTIATE_DECLS
+#define TARGET_INSTANTIATE_DECLS hook_void_void
+#endif
+
+/* C specific.  */
+#ifndef TARGET_C_MODE_FOR_SUFFIX
+#define TARGET_C_MODE_FOR_SUFFIX default_mode_for_suffix
+#endif
+
+#define TARGET_C				\
+  {						\
+    TARGET_C_MODE_FOR_SUFFIX			\
+  }
 
 /* C++ specific.  */
 #ifndef TARGET_CXX_GUARD_TYPE
@@ -587,8 +662,16 @@
 #define TARGET_CXX_CLASS_DATA_ALWAYS_COMDAT hook_bool_void_true
 #endif
 
+#ifndef TARGET_CXX_LIBRARY_RTTI_COMDAT
+#define TARGET_CXX_LIBRARY_RTTI_COMDAT hook_bool_void_true
+#endif
+
 #ifndef TARGET_CXX_USE_AEABI_ATEXIT
 #define TARGET_CXX_USE_AEABI_ATEXIT hook_bool_void_false
+#endif
+
+#ifndef TARGET_CXX_USE_ATEXIT_FOR_CXA_ATEXIT
+#define TARGET_CXX_USE_ATEXIT_FOR_CXA_ATEXIT hook_bool_void_false
 #endif
 
 #ifndef TARGET_CXX_ADJUST_CLASS_AT_DEFINITION
@@ -606,7 +689,9 @@
     TARGET_CXX_KEY_METHOD_MAY_BE_INLINE,	\
     TARGET_CXX_DETERMINE_CLASS_DATA_VISIBILITY,	\
     TARGET_CXX_CLASS_DATA_ALWAYS_COMDAT,        \
+    TARGET_CXX_LIBRARY_RTTI_COMDAT,	        \
     TARGET_CXX_USE_AEABI_ATEXIT,		\
+    TARGET_CXX_USE_ATEXIT_FOR_CXA_ATEXIT,	\
     TARGET_CXX_ADJUST_CLASS_AT_DEFINITION	\
   }
 
@@ -618,7 +703,11 @@
   TARGET_VECTORIZE,				\
   TARGET_DEFAULT_TARGET_FLAGS,			\
   TARGET_HANDLE_OPTION,				\
+  TARGET_HELP,					\
   TARGET_EH_RETURN_FILTER_MODE,			\
+  TARGET_LIBGCC_CMP_RETURN_MODE,                \
+  TARGET_LIBGCC_SHIFT_COUNT_MODE,               \
+  TARGET_UNWIND_WORD_MODE,			\
   TARGET_MERGE_DECL_ATTRIBUTES,			\
   TARGET_MERGE_TYPE_ATTRIBUTES,			\
   TARGET_ATTRIBUTE_TABLE,			\
@@ -628,13 +717,15 @@
   TARGET_FUNCTION_ATTRIBUTE_INLINABLE_P,	\
   TARGET_MS_BITFIELD_LAYOUT_P,			\
   TARGET_DECIMAL_FLOAT_SUPPORTED_P,		\
+  TARGET_FIXED_POINT_SUPPORTED_P,		\
   TARGET_ALIGN_ANON_BITFIELD,			\
   TARGET_NARROW_VOLATILE_BITFIELD,		\
   TARGET_INIT_BUILTINS,				\
   TARGET_EXPAND_BUILTIN,			\
   TARGET_RESOLVE_OVERLOADED_BUILTIN,		\
   TARGET_FOLD_BUILTIN,				\
-  TARGET_MANGLE_FUNDAMENTAL_TYPE,		\
+  TARGET_BUILTIN_RECIPROCAL,			\
+  TARGET_MANGLE_TYPE,				\
   TARGET_INIT_LIBFUNCS,				\
   TARGET_SECTION_TYPE_FLAGS,			\
   TARGET_CANNOT_MODIFY_JUMPS_P,			\
@@ -649,8 +740,10 @@
   TARGET_MAX_ANCHOR_OFFSET,			\
   TARGET_USE_ANCHORS_FOR_SYMBOL_P,		\
   TARGET_FUNCTION_OK_FOR_SIBCALL,		\
+  TARGET_SET_CURRENT_FUNCTION,			\
   TARGET_IN_SMALL_DATA_P,			\
   TARGET_BINDS_LOCAL_P,				\
+  TARGET_MANGLE_DECL_ASSEMBLER_NAME,		\
   TARGET_ENCODE_SECTION_INFO,			\
   TARGET_STRIP_NAME_ENCODING,			\
   TARGET_SHIFT_TRUNCATION_MASK,			\
@@ -663,11 +756,14 @@
   TARGET_RTX_COSTS,				\
   TARGET_ADDRESS_COST,				\
   TARGET_ALLOCATE_INITIAL_VALUE,		\
+  TARGET_UNSPEC_MAY_TRAP_P,                     \
   TARGET_DWARF_REGISTER_SPAN,                   \
+  TARGET_INIT_DWARF_REG_SIZES_EXTRA,		\
   TARGET_FIXED_CONDITION_CODE_REGS,		\
   TARGET_CC_MODES_COMPATIBLE,			\
   TARGET_MACHINE_DEPENDENT_REORG,		\
   TARGET_BUILD_BUILTIN_VA_LIST,			\
+  TARGET_EXPAND_BUILTIN_VA_START,		\
   TARGET_GIMPLIFY_VA_ARG_EXPR,			\
   TARGET_GET_PCH_VALIDITY,			\
   TARGET_PCH_VALID_P,				\
@@ -687,8 +783,11 @@
   TARGET_INVALID_UNARY_OP,			\
   TARGET_INVALID_BINARY_OP,			\
   TARGET_SECONDARY_RELOAD,			\
+  TARGET_EXPAND_TO_RTL_HOOK,			\
+  TARGET_INSTANTIATE_DECLS,			\
+  TARGET_C,					\
   TARGET_CXX,					\
-  TARGET_EXTRA_LIVE_ON_ENTRY,                    \
+  TARGET_EXTRA_LIVE_ON_ENTRY,			\
   TARGET_UNWIND_TABLES_DEFAULT,			\
   TARGET_HAVE_NAMED_SECTIONS,			\
   TARGET_HAVE_SWITCHABLE_BSS_SECTIONS,		\
@@ -703,6 +802,9 @@
   TARGET_RELAXED_ORDERING,			\
   TARGET_ARM_EABI_UNWINDER			\
 }
+
+#define TARGET_HANDLE_C_OPTION default_handle_c_option
+#define TARGETCM_INITIALIZER { TARGET_HANDLE_C_OPTION }
 
 #include "hooks.h"
 #include "targhooks.h"

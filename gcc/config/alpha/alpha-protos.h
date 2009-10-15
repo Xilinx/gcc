@@ -34,10 +34,6 @@ extern void alpha_expand_prologue (void);
 extern void alpha_expand_epilogue (void);
 extern void alpha_output_filename (FILE *, const char *);
 
-extern bool alpha_const_ok_for_letter_p (HOST_WIDE_INT, int);
-extern bool alpha_const_double_ok_for_letter_p (rtx, int);
-extern bool alpha_extra_constraint (rtx, int);
-
 extern rtx alpha_tablejump_addr_vec (rtx);
 extern rtx alpha_tablejump_best_label (rtx);
 
@@ -53,9 +49,6 @@ extern void get_aligned_mem (rtx, rtx *, rtx *);
 extern rtx get_unaligned_address (rtx);
 extern rtx get_unaligned_offset (rtx, HOST_WIDE_INT);
 extern enum reg_class alpha_preferred_reload_class (rtx, enum reg_class);
-extern enum reg_class alpha_secondary_reload_class (enum reg_class,
-						    enum machine_mode, rtx,
-						    int);
 
 extern void alpha_set_memflags (rtx, rtx);
 extern bool alpha_split_const_mov (enum machine_mode, rtx *);
@@ -82,10 +75,9 @@ extern void print_operand (FILE *, rtx, int);
 extern void print_operand_address (FILE *, rtx);
 extern void alpha_initialize_trampoline (rtx, rtx, rtx, int, int, int);
 
-extern void alpha_va_start (tree, rtx);
 extern rtx alpha_va_arg (tree, tree);
 extern rtx function_arg (CUMULATIVE_ARGS, enum machine_mode, tree, int);
-extern rtx function_value (tree, tree, enum machine_mode);
+extern rtx function_value (const_tree, const_tree, enum machine_mode);
 
 extern void alpha_start_function (FILE *, const char *, tree);
 extern void alpha_end_function (FILE *, const char *, tree);

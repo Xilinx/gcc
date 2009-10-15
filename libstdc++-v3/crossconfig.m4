@@ -9,6 +9,38 @@ case "${host}" in
     # This is a freestanding configuration; there is nothing to do here.
     ;;
 
+  mips*-sde-elf*)
+    # These definitions are for the SDE C library rather than newlib.
+    AC_CHECK_HEADERS([float.h inttypes.h locale.h \
+      stdint.h stdlib.h string.h unistd.h wchar.h \
+      machine/endian.h sys/ioctl.h sys/resource.h \
+      sys/stat.h sys/time.h sys/types.h sys/uio.h])
+    SECTION_FLAGS='-ffunction-sections -fdata-sections'
+    AC_SUBST(SECTION_FLAGS)
+    GLIBCXX_CHECK_COMPILER_FEATURES
+    GLIBCXX_CHECK_LINKER_FEATURES
+    GLIBCXX_CHECK_MATH_SUPPORT
+    GLIBCXX_CHECK_BUILTIN_MATH_SUPPORT
+    GLIBCXX_CHECK_COMPLEX_MATH_SUPPORT
+    GLIBCXX_CHECK_STDLIB_SUPPORT
+    GLIBCXX_CHECK_S_ISREG_OR_S_IFREG
+    AC_DEFINE(HAVE_SIGSETJMP)
+    AC_DEFINE(HAVE_GETPAGESIZE)
+    AC_DEFINE(HAVE_WRITEV)
+    AC_DEFINE(HAVE_INT64_T)
+
+    AC_DEFINE(HAVE_LIBM)
+    AC_DEFINE(HAVE_COPYSIGN)
+    AC_DEFINE(HAVE_FINITE)
+    AC_DEFINE(HAVE_HYPOT)
+    AC_DEFINE(HAVE_ISNAN)
+    AC_DEFINE(HAVE_ISINF)
+
+    AC_DEFINE(HAVE_LDEXPF)
+    AC_DEFINE(HAVE_MODF)
+    AC_DEFINE(HAVE_SQRTF)
+    ;;
+
   *-darwin*)
     # Darwin versions vary, but the linker should work in a cross environment,
     # so we just check for all the features here.
@@ -21,7 +53,6 @@ case "${host}" in
     GLIBCXX_CHECK_MATH_SUPPORT
     GLIBCXX_CHECK_BUILTIN_MATH_SUPPORT
     GLIBCXX_CHECK_COMPLEX_MATH_SUPPORT
-    GLIBCXX_CHECK_ICONV_SUPPORT
     GLIBCXX_CHECK_STDLIB_SUPPORT
 
     # For showmanyc_helper().
@@ -51,13 +82,36 @@ case "${host}" in
       memory.h stdint.h stdlib.h strings.h string.h unistd.h \
       wchar.h wctype.h machine/endian.h sys/ioctl.h sys/param.h \
       sys/resource.h sys/stat.h sys/time.h sys/types.h sys/uio.h])
-    GLIBCXX_CHECK_LINKER_FEATURES
-    GLIBCXX_CHECK_MATH_SUPPORT
-    GLIBCXX_CHECK_BUILTIN_MATH_SUPPORT
-    GLIBCXX_CHECK_COMPLEX_MATH_SUPPORT
-    GLIBCXX_CHECK_ICONV_SUPPORT
-    GLIBCXX_CHECK_STDLIB_SUPPORT
-    GLIBCXX_CHECK_S_ISREG_OR_S_IFREG
+    # GLIBCXX_CHECK_MATH_SUPPORT
+    AC_DEFINE(HAVE_LIBM)
+    AC_DEFINE(HAVE_ISINF)
+    AC_DEFINE(HAVE_ISNAN)
+    AC_DEFINE(HAVE_FINITE)
+    AC_DEFINE(HAVE_COPYSIGN)
+    AC_DEFINE(HAVE_SINCOS)
+    AC_DEFINE(HAVE_HYPOT)
+    # GLIBCXX_CHECK_BUILTIN_MATH_SUPPORT
+    AC_DEFINE(HAVE___BUILTIN_ABS)
+    AC_DEFINE(HAVE___BUILTIN_FABSF)
+    AC_DEFINE(HAVE___BUILTIN_FABS)
+    AC_DEFINE(HAVE___BUILTIN_FABSL)
+    AC_DEFINE(HAVE___BUILTIN_LABS)
+    AC_DEFINE(HAVE___BUILTIN_SQRTF)
+    AC_DEFINE(HAVE___BUILTIN_SQRT)
+    AC_DEFINE(HAVE___BUILTIN_SQRTL)
+    AC_DEFINE(HAVE___BUILTIN_SINF)
+    AC_DEFINE(HAVE___BUILTIN_SIN)
+    AC_DEFINE(HAVE___BUILTIN_SINL)
+    AC_DEFINE(HAVE___BUILTIN_COSF)
+    AC_DEFINE(HAVE___BUILTIN_COS)
+    AC_DEFINE(HAVE___BUILTIN_COSL)
+    # GLIBCXX_CHECK_COMPLEX_MATH_SUPPORT
+    # GLIBCXX_CHECK_STDLIB_SUPPORT
+    AC_DEFINE(HAVE_COPYSIGN)
+    AC_DEFINE(HAVE_COPYSIGNF)
+    # GLIBCXX_CHECK_S_ISREG_OR_S_IFREG
+    AC_DEFINE(HAVE_S_ISREG)
+    AC_DEFINE(HAVE_S_IFREG)
     AC_DEFINE(HAVE_WRITEV)
     ;;
 
@@ -70,7 +124,6 @@ case "${host}" in
     AC_SUBST(SECTION_FLAGS) 
     GLIBCXX_CHECK_LINKER_FEATURES
     GLIBCXX_CHECK_COMPLEX_MATH_SUPPORT
-    GLIBCXX_CHECK_ICONV_SUPPORT
     AC_DEFINE(HAVE_LC_MESSAGES)
     AC_DEFINE(HAVE_GETPAGESIZE)
     AC_DEFINE(HAVE_SETENV)
@@ -125,7 +178,6 @@ case "${host}" in
     AC_SUBST(SECTION_FLAGS)
     GLIBCXX_CHECK_LINKER_FEATURES
     GLIBCXX_CHECK_COMPLEX_MATH_SUPPORT
-    GLIBCXX_CHECK_ICONV_SUPPORT
     AC_DEFINE(HAVE_COPYSIGN)
     AC_DEFINE(HAVE_COPYSIGNF)
     AC_DEFINE(HAVE_FREXPF)
@@ -144,7 +196,8 @@ case "${host}" in
   *-linux* | *-uclinux* | *-gnu* | *-kfreebsd*-gnu | *-knetbsd*-gnu)
     AC_CHECK_HEADERS([nan.h ieeefp.h endian.h sys/isa_defs.h \
       machine/endian.h machine/param.h sys/machine.h sys/types.h \
-      fp.h float.h endian.h inttypes.h locale.h float.h stdint.h])
+      fp.h float.h endian.h inttypes.h locale.h float.h stdint.h \
+      sys/ipc.h sys/sem.h gconf.h])
     SECTION_FLAGS='-ffunction-sections -fdata-sections'
     AC_SUBST(SECTION_FLAGS)
     GLIBCXX_CHECK_COMPILER_FEATURES
@@ -152,7 +205,6 @@ case "${host}" in
     GLIBCXX_CHECK_MATH_SUPPORT
     GLIBCXX_CHECK_BUILTIN_MATH_SUPPORT
     GLIBCXX_CHECK_COMPLEX_MATH_SUPPORT
-    GLIBCXX_CHECK_ICONV_SUPPORT
     GLIBCXX_CHECK_STDLIB_SUPPORT
 
     # For LFS.
@@ -167,6 +219,18 @@ case "${host}" in
     # For xsputn_2().
     AC_CHECK_HEADERS(sys/uio.h)
     GLIBCXX_CHECK_WRITEV
+
+    # For C99 support to TR1.
+    GLIBCXX_CHECK_C99_TR1
+
+    # Check for sigsetjmp
+    AC_TRY_COMPILE(
+      [#include <setjmp.h>],
+      [sigjmp_buf env;
+       while (! sigsetjmp (env, 1))
+         siglongjmp (env, 1);
+      ],
+      [AC_DEFINE(HAVE_SIGSETJMP, 1, [Define if sigsetjmp is available.])])
     ;;
   *-mingw32*)
     AC_CHECK_HEADERS([sys/types.h locale.h float.h])
@@ -181,7 +245,6 @@ case "${host}" in
     AC_SUBST(SECTION_FLAGS) 
     GLIBCXX_CHECK_LINKER_FEATURES
     GLIBCXX_CHECK_COMPLEX_MATH_SUPPORT
-    GLIBCXX_CHECK_ICONV_SUPPORT
     AC_DEFINE(HAVE_COPYSIGN)
     AC_DEFINE(HAVE_COPYSIGNF)
     AC_DEFINE(HAVE_FINITEF)
@@ -205,7 +268,6 @@ case "${host}" in
     AC_SUBST(SECTION_FLAGS)
     GLIBCXX_CHECK_LINKER_FEATURES
     GLIBCXX_CHECK_COMPLEX_MATH_SUPPORT
-    GLIBCXX_CHECK_ICONV_SUPPORT
     AC_DEFINE(HAVE_HYPOT)
     AC_DEFINE(HAVE_ISINF)
     AC_DEFINE(HAVE_ISNAN)
@@ -224,7 +286,6 @@ case "${host}" in
     AC_SUBST(SECTION_FLAGS) 
     GLIBCXX_CHECK_LINKER_FEATURES
     GLIBCXX_CHECK_COMPLEX_MATH_SUPPORT
-    GLIBCXX_CHECK_ICONV_SUPPORT
     AC_DEFINE(HAVE_COSF)
     AC_DEFINE(HAVE_COSL)
     AC_DEFINE(HAVE_COSHF)
@@ -257,16 +318,8 @@ case "${host}" in
          AC_DEFINE(HAVE_FINITE)
          AC_DEFINE(HAVE_FPCLASS)
          AC_DEFINE(HAVE_GETPAGESIZE)
-         AC_DEFINE(HAVE_NL_LANGINFO)
-         AC_DEFINE(HAVE_ICONV)
-         AC_DEFINE(HAVE_ICONV_CLOSE)
-         AC_DEFINE(HAVE_ICONV_OPEN)
-         # Look for the pieces required for wchar_t support in order to
-         # get all the right HAVE_* macros defined.
-         GLIBCXX_CHECK_ICONV_SUPPORT
          # All of the dependencies for wide character support are here, so
-         # turn it on.  This requires some syncronization with the
-         # GLIBCXX_CHECK_ICONV_SUPPORT in acinclude.m4
+         # turn it on. 
          AC_DEFINE(_GLIBCXX_USE_WCHAR_T) 
          # Are these tested for even when cross?
          AC_DEFINE(HAVE_FLOAT_H)
@@ -321,7 +374,6 @@ case "${host}" in
     AC_SUBST(SECTION_FLAGS)
     GLIBCXX_CHECK_LINKER_FEATURES
     GLIBCXX_CHECK_COMPLEX_MATH_SUPPORT
-    GLIBCXX_CHECK_ICONV_SUPPORT
     AC_DEFINE(HAVE_COPYSIGN)
     AC_DEFINE(HAVE_COPYSIGNF)
     AC_DEFINE(HAVE_FINITE)

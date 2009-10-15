@@ -6,18 +6,17 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2005, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -224,9 +223,38 @@ package body Treepr is
    -- pl --
    --------
 
-   procedure pl (L : List_Id) is
+   procedure pl (L : Int) is
+      Lid : Int;
+
    begin
-      Print_Tree_List (L);
+      if L < 0 then
+         Lid := L;
+
+      --  This is the case where we transform e.g. +36 to -99999936
+
+      else
+         if L <= 9 then
+            Lid := -(99999990 + L);
+         elsif L <= 99 then
+            Lid := -(99999900 + L);
+         elsif L <= 999 then
+            Lid := -(99999000 + L);
+         elsif L <= 9999 then
+            Lid := -(99990000 + L);
+         elsif L <= 99999 then
+            Lid := -(99900000 + L);
+         elsif L <= 999999 then
+            Lid := -(99000000 + L);
+         elsif L <= 9999999 then
+            Lid := -(90000000 + L);
+         else
+            Lid := -L;
+         end if;
+      end if;
+
+      --  Now output the list
+
+      Print_Tree_List (List_Id (Lid));
    end pl;
 
    --------
@@ -744,11 +772,14 @@ package body Treepr is
          elsif N = Error_Name then
             Print_Str ("<Error_Name>");
 
-         else
+         elsif Is_Valid_Name (N) then
             Get_Name_String (N);
             Print_Char ('"');
             Write_Name (N);
             Print_Char ('"');
+
+         else
+            Print_Str ("<invalid name ???>");
          end if;
       end if;
    end Print_Name;
@@ -792,6 +823,12 @@ package body Treepr is
       Print_Node_Ref (N);
 
       Notes := False;
+
+      if N > Atree_Private_Part.Nodes.Last then
+         Print_Str (" (no such node)");
+         Print_Eol;
+         return;
+      end if;
 
       if Comes_From_Source (N) then
          Notes := True;
@@ -886,9 +923,8 @@ package body Treepr is
 
          if Nkind (N) in N_Op
            or else Nkind (N) = N_And_Then
-           or else Nkind (N) = N_In
-           or else Nkind (N) = N_Not_In
            or else Nkind (N) = N_Or_Else
+           or else Nkind (N) in N_Membership_Test
          then
             --  Print Left_Opnd if present
 
@@ -995,9 +1031,7 @@ package body Treepr is
          --  Print Etype field if present (printing of this field for entities
          --  is handled by the Print_Entity_Info procedure).
 
-         if Nkind (N) in N_Has_Etype
-           and then Present (Etype (N))
-         then
+         if Nkind (N) in N_Has_Etype and then Present (Etype (N)) then
             Print_Str (Prefix_Str_Char);
             Print_Str ("Etype = ");
             Print_Node_Ref (Etype (N));

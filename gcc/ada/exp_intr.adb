@@ -6,18 +6,17 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2006, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -25,14 +24,15 @@
 ------------------------------------------------------------------------------
 
 with Atree;    use Atree;
+with Checks;   use Checks;
 with Einfo;    use Einfo;
 with Elists;   use Elists;
 with Errout;   use Errout;
+with Exp_Atag; use Exp_Atag;
 with Exp_Ch4;  use Exp_Ch4;
 with Exp_Ch7;  use Exp_Ch7;
 with Exp_Ch11; use Exp_Ch11;
 with Exp_Code; use Exp_Code;
-with Exp_Disp; use Exp_Disp;
 with Exp_Fixd; use Exp_Fixd;
 with Exp_Util; use Exp_Util;
 with Freeze;   use Freeze;
@@ -40,6 +40,7 @@ with Namet;    use Namet;
 with Nmake;    use Nmake;
 with Nlists;   use Nlists;
 with Restrict; use Restrict;
+with Rident;   use Rident;
 with Rtsfind;  use Rtsfind;
 with Sem;      use Sem;
 with Sem_Eval; use Sem_Eval;
@@ -50,6 +51,7 @@ with Sinput;   use Sinput;
 with Snames;   use Snames;
 with Stand;    use Stand;
 with Stringt;  use Stringt;
+with Targparm; use Targparm;
 with Tbuild;   use Tbuild;
 with Uintp;    use Uintp;
 with Urealp;   use Urealp;
@@ -115,8 +117,8 @@ package body Exp_Intr is
    --     GDC_Instance (The_Tag, Parameters'Access)
 
    --  to a class-wide conversion of a dispatching call to the actual
-   --  associated with the formal subprogram Construct, designating
-   --  The_Tag as the controlling tag of the call:
+   --  associated with the formal subprogram Construct, designating The_Tag
+   --  as the controlling tag of the call:
 
    --     T'Class (Construct'Actual (Params)) -- Controlling tag is The_Tag
 
@@ -124,8 +126,8 @@ package body Exp_Intr is
 
    --     T'Class (The_Tag.all (Construct'Actual'Index).all (Params))
 
-   --  A class-wide membership test is also generated, preceding the call,
-   --  to ensure that the controlling tag denotes a type in T'Class.
+   --  A class-wide membership test is also generated, preceding the call, to
+   --  ensure that the controlling tag denotes a type in T'Class.
 
    procedure Expand_Dispatching_Constructor_Call (N : Node_Id) is
       Loc        : constant Source_Ptr := Sloc (N);
@@ -135,8 +137,9 @@ package body Exp_Intr is
       Inst_Pkg   : constant Node_Id    := Parent (Subp_Decl);
       Act_Rename : Node_Id;
       Act_Constr : Entity_Id;
-      Result_Typ : Entity_Id;
+      Iface_Tag  : Node_Id := Empty;
       Cnstr_Call : Node_Id;
+      Result_Typ : Entity_Id;
 
    begin
       --  The subprogram is the third actual in the instantiation, and is
@@ -152,6 +155,38 @@ package body Exp_Intr is
       Act_Constr := Entity (Name (Act_Rename));
       Result_Typ := Class_Wide_Type (Etype (Act_Constr));
 
+      --  Ada 2005 (AI-251): If the result is an interface type, the function
+      --  returns a class-wide interface type (otherwise the resulting object
+      --  would be abstract!)
+
+      if Is_Interface (Etype (Act_Constr)) then
+         Set_Etype (Act_Constr, Result_Typ);
+
+         --  If the result type is not parent of Tag_Arg then we need to
+         --  locate the tag of the secondary dispatch table.
+
+         if not Is_Parent (Etype (Result_Typ), Etype (Tag_Arg)) then
+            pragma Assert (not Is_Interface (Etype (Tag_Arg)));
+
+            Iface_Tag :=
+              Make_Object_Declaration (Loc,
+                Defining_Identifier =>
+                  Make_Defining_Identifier (Loc, New_Internal_Name ('V')),
+                Object_Definition =>
+                  New_Reference_To (RTE (RE_Tag), Loc),
+                Expression =>
+                  Make_Function_Call (Loc,
+                    Name => New_Reference_To (RTE (RE_Secondary_Tag), Loc),
+                    Parameter_Associations => New_List (
+                      Relocate_Node (Tag_Arg),
+                      New_Reference_To
+                        (Node (First_Elmt (Access_Disp_Table
+                                            (Etype (Etype (Act_Constr))))),
+                         Loc))));
+            Insert_Action (N, Iface_Tag);
+         end if;
+      end if;
+
       --  Create the call to the actual Constructor function
 
       Cnstr_Call :=
@@ -160,8 +195,18 @@ package body Exp_Intr is
           Parameter_Associations => New_List (Relocate_Node (Param_Arg)));
 
       --  Establish its controlling tag from the tag passed to the instance
+      --  The tag may be given by a function call, in which case a temporary
+      --  should be generated now, to prevent out-of-order insertions during
+      --  the expansion of that call when stack-checking is enabled.
 
-      Set_Controlling_Argument (Cnstr_Call, Relocate_Node (Tag_Arg));
+      if Present (Iface_Tag) then
+         Set_Controlling_Argument (Cnstr_Call,
+           New_Occurrence_Of (Defining_Identifier (Iface_Tag), Loc));
+      else
+         Remove_Side_Effects (Tag_Arg);
+         Set_Controlling_Argument (Cnstr_Call,
+           Relocate_Node (Tag_Arg));
+      end if;
 
       --  Rewrite and analyze the call to the instance as a class-wide
       --  conversion of the call to the actual constructor.
@@ -169,32 +214,71 @@ package body Exp_Intr is
       Rewrite (N, Convert_To (Result_Typ, Cnstr_Call));
       Analyze_And_Resolve (N, Etype (Act_Constr));
 
-      --  Generate a class-wide membership test to ensure that the call's tag
-      --  argument denotes a type within the class.
+      --  Do not generate a run-time check on the built object if tag
+      --  checks are suppressed for the result type or VM_Target /= No_VM
 
-      Insert_Action (N,
-        Make_Implicit_If_Statement (N,
-          Condition =>
-            Make_Op_Not (Loc,
-              Make_DT_Access_Action (Result_Typ,
-                 Action => CW_Membership,
-                 Args   => New_List (
-                   Duplicate_Subexpr (Tag_Arg),
-                   New_Reference_To (
-                     Node (First_Elmt (Access_Disp_Table (
-                                         Root_Type (Result_Typ)))), Loc)))),
-          Then_Statements =>
-            New_List (Make_Raise_Statement (Loc,
-                        New_Occurrence_Of (RTE (RE_Tag_Error), Loc)))));
+      if Tag_Checks_Suppressed (Etype (Result_Typ))
+        or else VM_Target /= No_VM
+      then
+         null;
+
+      --  Generate a class-wide membership test to ensure that the call's tag
+      --  argument denotes a type within the class. We must keep separate the
+      --  case in which the Result_Type of the constructor function is a tagged
+      --  type from the case in which it is an abstract interface because the
+      --  run-time subprogram required to check these cases differ (and have
+      --  one difference in their parameters profile).
+
+      --  Call CW_Membership if the Result_Type is a tagged type to look for
+      --  the tag in the table of ancestor tags.
+
+      elsif not Is_Interface (Result_Typ) then
+         Insert_Action (N,
+           Make_Implicit_If_Statement (N,
+             Condition =>
+               Make_Op_Not (Loc,
+                 Build_CW_Membership (Loc,
+                   Obj_Tag_Node => Duplicate_Subexpr (Tag_Arg),
+                   Typ_Tag_Node =>
+                     New_Reference_To (
+                        Node (First_Elmt (Access_Disp_Table (
+                                            Root_Type (Result_Typ)))), Loc))),
+             Then_Statements =>
+               New_List (Make_Raise_Statement (Loc,
+                           New_Occurrence_Of (RTE (RE_Tag_Error), Loc)))));
+
+      --  Call IW_Membership test if the Result_Type is an abstract interface
+      --  to look for the tag in the table of interface tags.
+
+      else
+         Insert_Action (N,
+           Make_Implicit_If_Statement (N,
+             Condition =>
+               Make_Op_Not (Loc,
+                 Make_Function_Call (Loc,
+                    Name => New_Occurrence_Of (RTE (RE_IW_Membership), Loc),
+                    Parameter_Associations => New_List (
+                      Make_Attribute_Reference (Loc,
+                        Prefix         => Duplicate_Subexpr (Tag_Arg),
+                        Attribute_Name => Name_Address),
+
+                      New_Reference_To (
+                        Node (First_Elmt (Access_Disp_Table (
+                                            Root_Type (Result_Typ)))), Loc)))),
+             Then_Statements =>
+               New_List (
+                 Make_Raise_Statement (Loc,
+                   Name => New_Occurrence_Of (RTE (RE_Tag_Error), Loc)))));
+      end if;
    end Expand_Dispatching_Constructor_Call;
 
    ---------------------------
    -- Expand_Exception_Call --
    ---------------------------
 
-   --  If the function call is not within an exception handler, then the
-   --  call is replaced by a null string. Otherwise the appropriate routine
-   --  in Ada.Exceptions is called passing the choice parameter specification
+   --  If the function call is not within an exception handler, then the call
+   --  is replaced by a null string. Otherwise the appropriate routine in
+   --  Ada.Exceptions is called passing the choice parameter specification
    --  from the enclosing handler. If the enclosing handler lacks a choice
    --  parameter, then one is supplied.
 
@@ -219,12 +303,18 @@ package body Exp_Intr is
          --  Case of in exception handler
 
          elsif Nkind (P) = N_Exception_Handler then
+
+            --  Handler cannot be used for a local raise, and furthermore, this
+            --  is a violation of the No_Exception_Propagation restriction.
+
+            Set_Local_Raise_Not_OK (P);
+            Check_Restriction (No_Exception_Propagation, N);
+
+            --  If no choice parameter present, then put one there. Note that
+            --  we do not need to put it on the entity chain, since no one will
+            --  be referencing it by normal visibility methods.
+
             if No (Choice_Parameter (P)) then
-
-               --  If no choice parameter present, then put one there. Note
-               --  that we do not need to put it on the entity chain, since
-               --  no one will be referencing it by normal visibility methods.
-
                E := Make_Defining_Identifier (Loc, New_Internal_Name ('E'));
                Set_Choice_Parameter (P, E);
                Set_Ekind (E, E_Variable);
@@ -289,8 +379,8 @@ package body Exp_Intr is
       Rewrite (N,
         Unchecked_Convert_To (Etype (Ent),
           Make_Attribute_Reference (Loc,
-            Attribute_Name => Name_Address,
-            Prefix => Make_Identifier (Loc, Chars (Dum)))));
+            Prefix         => Make_Identifier (Loc, Chars (Dum)),
+            Attribute_Name => Name_Address)));
 
       Analyze_And_Resolve (N, Etype (Ent));
    end Expand_Import_Call;
@@ -713,7 +803,7 @@ package body Exp_Intr is
 
    begin
       if No_Pool_Assigned (Rtyp) then
-         Error_Msg_N ("?deallocation from empty storage pool", N);
+         Error_Msg_N ("?deallocation from empty storage pool!", N);
       end if;
 
       --  Nothing to do if we know the argument is null
@@ -934,7 +1024,30 @@ package body Exp_Intr is
          end if;
       end if;
 
-      Set_Expression (Free_Node, Free_Arg);
+      --  Ada 2005 (AI-251): In case of abstract interface type we must
+      --  displace the pointer to reference the base of the object to
+      --  deallocate its memory, unless we're targetting a VM, in which case
+      --  no special processing is required.
+
+      --  Generate:
+      --    free (Base_Address (Obj_Ptr))
+
+      if Is_Interface (Directly_Designated_Type (Typ))
+        and then VM_Target = No_VM
+      then
+         Set_Expression (Free_Node,
+           Unchecked_Convert_To (Typ,
+             Make_Function_Call (Loc,
+               Name => New_Reference_To (RTE (RE_Base_Address), Loc),
+               Parameter_Associations => New_List (
+                 Unchecked_Convert_To (RTE (RE_Address), Free_Arg)))));
+
+      --  Generate:
+      --    free (Obj_Ptr)
+
+      else
+         Set_Expression (Free_Node, Free_Arg);
+      end if;
 
       --  Only remaining step is to set result to null, or generate a
       --  raise of constraint error if the target object is "not null".
@@ -1007,8 +1120,8 @@ package body Exp_Intr is
               Right_Opnd => Make_Null (Loc)),
             New_Occurrence_Of (RTE (RE_Null_Address), Loc),
             Make_Attribute_Reference (Loc,
-              Attribute_Name => Name_Address,
-              Prefix => Obj))));
+              Prefix         => Obj,
+              Attribute_Name => Name_Address))));
 
       Analyze_And_Resolve (N, RTE (RE_Address));
    end Expand_To_Address;

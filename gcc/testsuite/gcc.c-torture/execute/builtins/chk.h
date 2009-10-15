@@ -82,7 +82,7 @@ extern volatile int snprintf_disallowed, vsnprintf_disallowed;
 
 /* A storage class that ensures that declarations bind locally.  We want
    to test non-static declarations where we know it is safe to do so.  */
-#if __PIC__
+#if __PIC__ && !__PIE__
 #define LOCAL static
 #else
 #define LOCAL

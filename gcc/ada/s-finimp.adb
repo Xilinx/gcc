@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2006, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -34,10 +34,8 @@
 with Ada.Exceptions;
 with Ada.Tags;
 
-with System.Storage_Elements;
 with System.Soft_Links;
 
-with Unchecked_Conversion;
 with System.Restrictions;
 
 package body System.Finalization_Implementation is
@@ -47,7 +45,6 @@ package body System.Finalization_Implementation is
 
    package SSL renames System.Soft_Links;
 
-   package SSE renames System.Storage_Elements;
    use type SSE.Storage_Offset;
 
    -----------------------
@@ -57,17 +54,17 @@ package body System.Finalization_Implementation is
    type RC_Ptr is access all Record_Controller;
 
    function To_RC_Ptr is
-     new Unchecked_Conversion (Address, RC_Ptr);
+     new Ada.Unchecked_Conversion (Address, RC_Ptr);
 
-   procedure Raise_Exception_No_Defer
-     (E       : Exception_Id;
-      Message : String := "");
-   pragma Import (Ada, Raise_Exception_No_Defer,
-     "ada__exceptions__raise_exception_no_defer");
-   pragma No_Return (Raise_Exception_No_Defer);
-   --  Raise an exception without deferring abort. Note that we have to
-   --  use this rather kludgy Ada Import interface, since this subprogram
-   --  is not available in the visible spec of Ada.Exceptions.
+   procedure Raise_From_Controlled_Operation (X : Exception_Occurrence);
+   pragma Import
+     (Ada, Raise_From_Controlled_Operation,
+      "ada__exceptions__raise_from_controlled_operation");
+   pragma No_Return (Raise_From_Controlled_Operation);
+   --  Raise Program_Error from an exception that occurred during an Adjust or
+   --  Finalize operation. We use this rather kludgy Ada Import interface
+   --  because this procedure is not available in the visible part of the
+   --  Ada.Exceptions spec.
 
    procedure Raise_From_Finalize
      (L          : Finalizable_Ptr;
@@ -170,7 +167,7 @@ package body System.Finalization_Implementation is
       Nb_Link : Short_Short_Integer)
    is
    begin
-      --  Simple case: attachement to a one way list
+      --  Simple case: attachment to a one way list
 
       if Nb_Link = 1 then
          Obj.Next := L;
@@ -178,10 +175,18 @@ package body System.Finalization_Implementation is
 
       --  Dynamically allocated objects: they are attached to a doubly linked
       --  list, so that an element can be finalized at any moment by means of
-      --  an unchecked deallocation. Attachement is protected against
+      --  an unchecked deallocation. Attachment is protected against
       --  multi-threaded access.
 
       elsif Nb_Link = 2 then
+
+         --  Raise Program_Error if we're trying to allocate an object in a
+         --  collection whose finalization has already started.
+
+         if L = Collection_Finalization_Started then
+            raise Program_Error with
+              "allocation after collection finalization started";
+         end if;
 
          Locked_Processing : begin
             SSL.Lock_Task.all;
@@ -197,7 +202,7 @@ package body System.Finalization_Implementation is
                raise;
          end Locked_Processing;
 
-      --  Attachement of arrays to the final list (used only for objects
+      --  Attachment of arrays to the final list (used only for objects
       --  returned by function). Obj, in this case is the last element,
       --  but all other elements are already threaded after it. We just
       --  attach the rest of the final list at the end of the array list.
@@ -225,32 +230,6 @@ package body System.Finalization_Implementation is
    end Attach_To_Final_List;
 
    ---------------------
-   -- Deep_Tag_Adjust --
-   ---------------------
-
-   procedure Deep_Tag_Adjust
-     (L : in out SFR.Finalizable_Ptr;
-      A : System.Address;
-      B : Short_Short_Integer)
-   is
-      V          : constant SFR.Finalizable_Ptr := To_Finalizable_Ptr (A);
-      Controller : constant RC_Ptr := Get_Deep_Controller (A);
-
-   begin
-      if Controller /= null then
-         Adjust (Controller.all);
-         Attach_To_Final_List (L, Controller.all, B);
-      end if;
-
-      --  Is controlled
-
-      if V.all in Finalizable then
-         Adjust (V.all);
-         Attach_To_Final_List (L, Finalizable (V.all), 1);
-      end if;
-   end Deep_Tag_Adjust;
-
-   ---------------------
    -- Deep_Tag_Attach --
    ----------------------
 
@@ -274,80 +253,12 @@ package body System.Finalization_Implementation is
       end if;
    end Deep_Tag_Attach;
 
-   -----------------------
-   -- Deep_Tag_Finalize --
-   -----------------------
-
-   procedure Deep_Tag_Finalize
-     (L : in out SFR.Finalizable_Ptr;
-      A : System.Address;
-      B : Boolean)
-   is
-      pragma Warnings (Off, L);
-
-      V          : constant SFR.Finalizable_Ptr := To_Finalizable_Ptr (A);
-      Controller : constant RC_Ptr := Get_Deep_Controller (A);
-
-   begin
-      if Controller /= null then
-         if B then
-            Finalize_One (Controller.all);
-         else
-            Finalize (Controller.all);
-         end if;
-      end if;
-
-      --  Is controlled
-
-      if V.all in Finalizable then
-         if B then
-            Finalize_One (V.all);
-         else
-            Finalize (V.all);
-         end if;
-      end if;
-   end Deep_Tag_Finalize;
-
-   -------------------------
-   -- Deep_Tag_Initialize --
-   -------------------------
-
-   procedure Deep_Tag_Initialize
-     (L : in out SFR.Finalizable_Ptr;
-      A :        System.Address;
-      B :        Short_Short_Integer)
-   is
-      V          : constant SFR.Finalizable_Ptr := To_Finalizable_Ptr (A);
-      Controller : constant RC_Ptr := Get_Deep_Controller (A);
-
-   begin
-      --  This procedure should not be called if the object has no
-      --  controlled components
-
-      if Controller = null then
-         raise Program_Error;
-
-      --  Has controlled components
-
-      else
-         Initialize (Controller.all);
-         Attach_To_Final_List (L, Controller.all, B);
-      end if;
-
-      --  Is controlled
-
-      if V.all in Finalizable then
-         Initialize (V.all);
-         Attach_To_Final_List (Controller.F, Finalizable (Controller.all), 1);
-      end if;
-   end Deep_Tag_Initialize;
-
    -----------------------------
    -- Detach_From_Final_List --
    -----------------------------
 
    --  We know that the detach object is neither at the beginning nor at the
-   --  end of the list, thank's to the dummy First and Last Elements but the
+   --  end of the list, thanks to the dummy First and Last Elements, but the
    --  object may not be attached at all if it is Finalize_Storage_Only
 
    procedure Detach_From_Final_List (Obj : in out Finalizable) is
@@ -362,6 +273,13 @@ package body System.Finalization_Implementation is
          SSL.Lock_Task.all;
          Obj.Next.Prev := Obj.Prev;
          Obj.Prev.Next := Obj.Next;
+
+         --  Reset the pointers so that a new finalization of the same object
+         --  has no effect on the finalization list.
+
+         Obj.Next := null;
+         Obj.Prev := null;
+
          SSL.Unlock_Task.all;
       end if;
 
@@ -423,7 +341,7 @@ package body System.Finalization_Implementation is
       type Ptr is access all Fake_Exception_Occurence;
 
       function To_Ptr is new
-        Unchecked_Conversion (Exception_Occurrence_Access, Ptr);
+        Ada.Unchecked_Conversion (Exception_Occurrence_Access, Ptr);
 
       X :  Exception_Id := Null_Id;
 
@@ -435,7 +353,7 @@ package body System.Finalization_Implementation is
       --  programs using controlled types heavily.
 
       if System.Restrictions.Abort_Allowed then
-         X := To_Ptr (System.Soft_Links.Get_Current_Excep.all).Id;
+         X := To_Ptr (SSL.Get_Current_Excep.all).Id;
       end if;
 
       while P /= null loop
@@ -525,7 +443,7 @@ package body System.Finalization_Implementation is
 
             type Obj_Ptr is access all Faked_Type_Of_Obj;
             function To_Obj_Ptr is
-              new Unchecked_Conversion (Address, Obj_Ptr);
+              new Ada.Unchecked_Conversion (Address, Obj_Ptr);
 
          begin
             return To_RC_Ptr (To_Obj_Ptr (Obj).Controller'Address);
@@ -548,6 +466,34 @@ package body System.Finalization_Implementation is
       Object.My_Address := Object'Address;
    end Initialize;
 
+   ---------------------
+   -- Move_Final_List --
+   ---------------------
+
+   procedure Move_Final_List
+     (From : in out SFR.Finalizable_Ptr;
+      To   : Finalizable_Ptr_Ptr)
+   is
+   begin
+      --  This is currently called at the end of the return statement, and the
+      --  caller does NOT defer aborts. We need to defer aborts to prevent
+      --  mangling the finalization lists.
+
+      SSL.Abort_Defer.all;
+
+      --  Put the return statement's finalization list onto the caller's one,
+      --  thus transferring responsibility for finalization of the return
+      --  object to the caller.
+
+      Attach_To_Final_List (To.all, From.all, Nb_Link => 3);
+
+      --  Empty the return statement's finalization list, so that when the
+      --  cleanup code executes, there will be nothing to finalize.
+      From := null;
+
+      SSL.Abort_Undefer.all;
+   end Move_Final_List;
+
    -------------------------
    -- Raise_From_Finalize --
    -------------------------
@@ -557,7 +503,6 @@ package body System.Finalization_Implementation is
       From_Abort : Boolean;
       E_Occ      : Exception_Occurrence)
    is
-      Msg : constant String := Exception_Message (E_Occ);
       P   : Finalizable_Ptr := L;
       Q   : Finalizable_Ptr;
 
@@ -577,24 +522,15 @@ package body System.Finalization_Implementation is
          P := Q;
       end loop;
 
-      --  If finalization from an Abort, then nothing to do
-
       if From_Abort then
+         --  If finalization from an Abort, then nothing to do
+
          null;
 
-      --  If no message, then add our own message saying what happened
-
-      elsif Msg = "" then
-         Raise_Exception_No_Defer
-           (E       => Program_Error'Identity,
-            Message => "exception " &
-                       Exception_Name (E_Occ) &
-                       " raised during finalization");
-
-      --  If there was a message, pass it on
-
       else
-         Raise_Exception_No_Defer (Program_Error'Identity, Msg);
+         --  Else raise Program_Error with an appropriate message
+
+         Raise_From_Controlled_Operation (E_Occ);
       end if;
    end Raise_From_Finalize;
 

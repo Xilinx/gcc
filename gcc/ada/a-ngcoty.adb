@@ -52,16 +52,18 @@ package body Ada.Numerics.Generic_Complex_Types is
       X := Left.Re * Right.Re - Left.Im * Right.Im;
       Y := Left.Re * Right.Im + Left.Im * Right.Re;
 
-      --  If either component overflows, try to scale
+      --  If either component overflows, try to scale (skip in fast math mode)
 
-      if abs (X) > R'Last then
-         X := R'(4.0) * (R'(Left.Re / 2.0)  * R'(Right.Re / 2.0)
-                - R'(Left.Im / 2.0) * R'(Right.Im / 2.0));
-      end if;
+      if not Standard'Fast_Math then
+         if abs (X) > R'Last then
+            X := R'(4.0) * (R'(Left.Re / 2.0)  * R'(Right.Re / 2.0)
+                            - R'(Left.Im / 2.0) * R'(Right.Im / 2.0));
+         end if;
 
-      if abs (Y) > R'Last then
-         Y := R'(4.0) * (R'(Left.Re / 2.0)  * R'(Right.Im / 2.0)
-                - R'(Left.Im / 2.0) * R'(Right.Re / 2.0));
+         if abs (Y) > R'Last then
+            Y := R'(4.0) * (R'(Left.Re / 2.0)  * R'(Right.Im / 2.0)
+                            - R'(Left.Im / 2.0) * R'(Right.Re / 2.0));
+         end if;
       end if;
 
       return (X, Y);
@@ -69,7 +71,7 @@ package body Ada.Numerics.Generic_Complex_Types is
 
    function "*" (Left, Right : Imaginary) return Real'Base is
    begin
-      return -R (Left) * R (Right);
+      return -(R (Left) * R (Right));
    end "*";
 
    function "*" (Left : Complex; Right : Real'Base) return Complex is
@@ -143,7 +145,6 @@ package body Ada.Numerics.Generic_Complex_Types is
          --  1.0 / infinity, and the closest model number will be zero.
 
          begin
-
             while Exp /= 0 loop
                if Exp rem 2 /= 0 then
                   Result := Result * Factor;
@@ -156,7 +157,6 @@ package body Ada.Numerics.Generic_Complex_Types is
             return R'(1.0) / Result;
 
          exception
-
             when Constraint_Error =>
                return (0.0, 0.0);
          end;
@@ -317,8 +317,8 @@ package body Ada.Numerics.Generic_Complex_Types is
       c : constant R := Right.Re;
       d : constant R := Right.Im;
    begin
-      return Complex'(Re =>  (a * c) / (c ** 2 + d ** 2),
-                      Im => -(a * d) / (c ** 2 + d ** 2));
+      return Complex'(Re =>   (a * c) / (c ** 2 + d ** 2),
+                      Im => -((a * d) / (c ** 2 + d ** 2)));
    end "/";
 
    function "/" (Left : Complex; Right : Imaginary) return Complex is
@@ -327,7 +327,7 @@ package body Ada.Numerics.Generic_Complex_Types is
       d : constant R := R (Right);
 
    begin
-      return (b / d,  -a / d);
+      return (b / d,  -(a / d));
    end "/";
 
    function "/" (Left : Imaginary; Right : Complex) return Complex is
@@ -347,7 +347,7 @@ package body Ada.Numerics.Generic_Complex_Types is
 
    function "/" (Left : Real'Base; Right : Imaginary) return Imaginary is
    begin
-      return Imaginary (-Left / R (Right));
+      return Imaginary (-(Left / R (Right)));
    end "/";
 
    ---------

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                  B o d y                                 --
 --                                                                          --
---          Copyright (C) 1998-2005 Free Software Foundation, Inc.          --
+--          Copyright (C) 1998-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -77,10 +77,10 @@ package body System.OS_Primitives is
    procedure Sys_Schdwk
      (
       Status : out Cond_Value_Type;
-      Pidadr : in Address := Null_Address;
-      Prcnam : in String := String'Null_Parameter;
-      Daytim : in Long_Integer;
-      Reptim : in Long_Integer := Long_Integer'Null_Parameter
+      Pidadr : Address := Null_Address;
+      Prcnam : String := String'Null_Parameter;
+      Daytim : Long_Integer;
+      Reptim : Long_Integer := Long_Integer'Null_Parameter
      );
 
    pragma Interface (External, Sys_Schdwk);
@@ -152,6 +152,15 @@ package body System.OS_Primitives is
       return To_Duration (OS_Clock, Absolute_Calendar);
    end Clock;
 
+   ----------------
+   -- Initialize --
+   ----------------
+
+   procedure Initialize is
+   begin
+      null;
+   end Initialize;
+
    ---------------------
    -- Monotonic_Clock --
    ---------------------
@@ -168,6 +177,7 @@ package body System.OS_Primitives is
    is
       Sleep_Time : OS_Time;
       Status     : Cond_Value_Type;
+      pragma Unreferenced (Status);
 
    begin
       Sleep_Time := To_OS_Time (Time, Mode);

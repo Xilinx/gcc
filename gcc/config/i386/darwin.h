@@ -1,5 +1,5 @@
 /* Target definitions for x86 running Darwin.
-   Copyright (C) 2001, 2002, 2004, 2005, 2007
+   Copyright (C) 2001, 2002, 2004, 2005, 2006, 2007
    Free Software Foundation, Inc.
    Contributed by Apple Computer Inc.
 
@@ -26,7 +26,7 @@ along with GCC; see the file COPYING3.  If not see
 #define TARGET_VERSION fprintf (stderr, " (i686 Darwin)");
 
 #undef  TARGET_64BIT
-#define TARGET_64BIT (target_flags & MASK_64BIT)
+#define TARGET_64BIT OPTION_ISA_64BIT
 
 #ifdef IN_LIBGCC2
 #undef TARGET_64BIT
@@ -66,11 +66,31 @@ along with GCC; see the file COPYING3.  If not see
 #undef FORCE_PREFERRED_STACK_BOUNDARY_IN_MAIN
 #define FORCE_PREFERRED_STACK_BOUNDARY_IN_MAIN (0)
 
+#undef TARGET_KEEPS_VECTOR_ALIGNED_STACK
+#define TARGET_KEEPS_VECTOR_ALIGNED_STACK 1
+
+/* On Darwin, the stack is 128-bit aligned at the point of every call.
+   Failure to ensure this will lead to a crash in the system libraries
+   or dynamic loader.  */
+#undef STACK_BOUNDARY
+#define STACK_BOUNDARY 128
+
+/* Since we'll never want a stack boundary less aligned than 128 bits
+   we need the extra work here otherwise bits of gcc get very grumpy
+   when we ask for lower alignment.  We could just reject values less
+   than 128 bits for Darwin, but it's easier to up the alignment if
+   it's below the minimum.  */
+#undef PREFERRED_STACK_BOUNDARY
+#define PREFERRED_STACK_BOUNDARY			\
+  MAX (STACK_BOUNDARY, ix86_preferred_stack_boundary)
+
 /* We want -fPIC by default, unless we're using -static to compile for
    the kernel or some such.  */
 
 #undef CC1_SPEC
-#define CC1_SPEC "%{!mkernel:%{!static:%{!mdynamic-no-pic:-fPIC}}} \
+#define CC1_SPEC "%(cc1_cpu) \
+  %{!mkernel:%{!static:%{!mdynamic-no-pic:-fPIC}}} \
+  %{!mmacosx-version-min=*:-mmacosx-version-min=%(darwin_minversion)} \
   %{g: %{!fno-eliminate-unused-debug-symbols: -feliminate-unused-debug-symbols }}"
 
 #undef ASM_SPEC
@@ -79,8 +99,25 @@ along with GCC; see the file COPYING3.  If not see
 #define DARWIN_ARCH_SPEC "%{m64:x86_64;:i386}"
 #define DARWIN_SUBARCH_SPEC DARWIN_ARCH_SPEC
 
+/* Determine a minimum version based on compiler options.  */
+#define DARWIN_MINVERSION_SPEC				\
+ "%{!m64|fgnu-runtime:10.4;				\
+    ,objective-c|,objc-cpp-output:10.5;			\
+    ,objective-c-header:10.5;				\
+    ,objective-c++|,objective-c++-cpp-output:10.5;	\
+    ,objective-c++-header|,objc++-cpp-output:10.5;	\
+    :10.4}"
+
+#undef ENDFILE_SPEC
+#define ENDFILE_SPEC \
+  "%{ffast-math|funsafe-math-optimizations:crtfastmath.o%s} \
+   %{mpc32:crtprec32.o%s} \
+   %{mpc64:crtprec64.o%s} \
+   %{mpc80:crtprec80.o%s}"
+
 #undef SUBTARGET_EXTRA_SPECS
 #define SUBTARGET_EXTRA_SPECS                                   \
+  DARWIN_EXTRA_SPECS                                            \
   { "darwin_arch", DARWIN_ARCH_SPEC },                          \
   { "darwin_crt2", "" },                                        \
   { "darwin_subarch", DARWIN_SUBARCH_SPEC },
@@ -114,7 +151,21 @@ extern void darwin_x86_file_end (void);
 /* By default, target has a 80387, uses IEEE compatible arithmetic,
    and returns float values in the 387.  */
 
+#undef TARGET_SUBTARGET_DEFAULT
 #define TARGET_SUBTARGET_DEFAULT (MASK_80387 | MASK_IEEE_FP | MASK_FLOAT_RETURNS | MASK_128BIT_LONG_DOUBLE)
+
+/* For darwin we want to target specific processor features as a minimum,
+   but these unfortunately don't correspond to a specific processor.  */
+#undef TARGET_SUBTARGET32_ISA_DEFAULT
+#define TARGET_SUBTARGET32_ISA_DEFAULT (OPTION_MASK_ISA_MMX		\
+					| OPTION_MASK_ISA_SSE		\
+					| OPTION_MASK_ISA_SSE2)
+
+#undef TARGET_SUBTARGET64_ISA_DEFAULT
+#define TARGET_SUBTARGET64_ISA_DEFAULT (OPTION_MASK_ISA_MMX		\
+					| OPTION_MASK_ISA_SSE		\
+					| OPTION_MASK_ISA_SSE2		\
+					| OPTION_MASK_ISA_SSE3)
 
 /* For now, disable dynamic-no-pic.  We'll need to go through i386.c
    with a fine-tooth comb looking for refs to flag_pic!  */
@@ -159,7 +210,7 @@ extern void darwin_x86_file_end (void);
 #define ASM_OUTPUT_COMMON(FILE, NAME, SIZE, ROUNDED)  \
 ( fputs (".comm ", (FILE)),			\
   assemble_name ((FILE), (NAME)),		\
-  fprintf ((FILE), ",%lu\n", (unsigned long)(ROUNDED)))
+  fprintf ((FILE), ","HOST_WIDE_INT_PRINT_UNSIGNED"\n", (ROUNDED)))
 
 /* This says how to output an assembler line
    to define a local common symbol.  */
@@ -187,9 +238,12 @@ extern void darwin_x86_file_end (void);
     SUBTARGET_C_COMMON_OVERRIDE_OPTIONS;				\
   } while (0)
 
-/* Darwin on x86_64 uses dwarf-2 by default.  */
+/* Darwin on x86_64 uses dwarf-2 by default.  Pre-darwin9 32-bit
+   compiles default to stabs+.  darwin9+ defaults to dwarf-2.  */
+#ifndef DARWIN_PREFER_DWARF
 #undef PREFERRED_DEBUGGING_TYPE
 #define PREFERRED_DEBUGGING_TYPE (TARGET_64BIT ? DWARF2_DEBUG : DBX_DEBUG)
+#endif
 
 /* Darwin uses the standard DWARF register numbers but the default
    register numbers for STABS.  Fortunately for 64-bit code the

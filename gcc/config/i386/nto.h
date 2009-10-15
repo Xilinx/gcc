@@ -42,7 +42,7 @@ along with GCC; see the file COPYING3.  If not see
 #undef THREAD_MODEL_SPEC
 #define THREAD_MODEL_SPEC "posix"
 
-#ifdef CROSS_COMPILE
+#ifdef CROSS_DIRECTORY_STRUCTURE
 #define SYSROOT_SUFFIX_SPEC "x86"
 #endif
 

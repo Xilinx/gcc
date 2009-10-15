@@ -51,15 +51,6 @@
   return ANY_QI_REG_P (op);
 })
 
-;; Return true if op is a NON_Q_REGS class register.
-(define_predicate "non_q_regs_operand"
-  (match_operand 0 "register_operand")
-{
-  if (GET_CODE (op) == SUBREG)
-    op = SUBREG_REG (op);
-  return NON_QI_REG_P (op);
-})
-
 ;; Match an SI or HImode register for a zero_extract.
 (define_special_predicate "ext_register_operand"
   (match_operand 0 "register_operand")
@@ -83,6 +74,18 @@
 (define_predicate "flags_reg_operand"
   (and (match_code "reg")
        (match_test "REGNO (op) == FLAGS_REG")))
+
+;; Return true if op is not xmm0 register.
+(define_predicate "reg_not_xmm0_operand"
+   (and (match_operand 0 "register_operand")
+	(match_test "GET_CODE (op) != REG
+		     || REGNO (op) != FIRST_SSE_REG")))
+
+;; As above, but allow nonimmediate operands.
+(define_predicate "nonimm_not_xmm0_operand"
+   (and (match_operand 0 "nonimmediate_operand")
+	(match_test "GET_CODE (op) != REG
+		     || REGNO (op) != FIRST_SSE_REG")))
 
 ;; Return 1 if VALUE can be stored in a sign extended immediate field.
 (define_predicate "x86_64_immediate_operand"
@@ -145,7 +148,7 @@
 
 	  if (ix86_cmodel == CM_LARGE)
 	    return 0;
-	  if (GET_CODE (op2) != CONST_INT)
+	  if (!CONST_INT_P (op2))
 	    return 0;
 	  offset = trunc_int_for_mode (INTVAL (op2), DImode);
 	  switch (GET_CODE (op1))
@@ -265,7 +268,7 @@
 	      if ((ix86_cmodel == CM_SMALL
 		   || (ix86_cmodel == CM_MEDIUM
 		       && !SYMBOL_REF_FAR_ADDR_P (op1)))
-		  && GET_CODE (op2) == CONST_INT
+		  && CONST_INT_P (op2)
 		  && trunc_int_for_mode (INTVAL (op2), DImode) > -0x10000
 		  && trunc_int_for_mode (INTVAL (op2), SImode) == INTVAL (op2))
 		return 1;
@@ -279,7 +282,7 @@
 	      /* These conditions are similar to SYMBOL_REF ones, just the
 		 constraints for code models differ.  */
 	      if ((ix86_cmodel == CM_SMALL || ix86_cmodel == CM_MEDIUM)
-		  && GET_CODE (op2) == CONST_INT
+		  && CONST_INT_P (op2)
 		  && trunc_int_for_mode (INTVAL (op2), DImode) > -0x10000
 		  && trunc_int_for_mode (INTVAL (op2), SImode) == INTVAL (op2))
 		return 1;
@@ -339,7 +342,7 @@
   if (TARGET_64BIT && GET_CODE (op) == CONST)
     {
       op = XEXP (op, 0);
-      if (GET_CODE (op) == PLUS && GET_CODE (XEXP (op, 1)) == CONST_INT)
+      if (GET_CODE (op) == PLUS && CONST_INT_P (XEXP (op, 1)))
 	op = XEXP (op, 0);
       if (GET_CODE (op) == UNSPEC
 	  && (XINT (op, 1) == UNSPEC_GOTOFF
@@ -379,7 +382,7 @@
 		  || XINT (op, 1) == UNSPEC_GOTPCREL)))
 	return 1;
       if (GET_CODE (op) != PLUS
-	  || GET_CODE (XEXP (op, 1)) != CONST_INT)
+	  || !CONST_INT_P (XEXP (op, 1)))
 	return 0;
 
       op = XEXP (op, 0);
@@ -422,7 +425,7 @@
       if (GET_CODE (op) == UNSPEC)
 	return 1;
       if (GET_CODE (op) != PLUS
-	  || GET_CODE (XEXP (op, 1)) != CONST_INT)
+	  || !CONST_INT_P (XEXP (op, 1)))
 	return 0;
       op = XEXP (op, 0);
       if (GET_CODE (op) == UNSPEC)
@@ -437,7 +440,7 @@
 {
   if (GET_CODE (op) == CONST
       && GET_CODE (XEXP (op, 0)) == PLUS
-      && GET_CODE (XEXP (XEXP (op, 0), 1)) == CONST_INT)
+      && CONST_INT_P (XEXP (XEXP (op, 0), 1)))
     op = XEXP (XEXP (op, 0), 0);
 
   if (GET_CODE (op) == LABEL_REF)
@@ -464,6 +467,18 @@
   return 0;
 })
 
+;; Test for a legitimate @GOTOFF operand.
+;;
+;; VxWorks does not impose a fixed gap between segments; the run-time
+;; gap can be different from the object-file gap.  We therefore can't
+;; use @GOTOFF unless we are absolutely sure that the symbol is in the
+;; same segment as the GOT.  Unfortunately, the flexibility of linker
+;; scripts means that we can't be sure of that in general, so assume
+;; that @GOTOFF is never valid on VxWorks.
+(define_predicate "gotoff_operand"
+  (and (match_test "!TARGET_VXWORKS_RTP")
+       (match_operand 0 "local_symbolic_operand")))
+
 ;; Test for various thread-local symbols.
 (define_predicate "tls_symbolic_operand"
   (and (match_code "symbol_ref")
@@ -480,8 +495,14 @@
 
 ;; Test for a pc-relative call operand
 (define_predicate "constant_call_address_operand"
-  (ior (match_code "symbol_ref")
-       (match_operand 0 "local_symbolic_operand")))
+  (match_code "symbol_ref")
+{
+  if (ix86_cmodel == CM_LARGE || ix86_cmodel == CM_LARGE_PIC)
+    return false;
+  if (TARGET_DLLIMPORT_DECL_ATTRIBUTES && SYMBOL_REF_DLLIMPORT_P (op))
+    return false;
+  return true;
+})
 
 ;; True for any non-virtual or eliminable register.  Used in places where
 ;; instantiation of such a register may cause the pattern to not be recognized.
@@ -492,8 +513,8 @@
     op = SUBREG_REG (op);
   return !(op == arg_pointer_rtx
 	   || op == frame_pointer_rtx
-	   || (REGNO (op) >= FIRST_PSEUDO_REGISTER
-	       && REGNO (op) <= LAST_VIRTUAL_REGISTER));
+	   || IN_RANGE (REGNO (op),
+			FIRST_PSEUDO_REGISTER, LAST_VIRTUAL_REGISTER));
 })
 
 ;; Similarly, but include the stack pointer.  This is used to prevent esp
@@ -567,27 +588,32 @@
 ;; Match 0 to 3.
 (define_predicate "const_0_to_3_operand"
   (and (match_code "const_int")
-       (match_test "INTVAL (op) >= 0 && INTVAL (op) <= 3")))
+       (match_test "IN_RANGE (INTVAL (op), 0, 3)")))
 
 ;; Match 0 to 7.
 (define_predicate "const_0_to_7_operand"
   (and (match_code "const_int")
-       (match_test "INTVAL (op) >= 0 && INTVAL (op) <= 7")))
+       (match_test "IN_RANGE (INTVAL (op), 0, 7)")))
 
 ;; Match 0 to 15.
 (define_predicate "const_0_to_15_operand"
   (and (match_code "const_int")
-       (match_test "INTVAL (op) >= 0 && INTVAL (op) <= 15")))
+       (match_test "IN_RANGE (INTVAL (op), 0, 15)")))
+
+;; Match 0 to 31.
+(define_predicate "const_0_to_31_operand"
+  (and (match_code "const_int")
+       (match_test "IN_RANGE (INTVAL (op), 0, 31)")))
 
 ;; Match 0 to 63.
 (define_predicate "const_0_to_63_operand"
   (and (match_code "const_int")
-       (match_test "INTVAL (op) >= 0 && INTVAL (op) <= 63")))
+       (match_test "IN_RANGE (INTVAL (op), 0, 63)")))
 
 ;; Match 0 to 255.
 (define_predicate "const_0_to_255_operand"
   (and (match_code "const_int")
-       (match_test "INTVAL (op) >= 0 && INTVAL (op) <= 255")))
+       (match_test "IN_RANGE (INTVAL (op), 0, 255)")))
 
 ;; Match (0 to 255) * 8
 (define_predicate "const_0_to_255_mul_8_operand"
@@ -601,17 +627,22 @@
 ;; for shift & compare patterns, as shifting by 0 does not change flags).
 (define_predicate "const_1_to_31_operand"
   (and (match_code "const_int")
-       (match_test "INTVAL (op) >= 1 && INTVAL (op) <= 31")))
+       (match_test "IN_RANGE (INTVAL (op), 1, 31)")))
 
 ;; Match 2 or 3.
 (define_predicate "const_2_to_3_operand"
   (and (match_code "const_int")
-       (match_test "INTVAL (op) == 2 || INTVAL (op) == 3")))
+       (match_test "IN_RANGE (INTVAL (op), 2, 3)")))
 
 ;; Match 4 to 7.
 (define_predicate "const_4_to_7_operand"
   (and (match_code "const_int")
-       (match_test "INTVAL (op) >= 4 && INTVAL (op) <= 7")))
+       (match_test "IN_RANGE (INTVAL (op), 4, 7)")))
+
+;; Match exactly one bit in 2-bit mask.
+(define_predicate "const_pow2_1_to_2_operand"
+  (and (match_code "const_int")
+       (match_test "INTVAL (op) == 1 || INTVAL (op) == 2")))
 
 ;; Match exactly one bit in 4-bit mask.
 (define_predicate "const_pow2_1_to_8_operand"
@@ -627,6 +658,14 @@
 {
   unsigned int log = exact_log2 (INTVAL (op));
   return log <= 7;
+})
+
+;; Match exactly one bit in 16-bit mask.
+(define_predicate "const_pow2_1_to_32768_operand"
+  (match_code "const_int")
+{
+  unsigned int log = exact_log2 (INTVAL (op));
+  return log <= 15;
 })
 
 ;; True if this is a constant appropriate for an increment or decrement.
@@ -783,7 +822,7 @@
     }
   if (parts.disp)
     {
-      if (GET_CODE (parts.disp) != CONST_INT
+      if (!CONST_INT_P (parts.disp)
 	  || (INTVAL (parts.disp) & 3) != 0)
 	return 0;
     }
@@ -845,7 +884,8 @@
   switch (code)
     {
     case LTU: case GTU: case LEU: case GEU:
-      if (inmode == CCmode || inmode == CCFPmode || inmode == CCFPUmode)
+      if (inmode == CCmode || inmode == CCFPmode || inmode == CCFPUmode
+	  || inmode == CCCmode)
 	return 1;
       return 0;
     case ORDERED: case UNORDERED:
@@ -867,6 +907,18 @@
 
 (define_special_predicate "sse_comparison_operator"
   (match_code "eq,lt,le,unordered,ne,unge,ungt,ordered"))
+
+;; Return 1 if OP is a comparison operator that can be issued by sse predicate
+;; generation instructions
+(define_predicate "sse5_comparison_float_operator"
+  (and (match_test "TARGET_SSE5")
+       (match_code "ne,eq,ge,gt,le,lt,unordered,ordered,uneq,unge,ungt,unle,unlt,ltgt")))
+
+(define_predicate "ix86_comparison_int_operator"
+  (match_code "ne,eq,ge,gt,le,lt"))
+
+(define_predicate "ix86_comparison_uns_operator"
+  (match_code "ne,eq,geu,gtu,leu,ltu"))
 
 ;; Return 1 if OP is a valid comparison operator in valid mode.
 (define_predicate "ix86_comparison_operator"
@@ -890,7 +942,11 @@
 	  || inmode == CCGOCmode || inmode == CCNOmode)
 	return 1;
       return 0;
-    case LTU: case GTU: case LEU: case ORDERED: case UNORDERED: case GEU:
+    case LTU: case GTU: case LEU: case GEU:
+      if (inmode == CCmode || inmode == CCCmode)
+	return 1;
+      return 0;
+    case ORDERED: case UNORDERED:
       if (inmode == CCmode)
 	return 1;
       return 0;
@@ -905,12 +961,12 @@
 
 ;; Return 1 if OP is a valid comparison operator testing carry flag to be set.
 (define_predicate "ix86_carry_flag_operator"
-  (match_code "ltu,lt,unlt,gt,ungt,le,unle,ge,unge,ltgt,uneq")
+  (match_code "ltu,lt,unlt,gtu,gt,ungt,le,unle,ge,unge,ltgt,uneq")
 {
   enum machine_mode inmode = GET_MODE (XEXP (op, 0));
   enum rtx_code code = GET_CODE (op);
 
-  if (GET_CODE (XEXP (op, 0)) != REG
+  if (!REG_P (XEXP (op, 0))
       || REGNO (XEXP (op, 0)) != FLAGS_REG
       || XEXP (op, 1) != const0_rtx)
     return 0;
@@ -923,6 +979,8 @@
 	return 0;
       code = ix86_fp_compare_code_to_integer (code);
     }
+  else if (inmode == CCCmode)
+   return code == LTU || code == GTU;
   else if (inmode != CCmode)
     return 0;
 
@@ -958,12 +1016,10 @@
 	       mod,udiv,umod,ashift,rotate,ashiftrt,lshiftrt,rotatert"))
 
 ;; Return 1 if OP is a binary operator that can be promoted to wider mode.
-;; Modern CPUs have same latency for HImode and SImode multiply,
-;; but 386 and 486 do HImode multiply faster.  */
 (define_predicate "promotable_binary_operator"
   (ior (match_code "plus,and,ior,xor,ashift")
        (and (match_code "mult")
-	    (match_test "ix86_tune > PROCESSOR_I486"))))
+	    (match_test "TARGET_TUNE_PROMOTE_HIMODE_IMUL"))))
 
 ;; To avoid problems when jump re-emits comparisons like testqi_ext_ccno_0,
 ;; re-recognize the operand to avoid a copy_to_mode_reg that will fail.

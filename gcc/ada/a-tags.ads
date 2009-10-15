@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2005, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- This specification is derived from the Ada Reference Manual for use with --
 -- GNAT. The copyright notice above, and the license provisions that follow --
@@ -37,17 +37,23 @@
 
 with System;
 with System.Storage_Elements;
-with Unchecked_Conversion;
 
 package Ada.Tags is
    pragma Preelaborate_05;
    --  In accordance with Ada 2005 AI-362
 
    type Tag is private;
+   pragma Preelaborable_Initialization (Tag);
 
    No_Tag : constant Tag;
 
    function Expanded_Name (T : Tag) return String;
+
+   function Wide_Expanded_Name (T : Tag) return Wide_String;
+   pragma Ada_05 (Wide_Expanded_Name);
+
+   function Wide_Wide_Expanded_Name (T : Tag) return Wide_Wide_String;
+   pragma Ada_05 (Wide_Wide_Expanded_Name);
 
    function External_Tag (T : Tag) return String;
 
@@ -66,68 +72,119 @@ package Ada.Tags is
    function Parent_Tag (T : Tag) return Tag;
    pragma Ada_05 (Parent_Tag);
 
+   type Tag_Array is array (Positive range <>) of Tag;
+
+   function Interface_Ancestor_Tags (T : Tag) return Tag_Array;
+   pragma Ada_05 (Interface_Ancestor_Tags);
+
    Tag_Error : exception;
 
-   function Wide_Expanded_Name (T : Tag) return Wide_String;
-   pragma Ada_05 (Wide_Expanded_Name);
-
-   function Wide_Wide_Expanded_Name (T : Tag) return Wide_Wide_String;
-   pragma Ada_05 (Wide_Wide_Expanded_Name);
-
 private
-   --  The following subprogram specifications are placed here instead of
-   --  the package body to see them from the frontend through rtsfind.
+   --  Structure of the GNAT Primary Dispatch Table
 
-   ---------------------------------------------------------------
-   -- Abstract Procedural Interface For The GNAT Dispatch Table --
-   ---------------------------------------------------------------
+   --           +--------------------+
+   --           |      Signature     |
+   --           +--------------------+
+   --           |     Tagged_Kind    |
+   --           +--------------------+                            Predef Prims
+   --           |    Predef_Prims -----------------------------> +------------+
+   --           +--------------------+                           |  table of  |
+   --           |    Offset_To_Top   |                           | predefined |
+   --           +--------------------+                           | primitives |
+   --           |Typeinfo_Ptr/TSD_Ptr---> Type Specific Data     +------------+
+   --  Tag ---> +--------------------+   +-------------------+
+   --           |      table of      |   | inheritance depth |
+   --           :   primitive ops    :   +-------------------+
+   --           |      pointers      |   |   access level    |
+   --           +--------------------+   +-------------------+
+   --                                    |   expanded name   |
+   --                                    +-------------------+
+   --                                    |   external tag    |
+   --                                    +-------------------+
+   --                                    |   hash table link |
+   --                                    +-------------------+
+   --                                    | remotely callable |
+   --                                    +-------------------+
+   --                                    | rec ctrler offset |
+   --                                    +-------------------+
+   --                                    |   Ifaces_Table   ---> Interface Data
+   --                                    +-------------------+   +------------+
+   --         Select Specific Data  <----        SSD         |   |  Nb_Ifaces |
+   --         +------------------+       +-------------------+   +------------+
+   --         |table of primitive|       | table of          |   |  table     |
+   --         :   operation      :       :    ancestor       :   :    of      :
+   --         |      kinds       |       |       tags        |   | interfaces |
+   --         +------------------+       +-------------------+   +------------+
+   --         |table of          |
+   --         :   entry          :
+   --         |      indices     |
+   --         +------------------+
 
-   --  GNAT's Dispatch Table format is customizable in order to match the
-   --  format used in another language. GNAT supports programs that use two
-   --  different dispatch table formats at the same time: the native format
-   --  that supports Ada 95 tagged types and which is described in Ada.Tags,
-   --  and a foreign format for types that are imported from some other
-   --  language (typically C++) which is described in Interfaces.CPP. The
-   --  runtime information kept for each tagged type is separated into two
-   --  objects: the Dispatch Table and the Type Specific Data record. These
-   --  two objects are allocated statically using the constants:
+   --  Structure of the GNAT Secondary Dispatch Table
 
-   --      DT Size  = DT_Prologue_Size  + Nb_Prim * DT_Entry_Size
-   --      TSD Size = TSD_Prologue_Size + (1 + Idepth)  * TSD_Entry_Size
+   --           +--------------------+
+   --           |      Signature     |
+   --           +--------------------+
+   --           |     Tagged_Kind    |
+   --           +--------------------+                            Predef Prims
+   --           |    Predef_Prims -----------------------------> +------------+
+   --           +--------------------+                           |  table of  |
+   --           |    Offset_To_Top   |                           | predefined |
+   --           +--------------------+                           | primitives |
+   --           |       OSD_Ptr      |---> Object Specific Data  |   thunks   |
+   --  Tag ---> +--------------------+      +---------------+    +------------+
+   --           |      table of      |      | num prim ops  |
+   --           :    primitive op    :      +---------------+
+   --           |   thunk pointers   |      | table of      |
+   --           +--------------------+      +   primitive   |
+   --                                       |    op offsets |
+   --                                       +---------------+
 
-   --  where Nb_prim is the number of primitive operations of the given
-   --  type and Idepth its inheritance depth.
+   --  The runtime information kept for each tagged type is separated into two
+   --  objects: the Dispatch Table and the Type Specific Data record.
 
-   --  In order to set or retrieve information from the Dispatch Table or
-   --  the Type Specific Data record, GNAT generates calls to Set_XXX or
-   --  Get_XXX routines, where XXX is the name of the field of interest.
+   package SSE renames System.Storage_Elements;
 
-   type Dispatch_Table;
-   type Tag is access all Dispatch_Table;
-   type Interface_Tag is access all Dispatch_Table;
+   subtype Cstring is String (Positive);
+   type Cstring_Ptr is access all Cstring;
+   pragma No_Strict_Aliasing (Cstring_Ptr);
 
-   No_Tag : constant Tag := null;
+   --  Declarations for the table of interfaces
 
-   type Interface_Data (Nb_Ifaces : Positive);
+   type Offset_To_Top_Function_Ptr is
+     access function (This : System.Address) return SSE.Storage_Offset;
+   --  Type definition used to call the function that is generated by the
+   --  expander in case of tagged types with discriminants that have secondary
+   --  dispatch tables. This function provides the Offset_To_Top value in this
+   --  specific case.
+
+   type Interface_Data_Element is record
+      Iface_Tag            : Tag;
+      Static_Offset_To_Top : Boolean;
+      Offset_To_Top_Value  : SSE.Storage_Offset;
+      Offset_To_Top_Func   : Offset_To_Top_Function_Ptr;
+      Secondary_DT         : Tag;
+   end record;
+   --  If some ancestor of the tagged type has discriminants the field
+   --  Static_Offset_To_Top is False and the field Offset_To_Top_Func
+   --  is used to store the access to the function generated by the
+   --  expander which provides this value; otherwise Static_Offset_To_Top
+   --  is True and such value is stored in the Offset_To_Top_Value field.
+   --  Secondary_DT references a secondary dispatch table whose contents
+   --  are pointers to the primitives of the tagged type that cover the
+   --  interface primitives. Secondary_DT gives support to dispatching
+   --  calls through interface types associated with Generic Dispatching
+   --  Constructors.
+
+   type Interfaces_Array is array (Natural range <>) of Interface_Data_Element;
+
+   type Interface_Data (Nb_Ifaces : Positive) is record
+      Ifaces_Table : Interfaces_Array (1 .. Nb_Ifaces);
+   end record;
+
    type Interface_Data_Ptr is access all Interface_Data;
    --  Table of abstract interfaces used to give support to backward interface
    --  conversions and also to IW_Membership.
-
-   type Object_Specific_Data (Nb_Prim : Positive);
-   type Object_Specific_Data_Ptr is access all Object_Specific_Data;
-   --  Information associated with the secondary dispatch table of tagged-type
-   --  objects implementing abstract interfaces.
-
-   type Select_Specific_Data (Nb_Prim : Positive);
-   type Select_Specific_Data_Ptr is access all Select_Specific_Data;
-   --  A table used to store the primitive operation kind and entry index of
-   --  primitive subprograms of a type that implements a limited interface.
-   --  The Select Specific Data table resides in the Type Specific Data of a
-   --  type. This construct is used in the handling of dispatching triggers
-   --  in select statements.
-
-   type Type_Specific_Data;
-   type Type_Specific_Data_Ptr is access all Type_Specific_Data;
 
    --  Primitive operation kinds. These values differentiate the kinds of
    --  callable entities stored in the dispatch table. Certain kinds may
@@ -143,6 +200,111 @@ private
       POK_Task_Function,
       POK_Task_Procedure);
 
+   --  Select specific data types
+
+   type Select_Specific_Data_Element is record
+      Index : Positive;
+      Kind  : Prim_Op_Kind;
+   end record;
+
+   type Select_Specific_Data_Array is
+     array (Positive range <>) of Select_Specific_Data_Element;
+
+   type Select_Specific_Data (Nb_Prim : Positive) is record
+      SSD_Table : Select_Specific_Data_Array (1 .. Nb_Prim);
+      --  NOTE: Nb_Prim is the number of non-predefined primitive operations
+   end record;
+
+   type Select_Specific_Data_Ptr is access all Select_Specific_Data;
+   --  A table used to store the primitive operation kind and entry index of
+   --  primitive subprograms of a type that implements a limited interface.
+   --  The Select Specific Data table resides in the Type Specific Data of a
+   --  type. This construct is used in the handling of dispatching triggers
+   --  in select statements.
+
+   type Address_Array is array (Positive range <>) of System.Address;
+
+   subtype Dispatch_Table is Address_Array (1 .. 1);
+   --  Used by GDB to identify the _tags and traverse the run-time structure
+   --  associated with tagged types. For compatibility with older versions of
+   --  gdb, its name must not be changed.
+
+   type Tag is access all Dispatch_Table;
+   pragma No_Strict_Aliasing (Tag);
+
+   type Interface_Tag is access all Dispatch_Table;
+
+   No_Tag : constant Tag := null;
+
+   --  The expander ensures that Tag objects reference the Prims_Ptr component
+   --  of the wrapper.
+
+   type Tag_Ptr is access all Tag;
+   pragma No_Strict_Aliasing (Tag_Ptr);
+
+   type Tag_Table is array (Natural range <>) of Tag;
+
+   type Type_Specific_Data (Idepth : Natural) is record
+   --  The discriminant Idepth is the Inheritance Depth Level: Used to
+   --  implement the membership test associated with single inheritance of
+   --  tagged types in constant-time. It also indicates the size of the
+   --  Tags_Table component.
+
+      Access_Level : Natural;
+      --  Accessibility level required to give support to Ada 2005 nested type
+      --  extensions. This feature allows safe nested type extensions by
+      --  shifting the accessibility checks to certain operations, rather than
+      --  being enforced at the type declaration. In particular, by performing
+      --  run-time accessibility checks on class-wide allocators, class-wide
+      --  function return, and class-wide stream I/O, the danger of objects
+      --  outliving their type declaration can be eliminated (Ada 2005: AI-344)
+
+      Expanded_Name : Cstring_Ptr;
+      External_Tag  : Cstring_Ptr;
+      HT_Link       : Tag_Ptr;
+      --  Components used to support to the Ada.Tags subprograms in RM 3.9
+
+      --  Note: Expanded_Name is referenced by GDB to determine the actual name
+      --  of the tagged type. Its requirements are: 1) it must have this exact
+      --  name, and 2) its contents must point to a C-style Nul terminated
+      --  string containing its expanded name. GDB has no requirement on a
+      --  given position inside the record.
+
+      Transportable : Boolean;
+      --  Used to check RM E.4(18), set for types that satisfy the requirements
+      --  for being used in remote calls as actuals for classwide formals or as
+      --  return values for classwide functions.
+
+      RC_Offset : SSE.Storage_Offset;
+      --  Controller Offset: Used to give support to tagged controlled objects
+      --  (see Get_Deep_Controller at s-finimp)
+
+      Interfaces_Table : Interface_Data_Ptr;
+      --  Pointer to the table of interface tags. It is used to implement the
+      --  membership test associated with interfaces and also for backward
+      --  abstract interface type conversions (Ada 2005:AI-251)
+
+      SSD : Select_Specific_Data_Ptr;
+      --  Pointer to a table of records used in dispatching selects. This
+      --  field has a meaningful value for all tagged types that implement
+      --  a limited, protected, synchronized or task interfaces and have
+      --  non-predefined primitive operations.
+
+      Tags_Table : Tag_Table (0 .. Idepth);
+      --  Table of ancestor tags. Its size actually depends on the inheritance
+      --  depth level of the tagged type.
+   end record;
+
+   type Type_Specific_Data_Ptr is access all Type_Specific_Data;
+   pragma No_Strict_Aliasing (Type_Specific_Data_Ptr);
+
+   --  Declarations for the dispatch table record
+
+   type Signature_Kind is
+      (Unknown,
+       Primary_DT,
+       Secondary_DT);
+
    --  Tagged type kinds with respect to concurrency and limitedness
 
    type Tagged_Kind is
@@ -153,272 +315,46 @@ private
       TK_Tagged,
       TK_Task);
 
-   type Tagged_Kind_Ptr is access all Tagged_Kind;
+   type Dispatch_Table_Wrapper (Num_Prims : Natural) is record
+      Signature     : Signature_Kind;
+      Tag_Kind      : Tagged_Kind;
+      Predef_Prims  : System.Address;
+      --  Pointer to the dispatch table of predefined Ada primitives
 
-   Default_Prim_Op_Count : constant Positive := 15;
-   --  Number of predefined primitive operations added by the Expander for a
-   --  tagged type (must match Exp_Disp.Default_Prim_Op_Count).
+      --  According to the C++ ABI the components Offset_To_Top and TSD are
+      --  stored just "before" the dispatch table, and they are referenced with
+      --  negative offsets referring to the base of the dispatch table. The
+      --   _Tag (or the VTable_Ptr in C++ terminology) must point to the base
+      --  of the virtual table, just after these components, to point to the
+      --  Prims_Ptr table.
 
-   type Signature_Kind is
-      (Unknown,
-       Valid_Signature,
-       Primary_DT,
-       Secondary_DT,
-       Abstract_Interface);
-   for Signature_Kind'Size use 8;
-   --  Kind of signature found in the header of the dispatch table. These
-   --  signatures are generated by the frontend and are used by the Check_XXX
-   --  routines to ensure that the kind of dispatch table managed by each of
-   --  the routines in this package is correct. This additional check is only
-   --  performed with this run-time package is compiled with assertions enabled
+      Offset_To_Top : SSE.Storage_Offset;
+      TSD           : System.Address;
 
-   --  The signature is a sequence of two bytes. The first byte must have the
-   --  value Valid_Signature, and the second byte must have a value in the
-   --  range Primary_DT .. Abstract_Interface. The Unknown value is used by
-   --  the Check_XXX routines to indicate that the signature is wrong.
+      Prims_Ptr : aliased Address_Array (1 .. Num_Prims);
+      --  The size of the Prims_Ptr array actually depends on the tagged type
+      --  to which it applies. For each tagged type, the expander computes the
+      --  actual array size, allocates the Dispatch_Table record accordingly.
+   end record;
 
-   package SSE renames System.Storage_Elements;
+   type Dispatch_Table_Ptr is access all Dispatch_Table_Wrapper;
+   pragma No_Strict_Aliasing (Dispatch_Table_Ptr);
 
-   function CW_Membership (Obj_Tag : Tag; Typ_Tag : Tag) return Boolean;
-   --  Given the tag of an object and the tag associated to a type, return
-   --  true if Obj is in Typ'Class.
+   --  The following type declaration is used by the compiler when the program
+   --  is compiled with restriction No_Dispatching_Calls. It is also used with
+   --  interface types to generate the tag and run-time information associated
+   --  with them.
 
-   function IW_Membership (This : System.Address; T : Tag) return Boolean;
-   --  Ada 2005 (AI-251): General routine that checks if a given object
-   --  implements a tagged type. Its common usage is to check if Obj is in
-   --  Iface'Class, but it is also used to check if a class-wide interface
-   --  implements a given type (Iface_CW_Typ in T'Class). For example:
-   --
-   --      type I is interface;
-   --      type T is tagged ...
-   --
-   --      function Test (O : in I'Class) is
-   --      begin
-   --         return O in T'Class.
-   --      end Test;
+   type No_Dispatch_Table_Wrapper is record
+      NDT_TSD       : System.Address;
+      NDT_Prims_Ptr : Natural;
+   end record;
 
-   function Displace (This : System.Address; T : Tag) return System.Address;
-   --  (Ada 2005 (AI-251): Displace "This" to point to the secondary dispatch
-   --  table of T.
-
-   function Get_Access_Level (T : Tag) return Natural;
-   --  Given the tag associated with a type, returns the accessibility level
-   --  of the type.
-
-   function Get_Entry_Index (T : Tag; Position : Positive) return Positive;
-   --  Return a primitive operation's entry index (if entry) given a dispatch
-   --  table T and a position of a primitive operation in T.
-
-   function Get_External_Tag (T : Tag) return System.Address;
-   --  Retrieve the address of a null terminated string containing
-   --  the external name.
-
-   function Get_Offset_Index
-     (T        : Tag;
-      Position : Positive) return Positive;
-   --  Given a pointer to a secondary dispatch table (T) and a position of an
-   --  operation in the DT, retrieve the corresponding operation's position in
-   --  the primary dispatch table from the Offset Specific Data table of T.
-
-   function Get_Predefined_Prim_Op_Address
-     (T        : Tag;
-      Position : Positive) return System.Address;
-   --  Given a pointer to a dispatch table (T) and a position in the DT
-   --  this function returns the address of the virtual function stored
-   --  in it (used for dispatching calls).
-
-   function Get_Prim_Op_Address
-     (T        : Tag;
-      Position : Positive) return System.Address;
-   --  Given a pointer to a dispatch table (T) and a position in the DT
-   --  this function returns the address of the virtual function stored
-   --  in it (used for dispatching calls).
-
-   function Get_Prim_Op_Kind
-     (T        : Tag;
-      Position : Positive) return Prim_Op_Kind;
-   --  Return a primitive operation's kind given a dispatch table T and a
-   --  position of a primitive operation in T.
-
-   function Get_RC_Offset (T : Tag) return SSE.Storage_Offset;
-   --  Return the Offset of the implicit record controller when the object
-   --  has controlled components. O otherwise.
-
-   pragma Export (Ada, Get_RC_Offset, "ada__tags__get_rc_offset");
-   --  This procedure is used in s-finimp to compute the deep routines
-   --  it is exported manually in order to avoid changing completely the
-   --  organization of the run time.
-
-   function Get_Remotely_Callable (T : Tag) return Boolean;
-   --  Return the value previously set by Set_Remotely_Callable
-
-   function Get_Tagged_Kind (T : Tag) return Tagged_Kind;
-   --  Given a pointer to either a primary or a secondary dispatch table,
-   --  return the tagged kind of a type in the context of concurrency and
-   --  limitedness.
-
-   procedure Inherit_DT (Old_T : Tag; New_T : Tag; Entry_Count : Natural);
-   --  Entry point used to initialize the DT of a type knowing the tag
-   --  of the direct ancestor and the number of primitive ops that are
-   --  inherited (Entry_Count).
-
-   procedure Inherit_TSD (Old_Tag : Tag; New_Tag : Tag);
-   --  Initialize the TSD of a type knowing the tag of the direct ancestor
-
-   function Offset_To_Top
-     (This : System.Address) return System.Storage_Elements.Storage_Offset;
-   --  Returns the current value of the offset_to_top component available in
-   --  the prologue of the dispatch table. If the parent of the tagged type
-   --  has discriminants this value is stored in a record component just
-   --  immediately after the tag component.
-
-   function OSD (T : Tag) return Object_Specific_Data_Ptr;
-   --  Ada 2005 (AI-251): Given a pointer T to a secondary dispatch table,
-   --  retrieve the address of the record containing the Objet Specific
-   --  Data table.
-
-   function Parent_Size
-     (Obj : System.Address;
-      T   : Tag) return SSE.Storage_Count;
-   --  Computes the size the ancestor part of a tagged extension object whose
-   --  address is 'obj' by calling indirectly the ancestor _size function. The
-   --  ancestor is the parent of the type represented by tag T. This function
-   --  assumes that _size is always in slot one of the dispatch table.
-
-   pragma Export (Ada, Parent_Size, "ada__tags__parent_size");
-   --  This procedure is used in s-finimp and is thus exported manually
-
-   procedure Register_Interface_Tag
-     (T           : Tag;
-      Interface_T : Tag;
-      Position    : Positive);
-   --  Ada 2005 (AI-251): Used to initialize the table of interfaces
-   --  implemented by a type. Required to give support to backward interface
-   --  conversions and also to IW_Membership.
-
-   procedure Register_Tag (T : Tag);
-   --  Insert the Tag and its associated external_tag in a table for the
-   --  sake of Internal_Tag
-
-   procedure Set_Access_Level (T : Tag; Value : Natural);
-   --  Sets the accessibility level of the tagged type associated with T
-   --  in its TSD.
-
-   procedure Set_Entry_Index (T : Tag; Position : Positive; Value : Positive);
-   --  Set the entry index of a primitive operation in T's TSD table indexed
-   --  by Position.
-
-   procedure Set_Expanded_Name (T : Tag; Value : System.Address);
-   --  Set the address of the string containing the expanded name
-   --  in the Dispatch table.
-
-   procedure Set_External_Tag (T : Tag; Value : System.Address);
-   --  Set the address of the string containing the external tag
-   --  in the Dispatch table.
-
-   procedure Set_Interface_Table (T : Tag; Value : System.Address);
-   --  Ada 2005 (AI-251): Given a pointer T to a dispatch Table, stores the
-   --  pointer to the table of interfaces.
-
-   procedure Set_Num_Prim_Ops (T : Tag; Value : Natural);
-   --  Set the number of primitive operations in the dispatch table of T. This
-   --  is used for debugging purposes.
-
-   procedure Set_Offset_Index
-     (T        : Tag;
-      Position : Positive;
-      Value    : Positive);
-   --  Set the offset value of a primitive operation in a secondary dispatch
-   --  table denoted by T, indexed by Position.
-
-   procedure Set_Offset_To_Top
-     (This         : System.Address;
-      Interface_T  : Tag;
-      Is_Static    : Boolean;
-      Offset_Value : System.Storage_Elements.Storage_Offset;
-      Offset_Func  : System.Address);
-   --  Ada 2005 (AI-251): Initialize the Offset_To_Top field in the prologue of
-   --  the dispatch table. In primary dispatch tables the value of "This" is
-   --  not required (and the compiler passes always the Null_Address value) and
-   --  the Offset_Value is always cero; in secondary dispatch tables "This"
-   --  points to the object, Interface_T is the interface for which the
-   --  secondary dispatch table is being initialized, and Offset_Value is the
-   --  distance from "This" to the object component containing the tag of the
-   --  secondary dispatch table.
-
-   procedure Set_OSD (T : Tag; Value : System.Address);
-   --  Given a pointer T to a secondary dispatch table, store the pointer to
-   --  the record containing the Object Specific Data generated by GNAT.
-
-   procedure Set_Predefined_Prim_Op_Address
-     (T        : Tag;
-      Position : Positive;
-      Value    : System.Address);
-   --  Given a pointer to a dispatch Table (T) and a position in the dispatch
-   --  table associated with a predefined primitive operation, put the address
-   --  of the virtual function in it (used for overriding).
-
-   procedure Set_Prim_Op_Address
-     (T        : Tag;
-      Position : Positive;
-      Value    : System.Address);
-   --  Given a pointer to a dispatch Table (T) and a position in the dispatch
-   --  Table put the address of the virtual function in it (used for
-   --  overriding).
-
-   procedure Set_Prim_Op_Kind
-     (T        : Tag;
-      Position : Positive;
-      Value    : Prim_Op_Kind);
-   --  Set the kind of a primitive operation in T's TSD table indexed by
-   --  Position.
-
-   procedure Set_RC_Offset (T : Tag; Value : SSE.Storage_Offset);
-   --  Sets the Offset of the implicit record controller when the object
-   --  has controlled components. Set to O otherwise.
-
-   procedure Set_Remotely_Callable (T : Tag; Value : Boolean);
-   --  Set to true if the type has been declared in a context described
-   --  in E.4 (18).
-
-   procedure Set_Signature (T : Tag; Value : Signature_Kind);
-   --  Given a pointer T to a dispatch table, store the signature id
-
-   procedure Set_SSD (T : Tag; Value : System.Address);
-   --  Given a pointer T to a dispatch Table, stores the pointer to the record
-   --  containing the Select Specific Data generated by GNAT.
-
-   procedure Set_Tagged_Kind (T : Tag; Value : Tagged_Kind);
-   --  Set the tagged kind of a type in either a primary or a secondary
-   --  dispatch table denoted by T.
-
-   procedure Set_TSD (T : Tag; Value : System.Address);
-   --  Given a pointer T to a dispatch Table, stores the address of the record
-   --  containing the Type Specific Data generated by GNAT.
-
-   function SSD (T : Tag) return Select_Specific_Data_Ptr;
-   --  Given a pointer T to a dispatch Table, retrieves the address of the
-   --  record containing the Select Specific Data in T's TSD.
-
-   function TSD (T : Tag) return Type_Specific_Data_Ptr;
-   --  Given a pointer T to a dispatch Table, retrieves the address of the
-   --  record containing the Type Specific Data generated by GNAT.
-
-   DT_Prologue_Size : constant SSE.Storage_Count :=
-                        SSE.Storage_Count
-                          ((Default_Prim_Op_Count + 4) *
-                            (Standard'Address_Size / System.Storage_Unit));
-   --  Size of the hidden part of the dispatch table. It contains the table of
-   --  predefined primitive operations plus the C++ ABI header.
-
-   DT_Signature_Size : constant SSE.Storage_Count :=
-                         SSE.Storage_Count
-                           (1 * (Standard'Address_Size / System.Storage_Unit));
-   --  Size of the Signature field of the dispatch table
-
-   DT_Tagged_Kind_Size : constant SSE.Storage_Count :=
-     SSE.Storage_Count (1 * (Standard'Address_Size / System.Storage_Unit));
-   --  Size of the Tagged_Type_Kind field of the dispatch table
+   DT_Predef_Prims_Size : constant SSE.Storage_Count :=
+                            SSE.Storage_Count
+                              (1 * (Standard'Address_Size /
+                                      System.Storage_Unit));
+   --  Size of the Predef_Prims field of the Dispatch_Table
 
    DT_Offset_To_Top_Size : constant SSE.Storage_Count :=
                              SSE.Storage_Count
@@ -432,123 +368,169 @@ private
                                       System.Storage_Unit));
    --  Size of the Typeinfo_Ptr field of the Dispatch Table
 
-   DT_Entry_Size : constant SSE.Storage_Count :=
-                     SSE.Storage_Count
-                       (1 * (Standard'Address_Size / System.Storage_Unit));
-   --  Size of each primitive operation entry in the Dispatch Table
+   use type System.Storage_Elements.Storage_Offset;
 
-   Tag_Size : constant SSE.Storage_Count :=
-     SSE.Storage_Count (1 * (Standard'Address_Size / System.Storage_Unit));
-   --  Size of each tag
+   DT_Predef_Prims_Offset : constant SSE.Storage_Count :=
+                              DT_Typeinfo_Ptr_Size
+                                + DT_Offset_To_Top_Size
+                                + DT_Predef_Prims_Size;
+   --  Offset from Prims_Ptr to Predef_Prims component
 
-   TSD_Prologue_Size : constant SSE.Storage_Count :=
-                         SSE.Storage_Count
-                           (10 * (Standard'Address_Size /
-                                   System.Storage_Unit));
-   --  Size of the first part of the type specific data
+   --  Object Specific Data record of secondary dispatch tables
 
-   TSD_Entry_Size : constant SSE.Storage_Count :=
-                      SSE.Storage_Count
-                        (1 * (Standard'Address_Size / System.Storage_Unit));
-   --  Size of each ancestor tag entry in the TSD
+   type Object_Specific_Data_Array is array (Positive range <>) of Positive;
 
-   type Address_Array is array (Natural range <>) of System.Address;
-   pragma Suppress (Index_Check, On => Address_Array);
-   --  The reason we suppress index checks is that in the body, objects
-   --  of this type are declared with a dummy size of 1, the actual size
-   --  depending on the number of primitive operations.
+   type Object_Specific_Data (OSD_Num_Prims : Positive) is record
+      OSD_Table : Object_Specific_Data_Array (1 .. OSD_Num_Prims);
+      --  Table used in secondary DT to reference their counterpart in the
+      --  select specific data (in the TSD of the primary DT). This construct
+      --  is used in the handling of dispatching triggers in select statements.
+      --  Nb_Prim is the number of non-predefined primitive operations.
+   end record;
 
-   --  Unchecked Conversions
+   type Object_Specific_Data_Ptr is access all Object_Specific_Data;
+   pragma No_Strict_Aliasing (Object_Specific_Data_Ptr);
+
+   --  The following subprogram specifications are placed here instead of
+   --  the package body to see them from the frontend through rtsfind.
+
+   function Base_Address (This : System.Address) return System.Address;
+   --  Ada 2005 (AI-251): Displace "This" to point to the base address of
+   --  the object (that is, the address of the primary tag of the object).
+
+   function Displace (This : System.Address; T : Tag) return System.Address;
+   --  Ada 2005 (AI-251): Displace "This" to point to the secondary dispatch
+   --  table of T.
+
+   function Secondary_Tag (T, Iface : Tag) return Tag;
+   --  Ada 2005 (AI-251): Given a primary tag T associated with a tagged type
+   --  Typ, search for the secondary tag of the interface type Iface covered
+   --  by Typ.
+
+   function DT (T : Tag) return Dispatch_Table_Ptr;
+   --  Return the pointer to the TSD record associated with T
+
+   function Get_Entry_Index (T : Tag; Position : Positive) return Positive;
+   --  Ada 2005 (AI-251): Return a primitive operation's entry index (if entry)
+   --  given a dispatch table T and a position of a primitive operation in T.
+
+   function Get_Offset_Index
+     (T        : Tag;
+      Position : Positive) return Positive;
+   --  Ada 2005 (AI-251): Given a pointer to a secondary dispatch table (T) and
+   --  a position of an operation in the DT, retrieve the corresponding
+   --  operation's position in the primary dispatch table from the Offset
+   --  Specific Data table of T.
+
+   function Get_Prim_Op_Kind
+     (T        : Tag;
+      Position : Positive) return Prim_Op_Kind;
+   --  Ada 2005 (AI-251): Return a primitive operation's kind given a dispatch
+   --  table T and a position of a primitive operation in T.
+
+   function Get_RC_Offset (T : Tag) return SSE.Storage_Offset;
+   --  Return the Offset of the implicit record controller when the object
+   --  has controlled components, returns zero if no controlled components.
+
+   pragma Export (Ada, Get_RC_Offset, "ada__tags__get_rc_offset");
+   --  This procedure is used in s-finimp to compute the deep routines
+   --  it is exported manually in order to avoid changing completely the
+   --  organization of the run time.
+
+   function Get_Tagged_Kind (T : Tag) return Tagged_Kind;
+   --  Ada 2005 (AI-345): Given a pointer to either a primary or a secondary
+   --  dispatch table, return the tagged kind of a type in the context of
+   --  concurrency and limitedness.
+
+   function IW_Membership (This : System.Address; T : Tag) return Boolean;
+   --  Ada 2005 (AI-251): General routine that checks if a given object
+   --  implements a tagged type. Its common usage is to check if Obj is in
+   --  Iface'Class, but it is also used to check if a class-wide interface
+   --  implements a given type (Iface_CW_Typ in T'Class). For example:
+   --
+   --      type I is interface;
+   --      type T is tagged ...
+   --
+   --      function Test (O : I'Class) is
+   --      begin
+   --         return O in T'Class.
+   --      end Test;
+
+   function Offset_To_Top
+     (This : System.Address) return SSE.Storage_Offset;
+   --  Ada 2005 (AI-251): Returns the current value of the offset_to_top
+   --  component available in the prologue of the dispatch table. If the parent
+   --  of the tagged type has discriminants this value is stored in a record
+   --  component just immediately after the tag component.
+
+   function Parent_Size
+     (Obj : System.Address;
+      T   : Tag) return SSE.Storage_Count;
+   --  Computes the size the ancestor part of a tagged extension object whose
+   --  address is 'obj' by calling indirectly the ancestor _size function. The
+   --  ancestor is the parent of the type represented by tag T. This function
+   --  assumes that _size is always in slot one of the dispatch table.
+
+   pragma Export (Ada, Parent_Size, "ada__tags__parent_size");
+   --  This procedure is used in s-finimp and is thus exported manually
+
+   procedure Register_Tag (T : Tag);
+   --  Insert the Tag and its associated external_tag in a table for the
+   --  sake of Internal_Tag
+
+   procedure Set_Entry_Index (T : Tag; Position : Positive; Value : Positive);
+   --  Ada 2005 (AI-345): Set the entry index of a primitive operation in T's
+   --  TSD table indexed by Position.
+
+   procedure Set_Offset_To_Top
+     (This         : System.Address;
+      Interface_T  : Tag;
+      Is_Static    : Boolean;
+      Offset_Value : SSE.Storage_Offset;
+      Offset_Func  : Offset_To_Top_Function_Ptr);
+   --  Ada 2005 (AI-251): Initialize the Offset_To_Top field in the prologue of
+   --  the dispatch table. In primary dispatch tables the value of "This" is
+   --  not required (and the compiler passes always the Null_Address value) and
+   --  the Offset_Value is always cero; in secondary dispatch tables "This"
+   --  points to the object, Interface_T is the interface for which the
+   --  secondary dispatch table is being initialized, and Offset_Value is the
+   --  distance from "This" to the object component containing the tag of the
+   --  secondary dispatch table.
+
+   procedure Set_Prim_Op_Kind
+     (T        : Tag;
+      Position : Positive;
+      Value    : Prim_Op_Kind);
+   --  Ada 2005 (AI-251): Set the kind of a primitive operation in T's TSD
+   --  table indexed by Position.
+
+   Max_Predef_Prims : constant Positive := 16;
+   --  Number of reserved slots for the following predefined ada primitives:
+   --
+   --    1. Size
+   --    2. Alignment,
+   --    3. Read
+   --    4. Write
+   --    5. Input
+   --    6. Output
+   --    7. "="
+   --    8. assignment
+   --    9. deep adjust
+   --   10. deep finalize
+   --   11. async select
+   --   12. conditional select
+   --   13. prim_op kind
+   --   14. task_id
+   --   15. dispatching requeue
+   --   16. timed select
+   --
+   --  The compiler checks that the value here is correct
+
+   subtype Predef_Prims_Table  is Address_Array (1 .. Max_Predef_Prims);
+   type Predef_Prims_Table_Ptr is access Predef_Prims_Table;
+   pragma No_Strict_Aliasing (Predef_Prims_Table_Ptr);
 
    type Addr_Ptr is access System.Address;
-   type Tag_Ptr  is access Tag;
-
-   type Signature_Values is
-      array (1 .. DT_Signature_Size) of Signature_Kind;
-   --  Type used to see the signature as a sequence of Signature_Kind values
-
-   type Signature_Values_Ptr is access all Signature_Values;
-
-   function To_Addr_Ptr is
-      new Unchecked_Conversion (System.Address, Addr_Ptr);
-
-   function To_Type_Specific_Data_Ptr is
-     new Unchecked_Conversion (System.Address, Type_Specific_Data_Ptr);
-
-   function To_Address is
-     new Unchecked_Conversion (Interface_Tag, System.Address);
-
-   function To_Address is
-     new Unchecked_Conversion (Tag, System.Address);
-
-   function To_Address is
-     new Unchecked_Conversion (Type_Specific_Data_Ptr, System.Address);
-
-   function To_Interface_Data_Ptr is
-     new Unchecked_Conversion (System.Address, Interface_Data_Ptr);
-
-   function To_Object_Specific_Data_Ptr is
-     new Unchecked_Conversion (System.Address, Object_Specific_Data_Ptr);
-
-   function To_Select_Specific_Data_Ptr is
-     new Unchecked_Conversion (System.Address, Select_Specific_Data_Ptr);
-
-   function To_Signature_Values is
-     new Unchecked_Conversion (System.Storage_Elements.Storage_Offset,
-                               Signature_Values);
-
-   function To_Signature_Values_Ptr is
-     new Unchecked_Conversion (System.Address,
-                               Signature_Values_Ptr);
-
-   function To_Tag is
-     new Unchecked_Conversion (System.Address, Tag);
-
-   function To_Tag_Ptr is
-     new Unchecked_Conversion (System.Address, Tag_Ptr);
-
-   function To_Tagged_Kind_Ptr is
-     new Unchecked_Conversion (System.Address, Tagged_Kind_Ptr);
-
-   --  Primitive dispatching operations are always inlined, to facilitate
-   --  use in a minimal/no run-time environment for high integrity use.
-
-   pragma Inline_Always (CW_Membership);
-   pragma Inline_Always (Displace);
-   pragma Inline_Always (IW_Membership);
-   pragma Inline_Always (Get_Access_Level);
-   pragma Inline_Always (Get_Entry_Index);
-   pragma Inline_Always (Get_Offset_Index);
-   pragma Inline_Always (Get_Predefined_Prim_Op_Address);
-   pragma Inline_Always (Get_Prim_Op_Address);
-   pragma Inline_Always (Get_Prim_Op_Kind);
-   pragma Inline_Always (Get_RC_Offset);
-   pragma Inline_Always (Get_Remotely_Callable);
-   pragma Inline_Always (Get_Tagged_Kind);
-   pragma Inline_Always (Inherit_DT);
-   pragma Inline_Always (Inherit_TSD);
-   pragma Inline_Always (OSD);
-   pragma Inline_Always (Register_Interface_Tag);
-   pragma Inline_Always (Register_Tag);
-   pragma Inline_Always (Set_Access_Level);
-   pragma Inline_Always (Set_Entry_Index);
-   pragma Inline_Always (Set_Expanded_Name);
-   pragma Inline_Always (Set_External_Tag);
-   pragma Inline_Always (Set_Interface_Table);
-   pragma Inline_Always (Set_Num_Prim_Ops);
-   pragma Inline_Always (Set_Offset_Index);
-   pragma Inline_Always (Set_Offset_To_Top);
-   pragma Inline_Always (Set_Predefined_Prim_Op_Address);
-   pragma Inline_Always (Set_Prim_Op_Address);
-   pragma Inline_Always (Set_Prim_Op_Kind);
-   pragma Inline_Always (Set_RC_Offset);
-   pragma Inline_Always (Set_Remotely_Callable);
-   pragma Inline_Always (Set_Signature);
-   pragma Inline_Always (Set_OSD);
-   pragma Inline_Always (Set_SSD);
-   pragma Inline_Always (Set_TSD);
-   pragma Inline_Always (Set_Tagged_Kind);
-   pragma Inline_Always (SSD);
-   pragma Inline_Always (TSD);
-
+   pragma No_Strict_Aliasing (Addr_Ptr);
+   --  Why is this needed ???
 end Ada.Tags;

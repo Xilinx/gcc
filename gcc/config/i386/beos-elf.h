@@ -134,7 +134,7 @@ along with GCC; see the file COPYING3.  If not see
    for the BeOS include files relative to TOOL_INCLUDE_DIR.  Yes, we
    use ANSI string concatenation here (FIXME) */
 
-#ifndef CROSS_COMPILE
+#ifndef CROSS_DIRECTORY_STRUCTURE
 #undef INCLUDE_DEFAULTS
 #define INCLUDE_DEFAULTS \
     { \
@@ -176,7 +176,7 @@ along with GCC; see the file COPYING3.  If not see
     { "/boot/develop/headers", 0, 0, 0 }, \
     { 0, 0, 0, 0 } \
     }
-#else /* CROSS_COMPILE */
+#else /* CROSS_DIRECTORY_STRUCTURE */
 #undef	INCLUDE_DEFAULTS
 #define INCLUDE_DEFAULTS				\
     { \

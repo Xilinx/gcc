@@ -22,13 +22,13 @@
 extern const char * mcore_output_jump_label_table	(void);
 extern void         mcore_expand_prolog          	(void);
 extern void         mcore_expand_epilog          	(void);
-extern int          mcore_const_ok_for_inline    	(long);
-extern int          mcore_num_ones               	(int);
-extern int          mcore_num_zeros              	(int);
+extern int          mcore_const_ok_for_inline    	(HOST_WIDE_INT);
+extern int          mcore_num_ones               	(HOST_WIDE_INT);
+extern int          mcore_num_zeros              	(HOST_WIDE_INT);
 extern int          mcore_initial_elimination_offset	(int, int);
 extern int          mcore_byte_offset            	(unsigned int);
 extern int          mcore_halfword_offset        	(unsigned int);
-extern int          mcore_const_trick_uses_not   	(long);
+extern int          mcore_const_trick_uses_not   	(HOST_WIDE_INT);
 extern void         mcore_override_options       	(void);
 extern int          mcore_dllexport_name_p       	(const char *);
 extern int          mcore_dllimport_name_p       	(const char *);
@@ -36,11 +36,11 @@ extern int          mcore_naked_function_p       	(void);
 
 #ifdef TREE_CODE
 #ifdef HAVE_MACHINE_MODES
-extern int          mcore_num_arg_regs           	(enum machine_mode, tree);
+extern int          mcore_num_arg_regs           	(enum machine_mode, const_tree);
 #endif /* HAVE_MACHINE_MODES */
 
 #ifdef RTX_CODE
-extern rtx          mcore_function_value         	(tree, tree);
+extern rtx          mcore_function_value         	(const_tree, const_tree);
 #endif /* RTX_CODE */
 #endif /* TREE_CODE */
 
@@ -71,7 +71,7 @@ extern int          mcore_arith_S_operand         	(rtx);
 #ifdef HAVE_MACHINE_MODES
 extern const char * mcore_output_move          		(rtx, rtx *, enum machine_mode);
 extern const char * mcore_output_movedouble    		(rtx *, enum machine_mode);
-extern int          const_ok_for_mcore                  (int);
+extern int          const_ok_for_mcore                  (HOST_WIDE_INT);
 #ifdef TREE_CODE
 extern rtx          mcore_function_arg           	(CUMULATIVE_ARGS, enum machine_mode, tree, int);
 #endif /* TREE_CODE */

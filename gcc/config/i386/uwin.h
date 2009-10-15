@@ -76,8 +76,7 @@ along with GCC; see the file COPYING3.  If not see
 #define ASM_DECLARE_FUNCTION_NAME(FILE, NAME, DECL)			\
   do									\
     {									\
-      if (i386_pe_dllexport_name_p (NAME))				\
-	i386_pe_record_exported_symbol (NAME, 0);			\
+      i386_pe_maybe_record_exported_symbol (DECL, NAME, 0);		\
       /* UWIN binutils bug workaround.  */				\
       if (0 && write_symbols != SDB_DEBUG)				\
 	i386_pe_declare_function_type (FILE, NAME, TREE_PUBLIC (DECL));	\

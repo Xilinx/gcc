@@ -81,7 +81,7 @@ __fixunstfdi (long double a1)
        MANTD_HIGH_LL on the left of the matissa.  */
     exp += HIGH_LL_FRAC_BITS + 1;
 
-    /* If the result would still need a left shift it will be to large
+    /* If the result would still need a left shift it will be too large
        to be represented.  */
     if (exp > 0)
       return 0xFFFFFFFFFFFFFFFFULL;
@@ -138,7 +138,7 @@ __fixtfdi (long double a1)
     if (!EXPD (dl1))
       return 0;
 
-    /* The exponent - considered the binary point at the right end of 
+    /* The exponent - considered the binary point at the right end of
        the mantissa.  */
     exp = EXPD (dl1) - EXPONENT_BIAS - MANTISSA_BITS;
 
@@ -155,14 +155,14 @@ __fixtfdi (long double a1)
        MANTD_HIGH_LL on the left of the matissa.  */
     exp += HIGH_LL_FRAC_BITS + 1;
 
-    /* If the result would still need a left shift it will be to large
+    /* If the result would still need a left shift it will be too large
        to be represented.  Compared to the unsigned variant we have to
        take care that there is still space for the sign bit to be
        applied.  So we can only go on if there is a right-shift by one
        or more.  */
     if (exp >= 0)
       {
-	l = (long long)1 << 63; /* long long int min */
+	l = 1ULL << 63; /* long long min */
 	return SIGND (dl1) ? l : l - 1;
       }
 

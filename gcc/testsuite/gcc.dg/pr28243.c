@@ -2,7 +2,9 @@
 /* Reported by Mike Frysinger <vapier@gentoo.org> */
 
 /* { dg-do compile } */
+/* { dg-require-effective-target fpic } */
 /* { dg-options "-O2 -ftracer -fPIC" } */
+/* { dg-skip-if "requires unsupported run-time relocation" { spu-*-* } { "*" } { "" } } */
 
 struct displayfuncs {
   void (*init) ();

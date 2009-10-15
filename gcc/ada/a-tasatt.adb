@@ -7,7 +7,7 @@
 --                                 B o d y                                  --
 --                                                                          --
 --             Copyright (C) 1991-1994, Florida State University            --
---                     Copyright (C) 1995-2006, AdaCore                     --
+--                     Copyright (C) 1995-2007, AdaCore                     --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -102,8 +102,8 @@
 
 --  In the first approach the objects on the attribute list are all derived
 --  from one controlled type, say T, and are linked using an access type to
---  T'Class. The runtime system has an Unchecked_Deallocation for T'Class with
---  access type T'Class, and uses this to deallocate and finalize all the
+--  T'Class. The runtime system has an Ada.Unchecked_Deallocation for T'Class
+--  with access type T'Class, and uses this to deallocate and finalize all the
 --  items in the list. The limitation of this approach is that each
 --  instantiation of the package Ada.Task_Attributes derives a new record
 --  extension of T, and since T is controlled (RM 3.9.1 (3)), instantiation is
@@ -126,23 +126,22 @@
 --  might result in dangling references.
 
 --  Another problem with instantiations deeper than the library level is that
---  there is risk of storage leakage, or dangling references to reused
---  storage. That is, if an instantiation of Ada.Task_Attributes is made
---  within a procedure, what happens to the storage allocated for attributes,
---  when the procedure call returns? Apparently (RM 7.6.1 (4)) any such
---  objects must be finalized, since they will no longer be accessible, and in
---  general one would expect that the storage they occupy would be recovered
---  for later reuse. (If not, we would have a case of storage leakage.)
---  Assuming the storage is recovered and later reused, we have potentially
---  dangerous dangling references. When the procedure containing the
---  instantiation of Ada.Task_Attributes returns, there may still be
---  unterminated tasks with associated attribute values for that instantiation.
---  When such tasks eventually terminate, the RTS will attempt to call the
---  Deallocate procedure on them. If the corresponding storage has already
---  been deallocated, when the master of the access type was left, we have a
---  potential disaster. This disaster is compounded since the pointer to
---  Deallocate is probably through a "trampoline" which will also have been
---  destroyed.
+--  there is risk of storage leakage, or dangling references to reused storage.
+--  That is, if an instantiation of Ada.Task_Attributes is made within a
+--  procedure, what happens to the storage allocated for attributes, when the
+--  procedure call returns? Apparently (RM 7.6.1 (4)) any such objects must be
+--  finalized, since they will no longer be accessible, and in general one
+--  would expect that the storage they occupy would be recovered for later
+--  reuse. (If not, we would have a case of storage leakage.) Assuming the
+--  storage is recovered and later reused, we have potentially dangerous
+--  dangling references. When the procedure containing the instantiation of
+--  Ada.Task_Attributes returns, there may still be unterminated tasks with
+--  associated attribute values for that instantiation. When such tasks
+--  eventually terminate, the RTS will attempt to call the Deallocate procedure
+--  on them. If the corresponding storage has already been deallocated, when
+--  the master of the access type was left, we have a potential disaster. This
+--  disaster is compounded since the pointer to Deallocate is probably through
+--  a "trampoline" which will also have been destroyed.
 
 --  For this reason, we arrange to remove all dangling references before
 --  leaving the scope of an instantiation. This is ugly, since it requires
@@ -156,38 +155,36 @@
 --  the default initial one. This allows a potential savings in allocation,
 --  for attributes that are not used by all tasks.
 
---  For efficiency, we reserve space in the TCB for a fixed number of
---  direct-access attributes. These are required to be of a size that fits in
---  the space of an object of type System.Address. Because we must use
---  unchecked bitwise copy operations on these values, they cannot be of a
---  controlled type, but that is covered automatically since controlled
---  objects are too large to fit in the spaces.
+--  For efficiency, we reserve space in the TCB for a fixed number of direct-
+--  access attributes. These are required to be of a size that fits in the
+--  space of an object of type System.Address. Because we must use unchecked
+--  bitwise copy operations on these values, they cannot be of a controlled
+--  type, but that is covered automatically since controlled objects are too
+--  large to fit in the spaces.
 
---  We originally deferred the initialization of these direct-access
---  attributes, just as we do for the indirect-access attributes, and used a
---  per-task bit vector to keep track of which attributes were currently
---  defined for that task. We found that the overhead of maintaining this
---  bit-vector seriously slowed down access to the attributes, and made the
---  fetch operation non-atomic, so that even to read an attribute value
---  required locking the TCB. Therefore, we now initialize such attributes for
---  all existing tasks at the time of the attribute instantiation, and
---  initialize existing attributes for each new task at the time it is
---  created.
+--  We originally deferred initialization of these direct-access attributes,
+--  just as we do for the indirect-access attributes, and used a per-task bit
+--  vector to keep track of which attributes were currently defined for that
+--  task. We found that the overhead of maintaining this bit-vector seriously
+--  slowed down access to the attributes, and made the fetch operation non-
+--  atomic, so that even to read an attribute value required locking the TCB.
+--  Therefore, we now initialize such attributes for all existing tasks at the
+--  time of the attribute instantiation, and initialize existing attributes for
+--  each new task at the time it is created.
 
 --  The latter initialization requires a list of all the instantiation
 --  descriptors. Updates to this list, as well as the bit-vector that is used
 --  to reserve slots for attributes in the TCB, require mutual exclusion. That
 --  is provided by the Lock/Unlock_RTS.
 
---  One special problem that added complexity to the design is that the
---  per-task list of indirect attributes contains objects of different types.
---  We use unchecked pointer conversion to link these nodes together and
---  access them, but the records may not have identical internal structure.
---  Initially, we thought it would be enough to allocate all the common
---  components of the records at the front of each record, so that their
---  positions would correspond. Unfortunately, GNAT adds "dope" information at
---  the front of a record, if the record contains any controlled-type
---  components.
+--  One special problem that added complexity to the design is that the per-
+--  task list of indirect attributes contains objects of different types. We
+--  use unchecked pointer conversion to link these nodes together and access
+--  them, but the records may not have identical internal structure. Initially,
+--  we thought it would be enough to allocate all the common components of
+--  the records at the front of each record, so that their positions would
+--  correspond. Unfortunately, GNAT adds "dope" information at the front
+--  of a record, if the record contains any controlled-type components.
 --
 --  This means that the offset of the fields we use to link the nodes is at
 --  different positions on nodes of different types. To get around this, each
@@ -199,7 +196,7 @@
 
 --    type Node;
 --    type Node_Access is access all Node;
---    type Node_Access;
+--    type Wrapper;
 --    type Access_Wrapper is access all Wrapper;
 --    type Node is record
 --       Next    : Node_Access;
@@ -211,15 +208,18 @@
 --       Value      : aliased Attribute;  --  the generic formal type
 --    end record;
 
---  Another interesting problem is with the initialization of the
---  instantiation descriptors. Originally, we did this all via the Initialize
---  procedure of the descriptor type and code in the package body. It turned
---  out that the Initialize procedure needed quite a bit of information,
---  including the size of the attribute type, the initial value of the
---  attribute (if it fits in the TCB), and a pointer to the deallocator
---  procedure. These needed to be "passed" in via access discriminants. GNAT
---  was having trouble with access discriminants, so all this work was moved
---  to the package body.
+--  Another interesting problem is with the initialization of the instantiation
+--  descriptors. Originally, we did this all via the Initialize procedure of
+--  the descriptor type and code in the package body. It turned out that the
+--  Initialize procedure needed quite a bit of information, including the size
+--  of the attribute type, the initial value of the attribute (if it fits in
+--  the TCB), and a pointer to the deallocator procedure. These needed to be
+--  "passed" in via access discriminants. GNAT was having trouble with access
+--  discriminants, so all this work was moved to the package body.
+
+--  Note that references to objects declared in this package body must in
+--  general use 'Unchecked_Access instead of 'Access as the package can be
+--  instantiated from within a local context.
 
 with System.Error_Reporting;
 --  Used for Shutdown;
@@ -239,8 +239,8 @@ with System.Tasking;
 --           Direct_Index
 
 with System.Tasking.Initialization;
---  Used for Defer_Abortion
---           Undefer_Abortion
+--  Used for Defer_Abort
+--           Undefer_Abort
 --           Initialize_Attributes_Link
 --           Finalize_Attributes_Link
 
@@ -255,8 +255,8 @@ with System.Tasking.Task_Attributes;
 with Ada.Exceptions;
 --  Used for Raise_Exception
 
-with Unchecked_Conversion;
-with Unchecked_Deallocation;
+with Ada.Unchecked_Conversion;
+with Ada.Unchecked_Deallocation;
 
 pragma Elaborate_All (System.Tasking.Task_Attributes);
 --  To ensure the initialization of object Local (below) will work
@@ -268,8 +268,6 @@ package body Ada.Task_Attributes is
        System.Tasking,
        System.Tasking.Task_Attributes,
        Ada.Exceptions;
-
-   use type System.Tasking.Access_Address;
 
    package POP renames System.Task_Primitives.Operations;
 
@@ -284,22 +282,22 @@ package body Ada.Task_Attributes is
    type Access_Wrapper is access all Wrapper;
 
    pragma Warnings (Off);
-   --  We turn warnings off for the following declarations of the
-   --  To_Attribute_Handle conversions, since these are used only for small
-   --  attributes where we know that there are no problems with alignment, but
-   --  the compiler will generate warnings for the occurrences in the large
-   --  attribute case, even though they will not actually be used.
+   --  We turn warnings off for the following To_Attribute_Handle conversions,
+   --  since these are used only for small attributes where we know that there
+   --  are no problems with alignment, but the compiler will generate warnings
+   --  for the occurrences in the large attribute case, even though they will
+   --  not actually be used.
 
-   function To_Attribute_Handle is new Unchecked_Conversion
+   function To_Attribute_Handle is new Ada.Unchecked_Conversion
      (System.Address, Attribute_Handle);
-   function To_Direct_Attribute_Element is new Unchecked_Conversion
+   function To_Direct_Attribute_Element is new Ada.Unchecked_Conversion
      (System.Address, Direct_Attribute_Element);
    --  For reference to directly addressed task attributes
 
    type Access_Integer_Address is access all
      System.Storage_Elements.Integer_Address;
 
-   function To_Attribute_Handle is new Unchecked_Conversion
+   function To_Attribute_Handle is new Ada.Unchecked_Conversion
      (Access_Integer_Address, Attribute_Handle);
    --  For reference to directly addressed task attributes
 
@@ -307,12 +305,12 @@ package body Ada.Task_Attributes is
    --  End of warnings off region for directly addressed
    --  attribute conversion functions.
 
-   function To_Access_Address is new Unchecked_Conversion
+   function To_Access_Address is new Ada.Unchecked_Conversion
      (Access_Node, Access_Address);
    --  To store pointer to list of indirect attributes
 
    pragma Warnings (Off);
-   function To_Access_Wrapper is new Unchecked_Conversion
+   function To_Access_Wrapper is new Ada.Unchecked_Conversion
      (Access_Dummy_Wrapper, Access_Wrapper);
    pragma Warnings (On);
    --  To fetch pointer to actual wrapper of attribute node. We turn off
@@ -321,17 +319,17 @@ package body Ada.Task_Attributes is
    --  real wrapper type (we never actually allocate objects of type
    --  Dummy_Wrapper).
 
-   function To_Access_Dummy_Wrapper is new Unchecked_Conversion
+   function To_Access_Dummy_Wrapper is new Ada.Unchecked_Conversion
      (Access_Wrapper, Access_Dummy_Wrapper);
    --  To store pointer to actual wrapper of attribute node
 
-   function To_Task_Id is new Unchecked_Conversion
+   function To_Task_Id is new Ada.Unchecked_Conversion
      (Task_Identification.Task_Id, Task_Id);
    --  To access TCB of identified task
 
    type Local_Deallocator is access procedure (P : in out Access_Node);
 
-   function To_Lib_Level_Deallocator is new Unchecked_Conversion
+   function To_Lib_Level_Deallocator is new Ada.Unchecked_Conversion
      (Local_Deallocator, Deallocator);
    --  To defeat accessibility check
 
@@ -342,8 +340,8 @@ package body Ada.Task_Attributes is
    ------------------------
 
    procedure Deallocate (P : in out Access_Node);
-   --  Passed to the RTS via unchecked conversion of a pointer to
-   --  permit finalization and deallocation of attribute storage nodes
+   --  Passed to the RTS via unchecked conversion of a pointer to permit
+   --  finalization and deallocation of attribute storage nodes.
 
    --------------------------
    -- Instantiation Record --
@@ -359,14 +357,14 @@ package body Ada.Task_Attributes is
       --  The generic formal type, may be controlled
    end record;
 
-   --  A number of unchecked conversions involving Wrapper_Access sources
-   --  are performed in this unit. We have to ensure that the designated
-   --  object is always strictly enough aligned.
+   --  A number of unchecked conversions involving Wrapper_Access sources are
+   --  performed in this unit. We have to ensure that the designated object is
+   --  always strictly enough aligned.
 
    for Wrapper'Alignment use Standard'Maximum_Alignment;
 
    procedure Free is
-      new Unchecked_Deallocation (Wrapper, Access_Wrapper);
+      new Ada.Unchecked_Deallocation (Wrapper, Access_Wrapper);
 
    procedure Deallocate (P : in out Access_Node) is
       T : Access_Wrapper := To_Access_Wrapper (P.Wrapper);
@@ -598,8 +596,7 @@ package body Ada.Task_Attributes is
          end loop;
 
          --  Unlock RTS here to follow the lock ordering rule that prevent us
-         --  from using new (i.e the Global_Lock) while holding any other
-         --  lock.
+         --  from using new (i.e the Global_Lock) while holding any other lock.
 
          POP.Unlock_RTS;
          W := new Wrapper'((null, Local'Unchecked_Access, null), Val);
@@ -652,7 +649,7 @@ package body Ada.Task_Attributes is
 
       if Local.Index /= 0 then
 
-         --  Get value of attribute. Warnings off, because for large
+         --  Get value of attribute. We turn Warnings off, because for large
          --  attributes, this code can generate alignment warnings. But of
          --  course large attributes are never directly addressed so in fact
          --  we will never execute the code in this case.
@@ -708,9 +705,9 @@ package body Ada.Task_Attributes is
 --  Start of elaboration code for package Ada.Task_Attributes
 
 begin
-   --  This unchecked conversion can give warnings when alignments
-   --  are incorrect, but they will not be used in such cases anyway,
-   --  so the warnings can be safely ignored.
+   --  This unchecked conversion can give warnings when alignments are
+   --  incorrect, but they will not be used in such cases anyway, so the
+   --  warnings can be safely ignored.
 
    pragma Warnings (Off);
    Local.Deallocate := To_Lib_Level_Deallocator (Deallocate'Access);
@@ -789,8 +786,7 @@ begin
       --  Attribute goes into a node onto a linked list
 
       else
-         --  Replace stub for finalization routine that is called at task
-         --  termination.
+         --  Replace stub for finalization routine called at task termination
 
          Initialization.Finalize_Attributes_Link :=
            System.Tasking.Task_Attributes.Finalize_Attributes'Access;

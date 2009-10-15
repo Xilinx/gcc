@@ -1,4 +1,4 @@
-# Copyright (C) 2003, 2007 Free Software Foundation, Inc.
+# Copyright (C) 2003, 2006, 2007 Free Software Foundation, Inc.
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,24 +20,69 @@
 # This file was written by Steven Bosscher (s.bosscher@student.tudelft.nl)
 # based on f-torture.exp, which was written by Rob Savoye.
 
-# The biggest change from g77 is that we always test all testcases with
-# loop options, because it is much harder to figure out whether a testcase
-# has loops if you have array syntax, like Fortran 95.  In fact, the whole
-# point of F95 is arrays, so loops show up in most testcases anyway.
+load_lib target-supports.exp
 
-
+# Return the list of options to use for fortran torture tests.
 # The default option list can be overridden by
 # TORTURE_OPTIONS="{ { list1 } ... { listN } }"
+proc get-fortran-torture-options { } {
+    global TORTURE_OPTIONS
 
-if ![info exists TORTURE_OPTIONS] {
-    set TORTURE_OPTIONS [list \
-	{ -O0 } { -O1 } { -O2 } \
+    if [info exists TORTURE_OPTIONS] {
+	return $TORTURE_OPTIONS
+    }
+
+    # determine if host supports vectorization, and the necessary set
+    # of options, based on code from testsuite/vect/vect.exp
+
+    set vectorizer_options [list "-O2" "-ftree-vectorize"]
+
+    if { [istarget "powerpc*-*-*"]
+	 && [is-effective-target powerpc_altivec_ok]
+	 && [check_vmx_hw_available] } {
+	lappend vectorizer_options "-maltivec"
+	set test_tree_vectorize 1
+    } elseif { [istarget  "spu-*-*"] } {
+	set test_tree_vectorize 1
+    } elseif { ( [istarget "i?86-*-*"] || [istarget "x86_64-*-*"] )
+	       && [check_sse2_hw_available] } {
+	lappend vectorizer_options "-msse2"
+	set test_tree_vectorize 1
+    } elseif { [istarget "mips*-*-*"]
+	       && [check_effective_target_mpaired_single]
+	       && [check_effective_target_nomips16] } {
+	lappend vectorizer_options "-mpaired-single"
+	set test_tree_vectorize 1
+    } elseif { [istarget "sparc*-*-*"]
+	       && [check_effective_target_ultrasparc_hw] } {
+	lappend vectorizer_options "-mcpu=ultrasparc" "-mvis"
+	set test_tree_vectorize 1
+    } elseif { [istarget "alpha*-*-*"]
+	       && [check_alpha_max_hw_available] } {
+	lappend vectorizer_options "-mmax"
+	set test_tree_vectorize 1
+    } elseif [istarget "ia64-*-*"] {
+	set test_tree_vectorize 1
+    } else {
+	set test_tree_vectorize 0
+    }
+
+    set options {}
+
+    lappend options \
+	{ -O0 } \
+	{ -O1 } \
+	{ -O2 } \
 	{ -O2 -fomit-frame-pointer -finline-functions } \
 	{ -O2 -fomit-frame-pointer -finline-functions -funroll-loops } \
 	{ -O2 -fbounds-check } \
-	{ -O2 -fno-repack-arrays } \
 	{ -O3 -g } \
-	{ -Os }]
+	{ -Os }
+    if { $test_tree_vectorize } {
+	lappend options $vectorizer_options
+    }
+
+    return $options
 }
 
 
@@ -142,7 +187,7 @@ proc fortran-torture-execute { src } {
     global srcdir tmpdir
     global tool
     global compiler_conditional_xfail_data
-    global TORTURE_OPTIONS
+    global torture_with_loops
 
     # Check for alternate driver.
     set additional_flags ""
@@ -156,7 +201,7 @@ proc fortran-torture-execute { src } {
     }
 
     # Setup the options for the testcase run.
-    set option_list $TORTURE_OPTIONS
+    set option_list $torture_with_loops
     set executable $tmpdir/[file tail [file rootname $src].x]
     regsub "(?q)$srcdir/" $src "" testcase
 
@@ -240,7 +285,7 @@ proc fortran-torture-execute { src } {
 		untested "$testcase execution, $option"
 		continue
 	    } else {
-		# FIXME: since we can't test for the existance of a remote
+		# FIXME: since we can't test for the existence of a remote
 		# file without short of doing an remote file list, we assume
 		# that since we got no output, it must have compiled.
 		pass "$testcase compilation, $option"		
@@ -316,6 +361,7 @@ proc search_for_re { file pattern } {
 proc fortran-torture { args } {
     global srcdir subdir
     global compiler_conditional_xfail_data
+    global torture_with_loops
 
     set src [lindex $args 0]
     if { [llength $args] > 1 } {
@@ -340,7 +386,7 @@ proc fortran-torture { args } {
     }
    
     # loop through all the options
-    set option_list [list { "-O" } ]
+    set option_list $torture_with_loops
     foreach option $option_list {
 
 	# torture_compile_xfail is set by the .x script (if present)

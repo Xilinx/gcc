@@ -42,9 +42,11 @@
 #include <debug/debug.h>
 #include <bits/stl_function.h>  // For less
 #include <bits/functexcept.h>
-#include <locale>
-#include <algorithm> // For std::distance, srd::search.
+#include <bits/localefwd.h>
 #include <bits/ostream_insert.h>
+#include <bits/stl_iterator.h>
+#include <ext/numeric_traits.h>
+#include <bits/stl_move.h>
 
 _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
 
@@ -56,6 +58,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
       typedef _Traits					    traits_type;      
       typedef typename _Traits::char_type		    value_type;
       typedef typename _CharT_alloc_type::size_type	    size_type;
+      typedef typename _CharT_alloc_type::difference_type   difference_type;      
       typedef typename _CharT_alloc_type::pointer	    pointer;
       typedef typename _CharT_alloc_type::const_pointer	    const_pointer;
 
@@ -89,22 +92,14 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
         struct _Alloc_hider
 	: public _Alloc1
 	{
+	  _Alloc_hider(_CharT* __ptr)
+	  : _Alloc1(), _M_p(__ptr) { }
+
 	  _Alloc_hider(const _Alloc1& __a, _CharT* __ptr)
 	  : _Alloc1(__a), _M_p(__ptr) { }
 
 	  _CharT*  _M_p; // The actual data.
 	};
-
-      // For use in _M_construct (_S_construct) forward_iterator_tag.
-      template<typename _Type>
-        static bool
-        _S_is_null_pointer(_Type* __ptr)
-        { return __ptr == 0; }
-
-      template<typename _Type>
-        static bool
-        _S_is_null_pointer(_Type)
-        { return false; }
 
       // When __n = 1 way faster than the general multichar
       // traits_type::copy/move/assign.
@@ -170,6 +165,19 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
       static void
       _S_copy_chars(_CharT* __p, const _CharT* __k1, const _CharT* __k2)
       { _S_copy(__p, __k1, __k2 - __k1); }
+
+      static int
+      _S_compare(size_type __n1, size_type __n2)
+      {
+	const difference_type __d = difference_type(__n1 - __n2);
+
+	if (__d > __numeric_traits_integer<int>::__max)
+	  return __numeric_traits_integer<int>::__max;
+	else if (__d < __numeric_traits_integer<int>::__min)
+	  return __numeric_traits_integer<int>::__min;
+	else
+	  return int(__d);
+      }
     };
 
 _GLIBCXX_END_NAMESPACE

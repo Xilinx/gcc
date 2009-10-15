@@ -6,7 +6,7 @@
 --                                                                          --
 --                                  B o d y                                 --
 --                                                                          --
---          Copyright (C) 1999-2005 Free Software Foundation, Inc.          --
+--          Copyright (C) 1999-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -39,196 +39,104 @@ pragma Restrictions (No_Elaboration_Code);
 --  We want to guarantee the absence of elaboration code because the
 --  binder does not handle references to this package.
 
-with Ada.Exceptions;
-
 with System.Storage_Elements; use System.Storage_Elements;
 with System.Parameters; use System.Parameters;
-with System.Soft_Links;
 with Interfaces.C;
-with System.OS_Interface;
 
 package body System.Stack_Checking.Operations is
 
-   --  In order to have stack checking working appropriately on
-   --  VxWorks we need to extract the stack size information from the
-   --  VxWorks kernel itself. It means that the library for showing
-   --  task-related information needs to be linked into the VxWorks
-   --  system, when using stack checking. The TaskShow library can be
-   --  linked into the VxWorks system by either:
+   --  In order to have stack checking working appropriately on VxWorks we need
+   --  to extract the stack size information from the VxWorks kernel itself. It
+   --  means that the library for showing task-related information needs to be
+   --  linked into the VxWorks system, when using stack checking. The TaskShow
+   --  library can be linked into the VxWorks system by either:
+
    --    * defining INCLUDE_SHOW_ROUTINES in config.h when using
    --      configuration header files, or
+
    --    * selecting INCLUDE_TASK_SHOW when using the Tornado project
    --      facility.
 
-   function Set_Stack_Info (Stack : access Stack_Access) return Stack_Access;
+   Stack_Limit : Address :=
+                   Boolean'Pos (Stack_Grows_Down) * Address'First
+                   + Boolean'Pos (not Stack_Grows_Down) * Address'Last;
+   pragma Export (C, Stack_Limit, "__gnat_stack_limit");
+   --  Stack_Limit contains the limit of the stack. This variable is later made
+   --  a task variable (by calling taskVarAdd) and then correctly set to the
+   --  stack limit of the task. Before being so initialized its value must be
+   --  valid so that any subprogram with stack checking enabled will run. We
+   --  use extreme values according to the direction of the stack.
 
-   --  The function Set_Stack_Info is the actual function that updates
-   --  the cache containing a pointer to the Stack_Info. It may also
-   --  be used for detecting asynchronous abort in combination with
-   --  Invalidate_Self_Cache.
+   type Set_Stack_Limit_Proc_Acc is access procedure;
+   pragma Convention (C, Set_Stack_Limit_Proc_Acc);
 
-   --  Set_Stack_Info should do the following things in order:
-   --     1) Get the Stack_Access value for the current task
-   --     2) Set Stack.all to the value obtained in 1)
-   --     3) Optionally Poll to check for asynchronous abort
+   Set_Stack_Limit_Hook : Set_Stack_Limit_Proc_Acc;
+   pragma Import (C, Set_Stack_Limit_Hook, "__gnat_set_stack_limit_hook");
+   --  Procedure to be called when a task is created to set stack
+   --  limit.
 
-   --  This order is important because if at any time a write to
-   --  the stack cache is pending, that write should be followed
-   --  by a Poll to prevent loosing signals.
+   procedure Set_Stack_Limit_For_Current_Task;
+   pragma Convention (C, Set_Stack_Limit_For_Current_Task);
+   --  Register Initial_SP as the initial stack pointer value for the current
+   --  task when it starts and Size as the associated stack area size. This
+   --  should be called once, after the soft-links have been initialized?
 
-   --  Note: This function must be compiled with Polling turned off
+   -----------------------------
+   --  Initialize_Stack_Limit --
+   -----------------------------
 
-   --  Note: on systems like VxWorks and OS/2 with real thread-local storage,
-   --        Set_Stack_Info should return an access value for such local
-   --        storage. In those cases the cache will always be up-to-date.
-
-   --  The following constants should be imported from some system-specific
-   --  constants package. The constants must be static for performance reasons.
-
-   ----------------------------
-   -- Invalidate_Stack_Cache --
-   ----------------------------
-
-   procedure Invalidate_Stack_Cache (Any_Stack : Stack_Access) is
-      pragma Warnings (Off, Any_Stack);
+   procedure Initialize_Stack_Limit is
    begin
-      Cache := Null_Stack;
-   end Invalidate_Stack_Cache;
+      --  For the environment task.
+      Set_Stack_Limit_For_Current_Task;
 
-   --------------------
-   -- Set_Stack_Info --
-   --------------------
+      --  Will be called by every created task.
+      Set_Stack_Limit_Hook := Set_Stack_Limit_For_Current_Task'Access;
+   end Initialize_Stack_Limit;
 
-   function Set_Stack_Info
-     (Stack : access Stack_Access) return Stack_Access
-   is
+   --------------------------------------
+   -- Set_Stack_Limit_For_Current_Task --
+   --------------------------------------
 
-      --  Task descriptor that is handled internally by the VxWorks kernel
-      type Task_Descriptor is record
-         T_Id            : Interfaces.C.int; -- task identifier
-         Td_Name         : System.Address; -- task name
-         Td_Priority     : Interfaces.C.int; -- task priority
-         Td_Status       : Interfaces.C.int; -- task status
-         Td_Options      : Interfaces.C.int; -- task option bits (see below)
-         Td_Entry        : System.Address; -- original entry point of task
-         Td_Sp           : System.Address; -- saved stack pointer
-         Td_PStackBase   : System.Address; -- the bottom of the stack
-         Td_PStackLimit  : System.Address; -- the effective end of the stack
-         Td_PStackEnd    : System.Address; -- the actual end of the stack
-         Td_StackSize    : Interfaces.C.int; -- size of stack in bytes
-         Td_StackCurrent : Interfaces.C.int; -- current stack usage in bytes
-         Td_StackHigh    : Interfaces.C.int; -- maximum stack usage in bytes
-         Td_StackMargin  : Interfaces.C.int; -- current stack margin in bytes
-         Td_ErrorStatus  : Interfaces.C.int; -- most recent task error status
-         Td_Delay        : Interfaces.C.int; -- delay/timeout ticks
+   procedure Set_Stack_Limit_For_Current_Task is
+      use Interfaces.C;
+
+      --  Import from VxWorks.
+      function Task_Var_Add (Tid : Interfaces.C.int; Var : Address)
+                            return Interfaces.C.int;
+      pragma Import (C, Task_Var_Add, "taskVarAdd");
+
+      type OS_Stack_Info is record
+         Size  : Interfaces.C.int;
+         Base  : System.Address;
+         Limit : System.Address;
       end record;
-      pragma Convention (C, Task_Descriptor);
+      pragma Convention (C, OS_Stack_Info);
+      --  Type representing the information that we want to extract from the
+      --  underlying kernel.
 
-      --  This VxWorks procedure fills in a specified task descriptor
-      --  for a specified task.
-      procedure TaskInfoGet (T_Id : System.OS_Interface.t_id;
-                             Task_Desc : access Task_Descriptor);
-      pragma Import (C, TaskInfoGet, "taskInfoGet");
+      procedure Get_Stack_Info (Stack : not null access OS_Stack_Info);
+      pragma Import (C, Get_Stack_Info, "__gnat_get_stack_info");
+      --  Procedure that fills the stack information associated to the
+      --  currently executing task.
 
-      My_Stack  : Stack_Access;
-      Task_Desc : aliased Task_Descriptor;
+      Stack_Info : aliased OS_Stack_Info;
 
+      Limit      : System.Address;
    begin
-      --  The order of steps 1 .. 3 is important, see specification.
+      --  Get stack bounds from VxWorks.
+      Get_Stack_Info (Stack_Info'Access);
 
-      --  1) Get the Stack_Access value for the current task
-
-      My_Stack := Soft_Links.Get_Stack_Info.all;
-
-      if My_Stack.Base = Null_Address then
-
-         --  First invocation. Ask the VxWorks kernel about stack
-         --  values.
-         TaskInfoGet (System.OS_Interface.taskIdSelf, Task_Desc'Access);
-
-         My_Stack.Size := System.Storage_Elements.Storage_Offset
-           (Task_Desc.Td_StackSize);
-         My_Stack.Base := Task_Desc.Td_PStackBase;
-         My_Stack.Limit := Task_Desc.Td_PStackLimit;
-
+      if Stack_Grows_Down then
+         Limit := Stack_Info.Base - Storage_Offset (Stack_Info.Size);
+      else
+         Limit := Stack_Info.Base + Storage_Offset (Stack_Info.Size);
       end if;
 
-      --  2) Set Stack.all to the value obtained in 1)
-
-      Stack.all := My_Stack;
-
-      --  3) Optionally Poll to check for asynchronous abort
-
-      if Soft_Links.Check_Abort_Status.all /= 0 then
-         raise Standard'Abort_Signal;
+      --  Note: taskVarAdd implicitly calls taskVarInit if required.
+      if Task_Var_Add (0, Stack_Limit'Address) = 0 then
+         Stack_Limit := Limit;
       end if;
-
-      return My_Stack; -- Never trust the cached value, but return local copy!
-   end Set_Stack_Info;
-
-   -----------------
-   -- Stack_Check --
-   -----------------
-
-   function Stack_Check
-     (Stack_Address : System.Address) return Stack_Access
-   is
-      type Frame_Marker is null record;
-      Marker        : Frame_Marker;
-      Cached_Stack  : constant Stack_Access := Cache;
-      Frame_Address : constant System.Address := Marker'Address;
-
-   begin
-      --  This function first does a "cheap" check which is correct
-      --  if it succeeds. In case of failure, the full check is done.
-      --  Ideally the cheap check should be done in an optimized manner,
-      --  or be inlined.
-
-      if (Stack_Grows_Down and then
-            (Frame_Address <= Cached_Stack.Base
-               and
-             Stack_Address > Cached_Stack.Limit))
-        or else
-         (not Stack_Grows_Down and then
-            (Frame_Address >= Cached_Stack.Base
-               and
-             Stack_Address < Cached_Stack.Limit))
-      then
-         --  Cached_Stack is valid as it passed the stack check
-         return Cached_Stack;
-      end if;
-
-      Full_Check :
-      declare
-         My_Stack : constant Stack_Access := Set_Stack_Info (Cache'Access);
-         --  At this point Stack.all might already be invalid, so
-         --  it is essential to use our local copy of Stack!
-
-      begin
-         if (Stack_Grows_Down and then
-                  Stack_Address < My_Stack.Limit)
-           or else
-            (not Stack_Grows_Down and then
-                  Stack_Address > My_Stack.Limit)
-         then
-            Ada.Exceptions.Raise_Exception
-              (E       => Storage_Error'Identity,
-               Message => "stack overflow detected");
-         end if;
-
-         return My_Stack;
-      end Full_Check;
-   end Stack_Check;
-
-   ------------------------
-   -- Update_Stack_Cache --
-   ------------------------
-
-   procedure Update_Stack_Cache (Stack : Stack_Access) is
-   begin
-      if not Multi_Processor then
-         Cache := Stack;
-      end if;
-   end Update_Stack_Cache;
+   end Set_Stack_Limit_For_Current_Task;
 
 end System.Stack_Checking.Operations;

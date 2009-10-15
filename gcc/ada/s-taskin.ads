@@ -6,7 +6,7 @@
 --                                                                          --
 --                                  S p e c                                 --
 --                                                                          --
---          Copyright (C) 1992-2006, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -55,7 +55,7 @@ with System.Task_Primitives;
 with System.Stack_Usage;
 --  used for Stack_Analyzer
 
-with Unchecked_Conversion;
+with Ada.Unchecked_Conversion;
 
 package System.Tasking is
    pragma Preelaborate;
@@ -128,8 +128,10 @@ package System.Tasking is
    --  This is the compiler interface version of this function. Do not call
    --  from the run-time system.
 
-   function To_Task_Id is new Unchecked_Conversion (System.Address, Task_Id);
-   function To_Address is new Unchecked_Conversion (Task_Id, System.Address);
+   function To_Task_Id is
+     new Ada.Unchecked_Conversion (System.Address, Task_Id);
+   function To_Address is
+     new Ada.Unchecked_Conversion (Task_Id, System.Address);
 
    -----------------------
    -- Enumeration types --
@@ -200,8 +202,8 @@ package System.Tasking is
       --  The task has been held by Asynchronous_Task_Control.Hold_Task
 
       Interrupt_Server_Blocked_On_Event_Flag
-      --  The task has been blocked on a system call waiting for the
-      --  completion event.
+      --  The task has been blocked on a system call waiting for a
+      --  completion event/signal to occur.
      );
 
    type Call_Modes is
@@ -364,10 +366,12 @@ package System.Tasking is
    ------------------------------------
 
    type Activation_Chain is limited private;
-   --  Comment required ???
+   --  Linked list of to-be-activated tasks, linked through
+   --  Activation_Link. The order of tasks on the list is irrelevant, because
+   --  the priority rules will ensure that they actually start activating in
+   --  priority order.
 
    type Activation_Chain_Access is access all Activation_Chain;
-   --  Comment required ???
 
    type Task_Procedure_Access is access procedure (Arg : System.Address);
 
@@ -376,6 +380,12 @@ package System.Tasking is
    function Detect_Blocking return Boolean;
    pragma Inline (Detect_Blocking);
    --  Return whether the Detect_Blocking pragma is enabled
+
+   function Storage_Size (T : Task_Id) return System.Parameters.Size_Type;
+   --  Retrieve from the TCB of the task the allocated size of its stack,
+   --  either the system default or the size specified by a pragma. This
+   --  is in general a non-static value that can depend on discriminants
+   --  of the task.
 
    ----------------------------------------------
    -- Ada_Task_Control_Block (ATCB) definition --
@@ -465,7 +475,7 @@ package System.Tasking is
       --  are invoked from protected actions. pragma Atomic is used because it
       --  can be read/written from protected interrupt handlers.
 
-      Task_Image : String (1 .. 32);
+      Task_Image : String (1 .. System.Parameters.Max_Task_Image_Length);
       --  Hold a string that provides a readable id for task,
       --  built from the variable of which it is a value or component.
 
@@ -645,11 +655,14 @@ package System.Tasking is
    --  Normally, a task starts out with internal master nesting level one
    --  larger than external master nesting level. It is incremented to one by
    --  Enter_Master, which is called in the task body only if the compiler
-   --  thinks the task may have dependent tasks. It is set to for the
+   --  thinks the task may have dependent tasks. It is set to 1 for the
    --  environment task, the level 2 is reserved for server tasks of the
    --  run-time system (the so called "independent tasks"), and the level 3 is
-   --  for the library level tasks.
+   --  for the library level tasks. Foreign threads which are detected by
+   --  the run-time have a level of 0, allowing these tasks to be easily
+   --  distinguished if needed.
 
+   Foreign_Task_Level     : constant Master_Level := 0;
    Environment_Task_Level : constant Master_Level := 1;
    Independent_Task_Level : constant Master_Level := 2;
    Library_Task_Level     : constant Master_Level := 3;
@@ -786,9 +799,9 @@ package System.Tasking is
       --  Cancellation of the call has been attempted.
       --  Consider merging this into State???
 
-      Requeue_With_Abort : Boolean := False;
-      --  Temporary to tell caller whether requeue is with abort.
-      --  Find a better way of doing this ???
+      With_Abort : Boolean := False;
+      --  Tell caller whether the call may be aborted
+      --  ??? consider merging this with Was_Abortable state
 
       Needs_Requeue : Boolean := False;
       --  Temporary to tell acceptor of task entry call that
@@ -980,8 +993,8 @@ package System.Tasking is
       --  this value.
 
       Deferral_Level : Natural := 1;
-      --  This is the number of times that Defer_Abortion has been called by
-      --  this task without a matching Undefer_Abortion call. Abortion is only
+      --  This is the number of times that Defer_Abort has been called by
+      --  this task without a matching Undefer_Abort call. Abortion is only
       --  allowed when this zero. It is initially 1, to protect the task at
       --  startup.
 
@@ -1054,16 +1067,17 @@ package System.Tasking is
    --  documentation, mention T, and describe Success ???
 
 private
+
    Null_Task : constant Task_Id := null;
 
-   type Activation_Chain is record
+   type Activation_Chain is limited record
       T_ID : Task_Id;
    end record;
-   pragma Volatile (Activation_Chain);
 
-   --  Activation_chain is an in-out parameter of initialization procedures
-   --  and it must be passed by reference because the init proc may terminate
+   --  Activation_Chain is an in-out parameter of initialization procedures and
+   --  it must be passed by reference because the init proc may terminate
    --  abnormally after creating task components, and these must be properly
-   --  registered for removal (Expunge_Unactivated_Tasks).
+   --  registered for removal (Expunge_Unactivated_Tasks). The "limited" forces
+   --  Activation_Chain to be a by-reference type; see RM-6.2(4).
 
 end System.Tasking;

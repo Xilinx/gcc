@@ -6,6 +6,7 @@
 #define N 16
 #define M 4
 
+__attribute__ ((noinline))
 int main1 ()
 {
   int i, j;
@@ -79,5 +80,4 @@ int main (void)
 }
 
 /* { dg-final { scan-tree-dump-times "vectorized 2 loops" 1 "vect" } } */
-/* { dg-final { scan-tree-dump-times "Vectorizing an unaligned access" 0 "vect" } } */
 /* { dg-final { cleanup-tree-dump "vect" } } */

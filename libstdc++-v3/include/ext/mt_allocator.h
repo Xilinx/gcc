@@ -1,6 +1,6 @@
 // MT-optimized allocator -*- C++ -*-
 
-// Copyright (C) 2003, 2004, 2005, 2006 Free Software Foundation, Inc.
+// Copyright (C) 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -38,6 +38,7 @@
 #include <cstdlib>
 #include <bits/functexcept.h>
 #include <ext/atomicity.h>
+#include <bits/stl_move.h>
 
 _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
 
@@ -46,7 +47,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
 
   typedef void (*__destroy_handler)(void*);
 
-  /// @brief  Base class for pool object.
+  /// Base class for pool object.
   struct __pool_base
   {
     // Using short int as type for the binmap implies we are never
@@ -85,7 +86,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
       // In order to avoid fragmenting and minimize the number of
       // new() calls we always request new memory using this
       // value. Based on previous discussions on the libstdc++
-      // mailing list we have choosen the value below.
+      // mailing list we have chosen the value below.
       // See http://gcc.gnu.org/ml/libstdc++/2001-07/msg00077.html
       // NB: At least one order of magnitude > _M_max_bytes. 
       size_t	_M_chunk_size;
@@ -151,7 +152,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
     _M_get_binmap(size_t __bytes)
     { return _M_binmap[__bytes]; }
 
-    const size_t
+    size_t
     _M_get_align()
     { return _M_options._M_align; }
 
@@ -454,7 +455,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
     };
 #endif
 
-  /// @brief  Policy for shared __pool objects.
+  /// Policy for shared __pool objects.
   template<template <bool> class _PoolTp, bool _Thread>
     struct __common_pool_policy : public __common_pool_base<_PoolTp, _Thread>
     {
@@ -549,7 +550,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
     };
 #endif
 
-  /// @brief  Policy for individual __pool objects.
+  /// Policy for individual __pool objects.
   template<typename _Tp, template <bool> class _PoolTp, bool _Thread>
     struct __per_type_pool_policy 
     : public __per_type_pool_base<_Tp, _PoolTp, _Thread>
@@ -564,7 +565,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
   };
 
 
-  /// @brief  Base class for _Tp dependent member functions.
+  /// Base class for _Tp dependent member functions.
   template<typename _Tp>
     class __mt_alloc_base 
     {
@@ -593,7 +594,14 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
       // 402. wrong new expression in [some_] allocator::construct
       void 
       construct(pointer __p, const _Tp& __val) 
-      { ::new(__p) _Tp(__val); }
+      { ::new((void *)__p) _Tp(__val); }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      template<typename... _Args>
+        void
+        construct(pointer __p, _Args&&... __args)
+	{ ::new((void *)__p) _Tp(std::forward<_Args>(__args)...); }
+#endif
 
       void 
       destroy(pointer __p) { __p->~_Tp(); }
@@ -613,7 +621,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
    *  the "global" list).
    *
    *  Further details:
-   *  http://gcc.gnu.org/onlinedocs/libstdc++/ext/mt_allocator.html
+   *  http://gcc.gnu.org/onlinedocs/libstdc++/manual/bk01pt12ch32.html
    */
   template<typename _Tp, 
 	   typename _Poolp = __common_pool_policy<__pool, __thread_default> >

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2006, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -37,7 +37,7 @@ with System;                 use System;
 with System.CRTL;
 with System.File_IO;
 with System.Soft_Links;
-with Unchecked_Deallocation;
+with Ada.Unchecked_Deallocation;
 
 package body System.Direct_IO is
 
@@ -74,7 +74,7 @@ package body System.Direct_IO is
 
    --  No special processing required for Direct_IO close
 
-   procedure AFCB_Close (File : access Direct_AFCB) is
+   procedure AFCB_Close (File : not null access Direct_AFCB) is
       pragma Unreferenced (File);
 
    begin
@@ -85,14 +85,14 @@ package body System.Direct_IO is
    -- AFCB_Free --
    ---------------
 
-   procedure AFCB_Free (File : access Direct_AFCB) is
+   procedure AFCB_Free (File : not null access Direct_AFCB) is
 
       type FCB_Ptr is access all Direct_AFCB;
 
       FT : FCB_Ptr := FCB_Ptr (File);
 
       procedure Free is new
-        Unchecked_Deallocation (Direct_AFCB, FCB_Ptr);
+        Ada.Unchecked_Deallocation (Direct_AFCB, FCB_Ptr);
 
    begin
       Free (FT);
@@ -318,6 +318,10 @@ package body System.Direct_IO is
    is
       procedure Do_Write;
       --  Do the actual write
+
+      --------------
+      -- Do_Write --
+      --------------
 
       procedure Do_Write is
       begin

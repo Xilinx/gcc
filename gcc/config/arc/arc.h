@@ -429,7 +429,7 @@ extern enum reg_class arc_regno_reg_class[FIRST_PSEUDO_REGISTER];
    Here VALUE is the CONST_DOUBLE rtx itself.  */
 /* 'G' is used for integer values for the multiplication insns where the
    operands are extended from 4 bytes to 8 bytes.
-   'H' is used when any 64 bit constant is allowed.  */
+   'H' is used when any 64-bit constant is allowed.  */
 #define CONST_DOUBLE_OK_FOR_LETTER_P(VALUE, C) \
 ((C) == 'G' ? arc_double_limm_p (VALUE) \
  : (C) == 'H' ? 1 \
@@ -670,7 +670,7 @@ arc_eligible_for_epilogue_delay (TRIAL, SLOTS_FILLED)
 
 /* Output assembler code for a block containing the constant parts
    of a trampoline, leaving space for the variable parts.  */
-/* On the ARC, the trampoline is quite simple as we have 32 bit immediate
+/* On the ARC, the trampoline is quite simple as we have 32-bit immediate
    constants.
 
 	mov r24,STATIC
@@ -713,7 +713,7 @@ do { \
  || GET_CODE (X) == CONST_INT || GET_CODE (X) == CONST)
 
 /* Nonzero if the constant value X is a legitimate general operand.
-   We can handle any 32 or 64 bit constant.  */
+   We can handle any 32- or 64-bit constant.  */
 /* "1" should work since the largest constant should be a 64 bit critter.  */
 /* ??? Not sure what to do for 64x32 compiler.  */
 #define LEGITIMATE_CONSTANT_P(X) 1
@@ -798,12 +798,7 @@ do { \
 
 /* Go to LABEL if ADDR (a legitimate address expression)
    has an effect that depends on the machine mode it is used for.  */
-#define GO_IF_MODE_DEPENDENT_ADDRESS(ADDR, LABEL) \
-{ if (GET_CODE (ADDR) == PRE_DEC)	\
-    goto LABEL;				\
-  if (GET_CODE (ADDR) == PRE_INC)	\
-    goto LABEL;				\
-}
+#define GO_IF_MODE_DEPENDENT_ADDRESS(ADDR, LABEL)
 
 /* Given a comparison code (EQ, NE, etc.) and the first operand of a COMPARE,
    return the mode to be used for the comparison.  */
@@ -1064,7 +1059,7 @@ do { if ((LOG) != 0) fprintf (FILE, "\t.align %d\n", 1 << (LOG)); } while (0)
 /* Specify the machine mode that pointers have.
    After generation of rtl, the compiler makes no further distinction
    between pointers and any other objects of this machine mode.  */
-/* ??? The arc doesn't have full 32 bit pointers, but making this PSImode has
+/* ??? The arc doesn't have full 32-bit pointers, but making this PSImode has
    its own problems (you have to add extendpsisi2 and trucnsipsi2 but how does
    one do it without getting excess code?).  Try to avoid it.  */
 #define Pmode SImode
@@ -1091,8 +1086,3 @@ enum arc_function_type {
 #define ARC_INTERRUPT_P(TYPE) \
 ((TYPE) == ARC_FUNCTION_ILINK1 || (TYPE) == ARC_FUNCTION_ILINK2)
 /* Compute the type of a function from its DECL.  */
-
-
-/* Implement `va_start' for varargs and stdarg.  */
-#define EXPAND_BUILTIN_VA_START(valist, nextarg) \
-  arc_va_start (valist, nextarg)

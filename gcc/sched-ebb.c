@@ -1,6 +1,6 @@
 /* Instruction scheduling pass.
    Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2007
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
    Free Software Foundation, Inc.
    Contributed by Michael Tiemann (tiemann@cygnus.com) Enhanced by,
    and currently maintained by, Jim Wilson (wilson@cygnus.com)
@@ -42,7 +42,10 @@ along with GCC; see the file COPYING3.  If not see
 #include "sched-int.h"
 #include "target.h"
 #include "output.h"
+
 
+#ifdef INSN_SCHEDULING
+
 /* The number of insns scheduled so far.  */
 static int sched_n_insns;
 
@@ -51,8 +54,6 @@ static int n_insns;
 
 /* Set of blocks, that already have their dependencies calculated.  */
 static bitmap_head dont_calc_deps;
-/* Set of basic blocks, that are ebb heads of tails respectively.  */
-static bitmap_head ebb_head, ebb_tail;
 
 /* Last basic block in current ebb.  */
 static basic_block last_bb;
@@ -74,16 +75,25 @@ static void add_block1 (basic_block, basic_block);
 static basic_block advance_target_bb (basic_block, rtx);
 static void fix_recovery_cfg (int, int, int);
 
-#ifdef ENABLE_CHECKING
-static int ebb_head_or_leaf_p (basic_block, int);
-#endif
-
 /* Return nonzero if there are more insns that should be scheduled.  */
 
 static int
 schedule_more_p (void)
 {
   return sched_n_insns < n_insns;
+}
+
+/* Print dependency information about ebb between HEAD and TAIL.  */
+static void
+debug_ebb_dependencies (rtx head, rtx tail)
+{
+  fprintf (sched_dump,
+	   ";;   --------------- forward dependences: ------------ \n");
+
+  fprintf (sched_dump, "\n;;   --- EBB Dependences --- from bb%d to bb%d \n",
+	   BLOCK_NUM (head), BLOCK_NUM (tail));
+
+  debug_dependencies (head, tail);
 }
 
 /* Add all insns that are initially ready to the ready list READY.  Called
@@ -99,11 +109,9 @@ init_ready_list (void)
 
   sched_n_insns = 0;
 
-#if 0
   /* Print debugging information.  */
   if (sched_verbose >= 5)
-    debug_dependencies ();
-#endif
+    debug_ebb_dependencies (NEXT_INSN (prev_head), PREV_INSN (next_tail));
 
   /* Initialize ready list with all 'ready' insns in target block.
      Count number of insns in the target block being scheduled.  */
@@ -245,9 +253,9 @@ compute_jump_reg_dependencies (rtx insn, regset cond_set, regset used,
 	 it may guard the fallthrough block from using a value that has
 	 conditionally overwritten that of the main codepath.  So we
 	 consider that it restores the value of the main codepath.  */
-      bitmap_and (set, glat_start [e->dest->index], cond_set);
+      bitmap_and (set, df_get_live_in (e->dest), cond_set);
     else
-      bitmap_ior_into (used, glat_start [e->dest->index]);
+      bitmap_ior_into (used, df_get_live_in (e->dest));
 }
 
 /* Used in schedule_insns to initialize current_sched_info for scheduling
@@ -273,12 +281,9 @@ static struct sched_info ebb_sched_info =
   add_block1,
   advance_target_bb,
   fix_recovery_cfg,
-#ifdef ENABLE_CHECKING
-  ebb_head_or_leaf_p,
-#endif
-  /* We need to DETACH_LIVE_INFO to be able to create new basic blocks.
-     See begin_schedule_ready ().  */
-  SCHED_EBB | USE_GLAT | DETACH_LIFE_INFO
+  SCHED_EBB
+  /* We can create new blocks in begin_schedule_ready ().  */
+  | NEW_BBS
 };
 
 /* Returns the earliest block in EBB currently being processed where a
@@ -300,28 +305,26 @@ static struct sched_info ebb_sched_info =
 static basic_block
 earliest_block_with_similiar_load (basic_block last_block, rtx load_insn)
 {
-  rtx back_link;
+  sd_iterator_def back_sd_it;
+  dep_t back_dep;
   basic_block bb, earliest_block = NULL;
 
-  for (back_link = LOG_LINKS (load_insn);
-       back_link;
-       back_link = XEXP (back_link, 1))
+  FOR_EACH_DEP (load_insn, SD_LIST_BACK, back_sd_it, back_dep)
     {
-      rtx insn1 = XEXP (back_link, 0);
+      rtx insn1 = DEP_PRO (back_dep);
 
-      if (GET_MODE (back_link) == VOIDmode)
+      if (DEP_TYPE (back_dep) == REG_DEP_TRUE)	
+	/* Found a DEF-USE dependence (insn1, load_insn).  */
 	{
-	  /* Found a DEF-USE dependence (insn1, load_insn).  */
-	  rtx fore_link;
+	  sd_iterator_def fore_sd_it;
+	  dep_t fore_dep;
 
-	  for (fore_link = INSN_DEPEND (insn1);
-	       fore_link;
-	       fore_link = XEXP (fore_link, 1))
+	  FOR_EACH_DEP (insn1, SD_LIST_FORW, fore_sd_it, fore_dep)
 	    {
-	      rtx insn2 = XEXP (fore_link, 0);
+	      rtx insn2 = DEP_CON (fore_dep);
 	      basic_block insn2_block = BLOCK_FOR_INSN (insn2);
 
-	      if (GET_MODE (fore_link) == VOIDmode)
+	      if (DEP_TYPE (fore_dep) == REG_DEP_TRUE)
 		{
 		  if (earliest_block != NULL
 		      && earliest_block->index < insn2_block->index)
@@ -396,23 +399,32 @@ add_deps_for_risky_insns (rtx head, rtx tail)
 	       rank.  */
 	    if (! sched_insns_conditions_mutex_p (insn, prev))
 	      {
-		if (!(current_sched_info->flags & DO_SPECULATION))
+		dep_def _dep, *dep = &_dep;
+
+		init_dep (dep, prev, insn, REG_DEP_ANTI);
+
+		if (!(current_sched_info->flags & USE_DEPS_LIST))
 		  {
 		    enum DEPS_ADJUST_RESULT res;
-		    
-		    res = add_or_update_back_dep (insn, prev,
-						  REG_DEP_ANTI, DEP_ANTI);
 
-		    if (res == DEP_CREATED)
-		      add_forw_dep (insn, LOG_LINKS (insn));
-		    else
-		      gcc_assert (res != DEP_CHANGED);
+		    res = sd_add_or_update_dep (dep, false);
+
+		    /* We can't change an existing dependency with
+		       DEP_ANTI.  */
+		    gcc_assert (res != DEP_CHANGED);
 		  }
 		else
-		  add_or_update_back_forw_dep (insn, prev, REG_DEP_ANTI,
-					       set_dep_weak (DEP_ANTI,
-							     BEGIN_CONTROL,
-							     MAX_DEP_WEAK));
+		  {
+		    if ((current_sched_info->flags & DO_SPECULATION)
+			&& (spec_info->mask & BEGIN_CONTROL))
+		      DEP_STATUS (dep) = set_dep_weak (DEP_ANTI, BEGIN_CONTROL,
+						       MAX_DEP_WEAK);
+
+		    sd_add_or_update_dep (dep, false);
+
+		    /* Dep_status could have been changed.
+		       No assertion here.  */
+		  }
 	      }
 
             break;
@@ -451,13 +463,10 @@ schedule_ebb (rtx head, rtx tail)
     {
       init_deps_global ();
 
-      /* Compute LOG_LINKS.  */
+      /* Compute dependencies.  */
       init_deps (&tmp_deps);
       sched_analyze (&tmp_deps, head, tail);
       free_deps (&tmp_deps);
-
-      /* Compute INSN_DEPEND.  */
-      compute_forward_dependences (head, tail);
 
       add_deps_for_risky_insns (head, tail);
 
@@ -478,12 +487,6 @@ schedule_ebb (rtx head, rtx tail)
 
   current_sched_info->prev_head = PREV_INSN (head);
   current_sched_info->next_tail = NEXT_INSN (tail);
-
-  if (write_symbols != NO_DEBUG)
-    {
-      save_line_notes (first_bb->index, head, tail);
-      rm_line_notes (head, tail);
-    }
 
   /* rm_other_notes only removes notes which are _inside_ the
      block---that is, it won't remove notes before the first real insn
@@ -517,11 +520,12 @@ schedule_ebb (rtx head, rtx tail)
   
   /* Sanity check: verify that all region insns were scheduled.  */
   gcc_assert (sched_n_insns == n_insns);
-  head = current_sched_info->head;
-  tail = current_sched_info->tail;
 
-  if (write_symbols != NO_DEBUG)
-    restore_line_notes (head, tail);
+  /* Free dependencies.  */
+  sched_free_deps (current_sched_info->head, current_sched_info->tail, true);
+
+  gcc_assert (haifa_recovery_bb_ever_added_p
+	      || deps_pools_are_empty_p ());
 
   if (EDGE_COUNT (last_bb->preds) == 0)
     /* LAST_BB is unreachable.  */
@@ -543,8 +547,6 @@ schedule_ebbs (void)
   basic_block bb;
   int probability_cutoff;
   rtx tail;
-  sbitmap large_region_blocks, blocks;
-  int any_large_regions;
 
   if (profile_info && flag_branch_probabilities)
     probability_cutoff = PARAM_VALUE (TRACER_MIN_BRANCH_PROBABILITY_FEEDBACK);
@@ -561,6 +563,11 @@ schedule_ebbs (void)
      invoked via sched_init.  */
   current_sched_info = &ebb_sched_info;
 
+  df_set_flags (DF_LR_RUN_DCE);
+  df_note_add_problem ();
+  df_analyze ();
+  df_clear_flags (DF_LR_RUN_DCE);
+  regstat_compute_calls_crossed ();
   sched_init ();
 
   compute_bb_for_insn ();
@@ -568,10 +575,6 @@ schedule_ebbs (void)
   /* Initialize DONT_CALC_DEPS and ebb-{start, end} markers.  */
   bitmap_initialize (&dont_calc_deps, 0);
   bitmap_clear (&dont_calc_deps);
-  bitmap_initialize (&ebb_head, 0);
-  bitmap_clear (&ebb_head);
-  bitmap_initialize (&ebb_tail, 0);
-  bitmap_clear (&ebb_tail);
 
   /* Schedule every region in the subroutine.  */
   FOR_EACH_BB (bb)
@@ -610,81 +613,17 @@ schedule_ebbs (void)
 	    break;
 	}
 
-      bitmap_set_bit (&ebb_head, BLOCK_NUM (head));
       bb = schedule_ebb (head, tail);
-      bitmap_set_bit (&ebb_tail, bb->index);
     }
   bitmap_clear (&dont_calc_deps);
-
-  gcc_assert (current_sched_info->flags & DETACH_LIFE_INFO);
-  /* We can create new basic blocks during scheduling, and
-     attach_life_info () will create regsets for them
-     (along with attaching existing info back).  */
-  attach_life_info ();
-
-  /* Updating register live information.  */
-  allocate_reg_life_data ();
-
-  any_large_regions = 0;
-  large_region_blocks = sbitmap_alloc (last_basic_block);
-  sbitmap_zero (large_region_blocks);
-  FOR_EACH_BB (bb)
-    SET_BIT (large_region_blocks, bb->index);
-
-  blocks = sbitmap_alloc (last_basic_block);
-  sbitmap_zero (blocks);
-
-  /* Update life information.  For regions consisting of multiple blocks
-     we've possibly done interblock scheduling that affects global liveness.
-     For regions consisting of single blocks we need to do only local
-     liveness.  */
-  FOR_EACH_BB (bb)
-    {
-      int bbi;
-      
-      bbi = bb->index;
-
-      if (!bitmap_bit_p (&ebb_head, bbi)
-	  || !bitmap_bit_p (&ebb_tail, bbi)
-	  /* New blocks (e.g. recovery blocks) should be processed
-	     as parts of large regions.  */
-	  || !glat_start[bbi])
-	any_large_regions = 1;
-      else
-	{
-	  SET_BIT (blocks, bbi);
-	  RESET_BIT (large_region_blocks, bbi);
-	}
-    }
-
-  update_life_info (blocks, UPDATE_LIFE_LOCAL, 0);
-  sbitmap_free (blocks);
-  
-  if (any_large_regions)
-    {
-      update_life_info (large_region_blocks, UPDATE_LIFE_GLOBAL, 0);
-
-#ifdef ENABLE_CHECKING
-      /* !!! We can't check reg_live_info here because of the fact,
-	 that destination registers of COND_EXEC's may be dead
-	 before scheduling (while they should be alive).  Don't know why.  */
-      /*check_reg_live (true);*/
-#endif
-    }
-  sbitmap_free (large_region_blocks);
-
-  bitmap_clear (&ebb_head);
-  bitmap_clear (&ebb_tail);
 
   /* Reposition the prologue and epilogue notes in case we moved the
      prologue/epilogue insns.  */
   if (reload_completed)
-    reposition_prologue_and_epilogue_notes (get_insns ());
-
-  if (write_symbols != NO_DEBUG)
-    rm_redundant_line_notes ();
+    reposition_prologue_and_epilogue_notes ();
 
   sched_finish ();
+  regstat_free_calls_crossed ();
 }
 
 /* INSN has been added to/removed from current ebb.  */
@@ -760,16 +699,4 @@ fix_recovery_cfg (int bbi ATTRIBUTE_UNUSED, int jump_bbi, int jump_bb_nexti)
     last_bb = BASIC_BLOCK (jump_bbi);
 }
 
-#ifdef ENABLE_CHECKING
-/* Return non zero, if BB is first or last (depending of LEAF_P) block in
-   current ebb.  For more information please refer to
-   sched-int.h: struct sched_info: region_head_or_leaf_p.  */
-static int
-ebb_head_or_leaf_p (basic_block bb, int leaf_p)
-{
-  if (!leaf_p)    
-    return bitmap_bit_p (&ebb_head, bb->index);
-  else
-    return bitmap_bit_p (&ebb_tail, bb->index);
-}
-#endif /* ENABLE_CHECKING  */
+#endif /* INSN_SCHEDULING */

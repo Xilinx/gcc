@@ -1,6 +1,6 @@
 ## Makefile for the GNU C++ Support library.
 ##
-## Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005
+## Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2007
 ## Free Software Foundation, Inc.
 ##
 ## Process this file with automake to produce Makefile.in.
@@ -33,7 +33,7 @@ noinst_LTLIBRARIES = libsupc++convenience.la
 
 
 headers = \
-	exception new typeinfo cxxabi.h exception_defines.h
+	exception new typeinfo cxxabi.h cxxabi-forced.h exception_defines.h
 
 if GLIBCXX_HOSTED
   c_sources = \
@@ -41,10 +41,16 @@ if GLIBCXX_HOSTED
 endif
 
 sources = \
+	array_type_info.cc \
+	atexit_arm.cc \
+	bad_cast.cc \
+	bad_typeid.cc \
+	class_type_info.cc \
 	del_op.cc \
 	del_opnt.cc \
 	del_opv.cc \
 	del_opvnt.cc \
+	dyncast.cc \
 	eh_alloc.cc \
 	eh_arm.cc \
 	eh_aux_runtime.cc \
@@ -58,16 +64,24 @@ sources = \
 	eh_throw.cc \
 	eh_type.cc \
 	eh_unex_handler.cc \
+	enum_type_info.cc \
+	function_type_info.cc \
+	fundamental_type_info.cc \
 	guard.cc \
 	new_handler.cc \
 	new_op.cc \
 	new_opnt.cc \
 	new_opv.cc \
 	new_opvnt.cc \
+	pbase_type_info.cc \
+	pmem_type_info.cc \
+	pointer_type_info.cc \
 	pure.cc \
+	si_class_type_info.cc \
 	tinfo.cc \
 	tinfo2.cc \
 	vec.cc \
+	vmi_class_type_info.cc \
 	vterminate.cc
 
 libsupc___la_SOURCES = $(sources) $(c_sources)

@@ -15,7 +15,9 @@ struct extraction
 static int a[N] = {1,2,3,4,5,6,7,8,9};
 static int b[N] = {17,24,7,0,2,3,4,31,82};
 static int c[N] = {9,17,24,7,0,2,3,4,31};
+volatile int foo;
 
+__attribute__ ((noinline))
 int main1 (int x, int y) {
   int i;
   struct extraction *p;
@@ -25,7 +27,7 @@ int main1 (int x, int y) {
     {
        p->a[i] = a[i];
        p->b[i] = b[i];
-       if (x == 135)
+       if (foo == 135)
 	 abort (); /* to avoid vectorization  */
     }
 
@@ -48,6 +50,7 @@ int main (void)
 { 
   check_vect ();
 
+  foo = 0;
   return main1 (0, N);
 }
 

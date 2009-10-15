@@ -42,9 +42,8 @@ extern rtx xstormy16_function_arg
 #endif
 
 #if defined (TREE_CODE) && defined (RTX_CODE)
-extern void xstormy16_expand_builtin_va_start (tree, rtx);
 extern void xstormy16_initialize_trampoline (rtx, rtx, rtx);
-extern rtx xstormy16_function_value (tree, tree);
+extern rtx xstormy16_function_value (const_tree, const_tree);
 #endif
 
 #ifdef RTX_CODE
@@ -70,9 +69,6 @@ extern int  short_memory_operand (rtx, enum machine_mode);
 extern int  nonimmediate_nonstack_operand (rtx, enum machine_mode);
 extern enum reg_class xstormy16_secondary_reload_class 
  (enum reg_class, enum machine_mode, rtx);
-extern int  xstormy16_carry_plus_operand (rtx, enum machine_mode);
-extern int  xs_hi_general_operand (rtx, enum machine_mode);
-extern int  xs_hi_nonmemory_operand (rtx, enum machine_mode);
 extern enum reg_class xstormy16_preferred_reload_class (rtx, enum reg_class);
 extern int xstormy16_legitimate_address_p (enum machine_mode, rtx, int);
 extern void xstormy16_split_move (enum machine_mode, rtx, rtx);

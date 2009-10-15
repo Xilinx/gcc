@@ -6,7 +6,7 @@
  *                                                                          *
  *                          C Implementation File                           *
  *                                                                          *
- *         Copyright (C) 1992-2006, Free Software Foundation, Inc.          *
+ *         Copyright (C) 1992-2007, Free Software Foundation, Inc.          *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
@@ -44,13 +44,20 @@
 #include "tsystem.h"
 #include <fcntl.h>
 #include <sys/stat.h>
-#include <time.h>
 #ifdef VMS
 #include <unixio.h>
 #endif
 #else
 #include "config.h"
 #include "system.h"
+#endif
+
+#include <time.h>
+
+#if defined (sun) && defined (__SVR4) && !defined (__vxworks)
+/* The declaration is present in <time.h> but conditionalized
+   on a couple of macros we don't define.  */
+extern struct tm *localtime_r(const time_t *, struct tm *);
 #endif
 
 #include "adaint.h"
@@ -206,6 +213,23 @@ __gnat_ttyname (int filedes)
    Calling FlushConsoleInputBuffer just after getch() fix the bug under
    95/98. */
 
+#ifdef RTX
+
+static void winflush_nt (void);
+
+/* winflush_function will do nothing since we only have problems with Windows
+   95/98 which are not supported by RTX. */
+
+static void (*winflush_function) (void) = winflush_nt;
+
+static void
+winflush_nt (void)
+{
+  /* Does nothing as there is no problem under NT.  */
+}
+
+#else
+
 static void winflush_init (void);
 
 static void winflush_95 (void);
@@ -272,6 +296,8 @@ __gnat_is_windows_xp (void)
 
 #endif
 
+#endif
+
 #else
 
 static const char *mode_read_text = "r";
@@ -302,15 +328,13 @@ __gnat_set_text_mode (int handle ATTRIBUTE_UNUSED)
 char *
 __gnat_ttyname (int filedes)
 {
-#ifndef __vxworks
+#if defined (__vxworks) || defined (__nucleus)
+  return "";
+#else
   extern char *ttyname (int);
 
   return ttyname (filedes);
-
-#else
-  return "";
-
-#endif
+#endif /* defined (__vxworks) || defined (__nucleus) */
 }
 #endif
 
@@ -318,7 +342,7 @@ __gnat_ttyname (int filedes)
   || (defined (__osf__) && ! defined (__alpha_vxworks)) || defined (WINNT) \
   || defined (__MACHTEN__) || defined (__hpux__) || defined (_AIX) \
   || (defined (__svr4__) && defined (i386)) || defined (__Lynx__) \
-  || defined (__CYGWIN__) || defined (__FreeBSD__)
+  || defined (__CYGWIN__) || defined (__FreeBSD__) || defined (__OpenBSD__)
 
 #ifdef __MINGW32__
 #if OLD_MINGW
@@ -375,7 +399,7 @@ getc_immediate_common (FILE *stream,
     || (defined (__osf__) && ! defined (__alpha_vxworks)) \
     || defined (__CYGWIN32__) || defined (__MACHTEN__) || defined (__hpux__) \
     || defined (_AIX) || (defined (__svr4__) && defined (i386)) \
-    || defined (__Lynx__) || defined (__FreeBSD__)
+    || defined (__Lynx__) || defined (__FreeBSD__) || defined (__OpenBSD__)
   char c;
   int nread;
   int good_one = 0;
@@ -394,7 +418,7 @@ getc_immediate_common (FILE *stream,
 #if defined(linux) || defined (sun) || defined (sgi) || defined (__EMX__) \
     || defined (__osf__) || defined (__MACHTEN__) || defined (__hpux__) \
     || defined (_AIX) || (defined (__svr4__) && defined (i386)) \
-    || defined (__Lynx__) || defined (__FreeBSD__)
+    || defined (__Lynx__) || defined (__FreeBSD__) || defined (__OpenBSD__)
       eof_ch = termios_rec.c_cc[VEOF];
 
       /* If waiting (i.e. Get_Immediate (Char)), set MIN = 1 and wait for
@@ -664,8 +688,6 @@ rts_get_nShowCmd (void)
 
 /* This gets around a problem with using the old threads library on VMS 7.0. */
 
-#include <time.h>
-
 extern long get_gmtoff (void);
 
 long
@@ -680,27 +702,57 @@ get_gmtoff (void)
 }
 #endif
 
+/* This value is returned as the time zone offset when a valid value
+   cannot be determined. It is simply a bizarre value that will never
+   occur. It is 3 days plus 73 seconds (offset is in seconds). */
+
+long __gnat_invalid_tzoff = 259273;
+
 /* Definition of __gnat_locatime_r used by a-calend.adb */
 
-#if defined (__EMX__)
+#if defined (__EMX__) || defined (__MINGW32__)
+
+#ifdef CERT
+
+/* For the Cert run times on native Windows we use dummy functions
+   for locking and unlocking tasks since we do not support multiple
+   threads on this configuration (Cert run time on native Windows). */
+
+void dummy (void) {}
+
+void (*Lock_Task) ()   = &dummy;
+void (*Unlock_Task) () = &dummy;
+
+#else
+
 #define Lock_Task system__soft_links__lock_task
 extern void (*Lock_Task) (void);
 
 #define Unlock_Task system__soft_links__unlock_task
 extern void (*Unlock_Task) (void);
 
-/* Provide reentrant version of localtime on OS/2. */
+#endif
 
-extern struct tm *__gnat_localtime_r (const time_t *, struct tm *);
+/* Reentrant localtime for Windows and OS/2. */
+
+extern struct tm *
+__gnat_localtime_tzoff (const time_t *, struct tm *, long *);
 
 struct tm *
-__gnat_localtime_r (const time_t *timer, struct tm *tp)
+__gnat_localtime_tzoff (const time_t *timer, struct tm *tp, long *off)
 {
+  DWORD dwRet;
   struct tm *tmp;
+  TIME_ZONE_INFORMATION tzi;
 
   (*Lock_Task) ();
   tmp = localtime (timer);
   memcpy (tp, tmp, sizeof (struct tm));
+  dwRet = GetTimeZoneInformation (&tzi);
+  *off = tzi.Bias;
+  if (tp->tm_isdst > 0)
+    *off = *off + tzi.DaylightBias;
+  *off = *off * -60;
   (*Unlock_Task) ();
   return tp;
 }
@@ -714,31 +766,127 @@ __gnat_localtime_r (const time_t *timer, struct tm *tp)
    spec is required. Only use when ___THREADS_POSIX4ad4__ is defined,
    the Lynx convention when building against the legacy API. */
 
-extern struct tm *__gnat_localtime_r (const time_t *, struct tm *);
+extern struct tm *
+__gnat_localtime_tzoff (const time_t *, struct tm *, long *);
 
 struct tm *
-__gnat_localtime_r (const time_t *timer, struct tm *tp)
+__gnat_localtime_tzoff (const time_t *timer, struct tm *tp, long *off)
 {
+  /* Treat all time values in GMT */
   localtime_r (tp, timer);
+  *off = 0;
   return NULL;
 }
 
 #else
-#if defined (VMS) || defined (__MINGW32__)
+#if defined (VMS)
 
-/* __gnat_localtime_r is not needed on NT and VMS */
+/* __gnat_localtime_tzoff is not needed on VMS */
 
 #else
 
 /* All other targets provide a standard localtime_r */
 
-extern struct tm *__gnat_localtime_r (const time_t *, struct tm *);
+extern struct tm *
+__gnat_localtime_tzoff (const time_t *, struct tm *, long *);
 
 struct tm *
-__gnat_localtime_r (const time_t *timer, struct tm *tp)
+__gnat_localtime_tzoff (const time_t *timer, struct tm *tp, long *off)
 {
-  return (struct tm *) localtime_r (timer, tp);
+   localtime_r (timer, tp);
+
+/* AIX, HPUX, SGI Irix, Sun Solaris */
+#if defined (_AIX) || defined (__hpux__) || defined (sgi) || defined (sun)
+  /* The contents of external variable "timezone" may not always be
+     initialized. Instead of returning an incorrect offset, treat the local
+     time zone as 0 (UTC). The value of 28 hours is the maximum valid offset
+     allowed by Ada.Calendar.Time_Zones. */
+  if ((timezone < -28 * 3600) || (timezone > 28 * 3600))
+    *off = 0;
+  else
+  {
+    *off = (long) -timezone;
+    if (tp->tm_isdst > 0)
+      *off = *off + 3600;
+   }
+/* Lynx - Treat all time values in GMT */
+#elif defined (__Lynx__)
+  *off = 0;
+
+/* VxWorks */
+#elif defined (__vxworks)
+#include <stdlib.h>
+{
+  /* Try to read the environment variable TIMEZONE. The variable may not have
+     been initialize, in that case return an offset of zero (0) for UTC. */
+  char *tz_str = getenv ("TIMEZONE");
+
+  if ((tz_str == NULL) || (*tz_str == '\0'))
+    *off = 0;
+  else
+  {
+    char *tz_start, *tz_end;
+
+    /* The format of the data contained in TIMEZONE is N::U:S:E where N is the
+       name of the time zone, U are the minutes difference from UTC, S is the
+       start of DST in mmddhh and E is the end of DST in mmddhh. Extracting
+       the value of U involves setting two pointers, one at the beginning and
+       one at the end of the value. The end pointer is then set to null in
+       order to delimit a string slice for atol to process. */
+    tz_start = index (tz_str, ':') + 2;
+    tz_end = index (tz_start, ':');
+    tz_end = '\0';
+
+    /* The Ada layer expects an offset in seconds */
+    *off = atol (tz_start) * 60;
+  }
 }
+
+/* Darwin, Free BSD, Linux, Tru64, where there exists a component tm_gmtoff
+   in struct tm */
+#elif defined (__APPLE__) || defined (__FreeBSD__) || defined (linux) ||\
+     (defined (__alpha__) && defined (__osf__))
+  *off = tp->tm_gmtoff;
+
+/* All other platforms: Treat all time values in GMT */
+#else
+  *off = 0;
+#endif
+   return NULL;
+}
+
 #endif
 #endif
+#endif
+
+#ifdef __vxworks
+
+#include <taskLib.h>
+
+/* __gnat_get_task_options is used by s-taprop.adb only for VxWorks. This
+   function returns the options to be set when creating a new task. It fetches
+   the options assigned to the current task (parent), so offering some user
+   level control over the options for a task hierarchy. It forces VX_FP_TASK
+   because it is almost always required. */
+extern int __gnat_get_task_options (void);
+
+int
+__gnat_get_task_options (void)
+{
+  int options;
+
+  /* Get the options for the task creator */
+  taskOptionsGet (taskIdSelf (), &options);
+
+  /* Force VX_FP_TASK because it is almost always required */
+  options |= VX_FP_TASK;
+
+  /* Mask those bits that are not under user control */
+#ifdef VX_USR_TASK_OPTIONS
+  return options & VX_USR_TASK_OPTIONS;
+#else
+  return options;
+#endif
+}
+
 #endif

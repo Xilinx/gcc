@@ -236,7 +236,7 @@
 
 (define_insn_reservation "ir_sb1_simple_alu" 2
   (and (eq_attr "cpu" "sb1")
-       (eq_attr "type" "const,arith"))
+       (eq_attr "type" "const,arith,logical,move,signext"))
   "sb1_ls1 | sb1_ex1 | sb1_ex0")
 
 ;; On SB-1A, simple alu instructions can not execute on the LS1 unit, and we
@@ -244,7 +244,7 @@
 
 (define_insn_reservation "ir_sb1a_simple_alu" 1
   (and (eq_attr "cpu" "sb1a")
-       (eq_attr "type" "const,arith"))
+       (eq_attr "type" "const,arith,logical,move,signext"))
   "sb1_ex1 | sb1_ex0")
 
 ;; ??? condmove also includes some FP instructions that execute on the FP
@@ -415,16 +415,14 @@
 
 (define_insn_reservation "ir_sb1_mtxfer" 5
   (and (eq_attr "cpu" "sb1,sb1a")
-       (and (eq_attr "type" "xfer")
-	    (match_operand 0 "fpr_operand")))
+       (eq_attr "type" "mtc"))
   "sb1_fp0")
 
 ;; mfc1 latency 1 cycle.  
 
 (define_insn_reservation "ir_sb1_mfxfer" 1
   (and (eq_attr "cpu" "sb1,sb1a")
-       (and (eq_attr "type" "xfer")
-	    (not (match_operand 0 "fpr_operand"))))
+       (eq_attr "type" "mfc"))
   "sb1_fp0")
 
 ;; ??? Can deliver at most 1 result per every 6 cycles because of issue

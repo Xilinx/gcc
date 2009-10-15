@@ -47,13 +47,6 @@ along with GCC; see the file COPYING3.  If not see
 #undef SKIP_ASM_OP
 #undef SET_ASM_OP	/* Has no equivalent.  See ASM_OUTPUT_DEF below.  */
 
-/* The native assembler can't compute differences between symbols in different
-   sections when generating pic code, so we must put jump tables in the
-   text section.  */
-/* But we now defer the tables to the end of the function, so we make
-   this 0 to not confuse the branch shortening code.  */
-#define JUMP_TABLES_IN_TEXT_SECTION 0
-
 /* Pass -K to the assembler when PIC.  */
 #undef ASM_SPEC
 #define ASM_SPEC \
@@ -99,22 +92,6 @@ do { ASM_OUTPUT_ALIGN ((FILE), Pmode == SImode ? 2 : 3);		\
 	assemble_name (FILE, LABEL2);					\
 	fprintf (FILE, "\n");						\
   } while (0)
-
-/* Define how the SPARC registers should be numbered for Dwarf output.
-   The numbering provided here should be compatible with the native
-   svr4 SDB debugger in the SPARC/svr4 reference port.  The numbering
-   is as follows:
-
-   Assembly name	gcc internal regno	Dwarf regno
-   ----------------------------------------------------------
-   g0-g7		0-7			0-7
-   o0-o7		8-15			8-15
-   l0-l7		16-23			16-23
-   i0-i7		24-31			24-31
-   f0-f31		32-63			40-71
-*/
-
-#define DBX_REGISTER_NUMBER(REGNO) ((REGNO) < 32 ? (REGNO) : (REGNO) + 8)
 
 /* A set of symbol definitions for assembly pseudo-ops which will
    get us switched to various sections of interest.  These are used

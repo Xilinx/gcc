@@ -2,84 +2,56 @@
 --                                                                          --
 --                         GNAT COMPILER COMPONENTS                         --
 --                                                                          --
---                             M L I B . T G T                              --
+--                    M L I B . T G T . S P E C I F I C                     --
 --                             (LynxOS Version)                             --
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---           Copyright (C) 2003-2005 Free Software Foundation, Inc.         --
+--          Copyright (C) 2003-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
 --                                                                          --
 ------------------------------------------------------------------------------
 
---  This package provides a set of target dependent routines to build
---  static libraries.
-
 --  This is the LynxOS version of the body
 
-with MLib.Fil;
-with Namet;  use Namet;
-with Prj.Com;
+package body MLib.Tgt.Specific is
 
-package body MLib.Tgt is
+   --  Non default subprograms
 
-   ---------------------
-   -- Archive_Builder --
-   ---------------------
+   procedure Build_Dynamic_Library
+     (Ofiles       : Argument_List;
+      Options      : Argument_List;
+      Interfaces   : Argument_List;
+      Lib_Filename : String;
+      Lib_Dir      : String;
+      Symbol_Data  : Symbol_Record;
+      Driver_Name  : Name_Id := No_Name;
+      Lib_Version  : String  := "";
+      Auto_Init    : Boolean := False);
 
-   function Archive_Builder return String is
-   begin
-      return "ar";
-   end Archive_Builder;
+   function DLL_Ext return String;
 
-   -----------------------------
-   -- Archive_Builder_Options --
-   -----------------------------
+   function Dynamic_Option return String;
 
-   function Archive_Builder_Options return String_List_Access is
-   begin
-      return new String_List'(1 => new String'("cr"));
-   end Archive_Builder_Options;
+   function PIC_Option return String;
 
-   -----------------
-   -- Archive_Ext --
-   -----------------
+   function Library_Major_Minor_Id_Supported return Boolean;
 
-   function Archive_Ext return String is
-   begin
-      return "a";
-   end Archive_Ext;
+   function Standalone_Library_Auto_Init_Is_Supported return Boolean;
 
-   ---------------------
-   -- Archive_Indexer --
-   ---------------------
-
-   function Archive_Indexer return String is
-   begin
-      return "ranlib";
-   end Archive_Indexer;
-
-   -----------------------------
-   -- Archive_Indexer_Options --
-   -----------------------------
-
-   function Archive_Indexer_Options return String_List_Access is
-   begin
-      return new String_List (1 .. 0);
-   end Archive_Indexer_Options;
+   function Support_For_Libraries return Library_Support;
 
    ---------------------------
    -- Build_Dynamic_Library --
@@ -87,10 +59,7 @@ package body MLib.Tgt is
 
    procedure Build_Dynamic_Library
      (Ofiles       : Argument_List;
-      Foreign      : Argument_List;
-      Afiles       : Argument_List;
       Options      : Argument_List;
-      Options_2    : Argument_List;
       Interfaces   : Argument_List;
       Lib_Filename : String;
       Lib_Dir      : String;
@@ -100,10 +69,7 @@ package body MLib.Tgt is
       Auto_Init    : Boolean := False)
    is
       pragma Unreferenced (Ofiles);
-      pragma Unreferenced (Foreign);
-      pragma Unreferenced (Afiles);
       pragma Unreferenced (Options);
-      pragma Unreferenced (Options_2);
       pragma Unreferenced (Interfaces);
       pragma Unreferenced (Lib_Filename);
       pragma Unreferenced (Lib_Dir);
@@ -125,15 +91,6 @@ package body MLib.Tgt is
       return "";
    end DLL_Ext;
 
-   ----------------
-   -- DLL_Prefix --
-   ----------------
-
-   function DLL_Prefix return String is
-   begin
-      return "lib";
-   end DLL_Prefix;
-
    --------------------
    -- Dynamic_Option --
    --------------------
@@ -143,127 +100,14 @@ package body MLib.Tgt is
       return "";
    end Dynamic_Option;
 
-   -------------------
-   -- Is_Object_Ext --
-   -------------------
+   --------------------------------------
+   -- Library_Major_Minor_Id_Supported --
+   --------------------------------------
 
-   function Is_Object_Ext (Ext : String) return Boolean is
+   function Library_Major_Minor_Id_Supported return Boolean is
    begin
-      return Ext = ".o";
-   end Is_Object_Ext;
-
-   --------------
-   -- Is_C_Ext --
-   --------------
-
-   function Is_C_Ext (Ext : String) return Boolean is
-   begin
-      return Ext = ".c";
-   end Is_C_Ext;
-
-   --------------------
-   -- Is_Archive_Ext --
-   --------------------
-
-   function Is_Archive_Ext (Ext : String) return Boolean is
-   begin
-      return Ext = ".a";
-   end Is_Archive_Ext;
-
-   -------------
-   -- Libgnat --
-   -------------
-
-   function Libgnat return String is
-   begin
-      return "libgnat.a";
-   end Libgnat;
-
-   ------------------------
-   -- Library_Exists_For --
-   ------------------------
-
-   function Library_Exists_For
-     (Project : Project_Id; In_Tree : Project_Tree_Ref) return Boolean
-   is
-   begin
-      if not In_Tree.Projects.Table (Project).Library then
-         Prj.Com.Fail ("INTERNAL ERROR: Library_Exists_For called " &
-                       "for non library project");
-         return False;
-
-      else
-         declare
-            Lib_Dir : constant String :=
-              Get_Name_String
-                (In_Tree.Projects.Table (Project).Library_Dir);
-            Lib_Name : constant String :=
-              Get_Name_String
-                (In_Tree.Projects.Table (Project).Library_Name);
-
-         begin
-            if In_Tree.Projects.Table (Project).Library_Kind =
-              Static
-            then
-               return Is_Regular_File
-                 (Lib_Dir & Directory_Separator & "lib" &
-                  Fil.Ext_To (Lib_Name, Archive_Ext));
-
-            else
-               return Is_Regular_File
-                 (Lib_Dir & Directory_Separator & "lib" &
-                  Fil.Ext_To (Lib_Name, DLL_Ext));
-            end if;
-         end;
-      end if;
-   end Library_Exists_For;
-
-   ---------------------------
-   -- Library_File_Name_For --
-   ---------------------------
-
-   function Library_File_Name_For
-     (Project : Project_Id;
-      In_Tree : Project_Tree_Ref) return Name_Id
-   is
-   begin
-      if not In_Tree.Projects.Table (Project).Library then
-         Prj.Com.Fail ("INTERNAL ERROR: Library_File_Name_For called " &
-                       "for non library project");
-         return No_Name;
-
-      else
-         declare
-            Lib_Name : constant String :=
-              Get_Name_String
-                (In_Tree.Projects.Table (Project).Library_Name);
-
-         begin
-            Name_Len := 3;
-            Name_Buffer (1 .. Name_Len) := "lib";
-
-            if In_Tree.Projects.Table (Project).Library_Kind =
-              Static
-            then
-               Add_Str_To_Name_Buffer (Fil.Ext_To (Lib_Name, Archive_Ext));
-
-            else
-               Add_Str_To_Name_Buffer (Fil.Ext_To (Lib_Name, DLL_Ext));
-            end if;
-
-            return Name_Find;
-         end;
-      end if;
-   end Library_File_Name_For;
-
-   ----------------
-   -- Object_Ext --
-   ----------------
-
-   function Object_Ext return String is
-   begin
-      return "o";
-   end Object_Ext;
+      return False;
+   end Library_Major_Minor_Id_Supported;
 
    ----------------
    -- PIC_Option --
@@ -292,4 +136,14 @@ package body MLib.Tgt is
       return Static_Only;
    end Support_For_Libraries;
 
-end MLib.Tgt;
+begin
+   Build_Dynamic_Library_Ptr := Build_Dynamic_Library'Access;
+   DLL_Ext_Ptr := DLL_Ext'Access;
+   Dynamic_Option_Ptr := Dynamic_Option'Access;
+   Library_Major_Minor_Id_Supported_Ptr :=
+                                Library_Major_Minor_Id_Supported'Access;
+   PIC_Option_Ptr := PIC_Option'Access;
+   Standalone_Library_Auto_Init_Is_Supported_Ptr :=
+     Standalone_Library_Auto_Init_Is_Supported'Access;
+   Support_For_Libraries_Ptr := Support_For_Libraries'Access;
+end MLib.Tgt.Specific;

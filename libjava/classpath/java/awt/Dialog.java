@@ -61,6 +61,21 @@ import javax.accessibility.AccessibleStateSet;
  */
 public class Dialog extends Window
 {
+  public enum ModalExclusionType
+  {
+    APPLICATION_EXCLUDE,
+    NO_EXCLUDE,
+    TOOLKIT_EXCLUDE
+  }
+
+  public enum ModalityType
+  {
+    APPLICATION_MODAL,
+    DOCUMENT_MODAL,
+    MODELESS,
+    TOOLKIT_MODAL
+  }
+
   // Serialization constant
   private static final long serialVersionUID = 5920926903803293709L;
 
@@ -95,6 +110,11 @@ public class Dialog extends Window
    * modality in show.
    */
   private EventQueue eq2 = null;
+
+  /**
+   * The number used to generate the name returned by getName.
+   */
+  private static transient long next_dialog_number;
 
   /**
    * Initializes a new instance of <code>Dialog</code> with the specified
@@ -190,6 +210,7 @@ public class Dialog extends Window
     visible = false;
 
     setLayout(new BorderLayout());
+    setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
   }
 
   /**
@@ -273,6 +294,7 @@ public class Dialog extends Window
     visible = false;
 
     setLayout(new BorderLayout());
+    setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
   }
 
   /**
@@ -530,5 +552,19 @@ public class Dialog extends Window
       accessibleContext = new AccessibleAWTDialog();
     return accessibleContext;
   }
+  
+  /**
+   * Generate a unique name for this <code>Dialog</code>.
+   *
+   * @return A unique name for this <code>Dialog</code>.
+   */
+  String generateName()
+  {
+    return "dialog" + getUniqueLong();
+  }
 
+  private static synchronized long getUniqueLong()
+  {
+    return next_dialog_number++;
+  }
 }

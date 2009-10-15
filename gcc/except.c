@@ -1,6 +1,6 @@
 /* Implements exception handling.
    Copyright (C) 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
    Free Software Foundation, Inc.
    Contributed by Mike Stump <mrs@cygnus.com>.
 
@@ -368,7 +368,8 @@ init_eh (void)
       DECL_FIELD_CONTEXT (f_cs) = sjlj_fc_type_node;
 
       tmp = build_index_type (build_int_cst (NULL_TREE, 4 - 1));
-      tmp = build_array_type (lang_hooks.types.type_for_mode (word_mode, 1),
+      tmp = build_array_type (lang_hooks.types.type_for_mode
+				(targetm.unwind_word_mode (), 1),
 			      tmp);
       f_data = build_decl (FIELD_DECL, get_identifier ("__data"), tmp);
       DECL_FIELD_CONTEXT (f_data) = sjlj_fc_type_node;
@@ -570,6 +571,7 @@ expand_resx_expr (tree exp)
 				     cfun->eh->region_array, region_nr);
 
   gcc_assert (!reg->resume);
+  do_pending_stack_adjust ();
   reg->resume = emit_jump_insn (gen_rtx_RESX (VOIDmode, region_nr));
   emit_barrier ();
 }
@@ -1005,7 +1007,9 @@ duplicate_eh_regions (struct function *ifun, duplicate_eh_regions_map map,
     for (prev_try = VEC_index (eh_region, cfun->eh->region_array, outer_region);
          prev_try && prev_try->type != ERT_TRY;
 	 prev_try = prev_try->outer)
-      if (prev_try->type == ERT_MUST_NOT_THROW)
+      if (prev_try->type == ERT_MUST_NOT_THROW
+	  || (prev_try->type == ERT_ALLOWED_EXCEPTIONS
+	      && !prev_try->u.allowed.type_list))
 	{
 	  prev_try = NULL;
 	  break;
@@ -1129,8 +1133,8 @@ eh_region_outermost (struct function *ifun, int region_a, int region_b)
 static int
 t2r_eq (const void *pentry, const void *pdata)
 {
-  tree entry = (tree) pentry;
-  tree data = (tree) pdata;
+  const_tree const entry = (const_tree) pentry;
+  const_tree const data = (const_tree) pdata;
 
   return TREE_PURPOSE (entry) == data;
 }
@@ -1138,7 +1142,7 @@ t2r_eq (const void *pentry, const void *pdata)
 static hashval_t
 t2r_hash (const void *pentry)
 {
-  tree entry = (tree) pentry;
+  const_tree const entry = (const_tree) pentry;
   return TREE_HASH (TREE_PURPOSE (entry));
 }
 
@@ -1183,8 +1187,9 @@ struct ttypes_filter GTY(())
 static int
 ttypes_filter_eq (const void *pentry, const void *pdata)
 {
-  const struct ttypes_filter *entry = (const struct ttypes_filter *) pentry;
-  tree data = (tree) pdata;
+  const struct ttypes_filter *const entry
+    = (const struct ttypes_filter *) pentry;
+  const_tree const data = (const_tree) pdata;
 
   return entry->t == data;
 }
@@ -1873,17 +1878,15 @@ sjlj_emit_function_enter (rtx dispatch_label)
 
 #ifdef DONT_USE_BUILTIN_SETJMP
   {
-    rtx x, note;
+    rtx x;
     x = emit_library_call_value (setjmp_libfunc, NULL_RTX, LCT_RETURNS_TWICE,
 				 TYPE_MODE (integer_type_node), 1,
 				 plus_constant (XEXP (fc, 0),
 						sjlj_fc_jbuf_ofs), Pmode);
 
-    note = emit_note (NOTE_INSN_EXPECTED_VALUE);
-    NOTE_EXPECTED_VALUE (note) = gen_rtx_EQ (VOIDmode, x, const0_rtx);
-
     emit_cmp_and_jump_insns (x, const0_rtx, NE, 0,
 			     TYPE_MODE (integer_type_node), 0, dispatch_label);
+    add_reg_br_prob_note (get_insns (), REG_BR_PROB_BASE/100);
   }
 #else
   expand_builtin_setjmp_setup (plus_constant (XEXP (fc, 0), sjlj_fc_jbuf_ofs),
@@ -1904,9 +1907,9 @@ sjlj_emit_function_enter (rtx dispatch_label)
   for (fn_begin = get_insns (); ; fn_begin = NEXT_INSN (fn_begin))
     if (NOTE_P (fn_begin))
       {
-	if (NOTE_LINE_NUMBER (fn_begin) == NOTE_INSN_FUNCTION_BEG)
+	if (NOTE_KIND (fn_begin) == NOTE_INSN_FUNCTION_BEG)
 	  break;
-	else if (NOTE_LINE_NUMBER (fn_begin) == NOTE_INSN_BASIC_BLOCK)
+	else if (NOTE_INSN_BASIC_BLOCK_P (fn_begin))
 	  fn_begin_outside_block = false;
       }
 
@@ -1974,6 +1977,8 @@ sjlj_emit_function_exit (void)
 static void
 sjlj_emit_dispatch_table (rtx dispatch_label, struct sjlj_lp_info *lp_info)
 {
+  enum machine_mode unwind_word_mode = targetm.unwind_word_mode ();
+  enum machine_mode filter_mode = targetm.eh_return_filter_mode ();
   int i, first_reachable;
   rtx mem, dispatch, seq, fc;
   rtx before;
@@ -1996,8 +2001,8 @@ sjlj_emit_dispatch_table (rtx dispatch_label, struct sjlj_lp_info *lp_info)
 			sjlj_fc_call_site_ofs);
   dispatch = copy_to_reg (mem);
 
-  mem = adjust_address (fc, word_mode, sjlj_fc_data_ofs);
-  if (word_mode != ptr_mode)
+  mem = adjust_address (fc, unwind_word_mode, sjlj_fc_data_ofs);
+  if (unwind_word_mode != ptr_mode)
     {
 #ifdef POINTERS_EXTEND_UNSIGNED
       mem = convert_memory_address (ptr_mode, mem);
@@ -2007,7 +2012,10 @@ sjlj_emit_dispatch_table (rtx dispatch_label, struct sjlj_lp_info *lp_info)
     }
   emit_move_insn (cfun->eh->exc_ptr, mem);
 
-  mem = adjust_address (fc, word_mode, sjlj_fc_data_ofs + UNITS_PER_WORD);
+  mem = adjust_address (fc, unwind_word_mode,
+			sjlj_fc_data_ofs + GET_MODE_SIZE (unwind_word_mode));
+  if (unwind_word_mode != filter_mode)
+    mem = convert_to_mode (filter_mode, mem, 0);
   emit_move_insn (cfun->eh->filter, mem);
 
   /* Jump to one of the directly reachable regions.  */
@@ -2108,7 +2116,9 @@ finish_eh_generation (void)
   /* We've totally changed the CFG.  Start over.  */
   find_exception_handler_labels ();
   break_superblocks ();
-  if (USING_SJLJ_EXCEPTIONS)
+  if (USING_SJLJ_EXCEPTIONS
+      /* Kludge for Alpha/Tru64 (see alpha_gp_save_rtx).  */
+      || single_succ_edge (ENTRY_BLOCK_PTR)->insns.r)
     commit_edge_insertions ();
   FOR_EACH_BB (bb)
     {
@@ -2133,7 +2143,8 @@ finish_eh_generation (void)
 static hashval_t
 ehl_hash (const void *pentry)
 {
-  struct ehl_map_entry *entry = (struct ehl_map_entry *) pentry;
+  const struct ehl_map_entry *const entry
+    = (const struct ehl_map_entry *) pentry;
 
   /* 2^32 * ((sqrt(5) - 1) / 2) */
   const hashval_t scaled_golden_ratio = 0x9e3779b9;
@@ -2143,8 +2154,10 @@ ehl_hash (const void *pentry)
 static int
 ehl_eq (const void *pentry, const void *pdata)
 {
-  struct ehl_map_entry *entry = (struct ehl_map_entry *) pentry;
-  struct ehl_map_entry *data = (struct ehl_map_entry *) pdata;
+  const struct ehl_map_entry *const entry
+    = (const struct ehl_map_entry *) pentry;
+  const struct ehl_map_entry *const data
+    = (const struct ehl_map_entry *) pdata;
 
   return entry->label == data->label;
 }
@@ -2696,7 +2709,7 @@ can_throw_internal_1 (int region_number, bool is_resx)
 }
 
 bool
-can_throw_internal (rtx insn)
+can_throw_internal (const_rtx insn)
 {
   rtx note;
 
@@ -2750,7 +2763,7 @@ can_throw_external_1 (int region_number, bool is_resx)
 }
 
 bool
-can_throw_external (rtx insn)
+can_throw_external (const_rtx insn)
 {
   rtx note;
 
@@ -2865,7 +2878,7 @@ expand_builtin_unwind_init (void)
 {
   /* Set this so all the registers get saved in our frame; we need to be
      able to copy the saved values for any registers from frames we unwind.  */
-  current_function_has_nonlocal_label = 1;
+  current_function_saves_all_registers = 1;
 
 #ifdef SETUP_FRAME_ADDRESSES
   SETUP_FRAME_ADDRESSES ();
@@ -2873,9 +2886,9 @@ expand_builtin_unwind_init (void)
 }
 
 rtx
-expand_builtin_eh_return_data_regno (tree arglist)
+expand_builtin_eh_return_data_regno (tree exp)
 {
-  tree which = TREE_VALUE (arglist);
+  tree which = CALL_EXPR_ARG (exp, 0);
   unsigned HOST_WIDE_INT iwhich;
 
   if (TREE_CODE (which) != INTEGER_CST)
@@ -2904,7 +2917,7 @@ expand_builtin_eh_return_data_regno (tree arglist)
 rtx
 expand_builtin_extract_return_addr (tree addr_tree)
 {
-  rtx addr = expand_expr (addr_tree, NULL_RTX, Pmode, 0);
+  rtx addr = expand_expr (addr_tree, NULL_RTX, Pmode, EXPAND_NORMAL);
 
   if (GET_MODE (addr) != Pmode
       && GET_MODE (addr) != VOIDmode)
@@ -2936,7 +2949,7 @@ expand_builtin_extract_return_addr (tree addr_tree)
 rtx
 expand_builtin_frob_return_addr (tree addr_tree)
 {
-  rtx addr = expand_expr (addr_tree, NULL_RTX, ptr_mode, 0);
+  rtx addr = expand_expr (addr_tree, NULL_RTX, ptr_mode, EXPAND_NORMAL);
 
   addr = convert_memory_address (Pmode, addr);
 
@@ -2958,7 +2971,8 @@ expand_builtin_eh_return (tree stackadj_tree ATTRIBUTE_UNUSED,
   rtx tmp;
 
 #ifdef EH_RETURN_STACKADJ_RTX
-  tmp = expand_expr (stackadj_tree, cfun->eh->ehr_stackadj, VOIDmode, 0);
+  tmp = expand_expr (stackadj_tree, cfun->eh->ehr_stackadj,
+		     VOIDmode, EXPAND_NORMAL);
   tmp = convert_memory_address (Pmode, tmp);
   if (!cfun->eh->ehr_stackadj)
     cfun->eh->ehr_stackadj = copy_to_reg (tmp);
@@ -2966,7 +2980,8 @@ expand_builtin_eh_return (tree stackadj_tree ATTRIBUTE_UNUSED,
     emit_move_insn (cfun->eh->ehr_stackadj, tmp);
 #endif
 
-  tmp = expand_expr (handler_tree, cfun->eh->ehr_handler, VOIDmode, 0);
+  tmp = expand_expr (handler_tree, cfun->eh->ehr_handler,
+		     VOIDmode, EXPAND_NORMAL);
   tmp = convert_memory_address (Pmode, tmp);
   if (!cfun->eh->ehr_handler)
     cfun->eh->ehr_handler = copy_to_reg (tmp);
@@ -3024,7 +3039,7 @@ expand_eh_return (void)
 rtx
 expand_builtin_extend_pointer (tree addr_tree)
 {
-  rtx addr = expand_expr (addr_tree, NULL_RTX, ptr_mode, 0);
+  rtx addr = expand_expr (addr_tree, NULL_RTX, ptr_mode, EXPAND_NORMAL);
   int extend;
 
 #ifdef POINTERS_EXTEND_UNSIGNED
@@ -3035,7 +3050,7 @@ expand_builtin_extend_pointer (tree addr_tree)
   extend = 1;
 #endif
 
-  return convert_modes (word_mode, ptr_mode, addr, extend);
+  return convert_modes (targetm.unwind_word_mode (), ptr_mode, addr, extend);
 }
 
 /* In the following functions, we represent entries in the action table
@@ -3527,10 +3542,16 @@ sjlj_output_call_site_table (void)
 /* Switch to the section that should be used for exception tables.  */
 
 static void
-switch_to_exception_section (void)
+switch_to_exception_section (const char * ARG_UNUSED (fnname))
 {
-  if (exception_section == 0)
+  section *s;
+
+  if (exception_section)
+    s = exception_section;
+  else
     {
+      /* Compute the section and cache it into exception_section,
+	 unless it depends on the function name.  */
       if (targetm.have_named_sections)
 	{
 	  int flags;
@@ -3546,12 +3567,26 @@ switch_to_exception_section (void)
 	    }
 	  else
 	    flags = SECTION_WRITE;
-	  exception_section = get_section (".gcc_except_table", flags, NULL);
+
+#ifdef HAVE_LD_EH_GC_SECTIONS
+	  if (flag_function_sections)
+	    {
+	      char *section_name = xmalloc (strlen (fnname) + 32);
+	      sprintf (section_name, ".gcc_except_table.%s", fnname);
+	      s = get_section (section_name, flags, NULL);
+	      free (section_name);
+	    }
+	  else
+#endif
+	    exception_section
+	      = s = get_section (".gcc_except_table", flags, NULL);
 	}
       else
-	exception_section = flag_pic ? data_section : readonly_data_section;
+	exception_section
+	  = s = flag_pic ? data_section : readonly_data_section;
     }
-  switch_to_section (exception_section);
+
+  switch_to_section (s);
 }
 #endif
 
@@ -3570,7 +3605,7 @@ output_ttype (tree type, int tt_format, int tt_format_size)
     value = const0_rtx;
   else
     {
-      struct cgraph_varpool_node *node;
+      struct varpool_node *node;
 
       type = lookup_type_for_runtime (type);
       value = expand_expr (type, NULL_RTX, VOIDmode, EXPAND_INITIALIZER);
@@ -3584,9 +3619,9 @@ output_ttype (tree type, int tt_format, int tt_format_size)
 	  type = TREE_OPERAND (type, 0);
 	  if (TREE_CODE (type) == VAR_DECL)
 	    {
-	      node = cgraph_varpool_node (type);
+	      node = varpool_node (type);
 	      if (node)
-		cgraph_varpool_mark_needed_node (node);
+		varpool_mark_needed_node (node);
 	      public = TREE_PUBLIC (type);
 	    }
 	}
@@ -3606,7 +3641,7 @@ output_ttype (tree type, int tt_format, int tt_format_size)
 }
 
 void
-output_function_exception_table (void)
+output_function_exception_table (const char * ARG_UNUSED (fnname))
 {
   int tt_format, cs_format, lp_format, i, n;
 #ifdef HAVE_AS_LEB128
@@ -3619,12 +3654,12 @@ output_function_exception_table (void)
   int have_tt_data;
   int tt_format_size = 0;
 
-  if (eh_personality_libfunc)
-    assemble_external_libcall (eh_personality_libfunc);
-
   /* Not all functions need anything.  */
   if (! cfun->uses_eh_lsda)
     return;
+
+  if (eh_personality_libfunc)
+    assemble_external_libcall (eh_personality_libfunc);
 
 #ifdef TARGET_UNWIND_INFO
   /* TODO: Move this into target file.  */
@@ -3634,7 +3669,7 @@ output_function_exception_table (void)
   /* Note that varasm still thinks we're in the function's code section.
      The ".endp" directive that will immediately follow will take us back.  */
 #else
-  switch_to_exception_section ();
+  switch_to_exception_section (fnname);
 #endif
 
   /* If the target wants a label to begin the table, emit it here.  */

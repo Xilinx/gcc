@@ -38,7 +38,6 @@ TRACE=no
 ADA_FOR_BUILD=
 ADA_FOR_TARGET=
 LDFLAGS=
-STAGE_PREFIX=
 PWD_COMMAND = $${PWDCMD-pwd}
 
 # The tedious process of getting CFLAGS right.
@@ -157,8 +156,7 @@ GNATTOOLS2_FILES = \
 	../../gnatxref$(exeext) \
 	../../gnatfind$(exeext) \
 	../../gnatname$(exeext) \
-	../../gnatclean$(exeext) \
-	../../gprmake$(exeext)
+	../../gnatclean$(exeext)
 
 # Makefile targets
 # ----------------
@@ -315,6 +313,8 @@ TAGS:
 install:
 
 install-info:
+
+install-pdf:
 
 install-html:
 

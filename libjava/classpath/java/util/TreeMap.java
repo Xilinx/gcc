@@ -1,6 +1,6 @@
 /* TreeMap.java -- a class providing a basic Red-Black Tree data structure,
    mapping Object --> Object
-   Copyright (C) 1998, 1999, 2000, 2001, 2002, 2004, 2005  Free Software Foundation, Inc.
+   Copyright (C) 1998, 1999, 2000, 2001, 2002, 2004, 2005, 2006  Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -79,6 +79,7 @@ import java.io.Serializable;
  * @author Jon Zeppieri
  * @author Bryce McKinlay
  * @author Eric Blake (ebb9@email.byu.edu)
+ * @author Andrew John Hughes (gnu_andrew@member.fsf.org)
  * @see Map
  * @see HashMap
  * @see Hashtable
@@ -88,10 +89,10 @@ import java.io.Serializable;
  * @see Collection
  * @see Collections#synchronizedSortedMap(SortedMap)
  * @since 1.2
- * @status updated to 1.4
+ * @status updated to 1.6
  */
-public class TreeMap extends AbstractMap
-  implements SortedMap, Cloneable, Serializable
+public class TreeMap<K, V> extends AbstractMap<K, V>
+  implements NavigableMap<K, V>, Cloneable, Serializable
 {
   // Implementation note:
   // A red-black tree is a binary search tree with the additional properties
@@ -140,7 +141,17 @@ public class TreeMap extends AbstractMap
   /**
    * The cache for {@link #entrySet()}.
    */
-  private transient Set entries;
+  private transient Set<Map.Entry<K,V>> entries;
+
+  /**
+   * The cache for {@link #descendingMap()}.
+   */
+  private transient NavigableMap<K,V> descendingMap;
+
+  /**
+   * The cache for {@link #navigableKeySet()}.
+   */
+  private transient NavigableSet<K> nKeys;
 
   /**
    * Counts the number of modifications this TreeMap has undergone, used
@@ -154,7 +165,7 @@ public class TreeMap extends AbstractMap
    * Package visible for use by nested classes.
    * @serial the comparator ordering this tree, or null
    */
-  final Comparator comparator;
+  final Comparator<? super K> comparator;
 
   /**
    * Class to represent an entry in the tree. Holds a single key-value pair,
@@ -162,25 +173,25 @@ public class TreeMap extends AbstractMap
    *
    * @author Eric Blake (ebb9@email.byu.edu)
    */
-  private static final class Node extends AbstractMap.BasicMapEntry
+  private static final class Node<K, V> extends AbstractMap.SimpleEntry<K, V>
   {
     // All fields package visible for use by nested classes.
     /** The color of this node. */
     int color;
 
     /** The left child node. */
-    Node left = nil;
+    Node<K, V> left = nil;
     /** The right child node. */
-    Node right = nil;
+    Node<K, V> right = nil;
     /** The parent node. */
-    Node parent = nil;
+    Node<K, V> parent = nil;
 
     /**
      * Simple constructor.
      * @param key the key
      * @param value the value
      */
-    Node(Object key, Object value, int color)
+    Node(K key, V value, int color)
     {
       super(key, value);
       this.color = color;
@@ -210,7 +221,7 @@ public class TreeMap extends AbstractMap
    * @param c the sort order for the keys of this map, or null
    *        for the natural order
    */
-  public TreeMap(Comparator c)
+  public TreeMap(Comparator<? super K> c)
   {
     comparator = c;
     fabricateTree(0);
@@ -230,7 +241,7 @@ public class TreeMap extends AbstractMap
    * @throws NullPointerException if map is null
    * @see Comparable
    */
-  public TreeMap(Map map)
+  public TreeMap(Map<? extends K, ? extends V> map)
   {
     this((Comparator) null);
     putAll(map);
@@ -244,7 +255,7 @@ public class TreeMap extends AbstractMap
    * @param sm a SortedMap, whose entries will be put into this TreeMap
    * @throws NullPointerException if sm is null
    */
-  public TreeMap(SortedMap sm)
+  public TreeMap(SortedMap<K, ? extends V> sm)
   {
     this(sm.comparator());
     int pos = sm.size();
@@ -313,7 +324,7 @@ public class TreeMap extends AbstractMap
    *
    * @return the map's comparator
    */
-  public Comparator comparator()
+  public Comparator<? super K> comparator()
   {
     return comparator;
   }
@@ -329,7 +340,7 @@ public class TreeMap extends AbstractMap
    */
   public boolean containsKey(Object key)
   {
-    return getNode(key) != nil;
+    return getNode((K) key) != nil;
   }
 
   /**
@@ -364,51 +375,12 @@ public class TreeMap extends AbstractMap
    * @see #values()
    * @see Map.Entry
    */
-  public Set entrySet()
+  public Set<Map.Entry<K,V>> entrySet()
   {
     if (entries == null)
       // Create an AbstractSet with custom implementations of those methods
       // that can be overriden easily and efficiently.
-      entries = new AbstractSet()
-      {
-        public int size()
-        {
-          return size;
-        }
-
-        public Iterator iterator()
-        {
-          return new TreeIterator(ENTRIES);
-        }
-
-        public void clear()
-        {
-          TreeMap.this.clear();
-        }
-
-        public boolean contains(Object o)
-        {
-          if (! (o instanceof Map.Entry))
-            return false;
-          Map.Entry me = (Map.Entry) o;
-          Node n = getNode(me.getKey());
-          return n != nil && AbstractSet.equals(me.getValue(), n.value);
-      }
-
-        public boolean remove(Object o)
-        {
-          if (! (o instanceof Map.Entry))
-            return false;
-          Map.Entry me = (Map.Entry) o;
-          Node n = getNode(me.getKey());
-          if (n != nil && AbstractSet.equals(me.getValue(), n.value))
-            {
-              removeNode(n);
-              return true;
-            }
-          return false;
-        }
-      };
+      entries = new NavigableEntrySet();
     return entries;
   }
 
@@ -418,7 +390,7 @@ public class TreeMap extends AbstractMap
    * @return the first key
    * @throws NoSuchElementException if the map is empty
    */
-  public Object firstKey()
+  public K firstKey()
   {
     if (root == nil)
       throw new NoSuchElementException();
@@ -439,10 +411,10 @@ public class TreeMap extends AbstractMap
    * @see #put(Object, Object)
    * @see #containsKey(Object)
    */
-  public Object get(Object key)
+  public V get(Object key)
   {
     // Exploit fact that nil.value == null.
-    return getNode(key).value;
+    return getNode((K) key).value;
   }
 
   /**
@@ -451,7 +423,9 @@ public class TreeMap extends AbstractMap
    * in one appear in the other. The submap will throw an
    * {@link IllegalArgumentException} for any attempt to access or add an
    * element beyond the specified cutoff. The returned map does not include
-   * the endpoint; if you want inclusion, pass the successor element.
+   * the endpoint; if you want inclusion, pass the successor element
+   * or call <code>headMap(toKey, true)</code>.  This is equivalent to
+   * calling <code>headMap(toKey, false)</code>.
    *
    * @param toKey the (exclusive) cutoff point
    * @return a view of the map less than the cutoff
@@ -460,9 +434,31 @@ public class TreeMap extends AbstractMap
    * @throws NullPointerException if toKey is null, but the comparator does not
    *         tolerate null elements
    */
-  public SortedMap headMap(Object toKey)
+  public SortedMap<K, V> headMap(K toKey)
   {
-    return new SubMap(nil, toKey);
+    return headMap(toKey, false);
+  }
+
+  /**
+   * Returns a view of this Map including all entries with keys less than
+   * (or equal to, if <code>inclusive</code> is true) <code>toKey</code>.
+   * The returned map is backed by the original, so changes in one appear
+   * in the other. The submap will throw an {@link IllegalArgumentException}
+   * for any attempt to access or add an element beyond the specified cutoff. 
+   *
+   * @param toKey the cutoff point
+   * @param inclusive true if the cutoff point should be included.
+   * @return a view of the map less than (or equal to, if <code>inclusive</code>
+   *         is true) the cutoff.
+   * @throws ClassCastException if <code>toKey</code> is not compatible with
+   *         the comparator (or is not Comparable, for natural ordering)
+   * @throws NullPointerException if toKey is null, but the comparator does not
+   *         tolerate null elements
+   */
+  public NavigableMap<K, V> headMap(K toKey, boolean inclusive)
+  {
+    return new SubMap((K)(Object)nil, inclusive 
+		      ? successor(getNode(toKey)).key : toKey);
   }
 
   /**
@@ -474,42 +470,12 @@ public class TreeMap extends AbstractMap
    * @see #values()
    * @see #entrySet()
    */
-  public Set keySet()
+  public Set<K> keySet()
   {
     if (keys == null)
       // Create an AbstractSet with custom implementations of those methods
       // that can be overriden easily and efficiently.
-      keys = new AbstractSet()
-      {
-        public int size()
-        {
-          return size;
-        }
-
-        public Iterator iterator()
-        {
-          return new TreeIterator(KEYS);
-        }
-
-        public void clear()
-        {
-          TreeMap.this.clear();
-        }
-
-        public boolean contains(Object o)
-        {
-          return containsKey(o);
-        }
-
-        public boolean remove(Object key)
-        {
-          Node n = getNode(key);
-          if (n == nil)
-            return false;
-          removeNode(n);
-          return true;
-        }
-      };
+      keys = new KeySet();
     return keys;
   }
 
@@ -519,7 +485,7 @@ public class TreeMap extends AbstractMap
    * @return the last key
    * @throws NoSuchElementException if the map is empty
    */
-  public Object lastKey()
+  public K lastKey()
   {
     if (root == nil)
       throw new NoSuchElementException("empty");
@@ -542,10 +508,10 @@ public class TreeMap extends AbstractMap
    * @see #get(Object)
    * @see Object#equals(Object)
    */
-  public Object put(Object key, Object value)
+  public V put(K key, V value)
   {
-    Node current = root;
-    Node parent = nil;
+    Node<K,V> current = root;
+    Node<K,V> parent = nil;
     int comparison = 0;
 
     // Find new node's parent.
@@ -595,13 +561,13 @@ public class TreeMap extends AbstractMap
    * @throws NullPointerException if a key in m is null, and the comparator
    *         does not tolerate nulls
    */
-  public void putAll(Map m)
+  public void putAll(Map<? extends K, ? extends V> m)
   {
     Iterator itr = m.entrySet().iterator();
     int pos = m.size();
     while (--pos >= 0)
       {
-        Map.Entry e = (Map.Entry) itr.next();
+        Map.Entry<K,V> e = (Map.Entry<K,V>) itr.next();
         put(e.getKey(), e.getValue());
       }
   }
@@ -619,13 +585,13 @@ public class TreeMap extends AbstractMap
    * @throws NullPointerException if key is null, but the comparator does
    *         not tolerate nulls
    */
-  public Object remove(Object key)
+  public V remove(Object key)
   {
-    Node n = getNode(key);
+    Node<K, V> n = getNode((K)key);
     if (n == nil)
       return null;
     // Note: removeNode can alter the contents of n, so save value now.
-    Object result = n.value;
+    V result = n.value;
     removeNode(n);
     return result;
   }
@@ -648,7 +614,9 @@ public class TreeMap extends AbstractMap
    * {@link IllegalArgumentException} for any attempt to access or add an
    * element beyond the specified cutoffs. The returned map includes the low
    * endpoint but not the high; if you want to reverse this behavior on
-   * either end, pass in the successor element.
+   * either end, pass in the successor element or call
+   * {@link #subMap(K,boolean,K,boolean)}.  This call is equivalent to
+   * <code>subMap(fromKey, true, toKey, false)</code>.
    *
    * @param fromKey the (inclusive) low cutoff point
    * @param toKey the (exclusive) high cutoff point
@@ -659,9 +627,57 @@ public class TreeMap extends AbstractMap
    *         comparator does not tolerate null elements
    * @throws IllegalArgumentException if fromKey is greater than toKey
    */
-  public SortedMap subMap(Object fromKey, Object toKey)
+  public SortedMap<K, V> subMap(K fromKey, K toKey)
   {
-    return new SubMap(fromKey, toKey);
+    return subMap(fromKey, true, toKey, false);
+  }
+
+  /**
+   * Returns a view of this Map including all entries with keys greater (or
+   * equal to, if <code>fromInclusive</code> is true) <code>fromKey</code> and
+   * less than (or equal to, if <code>toInclusive</code> is true)
+   * <code>toKey</code>. The returned map is backed by the original, so
+   * changes in one appear in the other. The submap will throw an
+   * {@link IllegalArgumentException} for any attempt to access or add an
+   * element beyond the specified cutoffs. 
+   *
+   * @param fromKey the low cutoff point
+   * @param fromInclusive true if the low cutoff point should be included.
+   * @param toKey the high cutoff point
+   * @param toInclusive true if the high cutoff point should be included.
+   * @return a view of the map for the specified range.
+   * @throws ClassCastException if either cutoff is not compatible with
+   *         the comparator (or is not Comparable, for natural ordering)
+   * @throws NullPointerException if fromKey or toKey is null, but the
+   *         comparator does not tolerate null elements
+   * @throws IllegalArgumentException if fromKey is greater than toKey
+   */
+  public NavigableMap<K, V> subMap(K fromKey, boolean fromInclusive,
+				   K toKey, boolean toInclusive)
+  {
+    return new SubMap(fromInclusive ? fromKey : successor(getNode(fromKey)).key,
+		      toInclusive ? successor(getNode(toKey)).key : toKey);
+  }
+
+  /**
+   * Returns a view of this Map including all entries with keys greater or
+   * equal to <code>fromKey</code>. The returned map is backed by the
+   * original, so changes in one appear in the other. The submap will throw an
+   * {@link IllegalArgumentException} for any attempt to access or add an
+   * element beyond the specified cutoff. The returned map includes the
+   * endpoint; if you want to exclude it, pass in the successor element.
+   * This is equivalent to calling <code>tailMap(fromKey, true)</code>.
+   *
+   * @param fromKey the (inclusive) low cutoff point
+   * @return a view of the map above the cutoff
+   * @throws ClassCastException if <code>fromKey</code> is not compatible with
+   *         the comparator (or is not Comparable, for natural ordering)
+   * @throws NullPointerException if fromKey is null, but the comparator
+   *         does not tolerate null elements
+   */
+  public SortedMap<K, V> tailMap(K fromKey)
+  {
+    return tailMap(fromKey, true);
   }
 
   /**
@@ -672,16 +688,18 @@ public class TreeMap extends AbstractMap
    * element beyond the specified cutoff. The returned map includes the
    * endpoint; if you want to exclude it, pass in the successor element.
    *
-   * @param fromKey the (inclusive) low cutoff point
+   * @param fromKey the low cutoff point
+   * @param inclusive true if the cutoff point should be included.
    * @return a view of the map above the cutoff
    * @throws ClassCastException if <code>fromKey</code> is not compatible with
    *         the comparator (or is not Comparable, for natural ordering)
    * @throws NullPointerException if fromKey is null, but the comparator
    *         does not tolerate null elements
    */
-  public SortedMap tailMap(Object fromKey)
+  public NavigableMap<K, V> tailMap(K fromKey, boolean inclusive)
   {
-    return new SubMap(fromKey, nil);
+    return new SubMap(inclusive ? fromKey : successor(getNode(fromKey)).key,
+		      (K)(Object)nil);
   }
 
   /**
@@ -694,19 +712,19 @@ public class TreeMap extends AbstractMap
    * @see #keySet()
    * @see #entrySet()
    */
-  public Collection values()
+  public Collection<V> values()
   {
     if (values == null)
       // We don't bother overriding many of the optional methods, as doing so
       // wouldn't provide any significant performance advantage.
-      values = new AbstractCollection()
+      values = new AbstractCollection<V>()
       {
         public int size()
         {
           return size;
         }
 
-        public Iterator iterator()
+        public Iterator<V> iterator()
         {
           return new TreeIterator(VALUES);
         }
@@ -729,7 +747,7 @@ public class TreeMap extends AbstractMap
    *         or are not Comparable with natural ordering
    * @throws NullPointerException if o1 or o2 is null with natural ordering
    */
-  final int compare(Object o1, Object o2)
+  final int compare(K o1, K o2)
   {
     return (comparator == null
             ? ((Comparable) o1).compareTo(o2)
@@ -742,7 +760,7 @@ public class TreeMap extends AbstractMap
    * @param node the child of the node just deleted, possibly nil
    * @param parent the parent of the node just deleted, never nil
    */
-  private void deleteFixup(Node node, Node parent)
+  private void deleteFixup(Node<K,V> node, Node<K,V> parent)
   {
     // if (parent == nil)
     //   throw new InternalError();
@@ -754,7 +772,7 @@ public class TreeMap extends AbstractMap
         if (node == parent.left)
           {
             // Rebalance left side.
-            Node sibling = parent.right;
+            Node<K,V> sibling = parent.right;
             // if (sibling == nil)
             //   throw new InternalError();
             if (sibling.color == RED)
@@ -798,7 +816,7 @@ public class TreeMap extends AbstractMap
         else
           {
             // Symmetric "mirror" of left-side case.
-            Node sibling = parent.left;
+            Node<K,V> sibling = parent.left;
             // if (sibling == nil)
             //   throw new InternalError();
             if (sibling.color == RED)
@@ -931,7 +949,7 @@ public class TreeMap extends AbstractMap
    *
    * @return the first node
    */
-  final Node firstNode()
+  final Node<K, V> firstNode()
   {
     // Exploit fact that nil.left == nil.
     Node node = root;
@@ -947,9 +965,9 @@ public class TreeMap extends AbstractMap
    * @param key the key to search for
    * @return the node where the key is found, or nil
    */
-  final Node getNode(Object key)
+  final Node<K, V> getNode(K key)
   {
-    Node current = root;
+    Node<K,V> current = root;
     while (current != nil)
       {
         int comparison = compare(key, current.key);
@@ -970,13 +988,28 @@ public class TreeMap extends AbstractMap
    * @param key the upper bound, exclusive
    * @return the previous node
    */
-  final Node highestLessThan(Object key)
+  final Node<K,V> highestLessThan(K key)
+  {
+    return highestLessThan(key, false);
+  }
+
+  /**
+   * Find the "highest" node which is &lt; (or equal to,
+   * if <code>equal</code> is true) key. If key is nil,
+   * return last node. Package visible for use by nested
+   * classes.
+   *
+   * @param key the upper bound, exclusive
+   * @param equal true if the key should be returned if found.
+   * @return the previous node
+   */
+  final Node<K,V> highestLessThan(K key, boolean equal)
   {
     if (key == nil)
       return lastNode();
 
-    Node last = nil;
-    Node current = root;
+    Node<K,V> last = nil;
+    Node<K,V> current = root;
     int comparison = 0;
 
     while (current != nil)
@@ -988,9 +1021,9 @@ public class TreeMap extends AbstractMap
         else if (comparison < 0)
           current = current.left;
         else // Exact match.
-          return predecessor(last);
+          return (equal ? last : predecessor(last));
       }
-    return comparison <= 0 ? predecessor(last) : last;
+    return comparison < 0 ? predecessor(last) : last;
   }
 
   /**
@@ -998,7 +1031,7 @@ public class TreeMap extends AbstractMap
    *
    * @param n the newly inserted node
    */
-  private void insertFixup(Node n)
+  private void insertFixup(Node<K,V> n)
   {
     // Only need to rebalance when parent is a RED node, and while at least
     // 2 levels deep into the tree (ie: node has a grandparent). Remember
@@ -1073,7 +1106,7 @@ public class TreeMap extends AbstractMap
    *
    * @return the last node
    */
-  private Node lastNode()
+  private Node<K,V> lastNode()
   {
     // Exploit fact that nil.right == nil.
     Node node = root;
@@ -1084,20 +1117,35 @@ public class TreeMap extends AbstractMap
 
   /**
    * Find the "lowest" node which is &gt;= key. If key is nil, return either
-   * nil or the first node, depending on the parameter first.
-   * Package visible for use by nested classes.
+   * nil or the first node, depending on the parameter first.  Package visible
+   * for use by nested classes.
    *
    * @param key the lower bound, inclusive
    * @param first true to return the first element instead of nil for nil key
    * @return the next node
    */
-  final Node lowestGreaterThan(Object key, boolean first)
+  final Node<K,V> lowestGreaterThan(K key, boolean first)
+  {
+    return lowestGreaterThan(key, first, true);
+  }
+
+  /**
+   * Find the "lowest" node which is &gt; (or equal to, if <code>equal</code>
+   * is true) key. If key is nil, return either nil or the first node, depending
+   * on the parameter first.  Package visible for use by nested classes.
+   *
+   * @param key the lower bound, inclusive
+   * @param first true to return the first element instead of nil for nil key
+   * @param equal true if the key should be returned if found.
+   * @return the next node
+   */
+  final Node<K,V> lowestGreaterThan(K key, boolean first, boolean equal)
   {
     if (key == nil)
       return first ? firstNode() : nil;
 
-    Node last = nil;
-    Node current = root;
+    Node<K,V> last = nil;
+    Node<K,V> current = root;
     int comparison = 0;
 
     while (current != nil)
@@ -1109,7 +1157,7 @@ public class TreeMap extends AbstractMap
         else if (comparison < 0)
           current = current.left;
         else
-          return current;
+          return (equal ? current : successor(current));
       }
     return comparison > 0 ? successor(last) : last;
   }
@@ -1120,7 +1168,7 @@ public class TreeMap extends AbstractMap
    * @param node the current node, not nil
    * @return the prior node in sorted order
    */
-  private Node predecessor(Node node)
+  private Node<K,V> predecessor(Node<K,V> node)
   {
     if (node.left != nil)
       {
@@ -1169,21 +1217,21 @@ public class TreeMap extends AbstractMap
 
   /**
    * Construct a tree from sorted keys in linear time, with values of "".
-   * Package visible for use by TreeSet.
+   * Package visible for use by TreeSet, which uses a value type of String.
    *
    * @param keys the iterator over the sorted keys
    * @param count the number of nodes to insert
    * @see TreeSet#TreeSet(SortedSet)
    */
-  final void putKeysLinear(Iterator keys, int count)
+  final void putKeysLinear(Iterator<K> keys, int count)
   {
     fabricateTree(count);
-    Node node = firstNode();
+    Node<K,V> node = firstNode();
 
     while (--count >= 0)
       {
         node.key = keys.next();
-        node.value = "";
+        node.value = (V) "";
         node = successor(node);
       }
   }
@@ -1211,10 +1259,10 @@ public class TreeMap extends AbstractMap
    *
    * @param node the node to remove
    */
-  final void removeNode(Node node)
+  final void removeNode(Node<K,V> node)
   {
-    Node splice;
-    Node child;
+    Node<K,V> splice;
+    Node<K,V> child;
 
     modCount++;
     size--;
@@ -1268,7 +1316,7 @@ public class TreeMap extends AbstractMap
    *
    * @param node the node to rotate
    */
-  private void rotateLeft(Node node)
+  private void rotateLeft(Node<K,V> node)
   {
     Node child = node.right;
     // if (node == nil || child == nil)
@@ -1301,7 +1349,7 @@ public class TreeMap extends AbstractMap
    *
    * @param node the node to rotate
    */
-  private void rotateRight(Node node)
+  private void rotateRight(Node<K,V> node)
   {
     Node child = node.left;
     // if (node == nil || child == nil)
@@ -1336,7 +1384,7 @@ public class TreeMap extends AbstractMap
    * @param node the current node, not nil
    * @return the next node in sorted order
    */
-  final Node successor(Node node)
+  final Node<K,V> successor(Node<K,V> node)
   {
     if (node.right != nil)
       {
@@ -1346,7 +1394,7 @@ public class TreeMap extends AbstractMap
         return node;
       }
 
-    Node parent = node.parent;
+    Node<K,V> parent = node.parent;
     // Exploit fact that nil.right == nil and node is non-nil.
     while (node == parent.right)
       {
@@ -1409,11 +1457,7 @@ public class TreeMap extends AbstractMap
      */
     TreeIterator(int type)
     {
-      // FIXME gcj cannot handle this. Bug java/4695
-      // this(type, firstNode(), nil);
-      this.type = type;
-      this.next = firstNode();
-      this.max = nil;
+      this(type, firstNode(), nil);
     }
 
     /**
@@ -1489,24 +1533,36 @@ public class TreeMap extends AbstractMap
    *
    * @author Eric Blake (ebb9@email.byu.edu)
    */
-  private final class SubMap extends AbstractMap implements SortedMap
+  private final class SubMap
+    extends AbstractMap<K,V>
+    implements NavigableMap<K,V>
   {
     /**
      * The lower range of this view, inclusive, or nil for unbounded.
      * Package visible for use by nested classes.
      */
-    final Object minKey;
+    final K minKey;
 
     /**
      * The upper range of this view, exclusive, or nil for unbounded.
      * Package visible for use by nested classes.
      */
-    final Object maxKey;
+    final K maxKey;
 
     /**
      * The cache for {@link #entrySet()}.
      */
-    private Set entries;
+    private Set<Map.Entry<K,V>> entries;
+
+    /**
+     * The cache for {@link #descendingMap()}.
+     */
+    private NavigableMap<K,V> descendingMap;
+
+    /**
+     * The cache for {@link #navigableKeySet()}.
+     */
+    private NavigableSet<K> nKeys;
 
     /**
      * Create a SubMap representing the elements between minKey (inclusive)
@@ -1517,7 +1573,7 @@ public class TreeMap extends AbstractMap
      * @param maxKey the upper bound
      * @throws IllegalArgumentException if minKey &gt; maxKey
      */
-    SubMap(Object minKey, Object maxKey)
+    SubMap(K minKey, K maxKey)
     {
       if (minKey != nil && maxKey != nil && compare(minKey, maxKey) > 0)
         throw new IllegalArgumentException("fromKey > toKey");
@@ -1533,12 +1589,41 @@ public class TreeMap extends AbstractMap
      * @param key the key to check
      * @return true if the key is in range
      */
-    boolean keyInRange(Object key)
+    boolean keyInRange(K key)
     {
       return ((minKey == nil || compare(key, minKey) >= 0)
               && (maxKey == nil || compare(key, maxKey) < 0));
     }
 
+    public Entry<K,V> ceilingEntry(K key)
+    {
+      Entry<K,V> n = TreeMap.this.ceilingEntry(key);
+      if (n != null && keyInRange(n.getKey()))
+	return n;
+      return null;
+    }
+
+    public K ceilingKey(K key)
+    {
+      K found = TreeMap.this.ceilingKey(key);
+      if (keyInRange(found))
+	return found;
+      else
+	return null;
+    }
+
+    public NavigableSet<K> descendingKeySet()
+    {
+      return descendingMap().navigableKeySet();
+    }
+
+    public NavigableMap<K,V> descendingMap()
+    {
+      if (descendingMap == null)
+	descendingMap = new DescendingMap(this);
+      return descendingMap;
+    }
+    
     public void clear()
     {
       Node next = lowestGreaterThan(minKey, true);
@@ -1551,14 +1636,14 @@ public class TreeMap extends AbstractMap
         }
     }
 
-    public Comparator comparator()
+    public Comparator<? super K> comparator()
     {
       return comparator;
     }
 
     public boolean containsKey(Object key)
     {
-      return keyInRange(key) && TreeMap.this.containsKey(key);
+      return keyInRange((K) key) && TreeMap.this.containsKey(key);
     }
 
     public boolean containsValue(Object value)
@@ -1574,149 +1659,159 @@ public class TreeMap extends AbstractMap
       return false;
     }
 
-    public Set entrySet()
+    public Set<Map.Entry<K,V>> entrySet()
     {
       if (entries == null)
         // Create an AbstractSet with custom implementations of those methods
         // that can be overriden easily and efficiently.
-        entries = new AbstractSet()
-        {
-          public int size()
-          {
-            return SubMap.this.size();
-          }
-
-          public Iterator iterator()
-          {
-            Node first = lowestGreaterThan(minKey, true);
-            Node max = lowestGreaterThan(maxKey, false);
-            return new TreeIterator(ENTRIES, first, max);
-          }
-
-          public void clear()
-          {
-            SubMap.this.clear();
-          }
-
-          public boolean contains(Object o)
-          {
-            if (! (o instanceof Map.Entry))
-              return false;
-            Map.Entry me = (Map.Entry) o;
-            Object key = me.getKey();
-            if (! keyInRange(key))
-              return false;
-            Node n = getNode(key);
-            return n != nil && AbstractSet.equals(me.getValue(), n.value);
-          }
-
-          public boolean remove(Object o)
-          {
-            if (! (o instanceof Map.Entry))
-              return false;
-            Map.Entry me = (Map.Entry) o;
-            Object key = me.getKey();
-            if (! keyInRange(key))
-              return false;
-            Node n = getNode(key);
-            if (n != nil && AbstractSet.equals(me.getValue(), n.value))
-              {
-                removeNode(n);
-                return true;
-              }
-            return false;
-          }
-        };
+        entries = new SubMap.NavigableEntrySet();
       return entries;
     }
 
-    public Object firstKey()
+    public Entry<K,V> firstEntry()
     {
-      Node node = lowestGreaterThan(minKey, true);
+      Node<K,V> node = lowestGreaterThan(minKey, true);
       if (node == nil || ! keyInRange(node.key))
-        throw new NoSuchElementException();
-      return node.key;
+	return null;
+      return node;
     }
 
-    public Object get(Object key)
+    public K firstKey()
     {
-      if (keyInRange(key))
+      Entry<K,V> e = firstEntry();
+      if (e == null)
+        throw new NoSuchElementException();
+      return e.getKey();
+    }
+
+    public Entry<K,V> floorEntry(K key)
+    {
+      Entry<K,V> n = TreeMap.this.floorEntry(key);
+      if (n != null && keyInRange(n.getKey()))
+	return n;
+      return null;
+    }
+
+    public K floorKey(K key)
+    {
+      K found = TreeMap.this.floorKey(key);
+      if (keyInRange(found))
+	return found;
+      else
+	return null;
+    }
+
+    public V get(Object key)
+    {
+      if (keyInRange((K) key))
         return TreeMap.this.get(key);
       return null;
     }
 
-    public SortedMap headMap(Object toKey)
+    public SortedMap<K,V> headMap(K toKey)
     {
-      if (! keyInRange(toKey))
-        throw new IllegalArgumentException("key outside range");
-      return new SubMap(minKey, toKey);
+      return headMap(toKey, false);
     }
 
-    public Set keySet()
+    public NavigableMap<K,V> headMap(K toKey, boolean inclusive)
+    {
+      if (!keyInRange(toKey))
+        throw new IllegalArgumentException("Key outside submap range");
+      return new SubMap(minKey, (inclusive ? 
+				 successor(getNode(toKey)).key : toKey));
+    }
+
+    public Set<K> keySet()
     {
       if (this.keys == null)
         // Create an AbstractSet with custom implementations of those methods
         // that can be overriden easily and efficiently.
-        this.keys = new AbstractSet()
-        {
-          public int size()
-          {
-            return SubMap.this.size();
-          }
-
-          public Iterator iterator()
-          {
-            Node first = lowestGreaterThan(minKey, true);
-            Node max = lowestGreaterThan(maxKey, false);
-            return new TreeIterator(KEYS, first, max);
-          }
-
-          public void clear()
-          {
-            SubMap.this.clear();
-          }
-
-          public boolean contains(Object o)
-          {
-            if (! keyInRange(o))
-              return false;
-            return getNode(o) != nil;
-          }
-
-          public boolean remove(Object o)
-          {
-            if (! keyInRange(o))
-              return false;
-            Node n = getNode(o);
-            if (n != nil)
-              {
-                removeNode(n);
-                return true;
-              }
-            return false;
-          }
-        };
+        this.keys = new SubMap.KeySet();
       return this.keys;
     }
 
-    public Object lastKey()
+    public Entry<K,V> higherEntry(K key)
     {
-      Node node = highestLessThan(maxKey);
-      if (node == nil || ! keyInRange(node.key))
-        throw new NoSuchElementException();
-      return node.key;
+      Entry<K,V> n = TreeMap.this.higherEntry(key);
+      if (n != null && keyInRange(n.getKey()))
+	return n;
+      return null;
     }
 
-    public Object put(Object key, Object value)
+    public K higherKey(K key)
+    {
+      K found = TreeMap.this.higherKey(key);
+      if (keyInRange(found))
+	return found;
+      else
+	return null;
+    }
+
+    public Entry<K,V> lastEntry()
+    {
+      return lowerEntry(maxKey);
+    }
+
+    public K lastKey()
+    {
+      Entry<K,V> e = lastEntry();
+      if (e == null)
+        throw new NoSuchElementException();
+      return e.getKey();
+    }
+
+    public Entry<K,V> lowerEntry(K key)
+    {
+      Entry<K,V> n = TreeMap.this.lowerEntry(key);
+      if (n != null && keyInRange(n.getKey()))
+	return n;
+      return null;
+    }
+
+    public K lowerKey(K key)
+    {
+      K found = TreeMap.this.lowerKey(key);
+      if (keyInRange(found))
+	return found;
+      else
+	return null;
+    }
+
+    public NavigableSet<K> navigableKeySet()
+    {
+      if (this.nKeys == null)
+        // Create an AbstractSet with custom implementations of those methods
+        // that can be overriden easily and efficiently.
+        this.nKeys = new SubMap.NavigableKeySet();
+      return this.nKeys;    
+    }
+
+    public Entry<K,V> pollFirstEntry()
+    {
+      Entry<K,V> e = firstEntry();
+      if (e != null)
+	removeNode((Node<K,V>) e);
+      return e;
+    }
+
+    public Entry<K,V> pollLastEntry()
+    {
+      Entry<K,V> e = lastEntry();
+      if (e != null)
+	removeNode((Node<K,V>) e);
+      return e;
+    }
+
+    public V put(K key, V value)
     {
       if (! keyInRange(key))
         throw new IllegalArgumentException("Key outside range");
       return TreeMap.this.put(key, value);
     }
 
-    public Object remove(Object key)
+    public V remove(Object key)
     {
-      if (keyInRange(key))
+      if (keyInRange((K)key))
         return TreeMap.this.remove(key);
       return null;
     }
@@ -1734,21 +1829,34 @@ public class TreeMap extends AbstractMap
       return count;
     }
 
-    public SortedMap subMap(Object fromKey, Object toKey)
+    public SortedMap<K,V> subMap(K fromKey, K toKey)
+    {
+      return subMap(fromKey, true, toKey, false);
+    }
+
+    public NavigableMap<K,V> subMap(K fromKey, boolean fromInclusive,
+				    K toKey, boolean toInclusive)
     {
       if (! keyInRange(fromKey) || ! keyInRange(toKey))
         throw new IllegalArgumentException("key outside range");
-      return new SubMap(fromKey, toKey);
+      return new SubMap(fromInclusive ? fromKey : successor(getNode(fromKey)).key, 
+			toInclusive ? successor(getNode(toKey)).key : toKey);
     }
 
-    public SortedMap tailMap(Object fromKey)
+    public SortedMap<K, V> tailMap(K fromKey)
+    {
+      return tailMap(fromKey, true);
+    }
+    
+    public NavigableMap<K,V> tailMap(K fromKey, boolean inclusive)
     {
       if (! keyInRange(fromKey))
         throw new IllegalArgumentException("key outside range");
-      return new SubMap(fromKey, maxKey);
+      return new SubMap(inclusive ? fromKey : successor(getNode(fromKey)).key,
+			maxKey);
     }
 
-    public Collection values()
+    public Collection<V> values()
     {
       if (this.values == null)
         // Create an AbstractCollection with custom implementations of those
@@ -1760,7 +1868,7 @@ public class TreeMap extends AbstractMap
             return SubMap.this.size();
           }
 
-          public Iterator iterator()
+          public Iterator<V> iterator()
           {
             Node first = lowestGreaterThan(minKey, true);
             Node max = lowestGreaterThan(maxKey, false);
@@ -1774,5 +1882,1439 @@ public class TreeMap extends AbstractMap
         };
       return this.values;
     }
-  } // class SubMap  
+    
+    private class KeySet
+      extends AbstractSet<K>
+    {
+      public int size()
+      {
+	return SubMap.this.size();
+      }
+      
+      public Iterator<K> iterator()
+      {
+	Node first = lowestGreaterThan(minKey, true);
+	Node max = lowestGreaterThan(maxKey, false);
+	return new TreeIterator(KEYS, first, max);
+      }
+      
+      public void clear()
+      {
+	SubMap.this.clear();
+      }
+      
+      public boolean contains(Object o)
+      {
+	if (! keyInRange((K) o))
+	  return false;
+	return getNode((K) o) != nil;
+      }
+      
+      public boolean remove(Object o)
+      {
+	if (! keyInRange((K) o))
+	  return false;
+	Node n = getNode((K) o);
+	if (n != nil)
+	  {
+	    removeNode(n);
+	    return true;
+	  }
+	return false;
+      }
+      
+    } // class SubMap.KeySet
+
+    private final class NavigableKeySet
+      extends KeySet
+      implements NavigableSet<K>
+    {
+
+      public K ceiling(K k)
+      {
+	return SubMap.this.ceilingKey(k);
+      }
+      
+      public Comparator<? super K> comparator()
+      {
+	return comparator;
+      }
+      
+      public Iterator<K> descendingIterator()
+      {
+	return descendingSet().iterator();
+      }
+      
+      public NavigableSet<K> descendingSet()
+      {
+	return new DescendingSet(this);
+      }
+      
+      public K first()
+      {
+	return SubMap.this.firstKey();
+      }
+      
+      public K floor(K k)
+      {
+	return SubMap.this.floorKey(k);
+      }
+      
+      public SortedSet<K> headSet(K to)
+      {
+	return headSet(to, false);
+      }
+
+      public NavigableSet<K> headSet(K to, boolean inclusive)
+      {
+	return SubMap.this.headMap(to, inclusive).navigableKeySet();
+      }
+
+      public K higher(K k)
+      {
+	return SubMap.this.higherKey(k);
+      }
+
+      public K last()
+      {
+	return SubMap.this.lastKey();
+      }
+
+      public K lower(K k)
+      {
+	return SubMap.this.lowerKey(k);
+      }
+
+      public K pollFirst()
+      {
+	return SubMap.this.pollFirstEntry().getKey();
+      }
+
+      public K pollLast()
+      {
+	return SubMap.this.pollLastEntry().getKey();
+      }
+
+      public SortedSet<K> subSet(K from, K to)
+      {
+	return subSet(from, true, to, false);
+      }
+      
+      public NavigableSet<K> subSet(K from, boolean fromInclusive,
+				    K to, boolean toInclusive)
+      {
+	return SubMap.this.subMap(from, fromInclusive,
+				  to, toInclusive).navigableKeySet();
+      }
+
+      public SortedSet<K> tailSet(K from)
+      {
+	return tailSet(from, true);
+      }
+      
+      public NavigableSet<K> tailSet(K from, boolean inclusive)
+      {
+	return SubMap.this.tailMap(from, inclusive).navigableKeySet();
+      }
+      
+  } // class SubMap.NavigableKeySet
+
+  /**
+   * Implementation of {@link #entrySet()}.
+   */
+  private class EntrySet
+    extends AbstractSet<Entry<K,V>>
+  {
+    
+    public int size()
+    {
+      return SubMap.this.size();
+    }
+    
+    public Iterator<Map.Entry<K,V>> iterator()
+    {
+      Node first = lowestGreaterThan(minKey, true);
+      Node max = lowestGreaterThan(maxKey, false);
+      return new TreeIterator(ENTRIES, first, max);
+    }
+    
+    public void clear()
+    {
+      SubMap.this.clear();
+    }
+    
+    public boolean contains(Object o)
+    {
+      if (! (o instanceof Map.Entry))
+	return false;
+      Map.Entry<K,V> me = (Map.Entry<K,V>) o;
+      K key = me.getKey();
+      if (! keyInRange(key))
+	return false;
+      Node<K,V> n = getNode(key);
+      return n != nil && AbstractSet.equals(me.getValue(), n.value);
+    }
+    
+    public boolean remove(Object o)
+    {
+      if (! (o instanceof Map.Entry))
+	return false;
+      Map.Entry<K,V> me = (Map.Entry<K,V>) o;
+      K key = me.getKey();
+      if (! keyInRange(key))
+	return false;
+      Node<K,V> n = getNode(key);
+      if (n != nil && AbstractSet.equals(me.getValue(), n.value))
+	{
+	  removeNode(n);
+	  return true;
+	}
+      return false;
+    }
+  } // class SubMap.EntrySet
+    
+    private final class NavigableEntrySet
+      extends EntrySet
+      implements NavigableSet<Entry<K,V>>
+    {
+
+      public Entry<K,V> ceiling(Entry<K,V> e)
+      {
+	return SubMap.this.ceilingEntry(e.getKey());
+      }
+      
+      public Comparator<? super Entry<K,V>> comparator()
+      {
+	return new Comparator<Entry<K,V>>()
+	  {
+	    public int compare(Entry<K,V> t1, Entry<K,V> t2)
+	      {
+		return comparator.compare(t1.getKey(), t2.getKey());
+	      }
+	  };
+      }
+      
+      public Iterator<Entry<K,V>> descendingIterator()
+      {
+	return descendingSet().iterator();
+      }
+      
+      public NavigableSet<Entry<K,V>> descendingSet()
+      {
+	return new DescendingSet(this);
+      }
+      
+      public Entry<K,V> first()
+      {
+	return SubMap.this.firstEntry();
+      }
+      
+      public Entry<K,V> floor(Entry<K,V> e)
+      {
+	return SubMap.this.floorEntry(e.getKey());
+      }
+      
+      public SortedSet<Entry<K,V>> headSet(Entry<K,V> to)
+      {
+	return headSet(to, false);
+      }
+
+      public NavigableSet<Entry<K,V>> headSet(Entry<K,V> to, boolean inclusive)
+      {
+	return (NavigableSet<Entry<K,V>>)
+	  SubMap.this.headMap(to.getKey(), inclusive).entrySet();
+      }
+
+      public Entry<K,V> higher(Entry<K,V> e)
+      {
+	return SubMap.this.higherEntry(e.getKey());
+      }
+
+      public Entry<K,V> last()
+      {
+	return SubMap.this.lastEntry();
+      }
+
+      public Entry<K,V> lower(Entry<K,V> e)
+      {
+	return SubMap.this.lowerEntry(e.getKey());
+      }
+
+      public Entry<K,V> pollFirst()
+      {
+	return SubMap.this.pollFirstEntry();
+      }
+
+      public Entry<K,V> pollLast()
+      {
+	return SubMap.this.pollLastEntry();
+      }
+
+      public SortedSet<Entry<K,V>> subSet(Entry<K,V> from, Entry<K,V> to)
+      {
+	return subSet(from, true, to, false);
+      }
+      
+      public NavigableSet<Entry<K,V>> subSet(Entry<K,V> from, boolean fromInclusive,
+					     Entry<K,V> to, boolean toInclusive)
+      {
+	return (NavigableSet<Entry<K,V>>)
+	  SubMap.this.subMap(from.getKey(), fromInclusive,
+			     to.getKey(), toInclusive).entrySet();
+      }
+
+      public SortedSet<Entry<K,V>> tailSet(Entry<K,V> from)
+      {
+	return tailSet(from, true);
+      }
+      
+      public NavigableSet<Entry<K,V>> tailSet(Entry<K,V> from, boolean inclusive)
+      {
+	return (NavigableSet<Entry<K,V>>)
+	  SubMap.this.tailMap(from.getKey(), inclusive).navigableKeySet();
+      }
+      
+  } // class SubMap.NavigableEntrySet
+
+} // class SubMap  
+
+  /**
+   * Returns the entry associated with the least or lowest key
+   * that is greater than or equal to the specified key, or
+   * <code>null</code> if there is no such key.
+   *
+   * @param key the key relative to the returned entry.
+   * @return the entry with the least key greater than or equal
+   *         to the given key, or <code>null</code> if there is
+   *         no such key.
+   * @throws ClassCastException if the specified key can not
+   *                            be compared with those in the map.
+   * @throws NullPointerException if the key is <code>null</code>
+   *                              and this map either uses natural
+   *                              ordering or a comparator that does
+   *                              not permit null keys.
+   * @since 1.6
+   */
+  public Entry<K,V> ceilingEntry(K key)
+  {
+    Node<K,V> n = lowestGreaterThan(key, false);
+    return (n == nil) ? null : n;
+  }
+
+  /**
+   * Returns the the least or lowest key that is greater than
+   * or equal to the specified key, or <code>null</code> if
+   * there is no such key.
+   *
+   * @param key the key relative to the returned entry.
+   * @return the least key greater than or equal to the given key,
+   *         or <code>null</code> if there is no such key.
+   * @throws ClassCastException if the specified key can not
+   *                            be compared with those in the map.
+   * @throws NullPointerException if the key is <code>null</code>
+   *                              and this map either uses natural
+   *                              ordering or a comparator that does
+   *                              not permit null keys.
+   * @since 1.6
+   */
+  public K ceilingKey(K key)
+  {
+    Entry<K,V> e = ceilingEntry(key);
+    return (e == null) ? null : e.getKey();
+  }
+
+  /**
+   * Returns a reverse ordered {@link NavigableSet} view of this
+   * map's keys. The set is backed by the {@link TreeMap}, so changes
+   * in one show up in the other.  The set supports element removal,
+   * but not element addition.
+   *
+   * @return a reverse ordered set view of the keys.
+   * @since 1.6
+   * @see #descendingMap()
+   */
+  public NavigableSet<K> descendingKeySet()
+  {
+    return descendingMap().navigableKeySet();
+  }
+
+  /**
+   * Returns a view of the map in reverse order.  The descending map
+   * is backed by the original map, so that changes affect both maps.
+   * Any changes occurring to either map while an iteration is taking
+   * place (with the exception of a {@link Iterator#remove()} operation)
+   * result in undefined behaviour from the iteration.  The ordering
+   * of the descending map is the same as for a map with a
+   * {@link Comparator} given by {@link Collections#reverseOrder()},
+   * and calling {@link #descendingMap()} on the descending map itself
+   * results in a view equivalent to the original map.
+   *
+   * @return a reverse order view of the map.
+   * @since 1.6
+   */
+  public NavigableMap<K,V> descendingMap()
+  {
+    if (descendingMap == null)
+      descendingMap = new DescendingMap<K,V>(this);
+    return descendingMap;
+  }
+
+  /**
+   * Returns the entry associated with the least or lowest key
+   * in the map, or <code>null</code> if the map is empty.
+   *
+   * @return the lowest entry, or <code>null</code> if the map
+   *         is empty.
+   * @since 1.6
+   */
+  public Entry<K,V> firstEntry()
+  {
+    Node<K,V> n = firstNode();
+    return (n == nil) ? null : n;
+  }
+
+  /**
+   * Returns the entry associated with the greatest or highest key
+   * that is less than or equal to the specified key, or
+   * <code>null</code> if there is no such key.
+   *
+   * @param key the key relative to the returned entry.
+   * @return the entry with the greatest key less than or equal
+   *         to the given key, or <code>null</code> if there is
+   *         no such key.
+   * @throws ClassCastException if the specified key can not
+   *                            be compared with those in the map.
+   * @throws NullPointerException if the key is <code>null</code>
+   *                              and this map either uses natural
+   *                              ordering or a comparator that does
+   *                              not permit null keys.
+   * @since 1.6
+   */
+  public Entry<K,V> floorEntry(K key)
+  {
+    Node<K,V> n = highestLessThan(key, true);
+    return (n == nil) ? null : n;
+  }
+
+  /**
+   * Returns the the greatest or highest key that is less than
+   * or equal to the specified key, or <code>null</code> if
+   * there is no such key.
+   *
+   * @param key the key relative to the returned entry.
+   * @return the greatest key less than or equal to the given key,
+   *         or <code>null</code> if there is no such key.
+   * @throws ClassCastException if the specified key can not
+   *                            be compared with those in the map.
+   * @throws NullPointerException if the key is <code>null</code>
+   *                              and this map either uses natural
+   *                              ordering or a comparator that does
+   *                              not permit null keys.
+   * @since 1.6
+   */
+  public K floorKey(K key)
+  {
+    Entry<K,V> e = floorEntry(key);
+    return (e == null) ? null : e.getKey();
+  }
+
+  /**
+   * Returns the entry associated with the least or lowest key
+   * that is strictly greater than the specified key, or
+   * <code>null</code> if there is no such key.
+   *
+   * @param key the key relative to the returned entry.
+   * @return the entry with the least key greater than 
+   *         the given key, or <code>null</code> if there is
+   *         no such key.
+   * @throws ClassCastException if the specified key can not
+   *                            be compared with those in the map.
+   * @throws NullPointerException if the key is <code>null</code>
+   *                              and this map either uses natural
+   *                              ordering or a comparator that does
+   *                              not permit null keys.
+   * @since 1.6
+   */
+  public Entry<K,V> higherEntry(K key)
+  {
+    Node<K,V> n = lowestGreaterThan(key, false, false);
+    return (n == nil) ? null : n;
+  }
+
+  /**
+   * Returns the the least or lowest key that is strictly
+   * greater than the specified key, or <code>null</code> if
+   * there is no such key.
+   *
+   * @param key the key relative to the returned entry.
+   * @return the least key greater than the given key,
+   *         or <code>null</code> if there is no such key.
+   * @throws ClassCastException if the specified key can not
+   *                            be compared with those in the map.
+   * @throws NullPointerException if the key is <code>null</code>
+   *                              and this map either uses natural
+   *                              ordering or a comparator that does
+   *                              not permit null keys.
+   * @since 1.6
+   */
+  public K higherKey(K key)
+  {
+    Entry<K,V> e = higherEntry(key);
+    return (e == null) ? null : e.getKey();
+  }
+
+  /**
+   * Returns the entry associated with the greatest or highest key
+   * in the map, or <code>null</code> if the map is empty.
+   *
+   * @return the highest entry, or <code>null</code> if the map
+   *         is empty.
+   * @since 1.6
+   */
+  public Entry<K,V> lastEntry()
+  {
+    Node<K,V> n = lastNode();
+    return (n == nil) ? null : n;
+  }
+
+  /**
+   * Returns the entry associated with the greatest or highest key
+   * that is strictly less than the specified key, or
+   * <code>null</code> if there is no such key.
+   *
+   * @param key the key relative to the returned entry.
+   * @return the entry with the greatest key less than 
+   *         the given key, or <code>null</code> if there is
+   *         no such key.
+   * @throws ClassCastException if the specified key can not
+   *                            be compared with those in the map.
+   * @throws NullPointerException if the key is <code>null</code>
+   *                              and this map either uses natural
+   *                              ordering or a comparator that does
+   *                              not permit null keys.
+   * @since 1.6
+   */
+  public Entry<K,V> lowerEntry(K key)
+  {
+    Node<K,V> n = highestLessThan(key);
+    return (n == nil) ? null : n;
+  }
+
+  /**
+   * Returns the the greatest or highest key that is strictly
+   * less than the specified key, or <code>null</code> if
+   * there is no such key.
+   *
+   * @param key the key relative to the returned entry.
+   * @return the greatest key less than the given key,
+   *         or <code>null</code> if there is no such key.
+   * @throws ClassCastException if the specified key can not
+   *                            be compared with those in the map.
+   * @throws NullPointerException if the key is <code>null</code>
+   *                              and this map either uses natural
+   *                              ordering or a comparator that does
+   *                              not permit null keys.
+   * @since 1.6
+   */
+  public K lowerKey(K key)
+  {
+    Entry<K,V> e = lowerEntry(key);
+    return (e == null) ? null : e.getKey();
+  }
+
+  /**
+   * Returns a {@link NavigableSet} view of this map's keys. The set is
+   * backed by the {@link TreeMap}, so changes in one show up in the other.
+   * Any changes occurring to either while an iteration is taking
+   * place (with the exception of a {@link Iterator#remove()} operation)
+   * result in undefined behaviour from the iteration.  The ordering
+   * The set supports element removal, but not element addition.
+   *
+   * @return a {@link NavigableSet} view of the keys.
+   * @since 1.6
+   */
+  public NavigableSet<K> navigableKeySet()
+  {
+    if (nKeys == null)
+      nKeys = new NavigableKeySet();
+    return nKeys;
+  }
+
+  /**
+   * Removes and returns the entry associated with the least
+   * or lowest key in the map, or <code>null</code> if the map
+   * is empty.
+   *
+   * @return the removed first entry, or <code>null</code> if the
+   *         map is empty.
+   * @since 1.6
+   */
+  public Entry<K,V> pollFirstEntry()
+  {
+    Entry<K,V> e = firstEntry();
+    if (e != null)
+      removeNode((Node<K,V>)e);
+    return e;
+  }
+
+  /**
+   * Removes and returns the entry associated with the greatest
+   * or highest key in the map, or <code>null</code> if the map
+   * is empty.
+   *
+   * @return the removed last entry, or <code>null</code> if the
+   *         map is empty.
+   * @since 1.6
+   */
+  public Entry<K,V> pollLastEntry()
+  {
+    Entry<K,V> e = lastEntry();
+    if (e != null)
+      removeNode((Node<K,V>)e);
+    return e;    
+  }
+
+  /**
+   * Implementation of {@link #descendingMap()} and associated
+   * derivatives. This class provides a view of the
+   * original backing map in reverse order, and throws
+   * {@link IllegalArgumentException} for attempts to
+   * access beyond that range.
+   *
+   * @author Andrew John Hughes (gnu_andrew@member.fsf.org)
+   */
+  private static final class DescendingMap<DK,DV>
+    implements NavigableMap<DK,DV>
+  {
+
+    /**
+     * The cache for {@link #entrySet()}.
+     */
+    private Set<Map.Entry<DK,DV>> entries;
+
+    /**
+     * The cache for {@link #keySet()}.
+     */
+    private Set<DK> keys;
+
+    /**
+     * The cache for {@link #navigableKeySet()}.
+     */
+    private NavigableSet<DK> nKeys;
+
+    /**
+     * The cache for {@link #values()}.
+     */
+    private Collection<DV> values;
+
+    /**
+     * The backing {@link NavigableMap}.
+     */
+    private NavigableMap<DK,DV> map;
+
+    /**
+     * Create a {@link DescendingMap} around the specified
+     * map.
+     *
+     * @param map the map to wrap.
+     */
+    public DescendingMap(NavigableMap<DK,DV> map)
+    {
+      this.map = map;
+    }
+      
+    public Map.Entry<DK,DV> ceilingEntry(DK key)
+    {
+      return map.floorEntry(key);
+    }
+
+    public DK ceilingKey(DK key)
+    {
+      return map.floorKey(key);
+    }
+
+    public void clear()
+    {
+      map.clear();
+    }
+
+    public Comparator<? super DK> comparator()
+    {
+      return Collections.reverseOrder(map.comparator());
+    }
+
+    public boolean containsKey(Object o)
+    {
+      return map.containsKey(o);
+    }
+    
+    public boolean containsValue(Object o)
+    {
+      return map.containsValue(o);
+    }
+
+    public NavigableSet<DK> descendingKeySet()
+    {
+      return descendingMap().navigableKeySet();
+    }
+
+    public NavigableMap<DK,DV> descendingMap()
+    {
+      return map;
+    }
+
+    public Set<Entry<DK,DV>> entrySet()
+    {
+      if (entries == null)
+	entries =
+	  new DescendingSet<Entry<DK,DV>>((NavigableSet<Entry<DK,DV>>)
+					  map.entrySet());
+      return entries;
+    }
+
+    public boolean equals(Object o)
+    {
+      return map.equals(o);
+    }
+
+    public Entry<DK,DV> firstEntry()
+    {
+      return map.lastEntry();
+    }
+
+    public DK firstKey()
+    {
+      return map.lastKey();
+    }
+
+    public Entry<DK,DV> floorEntry(DK key)
+    {
+      return map.ceilingEntry(key);
+    }
+
+    public DK floorKey(DK key)
+    {
+      return map.ceilingKey(key);
+    }
+
+    public DV get(Object key)
+    {
+      return map.get(key);
+    }
+
+    public int hashCode()
+    {
+      return map.hashCode();
+    }
+
+    public SortedMap<DK,DV> headMap(DK toKey)
+    {
+      return headMap(toKey, false);
+    }
+
+    public NavigableMap<DK,DV> headMap(DK toKey, boolean inclusive)
+    {
+      return new DescendingMap(map.tailMap(toKey, inclusive));
+    }
+
+    public Entry<DK,DV> higherEntry(DK key)
+    {
+      return map.lowerEntry(key);
+    }
+
+    public DK higherKey(DK key)
+    {
+      return map.lowerKey(key);
+    }
+
+    public Set<DK> keySet()
+    {
+      if (keys == null)
+	keys = new DescendingSet<DK>(map.navigableKeySet());
+      return keys;
+    }
+
+    public boolean isEmpty()
+    {
+      return map.isEmpty();
+    }
+
+    public Entry<DK,DV> lastEntry()
+    {
+      return map.firstEntry();
+    }
+
+    public DK lastKey()
+    {
+      return map.firstKey();
+    }
+
+    public Entry<DK,DV> lowerEntry(DK key)
+    {
+      return map.higherEntry(key);
+    }
+
+    public DK lowerKey(DK key)
+    {
+      return map.higherKey(key);
+    }
+
+    public NavigableSet<DK> navigableKeySet()
+    {
+      if (nKeys == null)
+	nKeys = new DescendingSet<DK>(map.navigableKeySet());
+      return nKeys;
+    }
+
+    public Entry<DK,DV> pollFirstEntry()
+    {
+      return pollLastEntry();
+    }
+
+    public Entry<DK,DV> pollLastEntry()
+    {
+      return pollFirstEntry();
+    }
+
+    public DV put(DK key, DV value)
+    {
+      return map.put(key, value);
+    }
+
+    public void putAll(Map<? extends DK, ? extends DV> m)
+    {
+      map.putAll(m);
+    }
+
+    public DV remove(Object key)
+    {
+      return map.remove(key);
+    }
+
+    public int size()
+    {
+      return map.size();
+    }
+
+    public SortedMap<DK,DV> subMap(DK fromKey, DK toKey)
+    {
+      return subMap(fromKey, true, toKey, false);
+    }
+
+    public NavigableMap<DK,DV> subMap(DK fromKey, boolean fromInclusive,
+				      DK toKey, boolean toInclusive)
+    {
+      return new DescendingMap(map.subMap(fromKey, fromInclusive,
+					  toKey, toInclusive));
+    }
+
+    public SortedMap<DK,DV> tailMap(DK fromKey)
+    {
+      return tailMap(fromKey, true);
+    }
+
+    public NavigableMap<DK,DV> tailMap(DK fromKey, boolean inclusive)
+    {
+      return new DescendingMap(map.headMap(fromKey, inclusive));
+    }
+
+    public String toString()
+    {
+      StringBuilder r = new StringBuilder("{");
+      final Iterator<Entry<DK,DV>> it = entrySet().iterator();
+      while (it.hasNext())
+      {
+	final Entry<DK,DV> e = it.next();
+        r.append(e.getKey());
+        r.append('=');
+        r.append(e.getValue());
+	r.append(", ");
+      }
+      r.replace(r.length() - 2, r.length(), "}");
+      return r.toString();
+    }
+
+    public Collection<DV> values()
+    {
+      if (values == null)
+        // Create an AbstractCollection with custom implementations of those
+        // methods that can be overriden easily and efficiently.
+        values = new AbstractCollection()
+	  {
+	    public int size()
+	    {
+	      return size();
+	    }
+	    
+	    public Iterator<DV> iterator()
+	    {
+	      return new Iterator<DV>()
+		{	  
+		  /** The last Entry returned by a next() call. */
+		  private Entry<DK,DV> last;
+		  
+		  /** The next entry that should be returned by next(). */
+		  private Entry<DK,DV> next = firstEntry();
+		  
+		  public boolean hasNext()
+		  {
+		    return next != null;
+		  }
+
+		  public DV next()
+		  {
+		    if (next == null)
+		      throw new NoSuchElementException();
+		    last = next;
+		    next = higherEntry(last.getKey());
+		    
+		    return last.getValue();
+		  }
+
+		  public void remove()
+		  {
+		    if (last == null)
+		      throw new IllegalStateException();
+		    
+		    DescendingMap.this.remove(last.getKey());
+		    last = null;
+		  }
+		};
+	    }
+	    
+	    public void clear()
+	    {
+	      clear();
+	    }
+	  };
+      return values;
+    }
+
+  } // class DescendingMap
+
+  /**
+   * Implementation of {@link #keySet()}.
+   */
+  private class KeySet
+    extends AbstractSet<K>
+  {
+
+    public int size()
+    {
+      return size;
+    }
+
+    public Iterator<K> iterator()
+    {
+      return new TreeIterator(KEYS);
+    }
+
+    public void clear()
+    {
+      TreeMap.this.clear();
+    }
+    
+    public boolean contains(Object o)
+    {
+      return containsKey(o);
+    }
+    
+    public boolean remove(Object key)
+    {
+      Node<K,V> n = getNode((K) key);
+      if (n == nil)
+	return false;
+      removeNode(n);
+      return true;
+    }
+  } // class KeySet
+
+  /**
+   * Implementation of {@link #navigableKeySet()}.
+   *
+   * @author Andrew John Hughes (gnu_andrew@member.fsf.org)
+   */
+  private final class NavigableKeySet
+    extends KeySet
+    implements NavigableSet<K>
+  {
+
+    public K ceiling(K k)
+    {
+      return ceilingKey(k);
+    }
+
+    public Comparator<? super K> comparator()
+    {
+      return comparator;
+    }
+
+    public Iterator<K> descendingIterator()
+    {
+      return descendingSet().iterator();
+    }
+
+    public NavigableSet<K> descendingSet()
+    {
+      return new DescendingSet<K>(this);
+    }
+
+    public K first()
+    {
+      return firstKey();
+    }
+
+    public K floor(K k)
+    {
+      return floorKey(k);
+    }
+
+    public SortedSet<K> headSet(K to)
+    {
+      return headSet(to, false);
+    }
+
+    public NavigableSet<K> headSet(K to, boolean inclusive)
+    {
+      return headMap(to, inclusive).navigableKeySet();
+    }
+
+    public K higher(K k)
+    {
+      return higherKey(k);
+    }
+
+    public K last()
+    {
+      return lastKey();
+    }
+
+    public K lower(K k)
+    {
+      return lowerKey(k);
+    }
+
+    public K pollFirst()
+    {
+      return pollFirstEntry().getKey();
+    }
+
+    public K pollLast()
+    {
+      return pollLastEntry().getKey();
+    }
+
+    public SortedSet<K> subSet(K from, K to)
+    {
+      return subSet(from, true, to, false);
+    }
+
+    public NavigableSet<K> subSet(K from, boolean fromInclusive,
+				  K to, boolean toInclusive)
+    {
+      return subMap(from, fromInclusive,
+		    to, toInclusive).navigableKeySet();
+    }
+
+    public SortedSet<K> tailSet(K from)
+    {
+      return tailSet(from, true);
+    }
+
+    public NavigableSet<K> tailSet(K from, boolean inclusive)
+    {
+      return tailMap(from, inclusive).navigableKeySet();
+    }
+
+
+  } // class NavigableKeySet
+
+  /**
+   * Implementation of {@link #descendingSet()} and associated
+   * derivatives. This class provides a view of the
+   * original backing set in reverse order, and throws
+   * {@link IllegalArgumentException} for attempts to
+   * access beyond that range.
+   *
+   * @author Andrew John Hughes (gnu_andrew@member.fsf.org)
+   */
+  private static final class DescendingSet<D>
+    implements NavigableSet<D>
+  {
+
+    /**
+     * The backing {@link NavigableSet}.
+     */
+    private NavigableSet<D> set;
+
+    /**
+     * Create a {@link DescendingSet} around the specified
+     * set.
+     *
+     * @param map the set to wrap.
+     */
+    public DescendingSet(NavigableSet<D> set)
+    {
+      this.set = set;
+    }
+    
+    public boolean add(D e)
+    {
+      return set.add(e);
+    }
+
+    public boolean addAll(Collection<? extends D> c)
+    {
+      return set.addAll(c);
+    }
+
+    public D ceiling(D e)
+    {
+      return set.floor(e);
+    }
+
+    public void clear()
+    {
+      set.clear();
+    }
+
+    public Comparator<? super D> comparator()
+    {
+      return Collections.reverseOrder(set.comparator());
+    }
+
+    public boolean contains(Object o)
+    {
+      return set.contains(o);
+    }
+
+    public boolean containsAll(Collection<?> c)
+    {
+      return set.containsAll(c);
+    }
+
+    public Iterator<D> descendingIterator()
+    {
+      return descendingSet().iterator();
+    }
+
+    public NavigableSet<D> descendingSet()
+    {
+      return set;
+    }
+
+    public boolean equals(Object o)
+    {
+      return set.equals(o);
+    }
+
+    public D first()
+    {
+      return set.last();
+    }
+
+    public D floor(D e)
+    {
+      return set.ceiling(e);
+    }
+
+    public int hashCode()
+    {
+      return set.hashCode();
+    }
+
+    public SortedSet<D> headSet(D to)
+    {
+      return headSet(to, false);
+    }
+
+    public NavigableSet<D> headSet(D to, boolean inclusive)
+    {
+      return new DescendingSet(set.tailSet(to, inclusive));
+    }
+
+    public D higher(D e)
+    {
+      return set.lower(e);
+    }
+
+    public boolean isEmpty()
+    {
+      return set.isEmpty();
+    }
+
+    public Iterator<D> iterator()
+    {
+      return new Iterator<D>()
+	{
+	  	  
+	  /** The last element returned by a next() call. */
+	  private D last;
+		  
+	  /** The next element that should be returned by next(). */
+	  private D next = first();
+		  
+	  public boolean hasNext()
+	  {
+	    return next != null;
+	  }
+
+	  public D next()
+	  {
+	    if (next == null)
+	      throw new NoSuchElementException();
+	    last = next;
+	    next = higher(last);
+		    
+	    return last;
+	  }
+
+	  public void remove()
+	  {
+	    if (last == null)
+	      throw new IllegalStateException();
+	    
+	    DescendingSet.this.remove(last);
+	    last = null;
+	  }
+	};
+    }
+
+    public D last()
+    {
+      return set.first();
+    }
+
+    public D lower(D e)
+    {
+      return set.higher(e);
+    }
+
+    public D pollFirst()
+    {
+      return set.pollLast();
+    }
+
+    public D pollLast()
+    {
+      return set.pollFirst();
+    }
+
+    public boolean remove(Object o)
+    {
+      return set.remove(o);
+    }
+
+    public boolean removeAll(Collection<?> c)
+    {
+      return set.removeAll(c);
+    }
+
+    public boolean retainAll(Collection<?> c)
+    {
+      return set.retainAll(c);
+    }
+
+    public int size()
+    {
+      return set.size();
+    }
+
+    public SortedSet<D> subSet(D from, D to)
+    {
+      return subSet(from, true, to, false);
+    }
+
+    public NavigableSet<D> subSet(D from, boolean fromInclusive,
+				  D to, boolean toInclusive)
+    {
+      return new DescendingSet(set.subSet(from, fromInclusive,
+					  to, toInclusive));
+    }
+
+    public SortedSet<D> tailSet(D from)
+    {
+      return tailSet(from, true);
+    }
+
+    public NavigableSet<D> tailSet(D from, boolean inclusive)
+    {
+      return new DescendingSet(set.headSet(from, inclusive));
+    }
+
+    public Object[] toArray()
+    {
+      D[] array = (D[]) set.toArray();
+      Arrays.sort(array, comparator());
+      return array;
+    }
+
+    public <T> T[] toArray(T[] a)
+    {
+      T[] array = set.toArray(a);
+      Arrays.sort(array, (Comparator<? super T>) comparator());
+      return array;
+    }
+
+    public String toString()
+    {
+      StringBuilder r = new StringBuilder("[");
+      final Iterator<D> it = iterator();
+      while (it.hasNext())
+      {
+	final D o = it.next();
+	if (o == this)
+	  r.append("<this>");
+	else
+	  r.append(o);
+	r.append(", ");
+      }
+      r.replace(r.length() - 2, r.length(), "]");
+      return r.toString();
+    }
+
+  } // class DescendingSet
+
+  private class EntrySet
+    extends AbstractSet<Entry<K,V>>
+  {
+    public int size()
+    {
+      return size;
+    }
+    
+    public Iterator<Map.Entry<K,V>> iterator()
+    {
+      return new TreeIterator(ENTRIES);
+    }
+    
+    public void clear()
+    {
+      TreeMap.this.clear();
+    }
+
+    public boolean contains(Object o)
+    {
+      if (! (o instanceof Map.Entry))
+	return false;
+      Map.Entry<K,V> me = (Map.Entry<K,V>) o;
+      Node<K,V> n = getNode(me.getKey());
+      return n != nil && AbstractSet.equals(me.getValue(), n.value);
+    }
+    
+    public boolean remove(Object o)
+    {
+      if (! (o instanceof Map.Entry))
+	return false;
+      Map.Entry<K,V> me = (Map.Entry<K,V>) o;
+      Node<K,V> n = getNode(me.getKey());
+      if (n != nil && AbstractSet.equals(me.getValue(), n.value))
+	{
+	  removeNode(n);
+	  return true;
+	}
+      return false;
+    }
+  }
+  
+  private final class NavigableEntrySet
+    extends EntrySet
+    implements NavigableSet<Entry<K,V>>
+  {
+    
+    public Entry<K,V> ceiling(Entry<K,V> e)
+    {
+      return ceilingEntry(e.getKey());
+    }
+      
+    public Comparator<? super Entry<K,V>> comparator()
+    {
+      return new Comparator<Entry<K,V>>()
+	{
+	  public int compare(Entry<K,V> t1, Entry<K,V> t2)
+	  {
+	    return comparator.compare(t1.getKey(), t2.getKey());
+	  }
+	};
+    }
+    
+    public Iterator<Entry<K,V>> descendingIterator()
+    {
+      return descendingSet().iterator();
+    }
+    
+    public NavigableSet<Entry<K,V>> descendingSet()
+    {
+      return new DescendingSet(this);
+    }
+    
+    public Entry<K,V> first()
+    {
+      return firstEntry();
+    }
+      
+    public Entry<K,V> floor(Entry<K,V> e)
+    {
+      return floorEntry(e.getKey());
+    }
+      
+    public SortedSet<Entry<K,V>> headSet(Entry<K,V> to)
+    {
+      return headSet(to, false);
+    }
+
+    public NavigableSet<Entry<K,V>> headSet(Entry<K,V> to, boolean inclusive)
+    {
+      return (NavigableSet<Entry<K,V>>) headMap(to.getKey(), inclusive).entrySet();
+    }
+    
+    public Entry<K,V> higher(Entry<K,V> e)
+    {
+      return higherEntry(e.getKey());
+    }
+
+    public Entry<K,V> last()
+    {
+      return lastEntry();
+    }
+
+    public Entry<K,V> lower(Entry<K,V> e)
+    {
+      return lowerEntry(e.getKey());
+    }
+
+    public Entry<K,V> pollFirst()
+    {
+      return pollFirstEntry();
+    }
+
+    public Entry<K,V> pollLast()
+    {
+      return pollLastEntry();
+    }
+
+    public SortedSet<Entry<K,V>> subSet(Entry<K,V> from, Entry<K,V> to)
+    {
+      return subSet(from, true, to, false);
+    }
+    
+    public NavigableSet<Entry<K,V>> subSet(Entry<K,V> from, boolean fromInclusive,
+					   Entry<K,V> to, boolean toInclusive)
+    {
+      return (NavigableSet<Entry<K,V>>) subMap(from.getKey(), fromInclusive,
+					       to.getKey(), toInclusive).entrySet();
+    }
+
+    public SortedSet<Entry<K,V>> tailSet(Entry<K,V> from)
+    {
+      return tailSet(from, true);
+    }
+    
+    public NavigableSet<Entry<K,V>> tailSet(Entry<K,V> from, boolean inclusive)
+    {
+      return (NavigableSet<Entry<K,V>>) tailMap(from.getKey(), inclusive).navigableKeySet();
+    }
+    
+  } // class NavigableEntrySet
+
 } // class TreeMap

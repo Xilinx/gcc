@@ -6,18 +6,17 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2006, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -30,6 +29,8 @@ with Einfo;    use Einfo;
 with Errout;   use Errout;
 with Exp_Dbug; use Exp_Dbug;
 with Exp_Util; use Exp_Util;
+with Layout;   use Layout;
+with Namet;    use Namet;
 with Nlists;   use Nlists;
 with Nmake;    use Nmake;
 with Rtsfind;  use Rtsfind;
@@ -634,8 +635,8 @@ package body Exp_Pakd is
                       Attribute_Name => Name_Pos,
                       Expressions    => New_List (
                         Make_Attribute_Reference (Loc,
-                        Prefix         => New_Occurrence_Of (Styp, Loc),
-                        Attribute_Name => Name_First)))));
+                          Prefix         => New_Occurrence_Of (Styp, Loc),
+                          Attribute_Name => Name_First)))));
          end if;
 
          Set_Paren_Count (Newsub, 1);
@@ -772,7 +773,7 @@ package body Exp_Pakd is
          end if;
 
          if Scope (Typ) /= Current_Scope then
-            New_Scope (Scope (Typ));
+            Push_Scope (Scope (Typ));
             Pushed_Scope := True;
          end if;
 
@@ -785,14 +786,18 @@ package body Exp_Pakd is
          end if;
 
          --  Set Esize and RM_Size to the actual size of the packed object
-         --  Do not reset RM_Size if already set, as happens in the case
-         --  of a modular type.
+         --  Do not reset RM_Size if already set, as happens in the case of
+         --  a modular type.
 
-         Set_Esize (PAT, PASize);
+         if Unknown_Esize (PAT) then
+            Set_Esize (PAT, PASize);
+         end if;
 
          if Unknown_RM_Size (PAT) then
             Set_RM_Size (PAT, PASize);
          end if;
+
+         Adjust_Esize_Alignment (PAT);
 
          --  Set remaining fields of packed array type
 
@@ -874,7 +879,7 @@ package body Exp_Pakd is
       --  type, since this size clearly belongs to the packed array type. The
       --  size of the conceptual unpacked type is always set to unknown.
 
-      PASize := Esize (Typ);
+      PASize := RM_Size (Typ);
 
       --  Case of an array where at least one index is of an enumeration
       --  type with a non-standard representation, but the component size
@@ -955,23 +960,23 @@ package body Exp_Pakd is
                                Make_Range (Loc,
                                  Low_Bound =>
                                    Make_Attribute_Reference (Loc,
-                                     Prefix =>
+                                     Prefix         =>
                                        New_Occurrence_Of (Indx_Typ, Loc),
                                      Attribute_Name => Name_Pos,
-                                     Expressions => New_List (
+                                     Expressions    => New_List (
                                        Make_Attribute_Reference (Loc,
-                                         Prefix =>
+                                         Prefix         =>
                                            New_Occurrence_Of (Indx_Typ, Loc),
                                          Attribute_Name => Name_First))),
 
                                  High_Bound =>
                                    Make_Attribute_Reference (Loc,
-                                     Prefix =>
+                                     Prefix         =>
                                        New_Occurrence_Of (Indx_Typ, Loc),
                                      Attribute_Name => Name_Pos,
-                                     Expressions => New_List (
+                                     Expressions    => New_List (
                                        Make_Attribute_Reference (Loc,
-                                         Prefix =>
+                                         Prefix         =>
                                            New_Occurrence_Of (Indx_Typ, Loc),
                                          Attribute_Name => Name_Last)))))));
 
@@ -1144,15 +1149,13 @@ package body Exp_Pakd is
                --      range 0 .. 2 ** ((Typ'Length (1)
                --                * ... * Typ'Length (n)) * Csize) - 1;
 
-               --  The bounds are statically known, and btyp is one
-               --  of the unsigned types, depending on the length. If the
-               --  type is its first subtype, i.e. it is a user-defined
-               --  type, no object of the type will be larger, and it is
-               --  worthwhile to use a small unsigned type.
+               --  The bounds are statically known, and btyp is one of the
+               --  unsigned types, depending on the length.
 
-               if Len_Bits <= Standard_Short_Integer_Size
-                 and then First_Subtype (Typ) = Typ
-               then
+               if Len_Bits <= Standard_Short_Short_Integer_Size then
+                  Btyp := RTE (RE_Short_Short_Unsigned);
+
+               elsif Len_Bits <= Standard_Short_Integer_Size then
                   Btyp := RTE (RE_Short_Unsigned);
 
                elsif Len_Bits <= Standard_Integer_Size then
@@ -1427,8 +1430,20 @@ package body Exp_Pakd is
             end if;
          end if;
 
-         New_Lhs := Duplicate_Subexpr (Obj, True);
-         New_Rhs := Duplicate_Subexpr_No_Checks (Obj);
+         --  Now create copies removing side effects. Note that in some
+         --  complex cases, this may cause the fact that we have already
+         --  set a packed array type on Obj to get lost. So we save the
+         --  type of Obj, and make sure it is reset properly.
+
+         declare
+            T : constant Entity_Id := Etype (Obj);
+         begin
+            New_Lhs := Duplicate_Subexpr (Obj, True);
+            New_Rhs := Duplicate_Subexpr_No_Checks (Obj);
+            Set_Etype (Obj, T);
+            Set_Etype (New_Lhs, T);
+            Set_Etype (New_Rhs, T);
+         end;
 
          --  First we deal with the "and"
 
@@ -1619,8 +1634,8 @@ package body Exp_Pakd is
                   Name => New_Occurrence_Of (Set_nn, Loc),
                   Parameter_Associations => New_List (
                     Make_Attribute_Reference (Loc,
-                      Attribute_Name => Name_Address,
-                      Prefix         => Obj),
+                      Prefix         => Obj,
+                      Attribute_Name => Name_Address),
                     Subscr,
                     Unchecked_Convert_To (Bits_nn,
                       Convert_To (Ctyp, Rhs)))));
@@ -1824,7 +1839,7 @@ package body Exp_Pakd is
                P := Make_Op_Xor (Loc, L, R);
             end if;
 
-            Rewrite (N, Unchecked_Convert_To (Rtyp, P));
+            Rewrite (N, Unchecked_Convert_To (Ltyp, P));
          end;
 
       --  For the array case, we insert the actions
@@ -1878,36 +1893,38 @@ package body Exp_Pakd is
                   Parameter_Associations => New_List (
 
                     Make_Byte_Aligned_Attribute_Reference (Loc,
-                      Attribute_Name => Name_Address,
-                      Prefix         => L),
+                      Prefix         => L,
+                      Attribute_Name => Name_Address),
 
                     Make_Op_Multiply (Loc,
                       Left_Opnd =>
                         Make_Attribute_Reference (Loc,
-                          Prefix =>
+                          Prefix         =>
                             New_Occurrence_Of
                               (Etype (First_Index (Ltyp)), Loc),
                           Attribute_Name => Name_Range_Length),
+
                       Right_Opnd =>
                         Make_Integer_Literal (Loc, Component_Size (Ltyp))),
 
                     Make_Byte_Aligned_Attribute_Reference (Loc,
-                      Attribute_Name => Name_Address,
-                      Prefix         => R),
+                      Prefix         => R,
+                      Attribute_Name => Name_Address),
 
                     Make_Op_Multiply (Loc,
                       Left_Opnd =>
                         Make_Attribute_Reference (Loc,
-                          Prefix =>
+                          Prefix         =>
                             New_Occurrence_Of
                               (Etype (First_Index (Rtyp)), Loc),
                           Attribute_Name => Name_Range_Length),
+
                       Right_Opnd =>
                         Make_Integer_Literal (Loc, Component_Size (Rtyp))),
 
                     Make_Byte_Aligned_Attribute_Reference (Loc,
-                      Attribute_Name => Name_Address,
-                      Prefix => New_Occurrence_Of (Result_Ent, Loc))))));
+                      Prefix => New_Occurrence_Of (Result_Ent, Loc),
+                      Attribute_Name => Name_Address)))));
 
             Rewrite (N,
               New_Occurrence_Of (Result_Ent, Loc));
@@ -2029,8 +2046,8 @@ package body Exp_Pakd is
                   Name => New_Occurrence_Of (Get_nn, Loc),
                   Parameter_Associations => New_List (
                     Make_Attribute_Reference (Loc,
-                      Attribute_Name => Name_Address,
-                      Prefix         => Obj),
+                      Prefix         => Obj,
+                      Attribute_Name => Name_Address),
                     Subscr))));
          end;
       end if;
@@ -2071,8 +2088,8 @@ package body Exp_Pakd is
         Make_Op_Multiply (Loc,
           Left_Opnd =>
             Make_Attribute_Reference (Loc,
-              Attribute_Name => Name_Length,
-              Prefix         => New_Occurrence_Of (Ltyp, Loc)),
+              Prefix         => New_Occurrence_Of (Ltyp, Loc),
+              Attribute_Name => Name_Length),
           Right_Opnd =>
             Make_Integer_Literal (Loc, Component_Size (Ltyp)));
 
@@ -2080,8 +2097,8 @@ package body Exp_Pakd is
         Make_Op_Multiply (Loc,
           Left_Opnd =>
             Make_Attribute_Reference (Loc,
-              Attribute_Name => Name_Length,
-              Prefix         => New_Occurrence_Of (Rtyp, Loc)),
+              Prefix         => New_Occurrence_Of (Rtyp, Loc),
+              Attribute_Name => Name_Length),
           Right_Opnd =>
             Make_Integer_Literal (Loc, Component_Size (Rtyp)));
 
@@ -2122,14 +2139,14 @@ package body Exp_Pakd is
              Name => New_Occurrence_Of (RTE (RE_Bit_Eq), Loc),
              Parameter_Associations => New_List (
                Make_Byte_Aligned_Attribute_Reference (Loc,
-                 Attribute_Name => Name_Address,
-                 Prefix         => L),
+                 Prefix         => L,
+                 Attribute_Name => Name_Address),
 
                LLexpr,
 
                Make_Byte_Aligned_Attribute_Reference (Loc,
-                 Attribute_Name => Name_Address,
-                 Prefix         => R),
+                 Prefix         => R,
+                 Attribute_Name => Name_Address),
 
                RLexpr)));
       end if;
@@ -2200,7 +2217,7 @@ package body Exp_Pakd is
       --  one bits of length equal to the size of this packed type and
       --  rtyp is the actual subtype of the operand
 
-      Lit := Make_Integer_Literal (Loc, 2 ** Esize (PAT) - 1);
+      Lit := Make_Integer_Literal (Loc, 2 ** RM_Size (PAT) - 1);
       Set_Print_In_Hex (Lit);
 
       if not Is_Array_Type (PAT) then
@@ -2241,22 +2258,23 @@ package body Exp_Pakd is
                   Parameter_Associations => New_List (
 
                     Make_Byte_Aligned_Attribute_Reference (Loc,
-                      Attribute_Name => Name_Address,
-                      Prefix         => Opnd),
+                      Prefix         => Opnd,
+                      Attribute_Name => Name_Address),
 
                     Make_Op_Multiply (Loc,
                       Left_Opnd =>
                         Make_Attribute_Reference (Loc,
-                          Prefix =>
+                          Prefix         =>
                             New_Occurrence_Of
                               (Etype (First_Index (Rtyp)), Loc),
                           Attribute_Name => Name_Range_Length),
+
                       Right_Opnd =>
                         Make_Integer_Literal (Loc, Component_Size (Rtyp))),
 
                     Make_Byte_Aligned_Attribute_Reference (Loc,
-                      Attribute_Name => Name_Address,
-                      Prefix => New_Occurrence_Of (Result_Ent, Loc))))));
+                      Prefix => New_Occurrence_Of (Result_Ent, Loc),
+                      Attribute_Name => Name_Address)))));
 
             Rewrite (N,
               New_Occurrence_Of (Result_Ent, Loc));

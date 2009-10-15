@@ -1,6 +1,6 @@
 /* Definitions for C parsing and type checking.
-   Copyright (C) 1987, 1993, 1994, 1995, 1997, 1998, 1999, 2000, 2001,
-   2002, 2003, 2004, 2005, 2007  Free Software Foundation, Inc.
+   Copyright (C) 1987, 1993, 1994, 1995, 1997, 1998,
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -202,7 +202,8 @@ enum c_storage_class {
 };
 
 /* A type specifier keyword "void", "_Bool", "char", "int", "float",
-   "double", or none of these.  */
+   "double", "_Decimal32", "_Decimal64", "_Decimal128", "_Fract", "_Accum",
+   or none of these.  */
 enum c_typespec_keyword {
   cts_none,
   cts_void,
@@ -213,7 +214,9 @@ enum c_typespec_keyword {
   cts_double,
   cts_dfloat32,
   cts_dfloat64,
-  cts_dfloat128
+  cts_dfloat128,
+  cts_fract,
+  cts_accum
 };
 
 /* A sequence of declaration specifiers in C.  */
@@ -281,6 +284,8 @@ struct c_declspecs {
   BOOL_BITFIELD volatile_p : 1;
   /* Whether "restrict" was specified.  */
   BOOL_BITFIELD restrict_p : 1;
+  /* Whether "_Sat" was specified.  */
+  BOOL_BITFIELD saturating_p : 1;
 };
 
 /* The various kinds of declarators in C.  */
@@ -383,7 +388,6 @@ struct language_function GTY(())
   int returns_null;
   int returns_abnormally;
   int warn_about_return_type;
-  int extern_inline;
 };
 
 /* Save lists of labels used or defined in particular contexts.
@@ -425,6 +429,17 @@ struct c_label_context_vm
   struct c_label_context_vm *next;
 };
 
+/* Used when parsing an enum.  Initialized by start_enum.  */
+struct c_enum_contents
+{
+  /* While defining an enum type, this is 1 plus the last enumerator
+     constant value.  */
+  tree enum_next_value;
+
+  /* Nonzero means that there was overflow computing enum_next_value.  */
+  int enum_overflow;
+};
+
 
 /* in c-parser.c */
 extern void c_parse_init (void);
@@ -441,7 +456,6 @@ extern int global_bindings_p (void);
 extern void push_scope (void);
 extern tree pop_scope (void);
 extern void insert_block (tree);
-extern void c_expand_body (tree);
 
 extern void c_init_decl_processing (void);
 extern void c_dup_lang_specific_decl (tree);
@@ -449,7 +463,7 @@ extern void c_print_identifier (FILE *, tree, int);
 extern int quals_from_declspecs (const struct c_declspecs *);
 extern struct c_declarator *build_array_declarator (tree, struct c_declspecs *,
 						    bool, bool);
-extern tree build_enumerator (tree, tree);
+extern tree build_enumerator (struct c_enum_contents *, tree, tree);
 extern tree check_for_loop_decls (void);
 extern void mark_forward_parm_decls (void);
 extern void declare_parm_level (void);
@@ -462,7 +476,8 @@ extern tree finish_enum (tree, tree, tree);
 extern void finish_function (void);
 extern tree finish_struct (tree, tree, tree);
 extern struct c_arg_info *get_parm_info (bool);
-extern tree grokfield (struct c_declarator *, struct c_declspecs *, tree);
+extern tree grokfield (struct c_declarator *, struct c_declspecs *,
+		       tree, tree *);
 extern tree groktypename (struct c_type_name *);
 extern tree grokparm (const struct c_parm *);
 extern tree implicitly_declare (tree);
@@ -472,13 +487,11 @@ extern void c_push_function_context (struct function *);
 extern void c_pop_function_context (struct function *);
 extern void push_parm_decl (const struct c_parm *);
 extern struct c_declarator *set_array_declarator_inner (struct c_declarator *,
-							struct c_declarator *,
-							bool);
-extern tree builtin_function (const char *, tree, int, enum built_in_class,
-			      const char *, tree);
+							struct c_declarator *);
+extern tree c_builtin_function (tree);
 extern void shadow_tag (const struct c_declspecs *);
 extern void shadow_tag_warned (const struct c_declspecs *, int);
-extern tree start_enum (tree);
+extern tree start_enum (struct c_enum_contents *, tree);
 extern int  start_function (struct c_declspecs *, struct c_declarator *, tree);
 extern tree start_decl (struct c_declarator *, struct c_declspecs *, bool,
 			tree);
@@ -506,12 +519,10 @@ extern struct c_declspecs *declspecs_add_attrs (struct c_declspecs *, tree);
 extern struct c_declspecs *finish_declspecs (struct c_declspecs *);
 
 /* in c-objc-common.c */
-extern int c_disregard_inline_limits (tree);
-extern int c_cannot_inline_tree_fn (tree *);
 extern bool c_objc_common_init (void);
 extern bool c_missing_noreturn_ok_p (tree);
 extern tree c_objc_common_truthvalue_conversion (tree expr);
-extern bool c_warn_unused_global_decl (tree);
+extern bool c_warn_unused_global_decl (const_tree);
 extern void c_initialize_diagnostics (diagnostic_context *);
 extern bool c_vla_unspec_p (tree x, tree fn);
 
@@ -530,11 +541,11 @@ extern struct c_label_context_se *label_context_stack_se;
 extern struct c_label_context_vm *label_context_stack_vm;
 
 extern tree require_complete_type (tree);
-extern int same_translation_unit_p (tree, tree);
+extern int same_translation_unit_p (const_tree, const_tree);
 extern int comptypes (tree, tree);
-extern bool c_vla_type_p (tree);
+extern bool c_vla_type_p (const_tree);
 extern bool c_mark_addressable (tree);
-extern void c_incomplete_type_error (tree, tree);
+extern void c_incomplete_type_error (const_tree, const_tree);
 extern tree c_type_promotes_to (tree);
 extern struct c_expr default_function_array_conversion (struct c_expr);
 extern tree composite_type (tree, tree);
@@ -568,7 +579,6 @@ extern tree c_start_case (tree);
 extern void c_finish_case (tree);
 extern tree build_asm_expr (tree, tree, tree, tree, bool);
 extern tree build_asm_stmt (tree, tree);
-extern tree c_convert_parm_for_inlining (tree, tree, tree, int);
 extern int c_types_compatible_p (tree, tree);
 extern tree c_begin_compound_stmt (bool);
 extern tree c_end_compound_stmt (tree, bool);

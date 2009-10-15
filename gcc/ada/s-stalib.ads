@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2005 Free Software Foundation, Inc.          --
+--          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -46,12 +46,16 @@
 --  package and the packages it references are included in all Ada programs,
 --  together with the included data.
 
+pragma Warnings (Off);
+pragma Compiler_Unit;
+pragma Warnings (On);
+
 pragma Polling (Off);
 --  We must turn polling off for this unit, because otherwise we get
 --  elaboration circularities with Ada.Exceptions if polling is on.
 
 with System;
-with Unchecked_Conversion;
+with Ada.Unchecked_Conversion;
 
 package System.Standard_Library is
    pragma Warnings (Off);
@@ -62,7 +66,7 @@ package System.Standard_Library is
    --  A non-fat pointer type for null terminated strings
 
    function To_Ptr is
-     new Unchecked_Conversion (System.Address, Big_String_Ptr);
+     new Ada.Unchecked_Conversion (System.Address, Big_String_Ptr);
 
    ---------------------------------------------
    -- Type For Enumeration Image Index Tables --
@@ -258,7 +262,7 @@ package System.Standard_Library is
 
    Exception_Trace : Exception_Trace_Kind := RM_Convention;
    pragma Atomic (Exception_Trace);
-   --  By default, follow the RM convention.
+   --  By default, follow the RM convention
 
    -----------------
    -- Subprograms --

@@ -1,5 +1,5 @@
 `/* Implementation of the COUNT intrinsic
-   Copyright 2002 Free Software Foundation, Inc.
+   Copyright 2002, 2007 Free Software Foundation, Inc.
    Contributed by Paul Brook <paul@nowt.org>
 
 This file is part of the GNU Fortran 95 runtime library (libgfortran).
@@ -28,19 +28,18 @@ License along with libgfortran; see the file COPYING.  If not,
 write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
 Boston, MA 02110-1301, USA.  */
 
-#include "config.h"
+#include "libgfortran.h"
 #include <stdlib.h>
-#include <assert.h>
-#include "libgfortran.h"'
+#include <assert.h>'
 
 include(iparm.m4)dnl
-include(ifunction.m4)dnl
+include(ifunction_logical.m4)dnl
 
-`#if defined (HAVE_'atype_name`) && defined (HAVE_'rtype_name`)'
+`#if defined (HAVE_'rtype_name`)'
 
 ARRAY_FUNCTION(0,
 `  result = 0;',
 `  if (*src)
-    result++;')
+    result++;')`
 
-#endif
+#endif'

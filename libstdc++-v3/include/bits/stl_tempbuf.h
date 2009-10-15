@@ -1,6 +1,6 @@
 // Temporary buffer implementation -*- C++ -*-
 
-// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006 
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -59,19 +59,69 @@
  *  You should not attempt to use it directly.
  */
 
-#ifndef _TEMPBUF_H
-#define _TEMPBUF_H 1
+#ifndef _STL_TEMPBUF_H
+#define _STL_TEMPBUF_H 1
 
-#include <memory>
+#include <bits/stl_algobase.h>
+#include <bits/stl_construct.h>
+#include <bits/stl_uninitialized.h>
 
 _GLIBCXX_BEGIN_NAMESPACE(std)
 
   /**
-   *  @if maint
+   *  @brief Allocates a temporary buffer.
+   *  @param  len  The number of objects of type Tp.
+   *  @return See full description.
+   *
+   *  Reinventing the wheel, but this time with prettier spokes!
+   *
+   *  This function tries to obtain storage for @c len adjacent Tp
+   *  objects.  The objects themselves are not constructed, of course.
+   *  A pair<> is returned containing "the buffer s address and
+   *  capacity (in the units of sizeof(Tp)), or a pair of 0 values if
+   *  no storage can be obtained."  Note that the capacity obtained
+   *  may be less than that requested if the memory is unavailable;
+   *  you should compare len with the .second return value.
+   *
+   * Provides the nothrow exception guarantee.
+   */
+  template<typename _Tp>
+    pair<_Tp*, ptrdiff_t>
+    get_temporary_buffer(ptrdiff_t __len)
+    {
+      const ptrdiff_t __max =
+	__gnu_cxx::__numeric_traits<ptrdiff_t>::__max / sizeof(_Tp);
+      if (__len > __max)
+	__len = __max;
+      
+      while (__len > 0) 
+	{
+	  _Tp* __tmp = static_cast<_Tp*>(::operator new(__len * sizeof(_Tp), 
+							std::nothrow));
+	  if (__tmp != 0)
+	    return std::pair<_Tp*, ptrdiff_t>(__tmp, __len);
+	  __len /= 2;
+	}
+      return std::pair<_Tp*, ptrdiff_t>(static_cast<_Tp*>(0), 0);
+    }
+
+  /**
+   *  @brief The companion to get_temporary_buffer().
+   *  @param  p  A buffer previously allocated by get_temporary_buffer.
+   *  @return   None.
+   *
+   *  Frees the memory pointed to by p.
+   */
+  template<typename _Tp>
+    inline void
+    return_temporary_buffer(_Tp* __p)
+    { ::operator delete(__p, std::nothrow); }
+
+
+  /**
    *  This class is used in two places: stl_algo.h and ext/memory,
    *  where it is wrapped as the temporary_buffer class.  See
    *  temporary_buffer docs for more notes.
-   *  @endif
    */
   template<typename _ForwardIterator, typename _Tp>
     class _Temporary_buffer
@@ -89,13 +139,6 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       size_type  _M_original_len;
       size_type  _M_len;
       pointer    _M_buffer;
-
-      void
-      _M_initialize_buffer(const _Tp&, __true_type) { }
-
-      void
-      _M_initialize_buffer(const _Tp& __val, __false_type)
-      { std::uninitialized_fill_n(_M_buffer, _M_len, __val); }
 
     public:
       /// As per Table mumble.
@@ -138,24 +181,20 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       operator=(const _Temporary_buffer&);
     };
 
-
   template<typename _ForwardIterator, typename _Tp>
     _Temporary_buffer<_ForwardIterator, _Tp>::
     _Temporary_buffer(_ForwardIterator __first, _ForwardIterator __last)
     : _M_original_len(std::distance(__first, __last)),
       _M_len(0), _M_buffer(0)
     {
-      // Workaround for a __type_traits bug in the pre-7.3 compiler.
-      typedef typename std::__is_scalar<_Tp>::__type _Trivial;
-
       try
 	{
-	  pair<pointer, size_type> __p(get_temporary_buffer<
-				       value_type>(_M_original_len));
+	  std::pair<pointer, size_type> __p(std::get_temporary_buffer<
+					    value_type>(_M_original_len));
 	  _M_buffer = __p.first;
 	  _M_len = __p.second;
-	  if (_M_len > 0)
-	    _M_initialize_buffer(*__first, _Trivial());
+	  if (!__is_pod(_Tp) && _M_len > 0)
+	    std::uninitialized_fill_n(_M_buffer, _M_len, *__first);
 	}
       catch(...)
 	{
@@ -168,5 +207,5 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
 _GLIBCXX_END_NAMESPACE
 
-#endif /* _TEMPBUF_H */
+#endif /* _STL_TEMPBUF_H */
 

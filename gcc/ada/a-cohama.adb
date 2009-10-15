@@ -6,11 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2004-2005, Free Software Foundation, Inc.         --
---                                                                          --
--- This specification is derived from the Ada Reference Manual for use with --
--- GNAT. The copyright notice above, and the license provisions that follow --
--- apply solely to the  contents of the part following the private keyword. --
+--          Copyright (C) 2004-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -69,7 +65,7 @@ package body Ada.Containers.Hashed_Maps is
    pragma Inline (Next);
 
    function Read_Node
-     (Stream : access Root_Stream_Type'Class) return Node_Access;
+     (Stream : not null access Root_Stream_Type'Class) return Node_Access;
    pragma Inline (Read_Node);
 
    procedure Set_Next (Node : Node_Access; Next : Node_Access);
@@ -78,7 +74,7 @@ package body Ada.Containers.Hashed_Maps is
    function Vet (Position : Cursor) return Boolean;
 
    procedure Write_Node
-     (Stream : access Root_Stream_Type'Class;
+     (Stream : not null access Root_Stream_Type'Class;
       Node   : Node_Access);
    pragma Inline (Write_Node);
 
@@ -524,6 +520,8 @@ package body Ada.Containers.Hashed_Maps is
       New_Item  : Element_Type)
    is
       Position : Cursor;
+      pragma Unreferenced (Position);
+
       Inserted : Boolean;
 
    begin
@@ -566,10 +564,22 @@ package body Ada.Containers.Hashed_Maps is
          Process (Cursor'(Container'Unchecked_Access, Node));
       end Process_Node;
 
+      B : Natural renames Container'Unrestricted_Access.HT.Busy;
+
    --  Start of processing for Iterate
 
    begin
-      Local_Iterate (Container.HT);
+      B := B + 1;
+
+      begin
+         Local_Iterate (Container.HT);
+      exception
+         when others =>
+            B := B - 1;
+            raise;
+      end;
+
+      B := B - 1;
    end Iterate;
 
    ---------
@@ -695,7 +705,7 @@ package body Ada.Containers.Hashed_Maps is
    ----------
 
    procedure Read
-     (Stream    : access Root_Stream_Type'Class;
+     (Stream    : not null access Root_Stream_Type'Class;
       Container : out Map)
    is
    begin
@@ -703,7 +713,7 @@ package body Ada.Containers.Hashed_Maps is
    end Read;
 
    procedure Read
-     (Stream : access Root_Stream_Type'Class;
+     (Stream : not null access Root_Stream_Type'Class;
       Item   : out Cursor)
    is
    begin
@@ -715,7 +725,7 @@ package body Ada.Containers.Hashed_Maps is
    ---------------
 
    function Read_Node
-     (Stream : access Root_Stream_Type'Class) return Node_Access
+     (Stream : not null access Root_Stream_Type'Class) return Node_Access
    is
       Node : Node_Access := new Node_Type;
 
@@ -842,8 +852,10 @@ package body Ada.Containers.Hashed_Maps is
          declare
             K : Key_Type renames Position.Node.Key;
             E : Element_Type renames Position.Node.Element;
+
          begin
             Process (K, E);
+
          exception
             when others =>
                L := L - 1;
@@ -916,7 +928,7 @@ package body Ada.Containers.Hashed_Maps is
    -----------
 
    procedure Write
-     (Stream    : access Root_Stream_Type'Class;
+     (Stream    : not null access Root_Stream_Type'Class;
       Container : Map)
    is
    begin
@@ -924,7 +936,7 @@ package body Ada.Containers.Hashed_Maps is
    end Write;
 
    procedure Write
-     (Stream : access Root_Stream_Type'Class;
+     (Stream : not null access Root_Stream_Type'Class;
       Item   : Cursor)
    is
    begin
@@ -936,7 +948,7 @@ package body Ada.Containers.Hashed_Maps is
    ----------------
 
    procedure Write_Node
-     (Stream : access Root_Stream_Type'Class;
+     (Stream : not null access Root_Stream_Type'Class;
       Node   : Node_Access)
    is
    begin

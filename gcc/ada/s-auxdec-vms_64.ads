@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1996-2005 Free Software Foundation, Inc.          --
+--          Copyright (C) 1996-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -37,9 +37,9 @@
 --  These definitions can be used directly by withing this package, or merged
 --  with System using pragma Extend_System (Aux_DEC)
 
---  This is the VMS 64 bit version.
+--  This is the VMS 64 bit version
 
-with Unchecked_Conversion;
+with Ada.Unchecked_Conversion;
 
 package System.Aux_DEC is
    pragma Preelaborate;
@@ -60,7 +60,7 @@ package System.Aux_DEC is
    --  not available.
 
    Short_Memory_Size : constant := 2 ** 32;
-   --  Defined for convenience of porting.
+   --  Defined for convenience of porting
 
    type Integer_8  is range -2 **  (8 - 1) .. +2 **  (8 - 1) - 1;
    for Integer_8'Size  use  8;
@@ -76,7 +76,7 @@ package System.Aux_DEC is
 
    type Largest_Integer is range Min_Int .. Max_Int;
 
-   type AST_Handler is limited private;
+   type AST_Handler is private;
 
    No_AST_Handler : constant AST_Handler;
 
@@ -298,17 +298,17 @@ package System.Aux_DEC is
    procedure Clear_Interlocked
      (Bit          : in out Boolean;
       Old_Value    : out Boolean;
-      Retry_Count  : in Natural;
+      Retry_Count  : Natural;
       Success_Flag : out Boolean);
 
    procedure Set_Interlocked
      (Bit          : in out Boolean;
       Old_Value    : out Boolean;
-      Retry_Count  : in Natural;
+      Retry_Count  : Natural;
       Success_Flag : out Boolean);
 
    procedure Add_Interlocked
-     (Addend       : in Short_Integer;
+     (Addend       : Short_Integer;
       Augend       : in out Aligned_Word;
       Sign         : out Integer);
 
@@ -332,67 +332,67 @@ package System.Aux_DEC is
 
    procedure Add_Atomic
      (To           : in out Aligned_Integer;
-      Amount       : in Integer);
+      Amount       : Integer);
 
    procedure Add_Atomic
      (To           : in out Aligned_Integer;
-      Amount       : in Integer;
-      Retry_Count  : in Natural;
+      Amount       : Integer;
+      Retry_Count  : Natural;
       Old_Value    : out Integer;
       Success_Flag : out Boolean);
 
    procedure Add_Atomic
      (To           : in out Aligned_Long_Integer;
-      Amount       : in Long_Integer);
+      Amount       : Long_Integer);
 
    procedure Add_Atomic
      (To           : in out Aligned_Long_Integer;
-      Amount       : in Long_Integer;
-      Retry_Count  : in Natural;
+      Amount       : Long_Integer;
+      Retry_Count  : Natural;
       Old_Value    : out Long_Integer;
       Success_Flag : out Boolean);
 
    procedure And_Atomic
      (To           : in out Aligned_Integer;
-      From         : in Integer);
+      From         : Integer);
 
    procedure And_Atomic
      (To           : in out Aligned_Integer;
-      From         : in Integer;
-      Retry_Count  : in Natural;
+      From         : Integer;
+      Retry_Count  : Natural;
       Old_Value    : out Integer;
       Success_Flag : out Boolean);
 
    procedure And_Atomic
      (To           : in out Aligned_Long_Integer;
-      From         : in Long_Integer);
+      From         : Long_Integer);
 
    procedure And_Atomic
      (To           : in out Aligned_Long_Integer;
-      From         : in Long_Integer;
-      Retry_Count  : in Natural;
+      From         : Long_Integer;
+      Retry_Count  : Natural;
       Old_Value    : out Long_Integer;
       Success_Flag : out Boolean);
 
    procedure Or_Atomic
      (To           : in out Aligned_Integer;
-      From         : in Integer);
+      From         : Integer);
 
    procedure Or_Atomic
      (To           : in out Aligned_Integer;
-      From         : in Integer;
-      Retry_Count  : in Natural;
+      From         : Integer;
+      Retry_Count  : Natural;
       Old_Value    : out Integer;
       Success_Flag : out Boolean);
 
    procedure Or_Atomic
      (To           : in out Aligned_Long_Integer;
-      From         : in Long_Integer);
+      From         : Long_Integer);
 
    procedure Or_Atomic
      (To           : in out Aligned_Long_Integer;
-      From         : in Long_Integer;
-      Retry_Count  : in Natural;
+      From         : Long_Integer;
+      Retry_Count  : Natural;
       Old_Value    : out Long_Integer;
       Success_Flag : out Boolean);
 
@@ -417,22 +417,22 @@ package System.Aux_DEC is
       OK_Empty       => +2);
 
    procedure Insqhi
-     (Item   : in  Address;
-      Header : in  Address;
+     (Item   : Address;
+      Header : Address;
       Status : out Insq_Status);
 
    procedure Remqhi
-     (Header : in  Address;
+     (Header : Address;
       Item   : out Address;
       Status : out Remq_Status);
 
    procedure Insqti
-     (Item   : in  Address;
-      Header : in  Address;
+     (Item   : Address;
+      Header : Address;
       Status : out Insq_Status);
 
    procedure Remqti
-     (Header : in  Address;
+     (Header : Address;
       Item   : out Address;
       Status : out Remq_Status);
 
@@ -465,28 +465,109 @@ private
    pragma Inline_Always (Fetch_From_Address);
    pragma Inline_Always (Assign_To_Address);
 
-   --  Synchronization related subprograms. These are declared to have
-   --  convention C so that the critical parameters are passed by reference.
+   --  Synchronization related subprograms. Mechanism is explicitly set
+   --  so that the critical parameters are passed by reference.
    --  Without this, the parameters are passed by copy, creating load/store
    --  race conditions. We also inline them, since this seems more in the
    --  spirit of the original (hardware intrinsic) routines.
 
-   pragma Convention (C, Clear_Interlocked);
+   pragma Export_Procedure
+     (Clear_Interlocked,
+      External        => "system__aux_dec__clear_interlocked__1",
+      Parameter_Types => (Boolean, Boolean),
+      Mechanism       => (Reference, Reference));
+   pragma Export_Procedure
+     (Clear_Interlocked,
+      External        => "system__aux_dec__clear_interlocked__2",
+      Parameter_Types => (Boolean, Boolean, Natural, Boolean),
+      Mechanism       => (Reference, Reference, Value, Reference));
    pragma Inline_Always (Clear_Interlocked);
 
-   pragma Convention (C, Set_Interlocked);
+   pragma Export_Procedure
+     (Set_Interlocked,
+      External        => "system__aux_dec__set_interlocked__1",
+      Parameter_Types => (Boolean, Boolean),
+      Mechanism       => (Reference, Reference));
+   pragma Export_Procedure
+     (Set_Interlocked,
+      External        => "system__aux_dec__set_interlocked__2",
+      Parameter_Types => (Boolean, Boolean, Natural, Boolean),
+      Mechanism       => (Reference, Reference, Value, Reference));
    pragma Inline_Always (Set_Interlocked);
 
-   pragma Convention (C, Add_Interlocked);
+   pragma Export_Procedure
+     (Add_Interlocked,
+      External        => "system__aux_dec__add_interlocked__1",
+      Mechanism       => (Value, Reference, Reference));
    pragma Inline_Always (Add_Interlocked);
 
-   pragma Convention (C, Add_Atomic);
+   pragma Export_Procedure
+     (Add_Atomic,
+      External        => "system__aux_dec__add_atomic__1",
+      Parameter_Types => (Aligned_Integer, Integer),
+      Mechanism       => (Reference, Value));
+   pragma Export_Procedure
+     (Add_Atomic,
+      External        => "system__aux_dec__add_atomic__2",
+      Parameter_Types => (Aligned_Integer, Integer, Natural, Integer, Boolean),
+      Mechanism       => (Reference, Value, Value, Reference, Reference));
+   pragma Export_Procedure
+     (Add_Atomic,
+      External        => "system__aux_dec__add_atomic__3",
+      Parameter_Types => (Aligned_Long_Integer, Long_Integer),
+      Mechanism       => (Reference, Value));
+   pragma Export_Procedure
+     (Add_Atomic,
+      External        => "system__aux_dec__add_atomic__4",
+      Parameter_Types => (Aligned_Long_Integer, Long_Integer, Natural,
+                          Long_Integer, Boolean),
+      Mechanism       => (Reference, Value, Value, Reference, Reference));
    pragma Inline_Always (Add_Atomic);
 
-   pragma Convention (C, And_Atomic);
+   pragma Export_Procedure
+     (And_Atomic,
+      External        => "system__aux_dec__and_atomic__1",
+      Parameter_Types => (Aligned_Integer, Integer),
+      Mechanism       => (Reference, Value));
+   pragma Export_Procedure
+     (And_Atomic,
+      External        => "system__aux_dec__and_atomic__2",
+      Parameter_Types => (Aligned_Integer, Integer, Natural, Integer, Boolean),
+      Mechanism       => (Reference, Value, Value, Reference, Reference));
+   pragma Export_Procedure
+     (And_Atomic,
+      External        => "system__aux_dec__and_atomic__3",
+      Parameter_Types => (Aligned_Long_Integer, Long_Integer),
+      Mechanism       => (Reference, Value));
+   pragma Export_Procedure
+     (And_Atomic,
+      External        => "system__aux_dec__and_atomic__4",
+      Parameter_Types => (Aligned_Long_Integer, Long_Integer, Natural,
+                          Long_Integer, Boolean),
+      Mechanism       => (Reference, Value, Value, Reference, Reference));
    pragma Inline_Always (And_Atomic);
 
-   pragma Convention (C, Or_Atomic);
+   pragma Export_Procedure
+     (Or_Atomic,
+      External        => "system__aux_dec__or_atomic__1",
+      Parameter_Types => (Aligned_Integer, Integer),
+      Mechanism       => (Reference, Value));
+   pragma Export_Procedure
+     (Or_Atomic,
+      External        => "system__aux_dec__or_atomic__2",
+      Parameter_Types => (Aligned_Integer, Integer, Natural, Integer, Boolean),
+      Mechanism       => (Reference, Value, Value, Reference, Reference));
+   pragma Export_Procedure
+     (Or_Atomic,
+      External        => "system__aux_dec__or_atomic__3",
+      Parameter_Types => (Aligned_Long_Integer, Long_Integer),
+      Mechanism       => (Reference, Value));
+   pragma Export_Procedure
+     (Or_Atomic,
+      External        => "system__aux_dec__or_atomic__4",
+      Parameter_Types => (Aligned_Long_Integer, Long_Integer, Natural,
+                          Long_Integer, Boolean),
+      Mechanism       => (Reference, Value, Value, Reference, Reference));
    pragma Inline_Always (Or_Atomic);
 
    --  Provide proper unchecked conversion definitions for transfer
@@ -495,61 +576,61 @@ private
    --  detectable by a program)
 
    function To_Unsigned_Byte_A is new
-     Unchecked_Conversion (Bit_Array_8, Unsigned_Byte);
+     Ada.Unchecked_Conversion (Bit_Array_8, Unsigned_Byte);
 
    function To_Unsigned_Byte (X : Bit_Array_8) return Unsigned_Byte
      renames To_Unsigned_Byte_A;
 
    function To_Bit_Array_8_A is new
-     Unchecked_Conversion (Unsigned_Byte, Bit_Array_8);
+     Ada.Unchecked_Conversion (Unsigned_Byte, Bit_Array_8);
 
    function To_Bit_Array_8 (X : Unsigned_Byte) return Bit_Array_8
      renames To_Bit_Array_8_A;
 
    function To_Unsigned_Word_A is new
-     Unchecked_Conversion (Bit_Array_16, Unsigned_Word);
+     Ada.Unchecked_Conversion (Bit_Array_16, Unsigned_Word);
 
    function To_Unsigned_Word (X : Bit_Array_16) return Unsigned_Word
      renames To_Unsigned_Word_A;
 
    function To_Bit_Array_16_A is new
-     Unchecked_Conversion (Unsigned_Word, Bit_Array_16);
+     Ada.Unchecked_Conversion (Unsigned_Word, Bit_Array_16);
 
    function To_Bit_Array_16 (X : Unsigned_Word) return Bit_Array_16
      renames To_Bit_Array_16_A;
 
    function To_Unsigned_Longword_A is new
-     Unchecked_Conversion (Bit_Array_32, Unsigned_Longword);
+     Ada.Unchecked_Conversion (Bit_Array_32, Unsigned_Longword);
 
    function To_Unsigned_Longword (X : Bit_Array_32) return Unsigned_Longword
      renames To_Unsigned_Longword_A;
 
    function To_Bit_Array_32_A is new
-     Unchecked_Conversion (Unsigned_Longword, Bit_Array_32);
+     Ada.Unchecked_Conversion (Unsigned_Longword, Bit_Array_32);
 
    function To_Bit_Array_32 (X : Unsigned_Longword) return Bit_Array_32
      renames To_Bit_Array_32_A;
 
    function To_Unsigned_32_A is new
-     Unchecked_Conversion (Bit_Array_32, Unsigned_32);
+     Ada.Unchecked_Conversion (Bit_Array_32, Unsigned_32);
 
    function To_Unsigned_32 (X : Bit_Array_32) return Unsigned_32
      renames To_Unsigned_32_A;
 
    function To_Bit_Array_32_A is new
-     Unchecked_Conversion (Unsigned_32, Bit_Array_32);
+     Ada.Unchecked_Conversion (Unsigned_32, Bit_Array_32);
 
    function To_Bit_Array_32 (X : Unsigned_32) return Bit_Array_32
      renames To_Bit_Array_32_A;
 
    function To_Unsigned_Quadword_A is new
-     Unchecked_Conversion (Bit_Array_64, Unsigned_Quadword);
+     Ada.Unchecked_Conversion (Bit_Array_64, Unsigned_Quadword);
 
    function To_Unsigned_Quadword (X : Bit_Array_64) return Unsigned_Quadword
      renames To_Unsigned_Quadword_A;
 
    function To_Bit_Array_64_A is new
-     Unchecked_Conversion (Unsigned_Quadword, Bit_Array_64);
+     Ada.Unchecked_Conversion (Unsigned_Quadword, Bit_Array_64);
 
    function To_Bit_Array_64 (X : Unsigned_Quadword) return Bit_Array_64
      renames To_Bit_Array_64_A;
@@ -560,7 +641,7 @@ private
    --  want warnings when we compile on such systems.
 
    function To_Address_A is new
-     Unchecked_Conversion (Integer, Address);
+     Ada.Unchecked_Conversion (Integer, Address);
    pragma Pure_Function (To_Address_A);
 
    function To_Address (X : Integer) return Address
@@ -568,7 +649,7 @@ private
    pragma Pure_Function (To_Address);
 
    function To_Address_Long_A is new
-     Unchecked_Conversion (Unsigned_Longword, Address);
+     Ada.Unchecked_Conversion (Unsigned_Longword, Address);
    pragma Pure_Function (To_Address_Long_A);
 
    function To_Address_Long (X : Unsigned_Longword) return Address
@@ -576,19 +657,19 @@ private
    pragma Pure_Function (To_Address_Long);
 
    function To_Integer_A is new
-     Unchecked_Conversion (Address, Integer);
+     Ada.Unchecked_Conversion (Address, Integer);
 
    function To_Integer (X : Address) return Integer
      renames To_Integer_A;
 
    function To_Unsigned_Longword_A is new
-     Unchecked_Conversion (Address, Unsigned_Longword);
+     Ada.Unchecked_Conversion (Address, Unsigned_Longword);
 
    function To_Unsigned_Longword (X : Address) return Unsigned_Longword
      renames To_Unsigned_Longword_A;
 
    function To_Unsigned_Longword_A is new
-     Unchecked_Conversion (AST_Handler, Unsigned_Longword);
+     Ada.Unchecked_Conversion (AST_Handler, Unsigned_Longword);
 
    function To_Unsigned_Longword (X : AST_Handler) return Unsigned_Longword
      renames To_Unsigned_Longword_A;

@@ -63,7 +63,7 @@ extern bool is_gimple_addressable (tree);
 extern bool is_gimple_lvalue (tree);
 
 /* Returns true iff T is a GIMPLE restricted function invariant.  */
-extern bool is_gimple_min_invariant (tree);
+extern bool is_gimple_min_invariant (const_tree);
 /* Returns true iff T is a GIMPLE rvalue.  */
 extern bool is_gimple_val (tree);
 /* Returns true iff T is a GIMPLE asm statement input.  */
@@ -133,6 +133,7 @@ extern enum gimplify_status gimplify_va_arg_expr (tree *, tree *, tree *);
 struct gimplify_omp_ctx;
 extern void omp_firstprivatize_variable (struct gimplify_omp_ctx *, tree);
 extern tree gimple_boolify (tree);
+extern tree canonicalize_cond_expr_cond (tree);
 
 /* In omp-low.c.  */
 extern void diagnose_omp_structured_block_errors (tree);

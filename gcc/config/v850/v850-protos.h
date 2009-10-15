@@ -37,7 +37,6 @@ extern int    v850_output_addr_const_extra  (FILE *, rtx);
 extern rtx    v850_return_addr              (int);
 extern void   print_operand                 (FILE *, rtx, int );
 extern void   print_operand_address         (FILE *, rtx);
-extern const char *output_move_double       (rtx *);
 extern const char *output_move_single       (rtx *);
 extern void   notice_update_cc              (rtx, rtx);
 extern char * construct_save_jarl           (rtx);

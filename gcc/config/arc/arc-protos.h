@@ -17,12 +17,12 @@ You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
 
-extern void arc_va_start (tree, rtx);
-
+#ifdef RTX_CODE
 extern enum machine_mode arc_select_cc_mode (enum rtx_code, rtx, rtx);
 
 /* Define the function that build the compare insn for scc and bcc.  */
 extern struct rtx_def *gen_compare_reg (enum rtx_code, rtx, rtx);
+#endif
 
 /* Declarations for various fns used in the .md file.  */
 extern const char *output_shift (rtx *);

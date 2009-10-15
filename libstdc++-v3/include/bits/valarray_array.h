@@ -1,7 +1,8 @@
 // The template and inlines for the -*- C++ -*- internal _Array helper class.
 
-// Copyright (C) 1997, 1998, 1999, 2000, 2003, 2004, 2005, 2006
-//  Free Software Foundation, Inc.
+// Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
+// 2006, 2007
+// Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -43,7 +44,6 @@
 #include <bits/c++config.h>
 #include <bits/cpp_type_traits.h>
 #include <cstdlib>
-#include <cstring>
 #include <new>
 
 _GLIBCXX_BEGIN_NAMESPACE(std)
@@ -91,14 +91,14 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       // For fundamental types, it suffices to say 'memset()'
       inline static void
       _S_do_it(_Tp* __restrict__ __b, _Tp* __restrict__ __e)
-      { std::memset(__b, 0, (__e - __b) * sizeof(_Tp)); }
+      { __builtin_memset(__b, 0, (__e - __b) * sizeof(_Tp)); }
     };
 
   template<typename _Tp>
     inline void
     __valarray_default_construct(_Tp* __restrict__ __b, _Tp* __restrict__ __e)
     {
-      _Array_default_ctor<_Tp, __is_pod<_Tp>::__value>::_S_do_it(__b, __e);
+      _Array_default_ctor<_Tp, __is_scalar<_Tp>::__value>::_S_do_it(__b, __e);
     }
 
   // Turn a raw-memory into an array of _Tp filled with __t
@@ -133,7 +133,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     __valarray_fill_construct(_Tp* __restrict__ __b, _Tp* __restrict__ __e,
 			      const _Tp __t)
     {
-      _Array_init_ctor<_Tp, __is_pod<_Tp>::__value>::_S_do_it(__b, __e, __t);
+      _Array_init_ctor<_Tp, __is_pod(_Tp)>::_S_do_it(__b, __e, __t);
     }
 
   //
@@ -160,7 +160,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       inline static void
       _S_do_it(const _Tp* __restrict__ __b, const _Tp* __restrict__ __e,
 	       _Tp* __restrict__ __o)
-      { std::memcpy(__o, __b, (__e - __b)*sizeof(_Tp)); }
+      { __builtin_memcpy(__o, __b, (__e - __b) * sizeof(_Tp)); }
     };
 
   template<typename _Tp>
@@ -169,7 +169,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 			      const _Tp* __restrict__ __e,
 			      _Tp* __restrict__ __o)
     {
-      _Array_copy_ctor<_Tp, __is_pod<_Tp>::__value>::_S_do_it(__b, __e, __o);
+      _Array_copy_ctor<_Tp, __is_pod(_Tp)>::_S_do_it(__b, __e, __o);
     }
 
   // copy-construct raw array [__o, *) from strided array __a[<__n : __s>]
@@ -178,7 +178,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     __valarray_copy_construct (const _Tp* __restrict__ __a, size_t __n,
 			       size_t __s, _Tp* __restrict__ __o)
     {
-      if (__is_pod<_Tp>::__value)
+      if (__is_pod(_Tp))
 	while (__n--)
 	  {
 	    *__o++ = *__a;
@@ -199,7 +199,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 			       const size_t* __restrict__ __i,
 			       _Tp* __restrict__ __o, size_t __n)
     {
-      if (__is_pod<_Tp>::__value)
+      if (__is_pod(_Tp))
 	while (__n--)
 	  *__o++ = __a[*__i++];
       else
@@ -212,7 +212,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     inline void
     __valarray_destroy_elements(_Tp* __restrict__ __b, _Tp* __restrict__ __e)
     {
-      if (!__is_pod<_Tp>::__value)
+      if (!__is_pod(_Tp))
 	while (__b != __e)
 	  {
 	    __b->~_Tp();
@@ -239,7 +239,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	*__a = __t;
     }
 
-  // fill indir   ect array __a[__i[<__n>]] with __i
+  // fill indirect array __a[__i[<__n>]] with __i
   template<typename _Tp>
     inline void
     __valarray_fill(_Tp* __restrict__ __a, const size_t* __restrict__ __i,
@@ -267,7 +267,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     {
       inline static void
       _S_do_it(const _Tp* __restrict__ __a, size_t __n, _Tp* __restrict__ __b)
-      { std::memcpy (__b, __a, __n * sizeof (_Tp)); }
+      { __builtin_memcpy(__b, __a, __n * sizeof (_Tp)); }
     };
 
   // Copy a plain array __a[<__n>] into a play array __b[<>]
@@ -276,7 +276,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     __valarray_copy(const _Tp* __restrict__ __a, size_t __n,
 		    _Tp* __restrict__ __b)
     {
-      _Array_copier<_Tp, __is_pod<_Tp>::__value>::_S_do_it(__a, __n, __b);
+      _Array_copier<_Tp, __is_pod(_Tp)>::_S_do_it(__a, __n, __b);
     }
 
   // Copy strided array __a[<__n : __s>] in plain __b[<__n>]

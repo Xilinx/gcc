@@ -310,6 +310,16 @@ along with GCC; see the file COPYING3.  If not see
 #define VEC_safe_grow(T,A,V,I)		\
 	(VEC_OP(T,A,safe_grow)(&(V),I VEC_CHECK_INFO MEM_STAT_INFO))
 
+/* Grow to a specific length.
+   void VEC_T_A_safe_grow_cleared (VEC(T,A) *&v, int len);
+
+   Grow the vector to a specific length.  The LEN must be as
+   long or longer than the current length.  The new elements are
+   initialized to zero.  */
+
+#define VEC_safe_grow_cleared(T,A,V,I)		\
+	(VEC_OP(T,A,safe_grow_cleared)(&(V),I VEC_CHECK_INFO MEM_STAT_INFO))
+
 /* Replace element
    T VEC_T_replace (VEC(T) *v, unsigned ix, T val); // Integer
    T VEC_T_replace (VEC(T) *v, unsigned ix, T val); // Pointer
@@ -406,7 +416,6 @@ along with GCC; see the file COPYING3.  If not see
 #define VEC_lower_bound(T,V,O,LT)    \
        (VEC_OP(T,base,lower_bound)(VEC_BASE(V),O,LT VEC_CHECK_INFO))
 
-#if !IN_GENGTYPE
 /* Reallocate an array of elements with prefix.  */
 extern void *vec_gc_p_reserve (void *, int MEM_STAT_DECL);
 extern void *vec_gc_p_reserve_exact (void *, int MEM_STAT_DECL);
@@ -440,14 +449,12 @@ extern void vec_assert_fail (const char *, const char * VEC_CHECK_DECL)
 #define VEC_ASSERT(EXPR,OP,T,A) (void)(EXPR)
 #endif
 
+/* Note: gengtype has hardwired knowledge of the expansions of the
+   VEC, DEF_VEC_*, and DEF_VEC_ALLOC_* macros.  If you change the
+   expansions of these macros you may need to change gengtype too.  */
+
 #define VEC(T,A) VEC_##T##_##A
 #define VEC_OP(T,A,OP) VEC_##T##_##A##_##OP
-#else  /* IN_GENGTYPE */
-#define VEC(T,A) VEC_ T _ A
-#define VEC_STRINGIFY(X) VEC_STRINGIFY_(X)
-#define VEC_STRINGIFY_(X) #X
-#undef GTY
-#endif /* IN_GENGTYPE */
 
 /* Base of vector type, not user visible.  */     
 #define VEC_T(T,B)							  \
@@ -473,14 +480,16 @@ typedef struct VEC(T,A) GTY						  \
   VEC(T,B) base;							  \
 } VEC(T,A)
 
+#define VEC_TA(T,B,A)							  \
+typedef struct VEC(T,A)							  \
+{									  \
+  VEC(T,B) base;							  \
+} VEC(T,A)
+
 /* Convert to base type.  */
 #define VEC_BASE(P)  ((P) ? &(P)->base : 0)
 
 /* Vector of integer-like object.  */
-#if IN_GENGTYPE
-{"DEF_VEC_I", VEC_STRINGIFY (VEC_T(#0,#1)) ";", "none"},
-{"DEF_VEC_ALLOC_I", VEC_STRINGIFY (VEC_TA (#0,#1,#2,#3)) ";", NULL},
-#else
 #define DEF_VEC_I(T)							  \
 static inline void VEC_OP (T,must_be,integral_type) (void) 		  \
 {									  \
@@ -488,20 +497,15 @@ static inline void VEC_OP (T,must_be,integral_type) (void) 		  \
 }									  \
 									  \
 VEC_T(T,base);								  \
-VEC_TA_GTY(T,base,none,);						  \
+VEC_TA(T,base,none);							  \
 DEF_VEC_FUNC_P(T)							  \
 struct vec_swallow_trailing_semi
 #define DEF_VEC_ALLOC_I(T,A)						  \
-VEC_TA_GTY(T,base,A,);							  \
+VEC_TA(T,base,A);							  \
 DEF_VEC_ALLOC_FUNC_I(T,A)						  \
 struct vec_swallow_trailing_semi
-#endif
 
 /* Vector of pointer to object.  */
-#if IN_GENGTYPE
-{"DEF_VEC_P", VEC_STRINGIFY (VEC_T_GTY(#0,#1)) ";", "none"},
-{"DEF_VEC_ALLOC_P", VEC_STRINGIFY (VEC_TA_GTY (#0,#1,#2,#3)) ";", NULL},
-#else
 #define DEF_VEC_P(T) 							  \
 static inline void VEC_OP (T,must_be,pointer_type) (void) 		  \
 {									  \
@@ -509,14 +513,13 @@ static inline void VEC_OP (T,must_be,pointer_type) (void) 		  \
 }									  \
 									  \
 VEC_T_GTY(T,base);							  \
-VEC_TA_GTY(T,base,none,);						  \
+VEC_TA(T,base,none);							  \
 DEF_VEC_FUNC_P(T)							  \
 struct vec_swallow_trailing_semi
 #define DEF_VEC_ALLOC_P(T,A)						  \
-VEC_TA_GTY(T,base,A,);							  \
+VEC_TA(T,base,A);							  \
 DEF_VEC_ALLOC_FUNC_P(T,A)						  \
 struct vec_swallow_trailing_semi
-#endif
 
 #define DEF_VEC_FUNC_P(T)						  \
 static inline unsigned VEC_OP (T,base,length) (const VEC(T,base) *vec_)   \
@@ -771,6 +774,15 @@ static inline void VEC_OP (T,A,safe_grow)				  \
   VEC_BASE (*vec_)->num = size_;					  \
 }									  \
 									  \
+static inline void VEC_OP (T,A,safe_grow_cleared)			  \
+     (VEC(T,A) **vec_, int size_ VEC_CHECK_DECL MEM_STAT_DECL)		  \
+{									  \
+  int oldsize = VEC_OP(T,base,length) VEC_BASE(*vec_);			  \
+  VEC_OP (T,A,safe_grow) (vec_, size_ VEC_CHECK_PASS PASS_MEM_STAT);	  \
+  memset (&(VEC_OP (T,base,address) VEC_BASE(*vec_))[oldsize], 0,	  \
+	  sizeof (T) * (size_ - oldsize));				  \
+}									  \
+									  \
 static inline T *VEC_OP (T,A,safe_push)					  \
      (VEC(T,A) **vec_, T obj_ VEC_CHECK_DECL MEM_STAT_DECL)       	  \
 {									  \
@@ -789,20 +801,15 @@ static inline T *VEC_OP (T,A,safe_insert)		     	  	  \
 }
 
 /* Vector of object.  */
-#if IN_GENGTYPE
-{"DEF_VEC_O", VEC_STRINGIFY (VEC_T_GTY(#0,#1)) ";", "none"},
-{"DEF_VEC_ALLOC_O", VEC_STRINGIFY (VEC_TA_GTY(#0,#1,#2,#3)) ";", NULL},
-#else
 #define DEF_VEC_O(T)							  \
 VEC_T_GTY(T,base);							  \
-VEC_TA_GTY(T,base,none,);						  \
+VEC_TA(T,base,none);						  \
 DEF_VEC_FUNC_O(T)							  \
 struct vec_swallow_trailing_semi
 #define DEF_VEC_ALLOC_O(T,A)						  \
-VEC_TA_GTY(T,base,A,);							  \
+VEC_TA(T,base,A);							  \
 DEF_VEC_ALLOC_FUNC_O(T,A)						  \
 struct vec_swallow_trailing_semi
-#endif
 
 #define DEF_VEC_FUNC_O(T)						  \
 static inline unsigned VEC_OP (T,base,length) (const VEC(T,base) *vec_)	  \
@@ -1053,6 +1060,15 @@ static inline void VEC_OP (T,A,safe_grow)				  \
   VEC_BASE (*vec_)->num = size_;					  \
 }									  \
 									  \
+static inline void VEC_OP (T,A,safe_grow_cleared)			  \
+     (VEC(T,A) **vec_, int size_ VEC_CHECK_DECL MEM_STAT_DECL)		  \
+{									  \
+  int oldsize = VEC_OP(T,base,length) VEC_BASE(*vec_);			  \
+  VEC_OP (T,A,safe_grow) (vec_, size_ VEC_CHECK_PASS PASS_MEM_STAT);	  \
+  memset (&(VEC_OP (T,base,address) VEC_BASE(*vec_))[oldsize], 0,	  \
+	  sizeof (T) * (size_ - oldsize));				  \
+}									  \
+									  \
 static inline T *VEC_OP (T,A,safe_push)					  \
      (VEC(T,A) **vec_, const T *obj_ VEC_CHECK_DECL MEM_STAT_DECL)	  \
 {									  \
@@ -1145,6 +1161,15 @@ static inline void VEC_OP (T,A,safe_grow)				  \
 			      size_ - (int)(*vec_ ? VEC_BASE(*vec_)->num : 0) \
 			      VEC_CHECK_PASS PASS_MEM_STAT);		  \
   VEC_BASE (*vec_)->num = size_;					  \
+}									  \
+									  \
+static inline void VEC_OP (T,A,safe_grow_cleared)			  \
+     (VEC(T,A) **vec_, int size_ VEC_CHECK_DECL MEM_STAT_DECL)		  \
+{									  \
+  int oldsize = VEC_OP(T,base,length) VEC_BASE(*vec_);			  \
+  VEC_OP (T,A,safe_grow) (vec_, size_ VEC_CHECK_PASS PASS_MEM_STAT);	  \
+  memset (&(VEC_OP (T,base,address) VEC_BASE(*vec_))[oldsize], 0,	  \
+	  sizeof (T) * (size_ - oldsize));				  \
 }									  \
 									  \
 static inline T *VEC_OP (T,A,safe_push)					  \

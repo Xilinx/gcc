@@ -6,18 +6,17 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2001-2005, Free Software Foundation, Inc.         --
+--          Copyright (C) 2001-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -29,6 +28,7 @@ with Casing;   use Casing;
 with Checks;   use Checks;
 with Einfo;    use Einfo;
 with Exp_Util; use Exp_Util;
+with Lib;      use Lib;
 with Namet;    use Namet;
 with Nmake;    use Nmake;
 with Nlists;   use Nlists;
@@ -155,14 +155,23 @@ package body Exp_Imgv is
    -- Expand_Image_Attribute --
    ----------------------------
 
-   --  For all non-enumeration types, and for enumeration types declared
-   --  in packages Standard or System, typ'Image (Val) expands into:
+   --  For all cases other than user defined enumeration types, the scheme
+   --  is as follows. First we insert the following code:
 
-   --     Image_xx (tp (Expr) [, pm])
+   --    Snn : String (1 .. rt'Width);
+   --    Pnn : Natural;
+   --    Image_xx (tv, Snn, Pnn [,pm]);
+   --
+   --  and then Expr is replaced by Snn (1 .. Pnn)
 
-   --  The name xx and type conversion tp (Expr) (called tv below) depend on
-   --  the root type of Expr. The argument pm is an extra type dependent
-   --  parameter only used in some cases as follows:
+   --  In the above expansion:
+
+   --    rt is the root type of the expression
+   --    tv is the expression with the value, usually a type conversion
+   --    pm is an extra parameter present in some cases
+
+   --  The following table shows tv, xx, and (if used) pm for the various
+   --  possible types of the argument:
 
    --    For types whose root type is Character
    --      xx = Character
@@ -194,57 +203,103 @@ package body Exp_Imgv is
    --      pm = Boolean, true if Ada 2005 mode, False otherwise
 
    --    For types whose root type is Wide_Wide_Character
-   --      xx = Wide_Wide_haracter
+   --      xx = Wide_Wide_Character
    --      tv = Wide_Wide_Character (Expr)
 
    --    For floating-point types
    --      xx = Floating_Point
    --      tv = Long_Long_Float (Expr)
-   --      pm = typ'Digits
+   --      pm = typ'Digits (typ = subtype of expression)
 
    --    For ordinary fixed-point types
    --      xx = Ordinary_Fixed_Point
    --      tv = Long_Long_Float (Expr)
-   --      pm = typ'Aft
+   --      pm = typ'Aft (typ = subtype of expression)
 
    --    For decimal fixed-point types with size = Integer'Size
    --      xx = Decimal
    --      tv = Integer (Expr)
-   --      pm = typ'Scale
+   --      pm = typ'Scale (typ = subtype of expression)
 
    --    For decimal fixed-point types with size > Integer'Size
    --      xx = Long_Long_Decimal
-   --      tv = Long_Long_Integer (Expr)
-   --      pm = typ'Scale
-
-   --    Note: for the decimal fixed-point type cases, the conversion is
-   --    done literally without scaling (i.e. the actual expression that
-   --    is generated is Image_xx (tp?(Expr) [, pm])
+   --      tv = Long_Long_Integer?(Expr) [convert with no scaling]
+   --      pm = typ'Scale (typ = subtype of expression)
 
    --  For enumeration types other than those declared packages Standard
-   --  or System, typ'Image (X) expands into:
+   --  or System, Snn, Pnn, are expanded as above, but the call looks like:
 
-   --    Image_Enumeration_NN (typ'Pos (X), typS, typI'Address)
+   --    Image_Enumeration_NN (rt'Pos (X), Snn, Pnn, typS, typI'Address)
 
-   --  where typS and typI are the entities constructed as described in
-   --  the spec for the procedure Build_Enumeration_Image_Tables and NN
-   --  is 32/16/8 depending on the element type of Lit_Indexes.
+   --  where rt is the root type of the expression, and typS and typI are
+   --  the entities constructed as described in the spec for the procedure
+   --  Build_Enumeration_Image_Tables and NN is 32/16/8 depending on the
+   --  element type of Lit_Indexes. The rewriting of the expression to
+   --  Snn (1 .. Pnn) then occurs as in the other cases. A special case is
+   --  when pragma Discard_Names applies, in which case we replace expr by:
+
+   --    Missing ???
 
    procedure Expand_Image_Attribute (N : Node_Id) is
-      Loc      : constant Source_Ptr := Sloc (N);
-      Exprs    : constant List_Id    := Expressions (N);
-      Pref     : constant Node_Id    := Prefix (N);
-      Ptyp     : constant Entity_Id  := Entity (Pref);
-      Rtyp     : constant Entity_Id  := Root_Type (Ptyp);
-      Expr     : constant Node_Id    := Relocate_Node (First (Exprs));
-      Imid     : RE_Id;
-      Tent     : Entity_Id;
-      Arglist  : List_Id;
-      Func     : RE_Id;
-      Ttyp     : Entity_Id;
-      Func_Ent : Entity_Id;
+      Loc       : constant Source_Ptr := Sloc (N);
+      Exprs     : constant List_Id    := Expressions (N);
+      Pref      : constant Node_Id    := Prefix (N);
+      Ptyp      : constant Entity_Id  := Entity (Pref);
+      Rtyp      : constant Entity_Id  := Root_Type (Ptyp);
+      Expr      : constant Node_Id    := Relocate_Node (First (Exprs));
+      Imid      : RE_Id;
+      Tent      : Entity_Id;
+      Ttyp      : Entity_Id;
+      Proc_Ent  : Entity_Id;
+      Enum_Case : Boolean;
+
+      Arg_List : List_Id;
+      --  List of arguments for run-time procedure call
+
+      Ins_List : List_Id;
+      --  List of actions to be inserted
+
+      Snn : constant Entity_Id :=
+              Make_Defining_Identifier (Loc,
+                Chars => New_Internal_Name ('S'));
+
+      Pnn : constant Entity_Id :=
+              Make_Defining_Identifier (Loc,
+                Chars => New_Internal_Name ('P'));
 
    begin
+      --  Build declarations of Snn and Pnn to be inserted
+
+      Ins_List := New_List (
+
+         --  Snn : String (1 .. typ'Width);
+
+         Make_Object_Declaration (Loc,
+            Defining_Identifier => Snn,
+            Object_Definition   =>
+              Make_Subtype_Indication (Loc,
+                Subtype_Mark => New_Occurrence_Of (Standard_String, Loc),
+                Constraint   =>
+                  Make_Index_Or_Discriminant_Constraint (Loc,
+                    Constraints => New_List (
+                      Make_Range (Loc,
+                        Low_Bound  => Make_Integer_Literal (Loc, 1),
+                        High_Bound =>
+                          Make_Attribute_Reference (Loc,
+                            Prefix         => New_Occurrence_Of (Rtyp, Loc),
+                            Attribute_Name => Name_Width)))))),
+
+         --  Pnn : Natural;
+
+         Make_Object_Declaration (Loc,
+           Defining_Identifier => Pnn,
+           Object_Definition   => New_Occurrence_Of (Standard_Natural, Loc)));
+
+      --  Set Imid (RE_Id of procedure to call), and Tent, target for the
+      --  type conversion of the first argument for all possibilities.
+
+      Enum_Case := False;
+
       if Rtyp = Standard_Boolean then
          Imid := RE_Image_Boolean;
          Tent := Rtyp;
@@ -315,68 +370,77 @@ package body Exp_Imgv is
                 Attribute_Name =>
                   Name_Img));
             Analyze_And_Resolve (N, Standard_String);
+            return;
 
          else
-            --  Here we get the Image of an enumeration type
+            --  Here for enumeration type case
 
             Ttyp := Component_Type (Etype (Lit_Indexes (Rtyp)));
 
             if Ttyp = Standard_Integer_8 then
-               Func := RE_Image_Enumeration_8;
+               Imid := RE_Image_Enumeration_8;
             elsif Ttyp = Standard_Integer_16  then
-               Func := RE_Image_Enumeration_16;
+               Imid := RE_Image_Enumeration_16;
             else
-               Func := RE_Image_Enumeration_32;
+               Imid := RE_Image_Enumeration_32;
             end if;
 
-            --  Apply a validity check, since it is a bit drastic to
-            --  get a completely junk image value for an invalid value.
+            --  Apply a validity check, since it is a bit drastic to get a
+            --  completely junk image value for an invalid value.
 
             if not Expr_Known_Valid (Expr) then
                Insert_Valid_Check (Expr);
             end if;
 
-            Rewrite (N,
-              Make_Function_Call (Loc,
-                Name => New_Occurrence_Of (RTE (Func), Loc),
-                Parameter_Associations => New_List (
-                  Make_Attribute_Reference (Loc,
-                    Attribute_Name => Name_Pos,
-                    Prefix         => New_Occurrence_Of (Ptyp, Loc),
-                    Expressions    => New_List (Expr)),
-                  New_Occurrence_Of (Lit_Strings (Rtyp), Loc),
-                  Make_Attribute_Reference (Loc,
-                    Prefix => New_Occurrence_Of (Lit_Indexes (Rtyp), Loc),
-                    Attribute_Name => Name_Address))));
-
-            Analyze_And_Resolve (N, Standard_String);
+            Enum_Case := True;
          end if;
-
-         return;
       end if;
 
-      --  If we fall through, we have one of the cases that is handled by
-      --  calling one of the System.Img_xx routines and Imid is set to the
-      --  RE_Id for the function to be called.
+      --  Build first argument for call
 
-      Func_Ent := RTE (Imid);
+      if Enum_Case then
+         Arg_List := New_List (
+           Make_Attribute_Reference (Loc,
+             Attribute_Name => Name_Pos,
+             Prefix         => New_Occurrence_Of (Ptyp, Loc),
+             Expressions    => New_List (Expr)));
 
-      --  If the function entity is empty, that means we have a case in
+      else
+         Arg_List := New_List (Convert_To (Tent, Expr));
+      end if;
+
+      --  Append Snn, Pnn arguments
+
+      Append_To (Arg_List, New_Occurrence_Of (Snn, Loc));
+      Append_To (Arg_List, New_Occurrence_Of (Pnn, Loc));
+
+      --  Get entity of procedure to call
+
+      Proc_Ent := RTE (Imid);
+
+      --  If the procedure entity is empty, that means we have a case in
       --  no run time mode where the operation is not allowed, and an
       --  appropriate diagnostic has already been issued.
 
-      if No (Func_Ent) then
+      if No (Proc_Ent) then
          return;
       end if;
 
-      --  Otherwise prepare arguments for run-time call
+      --  Otherwise complete preparation of arguments for run-time call
 
-      Arglist := New_List (Convert_To (Tent, Relocate_Node (Expr)));
+      --  Add extra arguments for Enumeration case
+
+      if Enum_Case then
+         Append_To (Arg_List, New_Occurrence_Of (Lit_Strings (Rtyp), Loc));
+         Append_To (Arg_List,
+           Make_Attribute_Reference (Loc,
+             Prefix         => New_Occurrence_Of (Lit_Indexes (Rtyp), Loc),
+             Attribute_Name => Name_Address));
 
       --  For floating-point types, append Digits argument
 
-      if Is_Floating_Point_Type (Rtyp) then
-         Append_To (Arglist,
+      elsif Is_Floating_Point_Type (Rtyp) then
+         Append_To (Arg_List,
            Make_Attribute_Reference (Loc,
              Prefix         => New_Reference_To (Ptyp, Loc),
              Attribute_Name => Name_Digits));
@@ -384,7 +448,7 @@ package body Exp_Imgv is
       --  For ordinary fixed-point types, append Aft parameter
 
       elsif Is_Ordinary_Fixed_Point_Type (Rtyp) then
-         Append_To (Arglist,
+         Append_To (Arg_List,
            Make_Attribute_Reference (Loc,
              Prefix         => New_Reference_To (Ptyp, Loc),
              Attribute_Name => Name_Aft));
@@ -392,27 +456,45 @@ package body Exp_Imgv is
       --  For decimal, append Scale and also set to do literal conversion
 
       elsif Is_Decimal_Fixed_Point_Type (Rtyp) then
-         Append_To (Arglist,
+         Append_To (Arg_List,
            Make_Attribute_Reference (Loc,
              Prefix => New_Reference_To (Ptyp, Loc),
              Attribute_Name => Name_Scale));
 
-         Set_Conversion_OK (First (Arglist));
-         Set_Etype (First (Arglist), Tent);
+         Set_Conversion_OK (First (Arg_List));
+         Set_Etype (First (Arg_List), Tent);
 
          --  For Wide_Character, append Ada 2005 indication
 
       elsif Rtyp = Standard_Wide_Character then
-         Append_To (Arglist,
+         Append_To (Arg_List,
            New_Reference_To (Boolean_Literals (Ada_Version >= Ada_05), Loc));
       end if;
 
-      Rewrite (N,
-        Make_Function_Call (Loc,
-          Name => New_Reference_To (Func_Ent, Loc),
-          Parameter_Associations => Arglist));
+      --  Now append the procedure call to the insert list
 
-      Analyze_And_Resolve (N, Standard_String);
+      Append_To (Ins_List,
+         Make_Procedure_Call_Statement (Loc,
+          Name                   => New_Reference_To (Proc_Ent, Loc),
+          Parameter_Associations => Arg_List));
+
+      --  Insert declarations of Snn, Pnn, and the procedure call. We suppress
+      --  checks because we are sure that everything is in range at this stage.
+
+      Insert_Actions (N, Ins_List, Suppress => All_Checks);
+
+      --  Final step is to rewrite the expression as a slice and analyze,
+      --  again with no checks, since we are sure that everything is OK.
+
+      Rewrite (N,
+        Make_Slice (Loc,
+          Prefix         => New_Occurrence_Of (Snn, Loc),
+          Discrete_Range =>
+            Make_Range (Loc,
+              Low_Bound  => Make_Integer_Literal (Loc, 1),
+              High_Bound => New_Occurrence_Of (Pnn, Loc))));
+
+      Analyze_And_Resolve (N, Standard_String, Suppress => All_Checks);
    end Expand_Image_Attribute;
 
    ----------------------------
@@ -424,7 +506,7 @@ package body Exp_Imgv is
 
    --    btyp (Value_xx (X))
 
-   --  where btyp is he base type of the prefix, and
+   --  where btyp is he base type of the prefix
 
    --    For types whose root type is Character
    --      xx = Character
@@ -452,6 +534,12 @@ package body Exp_Imgv is
 
    --    For floating-point types and ordinary fixed-point types
    --      xx = Real
+
+   --  For Wide_[Wide_]Character types, typ'Value (X) expands into:
+
+   --    btyp (Value_xx (X, EM))
+
+   --  where btyp is the base type of the prefix, and EM is the encoding method
 
    --  For decimal types with size <= Integer'Size, typ'Value (X)
    --  expands into
@@ -498,8 +586,16 @@ package body Exp_Imgv is
       elsif Rtyp = Standard_Wide_Character then
          Vid := RE_Value_Wide_Character;
 
+         Append_To (Args,
+           Make_Integer_Literal (Loc,
+             Intval => Int (Wide_Character_Encoding_Method)));
+
       elsif Rtyp = Standard_Wide_Wide_Character then
          Vid := RE_Value_Wide_Wide_Character;
+
+         Append_To (Args,
+           Make_Integer_Literal (Loc,
+             Intval => Int (Wide_Character_Encoding_Method)));
 
       elsif     Rtyp = Base_Type (Standard_Short_Short_Integer)
         or else Rtyp = Base_Type (Standard_Short_Integer)
@@ -619,14 +715,229 @@ package body Exp_Imgv is
       --  and decimal types, with Vid set to the Id of the entity for the
       --  Value routine and Args set to the list of parameters for the call.
 
-      Rewrite (N,
-        Convert_To (Btyp,
-          Make_Function_Call (Loc,
-            Name => New_Reference_To (RTE (Vid), Loc),
-            Parameter_Associations => Args)));
+      --  Compiling package Ada.Tags under No_Run_Time_Mode we disable the
+      --  expansion of the attribute into the function call statement to avoid
+      --  generating spurious errors caused by the use of Integer_Address'Value
+      --  in our implementation of Ada.Tags.Internal_Tag
+
+      --  Seems like a bit of a kludge, there should be a better way ???
+
+      --  There is a better way, you should also test RTE_Available ???
+
+      if No_Run_Time_Mode
+        and then Rtyp = RTE (RE_Integer_Address)
+        and then RTU_Loaded (Ada_Tags)
+        and then Cunit_Entity (Current_Sem_Unit)
+                   = Body_Entity (RTU_Entity (Ada_Tags))
+      then
+         Rewrite (N,
+           Unchecked_Convert_To (Rtyp,
+             Make_Integer_Literal (Loc, Uint_0)));
+      else
+         Rewrite (N,
+           Convert_To (Btyp,
+             Make_Function_Call (Loc,
+               Name => New_Reference_To (RTE (Vid), Loc),
+               Parameter_Associations => Args)));
+      end if;
 
       Analyze_And_Resolve (N, Btyp);
    end Expand_Value_Attribute;
+
+   ---------------------------------
+   -- Expand_Wide_Image_Attribute --
+   ---------------------------------
+
+   --  We expand typ'Wide_Image (X) as follows. First we insert this code:
+
+   --    Rnn : Wide_String (1 .. rt'Wide_Width);
+   --    Lnn : Natural;
+   --    String_To_Wide_String
+   --      (typ'Image (Expr), Rnn, Lnn, Wide_Character_Encoding_Method);
+
+   --  where rt is the root type of the prefix type
+
+   --  Now we replace the Wide_Image reference by
+
+   --    Rnn (1 .. Lnn)
+
+   --  This works in all cases because String_To_Wide_String converts any
+   --  wide character escape sequences resulting from the Image call to the
+   --  proper Wide_Character equivalent
+
+   --  not quite right for typ = Wide_Character ???
+
+   procedure Expand_Wide_Image_Attribute (N : Node_Id) is
+      Loc  : constant Source_Ptr := Sloc (N);
+      Rtyp : constant Entity_Id  := Root_Type (Entity (Prefix (N)));
+
+      Rnn : constant Entity_Id :=
+              Make_Defining_Identifier (Loc,
+                Chars => New_Internal_Name ('S'));
+
+      Lnn : constant Entity_Id :=
+              Make_Defining_Identifier (Loc,
+                Chars => New_Internal_Name ('P'));
+
+   begin
+      Insert_Actions (N, New_List (
+
+         --  Rnn : Wide_String (1 .. base_typ'Width);
+
+         Make_Object_Declaration (Loc,
+            Defining_Identifier => Rnn,
+            Object_Definition   =>
+              Make_Subtype_Indication (Loc,
+                Subtype_Mark =>
+                  New_Occurrence_Of (Standard_Wide_String, Loc),
+                Constraint   =>
+                  Make_Index_Or_Discriminant_Constraint (Loc,
+                    Constraints => New_List (
+                      Make_Range (Loc,
+                        Low_Bound  => Make_Integer_Literal (Loc, 1),
+                        High_Bound =>
+                          Make_Attribute_Reference (Loc,
+                            Prefix         => New_Occurrence_Of (Rtyp, Loc),
+                            Attribute_Name => Name_Wide_Width)))))),
+
+         --  Lnn : Natural;
+
+         Make_Object_Declaration (Loc,
+           Defining_Identifier => Lnn,
+           Object_Definition   => New_Occurrence_Of (Standard_Natural, Loc)),
+
+         --    String_To_Wide_String
+         --      (typ'Image (X), Rnn, Lnn, Wide_Character_Encoding_Method);
+
+         Make_Procedure_Call_Statement (Loc,
+           Name =>
+             New_Reference_To (RTE (RE_String_To_Wide_String), Loc),
+
+           Parameter_Associations => New_List (
+             Make_Attribute_Reference (Loc,
+               Prefix         => Prefix (N),
+               Attribute_Name => Name_Image,
+               Expressions    => Expressions (N)),
+             New_Reference_To (Rnn, Loc),
+             New_Reference_To (Lnn, Loc),
+             Make_Integer_Literal (Loc,
+               Intval => Int (Wide_Character_Encoding_Method))))),
+
+         --  Suppress checks because we know everything is properly in range
+
+         Suppress => All_Checks);
+
+      --  Final step is to rewrite the expression as a slice and analyze,
+      --  again with no checks, since we are sure that everything is OK.
+
+      Rewrite (N,
+        Make_Slice (Loc,
+          Prefix         => New_Occurrence_Of (Rnn, Loc),
+          Discrete_Range =>
+            Make_Range (Loc,
+              Low_Bound  => Make_Integer_Literal (Loc, 1),
+              High_Bound => New_Occurrence_Of (Lnn, Loc))));
+
+      Analyze_And_Resolve (N, Standard_Wide_String, Suppress => All_Checks);
+   end Expand_Wide_Image_Attribute;
+
+   --------------------------------------
+   -- Expand_Wide_Wide_Image_Attribute --
+   --------------------------------------
+
+   --  We expand typ'Wide_Wide_Image (X) as follows. First we insert this code:
+
+   --    Rnn : Wide_Wide_String (1 .. rt'Wide_Wide_Width);
+   --    Lnn : Natural;
+   --    String_To_Wide_Wide_String
+   --      (typ'Image (Expr), Rnn, Lnn, Wide_Character_Encoding_Method);
+
+   --  where rt is the root type of the prefix type
+
+   --  Now we replace the Wide_Wide_Image reference by
+
+   --    Rnn (1 .. Lnn)
+
+   --  This works in all cases because String_To_Wide_Wide_String converts any
+   --  wide character escape sequences resulting from the Image call to the
+   --  proper Wide_Wide_Character equivalent
+
+   --  not quite right for typ = Wide_Wide_Character ???
+
+   procedure Expand_Wide_Wide_Image_Attribute (N : Node_Id) is
+      Loc  : constant Source_Ptr := Sloc (N);
+      Rtyp : constant Entity_Id  := Root_Type (Entity (Prefix (N)));
+
+      Rnn : constant Entity_Id :=
+              Make_Defining_Identifier (Loc,
+                Chars => New_Internal_Name ('S'));
+
+      Lnn : constant Entity_Id :=
+              Make_Defining_Identifier (Loc,
+                Chars => New_Internal_Name ('P'));
+
+   begin
+      Insert_Actions (N, New_List (
+
+         --  Rnn : Wide_Wide_String (1 .. rt'Wide_Wide_Width);
+
+         Make_Object_Declaration (Loc,
+            Defining_Identifier => Rnn,
+            Object_Definition   =>
+              Make_Subtype_Indication (Loc,
+                Subtype_Mark =>
+                  New_Occurrence_Of (Standard_Wide_Wide_String, Loc),
+                Constraint   =>
+                  Make_Index_Or_Discriminant_Constraint (Loc,
+                    Constraints => New_List (
+                      Make_Range (Loc,
+                        Low_Bound  => Make_Integer_Literal (Loc, 1),
+                        High_Bound =>
+                          Make_Attribute_Reference (Loc,
+                            Prefix         => New_Occurrence_Of (Rtyp, Loc),
+                            Attribute_Name => Name_Wide_Wide_Width)))))),
+
+         --  Lnn : Natural;
+
+         Make_Object_Declaration (Loc,
+           Defining_Identifier => Lnn,
+           Object_Definition   => New_Occurrence_Of (Standard_Natural, Loc)),
+
+         --    String_To_Wide_Wide_String
+         --      (typ'Image (X), Rnn, Lnn, Wide_Character_Encoding_Method);
+
+         Make_Procedure_Call_Statement (Loc,
+           Name =>
+             New_Reference_To (RTE (RE_String_To_Wide_Wide_String), Loc),
+
+           Parameter_Associations => New_List (
+             Make_Attribute_Reference (Loc,
+               Prefix         => Prefix (N),
+               Attribute_Name => Name_Image,
+               Expressions    => Expressions (N)),
+             New_Reference_To (Rnn, Loc),
+             New_Reference_To (Lnn, Loc),
+             Make_Integer_Literal (Loc,
+               Intval => Int (Wide_Character_Encoding_Method))))),
+
+         --  Suppress checks because we know everything is properly in range
+
+         Suppress => All_Checks);
+
+      --  Final step is to rewrite the expression as a slice and analyze,
+      --  again with no checks, since we are sure that everything is OK.
+
+      Rewrite (N,
+        Make_Slice (Loc,
+          Prefix         => New_Occurrence_Of (Rnn, Loc),
+          Discrete_Range =>
+            Make_Range (Loc,
+              Low_Bound  => Make_Integer_Literal (Loc, 1),
+              High_Bound => New_Occurrence_Of (Lnn, Loc))));
+
+      Analyze_And_Resolve
+        (N, Standard_Wide_Wide_String, Suppress => All_Checks);
+   end Expand_Wide_Wide_Image_Attribute;
 
    ----------------------------
    -- Expand_Width_Attribute --

@@ -47,7 +47,7 @@ ishftc4 (GFC_INTEGER_4 i, GFC_INTEGER_4 shift, GFC_INTEGER_4 size)
   /* In C, the result of the shift operator is undefined if the right operand
      is greater than or equal to the number of bits in the left operand. So we
      have to special case it for fortran.  */
-  mask = ~((size == 32) ? 0 : (~0 << size));
+  mask = ~((size == 32) ? (GFC_UINTEGER_4)0 : (~(GFC_UINTEGER_4)0 << size));
 
   bits = i & mask;
   
@@ -71,7 +71,7 @@ ishftc8 (GFC_INTEGER_8 i, GFC_INTEGER_4 shift, GFC_INTEGER_4 size)
   /* In C, the result of the shift operator is undefined if the right operand
      is greater than or equal to the number of bits in the left operand. So we
      have to special case it for fortran.  */
-  mask = ~((size == 64) ? 0 : (~0 << size));
+  mask = ~((size == 64) ? (GFC_UINTEGER_8)0 : (~(GFC_UINTEGER_8)0 << size));
 
   bits = i & mask;
   
@@ -96,7 +96,7 @@ ishftc16 (GFC_INTEGER_16 i, GFC_INTEGER_4 shift, GFC_INTEGER_4 size)
   /* In C, the result of the shift operator is undefined if the right operand
      is greater than or equal to the number of bits in the left operand. So we
      have to special case it for fortran.  */
-  mask = ~((size == 128) ? 0 : (~0 << size));
+  mask = ~((size == 128) ? (GFC_UINTEGER_16)0 : (~(GFC_UINTEGER_16)0 << size));
 
   bits = i & mask;
   

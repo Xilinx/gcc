@@ -39,6 +39,7 @@ exception statement from your version. */
 package org.omg.PortableServer;
 
 import org.omg.CORBA.BAD_OPERATION;
+import org.omg.CORBA.BAD_INV_ORDER;
 import org.omg.CORBA.NO_IMPLEMENT;
 import org.omg.CORBA.OBJECT_NOT_EXIST;
 import org.omg.CORBA.ORB;
@@ -80,7 +81,7 @@ import gnu.CORBA.Poa.gnuPOA;
  * The Servant type is a CORBA <code>native</code> type.
  * </p>
  *
- * @see POA.servant_to_reference(Servant)
+ * @see POA#servant_to_reference(Servant)
  *
  * @author Audrius Meskauskas, Lithuania (AudriusA@Bioinformatics.org)
  */
@@ -109,6 +110,10 @@ public abstract class Servant
    */
   public final Delegate _get_delegate()
   {
+    if (delegate == null) {
+      throw new BAD_INV_ORDER
+	("The Servant has not been associated with an ORBinstance");
+    }
     return delegate;
   }
 
@@ -128,8 +133,7 @@ public abstract class Servant
   * Checks if the passed servant is an instance of the given CORBA IDL type.
   * By default, forwards the requet to the delegate.
   *
-  * @param a_servant a servant to check.
-  * @param an_id a repository ID, representing an IDL type for that the
+  * @param repository_id a repository ID, representing an IDL type for that the
   * servant must be checked.
   *
   * @return true if the servant is an instance of the given type, false
@@ -166,7 +170,7 @@ public abstract class Servant
    * reference "RootPOA" for that orb. By default, forwards request to the
    * delegate.
    *
-   * @see ORB.resolve_initial_references
+   * @see ORB#resolve_initial_references
    */
   public POA _default_POA()
   {
@@ -214,7 +218,7 @@ public abstract class Servant
   * the given servant. This is important when the same servant serves
   * multiple objects. If the servant is not yet connected to the passed
   * orb, the method will try to connect it to that orb on POA, returned
-  * by the method {@link _default_POA}. That method can be overridden to
+  * by the method {@link #_default_POA}. That method can be overridden to
   * get poa where the object must be automatically connected when
   * calling this method.
   *

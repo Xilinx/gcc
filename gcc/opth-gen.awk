@@ -61,6 +61,7 @@ print "#ifndef OPTIONS_H"
 print "#define OPTIONS_H"
 print ""
 print "extern int target_flags;"
+print "extern int target_flags_explicit;"
 print ""
 
 for (i = 0; i < n_opts; i++) {
@@ -139,6 +140,7 @@ for (i = 0; i < n_langs; i++) {
 	s = substr("            ", length (macros[i]))
 	print "#define " macros[i] s " (1 << " i ")"
     }
+print "#define CL_LANG_ALL   ((1 << " n_langs ") - 1)"
 
 print ""
 print "enum opt_code"

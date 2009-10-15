@@ -146,6 +146,18 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
       __versa_string(const __versa_string& __str)
       : __vstring_base(__str) { }
 
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      /**
+       *  @brief  String move constructor.
+       *  @param  str  Source string.
+       *
+       *  The newly-constructed %string contains the exact contents of @a str.
+       *  The contents of @a str are a valid, but unspecified string.
+       */
+      __versa_string(__versa_string&& __str)
+      : __vstring_base(std::forward<__vstring_base>(__str)) { }
+#endif
+
       /**
        *  @brief  Construct string as copy of a substring.
        *  @param  str  Source string.
@@ -229,6 +241,23 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
       __versa_string&
       operator=(const __versa_string& __str) 
       { return this->assign(__str); }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      /**
+       *  @brief  String move assignment operator.
+       *  @param  str  Source string.
+       *
+       *  The contents of @a str are moved into this string (without copying).
+       *  @a str is a valid, but unspecified string.
+       */
+      __versa_string&
+      operator=(__versa_string&& __str)
+      {
+	if (this != &__str)
+	  this->swap(__str);
+	return *this;
+      }
+#endif
 
       /**
        *  @brief  Copy contents of @a s into this string.
@@ -326,6 +355,42 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
       const_reverse_iterator
       rend() const
       { return const_reverse_iterator(this->begin()); }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      /**
+       *  Returns a read-only (constant) iterator that points to the first
+       *  character in the %string.
+       */
+      const_iterator
+      cbegin() const
+      { return const_iterator(this->_M_data()); }
+
+      /**
+       *  Returns a read-only (constant) iterator that points one past the
+       *  last character in the %string.
+       */
+      const_iterator
+      cend() const
+      { return const_iterator(this->_M_data() + this->size()); }
+
+      /**
+       *  Returns a read-only (constant) reverse iterator that points
+       *  to the last character in the %string.  Iteration is done in
+       *  reverse element order.
+       */
+      const_reverse_iterator
+      crbegin() const
+      { return const_reverse_iterator(this->end()); }
+
+      /**
+       *  Returns a read-only (constant) reverse iterator that points
+       *  to one before the first character in the %string.  Iteration
+       *  is done in reverse element order.
+       */
+      const_reverse_iterator
+      crend() const
+      { return const_reverse_iterator(this->begin()); }
+#endif
 
     public:
       // Capacity:
@@ -492,6 +557,40 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
 	this->_M_leak();
 	return this->_M_data()[__n];
       }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      /**
+       *  Returns a read/write reference to the data at the first
+       *  element of the %string.
+       */
+      reference
+      front()
+      { return *begin(); }
+
+      /**
+       *  Returns a read-only (constant) reference to the data at the first
+       *  element of the %string.
+       */
+      const_reference
+      front() const
+      { return *begin(); }
+
+      /**
+       *  Returns a read/write reference to the data at the last
+       *  element of the %string.
+       */
+      reference
+      back()
+      { return *(end() - 1); }
+
+      /**
+       *  Returns a read-only (constant) reference to the data at the
+       *  last element of the %string.
+       */
+      const_reference
+      back() const
+      { return *(end() - 1); }
+#endif
 
       // Modifiers:
       /**
@@ -1243,7 +1342,11 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
        *  time.
       */
       void
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      swap(__versa_string&& __s)
+#else
       swap(__versa_string& __s)
+#endif
       { this->_M_swap(__s); }
 
       // String operations:
@@ -1675,7 +1778,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
 
 	int __r = traits_type::compare(this->_M_data(), __str.data(), __len);
 	if (!__r)
-	  __r =  __size - __osize;
+	  __r = _S_compare(__size, __osize);
 	return __r;
       }
 
@@ -1867,6 +1970,17 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
 	       const __versa_string<_CharT, _Traits, _Alloc, _Base>& __rhs)
     { return __lhs.compare(__rhs) == 0; }
 
+  template<typename _CharT,
+	   template <typename, typename, typename> class _Base>
+    inline typename __enable_if<std::__is_char<_CharT>::__value, bool>::__type
+    operator==(const __versa_string<_CharT, std::char_traits<_CharT>,
+	       std::allocator<_CharT>, _Base>& __lhs,
+	       const __versa_string<_CharT, std::char_traits<_CharT>,
+	       std::allocator<_CharT>, _Base>& __rhs)
+    { return (__lhs.size() == __rhs.size()
+	      && !std::char_traits<_CharT>::compare(__lhs.data(), __rhs.data(),
+						    __lhs.size())); }
+
   /**
    *  @brief  Test equivalence of C string and string.
    *  @param lhs  C string.
@@ -1905,7 +2019,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
     inline bool
     operator!=(const __versa_string<_CharT, _Traits, _Alloc, _Base>& __lhs,
 	       const __versa_string<_CharT, _Traits, _Alloc, _Base>& __rhs)
-    { return __rhs.compare(__lhs) != 0; }
+    { return !(__lhs == __rhs); }
 
   /**
    *  @brief  Test difference of C string and string.
@@ -1918,7 +2032,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
     inline bool
     operator!=(const _CharT* __lhs,
 	       const __versa_string<_CharT, _Traits, _Alloc, _Base>& __rhs)
-    { return __rhs.compare(__lhs) != 0; }
+    { return !(__lhs == __rhs); }
 
   /**
    *  @brief  Test difference of string and C string.
@@ -1931,7 +2045,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
     inline bool
     operator!=(const __versa_string<_CharT, _Traits, _Alloc, _Base>& __lhs,
 	       const _CharT* __rhs)
-    { return __lhs.compare(__rhs) != 0; }
+    { return !(__lhs == __rhs); }
 
   // operator <
   /**
@@ -2107,6 +2221,22 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
 	 __versa_string<_CharT, _Traits, _Alloc, _Base>& __rhs)
     { __lhs.swap(__rhs); }
 
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+  template<typename _CharT, typename _Traits, typename _Alloc,
+	   template <typename, typename, typename> class _Base>
+    inline void
+    swap(__versa_string<_CharT, _Traits, _Alloc, _Base>&& __lhs,
+	 __versa_string<_CharT, _Traits, _Alloc, _Base>& __rhs)
+    { __lhs.swap(__rhs); }
+
+  template<typename _CharT, typename _Traits, typename _Alloc,
+	   template <typename, typename, typename> class _Base>
+    inline void
+    swap(__versa_string<_CharT, _Traits, _Alloc, _Base>& __lhs,
+	 __versa_string<_CharT, _Traits, _Alloc, _Base>&& __rhs)
+    { __lhs.swap(__rhs); }
+#endif
+
 _GLIBCXX_END_NAMESPACE
 
 _GLIBCXX_BEGIN_NAMESPACE(std)
@@ -2139,11 +2269,11 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
    *  writing a C string.
    */
   template<typename _CharT, typename _Traits, typename _Alloc,
-           template <typename, typename, typename> class _Base>
+	   template <typename, typename, typename> class _Base>
     inline basic_ostream<_CharT, _Traits>&
     operator<<(basic_ostream<_CharT, _Traits>& __os,
-	       const __gnu_cxx::__versa_string<_CharT, _Traits,
-	                                       _Alloc, _Base>& __str)
+	       const __gnu_cxx::__versa_string<_CharT, _Traits, _Alloc,
+	       _Base>& __str)
     {
       // _GLIBCXX_RESOLVE_LIB_DEFECTS
       // 586. string inserter not a formatted function

@@ -6,18 +6,17 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2003-2006, Free Software Foundation, Inc.         --
+--          Copyright (C) 2003-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -27,7 +26,6 @@
 with Ada.Unchecked_Deallocation;
 
 with Errout;   use Errout;
-with Namet;    use Namet;
 with Lib.Writ; use Lib.Writ;
 with Opt;      use Opt;
 with Osint;    use Osint;
@@ -37,11 +35,12 @@ with Scn;      use Scn;
 with Sinput.L; use Sinput.L;
 with Stringt;  use Stringt;
 with Table;
+with Types;    use Types;
 
 package body Prepcomp is
 
    No_Preprocessing : Boolean := True;
-   --  Set to True if there is at least one source that needs to be
+   --  Set to False if there is at least one source that needs to be
    --  preprocessed.
 
    Source_Index_Of_Preproc_Data_File : Source_File_Index := No_Source_File;
@@ -69,20 +68,20 @@ package body Prepcomp is
 
    type Preproc_Data is record
       Mapping      : Symbol_Table.Instance;
-      File_Name    : Name_Id   := No_Name;
-      Deffile      : String_Id := No_String;
-      Undef_False  : Boolean   := False;
-      Always_Blank : Boolean   := False;
-      Comments     : Boolean   := False;
-      List_Symbols : Boolean   := False;
-      Processed    : Boolean   := False;
+      File_Name    : File_Name_Type := No_File;
+      Deffile      : String_Id      := No_String;
+      Undef_False  : Boolean        := False;
+      Always_Blank : Boolean        := False;
+      Comments     : Boolean        := False;
+      List_Symbols : Boolean        := False;
+      Processed    : Boolean        := False;
    end record;
    --  Structure to keep the preprocessing data for a file name or for the
    --  default (when Name_Id = No_Name).
 
    No_Preproc_Data : constant Preproc_Data :=
      (Mapping      => No_Mapping,
-      File_Name    => No_Name,
+      File_Name    => No_File,
       Deffile      => No_String,
       Undef_False  => False,
       Always_Blank => False,
@@ -105,7 +104,7 @@ package body Prepcomp is
       Table_Index_Type     => Int,
       Table_Low_Bound      => 1,
       Table_Initial        => 5,
-      Table_Increment      => 5,
+      Table_Increment      => 100,
       Table_Name           => "Prepcomp.Preproc_Data_Table");
    --  Table to store the specific preprocessing data
 
@@ -117,8 +116,8 @@ package body Prepcomp is
      (Table_Component_Type => Source_File_Index,
       Table_Index_Type     => Int,
       Table_Low_Bound      => 1,
-      Table_Initial        => 5,
-      Table_Increment      => 5,
+      Table_Initial        => 10,
+      Table_Increment      => 100,
       Table_Name           => "Prepcomp.Dependencies");
    --  Table to store the dependencies on preprocessing files
 
@@ -295,7 +294,7 @@ package body Prepcomp is
                   if Current_Data.File_Name =
                        Preproc_Data_Table.Table (Index).File_Name
                   then
-                     Error_Msg_Name_1 := Current_Data.File_Name;
+                     Error_Msg_File_1 := Current_Data.File_Name;
                      Error_Msg
                        ("multiple preprocessing data for{", Token_Ptr);
                      OK := False;
@@ -544,7 +543,7 @@ package body Prepcomp is
 
          --  Record Current_Data
 
-         if Current_Data.File_Name = No_Name then
+         if Current_Data.File_Name = No_File then
             Default_Data := Current_Data;
 
          else
@@ -560,7 +559,8 @@ package body Prepcomp is
       --  Fail if there were errors in the preprocessing data file
 
       if Total_Errors_Detected > T then
-         Errout.Finalize;
+         Errout.Finalize (Last_Call => True);
+         Errout.Output_Messages;
          Fail ("errors found in preprocessing data file """,
                Get_Name_String (N),
                """");
@@ -648,10 +648,11 @@ package body Prepcomp is
          String_To_Name_Buffer (Current_Data.Deffile);
 
          declare
-            N : constant Name_Id := Name_Find;
-            Deffile : constant Source_File_Index :=  Load_Definition_File (N);
-            Add_Deffile : Boolean := True;
-            T : constant Nat := Total_Errors_Detected;
+            N           : constant File_Name_Type    := Name_Find;
+            Deffile     : constant Source_File_Index :=
+                            Load_Definition_File (N);
+            Add_Deffile : Boolean                    := True;
+            T           : constant Nat               := Total_Errors_Detected;
 
          begin
             if Deffile = No_Source_File then
@@ -685,7 +686,8 @@ package body Prepcomp is
             --  Fail if errors were found while processing the definition file
 
             if T /= Total_Errors_Detected then
-               Errout.Finalize;
+               Errout.Finalize (Last_Call => True);
+               Errout.Output_Messages;
                Fail ("errors found in definition file """,
                      Get_Name_String (N),
                      """");

@@ -1,6 +1,6 @@
 /* Core target definitions for GNU compiler
    for PowerPC embedded targeted systems with SPE support.
-   Copyright (C) 2002, 2003, 2004, 2005, 2007
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007
    Free Software Foundation, Inc.
    Contributed by Aldy Hernandez (aldyh@redhat.com).
 
@@ -31,13 +31,10 @@
 #define SUBSUBTARGET_OVERRIDE_OPTIONS \
   if (rs6000_select[1].string == NULL) \
     rs6000_cpu = PROCESSOR_PPC8540; \
-  if (!rs6000_explicit_options.abi) \
+  if (!rs6000_explicit_options.spe_abi) \
     rs6000_spe_abi = 1; \
   if (!rs6000_explicit_options.float_gprs) \
     rs6000_float_gprs = 1; \
-  /* See note below.  */ \
-  /*if (!rs6000_explicit_options.long_double)*/ \
-  /*  rs6000_long_double_type_size = 128;*/ \
   if (!rs6000_explicit_options.spe) \
     rs6000_spe = 1; \
   if (!rs6000_explicit_options.isel) \
@@ -52,8 +49,7 @@
    specifications, until I properly fix the emulation.
 
    Enable these later.
-#undef CPP_LONGDOUBLE_DEFAULT_SPEC
-#define CPP_LONGDOUBLE_DEFAULT_SPEC "-D__LONG_DOUBLE_128__=1"
+#define RS6000_DEFAULT_LONG_DOUBLE_SIZE (TARGET_SPE ? 128 : 64)
 */
 
 #undef  ASM_DEFAULT_SPEC

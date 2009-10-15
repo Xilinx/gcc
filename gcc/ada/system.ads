@@ -7,7 +7,7 @@
 --                                 S p e c                                  --
 --                            (Compiler Version)                            --
 --                                                                          --
---          Copyright (C) 1992-2005 Free Software Foundation, Inc.          --
+--          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- This specification is derived from the Ada Reference Manual for use with --
 -- GNAT. The copyright notice above, and the license provisions that follow --
@@ -36,10 +36,15 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
---  This version of System is a generic version that is used in building
---  the compiler. Right now, we have a host/target problem if we try to
---  use the "proper" System, and since the compiler itself does not care
---  about most System parameters, this generic version works fine.
+--  This version of System is a generic version that is used in building the
+--  compiler. Right now, we have a host/target problem if we try to use the
+--  "proper" System, and since the compiler itself does not care about most
+--  System parameters, this generic version works fine.
+
+pragma Restrictions (No_Implicit_Dynamic_Code);
+--  We want to avoid trampolines in the compiler, so it can be used in systems
+--  which prevent execution of code on the stack, e.g. in windows environments
+--  with DEP (Data Execution Protection) enabled.
 
 package System is
    pragma Pure;
@@ -56,7 +61,7 @@ package System is
    Max_Int               : constant := Long_Long_Integer'Last;
 
    Max_Binary_Modulus    : constant := 2 ** Long_Long_Integer'Size;
-   Max_Nonbinary_Modulus : constant := Integer'Last;
+   Max_Nonbinary_Modulus : constant := 2 ** Integer'Size - 1;
 
    Max_Base_Digits       : constant := Long_Long_Float'Digits;
    Max_Digits            : constant := Long_Long_Float'Digits;
@@ -69,6 +74,10 @@ package System is
    --  Storage-related Declarations
 
    type Address is private;
+   --  Note that we do NOT add pragma Preelaborable_Initialization in this
+   --  version of System, since it is used for the compiler only, and typical
+   --  earlier bootstrap compilers don't support this pragma. We don't need
+   --  it in this context, so there is no problem in omitting it.
    Null_Address : constant Address;
 
    Storage_Unit : constant := Standard'Storage_Unit;
@@ -94,6 +103,7 @@ package System is
    type Bit_Order is (High_Order_First, Low_Order_First);
    Default_Bit_Order : constant Bit_Order :=
                          Bit_Order'Val (Standard'Default_Bit_Order);
+   pragma Warnings (Off, Default_Bit_Order); -- kill constant condition warning
 
    --  Priority-related Declarations (RM D.1)
 
@@ -138,7 +148,6 @@ private
    Exit_Status_Supported     : constant Boolean := True;
    Fractional_Fixed_Ops      : constant Boolean := False;
    Frontend_Layout           : constant Boolean := False;
-   Functions_Return_By_DSP   : constant Boolean := False;
    Machine_Overflows         : constant Boolean := False;
    Machine_Rounds            : constant Boolean := True;
    OpenVMS                   : constant Boolean := False;
@@ -146,20 +155,23 @@ private
    Signed_Zeros              : constant Boolean := True;
    Stack_Check_Default       : constant Boolean := False;
    Stack_Check_Probes        : constant Boolean := False;
+   Stack_Check_Limits        : constant Boolean := False;
    Support_64_Bit_Divides    : constant Boolean := True;
    Support_Aggregates        : constant Boolean := True;
    Support_Composite_Assign  : constant Boolean := True;
    Support_Composite_Compare : constant Boolean := True;
    Support_Long_Shifts       : constant Boolean := True;
+   Always_Compatible_Rep     : constant Boolean := True;
    Suppress_Standard_Library : constant Boolean := False;
    Use_Ada_Main_Program_Name : constant Boolean := False;
    ZCX_By_Default            : constant Boolean := False;
    GCC_ZCX_Support           : constant Boolean := False;
-   Front_End_ZCX_Support     : constant Boolean := False;
 
    --  Obsolete entries, to be removed eventually (bootstrap issues!)
 
+   Front_End_ZCX_Support     : constant Boolean := False;
    High_Integrity_Mode       : constant Boolean := False;
    Long_Shifts_Inlined       : constant Boolean := True;
+   Functions_Return_By_DSP   : constant Boolean := False;
 
 end System;

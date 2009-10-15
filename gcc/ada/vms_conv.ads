@@ -6,18 +6,17 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 2003-2005, Free Software Foundation, Inc.         --
+--          Copyright (C) 2003-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -109,8 +108,8 @@ package VMS_Conv is
       Name,
       Preprocess,
       Pretty,
-      Setup,
       Shared,
+      Stack,
       Stub,
       Xref,
       Undefined);
@@ -157,134 +156,6 @@ package VMS_Conv is
       --  default as the extension for any file parameter which does not have
       --  an extension already.
    end record;
-
-   -------------------------
-   -- Internal Structures --
-   -------------------------
-
-   --  The switches and commands are defined by strings in the previous
-   --  section so that they are easy to modify, but internally, they are
-   --  kept in a more conveniently accessible form described in this
-   --  section.
-
-   --  Commands, command qualifers and options have a similar common format
-   --  so that searching for matching names can be done in a common manner.
-
-   type Item_Id is (Id_Command, Id_Switch, Id_Option);
-
-   type Translation_Type is
-     (
-      T_Direct,
-      --  A qualifier with no options.
-      --  Example: GNAT MAKE /VERBOSE
-
-      T_Directories,
-      --  A qualifier followed by a list of directories
-      --  Example: GNAT COMPILE /SEARCH=([], [.FOO], [.BAR])
-
-      T_Directory,
-      --  A qualifier followed by one directory
-      --  Example: GNAT LIBRARY /SET=[.VAXFLOATLIB]
-
-      T_File,
-      --  A qualifier followed by a filename
-      --  Example: GNAT LINK /EXECUTABLE=FOO.EXE
-
-      T_No_Space_File,
-      --  A qualifier followed by a filename
-      --  Example: GNAT MAKE /PROJECT_FILE=PRJ.GPR
-
-      T_Numeric,
-      --  A qualifier followed by a numeric value.
-      --  Example: GNAT CHOP /FILE_NAME_MAX_LENGTH=39
-
-      T_String,
-      --  A qualifier followed by a quoted string. Only used by
-      --  /IDENTIFICATION qualifier.
-      --  Example: GNAT LINK /IDENTIFICATION="3.14a1 version"
-
-      T_Options,
-      --  A qualifier followed by a list of options.
-      --  Example: GNAT COMPILE /REPRESENTATION_INFO=(ARRAYS,OBJECTS)
-
-      T_Commands,
-      --  A qualifier followed by a list. Only used for
-      --  MAKE /COMPILER_QUALIFIERS /BINDER_QUALIFIERS /LINKER_QUALIFIERS
-      --  (gnatmake -cargs -bargs -largs )
-      --  Example: GNAT MAKE ... /LINKER_QUALIFIERS /VERBOSE FOOBAR.OBJ
-
-      T_Other,
-      --  A qualifier passed directly to the linker. Only used
-      --  for LINK and SHARED if no other match is found.
-      --  Example: GNAT LINK FOO.ALI /SYSSHR
-
-      T_Alphanumplus
-      --  A qualifier followed by a legal linker symbol prefix. Only used
-      --  for BIND /BUILD_LIBRARY (gnatbind -Lxyz).
-      --  Example: GNAT BIND /BUILD_LIBRARY=foobar
-      );
-
-   type Item (Id : Item_Id);
-   type Item_Ptr is access all Item;
-
-   type Item (Id : Item_Id) is record
-      Name : String_Ptr;
-      --  Name of the command, switch (with slash) or option
-
-      Next : Item_Ptr;
-      --  Pointer to next item on list, always has the same Id value
-
-      Command : Command_Type := Undefined;
-
-      Unix_String : String_Ptr := null;
-      --  Corresponding Unix string. For a command, this is the unix command
-      --  name and possible default switches. For a switch or option it is
-      --  the unix switch string.
-
-      case Id is
-
-         when Id_Command =>
-
-            Switches : Item_Ptr;
-            --  Pointer to list of switch items for the command, linked
-            --  through the Next fields with null terminating the list.
-
-            Usage : String_Ptr;
-            --  Usage information, used only for errors and the default
-            --  list of commands output.
-
-            Params : Parameter_Ref;
-            --  Array of parameters
-
-            Defext : String (1 .. 3);
-            --  Default extension. If non-blank, then this extension is
-            --  supplied by default as the extension for any file parameter
-            --  which does not have an extension already.
-
-         when Id_Switch =>
-
-            Translation : Translation_Type;
-            --  Type of switch translation. For all cases, except Options,
-            --  this is the only field needed, since the Unix translation
-            --  is found in Unix_String.
-
-            Options : Item_Ptr;
-            --  For the Options case, this field is set to point to a list
-            --  of options item (for this case Unix_String is null in the
-            --  main switch item). The end of the list is marked by null.
-
-         when Id_Option =>
-
-            null;
-            --  No special fields needed, since Name and Unix_String are
-            --  sufficient to completely described an option.
-
-      end case;
-   end record;
-
-   subtype Command_Item is Item (Id_Command);
-   subtype Switch_Item  is Item (Id_Switch);
-   subtype Option_Item  is Item (Id_Option);
 
    -------------------
    -- Switch Tables --

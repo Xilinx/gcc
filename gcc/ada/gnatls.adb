@@ -6,18 +6,17 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2006, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -40,6 +39,7 @@ with Output;      use Output;
 with Rident;      use Rident;
 with Sdefault;
 with Snames;
+with Switch;      use Switch;
 with Targparm;    use Targparm;
 with Types;       use Types;
 
@@ -48,9 +48,11 @@ with GNAT.Case_Util; use GNAT.Case_Util;
 procedure Gnatls is
    pragma Ident (Gnat_Static_Version_String);
 
+   Gpr_Project_Path : constant String := "GPR_PROJECT_PATH";
    Ada_Project_Path : constant String := "ADA_PROJECT_PATH";
-   --  Name of the env. variable that contains path name(s) of directories
-   --  where project files may reside.
+   --  Names of the env. variables that contains path name(s) of directories
+   --  where project files may reside. If GPR_PROJECT_PATH is defined, its
+   --  value is used, otherwise ADA_PROJECT_PATH is used, if defined.
 
    --  NOTE : The following string may be used by other tools, such as GPS. So
    --  it can only be modified if these other uses are checked and coordinated.
@@ -109,10 +111,11 @@ procedure Gnatls is
    Print_Object     : Boolean := True;
    --  Flags controlling the form of the output
 
-   Dependable  : Boolean := False;  --  flag -d
-   Also_Predef : Boolean := False;
-
-   Very_Verbose_Mode : Boolean := False; --  flag -V
+   Also_Predef       : Boolean := False;  --  -a
+   Dependable        : Boolean := False;  --  -d
+   License           : Boolean := False;  --  -l
+   Very_Verbose_Mode : Boolean := False;  --  -V
+   --  Command line flags
 
    Unit_Start   : Integer;
    Unit_End     : Integer;
@@ -174,6 +177,10 @@ procedure Gnatls is
 
    procedure Usage;
    --  Print usage message
+
+   procedure Output_License_Information;
+   --  Output license statement, and if not found, output reference to
+   --  COPYING.
 
    function Image (Restriction : Restriction_Id) return String;
    --  Returns the capitalized image of Restriction
@@ -251,11 +258,12 @@ procedure Gnatls is
          end if;
       end loop;
 
-      Error_Msg_Name_1 := Units.Table (U).Uname;
-      Error_Msg_Name_2 := ALIs.Table (A).Afile;
+      Error_Msg_Unit_1 := Units.Table (U).Uname;
+      Error_Msg_File_1 := ALIs.Table (A).Afile;
       Write_Eol;
-      Error_Msg ("wrong ALI format, can't find dependency line for & in %");
+      Error_Msg ("wrong ALI format, can't find dependency line for $ in {");
       Exit_Program (E_Fatal);
+      return No_Sdep_Id;
    end Corresponding_Sdep_Entry;
 
    -------------------------
@@ -680,7 +688,7 @@ procedure Gnatls is
 
          --  Output Name
 
-         Output_Name (Units.Table (U).Uname);
+         Output_Name (Name_Id (Units.Table (U).Uname));
 
          --  Output Kind
 
@@ -766,7 +774,7 @@ procedure Gnatls is
          Output_Token (T_With);
          N_Indents := N_Indents + 1;
 
-         Output_Name (Withs.Table (W).Uname);
+         Output_Name (Name_Id (Withs.Table (W).Uname));
 
          --  Output Kind
 
@@ -813,6 +821,50 @@ procedure Gnatls is
       return Result;
    end Image;
 
+   --------------------------------
+   -- Output_License_Information --
+   --------------------------------
+
+   procedure Output_License_Information is
+      Params_File_Name : constant String := "gnatlic.adl";
+      --  Name of license file
+
+      Lo   : constant Source_Ptr := 1;
+      Hi   : Source_Ptr;
+      Text : Source_Buffer_Ptr;
+
+   begin
+      Name_Len := 0;
+      Add_Str_To_Name_Buffer (Params_File_Name);
+      Read_Source_File (Name_Find, Lo, Hi, Text);
+
+      if Text /= null then
+
+         --  Omit last character (end-of-file marker) in output
+
+         Write_Str (String (Text (Lo .. Hi - 1)));
+         Write_Eol;
+
+         --  The following condition is determined at compile time: disable
+         --  "condition is always true/false" warning.
+
+         pragma Warnings (Off);
+      elsif Build_Type /= GPL and then Build_Type /= FSF then
+         pragma Warnings (On);
+
+         Write_Str ("License file missing, please contact AdaCore.");
+         Write_Eol;
+
+      else
+         Write_Str ("Please refer to file COPYING in your distribution"
+                  & " for license terms.");
+         Write_Eol;
+
+      end if;
+
+      Exit_Program (E_Success);
+   end Output_License_Information;
+
    -------------------
    -- Output_Object --
    -------------------
@@ -848,13 +900,21 @@ procedure Gnatls is
    -------------------
 
    procedure Output_Source (Sdep_I : Sdep_Id) is
-      Stamp       : constant Time_Stamp_Type := Sdep.Table (Sdep_I).Stamp;
-      Checksum    : constant Word            := Sdep.Table (Sdep_I).Checksum;
-      FS          : File_Name_Type           := Sdep.Table (Sdep_I).Sfile;
+      Stamp       : Time_Stamp_Type;
+      Checksum    : Word;
+      FS          : File_Name_Type;
       Status      : File_Status;
       Object_Name : String_Access;
 
    begin
+      if Sdep_I = No_Sdep_Id then
+         return;
+      end if;
+
+      Stamp    := Sdep.Table (Sdep_I).Stamp;
+      Checksum := Sdep.Table (Sdep_I).Checksum;
+      FS       := Sdep.Table (Sdep_I).Sfile;
+
       if Print_Source then
          Find_Status (FS, Stamp, Checksum, Status);
          Get_Name_String (FS);
@@ -1217,6 +1277,7 @@ procedure Gnatls is
                when 'o' => Reset_Print; Print_Object := True;
                when 'v' => Verbose_Mode              := True;
                when 'd' => Dependable                := True;
+               when 'l' => License                   := True;
                when 'V' => Very_Verbose_Mode         := True;
 
                when others => null;
@@ -1393,6 +1454,11 @@ procedure Gnatls is
                                "depend");
       Write_Eol;
 
+      --  Line for -l
+
+      Write_Str ("  -l         output license information");
+      Write_Eol;
+
       --  Line for -v
 
       Write_Str ("  -v         verbose output, full path and unit " &
@@ -1453,6 +1519,8 @@ procedure Gnatls is
       end loop;
    end Usage;
 
+   procedure Check_Version_And_Help is new Check_Version_And_Help_G (Usage);
+
 --  Start of processing for Gnatls
 
 begin
@@ -1461,6 +1529,10 @@ begin
    Namet.Initialize;
    Csets.Initialize;
    Snames.Initialize;
+
+   --  First check for --version or --help
+
+   Check_Version_And_Help ("GNATLS", "1997");
 
    --  Loop to scan out arguments
 
@@ -1475,6 +1547,15 @@ begin
 
       Next_Arg := Next_Arg + 1;
    end loop Scan_Args;
+
+   --  If -l (output license information) is given, it must be the only switch
+
+   if License and then Arg_Count /= 2 then
+      Write_Str ("Can't use -l with another switch");
+      Write_Eol;
+      Usage;
+      Exit_Program (E_Fatal);
+   end if;
 
    --  Add the source and object directories specified on the
    --  command line, if any, to the searched directories.
@@ -1497,13 +1578,7 @@ begin
       Targparm.Get_Target_Parameters;
 
       Write_Eol;
-      Write_Str ("GNATLS ");
-      Write_Str (Gnat_Version_String);
-      Write_Eol;
-      Write_Str ("Copyright 1997-" &
-                 Current_Year &
-                 ", Free Software Foundation, Inc.");
-      Write_Eol;
+      Display_Version ("GNATLS", "1997");
       Write_Eol;
       Write_Str ("Source Search Path:");
       Write_Eol;
@@ -1547,10 +1622,10 @@ begin
       Write_Eol;
 
       declare
-         Project_Path : constant String_Access := Getenv (Ada_Project_Path);
+         Project_Path : String_Access := Getenv (Gpr_Project_Path);
 
-         Lib    : constant String :=
-                    Directory_Separator & "lib" & Directory_Separator;
+         Lib : constant String :=
+                 Directory_Separator & "lib" & Directory_Separator;
 
          First : Natural;
          Last  : Natural;
@@ -1560,9 +1635,12 @@ begin
       begin
          --  If there is a project path, display each directory in the path
 
+         if Project_Path.all = "" then
+            Project_Path := Getenv (Ada_Project_Path);
+         end if;
+
          if Project_Path.all /= "" then
             First := Project_Path'First;
-
             loop
                while First <= Project_Path'Last
                  and then (Project_Path (First) = Path_Separator)
@@ -1573,7 +1651,6 @@ begin
                exit when First > Project_Path'Last;
 
                Last := First;
-
                while Last < Project_Path'Last
                  and then Project_Path (Last + 1) /= Path_Separator
                loop
@@ -1593,7 +1670,9 @@ begin
                   --  project path.
 
                   Write_Str ("   ");
-                  Write_Str (Project_Path (First .. Last));
+                  Write_Str
+                    (To_Host_Dir_Spec
+                       (Project_Path (First .. Last), True).all);
                   Write_Eol;
                end if;
 
@@ -1630,11 +1709,12 @@ begin
             --  directory <prefix>/lib/gnat/.
 
             if Name_Len >= 5 then
+               Name_Buffer (Name_Len + 1 .. Name_Len + 4) := "gnat";
+               Name_Buffer (Name_Len + 5) := Directory_Separator;
+               Name_Len := Name_Len + 5;
                Write_Str ("   ");
-               Write_Str (Name_Buffer (1 .. Name_Len));
-               Write_Str ("gnat");
-               Write_Char (Directory_Separator);
-               Write_Eol;
+               Write_Line
+                 (To_Host_Dir_Spec (Name_Buffer (1 .. Name_Len), True).all);
             end if;
          end if;
       end;
@@ -1646,6 +1726,13 @@ begin
 
    if Print_Usage then
       Usage;
+   end if;
+
+   --  Output license information when requested
+
+   if License then
+      Output_License_Information;
+      Exit_Program (E_Success);
    end if;
 
    if not More_Lib_Files then

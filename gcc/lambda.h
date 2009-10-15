@@ -39,7 +39,7 @@ typedef lambda_vector *lambda_matrix;
 /* A transformation matrix, which is a self-contained ROWSIZE x COLSIZE
    matrix.  Rather than use floats, we simply keep a single DENOMINATOR that
    represents the denominator for every element in the matrix.  */
-typedef struct
+typedef struct lambda_trans_matrix_s
 {
   lambda_matrix matrix;
   int rowsize;
@@ -60,7 +60,7 @@ typedef struct
    This structure is used during code generation in order to rewrite the old
    induction variable uses in a statement in terms of the newly created
    induction variables.  */
-typedef struct
+typedef struct lambda_body_vector_s
 {
   lambda_vector coefficients;
   int size;
@@ -97,7 +97,10 @@ typedef struct lambda_linear_expression_s
 #define LLE_DENOMINATOR(T) ((T)->denominator)
 #define LLE_NEXT(T) ((T)->next)
 
-lambda_linear_expression lambda_linear_expression_new (int, int);
+struct obstack;
+
+lambda_linear_expression lambda_linear_expression_new (int, int,
+                                                       struct obstack *);
 void print_lambda_linear_expression (FILE *, lambda_linear_expression, int,
 				     int, char);
 
@@ -126,7 +129,7 @@ typedef struct lambda_loop_s
    and an integer representing the number of INVARIANTS in the loop.  Both of
    these integers are used to size the associated coefficient vectors in the
    linear expression structures.  */
-typedef struct
+typedef struct lambda_loopnest_s
 {
   lambda_loop *loops;
   int depth;
@@ -137,10 +140,11 @@ typedef struct
 #define LN_DEPTH(T) ((T)->depth)
 #define LN_INVARIANTS(T) ((T)->invariants)
 
-lambda_loopnest lambda_loopnest_new (int, int);
-lambda_loopnest lambda_loopnest_transform (lambda_loopnest, lambda_trans_matrix);
+lambda_loopnest lambda_loopnest_new (int, int, struct obstack *);
+lambda_loopnest lambda_loopnest_transform (lambda_loopnest,
+                                           lambda_trans_matrix,
+                                           struct obstack *);
 struct loop;
-struct loops;
 bool perfect_nest_p (struct loop *);
 void print_lambda_loopnest (FILE *, lambda_loopnest, char);
 
@@ -191,18 +195,21 @@ void lambda_matrix_vector_mult (lambda_matrix, int, int, lambda_vector,
 				lambda_vector);
 bool lambda_trans_matrix_id_p (lambda_trans_matrix);
 
-lambda_body_vector lambda_body_vector_new (int);
-lambda_body_vector lambda_body_vector_compute_new (lambda_trans_matrix, 
-						   lambda_body_vector);
+lambda_body_vector lambda_body_vector_new (int, struct obstack *);
+lambda_body_vector lambda_body_vector_compute_new (lambda_trans_matrix,
+                                                   lambda_body_vector,
+                                                   struct obstack *);
 void print_lambda_body_vector (FILE *, lambda_body_vector);
-lambda_loopnest gcc_loopnest_to_lambda_loopnest (struct loops *,
-						 struct loop *,
+lambda_loopnest gcc_loopnest_to_lambda_loopnest (struct loop *,
 						 VEC(tree,heap) **,
-						 VEC(tree,heap) **);
+                                                 VEC(tree,heap) **,
+                                                 struct obstack *);
 void lambda_loopnest_to_gcc_loopnest (struct loop *,
 				      VEC(tree,heap) *, VEC(tree,heap) *,
-				      lambda_loopnest, lambda_trans_matrix);
-
+				      VEC(tree,heap) **,
+                                      lambda_loopnest, lambda_trans_matrix,
+                                      struct obstack *);
+void remove_iv (tree);
 
 static inline void lambda_vector_negate (lambda_vector, lambda_vector, int);
 static inline void lambda_vector_mult_const (lambda_vector, lambda_vector, int, int);
@@ -433,6 +440,33 @@ lambda_vector_lexico_pos (lambda_vector v,
 	return true;
     }
   return true;
+}
+
+/* Given a vector of induction variables IVS, and a vector of
+   coefficients COEFS, build a tree that is a linear combination of
+   the induction variables.  */
+
+static inline tree
+build_linear_expr (tree type, lambda_vector coefs, VEC (tree, heap) *ivs)
+{
+  unsigned i;
+  tree iv;
+  tree expr = fold_convert (type, integer_zero_node);
+
+  for (i = 0; VEC_iterate (tree, ivs, i, iv); i++)
+    {
+      int k = coefs[i];
+
+      if (k == 1)
+	expr = fold_build2 (PLUS_EXPR, type, expr, iv);
+
+      else if (k != 0)
+	expr = fold_build2 (PLUS_EXPR, type, expr,
+			    fold_build2 (MULT_EXPR, type, iv,
+					 build_int_cst (type, k)));
+    }
+
+  return expr;
 }
 
 #endif /* LAMBDA_H  */

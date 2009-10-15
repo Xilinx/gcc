@@ -192,6 +192,18 @@ instrument_values (histogram_values values)
 	  t = GCOV_COUNTER_V_DELTA;
 	  break;
 
+ 	case HIST_TYPE_INDIR_CALL:
+ 	  t = GCOV_COUNTER_V_INDIR;
+ 	  break;
+
+ 	case HIST_TYPE_AVERAGE:
+ 	  t = GCOV_COUNTER_AVERAGE;
+ 	  break;
+
+ 	case HIST_TYPE_IOR:
+ 	  t = GCOV_COUNTER_IOR;
+ 	  break;
+
 	default:
 	  gcc_unreachable ();
 	}
@@ -214,6 +226,18 @@ instrument_values (histogram_values values)
 
 	case HIST_TYPE_CONST_DELTA:
 	  (profile_hooks->gen_const_delta_profiler) (hist, t, 0);
+	  break;
+
+ 	case HIST_TYPE_INDIR_CALL:
+ 	  (profile_hooks->gen_ic_profiler) (hist, t, 0);
+  	  break;
+
+	case HIST_TYPE_AVERAGE:
+	  (profile_hooks->gen_average_profiler) (hist, t, 0);
+	  break;
+
+	case HIST_TYPE_IOR:
+	  (profile_hooks->gen_ior_profiler) (hist, t, 0);
 	  break;
 
 	default:
@@ -648,15 +672,13 @@ compute_value_histograms (histogram_values values)
     {
       histogram_value hist = VEC_index (histogram_value, values, i);
       tree stmt = hist->hvalue.stmt;
-      stmt_ann_t ann = get_stmt_ann (stmt);
 
       t = (int) hist->type;
 
       aact_count = act_count[t];
       act_count[t] += hist->n_counters;
 
-      hist->hvalue.next = ann->histograms;
-      ann->histograms = hist;
+      gimple_add_histogram_value (cfun, stmt, hist);
       hist->hvalue.counters =  XNEWVEC (gcov_type, hist->n_counters);
       for (j = 0; j < hist->n_counters; j++)
 	hist->hvalue.counters[j] = aact_count[j];
@@ -983,6 +1005,15 @@ branch_prob (void)
 	      if (EXPR_HAS_LOCATION (stmt))
 		output_location (EXPR_FILENAME (stmt), EXPR_LINENO (stmt),
 				 &offset, bb);
+	      /* Take into account modify statements nested in return
+		 produced by C++ NRV transformation.  */
+	      if (TREE_CODE (stmt) == RETURN_EXPR
+		  && TREE_OPERAND (stmt, 0)
+		  && TREE_CODE (TREE_OPERAND (stmt, 0)) == MODIFY_EXPR
+		  && EXPR_HAS_LOCATION (TREE_OPERAND (stmt, 0)))
+		output_location (EXPR_FILENAME (TREE_OPERAND (stmt, 0)),
+				 EXPR_LINENO (TREE_OPERAND (stmt, 0)),
+				 &offset, bb);
 	    }
 
 	  /* Notice GOTO expressions we eliminated while constructing the
@@ -1228,7 +1259,7 @@ end_branch_prob (void)
 void
 tree_register_profile_hooks (void)
 {
-  gcc_assert (ir_type ());
+  gcc_assert (current_ir_type () == IR_GIMPLE);
   profile_hooks = &tree_profile_hooks;
 }
 

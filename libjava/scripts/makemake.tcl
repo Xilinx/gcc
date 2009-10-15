@@ -22,6 +22,8 @@ proc verbose {text} {
 # * bc    objects in this package and all its sub-packages
 #         are to be compiled with the BC ABI.  It is an error
 #         for sub-packages to also appear in the map.
+# * bcheaders 
+#         as bc, but generate header files and compile with CNI.
 # * package
 #         objects in this package (and possibly sub-packages,
 #         if they do not appear in the map) will be compiled en masse
@@ -34,6 +36,11 @@ proc verbose {text} {
 #         objects in this package are not used.  Note however that
 #         most ignored files are actually handled by listing them in
 #         'standard.omit'
+# * interpreter
+#         objects in this package (and possibly sub-packages,
+#         if they do not appear in the map) are only compiled if
+#         the interpreter is enabled.  They are compiled as with the
+#         'package' specifier.
 #
 # If a package does not appear in the map, the default is 'package'.
 global package_map
@@ -42,18 +49,31 @@ set package_map(.) package
 # These are ignored in Classpath.
 set package_map(gnu/test) ignore
 set package_map(gnu/javax/swing/plaf/gtk) ignore
+set package_map(gnu/gcj/tools/gc_analyze) ignore
 
 set package_map(gnu/java/awt/peer/swing) bc
 
-set package_map(gnu/xml) bc
+set package_map(gnu/xml/aelfred2) bc
+set package_map(gnu/xml/dom) bc
+set package_map(gnu/xml/libxmlj) bc
+set package_map(gnu/xml/pipeline) bc
+set package_map(gnu/xml/stream) bc
+set package_map(gnu/xml/transform) bc
+set package_map(gnu/xml/util) bc
+set package_map(gnu/xml/validation) bc
+set package_map(gnu/xml/xpath) bc
 set package_map(javax/imageio) bc
 set package_map(javax/xml) bc
 set package_map(gnu/java/beans) bc
+set package_map(gnu/java/awt/dnd/peer/gtk) bc
 set package_map(gnu/java/util/prefs/gconf) bc
 set package_map(gnu/java/awt/peer/gtk) bc
 set package_map(gnu/java/awt/dnd/peer/gtk) bc
 set package_map(gnu/java/awt/peer/qt) bc
+set package_map(gnu/java/awt/peer/x) bc
+set package_map(gnu/java/util/prefs/gconf) bc
 set package_map(gnu/javax/sound/midi) bc
+set package_map(gnu/javax/sound/sampled/gstreamer) ignore
 set package_map(org/xml) bc
 set package_map(org/w3c) bc
 set package_map(org/relaxng) bc
@@ -61,20 +81,36 @@ set package_map(javax/rmi) bc
 set package_map(org/omg) bc
 set package_map(gnu/CORBA) bc
 set package_map(gnu/javax/rmi) bc
+set package_map(gnu/java/lang/management) bcheaders
+set package_map(java/lang/management) bc
+set package_map(gnu/classpath/management) bc
+set package_map(gnu/javax/management) bc
 
-# This is handled specially by the Makefile.
-# We still want it byte-compiled so it isn't in the .omit file.
-set package_map(gnu/gcj/tools/gcj_dbtool/Main.java) ignore
-
-# These are handled specially.  If we list Class.java with other files
-# in java.lang, we hit a compiler bug.
-set package_map(java/lang/Class.java) ignore
-set package_map(java/lang/Object.java) ignore
+# parser/HTML_401F.class is really big, and there have been complaints
+# about this package requiring too much memory to build.  So, we
+# compile it as separate objects.  But, we're careful to compile the
+# sub-packages as packages.
+set package_map(gnu/javax/swing/text/html/parser) ordinary
+set package_map(gnu/javax/swing/text/html/parser/models) package
+set package_map(gnu/javax/swing/text/html/parser/support) package
 
 # More special cases.  These end up in their own library.
 # Note that if we BC-compile AWT we must update these as well.
 set package_map(gnu/gcj/xlib) package
 set package_map(gnu/awt/xlib) package
+
+# These packages should only be included if the interpreter is
+# enabled.
+set package_map(gnu/classpath/jdwp) interpreter
+set package_map(gnu/classpath/jdwp/event) interpreter
+set package_map(gnu/classpath/jdwp/event/filters) interpreter
+set package_map(gnu/classpath/jdwp/exception) interpreter
+set package_map(gnu/classpath/jdwp/id) interpreter
+set package_map(gnu/classpath/jdwp/processor) interpreter
+set package_map(gnu/classpath/jdwp/transport) interpreter
+set package_map(gnu/classpath/jdwp/util) interpreter
+set package_map(gnu/classpath/jdwp/value) interpreter
+set package_map(gnu/gcj/jvmti) interpreter
 
 # Some BC ABI packages have classes which must not be compiled BC.
 # This maps such packages to a grep expression for excluding such
@@ -106,6 +142,17 @@ set properties_map(java/util/logging) _
 # We haven't merged locale resources yet.
 set properties_map(gnu/java/locale) _
 
+# We want to be able to load xerces if it is on the class path.  So,
+# we have to avoid compiling in the XML-related service files.
+set properties_map(META-INF/services/javax.xml.parsers.DocumentBuilderFactory) _
+set properties_map(META-INF/services/javax.xml.parsers.SAXParserFactory) _
+set properties_map(META-INF/services/javax.xml.parsers.TransformerFactory) _
+set properties_map(META-INF/services/org.relaxng.datatype.DatatypeLibraryFactory) _
+set properties_map(META-INF/services/org.w3c.dom.DOMImplementationSourceList) _
+set properties_map(META-INF/services/org.xml.sax.driver) _
+set properties_map(META-INF/services/javax.sound.sampled.spi.AudioFileReader.in) ignore
+set properties_map(META-INF/services/javax.sound.sampled.spi.MixerProvider) ignore
+set properties_map(META-INF/services/javax.sound.sampled.spi.MixerProvider.in) ignore
 
 # List of all properties files.
 set properties_files {}
@@ -113,8 +160,15 @@ set properties_files {}
 # List of all '@' files that we are going to compile.
 set package_files {}
 
+# List of all '@' files that we are going to compile if the
+# interpreter is enabled.
+set interpreter_package_files {}
+
 # List of all header file variables.
 set header_vars {}
+
+# List of all header file variables for interpreter packages.
+set interpreter_header_vars {}
 
 # List of all BC object files.
 set bc_objects {}
@@ -203,11 +257,16 @@ proc scan_directory {basedir subdir} {
 	# We assume there aren't any overrides.
 	lappend properties_files $basedir/$subdir/$file
       }
+    } elseif {[string match *.css $file]} {
+	# Special case for default.css needed by javax.swing.text.html.
+	lappend properties_files $basedir/$subdir/$file
     } elseif {[file isdirectory $file]} {
       lappend subdirs $subdir/$file
     } elseif {$subdir == "META-INF/services"} {
-      # All service files are included as properties.
-      lappend properties_files $basedir/$subdir/$file
+      # Service files are generally included as properties.
+      if {! [info exists properties_map($subdir/$file)]} {
+	lappend properties_files $basedir/$subdir/$file
+      }
     }
   }
   cd $here
@@ -225,7 +284,7 @@ proc scan_directory {basedir subdir} {
 # Scan known packages beneath the base directory for .java source
 # files.
 proc scan_packages {basedir} {
-  foreach subdir {gnu java javax org META-INF} {
+  foreach subdir {gnu java javax org sun com META-INF} {
     if {[file exists $basedir/$subdir]} {
       scan_directory $basedir $subdir
     }
@@ -253,17 +312,27 @@ proc emit_bc_rule {package} {
   if {[info exists exclusion_map($package)]} {
     set omit "| grep -v $exclusion_map($package)"
   }
-  puts  "\t@find classpath/lib/$package -name '*.class'${omit} > $tname"
-  puts "\t\$(LTGCJCOMPILE) -fjni -findirect-dispatch -fno-indirect-classes -c -o $loname @$tname"
+  puts  "\t@find \$(srcdir)/classpath/lib/$package -name '*.class'${omit} > $tname"
+  puts -nonewline "\t\$(LTGCJCOMPILE) -fsource-filename=\$(here)/classpath/lib/classes "
+  if {$package_map($package) == "bc"} {
+    puts -nonewline "-fjni "
+  }
+  # Unless bc is disabled with --disable-libgcj-bc, $(LIBGCJ_BC_FLAGS) is:
+  #   -findirect-dispatch -fno-indirect-classes
+  puts "\$(LIBGCJ_BC_FLAGS) -c -o $loname @$tname"
   puts "\t@rm -f $tname"
   puts ""
 
-  lappend bc_objects $loname
+  # We skip these because they are built into their own libraries and
+  # are handled specially in Makefile.am.
+  if {$loname != "gnu-java-awt-peer-qt.lo" && $loname != "gnu-java-awt-peer-x.lo"} {
+    lappend bc_objects $loname
+  }
 }
 
 # Emit a rule for a 'package' package.
-proc emit_package_rule {package} {
-  global package_map exclusion_map package_files
+proc emit_package_rule_to_list {package package_files_list} {
+  global package_map exclusion_map $package_files_list
 
   if {$package == "."} {
     set pkgname ordinary
@@ -275,28 +344,86 @@ proc emit_package_rule {package} {
   set lname $base.list
   set dname $base.deps
 
+  if {$pkgname == "java/lang"} {
+    # Object and Class are special cases due to an apparent compiler
+    # bug.  Process is a special case because we don't build all
+    # concrete implementations of Process on all platforms.
+    set omit "| tr ' ' '\\n' | fgrep -v Object.class | fgrep -v Class.class | egrep -v '\(Ecos\|Posix\|Win32\)Process' "
+  } else {
+    set omit ""
+  }
+
   # A rule to make the phony file we are going to compile.
   puts "$lname: \$($varname)"
   puts "\t@\$(mkinstalldirs) \$(dir \$@)"
-  puts "\t@for file in \$($varname); do \\"
-  puts "\t  if test -f \$(srcdir)/\$\$file; then \\"
-  puts "\t    echo \$(srcdir)/\$\$file; \\"
-  puts "\t  else echo \$\$file; fi; \\"
-  puts "\tdone > $lname"
+  puts "\techo \$(srcdir)/classpath/lib/$package/*.class $omit> $lname"
   puts ""
   puts "-include $dname"
   puts ""
   puts ""
 
-  if {$pkgname != "gnu/gcj/xlib" && $pkgname != "gnu/awt/xlib"} {
+  if {$pkgname != "gnu/gcj/xlib" && $pkgname != "gnu/awt/xlib"
+      && $pkgname != "gnu/gcj/tools/gcj_dbtool"} {
+    lappend  $package_files_list $lname
+  }
+}
+
+proc emit_package_rule {package} {
+  global package_files
+  emit_package_rule_to_list $package package_files
+}
+
+proc emit_interpreter_rule {package} {
+  global interpreter_package_files
+  emit_package_rule_to_list $package interpreter_package_files
+}
+
+# Emit a rule to build a package full of 'ordinary' files, that is,
+# one .o for each .java.
+proc emit_ordinary_rule {package} {
+  global name_map package_files
+
+  foreach file $name_map($package) {
+    # Strip off the '.java'.
+    set root [file rootname $file]
+
+    # Look for all included .class files.  Assumes that we don't have
+    # multiple top-level classes in a .java file.
+    set lname $root.list
+    set dname $root.deps
+
+    puts "$lname: classpath/$file"
+    puts "\t@\$(mkinstalldirs) \$(dir \$@)"
+    puts "\techo \$(srcdir)/classpath/lib/${root}*.class> $lname"
+    puts ""
+    puts "-include $dname"
+    puts ""
+    puts ""
+
     lappend package_files $lname
   }
+}
+
+# Emit a package-like rule for a platform-specific Process
+# implementation.
+proc emit_process_package_rule {platform} {
+  set base "java/process-$platform"
+  set lname $base.list
+  set dname $base.deps
+
+  puts "$lname: java/lang/${platform}Process.java"
+  puts "\t@\$(mkinstalldirs) \$(dir \$@)"
+  puts "\techo \$(srcdir)/classpath/lib/java/lang/${platform}Process*.class > $lname"
+  puts ""
+  puts "-include $dname"
+  puts ""
+  puts ""
 }
 
 # Emit a source file variable for a package, and corresponding header
 # file variable, if needed.
 proc emit_source_var {package} {
-  global package_map name_map dir_map header_vars
+  global package_map name_map dir_map header_vars interpreter_header_vars
 
   if {$package == "."} {
     set pkgname ordinary
@@ -326,7 +453,9 @@ proc emit_source_var {package} {
   if {$package_map($package) != "bc"} {
     # Ugly code to build up the appropriate patsubst.
     set result "\$(patsubst %.java,%.h,\$($varname))"
-    foreach dir [lsort [array names dirs]] {
+    # We use -decreasing so that classpath/external will be stripped
+    # before classpath.
+    foreach dir [lsort -decreasing [array names dirs]] {
       if {$dir != "."} {
 	set result "\$(patsubst $dir/%,%,$result)"
       }
@@ -340,7 +469,11 @@ proc emit_source_var {package} {
     puts "${uname}_header_files = $result"
     puts ""
     if {$pkgname != "gnu/gcj/xlib" && $pkgname != "gnu/awt/xlib"} {
-      lappend header_vars "${uname}_header_files"
+	if {$package_map($package) == "interpreter"} {
+          lappend interpreter_header_vars "${uname}_header_files"
+	} else {
+          lappend header_vars "${uname}_header_files"
+	}
     }
   }
 }
@@ -363,22 +496,21 @@ if {[llength $argv] > 0 && [lindex $argv 0] == "-verbose"} {
 
 # Read the proper .omit files.
 read_omit_file standard.omit.in
-read_omit_file classpath/lib/standard.omit
+read_omit_file classpath/lib/standard.omit.in
 
 # Scan classpath first.
 scan_packages classpath
 scan_packages classpath/external/sax
 scan_packages classpath/external/w3c_dom
 scan_packages classpath/external/relaxngDatatype
+scan_packages classpath/external/jsr166
 # Resource files.
 scan_packages classpath/resource
 # Now scan our own files; this will correctly override decisions made
 # when scanning classpath.
 scan_packages .
 # Files created by the build.
-classify_source_file . java/lang/ConcreteProcess.java
 classify_source_file classpath gnu/java/locale/LocaleData.java
-classify_source_file classpath gnu/classpath/Configuration.java
 classify_source_file classpath gnu/java/security/Configuration.java
 
 puts "## This file was automatically generated by scripts/makemake.tcl"
@@ -397,14 +529,37 @@ foreach package [lsort [array names package_map]] {
 
   if {$package_map($package) == "bc"} {
     emit_bc_rule $package
+  } elseif {$package_map($package) == "bcheaders"} {
+    emit_bc_rule $package
   } elseif {$package_map($package) == "ordinary"} {
-    # Nothing in particular to do here.
+    emit_ordinary_rule $package
   } elseif {$package_map($package) == "package"} {
     emit_package_rule $package
+  } elseif {$package_map($package) == "interpreter"} {
+    emit_interpreter_rule $package
   } else {
     error "unrecognized type: $package_map($package)"
   }
 }
+
+emit_process_package_rule Ecos
+emit_process_package_rule Win32
+emit_process_package_rule Posix
+
+puts "if INTERPRETER"
+pp_var interpreter_packages_source_files $interpreter_package_files
+pp_var interpreter_header_files $interpreter_header_vars "\$(" ")"
+puts ""
+puts "else"
+puts ""
+puts "interpreter_packages_source_files="
+puts ""
+puts "interpreter_header_files="
+puts ""
+puts "endif"
+
+lappend package_files {$(interpreter_packages_source_files)}
+lappend header_vars interpreter_header_files
 
 pp_var all_packages_source_files $package_files
 pp_var ordinary_header_files $header_vars "\$(" ")"

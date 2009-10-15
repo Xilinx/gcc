@@ -7,7 +7,7 @@
 --                                  S p e c                                 --
 --                                                                          --
 --             Copyright (C) 1991-1994, Florida State University            --
---             Copyright (C) 1995-2005, Free Software Foundation, Inc.      --
+--          Copyright (C) 1995-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -42,7 +42,7 @@
 
 with Interfaces.C;
 with Interfaces.C.Strings;
-with Unchecked_Conversion;
+with Ada.Unchecked_Conversion;
 
 package System.OS_Interface is
    pragma Preelaborate;
@@ -68,6 +68,7 @@ package System.OS_Interface is
 
    subtype PSZ   is Interfaces.C.Strings.chars_ptr;
    subtype PCHAR is Interfaces.C.Strings.chars_ptr;
+
    subtype PVOID is System.Address;
 
    Null_Void : constant PVOID := System.Null_Address;
@@ -94,6 +95,25 @@ package System.OS_Interface is
    NO_ERROR : constant := 0;
    FUNC_ERR : constant := -1;
 
+   ------------------------
+   -- System Information --
+   ------------------------
+
+   type SYSTEM_INFO is record
+      dwOemId                     : DWORD;
+      dwPageSize                  : DWORD;
+      lpMinimumApplicationAddress : PVOID;
+      lpMaximumApplicationAddress : PVOID;
+      dwActiveProcessorMask       : DWORD;
+      dwNumberOfProcessors        : DWORD;
+      dwProcessorType             : DWORD;
+      dwAllocationGranularity     : DWORD;
+      dwReserved                  : DWORD;
+   end record;
+
+   procedure GetSystemInfo (SI : access SYSTEM_INFO);
+   pragma Import (Stdcall, GetSystemInfo, "GetSystemInfo");
+
    -------------
    -- Signals --
    -------------
@@ -113,6 +133,7 @@ package System.OS_Interface is
    type sigset_t is private;
 
    type isr_address is access procedure (sig : int);
+   pragma Convention (C, isr_address);
 
    function intr_attach (sig : int; handler : isr_address) return long;
    pragma Import (C, intr_attach, "signal");
@@ -186,12 +207,21 @@ package System.OS_Interface is
 
    type Thread_Body is access
      function (arg : System.Address) return System.Address;
+   pragma Convention (C, Thread_Body);
 
    function Thread_Body_Access is new
-     Unchecked_Conversion (System.Address, Thread_Body);
+     Ada.Unchecked_Conversion (System.Address, Thread_Body);
 
    procedure SwitchToThread;
    pragma Import (Stdcall, SwitchToThread, "SwitchToThread");
+
+   function GetThreadTimes
+     (hThread        : HANDLE;
+      lpCreationTime : access Long_Long_Integer;
+      lpExitTime     : access Long_Long_Integer;
+      lpKernelTime   : access Long_Long_Integer;
+      lpUserTime     : access Long_Long_Integer) return BOOL;
+   pragma Import (Stdcall, GetThreadTimes, "GetThreadTimes");
 
    -----------------------
    -- Critical sections --
@@ -220,12 +250,14 @@ package System.OS_Interface is
    -- Thread Creation, Activation, Suspension And Termination --
    -------------------------------------------------------------
 
+   subtype ProcessorId is DWORD;
+
    type PTHREAD_START_ROUTINE is access function
      (pThreadParameter : PVOID) return DWORD;
    pragma Convention (Stdcall, PTHREAD_START_ROUTINE);
 
    function To_PTHREAD_START_ROUTINE is new
-     Unchecked_Conversion (System.Address, PTHREAD_START_ROUTINE);
+     Ada.Unchecked_Conversion (System.Address, PTHREAD_START_ROUTINE);
 
    type SECURITY_ATTRIBUTES is record
       nLength              : DWORD;
@@ -327,6 +359,11 @@ package System.OS_Interface is
       dwMilliseconds : DWORD;
       fAlertable     : BOOL) return DWORD;
    pragma Import (Stdcall, WaitForSingleObjectEx, "WaitForSingleObjectEx");
+
+   function SetThreadIdealProcessor
+     (hThread          : HANDLE;
+      dwIdealProcessor : ProcessorId) return DWORD;
+   pragma Import (Stdcall, SetThreadIdealProcessor, "SetThreadIdealProcessor");
 
    Wait_Infinite : constant := DWORD'Last;
    WAIT_TIMEOUT  : constant := 16#0000_0102#;

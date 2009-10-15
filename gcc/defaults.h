@@ -1,6 +1,6 @@
 /* Definitions of various defaults for tm.h macros.
    Copyright (C) 1992, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
-   2005, 2007
+   2005, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Ron Guilmette (rfg@monkeys.com)
 
@@ -321,7 +321,8 @@ along with GCC; see the file COPYING3.  If not see
 
 /* If we have a definition of INCOMING_RETURN_ADDR_RTX, assume that
    the rest of the DWARF 2 frame unwind support is also provided.  */
-#if !defined (DWARF2_UNWIND_INFO) && defined (INCOMING_RETURN_ADDR_RTX)
+#if !defined (DWARF2_UNWIND_INFO) && defined (INCOMING_RETURN_ADDR_RTX) \
+    && !defined (TARGET_UNWIND_INFO)
 #define DWARF2_UNWIND_INFO 1
 #endif
 
@@ -452,6 +453,38 @@ along with GCC; see the file COPYING3.  If not see
 
 #ifndef DECIMAL128_TYPE_SIZE
 #define DECIMAL128_TYPE_SIZE 128
+#endif
+
+#ifndef SHORT_FRACT_TYPE_SIZE
+#define SHORT_FRACT_TYPE_SIZE BITS_PER_UNIT
+#endif
+
+#ifndef FRACT_TYPE_SIZE
+#define FRACT_TYPE_SIZE (BITS_PER_UNIT * 2)
+#endif
+
+#ifndef LONG_FRACT_TYPE_SIZE
+#define LONG_FRACT_TYPE_SIZE (BITS_PER_UNIT * 4)
+#endif
+
+#ifndef LONG_LONG_FRACT_TYPE_SIZE
+#define LONG_LONG_FRACT_TYPE_SIZE (BITS_PER_UNIT * 8)
+#endif
+
+#ifndef SHORT_ACCUM_TYPE_SIZE
+#define SHORT_ACCUM_TYPE_SIZE (SHORT_FRACT_TYPE_SIZE * 2)
+#endif
+
+#ifndef ACCUM_TYPE_SIZE
+#define ACCUM_TYPE_SIZE (FRACT_TYPE_SIZE * 2)
+#endif
+
+#ifndef LONG_ACCUM_TYPE_SIZE
+#define LONG_ACCUM_TYPE_SIZE (LONG_FRACT_TYPE_SIZE * 2)
+#endif
+
+#ifndef LONG_LONG_ACCUM_TYPE_SIZE
+#define LONG_LONG_ACCUM_TYPE_SIZE (LONG_LONG_FRACT_TYPE_SIZE * 2)
 #endif
 
 /* Width in bits of a pointer.  Mind the value of the macro `Pmode'.  */
@@ -622,8 +655,6 @@ along with GCC; see the file COPYING3.  If not see
 #define UNKNOWN_FLOAT_FORMAT 0
 #define IEEE_FLOAT_FORMAT 1
 #define VAX_FLOAT_FORMAT 2
-#define IBM_FLOAT_FORMAT 3
-#define C4X_FLOAT_FORMAT 4
 
 /* Default to IEEE float if not specified.  Nearly all machines use it.  */
 #ifndef TARGET_FLOAT_FORMAT
@@ -795,6 +826,12 @@ along with GCC; see the file COPYING3.  If not see
 #define TARGET_C99_FUNCTIONS 0
 #endif
 
+/* Determine whether the target runtime library has
+   a sincos implementation following the GNU extension.  */
+#ifndef TARGET_HAS_SINCOS
+#define TARGET_HAS_SINCOS 0
+#endif
+
 /* Indicate that CLZ and CTZ are undefined at zero.  */
 #ifndef CLZ_DEFINED_VALUE_AT_ZERO
 #define CLZ_DEFINED_VALUE_AT_ZERO(MODE, VALUE)  0
@@ -897,6 +934,10 @@ along with GCC; see the file COPYING3.  If not see
 #ifndef HARD_REGNO_NREGS_HAS_PADDING
 #define HARD_REGNO_NREGS_HAS_PADDING(REGNO, MODE) 0
 #define HARD_REGNO_NREGS_WITH_PADDING(REGNO, MODE) -1
+#endif
+
+#ifndef OUTGOING_REG_PARM_STACK_SPACE
+#define OUTGOING_REG_PARM_STACK_SPACE 0
 #endif
 
 #endif  /* ! GCC_DEFAULTS_H */

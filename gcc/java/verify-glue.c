@@ -210,18 +210,6 @@ vfy_get_pool_class (vfy_constants *pool, int index)
 }
 
 vfy_string
-vfy_make_string (const char *s, int len)
-{
-  tree result;
-  char *s2 = (char *) s;
-  char save = s2[len];
-  s2[len] = '\0';
-  result = get_identifier (s2);
-  s2[len] = save;
-  return result;  
-}
-
-vfy_string
 vfy_get_class_name (vfy_jclass klass)
 {
   return DECL_NAME (TYPE_NAME (klass));
@@ -405,37 +393,41 @@ vfy_get_primitive_type (int type)
 void
 vfy_note_stack_depth (vfy_method *method, int pc, int depth)
 {
-  tree label = lookup_label (pc);
-  LABEL_TYPE_STATE (label) = make_tree_vec (method->max_locals + depth);
+  tree val = make_tree_vec (method->max_locals + depth);
+  VEC_replace (tree, type_states, pc, val);
+  /* Called for side effects.  */
+  lookup_label (pc);
 }
 
 void
 vfy_note_stack_type (vfy_method *method, int pc, int slot, vfy_jclass type)
 {
-  tree label, vec;
+  tree vec;
   
   slot += method->max_locals;
 
   if (type == object_type_node)
     type = object_ptr_type_node;
 
-  label = lookup_label (pc);
-  vec = LABEL_TYPE_STATE (label);
+  vec = VEC_index (tree, type_states, pc);
   TREE_VEC_ELT (vec, slot) = type;
+  /* Called for side effects.  */
+  lookup_label (pc);
 }
 
 void
 vfy_note_local_type (vfy_method *method ATTRIBUTE_UNUSED, int pc, int slot,
 		     vfy_jclass type)
 {
-  tree label, vec;
+  tree vec;
   
   if (type == object_type_node)
     type = object_ptr_type_node;
 
-  label = lookup_label (pc);
-  vec = LABEL_TYPE_STATE (label);
+  vec = VEC_index (tree, type_states, pc);
   TREE_VEC_ELT (vec, slot) = type;
+  /* Called for side effects.  */
+  lookup_label (pc);
 }
 
 void

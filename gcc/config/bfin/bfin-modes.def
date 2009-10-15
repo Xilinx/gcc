@@ -18,7 +18,7 @@
    along with GCC; see the file COPYING3.  If not see
    <http://www.gnu.org/licenses/>.  */
 
-/* PDImode for the 40 bit accumulators.  */
+/* PDImode for the 40-bit accumulators.  */
 PARTIAL_INT_MODE (DI);
 
 /* Two of those - covering both accumulators for vector multiplications.  */

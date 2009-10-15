@@ -156,7 +156,8 @@ special_rtx (int idx)
 static int
 excluded_rtx (int idx)
 {
-  return (strcmp (defs[idx].enumname, "CONST_DOUBLE") == 0);
+  return ((strcmp (defs[idx].enumname, "CONST_DOUBLE") == 0)
+	  || (strcmp (defs[idx].enumname, "CONST_FIXED") == 0));
 }
 
 /* Place a list of all format specifiers we use into the array FORMAT.  */
@@ -190,7 +191,7 @@ gendecl (const char *format)
   const char *p;
   int i, pos;
 
-  printf ("extern rtx gen_rtx_fmt_%s\t (RTX_CODE, ", format);
+  printf ("extern rtx gen_rtx_fmt_%s_stat\t (RTX_CODE, ", format);
   printf ("enum machine_mode mode");
 
   /* Write each parameter that is needed and start a new line when the line
@@ -207,8 +208,18 @@ gendecl (const char *format)
 	printf (" %sarg%d", type_from_format (*p), i++);
 	pos += ourlen;
       }
+  printf (" MEM_STAT_DECL");
 
   printf (");\n");
+  printf ("#define gen_rtx_fmt_%s(c, m", format);
+  for (p = format, i = 0; *p != 0; p++)
+    if (*p != '0')
+      printf (", p%i",i++);
+  printf (")\\\n        gen_rtx_fmt_%s_stat (c, m", format);
+  for (p = format, i = 0; *p != 0; p++)
+    if (*p != '0')
+      printf (", p%i",i++);
+  printf (" MEM_STAT_INFO)\n\n");
 }
 
 /* Generate macros to generate RTL of code IDX using the functions we
@@ -256,18 +267,18 @@ gendef (const char *format)
   /* Start by writing the definition of the function name and the types
      of the arguments.  */
 
-  printf ("rtx\ngen_rtx_fmt_%s (RTX_CODE code, enum machine_mode mode", format);
+  printf ("rtx\ngen_rtx_fmt_%s_stat (RTX_CODE code, enum machine_mode mode", format);
   for (p = format, i = 0; *p != 0; p++)
     if (*p != '0')
       printf (",\n\t%sarg%d", type_from_format (*p), i++);
 
-  puts (")");
+  puts (" MEM_STAT_DECL)");
 
   /* Now write out the body of the function itself, which allocates
      the memory and initializes it.  */
   puts ("{");
   puts ("  rtx rt;");
-  puts ("  rt = rtx_alloc (code);\n");
+  puts ("  rt = rtx_alloc_stat (code PASS_MEM_STAT);\n");
 
   puts ("  PUT_MODE (rt, mode);");
 
@@ -298,6 +309,7 @@ genheader (void)
 
   puts ("#ifndef GCC_GENRTL_H");
   puts ("#define GCC_GENRTL_H\n");
+  puts ("#include \"statistics.h\"\n");
 
   for (fmt = formats; *fmt; ++fmt)
     gendecl (*fmt);

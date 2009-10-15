@@ -1,5 +1,5 @@
 /* DynSequence.java --
-   Copyright (C) 2005 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2006, 2007 Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -44,6 +44,8 @@ import org.omg.CORBA.DynAnyPackage.InvalidSeq;
  * Represents the {@link DynAny}, holding the CORBA sequence
  * (an array with the flexible length).
  *
+ * @deprecated by {@link org.omg.DynamicAny.DynSequence}
+ *
  * @author Audrius Meskauskas, Lithuania (AudriusA@Bioinformatics.org)
  */
 public interface DynSequence
@@ -56,7 +58,7 @@ public interface DynSequence
 
   /**
    * Returns the number of elements, stored in the sequence.
-   * @return
+   * @return the length of the sequence
    */
   int length();
 

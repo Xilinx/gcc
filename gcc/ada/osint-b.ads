@@ -6,18 +6,17 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 2001 Free Software Foundation, Inc.               --
+--          Copyright (C) 2001-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -28,10 +27,6 @@
 --  in the GNAT binder for command line processing and file input output.
 
 package Osint.B is
-
-   procedure Record_Time_From_Last_Bind;
-   --  Trigger the computing of the time from the last bind of the same
-   --  program.
 
    function More_Lib_Files return Boolean;
    --  Indicates whether more library information files remain to be processed.
@@ -44,20 +39,6 @@ package Osint.B is
    --  more library information files exist (i.e. Next_Main_Lib_File may be
    --  called only if a previous call to More_Lib_Files returned True). This
    --  name is the simple name, excluding any directory information.
-
-   function Time_From_Last_Bind return Nat;
-   --  This function give an approximate number of minute from the last bind.
-   --  It bases its computation on file stamp and therefore does gibe not
-   --  any meaningful result before the new output binder file is written.
-   --  So it returns Nat'last if:
-   --
-   --   - it is the first bind of this  specific program
-   --   - Record_Time_From_Last_Bind was not Called first
-   --   - Close_Binder_Output was not called first
-   --
-   --  otherwise it returns the number of minutes from the last bind. The
-   --  computation does not try to be completely accurate and in particular
-   --  does not take leap years into account.
 
    -------------------
    -- Binder Output --
@@ -96,5 +77,8 @@ package Osint.B is
    procedure Close_Binder_Output;
    --  Closes the file created by Create_Binder_Output, flushing any
    --  buffers etc from writes by Write_Binder_Info.
+
+   procedure Set_Current_File_Name_Index (To : Int);
+   --  Set value of Current_File_Name_Index (in private part of Osint) to To
 
 end Osint.B;

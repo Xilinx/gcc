@@ -6,7 +6,7 @@
 --                                                                          --
 --                                  B o d y                                 --
 --                                                                          --
---         Copyright (C) 1992-2005, Free Software Foundation, Inc.          --
+--         Copyright (C) 1992-2007, Free Software Foundation, Inc.          --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -64,8 +64,6 @@ package body System.Task_Primitives.Operations is
    -- Check_Exit --
    ----------------
 
-   --  Dummy version
-
    function Check_Exit (Self_ID : ST.Task_Id) return Boolean is
    begin
       return True;
@@ -79,6 +77,15 @@ package body System.Task_Primitives.Operations is
    begin
       return True;
    end Check_No_Locks;
+
+   -------------------
+   -- Continue_Task --
+   -------------------
+
+   function Continue_Task (T : ST.Task_Id) return Boolean is
+   begin
+      return False;
+   end Continue_Task;
 
    -------------------
    -- Current_State --
@@ -144,12 +151,12 @@ package body System.Task_Primitives.Operations is
    -- Finalize_Lock --
    -------------------
 
-   procedure Finalize_Lock (L : access Lock) is
+   procedure Finalize_Lock (L : not null access Lock) is
    begin
       null;
    end Finalize_Lock;
 
-   procedure Finalize_Lock (L : access RTS_Lock) is
+   procedure Finalize_Lock (L : not null access RTS_Lock) is
    begin
       null;
    end Finalize_Lock;
@@ -204,13 +211,14 @@ package body System.Task_Primitives.Operations is
 
    procedure Initialize_Lock
      (Prio : System.Any_Priority;
-      L    : access Lock)
+      L    : not null access Lock)
    is
    begin
       null;
    end Initialize_Lock;
 
-   procedure Initialize_Lock (L : access RTS_Lock; Level : Lock_Level) is
+   procedure Initialize_Lock
+     (L : not null access RTS_Lock; Level : Lock_Level) is
    begin
       null;
    end Initialize_Lock;
@@ -264,7 +272,10 @@ package body System.Task_Primitives.Operations is
    -- Read_Lock --
    ---------------
 
-   procedure Read_Lock (L : access Lock; Ceiling_Violation : out Boolean) is
+   procedure Read_Lock
+     (L                 : not null access Lock;
+      Ceiling_Violation : out Boolean)
+   is
    begin
       Ceiling_Violation := False;
    end Read_Lock;
@@ -308,6 +319,18 @@ package body System.Task_Primitives.Operations is
       return Null_Task;
    end Self;
 
+   -----------------
+   -- Set_Ceiling --
+   -----------------
+
+   procedure Set_Ceiling
+     (L    : not null access Lock;
+      Prio : System.Any_Priority)
+   is
+   begin
+      null;
+   end Set_Ceiling;
+
    ---------------
    -- Set_False --
    ---------------
@@ -343,7 +366,7 @@ package body System.Task_Primitives.Operations is
    -- Sleep --
    -----------
 
-   procedure Sleep (Self_ID : Task_Id; Reason  : System.Tasking.Task_States) is
+   procedure Sleep (Self_ID : Task_Id; Reason : System.Tasking.Task_States) is
    begin
       null;
    end Sleep;
@@ -368,6 +391,25 @@ package body System.Task_Primitives.Operations is
    begin
       return False;
    end Suspend_Task;
+
+   --------------------
+   -- Stop_All_Tasks --
+   --------------------
+
+   procedure Stop_All_Tasks is
+   begin
+      null;
+   end Stop_All_Tasks;
+
+   ---------------
+   -- Stop_Task --
+   ---------------
+
+   function Stop_Task (T : ST.Task_Id) return Boolean is
+      pragma Unreferenced (T);
+   begin
+      return False;
+   end Stop_Task;
 
    ------------------------
    -- Suspend_Until_True --
@@ -412,12 +454,15 @@ package body System.Task_Primitives.Operations is
    -- Unlock --
    ------------
 
-   procedure Unlock (L : access Lock) is
+   procedure Unlock (L : not null access Lock) is
    begin
       null;
    end Unlock;
 
-   procedure Unlock (L : access RTS_Lock; Global_Lock : Boolean := False) is
+   procedure Unlock
+     (L           : not null access RTS_Lock;
+      Global_Lock : Boolean := False)
+   is
    begin
       null;
    end Unlock;
@@ -448,13 +493,16 @@ package body System.Task_Primitives.Operations is
    -- Write_Lock --
    ----------------
 
-   procedure Write_Lock (L : access Lock; Ceiling_Violation : out Boolean) is
+   procedure Write_Lock
+     (L                 : not null access Lock;
+      Ceiling_Violation : out Boolean)
+   is
    begin
       Ceiling_Violation := False;
    end Write_Lock;
 
    procedure Write_Lock
-     (L           : access RTS_Lock;
+     (L           : not null access RTS_Lock;
       Global_Lock : Boolean := False)
    is
    begin

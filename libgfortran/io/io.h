@@ -1,4 +1,5 @@
-/* Copyright (C) 2002, 2003, 2004, 2005, 2006 Free Software Foundation, Inc.
+/* Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007
+   Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
 This file is part of the GNU Fortran 95 runtime library (libgfortran).
@@ -30,12 +31,10 @@ Boston, MA 02110-1301, USA.  */
 
 /* IO library include.  */
 
-#include <setjmp.h>
 #include "libgfortran.h"
 
+#include <setjmp.h>
 #include <gthr.h>
-
-#define DEFAULT_TEMPDIR "/tmp"
 
 /* Basic types used in data transfers.  */
 
@@ -55,7 +54,7 @@ typedef struct stream
   try (*sfree) (struct stream *);
   try (*close) (struct stream *);
   try (*seek) (struct stream *, gfc_offset);
-  try (*truncate) (struct stream *);
+  try (*trunc) (struct stream *);
   int (*read) (struct stream *, void *, size_t *);
   int (*write) (struct stream *, const void *, size_t *);
   try (*set) (struct stream *, int, size_t);
@@ -75,11 +74,19 @@ stream;
 #define salloc_w_at(s, len, where) ((s)->alloc_w_at)(s, len, where)
 
 #define sseek(s, pos) ((s)->seek)(s, pos)
-#define struncate(s) ((s)->truncate)(s)
+#define struncate(s) ((s)->trunc)(s)
 #define sread(s, buf, nbytes) ((s)->read)(s, buf, nbytes)
 #define swrite(s, buf, nbytes) ((s)->write)(s, buf, nbytes)
 
 #define sset(s, c, n) ((s)->set)(s, c, n)
+
+/* Macros for testing what kinds of I/O we are doing.  */
+
+#define is_array_io(dtp) ((dtp)->internal_unit_desc)
+
+#define is_internal_unit(dtp) ((dtp)->u.p.unit_is_internal)
+
+#define is_stream_io(dtp) ((dtp)->u.p.current_unit->flags.access == ACCESS_STREAM)
 
 /* The array_loop_spec contains the variables for the loops over index ranges
    that are encountered.  Since the variables can be negative, ssize_t
@@ -205,52 +212,12 @@ typedef enum
 {READING, WRITING}
 unit_mode;
 
-typedef enum
-{ CONVERT_NONE=-1, CONVERT_NATIVE, CONVERT_SWAP, CONVERT_BIG, CONVERT_LITTLE }
-unit_convert;
-
 #define CHARACTER1(name) \
 	      char * name; \
 	      gfc_charlen_type name ## _len
 #define CHARACTER2(name) \
 	      gfc_charlen_type name ## _len; \
 	      char * name
-
-#define IOPARM_LIBRETURN_MASK		(3 << 0)
-#define IOPARM_LIBRETURN_OK		(0 << 0)
-#define IOPARM_LIBRETURN_ERROR		(1 << 0)
-#define IOPARM_LIBRETURN_END		(2 << 0)
-#define IOPARM_LIBRETURN_EOR		(3 << 0)
-#define IOPARM_ERR			(1 << 2)
-#define IOPARM_END			(1 << 3)
-#define IOPARM_EOR			(1 << 4)
-#define IOPARM_HAS_IOSTAT		(1 << 5)
-#define IOPARM_HAS_IOMSG		(1 << 6)
-
-#define IOPARM_COMMON_MASK		((1 << 7) - 1)
-
-typedef struct st_parameter_common
-{
-  GFC_INTEGER_4 flags;
-  GFC_INTEGER_4 unit;
-  const char *filename;
-  GFC_INTEGER_4 line;
-  CHARACTER2 (iomsg);
-  GFC_INTEGER_4 *iostat;
-}
-st_parameter_common;
-
-#define IOPARM_OPEN_HAS_RECL_IN		(1 << 7)
-#define IOPARM_OPEN_HAS_FILE		(1 << 8)
-#define IOPARM_OPEN_HAS_STATUS		(1 << 9)
-#define IOPARM_OPEN_HAS_ACCESS		(1 << 10)
-#define IOPARM_OPEN_HAS_FORM		(1 << 11)
-#define IOPARM_OPEN_HAS_BLANK		(1 << 12)
-#define IOPARM_OPEN_HAS_POSITION	(1 << 13)
-#define IOPARM_OPEN_HAS_ACTION		(1 << 14)
-#define IOPARM_OPEN_HAS_DELIM		(1 << 15)
-#define IOPARM_OPEN_HAS_PAD		(1 << 16)
-#define IOPARM_OPEN_HAS_CONVERT		(1 << 17)
 
 typedef struct
 {
@@ -354,7 +321,7 @@ typedef struct st_parameter_dt
 {
   st_parameter_common common;
   GFC_IO_INT rec;
-  GFC_INTEGER_4 *size, *iolength;
+  GFC_IO_INT *size, *iolength;
   gfc_array_char *internal_unit_desc;
   CHARACTER1 (format);
   CHARACTER2 (advance);
@@ -475,13 +442,6 @@ typedef struct
 unit_flags;
 
 
-/* The default value of record length for preconnected units is defined
-   here. This value can be overriden by an environment variable.
-   Default value is 1 Gb.  */
-
-#define DEFAULT_RECL 1073741824
-
-
 typedef struct gfc_unit
 {
   int unit_number;
@@ -491,7 +451,8 @@ typedef struct gfc_unit
   struct gfc_unit *left, *right;
   int priority;
 
-  int read_bad, current_record;
+  int read_bad, current_record, saved_pos, previous_nonadvancing_write;
+
   enum
   { NO_ENDFILE, AT_ENDFILE, AFTER_ENDFILE }
   endfile;
@@ -608,7 +569,7 @@ internal_proto(compare_files);
 extern stream *open_external (st_parameter_open *, unit_flags *);
 internal_proto(open_external);
 
-extern stream *open_internal (char *, int);
+extern stream *open_internal (char *, int, gfc_offset);
 internal_proto(open_internal);
 
 extern stream *input_stream (void);
@@ -625,9 +586,6 @@ internal_proto(compare_file_filename);
 
 extern gfc_unit *find_file (const char *file, gfc_charlen_type file_len);
 internal_proto(find_file);
-
-extern void flush_all_units (void);
-internal_proto(flush_all_units);
 
 extern int stream_at_bof (stream *);
 internal_proto(stream_at_bof);
@@ -670,6 +628,9 @@ internal_proto(file_position);
 
 extern int is_seekable (stream *);
 internal_proto(is_seekable);
+
+extern int is_special (stream *);
+internal_proto(is_special);
 
 extern int is_preconnected (stream *);
 internal_proto(is_preconnected);
@@ -717,15 +678,6 @@ internal_proto(get_internal_unit);
 extern void free_internal_unit (st_parameter_dt *);
 internal_proto(free_internal_unit);
 
-extern int is_internal_unit (st_parameter_dt *);
-internal_proto(is_internal_unit);
-
-extern int is_array_io (st_parameter_dt *);
-internal_proto(is_array_io);
-
-extern int is_stream_io (st_parameter_dt *);
-internal_proto(is_stream_io);
-
 extern gfc_unit *find_unit (int);
 internal_proto(find_unit);
 
@@ -738,10 +690,13 @@ internal_proto(get_unit);
 extern void unlock_unit (gfc_unit *);
 internal_proto(unlock_unit);
 
-/* open.c */
+extern void update_position (gfc_unit *);
+internal_proto(update_position);
 
-extern void test_endfile (gfc_unit *);
-internal_proto(test_endfile);
+extern void finish_last_advance_record (gfc_unit *u);
+internal_proto (finish_last_advance_record);
+
+/* open.c */
 
 extern gfc_unit *new_unit (st_parameter_open *, gfc_unit *, unit_flags *);
 internal_proto(new_unit);
@@ -779,10 +734,12 @@ internal_proto(read_sf);
 extern void *write_block (st_parameter_dt *, int);
 internal_proto(write_block);
 
-extern gfc_offset next_array_record (st_parameter_dt *, array_loop_spec *);
+extern gfc_offset next_array_record (st_parameter_dt *, array_loop_spec *,
+				     int*);
 internal_proto(next_array_record);
 
-extern gfc_offset init_loop_spec (gfc_array_char *, array_loop_spec *);
+extern gfc_offset init_loop_spec (gfc_array_char *, array_loop_spec *,
+				  gfc_offset *);
 internal_proto(init_loop_spec);
 
 extern void next_record (st_parameter_dt *, int);
@@ -877,10 +834,6 @@ extern void list_formatted_write (st_parameter_dt *, bt, void *, int, size_t,
 				  size_t);
 internal_proto(list_formatted_write);
 
-/* error.c */
-extern notification notification_std(int);
-internal_proto(notification_std);
-
 /* size_from_kind.c */
 extern size_t size_from_real_kind (int);
 internal_proto(size_from_real_kind);
@@ -926,7 +879,3 @@ dec_waiting_unlocked (gfc_unit *u)
 
 #endif
 
-/* ../runtime/environ.c  This is here because we return unit_convert.  */
-
-unit_convert get_unformatted_convert (int);
-internal_proto(get_unformatted_convert);

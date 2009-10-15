@@ -1,5 +1,5 @@
 /* AlphaComposite.java -- provides a context for performing alpha compositing
-   Copyright (C) 2002, 2005  Free Software Foundation, Inc.
+   Copyright (C) 2002, 2005, 2006  Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -62,7 +62,7 @@ public final class AlphaComposite implements Composite
 
     /** Prune stale entries. */
     protected boolean removeEldestEntry(Map.Entry eldest)
-    {	// XXX - FIXME Use Map.Entry, not just Entry as gcj 3.1 workaround.
+    {
       return size() > MAX_CACHE_SIZE;
     }
   };

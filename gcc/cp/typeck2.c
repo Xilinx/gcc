@@ -67,20 +67,12 @@ binfo_or_else (tree base, tree type)
 }
 
 /* According to ARM $7.1.6, "A `const' object may be initialized, but its
-   value may not be changed thereafter.  Thus, we emit hard errors for these,
-   rather than just pedwarns.  If `SOFT' is 1, then we just pedwarn.  (For
-   example, conversions to references.)  */
+   value may not be changed thereafter.  */
 
 void
-readonly_error (tree arg, const char* string, int soft)
+readonly_error (tree arg, const char* string)
 {
   const char *fmt;
-  void (*fn) (const char *, ...) ATTRIBUTE_GCC_CXXDIAG(1,2);
-
-  if (soft)
-    fn = pedwarn;
-  else
-    fn = error;
 
   if (TREE_CODE (arg) == COMPONENT_REF)
     {
@@ -88,7 +80,7 @@ readonly_error (tree arg, const char* string, int soft)
 	fmt = "%s of data-member %qD in read-only structure";
       else
 	fmt = "%s of read-only data-member %qD";
-      (*fn) (fmt, string, TREE_OPERAND (arg, 1));
+      error (fmt, string, TREE_OPERAND (arg, 1));
     }
   else if (TREE_CODE (arg) == VAR_DECL)
     {
@@ -98,21 +90,21 @@ readonly_error (tree arg, const char* string, int soft)
 	fmt = "%s of constant field %qD";
       else
 	fmt = "%s of read-only variable %qD";
-      (*fn) (fmt, string, arg);
+      error (fmt, string, arg);
     }
   else if (TREE_CODE (arg) == PARM_DECL)
-    (*fn) ("%s of read-only parameter %qD", string, arg);
+    error ("%s of read-only parameter %qD", string, arg);
   else if (TREE_CODE (arg) == INDIRECT_REF
 	   && TREE_CODE (TREE_TYPE (TREE_OPERAND (arg, 0))) == REFERENCE_TYPE
 	   && (TREE_CODE (TREE_OPERAND (arg, 0)) == VAR_DECL
 	       || TREE_CODE (TREE_OPERAND (arg, 0)) == PARM_DECL))
-    (*fn) ("%s of read-only reference %qD", string, TREE_OPERAND (arg, 0));
+    error ("%s of read-only reference %qD", string, TREE_OPERAND (arg, 0));
   else if (TREE_CODE (arg) == RESULT_DECL)
-    (*fn) ("%s of read-only named return value %qD", string, arg);
+    error ("%s of read-only named return value %qD", string, arg);
   else if (TREE_CODE (arg) == FUNCTION_DECL)
-    (*fn) ("%s of function %qD", string, arg);
+    error ("%s of function %qD", string, arg);
   else
-    (*fn) ("%s of read-only location", string);
+    error ("%s of read-only location %qE", string, arg);
 }
 
 
@@ -156,9 +148,9 @@ pat_calc_hash (const void* val)
 static int
 pat_compare (const void* val1, const void* val2)
 {
-  const struct pending_abstract_type *pat1 =
+  const struct pending_abstract_type *const pat1 =
      (const struct pending_abstract_type *) val1;
-  tree type2 = (tree)val2;
+  const_tree const type2 = (const_tree)val2;
 
   return (pat1->type == type2);
 }
@@ -344,7 +336,7 @@ abstract_virtuals_error (tree decl, tree type)
    pedwarn.  */
 
 void
-cxx_incomplete_type_diagnostic (tree value, tree type, int diag_type)
+cxx_incomplete_type_diagnostic (const_tree value, const_tree type, int diag_type)
 {
   int decl = 0;
   void (*p_msg) (const char *, ...) ATTRIBUTE_GCC_CXXDIAG(1,2);
@@ -435,7 +427,7 @@ cxx_incomplete_type_diagnostic (tree value, tree type, int diag_type)
    required by ../tree.c.  */
 #undef cxx_incomplete_type_error
 void
-cxx_incomplete_type_error (tree value, tree type)
+cxx_incomplete_type_error (const_tree value, const_tree type)
 {
   cxx_incomplete_type_diagnostic (value, type, 0);
 }
@@ -711,8 +703,23 @@ digest_init (tree type, tree init)
   /* Handle scalar types (including conversions) and references.  */
   if (TREE_CODE (type) != COMPLEX_TYPE
       && (SCALAR_TYPE_P (type) || code == REFERENCE_TYPE))
-    return convert_for_initialization (0, type, init, LOOKUP_NORMAL,
-				       "initialization", NULL_TREE, 0);
+    {
+      tree *exp;
+
+      init = convert_for_initialization (0, type, init, LOOKUP_NORMAL,
+					 "initialization", NULL_TREE, 0);
+      exp = &init;
+
+      /* Skip any conversions since we'll be outputting the underlying
+	 constant.  */
+      while (TREE_CODE (*exp) == NOP_EXPR || TREE_CODE (*exp) == CONVERT_EXPR
+	     || TREE_CODE (*exp) == NON_LVALUE_EXPR)
+	exp = &TREE_OPERAND (*exp, 0);
+
+      *exp = cplus_expand_constant (*exp);
+
+      return init;
+    }
 
   /* Come here only for aggregates: records, arrays, unions, complex numbers
      and vectors.  */
@@ -771,8 +778,8 @@ picflag_from_initializer (tree init)
 }
 
 /* Subroutine of process_init_constructor, which will process an initializer
-   INIT for a array or vector of type TYPE. Returns the flags (PICFLAG_*) which
-   describe the initializers.  */
+   INIT for an array or vector of type TYPE. Returns the flags (PICFLAG_*)
+   which describe the initializers.  */
 
 static int
 process_init_constructor_array (tree type, tree init)
@@ -838,7 +845,7 @@ process_init_constructor_array (tree type, tree init)
 	if (TYPE_NEEDS_CONSTRUCTING (TREE_TYPE (type)))
 	  {
 	    /* If this type needs constructors run for default-initialization,
-	      we can't rely on the backend to do it for us, so build up
+	      we can't rely on the back end to do it for us, so build up
 	      TARGET_EXPRs.  If the type in question is a class, just build
 	      one up; if it's an array, recurse.  */
 	    if (IS_AGGR_TYPE (TREE_TYPE (type)))
@@ -888,6 +895,7 @@ process_init_constructor_record (tree type, tree init)
   for (field = TYPE_FIELDS (type); field; field = TREE_CHAIN (field))
     {
       tree next;
+      tree type;
 
       if (!DECL_NAME (field) && DECL_C_BIT_FIELD (field))
 	{
@@ -898,6 +906,11 @@ process_init_constructor_record (tree type, tree init)
 
       if (TREE_CODE (field) != FIELD_DECL || DECL_ARTIFICIAL (field))
 	continue;
+
+      /* If this is a bitfield, first convert to the declared type.  */
+      type = TREE_TYPE (field);
+      if (DECL_BIT_FIELD_TYPE (field))
+	type = DECL_BIT_FIELD_TYPE (field);
 
       if (idx < VEC_length (constructor_elt, CONSTRUCTOR_ELTS (init)))
 	{
@@ -919,13 +932,13 @@ process_init_constructor_record (tree type, tree init)
 	    }
 
 	  gcc_assert (ce->value);
-	  next = digest_init (TREE_TYPE (field), ce->value);
+	  next = digest_init (type, ce->value);
 	  ++idx;
 	}
       else if (TYPE_NEEDS_CONSTRUCTING (TREE_TYPE (field)))
 	{
 	  /* If this type needs constructors run for
-	     default-initialization, we can't rely on the backend to do it
+	     default-initialization, we can't rely on the back end to do it
 	     for us, so build up TARGET_EXPRs.  If the type in question is
 	     a class, just build one up; if it's an array, recurse.  */
 	  if (IS_AGGR_TYPE (TREE_TYPE (field)))
@@ -962,6 +975,9 @@ process_init_constructor_record (tree type, tree init)
 	    continue;
 	}
 
+      /* If this is a bitfield, now convert to the lowered type.  */
+      if (type != TREE_TYPE (field))
+	next = cp_convert_and_check (TREE_TYPE (field), next);
       flags |= picflag_from_initializer (next);
       CONSTRUCTOR_APPEND_ELT (v, field, next);
     }
@@ -1268,6 +1284,8 @@ build_m_component_ref (tree datum, tree component)
 
   if (TYPE_PTRMEM_P (ptrmem_type))
     {
+      tree ptype;
+
       /* Compute the type of the field, as described in [expr.ref].
 	 There's no such thing as a mutable pointer-to-member, so
 	 things are not as complex as they are for references to
@@ -1284,8 +1302,10 @@ build_m_component_ref (tree datum, tree component)
 
       /* Build an expression for "object + offset" where offset is the
 	 value stored in the pointer-to-data-member.  */
-      datum = build2 (PLUS_EXPR, build_pointer_type (type),
-		      datum, build_nop (ptrdiff_type_node, component));
+      ptype = build_pointer_type (type);
+      datum = build2 (POINTER_PLUS_EXPR, ptype,
+		      fold_convert (ptype, datum),
+		      build_nop (sizetype, component));
       return build_indirect_ref (datum, 0);
     }
   else
@@ -1299,6 +1319,8 @@ build_functional_cast (tree exp, tree parms)
 {
   /* This is either a call to a constructor,
      or a C cast in C++'s `functional' notation.  */
+
+  /* The type to which we are casting.  */
   tree type;
 
   if (exp == error_mark_node || parms == error_mark_node)
@@ -1339,20 +1361,31 @@ build_functional_cast (tree exp, tree parms)
   if (abstract_virtuals_error (NULL_TREE, type))
     return error_mark_node;
 
+  /* [expr.type.conv]
+
+     If the expression list is a single-expression, the type
+     conversion is equivalent (in definedness, and if defined in
+     meaning) to the corresponding cast expression.  */
   if (parms && TREE_CHAIN (parms) == NULL_TREE)
     return build_c_cast (type, TREE_VALUE (parms));
 
-  /* We need to zero-initialize POD types.  Let's do that for everything
-     that doesn't need a constructor.  */
-  if (parms == NULL_TREE && !TYPE_NEEDS_CONSTRUCTING (type)
-      && TYPE_HAS_DEFAULT_CONSTRUCTOR (type))
+  /* [expr.type.conv]
+
+     The expression T(), where T is a simple-type-specifier for a
+     non-array complete object type or the (possibly cv-qualified)
+     void type, creates an rvalue of the specified type, which is
+     value-initialized.  */
+
+  if (parms == NULL_TREE
+      /* If there's a user-defined constructor, value-initialization is
+	 just calling the constructor, so fall through.  */
+      && !TYPE_HAS_USER_CONSTRUCTOR (type))
     {
-      exp = build_zero_init (type, 
-			     /*nelts=*/NULL_TREE,
-			     /*static_storage_p=*/false);
+      exp = build_value_init (type);
       return get_target_expr (exp);
     }
 
+  /* Call the constructor.  */
   exp = build_special_member_call (NULL_TREE, complete_ctor_identifier, parms,
 				   type, LOOKUP_NORMAL);
 

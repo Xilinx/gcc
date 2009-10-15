@@ -253,7 +253,8 @@ extern int errno;
    UPPER.  However the bounds themselves can be either positive or
    negative.  */
 #define IN_RANGE(VALUE, LOWER, UPPER) \
-  ((unsigned HOST_WIDE_INT)((VALUE) - (LOWER)) <= ((UPPER) - (LOWER)))
+  ((unsigned HOST_WIDE_INT) (VALUE) - (unsigned HOST_WIDE_INT) (LOWER) \
+   <= (unsigned HOST_WIDE_INT) (UPPER) - (unsigned HOST_WIDE_INT) (LOWER))
 
 /* Infrastructure for defining missing _MAX and _MIN macros.  Note that
    macros defined with these cannot be used in #if.  */
@@ -610,9 +611,6 @@ extern void fancy_abort (const char *, int, const char *) ATTRIBUTE_NORETURN;
 # define FALSE false
 #endif /* !__cplusplus */
 
-/* Get definition of double_int.  */
-#include "double-int.h"
-
 /* Some compilers do not allow the use of unsigned char in bitfields.  */
 #define BOOL_BITFIELD unsigned int
 
@@ -735,7 +733,8 @@ extern void fancy_abort (const char *, int, const char *) ATTRIBUTE_NORETURN;
 	EXTRA_SECTIONS EXTRA_SECTION_FUNCTIONS READONLY_DATA_SECTION	   \
 	TARGET_ASM_EXCEPTION_SECTION TARGET_ASM_EH_FRAME_SECTION	   \
 	SMALL_ARG_MAX ASM_OUTPUT_SHARED_BSS ASM_OUTPUT_SHARED_COMMON	   \
-	ASM_OUTPUT_SHARED_LOCAL UNALIGNED_WORD_ASM_OP
+	ASM_OUTPUT_SHARED_LOCAL UNALIGNED_WORD_ASM_OP			   \
+	ASM_MAKE_LABEL_LINKONCE
 
 /* Hooks that are no longer used.  */
  #pragma GCC poison LANG_HOOKS_FUNCTION_MARK LANG_HOOKS_FUNCTION_FREE	\
@@ -767,5 +766,42 @@ extern void fancy_abort (const char *, int, const char *) ATTRIBUTE_NORETURN;
  #pragma GCC poison bcopy bzero bcmp rindex
 
 #endif /* GCC >= 3.0 */
+
+/* This macro allows casting away const-ness to pass -Wcast-qual
+   warnings.  DO NOT USE THIS UNLESS YOU REALLY HAVE TO!  It should
+   only be used in certain specific cases.  One valid case is where
+   the C standard definitions or prototypes force you to.  E.g. if you
+   need to free a const object, or if you pass a const string to
+   execv, et al.  Another valid use would be in an allocation function
+   that creates const objects that need to be initialized.  In some
+   cases we have non-const functions that return the argument
+   (e.g. next_nonnote_insn).  Rather than create const shadow
+   functions, we can cast away const-ness in calling these interfaces
+   if we're careful to verify that the called function does indeed not
+   modify its argument and the return value is only used in a const
+   context.  (This can be somewhat dangerous as these assumptions can
+   change after the fact).  Beyond these uses, most other cases of
+   using this macro should be viewed with extreme caution.  */
+
+#if defined(__GNUC__) && GCC_VERSION != 4000
+/* GCC 4.0.x has a bug where it may ICE on this expression.  */
+#define CONST_CAST2(TOTYPE,FROMTYPE,X) ((__extension__(union {FROMTYPE _q; TOTYPE _nq;})(X))._nq)
+#else
+#define CONST_CAST2(TOTYPE,FROMTYPE,X) ((TOTYPE)(FROMTYPE)(X))
+#endif
+#define CONST_CAST(TYPE,X) CONST_CAST2(TYPE, const TYPE, (X))
+#define CONST_CAST_TREE(X) CONST_CAST(union tree_node *, (X))
+#define CONST_CAST_RTX(X) CONST_CAST(struct rtx_def *, (X))
+#define CONST_CAST_BB(X) CONST_CAST(struct basic_block_def *, (X))
+
+/* Activate -Wcast-qual as a warning (not an error/-Werror).  */
+#if GCC_VERSION >= 4003
+#pragma GCC diagnostic warning "-Wcast-qual"
+/* If asserts are disabled, activate -Wuninitialized as a warning (not
+   an error/-Werror).  */
+#ifndef ASSERT_CHECKING
+#pragma GCC diagnostic warning "-Wuninitialized"
+#endif
+#endif
 
 #endif /* ! GCC_SYSTEM_H */

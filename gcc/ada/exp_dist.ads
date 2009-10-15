@@ -6,18 +6,17 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2006, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -27,9 +26,17 @@
 --  This package contains utility routines used for the generation of the
 --  stubs relevant to the distribution annex.
 
+with Namet; use Namet;
 with Types; use Types;
 
 package Exp_Dist is
+
+   PCS_Version_Number : constant := 1;
+   --  PCS interface version. This is used to check for consistency between the
+   --  compiler used to generate distribution stubs and the PCS implementation.
+   --  It must be incremented whenever a change is made to the generated code
+   --  for distribution stubs that would result in the compiler being
+   --  incompatible with an older version of the PCS, or vice versa.
 
    procedure Add_RAST_Features (Vis_Decl : Node_Id);
    --  Build and add bodies for dereference and 'Access subprograms for a
@@ -44,7 +51,7 @@ package Exp_Dist is
    procedure Add_RACW_Primitive_Declarations_And_Bodies
      (Designated_Type : Entity_Id;
       Insertion_Node  : Node_Id;
-      Decls           : List_Id);
+      Body_Decls      : List_Id);
    --  Add primitive for the stub type, and the RPC receiver. The declarations
    --  are inserted after insertion_Node, while the bodies are appened at the
    --  end of Decls.
@@ -86,18 +93,36 @@ package Exp_Dist is
    function Copy_Specification
      (Loc         : Source_Ptr;
       Spec        : Node_Id;
-      Object_Type : Entity_Id := Empty;
-      Stub_Type   : Entity_Id := Empty;
+      Ctrl_Type   : Entity_Id := Empty;
       New_Name    : Name_Id   := No_Name) return Node_Id;
-   --  Build a subprogram specification from another one, or from
-   --  an access-to-subprogram definition. If Object_Type is not Empty
-   --  and any access to Object_Type is found, then it is replaced by an
-   --  access to Stub_Type. If New_Name is given, then it will be used as
-   --  the name for the newly created spec.
+   --  Build a subprogram specification from another one, or from an
+   --  access-to-subprogram definition. If Ctrl_Type is not Empty, and any
+   --  controlling formal of an anonymous access type is found, then it is
+   --  replaced by an access to Ctrl_Type. If New_Name is given, then it will
+   --  be used as the name for the newly created spec.
 
-   function Underlying_RACW_Type
-     (RAS_Typ : Entity_Id) return Entity_Id;
+   function Corresponding_Stub_Type (RACW_Type : Entity_Id) return Entity_Id;
+   --  Return the stub type associated with the given RACW type
+
+   function Underlying_RACW_Type (RAS_Typ : Entity_Id) return Entity_Id;
    --  Given a remote access-to-subprogram type or its equivalent
    --  record type, return the RACW type generated to implement it.
+
+   procedure Append_RACW_Bodies (Decls : List_Id; Spec_Id : Entity_Id);
+   --  Append the unanalyzed subprogram bodies generated to support RACWs
+   --  declared in the given package spec (RACW stream subprograms, calling
+   --  stubs primitive operations) to the given list (which is expected to be
+   --  the declarations list for the corresponding package body, if there is
+   --  one). In the case where a body is present, the subprogram bodies must
+   --  not be generated in the package spec because this would cause an
+   --  incorrect attempt to freeze Taft amendment types declared in the spec.
+
+   function Make_Transportable_Check
+     (Loc  : Source_Ptr;
+      Expr : Node_Id) return Node_Id;
+   --  Generate a check that the given expression (an actual in a remote
+   --  subprogram call, or the return value of a function in the context of
+   --  a remote call) satisfies the requirements for being transportable
+   --  across partitions, raising Program_Error if it does not.
 
 end Exp_Dist;

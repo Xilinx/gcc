@@ -3,29 +3,29 @@
 #   Copyright (C) 1994, 1995, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2005,
 #   2006, 2007 Free Software Foundation, Inc.
 
-#This file is part of GCC.
+# This file is part of GCC.
 
-#GCC is free software; you can redistribute it and/or modify
-#it under the terms of the GNU General Public License as published by
-#the Free Software Foundation; either version 3, or (at your option)
-#any later version.
+# GCC is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3, or (at your option)
+# any later version.
 
-#GCC is distributed in the hope that it will be useful,
-#but WITHOUT ANY WARRANTY; without even the implied warranty of
-#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#GNU General Public License for more details.
+# GCC is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 
-#You should have received a copy of the GNU General Public License
-#along with GCC; see the file COPYING3.  If not see
-#<http://www.gnu.org/licenses/>.
+# You should have received a copy of the GNU General Public License
+# along with GCC; see the file COPYING3.  If not see
+# <http://www.gnu.org/licenses/>.
 
 
 # This file provides the language dependent support in the main Makefile.
 # Each language makefile fragment must provide the following targets:
 #
 # foo.all.cross, foo.start.encap, foo.rest.encap,
-# foo.install-common, foo.install-man, foo.install-info, foo.dvi, foo.pdf
-# foo.html, foo.uninstall,
+# foo.install-common, foo.install-man, foo.install-info, foo.install-pdf,
+# foo.info, foo.dvi, foo.pdf, foo.html, foo.uninstall,
 # foo.mostlyclean, foo.clean, foo.distclean,
 # foo.maintainer-clean, foo.stage1, foo.stage2, foo.stage3, foo.stage4
 #
@@ -84,7 +84,7 @@ tree1$(exeext): treelang/tree1.o treelang/treetree.o treelang/tree-convert.o \
 	$(CC) $(ALL_CFLAGS) $(LDFLAGS) -o $@ \
 	treelang/tree1.o treelang/treetree.o treelang/tree-convert.o \
 	treelang/lex.o treelang/parse.o \
-	$(BACKEND) $(LIBS) attribs.o
+	$(BACKEND) $(LIBS) attribs.o $(GMPLIBS)
 
 # Create the compiler driver treelang.
 gtreelang$(exeext): $(GCC_OBJS) version.o prefix.o intl.o $(EXTRA_GCC_OBJS) \
@@ -160,7 +160,9 @@ treelang.srcinfo: doc/treelang.info
 
 treelang.dvi: doc/treelang.dvi
 
-treelang.pdf: doc/treelang.pdf
+TREELANG_PDFFILES = doc/treelang.pdf
+
+treelang.pdf: $(TREELANG_PDFFILES)
 
 TEXI_TREELANG_FILES = treelang/treelang.texi \
 	 $(gcc_docdir)/include/gcc-common.texi \
@@ -209,6 +211,16 @@ treelang.install.common.done:  installdirs treelang.done
 
 # We might not be able to build the info files
 treelang.install-info: $(DESTDIR)$(infodir)/treelang.info
+
+treelang.install-pdf: $(TREELANG_PDFFILES)
+	@$(NORMAL_INSTALL)
+	test -z "$(pdfdir)/gcc" || $(mkinstalldirs) "$(DESTDIR)$(pdfdir)/gcc"
+	@list='$(TREELANG_PDFFILES)'; for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  f=$(pdf__strip_dir) \
+	  echo " $(INSTALL_DATA) '$$d$$p' '$(DESTDIR)$(pdfdir)/gcc/$$f'"; \
+	  $(INSTALL_DATA) "$$d$$p" "$(DESTDIR)$(pdfdir)/gcc/$$f"; \
+	done
 
 treelang.install-man:
 

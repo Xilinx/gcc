@@ -1,6 +1,6 @@
 ; Options for the rs6000 port of the compiler
 ;
-; Copyright (C) 2005, 2007 Free Software Foundation, Inc.
+; Copyright (C) 2005, 2006, 2007 Free Software Foundation, Inc.
 ; Contributed by Aldy Hernandez <aldy@quesejoda.com>.
 ;
 ; This file is part of GCC.
@@ -63,9 +63,21 @@ mfprnd
 Target Report Mask(FPRND)
 Use PowerPC V2.02 floating point rounding instructions
 
+mcmpb
+Target Report Mask(CMPB)
+Use PowerPC V2.05 compare bytes instruction
+
+mmfpgpr
+Target Report Mask(MFPGPR)
+Use extended PowerPC V2.05 move floating point to/from GPR instructions
+
 maltivec
 Target Report Mask(ALTIVEC)
 Use AltiVec instructions
+
+mhard-dfp
+Target Report Mask(DFP)
+Use decimal floating point instructions
 
 mmulhw
 Target Report Mask(MULHW)
@@ -134,9 +146,9 @@ mxl-compat
 Target Report Var(TARGET_XL_COMPAT)
 Conform more closely to IBM XLC semantics
 
-mswdiv
-Target Report Var(swdiv)
-Generate software floating point divide for better throughput
+mrecip
+Target Report Var(TARGET_RECIP)
+Generate software reciprocal sqrt for better throughput
 
 mno-fp-in-toc
 Target Report RejectNegative Var(TARGET_NO_FP_IN_TOC)
@@ -188,6 +200,10 @@ Target RejectNegative Joined
 mspe
 Target Var(rs6000_spe)
 Generate SPE SIMD instructions on E500
+
+mpaired
+Target Var(rs6000_paired_float)
+Generate PPC750CL paired-single instructions
 
 mspe=
 Target RejectNegative Joined

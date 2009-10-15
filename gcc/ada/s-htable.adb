@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---                     Copyright (C) 1995-2005 AdaCore                      --
+--                    Copyright (C) 1995-2007, AdaCore                      --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -31,6 +31,10 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
+pragma Warnings (Off);
+pragma Compiler_Unit;
+pragma Warnings (On);
+
 with Ada.Unchecked_Deallocation;
 
 package body System.HTable is
@@ -48,9 +52,9 @@ package body System.HTable is
       Iterator_Started : Boolean := False;
 
       function Get_Non_Null return Elmt_Ptr;
-      --  Returns Null_Ptr if Iterator_Started is false of the Table is
-      --  empty. Returns Iterator_Ptr if non null, or the next non null
-      --  element in table if any.
+      --  Returns Null_Ptr if Iterator_Started is false or the Table is empty.
+      --  Returns Iterator_Ptr if non null, or the next non null element in
+      --  table if any.
 
       ---------
       -- Get --

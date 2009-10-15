@@ -864,7 +864,7 @@
 }")
 
 
-;; 32 bit Integer arithmetic
+;; 32-bit Integer arithmetic
 
 ;; Addition
 (define_insn "addsi3"
@@ -902,7 +902,7 @@
    (set_attr "type" "arith,arith")])
 
 
-;; 32 bit Integer Shifts and Rotates
+;; 32-bit Integer Shifts and Rotates
 
 ;; Arithmetic Shift Left
 (define_insn "ashlsi3"
@@ -941,9 +941,9 @@
    (set_attr "type" "arith,arith")])
 
 
-;; 32 Bit Integer Logical operations
+;; 32-Bit Integer Logical operations
 
-;; Logical AND, 32 bit integers
+;; Logical AND, 32-bit integers
 (define_insn "andsi3"
   [(set (match_operand:SI 0 "register_operand" "=r,r")
 	(and:SI (match_operand:SI 1 "register_operand" "%r,r")
@@ -955,7 +955,7 @@
   [(set_attr "length" "4,4")
    (set_attr "type" "arith,arith")])
 
-;; Inclusive OR, 32 bit integers
+;; Inclusive OR, 32-bit integers
 (define_insn "iorsi3"
   [(set (match_operand:SI 0 "register_operand" "=r,r")
 	(ior:SI (match_operand:SI 1 "register_operand" "%r,r")
@@ -967,7 +967,7 @@
   [(set_attr "length" "4,4")
    (set_attr "type" "arith,arith")])
 
-;; Exclusive OR, 32 bit integers
+;; Exclusive OR, 32-bit integers
 (define_insn "xorsi3"
   [(set (match_operand:SI 0 "register_operand" "=r,r")
 	(xor:SI (match_operand:SI 1 "register_operand" "%r,r")
@@ -980,7 +980,7 @@
    (set_attr "type" "arith,arith")])
 
 
-;; One's complement, 32 bit integers
+;; One's complement, 32-bit integers
 (define_insn "one_cmplsi2"
   [(set (match_operand:SI 0 "register_operand" "=r")
 	(not:SI (match_operand:SI 1 "register_operand" "r")))]

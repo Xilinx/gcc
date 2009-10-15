@@ -6,11 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---                     Copyright (C) 1999-2006, AdaCore                     --
---                                                                          --
--- This specification is derived from the Ada Reference Manual for use with --
--- GNAT. The copyright notice above, and the license provisions that follow --
--- apply solely to the  contents of the part following the private keyword. --
+--                     Copyright (C) 1999-2007, AdaCore                     --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -40,6 +36,8 @@ with Ada.Characters.Handling;
 with Ada.Strings.Unbounded;   use Ada.Strings.Unbounded;
 with Ada.Text_IO;
 
+with GNAT.Case_Util;
+
 package body GNAT.Calendar.Time_IO is
 
    type Month_Name is
@@ -55,6 +53,12 @@ package body GNAT.Calendar.Time_IO is
       October,
       November,
       December);
+
+   function Month_Name_To_Number
+     (Str : String) return Ada.Calendar.Month_Number;
+   --  Converts a string that contains an abbreviated month name to a month
+   --  number. Constraint_Error is raised if Str is not a valid month name.
+   --  Comparison is case insensitive
 
    type Padding_Mode is (None, Zero, Space);
 
@@ -76,7 +80,7 @@ package body GNAT.Calendar.Time_IO is
 
    function Image (Str : String; Length : Natural := 0) return String;
    --  Return Str capitalized and cut to length number of characters. If
-   --  length is set to 0 it does not cut it.
+   --  length is 0, then no cut operation is performed.
 
    function Image
      (N       : Sec_Number;
@@ -129,7 +133,8 @@ package body GNAT.Calendar.Time_IO is
    is
       use Ada.Characters.Handling;
       Local : constant String :=
-                To_Upper (Str (1)) & To_Lower (Str (2 .. Str'Last));
+                To_Upper (Str (Str'First)) &
+                  To_Lower (Str (Str'First + 1 .. Str'Last));
    begin
       if Length = 0 then
          return Local;
@@ -171,6 +176,8 @@ package body GNAT.Calendar.Time_IO is
          end case;
       end Pad_Char;
 
+      --  Local Declarations
+
       NI  : constant String := Sec_Number'Image (N);
       NIP : constant String := Pad_Char & NI (2 .. NI'Last);
 
@@ -205,20 +212,32 @@ package body GNAT.Calendar.Time_IO is
       Second     : Second_Number;
       Sub_Second : Second_Duration;
 
-      P : Positive := Picture'First;
+      P : Positive;
 
    begin
+      --  Get current time in split format
+
       Split (Date, Year, Month, Day, Hour, Minute, Second, Sub_Second);
 
-      loop
+      --  Null picture string is error
+
+      if Picture = "" then
+         raise Picture_Error with "null picture string";
+      end if;
+
+      --  Loop through characters of picture string, building result
+
+      Result := Null_Unbounded_String;
+      P := Picture'First;
+      while P <= Picture'Last loop
+
          --  A directive has the following format "%[-_]."
 
          if Picture (P) = '%' then
-
             Padding := Zero;
 
             if P = Picture'Last then
-               raise Picture_Error;
+               raise Picture_Error with "picture string ends with '%";
             end if;
 
             --  Check for GNU extension to change the padding
@@ -226,13 +245,14 @@ package body GNAT.Calendar.Time_IO is
             if Picture (P + 1) = '-' then
                Padding := None;
                P := P + 1;
+
             elsif Picture (P + 1) = '_' then
                Padding := Space;
                P := P + 1;
             end if;
 
             if P = Picture'Last then
-               raise Picture_Error;
+               raise Picture_Error with "picture string ends with '- or '_";
             end if;
 
             case Picture (P + 1) is
@@ -291,20 +311,38 @@ package body GNAT.Calendar.Time_IO is
                     Image (Second, Padding, Length => 2) & ' ' &
                     Am_Pm (Hour);
 
-               --   Seconds  since 1970-01-01  00:00:00 UTC
+               --   Seconds since 1970-01-01  00:00:00 UTC
                --   (a nonstandard extension)
 
                when 's' =>
                   declare
-                     Sec : constant Sec_Number :=
-                             Sec_Number (Julian_Day (Year, Month, Day) -
-                                       Julian_Day (1970, 1, 1)) * 86_400
-                                         + Sec_Number (Hour) * 3_600
-                                         + Sec_Number (Minute) * 60
-                                         + Sec_Number (Second);
+                     --  Compute the number of seconds using Ada.Calendar.Time
+                     --  values rather than Julian days to account for Daylight
+                     --  Savings Time.
+
+                     Neg : Boolean  := False;
+                     Sec : Duration := Date - Time_Of (1970, 1, 1, 0.0);
 
                   begin
-                     Result := Result & Image (Sec, None);
+                     --  Avoid rounding errors and perform special processing
+                     --  for dates earlier than the Unix Epoc.
+
+                     if Sec > 0.0 then
+                        Sec := Sec - 0.5;
+                     elsif Sec < 0.0 then
+                        Neg := True;
+                        Sec := abs (Sec + 0.5);
+                     end if;
+
+                     --  Prepend a minus sign to the result since Sec_Number
+                     --  cannot handle negative numbers.
+
+                     if Neg then
+                        Result :=
+                          Result & "-" & Image (Sec_Number (Sec), None);
+                     else
+                        Result := Result & Image (Sec_Number (Sec), None);
+                     end if;
                   end;
 
                --  Second (00..59)
@@ -349,7 +387,7 @@ package body GNAT.Calendar.Time_IO is
 
                when 'T' =>
                   Result := Result &
-                    Image (Hour, Padding, Length => 2) & ':' &
+                    Image (Hour, Padding, Length => 2)   & ':' &
                     Image (Minute, Padding, Length => 2) & ':' &
                     Image (Second, Padding, Length => 2);
 
@@ -373,7 +411,7 @@ package body GNAT.Calendar.Time_IO is
                     Image (Month_Name'Image (Month_Name'Val (Month - 1)), 3);
 
                --  Locale's full month name, variable length
-               --  (January..December)
+               --  (January..December).
 
                when 'B' =>
                   Result := Result &
@@ -466,22 +504,317 @@ package body GNAT.Calendar.Time_IO is
                   Result := Result & Image (Year, None, 4);
 
                when others =>
-                  raise Picture_Error;
+                  raise Picture_Error with
+                    "unknown format character in picture string";
+
             end case;
 
+            --  Skip past % and format character
+
             P := P + 2;
+
+         --  Character other than % is copied into the result
 
          else
             Result := Result & Picture (P);
             P := P + 1;
          end if;
-
-         exit when P > Picture'Last;
-
       end loop;
 
       return To_String (Result);
    end Image;
+
+   --------------------------
+   -- Month_Name_To_Number --
+   --------------------------
+
+   function Month_Name_To_Number
+     (Str : String) return Ada.Calendar.Month_Number
+   is
+      subtype String3 is String (1 .. 3);
+      Abbrev_Upper_Month_Names :
+        constant array (Ada.Calendar.Month_Number) of String3 :=
+         ("JAN", "FEB", "MAR", "APR", "MAY", "JUN",
+          "JUL", "AUG", "SEP", "OCT", "NOV", "DEC");
+      --  Short version of the month names, used when parsing date strings.
+
+      S                                                     : String := Str;
+
+   begin
+      GNAT.Case_Util.To_Upper (S);
+
+      for J in Abbrev_Upper_Month_Names'Range loop
+         if Abbrev_Upper_Month_Names (J) = S then
+            return J;
+         end if;
+      end loop;
+
+      return Abbrev_Upper_Month_Names'First;
+   end Month_Name_To_Number;
+
+   -----------
+   -- Value --
+   -----------
+
+   function Value (Date : String) return Ada.Calendar.Time is
+      D          : String (1 .. 21);
+      D_Length   : constant Natural := Date'Length;
+
+      Year       : Year_Number;
+      Month      : Month_Number;
+      Day        : Day_Number;
+      Hour       : Hour_Number;
+      Minute     : Minute_Number;
+      Second     : Second_Number;
+      Sub_Second : Second_Duration;
+
+      procedure Extract_Date
+        (Year       : out Year_Number;
+         Month      : out Month_Number;
+         Day        : out Day_Number;
+         Time_Start : out Natural);
+      --  Try and extract a date value from string D. Time_Start is set to the
+      --  first character that could be the start of time data.
+
+      procedure Extract_Time
+        (Index       : Positive;
+         Hour        : out Hour_Number;
+         Minute      : out Minute_Number;
+         Second      : out Second_Number;
+         Check_Space : Boolean := False);
+      --  Try and extract a time value from string D starting from position
+      --  Index. Set Check_Space to True to check whether the character at
+      --  Index - 1 is a space. Raise Constraint_Error if the portion of D
+      --  corresponding to the date is not well formatted.
+
+      ------------------
+      -- Extract_Date --
+      ------------------
+
+      procedure Extract_Date
+        (Year       : out Year_Number;
+         Month      : out Month_Number;
+         Day        : out Day_Number;
+         Time_Start : out Natural)
+      is
+      begin
+         if D (3) = '-' or else D (3) = '/' then
+            if D_Length = 8 or else D_Length = 17 then
+
+               --  Formats are "yy*mm*dd" or "yy*mm*dd hh:mm:ss"
+
+               if D (6) /= D (3) then
+                  raise Constraint_Error;
+               end if;
+
+               Year  := Year_Number'Value ("20" & D (1 .. 2));
+               Month := Month_Number'Value       (D (4 .. 5));
+               Day   := Day_Number'Value         (D (7 .. 8));
+               Time_Start := 10;
+
+            elsif D_Length = 10 or else D_Length = 19 then
+
+               --  Formats are "mm*dd*yyyy" or "mm*dd*yyyy hh:mm:ss"
+
+               if D (6) /= D (3) then
+                  raise Constraint_Error;
+               end if;
+
+               Year  := Year_Number'Value  (D (7 .. 10));
+               Month := Month_Number'Value (D (1 .. 2));
+               Day   := Day_Number'Value   (D (4 .. 5));
+               Time_Start := 12;
+
+            elsif D_Length = 11 or else D_Length = 20 then
+
+               --  Formats are "dd*mmm*yyyy" or "dd*mmm*yyyy hh:mm:ss"
+
+               if D (7) /= D (3) then
+                  raise Constraint_Error;
+               end if;
+
+               Year  := Year_Number'Value  (D (8 .. 11));
+               Month := Month_Name_To_Number (D (4 .. 6));
+               Day   := Day_Number'Value   (D (1 .. 2));
+               Time_Start := 13;
+
+            else
+               raise Constraint_Error;
+            end if;
+
+         elsif D (3) = ' ' then
+            if D_Length = 11 or else D_Length = 20 then
+
+               --  Possible formats are "dd mmm yyyy", "dd mmm yyyy hh:mm:ss"
+
+               if D (7) /= ' ' then
+                  raise Constraint_Error;
+               end if;
+
+               Year  := Year_Number'Value  (D (8 .. 11));
+               Month := Month_Name_To_Number (D (4 .. 6));
+               Day   := Day_Number'Value   (D (1 .. 2));
+               Time_Start := 13;
+
+            else
+               raise Constraint_Error;
+            end if;
+
+         else
+            if D_Length = 8 or else D_Length = 17 then
+
+               --  Possible formats are "yyyymmdd" or "yyyymmdd hh:mm:ss"
+
+               Year  := Year_Number'Value (D (1 .. 4));
+               Month := Month_Number'Value (D (5 .. 6));
+               Day   := Day_Number'Value (D (7 .. 8));
+               Time_Start := 10;
+
+            elsif D_Length = 10 or else D_Length = 19 then
+
+               --  Possible formats are "yyyy*mm*dd" or "yyyy*mm*dd hh:mm:ss"
+
+               if (D (5) /= '-' and then D (5) /= '/')
+                 or else D (8) /= D (5)
+               then
+                  raise Constraint_Error;
+               end if;
+
+               Year  := Year_Number'Value (D (1 .. 4));
+               Month := Month_Number'Value (D (6 .. 7));
+               Day   := Day_Number'Value (D (9 .. 10));
+               Time_Start := 12;
+
+            elsif D_Length = 11 or else D_Length = 20 then
+
+               --  Possible formats are "yyyy*mmm*dd"
+
+               if (D (5) /= '-' and then D (5) /= '/')
+                 or else D (9) /= D (5)
+               then
+                  raise Constraint_Error;
+               end if;
+
+               Year  := Year_Number'Value (D (1 .. 4));
+               Month := Month_Name_To_Number (D (6 .. 8));
+               Day   := Day_Number'Value (D (10 .. 11));
+               Time_Start := 13;
+
+            elsif D_Length = 12 or else D_Length = 21 then
+
+               --  Formats are "mmm dd, yyyy" or "mmm dd, yyyy hh:mm:ss"
+
+               if D (4) /= ' '
+                 or else D (7) /= ','
+                 or else D (8) /= ' '
+               then
+                  raise Constraint_Error;
+               end if;
+
+               Year  := Year_Number'Value (D (9 .. 12));
+               Month := Month_Name_To_Number (D (1 .. 3));
+               Day   := Day_Number'Value (D (5 .. 6));
+               Time_Start := 14;
+
+            else
+               raise Constraint_Error;
+            end if;
+         end if;
+      end Extract_Date;
+
+      ------------------
+      -- Extract_Time --
+      ------------------
+
+      procedure Extract_Time
+        (Index       : Positive;
+         Hour        : out Hour_Number;
+         Minute      : out Minute_Number;
+         Second      : out Second_Number;
+         Check_Space : Boolean := False)
+      is
+      begin
+         --  If no time was specified in the string (do not allow trailing
+         --  character either)
+
+         if Index = D_Length + 2 then
+            Hour   := 0;
+            Minute := 0;
+            Second := 0;
+
+         else
+            --  Not enough characters left ?
+
+            if Index /= D_Length - 7 then
+               raise Constraint_Error;
+            end if;
+
+            if Check_Space and then D (Index - 1) /= ' ' then
+               raise Constraint_Error;
+            end if;
+
+            if D (Index + 2) /= ':' or else D (Index + 5) /= ':' then
+               raise Constraint_Error;
+            end if;
+
+            Hour   := Hour_Number'Value   (D (Index     .. Index + 1));
+            Minute := Minute_Number'Value (D (Index + 3 .. Index + 4));
+            Second := Second_Number'Value (D (Index + 6 .. Index + 7));
+         end if;
+      end Extract_Time;
+
+      --  Local Declarations
+
+      Time_Start : Natural := 1;
+
+   --  Start of processing for Value
+
+   begin
+      Split (Clock, Year, Month, Day, Hour, Minute, Second, Sub_Second);
+      Sub_Second := 0.0;
+
+      --  Length checks
+
+      if D_Length /= 8
+        and then D_Length /= 10
+        and then D_Length /= 11
+        and then D_Length /= 12
+        and then D_Length /= 17
+        and then D_Length /= 19
+        and then D_Length /= 20
+        and then D_Length /= 21
+      then
+         raise Constraint_Error;
+      end if;
+
+      --  After the correct length has been determined, it is safe to create
+      --  a local string copy in order to avoid String'First N arithmetic.
+
+      D (1 .. D_Length) := Date;
+
+      if D_Length /= 8
+        or else D (3) /= ':'
+      then
+         Extract_Date (Year, Month, Day, Time_Start);
+         Extract_Time (Time_Start, Hour, Minute, Second, Check_Space => True);
+      else
+         Extract_Time (1, Hour, Minute, Second, Check_Space => False);
+      end if;
+
+      --  Sanity checks
+
+      if not Year'Valid
+        or else not Month'Valid
+        or else not Day'Valid
+        or else not Hour'Valid
+        or else not Minute'Valid
+        or else not Second'Valid
+      then
+         raise Constraint_Error;
+      end if;
+
+      return Time_Of (Year, Month, Day, Hour, Minute, Second, Sub_Second);
+   end Value;
 
    --------------
    -- Put_Time --

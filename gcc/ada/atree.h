@@ -6,7 +6,7 @@
  *                                                                          *
  *                              C Header File                               *
  *                                                                          *
- *        Copyright (C) 1992-2005, 2007 Free Software Foundation, Inc.      *
+ *          Copyright (C) 1992-2007, Free Software Foundation, Inc.         *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
@@ -14,9 +14,9 @@
  * sion.  GNAT is distributed in the hope that it will be useful, but WITH- *
  * OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY *
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License *
- * for  more details.  You should have received a copy of the GNU General   *
- * Public License along with GCC; see the file COPYING3.  If not see        *
- * <http://www.gnu.org/licenses/>.                                          *
+ * for  more details.  You should have  received  a copy of the GNU General *
+ * Public License  distributed with GNAT; see file COPYING3.  If not, go to *
+ * http://www.gnu.org/licenses for a complete copy of the license.          *
  *                                                                          *
  * GNAT was originally developed  by the GNAT team at  New York University. *
  * Extensive contributions were provided by Ada Core Technologies Inc.      *
@@ -25,7 +25,7 @@
 
 /* This is the C header corresponding to the Ada package specification for
    Atree. It also contains the implementations of inlined functions from the
-   package body for Tree.  It was generated manually from atree.ads and
+   package body for Atree.  It was generated manually from atree.ads and
    atree.adb and must be kept synchronized with changes in these files.
 
    Note that only routines for reading the tree are included, since the tree
@@ -255,6 +255,46 @@ struct Flag_Word4
   Boolean      flag215	    :  1;
 };
 
+/* Structure used for extra flags in fifth component overlaying Field12 */
+struct Flag_Word5
+{
+  Boolean      flag216	    :  1;
+  Boolean      flag217	    :  1;
+  Boolean      flag218	    :  1;
+  Boolean      flag219	    :  1;
+  Boolean      flag220	    :  1;
+  Boolean      flag221	    :  1;
+  Boolean      flag222	    :  1;
+  Boolean      flag223	    :  1;
+
+  Boolean      flag224	    :  1;
+  Boolean      flag225	    :  1;
+  Boolean      flag226	    :  1;
+  Boolean      flag227	    :  1;
+  Boolean      flag228	    :  1;
+  Boolean      flag229	    :  1;
+  Boolean      flag230	    :  1;
+  Boolean      flag231	    :  1;
+
+  Boolean      flag232	    :  1;
+  Boolean      flag233	    :  1;
+  Boolean      flag234	    :  1;
+  Boolean      flag235	    :  1;
+  Boolean      flag236	    :  1;
+  Boolean      flag237	    :  1;
+  Boolean      flag238	    :  1;
+  Boolean      flag239	    :  1;
+
+  Boolean      flag240      :  1;
+  Boolean      flag241	    :  1;
+  Boolean      flag242	    :  1;
+  Boolean      flag243	    :  1;
+  Boolean      flag244	    :  1;
+  Boolean      flag245	    :  1;
+  Boolean      flag246	    :  1;
+  Boolean      flag247	    :  1;
+};
+
 struct Non_Extended
 {
   Source_Ptr   sloc;
@@ -286,6 +326,7 @@ struct Extended
       Int      field12;
       struct   Flag_Word fw;
       struct   Flag_Word2 fw2;
+      struct   Flag_Word5 fw5;
     } U;
 };
 
@@ -381,6 +422,7 @@ extern Node_Id Current_Error_Node;
 #define Field25(N)    (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.field7)
 #define Field26(N)    (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.field8)
 #define Field27(N)    (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.field9)
+#define Field28(N)    (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.field10)
 
 #define Node1(N)      Field1  (N)
 #define Node2(N)      Field2  (N)
@@ -409,6 +451,7 @@ extern Node_Id Current_Error_Node;
 #define Node25(N)     Field25 (N)
 #define Node26(N)     Field26 (N)
 #define Node27(N)     Field27 (N)
+#define Node28(N)     Field28 (N)
 
 #define List1(N)      Field1  (N)
 #define List2(N)      Field2  (N)
@@ -418,6 +461,7 @@ extern Node_Id Current_Error_Node;
 #define List10(N)     Field10 (N)
 #define List14(N)     Field14 (N)
 
+#define Elist1(N)     Field1  (N)
 #define Elist2(N)     Field2  (N)
 #define Elist3(N)     Field3  (N)
 #define Elist4(N)     Field4  (N)
@@ -428,7 +472,7 @@ extern Node_Id Current_Error_Node;
 #define Elist18(N)    Field18 (N)
 #define Elist21(N)    Field21 (N)
 #define Elist23(N)    Field23 (N)
-#define Elist24(N)    Field24 (N)
+#define Elist25(N)    Field25 (N)
 
 #define Name1(N)      Field1  (N)
 #define Name2(N)      Field2  (N)
@@ -682,3 +726,36 @@ extern Node_Id Current_Error_Node;
 #define Flag213(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.X.fw4.flag213)
 #define Flag214(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.X.fw4.flag214)
 #define Flag215(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.X.fw4.flag215)
+
+#define Flag216(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.U.fw5.flag216)
+#define Flag217(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.U.fw5.flag217)
+#define Flag218(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.U.fw5.flag218)
+#define Flag219(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.U.fw5.flag219)
+#define Flag220(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.U.fw5.flag220)
+#define Flag221(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.U.fw5.flag221)
+#define Flag222(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.U.fw5.flag222)
+#define Flag223(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.U.fw5.flag223)
+#define Flag224(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.U.fw5.flag224)
+#define Flag225(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.U.fw5.flag225)
+#define Flag226(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.U.fw5.flag226)
+#define Flag227(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.U.fw5.flag227)
+#define Flag228(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.U.fw5.flag228)
+#define Flag229(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.U.fw5.flag229)
+#define Flag230(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.U.fw5.flag230)
+#define Flag231(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.U.fw5.flag231)
+#define Flag232(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.U.fw5.flag232)
+#define Flag233(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.U.fw5.flag233)
+#define Flag234(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.U.fw5.flag234)
+#define Flag235(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.U.fw5.flag235)
+#define Flag236(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.U.fw5.flag236)
+#define Flag237(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.U.fw5.flag237)
+#define Flag238(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.U.fw5.flag238)
+#define Flag239(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.U.fw5.flag239)
+#define Flag240(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.U.fw5.flag240)
+#define Flag241(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.U.fw5.flag241)
+#define Flag242(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.U.fw5.flag242)
+#define Flag243(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.U.fw5.flag243)
+#define Flag244(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.U.fw5.flag244)
+#define Flag245(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.U.fw5.flag245)
+#define Flag246(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.U.fw5.flag246)
+#define Flag247(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.U.fw5.flag247)

@@ -1,5 +1,5 @@
 /* Declarations of various C99 functions 
-   Copyright (C) 2004, 2006 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2006, 2007 Free Software Foundation, Inc.
 
 This file is part of the GNU Fortran 95 runtime library (libgfortran).
 
@@ -199,6 +199,90 @@ extern double round(double);
 #define HAVE_ROUNDF 1
 extern float roundf(float);
 #endif
+
+#if !defined(HAVE_ROUNDL)
+#define HAVE_ROUNDL 1
+extern long double roundl(long double);
+#endif
+
+
+
+#if !defined(HAVE_LROUNDF) && defined(HAVE_ROUNDF)
+#define HAVE_LROUNDF 1
+long int lroundf (float);
+#endif
+
+#if !defined(HAVE_LROUND) && defined(HAVE_ROUND)
+#define HAVE_LROUND 1
+long int lround (double);
+#endif
+
+#if !defined(HAVE_LROUNDL) && defined(HAVE_ROUNDL)
+#define HAVE_LROUNDL 1
+long int lroundl (long double);
+#endif
+
+#if !defined(HAVE_LLROUNDF) && defined(HAVE_ROUNDF)
+#define HAVE_LLROUNDF 1
+long long int llroundf (float);
+#endif
+
+#if !defined(HAVE_LLROUND) && defined(HAVE_ROUND)
+#define HAVE_LLROUND 1
+long long int llround (double);
+#endif
+
+#if !defined(HAVE_LLROUNDL) && defined(HAVE_ROUNDL)
+#define HAVE_LLROUNDL 1
+long long int llroundl (long double);
+#endif
+
+/* Wrappers for systems without the various C99 single precision Bessel
+   functions.  */
+
+#if defined(HAVE_J0) && ! defined(HAVE_J0F)
+#define HAVE_J0F 1
+extern float j0f (float);
+#endif
+
+#if defined(HAVE_J1) && !defined(HAVE_J1F)
+#define HAVE_J1F 1
+extern float j1f (float);
+#endif
+
+#if defined(HAVE_JN) && !defined(HAVE_JNF)
+#define HAVE_JNF 1
+extern float jnf (int, float);
+#endif
+
+#if defined(HAVE_Y0) && !defined(HAVE_Y0F)
+#define HAVE_Y0F 1
+extern float y0f (float);
+#endif
+
+#if defined(HAVE_Y1) && !defined(HAVE_Y1F)
+#define HAVE_Y1F 1
+extern float y1f (float);
+#endif
+
+#if defined(HAVE_YN) && !defined(HAVE_YNF)
+#define HAVE_YNF 1
+extern float ynf (int, float);
+#endif
+
+
+/* Wrappers for systems without the C99 erff() and erfcf() functions.  */
+
+#if defined(HAVE_ERF) && !defined(HAVE_ERFF)
+#define HAVE_ERFF 1
+extern float erff (float);
+#endif
+
+#if defined(HAVE_ERFC) && !defined(HAVE_ERFCF)
+#define HAVE_ERFCF 1
+extern float erfcf (float);
+#endif
+
 
 
 /* log10l is needed on all platforms for decimal I/O */
@@ -415,6 +499,28 @@ extern double complex ctan (double complex);
 #if !defined(HAVE_CTANL) && defined(HAVE_TANL) && defined(HAVE_TANHL)
 #define HAVE_CTANL 1
 extern long double complex ctanl (long double complex);
+#endif
+
+
+/* Gamma-related prototypes.  */
+#if !defined(HAVE_TGAMMA)
+#define HAVE_TGAMMA 1
+extern double tgamma (double);
+#endif
+
+#if !defined(HAVE_LGAMMA)
+#define HAVE_LGAMMA 1
+extern double lgamma (double);
+#endif
+
+#if defined(HAVE_TGAMMA) && !defined(HAVE_TGAMMAF)
+#define HAVE_TGAMMAF 1
+extern float tgammaf (float);
+#endif
+
+#if defined(HAVE_LGAMMA) && !defined(HAVE_LGAMMAF)
+#define HAVE_LGAMMAF 1
+extern float lgammaf (float);
 #endif
 
 

@@ -13,5 +13,5 @@
 - (id) foo;
 @end
 
-/* { dg-bogus "included from <built-in>" "PR23610" { xfail lp64 } 0 } */
-/* { dg-bogus "padding struct to align" "PR23610" { xfail lp64 } 0 } */
+/* { dg-excess-errors "In file included from" { target lp64 } } */
+/* { dg-bogus "padding struct to align" "PR23610" { xfail lp64 } 1 } */

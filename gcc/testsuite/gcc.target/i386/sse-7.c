@@ -1,14 +1,10 @@
-/* { dg-do run { target i?86-*-* x86_64-*-* } } */
+/* { dg-do run } */
 /* { dg-options "-O2 -msse" } */
-#include <xmmintrin.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include "../../gcc.dg/i386-cpuid.h"
 
-#ifndef NOINLINE
-#define NOINLINE __attribute__ ((noinline))
-#endif
+#include "sse-check.h"
+
+#include <xmmintrin.h>
+#include <string.h>
 
 #define SHIFT (4)
 
@@ -20,7 +16,7 @@ typedef union {
   unsigned int u[2];
 }vecInWord;
 
-void sse_tests (void) NOINLINE;
+void sse_tests (void) __attribute__((noinline));
 void dump64_16 (char *, char *, vecInWord);
 int check (const char *, const char *[]);
 
@@ -36,40 +32,28 @@ const char *reference_sse[] = {
   ""
 };
 
-int main()
+static void
+sse_test (void)
 {
-  unsigned long cpu_facilities;
-
-  cpu_facilities = i386_cpuid ();
-
-  if ((cpu_facilities & (bit_MMX | bit_SSE | bit_CMOV))
-      != (bit_MMX | bit_SSE | bit_CMOV))
-    /* If host has no vector support, pass.  */
-    exit (0);
-
   e64.t  = 0x0123456789abcdefULL;
 
   m64_64 = e64.v;
 
-  if (cpu_facilities & bit_SSE)
-    {
-      sse_tests();
-      check (buf, reference_sse);
+  sse_tests();
+  check (buf, reference_sse);
 #ifdef DEBUG
-      printf ("sse testing:\n");
-      printf (buf);
-      printf ("\ncomparison:\n");
-      printf (comparison);
+  printf ("sse testing:\n");
+  printf (buf);
+  printf ("\ncomparison:\n");
+  printf (comparison);
 #endif
-      buf[0] = '\0';
-    }
+  buf[0] = '\0';
 
   if (errors != 0)
     abort ();
-  exit (0);
 }
 
-void NOINLINE
+void __attribute__((noinline))
 sse_tests (void)
 {
   /* pshufw */

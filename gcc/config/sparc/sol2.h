@@ -45,12 +45,18 @@ along with GCC; see the file COPYING3.  If not see
 #define ASM_CPU_DEFAULT_SPEC "-xarch=v8plusb"
 #endif
 
+#if TARGET_CPU_DEFAULT == TARGET_CPU_niagara2
+#undef ASM_CPU_DEFAULT_SPEC
+#define ASM_CPU_DEFAULT_SPEC "-xarch=v8plusb"
+#endif
+
 #undef ASM_CPU_SPEC
 #define ASM_CPU_SPEC "\
 %{mcpu=v9:-xarch=v8plus} \
 %{mcpu=ultrasparc:-xarch=v8plusa} \
 %{mcpu=ultrasparc3:-xarch=v8plusb} \
 %{mcpu=niagara:-xarch=v8plusb} \
+%{mcpu=niagara2:-xarch=v8plusb} \
 %{!mcpu*:%(asm_cpu_default)} \
 "
 
@@ -88,7 +94,7 @@ along with GCC; see the file COPYING3.  If not see
     {								\
       HOST_WIDE_INT size;					\
 								\
-      if (DECL_THREAD_LOCAL_P (DECL))				\
+      if (targetm.have_tls && DECL_THREAD_LOCAL_P (DECL))	\
 	ASM_OUTPUT_TYPE_DIRECTIVE (FILE, NAME, "tls_object");	\
       else							\
 	ASM_OUTPUT_TYPE_DIRECTIVE (FILE, NAME, "object");	\

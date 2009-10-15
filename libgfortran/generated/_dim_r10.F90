@@ -1,4 +1,4 @@
-!   Copyright 2002 Free Software Foundation, Inc.
+!   Copyright 2002, 2007 Free Software Foundation, Inc.
 !   Contributed by Paul Brook <paul@nowt.org>
 !
 !This file is part of the GNU Fortran 95 runtime library (libgfortran).
@@ -39,11 +39,11 @@
 
 
 
-elemental function specific__dim_r10 (p1, p2)
+elemental function _gfortran_specific__dim_r10 (p1, p2)
    real (kind=10), intent (in) :: p1, p2
-   real (kind=10) :: specific__dim_r10
+   real (kind=10) :: _gfortran_specific__dim_r10
 
-   specific__dim_r10 = dim (p1, p2)
+   _gfortran_specific__dim_r10 = dim (p1, p2)
 end function
 
 

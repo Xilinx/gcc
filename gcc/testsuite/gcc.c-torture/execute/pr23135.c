@@ -1,4 +1,4 @@
-/* Based on execute/simd-1.c, modifed by joern.rennecke@st.com to
+/* Based on execute/simd-1.c, modified by joern.rennecke@st.com to
    trigger a reload bug.  Verified for gcc mainline from 20050722 13:00 UTC
    for sh-elf -m4 -O2.  */
 #ifndef STACK_SIZE
@@ -7,7 +7,7 @@
 
 typedef struct { char c[STACK_SIZE/2]; } big_t;
 
-typedef int __attribute__((vector_size (8))) vecint;
+typedef int __attribute__((mode(SI))) __attribute__((vector_size (8))) vecint;
 typedef int __attribute__((mode(SI))) siint;
 
 vecint i = { 150, 100 };

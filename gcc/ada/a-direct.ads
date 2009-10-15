@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 2004-2005, Free Software Foundation, Inc.         --
+--          Copyright (C) 2004-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- This specification is derived for use with GNAT from AI-00248,  which is --
 -- expected to be a part of a future expected revised Ada Reference Manual. --
@@ -76,9 +76,6 @@ with Ada.IO_Exceptions;
 with Ada.Strings.Unbounded;
 
 package Ada.Directories is
-
-   pragma Ada_05;
-   --  To be removed later ???
 
    -----------------------------------
    -- Directory and File Operations --
@@ -322,7 +319,7 @@ package Ada.Directories is
    --  End_Search, the object Search will have no entries available. Note
    --  that is is not necessary to call End_Search if the call to Start_Search
    --  was unsuccessful and raised an exception (but it is harmless to make
-   --  the call in this case)>
+   --  the call in this case).
 
    function More_Entries (Search : Search_Type) return Boolean;
    --  Returns True if more entries are available to be returned by a call
@@ -339,6 +336,24 @@ package Ada.Directories is
    --  another program). The exception Use_Error is propagated if the external
    --  environment does not support continued searching of the directory
    --  represented by Search.
+
+   procedure Search
+     (Directory : String;
+      Pattern   : String;
+      Filter    : Filter_Type := (others => True);
+      Process   : not null access procedure
+                                    (Directory_Entry : Directory_Entry_Type));
+   --  Searches in the directory named by Directory for entries matching
+   --  Pattern. The subprogram designated by Process is called with each
+   --  matching entry in turn. Pattern represents a pattern for matching file
+   --  names. If Pattern is null, all items in the directory are matched;
+   --  otherwise, the interpretation of Pattern is implementation-defined.
+   --  Only items that match Filter will be returned. The exception Name_Error
+   --  is propagated if the string given by Directory does not identify
+   --  an existing directory, or if Pattern does not allow the identification
+   --  of any possible external file or directory. The exception Use_Error is
+   --  propagated if the external environment does not support the searching
+   --  of the directory with the given name (in the absence of Name_Error).
 
    -------------------------------------
    -- Operations on Directory Entries --

@@ -104,7 +104,7 @@
   return FALSE;
 })
 
-;; Return 1 if operand is a GPR register or 12 bit signed immediate.
+;; Return 1 if operand is a GPR register or 12-bit signed immediate.
 
 (define_predicate "gpr_or_int12_operand"
   (match_code "reg,subreg,const_int,const")
@@ -164,7 +164,7 @@
   return FALSE;
 })
 
-;; Return 1 if operand is a register or 10 bit signed immediate.
+;; Return 1 if operand is a register or 10-bit signed immediate.
 
 (define_predicate "gpr_or_int10_operand"
   (match_code "reg,subreg,const_int")
@@ -485,7 +485,7 @@
 	  || frv_legitimate_memory_operand (op, mode, FALSE));
 })
 
-;; Return 1 if operand is a 12 bit signed immediate.
+;; Return 1 if operand is a 12-bit signed immediate.
 
 (define_predicate "int12_operand"
   (match_code "const_int")
@@ -1109,7 +1109,7 @@
   return ((INTVAL (op) & 0xffff) == 0);
 })
 
-;; Return 1 if operand is a 16 bit unsigned immediate.
+;; Return 1 if operand is a 16-bit unsigned immediate.
 
 (define_predicate "uint16_operand"
   (match_code "const_int")
@@ -1123,7 +1123,7 @@
 ;; Returns 1 if OP is either a SYMBOL_REF or a constant.
 
 (define_predicate "symbolic_operand"
-  (match_code "symbol_ref,const_int")
+  (match_code "symbol_ref,const,const_int")
 {
   enum rtx_code c = GET_CODE (op);
 
@@ -1269,12 +1269,6 @@
     case UMAX:
       break;
     }
-
-  if (! integer_register_operand (XEXP (op, 0), mode))
-    return FALSE;
-
-  if (! gpr_or_int10_operand (XEXP (op, 1), mode))
-    return FALSE;
 
   return TRUE;
 })
@@ -1444,7 +1438,7 @@
     }
 })
 
-;; Return 1 if operand is a register or 6 bit signed immediate.
+;; Return 1 if operand is a register or 6-bit signed immediate.
 
 (define_predicate "fpr_or_int6_operand"
   (match_code "reg,subreg,const_int")
@@ -1469,7 +1463,7 @@
   return FPR_OR_PSEUDO_P (REGNO (op));
 })
 
-;; Return 1 if operand is a 6 bit signed immediate.
+;; Return 1 if operand is a 6-bit signed immediate.
 
 (define_predicate "int6_operand"
   (match_code "const_int")
@@ -1480,7 +1474,7 @@
   return IN_RANGE_P (INTVAL (op), -32, 31);
 })
 
-;; Return 1 if operand is a 5 bit signed immediate.
+;; Return 1 if operand is a 5-bit signed immediate.
 
 (define_predicate "int5_operand"
   (match_code "const_int")
@@ -1488,7 +1482,7 @@
   return GET_CODE (op) == CONST_INT && IN_RANGE_P (INTVAL (op), -16, 15);
 })
 
-;; Return 1 if operand is a 5 bit unsigned immediate.
+;; Return 1 if operand is a 5-bit unsigned immediate.
 
 (define_predicate "uint5_operand"
   (match_code "const_int")
@@ -1496,7 +1490,7 @@
   return GET_CODE (op) == CONST_INT && IN_RANGE_P (INTVAL (op), 0, 31);
 })
 
-;; Return 1 if operand is a 4 bit unsigned immediate.
+;; Return 1 if operand is a 4-bit unsigned immediate.
 
 (define_predicate "uint4_operand"
   (match_code "const_int")
@@ -1504,7 +1498,7 @@
   return GET_CODE (op) == CONST_INT && IN_RANGE_P (INTVAL (op), 0, 15);
 })
 
-;; Return 1 if operand is a 1 bit unsigned immediate (0 or 1).
+;; Return 1 if operand is a 1-bit unsigned immediate (0 or 1).
 
 (define_predicate "uint1_operand"
   (match_code "const_int")

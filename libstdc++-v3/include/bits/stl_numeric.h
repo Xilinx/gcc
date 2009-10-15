@@ -1,6 +1,7 @@
 // Numeric functions implementation -*- C++ -*-
 
-// Copyright (C) 2001, 2004, 2005 Free Software Foundation, Inc.
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007
+// Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -61,9 +62,10 @@
 #ifndef _STL_NUMERIC_H
 #define _STL_NUMERIC_H 1
 
+#include <bits/concept_check.h>
 #include <debug/debug.h>
 
-_GLIBCXX_BEGIN_NAMESPACE(std)
+_GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
 
   /**
    *  @brief  Accumulate values in a range.
@@ -77,7 +79,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
    *  @return  The final sum.
    */
   template<typename _InputIterator, typename _Tp>
-    _Tp
+    inline _Tp
     accumulate(_InputIterator __first, _InputIterator __last, _Tp __init)
     {
       // concept requirements
@@ -103,7 +105,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
    *  @return  The final sum.
    */
   template<typename _InputIterator, typename _Tp, typename _BinaryOperation>
-    _Tp
+    inline _Tp
     accumulate(_InputIterator __first, _InputIterator __last, _Tp __init,
 	       _BinaryOperation __binary_op)
     {
@@ -131,7 +133,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
    *  @return  The final inner product.
    */
   template<typename _InputIterator1, typename _InputIterator2, typename _Tp>
-    _Tp
+    inline _Tp
     inner_product(_InputIterator1 __first1, _InputIterator1 __last1,
 		  _InputIterator2 __first2, _Tp __init)
     {
@@ -163,7 +165,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
    */
   template<typename _InputIterator1, typename _InputIterator2, typename _Tp,
 	    typename _BinaryOperation1, typename _BinaryOperation2>
-    _Tp
+    inline _Tp
     inner_product(_InputIterator1 __first1, _InputIterator1 __last1,
 		  _InputIterator2 __first2, _Tp __init,
 		  _BinaryOperation1 __binary_op1,
@@ -334,6 +336,6 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       return ++__result;
     }
 
-_GLIBCXX_END_NAMESPACE
+_GLIBCXX_END_NESTED_NAMESPACE
 
 #endif /* _STL_NUMERIC_H */

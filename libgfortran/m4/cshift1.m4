@@ -1,5 +1,5 @@
 `/* Implementation of the CSHIFT intrinsic
-   Copyright 2003 Free Software Foundation, Inc.
+   Copyright 2003, 2007 Free Software Foundation, Inc.
    Contributed by Feng Wang <wf_cs@yahoo.com>
 
 This file is part of the GNU Fortran 95 runtime library (libgfortran).
@@ -28,20 +28,20 @@ License along with libgfortran; see the file COPYING.  If not,
 write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
 Boston, MA 02110-1301, USA.  */
 
-#include "config.h"
+#include "libgfortran.h"
 #include <stdlib.h>
 #include <assert.h>
-#include <string.h>
-#include "libgfortran.h"'
+#include <string.h>'
+
 include(iparm.m4)dnl
 
-`#if defined (HAVE_'atype_name`)'
+`#if defined (HAVE_'atype_name`)
 
 static void
 cshift1 (gfc_array_char * const restrict ret, 
 	const gfc_array_char * const restrict array,
-	const atype * const restrict h, 
-	const atype_name * const restrict pwhich, 
+	const 'atype` * const restrict h, 
+	const 'atype_name` * const restrict pwhich, 
 	index_type size)
 {
   /* r.* indicates the return array.  */
@@ -59,7 +59,7 @@ cshift1 (gfc_array_char * const restrict ret,
   /* h.* indicates the shift array.  */
   index_type hstride[GFC_MAX_DIMENSIONS];
   index_type hstride0;
-  const atype_name *hptr;
+  const 'atype_name` *hptr;
 
   index_type count[GFC_MAX_DIMENSIONS];
   index_type extent[GFC_MAX_DIMENSIONS];
@@ -67,7 +67,7 @@ cshift1 (gfc_array_char * const restrict ret,
   index_type len;
   index_type n;
   int which;
-  atype_name sh;
+  'atype_name` sh;
 
   if (pwhich)
     which = *pwhich - 1;
@@ -75,7 +75,7 @@ cshift1 (gfc_array_char * const restrict ret,
     which = 0;
 
   if (which < 0 || (which + 1) > GFC_DESCRIPTOR_RANK (array))
-    runtime_error ("Argument 'DIM' is out of range in call to 'CSHIFT'");
+    runtime_error ("Argument ''`DIM''` is out of range in call to ''`CSHIFT''`");
 
   if (ret->data == NULL)
     {
@@ -198,38 +198,38 @@ cshift1 (gfc_array_char * const restrict ret,
     }
 }
 
-void cshift1_`'atype_kind (gfc_array_char * const restrict, 
+void cshift1_'atype_kind` (gfc_array_char * const restrict, 
 	const gfc_array_char * const restrict,
-	const atype * const restrict, 
-	const atype_name * const restrict);
-export_proto(cshift1_`'atype_kind);
+	const 'atype` * const restrict, 
+	const 'atype_name` * const restrict);
+export_proto(cshift1_'atype_kind`);
 
 void
-cshift1_`'atype_kind (gfc_array_char * const restrict ret,
+cshift1_'atype_kind` (gfc_array_char * const restrict ret,
 	const gfc_array_char * const restrict array,
-	const atype * const restrict h, 
-	const atype_name * const restrict pwhich)
+	const 'atype` * const restrict h, 
+	const 'atype_name` * const restrict pwhich)
 {
   cshift1 (ret, array, h, pwhich, GFC_DESCRIPTOR_SIZE (array));
 }
 
-void cshift1_`'atype_kind`'_char (gfc_array_char * const restrict ret, 
+void cshift1_'atype_kind`_char (gfc_array_char * const restrict ret, 
 	GFC_INTEGER_4,
 	const gfc_array_char * const restrict array,
-	const atype * const restrict h, 
-	const atype_name * const restrict pwhich,
+	const 'atype` * const restrict h, 
+	const 'atype_name` * const restrict pwhich,
 	GFC_INTEGER_4);
-export_proto(cshift1_`'atype_kind`'_char);
+export_proto(cshift1_'atype_kind`_char);
 
 void
-cshift1_`'atype_kind`'_char (gfc_array_char * const restrict ret,
+cshift1_'atype_kind`_char (gfc_array_char * const restrict ret,
 	GFC_INTEGER_4 ret_length __attribute__((unused)),
 	const gfc_array_char * const restrict array,
-	const atype * const restrict h, 
-	const atype_name * const restrict pwhich,
+	const 'atype` * const restrict h, 
+	const 'atype_name` * const restrict pwhich,
 	GFC_INTEGER_4 array_length)
 {
   cshift1 (ret, array, h, pwhich, array_length);
 }
 
-#endif
+#endif'

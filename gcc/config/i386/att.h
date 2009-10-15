@@ -32,6 +32,7 @@ along with GCC; see the file COPYING3.  If not see
 
 /* How to output an ASCII string constant.  */
 
+#undef ASM_OUTPUT_ASCII
 #define ASM_OUTPUT_ASCII(FILE, PTR, SIZE)			\
 do								\
 { size_t i = 0, limit = (SIZE); 				\
@@ -56,6 +57,7 @@ do								\
 /* This is how to output an assembler line
    that says to advance the location counter by SIZE bytes.  */
 
+#undef ASM_OUTPUT_SKIP
 #define ASM_OUTPUT_SKIP(FILE,SIZE)  \
   fprintf ((FILE), "\t.set .,.+%u\n", (int)(SIZE))
 

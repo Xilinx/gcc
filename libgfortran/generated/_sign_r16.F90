@@ -1,4 +1,4 @@
-!   Copyright 2002 Free Software Foundation, Inc.
+!   Copyright 2002, 2007 Free Software Foundation, Inc.
 !   Contributed by Paul Brook <paul@nowt.org>
 !
 !This file is part of the GNU Fortran 95 runtime library (libgfortran).
@@ -39,11 +39,11 @@
 
 
 
-elemental function specific__sign_r16 (p1, p2)
+elemental function _gfortran_specific__sign_r16 (p1, p2)
    real (kind=16), intent (in) :: p1, p2
-   real (kind=16) :: specific__sign_r16
+   real (kind=16) :: _gfortran_specific__sign_r16
 
-   specific__sign_r16 = sign (p1, p2)
+   _gfortran_specific__sign_r16 = sign (p1, p2)
 end function
 
 

@@ -1,6 +1,6 @@
 // The  -*- C++ -*- type traits classes for internal use in libstdc++
 
-// Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006
+// Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -80,20 +80,6 @@ _GLIBCXX_END_NAMESPACE
 
 _GLIBCXX_BEGIN_NAMESPACE(std)
 
-namespace __detail
-{
-  // NB: g++ can not compile these if declared within the class
-  // __is_pod itself.
-  typedef char __one;
-  typedef char __two[2];
-
-  template<typename _Tp>
-  __one __test_type(int _Tp::*);
-  template<typename _Tp>
-  __two& __test_type(...);
-} // namespace __detail
-
-
   struct __true_type { };
   struct __false_type { };
 
@@ -111,6 +97,15 @@ namespace __detail
     struct __traitor
     {
       enum { __value = bool(_Sp::__value) || bool(_Tp::__value) };
+      typedef typename __truth_type<__value>::__type __type;
+    };
+
+  // N.B. The conversions to bool are needed due to the issue
+  // explained in c++/19404.
+  template<class _Sp, class _Tp>
+    struct __traitand
+    {
+      enum { __value = bool(_Sp::__value) && bool(_Tp::__value) };
       typedef typename __truth_type<__value>::__type __type;
     };
 
@@ -341,37 +336,6 @@ namespace __detail
     : public __traitor<__is_arithmetic<_Tp>, __is_pointer<_Tp> >
     { };
 
-  // For the immediate use, the following is a good approximation.
-  template<typename _Tp>
-    struct __is_pod
-    {
-      enum
-	{
-	  __value = (sizeof(__detail::__test_type<_Tp>(0))
-		     != sizeof(__detail::__one))
-	};
-    };
-
-  //
-  // A stripped-down version of std::tr1::is_empty
-  //
-  template<typename _Tp>
-    struct __is_empty
-    { 
-    private:
-      template<typename>
-        struct __first { };
-      template<typename _Up>
-        struct __second
-        : public _Up { };
-           
-    public:
-      enum
-	{
-	  __value = sizeof(__first<_Tp>) == sizeof(__second<_Tp>)
-	};
-    };
-
   //
   // For use in std::copy and std::find overloads for streambuf iterators.
   //
@@ -392,6 +356,56 @@ namespace __detail
 #ifdef _GLIBCXX_USE_WCHAR_T
   template<>
     struct __is_char<wchar_t>
+    {
+      enum { __value = 1 };
+      typedef __true_type __type;
+    };
+#endif
+
+  template<typename _Tp>
+    struct __is_byte
+    {
+      enum { __value = 0 };
+      typedef __false_type __type;
+    };
+
+  template<>
+    struct __is_byte<char>
+    {
+      enum { __value = 1 };
+      typedef __true_type __type;
+    };
+
+  template<>
+    struct __is_byte<signed char>
+    {
+      enum { __value = 1 };
+      typedef __true_type __type;
+    };
+
+  template<>
+    struct __is_byte<unsigned char>
+    {
+      enum { __value = 1 };
+      typedef __true_type __type;
+    };
+
+  //
+  // Move iterator type
+  //
+  template<typename _Tp>
+    struct __is_move_iterator
+    {
+      enum { __value = 0 };
+      typedef __false_type __type;
+    };
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+  template<typename _Iterator>
+    class move_iterator;
+
+  template<typename _Iterator>
+    struct __is_move_iterator< move_iterator<_Iterator> >
     {
       enum { __value = 1 };
       typedef __true_type __type;

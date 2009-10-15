@@ -3,9 +3,8 @@
 /* { dg-do run { xfail rs6000-*-aix* powerpc*-*-aix* } } */
 /* { dg-require-gc-sections "" } */
 
-/* { dg-options "-ffunction-sections -fdata-sections -Wl,--gc-sections -static" } */
-/* { dg-options "-ffunction-sections -fdata-sections -Wl,--gc-sections -static" { target native } } */
-/* { dg-options "-ffunction-sections -fdata-sections -Wl,--gc-sections" { target *-*-netware* } } */
+/* { dg-options "-ffunction-sections -fdata-sections -Wl,--gc-sections" } */
+/* { dg-options "-ffunction-sections -fdata-sections -Wl,--gc-sections -static" { target static } } */
 
 #include <stdlib.h>
 

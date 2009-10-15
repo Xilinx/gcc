@@ -1,6 +1,6 @@
 // Allocators -*- C++ -*-
 
-// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -54,6 +54,7 @@
 #include <bits/functexcept.h>
 #include <ext/atomicity.h>
 #include <ext/concurrence.h>
+#include <bits/stl_move.h>
 
 _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
 
@@ -63,7 +64,6 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
   /**
    *  @brief  Base class for __pool_alloc.
    *
-   *  @if maint
    *  Uses various allocators to fulfill underlying requests (and makes as
    *  few requests as possible when in default high-speed pool mode).
    *
@@ -75,8 +75,6 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
    *     _S_round_up(requested_size).  Thus the client has enough size
    *     information that we can return the object to the proper free list
    *     without permanently losing part of the object.
-   *
-   *  @endif
    */
     class __pool_alloc_base
     {
@@ -121,7 +119,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
     };
 
 
-  /// @brief  class __pool_alloc.
+  /// class __pool_alloc.
   template<typename _Tp>
     class __pool_alloc : private __pool_alloc_base
     {
@@ -164,7 +162,14 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
       // 402. wrong new expression in [some_] allocator::construct
       void 
       construct(pointer __p, const _Tp& __val) 
-      { ::new(__p) _Tp(__val); }
+      { ::new((void *)__p) _Tp(__val); }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      template<typename... _Args>
+        void
+        construct(pointer __p, _Args&&... __args)
+	{ ::new((void *)__p) _Tp(std::forward<_Args>(__args)...); }
+#endif
 
       void 
       destroy(pointer __p) { __p->~_Tp(); }
@@ -212,7 +217,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
 	    }
 
 	  const size_t __bytes = __n * sizeof(_Tp);	      
-	  if (__bytes > size_t(_S_max_bytes) || _S_force_new == 1)
+	  if (__bytes > size_t(_S_max_bytes) || _S_force_new > 0)
 	    __ret = static_cast<_Tp*>(::operator new(__bytes));
 	  else
 	    {
@@ -241,7 +246,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
       if (__builtin_expect(__n != 0 && __p != 0, true))
 	{
 	  const size_t __bytes = __n * sizeof(_Tp);
-	  if (__bytes > static_cast<size_t>(_S_max_bytes) || _S_force_new == 1)
+	  if (__bytes > static_cast<size_t>(_S_max_bytes) || _S_force_new > 0)
 	    ::operator delete(__p);
 	  else
 	    {

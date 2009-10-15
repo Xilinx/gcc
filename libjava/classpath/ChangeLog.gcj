@@ -1,3 +1,255 @@
+2009-03-16  Matthias Klose  <doko@ubuntu.com>
+
+	* configure.ac: Detect xulrunner-1.9.
+	* configure: Regenerate.
+
+2008-09-14  Matthias Klose  <doko@ubuntu.com>
+
+	Merge from classpath:
+	2008-09-02  Andrew John Hughes  <gnu_andrew at member.fsf.org>
+
+	* tools/gnu/classpath/tools/javah/ClassWrapper.java:
+	(makeVtable()): Populate methodNameMap.
+	(printMethods(CniPrintStream)): Always use pre-populated
+	methodNameMap for bridge targets.
+
+	* tools/classes/gnu/classpath/tools/javah/ClassWrapper.class: Update.
+
+2008-04-17  Tom Tromey  <tromey@redhat.com>
+
+	PR libgcj/35950:
+	* tools/gnu/classpath/tools/jar/Entry.java: New version from
+	Classpath.
+	* tools/classes/gnu/classpath/tools/jar/Entry.class: Update.
+
+2008-03-02  Jakub Jelinek  <jakub@redhat.com>
+
+	* gnu/java/rmi/registry/RegistryImpl.java (version): Update
+	copyright notice dates.
+	* tools/gnu/classpath/tools/orbd/Main.java (run): Likewise.
+
+2008-02-29  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure: Regenerate.
+
+2008-02-20  Matthias Klose  <doko@ubuntu.com>
+
+	* tools/Makefile.am ($(TOOLS_ZIP)): Revert part of previous change,
+	Do copy resource files in JAVA_MAINTAINER_MODE only.
+	* tools/Makefile.in: Regenerate.
+
+2008-02-18  Jakub Jelinek  <jakub@redhat.com>
+
+	* doc/cp-tools.texinfo (@direntry): Prefix info name with cp-.
+	* doc/cp-hacking.texinfo (@direntry): Likewise.
+	* doc/cp-vmintegration.texinfo (@direntry): Likewise.
+
+2008-02-06  Matthias Klose  <doko@ubuntu.com>
+
+	* tools/Makefile.am ($(TOOLS_ZIP)): Copy over rmic template files.
+	Copy resource files independent of JAVA_MAINTAINER_MODE.
+	* tools/Makefile.in: Regenerate.
+
+2008-01-28  Tom Tromey  <tromey@redhat.com>
+
+	* tools/classes/gnu/classpath/tools/native2ascii/Native2ASCII$3.class:
+	Added.
+
+2007-09-04  Matthias Klose  <doko@ubuntu.com>
+
+	* configure.ac: Append libgcj soversion to nativeexeclibdir.
+	* configure: Regenerate.
+
+2007-08-04  Matthias Klose  <doko@ubuntu.com>
+
+	* java/util/EnumMap.java (clone): Add cast.
+
+2007-07-12  Matthias Klose  <doko@ubuntu.com>
+
+	* lib/jazzlib, tools/gnu/classpath/tools/rmi: Remove empty directories.
+
+2007-06-07  Matthias Klose  <doko@ubuntu.com>
+
+	PR libgcj/32227
+	* include/config-int.h: Delete, it is a generated file.
+
+2007-06-04  Matthias Klose  <doko@ubuntu.com>
+
+	* m4/acinclude.m4: Accept GCJ and JIKES.
+	* configure: Regenerate.
+
+2007-05-31  Matthias Klose  <doko@ubuntu.com>
+
+	* javax/management/NotificationBroadcasterSupport.java
+	(getNotificationInfo): Add cast.
+	* native/jni/qt-peer/Makefile.am (AM_CXXFLAGS): Add libstdc++ include
+	directories.
+	* native/jni/qt-peer/Makefile.in: Regenerate.
+
+2007-05-30  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR libjava/32098
+	* configure.ac: Add AC_CONFIG_AUX_DIR(../..).
+	* aclocal.m4: Regenerated.
+	* configure: Likewise.
+	* Makefile.in: Likewise.
+
+2007-04-25  Andrew Haley  <aph@redhat.com>
+
+	* java/io/ObjectStreamClass.java (ensureFieldsSet): New method.
+	(setFields): call ensureFieldsSet.
+	(fieldsSet): New field.
+	* java/io/ObjectOutputStream.java (writeFields): Call
+	osc.ensureFieldsSet().
+
+	* java/io/ObjectInputStream.java (parseContent): Assign the handle
+	for a PROXYCLASSDESC immediately after reading the marker.
+
+2007-03-19  Matthias Klose  <doko@ubuntu.com>
+
+	* configure.ac: New configure option
+	--enable-generated-files-in-srcdir.
+	* doc/Makefile.am: Add support to generate files in srcdir,
+	install the cp-tools documentation in info format.
+	* configure: Regenerate.
+	* native/jni/classpath/Makefile.in, native/jni/midi-dssi/Makefile.in,
+	native/jni/Makefile.in, native/jni/gconf-peer/Makefile.in,
+	native/jni/java-io/Makefile.in, native/jni/native-lib/Makefile.in,
+	native/jni/java-util/Makefile.in, native/jni/java-lang/Makefile.in,
+	native/jni/midi-alsa/Makefile.in, native/jni/java-nio/Makefile.in,
+	native/jni/java-net/Makefile.in, native/jni/xmlj/Makefile.in,
+	native/jni/qt-peer/Makefile.in, native/jni/gtk-peer/Makefile.in,
+	native/Makefile.in, native/jawt/Makefile.in, native/fdlibm/Makefile.in,
+	native/plugin/Makefile.in, resource/Makefile.in, scripts/Makefile.in,
+	tools/Makefile.in, doc/Makefile.in, doc/api/Makefile.in,
+	lib/Makefile.in, external/Makefile.in, external/sax/Makefile.in,
+	external/w3c_dom/Makefile.in, external/jsr166/Makefile.in,
+	external/relaxngDatatype/Makefile.in, include/Makefile.in,
+	examples/Makefile.in: Regenerate.
+
+2007-03-09  Gary Benson  <gbenson@redhat.com>
+	    Chris Burdess  <dog@gnu.org>
+
+	PR classpath/30831
+	* gnu/xml/dom/ls/SAXEventSink.java: Only set extended document
+	properties when reader is available.
+
+2007-03-08  Gary Benson  <gbenson@redhat.com>
+
+	PR classpath/30983:
+	* gnu/xml/dom/ls/DomLSParser.java (getInputSource):
+	Do not use the entity resolver to resolve the top-level document.
+
+2007-03-07  Gary Benson  <gbenson@redhat.com>
+
+	PR classpath/30906:
+	* resource/META-INF/services/org.w3c.dom.DOMImplementationSourceList:
+	New file.
+
+2007-03-06  Matthias Klose  <doko@ubuntu.com>
+
+	* doc/Makefile.am(gkeytool.pod): Don't use sed -i.
+	* doc/Makefile.in: Regenerate.
+
+2007-03-06  Tom Tromey  <tromey@redhat.com>
+
+	* tools/gnu/classpath/tools/javah/Main.java (getName): New
+	method.
+	(getParser): Now protected.  Use getName.  Add '-v' alias for
+	--verbose.
+	(postParse): New method.
+	(run): Now protected.  Use postParse.
+	* tools/gnu/classpath/tools/javah/GcjhMain.java: New file.
+	* tools/Makefile.in: Rebuilt.
+	* tools/Makefile.am: Remove vm-tools.lst before creating it.
+
+2007-03-05  Matthias Klose  <doko@ubuntu.com>
+
+	* doc/Makefile.am(man_MANS): Add $(TOOLS_MANFILES).
+	* doc/Makefile.in: Regenerate.
+
+2007-02-26  Jakub Jelinek  <jakub@redhat.com>
+
+	* java/util/TimeZone.java (getDefaultDisplayName): Don't
+	check if TimeZone is instanceof SimpleTimeZone.
+
+2007-02-21  Gary Benson  <gbenson@redhat.com>
+
+	* java/util/GregorianCalendar.java,
+	(add): Don't set fields directly anymore. Use set()
+
+2007-02-20  Matthias Klose  <doko@ubuntu.com>
+
+	* Merge doc update from classpath HEAD.
+	* doc/texi2pod.pl: Not imported.
+	* doc/Makefile.am: Use GCC's texi2pod.pl
+	* doc/Makefile.in: Regenerate.
+
+2007-02-20  Gary Benson  <gbenson@redhat.com>
+
+	* javax/management/MBeanServer.java: Updated.
+	* javax/management/MBeanServerConnection.java: Likewise.
+	* javax/management/ObjectName.java: Likewise.
+	* javax/management/StandardMBean.java: Likewise.
+
+2007-02-15  David Daney  <ddaney@avtrex.com>
+
+	* tools/Makefile.am (TOOLS_ZIP): Add classes from vm-tools-packages.
+	* tools/Makefile.in: Regenerated.
+
+2007-02-15  Gary Benson  <gbenson@redhat.com>
+
+	* javax/management/AttributeList.java: Updated.
+	* javax/management/MBeanServerDelegate.java: Likewise.
+	* javax/management/MBeanServerFactory.java: Likewise.
+	* javax/management/StandardMBean.java: Likewise.
+
+2007-02-15  Gary Benson  <gbenson@redhat.com>
+
+	* gnu/javax/management/Server.java
+	(registerMBean): Always register objects that implement the
+	MBeanRegistration interface, and check the name returned by
+	preRegister before using it.
+
+2007-02-15  Gary Benson  <gbenson@redhat.com>
+
+	* javax/management/ObjectName.java:
+	(getKeyPropertyList()): Remove cast and call
+	to UnmodifiableMap.
+
+2007-02-14  Gary Benson  <gbenson@redhat.com>
+
+	* javax/management/ObjectName.java
+	(toString): Return this item's canonical name.
+
+2007-02-12  Tom Tromey  <tromey@redhat.com>
+
+	* java/util/Collections.java (UnmodifiableMap.toArray): Imported
+	changes from Classpath.
+
+2007-02-09  Gary Benson  <gbenson@redhat.com>
+
+	* javax/management/ObjectName.java
+	(quote): Initialize StringBuilder correctly.
+
+2007-02-08  Gary Benson  <gbenson@redhat.com>
+
+	* javax/management/MBeanServerFactory.java
+	(servers): Initialize.
+	(createMBeanServer): Don't initialize servers.
+
+2007-01-31  Tom Tromey  <tromey@redhat.com>
+
+	* tools/Makefile.in: Rebuilt.
+	* tools/Makefile.am (noinst_SCRIPTS): Renamed from bin_SCRIPTS.
+	(noinst_DATA): Renamed from TOOLS_DATA.
+
+2007-01-20  Matthias Klose  <doko@debian.org>
+
+	* native/jni/gtk-peer/Makefile.am, native/jawt/Makefile.am: Install
+	into nativeexeclibdir instead of gcjversionedlibdir.
+	* native/jni/gtk-peer/Makefile.in, native/jawt/Makefile.in: Regenerate.
+
 2007-01-16  Jack Howarth  <howarth@bromo.med.uc.edu>
 
 	* configure.ac: Use multi.m4 from aclocal rather than
@@ -6,176 +258,128 @@
 	* configure: Regenerate.
 	* Makefile.in: Regenerate.
 
-2006-10-10  Tom Tromey  <tromey@redhat.com>
+2007-01-10  Matthias Klose  <doko@debian.org>
 
-	PR classpath/29362:
-	* gnu/xml/transform/TransformerImpl.java (transform): Only strip if
-	there is a stylesheet.
+	Readd missing chunks from r116332:
 
-2006-10-05  Gary Benson  <gbenson@redhat.com>
+	* m4/acinclude.m4 (CLASSPATH_TOOLEXECLIBDIR): New macro.
+	* resource/Makefile.am (loggingdir): Define to
+	toolexeclibdir.
+	(securitydir): Likewise.
+	* configure.ac: Call CLASSPATH_TOOLEXECLIBDIR.
+	Set default nativeexeclibdir using toolexeclibdir.
 
-	* java/net/SocketPermission.java
-	(processHostport): Cope with IPv6 addresses with a
-	one-digit first component.
+	Readd missing chunks from r115839:
 
-2006-09-25  Tom Tromey  <tromey@redhat.com>
+	* native/jni/gtk-peer/Makefile.am (libgtkpeer_la_LDFLAGS):
+	Add -avoid-version.
+	* native/jawt/Makefile.am (libjawt_la_LDFLAGS): Add -avoid-version.
 
-	* native/jni/gconf-peer/Makefile.in: Rebuilt.
-	* native/jni/gconf-peer/Makefile.am (libgconfpeer_la_LDFLAGS): New
-	variable.
+	* configure, Makefile.in, doc/Makefile.in, doc/api/Makefile.in,
+	examples/Makefile.in, external/Makefile.in,
+	external/jsr166/Makefile.in, external/relaxngDatatype/Makefile.in,
+	external/sax/Makefile.in, external/w3c_dom/Makefile.in,
+	include/Makefile.in, lib/Makefile.in, native/Makefile.in,
+	native/fdlibm/Makefile.in, native/jawt/Makefile.in,
+	native/jni/Makefile.in, native/jni/classpath/Makefile.in,
+	native/jni/gconf-peer/Makefile.in, native/jni/gtk-peer/Makefile.in
+	native/jni/java-io/Makefile.in, native/jni/java-lang/Makefile.in,
+	native/jni/java-net/Makefile.in, native/jni/java-nio/Makefile.in,
+	native/jni/java-util/Makefile.in, native/jni/midi-alsa/Makefile.in,
+	native/jni/midi-dssi/Makefile.in, native/jni/native-lib/Makefile.in,
+	native/jni/qt-peer/Makefile.in, native/jni/xmlj/Makefile.in,
+	native/plugin/Makefile.in, resource/Makefile.in, scripts/Makefile.in,
+	tools/Makefile.in: Regenerate
 
-2006-09-25  Tom Tromey  <tromey@redhat.com>
+2007-01-10  Matthias Klose  <doko@debian.org>
 
-	PR libgcj/29178:
-	* gnu/java/nio/charset/US_ASCII.java (Encoder.canEncode): New method.
-	(Encoder.canEncode): Likewise.
-	(Encoder.encodeLoop): Return unmappable for all non-ASCII characters.
-	* gnu/java/nio/charset/ByteCharset.java (Encoder.canEncode): New
-	method.
-	(Encoder.canEncode): Likewise.
-	* gnu/java/nio/charset/ISO_8859_1.java (Encoder.canEncode): New
-	method.
-	(Encoder.canEncode): Likewise.
+	* resource/gnu/regexp, tools/gnu/classpath/tools/rmi/rmic,
+	tools/gnu/classpath/tools/rmi/rmid, tools/gnu/classpath/tools/giop,
+	doc/www.gnu.org, doc/unicode, testsuite, testsuite/java.sun.awt,
+	testsuite/javax.swing.text.html.parser, testsuite/java.lang,
+	testsuite/java.opstack, testsuite/java.sun.tools, testsuite/java.text,
+	testsuite/scheme, testsuite/config, testsuite/java.net, testsuite/lib,
+	testsuite/java.io, testsuite/java.util, native/target,
+	native/testsuite, native/vmi, org/omg/CORBA/SendingContext,
+	gnu/regexp, test, compat: Remove empty directories.
 
-2006-09-25  Tom Tromey  <tromey@redhat.com>
+2006-12-23  Andreas Tobler <a.tobler@schweiz.org>
 
-	* native/fdlibm/mprec.c (mprec_calloc): Renamed.
-	(Balloc): Updated.
+	* classpath/tools/Makefile.am: Replace cp -a with a more portable
+	cp -pR.
+	* classpath/tools/Makefile.in: Regenerate.
 
-2006-09-25  Mark Wielaard  <mark@klomp.org>
+2006-12-18  Tom Tromey  <tromey@redhat.com>
 
-	Suggested by Aaron M. Ucko <ucko@debian.org>
-	Fixes bug #29203
-	* native/fdlibm/mprec.c (ulp): Define L as int32_t.
+	* tools/Makefile.in: Rebuilt.
+	* tools/Makefile.am (GLIBJ_CLASSPATH): Look in srcdir.
 
-2006-09-22  David Daney  <ddaney@avtrex.com>
+2006-12-18  Tom Tromey  <tromey@redhat.com>
 
-	PR classpath/28661
-	* gnu/java/net/protocol/http/HTTPURLConnection.java (connect):  Add
-	default content-type for POST method.
+	* tools/Makefile.in: Rebuilt.
+	* tools/Makefile.am ($(TOOLS_ZIP)): Put classes in srcdir.
+	* tools/asm, tools/classes: Check in .class files.
 
-2006-09-20  Gary Benson  <gbenson@redhat.com>
+2006-12-18  Gary Benson  <gbenson@redhat.com>
 
-	* java/net/InetAddress.java: Updated to latest.
-	* java/net/Inet4Address.java: Likewise.
-	* java/net/Inet6Address.java: Likewise.
-	* java/net/ResolverCache.java: Likewise.
-	* java/net/SocketPermission.java: Likewise.
+	* tools/Makefile.am: Fix typo.
+	* tools/Makefile.in: Rebuilt.
 
-	* java/net/Inet4Address.java
-	(AF_INET): Renamed to FAMILY.
-	(<init>, writeReplace): Reflect the above.
-	* java/net/Inet6Address.java
-	(AF_INET6): Renamed to FAMILY.
-	(<init>): Reflect the above.
+2006-12-15  Andrew Haley  <aph@redhat.com>
 
-2006-09-18  Tom Tromey  <tromey@redhat.com>
+	* tools/Makefile.am (TOOLS_ZIP): Pass -g -w to javac.
+	Create all-classes.lst that contains all source filenames.
+	Delete asm.lst.
 
-	* gnu/javax/net/ssl/provider/SSLSocket.java (isBound, isClosed,
-	isConnected): Removed old comment.
-	(getRemoteSocketAddress): Uncommented.
-	(setOOBInline, getOOBInline, setKeepAlive, getKeepAlive,
-	setTrafficClass, getTrafficClass, setReuseAddress,
-	getReuseAddress, shutdownInput, shutdownOutput, isInputShutdown,
-	isOutputShutdown): Uncommented.
+2006-12-15  Tom Tromey  <tromey@redhat.com>
 
-2006-09-11 David Daney  <ddaney@avtrex.com>
+	* configure, lib/Makefile.in: Rebuilt.
+	* lib/Makefile.am (compile-classes): Use JAVA_MAINTAINER_MODE.
+	* configure.ac: Added --enable-java-maintainer-mode.
 
-	PR classpath/28580
-	* gnu/java/net/protocol/http/Request.java (readResponse):  Call 
-	createResponseBodyStream in more cases and with new parameter.
-	(createResponseBodyStream):  Added new parameter mayHaveBody. Handle
-	HEAD and !mayHaveBody responses specially.
+2006-12-12  Tom Tromey  <tromey@redhat.com>
 
-2006-09-05  Gary Benson  <gbenson@redhat.com>
+	* Makefile.in, tools/Makefile.in: Rebuilt.
+	* Makefile.am (SUBDIRS): Removed gcj-local change.
+	(DIST_SUBDIRS): Likewise.
+	* tools/Makefile.am (JCOMPILER): Use gcj, not gcjx.
+	(GLIBJ_BOOTCLASSPATH): Find core classes in srcdir.
 
-	* java/net/SocketPermission.java
-	(maybeBracketIPv6Address): Renamed to processHostport.
-	(processHostport): Also translate "" to "localhost".
-	(setHostPort): Remove special cases for empty hostport and for
-	extra colons in hostport (processHostport handles these now).
-	
-2006-08-31  Keith Seitz  <keiths@redhat.com>
+2006-12-11  Tom Tromey  <tromey@redhat.com>
 
-	* include/jvmti.h: Update from Classpath to get latest fixes and
-	improvements.
+	* Merged in Classpath from libgcj-import-20061211.
 
-2006-08-29  Gary Benson  <gbenson@redhat.com>
+2006-10-17  Tom Tromey  <tromey@redhat.com>
 
-	* java/net/SocketPermission.java
-	(maybeBracketIPv6Address): New method.
-	(<init>): Pass the hostport argument through the above.
+	* sun/reflect/annotation/AnnotationInvocationHandler.java
+	(invoke): Clone array values before return.
+	(create): New method.
+	(arrayClone): Likewise.
 
-	* java/net/NetworkInterface.java (getInetAddresses):
-	Revert the previous change.
+2006-10-12  Tom Tromey  <tromey@redhat.com>
 
-2006-08-24  Gary Benson  <gbenson@redhat.com>
+	* lib/Makefile.in: Rebuilt.
+	* lib/Makefile.am (JAVAC): Put classes in srcdir.
+	(compile-classes): Conditional on MAINTAINER_MODE.
 
-	* java/net/NetworkInterface.java (getInetAddresses): Bracket IPv6
-	addresses.
+2006-07-18  Tom Tromey  <tromey@redhat.com>
 
-2006-08-18  Roger Sayle  <roger@eyesopen.com>
+	* lib/Makefile.in: Rebuilt.
+	* lib/Makefile.am (JAVAC): Add -w, -g, and --encoding.
 
-	* scripts/check_jni_methods.sh: Don't use the "set -C" command
-	which isn't available in all shells.
+2006-07-06  Tom Tromey  <tromey@redhat.com>
 
-2006-08-18  Tom Tromey  <tromey@redhat.com>
+	* lib/Makefile.in: Rebuilt.
+	* lib/Makefile.am (JAVAC): Define when FOUND_GCJ is true.
+	(compile-classes): Remove special case for gcj.
 
-	* gnu/java/util/prefs/NodeWriter.java (writeParents): Removed
-	debugging prints.
-	* gnu/java/util/prefs/NodeReader.java (readNodes): Removed debugging
-	print.
-	(readEntries): Likewise.
+2006-06-23  Tom Tromey  <tromey@redhat.com>
 
-2006-08-09  Tom Tromey  <tromey@redhat.com>
-
-	PR classpath/28666:
-	* native/jni/gtk-peer/gnu_java_awt_peer_gtk_GdkScreenGraphicsDevice.c
-	(Java_gnu_java_awt_peer_gtk_GdkScreenGraphicsDevice_nativeGetDisplayModes):
-	Create a 'short' array.
-
-2006-08-07  Tom Tromey  <tromey@redhat.com>
-
-	PR libgcj/28609:
-	* ltconfig: Copied from gcc.
-
-2006-07-20  Keith Seitz  <keiths@redhat.com>
-
-	* include/jvmti.h: Include copy from upstream before next merge.
-
-2006-07-12  Tom Tromey  <tromey@redhat.com>
-
-	PR libgcj/27271:
-	* java/util/zip/ZipFile.java (getInputStream): Call addDummyByte
-	on PartialInputStream.
-	(PartialInputStream.dummyByteCount): New field.
-	(PartialInputStream.fillBuffer): Handle dummy byte.
-	(PartialInputStream.read): Likewise.
-	(PartialInputStream.addDummyByte): New method.
-
-2006-06-14  Tom Tromey  <tromey@redhat.com>
-
-	PR java/28024:
-	* aclocal.m4, configure: Rebuilt.
-	* m4/acinclude.m4 (REGEN_WITH_JAY): Use backquote, not $(...).
-	* configure.ac (QT_INCLUDE_DIR): Use backquote, not $(...).
+	* Imported Classpath generics 0.91, presesrving local changes.
 
 2006-06-09  Tom Tromey  <tromey@redhat.com>
 
-	PR classpath/23863:
-	* native/fdlibm/dtoa.c (_dtoa): Free contents of _Jv_reent when
-	finished.
-	* native/fdlibm/mprec.c: New version from newlib.  Commented out
-	some includes.  Added <assert.h>.
-	(_reent, _Bigint): New defines.
-	(_REENT_CHECK_MP, _REENT_MP_FREELIST, _REENT_MP_P5S): Likewise.
-	(__ULong, __Long): New types.
-	(_calloc_r): New function.
-	(Balloc): Dynamically add new _freelist entries as needed.
-	* native/fdlibm/mprec.h (struct _Jv_Bigint): Don't use
-	MAX_BIGNUMS to size _x[].
-	(struct _Jv_reent): _freelist now a _Jv_Bigint**.  Removed
-	_allocation_map, num.  Added _max_k.
+	* lib/Makefile.gcj (GCJF): Added -g and -ftarget=1.5.
 
 2006-05-30  Thomas Fitzsimmons  <fitzsim@redhat.com>
 

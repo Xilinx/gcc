@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2006, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -31,9 +31,10 @@
 
 with Err_Vars;
 with Erroutc;
+with Namet;    use Namet;
 with Table;
-with Types; use Types;
-with Uintp; use Uintp;
+with Types;    use Types;
+with Uintp;    use Uintp;
 
 with System;
 
@@ -147,7 +148,15 @@ package Errout is
    --      message, similarly replaced by the names which are specified by the
    --      Name_Id values stored in Error_Msg_Name_2 and Error_Msg_Name_3. The
    --      names are decoded and cased according to the current identifier
-   --      casing mode.
+   --      casing mode. Note: if a unit name ending with %b or %s is passed
+   --      for this kind of insertion, this suffix is simply stripped. Use a
+   --      unit name insertion ($) to process the suffix.
+
+   --    Insertion character %% (Double percent: insert literal name)
+   --      The character sequence %% acts as described above for %, except
+   --      that the name is simply obtained with Get_Name_String and is not
+   --      decoded or cased, it is inserted literally from the names table.
+   --      A trailing %b or %s is not treated specially.
 
    --    Insertion character $ (Dollar: insert unit name from Names table)
    --      The character $ is treated similarly to %, except that the name is
@@ -157,11 +166,13 @@ package Errout is
    --      strings. If this postfix is not required, use the normal %
    --      insertion for the unit name.
 
-   --    Insertion character { (Left brace: insert literally from names table)
-   --      The character { is treated similarly to %, except that the name is
-   --      output literally as stored in the names table without adjusting the
-   --      casing. This can be used for file names and in other situations
-   --      where the name string is to be output unchanged.
+   --    Insertion character { (Left brace: insert file name from names table)
+   --      The character { is treated similarly to %, except that the input
+   --      value is a File_Name_Type value stored in Error_Msg_File_1 or
+   --      Error_Msg_File_2 or Error_Msg_File_3. The value is output literally,
+   --      enclosed in quotes as for %, but the case is not modified, the
+   --      insertion is the exact string stored in the names table without
+   --      adjusting the casing.
 
    --    Insertion character * (Asterisk, insert reserved word name)
    --      The insertion character * is treated exactly like % except that the
@@ -193,7 +204,14 @@ package Errout is
    --
    --      By convention, the # insertion character is only used at the end of
    --      an error message, so the above strings only appear as the last
-   --      characters of an error message.
+   --      characters of an error message. The only exceptions to this rule
+   --      are that an RM reference may follow in the form (RM .....) and a
+   --      right parenthesis may immediately follow the #. In the case of
+   --      continued messages, # can only appear at the end of a group of
+   --      continuation messsages, except that \\ messages which always start
+   --      a new line end the sequence from the point of view of this rule.
+   --      The idea is that for any use of -gnatj, it will still be the case
+   --      that a location reference appears only at the end of a line.
 
    --    Insertion character } (Right brace: insert type reference)
    --      The character } is replaced by a string describing the type
@@ -233,11 +251,21 @@ package Errout is
    --      the message unconditional which means that it is output even if it
    --      would normally be suppressed. See section above for a description
    --      of the cases in which messages are normally suppressed. Note that
-   --      warnings are never suppressed, so the use of the ! character in a
-   --      warning message is never useful.
+   --      in the case of warnings, the meaning is that the warning should not
+   --      be removed in dead code (that's the only time that the use of !
+   --      has any effect for a warning).
+   --
+   --      Note: the presence of ! is ignored in continuation messages (i.e.
+   --      messages starting with the \ insertion character). The effect of the
+   --      use of ! in a parent message automatically applies to all of its
+   --      continuation messages (since we clearly don't want any case in which
+   --      continuations are separated from the parent message. It is allowable
+   --      to put ! in continuation messages, and the usual style is to include
+   --      it, since it makes it clear that the continuation is part of an
+   --      unconditional message.
 
    --    Insertion character ? (Question: warning message)
-   --      The character ? appearing anywhere in a message makes the message a
+   --      The character ? appearing anywhere in a message makes the message
    --      warning instead of a normal error message, and the text of the
    --      message will be preceded by "Warning:" instead of "Error:" in the
    --      normal case. The handling of warnings if further controlled by the
@@ -247,6 +275,13 @@ package Errout is
    --      the parser), but currently all relevant warnings are posted by the
    --      semantic phase anyway. Messages starting with (style) are also
    --      treated as warning messages.
+   --
+   --      Note: the presence of ? is ignored in continuation messages (i.e.
+   --      messages starting with the \ insertion character). The warning
+   --      status of continuations is determined only by the parent message
+   --      which is being continued. It is allowable to put ? in continuation
+   --      messages, and the usual style is to include it, since it makes it
+   --      clear that the continuation is part of a warning message.
 
    --    Insertion character < (Less Than: conditional warning message)
    --      The character < appearing anywhere in a message is used for a
@@ -262,7 +297,7 @@ package Errout is
 
    --    Insertion character ` (Backquote: set manual quotation mode)
    --      The backquote character always appears in pairs. Each backquote of
-   --      the pair is replaced by a double quote character. In addition, Any
+   --      the pair is replaced by a double quote character. In addition, any
    --      reserved keywords, or name insertions between these backquotes are
    --      not surrounded by the usual automatic double quotes. See the
    --      section below on manual quotation mode for further details.
@@ -280,13 +315,23 @@ package Errout is
    --      messages are treated as a unit. The \ character must be the first
    --      character of the message text.
 
-   --    Insertion character | (vertical bar, non-serious error)
+   --    Insertion character \\ (Two backslashes, continuation with new line)
+   --      This differs from \ only in -gnatjnn mode (Error_Message_Line_Length
+   --      set non-zero). This sequence forces a new line to start even when
+   --      continuations are being gathered into a single message.
+
+   --    Insertion character | (Vertical bar: non-serious error)
    --      By default, error messages (other than warning messages) are
    --      considered to be fatal error messages which prevent expansion or
    --      generation of code in the presence of the -gnatQ switch. If the
    --      insertion character | appears, the message is considered to be
    --      non-serious, and does not cause Serious_Errors_Detected to be
    --      incremented (so expansion is not prevented by such a msg).
+
+   --    Insertion character ~ (Tilde: insert string)
+   --      Indicates that Error_Msg_String (1 .. Error_Msg_Strlen) is to be
+   --      inserted to replace the ~ character. The string is inserted in the
+   --      literal form it appears, without any action on special characters.
 
    ----------------------------------------
    -- Specialization of Messages for VMS --
@@ -358,9 +403,14 @@ package Errout is
    Error_Msg_Name_3 : Name_Id renames Err_Vars.Error_Msg_Name_3;
    --  Name_Id values for % insertion characters in message
 
-   Error_Msg_Unit_1 : Name_Id renames Err_Vars.Error_Msg_Unit_1;
-   Error_Msg_Unit_2 : Name_Id renames Err_Vars.Error_Msg_Unit_2;
-   --  Name_Id values for $ insertion characters in message
+   Error_Msg_File_1 : File_Name_Type renames Err_Vars.Error_Msg_File_1;
+   Error_Msg_File_2 : File_Name_Type renames Err_Vars.Error_Msg_File_2;
+   Error_Msg_File_3 : File_Name_Type renames Err_Vars.Error_Msg_File_3;
+   --  File_Name_Type values for { insertion characters in message
+
+   Error_Msg_Unit_1 : Unit_Name_Type renames Err_Vars.Error_Msg_Unit_1;
+   Error_Msg_Unit_2 : Unit_Name_Type renames Err_Vars.Error_Msg_Unit_2;
+   --  Unit_Name_Type values for $ insertion characters in message
 
    Error_Msg_Node_1 : Node_Id renames Err_Vars.Error_Msg_Node_1;
    Error_Msg_Node_2 : Node_Id renames Err_Vars.Error_Msg_Node_2;
@@ -375,6 +425,11 @@ package Errout is
    Error_Msg_Warn : Boolean renames Err_Vars.Error_Msg_Warn;
    --  Used if current message contains a < insertion character to indicate
    --  if the current message is a warning message.
+
+   Error_Msg_String : String  renames Err_Vars.Error_Msg_String;
+   Error_Msg_Strlen : Natural renames Err_Vars.Error_Msg_Strlen;
+   --  Used if current message contains a ~ insertion character to indicate
+   --  insertion of the string Error_Msg_String (1 .. Error_Msg_Strlen).
 
    -----------------------------------------------------
    -- Format of Messages and Manual Quotation Control --
@@ -408,6 +463,10 @@ package Errout is
    --  the choice between these being made by looking at the casing convention
    --  used for keywords (actually the first compilation unit keyword) in the
    --  source file.
+
+   --  Note: a special exception is that RM is never treated as a keyword
+   --  but instead is copied literally into the message, this avoids the
+   --  need for writing 'R'M for all reference manual quotes.
 
    --  In the case of names, the default mode for the error text processor
    --  is to surround the name by quotation marks automatically. The case
@@ -513,9 +572,27 @@ package Errout is
    --  Initializes for output of error messages. Must be called for each
    --  source file before using any of the other routines in the package.
 
-   procedure Finalize;
-   --  Finalize processing of error messages for one file and output message
-   --  indicating the number of detected errors.
+   procedure Finalize (Last_Call : Boolean);
+   --  Finalize processing of error message list. Includes processing for
+   --  duplicated error messages, and other similar final adjustment of the
+   --  list of error messages. Note that this procedure must be called before
+   --  calling Compilation_Errors to determine if there were any errors. It
+   --  is perfectly fine to call Finalize more than once, providing that the
+   --  parameter Last_Call is set False for every call except the last call.
+
+   --  This multiple call capability is used to do some processing that may
+   --  generate messages. Call Finalize to eliminate duplicates and remove
+   --  deleted warnings. Test for compilation errors using Compilation_Errors,
+   --  then generate some more errors/warnings, call Finalize again to make
+   --  sure that all duplicates in these new messages are dealt with, then
+   --  finally call Output_Messages to output the final list of messages. The
+   --  argument Last_Call must be set False on all calls except the last call,
+   --  and must be set True on the last call (a value of True activates some
+   --  processing that must only be done after all messages are posted).
+
+   procedure Output_Messages;
+   --  Output list of messages, including messages giving number of detected
+   --  errors and warnings.
 
    procedure Error_Msg (Msg : String; Flag_Location : Source_Ptr);
    --  Output a message at specified location. Can be called from the parser
@@ -593,6 +670,8 @@ package Errout is
    --  is posted (with the same effect as Error_Msg_N (Msg, N) if and only
    --  if Eflag is True and if the node N is within the main extended source
    --  unit and comes from source. Typically this is a warning mode flag.
+   --  This routine can only be called during semantic analysis. It may not
+   --  be called during parsing.
 
    procedure Change_Error_Text (Error_Id : Error_Msg_Id; New_Msg : String);
    --  The error message text of the message identified by Id is replaced by
@@ -616,10 +695,14 @@ package Errout is
 
    procedure Remove_Warning_Messages (N : Node_Id);
    --  Remove any warning messages corresponding to the Sloc of N or any
-   --  of its descendent nodes. No effect if no such warnings.
+   --  of its descendent nodes. No effect if no such warnings. Note that
+   --  style messages (identified by the fact that they start with "(style)"
+   --  are not removed by this call. Basically the idea behind this procedure
+   --  is to remove warnings about execution conditions from known dead code.
 
    procedure Remove_Warning_Messages (L : List_Id);
-   --  Remove warnings on all elements of a list
+   --  Remove warnings on all elements of a list (Calls Remove_Warning_Messages
+   --  on each element of the list, see above).
 
    procedure Set_Ignore_Errors (To : Boolean);
    --  Following a call to this procedure with To=True, all error calls are
@@ -636,10 +719,33 @@ package Errout is
    --  Called in response to a pragma Warnings (On) to record the source
    --  location from which warnings are to be turned back on.
 
-   function Compilation_Errors return Boolean
-     renames Erroutc.Compilation_Errors;
+   procedure Set_Specific_Warning_Off
+     (Loc    : Source_Ptr;
+      Msg    : String;
+      Config : Boolean)
+     renames Erroutc.Set_Specific_Warning_Off;
+   --  This is called in response to the two argument form of pragma Warnings
+   --  where the first argument is OFF, and the second argument is the prefix
+   --  of a specific warning to be suppressed. The first argument is the start
+   --  of the suppression range, and the second argument is the string from
+   --  the pragma.
+
+   procedure Set_Specific_Warning_On
+     (Loc : Source_Ptr;
+      Msg : String;
+      Err : out Boolean)
+     renames Erroutc.Set_Specific_Warning_On;
+   --  This is called in response to the two argument form of pragma Warnings
+   --  where the first argument is ON, and the second argument is the prefix
+   --  of a specific warning to be suppressed. The first argument is the end
+   --  of the suppression range, and the second argument is the string from
+   --  the pragma. Err is set to True on return to report the error of no
+   --  matching Warnings Off pragma preceding this one.
+
+   function Compilation_Errors return Boolean;
    --  Returns true if errors have been detected, or warnings in -gnatwe
-   --  (treat warnings as errors) mode.
+   --  (treat warnings as errors) mode. Note that it is mandatory to call
+   --  Finalize before calling this routine.
 
    procedure Error_Msg_CRT (Feature : String; N : Node_Id);
    --  Posts a non-fatal message on node N saying that the feature identified

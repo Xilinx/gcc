@@ -1,5 +1,5 @@
 /* Collator.java -- Perform locale dependent String comparisons.
-   Copyright (C) 1998, 1999, 2000, 2001, 2004, 2005  Free Software Foundation, Inc.
+   Copyright (C) 1998, 1999, 2000, 2001, 2004, 2005, 2007  Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -38,10 +38,13 @@ exception statement from your version. */
 
 package java.text;
 
+import java.text.spi.CollatorProvider;
+
 import java.util.Comparator;
 import java.util.Locale;
 import java.util.MissingResourceException;
 import java.util.ResourceBundle;
+import java.util.ServiceLoader;
 
 /**
  * This class is the abstract superclass of classes which perform 
@@ -68,11 +71,7 @@ import java.util.ResourceBundle;
  * @author Aaron M. Renn (arenn@urbanophile.com)
  * @date March 18, 1999
  */
-/* Written using "Java Class Libraries", 2nd edition, plus online
- * API docs for JDK 1.2 from http://www.javasoft.com.
- * Status: Mostly complete, but parts stubbed out.  Look for FIXME.
- */
-public abstract class Collator implements Comparator, Cloneable
+public abstract class Collator implements Comparator<Object>, Cloneable
 {
   /**
    * This constant is a strength value which indicates that only primary
@@ -290,35 +289,61 @@ public abstract class Collator implements Comparator, Cloneable
   /**
    * This method returns an instance of <code>Collator</code> for the
    * specified locale.  If no <code>Collator</code> exists for the desired
-   * locale, a <code>Collator</code> for the default locale will be returned.
+   * locale, the fallback procedure described in
+   * {@link java.util.spi.LocaleServiceProvider} is invoked.
    *
-   * @param loc The desired localed to load a <code>Collator</code> for.
+   * @param loc The desired locale to load a <code>Collator</code> for.
    *
    * @return A <code>Collator</code> for the requested locale
    */
   public static Collator getInstance (Locale loc)
   {
-    ResourceBundle res;
     String pattern;
     try
       {
-	res = ResourceBundle.getBundle("gnu.java.locale.LocaleInformation",
-				       loc, ClassLoader.getSystemClassLoader());
-	pattern = res.getString("collation_rules");
+	ResourceBundle res =
+	  ResourceBundle.getBundle("gnu.java.locale.LocaleInformation",
+				   loc, ClassLoader.getSystemClassLoader());
+	return new RuleBasedCollator(res.getString("collation_rules"));
       }
     catch (MissingResourceException x)
       {
-	pattern = "<0<1<2<3<4<5<6<7<8<9<A,a<b,B<c,C<d,D<e,E<f,F<g,G<h,H<i,I<j,J<k,K" +
-		"<l,L<m,M<n,N<o,O<p,P<q,Q<r,R<s,S<t,T<u,U<v,V<w,W<x,X<y,Y<z,Z";
-      }
-    try
-      {
-	return new RuleBasedCollator (pattern);
+	/* This means runtime support for the locale
+	 * is not available, so we check providers. */
       }
     catch (ParseException x)
       {
 	throw (InternalError)new InternalError().initCause(x);
       }
+    for (CollatorProvider p : ServiceLoader.load(CollatorProvider.class))
+      {
+	for (Locale l : p.getAvailableLocales())
+	  {
+	    if (l.equals(loc))
+	      {
+		Collator c = p.getInstance(loc);
+		if (c != null)
+		  return c;
+		break;
+	      }
+	  }
+      }
+    if (loc.equals(Locale.ROOT))
+      {
+	try
+	  {
+	    return new RuleBasedCollator("<0<1<2<3<4<5<6<7<8<9<A,a<b,B<c," +
+					 "C<d,D<e,E<f,F<g,G<h,H<i,I<j,J<k,K" +
+					 "<l,L<m,M<n,N<o,O<p,P<q,Q<r,R<s,S<t,"+
+					 "T<u,U<v,V<w,W<x,X<y,Y<z,Z");
+	  }
+	catch (ParseException x)
+	  {
+	    throw (InternalError)new InternalError().initCause(x);
+	  }
+      }
+    // FIXME
+    return getInstance(Locale.US);
   }
 
   /**

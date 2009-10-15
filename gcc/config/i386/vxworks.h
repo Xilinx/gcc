@@ -26,9 +26,10 @@ along with GCC; see the file COPYING3.  If not see
 #undef  ASM_SPEC
 #define ASM_SPEC "%{v:-v} %{Qy:} %{n} %{T} %{Ym,*} %{Yd,*} %{Wa,*:%*}"
 
-#define VXWORKS_CPU_DEFINE()				\
+#define TARGET_OS_CPP_BUILTINS()			\
   do							\
     {							\
+      VXWORKS_OS_CPP_BUILTINS ();			\
       if (TARGET_386)					\
         builtin_define ("CPU=I80386");			\
       else if (TARGET_486)				\
@@ -48,18 +49,7 @@ along with GCC; see the file COPYING3.  If not see
           builtin_define ("CPU=PENTIUM4");		\
           builtin_define ("CPU_VARIANT=PENTIUM4");	\
         }						\
-    }  							\
-  while (0)
-
-#define TARGET_OS_CPP_BUILTINS()		\
-  do						\
-    {						\
-      builtin_define ("__vxworks");		\
-      builtin_define ("__VXWORKS__");		\
-      builtin_assert ("system=unix");		\
-						\
-      VXWORKS_CPU_DEFINE();			\
-    }						\
+    }							\
   while (0)
 
 #undef  CPP_SPEC
@@ -82,3 +72,7 @@ along with GCC; see the file COPYING3.  If not see
 /* No _mcount profiling on VxWorks.  */
 #undef FUNCTION_PROFILER
 #define FUNCTION_PROFILER(FILE,LABELNO) VXWORKS_FUNCTION_PROFILER(FILE,LABELNO)
+
+/* We cannot use PC-relative accesses for VxWorks PIC because there is no
+   fixed gap between segments.  */
+#undef ASM_PREFERRED_EH_DATA_FORMAT

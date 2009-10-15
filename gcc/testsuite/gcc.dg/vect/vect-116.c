@@ -1,9 +1,12 @@
+/* { dg-require-effective-target vect_int } */
 /* Assuming we can vectorize char multiplication, here's an execute test.  */
 
 #include <stdarg.h>
 #include "tree-vect.h"
 
 extern void abort (void);
+
+__attribute__ ((noinline))
 void foo()
 {
   static unsigned char A[256], B[256], C[256];

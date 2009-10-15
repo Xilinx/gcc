@@ -1,5 +1,5 @@
 // PosixProcess.java - Subclass of Process for POSIX systems.
-/* Copyright (C) 1998, 1999, 2004  Free Software Foundation
+/* Copyright (C) 1998, 1999, 2004, 2006, 2007  Free Software Foundation
 
    This file is part of libgcj.
 
@@ -13,11 +13,10 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
 
+import gnu.gcj.RawDataManaged;
 
 /**
  * @author Tom Tromey <tromey@cygnus.com>
@@ -25,64 +24,54 @@ import java.util.Map;
  * @author David Daney <ddaney@avtrex.com> Rewrote using
  * ProcessManager
  */
-
-// This is entirely internal to our implementation.
-// This file is copied to `ConcreteProcess.java' before compilation.
-// Hence the class name apparently does not match the file name.
-final class ConcreteProcess extends Process
+final class PosixProcess extends Process
 {
-  static class ProcessManager extends Thread
+  static final class ProcessManager extends Thread
   {
     /**
-     * A list of {@link ConcreteProcess ConcreteProcesses} to be
+     * A list of {@link PosixProcess PosixProcesses} to be
      * started.  The queueLock object is used as the lock Object
      * for all process related operations. To avoid dead lock
-     * ensure queueLock is obtained before ConcreteProcess.
+     * ensure queueLock is obtained before PosixProcess.
      */
-    List queue = new LinkedList();
-    private Map pidToProcess = new HashMap();
+    private LinkedList<PosixProcess> queue = new LinkedList<PosixProcess>();
+    private LinkedList<PosixProcess> liveProcesses =
+      new LinkedList<PosixProcess>();
     private boolean ready = false;
-    private long reaperPID;
+
+    static RawDataManaged nativeData;
 
     ProcessManager()
     {
-      super("ProcessManager");
+      // Use package private Thread constructor to place us in the
+      // root ThreadGroup with no InheritableThreadLocal.  If the
+      // InheritableThreadLocals were allowed to initialize, they could
+      // cause a Runtime.exec() to be called causing infinite
+      // recursion.
+      super("ProcessManager", true);
       // Don't keep the (main) process from exiting on our account.
       this.setDaemon(true);
     }
 
     /**
-     * Get the ConcreteProcess object with the given pid and
-     * remove it from the map.  This method is called from the
-     * native code for {@link #reap()).  The mapping is removed so
-     * the ConcreteProcesses can be GCed after they terminate.
+     * Add a process to the list of running processes.  This must only
+     * be called with the queueLock held.
      *
-     * @param p The pid of the process.
+     * @param p The PosixProcess.
      */
-    private ConcreteProcess removeProcessFromMap(long p)
+    void addToLiveProcesses(PosixProcess p)
     {
-      return (ConcreteProcess) pidToProcess.remove(new Long(p));
+      liveProcesses.add(p);
     }
 
     /**
-     * Put the given ConcreteProcess in the map using the Long
-     * value of its pid as the key.
-     *
-     * @param p The ConcreteProcess.
-     */
-    void addProcessToMap(ConcreteProcess p)
-    {
-      pidToProcess.put(new Long(p.pid), p);
-    }
-
-    /**
-     * Queue up the ConcreteProcess and awake the ProcessManager.
-     * The ProcessManager will start the ConcreteProcess from its
+     * Queue up the PosixProcess and awake the ProcessManager.
+     * The ProcessManager will start the PosixProcess from its
      * thread so it can be reaped when it terminates.
      *
-     * @param p The ConcreteProcess.
+     * @param p The PosixProcess.
      */
-    void startExecuting(ConcreteProcess p)
+    void startExecuting(PosixProcess p)
     {
       synchronized (queueLock)
         {
@@ -121,61 +110,66 @@ final class ConcreteProcess extends Process
       // Now ready to accept requests.
       synchronized (this)
         {
-	  ready = true;
-	  this.notifyAll();
+          ready = true;
+          this.notifyAll();
         }
 
       for (;;)
         {
-	  try
-	    {
-	      synchronized (queueLock)
-	        {
-		  boolean haveMoreChildren = reap();
-		  if (! haveMoreChildren && queue.size() == 0)
-		    {
-		      // This reaper thread could exit, but we
-		      // keep it alive for a while in case
-		      // someone wants to start more Processes.
-		      try
-		        {
-			  queueLock.wait(1000L);
-			  if (queue.size() == 0)
-			    {
-			      processManager = null;
-			      return; // Timed out.
-			    }
-		        }
-		      catch (InterruptedException ie)
-		        {
-			  // Ignore and exit the thread.
-			  return;
-		        }
-		    }
-		  while (queue.size() > 0)
-		    {
-		      ConcreteProcess p = (ConcreteProcess) queue.remove(0);
-		      p.spawn(this);
-		    }
-	        }
+          try
+            {
+              synchronized (queueLock)
+                {
+                  Iterator<PosixProcess> processIterator =
+                    liveProcesses.iterator();
+                  while (processIterator.hasNext())
+                    {
+                      boolean reaped = reap(processIterator.next());
+                      if (reaped)
+                        processIterator.remove();
+                    }
+                  if (liveProcesses.size() == 0 && queue.size() == 0)
+                    {
+                      // This reaper thread could exit, but we keep it
+                      // alive for a while in case someone wants to
+                      // start more Processes.
+                      try
+                        {
+                          queueLock.wait(1000L);
+                          if (queue.size() == 0)
+                            {
+                              processManager = null;
+                              return; // Timed out.
+                            }
+                        }
+                      catch (InterruptedException ie)
+                        {
+                          // Ignore and exit the thread.
+                          return;
+                        }
+                    }
+                  while (queue.size() > 0)
+                    {
+                      PosixProcess p = queue.remove(0);
+                      p.spawn(this);
+                    }
+                }
 
-	      // Wait for a SIGCHLD from either an exiting
-	      // process or the startExecuting() method.  This
-	      // is done outside of the synchronized block to
-	      // allow other threads to enter and submit more
-	      // jobs.
-	      waitForSignal();
-	    }
-	  catch (Exception ex)
-	    {
-	      ex.printStackTrace(System.err);
-	    }
+              // Wait for a SIGCHLD from either an exiting process or
+              // the startExecuting() method.  This is done outside of
+              // the synchronized block to allow other threads to
+              // enter and submit more jobs.
+              waitForSignal();
+            }
+          catch (Exception ex)
+            {
+              ex.printStackTrace(System.err);
+            }
         }
     }
 
     /**
      * Setup native signal handlers and other housekeeping things.
-     *
      */
     private native void init();
 
@@ -186,12 +180,14 @@ final class ConcreteProcess extends Process
     private native void waitForSignal();
 
     /**
-     * Try to reap as many children as possible without blocking.
+     * Try to reap the specified child without blocking.
      *
-     * @return true if more live children exist.
+     * @param p the process to try to reap.
+     *
+     * @return true if the process terminated.
      *
      */
-    private native boolean reap();
+    private native boolean reap(PosixProcess p);
 
     /**
      * Send SIGCHLD to the reaper thread.
@@ -294,7 +290,7 @@ final class ConcreteProcess extends Process
       returnedErrorStream = EOFInputStream.instance;
     else
       returnedErrorStream = errorStream;
-            
+
     return returnedErrorStream;
   }
 
@@ -307,7 +303,7 @@ final class ConcreteProcess extends Process
       returnedInputStream = EOFInputStream.instance;
     else
       returnedInputStream = inputStream;
-            
+
     return returnedInputStream;
   }
 
@@ -328,7 +324,7 @@ final class ConcreteProcess extends Process
 
   /**
    * Start this process running.  This should only be called by the
-   * ProcessManager.
+   * ProcessManager with the queueLock held.
    *
    * @param pm The ProcessManager that made the call.
    */
@@ -341,7 +337,7 @@ final class ConcreteProcess extends Process
 	// There is no race with reap() in the pidToProcess map
 	// because this is always called from the same thread
 	// doing the reaping.
-	pm.addProcessToMap(this);
+	pm.addToLiveProcesses(this);
 	state = STATE_RUNNING;
 	// Notify anybody waiting on state change.
 	this.notifyAll();
@@ -353,11 +349,8 @@ final class ConcreteProcess extends Process
    */
   private native void nativeSpawn();
 
-  // This file is copied to `ConcreteProcess.java' before
-  // compilation.  Hence the constructor name apparently does not
-  // match the file name.
-  ConcreteProcess(String[] progarray, String[] envp, File dir)
-           throws IOException
+  PosixProcess(String[] progarray, String[] envp, File dir, boolean redirect)
+    throws IOException
   {
     // Check to ensure there is something to run, and avoid
     // dereferencing null pointers in native code.
@@ -367,6 +360,7 @@ final class ConcreteProcess extends Process
     this.progarray = progarray;
     this.envp = envp;
     this.dir = dir;
+    this.redirect = redirect;
 
     // Start a ProcessManager if there is not one already running.
     synchronized (queueLock)
@@ -378,7 +372,7 @@ final class ConcreteProcess extends Process
 	    processManager.waitUntilReady();
 	  }
 
-	// Queue this ConcreteProcess for starting by the ProcessManager.
+	// Queue this PosixProcess for starting by the ProcessManager.
 	processManager.startExecuting(this);
       }
 
@@ -421,15 +415,16 @@ final class ConcreteProcess extends Process
   private String[] progarray;
   private String[] envp;
   private File dir;
+  private boolean redirect;
 
   /** Set by the ProcessManager on problems starting. */
   private Throwable exception;
 
   /** The process id.  This is cast to a pid_t on the native side. */
-  private long pid;
+  long pid;
 
-  // FIXME: Why doesn't the friend declaration in ConcreteProcess.h
-  // allow ConcreteProcess$ProcessManager native code access these
+  // FIXME: Why doesn't the friend declaration in PosixProcess.h
+  // allow PosixProcess$ProcessManager native code access these
   // when they are private?
 
   /** Before the process is forked. */

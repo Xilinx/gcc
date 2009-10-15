@@ -43,7 +43,7 @@ along with GCC; see the file COPYING3.  If not see
     MASK_ALIGN_DOUBLE | MASK_MS_BITFIELD_LAYOUT)
 
 #undef TARGET_CPU_DEFAULT
-#define TARGET_CPU_DEFAULT 2 /* 486 */
+#define TARGET_CPU_DEFAULT TARGET_CPU_DEFAULT_i486
 
 #define WCHAR_TYPE_SIZE 16
 #define WCHAR_TYPE "short unsigned int"
@@ -325,8 +325,7 @@ while (0)
    differently depending on something about the variable or
    function named by the symbol (such as what section it is in).  */
 
-#undef TARGET_ENCODE_SECTION_INFO
-#define TARGET_ENCODE_SECTION_INFO i386_pe_encode_section_info
+#define SUBTARGET_ENCODE_SECTION_INFO i386_pe_encode_section_info
 #undef  TARGET_STRIP_NAME_ENCODING
 #define TARGET_STRIP_NAME_ENCODING  i386_pe_strip_name_encoding_full
 

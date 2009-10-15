@@ -30,7 +30,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "ggc.h"
 #include "vec.h"
 #include "coretypes.h"
-#include "tree.h"
 #include "toplev.h"
 
 struct vec_prefix 

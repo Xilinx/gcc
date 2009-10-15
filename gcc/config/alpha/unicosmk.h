@@ -115,7 +115,7 @@ along with GCC; see the file COPYING3.  If not see
    in registers) are allocated.  */
 
 #define REG_PARM_STACK_SPACE(DECL) 48
-#define OUTGOING_REG_PARM_STACK_SPACE
+#define OUTGOING_REG_PARM_STACK_SPACE 1
 
 /* If an argument can't be passed in registers even though not all argument
    registers have been used yet, it is passed on the stack in the space 
@@ -434,7 +434,5 @@ do { fprintf (FILE, "\tbr $1,0\n");			\
    ??? The Craylibs directory should be autoconfed.  */
 #undef LIB_SPEC
 #define LIB_SPEC "-L/opt/ctl/craylibs/craylibs -lu -lm -lc -lsma"
-
-#undef EXPAND_BUILTIN_VA_START
 
 #define EH_FRAME_IN_DATA_SECTION 1

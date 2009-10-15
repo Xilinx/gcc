@@ -1,6 +1,6 @@
 /* Target-independent configuration for VxWorks and VxWorks AE.   
    Copyright (C) 2005, 2007 Free Software Foundation, Inc.
-   Contributed by by CodeSourcery, LLC.
+   Contributed by CodeSourcery, LLC.
 
 This file is part of GCC.
 
@@ -55,7 +55,14 @@ along with GCC; see the file COPYING3.  If not see
 #undef WCHAR_TYPE_SIZE
 #define WCHAR_TYPE_SIZE 16
 
+/* Likewise wint_t.  */
+#undef WINT_TYPE
+#define WINT_TYPE "short unsigned int"
+#undef WINT_TYPE_SIZE
+#define WINT_TYPE_SIZE 16
+
 /* Dwarf2 unwind info is not supported.  */
+#undef DWARF2_UNWIND_INFO
 #define DWARF2_UNWIND_INFO 0
 
 /* VxWorks uses DWARF2.  */

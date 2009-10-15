@@ -1,11 +1,14 @@
 /* { dg-do run { target vect_cmdline_needed } } */
 /* { dg-options "-O2 -ftree-vectorize -ftree-vectorizer-verbose=3 -fdump-tree-vect-stats" } */
+/* { dg-options "-O2 -ftree-vectorize -ftree-vectorizer-verbose=3 -fdump-tree-vect-stats -mno-sse" { target { i?86-*-* x86_64-*-* } } } */
 
 #include <stdlib.h>
 
 #define N 16
 
-#if __LONG_MAX__ == 2147483647
+#if __INT_MAX__ == 32767
+typedef char half_word;
+#elif __LONG_MAX__ == 2147483647
 typedef short half_word;
 #else
 typedef int half_word;

@@ -1,5 +1,5 @@
 @c Copyright (C) 1988, 1989, 1992, 1994, 1997, 1998, 1999, 2000, 2001, 2002,
-@c 2003, 2004, 2005
+@c 2003, 2004, 2005, 2006, 2007, 2008
 @c Free Software Foundation, Inc.
 @c This is part of the GCC manual.
 @c For copying conditions, see the file gcc.texi.
@@ -10,10 +10,10 @@
 @cindex representation of RTL
 @cindex Register Transfer Language (RTL)
 
-Most of the work of the compiler is done on an intermediate representation
-called register transfer language.  In this language, the instructions to be
-output are described, pretty much one by one, in an algebraic form that
-describes what the instruction does.
+The last part of the compiler work is done on a low-level intermediate
+representation called Register Transfer Language.  In this language, the
+instructions to be output are described, pretty much one by one, in an
+algebraic form that describes what the instruction does.
 
 RTL is inspired by Lisp lists.  It has both an internal form, made up of
 structures that point at other structures, and a textual form that is used
@@ -1129,6 +1129,96 @@ floating point number all 128 of whose bits are meaningful.
 all 128 of whose bits are meaningful.  One common use is the
 IEEE quad-precision format.
 
+@findex QQmode
+@item QQmode
+``Quarter-Fractional'' mode represents a single byte treated as a signed
+fractional number.  The default format is ``s.7''.
+
+@findex HQmode
+@item HQmode
+``Half-Fractional'' mode represents a two-byte signed fractional number.
+The default format is ``s.15''.
+
+@findex SQmode
+@item SQmode
+``Single Fractional'' mode represents a four-byte signed fractional number.
+The default format is ``s.31''.
+
+@findex DQmode
+@item DQmode
+``Double Fractional'' mode represents an eight-byte signed fractional number.
+The default format is ``s.63''.
+
+@findex TQmode
+@item TQmode
+``Tetra Fractional'' mode represents a sixteen-byte signed fractional number.
+The default format is ``s.127''.
+
+@findex UQQmode
+@item UQQmode
+``Unsigned Quarter-Fractional'' mode represents a single byte treated as an
+unsigned fractional number.  The default format is ``.8''.
+
+@findex UHQmode
+@item UHQmode
+``Unsigned Half-Fractional'' mode represents a two-byte unsigned fractional
+number.  The default format is ``.16''.
+
+@findex USQmode
+@item USQmode
+``Unsigned Single Fractional'' mode represents a four-byte unsigned fractional
+number.  The default format is ``.32''.
+
+@findex UDQmode
+@item UDQmode
+``Unsigned Double Fractional'' mode represents an eight-byte unsigned
+fractional number.  The default format is ``.64''.
+
+@findex UTQmode
+@item UTQmode
+``Unsigned Tetra Fractional'' mode represents a sixteen-byte unsigned
+fractional number.  The default format is ``.128''.
+
+@findex HAmode
+@item HAmode
+``Half-Accumulator'' mode represents a two-byte signed accumulator.
+The default format is ``s8.7''.
+
+@findex SAmode
+@item SAmode
+``Single Accumulator'' mode represents a four-byte signed accumulator.
+The default format is ``s16.15''.
+
+@findex DAmode
+@item DAmode
+``Double Accumulator'' mode represents an eight-byte signed accumulator.
+The default format is ``s32.31''.
+
+@findex TAmode
+@item TAmode
+``Tetra Accumulator'' mode represents a sixteen-byte signed accumulator.
+The default format is ``s64.63''.
+
+@findex UHAmode
+@item UHAmode
+``Unsigned Half-Accumulator'' mode represents a two-byte unsigned accumulator.
+The default format is ``8.8''.
+
+@findex USAmode
+@item USAmode
+``Unsigned Single Accumulator'' mode represents a four-byte unsigned
+accumulator.  The default format is ``16.16''.
+
+@findex UDAmode
+@item UDAmode
+``Unsigned Double Accumulator'' mode represents an eight-byte unsigned
+accumulator.  The default format is ``32.32''.
+
+@findex UTAmode
+@item UTAmode
+``Unsigned Tetra Accumulator'' mode represents a sixteen-byte unsigned
+accumulator.  The default format is ``64.64''.
+
 @findex CCmode
 @item CCmode
 ``Condition Code'' mode represents the value of a condition code, which
@@ -1220,6 +1310,26 @@ Floating point modes.  By default these are @code{QFmode},
 Decimal floating point modes.  By default these are @code{SDmode},
 @code{DDmode} and @code{TDmode}.
 
+@findex MODE_FRACT
+@item MODE_FRACT
+Signed fractional modes.  By default these are @code{QQmode}, @code{HQmode},
+@code{SQmode}, @code{DQmode} and @code{TQmode}.
+
+@findex MODE_UFRACT
+@item MODE_UFRACT
+Unsigned fractional modes.  By default these are @code{UQQmode}, @code{UHQmode},
+@code{USQmode}, @code{UDQmode} and @code{UTQmode}.
+
+@findex MODE_ACCUM
+@item MODE_ACCUM
+Signed accumulator modes.  By default these are @code{HAmode},
+@code{SAmode}, @code{DAmode} and @code{TAmode}.
+
+@findex MODE_UACCUM
+@item MODE_UACCUM
+Unsigned accumulator modes.  By default these are @code{UHAmode},
+@code{USAmode}, @code{UDAmode} and @code{UTAmode}.
+
 @findex MODE_COMPLEX_INT
 @item MODE_COMPLEX_INT
 Complex integer modes.  (These are not currently implemented).
@@ -1286,6 +1396,14 @@ Returns the size in bytes of a datum of mode @var{m}.
 @findex GET_MODE_BITSIZE
 @item GET_MODE_BITSIZE (@var{m})
 Returns the size in bits of a datum of mode @var{m}.
+
+@findex GET_MODE_IBIT
+@item GET_MODE_IBIT (@var{m})
+Returns the number of integral bits of a datum of fixed-point mode @var{m}.
+
+@findex GET_MODE_FBIT
+@item GET_MODE_FBIT (@var{m})
+Returns the number of fractional bits of a datum of fixed-point mode @var{m}.
 
 @findex GET_MODE_MASK
 @item GET_MODE_MASK (@var{m})
@@ -1367,6 +1485,15 @@ integer constant too large to fit into @code{HOST_BITS_PER_WIDE_INT}
 bits but small enough to fit within twice that number of bits (GCC
 does not provide a mechanism to represent even larger constants).  In
 the latter case, @var{m} will be @code{VOIDmode}.
+
+@findex const_fixed
+@item (const_fixed:@var{m} @var{addr})
+Represents a fixed-point constant of mode @var{m}.
+The data structure, which contains data with the size of two
+@code{HOST_BITS_PER_WIDE_INT} and the associated fixed-point mode,
+is access with the macro @code{CONST_FIXED_VALUE}.  The high part of data
+is accessed with @code{CONST_FIXED_VALUE_HIGH}; the low part is accessed
+with @code{CONST_FIXED_VALUE_LOW}.
 
 @findex const_vector
 @item (const_vector:@var{m} [@var{x0} @var{x1} @dots{}])
@@ -1768,6 +1895,19 @@ is always @code{Pmode}.  If there are any @code{addressof}
 expressions left in the function after CSE, @var{reg} is forced into the
 stack and the @code{addressof} expression is replaced with a @code{plus}
 expression for the address of its stack slot.
+
+@findex concat
+@item (concat@var{m} @var{rtx} @var{rtx})
+This RTX represents the concatenation of two other RTXs.  This is used
+for complex values.  It should only appear in the RTL attached to
+declarations and during RTL generation.  It should not appear in the
+ordinary insn chain.
+
+@findex concatn
+@item (concatn@var{m} [@var{rtx} @dots{}])
+This RTX represents the concatenation of all the @var{rtx} to make a
+single value.  Like @code{concat}, this should only appear in
+declarations, and not in the insn chain.
 @end table
 
 @node Arithmetic
@@ -1876,24 +2016,35 @@ still known.
 
 @findex neg
 @findex ss_neg
+@findex us_neg
 @cindex negation
 @cindex negation with signed saturation
+@cindex negation with unsigned saturation
 @item (neg:@var{m} @var{x})
 @itemx (ss_neg:@var{m} @var{x})
+@itemx (us_neg:@var{m} @var{x})
 These two expressions represent the negation (subtraction from zero) of
 the value represented by @var{x}, carried out in mode @var{m}.  They
 differ in the behavior on overflow of integer modes.  In the case of
 @code{neg}, the negation of the operand may be a number not representable
 in mode @var{m}, in which case it is truncated to @var{m}.  @code{ss_neg}
-ensures that an out-of-bounds result saturates to the maximum or minimum
-representable value.
+and @code{us_neg} ensure that an out-of-bounds result saturates to the
+maximum or minimum signed or unsigned value.
 
 @findex mult
+@findex ss_mult
+@findex us_mult
 @cindex multiplication
 @cindex product
+@cindex multiplication with signed saturation
+@cindex multiplication with unsigned saturation
 @item (mult:@var{m} @var{x} @var{y})
+@itemx (ss_mult:@var{m} @var{x} @var{y})
+@itemx (us_mult:@var{m} @var{x} @var{y})
 Represents the signed product of the values represented by @var{x} and
 @var{y} carried out in machine mode @var{m}.
+@code{ss_mult} and @code{us_mult} ensure that an out-of-bounds result
+saturates to the maximum or minimum signed or unsigned value.
 
 Some machines support a multiplication that generates a product wider
 than the operands.  Write the pattern for this as
@@ -1909,14 +2060,19 @@ For unsigned widening multiplication, use the same idiom, but with
 @code{zero_extend} instead of @code{sign_extend}.
 
 @findex div
+@findex ss_div
 @cindex division
 @cindex signed division
+@cindex signed division with signed saturation
 @cindex quotient
 @item (div:@var{m} @var{x} @var{y})
+@itemx (ss_div:@var{m} @var{x} @var{y})
 Represents the quotient in signed division of @var{x} by @var{y},
 carried out in machine mode @var{m}.  If @var{m} is a floating point
 mode, it represents the exact quotient; otherwise, the integerized
 quotient.
+@code{ss_div} ensures that an out-of-bounds result saturates to the maximum
+or minimum signed value.
 
 Some machines have division instructions in which the operands and
 quotient widths are not all the same; you should represent
@@ -1928,9 +2084,13 @@ such instructions using @code{truncate} and @code{sign_extend} as in,
 
 @findex udiv
 @cindex unsigned division
+@cindex unsigned division with unsigned saturation
 @cindex division
 @item (udiv:@var{m} @var{x} @var{y})
+@itemx (us_div:@var{m} @var{x} @var{y})
 Like @code{div} but represents unsigned division.
+@code{us_div} ensures that an out-of-bounds result saturates to the maximum
+or minimum unsigned value.
 
 @findex mod
 @findex umod
@@ -1994,18 +2154,21 @@ fixed-point mode.
 
 @findex ashift
 @findex ss_ashift
+@findex us_ashift
 @cindex left shift
 @cindex shift
 @cindex arithmetic shift
 @cindex arithmetic shift with signed saturation
+@cindex arithmetic shift with unsigned saturation
 @item (ashift:@var{m} @var{x} @var{c})
 @itemx (ss_ashift:@var{m} @var{x} @var{c})
-These two expressions represent the result of arithmetically shifting @var{x}
+@itemx (us_ashift:@var{m} @var{x} @var{c})
+These three expressions represent the result of arithmetically shifting @var{x}
 left by @var{c} places.  They differ in their behavior on overflow of integer
 modes.  An @code{ashift} operation is a plain shift with no special behavior
-in case of a change in the sign bit; @code{ss_ashift} saturates to the minimum
-or maximum representable value if any of the bits shifted out differs from the
-final sign bit.
+in case of a change in the sign bit; @code{ss_ashift} and @code{us_ashift}
+saturates to the minimum or maximum representable value if any of the bits
+shifted out differs from the final sign bit.
 
 @var{x} have mode @var{m}, a fixed-point machine mode.  @var{c}
 be a fixed-point mode or be a constant with mode @code{VOIDmode}; which
@@ -2055,7 +2218,7 @@ valid.
 Represents the number of leading 0-bits in @var{x}, represented as an
 integer of mode @var{m}, starting at the most significant bit position.
 If @var{x} is zero, the value is determined by
-@code{CLZ_DEFINED_VALUE_AT_ZERO}.  Note that this is one of
+@code{CLZ_DEFINED_VALUE_AT_ZERO} (@pxref{Misc}).  Note that this is one of
 the few expressions that is not invariant under widening.  The mode of
 @var{x} will usually be an integer mode.
 
@@ -2064,7 +2227,7 @@ the few expressions that is not invariant under widening.  The mode of
 Represents the number of trailing 0-bits in @var{x}, represented as an
 integer of mode @var{m}, starting at the least significant bit position.
 If @var{x} is zero, the value is determined by
-@code{CTZ_DEFINED_VALUE_AT_ZERO}.  Except for this case,
+@code{CTZ_DEFINED_VALUE_AT_ZERO} (@pxref{Misc}).  Except for this case,
 @code{ctz(x)} is equivalent to @code{ffs(@var{x}) - 1}.  The mode of
 @var{x} will usually be an integer mode.
 
@@ -2078,6 +2241,11 @@ mode @var{m}.  The mode of @var{x} will usually be an integer mode.
 Represents the number of 1-bits modulo 2 in @var{x}, represented as an
 integer of mode @var{m}.  The mode of @var{x} will usually be an integer
 mode.
+
+@findex bswap
+@item (bswap:@var{m} @var{x})
+Represents the value @var{x} with the order of bytes reversed, carried out
+in mode @var{m}, which must be a fixed-point machine mode.
 @end table
 
 @node Comparisons
@@ -2387,6 +2555,38 @@ When @var{m} is a floating point mode, represents the result of
 converting floating point value @var{x} (valid for mode @var{m}) to an
 integer, still represented in floating point mode @var{m}, by rounding
 towards zero.
+
+@findex fract_convert
+@item (fract_convert:@var{m} @var{x})
+Represents the result of converting fixed-point value @var{x} to
+fixed-point mode @var{m}, signed integer value @var{x} to
+fixed-point mode @var{m}, floating-point value @var{x} to
+fixed-point mode @var{m}, fixed-point value @var{x} to integer mode @var{m}
+regarded as signed, or fixed-point value @var{x} to floating-point mode @var{m}.
+When overflows or underflows happen, the results are undefined.
+
+@findex sat_fract
+@item (sat_fract:@var{m} @var{x})
+Represents the result of converting fixed-point value @var{x} to
+fixed-point mode @var{m}, signed integer value @var{x} to
+fixed-point mode @var{m}, or floating-point value @var{x} to
+fixed-point mode @var{m}.
+When overflows or underflows happen, the results are saturated to the
+maximum or the minimum.
+
+@findex unsigned_fract_convert
+@item (unsigned_fract_convert:@var{m} @var{x})
+Represents the result of converting fixed-point value @var{x} to
+integer mode @var{m} regarded as unsigned, or unsigned integer value @var{x} to
+fixed-point mode @var{m}.
+When overflows or underflows happen, the results are undefined.
+
+@findex unsigned_sat_fract
+@item (unsigned_sat_fract:@var{m} @var{x})
+Represents the result of converting unsigned integer value @var{x} to
+fixed-point mode @var{m}.
+When overflows or underflows happen, the results are saturated to the
+maximum or the minimum.
 @end table
 
 @node RTL Declarations
@@ -2995,9 +3195,10 @@ mandatory ones listed above.  These four are described in a table below.
 @findex jump_insn
 @item jump_insn
 The expression code @code{jump_insn} is used for instructions that may
-jump (or, more generally, may contain @code{label_ref} expressions).  If
-there is an instruction to return from the current function, it is
-recorded as a @code{jump_insn}.
+jump (or, more generally, may contain @code{label_ref} expressions to
+which @code{pc} can be set in that instruction).  If there is an
+instruction to return from the current function, it is recorded as a
+@code{jump_insn}.
 
 @findex JUMP_LABEL
 @code{jump_insn} insns have the same extra fields as @code{insn} insns,
@@ -3007,9 +3208,11 @@ accessed in the same way and in addition contain a field
 For simple conditional and unconditional jumps, this field contains
 the @code{code_label} to which this insn will (possibly conditionally)
 branch.  In a more complex jump, @code{JUMP_LABEL} records one of the
-labels that the insn refers to; the only way to find the others is to
-scan the entire body of the insn.  In an @code{addr_vec},
-@code{JUMP_LABEL} is @code{NULL_RTX}.
+labels that the insn refers to; other jump target labels are recorded
+as @code{REG_LABEL_TARGET} notes.  The exception is @code{addr_vec}
+and @code{addr_diff_vec}, where @code{JUMP_LABEL} is @code{NULL_RTX}
+and the only way to find the labels is to scan the entire body of the
+insn.
 
 Return insns count as jumps, but since they do not refer to any
 labels, their @code{JUMP_LABEL} is @code{NULL_RTX}.
@@ -3167,13 +3370,6 @@ invariants.
 Appears at the start of the function body, after the function
 prologue.
 
-@findex NOTE_INSN_FUNCTION_END
-@item NOTE_INSN_FUNCTION_END
-Appears near the end of the function body, just before the label that
-@code{return} statements jump to (on machine where a single instruction
-does not suffice for returning).  This note may be deleted by jump
-optimization.
-
 @end table
 
 These codes are printed symbolically when they appear in debugging dumps.
@@ -3233,7 +3429,9 @@ file as some small positive or negative offset from a named pattern.
 @item LOG_LINKS (@var{i})
 A list (chain of @code{insn_list} expressions) giving information about
 dependencies between instructions within a basic block.  Neither a jump
-nor a label may come between the related insns.
+nor a label may come between the related insns.  These are only used by
+the schedulers and by combine.  This is a deprecated data structure.
+Def-use and use-def chains are now preferred. 
 
 @findex REG_NOTES
 @item REG_NOTES (@var{i})
@@ -3254,13 +3452,7 @@ This list is originally set up by the flow analysis pass; it is a null
 pointer until then.  Flow only adds links for those data dependencies
 which can be used for instruction combination.  For each insn, the flow
 analysis pass adds a link to insns which store into registers values
-that are used for the first time in this insn.  The instruction
-scheduling pass adds extra links so that every dependence will be
-represented.  Links represent data dependencies, antidependencies and
-output dependencies; the machine mode of the link distinguishes these
-three types: antidependencies have mode @code{REG_DEP_ANTI}, output
-dependencies have mode @code{REG_DEP_OUTPUT}, and data dependencies have
-mode @code{VOIDmode}.
+that are used for the first time in this insn.
 
 The @code{REG_NOTES} field of an insn is a chain similar to the
 @code{LOG_LINKS} field but it includes @code{expr_list} expressions in
@@ -3336,14 +3528,25 @@ note giving the expression being computed.  This block is encapsulated
 with @code{REG_LIBCALL} and @code{REG_RETVAL} notes on the first and
 last insns, respectively.
 
-@findex REG_LABEL
-@item REG_LABEL
+@findex REG_LABEL_OPERAND
+@item REG_LABEL_OPERAND
 This insn uses @var{op}, a @code{code_label} or a @code{note} of type
-@code{NOTE_INSN_DELETED_LABEL}, but is not a
-@code{jump_insn}, or it is a @code{jump_insn} that required the label to
-be held in a register.  The presence of this note allows jump
-optimization to be aware that @var{op} is, in fact, being used, and flow
-optimization to build an accurate flow graph.
+@code{NOTE_INSN_DELETED_LABEL}, but is not a @code{jump_insn}, or it
+is a @code{jump_insn} that refers to the operand as an ordinary
+operand.  The label may still eventually be a jump target, but if so
+in an indirect jump in a subsequent insn.  The presence of this note
+allows jump optimization to be aware that @var{op} is, in fact, being
+used, and flow optimization to build an accurate flow graph.
+
+@findex REG_LABEL_TARGET
+@item REG_LABEL_TARGET
+This insn is a @code{jump_insn} but not a @code{addr_vec} or
+@code{addr_diff_vec}.  It uses @var{op}, a @code{code_label} as a
+direct or indirect jump target.  Its purpose is similar to that of
+@code{REG_LABEL_OPERAND}.  This note is only present if the insn has
+multiple targets; the last label in the insn (in the highest numbered
+insn-field) goes into the @code{JUMP_LABEL} field and does not have a
+@code{REG_LABEL_TARGET} note.  @xref{Insns, JUMP_LABEL}.
 
 @findex REG_CROSSING_JUMP
 @item REG_CROSSING_JUMP
@@ -3483,13 +3686,18 @@ they simply have mode @code{VOIDmode}, and are printed without any
 descriptive text.
 
 @table @code
-@findex REG_DEP_ANTI
-@item REG_DEP_ANTI
-This indicates an anti dependence (a write after read dependence).
+@findex REG_DEP_TRUE
+@item REG_DEP_TRUE
+This indicates a true dependence (a read after write dependence).
 
 @findex REG_DEP_OUTPUT
 @item REG_DEP_OUTPUT
 This indicates an output dependence (a write after write dependence).
+
+@findex REG_DEP_ANTI
+@item REG_DEP_ANTI
+This indicates an anti dependence (a write after read dependence).
+
 @end table
 
 These notes describe information gathered from gcov profile data.  They
@@ -3515,6 +3723,12 @@ of the JUMP@.  The format is a bitmask of ATTR_FLAG_* values.
 This is used on an RTX_FRAME_RELATED_P insn wherein the attached expression
 is used in place of the actual insn pattern.  This is done in cases where
 the pattern is either complex or misleading.
+
+@findex REG_LIBCALL_ID
+@item REG_LIBCALL_ID
+This is used to specify that an insn is part of a libcall.  Each libcall
+in a function has a unique id, and all the insns that are part of that
+libcall will have a REG_LIBCALL_ID note attached with the same ID.
 @end table
 
 For convenience, the machine mode in an @code{insn_list} or

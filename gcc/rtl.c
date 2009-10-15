@@ -110,7 +110,7 @@ const enum rtx_class rtx_class[NUM_RTX_CODE] = {
 
 const unsigned char rtx_code_size[NUM_RTX_CODE] = {
 #define DEF_RTL_EXPR(ENUM, NAME, FORMAT, CLASS)				\
-  ((ENUM) == CONST_INT || (ENUM) == CONST_DOUBLE			\
+  ((ENUM) == CONST_INT || (ENUM) == CONST_DOUBLE || (ENUM) == CONST_FIXED\
    ? RTX_HDR_SIZE + (sizeof FORMAT - 1) * sizeof (HOST_WIDE_INT)	\
    : RTX_HDR_SIZE + (sizeof FORMAT - 1) * sizeof (rtunion)),
 
@@ -118,15 +118,10 @@ const unsigned char rtx_code_size[NUM_RTX_CODE] = {
 #undef DEF_RTL_EXPR
 };
 
-/* Make sure all NOTE_INSN_* values are negative.  */
-extern char NOTE_INSN_MAX_isnt_negative_adjust_NOTE_INSN_BIAS
-[NOTE_INSN_MAX < 0 ? 1 : -1];
-
 /* Names for kinds of NOTEs and REG_NOTEs.  */
 
-const char * const note_insn_name[NOTE_INSN_MAX - NOTE_INSN_BIAS] =
+const char * const note_insn_name[NOTE_INSN_MAX] =
 {
-  "",
 #define DEF_INSN_NOTE(NAME) #NAME,
 #include "insn-notes.def"
 #undef DEF_INSN_NOTE
@@ -172,7 +167,7 @@ rtvec_alloc (int n)
 /* Return the number of bytes occupied by rtx value X.  */
 
 unsigned int
-rtx_size (rtx x)
+rtx_size (const_rtx x)
 {
   if (GET_CODE (x) == SYMBOL_REF && SYMBOL_REF_HAS_BLOCK_INFO_P (x))
     return RTX_HDR_SIZE + sizeof (struct block_symbol);
@@ -205,6 +200,21 @@ rtx_alloc_stat (RTX_CODE code MEM_STAT_DECL)
 }
 
 
+/* Return true if ORIG is a sharable CONST.  */
+
+bool
+shared_const_p (const_rtx orig)
+{
+  gcc_assert (GET_CODE (orig) == CONST);
+  
+  /* CONST can be shared if it contains a SYMBOL_REF.  If it contains
+     a LABEL_REF, it isn't sharable.  */
+  return (GET_CODE (XEXP (orig, 0)) == PLUS
+	  && GET_CODE (XEXP (XEXP (orig, 0), 0)) == SYMBOL_REF
+	  && GET_CODE (XEXP (XEXP (orig, 0), 1)) == CONST_INT);
+}
+
+
 /* Create a new copy of an rtx.
    Recursively copies the operands of the rtx,
    except for those few rtx codes that are sharable.  */
@@ -224,6 +234,7 @@ copy_rtx (rtx orig)
     case REG:
     case CONST_INT:
     case CONST_DOUBLE:
+    case CONST_FIXED:
     case CONST_VECTOR:
     case SYMBOL_REF:
     case CODE_LABEL:
@@ -238,11 +249,7 @@ copy_rtx (rtx orig)
       break;
 
     case CONST:
-      /* CONST can be shared if it contains a SYMBOL_REF.  If it contains
-	 a LABEL_REF, it isn't sharable.  */
-      if (GET_CODE (XEXP (orig, 0)) == PLUS
-	  && GET_CODE (XEXP (XEXP (orig, 0), 0)) == SYMBOL_REF
-	  && GET_CODE (XEXP (XEXP (orig, 0), 1)) == CONST_INT)
+      if (shared_const_p (orig))
 	return orig;
       break;
 
@@ -312,15 +319,11 @@ copy_rtx (rtx orig)
 /* Create a new copy of an rtx.  Only copy just one level.  */
 
 rtx
-shallow_copy_rtx_stat (rtx orig MEM_STAT_DECL)
+shallow_copy_rtx_stat (const_rtx orig MEM_STAT_DECL)
 {
-  unsigned int size;
-  rtx copy;
-
-  size = rtx_size (orig);
-  copy = (rtx) ggc_alloc_zone_pass_stat (size, &rtl_zone);
-  memcpy (copy, orig, size);
-  return copy;
+  const unsigned int size = rtx_size (orig);
+  rtx const copy = (rtx) ggc_alloc_zone_pass_stat (size, &rtl_zone);
+  return memcpy (copy, orig, size);
 }
 
 /* Nonzero when we are generating CONCATs.  */
@@ -334,7 +337,7 @@ int currently_expanding_to_rtl;
    This is the Lisp function EQUAL for rtx arguments.  */
 
 int
-rtx_equal_p (rtx x, rtx y)
+rtx_equal_p (const_rtx x, const_rtx y)
 {
   int i;
   int j;
@@ -372,6 +375,7 @@ rtx_equal_p (rtx x, rtx y)
     case SCRATCH:
     case CONST_DOUBLE:
     case CONST_INT:
+    case CONST_FIXED:
       return 0;
 
     default:
@@ -473,7 +477,7 @@ dump_rtx_statistics (void)
 
 #if defined ENABLE_RTL_CHECKING && (GCC_VERSION >= 2007)
 void
-rtl_check_failed_bounds (rtx r, int n, const char *file, int line,
+rtl_check_failed_bounds (const_rtx r, int n, const char *file, int line,
 			 const char *func)
 {
   internal_error
@@ -483,7 +487,7 @@ rtl_check_failed_bounds (rtx r, int n, const char *file, int line,
 }
 
 void
-rtl_check_failed_type1 (rtx r, int n, int c1, const char *file, int line,
+rtl_check_failed_type1 (const_rtx r, int n, int c1, const char *file, int line,
 			const char *func)
 {
   internal_error
@@ -493,7 +497,7 @@ rtl_check_failed_type1 (rtx r, int n, int c1, const char *file, int line,
 }
 
 void
-rtl_check_failed_type2 (rtx r, int n, int c1, int c2, const char *file,
+rtl_check_failed_type2 (const_rtx r, int n, int c1, int c2, const char *file,
 			int line, const char *func)
 {
   internal_error
@@ -503,7 +507,7 @@ rtl_check_failed_type2 (rtx r, int n, int c1, int c2, const char *file,
 }
 
 void
-rtl_check_failed_code1 (rtx r, enum rtx_code code, const char *file,
+rtl_check_failed_code1 (const_rtx r, enum rtx_code code, const char *file,
 			int line, const char *func)
 {
   internal_error ("RTL check: expected code '%s', have '%s' in %s, at %s:%d",
@@ -512,7 +516,7 @@ rtl_check_failed_code1 (rtx r, enum rtx_code code, const char *file,
 }
 
 void
-rtl_check_failed_code2 (rtx r, enum rtx_code code1, enum rtx_code code2,
+rtl_check_failed_code2 (const_rtx r, enum rtx_code code1, enum rtx_code code2,
 			const char *file, int line, const char *func)
 {
   internal_error
@@ -522,7 +526,7 @@ rtl_check_failed_code2 (rtx r, enum rtx_code code1, enum rtx_code code2,
 }
 
 void
-rtl_check_failed_code_mode (rtx r, enum rtx_code code, enum machine_mode mode,
+rtl_check_failed_code_mode (const_rtx r, enum rtx_code code, enum machine_mode mode,
 			    bool not_mode, const char *file, int line,
 			    const char *func)
 {
@@ -549,7 +553,7 @@ rtl_check_failed_block_symbol (const char *file, int line, const char *func)
 
 /* XXX Maybe print the vector?  */
 void
-rtvec_check_failed_bounds (rtvec r, int n, const char *file, int line,
+rtvec_check_failed_bounds (const_rtvec r, int n, const char *file, int line,
 			   const char *func)
 {
   internal_error
@@ -560,7 +564,7 @@ rtvec_check_failed_bounds (rtvec r, int n, const char *file, int line,
 
 #if defined ENABLE_RTL_FLAG_CHECKING
 void
-rtl_check_failed_flag (const char *name, rtx r, const char *file,
+rtl_check_failed_flag (const char *name, const_rtx r, const char *file,
 		       int line, const char *func)
 {
   internal_error

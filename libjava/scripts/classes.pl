@@ -1,7 +1,8 @@
 # classes.pl - A perl program to generate most of the contents of
 # javaprims.h automatically.
 
-# Copyright (C) 1998, 1999, 2000, 2002, 2005  Free Software Foundation
+# Copyright (C) 1998, 1999, 2000, 2002, 2005, 2006, 2007  Free Software
+# Foundation
 #
 # This file is part of libgcj.
 #
@@ -9,7 +10,7 @@
 # Libgcj License.  Please consult the file "LIBGCJ_LICENSE" for
 # details.
 
-# Usage: cd <build>/classpath/lib ; perl classes.pl.
+# Usage: cd <srcdir>/classpath/lib ; perl ../../scripts/classes.pl.
 
 use DirHandle;
 
@@ -44,6 +45,7 @@ sub scan
 	while (defined ($name = $d->read))
 	{
 	    next if $name eq 'CVS';
+	    next if $name eq '.svn';
 	    next if $name eq '.';
 	    next if $name eq '..';
 	    if ($dir eq 'java'

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 2003-2005 Free Software Foundation, Inc.          --
+--          Copyright (C) 2003-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- This specification is derived from the Ada Reference Manual for use with --
 -- GNAT. The copyright notice above, and the license provisions that follow --
@@ -40,9 +40,12 @@
 package System.Traceback_Entries is
    pragma Preelaborate;
 
+   --  Symbolization is performed by a VMS service which requires more
+   --  than an instruction pointer.
+
    type Traceback_Entry is record
-      PC : System.Address;
-      PV : System.Address;
+      PC : System.Address;  --  Program Counter
+      PV : System.Address;  --  Procedure Value
    end record;
 
    pragma Suppress_Initialization (Traceback_Entry);

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                  B o d y                                 --
 --                                                                          --
---          Copyright (C) 1992-2006 Free Software Foundation, Inc.          --
+--          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -31,13 +31,11 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
---  This is the VxWorks version of this package.
+--  This is the VxWorks version of this package
 
---  Make a careful study of all signals available under the OS,
---  to see which need to be reserved, kept always unmasked,
---  or kept always unmasked.
---  Be on the lookout for special signals that
---  may be used by the thread library.
+--  Make a careful study of all signals available under the OS, to see which
+--  need to be reserved, kept always unmasked, or kept always unmasked. Be on
+--  the lookout for special signals that may be used by the thread library.
 
 package body System.Interrupt_Management is
 
@@ -62,9 +60,8 @@ package body System.Interrupt_Management is
 
    function State (Int : Interrupt_ID) return Character;
    pragma Import (C, State, "__gnat_get_interrupt_state");
-   --  Get interrupt state.  Defined in init.c
-   --  The input argument is the interrupt number,
-   --  and the result is one of the following:
+   --  Get interrupt state. Defined in init.c The input argument is the
+   --  interrupt number, and the result is one of the following:
 
    Runtime : constant Character := 'r';
    Default : constant Character := 's';
@@ -89,9 +86,9 @@ package body System.Interrupt_Management is
       pragma Unreferenced (Result);
 
    begin
-      Result := pthread_sigmask (SIG_SETMASK, null, Mask'Unchecked_Access);
+      Result := pthread_sigmask (SIG_SETMASK, null, Mask'Access);
       Result := sigdelset (Mask'Access, signo);
-      Result := pthread_sigmask (SIG_SETMASK, Mask'Unchecked_Access, null);
+      Result := pthread_sigmask (SIG_SETMASK, Mask'Access, null);
 
       Map_And_Raise_Exception (signo);
    end Notify_Exception;
@@ -135,7 +132,7 @@ package body System.Interrupt_Management is
       --  Change this if you want to use another signal for task abort.
       --  SIGTERM might be a good one.
 
-      Abort_Task_Signal := SIGABRT;
+      Abort_Task_Interrupt := SIGABRT;
 
       Exception_Action.sa_handler := Notify_Exception'Address;
       Exception_Action.sa_flags := SA_ONSTACK;
@@ -169,7 +166,7 @@ package body System.Interrupt_Management is
 
       --  The abort signal must also be unmasked
 
-      Keep_Unmasked (Abort_Task_Signal) := True;
+      Keep_Unmasked (Abort_Task_Interrupt) := True;
    end Initialize;
 
 end System.Interrupt_Management;

@@ -1,5 +1,5 @@
 /* DomLSParser.java -- 
-   Copyright (C) 1999,2000,2001 Free Software Foundation, Inc.
+   Copyright (C) 1999,2000,2001,2007 Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -277,6 +277,15 @@ public class DomLSParser
                           validating);
         try
           {
+            reader.setFeature("http://gnu.org/sax/features/coalescing",
+                              coalescing);
+          }
+        catch (SAXNotRecognizedException e)
+          {
+            // ignore
+          } 
+        try
+          {
             reader.setFeature("http://xml.org/sax/features/use-attributes2",
                               true);
           }
@@ -362,22 +371,6 @@ public class DomLSParser
       {
         source = new InputSource(in);
         source.setSystemId(systemId);
-      }
-    if (source == null && entityResolver != null)
-      {
-        String publicId = input.getPublicId();
-        try
-          {
-            source = entityResolver.resolveEntity(publicId, systemId);
-          }
-        catch (SAXException e)
-          {
-            throw new DomLSException(LSException.PARSE_ERR, e);
-          } 
-        catch (IOException e)
-          {
-            throw new DomLSException(LSException.PARSE_ERR, e);
-          } 
       }
     if (source == null)
       {

@@ -19,4 +19,8 @@ LIBGCC = stmp-multilib
 INSTALL_LIBGCC = install-multilib
 
 EXTRA_MULTILIB_PARTS=crtbegin.o crtend.o crtbeginS.o crtendS.o \
-		     crtbeginT.o crtfastmath.o
+		     crtbeginT.o crtprec32.o crtprec64.o crtprec80.o \
+		     crtfastmath.o
+
+softfp_wrap_start := '\#ifdef __x86_64__'
+softfp_wrap_end := '\#endif'

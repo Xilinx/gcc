@@ -1,6 +1,7 @@
 // Multiset implementation -*- C++ -*-
 
-// Copyright (C) 2001, 2002, 2004, 2005, 2006 Free Software Foundation, Inc.
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+// Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -58,12 +59,12 @@
  *  You should not attempt to use it directly.
  */
 
-#ifndef _MULTISET_H
-#define _MULTISET_H 1
+#ifndef _STL_MULTISET_H
+#define _STL_MULTISET_H 1
 
 #include <bits/concept_check.h>
 
-_GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
+_GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
 
   /**
    *  @brief A standard container made up of elements, which can be retrieved
@@ -79,14 +80,12 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
    *
    *  Multisets support bidirectional iterators.
    *
-   *  @if maint
    *  The private tree data is declared exactly the same way for set and
    *  multiset; the distinction is made entirely in how the tree functions are
    *  called (*_unique versus *_equal, same as the standard).
-   *  @endif
   */
-  template <class _Key, class _Compare = std::less<_Key>,
-	    class _Alloc = std::allocator<_Key> >
+  template <typename _Key, typename _Compare = std::less<_Key>,
+	    typename _Alloc = std::allocator<_Key> >
     class multiset
     {
       // concept requirements
@@ -105,12 +104,12 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
       typedef _Alloc   allocator_type;
 
     private:
-      /// @if maint  This turns a red-black tree into a [multi]set.  @endif
+      /// This turns a red-black tree into a [multi]set.
       typedef typename _Alloc::template rebind<_Key>::other _Key_alloc_type;
 
       typedef _Rb_tree<key_type, value_type, _Identity<value_type>,
 		       key_compare, _Key_alloc_type> _Rep_type;
-      /// @if maint  The actual tree structure.  @endif
+      /// The actual tree structure.
       _Rep_type _M_t;
 
     public:
@@ -129,13 +128,17 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
       typedef typename _Rep_type::difference_type           difference_type;
 
       // allocation/deallocation
-
       /**
        *  @brief  Default constructor creates no elements.
        */
       multiset()
-      : _M_t(_Compare(), allocator_type()) { }
+      : _M_t() { }
 
+      /**
+       *  @brief  Creates a %multiset with no elements.
+       *  @param  comp  Comparator to use.
+       *  @param  a  An allocator object.
+       */
       explicit
       multiset(const _Compare& __comp,
 	       const allocator_type& __a = allocator_type())
@@ -150,9 +153,9 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
        *  [first,last).  This is linear in N if the range is already sorted,
        *  and NlogN otherwise (where N is distance(first,last)).
        */
-      template <class _InputIterator>
+      template<typename _InputIterator>
         multiset(_InputIterator __first, _InputIterator __last)
-	: _M_t(_Compare(), allocator_type())
+	: _M_t()
         { _M_t._M_insert_equal(__first, __last); }
 
       /**
@@ -166,7 +169,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
        *  [first,last).  This is linear in N if the range is already sorted,
        *  and NlogN otherwise (where N is distance(first,last)).
        */
-      template <class _InputIterator>
+      template<typename _InputIterator>
         multiset(_InputIterator __first, _InputIterator __last,
 		 const _Compare& __comp,
 		 const allocator_type& __a = allocator_type())
@@ -180,8 +183,20 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
        *  The newly-created %multiset uses a copy of the allocation object used
        *  by @a x.
        */
-      multiset(const multiset<_Key,_Compare,_Alloc>& __x)
+      multiset(const multiset& __x)
       : _M_t(__x._M_t) { }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+     /**
+       *  @brief  %Multiset move constructor.
+       *  @param  x  A %multiset of identical element and allocator types.
+       *
+       *  The newly-created %multiset contains the exact contents of @a x.
+       *  The contents of @a x are a valid, but unspecified %multiset.
+       */
+      multiset(multiset&& __x)
+      : _M_t(std::forward<_Rep_type>(__x._M_t)) { }
+#endif
 
       /**
        *  @brief  %Multiset assignment operator.
@@ -190,12 +205,30 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
        *  All the elements of @a x are copied, but unlike the copy constructor,
        *  the allocator object is not copied.
        */
-      multiset<_Key,_Compare,_Alloc>&
-      operator=(const multiset<_Key,_Compare,_Alloc>& __x)
+      multiset&
+      operator=(const multiset& __x)
       {
 	_M_t = __x._M_t;
 	return *this;
       }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      /**
+       *  @brief  %Multiset move assignment operator.
+       *  @param  x  A %multiset of identical element and allocator types.
+       *
+       *  The contents of @a x are moved into this %multiset (without copying).
+       *  @a x is a valid, but unspecified %multiset.
+       */
+      multiset&
+      operator=(multiset&& __x)
+      {
+	// NB: DR 675.
+	this->clear();
+	this->swap(__x); 
+	return *this;
+      }
+#endif
 
       // accessors:
 
@@ -213,40 +246,78 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
       { return _M_t.get_allocator(); }
 
       /**
-       *  Returns a read/write iterator that points to the first element in the
-       *  %multiset.  Iteration is done in ascending order according to the
-       *  keys.
+       *  Returns a read-only (constant) iterator that points to the first
+       *  element in the %multiset.  Iteration is done in ascending order
+       *  according to the keys.
        */
       iterator
       begin() const
       { return _M_t.begin(); }
 
       /**
-       *  Returns a read/write iterator that points one past the last element in
-       *  the %multiset.  Iteration is done in ascending order according to the
-       *  keys.
+       *  Returns a read-only (constant) iterator that points one past the last
+       *  element in the %multiset.  Iteration is done in ascending order
+       *  according to the keys.
        */
       iterator
       end() const
       { return _M_t.end(); }
 
       /**
-       *  Returns a read/write reverse iterator that points to the last element
-       *  in the %multiset.  Iteration is done in descending order according to
-       *  the keys.
+       *  Returns a read-only (constant) reverse iterator that points to the
+       *  last element in the %multiset.  Iteration is done in descending order
+       *  according to the keys.
        */
       reverse_iterator
       rbegin() const
       { return _M_t.rbegin(); }
 
       /**
-       *  Returns a read/write reverse iterator that points to the last element
-       *  in the %multiset.  Iteration is done in descending order according to
-       *  the keys.
+       *  Returns a read-only (constant) reverse iterator that points to the
+       *  last element in the %multiset.  Iteration is done in descending order
+       *  according to the keys.
        */
       reverse_iterator
       rend() const
       { return _M_t.rend(); }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      /**
+       *  Returns a read-only (constant) iterator that points to the first
+       *  element in the %multiset.  Iteration is done in ascending order
+       *  according to the keys.
+       */
+      iterator
+      cbegin() const
+      { return _M_t.begin(); }
+
+      /**
+       *  Returns a read-only (constant) iterator that points one past the last
+       *  element in the %multiset.  Iteration is done in ascending order
+       *  according to the keys.
+       */
+      iterator
+      cend() const
+      { return _M_t.end(); }
+
+      /**
+       *  Returns a read-only (constant) reverse iterator that points to the
+       *  last element in the %multiset.  Iteration is done in descending order
+       *  according to the keys.
+       */
+      reverse_iterator
+      crbegin() const
+      { return _M_t.rbegin(); }
+
+      /**
+       *  Returns a read-only (constant) reverse iterator that points to the
+       *  last element in the %multiset.  Iteration is done in descending order
+       *  according to the keys.
+       */
+      reverse_iterator
+      crend() const
+      { return _M_t.rend(); }
+#endif
 
       ///  Returns true if the %set is empty.
       bool
@@ -275,7 +346,11 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
        *  std::swap(s1,s2) will feed to this function.
        */
       void
-      swap(multiset<_Key, _Compare, _Alloc>& __x)
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      swap(multiset&& __x)
+#else
+      swap(multiset& __x)
+#endif
       { _M_t.swap(__x._M_t); }
 
       // insert/erase
@@ -309,24 +384,24 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
        *  improve the performance of the insertion process.  A bad hint would
        *  cause no gains in efficiency.
        *
-       *  See http://gcc.gnu.org/onlinedocs/libstdc++/23_containers/howto.html#4
+       *  See http://gcc.gnu.org/onlinedocs/libstdc++/manual/bk01pt07ch17.html
        *  for more on "hinting".
        *
        *  Insertion requires logarithmic time (if the hint is not taken).
        */
       iterator
       insert(iterator __position, const value_type& __x)
-      { return _M_t._M_insert_equal(__position, __x); }
+      { return _M_t._M_insert_equal_(__position, __x); }
 
       /**
-       *  @brief A template function that attemps to insert a range of elements.
+       *  @brief A template function that attempts to insert a range of elements.
        *  @param  first  Iterator pointing to the start of the range to be
        *                 inserted.
        *  @param  last  Iterator pointing to the end of the range.
        *
        *  Complexity similar to that of the range constructor.
        */
-      template <class _InputIterator>
+      template<typename _InputIterator>
         void
         insert(_InputIterator __first, _InputIterator __last)
         { _M_t._M_insert_equal(__first, __last); }
@@ -339,7 +414,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
        *  from a %multiset.  Note that this function only erases the element,
        *  and that if the element is itself a pointer, the pointed-to memory is
        *  not touched in any way.  Managing the pointer is the user's
-       *  responsibilty.
+       *  responsibility.
        */
       void
       erase(iterator __position)
@@ -354,7 +429,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
        *  %multiset.
        *  Note that this function only erases the element, and that if
        *  the element is itself a pointer, the pointed-to memory is not touched
-       *  in any way.  Managing the pointer is the user's responsibilty.
+       *  in any way.  Managing the pointer is the user's responsibility.
        */
       size_type
       erase(const key_type& __x)
@@ -369,7 +444,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
        *  This function erases a sequence of elements from a %multiset.
        *  Note that this function only erases the elements, and that if
        *  the elements themselves are pointers, the pointed-to memory is not
-       *  touched in any way.  Managing the pointer is the user's responsibilty.
+       *  touched in any way.  Managing the pointer is the user's responsibility.
        */
       void
       erase(iterator __first, iterator __last)
@@ -379,7 +454,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
        *  Erases all elements in a %multiset.  Note that this function only
        *  erases the elements, and that if the elements themselves are pointers,
        *  the pointed-to memory is not touched in any way.  Managing the pointer
-       *  is the user's responsibilty.
+       *  is the user's responsibility.
        */
       void
       clear()
@@ -480,12 +555,12 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
       equal_range(const key_type& __x) const
       { return _M_t.equal_range(__x); }
 
-      template <class _K1, class _C1, class _A1>
+      template<typename _K1, typename _C1, typename _A1>
         friend bool
-        operator== (const multiset<_K1, _C1, _A1>&,
-		    const multiset<_K1, _C1, _A1>&);
+        operator==(const multiset<_K1, _C1, _A1>&,
+		   const multiset<_K1, _C1, _A1>&);
 
-      template <class _K1, class _C1, class _A1>
+      template<typename _K1, typename _C1, typename _A1>
         friend bool
         operator< (const multiset<_K1, _C1, _A1>&,
 		   const multiset<_K1, _C1, _A1>&);
@@ -502,7 +577,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
    *  Multisets are considered equivalent if their sizes are equal, and if
    *  corresponding elements compare equal.
   */
-  template <class _Key, class _Compare, class _Alloc>
+  template<typename _Key, typename _Compare, typename _Alloc>
     inline bool
     operator==(const multiset<_Key, _Compare, _Alloc>& __x,
 	       const multiset<_Key, _Compare, _Alloc>& __y)
@@ -519,47 +594,61 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
    *
    *  See std::lexicographical_compare() for how the determination is made.
   */
-  template <class _Key, class _Compare, class _Alloc>
+  template<typename _Key, typename _Compare, typename _Alloc>
     inline bool
     operator<(const multiset<_Key, _Compare, _Alloc>& __x,
 	      const multiset<_Key, _Compare, _Alloc>& __y)
     { return __x._M_t < __y._M_t; }
 
   ///  Returns !(x == y).
-  template <class _Key, class _Compare, class _Alloc>
+  template<typename _Key, typename _Compare, typename _Alloc>
     inline bool
     operator!=(const multiset<_Key, _Compare, _Alloc>& __x,
 	       const multiset<_Key, _Compare, _Alloc>& __y)
     { return !(__x == __y); }
 
   ///  Returns y < x.
-  template <class _Key, class _Compare, class _Alloc>
+  template<typename _Key, typename _Compare, typename _Alloc>
     inline bool
     operator>(const multiset<_Key,_Compare,_Alloc>& __x,
 	      const multiset<_Key,_Compare,_Alloc>& __y)
     { return __y < __x; }
 
   ///  Returns !(y < x)
-  template <class _Key, class _Compare, class _Alloc>
+  template<typename _Key, typename _Compare, typename _Alloc>
     inline bool
     operator<=(const multiset<_Key, _Compare, _Alloc>& __x,
 	       const multiset<_Key, _Compare, _Alloc>& __y)
     { return !(__y < __x); }
 
   ///  Returns !(x < y)
-  template <class _Key, class _Compare, class _Alloc>
+  template<typename _Key, typename _Compare, typename _Alloc>
     inline bool
     operator>=(const multiset<_Key, _Compare, _Alloc>& __x,
 	       const multiset<_Key, _Compare, _Alloc>& __y)
     { return !(__x < __y); }
 
   /// See std::multiset::swap().
-  template <class _Key, class _Compare, class _Alloc>
+  template<typename _Key, typename _Compare, typename _Alloc>
     inline void
     swap(multiset<_Key, _Compare, _Alloc>& __x,
 	 multiset<_Key, _Compare, _Alloc>& __y)
     { __x.swap(__y); }
 
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+  template<typename _Key, typename _Compare, typename _Alloc>
+    inline void
+    swap(multiset<_Key, _Compare, _Alloc>&& __x,
+	 multiset<_Key, _Compare, _Alloc>& __y)
+    { __x.swap(__y); }
+
+  template<typename _Key, typename _Compare, typename _Alloc>
+    inline void
+    swap(multiset<_Key, _Compare, _Alloc>& __x,
+	 multiset<_Key, _Compare, _Alloc>&& __y)
+    { __x.swap(__y); }
+#endif
+
 _GLIBCXX_END_NESTED_NAMESPACE
 
-#endif /* _MULTISET_H */
+#endif /* _STL_MULTISET_H */

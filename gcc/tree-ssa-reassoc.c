@@ -37,6 +37,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "alloc-pool.h"
 #include "vec.h"
 #include "langhooks.h"
+#include "pointer-set.h"
+#include "cfgloop.h"
 
 /*  This is a simple global reassociation pass.  It is, in part, based
     on the LLVM pass of the same name (They do some things more/less
@@ -178,68 +180,38 @@ static alloc_pool operand_entry_pool;
 /* Starting rank number for a given basic block, so that we can rank
    operations using unmovable instructions in that BB based on the bb
    depth.  */
-static unsigned int *bb_rank;
+static long *bb_rank;
 
 /* Operand->rank hashtable.  */
-static htab_t operand_rank;
+static struct pointer_map_t *operand_rank;
 
 
 /* Look up the operand rank structure for expression E.  */
 
-static operand_entry_t
+static inline long
 find_operand_rank (tree e)
 {
-  void **slot;
-  struct operand_entry vrd;
-
-  vrd.op = e;
-  slot = htab_find_slot (operand_rank, &vrd, NO_INSERT);
-  if (!slot)
-    return NULL;
-  return ((operand_entry_t) *slot);
+  void **slot = pointer_map_contains (operand_rank, e);
+  return slot ? (long) *slot : -1;
 }
 
 /* Insert {E,RANK} into the operand rank hashtable.  */
 
-static void
-insert_operand_rank (tree e, unsigned int rank)
+static inline void
+insert_operand_rank (tree e, long rank)
 {
   void **slot;
-  operand_entry_t new_pair = pool_alloc (operand_entry_pool);
-
-  new_pair->op = e;
-  new_pair->rank = rank;
-  slot = htab_find_slot (operand_rank, new_pair, INSERT);
-  gcc_assert (*slot == NULL);
-  *slot = new_pair;
-}
-
-/* Return the hash value for a operand rank structure  */
-
-static hashval_t
-operand_entry_hash (const void *p)
-{
-  const operand_entry_t vr = (operand_entry_t) p;
-  return iterative_hash_expr (vr->op, 0);
-}
-
-/* Return true if two operand rank structures are equal.  */
-
-static int
-operand_entry_eq (const void *p1, const void *p2)
-{
-  const operand_entry_t vr1 = (operand_entry_t) p1;
-  const operand_entry_t vr2 = (operand_entry_t) p2;
-  return vr1->op == vr2->op;
+  gcc_assert (rank > 0);
+  slot = pointer_map_insert (operand_rank, e);
+  gcc_assert (!*slot);
+  *slot = (void *) rank;
 }
 
 /* Given an expression E, return the rank of the expression.  */
 
-static unsigned int
+static long
 get_rank (tree e)
 {
-  operand_entry_t vr;
-
   /* Constants have rank 0.  */
   if (is_gimple_min_invariant (e))
     return 0;
@@ -259,37 +231,39 @@ get_rank (tree e)
     {
       tree stmt;
       tree rhs;
-      unsigned int rank, maxrank;
+      long rank, maxrank;
       int i;
+      int n;
 
       if (TREE_CODE (SSA_NAME_VAR (e)) == PARM_DECL
-	  && e == default_def (SSA_NAME_VAR (e)))
-	return find_operand_rank (e)->rank;
+	  && SSA_NAME_IS_DEFAULT_DEF (e))
+	return find_operand_rank (e);
 
       stmt = SSA_NAME_DEF_STMT (e);
       if (bb_for_stmt (stmt) == NULL)
 	return 0;
 
-      if (TREE_CODE (stmt) != MODIFY_EXPR
+      if (TREE_CODE (stmt) != GIMPLE_MODIFY_STMT
 	  || !ZERO_SSA_OPERANDS (stmt, SSA_OP_VIRTUAL_DEFS))
 	return bb_rank[bb_for_stmt (stmt)->index];
 
       /* If we already have a rank for this expression, use that.  */
-      vr = find_operand_rank (e);
-      if (vr)
-	return vr->rank;
+      rank = find_operand_rank (e);
+      if (rank != -1)
+	return rank;
 
       /* Otherwise, find the maximum rank for the operands, or the bb
 	 rank, whichever is less.   */
       rank = 0;
       maxrank = bb_rank[bb_for_stmt(stmt)->index];
-      rhs = TREE_OPERAND (stmt, 1);
-      if (TREE_CODE_LENGTH (TREE_CODE (rhs)) == 0)
+      rhs = GIMPLE_STMT_OPERAND (stmt, 1);
+      n = TREE_OPERAND_LENGTH (rhs);
+      if (n == 0)
 	rank = MAX (rank, get_rank (rhs));
       else
 	{
 	  for (i = 0;
-	       i < TREE_CODE_LENGTH (TREE_CODE (rhs))
+	       i < n
 		 && TREE_OPERAND (rhs, i)
 		 && rank != maxrank;
 	       i++)
@@ -300,7 +274,7 @@ get_rank (tree e)
 	{
 	  fprintf (dump_file, "Rank for ");
 	  print_generic_expr (dump_file, e, 0);
-	  fprintf (dump_file, " is %d\n", (rank + 1));
+	  fprintf (dump_file, " is %ld\n", (rank + 1));
 	}
 
       /* Note the rank in the hashtable so we don't recompute it.  */
@@ -363,7 +337,7 @@ sort_by_operand_rank (const void *pa, const void *pb)
 static void
 add_to_ops_vec (VEC(operand_entry_t, heap) **ops, tree op)
 {
-  operand_entry_t oe = pool_alloc (operand_entry_pool);
+  operand_entry_t oe = (operand_entry_t) pool_alloc (operand_entry_pool);
 
   oe->op = op;
   oe->rank = get_rank (op);
@@ -371,15 +345,23 @@ add_to_ops_vec (VEC(operand_entry_t, heap) **ops, tree op)
 }
 
 /* Return true if STMT is reassociable operation containing a binary
-   operation with tree code CODE.  */
+   operation with tree code CODE, and is inside LOOP.  */
 
 static bool
-is_reassociable_op (tree stmt, enum tree_code code)
+is_reassociable_op (tree stmt, enum tree_code code, struct loop *loop)
 {
-  if (!IS_EMPTY_STMT (stmt)
-      && TREE_CODE (stmt) == MODIFY_EXPR
-      && TREE_CODE (TREE_OPERAND (stmt, 1)) == code
-      && has_single_use (TREE_OPERAND (stmt, 0)))
+  basic_block bb;
+
+  if (IS_EMPTY_STMT (stmt))
+    return false;
+
+  bb = bb_for_stmt (stmt);
+  if (!flow_bb_inside_loop_p (loop, bb))
+    return false;
+
+  if (TREE_CODE (stmt) == GIMPLE_MODIFY_STMT
+      && TREE_CODE (GIMPLE_STMT_OPERAND (stmt, 1)) == code
+      && has_single_use (GIMPLE_STMT_OPERAND (stmt, 0)))
     return true;
   return false;
 }
@@ -394,10 +376,10 @@ get_unary_op (tree name, enum tree_code opcode)
   tree stmt = SSA_NAME_DEF_STMT (name);
   tree rhs;
 
-  if (TREE_CODE (stmt) != MODIFY_EXPR)
+  if (TREE_CODE (stmt) != GIMPLE_MODIFY_STMT)
     return NULL_TREE;
 
-  rhs = TREE_OPERAND (stmt, 1);
+  rhs = GIMPLE_STMT_OPERAND (stmt, 1);
   if (TREE_CODE (rhs) == opcode)
     return TREE_OPERAND (rhs, 0);
   return NULL_TREE;
@@ -753,8 +735,8 @@ optimize_ops_list (enum tree_code opcode,
 
       if (oelm1->rank == 0
 	  && is_gimple_min_invariant (oelm1->op)
-	  && lang_hooks.types_compatible_p (TREE_TYPE (oelm1->op),
-					    TREE_TYPE (oelast->op)))
+	  && useless_type_conversion_p (TREE_TYPE (oelm1->op),
+				       TREE_TYPE (oelast->op)))
 	{
 	  tree folded = fold_binary (opcode, TREE_TYPE (oelm1->op),
 				     oelm1->op, oelast->op);
@@ -813,7 +795,7 @@ static bool
 is_phi_for_stmt (tree stmt, tree operand)
 {
   tree def_stmt;
-  tree lhs = TREE_OPERAND (stmt, 0);
+  tree lhs = GIMPLE_STMT_OPERAND (stmt, 0);
   use_operand_p arg_p;
   ssa_op_iter i;
 
@@ -838,7 +820,7 @@ static void
 rewrite_expr_tree (tree stmt, unsigned int opindex,
 		   VEC(operand_entry_t, heap) * ops)
 {
-  tree rhs = TREE_OPERAND (stmt, 1);
+  tree rhs = GIMPLE_STMT_OPERAND (stmt, 1);
   operand_entry_t oe;
 
   /* If we have three operands left, then we want to make sure the one
@@ -872,6 +854,18 @@ rewrite_expr_tree (tree stmt, unsigned int opindex,
 	  struct operand_entry temp = *oe3;
 	  oe3->op = oe1->op;
 	  oe3->rank = oe1->rank;
+	  oe1->op = temp.op;
+	  oe1->rank= temp.rank;
+	}
+      else if ((oe1->rank == oe3->rank
+		&& oe2->rank != oe3->rank)
+	       || (is_phi_for_stmt (stmt, oe2->op)
+		   && !is_phi_for_stmt (stmt, oe1->op)
+		   && !is_phi_for_stmt (stmt, oe3->op)))
+	{
+	  struct operand_entry temp = *oe2;
+	  oe2->op = oe1->op;
+	  oe2->rank = oe1->rank;
 	  oe1->op = temp.op;
 	  oe1->rank= temp.rank;
 	}
@@ -951,24 +945,26 @@ static void
 linearize_expr (tree stmt)
 {
   block_stmt_iterator bsinow, bsirhs;
-  tree rhs = TREE_OPERAND (stmt, 1);
+  tree rhs = GIMPLE_STMT_OPERAND (stmt, 1);
   enum tree_code rhscode = TREE_CODE (rhs);
   tree binrhs = SSA_NAME_DEF_STMT (TREE_OPERAND (rhs, 1));
   tree binlhs = SSA_NAME_DEF_STMT (TREE_OPERAND (rhs, 0));
   tree newbinrhs = NULL_TREE;
+  struct loop *loop = loop_containing_stmt (stmt);
 
-  gcc_assert (is_reassociable_op (binlhs, TREE_CODE (rhs))
-	      && is_reassociable_op (binrhs, TREE_CODE (rhs)));
+  gcc_assert (is_reassociable_op (binlhs, TREE_CODE (rhs), loop)
+	      && is_reassociable_op (binrhs, TREE_CODE (rhs), loop));
 
   bsinow = bsi_for_stmt (stmt);
   bsirhs = bsi_for_stmt (binrhs);
   bsi_move_before (&bsirhs, &bsinow);
 
-  TREE_OPERAND (rhs, 1) = TREE_OPERAND (TREE_OPERAND (binrhs, 1), 0);
+  TREE_OPERAND (rhs, 1) = TREE_OPERAND (GIMPLE_STMT_OPERAND (binrhs, 1), 0);
   if (TREE_CODE (TREE_OPERAND (rhs, 1)) == SSA_NAME)
     newbinrhs = SSA_NAME_DEF_STMT (TREE_OPERAND (rhs, 1));
-  TREE_OPERAND (TREE_OPERAND (binrhs, 1), 0) = TREE_OPERAND (binlhs, 0);
-  TREE_OPERAND (rhs, 0) = TREE_OPERAND (binrhs, 0);
+  TREE_OPERAND (GIMPLE_STMT_OPERAND (binrhs, 1), 0)
+    = GIMPLE_STMT_OPERAND (binlhs, 0);
+  TREE_OPERAND (rhs, 0) = GIMPLE_STMT_OPERAND (binrhs, 0);
 
   if (dump_file && (dump_flags & TDF_DETAILS))
     {
@@ -985,12 +981,11 @@ linearize_expr (tree stmt)
   TREE_VISITED (stmt) = 1;
 
   /* Tail recurse on the new rhs if it still needs reassociation.  */
-  if (newbinrhs && is_reassociable_op (newbinrhs, rhscode))
+  if (newbinrhs && is_reassociable_op (newbinrhs, rhscode, loop))
     linearize_expr (stmt);
-
 }
 
-/* If LHS has a single immediate use that is a MODIFY_EXPR, return
+/* If LHS has a single immediate use that is a GIMPLE_MODIFY_STMT, return
    it.  Otherwise, return NULL.  */
 
 static tree
@@ -1004,7 +999,7 @@ get_single_immediate_use (tree lhs)
     {
       if (TREE_CODE (immusestmt) == RETURN_EXPR)
 	immusestmt = TREE_OPERAND (immusestmt, 0);
-      if (TREE_CODE (immusestmt) == MODIFY_EXPR)
+      if (TREE_CODE (immusestmt) == GIMPLE_MODIFY_STMT)
 	return immusestmt;
     }
   return NULL_TREE;
@@ -1031,13 +1026,13 @@ negate_value (tree tonegate, block_stmt_iterator *bsi)
   /* If we are trying to negate a name, defined by an add, negate the
      add operands instead.  */
   if (TREE_CODE (tonegate) == SSA_NAME
-      && TREE_CODE (negatedef) == MODIFY_EXPR
-      && TREE_CODE (TREE_OPERAND (negatedef, 0)) == SSA_NAME
-      && has_single_use (TREE_OPERAND (negatedef, 0))
-      && TREE_CODE (TREE_OPERAND (negatedef, 1)) == PLUS_EXPR)
+      && TREE_CODE (negatedef) == GIMPLE_MODIFY_STMT
+      && TREE_CODE (GIMPLE_STMT_OPERAND (negatedef, 0)) == SSA_NAME
+      && has_single_use (GIMPLE_STMT_OPERAND (negatedef, 0))
+      && TREE_CODE (GIMPLE_STMT_OPERAND (negatedef, 1)) == PLUS_EXPR)
     {
       block_stmt_iterator bsi;
-      tree binop = TREE_OPERAND (negatedef, 1);
+      tree binop = GIMPLE_STMT_OPERAND (negatedef, 1);
 
       bsi = bsi_for_stmt (negatedef);
       TREE_OPERAND (binop, 0) = negate_value (TREE_OPERAND (binop, 0),
@@ -1046,12 +1041,12 @@ negate_value (tree tonegate, block_stmt_iterator *bsi)
       TREE_OPERAND (binop, 1) = negate_value (TREE_OPERAND (binop, 1),
 					      &bsi);
       update_stmt (negatedef);
-      return TREE_OPERAND (negatedef, 0);
+      return GIMPLE_STMT_OPERAND (negatedef, 0);
     }
 
   tonegate = fold_build1 (NEGATE_EXPR, TREE_TYPE (tonegate), tonegate);
   resultofnegate = force_gimple_operand_bsi (bsi, tonegate, true,
-					     NULL_TREE);
+					     NULL_TREE, true, BSI_SAME_STMT);
   VEC_safe_push (tree, heap, broken_up_subtracts, resultofnegate);
   return resultofnegate;
 
@@ -1067,23 +1062,24 @@ static bool
 should_break_up_subtract (tree stmt)
 {
 
-  tree lhs = TREE_OPERAND (stmt, 0);
-  tree rhs = TREE_OPERAND (stmt, 1);
+  tree lhs = GIMPLE_STMT_OPERAND (stmt, 0);
+  tree rhs = GIMPLE_STMT_OPERAND (stmt, 1);
   tree binlhs = TREE_OPERAND (rhs, 0);
   tree binrhs = TREE_OPERAND (rhs, 1);
   tree immusestmt;
+  struct loop *loop = loop_containing_stmt (stmt);
 
   if (TREE_CODE (binlhs) == SSA_NAME
-      && is_reassociable_op (SSA_NAME_DEF_STMT (binlhs), PLUS_EXPR))
+      && is_reassociable_op (SSA_NAME_DEF_STMT (binlhs), PLUS_EXPR, loop))
     return true;
 
   if (TREE_CODE (binrhs) == SSA_NAME
-      && is_reassociable_op (SSA_NAME_DEF_STMT (binrhs), PLUS_EXPR))
+      && is_reassociable_op (SSA_NAME_DEF_STMT (binrhs), PLUS_EXPR, loop))
     return true;
 
   if (TREE_CODE (lhs) == SSA_NAME
       && (immusestmt = get_single_immediate_use (lhs))
-      && TREE_CODE (TREE_OPERAND (immusestmt, 1)) == PLUS_EXPR)
+      && TREE_CODE (GIMPLE_STMT_OPERAND (immusestmt, 1)) == PLUS_EXPR)
     return true;
   return false;
 
@@ -1094,7 +1090,7 @@ should_break_up_subtract (tree stmt)
 static void
 break_up_subtract (tree stmt, block_stmt_iterator *bsi)
 {
-  tree rhs = TREE_OPERAND (stmt, 1);
+  tree rhs = GIMPLE_STMT_OPERAND (stmt, 1);
 
   if (dump_file && (dump_flags & TDF_DETAILS))
     {
@@ -1102,7 +1098,7 @@ break_up_subtract (tree stmt, block_stmt_iterator *bsi)
       print_generic_stmt (dump_file, stmt, 0);
     }
 
-  TREE_SET_CODE (TREE_OPERAND (stmt, 1), PLUS_EXPR);
+  TREE_SET_CODE (GIMPLE_STMT_OPERAND (stmt, 1), PLUS_EXPR);
   TREE_OPERAND (rhs, 1) = negate_value (TREE_OPERAND (rhs, 1), bsi);
 
   update_stmt (stmt);
@@ -1115,26 +1111,27 @@ static void
 linearize_expr_tree (VEC(operand_entry_t, heap) **ops, tree stmt)
 {
   block_stmt_iterator bsinow, bsilhs;
-  tree rhs = TREE_OPERAND (stmt, 1);
+  tree rhs = GENERIC_TREE_OPERAND (stmt, 1);
   tree binrhs = TREE_OPERAND (rhs, 1);
   tree binlhs = TREE_OPERAND (rhs, 0);
   tree binlhsdef, binrhsdef;
   bool binlhsisreassoc = false;
   bool binrhsisreassoc = false;
   enum tree_code rhscode = TREE_CODE (rhs);
+  struct loop *loop = loop_containing_stmt (stmt);
 
   TREE_VISITED (stmt) = 1;
 
   if (TREE_CODE (binlhs) == SSA_NAME)
     {
       binlhsdef = SSA_NAME_DEF_STMT (binlhs);
-      binlhsisreassoc = is_reassociable_op (binlhsdef, rhscode);
+      binlhsisreassoc = is_reassociable_op (binlhsdef, rhscode, loop);
     }
 
   if (TREE_CODE (binrhs) == SSA_NAME)
     {
       binrhsdef = SSA_NAME_DEF_STMT (binrhs);
-      binrhsisreassoc = is_reassociable_op (binrhsdef, rhscode);
+      binrhsisreassoc = is_reassociable_op (binrhsdef, rhscode, loop);
     }
 
   /* If the LHS is not reassociable, but the RHS is, we need to swap
@@ -1179,13 +1176,14 @@ linearize_expr_tree (VEC(operand_entry_t, heap) **ops, tree stmt)
   else if (binrhsisreassoc)
     {
       linearize_expr (stmt);
-      gcc_assert (rhs == TREE_OPERAND (stmt, 1));
+      gcc_assert (rhs == GIMPLE_STMT_OPERAND (stmt, 1));
       binlhs = TREE_OPERAND (rhs, 0);
       binrhs = TREE_OPERAND (rhs, 1);
     }
 
   gcc_assert (TREE_CODE (binrhs) != SSA_NAME
-	      || !is_reassociable_op (SSA_NAME_DEF_STMT (binrhs), rhscode));
+	      || !is_reassociable_op (SSA_NAME_DEF_STMT (binrhs),
+				      rhscode, loop));
   bsinow = bsi_for_stmt (stmt);
   bsilhs = bsi_for_stmt (SSA_NAME_DEF_STMT (binlhs));
   bsi_move_before (&bsilhs, &bsinow);
@@ -1212,15 +1210,15 @@ repropagate_negates (void)
 	 Force the negate operand to the RHS of the PLUS_EXPR, then
 	 transform the PLUS_EXPR into a MINUS_EXPR.  */
       if (user
-	  && TREE_CODE (user) == MODIFY_EXPR
-	  && TREE_CODE (TREE_OPERAND (user, 1)) == PLUS_EXPR)
+	  && TREE_CODE (user) == GIMPLE_MODIFY_STMT
+	  && TREE_CODE (GIMPLE_STMT_OPERAND (user, 1)) == PLUS_EXPR)
 	{
-	  tree rhs = TREE_OPERAND (user, 1);
+	  tree rhs = GIMPLE_STMT_OPERAND (user, 1);
 
 	  /* If the negated operand appears on the LHS of the
 	     PLUS_EXPR, exchange the operands of the PLUS_EXPR
 	     to force the negated operand to the RHS of the PLUS_EXPR.  */
-	  if (TREE_OPERAND (TREE_OPERAND (user, 1), 0) == negate)
+	  if (TREE_OPERAND (GIMPLE_STMT_OPERAND (user, 1), 0) == negate)
 	    {
 	      tree temp = TREE_OPERAND (rhs, 0);
 	      TREE_OPERAND (rhs, 0) = TREE_OPERAND (rhs, 1);
@@ -1229,7 +1227,7 @@ repropagate_negates (void)
 
 	  /* Now transform the PLUS_EXPR into a MINUS_EXPR and replace
 	     the RHS of the PLUS_EXPR with the operand of the NEGATE_EXPR.  */
-	  if (TREE_OPERAND (TREE_OPERAND (user, 1), 1) == negate)
+	  if (TREE_OPERAND (GIMPLE_STMT_OPERAND (user, 1), 1) == negate)
 	    {
 	      TREE_SET_CODE (rhs, MINUS_EXPR);
 	      TREE_OPERAND (rhs, 1) = get_unary_op (negate, NEGATE_EXPR);
@@ -1264,19 +1262,22 @@ break_up_subtract_bb (basic_block bb)
     {
       tree stmt = bsi_stmt (bsi);
 
-      if (TREE_CODE (stmt) == MODIFY_EXPR)
+      if (TREE_CODE (stmt) == GIMPLE_MODIFY_STMT)
 	{
-	  tree lhs = TREE_OPERAND (stmt, 0);
-	  tree rhs = TREE_OPERAND (stmt, 1);
+	  tree lhs = GIMPLE_STMT_OPERAND (stmt, 0);
+	  tree rhs = GIMPLE_STMT_OPERAND (stmt, 1);
 
 	  TREE_VISITED (stmt) = 0;
-	  /* If unsafe math optimizations we can do reassociation for
-	     non-integral types.  */
+	  /* If associative-math we can do reassociation for
+	     non-integral types.  Or, we can do reassociation for
+	     non-saturating fixed-point types.  */
 	  if ((!INTEGRAL_TYPE_P (TREE_TYPE (lhs))
 	       || !INTEGRAL_TYPE_P (TREE_TYPE (rhs)))
 	      && (!SCALAR_FLOAT_TYPE_P (TREE_TYPE (rhs))
 		  || !SCALAR_FLOAT_TYPE_P (TREE_TYPE(lhs))
-		  || !flag_unsafe_math_optimizations))
+		  || !flag_associative_math)
+	      && (!NON_SAT_FIXED_POINT_TYPE_P (TREE_TYPE (rhs))
+		  || !NON_SAT_FIXED_POINT_TYPE_P (TREE_TYPE(lhs))))
 	    continue;
 
 	  /* Check for a subtract used only in an addition.  If this
@@ -1307,23 +1308,26 @@ reassociate_bb (basic_block bb)
     {
       tree stmt = bsi_stmt (bsi);
 
-      if (TREE_CODE (stmt) == MODIFY_EXPR)
+      if (TREE_CODE (stmt) == GIMPLE_MODIFY_STMT)
 	{
-	  tree lhs = TREE_OPERAND (stmt, 0);
-	  tree rhs = TREE_OPERAND (stmt, 1);
+	  tree lhs = GIMPLE_STMT_OPERAND (stmt, 0);
+	  tree rhs = GIMPLE_STMT_OPERAND (stmt, 1);
 
 	  /* If this was part of an already processed tree, we don't
 	     need to touch it again. */
 	  if (TREE_VISITED (stmt))
 	    continue;
 
-	  /* If unsafe math optimizations we can do reassociation for
-	     non-integral types.  */
+	  /* If associative-math we can do reassociation for
+	     non-integral types.  Or, we can do reassociation for
+	     non-saturating fixed-point types.  */
 	  if ((!INTEGRAL_TYPE_P (TREE_TYPE (lhs))
 	       || !INTEGRAL_TYPE_P (TREE_TYPE (rhs)))
 	      && (!SCALAR_FLOAT_TYPE_P (TREE_TYPE (rhs))
 		  || !SCALAR_FLOAT_TYPE_P (TREE_TYPE(lhs))
-		  || !flag_unsafe_math_optimizations))
+		  || !flag_associative_math)
+	      && (!NON_SAT_FIXED_POINT_TYPE_P (TREE_TYPE (rhs))
+		  || !NON_SAT_FIXED_POINT_TYPE_P (TREE_TYPE(lhs))))
 	    continue;
 
 	  if (associative_tree_code (TREE_CODE (rhs)))
@@ -1350,14 +1354,15 @@ reassociate_bb (basic_block bb)
 		      fprintf (dump_file, "Transforming ");
 		      print_generic_expr (dump_file, rhs, 0);
 		    }
-		  TREE_OPERAND (stmt, 1) = VEC_last (operand_entry_t, ops)->op;
+		  GIMPLE_STMT_OPERAND (stmt, 1) 
+		    = VEC_last (operand_entry_t, ops)->op;
 		  update_stmt (stmt);
 
 		  if (dump_file && (dump_flags & TDF_DETAILS))
 		    {
 		      fprintf (dump_file, " into ");
 		      print_generic_stmt (dump_file,
-					  TREE_OPERAND (stmt, 1), 0);
+					  GIMPLE_STMT_OPERAND (stmt, 1), 0);
 		    }
 		}
 	      else
@@ -1414,9 +1419,13 @@ static void
 init_reassoc (void)
 {
   int i;
-  unsigned int rank = 2;
+  long rank = 2;
   tree param;
   int *bbs = XNEWVEC (int, last_basic_block + 1);
+
+  /* Find the loops, so that we can prevent moving calculations in
+     them.  */
+  loop_optimizer_init (AVOID_CFG_MODIFICATIONS);
 
   memset (&reassociate_stats, 0, sizeof (reassociate_stats));
 
@@ -1426,19 +1435,17 @@ init_reassoc (void)
   /* Reverse RPO (Reverse Post Order) will give us something where
      deeper loops come later.  */
   pre_and_rev_post_order_compute (NULL, bbs, false);
-  bb_rank = XCNEWVEC (unsigned int, last_basic_block + 1);
-  
-  operand_rank = htab_create (511, operand_entry_hash,
-			      operand_entry_eq, 0);
+  bb_rank = XCNEWVEC (long, last_basic_block + 1);
+  operand_rank = pointer_map_create ();
 
   /* Give each argument a distinct rank.   */
   for (param = DECL_ARGUMENTS (current_function_decl);
        param;
        param = TREE_CHAIN (param))
     {
-      if (default_def (param) != NULL)
+      if (gimple_default_def (cfun, param) != NULL)
 	{
-	  tree def = default_def (param);
+	  tree def = gimple_default_def (cfun, param);
 	  insert_operand_rank (def, ++rank);
 	}
     }
@@ -1446,7 +1453,7 @@ init_reassoc (void)
   /* Give the chain decl a distinct rank. */
   if (cfun->static_chain_decl != NULL)
     {
-      tree def = default_def (cfun->static_chain_decl);
+      tree def = gimple_default_def (cfun, cfun->static_chain_decl);
       if (def != NULL)
 	insert_operand_rank (def, ++rank);
     }
@@ -1456,7 +1463,6 @@ init_reassoc (void)
     bb_rank[bbs[i]] = ++rank  << 16;
 
   free (bbs);
-  calculate_dominance_info (CDI_DOMINATORS);
   calculate_dominance_info (CDI_POST_DOMINATORS);
   broken_up_subtracts = NULL;
 }
@@ -1467,7 +1473,6 @@ init_reassoc (void)
 static void
 fini_reassoc (void)
 {
-
   if (dump_file && (dump_flags & TDF_STATS))
     {
       fprintf (dump_file, "Reassociation stats:\n");
@@ -1480,12 +1485,13 @@ fini_reassoc (void)
       fprintf (dump_file, "Statements rewritten: %d\n",
 	       reassociate_stats.rewritten);
     }
-  htab_delete (operand_rank);
 
+  pointer_map_destroy (operand_rank);
   free_alloc_pool (operand_entry_pool);
   free (bb_rank);
   VEC_free (tree, heap, broken_up_subtracts);
   free_dominance_info (CDI_POST_DOMINATORS);
+  loop_optimizer_finalize ();
 }
 
 /* Gate and execute functions for Reassociation.  */
@@ -1502,15 +1508,21 @@ execute_reassoc (void)
   return 0;
 }
 
+static bool
+gate_tree_ssa_reassoc (void)
+{
+  return flag_tree_reassoc != 0;
+}
+
 struct tree_opt_pass pass_reassoc =
 {
   "reassoc",				/* name */
-  NULL,				/* gate */
-  execute_reassoc,				/* execute */
+  gate_tree_ssa_reassoc,		/* gate */
+  execute_reassoc,			/* execute */
   NULL,					/* sub */
   NULL,					/* next */
   0,					/* static_pass_number */
-  TV_TREE_REASSOC,				/* tv_id */
+  TV_TREE_REASSOC,			/* tv_id */
   PROP_cfg | PROP_ssa | PROP_alias,	/* properties_required */
   0,					/* properties_provided */
   0,					/* properties_destroyed */

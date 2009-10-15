@@ -1,5 +1,6 @@
 /* { dg-do compile } */
-/* { dg-skip-if "" { { i?86-*-* x86_64-*-* } && ilp32 } { "-fpic" "-fPIC" } { "" } } */
+/* { dg-require-effective-target ilp32 } */
+/* { dg-require-effective-target nonpic } */
 /* { dg-options "-O2" } */
 
 typedef unsigned int Cardinal;

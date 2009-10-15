@@ -1,5 +1,5 @@
 `/* Implementation of the MATMUL intrinsic
-   Copyright 2002, 2005, 2006 Free Software Foundation, Inc.
+   Copyright 2002, 2005, 2006, 2007 Free Software Foundation, Inc.
    Contributed by Paul Brook <paul@nowt.org>
 
 This file is part of the GNU Fortran 95 runtime library (libgfortran).
@@ -28,14 +28,24 @@ License along with libgfortran; see the file COPYING.  If not,
 write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
 Boston, MA 02110-1301, USA.  */
 
-#include "config.h"
+#include "libgfortran.h"
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
-#include "libgfortran.h"'
+#include <assert.h>'
+
 include(iparm.m4)dnl
 
-`#if defined (HAVE_'rtype_name`)'
+`#if defined (HAVE_'rtype_name`)
+
+/* Prototype for the BLAS ?gemm subroutine, a pointer to which can be
+   passed to us by the front-end, in which case we''`ll call it for large
+   matrices.  */
+
+typedef void (*blas_call)(const char *, const char *, const int *, const int *,
+                          const int *, const 'rtype_name` *, const 'rtype_name` *,
+                          const int *, const 'rtype_name` *, const int *,
+                          const 'rtype_name` *, 'rtype_name` *, const int *,
+                          int, int);
 
 /* The order of loops is different in the case of plain matrix
    multiplication C=MATMUL(A,B), and in the frequent special case where
@@ -57,22 +67,28 @@ include(iparm.m4)dnl
        DO I=1,M
          S = 0
          DO K=1,COUNT
-           S = S+A(I,K)+B(K,J)
+           S = S+A(I,K)*B(K,J)
          C(I,J) = S
    ENDIF
 */
 
-extern void matmul_`'rtype_code (rtype * const restrict retarray, 
-	rtype * const restrict a, rtype * const restrict b);
-export_proto(matmul_`'rtype_code);
+/* If try_blas is set to a nonzero value, then the matmul function will
+   see if there is a way to perform the matrix multiplication by a call
+   to the BLAS gemm function.  */
+
+extern void matmul_'rtype_code` ('rtype` * const restrict retarray, 
+	'rtype` * const restrict a, 'rtype` * const restrict b, int try_blas,
+	int blas_limit, blas_call gemm);
+export_proto(matmul_'rtype_code`);
 
 void
-matmul_`'rtype_code (rtype * const restrict retarray, 
-	rtype * const restrict a, rtype * const restrict b)
+matmul_'rtype_code` ('rtype` * const restrict retarray, 
+	'rtype` * const restrict a, 'rtype` * const restrict b, int try_blas,
+	int blas_limit, blas_call gemm)
 {
-  const rtype_name * restrict abase;
-  const rtype_name * restrict bbase;
-  rtype_name * restrict dest;
+  const 'rtype_name` * restrict abase;
+  const 'rtype_name` * restrict bbase;
+  'rtype_name` * restrict dest;
 
   index_type rxstride, rystride, axstride, aystride, bxstride, bystride;
   index_type x, y, n, count, xcount, ycount;
@@ -117,12 +133,12 @@ matmul_`'rtype_code (rtype * const restrict retarray,
         }
 
       retarray->data
-	= internal_malloc_size (sizeof (rtype_name) * size0 ((array_t *) retarray));
+	= internal_malloc_size (sizeof ('rtype_name`) * size0 ((array_t *) retarray));
       retarray->offset = 0;
     }
-
+'
 sinclude(`matmul_asm_'rtype_code`.m4')dnl
-
+`
   if (GFC_DESCRIPTOR_RANK (retarray) == 1)
     {
       /* One-dimensional result may be addressed in the code below
@@ -155,7 +171,8 @@ sinclude(`matmul_asm_'rtype_code`.m4')dnl
       xcount = a->dim[0].ubound + 1 - a->dim[0].lbound;
     }
 
-  assert(count == b->dim[0].ubound + 1 - b->dim[0].lbound);
+  if (count != b->dim[0].ubound + 1 - b->dim[0].lbound)
+    runtime_error ("dimension of array B incorrect in MATMUL intrinsic");
 
   if (GFC_DESCRIPTOR_RANK (b) == 1)
     {
@@ -179,20 +196,45 @@ sinclude(`matmul_asm_'rtype_code`.m4')dnl
   bbase = b->data;
   dest = retarray->data;
 
+
+  /* Now that everything is set up, we''`re performing the multiplication
+     itself.  */
+
+#define POW3(x) (((float) (x)) * ((float) (x)) * ((float) (x)))
+
+  if (try_blas && rxstride == 1 && (axstride == 1 || aystride == 1)
+      && (bxstride == 1 || bystride == 1)
+      && (((float) xcount) * ((float) ycount) * ((float) count)
+          > POW3(blas_limit)))
+  {
+    const int m = xcount, n = ycount, k = count, ldc = rystride;
+    const 'rtype_name` one = 1, zero = 0;
+    const int lda = (axstride == 1) ? aystride : axstride,
+              ldb = (bxstride == 1) ? bystride : bxstride;
+
+    if (lda > 0 && ldb > 0 && ldc > 0 && m > 1 && n > 1 && k > 1)
+      {
+        assert (gemm != NULL);
+        gemm (axstride == 1 ? "N" : "T", bxstride == 1 ? "N" : "T", &m, &n, &k,
+              &one, abase, &lda, bbase, &ldb, &zero, dest, &ldc, 1, 1);
+        return;
+      }
+  }
+
   if (rxstride == 1 && axstride == 1 && bxstride == 1)
     {
-      const rtype_name * restrict bbase_y;
-      rtype_name * restrict dest_y;
-      const rtype_name * restrict abase_n;
-      rtype_name bbase_yn;
+      const 'rtype_name` * restrict bbase_y;
+      'rtype_name` * restrict dest_y;
+      const 'rtype_name` * restrict abase_n;
+      'rtype_name` bbase_yn;
 
       if (rystride == xcount)
-	memset (dest, 0, (sizeof (rtype_name) * xcount * ycount));
+	memset (dest, 0, (sizeof ('rtype_name`) * xcount * ycount));
       else
 	{
 	  for (y = 0; y < ycount; y++)
 	    for (x = 0; x < xcount; x++)
-	      dest[x + y*rystride] = (rtype_name)0;
+	      dest[x + y*rystride] = ('rtype_name`)0;
 	}
 
       for (y = 0; y < ycount; y++)
@@ -214,10 +256,10 @@ sinclude(`matmul_asm_'rtype_code`.m4')dnl
     {
       if (GFC_DESCRIPTOR_RANK (a) != 1)
 	{
-	  const rtype_name *restrict abase_x;
-	  const rtype_name *restrict bbase_y;
-	  rtype_name *restrict dest_y;
-	  rtype_name s;
+	  const 'rtype_name` *restrict abase_x;
+	  const 'rtype_name` *restrict bbase_y;
+	  'rtype_name` *restrict dest_y;
+	  'rtype_name` s;
 
 	  for (y = 0; y < ycount; y++)
 	    {
@@ -226,7 +268,7 @@ sinclude(`matmul_asm_'rtype_code`.m4')dnl
 	      for (x = 0; x < xcount; x++)
 		{
 		  abase_x = &abase[x*axstride];
-		  s = (rtype_name) 0;
+		  s = ('rtype_name`) 0;
 		  for (n = 0; n < count; n++)
 		    s += abase_x[n] * bbase_y[n];
 		  dest_y[x] = s;
@@ -235,13 +277,13 @@ sinclude(`matmul_asm_'rtype_code`.m4')dnl
 	}
       else
 	{
-	  const rtype_name *restrict bbase_y;
-	  rtype_name s;
+	  const 'rtype_name` *restrict bbase_y;
+	  'rtype_name` s;
 
 	  for (y = 0; y < ycount; y++)
 	    {
 	      bbase_y = &bbase[y*bystride];
-	      s = (rtype_name) 0;
+	      s = ('rtype_name`) 0;
 	      for (n = 0; n < count; n++)
 		s += abase[n*axstride] * bbase_y[n];
 	      dest[y*rystride] = s;
@@ -252,7 +294,7 @@ sinclude(`matmul_asm_'rtype_code`.m4')dnl
     {
       for (y = 0; y < ycount; y++)
 	for (x = 0; x < xcount; x++)
-	  dest[x*rxstride + y*rystride] = (rtype_name)0;
+	  dest[x*rxstride + y*rystride] = ('rtype_name`)0;
 
       for (y = 0; y < ycount; y++)
 	for (n = 0; n < count; n++)
@@ -262,13 +304,13 @@ sinclude(`matmul_asm_'rtype_code`.m4')dnl
     }
   else if (GFC_DESCRIPTOR_RANK (a) == 1)
     {
-      const rtype_name *restrict bbase_y;
-      rtype_name s;
+      const 'rtype_name` *restrict bbase_y;
+      'rtype_name` s;
 
       for (y = 0; y < ycount; y++)
 	{
 	  bbase_y = &bbase[y*bystride];
-	  s = (rtype_name) 0;
+	  s = ('rtype_name`) 0;
 	  for (n = 0; n < count; n++)
 	    s += abase[n*axstride] * bbase_y[n*bxstride];
 	  dest[y*rxstride] = s;
@@ -276,10 +318,10 @@ sinclude(`matmul_asm_'rtype_code`.m4')dnl
     }
   else
     {
-      const rtype_name *restrict abase_x;
-      const rtype_name *restrict bbase_y;
-      rtype_name *restrict dest_y;
-      rtype_name s;
+      const 'rtype_name` *restrict abase_x;
+      const 'rtype_name` *restrict bbase_y;
+      'rtype_name` *restrict dest_y;
+      'rtype_name` s;
 
       for (y = 0; y < ycount; y++)
 	{
@@ -288,7 +330,7 @@ sinclude(`matmul_asm_'rtype_code`.m4')dnl
 	  for (x = 0; x < xcount; x++)
 	    {
 	      abase_x = &abase[x*axstride];
-	      s = (rtype_name) 0;
+	      s = ('rtype_name`) 0;
 	      for (n = 0; n < count; n++)
 		s += abase_x[n*aystride] * bbase_y[n*bxstride];
 	      dest_y[x*rxstride] = s;
@@ -297,4 +339,4 @@ sinclude(`matmul_asm_'rtype_code`.m4')dnl
     }
 }
 
-#endif
+#endif'

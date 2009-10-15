@@ -1,4 +1,4 @@
-/* Copyright (C) 2003, 2004, 2005, 2006 Free Software Foundation.
+/* Copyright (C) 2003, 2004, 2005, 2006, 2009 Free Software Foundation.
 
    Define macros useful in tests for bulitin functions.  */
 
@@ -13,10 +13,14 @@
 /* PA HP-UX doesn't have the entire C99 runtime.  */
 #elif defined(__sgi)
 /* Irix6 doesn't have the entire C99 runtime.  */
-#elif defined(__FreeBSD__) && (__FreeBSD__ < 5)
-/* FreeBSD before version 5 doesn't have the entire C99 runtime. */
+#elif defined(__FreeBSD__) && (__FreeBSD__ < 9)
+/* FreeBSD up to version 8 lacks support for cexp and friends.  */
 #elif defined(__netware__)
 /* NetWare doesn't have the entire C99 runtime.  */
+#elif defined(__vxworks)
+/* VxWorks doesn't have a full C99 time.  (cabs is missing, for example.)  */
+#elif defined(_WIN32) && !defined(__CYGWIN__)
+/* Windows doesn't have the entire C99 runtime.  */
 #elif (defined(__APPLE__) && defined(__ppc__) \
        && ! defined (__ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__))
 /* MacOS versions before 10.3 don't have many C99 functions.  

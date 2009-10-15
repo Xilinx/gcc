@@ -108,7 +108,7 @@ import java.text.SimpleDateFormat;
  * @author Andrew John Hughes (gnu_andrew@member.fsf.org)
  */
 public class Date
-    implements Cloneable, Comparable, Serializable
+    implements Cloneable, Comparable<Date>, Serializable
 {
   /**
    * This is the serialization UID for this class
@@ -351,24 +351,6 @@ public class Date
   public int compareTo(Date when)
   {
     return (time < when.time) ? -1 : (time == when.time) ? 0 : 1;
-  }
-
-  /**
-   * Compares this Date to another object.  This behaves like
-   * <code>compareTo(Date)</code>, but it takes a generic object
-   * and throws a <code>ClassCastException</code> if obj is
-   * not a <code>Date</code>.
-   * 
-   * @param obj the other date.
-   * @return 0, if the date represented
-   * by obj is exactly the same as the time represented by this
-   * object, a negative if this Date is before the other Date, and
-   * a positive value otherwise.  
-   * @exception ClassCastException if obj is not of type Date.
-   */
-  public int compareTo(Object obj)
-  {
-    return compareTo((Date) obj);
   }
 
   /**
@@ -772,6 +754,7 @@ public class Date
 	  }
 	else if (firstch >= '0' && firstch <= '9')
 	  {
+	    int lastPunct = -1;
 	    while (tok != null && tok.length() > 0)
 	      {
 		int punctOffset = tok.length();
@@ -808,6 +791,13 @@ public class Date
 		      hour = num;
 		    else
 		      minute = num;
+		  }
+		else if (lastPunct == ':' && hour >= 0 && (minute < 0 || second < 0))
+		  {
+		    if (minute < 0)
+		      minute = num;
+		    else
+		      second = num;
 		  }
 	        else if ((num >= 70
 			  && (punct == ' ' || punct == ','
@@ -846,6 +836,7 @@ public class Date
 		  tok = null;
 		else
 		  tok = tok.substring(punctOffset + 1);
+		lastPunct = punct;
 	      }
 	  }
 	else if (firstch >= 'A' && firstch <= 'Z')
@@ -865,7 +856,7 @@ public class Date
 		  hour += 12;
 	      }
 	    else if (parseDayOfWeek(tok))
-	      ; // Ignore it; throw the token away.
+	      { /* Ignore it; throw the token away. */ }
 	    else if (tok.equals("UT") || tok.equals("UTC") || tok.equals("GMT"))
 	      localTimezone = false;
 	    else if (tok.startsWith("UT") || tok.startsWith("GMT"))

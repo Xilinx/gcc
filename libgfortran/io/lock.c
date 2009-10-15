@@ -1,5 +1,5 @@
 /* Thread/recursion locking
-   Copyright 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   Copyright 2002, 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
    Contributed by Paul Brook <paul@nowt.org> and Andy Vaught
 
 This file is part of the GNU Fortran 95 runtime library (libgfortran).
@@ -28,18 +28,16 @@ License along with libgfortran; see the file COPYING.  If not,
 write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
 Boston, MA 02110-1301, USA.  */
 
-#include "config.h"
-#include <string.h>
-#include "libgfortran.h"
 #include "io.h"
+#include <string.h>
 
 /* library_start()-- Called with a library call is entered.  */
 
 void
 library_start (st_parameter_common *cmp)
 {
-  if ((cmp->flags & IOPARM_HAS_IOSTAT) != 0)
-    *cmp->iostat = ERROR_OK;
+  if ((cmp->flags & IOPARM_LIBRETURN_ERROR) != 0)
+    return;
 
   cmp->flags &= ~IOPARM_LIBRETURN_MASK;
 }

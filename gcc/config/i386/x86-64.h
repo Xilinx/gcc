@@ -65,7 +65,15 @@ along with GCC; see the file COPYING3.  If not see
   do {									\
     if ((LOG) != 0) {							\
       if ((MAX_SKIP) == 0) fprintf ((FILE), "\t.p2align %d\n", (LOG));	\
-      else fprintf ((FILE), "\t.p2align %d,,%d\n", (LOG), (MAX_SKIP));	\
+      else {								\
+	fprintf ((FILE), "\t.p2align %d,,%d\n", (LOG), (MAX_SKIP));	\
+	/* Make sure that we have at least 8 byte alignment if > 8 byte \
+	   alignment is preferred.  */					\
+	if ((LOG) > 3							\
+	    && (1 << (LOG)) > ((MAX_SKIP) + 1)				\
+	    && (MAX_SKIP) >= 7)						\
+	  fprintf ((FILE), "\t.p2align 3\n");				\
+      }									\
     }									\
   } while (0)
 #endif

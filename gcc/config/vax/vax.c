@@ -1,6 +1,6 @@
 /* Subroutines for insn-output.c for VAX.
    Copyright (C) 1987, 1994, 1995, 1997, 1998, 1999, 2000, 2001, 2002,
-   2004, 2005, 2007
+   2004, 2005, 2006, 2007
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -82,7 +82,7 @@ static rtx vax_struct_value_rtx (tree, int);
 #define TARGET_ADDRESS_COST vax_address_cost
 
 #undef TARGET_PROMOTE_PROTOTYPES
-#define TARGET_PROMOTE_PROTOTYPES hook_bool_tree_true
+#define TARGET_PROMOTE_PROTOTYPES hook_bool_const_tree_true
 
 #undef TARGET_STRUCT_VALUE_RTX
 #define TARGET_STRUCT_VALUE_RTX vax_struct_value_rtx
@@ -115,7 +115,7 @@ vax_output_function_prologue (FILE * file, HOST_WIDE_INT size)
   int mask = 0;
 
   for (regno = 0; regno < FIRST_PSEUDO_REGISTER; regno++)
-    if (regs_ever_live[regno] && !call_used_regs[regno])
+    if (df_regs_ever_live_p (regno) && !call_used_regs[regno])
       mask |= 1 << regno;
 
   fprintf (file, "\t.word 0x%x\n", mask);
@@ -126,7 +126,7 @@ vax_output_function_prologue (FILE * file, HOST_WIDE_INT size)
       int offset = 0;
 
       for (regno = FIRST_PSEUDO_REGISTER-1; regno >= 0; --regno)
-	if (regs_ever_live[regno] && !call_used_regs[regno])
+	if (df_regs_ever_live_p (regno) && !call_used_regs[regno])
 	  dwarf2out_reg_save (label, regno, offset -= 4);
 
       dwarf2out_reg_save (label, PC_REGNUM, offset -= 4);
@@ -1305,8 +1305,8 @@ vax_mode_dependent_address_p (rtx x)
 {
   rtx xfoo0, xfoo1;
 
-  if (GET_CODE (x) == POST_INC || GET_CODE (x) == PRE_DEC)
-    return 1;
+  /* Auto-increment cases are now dealt with generically in recog.c.  */
+
   if (GET_CODE (x) != PLUS)
     return 0;
 

@@ -6,7 +6,7 @@
  *                                                                          *
  *                              C Header File                               *
  *                                                                          *
- *         Copyright (C) 2004-2005, Free Software Foundation, Inc.          *
+ *         Copyright (C) 2004-2008, Free Software Foundation, Inc.          *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
@@ -139,10 +139,48 @@
 #include <sys/time.h>
 #endif
 
-#if !(defined (VMS) || defined (__MINGW32__) || defined(__rtems__))
+/*
+ * RTEMS has these .h files but not until you have built RTEMS.  When
+ * IN_RTS, you only have the .h files in the newlib C library.
+ * Because this file is also included from gen-soccon.c which is built
+ * to run on RTEMS (not IN_RTS), we must distinguish between IN_RTS
+ * and using this file to compile gen-soccon.
+ */
+#if !(defined (VMS) || defined (__MINGW32__) || \
+      (defined(__rtems__) && defined(IN_RTS)))
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <sys/ioctl.h>
 #include <netdb.h>
+#endif
+
+/*
+ * Handling of gethostbyname, gethostbyaddr, getservbyname and getservbyport
+ * =========================================================================
+ *
+ * The default implementation of GNAT.Sockets.Thin requires that these
+ * operations be either thread safe, or that a reentrant version getXXXbyYYY_r
+ * be provided. In both cases, socket.c provides a __gnat_safe_getXXXbyYYY
+ * function with the same signature as getXXXbyYYY_r. If the operating
+ * system version of getXXXbyYYY is thread safe, the provided auxiliary
+ * buffer argument is unused and ignored.
+ *
+ * Target specific versions of GNAT.Sockets.Thin for platforms that can't
+ * fulfill these requirements must provide their own protection mechanism
+ * in Safe_GetXXXbyYYY, and if they require GNAT.Sockets to provide a buffer
+ * to this effect, then we need to set Need_Netdb_Buffer here (case of
+ * VxWorks and VMS).
+ */
+
+#if defined (_AIX) || defined (__FreeBSD__) || defined (__hpux__) || defined (__osf__) || defined (_WIN32) || defined (__APPLE__)
+# define HAVE_THREAD_SAFE_GETxxxBYyyy 1
+#elif defined (sgi) || defined (linux) || (defined (sun) && defined (__SVR4) && !defined (__vxworks))
+# define HAVE_GETxxxBYyyy_R 1
+#endif
+
+#if defined (HAVE_GETxxxBYyyy_R) || !defined (HAVE_THREAD_SAFE_GETxxxBYyyy)
+# define Need_Netdb_Buffer 1
+#else
+# define Need_Netdb_Buffer 0
 #endif

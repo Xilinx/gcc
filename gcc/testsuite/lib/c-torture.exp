@@ -17,11 +17,14 @@
 # This file was written by Rob Savoye. (rob@cygnus.com)
 
 load_lib file-format.exp
+load_lib target-libpath.exp
 
 # The default option list can be overridden by
 # TORTURE_OPTIONS="{ { list1 } ... { listN } }"
 
-if ![info exists TORTURE_OPTIONS] {
+if [info exists TORTURE_OPTIONS] {
+    set C_TORTURE_OPTIONS $TORTURE_OPTIONS
+} else {
     # It is theoretically beneficial to group all of the O2/O3 options together,
     # as in many cases the compiler will generate identical executables for
     # all of them--and the c-torture testsuite will skip testing identical
@@ -29,7 +32,7 @@ if ![info exists TORTURE_OPTIONS] {
     # Also note that -finline-functions is explicitly included in one of the
     # items below, even though -O3 is also specified, because some ports may
     # choose to disable inlining functions by default, even when optimizing.
-    set TORTURE_OPTIONS [list \
+    set C_TORTURE_OPTIONS [list \
 	{ -O0 } \
 	{ -O1 } \
 	{ -O2 } \
@@ -40,16 +43,18 @@ if ![info exists TORTURE_OPTIONS] {
 	{ -Os } ]
 }
 
+global GCC_UNDER_TEST
+if ![info exists GCC_UNDER_TEST] {
+    set GCC_UNDER_TEST "[find_gcc]"
+}
 
-# Split TORTURE_OPTIONS into two choices: one for testcases with loops and
-# one for testcases without loops.
+global orig_environment_saved
 
-set torture_with_loops $TORTURE_OPTIONS
-set torture_without_loops ""
-foreach option $TORTURE_OPTIONS {
-    if ![string match "*loop*" $option] {
-	lappend torture_without_loops $option
-    }
+# This file may be sourced, so don't override environment settings
+# that have been previously setup.
+if { $orig_environment_saved == 0 } {
+    append ld_library_path [gcc-set-multilib-library-path $GCC_UNDER_TEST]
+    set_ld_library_path_env_vars
 }
 
 #
@@ -82,7 +87,7 @@ proc c-torture-compile { src option } {
 
     set comp_output [gcc_target_compile "$src" "$output" object $options]
     gcc_check_compile $testcase $option $output $comp_output
-    remote_file build delete $output
+    file_on_host delete $output
 }
 
 #
@@ -157,7 +162,7 @@ proc c-torture-execute { sources args } {
             set ignore_me [eval $torture_eval_before_compile]
 	}
 
-	remote_file build delete $execname
+	file_on_host delete $execname
 	verbose "Testing $testcase, $option" 1
 
 	set options ""
@@ -169,7 +174,7 @@ proc c-torture-execute { sources args } {
 
 	if ![gcc_check_compile "$testcase compilation" $option $execname $comp_output] {
 	    unresolved "$testcase execution, $option"
-	    remote_file build delete $execname
+	    file_on_host delete $execname
 	    continue
 	}
 
@@ -206,7 +211,7 @@ proc c-torture-execute { sources args } {
 	# the entire process down because it usually does not "hit".
 	set skip 0
 	if { ![isnative] && [info exists oldexec] } {
-	    if { [remote_file build cmp $oldexec $execname] == 0 } {
+	    if { [file_on_host cmp $oldexec $execname] == 0 } {
 		set skip 1
 	    }
 	}
@@ -216,14 +221,14 @@ proc c-torture-execute { sources args } {
 	    set output [lindex $result 1]
 	}
         if { $oldstatus == "pass" } {
-	    remote_file build delete $oldexec
+	    file_on_host delete $oldexec
         }
 	$status "$testcase execution, $option"
 	set oldstatus $status
     }
     if [info exists status] {
 	if { $status == "pass" } {
-	    remote_file build delete $execname
+	    file_on_host delete $execname
 	}
     }
 }

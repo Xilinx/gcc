@@ -1,4 +1,4 @@
-!   Copyright 2002 Free Software Foundation, Inc.
+!   Copyright 2002, 2007 Free Software Foundation, Inc.
 !   Contributed by Paul Brook <paul@nowt.org>
 !
 !This file is part of the GNU Fortran 95 runtime library (libgfortran).
@@ -40,11 +40,11 @@
 #if defined (HAVE_GFC_REAL_4)
 #ifdef HAVE_TANHF
 
-elemental function specific__tanh_r4 (parm)
+elemental function _gfortran_specific__tanh_r4 (parm)
    real (kind=4), intent (in) :: parm
-   real (kind=4) :: specific__tanh_r4
+   real (kind=4) :: _gfortran_specific__tanh_r4
 
-   specific__tanh_r4 = tanh (parm)
+   _gfortran_specific__tanh_r4 = tanh (parm)
 end function
 
 #endif

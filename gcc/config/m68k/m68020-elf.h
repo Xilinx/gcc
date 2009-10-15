@@ -27,6 +27,4 @@ along with GCC; see the file COPYING3.  If not see
 #undef	STARTFILE_SPEC
 #define STARTFILE_SPEC "crtbegin.o%s"
 
-#define LIB_SPEC "-lc"
-
 /* end of m68020-elf.h */

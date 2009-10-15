@@ -86,7 +86,7 @@
    (FDPIC_REG			15)
    ])
 
-(define_mode_macro IMODE [QI HI SI DI])
+(define_mode_iterator IMODE [QI HI SI DI])
 (define_mode_attr IMODEsuffix [(QI "b") (HI "h") (SI "") (DI "d")])
 (define_mode_attr BREADsuffix [(QI "ub") (HI "uh") (SI "") (DI "d")])
 
@@ -132,11 +132,11 @@
 ;;     than a word wide.  Constraints for these operands should use `n' rather
 ;;     than `i'.
 ;;
-;; 'I' First machine-dependent integer constant (6 bit signed ints).
-;; 'J' Second machine-dependent integer constant (10 bit signed ints).
+;; 'I' First machine-dependent integer constant (6-bit signed ints).
+;; 'J' Second machine-dependent integer constant (10-bit signed ints).
 ;; 'K' Third machine-dependent integer constant (-2048).
-;; 'L' Fourth machine-dependent integer constant (16 bit signed ints).
-;; 'M' Fifth machine-dependent integer constant (16 bit unsigned ints).
+;; 'L' Fourth machine-dependent integer constant (16-bit signed ints).
+;; 'M' Fifth machine-dependent integer constant (16-bit unsigned ints).
 ;; 'N' Sixth machine-dependent integer constant (-2047..-1).
 ;; 'O' Seventh machine-dependent integer constant (zero).
 ;; 'P' Eighth machine-dependent integer constant (1..2047).
@@ -2255,26 +2255,6 @@
   end_sequence ();
 }")
 
-(define_expand "reload_incc"
-  [(parallel [(set (match_operand:CC 2 "integer_register_operand" "=&d")
-		   (match_operand:CC 1 "memory_operand" "m"))
-	      (clobber (match_scratch:CC_CCR 3 ""))])
-   (parallel [(set (match_operand:CC 0 "icc_operand" "=t")
-		   (match_dup 2))
-	      (clobber (match_scratch:CC_CCR 4 ""))])]
-  ""
-  "")
-
-(define_expand "reload_outcc"
-  [(parallel [(set (match_operand:CC 2 "integer_register_operand" "=&d")
-		   (match_operand:CC 1 "icc_operand" "t"))
-	      (clobber (match_dup 3))])
-   (parallel [(set (match_operand:CC 0 "memory_operand" "=m")
-		   (match_dup 2))
-	      (clobber (match_scratch:CC_CCR 4 ""))])]
-  ""
-  "operands[3] = gen_rtx_REG (CC_CCRmode, ICR_TEMP);")
-
 ;; Reload CC_UNSmode for unsigned integer comparisons
 ;; Use define_expand so that cse/gcse/combine can't create movcc_uns insns
 
@@ -2342,26 +2322,6 @@
   end_sequence ();
 }")
 
-(define_expand "reload_incc_uns"
-  [(parallel [(set (match_operand:CC_UNS 2 "integer_register_operand" "=&d")
-		   (match_operand:CC_UNS 1 "memory_operand" "m"))
-	      (clobber (match_scratch:CC_CCR 3 ""))])
-   (parallel [(set (match_operand:CC_UNS 0 "icc_operand" "=t")
-		   (match_dup 2))
-	      (clobber (match_scratch:CC_CCR 4 ""))])]
-  ""
-  "")
-
-(define_expand "reload_outcc_uns"
-  [(parallel [(set (match_operand:CC_UNS 2 "integer_register_operand" "=&d")
-		   (match_operand:CC_UNS 1 "icc_operand" "t"))
-	      (clobber (match_dup 3))])
-   (parallel [(set (match_operand:CC_UNS 0 "memory_operand" "=m")
-		   (match_dup 2))
-	      (clobber (match_scratch:CC_CCR 4 ""))])]
-  ""
-  "operands[3] = gen_rtx_REG (CC_CCRmode, ICR_TEMP);")
-
 ;; Reload CC_NZmode.  This is mostly the same as the CCmode and CC_UNSmode
 ;; handling, but it uses different sequences for moving between GPRs and ICCs.
 
@@ -2421,26 +2381,6 @@
 			 (const_int 0))
 	      (set (match_dup 3) (const_int 0)))]
   "operands[3] = simplify_gen_subreg (SImode, operands[0], CC_NZmode, 0);")
-
-(define_expand "reload_incc_nz"
-  [(parallel [(set (match_operand:CC_NZ 2 "integer_register_operand" "=&d")
-		   (match_operand:CC_NZ 1 "memory_operand" "m"))
-	      (clobber (match_scratch:CC_CCR 3 ""))])
-   (parallel [(set (match_operand:CC_NZ 0 "icc_operand" "=t")
-		   (match_dup 2))
-	      (clobber (match_scratch:CC_CCR 4 ""))])]
-  ""
-  "")
-
-(define_expand "reload_outcc_nz"
-  [(parallel [(set (match_operand:CC_NZ 2 "integer_register_operand" "=&d")
-		   (match_operand:CC_NZ 1 "icc_operand" "t"))
-	      (clobber (match_dup 3))])
-   (parallel [(set (match_operand:CC_NZ 0 "memory_operand" "=m")
-		   (match_dup 2))
-	      (clobber (match_scratch:CC_CCR 4 ""))])]
-  ""
-  "operands[3] = gen_rtx_REG (CC_CCRmode, ICR_TEMP);")
 
 ;; Reload CC_FPmode for floating point comparisons
 ;; We use a define_expand here so that cse/gcse/combine can't accidentally
@@ -2975,7 +2915,7 @@
 
 ;; ::::::::::::::::::::
 ;; ::
-;; :: 32 bit Integer arithmetic
+;; :: 32-bit Integer arithmetic
 ;; ::
 ;; ::::::::::::::::::::
 
@@ -3002,7 +2942,7 @@
   [(set_attr "length" "4")
    (set_attr "type" "int")])
 
-;; Signed multiplication producing 64 bit results from 32 bit inputs
+;; Signed multiplication producing 64-bit results from 32-bit inputs
 ;; Note, frv doesn't have a 32x32->32 bit multiply, but the compiler
 ;; will do the 32x32->64 bit multiply and use the bottom word.
 (define_expand "mulsidi3"
@@ -3037,7 +2977,7 @@
   [(set_attr "length" "4")
    (set_attr "type" "mul")])
 
-;; Unsigned multiplication producing 64 bit results from 32 bit inputs
+;; Unsigned multiplication producing 64-bit results from 32-bit inputs
 (define_expand "umulsidi3"
   [(set (match_operand:DI 0 "even_gpr_operand" "")
 	(mult:DI (zero_extend:DI (match_operand:SI 1 "integer_register_operand" ""))
@@ -3110,7 +3050,7 @@
 
 ;; ::::::::::::::::::::
 ;; ::
-;; :: 64 bit Integer arithmetic
+;; :: 64-bit Integer arithmetic
 ;; ::
 ;; ::::::::::::::::::::
 
@@ -3289,7 +3229,7 @@
 
 ;; ::::::::::::::::::::
 ;; ::
-;; :: 32 bit floating point arithmetic
+;; :: 32-bit floating point arithmetic
 ;; ::
 ;; ::::::::::::::::::::
 
@@ -3384,7 +3324,7 @@
 
 ;; ::::::::::::::::::::
 ;; ::
-;; :: 64 bit floating point arithmetic
+;; :: 64-bit floating point arithmetic
 ;; ::
 ;; ::::::::::::::::::::
 
@@ -3479,7 +3419,7 @@
 
 ;; ::::::::::::::::::::
 ;; ::
-;; :: 32 bit Integer Shifts and Rotates
+;; :: 32-bit Integer Shifts and Rotates
 ;; ::
 ;; ::::::::::::::::::::
 
@@ -3534,7 +3474,7 @@
 
 ;; ::::::::::::::::::::
 ;; ::
-;; :: 64 bit Integer Shifts and Rotates
+;; :: 64-bit Integer Shifts and Rotates
 ;; ::
 ;; ::::::::::::::::::::
 
@@ -3586,11 +3526,11 @@
 
 ;; ::::::::::::::::::::
 ;; ::
-;; :: 32 Bit Integer Logical operations
+;; :: 32-Bit Integer Logical operations
 ;; ::
 ;; ::::::::::::::::::::
 
-;; Logical AND, 32 bit integers
+;; Logical AND, 32-bit integers
 (define_insn "andsi3_media"
   [(set (match_operand:SI 0 "gpr_or_fpr_operand" "=d,f")
 	(and:SI (match_operand:SI 1 "gpr_or_fpr_operand" "%d,f")
@@ -3618,7 +3558,7 @@
   ""
   "")
 
-;; Inclusive OR, 32 bit integers
+;; Inclusive OR, 32-bit integers
 (define_insn "iorsi3_media"
   [(set (match_operand:SI 0 "gpr_or_fpr_operand" "=d,f")
 	(ior:SI (match_operand:SI 1 "gpr_or_fpr_operand" "%d,f")
@@ -3646,7 +3586,7 @@
   ""
   "")
 
-;; Exclusive OR, 32 bit integers
+;; Exclusive OR, 32-bit integers
 (define_insn "xorsi3_media"
   [(set (match_operand:SI 0 "gpr_or_fpr_operand" "=d,f")
 	(xor:SI (match_operand:SI 1 "gpr_or_fpr_operand" "%d,f")
@@ -3674,7 +3614,7 @@
   ""
   "")
 
-;; One's complement, 32 bit integers
+;; One's complement, 32-bit integers
 (define_insn "one_cmplsi2_media"
   [(set (match_operand:SI 0 "gpr_or_fpr_operand" "=d,f")
 	(not:SI (match_operand:SI 1 "gpr_or_fpr_operand" "d,f")))]
@@ -3702,11 +3642,11 @@
 
 ;; ::::::::::::::::::::
 ;; ::
-;; :: 64 Bit Integer Logical operations
+;; :: 64-Bit Integer Logical operations
 ;; ::
 ;; ::::::::::::::::::::
 
-;; Logical AND, 64 bit integers
+;; Logical AND, 64-bit integers
 ;; (define_insn "anddi3"
 ;;   [(set (match_operand:DI 0 "register_operand" "=r")
 ;; 	(and:DI (match_operand:DI 1 "register_operand" "%r")
@@ -3715,7 +3655,7 @@
 ;;   "anddi3 %0,%1,%2"
 ;;   [(set_attr "length" "4")])
 
-;; Inclusive OR, 64 bit integers
+;; Inclusive OR, 64-bit integers
 ;; (define_insn "iordi3"
 ;;   [(set (match_operand:DI 0 "register_operand" "=r")
 ;; 	(ior:DI (match_operand:DI 1 "register_operand" "%r")
@@ -3724,7 +3664,7 @@
 ;;   "iordi3 %0,%1,%2"
 ;;   [(set_attr "length" "4")])
 
-;; Exclusive OR, 64 bit integers
+;; Exclusive OR, 64-bit integers
 ;; (define_insn "xordi3"
 ;;   [(set (match_operand:DI 0 "register_operand" "=r")
 ;; 	(xor:DI (match_operand:DI 1 "register_operand" "%r")
@@ -3733,7 +3673,7 @@
 ;;   "xordi3 %0,%1,%2"
 ;;   [(set_attr "length" "4")])
 
-;; One's complement, 64 bit integers
+;; One's complement, 64-bit integers
 ;; (define_insn "one_cmpldi2"
 ;;   [(set (match_operand:DI 0 "register_operand" "=r")
 ;; 	(not:DI (match_operand:DI 1 "register_operand" "r")))]
@@ -7903,8 +7843,7 @@
 
   MEM_READONLY_P (SET_SRC (PATTERN (insn))) = 1;
 
-  REG_NOTES (insn) = gen_rtx_EXPR_LIST (REG_EQUAL, operands[1],
-					REG_NOTES (insn));
+  set_unique_reg_note (insn, REG_EQUAL, operands[1]);
 
   DONE;
 }")
@@ -7934,7 +7873,7 @@
   ""
   "
 {
-  if (no_new_pseudos)
+  if (!can_create_pseudo_p ())
     operands[6] = operands[5] = operands[0];
   else
     {
@@ -7962,7 +7901,7 @@
   ""
   "
 {
-  if (no_new_pseudos)
+  if (!can_create_pseudo_p ())
     operands[6] = operands[5] = operands[0];
   else
     {
@@ -7984,8 +7923,7 @@
 {
   rtx insn = emit_insn (gen_symGOTOFF2reg_i (operands[0], operands[1], operands[2], operands[3]));
 
-  REG_NOTES (insn) = gen_rtx_EXPR_LIST (REG_EQUAL, operands[1],
-					REG_NOTES (insn));
+  set_unique_reg_note (insn, REG_EQUAL, operands[1]);
 
   DONE;
 }")
@@ -8011,7 +7949,7 @@
 {
   rtx insn;
 
-  if (no_new_pseudos)
+  if (!can_create_pseudo_p ())
     operands[4] = operands[0];
   else
     operands[4] = gen_reg_rtx (SImode);
@@ -8021,8 +7959,7 @@
   insn = emit_insn (gen_symGOTOFF2reg_i (operands[0], operands[1],
 					 operands[4], operands[3]));
 
-  REG_NOTES (insn) = gen_rtx_EXPR_LIST (REG_EQUAL, operands[1],
-					REG_NOTES (insn));
+  set_unique_reg_note (insn, REG_EQUAL, operands[1]);
 
   DONE;
 }")
@@ -8038,7 +7975,7 @@
 {
   rtx insn;
 
-  if (no_new_pseudos)
+  if (!can_create_pseudo_p ())
     {
       emit_insn (gen_symGOT2reg (operands[0], operands[1], operands[2],
 				 GEN_INT (R_FRV_GOT12)));
@@ -8052,8 +7989,7 @@
   insn = emit_insn (gen_symGOTOFF2reg_hilo (operands[0], operands[1],
 					    operands[4], operands[3]));
 
-  REG_NOTES (insn) = gen_rtx_EXPR_LIST (REG_EQUAL, operands[1],
-					REG_NOTES (insn));
+  set_unique_reg_note (insn, REG_EQUAL, operands[1]);
 
   DONE;
 }")

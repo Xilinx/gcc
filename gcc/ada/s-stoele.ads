@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 2002-2005 Free Software Foundation, Inc.          --
+--          Copyright (C) 2002-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- This specification is derived from the Ada Reference Manual for use with --
 -- GNAT. The copyright notice above, and the license provisions that follow --
@@ -39,6 +39,10 @@
 --  extra declarations that can be introduced into System using Extend_System.
 --  It is a good idea to avoid use clauses for this package!
 
+pragma Warnings (Off);
+pragma Compiler_Unit;
+pragma Warnings (On);
+
 package System.Storage_Elements is
    pragma Pure;
    --  Note that we take advantage of the implementation permission to make
@@ -54,11 +58,22 @@ package System.Storage_Elements is
    type Storage_Offset is range
      -(2 ** (Integer'(Standard'Address_Size) - 1)) ..
      +(2 ** (Integer'(Standard'Address_Size) - 1)) - Long_Long_Integer'(1);
+   --  Note: the reason for the Long_Long_Integer qualification here is to
+   --  avoid a bogus ambiguity when this unit is analyzed in an rtsfind
+   --  context. It may be possible to remove this in the future, but it is
+   --  certainly harmless in any case ???
 
    subtype Storage_Count is Storage_Offset range 0 .. Storage_Offset'Last;
 
    type Storage_Element is mod 2 ** Storage_Unit;
    for Storage_Element'Size use Storage_Unit;
+
+   pragma Warnings (Off);
+   pragma Universal_Aliasing (Storage_Element);
+   pragma Warnings (On);
+   --  This type is used by the expansion to implement aggregate copy.
+   --  We turn off warnings for this pragma to deal with being compiled
+   --  with an earlier GNAT version that does not recognize this pragma.
 
    type Storage_Array is
      array (Storage_Offset range <>) of aliased Storage_Element;
@@ -106,5 +121,26 @@ package System.Storage_Elements is
    pragma Convention (Intrinsic, To_Integer);
    pragma Inline_Always (To_Integer);
    pragma Pure_Function (To_Integer);
+
+   --  The following is a dummy record designed to mimic Communication_Block as
+   --  defined in s-tpobop.ads:
+
+   --     type Communication_Block is record
+   --        Self      : Task_Id;  --  An access type
+   --        Enqueued  : Boolean := True;
+   --        Cancelled : Boolean := False;
+   --     end record;
+
+   --  The record is used in the construction of the predefined dispatching
+   --  primitive _disp_asynchronous_select in order to avoid the import of
+   --  System.Tasking.Protected_Objects.Operations. Note that this package
+   --  is always imported in the presence of interfaces since the dispatch
+   --  table uses entities from here.
+
+   type Dummy_Communication_Block is record
+      Comp_1 : Address;  --  Address and access have the same size
+      Comp_2 : Boolean;
+      Comp_3 : Boolean;
+   end record;
 
 end System.Storage_Elements;

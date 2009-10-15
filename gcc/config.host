@@ -101,7 +101,20 @@ case ${host} in
       | x86_64-*-* )
 	host_extra_gcc_objs="driver-i386.o"
 	host_xmake_file="${host_xmake_file} i386/x-i386"
-      ;;
+	;;
+    esac
+    ;;
+esac
+
+case ${host} in
+  rs6000-*-* \
+  | powerpc*-*-* )
+    case ${target} in
+      rs6000-*-* \
+      | powerpc*-*-* )
+        host_extra_gcc_objs="driver-rs6000.o"
+        host_xmake_file="${host_xmake_file} rs6000/x-rs6000"
+        ;;
     esac
     ;;
 esac
@@ -167,7 +180,7 @@ case ${host} in
     host_xmake_file="${host_xmake_file} i386/x-cygwin"
     host_exeext=.exe
     ;;
-  i[34567]86-*-mingw32*)
+  i[34567]86-*-mingw32* | x86_64-*-mingw*)
     host_xm_file=i386/xm-mingw32.h
     host_xmake_file="${host_xmake_file} i386/x-mingw32"
     host_exeext=.exe

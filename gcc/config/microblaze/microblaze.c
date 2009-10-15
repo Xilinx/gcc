@@ -46,6 +46,7 @@
 #include "target-def.h"
 #include "tm_p.h"
 #include "gstab.h"
+#include "df.h"
 
 /* Classifies an address.
 
@@ -785,7 +786,7 @@ microblaze_classify_address (struct microblaze_address_info *info, rtx x,
     case UNSPEC:
       {
 	if (reload_in_progress)
-	  regs_ever_live[PIC_OFFSET_TABLE_REGNUM] = 1;
+	  df_set_regs_ever_live (PIC_OFFSET_TABLE_REGNUM, true);
 	return microblaze_classify_unspec (info, x);
       }
 
@@ -900,7 +901,7 @@ microblaze_legitimize_address (rtx x, rtx oldx ATTRIBUTE_UNUSED,
       if (code0 == REG && REG_OK_FOR_BASE_P (xplus0) && flag_pic == 2)
 	{
 	  if (reload_in_progress)
-	    regs_ever_live[PIC_OFFSET_TABLE_REGNUM] = 1;
+	    df_set_regs_ever_live (PIC_OFFSET_TABLE_REGNUM, true);
 	  if (code1 == CONST)
 	    {
 	      xplus1 = XEXP (xplus1, 0);
@@ -922,7 +923,7 @@ microblaze_legitimize_address (rtx x, rtx oldx ATTRIBUTE_UNUSED,
   if (GET_CODE (xinsn) == SYMBOL_REF)
     {
       if (reload_in_progress)
-	regs_ever_live[PIC_OFFSET_TABLE_REGNUM] = 1;
+	df_set_regs_ever_live (PIC_OFFSET_TABLE_REGNUM, true);
       result = gen_rtx_UNSPEC (Pmode, gen_rtvec (1, xinsn), UNSPEC_GOTOFF);
       result = gen_rtx_CONST (Pmode, result);
       result = gen_rtx_PLUS (Pmode, pic_offset_table_rtx, result);
@@ -2561,7 +2562,8 @@ compute_frame_size (HOST_WIDE_INT size)	/* # of var. bytes allocated */
   total_size = var_size + args_size;
 
   if (flag_pic == 2)
-    regs_ever_live[MB_ABI_PIC_ADDR_REGNUM] = 1;	/* force setting GOT */
+    /* force setting GOT.  */
+    df_set_regs_ever_live (MB_ABI_PIC_ADDR_REGNUM, true);
 
   /* Calculate space needed for gp registers.  */
   for (regno = GP_REG_FIRST; regno <= GP_REG_LAST; regno++)
@@ -2706,9 +2708,6 @@ save_restore_insns (int prologue)
 	    {
 	      insn = emit_move_insn (reg_rtx, mem_rtx);
 	    }
-
-	  REG_NOTES (insn) =
-	    gen_rtx_EXPR_LIST (REG_MAYBE_DEAD, const0_rtx, NULL_RTX);
 
 	  gp_offset += GET_MODE_SIZE (gpr_mode);
 	}
@@ -2964,12 +2963,11 @@ microblaze_expand_prologue (void)
 	}
     }
 
-  if (flag_pic == 2 && regs_ever_live[MB_ABI_PIC_ADDR_REGNUM])
+  if (flag_pic == 2 && df_regs_ever_live_p (MB_ABI_PIC_ADDR_REGNUM))
     {
       rtx insn;
-      REGNO (pic_offset_table_rtx) = MB_ABI_PIC_ADDR_REGNUM;
+      SET_REGNO (pic_offset_table_rtx, MB_ABI_PIC_ADDR_REGNUM);
       insn = emit_insn (gen_set_got (pic_offset_table_rtx));	/* setting GOT */
-      REG_NOTES (insn) = gen_rtx_EXPR_LIST (REG_MAYBE_DEAD, const0_rtx, NULL);
     }
 
   /* If we are profiling, make sure no instructions are scheduled before
@@ -3105,7 +3103,7 @@ microblaze_can_use_return_insn (void)
   if (!reload_completed)
     return 0;
 
-  if (regs_ever_live[MB_ABI_SUB_RETURN_ADDR_REGNUM] || profile_flag)
+  if (df_regs_ever_live_p (MB_ABI_SUB_RETURN_ADDR_REGNUM) || profile_flag)
     return 0;
 
   if (current_frame_info.initialized)
@@ -3331,10 +3329,10 @@ static int
 microblaze_must_save_register (int regno)
 {
   if (pic_offset_table_rtx &&
-      (regno == MB_ABI_PIC_ADDR_REGNUM) && regs_ever_live[regno])
+      (regno == MB_ABI_PIC_ADDR_REGNUM) && df_regs_ever_live_p (regno))
     return 1;
 
-  if (regs_ever_live[regno] && !call_used_regs[regno])
+  if (df_regs_ever_live_p (regno) && !call_used_regs[regno])
     return 1;
 
   if (frame_pointer_needed && (regno == HARD_FRAME_POINTER_REGNUM))
@@ -3351,18 +3349,18 @@ microblaze_must_save_register (int regno)
 
   if (interrupt_handler)
     {
-      if ((regs_ever_live[regno]) ||
-	  (regno == MB_ABI_MSR_SAVE_REG) ||
-	  (regno == MB_ABI_ASM_TEMP_REGNUM) ||
-	  (regno == MB_ABI_EXCEPTION_RETURN_ADDR_REGNUM))
+      if (df_regs_ever_live_p (regno) 
+	  || regno == MB_ABI_MSR_SAVE_REG
+	  || regno == MB_ABI_ASM_TEMP_REGNUM
+	  || regno == MB_ABI_EXCEPTION_RETURN_ADDR_REGNUM)
 	return 1;
     }
 
   if (save_volatiles)
     {
-      if ((regs_ever_live[regno]) ||
-	  (regno == MB_ABI_ASM_TEMP_REGNUM) ||
-	  (regno == MB_ABI_EXCEPTION_RETURN_ADDR_REGNUM))
+      if (df_regs_ever_live_p (regno)
+	  || regno == MB_ABI_ASM_TEMP_REGNUM
+	  || regno == MB_ABI_EXCEPTION_RETURN_ADDR_REGNUM)
 	return 1;
     }
 
@@ -3463,9 +3461,8 @@ microblaze_expand_move (enum machine_mode mode, rtx operands[])
 	  if (GET_CODE (addr) == SYMBOL_REF)
 	    {
 	      if (reload_in_progress)
-		{
-		  regs_ever_live[PIC_OFFSET_TABLE_REGNUM] = 1;
-		}
+		df_set_regs_ever_live (PIC_OFFSET_TABLE_REGNUM, true);
+
 	      rtx ptr_reg, result;
 
 	      addr = expand_pic_symbol_ref (mode, addr);
@@ -3480,9 +3477,7 @@ microblaze_expand_move (enum machine_mode mode, rtx operands[])
 	{
 	  rtx result;
 	  if (reload_in_progress)
-	    {
-	      regs_ever_live[PIC_OFFSET_TABLE_REGNUM] = 1;
-	    }
+	    df_set_regs_ever_live (PIC_OFFSET_TABLE_REGNUM, true);
 	  result = expand_pic_symbol_ref (mode, operands[1]);
 	  if (GET_CODE (operands[0]) != REG)
 	    {
@@ -3502,9 +3497,7 @@ microblaze_expand_move (enum machine_mode mode, rtx operands[])
 	  rtx result;
 	  rtx ptr_reg;
 	  if (reload_in_progress)
-	    {
-	      regs_ever_live[PIC_OFFSET_TABLE_REGNUM] = 1;
-	    }
+	    df_set_regs_ever_live (PIC_OFFSET_TABLE_REGNUM, true);
 	  result = expand_pic_symbol_ref (mode, XEXP (operands[1], 0));
 
 	  ptr_reg = gen_reg_rtx (Pmode);
@@ -3520,7 +3513,7 @@ microblaze_expand_move (enum machine_mode mode, rtx operands[])
 	  rtx temp2 = XEXP (XEXP (operands[1], 0), 1);
 
 	  if (reload_in_progress)
-	    regs_ever_live[PIC_OFFSET_TABLE_REGNUM] = 1;
+	    df_set_regs_ever_live (PIC_OFFSET_TABLE_REGNUM, true);
 	  emit_move_insn (operands[0], gen_rtx_PLUS (SImode, temp, temp2));
 	  return true;
 	}

@@ -1348,7 +1348,6 @@ public class gnuPOA
   {
     return name;
   }
-  ;
 
   /**
    * Return the parent of this POA.
@@ -1582,7 +1581,7 @@ public class gnuPOA
    *
    * @throws TRANSIENT if the POA is in discarding mode.
    */
-  private void checkDiscarding()
+  void checkDiscarding()
                         throws TRANSIENT
   {
     if (m_manager.get_state() == State.DISCARDING)

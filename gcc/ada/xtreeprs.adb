@@ -6,18 +6,17 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2005, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -60,21 +59,26 @@ procedure XTreeprs is
    Err : exception;
    --  Raised on fatal error
 
-   A          : VString := Nul;
-   Ffield     : VString := Nul;
-   Field      : VString := Nul;
-   Fieldno    : VString := Nul;
-   Flagno     : VString := Nul;
-   Line       : VString := Nul;
-   Name       : VString := Nul;
-   Node       : VString := Nul;
-   Outstring  : VString := Nul;
-   Prefix     : VString := Nul;
-   S          : VString := Nul;
-   S1         : VString := Nul;
-   Syn        : VString := Nul;
-   Synonym    : VString := Nul;
-   Term       : VString := Nul;
+   pragma Warnings (Off);
+   --  Following variables are assigned by * operator
+
+   A         : VString := Nul;
+   Ffield    : VString := Nul;
+   Field     : VString := Nul;
+   Fieldno   : VString := Nul;
+   Flagno    : VString := Nul;
+   Line      : VString := Nul;
+   Name      : VString := Nul;
+   Node      : VString := Nul;
+   Outstring : VString := Nul;
+   Prefix    : VString := Nul;
+   S         : VString := Nul;
+   S1        : VString := Nul;
+   Syn       : VString := Nul;
+   Synonym   : VString := Nul;
+   Term      : VString := Nul;
+
+   pragma Warnings (On);
 
    subtype Sfile is Ada.Streams.Stream_IO.File_Type;
 
@@ -124,19 +128,19 @@ procedure XTreeprs is
    Sp : aliased Natural;
    --  Space left on line for Pchars output
 
-   wsp : Pattern := Span (' ' & ASCII.HT);
-
-   Is_Temp  : Pattern := BreakX ('T') * A & "T e m p l a t e";
-   Get_Node : Pattern := wsp & "--  N_" & Rest * Node;
-   Tst_Punc : Pattern := Break (" ,.");
-   Get_Syn  : Pattern := Span (' ') & "--  " & Break (' ') * Synonym
-                & " (" & Break (')') * Field;
-   Brk_Min  : Pattern := Break ('-') * Ffield;
-   Is_Flag  : Pattern := "Flag" & Rest * Flagno;
-   Is_Field : Pattern := Rtab (1) & Len (1) * Fieldno;
-   Is_Syn   : Pattern := wsp & "N_" & Break (",)") * Syn & Len (1) * Term;
-   Brk_Node : Pattern := Break (' ') * Node & ' ';
-   Chop_SP  : Pattern := Len (Sp'Unrestricted_Access) * S1;
+   wsp      : constant Pattern := Span (' ' & ASCII.HT);
+   Is_Temp  : constant Pattern := BreakX ('T') * A & "T e m p l a t e";
+   Get_Node : constant Pattern := wsp & "--  N_" & Rest * Node;
+   Tst_Punc : constant Pattern := Break (" ,.");
+   Get_Syn  : constant Pattern := Span (' ') & "--  " & Break (' ') * Synonym
+                                  & " (" & Break (')') * Field;
+   Brk_Min  : constant Pattern := Break ('-') * Ffield;
+   Is_Flag  : constant Pattern := "Flag" & Rest * Flagno;
+   Is_Field : constant Pattern := Rtab (1) & Len (1) * Fieldno;
+   Is_Syn   : constant Pattern := wsp & "N_" & Break (",)") * Syn
+                                  & Len (1) * Term;
+   Brk_Node : constant Pattern := Break (' ') * Node & ' ';
+   Chop_SP  : constant Pattern := Len (Sp'Unrestricted_Access) * S1;
 
    M : Match_Result;
 

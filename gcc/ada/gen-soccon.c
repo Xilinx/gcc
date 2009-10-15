@@ -4,7 +4,7 @@
  *                                                                          *
  *                           G E N - S O C C O N                            *
  *                                                                          *
- *          Copyright (C) 2004-2005, Free Software Foundation, Inc.         *
+ *          Copyright (C) 2004-2007, Free Software Foundation, Inc.         *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
@@ -24,11 +24,17 @@
 
 /* This program generates g-soccon.ads */
 
-/* To build using DEC C:
-  CC/DEFINE="TARGET=""OpenVMS""" gen-soccon
-  LINK gen-soccon
-  RUN gen-soccon
-*/
+/*
+ * To build using DEC C:
+ *
+ * CC/DEFINE="TARGET=""OpenVMS""" gen-soccon
+ * LINK gen-soccon
+ * RUN gen-soccon
+ *
+ * Note: OpenVMS versions older than 8.3 provide an incorrect value in
+ * the DEC C header files for MSG_WAITALL. To generate the VMS version
+ * of g-soccon.ads, gen-soccon should be run on an 8.3 or later machine.
+ */
 
 #ifndef TARGET
 # error Please define TARGET
@@ -98,7 +104,7 @@ TXT("--               G N A T . S O C K E T S . C O N S T A N T S               
 TXT("--                                                                          --")
 TXT("--                                 S p e c                                  --")
 TXT("--                                                                          --")
-TXT("--          Copyright (C) 2000-2005, Free Software Foundation, Inc.         --")
+TXT("--          Copyright (C) 2000-2007, Free Software Foundation, Inc.         --")
 TXT("--                                                                          --")
 TXT("-- GNAT is free software;  you can  redistribute it  and/or modify it under --")
 TXT("-- terms of the  GNU General Public License as published  by the Free Soft- --")
@@ -497,6 +503,11 @@ CND(TCP_NODELAY, "Do not coalesce packets")
 #endif
 CND(SO_REUSEADDR, "Bind reuse local address")
 
+#ifndef SO_REUSEPORT
+#define SO_REUSEPORT -1
+#endif
+CND(SO_REUSEPORT, "Bind reuse port number")
+
 #ifndef SO_KEEPALIVE
 #define SO_KEEPALIVE -1
 #endif
@@ -562,6 +573,11 @@ CND(IP_ADD_MEMBERSHIP, "Join a multicast group")
 #endif
 CND(IP_DROP_MEMBERSHIP, "Leave a multicast group")
 
+#ifndef IP_PKTINFO
+#define IP_PKTINFO -1
+#endif
+CND(IP_PKTINFO, "Get datagram info")
+
 _NL
 TXT("   -------------------")
 TXT("   -- System limits --")
@@ -589,6 +605,14 @@ CND(SIZEOF_tv_sec, "tv_sec")
 CND(SIZEOF_tv_usec, "tv_usec")
 }
 
+_NL
+TXT("   ----------------------------------------")
+TXT("   -- Properties of supported interfaces --")
+TXT("   ----------------------------------------")
+_NL
+
+CND(Need_Netdb_Buffer, "Need buffer for Netdb ops")
+
 #ifdef __vxworks
 _NL
 TXT("   --------------------------------")
@@ -602,6 +626,31 @@ _NL
 CND(OK,    "VxWorks generic success")
 CND(ERROR, "VxWorks generic error")
 #endif
+
+#ifdef __MINGW32__
+_NL
+TXT("   ------------------------------")
+TXT("   -- MinGW-specific constants --")
+TXT("   ------------------------------")
+_NL
+TXT("   --  These constants may be used only within the MinGW version of")
+TXT("   --  GNAT.Sockets.Thin.")
+_NL
+
+CND(WSASYSNOTREADY,     "System not ready")
+CND(WSAVERNOTSUPPORTED, "Version not supported")
+CND(WSANOTINITIALISED,  "Winsock not intialized")
+CND(WSAEDISCON,         "Disconnected")
+
+#endif
+
+_NL
+TXT("   ----------------------")
+TXT("   -- Additional flags --")
+TXT("   ----------------------")
+_NL
+TXT("   Thread_Blocking_IO : constant Boolean := True;")
+TXT("   --  Set False for contexts where socket i/o are process blocking")
 
 _NL
 TXT("end GNAT.Sockets.Constants;")

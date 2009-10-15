@@ -1,4 +1,4 @@
-/* Copyright (C) 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+/* Copyright (C) 2002, 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
    Contributed by Andy Vaught
    Namelist input contributed by Paul Thomas
 
@@ -29,11 +29,9 @@ the Free Software Foundation, 51 Franklin Street, Fifth Floor,
 Boston, MA 02110-1301, USA.  */
 
 
-#include "config.h"
+#include "io.h"
 #include <string.h>
 #include <ctype.h>
-#include "libgfortran.h"
-#include "io.h"
 
 
 /* List directed input.  Several parsing subroutines are practically
@@ -65,6 +63,10 @@ Boston, MA 02110-1301, USA.  */
 
 #define MAX_REPEAT 200000000
 
+#ifndef HAVE_SNPRINTF
+# undef snprintf
+# define snprintf(str, size, ...) sprintf (str, __VA_ARGS__)
+#endif
 
 /* Save a character to a string buffer, enlarging it as necessary.  */
 
@@ -122,6 +124,9 @@ free_saved (st_parameter_dt *dtp)
 static void
 free_line (st_parameter_dt *dtp)
 {
+  dtp->u.p.item_count = 0;
+  dtp->u.p.line_buffer_enabled = 0;
+
   if (dtp->u.p.line_buffer == NULL)
     return;
 
@@ -159,13 +164,13 @@ next_char (st_parameter_dt *dtp)
 	  goto done;
 	}
 
-        dtp->u.p.item_count = 0;
-	dtp->u.p.line_buffer_enabled = 0;
+      dtp->u.p.item_count = 0;
+      dtp->u.p.line_buffer_enabled = 0;
     }    
 
   /* Handle the end-of-record and end-of-file conditions for
      internal array unit.  */
-  if (is_array_io(dtp))
+  if (is_array_io (dtp))
     {
       if (dtp->u.p.at_eof)
 	longjmp (*dtp->u.p.eof_jump, 1);
@@ -173,11 +178,14 @@ next_char (st_parameter_dt *dtp)
       /* Check for "end-of-record" condition.  */
       if (dtp->u.p.current_unit->bytes_left == 0)
 	{
+	  int finished;
+
 	  c = '\n';
-	  record = next_array_record (dtp, dtp->u.p.current_unit->ls);
+	  record = next_array_record (dtp, dtp->u.p.current_unit->ls,
+				      &finished);
 
 	  /* Check for "end-of-file" condition.  */      
-	  if (record == 0)
+	  if (finished)
 	    {
 	      dtp->u.p.at_eof = 1;
 	      goto done;
@@ -201,15 +209,15 @@ next_char (st_parameter_dt *dtp)
   if (is_stream_io (dtp))
     dtp->u.p.current_unit->strm_pos++;
 
-  if (is_internal_unit(dtp))
+  if (is_internal_unit (dtp))
     {
-      if (is_array_io(dtp))
+      if (is_array_io (dtp))
 	{
 	  /* End of record is handled in the next pass through, above.  The
 	     check for NULL here is cautionary.  */
 	  if (p == NULL)
 	    {
-	      generate_error (&dtp->common, ERROR_INTERNAL_UNIT, NULL);
+	      generate_error (&dtp->common, LIBERROR_INTERNAL_UNIT, NULL);
 	      return '\0';
 	    }
 
@@ -230,12 +238,23 @@ next_char (st_parameter_dt *dtp)
     {
       if (p == NULL)
 	{
-	  generate_error (&dtp->common, ERROR_OS, NULL);
+	  generate_error (&dtp->common, LIBERROR_OS, NULL);
 	  return '\0';
 	}
       if (length == 0)
-	longjmp (*dtp->u.p.eof_jump, 1);
-      c = *p;
+	{
+	  if (dtp->u.p.advance_status == ADVANCE_NO)
+	    {
+	      if (dtp->u.p.current_unit->endfile == AT_ENDFILE)
+		longjmp (*dtp->u.p.eof_jump, 1);
+	      dtp->u.p.current_unit->endfile = AT_ENDFILE;
+	      c = '\n';
+	    }
+	  else
+	    longjmp (*dtp->u.p.eof_jump, 1);
+	}
+      else
+	c = *p;
     }
 done:
   dtp->u.p.at_eol = (c == '\n' || c == '\r');
@@ -271,6 +290,20 @@ eat_spaces (st_parameter_dt *dtp)
 }
 
 
+/* This function reads characters through to the end of the current line and
+   just ignores them.  */
+
+static void
+eat_line (st_parameter_dt *dtp)
+{
+  char c;
+  if (!is_internal_unit (dtp))
+    do
+      c = next_char (dtp);
+    while (c != '\n');
+}
+
+
 /* Skip over a separator.  Technically, we don't always eat the whole
    separator.  This is because if we've processed the last input item,
    then a separator is unnecessary.  Plus the fact that operating
@@ -303,15 +336,43 @@ eat_separator (st_parameter_dt *dtp)
       break;
 
     case '\r':
+      dtp->u.p.at_eol = 1;
       n = next_char(dtp);
       if (n == '\n')
-	dtp->u.p.at_eol = 1;
+	{
+	  if (dtp->u.p.namelist_mode)
+	    {
+	      do
+		c = next_char (dtp);
+	      while (c == '\n' || c == '\r' || c == ' ');
+	      unget_char (dtp, c);
+	    }
+	}
       else
 	unget_char (dtp, n);
       break;
 
     case '\n':
       dtp->u.p.at_eol = 1;
+      if (dtp->u.p.namelist_mode)
+	{
+	  do
+	    {
+	      c = next_char (dtp);
+	      if (c == '!')
+		{
+		  eat_line (dtp);
+		  c = next_char (dtp);
+		  if (c == '!')
+		    {
+		      eat_line (dtp);
+		      c = next_char (dtp);
+		    }
+		}
+	    }
+	  while (c == '\n' || c == '\r' || c == ' ' || c == '\t');
+	  unget_char (dtp, c);
+	}
       break;
 
     case '!':
@@ -387,20 +448,6 @@ finish_separator (st_parameter_dt *dtp)
 }
 
 
-/* This function reads characters through to the end of the current line and
-   just ignores them.  */
-
-static void
-eat_line (st_parameter_dt *dtp)
-{
-  char c;
-  if (!is_internal_unit (dtp))
-    do
-      c = next_char (dtp);
-    while (c != '\n');
-}
-
-
 /* This function is needed to catch bad conversions so that namelist can
    attempt to see if dtp->u.p.saved_string contains a new object name rather
    than a bad value.  */
@@ -464,10 +511,10 @@ convert_integer (st_parameter_dt *dtp, int length, int negative)
 
       if (dtp->u.p.repeat_count == 0)
 	{
-	  st_sprintf (message, "Zero repeat count in item %d of list input",
-		      dtp->u.p.item_count);
+	  sprintf (message, "Zero repeat count in item %d of list input",
+		   dtp->u.p.item_count);
 
-	  generate_error (&dtp->common, ERROR_READ_VALUE, message);
+	  generate_error (&dtp->common, LIBERROR_READ_VALUE, message);
 	  m = 1;
 	}
     }
@@ -477,14 +524,14 @@ convert_integer (st_parameter_dt *dtp, int length, int negative)
 
  overflow:
   if (length == -1)
-    st_sprintf (message, "Repeat count overflow in item %d of list input",
-		dtp->u.p.item_count);
+    sprintf (message, "Repeat count overflow in item %d of list input",
+	     dtp->u.p.item_count);
   else
-    st_sprintf (message, "Integer overflow while reading item %d",
-		dtp->u.p.item_count);
+    sprintf (message, "Integer overflow while reading item %d",
+	     dtp->u.p.item_count);
 
   free_saved (dtp);
-  generate_error (&dtp->common, ERROR_READ_VALUE, message);
+  generate_error (&dtp->common, LIBERROR_READ_VALUE, message);
 
   return 1;
 }
@@ -527,11 +574,11 @@ parse_repeat (st_parameter_dt *dtp)
 
 	  if (repeat > MAX_REPEAT)
 	    {
-	      st_sprintf (message,
-			  "Repeat count overflow in item %d of list input",
-			  dtp->u.p.item_count);
+	      sprintf (message,
+		       "Repeat count overflow in item %d of list input",
+		       dtp->u.p.item_count);
 
-	      generate_error (&dtp->common, ERROR_READ_VALUE, message);
+	      generate_error (&dtp->common, LIBERROR_READ_VALUE, message);
 	      return 1;
 	    }
 
@@ -540,11 +587,11 @@ parse_repeat (st_parameter_dt *dtp)
 	case '*':
 	  if (repeat == 0)
 	    {
-	      st_sprintf (message,
-			  "Zero repeat count in item %d of list input",
-			  dtp->u.p.item_count);
+	      sprintf (message,
+		       "Zero repeat count in item %d of list input",
+		       dtp->u.p.item_count);
 
-	      generate_error (&dtp->common, ERROR_READ_VALUE, message);
+	      generate_error (&dtp->common, LIBERROR_READ_VALUE, message);
 	      return 1;
 	    }
 
@@ -563,9 +610,9 @@ parse_repeat (st_parameter_dt *dtp)
 
   eat_line (dtp);
   free_saved (dtp);
-  st_sprintf (message, "Bad repeat count in item %d of list input",
-	      dtp->u.p.item_count);
-  generate_error (&dtp->common, ERROR_READ_VALUE, message);
+  sprintf (message, "Bad repeat count in item %d of list input",
+	   dtp->u.p.item_count);
+  generate_error (&dtp->common, LIBERROR_READ_VALUE, message);
   return 1;
 }
 
@@ -645,6 +692,9 @@ read_logical (st_parameter_dt *dtp, int length)
       return;			/* Null value.  */
 
     default:
+      /* Save the character in case it is the beginning
+	 of the next object name. */
+      unget_char (dtp, c);
       goto bad_logical;
     }
 
@@ -660,8 +710,6 @@ read_logical (st_parameter_dt *dtp, int length)
 
   unget_char (dtp, c);
   eat_separator (dtp);
-  dtp->u.p.item_count = 0;
-  dtp->u.p.line_buffer_enabled = 0;
   set_integer ((int *) dtp->u.p.value, v, length);
   free_line (dtp);
 
@@ -708,15 +756,13 @@ read_logical (st_parameter_dt *dtp, int length)
 
   eat_line (dtp);
   free_saved (dtp);
-  st_sprintf (message, "Bad logical value while reading item %d",
+  sprintf (message, "Bad logical value while reading item %d",
 	      dtp->u.p.item_count);
-  generate_error (&dtp->common, ERROR_READ_VALUE, message);
+  generate_error (&dtp->common, LIBERROR_READ_VALUE, message);
   return;
 
  logical_done:
 
-  dtp->u.p.item_count = 0;
-  dtp->u.p.line_buffer_enabled = 0;
   dtp->u.p.saved_type = BT_LOGICAL;
   dtp->u.p.saved_length = length;
   set_integer ((int *) dtp->u.p.value, v, length);
@@ -840,9 +886,9 @@ read_integer (st_parameter_dt *dtp, int length)
   
   eat_line (dtp);
   free_saved (dtp);
-  st_sprintf (message, "Bad integer for item %d in list input",
+  sprintf (message, "Bad integer for item %d in list input",
 	      dtp->u.p.item_count);
-  generate_error (&dtp->common, ERROR_READ_VALUE, message);
+  generate_error (&dtp->common, LIBERROR_READ_VALUE, message);
 
   return;
 
@@ -891,9 +937,10 @@ read_character (st_parameter_dt *dtp, int length __attribute__ ((unused)))
     default:
       if (dtp->u.p.namelist_mode)
 	{
-	  unget_char (dtp,c);
+	  unget_char (dtp, c);
 	  return;
 	}
+
       push_char (dtp, c);
       goto get_string;
     }
@@ -995,18 +1042,19 @@ read_character (st_parameter_dt *dtp, int length __attribute__ ((unused)))
      invalid.  */
  done:
   c = next_char (dtp);
-  if (is_separator (c))
+  if (is_separator (c) || c == '!')
     {
       unget_char (dtp, c);
       eat_separator (dtp);
       dtp->u.p.saved_type = BT_CHARACTER;
+      free_line (dtp);
     }
   else
     {
       free_saved (dtp);
-      st_sprintf (message, "Invalid string input in item %d",
+      sprintf (message, "Invalid string input in item %d",
 		  dtp->u.p.item_count);
-      generate_error (&dtp->common, ERROR_READ_VALUE, message);
+      generate_error (&dtp->common, LIBERROR_READ_VALUE, message);
     }
 }
 
@@ -1028,7 +1076,12 @@ parse_real (st_parameter_dt *dtp, void *buffer, int length)
     }
 
   if (!isdigit (c) && c != '.')
-    goto bad;
+    {
+      if (c == 'i' || c == 'I' || c == 'n' || c == 'N')
+	goto inf_nan;
+      else
+	goto bad;
+    }
 
   push_char (dtp, c);
 
@@ -1087,6 +1140,7 @@ parse_real (st_parameter_dt *dtp, void *buffer, int length)
  exp2:
   if (!isdigit (c))
     goto bad;
+
   push_char (dtp, c);
 
   for (;;)
@@ -1116,6 +1170,41 @@ parse_real (st_parameter_dt *dtp, void *buffer, int length)
 
   return m;
 
+ inf_nan:
+  /* Match INF and Infinity.  */
+  if ((c == 'i' || c == 'I')
+      && ((c = next_char (dtp)) == 'n' || c == 'N')
+      && ((c = next_char (dtp)) == 'f' || c == 'F'))
+    {
+	c = next_char (dtp);
+	if ((c != 'i' && c != 'I')
+	    || ((c == 'i' || c == 'I')
+		&& ((c = next_char (dtp)) == 'n' || c == 'N')
+		&& ((c = next_char (dtp)) == 'i' || c == 'I')
+		&& ((c = next_char (dtp)) == 't' || c == 'T')
+		&& ((c = next_char (dtp)) == 'y' || c == 'Y')
+		&& (c = next_char (dtp))))
+	  {
+	     if (is_separator (c))
+	       unget_char (dtp, c);
+	     push_char (dtp, 'i');
+	     push_char (dtp, 'n');
+	     push_char (dtp, 'f');
+	     goto done;
+	  }
+    } /* Match NaN.  */
+  else if (((c = next_char (dtp)) == 'a' || c == 'A')
+	   && ((c = next_char (dtp)) == 'n' || c == 'N')
+	   && (c = next_char (dtp)))
+    {
+      if (is_separator (c))
+	unget_char (dtp, c);
+      push_char (dtp, 'n');
+      push_char (dtp, 'a');
+      push_char (dtp, 'n');
+      goto done;
+    }
+
  bad:
 
   if (nml_bad_return (dtp, c))
@@ -1123,9 +1212,9 @@ parse_real (st_parameter_dt *dtp, void *buffer, int length)
 
   eat_line (dtp);
   free_saved (dtp);
-  st_sprintf (message, "Bad floating point number for item %d",
+  sprintf (message, "Bad floating point number for item %d",
 	      dtp->u.p.item_count);
-  generate_error (&dtp->common, ERROR_READ_VALUE, message);
+  generate_error (&dtp->common, LIBERROR_READ_VALUE, message);
 
   return 1;
 }
@@ -1206,9 +1295,9 @@ eol_2:
 
   eat_line (dtp);
   free_saved (dtp);
-  st_sprintf (message, "Bad complex value in item %d of list input",
+  sprintf (message, "Bad complex value in item %d of list input",
 	      dtp->u.p.item_count);
-  generate_error (&dtp->common, ERROR_READ_VALUE, message);
+  generate_error (&dtp->common, LIBERROR_READ_VALUE, message);
 }
 
 
@@ -1219,6 +1308,7 @@ read_real (st_parameter_dt *dtp, int length)
 {
   char c, message[100];
   int seen_dp;
+  int is_inf;
 
   seen_dp = 0;
 
@@ -1242,6 +1332,12 @@ read_real (st_parameter_dt *dtp, int length)
       unget_char (dtp, c);		/* Single null.  */
       eat_separator (dtp);
       return;
+
+    case 'i':
+    case 'I':
+    case 'n':
+    case 'N':
+      goto inf_nan;
 
     default:
       goto bad_real;
@@ -1317,7 +1413,12 @@ read_real (st_parameter_dt *dtp, int length)
     }
 
   if (!isdigit (c) && c != '.')
-    goto bad_real;
+    {
+      if (c == 'i' || c == 'I' || c == 'n' || c == 'N')
+	goto inf_nan;
+      else
+	goto bad_real;
+    }
 
   if (c == '.')
     {
@@ -1414,6 +1515,105 @@ read_real (st_parameter_dt *dtp, int length)
   dtp->u.p.saved_type = BT_REAL;
   return;
 
+ inf_nan:
+  l_push_char (dtp, c);
+  is_inf = 0;
+
+  /* Match INF and Infinity.  */
+  if (c == 'i' || c == 'I')
+    {
+      c = next_char (dtp);
+      l_push_char (dtp, c);
+      if (c != 'n' && c != 'N')
+	goto unwind;
+      c = next_char (dtp);
+      l_push_char (dtp, c);
+      if (c != 'f' && c != 'F')
+	goto unwind;
+      c = next_char (dtp);
+      l_push_char (dtp, c);
+      if (!is_separator (c))
+	{
+	  if (c != 'i' && c != 'I')
+	    goto unwind;
+	  c = next_char (dtp);
+	  l_push_char (dtp, c);
+	  if (c != 'n' && c != 'N')
+	    goto unwind;
+	  c = next_char (dtp);
+	  l_push_char (dtp, c);
+	  if (c != 'i' && c != 'I')
+	    goto unwind;
+	  c = next_char (dtp);
+	  l_push_char (dtp, c);
+	  if (c != 't' && c != 'T')
+	    goto unwind;
+	  c = next_char (dtp);
+	  l_push_char (dtp, c);
+	  if (c != 'y' && c != 'Y')
+	    goto unwind;
+	  c = next_char (dtp);
+	  l_push_char (dtp, c);
+	}
+	is_inf = 1;
+    } /* Match NaN.  */
+  else
+    {
+      c = next_char (dtp);
+      l_push_char (dtp, c);
+      if (c != 'a' && c != 'A')
+	goto unwind;
+      c = next_char (dtp);
+      l_push_char (dtp, c);
+      if (c != 'n' && c != 'N')
+	goto unwind;
+      c = next_char (dtp);
+      l_push_char (dtp, c);
+    }
+
+  if (!is_separator (c))
+    goto unwind;
+
+  if (dtp->u.p.namelist_mode)
+    {	
+      if (c == ' ' || c =='\n' || c == '\r')
+	{
+	  do
+	    c = next_char (dtp);
+	  while (c == ' ' || c =='\n' || c == '\r');
+
+	  l_push_char (dtp, c);
+
+	  if (c == '=')
+	    goto unwind;
+	}
+    }
+
+  if (is_inf)
+    {
+      push_char (dtp, 'i');
+      push_char (dtp, 'n');
+      push_char (dtp, 'f');
+    }
+  else
+    {
+      push_char (dtp, 'n');
+      push_char (dtp, 'a');
+      push_char (dtp, 'n');
+    }
+
+  free_line (dtp);
+  goto done;
+
+ unwind:
+  if (dtp->u.p.namelist_mode)
+    {
+      dtp->u.p.nml_read_error = 1;
+      dtp->u.p.line_buffer_enabled = 1;
+      dtp->u.p.item_count = 0;
+      return;
+    }
+
  bad_real:
 
   if (nml_bad_return (dtp, c))
@@ -1421,9 +1621,9 @@ read_real (st_parameter_dt *dtp, int length)
 
   eat_line (dtp);
   free_saved (dtp);
-  st_sprintf (message, "Bad real number in item %d of list input",
+  sprintf (message, "Bad real number in item %d of list input",
 	      dtp->u.p.item_count);
-  generate_error (&dtp->common, ERROR_READ_VALUE, message);
+  generate_error (&dtp->common, LIBERROR_READ_VALUE, message);
 }
 
 
@@ -1437,11 +1637,11 @@ check_type (st_parameter_dt *dtp, bt type, int len)
 
   if (dtp->u.p.saved_type != BT_NULL && dtp->u.p.saved_type != type)
     {
-      st_sprintf (message, "Read type %s where %s was expected for item %d",
+      sprintf (message, "Read type %s where %s was expected for item %d",
 		  type_name (dtp->u.p.saved_type), type_name (type),
 		  dtp->u.p.item_count);
 
-      generate_error (&dtp->common, ERROR_READ_VALUE, message);
+      generate_error (&dtp->common, LIBERROR_READ_VALUE, message);
       return 1;
     }
 
@@ -1450,11 +1650,11 @@ check_type (st_parameter_dt *dtp, bt type, int len)
 
   if (dtp->u.p.saved_length != len)
     {
-      st_sprintf (message,
+      sprintf (message,
 		  "Read kind %d %s where kind %d is required for item %d",
 		  dtp->u.p.saved_length, type_name (dtp->u.p.saved_type), len,
 		  dtp->u.p.item_count);
-      generate_error (&dtp->common, ERROR_READ_VALUE, message);
+      generate_error (&dtp->common, LIBERROR_READ_VALUE, message);
       return 1;
     }
 
@@ -1480,7 +1680,7 @@ list_formatted_read_scalar (st_parameter_dt *dtp, bt type, void *p, int kind,
   dtp->u.p.eof_jump = &eof_jump;
   if (setjmp (eof_jump))
     {
-      generate_error (&dtp->common, ERROR_END, NULL);
+      generate_error (&dtp->common, LIBERROR_END, NULL);
       goto cleanup;
     }
 
@@ -1512,15 +1712,15 @@ list_formatted_read_scalar (st_parameter_dt *dtp, bt type, void *p, int kind,
     }
   else
     {
-      if (dtp->u.p.input_complete)
-	goto cleanup;
-
       if (dtp->u.p.repeat_count > 0)
 	{
 	  if (check_type (dtp, type, kind))
 	    return;
 	  goto set_value;
 	}
+
+      if (dtp->u.p.input_complete)
+	goto cleanup;
 
       if (dtp->u.p.at_eol)
 	finish_separator (dtp);
@@ -1647,7 +1847,7 @@ calls:
    static void nml_match_name (char *name, int len)
    static int nml_query (st_parameter_dt *dtp)
    static int nml_get_obj_data (st_parameter_dt *dtp,
-				namelist_info **prev_nl, char *)
+				namelist_info **prev_nl, char *, size_t)
 calls:
       static void nml_untouch_nodes (st_parameter_dt *dtp)
       static namelist_info * find_nml_node (st_parameter_dt *dtp,
@@ -1656,7 +1856,7 @@ calls:
 				     array_loop_spec * ls, int rank, char *)
       static void nml_touch_nodes (namelist_info * nl)
       static int nml_read_obj (namelist_info *nl, index_type offset,
-			       namelist_info **prev_nl, char *,
+			       namelist_info **prev_nl, char *, size_t,
 			       index_type clow, index_type chigh)
 calls:
       -itself-  */
@@ -1666,17 +1866,26 @@ calls:
 
 static try
 nml_parse_qualifier (st_parameter_dt *dtp, descriptor_dimension *ad,
-		     array_loop_spec *ls, int rank, char *parse_err_msg)
+		     array_loop_spec *ls, int rank, char *parse_err_msg,
+		     int *parsed_rank)
 {
   int dim;
   int indx;
   int neg;
   int null_flag;
-  int is_array_section;
+  int is_array_section, is_char;
   char c;
 
+  is_char = 0;
   is_array_section = 0;
   dtp->u.p.expanded_read = 0;
+
+  /* See if this is a character substring qualifier we are looking for.  */
+  if (rank == -1)
+    {
+      rank = 1;
+      is_char = 1;
+    }
 
   /* The next character in the stream should be the '('.  */
 
@@ -1723,8 +1932,10 @@ nml_parse_qualifier (st_parameter_dt *dtp, descriptor_dimension *ad,
 		  if ((c==',' && dim == rank -1)
 		      || (c==')' && dim < rank -1))
 		    {
-		      st_sprintf (parse_err_msg,
-				  "Bad number of index fields");
+		      if (is_char)
+		        sprintf (parse_err_msg, "Bad substring qualifier");
+		      else
+			sprintf (parse_err_msg, "Bad number of index fields");
 		      goto err_ret;
 		    }
 		  break;
@@ -1739,21 +1950,38 @@ nml_parse_qualifier (st_parameter_dt *dtp, descriptor_dimension *ad,
 		  break;
 
 		default:
-		  st_sprintf (parse_err_msg, "Bad character in index");
+		  if (is_char)
+		    sprintf (parse_err_msg,
+			     "Bad character in substring qualifier");
+		  else
+		    sprintf (parse_err_msg, "Bad character in index");
 		  goto err_ret;
 		}
 
 	      if ((c == ',' || c == ')') && indx == 0
 		  && dtp->u.p.saved_string == 0)
 		{
-		  st_sprintf (parse_err_msg, "Null index field");
+		  if (is_char)
+		    sprintf (parse_err_msg, "Null substring qualifier");
+		  else
+		    sprintf (parse_err_msg, "Null index field");
 		  goto err_ret;
 		}
 
 	      if ((c == ':' && indx == 1 && dtp->u.p.saved_string == 0)
 		  || (indx == 2 && dtp->u.p.saved_string == 0))
 		{
-		  st_sprintf(parse_err_msg, "Bad index triplet");
+		  if (is_char)
+		    sprintf (parse_err_msg, "Bad substring qualifier");
+		  else
+		    sprintf (parse_err_msg, "Bad index triplet");
+		  goto err_ret;
+		}
+
+	      if (is_char && !is_array_section)
+		{
+		  sprintf (parse_err_msg,
+			   "Missing colon in substring qualifier");
 		  goto err_ret;
 		}
 
@@ -1769,7 +1997,10 @@ nml_parse_qualifier (st_parameter_dt *dtp, descriptor_dimension *ad,
 	      /* Now read the index.  */
 	      if (convert_integer (dtp, sizeof(ssize_t), neg))
 		{
-		  st_sprintf (parse_err_msg, "Bad integer in index");
+		  if (is_char)
+		    sprintf (parse_err_msg, "Bad integer substring qualifier");
+		  else
+		    sprintf (parse_err_msg, "Bad integer in index");
 		  goto err_ret;
 		}
 	      break;
@@ -1801,6 +2032,11 @@ nml_parse_qualifier (st_parameter_dt *dtp, descriptor_dimension *ad,
 		  else
 		    dtp->u.p.expanded_read = 1;
 		}
+
+	      /* Check for non-zero rank.  */
+	      if (is_array_section == 1 && ls[dim].start != ls[dim].end)
+		*parsed_rank = 1;
+
 	      break;
 	    }
 	}
@@ -1811,13 +2047,17 @@ nml_parse_qualifier (st_parameter_dt *dtp, descriptor_dimension *ad,
 	  || (ls[dim].end > (ssize_t)ad[dim].ubound)
 	  || (ls[dim].end < (ssize_t)ad[dim].lbound))
 	{
-	  st_sprintf (parse_err_msg, "Index %d out of range", dim + 1);
+	  if (is_char)
+	    sprintf (parse_err_msg, "Substring out of range");
+	  else
+	    sprintf (parse_err_msg, "Index %d out of range", dim + 1);
 	  goto err_ret;
 	}
+
       if (((ls[dim].end - ls[dim].start ) * ls[dim].step < 0)
 	  || (ls[dim].step == 0))
 	{
-	  st_sprintf (parse_err_msg, "Bad range in index %d", dim + 1);
+	  sprintf (parse_err_msg, "Bad range in index %d", dim + 1);
 	  goto err_ret;
 	}
 
@@ -1859,8 +2099,8 @@ nml_touch_nodes (namelist_info * nl)
   index_type len = strlen (nl->var_name) + 1;
   int dim;
   char * ext_name = (char*)get_mem (len + 1);
-  strcpy (ext_name, nl->var_name);
-  strcat (ext_name, "%");
+  memcpy (ext_name, nl->var_name, len-1);
+  memcpy (ext_name + len - 1, "%", 2);
   for (nl = nl->next; nl; nl = nl->next)
     {
       if (strncmp (nl->var_name, ext_name, len) == 0)
@@ -1948,7 +2188,6 @@ nml_query (st_parameter_dt *dtp, char c)
 
       else
 	{
-
 	  /* "&namelist_name\n"  */
 
 	  len = dtp->namelist_name_len;
@@ -1968,7 +2207,6 @@ nml_query (st_parameter_dt *dtp, char c)
 #endif
 	  for (nl = dtp->u.p.ionml; nl; nl = nl->next)
 	    {
-
 	      /* " var_name\n"  */
 
 	      len = strlen (nl->var_name);
@@ -2032,9 +2270,8 @@ query_return:
 static try
 nml_read_obj (st_parameter_dt *dtp, namelist_info * nl, index_type offset,
 	      namelist_info **pprev_nl, char *nml_err_msg,
-	      index_type clow, index_type chigh)
+	      size_t nml_err_msg_size, index_type clow, index_type chigh)
 {
-
   namelist_info * cmp;
   char * obj_name;
   int nml_carry;
@@ -2056,7 +2293,6 @@ nml_read_obj (st_parameter_dt *dtp, namelist_info * nl, index_type offset,
   len = nl->len;
   switch (nl->type)
   {
-
     case GFC_DTYPE_INTEGER:
     case GFC_DTYPE_LOGICAL:
       dlen = len;
@@ -2080,7 +2316,6 @@ nml_read_obj (st_parameter_dt *dtp, namelist_info * nl, index_type offset,
 
   do
     {
-
       /* Update the pointer to the data, using the current index vector  */
 
       pdata = (void*)(nl->mem_pos + offset);
@@ -2133,8 +2368,8 @@ nml_read_obj (st_parameter_dt *dtp, namelist_info * nl, index_type offset,
 	  case GFC_DTYPE_DERIVED:
 	    obj_name_len = strlen (nl->var_name) + 1;
 	    obj_name = get_mem (obj_name_len+1);
-	    strcpy (obj_name, nl->var_name);
-	    strcat (obj_name, "%");
+	    memcpy (obj_name, nl->var_name, obj_name_len-1);
+	    memcpy (obj_name + obj_name_len - 1, "%", 2);
 
 	    /* If reading a derived type, disable the expanded read warning
 	       since a single object can have multiple reads.  */
@@ -2153,8 +2388,8 @@ nml_read_obj (st_parameter_dt *dtp, namelist_info * nl, index_type offset,
 	      {
 
 		if (nml_read_obj (dtp, cmp, (index_type)(pdata - nl->mem_pos),
-				  pprev_nl, nml_err_msg, clow, chigh)
-		    == FAILURE)
+				  pprev_nl, nml_err_msg, nml_err_msg_size,
+				  clow, chigh) == FAILURE)
 		  {
 		    free_mem (obj_name);
 		    return FAILURE;
@@ -2171,8 +2406,8 @@ nml_read_obj (st_parameter_dt *dtp, namelist_info * nl, index_type offset,
 	    goto incr_idx;
 
           default:
-	    st_sprintf (nml_err_msg, "Bad type for namelist object %s",
-			nl->var_name);
+	    snprintf (nml_err_msg, nml_err_msg_size,
+		      "Bad type for namelist object %s", nl->var_name);
 	    internal_error (&dtp->common, nml_err_msg);
 	    goto nml_err_ret;
           }
@@ -2260,9 +2495,9 @@ incr_idx:
 
   if (dtp->u.p.repeat_count > 1)
     {
-       st_sprintf (nml_err_msg, "Repeat count too large for namelist object %s" ,
-		   nl->var_name );
-       goto nml_err_ret;
+      snprintf (nml_err_msg, nml_err_msg_size,
+		"Repeat count too large for namelist object %s", nl->var_name);
+      goto nml_err_ret;
     }
   return SUCCESS;
 
@@ -2280,16 +2515,16 @@ nml_err_ret:
 
 static try
 nml_get_obj_data (st_parameter_dt *dtp, namelist_info **pprev_nl,
-		  char *nml_err_msg)
+		  char *nml_err_msg, size_t nml_err_msg_size)
 {
   char c;
   namelist_info * nl;
   namelist_info * first_nl = NULL;
   namelist_info * root_nl = NULL;
-  int dim;
+  int dim, parsed_rank;
   int component_flag;
-  char parse_err_msg[30];
   index_type clow, chigh;
+  int non_zero_rank_count;
 
   /* Look for end of input or object name.  If '?' or '=?' are encountered
      in stdin, print the node names or the namelist to stdout.  */
@@ -2310,7 +2545,7 @@ nml_get_obj_data (st_parameter_dt *dtp, namelist_info **pprev_nl,
       c = next_char (dtp);
       if (c != '?')
 	{
-	  st_sprintf (nml_err_msg, "namelist read: misplaced = sign");
+	  sprintf (nml_err_msg, "namelist read: misplaced = sign");
 	  goto nml_err_ret;
 	}
       nml_query (dtp, '=');
@@ -2325,7 +2560,7 @@ nml_get_obj_data (st_parameter_dt *dtp, namelist_info **pprev_nl,
       nml_match_name (dtp, "end", 3);
       if (dtp->u.p.nml_read_error)
 	{
-	  st_sprintf (nml_err_msg, "namelist not terminated with / or &end");
+	  sprintf (nml_err_msg, "namelist not terminated with / or &end");
 	  goto nml_err_ret;
 	}
     case '/':
@@ -2341,6 +2576,7 @@ nml_get_obj_data (st_parameter_dt *dtp, namelist_info **pprev_nl,
 
   nml_untouch_nodes (dtp);
   component_flag = 0;
+  non_zero_rank_count = 0;
 
   /* Get the object name - should '!' and '\n' be permitted separators?  */
 
@@ -2350,7 +2586,8 @@ get_name:
 
   do
     {
-      push_char (dtp, tolower(c));
+      if (!is_separator (c))
+	push_char (dtp, tolower(c));
       c = next_char (dtp);
     } while (!( c=='=' || c==' ' || c=='\t' || c =='(' || c =='%' ));
 
@@ -2384,12 +2621,13 @@ get_name:
   if (nl == NULL)
     {
       if (dtp->u.p.nml_read_error && *pprev_nl)
-	st_sprintf (nml_err_msg, "Bad data for namelist object %s",
-		    (*pprev_nl)->var_name);
+	snprintf (nml_err_msg, nml_err_msg_size,
+		  "Bad data for namelist object %s", (*pprev_nl)->var_name);
 
       else
-	st_sprintf (nml_err_msg, "Cannot match namelist object name %s",
-		    dtp->u.p.saved_string);
+	snprintf (nml_err_msg, nml_err_msg_size,
+		  "Cannot match namelist object name %s",
+		  dtp->u.p.saved_string);
 
       goto nml_err_ret;
     }
@@ -2409,16 +2647,25 @@ get_name:
 
   if (c == '(' && nl->var_rank)
     {
+      parsed_rank = 0;
       if (nml_parse_qualifier (dtp, nl->dim, nl->ls, nl->var_rank,
-			       parse_err_msg) == FAILURE)
+			       nml_err_msg, &parsed_rank) == FAILURE)
 	{
-	  st_sprintf (nml_err_msg, "%s for namelist variable %s",
-		      parse_err_msg, nl->var_name);
+	  char *nml_err_msg_end = strchr (nml_err_msg, '\0');
+	  snprintf (nml_err_msg_end,
+		    nml_err_msg_size - (nml_err_msg_end - nml_err_msg),
+		    " for namelist variable %s", nl->var_name);
 	  goto nml_err_ret;
 	}
+
+      if (parsed_rank > 0)
+	non_zero_rank_count++;
+
       c = next_char (dtp);
       unget_char (dtp, c);
     }
+  else if (nl->var_rank > 0)
+    non_zero_rank_count++;
 
   /* Now parse a derived type component. The root namelist_info address
      is backed up, as is the previous component level.  The  component flag
@@ -2426,11 +2673,10 @@ get_name:
 
   if (c == '%')
     {
-
       if (nl->type != GFC_DTYPE_DERIVED)
 	{
-	  st_sprintf (nml_err_msg, "Attempt to get derived component for %s",
-		      nl->var_name);
+	  snprintf (nml_err_msg, nml_err_msg_size,
+		    "Attempt to get derived component for %s", nl->var_name);
 	  goto nml_err_ret;
 	}
 
@@ -2441,7 +2687,6 @@ get_name:
       component_flag = 1;
       c = next_char (dtp);
       goto get_name;
-
     }
 
   /* Parse a character qualifier, if present.  chigh = 0 is a default
@@ -2455,10 +2700,13 @@ get_name:
       descriptor_dimension chd[1] = { {1, clow, nl->string_length} };
       array_loop_spec ind[1] = { {1, clow, nl->string_length, 1} };
 
-      if (nml_parse_qualifier (dtp, chd, ind, 1, parse_err_msg) == FAILURE)
+      if (nml_parse_qualifier (dtp, chd, ind, -1, nml_err_msg, &parsed_rank)
+	  == FAILURE)
 	{
-	  st_sprintf (nml_err_msg, "%s for namelist variable %s",
-		      parse_err_msg, nl->var_name);
+	  char *nml_err_msg_end = strchr (nml_err_msg, '\0');
+	  snprintf (nml_err_msg_end,
+		    nml_err_msg_size - (nml_err_msg_end - nml_err_msg),
+		    " for namelist variable %s", nl->var_name);
 	  goto nml_err_ret;
 	}
 
@@ -2467,9 +2715,9 @@ get_name:
 
       if (ind[0].step != 1)
 	{
-	  st_sprintf (nml_err_msg,
-		      "Bad step in substring for namelist object %s",
-		      nl->var_name);
+	  snprintf (nml_err_msg, nml_err_msg_size,
+		    "Step not allowed in substring qualifier"
+		    " for namelist object %s", nl->var_name);
 	  goto nml_err_ret;
 	}
 
@@ -2483,15 +2731,26 @@ get_name:
 
   if (nl->type == GFC_DTYPE_DERIVED)
     nml_touch_nodes (nl);
-  if (component_flag)
+  if (component_flag && nl->var_rank > 0)
     nl = first_nl;
 
-  /*make sure no extraneous qualifiers are there.*/
+  /* Make sure no extraneous qualifiers are there.  */
 
   if (c == '(')
     {
-      st_sprintf (nml_err_msg, "Qualifier for a scalar or non-character"
-		  " namelist object %s", nl->var_name);
+      snprintf (nml_err_msg, nml_err_msg_size,
+		"Qualifier for a scalar or non-character namelist object %s",
+		nl->var_name);
+      goto nml_err_ret;
+    }
+
+  /* Make sure there is no more than one non-zero rank object.  */
+  if (non_zero_rank_count > 1)
+    {
+      snprintf (nml_err_msg, nml_err_msg_size,
+		"Multiple sub-objects with non-zero rank in namelist object %s",
+		nl->var_name);
+      non_zero_rank_count = 0;
       goto nml_err_ret;
     }
 
@@ -2514,12 +2773,17 @@ get_name:
 
   if (c != '=')
     {
-      st_sprintf (nml_err_msg, "Equal sign must follow namelist object name %s",
-		  nl->var_name);
+      snprintf (nml_err_msg, nml_err_msg_size,
+		"Equal sign must follow namelist object name %s",
+		nl->var_name);
       goto nml_err_ret;
     }
 
-  if (nml_read_obj (dtp, nl, 0, pprev_nl, nml_err_msg, clow, chigh) == FAILURE)
+  if (first_nl != NULL && first_nl->var_rank > 0)
+    nl = first_nl;
+
+  if (nml_read_obj (dtp, nl, 0, pprev_nl, nml_err_msg, nml_err_msg_size,
+		    clow, chigh) == FAILURE)
     goto nml_err_ret;
 
   return SUCCESS;
@@ -2538,7 +2802,7 @@ namelist_read (st_parameter_dt *dtp)
 {
   char c;
   jmp_buf eof_jump;
-  char nml_err_msg[100];
+  char nml_err_msg[200];
   /* Pointer to the previously read object, in case attempt is made to read
      new object name.  Should this fail, error message can give previous
      name.  */
@@ -2552,7 +2816,7 @@ namelist_read (st_parameter_dt *dtp)
   if (setjmp (eof_jump))
     {
       dtp->u.p.eof_jump = NULL;
-      generate_error (&dtp->common, ERROR_END, NULL);
+      generate_error (&dtp->common, LIBERROR_END, NULL);
       return;
     }
 
@@ -2593,12 +2857,24 @@ find_nml_name:
   if (dtp->u.p.nml_read_error)
     goto find_nml_name;
 
+  /* A trailing space is required, we give a little lattitude here, 10.9.1.  */ 
+  c = next_char (dtp);
+  if (!is_separator(c) && c != '!')
+    {
+      unget_char (dtp, c);
+      goto find_nml_name;
+    }
+
+  unget_char (dtp, c);
+  eat_separator (dtp);
+
   /* Ready to read namelist objects.  If there is an error in input
      from stdin, output the error message and continue.  */
 
   while (!dtp->u.p.input_complete)
     {
-      if (nml_get_obj_data (dtp, &prev_nl, nml_err_msg) == FAILURE)
+      if (nml_get_obj_data (dtp, &prev_nl, nml_err_msg, sizeof nml_err_msg)
+			    == FAILURE)
 	{
 	  gfc_unit *u;
 
@@ -2628,6 +2904,6 @@ nml_err_ret:
   dtp->u.p.eof_jump = NULL;
   free_saved (dtp);
   free_line (dtp);
-  generate_error (&dtp->common, ERROR_READ_VALUE, nml_err_msg);
+  generate_error (&dtp->common, LIBERROR_READ_VALUE, nml_err_msg);
   return;
 }

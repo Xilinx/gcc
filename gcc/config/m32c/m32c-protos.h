@@ -50,7 +50,7 @@ void m32c_unpend_compare (void);
 #if defined(RTX_CODE) && defined(TREE_CODE)
 
 rtx  m32c_function_arg (CUMULATIVE_ARGS *, MM, tree, int);
-rtx  m32c_function_value (tree, tree);
+rtx  m32c_function_value (const_tree, const_tree);
 
 #endif
 
@@ -73,6 +73,7 @@ int  m32c_extra_constraint_p (rtx, char, const char *);
 int  m32c_extra_constraint_p2 (rtx, char, const char *);
 int  m32c_hard_regno_nregs (int, MM);
 int  m32c_hard_regno_ok (int, MM);
+bool m32c_illegal_subreg_p (rtx);
 bool m32c_immd_dbl_mov (rtx *, MM);
 rtx  m32c_incoming_return_addr_rtx (void);
 void m32c_initialize_trampoline (rtx, rtx, rtx);
@@ -83,7 +84,6 @@ int  m32c_legitimize_reload_address (rtx *, MM, int, int, int);
 rtx  m32c_libcall_value (MM);
 int  m32c_limit_reload_class (MM, int);
 int  m32c_memory_move_cost (MM, int, int);
-int  m32c_mode_dependent_address (rtx);
 int  m32c_modes_tieable_p (MM, MM);
 bool m32c_mov_ok (rtx *, MM);
 char * m32c_output_compare (rtx, rtx *);
@@ -110,7 +110,8 @@ int  m32c_split_psi_p (rtx *);
 void m32c_function_arg_advance (CUMULATIVE_ARGS *, MM, tree, int);
 tree m32c_gimplify_va_arg_expr (tree, tree, tree *, tree *);
 void m32c_init_cumulative_args (CUMULATIVE_ARGS *, tree, rtx, tree, int);
-bool m32c_promote_function_return (tree);
+bool m32c_promote_function_return (const_tree);
+int  m32c_special_page_vector_p (tree);
 
 #endif
 

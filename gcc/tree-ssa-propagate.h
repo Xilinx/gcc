@@ -113,12 +113,13 @@ typedef enum ssa_prop_result (*ssa_prop_visit_phi_fn) (tree);
 /* In tree-ssa-propagate.c  */
 void ssa_propagate (ssa_prop_visit_stmt_fn, ssa_prop_visit_phi_fn);
 tree get_rhs (tree);
+bool valid_gimple_expression_p (tree expr);
 bool set_rhs (tree *, tree);
 tree first_vdef (tree);
 bool stmt_makes_single_load (tree);
 bool stmt_makes_single_store (tree);
 prop_value_t *get_value_loaded_by (tree, prop_value_t *);
 bool replace_uses_in (tree, bool *, prop_value_t *);
-void substitute_and_fold (prop_value_t *, bool);
+bool substitute_and_fold (prop_value_t *, bool);
 
 #endif /* _TREE_SSA_PROPAGATE_H  */

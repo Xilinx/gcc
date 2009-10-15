@@ -1,6 +1,7 @@
 // Types used in iterator implementation -*- C++ -*-
 
-// Copyright (C) 2001, 2002, 2004, 2005 Free Software Foundation, Inc.
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+// Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -61,10 +62,13 @@
  *  such as iterator_traits and struct iterator.
  */
 
-#ifndef _ITERATOR_BASE_TYPES_H
-#define _ITERATOR_BASE_TYPES_H 1
+#ifndef _STL_ITERATOR_BASE_TYPES_H
+#define _STL_ITERATOR_BASE_TYPES_H 1
 
 #pragma GCC system_header
+
+#include <bits/c++config.h>
+#include <cstddef>
 
 _GLIBCXX_BEGIN_NAMESPACE(std)
 
@@ -74,7 +78,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
    *  These are empty types, used to distinguish different iterators.  The
    *  distinction is not made by what they contain, but simply by what they
    *  are.  Different underlying algorithms can then be used based on the
-   *  different operations supporetd by different iterator types.
+   *  different operations supported by different iterator types.
   */
   ///  Marking input iterators.
   struct input_iterator_tag {};
@@ -154,10 +158,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     };
 
   /**
-   *  @if maint
    *  This function is not a part of the C++ standard but is syntactic
    *  sugar for internal library use only.
-   *  @endif
   */
   template<typename _Iter>
     inline typename iterator_traits<_Iter>::iterator_category
@@ -166,5 +168,5 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
 _GLIBCXX_END_NAMESPACE
 
-#endif /* _ITERATOR_BASE_TYPES_H */
+#endif /* _STL_ITERATOR_BASE_TYPES_H */
 

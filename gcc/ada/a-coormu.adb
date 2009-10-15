@@ -6,11 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2004-2006, Free Software Foundation, Inc.         --
---                                                                          --
--- This specification is derived from the Ada Reference Manual for use with --
--- GNAT. The copyright notice above, and the license provisions that follow --
--- apply solely to the  contents of the part following the private keyword. --
+--          Copyright (C) 2004-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -987,6 +983,7 @@ package body Ada.Containers.Ordered_Multisets is
 
    procedure Insert (Container : in out Set; New_Item : Element_Type) is
       Position : Cursor;
+      pragma Unreferenced (Position);
    begin
       Insert (Container, New_Item, Position);
    end Insert;
@@ -1429,11 +1426,11 @@ package body Ada.Containers.Ordered_Multisets is
    ----------
 
    procedure Read
-     (Stream    : access Root_Stream_Type'Class;
+     (Stream    : not null access Root_Stream_Type'Class;
       Container : out Set)
    is
       function Read_Node
-        (Stream : access Root_Stream_Type'Class) return Node_Access;
+        (Stream : not null access Root_Stream_Type'Class) return Node_Access;
       pragma Inline (Read_Node);
 
       procedure Read is
@@ -1444,7 +1441,7 @@ package body Ada.Containers.Ordered_Multisets is
       ---------------
 
       function Read_Node
-        (Stream : access Root_Stream_Type'Class) return Node_Access
+        (Stream : not null access Root_Stream_Type'Class) return Node_Access
       is
          Node : Node_Access := new Node_Type;
       begin
@@ -1463,7 +1460,7 @@ package body Ada.Containers.Ordered_Multisets is
    end Read;
 
    procedure Read
-     (Stream : access Root_Stream_Type'Class;
+     (Stream : not null access Root_Stream_Type'Class;
       Item   : out Cursor)
    is
    begin
@@ -1704,9 +1701,9 @@ package body Ada.Containers.Ordered_Multisets is
    ------------
 
    function To_Set (New_Item : Element_Type) return Set is
-      Tree     : Tree_Type;
-      Node     : Node_Access;
-
+      Tree : Tree_Type;
+      Node : Node_Access;
+      pragma Unreferenced (Node);
    begin
       Insert_Sans_Hint (Tree, New_Item, Node);
       return Set'(Controlled with Tree);
@@ -1733,11 +1730,11 @@ package body Ada.Containers.Ordered_Multisets is
    -----------
 
    procedure Write
-     (Stream    : access Root_Stream_Type'Class;
+     (Stream    : not null access Root_Stream_Type'Class;
       Container : Set)
    is
       procedure Write_Node
-        (Stream : access Root_Stream_Type'Class;
+        (Stream : not null access Root_Stream_Type'Class;
          Node   : Node_Access);
       pragma Inline (Write_Node);
 
@@ -1749,7 +1746,7 @@ package body Ada.Containers.Ordered_Multisets is
       ----------------
 
       procedure Write_Node
-        (Stream : access Root_Stream_Type'Class;
+        (Stream : not null access Root_Stream_Type'Class;
          Node   : Node_Access)
       is
       begin
@@ -1763,7 +1760,7 @@ package body Ada.Containers.Ordered_Multisets is
    end Write;
 
    procedure Write
-     (Stream : access Root_Stream_Type'Class;
+     (Stream : not null access Root_Stream_Type'Class;
       Item   : Cursor)
    is
    begin

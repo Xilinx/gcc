@@ -23,17 +23,23 @@ details.  */
 #include <java/lang/StackTraceElement.h>
 #include <java/lang/Throwable.h>
 #include <java/lang/Thread.h>
+#include <java/util/IdentityHashMap.h>
 
 #include <gnu/gcj/runtime/NameFinder.h>
 
 using namespace gnu::gcj::runtime;
 using namespace java::lang;
 
-enum _Jv_FrameType
+extern "Java"
 {
-  frame_native,
-  frame_interpreter
-};
+  namespace gnu
+  {
+    namespace classpath
+    {
+        class VMStackWalker;
+    }
+  }
+}
 
 #ifdef INTERPRETER
 struct _Jv_InterpFrameInfo
@@ -43,10 +49,6 @@ struct _Jv_InterpFrameInfo
 };
 #endif
 
-union _Jv_FrameInfo
-{
-};
-
 struct _Jv_StackFrame
 {
   _Jv_FrameType type;   /* Native or interpreted.  */
@@ -55,16 +57,19 @@ struct _Jv_StackFrame
     _Jv_InterpFrameInfo interp;
 #endif
     struct {
+      jclass proxyClass;
+      _Jv_Method *proxyMethod;
+    };
+    struct {
       void *ip;
       void *start_ip;
     };
   };
-//  _Jv_FrameInfo info;   /* Frame-type specific data.  */
   jclass klass;
   _Jv_Method *meth;
 };
 
-typedef struct _Jv_UnwindState;
+struct _Jv_UnwindState;
 typedef _Unwind_Reason_Code (*_Jv_TraceFn) (_Jv_UnwindState *);
 
 struct _Jv_UnwindState
@@ -84,12 +89,14 @@ struct _Jv_UnwindState
       length = ln;
       pos = 0;
       frames = NULL;
+#ifdef INTERPRETER
       Thread *thread = Thread::currentThread();
       // Check for NULL currentThread(), in case an exception is created 
       // very early during the runtime startup.
-#ifdef INTERPRETER
       if (thread)
 	interp_frame = (_Jv_InterpFrame *) thread->interp_frame;
+      else
+	interp_frame = NULL;
 #endif
       trace_function = NULL;
       trace_data = NULL;
@@ -102,6 +109,7 @@ private:
   int length;
   _Jv_StackFrame frames[];
 
+  static java::util::IdentityHashMap *ncodeMap;
   static void UpdateNCodeMap ();
   static jclass ClassForFrame (_Jv_StackFrame *frame);
   static void FillInFrameInfo (_Jv_StackFrame *frame);
@@ -115,6 +123,8 @@ private:
   static _Unwind_Reason_Code calling_class_trace_fn (_Jv_UnwindState *state);
   static _Unwind_Reason_Code non_system_trace_fn (_Jv_UnwindState *state);
   static _Unwind_Reason_Code accesscontrol_trace_fn (_Jv_UnwindState *state);
+  static _Unwind_Reason_Code stackwalker_trace_fn (_Jv_UnwindState *state);
+  static _Unwind_Reason_Code stackwalker_nnl_trace_fn (_Jv_UnwindState *state);
 
 public:
   static _Jv_StackTrace *GetStackTrace (void);
@@ -123,10 +133,14 @@ public:
     java::lang::Throwable *throwable);
   static jclass GetCallingClass (jclass);
   static void GetCallerInfo (jclass checkClass, jclass *, _Jv_Method **);
-  static JArray<jclass> *GetClassContext (jclass checkClass);
   static ClassLoader *GetFirstNonSystemClassLoader (void);
   static jobjectArray GetAccessControlStack ();
-  
+  static JArray<jclass> *GetStackWalkerStack ();
+  static jclass GetStackWalkerCallingClass ();
+  static ClassLoader *GetStackWalkerFirstNonNullLoader ();
+
+  friend jclass _Jv_GetMethodDeclaringClass (jmethodID);
+  friend class gnu::classpath::VMStackWalker;
 };
 
 // Information about a given address.

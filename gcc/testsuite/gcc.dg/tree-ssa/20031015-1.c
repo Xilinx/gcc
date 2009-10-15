@@ -1,7 +1,7 @@
 /* With tree-ssa, gcc.dg/20000724-1.c failed because we missed
    a VOP of x in the asm statement.  */
 /* { dg-do compile } */
-/* { dg-options "-O1 -fdump-tree-alias1-vops" } */
+/* { dg-options "-O1 -fdump-tree-salias-vops" } */
 
 struct s { int a; };
 
@@ -13,6 +13,6 @@ main(void)
   return 0;
 }
 
-/* The V_*_DEF comes from the initial assignment and the asm.  */
-/* { dg-final { scan-tree-dump-times "_DEF" 3 "alias1" } } */
-/* { dg-final { cleanup-tree-dump "alias1" } } */
+/* The VDEF comes from the initial assignment and the asm.  */
+/* { dg-final { scan-tree-dump-times "DEF" 2 "salias" } } */
+/* { dg-final { cleanup-tree-dump "salias" } } */

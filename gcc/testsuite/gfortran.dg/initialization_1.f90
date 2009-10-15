@@ -24,11 +24,11 @@ contains
     real :: z(2, 2)
 
 ! However, this gives a warning because it is an initialization expression.
-    integer :: l1 = len (ch1)     ! { dg-warning "assumed character length variable" }
+    integer :: l1 = len (ch1)     ! { dg-warning "Assumed character length variable" }
 
 ! These are warnings because they are gfortran extensions.
-    integer :: m3 = size (x, 1)   ! { dg-warning "Evaluation of nonstandard initialization" }
-    integer :: m4(2) = shape (z)  ! { dg-warning "Evaluation of nonstandard initialization" }
+    integer :: m3 = size (x, 1)   ! { dg-error "Assumed size array" }
+    integer :: m4(2) = shape (z)
 
 ! This does not depend on non-constant properties.
     real(8) :: big = huge (x)

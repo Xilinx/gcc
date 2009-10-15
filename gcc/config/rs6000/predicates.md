@@ -1,5 +1,5 @@
 ;; Predicate definitions for POWER and PowerPC.
-;; Copyright (C) 2005, 2006, 2007 Free Software Foundation, Inc.
+;; Copyright (C) 2005, 2006, 2007, 2008 Free Software Foundation, Inc.
 ;;
 ;; This file is part of GCC.
 ;;
@@ -28,7 +28,7 @@
 ;; Return 1 if op is COUNT register.
 (define_predicate "count_register_operand"
   (and (match_code "reg")
-       (match_test "REGNO (op) == COUNT_REGISTER_REGNUM
+       (match_test "REGNO (op) == CTR_REGNO
 		    || REGNO (op) > LAST_VIRTUAL_REGISTER")))
   
 ;; Return 1 if op is an Altivec register.
@@ -213,6 +213,9 @@
   switch (mode)
     {
     case TFmode:
+      if (TARGET_E500_DOUBLE)
+	return 0;
+
       REAL_VALUE_FROM_CONST_DOUBLE (rv, op);
       REAL_VALUE_TO_TARGET_LONG_DOUBLE (rv, k);
 
@@ -275,6 +278,11 @@
 (define_predicate "easy_vector_constant"
   (match_code "const_vector")
 {
+  /* As the paired vectors are actually FPRs it seems that there is
+     no easy way to load a CONST_VECTOR without using memory.  */
+  if (TARGET_PAIRED_FLOAT)
+    return false;
+
   if (ALTIVEC_VECTOR_MODE (mode))
     {
       if (zero_constant (op, mode))
@@ -317,8 +325,8 @@
        (and (match_test "TARGET_ALTIVEC")
 	    (match_test "easy_altivec_constant (op, mode)")))
 {
-  rtx last = CONST_VECTOR_ELT (op, GET_MODE_NUNITS (mode) - 1);
-  HOST_WIDE_INT val = ((INTVAL (last) & 0xff) ^ 0x80) - 0x80;
+  HOST_WIDE_INT val = const_vector_elt_as_int (op, GET_MODE_NUNITS (mode) - 1);
+  val = ((val & 0xff) ^ 0x80) - 0x80;
   return EASY_VECTOR_15_ADD_SELF (val);
 })
 
@@ -349,10 +357,10 @@
 
 ;; Return 1 if the operand is an offsettable memory operand.
 (define_predicate "offsettable_mem_operand"
-  (and (match_code "mem")
-       (match_test "offsettable_address_p (reload_completed
-					   || reload_in_progress,
-					   mode, XEXP (op, 0))")))
+  (and (match_operand 0 "memory_operand")
+       (match_test "GET_CODE (XEXP (op, 0)) != PRE_INC
+		    && GET_CODE (XEXP (op, 0)) != PRE_DEC
+		    && GET_CODE (XEXP (op, 0)) != PRE_MODIFY")))
 
 ;; Return 1 if the operand is a memory operand with an address divisible by 4
 (define_predicate "word_offset_memref_operand"
@@ -639,8 +647,8 @@
        (match_operand 0 "reg_or_mem_operand")))
 
 ;; Return 1 if the operand is a general register or memory operand without
-;; pre_inc or pre_dec, which produces invalid form of PowerPC lwa
-;; instruction.
+;; pre_inc or pre_dec or pre_modify, which produces invalid form of PowerPC
+;; lwa instruction.
 (define_predicate "lwa_operand"
   (match_code "reg,subreg,mem")
 {
@@ -653,6 +661,8 @@
     || (memory_operand (inner, mode)
 	&& GET_CODE (XEXP (inner, 0)) != PRE_INC
 	&& GET_CODE (XEXP (inner, 0)) != PRE_DEC
+	&& (GET_CODE (XEXP (inner, 0)) != PRE_MODIFY
+	    || legitimate_indexed_address_p (XEXP (XEXP (inner, 0), 1), 0))
 	&& (GET_CODE (XEXP (inner, 0)) != PLUS
 	    || GET_CODE (XEXP (XEXP (inner, 0), 1)) != CONST_INT
 	    || INTVAL (XEXP (XEXP (inner, 0), 1)) % 4 == 0));
@@ -683,8 +693,8 @@
 ;; to CALL.  This is a SYMBOL_REF, a pseudo-register, LR or CTR.
 (define_predicate "call_operand"
   (if_then_else (match_code "reg")
-     (match_test "REGNO (op) == LINK_REGISTER_REGNUM
-		  || REGNO (op) == COUNT_REGISTER_REGNUM
+     (match_test "REGNO (op) == LR_REGNO
+		  || REGNO (op) == CTR_REGNO
 		  || REGNO (op) >= FIRST_PSEUDO_REGISTER")
      (match_code "symbol_ref")))
 

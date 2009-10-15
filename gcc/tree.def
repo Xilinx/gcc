@@ -172,6 +172,11 @@ DEFTREECODE (REAL_TYPE, "real_type", tcc_type, 0)
    The TREE_TYPE points to the node for the type pointed to.  */
 DEFTREECODE (POINTER_TYPE, "pointer_type", tcc_type, 0)
 
+/* _Fract and _Accum types in Embedded-C.  Different fixed-point types
+   are distinguished by machine mode and by the TYPE_SIZE and the
+   TYPE_PRECISION.  */
+DEFTREECODE (FIXED_POINT_TYPE, "fixed_point_type", tcc_type, 0)
+
 /* A reference is like a pointer except that it is coerced
    automatically to the value it points to.  Used in C++.  */
 DEFTREECODE (REFERENCE_TYPE, "reference_type", tcc_type, 0)
@@ -272,6 +277,9 @@ DEFTREECODE (INTEGER_CST, "integer_cst", tcc_constant, 0)
 /* Contents are in TREE_REAL_CST field.  */
 DEFTREECODE (REAL_CST, "real_cst", tcc_constant, 0)
 
+/* Contents are in TREE_FIXED_CST field.  */
+DEFTREECODE (FIXED_CST, "fixed_cst", tcc_constant, 0)
+
 /* Contents are in TREE_REALPART and TREE_IMAGPART fields,
    whose contents are other constant nodes.  */
 DEFTREECODE (COMPLEX_CST, "complex_cst", tcc_constant, 0)
@@ -358,6 +366,7 @@ DEFTREECODE (RESULT_DECL, "result_decl", tcc_declaration, 0)
 DEFTREECODE (STRUCT_FIELD_TAG, "struct_field_tag", tcc_declaration, 0)
 DEFTREECODE (NAME_MEMORY_TAG, "name_memory_tag", tcc_declaration, 0)
 DEFTREECODE (SYMBOL_MEMORY_TAG, "symbol_memory_tag", tcc_declaration, 0)
+DEFTREECODE (MEMORY_PARTITION_TAG, "memory_partition_tag", tcc_declaration, 0)
 
 /* A namespace declaration.  Namespaces appear in DECL_CONTEXT of other
    _DECLs, providing a hierarchy of names.  */
@@ -483,7 +492,8 @@ DEFTREECODE (TARGET_EXPR, "target_expr", tcc_expression, 4)
    Operand 0 may be of any type.
    Operand 1 must have the same type as the entire expression, unless
    it unconditionally throws an exception, in which case it should
-   have VOID_TYPE.  The same constraints apply to operand 2.  */
+   have VOID_TYPE.  The same constraints apply to operand 2.  The
+   condition in operand 0 must be of integral type.  */
 DEFTREECODE (COND_EXPR, "cond_expr", tcc_expression, 3)
 
 /* Vector conditional expression. It is like COND_EXPR, but with
@@ -521,11 +531,13 @@ DEFTREECODE (VEC_COND_EXPR, "vec_cond_expr", tcc_expression, 3)
    nodes for the function.  */
 DEFTREECODE (BIND_EXPR, "bind_expr", tcc_expression, 3)
 
-/* Function call.  Operand 0 is the function.
-   Operand 1 is the argument list, a list of expressions
-   made out of a chain of TREE_LIST nodes.
-   Operand 2 is the static chain argument, or NULL.  */
-DEFTREECODE (CALL_EXPR, "call_expr", tcc_expression, 3)
+/* Function call.  CALL_EXPRs are represented by variably-sized expression
+   nodes.  There are at least three fixed operands.  Operand 0 is an
+   INTEGER_CST node containing the total operand count, the number of
+   arguments plus 3.  Operand 1 is the function, while operand 2 is
+   is static chain argument, or NULL.  The remaining operands are the
+   arguments to the call.  */
+DEFTREECODE (CALL_EXPR, "call_expr", tcc_vl_exp, 3)
 
 /* Specify a value to compute along with its corresponding cleanup.
    Operand 0 is the cleanup expression.
@@ -608,6 +620,10 @@ DEFTREECODE (PLUS_EXPR, "plus_expr", tcc_binary, 2)
 DEFTREECODE (MINUS_EXPR, "minus_expr", tcc_binary, 2)
 DEFTREECODE (MULT_EXPR, "mult_expr", tcc_binary, 2)
 
+/* Pointer addition.  The first operand is always a pointer and the
+   second operand is an integer of type sizetype.  */
+DEFTREECODE (POINTER_PLUS_EXPR, "pointer_plus_expr", tcc_binary, 2)
+
 /* Division for integer result that rounds the quotient toward zero.  */
 DEFTREECODE (TRUNC_DIV_EXPR, "trunc_div_expr", tcc_binary, 2)
 
@@ -633,15 +649,8 @@ DEFTREECODE (RDIV_EXPR, "rdiv_expr", tcc_binary, 2)
    Used for pointer subtraction in C.  */
 DEFTREECODE (EXACT_DIV_EXPR, "exact_div_expr", tcc_binary, 2)
 
-/* Conversion of real to fixed point: four ways to round,
-   like the four ways to divide.
-   CONVERT_EXPR can also be used to convert a real to an integer,
-   and that is what is used in languages that do not have ways of
-   specifying which of these is wanted.  Maybe these are not needed.  */
+/* Conversion of real to fixed point by truncation.  */
 DEFTREECODE (FIX_TRUNC_EXPR, "fix_trunc_expr", tcc_unary, 1)
-DEFTREECODE (FIX_CEIL_EXPR, "fix_ceil_expr", tcc_unary, 1)
-DEFTREECODE (FIX_FLOOR_EXPR, "fix_floor_expr", tcc_unary, 1)
-DEFTREECODE (FIX_ROUND_EXPR, "fix_round_expr", tcc_unary, 1)
 
 /* Conversion of an integer to a real.  */
 DEFTREECODE (FLOAT_EXPR, "float_expr", tcc_unary, 1)
@@ -728,6 +737,11 @@ DEFTREECODE (RANGE_EXPR, "range_expr", tcc_binary, 2)
    All conversions, including implicit ones, must be
    represented by CONVERT_EXPR or NOP_EXPR nodes.  */
 DEFTREECODE (CONVERT_EXPR, "convert_expr", tcc_unary, 1)
+
+/* Conversion of a fixed-point value to an integer, a real, or a fixed-point
+   value.  Or conversion of a fixed-point value from an integer, a real, or
+   a fixed-point value.  */
+DEFTREECODE (FIXED_CONVERT_EXPR, "fixed_convert_expr", tcc_unary, 1)
 
 /* Represents a conversion expected to require no code to be generated.  */
 DEFTREECODE (NOP_EXPR, "nop_expr", tcc_unary, 1)
@@ -879,6 +893,15 @@ DEFTREECODE (CATCH_EXPR, "catch_expr", tcc_statement, 2)
    expanding.  */
 DEFTREECODE (EH_FILTER_EXPR, "eh_filter_expr", tcc_statement, 2)
 
+/* Indicates a change in the dynamic type of a memory location.  This
+   has no value and generates no executable code.  It is only used for
+   type based alias analysis.  This is generated by C++ placement new.
+   CHANGE_DYNAMIC_TYPE_NEW_TYPE, the first operand, is the new type.
+   CHANGE_DYNAMIC_TYPE_LOCATION, the second operand, is the location
+   whose type is being changed.  */
+DEFTREECODE (CHANGE_DYNAMIC_TYPE_EXPR, "change_dynamic_type_expr",
+	     tcc_statement, 2)
+
 /* Node used for describing a property that is known at compile
    time.  */
 DEFTREECODE (SCEV_KNOWN, "scev_known", tcc_expression, 0)
@@ -989,8 +1012,14 @@ DEFTREECODE (OMP_FOR, "omp_for", tcc_statement, 6)
 
 /* OpenMP - #pragma omp sections [clause1 ... clauseN]
    Operand 0: OMP_SECTIONS_BODY: Sections body.
-   Operand 1: OMP_SECTIONS_CLAUSES: List of clauses.  */
-DEFTREECODE (OMP_SECTIONS, "omp_sections", tcc_statement, 2)
+   Operand 1: OMP_SECTIONS_CLAUSES: List of clauses.
+   Operand 2: OMP_SECTIONS_CONTROL: The control variable used for deciding
+	      which of the sections to execute.  */
+DEFTREECODE (OMP_SECTIONS, "omp_sections", tcc_statement, 3)
+
+/* This tree immediately follows OMP_SECTIONS, and represents the switch
+   used to decide which branch is taken.  */
+DEFTREECODE (OMP_SECTIONS_SWITCH, "omp_sections_switch", tcc_statement, 0)
 
 /* OpenMP - #pragma omp single
    Operand 0: OMP_SINGLE_BODY: Single section body.
@@ -1018,8 +1047,9 @@ DEFTREECODE (OMP_CRITICAL, "omp_critical", tcc_statement, 2)
 DEFTREECODE (OMP_RETURN, "omp_return", tcc_statement, 0)
 
 /* OpenMP - An intermediate tree code to mark the location of the
-   loop or sections iteration in the partially lowered code.  */
-DEFTREECODE (OMP_CONTINUE, "omp_continue", tcc_statement, 0)
+   loop or sections iteration in the partially lowered code.
+   The arguments are definition and use of the control variable.  */
+DEFTREECODE (OMP_CONTINUE, "omp_continue", tcc_statement, 2)
 
 /* OpenMP - #pragma omp atomic
    Operand 0: The address at which the atomic operation is to be performed.
@@ -1028,6 +1058,18 @@ DEFTREECODE (OMP_CONTINUE, "omp_continue", tcc_statement, 0)
 	at the address is used in the expression, it should appear as if
 	build_fold_indirect_ref of the address.  */
 DEFTREECODE (OMP_ATOMIC, "omp_atomic", tcc_statement, 2)
+
+/* Codes used for lowering of OMP_ATOMIC.  Although the form of the OMP_ATOMIC
+   statement is very simple (just in form mem op= expr), various implicit
+   conversions may cause the expression become more complex, so that it does
+   not fit the gimple grammar very well.  To overcome this problem, OMP_ATOMIC
+   is rewritten as a sequence of two codes in gimplification:
+
+   OMP_LOAD (tmp, mem)
+   val = some computations involving tmp;
+   OMP_STORE (val)  */
+DEFTREECODE (OMP_ATOMIC_LOAD, "omp_atomic_load", tcc_statement, 2)
+DEFTREECODE (OMP_ATOMIC_STORE, "omp_atomic_store", tcc_statement, 1)
 
 /* OpenMP clauses.  */
 DEFTREECODE (OMP_CLAUSE, "omp_clause", tcc_exceptional, 0)
@@ -1074,6 +1116,54 @@ DEFTREECODE (WIDEN_MULT_EXPR, "widen_mult_expr", tcc_binary, 2)
    Operand 1 is an integer shift amount in bits.  */
 DEFTREECODE (VEC_LSHIFT_EXPR, "vec_lshift_expr", tcc_binary, 2)
 DEFTREECODE (VEC_RSHIFT_EXPR, "vec_rshift_expr", tcc_binary, 2)
+
+/* GIMPLE tree codes.  */
+
+/* Assignment expression.  Operand 0 is the what to set; 1, the new value.  */
+DEFTREECODE (GIMPLE_MODIFY_STMT, "gimple_modify_stmt", tcc_gimple_stmt, 2)
+
+/* Widening vector multiplication.
+   The two operands are vectors with N elements of size S. Multiplying the
+   elements of the two vectors will result in N products of size 2*S.
+   VEC_WIDEN_MULT_HI_EXPR computes the N/2 high products.
+   VEC_WIDEN_MULT_LO_EXPR computes the N/2 low products.  */
+DEFTREECODE (VEC_WIDEN_MULT_HI_EXPR, "widen_mult_hi_expr", tcc_binary, 2)
+DEFTREECODE (VEC_WIDEN_MULT_LO_EXPR, "widen_mult_lo_expr", tcc_binary, 2)
+
+/* Unpack (extract and promote/widen) the high/low elements of the input
+   vector into the output vector.  The input vector has twice as many
+   elements as the output vector, that are half the size of the elements
+   of the output vector.  This is used to support type promotion. */
+DEFTREECODE (VEC_UNPACK_HI_EXPR, "vec_unpack_hi_expr", tcc_unary, 1)
+DEFTREECODE (VEC_UNPACK_LO_EXPR, "vec_unpack_lo_expr", tcc_unary, 1)
+
+/* Unpack (extract) the high/low elements of the input vector, convert
+   fixed point values to floating point and widen elements into the
+   output vector.  The input vector has twice as many elements as the output
+   vector, that are half the size of the elements of the output vector.  */
+DEFTREECODE (VEC_UNPACK_FLOAT_HI_EXPR, "vec_unpack_float_hi_expr", tcc_unary, 1)
+DEFTREECODE (VEC_UNPACK_FLOAT_LO_EXPR, "vec_unpack_float_lo_expr", tcc_unary, 1)
+
+/* Pack (demote/narrow and merge) the elements of the two input vectors
+   into the output vector using truncation/saturation.
+   The elements of the input vectors are twice the size of the elements of the
+   output vector.  This is used to support type demotion.  */
+DEFTREECODE (VEC_PACK_TRUNC_EXPR, "vec_pack_trunc_expr", tcc_binary, 2)
+DEFTREECODE (VEC_PACK_SAT_EXPR, "vec_pack_sat_expr", tcc_binary, 2)
+
+/* Convert floating point values of the two input vectors to integer
+   and pack (narrow and merge) the elements into the output vector. The
+   elements of the input vector are twice the size of the elements of
+   the output vector.  */
+DEFTREECODE (VEC_PACK_FIX_TRUNC_EXPR, "vec_pack_fix_trunc_expr", tcc_binary, 2)
+
+/* Extract even/odd fields from vectors.  */
+DEFTREECODE (VEC_EXTRACT_EVEN_EXPR, "vec_extracteven_expr", tcc_binary, 2)
+DEFTREECODE (VEC_EXTRACT_ODD_EXPR, "vec_extractodd_expr", tcc_binary, 2)
+
+/* Merge input vectors interleaving their fields.  */
+DEFTREECODE (VEC_INTERLEAVE_HIGH_EXPR, "vec_interleavehigh_expr", tcc_binary, 2)
+DEFTREECODE (VEC_INTERLEAVE_LOW_EXPR, "vec_interleavelow_expr", tcc_binary, 2)
 
 /*
 Local variables:

@@ -6,18 +6,17 @@
  *                                                                          *
  *                              C Header File                               *
  *                                                                          *
- *          Copyright (C) 1992-2006 Free Software Foundation, Inc.          *
+ *          Copyright (C) 1992-2007, Free Software Foundation, Inc.         *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
- * ware  Foundation;  either version 2,  or (at your option) any later ver- *
+ * ware  Foundation;  either version 3,  or (at your option) any later ver- *
  * sion.  GNAT is distributed in the hope that it will be useful, but WITH- *
  * OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY *
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License *
- * for  more details.  You should have  received  a copy of the GNU General *
- * Public License  distributed with GNAT;  see file COPYING.  If not, write *
- * to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, *
- * Boston, MA 02110-1301, USA.                                              *
+ * for  more details.  You should have received a copy of the GNU General   *
+ * Public License along with GCC; see the file COPYING3.  If not see        *
+ * <http://www.gnu.org/licenses/>.                                          *
  *                                                                          *
  * GNAT was originally developed  by the GNAT team at  New York University. *
  * Extensive contributions were provided by Ada Core Technologies Inc.      *
@@ -36,7 +35,7 @@ enum gnat_tree_code {
 /* Ada uses the lang_decl and lang_type fields to hold a tree.  */
 union lang_tree_node
   GTY((desc ("0"),
-       chain_next ("(union lang_tree_node *)TREE_CHAIN (&%h.t)")))
+       chain_next ("(union lang_tree_node *)GENERIC_NEXT (&%h.t)")))
 {
   union tree_node GTY((tag ("0"))) t;
 };
@@ -137,11 +136,6 @@ struct lang_type GTY(()) {tree t; };
 #define TYPE_RETURNS_BY_REF_P(NODE) \
   TYPE_LANG_FLAG_4 (FUNCTION_TYPE_CHECK (NODE))
 
-/* For FUNCTION_TYPEs, nonzero if function returns by being passed a pointer
-   to a place to store its result.  */
-#define TYPE_RETURNS_BY_TARGET_PTR_P(NODE) \
-  TYPE_LANG_FLAG_5 (FUNCTION_TYPE_CHECK (NODE))
-
 /* For VOID_TYPE, ENUMERAL_TYPE, UNION_TYPE, and RECORD_TYPE, nonzero if this
    is a dummy type, made to correspond to a private or incomplete type.  */
 #define TYPE_DUMMY_P(NODE) TYPE_LANG_FLAG_4 (NODE)
@@ -152,6 +146,11 @@ struct lang_type GTY(()) {tree t; };
     || TREE_CODE (NODE) == UNION_TYPE || TREE_CODE (NODE) == ENUMERAL_TYPE) \
    && TYPE_DUMMY_P (NODE))
 
+/* For FUNCTION_TYPEs, nonzero if function returns by being passed a pointer
+   to a place to store its result.  */
+#define TYPE_RETURNS_BY_TARGET_PTR_P(NODE) \
+  TYPE_LANG_FLAG_5 (FUNCTION_TYPE_CHECK (NODE))
+
 /* For an INTEGER_TYPE, nonzero if TYPE_ACTUAL_BOUNDS is present.  */
 #define TYPE_HAS_ACTUAL_BOUNDS_P(NODE) \
   TYPE_LANG_FLAG_5 (INTEGER_TYPE_CHECK (NODE))
@@ -159,6 +158,9 @@ struct lang_type GTY(()) {tree t; };
 /* For a RECORD_TYPE, nonzero if this was made just to supply needed
    padding or alignment.  */
 #define TYPE_IS_PADDING_P(NODE) TYPE_LANG_FLAG_5 (RECORD_TYPE_CHECK (NODE))
+
+/* True if TYPE can alias any other types.  */
+#define TYPE_UNIVERSAL_ALIASING_P(NODE) TYPE_LANG_FLAG_6 (NODE)
 
 /* This field is only defined for FUNCTION_TYPE nodes. If the Ada
    subprogram contains no parameters passed by copy in/copy out then this
@@ -286,6 +288,13 @@ struct lang_type GTY(()) {tree t; };
   GET_DECL_LANG_SPECIFIC (VAR_DECL_CHECK (NODE))
 #define SET_DECL_RENAMED_OBJECT(NODE, X) \
   SET_DECL_LANG_SPECIFIC (VAR_DECL_CHECK (NODE), X)
+
+/* In a FUNCTION_DECL, points to the stub associated with the function
+   if any, otherwise 0.  */
+#define DECL_FUNCTION_STUB(NODE) \
+  GET_DECL_LANG_SPECIFIC (FUNCTION_DECL_CHECK (NODE))
+#define SET_DECL_FUNCTION_STUB(NODE, X) \
+  SET_DECL_LANG_SPECIFIC (FUNCTION_DECL_CHECK (NODE), X)
 
 /* In a FIELD_DECL corresponding to a discriminant, contains the
    discriminant number.  */

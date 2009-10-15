@@ -106,7 +106,6 @@ extern void print_operand (FILE *, rtx, int);
 extern void s390_output_pool_entry (rtx, enum machine_mode, unsigned int);
 extern void s390_trampoline_template (FILE *);
 extern void s390_initialize_trampoline (rtx, rtx, rtx);
-extern rtx s390_gen_rtx_const_DI (int, int);
 extern int s390_agen_dep_p (rtx, rtx);
 extern rtx s390_load_got (void);
 extern rtx s390_get_thread_pointer (void);
@@ -122,7 +121,6 @@ extern void s390_function_arg_advance (CUMULATIVE_ARGS *, enum machine_mode,
 				       tree, int);
 #ifdef RTX_CODE
 extern rtx s390_function_arg (CUMULATIVE_ARGS *, enum machine_mode, tree, int);
-extern rtx s390_function_value (tree, enum machine_mode);
-extern void s390_va_start (tree, rtx);
+extern rtx s390_function_value (const_tree, enum machine_mode);
 #endif /* RTX_CODE */
 #endif /* TREE_CODE */

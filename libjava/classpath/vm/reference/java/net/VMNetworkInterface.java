@@ -40,7 +40,9 @@ package java.net;
 
 import gnu.classpath.Configuration;
 
-import java.util.Vector;
+import java.nio.ByteBuffer;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * This class models a network interface on the host computer.  A network
@@ -54,22 +56,67 @@ import java.util.Vector;
  */
 final class VMNetworkInterface
 {
+  String name;
+  Set<InetAddress> addresses;
+
+  VMNetworkInterface(String name)
+  {
+    this.name = name;
+    addresses = new HashSet<InetAddress>();
+  }
+  
+  /**
+   * Creates a dummy instance which represents any network
+   * interface.
+   */
+  public VMNetworkInterface()
+  {
+    addresses = new HashSet<InetAddress>();
+    try
+      {
+        addresses.add(InetAddress.getByName("0.0.0.0"));
+      }
+    catch (UnknownHostException _)
+      {
+        // Cannot happen.
+      }
+  }
+  
   static
-    {
-      if (Configuration.INIT_LOAD_LIBRARY)
-	System.loadLibrary("javanet");
-    }
+  {
+    if (Configuration.INIT_LOAD_LIBRARY)
+      System.loadLibrary("javanet");
+    
+    initIds();
+  }
+  
+  private static native void initIds();
 
   /**
-   * Returns a Vector of InetAddresses. The returned value will be
-   * 'condensed', meaning that all elements with the same interface
-   * name will be collapesed into one InetAddress for that name
-   * containing all addresses before the returning the result to the
-   * user. This means the native method can be implemented in a naive
-   * way mapping each address/interface to a name even if that means
-   * that the Vector contains multiple InetAddresses with the same
-   * interface name.
+   * Return a list of VM network interface objects.
+   *
+   * @return The list of network interfaces.
+   * @throws SocketException
    */
-  public static native Vector getInterfaces()
+  public static native VMNetworkInterface[] getVMInterfaces()
     throws SocketException;
+  
+  private void addAddress(ByteBuffer addr)
+    throws SocketException, UnknownHostException
+  {
+    if (addr.remaining() == 4)
+      {
+        byte[] ipv4 = new byte[4];
+        addr.get(ipv4);
+        addresses.add(Inet4Address.getByAddress(ipv4));
+      }
+    else if (addr.remaining() == 16)
+      {
+        byte[] ipv6 = new byte[16];
+        addr.get(ipv6);
+        addresses.add(Inet6Address.getByAddress(ipv6));
+      }
+    else
+      throw new SocketException("invalid interface address");
+  }
 }

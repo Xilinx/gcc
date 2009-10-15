@@ -110,10 +110,10 @@ create_canonical_iv (struct loop *loop, edge exit, tree niter)
   update_stmt (cond);
 }
 
-/* Computes an estimated number of insns in LOOP.  */
+/* Computes an estimated number of insns in LOOP, weighted by WEIGHTS.  */
 
 unsigned
-tree_num_loop_insns (struct loop *loop)
+tree_num_loop_insns (struct loop *loop, eni_weights *weights)
 {
   basic_block *body = get_loop_body (loop);
   block_stmt_iterator bsi;
@@ -121,7 +121,7 @@ tree_num_loop_insns (struct loop *loop)
 
   for (i = 0; i < loop->num_nodes; i++)
     for (bsi = bsi_start (body[i]); !bsi_end_p (bsi); bsi_next (&bsi))
-      size += estimate_num_insns (bsi_stmt (bsi));
+      size += estimate_num_insns (bsi_stmt (bsi), weights);
   free (body);
 
   return size;
@@ -153,18 +153,17 @@ estimated_unrolled_size (unsigned HOST_WIDE_INT ninsns,
   return unr_insns;
 }
 
-/* Tries to unroll LOOP completely, i.e. NITER times.  LOOPS is the
-   loop tree.  UL determines which loops we are allowed to unroll. 
+/* Tries to unroll LOOP completely, i.e. NITER times.
+   UL determines which loops we are allowed to unroll. 
    EXIT is the exit of the loop that should be eliminated.  */
 
 static bool
-try_unroll_loop_completely (struct loops *loops ATTRIBUTE_UNUSED,
-			    struct loop *loop,
+try_unroll_loop_completely (struct loop *loop,
 			    edge exit, tree niter,
 			    enum unroll_level ul)
 {
   unsigned HOST_WIDE_INT n_unroll, ninsns, max_unroll, unr_insns;
-  tree old_cond, cond, dont_exit, do_exit;
+  tree cond;
 
   if (loop->inner)
     return false;
@@ -182,7 +181,7 @@ try_unroll_loop_completely (struct loops *loops ATTRIBUTE_UNUSED,
       if (ul == UL_SINGLE_ITER)
 	return false;
 
-      ninsns = tree_num_loop_insns (loop);
+      ninsns = tree_num_loop_insns (loop, &eni_size_weights);
 
       if (n_unroll * ninsns
 	  > (unsigned) PARAM_VALUE (PARAM_MAX_COMPLETELY_PEELED_INSNS))
@@ -208,55 +207,44 @@ try_unroll_loop_completely (struct loops *loops ATTRIBUTE_UNUSED,
 	}
     }
 
-  if (exit->flags & EDGE_TRUE_VALUE)
-    {
-      dont_exit = boolean_false_node;
-      do_exit = boolean_true_node;
-    }
-  else
-    {
-      dont_exit = boolean_true_node;
-      do_exit = boolean_false_node;
-    }
-  cond = last_stmt (exit->src);
-    
   if (n_unroll)
     {
       sbitmap wont_exit;
-      edge *edges_to_remove = XNEWVEC (edge, n_unroll);
-      unsigned int n_to_remove = 0;
+      edge e;
+      unsigned i;
+      VEC (edge, heap) *to_remove = NULL;
 
-      old_cond = COND_EXPR_COND (cond);
-      COND_EXPR_COND (cond) = dont_exit;
-      update_stmt (cond);
       initialize_original_copy_tables ();
-
       wont_exit = sbitmap_alloc (n_unroll + 1);
       sbitmap_ones (wont_exit);
       RESET_BIT (wont_exit, 0);
 
       if (!tree_duplicate_loop_to_header_edge (loop, loop_preheader_edge (loop),
-					       loops, n_unroll, wont_exit,
-					       exit, edges_to_remove,
-					       &n_to_remove,
+					       n_unroll, wont_exit,
+					       exit, &to_remove,
 					       DLTHE_FLAG_UPDATE_FREQ
 					       | DLTHE_FLAG_COMPLETTE_PEEL))
 	{
-	  COND_EXPR_COND (cond) = old_cond;
-	  update_stmt (cond);
           free_original_copy_tables ();
 	  free (wont_exit);
-	  free (edges_to_remove);
 	  return false;
 	}
+
+      for (i = 0; VEC_iterate (edge, to_remove, i, e); i++)
+	{
+	  bool ok = remove_path (e);
+	  gcc_assert (ok);
+	}
+
+      VEC_free (edge, heap, to_remove);
       free (wont_exit);
-      free (edges_to_remove);
       free_original_copy_tables ();
     }
-  
-  COND_EXPR_COND (cond) = do_exit;
-  update_stmt (cond);
 
+  cond = last_stmt (exit->src);
+  COND_EXPR_COND (cond) = (exit->flags & EDGE_TRUE_VALUE) ? boolean_true_node
+    : boolean_false_node;
+  update_stmt (cond);
   update_ssa (TODO_update_ssa);
 
   if (dump_file && (dump_flags & TDF_DETAILS))
@@ -265,38 +253,32 @@ try_unroll_loop_completely (struct loops *loops ATTRIBUTE_UNUSED,
   return true;
 }
 
-/* Adds a canonical induction variable to LOOP if suitable.  LOOPS is the loops
-   tree.  CREATE_IV is true if we may create a new iv.  UL determines 
+/* Adds a canonical induction variable to LOOP if suitable.
+   CREATE_IV is true if we may create a new iv.  UL determines 
    which loops we are allowed to completely unroll.  If TRY_EVAL is true, we try
    to determine the number of iterations of a loop by direct evaluation. 
    Returns true if cfg is changed.  */
 
 static bool
-canonicalize_loop_induction_variables (struct loops *loops, struct loop *loop,
+canonicalize_loop_induction_variables (struct loop *loop,
 				       bool create_iv, enum unroll_level ul,
 				       bool try_eval)
 {
   edge exit = NULL;
   tree niter;
 
-  niter = number_of_iterations_in_loop (loop);
+  niter = number_of_latch_executions (loop);
   if (TREE_CODE (niter) == INTEGER_CST)
     {
-      exit = loop->single_exit;
+      exit = single_exit (loop);
       if (!just_once_each_iteration_p (loop, exit->src))
 	return false;
-
-      /* The result of number_of_iterations_in_loop is by one higher than
-	 we expect (i.e. it returns number of executions of the exit
-	 condition, not of the loop latch edge).  */
-      niter = fold_build2 (MINUS_EXPR, TREE_TYPE (niter), niter,
-			   build_int_cst (TREE_TYPE (niter), 1));
     }
   else
     {
       /* If the loop has more than one exit, try checking all of them
 	 for # of iterations determinable through scev.  */
-      if (!loop->single_exit)
+      if (!single_exit (loop))
 	niter = find_loop_niter (loop, &exit);
 
       /* Finally if everything else fails, try brute force evaluation.  */
@@ -317,7 +299,7 @@ canonicalize_loop_induction_variables (struct loops *loops, struct loop *loop,
       fprintf (dump_file, " times.\n");
     }
 
-  if (try_unroll_loop_completely (loops, loop, exit, niter, ul))
+  if (try_unroll_loop_completely (loop, exit, niter, ul))
     return true;
 
   if (create_iv)
@@ -327,23 +309,20 @@ canonicalize_loop_induction_variables (struct loops *loops, struct loop *loop,
 }
 
 /* The main entry point of the pass.  Adds canonical induction variables
-   to the suitable LOOPS.  */
+   to the suitable loops.  */
 
 unsigned int
-canonicalize_induction_variables (struct loops *loops)
+canonicalize_induction_variables (void)
 {
-  unsigned i;
+  loop_iterator li;
   struct loop *loop;
   bool changed = false;
   
-  for (i = 1; i < loops->num; i++)
+  FOR_EACH_LOOP (li, loop, 0)
     {
-      loop = loops->parray[i];
-
-      if (loop)
-	changed |= canonicalize_loop_induction_variables (loops, loop,
-							  true, UL_SINGLE_ITER,
-							  true);
+      changed |= canonicalize_loop_induction_variables (loop,
+							true, UL_SINGLE_ITER,
+							true);
     }
 
   /* Clean up the information about numbers of iterations, since brute force
@@ -360,25 +339,20 @@ canonicalize_induction_variables (struct loops *loops)
    size of the code does not increase.  */
 
 unsigned int
-tree_unroll_loops_completely (struct loops *loops, bool may_increase_size)
+tree_unroll_loops_completely (bool may_increase_size)
 {
-  unsigned i;
+  loop_iterator li;
   struct loop *loop;
   bool changed = false;
   enum unroll_level ul;
 
-  for (i = 1; i < loops->num; i++)
+  FOR_EACH_LOOP (li, loop, 0)
     {
-      loop = loops->parray[i];
-
-      if (!loop)
-	continue;
-
       if (may_increase_size && maybe_hot_bb_p (loop->header))
 	ul = UL_ALL;
       else
 	ul = UL_NO_GROWTH;
-      changed |= canonicalize_loop_induction_variables (loops, loop,
+      changed |= canonicalize_loop_induction_variables (loop,
 							false, ul,
 							!flag_tree_loop_ivcanon);
     }
@@ -455,7 +429,7 @@ empty_loop_p (struct loop *loop)
 	  switch (TREE_CODE (stmt))
 	    {
 	    case RETURN_EXPR:
-	    case MODIFY_EXPR:
+	    case GIMPLE_MODIFY_STMT:
 	      stmt = get_call_expr_in (stmt);
 	      if (!stmt)
 		break;
@@ -498,6 +472,9 @@ remove_empty_loop (struct loop *loop)
   basic_block *body;
   unsigned n_before, freq_in, freq_h;
   gcov_type exit_count = exit->count;
+
+  if (dump_file)
+    fprintf (dump_file, "Removing empty loop %d\n", loop->num);
 
   non_exit = EDGE_SUCC (exit->src, 0);
   if (non_exit == exit)
@@ -561,15 +538,15 @@ try_remove_empty_loop (struct loop *loop, bool *changed)
   return true;
 }
 
-/* Remove the empty LOOPS.  */
+/* Remove the empty loops.  */
 
 unsigned int
-remove_empty_loops (struct loops *loops)
+remove_empty_loops (void)
 {
   bool changed = false;
   struct loop *loop;
 
-  for (loop = loops->tree_root->inner; loop; loop = loop->next)
+  for (loop = current_loops->tree_root->inner; loop; loop = loop->next)
     try_remove_empty_loop (loop, &changed);
 
   if (changed)

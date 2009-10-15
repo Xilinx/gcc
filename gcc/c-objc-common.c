@@ -50,67 +50,10 @@ c_missing_noreturn_ok_p (tree decl)
   return flag_hosted && MAIN_NAME_P (DECL_ASSEMBLER_NAME (decl));
 }
 
-/* We want to inline `extern inline' functions even if this would
-   violate inlining limits.  Some glibc and linux constructs depend on
-   such functions always being inlined when optimizing.  */
-
-int
-c_disregard_inline_limits (tree fn)
-{
-  if (lookup_attribute ("always_inline", DECL_ATTRIBUTES (fn)) != NULL)
-    return 1;
-
-  return (!flag_really_no_inline && DECL_DECLARED_INLINE_P (fn)
-	  && DECL_EXTERNAL (fn));
-}
-
-int
-c_cannot_inline_tree_fn (tree *fnp)
-{
-  tree fn = *fnp;
-  bool do_warning = (warn_inline
-		     && DECL_INLINE (fn)
-		     && DECL_DECLARED_INLINE_P (fn)
-		     && !DECL_IN_SYSTEM_HEADER (fn));
-
-  if (flag_really_no_inline
-      && lookup_attribute ("always_inline", DECL_ATTRIBUTES (fn)) == NULL)
-    {
-      if (do_warning)
-	warning (OPT_Winline, "function %q+F can never be inlined because it "
-		 "is suppressed using -fno-inline", fn);
-      goto cannot_inline;
-    }
-
-  /* Don't auto-inline anything that might not be bound within
-     this unit of translation.  */
-  if (!DECL_DECLARED_INLINE_P (fn) && !targetm.binds_local_p (fn))
-    {
-      if (do_warning)
-	warning (OPT_Winline, "function %q+F can never be inlined because it "
-		 "might not be bound within this unit of translation", fn);
-      goto cannot_inline;
-    }
-
-  if (!function_attribute_inlinable_p (fn))
-    {
-      if (do_warning)
-	warning (OPT_Winline, "function %q+F can never be inlined because it "
-		 "uses attributes conflicting with inlining", fn);
-      goto cannot_inline;
-    }
-
-  return 0;
-
- cannot_inline:
-  DECL_UNINLINABLE (fn) = 1;
-  return 1;
-}
-
 /* Called from check_global_declarations.  */
 
 bool
-c_warn_unused_global_decl (tree decl)
+c_warn_unused_global_decl (const_tree decl)
 {
   if (TREE_CODE (decl) == FUNCTION_DECL && DECL_DECLARED_INLINE_P (decl))
     return false;
@@ -133,16 +76,6 @@ c_objc_common_init (void)
      putting them here anyway.  The diagnostic format decoder might
      want an enhanced ObjC implementation.  */
   diagnostic_format_decoder (global_dc) = &c_tree_printer;
-
-  /* If still unspecified, make it match -std=c99
-     (allowing for -pedantic-errors).  */
-  if (mesg_implicit_function_declaration < 0)
-    {
-      if (flag_isoc99)
-	mesg_implicit_function_declaration = flag_pedantic_errors ? 2 : 1;
-      else
-	mesg_implicit_function_declaration = 0;
-    }
 
   return true;
 }
@@ -233,7 +166,7 @@ c_tree_printer (pretty_printer *pp, text_info *text, const char *spec,
 
 /* In C and ObjC, all decls have "C" linkage.  */
 bool
-has_c_linkage (tree decl ATTRIBUTE_UNUSED)
+has_c_linkage (const_tree decl ATTRIBUTE_UNUSED)
 {
   return true;
 }
@@ -254,7 +187,7 @@ c_initialize_diagnostics (diagnostic_context *context)
 int
 c_types_compatible_p (tree x, tree y)
 {
-    return comptypes (TYPE_MAIN_VARIANT (x), TYPE_MAIN_VARIANT (y));
+  return comptypes (TYPE_MAIN_VARIANT (x), TYPE_MAIN_VARIANT (y));
 }
 
 /* Determine if the type is a vla type for the backend.  */

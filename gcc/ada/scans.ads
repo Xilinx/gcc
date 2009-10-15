@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2006, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -31,6 +31,7 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
+with Namet;  use Namet;
 with Types;  use Types;
 with Uintp;  use Uintp;
 with Urealp; use Urealp;
@@ -364,6 +365,12 @@ package Scans is
    --  Starting column number (zero origin) of the first non-blank character
    --  on the line containing the current token. This is used for error
    --  recovery circuits which depend on looking at the column line up.
+
+   Type_Token_Location : Source_Ptr;
+   --  Within a type declaration, gives the location of the TYPE keyword that
+   --  opened the type declaration. Used in checking the end column of a record
+   --  declaration, which can line up either with the TYPE keyword, or with the
+   --  start of the line containing the RECORD keyword.
 
    Checksum : Word;
    --  Used to accumulate a CRC representing the tokens in the source

@@ -1,5 +1,6 @@
 ;; Machine Descriptions for R8C/M16C/M32C
-;; Copyright (C) 2005, 2007 Free Software Foundation, Inc.
+;; Copyright (C) 2005, 2007
+;; Free Software Foundation, Inc.
 ;; Contributed by Red Hat.
 ;;
 ;; This file is part of GCC.
@@ -31,7 +32,7 @@
 
 ; We assume dwarf2out will process each set in sequence.
 (define_insn "prologue_enter_16"
-  [(set (mem:HI (pre_dec:HI (reg:HI SP_REGNO)))
+  [(set (mem:HI (plus:HI (reg:HI SP_REGNO) (const_int -2)))
 	(reg:HI FB_REGNO))
    (set (reg:HI FB_REGNO)
 	(reg:HI SP_REGNO))
@@ -40,12 +41,17 @@
 	           (match_operand 0 "const_int_operand" "i")))
    ]
   "TARGET_A16"
-  "enter\t%0"
+  {
+    /* This is due to binutils bug gas/4659.  */
+    if (INTVAL (operands[0]) == 2)
+      return "enter\t#0";
+    return "enter\t%0-2";
+  }
   [(set_attr "flags" "x")]
   )
 
 (define_insn "prologue_enter_24"
-  [(set (mem:SI (pre_dec:PSI (reg:PSI SP_REGNO)))
+  [(set (mem:SI (plus:PSI (reg:PSI SP_REGNO) (const_int -4)))
 	(reg:SI FB_REGNO))
    (set (reg:PSI FB_REGNO)
 	(reg:PSI SP_REGNO))
@@ -54,7 +60,12 @@
 	           (match_operand 0 "const_int_operand" "i")))
    ]
   "TARGET_A24"
-  "enter\t%0"
+  {
+    /* This is due to binutils bug gas/4659.  */
+    if (INTVAL (operands[0]) == 4)
+      return "enter\t#0";
+    return "enter\t%0-4";
+  }
   [(set_attr "flags" "x")]
   )
 
@@ -90,28 +101,50 @@
   [(set_attr "flags" "x")]
   )
 
-(define_insn "epilogue_exitd"
-  [(set (reg:PSI SP_REGNO)
-	(reg:PSI FB_REGNO))
-   (set (reg:PSI FB_REGNO)
-	(mem:PSI (reg:PSI SP_REGNO)))
-   (set (reg:PSI SP_REGNO)
-	(plus:PSI (reg:PSI SP_REGNO)
-	      (match_operand 0 "const_int_operand" "i")))
+(define_insn "epilogue_exitd_16"
+  [(set (reg:HI SP_REGNO)
+	(plus:HI (reg:HI FB_REGNO)
+	      (const_int 2)))
+   (set (reg:HI FB_REGNO)
+	(mem:HI (reg:HI FB_REGNO)))
    (return)
    ]
-  ""
+  "TARGET_A16"
   "exitd"
   [(set_attr "flags" "x")]
   )
 
-(define_insn "epilogue_reit"
-  [(set (reg:PSI SP_REGNO)
-	(plus:PSI (reg:PSI SP_REGNO)
-	      (match_operand 0 "const_int_operand" "i")))
+(define_insn "epilogue_reit_16"
+  [(set (reg:HI SP_REGNO)
+	(plus:HI (reg:HI SP_REGNO)
+	      (const_int 4)))
    (return)
    ]
-  ""
+  "TARGET_A16"
+  "reit"
+  [(set_attr "flags" "x")]
+  )
+
+(define_insn "epilogue_exitd_24"
+  [(set (reg:PSI SP_REGNO)
+	(plus:PSI (reg:PSI FB_REGNO)
+	      (const_int 4)))
+   (set (reg:PSI FB_REGNO)
+	(mem:PSI (reg:PSI FB_REGNO)))
+   (return)
+   ]
+  "TARGET_A24"
+  "exitd"
+  [(set_attr "flags" "x")]
+  )
+
+(define_insn "epilogue_reit_24"
+  [(set (reg:PSI SP_REGNO)
+	(plus:PSI (reg:PSI SP_REGNO)
+	      (const_int 6)))
+   (return)
+   ]
+  "TARGET_A24"
   "reit"
   [(set_attr "flags" "x")]
   )

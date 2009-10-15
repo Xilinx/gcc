@@ -13,6 +13,7 @@ float fresults1[N] = {192.00,240.00,288.00,336.00,384.00,432.00,480.00,528.00,48
 float fresults2[N] = {0.00,6.00,12.00,18.00,24.00,30.00,36.00,42.00,0.00,54.00,120.00,198.00,288.00,390.00,504.00,630.00};
 
 /****************************************************/
+__attribute__ ((noinline))
 void icheck_results (int *a, int *results)
 {
   int i;
@@ -23,6 +24,7 @@ void icheck_results (int *a, int *results)
     }
 }
 
+__attribute__ ((noinline))
 void fcheck_results (float *a, float *results)
 {
   int i;
@@ -33,54 +35,54 @@ void fcheck_results (float *a, float *results)
     }
 }   
 
-void 
+__attribute__ ((noinline)) void 
 fbar_mul (float *a)
 {
   fcheck_results (a, fmul_results);
 } 
 
-void 
+__attribute__ ((noinline)) void 
 fbar_add (float *a)
 {
   fcheck_results (a, fadd_results);
 } 
 
-void 
+__attribute__ ((noinline)) void 
 ibar_add (int *a)
 {
   icheck_results (a, iadd_results);
 } 
 
-void 
+__attribute__ ((noinline)) void 
 fbar1 (float *a)
 {
   fcheck_results (a, fresults1);
 } 
 
-void 
+__attribute__ ((noinline)) void 
 fbar2 (float *a)
 {
   fcheck_results (a, fresults2);
 } 
 
+float a[N];
+float e[N];
+float b[N] = {0,3,6,9,12,15,18,21,24,27,30,33,36,39,42,45};
+float c[N] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
+float d[N] = {0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30};
+int ic[N] = {0,3,6,9,12,15,18,21,24,27,30,33,36,39,42,45};
+int ib[N] = {0,3,6,9,12,15,18,21,24,27,30,33,36,39,42,45};
+int ia[N];
+char cb[N] = {0,3,6,9,12,15,18,21,24,27,30,33,36,39,42,45};
+char ca[N];
+short sa[N];
 
 /* All of the loops below are currently vectorizable.  */
 
-int
+__attribute__ ((noinline)) int
 main1 ()
 {
   int i,j;
-  float a[N];
-  float e[N];
-  float b[N] = {0,3,6,9,12,15,18,21,24,27,30,33,36,39,42,45};
-  float c[N] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
-  float d[N] = {0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30};
-  int ic[N] = {0,3,6,9,12,15,18,21,24,27,30,33,36,39,42,45};
-  int ib[N] = {0,3,6,9,12,15,18,21,24,27,30,33,36,39,42,45};
-  int ia[N];
-  char cb[N] = {0,3,6,9,12,15,18,21,24,27,30,33,36,39,42,45};
-  char ca[N];
-  short sa[N];
 
   /* Test 1: copy chars.  */
   for (i = 0; i < N; i++)

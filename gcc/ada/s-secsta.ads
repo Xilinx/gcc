@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2005, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -31,6 +31,10 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
+pragma Warnings (Off);
+pragma Compiler_Unit;
+pragma Warnings (On);
+
 with System.Storage_Elements;
 
 package System.Secondary_Stack is
@@ -39,6 +43,8 @@ package System.Secondary_Stack is
 
    Default_Secondary_Stack_Size : Natural := 10 * 1024;
    --  Default size of a secondary stack. May be modified by binder -D switch
+   --  which causes the binder to generate an appropriate assignment in the
+   --  binder generated file.
 
    procedure SS_Init
      (Stk  : in out Address;

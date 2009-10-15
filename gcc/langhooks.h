@@ -24,39 +24,34 @@ along with GCC; see the file COPYING3.  If not see
 /* This file should be #include-d after tree.h.  */
 
 struct diagnostic_context;
+struct diagnostic_info;
 
 struct gimplify_omp_ctx;
 
+struct array_descr_info;
+
 /* A print hook for print_tree ().  */
 typedef void (*lang_print_tree_hook) (FILE *, tree, int indent);
+
+enum classify_record
+  { RECORD_IS_STRUCT, RECORD_IS_CLASS, RECORD_IS_INTERFACE };
 
 /* The following hooks are documented in langhooks.c.  Must not be
    NULL.  */
 
 struct lang_hooks_for_tree_inlining
 {
-  tree (*walk_subtrees) (tree *, int *,
-			 tree (*) (tree *, int *, void *),
-			 void *, struct pointer_set_t*);
-  int (*cannot_inline_tree_fn) (tree *);
-  int (*disregard_inline_limits) (tree);
-  tree (*add_pending_fn_decls) (void *, tree);
-  int (*auto_var_in_fn_p) (tree, tree);
-  int (*anon_aggr_type_p) (tree);
   bool (*var_mod_type_p) (tree, tree);
-  int (*start_inlining) (tree);
-  void (*end_inlining) (tree);
-  tree (*convert_parm_for_inlining) (tree, tree, tree, int);
 };
 
 struct lang_hooks_for_callgraph
 {
   /* The node passed is a language-specific tree node.  If its contents
      are relevant to use of other declarations, mark them.  */
-  tree (*analyze_expr) (tree *, int *, tree);
+  tree (*analyze_expr) (tree *, int *);
 
-  /* Produce RTL for function passed as argument.  */
-  void (*expand_function) (tree);
+  /* Emit thunks associated to function.  */
+  void (*emit_associated_thunks) (tree);
 };
 
 /* Lang hooks for management of language-specific data or status
@@ -88,7 +83,7 @@ struct lang_hooks_for_tree_dump
   bool (*dump_tree) (void *, tree);
 
   /* Determine type qualifiers in a language-specific way.  */
-  int (*type_quals) (tree);
+  int (*type_quals) (const_tree);
 };
 
 /* Hooks related to types.  */
@@ -99,6 +94,11 @@ struct lang_hooks_for_types
      language-specific processing is required.  */
   tree (*make_type) (enum tree_code);
 
+  /* Return what kind of RECORD_TYPE this is, mainly for purposes of
+     debug information.  If not defined, record types are assumed to
+     be structures.  */
+  enum classify_record (*classify_record) (tree);
+
   /* Given MODE and UNSIGNEDP, return a suitable type-tree with that
      mode.  */
   tree (*type_for_mode) (enum machine_mode, int);
@@ -107,17 +107,9 @@ struct lang_hooks_for_types
      integer type with at least that precision.  */
   tree (*type_for_size) (unsigned, int);
 
-  /* Given an integer type T, return a type like T but unsigned.
-     If T is unsigned, the value is T.  */
-  tree (*unsigned_type) (tree);
-
-  /* Given an integer type T, return a type like T but signed.
-     If T is signed, the value is T.  */
-  tree (*signed_type) (tree);
-
-  /* Return a type the same as TYPE except unsigned or signed
-     according to UNSIGNEDP.  */
-  tree (*signed_or_unsigned_type) (int, tree);
+  /* True if the type is an instantiation of a generic type,
+     e.g. C++ template implicit specializations.  */
+  bool (*generic_p) (const_tree);
 
   /* Given a type, apply default promotions to unnamed function
      arguments and return the new type.  Return the same type if no
@@ -138,15 +130,31 @@ struct lang_hooks_for_types
      invalid use of an incomplete type.  VALUE is the expression that
      was used (or 0 if that isn't known) and TYPE is the type that was
      invalid.  */
-  void (*incomplete_type_error) (tree value, tree type);
+  void (*incomplete_type_error) (const_tree value, const_tree type);
 
   /* Called from assign_temp to return the maximum size, if there is one,
      for a type.  */
-  tree (*max_size) (tree);
+  tree (*max_size) (const_tree);
 
   /* Register language specific type size variables as potentially OpenMP
      firstprivate variables.  */
   void (*omp_firstprivatize_type_sizes) (struct gimplify_omp_ctx *, tree);
+
+  /* Return TRUE if TYPE1 and TYPE2 are identical for type hashing purposes.
+     Called only after doing all language independent checks.
+     At present, this function is only called when both TYPE1 and TYPE2 are
+     FUNCTION_TYPEs.  */
+  bool (*type_hash_eq) (const_tree, const_tree);
+
+  /* Return TRUE if TYPE uses a hidden descriptor and fills in information
+     for the debugger about the array bounds, strides, etc.  */
+  bool (*get_array_descr_info) (const_tree, struct array_descr_info *);
+
+  /* If we requested a pointer to a vector, build up the pointers that
+     we stripped off while looking for the inner type.  Similarly for
+     return values from functions.  The argument TYPE is the top of the
+     chain, and BOTTOM is the new type which we will point to.  */
+  tree (*reconstruct_complex_type) (tree, tree);
 
   /* Nonzero if types that are identical are to be hashed so that only
      one copy is kept.  If a language requires unique types for each
@@ -178,17 +186,14 @@ struct lang_hooks_for_decls
 
   /* Returns true when we should warn for an unused global DECL.
      We will already have checked that it has static binding.  */
-  bool (*warn_unused_global) (tree);
+  bool (*warn_unused_global) (const_tree);
 
   /* Obtain a list of globals and do final output on them at end
      of compilation */
   void (*final_write_globals) (void);
 
-  /* Do necessary preparations before assemble_variable can proceed.  */
-  void (*prepare_assemble_variable) (tree);
-
   /* True if this decl may be called via a sibcall.  */
-  bool (*ok_for_sibcall) (tree);
+  bool (*ok_for_sibcall) (const_tree);
 
   /* Return the COMDAT group into which this DECL should be placed.
      It is known that the DECL belongs in *some* COMDAT group when
@@ -201,7 +206,7 @@ struct lang_hooks_for_decls
 
   /* True if OpenMP should privatize what this DECL points to rather
      than the DECL itself.  */
-  bool (*omp_privatize_by_reference) (tree);
+  bool (*omp_privatize_by_reference) (const_tree);
 
   /* Return sharing kind if OpenMP sharing attribute of DECL is
      predetermined, OMP_CLAUSE_DEFAULT_UNSPECIFIED otherwise.  */
@@ -300,12 +305,7 @@ struct lang_hooks
 
   /* Called to obtain the alias set to be used for an expression or type.
      Returns -1 if the language does nothing special for it.  */
-  HOST_WIDE_INT (*get_alias_set) (tree);
-
-  /* Called with an expression that is to be processed as a constant.
-     Returns either the same expression or a language-independent
-     constant equivalent to its input.  */
-  tree (*expand_constant) (tree);
+  alias_set_type (*get_alias_set) (tree);
 
   /* Called by expand_expr for language-specific tree codes.
      Fourth argument is actually an enum expand_modifier.  */
@@ -314,15 +314,6 @@ struct lang_hooks
   /* Called by expand_expr to generate the definition of a decl.  Returns
      1 if handled, 0 otherwise.  */
   int (*expand_decl) (tree);
-
-  /* Hook called by safe_from_p for language-specific tree codes.  It is
-     up to the language front-end to install a hook if it has any such
-     codes that safe_from_p needs to know about.  Since same_from_p will
-     recursively explore the TREE_OPERANDs of an expression, this hook
-     should not reexamine those pieces.  This routine may recursively
-     call safe_from_p; it should always pass `0' as the TOP_P
-     parameter.  */
-  int (*safe_from_p) (rtx, tree);
 
   /* Function to finish handling an incomplete decl at the end of
      compilation.  Default hook is does nothing.  */
@@ -346,10 +337,6 @@ struct lang_hooks
      Otherwise, set it to the ERROR_MARK_NODE to ensure that the
      assembler does not talk about it.  */
   void (*set_decl_assembler_name) (tree);
-
-  /* Return nonzero if fold-const is free to use bit-field
-     optimizations, for instance in fold_truthop().  */
-  bool (*can_use_bit_fields_p) (void);
 
   /* Nonzero if operations on types narrower than their mode should
      have their results reduced to the precision of the type.  */
@@ -393,16 +380,17 @@ struct lang_hooks
   int (*types_compatible_p) (tree x, tree y);
 
   /* Given a CALL_EXPR, return a function decl that is its target.  */
-  tree (*lang_get_callee_fndecl) (tree);
+  tree (*lang_get_callee_fndecl) (const_tree);
 
   /* Called by report_error_function to print out function name.  */
-  void (*print_error_function) (struct diagnostic_context *, const char *);
+  void (*print_error_function) (struct diagnostic_context *, const char *,
+				struct diagnostic_info *);
 
   /* Called from expr_size to calculate the size of the value of an
      expression in a language-dependent way.  Returns a tree for the size
      in bytes.  A frontend can call lhd_expr_size to get the default
      semantics in cases that it doesn't want to handle specially.  */
-  tree (*expr_size) (tree);
+  tree (*expr_size) (const_tree);
 
   /* Convert a character from the host's to the target's character
      set.  The character should be in what C calls the "basic source
@@ -443,17 +431,8 @@ struct lang_hooks
      KNOWN_TYPE carries the true type of the OBJ_TYPE_REF_OBJECT.  */
   tree (*fold_obj_type_ref) (tree, tree);
 
-  /* Return a definition for a builtin function named NAME and whose data type
-     is TYPE.  TYPE should be a function type with argument types.
-     FUNCTION_CODE tells later passes how to compile calls to this function.
-     See tree.h for its possible values.
-
-     If LIBRARY_NAME is nonzero, use that for DECL_ASSEMBLER_NAME,
-     the name to be called if we can't opencode the function.  If
-     ATTRS is nonzero, use that for the function's attribute list.  */
-  tree (*builtin_function) (const char *name, tree type, int function_code,
-			    enum built_in_class bt_class,
-			    const char *library_name, tree attrs);
+  /* Do language specific processing in the builtin function DECL  */
+  tree (*builtin_function) (tree decl);
 
   /* Used to set up the tree_contains_structure array for a frontend. */
   void (*init_ts) (void);
@@ -470,5 +449,9 @@ struct lang_hooks
 
 /* Each front end provides its own.  */
 extern const struct lang_hooks lang_hooks;
+extern tree add_builtin_function (const char *name, tree type,
+				  int function_code, enum built_in_class cl,
+				  const char *library_name,
+				  tree attrs);
 
 #endif /* GCC_LANG_HOOKS_H */

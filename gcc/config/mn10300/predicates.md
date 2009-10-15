@@ -27,7 +27,7 @@
 
 ;; Return 1 if X is a CONST_INT that is only 8 bits wide.  This is
 ;; used for the btst insn which may examine memory or a register (the
-;; memory variant only allows an unsigned 8 bit integer).
+;; memory variant only allows an unsigned 8-bit integer).
 
 (define_predicate "const_8bit_operand"
   (match_code "const_int")
@@ -43,7 +43,7 @@
   (match_code "symbol_ref,reg,unspec")
 {
   if (flag_pic)
-    return (EXTRA_CONSTRAINT (op, 'S') || GET_CODE (op) == REG);
+    return (satisfies_constraint_S (op) || GET_CODE (op) == REG);
 
   return (GET_CODE (op) == SYMBOL_REF || GET_CODE (op) == REG);
 })

@@ -7,7 +7,7 @@
 --                                   S p e c                                --
 --                                                                          --
 --             Copyright (C) 1991-1994, Florida State University            --
---             Copyright (C) 1995-2006, Free Software Foundation, Inc.      --
+--          Copyright (C) 1995-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -48,6 +48,7 @@ package System.OS_Interface is
 
    subtype int        is Interfaces.C.int;
    subtype short      is Short_Integer;
+   type unsigned_int  is mod 2 ** int'Size;
    type long          is new Long_Integer;
    type unsigned_long is mod 2 ** long'Size;
    type size_t        is mod 2 ** Standard'Address_Size;
@@ -90,12 +91,14 @@ package System.OS_Interface is
    -- Signal processing definitions --
    -----------------------------------
 
-   --  The how in sigprocmask().
+   --  The how in sigprocmask()
+
    SIG_BLOCK   : constant := 1;
    SIG_UNBLOCK : constant := 2;
    SIG_SETMASK : constant := 3;
 
-   --  The sa_flags in struct sigaction.
+   --  The sa_flags in struct sigaction
+
    SA_SIGINFO   : constant := 16#0002#;
    SA_ONSTACK   : constant := 16#0004#;
 
@@ -134,6 +137,7 @@ package System.OS_Interface is
    pragma Import (C, sigaction, "sigaction");
 
    type isr_address is access procedure (sig : int);
+   pragma Convention (C, isr_address);
 
    function c_signal (sig : Signal; handler : isr_address) return isr_address;
    pragma Import (C, c_signal, "signal");
@@ -154,8 +158,31 @@ package System.OS_Interface is
    pragma Inline (kill);
 
    function getpid return t_id;
-   pragma Import (C, getpid, "taskIdSelf");
-   --  VxWorks doesn't have getpid; taskIdSelf is the equivalent routine.
+   pragma Inline (getpid);
+
+   function Task_Stop (tid : t_id) return int;
+   pragma Inline (Task_Stop);
+   --  If we are in the kernel space, stop the task whose t_id is
+   --  given in parameter in such a way that it can be examined by the
+   --  debugger. This typically maps to taskSuspend on VxWorks 5 and
+   --  to taskStop on VxWorks 6.
+
+   function Task_Cont (tid : t_id) return int;
+   pragma Inline (Task_Cont);
+   --  If we are in the kernel space, continue the task whose t_id is
+   --  given in parameter if it has been stopped previously to be examined
+   --  by the debugger (e.g. by taskStop). It typically maps to taskResume
+   --  on VxWorks 5 and to taskCont on VxWorks 6.
+
+   function Int_Lock return int;
+   pragma Inline (Int_Lock);
+   --  If we are in the kernel space, lock interrupts. It typically maps to
+   --  intLock.
+
+   function Int_Unlock return int;
+   pragma Inline (Int_Unlock);
+   --  If we are in the kernel space, unlock interrupts. It typically maps to
+   --  intUnlock.
 
    ----------
    -- Time --
@@ -198,7 +225,7 @@ package System.OS_Interface is
    -- Utility Routines --
    ----------------------
 
-   function To_VxWorks_Priority (Priority : in int) return int;
+   function To_VxWorks_Priority (Priority : int) return int;
    pragma Inline (To_VxWorks_Priority);
    --  Convenience routine to convert between VxWorks priority and Ada priority
 
@@ -217,6 +244,9 @@ package System.OS_Interface is
 
    function taskIdSelf return t_id;
    pragma Import (C, taskIdSelf, "taskIdSelf");
+
+   function taskOptionsGet (tid : t_id; pOptions : access int) return int;
+   pragma Import (C, taskOptionsGet, "taskOptionsGet");
 
    function taskSuspend (tid : t_id) return int;
    pragma Import (C, taskSuspend, "taskSuspend");
@@ -271,9 +301,6 @@ package System.OS_Interface is
    VX_UNBREAKABLE    : constant := 16#0002#;
    VX_FP_PRIVATE_ENV : constant := 16#0080#;
    VX_NO_STACK_FILL  : constant := 16#0100#;
-
-   function VX_FP_TASK return int;
-   pragma Inline (VX_FP_TASK);
 
    function taskSpawn
      (name          : System.Address;  --  Pointer to task name

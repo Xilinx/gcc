@@ -6,7 +6,7 @@
 --                                                                          --
 --                                  B o d y                                 --
 --                                                                          --
---         Copyright (C) 1992-2006, Free Software Foundation, Inc.          --
+--         Copyright (C) 1992-2007, Free Software Foundation, Inc.          --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -31,7 +31,7 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
---  This is a OpenVMS/Alpha version of this package.
+--  This is a OpenVMS/Alpha version of this package
 
 package body System.Interrupt_Management is
 
@@ -43,7 +43,6 @@ package body System.Interrupt_Management is
 
    procedure Initialize is
       use System.OS_Interface;
-      use type unsigned_long;
       Status : Cond_Value_Type;
 
    begin
@@ -60,7 +59,7 @@ package body System.Interrupt_Management is
 
       Sys_Crembx
         (Status => Status,
-         Prmflg => False,
+         Prmflg => 0,
          Chan   => Rcv_Interrupt_Chan,
          Maxmsg => Interrupt_ID'Size,
          Bufquo => Interrupt_Bufquo,

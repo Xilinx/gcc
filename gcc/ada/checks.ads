@@ -6,18 +6,17 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2005 Free Software Foundation, Inc.          --
+--          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -36,8 +35,10 @@
 --  This always occurs whether checks are suppressed or not.  Dynamic range
 --  checks are, of course, not inserted if checks are suppressed.
 
-with Types; use Types;
-with Uintp; use Uintp;
+with Namet;  use Namet;
+with Table;
+with Types;  use Types;
+with Uintp;  use Uintp;
 
 package Checks is
 
@@ -47,6 +48,7 @@ package Checks is
 
    function Access_Checks_Suppressed        (E : Entity_Id) return Boolean;
    function Accessibility_Checks_Suppressed (E : Entity_Id) return Boolean;
+   function Alignment_Checks_Suppressed     (E : Entity_Id) return Boolean;
    function Discriminant_Checks_Suppressed  (E : Entity_Id) return Boolean;
    function Division_Checks_Suppressed      (E : Entity_Id) return Boolean;
    function Elaboration_Checks_Suppressed   (E : Entity_Id) return Boolean;
@@ -56,13 +58,39 @@ package Checks is
    function Range_Checks_Suppressed         (E : Entity_Id) return Boolean;
    function Storage_Checks_Suppressed       (E : Entity_Id) return Boolean;
    function Tag_Checks_Suppressed           (E : Entity_Id) return Boolean;
-   --  These functions check to see if the named check is suppressed,
-   --  either by an active scope suppress setting, or because the check
-   --  has been specifically suppressed for the given entity. If no entity
-   --  is relevant for the current check, then Empty is used as an argument.
-   --  Note: the reason we insist on specifying Empty is to force the
-   --  caller to think about whether there is any relevant entity that
-   --  should be checked.
+   function Validity_Checks_Suppressed      (E : Entity_Id) return Boolean;
+   --  These functions check to see if the named check is suppressed, either
+   --  by an active scope suppress setting, or because the check has been
+   --  specifically suppressed for the given entity. If no entity is relevant
+   --  for the current check, then Empty is used as an argument. Note: the
+   --  reason we insist on specifying Empty is to force the caller to think
+   --  about whether there is any relevant entity that should be checked.
+
+   -------------------------------------------
+   -- Procedures to Activate Checking Flags --
+   -------------------------------------------
+
+   procedure Activate_Division_Check (N : Node_Id);
+   pragma Inline (Activate_Division_Check);
+   --  Sets Do_Division_Check flag in node N, and handles possible local raise.
+   --  Always call this routine rather than calling Set_Do_Division_Check to
+   --  set an explicit value of True, to ensure handling the local raise case.
+
+   procedure Activate_Overflow_Check (N : Node_Id);
+   pragma Inline (Activate_Overflow_Check);
+   --  Sets Do_Overflow_Check flag in node N, and handles possible local raise.
+   --  Always call this routine rather than calling Set_Do_Overflow_Check to
+   --  set an explicit value of True, to ensure handling the local raise case.
+
+   procedure Activate_Range_Check (N : Node_Id);
+   pragma Inline (Activate_Range_Check);
+   --  Sets Do_Range_Check flag in node N, and handles possible local raise
+   --  Always call this routine rather than calling Set_Do_Range_Check to
+   --  set an explicit value of True, to ensure handling the local raise case.
+
+   --------------------------------
+   -- Procedures to Apply Checks --
+   --------------------------------
 
    --  General note on following checks. These checks are always active if
    --  Expander_Active and not Inside_A_Generic. They are inactive and have
@@ -80,17 +108,14 @@ package Checks is
    --  the object denoted by the access parameter is not deeper than the
    --  level of the type Typ. Program_Error is raised if the check fails.
 
-   procedure Apply_Alignment_Check (E : Entity_Id; N : Node_Id);
-   --  E is the entity for an object. If there is an address clause for
-   --  this entity, and checks are enabled, then this procedure generates
-   --  a check that the specified address has an alignment consistent with
-   --  the alignment of the object, raising PE if this is not the case. The
-   --  resulting check (if one is generated) is inserted before node N.
-
-   procedure Apply_Array_Size_Check (N : Node_Id; Typ : Entity_Id);
-   --  N is the node for an object declaration that declares an object of
-   --  array type Typ. This routine generates, if necessary, a check that
-   --  the size of the array is not too large, raising Storage_Error if so.
+   procedure Apply_Address_Clause_Check (E : Entity_Id; N : Node_Id);
+   --  E is the entity for an object which has an address clause. If checks
+   --  are enabled, then this procedure generates a check that the specified
+   --  address has an alignment consistent with the alignment of the object,
+   --  raising PE if this is not the case. The resulting check (if one is
+   --  generated) is inserted before node N. check is also made for the case of
+   --  a clear overlay situation that the size of the overlaying object is not
+   --  larger than the overlaid object.
 
    procedure Apply_Arithmetic_Overflow_Check (N : Node_Id);
    --  Given a binary arithmetic operator (+ - *) expand a software integer
@@ -261,6 +286,12 @@ package Checks is
    --                this node is further examined depends on the setting of
    --                the parameter Source_Typ, as described below.
 
+   --    ??? Apply_Length_Check and Apply_Range_Check do not have an Expr
+   --        formal
+
+   --    ??? Apply_Length_Check and Apply_Range_Check have a Ck_Node formal
+   --        which is undocumented, is it the same as Expr?
+
    --    Target_Typ  The target type on which the check is to be based. For
    --                example, if we have a scalar range check, then the check
    --                is that we are in range of this type.
@@ -308,7 +339,7 @@ package Checks is
      (Ck_Node    : Node_Id;
       Target_Typ : Entity_Id;
       Source_Typ : Entity_Id := Empty);
-   --  For an Node of kind N_Range, constructs a range check action that tests
+   --  For a Node of kind N_Range, constructs a range check action that tests
    --  first that the range is not null and then that the range is contained in
    --  the Target_Typ range.
    --
@@ -353,8 +384,20 @@ package Checks is
    --  values (i.e. the underlying integer value is used).
 
    type Check_Result is private;
-   --  Type used to return result of Range_Check call, for later use in
+   --  Type used to return result of Get_Range_Checks call, for later use in
    --  call to Insert_Range_Checks procedure.
+
+   function Get_Range_Checks
+     (Ck_Node    : Node_Id;
+      Target_Typ : Entity_Id;
+      Source_Typ : Entity_Id := Empty;
+      Warn_Node  : Node_Id   := Empty) return Check_Result;
+   --  Like Apply_Range_Check, except it does not modify anything. Instead
+   --  it returns an encapsulated result of the check operations for later
+   --  use in a call to Insert_Range_Checks. If Warn_Node is non-empty, its
+   --  Sloc is used, in the static case, for the generated warning or error.
+   --  Additionally, it is used rather than Expr (or Low/High_Bound of Expr)
+   --  in constructing the check.
 
    procedure Append_Range_Checks
      (Checks       : Check_Result;
@@ -362,7 +405,7 @@ package Checks is
       Suppress_Typ : Entity_Id;
       Static_Sloc  : Source_Ptr;
       Flag_Node    : Node_Id);
-   --  Called to append range checks as returned by a call to Range_Check.
+   --  Called to append range checks as returned by a call to Get_Range_Checks.
    --  Stmts is a list to which either the dynamic check is appended or the
    --  raise Constraint_Error statement is appended (for static checks).
    --  Static_Sloc is the Sloc at which the raise CE node points, Flag_Node is
@@ -376,7 +419,7 @@ package Checks is
       Static_Sloc  : Source_Ptr := No_Location;
       Flag_Node    : Node_Id    := Empty;
       Do_Before    : Boolean    := False);
-   --  Called to insert range checks as returned by a call to Range_Check.
+   --  Called to insert range checks as returned by a call to Get_Range_Checks.
    --  Node is the node after which either the dynamic check is inserted or
    --  the raise Constraint_Error statement is inserted (for static checks).
    --  Suppress_Typ is the type to check to determine if checks are suppressed.
@@ -386,19 +429,6 @@ package Checks is
    --  node at which to set the Has_Dynamic_Check flag. Normally the check is
    --  inserted after, if Do_Before is True, the check is inserted before
    --  Node.
-
-   function Range_Check
-     (Ck_Node    : Node_Id;
-      Target_Typ : Entity_Id;
-      Source_Typ : Entity_Id := Empty;
-      Warn_Node  : Node_Id   := Empty)
-      return       Check_Result;
-   --  Like Apply_Range_Check, except it does not modify anything. Instead
-   --  it returns an encapsulated result of the check operations for later
-   --  use in a call to Insert_Range_Checks. If Warn_Node is non-empty, its
-   --  Sloc is used, in the static case, for the generated warning or error.
-   --  Additionally, it is used rather than Expr (or Low/High_Bound of Expr)
-   --  in constructing the check.
 
    -----------------------
    -- Expander Routines --
@@ -624,6 +654,33 @@ package Checks is
    --  Remove all checks from Expr except those that are only executed
    --  conditionally (on the right side of And Then/Or Else. This call
    --  removes only embedded checks (Do_Range_Check, Do_Overflow_Check).
+
+   procedure Validity_Check_Range (N : Node_Id);
+   --  If N is an N_Range node, then Ensure_Valid is called on its bounds,
+   --  if validity checking of operands is enabled.
+
+   -----------------------------
+   -- Handling of Check Names --
+   -----------------------------
+
+   --  The following table contains Name_Id's for recognized checks. The first
+   --  entries (corresponding to the values of the subtype Predefined_Check_Id)
+   --  contain the Name_Id values for the checks that are predefined, including
+   --  All_Checks (see Types). Remaining entries are those that are introduced
+   --  by pragma Check_Names.
+
+   package Check_Names is new Table.Table (
+     Table_Component_Type => Name_Id,
+     Table_Index_Type     => Check_Id,
+     Table_Low_Bound      => 1,
+     Table_Initial        => 30,
+     Table_Increment      => 200,
+     Table_Name           => "Name_Check_Names");
+
+   function Get_Check_Id (N : Name_Id) return Check_Id;
+   --  Function to search above table for matching name. If found returns the
+   --  corresponding Check_Id value in the range 1 .. Check_Name.Last. If not
+   --  found returns No_Check_Id.
 
 private
 

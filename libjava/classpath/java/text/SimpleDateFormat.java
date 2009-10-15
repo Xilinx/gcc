@@ -917,7 +917,25 @@ public class SimpleDateFormat extends DateFormat
 		|| ((ch < 'a' || ch > 'z')
 		    && (ch < 'A' || ch > 'Z')))
 	      {
-		if (! expect (dateStr, pos, ch))
+                if (quote_start == -1 && ch == ' ')
+                  {
+                    // A single unquoted space in the pattern may match
+                    // any number of spaces in the input.
+                    int index = pos.getIndex();
+                    int save = index;
+                    while (index < dateStr.length()
+                           && Character.isWhitespace(dateStr.charAt(index)))
+                      ++index;
+                    if (index > save)
+                      pos.setIndex(index);
+                    else
+                      {
+                        // Didn't see any whitespace.
+                        pos.setErrorIndex(index);
+                        return null;
+                      }
+                  }
+                else if (! expect (dateStr, pos, ch))
 		  return null;
 		continue;
 	      }
@@ -1083,11 +1101,21 @@ public class SimpleDateFormat extends DateFormat
 	    if (is_numeric)
 	      {
 		numberFormat.setMinimumIntegerDigits(fmt_count);
-		if (limit_digits)
-		  numberFormat.setMaximumIntegerDigits(fmt_count);
 		if (maybe2DigitYear)
 		  index = pos.getIndex();
-		Number n = numberFormat.parse(dateStr, pos);
+		Number n = null;
+		if (limit_digits)
+		  {
+		    // numberFormat.setMaximumIntegerDigits(fmt_count) may
+		    // not work as expected. So we explicitly use substring
+		    // of dateStr.
+		    int origPos = pos.getIndex();
+		    pos.setIndex(0);
+		    n = numberFormat.parse(dateStr.substring(origPos, origPos + fmt_count), pos);
+		    pos.setIndex(origPos + pos.getIndex());
+		  }
+		else
+		  n = numberFormat.parse(dateStr, pos);
 		if (pos == null || ! (n instanceof Long))
 		  return null;
 		value = n.intValue() + offset;

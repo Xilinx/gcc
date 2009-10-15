@@ -37,13 +37,13 @@
    to "std::abort", and rebuilding the library.  In a freestanding mode, we
    default to this latter approach.  */
 
-#if ! _GLIBCXX_HOSTED || defined(_GLIBCXX_NO_VERBOSE_TERMINATE)
+#if ! _GLIBCXX_HOSTED
 # include <cstdlib>
 #endif
 
 /* The current installed user handler.  */
 std::terminate_handler __cxxabiv1::__terminate_handler =
-#if _GLIBCXX_HOSTED && ! defined(_GLIBCXX_NO_VERBOSE_TERMINATE)
+#if _GLIBCXX_HOSTED
 	__gnu_cxx::__verbose_terminate_handler;
 #else
 	std::abort;

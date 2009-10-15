@@ -6,18 +6,17 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2005, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -30,6 +29,7 @@
 
 with Casing;  use Casing;
 with Gnatvsn; use Gnatvsn;
+with Namet;   use Namet;
 with Rident;  use Rident;
 with Table;
 with Types;   use Types;
@@ -67,6 +67,9 @@ package ALI is
    type Interrupt_State_Id is range 6_000_000 .. 6_999_999;
    --  Id values used for Interrupt_State table entries
 
+   type Priority_Specific_Dispatching_Id is range 7_000_000 .. 7_999_999;
+   --  Id values used for Priority_Specific_Dispatching table entries
+
    --------------------
    -- ALI File Table --
    --------------------
@@ -87,7 +90,7 @@ package ALI is
       Afile : File_Name_Type;
       --  Name of ALI file
 
-      Ofile_Full_Name : Name_Id;
+      Ofile_Full_Name : File_Name_Type;
       --  Full name of object file corresponding to the ALI file
 
       Sfile : File_Name_Type;
@@ -196,6 +199,14 @@ package ALI is
       --  the lower bound of the subtype).
       --  Not set if 'I' appears in Ignore_Lines
 
+      First_Specific_Dispatching : Priority_Specific_Dispatching_Id;
+      Last_Specific_Dispatching  : Priority_Specific_Dispatching_Id'Base;
+      --  These point to the first and last entries in the priority specific
+      --  dispatching table for this unit. If there are no entries, then
+      --  Last_Specific_Dispatching = First_Specific_Dispatching - 1. That
+      --  is why the 'Base reference is there, it can be one less than the
+      --  lower bound of the subtype. Not set if 'S' appears in Ignore_Lines.
+
    end record;
 
    No_Main_Priority : constant Int := -1;
@@ -249,16 +260,16 @@ package ALI is
       --  have an elaboration routine (since it has no elaboration code).
 
       Pure : Boolean;
-      --  Indicates presence of PU parameter for a pure package
+      --  Indicates presence of PU parameter for a package having pragma Pure
 
       Dynamic_Elab : Boolean;
-      --  Set to True if the unit was compiled with dynamic elaboration
-      --  checks (i.e. either -gnatE or pragma Elaboration_Checks (RM)
-      --  was used to compile the unit).
+      --  Set to True if the unit was compiled with dynamic elaboration checks
+      --  (i.e. either -gnatE or pragma Elaboration_Checks (RM) was used to
+      --  compile the unit).
 
       Elaborate_Body : Boolean;
-      --  Indicates presence of EB parameter for a package which has a
-      --  pragma Preelaborate_Body.
+      --  Indicates presence of EB parameter for a package which has a pragma
+      --  Elaborate_Body, and also for generic package instantiations.
 
       Set_Elab_Entity : Boolean;
       --  Indicates presence of EE parameter for a unit which has an
@@ -266,20 +277,20 @@ package ALI is
       --  elaboration of the entity.
 
       Has_RACW : Boolean;
-      --  Indicates presence of RA parameter for a package that declares
-      --  at least one Remote Access to Class_Wide (RACW) object.
+      --  Indicates presence of RA parameter for a package that declares at
+      --  least one Remote Access to Class_Wide (RACW) object.
 
       Remote_Types : Boolean;
       --  Indicates presence of RT parameter for a package which has a
       --  pragma Remote_Types.
 
       Shared_Passive : Boolean;
-      --  Indicates presence of SP parameter for a package which has a
-      --  pragma Shared_Passive.
+      --  Indicates presence of SP parameter for a package which has a pragma
+      --  Shared_Passive.
 
       RCI : Boolean;
-      --  Indicates presence of RC parameter for a package which has a
-      --  pragma Remote_Call_Interface.
+      --  Indicates presence of RC parameter for a package which has a pragma
+      --  Remote_Call_Interface.
 
       Predefined : Boolean;
       --  Indicates if unit is language predefined (or a child of such a unit)
@@ -315,13 +326,13 @@ package ALI is
 
       Icasing : Casing_Type;
       --  Indicates casing of identifiers in source file for this unit. This
-      --  is used for informational output, and also for constructing the
-      --  main unit if it is being built in Ada.
+      --  is used for informational output, and also for constructing the main
+      --  unit if it is being built in Ada.
 
       Kcasing : Casing_Type;
-      --  Indicates casing of keyowords in source file for this unit. This
-      --  is used for informational output, and also for constructing the
-      --  main unit if it is being built in Ada.
+      --  Indicates casing of keywords in source file for this unit. This is
+      --  used for informational output, and also for constructing the main
+      --  unit if it is being built in Ada.
 
       Elab_Position : aliased Natural;
       --  Initialized to zero. Set non-zero when a unit is chosen and
@@ -338,6 +349,14 @@ package ALI is
       Body_Needed_For_SAL : Boolean;
       --  Indicates that the source for the body of the unit (subprogram,
       --  package, or generic unit) must be included in a standalone library.
+
+      Elaborate_Body_Desirable : Boolean;
+      --  Indicates that the front end elaboration circuitry decided that it
+      --  would be a good idea if this package had Elaborate_Body. The binder
+      --  will attempt, but does not promise, to place the elaboration call
+      --  for the body right after the call for the spec, or at least as close
+      --  together as possible.
+
    end record;
 
    package Units is new Table.Table (
@@ -375,6 +394,40 @@ package ALI is
      Table_Initial        => 100,
      Table_Increment      => 200,
      Table_Name           => "Interrupt_States");
+
+   -----------------------------------------
+   -- Priority Specific Dispatching Table --
+   -----------------------------------------
+
+   --  An entry is made in this table for each S (priority specific
+   --  dispatching) line encountered in the input ALI file. The
+   --  First/Last_Specific_Dispatching_Id fields of the ALI file
+   --  entry show the range of entries defined within a particular
+   --  ALI file.
+
+   type Specific_Dispatching_Record is record
+      Dispatching_Policy : Character;
+      --  First character (upper case) of the corresponding policy name
+
+      First_Priority     : Nat;
+      --  Lower bound of the priority range to which the specified dispatching
+      --  policy applies.
+
+      Last_Priority      : Nat;
+      --  Upper bound of the priority range to which the specified dispatching
+      --  policy applies.
+
+      PSD_Pragma_Line : Nat;
+      --  Line number of Priority_Specific_Dispatching pragma
+   end record;
+
+   package Specific_Dispatching is new Table.Table (
+     Table_Component_Type => Specific_Dispatching_Record,
+     Table_Index_Type     => Priority_Specific_Dispatching_Id'Base,
+     Table_Low_Bound      => Priority_Specific_Dispatching_Id'First,
+     Table_Initial        => 100,
+     Table_Increment      => 200,
+     Table_Name           => "Priority_Specific_Dispatching");
 
    --------------
    -- Switches --
@@ -418,10 +471,14 @@ package ALI is
    --  Set to blank by Initialize_ALI. Set to the appropriate queuing policy
    --  character if an ali file contains a P line setting the queuing policy.
 
-   Cumulative_Restrictions : Restrictions_Info;
+   Cumulative_Restrictions : Restrictions_Info := No_Restrictions;
    --  This variable records the cumulative contributions of R lines in all
    --  ali files, showing whether a restriction pragma exists anywhere, and
    --  accumulating the aggregate knowledge of violations.
+
+   Stack_Check_Switch_Set : Boolean := False;
+   --  Set to True if at least one ALI file contains '-fstack-check' in its
+   --  argument list.
 
    Static_Elaboration_Model_Used : Boolean := False;
    --  Set to False by Initialize_ALI. Set to True if any ALI file for a
@@ -688,7 +745,7 @@ package ALI is
       File_Num : Sdep_Id;
       --  Dependency number for file (entry in Sdep.Table)
 
-      File_Name : Name_Id;
+      File_Name : File_Name_Type;
       --  Name of file
 
       First_Entity : Nat;
@@ -786,7 +843,7 @@ package ALI is
       --  reference for the entity name.
 
       Oref_File_Num : Sdep_Id;
-      --  This field is set to No_Sdep_Id is the entity doesn't override any
+      --  This field is set to No_Sdep_Id if the entity doesn't override any
       --  other entity, or to the dependency reference for the overriden
       --  entity.
 
@@ -812,6 +869,13 @@ package ALI is
      Table_Increment      => 300,
      Table_Name           => "Xref_Entity");
 
+   Array_Index_Reference : constant Character := '*';
+   Interface_Reference   : constant Character := 'I';
+   --  Some special types of references. In the ALI file itself, these
+   --  are output as attributes of the entity, not as references, but
+   --  there is no provision in Xref_Entity_Record for storing multiple
+   --  such references.
+
    --  The following table records actual cross-references
 
    type Xref_Record is record
@@ -820,8 +884,9 @@ package ALI is
       --  that if no file entry is present explicitly, this is just a copy
       --  of the reference for the current cross-reference section.
 
-      Line : Pos;
-      --  Line number for the reference
+      Line : Nat;
+      --  Line number for the reference. This is zero when referencing a
+      --  predefined entity, but in this case Name is set.
 
       Rtype : Character;
       --  Indicates type of reference, using code used in ALI file:
@@ -831,10 +896,17 @@ package ALI is
       --    c = completion of private or incomplete type
       --    x = type extension
       --    i = implicit reference
+      --    Array_Index_Reference = reference to the index of an array
+      --    Interface_Reference   = reference to an interface implemented
+      --                            by the type
       --  See description in lib-xref.ads for further details
 
       Col : Nat;
       --  Column number for the reference
+
+      Name : Name_Id := No_Name;
+      --  This is only used when referencing a predefined entity. Currently,
+      --  this only occurs for array indexes.
 
       --  Note: for instantiation references, Rtype is set to ' ', and Col is
       --  set to zero. One or more such entries can follow any other reference.

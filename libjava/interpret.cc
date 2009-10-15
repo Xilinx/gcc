@@ -1,6 +1,6 @@
 // interpret.cc - Code for the interpreter
 
-/* Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006 Free Software Foundation
+/* Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Free Software Foundation
 
    This file is part of libgcj.
 
@@ -37,9 +37,11 @@ details.  */
 #include <execution.h>
 #include <java/lang/reflect/Modifier.h>
 
-#include <gnu/classpath/jdwp/Jdwp.h>
+#include <jvmti.h>
+#include "jvmti-int.h"
 
-#ifdef INTERPRETER
+#include <gnu/gcj/jvmti/Breakpoint.h>
+#include <gnu/gcj/jvmti/BreakpointManager.h>
 
 // Execution engine for interpreted code.
 _Jv_InterpreterEngine _Jv_soleInterpreterEngine;
@@ -59,6 +61,16 @@ static void throw_class_format_error (jstring msg)
 	__attribute__ ((__noreturn__));
 static void throw_class_format_error (const char *msg)
 	__attribute__ ((__noreturn__));
+
+static void find_catch_location (jthrowable, jthread, jmethodID *, jlong *);
+
+// A macro to facilitate JVMTI exception reporting
+#define REPORT_EXCEPTION(Jthrowable)			\
+  do {							\
+    if (JVMTI_REQUESTED_EVENT (Exception))		\
+      _Jv_ReportJVMTIExceptionThrow (Jthrowable);	\
+  }							\
+  while (0)
 
 #ifdef DIRECT_THREADED
 // Lock to ensure that methods are not compiled concurrently.
@@ -166,54 +178,81 @@ convert (FROM val, TO min, TO max)
 # define LOADD(I)  LOADL(I)
 #endif
 
-#define STOREA(I) 		\
-do {					\
-DEBUG_LOCALS_INSN(I, 'o');		\
-locals[I].o = (--sp)->o;		\
-} while(0)
-#define STOREI(I) 		\
-do {					\
-DEBUG_LOCALS_INSN (I, 'i');		\
-locals[I].i = (--sp)->i;		\
-} while(0)
-#define STOREF(I)  		\
-do {					\
-DEBUG_LOCALS_INSN (I, 'f');		\
-locals[I].f = (--sp)->f;		\
-} while(0)
+#define STOREA(I)			\
+  do					\
+    {					\
+      jint __idx = (I);			\
+      DEBUG_LOCALS_INSN (__idx, 'o');	\
+      locals[__idx].o = (--sp)->o;	\
+    }					\
+  while (0)
+#define STOREI(I)		       	\
+  do					\
+    {					\
+      jint __idx = (I);			\
+      DEBUG_LOCALS_INSN (__idx, 'i');	\
+      locals[__idx].i = (--sp)->i;	\
+  } while (0)
+#define STOREF(I)			\
+  do					\
+    {					\
+      jint __idx = (I);			\
+      DEBUG_LOCALS_INSN (__idx, 'f');	\
+      locals[__idx].f = (--sp)->f;	\
+    }					\
+  while (0)
 #if SIZEOF_VOID_P == 8
-# define STOREL(I)  			\
-do {							\
-DEBUG_LOCALS_INSN (I, 'l');			\
-(sp -= 2, locals[I].l = sp->l);		\
-} while(0)
-# define STORED(I) 				\
-do {							\
-DEBUG_LOCALS_INSN (I, 'd');			\
-(sp -= 2, locals[I].d = sp->d);		\
-} while(0)
+# define STOREL(I) \
+  do						\
+    {						\
+      jint __idx = (I);				\
+      DEBUG_LOCALS_INSN (__idx, 'l');		\
+      DEBUG_LOCALS_INSN (__idx + 1, 'x');	\
+      (sp -= 2, locals[__idx].l = sp->l);	\
+    }						\
+  while (0)
+# define STORED(I)				\
+  do						\
+    {						\
+      jint __idx = (I);				\
+      DEBUG_LOCALS_INSN (__idx, 'd');		\
+      DEBUG_LOCALS_INSN (__idx + 1, 'x');	\
+      (sp -= 2, locals[__idx].d = sp->d);	\
+    }						\
+  while (0)
 
 #else
-# define STOREL(I)		\
-do { DEBUG_LOCALS_INSN(I, 'l');	\
-	 jint __idx = (I); 	\
-     locals[__idx+1].ia[0] = (--sp)->ia[0]; \
-     locals[__idx].ia[0] = (--sp)->ia[0]; 	\
-   } while (0)
-# define STORED(I)		\
-do { DEBUG_LOCALS_INSN(I, 'd');	\
-	 jint __idx = (I); 	\
-     locals[__idx+1].ia[0] = (--sp)->ia[0]; \
-     locals[__idx].ia[0] = (--sp)->ia[0]; 	\
-   } while (0)
+# define STOREL(I)				\
+  do						\
+    {						\
+      jint __idx = (I);				\
+      DEBUG_LOCALS_INSN (__idx, 'l');		\
+      DEBUG_LOCALS_INSN (__idx + 1, 'x');	\
+      locals[__idx + 1].ia[0] = (--sp)->ia[0];	\
+      locals[__idx].ia[0] = (--sp)->ia[0];	\
+    }						\
+  while (0)
+# define STORED(I)				\
+  do {						\
+    jint __idx = (I);				\
+    DEBUG_LOCALS_INSN (__idx, 'd');		\
+    DEBUG_LOCALS_INSN (__idx + 1, 'x');		\
+    locals[__idx + 1].ia[0] = (--sp)->ia[0];	\
+    locals[__idx].ia[0] = (--sp)->ia[0];	\
+  } while (0)
 #endif
 
 #define PEEKI(I)  (locals+(I))->i
 #define PEEKA(I)  (locals+(I))->o
 
-#define POKEI(I,V)  	\
-DEBUG_LOCALS_INSN(I,'i'); \
-((locals+(I))->i = (V))
+#define POKEI(I,V)			\
+  do					\
+    {					\
+      jint __idx = (I);			\
+      DEBUG_LOCALS_INSN (__idx, 'i');	\
+      ((locals + __idx)->i = (V));	\
+    }					\
+  while (0)
 
 
 #define BINOPI(OP) { \
@@ -240,23 +279,33 @@ DEBUG_LOCALS_INSN(I,'i'); \
    PUSHD(value1 OP value2); \
 }
 
-static inline jint get1s(unsigned char* loc) {
+static inline jint
+get1s (unsigned char* loc)
+{
   return *(signed char*)loc;
 }
 
-static inline jint get1u(unsigned char* loc) {
+static inline jint
+get1u (unsigned char* loc)
+{
   return *loc;
 }
 
-static inline jint get2s(unsigned char* loc) {
+static inline jint
+get2s(unsigned char* loc)
+{
   return (((jint)*(signed char*)loc) << 8) | ((jint)*(loc+1));
 }
 
-static inline jint get2u(unsigned char* loc) {
+static inline jint
+get2u (unsigned char* loc)
+{
   return (((jint)(*loc)) << 8) | ((jint)*(loc+1));
 }
 
-static jint get4(unsigned char* loc) {
+static jint
+get4 (unsigned char* loc)
+{
   return (((jint)(loc[0])) << 24) 
        | (((jint)(loc[1])) << 16) 
        | (((jint)(loc[2])) << 8) 
@@ -279,23 +328,26 @@ static jint get4(unsigned char* loc) {
 #ifdef HANDLE_SEGV
 #define NULLARRAYCHECK(X) SAVE_PC()
 #else
-#define NULLARRAYCHECK(X) \
-  do { SAVE_PC(); if ((X)==NULL) { throw_null_pointer_exception (); } } while (0)
+#define NULLARRAYCHECK(X)					\
+  do								\
+    {								\
+      SAVE_PC();						\
+      if ((X) == NULL) { throw_null_pointer_exception (); }	\
+    } while (0)
 #endif
 
-#define ARRAYBOUNDSCHECK(array, index)					      \
-  do									      \
-    {									      \
-      if (((unsigned) index) >= (unsigned) (array->length))		      \
-	_Jv_ThrowBadArrayIndex (index);					      \
-    }									      \
-  while (0)
+#define ARRAYBOUNDSCHECK(array, index)				\
+  do								\
+    {								\
+      if (((unsigned) index) >= (unsigned) (array->length))	\
+	_Jv_ThrowBadArrayIndex (index);				\
+    } while (0)
 
 void
 _Jv_InterpMethod::run_normal (ffi_cif *,
-			      void* ret,
-			      ffi_raw * args,
-			      void* __this)
+			      void *ret,
+			      INTERP_FFI_RAW_TYPE *args,
+			      void *__this)
 {
   _Jv_InterpMethod *_this = (_Jv_InterpMethod *) __this;
   run (ret, args, _this);
@@ -303,9 +355,9 @@ _Jv_InterpMethod::run_normal (ffi_cif *,
 
 void
 _Jv_InterpMethod::run_normal_debug (ffi_cif *,
-			      void* ret,
-			      ffi_raw * args,
-			      void* __this)
+				    void *ret,
+				    INTERP_FFI_RAW_TYPE *args,
+				    void *__this)
 {
   _Jv_InterpMethod *_this = (_Jv_InterpMethod *) __this;
   run_debug (ret, args, _this);
@@ -313,9 +365,9 @@ _Jv_InterpMethod::run_normal_debug (ffi_cif *,
 
 void
 _Jv_InterpMethod::run_synch_object (ffi_cif *,
-				    void* ret,
-				    ffi_raw * args,
-				    void* __this)
+				    void *ret,
+				    INTERP_FFI_RAW_TYPE *args,
+				    void *__this)
 {
   _Jv_InterpMethod *_this = (_Jv_InterpMethod *) __this;
 
@@ -327,9 +379,9 @@ _Jv_InterpMethod::run_synch_object (ffi_cif *,
 
 void
 _Jv_InterpMethod::run_synch_object_debug (ffi_cif *,
-				    void* ret,
-				    ffi_raw * args,
-				    void* __this)
+					  void *ret,
+					  INTERP_FFI_RAW_TYPE *args,
+					  void *__this)
 {
   _Jv_InterpMethod *_this = (_Jv_InterpMethod *) __this;
 
@@ -341,9 +393,9 @@ _Jv_InterpMethod::run_synch_object_debug (ffi_cif *,
 
 void
 _Jv_InterpMethod::run_class (ffi_cif *,
-			     void* ret,
-			     ffi_raw * args,
-			     void* __this)
+			     void *ret,
+			     INTERP_FFI_RAW_TYPE *args,
+			     void *__this)
 {
   _Jv_InterpMethod *_this = (_Jv_InterpMethod *) __this;
   _Jv_InitClass (_this->defining_class);
@@ -352,9 +404,9 @@ _Jv_InterpMethod::run_class (ffi_cif *,
 
 void
 _Jv_InterpMethod::run_class_debug (ffi_cif *,
-			     void* ret,
-			     ffi_raw * args,
-			     void* __this)
+				   void *ret,
+				   INTERP_FFI_RAW_TYPE *args,
+				   void *__this)
 {
   _Jv_InterpMethod *_this = (_Jv_InterpMethod *) __this;
   _Jv_InitClass (_this->defining_class);
@@ -363,9 +415,9 @@ _Jv_InterpMethod::run_class_debug (ffi_cif *,
 
 void
 _Jv_InterpMethod::run_synch_class (ffi_cif *,
-				   void* ret,
-				   ffi_raw * args,
-				   void* __this)
+				   void *ret,
+				   INTERP_FFI_RAW_TYPE *args,
+				   void *__this)
 {
   _Jv_InterpMethod *_this = (_Jv_InterpMethod *) __this;
 
@@ -378,9 +430,9 @@ _Jv_InterpMethod::run_synch_class (ffi_cif *,
 
 void
 _Jv_InterpMethod::run_synch_class_debug (ffi_cif *,
-				   void* ret,
-				   ffi_raw * args,
-				   void* __this)
+					 void *ret,
+					 INTERP_FFI_RAW_TYPE *args,
+					 void *__this)
 {
   _Jv_InterpMethod *_this = (_Jv_InterpMethod *) __this;
 
@@ -893,6 +945,25 @@ _Jv_InterpMethod::compile (const void * const *insn_targets)
 
   prepared = insns;
 
+  // Now remap the variable table for this method.
+  for (int i = 0; i < local_var_table_len; ++i)
+    {
+      int start_byte = local_var_table[i].bytecode_pc;
+      if (start_byte < 0 || start_byte >= code_length)
+	start_byte = 0;
+      jlocation start =  pc_mapping[start_byte];
+
+      int end_byte = start_byte + local_var_table[i].length;
+      if (end_byte < 0)
+	end_byte = 0;
+      jlocation end = ((end_byte >= code_length)
+		       ? number_insn_slots
+		       : pc_mapping[end_byte]);
+
+      local_var_table[i].pc = &insns[start];
+      local_var_table[i].length = end - start + 1;
+    }
+  
   if (breakpoint_insn == NULL)
     {
       bp_insn_slot.insn = const_cast<void *> (insn_targets[op_breakpoint]);
@@ -904,30 +975,28 @@ _Jv_InterpMethod::compile (const void * const *insn_targets)
 /* Run the given method.
    When args is NULL, don't run anything -- just compile it. */
 void
-_Jv_InterpMethod::run (void *retp, ffi_raw *args, _Jv_InterpMethod *meth)
+_Jv_InterpMethod::run (void *retp, INTERP_FFI_RAW_TYPE *args,
+		       _Jv_InterpMethod *meth)
 {
 #undef DEBUG
 #undef DEBUG_LOCALS_INSN
-#define DEBUG_LOCALS_INSN(s, t) do {} while(0)
+#define DEBUG_LOCALS_INSN(s, t) do {} while (0)
 
 #include "interpret-run.cc"
 }
 
 void
-_Jv_InterpMethod::run_debug (void *retp, ffi_raw *args, _Jv_InterpMethod *meth)
+_Jv_InterpMethod::run_debug (void *retp, INTERP_FFI_RAW_TYPE *args,
+			     _Jv_InterpMethod *meth)
 {
-/* Used to keep track of local variable type
- * 
- * Possible Types:
- * o object
- * i integer
- * f float
- * l long 
- * d double 
- */
 #define DEBUG
 #undef DEBUG_LOCALS_INSN
-#define DEBUG_LOCALS_INSN(s, t) do {} while(0)
+#define DEBUG_LOCALS_INSN(s, t)  \
+  do    \
+    {   \
+      frame_desc.locals_type[s] = t;  \
+    }   \
+  while (0)
 
 #include "interpret-run.cc"
 }
@@ -935,19 +1004,25 @@ _Jv_InterpMethod::run_debug (void *retp, ffi_raw *args, _Jv_InterpMethod *meth)
 static void
 throw_internal_error (const char *msg)
 {
-  throw new java::lang::InternalError (JvNewStringLatin1 (msg));
+  jthrowable t = new java::lang::InternalError (JvNewStringLatin1 (msg));
+  REPORT_EXCEPTION (t);
+  throw t;
 }
 
 static void 
 throw_incompatible_class_change_error (jstring msg)
 {
-  throw new java::lang::IncompatibleClassChangeError (msg);
+  jthrowable t = new java::lang::IncompatibleClassChangeError (msg);
+  REPORT_EXCEPTION (t);
+  throw t;
 }
 
 static void 
 throw_null_pointer_exception ()
 {
-  throw new java::lang::NullPointerException;
+  jthrowable t = new java::lang::NullPointerException;
+  REPORT_EXCEPTION (t);
+  throw t;
 }
 
 /* Look up source code line number for given bytecode (or direct threaded
@@ -1179,13 +1254,13 @@ _Jv_count_arguments (_Jv_Utf8Const *signature,
  * caller.
  */
 
-static int 
-init_cif (_Jv_Utf8Const* signature,
-	  int arg_count,
-	  jboolean staticp,
-	  ffi_cif *cif,
-	  ffi_type **arg_types,
-	  ffi_type **rtype_p)
+int 
+_Jv_init_cif (_Jv_Utf8Const* signature,
+	      int arg_count,
+	      jboolean staticp,
+	      ffi_cif *cif,
+	      ffi_type **arg_types,
+	      ffi_type **rtype_p)
 {
   unsigned char *ptr = (unsigned char*) signature->chars();
 
@@ -1233,29 +1308,35 @@ init_cif (_Jv_Utf8Const* signature,
   return item_count;
 }
 
-#if FFI_NATIVE_RAW_API
-#   define FFI_PREP_RAW_CLOSURE ffi_prep_raw_closure
-#   define FFI_RAW_SIZE ffi_raw_size
-#else
-#   define FFI_PREP_RAW_CLOSURE ffi_prep_java_raw_closure
-#   define FFI_RAW_SIZE ffi_java_raw_size
-#endif
-
 /* we put this one here, and not in interpret.cc because it
  * calls the utility routines _Jv_count_arguments 
  * which are static to this module.  The following struct defines the
  * layout we use for the stubs, it's only used in the ncode method. */
 
+#if FFI_NATIVE_RAW_API
+#   define FFI_PREP_RAW_CLOSURE ffi_prep_raw_closure_loc
+#   define FFI_RAW_SIZE ffi_raw_size
 typedef struct {
   ffi_raw_closure  closure;
+  _Jv_ClosureList list;
   ffi_cif   cif;
   ffi_type *arg_types[0];
 } ncode_closure;
-
-typedef void (*ffi_closure_fun) (ffi_cif*,void*,ffi_raw*,void*);
+typedef void (*ffi_closure_fun) (ffi_cif*,void*,INTERP_FFI_RAW_TYPE*,void*);
+#else
+#   define FFI_PREP_RAW_CLOSURE ffi_prep_java_raw_closure_loc
+#   define FFI_RAW_SIZE ffi_java_raw_size
+typedef struct {
+  ffi_java_raw_closure  closure;
+  _Jv_ClosureList list;
+  ffi_cif   cif;
+  ffi_type *arg_types[0];
+} ncode_closure;
+typedef void (*ffi_closure_fun) (ffi_cif*,void*,ffi_java_raw*,void*);
+#endif
 
 void *
-_Jv_InterpMethod::ncode ()
+_Jv_InterpMethod::ncode (jclass klass)
 {
   using namespace java::lang::reflect;
 
@@ -1265,16 +1346,19 @@ _Jv_InterpMethod::ncode ()
   jboolean staticp = (self->accflags & Modifier::STATIC) != 0;
   int arg_count = _Jv_count_arguments (self->signature, staticp);
 
+  void *code;
   ncode_closure *closure =
-    (ncode_closure*)_Jv_AllocBytes (sizeof (ncode_closure)
-					+ arg_count * sizeof (ffi_type*));
+    (ncode_closure*)ffi_closure_alloc (sizeof (ncode_closure)
+				       + arg_count * sizeof (ffi_type*),
+				       &code);
+  closure->list.registerClosure (klass, closure);
 
-  init_cif (self->signature,
-	    arg_count,
-	    staticp,
-	    &closure->cif,
-	    &closure->arg_types[0],
-	    NULL);
+  _Jv_init_cif (self->signature,
+		arg_count,
+		staticp,
+		&closure->cif,
+		&closure->arg_types[0],
+		NULL);
 
   ffi_closure_fun fun;
 
@@ -1286,43 +1370,45 @@ _Jv_InterpMethod::ncode ()
     {
       if (staticp)
         {
-        if (::gnu::classpath::jdwp::Jdwp::isDebugging)
-		  fun = (ffi_closure_fun)&_Jv_InterpMethod::run_synch_class_debug;
-		else
-		  fun = (ffi_closure_fun)&_Jv_InterpMethod::run_synch_class;
+	  if (JVMTI::enabled)
+	    fun = (ffi_closure_fun)&_Jv_InterpMethod::run_synch_class_debug;
+	  else
+	    fun = (ffi_closure_fun)&_Jv_InterpMethod::run_synch_class;
         }
       else
         {
-	      if (::gnu::classpath::jdwp::Jdwp::isDebugging)
-		    fun = (ffi_closure_fun)&_Jv_InterpMethod::run_synch_object_debug;
-		  else
-		  	fun = (ffi_closure_fun)&_Jv_InterpMethod::run_synch_object;
-        } 
+	  if (JVMTI::enabled)
+	    fun = (ffi_closure_fun)&_Jv_InterpMethod::run_synch_object_debug;
+	  else
+	    fun = (ffi_closure_fun)&_Jv_InterpMethod::run_synch_object;
+        }
     }
   else
     {
       if (staticp)
         {
-	      if (::gnu::classpath::jdwp::Jdwp::isDebugging)
-		    fun = (ffi_closure_fun)&_Jv_InterpMethod::run_class_debug;
-		  else
-		    fun = (ffi_closure_fun)&_Jv_InterpMethod::run_class;
+	  if (JVMTI::enabled)
+	    fun = (ffi_closure_fun)&_Jv_InterpMethod::run_class_debug;
+	  else
+	    fun = (ffi_closure_fun)&_Jv_InterpMethod::run_class;
         }
       else
         {
-	      if (::gnu::classpath::jdwp::Jdwp::isDebugging)
-		    fun = (ffi_closure_fun)&_Jv_InterpMethod::run_normal_debug;
-		  else
-		    fun = (ffi_closure_fun)&_Jv_InterpMethod::run_normal;
+	  if (JVMTI::enabled)
+	    fun = (ffi_closure_fun)&_Jv_InterpMethod::run_normal_debug;
+	  else
+	    fun = (ffi_closure_fun)&_Jv_InterpMethod::run_normal;
         }
     }
 
   FFI_PREP_RAW_CLOSURE (&closure->closure,
 		        &closure->cif, 
 		        fun,
-		        (void*)this);
+		        (void*)this,
+			code);
 
-  self->ncode = (void*)closure;
+  self->ncode = code;
+
   return self->ncode;
 }
 
@@ -1354,6 +1440,51 @@ _Jv_InterpMethod::insn_index (pc_t pc)
 
   return -1;
 }
+
+// Method to check if an exception is caught at some location in a method
+// (meth).  Returns true if this method (meth) contains a catch block for the
+// exception (ex). False otherwise.  If there is a catch block, it sets the pc
+// to the location of the beginning of the catch block.
+jboolean
+_Jv_InterpMethod::check_handler (pc_t *pc, _Jv_InterpMethod *meth,
+                                java::lang::Throwable *ex)
+{
+#ifdef DIRECT_THREADED
+  void *logical_pc = (void *) ((insn_slot *) (*pc) - 1);
+#else
+  int logical_pc = (*pc) - 1 - meth->bytecode ();
+#endif
+  _Jv_InterpException *exc = meth->exceptions ();
+  jclass exc_class = ex->getClass ();
+
+  for (int i = 0; i < meth->exc_count; i++)
+    {
+      if (PCVAL (exc[i].start_pc) <= logical_pc
+          && logical_pc < PCVAL (exc[i].end_pc))
+        {
+#ifdef DIRECT_THREADED
+              jclass handler = (jclass) exc[i].handler_type.p;
+#else
+              jclass handler = NULL;
+              if (exc[i].handler_type.i != 0)
+                    handler
+                      = (_Jv_Linker::resolve_pool_entry (meth->defining_class,
+                                                                             ex$
+#endif /* DIRECT_THREADED */
+              if (handler == NULL || handler->isAssignableFrom (exc_class))
+                {
+#ifdef DIRECT_THREADED
+                  (*pc) = (insn_slot *) exc[i].handler_pc.p;
+#else
+                  (*pc) = meth->bytecode () + exc[i].handler_pc.i;
+#endif /* DIRECT_THREADED */
+                  return true;
+                }
+          }
+      }
+  return false;
+}
+
 
 void
 _Jv_InterpMethod::get_line_table (jlong& start, jlong& end,
@@ -1403,6 +1534,37 @@ _Jv_InterpMethod::get_line_table (jlong& start, jlong& end,
 #endif // !DIRECT_THREADED
 }
 
+int 
+_Jv_InterpMethod::get_local_var_table (char **name, char **sig, 
+                                       char **generic_sig, jlong *startloc,
+                                       jint *length, jint *slot, 
+                                       int table_slot)
+{
+#ifdef DIRECT_THREADED
+  _Jv_CompileMethod (this);
+#endif
+
+  if (local_var_table == NULL)
+    return -2;
+  if (table_slot >= local_var_table_len)
+    return -1;
+  else
+    {
+      *name = local_var_table[table_slot].name;
+      *sig = local_var_table[table_slot].descriptor;
+      *generic_sig = local_var_table[table_slot].descriptor;
+
+#ifdef DIRECT_THREADED
+      *startloc = insn_index (local_var_table[table_slot].pc);
+#else
+      *startloc = static_cast<jlong> (local_var_table[table_slot].bytecode_pc);
+#endif
+      *length = static_cast<jint> (local_var_table[table_slot].length);
+      *slot = static_cast<jint> (local_var_table[table_slot].slot);
+    }
+  return local_var_table_len - table_slot - 1;
+}
+
 pc_t
 _Jv_InterpMethod::install_break (jlong index)
 {
@@ -1449,8 +1611,25 @@ _Jv_InterpMethod::set_insn (jlong index, pc_t insn)
   return &code[index];
 }
 
+bool
+_Jv_InterpMethod::breakpoint_at (jlong index)
+{
+  pc_t insn = get_insn (index);
+  if (insn != NULL)
+    {
+#ifdef DIRECT_THREADED
+      return (insn->insn == breakpoint_insn->insn);
+#else
+      pc_t code = reinterpret_cast<pc_t> (bytecode ());
+      return (code[index] == breakpoint_insn);
+#endif
+    }
+
+  return false;
+}
+
 void *
-_Jv_JNIMethod::ncode ()
+_Jv_JNIMethod::ncode (jclass klass)
 {
   using namespace java::lang::reflect;
 
@@ -1460,17 +1639,20 @@ _Jv_JNIMethod::ncode ()
   jboolean staticp = (self->accflags & Modifier::STATIC) != 0;
   int arg_count = _Jv_count_arguments (self->signature, staticp);
 
+  void *code;
   ncode_closure *closure =
-    (ncode_closure*)_Jv_AllocBytes (sizeof (ncode_closure)
-				    + arg_count * sizeof (ffi_type*));
+    (ncode_closure*)ffi_closure_alloc (sizeof (ncode_closure)
+				       + arg_count * sizeof (ffi_type*),
+				       &code);
+  closure->list.registerClosure (klass, closure);
 
   ffi_type *rtype;
-  init_cif (self->signature,
-	    arg_count,
-	    staticp,
-	    &closure->cif,
-	    &closure->arg_types[0],
-	    &rtype);
+  _Jv_init_cif (self->signature,
+		arg_count,
+		staticp,
+		&closure->cif,
+		&closure->arg_types[0],
+		&rtype);
 
   ffi_closure_fun fun;
 
@@ -1504,24 +1686,91 @@ _Jv_JNIMethod::ncode ()
   FFI_PREP_RAW_CLOSURE (&closure->closure,
 			&closure->cif, 
 			fun,
-			(void*) this);
+			(void*) this,
+			code);
 
-  self->ncode = (void *) closure;
+  self->ncode = code;
   return self->ncode;
 }
 
 static void
 throw_class_format_error (jstring msg)
 {
-  throw (msg
+  jthrowable t = (msg
 	 ? new java::lang::ClassFormatError (msg)
 	 : new java::lang::ClassFormatError);
+  REPORT_EXCEPTION (t);
+  throw t;
 }
 
 static void
 throw_class_format_error (const char *msg)
 {
   throw_class_format_error (JvNewStringLatin1 (msg));
+}
+
+/* This function finds the method and location where the exception EXC
+   is caught in the stack frame. On return, it sets CATCH_METHOD and
+   CATCH_LOCATION with the method and location where the catch will
+   occur. If the exception is not caught, these are set to 0.
+
+   This function should only be used with the DEBUG interpreter. */
+static void
+find_catch_location (::java::lang::Throwable *exc, jthread thread,
+		     jmethodID *catch_method, jlong *catch_loc)
+{
+  *catch_method = 0;
+  *catch_loc = 0;
+
+  _Jv_InterpFrame *frame
+    = reinterpret_cast<_Jv_InterpFrame *> (thread->interp_frame);
+  while (frame != NULL)
+    {
+      pc_t pc = frame->get_pc ();
+      _Jv_InterpMethod *imeth
+	= reinterpret_cast<_Jv_InterpMethod *> (frame->self);
+      if (imeth->check_handler (&pc, imeth, exc))
+	{
+	  // This method handles the exception.
+	  *catch_method = imeth->get_method ();
+	  *catch_loc = imeth->insn_index (pc);
+	  return;
+	}
+
+      frame = frame->next_interp;
+    }
+}
+
+/* This method handles JVMTI notifications of thrown exceptions. It
+   calls find_catch_location to figure out where the exception is
+   caught (if it is caught).
+   
+   Like find_catch_location, this should only be called with the
+   DEBUG interpreter. Since a few exceptions occur outside the
+   interpreter proper, it is important to not call this function
+   without checking JVMTI_REQUESTED_EVENT(Exception) first. */
+void
+_Jv_ReportJVMTIExceptionThrow (jthrowable ex)
+{
+  jthread thread = ::java::lang::Thread::currentThread ();
+  _Jv_Frame *frame = reinterpret_cast<_Jv_Frame *> (thread->frame);
+  jmethodID throw_meth = frame->self->get_method ();
+  jlocation throw_loc = -1;
+  if (frame->frame_type == frame_interpreter)
+    {
+      _Jv_InterpFrame * iframe
+	= reinterpret_cast<_Jv_InterpFrame *> (frame);
+      _Jv_InterpMethod *imeth
+	= reinterpret_cast<_Jv_InterpMethod *> (frame->self);
+      throw_loc = imeth->insn_index (iframe->get_pc ());
+    }
+
+  jlong catch_loc;
+  jmethodID catch_method;
+  find_catch_location (ex, thread, &catch_method, &catch_loc);
+  _Jv_JVMTI_PostEvent (JVMTI_EVENT_EXCEPTION, thread,
+		       _Jv_GetCurrentJNIEnv (), throw_meth, throw_loc,
+		       ex, catch_method, catch_loc);
 }
 
 
@@ -1567,14 +1816,25 @@ _Jv_InterpreterEngine::do_create_ncode (jclass klass)
 	  // cases.  Well, we can't, because we don't allocate these
 	  // objects using `new', and thus they don't get a vtable.
 	  _Jv_JNIMethod *jnim = reinterpret_cast<_Jv_JNIMethod *> (imeth);
-	  klass->methods[i].ncode = jnim->ncode ();
+	  klass->methods[i].ncode = jnim->ncode (klass);
 	}
       else if (imeth != 0)		// it could be abstract
 	{
 	  _Jv_InterpMethod *im = reinterpret_cast<_Jv_InterpMethod *> (imeth);
-	  klass->methods[i].ncode = im->ncode ();
+	  klass->methods[i].ncode = im->ncode (klass);
 	}
     }
+}
+
+_Jv_ClosureList **
+_Jv_InterpreterEngine::do_get_closure_list (jclass klass)
+{
+  _Jv_InterpClass *iclass = (_Jv_InterpClass *) klass->aux_info;
+
+  if (!iclass->closures)
+    iclass->closures = _Jv_ClosureListFinalizer ();
+
+  return iclass->closures;
 }
 
 void
@@ -1632,12 +1892,12 @@ _Jv_InterpreterEngine::do_resolve_method (_Jv_Method *method, jclass klass,
 		    + arg_count*sizeof (ffi_type*));
 
   result->stack_item_count
-    = init_cif (method->signature,
-		arg_count,
-		staticp,
-		&result->cif,
-		&result->arg_types[0],
-		NULL);
+    = _Jv_init_cif (method->signature,
+		    arg_count,
+		    staticp,
+		    &result->cif,
+		    &result->arg_types[0],
+		    NULL);
 
   result->method              = method;
   result->klass               = klass;
@@ -1669,8 +1929,11 @@ void
 _Jv_CompileMethod (_Jv_InterpMethod* method)
 {
   if (method->prepared == NULL)
-    _Jv_InterpMethod::run (NULL, NULL, method);
+    {
+      if (JVMTI::enabled)
+	_Jv_InterpMethod::run_debug (NULL, NULL, method);
+      else
+      _Jv_InterpMethod::run (NULL, NULL, method);
+    }
 }
 #endif // DIRECT_THREADED
-
-#endif // INTERPRETER

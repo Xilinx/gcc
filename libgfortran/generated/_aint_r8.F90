@@ -1,4 +1,4 @@
-!   Copyright 2002 Free Software Foundation, Inc.
+!   Copyright 2002, 2007 Free Software Foundation, Inc.
 !   Contributed by Paul Brook <paul@nowt.org>
 !
 !This file is part of the GNU Fortran 95 runtime library (libgfortran).
@@ -40,11 +40,11 @@
 #if defined (HAVE_GFC_REAL_8)
 #ifdef HAVE_TRUNC
 
-elemental function specific__aint_r8 (parm)
+elemental function _gfortran_specific__aint_r8 (parm)
    real (kind=8), intent (in) :: parm
-   real (kind=8) :: specific__aint_r8
+   real (kind=8) :: _gfortran_specific__aint_r8
 
-   specific__aint_r8 = aint (parm)
+   _gfortran_specific__aint_r8 = aint (parm)
 end function
 
 #endif

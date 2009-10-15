@@ -158,6 +158,29 @@
     }
 })
 
+;; A constant that can be used the address in a call insn
+(define_predicate "const_call_operand"
+  (ior (match_operand 0 "const_int_operand")
+       (and (match_test "m68k_symbolic_call != NULL")
+	    (match_operand 0 "symbolic_operand"))))
+
+;; An operand that can be used as the address in a call insn.
+(define_predicate "call_operand"
+  (ior (match_operand 0 "const_call_operand")
+       (match_operand 0 "register_operand")))
+
+;; A constant that can be used the address in a sibcall insn
+(define_predicate "const_sibcall_operand"
+  (ior (match_operand 0 "const_int_operand")
+       (and (match_test "m68k_symbolic_jump != NULL")
+	    (match_operand 0 "symbolic_operand"))))
+
+;; An operand that can be used as the address in a sibcall insn.
+(define_predicate "sibcall_operand"
+  (ior (match_operand 0 "const_sibcall_operand")
+       (and (match_code "reg")
+	    (match_test "REGNO (op) == STATIC_CHAIN_REGNUM"))))
+
 ;; TODO: Add a comment here.
 
 (define_predicate "post_inc_operand"
@@ -169,3 +192,30 @@
 (define_predicate "pre_dec_operand"
   (and (match_code "mem")
        (match_test "GET_CODE (XEXP (op, 0)) == PRE_DEC")))
+
+;; An operand for movsi_const0 pattern.
+(define_predicate "movsi_const0_operand"
+  (and (match_operand 0 "nonimmediate_operand")
+       (match_test "(TARGET_68010 || TARGET_COLDFIRE)
+                    || !(MEM_P (op) && MEM_VOLATILE_P (op))")))
+ 
+;; A non-symbolic call operand.
+;; We need to special case 'const_int' to ignore its mode while matching.
+(define_predicate "non_symbolic_call_operand"
+  (and (match_operand 0 "call_operand")
+       (ior (and (match_code "const_int")
+ 		 (match_test "!symbolic_operand (op, mode)"))
+ 	    (match_test "!symbolic_operand (op,mode)"))))
+
+;; Special case of general_src_operand, which rejects a few fp
+;; constants (which we prefer in registers) before reload.
+
+(define_predicate "fp_src_operand"
+  (match_operand 0 "general_src_operand")
+{
+  return !CONSTANT_P (op)
+	 || (TARGET_68881
+	     && (!standard_68881_constant_p (op)
+		 || reload_in_progress
+		 || reload_completed));
+})

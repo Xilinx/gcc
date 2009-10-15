@@ -14,6 +14,7 @@ details.  */
 #include <config.h>
 
 #include "posix.h"
+#include "posix-threads.h"
 
 // If we're using the Boehm GC, then we need to override some of the
 // thread primitives.  This is fairly gross.
@@ -80,6 +81,34 @@ static int non_daemon_count;
 
 
 
+int
+_Jv_MutexLock (_Jv_Mutex_t *mu)
+{
+  pthread_t self = pthread_self ();
+  if (mu->owner == self)
+    {
+      mu->count++;
+    }
+  else
+    {
+      JvSetThreadState holder (_Jv_ThreadCurrent(), JV_BLOCKED);
+	
+#     ifdef LOCK_DEBUG
+	int result = pthread_mutex_lock (&mu->mutex);
+	if (0 != result)
+	  {
+	    fprintf(stderr, "Pthread_mutex_lock returned %d\n", result);
+	    for (;;) {}
+	  }
+#     else
+        pthread_mutex_lock (&mu->mutex);
+#     endif
+      mu->count = 1;
+      mu->owner = self;
+    }
+  return 0;
+}
+
 // Wait for the condition variable "CV" to be notified. 
 // Return values:
 // 0: the condition was notified, or the timeout expired.
@@ -95,6 +124,7 @@ _Jv_CondWait (_Jv_ConditionVariable_t *cv, _Jv_Mutex_t *mu,
 
   struct timespec ts;
 
+  JvThreadState new_state = JV_WAITING;
   if (millis > 0 || nanos > 0)
     {
       // Calculate the abstime corresponding to the timeout.
@@ -146,6 +176,9 @@ _Jv_CondWait (_Jv_ConditionVariable_t *cv, _Jv_Mutex_t *mu,
       pthread_mutex_unlock (&current->wait_mutex);
       return _JV_INTERRUPTED;
     }
+
+  // Set the thread's state.
+  JvSetThreadState holder (current_obj, new_state);
 
   // Add this thread to the cv's wait set.
   current->next = NULL;
@@ -307,19 +340,157 @@ _Jv_ThreadInterrupt (_Jv_Thread_t *data)
   pthread_mutex_unlock (&data->wait_mutex);
 }
 
+/**
+ * Releases the block on a thread created by _Jv_ThreadPark().  This
+ * method can also be used to terminate a blockage caused by a prior
+ * call to park.  This operation is unsafe, as the thread must be
+ * guaranteed to be live.
+ *
+ * @param thread the thread to unblock.
+ */
+void
+ParkHelper::unpark ()
+{
+  using namespace ::java::lang;
+  volatile obj_addr_t *ptr = &permit;
+
+  /* If this thread is in state RUNNING, give it a permit and return
+     immediately.  */
+  if (compare_and_swap 
+      (ptr, Thread::THREAD_PARK_RUNNING, Thread::THREAD_PARK_PERMIT))
+    return;
+  
+  /* If this thread is parked, put it into state RUNNING and send it a
+     signal.  */
+  if (compare_and_swap 
+      (ptr, Thread::THREAD_PARK_PARKED, Thread::THREAD_PARK_RUNNING))
+    {
+      pthread_mutex_lock (&mutex);
+      pthread_cond_signal (&cond);
+      pthread_mutex_unlock (&mutex);
+    }
+}
+
+/**
+ * Sets our state to dead.
+ */
+void
+ParkHelper::deactivate ()
+{
+  permit = ::java::lang::Thread::THREAD_PARK_DEAD;
+}
+
+/**
+ * Blocks the thread until a matching _Jv_ThreadUnpark() occurs, the
+ * thread is interrupted or the optional timeout expires.  If an
+ * unpark call has already occurred, this also counts.  A timeout
+ * value of zero is defined as no timeout.  When isAbsolute is true,
+ * the timeout is in milliseconds relative to the epoch.  Otherwise,
+ * the value is the number of nanoseconds which must occur before
+ * timeout.  This call may also return spuriously (i.e.  for no
+ * apparent reason).
+ *
+ * @param isAbsolute true if the timeout is specified in milliseconds from
+ *                   the epoch.
+ * @param time either the number of nanoseconds to wait, or a time in
+ *             milliseconds from the epoch to wait for.
+ */
+void
+ParkHelper::park (jboolean isAbsolute, jlong time)
+{
+  using namespace ::java::lang;
+  volatile obj_addr_t *ptr = &permit;
+
+  /* If we have a permit, return immediately.  */
+  if (compare_and_swap 
+      (ptr, Thread::THREAD_PARK_PERMIT, Thread::THREAD_PARK_RUNNING))
+    return;
+
+  struct timespec ts;
+  jlong millis = 0, nanos = 0;
+
+  if (time)
+    {
+      if (isAbsolute)
+	{
+	  millis = time;
+	  nanos = 0;
+	}
+      else
+	{
+	  millis = java::lang::System::currentTimeMillis();
+	  nanos = time;
+	}
+
+      if (millis > 0 || nanos > 0)
+	{
+	  // Calculate the abstime corresponding to the timeout.
+	  // Everything is in milliseconds.
+	  //
+	  // We use `unsigned long long' rather than jlong because our
+	  // caller may pass up to Long.MAX_VALUE millis.  This would
+	  // overflow the range of a timespec.
+
+	  unsigned long long m = (unsigned long long)millis;
+	  unsigned long long seconds = m / 1000; 
+
+	  ts.tv_sec = seconds;
+	  if (ts.tv_sec < 0 || (unsigned long long)ts.tv_sec != seconds)
+	    {
+	      // We treat a timeout that won't fit into a struct timespec
+	      // as a wait forever.
+	      millis = nanos = 0;
+	    }
+	  else
+	    {
+	      m %= 1000;
+	      ts.tv_nsec = m * 1000000 + (unsigned long long)nanos;
+	    }
+	}
+    }
+      
+  if (compare_and_swap 
+      (ptr, Thread::THREAD_PARK_RUNNING, Thread::THREAD_PARK_PARKED))
+    {
+      pthread_mutex_lock (&mutex);
+      if (millis == 0 && nanos == 0)
+	pthread_cond_wait (&cond, &mutex);
+      else
+	pthread_cond_timedwait (&cond, &mutex, &ts);
+      pthread_mutex_unlock (&mutex);
+      
+      /* If we were unparked by some other thread, this will already
+	 be in state THREAD_PARK_RUNNING.  If we timed out, we have to
+	 do it ourself.  */
+      compare_and_swap 
+	(ptr, Thread::THREAD_PARK_PARKED, Thread::THREAD_PARK_RUNNING);
+    }
+}
+
 static void
 handle_intr (int)
 {
   // Do nothing.
 }
 
-static void
-block_sigchld()
+void
+_Jv_BlockSigchld()
 {
   sigset_t mask;
   sigemptyset (&mask);
   sigaddset (&mask, SIGCHLD);
   int c = pthread_sigmask (SIG_BLOCK, &mask, NULL);
+  if (c != 0)
+    JvFail (strerror (c));
+}
+
+void
+_Jv_UnBlockSigchld()
+{
+  sigset_t mask;
+  sigemptyset (&mask);
+  sigaddset (&mask, SIGCHLD);
+  int c = pthread_sigmask (SIG_UNBLOCK, &mask, NULL);
   if (c != 0)
     JvFail (strerror (c));
 }
@@ -342,7 +513,7 @@ _Jv_InitThreads (void)
 
   // Block SIGCHLD here to ensure that any non-Java threads inherit the new 
   // signal mask.
-  block_sigchld();
+  _Jv_BlockSigchld();
 
   // Check/set the thread stack size.
   size_t min_ss = 32 * 1024;
@@ -422,7 +593,7 @@ _Jv_ThreadRegister (_Jv_Thread_t *data)
       }
 # endif
   // Block SIGCHLD which is used in natPosixProcess.cc.
-  block_sigchld();
+  _Jv_BlockSigchld();
 }
 
 void
@@ -470,7 +641,7 @@ _Jv_ThreadStart (java::lang::Thread *thread, _Jv_Thread_t *data,
 
   // Block SIGCHLD which is used in natPosixProcess.cc.
   // The current mask is inherited by the child thread.
-  block_sigchld();
+  _Jv_BlockSigchld();
 
   param.sched_priority = thread->getPriority();
 

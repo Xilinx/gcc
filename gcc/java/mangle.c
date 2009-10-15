@@ -1,6 +1,6 @@
 /* Functions related to mangling class names for the GNU compiler
    for the Java(TM) language.
-   Copyright (C) 1998, 1999, 2001, 2002, 2003, 2007
+   Copyright (C) 1998, 1999, 2001, 2002, 2003, 2006, 2007
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -71,6 +71,167 @@ struct obstack *mangle_obstack;
 
 /* atms: array template mangled string. */
 static GTY(()) tree atms;
+
+static int
+utf8_cmp (const unsigned char *str, int length, const char *name)
+{
+  const unsigned char *limit = str + length;
+  int i;
+
+  for (i = 0; name[i]; ++i)
+    {
+      int ch = UTF8_GET (str, limit);
+      if (ch != name[i])
+	return ch - name[i];
+    }
+
+  return str == limit ? 0 : 1;
+}
+
+/* A sorted list of all C++ keywords.  */
+static const char *const cxx_keywords[] =
+{
+  "_Complex",
+  "__alignof",
+  "__alignof__",
+  "__asm",
+  "__asm__",
+  "__attribute",
+  "__attribute__",
+  "__builtin_va_arg",
+  "__complex",
+  "__complex__",
+  "__const",
+  "__const__",
+  "__extension__",
+  "__imag",
+  "__imag__",
+  "__inline",
+  "__inline__",
+  "__label__",
+  "__null",
+  "__real",
+  "__real__",
+  "__restrict",
+  "__restrict__",
+  "__signed",
+  "__signed__",
+  "__typeof",
+  "__typeof__",
+  "__volatile",
+  "__volatile__",
+  "and",
+  "and_eq",
+  "asm",
+  "auto",
+  "bitand",
+  "bitor",
+  "bool",
+  "break",
+  "case",
+  "catch",
+  "char",
+  "class",
+  "compl",
+  "const",
+  "const_cast",
+  "continue",
+  "default",
+  "delete",
+  "do",
+  "double",
+  "dynamic_cast",
+  "else",
+  "enum",
+  "explicit",
+  "export",
+  "extern",
+  "false",
+  "float",
+  "for",
+  "friend",
+  "goto",
+  "if",
+  "inline",
+  "int",
+  "long",
+  "mutable",
+  "namespace",
+  "new",
+  "not",
+  "not_eq",
+  "operator",
+  "or",
+  "or_eq",
+  "private",
+  "protected",
+  "public",
+  "register",
+  "reinterpret_cast",
+  "return",
+  "short",
+  "signed",
+  "sizeof",
+  "static",
+  "static_cast",
+  "struct",
+  "switch",
+  "template",
+  "this",      
+  "throw",
+  "true",
+  "try",
+  "typedef",
+  "typeid",
+  "typename",
+  "typeof",
+  "union",
+  "unsigned",
+  "using",
+  "virtual",
+  "void",
+  "volatile",
+  "wchar_t",
+  "while",
+  "xor",
+  "xor_eq"
+};
+
+/* Return true if NAME is a C++ keyword.  */
+static int
+cxx_keyword_p (const char *name, int length)
+{
+  int last = ARRAY_SIZE (cxx_keywords);
+  int first = 0;
+  int mid = (last + first) / 2;
+  int old = -1;
+
+  for (mid = (last + first) / 2;
+       mid != old;
+       old = mid, mid = (last + first) / 2)
+    {
+      int kwl = strlen (cxx_keywords[mid]);
+      int min_length = kwl > length ? length : kwl;
+      int r = utf8_cmp ((const unsigned char *) name, min_length, cxx_keywords[mid]);
+
+      if (r == 0)
+	{
+	  int i;
+	  /* We've found a match if all the remaining characters are `$'.  */
+	  for (i = min_length; i < length && name[i] == '$'; ++i)
+	    ;
+	  if (i == length)
+	    return 1;
+	  r = 1;
+	}
+
+      if (r < 0)
+	last = mid;
+      else
+	first = mid;
+    }
+  return 0;
+}
 
 /* This is the mangling interface: a decl, a class field (.class) and
    the vtable. */
@@ -587,27 +748,21 @@ set_type_package_list (tree type)
 {
   int i;
   const char *type_string = IDENTIFIER_POINTER (DECL_NAME (TYPE_NAME (type)));
-  char *ptr;
+  const char *ptr;
   int qualifications;
   tree list = NULL_TREE, elt;
 
-  for (ptr = (char *)type_string, qualifications = 0; *ptr; ptr++)
+  for (ptr = type_string, qualifications = 0; *ptr; ptr++)
     if (*ptr == '.')
       qualifications += 1;
 
-  for (ptr = (char *)type_string, i = 0; i < qualifications; ptr++)
+  for (ptr = type_string, i = 0; i < qualifications; ptr++)
     {
       if (ptr [0] == '.')
 	{
-	  char c;
-	  tree identifier;
+	  tree const identifier
+	    = get_identifier_with_length (type_string, ptr - type_string);
 
-	  /* Can't use an obstack, we're already using it to
-	     accumulate the mangling. */
-	  c = ptr [0];
-	  ptr [0] = '\0';
-	  identifier = get_identifier (type_string);
-	  ptr [0] = c;
 	  elt = build_tree_list (identifier, identifier);
 	  TREE_CHAIN (elt) = list;
 	  list = elt;
@@ -639,6 +794,59 @@ compression_table_add (tree type)
       compression_table = new;
     }
   TREE_VEC_ELT (compression_table, compression_next++) = type;
+}
+
+/* Mangle an embedded resource file name.  "_ZGr" is the prefix.  A
+   '_' is prepended to the name so that names starting with a digit
+   can be demangled.  The length and then the resulting name itself
+   are appended while escaping '$', '.', and '/' to: "$$", "$_", and
+   "$S".  */
+
+tree
+java_mangle_resource_name (const char *name)
+{
+  int len = strlen (name);
+  char *buf = (char *) alloca (2 * len + 1);
+  char *pos;
+  const unsigned char *w1 = (const unsigned char *) name;
+  const unsigned char *w2;
+  const unsigned char *limit = w1 + len;
+
+  pos = buf;
+
+  init_mangling ();
+  MANGLE_RAW_STRING ("Gr");
+
+  *pos++ = '_';
+  while (w1 < limit)
+    {
+      int ch;
+      w2 = w1;
+      ch = UTF8_GET (w1, limit);
+      gcc_assert (ch > 0);
+      switch (ch)
+	{
+	case '$':
+	  *pos++ = '$';
+	  *pos++ = '$';
+	  break;
+	case '.':
+	  *pos++ = '$';
+	  *pos++ = '_';
+	  break;
+	case '/':
+	  *pos++ = '$';
+	  *pos++ = 'S';
+	  break;
+	default:
+	  memcpy (pos, w2, w1 - w2);
+	  pos += w1 - w2;
+	  break;
+	}
+    }
+  append_gpp_mangled_name (buf, pos - buf);
+
+  return finish_mangling ();
 }
 
 /* Mangling initialization routine.  */

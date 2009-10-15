@@ -6,7 +6,7 @@
  *                                                                          *
  *                          C Implementation File                           *
  *                                                                          *
- *          Copyright (C) 1992-2005, Free Software Foundation, Inc.         *
+ *          Copyright (C) 1992-2007, Free Software Foundation, Inc.         *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
@@ -36,7 +36,7 @@
 /*  struct timeval fields type are not normalized (they are generally       */
 /*  defined as int or long values).                                         */
 
-#if defined(VMS)
+#if defined(VMS) || defined(__nucleus__)
 
 /* this is temporary code to avoid build failure under VMS */
 
@@ -55,9 +55,15 @@ __gnat_duration_to_timeval (long sec, long usec, void *t)
 #if defined (__vxworks)
 #ifdef __RTP__
 #include <time.h>
+#include <version.h>
+#if (_WRS_VXWORKS_MINOR != 0)
+#include <sys/time.h>
+#endif
 #else
 #include <sys/times.h>
 #endif
+#elif defined (__nucleus__)
+#include <time.h>
 #else
 #include <sys/time.h>
 #endif

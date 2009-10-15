@@ -1,8 +1,8 @@
 ;; -*- Mode: Scheme -*-
 ;;   Machine description for GNU compiler,
 ;;   for ATMEL AVR micro controllers.
-;;   Copyright (C) 1998, 1999, 2000, 2001, 2002, 2004, 2005, 2006, 2007
-;;   Free Software Foundation, Inc.
+;;   Copyright (C) 1998, 1999, 2000, 2001, 2002, 2004, 2005, 2006, 2007, 2008,
+;;   2009 Free Software Foundation, Inc.
 ;;   Contributed by Denis Chertykov (denisc@overta.ru)
 
 ;; This file is part of GCC.
@@ -45,8 +45,17 @@
    (REG_SP	32)
    (TMP_REGNO	0)	; temporary register r0
    (ZERO_REGNO	1)	; zero register r1
+   
+   (SREG_ADDR   0x5F)
+   (RAMPZ_ADDR  0x5B)
+   
    (UNSPEC_STRLEN	0)
-   (UNSPEC_INDEX_JMP	1)])
+   (UNSPEC_INDEX_JMP	1)
+   (UNSPEC_SEI		2)
+   (UNSPEC_CLI		3)
+
+   (UNSPECV_PROLOGUE_SAVES	0)
+   (UNSPECV_EPILOGUE_RESTORES	1)])
 
 (include "predicates.md")
 (include "constraints.md")
@@ -103,50 +112,10 @@
 		       (const_int 2))]
         (const_int 2)))
 
-(define_insn "*pop1"
-  [(set (reg:HI 32) (plus:HI (reg:HI 32) (const_int 1)))]
-  ""
-  "pop __tmp_reg__"
-  [(set_attr "length" "1")])
-
-(define_insn "*pop2"
-  [(set (reg:HI 32) (plus:HI (reg:HI 32) (const_int 2)))]
-  ""
-  "pop __tmp_reg__
-	pop __tmp_reg__"
-  [(set_attr "length" "2")])
-
-(define_insn "*pop3"
-  [(set (reg:HI 32) (plus:HI (reg:HI 32) (const_int 3)))]
-  ""
-  "pop __tmp_reg__
-	pop __tmp_reg__
- 	pop __tmp_reg__"
-  [(set_attr "length" "3")])
-
-(define_insn "*pop4"
-  [(set (reg:HI 32) (plus:HI (reg:HI 32) (const_int 4)))]
-  ""
-  "pop __tmp_reg__
-	pop __tmp_reg__
-	pop __tmp_reg__
-	pop __tmp_reg__"
-  [(set_attr "length" "4")])
-
-(define_insn "*pop5"
-  [(set (reg:HI 32) (plus:HI (reg:HI 32) (const_int 5)))]
-  ""
-  "pop __tmp_reg__
-	pop __tmp_reg__
-	pop __tmp_reg__
-	pop __tmp_reg__
-	pop __tmp_reg__"
-  [(set_attr "length" "5")])
-
 (define_insn "*pushqi"
-  [(set (mem:QI (post_dec (reg:HI 32)))
-        (match_operand:QI 0 "nonmemory_operand" "r,L"))]
-  "(operands[0] == const0_rtx || register_operand (operands[0], QImode))"
+  [(set (mem:QI (post_dec (reg:HI REG_SP)))
+        (match_operand:QI 0 "reg_or_0_operand" "r,L"))]
+  ""
   "@
 	push %0
 	push __zero_reg__"
@@ -154,25 +123,25 @@
 
 
 (define_insn "*pushhi"
-  [(set (mem:HI (post_dec (reg:HI 32)))
-        (match_operand:HI 0 "nonmemory_operand" "r,L"))]
-  "(operands[0] == const0_rtx || register_operand (operands[0], HImode))"
+  [(set (mem:HI (post_dec (reg:HI REG_SP)))
+        (match_operand:HI 0 "reg_or_0_operand" "r,L"))]
+  ""
   "@
 	push %B0\;push %A0
 	push __zero_reg__\;push __zero_reg__"
   [(set_attr "length" "2,2")])
 
 (define_insn "*pushsi"
-  [(set (mem:SI (post_dec (reg:HI 32)))
-        (match_operand:SI 0 "nonmemory_operand" "r,L"))]
-  "(operands[0] == const0_rtx || register_operand (operands[0], SImode))"
+  [(set (mem:SI (post_dec (reg:HI REG_SP)))
+        (match_operand:SI 0 "reg_or_0_operand" "r,L"))]
+  ""
   "@
 	push %D0\;push %C0\;push %B0\;push %A0
 	push __zero_reg__\;push __zero_reg__\;push __zero_reg__\;push __zero_reg__"
   [(set_attr "length" "4,4")])
 
 (define_insn "*pushsf"
-  [(set (mem:SF (post_dec (reg:HI 32)))
+  [(set (mem:SF (post_dec (reg:HI REG_SP)))
         (match_operand:SF 0 "register_operand" "r"))]
   ""
   "push %D0
@@ -251,6 +220,14 @@
     }
 }")
 
+(define_insn "*movhi_sp"
+  [(set (match_operand:HI 0 "register_operand" "=q,r")
+        (match_operand:HI 1 "register_operand"  "r,q"))]
+  "((stack_register_operand(operands[0], HImode) && register_operand (operands[1], HImode))
+    || (register_operand (operands[0], HImode) && stack_register_operand(operands[1], HImode)))"
+  "* return output_movhi (insn, operands, NULL);"
+  [(set_attr "length" "5,2")
+   (set_attr "cc" "none,none")])
 
 (define_peephole2
   [(match_scratch:QI 2 "d")
@@ -282,6 +259,34 @@
   [(set_attr "length" "2,6,7,2,6,5,2")
    (set_attr "cc" "none,clobber,clobber,none,clobber,none,none")])
 
+(define_peephole2 ; movw
+  [(set (match_operand:QI 0 "even_register_operand" "")
+        (match_operand:QI 1 "even_register_operand" ""))
+   (set (match_operand:QI 2 "odd_register_operand" "")
+        (match_operand:QI 3 "odd_register_operand" ""))]
+  "(AVR_HAVE_MOVW
+    && REGNO (operands[0]) == REGNO (operands[2]) - 1
+    && REGNO (operands[1]) == REGNO (operands[3]) - 1)"
+  [(set (match_dup 4) (match_dup 5))]
+  {
+    operands[4] = gen_rtx_REG (HImode, REGNO (operands[0]));
+    operands[5] = gen_rtx_REG (HImode, REGNO (operands[1]));
+  })
+
+(define_peephole2 ; movw_r
+  [(set (match_operand:QI 0 "odd_register_operand" "")
+        (match_operand:QI 1 "odd_register_operand" ""))
+   (set (match_operand:QI 2 "even_register_operand" "")
+        (match_operand:QI 3 "even_register_operand" ""))]
+  "(AVR_HAVE_MOVW
+    && REGNO (operands[2]) == REGNO (operands[0]) - 1
+    && REGNO (operands[3]) == REGNO (operands[1]) - 1)"
+  [(set (match_dup 4) (match_dup 5))]
+  {
+    operands[4] = gen_rtx_REG (HImode, REGNO (operands[2]));
+    operands[5] = gen_rtx_REG (HImode, REGNO (operands[3]));
+  })
+
 ;;==========================================================================
 ;; move double word (32 bit)
 
@@ -301,10 +306,11 @@
 
 
 
-(define_peephole2
+(define_peephole2 ; movsi_lreg_const
   [(match_scratch:QI 2 "d")
    (set (match_operand:SI 0 "l_register_operand" "")
-        (match_operand:SI 1 "immediate_operand" ""))]
+        (match_operand:SI 1 "immediate_operand" ""))
+   (match_dup 2)]
   "(operands[1] != const0_rtx
     && operands[1] != constm1_rtx)"
   [(parallel [(set (match_dup 0) (match_dup 1))
@@ -581,17 +587,142 @@
   [(set_attr "length" "2")
    (set_attr "cc" "set_n")])
 
-(define_insn "*addhi3_zero_extend2"
-  [(set (match_operand:HI 0 "register_operand" "=r")
-	(plus:HI
-	 (zero_extend:HI (match_operand:QI 1 "register_operand" "%0"))
-	 (zero_extend:HI (match_operand:QI 2 "register_operand" "r"))))]
-  ""
-  "add %0,%2
-	mov %B0,__zero_reg__
-	adc %B0,__zero_reg__"
-  [(set_attr "length" "3")
-   (set_attr "cc" "set_n")])
+(define_insn "*addhi3_sp_R_pc2"
+  [(set (match_operand:HI 1 "stack_register_operand" "=q")
+        (plus:HI (match_operand:HI 2 "stack_register_operand" "q")
+                 (match_operand:HI 0 "avr_sp_immediate_operand" "R")))]
+  "AVR_2_BYTE_PC"
+  "*{
+      if (CONST_INT_P (operands[0]))
+        {
+	  switch(INTVAL (operands[0]))
+	    {
+	    case -6: 
+	      return \"rcall .\" CR_TAB 
+	             \"rcall .\" CR_TAB 
+		     \"rcall .\";
+	    case -5: 
+	      return \"rcall .\" CR_TAB 
+	             \"rcall .\" CR_TAB 
+		     \"push __tmp_reg__\";
+	    case -4: 
+	      return \"rcall .\" CR_TAB 
+	             \"rcall .\";
+	    case -3: 
+	      return \"rcall .\" CR_TAB 
+	             \"push __tmp_reg__\";
+	    case -2: 
+	      return \"rcall .\";
+	    case -1: 
+	      return \"push __tmp_reg__\";
+	    case 0: 
+	      return \"\";
+	    case 1: 
+	      return \"pop __tmp_reg__\";
+	    case 2: 
+	      return \"pop __tmp_reg__\" CR_TAB 
+	             \"pop __tmp_reg__\";
+	    case 3: 
+	      return \"pop __tmp_reg__\" CR_TAB 
+	             \"pop __tmp_reg__\" CR_TAB 
+		     \"pop __tmp_reg__\";
+	    case 4: 
+	      return \"pop __tmp_reg__\" CR_TAB 
+	             \"pop __tmp_reg__\" CR_TAB 
+		     \"pop __tmp_reg__\" CR_TAB 
+		     \"pop __tmp_reg__\";
+	    case 5: 
+	      return \"pop __tmp_reg__\" CR_TAB 
+	             \"pop __tmp_reg__\" CR_TAB 
+		     \"pop __tmp_reg__\" CR_TAB 
+		     \"pop __tmp_reg__\" CR_TAB 
+		     \"pop __tmp_reg__\";
+	    }
+        }
+      return \"bug\";
+    }"
+  [(set (attr "length") 
+        (cond [(eq (const_int -6) (symbol_ref "INTVAL (operands[0])")) (const_int 3)
+               (eq (const_int -5) (symbol_ref "INTVAL (operands[0])")) (const_int 3)
+               (eq (const_int -4) (symbol_ref "INTVAL (operands[0])")) (const_int 2)
+               (eq (const_int -3) (symbol_ref "INTVAL (operands[0])")) (const_int 2)
+               (eq (const_int -2) (symbol_ref "INTVAL (operands[0])")) (const_int 1)
+               (eq (const_int -1) (symbol_ref "INTVAL (operands[0])")) (const_int 1)
+               (eq (const_int  0) (symbol_ref "INTVAL (operands[0])")) (const_int 0)
+               (eq (const_int  1) (symbol_ref "INTVAL (operands[0])")) (const_int 1)
+               (eq (const_int  2) (symbol_ref "INTVAL (operands[0])")) (const_int 2)
+               (eq (const_int  3) (symbol_ref "INTVAL (operands[0])")) (const_int 3)
+               (eq (const_int  4) (symbol_ref "INTVAL (operands[0])")) (const_int 4)
+               (eq (const_int  5) (symbol_ref "INTVAL (operands[0])")) (const_int 5)]
+               (const_int 0)))])
+
+(define_insn "*addhi3_sp_R_pc3"
+  [(set (match_operand:HI 1 "stack_register_operand" "=q")
+        (plus:HI (match_operand:HI 2 "stack_register_operand" "q")
+                 (match_operand:QI 0 "avr_sp_immediate_operand" "R")))]
+  "AVR_3_BYTE_PC"
+  "*{
+      if (CONST_INT_P (operands[0]))
+        {
+	  switch(INTVAL (operands[0]))
+	    {
+	    case -6: 
+	      return \"rcall .\" CR_TAB 
+		     \"rcall .\";
+	    case -5: 
+	      return \"rcall .\" CR_TAB 
+	             \"push __tmp_reg__\" CR_TAB 
+		     \"push __tmp_reg__\";
+	    case -4: 
+	      return \"rcall .\" CR_TAB 
+	             \"push __tmp_reg__\";
+	    case -3: 
+	      return \"rcall .\";
+	    case -2: 
+	      return \"push __tmp_reg__\" CR_TAB 
+		     \"push __tmp_reg__\";
+	    case -1: 
+	      return \"push __tmp_reg__\";
+	    case 0: 
+	      return \"\";
+	    case 1: 
+	      return \"pop __tmp_reg__\";
+	    case 2: 
+	      return \"pop __tmp_reg__\" CR_TAB 
+	             \"pop __tmp_reg__\";
+	    case 3: 
+	      return \"pop __tmp_reg__\" CR_TAB 
+	             \"pop __tmp_reg__\" CR_TAB 
+		     \"pop __tmp_reg__\";
+	    case 4: 
+	      return \"pop __tmp_reg__\" CR_TAB 
+	             \"pop __tmp_reg__\" CR_TAB 
+		     \"pop __tmp_reg__\" CR_TAB 
+		     \"pop __tmp_reg__\";
+	    case 5: 
+	      return \"pop __tmp_reg__\" CR_TAB 
+	             \"pop __tmp_reg__\" CR_TAB 
+		     \"pop __tmp_reg__\" CR_TAB 
+		     \"pop __tmp_reg__\" CR_TAB 
+		     \"pop __tmp_reg__\";
+	    }
+        }
+      return \"bug\";
+    }"
+  [(set (attr "length") 
+        (cond [(eq (const_int -6) (symbol_ref "INTVAL (operands[0])")) (const_int 2)
+               (eq (const_int -5) (symbol_ref "INTVAL (operands[0])")) (const_int 3)
+               (eq (const_int -4) (symbol_ref "INTVAL (operands[0])")) (const_int 2)
+               (eq (const_int -3) (symbol_ref "INTVAL (operands[0])")) (const_int 1)
+               (eq (const_int -2) (symbol_ref "INTVAL (operands[0])")) (const_int 2)
+               (eq (const_int -1) (symbol_ref "INTVAL (operands[0])")) (const_int 1)
+               (eq (const_int  0) (symbol_ref "INTVAL (operands[0])")) (const_int 0)
+               (eq (const_int  1) (symbol_ref "INTVAL (operands[0])")) (const_int 1)
+               (eq (const_int  2) (symbol_ref "INTVAL (operands[0])")) (const_int 2)
+               (eq (const_int  3) (symbol_ref "INTVAL (operands[0])")) (const_int 3)
+               (eq (const_int  4) (symbol_ref "INTVAL (operands[0])")) (const_int 4)
+               (eq (const_int  5) (symbol_ref "INTVAL (operands[0])")) (const_int 5)]
+               (const_int 0)))])
 
 (define_insn "*addhi3"
   [(set (match_operand:HI 0 "register_operand" "=r,!w,!w,d,r,r")
@@ -706,7 +837,7 @@
 		 (match_operand:QI 2 "register_operand" "")))]
   ""
   "{
-  if (!AVR_ENHANCED)
+  if (!AVR_HAVE_MUL)
     {
       emit_insn (gen_mulqi3_call (operands[0], operands[1], operands[2]));
       DONE;
@@ -717,7 +848,7 @@
   [(set (match_operand:QI 0 "register_operand" "=r")
 	(mult:QI (match_operand:QI 1 "register_operand" "r")
 		 (match_operand:QI 2 "register_operand" "r")))]
-  "AVR_ENHANCED"
+  "AVR_HAVE_MUL"
   "mul %1,%2
 	mov %0,r0
 	clr r1"
@@ -736,7 +867,7 @@
 (define_insn "*mulqi3_call"
   [(set (reg:QI 24) (mult:QI (reg:QI 24) (reg:QI 22)))
    (clobber (reg:QI 22))]
-  "!AVR_ENHANCED"
+  "!AVR_HAVE_MUL"
   "%~call __mulqi3"
   [(set_attr "type" "xcall")
    (set_attr "cc" "clobber")])
@@ -745,7 +876,7 @@
   [(set (match_operand:HI 0 "register_operand" "=r")
 	(mult:HI (sign_extend:HI (match_operand:QI 1 "register_operand" "d"))
 		 (sign_extend:HI (match_operand:QI 2 "register_operand" "d"))))]
-  "AVR_ENHANCED"
+  "AVR_HAVE_MUL"
   "muls %1,%2
 	movw %0,r0
 	clr r1"
@@ -756,7 +887,7 @@
   [(set (match_operand:HI 0 "register_operand" "=r")
 	(mult:HI (zero_extend:HI (match_operand:QI 1 "register_operand" "r"))
 		 (zero_extend:HI (match_operand:QI 2 "register_operand" "r"))))]
-  "AVR_ENHANCED"
+  "AVR_HAVE_MUL"
   "mul %1,%2
 	movw %0,r0
 	clr r1"
@@ -770,7 +901,7 @@
   ""
   "
 {
-  if (!AVR_ENHANCED)
+  if (!AVR_HAVE_MUL)
     {
       emit_insn (gen_mulhi3_call (operands[0], operands[1], operands[2]));
       DONE;
@@ -781,7 +912,7 @@
   [(set (match_operand:HI 0 "register_operand" "=&r")
 	(mult:HI (match_operand:HI 1 "register_operand" "r")
 		 (match_operand:HI 2 "register_operand" "r")))]
-  "AVR_ENHANCED"
+  "AVR_HAVE_MUL"
   "mul %A1,%A2
 	movw %0,r0
 	mul %A1,%B2
@@ -806,7 +937,7 @@
   [(set (reg:HI 24) (mult:HI (reg:HI 24) (reg:HI 22)))
    (clobber (reg:HI 22))
    (clobber (reg:QI 21))]
-  "!AVR_ENHANCED"
+  "!AVR_HAVE_MUL"
   "%~call __mulhi3"
   [(set_attr "type" "xcall")
    (set_attr "cc" "clobber")])
@@ -820,14 +951,14 @@
 	      (clobber (reg:HI 26))
 	      (clobber (reg:HI 30))])
    (set (match_operand:SI 0 "register_operand" "") (reg:SI 22))]
-  "AVR_ENHANCED"
+  "AVR_HAVE_MUL"
   "")
 
 (define_insn "*mulsi3_call"
   [(set (reg:SI 22) (mult:SI (reg:SI 22) (reg:SI 18)))
    (clobber (reg:HI 26))
    (clobber (reg:HI 30))]
-  "AVR_ENHANCED"
+  "AVR_HAVE_MUL"
   "%~call __mulsi3"
   [(set_attr "type" "xcall")
    (set_attr "cc" "clobber")])
@@ -1049,7 +1180,7 @@
   return \"bug\";
 }"
   [(set_attr "length" "4,4")
-   (set_attr "cc" "set_n,set_n")])
+   (set_attr "cc" "set_n,clobber")])
 
 ;;|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 ;; ior
@@ -1543,39 +1674,95 @@
 ;; xx<---x xx<---x xx<---x xx<---x xx<---x xx<---x xx<---x xx<---x xx<---x
 ;; zero extend
 
-(define_insn "zero_extendqihi2"
-  [(set (match_operand:HI 0 "register_operand" "=r,r")
-        (zero_extend:HI (match_operand:QI 1 "register_operand" "0,*r")))]
+(define_insn_and_split "zero_extendqihi2"
+  [(set (match_operand:HI 0 "register_operand" "=r")
+        (zero_extend:HI (match_operand:QI 1 "register_operand" "r")))]
   ""
-  "@
-	clr %B0
-	mov %A0,%A1\;clr %B0"
-  [(set_attr "length" "1,2")
-   (set_attr "cc" "set_n,set_n")])
+  "#"
+  "reload_completed"
+  [(set (match_dup 2) (match_dup 1))
+   (set (match_dup 3) (const_int 0))]
+  "unsigned int low_off = subreg_lowpart_offset (QImode, HImode);
+   unsigned int high_off = subreg_highpart_offset (QImode, HImode);
+   
+   operands[2] = simplify_gen_subreg (QImode, operands[0], HImode, low_off);
+   operands[3] = simplify_gen_subreg (QImode, operands[0], HImode, high_off);
+  ")
 
-(define_insn "zero_extendqisi2"
-  [(set (match_operand:SI 0 "register_operand" "=r,r")
-        (zero_extend:SI (match_operand:QI 1 "register_operand" "0,*r")))]
+(define_insn_and_split "zero_extendqisi2"
+  [(set (match_operand:SI 0 "register_operand" "=r")
+        (zero_extend:SI (match_operand:QI 1 "register_operand" "r")))]
   ""
-  "@
-	clr %B0\;clr %C0\;clr %D0
-	mov %A0,%A1\;clr %B0\;clr %C0\;clr %D0"
-  [(set_attr "length" "3,4")
-   (set_attr "cc" "set_n,set_n")])
+  "#"
+  "reload_completed"
+  [(set (match_dup 2) (zero_extend:HI (match_dup 1)))
+   (set (match_dup 3) (const_int 0))]
+  "unsigned int low_off = subreg_lowpart_offset (HImode, SImode);
+   unsigned int high_off = subreg_highpart_offset (HImode, SImode);
+   
+   operands[2] = simplify_gen_subreg (HImode, operands[0], SImode, low_off);
+   operands[3] = simplify_gen_subreg (HImode, operands[0], SImode, high_off);
+  ")
 
-(define_insn "zero_extendhisi2"
-  [(set (match_operand:SI 0 "register_operand" "=r,&r")
-        (zero_extend:SI (match_operand:HI 1 "register_operand" "0,*r")))]
+(define_insn_and_split "zero_extendhisi2"
+  [(set (match_operand:SI 0 "register_operand" "=r")
+        (zero_extend:SI (match_operand:HI 1 "register_operand" "r")))]
   ""
-  "@
-	clr %C0\;clr %D0
-	{mov %A0,%A1\;mov %B0,%B1|movw %A0,%A1}\;clr %C0\;clr %D0"
-  [(set_attr_alternative "length"
-			 [(const_int 2)
-			  (if_then_else (eq_attr "mcu_have_movw" "yes")
-					(const_int 3)
-					(const_int 4))])
-   (set_attr "cc" "set_n,set_n")])
+  "#"
+  "reload_completed"
+  [(set (match_dup 2) (match_dup 1))
+   (set (match_dup 3) (const_int 0))]
+  "unsigned int low_off = subreg_lowpart_offset (HImode, SImode);
+   unsigned int high_off = subreg_highpart_offset (HImode, SImode);
+   
+   operands[2] = simplify_gen_subreg (HImode, operands[0], SImode, low_off);
+   operands[3] = simplify_gen_subreg (HImode, operands[0], SImode, high_off);
+  ")
+
+(define_insn_and_split "zero_extendqidi2"
+  [(set (match_operand:DI 0 "register_operand" "=r")
+        (zero_extend:DI (match_operand:QI 1 "register_operand" "r")))]
+  ""
+  "#"
+  "reload_completed"
+  [(set (match_dup 2) (zero_extend:SI (match_dup 1)))
+   (set (match_dup 3) (const_int 0))]
+  "unsigned int low_off = subreg_lowpart_offset (SImode, DImode);
+   unsigned int high_off = subreg_highpart_offset (SImode, DImode);
+   
+   operands[2] = simplify_gen_subreg (SImode, operands[0], DImode, low_off);
+   operands[3] = simplify_gen_subreg (SImode, operands[0], DImode, high_off);
+  ")
+
+(define_insn_and_split "zero_extendhidi2"
+  [(set (match_operand:DI 0 "register_operand" "=r")
+        (zero_extend:DI (match_operand:HI 1 "register_operand" "r")))]
+  ""
+  "#"
+  "reload_completed"
+  [(set (match_dup 2) (zero_extend:SI (match_dup 1)))
+   (set (match_dup 3) (const_int 0))]
+  "unsigned int low_off = subreg_lowpart_offset (SImode, DImode);
+   unsigned int high_off = subreg_highpart_offset (SImode, DImode);
+   
+   operands[2] = simplify_gen_subreg (SImode, operands[0], DImode, low_off);
+   operands[3] = simplify_gen_subreg (SImode, operands[0], DImode, high_off);
+  ")
+
+(define_insn_and_split "zero_extendsidi2"
+  [(set (match_operand:DI 0 "register_operand" "=r")
+        (zero_extend:DI (match_operand:SI 1 "register_operand" "r")))]
+  ""
+  "#"
+  "reload_completed"
+  [(set (match_dup 2) (match_dup 1))
+   (set (match_dup 3) (const_int 0))]
+  "unsigned int low_off = subreg_lowpart_offset (SImode, DImode);
+   unsigned int high_off = subreg_highpart_offset (SImode, DImode);
+   
+   operands[2] = simplify_gen_subreg (SImode, operands[0], DImode, low_off);
+   operands[3] = simplify_gen_subreg (SImode, operands[0], DImode, high_off);
+  ")
 
 ;;<=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=>
 ;; compare
@@ -2066,10 +2253,14 @@
   return AS1 (rjmp,%0);
 }"
   [(set (attr "length")
-	(if_then_else (and (ge (minus (pc) (match_dup 0)) (const_int -2047))
-			   (le (minus (pc) (match_dup 0)) (const_int 2047)))
-		      (const_int 1)
-		      (const_int 2)))
+	(if_then_else (match_operand 0 "symbol_ref_operand" "")	
+		(if_then_else (eq_attr "mcu_mega" "no")
+			      (const_int 1)
+			      (const_int 2))
+		(if_then_else (and (ge (minus (pc) (match_dup 0)) (const_int -2047))
+				   (le (minus (pc) (match_dup 0)) (const_int 2047)))
+			      (const_int 1)
+			      (const_int 2))))
    (set_attr "cc" "none")])
 
 ;; call
@@ -2164,13 +2355,6 @@
 					(const_int 1))
 			  (const_int 3)])])
 
-(define_insn "return"
-  [(return)]
-  "reload_completed && avr_simple_epilogue ()"
-  "ret"
-  [(set_attr "cc" "none")
-   (set_attr "length" "1")])
-
 (define_insn "nop"
   [(const_int 0)]
   ""
@@ -2219,7 +2403,7 @@
 			UNSPEC_INDEX_JMP))
    (use (label_ref (match_operand 1 "" "")))
    (clobber (match_dup 0))]
-  "AVR_MEGA && AVR_ENHANCED"
+  "AVR_MEGA && AVR_HAVE_LPMX"
   "lsl r30
 	rol r31
 	lpm __tmp_reg__,Z+
@@ -2526,3 +2710,134 @@
 		      (pc)))]
   "jump_over_one_insn_p (insn, operands[2])"
   "cpse %0,%1")
+
+;;pppppppppppppppppppppppppppppppppppppppppppppppppppp
+;;prologue/epilogue support instructions
+
+(define_insn "popqi"
+  [(set (match_operand:QI 0 "register_operand" "=r")
+        (mem:QI (post_inc (reg:HI REG_SP))))]
+  ""
+  "pop %0"
+  [(set_attr "cc" "none")
+   (set_attr "length" "1")])
+
+(define_insn "pophi"
+  [(set (match_operand:HI 0 "register_operand" "=r")
+        (mem:HI (post_inc (reg:HI REG_SP))))]
+  ""
+  "pop %A0\;pop %B0"
+  [(set_attr "cc" "none")
+   (set_attr "length" "2")])
+
+;; Enable Interrupts
+(define_insn "enable_interrupt"
+  [(unspec [(const_int 0)] UNSPEC_SEI)]
+  ""
+  "sei"
+  [(set_attr "length" "1")
+  (set_attr "cc" "none")
+  ])
+
+;; Disable Interrupts
+(define_insn "disable_interrupt"
+  [(unspec [(const_int 0)] UNSPEC_CLI)]
+  ""
+  "cli"
+  [(set_attr "length" "1")
+  (set_attr "cc" "none")
+  ])
+
+;;  Library prologue saves
+(define_insn "call_prologue_saves"
+  [(unspec_volatile:HI [(const_int 0)] UNSPECV_PROLOGUE_SAVES)
+   (match_operand:HI 0 "immediate_operand" "")
+   (set (reg:HI REG_SP) (minus:HI 
+                           (reg:HI REG_SP)
+                           (match_operand:HI 1 "immediate_operand" "")))
+   (use (reg:HI REG_X))
+   (clobber (reg:HI REG_Z))]
+  ""
+  "ldi r30,pm_lo8(1f)
+	ldi r31,pm_hi8(1f)
+	%~jmp __prologue_saves__+((18 - %0) * 2)
+1:"
+  [(set_attr_alternative "length"
+			 [(if_then_else (eq_attr "mcu_mega" "yes")
+					(const_int 6)
+					(const_int 5))])
+  (set_attr "cc" "clobber")
+  ])
+  
+;  epilogue  restores using library
+(define_insn "epilogue_restores"
+  [(unspec_volatile:QI [(const_int 0)] UNSPECV_EPILOGUE_RESTORES)
+   (set (reg:HI REG_Y ) (plus:HI 
+                           (reg:HI REG_Y)
+                           (match_operand:HI 0 "immediate_operand" ""))) 
+   (set (reg:HI REG_SP) (reg:HI REG_Y))
+   (clobber  (reg:QI REG_Z))]
+  ""
+  "ldi r30, lo8(%0)
+	%~jmp __epilogue_restores__ + ((18 - %0) * 2)"
+  [(set_attr_alternative "length"
+			 [(if_then_else (eq_attr "mcu_mega" "yes")
+					(const_int 3)
+					(const_int 2))])
+  (set_attr "cc" "clobber")
+  ])
+  
+; return
+(define_insn "return"
+  [(return)]
+  "reload_completed && avr_simple_epilogue ()"
+  "ret"
+  [(set_attr "cc" "none")
+   (set_attr "length" "1")])
+
+(define_insn "return_from_epilogue"
+  [(return)]
+  "(reload_completed 
+    && cfun->machine 
+    && !(cfun->machine->is_interrupt || cfun->machine->is_signal)
+    && !cfun->machine->is_naked)"
+  "ret"
+  [(set_attr "cc" "none")
+   (set_attr "length" "1")])
+
+(define_insn "return_from_interrupt_epilogue"
+  [(return)]
+  "(reload_completed 
+    && cfun->machine 
+    && (cfun->machine->is_interrupt || cfun->machine->is_signal)
+    && !cfun->machine->is_naked)"
+  "reti"
+  [(set_attr "cc" "none")
+   (set_attr "length" "1")])
+
+(define_insn "return_from_naked_epilogue"
+  [(return)]
+  "(reload_completed 
+    && cfun->machine 
+    && cfun->machine->is_naked)"
+  ""
+  [(set_attr "cc" "none")
+   (set_attr "length" "0")])
+
+(define_expand "prologue"
+  [(const_int 0)]
+  ""
+  "
+  {
+    expand_prologue (); 
+    DONE;
+  }")
+
+(define_expand "epilogue"
+  [(const_int 0)]
+  ""
+  "
+  {
+    expand_epilogue (); 
+    DONE;
+  }")

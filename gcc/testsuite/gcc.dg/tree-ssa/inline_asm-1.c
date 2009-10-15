@@ -1,5 +1,5 @@
 /* { dg-do compile } */
-/* { dg-options "-O1 -fdump-tree-optimized -fdump-tree-alias1-vops" } */
+/* { dg-options "-O1 -fdump-tree-optimized -fdump-tree-salias-vops" } */
 /* Test to make sure that inline-asm causes a V_MAY_DEF and that we call test_function twice. */
 
 char test_function(void ) __attribute__((__pure__));
@@ -15,6 +15,6 @@ char f(char *a)
 /* { dg-final { scan-tree-dump-times "test_function" 2 "optimized"} } */
 /* { dg-final { cleanup-tree-dump "optimized" } } */
 
-/* There should a V_MAY_DEF for the inline-asm.  */
-/* { dg-final { scan-tree-dump-times "V_MAY_DEF" 1 "alias1"} } */
-/* { dg-final { cleanup-tree-dump "alias1" } } */
+/* There should a VDEF for the inline-asm.  */
+/* { dg-final { scan-tree-dump-times "VDEF" 1 "salias"} } */
+/* { dg-final { cleanup-tree-dump "salias" } } */

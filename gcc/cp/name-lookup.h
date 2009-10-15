@@ -190,9 +190,6 @@ struct cp_binding_level GTY(())
     /* An array of static functions and variables (for namespaces only) */
     VEC(tree,gc) *static_decls;
 
-    /* A chain of VTABLE_DECL nodes.  */
-    tree vtables;
-
     /* A list of USING_DECL nodes.  */
     tree usings;
 
@@ -322,6 +319,7 @@ extern bool hidden_name_p (tree);
 extern tree remove_hidden_names (tree);
 extern tree lookup_qualified_name (tree, tree, bool, bool);
 extern tree lookup_name_nonclass (tree);
+extern tree lookup_name_innermost_nonclass_level (tree);
 extern tree lookup_function_nonclass (tree, tree, bool);
 extern void push_local_binding (tree, tree, int);
 extern bool pushdecl_class_level (tree);

@@ -1,11 +1,5 @@
 /* config.in.  Generated from configure.ac by autoheader.  */
 
-/* Define if building universal (internal helper macro) */
-#ifndef USED_FOR_TARGET
-#undef AC_APPLE_UNIVERSAL_BUILD
-#endif
-
-
 /* Define as the number of bits in a byte, if \`limits.h' doesn't. */
 #ifndef USED_FOR_TARGET
 #undef CHAR_BIT
@@ -52,9 +46,28 @@
 #endif
 
 
+/* Define to 1 to specify that we are using the BID decimal floating point
+   format instead of DPD */
+#ifndef USED_FOR_TARGET
+#undef ENABLE_DECIMAL_BID_FORMAT
+#endif
+
+
 /* Define to 1 to enable decimal float extension to C. */
 #ifndef USED_FOR_TARGET
 #undef ENABLE_DECIMAL_FLOAT
+#endif
+
+
+/* Define if you want more run-time sanity checks for dataflow. */
+#ifndef USED_FOR_TARGET
+#undef ENABLE_DF_CHECKING
+#endif
+
+
+/* Define to 1 to enable fixed-point arithmetic extension to C. */
+#ifndef USED_FOR_TARGET
+#undef ENABLE_FIXED_POINT
 #endif
 
 
@@ -114,6 +127,13 @@
 #endif
 
 
+/* Define if you want all gimple types to be verified after gimplifiation.
+   This is cheap. */
+#ifndef USED_FOR_TARGET
+#undef ENABLE_TYPES_CHECKING
+#endif
+
+
 /* Define if you want to run subprograms and generated programs through
    valgrind (a memory checker). This is extremely expensive. */
 #ifndef USED_FOR_TARGET
@@ -166,6 +186,30 @@
 #endif
 
 
+/* Define if your assembler supports cmpb. */
+#ifndef USED_FOR_TARGET
+#undef HAVE_AS_CMPB
+#endif
+
+
+/* Define if your assembler supports the --debug-prefix-map option. */
+#ifndef USED_FOR_TARGET
+#undef HAVE_AS_DEBUG_PREFIX_MAP
+#endif
+
+
+/* Define if your assembler supports DFP instructions. */
+#ifndef USED_FOR_TARGET
+#undef HAVE_AS_DFP
+#endif
+
+
+/* Define if your assembler supports .dtprelword. */
+#ifndef USED_FOR_TARGET
+#undef HAVE_AS_DTPRELWORD
+#endif
+
+
 /* Define if your assembler supports dwarf2 .file/.loc directives, and
    preserves file table indices exactly as given. */
 #ifndef USED_FOR_TARGET
@@ -191,6 +235,12 @@
 #endif
 
 
+/* Define if your assembler supports .gnu_attribute. */
+#ifndef USED_FOR_TARGET
+#undef HAVE_AS_GNU_ATTRIBUTE
+#endif
+
+
 /* Define true if the assembler supports '.long foo@GOTOFF'. */
 #ifndef USED_FOR_TARGET
 #undef HAVE_AS_GOTOFF_IN_DATA
@@ -209,9 +259,22 @@
 #endif
 
 
+/* Define if your assembler supports the subtraction of symbols in different
+   sections. */
+#ifndef USED_FOR_TARGET
+#undef HAVE_AS_IX86_DIFF_SECT_DELTA
+#endif
+
+
 /* Define if your assembler supports the ffreep mnemonic. */
 #ifndef USED_FOR_TARGET
 #undef HAVE_AS_IX86_FFREEP
+#endif
+
+
+/* Define if your assembler supports the sahf mnemonic. */
+#ifndef USED_FOR_TARGET
+#undef HAVE_AS_IX86_SAHF
 #endif
 
 
@@ -227,6 +290,12 @@
 #endif
 
 
+/* Define if the assembler won't complain about a line such as # 0 "" 2. */
+#ifndef USED_FOR_TARGET
+#undef HAVE_AS_LINE_ZERO
+#endif
+
+
 /* Define if your assembler supports ltoffx and ldxmov relocations. */
 #ifndef USED_FOR_TARGET
 #undef HAVE_AS_LTOFFX_LDXMOV_RELOCS
@@ -239,9 +308,21 @@
 #endif
 
 
+/* Define if your assembler supports mffgpr and mftgpr. */
+#ifndef USED_FOR_TARGET
+#undef HAVE_AS_MFPGPR
+#endif
+
+
 /* Define if your assembler supports the -no-mul-bug-abort option. */
 #ifndef USED_FOR_TARGET
 #undef HAVE_AS_NO_MUL_BUG_ABORT_OPTION
+#endif
+
+
+/* Define if the assembler understands -mno-shared. */
+#ifndef USED_FOR_TARGET
+#undef HAVE_AS_NO_SHARED
 #endif
 
 
@@ -741,6 +822,12 @@
 /* Define if your assembler and linker support .hidden. */
 #undef HAVE_GAS_HIDDEN
 
+/* Define if your assembler supports .literal16. */
+#ifndef USED_FOR_TARGET
+#undef HAVE_GAS_LITERAL16
+#endif
+
+
 /* Define if your assembler supports specifying the maximum number of bytes to
    skip when using the GAS .p2align command. */
 #ifndef USED_FOR_TARGET
@@ -820,6 +907,18 @@
 #endif
 
 
+/* Define if using GNU as. */
+#ifndef USED_FOR_TARGET
+#undef HAVE_GNU_AS
+#endif
+
+
+/* Define if using GNU ld. */
+#ifndef USED_FOR_TARGET
+#undef HAVE_GNU_LD
+#endif
+
+
 /* Define if you have the iconv() function. */
 #ifndef USED_FOR_TARGET
 #undef HAVE_ICONV
@@ -888,6 +987,13 @@
 
 /* Define if your linker supports --eh-frame-hdr option. */
 #undef HAVE_LD_EH_FRAME_HDR
+
+/* Define if your linker supports garbage collection of sections in presence
+   of EH frames. */
+#ifndef USED_FOR_TARGET
+#undef HAVE_LD_EH_GC_SECTIONS
+#endif
+
 
 /* Define if your PowerPC64 linker only needs function descriptor syms. */
 #ifndef USED_FOR_TARGET
@@ -1357,17 +1463,12 @@
 #endif
 
 
-/* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
-   significant byte first (like Motorola and SPARC, unlike Intel). */
-#if defined AC_APPLE_UNIVERSAL_BUILD
-# if defined __BIG_ENDIAN__
-#  define WORDS_BIGENDIAN 1
-# endif
-#else
-# ifndef WORDS_BIGENDIAN
-#  undef WORDS_BIGENDIAN
-# endif
+/* Define to 1 if your processor stores words with the most significant byte
+   first (like Motorola and SPARC, unlike Intel and VAX). */
+#ifndef USED_FOR_TARGET
+#undef WORDS_BIGENDIAN
 #endif
+
 
 /* Always define this when using the GNU C Library */
 #ifndef USED_FOR_TARGET

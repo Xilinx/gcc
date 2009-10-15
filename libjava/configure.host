@@ -81,6 +81,12 @@ case "${host}" in
 	enable_java_net_default=no
 	enable_getenv_properties_default=no
 	enable_main_args_default=no
+	sysdeps_dir=arm
+	;;
+  arm*-linux*)
+	libgcj_interpreter=yes
+	sysdeps_dir=arm
+	fallback_backtrace_h=sysdep/arm/backtrace.h
 	;;
   mips-tx39-*|mipstx39-unknown-*)
 	libgcj_flags="${libgcj_flags} -G 0"
@@ -92,7 +98,7 @@ case "${host}" in
  	enable_java_net_default=no
  	enable_getenv_properties_default=no
 	;;
-  mipsel-*|mips-*)
+  mips*-*)
 	libgcj_interpreter=yes
 	;;
   i686-*|i586-*|i486-*|i386-*)
@@ -101,6 +107,9 @@ case "${host}" in
 	# the .text section of libgcj.so is 30k larger, and the .eh_frame
 	# section is 1.4M smaller.
 	libgcj_flags="${libgcj_flags} -ffloat-store -fomit-frame-pointer"
+	# On Solaris we have defined 'sun' which later conflicts with 
+	# namespace usage. So to work this away we use the below undefine.
+	libgcj_flags="${libgcj_flags} -Usun"
 	libgcj_interpreter=yes
 	libgcj_cxxflags=
 	libgcj_cflags=
@@ -137,6 +146,10 @@ case "${host}" in
 	libgcj_interpreter=yes
 	enable_hash_synchronization_default=no
 	;;
+  m68k-*)
+	sysdeps_dir=m68k
+	libgcj_interpreter=yes
+	;;
   powerpc64*-*)
 	sysdeps_dir=powerpc
 	libgcj_interpreter=yes
@@ -159,6 +172,10 @@ case "${host}" in
 	enable_hash_synchronization_default=yes
 	;;
   sparc*-*)
+	sysdeps_dir=sparc
+	# On Solaris we have defined 'sun' which later conflicts with 
+	# namespace usage. So to work this away we use the below undefine.
+	libgcj_flags="${libgcj_flags} -Usun"
 	libgcj_interpreter=yes
         ;;
   ia64-*)
@@ -189,6 +206,7 @@ case "${host}" in
   ia64-* | \
   x86_64*-linux* | \
   hppa*-linux* | \
+  m68k*-linux* | \
   sh-linux* | sh[34]*-linux*)
   	can_unwind_signal=yes
 	libgcj_ld_symbolic='-Wl,-Bsymbolic'
@@ -255,15 +273,17 @@ EOF
 	# disable interpreter, no closure support for N32 and N64 ABIs
 	libgcj_interpreter=no
 	;;
+  arm*-linux* )
+	slow_pthread_self=no
+	can_unwind_signal=no
+	CHECKREFSPEC=-fcheck-references
+	DIVIDESPEC=-fuse-divide-subroutine
+	;;
   mips*-*-linux* )
   	sysdeps_dir=mips
   	can_unwind_signal=yes
 	DIVIDESPEC=-fno-use-divide-subroutine
-	case "${host}" in
-	    mipsel*-linux* | mipsisa32el*-linux*)
-		enable_hash_synchronization_default=yes
-	    ;;
-	esac
+	enable_hash_synchronization_default=yes
 	;;
   powerpc*-*-darwin*)
 	enable_hash_synchronization_default=yes
@@ -274,6 +294,17 @@ EOF
 	enable_hash_synchronization_default=yes
 	slow_pthread_self=
 	can_unwind_signal=no
+	;;
+  i?86-*-darwin9*)
+	can_unwind_signal=yes
+	DIVIDESPEC=-f%{m32:no-}%{!m32:%{!m64:no-}}%{m64:}use-divide-subroutine
+        ;;
+  x86_64-*-darwin9*)
+	enable_hash_synchronization_default=yes
+	slow_pthread_self=
+	can_unwind_signal=yes
+	DIVIDESPEC=-fuse-divide-subroutine
+	CHECKREFSPEC=-fcheck-references
 	;;
   *-*-freebsd*)
 	slow_pthread_self=
@@ -334,7 +365,7 @@ case "${host}" in
 esac
 
 case "${host}" in
-  *linux*|*-kfreebsd*-gnu)
+  *linux*|*-kfreebsd*-gnu|*-gnu*)
     use_libgcj_bc=yes
   ;;
   *)

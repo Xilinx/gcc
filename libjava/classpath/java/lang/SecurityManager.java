@@ -1,5 +1,5 @@
 /* SecurityManager.java -- security checks for privileged actions
-   Copyright (C) 1998, 1999, 2001, 2002, 2005  Free Software Foundation, Inc.
+   Copyright (C) 1998, 1999, 2001, 2002, 2004, 2005 Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -167,6 +167,18 @@ public class SecurityManager
    */
   public SecurityManager()
   {
+    /* "When there is security manager installed, the security manager
+       need to check the package access. However, if the security
+       manager itself uses any unloaded class, it will trigger the
+       classloading, which causes infinite loop. There is no easy
+       legal solution. The workaround will be that security manager
+       can not depend on any unloaded class. In the constructor of
+       security manager, it must transitively load all classes it
+       refers to."  Sun bug #4242924.  */
+
+    // Load and initialize java.security.Security
+    java.security.Security.getProvider((String)null);
+
     SecurityManager sm = System.getSecurityManager();
     if (sm != null)
       sm.checkPermission(new RuntimePermission("createSecurityManager"));
@@ -240,7 +252,7 @@ public class SecurityManager
    * @return the most recent non-system Class on the execution stack
    * @deprecated use {@link #checkPermission(Permission)} instead
    */
-  protected Class currentLoadedClass()
+  protected Class<?> currentLoadedClass()
   {
     int i = classLoaderDepth();
     return i >= 0 ? getClassContext()[i] : null;
@@ -983,7 +995,7 @@ public class SecurityManager
    * @see Member#PUBLIC
    * @since 1.1
    */
-  public void checkMemberAccess(Class c, int memberType)
+  public void checkMemberAccess(Class<?> c, int memberType)
   {
     if (c == null)
       throw new NullPointerException();

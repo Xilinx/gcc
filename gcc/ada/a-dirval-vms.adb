@@ -7,7 +7,7 @@
 --                                 B o d y                                  --
 --                              (VMS Version)                               --
 --                                                                          --
---          Copyright (C) 2004-2005 Free Software Foundation, Inc.          --
+--          Copyright (C) 2004-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -42,6 +42,7 @@ package body Ada.Directories.Validity is
    Invalid_Character : constant array (Character) of Boolean :=
                          ('a' .. 'z' => False,
                           'A' .. 'Z' => False,
+                          '0' .. '9' => False,
                           '_' | '$' | '-' | '.' => False,
                           others => True);
 
@@ -97,7 +98,7 @@ package body Ada.Directories.Validity is
                end if;
             end loop;
 
-            --  If name include a dot, it can only be ".", ".." or a the last
+            --  If name include a dot, it can only be ".", ".." or the last
             --  file name.
 
             if Dot_Found then
@@ -188,5 +189,14 @@ package body Ada.Directories.Validity is
    begin
       return True;
    end OpenVMS;
+
+   -------------
+   -- Windows --
+   -------------
+
+   function Windows return Boolean is
+   begin
+      return False;
+   end Windows;
 
 end Ada.Directories.Validity;

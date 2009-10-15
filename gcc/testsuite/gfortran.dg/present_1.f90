@@ -11,10 +11,10 @@
  CONTAINS
   SUBROUTINE S1(D1)
    TYPE(T1), OPTIONAL :: D1(4)
-   write(6,*) PRESENT(D1%I)  ! { dg-error "must not be a sub-object" }
-   write(6,*) PRESENT(D1(1)) ! { dg-error "must not be a sub-object" }
+   write(6,*) PRESENT(D1%I)  ! { dg-error "must not be a subobject" }
+   write(6,*) PRESENT(D1(1)) ! { dg-error "must not be a subobject" }
    write(6,*) PRESENT(D1)
   END SUBROUTINE S1
  END MODULE
  END
-
+! { dg-final { cleanup-modules "M1" } }

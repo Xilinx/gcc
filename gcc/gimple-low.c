@@ -1,6 +1,6 @@
 /* Tree lowering pass.  Lowers GIMPLE into unstructured form.
 
-   Copyright (C) 2003, 2005, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -133,11 +133,10 @@ lower_function_body (void)
       /* Build 'DISP_VAR = __builtin_setjmp_dispatcher (DISP_LABEL);'
 	 and insert.  */
       disp_var = create_tmp_var (ptr_type_node, "setjmpvar");
-      t = build_addr (disp_label, current_function_decl);
-      arg = tree_cons (NULL, t, NULL);
+      arg = build_addr (disp_label, current_function_decl);
       t = implicit_built_in_decls[BUILT_IN_SETJMP_DISPATCHER];
-      t = build_function_call_expr (t,arg);
-      x = build2 (MODIFY_EXPR, void_type_node, disp_var, t);
+      t = build_call_expr (t, 1, arg);
+      x = build_gimple_modify_stmt (disp_var, t);
 
       /* Build 'goto DISP_VAR;' and insert.  */
       tsi_link_after (&i, x, TSI_CONTINUE_LINKING);
@@ -242,20 +241,24 @@ lower_stmt (tree_stmt_iterator *tsi, struct lower_data *data)
     case GOTO_EXPR:
     case LABEL_EXPR:
     case SWITCH_EXPR:
+    case CHANGE_DYNAMIC_TYPE_EXPR:
     case OMP_FOR:
     case OMP_SECTIONS:
+    case OMP_SECTIONS_SWITCH:
     case OMP_SECTION:
     case OMP_SINGLE:
     case OMP_MASTER:
     case OMP_ORDERED:
     case OMP_CRITICAL:
     case OMP_RETURN:
+    case OMP_ATOMIC_LOAD:
+    case OMP_ATOMIC_STORE:
     case OMP_CONTINUE:
       break;
 
-    case MODIFY_EXPR:
-      if (TREE_CODE (TREE_OPERAND (stmt, 1)) == CALL_EXPR)
-	stmt = TREE_OPERAND (stmt, 1);
+    case GIMPLE_MODIFY_STMT:
+      if (TREE_CODE (GIMPLE_STMT_OPERAND (stmt, 1)) == CALL_EXPR)
+	stmt = GIMPLE_STMT_OPERAND (stmt, 1);
       else
 	break;
       /* FALLTHRU */
@@ -343,7 +346,7 @@ lower_bind_expr (tree_stmt_iterator *tsi, struct lower_data *data)
    This is a subroutine of block_may_fallthru.  */
 
 static bool
-try_catch_may_fallthru (tree stmt)
+try_catch_may_fallthru (const_tree stmt)
 {
   tree_stmt_iterator i;
 
@@ -393,9 +396,11 @@ try_catch_may_fallthru (tree stmt)
    If we're wrong, we'll just delete the extra code later.  */
 
 bool
-block_may_fallthru (tree block)
+block_may_fallthru (const_tree block)
 {
-  tree stmt = expr_last (block);
+  /* This CONST_CAST is okay because expr_last returns it's argument
+     unmodified and we assign it to a const_tree.  */
+  const_tree stmt = expr_last (CONST_CAST_TREE(block));
 
   switch (stmt ? TREE_CODE (stmt) : ERROR_MARK)
     {
@@ -435,9 +440,9 @@ block_may_fallthru (tree block)
       return (block_may_fallthru (TREE_OPERAND (stmt, 0))
 	      && block_may_fallthru (TREE_OPERAND (stmt, 1)));
 
-    case MODIFY_EXPR:
-      if (TREE_CODE (TREE_OPERAND (stmt, 1)) == CALL_EXPR)
-	stmt = TREE_OPERAND (stmt, 1);
+    case GIMPLE_MODIFY_STMT:
+      if (TREE_CODE (GIMPLE_STMT_OPERAND (stmt, 1)) == CALL_EXPR)
+	stmt = GIMPLE_STMT_OPERAND (stmt, 1);
       else
 	return true;
       /* FALLTHRU */
@@ -559,15 +564,15 @@ lower_return_expr (tree_stmt_iterator *tsi, struct lower_data *data)
 
   /* Extract the value being returned.  */
   value = TREE_OPERAND (stmt, 0);
-  if (value && TREE_CODE (value) == MODIFY_EXPR)
-    value = TREE_OPERAND (value, 1);
+  if (value && TREE_CODE (value) == GIMPLE_MODIFY_STMT)
+    value = GIMPLE_STMT_OPERAND (value, 1);
 
   /* Match this up with an existing return statement that's been created.  */
   for (t = data->return_statements; t ; t = TREE_CHAIN (t))
     {
       tree tvalue = TREE_OPERAND (TREE_VALUE (t), 0);
-      if (tvalue && TREE_CODE (tvalue) == MODIFY_EXPR)
-	tvalue = TREE_OPERAND (tvalue, 1);
+      if (tvalue && TREE_CODE (tvalue) == GIMPLE_MODIFY_STMT)
+	tvalue = GIMPLE_STMT_OPERAND (tvalue, 1);
 
       if (value == tvalue)
 	{
@@ -653,28 +658,26 @@ lower_builtin_setjmp (tree_stmt_iterator *tsi)
      passed to both __builtin_setjmp_setup and __builtin_setjmp_receiver.  */
   FORCED_LABEL (next_label) = 1;
 
-  if (TREE_CODE (stmt) == MODIFY_EXPR)
+  if (TREE_CODE (stmt) == GIMPLE_MODIFY_STMT)
     {
-      dest = TREE_OPERAND (stmt, 0);
-      stmt = TREE_OPERAND (stmt, 1);
+      dest = GIMPLE_STMT_OPERAND (stmt, 0);
+      stmt = GIMPLE_STMT_OPERAND (stmt, 1);
     }
   else
     dest = NULL_TREE;
 
   /* Build '__builtin_setjmp_setup (BUF, NEXT_LABEL)' and insert.  */
-  t = build_addr (next_label, current_function_decl);
-  arg = tree_cons (NULL, t, NULL);
-  t = TREE_VALUE (TREE_OPERAND (stmt, 1));
-  arg = tree_cons (NULL, t, arg);
+  arg = build_addr (next_label, current_function_decl);
   t = implicit_built_in_decls[BUILT_IN_SETJMP_SETUP];
-  t = build_function_call_expr (t, arg);
+  t = build_call_expr (t, 2, CALL_EXPR_ARG (stmt, 0), arg);
   SET_EXPR_LOCUS (t, EXPR_LOCUS (stmt));
   tsi_link_before (tsi, t, TSI_SAME_STMT);
 
   /* Build 'DEST = 0' and insert.  */
   if (dest)
     {
-      t = build2 (MODIFY_EXPR, void_type_node, dest, integer_zero_node);
+      t = build_gimple_modify_stmt (dest, fold_convert (TREE_TYPE (dest),
+							integer_zero_node));
       SET_EXPR_LOCUS (t, EXPR_LOCUS (stmt));
       tsi_link_before (tsi, t, TSI_SAME_STMT);
     }
@@ -688,17 +691,17 @@ lower_builtin_setjmp (tree_stmt_iterator *tsi)
   tsi_link_before (tsi, t, TSI_SAME_STMT);
 
   /* Build '__builtin_setjmp_receiver (NEXT_LABEL)' and insert.  */
-  t = build_addr (next_label, current_function_decl);
-  arg = tree_cons (NULL, t, NULL);
+  arg = build_addr (next_label, current_function_decl);
   t = implicit_built_in_decls[BUILT_IN_SETJMP_RECEIVER];
-  t = build_function_call_expr (t, arg);
+  t = build_call_expr (t, 1, arg);
   SET_EXPR_LOCUS (t, EXPR_LOCUS (stmt));
   tsi_link_before (tsi, t, TSI_SAME_STMT);
 
   /* Build 'DEST = 1' and insert.  */
   if (dest)
     {
-      t = build2 (MODIFY_EXPR, void_type_node, dest, integer_one_node);
+      t = build_gimple_modify_stmt (dest, fold_convert (TREE_TYPE (dest),
+							integer_one_node));
       SET_EXPR_LOCUS (t, EXPR_LOCUS (stmt));
       tsi_link_before (tsi, t, TSI_SAME_STMT);
     }
@@ -717,10 +720,8 @@ lower_builtin_setjmp (tree_stmt_iterator *tsi)
 void
 record_vars_into (tree vars, tree fn)
 {
-  struct function *saved_cfun = cfun;
-
   if (fn != current_function_decl)
-    cfun = DECL_STRUCT_FUNCTION (fn);
+    push_cfun (DECL_STRUCT_FUNCTION (fn));
 
   for (; vars; vars = TREE_CHAIN (vars))
     {
@@ -741,7 +742,7 @@ record_vars_into (tree vars, tree fn)
     }
 
   if (fn != current_function_decl)
-    cfun = saved_cfun;
+    pop_cfun ();
 }
 
 

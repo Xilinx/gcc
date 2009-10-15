@@ -274,7 +274,8 @@ enum dwarf_attribute
     DW_AT_prototyped = 0x27,
     DW_AT_return_addr = 0x2a,
     DW_AT_start_scope = 0x2c,
-    DW_AT_stride_size = 0x2e,
+    DW_AT_bit_stride = 0x2e,
+    DW_AT_stride_size = DW_AT_bit_stride,
     DW_AT_upper_bound = 0x2f,
     DW_AT_abstract_origin = 0x31,
     DW_AT_accessibility = 0x32,
@@ -309,7 +310,8 @@ enum dwarf_attribute
     DW_AT_allocated     = 0x4e,
     DW_AT_associated    = 0x4f,
     DW_AT_data_location = 0x50,
-    DW_AT_stride        = 0x51,
+    DW_AT_byte_stride   = 0x51,
+    DW_AT_stride        = DW_AT_byte_stride,
     DW_AT_entry_pc      = 0x52,
     DW_AT_use_UTF8      = 0x53,
     DW_AT_extension     = 0x54,
@@ -539,6 +541,9 @@ enum dwarf_location_atom
     DW_OP_bit_piece = 0x9d,
     /* GNU extensions.  */
     DW_OP_GNU_push_tls_address = 0xe0,
+    /* The following is for marking variables that are uninitialized.  */
+    DW_OP_GNU_uninit     = 0xf0,
+    DW_OP_GNU_encoded_addr = 0xf1,
     /* HP extensions.  */
     DW_OP_HP_unknown     = 0xe0, /* Ouch, the same as GNU_push_tls_address.  */
     DW_OP_HP_is_value    = 0xe1,

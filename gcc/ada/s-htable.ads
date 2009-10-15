@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---                     Copyright (C) 1995-2005 AdaCore                      --
+--                     Copyright (C) 1995-2007, AdaCore                     --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -39,6 +39,10 @@
 --  The Static_HTable package provides a more complex interface that allows
 --  complete control over allocation.
 
+pragma Warnings (Off);
+pragma Compiler_Unit;
+pragma Warnings (On);
+
 package System.HTable is
    pragma Preelaborate;
 
@@ -54,7 +58,7 @@ package System.HTable is
 
    generic
       type Header_Num is range <>;
-      --  An integer type indicating the number and range of hash headers.
+      --  An integer type indicating the number and range of hash headers
 
       type Element is private;
       --  The type of element to be stored
@@ -120,7 +124,7 @@ package System.HTable is
 
    generic
       type Header_Num is range <>;
-      --  An integer type indicating the number and range of hash headers.
+      --  An integer type indicating the number and range of hash headers
 
       type Element (<>) is limited private;
       --  The type of element to be stored. This is historically part of the
@@ -137,7 +141,7 @@ package System.HTable is
       --  type, but could be some other form of type such as an integer type).
 
       Null_Ptr : Elmt_Ptr;
-      --  The null value of the Elmt_Ptr type.
+      --  The null value of the Elmt_Ptr type
 
       with procedure Set_Next (E : Elmt_Ptr; Next : Elmt_Ptr);
       with function  Next     (E : Elmt_Ptr) return Elmt_Ptr;

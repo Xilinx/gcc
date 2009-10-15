@@ -1,6 +1,7 @@
 // Allocator that wraps "C" malloc -*- C++ -*-
 
-// Copyright (C) 2001, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007
+// Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -37,6 +38,7 @@
 #include <cstdlib>
 #include <new>
 #include <bits/functexcept.h>
+#include <bits/stl_move.h>
 
 _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
 
@@ -89,7 +91,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
 	if (__builtin_expect(__n > this->max_size(), false))
 	  std::__throw_bad_alloc();
 
-	pointer __ret = static_cast<_Tp*>(malloc(__n * sizeof(_Tp)));
+	pointer __ret = static_cast<_Tp*>(std::malloc(__n * sizeof(_Tp)));
 	if (!__ret)
 	  std::__throw_bad_alloc();
 	return __ret;
@@ -98,7 +100,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
       // __p is not permitted to be a null pointer.
       void
       deallocate(pointer __p, size_type)
-      { free(static_cast<void*>(__p)); }
+      { std::free(static_cast<void*>(__p)); }
 
       size_type
       max_size() const throw() 
@@ -108,7 +110,14 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
       // 402. wrong new expression in [some_] allocator::construct
       void 
       construct(pointer __p, const _Tp& __val) 
-      { ::new(__p) value_type(__val); }
+      { ::new((void *)__p) value_type(__val); }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      template<typename... _Args>
+        void
+        construct(pointer __p, _Args&&... __args) 
+	{ ::new((void *)__p) _Tp(std::forward<_Args>(__args)...); }
+#endif
 
       void 
       destroy(pointer __p) { __p->~_Tp(); }

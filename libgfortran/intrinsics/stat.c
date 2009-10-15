@@ -1,5 +1,5 @@
 /* Implementation of the STAT and FSTAT intrinsics.
-   Copyright (C) 2004, 2005, 2006 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
    Contributed by Steven G. Kargl <kargls@comcast.net>.
 
 This file is part of the GNU Fortran 95 runtime library (libgfortran).
@@ -28,12 +28,10 @@ License along with libgfortran; see the file COPYING.  If not,
 write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
 Boston, MA 02110-1301, USA.  */
 
-#include "config.h"
 #include "libgfortran.h"
 
-#ifdef HAVE_SYS_TYPES_H
-#include <sys/types.h>
-#endif
+#include <string.h>
+#include <errno.h>
 
 #ifdef HAVE_SYS_STAT_H
 #include <sys/stat.h>
@@ -42,12 +40,6 @@ Boston, MA 02110-1301, USA.  */
 #ifdef HAVE_STDLIB_H
 #include <stdlib.h>
 #endif
-
-#ifdef HAVE_STRING_H
-#include <string.h>
-#endif
-
-#include <errno.h>
 
 
 #ifdef HAVE_STAT
@@ -68,7 +60,7 @@ internal_proto(stat_i4_sub_0);*/
 
 static void
 stat_i4_sub_0 (char *name, gfc_array_i4 *sarray, GFC_INTEGER_4 *status,
-	       gfc_charlen_type name_len, int is_lstat)
+	       gfc_charlen_type name_len, int is_lstat __attribute__ ((unused)))
 {
   int val;
   char *str;
@@ -187,7 +179,7 @@ iexport(lstat_i4_sub);
 
 static void
 stat_i8_sub_0 (char *name, gfc_array_i8 *sarray, GFC_INTEGER_8 *status,
-	       gfc_charlen_type name_len, int is_lstat)
+	       gfc_charlen_type name_len, int is_lstat __attribute__ ((unused)))
 {
   int val;
   char *str;

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2005 Free Software Foundation, Inc.          --
+--          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -136,6 +136,37 @@ package Namet is
    --  Length of name stored in Name_Buffer. Used as an input parameter for
    --  Name_Find, and as an output value by Get_Name_String, or Write_Name.
 
+   -----------------------------
+   -- Types for Namet Package --
+   -----------------------------
+
+   --  Name_Id values are used to identify entries in the names table. Except
+   --  for the special values No_Name, and Error_Name, they are subscript
+   --  values for the Names table defined in package Namet.
+
+   --  Note that with only a few exceptions, which are clearly documented, the
+   --  type Name_Id should be regarded as a private type. In particular it is
+   --  never appropriate to perform arithmetic operations using this type.
+
+   type Name_Id is range Names_Low_Bound .. Names_High_Bound;
+   for Name_Id'Size use 32;
+   --  Type used to identify entries in the names table
+
+   No_Name : constant Name_Id := Names_Low_Bound;
+   --  The special Name_Id value No_Name is used in the parser to indicate
+   --  a situation where no name is present (e.g. on a loop or block).
+
+   Error_Name : constant Name_Id := Names_Low_Bound +  1;
+   --  The special Name_Id value Error_Name is used in the parser to
+   --  indicate that some kind of error was encountered in scanning out
+   --  the relevant name, so it does not have a representable label.
+
+   subtype Error_Name_Or_No_Name is Name_Id range No_Name .. Error_Name;
+   --  Used to test for either error name or no name
+
+   First_Name_Id : constant Name_Id := Names_Low_Bound + 2;
+   --  Subscript of first entry in names table
+
    -----------------
    -- Subprograms --
    -----------------
@@ -153,7 +184,7 @@ package Namet is
 
    function Get_Name_String (Id : Name_Id) return String;
    --  This functional form returns the result as a string without affecting
-   --  the contents of either Name_Buffer or Name_Len.
+   --  the contents of either Name_Buffer or Name_Len. The lower bound is 1.
 
    procedure Get_Unqualified_Name_String (Id : Name_Id);
    --  Similar to the above except that qualification (as defined in unit
@@ -215,13 +246,12 @@ package Namet is
    --  that Initialize must not be called if Tree_Read is used.
 
    procedure Lock;
-   --  Lock name table before calling back end. Space for up to 10 extra
-   --  names and 1000 extra characters is reserved before the table is locked.
+   --  Lock name tables before calling back end. We reserve some extra space
+   --  before locking to avoid unnecessary inefficiencies when we unlock.
 
    procedure Unlock;
-   --  Unlocks the name table to allow use of the 10 extra names and 1000
-   --  extra characters reserved by the Lock call. See gnat1drv for details of
-   --  the need for this.
+   --  Unlocks the name table to allow use of the extra space reserved by the
+   --  call to Lock. See gnat1drv for details of the need for this.
 
    function Length_Of_Name (Id : Name_Id) return Nat;
    pragma Inline (Length_Of_Name);
@@ -291,6 +321,10 @@ package Namet is
    --  passed in Name_Buffer and Name_Len (which are not affected by the call).
    --  Name_Buffer (it loads these as for Get_Name_String).
 
+   function Is_Valid_Name (Id : Name_Id) return Boolean;
+   --  True if Id is a valid name -- points to a valid entry in the
+   --  Name_Entries table.
+
    procedure Reset_Name_Table;
    --  This procedure is used when there are multiple source files to reset
    --  the name table info entries associated with current entries in the
@@ -358,15 +392,73 @@ package Namet is
    --  in encoded form (i.e. including Uhh, Whhh, Qx, _op as they appear in
    --  the name table). If Id is Error_Name, or No_Name, no text is output.
 
-   procedure wn (Id : Name_Id);
-   pragma Export (Ada, wn);
-   --  Like Write_Name, but includes new line at end. Intended for use
-   --  from the debugger only.
-
    procedure Write_Name_Decoded (Id : Name_Id);
    --  Like Write_Name, except that the name written is the decoded name, as
    --  described for Get_Decoded_Name_String, and the resulting value stored
    --  in Name_Len and Name_Buffer is the decoded name.
+
+   ------------------------------
+   -- File and Unit Name Types --
+   ------------------------------
+
+   --  These are defined here in Namet rather than Fname and Uname to avoid
+   --  problems with dependencies, and to avoid dragging in Fname and Uname
+   --  into many more files, but it would be cleaner to move to Fname/Uname.
+
+   type File_Name_Type is new Name_Id;
+   --  File names are stored in the names table and this type is used to
+   --  indicate that a Name_Id value is being used to hold a simple file name
+   --  (which does not include any directory information).
+
+   No_File : constant File_Name_Type := File_Name_Type (No_Name);
+   --  Constant used to indicate no file is present (this is used for example
+   --  when a search for a file indicates that no file of the name exists).
+
+   Error_File_Name : constant File_Name_Type := File_Name_Type (Error_Name);
+   --  The special File_Name_Type value Error_File_Name is used to indicate
+   --  a unit name where some previous processing has found an error.
+
+   subtype Error_File_Name_Or_No_File is
+     File_Name_Type range No_File .. Error_File_Name;
+   --  Used to test for either error file name or no file
+
+   type Path_Name_Type is new Name_Id;
+   --  Path names are stored in the names table and this type is used to
+   --  indicate that a Name_Id value is being used to hold a path name (that
+   --  may contain directory information).
+
+   No_Path : constant Path_Name_Type := Path_Name_Type (No_Name);
+   --  Constant used to indicate no path name is present
+
+   type Unit_Name_Type is new Name_Id;
+   --  Unit names are stored in the names table and this type is used to
+   --  indicate that a Name_Id value is being used to hold a unit name, which
+   --  terminates in %b for a body or %s for a spec.
+
+   No_Unit_Name : constant Unit_Name_Type := Unit_Name_Type (No_Name);
+   --  Constant used to indicate no file name present
+
+   Error_Unit_Name : constant Unit_Name_Type := Unit_Name_Type (Error_Name);
+   --  The special Unit_Name_Type value Error_Unit_Name is used to indicate
+   --  a unit name where some previous processing has found an error.
+
+   subtype Error_Unit_Name_Or_No_Unit_Name is
+     Unit_Name_Type range No_Unit_Name .. Error_Unit_Name;
+
+   ------------------------
+   -- Debugging Routines --
+   ------------------------
+
+   procedure wn (Id : Name_Id);
+   pragma Export (Ada, wn);
+   --  This routine is intended for debugging use only (i.e. it is intended to
+   --  be called from the debugger). It writes the characters of the specified
+   --  name using the standard output procedures in package Output, followed by
+   --  a new line. The name is written in encoded form (i.e. including Uhh,
+   --  Whhh, Qx, _op as they appear in the name table). If Id is Error_Name,
+   --  No_Name, or invalid an appropriate string is written (<Error_Name>,
+   --  <No_Name>, <invalid name>). Unlike Write_Name, this call does not affect
+   --  the contents of Name_Buffer or Name_Len.
 
    ---------------------------
    -- Table Data Structures --
@@ -404,6 +496,12 @@ private
       Byte_Info : Byte;
       --  Byte value associated with this name
 
+      Name_Has_No_Encodings : Boolean;
+      --  This flag is set True if the name entry is known not to contain any
+      --  special character encodings. This is used to speed up repeated calls
+      --  to Get_Decoded_Name_String. A value of False means that it is not
+      --  known whether the name contains any such encodings.
+
       Hash_Link : Name_Id;
       --  Link to next entry in names table for same hash code
 
@@ -411,12 +509,24 @@ private
       --  Int Value associated with this name
    end record;
 
+   for Name_Entry use record
+      Name_Chars_Index      at  0 range 0 .. 31;
+      Name_Len              at  4 range 0 .. 15;
+      Byte_Info             at  6 range 0 .. 7;
+      Name_Has_No_Encodings at  7 range 0 .. 7;
+      Hash_Link             at  8 range 0 .. 31;
+      Int_Info              at 12 range 0 .. 31;
+   end record;
+
+   for Name_Entry'Size use 16 * 8;
+   --  This ensures that we did not leave out any fields
+
    --  This is the table that is referenced by Name_Id entries.
    --  It contains one entry for each unique name in the table.
 
    package Name_Entries is new Table.Table (
      Table_Component_Type => Name_Entry,
-     Table_Index_Type     => Name_Id,
+     Table_Index_Type     => Name_Id'Base,
      Table_Low_Bound      => First_Name_Id,
      Table_Initial        => Alloc.Names_Initial,
      Table_Increment      => Alloc.Names_Increment,

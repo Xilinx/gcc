@@ -114,6 +114,9 @@ build_stmt (enum tree_code code, ...)
   va_list p;
   bool side_effects;
 
+  /* This function cannot be used to construct variably-sized nodes.  */
+  gcc_assert (TREE_CODE_CLASS (code) != tcc_vl_exp);
+
   va_start (p, code);
 
   ret = make_node (code);

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2006, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -31,7 +31,9 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with System.Pure_Exceptions; use System.Pure_Exceptions;
+pragma Warnings (Off);
+pragma Compiler_Unit;
+pragma Warnings (On);
 
 package body System.WCh_JIS is
 
@@ -86,7 +88,7 @@ package body System.WCh_JIS is
          --  bit is set in both bytes.
 
          if JIS2 < 16#80# then
-            Raise_Exception (CE, "invalid small Katakana character");
+            raise Constraint_Error;
          end if;
 
          EUC1 := Character'Val (EUC_Hankaku_Kana);
@@ -96,7 +98,7 @@ package body System.WCh_JIS is
       --  a valid character for representation in EUC form.
 
       elsif JIS1 > 16#7F# or else JIS2 > 16#7F# then
-         Raise_Exception (CE, "wide character value out of EUC range");
+         raise Constraint_Error;
 
       --  Result is just the two characters with upper bits set
 

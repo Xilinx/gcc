@@ -75,6 +75,11 @@
   return 1;
 })
 
+;; Return nonzero if OP is a D register.
+(define_predicate "d_register_operand"
+  (and (match_code "reg")
+       (match_test "D_REGNO_P (REGNO (op))")))
+
 ;; Return nonzero if OP is a LC register.
 (define_predicate "lc_register_operand"
   (and (match_code "reg")
@@ -90,7 +95,7 @@
   (and (match_code "reg")
        (match_test "REGNO (op) == REG_LB0 || REGNO (op) == REG_LB1")))
 
-;; Return nonzero if OP is a register or a 7 bit signed constant.
+;; Return nonzero if OP is a register or a 7-bit signed constant.
 (define_predicate "reg_or_7bit_operand"
   (ior (match_operand 0 "register_operand")
        (and (match_code "const_int")
@@ -113,7 +118,7 @@
   (ior (match_operand 0 "nondp_register_operand")
        (match_operand 0 "memory_operand")))
 
-;; Return nonzero if OP is a register or, when negated, a 7 bit signed
+;; Return nonzero if OP is a register or, when negated, a 7-bit signed
 ;; constant.
 (define_predicate "reg_or_neg7bit_operand"
   (ior (match_operand 0 "register_operand")
@@ -170,3 +175,31 @@
 ;; Test for an operator valid in a conditional branch
 (define_predicate "bfin_cbranch_operator"
   (match_code "eq,ne"))
+
+;; The following two are used to compute the addrtype attribute.  They return
+;; true if passed a memory address usable for a 16-bit load or store using a
+;; P or I register, respectively.  If neither matches, we know we have a
+;; 32-bit instruction.
+(define_predicate "mem_p_address_operand"
+  (match_code "mem")
+{
+  if (effective_address_32bit_p (op, mode))
+    return 0;
+  op = XEXP (op, 0);
+  if (GET_CODE (op) == PLUS || GET_RTX_CLASS (GET_CODE (op)) == RTX_AUTOINC)
+    op = XEXP (op, 0);
+  gcc_assert (REG_P (op));
+  return PREG_P (op);
+})
+
+(define_predicate "mem_i_address_operand"
+  (match_code "mem")
+{
+  if (effective_address_32bit_p (op, mode))
+    return 0;
+  op = XEXP (op, 0);
+  if (GET_CODE (op) == PLUS || GET_RTX_CLASS (GET_CODE (op)) == RTX_AUTOINC)
+    op = XEXP (op, 0);
+  gcc_assert (REG_P (op));
+  return IREG_P (op);
+})

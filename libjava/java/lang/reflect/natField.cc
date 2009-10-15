@@ -29,10 +29,24 @@ details.  */
 #include <java/lang/Boolean.h>
 #include <java/lang/Character.h>
 
+typedef JArray< ::java::lang::annotation::Annotation * > * anno_a_t;
+
 jint
 java::lang::reflect::Field::getModifiersInternal ()
 {
   return _Jv_FromReflectedField (this)->flags;
+}
+
+jstring
+java::lang::reflect::Field::getSignature()
+{
+  return declaringClass->getReflectionSignature (this);
+}
+
+anno_a_t
+java::lang::reflect::Field::getDeclaredAnnotationsInternal()
+{
+  return (anno_a_t) declaringClass->getDeclaredAnnotations(this);
 }
 
 jstring
@@ -60,11 +74,6 @@ static void*
 getAddr (java::lang::reflect::Field* field, jclass caller, jobject obj,
          jboolean checkFinal)
 {
-  // FIXME: we know CALLER is NULL here.  At one point we planned to
-  // have the compiler insert the caller as a hidden argument in some
-  // calls.  However, we never implemented that, so we have to find
-  // the caller by hand instead.
-  
   using namespace java::lang::reflect;
   
   jfieldID fld = _Jv_FromReflectedField (field);
@@ -83,7 +92,8 @@ getAddr (java::lang::reflect::Field* field, jclass caller, jobject obj,
   // Check accessibility, if required.
   if (! (Modifier::isPublic (flags) || field->isAccessible()))
     {
-      caller = _Jv_StackTrace::GetCallingClass (&Field::class$);
+      if (! caller)
+	caller = _Jv_StackTrace::GetCallingClass (&Field::class$);
       if (! _Jv_CheckAccess (caller, field->getDeclaringClass(), flags))
 	throw new java::lang::IllegalAccessException;
     }

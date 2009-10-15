@@ -6,7 +6,7 @@
 --                                                                          --
 --                                   B o d y                                --
 --                                                                          --
---             Copyright (C) 1997-2005 Free Software Foundation             --
+--         Copyright (C) 1997-2007, Free Software Foundation, Inc.          --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -31,21 +31,55 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
---  This is the VxWorks version.
+--  This is the VxWorks version
 
---  This package encapsulates all direct interfaces to OS services
---  that are needed by children of System.
+--  This package encapsulates all direct interfaces to OS services that are
+--  needed by children of System.
 
 pragma Polling (Off);
---  Turn off polling, we do not want ATC polling to take place during
---  tasking operations. It causes infinite loops and other problems.
+--  Turn off polling, we do not want ATC polling to take place during tasking
+--  operations. It causes infinite loops and other problems.
 
 package body System.OS_Interface is
 
    use type Interfaces.C.int;
 
    Low_Priority : constant := 255;
-   --  VxWorks native (default) lowest scheduling priority.
+   --  VxWorks native (default) lowest scheduling priority
+
+   ------------
+   -- getpid --
+   ------------
+
+   function getpid return t_id is
+   begin
+      --  VxWorks 5 (and VxWorks 6 in kernel mode) does not have a getpid
+      --  function. taskIdSelf is the equivalent routine.
+
+      return taskIdSelf;
+   end getpid;
+
+   --------------
+   -- Int_Lock --
+   --------------
+
+   function Int_Lock return int is
+      function intLock return int;
+      pragma Import (C, intLock, "intLock");
+   begin
+      return intLock;
+   end Int_Lock;
+
+   ----------------
+   -- Int_Unlock --
+   ----------------
+
+   function Int_Unlock return int is
+      function intUnlock return int;
+      pragma Import (C, intUnlock, "intUnlock");
+   begin
+      return intUnlock;
+   end Int_Unlock;
 
    ----------
    -- kill --
@@ -95,6 +129,28 @@ package body System.OS_Interface is
       end if;
    end sigwait;
 
+   ---------------
+   -- Task_Cont --
+   ---------------
+
+   function Task_Cont (tid : t_id) return int is
+      function taskResume (tid : t_id) return int;
+      pragma Import (C, taskResume, "taskResume");
+   begin
+      return taskResume (tid);
+   end Task_Cont;
+
+   ---------------
+   -- Task_Stop --
+   ---------------
+
+   function Task_Stop (tid : t_id) return int is
+      function taskSuspend (tid : t_id) return int;
+      pragma Import (C, taskSuspend, "taskSuspend");
+   begin
+      return taskSuspend (tid);
+   end Task_Stop;
+
    -----------------
    -- To_Duration --
    -----------------
@@ -111,12 +167,13 @@ package body System.OS_Interface is
    function To_Timespec (D : Duration) return timespec is
       S : time_t;
       F : Duration;
+
    begin
       S := time_t (Long_Long_Integer (D));
       F := D - Duration (S);
 
-      --  If F has negative value due to a round-up, adjust for positive F
-      --  value.
+      --  If F is negative due to a round-up, adjust for positive F value
+
       if F < 0.0 then
          S := S - 1;
          F := F + 1.0;
@@ -130,7 +187,7 @@ package body System.OS_Interface is
    -- To_VxWorks_Priority --
    -------------------------
 
-   function To_VxWorks_Priority (Priority : in int) return int is
+   function To_VxWorks_Priority (Priority : int) return int is
    begin
       return Low_Priority - Priority;
    end To_VxWorks_Priority;
@@ -139,16 +196,15 @@ package body System.OS_Interface is
    -- To_Clock_Ticks --
    --------------------
 
-   --  ??? - For now, we'll always get the system clock rate
-   --  since it is allowed to be changed during run-time in
-   --  VxWorks. A better method would be to provide an operation
-   --  to set it that so we can always know its value.
-   --
-   --  Another thing we should probably allow for is a resultant
-   --  tick count greater than int'Last. This should probably
-   --  be a procedure with two output parameters, one in the
-   --  range 0 .. int'Last, and another representing the overflow
-   --  count.
+   --  ??? - For now, we'll always get the system clock rate since it is
+   --  allowed to be changed during run-time in VxWorks. A better method would
+   --  be to provide an operation to set it that so we can always know its
+   --  value.
+
+   --  Another thing we should probably allow for is a resultant tick count
+   --  greater than int'Last. This should probably be a procedure with two
+   --  output parameters, one in the range 0 .. int'Last, and another
+   --  representing the overflow count.
 
    function To_Clock_Ticks (D : Duration) return int is
       Ticks          : Long_Long_Integer;
@@ -182,14 +238,5 @@ package body System.OS_Interface is
 
       return int (Ticks);
    end To_Clock_Ticks;
-
-   ----------------
-   -- VX_FP_TASK --
-   ----------------
-
-   function VX_FP_TASK return int is
-   begin
-      return 16#0008#;
-   end VX_FP_TASK;
 
 end System.OS_Interface;

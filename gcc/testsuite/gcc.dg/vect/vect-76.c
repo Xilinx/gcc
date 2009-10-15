@@ -12,6 +12,7 @@
 
 int ib[N+OFF] __attribute__ ((__aligned__(16))) = {0, 1, 3, 5, 7, 11, 13, 17, 0, 2, 6, 10};
 
+__attribute__ ((noinline))
 int main1 (int *pib)
 {
   int i;
@@ -70,5 +71,4 @@ int main (void)
 
 
 /* { dg-final { scan-tree-dump-times "vectorized 3 loops" 1 "vect" } } */
-/* { dg-final { scan-tree-dump-times "Vectorizing an unaligned access" 2 "vect" { xfail vect_no_align } } } */
 /* { dg-final { cleanup-tree-dump "vect" } } */

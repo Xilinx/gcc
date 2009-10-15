@@ -78,7 +78,8 @@
 # error
 #endif
 
-#if ( defined __unix__ && !defined __CYGWIN__ ) || defined _AIX
+#if ( defined __unix__ && !defined __CYGWIN__ ) || defined _AIX \
+    || defined __vxworks
 # if !#system(unix)
 #  error
 # endif
@@ -208,7 +209,7 @@
 # error
 #endif
 
-#if defined __h8300__ 
+#if defined __H8300__ 
 # if !#cpu(h8300) || !#machine(h8300) \
   || (defined __H8300__ && (!#cpu(h8300) || !#machine(h8300))) \
   || (defined __H8300H__ && (!#cpu(h8300h) || !#machine(h8300h))) \

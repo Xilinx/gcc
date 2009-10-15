@@ -145,7 +145,7 @@ public class URLClassLoader extends SecureClassLoader
   // Instance variables
 
   /** Locations to load classes from */
-  private final Vector urls = new Vector();
+  private final Vector<URL> urls = new Vector<URL>();
 
   /**
    * Store pre-parsed information for each url into this vector: each
@@ -153,7 +153,7 @@ public class URLClassLoader extends SecureClassLoader
    * attribute which adds to the URLs that will be searched, but this
    * does not add to the list of urls.
    */
-  private final Vector urlinfos = new Vector();
+  private final Vector<URLLoader> urlinfos = new Vector<URLLoader>();
 
   /** Factory used to get the protocol handlers of the URLs */
   private final URLStreamHandlerFactory factory;
@@ -262,10 +262,9 @@ public class URLClassLoader extends SecureClassLoader
     super(parent);
     this.securityContext = null;
     this.factory = factory;
-    addURLs(urls);
-
-    // If this factory is still not in factoryCache, add it.
+    // If this factory is not yet in factoryCache, add it.
     factoryCache.add(factory);
+    addURLs(urls);
   }
 
   // Methods
@@ -301,7 +300,6 @@ public class URLClassLoader extends SecureClassLoader
         if ("file".equals (protocol))
           {
             File dir = new File(file);
-            URL absUrl;
             try
               {
                 absoluteURL = dir.getCanonicalFile().toURL();
@@ -329,12 +327,12 @@ public class URLClassLoader extends SecureClassLoader
         // First see if we can find a handler with the correct name.
         try
           {
-            Class handler = Class.forName(URL_LOADER_PREFIX + protocol);
-            Class[] argTypes = new Class[] { URLClassLoader.class,
-                                             URLStreamHandlerCache.class,
-                                             URLStreamHandlerFactory.class,
-                                             URL.class,
-                                             URL.class };
+            Class<?> handler = Class.forName(URL_LOADER_PREFIX + protocol);
+            Class<?>[] argTypes = new Class<?>[] { URLClassLoader.class,
+                                                   URLStreamHandlerCache.class,
+                                                   URLStreamHandlerFactory.class,
+                                                   URL.class,
+                                                   URL.class };
             Constructor k = handler.getDeclaredConstructor(argTypes);
             loader
               = (URLLoader) k.newInstance(new Object[] { this,
@@ -395,7 +393,7 @@ public class URLClassLoader extends SecureClassLoader
           }
 
 	urlinfos.add(loader);
-	ArrayList extra = loader.getClassPath();
+	ArrayList<URLLoader> extra = loader.getClassPath();
         if (extra != null)
           urlinfos.addAll(extra);
       }
@@ -508,7 +506,7 @@ public class URLClassLoader extends SecureClassLoader
    * loaded
    * @return a Class object representing the found class
    */
-  protected Class findClass(final String className)
+  protected Class<?> findClass(final String className)
     throws ClassNotFoundException
   {
     // Just try to find the resource by the (almost) same name
@@ -602,10 +600,10 @@ public class URLClassLoader extends SecureClassLoader
         Class result = null;
         if (sm != null && securityContext != null)
           {
-            result = (Class)AccessController.doPrivileged
-              (new PrivilegedAction()
+            result = AccessController.doPrivileged
+              (new PrivilegedAction<Class>()
                 {
-                  public Object run()
+                  public Class run()
                   {
                     return defineClass(className, classData,
                                        0, classData.length,
@@ -625,10 +623,7 @@ public class URLClassLoader extends SecureClassLoader
       }
     catch (IOException ioe)
       {
-	ClassNotFoundException cnfe;
-	cnfe = new ClassNotFoundException(className + " not found in " + this);
-	cnfe.initCause(ioe);
-	throw cnfe;
+	throw new ClassNotFoundException(className + " not found in " + this, ioe);
       }
   }
   
@@ -714,10 +709,10 @@ public class URLClassLoader extends SecureClassLoader
    * @exception IOException when an error occurs accessing one of the
    * locations
    */
-  public Enumeration findResources(String resourceName)
+  public Enumeration<URL> findResources(String resourceName)
     throws IOException
   {
-    Vector resources = new Vector();
+    Vector<URL> resources = new Vector<URL>();
     int max = urlinfos.size();
     for (int i = 0; i < max; i++)
       {
@@ -848,9 +843,9 @@ public class URLClassLoader extends SecureClassLoader
                                       + securityContext);
 
         URLClassLoader loader =
-          (URLClassLoader) AccessController.doPrivileged(new PrivilegedAction()
+          AccessController.doPrivileged(new PrivilegedAction<URLClassLoader>()
               {
-                public Object run()
+                public URLClassLoader run()
                 {
                   return new URLClassLoader(parent,
                                             (AccessControlContext) securityContext);

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                  B o d y                                 --
 --                                                                          --
---          Copyright (C) 1997-2005 Free Software Foundation, Inc.          --
+--          Copyright (C) 1997-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -41,14 +41,14 @@
 
 with System.CRTL;
 with System.Task_Primitives.Operations;
-with Unchecked_Conversion;
+with Ada.Unchecked_Conversion;
 
 package body System.Tasking.Debug is
 
    package STPO renames System.Task_Primitives.Operations;
 
    function To_Integer is new
-     Unchecked_Conversion (Task_Id, System.Address);
+     Ada.Unchecked_Conversion (Task_Id, System.Address);
 
    type Trace_Flag_Set is array (Character) of Boolean;
 
@@ -61,10 +61,32 @@ package body System.Tasking.Debug is
    procedure Write (Fd : Integer; S : String; Count : Integer);
 
    procedure Put (S : String);
-   --  Display S on standard output.
+   --  Display S on standard output
 
    procedure Put_Line (S : String := "");
-   --  Display S on standard output with an additional line terminator.
+   --  Display S on standard output with an additional line terminator
+
+   ------------------------
+   -- Continue_All_Tasks --
+   ------------------------
+
+   procedure Continue_All_Tasks is
+      C : Task_Id;
+
+      Dummy : Boolean;
+      pragma Unreferenced (Dummy);
+
+   begin
+      STPO.Lock_RTS;
+
+      C := All_Tasks_List;
+      while C /= null loop
+         Dummy := STPO.Continue_Task (C);
+         C := C.Common.All_Tasks_Link;
+      end loop;
+
+      STPO.Unlock_RTS;
+   end Continue_All_Tasks;
 
    --------------------
    -- Get_User_State --
@@ -224,6 +246,37 @@ package body System.Tasking.Debug is
    begin
       STPO.Self.User_State := Value;
    end Set_User_State;
+
+   --------------------
+   -- Stop_All_Tasks --
+   --------------------
+
+   procedure Stop_All_Tasks is
+      C : Task_Id;
+
+      Dummy : Boolean;
+      pragma Unreferenced (Dummy);
+
+   begin
+      STPO.Lock_RTS;
+
+      C := All_Tasks_List;
+      while C /= null loop
+         Dummy := STPO.Stop_Task (C);
+         C := C.Common.All_Tasks_Link;
+      end loop;
+
+      STPO.Unlock_RTS;
+   end Stop_All_Tasks;
+
+   ----------------------------
+   -- Stop_All_Tasks_Handler --
+   ----------------------------
+
+   procedure Stop_All_Tasks_Handler is
+   begin
+      STPO.Stop_All_Tasks;
+   end Stop_All_Tasks_Handler;
 
    -----------------------
    -- Suspend_All_Tasks --

@@ -677,10 +677,10 @@
 #   endif
 #   ifdef LINUX
 #       define OS_TYPE "LINUX"
-#       define STACKBOTTOM ((ptr_t)0xf0000000)
+#       define LINUX_STACKBOTTOM
 #       define USE_GENERIC_PUSH_REGS
 		/* We never got around to the assembly version. */
-/* #       define MPROTECT_VDB - Reported to not work  9/17/01 */
+#       define MPROTECT_VDB
 #       ifdef __ELF__
 #            define DYNAMIC_LOADING
 #	     include <features.h>
@@ -1369,7 +1369,15 @@
 #     define DATAEND (_end)
       extern int __data_start[];
 #     define DATASTART ((ptr_t)(__data_start))
-#     define ALIGNMENT 4
+#     ifdef _MIPS_SZPTR
+#	define CPP_WORDSZ _MIPS_SZPTR
+#	define ALIGNMENT (_MIPS_SZPTR/8)
+#     else
+#	define ALIGNMENT 4
+#     endif
+#     ifndef HBLKSIZE
+#       define HBLKSIZE 4096
+#     endif
 #     define USE_GENERIC_PUSH_REGS
 #     if __GLIBC__ == 2 && __GLIBC_MINOR__ >= 2 || __GLIBC__ > 2
 #        define LINUX_STACKBOTTOM

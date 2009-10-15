@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2005, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -74,7 +74,8 @@ package body System.WCh_StW is
       function In_Char return Character is
       begin
          if P > S'Last then
-            raise Constraint_Error;
+            raise Constraint_Error
+              with "badly formed wide character code";
          else
             P := P + 1;
             return S (P - 1);
@@ -120,55 +121,56 @@ package body System.WCh_StW is
    -- String_To_Wide_String --
    ---------------------------
 
-   function String_To_Wide_String
+   procedure String_To_Wide_String
      (S  : String;
-      EM : WC_Encoding_Method) return Wide_String
+      R  : out Wide_String;
+      L  : out Natural;
+      EM : System.WCh_Con.WC_Encoding_Method)
    is
-      R  : Wide_String (1 .. S'Length);
-      RP : Natural;
       SP : Natural;
       V  : UTF_32_Code;
 
    begin
+      pragma Assert (S'First = 1);
+
       SP := S'First;
-      RP := 0;
+      L  := 0;
       while SP <= S'Last loop
          Get_Next_Code (S, SP, V, EM);
 
          if V > 16#FFFF# then
-            raise Constraint_Error;
+            raise Constraint_Error
+              with "out of range value for wide character";
          end if;
 
-         RP := RP + 1;
-         R (RP) := Wide_Character'Val (V);
+         L := L + 1;
+         R (L) := Wide_Character'Val (V);
       end loop;
-
-      return R (1 .. RP);
    end String_To_Wide_String;
 
    --------------------------------
    -- String_To_Wide_Wide_String --
    --------------------------------
 
-   function String_To_Wide_Wide_String
+   procedure String_To_Wide_Wide_String
      (S  : String;
-      EM : WC_Encoding_Method) return Wide_Wide_String
+      R  : out Wide_Wide_String;
+      L  : out Natural;
+      EM : System.WCh_Con.WC_Encoding_Method)
    is
-      R  : Wide_Wide_String (1 .. S'Length);
-      RP : Natural;
+      pragma Assert (S'First = 1);
+
       SP : Natural;
       V  : UTF_32_Code;
 
    begin
       SP := S'First;
-      RP := 0;
+      L := 0;
       while SP <= S'Last loop
          Get_Next_Code (S, SP, V, EM);
-         RP := RP + 1;
-         R (RP) := Wide_Wide_Character'Val (V);
+         L := L + 1;
+         R (L) := Wide_Wide_Character'Val (V);
       end loop;
-
-      return R (1 .. RP);
    end String_To_Wide_Wide_String;
 
 end System.WCh_StW;

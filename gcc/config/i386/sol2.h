@@ -49,7 +49,7 @@ along with GCC; see the file COPYING3.  If not see
 
 /* Solaris 2/Intel as chokes on #line directives.  */
 #undef CPP_SPEC
-#define CPP_SPEC "%{.S:-P} %(cpp_subtarget)"
+#define CPP_SPEC "%{,assembler-with-cpp:-P} %(cpp_subtarget)"
 
 /* FIXME: Removed -K PIC from generic Solaris 2 ASM_SPEC: the native assembler
    gives many warnings: R_386_32 relocation is used for symbol ".text".  */

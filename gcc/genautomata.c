@@ -1,5 +1,5 @@
 /* Pipeline hazard description translator.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2007
    Free Software Foundation, Inc.
 
    Written by Vladimir Makarov <vmakarov@redhat.com>
@@ -129,6 +129,7 @@ typedef unsigned HOST_WIDE_INT set_el_t;
 /* Reservations of function units are represented by value of the following
    type.  */
 typedef set_el_t *reserv_sets_t;
+typedef const set_el_t *const_reserv_sets_t;
 
 /* The following structure describes a ticker.  */
 struct ticker
@@ -181,17 +182,21 @@ struct state_ainsn_table;
 
 /* The following typedefs are for brevity.  */
 typedef struct unit_decl *unit_decl_t;
+typedef const struct unit_decl *const_unit_decl_t;
 typedef struct decl *decl_t;
+typedef const struct decl *const_decl_t;
 typedef struct regexp *regexp_t;
 typedef struct unit_set_el *unit_set_el_t;
 typedef struct pattern_set_el *pattern_set_el_t;
 typedef struct pattern_reserv *pattern_reserv_t;
 typedef struct alt_state *alt_state_t;
 typedef struct state *state_t;
+typedef const struct state *const_state_t;
 typedef struct arc *arc_t;
 typedef struct ainsn *ainsn_t;
 typedef struct automaton *automaton_t;
 typedef struct automata_list_el *automata_list_el_t;
+typedef const struct automata_list_el *const_automata_list_el_t;
 typedef struct state_ainsn_table *state_ainsn_table_t;
 
 /* Undefined position.  */
@@ -227,7 +232,7 @@ static int check_presence_pattern_sets (reserv_sets_t,
 					reserv_sets_t, int);
 static int check_absence_pattern_sets  (reserv_sets_t, reserv_sets_t,
 					int);
-static arc_t first_out_arc             (state_t);
+static arc_t first_out_arc             (const_state_t);
 static arc_t next_out_arc              (arc_t);
 
 
@@ -237,15 +242,11 @@ static arc_t next_out_arc              (arc_t);
    macros.  */
 
 #define NO_MINIMIZATION_OPTION "-no-minimization"
-
 #define TIME_OPTION "-time"
-
+#define STATS_OPTION "-stats"
 #define V_OPTION "-v"
-
 #define W_OPTION "-w"
-
 #define NDFA_OPTION "-ndfa"
-
 #define PROGRESS_OPTION "-progress"
 
 /* The following flags are set up by function `initiate_automaton_gen'.  */
@@ -265,6 +266,9 @@ static int split_argument;
 
 /* Flag of output time statistics (`-time').  */
 static int time_flag;
+
+/* Flag of automata statistics (`-stats').  */
+static int stats_flag;
 
 /* Flag of creation of description file which contains description of
    result automaton and statistics information (`-v').  */
@@ -711,16 +715,7 @@ struct state
   /* The following member is used to evaluate min issue delay of insn
      for a state.  */
   int min_insn_issue_delay;
-  /* The following member is used to evaluate max issue rate of the
-     processor.  The value of the member is maximal length of the path
-     from given state no containing arcs marked by special insn `cycle
-     advancing'.  */
-  int longest_path_length;
 };
-
-/* The following macro is an initial value of member
-   `longest_path_length' of a state.  */
-#define UNDEFINED_LONGEST_PATH_LENGTH -1
 
 /* Automaton arc.  */
 struct arc
@@ -882,56 +877,56 @@ struct state_ainsn_table
 #if defined ENABLE_CHECKING && (GCC_VERSION >= 2007)
 
 #define DECL_UNIT(d) __extension__					\
-(({ struct decl *const _decl = (d);					\
+(({ __typeof (d) const _decl = (d);					\
      if (_decl->mode != dm_unit)					\
        decl_mode_check_failed (_decl->mode, "dm_unit",			\
 			       __FILE__, __LINE__, __FUNCTION__);	\
      &(_decl)->decl.unit; }))
 
 #define DECL_BYPASS(d) __extension__					\
-(({ struct decl *const _decl = (d);					\
+(({ __typeof (d) const _decl = (d);					\
      if (_decl->mode != dm_bypass)					\
        decl_mode_check_failed (_decl->mode, "dm_bypass",		\
 			       __FILE__, __LINE__, __FUNCTION__);	\
      &(_decl)->decl.bypass; }))
 
 #define DECL_AUTOMATON(d) __extension__					\
-(({ struct decl *const _decl = (d);					\
+(({ __typeof (d) const _decl = (d);					\
      if (_decl->mode != dm_automaton)					\
        decl_mode_check_failed (_decl->mode, "dm_automaton",		\
 			       __FILE__, __LINE__, __FUNCTION__);	\
      &(_decl)->decl.automaton; }))
 
 #define DECL_EXCL(d) __extension__					\
-(({ struct decl *const _decl = (d);					\
+(({ __typeof (d) const _decl = (d);					\
      if (_decl->mode != dm_excl)					\
        decl_mode_check_failed (_decl->mode, "dm_excl",			\
 			       __FILE__, __LINE__, __FUNCTION__);	\
      &(_decl)->decl.excl; }))
 
 #define DECL_PRESENCE(d) __extension__					\
-(({ struct decl *const _decl = (d);					\
+(({ __typeof (d) const _decl = (d);					\
      if (_decl->mode != dm_presence)					\
        decl_mode_check_failed (_decl->mode, "dm_presence",		\
 			       __FILE__, __LINE__, __FUNCTION__);	\
      &(_decl)->decl.presence; }))
 
 #define DECL_ABSENCE(d) __extension__					\
-(({ struct decl *const _decl = (d);					\
+(({ __typeof (d) const _decl = (d);					\
      if (_decl->mode != dm_absence)					\
        decl_mode_check_failed (_decl->mode, "dm_absence",		\
 			       __FILE__, __LINE__, __FUNCTION__);	\
      &(_decl)->decl.absence; }))
 
 #define DECL_RESERV(d) __extension__					\
-(({ struct decl *const _decl = (d);					\
+(({ __typeof (d) const _decl = (d);					\
      if (_decl->mode != dm_reserv)					\
        decl_mode_check_failed (_decl->mode, "dm_reserv",		\
 			       __FILE__, __LINE__, __FUNCTION__);	\
      &(_decl)->decl.reserv; }))
 
 #define DECL_INSN_RESERV(d) __extension__				\
-(({ struct decl *const _decl = (d);					\
+(({ __typeof (d) const _decl = (d);					\
      if (_decl->mode != dm_insn_reserv)					\
        decl_mode_check_failed (_decl->mode, "dm_insn_reserv",		\
 			       __FILE__, __LINE__, __FUNCTION__);	\
@@ -1510,6 +1505,8 @@ gen_automata_option (rtx def)
     no_minimization_flag = 1;
   else if (strcmp (XSTR (def, 0), TIME_OPTION + 1) == 0)
     time_flag = 1;
+  else if (strcmp (XSTR (def, 0), STATS_OPTION + 1) == 0)
+    stats_flag = 1;
   else if (strcmp (XSTR (def, 0), V_OPTION + 1) == 0)
     v_flag = 1;
   else if (strcmp (XSTR (def, 0), W_OPTION + 1) == 0)
@@ -1549,12 +1546,12 @@ gen_regexp_el (const char *str)
     }
   else if (strcmp (str, NOTHING_NAME) == 0)
     {
-      regexp = create_node (sizeof (struct decl));
+      regexp = create_node (sizeof *regexp);
       regexp->mode = rm_nothing;
     }
   else
     {
-      regexp = create_node (sizeof (struct decl));
+      regexp = create_node (sizeof *regexp);
       regexp->mode = rm_unit;
       REGEXP_UNIT (regexp)->name = str;
     }
@@ -1744,7 +1741,7 @@ string_hash (const char *string)
 static hashval_t
 automaton_decl_hash (const void *automaton_decl)
 {
-  const decl_t decl = (decl_t) automaton_decl;
+  const_decl_t const decl = (const_decl_t) automaton_decl;
 
   gcc_assert (decl->mode != dm_automaton
 	      || DECL_AUTOMATON (decl)->name);
@@ -1759,8 +1756,8 @@ static int
 automaton_decl_eq_p (const void* automaton_decl_1,
 		     const void* automaton_decl_2)
 {
-  const decl_t decl1 = (decl_t) automaton_decl_1;
-  const decl_t decl2 = (decl_t) automaton_decl_2;
+  const_decl_t const decl1 = (const_decl_t) automaton_decl_1;
+  const_decl_t const decl2 = (const_decl_t) automaton_decl_2;
 
   gcc_assert (decl1->mode == dm_automaton
 	      && DECL_AUTOMATON (decl1)->name
@@ -1845,7 +1842,7 @@ finish_automaton_decl_table (void)
 static hashval_t
 insn_decl_hash (const void *insn_decl)
 {
-  const decl_t decl = (decl_t) insn_decl;
+  const_decl_t const decl = (const_decl_t) insn_decl;
 
   gcc_assert (decl->mode == dm_insn_reserv
 	      && DECL_INSN_RESERV (decl)->name);
@@ -1858,8 +1855,8 @@ insn_decl_hash (const void *insn_decl)
 static int
 insn_decl_eq_p (const void *insn_decl_1, const void *insn_decl_2)
 {
-  const decl_t decl1 = (decl_t) insn_decl_1;
-  const decl_t decl2 = (decl_t) insn_decl_2;
+  const_decl_t const decl1 = (const_decl_t) insn_decl_1;
+  const_decl_t const decl2 = (const_decl_t) insn_decl_2;
 
   gcc_assert (decl1->mode == dm_insn_reserv
 	      && DECL_INSN_RESERV (decl1)->name
@@ -1943,7 +1940,7 @@ finish_insn_decl_table (void)
 static hashval_t
 decl_hash (const void *decl)
 {
-  const decl_t d = (const decl_t) decl;
+  const_decl_t const d = (const_decl_t) decl;
 
   gcc_assert ((d->mode == dm_unit && DECL_UNIT (d)->name)
 	      || (d->mode == dm_reserv && DECL_RESERV (d)->name));
@@ -1957,8 +1954,8 @@ decl_hash (const void *decl)
 static int
 decl_eq_p (const void *decl_1, const void *decl_2)
 {
-  const decl_t d1 = (const decl_t) decl_1;
-  const decl_t d2 = (const decl_t) decl_2;
+  const_decl_t const d1 = (const_decl_t) decl_1;
+  const_decl_t const d2 = (const_decl_t) decl_2;
 
   gcc_assert ((d1->mode == dm_unit && DECL_UNIT (d1)->name)
 	      || (d1->mode == dm_reserv && DECL_RESERV (d1)->name));
@@ -3189,11 +3186,11 @@ free_alt_states (alt_state_t alt_states_list)
 static int
 alt_state_cmp (const void *alt_state_ptr_1, const void *alt_state_ptr_2)
 {
-  if ((*(alt_state_t *) alt_state_ptr_1)->state->unique_num
-      == (*(alt_state_t *) alt_state_ptr_2)->state->unique_num)
+  if ((*(const alt_state_t *) alt_state_ptr_1)->state->unique_num
+      == (*(const alt_state_t *) alt_state_ptr_2)->state->unique_num)
     return 0;
-  else if ((*(alt_state_t *) alt_state_ptr_1)->state->unique_num
-	   < (*(alt_state_t *) alt_state_ptr_2)->state->unique_num)
+  else if ((*(const alt_state_t *) alt_state_ptr_1)->state->unique_num
+	   < (*(const alt_state_t *) alt_state_ptr_2)->state->unique_num)
     return -1;
   else
     return 1;
@@ -3383,11 +3380,11 @@ reserv_sets_hash_value (reserv_sets_t reservs)
 
 /* Comparison of given reservation sets.  */
 static int
-reserv_sets_cmp (reserv_sets_t reservs_1, reserv_sets_t reservs_2)
+reserv_sets_cmp (const_reserv_sets_t reservs_1, const_reserv_sets_t reservs_2)
 {
   int reservs_num;
-  set_el_t *reserv_ptr_1;
-  set_el_t *reserv_ptr_2;
+  const set_el_t *reserv_ptr_1;
+  const set_el_t *reserv_ptr_2;
 
   gcc_assert (reservs_1 && reservs_2);
   reservs_num = els_in_reservs;
@@ -3409,7 +3406,7 @@ reserv_sets_cmp (reserv_sets_t reservs_1, reserv_sets_t reservs_2)
 
 /* The function checks equality of the reservation sets.  */
 static int
-reserv_sets_eq (reserv_sets_t reservs_1, reserv_sets_t reservs_2)
+reserv_sets_eq (const_reserv_sets_t reservs_1, const_reserv_sets_t reservs_2)
 {
   return reserv_sets_cmp (reservs_1, reservs_2) == 0;
 }
@@ -3620,7 +3617,6 @@ get_free_state (int with_reservs, automaton_t automaton)
       result->it_was_placed_in_stack_for_NDFA_forming = 0;
       result->it_was_placed_in_stack_for_DFA_forming = 0;
       result->component_states = NULL;
-      result->longest_path_length = UNDEFINED_LONGEST_PATH_LENGTH;
     }
   else
     {
@@ -3631,7 +3627,6 @@ get_free_state (int with_reservs, automaton_t automaton)
       result->automaton = automaton;
       result->first_out_arc = NULL;
       result->unique_num = curr_unique_state_num;
-      result->longest_path_length = UNDEFINED_LONGEST_PATH_LENGTH;
       curr_unique_state_num++;
     }
   if (with_reservs)
@@ -3663,12 +3658,12 @@ state_hash (const void *state)
   unsigned int hash_value;
   alt_state_t alt_state;
 
-  if (((state_t) state)->component_states == NULL)
-    hash_value = reserv_sets_hash_value (((state_t) state)->reservs);
+  if (((const_state_t) state)->component_states == NULL)
+    hash_value = reserv_sets_hash_value (((const_state_t) state)->reservs);
   else
     {
       hash_value = 0;
-      for (alt_state = ((state_t) state)->component_states;
+      for (alt_state = ((const_state_t) state)->component_states;
            alt_state != NULL;
            alt_state = alt_state->next_sorted_alt_state)
         hash_value = (((hash_value >> (sizeof (unsigned) - 1) * CHAR_BIT)
@@ -3677,7 +3672,7 @@ state_hash (const void *state)
     }
   hash_value = (((hash_value >> (sizeof (unsigned) - 1) * CHAR_BIT)
                  | (hash_value << CHAR_BIT))
-                + ((state_t) state)->automaton->automaton_order_num);
+                + ((const_state_t) state)->automaton->automaton_order_num);
   return hash_value;
 }
 
@@ -3688,17 +3683,17 @@ state_eq_p (const void *state_1, const void *state_2)
   alt_state_t alt_state_1;
   alt_state_t alt_state_2;
 
-  if (((state_t) state_1)->automaton != ((state_t) state_2)->automaton)
+  if (((const_state_t) state_1)->automaton != ((const_state_t) state_2)->automaton)
     return 0;
-  else if (((state_t) state_1)->component_states == NULL
-           && ((state_t) state_2)->component_states == NULL)
-    return reserv_sets_eq (((state_t) state_1)->reservs,
-			   ((state_t) state_2)->reservs);
-  else if (((state_t) state_1)->component_states != NULL
-           && ((state_t) state_2)->component_states != NULL)
+  else if (((const_state_t) state_1)->component_states == NULL
+           && ((const_state_t) state_2)->component_states == NULL)
+    return reserv_sets_eq (((const_state_t) state_1)->reservs,
+			   ((const_state_t) state_2)->reservs);
+  else if (((const_state_t) state_1)->component_states != NULL
+           && ((const_state_t) state_2)->component_states != NULL)
     {
-      for (alt_state_1 = ((state_t) state_1)->component_states,
-           alt_state_2 = ((state_t) state_2)->component_states;
+      for (alt_state_1 = ((const_state_t) state_1)->component_states,
+           alt_state_2 = ((const_state_t) state_2)->component_states;
            alt_state_1 != NULL && alt_state_2 != NULL;
            alt_state_1 = alt_state_1->next_sorted_alt_state,
 	   alt_state_2 = alt_state_2->next_sorted_alt_state)
@@ -3917,7 +3912,7 @@ add_arc (state_t from_state, state_t to_state, ainsn_t ainsn)
 
 /* The function returns the first arc starting from STATE.  */
 static arc_t
-first_out_arc (state_t state)
+first_out_arc (const_state_t state)
 {
   return state->first_out_arc;
 }
@@ -4006,10 +4001,10 @@ static hashval_t
 automata_list_hash (const void *automata_list)
 {
   unsigned int hash_value;
-  automata_list_el_t curr_automata_list_el;
+  const_automata_list_el_t curr_automata_list_el;
 
   hash_value = 0;
-  for (curr_automata_list_el = (automata_list_el_t) automata_list;
+  for (curr_automata_list_el = (const_automata_list_el_t) automata_list;
        curr_automata_list_el != NULL;
        curr_automata_list_el = curr_automata_list_el->next_automata_list_el)
     hash_value = (((hash_value >> (sizeof (unsigned) - 1) * CHAR_BIT)
@@ -4022,11 +4017,11 @@ automata_list_hash (const void *automata_list)
 static int
 automata_list_eq_p (const void *automata_list_1, const void *automata_list_2)
 {
-  automata_list_el_t automata_list_el_1;
-  automata_list_el_t automata_list_el_2;
+  const_automata_list_el_t automata_list_el_1;
+  const_automata_list_el_t automata_list_el_2;
 
-  for (automata_list_el_1 = (automata_list_el_t) automata_list_1,
-	 automata_list_el_2 = (automata_list_el_t) automata_list_2;
+  for (automata_list_el_1 = (const_automata_list_el_t) automata_list_1,
+	 automata_list_el_2 = (const_automata_list_el_t) automata_list_2;
        automata_list_el_1 != NULL && automata_list_el_2 != NULL;
        automata_list_el_1 = automata_list_el_1->next_automata_list_el,
 	 automata_list_el_2 = automata_list_el_2->next_automata_list_el)
@@ -5726,8 +5721,8 @@ static int
 compare_states_for_equiv (const void *state_ptr_1,
 			  const void *state_ptr_2)
 {
-  state_t s1 = *(state_t *)state_ptr_1;
-  state_t s2 = *(state_t *)state_ptr_2;
+  const_state_t const s1 = *(const_state_t const*)state_ptr_1;
+  const_state_t const s2 = *(const_state_t const*)state_ptr_2;
   unsigned int sz, si;
   if (s1->num_out_arcs < s2->num_out_arcs)
     return -1;
@@ -6322,11 +6317,11 @@ static int
 compare_max_occ_cycle_nums (const void *unit_decl_1,
 			    const void *unit_decl_2)
 {
-  if ((DECL_UNIT (*(decl_t *) unit_decl_1)->max_occ_cycle_num)
-      < (DECL_UNIT (*(decl_t *) unit_decl_2)->max_occ_cycle_num))
+  if ((DECL_UNIT (*(const_decl_t const*) unit_decl_1)->max_occ_cycle_num)
+      < (DECL_UNIT (*(const_decl_t const*) unit_decl_2)->max_occ_cycle_num))
     return 1;
-  else if ((DECL_UNIT (*(decl_t *) unit_decl_1)->max_occ_cycle_num)
-	   == (DECL_UNIT (*(decl_t *) unit_decl_2)->max_occ_cycle_num))
+  else if ((DECL_UNIT (*(const_decl_t const*) unit_decl_1)->max_occ_cycle_num)
+	   == (DECL_UNIT (*(const_decl_t const*) unit_decl_2)->max_occ_cycle_num))
     return 0;
   else
     return -1;
@@ -6677,48 +6672,6 @@ output_range_type (FILE *f, long int min_range_value,
     fprintf (f, "int");
 }
 
-/* The following macro value is used as value of member
-   `longest_path_length' of state when we are processing path and the
-   state on the path.  */
-
-#define ON_THE_PATH -2
-
-/* The following recursive function searches for the length of the
-   longest path starting from STATE which does not contain cycles and
-   `cycle advance' arcs.  */
-
-static int
-longest_path_length (state_t state)
-{
-  arc_t arc;
-  int length, result;
-
-  if (state->longest_path_length != UNDEFINED_LONGEST_PATH_LENGTH)
-    {
-      /* We don't expect the path cycle here.  Our graph may contain
-      	 only cycles with one state on the path not containing `cycle
-      	 advance' arcs -- see comment below.  */
-      gcc_assert (state->longest_path_length != ON_THE_PATH);
-      
-      /* We already visited the state.  */
-      return state->longest_path_length;
-    }
-
-  result = 0;
-  for (arc = first_out_arc (state); arc != NULL; arc = next_out_arc (arc))
-    /* Ignore cycles containing one state and `cycle advance' arcs.  */
-    if (arc->to_state != state
-	&& (arc->insn->insn_reserv_decl
-	    != DECL_INSN_RESERV (advance_cycle_insn_decl)))
-    {
-      length = longest_path_length (arc->to_state);
-      if (length > result)
-	result = length;
-    }
-  state->longest_path_length = result + 1;
-  return result;
-}
-
 /* The function outputs all initialization values of VECT.  */
 static void
 output_vect (vla_hwint_t vect)
@@ -6905,6 +6858,8 @@ output_reserved_units_table_name (FILE *f, automaton_t automaton)
 #define GET_CPU_UNIT_CODE_FUNC_NAME "get_cpu_unit_code"
 
 #define CPU_UNIT_RESERVATION_P_FUNC_NAME "cpu_unit_reservation_p"
+
+#define INSN_HAS_DFA_RESERVATION_P_FUNC_NAME "insn_has_dfa_reservation_p"
 
 #define DFA_CLEAN_INSN_CACHE_FUNC_NAME  "dfa_clean_insn_cache"
 
@@ -7277,7 +7232,7 @@ add_vect (state_ainsn_table_t tab, int vect_num, vla_hwint_t vect)
 
 /* Return number of out arcs of STATE.  */
 static int
-out_state_arcs_num (state_t state)
+out_state_arcs_num (const_state_t state)
 {
   int result;
   arc_t arc;
@@ -7297,11 +7252,11 @@ static int
 compare_transition_els_num (const void *state_ptr_1,
 			    const void *state_ptr_2)
 {
-  int transition_els_num_1;
-  int transition_els_num_2;
+  const int transition_els_num_1
+    = out_state_arcs_num (*(const_state_t const*) state_ptr_1);
+  const int transition_els_num_2
+    = out_state_arcs_num (*(const_state_t const*) state_ptr_2);
 
-  transition_els_num_1 = out_state_arcs_num (*(state_t *) state_ptr_1);
-  transition_els_num_2 = out_state_arcs_num (*(state_t *) state_ptr_2);
   if (transition_els_num_1 < transition_els_num_2)
     return 1;
   else if (transition_els_num_1 == transition_els_num_2)
@@ -8289,8 +8244,8 @@ output_print_reservation_func (void)
 static int
 units_cmp (const void *unit1, const void *unit2)
 {
-  const unit_decl_t u1 = *(unit_decl_t *) unit1;
-  const unit_decl_t u2 = *(unit_decl_t *) unit2;
+  const_unit_decl_t const u1 = *(const_unit_decl_t const*) unit1;
+  const_unit_decl_t const u2 = *(const_unit_decl_t const*) unit2;
 
   return strcmp (u1->name, u2->name);
 }
@@ -8391,6 +8346,42 @@ output_cpu_unit_reservation_p (void)
 	fprintf (output_file, "    return 1;\n");
       }
   fprintf (output_file, "  return 0;\n}\n\n");
+}
+
+/* The following function outputs a function to check if insn
+   has a dfa reservation.  */
+static void
+output_insn_has_dfa_reservation_p (void)
+{
+  fprintf (output_file,
+	   "bool\n%s (rtx %s ATTRIBUTE_UNUSED)\n{\n",
+           INSN_HAS_DFA_RESERVATION_P_FUNC_NAME,
+           INSN_PARAMETER_NAME);
+
+  if (DECL_INSN_RESERV (advance_cycle_insn_decl)->insn_num == 0)
+    {
+      fprintf (output_file, "  return false;\n}\n\n");
+      return;
+    }
+
+  fprintf (output_file, "  int %s;\n\n", INTERNAL_INSN_CODE_NAME);
+
+  fprintf (output_file, "  if (%s == 0)\n    %s = %s;\n",
+	   INSN_PARAMETER_NAME,
+	   INTERNAL_INSN_CODE_NAME, ADVANCE_CYCLE_VALUE_NAME);
+  fprintf (output_file, "  else\n\
+    {\n\
+      %s = %s (%s);\n\
+      if (%s > %s)\n\
+        %s = %s;\n\
+    }\n\n",
+	   INTERNAL_INSN_CODE_NAME, DFA_INSN_CODE_FUNC_NAME,
+	       INSN_PARAMETER_NAME,
+	   INTERNAL_INSN_CODE_NAME, ADVANCE_CYCLE_VALUE_NAME,
+	   INTERNAL_INSN_CODE_NAME, ADVANCE_CYCLE_VALUE_NAME);
+
+  fprintf (output_file, "  return %s != %s;\n}\n\n",
+	   INTERNAL_INSN_CODE_NAME, ADVANCE_CYCLE_VALUE_NAME);
 }
 
 /* The function outputs PHR interface functions `dfa_clean_insn_cache'
@@ -8692,8 +8683,8 @@ output_state_arcs (state_t state)
 static int
 state_reservs_cmp (const void *reservs_ptr_1, const void *reservs_ptr_2)
 {
-  return reserv_sets_cmp (*(reserv_sets_t *) reservs_ptr_1,
-                          *(reserv_sets_t *) reservs_ptr_2);
+  return reserv_sets_cmp (*(const_reserv_sets_t const*) reservs_ptr_1,
+                          *(const_reserv_sets_t const*) reservs_ptr_2);
 }
 
 /* The following function is used for sorting possible cpu unit
@@ -8936,6 +8927,7 @@ initiate_automaton_gen (int argc, char **argv)
   split_argument = 0;  /* default value */
   no_minimization_flag = 0;
   time_flag = 0;
+  stats_flag = 0;
   v_flag = 0;
   w_flag = 0;
   progress_flag = 0;
@@ -8944,6 +8936,8 @@ initiate_automaton_gen (int argc, char **argv)
       no_minimization_flag = 1;
     else if (strcmp (argv [i], TIME_OPTION) == 0)
       time_flag = 1;
+    else if (strcmp (argv [i], STATS_OPTION) == 0)
+      stats_flag = 1;
     else if (strcmp (argv [i], V_OPTION) == 0)
       v_flag = 1;
     else if (strcmp (argv [i], W_OPTION) == 0)
@@ -9182,6 +9176,7 @@ write_automata (void)
   fprintf (output_file, "\n#if %s\n\n", CPU_UNITS_QUERY_MACRO_NAME);
   output_get_cpu_unit_code_func ();
   output_cpu_unit_reservation_p ();
+  output_insn_has_dfa_reservation_p ();
   fprintf (output_file, "\n#endif /* #if %s */\n\n",
 	   CPU_UNITS_QUERY_MACRO_NAME);
   output_dfa_clean_insn_cache_func ();
@@ -9205,9 +9200,11 @@ write_automata (void)
 	fprintf (stderr, "done\n");
       output_statistics (output_description_file);
     }
-  output_statistics (stderr);
+  if (stats_flag)
+    output_statistics (stderr);
   ticker_off (&output_time);
-  output_time_statistics (stderr);
+  if (time_flag)
+    output_time_statistics (stderr);
   finish_states ();
   finish_arcs ();
   finish_automata_lists ();
@@ -9227,8 +9224,8 @@ write_automata (void)
     {
       fflush (output_description_file);
       if (ferror (stdout) != 0)
-	fatal ("Error in writing DFA description file %s",
-               output_description_file_name);
+	fatal ("Error in writing DFA description file %s: %s",
+               output_description_file_name, xstrerror (errno));
       fclose (output_description_file);
     }
   finish_automaton_decl_table ();

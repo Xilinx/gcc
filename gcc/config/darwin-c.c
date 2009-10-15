@@ -33,6 +33,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm_p.h"
 #include "cppdefault.h"
 #include "prefix.h"
+#include "target.h"
+#include "target-def.h"
 
 /* Pragmas.  */
 
@@ -41,13 +43,6 @@ along with GCC; see the file COPYING3.  If not see
 
 static bool using_frameworks = false;
 
-/* Maintain a small stack of alignments.  This is similar to pragma
-   pack's stack, but simpler.  */
-
-static void push_field_alignment (int);
-static void pop_field_alignment (void);
-static const char *find_subframework_file (const char *, const char *);
-static void add_system_framework_path (char *);
 static const char *find_subframework_header (cpp_reader *pfile, const char *header,
 					     cpp_dir **dirp);
 
@@ -58,6 +53,9 @@ typedef struct align_stack
 } align_stack;
 
 static struct align_stack * field_align_stack = NULL;
+
+/* Maintain a small stack of alignments.  This is similar to pragma
+   pack's stack, but simpler.  */
 
 static void
 push_field_alignment (int bit_alignment)
@@ -568,8 +566,8 @@ find_subframework_header (cpp_reader *pfile, const char *header, cpp_dir **dirp)
 
 /* Return the value of darwin_macosx_version_min suitable for the
    __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ macro,
-   so '10.4.2' becomes 1042.
-   Print a warning if the version number is not known.  */
+   so '10.4.2' becomes 1040.  The lowest digit is always zero.
+   Print a warning if the version number can't be understood.  */
 static const char *
 version_as_macro (void)
 {
@@ -580,18 +578,9 @@ version_as_macro (void)
   if (! ISDIGIT (darwin_macosx_version_min[3]))
     goto fail;
   result[2] = darwin_macosx_version_min[3];
-  if (darwin_macosx_version_min[4] != '\0')
-    {
-      if (darwin_macosx_version_min[4] != '.')
-	goto fail;
-      if (! ISDIGIT (darwin_macosx_version_min[5]))
-	goto fail;
-      if (darwin_macosx_version_min[6] != '\0')
-	goto fail;
-      result[3] = darwin_macosx_version_min[5];
-    }
-  else
-    result[3] = '0';
+  if (darwin_macosx_version_min[4] != '\0'
+      && darwin_macosx_version_min[4] != '.')
+    goto fail;
 
   return result;
 
@@ -615,7 +604,37 @@ darwin_cpp_builtins (cpp_reader *pfile)
      to be defined and won't work if it isn't.  */
   builtin_define_with_value ("__APPLE_CC__", "1", false);
 
-  if (darwin_macosx_version_min)
-    builtin_define_with_value ("__ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__",
-			       version_as_macro(), false);
+  builtin_define_with_value ("__ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__",
+			     version_as_macro(), false);
 }
+
+/* Handle C family front-end options.  */
+
+static bool
+handle_c_option (size_t code,
+		 const char *arg,
+		 int value ATTRIBUTE_UNUSED)
+{
+  switch (code)
+    {
+    default:
+      /* Unrecognized options that we said we'd handle turn into
+	 errors if not listed here.  */
+      return false;
+
+    case OPT_iframework:
+      add_system_framework_path (xstrdup (arg));
+      break;
+
+    case OPT_fapple_kext:
+      ;
+    }
+
+  /* We recognized the option.  */
+  return true;
+}
+
+#undef TARGET_HANDLE_C_OPTION
+#define TARGET_HANDLE_C_OPTION handle_c_option
+
+struct gcc_targetcm targetcm = TARGETCM_INITIALIZER;

@@ -1,6 +1,6 @@
 /* Parser for Java(TM) .class files.
-   Copyright (C) 1996, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
-   2007  Free Software Foundation, Inc.
+   Copyright (C) 1996, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
+   2005, 2006, 2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -34,6 +34,7 @@ The Free Software Foundation is independent of Sun Microsystems, Inc.  */
 #include "flags.h"
 #include "java-except.h"
 #include "input.h"
+#include "javaop.h"
 #include "java-tree.h"
 #include "toplev.h"
 #include "parse.h"
@@ -42,6 +43,7 @@ The Free Software Foundation is independent of Sun Microsystems, Inc.  */
 #include "assert.h"
 #include "tm_p.h"
 #include "cgraph.h"
+#include "vecprim.h"
 
 #ifdef HAVE_LOCALE_H
 #include <locale.h>
@@ -88,23 +90,32 @@ static location_t file_start_location;
 /* The Java archive that provides main_class;  the main input file. */
 static GTY(()) struct JCF * main_jcf;
 
+/* The number of source files passed to us by -fsource-filename and an
+   array of pointers to each name.  Used by find_sourcefile().  */
+static int num_files = 0;
+static char **filenames;
+
 static struct ZipFile *localToFile;
 
+/* A map of byte offsets in the reflection data that are fields which
+   need renumbering.  */
+bitmap field_offsets;
+bitmap_obstack bit_obstack;
+
 /* Declarations of some functions used here.  */
-static void handle_innerclass_attribute (int count, JCF *);
+static void handle_innerclass_attribute (int count, JCF *, int len);
 static tree give_name_to_class (JCF *jcf, int index);
 static char *compute_class_name (struct ZipDirectory *zdir);
 static int classify_zip_file (struct ZipDirectory *zdir);
 static void parse_zip_file_entries (void);
 static void process_zip_dir (FILE *);
-static void parse_source_file_1 (tree, const char *, FILE *);
-static void parse_source_file_2 (void);
-static void parse_source_file_3 (void);
 static void parse_class_file (void);
 static void handle_deprecated (void);
 static void set_source_filename (JCF *, int);
 static void jcf_parse (struct JCF*);
 static void load_inner_classes (tree);
+static void handle_annotation (JCF *jcf, int level);
+static void java_layout_seen_class_methods (void);
 
 /* Handle "Deprecated" attribute.  */
 static void
@@ -122,6 +133,181 @@ handle_deprecated (void)
       gcc_unreachable ();
     }
 }
+
+
+
+/* Reverse a string.  */
+static char *
+reverse (const char *s)
+{
+  if (s == NULL)
+    return NULL;
+  else
+    {
+      int len = strlen (s);
+      char *d = xmalloc (len + 1);
+      const char *sp;
+      char *dp;
+      
+      d[len] = 0;
+      for (dp = &d[0], sp = &s[len-1]; sp >= s; dp++, sp--)
+	*dp = *sp;
+
+      return d;
+    }
+}
+
+/* Compare two strings for qsort().  */
+static int
+cmpstringp (const void *p1, const void *p2)
+{
+  /* The arguments to this function are "pointers to
+     pointers to char", but strcmp() arguments are "pointers
+     to char", hence the following cast plus dereference */
+
+  return strcmp(*(const char *const*) p1, *(const char *const*) p2);
+}
+
+/* Create an array of strings, one for each source file that we've
+   seen.  fsource_filename can either be the name of a single .java
+   file or a file that contains a list of filenames separated by
+   newlines.  */
+void 
+java_read_sourcefilenames (const char *fsource_filename)
+{
+  if (fsource_filename 
+      && filenames == 0
+      && strlen (fsource_filename) > strlen (".java")
+      && strcmp ((fsource_filename 
+		  + strlen (fsource_filename)
+		  - strlen (".java")),
+		 ".java") != 0)
+    {
+/*       fsource_filename isn't a .java file but a list of filenames
+       separated by newlines */
+      FILE *finput = fopen (fsource_filename, "r");
+      int len = 0;
+      int longest_line = 0;
+
+      gcc_assert (finput);
+
+      /* Find out how many files there are, and how long the filenames are.  */
+      while (! feof (finput))
+	{
+	  int ch = getc (finput);
+	  if (ch == '\n')
+	    {
+	      num_files++;
+	      if (len > longest_line)
+		longest_line = len;
+	      len = 0;
+	      continue;
+	    }
+	  if (ch == EOF)
+	    break;
+	  len++;
+	}
+
+      rewind (finput);
+
+      /* Read the filenames.  Put a pointer to each filename into the
+	 array FILENAMES.  */
+      {
+	char *linebuf = alloca (longest_line + 1);
+	int i = 0;
+	int charpos;
+
+	filenames = xmalloc (num_files * sizeof (char*));
+
+	charpos = 0;
+	for (;;)
+	  {
+	    int ch = getc (finput);
+	    if (ch == EOF)
+	      break;
+	    if (ch == '\n')
+	      {
+		linebuf[charpos] = 0;
+		gcc_assert (i < num_files);		
+		/* ???  Perhaps we should use lrealpath() here.  Doing
+		   so would tidy up things like /../ but the rest of
+		   gcc seems to assume relative pathnames, not
+		   absolute pathnames.  */
+/* 		realname = lrealpath (linebuf); */
+		filenames[i++] = reverse (linebuf);
+		charpos = 0;
+		continue;
+	      }
+	    gcc_assert (charpos < longest_line);
+	    linebuf[charpos++] = ch;
+	  }
+
+	if (num_files > 1)
+	  qsort (filenames, num_files, sizeof (char *), cmpstringp);
+      }
+      fclose (finput);
+    }
+  else
+    {
+      filenames = xmalloc (sizeof (char*));      
+      filenames[0] = reverse (fsource_filename);
+      num_files = 1;
+    }
+}
+
+/* Given a relative pathname such as foo/bar.java, attempt to find a
+   longer pathname with the same suffix.  
+
+   This is a best guess heuristic; with some weird class hierarchies we
+   may fail to pick the correct source file.  For example, if we have
+   the filenames foo/bar.java and also foo/foo/bar.java, we do not
+   have enough information to know which one is the right match for
+   foo/bar.java.  */
+
+static const char *
+find_sourcefile (const char *name)
+{
+  int i = 0, j = num_files-1;
+  char *found = NULL;
+  
+  if (filenames)
+    {
+      char *revname = reverse (name);
+
+      do
+	{
+	  int k = (i+j) / 2;
+	  int cmp = strncmp (revname, filenames[k], strlen (revname));
+	  if (cmp == 0)
+	    {
+	      /*  OK, so we found one.  But is it a unique match?  */
+	      if ((k > i
+		   && strncmp (revname, filenames[k-1], strlen (revname)) == 0)
+		  || (k < j
+		      && (strncmp (revname, filenames[k+1], strlen (revname)) 
+			  == 0)))
+		;
+	      else
+		found = filenames[k];
+	      break;
+	    }
+	  if (cmp > 0)
+	    i = k+1;
+	  else
+	    j = k-1;
+	}
+      while (i <= j);
+
+      free (revname);
+    }
+
+  if (found && strlen (found) > strlen (name))
+    return reverse (found);
+  else
+    return name;
+}
+
+
 
 /* Handle "SourceFile" attribute. */
 
@@ -143,6 +329,7 @@ set_source_filename (JCF *jcf, int index)
 	      || old_filename[old_len - new_len - 1] == '\\'))
 	{
 #ifndef USE_MAPPED_LOCATION
+	  input_filename = find_sourcefile (input_filename);
 	  DECL_SOURCE_LOCATION (TYPE_NAME (current_class)) = input_location;
 	  file_start_location = input_location;
 #endif
@@ -176,8 +363,9 @@ set_source_filename (JCF *jcf, int index)
 	}
     }
       
+  sfname = find_sourcefile (sfname);
 #ifdef USE_MAPPED_LOCATION
-  line_table.maps[line_table.used-1].to_file = sfname;
+  line_table->maps[line_table->used-1].to_file = sfname;
 #else
   input_filename = sfname;
   DECL_SOURCE_LOCATION (TYPE_NAME (current_class)) = input_location;
@@ -185,6 +373,519 @@ set_source_filename (JCF *jcf, int index)
 #endif
   if (current_class == main_class) main_input_filename = sfname;
 }
+
+
+
+
+/* Annotation handling.  
+
+   The technique we use here is to copy the annotation data directly
+   from the input class file into the output file.  We don't decode the
+   data at all, merely rewriting constant indexes whenever we come
+   across them: this is necessary because the constant pool in the
+   output file isn't the same as the constant pool in in the input.
+
+   The main advantage of this technique is that the resulting
+   annotation data is pointer-free, so it doesn't have to be relocated
+   at startup time.  As a consequence of this, annotations have no
+   performance impact unless they are used.  Also, this representation
+   is very dense.  */
+
+
+/* Expand TYPE_REFLECTION_DATA by DELTA bytes.  Return the address of
+   the start of the newly allocated region.  */
+
+static unsigned char*
+annotation_grow (int delta)
+{
+  unsigned char **data = &TYPE_REFLECTION_DATA (current_class);
+  long *datasize = &TYPE_REFLECTION_DATASIZE (current_class);
+  long len = *datasize;
+
+  if (*data == NULL)
+    {
+      *data = xmalloc (delta);
+    }
+  else
+    {
+      int newlen = *datasize + delta;
+      if (floor_log2 (newlen) != floor_log2 (*datasize))
+	*data = xrealloc (*data,  2 << (floor_log2 (newlen)));
+    }
+  *datasize += delta;
+  return *data + len;
+}
+
+/* annotation_rewrite_TYPE.  Rewrite various int types at p.  Use Java
+   byte order (i.e. big endian.)  */
+
+static void
+annotation_rewrite_byte (unsigned int n, unsigned char *p)
+{
+  p[0] = n;
+}
+
+static void
+annotation_rewrite_short (unsigned int n, unsigned char *p)
+{
+  p[0] = n>>8;
+  p[1] = n;
+}
+
+static void
+annotation_rewrite_int (unsigned int n, unsigned char *p)
+{
+  p[0] = n>>24;
+  p[1] = n>>16;
+  p[2] = n>>8;
+  p[3] = n;
+}
+
+/* Read a 16-bit unsigned int in Java byte order (i.e. big
+   endian.)  */
+
+static uint16
+annotation_read_short (unsigned char *p)
+{
+  uint16 tmp = p[0];
+  tmp = (tmp << 8) | p[1];
+  return tmp;
+}
+
+/* annotation_write_TYPE.  Rewrite various int types, appending them
+   to TYPE_REFLECTION_DATA.  Use Java byte order (i.e. big
+   endian.)  */
+
+static void
+annotation_write_byte (unsigned int n)
+{
+  annotation_rewrite_byte (n, annotation_grow (1));
+}
+
+static void
+annotation_write_short (unsigned int n)
+{
+  annotation_rewrite_short (n, annotation_grow (2));
+}
+
+static void
+annotation_write_int (unsigned int n)
+{
+  annotation_rewrite_int (n, annotation_grow (4));
+}
+
+/* Create a 64-bit constant in the constant pool.
+
+   This is used for both integer and floating-point types.  As a
+   consequence, it will not work if the target floating-point format
+   is anything other than IEEE-754.  While this is arguably a bug, the
+   runtime library makes exactly the same assumption and it's unlikely
+   that Java will ever run on a non-IEEE machine.  */
+
+static int 
+handle_long_constant (JCF *jcf, CPool *cpool, enum cpool_tag kind,
+		    int index, bool big_endian)
+{
+  /* If we're on a 64-bit platform we can fit a long or double
+     into the same space as a jword.  */
+  if (POINTER_SIZE >= 64)
+    index = find_constant1 (cpool, kind, JPOOL_LONG (jcf, index));
+
+  /* In a compiled program the constant pool is in native word
+     order.  How weird is that???  */
+  else if (big_endian)
+    index = find_constant2 (cpool, kind,
+			    JPOOL_INT (jcf, index), 
+			    JPOOL_INT (jcf, index+1));
+  else
+    index = find_constant2 (cpool, kind,
+			    JPOOL_INT (jcf, index+1), 
+			    JPOOL_INT (jcf, index));
+  
+  return index;
+}
+
+/* Given a class file and an index into its constant pool, create an
+   entry in the outgoing constant pool for the same item.  */
+
+static uint16
+handle_constant (JCF *jcf, int index, enum cpool_tag purpose)
+{
+  enum cpool_tag kind;
+  CPool *cpool = cpool_for_class (output_class);
+  
+  if (index == 0)
+    return 0;
+
+  if (! CPOOL_INDEX_IN_RANGE (&jcf->cpool, index))
+    error ("<constant pool index %d not in range>", index);
+  
+  kind = JPOOL_TAG (jcf, index);
+
+  if ((kind & ~CONSTANT_ResolvedFlag) != purpose)
+    {
+      if (purpose == CONSTANT_Class
+	  && kind == CONSTANT_Utf8)
+	;
+      else
+	error ("<constant pool index %d unexpected type", index);
+    }
+
+  switch (kind)
+    {
+    case CONSTANT_Class:
+    case CONSTANT_ResolvedClass:
+      {
+	/* For some reason I know not the what of, class names in
+	   annotations are UTF-8 strings in the constant pool but
+	   class names in EnclosingMethod attributes are real class
+	   references.  Set CONSTANT_LazyFlag here so that the VM
+	   doesn't attempt to resolve them at class initialization
+	   time.  */
+	tree resolved_class, class_name;
+	resolved_class = get_class_constant (jcf, index);
+	class_name = build_internal_class_name (resolved_class);
+	index = alloc_name_constant (CONSTANT_Class | CONSTANT_LazyFlag,
+				     (unmangle_classname 
+				      (IDENTIFIER_POINTER(class_name),
+				       IDENTIFIER_LENGTH(class_name))));
+	break;
+      }
+    case CONSTANT_Utf8:
+      {
+	tree utf8 = get_constant (jcf, index);
+	if (purpose == CONSTANT_Class)
+	  /* Create a constant pool entry for a type signature.  This
+	     one has '.' rather than '/' because it isn't going into a
+	     class file, it's going into a compiled object.
+	     
+	     This has to match the logic in
+	     _Jv_ClassReader::prepare_pool_entry().  */
+	  utf8 = unmangle_classname (IDENTIFIER_POINTER(utf8),
+				     IDENTIFIER_LENGTH(utf8));
+	index = alloc_name_constant (kind, utf8);
+      }
+      break;
+
+    case CONSTANT_Long:
+      index = handle_long_constant (jcf, cpool, kind, index, 
+				    WORDS_BIG_ENDIAN);
+      break;
+      
+    case CONSTANT_Double:
+      index = handle_long_constant (jcf, cpool, kind, index, 
+				    FLOAT_WORDS_BIG_ENDIAN);
+      break;
+
+    case CONSTANT_Float:
+    case CONSTANT_Integer:
+      index = find_constant1 (cpool, kind, JPOOL_INT (jcf, index));
+      break;
+      
+    case CONSTANT_NameAndType:
+      {
+	uint16 name = JPOOL_USHORT1 (jcf, index);
+	uint16 sig = JPOOL_USHORT2 (jcf, index);
+	uint32 name_index = handle_constant (jcf, name, CONSTANT_Utf8);
+	uint32 sig_index = handle_constant (jcf, sig, CONSTANT_Class);
+	jword new_index = (name_index << 16) | sig_index;
+	index = find_constant1 (cpool, kind, new_index);
+      }
+      break;
+
+    default:
+      abort ();
+    }
+  
+  return index;
+}
+
+/* Read an element_value structure from an annotation in JCF.  Return
+   the constant pool index for the resulting constant pool entry.  */
+
+static int
+handle_element_value (JCF *jcf, int level)
+{
+  uint8 tag = JCF_readu (jcf);
+  int index = 0;
+
+  annotation_write_byte (tag);
+  switch (tag)
+    {
+    case 'B':
+    case 'C':
+    case 'S':
+    case 'Z':
+    case 'I':
+      {
+	uint16 cindex = JCF_readu2 (jcf);
+	index = handle_constant (jcf, cindex,
+				 CONSTANT_Integer);
+	annotation_write_short (index);
+      }
+      break;
+    case 'D':
+      {
+	uint16 cindex = JCF_readu2 (jcf);
+	index = handle_constant (jcf, cindex,
+				 CONSTANT_Double);
+	annotation_write_short (index);
+      }
+      break;
+    case 'F':
+      {
+	uint16 cindex = JCF_readu2 (jcf);
+	index = handle_constant (jcf, cindex,
+				 CONSTANT_Float);
+	annotation_write_short (index);
+      }
+      break;
+    case 'J':
+      {
+	uint16 cindex = JCF_readu2 (jcf);
+	index = handle_constant (jcf, cindex,
+				 CONSTANT_Long);
+	annotation_write_short (index);
+      }
+      break;
+    case 's':
+      {
+	uint16 cindex = JCF_readu2 (jcf);
+	/* Despite what the JVM spec says, compilers generate a Utf8
+	   constant here, not a String.  */
+	index = handle_constant (jcf, cindex,
+				 CONSTANT_Utf8);
+	annotation_write_short (index);
+      }
+      break;
+
+    case 'e':
+      {
+	uint16 type_name_index = JCF_readu2 (jcf);
+	uint16 const_name_index = JCF_readu2 (jcf);
+	index = handle_constant (jcf, type_name_index,
+				 CONSTANT_Class);
+	annotation_write_short (index);
+	index = handle_constant (jcf, const_name_index,
+				 CONSTANT_Utf8);
+	annotation_write_short (index);
+     }
+      break;
+    case 'c':
+      {
+	uint16 class_info_index = JCF_readu2 (jcf);
+	index = handle_constant (jcf, class_info_index,
+				 CONSTANT_Class);
+	annotation_write_short (index);
+      }
+      break;
+    case '@':
+      {
+	handle_annotation (jcf, level + 1);
+      }
+      break;
+    case '[':
+      {
+	uint16 n_array_elts = JCF_readu2 (jcf);
+	annotation_write_short (n_array_elts);
+	while (n_array_elts--)
+	  handle_element_value (jcf, level + 1);
+      }
+      break;
+    default:
+      abort();
+      break;
+    }
+  return index;
+}
+
+/* Read an annotation structure from JCF.  Write it to the
+   reflection_data field of the outgoing class.  */
+
+static void
+handle_annotation (JCF *jcf, int level)
+{
+  uint16 type_index = JCF_readu2 (jcf);
+  uint16 npairs = JCF_readu2 (jcf);
+  int index = handle_constant (jcf, type_index,
+			       CONSTANT_Class);
+  annotation_write_short (index);
+  annotation_write_short (npairs);
+  while (npairs--)
+    {
+      uint16 name_index = JCF_readu2 (jcf);
+      index = handle_constant (jcf, name_index,
+			       CONSTANT_Utf8);
+      annotation_write_short (index);
+      handle_element_value (jcf, level + 2);
+    }
+}
+
+/* Read an annotation count from JCF, and write the following
+   annotations to the reflection_data field of the outgoing class.  */
+
+static void
+handle_annotations (JCF *jcf, int level)
+{
+  uint16 num = JCF_readu2 (jcf);
+  annotation_write_short (num);
+  while (num--)
+    handle_annotation (jcf, level);
+}
+
+/* As handle_annotations(), but perform a sanity check that we write
+   the same number of bytes that we were expecting.  */
+
+static void
+handle_annotation_attribute (int ATTRIBUTE_UNUSED index, JCF *jcf, 
+			     long length)
+{
+  long old_datasize = TYPE_REFLECTION_DATASIZE (current_class);
+
+  handle_annotations (jcf, 0);
+
+  gcc_assert (old_datasize + length
+	      == TYPE_REFLECTION_DATASIZE (current_class));
+}
+
+/* gcj permutes its fields array after generating annotation_data, so
+   we have to fixup field indexes for fields that have moved.  Given
+   ARG, a VEC_int, fixup the field indexes in the reflection_data of
+   the outgoing class.  We use field_offsets to tell us where the
+   fixups must go.  */
+
+void
+rewrite_reflection_indexes (void *arg)
+{
+  bitmap_iterator bi;
+  unsigned int offset;
+  VEC(int, heap) *map = arg;
+  unsigned char *data = TYPE_REFLECTION_DATA (current_class);
+
+  if (map)
+    {
+      EXECUTE_IF_SET_IN_BITMAP (field_offsets, 0, offset, bi)
+	{
+	  uint16 index = annotation_read_short (data + offset);
+	  annotation_rewrite_short 
+	    (VEC_index (int, map, index), data + offset);
+	}
+    }
+}
+
+/* Read the RuntimeVisibleAnnotations from JCF and write them to the
+   reflection_data of the outgoing class.  */
+
+static void
+handle_member_annotations (int member_index, JCF *jcf, 
+			   const unsigned char *name ATTRIBUTE_UNUSED, 
+			   long len, jv_attr_type member_type)
+{
+  int new_len = len + 1;
+  annotation_write_byte (member_type);
+  if (member_type != JV_CLASS_ATTR)
+    new_len += 2;
+  annotation_write_int (new_len);
+  annotation_write_byte (JV_ANNOTATIONS_KIND);
+  if (member_type == JV_FIELD_ATTR)
+    bitmap_set_bit (field_offsets, TYPE_REFLECTION_DATASIZE (current_class));
+  if (member_type != JV_CLASS_ATTR)
+    annotation_write_short (member_index);
+  handle_annotation_attribute (member_index, jcf, len);
+}
+
+/* Read the RuntimeVisibleParameterAnnotations from JCF and write them
+   to the reflection_data of the outgoing class.  */
+
+static void
+handle_parameter_annotations (int member_index, JCF *jcf, 
+			      const unsigned char *name ATTRIBUTE_UNUSED, 
+			      long len, jv_attr_type member_type)
+{
+  int new_len = len + 1;
+  uint8 num;
+  annotation_write_byte (member_type);
+  if (member_type != JV_CLASS_ATTR)
+    new_len += 2;
+  annotation_write_int (new_len);
+  annotation_write_byte (JV_PARAMETER_ANNOTATIONS_KIND);
+  if (member_type != JV_CLASS_ATTR)
+    annotation_write_short (member_index);
+  num = JCF_readu (jcf);
+  annotation_write_byte (num);
+  while (num--)
+    handle_annotations (jcf, 0);
+}
+
+
+/* Read the AnnotationDefault data from JCF and write them to the
+   reflection_data of the outgoing class.  */
+
+static void
+handle_default_annotation (int member_index, JCF *jcf, 
+			   const unsigned char *name ATTRIBUTE_UNUSED, 
+			   long len, jv_attr_type member_type)
+{
+  int new_len = len + 1;
+  annotation_write_byte (member_type);
+  if (member_type != JV_CLASS_ATTR)
+    new_len += 2;
+  annotation_write_int (new_len);
+  annotation_write_byte (JV_ANNOTATION_DEFAULT_KIND);
+  if (member_type != JV_CLASS_ATTR)
+    annotation_write_short (member_index);
+  handle_element_value (jcf, 0);
+}
+
+/* As above, for the EnclosingMethod attribute.  */
+
+static void
+handle_enclosingmethod_attribute (int member_index, JCF *jcf, 
+			   const unsigned char *name ATTRIBUTE_UNUSED, 
+			   long len, jv_attr_type member_type)
+{
+  int new_len = len + 1;
+  uint16 index;
+  annotation_write_byte (member_type);
+  if (member_type != JV_CLASS_ATTR)
+    new_len += 2;
+  annotation_write_int (new_len);
+  annotation_write_byte (JV_ENCLOSING_METHOD_KIND);
+  if (member_type != JV_CLASS_ATTR)
+    annotation_write_short (member_index);
+
+  index = JCF_readu2 (jcf);
+  index = handle_constant (jcf, index, CONSTANT_Class);
+  annotation_write_short (index);
+
+  index = JCF_readu2 (jcf);
+  index = handle_constant (jcf, index, CONSTANT_NameAndType);
+  annotation_write_short (index);
+}
+
+/* As above, for the Signature attribute.  */
+
+static void
+handle_signature_attribute (int member_index, JCF *jcf, 
+			   const unsigned char *name ATTRIBUTE_UNUSED, 
+			   long len, jv_attr_type member_type)
+{
+  int new_len = len + 1;
+  uint16 index;
+  annotation_write_byte (member_type);
+  if (member_type != JV_CLASS_ATTR)
+    new_len += 2;
+  annotation_write_int (new_len);
+  annotation_write_byte (JV_SIGNATURE_KIND);
+  if (member_type != JV_CLASS_ATTR)
+    annotation_write_short (member_index);
+
+  index = JCF_readu2 (jcf);
+  index = handle_constant (jcf, index, CONSTANT_Utf8);
+  annotation_write_short (index);
+}
+  
+
 
 #define HANDLE_SOURCEFILE(INDEX) set_source_filename (jcf, INDEX)
 
@@ -210,7 +911,7 @@ set_source_filename (JCF *jcf, int index)
 
 #define HANDLE_CONSTANTVALUE(INDEX) \
 { tree constant;  int index = INDEX; \
-  if (! flag_emit_class_files && JPOOL_TAG (jcf, index) == CONSTANT_String) { \
+  if (JPOOL_TAG (jcf, index) == CONSTANT_String) { \
     tree name = get_name_constant (jcf, JPOOL_USHORT1 (jcf, index)); \
     constant = build_utf8_ref (name); \
   } \
@@ -261,22 +962,62 @@ set_source_filename (JCF *jcf, int index)
 /* Link seen inner classes to their outer context and register the
    inner class to its outer context. They will be later loaded.  */
 #define HANDLE_INNERCLASSES_ATTRIBUTE(COUNT) \
-  handle_innerclass_attribute (COUNT, jcf)
+  handle_innerclass_attribute (COUNT, jcf, attribute_length)
 
 #define HANDLE_SYNTHETIC_ATTRIBUTE()					\
 {									\
   /* Irrelevant decls should have been nullified by the END macros.	\
-     We only handle the `Synthetic' attribute on method DECLs.		\
      DECL_ARTIFICIAL on fields is used for something else (See		\
      PUSH_FIELD in java-tree.h) */					\
   if (current_method)							\
     DECL_ARTIFICIAL (current_method) = 1;				\
+  else if (current_field)						\
+    FIELD_SYNTHETIC (current_field) = 1;				\
+  else									\
+    TYPE_SYNTHETIC (current_class) = 1;					\
 }
 
 #define HANDLE_GCJCOMPILED_ATTRIBUTE()		\
 { 						\
   if (current_class == object_type_node)	\
     jcf->right_zip = 1;				\
+}
+
+#define HANDLE_RUNTIMEVISIBLEANNOTATIONS_ATTRIBUTE()			\
+{									\
+  handle_member_annotations (index, jcf, name_data, attribute_length, attr_type); \
+}
+
+#define HANDLE_RUNTIMEINVISIBLEANNOTATIONS_ATTRIBUTE()	\
+{							\
+  JCF_SKIP(jcf, attribute_length);			\
+}
+
+#define HANDLE_RUNTIMEVISIBLEPARAMETERANNOTATIONS_ATTRIBUTE()		\
+{									\
+  handle_parameter_annotations (index, jcf, name_data, attribute_length, attr_type); \
+}
+
+#define HANDLE_RUNTIMEINVISIBLEPARAMETERANNOTATIONS_ATTRIBUTE()	\
+{								\
+  JCF_SKIP(jcf, attribute_length);				\
+}
+
+#define HANDLE_ANNOTATIONDEFAULT_ATTRIBUTE()				\
+{									\
+  handle_default_annotation (index, jcf, name_data, attribute_length, attr_type); \
+}
+
+#define HANDLE_ENCLOSINGMETHOD_ATTRIBUTE()				\
+{									\
+  handle_enclosingmethod_attribute (index, jcf, name_data,		\
+				    attribute_length, attr_type);	\
+}
+
+#define HANDLE_SIGNATURE_ATTRIBUTE()				\
+{								\
+  handle_signature_attribute (index, jcf, name_data,		\
+			      attribute_length, attr_type);	\
 }
 
 #include "jcf-reader.c"
@@ -319,8 +1060,7 @@ get_constant (JCF *jcf, int index)
 	lshift_double (num, 0, 32, 64, &lo, &hi, 0);
 	num = JPOOL_UINT (jcf, index+1);
 	add_double (lo, hi, num, 0, &lo, &hi);
-	value = build_int_cst_wide (long_type_node, lo, hi);
-	value = force_fit_type (value, 0, false, false);
+	value = build_int_cst_wide_type (long_type_node, lo, hi);
 	break;
       }
 
@@ -403,9 +1143,15 @@ get_name_constant (JCF *jcf, int index)
    the outer context with the newly resolved innerclass.  */
 
 static void
-handle_innerclass_attribute (int count, JCF *jcf)
+handle_innerclass_attribute (int count, JCF *jcf, int attribute_length)
 {
-  int c = (count);
+  int c = count;
+
+  annotation_write_byte (JV_CLASS_ATTR);
+  annotation_write_int (attribute_length+1);
+  annotation_write_byte (JV_INNER_CLASSES_KIND);
+  annotation_write_short (count);
+
   while (c--)
     {
       /* Read inner_class_info_index. This may be 0 */
@@ -418,6 +1164,12 @@ handle_innerclass_attribute (int count, JCF *jcf)
       int ini = JCF_readu2 (jcf);
       /* Read the access flag. */
       int acc = JCF_readu2 (jcf);
+
+      annotation_write_short (handle_constant (jcf, icii, CONSTANT_Class));
+      annotation_write_short (handle_constant (jcf, ocii, CONSTANT_Class));
+      annotation_write_short (handle_constant (jcf, ini, CONSTANT_Utf8));
+      annotation_write_short (acc);
+
       /* If icii is 0, don't try to read the class. */
       if (icii >= 0)
 	{
@@ -456,18 +1208,21 @@ give_name_to_class (JCF *jcf, int i)
 #ifdef USE_MAPPED_LOCATION
       {
       tree source_name = identifier_subst (class_name, "", '.', '/', ".java");
-      const char *sfname = IDENTIFIER_POINTER (source_name);
-      linemap_add (&line_table, LC_ENTER, false, sfname, 0);
-      input_location = linemap_line_start (&line_table, 0, 1);
+      const char *sfname = find_sourcefile (IDENTIFIER_POINTER (source_name));
+      linemap_add (line_table, LC_ENTER, false, sfname, 0);
+      input_location = linemap_line_start (line_table, 0, 1);
       file_start_location = input_location;
       DECL_SOURCE_LOCATION (TYPE_NAME (this_class)) = input_location;
       if (main_input_filename == NULL && jcf == main_jcf)
 	main_input_filename = sfname;
       }
 #else
-      input_location = DECL_SOURCE_LOCATION (TYPE_NAME (this_class));
-      if (main_input_filename == NULL && jcf == main_jcf)
-	main_input_filename = input_filename;
+     if (! DECL_ARTIFICIAL (TYPE_NAME (this_class)))
+      {
+	input_location = DECL_SOURCE_LOCATION (TYPE_NAME (this_class));
+	if (main_input_filename == NULL && jcf == main_jcf)
+	  main_input_filename = input_filename;
+      }
 #endif
 
       jcf->cpool.data[i].t = this_class;
@@ -542,78 +1297,30 @@ read_class (tree name)
       
       path_name = find_class (IDENTIFIER_POINTER (name),
 			      IDENTIFIER_LENGTH (name),
-			      &this_jcf, 1);
+			      &this_jcf);
       if (path_name == 0)
 	return 0;
       else
-	free((char *) path_name);
+	free(CONST_CAST (char *, path_name));
     }
 
   current_jcf = jcf;
 
-  if (current_jcf->java_source)
+  if (class == NULL_TREE || ! CLASS_PARSED_P (class))
     {
-      const char *filename = current_jcf->filename;
-      char *real_path;
-      tree given_file, real_file;
-      FILE *finput;
-      int generate;
-
-      java_parser_context_save_global ();
-      java_push_parser_context ();
-
-      given_file = get_identifier (filename);
-      filename = IDENTIFIER_POINTER (given_file);
-      real_path = lrealpath (filename);
-      real_file = get_identifier (real_path);
-      free (real_path);
-
-      generate = IS_A_COMMAND_LINE_FILENAME_P (given_file);
-      output_class = current_class = NULL_TREE;
-      current_function_decl = NULL_TREE;
-
-      if (! HAS_BEEN_ALREADY_PARSED_P (real_file))
-	{
-	  if (! (finput = fopen (filename, "r")))
-	    fatal_error ("can't reopen %s: %m", filename);
-
-	  parse_source_file_1 (real_file, filename, finput);
-	  parse_source_file_2 ();
-	  parse_source_file_3 ();
-
-	  if (fclose (finput))
-	    fatal_error ("can't close %s: %m", input_filename);
-#ifdef USE_MAPPED_LOCATION
-	  linemap_add (&line_table, LC_LEAVE, false, NULL, 0);
-#endif
-	}
-      JCF_FINISH (current_jcf);
-      java_pop_parser_context (generate);
-      java_parser_context_restore_global ();
+      output_class = current_class = class;
+      if (JCF_SEEN_IN_ZIP (current_jcf))
+	read_zip_member(current_jcf,
+			current_jcf->zipd, current_jcf->zipd->zipf);
+      jcf_parse (current_jcf);
+      /* Parsing might change the class, in which case we have to
+	 put it back where we found it.  */
+      if (current_class != class && icv != NULL_TREE)
+	TREE_TYPE (icv) = current_class;
+      class = current_class;
     }
-  else
-    {
-      if (class == NULL_TREE || ! CLASS_PARSED_P (class))
-	{
-	  java_parser_context_save_global ();
-	  java_push_parser_context ();
-	  output_class = current_class = class;
-	  ctxp->save_location = input_location;
-	  if (JCF_SEEN_IN_ZIP (current_jcf))
-	    read_zip_member(current_jcf,
-			    current_jcf->zipd, current_jcf->zipd->zipf);
-	  jcf_parse (current_jcf);
-	  /* Parsing might change the class, in which case we have to
-	     put it back where we found it.  */
-	  if (current_class != class && icv != NULL_TREE)
-	    TREE_TYPE (icv) = current_class;
-	  class = current_class;
-	  java_pop_parser_context (0);
-	  java_parser_context_restore_global ();
-	}
-      layout_class (class);
-      load_inner_classes (class);
-    }
+  layout_class (class);
+  load_inner_classes (class);
 
   output_class = save_output_class;
   current_class = save_current_class;
@@ -657,11 +1364,6 @@ load_class (tree class_or_name, int verbose)
 	= ((TYPE_JCF (type) && JCF_SEEN_IN_ZIP (TYPE_JCF (type)))
 	   || CLASS_FROM_CURRENTLY_COMPILED_P (type));
     }
-
-  /* If the class is from source code, then it must already be loaded.  */
-  class_decl = IDENTIFIER_CLASS_VALUE (name);
-  if (class_decl && CLASS_FROM_SOURCE_P (TREE_TYPE (class_decl)))
-    return;
 
   saved = name;
   
@@ -713,8 +1415,7 @@ load_class (tree class_or_name, int verbose)
   
   if (!class_loaded)
     {
-      if (flag_verify_invocations || ! flag_indirect_dispatch
-	  || flag_emit_class_files)
+      if (flag_verify_invocations || ! flag_indirect_dispatch)
 	{
 	  if (verbose)
 	    error ("cannot find file for class %s", IDENTIFIER_POINTER (saved));
@@ -744,6 +1445,8 @@ static void
 jcf_parse (JCF* jcf)
 {
   int i, code;
+
+  bitmap_clear (field_offsets);
 
   if (jcf_parse_preamble (jcf) != 0)
     fatal_error ("not a valid Java .class file");
@@ -789,8 +1492,12 @@ jcf_parse (JCF* jcf)
   code = jcf_parse_final_attributes (jcf);
   if (code != 0)
     fatal_error ("error while parsing final attributes");
+
+  if (TYPE_REFLECTION_DATA (current_class))
+    annotation_write_byte (JV_DONE_ATTR);
+
 #ifdef USE_MAPPED_LOCATION
-  linemap_add (&line_table, LC_LEAVE, false, NULL, 0);
+  linemap_add (line_table, LC_LEAVE, false, NULL, 0);
 #endif
 
   /* The fields of class_type_node are already in correct order. */
@@ -798,15 +1505,7 @@ jcf_parse (JCF* jcf)
     TYPE_FIELDS (current_class) = nreverse (TYPE_FIELDS (current_class));
 
   if (current_class == object_type_node)
-    {
-      layout_class_methods (object_type_node);
-      /* If we don't have the right archive, emit a verbose warning.
-	 If we're generating bytecode, emit the warning only if
-	 -fforce-classes-archive-check was specified. */
-      if (!jcf->right_zip
-	  && (!flag_emit_class_files || flag_force_classes_archive_check))
-	fatal_error ("the %<java.lang.Object%> that was found in %qs didn't have the special zero-length %<gnu.gcj.gcj-compiled%> attribute.  This generally means that your classpath is incorrectly set.  Use %<info gcj \"Input Options\"%> to see the info page describing how to set the classpath", jcf->filename);
-    }
+    layout_class_methods (object_type_node);
   else
     all_class_list = tree_cons (NULL_TREE,
 				TYPE_NAME (current_class), all_class_list );
@@ -833,13 +1532,49 @@ duplicate_class_warning (const char *filename)
 {
   location_t warn_loc;
 #ifdef USE_MAPPED_LOCATION
-  linemap_add (&line_table, LC_RENAME, 0, filename, 0);
-  warn_loc = linemap_line_start (&line_table, 0, 1);
+  linemap_add (line_table, LC_RENAME, 0, filename, 0);
+  warn_loc = linemap_line_start (line_table, 0, 1);
 #else
   warn_loc.file = filename;
   warn_loc.line = 0;
 #endif
   warning (0, "%Hduplicate class will only be compiled once", &warn_loc);
+}
+
+static void
+java_layout_seen_class_methods (void)
+{
+  tree previous_list = all_class_list;
+  tree end = NULL_TREE;
+  tree current;
+
+  while (1)
+    {
+      for (current = previous_list;
+	   current != end; current = TREE_CHAIN (current))
+        {
+	  tree decl = TREE_VALUE (current);
+          tree cls = TREE_TYPE (decl);
+
+	  input_location = DECL_SOURCE_LOCATION (decl);
+
+          if (! CLASS_LOADED_P (cls))
+            load_class (cls, 0);
+
+          layout_class_methods (cls);
+        }
+
+      /* Note that new classes might have been added while laying out
+         methods, changing the value of all_class_list.  */
+
+      if (previous_list != all_class_list)
+	{
+	  end = previous_list;
+	  previous_list = all_class_list;
+	}
+      else
+	break;
+    }
 }
 
 static void
@@ -851,12 +1586,19 @@ parse_class_file (void)
   java_layout_seen_class_methods ();
 
   input_location = DECL_SOURCE_LOCATION (TYPE_NAME (current_class));
+#ifdef USE_MAPPED_LOCATION
+  {
+    /* Re-enter the current file.  */
+    expanded_location loc = expand_location (input_location);
+    linemap_add (line_table, LC_ENTER, 0, loc.file, loc.line);
+  }
+#endif
   file_start_location = input_location;
   (*debug_hooks->start_source_file) (input_line, input_filename);
 
-  gen_indirect_dispatch_tables (current_class);
-
   java_mark_class_local (current_class);
+
+  gen_indirect_dispatch_tables (current_class);
 
   for (method = TYPE_METHODS (current_class);
        method != NULL_TREE; method = TREE_CHAIN (method))
@@ -917,7 +1659,7 @@ parse_class_file (void)
 	    }
 #ifdef USE_MAPPED_LOCATION
 	  if (min_line != 0)
-	    input_location = linemap_line_start (&line_table, min_line, 1);
+	    input_location = linemap_line_start (line_table, min_line, 1);
 #else
 	  if (min_line != 0)
 	    input_line = min_line;
@@ -956,78 +1698,10 @@ parse_class_file (void)
       end_java_method ();
     }
 
-  if (flag_emit_class_files)
-    write_classfile (current_class);
-
   finish_class ();
 
   (*debug_hooks->end_source_file) (LOCATION_LINE (save_location));
   input_location = save_location;
-}
-
-/* Parse a source file, as pointed by the current value of INPUT_FILENAME. */
-
-static void
-parse_source_file_1 (tree real_file, const char *filename, FILE *finput)
-{
-  int save_error_count = java_error_count;
-
-  /* Mark the file as parsed.  */
-  HAS_BEEN_ALREADY_PARSED_P (real_file) = 1;
-
-  lang_init_source (1);		    /* Error msgs have no method prototypes */
-
-  /* There's no point in trying to find the current encoding unless we
-     are going to do something intelligent with it -- hence the test
-     for iconv.  */
-#if defined (HAVE_LOCALE_H) && defined (HAVE_ICONV) && defined (HAVE_LANGINFO_CODESET)
-  setlocale (LC_CTYPE, "");
-  if (current_encoding == NULL)
-    current_encoding = nl_langinfo (CODESET);
-#endif 
-  if (current_encoding == NULL || *current_encoding == '\0')
-    current_encoding = DEFAULT_ENCODING;
-
-#ifdef USE_MAPPED_LOCATION
-  linemap_add (&line_table, LC_ENTER, false, filename, 0);
-  input_location = linemap_line_start (&line_table, 0, 125);
-#else
-  input_filename = filename;
-  input_line = 0;
-#endif
-  ctxp->file_start_location = input_location;
-  ctxp->filename = filename;
-
-  jcf_dependency_add_file (input_filename, 0);
-
-  /* Initialize the parser */
-  java_init_lex (finput, current_encoding);
-  java_parse_abort_on_error ();
-
-  java_parse ();		    /* Parse and build partial tree nodes. */
-  java_parse_abort_on_error ();
-}
-
-/* Process a parsed source file, resolving names etc. */
-
-static void
-parse_source_file_2 (void)
-{
-  int save_error_count = java_error_count;
-  flag_verify_invocations = true;
-  java_complete_class ();	    /* Parse unsatisfied class decl. */
-  java_parse_abort_on_error ();
-}
-
-static void
-parse_source_file_3 (void)
-{
-  int save_error_count = java_error_count;
-  java_check_circular_reference (); /* Check on circular references */
-  java_parse_abort_on_error ();
-  java_fix_constructors ();	    /* Fix the constructors */
-  java_parse_abort_on_error ();
-  java_reorder_fields ();	    /* Reorder the fields */
 }
 
 void
@@ -1074,6 +1748,9 @@ java_parse_file (int set_yydebug ATTRIBUTE_UNUSED)
   FILE *finput = NULL;
   int in_quotes = 0;
  
+  bitmap_obstack_initialize (&bit_obstack);
+  field_offsets = BITMAP_ALLOC (&bit_obstack);
+
   if (flag_filelist_file)
     {
       int avail = 2000;
@@ -1110,7 +1787,7 @@ java_parse_file (int set_yydebug ATTRIBUTE_UNUSED)
       file_list = list;
     }
   else
-    list = (char *) main_input_filename;
+    list = CONST_CAST (char *, main_input_filename);
 
   while (list)
     {
@@ -1150,7 +1827,12 @@ java_parse_file (int set_yydebug ATTRIBUTE_UNUSED)
 	  next++;
 	}
 
-      if (list[0]) 
+      /* Exclude .java files.  */
+      if (strlen (list) > 5 && ! strcmp (list + strlen (list) - 5, ".java"))
+	{
+	  /* Nothing. */
+	}
+      else if (list[0]) 
 	{
 	  node = get_identifier (list);
 
@@ -1253,8 +1935,8 @@ java_parse_file (int set_yydebug ATTRIBUTE_UNUSED)
 	  main_jcf->read_state = finput;
 	  main_jcf->filbuf = jcf_filbuf_from_stdio;
 #ifdef USE_MAPPED_LOCATION
-	  linemap_add (&line_table, LC_ENTER, false, filename, 0);
-	  input_location = linemap_line_start (&line_table, 0, 1);
+	  linemap_add (line_table, LC_ENTER, false, filename, 0);
+	  input_location = linemap_line_start (line_table, 0, 1);
 #endif
 	  if (open_in_zip (main_jcf, filename, NULL, 0) <  0)
 	    fatal_error ("bad zip/jar file %s", filename);
@@ -1262,12 +1944,18 @@ java_parse_file (int set_yydebug ATTRIBUTE_UNUSED)
 	  /* Register all the classes defined there.  */
 	  process_zip_dir (main_jcf->read_state);
 #ifdef USE_MAPPED_LOCATION
-	  linemap_add (&line_table, LC_LEAVE, false, NULL, 0);
+	  linemap_add (line_table, LC_LEAVE, false, NULL, 0);
 #endif
 	  parse_zip_file_entries ();
 	}
+      else if (magic == (JCF_u4) ZIPEMPTYMAGIC)
+	{
+	  /* Ignore an empty input jar.  */
+	}
       else
 	{
+	  gcc_unreachable ();
+#if 0
 	  java_push_parser_context ();
 	  java_parser_context_save_global ();
 
@@ -1275,21 +1963,10 @@ java_parse_file (int set_yydebug ATTRIBUTE_UNUSED)
 	  java_parser_context_restore_global ();
 	  java_pop_parser_context (1);
 #ifdef USE_MAPPED_LOCATION
-	  linemap_add (&line_table, LC_LEAVE, false, NULL, 0);
+	  linemap_add (line_table, LC_LEAVE, false, NULL, 0);
+#endif
 #endif
 	}
-    }
-
-  for (ctxp = ctxp_for_generation;  ctxp;  ctxp = ctxp->next)
-    {
-      input_location = ctxp->file_start_location;
-      parse_source_file_2 ();
-    }
-
-  for (ctxp = ctxp_for_generation; ctxp; ctxp = ctxp->next)
-    {
-      input_location = ctxp->file_start_location;
-      parse_source_file_3 ();
     }
 
   for (node = current_file_list; node; node = TREE_CHAIN (node))
@@ -1312,12 +1989,7 @@ java_parse_file (int set_yydebug ATTRIBUTE_UNUSED)
     }
   input_location = save_location;
 
-  java_expand_classes ();
-  if (java_report_errors () || flag_syntax_only)
-    return;
-    
-  /* Expand all classes compiled from source.  */
-  java_finish_classes ();
+  bitmap_obstack_release (&bit_obstack);
 
  finish:
   /* Arrange for any necessary initialization to happen.  */
@@ -1403,36 +2075,36 @@ parse_zip_file_entries (void)
 	case 1:
 	  {
 	    char *class_name = compute_class_name (zdir);
+	    int previous_alias_set = -1;
 	    class = lookup_class (get_identifier (class_name));
 	    FREE (class_name);
 	    current_jcf = TYPE_JCF (class);
 	    output_class = current_class = class;
-
-	    if (CLASS_FROM_CURRENTLY_COMPILED_P (current_class))
-	      {
-	        /* We've already compiled this class.  */
-		duplicate_class_warning (current_jcf->filename);
-		break;
-	      }
-	    
-	    CLASS_FROM_CURRENTLY_COMPILED_P (current_class) = 1;
 
 	    /* This is a dummy class, and now we're compiling it for
 	       real.  */
 	    gcc_assert (! TYPE_DUMMY (class));
 
 	    /* This is for a corner case where we have a superclass
-	       but no superclass fields.  
+	       but no superclass fields.
 
 	       This can happen if we earlier failed to lay out this
 	       class because its superclass was still in the process
 	       of being laid out; this occurs when we have recursive
-	       class dependencies via inner classes.  Setting
-	       TYPE_SIZE to null here causes CLASS_LOADED_P to return
-	       false, so layout_class() will be called again.  */
+	       class dependencies via inner classes.  We must record
+	       the previous alias set and restore it after laying out
+	       the class.
+
+	       FIXME: this really is a kludge.  We should figure out a
+	       way to lay out the class properly before this
+	       happens.  */
 	    if (TYPE_SIZE (class) && CLASSTYPE_SUPER (class)
 		&& integer_zerop (TYPE_SIZE (class)))
-	      TYPE_SIZE (class) = NULL_TREE;
+	      {
+		TYPE_SIZE (class) = NULL_TREE;
+		previous_alias_set = TYPE_ALIAS_SET (class);
+		TYPE_ALIAS_SET (class) = -1;
+	      }
 
 	    if (! CLASS_LOADED_P (class))
 	      {
@@ -1444,6 +2116,9 @@ parse_zip_file_entries (void)
 		layout_class (current_class);
 		load_inner_classes (current_class);
 	      }
+
+	    if (previous_alias_set != -1)
+	      TYPE_ALIAS_SET (class) = previous_alias_set;
 
 	    if (TYPE_SIZE (current_class) != error_mark_node)
 	      {
@@ -1469,7 +2144,6 @@ parse_zip_file_entries (void)
 	    JCF_ZERO (jcf);
 	    jcf->read_state  = finput;
 	    jcf->filbuf      = jcf_filbuf_from_stdio;
-	    jcf->java_source = 0;
 	    jcf->classname   = NULL;
 	    jcf->filename    = file_name;
 	    jcf->zipd        = zdir;
@@ -1531,9 +2205,18 @@ process_zip_dir (FILE *finput)
 
       class = lookup_class (get_identifier (class_name));
 
+      if (CLASS_FROM_CURRENTLY_COMPILED_P (class))
+	{
+	  /* We've already compiled this class.  */
+	  duplicate_class_warning (file_name);
+	  continue;
+	}
+      /* This function is only called when processing a zip file seen
+	 on the command line.  */
+      CLASS_FROM_CURRENTLY_COMPILED_P (class) = 1;
+
       jcf->read_state  = finput;
       jcf->filbuf      = jcf_filbuf_from_stdio;
-      jcf->java_source = 0;
       jcf->classname   = class_name;
       jcf->filename    = file_name;
       jcf->zipd        = zdir;
@@ -1542,12 +2225,5 @@ process_zip_dir (FILE *finput)
     }
 }
 
-/* Initialization.  */
-
-void
-init_jcf_parse (void)
-{
-  init_src_parse ();
-}
-
 #include "gt-java-jcf-parse.h"
+#include "gtype-java.h"

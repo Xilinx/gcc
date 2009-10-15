@@ -7,7 +7,7 @@
 @c                                                                            o
 @c                     G N A T   C O D I N G   S T Y L E                      o
 @c                                                                            o
-@c                     Copyright (C) 1992-2005, AdaCore                       o
+@c                     Copyright (C) 1992-2007, AdaCore                       o
 @c                                                                            o
 @c  GNAT is free software;  you can  redistribute it  and/or modify it under  o
 @c  terms of the  GNU General Public License as published  by the Free Soft-  o
@@ -43,13 +43,13 @@
 @titlefont{GNAT Coding Style:}
 @sp 1
 @title @hfill A Guide for GNAT Developers
-@subtitle GNAT, The GNU Ada 95 Compiler
+@subtitle GNAT, The GNU Ada Compiler
 @versionsubtitle
 @author Ada Core Technologies, Inc.
 @page
 @vskip 0pt plus 1filll
 
-Copyright @copyright{} 1995-2005, Free Software Foundation
+Copyright @copyright{} 1995-2007, Free Software Foundation
 
 Permission is granted to copy, distribute and/or modify this document
 under the terms of the GNU Free Documentation License, Version 1.1
@@ -73,7 +73,7 @@ GNAT Coding Style@*
 A Guide for GNAT Developers
 @sp 2
 @noindent
-GNAT, The GNU Ada 95 Compiler@*
+GNAT, The GNU Ada Compiler@*
 
 @noindent
 Permission is granted to copy, distribute and/or modify this document
@@ -243,7 +243,7 @@ capitalized when used as @syntax{attribute_designator}.
 
 @itemize @bullet
 @item
-A comment starts with @code{--} followed by two spaces).
+A comment starts with @code{--} followed by two spaces.
 The only exception to this rule (i.e.@: one space is tolerated) is when the
 comment ends with a single space followed by @code{--}.
 It is also acceptable to have only one space between @code{--} and the start
@@ -640,7 +640,7 @@ is a blank line before the @code{begin} keyword:
 @itemize @bullet
 
 @item
-Do not write the @code{in} for parameters, especially in functions:
+Do not write the @code{in} for parameters.
 
 @smallexample @c adanocomment
       function Length (S : String) return Integer;
@@ -709,7 +709,7 @@ alternative forms for the above spec are:
 @item
 Function and procedure bodies should usually be sorted alphabetically. Do
 not attempt to sort them in some logical order by functionality. For a
-sequence of subrpgroams specs, a general alphabetical sorting is also
+sequence of subprogram specs, a general alphabetical sorting is also
 usually appropriate, but occasionally it makes sense to group by major
 function, with appropriate headers.
 
@@ -746,7 +746,8 @@ A sequence of declarations may optionally be separated from the following
 begin by a blank line.  Just as we optionally allow blank lines in general
 between declarations, this blank line should be present only if it improves
 readability. Generally we avoid this blank line if the declarative part is
-small (one or two lines) and we include it if the declarative part is long.
+small (one or two lines) and the body has no blank lines, and we include it
+if the declarative part is long or if the body has blank lines.
 
 @item
 If the declarations in a subprogram contain at least one nested
@@ -763,7 +764,77 @@ subprogram, there is a comment line and a blank line:
 @end group
 @end smallexample
 
+@item
+When nested subprograms are present, variables that are referenced by any
+nested subprogram should precede the nested subprogram specs. For variables
+that are not referenced by nested procedures, the declarations can either also
+be before any of the nested subprogram specs (this is the old style, more
+generally used). Or then can come just before the begin, with a header. The
+following example shows the two possible styles:
+
+@smallexample @c adanocomment
+@group
+    procedure Style1 is
+       Var_Referenced_In_Nested      : Integer;
+       Var_Referenced_Only_In_Style1 : Integer;
+
+       proc Nested;
+       --  Comments ...
+
+
+       ------------
+       -- Nested --
+       ------------
+
+       procedure Nested is
+       begin
+          ...
+       end Nested;
+
+    --  Start of processing for Style1
+
+    begin
+       ...
+    end Style1;
+
+@end group
+
+@group
+    procedure Style2 is
+       Var_Referenced_In_Nested : Integer;
+
+       proc Nested;
+       --  Comments ...
+
+       ------------
+       -- Nested --
+       ------------
+
+       procedure Nested is
+       begin
+          ...
+       end Nested;
+
+       --  Local variables
+
+       Var_Referenced_Only_In_Style2 : Integer;
+
+    --  Start of processing for Style2
+
+    begin
+       ...
+    end Style2;
+
+@end group
+@end smallexample
+
+@noindent
+For new code, we generally prefer Style2, but we do not insist on
+modifying all legacy occurrences of Style1, which is still much
+more common in the sources.
+
 @end itemize
+
 
 @c  -------------------------------------------------------------------------
 @node    Packages, Program Structure, Subprograms, Top

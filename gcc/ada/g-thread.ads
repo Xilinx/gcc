@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---                     Copyright (C) 1998-2005 AdaCore                      --
+--                     Copyright (C) 1998-2007, AdaCore                     --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -31,10 +31,19 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
---  This package provides facilities for creation of foreign threads for
---  use as Ada tasks. In order to execute general Ada code, the run-time
---  system must know about all tasks. This package allows foreign code,
---  e.g. a C program, to create a thread that the Ada run-time knows about.
+--  This package provides facilities for creation or registration of foreign
+--  threads for use as Ada tasks. In order to execute general Ada code, the
+--  run-time system must know about all tasks. This package allows foreign
+--  code, e.g. a C program, to create a thread that the Ada run-time knows
+--  about, or to register the current thread.
+
+--  For some implementations of GNAT Pro, the registration of foreign threads
+--  is automatic. However, in such implementations, if the Ada program has no
+--  tasks at all and no tasking constructs other than delay, then by default
+--  the non-tasking version of the Ada run-time will be loaded. If foreign
+--  threads are present, it is important to ensure that the tasking version
+--  of the Ada run time is loaded. This may be achieved by adding "with
+--  GNAT.Threads" to any unit in the partition.
 
 with System;
 with Ada.Task_Identification;
@@ -133,7 +142,7 @@ package GNAT.Threads is
    --  extern void __gnat_get_thread (void *id, pthread_t *thread);
 
    function To_Task_Id
-     (Id   : System.Address)
+     (Id : System.Address)
       return Ada.Task_Identification.Task_Id;
    --  Ada interface only.
    --  Given a low level Id, as returned by Create_Thread, return a Task_Id,

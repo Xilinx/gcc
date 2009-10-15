@@ -122,7 +122,7 @@ static struct fr30_frame_info 	zero_frame_info;
 
 static void fr30_setup_incoming_varargs (CUMULATIVE_ARGS *, enum machine_mode,
 					 tree, int *, int);
-static bool fr30_must_pass_in_stack (enum machine_mode, tree);
+static bool fr30_must_pass_in_stack (enum machine_mode, const_tree);
 static int fr30_arg_partial_bytes (CUMULATIVE_ARGS *, enum machine_mode,
 				   tree, bool);
 
@@ -136,11 +136,11 @@ static int fr30_arg_partial_bytes (CUMULATIVE_ARGS *, enum machine_mode,
 #define MUST_SAVE_REGISTER(regno)      \
   (   (regno) != RETURN_POINTER_REGNUM \
    && (regno) != FRAME_POINTER_REGNUM  \
-   &&   regs_ever_live [regno]         \
+   && df_regs_ever_live_p (regno)      \
    && ! call_used_regs [regno]         )
 
-#define MUST_SAVE_FRAME_POINTER	 (regs_ever_live [FRAME_POINTER_REGNUM]  || frame_pointer_needed)
-#define MUST_SAVE_RETURN_POINTER (regs_ever_live [RETURN_POINTER_REGNUM] || current_function_profile)
+#define MUST_SAVE_FRAME_POINTER	 (df_regs_ever_live_p (FRAME_POINTER_REGNUM)  || frame_pointer_needed)
+#define MUST_SAVE_RETURN_POINTER (df_regs_ever_live_p (RETURN_POINTER_REGNUM) || current_function_profile)
 
 #if UNITS_PER_WORD == 4
 #define WORD_ALIGN(SIZE) (((SIZE) + 3) & ~3)
@@ -153,7 +153,7 @@ static int fr30_arg_partial_bytes (CUMULATIVE_ARGS *, enum machine_mode,
 #define TARGET_ASM_ALIGNED_SI_OP "\t.word\t"
 
 #undef  TARGET_PROMOTE_PROTOTYPES
-#define TARGET_PROMOTE_PROTOTYPES hook_bool_tree_true
+#define TARGET_PROMOTE_PROTOTYPES hook_bool_const_tree_true
 #undef  TARGET_PASS_BY_REFERENCE
 #define TARGET_PASS_BY_REFERENCE hook_pass_by_reference_must_pass_in_stack
 #undef  TARGET_ARG_PARTIAL_BYTES
@@ -308,7 +308,7 @@ fr30_expand_prologue (void)
 		     G++ testsuite.  */
 		  if (! frame_pointer_needed
 		      && GET_CODE (part) == SET
-		      && REGNO (SET_DEST (part)) == HARD_FRAME_POINTER_REGNUM)
+		      && SET_DEST (part) == hard_frame_pointer_rtx)
 		    RTX_FRAME_RELATED_P (part) = 0;
 		  else
 		    RTX_FRAME_RELATED_P (part) = 1;
@@ -336,7 +336,8 @@ fr30_expand_prologue (void)
     ; /* Nothing to do.  */
   else if (current_frame_info.frame_size <= 512)
     {
-      insn = emit_insn (gen_add_to_stack (GEN_INT (- current_frame_info.frame_size)));
+      insn = emit_insn (gen_add_to_stack
+			 (GEN_INT (- (signed) current_frame_info.frame_size)));
       RTX_FRAME_RELATED_P (insn) = 1;
     }
   else
@@ -669,7 +670,7 @@ fr30_print_operand (FILE *file, rtx x, int code)
    in registers.  */
 
 static bool
-fr30_must_pass_in_stack (enum machine_mode mode, tree type)
+fr30_must_pass_in_stack (enum machine_mode mode, const_tree type)
 {
   if (mode == BLKmode)
     return true;
@@ -865,12 +866,11 @@ fr30_move_double (rtx * operands)
       rtx src1;
 
       gcc_assert (GET_CODE (addr) == REG);
-      
+
       src0 = operand_subword (src, 0, TRUE, mode);
       src1 = operand_subword (src, 1, TRUE, mode);
-      
-      emit_insn (gen_rtx_SET (VOIDmode, adjust_address (dest, SImode, 0),
-			      src0));
+
+      emit_move_insn (adjust_address (dest, SImode, 0), src0);
 
       if (REGNO (addr) == STACK_POINTER_REGNUM
 	  || REGNO (addr) == FRAME_POINTER_REGNUM)
@@ -880,30 +880,31 @@ fr30_move_double (rtx * operands)
       else
 	{
 	  rtx new_mem;
-	  
+	  rtx scratch_reg_r0 = gen_rtx_REG (SImode, 0);
+
 	  /* We need a scratch register to hold the value of 'address + 4'.
-	     We ought to allow gcc to find one for us, but for now, just
-	     push one of the source registers.  */
-	  emit_insn (gen_movsi_push (src0));
-	  emit_insn (gen_movsi_internal (src0, addr));
-	  emit_insn (gen_addsi_small_int (src0, src0, GEN_INT (UNITS_PER_WORD)));
-	  
-	  new_mem = gen_rtx_MEM (SImode, src0);
+	     We use r0 for this purpose. It is used for example for long
+	     jumps and is already marked to not be used by normal register
+	     allocation.  */
+	  emit_insn (gen_movsi_internal (scratch_reg_r0, addr));
+	  emit_insn (gen_addsi_small_int (scratch_reg_r0, scratch_reg_r0,
+					  GEN_INT (UNITS_PER_WORD)));
+	  new_mem = gen_rtx_MEM (SImode, scratch_reg_r0);
 	  MEM_COPY_ATTRIBUTES (new_mem, dest);
-	  
-	  emit_insn (gen_rtx_SET (VOIDmode, new_mem, src1));
-	  emit_insn (gen_movsi_pop (src0));
+	  emit_move_insn (new_mem, src1);
+	  emit_insn (gen_blockage ());
 	}
     }
   else
     /* This should have been prevented by the constraints on movdi_insn.  */
     gcc_unreachable ();
-  
+
   val = get_insns ();
   end_sequence ();
 
   return val;
 }
+
 /*}}}*/
 /* Local Variables: */
 /* folded-file: t   */

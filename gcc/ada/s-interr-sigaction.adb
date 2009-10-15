@@ -6,7 +6,7 @@
 --                                                                          --
 --                                  B o d y                                 --
 --                                                                          --
---             Copyright (C) 1998-2006, Free Software Fundation             --
+--          Copyright (C) 1998-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -68,7 +68,7 @@ with System.Parameters;
 with Interfaces.C;
 --  used for int
 
-with Unchecked_Conversion;
+with Ada.Unchecked_Conversion;
 
 package body System.Interrupts is
 
@@ -83,7 +83,7 @@ package body System.Interrupts is
 
    subtype int is Interfaces.C.int;
 
-   function To_System is new Unchecked_Conversion
+   function To_System is new Ada.Unchecked_Conversion
      (Ada.Task_Identification.Task_Id, Task_Id);
 
    type Handler_Kind is (Unknown, Task_Entry, Protected_Procedure);
@@ -117,6 +117,7 @@ package body System.Interrupts is
    --  that contain interrupt handlers.
 
    procedure Signal_Handler (Sig : Interrupt_ID);
+   pragma Convention (C, Signal_Handler);
    --  This procedure is used to handle all the signals
 
    --  Type and Head, Tail of the list containing Registered Interrupt
@@ -142,8 +143,9 @@ package body System.Interrupts is
    --  Always consider a null handler as registered.
 
    type Handler_Ptr is access procedure (Sig : Interrupt_ID);
+   pragma Convention (C, Handler_Ptr);
 
-   function TISR is new Unchecked_Conversion (Handler_Ptr, isr_address);
+   function TISR is new Ada.Unchecked_Conversion (Handler_Ptr, isr_address);
 
    --------------------
    -- Signal_Handler --
@@ -502,7 +504,7 @@ package body System.Interrupts is
          Handler_Addr : System.Address;
       end record;
 
-      function To_Fat_Ptr is new Unchecked_Conversion
+      function To_Fat_Ptr is new Ada.Unchecked_Conversion
         (Parameterless_Handler, Fat_Ptr);
 
       Fat : Fat_Ptr;

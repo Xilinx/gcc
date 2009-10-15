@@ -6,18 +6,17 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2005, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -26,6 +25,7 @@
 
 --  This package deals with the implementation of the Restrictions pragma
 
+with Namet;  use Namet;
 with Rident; use Rident;
 with Table;
 with Types;  use Types;
@@ -33,7 +33,7 @@ with Uintp;  use Uintp;
 
 package Restrict is
 
-   Restrictions : Restrictions_Info;
+   Restrictions : Restrictions_Info := No_Restrictions;
    --  This variable records restrictions found in any units in the main
    --  extended unit, and in the case of restrictions checked for partition
    --  consistency, restrictions found in any with'ed units, parent specs
@@ -50,7 +50,7 @@ package Restrict is
    --  pragma, and a value of System_Location is used for restrictions
    --  set from package Standard by the processing in Targparm.
 
-   Main_Restrictions : Restrictions_Info;
+   Main_Restrictions : Restrictions_Info := No_Restrictions;
    --  This variable records only restrictions found in any units of the
    --  main extended unit. These are the variables used for ali file output,
    --  since we want the binder to be able to accurately diagnose inter-unit
@@ -171,6 +171,11 @@ package Restrict is
    --  For abort to be allowed, either No_Abort_Statements must be False,
    --  or Max_Asynchronous_Select_Nesting must be non-zero.
 
+   procedure Check_Compiler_Unit (N : Node_Id);
+   --  If unit N is in a unit that has a pragma Compiler_Unit, then a message
+   --  is posted on node N noting use of a construct that is not permitted in
+   --  the compiler.
+
    procedure Check_Restricted_Unit (U : Unit_Name_Type; N : Node_Id);
    --  Checks if loading of unit U is prohibited by the setting of some
    --  restriction (e.g. No_IO restricts the loading of unit Ada.Text_IO).
@@ -202,6 +207,13 @@ package Restrict is
    --  an elaboration routine. If elaboration code is not allowed, an error
    --  message is posted on the node given as argument.
 
+   procedure Check_Implicit_Dynamic_Code_Allowed (N : Node_Id);
+   --  Tests to see if dynamic code generation (dynamically generated
+   --  trampolines, in particular) is allowed by the current restrictions
+   --  settings. This function is called by Gigi when it needs to generate code
+   --  that generates a trampoline. If not allowed, an error message is posted
+   --  on the node given as argument.
+
    procedure Check_No_Implicit_Heap_Alloc (N : Node_Id);
    --  Equivalent to Check_Restriction (No_Implicit_Heap_Allocations, N).
    --  Provided for easy use by back end, which has to check this restriction.
@@ -231,7 +243,11 @@ package Restrict is
    function No_Exception_Handlers_Set return Boolean;
    --  Test to see if current restrictions settings specify that no exception
    --  handlers are present. This function is called by Gigi when it needs to
-   --  expand an AT END clean up identifier with no exception handler.
+   --  expand an AT END clean up identifier with no exception handler. True
+   --  will be returned if the configurable run-time is activated, and either
+   --  of the restrictions No_Exception_Handlers or No_Exception_Propagation is
+   --  set. In the latter case, the source may contain handlers but they either
+   --  get converted using the local goto transformation or deleted.
 
    function Process_Restriction_Synonyms (N : Node_Id) return Name_Id;
    --  Id is a node whose Chars field contains the name of a restriction.
@@ -243,7 +259,9 @@ package Restrict is
    pragma Inline (Restriction_Active);
    --  Determines if a given restriction is active. This call should only be
    --  used where the compiled code depends on whether the restriction is
-   --  active. Always use Check_Restriction to record a violation.
+   --  active. Always use Check_Restriction to record a violation. Note that
+   --  this returns False if we only have a Restriction_Warnings set, since
+   --  restriction warnings should never affect generated code.
 
    function Restricted_Profile return Boolean;
    --  Tests if set of restrictions corresponding to Profile (Restricted) is

@@ -201,27 +201,9 @@ diagnostic_count_diagnostic (diagnostic_context *context,
       break;
 
     case DK_WARNING:
-      if (!diagnostic_report_warnings_p ())
-        return false;
+      ++diagnostic_kind_count (context, DK_WARNING);
+      break;
 
-      /* -Werror can reclassify warnings as errors, but
-	 classify_diagnostic can reclassify it back to a warning.  The
-	 second part of this test detects that case.  */
-      if (!context->warning_as_error_requested
-	  || (context->classify_diagnostic[diagnostic->option_index]
-	      == DK_WARNING))
-        {
-          ++diagnostic_kind_count (context, DK_WARNING);
-          break;
-        }
-      else if (context->issue_warnings_are_errors_message)
-        {
-	  pp_verbatim (context->printer,
-                       "%s: warnings being treated as errors\n", progname);
-          context->issue_warnings_are_errors_message = false;
-        }
-
-      /* And fall through.  */
     case DK_ERROR:
       ++diagnostic_kind_count (context, DK_ERROR);
       break;
@@ -279,10 +261,11 @@ diagnostic_action_after_output (diagnostic_context *context,
 /* Prints out, if necessary, the name of the current function
    that caused an error.  Called from all error and warning functions.  */
 void
-diagnostic_report_current_function (diagnostic_context *context)
+diagnostic_report_current_function (diagnostic_context *context,
+				    diagnostic_info *diagnostic)
 {
   diagnostic_report_current_module (context);
-  lang_hooks.print_error_function (context, input_filename);
+  lang_hooks.print_error_function (context, input_filename, diagnostic);
 }
 
 void
@@ -320,7 +303,7 @@ static void
 default_diagnostic_starter (diagnostic_context *context,
 			    diagnostic_info *diagnostic)
 {
-  diagnostic_report_current_function (context);
+  diagnostic_report_current_function (context, diagnostic);
   pp_set_prefix (context->printer, diagnostic_build_prefix (diagnostic));
 }
 
@@ -361,6 +344,14 @@ void
 diagnostic_report_diagnostic (diagnostic_context *context,
 			      diagnostic_info *diagnostic)
 {
+  bool maybe_print_warnings_as_errors_message = false;
+
+  /* Give preference to being able to inhibit warnings, before they
+     get reclassified to something else.  */
+  if (diagnostic->kind == DK_WARNING 
+      && !diagnostic_report_warnings_p ())
+    return;
+  
   if (context->lock > 0)
     {
       /* If we're reporting an ICE in the middle of some other error,
@@ -372,6 +363,17 @@ diagnostic_report_diagnostic (diagnostic_context *context,
 	error_recursion (context);
     }
 
+  /* If the user requested that warnings be treated as errors, so be
+     it.  Note that we do this before the next block so that
+     individual warnings can be overridden back to warnings with
+     -Wno-error=*.  */
+  if (context->warning_as_error_requested
+      && diagnostic->kind == DK_WARNING)
+    {
+      diagnostic->kind = DK_ERROR;
+      maybe_print_warnings_as_errors_message = true;
+    }
+  
   if (diagnostic->option_index)
     {
       /* This tests if the user provided the appropriate -Wfoo or
@@ -381,11 +383,24 @@ diagnostic_report_diagnostic (diagnostic_context *context,
       /* This tests if the user provided the appropriate -Werror=foo
 	 option.  */
       if (context->classify_diagnostic[diagnostic->option_index] != DK_UNSPECIFIED)
-	diagnostic->kind = context->classify_diagnostic[diagnostic->option_index];
+	{
+	  diagnostic->kind = context->classify_diagnostic[diagnostic->option_index];
+	  maybe_print_warnings_as_errors_message = false;
+	}
       /* This allows for future extensions, like temporarily disabling
 	 warnings for ranges of source code.  */
       if (diagnostic->kind == DK_IGNORED)
 	return;
+    }
+
+  /* If we changed the kind due to -Werror, and didn't override it, we
+     need to print this message.  */
+  if (context->issue_warnings_are_errors_message
+      && maybe_print_warnings_as_errors_message)
+    {
+      pp_verbatim (context->printer,
+		   "%s: warnings being treated as errors\n", progname);
+      context->issue_warnings_are_errors_message = false;
     }
 
   context->lock++;
@@ -400,6 +415,8 @@ diagnostic_report_diagnostic (diagnostic_context *context,
 		      " [", cl_options[diagnostic->option_index].opt_text, "]", NULL));
 
       diagnostic->message.locus = &diagnostic->location;
+      diagnostic->message.abstract_origin = &diagnostic->abstract_origin;
+      diagnostic->abstract_origin = NULL;
       pp_format (context->printer, &diagnostic->message);
       (*diagnostic_starter (context)) (context, diagnostic);
       pp_output_formatted_text (context->printer);
@@ -407,6 +424,7 @@ diagnostic_report_diagnostic (diagnostic_context *context,
       pp_flush (context->printer);
       diagnostic_action_after_output (context, diagnostic);
       diagnostic->message.format_spec = saved_format_spec;
+      diagnostic->abstract_origin = NULL;
     }
 
   context->lock--;
@@ -458,6 +476,7 @@ verbatim (const char *gmsgid, ...)
   text.args_ptr = &ap;
   text.format_spec = _(gmsgid);
   text.locus = NULL;
+  text.abstract_origin = NULL;
   pp_format_verbatim (global_dc->printer, &text);
   pp_flush (global_dc->printer);
   va_end (ap);

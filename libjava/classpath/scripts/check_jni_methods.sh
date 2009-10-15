@@ -16,16 +16,16 @@ grep -h '^JNIEXPORT .* Java_' include/*.h | \
 # Find all methods in the JNI C source files.
 find native/jni -name \*.c | \
 	xargs grep -h '^Java_' | \
-        LC_ALL=C sed -e 's,^\(Java_[a-z_A-Z0-9]*\) *(.*$,\1,' > $TMPFILE2
+        LC_ALL=C sed -e 's,^\(Java_[a-z_A-Z0-9]*\).*$,\1,' > $TMPFILE2
 # Or in the the C++ files. (Note that cpp doesn't follow gnu conventions atm)
 # So we try to match both GNU style and some other style.
 find native/jni -name \*.cpp | \
 	xargs grep -h '^Java_' | \
-        LC_ALL=C sed -e 's,^\(Java_[a-z_A-Z0-9]*\) *(.*$,\1,' >> $TMPFILE2
+        LC_ALL=C sed -e 's,^\(Java_[a-z_A-Z0-9]*\).*$,\1,' >> $TMPFILE2
 find native/jni -name \*.cpp | \
 	xargs egrep -h '^(JNIEXPORT .* JNICALL )?Java_' | \
 	cut -f4 -d\  | \
-        LC_ALL=C sed -e 's,^\JNIEXPORT .* JNICALL \(Java_[a-z_A-Z0-9]*\) *(.*$,\1,' >> $TMPFILE2
+        LC_ALL=C sed -e 's,^\JNIEXPORT .* JNICALL \(Java_[a-z_A-Z0-9]*\).*$,\1,' >> $TMPFILE2
 mv $TMPFILE2 $TMPFILE3
 sort $TMPFILE3 | uniq > $TMPFILE2
 rm $TMPFILE3
@@ -35,15 +35,12 @@ cat > $TMPFILE3 << EOF
 -Java_gnu_java_awt_peer_gtk_GtkMenuComponentPeer_dispose
 -Java_java_lang_VMSystem_arraycopy
 -Java_java_lang_VMSystem_identityHashCode
--Java_gnu_java_util_prefs_gconf_GConfNativePeer_finalize_1class
--Java_gnu_java_util_prefs_gconf_GConfNativePeer_init_1id_1cache
--Java_gnu_java_util_prefs_gconf_GConfNativePeer_init_1class
 EOF
 
 # Compare again silently.
 # Use fgrep and direct the output to /dev/null for compatibility with older
 # grep instead of using the non portable -q.
-if diff -b -U 0 $TMPFILE $TMPFILE2 | grep '^[+-]Java' | \
+if diff -U 0 $TMPFILE $TMPFILE2 | grep '^[+-]Java' | \
     fgrep -v -f $TMPFILE3 > /dev/null;
 then
   PROBLEM=1
@@ -51,7 +48,7 @@ then
   echo "(-) missing in implementation, (+) missing in header files"
 
   # Compare the found method lists.
-  diff -b -U 0 $TMPFILE $TMPFILE2  | grep '^[+-]Java' | fgrep -v -f $TMPFILE3
+  diff -U 0 $TMPFILE $TMPFILE2  | grep '^[+-]Java' | fgrep -v -f $TMPFILE3
 fi
 
 # Cleanup.

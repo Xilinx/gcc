@@ -23,15 +23,20 @@ load_lib scanasm.exp
 load_lib scanrtl.exp
 load_lib scantree.exp
 load_lib scanipa.exp
+load_lib timeout.exp
+load_lib timeout-dg.exp
 load_lib prune.exp
 load_lib libgloss.exp
 load_lib target-libpath.exp
+load_lib torture-options.exp
 
 # We set LC_ALL and LANG to C so that we get the same error messages as expected.
 setenv LC_ALL C
 setenv LANG C
 
-if ![info exists TORTURE_OPTIONS] {
+if [info exists TORTURE_OPTIONS] {
+    set DG_TORTURE_OPTIONS $TORTURE_OPTIONS
+} else {
     # It is theoretically beneficial to group all of the O2/O3 options together,
     # as in many cases the compiler will generate identical executables for
     # all of them--and the c-torture testsuite will skip testing identical
@@ -39,7 +44,7 @@ if ![info exists TORTURE_OPTIONS] {
     # Also note that -finline-functions is explicitly included in one of the
     # items below, even though -O3 is also specified, because some ports may
     # choose to disable inlining functions by default, even when optimizing.
-    set TORTURE_OPTIONS [list \
+    set DG_TORTURE_OPTIONS [list \
 	{ -O0 } \
 	{ -O1 } \
 	{ -O2 } \
@@ -62,17 +67,6 @@ global orig_environment_saved
 if { $orig_environment_saved == 0 } {
     append ld_library_path [gcc-set-multilib-library-path $GCC_UNDER_TEST]
     set_ld_library_path_env_vars
-}
-
-# Split TORTURE_OPTIONS into two choices: one for testcases with loops and
-# one for testcases without loops.
-
-set torture_with_loops $TORTURE_OPTIONS
-set torture_without_loops ""
-foreach option $TORTURE_OPTIONS {
-    if ![string match "*loop*" $option] {
-	lappend torture_without_loops $option
-    }
 }
 
 # Define gcc callbacks for dg.exp.
@@ -183,6 +177,14 @@ proc gcc-dg-prune { system text } {
 	return "::unsupported::memory full"
     }
 
+    # Likewise, if we see ".text exceeds local store range" or
+    # similar.
+    if {[string match "spu-*" $system] && \
+	    [string match "*exceeds local store range*" $text]} {
+	# The format here is important.  See dg.exp.
+	return "::unsupported::memory full"
+    }
+
     return $text
 }
 
@@ -230,7 +232,17 @@ proc search_for { file pattern } {
 proc gcc-dg-runtest { testcases default-extra-flags } {
     global runtests
 
+    # Some callers set torture options themselves; don't override those.
+    set existing_torture_options [torture-options-exist]
+    if { $existing_torture_options == 0 } {
+	global DG_TORTURE_OPTIONS
+	torture-init
+	set-torture-options $DG_TORTURE_OPTIONS
+    }
+    dump-torture-options
+
     foreach test $testcases {
+	global torture_with_loops torture_without_loops
 	# If we're only testing specific files and this isn't one of
 	# them, skip it.
 	if ![runtest_file_p $runtests $test] {
@@ -239,7 +251,6 @@ proc gcc-dg-runtest { testcases default-extra-flags } {
 
 	# Look for a loop within the source code - if we don't find one,
 	# don't pass -funroll[-all]-loops.
-	global torture_with_loops torture_without_loops
 	if [expr [search_for $test "for*("]+[search_for $test "while*("]] {
 	    set option_list $torture_with_loops
 	} else {
@@ -252,6 +263,10 @@ proc gcc-dg-runtest { testcases default-extra-flags } {
 	    verbose "Testing $nshort, $flags" 1
 	    dg-test $test $flags ${default-extra-flags}
 	}
+    }
+
+    if { $existing_torture_options == 0 } {
+	torture-finish
     }
 }
 
@@ -266,6 +281,7 @@ proc gcc-dg-debug-runtest { target_compile trivial opt_opts testcases } {
 		    "additional_flags=$type"]
 	    if { ! [string match "*: target system does not support the * debug format*" \
 		    $comp_output] } {
+		remove-build-file "trivial.S"
 		foreach level {1 "" 3} {
 		    lappend DEBUG_TORTURE_OPTIONS [list "${type}${level}"]
 		    foreach opt $opt_opts {
@@ -343,6 +359,12 @@ proc remove-build-file { pat } {
     }
 }
 
+# Remove runtime-generated profile file for the current test.
+proc cleanup-profile-file { } {
+    remove-build-file "mon.out"
+    remove-build-file "gmon.out"
+}
+
 # Remove compiler-generated coverage files for the current test.
 proc cleanup-coverage-files { } {
     # This assumes that we are two frames down from dg-test or some other proc
@@ -418,8 +440,8 @@ proc cleanup-dump { suffix } {
 
 # Remove files kept by --save-temps for the current test.
 #
-# Currently this is only .i files, but more can be added if there are
-# tests generating them.
+# Currently this is only .i, .ii and .s files, but more can be added
+# if there are tests generating them.
 proc cleanup-saved-temps { } {
     global additional_sources
 
@@ -443,6 +465,24 @@ proc cleanup-saved-temps { } {
 proc cleanup-modules { modlist } {
     foreach modname $modlist {
 	remove-build-file [string tolower $modname].mod
+    }
+}
+
+# Scan Fortran modules for a given regexp.
+#
+# Argument 0 is the module name
+# Argument 1 is the regexp to match
+proc scan-module { args } {
+    set modfilename [string tolower [lindex $args 0]].mod
+    set fd [open $modfilename r]
+    set text [read $fd]
+    close $fd
+
+    upvar 2 name testcase
+    if [regexp -- [lindex $args 1] $text] {
+      pass "$testcase scan-module [lindex $args 1]"
+    } else {
+      fail "$testcase scan-module [lindex $args 1]"
     }
 }
 
@@ -520,16 +560,80 @@ if { [info procs saved-dg-test] == [list] } {
 	    if [info exists compiler_conditional_xfail_data] {
 		unset compiler_conditional_xfail_data
 	    }
+	    unset_timeout_vars
 	    error $errmsg $saved_info
 	}
 	set additional_files ""
 	set additional_sources ""
 	set additional_prunes ""
 	set shouldfail 0
+	unset_timeout_vars
 	if [info exists compiler_conditional_xfail_data] {
 	    unset compiler_conditional_xfail_data
 	}
     }
+}
+
+if { [info procs saved-dg-warning] == [list] \
+     && [info exists gcc_warning_prefix] } {
+    rename dg-warning saved-dg-warning
+
+    proc dg-warning { args } {
+	# Make this variable available here and to the saved proc.
+	upvar dg-messages dg-messages
+	global gcc_warning_prefix
+
+ 	process-message saved-dg-warning "$gcc_warning_prefix" "$args"
+    }
+}
+
+if { [info procs saved-dg-error] == [list] \
+     && [info exists gcc_error_prefix] } {
+    rename dg-error saved-dg-error
+
+    proc dg-error { args } {
+	# Make this variable available here and to the saved proc.
+	upvar dg-messages dg-messages
+	global gcc_error_prefix
+
+	process-message saved-dg-error "$gcc_error_prefix" "$args"
+    }
+}
+
+# Modify the regular expression saved by a DejaGnu message directive to
+# include a prefix and to force the expression to match a single line.
+# MSGPROC is the procedure to call.
+# MSGPREFIX is the prefix to prepend.
+# DGARGS is the original argument list.
+
+proc process-message { msgproc msgprefix dgargs } {
+    upvar dg-messages dg-messages
+
+    # Process the dg- directive, including adding the regular expression
+    # to the new message entry in dg-messages.
+    set msgcnt [llength ${dg-messages}]
+    catch { eval $msgproc $dgargs }
+
+    # If the target expression wasn't satisfied there is no new message.
+    if { [llength ${dg-messages}] == $msgcnt } {
+	return;
+    }
+
+    # Prepend the message prefix to the regular expression and make
+    # it match a single line.
+    set newentry [lindex ${dg-messages} end]
+    set expmsg [lindex $newentry 2]
+    set expmsg "$msgprefix\[^\n]*$expmsg"
+    set newentry [lreplace $newentry 2 2 $expmsg]
+    set dg-messages [lreplace ${dg-messages} end end $newentry]
+    verbose "process-message:\n${dg-messages}" 2
+}
+
+# Look for messages that don't have standard prefixes.
+
+proc dg-message { args } {
+    upvar dg-messages dg-messages
+    process-message saved-dg-warning "" $args
 }
 
 set additional_prunes ""

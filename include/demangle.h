@@ -140,13 +140,25 @@ cplus_demangle_set_style (enum demangling_styles style);
 extern enum demangling_styles 
 cplus_demangle_name_to_style (const char *name);
 
-/* V3 ABI demangling entry points, defined in cp-demangle.c.  */
-extern char*
-cplus_demangle_v3 (const char* mangled, int options);
+/* Callback typedef for allocation-less demangler interfaces. */
+typedef void (*demangle_callbackref) (const char *, size_t, void *);
+
+/* V3 ABI demangling entry points, defined in cp-demangle.c.  Callback
+   variants return non-zero on success, zero on error.  char* variants
+   return a string allocated by malloc on success, NULL on error.  */
+extern int
+cplus_demangle_v3_callback (const char *mangled, int options,
+                            demangle_callbackref callback, void *opaque);
 
 extern char*
-java_demangle_v3 (const char* mangled);
+cplus_demangle_v3 (const char *mangled, int options);
 
+extern int
+java_demangle_v3_callback (const char *mangled,
+                           demangle_callbackref callback, void *opaque);
+
+extern char*
+java_demangle_v3 (const char *mangled);
 
 enum gnu_v3_ctor_kinds {
   gnu_v3_complete_object_ctor = 1,
@@ -284,6 +296,9 @@ enum demangle_component_type
   /* A reference.  The one subtree is the type which is being
      referenced.  */
   DEMANGLE_COMPONENT_REFERENCE,
+  /* C++0x: An rvalue reference.  The one subtree is the type which is
+     being referenced.  */
+  DEMANGLE_COMPONENT_RVALUE_REFERENCE,
   /* A complex type.  The one subtree is the base type.  */
   DEMANGLE_COMPONENT_COMPLEX,
   /* An imaginary type.  The one subtree is the base type.  */
@@ -347,7 +362,15 @@ enum demangle_component_type
      using 'n' instead of '-', we want a way to indicate a negative
      number which involves neither modifying the mangled string nor
      allocating a new copy of the literal in memory.  */
-  DEMANGLE_COMPONENT_LITERAL_NEG
+  DEMANGLE_COMPONENT_LITERAL_NEG,
+  /* A libgcj compiled resource.  The left subtree is the name of the
+     resource.  */
+  DEMANGLE_COMPONENT_JAVA_RESOURCE,
+  /* A name formed by the concatenation of two parts.  The left
+     subtree is the first part and the right subtree the second.  */
+  DEMANGLE_COMPONENT_COMPOUND_NAME,
+  /* A name formed by a single character.  */
+  DEMANGLE_COMPONENT_CHARACTER
 };
 
 /* Types which are only used internally.  */
@@ -432,6 +455,12 @@ struct demangle_component
       /* Template parameter index.  */
       long number;
     } s_number;
+
+    /* For DEMANGLE_COMPONENT_CHARACTER.  */
+    struct
+    {
+      int character;
+    } s_character;
 
     /* For other types.  */
     struct
@@ -537,6 +566,25 @@ cplus_demangle_print (int options,
                       const struct demangle_component *tree,
                       int estimated_length,
                       size_t *p_allocated_size);
+
+/* This function takes a struct demangle_component tree and passes back
+   a demangled string in one or more calls to a callback function.
+   The first argument is DMGL_* options.  The second is the tree to
+   demangle.  The third is a pointer to a callback function; on each call
+   this receives an element of the demangled string, its length, and an
+   opaque value.  The fourth is the opaque value passed to the callback.
+   The callback is called once or more to return the full demangled
+   string.  The demangled element string is always nul-terminated, though
+   its length is also provided for convenience.  In contrast to
+   cplus_demangle_print(), this function does not allocate heap memory
+   to grow output strings (except perhaps where alloca() is implemented
+   by malloc()), and so is normally safe for use where the heap has been
+   corrupted.  On success, this function returns 1; on failure, 0.  */
+
+extern int
+cplus_demangle_print_callback (int options,
+                               const struct demangle_component *tree,
+                               demangle_callbackref callback, void *opaque);
 
 #ifdef __cplusplus
 }

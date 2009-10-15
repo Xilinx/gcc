@@ -24,17 +24,6 @@ along with GCC; see the file COPYING3.  If not see
 #undef WCHAR_TYPE_SIZE
 #define WCHAR_TYPE_SIZE 32
 
-/* If defined, a C expression whose value is a string containing the
-   assembler operation to identify the following data as
-   uninitialized global data.  If not defined, and neither
-   `ASM_OUTPUT_BSS' nor `ASM_OUTPUT_ALIGNED_BSS' are defined,
-   uninitialized global data will be output in the data section if
-   `-fno-common' is passed, otherwise `ASM_OUTPUT_COMMON' will be
-   used.  */
-#define BSS_SECTION_ASM_OP	"\t.section\t.bss"
-
-#define ASM_OUTPUT_ALIGNED_BSS mips_output_aligned_bss
-
 #undef ASM_DECLARE_OBJECT_NAME
 #define ASM_DECLARE_OBJECT_NAME mips_declare_object_name
 
@@ -58,34 +47,6 @@ along with GCC; see the file COPYING3.  If not see
     /* The GNU C++ standard library requires this.  */		\
     if (c_dialect_cxx ())					\
       builtin_define ("_GNU_SOURCE");				\
-    								\
-    if (mips_abi == ABI_N32)					\
-      {								\
-        builtin_define ("_ABIN32=2");				\
-        builtin_define ("_MIPS_SIM=_ABIN32");			\
-        builtin_define ("_MIPS_SZLONG=32");			\
-        builtin_define ("_MIPS_SZPTR=32");			\
-      }								\
-    else if (mips_abi == ABI_64)				\
-      {								\
-        builtin_define ("_ABI64=3");				\
-        builtin_define ("_MIPS_SIM=_ABI64");			\
-        builtin_define ("_MIPS_SZLONG=64");			\
-        builtin_define ("_MIPS_SZPTR=64");			\
-      }								\
-    else							\
-      {								\
-	builtin_define ("_ABIO32=1");				\
-	builtin_define ("_MIPS_SIM=_ABIO32");			\
-        builtin_define ("_MIPS_SZLONG=32");			\
-        builtin_define ("_MIPS_SZPTR=32");			\
-      }								\
-    if (TARGET_FLOAT64)						\
-      builtin_define ("_MIPS_FPSET=32");			\
-    else							\
-      builtin_define ("_MIPS_FPSET=16");			\
-    								\
-    builtin_define ("_MIPS_SZINT=32");				\
   } while (0)
 
 #undef SUBTARGET_CPP_SPEC
@@ -173,8 +134,18 @@ along with GCC; see the file COPYING3.  If not see
 
 #undef LIB_SPEC
 #define LIB_SPEC "\
-%{shared: -lc} \
-%{!shared: %{pthread:-lpthread} \
-  %{profile:-lc_p} %{!profile: -lc}}"
+%{pthread:-lpthread} \
+%{shared:-lc} \
+%{!shared: \
+  %{profile:-lc_p} %{!profile:-lc}}"
 
 #define MD_UNWIND_SUPPORT "config/mips/linux-unwind.h"
+
+#ifdef HAVE_AS_NO_SHARED
+/* Default to -mno-shared for non-PIC.  */
+#define NO_SHARED_SPECS \
+  "%{mshared|mno-shared|fpic|fPIC|fpie|fPIE:;:-mno-shared}"
+#define DRIVER_SELF_SPECS NO_SHARED_SPECS
+#else
+#define NO_SHARED_SPECS
+#endif

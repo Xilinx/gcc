@@ -7,7 +7,7 @@
 --                                  S p e c                                 --
 --                                                                          --
 --             Copyright (C) 1991-1994, Florida State University            --
---             Copyright (C) 1995-2006, Free Software Foundation, Inc.      --
+--          Copyright (C) 1995-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -41,7 +41,7 @@
 --  Preelaborate. This package is designed to be a bottom-level (leaf) package.
 
 with Interfaces.C;
-with Unchecked_Conversion;
+with Ada.Unchecked_Conversion;
 
 package System.OS_Interface is
    pragma Preelaborate;
@@ -201,16 +201,6 @@ package System.OS_Interface is
    pragma Convention (C, struct_timezone);
    type struct_timezone_ptr is access all struct_timezone;
 
-   type struct_timeval is private;
-   --  This is needed on systems that do not have clock_gettime()
-   --  but do have gettimeofday().
-
-   function To_Duration (TV : struct_timeval) return Duration;
-   pragma Inline (To_Duration);
-
-   function To_Timeval (D : Duration) return struct_timeval;
-   pragma Inline (To_Timeval);
-
    -------------------------
    -- Priority Scheduling --
    -------------------------
@@ -218,6 +208,10 @@ package System.OS_Interface is
    SCHED_FIFO  : constant := 16#00200000#;
    SCHED_RR    : constant := 16#00100000#;
    SCHED_OTHER : constant := 16#00400000#;
+
+   function To_Target_Priority
+     (Prio : System.Any_Priority) return Interfaces.C.int;
+   --  Maps System.Any_Priority to a POSIX priority
 
    -------------
    -- Process --
@@ -247,9 +241,10 @@ package System.OS_Interface is
 
    type Thread_Body is access
      function (arg : System.Address) return System.Address;
+   pragma Convention (C, Thread_Body);
 
    function Thread_Body_Access is new
-     Unchecked_Conversion (System.Address, Thread_Body);
+     Ada.Unchecked_Conversion (System.Address, Thread_Body);
 
    type pthread_t           is private;
    subtype Thread_Id        is pthread_t;
@@ -264,12 +259,15 @@ package System.OS_Interface is
 
    PTHREAD_CREATE_DETACHED : constant := 0;
 
+   PTHREAD_SCOPE_PROCESS : constant := 0;
+   PTHREAD_SCOPE_SYSTEM  : constant := 1;
+
    -----------
    -- Stack --
    -----------
 
    Stack_Base_Available : constant Boolean := False;
-   --  Indicates wether the stack base is available on this target.
+   --  Indicates wether the stack base is available on this target
 
    function Get_Stack_Base (thread : pthread_t) return Address;
    pragma Inline (Get_Stack_Base);
@@ -487,6 +485,7 @@ package System.OS_Interface is
    --  LynxOS has a non standard pthread_getspecific
 
    type destructor_pointer is access procedure (arg : System.Address);
+   pragma Convention (C, destructor_pointer);
 
    function pthread_key_create
      (key        : access pthread_key_t;
@@ -517,12 +516,6 @@ private
 
    type clockid_t is new unsigned_char;
    CLOCK_REALTIME : constant clockid_t := 0;
-
-   type struct_timeval is record
-      tv_sec  : time_t;
-      tv_usec : time_t;
-   end record;
-   pragma Convention (C, struct_timeval);
 
    type st_t is record
       stksize      : int;

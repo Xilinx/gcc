@@ -129,16 +129,16 @@ AC_SUBST(toolexeclibdir)
 # Figure out if we want to name the include directory and the
 #  library name changes differently.
 includedirname=include
-libext=
+libsuffix=
 case "${host}" in
   *-darwin*)
     # Darwin is the only target so far that needs a different include directory.
     includedirname=include-gnu-runtime
-    libext=-gnu
+    libsuffix=-gnu
     ;;
 esac
 AC_SUBST(includedirname)
-AC_SUBST(libext)
+AC_SUBST(libsuffix)
 
 AC_CONFIG_HEADERS(config.h)
 
@@ -271,26 +271,11 @@ AC_MSG_RESULT($ac_exception_model_name)
 # Output
 # ------
 
+if test ${multilib} = yes; then
+  multilib_arg="--enable-multilib"
+else
+  multilib_arg=
+fi
+
 AC_CONFIG_FILES([Makefile])
-
-AC_CONFIG_COMMANDS([default],
-[[if test -n "$CONFIG_FILES"; then
-  if test -n "${with_target_subdir}"; then
-    # FIXME: We shouldn't need to set ac_file
-    ac_file=Makefile
-    LD="${ORIGINAL_LD_FOR_MULTILIBS}"
-    . ${multi_basedir}/config-ml.in
-  fi
-fi]],
-[[srcdir=${srcdir}
-host=${host}
-target=${target}
-with_target_subdir=${with_target_subdir}
-with_multisubdir=${with_multisubdir}
-ac_configure_args="--enable-multilib ${ac_configure_args}"
-multi_basedir=${multi_basedir}
-CONFIG_SHELL=${CONFIG_SHELL-/bin/sh}
-ORIGINAL_LD_FOR_MULTILIBS="${ORIGINAL_LD_FOR_MULTILIBS}"
-]])
-
 AC_OUTPUT

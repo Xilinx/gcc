@@ -1,4 +1,4 @@
-/* Copyright (C) 1999-2006  Free Software Foundation
+/* Copyright (C) 1999-2007  Free Software Foundation
 
    This file is part of libgcj.
 
@@ -42,7 +42,7 @@ version ()
 {
   printf ("java version \"" JV_VERSION "\"\n");
   printf ("gij (GNU libgcj) version %s\n\n", __VERSION__);
-  printf ("Copyright (C) 2006 Free Software Foundation, Inc.\n");
+  printf ("Copyright (C) 2007 Free Software Foundation, Inc.\n");
   printf ("This is free software; see the source for copying conditions.  There is NO\n");
   printf ("warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n");
 }
@@ -121,11 +121,11 @@ main (int argc, char const** argv)
         continue;
       else if (! strcmp (arg, "-jrockit"))
         continue;
-      // Ignore JVM Tool Interface options
+      // JVM Tool Interface options.
       else if (! strncmp (arg, "-agentlib:", sizeof ("-agentlib:") - 1))
-        continue;
+        add_option (vm_args, arg, NULL);
       else if (! strncmp (arg, "-agentpath:", sizeof ("-agentpath:") - 1))
-        continue;
+        add_option (vm_args, arg, NULL);
       else if (! strcmp (arg, "-classpath") || ! strcmp (arg, "-cp"))
         {
           if (i >= argc - 1)

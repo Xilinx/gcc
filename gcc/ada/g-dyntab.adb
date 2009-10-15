@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---                     Copyright (C) 2000-2006, AdaCore                     --
+--                     Copyright (C) 2000-2007, AdaCore                     --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -35,7 +35,7 @@ with GNAT.Heap_Sort_G;
 with System;        use System;
 with System.Memory; use System.Memory;
 
-with Unchecked_Conversion;
+with Ada.Unchecked_Conversion;
 
 package body GNAT.Dynamic_Tables is
 
@@ -55,8 +55,8 @@ package body GNAT.Dynamic_Tables is
    --  These unchecked conversions are in fact safe, since they never
    --  generate improperly aliased pointer values.
 
-   function To_Address is new Unchecked_Conversion (Table_Ptr, Address);
-   function To_Pointer is new Unchecked_Conversion (Address, Table_Ptr);
+   function To_Address is new Ada.Unchecked_Conversion (Table_Ptr, Address);
+   function To_Pointer is new Ada.Unchecked_Conversion (Address, Table_Ptr);
 
    pragma Warnings (On);
 
@@ -82,8 +82,7 @@ package body GNAT.Dynamic_Tables is
 
    procedure Append (T : in out Instance; New_Val : Table_Component_Type) is
    begin
-      Increment_Last (T);
-      T.Table (Table_Index_Type (T.P.Last_Val)) := New_Val;
+      Set_Item (T, Table_Index_Type (T.P.Last_Val + 1), New_Val);
    end Append;
 
    --------------------
@@ -227,16 +226,77 @@ package body GNAT.Dynamic_Tables is
    --------------
 
    procedure Set_Item
-     (T     : in out Instance;
-      Index : Table_Index_Type;
-      Item  : Table_Component_Type)
+      (T     : in out Instance;
+       Index : Table_Index_Type;
+       Item  : Table_Component_Type)
    is
-   begin
-      if Integer (Index) > T.P.Last_Val then
-         Set_Last (T, Index);
-      end if;
+      --  If Item is a value within the current allocation, and we are going to
+      --  reallocate, then we must preserve an intermediate copy here before
+      --  calling Increment_Last. Otherwise, if Table_Component_Type is passed
+      --  by reference, we are going to end up copying from storage that might
+      --  have been deallocated from Increment_Last calling Reallocate.
 
-      T.Table (Index) := Item;
+      subtype Allocated_Table_T is
+        Table_Type (T.Table'First .. Table_Index_Type (T.P.Max + 1));
+      --  A constrained table subtype one element larger than the currently
+      --  allocated table.
+
+      Allocated_Table_Address : constant System.Address :=
+                                  T.Table.all'Address;
+      --  Used for address clause below (we can't use non-static expression
+      --  Table.all'Address directly in the clause because some older versions
+      --  of the compiler do not allow it).
+
+      Allocated_Table : Allocated_Table_T;
+      pragma Import (Ada, Allocated_Table);
+      pragma Suppress (Range_Check, On => Allocated_Table);
+      for Allocated_Table'Address use Allocated_Table_Address;
+      --  Allocated_Table represents the currently allocated array, plus one
+      --  element (the supplementary element is used to have a convenient way
+      --  to the address just past the end of the current allocation). Range
+      --  checks are suppressed because this unit uses direct calls to
+      --  System.Memory for allocation, and this can yield misaligned storage
+      --  (and we cannot rely on the bootstrap compiler supporting specifically
+      --  disabling alignment cheks, so we need to suppress all range checks).
+      --  It is safe to suppress this check here because we know that a
+      --  (possibly misaligned) object of that type does actually exist at that
+      --  address.
+      --  ??? We should really improve the allocation circuitry here to
+      --  guarantee proper alignment.
+
+      Need_Realloc : constant Boolean := Integer (Index) > T.P.Max;
+      --  True if this operation requires storage reallocation (which may
+      --  involve moving table contents around).
+
+   begin
+      --  If we're going to reallocate, check wheter Item references an
+      --  element of the currently allocated table.
+
+      if Need_Realloc
+        and then Allocated_Table'Address <= Item'Address
+        and then Item'Address <
+                   Allocated_Table (Table_Index_Type (T.P.Max + 1))'Address
+      then
+         --  If so, save a copy on the stack because Increment_Last will
+         --  reallocate storage and might deallocate the current table.
+
+         declare
+            Item_Copy : constant Table_Component_Type := Item;
+         begin
+            Set_Last (T, Index);
+            T.Table (Index) := Item_Copy;
+         end;
+
+      else
+         --  Here we know that either we won't reallocate (case of Index < Max)
+         --  or that Item is not in the currently allocated table.
+
+         if Integer (Index) > T.P.Last_Val then
+            Set_Last (T, Index);
+         end if;
+
+         T.Table (Index) := Item;
+      end if;
    end Set_Item;
 
    --------------
@@ -269,7 +329,7 @@ package body GNAT.Dynamic_Tables is
       --  Local subprograms
 
       function Index_Of (Idx : Natural) return Table_Index_Type;
-      --  Apply Natural to indexs of the table
+      --  Return index of Idx'th element of table
 
       function Lower_Than (Op1, Op2 : Natural) return Boolean;
       --  Compare two components

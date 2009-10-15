@@ -5,11 +5,13 @@
 
 #define N 128
 
+short sa[N];
+short sb[N];
+
+__attribute__ ((noinline))
 int main1 ()
 {
   int i;
-  short sa[N];
-  short sb[N];
   
   for (i = 0; i < N; i++)
     {

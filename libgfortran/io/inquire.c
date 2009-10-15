@@ -1,4 +1,4 @@
-/* Copyright (C) 2002, 2003, 2005 Free Software Foundation, Inc.
+/* Copyright (C) 2002, 2003, 2005, 2007 Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
 This file is part of the GNU Fortran 95 runtime library (libgfortran).
@@ -30,8 +30,6 @@ Boston, MA 02110-1301, USA.  */
 
 /* Implement the non-IOLENGTH variant of the INQUIRY statement */
 
-#include "config.h"
-#include "libgfortran.h"
 #include "io.h"
 
 
@@ -47,7 +45,18 @@ inquire_via_unit (st_parameter_inquire *iqp, gfc_unit * u)
   GFC_INTEGER_4 cf = iqp->common.flags;
 
   if ((cf & IOPARM_INQUIRE_HAS_EXIST) != 0)
-    *iqp->exist = iqp->common.unit >= 0;
+    {
+      *iqp->exist = (iqp->common.unit >= 0
+		     && iqp->common.unit <= GFC_INTEGER_4_HUGE);
+
+      if ((cf & IOPARM_INQUIRE_HAS_FILE) == 0)
+	{
+	  if (!(*iqp->exist))
+	    *iqp->common.iostat = LIBERROR_BAD_UNIT;
+	  *iqp->exist = *iqp->exist
+			&& (*iqp->common.iostat != LIBERROR_BAD_UNIT);
+	}
+    }
 
   if ((cf & IOPARM_INQUIRE_HAS_OPENED) != 0)
     *iqp->opened = (u != NULL);
@@ -90,21 +99,39 @@ inquire_via_unit (st_parameter_inquire *iqp, gfc_unit * u)
       if (u == NULL)
 	p = inquire_sequential (NULL, 0);
       else
-	{
-          /* disallow an open direct access file to be accessed sequentially */
-          if (u->flags.access == ACCESS_DIRECT)
-            p = "NO";
-          else   
-            p = inquire_sequential (u->file, u->file_len);
-	}
+	switch (u->flags.access)
+	  {
+	  case ACCESS_DIRECT:
+	  case ACCESS_STREAM:
+	    p = "NO";
+	    break;
+	  case ACCESS_SEQUENTIAL:
+	    p = "YES";
+	    break;
+	  default:
+	    internal_error (&iqp->common, "inquire_via_unit(): Bad access");
+	  }
 
       cf_strcpy (iqp->sequential, iqp->sequential_len, p);
     }
 
   if ((cf & IOPARM_INQUIRE_HAS_DIRECT) != 0)
     {
-      p = (u == NULL) ? inquire_direct (NULL, 0) :
-	inquire_direct (u->file, u->file_len);
+      if (u == NULL)
+	p = inquire_direct (NULL, 0);
+      else
+	switch (u->flags.access)
+	  {
+	  case ACCESS_SEQUENTIAL:
+	  case ACCESS_STREAM:
+	    p = "NO";
+	    break;
+	  case ACCESS_DIRECT:
+	    p = "YES";
+	    break;
+	  default:
+	    internal_error (&iqp->common, "inquire_via_unit(): Bad access");
+	  }
 
       cf_strcpy (iqp->direct, iqp->direct_len, p);
     }
@@ -131,16 +158,40 @@ inquire_via_unit (st_parameter_inquire *iqp, gfc_unit * u)
 
   if ((cf & IOPARM_INQUIRE_HAS_FORMATTED) != 0)
     {
-      p = (u == NULL) ? inquire_formatted (NULL, 0) :
-	inquire_formatted (u->file, u->file_len);
+      if (u == NULL)
+	p = inquire_formatted (NULL, 0);
+      else
+	switch (u->flags.form)
+	  {
+	  case FORM_FORMATTED:
+	    p = "YES";
+	    break;
+	  case FORM_UNFORMATTED:
+	    p = "NO";
+	    break;
+	  default:
+	    internal_error (&iqp->common, "inquire_via_unit(): Bad form");
+	  }
 
       cf_strcpy (iqp->formatted, iqp->formatted_len, p);
     }
 
   if ((cf & IOPARM_INQUIRE_HAS_UNFORMATTED) != 0)
     {
-      p = (u == NULL) ? inquire_unformatted (NULL, 0) :
-	inquire_unformatted (u->file, u->file_len);
+      if (u == NULL)
+	p = inquire_unformatted (NULL, 0);
+      else
+	switch (u->flags.form)
+	  {
+	  case FORM_FORMATTED:
+	    p = "NO";
+	    break;
+	  case FORM_UNFORMATTED:
+	    p = "YES";
+	    break;
+	  default:
+	    internal_error (&iqp->common, "inquire_via_unit(): Bad form");
+	  }
 
       cf_strcpy (iqp->unformatted, iqp->unformatted_len, p);
     }
@@ -152,7 +203,13 @@ inquire_via_unit (st_parameter_inquire *iqp, gfc_unit * u)
     *iqp->strm_pos_out = (u != NULL) ? u->strm_pos : 0;
 
   if ((cf & IOPARM_INQUIRE_HAS_NEXTREC) != 0)
-    *iqp->nextrec = (u != NULL) ? u->last_record + 1 : 0;
+    {
+      /* This only makes sense in the context of DIRECT access.  */
+      if (u != NULL && u->flags.access == ACCESS_DIRECT)
+	*iqp->nextrec = u->last_record + 1;
+      else
+	*iqp->nextrec = 0;
+    }
 
   if ((cf & IOPARM_INQUIRE_HAS_BLANK) != 0)
     {
@@ -298,11 +355,11 @@ inquire_via_unit (st_parameter_inquire *iqp, gfc_unit * u)
 	switch (u->flags.convert)
 	  {
 	    /*  l8_to_l4_offset is 0 for little-endian, 1 for big-endian.  */
-	  case CONVERT_NATIVE:
+	  case GFC_CONVERT_NATIVE:
 	    p = l8_to_l4_offset ? "BIG_ENDIAN" : "LITTLE_ENDIAN";
 	    break;
 
-	  case CONVERT_SWAP:
+	  case GFC_CONVERT_SWAP:
 	    p = l8_to_l4_offset ? "LITTLE_ENDIAN" : "BIG_ENDIAN";
 	    break;
 
@@ -344,13 +401,13 @@ inquire_via_filename (st_parameter_inquire *iqp)
 
   if ((cf & IOPARM_INQUIRE_HAS_SEQUENTIAL) != 0)
     {
-      p = inquire_sequential (iqp->file, iqp->file_len);
+      p = "UNKNOWN";
       cf_strcpy (iqp->sequential, iqp->sequential_len, p);
     }
 
   if ((cf & IOPARM_INQUIRE_HAS_DIRECT) != 0)
     {
-      p = inquire_direct (iqp->file, iqp->file_len);
+      p = "UNKNOWN";
       cf_strcpy (iqp->direct, iqp->direct_len, p);
     }
 
@@ -359,13 +416,13 @@ inquire_via_filename (st_parameter_inquire *iqp)
 
   if ((cf & IOPARM_INQUIRE_HAS_FORMATTED) != 0)
     {
-      p = inquire_formatted (iqp->file, iqp->file_len);
+      p = "UNKNOWN";
       cf_strcpy (iqp->formatted, iqp->formatted_len, p);
     }
 
   if ((cf & IOPARM_INQUIRE_HAS_UNFORMATTED) != 0)
     {
-      p = inquire_unformatted (iqp->file, iqp->file_len);
+      p = "UNKNOWN";
       cf_strcpy (iqp->unformatted, iqp->unformatted_len, p);
     }
 

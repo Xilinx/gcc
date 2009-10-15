@@ -22,6 +22,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "tm.h"
 #include "cgraph.h"
+#include "tree-pass.h"
+#include "timevar.h"
 
 /* Fill array order with all nodes with output flag set in the reverse
    topological order.  */
@@ -55,7 +57,7 @@ cgraph_postorder (struct cgraph_node **order)
 	  {
 	    while (node2->aux != &last)
 	      {
-		edge = node2->aux;
+		edge = (struct cgraph_edge *) node2->aux;
 		if (edge->next_caller)
 		  node2->aux = edge->next_caller;
 		else
@@ -95,7 +97,7 @@ cgraph_postorder (struct cgraph_node **order)
 bool
 cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
 {
-  struct cgraph_node *first = (void *) 1;
+  struct cgraph_node *first = (struct cgraph_node *) (void *) 1;
   struct cgraph_node *node, *next;
   bool changed = false;
   int insns = 0;
@@ -128,7 +130,7 @@ cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
     {
       struct cgraph_edge *e;
       node = first;
-      first = first->aux;
+      first = (struct cgraph_node *) first->aux;
 
       for (e = node->callees; e; e = e->next_callee)
 	if (!e->callee->aux
@@ -185,13 +187,12 @@ cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
 		      break;
 		  if (!clone)
 		    {
-		      DECL_SAVED_TREE (node->decl) = NULL;
-		      DECL_STRUCT_FUNCTION (node->decl) = NULL;
-		      DECL_INITIAL (node->decl) = error_mark_node;
+		      cgraph_release_function_body (node);
 		      node->analyzed = false;
 		    }
 		  cgraph_node_remove_callees (node);
 		  node->analyzed = false;
+		  node->local.inlinable = false;
 		}
 	      else
 		cgraph_remove_node (node);
@@ -205,5 +206,91 @@ cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
     node->aux = NULL;
   if (file)
     fprintf (file, "\nReclaimed %i insns", insns);
+#ifdef ENABLE_CHECKING
+  verify_cgraph ();
+#endif
   return changed;
 }
+
+/* Mark visibility of all functions.
+
+   A local function is one whose calls can occur only in the current
+   compilation unit and all its calls are explicit, so we can change
+   its calling convention.  We simply mark all static functions whose
+   address is not taken as local.
+
+   We also change the TREE_PUBLIC flag of all declarations that are public
+   in language point of view but we want to overwrite this default
+   via visibilities for the backend point of view.  */
+
+static unsigned int
+function_and_variable_visibility (void)
+{
+  struct cgraph_node *node;
+  struct varpool_node *vnode;
+
+  for (node = cgraph_nodes; node; node = node->next)
+    {
+      if (node->reachable
+	  && (DECL_COMDAT (node->decl)
+	      || (!flag_whole_program
+		  && TREE_PUBLIC (node->decl) && !DECL_EXTERNAL (node->decl))))
+	node->local.externally_visible = true;
+      if (!node->local.externally_visible && node->analyzed
+	  && !DECL_EXTERNAL (node->decl))
+	{
+	  gcc_assert (flag_whole_program || !TREE_PUBLIC (node->decl));
+	  TREE_PUBLIC (node->decl) = 0;
+	}
+      node->local.local = (!node->needed
+			   && node->analyzed
+			   && !DECL_EXTERNAL (node->decl)
+			   && !node->local.externally_visible);
+    }
+  for (vnode = varpool_nodes_queue; vnode; vnode = vnode->next_needed)
+    {
+      if (vnode->needed
+	  && !flag_whole_program
+	  && (DECL_COMDAT (vnode->decl) || TREE_PUBLIC (vnode->decl)))
+	vnode->externally_visible = 1;
+      if (!vnode->externally_visible)
+	{
+	  gcc_assert (flag_whole_program || !TREE_PUBLIC (vnode->decl));
+	  TREE_PUBLIC (vnode->decl) = 0;
+	}
+     gcc_assert (TREE_STATIC (vnode->decl));
+    }
+
+  if (dump_file)
+    {
+      fprintf (dump_file, "\nMarking local functions:");
+      for (node = cgraph_nodes; node; node = node->next)
+	if (node->local.local)
+	  fprintf (dump_file, " %s", cgraph_node_name (node));
+      fprintf (dump_file, "\n\n");
+      fprintf (dump_file, "\nMarking externally visible functions:");
+      for (node = cgraph_nodes; node; node = node->next)
+	if (node->local.externally_visible)
+	  fprintf (dump_file, " %s", cgraph_node_name (node));
+      fprintf (dump_file, "\n\n");
+    }
+  cgraph_function_flags_ready = true;
+  return 0;
+}
+
+struct tree_opt_pass pass_ipa_function_and_variable_visibility = 
+{
+  "visibility",				/* name */
+  NULL,					/* gate */
+  function_and_variable_visibility,	/* execute */
+  NULL,					/* sub */
+  NULL,					/* next */
+  0,					/* static_pass_number */
+  TV_CGRAPHOPT,				/* tv_id */
+  0,	                                /* properties_required */
+  0,					/* properties_provided */
+  0,					/* properties_destroyed */
+  0,					/* todo_flags_start */
+  TODO_remove_functions | TODO_dump_cgraph,/* todo_flags_finish */
+  0					/* letter */
+};

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2006, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -35,7 +35,6 @@ pragma Style_Checks (All_Checks);
 --  Subprograms not all in alpha order
 
 with Debug;    use Debug;
-with Namet;    use Namet;
 with Opt;      use Opt;
 with Output;   use Output;
 with Tree_IO;  use Tree_IO;
@@ -367,22 +366,22 @@ package body Sinput is
    Source_Cache_First : Source_Ptr := 1;
    Source_Cache_Last  : Source_Ptr := 0;
    --  Records the First and Last subscript values for the most recently
-   --  referenced entry in the source table, to optimize the common case
-   --  of repeated references to the same entry. The initial values force
-   --  an initial search to set the cache value.
+   --  referenced entry in the source table, to optimize the common case of
+   --  repeated references to the same entry. The initial values force an
+   --  initial search to set the cache value.
 
    Source_Cache_Index : Source_File_Index := No_Source_File;
    --  Contains the index of the entry corresponding to Source_Cache
 
-   function Get_Source_File_Index
-     (S    : Source_Ptr)
-      return Source_File_Index
-   is
+   function Get_Source_File_Index (S : Source_Ptr) return Source_File_Index is
    begin
       if S in Source_Cache_First .. Source_Cache_Last then
          return Source_Cache_Index;
 
       else
+         pragma Assert (Source_File_Index_Table (Int (S) / Chunk_Size)
+                          /=
+                        No_Source_File);
          for J in Source_File_Index_Table (Int (S) / Chunk_Size)
                                                     .. Source_File.Last
          loop
@@ -575,8 +574,8 @@ package body Sinput is
    --------------------------------
 
    procedure Register_Source_Ref_Pragma
-     (File_Name          : Name_Id;
-      Stripped_File_Name : Name_Id;
+     (File_Name          : File_Name_Type;
+      Stripped_File_Name : File_Name_Type;
       Mapped_Line        : Nat;
       Line_After_Pragma  : Physical_Line_Number)
    is
@@ -587,7 +586,7 @@ package body Sinput is
       ML : Logical_Line_Number;
 
    begin
-      if File_Name /= No_Name then
+      if File_Name /= No_File then
          SFR.Reference_Name := Stripped_File_Name;
          SFR.Full_Ref_Name  := File_Name;
 
@@ -812,7 +811,7 @@ package body Sinput is
          begin
             --  For the instantiation case, we do not read in any data. Instead
             --  we share the data for the generic template entry. Since the
-            --  template always occurs first, we can safetly refer to its data.
+            --  template always occurs first, we can safely refer to its data.
 
             if S.Instantiation /= No_Location then
                declare
@@ -1201,6 +1200,16 @@ package body Sinput is
             (Max * (Lines_Table_Type'Component_Size / System.Storage_Unit))));
       Source_File.Table (S).Lines_Table_Max := Physical_Line_Number (Max);
    end Trim_Lines_Table;
+
+   ------------
+   -- Unlock --
+   ------------
+
+   procedure Unlock is
+   begin
+      Source_File.Locked := False;
+      Source_File.Release;
+   end Unlock;
 
    --------
    -- wl --

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2005, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -31,7 +31,7 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with GNAT.Heap_Sort_A; use GNAT.Heap_Sort_A;
+with GNAT.Heap_Sort_G;
 
 separate (Lib)
 procedure Sort (Tbl : in out Unit_Ref_Table) is
@@ -48,6 +48,8 @@ procedure Sort (Tbl : in out Unit_Ref_Table) is
    procedure Move_Uname (From : Natural; To : Natural);
    --  Move routine needed by the sorting routine below
 
+   package Sorting is new GNAT.Heap_Sort_G (Move_Uname, Lt_Uname);
+
    --------------
    -- Lt_Uname --
    --------------
@@ -58,10 +60,10 @@ procedure Sort (Tbl : in out Unit_Ref_Table) is
       --  at the bottom of the list. They are recognized because they are
       --  the only ones without a Unit_Name.
 
-      if Units.Table (T (C1)).Unit_Name = No_Name then
+      if Units.Table (T (C1)).Unit_Name = No_Unit_Name then
          return False;
 
-      elsif Units.Table (T (C2)).Unit_Name = No_Name then
+      elsif Units.Table (T (C2)).Unit_Name = No_Unit_Name then
          return True;
 
       else
@@ -88,8 +90,7 @@ begin
          T (I) := Tbl (Int (I) - 1 + Tbl'First);
       end loop;
 
-      Sort (T'Last,
-        Move_Uname'Unrestricted_Access, Lt_Uname'Unrestricted_Access);
+      Sorting.Sort (T'Last);
 
    --  Sort is complete, copy result back into place
 

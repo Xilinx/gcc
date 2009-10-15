@@ -1,6 +1,6 @@
 /* Definitions of target machine for GNU compiler.  
    Vitesse IQ2000 processors
-   Copyright (C) 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
 
    This file is part of GCC.
 
@@ -251,12 +251,12 @@ enum reg_class
 /* For IQ2000:
 
    `I'	is used for the range of constants an arithmetic insn can
-	actually contain (16 bits signed integers).
+	actually contain (16-bits signed integers).
 
    `J'	is used for the range which is just zero (i.e., $r0).
 
    `K'	is used for the range of constants a logical insn can actually
-	contain (16 bit zero-extended integers).
+	contain (16-bit zero-extended integers).
 
    `L'	is used for the range of constants that be loaded with lui
 	(i.e., the bottom 16 bits are zero).
@@ -266,7 +266,7 @@ enum reg_class
 
    `N'	is used for constants 0xffffnnnn or 0xnnnnffff
 
-   `O'	is a 5 bit zero-extended integer.  */
+   `O'	is a 5-bit zero-extended integer.  */
 
 #define CONST_OK_FOR_LETTER_P(VALUE, C)					\
   ((C) == 'I' ? ((unsigned HOST_WIDE_INT) ((VALUE) + 0x8000) < 0x10000)	\
@@ -374,7 +374,7 @@ enum reg_class
 
 #define REG_PARM_STACK_SPACE(FNDECL) 0
 
-#define OUTGOING_REG_PARM_STACK_SPACE
+#define OUTGOING_REG_PARM_STACK_SPACE 1
 
 #define RETURN_POPS_ARGS(FUNDECL,FUNTYPE,SIZE) 0
 
@@ -474,12 +474,6 @@ typedef struct iq2000_args
   fprintf (FILE, "\t.set\treorder\n");					\
   fprintf (FILE, "\t.set\tat\n");					\
 }
-
-
-/* Implementing the Varargs Macros.  */
-
-#define EXPAND_BUILTIN_VA_START(valist, nextarg) \
-  iq2000_va_start (valist, nextarg)
 
 
 /* Trampolines for Nested Functions.  */
@@ -756,7 +750,8 @@ while (0)
 
 #undef ASM_OUTPUT_SKIP
 #define ASM_OUTPUT_SKIP(STREAM,SIZE)					\
-  fprintf (STREAM, "\t.space\t%u\n", (SIZE))
+  fprintf (STREAM, "\t.space\t" HOST_WIDE_INT_PRINT_UNSIGNED "\n",	\
+           (unsigned HOST_WIDE_INT)(SIZE))
 
 #define ASM_OUTPUT_ALIGN(STREAM,LOG)					\
   if ((LOG) != 0)                       				\
@@ -973,9 +968,9 @@ enum processor_type
 /* Tell prologue and epilogue if register REGNO should be saved / restored.  */
 
 #define MUST_SAVE_REGISTER(regno) \
- ((regs_ever_live[regno] && !call_used_regs[regno])			\
+  ((df_regs_ever_live_p (regno) && !call_used_regs[regno])		\
   || (regno == HARD_FRAME_POINTER_REGNUM && frame_pointer_needed)	\
-  || (regno == (GP_REG_FIRST + 31) && regs_ever_live[GP_REG_FIRST + 31]))
+   || (regno == (GP_REG_FIRST + 31) && df_regs_ever_live_p (GP_REG_FIRST + 31)))
 
 /* ALIGN FRAMES on double word boundaries */
 #ifndef IQ2000_STACK_ALIGN

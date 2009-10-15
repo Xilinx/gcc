@@ -20,9 +20,9 @@
 
 ;; Integer vector operations
 
-(define_mode_macro VECINT [V8QI V4HI V2SI])
-(define_mode_macro VECINT12 [V8QI V4HI])
-(define_mode_macro VECINT24 [V4HI V2SI])
+(define_mode_iterator VECINT [V8QI V4HI V2SI])
+(define_mode_iterator VECINT12 [V8QI V4HI])
+(define_mode_iterator VECINT24 [V4HI V2SI])
 (define_mode_attr vecsize [(V8QI "1") (V4HI "2") (V2SI "4")])
 
 (define_expand "mov<mode>"
@@ -800,10 +800,7 @@
 
   if (GET_CODE (op1) == CONST_INT && GET_CODE (op2) == CONST_INT)
     {
-      rtvec v = rtvec_alloc (2);
-      RTVEC_ELT (v, 0) = TARGET_BIG_ENDIAN ? op2 : op1;
-      RTVEC_ELT (v, 1) = TARGET_BIG_ENDIAN ? op1 : op2;;
-      x = gen_rtx_CONST_VECTOR (V2SImode, v);
+      x = gen_rtx_CONST_VECTOR (V2SImode, XVEC (operands[1], 0));
       emit_move_insn (operands[0], x);
       DONE;
     }

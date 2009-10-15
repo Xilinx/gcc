@@ -7,11 +7,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2004-2006, Free Software Foundation, Inc.         --
---                                                                          --
--- This specification is derived from the Ada Reference Manual for use with --
--- GNAT. The copyright notice above, and the license provisions that follow --
--- apply solely to the  contents of the part following the private keyword. --
+--          Copyright (C) 2004-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -33,6 +29,13 @@
 --                                                                          --
 -- This unit was originally developed by Matthew J Heaney.                  --
 ------------------------------------------------------------------------------
+
+--  The references below to "CLR" refer to the following book, from which
+--  several of the algorithms here were adapted:
+--     Introduction to Algorithms
+--     by Thomas H. Cormen, Charles E. Leiserson, Ronald L. Rivest
+--     Publisher: The MIT Press (June 18, 1990)
+--     ISBN: 0262031418
 
 with System;  use type System.Address;
 
@@ -141,7 +144,7 @@ package body Ada.Containers.Red_Black_Trees.Generic_Operations is
 
    procedure Delete_Fixup (Tree : in out Tree_Type; Node : Node_Access) is
 
-      --  CLR p274 ???
+      --  CLR p274
 
       X : Node_Access := Node;
       W : Node_Access;
@@ -237,7 +240,7 @@ package body Ada.Containers.Red_Black_Trees.Generic_Operations is
      (Tree : in out Tree_Type;
       Node : Node_Access)
    is
-      --  CLR p273 ???
+      --  CLR p273
 
       X, Y : Node_Access;
 
@@ -595,6 +598,7 @@ package body Ada.Containers.Red_Black_Trees.Generic_Operations is
 
    procedure Generic_Delete_Tree (X : in out Node_Access) is
       Y : Node_Access;
+      pragma Warnings (Off, Y);
    begin
       while X /= null loop
          Y := Right (X);
@@ -695,7 +699,7 @@ package body Ada.Containers.Red_Black_Trees.Generic_Operations is
    ------------------
 
    procedure Generic_Read
-     (Stream : access Root_Stream_Type'Class;
+     (Stream : not null access Root_Stream_Type'Class;
       Tree   : in out Tree_Type)
    is
       N : Count_Type'Base;
@@ -773,7 +777,7 @@ package body Ada.Containers.Red_Black_Trees.Generic_Operations is
    -------------------
 
    procedure Generic_Write
-     (Stream : access Root_Stream_Type'Class;
+     (Stream : not null access Root_Stream_Type'Class;
       Tree   : Tree_Type)
    is
       procedure Process (Node : Node_Access);
@@ -804,7 +808,7 @@ package body Ada.Containers.Red_Black_Trees.Generic_Operations is
 
    procedure Left_Rotate (Tree : in out Tree_Type; X : Node_Access) is
 
-      --  CLR p266 ???
+      --  CLR p266
 
       Y : constant Node_Access := Right (X);
       pragma Assert (Y /= null);
@@ -837,7 +841,7 @@ package body Ada.Containers.Red_Black_Trees.Generic_Operations is
 
    function Max (Node : Node_Access) return Node_Access is
 
-      --  CLR p248 ???
+      --  CLR p248
 
       X : Node_Access := Node;
       Y : Node_Access;
@@ -860,7 +864,7 @@ package body Ada.Containers.Red_Black_Trees.Generic_Operations is
 
    function Min (Node : Node_Access) return Node_Access is
 
-      --  CLR p248 ???
+      --  CLR p248
 
       X : Node_Access := Node;
       Y : Node_Access;
@@ -883,7 +887,7 @@ package body Ada.Containers.Red_Black_Trees.Generic_Operations is
 
    function Next (Node : Node_Access) return Node_Access is
    begin
-      --  CLR p249 ???
+      --  CLR p249
 
       if Node = null then
          return null;
@@ -904,14 +908,6 @@ package body Ada.Containers.Red_Black_Trees.Generic_Operations is
             X := Y;
             Y := Parent (Y);
          end loop;
-
-         --  Why is this code commented out ???
-
---           if Right (X) /= Y then
---              return Y;
---           else
---              return X;
---           end if;
 
          return Y;
       end;
@@ -943,14 +939,6 @@ package body Ada.Containers.Red_Black_Trees.Generic_Operations is
             Y := Parent (Y);
          end loop;
 
-         --  Why is this code commented out ???
-
---           if Left (X) /= Y then
---              return Y;
---           else
---              return X;
---           end if;
-
          return Y;
       end;
    end Previous;
@@ -963,7 +951,7 @@ package body Ada.Containers.Red_Black_Trees.Generic_Operations is
      (Tree : in out Tree_Type;
       Node : Node_Access)
    is
-      --  CLR p.268 ???
+      --  CLR p.268
 
       X : Node_Access := Node;
       pragma Assert (X /= null);

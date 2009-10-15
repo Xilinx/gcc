@@ -86,7 +86,7 @@ should_duplicate_loop_header_p (basic_block header, struct loop *loop,
       if (get_call_expr_in (last))
 	return false;
 
-      *limit -= estimate_num_insns (last);
+      *limit -= estimate_num_insns (last, &eni_size_weights);
       if (*limit < 0)
 	return false;
     }
@@ -122,8 +122,7 @@ do_while_loop_p (struct loop *loop)
 static unsigned int
 copy_loop_headers (void)
 {
-  struct loops *loops;
-  unsigned i;
+  loop_iterator li;
   struct loop *loop;
   basic_block header;
   edge exit, entry;
@@ -131,27 +130,27 @@ copy_loop_headers (void)
   unsigned n_bbs;
   unsigned bbs_size;
 
-  loops = loop_optimizer_init (LOOPS_HAVE_PREHEADERS
-			       | LOOPS_HAVE_SIMPLE_LATCHES);
-  if (!loops)
-    return 0;
+  loop_optimizer_init (LOOPS_HAVE_PREHEADERS
+		       | LOOPS_HAVE_SIMPLE_LATCHES);
+  if (number_of_loops () <= 1)
+    {
+      loop_optimizer_finalize ();
+      return 0;
+    }
 
 #ifdef ENABLE_CHECKING
-  verify_loop_structure (loops);
+  verify_loop_structure ();
 #endif
 
   bbs = XNEWVEC (basic_block, n_basic_blocks);
   copied_bbs = XNEWVEC (basic_block, n_basic_blocks);
   bbs_size = n_basic_blocks;
 
-  for (i = 1; i < loops->num; i++)
+  FOR_EACH_LOOP (li, loop, 0)
     {
       /* Copy at most 20 insns.  */
       int limit = 20;
 
-      loop = loops->parray[i];
-      if (!loop)
-	continue;
       header = loop->header;
 
       /* If the loop is already a do-while style one (either because it was
@@ -193,7 +192,7 @@ copy_loop_headers (void)
       /* Ensure that the header will have just the latch as a predecessor
 	 inside the loop.  */
       if (!single_pred_p (exit->dest))
-	exit = single_pred_edge (loop_split_edge_with (exit, NULL));
+	exit = single_pred_edge (split_edge (exit));
 
       entry = loop_preheader_edge (loop);
 
@@ -216,24 +215,35 @@ copy_loop_headers (void)
 
 	  for (i = 0; i < n_bbs; ++i)
 	    {
-	      tree last;
+	      block_stmt_iterator bsi;
 
-	      last = last_stmt (copied_bbs[i]);
-	      if (TREE_CODE (last) == COND_EXPR)
-		TREE_NO_WARNING (last) = 1;
+	      for (bsi = bsi_start (copied_bbs[i]);
+		   !bsi_end_p (bsi);
+		   bsi_next (&bsi))
+		{
+		  tree stmt = bsi_stmt (bsi);
+		  if (TREE_CODE (stmt) == COND_EXPR)
+		    TREE_NO_WARNING (stmt) = 1;
+		  else if (TREE_CODE (stmt) == GIMPLE_MODIFY_STMT)
+		    {
+		      tree rhs = GIMPLE_STMT_OPERAND (stmt, 1);
+		      if (COMPARISON_CLASS_P (rhs))
+			TREE_NO_WARNING (stmt) = 1;
+		    }
+		}
 	    }
 	}
 
       /* Ensure that the latch and the preheader is simple (we know that they
 	 are not now, since there was the loop exit condition.  */
-      loop_split_edge_with (loop_preheader_edge (loop), NULL);
-      loop_split_edge_with (loop_latch_edge (loop), NULL);
+      split_edge (loop_preheader_edge (loop));
+      split_edge (loop_latch_edge (loop));
     }
 
   free (bbs);
   free (copied_bbs);
 
-  loop_optimizer_finalize (loops);
+  loop_optimizer_finalize ();
   return 0;
 }
 

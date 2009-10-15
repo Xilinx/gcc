@@ -59,8 +59,7 @@
 ;;   This isn't necessary right now because we assume for every
 ;;   instruction that it never blocks a decoder.
 ;; - Figure out where the p0 and p1 reservations come from.  These
-;;   appear not to be in the manual (e.g. why is cld "(p0+p1)*2"
-;;   better than "(p0|p1)*4" ???)
+;;   appear not to be in the manual
 ;; - Lots more because I'm sure this is still far from optimal :-)
 
 ;; The ppro_idiv and ppro_fdiv automata are used to model issue
@@ -79,7 +78,7 @@
 ;;    but still in only one cycle.
 ;;  - a complex (microcode) instruction can also only be decoded by
 ;;    decoder 0, and this takes an unspecified number of cycles.
-;;    
+;;
 ;; The goal is to schedule such that we have a few-one-one uops sequence
 ;; in each cycle, to decode as many instructions per cycle as possible.
 (define_cpu_unit "decoder0" "ppro_decoder")
@@ -195,10 +194,6 @@
 				   (eq_attr "type" "ishift,ishift1,rotate,rotate1")))
 			 "decoder0,p2+p0,p4+p3")
 
-(define_insn_reservation "ppro_cld" 2
-			 (and (eq_attr "cpu" "pentiumpro,generic32")
-			      (eq_attr "type" "cld"))
-			 "decoder0,(p0+p1)*2")
 
 ;; The P6 has a sophisticated branch prediction mechanism to minimize
 ;; latencies due to branching.  In particular, it has a fast way to

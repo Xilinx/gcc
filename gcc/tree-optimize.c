@@ -56,8 +56,9 @@ static bool
 gate_all_optimizations (void)
 {
   return (optimize >= 1
-	  /* Don't bother doing anything if the program has errors.  */
-	  && !(errorcount || sorrycount));
+	  /* Don't bother doing anything if the program has errors. 
+	     We have to pass down the queue if we already went into SSA */
+	  && (!(errorcount || sorrycount) || gimple_in_ssa_p (cfun)));
 }
 
 struct tree_opt_pass pass_all_optimizations =
@@ -77,11 +78,55 @@ struct tree_opt_pass pass_all_optimizations =
   0					/* letter */
 };
 
+/* Gate: execute, or not, all of the non-trivial optimizations.  */
+
+static bool
+gate_all_early_local_passes (void)
+{
+	  /* Don't bother doing anything if the program has errors.  */
+  return (!errorcount && !sorrycount);
+}
+
 struct tree_opt_pass pass_early_local_passes =
 {
-  NULL,					/* name */
-  gate_all_optimizations,		/* gate */
+  "early_local_cleanups",		/* name */
+  gate_all_early_local_passes,		/* gate */
   NULL,					/* execute */
+  NULL,					/* sub */
+  NULL,					/* next */
+  0,					/* static_pass_number */
+  0,					/* tv_id */
+  0,					/* properties_required */
+  0,					/* properties_provided */
+  0,					/* properties_destroyed */
+  0,					/* todo_flags_start */
+  TODO_remove_functions,		/* todo_flags_finish */
+  0					/* letter */
+};
+
+static unsigned int
+execute_early_local_optimizations (void)
+{
+  if (flag_unit_at_a_time)
+    cgraph_state = CGRAPH_STATE_IPA_SSA;
+  return 0;
+}
+
+/* Gate: execute, or not, all of the non-trivial optimizations.  */
+
+static bool
+gate_all_early_optimizations (void)
+{
+  return (optimize >= 1
+	  /* Don't bother doing anything if the program has errors.  */
+	  && !(errorcount || sorrycount));
+}
+
+struct tree_opt_pass pass_all_early_optimizations =
+{
+  "early_optimizations",		/* name */
+  gate_all_early_optimizations,		/* gate */
+  execute_early_local_optimizations,	/* execute */
   NULL,					/* sub */
   NULL,					/* next */
   0,					/* static_pass_number */
@@ -162,14 +207,12 @@ struct tree_opt_pass pass_cleanup_cfg_post_optimizing =
 static unsigned int
 execute_free_datastructures (void)
 {
-  /* ??? This isn't the right place for this.  Worse, it got computed
-     more or less at random in various passes.  */
   free_dominance_info (CDI_DOMINATORS);
   free_dominance_info (CDI_POST_DOMINATORS);
 
-  /* Remove the ssa structures.  Do it here since this includes statement
-     annotations that need to be intact during disband_implicit_edges.  */
-  delete_tree_ssa ();
+  /* Remove the ssa structures.  */
+  if (cfun->gimple_df)
+    delete_tree_ssa ();
   return 0;
 }
 
@@ -194,29 +237,9 @@ struct tree_opt_pass pass_free_datastructures =
 static unsigned int
 execute_free_cfg_annotations (void)
 {
-  basic_block bb;
-  block_stmt_iterator bsi;
-
-  /* Emit gotos for implicit jumps.  */
-  disband_implicit_edges ();
-
-  /* Remove annotations from every tree in the function.  */
-  FOR_EACH_BB (bb)
-    for (bsi = bsi_start (bb); !bsi_end_p (bsi); bsi_next (&bsi))
-      {
-	tree stmt = bsi_stmt (bsi);
-	ggc_free (stmt->common.ann);
-	stmt->common.ann = NULL;
-      }
-
   /* And get rid of annotations we no longer need.  */
   delete_tree_cfg_annotations ();
 
-#ifdef ENABLE_CHECKING
-  /* Once the statement annotations have been removed, we can verify
-     the integrity of statements in the EH throw table.  */
-  verify_eh_throw_table_statements ();
-#endif
   return 0;
 }
 
@@ -237,31 +260,21 @@ struct tree_opt_pass pass_free_cfg_annotations =
   0					/* letter */
 };
 
-/* Return true if BB has at least one abnormal outgoing edge.  */
-
-static inline bool
-has_abnormal_outgoing_edge_p (basic_block bb)
-{
-  edge e;
-  edge_iterator ei;
-
-  FOR_EACH_EDGE (e, ei, bb->succs)
-    if (e->flags & EDGE_ABNORMAL)
-      return true;
-
-  return false;
-}
-
 /* Pass: fixup_cfg.  IPA passes, compilation of earlier functions or inlining
-   might have changed some properties, such as marked functions nothrow or
-   added calls that can potentially go to non-local labels.  Remove redundant
-   edges and basic blocks, and create new ones if necessary.  */
+   might have changed some properties, such as marked functions nothrow.
+   Remove redundant edges and basic blocks, and create new ones if necessary.
 
-static unsigned int
+   This pass can't be executed as stand alone pass from pass manager, because
+   in between inlining and this fixup the verify_flow_info would fail.  */
+
+unsigned int
 execute_fixup_cfg (void)
 {
   basic_block bb;
   block_stmt_iterator bsi;
+  int todo = gimple_in_ssa_p (cfun) ? TODO_verify_ssa : 0;
+
+  cfun->after_inlining = true;
 
   if (cfun->eh)
     FOR_EACH_BB (bb)
@@ -270,64 +283,33 @@ execute_fixup_cfg (void)
 	  {
 	    tree stmt = bsi_stmt (bsi);
 	    tree call = get_call_expr_in (stmt);
+	    tree decl = call ? get_callee_fndecl (call) : NULL;
 
-	    if (call && call_expr_flags (call) & (ECF_CONST | ECF_PURE))
-	      TREE_SIDE_EFFECTS (call) = 0;
+	    if (decl && call_expr_flags (call) & (ECF_CONST | ECF_PURE)
+		&& TREE_SIDE_EFFECTS (call))
+	      {
+		if (gimple_in_ssa_p (cfun))
+		  {
+		    todo |= TODO_update_ssa | TODO_cleanup_cfg;
+	            update_stmt (stmt);
+		  }
+	        TREE_SIDE_EFFECTS (call) = 0;
+	      }
+	    if (decl && TREE_NOTHROW (decl))
+	      TREE_NOTHROW (call) = 1;
 	    if (!tree_could_throw_p (stmt) && lookup_stmt_eh_region (stmt))
 	      remove_stmt_from_eh_region (stmt);
 	  }
-	tree_purge_dead_eh_edges (bb);
+	if (tree_purge_dead_eh_edges (bb))
+          todo |= TODO_cleanup_cfg;
       }
-
-  if (current_function_has_nonlocal_label)
-    FOR_EACH_BB (bb)
-      {
-	for (bsi = bsi_start (bb); !bsi_end_p (bsi); bsi_next (&bsi))
-	  {
-	    tree stmt = bsi_stmt (bsi);
-	    if (tree_can_make_abnormal_goto (stmt))
-	      {
-		if (stmt == bsi_stmt (bsi_last (bb)))
-		  {
-		    if (!has_abnormal_outgoing_edge_p (bb))
-		      make_abnormal_goto_edges (bb, true);
-		  }
-		else
-		  {
-		    edge e = split_block (bb, stmt);
-		    bb = e->src;
-		    make_abnormal_goto_edges (bb, true);
-		  }
-		break;
-	      }
-	  }
-      }
-
-  cleanup_tree_cfg ();
 
   /* Dump a textual representation of the flowgraph.  */
   if (dump_file)
     dump_tree_cfg (dump_file, dump_flags);
 
-  return 0;
+  return todo;
 }
-
-struct tree_opt_pass pass_fixup_cfg =
-{
-  "fixupcfg",				/* name */
-  NULL,					/* gate */
-  execute_fixup_cfg,			/* execute */
-  NULL,					/* sub */
-  NULL,					/* next */
-  0,					/* static_pass_number */
-  0,					/* tv_id */
-  PROP_cfg,				/* properties_required */
-  0,					/* properties_provided */
-  0,					/* properties_destroyed */
-  0,					/* todo_flags_start */
-  0,					/* todo_flags_finish */
-  0					/* letter */
-};
 
 /* Do the actions required to initialize internal data structures used
    in tree-ssa optimization passes.  */
@@ -340,10 +322,18 @@ execute_init_datastructures (void)
   return 0;
 }
 
+/* Gate: initialize or not the SSA datastructures.  */
+
+static bool
+gate_init_datastructures (void)
+{
+  return (optimize >= 1);
+}
+
 struct tree_opt_pass pass_init_datastructures =
 {
   NULL,					/* name */
-  NULL,					/* gate */
+  gate_init_datastructures,		/* gate */
   execute_init_datastructures,		/* execute */
   NULL,					/* sub */
   NULL,					/* next */
@@ -367,30 +357,15 @@ tree_lowering_passes (tree fn)
   tree_register_cfg_hooks ();
   bitmap_obstack_initialize (NULL);
   execute_pass_list (all_lowering_passes);
+  if (optimize && cgraph_global_info_ready)
+    execute_pass_list (pass_early_local_passes.sub);
   free_dominance_info (CDI_POST_DOMINATORS);
+  free_dominance_info (CDI_DOMINATORS);
   compact_blocks ();
   current_function_decl = saved_current_function_decl;
   bitmap_obstack_release (NULL);
   pop_cfun ();
 }
-
-/* Update recursively all inlined_to pointers of functions
-   inlined into NODE to INLINED_TO.  */
-static void
-update_inlined_to_pointers (struct cgraph_node *node,
-			    struct cgraph_node *inlined_to)
-{
-  struct cgraph_edge *e;
-  for (e = node->callees; e; e = e->next_callee)
-    {
-      if (e->callee->global.inlined_to)
-	{
-	  e->callee->global.inlined_to = inlined_to;
-	  update_inlined_to_pointers (e->callee, inlined_to);
-	}
-    }
-}
-
 
 /* For functions-as-trees languages, this performs all optimization and
    compilation for FNDECL.  */
@@ -407,10 +382,8 @@ tree_rest_of_compilation (tree fndecl)
 
   node = cgraph_node (fndecl);
 
-  /* We might need the body of this function so that we can expand
-     it inline somewhere else.  */
-  if (cgraph_preserve_function_body_p (fndecl))
-    save_inline_function_body (node);
+  /* Initialize the default bitmap obstack.  */
+  bitmap_obstack_initialize (NULL);
 
   /* Initialize the RTL code for the function.  */
   current_function_decl = fndecl;
@@ -423,41 +396,10 @@ tree_rest_of_compilation (tree fndecl)
      We haven't necessarily assigned RTL to all variables yet, so it's
      not safe to try to expand expressions involving them.  */
   cfun->x_dont_save_pending_sizes_p = 1;
-  cfun->after_inlining = true;
-
-  if (flag_inline_trees)
-    {
-      struct cgraph_edge *e;
-      for (e = node->callees; e; e = e->next_callee)
-	if (!e->inline_failed || warn_inline)
-	  break;
-      if (e)
-	{
-	  timevar_push (TV_INTEGRATION);
-	  optimize_inline_calls (fndecl);
-	  timevar_pop (TV_INTEGRATION);
-	}
-    }
-  /* In non-unit-at-a-time we must mark all referenced functions as needed.
-     */
-  if (!flag_unit_at_a_time)
-    {
-      struct cgraph_edge *e;
-      for (e = node->callees; e; e = e->next_callee)
-	if (e->callee->analyzed)
-          cgraph_mark_needed_node (e->callee);
-    }
-
-  /* We are not going to maintain the cgraph edges up to date.
-     Kill it so it won't confuse us.  */
-  cgraph_node_remove_callees (node);
-
-
-  /* Initialize the default bitmap obstack.  */
-  bitmap_obstack_initialize (NULL);
-  bitmap_obstack_initialize (&reg_obstack); /* FIXME, only at RTL generation*/
   
   tree_register_cfg_hooks ();
+
+  bitmap_obstack_initialize (&reg_obstack); /* FIXME, only at RTL generation*/
   /* Perform all tree transforms and optimizations.  */
   execute_pass_list (all_passes);
   
@@ -467,7 +409,7 @@ tree_rest_of_compilation (tree fndecl)
   bitmap_obstack_release (NULL);
   
   DECL_SAVED_TREE (fndecl) = NULL;
-  cfun = 0;
+  set_cfun (NULL);
 
   /* If requested, warn about function definitions where the function will
      return a value (usually of some struct or union type) which itself will
@@ -485,10 +427,10 @@ tree_rest_of_compilation (tree fndecl)
 	    = TREE_INT_CST_LOW (TYPE_SIZE_UNIT (ret_type));
 
 	  if (compare_tree_int (TYPE_SIZE_UNIT (ret_type), size_as_int) == 0)
-	    warning (0, "size of return value of %q+D is %u bytes",
+	    warning (OPT_Wlarger_than_, "size of return value of %q+D is %u bytes",
                      fndecl, size_as_int);
 	  else
-	    warning (0, "size of return value of %q+D is larger than %wd bytes",
+	    warning (OPT_Wlarger_than_, "size of return value of %q+D is larger than %wd bytes",
                      fndecl, larger_than_size);
 	}
     }

@@ -6,18 +6,17 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2004 Free Software Foundation, Inc.          --
+--          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -26,10 +25,12 @@
 
 with Atree;    use Atree;
 with Einfo;    use Einfo;
+with Exp_Ch6;  use Exp_Ch6;
 with Exp_Dbug; use Exp_Dbug;
 with Exp_Util; use Exp_Util;
 with Freeze;   use Freeze;
 with Nlists;   use Nlists;
+with Opt;      use Opt;
 with Sem;      use Sem;
 with Sem_Ch8;  use Sem_Ch8;
 with Sinfo;    use Sinfo;
@@ -130,9 +131,7 @@ package body Exp_Ch8 is
          --  the prefix, which is itself a name, recursively, and then force
          --  the evaluation of all the subscripts (or attribute expressions).
 
-         elsif K = N_Indexed_Component
-           or else K = N_Attribute_Reference
-         then
+         elsif Nkind_In (K, N_Indexed_Component, N_Attribute_Reference) then
             Evaluate_Name (Prefix (Fname));
 
             E := First (Expressions (Fname));
@@ -202,9 +201,7 @@ package body Exp_Ch8 is
 
       function Evaluation_Required (Nam : Node_Id) return Boolean is
       begin
-         if Nkind (Nam) = N_Indexed_Component
-           or else Nkind (Nam) = N_Slice
-         then
+         if Nkind_In (Nam, N_Indexed_Component, N_Slice) then
             if Is_Packed (Etype (Prefix (Nam))) then
                return True;
             else
@@ -268,6 +265,19 @@ package body Exp_Ch8 is
          end if;
       end if;
 
+      --  Ada 2005 (AI-318-02): If the renamed object is a call to a build-in-
+      --  place function, then a temporary return object needs to be created
+      --  and access to it must be passed to the function. Currently we limit
+      --  such functions to those with inherently limited result subtypes, but
+      --  eventually we plan to expand the functions that are treated as
+      --  build-in-place to include other composite result types.
+
+      if Ada_Version >= Ada_05
+        and then Is_Build_In_Place_Function_Call (Nam)
+      then
+         Make_Build_In_Place_Call_In_Anonymous_Context (Nam);
+      end if;
+
       --  Create renaming entry for debug information
 
       Decl := Debug_Renaming_Declaration (N);
@@ -295,7 +305,7 @@ package body Exp_Ch8 is
                Aux : constant Node_Id := Aux_Decls_Node (Parent (N));
 
             begin
-               New_Scope (Standard_Standard);
+               Push_Scope (Standard_Standard);
 
                if No (Actions (Aux)) then
                   Set_Actions (Aux, New_List (Decl));
@@ -304,6 +314,14 @@ package body Exp_Ch8 is
                end if;
 
                Analyze (Decl);
+
+               --  Enter the debug variable in the qualification list, which
+               --  must be done at this point because auxiliary declarations
+               --  occur at the library level and aren't associated with a
+               --  normal scope.
+
+               Qualify_Entity_Names (Decl);
+
                Pop_Scope;
             end;
 
@@ -314,5 +332,31 @@ package body Exp_Ch8 is
          end if;
       end if;
    end Expand_N_Package_Renaming_Declaration;
+
+   ----------------------------------------------
+   -- Expand_N_Subprogram_Renaming_Declaration --
+   ----------------------------------------------
+
+   procedure Expand_N_Subprogram_Renaming_Declaration (N : Node_Id) is
+      Nam : constant Node_Id := Name (N);
+
+   begin
+      --  When the prefix of the name is a function call, we must force the
+      --  call to be made by removing side effects from the call, since we
+      --  must only call the function once.
+
+      if Nkind (Nam) = N_Selected_Component
+        and then Nkind (Prefix (Nam)) = N_Function_Call
+      then
+         Remove_Side_Effects (Prefix (Nam));
+
+      --  For an explicit dereference, the prefix must be captured to prevent
+      --  reevaluation on calls through the renaming, which could result in
+      --  calling the wrong subprogram if the access value were to be changed.
+
+      elsif Nkind (Nam) = N_Explicit_Dereference then
+         Force_Evaluation (Prefix (Nam));
+      end if;
+   end Expand_N_Subprogram_Renaming_Declaration;
 
 end Exp_Ch8;

@@ -1,45 +1,157 @@
-2008-05-19  Release Manager
+2009-08-04  Release Manager
 
-	* GCC 4.2.4 released.
+	* GCC 4.3.4 released.
+
+2009-01-24  Release Manager
+
+	* GCC 4.3.3 released.
+
+2008-12-04  Janis Johnson  <janis187@us.ibm.com>
+
+	Backport from mainline:
+	2008-10-18  Jakub Jelinek  <jakub@redhat.com>
+	            Janis Johnson  <janis187@us.ibm.com>
+
+	* dg-extract-results.sh: New file.
+
+2008-08-27  Release Manager
+
+	* GCC 4.3.2 released.
+
+2008-06-06  Release Manager
+
+	* GCC 4.3.1 released.
 
 2008-04-01  Joseph Myers  <joseph@codesourcery.com>
 
-	* texi2pod.pl: Update from trunk.
+	* texi2pod.pl: Handle @samp and @url inside verbatim blocks.
+	Handle @heading.  Handle enumerated lists with starting numbers
+	and extra headings.
 
-2008-02-01  Release Manager
+2008-03-05  Release Manager
 
-	* GCC 4.2.3 released.
+	* GCC 4.3.0 released.
 
-2007-10-07  Release Manager
+2008-03-05  Jakub Jelinek  <jakub@redhat.com>
 
-	* GCC 4.2.2 released.
+	* gennews (files): Reference GCC 4.3 web pages.
 
-2007-07-19  Release Manager
+2008-02-15  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
 
-	* GCC 4.2.1 released.
+	* check_warning_flags.sh: New file.
 
-2007-05-13  Release Manager
+2008-01-25  Joseph Myers  <joseph@codesourcery.com>
 
-	* GCC 4.2.0 released.
+	* paranoia.cc (main): Remove handling of c4x_single and
+	c4x_extended formats.
+
+2007-12-26  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* compareSumTests3: Changed to GPLv3.
+	* prepare_patch.sh: Same.
+	* uninclude: Same.
+	* dglib.pm: Same.
+	* gennews: Same.
+	* texi2pod.pl: Same.
+	* analyze_brprob: Same.
+	* gcc_build: Same.
+
+2007-12-26  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* patch_tester.sh: Changed to GPLv3.
+
+2007-12-15  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* patch_tester.sh: Don't save the script anymore.
+
+2007-12-15  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* patch_tester.sh: New.
+	* prepare_patch.sh: New.
+
+2007-11-26  Alexandre Oliva  <aoliva@redhat.com>
+
+	* compare-debug: Introduce -p flag to preserve .stripped files.
+
+2007-10-08  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	* texi2pod.pl: Handle @asis.
+	(postprocess): Move @gccoptlist{} after all formatting commands.
+	
+2007-10-01  Alexandre Oliva  <aoliva@redhat.com>
+
+	* compare-debug: Avoid spurious errors when .stripped files
+	exist.
+
+2007-09-22  Hans-Peter Nilsson  <hp@axis.com>
+
+	* warn_summary (srcdirFilter): Add fixincludes, sim,
+	newlib and mpfr.
+
+2007-08-23  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc_update: Handle different URL paths and tags.
+
+2007-08-16  Alexandre Oliva  <aoliva@redhat.com>
+
+	* compare-debug: New.
+
+2007-08-16  H.J. Lu  <hongjiu.lu@intel.com>
+	    Andreas Schwab <schwab@suse.de>
+
+	* gcc_update: Use "svn info" for revision number.  Create
+	gcc/REVISION with branch name and revision number.
+
+2007-08-10  Diego Novillo  <dnovillo@google.com>
+
+	* gcc.doxy: Rename from tree-ssa.doxy.
+
+2007-08-10  Diego Novillo  <dnovillo@google.com>
+
+	* tree-ssa.doxy: Update for doxygen 1.5.
+	Include all the files in the middle and back ends.
+
+2007-06-30  Hans-Peter Nilsson  <hp@axis.com>
+
+	* gcc_update (files_and_dependencies): Handle
+	gcc/testsuite/gcc.dg/cpp/direct2s.c.
 
 2007-05-13  Mark Mitchell  <mark@codesourcery.com>
 
 	* gennews (files): Reference GCC 4.2 web pages.
 
-2007-04-04  Eric Christopher  <echristo@apple.com>
+2007-04-04  Zack Weinberg  <zack@mrtock.ucsd.edu>
 
-	Backport from mainline:
-	2007-04-04  Zack Weinberg  <zack@mrtock.ucsd.edu>
+	* texi2pod.pl: Correct handling of @itemize with no argument.
 
-        * texi2pod.pl: Correct handling of @itemize with no argument.
+2007-03-17  Hans-Peter Nilsson  <hp@axis.com>
 
-        2007-02-16  Matthias Klose  <doko@debian.org>
+	* uninclude: New utility, from Alexandre Oliva.
 
-        * texi2pod.pl: Handle @subsubsection, ignore @anchor.
+2007-02-26  Dominique Dhumieres  <dominiq@lps.ens.fr>
 
-        2007-02-06  Richard Sandiford  <richard@codesourcery.com>
+	* test_installed: Adjust to the move from g77 to gfortran.
+
+2007-02-16  Matthias Klose  <doko@debian.org>
+
+	* texi2pod.pl: Handle @subsubsection, ignore @anchor.
+
+2007-02-10  Hans-Peter Nilsson  <hp@axis.com>
+
+	* test_summary (configflags): Adjust for changes in the
+	config.status format due to update to autoconf 2.59.
+
+2007-02-09  Daniel Jacobowitz  <dan@codesourcery.com>
+
+	* gcc_update: Update for configure.in -> configure.ac.
+
+2007-02-06  Richard Sandiford  <richard@codesourcery.com>
 
 	* texi2pod.pl: Handle @multitable.
+
+2007-01-15  Tom Tromey  <tromey@redhat.com>
+
+	* download_ecj: New file.
 
 2006-09-27  Matthew Sachs  <msachs@apple.com>
 
@@ -127,14 +239,14 @@
 
 2005-10-28  Daniel Berlin  <dberlin@dberlin.org>
 	    Ben Elliston <bje@au1.ibm.com>
-
+	
 	* gcc_update: Update for svn.
 	* newcvsroot: Ditto.
 	* gcc_build: Ditto.
 
 2005-10-21  Mark Mitchell  <mark@codesourcery.com>
 
-	* texi2pod.pl: Substitue for @value even when part of @include.
+	* texi2pod.pl: Substitue for @value even when part of @include. 
 
 2005-10-21  Bob Wilson  <bob.wilson@acm.org>
 

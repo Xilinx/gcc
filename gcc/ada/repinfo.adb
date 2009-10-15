@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1999-2005 Free Software Foundation, Inc.          --
+--          Copyright (C) 1999-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -25,7 +25,7 @@
 -- covered  by the  GNU  General  Public  License.  This exception does not --
 -- however invalidate  any other reasons why  the executable file  might be --
 -- covered by the  GNU Public License.                                      --
---                                                                          --
+--
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
 --                                                                          --
@@ -63,9 +63,8 @@ package body Repinfo is
    -- Representation of gcc Expressions --
    ---------------------------------------
 
-   --    This table is used only if Frontend_Layout_On_Target is False, so that
-   --    gigi lays out dynamic size/offset fields using encoded gcc
-   --    expressions.
+   --    This table is used only if Frontend_Layout_On_Target is False, so gigi
+   --    lays out dynamic size/offset fields using encoded gcc expressions.
 
    --    A table internal to this unit is used to hold the values of back
    --    annotated expressions. This table is written out by -gnatt and read
@@ -80,6 +79,20 @@ package body Repinfo is
       Op2  : Node_Ref_Or_Val;
       Op3  : Node_Ref_Or_Val;
    end record;
+
+   --  The following representation clause ensures that the above record
+   --  has no holes. We do this so that when instances of this record are
+   --  written by Tree_Gen, we do not write uninitialized values to the file.
+
+   for Exp_Node use record
+      Expr at  0 range 0 .. 31;
+      Op1  at  4 range 0 .. 31;
+      Op2  at  8 range 0 .. 31;
+      Op3  at 12 range 0 .. 31;
+   end record;
+
+   for Exp_Node'Size use 16 * 8;
+   --  This ensures that we did not leave out any fields
 
    package Rep_Table is new Table.Table (
       Table_Component_Type => Exp_Node,
@@ -199,16 +212,10 @@ package body Repinfo is
    ------------------------
 
    function Create_Discrim_Ref (Discr : Entity_Id) return Node_Ref is
-      N : constant Uint := Discriminant_Number (Discr);
-      T : Nat;
    begin
-      Rep_Table.Increment_Last;
-      T := Rep_Table.Last;
-      Rep_Table.Table (T).Expr := Discrim_Val;
-      Rep_Table.Table (T).Op1  := N;
-      Rep_Table.Table (T).Op2  := No_Uint;
-      Rep_Table.Table (T).Op3  := No_Uint;
-      return UI_From_Int (-T);
+      return Create_Node
+        (Expr => Discrim_Val,
+         Op1  => Discriminant_Number (Discr));
    end Create_Discrim_Ref;
 
    ---------------------------
@@ -216,12 +223,9 @@ package body Repinfo is
    ---------------------------
 
    function Create_Dynamic_SO_Ref (E : Entity_Id) return Dynamic_SO_Ref is
-      T : Nat;
    begin
-      Dynamic_SO_Entity_Table.Increment_Last;
-      T := Dynamic_SO_Entity_Table.Last;
-      Dynamic_SO_Entity_Table.Table (T) := E;
-      return UI_From_Int (-T);
+      Dynamic_SO_Entity_Table.Append (E);
+      return UI_From_Int (-Dynamic_SO_Entity_Table.Last);
    end Create_Dynamic_SO_Ref;
 
    -----------------
@@ -234,15 +238,13 @@ package body Repinfo is
       Op2  : Node_Ref_Or_Val := No_Uint;
       Op3  : Node_Ref_Or_Val := No_Uint) return Node_Ref
    is
-      T : Nat;
    begin
-      Rep_Table.Increment_Last;
-      T := Rep_Table.Last;
-      Rep_Table.Table (T).Expr := Expr;
-      Rep_Table.Table (T).Op1  := Op1;
-      Rep_Table.Table (T).Op2  := Op2;
-      Rep_Table.Table (T).Op3  := Op3;
-      return UI_From_Int (-T);
+      Rep_Table.Append (
+        (Expr => Expr,
+         Op1  => Op1,
+         Op2  => Op2,
+         Op3  => Op3));
+      return UI_From_Int (-Rep_Table.Last);
    end Create_Node;
 
    ---------------------------
@@ -331,8 +333,13 @@ package body Repinfo is
    --  Start of processing for List_Entities
 
    begin
-      if Present (Ent) then
+      --  List entity if we have one, and it is not a renaming declaration.
+      --  For renamings, we don't get proper information, and really it makes
+      --  sense to restrict the output to the renamed entity.
 
+      if Present (Ent)
+        and then Nkind (Declaration_Node (Ent)) not in N_Renaming_Declaration
+      then
          --  If entity is a subprogram and we are listing mechanisms,
          --  then we need to list mechanisms for this entity.
 
@@ -667,6 +674,7 @@ package body Repinfo is
          when Convention_Protected => Write_Line ("Protected");
          when Convention_Assembler => Write_Line ("Assembler");
          when Convention_C         => Write_Line ("C");
+         when Convention_CIL       => Write_Line ("CIL");
          when Convention_COBOL     => Write_Line ("COBOL");
          when Convention_CPP       => Write_Line ("C++");
          when Convention_Fortran   => Write_Line ("Fortran");
@@ -777,174 +785,167 @@ package body Repinfo is
       --  length, for the purpose of lining things up nicely.
 
       Max_Name_Length := 0;
-      Max_Suni_Length   := 0;
+      Max_Suni_Length := 0;
 
-      Comp := First_Entity (Ent);
+      Comp := First_Component_Or_Discriminant (Ent);
       while Present (Comp) loop
-         if Ekind (Comp) = E_Component
-           or else Ekind (Comp) = E_Discriminant
-         then
-            Get_Decoded_Name_String (Chars (Comp));
-            Max_Name_Length := Natural'Max (Max_Name_Length, Name_Len);
+         Get_Decoded_Name_String (Chars (Comp));
+         Max_Name_Length := Natural'Max (Max_Name_Length, Name_Len);
 
-            Cfbit := Component_Bit_Offset (Comp);
+         Cfbit := Component_Bit_Offset (Comp);
 
-            if Rep_Not_Constant (Cfbit) then
-               UI_Image_Length := 2;
+         if Rep_Not_Constant (Cfbit) then
+            UI_Image_Length := 2;
 
-            else
-               --  Complete annotation in case not done
+         else
+            --  Complete annotation in case not done
 
-               Set_Normalized_Position (Comp, Cfbit / SSU);
-               Set_Normalized_First_Bit (Comp, Cfbit mod SSU);
+            Set_Normalized_Position (Comp, Cfbit / SSU);
+            Set_Normalized_First_Bit (Comp, Cfbit mod SSU);
 
-               Sunit := Cfbit / SSU;
-               UI_Image (Sunit);
-            end if;
-
-            --  If the record is not packed, then we know that all fields whose
-            --  position is not specified have a starting normalized bit
-            --  position of zero
-
-            if Unknown_Normalized_First_Bit (Comp)
-              and then not Is_Packed (Ent)
-            then
-               Set_Normalized_First_Bit (Comp, Uint_0);
-            end if;
-
-            Max_Suni_Length :=
-              Natural'Max (Max_Suni_Length, UI_Image_Length);
+            Sunit := Cfbit / SSU;
+            UI_Image (Sunit);
          end if;
 
-         Comp := Next_Entity (Comp);
+         --  If the record is not packed, then we know that all fields whose
+         --  position is not specified have a starting normalized bit position
+         --  of zero.
+
+         if Unknown_Normalized_First_Bit (Comp)
+           and then not Is_Packed (Ent)
+         then
+            Set_Normalized_First_Bit (Comp, Uint_0);
+         end if;
+
+         Max_Suni_Length :=
+           Natural'Max (Max_Suni_Length, UI_Image_Length);
+
+         Next_Component_Or_Discriminant (Comp);
       end loop;
 
       --  Second loop does actual output based on those values
 
-      Comp := First_Entity (Ent);
+      Comp := First_Component_Or_Discriminant (Ent);
       while Present (Comp) loop
-         if Ekind (Comp) = E_Component
-           or else Ekind (Comp) = E_Discriminant
-         then
-            declare
-               Esiz : constant Uint := Esize (Comp);
-               Bofs : constant Uint := Component_Bit_Offset (Comp);
-               Npos : constant Uint := Normalized_Position (Comp);
-               Fbit : constant Uint := Normalized_First_Bit (Comp);
-               Lbit : Uint;
+         declare
+            Esiz : constant Uint := Esize (Comp);
+            Bofs : constant Uint := Component_Bit_Offset (Comp);
+            Npos : constant Uint := Normalized_Position (Comp);
+            Fbit : constant Uint := Normalized_First_Bit (Comp);
+            Lbit : Uint;
 
-            begin
-               Write_Str ("   ");
-               Get_Decoded_Name_String (Chars (Comp));
-               Set_Casing (Unit_Casing);
-               Write_Str (Name_Buffer (1 .. Name_Len));
+         begin
+            Write_Str ("   ");
+            Get_Decoded_Name_String (Chars (Comp));
+            Set_Casing (Unit_Casing);
+            Write_Str (Name_Buffer (1 .. Name_Len));
 
-               for J in 1 .. Max_Name_Length - Name_Len loop
-                  Write_Char (' ');
-               end loop;
+            for J in 1 .. Max_Name_Length - Name_Len loop
+               Write_Char (' ');
+            end loop;
 
-               Write_Str (" at ");
+            Write_Str (" at ");
 
-               if Known_Static_Normalized_Position (Comp) then
-                  UI_Image (Npos);
-                  Spaces (Max_Suni_Length - UI_Image_Length);
-                  Write_Str (UI_Image_Buffer (1 .. UI_Image_Length));
+            if Known_Static_Normalized_Position (Comp) then
+               UI_Image (Npos);
+               Spaces (Max_Suni_Length - UI_Image_Length);
+               Write_Str (UI_Image_Buffer (1 .. UI_Image_Length));
 
-               elsif Known_Component_Bit_Offset (Comp)
-                 and then List_Representation_Info = 3
-               then
-                  Spaces (Max_Suni_Length - 2);
-                  Write_Str ("bit offset");
-                  Write_Val (Bofs, Paren => True);
-                  Write_Str (" size in bits = ");
-                  Write_Val (Esiz, Paren => True);
-                  Write_Eol;
+            elsif Known_Component_Bit_Offset (Comp)
+              and then List_Representation_Info = 3
+            then
+               Spaces (Max_Suni_Length - 2);
+               Write_Str ("bit offset");
+               Write_Val (Bofs, Paren => True);
+               Write_Str (" size in bits = ");
+               Write_Val (Esiz, Paren => True);
+               Write_Eol;
+               goto Continue;
+
+            elsif Known_Normalized_Position (Comp)
+              and then List_Representation_Info = 3
+            then
+               Spaces (Max_Suni_Length - 2);
+               Write_Val (Npos);
+
+            else
+               --  For the packed case, we don't know the bit positions if we
+               --  don't know the starting position!
+
+               if Is_Packed (Ent) then
+                  Write_Line ("?? range  ? .. ??;");
                   goto Continue;
 
-               elsif Known_Normalized_Position (Comp)
-                 and then List_Representation_Info = 3
-               then
-                  Spaces (Max_Suni_Length - 2);
-                  Write_Val (Npos);
+               --  Otherwise we can continue
 
                else
-                  --  For the packed case, we don't know the bit positions
-                  --  if we don't know the starting position!
-
-                  if Is_Packed (Ent) then
-                     Write_Line ("?? range  ? .. ??;");
-                     goto Continue;
-
-                  --  Otherwise we can continue
-
-                  else
-                     Write_Str ("??");
-                  end if;
-               end if;
-
-               Write_Str (" range  ");
-               UI_Write (Fbit);
-               Write_Str (" .. ");
-
-               --  Allowing Uint_0 here is a kludge, really this should be a
-               --  fine Esize value but currently it means unknown, except that
-               --  we know after gigi has back annotated that a size of zero is
-               --  real, since otherwise gigi back annotates using No_Uint as
-               --  the value to indicate unknown).
-
-               if (Esize (Comp) = Uint_0 or else Known_Static_Esize (Comp))
-                 and then Known_Static_Normalized_First_Bit (Comp)
-               then
-                  Lbit := Fbit + Esiz - 1;
-
-                  if Lbit < 10 then
-                     Write_Char (' ');
-                  end if;
-
-                  UI_Write (Lbit);
-
-               --  The test for Esize (Comp) not being Uint_0 here is a kludge.
-               --  Officially a value of zero for Esize means unknown, but here
-               --  we use the fact that we know that gigi annotates Esize with
-               --  No_Uint, not Uint_0. Really everyone should use No_Uint???
-
-               elsif List_Representation_Info < 3
-                 or else (Esize (Comp) /= Uint_0 and then Unknown_Esize (Comp))
-               then
                   Write_Str ("??");
+               end if;
+            end if;
 
-               else -- List_Representation >= 3 and Known_Esize (Comp)
+            Write_Str (" range  ");
+            UI_Write (Fbit);
+            Write_Str (" .. ");
 
-                  Write_Val (Esiz, Paren => True);
+            --  Allowing Uint_0 here is a kludge, really this should be a
+            --  fine Esize value but currently it means unknown, except that
+            --  we know after gigi has back annotated that a size of zero is
+            --  real, since otherwise gigi back annotates using No_Uint as
+            --  the value to indicate unknown).
 
-                  --  If in front end layout mode, then dynamic size is stored
-                  --  in storage units, so renormalize for output
+            if (Esize (Comp) = Uint_0 or else Known_Static_Esize (Comp))
+              and then Known_Static_Normalized_First_Bit (Comp)
+            then
+               Lbit := Fbit + Esiz - 1;
 
-                  if not Back_End_Layout then
-                     Write_Str (" * ");
-                     Write_Int (SSU);
-                  end if;
-
-                  --  Add appropriate first bit offset
-
-                  if Fbit = 0 then
-                     Write_Str (" - 1");
-
-                  elsif Fbit = 1 then
-                     null;
-
-                  else
-                     Write_Str (" + ");
-                     Write_Int (UI_To_Int (Fbit) - 1);
-                  end if;
+               if Lbit < 10 then
+                  Write_Char (' ');
                end if;
 
-               Write_Line (";");
-            end;
-         end if;
+               UI_Write (Lbit);
+
+            --  The test for Esize (Comp) not being Uint_0 here is a kludge.
+            --  Officially a value of zero for Esize means unknown, but here
+            --  we use the fact that we know that gigi annotates Esize with
+            --  No_Uint, not Uint_0. Really everyone should use No_Uint???
+
+            elsif List_Representation_Info < 3
+              or else (Esize (Comp) /= Uint_0 and then Unknown_Esize (Comp))
+            then
+               Write_Str ("??");
+
+            --  List_Representation >= 3 and Known_Esize (Comp)
+
+            else
+               Write_Val (Esiz, Paren => True);
+
+               --  If in front end layout mode, then dynamic size is stored
+               --  in storage units, so renormalize for output
+
+               if not Back_End_Layout then
+                  Write_Str (" * ");
+                  Write_Int (SSU);
+               end if;
+
+               --  Add appropriate first bit offset
+
+               if Fbit = 0 then
+                  Write_Str (" - 1");
+
+               elsif Fbit = 1 then
+                  null;
+
+               else
+                  Write_Str (" + ");
+                  Write_Int (UI_To_Int (Fbit) - 1);
+               end if;
+            end if;
+
+            Write_Line (";");
+         end;
 
       <<Continue>>
-         Comp := Next_Entity (Comp);
+         Next_Component_Or_Discriminant (Comp);
       end loop;
 
       Write_Line ("end record;");
@@ -984,7 +985,8 @@ package body Repinfo is
                --  List representation information to file
 
                else
-                  Creat_Repinfo_File_Access.all (File_Name (Source_Index (U)));
+                  Create_Repinfo_File_Access.all
+                    (Get_Name_String (File_Name (Source_Index (U))));
                   Set_Special_Output (Write_Info_Line'Access);
                   List_Entities (Cunit_Entity (U));
                   Set_Special_Output (null);
@@ -1122,23 +1124,6 @@ package body Repinfo is
       end T;
 
       -------
-      -- W --
-      -------
-
-      --  We use an unchecked conversion to map Int values to their Word
-      --  bitwise equivalent, which we could not achieve with a normal type
-      --  conversion for negative Ints. We want bitwise equivalents because W
-      --  is used as a helper for bit operators like Bit_And_Expr, and can be
-      --  called for negative Ints in the context of aligning expressions like
-      --  X+Align & -Align.
-
-      function W (Val : Uint) return Word is
-         function To_Word is new Ada.Unchecked_Conversion (Int, Word);
-      begin
-         return To_Word (UI_To_Int (Val));
-      end W;
-
-      -------
       -- V --
       -------
 
@@ -1265,6 +1250,23 @@ package body Repinfo is
             end;
          end if;
       end V;
+
+      -------
+      -- W --
+      -------
+
+      --  We use an unchecked conversion to map Int values to their Word
+      --  bitwise equivalent, which we could not achieve with a normal type
+      --  conversion for negative Ints. We want bitwise equivalents because W
+      --  is used as a helper for bit operators like Bit_And_Expr, and can be
+      --  called for negative Ints in the context of aligning expressions like
+      --  X+Align & -Align.
+
+      function W (Val : Uint) return Word is
+         function To_Word is new Ada.Unchecked_Conversion (Int, Word);
+      begin
+         return To_Word (UI_To_Int (Val));
+      end W;
 
    --  Start of processing for Rep_Value
 

@@ -1,6 +1,6 @@
 // Allocators -*- C++ -*-
 
-// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -52,8 +52,6 @@
 // Define the base class to std::allocator.
 #include <bits/c++allocator.h>
 
-#include <bits/cpp_type_traits.h> // for __is_empty
-
 _GLIBCXX_BEGIN_NAMESPACE(std)
 
   template<typename _Tp>
@@ -79,7 +77,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
    * @brief  The "standard" allocator, as per [20.4].
    *
    *  Further details:
-   *  http://gcc.gnu.org/onlinedocs/libstdc++/20_util/allocator.html
+   *  http://gcc.gnu.org/onlinedocs/libstdc++/manual/bk01pt04ch11.html
    */
   template<typename _Tp>
     class allocator: public __glibcxx_base_allocator<_Tp>
@@ -142,7 +140,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 #undef __glibcxx_base_allocator
 
   // To implement Option 3 of DR 431.
-  template<typename _Alloc, bool = std::__is_empty<_Alloc>::__value>
+  template<typename _Alloc, bool = __is_empty(_Alloc)>
     struct __alloc_swap
     { static void _S_do_it(_Alloc&, _Alloc&) { } };
 
@@ -156,6 +154,23 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	if (__one != __two)
 	  swap(__one, __two);
       }
+    };
+
+  // Optimize for stateless allocators.
+  template<typename _Alloc, bool = __is_empty(_Alloc)>
+    struct __alloc_neq
+    {
+      static bool
+      _S_do_it(const _Alloc&, const _Alloc&)
+      { return false; }
+    };
+
+  template<typename _Alloc>
+    struct __alloc_neq<_Alloc, false>
+    {
+      static bool
+      _S_do_it(const _Alloc& __one, const _Alloc& __two)
+      { return __one != __two; }
     };
 
 _GLIBCXX_END_NAMESPACE

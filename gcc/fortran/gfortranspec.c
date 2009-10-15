@@ -1,6 +1,6 @@
 /* Specific flags and argument handling of the Fortran front-end.
-   Copyright (C) 1997, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006,
-   2007 Free Software Foundation, Inc.
+   Copyright (C) 1997, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007,
+   2008  Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -15,9 +15,9 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GNU CC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
+
 /* This file is copied more or less verbatim from g77.  */
 /* This file contains a filter for the main `gcc' driver, which is
    replicated for the `gfortran' driver by adding this filter.  The purpose
@@ -65,6 +65,20 @@ Boston, MA 02110-1301, USA.  */
 #define FORTRAN_LIBRARY "-lgfortran"
 #endif
 
+#ifdef HAVE_LD_STATIC_DYNAMIC
+#define ADD_ARG_LIBGFORTRAN(arg) \
+  { \
+    if (static_lib && !static_linking) \
+      append_arg ("-Wl,-Bstatic"); \
+    append_arg (arg); \
+    if (static_lib && !static_linking) \
+      append_arg ("-Wl,-Bdynamic"); \
+  }
+#else
+#define ADD_ARG_LIBGFORTRAN(arg) append_arg (arg);
+#endif
+
+
 /* Options this driver needs to recognize, not just know how to
    skip over.  */
 typedef enum
@@ -81,6 +95,8 @@ typedef enum
 				   -nodefaultlibs.  */
   OPTION_o,			/* Aka --output.  */
   OPTION_S,			/* Aka --assemble.  */
+  OPTION_static,		/* -static.  */
+  OPTION_static_libgfortran,	/* -static-libgfortran.  */
   OPTION_syntax_only,		/* -fsyntax-only.  */
   OPTION_v,			/* Aka --verbose.  */
   OPTION_version,		/* --version.  */
@@ -160,7 +176,7 @@ lookup_option (Option *xopt, int *xskip, const char **xarg, const char *text)
     opt = OPTION_x, arg = text + 2;
   else
     {
-      if ((skip = WORD_SWITCH_TAKES_ARG (text + 1)) != 0)	/* See gcc.c.  */
+      if ((skip = WORD_SWITCH_TAKES_ARG (text + 1)) != 0)  /* See gcc.c.  */
 	;
       else if (!strcmp (text, "-fhelp"))	/* Really --help!! */
 	opt = OPTION_help;
@@ -169,6 +185,8 @@ lookup_option (Option *xopt, int *xskip, const char **xarg, const char *text)
 	opt = OPTION_nostdlib;
       else if (!strcmp (text, "-fsyntax-only"))
 	opt = OPTION_syntax_only;
+      else if (!strcmp (text, "-static-libgfortran"))
+	opt = OPTION_static_libgfortran;
       else if (!strcmp (text, "-dumpversion"))
 	opt = OPTION_version;
       else if (!strcmp (text, "-fversion"))	/* Really --version!! */
@@ -264,6 +282,12 @@ lang_specific_driver (int *in_argc, const char *const **in_argv,
   /* By default, we throw on the math library if we have one.  */
   int need_math = (MATH_LIBRARY[0] != '\0');
 
+  /* Whether we should link a static libgfortran.  */
+  int static_lib = 0;
+
+  /* Whether we need to link statically.  */
+  int static_linking = 0;
+
   /* The number of input and output files in the incoming arg list.  */
   int n_infiles = 0;
   int n_outfiles = 0;
@@ -278,7 +302,7 @@ lang_specific_driver (int *in_argc, const char *const **in_argv,
   g77_xargc = argc;
   g77_xargv = argv;
   g77_newargc = 0;
-  g77_newargv = (const char **) argv;
+  g77_newargv = CONST_CAST2 (const char **, const char *const *, argv);
 
   /* First pass through arglist.
 
@@ -322,6 +346,13 @@ lang_specific_driver (int *in_argc, const char *const **in_argv,
 	  library = 0;
 	  break;
 
+	case OPTION_static_libgfortran:
+	  static_lib = 1;
+	  break;
+
+	case OPTION_static:
+	  static_linking = 1;
+
 	case OPTION_l:
 	  ++n_infiles;
 	  break;
@@ -344,9 +375,9 @@ lang_specific_driver (int *in_argc, const char *const **in_argv,
 	  break;
 
 	case OPTION_version:
-	  printf ("GNU Fortran (GCC) %s\n", version_string);
-	  printf ("Copyright %s 2007 Free Software Foundation, Inc.\n\n",
-	          _("(C)"));
+	  printf ("GNU Fortran %s%s\n", pkgversion_string, version_string);
+	  printf ("Copyright %s 2008 Free Software Foundation, Inc.\n\n",
+		  _("(C)"));
 	  printf (_("GNU Fortran comes with NO WARRANTY, to the extent permitted by law.\n\
 You may redistribute copies of GNU Fortran\n\
 under the terms of the GNU General Public License.\n\
@@ -364,7 +395,7 @@ For more information about these matters, see the file named COPYING\n\n"));
 	}
 
       /* This is the one place we check for missing arguments in the
-         program.  */
+	 program.  */
 
       if (i + skip < argc)
 	i += skip;
@@ -392,25 +423,25 @@ For more information about these matters, see the file named COPYING\n\n"));
 	}
 
       if ((argv[i][0] == '-') && (argv[i][1] == 'M'))
-        {
-          char *p;
+	{
+	  char *p;
 
-          if (argv[i][2] == '\0')
-            {
-              p = XNEWVEC (char, strlen (argv[i + 1]) + 2);
-              p[0] = '-';
-              p[1] = 'J';
-              strcpy (&p[2], argv[i + 1]);
-              i++;
-            }
-          else
-            {
-              p = XNEWVEC (char, strlen (argv[i]) + 1);
-              strcpy (p, argv[i]);
-            }
-          append_arg (p);
-          continue;
-        }
+	  if (argv[i][2] == '\0')
+	    {
+	      p = XNEWVEC (char, strlen (argv[i + 1]) + 2);
+	      p[0] = '-';
+	      p[1] = 'J';
+	      strcpy (&p[2], argv[i + 1]);
+	      i++;
+	    }
+	  else
+	    {
+	      p = XNEWVEC (char, strlen (argv[i]) + 1);
+	      strcpy (p, argv[i]);
+	    }
+	  append_arg (p);
+	  continue;
+	}
 
       if ((argv[i][0] == '-') && (argv[i][1] != 'l'))
 	{
@@ -467,11 +498,16 @@ For more information about these matters, see the file named COPYING\n\n"));
 		      append_arg (FORTRAN_INIT);
 		      use_init = 1;
 		    }
-		  append_arg (FORTRAN_LIBRARY);
+
+		  ADD_ARG_LIBGFORTRAN (FORTRAN_LIBRARY);
 		}
 	    }
 	  else if (strcmp (argv[i], FORTRAN_LIBRARY) == 0)
-	    saw_library = 1;	/* -l<library>.  */
+	    {
+	      saw_library = 1;	/* -l<library>.  */
+	      ADD_ARG_LIBGFORTRAN (argv[i]);
+	      continue;
+	    }
 	  else
 	    {			/* Other library, or filename.  */
 	      if (saw_library == 1 && need_math)
@@ -497,7 +533,9 @@ For more information about these matters, see the file named COPYING\n\n"));
 	      append_arg (FORTRAN_INIT);
 	      use_init = 1;
 	    }
-	  append_arg (library);
+	  ADD_ARG_LIBGFORTRAN (library);
+	  /* Fall through.  */
+
 	case 1:
 	  if (need_math)
 	    append_arg (MATH_LIBRARY);
@@ -534,6 +572,7 @@ For more information about these matters, see the file named COPYING\n\n"));
   *in_argc = g77_newargc;
   *in_argv = g77_newargv;
 }
+
 
 /* Called before linking.  Returns 0 on success and -1 on failure.  */
 int

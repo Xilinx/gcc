@@ -1,6 +1,6 @@
 // std::rel_ops implementation -*- C++ -*-
 
-// Copyright (C) 2001, 2002, 2004, 2005 Free Software Foundation, Inc.
+// Copyright (C) 2001, 2002, 2004, 2005, 2008 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -57,15 +57,13 @@
  *  This is an internal header file, included by other library headers.
  *  You should not attempt to use it directly.
  *
- *  @if maint
  *  Inclusion of this file has been removed from
  *  all of the other STL headers for safety reasons, except std_utility.h.
  *  For more information, see the thread of about twenty messages starting
- *  with http://gcc.gnu.org/ml/libstdc++/2001-01/msg00223.html , or the
- *  FAQ at http://gcc.gnu.org/onlinedocs/libstdc++/faq/index.html#4_4 .
+ *  with http://gcc.gnu.org/ml/libstdc++/2001-01/msg00223.html, or
+ *  http://gcc.gnu.org/onlinedocs/libstdc++/faq.html#faq.ambiguous_overloads
  *
  *  Short summary:  the rel_ops operators should be avoided for the present.
- *  @endif
  */
 
 #ifndef _STL_RELOPS_H

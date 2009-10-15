@@ -1,6 +1,6 @@
 // natRuntime.cc - Implementation of native side of Runtime class.
 
-/* Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006  Free Software Foundation
+/* Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007  Free Software Foundation
 
    This file is part of libgcj.
 
@@ -26,8 +26,12 @@ details.  */
 #include <java/util/TimeZone.h>
 #include <java/lang/StringBuffer.h>
 #include <java/lang/Process.h>
-#include <java/lang/ConcreteProcess.h>
 #include <java/lang/ClassLoader.h>
+
+// It is convenient and safe to simply include all of these.
+#include <java/lang/Win32Process.h>
+#include <java/lang/EcosProcess.h>
+#include <java/lang/PosixProcess.h>
 
 #include <jni.h>
 
@@ -293,7 +297,7 @@ java::lang::Runtime::execInternal (jstringArray cmd,
 				   jstringArray env,
 				   java::io::File *dir)
 {
-  return new java::lang::ConcreteProcess (cmd, env, dir);
+  return new _Jv_platform_process (cmd, env, dir, false);
 }
 
 jint

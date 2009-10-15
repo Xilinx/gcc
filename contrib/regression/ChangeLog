@@ -1,22 +1,46 @@
-2008-05-19  Release Manager
+2009-08-04  Release Manager
 
-	* GCC 4.2.4 released.
+	* GCC 4.3.4 released.
 
-2008-02-01  Release Manager
+2009-01-24  Release Manager
 
-	* GCC 4.2.3 released.
+	* GCC 4.3.3 released.
 
-2007-10-07  Release Manager
+2008-08-27  Release Manager
 
-	* GCC 4.2.2 released.
+	* GCC 4.3.2 released.
 
-2007-07-19  Release Manager
+2008-06-06  Release Manager
 
-	* GCC 4.2.1 released.
+	* GCC 4.3.1 released.
 
-2007-05-13  Release Manager
+2008-03-05  Release Manager
 
-	* GCC 4.2.0 released.
+	* GCC 4.3.0 released.
+
+2007-12-24  Geoff Keating  <geoffk@geoffk.org>
+
+	* objs-gcc.sh: Revert previous change.
+
+2007-12-23  Geoff Keating  <geoffk@geoffk.org>
+
+	* objs-gcc.sh: Set up the GDB testsuite even if the gdb installed
+	is just called 'gdb'.
+
+2007-12-22  Geoff Keating  <geoffk@geoffk.org>
+
+	* btest-gcc.sh (TESTLOGS): Add gfortran, and optionally libgomp.
+
+	* GCC_Regression_Tester.wdgt/widget.html: Mark as HTML 4.01,
+	which it now is, rather than XHTML, which it never was.
+	(<head>): Mark as UTF-8.  Add title.  Move CSS to top of
+	document, specify type.  Mark script as 'defer'.
+	(updateContents): If loaded from HTTP, look for status in same
+	place as widget.
+	(gotContents): Use DOM methods to change text rather than innerHTML.
+	(<body>): Eliminate unnecessary DIV element.
+	* GCC_Regression_Tester.wdgt/Info.plist: Update version, copyright
+	notice.
 
 2006-09-05  Geoffrey Keating  <geoffk@apple.com>
 

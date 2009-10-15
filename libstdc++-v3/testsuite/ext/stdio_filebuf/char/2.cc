@@ -1,6 +1,6 @@
 // 2003-04-12  Paolo Carlini  <pcarlini at unitus dot it>
 
-// Copyright (C) 2003 Free Software Foundation, Inc.
+// Copyright (C) 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -20,9 +20,12 @@
 
 // stdio_filebuf.h
 
+// { dg-require-fileio "" }
+
 #include <ext/stdio_filebuf.h>
 #include <cstdio>
 #include <fstream>
+#include <cstring>
 #include <testsuite_hooks.h>
 
 // Small stack-based buffers (i.e., using _M_unbuf) were not flushed

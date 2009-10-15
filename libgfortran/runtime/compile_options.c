@@ -1,5 +1,5 @@
 /* Handling of compile-time options that influence the library.
-   Copyright (C) 2005 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2007 Free Software Foundation, Inc.
 
 This file is part of the GNU Fortran 95 runtime library (libgfortran).
 
@@ -27,27 +27,109 @@ along with libgfortran; see the file COPYING.  If not, write to
 the Free Software Foundation, 51 Franklin Street, Fifth Floor,
 Boston, MA 02110-1301, USA.  */
 
-#include "config.h"
-
 #include "libgfortran.h"
+
+#ifdef HAVE_SIGNAL_H
+#include <signal.h>
+#endif
 
 
 /* Useful compile-time options will be stored in here.  */
 compile_options_t compile_options;
 
 
-/* Prototypes */
-extern void set_std (GFC_INTEGER_4, GFC_INTEGER_4, GFC_INTEGER_4);
-export_proto(set_std);
+/* A signal handler to allow us to output a backtrace.  */
+void
+handler (int signum)
+{
+  const char * name = NULL, * desc = NULL;
 
+  switch (signum)
+    {
+#if defined(SIGSEGV)
+      case SIGSEGV:
+	name = "SIGSEGV";
+	desc = "Segmentation fault";
+	break;
+#endif
+
+#if defined(SIGBUS)
+      case SIGBUS:
+	name = "SIGBUS";
+	desc = "Bus error";
+	break;
+#endif
+
+#if defined(SIGILL)
+      case SIGILL:
+	name = "SIGILL";
+	desc = "Illegal instruction";
+	break;
+#endif
+
+#if defined(SIGFPE)
+      case SIGFPE:
+	name = "SIGFPE";
+	desc = "Floating-point exception";
+	break;
+#endif
+    }
+
+  if (name)
+    st_printf ("\nProgram received signal %d (%s): %s.\n", signum, name, desc);
+  else
+    st_printf ("\nProgram received signal %d.\n", signum);
+
+  sys_exit (5);
+}
+
+
+/* Set the usual compile-time options.  */
+extern void set_options (int , int []);
+export_proto(set_options);
 
 void
-set_std (GFC_INTEGER_4 warn_std, GFC_INTEGER_4 allow_std,
-	 GFC_INTEGER_4 pedantic)
+set_options (int num, int options[])
 {
-  compile_options.pedantic = pedantic;
-  compile_options.warn_std = warn_std;
-  compile_options.allow_std = allow_std;
+  if (num >= 1)
+    compile_options.warn_std = options[0];
+  if (num >= 2)
+    compile_options.allow_std = options[1];
+  if (num >= 3)
+    compile_options.pedantic = options[2];
+  if (num >= 4)
+    compile_options.dump_core = options[3];
+  if (num >= 5)
+    compile_options.backtrace = options[4];
+  if (num >= 6)
+    compile_options.sign_zero = options[5];
+  if (num >= 7)
+    compile_options.bounds_check = options[6];
+
+  /* If backtrace is required, we set signal handlers on most common
+     signals.  */
+#if defined(HAVE_SIGNAL) && (defined(SIGSEGV) || defined(SIGBUS) \
+			     || defined(SIGILL) || defined(SIGFPE))
+  if (compile_options.backtrace)
+    {
+#if defined(SIGSEGV)
+      signal (SIGSEGV, handler);
+#endif
+
+#if defined(SIGBUS)
+      signal (SIGBUS, handler);
+#endif
+
+#if defined(SIGILL)
+      signal (SIGILL, handler);
+#endif
+
+#if defined(SIGFPE)
+      signal (SIGFPE, handler);
+#endif
+    }
+#endif
+
 }
 
 
@@ -61,6 +143,9 @@ init_compile_options (void)
   compile_options.allow_std = GFC_STD_F95_OBS | GFC_STD_F95_DEL
     | GFC_STD_F2003 | GFC_STD_F95 | GFC_STD_F77 | GFC_STD_GNU | GFC_STD_LEGACY;
   compile_options.pedantic = 0;
+  compile_options.dump_core = 0;
+  compile_options.backtrace = 0;
+  compile_options.sign_zero = 1;
 }
 
 /* Function called by the front-end to tell us the

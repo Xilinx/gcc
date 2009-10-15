@@ -1,5 +1,5 @@
 /* Float.java -- object wrapper for float
-   Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2005
+   Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005
    Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
@@ -49,10 +49,12 @@ package java.lang;
  * @author Paul Fisher
  * @author Andrew Haley (aph@cygnus.com)
  * @author Eric Blake (ebb9@email.byu.edu)
+ * @author Tom Tromey (tromey@redhat.com)
+ * @author Andrew John Hughes (gnu_andrew@member.fsf.org)
  * @since 1.0
- * @status updated to 1.4
+ * @status partly updated to 1.5
  */
-public final class Float extends Number implements Comparable
+public final class Float extends Number implements Comparable<Float>
 {
   /**
    * Compatible with JDK 1.0+.
@@ -91,7 +93,7 @@ public final class Float extends Number implements Comparable
    * <code>Class</code> object.
    * @since 1.1
    */
-  public static final Class TYPE = VMClassLoader.getPrimitiveClass('F');
+  public static final Class<Float> TYPE = (Class<Float>) VMClassLoader.getPrimitiveClass('F');
 
   /**
    * The number of bits needed to represent a <code>float</code>.
@@ -179,7 +181,7 @@ public final class Float extends Number implements Comparable
    */
   public static String toString(float f)
   {
-    return VMDouble.toString(f, true);
+    return VMFloat.toString(f);
   }
 
   /**
@@ -281,7 +283,6 @@ public final class Float extends Number implements Comparable
    *
    * @param val the value to wrap
    * @return the <code>Float</code>
-   * 
    * @since 1.5
    */
   public static Float valueOf(float val)
@@ -330,9 +331,9 @@ public final class Float extends Number implements Comparable
    *
    * @param str the <code>String</code> to convert
    * @return the <code>float</code> value of <code>s</code>
-   * @throws NumberFormatException if <code>s</code> cannot be parsed as a
+   * @throws NumberFormatException if <code>str</code> cannot be parsed as a
    *         <code>float</code>
-   * @throws NullPointerException if <code>s</code> is null
+   * @throws NullPointerException if <code>str</code> is null
    * @see #MIN_VALUE
    * @see #MAX_VALUE
    * @see #POSITIVE_INFINITY
@@ -341,9 +342,7 @@ public final class Float extends Number implements Comparable
    */
   public static float parseFloat(String str)
   {
-    // XXX Rounding parseDouble() causes some errors greater than 1 ulp from
-    // the infinitely precise decimal.
-    return (float) Double.parseDouble(str);
+    return VMFloat.parseFloat(str);
   }
 
   /**
@@ -581,22 +580,6 @@ public final class Float extends Number implements Comparable
   public int compareTo(Float f)
   {
     return compare(value, f.value);
-  }
-
-  /**
-   * Behaves like <code>compareTo(Float)</code> unless the Object
-   * is not an <code>Float</code>.
-   *
-   * @param o the object to compare
-   * @return the comparison
-   * @throws ClassCastException if the argument is not a <code>Float</code>
-   * @see #compareTo(Float)
-   * @see Comparable
-   * @since 1.2
-   */
-  public int compareTo(Object o)
-  {
-    return compare(value, ((Float) o).value);
   }
 
   /**

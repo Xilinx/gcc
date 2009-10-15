@@ -1,12 +1,7 @@
 /* include/config.h.in.  Generated from configure.ac by autoheader.  */
 
-/* Define to one of `_getb67', `GETB67', `getb67' for Cray-2 and Cray-YMP
-   systems. This function is required for `alloca.c' support on those systems.
-   */
-#undef CRAY_STACKSEG_END
-
-/* Define to 1 if using `alloca.c'. */
-#undef C_ALLOCA
+/* Name of default AWT toolkit */
+#undef AWT_TOOLKIT
 
 /* Define this if you want runtime debugging enabled. */
 #undef DEBUG
@@ -39,13 +34,6 @@
 /* Define to 1 if you have the `access' function. */
 #undef HAVE_ACCESS
 
-/* Define to 1 if you have `alloca', as a function or macro. */
-#undef HAVE_ALLOCA
-
-/* Define to 1 if you have <alloca.h> and it should be used (not on Ultrix).
-   */
-#undef HAVE_ALLOCA_H
-
 /* Define to 1 if you have the <arpa/inet.h> header file. */
 #undef HAVE_ARPA_INET_H
 
@@ -57,6 +45,9 @@
 
 /* Define to 1 if you have the <bstring.h> header file. */
 #undef HAVE_BSTRING_H
+
+/* Define to 1 if the target assembler supports thread-local storage. */
+#undef HAVE_CC_TLS
 
 /* Define to 1 if you have the `chmod' function. */
 #undef HAVE_CHMOD
@@ -76,17 +67,8 @@
 /* Define if dlopen is available */
 #undef HAVE_DLOPEN
 
-/* Define to 1 if you have the <execinfo.h> header file. */
-#undef HAVE_EXECINFO_H
-
-/* Define to 1 if you have the `execvp' function. */
-#undef HAVE_EXECVP
-
 /* Define to 1 if you have the <fcntl.h> header file. */
 #undef HAVE_FCNTL_H
-
-/* Define to 1 if you have the `fork' function. */
-#undef HAVE_FORK
 
 /* Define to 1 if you have the `fstat' function. */
 #undef HAVE_FSTAT
@@ -130,7 +112,7 @@
 /* Define to 1 if you have the `gettimeofday' function. */
 #undef HAVE_GETTIMEOFDAY
 
-/* Define to 1 if you have the `gmtime_r' function. */
+/* Define if you have the 'gmtime_r' function */
 #undef HAVE_GMTIME_R
 
 /* Define if you have the iconv() function. */
@@ -163,9 +145,6 @@
 /* Define to 1 if 'in_addr_t' is defined in sys/types.h or netinet/in.h. */
 #undef HAVE_IN_ADDR_T
 
-/* Define to 1 if you have the `ioctl' function. */
-#undef HAVE_IOCTL
-
 /* Define to 1 if you have the <langinfo.h> header file. */
 #undef HAVE_LANGINFO_H
 
@@ -184,6 +163,12 @@
 /* Define to 1 if you have the `lstat' function. */
 #undef HAVE_LSTAT
 
+/* Define to 1 if you have the <magic.h> header file. */
+#undef HAVE_MAGIC_H
+
+/* Define if magic.h declares magic_t */
+#undef HAVE_MAGIC_T
+
 /* Define to 1 if you have the `memcpy' function. */
 #undef HAVE_MEMCPY
 
@@ -195,9 +180,6 @@
 
 /* Define to 1 if you have the `mkdir' function. */
 #undef HAVE_MKDIR
-
-/* Define is you have 'mktime' in <time.h> */
-#undef HAVE_MKTIME
 
 /* Define to 1 if you have the `mmap' function. */
 #undef HAVE_MMAP
@@ -220,20 +202,14 @@
 /* Define to 1 if you have the `opendir' function. */
 #undef HAVE_OPENDIR
 
-/* Define to 1 if you have the `pipe' function. */
-#undef HAVE_PIPE
-
 /* Define if you have /proc/self/exe */
 #undef HAVE_PROC_SELF_EXE
 
+/* Define if you have /proc/self/maps */
+#undef HAVE_PROC_SELF_MAPS
+
 /* Define if using POSIX threads that have the mutexattr functions. */
 #undef HAVE_PTHREAD_MUTEXATTR_INIT
-
-/* Define to 1 if you have the `pthread_mutexattr_setkind_np' function. */
-#undef HAVE_PTHREAD_MUTEXATTR_SETKIND_NP
-
-/* Define to 1 if you have the `pthread_mutexattr_settype' function. */
-#undef HAVE_PTHREAD_MUTEXATTR_SETTYPE
 
 /* Define to 1 if you have the <pwd.h> header file. */
 #undef HAVE_PWD_H
@@ -277,8 +253,8 @@
 /* Define to 1 if you have the <stdlib.h> header file. */
 #undef HAVE_STDLIB_H
 
-/* Define to 1 if you have the `strerror' function. */
-#undef HAVE_STRERROR
+/* Define to 1 if you have the `strerror_r' function. */
+#undef HAVE_STRERROR_R
 
 /* Define to 1 if you have the <strings.h> header file. */
 #undef HAVE_STRINGS_H
@@ -328,9 +304,6 @@
 /* Define to 1 if you have the <sys/types.h> header file. */
 #undef HAVE_SYS_TYPES_H
 
-/* Define to 1 if you have <sys/wait.h> that is POSIX.1 compatible. */
-#undef HAVE_SYS_WAIT_H
-
 /* Define to 1 if you have the `time' function. */
 #undef HAVE_TIME
 
@@ -372,6 +345,9 @@
 /* Define to 1 if you have the file `AC_File'. */
 #undef HAVE__PROC_SELF_EXE
 
+/* Define to 1 if you have the file `AC_File'. */
+#undef HAVE__PROC_SELF_MAPS
+
 /* Define as const if the declaration of iconv() needs const. */
 #undef ICONV_CONST
 
@@ -396,12 +372,19 @@
 /* Define if we want to use debug calls into the garbage collector. */
 #undef LIBGCJ_GC_DEBUG
 
+/* Installation prefix */
+#undef LIBGCJ_PREFIX
+
 /* Define if using POSIX threads on Linux. */
 #undef LINUX_THREADS
 
 /* Define to the name of the environment variable that determines the dynamic
    library search path. */
 #undef LTDL_SHLIBPATH_VAR
+
+/* Define to the sub-directory in which libtool stores uninstalled libraries.
+   */
+#undef LT_OBJDIR
 
 /* Define if MinGW libgcj uses the Windows UNICODE OS API. */
 #undef MINGW_LIBGCJ_UNICODE
@@ -445,14 +428,6 @@
 /* Define if if the synchronization code should try to avoid pthread_self
    calls by caching thread IDs in a hashtable. */
 #undef SLOW_PTHREAD_SELF
-
-/* If using the C implementation of alloca, define if you know the
-   direction of stack growth for your system; otherwise it will be
-   automatically deduced at run-time.
-	STACK_DIRECTION > 0 => grows toward higher addresses
-	STACK_DIRECTION < 0 => grows toward lower addresses
-	STACK_DIRECTION = 0 => direction of growth unknown */
-#undef STACK_DIRECTION
 
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS

@@ -1,7 +1,7 @@
 /* Specific flags and argument handling of the front-end of the 
    GNU compiler for the Java(TM) language.
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
-   2005, 2006, 2007  Free Software Foundation, Inc.
+   2005, 2006, 2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -28,6 +28,7 @@ The Free Software Foundation is independent of Sun Microsystems, Inc.  */
 #include "coretypes.h"
 #include "tm.h"
 #include "gcc.h"
+#include "jcf.h"
 
 /* Name of spec file.  */
 #define SPEC_FILE "libgcj.spec"
@@ -57,7 +58,7 @@ int lang_specific_extra_outfiles = 0;
 int shared_libgcc = 1;
 
 static const char jvgenmain_spec[] =
-  "jvgenmain %{D*} %b %m.i |\n\
+  "jvgenmain %{findirect-dispatch} %{D*} %b %m.i |\n\
    cc1 %m.i %1 \
 		   %{!Q:-quiet} -dumpbase %b.c %{d*} %{m*} %{a*}\
 		   %{g*} %{O*} \
@@ -73,7 +74,7 @@ static const char jvgenmain_spec[] =
 		   %<fextdirs*\
 		   %<fuse-divide-subroutine %<fno-use-divide-subroutine\
 		   %<fcheck-references %<fno-check-references\
-		   %<ffilelist-file\
+		   %<ffilelist-file %<fsaw-java-file %<fsource* %<ftarget*\
 		   %{f*} -fdollars-in-identifiers\
 		   %{aux-info*}\
 		   %{pg:%{fomit-frame-pointer:%e-pg and -fomit-frame-pointer are incompatible}}\
@@ -102,7 +103,6 @@ find_spec_file (const char *dir)
   return NULL;
 }
 
-/* FIXME: these should come from lex.h.  */
 #define JAVA_START_CHAR_P(c) (c < 128 && (ISIDST (c) || c == '$'))
 #define JAVA_PART_CHAR_P(c) (c < 128					      \
 			     && (ISIDNUM (c)				      \
@@ -187,23 +187,6 @@ lang_specific_driver (int *in_argc, const char *const **in_argv,
      command line.  Used to avoid adding our own -xc++ if the user
      already gave a language for the file.  */
   int saw_speclang = 0;
-
-#if 0
-  /* "-lm" or "-lmath" if it appears on the command line.  */
-  const char *saw_math ATTRIBUTE_UNUSED = 0;
-
-  /* "-lc" if it appears on the command line.  */
-  const char *saw_libc ATTRIBUTE_UNUSED = 0;
-
-  /* "-lgcjgc" if it appears on the command line.  */
-  const char *saw_gc ATTRIBUTE_UNUSED = 0;
-
-  /* Saw `-l' option for the thread library.  */
-  const char *saw_threadlib ATTRIBUTE_UNUSED = 0;
-
-  /* Saw `-lgcj' on command line.  */
-  int saw_libgcj ATTRIBUTE_UNUSED = 0;
-#endif
 
   /* Saw --resource, -C or -o options, respectively. */
   int saw_resource = 0;
@@ -317,7 +300,7 @@ lang_specific_driver (int *in_argc, const char *const **in_argv,
 	  else if (argv[i][1] == 'O')
 	    saw_O = 1;
 	  else if ((argv[i][2] == '\0'
-		    && strchr ("bBVDUoeTuIYmLiA", argv[i][1]) != NULL)
+		    && strchr ("bBVDUoeTuIYmLiAI", argv[i][1]) != NULL)
 		   || strcmp (argv[i], "-Tdata") == 0
 		   || strcmp (argv[i], "-MT") == 0
 		   || strcmp (argv[i], "-MF") == 0)
@@ -466,14 +449,6 @@ lang_specific_driver (int *in_argc, const char *const **in_argv,
       num_args -= java_files_count + class_files_count + zip_files_count;
       num_args += 3;  /* for the combined arg "-xjava", and "-xnone" */
     }
-  /* If we know we don't have to do anything, bail now.  */
-#if 0
-  if (! added && ! library && main_class_name == NULL && ! saw_C)
-    {
-      free (args);
-      return;
-    }
-#endif
 
   if (main_class_name)
     {
@@ -481,6 +456,8 @@ lang_specific_driver (int *in_argc, const char *const **in_argv,
     }
   if (saw_g + saw_O == 0)
     num_args++;
+  num_args++;
+  /* An additional entry for the classpath.  */
   num_args++;
 
   if (combine_inputs || indirect_files_count > 0)
@@ -494,6 +471,9 @@ lang_specific_driver (int *in_argc, const char *const **in_argv,
   shared_libgcc = 0;
 #endif  
   
+  if (java_files_count > 0)
+    ++num_args;
+
   num_args += shared_libgcc;
 
   num_args += link_for_bc_abi;
@@ -513,6 +493,10 @@ lang_specific_driver (int *in_argc, const char *const **in_argv,
       arglist[j++] = "-xnone";
     }
 
+  if (java_files_count > 0)
+    arglist[j++] = "-fsaw-java-file";
+
+  jcf_path_init ();
   for (i = 1; i < argc; i++, j++)
     {
       arglist[j] = argv[i];
@@ -527,11 +511,61 @@ lang_specific_driver (int *in_argc, const char *const **in_argv,
 	  arglist[j] = "-xnone";
 	}
 
-      if (strcmp (argv[i], "-classpath") == 0
-	  || strcmp (argv[i], "-bootclasspath") == 0
-	  || strcmp (argv[i], "-CLASSPATH") == 0
-	  || strcmp (argv[i], "-encoding") == 0
-	  || strcmp (argv[i], "-extdirs") == 0)
+      if (argv[i][0] == '-' && argv[i][1] == 'I')
+	{
+	  const char *arg;
+	  if (argv[i][2] == '\0')
+	    {
+	      gcc_assert (i + 1 < argc && (args[i + 1] & PARAM_ARG) != 0);
+	      arg = argv[i + 1];
+	      /* Drop the argument.  */
+	      ++i;
+	    }
+	  else
+	    arg = &argv[i][2];
+	  jcf_path_include_arg (arg);
+	  --j;
+	  continue;
+	}
+      if (! strcmp (argv[i], "-classpath")
+	  || ! strcmp (argv[i], "-CLASSPATH"))
+	{
+	  jcf_path_classpath_arg (argv[i + 1]);
+	  ++i;
+	  --j;
+	  continue;
+	}
+      if (! strcmp (argv[i], "-bootclasspath"))
+	{
+	  jcf_path_bootclasspath_arg (argv[i + 1]);
+	  ++i;
+	  --j;
+	  continue;
+	}
+      if (! strncmp (argv[i], "-fCLASSPATH=", 12)
+	  || ! strncmp (argv[i], "-fclasspath=", 12))
+	{
+	  char *p = strchr (argv[i], '=');
+	  jcf_path_classpath_arg (p + 1);
+	  --j;
+	  continue;
+	}
+      if (! strncmp (argv[i], "-fbootclasspath=", 16))
+	{
+	  char *p = strchr (argv[i], '=');
+	  jcf_path_bootclasspath_arg (p + 1);
+	  --j;
+	  continue;
+	}
+      if (! strcmp (argv[i], "-extdirs"))
+	{
+	  jcf_path_extdirs_arg (argv[i + 1]);
+	  ++i;
+	  --j;
+	  continue;
+	}
+
+      if (strcmp (argv[i], "-encoding") == 0)
 	{
 	  arglist[j] = concat ("-f", argv[i]+1, "=", argv[i+1], NULL);
 	  i++;
@@ -578,6 +612,11 @@ lang_specific_driver (int *in_argc, const char *const **in_argv,
 	  continue;
 	}
   }
+
+  /* Handle classpath setting.  We specify the bootclasspath since
+     that requires the fewest changes to our existing code...  */
+  jcf_path_seal (0);
+  arglist[j++] = jcf_path_compute ("-fbootclasspath=");
 
   if (combine_inputs)
     {

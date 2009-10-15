@@ -6,29 +6,29 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2005, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with Atree; use Atree;
-with Opt;   use Opt;
-with Sem;   use Sem;
-with Sinfo; use Sinfo;
-with Stand; use Stand;
+with Atree;    use Atree;
+with Opt;      use Opt;
+with Sem;      use Sem;
+with Sinfo;    use Sinfo;
+with Stand;    use Stand;
+with Targparm; use Targparm;
 
 package body Itypes is
 
@@ -68,6 +68,10 @@ package body Itypes is
          Set_Is_Frozen (Typ);
       end if;
 
+      if Ekind in Access_Subprogram_Type_Kind then
+         Set_Can_Use_Internal_Rep (Typ, not Always_Compatible_Rep_On_Target);
+      end if;
+
       return Typ;
    end Create_Itype;
 
@@ -93,14 +97,14 @@ package body Itypes is
       Set_Etype                    (I_Typ, T);
       Init_Size_Align              (I_Typ);
       Set_Depends_On_Private       (I_Typ, Depends_On_Private (T));
-      Set_Is_Public                (I_Typ, Is_Public (T));
-      Set_From_With_Type           (I_Typ, From_With_Type (T));
+      Set_Is_Public                (I_Typ, Is_Public          (T));
+      Set_From_With_Type           (I_Typ, From_With_Type     (T));
       Set_Is_Access_Constant       (I_Typ, Is_Access_Constant (T));
-      Set_Is_Generic_Type          (I_Typ, Is_Generic_Type (T));
-      Set_Is_Volatile              (I_Typ, Is_Volatile (T));
-      Set_Treat_As_Volatile        (I_Typ, Treat_As_Volatile (T));
-      Set_Is_Atomic                (I_Typ, Is_Atomic (T));
-      Set_Is_Ada_2005              (I_Typ, Is_Ada_2005 (T));
+      Set_Is_Generic_Type          (I_Typ, Is_Generic_Type    (T));
+      Set_Is_Volatile              (I_Typ, Is_Volatile        (T));
+      Set_Treat_As_Volatile        (I_Typ, Treat_As_Volatile  (T));
+      Set_Is_Atomic                (I_Typ, Is_Atomic          (T));
+      Set_Is_Ada_2005_Only         (I_Typ, Is_Ada_2005_Only   (T));
       Set_Can_Never_Be_Null        (I_Typ);
 
       return I_Typ;

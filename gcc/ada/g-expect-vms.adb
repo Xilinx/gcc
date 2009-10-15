@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---                     Copyright (C) 2002-2005, AdaCore                     --
+--                     Copyright (C) 2002-2007, AdaCore                     --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -33,14 +33,14 @@
 
 --  This is the VMS version
 
-with System;        use System;
-with Ada.Calendar;  use Ada.Calendar;
+with System;       use System;
+with Ada.Calendar; use Ada.Calendar;
 
 with GNAT.IO;
-with GNAT.OS_Lib;   use GNAT.OS_Lib;
-with GNAT.Regpat;   use GNAT.Regpat;
+with GNAT.OS_Lib;  use GNAT.OS_Lib;
+with GNAT.Regpat;  use GNAT.Regpat;
 
-with Unchecked_Deallocation;
+with Ada.Unchecked_Deallocation;
 
 package body GNAT.Expect is
 
@@ -72,7 +72,7 @@ package body GNAT.Expect is
    --  Reinitialize the internal buffer.
    --  The buffer is deleted up to the end of the last match.
 
-   procedure Free is new Unchecked_Deallocation
+   procedure Free is new Ada.Unchecked_Deallocation
      (Pattern_Matcher, Pattern_Matcher_Access);
 
    procedure Call_Filters
@@ -95,7 +95,7 @@ package body GNAT.Expect is
    procedure Kill (Pid : Process_Id; Sig_Num : Integer);
    pragma Import (C, Kill, "decc$kill");
 
-   function Create_Pipe (Pipe : access Pipe_Type) return Integer;
+   function Create_Pipe (Pipe : not null access Pipe_Type) return Integer;
    pragma Import (C, Create_Pipe, "__gnat_pipe");
 
    function Poll
@@ -218,12 +218,21 @@ package body GNAT.Expect is
       Close (Descriptor.Output_Fd);
 
       --  ??? Should have timeouts for different signals
-      Kill (Descriptor.Pid, 9);
+
+      if Descriptor.Pid > 0 then  --  see comment in Send_Signal
+         Kill (Descriptor.Pid, Sig_Num => 9);
+      end if;
 
       GNAT.OS_Lib.Free (Descriptor.Buffer);
       Descriptor.Buffer_Size := 0;
 
-      Status := Waitpid (Descriptor.Pid);
+      --  Check process id (see comment in Send_Signal)
+
+      if Descriptor.Pid > 0 then
+         Status := Waitpid (Descriptor.Pid);
+      else
+         raise Invalid_Process;
+      end if;
    end Close;
 
    procedure Close (Descriptor : in out Process_Descriptor) is
@@ -327,7 +336,8 @@ package body GNAT.Expect is
             return;
          end if;
 
-         --  Calculate the timeout for the next turn.
+         --  Calculate the timeout for the next turn
+
          --  Note that Timeout is, from the caller's perspective, the maximum
          --  time until a match, not the maximum time until some output is
          --  read, and thus cannot be reused as is for Expect_Internal.
@@ -758,7 +768,6 @@ package body GNAT.Expect is
                end if;
          end case;
       end loop;
-
    end Flush;
 
    ------------------------
@@ -769,7 +778,7 @@ package body GNAT.Expect is
      (Command    : String;
       Arguments  : GNAT.OS_Lib.Argument_List;
       Input      : String;
-      Status     : access Integer;
+      Status     : not null access Integer;
       Err_To_Out : Boolean := False) return String
    is
       use GNAT.Expect;
@@ -894,7 +903,6 @@ package body GNAT.Expect is
 
    procedure Interrupt (Descriptor : in out Process_Descriptor) is
       SIGINT : constant := 2;
-
    begin
       Send_Signal (Descriptor, SIGINT);
    end Interrupt;
@@ -1030,9 +1038,10 @@ package body GNAT.Expect is
 
       Call_Filters (Descriptor, Full_Str (Full_Str'First .. Last), Input);
 
-      Discard := Write (Descriptor.Input_Fd,
-                        Full_Str'Address,
-                        Last - Full_Str'First + 1);
+      Discard :=
+        Write (Descriptor.Input_Fd,
+               Full_Str'Address,
+               Last - Full_Str'First + 1);
       --  Shouldn't we at least have a pragma Assert on the result ???
    end Send;
 
@@ -1045,8 +1054,19 @@ package body GNAT.Expect is
       Signal     : Integer)
    is
    begin
-      Kill (Descriptor.Pid, Signal);
-      --  ??? Need to check process status here
+      --  A nonpositive process id passed to kill has special meanings. For
+      --  example, -1 means kill all processes in sight, including self, in
+      --  POSIX and Windows (and something slightly different in Linux). See
+      --  man pages for details. In any case, we don't want to do that. Note
+      --  that Descriptor.Pid will be -1 if the process was not successfully
+      --  started; we don't want to kill ourself in that case.
+
+      if Descriptor.Pid > 0 then
+         Kill (Descriptor.Pid, Signal);
+         --  ??? Need to check process status here
+      else
+         raise Invalid_Process;
+      end if;
    end Send_Signal;
 
    ---------------------------------
@@ -1058,10 +1078,13 @@ package body GNAT.Expect is
       Pipe1 : in out Pipe_Type;
       Pipe2 : in out Pipe_Type;
       Pipe3 : in out Pipe_Type;
-      Cmd   : in String;
-      Args  : in System.Address)
+      Cmd   : String;
+      Args  : System.Address)
    is
       pragma Warnings (Off, Pid);
+      pragma Warnings (Off, Pipe1);
+      pragma Warnings (Off, Pipe2);
+      pragma Warnings (Off, Pipe3);
 
    begin
       --  Since the code between fork and exec on VMS executes
@@ -1079,6 +1102,7 @@ package body GNAT.Expect is
       --  Since we are still called from the parent process, there is no way
       --  currently we can cleanly close the unneeded ends of the pipes, but
       --  this doesn't really matter.
+
       --  We could close Pipe1.Output, Pipe2.Input, Pipe3.Input.
 
       Dup2 (Pipe1.Input,  GNAT.OS_Lib.Standin);
@@ -1086,7 +1110,6 @@ package body GNAT.Expect is
       Dup2 (Pipe3.Output, GNAT.OS_Lib.Standerr);
 
       Portable_Execvp (Pid.Pid'Access, Cmd & ASCII.Nul, Args);
-
    end Set_Up_Child_Communications;
 
    ---------------------------
@@ -1096,9 +1119,9 @@ package body GNAT.Expect is
    procedure Set_Up_Communications
      (Pid        : in out Process_Descriptor;
       Err_To_Out : Boolean;
-      Pipe1      : access Pipe_Type;
-      Pipe2      : access Pipe_Type;
-      Pipe3      : access Pipe_Type)
+      Pipe1      : not null access Pipe_Type;
+      Pipe2      : not null access Pipe_Type;
+      Pipe3      : not null access Pipe_Type)
    is
    begin
       --  Create the pipes
@@ -1136,6 +1159,9 @@ package body GNAT.Expect is
       Pipe3 : in out Pipe_Type)
    is
       pragma Warnings (Off, Pid);
+      pragma Warnings (Off, Pipe1);
+      pragma Warnings (Off, Pipe2);
+      pragma Warnings (Off, Pipe3);
 
    begin
 
@@ -1163,7 +1189,6 @@ package body GNAT.Expect is
    is
       pragma Warnings (Off, Descriptor);
       pragma Warnings (Off, User_Data);
-
    begin
       GNAT.IO.Put (Str);
    end Trace_Filter;

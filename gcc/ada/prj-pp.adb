@@ -6,18 +6,17 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2001-2005, Free Software Foundation, Inc.         --
+--          Copyright (C) 2001-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -26,8 +25,6 @@
 
 with Ada.Characters.Handling; use Ada.Characters.Handling;
 
-with Hostparm;
-with Namet;    use Namet;
 with Output;   use Output;
 with Snames;
 
@@ -37,8 +34,9 @@ package body Prj.PP is
 
    Not_Tested : array (Project_Node_Kind) of Boolean := (others => True);
 
-   Max_Line_Length : constant := Hostparm.Max_Line_Length - 5;
-   --  Maximum length of a line
+   Max_Line_Length : constant := 255;
+   --  Maximum length of a line. This is chosen to be compatible with older
+   --  versions of GNAT that had a strict limit on the maximum line length.
 
    Column : Natural := 0;
    --  Column number of the last character in the line. Used to avoid
@@ -94,6 +92,7 @@ package body Prj.PP is
       --  Outputs the indentation at the beginning of the line
 
       procedure Output_String (S : Name_Id);
+      procedure Output_String (S : Path_Name_Type);
       --  Outputs a string using the default output procedures
 
       procedure Write_Empty_Line (Always : Boolean := False);
@@ -229,6 +228,11 @@ package body Prj.PP is
          Column := Column + 1;
       end Output_String;
 
+      procedure Output_String (S : Path_Name_Type) is
+      begin
+         Output_String (Name_Id (S));
+      end Output_String;
+
       ----------------
       -- Start_Line --
       ----------------
@@ -335,7 +339,7 @@ package body Prj.PP is
 
                   --  Check if this project extends another project
 
-                  if Extended_Project_Path_Of (Node, In_Tree) /= No_Name then
+                  if Extended_Project_Path_Of (Node, In_Tree) /= No_Path then
                      Write_String (" extends ");
 
                      if Is_Extending_All (Node, In_Tree) then

@@ -1,5 +1,5 @@
 /* URI.java -- An URI class
-   Copyright (C) 2002, 2004, 2005, 2006  Free Software Foundation, Inc.
+   Copyright (C) 2002, 2004, 2005, 2006, 2008  Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -156,7 +156,7 @@ import java.util.regex.Pattern;
  * @since 1.4
  */
 public final class URI 
-  implements Comparable, Serializable
+  implements Comparable<URI>, Serializable
 {
   /**
    * For serialization compatability.
@@ -693,7 +693,7 @@ public final class URI
 	    
 	    String portStr = getURIGroup(matcher, AUTHORITY_PORT_GROUP);
 	    
-	    if (portStr != null)
+	    if (portStr != null && ! portStr.isEmpty())
 	      try
 		{
 		  port = Integer.parseInt(portStr);
@@ -968,12 +968,18 @@ public final class URI
       return uri;
     if (rawAuthority != null && !(rawAuthority.equals(uri.getRawAuthority())))
       return uri;
-    if (!(uri.getRawPath().startsWith(rawPath)))
-      return uri;
+    String basePath = rawPath;
+    if (!(uri.getRawPath().equals(rawPath)))
+      {
+	if (!(basePath.endsWith("/")))
+	  basePath = basePath.concat("/");
+	if (!(uri.getRawPath().startsWith(basePath)))
+	  return uri;
+      }
     try
       {
 	return new URI(null, null, 
-		       uri.getRawPath().substring(rawPath.length()),
+		       uri.getRawPath().substring(basePath.length()),
 		       uri.getRawQuery(), uri.getRawFragment());
       }
     catch (URISyntaxException e)
@@ -1229,7 +1235,7 @@ public final class URI
   }
 
   /**
-   * Compare the URI with another object that must also be a URI.
+   * Compare the URI with another URI.
    * Undefined components are taken to be less than any other component.
    * The following criteria are observed:
    * </p>
@@ -1265,16 +1271,14 @@ public final class URI
    * </ul>
    * </ul>
    *
-   * @param obj This object to compare this URI with
+   * @param uri The other URI to compare this URI with
    * @return a negative integer, zero or a positive integer depending
    *         on whether this URI is less than, equal to or greater
    *         than that supplied, respectively.
-   * @throws ClassCastException if the given object is not a URI
    */
-  public int compareTo(Object obj) 
+  public int compareTo(URI uri) 
     throws ClassCastException
   {
-    URI uri = (URI) obj;
     if (scheme == null && uri.getScheme() != null)
       return -1;
     if (scheme != null)

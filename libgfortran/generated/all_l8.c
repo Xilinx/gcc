@@ -1,5 +1,5 @@
 /* Implementation of the ALL intrinsic
-   Copyright 2002 Free Software Foundation, Inc.
+   Copyright 2002, 2007 Free Software Foundation, Inc.
    Contributed by Paul Brook <paul@nowt.org>
 
 This file is part of the GNU Fortran 95 runtime library (libgfortran).
@@ -28,46 +28,52 @@ License along with libgfortran; see the file COPYING.  If not,
 write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
 Boston, MA 02110-1301, USA.  */
 
-#include "config.h"
+#include "libgfortran.h"
 #include <stdlib.h>
 #include <assert.h>
-#include "libgfortran.h"
 
 
-#if defined (HAVE_GFC_LOGICAL_8) && defined (HAVE_GFC_LOGICAL_8)
+#if defined (HAVE_GFC_LOGICAL_8)
 
 
 extern void all_l8 (gfc_array_l8 * const restrict, 
-	gfc_array_l8 * const restrict, const index_type * const restrict);
+	gfc_array_l1 * const restrict, const index_type * const restrict);
 export_proto(all_l8);
 
 void
 all_l8 (gfc_array_l8 * const restrict retarray, 
-	gfc_array_l8 * const restrict array, 
+	gfc_array_l1 * const restrict array, 
 	const index_type * const restrict pdim)
 {
   index_type count[GFC_MAX_DIMENSIONS];
   index_type extent[GFC_MAX_DIMENSIONS];
   index_type sstride[GFC_MAX_DIMENSIONS];
   index_type dstride[GFC_MAX_DIMENSIONS];
-  const GFC_LOGICAL_8 * restrict base;
+  const GFC_LOGICAL_1 * restrict base;
   GFC_LOGICAL_8 * restrict dest;
   index_type rank;
   index_type n;
   index_type len;
   index_type delta;
   index_type dim;
+  int src_kind;
+  int continue_loop;
 
   /* Make dim zero based to avoid confusion.  */
   dim = (*pdim) - 1;
   rank = GFC_DESCRIPTOR_RANK (array) - 1;
 
+  src_kind = GFC_DESCRIPTOR_SIZE (array);
+
   len = array->dim[dim].ubound + 1 - array->dim[dim].lbound;
-  delta = array->dim[dim].stride;
+  if (len < 0)
+    len = 0;
+
+  delta = array->dim[dim].stride * src_kind;
 
   for (n = 0; n < dim; n++)
     {
-      sstride[n] = array->dim[n].stride;
+      sstride[n] = array->dim[n].stride * src_kind;
       extent[n] = array->dim[n].ubound + 1 - array->dim[n].lbound;
 
       if (extent[n] < 0)
@@ -75,7 +81,7 @@ all_l8 (gfc_array_l8 * const restrict retarray,
     }
   for (n = dim; n < rank; n++)
     {
-      sstride[n] = array->dim[n + 1].stride;
+      sstride[n] = array->dim[n + 1].stride * src_kind;
       extent[n] =
         array->dim[n + 1].ubound + 1 - array->dim[n + 1].lbound;
 
@@ -116,7 +122,25 @@ all_l8 (gfc_array_l8 * const restrict retarray,
   else
     {
       if (rank != GFC_DESCRIPTOR_RANK (retarray))
-	runtime_error ("rank of return array incorrect");
+	runtime_error ("rank of return array incorrect in"
+		       " ALL intrinsic: is %d, should be %d",
+		       GFC_DESCRIPTOR_RANK (retarray), rank);
+
+      if (compile_options.bounds_check)
+	{
+	  for (n=0; n < rank; n++)
+	    {
+	      index_type ret_extent;
+
+	      ret_extent = retarray->dim[n].ubound + 1
+		- retarray->dim[n].lbound;
+	      if (extent[n] != ret_extent)
+		runtime_error ("Incorrect extent in return value of"
+			       " ALL intrinsic in dimension %d:"
+			       " is %ld, should be %ld", n + 1,
+			       (long int) ret_extent, (long int) extent[n]);
+	    }
+	}
     }
 
   for (n = 0; n < rank; n++)
@@ -128,11 +152,25 @@ all_l8 (gfc_array_l8 * const restrict retarray,
     }
 
   base = array->data;
+
+  if (src_kind == 1 || src_kind == 2 || src_kind == 4 || src_kind == 8
+#ifdef HAVE_GFC_LOGICAL_16
+      || src_kind == 16
+#endif
+    )
+    {
+      if (base)
+	base = GFOR_POINTER_TO_L1 (base, src_kind);
+    }
+  else
+    internal_error (NULL, "Funny sized logical array in ALL intrinsic");
+
   dest = retarray->data;
 
-  while (base)
+  continue_loop = 1;
+  while (continue_loop)
     {
-      const GFC_LOGICAL_8 * restrict src;
+      const GFC_LOGICAL_1 * restrict src;
       GFC_LOGICAL_8 result;
       src = base;
       {
@@ -173,7 +211,7 @@ all_l8 (gfc_array_l8 * const restrict retarray,
           if (n == rank)
             {
               /* Break out of the look.  */
-              base = NULL;
+              continue_loop = 0;
               break;
             }
           else

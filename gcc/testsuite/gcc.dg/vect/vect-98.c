@@ -6,6 +6,7 @@
 #define N 4
 #define DOT4( a, b )  ( a[0]*b[0] + a[1]*b[1] + a[2]*b[2] + a[3]*b[3] )
 
+__attribute__ ((noinline))
 int main1 (int ia[][N])
 {
   int i, j;
@@ -36,6 +37,7 @@ int main (void)
   return main1 (ia);
 }
 
-/* { dg-final { scan-tree-dump-times "vectorized 1 loops" 1 "vect" { xfail *-*-* } } } */
-/* { dg-final { scan-tree-dump-times "not vectorized: complicated access pattern" 1 "vect" } } */
+/* Needs interleaving support.  */
+/* { dg-final { scan-tree-dump-times "vectorized 1 loops" 1 "vect" { target { vect_interleave && vect_extract_even_odd } } } } */
+/* { dg-final { scan-tree-dump-times "vectorized 1 loops" 0 "vect" { xfail  { vect_interleave && vect_extract_even_odd } } } } */
 /* { dg-final { cleanup-tree-dump "vect" } } */

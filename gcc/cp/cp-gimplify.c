@@ -1,6 +1,6 @@
 /* C++-specific tree lowering bits; see also c-gimplify.c and tree-gimple.c.
 
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Jason Merrill <jason@redhat.com>
 
@@ -146,9 +146,7 @@ genericize_eh_spec_block (tree *stmt_p)
 {
   tree body = EH_SPEC_STMTS (*stmt_p);
   tree allowed = EH_SPEC_RAISES (*stmt_p);
-  tree failure = build_call (call_unexpected_node,
-			     tree_cons (NULL_TREE, build_exc_ptr (),
-					NULL_TREE));
+  tree failure = build_call_n (call_unexpected_node, 1, build_exc_ptr ());
   gimplify_stmt (&body);
 
   *stmt_p = gimple_build_eh_filter (body, allowed, failure);
@@ -363,16 +361,16 @@ gimplify_expr_stmt (tree *stmt_p)
      In this case we will not want to emit the gimplified statement.
      However, we may still want to emit a warning, so we do that before
      gimplification.  */
-  if (stmt && (extra_warnings || warn_unused_value))
+  if (stmt && warn_unused_value)
     {
       if (!TREE_SIDE_EFFECTS (stmt))
 	{
 	  if (!IS_EMPTY_STMT (stmt)
 	      && !VOID_TYPE_P (TREE_TYPE (stmt))
 	      && !TREE_NO_WARNING (stmt))
-	    warning (OPT_Wextra, "statement with no effect");
+	    warning (OPT_Wunused_value, "statement with no effect");
 	}
-      else if (warn_unused_value)
+      else
 	warn_if_unused_value (stmt, input_location);
     }
 
@@ -389,35 +387,56 @@ cp_gimplify_init_expr (tree *expr_p, tree *pre_p, tree *post_p)
 {
   tree from = TREE_OPERAND (*expr_p, 1);
   tree to = TREE_OPERAND (*expr_p, 0);
-  tree sub;
+  tree t;
+  tree slot = NULL_TREE;
 
   /* What about code that pulls out the temp and uses it elsewhere?  I
      think that such code never uses the TARGET_EXPR as an initializer.  If
      I'm wrong, we'll abort because the temp won't have any RTL.  In that
      case, I guess we'll need to replace references somehow.  */
   if (TREE_CODE (from) == TARGET_EXPR)
-    from = TARGET_EXPR_INITIAL (from);
+    {
+      slot = TARGET_EXPR_SLOT (from);
+      from = TARGET_EXPR_INITIAL (from);
+    }
 
   /* Look through any COMPOUND_EXPRs, since build_compound_expr pushes them
      inside the TARGET_EXPR.  */
-  sub = expr_last (from);
-
-  /* If we are initializing from an AGGR_INIT_EXPR, drop the INIT_EXPR and
-     replace the slot operand with our target.
-
-     Should we add a target parm to gimplify_expr instead?  No, as in this
-     case we want to replace the INIT_EXPR.  */
-  if (TREE_CODE (sub) == AGGR_INIT_EXPR)
+  for (t = from; t; )
     {
-      gimplify_expr (&to, pre_p, post_p, is_gimple_lvalue, fb_lvalue);
-      TREE_OPERAND (sub, 2) = to;
-      *expr_p = from;
+      tree sub = TREE_CODE (t) == COMPOUND_EXPR ? TREE_OPERAND (t, 0) : t;
 
-      /* The initialization is now a side-effect, so the container can
-	 become void.  */
-      if (from != sub)
-	TREE_TYPE (from) = void_type_node;
+      /* If we are initializing from an AGGR_INIT_EXPR, drop the INIT_EXPR and
+	 replace the slot operand with our target.
+
+	 Should we add a target parm to gimplify_expr instead?  No, as in this
+	 case we want to replace the INIT_EXPR.  */
+      if (TREE_CODE (sub) == AGGR_INIT_EXPR)
+	{
+	  gimplify_expr (&to, pre_p, post_p, is_gimple_lvalue, fb_lvalue);
+	  AGGR_INIT_EXPR_SLOT (sub) = to;
+	  *expr_p = from;
+
+	  /* The initialization is now a side-effect, so the container can
+	     become void.  */
+	  if (from != sub)
+	    TREE_TYPE (from) = void_type_node;
+	}
+      else if (TREE_CODE (sub) == INIT_EXPR
+	       && TREE_OPERAND (sub, 0) == slot)
+	{
+	  /* An INIT_EXPR under TARGET_EXPR created by build_value_init,
+	     will be followed by an AGGR_INIT_EXPR.  */
+	  gimplify_expr (&to, pre_p, post_p, is_gimple_lvalue, fb_lvalue);
+	  TREE_OPERAND (sub, 0) = to;
+	}
+
+      if (t == sub)
+	break;
+      else
+	t = TREE_OPERAND (t, 1);
     }
+
 }
 
 /* Gimplify a MUST_NOT_THROW_EXPR.  */
@@ -432,7 +451,7 @@ gimplify_must_not_throw_expr (tree *expr_p, tree *pre_p)
   gimplify_stmt (&body);
 
   stmt = gimple_build_eh_filter (body, NULL_TREE,
-				 build_call (terminate_node, NULL_TREE));
+				 build_call_n (terminate_node, 0));
 
   if (temp)
     {
@@ -472,7 +491,7 @@ cp_gimplify_expr (tree *expr_p, tree *pre_p, tree *post_p)
       break;
 
     case THROW_EXPR:
-      /* FIXME communicate throw type to backend, probably by moving
+      /* FIXME communicate throw type to back end, probably by moving
 	 THROW_EXPR into ../tree.def.  */
       *expr_p = TREE_OPERAND (*expr_p, 0);
       ret = GS_OK;
@@ -483,7 +502,7 @@ cp_gimplify_expr (tree *expr_p, tree *pre_p, tree *post_p)
       ret = GS_OK;
       break;
 
-      /* We used to do this for MODIFY_EXPR as well, but that's unsafe; the
+      /* We used to do this for GIMPLE_MODIFY_STMT as well, but that's unsafe; the
 	 LHS of an assignment might also be involved in the RHS, as in bug
 	 25979.  */
     case INIT_EXPR:
@@ -592,7 +611,7 @@ cp_gimplify_expr (tree *expr_p, tree *pre_p, tree *post_p)
 }
 
 static inline bool
-is_invisiref_parm (tree t)
+is_invisiref_parm (const_tree t)
 {
   return ((TREE_CODE (t) == PARM_DECL || TREE_CODE (t) == RESULT_DECL)
 	  && DECL_BY_REFERENCE (t));
@@ -748,7 +767,7 @@ cp_genericize (tree fndecl)
   /* We do want to see every occurrence of the parms, so we can't just use
      walk_tree's hash functionality.  */
   p_set = pointer_set_create ();
-  walk_tree (&DECL_SAVED_TREE (fndecl), cp_genericize_r, p_set, NULL);
+  cp_walk_tree (&DECL_SAVED_TREE (fndecl), cp_genericize_r, p_set, NULL);
   pointer_set_destroy (p_set);
 
   /* Do everything else.  */
@@ -765,11 +784,16 @@ cp_genericize (tree fndecl)
 static tree
 cxx_omp_clause_apply_fn (tree fn, tree arg1, tree arg2)
 {
-  tree defparm, parm;
-  int i;
+  tree defparm, parm, t;
+  int i = 0;
+  int nargs;
+  tree *argarray;
 
   if (fn == NULL)
     return NULL;
+
+  nargs = list_length (DECL_ARGUMENTS (fn));
+  argarray = (tree *) alloca (nargs * sizeof (tree));
 
   defparm = TREE_CHAIN (TYPE_ARG_TYPES (TREE_TYPE (fn)));
   if (arg2)
@@ -780,7 +804,7 @@ cxx_omp_clause_apply_fn (tree fn, tree arg1, tree arg2)
       tree inner_type = TREE_TYPE (arg1);
       tree start1, end1, p1;
       tree start2 = NULL, p2 = NULL;
-      tree ret = NULL, lab, t;
+      tree ret = NULL, lab;
 
       start1 = arg1;
       start2 = arg2;
@@ -799,17 +823,16 @@ cxx_omp_clause_apply_fn (tree fn, tree arg1, tree arg2)
 	start2 = build_fold_addr_expr (start2);
 
       end1 = TYPE_SIZE_UNIT (TREE_TYPE (arg1));
-      end1 = fold_convert (TREE_TYPE (start1), end1);
-      end1 = build2 (PLUS_EXPR, TREE_TYPE (start1), start1, end1);
+      end1 = build2 (POINTER_PLUS_EXPR, TREE_TYPE (start1), start1, end1);
 
       p1 = create_tmp_var (TREE_TYPE (start1), NULL);
-      t = build2 (MODIFY_EXPR, void_type_node, p1, start1);
+      t = build2 (GIMPLE_MODIFY_STMT, void_type_node, p1, start1);
       append_to_statement_list (t, &ret);
 
       if (arg2)
 	{
 	  p2 = create_tmp_var (TREE_TYPE (start2), NULL);
-	  t = build2 (MODIFY_EXPR, void_type_node, p2, start2);
+	  t = build2 (GIMPLE_MODIFY_STMT, void_type_node, p2, start2);
 	  append_to_statement_list (t, &ret);
 	}
 
@@ -817,28 +840,29 @@ cxx_omp_clause_apply_fn (tree fn, tree arg1, tree arg2)
       t = build1 (LABEL_EXPR, void_type_node, lab);
       append_to_statement_list (t, &ret);
 
-      t = tree_cons (NULL, p1, NULL);
+      argarray[i++] = p1;
       if (arg2)
-	t = tree_cons (NULL, p2, t);
+	argarray[i++] = p2;
       /* Handle default arguments.  */
-      i = 1 + (arg2 != NULL);
-      for (parm = defparm; parm != void_list_node; parm = TREE_CHAIN (parm))
-	t = tree_cons (NULL, convert_default_arg (TREE_VALUE (parm),
-						  TREE_PURPOSE (parm),
-						  fn, i++), t);
-      t = build_call (fn, nreverse (t));
+      for (parm = defparm; parm && parm != void_list_node;
+	   parm = TREE_CHAIN (parm), i++)
+	argarray[i] = convert_default_arg (TREE_VALUE (parm),
+					   TREE_PURPOSE (parm), fn, i);
+      t = build_call_a (fn, i, argarray);
+      t = fold_convert (void_type_node, t);
+      t = fold_build_cleanup_point_expr (TREE_TYPE (t), t);
       append_to_statement_list (t, &ret);
 
-      t = fold_convert (TREE_TYPE (p1), TYPE_SIZE_UNIT (inner_type));
-      t = build2 (PLUS_EXPR, TREE_TYPE (p1), p1, t);
-      t = build2 (MODIFY_EXPR, void_type_node, p1, t);
+      t = TYPE_SIZE_UNIT (inner_type);
+      t = build2 (POINTER_PLUS_EXPR, TREE_TYPE (p1), p1, t);
+      t = build2 (GIMPLE_MODIFY_STMT, void_type_node, p1, t);
       append_to_statement_list (t, &ret);
 
       if (arg2)
 	{
-	  t = fold_convert (TREE_TYPE (p2), TYPE_SIZE_UNIT (inner_type));
-	  t = build2 (PLUS_EXPR, TREE_TYPE (p2), p2, t);
-	  t = build2 (MODIFY_EXPR, void_type_node, p2, t);
+	  t = TYPE_SIZE_UNIT (inner_type);
+	  t = build2 (POINTER_PLUS_EXPR, TREE_TYPE (p2), p2, t);
+	  t = build2 (GIMPLE_MODIFY_STMT, void_type_node, p2, t);
 	  append_to_statement_list (t, &ret);
 	}
 
@@ -850,16 +874,18 @@ cxx_omp_clause_apply_fn (tree fn, tree arg1, tree arg2)
     }
   else
     {
-      tree t = tree_cons (NULL, build_fold_addr_expr (arg1), NULL);
+      argarray[i++] = build_fold_addr_expr (arg1);
       if (arg2)
-	t = tree_cons (NULL, build_fold_addr_expr (arg2), t);
+	argarray[i++] = build_fold_addr_expr (arg2);
       /* Handle default arguments.  */
-      i = 1 + (arg2 != NULL);
-      for (parm = defparm; parm != void_list_node; parm = TREE_CHAIN (parm))
-	t = tree_cons (NULL, convert_default_arg (TREE_VALUE (parm),
-						  TREE_PURPOSE (parm),
-						  fn, i++), t);
-      return build_call (fn, nreverse (t));
+      for (parm = defparm; parm && parm != void_list_node;
+	   parm = TREE_CHAIN (parm), i++)
+	argarray[i] = convert_default_arg (TREE_VALUE (parm),
+					   TREE_PURPOSE (parm),
+					   fn, i);
+      t = build_call_a (fn, i, argarray);
+      t = fold_convert (void_type_node, t);
+      return fold_build_cleanup_point_expr (TREE_TYPE (t), t);
     }
 }
 
@@ -889,7 +915,7 @@ cxx_omp_clause_copy_ctor (tree clause, tree dst, tree src)
   if (info)
     ret = cxx_omp_clause_apply_fn (TREE_VEC_ELT (info, 0), dst, src);
   if (ret == NULL)
-    ret = build2 (MODIFY_EXPR, void_type_node, dst, src);
+    ret = build2 (GIMPLE_MODIFY_STMT, void_type_node, dst, src);
 
   return ret;
 }
@@ -905,7 +931,7 @@ cxx_omp_clause_assign_op (tree clause, tree dst, tree src)
   if (info)
     ret = cxx_omp_clause_apply_fn (TREE_VEC_ELT (info, 2), dst, src);
   if (ret == NULL)
-    ret = build2 (MODIFY_EXPR, void_type_node, dst, src);
+    ret = build2 (GIMPLE_MODIFY_STMT, void_type_node, dst, src);
 
   return ret;
 }
@@ -928,7 +954,7 @@ cxx_omp_clause_dtor (tree clause, tree decl)
    than the DECL itself.  */
 
 bool
-cxx_omp_privatize_by_reference (tree decl)
+cxx_omp_privatize_by_reference (const_tree decl)
 {
   return is_invisiref_parm (decl);
 }

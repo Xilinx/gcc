@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2005, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -52,6 +52,8 @@ with Sem_Util; use Sem_Util;
 with Sinfo;    use Sinfo;
 with Stand;    use Stand;
 with Uintp;    use Uintp;
+
+with Unchecked_Deallocation;
 
 pragma Warnings (Off, Sem_Util);
 --  Suppress warnings of unused with for Sem_Util (used only in asserts)
@@ -183,6 +185,9 @@ package body Sem is
 
          when N_Explicit_Dereference =>
             Analyze_Explicit_Dereference (N);
+
+         when N_Extended_Return_Statement =>
+            Analyze_Extended_Return_Statement (N);
 
          when N_Extension_Aggregate =>
             Analyze_Aggregate (N);
@@ -445,8 +450,8 @@ package body Sem is
          when N_Requeue_Statement =>
             Analyze_Requeue (N);
 
-         when N_Return_Statement =>
-            Analyze_Return_Statement (N);
+         when N_Simple_Return_Statement =>
+            Analyze_Simple_Return_Statement (N);
 
          when N_Selected_Component =>
             Find_Selected_Component (N);
@@ -536,9 +541,6 @@ package body Sem is
          when N_With_Clause =>
             Analyze_With_Clause (N);
 
-         when N_With_Type_Clause =>
-            Analyze_With_Type_Clause (N);
-
          --  A call to analyze the Empty node is an error, but most likely
          --  it is an error caused by an attempt to analyze a malformed
          --  piece of tree caused by some other error, so if there have
@@ -553,6 +555,13 @@ package body Sem is
          --  causing cascaded errors (happens of course only in error cases)
 
          when N_Error =>
+            null;
+
+         --  Push/Pop nodes normally don't come through an analyze call. An
+         --  exception is the dummy ones bracketing a subprogram body. In any
+         --  case there is nothing to be done to analyze such nodes.
+
+         when N_Push_Pop_xxx_Label =>
             null;
 
          --  For the remaining node types, we generate compiler abort, because
@@ -623,18 +632,24 @@ package body Sem is
 
       Debug_A_Exit ("analyzing  ", N, "  (done)");
 
-      --  Now that we have analyzed the node, we call the expander to
-      --  perform possible expansion. This is done only for nodes that
-      --  are not subexpressions, because in the case of subexpressions,
-      --  we don't have the type yet, and the expander will need to know
-      --  the type before it can do its job. For subexpression nodes, the
-      --  call to the expander happens in the Sem_Res.Resolve.
+      --  Now that we have analyzed the node, we call the expander to perform
+      --  possible expansion. We skip this for subexpressions, because we don't
+      --  have the type yet, and the expander will need to know the type before
+      --  it can do its job. For subexpression nodes, the call to the expander
+      --  happens in Sem_Res.Resolve. A special exception is Raise_xxx_Error,
+      --  which can appear in a statement context, and needs expanding now in
+      --  the case (distinguished by Etype, as documented in Sinfo).
 
       --  The Analyzed flag is also set at this point for non-subexpression
-      --  nodes (in the case of subexpression nodes, we can't set the flag
-      --  yet, since resolution and expansion have not yet been completed)
+      --  nodes (in the case of subexpression nodes, we can't set the flag yet,
+      --  since resolution and expansion have not yet been completed). Note
+      --  that for N_Raise_xxx_Error we have to distinguish the expression
+      --  case from the statement case.
 
-      if Nkind (N) not in N_Subexpr then
+      if Nkind (N) not in N_Subexpr
+        or else (Nkind (N) in N_Raise_xxx_Error
+                  and then Etype (N) = Standard_Void_Type)
+      then
          Expand (N);
       end if;
    end Analyze;
@@ -711,65 +726,74 @@ package body Sem is
       From : Entity_Id;
       To   : Entity_Id)
    is
+      Found : Boolean;
+      pragma Warnings (Off, Found);
+
+      procedure Search_Stack
+        (Top   : Suppress_Stack_Entry_Ptr;
+         Found : out Boolean);
+      --  Search given suppress stack for matching entry for entity. If found
+      --  then set Checks_May_Be_Suppressed on To, and push an appropriate
+      --  entry for To onto the local suppress stack.
+
+      ------------------
+      -- Search_Stack --
+      ------------------
+
+      procedure Search_Stack
+        (Top   : Suppress_Stack_Entry_Ptr;
+         Found : out Boolean)
+      is
+         Ptr : Suppress_Stack_Entry_Ptr;
+
+      begin
+         Ptr := Top;
+         while Ptr /= null loop
+            if Ptr.Entity = From
+              and then (Ptr.Check = All_Checks or else Ptr.Check = C)
+            then
+               if Ptr.Suppress then
+                  Set_Checks_May_Be_Suppressed (To, True);
+                  Push_Local_Suppress_Stack_Entry
+                    (Entity   => To,
+                     Check    => C,
+                     Suppress => True);
+                  Found := True;
+                  return;
+               end if;
+            end if;
+
+            Ptr := Ptr.Prev;
+         end loop;
+
+         Found := False;
+         return;
+      end Search_Stack;
+
+   --  Start of processing for Copy_Suppress_Status
+
    begin
       if not Checks_May_Be_Suppressed (From) then
          return;
       end if;
 
-      --  First search the local entity suppress table, we search this in
+      --  First search the local entity suppress stack, we search this in
       --  reverse order so that we get the innermost entry that applies to
       --  this case if there are nested entries. Note that for the purpose
       --  of this procedure we are ONLY looking for entries corresponding
       --  to a two-argument Suppress, where the second argument matches From.
 
-      for J in
-        reverse Local_Entity_Suppress.First .. Local_Entity_Suppress.Last
-      loop
-         declare
-            R : Entity_Check_Suppress_Record
-                  renames Local_Entity_Suppress.Table (J);
+      Search_Stack (Global_Suppress_Stack_Top, Found);
 
-         begin
-            if R.Entity = From
-              and then (R.Check = All_Checks or else R.Check = C)
-            then
-               if R.Suppress then
-                  Set_Checks_May_Be_Suppressed (To, True);
-                  Local_Entity_Suppress.Append
-                    ((Entity   => To,
-                      Check    => C,
-                      Suppress => True));
-                  return;
-               end if;
-            end if;
-         end;
-      end loop;
+      if Found then
+         return;
+      end if;
 
       --  Now search the global entity suppress table for a matching entry
       --  We also search this in reverse order so that if there are multiple
       --  pragmas for the same entity, the last one applies.
 
-      for J in
-        reverse Global_Entity_Suppress.First .. Global_Entity_Suppress.Last
-      loop
-         declare
-            R : Entity_Check_Suppress_Record
-                 renames Global_Entity_Suppress.Table (J);
-
-         begin
-            if R.Entity = From
-              and then (R.Check = All_Checks or else R.Check = C)
-            then
-               if R.Suppress then
-                  Set_Checks_May_Be_Suppressed (To, True);
-                  Local_Entity_Suppress.Append
-                    ((Entity   => To,
-                      Check    => C,
-                      Suppress => True));
-               end if;
-            end if;
-         end;
-      end loop;
+      Search_Stack (Local_Suppress_Stack_Top, Found);
    end Copy_Suppress_Status;
 
    -------------------------
@@ -799,29 +823,26 @@ package body Sem is
    -----------------------
 
    function Explicit_Suppress (E : Entity_Id; C : Check_Id) return Boolean is
+      Ptr : Suppress_Stack_Entry_Ptr;
+
    begin
       if not Checks_May_Be_Suppressed (E) then
          return False;
 
       else
-         for J in
-           reverse Global_Entity_Suppress.First .. Global_Entity_Suppress.Last
-         loop
-            declare
-               R : Entity_Check_Suppress_Record
-                     renames Global_Entity_Suppress.Table (J);
+         Ptr := Global_Suppress_Stack_Top;
+         while Ptr /= null loop
+            if Ptr.Entity = E
+              and then (Ptr.Check = All_Checks or else Ptr.Check = C)
+            then
+               return Ptr.Suppress;
+            end if;
 
-            begin
-               if R.Entity = E
-                 and then (R.Check = All_Checks or else R.Check = C)
-               then
-                  return R.Suppress;
-               end if;
-            end;
+            Ptr := Ptr.Prev;
          end loop;
-
-         return False;
       end if;
+
+      return False;
    end Explicit_Suppress;
 
    -----------------------------
@@ -867,9 +888,26 @@ package body Sem is
    ----------------
 
    procedure Initialize is
+      Next : Suppress_Stack_Entry_Ptr;
+
+      procedure Free is new Unchecked_Deallocation
+        (Suppress_Stack_Entry, Suppress_Stack_Entry_Ptr);
+
    begin
-      Local_Entity_Suppress.Init;
-      Global_Entity_Suppress.Init;
+      --  Free any global suppress stack entries from a previous invocation
+      --  of the compiler (in the normal case this loop does nothing).
+
+      while Suppress_Stack_Entries /= null loop
+         Next := Global_Suppress_Stack_Top.Next;
+         Free (Suppress_Stack_Entries);
+         Suppress_Stack_Entries := Next;
+      end loop;
+
+      Local_Suppress_Stack_Top := null;
+      Global_Suppress_Stack_Top := null;
+
+      --  Clear scope stack, and reset global variables
+
       Scope_Stack.Init;
       Unloaded_Subunits := False;
    end Initialize;
@@ -1123,53 +1161,52 @@ package body Sem is
    -------------------------
 
    function Is_Check_Suppressed (E : Entity_Id; C : Check_Id) return Boolean is
+
+      Ptr : Suppress_Stack_Entry_Ptr;
+
    begin
-      --  First search the local entity suppress table, we search this in
-      --  reverse order so that we get the innermost entry that applies to
-      --  this case if there are nested entries.
+      --  First search the local entity suppress stack, we search this from the
+      --  top of the stack down, so that we get the innermost entry that
+      --  applies to this case if there are nested entries.
 
-      for J in
-        reverse Local_Entity_Suppress.First .. Local_Entity_Suppress.Last
-      loop
-         declare
-            R : Entity_Check_Suppress_Record
-                  renames Local_Entity_Suppress.Table (J);
+      Ptr := Local_Suppress_Stack_Top;
+      while Ptr /= null loop
+         if (Ptr.Entity = Empty or else Ptr.Entity = E)
+           and then (Ptr.Check = All_Checks or else Ptr.Check = C)
+         then
+            return Ptr.Suppress;
+         end if;
 
-         begin
-            if (R.Entity = Empty or else R.Entity = E)
-              and then (R.Check = All_Checks or else R.Check = C)
-            then
-               return R.Suppress;
-            end if;
-         end;
+         Ptr := Ptr.Prev;
       end loop;
 
       --  Now search the global entity suppress table for a matching entry
-      --  We also search this in reverse order so that if there are multiple
+      --  We also search this from the top down so that if there are multiple
       --  pragmas for the same entity, the last one applies (not clear what
       --  or whether the RM specifies this handling, but it seems reasonable).
 
-      for J in
-        reverse Global_Entity_Suppress.First .. Global_Entity_Suppress.Last
-      loop
-         declare
-            R : Entity_Check_Suppress_Record
-                  renames Global_Entity_Suppress.Table (J);
+      Ptr := Global_Suppress_Stack_Top;
+      while Ptr /= null loop
+         if (Ptr.Entity = Empty or else Ptr.Entity = E)
+           and then (Ptr.Check = All_Checks or else Ptr.Check = C)
+         then
+            return Ptr.Suppress;
+         end if;
 
-         begin
-            if R.Entity = E
-              and then (R.Check = All_Checks or else R.Check = C)
-            then
-               return R.Suppress;
-            end if;
-         end;
+         Ptr := Ptr.Prev;
       end loop;
 
       --  If we did not find a matching entry, then use the normal scope
       --  suppress value after all (actually this will be the global setting
-      --  since it clearly was not overridden at any point)
+      --  since it clearly was not overridden at any point). For a predefined
+      --  check, we test the specific flag. For a user defined check, we check
+      --  the All_Checks flag.
 
-      return Scope_Suppress (C);
+      if C in Predefined_Check_Id then
+         return Scope_Suppress (C);
+      else
+         return Scope_Suppress (All_Checks);
+      end if;
    end Is_Check_Suppressed;
 
    ----------
@@ -1178,13 +1215,53 @@ package body Sem is
 
    procedure Lock is
    begin
-      Local_Entity_Suppress.Locked := True;
-      Global_Entity_Suppress.Locked := True;
       Scope_Stack.Locked := True;
-      Local_Entity_Suppress.Release;
-      Global_Entity_Suppress.Release;
       Scope_Stack.Release;
    end Lock;
+
+   --------------------------------------
+   -- Push_Global_Suppress_Stack_Entry --
+   --------------------------------------
+
+   procedure Push_Global_Suppress_Stack_Entry
+     (Entity   : Entity_Id;
+      Check    : Check_Id;
+      Suppress : Boolean)
+   is
+   begin
+      Global_Suppress_Stack_Top :=
+        new Suppress_Stack_Entry'
+          (Entity   => Entity,
+           Check    => Check,
+           Suppress => Suppress,
+           Prev     => Global_Suppress_Stack_Top,
+           Next     => Suppress_Stack_Entries);
+      Suppress_Stack_Entries := Global_Suppress_Stack_Top;
+      return;
+
+   end Push_Global_Suppress_Stack_Entry;
+
+   -------------------------------------
+   -- Push_Local_Suppress_Stack_Entry --
+   -------------------------------------
+
+   procedure Push_Local_Suppress_Stack_Entry
+     (Entity   : Entity_Id;
+      Check    : Check_Id;
+      Suppress : Boolean)
+   is
+   begin
+      Local_Suppress_Stack_Top :=
+        new Suppress_Stack_Entry'
+          (Entity   => Entity,
+           Check    => Check,
+           Suppress => Suppress,
+           Prev     => Local_Suppress_Stack_Top,
+           Next     => Suppress_Stack_Entries);
+      Suppress_Stack_Entries := Local_Suppress_Stack_Top;
+
+      return;
+   end Push_Local_Suppress_Stack_Entry;
 
    ---------------
    -- Semantics --
@@ -1205,10 +1282,11 @@ package body Sem is
       S_Outer_Gen_Scope  : constant Entity_Id        := Outer_Generic_Scope;
       S_Sem_Unit         : constant Unit_Number_Type := Current_Sem_Unit;
       S_GNAT_Mode        : constant Boolean          := GNAT_Mode;
-      Generic_Main       : constant Boolean :=
-                             Nkind (Unit (Cunit (Main_Unit)))
-                               in N_Generic_Declaration;
+      S_Discard_Names    : constant Boolean          := Global_Discard_Names;
 
+      Generic_Main : constant Boolean :=
+                       Nkind (Unit (Cunit (Main_Unit)))
+                         in N_Generic_Declaration;
       --  If the main unit is generic, every compiled unit, including its
       --  context, is compiled with expansion disabled.
 
@@ -1227,7 +1305,7 @@ package body Sem is
       procedure Do_Analyze is
       begin
          Save_Scope_Stack;
-         New_Scope (Standard_Standard);
+         Push_Scope (Standard_Standard);
          Scope_Suppress := Suppress_Options;
          Scope_Stack.Table
            (Scope_Stack.Last).Component_Alignment_Default := Calign_Default;
@@ -1318,6 +1396,7 @@ package body Sem is
       New_Nodes_OK           := S_New_Nodes_OK;
       Outer_Generic_Scope    := S_Outer_Gen_Scope;
       GNAT_Mode              := S_GNAT_Mode;
+      Global_Discard_Names   := S_Discard_Names;
 
       Restore_Opt_Config_Switches (Save_Config_Switches);
       Expander_Mode_Restore;

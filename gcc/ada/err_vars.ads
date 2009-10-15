@@ -6,18 +6,17 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2006, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -27,6 +26,7 @@
 --  This package contains variables common to error reporting packages
 --  including Errout and Prj.Err.
 
+with Namet; use Namet;
 with Types; use Types;
 with Uintp; use Uintp;
 
@@ -120,9 +120,14 @@ package Err_Vars is
    Error_Msg_Name_3 : Name_Id;
    --  Name_Id values for % insertion characters in message
 
-   Error_Msg_Unit_1 : Name_Id;
-   Error_Msg_Unit_2 : Name_Id;
-   --  Name_Id values for $ insertion characters in message
+   Error_Msg_File_1 : File_Name_Type;
+   Error_Msg_File_2 : File_Name_Type;
+   Error_Msg_File_3 : File_Name_Type;
+   --  File_Name_Type values for { insertion characters in message
+
+   Error_Msg_Unit_1 : Unit_Name_Type;
+   Error_Msg_Unit_2 : Unit_Name_Type;
+   --  Unit_Name_Type values for $ insertion characters in message
 
    Error_Msg_Node_1 : Node_Id;
    Error_Msg_Node_2 : Node_Id;
@@ -131,5 +136,10 @@ package Err_Vars is
    Error_Msg_Warn : Boolean;
    --  Used if current message contains a < insertion character to indicate
    --  if the current message is a warning message.
+
+   Error_Msg_String : String (1 .. 4096);
+   Error_Msg_Strlen : Natural;
+   --  Used if current message contains a ~ insertion character to indicate
+   --  insertion of the string Error_Msg_String (1 .. Error_Msg_Strlen).
 
 end Err_Vars;

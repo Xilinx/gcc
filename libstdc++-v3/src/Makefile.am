@@ -32,6 +32,7 @@ if ENABLE_SYMVERS
 libstdc++-symbols.ver:  ${glibcxx_srcdir}/$(SYMVER_FILE) \
 		$(port_specific_symbol_files)
 	cp ${glibcxx_srcdir}/$(SYMVER_FILE) ./libstdc++-symbols.ver
+	chmod +w ./libstdc++-symbols.ver
 	if test "x$(port_specific_symbol_files)" != x; then \
 	  if grep '^# Appended to version file.' \
 	       $(port_specific_symbol_files) /dev/null > /dev/null 2>&1; then \
@@ -111,14 +112,19 @@ atomicity.cc: ${atomicity_file}
 # Source files linked in via configuration/make substitution for a
 # particular host, but with ad hoc naming rules.
 host_sources_extra = \
-	basic_file.cc \
-	c++locale.cc
+	basic_file.cc c++locale.cc ${ldbl_compat_sources} ${parallel_sources}
 
 c++locale.cc: ${glibcxx_srcdir}/$(CLOCALE_CC)
 	$(LN_S) ${glibcxx_srcdir}/$(CLOCALE_CC) ./$@ || true
 
 basic_file.cc: ${glibcxx_srcdir}/$(BASIC_FILE_CC)
 	$(LN_S) ${glibcxx_srcdir}/$(BASIC_FILE_CC) ./$@ || true
+
+if ENABLE_PARALLEL
+parallel_sources = parallel_list.cc parallel_settings.cc
+else
+parallel_sources =
+endif
 
 if GLIBCXX_LDBL_COMPAT
 ldbl_compat_sources = compatibility-ldbl.cc
@@ -136,15 +142,19 @@ sources = \
 	complex_io.cc \
 	ctype.cc \
 	debug.cc \
-	debug_list.cc \
 	functexcept.cc \
+	hash.cc \
+	hash_c++0x.cc \
 	globals_io.cc \
+	hashtable.cc \
+	hashtable_c++0x.cc \
 	ios.cc \
 	ios_failure.cc \
 	ios_init.cc \
 	ios_locale.cc \
 	limits.cc \
 	list.cc \
+	debug_list.cc \
 	locale.cc \
 	locale_init.cc \
 	locale_facets.cc \
@@ -171,10 +181,10 @@ sources = \
 	wlocale-inst.cc \
 	wstring-inst.cc \
 	${host_sources} \
-	${host_sources_extra} \
-	${ldbl_compat_sources}
+	${host_sources_extra} 
 
-VPATH = $(top_srcdir)/src:$(top_srcdir)
+vpath % $(top_srcdir)/src
+vpath % $(top_srcdir)
 
 libstdc___la_SOURCES = $(sources)
 
@@ -202,6 +212,28 @@ concept-inst.lo: concept-inst.cc
 	$(LTCXXCOMPILE) -D_GLIBCXX_CONCEPT_CHECKS -fimplicit-templates -c $<
 concept-inst.o: concept-inst.cc
 	$(CXXCOMPILE) -D_GLIBCXX_CONCEPT_CHECKS -fimplicit-templates -c $<
+
+# Use special rules for parallel mode compilation.
+PARALLEL_FLAGS = -fopenmp -D_GLIBCXX_PARALLEL -I$(glibcxx_builddir)/../libgomp
+parallel_list.lo: parallel_list.cc
+	$(LTCXXCOMPILE) $(PARALLEL_FLAGS) -c $<
+parallel_list.o: parallel_list.cc
+	$(CXXCOMPILE) $(PARALLEL_FLAGS) -c $<
+
+parallel_settings.lo: parallel_settings.cc
+	$(LTCXXCOMPILE) $(PARALLEL_FLAGS) -c $<
+parallel_settings.o: parallel_settings.cc
+	$(CXXCOMPILE) $(PARALLEL_FLAGS) -c $<
+
+hash_c++0x.lo: hash_c++0x.cc
+	$(LTCXXCOMPILE) -std=gnu++0x -c $<
+hash_c++0x.o: hash_c++0x.cc
+	$(CXXCOMPILE) -std=gnu++0x -c $<
+
+hashtable_c++0x.lo: hashtable_c++0x.cc
+	$(LTCXXCOMPILE) -std=gnu++0x -c $<
+hashtable_c++0x.o: hashtable_c++0x.cc
+	$(CXXCOMPILE) -std=gnu++0x -c $<
 
 if GLIBCXX_LDBL_COMPAT
 # Use special rules for compatibility-ldbl.cc compilation, as we need to
@@ -268,7 +300,7 @@ endif
 
 debugdir = debug
 
-# Build parallel set of debug objects here.
+# Build a set of debug objects here.
 stamp-debug:
 	if test ! -d ${debugdir}; then \
 	  mkdir -p ${debugdir}; \

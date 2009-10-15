@@ -23,13 +23,10 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree.h"
 #include "cgraph.h"
 
-/* Used for parsing attributes of asm code.  */
-extern tree memory_identifier_string;
-
 struct ipa_dfs_info {
   int dfn_number;
   int low_link;
-  bool new;
+  bool new_node;
   bool on_stack;
   struct cgraph_node* next_cycle;
   PTR aux;

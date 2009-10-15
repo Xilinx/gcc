@@ -295,7 +295,11 @@ expand_vector_operation (block_stmt_iterator *bsi, tree type, tree compute_type,
      a BLKmode vector to smaller, hardware-supported vectors), we may want
      to expand the operations in parallel.  */
   if (GET_MODE_CLASS (compute_mode) != MODE_VECTOR_INT
-      && GET_MODE_CLASS (compute_mode) != MODE_VECTOR_FLOAT)
+      && GET_MODE_CLASS (compute_mode) != MODE_VECTOR_FLOAT
+      && GET_MODE_CLASS (compute_mode) != MODE_VECTOR_FRACT
+      && GET_MODE_CLASS (compute_mode) != MODE_VECTOR_UFRACT
+      && GET_MODE_CLASS (compute_mode) != MODE_VECTOR_ACCUM
+      && GET_MODE_CLASS (compute_mode) != MODE_VECTOR_UACCUM)
     switch (code)
       {
       case PLUS_EXPR:
@@ -340,28 +344,44 @@ expand_vector_operation (block_stmt_iterator *bsi, tree type, tree compute_type,
 }
 
 /* Return a type for the widest vector mode whose components are of mode
-   INNER_MODE, or NULL_TREE if none is found.  */
+   INNER_MODE, or NULL_TREE if none is found.
+   SATP is true for saturating fixed-point types.  */
+
 static tree
-type_for_widest_vector_mode (enum machine_mode inner_mode, optab op)
+type_for_widest_vector_mode (enum machine_mode inner_mode, optab op, int satp)
 {
   enum machine_mode best_mode = VOIDmode, mode;
   int best_nunits = 0;
 
   if (SCALAR_FLOAT_MODE_P (inner_mode))
     mode = MIN_MODE_VECTOR_FLOAT;
+  else if (SCALAR_FRACT_MODE_P (inner_mode))
+    mode = MIN_MODE_VECTOR_FRACT;
+  else if (SCALAR_UFRACT_MODE_P (inner_mode))
+    mode = MIN_MODE_VECTOR_UFRACT;
+  else if (SCALAR_ACCUM_MODE_P (inner_mode))
+    mode = MIN_MODE_VECTOR_ACCUM;
+  else if (SCALAR_UACCUM_MODE_P (inner_mode))
+    mode = MIN_MODE_VECTOR_UACCUM;
   else
     mode = MIN_MODE_VECTOR_INT;
 
   for (; mode != VOIDmode; mode = GET_MODE_WIDER_MODE (mode))
     if (GET_MODE_INNER (mode) == inner_mode
         && GET_MODE_NUNITS (mode) > best_nunits
-	&& op->handlers[mode].insn_code != CODE_FOR_nothing)
+	&& optab_handler (op, mode)->insn_code != CODE_FOR_nothing)
       best_mode = mode, best_nunits = GET_MODE_NUNITS (mode);
 
   if (best_mode == VOIDmode)
     return NULL_TREE;
   else
-    return lang_hooks.types.type_for_mode (best_mode, 1);
+    {
+      /* For fixed-point modes, we need to pass satp as the 2nd parameter.  */
+      if (ALL_FIXED_POINT_MODE_P (best_mode))
+	return lang_hooks.types.type_for_mode (best_mode, satp);
+
+      return lang_hooks.types.type_for_mode (best_mode, 1);
+    }
 }
 
 /* Process one statement.  If we identify a vector operation, expand it.  */
@@ -379,14 +399,14 @@ expand_vector_operations_1 (block_stmt_iterator *bsi)
     {
     case RETURN_EXPR:
       stmt = TREE_OPERAND (stmt, 0);
-      if (!stmt || TREE_CODE (stmt) != MODIFY_EXPR)
+      if (!stmt || TREE_CODE (stmt) != GIMPLE_MODIFY_STMT)
 	return;
 
       /* FALLTHRU */
 
-    case MODIFY_EXPR:
-      p_lhs = &TREE_OPERAND (stmt, 0);
-      p_rhs = &TREE_OPERAND (stmt, 1);
+    case GIMPLE_MODIFY_STMT:
+      p_lhs = &GIMPLE_STMT_OPERAND (stmt, 0);
+      p_rhs = &GIMPLE_STMT_OPERAND (stmt, 1);
       lhs = *p_lhs;
       rhs = *p_rhs;
       break;
@@ -404,15 +424,32 @@ expand_vector_operations_1 (block_stmt_iterator *bsi)
       && TREE_CODE_CLASS (code) != tcc_binary)
     return;
 
-  if (code == NOP_EXPR || code == VIEW_CONVERT_EXPR)
+  if (code == NOP_EXPR 
+      || code == FLOAT_EXPR
+      || code == FIX_TRUNC_EXPR
+      || code == VIEW_CONVERT_EXPR)
     return;
   
   gcc_assert (code != CONVERT_EXPR);
+
+  /* The signedness is determined from input argument.  */
+  if (code == VEC_UNPACK_FLOAT_HI_EXPR
+      || code == VEC_UNPACK_FLOAT_LO_EXPR)
+    type = TREE_TYPE (TREE_OPERAND (rhs, 0));
+
   op = optab_for_tree_code (code, type);
 
-  /* For widening vector operations, the relevant type is of the arguments,
-     not the widened result.  */
-  if (code == WIDEN_SUM_EXPR)
+  /* For widening/narrowing vector operations, the relevant type is of the 
+     arguments, not the widened result.  VEC_UNPACK_FLOAT_*_EXPR is
+     calculated in the same way above.  */
+  if (code == WIDEN_SUM_EXPR
+      || code == VEC_WIDEN_MULT_HI_EXPR
+      || code == VEC_WIDEN_MULT_LO_EXPR
+      || code == VEC_UNPACK_HI_EXPR
+      || code == VEC_UNPACK_LO_EXPR
+      || code == VEC_PACK_TRUNC_EXPR
+      || code == VEC_PACK_SAT_EXPR
+      || code == VEC_PACK_FIX_TRUNC_EXPR)
     type = TREE_TYPE (TREE_OPERAND (rhs, 0));
 
   /* Optabs will try converting a negation into a subtraction, so
@@ -428,9 +465,12 @@ expand_vector_operations_1 (block_stmt_iterator *bsi)
   if (TYPE_MODE (type) == BLKmode && op)
     {
       tree vector_compute_type
-        = type_for_widest_vector_mode (TYPE_MODE (TREE_TYPE (type)), op);
-      if (vector_compute_type != NULL_TREE)
-        compute_type = vector_compute_type;
+        = type_for_widest_vector_mode (TYPE_MODE (TREE_TYPE (type)), op,
+				       TYPE_SATURATING (TREE_TYPE (type)));
+      if (vector_compute_type != NULL_TREE
+	  && (TYPE_VECTOR_SUBPARTS (vector_compute_type)
+	      < TYPE_VECTOR_SUBPARTS (compute_type)))
+	compute_type = vector_compute_type;
     }
 
   /* If we are breaking a BLKmode vector into smaller pieces,
@@ -440,9 +480,13 @@ expand_vector_operations_1 (block_stmt_iterator *bsi)
     {
       compute_mode = TYPE_MODE (compute_type);
       if ((GET_MODE_CLASS (compute_mode) == MODE_VECTOR_INT
-	   || GET_MODE_CLASS (compute_mode) == MODE_VECTOR_FLOAT)
+	   || GET_MODE_CLASS (compute_mode) == MODE_VECTOR_FLOAT
+	   || GET_MODE_CLASS (compute_mode) == MODE_VECTOR_FRACT
+	   || GET_MODE_CLASS (compute_mode) == MODE_VECTOR_UFRACT
+	   || GET_MODE_CLASS (compute_mode) == MODE_VECTOR_ACCUM
+	   || GET_MODE_CLASS (compute_mode) == MODE_VECTOR_UACCUM)
           && op != NULL
-	  && op->handlers[compute_mode].insn_code != CODE_FOR_nothing)
+	  && optab_handler (op, compute_mode)->insn_code != CODE_FOR_nothing)
 	return;
       else
 	/* There is no operation in hardware, so fall back to scalars.  */
@@ -451,7 +495,7 @@ expand_vector_operations_1 (block_stmt_iterator *bsi)
 
   gcc_assert (code != VEC_LSHIFT_EXPR && code != VEC_RSHIFT_EXPR);
   rhs = expand_vector_operation (bsi, type, compute_type, rhs, code);
-  if (lang_hooks.types_compatible_p (TREE_TYPE (lhs), TREE_TYPE (rhs)))
+  if (useless_type_conversion_p (TREE_TYPE (lhs), TREE_TYPE (rhs)))
     *p_rhs = rhs;
   else
     *p_rhs = gimplify_build1 (bsi, VIEW_CONVERT_EXPR, TREE_TYPE (lhs), rhs);

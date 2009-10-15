@@ -43,6 +43,7 @@ import java.util.LinkedList;
 import java.util.List;
 import javax.xml.XMLConstants;
 import org.w3c.dom.Attr;
+import org.w3c.dom.Document;
 import org.w3c.dom.DocumentType;
 import org.w3c.dom.Element;
 import org.w3c.dom.Entity;
@@ -72,7 +73,7 @@ import gnu.xml.dom.DomNode;
  *
  * @author <a href='mailto:dog@gnu.org'>Chris Burdess</a>
  */
-class SAXEventSink
+public class SAXEventSink
   implements ContentHandler, LexicalHandler, DTDHandler, DeclHandler
 {
 
@@ -110,6 +111,16 @@ class SAXEventSink
     interrupted = true;
   }
 
+  public Document getDocument()
+  {
+    return doc;
+  }
+
+  public void setReader(XMLReader reader)
+  {
+    this.reader = reader;
+  }
+
   // -- ContentHandler2 --
   
   public void setDocumentLocator(Locator locator)
@@ -127,42 +138,46 @@ class SAXEventSink
     doc = new DomDocument();
     doc.setStrictErrorChecking(false);
     doc.setBuilding(true);
+    doc.setDefaultAttributes(false);
     ctx = doc;
 
     final String FEATURES = "http://xml.org/sax/features/";
     final String PROPERTIES = "http://xml.org/sax/properties/";
     final String GNU_PROPERTIES = "http://gnu.org/sax/properties/";
 
-    boolean standalone = reader.getFeature(FEATURES + "is-standalone");
-    doc.setXmlStandalone(standalone);
-    try
+    if (reader != null)
       {
-        String version = (String) reader.getProperty(PROPERTIES +
-                                                     "document-xml-version");
-        doc.setXmlVersion(version);
-      }
-    catch (SAXNotRecognizedException e)
-      {
-      }
-    catch (SAXNotSupportedException e)
-      {
+        boolean standalone = reader.getFeature(FEATURES + "is-standalone");
+        doc.setXmlStandalone(standalone);
+        try
+          {
+            String version = (String) reader.getProperty(PROPERTIES +
+                    "document-xml-version");
+            doc.setXmlVersion(version);
+          }
+        catch (SAXNotRecognizedException e)
+          {
+          }
+        catch (SAXNotSupportedException e)
+          {
+          }
+        try
+          {
+              String encoding = (String) reader.getProperty(GNU_PROPERTIES +
+                      "document-xml-encoding");
+              doc.setXmlEncoding(encoding);
+          }
+        catch (SAXNotRecognizedException e)
+          {
+          }
+        catch (SAXNotSupportedException e)
+          {
+          }
       }
     if (locator != null && locator instanceof Locator2)
       {
         String encoding = ((Locator2) locator).getEncoding();
         doc.setInputEncoding(encoding);
-      }
-    try
-      {
-        String encoding = (String) reader.getProperty(GNU_PROPERTIES +
-                                                      "document-xml-encoding");
-        doc.setXmlEncoding(encoding);
-      }
-    catch (SAXNotRecognizedException e)
-      {
-      }
-    catch (SAXNotSupportedException e)
-      {
       }
   }
 
@@ -171,6 +186,7 @@ class SAXEventSink
   {
     doc.setStrictErrorChecking(true);
     doc.setBuilding(false);
+    doc.setDefaultAttributes(true);
     DomDoctype doctype = (DomDoctype) doc.getDoctype();
     if (doctype != null)
       {

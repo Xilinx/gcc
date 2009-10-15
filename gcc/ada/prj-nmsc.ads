@@ -6,18 +6,17 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 2000-2005, Free Software Foundation, Inc.         --
+--          Copyright (C) 2000-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -36,8 +35,8 @@ private package Prj.Nmsc is
      (Project         : Project_Id;
       In_Tree         : Project_Tree_Ref;
       Report_Error    : Put_Line_Access;
-      Follow_Links    : Boolean;
-      When_No_Sources : Error_Warning);
+      When_No_Sources : Error_Warning;
+      Current_Dir     : String);
    --  Check the object directory and the source directories
    --
    --  Check the library attributes, including the library directory if any
@@ -54,12 +53,9 @@ private package Prj.Nmsc is
    --  If Report_Error is null , use the standard error reporting mechanism
    --  (Errout). Otherwise, report errors using Report_Error.
    --
-   --  If Follow_Links is False, it is assumed that the project doesn't contain
-   --  any file duplicated through symbolic links (although the latter are
-   --  still valid if they point to a file which is outside of the project),
-   --  and that no directory has a name which is a valid source name.
+   --  Current_Dir is for optimization purposes only, avoiding system calls.
    --
-   --  When_No_Ada_Sources indicates what should be done when no Ada sources
-   --  are found in a project where Ada is a language.
+   --  When_No_Sources indicates what should be done when no sources of a
+   --  language are found in a project where this language is declared.
 
 end Prj.Nmsc;

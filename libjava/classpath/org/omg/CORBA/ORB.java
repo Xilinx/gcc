@@ -1,5 +1,5 @@
 /* ORB.java --
-   Copyright (C) 2005 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2006 Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -41,10 +41,8 @@ package org.omg.CORBA;
 import gnu.CORBA.OrbFocused;
 import gnu.CORBA.ObjectCreator;
 import gnu.CORBA.OrbRestricted;
-import gnu.CORBA.gnuContext;
 import gnu.CORBA.typecodes.FixedTypeCode;
 import gnu.CORBA.typecodes.GeneralTypeCode;
-import gnu.CORBA.typecodes.PrimitiveTypeCode;
 import gnu.CORBA.typecodes.RecordTypeCode;
 import gnu.CORBA.typecodes.RecursiveTypeCode;
 
@@ -144,7 +142,7 @@ public abstract class ORB
 {
   /**
   * By default, {@link #init(String[], Properties)} and
-  * {@link #iinit(Applet, Properties)} return
+  * {@link #init(Applet, Properties)} return
   * the built-in fully functional ORB is returned. If the
   * <code>props</code> contains the property org.omg.CORBA.ORBClass,
   * the value of this property is used as a class name to instantiate
@@ -210,6 +208,34 @@ public abstract class ORB
   }
 
   /**
+   * Create a typecode, representing a tree-like structure.
+   * This structure contains a member that is a sequence of the same type,
+   * as the structure itself. You can imagine as if the folder definition
+   * contains a variable-length array of the enclosed (nested) folder
+   * definitions. In this way, it is possible to have a tree like
+   * structure that can be transferred via CORBA CDR stream.
+   *
+   * @deprecated It is easier and clearler to use a combination of
+   * create_recursive_tc and create_sequence_tc instead.
+   *
+   * @param bound the maximal expected number of the nested components
+   * on each node; 0 if not limited.
+   *
+   * @param offset the position of the field in the returned structure
+   * that contains the sequence of the structures of the same field.
+   * The members before this field are intialised using parameterless
+   * StructMember constructor.
+   *
+   * @return a typecode, defining a stucture, where a member at the
+   * <code>offset</code> position defines an array of the identical
+   * structures.
+   *
+   * @see #create_recursive_tc(String)
+   * @see #create_sequence_tc(int, TypeCode)
+   */
+  public abstract TypeCode create_recursive_sequence_tc(int bound, int offset);
+
+  /**
    * Create alias typecode for the given typecode.
    */
   public abstract TypeCode create_alias_tc(String id, String name,
@@ -247,6 +273,8 @@ public abstract class ORB
    * Since v1.4 this stil missing implementation was replaced
    * by the new DynamicAny package.
    *
+   * @deprecated Use {@link org.omg.DynamicAny.DynAnyFactory}
+   *
    * @throws NO_IMPLEMENT, always.
    */
   public DynAny create_basic_dyn_any(org.omg.CORBA.TypeCode t)
@@ -254,8 +282,7 @@ public abstract class ORB
   {
     throw new NO_IMPLEMENT();
   }
-  ;
-
+  
   /**
    * The support for {@link DynAny} and derived interfaces
    * has never been implemented in Sun's java releases,
@@ -264,13 +291,14 @@ public abstract class ORB
    * Since v1.4 this stil missing implementation was replaced
    * by the new DynamicAny package.
    *
+   * @deprecated Use {@link org.omg.DynamicAny.DynAnyFactory}
+   *
    * @throws NO_IMPLEMENT, always.
    */
   public DynAny create_dyn_any(org.omg.CORBA.Any a)
   {
     throw new NO_IMPLEMENT();
   }
-  ;
 
   /**
    * The support for {@link DynArray}
@@ -280,6 +308,8 @@ public abstract class ORB
    * Since v1.4 this stil missing implementation was replaced
    * by the new DynamicAny package.
    *
+   * @deprecated Use {@link org.omg.DynamicAny.DynAnyFactory}
+   *
    * @throws NO_IMPLEMENT, always.
    */
   public DynArray create_dyn_array(org.omg.CORBA.TypeCode t)
@@ -287,7 +317,6 @@ public abstract class ORB
   {
     throw new NO_IMPLEMENT();
   }
-  ;
 
   /**
    * The support for {@link DynEnum}
@@ -297,6 +326,8 @@ public abstract class ORB
    * Since v1.4 this stil missing implementation was replaced
    * by the new DynamicAny package.
    *
+   * @deprecated Use {@link org.omg.DynamicAny.DynAnyFactory}
+   *
    * @throws NO_IMPLEMENT, always.
    */
   public DynEnum create_dyn_enum(org.omg.CORBA.TypeCode t)
@@ -304,7 +335,6 @@ public abstract class ORB
   {
     throw new NO_IMPLEMENT();
   }
-  ;
 
   /**
    * The support for {@link DynSequence}
@@ -314,6 +344,8 @@ public abstract class ORB
    * Since v1.4 this stil missing implementation was replaced
    * by the new DynamicAny package.
    *
+   * @deprecated Use {@link org.omg.DynamicAny.DynAnyFactory}
+   *
    * @throws NO_IMPLEMENT, always.
    */
   public DynSequence create_dyn_sequence(org.omg.CORBA.TypeCode t)
@@ -321,7 +353,6 @@ public abstract class ORB
   {
     throw new NO_IMPLEMENT();
   }
-  ;
 
   /**
    * The support for {@link DynStruct} and derived interfaces
@@ -331,6 +362,8 @@ public abstract class ORB
    * Since v1.4 this stil missing implementation was replaced
    * by the new DynamicAny package.
    *
+   * @deprecated Use {@link org.omg.DynamicAny.DynAnyFactory}
+   *
    * @throws NO_IMPLEMENT, always.
    */
   public DynStruct create_dyn_struct(org.omg.CORBA.TypeCode t)
@@ -338,8 +371,7 @@ public abstract class ORB
   {
     throw new NO_IMPLEMENT();
   }
-  ;
-
+  
   /**
    * The support for {@link DynUnion} and derived interfaces
    * has never been implemented in Sun's java releases,
@@ -348,6 +380,8 @@ public abstract class ORB
    * Since v1.4 this stil missing implementation was replaced
    * by the new DynamicAny package.
    *
+   * @deprecated Use {@link org.omg.DynamicAny.DynAnyFactory}
+   *
    * @throws NO_IMPLEMENT, always.
    */
   public DynUnion create_dyn_union(org.omg.CORBA.TypeCode t)
@@ -355,7 +389,6 @@ public abstract class ORB
   {
     throw new NO_IMPLEMENT();
   }
-  ;
 
   /**
    * Create a typecode, defining the given enumeration.
@@ -496,7 +529,7 @@ public abstract class ORB
    */
   public abstract Request get_next_response()
                                      throws WrongTransaction;
-
+ 
   /**
    * Create a new CDR output stream, where the parameter values can be written
    * during the method invocation.
@@ -647,33 +680,6 @@ public abstract class ORB
     return t;
   }
 
-  /**
-   * Create a typecode, representing a tree-like structure.
-   * This structure contains a member that is a sequence of the same type,
-   * as the structure itself. You can imagine as if the folder definition
-   * contains a variable-length array of the enclosed (nested) folder
-   * definitions. In this way, it is possible to have a tree like
-   * structure that can be transferred via CORBA CDR stream.
-   *
-   * @deprecated It is easier and clearler to use a combination of
-   * create_recursive_tc and create_sequence_tc instead.
-   *
-   * @param bound the maximal expected number of the nested components
-   * on each node; 0 if not limited.
-   *
-   * @param offset the position of the field in the returned structure
-   * that contains the sequence of the structures of the same field.
-   * The members before this field are intialised using parameterless
-   * StructMember constructor.
-   *
-   * @return a typecode, defining a stucture, where a member at the
-   * <code>offset</code> position defines an array of the identical
-   * structures.
-   *
-   * @see #create_recursive_tc(String)
-   * @see #create_sequence_tc(int, TypeCode)
-   */
-  public abstract TypeCode create_recursive_sequence_tc(int bound, int offset);
 
   /**
    * Create a typecode which serves as a placeholder for typcode, containing

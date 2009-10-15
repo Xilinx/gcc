@@ -1,6 +1,6 @@
 // jni.cc - JNI implementation, including the jump table.
 
-/* Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006
+/* Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
    Free Software Foundation
 
    This file is part of libgcj.
@@ -22,8 +22,10 @@ details.  */
 #ifdef ENABLE_JVMPI
 #include <jvmpi.h>
 #endif
+#ifdef INTERPRETER
 #include <jvmti.h>
-
+#include "jvmti-int.h"
+#endif
 #include <java/lang/Class.h>
 #include <java/lang/ClassLoader.h>
 #include <java/lang/Throwable.h>
@@ -68,8 +70,8 @@ enum invocation_type
 };
 
 // Forward declarations.
-extern struct JNINativeInterface _Jv_JNIFunctions;
-extern struct JNIInvokeInterface _Jv_JNI_InvokeFunctions;
+extern struct JNINativeInterface_ _Jv_JNIFunctions;
+extern struct JNIInvokeInterface_ _Jv_JNI_InvokeFunctions;
 
 // Number of slots in the default frame.  The VM must allow at least
 // 16.
@@ -451,13 +453,17 @@ _Jv_JNI_PopSystemFrame (JNIEnv *env)
     _Jv_JNI_PopLocalFrame (env, NULL, MARK_SYSTEM);
   else
     env->locals = NULL;
-  
+
+#ifdef INTERPRETER
   if (__builtin_expect (env->ex != NULL, false))
     {
       jthrowable t = env->ex;
       env->ex = NULL;
+      if (JVMTI_REQUESTED_EVENT (Exception))
+	_Jv_ReportJVMTIExceptionThrow (t);
       throw t;
     }
+#endif
 }
 
 template<typename T> T extract_from_jvalue(jvalue const & t);
@@ -555,6 +561,7 @@ _Jv_JNI_FindClass (JNIEnv *env, const char *name)
 	}
 
       r = loader->loadClass (n);
+      _Jv_InitClass (r);
     }
   catch (jthrowable t)
     {
@@ -750,7 +757,8 @@ _Jv_JNI_GetAnyMethodID (JNIEnv *env, jclass clazz,
 
       java::lang::StringBuffer *name_sig =
         new java::lang::StringBuffer (JvNewStringUTF (name));
-      name_sig->append ((jchar) ' ')->append (JvNewStringUTF (s));
+      name_sig->append ((jchar) ' ');
+      name_sig->append (JvNewStringUTF (s));
       env->ex = new java::lang::NoSuchMethodError (name_sig->toString ());
     }
   catch (jthrowable t)
@@ -865,7 +873,7 @@ _Jv_JNI_CallAnyMethod (JNIEnv *env, jobject obj, jclass klass,
 template<typename T, invocation_type style>
 static T JNICALL
 _Jv_JNI_CallAnyMethodA (JNIEnv *env, jobject obj, jclass klass,
-			jmethodID id, jvalue *args)
+			jmethodID id, const jvalue *args)
 {
   obj = unwrap (obj);
   klass = unwrap (klass);
@@ -962,7 +970,7 @@ _Jv_JNI_CallAnyVoidMethod (JNIEnv *env, jobject obj, jclass klass,
 template<invocation_type style>
 static void JNICALL
 _Jv_JNI_CallAnyVoidMethodA (JNIEnv *env, jobject obj, jclass klass,
-			    jmethodID id, jvalue *args)
+			    jmethodID id, const jvalue *args)
 {
   jclass decl_class = klass ? klass : obj->getClass ();
   JvAssert (decl_class != NULL);
@@ -1027,7 +1035,7 @@ _Jv_JNI_CallMethod (JNIEnv *env, jobject obj, jmethodID id, ...)
 template<typename T>
 static T JNICALL
 _Jv_JNI_CallMethodA (JNIEnv *env, jobject obj, 
-		     jmethodID id, jvalue *args)
+		     jmethodID id, const jvalue *args)
 {
   return _Jv_JNI_CallAnyMethodA<T, normal> (env, obj, NULL, id, args);
 }
@@ -1051,7 +1059,7 @@ _Jv_JNI_CallVoidMethod (JNIEnv *env, jobject obj, jmethodID id, ...)
 
 static void JNICALL
 _Jv_JNI_CallVoidMethodA (JNIEnv *env, jobject obj, 
-			 jmethodID id, jvalue *args)
+			 jmethodID id, const jvalue *args)
 {
   _Jv_JNI_CallAnyVoidMethodA<normal> (env, obj, NULL, id, args);
 }
@@ -1095,7 +1103,7 @@ _Jv_JNI_CallStaticMethod (JNIEnv *env, jclass klass,
 template<typename T>
 static T JNICALL
 _Jv_JNI_CallStaticMethodA (JNIEnv *env, jclass klass, jmethodID id,
-			   jvalue *args)
+			   const jvalue *args)
 {
   JvAssert (((id->accflags) & java::lang::reflect::Modifier::STATIC));
   JvAssert (java::lang::Class::class$.isInstance (unwrap (klass)));
@@ -1123,7 +1131,7 @@ _Jv_JNI_CallStaticVoidMethod (JNIEnv *env, jclass klass,
 
 static void JNICALL
 _Jv_JNI_CallStaticVoidMethodA (JNIEnv *env, jclass klass, 
-			       jmethodID id, jvalue *args)
+			       jmethodID id, const jvalue *args)
 {
   _Jv_JNI_CallAnyVoidMethodA<static_type> (env, NULL, klass, id, args);
 }
@@ -1166,7 +1174,7 @@ _Jv_JNI_NewObject (JNIEnv *env, jclass klass, jmethodID id, ...)
 
 static jobject JNICALL
 _Jv_JNI_NewObjectA (JNIEnv *env, jclass klass, jmethodID id,
-		    jvalue *args)
+		    const jvalue *args)
 {
   JvAssert (klass && ! klass->isArray ());
   JvAssert (! strcmp (id->name->chars(), "<init>")
@@ -1569,7 +1577,7 @@ _Jv_JNI_GetPrimitiveArrayRegion (JNIEnv *env, JArray<T> *array,
 template<typename T, jclass K>
 static void JNICALL
 _Jv_JNI_SetPrimitiveArrayRegion (JNIEnv *env, JArray<T> *array,
-				 jsize start, jsize len, T *buf)
+				 jsize start, jsize len, const T *buf)
 {
   array = unwrap (array);
   if (! _Jv_JNI_check_types (env, array, K))
@@ -1749,6 +1757,10 @@ _Jv_JNI_NewWeakGlobalRef (JNIEnv *env, jobject obj)
 void JNICALL
 _Jv_JNI_DeleteWeakGlobalRef (JNIEnv *, jweak obj)
 {
+  // JDK compatibility.
+  if (obj == NULL)
+    return;
+
   using namespace gnu::gcj::runtime;
   JNIWeakRef *ref = reinterpret_cast<JNIWeakRef *> (obj);
   unmark_for_gc (ref, global_ref_table);
@@ -2281,7 +2293,8 @@ _Jv_LookupJNIMethod (jclass klass, _Jv_Utf8Const *name,
 // This function is the stub which is used to turn an ordinary (CNI)
 // method call into a JNI call.
 void
-_Jv_JNIMethod::call (ffi_cif *, void *ret, ffi_raw *args, void *__this)
+_Jv_JNIMethod::call (ffi_cif *, void *ret, INTERP_FFI_RAW_TYPE *args,
+		     void *__this)
 {
   _Jv_JNIMethod* _this = (_Jv_JNIMethod *) __this;
 
@@ -2313,8 +2326,9 @@ _Jv_JNIMethod::call (ffi_cif *, void *ret, ffi_raw *args, void *__this)
       }
   }
 
-  JvAssert (_this->args_raw_size % sizeof (ffi_raw) == 0);
-  ffi_raw real_args[2 + _this->args_raw_size / sizeof (ffi_raw)];
+  JvAssert (_this->args_raw_size % sizeof (INTERP_FFI_RAW_TYPE) == 0);
+  INTERP_FFI_RAW_TYPE
+      real_args[2 + _this->args_raw_size / sizeof (INTERP_FFI_RAW_TYPE)];
   int offset = 0;
 
   // First argument is always the environment pointer.
@@ -2338,6 +2352,10 @@ _Jv_JNIMethod::call (ffi_cif *, void *ret, ffi_raw *args, void *__this)
 
   // Copy over passed-in arguments.
   memcpy (&real_args[offset], args, _this->args_raw_size);
+  
+  // Add a frame to the composite (interpreted + JNI) call stack
+  java::lang::Thread *thread = java::lang::Thread::currentThread();
+  _Jv_NativeFrame nat_frame (_this, thread);
 
   // The actual call to the JNI function.
 #if FFI_NATIVE_RAW_API
@@ -2522,12 +2540,14 @@ _Jv_JNI_GetEnv (JavaVM *, void **penv, jint version)
     }
 #endif
 
+#ifdef INTERPRETER
   // Handle JVMTI requests
   if (version == JVMTI_VERSION_1_0)
     {
       *penv = (void *) _Jv_GetJVMTIEnv ();
       return 0;
     }
+#endif
 
   // FIXME: do we really want to support 1.1?
   if (version != JNI_VERSION_1_4 && version != JNI_VERSION_1_2
@@ -2575,7 +2595,7 @@ _Jv_JNI_GetJavaVM (JNIEnv *, JavaVM **vm)
 
 #define RESERVED NULL
 
-struct JNINativeInterface _Jv_JNIFunctions =
+struct JNINativeInterface_ _Jv_JNIFunctions =
 {
   RESERVED,
   RESERVED,
@@ -2858,7 +2878,7 @@ struct JNINativeInterface _Jv_JNIFunctions =
   _Jv_JNI_GetDirectBufferCapacity	    // GetDirectBufferCapacity
 };
 
-struct JNIInvokeInterface _Jv_JNI_InvokeFunctions =
+struct JNIInvokeInterface_ _Jv_JNI_InvokeFunctions =
 {
   RESERVED,
   RESERVED,

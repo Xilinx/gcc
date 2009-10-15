@@ -1,5 +1,5 @@
 /* AIX FPU-related code.
-   Copyright 2005 Free Software Foundation, Inc.
+   Copyright 2005, 2007 Free Software Foundation, Inc.
    Contributed by Francois-Xavier Coudert <coudert@clipper.ens.fr>
 
 This file is part of the GNU Fortran 95 runtime library (libgfortran).
@@ -32,10 +32,6 @@ Boston, MA 02110-1301, USA.  */
 /* FPU-related code for AIX.  */
 #ifdef HAVE_FPTRAP_H
 #include <fptrap.h>
-#endif
-
-#ifdef HAVE_FLOAT_H
-#include <float.h>
 #endif
 
 void

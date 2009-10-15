@@ -1,5 +1,5 @@
 `/* Helper function for repacking arrays.
-   Copyright 2003, 2006 Free Software Foundation, Inc.
+   Copyright 2003, 2006, 2007 Free Software Foundation, Inc.
    Contributed by Paul Brook <paul@nowt.org>
 
 This file is part of the GNU Fortran 95 runtime library (libgfortran).
@@ -28,21 +28,21 @@ License along with libgfortran; see the file COPYING.  If not,
 write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
 Boston, MA 02110-1301, USA.  */
 
-#include "config.h"
+#include "libgfortran.h"
 #include <stdlib.h>
-#include <assert.h>
-#include "libgfortran.h"'
+#include <assert.h>'
+
 include(iparm.m4)dnl
 
-`#if defined (HAVE_'rtype_name`)'
+`#if defined (HAVE_'rtype_name`)
 
 /* Allocates a block of memory with internal_malloc if the array needs
    repacking.  */
-
+'
 dnl The kind (ie size) is used to name the function for logicals, integers
 dnl and reals.  For complex, it's c4 or c8.
-rtype_name *
-`internal_pack_'rtype_ccode (rtype * source)
+rtype_name` *
+internal_pack_'rtype_ccode` ('rtype` * source)
 {
   index_type count[GFC_MAX_DIMENSIONS];
   index_type extent[GFC_MAX_DIMENSIONS];
@@ -50,9 +50,9 @@ rtype_name *
   index_type stride0;
   index_type dim;
   index_type ssize;
-  const rtype_name *src;
-  rtype_name *dest;
-  rtype_name *destptr;
+  const 'rtype_name` *src;
+  'rtype_name` *dest;
+  'rtype_name` *destptr;
   int n;
   int packed;
 
@@ -84,7 +84,7 @@ rtype_name *
     return source->data;
 
   /* Allocate storage for the destination.  */
-  destptr = (rtype_name *)internal_malloc_size (ssize * sizeof (rtype_name));
+  destptr = ('rtype_name` *)internal_malloc_size (ssize * sizeof ('rtype_name`));
   dest = destptr;
   src = source->data;
   stride0 = stride[0];
@@ -124,3 +124,4 @@ rtype_name *
 }
 
 #endif
+'

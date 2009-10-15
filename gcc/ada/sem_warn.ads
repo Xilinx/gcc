@@ -6,18 +6,17 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1999-2005, Free Software Foundation, Inc.         --
+--          Copyright (C) 1999-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -37,9 +36,16 @@ package Sem_Warn is
    --------------------
 
    function Set_Warning_Switch (C : Character) return Boolean;
-   --  This function sets the warning switch or switches corresponding to
-   --  the given character. It is used for processing a -gnatw switch on the
-   --  command line, or a string literal in pragma Warnings.
+   --  This function sets the warning switch or switches corresponding to the
+   --  given character. It is used to process a -gnatw switch on the command
+   --  line, or a character in a string literal in pragma Warnings. Returns
+   --  True for valid warning character C, False for invalid character.
+
+   function Set_Dot_Warning_Switch (C : Character) return Boolean;
+   --  This function sets the warning switch or switches corresponding to the
+   --  given character preceded by a dot. Used to process a -gnatw. switch on
+   --  the command line or .C in a string literal in pragma Warnings. Returns
+   --  True for valid warning character C, False for invalid character.
 
    ------------------------------------------
    -- Routines to Handle Unused References --
@@ -98,6 +104,18 @@ package Sem_Warn is
    -- Output Routines --
    ---------------------
 
+   procedure Output_Non_Modifed_In_Out_Warnings;
+   --  Warnings about IN OUT parameters that could be IN are collected till
+   --  the end of the compilation process (see body of this routine for a
+   --  discussion of why this is done). This procedure outputs the warnings.
+   --  Note: this should be called before Output_Unreferenced_Messages, since
+   --  if we have an IN OUT warning, that's the one we want to see!
+
+   procedure Output_Obsolescent_Entity_Warnings (N : Node_Id; E : Entity_Id);
+   --  N is a reference to obsolescent entity E, for which appropriate warning
+   --  messages are to be generated (caller has already checked that warnings
+   --  are active and appropriate for this entity).
+
    procedure Output_Unreferenced_Messages;
    --  Warnings about unreferenced entities are collected till the end of
    --  the compilation process (see Check_Unset_Reference for further
@@ -106,6 +124,13 @@ package Sem_Warn is
    ----------------------------
    -- Other Warning Routines --
    ----------------------------
+
+   procedure Check_Code_Statement (N : Node_Id);
+   --  Perform warning checks on a code statement node
+
+   procedure Check_Infinite_Loop_Warning (Loop_Statement : Node_Id);
+   --  N is the node for a loop statement. This procedure checks if a warning
+   --  should be given for a possible infinite loop, and if so issues it.
 
    procedure Warn_On_Known_Condition (C : Node_Id);
    --  C is a node for a boolean expression resluting from a relational
@@ -131,5 +156,44 @@ package Sem_Warn is
    --
    --  If all these conditions are met, the warning is issued noting that
    --  the result of the test is always false or always true as appropriate.
+
+   function Warn_On_Modified_As_Out_Parameter (E : Entity_Id) return Boolean;
+   --  Returns True if we should activate warnings for entity E being modified
+   --  as an out parameter. True if either Warn_On_Modified_Unread is set for
+   --  an only OUT parameter, or if Warn_On_All_Unread_Out_Parameters is set.
+
+   procedure Warn_On_Suspicious_Index (Name : Entity_Id; X : Node_Id);
+   --  This is called after resolving an indexed component or a slice. Name
+   --  is the entity for the name of the indexed array, and X is the subscript
+   --  for the indexed component case, or one of the bounds in the slice case.
+   --  If Name is an unconstrained parameter of a standard string type, and
+   --  the index is of the form of a literal or Name'Length [- literal], then
+   --  a warning is generated that the subscripting operation is possibly
+   --  incorrectly assuming a lower bound of 1.
+
+   procedure Warn_On_Unassigned_Out_Parameter
+     (Return_Node : Node_Id;
+      Scope_Id    : Entity_Id);
+   --  Called when processing a return statement given by Return_Node. Scope_Id
+   --  is the Entity_Id for the procedure in which the return statement lives.
+   --  A check is made for the case of a procedure with out parameters that
+   --  have not yet been assigned, and appropriate warnings are given.
+
+   procedure Warn_On_Useless_Assignment
+     (Ent : Entity_Id;
+      N   : Node_Id := Empty);
+   --  Called to check if we have a case of a useless assignment to the given
+   --  entity Ent, as indicated by a non-empty Last_Assignment field. This call
+   --  should only be made if at least one of the flags Warn_On_Modified_Unread
+   --  or Warn_On_All_Unread_Out_Parameters is True, and if Ent is in the
+   --  extended main source unit. N is Empty for the end of block call
+   --  (warning message says value unreferenced), or the it is the node for
+   --  an overwriting assignment (warning message points to this assignment).
+
+   procedure Warn_On_Useless_Assignments (E : Entity_Id);
+   pragma Inline (Warn_On_Useless_Assignments);
+   --  Called at the end of a block or subprogram. Scans the entities of the
+   --  block or subprogram to see if there are any variables for which useless
+   --  assignments were made (assignments whose values were never read).
 
 end Sem_Warn;

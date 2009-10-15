@@ -6,18 +6,17 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2006, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -33,6 +32,7 @@ with Elists;   use Elists;
 with Freeze;   use Freeze;
 with Itypes;   use Itypes;
 with Lib.Xref; use Lib.Xref;
+with Namet;    use Namet;
 with Nlists;   use Nlists;
 with Nmake;    use Nmake;
 with Opt;      use Opt;
@@ -53,6 +53,7 @@ with Snames;   use Snames;
 with Stand;    use Stand;
 with Sinfo;    use Sinfo;
 with Style;
+with Targparm; use Targparm;
 with Tbuild;   use Tbuild;
 with Uintp;    use Uintp;
 
@@ -68,10 +69,18 @@ package body Sem_Ch9 is
    --  count the entries (checking the static requirement), and compare with
    --  the given maximum.
 
-   procedure Check_Overriding_Indicator (Def : Node_Id);
-   --  Ada 2005 (AI-397): Check the overriding indicator of entries and
-   --  subprograms of protected or task types. Def is the definition of the
-   --  protected or task type.
+   procedure Check_Interfaces (N : Node_Id; T : Entity_Id);
+   --  N is an N_Protected_Type_Declaration or N_Task_Type_Declaration node.
+   --  Complete decoration of T and check legality of the covered interfaces.
+
+   procedure Check_Triggering_Statement
+     (Trigger        : Node_Id;
+      Error_Node     : Node_Id;
+      Is_Dispatching : out Boolean);
+   --  Examine the triggering statement of a select statement, conditional or
+   --  timed entry call. If Trigger is a dispatching call, return its status
+   --  in Is_Dispatching and check whether the primitive belongs to a limited
+   --  interface. If it does not, emit an error at Error_Node.
 
    function Find_Concurrent_Spec (Body_Id : Entity_Id) return Entity_Id;
    --  Find entity in corresponding task or protected declaration. Use full
@@ -165,6 +174,10 @@ package body Sem_Ch9 is
       --  If the bounds of an entry family depend on task discriminants, create
       --  a new index type where a discriminant is replaced by the local
       --  variable that renames it in the task body.
+
+      -----------------------
+      -- Actual_Index_Type --
+      -----------------------
 
       function Actual_Index_Type (E : Entity_Id) return Entity_Id is
          Typ   : constant Entity_Id := Entry_Index_Type (E);
@@ -264,7 +277,7 @@ package body Sem_Ch9 is
       Set_Accept_Address (Accept_Id, New_Elmt_List);
 
       if Present (Formals) then
-         New_Scope (Accept_Id);
+         Push_Scope (Accept_Id);
          Process_Formals (Formals, N);
          Create_Extra_Formals (Accept_Id);
          End_Scope;
@@ -404,18 +417,20 @@ package body Sem_Ch9 is
 
       --  Set Never_Set_In_Source and clear Is_True_Constant/Current_Value
       --  fields on all entry formals (this loop ignores all other entities).
-      --  Reset Set_Referenced and Has_Pragma_Unreferenced as well, so that we
-      --  can post accurate warnings on each accept statement for the same
-      --  entry.
+      --  Reset Referenced, Referenced_As_xxx and Has_Pragma_Unreferenced as
+      --  well, so that we can post accurate warnings on each accept statement
+      --  for the same entry.
 
       E := First_Entity (Entry_Nam);
       while Present (E) loop
          if Is_Formal (E) then
-            Set_Never_Set_In_Source     (E, True);
-            Set_Is_True_Constant        (E, False);
-            Set_Current_Value           (E, Empty);
-            Set_Referenced              (E, False);
-            Set_Has_Pragma_Unreferenced (E, False);
+            Set_Never_Set_In_Source         (E, True);
+            Set_Is_True_Constant            (E, False);
+            Set_Current_Value               (E, Empty);
+            Set_Referenced                  (E, False);
+            Set_Referenced_As_LHS           (E, False);
+            Set_Referenced_As_Out_Parameter (E, False);
+            Set_Has_Pragma_Unreferenced     (E, False);
          end if;
 
          Next_Entity (E);
@@ -424,7 +439,7 @@ package body Sem_Ch9 is
       --  Analyze statements if present
 
       if Present (Stats) then
-         New_Scope (Entry_Nam);
+         Push_Scope (Entry_Nam);
          Install_Declarations (Entry_Nam);
 
          Set_Actual_Subtypes (N, Current_Scope);
@@ -446,8 +461,8 @@ package body Sem_Ch9 is
    ---------------------------------
 
    procedure Analyze_Asynchronous_Select (N : Node_Id) is
-      Param   : Node_Id;
-      Trigger : Node_Id;
+      Is_Disp_Select : Boolean := False;
+      Trigger        : Node_Id;
 
    begin
       Tasking_Used := True;
@@ -459,39 +474,30 @@ package body Sem_Ch9 is
 
          Analyze (Trigger);
 
-         --  The trigger is a dispatching procedure. Postpone the analysis of
-         --  the triggering and abortable statements until the expansion of
-         --  this asynchronous select in Expand_N_Asynchronous_Select. This
-         --  action is required since otherwise we would get a gigi abort from
-         --  the code replication in Expand_N_Asynchronous_Select of an already
-         --  analyzed statement list.
+         --  Ada 2005 (AI-345): Check for a potential dispatching select
 
-         if Expander_Active
-           and then Nkind (Trigger) = N_Procedure_Call_Statement
-           and then Present (Parameter_Associations (Trigger))
-         then
-            Param := First (Parameter_Associations (Trigger));
-
-            if Is_Controlling_Actual (Param)
-              and then Is_Interface (Etype (Param))
-            then
-               if Is_Limited_Record (Etype (Param)) then
-                  return;
-               else
-                  Error_Msg_N
-                   ("dispatching operation of limited or synchronized " &
-                    "interface required ('R'M 9.7.2(3))!", N);
-               end if;
-            end if;
-         end if;
+         Check_Triggering_Statement (Trigger, N, Is_Disp_Select);
       end if;
+
+      --  Ada 2005 (AI-345): The expansion of the dispatching asynchronous
+      --  select will have to duplicate the triggering statements. Postpone
+      --  the analysis of the statements till expansion. Analyze only if the
+      --  expander is disabled in order to catch any semantic errors.
+
+      if Is_Disp_Select then
+         if not Expander_Active then
+            Analyze_Statements (Statements (Abortable_Part (N)));
+            Analyze (Triggering_Alternative (N));
+         end if;
 
       --  Analyze the statements. We analyze statements in the abortable part,
       --  because this is the section that is executed first, and that way our
       --  remembering of saved values and checks is accurate.
 
-      Analyze_Statements (Statements (Abortable_Part (N)));
-      Analyze (Triggering_Alternative (N));
+      else
+         Analyze_Statements (Statements (Abortable_Part (N)));
+         Analyze (Triggering_Alternative (N));
+      end if;
    end Analyze_Asynchronous_Select;
 
    ------------------------------------
@@ -499,21 +505,45 @@ package body Sem_Ch9 is
    ------------------------------------
 
    procedure Analyze_Conditional_Entry_Call (N : Node_Id) is
+      Trigger        : constant Node_Id :=
+                         Entry_Call_Statement (Entry_Call_Alternative (N));
+      Is_Disp_Select : Boolean := False;
+
    begin
       Check_Restriction (No_Select_Statements, N);
       Tasking_Used := True;
-      Analyze (Entry_Call_Alternative (N));
+
+      --  Ada 2005 (AI-345): The trigger may be a dispatching call
+
+      if Ada_Version >= Ada_05 then
+         Analyze (Trigger);
+         Check_Triggering_Statement (Trigger, N, Is_Disp_Select);
+      end if;
 
       if List_Length (Else_Statements (N)) = 1
         and then Nkind (First (Else_Statements (N))) in N_Delay_Statement
       then
          Error_Msg_N
-           ("suspicious form of conditional entry call?", N);
+           ("suspicious form of conditional entry call?!", N);
          Error_Msg_N
-           ("\`SELECT OR` may be intended rather than `SELECT ELSE`", N);
+           ("\`SELECT OR` may be intended rather than `SELECT ELSE`!", N);
       end if;
 
-      Analyze_Statements (Else_Statements (N));
+      --  Postpone the analysis of the statements till expansion. Analyze only
+      --  if the expander is disabled in order to catch any semantic errors.
+
+      if Is_Disp_Select then
+         if not Expander_Active then
+            Analyze (Entry_Call_Alternative (N));
+            Analyze_Statements (Else_Statements (N));
+         end if;
+
+      --  Regular select analysis
+
+      else
+         Analyze (Entry_Call_Alternative (N));
+         Analyze_Statements (Else_Statements (N));
+      end if;
    end Analyze_Conditional_Entry_Call;
 
    --------------------------------
@@ -532,9 +562,7 @@ package body Sem_Ch9 is
          Analyze_List (Pragmas_Before (N));
       end if;
 
-      if Nkind (Parent (N)) = N_Selective_Accept
-        or else Nkind (Parent (N)) = N_Timed_Entry_Call
-      then
+      if Nkind_In (Parent (N), N_Selective_Accept, N_Timed_Entry_Call) then
          Expr := Expression (Delay_Statement (N));
 
          --  Defer full analysis until the statement is expanded, to insure
@@ -577,7 +605,6 @@ package body Sem_Ch9 is
 
    procedure Analyze_Delay_Relative (N : Node_Id) is
       E : constant Node_Id := Expression (N);
-
    begin
       Check_Restriction (No_Relative_Delay, N);
       Tasking_Used := True;
@@ -736,7 +763,7 @@ package body Sem_Ch9 is
       end if;
 
       Exp_Ch9.Expand_Entry_Barrier (N, Entry_Name);
-      New_Scope (Entry_Name);
+      Push_Scope (Entry_Name);
 
       Exp_Ch9.Expand_Entry_Body_Declarations (N);
       Install_Declarations (Entry_Name);
@@ -791,8 +818,7 @@ package body Sem_Ch9 is
             end loop;
 
             --  If no matching body entity, then we already had a detected
-            --  error of some kind, so just forget about worrying about these
-            --  warnings.
+            --  error of some kind, so just don't worry about these warnings.
 
             if No (E2) then
                goto Continue;
@@ -849,11 +875,16 @@ package body Sem_Ch9 is
 
       if Present (Index) then
          Analyze (Index);
+
+         --  The entry index functions like a loop variable, thus it is known
+         --  to have a valid value.
+
+         Set_Is_Known_Valid (Defining_Identifier (Index));
       end if;
 
       if Present (Formals) then
          Set_Scope (Id, Current_Scope);
-         New_Scope (Id);
+         Push_Scope (Id);
          Process_Formals (Formals, Parent (N));
          End_Scope;
       end if;
@@ -918,7 +949,7 @@ package body Sem_Ch9 is
 
       if Present (Formals) then
          Set_Scope (Id, Current_Scope);
-         New_Scope (Id);
+         Push_Scope (Id);
          Process_Formals (Formals, N);
          Create_Extra_Formals (Id);
          End_Scope;
@@ -927,6 +958,8 @@ package body Sem_Ch9 is
       if Ekind (Id) = E_Entry then
          New_Overloaded_Entity (Id);
       end if;
+
+      Generate_Reference_To_Formals (Id);
    end Analyze_Entry_Declaration;
 
    ---------------------------------------
@@ -965,7 +998,7 @@ package body Sem_Ch9 is
 
       Set_Ekind (Loop_Id, E_Loop);
       Set_Scope (Loop_Id, Current_Scope);
-      New_Scope (Loop_Id);
+      Push_Scope (Loop_Id);
       Enter_Name (Iden);
       Set_Ekind (Iden, E_Entry_Index_Parameter);
       Set_Etype (Iden, Etype (Def));
@@ -987,9 +1020,9 @@ package body Sem_Ch9 is
 
       Ref_Id : Entity_Id;
       --  This is the entity of the protected object or protected type
-      --  involved, and is the entity used for cross-reference purposes
-      --  (it differs from Spec_Id in the case of a single protected
-      --  object, since Spec_Id is set to the protected type in this case).
+      --  involved, and is the entity used for cross-reference purposes (it
+      --  differs from Spec_Id in the case of a single protected object, since
+      --  Spec_Id is set to the protected type in this case).
 
    begin
       Tasking_Used := True;
@@ -1022,7 +1055,7 @@ package body Sem_Ch9 is
          Spec_Id := Etype (Spec_Id);
       end if;
 
-      New_Scope (Spec_Id);
+      Push_Scope (Spec_Id);
       Set_Corresponding_Spec (N, Spec_Id);
       Set_Corresponding_Body (Parent (Spec_Id), Body_Id);
       Set_Has_Completion (Spec_Id);
@@ -1096,7 +1129,6 @@ package body Sem_Ch9 is
 
       Check_Max_Entries (N, Max_Protected_Entries);
       Process_End_Label (N, 'e', Current_Scope);
-      Check_Overriding_Indicator (N);
    end Analyze_Protected_Definition;
 
    ----------------------------
@@ -1104,12 +1136,9 @@ package body Sem_Ch9 is
    ----------------------------
 
    procedure Analyze_Protected_Type (N : Node_Id) is
-      E         : Entity_Id;
-      T         : Entity_Id;
-      Def_Id    : constant Entity_Id := Defining_Identifier (N);
-      Iface     : Node_Id;
-      Iface_Def : Node_Id;
-      Iface_Typ : Entity_Id;
+      Def_Id : constant Entity_Id := Defining_Identifier (N);
+      E      : Entity_Id;
+      T      : Entity_Id;
 
    begin
       if No_Run_Time_Mode then
@@ -1133,78 +1162,10 @@ package body Sem_Ch9 is
       Set_Etype              (T, T);
       Set_Has_Delayed_Freeze (T, True);
       Set_Stored_Constraint  (T, No_Elist);
-      New_Scope (T);
+      Push_Scope (T);
 
-      --  Ada 2005 (AI-345)
-
-      if Present (Interface_List (N)) then
-         Set_Is_Tagged_Type (T);
-
-         Iface := First (Interface_List (N));
-         while Present (Iface) loop
-            Iface_Typ := Find_Type_Of_Subtype_Indic (Iface);
-            Iface_Def := Type_Definition (Parent (Iface_Typ));
-
-            if not Is_Interface (Iface_Typ) then
-               Error_Msg_NE ("(Ada 2005) & must be an interface",
-                             Iface, Iface_Typ);
-
-            else
-               --  Ada 2005 (AI-251): "The declaration of a specific descendant
-               --  of an interface type freezes the interface type" RM 13.14.
-
-               Freeze_Before (N, Etype (Iface));
-
-               --  Ada 2005 (AI-345): Protected types can only implement
-               --  limited, synchronized or protected interfaces.
-
-               if Limited_Present (Iface_Def)
-                 or else Synchronized_Present (Iface_Def)
-                 or else Protected_Present (Iface_Def)
-               then
-                  null;
-
-               elsif Task_Present (Iface_Def) then
-                  Error_Msg_N ("(Ada 2005) protected type cannot implement a "
-                    & "task interface", Iface);
-
-               else
-                  Error_Msg_N ("(Ada 2005) protected type cannot implement a "
-                    & "non-limited interface", Iface);
-               end if;
-            end if;
-
-            Next (Iface);
-         end loop;
-
-         --  If this is the full-declaration associated with a private
-         --  declaration that implement interfaces, then the private type
-         --  declaration must be limited.
-
-         if Has_Private_Declaration (T) then
-            declare
-               E : Entity_Id;
-
-            begin
-               E := First_Entity (Scope (T));
-               loop
-                  pragma Assert (Present (E));
-
-                  if Is_Type (E) and then Present (Full_View (E)) then
-                     exit when Full_View (E) = T;
-                  end if;
-
-                  Next_Entity (E);
-               end loop;
-
-               if not Is_Limited_Record (E) then
-                  Error_Msg_Sloc := Sloc (E);
-                  Error_Msg_N
-                    ("(Ada 2005) private type declaration # must be limited",
-                     T);
-               end if;
-            end;
-         end if;
+      if Ada_Version >= Ada_05 then
+         Check_Interfaces (N, T);
       end if;
 
       if Present (Discriminant_Specifications (N)) then
@@ -1220,6 +1181,16 @@ package body Sem_Ch9 is
       end if;
 
       Set_Is_Constrained (T, not Has_Discriminants (T));
+
+      --  Perform minimal expansion of protected type while inside a generic.
+      --  The corresponding record is needed for various semantic checks.
+
+      if Ada_Version >= Ada_05
+        and then Inside_A_Generic
+      then
+         Insert_After_And_Analyze (N,
+           Build_Corresponding_Record (N, T, Sloc (T)));
+      end if;
 
       Analyze (Protected_Definition (N));
 
@@ -1253,13 +1224,30 @@ package body Sem_Ch9 is
 
       End_Scope;
 
+      --  Case of a completion of a private declaration
+
       if T /= Def_Id
         and then Is_Private_Type (Def_Id)
-        and then Has_Discriminants (Def_Id)
-        and then Expander_Active
       then
-         Exp_Ch9.Expand_N_Protected_Type_Declaration (N);
-         Process_Full_View (N, T, Def_Id);
+         --  Deal with preelaborable initialization. Note that this processing
+         --  is done by Process_Full_View, but as can be seen below, in this
+         --  case the call to Process_Full_View is skipped if any serious
+         --  errors have occurred, and we don't want to lose this check.
+
+         if Known_To_Have_Preelab_Init (Def_Id) then
+            Set_Must_Have_Preelab_Init (T);
+         end if;
+
+         --  Create corresponding record now, because some private dependents
+         --  may be subtypes of the partial view. Skip if errors are present,
+         --  to prevent cascaded messages.
+
+         if Serious_Errors_Detected = 0
+           and then Expander_Active
+         then
+            Expand_N_Protected_Type_Declaration (N);
+            Process_Full_View (N, T, Def_Id);
+         end if;
       end if;
    end Analyze_Protected_Type;
 
@@ -1268,15 +1256,16 @@ package body Sem_Ch9 is
    ---------------------
 
    procedure Analyze_Requeue (N : Node_Id) is
-      Count      : Natural := 0;
-      Entry_Name : Node_Id := Name (N);
-      Entry_Id   : Entity_Id;
-      I          : Interp_Index;
-      It         : Interp;
-      Enclosing  : Entity_Id;
-      Target_Obj : Node_Id := Empty;
-      Req_Scope  : Entity_Id;
-      Outer_Ent  : Entity_Id;
+      Count       : Natural := 0;
+      Entry_Name  : Node_Id := Name (N);
+      Entry_Id    : Entity_Id;
+      I           : Interp_Index;
+      Is_Disp_Req : Boolean;
+      It          : Interp;
+      Enclosing   : Entity_Id;
+      Target_Obj  : Node_Id := Empty;
+      Req_Scope   : Entity_Id;
+      Outer_Ent   : Entity_Id;
 
    begin
       Check_Restriction (No_Requeue_Statements, N);
@@ -1350,10 +1339,20 @@ package body Sem_Ch9 is
       if Is_Overloaded (Entry_Name) then
          Entry_Id := Empty;
 
+         --  Loop over candidate interpretations and filter out any that are
+         --  not parameterless, are not type conformant, are not entries, or
+         --  do not come from source.
+
          Get_First_Interp (Entry_Name, I, It);
          while Present (It.Nam) loop
-            if No (First_Formal (It.Nam))
-              or else Subtype_Conformant (Enclosing, It.Nam)
+
+            --  Note: we test type conformance here, not subtype conformance.
+            --  Subtype conformance will be tested later on, but it is better
+            --  for error output in some cases not to do that here.
+
+            if (No (First_Formal (It.Nam))
+                 or else (Type_Conformant (Enclosing, It.Nam)))
+              and then Ekind (It.Nam) = E_Entry
             then
                --  Ada 2005 (AI-345): Since protected and task types have
                --  primitive entry wrappers, we only consider source entries.
@@ -1421,11 +1420,28 @@ package body Sem_Ch9 is
          Entry_Id := Entity (Entry_Name);
       end if;
 
+      --  Ada 2005 (AI05-0030): Potential dispatching requeue statement. The
+      --  target type must be a concurrent interface class-wide type and the
+      --  entry name must be a procedure, flagged by pragma Implemented_By_
+      --  Entry.
+
+      Is_Disp_Req :=
+        Ada_Version >= Ada_05
+          and then Present (Target_Obj)
+          and then Is_Class_Wide_Type (Etype (Target_Obj))
+          and then Is_Concurrent_Interface (Etype (Target_Obj))
+          and then Ekind (Entry_Id) = E_Procedure
+          and then Implemented_By_Entry (Entry_Id);
+
       --  Resolve entry, and check that it is subtype conformant with the
       --  enclosing construct if this construct has formals (RM 9.5.4(5)).
+      --  Ada 2005 (AI05-0030): Do not emit an error for this specific case.
 
-      if not Is_Entry (Entry_Id) then
+      if not Is_Entry (Entry_Id)
+        and then not Is_Disp_Req
+      then
          Error_Msg_N ("expect entry name in requeue statement", Name (N));
+
       elsif Ekind (Entry_Id) = E_Entry_Family
         and then Nkind (Entry_Name) /= N_Indexed_Component
       then
@@ -1436,7 +1452,46 @@ package body Sem_Ch9 is
          Generate_Reference (Entry_Id, Entry_Name);
 
          if Present (First_Formal (Entry_Id)) then
-            Check_Subtype_Conformant (Enclosing, Entry_Id, Name (N));
+            if VM_Target = JVM_Target and then not Inspector_Mode then
+               Error_Msg_N
+                 ("arguments unsupported in requeue statement",
+                  First_Formal (Entry_Id));
+               return;
+            end if;
+
+            --  Ada 2005 (AI05-0030): Perform type conformance after skipping
+            --  the first parameter of Entry_Id since it is the interface
+            --  controlling formal.
+
+            if Is_Disp_Req then
+               declare
+                  Enclosing_Formal : Entity_Id;
+                  Target_Formal    : Entity_Id;
+
+               begin
+                  Enclosing_Formal := First_Formal (Enclosing);
+                  Target_Formal := Next_Formal (First_Formal (Entry_Id));
+                  while Present (Enclosing_Formal)
+                    and then Present (Target_Formal)
+                  loop
+                     if not Conforming_Types
+                              (T1    => Etype (Enclosing_Formal),
+                               T2    => Etype (Target_Formal),
+                               Ctype => Subtype_Conformant)
+                     then
+                        Error_Msg_Node_2 := Target_Formal;
+                        Error_Msg_NE
+                          ("formal & is not subtype conformant with &" &
+                           "in dispatching requeue", N, Enclosing_Formal);
+                     end if;
+
+                     Next_Formal (Enclosing_Formal);
+                     Next_Formal (Target_Formal);
+                  end loop;
+               end;
+            else
+               Check_Subtype_Conformant (Enclosing, Entry_Id, Name (N));
+            end if;
 
             --  Processing for parameters accessed by the requeue
 
@@ -1605,7 +1660,7 @@ package body Sem_Ch9 is
       T      : Entity_Id;
       T_Decl : Node_Id;
       O_Decl : Node_Id;
-      O_Name : constant Entity_Id := New_Copy (Id);
+      O_Name : constant Entity_Id := Id;
 
    begin
       Generate_Definition (Id);
@@ -1661,7 +1716,7 @@ package body Sem_Ch9 is
       T      : Entity_Id;
       T_Decl : Node_Id;
       O_Decl : Node_Id;
-      O_Name : constant Entity_Id := New_Copy (Id);
+      O_Name : constant Entity_Id := Id;
 
    begin
       Generate_Definition (Id);
@@ -1679,6 +1734,14 @@ package body Sem_Ch9 is
           Defining_Identifier => T,
           Task_Definition     => Relocate_Node (Task_Definition (N)),
           Interface_List      => Interface_List (N));
+
+      --  We use the original defining identifier of the single task in the
+      --  generated object declaration, so that debugging information can
+      --  be attached to it when compiling with -gnatD. The parent of the
+      --  entity is the new object declaration. The single_task_declaration
+      --  is not used further in semantics or code generation, but is scanned
+      --  when generating debug information, and therefore needs the updated
+      --  Sloc information for the entity (see Sprint).
 
       O_Decl :=
         Make_Object_Declaration (Loc,
@@ -1713,6 +1776,7 @@ package body Sem_Ch9 is
 
    procedure Analyze_Task_Body (N : Node_Id) is
       Body_Id : constant Entity_Id := Defining_Identifier (N);
+      HSS     : constant Node_Id   := Handled_Statement_Sequence (N);
       Last_E  : Entity_Id;
 
       Spec_Id : Entity_Id;
@@ -1771,7 +1835,7 @@ package body Sem_Ch9 is
          Spec_Id := Etype (Spec_Id);
       end if;
 
-      New_Scope (Spec_Id);
+      Push_Scope (Spec_Id);
       Set_Corresponding_Spec (N, Spec_Id);
       Set_Corresponding_Body (Parent (Spec_Id), Body_Id);
       Set_Has_Completion (Spec_Id);
@@ -1792,7 +1856,24 @@ package body Sem_Ch9 is
          end if;
       end if;
 
-      Analyze (Handled_Statement_Sequence (N));
+      --  Mark all handlers as not suitable for local raise optimization,
+      --  since this optimization causes difficulties in a task context.
+
+      if Present (Exception_Handlers (HSS)) then
+         declare
+            Handlr : Node_Id;
+         begin
+            Handlr := First (Exception_Handlers (HSS));
+            while Present (Handlr) loop
+               Set_Local_Raise_Not_OK (Handlr);
+               Next (Handlr);
+            end loop;
+         end;
+      end if;
+
+      --  Now go ahead and complete analysis of the task body
+
+      Analyze (HSS);
       Check_Completion (Body_Id);
       Check_References (Body_Id);
       Check_References (Spec_Id);
@@ -1816,7 +1897,7 @@ package body Sem_Ch9 is
          end loop;
       end;
 
-      Process_End_Label (Handled_Statement_Sequence (N), 't', Ref_Id);
+      Process_End_Label (HSS, 't', Ref_Id);
       End_Scope;
    end Analyze_Task_Body;
 
@@ -1849,7 +1930,6 @@ package body Sem_Ch9 is
 
       Check_Max_Entries (N, Max_Task_Entries);
       Process_End_Label (N, 'e', Current_Scope);
-      Check_Overriding_Indicator (N);
    end Analyze_Task_Definition;
 
    -----------------------
@@ -1857,11 +1937,8 @@ package body Sem_Ch9 is
    -----------------------
 
    procedure Analyze_Task_Type (N : Node_Id) is
-      T         : Entity_Id;
-      Def_Id    : constant Entity_Id := Defining_Identifier (N);
-      Iface     : Node_Id;
-      Iface_Def : Node_Id;
-      Iface_Typ : Entity_Id;
+      Def_Id : constant Entity_Id := Defining_Identifier (N);
+      T      : Entity_Id;
 
    begin
       Check_Restriction (No_Tasking, N);
@@ -1881,78 +1958,10 @@ package body Sem_Ch9 is
       Set_Etype              (T, T);
       Set_Has_Delayed_Freeze (T, True);
       Set_Stored_Constraint  (T, No_Elist);
-      New_Scope (T);
+      Push_Scope (T);
 
-      --  Ada 2005 (AI-345)
-
-      if Present (Interface_List (N)) then
-         Set_Is_Tagged_Type (T);
-
-         Iface := First (Interface_List (N));
-         while Present (Iface) loop
-            Iface_Typ := Find_Type_Of_Subtype_Indic (Iface);
-            Iface_Def := Type_Definition (Parent (Iface_Typ));
-
-            if not Is_Interface (Iface_Typ) then
-               Error_Msg_NE ("(Ada 2005) & must be an interface",
-                             Iface, Iface_Typ);
-
-            else
-               --  Ada 2005 (AI-251): The declaration of a specific descendant
-               --  of an interface type freezes the interface type (RM 13.14).
-
-               Freeze_Before (N, Etype (Iface));
-
-               --  Ada 2005 (AI-345): Task types can only implement limited,
-               --  synchronized or task interfaces.
-
-               if Limited_Present (Iface_Def)
-                 or else Synchronized_Present (Iface_Def)
-                 or else Task_Present (Iface_Def)
-               then
-                  null;
-
-               elsif Protected_Present (Iface_Def) then
-                  Error_Msg_N ("(Ada 2005) task type cannot implement a " &
-                    "protected interface", Iface);
-
-               else
-                  Error_Msg_N ("(Ada 2005) task type cannot implement a " &
-                    "non-limited interface", Iface);
-               end if;
-            end if;
-
-            Next (Iface);
-         end loop;
-
-         --  If this is the full-declaration associated with a private
-         --  declaration that implement interfaces, then the private
-         --  type declaration must be limited.
-
-         if Has_Private_Declaration (T) then
-            declare
-               E : Entity_Id;
-
-            begin
-               E := First_Entity (Scope (T));
-               loop
-                  pragma Assert (Present (E));
-
-                  if Is_Type (E) and then Present (Full_View (E)) then
-                     exit when Full_View (E) = T;
-                  end if;
-
-                  Next_Entity (E);
-               end loop;
-
-               if not Is_Limited_Record (E) then
-                  Error_Msg_Sloc := Sloc (E);
-                  Error_Msg_N
-                    ("(Ada 2005) private type declaration # must be limited",
-                     T);
-               end if;
-            end;
-         end if;
+      if Ada_Version >= Ada_05 then
+         Check_Interfaces (N, T);
       end if;
 
       if Present (Discriminant_Specifications (N)) then
@@ -1963,7 +1972,7 @@ package body Sem_Ch9 is
          if Has_Discriminants (T) then
 
             --  Install discriminants. Also, verify conformance of
-            --  discriminants of previous and current view.  ???
+            --  discriminants of previous and current view. ???
 
             Install_Declarations (T);
          else
@@ -1972,6 +1981,15 @@ package body Sem_Ch9 is
       end if;
 
       Set_Is_Constrained (T, not Has_Discriminants (T));
+
+      --  Perform minimal expansion of the task type while inside a generic
+      --  context. The corresponding record is needed for various semantic
+      --  checks.
+
+      if Inside_A_Generic then
+         Insert_After_And_Analyze (N,
+           Build_Corresponding_Record (N, T, Sloc (T)));
+      end if;
 
       if Present (Task_Definition (N)) then
          Analyze_Task_Definition (Task_Definition (N));
@@ -1983,13 +2001,30 @@ package body Sem_Ch9 is
 
       End_Scope;
 
+      --  Case of a completion of a private declaration
+
       if T /= Def_Id
         and then Is_Private_Type (Def_Id)
-        and then Has_Discriminants (Def_Id)
-        and then Expander_Active
       then
-         Exp_Ch9.Expand_N_Task_Type_Declaration (N);
-         Process_Full_View (N, T, Def_Id);
+         --  Deal with preelaborable initialization. Note that this processing
+         --  is done by Process_Full_View, but as can be seen below, in this
+         --  case the call to Process_Full_View is skipped if any serious
+         --  errors have occurred, and we don't want to lose this check.
+
+         if Known_To_Have_Preelab_Init (Def_Id) then
+            Set_Must_Have_Preelab_Init (T);
+         end if;
+
+         --  Create corresponding record now, because some private dependents
+         --  may be subtypes of the partial view. Skip if errors are present,
+         --  to prevent cascaded messages.
+
+         if Serious_Errors_Detected = 0
+           and then Expander_Active
+         then
+            Expand_N_Task_Type_Declaration (N);
+            Process_Full_View (N, T, Def_Id);
+         end if;
       end if;
    end Analyze_Task_Type;
 
@@ -2015,11 +2050,36 @@ package body Sem_Ch9 is
    ------------------------------
 
    procedure Analyze_Timed_Entry_Call (N : Node_Id) is
+      Trigger        : constant Node_Id :=
+                         Entry_Call_Statement (Entry_Call_Alternative (N));
+      Is_Disp_Select : Boolean := False;
+
    begin
       Check_Restriction (No_Select_Statements, N);
       Tasking_Used := True;
-      Analyze (Entry_Call_Alternative (N));
-      Analyze (Delay_Alternative (N));
+
+      --  Ada 2005 (AI-345): The trigger may be a dispatching call
+
+      if Ada_Version >= Ada_05 then
+         Analyze (Trigger);
+         Check_Triggering_Statement (Trigger, N, Is_Disp_Select);
+      end if;
+
+      --  Postpone the analysis of the statements till expansion. Analyze only
+      --  if the expander is disabled in order to catch any semantic errors.
+
+      if Is_Disp_Select then
+         if not Expander_Active then
+            Analyze (Entry_Call_Alternative (N));
+            Analyze (Delay_Alternative (N));
+         end if;
+
+      --  Regular select analysis
+
+      else
+         Analyze (Entry_Call_Alternative (N));
+         Analyze (Delay_Alternative (N));
+      end if;
    end Analyze_Timed_Entry_Call;
 
    ------------------------------------
@@ -2154,258 +2214,205 @@ package body Sem_Ch9 is
       end if;
    end Check_Max_Entries;
 
-   --------------------------------
-   -- Check_Overriding_Indicator --
-   --------------------------------
+   ----------------------
+   -- Check_Interfaces --
+   ----------------------
 
-   procedure Check_Overriding_Indicator (Def : Node_Id) is
-      Aliased_Hom : Entity_Id;
-      Decl        : Node_Id;
-      Def_Id      : Entity_Id;
-      Hom         : Entity_Id;
-      Ifaces      : constant List_Id := Interface_List (Parent (Def));
-      Overrides   : Boolean;
-      Spec        : Node_Id;
-      Vis_Decls   : constant List_Id := Visible_Declarations (Def);
-
-      function Matches_Prefixed_View_Profile
-        (Ifaces       : List_Id;
-         Entry_Params : List_Id;
-         Proc_Params  : List_Id) return Boolean;
-      --  Ada 2005 (AI-397): Determine if an entry parameter profile matches
-      --  the prefixed view profile of an abstract procedure. Also determine
-      --  whether the abstract procedure belongs to an implemented interface.
-
-      -----------------------------------
-      -- Matches_Prefixed_View_Profile --
-      -----------------------------------
-
-      function Matches_Prefixed_View_Profile
-        (Ifaces       : List_Id;
-         Entry_Params : List_Id;
-         Proc_Params  : List_Id) return Boolean
-      is
-         Entry_Param    : Node_Id;
-         Proc_Param     : Node_Id;
-         Proc_Param_Typ : Entity_Id;
-
-         function Includes_Interface
-           (Iface  : Entity_Id;
-            Ifaces : List_Id) return Boolean;
-         --  Determine if an interface is contained in a list of interfaces
-
-         ------------------------
-         -- Includes_Interface --
-         ------------------------
-
-         function Includes_Interface
-           (Iface  : Entity_Id;
-            Ifaces : List_Id) return Boolean
-         is
-            Ent : Entity_Id;
-
-         begin
-            Ent := First (Ifaces);
-            while Present (Ent) loop
-               if Etype (Ent) = Iface then
-                  return True;
-               end if;
-
-               Next (Ent);
-            end loop;
-
-            return False;
-         end Includes_Interface;
-
-      --  Start of processing for Matches_Prefixed_View_Profile
-
-      begin
-         Proc_Param := First (Proc_Params);
-         Proc_Param_Typ := Etype (Parameter_Type (Proc_Param));
-
-         --  The first parameter of the abstract procedure must be of an
-         --  interface type. The task or protected type must also implement
-         --  that interface.
-
-         if not Is_Interface (Proc_Param_Typ)
-           or else not Includes_Interface (Proc_Param_Typ, Ifaces)
-         then
-            return False;
-         end if;
-
-         Entry_Param := First (Entry_Params);
-         Proc_Param  := Next (Proc_Param);
-         while Present (Entry_Param) and then Present (Proc_Param) loop
-
-            --  The two parameters must be mode conformant and have the exact
-            --  same types.
-
-            if Ekind (Defining_Identifier (Entry_Param)) /=
-               Ekind (Defining_Identifier (Proc_Param))
-              or else Etype (Parameter_Type (Entry_Param)) /=
-                      Etype (Parameter_Type (Proc_Param))
-            then
-               return False;
-            end if;
-
-            Next (Entry_Param);
-            Next (Proc_Param);
-         end loop;
-
-         --  One of the lists is longer than the other
-
-         if Present (Entry_Param) or else Present (Proc_Param) then
-            return False;
-         end if;
-
-         return True;
-      end Matches_Prefixed_View_Profile;
-
-   --  Start of processing for Check_Overriding_Indicator
+   procedure Check_Interfaces (N : Node_Id; T : Entity_Id) is
+      Iface     : Node_Id;
+      Iface_Typ : Entity_Id;
 
    begin
-      if Present (Ifaces) then
-         Decl := First (Vis_Decls);
-         while Present (Decl) loop
+      pragma Assert
+        (Nkind_In (N, N_Protected_Type_Declaration, N_Task_Type_Declaration));
 
-            --  Consider entries with either "overriding" or "not overriding"
-            --  indicator present.
+      if Present (Interface_List (N)) then
+         Set_Is_Tagged_Type (T);
 
-            if Nkind (Decl) = N_Entry_Declaration
-              and then (Must_Override (Decl)
-                          or else
-                        Must_Not_Override (Decl))
-            then
-               Def_Id := Defining_Identifier (Decl);
+         Iface := First (Interface_List (N));
+         while Present (Iface) loop
+            Iface_Typ := Find_Type_Of_Subtype_Indic (Iface);
 
-               Overrides := False;
+            if not Is_Interface (Iface_Typ) then
+               Error_Msg_NE
+                 ("(Ada 2005) & must be an interface", Iface, Iface_Typ);
 
-               Hom := Homonym (Def_Id);
-               while Present (Hom) loop
+            else
+               --  Ada 2005 (AI-251): "The declaration of a specific descendant
+               --  of an interface type freezes the interface type" RM 13.14.
 
-                  --  The current entry may override a procedure from an
-                  --  implemented interface.
+               Freeze_Before (N, Etype (Iface));
 
-                  if Ekind (Hom) = E_Procedure
-                    and then (Is_Abstract (Hom)
-                                or else
-                              Null_Present (Parent (Hom)))
-                  then
-                     Aliased_Hom := Hom;
-                     while Present (Alias (Aliased_Hom)) loop
-                        Aliased_Hom := Alias (Aliased_Hom);
-                     end loop;
+               if Nkind (N) = N_Protected_Type_Declaration then
 
-                     if Matches_Prefixed_View_Profile (Ifaces,
-                          Parameter_Specifications (Decl),
-                          Parameter_Specifications (Parent (Aliased_Hom)))
-                     then
-                        Overrides := True;
-                        exit;
-                     end if;
+                  --  Ada 2005 (AI-345): Protected types can only implement
+                  --  limited, synchronized, or protected interfaces (note that
+                  --  the predicate Is_Limited_Interface includes synchronized
+                  --  and protected interfaces).
+
+                  if Is_Task_Interface (Iface_Typ) then
+                     Error_Msg_N ("(Ada 2005) protected type cannot implement "
+                       & "a task interface", Iface);
+
+                  elsif not Is_Limited_Interface (Iface_Typ) then
+                     Error_Msg_N ("(Ada 2005) protected type cannot implement "
+                       & "a non-limited interface", Iface);
                   end if;
 
-                  Hom := Homonym (Hom);
-               end loop;
+               else pragma Assert (Nkind (N) = N_Task_Type_Declaration);
 
-               if Overrides then
-                  if Must_Not_Override (Decl) then
-                     Error_Msg_NE ("entry& is overriding", Def_Id, Def_Id);
-                  end if;
-               else
-                  if Must_Override (Decl) then
-                     Error_Msg_NE ("entry& is not overriding", Def_Id, Def_Id);
-                  end if;
-               end if;
+                  --  Ada 2005 (AI-345): Task types can only implement limited,
+                  --  synchronized, or task interfaces (note that the predicate
+                  --  Is_Limited_Interface includes synchronized and task
+                  --  interfaces).
 
-            --  Consider subprograms with either "overriding" or "not
-            --  overriding" indicator present.
+                  if Is_Protected_Interface (Iface_Typ) then
+                     Error_Msg_N ("(Ada 2005) task type cannot implement a " &
+                       "protected interface", Iface);
 
-            elsif Nkind (Decl) = N_Subprogram_Declaration
-              and then (Must_Override (Specification (Decl))
-                          or else
-                        Must_Not_Override (Specification (Decl)))
-            then
-               Spec := Specification (Decl);
-               Def_Id := Defining_Unit_Name (Spec);
-
-               Overrides := False;
-
-               Hom := Homonym (Def_Id);
-               while Present (Hom) loop
-
-                  --  Function
-
-                  if Ekind (Def_Id) = E_Function
-                    and then Ekind (Hom) = E_Function
-                    and then Is_Abstract (Hom)
-                    and then Matches_Prefixed_View_Profile (Ifaces,
-                               Parameter_Specifications (Spec),
-                               Parameter_Specifications (Parent (Hom)))
-                    and then Etype (Result_Definition (Spec)) =
-                             Etype (Result_Definition (Parent (Hom)))
-                  then
-                     Overrides := True;
-                     exit;
-
-                  --  Procedure
-
-                  elsif Ekind (Def_Id) = E_Procedure
-                    and then Ekind (Hom) = E_Procedure
-                    and then (Is_Abstract (Hom)
-                                or else
-                              Null_Present (Parent (Hom)))
-                    and then Matches_Prefixed_View_Profile (Ifaces,
-                               Parameter_Specifications (Spec),
-                               Parameter_Specifications (Parent (Hom)))
-                  then
-                     Overrides := True;
-                     exit;
-                  end if;
-
-                  Hom := Homonym (Hom);
-               end loop;
-
-               if Overrides then
-                  if Must_Not_Override (Spec) then
-                     Error_Msg_NE
-                       ("subprogram& is overriding", Def_Id, Def_Id);
-                  end if;
-               else
-                  if Must_Override (Spec) then
-                     Error_Msg_NE
-                       ("subprogram& is not overriding", Def_Id, Def_Id);
+                  elsif not Is_Limited_Interface (Iface_Typ) then
+                     Error_Msg_N ("(Ada 2005) task type cannot implement a " &
+                       "non-limited interface", Iface);
                   end if;
                end if;
             end if;
 
-            Next (Decl);
-         end loop;
-
-      --  The protected or task type is not implementing an interface, we need
-      --  to check for the presence of "overriding" entries or subprograms and
-      --  flag them as erroneous.
-
-      else
-         Decl := First (Vis_Decls);
-         while Present (Decl) loop
-            if Nkind (Decl) = N_Entry_Declaration
-              and then Must_Override (Decl)
-            then
-               Def_Id := Defining_Identifier (Decl);
-               Error_Msg_NE ("entry& is not overriding", Def_Id, Def_Id);
-
-            elsif Nkind (Decl) = N_Subprogram_Declaration
-              and then Must_Override (Specification (Decl))
-            then
-               Def_Id := Defining_Identifier (Specification (Decl));
-               Error_Msg_NE ("subprogram& is not overriding", Def_Id, Def_Id);
-            end if;
-
-            Next (Decl);
+            Next (Iface);
          end loop;
       end if;
-   end Check_Overriding_Indicator;
+
+      if not Has_Private_Declaration (T) then
+         return;
+      end if;
+
+      --  Additional checks on full-types associated with private type
+      --  declarations. Search for the private type declaration.
+
+      declare
+         Full_T_Ifaces : Elist_Id;
+         Iface         : Node_Id;
+         Priv_T        : Entity_Id;
+         Priv_T_Ifaces : Elist_Id;
+
+      begin
+         Priv_T := First_Entity (Scope (T));
+         loop
+            pragma Assert (Present (Priv_T));
+
+            if Is_Type (Priv_T) and then Present (Full_View (Priv_T)) then
+               exit when Full_View (Priv_T) = T;
+            end if;
+
+            Next_Entity (Priv_T);
+         end loop;
+
+         --  In case of synchronized types covering interfaces the private type
+         --  declaration must be limited.
+
+         if Present (Interface_List (N))
+           and then not Is_Limited_Record (Priv_T)
+         then
+            Error_Msg_Sloc := Sloc (Priv_T);
+            Error_Msg_N ("(Ada 2005) limited type declaration expected for " &
+                         "private type#", T);
+         end if;
+
+         --  RM 7.3 (7.1/2): If the full view has a partial view that is
+         --  tagged then check RM 7.3 subsidiary rules.
+
+         if Is_Tagged_Type (Priv_T)
+           and then not Error_Posted (N)
+         then
+            --  RM 7.3 (7.2/2): The partial view shall be a synchronized tagged
+            --  type if and only if the full type is a synchronized tagged type
+
+            if Is_Synchronized_Tagged_Type (Priv_T)
+              and then not Is_Synchronized_Tagged_Type (T)
+            then
+               Error_Msg_N
+                 ("(Ada 2005) full view must be a synchronized tagged " &
+                  "type (RM 7.3 (7.2/2))", Priv_T);
+
+            elsif Is_Synchronized_Tagged_Type (T)
+              and then not Is_Synchronized_Tagged_Type (Priv_T)
+            then
+               Error_Msg_N
+                 ("(Ada 2005) partial view must be a synchronized tagged " &
+                  "type (RM 7.3 (7.2/2))", T);
+            end if;
+
+            --  RM 7.3 (7.3/2): The partial view shall be a descendant of an
+            --  interface type if and only if the full type is descendant of
+            --  the interface type.
+
+            if Present (Interface_List (N))
+              or else (Is_Tagged_Type (Priv_T)
+                         and then Has_Abstract_Interfaces
+                                    (Priv_T, Use_Full_View => False))
+            then
+               if Is_Tagged_Type (Priv_T) then
+                  Collect_Abstract_Interfaces
+                    (Priv_T, Priv_T_Ifaces, Use_Full_View => False);
+               end if;
+
+               if Is_Tagged_Type (T) then
+                  Collect_Abstract_Interfaces (T, Full_T_Ifaces);
+               end if;
+
+               Iface := Find_Hidden_Interface (Priv_T_Ifaces, Full_T_Ifaces);
+
+               if Present (Iface) then
+                  Error_Msg_NE ("interface & not implemented by full type " &
+                                "(RM-2005 7.3 (7.3/2))", Priv_T, Iface);
+               end if;
+
+               Iface := Find_Hidden_Interface (Full_T_Ifaces, Priv_T_Ifaces);
+
+               if Present (Iface) then
+                  Error_Msg_NE ("interface & not implemented by partial " &
+                                "view (RM-2005 7.3 (7.3/2))", T, Iface);
+               end if;
+            end if;
+         end if;
+      end;
+   end Check_Interfaces;
+
+   --------------------------------
+   -- Check_Triggering_Statement --
+   --------------------------------
+
+   procedure Check_Triggering_Statement
+     (Trigger        : Node_Id;
+      Error_Node     : Node_Id;
+      Is_Dispatching : out Boolean)
+   is
+      Param : Node_Id;
+
+   begin
+      Is_Dispatching := False;
+
+      --  It is not possible to have a dispatching trigger if we are not in
+      --  Ada 2005 mode.
+
+      if Ada_Version >= Ada_05
+        and then Nkind (Trigger) = N_Procedure_Call_Statement
+        and then Present (Parameter_Associations (Trigger))
+      then
+         Param := First (Parameter_Associations (Trigger));
+
+         if Is_Controlling_Actual (Param)
+           and then Is_Interface (Etype (Param))
+         then
+            if Is_Limited_Record (Etype (Param)) then
+               Is_Dispatching := True;
+            else
+               Error_Msg_N
+                 ("dispatching operation of limited or synchronized " &
+                  "interface required (RM 9.7.2(3))!", Error_Node);
+            end if;
+         end if;
+      end if;
+   end Check_Triggering_Statement;
 
    --------------------------
    -- Find_Concurrent_Spec --

@@ -16,6 +16,7 @@
 
 srcdir = @srcdir@
 top_srcdir = @top_srcdir@
+VPATH = @srcdir@
 pkgdatadir = $(datadir)/@PACKAGE@
 pkglibdir = $(libdir)/@PACKAGE@
 pkgincludedir = $(includedir)/@PACKAGE@
@@ -41,13 +42,20 @@ DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
 subdir = src
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/../config/enable.m4 \
+	$(top_srcdir)/../config/futex.m4 \
+	$(top_srcdir)/../config/iconv.m4 \
 	$(top_srcdir)/../config/lead-dot.m4 \
+	$(top_srcdir)/../config/lib-ld.m4 \
+	$(top_srcdir)/../config/lib-link.m4 \
+	$(top_srcdir)/../config/lib-prefix.m4 \
 	$(top_srcdir)/../config/multi.m4 \
 	$(top_srcdir)/../config/no-executables.m4 \
 	$(top_srcdir)/../config/unwind_ipinfo.m4 \
-	$(top_srcdir)/../libtool.m4 $(top_srcdir)/crossconfig.m4 \
-	$(top_srcdir)/linkage.m4 $(top_srcdir)/acinclude.m4 \
-	$(top_srcdir)/../config/tls.m4 $(top_srcdir)/configure.ac
+	$(top_srcdir)/../libtool.m4 $(top_srcdir)/../ltoptions.m4 \
+	$(top_srcdir)/../ltsugar.m4 $(top_srcdir)/../ltversion.m4 \
+	$(top_srcdir)/crossconfig.m4 $(top_srcdir)/linkage.m4 \
+	$(top_srcdir)/acinclude.m4 $(top_srcdir)/../config/tls.m4 \
+	$(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 CONFIG_HEADER = $(top_builddir)/config.h
@@ -63,9 +71,10 @@ toolexeclibLTLIBRARIES_INSTALL = $(INSTALL)
 LTLIBRARIES = $(toolexeclib_LTLIBRARIES)
 am__libstdc___la_SOURCES_DIST = bitmap_allocator.cc pool_allocator.cc \
 	mt_allocator.cc codecvt.cc compatibility.cc complex_io.cc \
-	ctype.cc debug.cc debug_list.cc functexcept.cc globals_io.cc \
-	ios.cc ios_failure.cc ios_init.cc ios_locale.cc limits.cc \
-	list.cc locale.cc locale_init.cc locale_facets.cc \
+	ctype.cc debug.cc functexcept.cc hash.cc hash_c++0x.cc \
+	globals_io.cc hashtable.cc hashtable_c++0x.cc ios.cc \
+	ios_failure.cc ios_init.cc ios_locale.cc limits.cc list.cc \
+	debug_list.cc locale.cc locale_init.cc locale_facets.cc \
 	localename.cc stdexcept.cc strstream.cc tree.cc \
 	allocator-inst.cc concept-inst.cc fstream-inst.cc ext-inst.cc \
 	ios-inst.cc iostream-inst.cc istream-inst.cc istream.cc \
@@ -75,25 +84,28 @@ am__libstdc___la_SOURCES_DIST = bitmap_allocator.cc pool_allocator.cc \
 	codecvt_members.cc collate_members.cc ctype_members.cc \
 	messages_members.cc monetary_members.cc numeric_members.cc \
 	time_members.cc basic_file.cc c++locale.cc \
-	compatibility-ldbl.cc
+	compatibility-ldbl.cc parallel_list.cc parallel_settings.cc
 am__objects_1 = atomicity.lo codecvt_members.lo collate_members.lo \
 	ctype_members.lo messages_members.lo monetary_members.lo \
 	numeric_members.lo time_members.lo
-am__objects_2 = basic_file.lo c++locale.lo
-@GLIBCXX_LDBL_COMPAT_TRUE@am__objects_3 = compatibility-ldbl.lo
-am__objects_4 = bitmap_allocator.lo pool_allocator.lo mt_allocator.lo \
+@GLIBCXX_LDBL_COMPAT_TRUE@am__objects_2 = compatibility-ldbl.lo
+@ENABLE_PARALLEL_TRUE@am__objects_3 = parallel_list.lo \
+@ENABLE_PARALLEL_TRUE@	parallel_settings.lo
+am__objects_4 = basic_file.lo c++locale.lo $(am__objects_2) \
+	$(am__objects_3)
+am__objects_5 = bitmap_allocator.lo pool_allocator.lo mt_allocator.lo \
 	codecvt.lo compatibility.lo complex_io.lo ctype.lo debug.lo \
-	debug_list.lo functexcept.lo globals_io.lo ios.lo \
-	ios_failure.lo ios_init.lo ios_locale.lo limits.lo list.lo \
+	functexcept.lo hash.lo hash_c++0x.lo globals_io.lo \
+	hashtable.lo hashtable_c++0x.lo ios.lo ios_failure.lo \
+	ios_init.lo ios_locale.lo limits.lo list.lo debug_list.lo \
 	locale.lo locale_init.lo locale_facets.lo localename.lo \
 	stdexcept.lo strstream.lo tree.lo allocator-inst.lo \
 	concept-inst.lo fstream-inst.lo ext-inst.lo ios-inst.lo \
 	iostream-inst.lo istream-inst.lo istream.lo locale-inst.lo \
 	misc-inst.lo ostream-inst.lo sstream-inst.lo streambuf-inst.lo \
 	streambuf.lo string-inst.lo valarray-inst.lo wlocale-inst.lo \
-	wstring-inst.lo $(am__objects_1) $(am__objects_2) \
-	$(am__objects_3)
-am_libstdc___la_OBJECTS = $(am__objects_4)
+	wstring-inst.lo $(am__objects_1) $(am__objects_4)
+am_libstdc___la_OBJECTS = $(am__objects_5)
 libstdc___la_OBJECTS = $(am_libstdc___la_OBJECTS)
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I$(top_builddir)
 depcomp =
@@ -106,7 +118,6 @@ DIST_SOURCES = $(am__libstdc___la_SOURCES_DIST)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
-VPATH = $(top_srcdir)/src:$(top_srcdir)
 ABI_TWEAKS_SRCDIR = @ABI_TWEAKS_SRCDIR@
 ACLOCAL = @ACLOCAL@
 ALLOCATOR_H = @ALLOCATOR_H@
@@ -115,6 +126,7 @@ AMTAR = @AMTAR@
 AR = @AR@
 AS = @AS@
 ATOMICITY_SRCDIR = @ATOMICITY_SRCDIR@
+ATOMIC_FLAGS = @ATOMIC_FLAGS@
 ATOMIC_WORD_SRCDIR = @ATOMIC_WORD_SRCDIR@
 AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
@@ -147,10 +159,13 @@ CYGPATH_W = @CYGPATH_W@
 C_INCLUDE_DIR = @C_INCLUDE_DIR@
 DEBUG_FLAGS = @DEBUG_FLAGS@
 DEFS = @DEFS@
+DUMPBIN = @DUMPBIN@
 ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
 EGREP = @EGREP@
+ENABLE_PARALLEL_FALSE = @ENABLE_PARALLEL_FALSE@
+ENABLE_PARALLEL_TRUE = @ENABLE_PARALLEL_TRUE@
 ENABLE_SYMVERS_DARWIN_FALSE = @ENABLE_SYMVERS_DARWIN_FALSE@
 ENABLE_SYMVERS_DARWIN_TRUE = @ENABLE_SYMVERS_DARWIN_TRUE@
 ENABLE_SYMVERS_FALSE = @ENABLE_SYMVERS_FALSE@
@@ -161,8 +176,10 @@ ENABLE_SYMVERS_GNU_TRUE = @ENABLE_SYMVERS_GNU_TRUE@
 ENABLE_SYMVERS_TRUE = @ENABLE_SYMVERS_TRUE@
 ENABLE_VISIBILITY_FALSE = @ENABLE_VISIBILITY_FALSE@
 ENABLE_VISIBILITY_TRUE = @ENABLE_VISIBILITY_TRUE@
+ERROR_CONSTANTS_SRCDIR = @ERROR_CONSTANTS_SRCDIR@
 EXEEXT = @EXEEXT@
 EXTRA_CXX_FLAGS = @EXTRA_CXX_FLAGS@
+FGREP = @FGREP@
 GLIBCXX_BUILD_DEBUG_FALSE = @GLIBCXX_BUILD_DEBUG_FALSE@
 GLIBCXX_BUILD_DEBUG_TRUE = @GLIBCXX_BUILD_DEBUG_TRUE@
 GLIBCXX_BUILD_PCH_FALSE = @GLIBCXX_BUILD_PCH_FALSE@
@@ -170,18 +187,25 @@ GLIBCXX_BUILD_PCH_TRUE = @GLIBCXX_BUILD_PCH_TRUE@
 GLIBCXX_C_HEADERS_COMPATIBILITY_FALSE = @GLIBCXX_C_HEADERS_COMPATIBILITY_FALSE@
 GLIBCXX_C_HEADERS_COMPATIBILITY_TRUE = @GLIBCXX_C_HEADERS_COMPATIBILITY_TRUE@
 GLIBCXX_C_HEADERS_C_FALSE = @GLIBCXX_C_HEADERS_C_FALSE@
+GLIBCXX_C_HEADERS_C_GLOBAL_FALSE = @GLIBCXX_C_HEADERS_C_GLOBAL_FALSE@
+GLIBCXX_C_HEADERS_C_GLOBAL_TRUE = @GLIBCXX_C_HEADERS_C_GLOBAL_TRUE@
 GLIBCXX_C_HEADERS_C_STD_FALSE = @GLIBCXX_C_HEADERS_C_STD_FALSE@
 GLIBCXX_C_HEADERS_C_STD_TRUE = @GLIBCXX_C_HEADERS_C_STD_TRUE@
 GLIBCXX_C_HEADERS_C_TRUE = @GLIBCXX_C_HEADERS_C_TRUE@
+GLIBCXX_C_HEADERS_EXTRA_FALSE = @GLIBCXX_C_HEADERS_EXTRA_FALSE@
+GLIBCXX_C_HEADERS_EXTRA_TRUE = @GLIBCXX_C_HEADERS_EXTRA_TRUE@
 GLIBCXX_HOSTED_FALSE = @GLIBCXX_HOSTED_FALSE@
 GLIBCXX_HOSTED_TRUE = @GLIBCXX_HOSTED_TRUE@
 GLIBCXX_INCLUDES = @GLIBCXX_INCLUDES@
 GLIBCXX_LDBL_COMPAT_FALSE = @GLIBCXX_LDBL_COMPAT_FALSE@
 GLIBCXX_LDBL_COMPAT_TRUE = @GLIBCXX_LDBL_COMPAT_TRUE@
+GREP = @GREP@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
+LD = @LD@
+LDFLAGS = @LDFLAGS@
 LIBICONV = @LIBICONV@
 LIBMATHOBJS = @LIBMATHOBJS@
 LIBOBJS = @LIBOBJS@
@@ -189,11 +213,13 @@ LIBS = @LIBS@
 LIBSUPCXX_PICFLAGS = @LIBSUPCXX_PICFLAGS@
 LIBTOOL = @LIBTOOL@
 LN_S = @LN_S@
+LTLIBICONV = @LTLIBICONV@
 LTLIBOBJS = @LTLIBOBJS@
 MAINT = @MAINT@
 MAINTAINER_MODE_FALSE = @MAINTAINER_MODE_FALSE@
 MAINTAINER_MODE_TRUE = @MAINTAINER_MODE_TRUE@
 MAKEINFO = @MAKEINFO@
+NM = @NM@
 OBJEXT = @OBJEXT@
 OPTIMIZE_CXXFLAGS = @OPTIMIZE_CXXFLAGS@
 OPT_LDFLAGS = @OPT_LDFLAGS@
@@ -208,6 +234,7 @@ PATH_SEPARATOR = @PATH_SEPARATOR@
 RANLIB = @RANLIB@
 SECTION_FLAGS = @SECTION_FLAGS@
 SECTION_LDFLAGS = @SECTION_LDFLAGS@
+SED = @SED@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 STRIP = @STRIP@
@@ -221,6 +248,7 @@ ac_ct_AR = @ac_ct_AR@
 ac_ct_AS = @ac_ct_AS@
 ac_ct_CC = @ac_ct_CC@
 ac_ct_CXX = @ac_ct_CXX@
+ac_ct_DUMPBIN = @ac_ct_DUMPBIN@
 ac_ct_RANLIB = @ac_ct_RANLIB@
 ac_ct_STRIP = @ac_ct_STRIP@
 am__leading_dot = @am__leading_dot@
@@ -261,6 +289,7 @@ libdir = @libdir@
 libexecdir = @libexecdir@
 libtool_VERSION = @libtool_VERSION@
 localstatedir = @localstatedir@
+lt_ECHO = @lt_ECHO@
 mandir = @mandir@
 mkdir_p = @mkdir_p@
 multi_basedir = @multi_basedir@
@@ -327,9 +356,10 @@ atomicity_file = ${glibcxx_srcdir}/$(ATOMICITY_SRCDIR)/atomicity.h
 # Source files linked in via configuration/make substitution for a
 # particular host, but with ad hoc naming rules.
 host_sources_extra = \
-	basic_file.cc \
-	c++locale.cc
+	basic_file.cc c++locale.cc ${ldbl_compat_sources} ${parallel_sources}
 
+@ENABLE_PARALLEL_FALSE@parallel_sources = 
+@ENABLE_PARALLEL_TRUE@parallel_sources = parallel_list.cc parallel_settings.cc
 @GLIBCXX_LDBL_COMPAT_FALSE@ldbl_compat_sources = 
 @GLIBCXX_LDBL_COMPAT_TRUE@ldbl_compat_sources = compatibility-ldbl.cc
 
@@ -343,15 +373,19 @@ sources = \
 	complex_io.cc \
 	ctype.cc \
 	debug.cc \
-	debug_list.cc \
 	functexcept.cc \
+	hash.cc \
+	hash_c++0x.cc \
 	globals_io.cc \
+	hashtable.cc \
+	hashtable_c++0x.cc \
 	ios.cc \
 	ios_failure.cc \
 	ios_init.cc \
 	ios_locale.cc \
 	limits.cc \
 	list.cc \
+	debug_list.cc \
 	locale.cc \
 	locale_init.cc \
 	locale_facets.cc \
@@ -378,8 +412,7 @@ sources = \
 	wlocale-inst.cc \
 	wstring-inst.cc \
 	${host_sources} \
-	${host_sources_extra} \
-	${ldbl_compat_sources}
+	${host_sources_extra} 
 
 libstdc___la_SOURCES = $(sources)
 libstdc___la_LIBADD = \
@@ -394,6 +427,9 @@ libstdc___la_LDFLAGS = \
 # Use special rules for the deprecated source files so that they find
 # deprecated include files.
 GLIBCXX_INCLUDE_DIR = $(glibcxx_builddir)/include
+
+# Use special rules for parallel mode compilation.
+PARALLEL_FLAGS = -fopenmp -D_GLIBCXX_PARALLEL -I$(glibcxx_builddir)/../libgomp
 
 # AM_CXXFLAGS needs to be in each subdirectory so that it can be
 # modified in a per-library or per-sub-library way.  Need to manually
@@ -703,6 +739,7 @@ uninstall-am: uninstall-info-am uninstall-toolexeclibLTLIBRARIES
 @ENABLE_SYMVERS_TRUE@libstdc++-symbols.ver:  ${glibcxx_srcdir}/$(SYMVER_FILE) \
 @ENABLE_SYMVERS_TRUE@		$(port_specific_symbol_files)
 @ENABLE_SYMVERS_TRUE@	cp ${glibcxx_srcdir}/$(SYMVER_FILE) ./libstdc++-symbols.ver
+@ENABLE_SYMVERS_TRUE@	chmod +w ./libstdc++-symbols.ver
 @ENABLE_SYMVERS_TRUE@	if test "x$(port_specific_symbol_files)" != x; then \
 @ENABLE_SYMVERS_TRUE@	  if grep '^# Appended to version file.' \
 @ENABLE_SYMVERS_TRUE@	       $(port_specific_symbol_files) /dev/null > /dev/null 2>&1; then \
@@ -752,6 +789,9 @@ c++locale.cc: ${glibcxx_srcdir}/$(CLOCALE_CC)
 
 basic_file.cc: ${glibcxx_srcdir}/$(BASIC_FILE_CC)
 	$(LN_S) ${glibcxx_srcdir}/$(BASIC_FILE_CC) ./$@ || true
+
+vpath % $(top_srcdir)/src
+vpath % $(top_srcdir)
 strstream.lo: strstream.cc
 	$(LTCXXCOMPILE) -I$(GLIBCXX_INCLUDE_DIR)/backward -Wno-deprecated -c $<
 strstream.o: strstream.cc
@@ -764,6 +804,25 @@ concept-inst.lo: concept-inst.cc
 	$(LTCXXCOMPILE) -D_GLIBCXX_CONCEPT_CHECKS -fimplicit-templates -c $<
 concept-inst.o: concept-inst.cc
 	$(CXXCOMPILE) -D_GLIBCXX_CONCEPT_CHECKS -fimplicit-templates -c $<
+parallel_list.lo: parallel_list.cc
+	$(LTCXXCOMPILE) $(PARALLEL_FLAGS) -c $<
+parallel_list.o: parallel_list.cc
+	$(CXXCOMPILE) $(PARALLEL_FLAGS) -c $<
+
+parallel_settings.lo: parallel_settings.cc
+	$(LTCXXCOMPILE) $(PARALLEL_FLAGS) -c $<
+parallel_settings.o: parallel_settings.cc
+	$(CXXCOMPILE) $(PARALLEL_FLAGS) -c $<
+
+hash_c++0x.lo: hash_c++0x.cc
+	$(LTCXXCOMPILE) -std=gnu++0x -c $<
+hash_c++0x.o: hash_c++0x.cc
+	$(CXXCOMPILE) -std=gnu++0x -c $<
+
+hashtable_c++0x.lo: hashtable_c++0x.cc
+	$(LTCXXCOMPILE) -std=gnu++0x -c $<
+hashtable_c++0x.o: hashtable_c++0x.cc
+	$(CXXCOMPILE) -std=gnu++0x -c $<
 
 # Use special rules for compatibility-ldbl.cc compilation, as we need to
 # pass -mlong-double-64.
@@ -778,7 +837,7 @@ concept-inst.o: concept-inst.cc
 @GLIBCXX_BUILD_DEBUG_FALSE@all-local:
 @GLIBCXX_BUILD_DEBUG_FALSE@install-data-local:
 
-# Build parallel set of debug objects here.
+# Build a set of debug objects here.
 stamp-debug:
 	if test ! -d ${debugdir}; then \
 	  mkdir -p ${debugdir}; \

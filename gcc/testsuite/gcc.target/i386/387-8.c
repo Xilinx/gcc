@@ -1,6 +1,7 @@
-/* Verify that 387 fptan instruction is generated. Also check fptan
-   peephole2 optimizer.  */
-/* { dg-do compile { target i?86-*-* x86_64-*-* } } */
+/* Verify that 387 fptan instruction is generated. Also check that
+   inherent load of 1.0 is used in further calculations.  */
+
+/* { dg-do compile } */
 /* { dg-require-effective-target ilp32 } */
 /* { dg-options "-O2 -ffast-math -march=i686" } */
 /* { dg-final { scan-assembler "fptan" } } */

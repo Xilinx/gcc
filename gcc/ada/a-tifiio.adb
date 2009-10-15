@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2006, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -279,7 +279,7 @@ package body Ada.Text_IO.Fixed_IO is
    --  decimal point.
 
    subtype Int is Integer;
-   E0 : constant Int := -20 * Boolean'Pos (Num'Small >= 1.0E1);
+   E0 : constant Int := -(20 * Boolean'Pos (Num'Small >= 1.0E1));
    E1 : constant Int := E0 + 10 * Boolean'Pos (Num'Small * 10.0**E0 < 1.0E-10);
    E2 : constant Int := E1 +  5 * Boolean'Pos (Num'Small * 10.0**E1 < 1.0E-5);
    E3 : constant Int := E2 +  3 * Boolean'Pos (Num'Small * 10.0**E2 < 1.0E-3);
@@ -399,7 +399,7 @@ package body Ada.Text_IO.Fixed_IO is
       Last : Natural;
 
    begin
-      if Fore < 1 or else Fore > Field'Last then
+      if Fore - Boolean'Pos (Item < 0.0) < 1 or else Fore > Field'Last then
          raise Layout_Error;
       end if;
 
@@ -423,7 +423,7 @@ package body Ada.Text_IO.Fixed_IO is
       X   : constant Int64   := Int64'Integer_Value (Item);
       A   : constant Field   := Field'Max (Aft, 1);
       Neg : constant Boolean := (Item < 0.0);
-      Pos : Integer;  -- Next digit X has value X * 10.0**Pos;
+      Pos : Integer := 0;  -- Next digit X has value X * 10.0**Pos;
 
       Y, Z : Int64;
       E : constant Integer := Boolean'Pos (not Exact)
@@ -462,7 +462,13 @@ package body Ada.Text_IO.Fixed_IO is
       procedure Put_Character (C : Character) is
       begin
          Last := Last + 1;
-         To (Last) := C;
+
+         --  Never put a character outside of string To. Exception Layout_Error
+         --  will be raised later if Last is greater than To'Last.
+
+         if Last <= To'Last then
+            To (Last) := C;
+         end if;
       end Put_Character;
 
       ---------------
@@ -532,11 +538,21 @@ package body Ada.Text_IO.Fixed_IO is
             return;
          end if;
 
-         Pos := Scale;
-
          if X not in -9 .. 9 then
             Put_Int64 (X / 10, Scale + 1);
          end if;
+
+         --  Use Put_Digit to advance Pos. This fixes a case where the second
+         --  or later Scaled_Divide would omit leading zeroes, resulting in
+         --  too few digits produced and a Layout_Error as result.
+
+         while Pos > Scale loop
+            Put_Digit (0);
+         end loop;
+
+         --  If Pos is less than Scale now, reset to equal Scale
+
+         Pos := Scale;
 
          Put_Digit (abs (X rem 10));
       end Put_Int64;
@@ -637,10 +653,10 @@ package body Ada.Text_IO.Fixed_IO is
 
       if Exact then
          Y := Int64'Min (Int64 (-Num'Small), -1) * 10**Integer'Max (0, D);
-         Z := Int64'Min (Int64 (-1.0 / Num'Small), -1)
+         Z := Int64'Min (Int64 (-(1.0 / Num'Small)), -1)
                                                  * 10**Integer'Max (0, -D);
       else
-         Y := Int64 (-Num'Small * 10.0**E);
+         Y := Int64 (-(Num'Small * 10.0**E));
          Z := -10**Max_Digits;
       end if;
 

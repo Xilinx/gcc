@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2005, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -291,6 +291,9 @@ package Nlists is
    procedure Lock;
    --  Called to lock tables before back end is called
 
+   procedure Unlock;
+   --  Unlock tables, in cases where the back end needs to modify them
+
    procedure Tree_Read;
    --  Initializes internal tables from current tree file using the relevant
    --  Table.Tree_Read routines. Note that Initialize should not be called if
@@ -329,9 +332,6 @@ package Nlists is
    function Prev_Node_Address return System.Address;
    --  These functions return the addresses of the Next_Node and Prev_Node
    --  tables (used in Back_End for Gigi).
-
-   procedure Delete_List (L : List_Id);
-   --  Removes all elements of the given list, and calls Delete_Tree on each
 
    function p (U : Union_Id) return Node_Id;
    --  This function is intended for use from the debugger, it determines

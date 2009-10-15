@@ -23,8 +23,8 @@ along with GCC; see the file COPYING3.  If not see
 #undef TARGET_VERSION
 #define TARGET_VERSION fprintf (stderr, " (Alpha GNU/Linux for ELF)");
 
-#undef SUBTARGET_EXTRA_SPECS
-#define SUBTARGET_EXTRA_SPECS \
+#undef EXTRA_SPECS
+#define EXTRA_SPECS \
 { "elf_dynamic_linker", ELF_DYNAMIC_LINKER },
 
 #define GLIBC_DYNAMIC_LINKER	"/lib/ld-linux.so.2"

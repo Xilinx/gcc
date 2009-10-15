@@ -1,5 +1,5 @@
 /* Pass computing data for optimizing stdarg functions.
-   Copyright (C) 2004, 2005, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2007, 2008 Free Software Foundation, Inc.
    Contributed by Jakub Jelinek <jakub@redhat.com>
 
 This file is part of GCC.
@@ -46,9 +46,9 @@ along with GCC; see the file COPYING3.  If not see
 static bool
 reachable_at_most_once (basic_block va_arg_bb, basic_block va_start_bb)
 {
-  edge *stack, e;
+  VEC (edge, heap) *stack = NULL;
+  edge e;
   edge_iterator ei;
-  int sp;
   sbitmap visited;
   bool ret;
 
@@ -58,22 +58,18 @@ reachable_at_most_once (basic_block va_arg_bb, basic_block va_start_bb)
   if (! dominated_by_p (CDI_DOMINATORS, va_arg_bb, va_start_bb))
     return false;
 
-  stack = XNEWVEC (edge, n_basic_blocks + 1);
-  sp = 0;
-
   visited = sbitmap_alloc (last_basic_block);
   sbitmap_zero (visited);
   ret = true;
 
   FOR_EACH_EDGE (e, ei, va_arg_bb->preds)
-    stack[sp++] = e;
+    VEC_safe_push (edge, heap, stack, e);
 
-  while (sp)
+  while (! VEC_empty (edge, stack))
     {
       basic_block src;
 
-      --sp;
-      e = stack[sp];
+      e = VEC_pop (edge, stack);
       src = e->src;
 
       if (e->flags & EDGE_COMPLEX)
@@ -98,11 +94,11 @@ reachable_at_most_once (basic_block va_arg_bb, basic_block va_start_bb)
 	{
 	  SET_BIT (visited, src->index);
 	  FOR_EACH_EDGE (e, ei, src->preds)
-	    stack[sp++] = e;
+	    VEC_safe_push (edge, heap, stack, e);
 	}
     }
 
-  free (stack);
+  VEC_free (edge, heap, stack);
   sbitmap_free (visited);
   return ret;
 }
@@ -148,11 +144,11 @@ va_list_counter_bump (struct stdarg_info *si, tree counter, tree rhs,
 
       stmt = SSA_NAME_DEF_STMT (lhs);
 
-      if (TREE_CODE (stmt) != MODIFY_EXPR
-	  || TREE_OPERAND (stmt, 0) != lhs)
+      if (TREE_CODE (stmt) != GIMPLE_MODIFY_STMT
+	  || GIMPLE_STMT_OPERAND (stmt, 0) != lhs)
 	return (unsigned HOST_WIDE_INT) -1;
 
-      rhs = TREE_OPERAND (stmt, 1);
+      rhs = GIMPLE_STMT_OPERAND (stmt, 1);
       if (TREE_CODE (rhs) == WITH_SIZE_EXPR)
 	rhs = TREE_OPERAND (rhs, 0);
 
@@ -170,7 +166,8 @@ va_list_counter_bump (struct stdarg_info *si, tree counter, tree rhs,
 	  continue;
 	}
 
-      if (TREE_CODE (rhs) == PLUS_EXPR
+      if ((TREE_CODE (rhs) == POINTER_PLUS_EXPR
+	   || TREE_CODE (rhs) == PLUS_EXPR)
 	  && TREE_CODE (TREE_OPERAND (rhs, 0)) == SSA_NAME
 	  && TREE_CODE (TREE_OPERAND (rhs, 1)) == INTEGER_CST
 	  && host_integerp (TREE_OPERAND (rhs, 1), 1))
@@ -210,7 +207,7 @@ va_list_counter_bump (struct stdarg_info *si, tree counter, tree rhs,
 
       stmt = SSA_NAME_DEF_STMT (lhs);
 
-      rhs = TREE_OPERAND (stmt, 1);
+      rhs = GIMPLE_STMT_OPERAND (stmt, 1);
       if (TREE_CODE (rhs) == WITH_SIZE_EXPR)
 	rhs = TREE_OPERAND (rhs, 0);
 
@@ -228,7 +225,8 @@ va_list_counter_bump (struct stdarg_info *si, tree counter, tree rhs,
 	  continue;
 	}
 
-      if (TREE_CODE (rhs) == PLUS_EXPR
+      if ((TREE_CODE (rhs) == POINTER_PLUS_EXPR
+	   || TREE_CODE (rhs) == PLUS_EXPR)
 	  && TREE_CODE (TREE_OPERAND (rhs, 0)) == SSA_NAME
 	  && TREE_CODE (TREE_OPERAND (rhs, 1)) == INTEGER_CST
 	  && host_integerp (TREE_OPERAND (rhs, 1), 1))
@@ -446,10 +444,11 @@ check_va_list_escapes (struct stdarg_info *si, tree lhs, tree rhs)
   if (! POINTER_TYPE_P (TREE_TYPE (rhs)))
     return;
 
-  if ((TREE_CODE (rhs) == PLUS_EXPR
-       && TREE_CODE (TREE_OPERAND (rhs, 1)) == INTEGER_CST)
-      || TREE_CODE (rhs) == NOP_EXPR
-      || TREE_CODE (rhs) == CONVERT_EXPR)
+ if (((TREE_CODE (rhs) == POINTER_PLUS_EXPR
+       || TREE_CODE (rhs) == PLUS_EXPR)
+      && TREE_CODE (TREE_OPERAND (rhs, 1)) == INTEGER_CST)
+     || TREE_CODE (rhs) == NOP_EXPR
+     || TREE_CODE (rhs) == CONVERT_EXPR)
     rhs = TREE_OPERAND (rhs, 0);
 
   if (TREE_CODE (rhs) != SSA_NAME
@@ -521,10 +520,10 @@ check_all_va_list_escapes (struct stdarg_info *si)
 				  DECL_UID (SSA_NAME_VAR (use))))
 		continue;
 
-	      if (TREE_CODE (stmt) == MODIFY_EXPR)
+	      if (TREE_CODE (stmt) == GIMPLE_MODIFY_STMT)
 		{
-		  tree lhs = TREE_OPERAND (stmt, 0);
-		  tree rhs = TREE_OPERAND (stmt, 1);
+		  tree lhs = GIMPLE_STMT_OPERAND (stmt, 0);
+		  tree rhs = GIMPLE_STMT_OPERAND (stmt, 1);
 
 		  if (TREE_CODE (rhs) == WITH_SIZE_EXPR)
 		    rhs = TREE_OPERAND (rhs, 0);
@@ -554,7 +553,7 @@ check_all_va_list_escapes (struct stdarg_info *si)
 		     other_ap_temp = (some_type *) ap_temp;
 		     ap = ap_temp;
 		     statements.  */
-		  if ((TREE_CODE (rhs) == PLUS_EXPR
+		  if ((TREE_CODE (rhs) == POINTER_PLUS_EXPR
 		       && TREE_CODE (TREE_OPERAND (rhs, 1)) == INTEGER_CST)
 		      || TREE_CODE (rhs) == NOP_EXPR
 		      || TREE_CODE (rhs) == CONVERT_EXPR)
@@ -659,7 +658,7 @@ execute_optimize_stdarg (void)
 	    }
 
 	  si.va_start_count++;
-	  ap = TREE_VALUE (TREE_OPERAND (call, 1));
+	  ap = CALL_EXPR_ARG (call, 0);
 
 	  if (TREE_CODE (ap) != ADDR_EXPR)
 	    {
@@ -806,10 +805,10 @@ execute_optimize_stdarg (void)
 		continue;
 	    }
 
-	  if (TREE_CODE (stmt) == MODIFY_EXPR)
+	  if (TREE_CODE (stmt) == GIMPLE_MODIFY_STMT)
 	    {
-	      tree lhs = TREE_OPERAND (stmt, 0);
-	      tree rhs = TREE_OPERAND (stmt, 1);
+	      tree lhs = GIMPLE_STMT_OPERAND (stmt, 0);
+	      tree rhs = GIMPLE_STMT_OPERAND (stmt, 1);
 
 	      if (TREE_CODE (rhs) == WITH_SIZE_EXPR)
 		rhs = TREE_OPERAND (rhs, 0);

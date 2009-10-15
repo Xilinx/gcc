@@ -1,6 +1,6 @@
 // Iostreams wrapper for stdio FILE* -*- C++ -*-
 
-// Copyright (C) 2003, 2004, 2005 Free Software Foundation, Inc.
+// Copyright (C) 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -39,6 +39,7 @@
 #include <streambuf>
 #include <unistd.h>
 #include <cstdio>
+#include <bits/c++io.h>  // For __c_file
 
 #ifdef _GLIBCXX_USE_WCHAR_T
 #include <cwchar>
@@ -46,7 +47,7 @@
 
 _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
 
-  /// @brief  class stdio_sync_filebuf.
+  /// class stdio_sync_filebuf.
   template<typename _CharT, typename _Traits = std::char_traits<_CharT> >
     class stdio_sync_filebuf : public std::basic_streambuf<_CharT, _Traits>
     {

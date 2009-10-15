@@ -194,13 +194,13 @@ extern const char * const *h8_reg_names;
 #define FUNCTION_BOUNDARY 16
 
 /* Alignment of field after `int : 0' in a structure.  */
-/* One can argue this should be 32 for -mint32, but since 32 bit ints only
-   need 16 bit alignment, this is left as is so that -mint32 doesn't change
+/* One can argue this should be 32 for -mint32, but since 32-bit ints only
+   need 16-bit alignment, this is left as is so that -mint32 doesn't change
    structure layouts.  */
 #define EMPTY_FIELD_BOUNDARY 16
 
 /* No data type wants to be aligned rounder than this.
-   32 bit values are aligned as such on the H8/300H and H8S for speed.  */
+   32-bit values are aligned as such on the H8/300H and H8S for speed.  */
 #define BIGGEST_ALIGNMENT \
 (((TARGET_H8300H || TARGET_H8300S) && ! TARGET_ALIGN_300) ? 32 : 16)
 
@@ -938,11 +938,6 @@ struct cum_arg
    (the amount of decrement or increment being the length of the operand).  */
 
 #define GO_IF_MODE_DEPENDENT_ADDRESS(ADDR, LABEL) \
-  if (GET_CODE (ADDR) == POST_INC \
-      || GET_CODE (ADDR) == POST_DEC \
-      || GET_CODE (ADDR) == PRE_INC \
-      || GET_CODE (ADDR) == PRE_DEC) \
-    goto LABEL; \
   if (GET_CODE (ADDR) == PLUS \
       && h8300_get_index (XEXP (ADDR, 0), VOIDmode, 0) != XEXP (ADDR, 0)) \
     goto LABEL;

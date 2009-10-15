@@ -157,6 +157,9 @@ public class JViewport extends JComponent implements Accessible
      */
     public void componentResized(ComponentEvent ev)
     {
+      // Fire state change, because resizing the view means changing the
+      // extentSize.
+      fireStateChanged();
       revalidate();
     }
   }
@@ -197,22 +200,6 @@ public class JViewport extends JComponent implements Accessible
   ChangeEvent changeEvent = new ChangeEvent(this);
 
   int scrollMode;
-
-  /** 
-   * The width and height of the Viewport's area in terms of view
-   * coordinates.  Typically this will be the same as the width and height
-   * of the viewport's bounds, unless the viewport transforms units of
-   * width and height, which it may do, for example if it magnifies or
-   * rotates its view.
-   *
-   * @see #toViewCoordinates(Dimension)
-   */
-  Dimension extentSize;
-
-  /**
-   * The width and height of the view in its own coordinate space.
-   */
-  Dimension viewSize;
 
   /**
    * The ViewListener instance.
@@ -265,8 +252,7 @@ public class JViewport extends JComponent implements Accessible
   static
   {
     String scrollModeProp =
-      SystemProperties.getProperty("gnu.javax.swing.JViewport.scrollMode",
-                         "BLIT");
+      SystemProperties.getProperty("gnu.swing.scrollmode", "BACKINGSTORE");
     if (scrollModeProp.equalsIgnoreCase("simple"))
       defaultScrollMode = SIMPLE_SCROLL_MODE;
     else if (scrollModeProp.equalsIgnoreCase("backingstore"))
@@ -290,10 +276,7 @@ public class JViewport extends JComponent implements Accessible
 
   public Dimension getExtentSize()
   {
-    if (extentSize == null)
-      return toViewCoordinates(getSize());
-    else
-      return extentSize;
+    return getSize();
   }
 
   public Dimension toViewCoordinates(Dimension size)
@@ -310,8 +293,12 @@ public class JViewport extends JComponent implements Accessible
 
   public void setExtentSize(Dimension newSize)
   {
-    extentSize = newSize;
-    fireStateChanged();
+    Dimension oldExtent = getExtentSize();
+    if (! newSize.equals(oldExtent))
+      {
+        setSize(newSize);
+        fireStateChanged();
+      }
   }
 
   /**
@@ -321,32 +308,34 @@ public class JViewport extends JComponent implements Accessible
    */
   public Dimension getViewSize()
   {
-    if (isViewSizeSet)
-      return viewSize;
-    else
+    Dimension size; 
+    Component view = getView();
+    if (view != null)
       {
-	Component view = getView();
-	if (view != null)
-	  return view.getPreferredSize();
-	else
-	  return new Dimension();
+        if (isViewSizeSet)
+          size = view.getSize();
+        else
+	  size = view.getPreferredSize();
       }
+    else
+      size = new Dimension(0, 0);
+    return size;
   }
 
 
   public void setViewSize(Dimension newSize)
   {
-    viewSize = newSize;
     Component view = getView();
     if (view != null)
       {
-        if (newSize != view.getSize())
+        if (! newSize.equals(view.getSize()))
           {
-            view.setSize(viewSize);
+            scrollUnderway = false;
+            view.setSize(newSize);
+            isViewSizeSet = true;
             fireStateChanged();
           }
       }
-    isViewSizeSet = true;
   }
 
   /**
@@ -371,23 +360,18 @@ public class JViewport extends JComponent implements Accessible
 
   public void setViewPosition(Point p)
   {
-    if (getViewPosition().equals(p))
-      return;
     Component view = getView();
-    if (view != null)
+    if (view != null && ! p.equals(getViewPosition()))
       {
-        Point q = new Point(-p.x, -p.y);
-        view.setLocation(q);
-        isViewSizeSet = false;
+        scrollUnderway = true;
+        view.setLocation(-p.x, -p.y);
         fireStateChanged();
       }
-    repaint();
   }
 
   public Rectangle getViewRect()
   {
-    return new Rectangle(getViewPosition(), 
-                         getExtentSize());
+    return new Rectangle(getViewPosition(), getExtentSize());
   }
 
   /**
@@ -495,7 +479,6 @@ public class JViewport extends JComponent implements Accessible
     if (view == null)
       return;
 
-    Point pos = getViewPosition();
     Rectangle viewBounds = view.getBounds();
     Rectangle portBounds = getBounds();
 
@@ -591,8 +574,12 @@ public class JViewport extends JComponent implements Accessible
     Component view = getView();
     if (view == null)
       return;    
-      
+
     Point pos = getViewPosition();
+    // We get the contentRect in the viewport coordinates. But we want to
+    // calculate with view coordinates.
+    int contentX = contentRect.x + pos.x;
+    int contentY = contentRect.y + pos.y;
     Rectangle viewBounds = getView().getBounds();
     Rectangle portBounds = getBounds();
     
@@ -601,20 +588,20 @@ public class JViewport extends JComponent implements Accessible
 
     // If the bottom boundary of contentRect is below the port
     // boundaries, scroll up as necessary.
-    if (contentRect.y + contentRect.height + viewBounds.y > portBounds.height)
-      pos.y = contentRect.y + contentRect.height - portBounds.height;
-    // If contentRect.y is above the port boundaries, scroll down to
-    // contentRect.y.
-    if (contentRect.y + viewBounds.y < 0)
-      pos.y = contentRect.y;
+    if (contentY + contentRect.height + viewBounds.y > portBounds.height)
+      pos.y = contentY + contentRect.height - portBounds.height;
+    // If contentY is above the port boundaries, scroll down to
+    // contentY.
+    if (contentY + viewBounds.y < 0)
+      pos.y = contentY;
     // If the right boundary of contentRect is right from the port
     // boundaries, scroll left as necessary.
-    if (contentRect.x + contentRect.width + viewBounds.x > portBounds.width)
-      pos.x = contentRect.x + contentRect.width - portBounds.width;
-    // If contentRect.x is left from the port boundaries, scroll right to
+    if (contentX + contentRect.width + viewBounds.x > portBounds.width)
+      pos.x = contentX + contentRect.width - portBounds.width;
+    // If contentX is left from the port boundaries, scroll right to
     // contentRect.x.
-    if (contentRect.x + viewBounds.x < 0)
-      pos.x = contentRect.x;
+    if (contentX + viewBounds.x < 0)
+      pos.x = contentX;
     setViewPosition(pos);
   }
 
@@ -643,19 +630,11 @@ public class JViewport extends JComponent implements Accessible
    */
   public void repaint(long tm, int x, int y, int w, int h)
   {
-//    Component parent = getParent();
-//    if (parent != null)
-//      parent.repaint(tm, x + getX(), y + getY(), w, h);
-//    else
-//      super.repaint(tm, x, y, w, h);
-
-    // The specs suggest to implement something like the above. This however
-    // breaks blit painting, because the parent (most likely a JScrollPane)
-    // clears the background of the offscreen area of the JViewport, thus
-    // destroying the pieces that we want to clip. So we simply call super here
-    // instead.
-    super.repaint(tm, x, y, w, h);
-    
+    Component parent = getParent();
+    if (parent != null)
+      parent.repaint(tm, x + getX(), y + getY(), w, h);
+    else
+      super.repaint(tm, x, y, w, h);
   }
 
   protected void addImpl(Component comp, Object constraints, int index)
@@ -859,13 +838,16 @@ public class JViewport extends JComponent implements Accessible
         int dy = viewPosition.y - lastPaintPosition.y;
         boolean canBlit = computeBlit(dx, dy, cachedBlitFrom, cachedBlitTo,
                                       cachedBlitSize, cachedBlitPaint);
-        if (canBlit)
+        if (canBlit && isPaintRoot)
           {
             // Copy the part that remains visible during scrolling.
-            g2.copyArea(cachedBlitFrom.x, cachedBlitFrom.y,
-                        cachedBlitSize.width, cachedBlitSize.height,
-                        cachedBlitTo.x - cachedBlitFrom.x,
-                        cachedBlitTo.y - cachedBlitFrom.y);
+            if (cachedBlitSize.width > 0 && cachedBlitSize.height > 0)
+              {
+                g2.copyArea(cachedBlitFrom.x, cachedBlitFrom.y,
+                            cachedBlitSize.width, cachedBlitSize.height,
+                            cachedBlitTo.x - cachedBlitFrom.x,
+                            cachedBlitTo.y - cachedBlitFrom.y);
+              }
             // Now paint the part that becomes newly visible.
             g2.setClip(cachedBlitPaint.x, cachedBlitPaint.y,
                        cachedBlitPaint.width, cachedBlitPaint.height);
@@ -913,10 +895,13 @@ public class JViewport extends JComponent implements Accessible
     if (canBlit && isPaintRoot)
       {
         // Copy the part that remains visible during scrolling.
-        g.copyArea(cachedBlitFrom.x, cachedBlitFrom.y,
-                   cachedBlitSize.width, cachedBlitSize.height,
-                   cachedBlitTo.x - cachedBlitFrom.x,
-                   cachedBlitTo.y - cachedBlitFrom.y);
+        if (cachedBlitSize.width > 0 && cachedBlitSize.width > 0)
+          {
+            g.copyArea(cachedBlitFrom.x, cachedBlitFrom.y,
+                       cachedBlitSize.width, cachedBlitSize.height,
+                       cachedBlitTo.x - cachedBlitFrom.x,
+                       cachedBlitTo.y - cachedBlitFrom.y);
+          }
         // Now paint the part that becomes newly visible.
         Shape oldClip = g.getClip();
         g.clipRect(cachedBlitPaint.x, cachedBlitPaint.y,
@@ -940,12 +925,24 @@ public class JViewport extends JComponent implements Accessible
   /**
    * Overridden from JComponent to set the {@link #isPaintRoot} flag.
    *
-   * @param r the rectangle to paint
+   * @param x the rectangle to paint, X coordinate
+   * @param y the rectangle to paint, Y coordinate
+   * @param w the rectangle to paint, width
+   * @param h the rectangle to paint, height
    */
-  void paintImmediately2(Rectangle r)
+  void paintImmediately2(int x, int y, int w, int h)
   {
     isPaintRoot = true;
-    super.paintImmediately2(r);
+    super.paintImmediately2(x, y, w, h);
     isPaintRoot = false;
+  }
+
+  /**
+   * Returns true when the JViewport is using a backbuffer, so that we
+   * can update our backbuffer correctly.
+   */
+  boolean isPaintRoot()
+  {
+    return scrollMode == BACKINGSTORE_SCROLL_MODE;
   }
 }

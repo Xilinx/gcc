@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2005, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -68,7 +68,7 @@ package body Nlists is
 
    package Lists is new Table.Table (
      Table_Component_Type => List_Header,
-     Table_Index_Type     => List_Id,
+     Table_Index_Type     => List_Id'Base,
      Table_Low_Bound      => First_List_Id,
      Table_Initial        => Alloc.Lists_Initial,
      Table_Increment      => Alloc.Lists_Increment,
@@ -88,7 +88,7 @@ package body Nlists is
 
    package Next_Node is new Table.Table (
       Table_Component_Type => Node_Id,
-      Table_Index_Type     => Node_Id,
+      Table_Index_Type     => Node_Id'Base,
       Table_Low_Bound      => First_Node_Id,
       Table_Initial        => Alloc.Orig_Nodes_Initial,
       Table_Increment      => Alloc.Orig_Nodes_Increment,
@@ -96,7 +96,7 @@ package body Nlists is
 
    package Prev_Node is new Table.Table (
       Table_Component_Type => Node_Id,
-      Table_Index_Type     => Node_Id,
+      Table_Index_Type     => Node_Id'Base,
       Table_Low_Bound      => First_Node_Id,
       Table_Initial        => Alloc.Orig_Nodes_Initial,
       Table_Increment      => Alloc.Orig_Nodes_Increment,
@@ -131,9 +131,20 @@ package body Nlists is
    --------------------------
 
    procedure Allocate_List_Tables (N : Node_Id) is
+      Old_Last : constant Node_Id'Base := Next_Node.Last;
+
    begin
+      pragma Assert (N >= Old_Last);
       Next_Node.Set_Last (N);
       Prev_Node.Set_Last (N);
+
+      --  Make sure we have no uninitialized junk in any new entires added.
+      --  This ensures that Tree_Gen will not write out any unitialized junk.
+
+      for J in Old_Last + 1 .. N loop
+         Next_Node.Table (J) := Empty;
+         Prev_Node.Table (J) := Empty;
+      end loop;
    end Allocate_List_Tables;
 
    ------------
@@ -268,22 +279,6 @@ package body Nlists is
       Append (Node, To);
    end Append_To;
 
-   -----------------
-   -- Delete_List --
-   -----------------
-
-   procedure Delete_List (L : List_Id) is
-      N : Node_Id;
-
-   begin
-      while Is_Non_Empty_List (L) loop
-         N := Remove_Head (L);
-         Delete_Tree (N);
-      end loop;
-
-      --  Should recycle list header???
-   end Delete_List;
-
    -----------
    -- First --
    -----------
@@ -293,7 +288,7 @@ package body Nlists is
       if List = No_List then
          return Empty;
       else
-         pragma Assert (List in First_List_Id .. Lists.Last);
+         pragma Assert (List <= Lists.Last);
          return Lists.Table (List).First;
       end if;
    end First;
@@ -304,7 +299,6 @@ package body Nlists is
 
    function First_Non_Pragma (List : List_Id) return Node_Id is
       N : constant Node_Id := First (List);
-
    begin
       if Nkind (N) /= N_Pragma
            and then
@@ -619,7 +613,7 @@ package body Nlists is
 
    function Last (List : List_Id) return Node_Id is
    begin
-      pragma Assert (List in First_List_Id .. Lists.Last);
+      pragma Assert (List <= Lists.Last);
       return Lists.Table (List).Last;
    end Last;
 
@@ -638,7 +632,6 @@ package body Nlists is
 
    function Last_Non_Pragma (List : List_Id) return Node_Id is
       N : constant Node_Id := Last (List);
-
    begin
       if Nkind (N) /= N_Pragma then
          return N;
@@ -1017,7 +1010,7 @@ package body Nlists is
 
    function Parent (List : List_Id) return Node_Id is
    begin
-      pragma Assert (List in First_List_Id .. Lists.Last);
+      pragma Assert (List <= Lists.Last);
       return Lists.Table (List).Parent;
    end Parent;
 
@@ -1344,7 +1337,7 @@ package body Nlists is
 
    procedure Set_Parent (List : List_Id; Node : Node_Id) is
    begin
-      pragma Assert (List in First_List_Id .. Lists.Last);
+      pragma Assert (List <= Lists.Last);
       Lists.Table (List).Parent := Node;
    end Set_Parent;
 
@@ -1378,5 +1371,16 @@ package body Nlists is
       Next_Node.Tree_Write;
       Prev_Node.Tree_Write;
    end Tree_Write;
+
+   ------------
+   -- Unlock --
+   ------------
+
+   procedure Unlock is
+   begin
+      Lists.Locked := False;
+      Prev_Node.Locked := False;
+      Next_Node.Locked := False;
+   end Unlock;
 
 end Nlists;

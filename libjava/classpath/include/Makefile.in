@@ -43,15 +43,22 @@ ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/../../config/depstand.m4 \
 	$(top_srcdir)/../../config/lead-dot.m4 \
 	$(top_srcdir)/../../config/multi.m4 \
-	$(top_srcdir)/../../libtool.m4 $(top_srcdir)/m4/acattribute.m4 \
-	$(top_srcdir)/m4/accross.m4 $(top_srcdir)/m4/acinclude.m4 \
+	$(top_srcdir)/../../config/no-executables.m4 \
+	$(top_srcdir)/../../libtool.m4 \
+	$(top_srcdir)/../../ltoptions.m4 \
+	$(top_srcdir)/../../ltsugar.m4 \
+	$(top_srcdir)/../../ltversion.m4 \
+	$(top_srcdir)/m4/acattribute.m4 $(top_srcdir)/m4/accross.m4 \
+	$(top_srcdir)/m4/acinclude.m4 \
 	$(top_srcdir)/m4/ax_create_stdint_h.m4 \
-	$(top_srcdir)/m4/iconv.m4 $(top_srcdir)/m4/lib-ld.m4 \
-	$(top_srcdir)/m4/lib-link.m4 $(top_srcdir)/m4/lib-prefix.m4 \
-	$(top_srcdir)/m4/pkg.m4 $(top_srcdir)/configure.ac
+	$(top_srcdir)/m4/ax_func_which_gethostbyname_r.m4 \
+	$(top_srcdir)/m4/gcc_attribute.m4 $(top_srcdir)/m4/iconv.m4 \
+	$(top_srcdir)/m4/lib-ld.m4 $(top_srcdir)/m4/lib-link.m4 \
+	$(top_srcdir)/m4/lib-prefix.m4 $(top_srcdir)/m4/pkg.m4 \
+	$(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
-mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
+mkinstalldirs = $(SHELL) $(top_srcdir)/../../mkinstalldirs
 CONFIG_HEADER = config.h
 CONFIG_CLEAN_FILES =
 SOURCES =
@@ -61,12 +68,15 @@ ACLOCAL = @ACLOCAL@
 AMDEP_FALSE = @AMDEP_FALSE@
 AMDEP_TRUE = @AMDEP_TRUE@
 AMTAR = @AMTAR@
+AR = @AR@
 AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
 AUTOMAKE = @AUTOMAKE@
 AWK = @AWK@
 BUILD_CLASS_FILES_FALSE = @BUILD_CLASS_FILES_FALSE@
 BUILD_CLASS_FILES_TRUE = @BUILD_CLASS_FILES_TRUE@
+CAIRO_CFLAGS = @CAIRO_CFLAGS@
+CAIRO_LIBS = @CAIRO_LIBS@
 CC = @CC@
 CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
@@ -89,6 +99,8 @@ CREATE_DSSI_LIBRARIES_FALSE = @CREATE_DSSI_LIBRARIES_FALSE@
 CREATE_DSSI_LIBRARIES_TRUE = @CREATE_DSSI_LIBRARIES_TRUE@
 CREATE_GCONF_PEER_LIBRARIES_FALSE = @CREATE_GCONF_PEER_LIBRARIES_FALSE@
 CREATE_GCONF_PEER_LIBRARIES_TRUE = @CREATE_GCONF_PEER_LIBRARIES_TRUE@
+CREATE_GSTREAMER_PEER_LIBRARIES_FALSE = @CREATE_GSTREAMER_PEER_LIBRARIES_FALSE@
+CREATE_GSTREAMER_PEER_LIBRARIES_TRUE = @CREATE_GSTREAMER_PEER_LIBRARIES_TRUE@
 CREATE_GTK_PEER_LIBRARIES_FALSE = @CREATE_GTK_PEER_LIBRARIES_FALSE@
 CREATE_GTK_PEER_LIBRARIES_TRUE = @CREATE_GTK_PEER_LIBRARIES_TRUE@
 CREATE_JNI_HEADERS_FALSE = @CREATE_JNI_HEADERS_FALSE@
@@ -112,10 +124,12 @@ DATE = @DATE@
 DEFAULT_PREFS_PEER = @DEFAULT_PREFS_PEER@
 DEFS = @DEFS@
 DEPDIR = @DEPDIR@
+DUMPBIN = @DUMPBIN@
 ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
 ECJ = @ECJ@
+ECJ_JAR = @ECJ_JAR@
 EGREP = @EGREP@
 ENABLE_LOCAL_SOCKETS_FALSE = @ENABLE_LOCAL_SOCKETS_FALSE@
 ENABLE_LOCAL_SOCKETS_TRUE = @ENABLE_LOCAL_SOCKETS_TRUE@
@@ -123,15 +137,14 @@ ERROR_CFLAGS = @ERROR_CFLAGS@
 EXAMPLESDIR = @EXAMPLESDIR@
 EXEEXT = @EXEEXT@
 FASTJAR = @FASTJAR@
+FGREP = @FGREP@
 FIND = @FIND@
-FOUND_CACAO_FALSE = @FOUND_CACAO_FALSE@
-FOUND_CACAO_TRUE = @FOUND_CACAO_TRUE@
 FOUND_ECJ_FALSE = @FOUND_ECJ_FALSE@
 FOUND_ECJ_TRUE = @FOUND_ECJ_TRUE@
-FOUND_GCJX_FALSE = @FOUND_GCJX_FALSE@
-FOUND_GCJX_TRUE = @FOUND_GCJX_TRUE@
 FOUND_GCJ_FALSE = @FOUND_GCJ_FALSE@
 FOUND_GCJ_TRUE = @FOUND_GCJ_TRUE@
+FOUND_JAVAC_FALSE = @FOUND_JAVAC_FALSE@
+FOUND_JAVAC_TRUE = @FOUND_JAVAC_TRUE@
 FOUND_JIKES_FALSE = @FOUND_JIKES_FALSE@
 FOUND_JIKES_TRUE = @FOUND_JIKES_TRUE@
 FOUND_KJC_FALSE = @FOUND_KJC_FALSE@
@@ -139,14 +152,25 @@ FOUND_KJC_TRUE = @FOUND_KJC_TRUE@
 FREETYPE2_CFLAGS = @FREETYPE2_CFLAGS@
 FREETYPE2_LIBS = @FREETYPE2_LIBS@
 GCJ = @GCJ@
-GCJX = @GCJX@
 GCONF_CFLAGS = @GCONF_CFLAGS@
 GCONF_LIBS = @GCONF_LIBS@
 GDK_CFLAGS = @GDK_CFLAGS@
 GDK_LIBS = @GDK_LIBS@
+GENINSRC_FALSE = @GENINSRC_FALSE@
+GENINSRC_TRUE = @GENINSRC_TRUE@
 GJDOC = @GJDOC@
 GLIB_CFLAGS = @GLIB_CFLAGS@
 GLIB_LIBS = @GLIB_LIBS@
+GREP = @GREP@
+GSTREAMER_BASE_CFLAGS = @GSTREAMER_BASE_CFLAGS@
+GSTREAMER_BASE_LIBS = @GSTREAMER_BASE_LIBS@
+GSTREAMER_CFLAGS = @GSTREAMER_CFLAGS@
+GSTREAMER_FILE_READER = @GSTREAMER_FILE_READER@
+GSTREAMER_LIBS = @GSTREAMER_LIBS@
+GSTREAMER_MIXER_PROVIDER = @GSTREAMER_MIXER_PROVIDER@
+GSTREAMER_PLUGINS_BASE_CFLAGS = @GSTREAMER_PLUGINS_BASE_CFLAGS@
+GSTREAMER_PLUGINS_BASE_LIBS = @GSTREAMER_PLUGINS_BASE_LIBS@
+GST_PLUGIN_LDFLAGS = @GST_PLUGIN_LDFLAGS@
 GTK_CFLAGS = @GTK_CFLAGS@
 GTK_LIBS = @GTK_LIBS@
 INIT_LOAD_LIBRARY = @INIT_LOAD_LIBRARY@
@@ -158,13 +182,17 @@ INSTALL_GLIBJ_ZIP_TRUE = @INSTALL_GLIBJ_ZIP_TRUE@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
+JAVAC = @JAVAC@
 JAVA_LANG_SYSTEM_EXPLICIT_INITIALIZATION = @JAVA_LANG_SYSTEM_EXPLICIT_INITIALIZATION@
+JAVA_MAINTAINER_MODE_FALSE = @JAVA_MAINTAINER_MODE_FALSE@
+JAVA_MAINTAINER_MODE_TRUE = @JAVA_MAINTAINER_MODE_TRUE@
 JAY = @JAY@
 JAY_SKELETON = @JAY_SKELETON@
 JIKES = @JIKES@
 JIKESENCODING = @JIKESENCODING@
 JIKESWARNINGS = @JIKESWARNINGS@
 KJC = @KJC@
+LD = @LD@
 LDFLAGS = @LDFLAGS@
 LIBDEBUG = @LIBDEBUG@
 LIBICONV = @LIBICONV@
@@ -184,6 +212,7 @@ MKDIR = @MKDIR@
 MOC = @MOC@
 MOZILLA_CFLAGS = @MOZILLA_CFLAGS@
 MOZILLA_LIBS = @MOZILLA_LIBS@
+NM = @NM@
 OBJEXT = @OBJEXT@
 PACKAGE = @PACKAGE@
 PACKAGE_BUGREPORT = @PACKAGE_BUGREPORT@
@@ -205,6 +234,7 @@ RANLIB = @RANLIB@
 REGEN_PARSERS_FALSE = @REGEN_PARSERS_FALSE@
 REGEN_PARSERS_TRUE = @REGEN_PARSERS_TRUE@
 REMOVE = @REMOVE@
+SED = @SED@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 STRICT_WARNING_CFLAGS = @STRICT_WARNING_CFLAGS@
@@ -213,8 +243,6 @@ USER_CLASSLIB = @USER_CLASSLIB@
 USER_JAVAH = @USER_JAVAH@
 USER_SPECIFIED_CLASSLIB_FALSE = @USER_SPECIFIED_CLASSLIB_FALSE@
 USER_SPECIFIED_CLASSLIB_TRUE = @USER_SPECIFIED_CLASSLIB_TRUE@
-USER_SPECIFIED_JAVAH_FALSE = @USER_SPECIFIED_JAVAH_FALSE@
-USER_SPECIFIED_JAVAH_TRUE = @USER_SPECIFIED_JAVAH_TRUE@
 USE_ESCHER_FALSE = @USE_ESCHER_FALSE@
 USE_ESCHER_TRUE = @USE_ESCHER_TRUE@
 USE_PREBUILT_GLIBJ_ZIP_FALSE = @USE_PREBUILT_GLIBJ_ZIP_FALSE@
@@ -232,8 +260,10 @@ X_EXTRA_LIBS = @X_EXTRA_LIBS@
 X_LIBS = @X_LIBS@
 X_PRE_LIBS = @X_PRE_LIBS@
 ZIP = @ZIP@
+ac_ct_AR = @ac_ct_AR@
 ac_ct_CC = @ac_ct_CC@
 ac_ct_CXX = @ac_ct_CXX@
+ac_ct_DUMPBIN = @ac_ct_DUMPBIN@
 ac_ct_RANLIB = @ac_ct_RANLIB@
 ac_ct_STRIP = @ac_ct_STRIP@
 am__fastdepCC_FALSE = @am__fastdepCC_FALSE@
@@ -266,6 +296,7 @@ install_sh = @install_sh@
 libdir = @libdir@
 libexecdir = @libexecdir@
 localstatedir = @localstatedir@
+lt_ECHO = @lt_ECHO@
 mandir = @mandir@
 mkdir_p = @mkdir_p@
 multi_basedir = @multi_basedir@
@@ -295,12 +326,14 @@ $(top_srcdir)/include/gnu_javax_sound_midi_alsa_AlsaMidiDeviceProvider.h \
 $(top_srcdir)/include/gnu_javax_sound_midi_dssi_DSSIMidiDeviceProvider.h \
 $(top_srcdir)/include/gnu_javax_sound_midi_dssi_DSSISynthesizer.h
 
+GST_PEER_H_FILES = \
+$(top_srcdir)/include/gnu_javax_sound_sampled_gstreamer_io_GstAudioFileReaderNativePeer.h
+
 XMLJ_H_FILES = \
 $(top_srcdir)/include/gnu_xml_libxmlj_dom_GnomeDocument.h \
 $(top_srcdir)/include/gnu_xml_libxmlj_dom_GnomeXPathNodeList.h \
 $(top_srcdir)/include/gnu_xml_libxmlj_dom_GnomeDocumentType.h \
 $(top_srcdir)/include/gnu_xml_libxmlj_dom_GnomeProcessingInstruction.h \
-$(top_srcdir)/include/gnu_xml_libxmlj_dom_GnomeXPathNSResolver.h \
 $(top_srcdir)/include/gnu_xml_libxmlj_dom_GnomeTypeInfo.h \
 $(top_srcdir)/include/gnu_xml_libxmlj_dom_GnomeNodeList.h \
 $(top_srcdir)/include/gnu_xml_libxmlj_dom_GnomeNotation.h \
@@ -356,8 +389,7 @@ $(top_srcdir)/include/gnu_java_awt_peer_gtk_GtkTextFieldPeer.h \
 $(top_srcdir)/include/gnu_java_awt_peer_gtk_GtkToolkit.h \
 $(top_srcdir)/include/gnu_java_awt_peer_gtk_GtkWindowPeer.h \
 $(top_srcdir)/include/gnu_java_awt_peer_gtk_GtkVolatileImage.h \
-$(top_srcdir)/include/gnu_java_awt_peer_gtk_GThreadNativeMethodRunner.h \
-$(top_srcdir)/include/GtkDragSourceContextPeer.h
+$(top_srcdir)/include/gnu_java_awt_dnd_peer_gtk_GtkDragSourceContextPeer.h
 
 QTPEER_H_FILES = \
 $(top_srcdir)/include/gnu_java_awt_peer_qt_QtCheckboxPeer.h \
@@ -383,7 +415,6 @@ $(top_srcdir)/include/gnu_java_awt_peer_qt_QtPanelPeer.h \
 $(top_srcdir)/include/gnu_java_awt_peer_qt_QPainterPath.h \
 $(top_srcdir)/include/gnu_java_awt_peer_qt_QtFontMetrics.h \
 $(top_srcdir)/include/gnu_java_awt_peer_qt_QtScrollPanePeer.h \
-$(top_srcdir)/include/gnu_java_awt_peer_qt_QtGraphicsEnvironment.h \
 $(top_srcdir)/include/gnu_java_awt_peer_qt_QMatrix.h \
 $(top_srcdir)/include/gnu_java_awt_peer_qt_QtLabelPeer.h \
 $(top_srcdir)/include/gnu_java_awt_peer_qt_QtPopupMenuPeer.h \
@@ -394,7 +425,6 @@ $(top_srcdir)/include/gnu_java_awt_peer_qt_QtCanvasPeer.h \
 $(top_srcdir)/include/gnu_java_awt_peer_qt_QtMenuComponentPeer.h \
 $(top_srcdir)/include/gnu_java_awt_peer_qt_MainQtThread.h \
 $(top_srcdir)/include/gnu_java_awt_peer_qt_QtFileDialogPeer.h \
-$(top_srcdir)/include/gnu_java_awt_peer_qt_QtContainerPeer.h \
 $(top_srcdir)/include/gnu_java_awt_peer_qt_QtEmbeddedWindowPeer.h 
 
 GCONF_PREFS_FILES = \
@@ -402,19 +432,22 @@ $(top_srcdir)/include/gnu_java_util_prefs_gconf_GConfNativePeer.h
 
 H_FILES = \
 $(SOUND_H_FILES) \
+$(GST_PEER_H_FILES) \
 $(XMLJ_H_FILES) \
 $(GTKPEER_H_FILES) \
 $(QTPEER_H_FILES) \
 $(GCONF_PREFS_FILES) \
-$(top_srcdir)/include/gnu_java_net_VMPlainDatagramSocketImpl.h \
 $(top_srcdir)/include/gnu_java_net_VMPlainSocketImpl.h \
 $(top_srcdir)/include/gnu_java_net_local_LocalSocketImpl.h \
+$(top_srcdir)/include/gnu_java_nio_EpollSelectorImpl.h \
+$(top_srcdir)/include/gnu_java_nio_FileChannelImpl.h \
+$(top_srcdir)/include/gnu_java_nio_KqueueSelectorImpl.h \
 $(top_srcdir)/include/gnu_java_nio_VMChannel.h \
 $(top_srcdir)/include/gnu_java_nio_VMPipe.h \
 $(top_srcdir)/include/gnu_java_nio_VMSelector.h \
-$(top_srcdir)/include/gnu_java_nio_channels_FileChannelImpl.h \
 $(top_srcdir)/include/gnu_java_nio_charset_iconv_IconvEncoder.h \
 $(top_srcdir)/include/gnu_java_nio_charset_iconv_IconvDecoder.h \
+$(top_srcdir)/include/gnu_java_lang_management_VMOperatingSystemMXBeanImpl.h \
 $(top_srcdir)/include/java_io_VMFile.h \
 $(top_srcdir)/include/java_io_VMObjectInputStream.h \
 $(top_srcdir)/include/java_io_VMObjectStreamClass.h \
@@ -615,32 +648,204 @@ uninstall-am: uninstall-info-am
 
 @CREATE_JNI_HEADERS_TRUE@all-local: $(H_FILES)
 
-@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_xml_libxmlj_dom_%.h: $(top_builddir)/$(CLASSDIR)/gnu/xml/libxmlj/dom/%.class
-@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.xml.libxmlj.dom.$*
-
-@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_xml_libxmlj_sax_%.h: $(top_builddir)/$(CLASSDIR)/gnu/xml/libxmlj/sax/%.class
-@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.xml.libxmlj.sax.$*
-
-@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_xml_libxmlj_transform_%.h: $(top_builddir)/$(CLASSDIR)/gnu/xml/libxmlj/transform/%.class
-@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.xml.libxmlj.transform.$*
-
-@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_gtk_%.h: $(top_builddir)/$(CLASSDIR)/gnu/java/awt/peer/gtk/%.class
-@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.gtk.$*
-
-@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_qt_%.h: $(top_builddir)/$(CLASSDIR)/gnu/java/awt/peer/qt/%.class
-@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.qt.$*
-
-@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_javax_sound_midi_alsa_%.h: $(top_builddir)/$(CLASSDIR)/gnu/javax/sound/midi/alsa/%.class
-@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.javax.sound.midi.alsa.$*
-
-@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_javax_sound_midi_dssi_%.h: $(top_builddir)/$(CLASSDIR)/gnu/javax/sound/midi/dssi/%.class
-@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.javax.sound.midi.dssi.$*
-
-@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_util_prefs_gconf_%.h: $(top_builddir)/$(CLASSDIR)/gnu/java/util/prefs/gconf/%.class
-@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.util.prefs.gconf.$*
-
-@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_net_VMPlainDatagramSocketImpl.h: $(top_srcdir)/vm/reference/gnu/java/net/VMPlainDatagramSocketImpl.java
-@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.net.VMPlainDatagramSocketImpl
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_xml_libxmlj_dom_GnomeDocument.h: $(top_srcdir)/gnu/xml/libxmlj/dom/GnomeDocument.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.xml.libxmlj.dom.GnomeDocument
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_xml_libxmlj_dom_GnomeXPathNodeList.h: $(top_srcdir)/gnu/xml/libxmlj/dom/GnomeXPathNodeList.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.xml.libxmlj.dom.GnomeXPathNodeList
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_xml_libxmlj_dom_GnomeDocumentType.h: $(top_srcdir)/gnu/xml/libxmlj/dom/GnomeDocumentType.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.xml.libxmlj.dom.GnomeDocumentType
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_xml_libxmlj_dom_GnomeProcessingInstruction.h: $(top_srcdir)/gnu/xml/libxmlj/dom/GnomeProcessingInstruction.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.xml.libxmlj.dom.GnomeProcessingInstruction
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_xml_libxmlj_dom_GnomeTypeInfo.h: $(top_srcdir)/gnu/xml/libxmlj/dom/GnomeTypeInfo.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.xml.libxmlj.dom.GnomeTypeInfo
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_xml_libxmlj_dom_GnomeNodeList.h: $(top_srcdir)/gnu/xml/libxmlj/dom/GnomeNodeList.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.xml.libxmlj.dom.GnomeNodeList
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_xml_libxmlj_dom_GnomeNotation.h: $(top_srcdir)/gnu/xml/libxmlj/dom/GnomeNotation.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.xml.libxmlj.dom.GnomeNotation
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_xml_libxmlj_dom_GnomeXPathResult.h: $(top_srcdir)/gnu/xml/libxmlj/dom/GnomeXPathResult.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.xml.libxmlj.dom.GnomeXPathResult
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_xml_libxmlj_dom_GnomeElement.h: $(top_srcdir)/gnu/xml/libxmlj/dom/GnomeElement.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.xml.libxmlj.dom.GnomeElement
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_xml_libxmlj_dom_GnomeEntity.h: $(top_srcdir)/gnu/xml/libxmlj/dom/GnomeEntity.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.xml.libxmlj.dom.GnomeEntity
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_xml_libxmlj_dom_GnomeNode.h: $(top_srcdir)/gnu/xml/libxmlj/dom/GnomeNode.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.xml.libxmlj.dom.GnomeNode
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_xml_libxmlj_dom_GnomeXPathExpression.h: $(top_srcdir)/gnu/xml/libxmlj/dom/GnomeXPathExpression.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.xml.libxmlj.dom.GnomeXPathExpression
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_xml_libxmlj_dom_GnomeNamedNodeMap.h: $(top_srcdir)/gnu/xml/libxmlj/dom/GnomeNamedNodeMap.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.xml.libxmlj.dom.GnomeNamedNodeMap
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_xml_libxmlj_dom_GnomeDocumentBuilder.h: $(top_srcdir)/gnu/xml/libxmlj/dom/GnomeDocumentBuilder.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.xml.libxmlj.dom.GnomeDocumentBuilder
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_xml_libxmlj_dom_GnomeAttr.h: $(top_srcdir)/gnu/xml/libxmlj/dom/GnomeAttr.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.xml.libxmlj.dom.GnomeAttr
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_xml_libxmlj_sax_GnomeLocator.h: $(top_srcdir)/gnu/xml/libxmlj/sax/GnomeLocator.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.xml.libxmlj.sax.GnomeLocator
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_xml_libxmlj_sax_GnomeXMLReader.h: $(top_srcdir)/gnu/xml/libxmlj/sax/GnomeXMLReader.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.xml.libxmlj.sax.GnomeXMLReader
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_xml_libxmlj_transform_GnomeTransformer.h: $(top_srcdir)/gnu/xml/libxmlj/transform/GnomeTransformer.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.xml.libxmlj.transform.GnomeTransformer
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_xml_libxmlj_transform_GnomeTransformerFactory.h: $(top_srcdir)/gnu/xml/libxmlj/transform/GnomeTransformerFactory.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.xml.libxmlj.transform.GnomeTransformerFactory
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_gtk_CairoSurface.h: $(top_srcdir)/gnu/java/awt/peer/gtk/CairoSurface.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.gtk.CairoSurface
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_gtk_CairoGraphics2D.h: $(top_srcdir)/gnu/java/awt/peer/gtk/CairoGraphics2D.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.gtk.CairoGraphics2D
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_gtk_ComponentGraphics.h: $(top_srcdir)/gnu/java/awt/peer/gtk/ComponentGraphics.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.gtk.ComponentGraphics
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_gtk_ComponentGraphicsCopy.h: $(top_srcdir)/gnu/java/awt/peer/gtk/ComponentGraphicsCopy.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.gtk.ComponentGraphicsCopy
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_gtk_FreetypeGlyphVector.h: $(top_srcdir)/gnu/java/awt/peer/gtk/FreetypeGlyphVector.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.gtk.FreetypeGlyphVector
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_gtk_GdkFontPeer.h: $(top_srcdir)/gnu/java/awt/peer/gtk/GdkFontPeer.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.gtk.GdkFontPeer
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_gtk_GdkGraphicsEnvironment.h: $(top_srcdir)/gnu/java/awt/peer/gtk/GdkGraphicsEnvironment.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.gtk.GdkGraphicsEnvironment
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_gtk_GdkPixbufDecoder.h: $(top_srcdir)/gnu/java/awt/peer/gtk/GdkPixbufDecoder.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.gtk.GdkPixbufDecoder
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_gtk_GdkRobotPeer.h: $(top_srcdir)/gnu/java/awt/peer/gtk/GdkRobotPeer.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.gtk.GdkRobotPeer
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_gtk_GdkScreenGraphicsDevice.h: $(top_srcdir)/gnu/java/awt/peer/gtk/GdkScreenGraphicsDevice.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.gtk.GdkScreenGraphicsDevice
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_gtk_GtkButtonPeer.h: $(top_srcdir)/gnu/java/awt/peer/gtk/GtkButtonPeer.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.gtk.GtkButtonPeer
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_gtk_GtkCanvasPeer.h: $(top_srcdir)/gnu/java/awt/peer/gtk/GtkCanvasPeer.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.gtk.GtkCanvasPeer
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_gtk_GtkCheckboxMenuItemPeer.h: $(top_srcdir)/gnu/java/awt/peer/gtk/GtkCheckboxMenuItemPeer.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.gtk.GtkCheckboxMenuItemPeer
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_gtk_GtkCheckboxPeer.h: $(top_srcdir)/gnu/java/awt/peer/gtk/GtkCheckboxPeer.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.gtk.GtkCheckboxPeer
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_gtk_GtkChoicePeer.h: $(top_srcdir)/gnu/java/awt/peer/gtk/GtkChoicePeer.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.gtk.GtkChoicePeer
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_gtk_GtkClipboard.h: $(top_srcdir)/gnu/java/awt/peer/gtk/GtkClipboard.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.gtk.GtkClipboard
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_gtk_GtkComponentPeer.h: $(top_srcdir)/gnu/java/awt/peer/gtk/GtkComponentPeer.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.gtk.GtkComponentPeer
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_gtk_GtkEmbeddedWindowPeer.h: $(top_srcdir)/gnu/java/awt/peer/gtk/GtkEmbeddedWindowPeer.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.gtk.GtkEmbeddedWindowPeer
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_gtk_GtkFileDialogPeer.h: $(top_srcdir)/gnu/java/awt/peer/gtk/GtkFileDialogPeer.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.gtk.GtkFileDialogPeer
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_gtk_GtkFramePeer.h: $(top_srcdir)/gnu/java/awt/peer/gtk/GtkFramePeer.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.gtk.GtkFramePeer
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_gtk_GtkGenericPeer.h: $(top_srcdir)/gnu/java/awt/peer/gtk/GtkGenericPeer.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.gtk.GtkGenericPeer
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_gtk_GtkImage.h: $(top_srcdir)/gnu/java/awt/peer/gtk/GtkImage.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.gtk.GtkImage
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_gtk_GtkLabelPeer.h: $(top_srcdir)/gnu/java/awt/peer/gtk/GtkLabelPeer.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.gtk.GtkLabelPeer
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_gtk_GtkListPeer.h: $(top_srcdir)/gnu/java/awt/peer/gtk/GtkListPeer.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.gtk.GtkListPeer
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_gtk_GtkMenuBarPeer.h: $(top_srcdir)/gnu/java/awt/peer/gtk/GtkMenuBarPeer.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.gtk.GtkMenuBarPeer
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_gtk_GtkMenuComponentPeer.h: $(top_srcdir)/gnu/java/awt/peer/gtk/GtkMenuComponentPeer.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.gtk.GtkMenuComponentPeer
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_gtk_GtkMenuItemPeer.h: $(top_srcdir)/gnu/java/awt/peer/gtk/GtkMenuItemPeer.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.gtk.GtkMenuItemPeer
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_gtk_GtkMenuPeer.h: $(top_srcdir)/gnu/java/awt/peer/gtk/GtkMenuPeer.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.gtk.GtkMenuPeer
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_gtk_GtkPanelPeer.h: $(top_srcdir)/gnu/java/awt/peer/gtk/GtkPanelPeer.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.gtk.GtkPanelPeer
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_gtk_GtkPopupMenuPeer.h: $(top_srcdir)/gnu/java/awt/peer/gtk/GtkPopupMenuPeer.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.gtk.GtkPopupMenuPeer
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_gtk_GtkScrollPanePeer.h: $(top_srcdir)/gnu/java/awt/peer/gtk/GtkScrollPanePeer.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.gtk.GtkScrollPanePeer
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_gtk_GtkScrollbarPeer.h: $(top_srcdir)/gnu/java/awt/peer/gtk/GtkScrollbarPeer.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.gtk.GtkScrollbarPeer
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_gtk_GtkSelection.h: $(top_srcdir)/gnu/java/awt/peer/gtk/GtkSelection.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.gtk.GtkSelection
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_gtk_GtkTextAreaPeer.h: $(top_srcdir)/gnu/java/awt/peer/gtk/GtkTextAreaPeer.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.gtk.GtkTextAreaPeer
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_gtk_GtkTextFieldPeer.h: $(top_srcdir)/gnu/java/awt/peer/gtk/GtkTextFieldPeer.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.gtk.GtkTextFieldPeer
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_gtk_GtkToolkit.h: $(top_srcdir)/gnu/java/awt/peer/gtk/GtkToolkit.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.gtk.GtkToolkit
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_gtk_GtkWindowPeer.h: $(top_srcdir)/gnu/java/awt/peer/gtk/GtkWindowPeer.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.gtk.GtkWindowPeer
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_gtk_GtkVolatileImage.h: $(top_srcdir)/gnu/java/awt/peer/gtk/GtkVolatileImage.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.gtk.GtkVolatileImage
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_dnd_peer_gtk_GtkDragSourceContextPeer.h: $(top_srcdir)/gnu/java/awt/dnd/peer/gtk/GtkDragSourceContextPeer.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.dnd.peer.gtk.GtkDragSourceContextPeer
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_qt_QtCheckboxPeer.h: $(top_srcdir)/gnu/java/awt/peer/qt/QtCheckboxPeer.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.qt.QtCheckboxPeer
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_qt_QtToolkit.h: $(top_srcdir)/gnu/java/awt/peer/qt/QtToolkit.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.qt.QtToolkit
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_qt_QtAudioClip.h: $(top_srcdir)/gnu/java/awt/peer/qt/QtAudioClip.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.qt.QtAudioClip
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_qt_QtScreenDevice.h: $(top_srcdir)/gnu/java/awt/peer/qt/QtScreenDevice.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.qt.QtScreenDevice
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_qt_QtTextFieldPeer.h: $(top_srcdir)/gnu/java/awt/peer/qt/QtTextFieldPeer.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.qt.QtTextFieldPeer
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_qt_QtMenuItemPeer.h: $(top_srcdir)/gnu/java/awt/peer/qt/QtMenuItemPeer.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.qt.QtMenuItemPeer
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_qt_QtButtonPeer.h: $(top_srcdir)/gnu/java/awt/peer/qt/QtButtonPeer.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.qt.QtButtonPeer
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_qt_QtWindowPeer.h: $(top_srcdir)/gnu/java/awt/peer/qt/QtWindowPeer.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.qt.QtWindowPeer
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_qt_QtDialogPeer.h: $(top_srcdir)/gnu/java/awt/peer/qt/QtDialogPeer.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.qt.QtDialogPeer
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_qt_QtImage.h: $(top_srcdir)/gnu/java/awt/peer/qt/QtImage.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.qt.QtImage
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_qt_QtMenuBarPeer.h: $(top_srcdir)/gnu/java/awt/peer/qt/QtMenuBarPeer.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.qt.QtMenuBarPeer
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_qt_QtVolatileImage.h: $(top_srcdir)/gnu/java/awt/peer/qt/QtVolatileImage.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.qt.QtVolatileImage
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_qt_QtFontPeer.h: $(top_srcdir)/gnu/java/awt/peer/qt/QtFontPeer.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.qt.QtFontPeer
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_qt_QtChoicePeer.h: $(top_srcdir)/gnu/java/awt/peer/qt/QtChoicePeer.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.qt.QtChoicePeer
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_qt_QtGraphics.h: $(top_srcdir)/gnu/java/awt/peer/qt/QtGraphics.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.qt.QtGraphics
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_qt_QtComponentPeer.h: $(top_srcdir)/gnu/java/awt/peer/qt/QtComponentPeer.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.qt.QtComponentPeer
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_qt_QtMenuPeer.h: $(top_srcdir)/gnu/java/awt/peer/qt/QtMenuPeer.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.qt.QtMenuPeer
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_qt_QtTextAreaPeer.h: $(top_srcdir)/gnu/java/awt/peer/qt/QtTextAreaPeer.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.qt.QtTextAreaPeer
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_qt_QPen.h: $(top_srcdir)/gnu/java/awt/peer/qt/QPen.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.qt.QPen
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_qt_QtPanelPeer.h: $(top_srcdir)/gnu/java/awt/peer/qt/QtPanelPeer.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.qt.QtPanelPeer
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_qt_QPainterPath.h: $(top_srcdir)/gnu/java/awt/peer/qt/QPainterPath.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.qt.QPainterPath
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_qt_QtFontMetrics.h: $(top_srcdir)/gnu/java/awt/peer/qt/QtFontMetrics.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.qt.QtFontMetrics
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_qt_QtScrollPanePeer.h: $(top_srcdir)/gnu/java/awt/peer/qt/QtScrollPanePeer.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.qt.QtScrollPanePeer
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_qt_QMatrix.h: $(top_srcdir)/gnu/java/awt/peer/qt/QMatrix.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.qt.QMatrix
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_qt_QtLabelPeer.h: $(top_srcdir)/gnu/java/awt/peer/qt/QtLabelPeer.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.qt.QtLabelPeer
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_qt_QtPopupMenuPeer.h: $(top_srcdir)/gnu/java/awt/peer/qt/QtPopupMenuPeer.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.qt.QtPopupMenuPeer
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_qt_QtFramePeer.h: $(top_srcdir)/gnu/java/awt/peer/qt/QtFramePeer.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.qt.QtFramePeer
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_qt_QtListPeer.h: $(top_srcdir)/gnu/java/awt/peer/qt/QtListPeer.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.qt.QtListPeer
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_qt_QtScrollbarPeer.h: $(top_srcdir)/gnu/java/awt/peer/qt/QtScrollbarPeer.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.qt.QtScrollbarPeer
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_qt_QtCanvasPeer.h: $(top_srcdir)/gnu/java/awt/peer/qt/QtCanvasPeer.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.qt.QtCanvasPeer
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_qt_QtMenuComponentPeer.h: $(top_srcdir)/gnu/java/awt/peer/qt/QtMenuComponentPeer.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.qt.QtMenuComponentPeer
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_qt_MainQtThread.h: $(top_srcdir)/gnu/java/awt/peer/qt/MainQtThread.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.qt.MainQtThread
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_qt_QtFileDialogPeer.h: $(top_srcdir)/gnu/java/awt/peer/qt/QtFileDialogPeer.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.qt.QtFileDialogPeer
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_awt_peer_qt_QtEmbeddedWindowPeer.h: $(top_srcdir)/gnu/java/awt/peer/qt/QtEmbeddedWindowPeer.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.awt.peer.qt.QtEmbeddedWindowPeer
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_javax_sound_midi_alsa_AlsaPortDevice.h: $(top_srcdir)/gnu/javax/sound/midi/alsa/AlsaPortDevice.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.javax.sound.midi.alsa.AlsaPortDevice
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_javax_sound_midi_alsa_AlsaMidiSequencerDevice.h: $(top_srcdir)/gnu/javax/sound/midi/alsa/AlsaMidiSequencerDevice.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.javax.sound.midi.alsa.AlsaMidiSequencerDevice
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_javax_sound_midi_alsa_AlsaMidiDeviceProvider.h: $(top_srcdir)/gnu/javax/sound/midi/alsa/AlsaMidiDeviceProvider.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.javax.sound.midi.alsa.AlsaMidiDeviceProvider
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_javax_sound_midi_dssi_DSSIMidiDeviceProvider.h: $(top_srcdir)/gnu/javax/sound/midi/dssi/DSSIMidiDeviceProvider.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.javax.sound.midi.dssi.DSSIMidiDeviceProvider
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_javax_sound_midi_dssi_DSSISynthesizer.h: $(top_srcdir)/gnu/javax/sound/midi/dssi/DSSISynthesizer.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.javax.sound.midi.dssi.DSSISynthesizer
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_util_prefs_gconf_GConfNativePeer.h: $(top_srcdir)/gnu/java/util/prefs/gconf/GConfNativePeer.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.util.prefs.gconf.GConfNativePeer
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_javax_sound_sampled_gstreamer_io_GstAudioFileReaderNativePeer.h: $(top_builddir)/gnu/javax/sound/sampled/gstreamer/io/GstAudioFileReaderNativePeer.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.javax.sound.sampled.gstreamer.io.GstAudioFileReaderNativePeer
 @CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_net_VMPlainSocketImpl.h: $(top_srcdir)/vm/reference/gnu/java/net/VMPlainSocketImpl.java
 @CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.net.VMPlainSocketImpl
 @CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_net_local_LocalSocketImpl.h: $(top_srcdir)/gnu/java/net/local/LocalSocketImpl.java
@@ -651,6 +856,8 @@ uninstall-am: uninstall-info-am
 @CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.nio.VMPipe
 @CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_nio_VMSelector.h: $(top_srcdir)/vm/reference/gnu/java/nio/VMSelector.java
 @CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.nio.VMSelector
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_lang_management_VMOperatingSystemMXBeanImpl.h: $(top_srcdir)/vm/reference/gnu/java/lang/management/VMOperatingSystemMXBeanImpl.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.lang.management.VMOperatingSystemMXBeanImpl
 @CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/java_io_VMFile.h: $(top_srcdir)/vm/reference/java/io/VMFile.java
 @CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ java.io.VMFile
 @CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/java_io_VMObjectInputStream.h: $(top_srcdir)/vm/reference/java/io/VMObjectInputStream.java
@@ -675,12 +882,21 @@ uninstall-am: uninstall-info-am
 @CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ java.net.VMNetworkInterface
 @CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/java_net_VMURLConnection.h: $(top_srcdir)/vm/reference/java/net/VMURLConnection.java
 @CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ java.net.VMURLConnection
+
 @CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/java_nio_VMDirectByteBuffer.h: $(top_srcdir)/vm/reference/java/nio/VMDirectByteBuffer.java
 @CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ java.nio.VMDirectByteBuffer
 @CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/java_nio_MappedByteBufferImpl.h: $(top_srcdir)/java/nio/MappedByteBufferImpl.java
 @CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ java.nio.MappedByteBufferImpl
-@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_nio_channels_FileChannelImpl.h: $(top_srcdir)/gnu/java/nio/channels/FileChannelImpl.java
-@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.nio.channels.FileChannelImpl
+
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_nio_FileChannelImpl.h: $(top_srcdir)/gnu/java/nio/FileChannelImpl.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.nio.FileChannelImpl
+
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_nio_KqueueSelectorImpl.h: $(top_srcdir)/gnu/java/nio/KqueueSelectorImpl.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.nio.KqueueSelectorImpl
+
+@CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_nio_EpollSelectorImpl.h: $(top_srcdir)/gnu/java/nio/EpollSelectorImpl.java
+@CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.nio.EpollSelectorImpl
+
 @CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_nio_charset_iconv_IconvDecoder.h: $(top_srcdir)/gnu/java/nio/charset/iconv/IconvDecoder.java
 @CREATE_JNI_HEADERS_TRUE@	$(JAVAH) -o $@ gnu.java.nio.charset.iconv.IconvDecoder
 @CREATE_JNI_HEADERS_TRUE@$(top_srcdir)/include/gnu_java_nio_charset_iconv_IconvEncoder.h: $(top_srcdir)/gnu/java/nio/charset/iconv/IconvEncoder.java

@@ -7,7 +7,7 @@
 --                                  B o d y                                 --
 --                                                                          --
 --             Copyright (C) 1991-1994, Florida State University            --
---                     Copyright (C) 1995-2005, AdaCore                     --
+--                     Copyright (C) 1995-2006, AdaCore                     --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -40,6 +40,7 @@ with System.Task_Primitives.Operations;
 --  used for Write_Lock
 --           Unlock
 --           Self
+--           Set_Ceiling
 
 with System.Parameters;
 --  used for Runtime_Traces
@@ -54,6 +55,13 @@ package body System.Tasking.Protected_Objects is
 
    use System.Task_Primitives.Operations;
    use System.Traces;
+
+   ----------------
+   -- Local Data --
+   ----------------
+
+   Locking_Policy : Character;
+   pragma Import (C, Locking_Policy, "__gl_locking_policy");
 
    -------------------------
    -- Finalize_Protection --
@@ -81,8 +89,19 @@ package body System.Tasking.Protected_Objects is
 
       Initialize_Lock (Init_Priority, Object.L'Access);
       Object.Ceiling := System.Any_Priority (Init_Priority);
+      Object.New_Ceiling := System.Any_Priority (Init_Priority);
       Object.Owner := Null_Task;
    end Initialize_Protection;
+
+   -----------------
+   -- Get_Ceiling --
+   -----------------
+
+   function Get_Ceiling
+     (Object : Protection_Access) return System.Any_Priority is
+   begin
+      return Object.New_Ceiling;
+   end Get_Ceiling;
 
    ----------
    -- Lock --
@@ -199,6 +218,17 @@ package body System.Tasking.Protected_Objects is
       end if;
    end Lock_Read_Only;
 
+   -----------------
+   -- Set_Ceiling --
+   -----------------
+
+   procedure Set_Ceiling
+     (Object : Protection_Access;
+      Prio   : System.Any_Priority) is
+   begin
+      Object.New_Ceiling := Prio;
+   end Set_Ceiling;
+
    ------------
    -- Unlock --
    ------------
@@ -231,6 +261,18 @@ package body System.Tasking.Protected_Objects is
             Self_Id.Common.Protected_Action_Nesting :=
               Self_Id.Common.Protected_Action_Nesting - 1;
          end;
+      end if;
+
+      --  Before releasing the mutex we must actually update its ceiling
+      --  priority if it has been changed.
+
+      if Object.New_Ceiling /= Object.Ceiling then
+         if Locking_Policy = 'C' then
+            System.Task_Primitives.Operations.Set_Ceiling
+              (Object.L'Access, Object.New_Ceiling);
+         end if;
+
+         Object.Ceiling := Object.New_Ceiling;
       end if;
 
       Unlock (Object.L'Access);

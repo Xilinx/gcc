@@ -127,9 +127,6 @@ struct language_function GTY(())
 static bool tree_mark_addressable (tree exp);
 static tree tree_lang_type_for_size (unsigned precision, int unsignedp);
 static tree tree_lang_type_for_mode (enum machine_mode mode, int unsignedp);
-static tree tree_lang_unsigned_type (tree type_node);
-static tree tree_lang_signed_type (tree type_node);
-static tree tree_lang_signed_or_unsigned_type (int unsignedp, tree type);
 
 /* Functions to keep track of the current scope.  */
 static void pushlevel (int ignore);
@@ -138,17 +135,12 @@ static tree pushdecl (tree decl);
 static tree* getstmtlist (void);
 
 /* Langhooks.  */
-static tree builtin_function (const char *name, tree type, int function_code,
-			      enum built_in_class class,
-			      const char *library_name,
-			      tree attrs);
 extern const struct attribute_spec treelang_attribute_table[];
 static tree getdecls (void);
 static int global_bindings_p (void);
 static void insert_block (tree);
 
 static void tree_push_type_decl (tree id, tree type_node);
-static void treelang_expand_function (tree fndecl);
 
 /* The front end language hooks (addresses of code for this front
    end).  These are not really very language-dependent, i.e.
@@ -156,12 +148,6 @@ static void treelang_expand_function (tree fndecl);
 
 #undef LANG_HOOKS_MARK_ADDRESSABLE
 #define LANG_HOOKS_MARK_ADDRESSABLE tree_mark_addressable
-#undef LANG_HOOKS_SIGNED_TYPE
-#define LANG_HOOKS_SIGNED_TYPE tree_lang_signed_type
-#undef LANG_HOOKS_UNSIGNED_TYPE
-#define LANG_HOOKS_UNSIGNED_TYPE tree_lang_unsigned_type
-#undef LANG_HOOKS_SIGNED_OR_UNSIGNED_TYPE
-#define LANG_HOOKS_SIGNED_OR_UNSIGNED_TYPE tree_lang_signed_or_unsigned_type
 #undef LANG_HOOKS_TYPE_FOR_MODE
 #define LANG_HOOKS_TYPE_FOR_MODE tree_lang_type_for_mode
 #undef LANG_HOOKS_TYPE_FOR_SIZE
@@ -170,9 +156,6 @@ static void treelang_expand_function (tree fndecl);
 #define LANG_HOOKS_PARSE_FILE treelang_parse_file
 #undef LANG_HOOKS_ATTRIBUTE_TABLE
 #define LANG_HOOKS_ATTRIBUTE_TABLE treelang_attribute_table
-
-#undef LANG_HOOKS_CALLGRAPH_EXPAND_FUNCTION
-#define LANG_HOOKS_CALLGRAPH_EXPAND_FUNCTION treelang_expand_function
 
 /* #undef LANG_HOOKS_TYPES_COMPATIBLE_P
 #define LANG_HOOKS_TYPES_COMPATIBLE_P hook_bool_tree_tree_true
@@ -312,7 +295,7 @@ tree_code_if_end (location_t loc ATTRIBUTE_UNUSED)
    is PARMS, returns decl for this function.  */
 
 tree
-tree_code_create_function_prototype (unsigned char* chars,
+tree_code_create_function_prototype (const unsigned char *chars,
 				     unsigned int storage_class,
 				     unsigned int ret_type,
 				     struct prod_token_parm_item* parms,
@@ -474,7 +457,7 @@ tree_code_create_function_wrapup (location_t loc)
                                       BLOCK_VARS (block),
 			              stmts, block);
 
-  allocate_struct_function (fn_decl);
+  allocate_struct_function (fn_decl, false);
   cfun->function_end_locus = loc;
 
   /* Dump the original tree to a file.  */
@@ -486,7 +469,7 @@ tree_code_create_function_wrapup (location_t loc)
 
   /* We are not inside of any scope now.  */
   current_function_decl = NULL_TREE;
-  cfun = NULL;
+  set_cfun (NULL);
 
   /* Pass the current function off to the middle end.  */
   (void)cgraph_node (fn_decl);
@@ -502,7 +485,7 @@ tree_code_create_function_wrapup (location_t loc)
 
 tree
 tree_code_create_variable (unsigned int storage_class,
-			   unsigned char* chars,
+			   const unsigned char *chars,
 			   unsigned int length,
 			   unsigned int expression_type,
 			   tree init,
@@ -588,13 +571,13 @@ tree_code_generate_return (tree type, tree exp)
                             fold_convert (type, exp));
       TREE_SIDE_EFFECTS (setret) = 1;
       TREE_USED (setret) = 1;
-      setret = build1 (RETURN_EXPR, type, setret);
+      setret = build1 (RETURN_EXPR, void_type_node, setret);
       /* Use EXPR_LOCUS so we don't lose any information about the file we
 	 are compiling.  */
       SET_EXPR_LOCUS (setret, EXPR_LOCUS (exp));
     }
    else
-     setret = build1 (RETURN_EXPR, type, NULL_TREE);
+     setret = build1 (RETURN_EXPR, void_type_node, NULL_TREE);
 
    append_to_statement_list_force (setret, getstmtlist ());
 }
@@ -617,7 +600,7 @@ tree_code_output_expression_statement (tree code, location_t loc)
    size checking is done.  */
 
 tree
-tree_code_get_integer_value (unsigned char* chars, unsigned int length)
+tree_code_get_integer_value (const unsigned char *chars, unsigned int length)
 {
   long long int val = 0;
   unsigned int ix;
@@ -872,33 +855,6 @@ tree_lang_type_for_mode (enum machine_mode mode, int unsignedp)
     return NULL_TREE;
 }
 
-/* Return the unsigned version of a TYPE_NODE, a scalar type.  */
-
-static tree
-tree_lang_unsigned_type (tree type_node)
-{
-  return tree_lang_type_for_size (TYPE_PRECISION (type_node), 1);
-}
-
-/* Return the signed version of a TYPE_NODE, a scalar type.  */
-
-static tree
-tree_lang_signed_type (tree type_node)
-{
-  return tree_lang_type_for_size (TYPE_PRECISION (type_node), 0);
-}
-
-/* Return a type the same as TYPE except unsigned or signed according to
-   UNSIGNEDP.  */
-
-static tree
-tree_lang_signed_or_unsigned_type (int unsignedp, tree type)
-{
-  if (! INTEGRAL_TYPE_P (type) || TYPE_UNSIGNED (type) == unsignedp)
-    return type;
-  else
-    return tree_lang_type_for_size (TYPE_PRECISION (type), unsignedp);
-}
 
 /* These functions and variables deal with binding contours.  We only
    need these functions for the list of PARM_DECLs, but we leave the
@@ -1223,50 +1179,6 @@ const struct attribute_spec treelang_attribute_table[] =
   { "nothrow", 0, 0, true, false, false, handle_attribute },
   { NULL, 0, 0, false, false, false, NULL },
 };
-
-/* Return a definition for a builtin function named NAME and whose data type
-   is TYPE.  TYPE should be a function type with argument types.
-   FUNCTION_CODE tells later passes how to compile calls to this function.
-   See tree.h for its possible values.
-
-   If LIBRARY_NAME is nonzero, use that for DECL_ASSEMBLER_NAME,
-   the name to be called if we can't opencode the function.  If
-   ATTRS is nonzero, use that for the function's attribute list.
-
-   copied from gcc/c-decl.c
-*/
-
-static tree
-builtin_function (const char *name, tree type, int function_code,
-		  enum built_in_class class, const char *library_name,
-		  tree attrs)
-{
-  tree decl = build_decl (FUNCTION_DECL, get_identifier (name), type);
-  DECL_EXTERNAL (decl) = 1;
-  TREE_PUBLIC (decl) = 1;
-  if (library_name)
-    SET_DECL_ASSEMBLER_NAME (decl, get_identifier (library_name));
-  pushdecl (decl);
-  DECL_BUILT_IN_CLASS (decl) = class;
-  DECL_FUNCTION_CODE (decl) = function_code;
-
-  /* Possibly apply some default attributes to this built-in function.  */
-  if (attrs)
-    decl_attributes (&decl, attrs, ATTR_FLAG_BUILT_IN);
-  else
-    decl_attributes (&decl, NULL_TREE, 0);
-
-  return decl;
-}
-
-/* Treelang expand function langhook.  */
-
-static void
-treelang_expand_function (tree fndecl)
-{
-  /* We have nothing special to do while expanding functions for treelang.  */
-  tree_rest_of_compilation (fndecl);
-}
 
 #include "debug.h" /* for debug_hooks, needed by gt-treelang-treetree.h */
 #include "gt-treelang-treetree.h"

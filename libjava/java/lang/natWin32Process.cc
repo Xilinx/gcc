@@ -1,6 +1,6 @@
 // natWin32Process.cc - Native side of Win32 process code.
 
-/* Copyright (C) 2003  Free Software Foundation
+/* Copyright (C) 2003, 2006, 2007  Free Software Foundation
 
    This file is part of libgcj.
 
@@ -14,7 +14,7 @@ details.  */
 // Conflicts with the definition in "java/lang/reflect/Modifier.h"
 #undef STRICT
 
-#include <java/lang/ConcreteProcess.h>
+#include <java/lang/Win32Process.h>
 #include <java/lang/IllegalThreadStateException.h>
 #include <java/lang/InterruptedException.h>
 #include <java/lang/NullPointerException.h>
@@ -25,12 +25,13 @@ details.  */
 #include <java/io/FileOutputStream.h>
 #include <java/io/IOException.h>
 #include <java/lang/OutOfMemoryError.h>
+#include <java/lang/Win32Process$EOFInputStream.h>
 #include <gnu/java/nio/channels/FileChannelImpl.h>
 
 using gnu::java::nio::channels::FileChannelImpl;
 
 void
-java::lang::ConcreteProcess::cleanup (void)
+java::lang::Win32Process::cleanup (void)
 {
   // FIXME:
   // We used to close the input, output and
@@ -42,7 +43,7 @@ java::lang::ConcreteProcess::cleanup (void)
   // to the POSIX approach.
   //
   // What I wanted to do is have private nested
-  // classes in ConcreteProcess which extend FileInputStream
+  // classes in Win32Process which extend FileInputStream
   // and FileOutputStream, respectively, but override
   // close() to permit multiple calls to close(). This
   // led to class header and platform configury issues
@@ -63,7 +64,7 @@ java::lang::ConcreteProcess::cleanup (void)
 }
 
 void
-java::lang::ConcreteProcess::destroy (void)
+java::lang::Win32Process::destroy (void)
 {
   if (! hasExited ())
     {
@@ -76,7 +77,7 @@ java::lang::ConcreteProcess::destroy (void)
 }
 
 jboolean
-java::lang::ConcreteProcess::hasExited (void)
+java::lang::Win32Process::hasExited (void)
 {
   DWORD exitStatus;
 
@@ -100,7 +101,7 @@ java::lang::ConcreteProcess::hasExited (void)
 }
 
 jint
-java::lang::ConcreteProcess::waitFor (void)
+java::lang::Win32Process::waitFor (void)
 {
   if (! hasExited ())
     {
@@ -146,7 +147,7 @@ class ChildProcessPipe
 public:
   // Indicates from the child process' point of view
   // whether the pipe is for reading or writing.
-  enum EType {INPUT, OUTPUT};
+  enum EType {INPUT, OUTPUT, DUMMY};
 
   ChildProcessPipe(EType eType);
   ~ChildProcessPipe();
@@ -163,8 +164,11 @@ private:
 };
 
 ChildProcessPipe::ChildProcessPipe(EType eType):
-  m_eType(eType)
+  m_eType(eType), m_hRead(0), m_hWrite(0)
 {
+  if (eType == DUMMY)
+    return;
+  
   SECURITY_ATTRIBUTES sAttrs;
 
   // Explicitly allow the handles to the pipes to be inherited.
@@ -195,7 +199,8 @@ ChildProcessPipe::~ChildProcessPipe()
   // Close the parent end of the pipe. This
   // destructor is called after the child process
   // has been spawned.
-  CloseHandle(getChildHandle());
+  if (m_eType != DUMMY)
+    CloseHandle(getChildHandle());
 }
 
 HANDLE ChildProcessPipe::getParentHandle()
@@ -209,9 +214,10 @@ HANDLE ChildProcessPipe::getChildHandle()
 }
 
 void
-java::lang::ConcreteProcess::startProcess (jstringArray progarray,
-                                           jstringArray envp,
-                                           java::io::File *dir)
+java::lang::Win32Process::startProcess (jstringArray progarray,
+					jstringArray envp,
+					java::io::File *dir,
+					jboolean redirect)
 {
   using namespace java::io;
 
@@ -240,10 +246,8 @@ java::lang::ConcreteProcess::startProcess (jstringArray progarray,
     }
   *cmdLineCurPos = _T('\0');
 
-  // Get the environment, if any. Unconditionally
-  // create a UNICODE environment, even on ANSI
-  // builds.
-  LPWSTR env = NULL;
+  // Get the environment, if any.
+  LPTSTR env = NULL;
   if (envp)
     {
       elts = elements (envp);
@@ -252,22 +256,22 @@ java::lang::ConcreteProcess::startProcess (jstringArray progarray,
       for (int i = 0; i < envp->length; ++i)
         envLen += (elts[i]->length() + 1);
 
-      env = (LPWSTR) _Jv_Malloc ((envLen + 1) * sizeof(WCHAR));
+      env = (LPTSTR) _Jv_Malloc ((envLen + 1) * sizeof(TCHAR));
 
       int j = 0;
       for (int i = 0; i < envp->length; ++i)
         {
-          jstring elt = elts[i];
-          jint len = elt->length();
+          jint len = elts[i]->length();
           
-          wcsncpy(env + j, (LPCWSTR) JvGetStringChars(elt), len);
+          JV_TEMP_STRING_WIN32(thiselt, elts[i]);
+          _tcscpy(env + j, thiselt);
           
           j += len;
           
-          // Insert the null terminator and skip past it.
-          env[j++] = 0;
+          // Skip past the null terminator that _tcscpy just inserted.
+          j++;
         }
-      *(env + j) = 0;
+      *(env + j) = _T('\0');
     }
 
   // Get the working directory path, if specified.
@@ -285,7 +289,8 @@ java::lang::ConcreteProcess::startProcess (jstringArray progarray,
       // on each of standard streams.
       ChildProcessPipe aChildStdIn(ChildProcessPipe::INPUT);
       ChildProcessPipe aChildStdOut(ChildProcessPipe::OUTPUT);
-      ChildProcessPipe aChildStdErr(ChildProcessPipe::OUTPUT);
+      ChildProcessPipe aChildStdErr(redirect ? ChildProcessPipe::DUMMY
+				    : ChildProcessPipe::OUTPUT);
 
       outputStream = new FileOutputStream (new FileChannelImpl (
                            (jint) aChildStdIn.getParentHandle (),
@@ -293,7 +298,10 @@ java::lang::ConcreteProcess::startProcess (jstringArray progarray,
       inputStream = new FileInputStream (new FileChannelImpl (
                            (jint) aChildStdOut.getParentHandle (),
 			   FileChannelImpl::READ));
-      errorStream = new FileInputStream (new FileChannelImpl (
+      if (redirect)
+        errorStream = Win32Process$EOFInputStream::instance;
+      else
+        errorStream = new FileInputStream (new FileChannelImpl (
                            (jint) aChildStdErr.getParentHandle (),
 			   FileChannelImpl::READ));
 
@@ -311,7 +319,8 @@ java::lang::ConcreteProcess::startProcess (jstringArray progarray,
 
       si.hStdInput = aChildStdIn.getChildHandle();
       si.hStdOutput = aChildStdOut.getChildHandle();
-      si.hStdError = aChildStdErr.getChildHandle();
+      si.hStdError = redirect ? aChildStdOut.getChildHandle()
+                              : aChildStdErr.getChildHandle();
 
       // Spawn the process. CREATE_NO_WINDOW only applies when
       // starting a console application; it suppresses the

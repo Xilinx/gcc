@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2006 Free Software Foundation, Inc.          --
+--          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -33,34 +33,33 @@
 
 with System.Soft_Links;
 
-with Unchecked_Conversion;
+with Ada.Unchecked_Conversion;
 
 package body System.Pool_Size is
 
    package SSE renames System.Storage_Elements;
    use type SSE.Storage_Offset;
 
-   --  Even though these storage pools are typically only used
-   --  by a single task, if multiple tasks are declared at the
-   --  same or a more nested scope as the storage pool, there
-   --  still may be concurrent access. The current implementation
-   --  of Stack_Bounded_Pool always uses a global lock for protecting
-   --  access. This should eventually be replaced by an atomic
+   --  Even though these storage pools are typically only used by a single
+   --  task, if multiple tasks are declared at the same or a more nested scope
+   --  as the storage pool, there still may be concurrent access. The current
+   --  implementation of Stack_Bounded_Pool always uses a global lock for
+   --  protecting access. This should eventually be replaced by an atomic
    --  linked list implementation for efficiency reasons.
 
    package SSL renames System.Soft_Links;
 
    type Storage_Count_Access is access SSE.Storage_Count;
    function To_Storage_Count_Access is
-     new Unchecked_Conversion (Address, Storage_Count_Access);
+     new Ada.Unchecked_Conversion (Address, Storage_Count_Access);
 
    SC_Size : constant :=  SSE.Storage_Count'Object_Size / System.Storage_Unit;
 
    package Variable_Size_Management is
 
-      --  Embedded pool that manages allocation of variable-size data.
+      --  Embedded pool that manages allocation of variable-size data
 
-      --  This pool is used as soon as the Elmt_sizS of the pool object is 0.
+      --  This pool is used as soon as the Elmt_sizS of the pool object is 0
 
       --  Allocation is done on the first chunk long enough for the request.
       --  Deallocation just puts the freed chunk at the beginning of the list.
@@ -302,6 +301,8 @@ package body System.Pool_Size is
          Storage_Size : SSE.Storage_Count;
          Alignment    : SSE.Storage_Count)
       is
+         pragma Warnings (Off, Pool);
+
          Align_Size : constant SSE.Storage_Count :=
                         ((Storage_Size + Alignment - 1) / Alignment) *
                                                                  Alignment;

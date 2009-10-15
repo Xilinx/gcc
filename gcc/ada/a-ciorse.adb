@@ -7,11 +7,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2004-2005, Free Software Foundation, Inc.         --
---                                                                          --
--- This specification is derived from the Ada Reference Manual for use with --
--- GNAT. The copyright notice above, and the license provisions that follow --
--- apply solely to the  contents of the part following the private keyword. --
+--          Copyright (C) 2004-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -968,7 +964,10 @@ package body Ada.Containers.Indefinite_Ordered_Sets is
 
    procedure Insert (Container : in out Set; New_Item  : Element_Type) is
       Position : Cursor;
+      pragma Unreferenced (Position);
+
       Inserted : Boolean;
+
    begin
       Insert (Container, New_Item, Position, Inserted);
 
@@ -1036,7 +1035,8 @@ package body Ada.Containers.Indefinite_Ordered_Sets is
       Src_Node : Node_Access;
       Dst_Node : out Node_Access)
    is
-      Success  : Boolean;
+      Success : Boolean;
+      pragma Unreferenced (Success);
 
       function New_Node return Node_Access;
 
@@ -1386,11 +1386,11 @@ package body Ada.Containers.Indefinite_Ordered_Sets is
    ----------
 
    procedure Read
-     (Stream    : access Root_Stream_Type'Class;
+     (Stream    : not null access Root_Stream_Type'Class;
       Container : out Set)
    is
       function Read_Node
-        (Stream : access Root_Stream_Type'Class) return Node_Access;
+        (Stream : not null access Root_Stream_Type'Class) return Node_Access;
       pragma Inline (Read_Node);
 
       procedure Read is
@@ -1401,7 +1401,7 @@ package body Ada.Containers.Indefinite_Ordered_Sets is
       ---------------
 
       function Read_Node
-        (Stream : access Root_Stream_Type'Class) return Node_Access
+        (Stream : not null access Root_Stream_Type'Class) return Node_Access
       is
          Node : Node_Access := new Node_Type;
 
@@ -1422,7 +1422,7 @@ package body Ada.Containers.Indefinite_Ordered_Sets is
    end Read;
 
    procedure Read
-     (Stream : access Root_Stream_Type'Class;
+     (Stream : not null access Root_Stream_Type'Class;
       Item   : out Cursor)
    is
    begin
@@ -1438,6 +1438,7 @@ package body Ada.Containers.Indefinite_Ordered_Sets is
                Element_Keys.Find (Container.Tree, New_Item);
 
       X : Element_Access;
+      pragma Warnings (Off, X);
 
    begin
       if Node = null then
@@ -1463,121 +1464,100 @@ package body Ada.Containers.Indefinite_Ordered_Sets is
       Node : Node_Access;
       Item : Element_Type)
    is
+      pragma Assert (Node /= null);
+      pragma Assert (Node.Element /= null);
+
+      function New_Node return Node_Access;
+      pragma Inline (New_Node);
+
+      procedure Local_Insert_Post is
+         new Element_Keys.Generic_Insert_Post (New_Node);
+
+      procedure Local_Insert_Sans_Hint is
+         new Element_Keys.Generic_Conditional_Insert (Local_Insert_Post);
+
+      procedure Local_Insert_With_Hint is
+         new Element_Keys.Generic_Conditional_Insert_With_Hint
+        (Local_Insert_Post,
+         Local_Insert_Sans_Hint);
+
+      --------------
+      -- New_Node --
+      --------------
+
+      function New_Node return Node_Access is
+      begin
+         Node.Element := new Element_Type'(Item);  -- OK if fails
+         Node.Color := Red;
+         Node.Parent := null;
+         Node.Right := null;
+         Node.Left := null;
+
+         return Node;
+      end New_Node;
+
+      Hint     : Node_Access;
+      Result   : Node_Access;
+      Inserted : Boolean;
+
+      X : Element_Access := Node.Element;
+
+      --  Start of processing for Insert
+
    begin
       if Item < Node.Element.all
         or else Node.Element.all < Item
       then
          null;
+
       else
          if Tree.Lock > 0 then
             raise Program_Error with
               "attempt to tamper with cursors (set is locked)";
          end if;
 
-         declare
-            X : Element_Access := Node.Element;
-         begin
-            Node.Element := new Element_Type'(Item);
-            Free_Element (X);
-         end;
+         Node.Element := new Element_Type'(Item);
+         Free_Element (X);
 
          return;
       end if;
 
-      Tree_Operations.Delete_Node_Sans_Free (Tree, Node);  -- Checks busy-bit
+      Hint := Element_Keys.Ceiling (Tree, Item);
 
-      Insert_New_Item : declare
-         function New_Node return Node_Access;
-         pragma Inline (New_Node);
+      if Hint = null then
+         null;
 
-         procedure Insert_Post is
-            new Element_Keys.Generic_Insert_Post (New_Node);
+      elsif Item < Hint.Element.all then
+         if Hint = Node then
+            if Tree.Lock > 0 then
+               raise Program_Error with
+                 "attempt to tamper with cursors (set is locked)";
+            end if;
 
-         procedure Insert is
-            new Element_Keys.Generic_Conditional_Insert (Insert_Post);
+            Node.Element := new Element_Type'(Item);
+            Free_Element (X);
 
-         --------------
-         -- New_Node --
-         --------------
-
-         function New_Node return Node_Access is
-         begin
-            Node.Element := new Element_Type'(Item);  -- OK if fails
-            Node.Color := Red;
-            Node.Parent := null;
-            Node.Right := null;
-            Node.Left := null;
-
-            return Node;
-         end New_Node;
-
-         Result   : Node_Access;
-         Inserted : Boolean;
-
-         X : Element_Access := Node.Element;
-
-      --  Start of processing for Insert_New_Item
-
-      begin
-         Attempt_Insert : begin
-            Insert
-              (Tree    => Tree,
-               Key     => Item,
-               Node    => Result,
-               Success => Inserted);  --  TODO: change name of formal param
-         exception
-            when others =>
-               Inserted := False;
-         end Attempt_Insert;
-
-         if Inserted then
-            pragma Assert (Result = Node);
-            Free_Element (X);  -- OK if fails
             return;
          end if;
-      end Insert_New_Item;
 
-      Reinsert_Old_Element : declare
-         function New_Node return Node_Access;
-         pragma Inline (New_Node);
+      else
+         pragma Assert (not (Hint.Element.all < Item));
+         raise Program_Error with "attempt to replace existing element";
+      end if;
 
-         procedure Insert_Post is
-            new Element_Keys.Generic_Insert_Post (New_Node);
+      Tree_Operations.Delete_Node_Sans_Free (Tree, Node);  -- Checks busy-bit
 
-         procedure Insert is
-            new Element_Keys.Generic_Conditional_Insert (Insert_Post);
+      Local_Insert_With_Hint
+        (Tree     => Tree,
+         Position => Hint,
+         Key      => Item,
+         Node     => Result,
+         Inserted => Inserted);
 
-         --------------
-         -- New_Node --
-         --------------
+      pragma Assert (Inserted);
+      pragma Assert (Result = Node);
 
-         function New_Node return Node_Access is
-         begin
-            Node.Color := Red;
-            Node.Parent := null;
-            Node.Right := null;
-            Node.Left := null;
-
-            return Node;
-         end New_Node;
-
-         Result   : Node_Access;
-         Inserted : Boolean;
-
-      --  Start of processing for Reinsert_Old_Element
-
-      begin
-         Insert
-           (Tree    => Tree,
-            Key     => Node.Element.all,
-            Node    => Result,
-            Success => Inserted);  --  TODO: change name of formal param
-      exception
-         when others =>
-            null;
-      end Reinsert_Old_Element;
-
-      raise Program_Error with "attempt to replace existing element";
+      Free_Element (X);
    end Replace_Element;
 
    procedure Replace_Element
@@ -1712,9 +1692,11 @@ package body Ada.Containers.Indefinite_Ordered_Sets is
    ------------
 
    function To_Set (New_Item : Element_Type) return Set is
-      Tree     : Tree_Type;
+      Tree : Tree_Type;
+
       Node     : Node_Access;
       Inserted : Boolean;
+      pragma Unreferenced (Node, Inserted);
 
    begin
       Insert_Sans_Hint (Tree, New_Item, Node, Inserted);
@@ -1742,11 +1724,11 @@ package body Ada.Containers.Indefinite_Ordered_Sets is
    -----------
 
    procedure Write
-     (Stream    : access Root_Stream_Type'Class;
+     (Stream    : not null access Root_Stream_Type'Class;
       Container : Set)
    is
       procedure Write_Node
-        (Stream : access Root_Stream_Type'Class;
+        (Stream : not null access Root_Stream_Type'Class;
          Node   : Node_Access);
       pragma Inline (Write_Node);
 
@@ -1758,7 +1740,7 @@ package body Ada.Containers.Indefinite_Ordered_Sets is
       ----------------
 
       procedure Write_Node
-        (Stream : access Root_Stream_Type'Class;
+        (Stream : not null access Root_Stream_Type'Class;
          Node   : Node_Access)
       is
       begin
@@ -1772,7 +1754,7 @@ package body Ada.Containers.Indefinite_Ordered_Sets is
    end Write;
 
    procedure Write
-     (Stream : access Root_Stream_Type'Class;
+     (Stream : not null access Root_Stream_Type'Class;
       Item   : Cursor)
    is
    begin

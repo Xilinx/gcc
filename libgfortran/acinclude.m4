@@ -11,7 +11,7 @@ AC_COMPILE_IFELSE([[
       end program foo]],
     [AC_MSG_RESULT([yes])],
     [AC_MSG_RESULT([no])
-     AC_MSG_ERROR([GNU Fortran is not working; the most common reason for that is that you might have linked it to shared GMP and/or MPFR libraries, and not set LD_LIBRARY_PATH accordingly. If you suspect any other reason, please report a bug in http://gcc.gnu.org/bugzilla, attaching $PWD/config.log])
+     AC_MSG_ERROR([GNU Fortran is not working; please report a bug in http://gcc.gnu.org/bugzilla, attaching $PWD/config.log])
     ])
 AC_LANG_POP([Fortran])
 ])
@@ -26,26 +26,6 @@ AC_DEFUN([AM_PROG_LIBTOOL])
 AC_DEFUN([AC_LIBTOOL_DLOPEN])
 AC_DEFUN([AC_PROG_LD])
 ])
-
-dnl Check whether the target is ILP32.
-AC_DEFUN([LIBGFOR_TARGET_ILP32], [
-  AC_CACHE_CHECK([whether the target is ILP32], target_ilp32, [
-  save_CFLAGS="$CFLAGS"
-  CFLAGS="-O2"
-  AC_TRY_LINK(,[
-if (sizeof(int) == 4 && sizeof(long) == 4 && sizeof(void *) == 4)
-  ;
-else
-  undefined_function ();
-               ],
-               target_ilp32=yes,
-               target_ilp32=no)
-  CFLAGS="$save_CFLAGS"])
-  if test $target_ilp32 = yes; then
-    AC_DEFINE(TARGET_ILP32, 1,
-      [Define to 1 if the target is ILP32.])
-  fi
-  ])
 
 dnl Check whether the target supports hidden visibility.
 AC_DEFUN([LIBGFOR_CHECK_ATTRIBUTE_VISIBILITY], [
@@ -128,7 +108,7 @@ AC_DEFUN([LIBGFOR_GTHREAD_WEAK], [
 	      [Define to 1 if the target supports #pragma weak])
   fi
   case "$host" in
-    *-*-darwin* | *-*-hpux* | *-*-cygwin*)
+    *-*-darwin* | *-*-hpux* | *-*-cygwin* | *-*-mingw* )
       AC_DEFINE(GTHREAD_USE_WEAK, 0,
 		[Define to 0 if the target shouldn't use #pragma weak])
       ;;
@@ -384,5 +364,33 @@ AC_DEFUN([LIBGFOR_CHECK_FPSETMASK], [
   ])
   if test x"$have_fpsetmask" = xyes; then
     AC_DEFINE(HAVE_FPSETMASK, 1, [Define if you have fpsetmask.])
+  fi
+])
+
+dnl Check whether we have a mingw that provides a __mingw_snprintf function
+AC_DEFUN([LIBGFOR_CHECK_MINGW_SNPRINTF], [
+  AC_CACHE_CHECK([whether __mingw_snprintf is present], have_mingw_snprintf, [
+    AC_TRY_LINK([
+#include <stdio.h>
+extern int __mingw_snprintf (char *, size_t, const char *, ...);
+],[
+__mingw_snprintf (NULL, 0, "%d\n", 1);
+],
+    eval "have_mingw_snprintf=yes", eval "have_mingw_snprintf=no")
+  ])
+  if test x"$have_mingw_snprintf" = xyes; then
+    AC_DEFINE(HAVE_MINGW_SNPRINTF, 1, [Define if you have __mingw_snprintf.])
+  fi
+])
+
+dnl Check whether we have a broken powf implementation
+AC_DEFUN([LIBGFOR_CHECK_FOR_BROKEN_POWF], [
+  AC_CACHE_CHECK([whether powf is broken], libgfor_cv_have_broken_powf, [
+case "${target}" in
+  hppa*64*-*-hpux*) libgfor_cv_have_broken_powf=yes ;;
+  *) libgfor_cv_have_broken_powf=no;;
+esac])
+  if test x"$libgfor_cv_have_broken_powf" = xyes; then
+    AC_DEFINE(HAVE_BROKEN_POWF, 1, [Define if powf is broken.])
   fi
 ])

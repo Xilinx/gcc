@@ -6,18 +6,17 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1998-2006, Free Software Foundation, Inc.         --
+--          Copyright (C) 1998-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -53,7 +52,7 @@ package body Xref_Lib is
    --  the .ali files
 
    procedure Parse_EOL
-     (Source                 : access String;
+     (Source                 : not null access String;
       Ptr                    : in out Positive;
       Skip_Continuation_Line : Boolean := False);
    --  On return Source (Ptr) is the first character of the next line
@@ -98,7 +97,7 @@ package body Xref_Lib is
    --  The entity will never be reported as unreferenced by gnatxref -u
 
    procedure Parse_Token
-     (Source    : access String;
+     (Source    : not null access String;
       Ptr       : in out Positive;
       Token_Ptr : out Positive);
    --  Skips any separators and stores the start of the token in Token_Ptr.
@@ -107,7 +106,7 @@ package body Xref_Lib is
    --  and ASCII.HT. Parse_Token will never skip to the next line.
 
    procedure Parse_Number
-     (Source : access String;
+     (Source : not null access String;
       Ptr    : in out Positive;
       Number : out Natural);
    --  Skips any separators and parses Source upto the first character that
@@ -136,12 +135,14 @@ package body Xref_Lib is
       Entity  : String;
       Glob    : Boolean := False)
    is
-      File_Start  : Natural;
-      Line_Start  : Natural;
-      Col_Start   : Natural;
-      Line_Num    : Natural := 0;
-      Col_Num     : Natural := 0;
-      File_Ref    : File_Reference := Empty_File;
+      File_Start : Natural;
+      Line_Start : Natural;
+      Col_Start  : Natural;
+      Line_Num   : Natural := 0;
+      Col_Num    : Natural := 0;
+
+      File_Ref : File_Reference := Empty_File;
+      pragma Warnings (Off, File_Ref);
 
    begin
       --  Find the end of the first item in Entity (pattern or file?)
@@ -275,7 +276,9 @@ package body Xref_Lib is
         Add_To_Xref_File
           (Entity (File_Start .. Line_Start - 1), Visited => True);
       Pattern.File_Ref := File_Ref;
+
       Add_Line (Pattern.File_Ref, Line_Num, Col_Num);
+
       File_Ref :=
         Add_To_Xref_File
           (ALI_File_Name (Entity (File_Start .. Line_Start - 1)),
@@ -519,6 +522,7 @@ package body Xref_Lib is
          when 'd' => return Param_String & "decimal object";
          when 'e' => return Param_String & "enumeration object";
          when 'f' => return Param_String & "float object";
+         when 'h' => return "interface";
          when 'i' => return Param_String & "integer object";
          when 'm' => return Param_String & "modular object";
          when 'o' => return Param_String & "fixed object";
@@ -666,6 +670,7 @@ package body Xref_Lib is
       Dependencies : Boolean := False)
    is
       Ali : String_Access renames File.Buffer;
+      pragma Warnings (Off, Ali);
 
    begin
       if File.Buffer /= null then
@@ -690,7 +695,7 @@ package body Xref_Lib is
    ---------------
 
    procedure Parse_EOL
-     (Source                 : access String;
+     (Source                 : not null access String;
       Ptr                    : in out Positive;
       Skip_Continuation_Line : Boolean := False)
    is
@@ -1035,6 +1040,8 @@ package body Xref_Lib is
       elsif Ali (Ptr) = '=' then
          declare
             P_Line, P_Column : Natural;
+            pragma Warnings (Off, P_Line);
+            pragma Warnings (Off, P_Column);
 
          begin
             Ptr := Ptr + 1;
@@ -1139,7 +1146,7 @@ package body Xref_Lib is
    ------------------
 
    procedure Parse_Number
-     (Source : access String;
+     (Source : not null access String;
       Ptr    : in out Positive;
       Number : out Natural)
    is
@@ -1163,7 +1170,7 @@ package body Xref_Lib is
    -----------------
 
    procedure Parse_Token
-     (Source    : access String;
+     (Source    : not null access String;
       Ptr       : in out Positive;
       Token_Ptr : out Positive)
    is

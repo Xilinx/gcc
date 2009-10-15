@@ -1,6 +1,7 @@
 // natString.cc - Implementation of java.lang.String native methods.
 
-/* Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006  Free Software Foundation
+/* Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006,
+   2007, 2008  Free Software Foundation
 
    This file is part of libgcj.
 
@@ -23,6 +24,7 @@ details.  */
 #include <java/lang/NullPointerException.h>
 #include <java/lang/StringBuffer.h>
 #include <java/io/ByteArrayOutputStream.h>
+#include <java/io/CharConversionException.h>
 #include <java/io/OutputStreamWriter.h>
 #include <java/io/ByteArrayInputStream.h>
 #include <java/io/InputStreamReader.h>
@@ -493,9 +495,28 @@ java::lang::String::init (jbyteArray bytes, jint offset, jint count,
   converter->setInput(bytes, offset, offset+count);
   while (converter->inpos < converter->inlength)
     {
-      int done = converter->read(array, outpos, avail);
+      int done;
+      try
+	{
+	  done = converter->read(array, outpos, avail);
+	}
+      catch (::java::io::CharConversionException *e)
+	{
+	  // Ignore it and silently throw away the offending data.
+	  break;
+	}
       if (done == 0)
 	{
+	  // done is zero if either there is no space available in the
+	  // output *or* the input is incomplete.  We assume that if
+	  // there are 20 characters available in the output, the
+	  // input must be incomplete and there is no more work to do.
+	  // This means we may skip several bytes of input, but that
+	  // is OK as the behavior is explicitly unspecified in this
+	  // case.
+	  if (avail - outpos > 20)
+	    break;
+
 	  jint new_size = 2 * (outpos + avail);
 	  jcharArray new_array = JvNewCharArray (new_size);
 	  memcpy (elements (new_array), elements (array),
@@ -615,11 +636,9 @@ java::lang::String::getBytes (jstring enc)
   while (todo > 0 || converter->havePendingBytes())
     {
       converter->setOutput(buffer, bufpos);
-      // We only really need to do a single write.
-      converter->setFinished();
       int converted = converter->write(this, offset, todo, NULL);
       bufpos = converter->count;
-      if (converted == 0 && bufpos == converter->count)
+      if (converted == 0)
 	{
 	  buflen *= 2;
 	  jbyteArray newbuffer = JvNewByteArray(buflen);
@@ -627,10 +646,15 @@ java::lang::String::getBytes (jstring enc)
 	  buffer = newbuffer;
 	}
       else
-	bufpos = converter->count;
-
-      offset += converted;
-      todo -= converted;
+	{
+	  offset += converted;
+	  todo -= converted;
+	}
+    }
+  if (length() > 0)
+    {
+      converter->setFinished();
+      converter->write(this, 0, 0, NULL);
     }
   converter->done ();
   if (bufpos == buflen)
@@ -707,7 +731,7 @@ java::lang::String::regionMatches (jint toffset,
 }
 
 jint
-java::lang::String::compareTo (jstring anotherString)
+java::lang::String::nativeCompareTo (jstring anotherString)
 {
   jchar *tptr = JvGetStringChars (this);
   jchar *optr = JvGetStringChars (anotherString);

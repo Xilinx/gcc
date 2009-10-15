@@ -33,7 +33,7 @@
 #define STANDARD_INCLUDE_COMPONENT 0
 #endif
 
-#if defined (CROSS_COMPILE) && !defined (TARGET_SYSTEM_ROOT)
+#if defined (CROSS_DIRECTORY_STRUCTURE) && !defined (TARGET_SYSTEM_ROOT)
 # undef LOCAL_INCLUDE_DIR
 # undef SYSTEM_INCLUDE_DIR
 # undef STANDARD_INCLUDE_DIR
@@ -66,8 +66,20 @@ const struct default_include cpp_include_defaults[]
     { PREFIX_INCLUDE_DIR, 0, 0, 1, 0, 0 },
 #endif
 #ifdef GCC_INCLUDE_DIR
-    /* This is the dir for fixincludes and for gcc's private headers.  */
+    /* This is the dir for gcc's private headers.  */
     { GCC_INCLUDE_DIR, "GCC", 0, 0, 0, 0 },
+#endif
+#ifdef FIXED_INCLUDE_DIR
+    /* This is the dir for fixincludes.  */
+    { FIXED_INCLUDE_DIR, "GCC", 0, 0, 0,
+      /* A multilib suffix needs adding if different multilibs use
+	 different headers.  */
+#ifdef SYSROOT_HEADERS_SUFFIX_SPEC
+      1
+#else
+      0
+#endif
+    },
 #endif
 #ifdef CROSS_INCLUDE_DIR
     /* One place the target system's headers might be.  */
@@ -96,3 +108,32 @@ const size_t cpp_GCC_INCLUDE_DIR_len = sizeof GCC_INCLUDE_DIR - 8;
 const char cpp_GCC_INCLUDE_DIR[] = "";
 const size_t cpp_GCC_INCLUDE_DIR_len = 0;
 #endif
+
+/* The configured prefix.  */
+const char cpp_PREFIX[] = PREFIX;
+const size_t cpp_PREFIX_len = sizeof PREFIX - 1;
+const char cpp_EXEC_PREFIX[] = STANDARD_EXEC_PREFIX;
+
+/* This value is set by cpp_relocated at runtime */
+const char *gcc_exec_prefix;
+
+/* Return true if the toolchain is relocated.  */
+bool
+cpp_relocated (void)
+{
+  static int relocated = -1;
+
+  /* A relocated toolchain ignores standard include directories.  */
+  if (relocated == -1)
+    {
+      /* Check if the toolchain was relocated?  */
+      GET_ENVIRONMENT (gcc_exec_prefix, "GCC_EXEC_PREFIX");
+      if (gcc_exec_prefix)
+       relocated = 1;
+      else
+       relocated = 0;
+    }
+
+  return relocated;
+}
+

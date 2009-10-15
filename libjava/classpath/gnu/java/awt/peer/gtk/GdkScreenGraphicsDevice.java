@@ -46,6 +46,8 @@ import java.awt.Rectangle;
 import java.awt.Window;
 import java.util.ArrayList;
 
+import gnu.classpath.Pointer;
+
 class GdkScreenGraphicsDevice extends GraphicsDevice
 {
   private final int native_state = GtkGenericPeer.getUniqueInteger ();
@@ -85,15 +87,23 @@ class GdkScreenGraphicsDevice extends GraphicsDevice
    * method must be called. 
    */
   DisplayMode fixedDisplayMode;
-  
+
+  /**
+   * The pointer to the native screen resource.
+   *
+   * This field is manipulated by native code. Don't change or remove
+   * without adjusting the native code.
+   */
+  private Pointer screen;
+
   static
   {
     System.loadLibrary("gtkpeer");
-
-    initStaticState ();
+    GtkToolkit.initializeGlobalIDs();
+    initIDs();
   }
   
-  static native void initStaticState();
+  static native void initIDs();
   
   GdkScreenGraphicsDevice (GdkGraphicsEnvironment e)
   {
@@ -188,7 +198,7 @@ class GdkScreenGraphicsDevice extends GraphicsDevice
           displayModes = nativeGetDisplayModes(env);
       }
     
-    ArrayList list = new ArrayList();
+    ArrayList<DisplayMode> list = new ArrayList<DisplayMode>();
     for(int i=0;i<displayModes.length;i++)
       for(int j=0;j<displayModes[i].rates.length;j++)
         list.add(new DisplayMode(displayModes[i].width,
@@ -196,7 +206,7 @@ class GdkScreenGraphicsDevice extends GraphicsDevice
                                  DisplayMode.BIT_DEPTH_MULTI,
                                  displayModes[i].rates[j]));
     
-    return (DisplayMode[]) list.toArray(new DisplayMode[list.size()]);
+    return list.toArray(new DisplayMode[list.size()]);
   }
   
   native X11DisplayMode[] nativeGetDisplayModes(GdkGraphicsEnvironment env);

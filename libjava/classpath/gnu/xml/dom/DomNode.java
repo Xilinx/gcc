@@ -668,6 +668,7 @@ public abstract class DomNode
               {
                 insertionEvent(null, child);
               }
+            length++;
           }
         
         return child;
@@ -1107,25 +1108,46 @@ public abstract class DomNode
    */
   public Node cloneNode(boolean deep)
   {
-    DomNode node = (DomNode) clone();
-    
     if (deep)
       {
-        DomDocument doc = (nodeType == DOCUMENT_NODE) ?
-          (DomDocument) node : node.owner;
-        boolean building = doc.building;
+        return cloneNodeDeepInternal(true, null);
+      }
+
+    DomNode node = (DomNode) clone();
+    if (nodeType == ENTITY_REFERENCE_NODE)
+      {
+        node.makeReadonly();
+      }
+    notifyUserDataHandlers(UserDataHandler.NODE_CLONED, this, node);
+    return node;
+  }
+
+  /**
+   * Returns a deep clone of this node.
+   */
+  private DomNode cloneNodeDeepInternal(boolean root, DomDocument doc)
+  {
+    DomNode node = (DomNode) clone();
+    boolean building = false; // Never used unless root is true
+    if (root)
+      {
+        doc = (nodeType == DOCUMENT_NODE) ? (DomDocument) node : node.owner;
+        building = doc.building;
         doc.building = true; // Permit certain structural rules
-        for (DomNode ctx = first; ctx != null; ctx = ctx.next)
-          {
-            DomNode newChild = (DomNode) ctx.cloneNode(deep);
-            newChild.setOwner(doc);
-            node.appendChild(newChild);
-          }
-        doc.building = building;
+      }
+    node.owner = doc;
+    for (DomNode ctx = first; ctx != null; ctx = ctx.next)
+      {
+        DomNode newChild = ctx.cloneNodeDeepInternal(false, doc);
+        node.appendChild(newChild);
       }
     if (nodeType == ENTITY_REFERENCE_NODE)
       {
         node.makeReadonly();
+      }
+    if (root)
+      {
+        doc.building = building;
       }
     notifyUserDataHandlers(UserDataHandler.NODE_CLONED, this, node);
     return node;
@@ -1561,7 +1583,7 @@ public abstract class DomNode
         // Climb to the top of this subtree and handle capture, letting
         // each node (from the top down) capture until one stops it or
         // until we get to this one.
-        current = parent;
+        current = (parent == null) ? this : parent;
         if (current.depth >= ANCESTORS_INIT)
           {
             DomNode[] newants = new DomNode[current.depth + 1];

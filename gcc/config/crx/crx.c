@@ -1,6 +1,6 @@
 /* Output routines for GCC for CRX.
    Copyright (C) 1991, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001,
-   2002, 2003, 2004, 2007  Free Software Foundation, Inc.
+   2002, 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
 
    This file is part of GCC.
 
@@ -135,7 +135,7 @@ rtx crx_compare_op1 = NULL_RTX;
 static bool crx_fixed_condition_code_regs (unsigned int *, unsigned int *);
 static rtx crx_struct_value_rtx (tree fntype ATTRIBUTE_UNUSED,
 				 int incoming ATTRIBUTE_UNUSED);
-static bool crx_return_in_memory (tree type, tree fntype ATTRIBUTE_UNUSED);
+static bool crx_return_in_memory (const_tree type, const_tree fntype ATTRIBUTE_UNUSED);
 static int crx_address_cost (rtx);
 
 /*****************************************************************************/
@@ -204,7 +204,7 @@ crx_struct_value_rtx (tree fntype ATTRIBUTE_UNUSED,
 /* Implements hook TARGET_RETURN_IN_MEMORY.  */
 
 static bool
-crx_return_in_memory (tree type, tree fntype ATTRIBUTE_UNUSED)
+crx_return_in_memory (const_tree type, const_tree fntype ATTRIBUTE_UNUSED)
 {
   if (TYPE_MODE (type) == BLKmode)
     {
@@ -271,7 +271,7 @@ crx_compute_save_regs (void)
 	     * for the sake of its sons.  */
 	    save_regs[regno] = 1;
 
-	  else if (regs_ever_live[regno])
+	  else if (df_regs_ever_live_p (regno))
 	    /* This reg is used - save it.  */
 	    save_regs[regno] = 1;
 	  else
@@ -281,7 +281,7 @@ crx_compute_save_regs (void)
       else
 	{
 	  /* If this reg is used and not call-used (except RA), save it. */
-	  if (regs_ever_live[regno]
+	  if (df_regs_ever_live_p (regno)
 	      && (!call_used_regs[regno] || regno == RETURN_ADDRESS_REGNUM))
 	    save_regs[regno] = 1;
 	  else
@@ -545,12 +545,12 @@ crx_function_arg_regno_p (int n)
  * The following addressing modes are supported on CRX:
  *
  * Relocations		--> const | symbol_ref | label_ref
- * Absolute address	--> 32 bit absolute
- * Post increment	--> reg + 12 bit disp.
- * Post modify		--> reg + 12 bit disp.
- * Register relative	--> reg | 32 bit disp. + reg | 4 bit + reg
- * Scaled index		--> reg + reg | 22 bit disp. + reg + reg |
- *			    22 disp. + reg + reg + (2 | 4 | 8) */
+ * Absolute address	--> 32-bit absolute
+ * Post increment	--> reg + 12-bit disp.
+ * Post modify		--> reg + 12-bit disp.
+ * Register relative	--> reg | 32-bit disp. + reg | 4 bit + reg
+ * Scaled index		--> reg + reg | 22-bit disp. + reg + reg |
+ *			    22-disp. + reg + reg + (2 | 4 | 8) */
 
 static int crx_addr_reg_p (rtx addr_reg)
 {

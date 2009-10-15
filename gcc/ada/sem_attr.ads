@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2005, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -32,13 +32,11 @@
 --  This spec also documents all GNAT implementation defined pragmas
 
 with Exp_Tss; use Exp_Tss;
+with Namet;   use Namet;
 with Snames;  use Snames;
 with Types;   use Types;
 
 package Sem_Attr is
-
-   type Attribute_Class_Array is array (Attribute_Id) of Boolean;
-   --  Type used to build attribute classification flag arrays
 
    -----------------------------------------
    -- Implementation Dependent Attributes --
@@ -78,18 +76,18 @@ package Sem_Attr is
       ---------------
 
       Attribute_Asm_Input => True,
-      --  Used only in conjunction with the Asm and Asm_Volatile subprograms
-      --  in package Machine_Code to construct machine instructions. See
-      --  documentation in package Machine_Code in file s-maccod.ads.
+      --  Used only in conjunction with the Asm subprograms in package
+      --  Machine_Code to construct machine instructions. See documentation
+      --  in package Machine_Code in file s-maccod.ads.
 
       ----------------
       -- Asm_Output --
       ----------------
 
       Attribute_Asm_Output => True,
-      --  Used only in conjunction with the Asm and Asm_Volatile subprograms
-      --  in package Machine_Code to construct machine instructions. See
-      --  documentation in package Machine_Code in file s-maccod.ads.
+      --  Used only in conjunction with the Asm subprograms in package
+      --  Machine_Code to construct machine instructions. See documentation
+      --  in package Machine_Code in file s-maccod.ads.
 
       ---------------
       -- AST_Entry --
@@ -382,6 +380,27 @@ package Sem_Attr is
       --  for constructing this definition in package System (see note above
       --  in Default_Bit_Order description). The is a static attribute.
 
+      ---------------
+      -- Stub_Type --
+      ---------------
+
+      Attribute_Stub_Type => True,
+      --  The GNAT implementation of remote access-to-classwide types is
+      --  organised as described in AARM E.4(20.t): a value of an RACW type
+      --  (designating a remote object) is represented as a normal access
+      --  value, pointing to a "stub" object which in turn contains the
+      --  necessary information to contact the designated remote object. A
+      --  call on any dispatching operation of such a stub object does the
+      --  remote call, if necessary, using the information in the stub object
+      --  to locate the target partition, etc.
+      --
+      --  For a prefix T that denotes a remote access-to-classwide type,
+      --  T'Stub_Type denotes the type of the corresponding stub objects.
+      --
+      --  By construction, the layout of T'Stub_Type is identical to that of
+      --  System.Partition_Interface.RACW_Stub_Type (see implementation notes
+      --  in body of Exp_Dist).
+
       -----------------
       -- Target_Name --
       -----------------
@@ -519,6 +538,17 @@ package Sem_Attr is
    --  parser has already checked that type returning attributes appear only
    --  in appropriate contexts (i.e. in subtype marks, or as prefixes for
    --  other attributes).
+
+   function Name_Implies_Lvalue_Prefix (Nam : Name_Id) return Boolean;
+   --  Determine whether the name of an attribute reference categorizes its
+   --  prefix as an lvalue. The following attributes fall under this bracket
+   --  by directly or indirectly modifying their prefixes.
+   --     Access
+   --     Address
+   --     Input
+   --     Read
+   --     Unchecked_Access
+   --     Unrestricted_Access
 
    procedure Resolve_Attribute (N : Node_Id; Typ : Entity_Id);
    --  Performs type resolution of attribute. If the attribute yields a

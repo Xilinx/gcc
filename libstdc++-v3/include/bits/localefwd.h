@@ -1,6 +1,7 @@
 // Locale support -*- C++ -*-
 
-// Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2005, 2006
+// Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
+// 2006, 2007
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -43,66 +44,74 @@
 #pragma GCC system_header
 
 #include <bits/c++config.h>
-#include <bits/c++locale.h>     // Defines __c_locale, config-specific includes
-#include <iosfwd>		// For ostreambuf_iterator, istreambuf_iterator
-#include <bits/functexcept.h>
+#include <bits/c++locale.h>  // Defines __c_locale, config-specific include
+#include <iosfwd>            // For ostreambuf_iterator, istreambuf_iterator
+#include <cctype>
 
 _GLIBCXX_BEGIN_NAMESPACE(std)
 
   // 22.1.1 Locale
   class locale;
 
+  template<typename _Facet>
+    bool
+    has_facet(const locale&) throw();
+
+  template<typename _Facet>
+    const _Facet&
+    use_facet(const locale&);
+
   // 22.1.3 Convenience interfaces
   template<typename _CharT>
-    inline bool
+    bool
     isspace(_CharT, const locale&);
 
   template<typename _CharT>
-    inline bool
+    bool
     isprint(_CharT, const locale&);
 
   template<typename _CharT>
-    inline bool
+    bool
     iscntrl(_CharT, const locale&);
 
   template<typename _CharT>
-    inline bool
+    bool
     isupper(_CharT, const locale&);
 
   template<typename _CharT>
-    inline bool
+    bool
     islower(_CharT, const locale&);
 
   template<typename _CharT>
-    inline bool
+    bool
     isalpha(_CharT, const locale&);
 
   template<typename _CharT>
-    inline bool
+    bool
     isdigit(_CharT, const locale&);
 
   template<typename _CharT>
-    inline bool
+    bool
     ispunct(_CharT, const locale&);
 
   template<typename _CharT>
-    inline bool
+    bool
     isxdigit(_CharT, const locale&);
 
   template<typename _CharT>
-    inline bool
+    bool
     isalnum(_CharT, const locale&);
 
   template<typename _CharT>
-    inline bool
+    bool
     isgraph(_CharT, const locale&);
 
   template<typename _CharT>
-    inline _CharT
+    _CharT
     toupper(_CharT, const locale&);
 
   template<typename _CharT>
-    inline _CharT
+    _CharT
     tolower(_CharT, const locale&);
 
   // 22.2.1 and 22.2.1.3 ctype
@@ -118,7 +127,6 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   // NB: Specialized for char and wchar_t in locale_facets.h.
 
   class codecvt_base;
-  class __enc_traits;
   template<typename _InternT, typename _ExternT, typename _StateT>
     class codecvt;
   template<> class codecvt<char, char, mbstate_t>;
@@ -174,23 +182,6 @@ _GLIBCXX_END_LDBL_NAMESPACE
     class messages;
   template<typename _CharT>
     class messages_byname;
-
-  template<typename _Facet>
-    bool
-    has_facet(const locale& __loc) throw();
-
-  template<typename _Facet>
-    const _Facet&
-    use_facet(const locale& __loc);
-
-  template<typename _Facet>
-    inline const _Facet&
-    __check_facet(const _Facet* __f)
-    {
-      if (!__f)
-	__throw_bad_cast();
-      return *__f;
-    }
 
 _GLIBCXX_END_NAMESPACE
 

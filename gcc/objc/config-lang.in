@@ -23,17 +23,14 @@
 #
 # language	- name of language as it would appear in $(LANGUAGES)
 # compilers	- value to add to $(COMPILERS)
-# stagestuff	- files to add to $(STAGESTUFF)
 
 language="objc"
 
 compilers="cc1obj\$(exeext)"
-
-stagestuff="cc1obj\$(exeext)"
 
 target_libs=target-libobjc
 
 # Most of the object files for cc1obj actually come from C.
 lang_requires="c"
 
-gtfiles="\$(srcdir)/objc/objc-act.h \$(srcdir)/c-parser.c \$(srcdir)/c-tree.h \$(srcdir)/c-decl.c \$(srcdir)/c-objc-common.c \$(srcdir)/c-common.c \$(srcdir)/c-common.h \$(srcdir)/c-pragma.c \$(srcdir)/objc/objc-act.c"
+gtfiles="\$(srcdir)/objc/objc-act.h \$(srcdir)/c-parser.c \$(srcdir)/c-tree.h \$(srcdir)/c-decl.c \$(srcdir)/c-objc-common.c \$(srcdir)/c-common.c \$(srcdir)/c-common.h \$(srcdir)/c-pragma.h \$(srcdir)/c-pragma.c \$(srcdir)/objc/objc-act.c"

@@ -1,41 +1,212 @@
-2008-05-19  Release Manager
+2009-08-04  Release Manager
 
-	* GCC 4.2.4 released.
+	* GCC 4.3.4 released.
 
-2008-02-01  Release Manager
+2009-01-24  Release Manager
 
-	* GCC 4.2.3 released.
+	* GCC 4.3.3 released.
 
-2007-10-07  Release Manager
+2008-08-27  Release Manager
 
-	* GCC 4.2.2 released.
+	* GCC 4.3.2 released.
 
-2007-07-19  Release Manager
+2008-06-06  Release Manager
 
-	* GCC 4.2.1 released.
+	* GCC 4.3.1 released.
 
+2008-03-05  Release Manager
+
+	* GCC 4.3.0 released.
+
+2008-01-08  Jakub Jelinek  <jakub@redhat.com>
+
+	* futex.m4: New file.
+
+2007-12-06  Richard Sandiford  <rsandifo@nildram.co.uk>
+
+	* mt-sde (CFLAGS_FOR_TARGET, CXXFLAGS_FOR_TARGET): Use +=, not =.
+	* mt-mips-elfoabi: Likewise.
+
+2007-10-15  Maciej W. Rozycki  <macro@linux-mips.org>
+
+	* tls.m4 (GCC_CHECK_TLS): Rename have_tls to gcc_cv_have_tls.
+	(GCC_CHECK_CC_TLS): Rename have_cc_tls to gcc_cv_have_cc_tls.
+
+2007-10-03  Richard Sandiford  <richard@codesourcery.com>
+
+	* no-executables.m4 (GCC_TRY_COMPILE_OR_LINK): New function.
+
+2007-10-03  Kazu Hirata  <kazu@codesourcery.com>
+
+	Revert:
+	2007-10-02  Richard Sandiford  <richard@codesourcery.com>
+	* no-executables.m4 (GCC_TRY_COMPILE_OR_LINK): New function.
+
+2007-10-02  Richard Sandiford  <richard@codesourcery.com>
+
+	* no-executables.m4 (GCC_TRY_COMPILE_OR_LINK): New function.
+
+2007-09-21  Richard Sandiford  <rsandifo@nildram.co.uk>
+
+	* mt-sde (CFLAGS_FOR_TARGET): Replace -fno-optimize-sibling-calls
+	with -minterlink-mips16.
+	(CXXFLAGS_FOR_TARGET): Likewise.
+
+2007-09-20  Richard Sandiford  <rsandifo@nildram.co.uk>
+
+	* mt-mips-elfoabi: New file.
+
+2007-09-07  Richard Sandiford  <richard@codesourcery.com>
+
+	* mt-sde (CFLAGS_FOR_TARGET): Add -mno-gpopt.
+	(CXXFLAGS_FOR_TARGET): Likewise.
+
+2007-09-06  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR target/33281
+	* mh-mingw: New host makefile fragment.
+
+2007-08-18  Paul Brook  <paul@codesourcery.com>
+	    Joseph Myers  <joseph@codesourcery.com>
+
+	* mt-gnu (CXXFLAGS_FOR_TARGET): Add
+	$(DEBUG_PREFIX_CFLAGS_FOR_TARGET).
+
+2007-08-17  Richard Sandiford  <richard@codesourcery.com>
+	    Nigel Stephens  <nigel@mips.com>
+
+	* mt-sde: New file.
+
+2007-07-06  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* tls.m4 (GCC_CHECK_CC_TLS): New.
+
+2007-07-05  Sebastian Pop  <sebpop@gmail.com>
+
+	PR bootstrap/32622
+	* mh-x86omitfp (BOOT_CFLAGS): Add -fomit-frame-pointer,
+	don't reset its value.
+
+2007-06-27  Mike Stump  <mrs@apple.com>
+
+	* acx.m4 (ACX_CHECK_INSTALLED_TARGET_TOOL): Fixup logic for cross
+	builds.
+	
 2007-06-20  Mike Stump  <mrs@apple.com>
 
 	* acx.m4 (NCN_STRICT_CHECK_TARGET_TOOLS): Fix incremental builds.
 	(ACX_HAVE_GCC_FOR_TARGET): Likewise.
 
-2007-05-13  Release Manager
+2007-06-14  Paolo Bonzini  <bonzini@gnu.org>
 
-	* GCC 4.2.0 released.
+	* acx.m4 (ACX_CHECK_PROG_VER): Remove duplicate lines.
 
-2007-02-07  Daniel Franke  <franke.daniel@gmail.com>
+2007-06-04  Olivier Hainque  <hainque@adacore.com>
 
-	Backport from mainline:
-	2007-01-31  Daniel Franke <franke.daniel@gmail.com>
+	* mh-ppc-aix: Add default ADAFLAGS to BOOT_ADAFLAGS.
+
+2007-05-27  Paolo Bonzini  <bonzini@gnu.org>
+
+	* confsubdir.m4: Move here from newlib.
+
+2007-05-23  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR bootstrap/32009
+	* mh-ppc-darwin: Temporarily disable.
+
+2007-04-11  Kai Tietz  <kai.tietz@onevision.com>
+
+	* stdint.m4: Make template compatible with older cygwin 
+	types.h, wrapping each type in a __XXX_t_defined #ifdef.
+
+2007-03-26  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* acx.m4 (ACX_BUGURL): Set BUGURL first. Quote $BUGURL first
+	when setting REPORT_BUGS_TEXI.
+
+2007-03-23  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* acx.m4 (ACX_BUGURL): Replace "@" with "@@" for
+	REPORT_BUGS_TEXI.
+
+2007-03-23  Joseph Myers  <joseph@codesourcery.com>
+
+	* acx.m4 (ACX_PKGVERSION, ACX_BUGURL): Define.
+
+2007-03-07  Andreas Schwab  <schwab@suse.de>
+
+	* acx.m4 (GCC_TARGET_TOOL): Expand backquotes outside
+	AC_MSG_RESULT.
+
+2007-02-27  Alan Modra  <amodra@bigpond.net.au>
+
+	* mt-spu (all-ld): Depend on all-binutils.
+
+2007-02-18  Alexandre Oliva  <aoliva@redhat.com>
+
+	* acx.m4 (NCN_STRICT_CHECK_TOOLS): Mark environment variable as
+	precious.  Prefer it over a cached value.  Use cached value
+	verbosely.
+	(NCN_STRICT_CHECK_TARGET_TOOLS): Likewise.  Don't override
+	environment variable with build-time tools.
+
+2006-12-11  Alan Modra  <amodra@bigpond.net.au>
+
+	* mt-spu: New file.
+
+2007-02-09  Daniel Jacobowitz  <dan@codesourcery.com>
+
+	* acx.m4 (ACX_CHECK_INSTALLED_TARGET_TOOL): Avoid AC_PATH_PROG
+	with an empty path.
+
+2007-02-07  Bruno Haible  <bruno@clisp.org>
+
+	PR libgomp/28468
+	* config/tls.m4 (GCC_CHECK_TLS): Also check whether the libc supports
+	TLS via __thread.
+
+2007-01-31  Daniel Franke <franke.daniel@gmail.com>
 
 	PR libgomp/30546
 	* acx.m4 (ACX_PROG_CHECK_VER): Locate a program and check that its
 	version is acceptable.
 
+2007-01-27  Paolo Bonzini  <bonzini@gnu.org>
+
+	* depstand.m4 (ZW_CREATE_DEPDIR): Use mkinstalldirs to make
+	directory.
+
+2007-01-23  Richard Guenther  <rguenther@suse.de>
+
+	PR bootstrap/30541
+	* config/acx.m4 (ACX_PROG_GNAT): Check for gnatmake.
+
+2007-01-14  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* ld-symbolic.m4: New.
+
+2007-01-11  Paolo Bonzini  <bonzini@gnu.org>
+
+	* warnings.m4: Use m4_expand_once to clear the AC_SUBST'ed variable.
+	(ACX_PROG_CC_WARNINGS_ARE_ERRORS): Fix typo.  Add optional 2nd argument.
+
+2007-01-11  Paolo Bonzini  <bonzini@gnu.org>
+
+	* warnings.m4: Add second parameter with name of variable.
+	Always append to the variable if it exists.
+
+2007-01-01  Mike Stump  <mrs@apple.com>
+
+	* mh-ppc-darwin: Remove support for building with Apple's gcc-3.1.
+
 2006-12-04  Eric Botcazou  <ebotcazou@libertysurf.fr>
 
 	* tls.m4 (GCC_CHECK_TLS): Do not test TLS with static linking
 	if static linking doesn't even work.
+
+2006-11-13  Daniel Jacobowitz  <dan@codesourcery.com>
+
+	* tls.m4 (GCC_CHECK_TLS): Fall back to a link test.
 
 2006-10-14  Geoffrey Keating  <geoffk@apple.com>
 

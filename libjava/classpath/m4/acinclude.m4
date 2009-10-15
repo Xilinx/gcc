@@ -8,24 +8,29 @@ AC_DEFUN([CLASSPATH_FIND_JAVAC],
   CLASSPATH_WITH_GCJ
   CLASSPATH_WITH_JIKES
   CLASSPATH_WITH_KJC
-  CLASSPATH_WITH_GCJX
   CLASSPATH_WITH_ECJ
+  CLASSPATH_WITH_JAVAC
 
   if test "x${user_specified_javac}" = x; then
     AM_CONDITIONAL(FOUND_GCJ, test "x${GCJ}" != x)
     AM_CONDITIONAL(FOUND_JIKES, test "x${JIKES}" != x)
     AM_CONDITIONAL(FOUND_ECJ, test "x${ECJ}" != x)
+    AM_CONDITIONAL(FOUND_JAVAC, test "x${JAVAC}" != x)
   else
     AM_CONDITIONAL(FOUND_GCJ, test "x${user_specified_javac}" = xgcj)
     AM_CONDITIONAL(FOUND_JIKES, test "x${user_specified_javac}" = xjikes)
     AM_CONDITIONAL(FOUND_ECJ, test "x${user_specified_javac}" = xecj)
+    AM_CONDITIONAL(FOUND_JAVAC, test "x${user_specified_javac}" = xjavac)
   fi
   AM_CONDITIONAL(FOUND_KJC, test "x${user_specified_javac}" = xkjc)
-  AM_CONDITIONAL(FOUND_GCJX, test "x${user_specified_javac}" = xgcjx)
 
-  if test "x${GCJ}" = x && test "x${JIKES}" = x && test "x${user_specified_javac}" != xkjc && test "x${user_specified_javac}" != xgcjx && test "x${user_specified_javac}" != xecj; then
-      AC_MSG_ERROR([cannot find javac, try --with-gcj, --with-jikes, --with-kjc, --with-ecj, or --with-gcjx])
+  ## GCJ LOCAL
+  if test "x${GCJ}" = x && test "x${JIKES}" = x && test "x${ECJ}" = x \
+     && test "x${JAVAC}" = x && test "x${user_specified_javac}" != xkjc
+  then
+      AC_MSG_ERROR([cannot find javac, try --with-ecj])
   fi
+  ## END GCJ LOCAL
 ])
 
 dnl -----------------------------------------------------------
@@ -184,41 +189,6 @@ AC_DEFUN([CLASSPATH_CHECK_KJC],
 ])
 
 dnl -----------------------------------------------------------
-AC_DEFUN([CLASSPATH_WITH_GCJX],
-[
-  AC_ARG_WITH([gcjx], 
-  	      [AS_HELP_STRING(--with-gcjx,bytecode compilation with gcjx)],
-  [
-    if test "x${withval}" != x && test "x${withval}" != xyes && test "x${withval}" != xno; then
-      CLASSPATH_CHECK_GCJX(${withval})
-    else
-      if test "x${withval}" != xno; then
-        CLASSPATH_CHECK_GCJX
-      fi
-    fi
-    user_specified_javac=gcjx
-  ],
-  [ 
-    CLASSPATH_CHECK_GCJX
-  ])
-  AC_SUBST(GCJX)
-])
-
-dnl -----------------------------------------------------------
-AC_DEFUN([CLASSPATH_CHECK_GCJX],
-[
-  if test "x$1" != x; then
-    if test -f "$1"; then
-      GCJX="$1"
-    else
-      AC_PATH_PROG(GCJX, "$1")
-    fi
-  else
-    AC_PATH_PROG(GCJX, "gcjx")
-  fi
-])
-
-dnl -----------------------------------------------------------
 AC_DEFUN([CLASSPATH_WITH_JAVAH],
 [
   AC_ARG_WITH([javah],
@@ -233,7 +203,6 @@ AC_DEFUN([CLASSPATH_WITH_JAVAH],
   [ 
     CLASSPATH_CHECK_JAVAH
   ])
-  AM_CONDITIONAL(USER_SPECIFIED_JAVAH, test "x${USER_JAVAH}" != x)
   AC_SUBST(USER_JAVAH)
 ])
 
@@ -249,18 +218,12 @@ AC_DEFUN([CLASSPATH_CHECK_JAVAH],
       AC_PATH_PROG(USER_JAVAH, "$1")
     fi
   else
-    for javah_name in gcjh javah; do
-      AC_PATH_PROG(USER_JAVAH, "$javah_name")
-      if test "x${USER_JAVAH}" != x; then
-        break
-      fi
-    done
+    AC_PATH_PROGS([USER_JAVAH],[gjavah gcjh-wrapper-4.1 gcjh-4.1 gcjh javah])
   fi
   
-#  if test "x${USER_JAVAH}" = x; then
-#    echo "configure: cannot find javah" 1>&2
-#    exit 1
-#  fi
+  if test "x${USER_JAVAH}" = x; then
+    AC_MSG_ERROR([can not find javah])
+  fi
 ])
 
 dnl -----------------------------------------------------------
@@ -470,4 +433,35 @@ AC_DEFUN([CLASSPATH_TOOLEXECLIBDIR],
     *) toolexeclibdir=${libdir}/${multi_os_directory} ;;
   esac
   AC_SUBST(toolexeclibdir)
+])
+
+dnl -----------------------------------------------------------
+AC_DEFUN([CLASSPATH_WITH_JAVAC],
+[
+  AC_ARG_WITH([javac],
+	      [AS_HELP_STRING(--with-javac,bytecode compilation with javac)],
+  [
+    if test "x${withval}" != x && test "x${withval}" != xyes && test "x${withval}" != xno; then
+      CLASSPATH_CHECK_JAVAC(${withval})
+    else
+      if test "x${withval}" != xno; then
+        CLASSPATH_CHECK_JAVAC
+      fi
+    fi
+    user_specified_javac=javac
+  ],
+  [ 
+    CLASSPATH_CHECK_JAVAC
+  ])
+  AC_SUBST(JAVAC)
+])
+
+dnl -----------------------------------------------------------
+AC_DEFUN([CLASSPATH_CHECK_JAVAC],
+[
+  if test "x$1" != x; then
+    JAVAC="$1"
+  else
+    AC_PATH_PROG(JAVAC, "javac")
+  fi
 ])

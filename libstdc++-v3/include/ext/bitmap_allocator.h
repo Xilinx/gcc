@@ -1,6 +1,6 @@
 // Bitmap Allocator. -*- C++ -*-
 
-// Copyright (C) 2004, 2005, 2006 Free Software Foundation, Inc.
+// Copyright (C) 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -41,7 +41,7 @@
 #include <new> // For operator new.
 #include <debug/debug.h> // _GLIBCXX_DEBUG_ASSERT
 #include <ext/concurrence.h>
-
+#include <bits/stl_move.h>
 
 /** @brief The constant in the expression below is the alignment
  * required in bytes.
@@ -377,7 +377,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
 	  // Set the _rover to the last physical location bitmap,
 	  // which is the bitmap which belongs to the first free
 	  // block. Thus, the bitmaps are in exact reverse order of
-	  // the actual memory layout. So, we count down the bimaps,
+	  // the actual memory layout. So, we count down the bitmaps,
 	  // which is the same as moving up the memory.
 
 	  // If the used count stored at the start of the Bit Map headers
@@ -608,7 +608,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
 	  else
 	    {
 	      // Deallocate the last block in the list of free lists,
-	      // and insert the new one in it's correct position.
+	      // and insert the new one in its correct position.
 	      ::operator delete(static_cast<void*>(__free_list.back()));
 	      __free_list.pop_back();
 	    }
@@ -706,6 +706,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
 	};
     };
 
+  /// Primary template
   template<typename _Tp>
     class bitmap_allocator : private free_list
     {
@@ -1089,7 +1090,14 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
 
       void 
       construct(pointer __p, const_reference __data)
-      { ::new(__p) value_type(__data); }
+      { ::new((void *)__p) value_type(__data); }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      template<typename... _Args>
+        void
+        construct(pointer __p, _Args&&... __args)
+	{ ::new((void *)__p) _Tp(std::forward<_Args>(__args)...); }
+#endif
 
       void 
       destroy(pointer __p)

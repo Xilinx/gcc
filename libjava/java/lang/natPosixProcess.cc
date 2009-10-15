@@ -1,6 +1,7 @@
 // natPosixProcess.cc - Native side of POSIX process code.
 
-/* Copyright (C) 1998, 1999, 2000, 2002, 2003, 2004, 2005, 2006  Free Software Foundation
+/* Copyright (C) 1998, 1999, 2000, 2002, 2003, 2004, 2005, 2006, 2007
+  Free Software Foundation
 
    This file is part of libgcj.
 
@@ -30,11 +31,12 @@ details.  */
 #include <unistd.h>
 #include <pthread.h>
 
-#include <gcj/cni.h>
+#include <posix.h>
+#include <posix-threads.h>
 #include <jvm.h>
 
-#include <java/lang/ConcreteProcess$ProcessManager.h>
-#include <java/lang/ConcreteProcess.h>
+#include <java/lang/PosixProcess$ProcessManager.h>
+#include <java/lang/PosixProcess.h>
 #include <java/lang/IllegalThreadStateException.h>
 #include <java/lang/InternalError.h>
 #include <java/lang/InterruptedException.h>
@@ -47,8 +49,10 @@ details.  */
 #include <java/io/FileOutputStream.h>
 #include <java/io/IOException.h>
 #include <java/lang/OutOfMemoryError.h>
+#include <java/lang/PosixProcess$EOFInputStream.h>
 
 using gnu::java::nio::channels::FileChannelImpl;
+using namespace java::lang;
 
 extern char **environ;
 
@@ -92,36 +96,85 @@ myclose (int &fd)
   fd = -1;
 }
 
+namespace
+{
+  struct ProcessManagerInternal
+  {
+    int pipe_ends[2];
+    struct sigaction old_sigaction;
+  };
+}
+
+
 // There has to be a signal handler in order to be able to
 // sigwait() on SIGCHLD.  The information passed is ignored as it
 // will be recovered by the waitpid() call.
 static void
-sigchld_handler (int)
+#ifdef SA_SIGINFO
+sigchld_handler (int sig, siginfo_t *si, void *third)
+#else
+sigchld_handler (int sig)
+#endif
 {
-  // Ignore.
+  if (PosixProcess$ProcessManager::nativeData != NULL)
+    {
+      ProcessManagerInternal *pmi =
+        (ProcessManagerInternal *)PosixProcess$ProcessManager::nativeData;
+      char c = 0;
+      ::write(pmi->pipe_ends[1], &c, 1);
+      if (pmi->old_sigaction.sa_handler != SIG_DFL
+          && pmi->old_sigaction.sa_handler != SIG_IGN)
+        {
+#ifdef SA_SIGINFO
+          if ((pmi->old_sigaction.sa_flags & SA_SIGINFO) != 0)
+            pmi->old_sigaction.sa_sigaction(sig, si, third);
+          else
+#endif
+            (*pmi->old_sigaction.sa_handler)(sig);
+        }
+    }
 }
 
 
 // Get ready to enter the main reaper thread loop.
 void
-java::lang::ConcreteProcess$ProcessManager::init ()
+java::lang::PosixProcess$ProcessManager::init ()
 {
-  using namespace java::lang;
-  // Remenber our PID so other threads can kill us.
-  reaperPID = (jlong) pthread_self ();
+  // The nativeData is static to avoid races installing the signal
+  // handler in the case that it is chained.
+  if (nativeData == NULL )
+    {
+      ProcessManagerInternal *pmi =
+        (ProcessManagerInternal *)JvAllocBytes(sizeof(ProcessManagerInternal));
 
-  // SIGCHLD is blocked in all threads in posix-threads.cc.
-  // Setup the SIGCHLD handler.
-  struct sigaction sa;
-  memset (&sa, 0, sizeof (sa));
+      if (0 != ::pipe(pmi->pipe_ends))
+        goto error;
 
-  sa.sa_handler = sigchld_handler;
-  // We only want signals when the things exit.
-  sa.sa_flags = SA_NOCLDSTOP;
+      // Make writing non-blocking so that the signal handler will
+      // never block.
+      int fl = ::fcntl(pmi->pipe_ends[1], F_GETFL);
+      ::fcntl(pmi->pipe_ends[1], F_SETFL, fl | O_NONBLOCK);
 
-  if (-1 == sigaction (SIGCHLD, &sa, NULL))
-    goto error;
+      nativeData = (::gnu::gcj::RawDataManaged *)pmi;
 
+      // SIGCHLD is blocked in all threads in posix-threads.cc.
+      // Setup the SIGCHLD handler.
+      struct sigaction sa;
+      memset (&sa, 0, sizeof (sa));
+
+#ifdef SA_SIGINFO
+      sa.sa_sigaction = sigchld_handler;
+      // We only want signals when the things exit.
+      sa.sa_flags = SA_NOCLDSTOP | SA_SIGINFO;
+#else
+      sa.sa_handler = sigchld_handler;
+      // We only want signals when the things exit.
+      sa.sa_flags = SA_NOCLDSTOP;
+#endif
+
+      if (-1 == sigaction (SIGCHLD, &sa, &pmi->old_sigaction))
+        goto error;
+    }
   // All OK.
   return;
 
@@ -130,82 +183,55 @@ error:
 }
 
 void
-java::lang::ConcreteProcess$ProcessManager::waitForSignal ()
+java::lang::PosixProcess$ProcessManager::waitForSignal ()
 {
   // Wait for SIGCHLD
-  sigset_t mask;
-  pthread_sigmask (0, NULL, &mask);
-  sigdelset (&mask, SIGCHLD);
+  _Jv_UnBlockSigchld();
+  ProcessManagerInternal *pmi = (ProcessManagerInternal *)nativeData;
 
-  // Use sigsuspend() instead of sigwait() as sigwait() doesn't play
-  // nicely with the GC's use of signals.
-  sigsuspend (&mask);
+  // Try to read multiple (64) notifications in one go.
+  char c[64];
+ ::read(pmi->pipe_ends[0], c, sizeof (c));
 
-  // Do not check sigsuspend return value.  The only legitimate return
-  // is EINTR, but there is a known kernel bug affecting alpha-linux
-  // wrt sigsuspend+handler+sigreturn that can result in a return value
-  // of __NR_sigsuspend and errno unset.  Don't fail unnecessarily on
-  // older kernel versions.
+  _Jv_BlockSigchld();
 
-  // All OK.
   return;
 }
 
-jboolean java::lang::ConcreteProcess$ProcessManager::reap ()
+jboolean java::lang::PosixProcess$ProcessManager::reap (PosixProcess *p)
 {
-  using namespace java::lang;
+  pid_t rv;
 
-  pid_t pid;
+  // Try to get the return code from the child process.
+  int status;
+  rv = ::waitpid ((pid_t)p->pid, &status, WNOHANG);
+  if (rv == -1)
+    throw new InternalError (JvNewStringUTF (strerror (errno)));
 
-  for (;;)
-    {
-      // Get the return code from a dead child process.
-      int status;
-      pid = waitpid ((pid_t) - 1, &status, WNOHANG);
-      if (pid == -1)
-	{
-	  if (errno == ECHILD)
-	    return false;
-	  else
-	    goto error;
-	}
+  if (rv == 0)
+    return false;   // No children to wait for.
 
-      if (pid == 0)
-        return true;   // No children to wait for.
-
-      // Look up the process in our pid map.
-      ConcreteProcess * process = removeProcessFromMap ((jlong) pid);
-
-      // Note that if process==NULL, then we have an unknown child.
-      // This is not common, but can happen, and isn't an error.
-      if (process)
-	{
-	  JvSynchronize sync (process);
-	  process->status = WIFEXITED (status) ? WEXITSTATUS (status) : -1;
-	  process->state = ConcreteProcess::STATE_TERMINATED;
-          process->processTerminationCleanup();
-	  process->notifyAll ();
-	}
-    }
-
-error:
-  throw new InternalError (JvNewStringUTF (strerror (errno)));
+  JvSynchronize sync (p);
+  p->status = WIFEXITED (status) ? WEXITSTATUS (status) : -1;
+  p->state = PosixProcess::STATE_TERMINATED;
+  p->processTerminationCleanup();
+  p->notifyAll ();
+  return true;
 }
 
 void
-java::lang::ConcreteProcess$ProcessManager::signalReaper ()
+java::lang::PosixProcess$ProcessManager::signalReaper ()
 {
-  int c = pthread_kill ((pthread_t) reaperPID, SIGCHLD);
-  if (c == 0)
-    return;
-  // pthread_kill() failed.
-  throw new InternalError (JvNewStringUTF (strerror (c)));
+  ProcessManagerInternal *pmi = (ProcessManagerInternal *)nativeData;
+  char c = 0;
+  ::write(pmi->pipe_ends[1], &c, 1);
+  // Ignore errors.  If EPIPE the reaper has already exited.
 }
 
 void
-java::lang::ConcreteProcess::nativeDestroy ()
+java::lang::PosixProcess::nativeDestroy ()
 {
-  int c = kill ((pid_t) pid, SIGKILL);
+  int c = ::kill ((pid_t) pid, SIGKILL);
   if (c == 0)
     return;
   // kill() failed.
@@ -213,7 +239,7 @@ java::lang::ConcreteProcess::nativeDestroy ()
 }
 
 void
-java::lang::ConcreteProcess::nativeSpawn ()
+java::lang::PosixProcess::nativeSpawn ()
 {
   using namespace java::io;
 
@@ -237,7 +263,7 @@ java::lang::ConcreteProcess::nativeSpawn ()
   try
     {
       // Transform arrays to native form.
-    args = (char **) _Jv_Malloc ((progarray->length + 1) * sizeof (char *));
+      args = (char **) _Jv_Malloc ((progarray->length + 1) * sizeof (char *));
 
       // Initialize so we can gracefully recover.
       jstring *elts = elements (progarray);
@@ -250,16 +276,57 @@ java::lang::ConcreteProcess::nativeSpawn ()
 
       if (envp)
 	{
-	  env = (char **) _Jv_Malloc ((envp->length + 1) * sizeof (char *));
+          bool need_path = true;
+          bool need_ld_library_path = true;
+          int i;
+
+          // Preserve PATH and LD_LIBRARY_PATH unless specified
+          // explicitly.  We need three extra slots.  Potentially PATH
+          // and LD_LIBRARY_PATH will be added plus the NULL
+          // termination.
+	  env = (char **) _Jv_Malloc ((envp->length + 3) * sizeof (char *));
 	  elts = elements (envp);
 
 	  // Initialize so we can gracefully recover.
-	  for (int i = 0; i <= envp->length; ++i)
+	  for (i = 0; i < envp->length + 3; ++i)
 	    env[i] = NULL;
 
-	  for (int i = 0; i < envp->length; ++i)
-	    env[i] = new_string (elts[i]);
-	  env[envp->length] = NULL;
+	  for (i = 0; i < envp->length; ++i)
+            {
+              env[i] = new_string (elts[i]);
+              if (!strncmp (env[i], "PATH=", sizeof("PATH=")))
+                need_path = false;
+              if (!strncmp (env[i], "LD_LIBRARY_PATH=",
+                            sizeof("LD_LIBRARY_PATH=")))
+                need_ld_library_path = false;
+            }
+
+          if (need_path)
+            {
+	      char *path_val = getenv ("PATH");
+              if (path_val)
+                {
+                  env[i] = (char *) _Jv_Malloc (strlen (path_val) +
+                                                sizeof("PATH=") + 1);
+                  strcpy (env[i], "PATH=");
+                  strcat (env[i], path_val);
+                  i++;
+                }
+            }
+          if (need_ld_library_path)
+            {
+	      char *path_val = getenv ("LD_LIBRARY_PATH");
+              if (path_val)
+                {
+                  env[i] =
+                    (char *) _Jv_Malloc (strlen (path_val) +
+                                         sizeof("LD_LIBRARY_PATH=") + 1);
+                  strcpy (env[i], "LD_LIBRARY_PATH=");
+                  strcat (env[i], path_val);
+                  i++;
+                }
+            }
+	  env[i] = NULL;
 	}
 
       // We allocate this here because we can't call malloc() after
@@ -268,23 +335,30 @@ java::lang::ConcreteProcess::nativeSpawn ()
 	path = new_string (dir->getPath ());
 
       // Create pipes for I/O.  MSGP is for communicating exec()
-      // status.
-      if (pipe (inp) || pipe (outp) || pipe (errp) || pipe (msgp)
+      // status.  If redirecting stderr to stdout, we don't need to
+      // create the ERRP pipe.
+      if (pipe (inp) || pipe (outp) || pipe (msgp)
 	  || fcntl (msgp[1], F_SETFD, FD_CLOEXEC))
-      throw new IOException (JvNewStringUTF (strerror (errno)));
+	throw new IOException (JvNewStringUTF (strerror (errno)));
+      if (! redirect && pipe (errp))
+	throw new IOException (JvNewStringUTF (strerror (errno)));
 
       // We create the streams before forking.  Otherwise if we had an
       // error while creating the streams we would have run the child
       // with no way to communicate with it.
-    errorStream =
-      new FileInputStream (new
-                           FileChannelImpl (errp[0], FileChannelImpl::READ));
-    inputStream =
-      new FileInputStream (new
-                           FileChannelImpl (inp[0], FileChannelImpl::READ));
-    outputStream =
-      new FileOutputStream (new FileChannelImpl (outp[1],
-                                             FileChannelImpl::WRITE));
+      if (redirect)
+	errorStream = PosixProcess$EOFInputStream::instance;
+      else
+	errorStream =
+	  new FileInputStream (new
+			       FileChannelImpl (errp[0],
+						FileChannelImpl::READ));
+      inputStream =
+	new FileInputStream (new
+			     FileChannelImpl (inp[0], FileChannelImpl::READ));
+      outputStream =
+	new FileOutputStream (new FileChannelImpl (outp[1],
+						   FileChannelImpl::WRITE));
 
       // We don't use vfork() because that would cause the local
       // environment to be set by the child.
@@ -298,45 +372,26 @@ java::lang::ConcreteProcess::nativeSpawn ()
 	{
 	  // Child process, so remap descriptors, chdir and exec.
 	  if (envp)
-	    {
-	      // Preserve PATH and LD_LIBRARY_PATH unless specified
-	      // explicitly.
-	      char *path_val = getenv ("PATH");
-	      char *ld_path_val = getenv ("LD_LIBRARY_PATH");
-	      environ = env;
-	      if (path_val && getenv ("PATH") == NULL)
-		{
-		char *path_env =
-                  (char *) _Jv_Malloc (strlen (path_val) + 5 + 1);
-		  strcpy (path_env, "PATH=");
-		  strcat (path_env, path_val);
-		  putenv (path_env);
-		}
-	      if (ld_path_val && getenv ("LD_LIBRARY_PATH") == NULL)
-		{
-		char *ld_path_env =
-                  (char *) _Jv_Malloc (strlen (ld_path_val) + 16 + 1);
-		  strcpy (ld_path_env, "LD_LIBRARY_PATH=");
-		  strcat (ld_path_env, ld_path_val);
-		  putenv (ld_path_env);
-		}
-	    }
+            environ = env;
 
 	  // We ignore errors from dup2 because they should never occur.
 	  dup2 (outp[0], 0);
 	  dup2 (inp[1], 1);
-	  dup2 (errp[1], 2);
+	  dup2 (redirect ? inp[1] : errp[1], 2);
 
 	  // Use close and not myclose -- we're in the child, and we
 	  // aren't worried about the possible race condition.
 	  close (inp[0]);
 	  close (inp[1]);
-	  close (errp[0]);
-	  close (errp[1]);
+	  if (! redirect)
+	    {
+	      close (errp[0]);
+	      close (errp[1]);
+	    }
 	  close (outp[0]);
 	  close (outp[1]);
 	  close (msgp[0]);
-          
+
 	  // Change directory.
 	  if (path != NULL)
 	    {
@@ -392,15 +447,16 @@ java::lang::ConcreteProcess::nativeSpawn ()
 
       myclose (outp[0]);
       myclose (inp[1]);
-      myclose (errp[1]);
+      if (! redirect)
+	myclose (errp[1]);
       myclose (msgp[1]);
 
       char c;
       int r = read (msgp[0], &c, 1);
       if (r == -1)
-      throw new IOException (JvNewStringUTF (strerror (errno)));
+        throw new IOException (JvNewStringUTF (strerror (errno)));
       else if (r != 0)
-      throw new IOException (JvNewStringUTF (strerror (c)));
+        throw new IOException (JvNewStringUTF (strerror (c)));
     }
   catch (java::lang::Throwable *thrown)
     {
@@ -436,7 +492,7 @@ java::lang::ConcreteProcess::nativeSpawn ()
 	{
 	  if (errorStream != NULL)
 	    errorStream->close ();
-	  else
+	  else if (! redirect)
 	    myclose (errp[0]);
 	}
       catch (java::lang::Throwable *ignore)
@@ -447,10 +503,11 @@ java::lang::ConcreteProcess::nativeSpawn ()
       // the use of myclose.
       myclose (outp[0]);
       myclose (inp[1]);
-      myclose (errp[1]);
+      if (! redirect)
+	myclose (errp[1]);
       myclose (msgp[1]);
 
-    exception = thrown;
+      exception = thrown;
     }
 
   myclose (msgp[0]);

@@ -48,6 +48,11 @@ details.  */
 #include <java/lang/UnsupportedOperationException.h>
 #endif
 
+typedef JArray< ::java::lang::annotation::Annotation * > * anno_a_t;
+typedef JArray< JArray< ::java::lang::annotation::Annotation * > *> * anno_aa_t;
+
+
+
 struct cpair
 {
   jclass prim;
@@ -168,16 +173,34 @@ java::lang::reflect::Method::invoke (jobject obj, jobjectArray args)
     }
 
   // Check accessibility, if required.
-  if (! (Modifier::isPublic (meth->accflags) || this->isAccessible()))
+  if (! this->isAccessible())
     {
-      Class *caller = _Jv_StackTrace::GetCallingClass (&Method::class$);
-      if (! _Jv_CheckAccess(caller, declaringClass, meth->accflags))
-	throw new IllegalAccessException;
+      if (! (Modifier::isPublic (meth->accflags)))
+	{
+	  Class *caller = _Jv_StackTrace::GetCallingClass (&Method::class$);
+	  if (! _Jv_CheckAccess(caller, declaringClass, meth->accflags))
+	    throw new IllegalAccessException;
+	}
+      else
+	// Method is public, check to see if class is accessible.
+	{
+	  jint flags = (declaringClass->accflags
+			& (Modifier::PUBLIC
+			   | Modifier::PROTECTED
+			   | Modifier::PRIVATE));
+	  if (flags == 0) // i.e. class is package private
+	    {
+	      Class *caller = _Jv_StackTrace::GetCallingClass (&Method::class$);
+	      if (! _Jv_ClassNameSamePackage (caller->name,
+					      declaringClass->name))
+		throw new IllegalAccessException;
+	    }
+	}
     }
 
   if (declaringClass->isInterface())
     iface = declaringClass;
-  
+
   return _Jv_CallAnyMethodA (obj, return_type, meth, false,
 			     parameter_types, args, iface);
 }
@@ -186,6 +209,30 @@ jint
 java::lang::reflect::Method::getModifiersInternal ()
 {
   return _Jv_FromReflectedMethod (this)->accflags;
+}
+
+jstring
+java::lang::reflect::Method::getSignature()
+{
+  return declaringClass->getReflectionSignature (this);
+}
+
+jobject
+java::lang::reflect::Method::getDefaultValue()
+{
+  return declaringClass->getMethodDefaultValue(this);
+}
+
+anno_a_t
+java::lang::reflect::Method::getDeclaredAnnotationsInternal()
+{
+  return (anno_a_t) declaringClass->getDeclaredAnnotations(this, false);
+}
+
+anno_aa_t
+java::lang::reflect::Method::getParameterAnnotationsInternal()
+{
+  return (anno_aa_t) declaringClass->getDeclaredAnnotations(this, true);
 }
 
 jstring
@@ -312,7 +359,7 @@ _Jv_CallAnyMethodA (jobject obj,
 		    jboolean is_constructor,
 		    jboolean is_virtual_call,
 		    JArray<jclass> *parameter_types,
-		    jvalue *args,
+		    const jvalue *args,
 		    jvalue *result,
 		    jboolean is_jni_call,
 		    jclass iface)

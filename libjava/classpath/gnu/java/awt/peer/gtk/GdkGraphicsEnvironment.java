@@ -38,31 +38,47 @@ exception statement from your version. */
 
 package gnu.java.awt.peer.gtk;
 
+import gnu.java.awt.ClasspathGraphicsEnvironment;
+
 import java.awt.Font;
 import java.awt.Graphics2D;
 import java.awt.GraphicsDevice;
 import java.awt.GraphicsEnvironment;
 import java.awt.HeadlessException;
 import java.awt.image.BufferedImage;
-import java.awt.image.DataBuffer;
+import java.awt.image.ColorModel;
+import java.awt.image.Raster;
+import java.awt.image.SampleModel;
+import java.awt.image.WritableRaster;
 import java.util.Locale;
 
-public class GdkGraphicsEnvironment extends GraphicsEnvironment
+import gnu.classpath.Pointer;
+
+public class GdkGraphicsEnvironment extends ClasspathGraphicsEnvironment
 {
   private final int native_state = GtkGenericPeer.getUniqueInteger ();
   
   private GdkScreenGraphicsDevice defaultDevice;
   
   private GdkScreenGraphicsDevice[] devices;
-  
+
+  /**
+   * The pointer to the native display resource.
+   *
+   * This field is manipulated by native code. Don't change or remove
+   * without adjusting the native code.
+   */
+  private Pointer display;
+
   static
   {
     System.loadLibrary("gtkpeer");
 
-    initStaticState ();
+    GtkToolkit.initializeGlobalIDs();
+    initIDs();
   }
   
-  static native void initStaticState();
+  private static native void initIDs();
   
   public GdkGraphicsEnvironment ()
   {
@@ -103,9 +119,9 @@ public class GdkGraphicsEnvironment extends GraphicsEnvironment
 
   public Graphics2D createGraphics (BufferedImage image)
   {
-    DataBuffer db = image.getRaster().getDataBuffer();
-    if(db instanceof CairoSurface)
-      return ((CairoSurface)db).getGraphics();
+    Raster raster = image.getRaster();
+    if(raster instanceof CairoSurface)
+      return ((CairoSurface)raster).getGraphics();
 
     return new BufferedImageGraphics( image );
   }
@@ -139,4 +155,14 @@ public class GdkGraphicsEnvironment extends GraphicsEnvironment
    * Used by GtkMouseInfoPeer.
    */ 
   native int[] getMouseCoordinates();
+  native boolean isWindowUnderMouse(GtkWindowPeer windowPeer);
+  
+  public WritableRaster createRaster(ColorModel cm, SampleModel sm)
+  {
+    if (CairoSurface.isCompatibleSampleModel(sm)
+        && CairoSurface.isCompatibleColorModel(cm))
+      return new CairoSurface(sm.getWidth(), sm.getHeight());
+    else
+      return null;
+  }
 }

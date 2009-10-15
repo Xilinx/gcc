@@ -2,10 +2,10 @@
    nasty ICE due to messed up parser context.  Problem originally found
    during bootstrap; this is synthetic.  -zw  */
 /* { dg-do compile } 
-   { dg-options -W } */
+   { dg-options -Wempty-body } */
 
 void foo (int x)
 {
   if (x)
-    ;	/* { dg-warning "empty body in an if-statement" } */
+    ;	/* { dg-warning "empty body in an" } */
 }

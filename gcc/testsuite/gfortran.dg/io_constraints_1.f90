@@ -1,4 +1,5 @@
 ! { dg-do compile }
+! { dg-options "-std=f95" }
 ! Part I of the test  of the IO constraints patch, which fixes PRs:
 ! PRs 25053, 25063, 25064, 25066, 25067, 25068, 25069, 25307 and 20862.
 !
@@ -20,7 +21,7 @@ contains
   subroutine foo (i)
     integer :: i
     write (*, 100) i
- 100 format (1h , "i=", i6)                     ! This is OK.
+ 100 format (1h , "i=", i6)                     ! { dg-warning "The H format specifier at ... is a Fortran 95 deleted feature" }
   end subroutine foo
 
 end module global
@@ -54,7 +55,6 @@ end module global
 ! R912
 !Was correctly picked up before patch.
  write(6, NML=NL, iostat = ierr)                ! { dg-warning "requires default INTEGER" }
- READ(1, fmt='(i6)', advance='NO', size = ierr) ! { dg-warning "requires default INTEGER" }
 
 ! Constraints
 !Was correctly picked up before patch.

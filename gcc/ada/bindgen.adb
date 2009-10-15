@@ -6,42 +6,43 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2006, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with ALI;         use ALI;
-with Binde;       use Binde;
-with Casing;      use Casing;
-with Fname;       use Fname;
-with GNAT.OS_Lib; use GNAT.OS_Lib;
-with Gnatvsn;     use Gnatvsn;
+with ALI;      use ALI;
+with Binde;    use Binde;
+with Casing;   use Casing;
+with Fname;    use Fname;
+with Gnatvsn;  use Gnatvsn;
 with Hostparm;
-with Namet;       use Namet;
-with Opt;         use Opt;
-with Osint;       use Osint;
-with Osint.B;     use Osint.B;
-with Output;      use Output;
-with Rident;      use Rident;
-with Table;       use Table;
-with Targparm;    use Targparm;
-with Types;       use Types;
+with Namet;    use Namet;
+with Opt;      use Opt;
+with Osint;    use Osint;
+with Osint.B;  use Osint.B;
+with Output;   use Output;
+with Rident;   use Rident;
+with Table;    use Table;
+with Targparm; use Targparm;
+with Types;    use Types;
 
-with GNAT.Heap_Sort_A;     use GNAT.Heap_Sort_A;
+with System.OS_Lib;  use System.OS_Lib;
+with System.WCh_Con; use System.WCh_Con;
+
+with GNAT.Heap_Sort_A; use GNAT.Heap_Sort_A;
 
 package body Bindgen is
 
@@ -62,13 +63,21 @@ package body Bindgen is
    Num_Elab_Calls : Nat := 0;
    --  Number of generated calls to elaboration routines
 
+   System_Restrictions_Used : Boolean;
+   --  Flag indicating whether the unit System.Restrictions is in the closure
+   --  of the partition. This is set by Check_System_Restrictions_Used, and
+   --  is used to determine whether or not to initialize the restrictions
+   --  information in the body of the binder generated file (we do not want
+   --  to do this unconditionally, since it drags in the System.Restrictions
+   --  unit unconditionally, which is unpleasand, especially for ZFP etc.)
+
    ----------------------------------
    -- Interface_State Pragma Table --
    ----------------------------------
 
    --  This table assembles the interface state pragma information from
    --  all the units in the partition. Note that Bcheck has already checked
-   --  that the information is consistent across partitions. The entries
+   --  that the information is consistent across units. The entries
    --  in this table are n/u/r/s for not set/user/runtime/system.
 
    package IS_Pragma_Settings is new Table.Table (
@@ -79,28 +88,44 @@ package body Bindgen is
      Table_Increment      => 200,
      Table_Name           => "IS_Pragma_Settings");
 
+   --  This table assembles the Priority_Specific_Dispatching pragma
+   --  information from all the units in the partition. Note that Bcheck has
+   --  already checked that the information is consistent across units.
+   --  The entries in this table are the upper case first character of the
+   --  policy name, e.g. 'F' for FIFO_Within_Priorities.
+
+   package PSD_Pragma_Settings is new Table.Table (
+     Table_Component_Type => Character,
+     Table_Index_Type     => Int,
+     Table_Low_Bound      => 0,
+     Table_Initial        => 100,
+     Table_Increment      => 200,
+     Table_Name           => "PSD_Pragma_Settings");
+
    ----------------------
    -- Run-Time Globals --
    ----------------------
 
-   --  This section documents the global variables that are passed to the
-   --  run time from the generated binder file. The call that is made is
-   --  to the routine Set_Globals, which has the following spec:
+   --  This section documents the global variables that set from the
+   --  generated binder file.
 
-   --   procedure Set_Globals
-   --     (Main_Priority            : Integer;
-   --      Time_Slice_Value         : Integer;
-   --      WC_Encoding              : Character;
-   --      Locking_Policy           : Character;
-   --      Queuing_Policy           : Character;
-   --      Task_Dispatching_Policy  : Character;
-   --      Restrictions             : System.Address;
-   --      Interrupt_States         : System.Address;
-   --      Num_Interrupt_States     : Integer;
-   --      Unreserve_All_Interrupts : Integer;
-   --      Exception_Tracebacks     : Integer;
-   --      Zero_Cost_Exceptions     : Integer;
-   --      Detect_Blocking          : Integer);
+   --     Main_Priority                 : Integer;
+   --     Time_Slice_Value              : Integer;
+   --     WC_Encoding                   : Character;
+   --     Locking_Policy                : Character;
+   --     Queuing_Policy                : Character;
+   --     Task_Dispatching_Policy       : Character;
+   --     Priority_Specific_Dispatching : System.Address;
+   --     Num_Specific_Dispatching      : Integer;
+   --     Restrictions                  : System.Address;
+   --     Interrupt_States              : System.Address;
+   --     Num_Interrupt_States          : Integer;
+   --     Unreserve_All_Interrupts      : Integer;
+   --     Exception_Tracebacks          : Integer;
+   --     Zero_Cost_Exceptions          : Integer;
+   --     Detect_Blocking               : Integer;
+   --     Default_Stack_Size            : Integer;
+   --     Leap_Seconds_Support          : Integer;
 
    --  Main_Priority is the priority value set by pragma Priority in the
    --  main program. If no such pragma is present, the value is -1.
@@ -130,6 +155,20 @@ package body Bindgen is
    --  was specified for the partition. If a task dispatching policy
    --  was specified, the value is the upper case first character of
    --  the policy name, e.g. 'F' for FIFO_Within_Priorities.
+
+   --  Priority_Specific_Dispatching is the address of a string used to
+   --  store the task dispatching policy specified for the different priorities
+   --  in the partition. The length of this string is determined by the last
+   --  priority for which such a pragma applies (the string will be a null
+   --  string if no specific dispatching policies were used). If pragma were
+   --  present, the entries apply to the priorities in sequence from the first
+   --  priority. The value stored is the upper case first character of the
+   --  policy name, or 'F' (for FIFO_Within_Priorities) as the default value
+   --  for those priority ranges not specified.
+
+   --  Num_Specific_Dispatching is the length of the
+   --  Priority_Specific_Dispatching string. It will be set to zero if no
+   --  Priority_Specific_Dispatching pragmas are present.
 
    --  Restrictions is the address of a null-terminated string specifying the
    --  restrictions information for the partition. The format is identical to
@@ -167,12 +206,23 @@ package body Bindgen is
    --  present, while a value of 1 signals its presence in the
    --  partition.
 
+   --  Default_Stack_Size is the default stack size used when creating an
+   --  Ada task with no explicit Storize_Size clause.
+
+   --  Leap_Seconds_Support denotes whether leap seconds have been enabled or
+   --  disabled. A value of zero indicates that leap seconds are turned "off",
+   --  while a value of one signifies "on" status.
+
    -----------------------
    -- Local Subprograms --
    -----------------------
 
    procedure WBI (Info : String) renames Osint.B.Write_Binder_Info;
    --  Convenient shorthand used throughout
+
+   procedure Check_System_Restrictions_Used;
+   --  Sets flag System_Restrictions_Used (Set to True if and only if the unit
+   --  System.Restrictions is present in the partition, otherwise False).
 
    procedure Gen_Adainit_Ada;
    --  Generates the Adainit procedure (Ada code case)
@@ -218,15 +268,11 @@ package body Bindgen is
    procedure Gen_Output_File_C (Filename : String);
    --  Generate output file (C code case)
 
-   procedure Gen_Restrictions_String_1;
-   --  Generate first restrictions string, which consists of the parameters
-   --  the first R line, as described in lib-writ.ads, with the restrictions
-   --  being those for the entire partition (from Cumulative_Restrictions).
+   procedure Gen_Restrictions_Ada;
+   --  Generate initialization of restrictions variable (Ada code case)
 
-   procedure Gen_Restrictions_String_2;
-   --  Generate first restrictions string, which consists of the parameters
-   --  the second R line, as described in lib-writ.ads, with the restrictions
-   --  being those for the entire partition (from Cumulative_Restrictions).
+   procedure Gen_Restrictions_C;
+   --  Generate initialization of restrictions variable (C code case)
 
    procedure Gen_Versions_Ada;
    --  Output series of definitions for unit versions (Ada code case)
@@ -241,12 +287,21 @@ package body Bindgen is
    --  This function tries Ada_Main first, and if there is such a clash, then
    --  it tries Ada_Name_01, Ada_Name_02 ... Ada_Name_99 in sequence.
 
+   function Get_Main_Unit_Name (S : String) return String;
+   --  Return the main unit name corresponding to S by replacing '.' with '_'
+
    function Get_Main_Name return String;
    --  This function is used in the Ada main output case to compute the
    --  correct external main program. It is "main" by default, unless the
    --  flag Use_Ada_Main_Program_Name_On_Target is set, in which case it
    --  is the name of the Ada main name without the "_ada". This default
    --  can be overridden explicitly using the -Mname binder switch.
+
+   function Get_WC_Encoding return Character;
+   --  Return wide character encoding method to set as WC_Encoding in output.
+   --  If -W has been used, returns the specified encoding, otherwise returns
+   --  the encoding method used for the main program source. If there is no
+   --  main program source (-z switch used), returns brackets ('b').
 
    function Lt_Linker_Option (Op1, Op2 : Natural) return Boolean;
    --  Compare linker options, when sorting, first according to
@@ -255,10 +310,6 @@ package body Bindgen is
 
    procedure Move_Linker_Option (From : Natural; To : Natural);
    --  Move routine for sorting linker options
-
-   procedure Public_Version_Warning;
-   --  Emit a warning concerning the use of the Public version under
-   --  certain circumstances. See details in body.
 
    procedure Resolve_Binder_Options;
    --  Set the value of With_GNARL and With_DECGNAT. The latter only on VMS
@@ -274,6 +325,10 @@ package body Bindgen is
    --  starting at the Last + 1 position, and updating Last past the value.
    --  A minus sign is output for a negative value.
 
+   procedure Set_Boolean (B : Boolean);
+   --  Set given boolean value in Statement_Buffer at the Last + 1 position
+   --  and update Last past the value.
+
    procedure Set_IS_Pragma_Table;
    --  Initializes contents of IS_Pragma_Settings table from ALI table
 
@@ -284,6 +339,9 @@ package body Bindgen is
 
    procedure Set_Name_Buffer;
    --  Set the value stored in positions 1 .. Name_Len of the Name_Buffer
+
+   procedure Set_PSD_Pragma_Table;
+   --  Initializes contents of PSD_Pragma_Settings table from ALI table
 
    procedure Set_String (S : String);
    --  Sets characters of given string in Statement_Buffer, starting at the
@@ -299,10 +357,6 @@ package body Bindgen is
    --  up all output unit numbers nicely as required by the value, and
    --  by the total number of units.
 
-   procedure Tab_To (N : Natural);
-   --  If Last is greater than or equal to N, no effect, otherwise store
-   --  blanks in Statement_Buffer bumping Last, until Last = N.
-
    procedure Write_Info_Ada_C (Ada : String; C : String; Common : String);
    --  For C code case, write C & Common, for Ada case write Ada & Common
    --  to current binder output file using Write_Binder_Info.
@@ -313,6 +367,22 @@ package body Bindgen is
    procedure Write_Statement_Buffer (S : String);
    --  First writes its argument (using Set_String (S)), then writes out the
    --  contents of statement buffer up to Last, and reset Last to 0
+
+   ------------------------------------
+   -- Check_System_Restrictions_Used --
+   ------------------------------------
+
+   procedure Check_System_Restrictions_Used is
+   begin
+      for J in Units.First .. Units.Last loop
+         if Get_Name_String (Units.Table (J).Sfile) = "s-restri.ads" then
+            System_Restrictions_Used := True;
+            return;
+         end if;
+      end loop;
+
+      System_Restrictions_Used := False;
+   end Check_System_Restrictions_Used;
 
    ----------------------
    -- Gen_Adafinal_Ada --
@@ -327,7 +397,7 @@ package body Bindgen is
       --  If compiling for the JVM, we directly call Adafinal because
       --  we don't import it via Do_Finalize (see Gen_Output_File_Ada).
 
-      if Hostparm.Java_VM then
+      if VM_Target /= No_VM then
          WBI ("      System.Standard_Library.Adafinal;");
 
       --  If there is no finalization, there is nothing to do
@@ -389,7 +459,14 @@ package body Bindgen is
                Set_String ("      ");
                Set_String ("E");
                Set_Unit_Number (Unum);
-               Set_String (" : Boolean; pragma Import (Ada, ");
+
+               case VM_Target is
+                  when No_VM | JVM_Target =>
+                     Set_String (" : Boolean; pragma Import (Ada, ");
+                  when CLI_Target =>
+                     Set_String (" : Boolean; pragma Import (CIL, ");
+               end case;
+
                Set_String ("E");
                Set_Unit_Number (Unum);
                Set_String (", """);
@@ -399,16 +476,22 @@ package body Bindgen is
                --  that includes the class name (using '$' separators
                --  in the case of a child unit name).
 
-               if Hostparm.Java_VM then
+               if VM_Target /= No_VM then
                   for J in 1 .. Name_Len - 2 loop
-                     if Name_Buffer (J) /= '.' then
+                     if VM_Target = CLI_Target
+                       or else Name_Buffer (J) /= '.'
+                     then
                         Set_Char (Name_Buffer (J));
                      else
                         Set_String ("$");
                      end if;
                   end loop;
 
-                  Set_String (".");
+                  if VM_Target /= CLI_Target or else U.Unit_Kind = 's' then
+                     Set_String (".");
+                  else
+                     Set_String ("_pkg.");
+                  end if;
 
                   --  If the unit name is very long, then split the
                   --  Import link name across lines using "&" (occurs
@@ -432,7 +515,7 @@ package body Bindgen is
 
       --  If the standard library is suppressed, then the only global variable
       --  that might be needed (by the Ravenscar profile) is the priority of
-      --  the environment. Also no exception tables are needed.
+      --  the environment.
 
       if Suppress_Standard_Library_On_Target then
          if Main_Priority /= No_Main_Priority then
@@ -454,78 +537,62 @@ package body Bindgen is
             WBI ("      null;");
          end if;
 
-      --  Normal case (standard library not suppressed). Global values are
-      --  assigned using the runtime routine Set_Globals (we have to use
-      --  the routine call, rather than define the globals in the binder
-      --  file to deal with cross-library calls in some systems.
+      --  Normal case (standard library not suppressed). Set all global values
+      --  used by the run time.
 
       else
-         --  Generate restrictions string
+         WBI ("      Main_Priority : Integer;");
+         WBI ("      pragma Import (C, Main_Priority, " &
+              """__gl_main_priority"");");
+         WBI ("      Time_Slice_Value : Integer;");
+         WBI ("      pragma Import (C, Time_Slice_Value, " &
+              """__gl_time_slice_val"");");
+         WBI ("      WC_Encoding : Character;");
+         WBI ("      pragma Import (C, WC_Encoding, ""__gl_wc_encoding"");");
+         WBI ("      Locking_Policy : Character;");
+         WBI ("      pragma Import (C, Locking_Policy, " &
+              """__gl_locking_policy"");");
+         WBI ("      Queuing_Policy : Character;");
+         WBI ("      pragma Import (C, Queuing_Policy, " &
+              """__gl_queuing_policy"");");
+         WBI ("      Task_Dispatching_Policy : Character;");
+         WBI ("      pragma Import (C, Task_Dispatching_Policy, " &
+              """__gl_task_dispatching_policy"");");
+         WBI ("      Priority_Specific_Dispatching : System.Address;");
+         WBI ("      pragma Import (C, Priority_Specific_Dispatching, " &
+              """__gl_priority_specific_dispatching"");");
+         WBI ("      Num_Specific_Dispatching : Integer;");
+         WBI ("      pragma Import (C, Num_Specific_Dispatching, " &
+              """__gl_num_specific_dispatching"");");
 
-         Set_String ("      Restrictions : constant String :=");
-         Write_Statement_Buffer;
+         WBI ("      Interrupt_States : System.Address;");
+         WBI ("      pragma Import (C, Interrupt_States, " &
+              """__gl_interrupt_states"");");
+         WBI ("      Num_Interrupt_States : Integer;");
+         WBI ("      pragma Import (C, Num_Interrupt_States, " &
+              """__gl_num_interrupt_states"");");
+         WBI ("      Unreserve_All_Interrupts : Integer;");
+         WBI ("      pragma Import (C, Unreserve_All_Interrupts, " &
+              """__gl_unreserve_all_interrupts"");");
 
-         Set_String ("        """);
-         Gen_Restrictions_String_1;
-         Set_String (""" &");
-         Write_Statement_Buffer;
+         if Exception_Tracebacks then
+            WBI ("      Exception_Tracebacks : Integer;");
+            WBI ("      pragma Import (C, Exception_Tracebacks, " &
+                 """__gl_exception_tracebacks"");");
+         end if;
 
-         Set_String ("        """);
-         Gen_Restrictions_String_2;
-         Set_String (""" & ASCII.Nul;");
-         Write_Statement_Buffer;
-         WBI ("");
-
-         --  Generate Interrupt_State pragma string
-
-         Set_String ("      Interrupt_States : constant String :=");
-         Write_Statement_Buffer;
-
-         declare
-            Col : Natural;
-
-         begin
-            Set_String ("        """);
-            Col := 9;
-
-            for J in 0 .. IS_Pragma_Settings.Last loop
-               if Col > 72 then
-                  Set_String (""" &");
-                  Write_Statement_Buffer;
-                  Set_String ("        """);
-                  Col := 9;
-
-               else
-                  Col := Col + 1;
-               end if;
-
-               Set_Char (IS_Pragma_Settings.Table (J));
-            end loop;
-         end;
-
-         Set_String (""";");
-         Write_Statement_Buffer;
-         WBI ("");
-
-         --  Generate spec for Set_Globals procedure
-
-         WBI ("      procedure Set_Globals");
-         WBI ("        (Main_Priority            : Integer;");
-         WBI ("         Time_Slice_Value         : Integer;");
-         WBI ("         WC_Encoding              : Character;");
-         WBI ("         Locking_Policy           : Character;");
-         WBI ("         Queuing_Policy           : Character;");
-         WBI ("         Task_Dispatching_Policy  : Character;");
-
-         WBI ("         Restrictions             : System.Address;");
-         WBI ("         Interrupt_States         : System.Address;");
-         WBI ("         Num_Interrupt_States     : Integer;");
-         WBI ("         Unreserve_All_Interrupts : Integer;");
-         WBI ("         Exception_Tracebacks     : Integer;");
-         WBI ("         Zero_Cost_Exceptions     : Integer;");
-         WBI ("         Detect_Blocking          : Integer;");
-         WBI ("         Default_Stack_Size       : Integer);");
-         WBI ("      pragma Import (C, Set_Globals, ""__gnat_set_globals"");");
+         WBI ("      Zero_Cost_Exceptions : Integer;");
+         WBI ("      pragma Import (C, Zero_Cost_Exceptions, " &
+              """__gl_zero_cost_exceptions"");");
+         WBI ("      Detect_Blocking : Integer;");
+         WBI ("      pragma Import (C, Detect_Blocking, " &
+              """__gl_detect_blocking"");");
+         WBI ("      Default_Stack_Size : Integer;");
+         WBI ("      pragma Import (C, Default_Stack_Size, " &
+              """__gl_default_stack_size"");");
+         WBI ("      Leap_Seconds_Support : Integer;");
+         WBI ("      pragma Import (C, Leap_Seconds_Support, " &
+              """__gl_leap_seconds_support"");");
 
          --  Import entry point for elaboration time signal handler
          --  installation, and indication of if it's been called previously.
@@ -538,18 +605,48 @@ package body Bindgen is
          WBI ("      Handler_Installed : Integer;");
          WBI ("      pragma Import (C, Handler_Installed, " &
               """__gnat_handler_installed"");");
+
+         --  Initialize stack limit variable of the environment task if the
+         --  stack check method is stack limit and if stack check is enabled.
+
+         if Stack_Check_Limits_On_Target
+           and then (Stack_Check_Default_On_Target or Stack_Check_Switch_Set)
+         then
+            WBI ("");
+            WBI ("      procedure Initialize_Stack_Limit;");
+            WBI ("      pragma Import (C, Initialize_Stack_Limit, " &
+                 """__gnat_initialize_stack_limit"");");
+         end if;
+
+         if VM_Target = CLI_Target
+           and then not No_Main_Subprogram
+         then
+            WBI ("");
+
+            if ALIs.Table (ALIs.First).Main_Program = Func then
+               WBI ("      Result : Integer;");
+               WBI ("");
+               WBI ("      function Ada_Main_Program return Integer;");
+
+            else
+               WBI ("      procedure Ada_Main_Program;");
+            end if;
+
+            Get_Name_String (Units.Table (First_Unit_Entry).Uname);
+            Name_Len := Name_Len - 2;
+            WBI ("      pragma Import (CIL, Ada_Main_Program, """
+                 & Name_Buffer (1 .. Name_Len) & "."
+                 & Get_Main_Unit_Name (Name_Buffer (1 .. Name_Len)) & """);");
+         end if;
+
          WBI ("   begin");
 
-         --  Generate the call to Set_Globals
-
-         WBI ("      Set_Globals");
-
-         Set_String ("        (Main_Priority            => ");
+         Set_String ("      Main_Priority := ");
          Set_Int    (Main_Priority);
-         Set_Char   (',');
+         Set_Char   (';');
          Write_Statement_Buffer;
 
-         Set_String ("         Time_Slice_Value         => ");
+         Set_String ("      Time_Slice_Value := ");
 
          if Task_Dispatching_Policy_Specified = 'F'
            and then ALIs.Table (ALIs.First).Time_Slice_Value = -1
@@ -559,40 +656,48 @@ package body Bindgen is
             Set_Int (ALIs.Table (ALIs.First).Time_Slice_Value);
          end if;
 
-         Set_Char   (',');
+         Set_Char   (';');
          Write_Statement_Buffer;
 
-         Set_String ("         WC_Encoding              => '");
-         Set_Char   (ALIs.Table (ALIs.First).WC_Encoding);
-         Set_String ("',");
+         Set_String ("      WC_Encoding := '");
+         Set_Char   (Get_WC_Encoding);
+
+         Set_String ("';");
          Write_Statement_Buffer;
 
-         Set_String ("         Locking_Policy           => '");
+         Set_String ("      Locking_Policy := '");
          Set_Char   (Locking_Policy_Specified);
-         Set_String ("',");
+         Set_String ("';");
          Write_Statement_Buffer;
 
-         Set_String ("         Queuing_Policy           => '");
+         Set_String ("      Queuing_Policy := '");
          Set_Char   (Queuing_Policy_Specified);
-         Set_String ("',");
+         Set_String ("';");
          Write_Statement_Buffer;
 
-         Set_String ("         Task_Dispatching_Policy  => '");
+         Set_String ("      Task_Dispatching_Policy := '");
          Set_Char   (Task_Dispatching_Policy_Specified);
-         Set_String ("',");
+         Set_String ("';");
          Write_Statement_Buffer;
 
-         WBI ("         Restrictions             => Restrictions'Address,");
+         Gen_Restrictions_Ada;
 
-         WBI ("         Interrupt_States         => " &
-                                                 "Interrupt_States'Address,");
+         WBI ("      Priority_Specific_Dispatching :=");
+         WBI ("        Local_Priority_Specific_Dispatching'Address;");
 
-         Set_String ("         Num_Interrupt_States     => ");
+         Set_String ("      Num_Specific_Dispatching := ");
+         Set_Int (PSD_Pragma_Settings.Last + 1);
+         Set_Char (';');
+         Write_Statement_Buffer;
+
+         WBI ("      Interrupt_States := Local_Interrupt_States'Address;");
+
+         Set_String ("      Num_Interrupt_States := ");
          Set_Int (IS_Pragma_Settings.Last + 1);
-         Set_Char (',');
+         Set_Char (';');
          Write_Statement_Buffer;
 
-         Set_String ("         Unreserve_All_Interrupts => ");
+         Set_String ("      Unreserve_All_Interrupts := ");
 
          if Unreserve_All_Interrupts_Specified then
             Set_String ("1");
@@ -600,21 +705,14 @@ package body Bindgen is
             Set_String ("0");
          end if;
 
-         Set_Char (',');
+         Set_Char (';');
          Write_Statement_Buffer;
-
-         Set_String ("         Exception_Tracebacks     => ");
 
          if Exception_Tracebacks then
-            Set_String ("1");
-         else
-            Set_String ("0");
+            WBI ("      Exception_Tracebacks := 1;");
          end if;
 
-         Set_String (",");
-         Write_Statement_Buffer;
-
-         Set_String ("         Zero_Cost_Exceptions     => ");
+         Set_String ("      Zero_Cost_Exceptions := ");
 
          if Zero_Cost_Exceptions_Specified then
             Set_String ("1");
@@ -622,10 +720,10 @@ package body Bindgen is
             Set_String ("0");
          end if;
 
-         Set_String (",");
+         Set_String (";");
          Write_Statement_Buffer;
 
-         Set_String ("         Detect_Blocking          => ");
+         Set_String ("      Detect_Blocking := ");
 
          if Detect_Blocking then
             Set_Int (1);
@@ -633,13 +731,23 @@ package body Bindgen is
             Set_Int (0);
          end if;
 
-         Set_String (",");
+         Set_String (";");
          Write_Statement_Buffer;
 
-         Set_String ("         Default_Stack_Size       => ");
+         Set_String ("      Default_Stack_Size := ");
          Set_Int (Default_Stack_Size);
+         Set_String (";");
+         Write_Statement_Buffer;
 
-         Set_String (");");
+         Set_String ("      Leap_Seconds_Support := ");
+
+         if Leap_Seconds_Support then
+            Set_Int (1);
+         else
+            Set_Int (0);
+         end if;
+
+         Set_String (";");
          Write_Statement_Buffer;
 
          --  Generate call to Install_Handler
@@ -673,10 +781,30 @@ package body Bindgen is
          Write_Statement_Buffer;
       end if;
 
+      --  Initialize stack limit variable of the environment task if the
+      --  stack check method is stack limit and if stack check is enabled.
+
+      if Stack_Check_Limits_On_Target
+        and then (Stack_Check_Default_On_Target or Stack_Check_Switch_Set)
+      then
+         WBI ("");
+         WBI ("      Initialize_Stack_Limit;");
+      end if;
+
       --  Generate elaboration calls
 
       WBI ("");
       Gen_Elab_Calls_Ada;
+
+      if VM_Target = CLI_Target
+        and then not No_Main_Subprogram
+      then
+         if ALIs.Table (ALIs.First).Main_Program = Func then
+            WBI ("      Result := Ada_Main_Program;");
+         else
+            WBI ("      Ada_Main_Program;");
+         end if;
+      end if;
 
       WBI ("   end " & Ada_Init_Name.all & ";");
    end Gen_Adainit_Ada;
@@ -734,7 +862,8 @@ package body Bindgen is
          --  for the Ravenscar profile.
 
          if Main_Priority /= No_Main_Priority then
-            Set_String ("   extern int __gl_main_priority = ");
+            WBI ("   extern int __gl_main_priority;");
+            Set_String ("   __gl_main_priority = ");
             Set_Int    (Main_Priority);
             Set_Char   (';');
             Write_Statement_Buffer;
@@ -743,20 +872,24 @@ package body Bindgen is
       --  Normal case (standard library not suppressed)
 
       else
-         --  Generate definition for restrictions string
-
-         Set_String ("   const char *restrictions = """);
-         Gen_Restrictions_String_1;
-         Gen_Restrictions_String_2;
-         Set_String (""";");
-         Write_Statement_Buffer;
-
          --  Generate definition for interrupt states string
 
-         Set_String ("   const char *interrupt_states = """);
+         Set_String ("   static const char *local_interrupt_states = """);
 
          for J in 0 .. IS_Pragma_Settings.Last loop
             Set_Char (IS_Pragma_Settings.Table (J));
+         end loop;
+
+         Set_String (""";");
+         Write_Statement_Buffer;
+
+         --  Generate definition for priority specific dispatching string
+
+         Set_String
+           ("   static const char *local_priority_specific_dispatching = """);
+
+         for J in 0 .. PSD_Pragma_Settings.Last loop
+            Set_Char (PSD_Pragma_Settings.Table (J));
          end loop;
 
          Set_String (""";");
@@ -773,24 +906,17 @@ package body Bindgen is
 
          --  Code for normal case (standard library not suppressed)
 
-         --  Generate call to set the runtime global variables defined in
-         --  init.c. We define the varables in init.c, rather than in
-         --  the binder generated file itself to avoid undefined externals
-         --  when the runtime is linked as a shareable image library.
-
          --  We call the routine from inside adainit() because this works for
          --  both programs with and without binder generated "main" functions.
 
-         WBI ("   __gnat_set_globals (");
-
-         Set_String ("      ");
+         WBI ("   extern int __gl_main_priority;");
+         Set_String ("   __gl_main_priority = ");
          Set_Int (Main_Priority);
-         Set_Char (',');
-         Tab_To (24);
-         Set_String ("/* Main_Priority              */");
+         Set_Char (';');
          Write_Statement_Buffer;
 
-         Set_String ("      ");
+         WBI ("   extern int __gl_time_slice_val;");
+         Set_String ("   __gl_time_slice_val = ");
 
          if Task_Dispatching_Policy = 'F'
            and then ALIs.Table (ALIs.First).Time_Slice_Value = -1
@@ -800,82 +926,74 @@ package body Bindgen is
             Set_Int (ALIs.Table (ALIs.First).Time_Slice_Value);
          end if;
 
-         Set_Char   (',');
-         Tab_To (24);
-         Set_String ("/* Time_Slice_Value           */");
+         Set_Char   (';');
          Write_Statement_Buffer;
 
-         Set_String ("      '");
-         Set_Char   (ALIs.Table (ALIs.First).WC_Encoding);
-         Set_String ("',");
-         Tab_To (24);
-         Set_String ("/* WC_Encoding                */");
+         WBI ("   extern char __gl_wc_encoding;");
+         Set_String ("   __gl_wc_encoding = '");
+         Set_Char (Get_WC_Encoding);
+
+         Set_String ("';");
          Write_Statement_Buffer;
 
-         Set_String ("      '");
+         WBI ("   extern char __gl_locking_policy;");
+         Set_String ("   __gl_locking_policy = '");
          Set_Char (Locking_Policy_Specified);
-         Set_String ("',");
-         Tab_To (24);
-         Set_String ("/* Locking_Policy             */");
+         Set_String ("';");
          Write_Statement_Buffer;
 
-         Set_String ("      '");
+         WBI ("   extern char __gl_queuing_policy;");
+         Set_String ("   __gl_queuing_policy = '");
          Set_Char (Queuing_Policy_Specified);
-         Set_String ("',");
-         Tab_To (24);
-         Set_String ("/* Queuing_Policy             */");
+         Set_String ("';");
          Write_Statement_Buffer;
 
-         Set_String ("      '");
+         WBI ("   extern char __gl_task_dispatching_policy;");
+         Set_String ("   __gl_task_dispatching_policy = '");
          Set_Char (Task_Dispatching_Policy_Specified);
-         Set_String ("',");
-         Tab_To (24);
-         Set_String ("/* Tasking_Dispatching_Policy */");
+         Set_String ("';");
          Write_Statement_Buffer;
 
-         Set_String ("      ");
-         Set_String ("restrictions");
-         Set_String (",");
-         Tab_To (24);
-         Set_String ("/* Restrictions               */");
-         Write_Statement_Buffer;
+         Gen_Restrictions_C;
 
-         Set_String ("      ");
-         Set_String ("interrupt_states");
-         Set_String (",");
-         Tab_To (24);
-         Set_String ("/* Interrupt_States           */");
-         Write_Statement_Buffer;
+         WBI ("   extern const void *__gl_interrupt_states;");
+         WBI ("   __gl_interrupt_states = local_interrupt_states;");
 
-         Set_String ("      ");
+         WBI ("   extern int __gl_num_interrupt_states;");
+         Set_String ("   __gl_num_interrupt_states = ");
          Set_Int (IS_Pragma_Settings.Last + 1);
-         Set_String (",");
-         Tab_To (24);
-         Set_String ("/* Num_Interrupt_States       */");
+         Set_String (";");
          Write_Statement_Buffer;
 
-         Set_String ("      ");
+         WBI ("   extern const void *__gl_priority_specific_dispatching;");
+         WBI ("   __gl_priority_specific_dispatching =" &
+              " local_priority_specific_dispatching;");
+
+         WBI ("   extern int __gl_num_specific_dispatching;");
+         Set_String ("   __gl_num_specific_dispatching = ");
+         Set_Int (PSD_Pragma_Settings.Last + 1);
+         Set_String (";");
+         Write_Statement_Buffer;
+
+         WBI ("   extern int __gl_unreserve_all_interrupts;");
+         Set_String ("   __gl_unreserve_all_interrupts = ");
          Set_Int    (Boolean'Pos (Unreserve_All_Interrupts_Specified));
-         Set_String (",");
-         Tab_To (24);
-         Set_String ("/* Unreserve_All_Interrupts   */");
+         Set_String (";");
          Write_Statement_Buffer;
 
-         Set_String ("      ");
-         Set_Int    (Boolean'Pos (Exception_Tracebacks));
-         Set_String (",");
-         Tab_To (24);
-         Set_String ("/* Exception_Tracebacks       */");
-         Write_Statement_Buffer;
+         if Exception_Tracebacks then
+            WBI ("   extern int __gl_exception_tracebacks;");
+            WBI ("   __gl_exception_tracebacks = 1;");
+         end if;
 
-         Set_String ("      ");
+         WBI ("   extern int __gl_zero_cost_exceptions;");
+         Set_String ("   __gl_zero_cost_exceptions = ");
          Set_Int    (Boolean'Pos (Zero_Cost_Exceptions_Specified));
-         Set_String (",");
-         Tab_To (24);
-         Set_String ("/* Zero_Cost_Exceptions       */");
+         Set_String (";");
          Write_Statement_Buffer;
 
-         Set_String ("      ");
+         WBI ("   extern int __gl_detect_blocking;");
+         Set_String ("   __gl_detect_blocking = ");
 
          if Detect_Blocking then
             Set_Int (1);
@@ -883,16 +1001,25 @@ package body Bindgen is
             Set_Int (0);
          end if;
 
-         Set_String (",");
-         Tab_To (24);
-         Set_String ("/* Detect_Blocking            */");
+         Set_String (";");
          Write_Statement_Buffer;
 
-         Set_String ("      ");
+         WBI ("   extern int __gl_default_stack_size;");
+         Set_String ("   __gl_default_stack_size = ");
          Set_Int    (Default_Stack_Size);
-         Set_String (");");
-         Tab_To (24);
-         Set_String ("/* Default_Stack_Size     */");
+         Set_String (";");
+         Write_Statement_Buffer;
+
+         WBI ("   extern int __gl_leap_seconds_support;");
+         Set_String ("   __gl_leap_seconds_support = ");
+
+         if Leap_Seconds_Support then
+            Set_Int (1);
+         else
+            Set_Int (0);
+         end if;
+
+         Set_String (";");
          Write_Statement_Buffer;
 
          WBI ("");
@@ -903,6 +1030,16 @@ package body Bindgen is
          WBI ("     {");
          WBI ("        __gnat_install_handler ();");
          WBI ("     }");
+      end if;
+
+      --  Initialize stack limit for the environment task if the stack
+      --  check method is stack limit and if stack check is enabled.
+
+      if Stack_Check_Limits_On_Target
+        and then (Stack_Check_Default_On_Target or Stack_Check_Switch_Set)
+      then
+         WBI ("");
+         WBI ("   __gnat_initialize_stack_limit ();");
       end if;
 
       --  Generate call to set Initialize_Scalar values if needed
@@ -1016,13 +1153,29 @@ package body Bindgen is
                Set_String ("      ");
                Get_Decoded_Name_String_With_Brackets (U.Uname);
 
-               if Name_Buffer (Name_Len) = 's' then
-                  Name_Buffer (Name_Len - 1 .. Name_Len + 8) := "'elab_spec";
+               if VM_Target = CLI_Target and then U.Unit_Kind /= 's' then
+                  if Name_Buffer (Name_Len) = 's' then
+                     Name_Buffer (Name_Len - 1 .. Name_Len + 12) :=
+                       "_pkg'elab_spec";
+                  else
+                     Name_Buffer (Name_Len - 1 .. Name_Len + 12) :=
+                       "_pkg'elab_body";
+                  end if;
+
+                  Name_Len := Name_Len + 12;
+
                else
-                  Name_Buffer (Name_Len - 1 .. Name_Len + 8) := "'elab_body";
+                  if Name_Buffer (Name_Len) = 's' then
+                     Name_Buffer (Name_Len - 1 .. Name_Len + 8) :=
+                       "'elab_spec";
+                  else
+                     Name_Buffer (Name_Len - 1 .. Name_Len + 8) :=
+                       "'elab_body";
+                  end if;
+
+                  Name_Len := Name_Len + 8;
                end if;
 
-               Name_Len := Name_Len + 8;
                Set_Casing (U.Icasing);
                Set_Name_Buffer;
                Set_Char (';');
@@ -1404,7 +1557,6 @@ package body Bindgen is
       end if;
 
       if not Cumulative_Restrictions.Set (No_Finalization) then
-
          if not No_Main_Subprogram
            and then Bind_Main_Program
            and then not Suppress_Standard_Library_On_Target
@@ -1434,10 +1586,10 @@ package body Bindgen is
          --  If compiling for the JVM, we directly call Adafinal because
          --  we don't import it via Do_Finalize (see Gen_Output_File_Ada).
 
-         if Hostparm.Java_VM then
-            WBI ("      System.Standard_Library.Adafinal;");
-         else
+         if VM_Target = No_VM then
             WBI ("      Do_Finalize;");
+         else
+            WBI ("      System.Standard_Library.Adafinal;");
          end if;
       end if;
 
@@ -1544,7 +1696,6 @@ package body Bindgen is
       --  if no command line arguments on target, set dummy values
 
       else
-         WBI ("   int result;");
          WBI ("   gnat_argc = 0;");
          WBI ("   gnat_argv = 0;");
          WBI ("   gnat_envp = 0;");
@@ -1675,6 +1826,9 @@ package body Bindgen is
       --  in the Linker_Options table of where the first entry from an
       --  internal file appears.
 
+      Linker_Option_List_Started : Boolean := False;
+      --  Set to True when "LINKER OPTION LIST" is displayed
+
       procedure Write_Linker_Option;
       --  Write binder info linker option
 
@@ -1703,12 +1857,24 @@ package body Bindgen is
             --  Process section if non-null
 
             if Stop > Start then
-                  if Output_Linker_Option_List then
-                     Write_Str (Name_Buffer (Start .. Stop - 1));
-                     Write_Eol;
+               if Output_Linker_Option_List then
+                  if not Zero_Formatting then
+                     if not Linker_Option_List_Started then
+                        Linker_Option_List_Started := True;
+                        Write_Eol;
+                        Write_Str ("     LINKER OPTION LIST");
+                        Write_Eol;
+                        Write_Eol;
+                     end if;
+
+                     Write_Str ("   ");
                   end if;
-                  Write_Info_Ada_C
-                    ("   --   ", "", Name_Buffer (Start .. Stop - 1));
+
+                  Write_Str (Name_Buffer (Start .. Stop - 1));
+                  Write_Eol;
+               end if;
+               Write_Info_Ada_C
+                 ("   --   ", "", Name_Buffer (Start .. Stop - 1));
             end if;
 
             Start := Stop + 1;
@@ -1737,7 +1903,8 @@ package body Bindgen is
             --  exists, then use it.
 
             if not Hostparm.Exclude_Missing_Objects
-              or else GNAT.OS_Lib.Is_Regular_File (Name_Buffer (1 .. Name_Len))
+              or else
+                System.OS_Lib.Is_Regular_File (Name_Buffer (1 .. Name_Len))
             then
                Write_Info_Ada_C ("   --   ", "", Name_Buffer (1 .. Name_Len));
 
@@ -1836,7 +2003,12 @@ package body Bindgen is
       --  files. The reason for this decision is that libraries referenced
       --  by internal routines may reference these standard library entries.
 
-      if not Opt.No_Stdlib then
+      --  Note that we do not insert anything when pragma No_Run_Time has been
+      --  specified or when the standard libraries are not to be used,
+      --  otherwise on some platforms, such as VMS, we may get duplicate
+      --  symbols when linking.
+
+      if not (Opt.No_Run_Time_Mode or else Opt.No_Stdlib) then
          Name_Len := 0;
 
          if Opt.Shared_Libgnat then
@@ -1891,6 +2063,10 @@ package body Bindgen is
          Write_Linker_Option;
       end loop;
 
+      if Output_Linker_Option_List and then not Zero_Formatting then
+         Write_Eol;
+      end if;
+
       if Ada_Bind_File then
          WBI ("--  END Object file/option list   ");
       else
@@ -1903,21 +2079,25 @@ package body Bindgen is
    ---------------------
 
    procedure Gen_Output_File (Filename : String) is
-      Is_Public_Version : constant Boolean := Get_Gnat_Build_Type = Public;
-      Is_GAP_Version    : constant Boolean := Get_Gnat_Build_Type = GAP;
-
    begin
       --  Acquire settings for Interrupt_State pragmas
 
       Set_IS_Pragma_Table;
 
-      --  Override Ada_Bind_File and Bind_Main_Program for Java since
+      --  Acquire settings for Priority_Specific_Dispatching pragma
+
+      Set_PSD_Pragma_Table;
+
+      --  Override Ada_Bind_File and Bind_Main_Program for VMs since
       --  JGNAT only supports Ada code, and the main program is already
       --  generated by the compiler.
 
-      if Hostparm.Java_VM then
+      if VM_Target /= No_VM then
          Ada_Bind_File := True;
-         Bind_Main_Program := False;
+
+         if VM_Target = JVM_Target then
+            Bind_Main_Program := False;
+         end if;
       end if;
 
       --  Override time slice value if -T switch is set
@@ -1936,25 +2116,14 @@ package body Bindgen is
          end if;
       end loop;
 
-      --  Get the time stamp of the former bind for public version warning
-
-      if Is_Public_Version or Is_GAP_Version then
-         Record_Time_From_Last_Bind;
-      end if;
-
       --  Generate output file in appropriate language
+
+      Check_System_Restrictions_Used;
 
       if Ada_Bind_File then
          Gen_Output_File_Ada (Filename);
       else
          Gen_Output_File_C (Filename);
-      end if;
-
-      --  Periodically issue a warning when the public version is used on
-      --  big projects
-
-      if Is_Public_Version then
-         Public_Version_Warning;
       end if;
    end Gen_Output_File;
 
@@ -1979,12 +2148,30 @@ package body Bindgen is
 
       Create_Binder_Output (Filename, 's', Bfiles);
 
+      --  We always compile the binder file in Ada 95 mode so that we properly
+      --  handle use of Ada 2005 keywords as identifiers in Ada 95 mode. None
+      --  of the Ada 2005 constructs are needed by the binder file.
+
+      WBI ("pragma Ada_95;");
+
       --  If we are operating in Restrictions (No_Exception_Handlers) mode,
       --  then we need to make sure that the binder program is compiled with
       --  the same restriction, so that no exception tables are generated.
 
       if Cumulative_Restrictions.Set (No_Exception_Handlers) then
          WBI ("pragma Restrictions (No_Exception_Handlers);");
+      end if;
+
+      --  Same processing for Restrictions (No_Exception_Propagation)
+
+      if Cumulative_Restrictions.Set (No_Exception_Propagation) then
+         WBI ("pragma Restrictions (No_Exception_Propagation);");
+      end if;
+
+      --  Same processing for pragma No_Run_Time
+
+      if No_Run_Time_Mode then
+         WBI ("pragma No_Run_Time;");
       end if;
 
       --  Generate with of System so we can reference System.Address
@@ -2005,13 +2192,13 @@ package body Bindgen is
 
       Resolve_Binder_Options;
 
-      if not Suppress_Standard_Library_On_Target then
+      if VM_Target /= No_VM then
+         if not Suppress_Standard_Library_On_Target then
 
-         --  Usually, adafinal is called using a pragma Import C. Since
-         --  Import C doesn't have the same semantics for JGNAT, we use
-         --  standard Ada.
+            --  Usually, adafinal is called using a pragma Import C. Since
+            --  Import C doesn't have the same semantics for JGNAT, we use
+            --  standard Ada.
 
-         if Hostparm.Java_VM then
             WBI ("with System.Standard_Library;");
          end if;
       end if;
@@ -2022,62 +2209,70 @@ package body Bindgen is
       --  Main program case
 
       if Bind_Main_Program then
+         if VM_Target = No_VM then
 
-         --  Generate argc/argv stuff unless suppressed
+            --  Generate argc/argv stuff unless suppressed
 
-         if Command_Line_Args_On_Target
-           or not Configurable_Run_Time_On_Target
-         then
-            WBI ("");
-            WBI ("   gnat_argc : Integer;");
-            WBI ("   gnat_argv : System.Address;");
-            WBI ("   gnat_envp : System.Address;");
-
-            --  If the standard library is not suppressed, these variables are
-            --  in the runtime data area for easy access from the runtime
-
-            if not Suppress_Standard_Library_On_Target then
+            if Command_Line_Args_On_Target
+              or not Configurable_Run_Time_On_Target
+            then
                WBI ("");
-               WBI ("   pragma Import (C, gnat_argc);");
-               WBI ("   pragma Import (C, gnat_argv);");
-               WBI ("   pragma Import (C, gnat_envp);");
+               WBI ("   gnat_argc : Integer;");
+               WBI ("   gnat_argv : System.Address;");
+               WBI ("   gnat_envp : System.Address;");
+
+               --  If the standard library is not suppressed, these variables
+               --  are in the runtime data area for easy access from the
+               --  runtime
+
+               if not Suppress_Standard_Library_On_Target then
+                  WBI ("");
+                  WBI ("   pragma Import (C, gnat_argc);");
+                  WBI ("   pragma Import (C, gnat_argv);");
+                  WBI ("   pragma Import (C, gnat_envp);");
+               end if;
             end if;
+
+            --  Define exit status. Again in normal mode, this is in the
+            --  run-time library, and is initialized there, but in the
+            --  configurable runtime case, the variable is declared and
+            --  initialized in this file.
+
+            WBI ("");
+
+            if Configurable_Run_Time_Mode then
+               if Exit_Status_Supported_On_Target then
+                  WBI ("   gnat_exit_status : Integer := 0;");
+               end if;
+
+            else
+               WBI ("   gnat_exit_status : Integer;");
+               WBI ("   pragma Import (C, gnat_exit_status);");
+            end if;
+
+            --  Generate the GNAT_Version and Ada_Main_Program_Name info only
+            --  for the main program. Otherwise, it can lead under some
+            --  circumstances to a symbol duplication during the link (for
+            --  instance when a C program uses 2 Ada libraries)
          end if;
 
-         --  Define exit status. Again in normal mode, this is in the
-         --  run-time library, and is initialized there, but in the
-         --  configurable runtime case, the variable is declared and
-         --  initialized in this file.
-
-         WBI ("");
-
-         if Configurable_Run_Time_Mode then
-            if Exit_Status_Supported_On_Target then
-               WBI ("   gnat_exit_status : Integer := 0;");
-            end if;
-         else
-            WBI ("   gnat_exit_status : Integer;");
-            WBI ("   pragma Import (C, gnat_exit_status);");
-         end if;
-      end if;
-
-      --  Generate the GNAT_Version and Ada_Main_Program_Name info only for
-      --  the main program. Otherwise, it can lead under some circumstances
-      --  to a symbol duplication during the link (for instance when a
-      --  C program uses 2 Ada libraries)
-
-      if Bind_Main_Program then
          WBI ("");
          WBI ("   GNAT_Version : constant String :=");
          WBI ("                    ""GNAT Version: " &
-                                   Gnat_Version_String & """;");
+                                Gnat_Version_String & """;");
          WBI ("   pragma Export (C, GNAT_Version, ""__gnat_version"");");
 
          WBI ("");
          Set_String ("   Ada_Main_Program_Name : constant String := """);
          Get_Name_String (Units.Table (First_Unit_Entry).Uname);
-         Set_Main_Program_Name;
-         Set_String (""" & Ascii.NUL;");
+
+         if VM_Target = No_VM then
+            Set_Main_Program_Name;
+            Set_String (""" & Ascii.NUL;");
+         else
+            Set_String (Name_Buffer (1 .. Name_Len - 2) & """;");
+         end if;
+
          Write_Statement_Buffer;
 
          WBI
@@ -2089,21 +2284,23 @@ package body Bindgen is
       WBI ("   procedure " & Ada_Final_Name.all & ";");
       WBI ("   pragma Export (C, " & Ada_Final_Name.all & ", """ &
            Ada_Final_Name.all & """);");
-
-      if Use_Pragma_Linker_Constructor then
-         WBI ("   pragma Linker_Destructor (" & Ada_Final_Name.all & ");");
-      end if;
-
       WBI ("");
       WBI ("   procedure " & Ada_Init_Name.all & ";");
       WBI ("   pragma Export (C, " & Ada_Init_Name.all & ", """ &
            Ada_Init_Name.all & """);");
 
+      --  If -a has been specified use pragma Linker_Constructor for the init
+      --  procedure. No need to use a similar pragma for the final procedure as
+      --  global finalization will occur when the executable finishes execution
+      --  and for plugins (shared stand-alone libraries that can be
+      --  "unloaded"), finalization should not occur automatically, otherwise
+      --  the main executable may not continue to work properly.
+
       if Use_Pragma_Linker_Constructor then
          WBI ("   pragma Linker_Constructor (" & Ada_Init_Name.all & ");");
       end if;
 
-      if Bind_Main_Program then
+      if Bind_Main_Program and then VM_Target = No_VM then
 
          --  If we have the standard library, then Break_Start is defined
          --  there, but when the standard library is suppressed, Break_Start
@@ -2169,6 +2366,12 @@ package body Bindgen is
 
       Create_Binder_Output (Filename, 'b', Bfileb);
 
+      --  We always compile the binder file in Ada 95 mode so that we properly
+      --  handle use of Ada 2005 keywords as identifiers in Ada 95 mode. None
+      --  of the Ada 2005 constructs are needed by the binder file.
+
+      WBI ("pragma Ada_95;");
+
       --  Output Source_File_Name pragmas which look like
 
       --    pragma Source_File_Name (Ada_Main, Spec_File_Name => "sss");
@@ -2192,6 +2395,16 @@ package body Bindgen is
            ", Body_File_Name => """ &
            Name_Buffer (1 .. Name_Len + 3));
 
+      --  Generate with of System.Restrictions to initialize
+      --  Run_Time_Restrictions.
+
+      if System_Restrictions_Used
+        and not Suppress_Standard_Library_On_Target
+      then
+         WBI ("");
+         WBI ("with System.Restrictions;");
+      end if;
+
       WBI ("");
       WBI ("package body " & Ada_Main & " is");
       WBI ("   pragma Warnings (Off);");
@@ -2203,7 +2416,7 @@ package body Bindgen is
          --  In the Java case, pragma Import C cannot be used, so the
          --  standard Ada constructs will be used instead.
 
-         if not Hostparm.Java_VM then
+         if VM_Target = No_VM then
             WBI ("");
             WBI ("   procedure Do_Finalize;");
             WBI
@@ -2213,11 +2426,38 @@ package body Bindgen is
          end if;
       end if;
 
+      if not Suppress_Standard_Library_On_Target then
+
+         --  Generate Priority_Specific_Dispatching pragma string
+
+         Set_String
+           ("   Local_Priority_Specific_Dispatching : constant String := """);
+
+         for J in 0 .. PSD_Pragma_Settings.Last loop
+            Set_Char (PSD_Pragma_Settings.Table (J));
+         end loop;
+
+         Set_String (""";");
+         Write_Statement_Buffer;
+
+         --  Generate Interrupt_State pragma string
+
+         Set_String ("   Local_Interrupt_States : constant String := """);
+
+         for J in 0 .. IS_Pragma_Settings.Last loop
+            Set_Char (IS_Pragma_Settings.Table (J));
+         end loop;
+
+         Set_String (""";");
+         Write_Statement_Buffer;
+         WBI ("");
+      end if;
+
       Gen_Adainit_Ada;
 
       Gen_Adafinal_Ada;
 
-      if Bind_Main_Program then
+      if Bind_Main_Program and then VM_Target = No_VM then
 
          --  When suppressing the standard library then generate dummy body
          --  for Break_Start
@@ -2248,28 +2488,28 @@ package body Bindgen is
    -----------------------
 
    procedure Gen_Output_File_C (Filename : String) is
-
       Bfile : Name_Id;
-      --  Name of generated bind file
+      pragma Warnings (Off, Bfile);
+      --  Name of generated bind file (not referenced)
 
    begin
       Create_Binder_Output (Filename, 'c', Bfile);
 
       Resolve_Binder_Options;
 
-      WBI ("extern void __gnat_set_globals");
-      WBI ("  (int, int, char, char, char, char,");
-      WBI ("   const char *, const char *,");
-      WBI ("   int, int, int, int, int, int);");
+      WBI ("extern void " & Ada_Final_Name.all & " (void);");
+
+      --  If -a has been specified use __attribute__((constructor)) for the
+      --  init procedure. No need to use a similar featute for the final
+      --  procedure as global finalization will occur when the executable
+      --  finishes execution and for plugins (shared stand-alone libraries that
+      --  can be "unloaded"), finalization should not occur automatically,
+      --  otherwise the main executable may not continue to work properly.
 
       if Use_Pragma_Linker_Constructor then
-         WBI ("extern void " & Ada_Final_Name.all &
-              " (void) __attribute__((destructor));");
          WBI ("extern void " & Ada_Init_Name.all &
               " (void) __attribute__((constructor));");
-
       else
-         WBI ("extern void " & Ada_Final_Name.all & " (void);");
          WBI ("extern void " & Ada_Init_Name.all & " (void);");
       end if;
 
@@ -2323,6 +2563,16 @@ package body Bindgen is
          WBI ("");
          WBI ("extern void __gnat_stack_usage_output_results (void);");
          WBI ("extern void __gnat_stack_usage_initialize (int size);");
+      end if;
+
+      --  Initialize stack limit for the environment task if the stack
+      --  check method is stack limit and if stack check is enabled.
+
+      if Stack_Check_Limits_On_Target
+        and then (Stack_Check_Default_On_Target or Stack_Check_Switch_Set)
+      then
+         WBI ("");
+         WBI ("extern void __gnat_initialize_stack_limit (void);");
       end if;
 
       WBI ("");
@@ -2438,51 +2688,216 @@ package body Bindgen is
       Close_Binder_Output;
    end Gen_Output_File_C;
 
-   -------------------------------
-   -- Gen_Restrictions_String_1 --
-   -------------------------------
+   --------------------------
+   -- Gen_Restrictions_Ada --
+   --------------------------
 
-   procedure Gen_Restrictions_String_1 is
+   procedure Gen_Restrictions_Ada is
+      Count : Integer;
+
    begin
-      for R in All_Boolean_Restrictions loop
-         if Cumulative_Restrictions.Set (R) then
-            Set_Char ('r');
-         elsif Cumulative_Restrictions.Violated (R) then
-            Set_Char ('v');
-         else
-            Set_Char ('n');
+      if Suppress_Standard_Library_On_Target
+        or not System_Restrictions_Used
+      then
+         return;
+      end if;
+
+      WBI ("      System.Restrictions.Run_Time_Restrictions :=");
+      WBI ("        (Set =>");
+      Set_String      ("          (");
+
+      Count := 0;
+
+      for J in Cumulative_Restrictions.Set'First ..
+        Restriction_Id'Pred (Cumulative_Restrictions.Set'Last)
+      loop
+         Set_Boolean (Cumulative_Restrictions.Set (J));
+         Set_String (", ");
+         Count := Count + 1;
+
+         if Count = 8 then
+            Write_Statement_Buffer;
+            Set_String ("           ");
+            Count := 0;
          end if;
       end loop;
-   end Gen_Restrictions_String_1;
 
-   -------------------------------
-   -- Gen_Restrictions_String_2 --
-   -------------------------------
+      Set_Boolean
+        (Cumulative_Restrictions.Set (Cumulative_Restrictions.Set'Last));
+      Set_String ("),");
+      Write_Statement_Buffer;
+      Set_String ("         Value => (");
 
-   procedure Gen_Restrictions_String_2 is
-   begin
-      for RP in All_Parameter_Restrictions loop
-         if Cumulative_Restrictions.Set (RP) then
-            Set_Char ('r');
-            Set_Int (Int (Cumulative_Restrictions.Value (RP)));
-         else
-            Set_Char ('n');
-         end if;
+      for J in Cumulative_Restrictions.Value'First ..
+        Restriction_Id'Pred (Cumulative_Restrictions.Value'Last)
+      loop
+         Set_Int (Int (Cumulative_Restrictions.Value (J)));
+         Set_String (", ");
+      end loop;
 
-         if not Cumulative_Restrictions.Violated (RP)
-           or else RP not in Checked_Parameter_Restrictions
-         then
-            Set_Char ('n');
-         else
-            Set_Char ('v');
-            Set_Int (Int (Cumulative_Restrictions.Count (RP)));
+      Set_Int (Int (Cumulative_Restrictions.Value
+        (Cumulative_Restrictions.Value'Last)));
+      Set_String ("),");
+      Write_Statement_Buffer;
+      WBI ("         Violated =>");
+      Set_String ("          (");
+      Count := 0;
 
-            if Cumulative_Restrictions.Unknown (RP) then
-               Set_Char ('+');
-            end if;
+      for J in Cumulative_Restrictions.Violated'First ..
+        Restriction_Id'Pred (Cumulative_Restrictions.Violated'Last)
+      loop
+         Set_Boolean (Cumulative_Restrictions.Violated (J));
+         Set_String (", ");
+         Count := Count + 1;
+
+         if Count = 8 then
+            Write_Statement_Buffer;
+            Set_String ("           ");
+            Count := 0;
          end if;
       end loop;
-   end Gen_Restrictions_String_2;
+
+      Set_Boolean (Cumulative_Restrictions.Violated
+        (Cumulative_Restrictions.Violated'Last));
+      Set_String ("),");
+      Write_Statement_Buffer;
+      Set_String ("         Count => (");
+
+      for J in Cumulative_Restrictions.Count'First ..
+        Restriction_Id'Pred (Cumulative_Restrictions.Count'Last)
+      loop
+         Set_Int (Int (Cumulative_Restrictions.Count (J)));
+         Set_String (", ");
+      end loop;
+
+      Set_Int (Int (Cumulative_Restrictions.Count
+        (Cumulative_Restrictions.Count'Last)));
+      Set_String ("),");
+      Write_Statement_Buffer;
+      Set_String ("         Unknown => (");
+
+      for J in Cumulative_Restrictions.Unknown'First ..
+        Restriction_Id'Pred (Cumulative_Restrictions.Unknown'Last)
+      loop
+         Set_Boolean (Cumulative_Restrictions.Unknown (J));
+         Set_String (", ");
+      end loop;
+
+      Set_Boolean
+        (Cumulative_Restrictions.Unknown
+          (Cumulative_Restrictions.Unknown'Last));
+      Set_String ("));");
+      Write_Statement_Buffer;
+   end Gen_Restrictions_Ada;
+
+   ------------------------
+   -- Gen_Restrictions_C --
+   ------------------------
+
+   procedure Gen_Restrictions_C is
+   begin
+      if Suppress_Standard_Library_On_Target
+        or not System_Restrictions_Used
+      then
+         return;
+      end if;
+
+      WBI ("   typedef struct {");
+      Set_String ("     char set [");
+      Set_Int (Cumulative_Restrictions.Set'Length);
+      Set_String ("];");
+      Write_Statement_Buffer;
+
+      Set_String ("     int value [");
+      Set_Int (Cumulative_Restrictions.Value'Length);
+      Set_String ("];");
+      Write_Statement_Buffer;
+
+      Set_String ("     char violated [");
+      Set_Int (Cumulative_Restrictions.Violated'Length);
+      Set_String ("];");
+      Write_Statement_Buffer;
+
+      Set_String ("     int count [");
+      Set_Int (Cumulative_Restrictions.Count'Length);
+      Set_String ("];");
+      Write_Statement_Buffer;
+
+      Set_String ("     char unknown [");
+      Set_Int (Cumulative_Restrictions.Unknown'Length);
+      Set_String ("];");
+      Write_Statement_Buffer;
+      WBI ("   } restrictions;");
+      WBI ("   extern restrictions " &
+           "system__restrictions__run_time_restrictions;");
+      WBI ("   restrictions r = {");
+      Set_String ("     {");
+
+      for J in Cumulative_Restrictions.Set'First ..
+        Restriction_Id'Pred (Cumulative_Restrictions.Set'Last)
+      loop
+         Set_Int (Boolean'Pos (Cumulative_Restrictions.Set (J)));
+         Set_String (", ");
+      end loop;
+
+      Set_Int (Boolean'Pos
+        (Cumulative_Restrictions.Set (Cumulative_Restrictions.Set'Last)));
+      Set_String ("},");
+      Write_Statement_Buffer;
+      Set_String ("     {");
+
+      for J in Cumulative_Restrictions.Value'First ..
+        Restriction_Id'Pred (Cumulative_Restrictions.Value'Last)
+      loop
+         Set_Int (Int (Cumulative_Restrictions.Value (J)));
+         Set_String (", ");
+      end loop;
+
+      Set_Int (Int (Cumulative_Restrictions.Value
+        (Cumulative_Restrictions.Value'Last)));
+      Set_String ("},");
+      Write_Statement_Buffer;
+      Set_String ("     {");
+
+      for J in Cumulative_Restrictions.Violated'First ..
+        Restriction_Id'Pred (Cumulative_Restrictions.Violated'Last)
+      loop
+         Set_Int (Boolean'Pos (Cumulative_Restrictions.Violated (J)));
+         Set_String (", ");
+      end loop;
+
+      Set_Int (Boolean'Pos (Cumulative_Restrictions.Violated
+        (Cumulative_Restrictions.Violated'Last)));
+      Set_String ("},");
+      Write_Statement_Buffer;
+      Set_String ("     {");
+
+      for J in Cumulative_Restrictions.Count'First ..
+        Restriction_Id'Pred (Cumulative_Restrictions.Count'Last)
+      loop
+         Set_Int (Int (Cumulative_Restrictions.Count (J)));
+         Set_String (", ");
+      end loop;
+
+      Set_Int (Int (Cumulative_Restrictions.Count
+        (Cumulative_Restrictions.Count'Last)));
+      Set_String ("},");
+      Write_Statement_Buffer;
+      Set_String ("     {");
+
+      for J in Cumulative_Restrictions.Unknown'First ..
+        Restriction_Id'Pred (Cumulative_Restrictions.Unknown'Last)
+      loop
+         Set_Int (Boolean'Pos (Cumulative_Restrictions.Unknown (J)));
+         Set_String (", ");
+      end loop;
+
+      Set_Int (Boolean'Pos (Cumulative_Restrictions.Unknown
+          (Cumulative_Restrictions.Unknown'Last)));
+      Set_String ("}};");
+      Write_Statement_Buffer;
+      WBI ("   system__restrictions__run_time_restrictions = r;");
+   end Gen_Restrictions_C;
 
    ----------------------
    -- Gen_Versions_Ada --
@@ -2627,6 +3042,23 @@ package body Bindgen is
 
    end Gen_Versions_C;
 
+   ------------------------
+   -- Get_Main_Unit_Name --
+   ------------------------
+
+   function Get_Main_Unit_Name (S : String) return String is
+      Result : String := S;
+
+   begin
+      for J in S'Range loop
+         if Result (J) = '.' then
+            Result (J) := '_';
+         end if;
+      end loop;
+
+      return Result;
+   end Get_Main_Unit_Name;
+
    -----------------------
    -- Get_Ada_Main_Name --
    -----------------------
@@ -2641,14 +3073,9 @@ package body Bindgen is
       --  The main program generated by JGNAT expects a package called
       --  ada_<main procedure>.
 
-      if Hostparm.Java_VM then
-         --  Get main program name
-
+      if VM_Target /= No_VM then
          Get_Name_String (Units.Table (First_Unit_Entry).Uname);
-
-         --  Remove the %b
-
-         return "ada_" & Name_Buffer (1 .. Name_Len - 2);
+         return "ada_" & Get_Main_Unit_Name (Name_Buffer (1 .. Name_Len - 2));
       end if;
 
       --  This loop tries the following possibilities in order
@@ -2733,6 +3160,38 @@ package body Bindgen is
       end if;
    end Get_Main_Name;
 
+   ---------------------
+   -- Get_WC_Encoding --
+   ---------------------
+
+   function Get_WC_Encoding return Character is
+   begin
+      --  If encoding method specified by -W switch, then return it
+
+      if Wide_Character_Encoding_Method_Specified then
+         return WC_Encoding_Letters (Wide_Character_Encoding_Method);
+
+      --  If no main program, and not specified, set brackets, we really have
+      --  no better choice. If some other encoding is required when there is
+      --  no main, it must be set explicitly using -Wx.
+
+      --  Note: if the ALI file always passed the wide character encoding
+      --  of every file, then we could use the encoding of the initial
+      --  specified file, but this information is passed only for potential
+      --  main programs. We could fix this sometime, but it is a very minor
+      --  point (wide character default encoding for [Wide_[Wide_]Text_IO
+      --  when there is no main program).
+
+      elsif No_Main_Subprogram then
+         return 'b';
+
+      --  Otherwise if there is a main program, take encoding from it
+
+      else
+         return ALIs.Table (ALIs.First).WC_Encoding;
+      end if;
+   end Get_WC_Encoding;
+
    ----------------------
    -- Lt_Linker_Option --
    ----------------------
@@ -2773,78 +3232,6 @@ package body Bindgen is
    end Move_Linker_Option;
 
    ----------------------------
-   -- Public_Version_Warning --
-   ----------------------------
-
-   procedure Public_Version_Warning is
-      Time : constant Int := Time_From_Last_Bind;
-
-      --  Constants to help defining periods
-
-      Hour : constant := 60;
-      Day  : constant := 24 * Hour;
-
-      Never : constant := Integer'Last;
-      --  Special value indicating no warnings should be given
-
-      --  Constants defining when the warning is issued. Programs with more
-      --  than Large Units will issue a warning every Period_Large amount of
-      --  time. Smaller programs will generate a warning every Period_Small
-      --  amount of time.
-
-      Large : constant := 20;
-      --  Threshold for considering a program small or large
-
-      Period_Large : constant := Day;
-      --  Periodic warning time for large programs
-
-      Period_Small : constant := Never;
-      --  Periodic warning time for small programs
-
-      Nb_Unit : Int;
-
-   begin
-      --  Compute the number of units that are not GNAT internal files
-
-      Nb_Unit := 0;
-      for A in ALIs.First .. ALIs.Last loop
-         if not Is_Internal_File_Name (ALIs.Table (A).Sfile) then
-            Nb_Unit := Nb_Unit + 1;
-         end if;
-      end loop;
-
-      --  Do not emit the message if the last message was emitted in the
-      --  specified period taking into account the number of units.
-
-      pragma Warnings (Off);
-      --  Turn off warning of constant condition, which may happen here
-      --  depending on the choice of constants in the above declarations.
-
-      if Nb_Unit < Large and then Time <= Period_Small then
-         return;
-      elsif Time <= Period_Large then
-         return;
-      end if;
-
-      pragma Warnings (On);
-
-      Write_Eol;
-      Write_Str ("IMPORTANT NOTICE:");
-      Write_Eol;
-      Write_Str ("    This version of GNAT is unsupported"
-        &                        " and comes with absolutely no warranty.");
-      Write_Eol;
-      Write_Str ("    If you intend to evaluate or use GNAT for building "
-        &                                       "commercial applications,");
-      Write_Eol;
-      Write_Str ("    please consult http://www.gnat.com/ for information");
-      Write_Eol;
-      Write_Str ("    on the GNAT Professional product line.");
-      Write_Eol;
-      Write_Eol;
-   end Public_Version_Warning;
-
-   ----------------------------
    -- Resolve_Binder_Options --
    ----------------------------
 
@@ -2866,6 +3253,23 @@ package body Bindgen is
          end if;
       end loop;
    end Resolve_Binder_Options;
+
+   -----------------
+   -- Set_Boolean --
+   -----------------
+
+   procedure Set_Boolean (B : Boolean) is
+      True_Str  : constant String := "True";
+      False_Str : constant String := "False";
+   begin
+      if B then
+         Statement_Buffer (Last + 1 .. Last + True_Str'Length) := True_Str;
+         Last := Last + True_Str'Length;
+      else
+         Statement_Buffer (Last + 1 .. Last + False_Str'Length) := False_Str;
+         Last := Last + False_Str'Length;
+      end if;
+   end Set_Boolean;
 
    --------------
    -- Set_Char --
@@ -2960,6 +3364,33 @@ package body Bindgen is
       end loop;
    end Set_Name_Buffer;
 
+   -------------------------
+   -- Set_PSD_Pragma_Table --
+   -------------------------
+
+   procedure Set_PSD_Pragma_Table is
+   begin
+      for F in ALIs.First .. ALIs.Last loop
+         for K in ALIs.Table (F).First_Specific_Dispatching ..
+                  ALIs.Table (F).Last_Specific_Dispatching
+         loop
+            declare
+               DTK : Specific_Dispatching_Record
+                       renames Specific_Dispatching.Table (K);
+
+            begin
+               while PSD_Pragma_Settings.Last < DTK.Last_Priority loop
+                  PSD_Pragma_Settings.Append ('F');
+               end loop;
+
+               for Prio in DTK.First_Priority .. DTK.Last_Priority loop
+                  PSD_Pragma_Settings.Table (Prio) := DTK.Dispatching_Policy;
+               end loop;
+            end;
+         end loop;
+      end loop;
+   end Set_PSD_Pragma_Table;
+
    ----------------
    -- Set_String --
    ----------------
@@ -3004,17 +3435,6 @@ package body Bindgen is
 
       Set_Int (Unum);
    end Set_Unit_Number;
-
-   ------------
-   -- Tab_To --
-   ------------
-
-   procedure Tab_To (N : Natural) is
-   begin
-      while Last < N loop
-         Set_Char (' ');
-      end loop;
-   end Tab_To;
 
    ----------------------
    -- Write_Info_Ada_C --

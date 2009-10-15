@@ -7,7 +7,7 @@
 --                                  S p e c                                 --
 --                                                                          --
 --               Copyright (C) 1991-1994, Florida State University          --
---            Copyright (C) 1995-2006, Free Software Foundation, Inc.       --
+--            Copyright (C) 1995-2007, Free Software Foundation, Inc.       --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -44,7 +44,7 @@
 --  Preelaborate. This package is designed to be a bottom-level (leaf) package.
 
 with Interfaces.C;
-with Unchecked_Conversion;
+with Ada.Unchecked_Conversion;
 
 package System.OS_Interface is
    pragma Preelaborate;
@@ -227,6 +227,10 @@ package System.OS_Interface is
    SCHED_RR    : constant := 1;
    SCHED_OTHER : constant := 2;
 
+   function To_Target_Priority
+     (Prio : System.Any_Priority) return Interfaces.C.int;
+   --  Maps System.Any_Priority to a POSIX priority
+
    -------------
    -- Process --
    -------------
@@ -252,9 +256,10 @@ package System.OS_Interface is
 
    type Thread_Body is access
      function (arg : System.Address) return System.Address;
+   pragma Convention (C, Thread_Body);
 
    function Thread_Body_Access is new
-     Unchecked_Conversion (System.Address, Thread_Body);
+     Ada.Unchecked_Conversion (System.Address, Thread_Body);
 
    type pthread_t           is private;
    subtype Thread_Id        is pthread_t;
@@ -268,12 +273,15 @@ package System.OS_Interface is
 
    PTHREAD_CREATE_DETACHED : constant := 16#de#;
 
+   PTHREAD_SCOPE_PROCESS : constant := 2;
+   PTHREAD_SCOPE_SYSTEM  : constant := 1;
+
    -----------
    -- Stack --
    -----------
 
    Stack_Base_Available : constant Boolean := False;
-   --  Indicates wether the stack base is available on this target.
+   --  Indicates wether the stack base is available on this target
 
    function Get_Stack_Base (thread : pthread_t) return Address;
    pragma Inline (Get_Stack_Base);
@@ -482,6 +490,7 @@ package System.OS_Interface is
    pragma Import (C, pthread_getspecific, "pthread_getspecific");
 
    type destructor_pointer is access procedure (arg : System.Address);
+   pragma Convention (C, destructor_pointer);
 
    function pthread_key_create
      (key        : access pthread_key_t;

@@ -1,6 +1,7 @@
 // Vector implementation (out of line) -*- C++ -*-
 
-// Copyright (C) 2001, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007
+// Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -61,7 +62,7 @@
 #ifndef _VECTOR_TCC
 #define _VECTOR_TCC 1
 
-_GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
+_GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
 
   template<typename _Tp, typename _Alloc>
     void
@@ -73,8 +74,9 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
       if (this->capacity() < __n)
 	{
 	  const size_type __old_size = size();
-	  pointer __tmp = _M_allocate_and_copy(__n, this->_M_impl._M_start,
-					       this->_M_impl._M_finish);
+	  pointer __tmp = _M_allocate_and_copy(__n,
+		 _GLIBCXX_MAKE_MOVE_ITERATOR(this->_M_impl._M_start),
+		 _GLIBCXX_MAKE_MOVE_ITERATOR(this->_M_impl._M_finish));
 	  std::_Destroy(this->_M_impl._M_start, this->_M_impl._M_finish,
 			_M_get_Tp_allocator());
 	  _M_deallocate(this->_M_impl._M_start,
@@ -99,7 +101,17 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
 	  ++this->_M_impl._M_finish;
 	}
       else
-        _M_insert_aux(__position, __x);
+	{
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+	  if (this->_M_impl._M_finish != this->_M_impl._M_end_of_storage)
+	    {
+	      _Tp __x_copy = __x;
+	      _M_insert_aux(__position, std::move(__x_copy));
+	    }
+	  else
+#endif
+	    _M_insert_aux(__position, __x);
+	}
       return iterator(this->_M_impl._M_start + __n);
     }
 
@@ -109,7 +121,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
     erase(iterator __position)
     {
       if (__position + 1 != end())
-        std::copy(__position + 1, end(), __position);
+	_GLIBCXX_MOVE3(__position + 1, end(), __position);
       --this->_M_impl._M_finish;
       this->_M_impl.destroy(this->_M_impl._M_finish);
       return __position;
@@ -121,7 +133,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
     erase(iterator __first, iterator __last)
     {
       if (__last != end())
-	std::copy(__last, end(), __first);
+	_GLIBCXX_MOVE3(__last, end(), __first);
       _M_erase_at_end(__first.base() + (end() - __last));
       return __first;
     }
@@ -239,47 +251,78 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
 	  }
       }
 
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+  template<typename _Tp, typename _Alloc>
+    template<typename... _Args>
+      typename vector<_Tp, _Alloc>::iterator
+      vector<_Tp, _Alloc>::
+      emplace(iterator __position, _Args&&... __args)
+      {
+	const size_type __n = __position - begin();
+	if (this->_M_impl._M_finish != this->_M_impl._M_end_of_storage
+	    && __position == end())
+	  {
+	    this->_M_impl.construct(this->_M_impl._M_finish,
+				    std::forward<_Args>(__args)...);
+	    ++this->_M_impl._M_finish;
+	  }
+	else
+	  _M_insert_aux(__position, std::forward<_Args>(__args)...);
+	return iterator(this->_M_impl._M_start + __n);
+      }
+
+  template<typename _Tp, typename _Alloc>
+    template<typename... _Args>
+      void
+      vector<_Tp, _Alloc>::
+      _M_insert_aux(iterator __position, _Args&&... __args)
+#else
   template<typename _Tp, typename _Alloc>
     void
     vector<_Tp, _Alloc>::
     _M_insert_aux(iterator __position, const _Tp& __x)
+#endif
     {
       if (this->_M_impl._M_finish != this->_M_impl._M_end_of_storage)
 	{
 	  this->_M_impl.construct(this->_M_impl._M_finish,
-				  *(this->_M_impl._M_finish - 1));
+				  _GLIBCXX_MOVE(*(this->_M_impl._M_finish
+						  - 1)));
 	  ++this->_M_impl._M_finish;
+#ifndef __GXX_EXPERIMENTAL_CXX0X__
 	  _Tp __x_copy = __x;
-	  std::copy_backward(__position.base(),
-			     this->_M_impl._M_finish - 2,
-			     this->_M_impl._M_finish - 1);
+#endif
+	  _GLIBCXX_MOVE_BACKWARD3(__position.base(),
+				  this->_M_impl._M_finish - 2,
+				  this->_M_impl._M_finish - 1);
+#ifndef __GXX_EXPERIMENTAL_CXX0X__
 	  *__position = __x_copy;
+#else
+	  *__position = _Tp(std::forward<_Args>(__args)...);
+#endif
 	}
       else
 	{
-	  const size_type __old_size = size();
-	  if (__old_size == this->max_size())
-	    __throw_length_error(__N("vector::_M_insert_aux"));
-
-	  // When sizeof(value_type) == 1 and __old_size > size_type(-1)/2
-	  // __len overflows: if we don't notice and _M_allocate doesn't
-	  // throw we crash badly later.
-	  size_type __len = __old_size != 0 ? 2 * __old_size : 1;	  
-	  if (__len < __old_size)
-	    __len = this->max_size();
-
+	  const size_type __len =
+	    _M_check_len(size_type(1), "vector::_M_insert_aux");
 	  pointer __new_start(this->_M_allocate(__len));
 	  pointer __new_finish(__new_start);
 	  try
 	    {
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+	      this->_M_impl.construct(__new_start + (__position - begin()),
+				      std::forward<_Args>(__args)...);
+#endif
 	      __new_finish =
-		std::__uninitialized_copy_a(this->_M_impl._M_start,
+		std::__uninitialized_move_a(this->_M_impl._M_start,
 					    __position.base(), __new_start,
 					    _M_get_Tp_allocator());
+#ifndef __GXX_EXPERIMENTAL_CXX0X__
 	      this->_M_impl.construct(__new_finish, __x);
+#endif
 	      ++__new_finish;
 	      __new_finish =
-		std::__uninitialized_copy_a(__position.base(),
+		std::__uninitialized_move_a(__position.base(),
 					    this->_M_impl._M_finish,
 					    __new_finish,
 					    _M_get_Tp_allocator());
@@ -308,21 +351,26 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
     {
       if (__n != 0)
 	{
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+	  value_type __x_copy = __x;
+#endif
 	  if (size_type(this->_M_impl._M_end_of_storage
 			- this->_M_impl._M_finish) >= __n)
 	    {
+#ifndef __GXX_EXPERIMENTAL_CXX0X__
 	      value_type __x_copy = __x;
+#endif
 	      const size_type __elems_after = end() - __position;
 	      pointer __old_finish(this->_M_impl._M_finish);
 	      if (__elems_after > __n)
 		{
-		  std::__uninitialized_copy_a(this->_M_impl._M_finish - __n,
+		  std::__uninitialized_move_a(this->_M_impl._M_finish - __n,
 					      this->_M_impl._M_finish,
 					      this->_M_impl._M_finish,
 					      _M_get_Tp_allocator());
 		  this->_M_impl._M_finish += __n;
-		  std::copy_backward(__position.base(), __old_finish - __n,
-				     __old_finish);
+		  _GLIBCXX_MOVE_BACKWARD3(__position.base(),
+					  __old_finish - __n, __old_finish);
 		  std::fill(__position.base(), __position.base() + __n,
 			    __x_copy);
 		}
@@ -333,7 +381,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
 						__x_copy,
 						_M_get_Tp_allocator());
 		  this->_M_impl._M_finish += __n - __elems_after;
-		  std::__uninitialized_copy_a(__position.base(), __old_finish,
+		  std::__uninitialized_move_a(__position.base(), __old_finish,
 					      this->_M_impl._M_finish,
 					      _M_get_Tp_allocator());
 		  this->_M_impl._M_finish += __elems_after;
@@ -342,29 +390,26 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
 	    }
 	  else
 	    {
-	      const size_type __old_size = size();
-	      if (this->max_size() - __old_size < __n)
-		__throw_length_error(__N("vector::_M_fill_insert"));
-	      
-	      // See _M_insert_aux above.
-	      size_type __len = __old_size + std::max(__old_size, __n);
-	      if (__len < __old_size)
-		__len = this->max_size();
-
+	      const size_type __len =
+		_M_check_len(__n, "vector::_M_fill_insert");
 	      pointer __new_start(this->_M_allocate(__len));
 	      pointer __new_finish(__new_start);
 	      try
 		{
 		  __new_finish =
-		    std::__uninitialized_copy_a(this->_M_impl._M_start,
+		    std::__uninitialized_move_a(this->_M_impl._M_start,
 						__position.base(),
 						__new_start,
 						_M_get_Tp_allocator());
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+		  std::__uninitialized_fill_n_a(__new_finish, __n, __x_copy,
+#else
 		  std::__uninitialized_fill_n_a(__new_finish, __n, __x,
+#endif
 						_M_get_Tp_allocator());
 		  __new_finish += __n;
 		  __new_finish =
-		    std::__uninitialized_copy_a(__position.base(),
+		    std::__uninitialized_move_a(__position.base(),
 						this->_M_impl._M_finish,
 						__new_finish,
 						_M_get_Tp_allocator());
@@ -388,18 +433,19 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
 	}
     }
 
-  template<typename _Tp, typename _Alloc> template<typename _InputIterator>
-    void
-    vector<_Tp, _Alloc>::
-    _M_range_insert(iterator __pos, _InputIterator __first,
-		    _InputIterator __last, std::input_iterator_tag)
-    {
-      for (; __first != __last; ++__first)
-	{
-	  __pos = insert(__pos, *__first);
-	  ++__pos;
-	}
-    }
+  template<typename _Tp, typename _Alloc>
+    template<typename _InputIterator>
+      void
+      vector<_Tp, _Alloc>::
+      _M_range_insert(iterator __pos, _InputIterator __first,
+		      _InputIterator __last, std::input_iterator_tag)
+      {
+	for (; __first != __last; ++__first)
+	  {
+	    __pos = insert(__pos, *__first);
+	    ++__pos;
+	  }
+      }
 
   template<typename _Tp, typename _Alloc>
     template<typename _ForwardIterator>
@@ -418,13 +464,13 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
 		pointer __old_finish(this->_M_impl._M_finish);
 		if (__elems_after > __n)
 		  {
-		    std::__uninitialized_copy_a(this->_M_impl._M_finish - __n,
+		    std::__uninitialized_move_a(this->_M_impl._M_finish - __n,
 						this->_M_impl._M_finish,
 						this->_M_impl._M_finish,
 						_M_get_Tp_allocator());
 		    this->_M_impl._M_finish += __n;
-		    std::copy_backward(__position.base(), __old_finish - __n,
-				       __old_finish);
+		    _GLIBCXX_MOVE_BACKWARD3(__position.base(),
+					    __old_finish - __n, __old_finish);
 		    std::copy(__first, __last, __position);
 		  }
 		else
@@ -435,7 +481,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
 						this->_M_impl._M_finish,
 						_M_get_Tp_allocator());
 		    this->_M_impl._M_finish += __n - __elems_after;
-		    std::__uninitialized_copy_a(__position.base(),
+		    std::__uninitialized_move_a(__position.base(),
 						__old_finish,
 						this->_M_impl._M_finish,
 						_M_get_Tp_allocator());
@@ -445,29 +491,23 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
 	      }
 	    else
 	      {
-		const size_type __old_size = size();
-		if (this->max_size() - __old_size < __n)
-		  __throw_length_error(__N("vector::_M_range_insert"));	
-
-		// See _M_insert_aux above.
-		size_type __len = __old_size + std::max(__old_size, __n);
-		if (__len < __old_size)
-		  __len = this->max_size();
-
+		const size_type __len =
+		  _M_check_len(__n, "vector::_M_range_insert");
 		pointer __new_start(this->_M_allocate(__len));
 		pointer __new_finish(__new_start);
 		try
 		  {
 		    __new_finish =
-		      std::__uninitialized_copy_a(this->_M_impl._M_start,
+		      std::__uninitialized_move_a(this->_M_impl._M_start,
 						  __position.base(),
 						  __new_start,
 						  _M_get_Tp_allocator());
 		    __new_finish =
-		      std::__uninitialized_copy_a(__first, __last, __new_finish,
+		      std::__uninitialized_copy_a(__first, __last,
+						  __new_finish,
 						  _M_get_Tp_allocator());
 		    __new_finish =
-		      std::__uninitialized_copy_a(__position.base(),
+		      std::__uninitialized_move_a(__position.base(),
 						  this->_M_impl._M_finish,
 						  __new_finish,
 						  _M_get_Tp_allocator());
@@ -490,6 +530,126 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
 	      }
 	  }
       }
+
+
+  // vector<bool>
+
+  template<typename _Alloc>
+    void
+    vector<bool, _Alloc>::
+    reserve(size_type __n)
+    {
+      if (__n > this->max_size())
+	__throw_length_error(__N("vector::reserve"));
+      if (this->capacity() < __n)
+	{
+	  _Bit_type* __q = this->_M_allocate(__n);
+	  this->_M_impl._M_finish = _M_copy_aligned(begin(), end(),
+						    iterator(__q, 0));
+	  this->_M_deallocate();
+	  this->_M_impl._M_start = iterator(__q, 0);
+	  this->_M_impl._M_end_of_storage = (__q + (__n + int(_S_word_bit) - 1)
+					     / int(_S_word_bit));
+	}
+    }
+
+  template<typename _Alloc>
+    void
+    vector<bool, _Alloc>::
+    _M_fill_insert(iterator __position, size_type __n, bool __x)
+    {
+      if (__n == 0)
+	return;
+      if (capacity() - size() >= __n)
+	{
+	  std::copy_backward(__position, end(),
+			     this->_M_impl._M_finish + difference_type(__n));
+	  std::fill(__position, __position + difference_type(__n), __x);
+	  this->_M_impl._M_finish += difference_type(__n);
+	}
+      else
+	{
+	  const size_type __len = 
+	    _M_check_len(__n, "vector<bool>::_M_fill_insert");
+	  _Bit_type * __q = this->_M_allocate(__len);
+	  iterator __i = _M_copy_aligned(begin(), __position,
+					 iterator(__q, 0));
+	  std::fill(__i, __i + difference_type(__n), __x);
+	  this->_M_impl._M_finish = std::copy(__position, end(),
+					      __i + difference_type(__n));
+	  this->_M_deallocate();
+	  this->_M_impl._M_end_of_storage = (__q + ((__len
+						     + int(_S_word_bit) - 1)
+						    / int(_S_word_bit)));
+	  this->_M_impl._M_start = iterator(__q, 0);
+	}
+    }
+
+  template<typename _Alloc>
+    template<typename _ForwardIterator>
+      void
+      vector<bool, _Alloc>::
+      _M_insert_range(iterator __position, _ForwardIterator __first, 
+		      _ForwardIterator __last, std::forward_iterator_tag)
+      {
+	if (__first != __last)
+	  {
+	    size_type __n = std::distance(__first, __last);
+	    if (capacity() - size() >= __n)
+	      {
+		std::copy_backward(__position, end(),
+				   this->_M_impl._M_finish
+				   + difference_type(__n));
+		std::copy(__first, __last, __position);
+		this->_M_impl._M_finish += difference_type(__n);
+	      }
+	    else
+	      {
+		const size_type __len =
+		  _M_check_len(__n, "vector<bool>::_M_insert_range");
+		_Bit_type * __q = this->_M_allocate(__len);
+		iterator __i = _M_copy_aligned(begin(), __position,
+					       iterator(__q, 0));
+		__i = std::copy(__first, __last, __i);
+		this->_M_impl._M_finish = std::copy(__position, end(), __i);
+		this->_M_deallocate();
+		this->_M_impl._M_end_of_storage = (__q
+						   + ((__len
+						       + int(_S_word_bit) - 1)
+						      / int(_S_word_bit)));
+		this->_M_impl._M_start = iterator(__q, 0);
+	      }
+	  }
+      }
+
+  template<typename _Alloc>
+    void
+    vector<bool, _Alloc>::
+    _M_insert_aux(iterator __position, bool __x)
+    {
+      if (this->_M_impl._M_finish._M_p != this->_M_impl._M_end_of_storage)
+	{
+	  std::copy_backward(__position, this->_M_impl._M_finish, 
+			     this->_M_impl._M_finish + 1);
+	  *__position = __x;
+	  ++this->_M_impl._M_finish;
+	}
+      else
+	{
+	  const size_type __len =
+	    _M_check_len(size_type(1), "vector<bool>::_M_insert_aux");
+	  _Bit_type * __q = this->_M_allocate(__len);
+	  iterator __i = _M_copy_aligned(begin(), __position,
+					 iterator(__q, 0));
+	  *__i++ = __x;
+	  this->_M_impl._M_finish = std::copy(__position, end(), __i);
+	  this->_M_deallocate();
+	  this->_M_impl._M_end_of_storage = (__q + ((__len
+						     + int(_S_word_bit) - 1)
+						    / int(_S_word_bit)));
+	  this->_M_impl._M_start = iterator(__q, 0);
+	}
+    }
 
 _GLIBCXX_END_NESTED_NAMESPACE
 

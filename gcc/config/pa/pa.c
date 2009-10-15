@@ -46,6 +46,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm_p.h"
 #include "target.h"
 #include "target-def.h"
+#include "df.h"
 
 /* Return nonzero if there is a bypass for the output of 
    OUT_INSN and the fp store IN_INSN.  */
@@ -57,7 +58,8 @@ hppa_fpstore_bypass_p (rtx out_insn, rtx in_insn)
   rtx set;
 
   if (recog_memoized (in_insn) < 0
-      || get_attr_type (in_insn) != TYPE_FPSTORE
+      || (get_attr_type (in_insn) != TYPE_FPSTORE
+	  && get_attr_type (in_insn) != TYPE_FPSTORE_LOAD)
       || recog_memoized (out_insn) < 0)
     return 0;
 
@@ -101,7 +103,7 @@ static void store_reg_modify (int, int, HOST_WIDE_INT);
 static void load_reg (int, HOST_WIDE_INT, int);
 static void set_reg_plus_d (int, int, HOST_WIDE_INT, int);
 static void pa_output_function_prologue (FILE *, HOST_WIDE_INT);
-static void update_total_code_bytes (int);
+static void update_total_code_bytes (unsigned int);
 static void pa_output_function_epilogue (FILE *, HOST_WIDE_INT);
 static int pa_adjust_cost (rtx, rtx, rtx, int);
 static int pa_adjust_priority (rtx, int);
@@ -122,9 +124,10 @@ static void pa_asm_out_destructor (rtx, int);
 #endif
 static void pa_init_builtins (void);
 static rtx hppa_builtin_saveregs (void);
+static void hppa_va_start (tree, rtx);
 static tree hppa_gimplify_va_arg_expr (tree, tree, tree *, tree *);
 static bool pa_scalar_mode_supported_p (enum machine_mode);
-static bool pa_commutative_p (rtx x, int outer_code);
+static bool pa_commutative_p (const_rtx x, int outer_code);
 static void copy_fp_args (rtx) ATTRIBUTE_UNUSED;
 static int length_fp_args (rtx) ATTRIBUTE_UNUSED;
 static inline void pa_file_start_level (void) ATTRIBUTE_UNUSED;
@@ -146,14 +149,14 @@ static void pa_hpux_init_libfuncs (void);
 #endif
 static rtx pa_struct_value_rtx (tree, int);
 static bool pa_pass_by_reference (CUMULATIVE_ARGS *, enum machine_mode,
-				  tree, bool);
+				  const_tree, bool);
 static int pa_arg_partial_bytes (CUMULATIVE_ARGS *, enum machine_mode,
 				 tree, bool);
 static struct machine_function * pa_init_machine_status (void);
 static enum reg_class pa_secondary_reload (bool, rtx, enum reg_class,
 					   enum machine_mode,
 					   secondary_reload_info *);
-
+static void pa_extra_live_on_entry (bitmap);
 
 /* The following extra sections are only used for SOM.  */
 static GTY(()) section *som_readonly_data_section;
@@ -175,6 +178,10 @@ int flag_pa_unix = TARGET_HPUX_11_11 ? 1998 : TARGET_HPUX_10_10 ? 1995 : 1993;
    registers which were saved by the current function's prologue.  */
 static int gr_saved, fr_saved;
 
+/* Boolean indicating whether the return pointer was saved by the
+   current function's prologue.  */
+static bool rp_saved;
+
 static rtx find_addr_reg (rtx);
 
 /* Keep track of the number of bytes we have output in the CODE subspace
@@ -184,7 +191,7 @@ unsigned long total_code_bytes;
 /* The last address of the previous function plus the number of bytes in
    associated thunks that have been output.  This is used to determine if
    a thunk can use an IA-relative branch to reach its target function.  */
-static int last_address;
+static unsigned int last_address;
 
 /* Variables to handle plabels that we discover are necessary at assembly
    output time.  They are output after the current function.  */
@@ -279,9 +286,9 @@ static size_t n_deferred_plabels = 0;
 #endif
 
 #undef TARGET_PROMOTE_FUNCTION_RETURN
-#define TARGET_PROMOTE_FUNCTION_RETURN hook_bool_tree_true
+#define TARGET_PROMOTE_FUNCTION_RETURN hook_bool_const_tree_true
 #undef TARGET_PROMOTE_PROTOTYPES
-#define TARGET_PROMOTE_PROTOTYPES hook_bool_tree_true
+#define TARGET_PROMOTE_PROTOTYPES hook_bool_const_tree_true
 
 #undef TARGET_STRUCT_VALUE_RTX
 #define TARGET_STRUCT_VALUE_RTX pa_struct_value_rtx
@@ -298,6 +305,8 @@ static size_t n_deferred_plabels = 0;
 
 #undef TARGET_EXPAND_BUILTIN_SAVEREGS
 #define TARGET_EXPAND_BUILTIN_SAVEREGS hppa_builtin_saveregs
+#undef TARGET_EXPAND_BUILTIN_VA_START
+#define TARGET_EXPAND_BUILTIN_VA_START hppa_va_start
 #undef TARGET_GIMPLIFY_VA_ARG_EXPR
 #define TARGET_GIMPLIFY_VA_ARG_EXPR hppa_gimplify_va_arg_expr
 
@@ -309,6 +318,9 @@ static size_t n_deferred_plabels = 0;
 
 #undef TARGET_SECONDARY_RELOAD
 #define TARGET_SECONDARY_RELOAD pa_secondary_reload
+
+#undef TARGET_EXTRA_LIVE_ON_ENTRY
+#define TARGET_EXTRA_LIVE_ON_ENTRY pa_extra_live_on_entry
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 
@@ -556,12 +568,12 @@ symbolic_expression_p (rtx x)
 /* Accept any constant that can be moved in one instruction into a
    general register.  */
 int
-cint_ok_for_move (HOST_WIDE_INT intval)
+cint_ok_for_move (HOST_WIDE_INT ival)
 {
   /* OK if ldo, ldil, or zdepi, can be used.  */
-  return (CONST_OK_FOR_LETTER_P (intval, 'J')
-	  || CONST_OK_FOR_LETTER_P (intval, 'N')
-	  || CONST_OK_FOR_LETTER_P (intval, 'K'));
+  return (VAL_14_BITS_P (ival)
+	  || ldil_cint_p (ival)
+	  || zdepi_cint_p (ival));
 }
 
 /* Return truth value of whether OP can be used as an operand in a
@@ -574,8 +586,38 @@ adddi3_operand (rtx op, enum machine_mode mode)
 	      && (TARGET_64BIT ? INT_14_BITS (op) : INT_11_BITS (op))));
 }
 
+/* True iff the operand OP can be used as the destination operand of
+   an integer store.  This also implies the operand could be used as
+   the source operand of an integer load.  Symbolic, lo_sum and indexed
+   memory operands are not allowed.  We accept reloading pseudos and
+   other memory operands.  */
+int
+integer_store_memory_operand (rtx op, enum machine_mode mode)
+{
+  return ((reload_in_progress
+	   && REG_P (op)
+	   && REGNO (op) >= FIRST_PSEUDO_REGISTER
+	   && reg_renumber [REGNO (op)] < 0)
+	  || (GET_CODE (op) == MEM
+	      && (reload_in_progress || memory_address_p (mode, XEXP (op, 0)))
+	      && !symbolic_memory_operand (op, VOIDmode)
+	      && !IS_LO_SUM_DLT_ADDR_P (XEXP (op, 0))
+	      && !IS_INDEX_ADDR_P (XEXP (op, 0))));
+}
+
+/* True iff ldil can be used to load this CONST_INT.  The least
+   significant 11 bits of the value must be zero and the value must
+   not change sign when extended from 32 to 64 bits.  */
+int
+ldil_cint_p (HOST_WIDE_INT ival)
+{
+  HOST_WIDE_INT x = ival & (((HOST_WIDE_INT) -1 << 31) | 0x7ff);
+
+  return x == 0 || x == ((HOST_WIDE_INT) -1 << 31);
+}
+
 /* True iff zdepi can be used to generate this CONST_INT.
-   zdepi first sign extends a 5 bit signed number to a given field
+   zdepi first sign extends a 5-bit signed number to a given field
    length, then places this field anywhere in a zero.  */
 int
 zdepi_cint_p (unsigned HOST_WIDE_INT x)
@@ -643,8 +685,8 @@ legitimize_pic_address (rtx orig, enum machine_mode mode, rtx reg)
       /* Put a REG_EQUAL note on this insn, so that it can be optimized.  */
       REG_NOTES (insn) = gen_rtx_EXPR_LIST (REG_EQUAL, orig, REG_NOTES (insn));
 
-      /* During and after reload, we need to generate a REG_LABEL note and
-	 update LABEL_NUSES because this is not done automatically.  */
+      /* During and after reload, we need to generate a REG_LABEL_OPERAND note
+	 and update LABEL_NUSES because this is not done automatically.  */
       if (reload_in_progress || reload_completed)
 	{
 	  /* Extract LABEL_REF.  */
@@ -652,7 +694,7 @@ legitimize_pic_address (rtx orig, enum machine_mode mode, rtx reg)
 	    orig = XEXP (XEXP (orig, 0), 0);
 	  /* Extract CODE_LABEL.  */
 	  orig = XEXP (orig, 0);
-	  REG_NOTES (insn) = gen_rtx_INSN_LIST (REG_LABEL, orig,
+	  REG_NOTES (insn) = gen_rtx_INSN_LIST (REG_LABEL_OPERAND, orig,
 						REG_NOTES (insn));
 	  LABEL_NUSES (orig)++;
 	}
@@ -671,22 +713,44 @@ legitimize_pic_address (rtx orig, enum machine_mode mode, rtx reg)
       tmp_reg = ((reload_in_progress || reload_completed)
 		 ? reg : gen_reg_rtx (Pmode));
 
-      emit_move_insn (tmp_reg,
-		      gen_rtx_PLUS (word_mode, pic_offset_table_rtx,
-				    gen_rtx_HIGH (word_mode, orig)));
-      pic_ref
-	= gen_const_mem (Pmode,
-		         gen_rtx_LO_SUM (Pmode, tmp_reg,
-				         gen_rtx_UNSPEC (Pmode,
+      if (function_label_operand (orig, mode))
+	{
+	  /* Force function label into memory in word mode.  */
+	  orig = XEXP (force_const_mem (word_mode, orig), 0);
+	  /* Load plabel address from DLT.  */
+	  emit_move_insn (tmp_reg,
+			  gen_rtx_PLUS (word_mode, pic_offset_table_rtx,
+					gen_rtx_HIGH (word_mode, orig)));
+	  pic_ref
+	    = gen_const_mem (Pmode,
+			     gen_rtx_LO_SUM (Pmode, tmp_reg,
+					     gen_rtx_UNSPEC (Pmode,
 						         gen_rtvec (1, orig),
 						         UNSPEC_DLTIND14R)));
+	  emit_move_insn (reg, pic_ref);
+	  /* Now load address of function descriptor.  */
+	  pic_ref = gen_rtx_MEM (Pmode, reg);
+	}
+      else
+	{
+	  /* Load symbol reference from DLT.  */
+	  emit_move_insn (tmp_reg,
+			  gen_rtx_PLUS (word_mode, pic_offset_table_rtx,
+					gen_rtx_HIGH (word_mode, orig)));
+	  pic_ref
+	    = gen_const_mem (Pmode,
+			     gen_rtx_LO_SUM (Pmode, tmp_reg,
+					     gen_rtx_UNSPEC (Pmode,
+						         gen_rtvec (1, orig),
+						         UNSPEC_DLTIND14R)));
+	}
 
       current_function_uses_pic_offset_table = 1;
       mark_reg_pointer (reg, BITS_PER_UNIT);
       insn = emit_move_insn (reg, pic_ref);
 
       /* Put a REG_EQUAL note on this insn, so that it can be optimized.  */
-      REG_NOTES (insn) = gen_rtx_EXPR_LIST (REG_EQUAL, orig, REG_NOTES (insn));
+      set_unique_reg_note (insn, REG_EQUAL, orig);
 
       return reg;
     }
@@ -1363,8 +1427,7 @@ emit_move_sequence (rtx *operands, enum machine_mode mode, rtx scratch_reg)
      addresses from the destination operand.  */
   if (GET_CODE (operand0) == MEM && IS_INDEX_ADDR_P (XEXP (operand0, 0)))
     {
-      /* This is only safe up to the beginning of life analysis.  */
-      gcc_assert (!no_new_pseudos);
+      gcc_assert (can_create_pseudo_p ());
 
       tem = copy_to_mode_reg (Pmode, XEXP (operand0, 0));
       operand0 = replace_equiv_address (operand0, tem);
@@ -2011,8 +2074,7 @@ emit_move_sequence (rtx *operands, enum machine_mode mode, rtx scratch_reg)
 		}
 	    }
 
-	  REG_NOTES (insn)
-	    = gen_rtx_EXPR_LIST (REG_EQUAL, op1, REG_NOTES (insn));
+	  set_unique_reg_note (insn, REG_EQUAL, op1);
 
 	  return 1;
 	}
@@ -2034,6 +2096,7 @@ reloc_needed (tree exp)
     case ADDR_EXPR:
       return 1;
 
+    case POINTER_PLUS_EXPR:
     case PLUS_EXPR:
     case MINUS_EXPR:
       reloc = reloc_needed (TREE_OPERAND (exp, 0));
@@ -2154,9 +2217,9 @@ compute_zdepwi_operands (unsigned HOST_WIDE_INT imm, unsigned *op)
   else
     {
       /* Find the width of the bitstring in IMM.  */
-      for (len = 5; len < 32; len++)
+      for (len = 5; len < 32 - lsb; len++)
 	{
-	  if ((imm & (1 << len)) == 0)
+	  if ((imm & ((unsigned HOST_WIDE_INT) 1 << len)) == 0)
 	    break;
 	}
 
@@ -2175,10 +2238,12 @@ compute_zdepwi_operands (unsigned HOST_WIDE_INT imm, unsigned *op)
 void
 compute_zdepdi_operands (unsigned HOST_WIDE_INT imm, unsigned *op)
 {
-  HOST_WIDE_INT lsb, len;
+  int lsb, len, maxlen;
+
+  maxlen = MIN (HOST_BITS_PER_WIDE_INT, 64);
 
   /* Find the least significant set bit in IMM.  */
-  for (lsb = 0; lsb < HOST_BITS_PER_WIDE_INT; lsb++)
+  for (lsb = 0; lsb < maxlen; lsb++)
     {
       if ((imm & 1) != 0)
         break;
@@ -2187,16 +2252,19 @@ compute_zdepdi_operands (unsigned HOST_WIDE_INT imm, unsigned *op)
 
   /* Choose variants based on *sign* of the 5-bit field.  */
   if ((imm & 0x10) == 0)
-    len = ((lsb <= HOST_BITS_PER_WIDE_INT - 4)
-	   ? 4 : HOST_BITS_PER_WIDE_INT - lsb);
+    len = (lsb <= maxlen - 4) ? 4 : maxlen - lsb;
   else
     {
       /* Find the width of the bitstring in IMM.  */
-      for (len = 5; len < HOST_BITS_PER_WIDE_INT; len++)
+      for (len = 5; len < maxlen - lsb; len++)
 	{
 	  if ((imm & ((unsigned HOST_WIDE_INT) 1 << len)) == 0)
 	    break;
 	}
+
+      /* Extend length if host is narrow and IMM is negative.  */
+      if (HOST_BITS_PER_WIDE_INT == 32 && len == maxlen - lsb)
+	len += 32;
 
       /* Sign extend IMM as a 5-bit value.  */
       imm = (imm & 0xf) - 0x10;
@@ -3479,13 +3547,13 @@ compute_frame_size (HOST_WIDE_INT size, int *fregs_live)
 
   /* Account for space used by the callee general register saves.  */
   for (i = 18, j = frame_pointer_needed ? 4 : 3; i >= j; i--)
-    if (regs_ever_live[i])
+    if (df_regs_ever_live_p (i))
       size += UNITS_PER_WORD;
 
   /* Account for space used by the callee floating point register saves.  */
   for (i = FP_SAVED_REG_LAST; i >= FP_SAVED_REG_FIRST; i -= FP_REG_STEP)
-    if (regs_ever_live[i]
-	|| (!TARGET_64BIT && regs_ever_live[i + 1]))
+    if (df_regs_ever_live_p (i)
+	|| (!TARGET_64BIT && df_regs_ever_live_p (i + 1)))
       {
 	freg_saved = 1;
 
@@ -3550,10 +3618,12 @@ pa_output_function_prologue (FILE *file, HOST_WIDE_INT size ATTRIBUTE_UNUSED)
      to output the assembler directives which denote the start
      of a function.  */
   fprintf (file, "\t.CALLINFO FRAME=" HOST_WIDE_INT_PRINT_DEC, actual_fsize);
-  if (regs_ever_live[2])
-    fputs (",CALLS,SAVE_RP", file);
-  else
+  if (current_function_is_leaf)
     fputs (",NO_CALLS", file);
+  else
+    fputs (",CALLS", file);
+  if (rp_saved)
+    fputs (",SAVE_RP", file);
 
   /* The SAVE_SP flag is used to indicate that register %r3 is stored
      at the beginning of the frame and that it is used as the frame
@@ -3614,8 +3684,13 @@ hppa_expand_prologue (void)
   /* Save RP first.  The calling conventions manual states RP will
      always be stored into the caller's frame at sp - 20 or sp - 16
      depending on which ABI is in use.  */
-  if (regs_ever_live[2] || current_function_calls_eh_return)
-    store_reg (2, TARGET_64BIT ? -16 : -20, STACK_POINTER_REGNUM);
+  if (df_regs_ever_live_p (2) || current_function_calls_eh_return)
+    {
+      store_reg (2, TARGET_64BIT ? -16 : -20, STACK_POINTER_REGNUM);
+      rp_saved = true;
+    }
+  else
+    rp_saved = false;
 
   /* Allocate the local frame and set up the frame pointer if needed.  */
   if (actual_fsize != 0)
@@ -3725,7 +3800,7 @@ hppa_expand_prologue (void)
 	}
 
       for (i = 18; i >= 4; i--)
-	if (regs_ever_live[i] && ! call_used_regs[i])
+	if (df_regs_ever_live_p (i) && ! call_used_regs[i])
 	  {
 	    store_reg (i, offset, FRAME_POINTER_REGNUM);
 	    offset += UNITS_PER_WORD;
@@ -3765,7 +3840,7 @@ hppa_expand_prologue (void)
 	}
 
       for (i = 18; i >= 3; i--)
-      	if (regs_ever_live[i] && ! call_used_regs[i])
+      	if (df_regs_ever_live_p (i) && ! call_used_regs[i])
 	  {
 	    /* If merge_sp_adjust_with_store is nonzero, then we can
 	       optimize the first GR save.  */
@@ -3828,8 +3903,8 @@ hppa_expand_prologue (void)
       /* Now actually save the FP registers.  */
       for (i = FP_SAVED_REG_LAST; i >= FP_SAVED_REG_FIRST; i -= FP_REG_STEP)
 	{
-	  if (regs_ever_live[i]
-	      || (! TARGET_64BIT && regs_ever_live[i + 1]))
+	  if (df_regs_ever_live_p (i)
+	      || (! TARGET_64BIT && df_regs_ever_live_p (i + 1)))
 	    {
 	      rtx addr, insn, reg;
 	      addr = gen_rtx_MEM (DFmode, gen_rtx_POST_INC (DFmode, tmpreg));
@@ -3917,23 +3992,18 @@ load_reg (int reg, HOST_WIDE_INT disp, int base)
 /* Update the total code bytes output to the text section.  */
 
 static void
-update_total_code_bytes (int nbytes)
+update_total_code_bytes (unsigned int nbytes)
 {
   if ((TARGET_PORTABLE_RUNTIME || !TARGET_GAS || !TARGET_SOM)
       && !IN_NAMED_SECTION_P (cfun->decl))
     {
-      if (INSN_ADDRESSES_SET_P ())
-	{
-	  unsigned long old_total = total_code_bytes;
+      unsigned int old_total = total_code_bytes;
 
-	  total_code_bytes += nbytes;
+      total_code_bytes += nbytes;
 
-	  /* Be prepared to handle overflows.  */
-	  if (old_total > total_code_bytes)
-	    total_code_bytes = -1;
-	}
-      else
-	total_code_bytes = -1;
+      /* Be prepared to handle overflows.  */
+      if (old_total > total_code_bytes)
+        total_code_bytes = UINT_MAX;
     }
 }
 
@@ -3997,6 +4067,8 @@ pa_output_function_epilogue (FILE *file, HOST_WIDE_INT size ATTRIBUTE_UNUSED)
       last_address = ((last_address + FUNCTION_BOUNDARY / BITS_PER_UNIT - 1)
 		      & ~(FUNCTION_BOUNDARY / BITS_PER_UNIT - 1));
     }
+  else
+    last_address = UINT_MAX;
 
   /* Finally, update the total number of code bytes output so far.  */
   update_total_code_bytes (last_address);
@@ -4017,7 +4089,7 @@ hppa_expand_epilogue (void)
   /* Try to restore RP early to avoid load/use interlocks when
      RP gets used in the return (bv) instruction.  This appears to still
      be necessary even when we schedule the prologue and epilogue.  */
-  if (regs_ever_live [2] || current_function_calls_eh_return)
+  if (rp_saved)
     {
       ret_off = TARGET_64BIT ? -16 : -20;
       if (frame_pointer_needed)
@@ -4059,7 +4131,7 @@ hppa_expand_epilogue (void)
 	}
 
       for (i = 18; i >= 4; i--)
-	if (regs_ever_live[i] && ! call_used_regs[i])
+	if (df_regs_ever_live_p (i) && ! call_used_regs[i])
 	  {
 	    load_reg (i, offset, FRAME_POINTER_REGNUM);
 	    offset += UNITS_PER_WORD;
@@ -4096,7 +4168,7 @@ hppa_expand_epilogue (void)
 
       for (i = 18; i >= 3; i--)
 	{
-	  if (regs_ever_live[i] && ! call_used_regs[i])
+	  if (df_regs_ever_live_p (i) && ! call_used_regs[i])
 	    {
 	      /* Only for the first load.
 	         merge_sp_adjust_with_load holds the register load
@@ -4126,8 +4198,8 @@ hppa_expand_epilogue (void)
 
       /* Actually do the restores now.  */
       for (i = FP_SAVED_REG_LAST; i >= FP_SAVED_REG_FIRST; i -= FP_REG_STEP)
-	if (regs_ever_live[i]
-	    || (! TARGET_64BIT && regs_ever_live[i + 1]))
+	if (df_regs_ever_live_p (i)
+	    || (! TARGET_64BIT && df_regs_ever_live_p (i + 1)))
 	  {
 	    rtx src = gen_rtx_MEM (DFmode, gen_rtx_POST_INC (DFmode, tmpreg));
 	    rtx dest = gen_rtx_REG (DFmode, i);
@@ -4189,9 +4261,6 @@ hppa_pic_save_rtx (void)
 #define NO_DEFERRED_PROFILE_COUNTERS 0
 #endif
 
-/* Define heap vector type for funcdef numbers.  */
-DEF_VEC_I(int);
-DEF_VEC_ALLOC_I(int,heap);
 
 /* Vector of funcdef numbers.  */
 static VEC(int,heap) *funcdef_nos;
@@ -4241,7 +4310,7 @@ hppa_profile_hook (int label_no)
 
   emit_move_insn (gen_rtx_REG (word_mode, 26), gen_rtx_REG (word_mode, 2));
 
-  /* The address of the function is loaded into %r25 with a instruction-
+  /* The address of the function is loaded into %r25 with an instruction-
      relative sequence that avoids the use of relocations.  The sequence
      is split so that the load_offset_label_address instruction can
      occupy the delay slot of the call to _mcount.  */
@@ -4391,22 +4460,6 @@ return_addr_rtx (int count, rtx frameaddr)
 
   emit_label (label);
   return saved_rp;
-}
-
-/* This is only valid once reload has completed because it depends on
-   knowing exactly how much (if any) frame there is and...
-
-   It's only valid if there is no frame marker to de-allocate and...
-
-   It's only valid if %r2 hasn't been saved into the caller's frame
-   (we're not profiling and %r2 isn't live anywhere).  */
-int
-hppa_can_use_return_insn_p (void)
-{
-  return (reload_completed
-	  && (compute_frame_size (get_frame_size (), 0) ? 0 : 1)
-	  && ! regs_ever_live[2]
-	  && ! frame_pointer_needed);
 }
 
 void
@@ -5366,7 +5419,7 @@ output_deferred_plabels (void)
   /* Now output the deferred plabels.  */
   for (i = 0; i < n_deferred_plabels; i++)
     {
-      (*targetm.asm_out.internal_label) (asm_out_file, "L",
+      targetm.asm_out.internal_label (asm_out_file, "L",
 		 CODE_LABEL_NUMBER (deferred_plabels[i].internal_label));
       assemble_integer (deferred_plabels[i].symbol,
 			TARGET_64BIT ? 8 : 4, TARGET_64BIT ? 64 : 32, 1);
@@ -5776,6 +5829,33 @@ pa_secondary_reload (bool in_p, rtx x, enum reg_class class,
   return NO_REGS;
 }
 
+/* Implement TARGET_EXTRA_LIVE_ON_ENTRY.  The argument pointer
+   is only marked as live on entry by df-scan when it is a fixed
+   register.  It isn't a fixed register in the 64-bit runtime,
+   so we need to mark it here.  */
+
+static void
+pa_extra_live_on_entry (bitmap regs)
+{
+  if (TARGET_64BIT)
+    bitmap_set_bit (regs, ARG_POINTER_REGNUM);
+}
+
+/* Implement EH_RETURN_HANDLER_RTX.  The MEM needs to be volatile
+   to prevent it from being deleted.  */
+
+rtx
+pa_eh_return_handler_rtx (void)
+{
+  rtx tmp;
+
+  tmp = gen_rtx_PLUS (word_mode, frame_pointer_rtx,
+		      TARGET_64BIT ? GEN_INT (-16) : GEN_INT (-20));
+  tmp = gen_rtx_MEM (word_mode, tmp);
+  tmp->volatil = 1;
+  return tmp;
+}
+
 /* In the 32-bit runtime, arguments larger than eight bytes are passed
    by invisible reference.  As a GCC extension, we also pass anything
    with a zero or variable size by reference.
@@ -5791,7 +5871,7 @@ pa_secondary_reload (bool in_p, rtx x, enum reg_class class,
 
 static bool
 pa_pass_by_reference (CUMULATIVE_ARGS *ca ATTRIBUTE_UNUSED,
-		      enum machine_mode mode, tree type,
+		      enum machine_mode mode, const_tree type,
 		      bool named ATTRIBUTE_UNUSED)
 {
   HOST_WIDE_INT size;
@@ -5808,7 +5888,7 @@ pa_pass_by_reference (CUMULATIVE_ARGS *ca ATTRIBUTE_UNUSED,
 }
 
 enum direction
-function_arg_padding (enum machine_mode mode, tree type)
+function_arg_padding (enum machine_mode mode, const_tree type)
 {
   if (mode == BLKmode
       || (TARGET_64BIT && type && AGGREGATE_TYPE_P (type)))
@@ -5915,7 +5995,7 @@ hppa_builtin_saveregs (void)
 				    offset, 0, 0, OPTAB_LIB_WIDEN));
 }
 
-void
+static void
 hppa_va_start (tree valist, rtx nextarg)
 {
   nextarg = expand_builtin_saveregs ();
@@ -5949,21 +6029,24 @@ hppa_gimplify_va_arg_expr (tree valist, tree type, tree *pre_p, tree *post_p)
 
       /* Args grow down.  Not handled by generic routines.  */
 
-      u = fold_convert (valist_type, size_in_bytes (type));
-      t = build2 (MINUS_EXPR, valist_type, valist, u);
+      u = fold_convert (sizetype, size_in_bytes (type));
+      u = fold_build1 (NEGATE_EXPR, sizetype, u);
+      t = build2 (POINTER_PLUS_EXPR, valist_type, valist, u);
 
       /* Copied from va-pa.h, but we probably don't need to align to
 	 word size, since we generate and preserve that invariant.  */
-      u = build_int_cst (valist_type, (size > 4 ? -8 : -4));
-      t = build2 (BIT_AND_EXPR, valist_type, t, u);
+      u = size_int (size > 4 ? -8 : -4);
+      t = fold_convert (sizetype, t);
+      t = build2 (BIT_AND_EXPR, sizetype, t, u);
+      t = fold_convert (valist_type, t);
 
       t = build2 (MODIFY_EXPR, valist_type, valist, t);
 
       ofs = (8 - size) % 4;
       if (ofs != 0)
 	{
-	  u = fold_convert (valist_type, size_int (ofs));
-	  t = build2 (PLUS_EXPR, valist_type, t, u);
+	  u = size_int (ofs);
+	  t = build2 (POINTER_PLUS_EXPR, valist_type, t, u);
 	}
 
       t = fold_convert (ptr, t);
@@ -6258,9 +6341,7 @@ output_lbranch (rtx dest, rtx insn, int xdelay)
 		       optimize, 0, NULL);
 
       /* Now delete the delay insn.  */
-      PUT_CODE (NEXT_INSN (insn), NOTE);
-      NOTE_LINE_NUMBER (NEXT_INSN (insn)) = NOTE_INSN_DELETED;
-      NOTE_SOURCE_FILE (NEXT_INSN (insn)) = 0;
+      SET_INSN_DELETED (NEXT_INSN (insn));
     }
 
   /* Output an insn to save %r1.  The runtime documentation doesn't
@@ -6285,7 +6366,7 @@ output_lbranch (rtx dest, rtx insn, int xdelay)
      for other purposes.  */
   if (TARGET_64BIT)
     {
-      if (actual_fsize == 0 && !regs_ever_live[2])
+      if (actual_fsize == 0 && !df_regs_ever_live_p (2))
 	/* Use the return pointer slot in the frame marker.  */
 	output_asm_insn ("std %%r1,-16(%%r30)", xoperands);
       else
@@ -6295,7 +6376,7 @@ output_lbranch (rtx dest, rtx insn, int xdelay)
     }
   else
     {
-      if (actual_fsize == 0 && !regs_ever_live[2])
+      if (actual_fsize == 0 && !df_regs_ever_live_p (2))
 	/* Use the return pointer slot in the frame marker.  */
 	output_asm_insn ("stw %%r1,-20(%%r30)", xoperands);
       else
@@ -6321,8 +6402,8 @@ output_lbranch (rtx dest, rtx insn, int xdelay)
 	{
 	  xoperands[1] = gen_label_rtx ();
 	  output_asm_insn ("addil L'%l0-%l1,%%r1", xoperands);
-	  (*targetm.asm_out.internal_label) (asm_out_file, "L",
-					     CODE_LABEL_NUMBER (xoperands[1]));
+	  targetm.asm_out.internal_label (asm_out_file, "L",
+					  CODE_LABEL_NUMBER (xoperands[1]));
 	  output_asm_insn ("ldo R'%l0-%l1(%%r1),%%r1", xoperands);
 	}
       else
@@ -6339,14 +6420,14 @@ output_lbranch (rtx dest, rtx insn, int xdelay)
   /* Now restore the value of %r1 in the delay slot.  */
   if (TARGET_64BIT)
     {
-      if (actual_fsize == 0 && !regs_ever_live[2])
+      if (actual_fsize == 0 && !df_regs_ever_live_p (2))
 	return "ldd -16(%%r30),%%r1";
       else
 	return "ldd -40(%%r30),%%r1";
     }
   else
     {
-      if (actual_fsize == 0 && !regs_ever_live[2])
+      if (actual_fsize == 0 && !df_regs_ever_live_p (2))
 	return "ldw -20(%%r30),%%r1";
       else
 	return "ldw -12(%%r30),%%r1";
@@ -7181,7 +7262,7 @@ output_millicode_call (rtx insn, rtx call_dest)
 	    {
 	      xoperands[1] = gen_label_rtx ();
 	      output_asm_insn ("addil L'%0-%l1,%%r1", xoperands);
-	      (*targetm.asm_out.internal_label) (asm_out_file, "L",
+	      targetm.asm_out.internal_label (asm_out_file, "L",
 					 CODE_LABEL_NUMBER (xoperands[1]));
 	      output_asm_insn ("ldo R'%0-%l1(%%r1),%%r1", xoperands);
 	    }
@@ -7225,7 +7306,7 @@ output_millicode_call (rtx insn, rtx call_dest)
 		 millicode symbol but not an arbitrary external
 		 symbol when generating SOM output.  */
 	      xoperands[1] = gen_label_rtx ();
-	      (*targetm.asm_out.internal_label) (asm_out_file, "L",
+	      targetm.asm_out.internal_label (asm_out_file, "L",
 					 CODE_LABEL_NUMBER (xoperands[1]));
 	      output_asm_insn ("addil L'%0-%l1,%%r1", xoperands);
 	      output_asm_insn ("ldo R'%0-%l1(%%r1),%%r1", xoperands);
@@ -7264,8 +7345,8 @@ output_millicode_call (rtx insn, rtx call_dest)
 	{
 	  xoperands[1] = gen_label_rtx ();
 	  output_asm_insn ("ldo %0-%1(%2),%2", xoperands);
-	  (*targetm.asm_out.internal_label) (asm_out_file, "L",
-					     CODE_LABEL_NUMBER (xoperands[1]));
+	  targetm.asm_out.internal_label (asm_out_file, "L",
+					  CODE_LABEL_NUMBER (xoperands[1]));
 	}
       else
 	/* ??? This branch may not reach its target.  */
@@ -7276,9 +7357,7 @@ output_millicode_call (rtx insn, rtx call_dest)
     output_asm_insn ("nop\n\tb,n %0", xoperands);
 
   /* Delete the jump.  */
-  PUT_CODE (NEXT_INSN (insn), NOTE);
-  NOTE_LINE_NUMBER (NEXT_INSN (insn)) = NOTE_INSN_DELETED;
-  NOTE_SOURCE_FILE (NEXT_INSN (insn)) = 0;
+  SET_INSN_DELETED (NEXT_INSN (insn));
 
   return "";
 }
@@ -7323,7 +7402,7 @@ attr_length_call (rtx insn, int sibcall)
     call_dest = XEXP (XEXP (XEXP (XVECEXP (pat, 0, 0), 1), 0), 0);
 
   call_decl = SYMBOL_REF_DECL (call_dest);
-  local_call = call_decl && (*targetm.binds_local_p) (call_decl);
+  local_call = call_decl && targetm.binds_local_p (call_decl);
 
   /* pc-relative branch.  */
   if (!TARGET_LONG_CALLS
@@ -7387,7 +7466,7 @@ output_call (rtx insn, rtx call_dest, int sibcall)
   int delay_slot_filled = 0;
   int seq_length = dbr_sequence_length ();
   tree call_decl = SYMBOL_REF_DECL (call_dest);
-  int local_call = call_decl && (*targetm.binds_local_p) (call_decl);
+  int local_call = call_decl && targetm.binds_local_p (call_decl);
   rtx xoperands[2];
 
   xoperands[0] = call_dest;
@@ -7421,9 +7500,7 @@ output_call (rtx insn, rtx call_dest, int sibcall)
 			       optimize, 0, NULL);
 
 	      /* Now delete the delay insn.  */
-	      PUT_CODE (NEXT_INSN (insn), NOTE);
-	      NOTE_LINE_NUMBER (NEXT_INSN (insn)) = NOTE_INSN_DELETED;
-	      NOTE_SOURCE_FILE (NEXT_INSN (insn)) = 0;
+	      SET_INSN_DELETED (NEXT_INSN (insn));
 	      delay_insn_deleted = 1;
 	    }
 
@@ -7462,7 +7539,9 @@ output_call (rtx insn, rtx call_dest, int sibcall)
 	  if (seq_length != 0
 	      && GET_CODE (NEXT_INSN (insn)) != JUMP_INSN
 	      && !sibcall
-	      && (!TARGET_PA_20 || indirect_call))
+	      && (!TARGET_PA_20
+		  || indirect_call
+		  || ((TARGET_LONG_ABS_CALL || local_call) && !flag_pic)))
 	    {
 	      /* A non-jump insn in the delay slot.  By definition we can
 		 emit this insn before the call (and in fact before argument
@@ -7471,9 +7550,7 @@ output_call (rtx insn, rtx call_dest, int sibcall)
 			       NULL);
 
 	      /* Now delete the delay insn.  */
-	      PUT_CODE (NEXT_INSN (insn), NOTE);
-	      NOTE_LINE_NUMBER (NEXT_INSN (insn)) = NOTE_INSN_DELETED;
-	      NOTE_SOURCE_FILE (NEXT_INSN (insn)) = 0;
+	      SET_INSN_DELETED (NEXT_INSN (insn));
 	      delay_insn_deleted = 1;
 	    }
 
@@ -7511,7 +7588,7 @@ output_call (rtx insn, rtx call_dest, int sibcall)
 		  xoperands[1] = gen_label_rtx ();
 		  output_asm_insn ("{bl|b,l} .+8,%%r1", xoperands);
 		  output_asm_insn ("addil L'%0-%l1,%%r1", xoperands);
-		  (*targetm.asm_out.internal_label) (asm_out_file, "L",
+		  targetm.asm_out.internal_label (asm_out_file, "L",
 					     CODE_LABEL_NUMBER (xoperands[1]));
 		  output_asm_insn ("ldo R'%0-%l1(%%r1),%%r1", xoperands);
 		}
@@ -7648,8 +7725,8 @@ output_call (rtx insn, rtx call_dest, int sibcall)
 	{
 	  xoperands[1] = gen_label_rtx ();
 	  output_asm_insn ("ldo %0-%1(%%r2),%%r2", xoperands);
-	  (*targetm.asm_out.internal_label) (asm_out_file, "L",
-					     CODE_LABEL_NUMBER (xoperands[1]));
+	  targetm.asm_out.internal_label (asm_out_file, "L",
+					  CODE_LABEL_NUMBER (xoperands[1]));
 	}
       else
 	output_asm_insn ("nop\n\tb,n %0", xoperands);
@@ -7658,9 +7735,7 @@ output_call (rtx insn, rtx call_dest, int sibcall)
     output_asm_insn ("b,n %0", xoperands);
 
   /* Delete the jump.  */
-  PUT_CODE (NEXT_INSN (insn), NOTE);
-  NOTE_LINE_NUMBER (NEXT_INSN (insn)) = NOTE_INSN_DELETED;
-  NOTE_SOURCE_FILE (NEXT_INSN (insn)) = 0;
+  SET_INSN_DELETED (NEXT_INSN (insn));
 
   return "";
 }
@@ -7752,8 +7827,8 @@ output_indirect_call (rtx insn, rtx call_dest)
     {
       xoperands[0] = gen_label_rtx ();
       output_asm_insn ("addil L'$$dyncall-%0,%%r1", xoperands);
-      (*targetm.asm_out.internal_label) (asm_out_file, "L",
-					 CODE_LABEL_NUMBER (xoperands[0]));
+      targetm.asm_out.internal_label (asm_out_file, "L",
+				      CODE_LABEL_NUMBER (xoperands[0]));
       output_asm_insn ("ldo R'$$dyncall-%0(%%r1),%%r1", xoperands);
     }
   else
@@ -7862,7 +7937,7 @@ pa_asm_output_mi_thunk (FILE *file, tree thunk_fndecl, HOST_WIDE_INT delta,
 {
   static unsigned int current_thunk_number;
   int val_14 = VAL_14_BITS_P (delta);
-  int nbytes = 0;
+  unsigned int old_last_address = last_address, nbytes = 0;
   char label[16];
   rtx xoperands[4];
 
@@ -7901,6 +7976,10 @@ pa_asm_output_mi_thunk (FILE *file, tree thunk_fndecl, HOST_WIDE_INT delta,
 		   || ((DECL_SECTION_NAME (thunk_fndecl)
 			== DECL_SECTION_NAME (function))
 		       && last_address < 262132)))
+	      || (targetm.have_named_sections
+		  && DECL_SECTION_NAME (thunk_fndecl) == NULL
+		  && DECL_SECTION_NAME (function) == NULL
+		  && last_address < 262132)
 	      || (!targetm.have_named_sections && last_address < 262132))))
     {
       if (!val_14)
@@ -8095,6 +8174,8 @@ pa_asm_output_mi_thunk (FILE *file, tree thunk_fndecl, HOST_WIDE_INT delta,
   nbytes = ((nbytes + FUNCTION_BOUNDARY / BITS_PER_UNIT - 1)
 	    & ~(FUNCTION_BOUNDARY / BITS_PER_UNIT - 1));
   last_address += nbytes;
+  if (old_last_address > last_address)
+    last_address = UINT_MAX;
   update_total_code_bytes (nbytes);
 }
 
@@ -8152,7 +8233,7 @@ pa_function_ok_for_sibcall (tree decl, tree exp ATTRIBUTE_UNUSED)
    space register selection rules for memory addresses.  Therefore, we
    don't consider a + b == b + a, as this might be inside a MEM.  */
 static bool
-pa_commutative_p (rtx x, int outer_code)
+pa_commutative_p (const_rtx x, int outer_code)
 {
   return (COMMUTATIVE_P (x)
 	  && (TARGET_NO_SPACE_REGS
@@ -8919,9 +9000,7 @@ pa_combine_instructions (void)
 					    PATTERN (floater))),
 				anchor);
 
-	      PUT_CODE (anchor, NOTE);
-	      NOTE_LINE_NUMBER (anchor) = NOTE_INSN_DELETED;
-	      NOTE_SOURCE_FILE (anchor) = 0;
+	      SET_INSN_DELETED (anchor);
 
 	      /* Emit a special USE insn for FLOATER, then delete
 		 the floating insn.  */
@@ -8943,9 +9022,7 @@ pa_combine_instructions (void)
 					 anchor);
 
 	      JUMP_LABEL (temp) = JUMP_LABEL (anchor);
-	      PUT_CODE (anchor, NOTE);
-	      NOTE_LINE_NUMBER (anchor) = NOTE_INSN_DELETED;
-	      NOTE_SOURCE_FILE (anchor) = 0;
+	      SET_INSN_DELETED (anchor);
 
 	      /* Emit a special USE insn for FLOATER, then delete
 		 the floating insn.  */
@@ -9053,7 +9130,7 @@ insn_refs_are_delayed (rtx insn)
    to match the HP Compiler ABI.  */
 
 rtx
-function_value (tree valtype, tree func ATTRIBUTE_UNUSED)
+function_value (const_tree valtype, const_tree func ATTRIBUTE_UNUSED)
 {
   enum machine_mode valmode;
 
@@ -9096,7 +9173,7 @@ function_value (tree valtype, tree func ATTRIBUTE_UNUSED)
     }
 
   if ((INTEGRAL_TYPE_P (valtype)
-       && TYPE_PRECISION (valtype) < BITS_PER_WORD)
+       && GET_MODE_BITSIZE (TYPE_MODE (valtype)) < BITS_PER_WORD)
       || POINTER_TYPE_P (valtype))
     valmode = word_mode;
   else
@@ -9513,7 +9590,7 @@ pa_struct_value_rtx (tree fntype ATTRIBUTE_UNUSED,
 /* Worker function for TARGET_RETURN_IN_MEMORY.  */
 
 bool
-pa_return_in_memory (tree type, tree fntype ATTRIBUTE_UNUSED)
+pa_return_in_memory (const_tree type, const_tree fntype ATTRIBUTE_UNUSED)
 {
   /* SOM ABI says that objects larger than 64 bits are returned in memory.
      PA64 ABI says that objects larger than 128 bits are returned in memory.

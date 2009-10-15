@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2006, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -32,7 +32,7 @@
 ------------------------------------------------------------------------------
 
 with System.File_IO;
-with Unchecked_Deallocation;
+with Ada.Unchecked_Deallocation;
 
 package body System.Sequential_IO is
 
@@ -59,7 +59,7 @@ package body System.Sequential_IO is
 
    --  No special processing required for Sequential_IO close
 
-   procedure AFCB_Close (File : access Sequential_AFCB) is
+   procedure AFCB_Close (File : not null access Sequential_AFCB) is
       pragma Warnings (Off, File);
 
    begin
@@ -70,14 +70,14 @@ package body System.Sequential_IO is
    -- AFCB_Free --
    ---------------
 
-   procedure AFCB_Free (File : access Sequential_AFCB) is
+   procedure AFCB_Free (File : not null access Sequential_AFCB) is
 
       type FCB_Ptr is access all Sequential_AFCB;
 
       FT : FCB_Ptr := FCB_Ptr (File);
 
       procedure Free is new
-        Unchecked_Deallocation (Sequential_AFCB, FCB_Ptr);
+        Ada.Unchecked_Deallocation (Sequential_AFCB, FCB_Ptr);
 
    begin
       Free (FT);

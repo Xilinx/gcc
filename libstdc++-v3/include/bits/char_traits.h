@@ -1,6 +1,7 @@
 // Character Traits for use by standard string and iostream -*- C++ -*-
 
-// Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005
+// Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
+// 2006, 2007
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -42,9 +43,10 @@
 
 #pragma GCC system_header
 
-#include <cstring>            // For memmove, memset, memchr
-#include <bits/stl_algobase.h>// For copy, lexicographical_compare, fill_n
-#include <bits/postypes.h>    // For streampos
+#include <bits/stl_algobase.h>  // std::copy, std::fill_n
+#include <bits/postypes.h>      // For streampos
+#include <cstdio>               // For EOF
+#include <cwchar>               // For WEOF, wmemmove, wmemset, etc.
 
 _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
 
@@ -58,7 +60,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
    *  types, but who don't need to change the definitions of any function
    *  defined in char_traits, can specialize __gnu_cxx::_Char_types
    *  while leaving __gnu_cxx::char_traits alone. */
-  template <class _CharT>
+  template<typename _CharT>
     struct _Char_types
     {
       typedef unsigned long   int_type;
@@ -76,10 +78,10 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
    *  right, but the int_type and state_type typedefs, and the eof()
    *  member function, are likely to be wrong.)  The reason this class
    *  exists is so users can specialize it.  Classes in namespace std
-   *  may not be specialized for fundamentl types, but classes in
+   *  may not be specialized for fundamental types, but classes in
    *  namespace __gnu_cxx may be.
    *
-   *  See http://gcc.gnu.org/onlinedocs/libstdc++/21_strings/howto.html#5
+   *  See http://gcc.gnu.org/onlinedocs/libstdc++/manual/bk01pt05ch13s03.html
    *  for advice on how to make use of this class for "unusual" character
    *  types. Also, check out include/ext/pod_char_traits.h.  
    */
@@ -183,8 +185,8 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
     char_traits<_CharT>::
     move(char_type* __s1, const char_type* __s2, std::size_t __n)
     {
-      return static_cast<_CharT*>(std::memmove(__s1, __s2,
-					       __n * sizeof(char_type)));
+      return static_cast<_CharT*>(__builtin_memmove(__s1, __s2,
+						    __n * sizeof(char_type)));
     }
 
   template<typename _CharT>
@@ -192,6 +194,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
     char_traits<_CharT>::
     copy(char_type* __s1, const char_type* __s2, std::size_t __n)
     {
+      // NB: Inline std::copy so no recursive dependencies.
       std::copy(__s2, __s2 + __n, __s1);
       return __s1;
     }
@@ -201,6 +204,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
     char_traits<_CharT>::
     assign(char_type* __s, std::size_t __n, char_type __a)
     {
+      // NB: Inline std::fill_n so no recursive dependencies.
       std::fill_n(__s, __n, __a);
       return __s;
     }
@@ -218,7 +222,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
    *  __gnu_cxx::char_traits, it is possible to achieve a more
    *  appropriate definition by specializing __gnu_cxx::char_traits.
    *
-   *  See http://gcc.gnu.org/onlinedocs/libstdc++/21_strings/howto.html#5
+   *  See http://gcc.gnu.org/onlinedocs/libstdc++/manual/bk01pt05ch13s03.html
    *  for advice on how to make use of this class for "unusual" character
    *  types. Also, check out include/ext/pod_char_traits.h.
   */
@@ -227,7 +231,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     { };
 
 
-  /// @brief  21.1.3.1  char_traits specializations
+  /// 21.1.3.1  char_traits specializations
   template<>
     struct char_traits<char>
     {
@@ -251,27 +255,27 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
       static int
       compare(const char_type* __s1, const char_type* __s2, size_t __n)
-      { return memcmp(__s1, __s2, __n); }
+      { return __builtin_memcmp(__s1, __s2, __n); }
 
       static size_t
       length(const char_type* __s)
-      { return strlen(__s); }
+      { return __builtin_strlen(__s); }
 
       static const char_type*
       find(const char_type* __s, size_t __n, const char_type& __a)
-      { return static_cast<const char_type*>(memchr(__s, __a, __n)); }
+      { return static_cast<const char_type*>(__builtin_memchr(__s, __a, __n)); }
 
       static char_type*
       move(char_type* __s1, const char_type* __s2, size_t __n)
-      { return static_cast<char_type*>(memmove(__s1, __s2, __n)); }
+      { return static_cast<char_type*>(__builtin_memmove(__s1, __s2, __n)); }
 
       static char_type*
       copy(char_type* __s1, const char_type* __s2, size_t __n)
-      { return static_cast<char_type*>(memcpy(__s1, __s2, __n)); }
+      { return static_cast<char_type*>(__builtin_memcpy(__s1, __s2, __n)); }
 
       static char_type*
       assign(char_type* __s, size_t __n, char_type __a)
-      { return static_cast<char_type*>(memset(__s, __a, __n)); }
+      { return static_cast<char_type*>(__builtin_memset(__s, __a, __n)); }
 
       static char_type
       to_char_type(const int_type& __c)
@@ -297,7 +301,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
 
 #ifdef _GLIBCXX_USE_WCHAR_T
-  /// @brief  21.1.3.2  char_traits specializations
+  /// 21.1.3.2  char_traits specializations
   template<>
     struct char_traits<wchar_t>
     {

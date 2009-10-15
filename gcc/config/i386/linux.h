@@ -120,6 +120,9 @@ along with GCC; see the file COPYING3.  If not see
 #undef  ENDFILE_SPEC
 #define ENDFILE_SPEC \
   "%{ffast-math|funsafe-math-optimizations:crtfastmath.o%s} \
+   %{mpc32:crtprec32.o%s} \
+   %{mpc64:crtprec64.o%s} \
+   %{mpc80:crtprec80.o%s} \
    %{shared|pie:crtendS.o%s;:crtend.o%s} crtn.o%s"
 
 /* A C statement (sans semicolon) to output to the stdio stream
@@ -141,7 +144,15 @@ along with GCC; see the file COPYING3.  If not see
   do {									\
     if ((LOG) != 0) {							\
       if ((MAX_SKIP) == 0) fprintf ((FILE), "\t.p2align %d\n", (LOG));	\
-      else fprintf ((FILE), "\t.p2align %d,,%d\n", (LOG), (MAX_SKIP));	\
+      else {								\
+	fprintf ((FILE), "\t.p2align %d,,%d\n", (LOG), (MAX_SKIP));	\
+	/* Make sure that we have at least 8 byte alignment if > 8 byte \
+	   alignment is preferred.  */					\
+	if ((LOG) > 3							\
+	    && (1 << (LOG)) > ((MAX_SKIP) + 1)				\
+	    && (MAX_SKIP) >= 7)						\
+	  fprintf ((FILE), "\t.p2align 3\n");				\
+      }									\
     }									\
   } while (0)
 #endif
@@ -171,11 +182,12 @@ along with GCC; see the file COPYING3.  If not see
 #define CRT_GET_RFIB_DATA(BASE)						\
   __asm__ ("call\t.LPR%=\n"						\
 	   ".LPR%=:\n\t"						\
-	   "popl\t%0\n\t"						\
+	   "pop{l}\t%0\n\t"						\
 	   /* Due to a GAS bug, this cannot use EAX.  That encodes	\
 	      smaller than the traditional EBX, which results in the	\
 	      offset being off by one.  */				\
-	   "addl\t$_GLOBAL_OFFSET_TABLE_+[.-.LPR%=],%0"			\
+	   "add{l}\t{$_GLOBAL_OFFSET_TABLE_+[.-.LPR%=],%0"		\
+		   "|%0,_GLOBAL_OFFSET_TABLE_+(.-.LPR%=)}"		\
 	   : "=d"(BASE))
 #endif
 

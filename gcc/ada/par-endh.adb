@@ -6,26 +6,26 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2006, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
 -- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
 -- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with Stringt; use Stringt;
-with Uintp;   use Uintp;
+with Namet.Sp; use Namet.Sp;
+with Stringt;  use Stringt;
+with Uintp;    use Uintp;
 
 with GNAT.Spelling_Checker; use GNAT.Spelling_Checker;
 
@@ -218,6 +218,10 @@ package body Endh is
          elsif Token = Tok_Record then
             End_Type := E_Record;
             Scan; -- past RECORD
+
+         elsif Token = Tok_Return then
+            End_Type := E_Return;
+            Scan; -- past RETURN
 
          elsif Token = Tok_Select then
             End_Type := E_Select;
@@ -708,25 +712,15 @@ package body Endh is
               and then Chars (End_Labl) > Error_Name
               and then Chars (Nam) > Error_Name
             then
-               Get_Name_String (Chars (End_Labl));
                Error_Msg_Name_1 := Chars (Nam);
 
                if Error_Msg_Name_1 > Error_Name then
-                  declare
-                     S : constant String (1 .. Name_Len) :=
-                           Name_Buffer (1 .. Name_Len);
-
-                  begin
-                     Get_Name_String (Error_Msg_Name_1);
-
-                     if Is_Bad_Spelling_Of
-                         (Name_Buffer (1 .. Name_Len), S)
-                     then
-                        Error_Msg_N ("misspelling of %", End_Labl);
-                        Syntax_OK := True;
-                        return;
-                     end if;
-                  end;
+                  if Is_Bad_Spelling_Of (Chars (Nam), Chars (End_Labl)) then
+                     Error_Msg_Name_1 := Chars (Nam);
+                     Error_Msg_N ("misspelling of %", End_Labl);
+                     Syntax_OK := True;
+                     return;
+                  end if;
                end if;
             end if;
          end;
@@ -800,6 +794,9 @@ package body Endh is
       elsif End_Type = E_Record then
          Error_Msg_SC ("no RECORD for this `END RECORD`!");
 
+      elsif End_Type = E_Return then
+         Error_Msg_SC ("no RETURN for this `END RETURN`!");
+
       elsif End_Type = E_Select then
          Error_Msg_SC ("no SELECT for this `END SELECT`!");
 
@@ -858,6 +855,10 @@ package body Endh is
       elsif End_Type = E_Record then
          Error_Msg_SC
            ("`END RECORD;` expected@ for RECORD#!");
+
+      elsif End_Type = E_Return then
+         Error_Msg_SC
+           ("`END RETURN;` expected@ for RETURN#!");
 
       elsif End_Type = E_Select then
          Error_Msg_SC
@@ -923,6 +924,10 @@ package body Endh is
       elsif End_Type = E_Record then
          Error_Msg_SC
            ("missing `END RECORD;` for RECORD#!");
+
+      elsif End_Type = E_Return then
+         Error_Msg_SC
+           ("missing `END RETURN;` for RETURN#!");
 
       elsif End_Type = E_Select then
          Error_Msg_BC
@@ -1027,6 +1032,13 @@ package body Endh is
             if Style.RM_Column_Check then
                if End_Column /= Scope.Table (Scope.Last).Ecol
                  and then Current_Line_Start > Scope.Table (Scope.Last).Sloc
+
+               --  A special case, for END RECORD, we are also allowed to
+               --  line up with the TYPE keyword opening the declaration.
+
+                 and then (Scope.Table (Scope.Last).Etyp /= E_Record
+                            or else Get_Column_Number (End_Sloc) /=
+                                    Get_Column_Number (Type_Token_Location))
                then
                   Error_Msg_Col := Scope.Table (Scope.Last).Ecol;
                   Error_Msg

@@ -37,7 +37,7 @@
 ;; Nonzero if OP can be source of a simple move operation.
 
 (define_predicate "mcore_general_movsrc_operand"
-  (match_code "mem,const_int,reg,subreg,symbol_ref,label_ref")
+  (match_code "mem,const_int,reg,subreg,symbol_ref,label_ref,const")
 {
   /* Any (MEM LABEL_REF) is OK.  That is a pc-relative load.  */
   if (GET_CODE (op) == MEM && GET_CODE (XEXP (op, 0)) == LABEL_REF)
@@ -49,7 +49,7 @@
 ;; Nonzero if OP can be destination of a simple move operation.
 
 (define_predicate "mcore_general_movdst_operand"
-  (match_code "mem,const_int,reg,subreg")
+  (match_code "mem,reg,subreg")
 {
   if (GET_CODE (op) == REG && REGNO (op) == CC_REG)
     return 0;
@@ -140,7 +140,7 @@
 
   if (GET_CODE (op) == CONST_INT)
     {
-      if (CONST_OK_FOR_K (INTVAL (op)) || CONST_OK_FOR_M (~INTVAL (op)))
+      if (CONST_OK_FOR_K (INTVAL (op)) || (mcore_num_zeros (INTVAL (op)) <= 2))
 	return 1;
     }
 
@@ -211,18 +211,24 @@
 
   if (GET_CODE (op) == CONST_INT)
     {
-      return 1;
-
-      /* The following is removed because it precludes large constants from being
+      /* The following has been removed because it precludes large constants from being
 	 returned as valid source operands for and add/sub insn.  While large
 	 constants may not directly be used in an add/sub, they may if first loaded
 	 into a register.  Thus, this predicate should indicate that they are valid,
 	 and the constraint in mcore.md should control whether an additional load to
-	 register is needed. (see mcore.md, addsi). -- DAC 4/2/1998  */
-      /*
-	if (CONST_OK_FOR_J(INTVAL(op)) || CONST_OK_FOR_L(INTVAL(op)))
-          return 1;
-      */
+	 register is needed. (see mcore.md, addsi). -- DAC 4/2/1998
+      
+      if (CONST_OK_FOR_J (INTVAL (op)) || CONST_OK_FOR_L (INTVAL (op)))
+        return 1;
+
+	 However we do still need to check to make sure that the constant is not too
+	 big, especially if we are running on a 64-bit OS...  Nickc 8/1/07.  */
+
+      if (trunc_int_for_mode (INTVAL (op), mode) != INTVAL (op))
+	return 0;
+
+      return 1;
+
     }
 
   return 0;
