@@ -1,5 +1,5 @@
 /* GtkDialogPeer.java -- Implements DialogPeer with GTK
-   Copyright (C) 1998, 1999, 2002 Free Software Foundation, Inc.
+   Copyright (C) 1998, 1999, 2002, 2006 Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -39,9 +39,6 @@ exception statement from your version. */
 package gnu.java.awt.peer.gtk;
 
 import java.awt.Dialog;
-import java.awt.Graphics;
-import java.awt.Rectangle;
-import java.awt.event.PaintEvent;
 import java.awt.peer.DialogPeer;
 
 public class GtkDialogPeer extends GtkWindowPeer
@@ -50,34 +47,6 @@ public class GtkDialogPeer extends GtkWindowPeer
   public GtkDialogPeer (Dialog dialog)
   {
     super (dialog);
-  }
-  
-  public Graphics getGraphics ()
-  {
-    Graphics g;
-    if (GtkToolkit.useGraphics2D ())
-      g = new GdkGraphics2D (this);
-    else
-      g = new GdkGraphics (this);
-    g.translate (-insets.left, -insets.top);
-    return g;
-  }  
-  
-  protected void postMouseEvent(int id, long when, int mods, int x, int y, 
-				int clickCount, boolean popupTrigger)
-  {
-    super.postMouseEvent (id, when, mods, 
-			  x + insets.left, y + insets.top, 
-			  clickCount, popupTrigger);
-  }
-
-  protected void postExposeEvent (int x, int y, int width, int height)
-  {
-    if (!isInRepaint)
-      q().postEvent (new PaintEvent (awtComponent, PaintEvent.PAINT,
-                                   new Rectangle (x + insets.left, 
-                                                  y + insets.top, 
-                                                  width, height)));
   }
 
   void create ()

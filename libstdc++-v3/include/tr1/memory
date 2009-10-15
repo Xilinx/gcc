@@ -1,6 +1,6 @@
 // <tr1/memory> -*- C++ -*-
 
-// Copyright (C) 2005 Free Software Foundation, Inc.
+// Copyright (C) 2005, 2006 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -27,6 +27,11 @@
 // invalidate any other reasons why the executable file might be covered by
 // the GNU General Public License.
 
+/**
+ * @file tr1/memory
+ * This is a TR1 C++ Library header. 
+ */
+
 #ifndef _TR1_MEMORY
 #define _TR1_MEMORY 1
 
@@ -40,11 +45,11 @@
 #include <iosfwd>           // std::basic_ostream
 #include <cstdlib>          // std::abort
 
-#include <bits/gthr.h>
-#include <bits/atomicity.h>
+#include <ext/atomicity.h>
+#include <ext/concurrence.h>
 #include <bits/functexcept.h>
-#include <bits/concurrence.h>
 #include <debug/debug.h>
+#include <tr1/type_traits>  // tr1::add_reference
 
 #include <tr1/boost_shared_ptr.h>
 

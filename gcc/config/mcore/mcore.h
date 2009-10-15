@@ -1,13 +1,13 @@
 /* Definitions of target machine for GNU compiler,
    for Motorola M*CORE Processor.
-   Copyright (C) 1993, 1999, 2000, 2001, 2002, 2003, 2004, 2005
+   Copyright (C) 1993, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007
    Free Software Foundation, Inc.
 
    This file is part of GCC.
 
    GCC is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published
-   by the Free Software Foundation; either version 2, or (at your
+   by the Free Software Foundation; either version 3, or (at your
    option) any later version.
 
    GCC is distributed in the hope that it will be useful, but WITHOUT
@@ -16,9 +16,8 @@
    License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with GCC; see the file COPYING.  If not, write to the
-   Free Software Foundation, 51 Franklin Street, Fifth Floor,
-   Boston, MA 02110-1301, USA.  */
+   along with GCC; see the file COPYING3.  If not see
+   <http://www.gnu.org/licenses/>.  */
 
 #ifndef GCC_MCORE_H
 #define GCC_MCORE_H
@@ -856,36 +855,6 @@ extern const enum reg_class reg_class_from_letter[];
 /* Switch to the text or data segment.  */
 #define TEXT_SECTION_ASM_OP  "\t.text"
 #define DATA_SECTION_ASM_OP  "\t.data"
-
-#undef  EXTRA_SECTIONS
-#define EXTRA_SECTIONS SUBTARGET_EXTRA_SECTIONS
-
-#undef  EXTRA_SECTION_FUNCTIONS
-#define EXTRA_SECTION_FUNCTIONS			\
-  SUBTARGET_EXTRA_SECTION_FUNCTIONS		\
-  SWITCH_SECTION_FUNCTION
-
-/* Switch to SECTION (an `enum in_section').
-
-   ??? This facility should be provided by GCC proper.
-   The problem is that we want to temporarily switch sections in
-   ASM_DECLARE_OBJECT_NAME and then switch back to the original section
-   afterwards.  */
-#define SWITCH_SECTION_FUNCTION					\
-static void switch_to_section (enum in_section, tree);		\
-static void							\
-switch_to_section (enum in_section section, tree decl)		\
-{								\
-  switch (section)						\
-    {								\
-      case in_text: text_section (); break;			\
-      case in_unlikely_executed_text: unlikely_text_section (); break;   \
-      case in_data: data_section (); break;			\
-      case in_named: named_section (decl, NULL, 0); break;	\
-      SUBTARGET_SWITCH_SECTIONS      				\
-      default: gcc_unreachable (); 				\
-    }								\
-}
 
 /* Switch into a generic section.  */
 #undef TARGET_ASM_NAMED_SECTION

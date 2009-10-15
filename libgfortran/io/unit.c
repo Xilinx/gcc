@@ -75,7 +75,7 @@ Boston, MA 02110-1301, USA.  */
 
 
 #define CACHE_SIZE 3
-static gfc_unit internal_unit, *unit_cache[CACHE_SIZE];
+static gfc_unit *unit_cache[CACHE_SIZE];
 gfc_offset max_offset;
 gfc_unit *unit_root;
 #ifdef __GTHREAD_MUTEX_INIT
@@ -376,9 +376,18 @@ get_internal_unit (st_parameter_dt *dtp)
     }
 
   memset (iunit, '\0', sizeof (gfc_unit));
+#ifdef __GTHREAD_MUTEX_INIT
+  {
+    __gthread_mutex_t tmp = __GTHREAD_MUTEX_INIT;
+    iunit->lock = tmp;
+  }
+#else
+  __GTHREAD_MUTEX_INIT_FUNCTION (&iunit->lock);
+#endif
+  __gthread_mutex_lock (&iunit->lock);
 
   iunit->recl = dtp->internal_unit_len;
-
+  
   /* For internal units we set the unit number to -1.
      Otherwise internal units can be mistaken for a pre-connected unit or
      some other file I/O unit.  */
@@ -440,7 +449,7 @@ free_internal_unit (st_parameter_dt *dtp)
 
   if (dtp->u.p.current_unit->ls != NULL)
       free_mem (dtp->u.p.current_unit->ls);
-
+  
   sclose (dtp->u.p.current_unit->s);
 
   if (dtp->u.p.current_unit != NULL)
@@ -485,6 +494,15 @@ is_array_io (st_parameter_dt *dtp)
 }
 
 
+/* is_stream_io () -- Determine if I/O is access="stream" mode */
+
+int
+is_stream_io (st_parameter_dt *dtp)
+{
+  return dtp->u.p.current_unit->flags.access == ACCESS_STREAM;
+}
+
+
 /*************************/
 /* Initialize everything */
 
@@ -496,15 +514,6 @@ init_units (void)
 
 #ifndef __GTHREAD_MUTEX_INIT
   __GTHREAD_MUTEX_INIT_FUNCTION (&unit_lock);
-#endif
-
-#ifdef __GTHREAD_MUTEX_INIT
-  {
-    __gthread_mutex_t tmp = __GTHREAD_MUTEX_INIT;
-    internal_unit.lock = tmp;
-  }
-#else
-  __GTHREAD_MUTEX_INIT_FUNCTION (&internal_unit.lock);
 #endif
 
   if (options.stdin_unit >= 0)

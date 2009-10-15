@@ -1,11 +1,11 @@
 /* Miscellaneous SSA utility functions.
-   Copyright (C) 2001, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -14,9 +14,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -381,15 +380,14 @@ verify_flow_insensitive_alias_info (void)
     {
       size_t j;
       var_ann_t ann;
-      varray_type may_aliases;
+      VEC(tree,gc) *may_aliases;
+      tree alias;
 
       ann = var_ann (var);
       may_aliases = ann->may_aliases;
 
-      for (j = 0; may_aliases && j < VARRAY_ACTIVE_SIZE (may_aliases); j++)
+      for (j = 0; VEC_iterate (tree, may_aliases, j, alias); j++)
 	{
-	  tree alias = VARRAY_TREE (may_aliases, j);
-
 	  bitmap_set_bit (visited, DECL_UID (alias));
 
 	  if (!may_be_aliased (alias))
@@ -406,11 +404,11 @@ verify_flow_insensitive_alias_info (void)
       var_ann_t ann;
       ann = var_ann (var);
 
-      if (ann->mem_tag_kind == NOT_A_TAG
-	  && ann->is_alias_tag
+      if (!MTAG_P (var)
+	  && ann->is_aliased
 	  && !bitmap_bit_p (visited, DECL_UID (var)))
 	{
-	  error ("addressable variable that is an alias tag but is not in any alias set");
+	  error ("addressable variable that is aliased but is not in any alias set");
 	  goto err;
 	}
     }
@@ -460,9 +458,9 @@ verify_flow_sensitive_alias_info (void)
 	continue;
 
       ann = var_ann (var);
-      if (pi->is_dereferenced && !pi->name_mem_tag && !ann->type_mem_tag)
+      if (pi->is_dereferenced && !pi->name_mem_tag && !ann->symbol_mem_tag)
 	{
-	  error ("dereferenced pointers should have a name or a type tag");
+	  error ("dereferenced pointers should have a name or a symbol tag");
 	  goto err;
 	}
 
@@ -499,8 +497,8 @@ DEF_VEC_ALLOC_P (bitmap,heap);
    points-to set is different from every other points-to set for other name
    tags.
 
-   Additionally, given a pointer P_i with name tag NMT and type tag
-   TMT, this function verified the alias set of TMT is a superset of
+   Additionally, given a pointer P_i with name tag NMT and symbol tag
+   SMT, this function verified the alias set of SMT is a superset of
    the alias set of NMT.  */
 
 static void
@@ -517,7 +515,7 @@ verify_name_tags (void)
   for (i = 0; i < num_ssa_names; i++)
     {
       struct ptr_info_def *pi;
-      tree tmt, ptr = ssa_name (i);
+      tree smt, ptr = ssa_name (i);
 
       if (ptr == NULL_TREE)
 	continue;
@@ -539,32 +537,31 @@ verify_name_tags (void)
       VEC_safe_push (tree, heap, name_tag_reps, ptr);
       VEC_safe_push (bitmap, heap, pt_vars_for_reps, pi->pt_vars);
 
-      /* Verify that alias set of PTR's type tag is a superset of the
+      /* Verify that alias set of PTR's symbol tag is a superset of the
 	 alias set of PTR's name tag.  */
-      tmt = var_ann (SSA_NAME_VAR (ptr))->type_mem_tag;
-      if (tmt)
+      smt = var_ann (SSA_NAME_VAR (ptr))->symbol_mem_tag;
+      if (smt)
 	{
 	  size_t i;
-	  varray_type aliases = var_ann (tmt)->may_aliases;
-	  bitmap_clear (type_aliases);
-	  for (i = 0; aliases && i < VARRAY_ACTIVE_SIZE (aliases); i++)
-	    {
-	      tree alias = VARRAY_TREE (aliases, i);
-	      bitmap_set_bit (type_aliases, DECL_UID (alias));
-	    }
+	  VEC(tree,gc) *aliases = var_ann (smt)->may_aliases;
+	  tree alias;
 
-	  /* When grouping, we may have added PTR's type tag into the
+	  bitmap_clear (type_aliases);
+	  for (i = 0; VEC_iterate (tree, aliases, i, alias); i++)
+	    bitmap_set_bit (type_aliases, DECL_UID (alias));
+
+	  /* When grouping, we may have added PTR's symbol tag into the
 	     alias set of PTR's name tag.  To prevent a false
-	     positive, pretend that TMT is in its own alias set.  */
-	  bitmap_set_bit (type_aliases, DECL_UID (tmt));
+	     positive, pretend that SMT is in its own alias set.  */
+	  bitmap_set_bit (type_aliases, DECL_UID (smt));
 
 	  if (bitmap_equal_p (type_aliases, pi->pt_vars))
 	    continue;
 
 	  if (!bitmap_intersect_compl_p (type_aliases, pi->pt_vars))
 	    {
-	      error ("alias set of a pointer's type tag should be a superset of the corresponding name tag");
-	      debug_variable (tmt);
+	      error ("alias set of a pointer's symbol tag should be a superset of the corresponding name tag");
+	      debug_variable (smt);
 	      debug_variable (pi->name_mem_tag);
 	      goto err;
 	    }
@@ -615,6 +612,46 @@ err:
 }
 
 
+/* Verify the consistency of call clobbering information.  */
+static void
+verify_call_clobbering (void)
+{
+  unsigned int i;
+  bitmap_iterator bi;
+  tree var;
+  referenced_var_iterator rvi;
+
+  /* At all times, the result of the DECL_CALL_CLOBBERED flag should
+     match the result of the call_clobbered_vars bitmap.  Verify both
+     that everything in call_clobbered_vars is marked
+     DECL_CALL_CLOBBERED, and that everything marked
+     DECL_CALL_CLOBBERED is in call_clobbered_vars.  */
+  EXECUTE_IF_SET_IN_BITMAP (call_clobbered_vars, 0, i, bi)
+    {
+      var = referenced_var (i);
+      if (!MTAG_P (var) && !DECL_CALL_CLOBBERED (var))
+	{
+	  error ("variable in call_clobbered_vars but not marked DECL_CALL_CLOBBERED");
+	  debug_variable (var);
+	  goto err;
+	}
+    }
+  FOR_EACH_REFERENCED_VAR (var, rvi)
+    {
+      if (!MTAG_P (var) && DECL_CALL_CLOBBERED (var)
+	  && !bitmap_bit_p (call_clobbered_vars, DECL_UID (var)))
+	{
+	  error ("variable marked DECL_CALL_CLOBBERED but not in call_clobbered_vars bitmap.");
+	  debug_variable (var);
+	  goto err;
+	}
+    }
+  return;
+
+ err:
+    internal_error ("verify_call_clobbering failed");
+}
+
 /* Verify the consistency of aliasing information.  */
 
 static void
@@ -622,6 +659,7 @@ verify_alias_info (void)
 {
   verify_flow_sensitive_alias_info ();
   verify_name_tags ();
+  verify_call_clobbering ();
   verify_flow_insensitive_alias_info ();
 }
 
@@ -634,7 +672,7 @@ verify_ssa (bool check_modified_stmt)
 {
   size_t i;
   basic_block bb;
-  basic_block *definition_block = xcalloc (num_ssa_names, sizeof (basic_block));
+  basic_block *definition_block = XCNEWVEC (basic_block, num_ssa_names);
   ssa_op_iter iter;
   tree op;
   enum dom_state orig_dom_state = dom_computed[CDI_DOMINATORS];
@@ -730,15 +768,6 @@ verify_ssa (bool check_modified_stmt)
 		}
 	    }
 
-
-	  if (stmt_ann (stmt)->makes_aliased_stores 
-	      && ZERO_SSA_OPERANDS (stmt, SSA_OP_VMAYDEF))
-	    {
-	      error ("statement makes aliased stores, but has no V_MAY_DEFS");
-	      print_generic_stmt (stderr, stmt, TDF_VOPS);
-	      goto err;
-	    }
-
 	  FOR_EACH_SSA_USE_OPERAND (use_p, stmt, iter,
 	                            SSA_OP_ALL_USES | SSA_OP_ALL_KILLS)
 	    {
@@ -781,7 +810,8 @@ err:
 int
 int_tree_map_eq (const void *va, const void *vb)
 {
-  const struct int_tree_map  *a = va, *b = vb;
+  const struct int_tree_map *a = (const struct int_tree_map *) va;
+  const struct int_tree_map *b = (const struct int_tree_map *) vb;
   return (a->uid == b->uid);
 }
 
@@ -801,6 +831,7 @@ init_tree_ssa (void)
 {
   referenced_vars = htab_create_ggc (20, int_tree_map_hash, 
 				     int_tree_map_eq, NULL);
+  default_defs = htab_create_ggc (20, int_tree_map_hash, int_tree_map_eq, NULL);
   call_clobbered_vars = BITMAP_ALLOC (NULL);
   addressable_vars = BITMAP_ALLOC (NULL);
   init_alias_heapvars ();
@@ -862,6 +893,8 @@ delete_tree_ssa (void)
   fini_phinodes ();
 
   global_var = NULL_TREE;
+  
+  htab_delete (default_defs);
   BITMAP_FREE (call_clobbered_vars);
   call_clobbered_vars = NULL;
   BITMAP_FREE (addressable_vars);
@@ -1120,7 +1153,7 @@ warn_uninit (tree t, const char *gmsgid, void *data)
   tree var = SSA_NAME_VAR (t);
   tree def = SSA_NAME_DEF_STMT (t);
   tree context = (tree) data;
-  location_t * locus;
+  location_t *locus, *fun_locus;
 
   /* Default uses (indicated by an empty definition statement),
      are uninitialized.  */
@@ -1144,6 +1177,12 @@ warn_uninit (tree t, const char *gmsgid, void *data)
 	   ? EXPR_LOCUS (context)
 	   : &DECL_SOURCE_LOCATION (var));
   warning (0, gmsgid, locus, var);
+  fun_locus = &DECL_SOURCE_LOCATION (cfun->decl);
+  if (locus->file != fun_locus->file
+      || locus->line < fun_locus->line
+      || locus->line > cfun->function_end_locus.line)
+    inform ("%J%qD was declared here", var, var);
+
   TREE_NO_WARNING (var) = 1;
 }
    
@@ -1203,7 +1242,7 @@ warn_uninitialized_phi (tree phi)
     }
 }
 
-static void
+static unsigned int
 execute_early_warn_uninitialized (void)
 {
   block_stmt_iterator bsi;
@@ -1216,9 +1255,10 @@ execute_early_warn_uninitialized (void)
 	walk_tree (bsi_stmt_ptr (bsi), warn_uninitialized_var,
 		   context, NULL);
       }
+  return 0;
 }
 
-static void
+static unsigned int
 execute_late_warn_uninitialized (void)
 {
   basic_block bb;
@@ -1232,6 +1272,7 @@ execute_late_warn_uninitialized (void)
   FOR_EACH_BB (bb)
     for (phi = phi_nodes (bb); phi; phi = PHI_CHAIN (phi))
       warn_uninitialized_phi (phi);
+  return 0;
 }
 
 static bool

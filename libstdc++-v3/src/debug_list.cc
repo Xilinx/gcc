@@ -29,6 +29,5 @@
 
 #define _GLIBCXX_DEBUG
 
-#include <bits/c++config.h>
-
 #include "list.cc"
+

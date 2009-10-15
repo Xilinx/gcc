@@ -1,5 +1,5 @@
 /* XmlParser.java -- 
-   Copyright (C) 1999,2000,2001, 2006 Free Software Foundation, Inc.
+   Copyright (C) 1999,2000,2001 Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -841,9 +841,6 @@ final class XmlParser
       {
         inputEncoding = encodingName;
       }
-    handler.xmlDecl(version, encodingName, docIsStandalone,
-                    inputEncoding);
-    
     return encodingName;
   }
 
@@ -2185,7 +2182,7 @@ loop:
                   {
                     nest++;
                   }
-		break;
+                break;
               case ']':
                 if (tryRead("]>"))
                   {

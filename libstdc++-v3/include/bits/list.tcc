@@ -1,6 +1,7 @@
 // List implementation (out of line) -*- C++ -*-
 
-// Copyright (C) 2001, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006
+// Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -61,8 +62,8 @@
 #ifndef _LIST_TCC
 #define _LIST_TCC 1
 
-namespace _GLIBCXX_STD
-{
+_GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
+
   template<typename _Tp, typename _Alloc>
     void
     _List_base<_Tp, _Alloc>::
@@ -214,6 +215,8 @@ namespace _GLIBCXX_STD
       // 300. list::merge() specification incomplete
       if (this != &__x)
 	{
+	  _M_check_equal_allocators(__x); 
+
 	  iterator __first1 = begin();
 	  iterator __last1 = end();
 	  iterator __first2 = __x.begin();
@@ -231,6 +234,36 @@ namespace _GLIBCXX_STD
 	    _M_transfer(__last1, __first2, __last2);
 	}
     }
+
+  template<typename _Tp, typename _Alloc>
+    template <typename _StrictWeakOrdering>
+      void
+      list<_Tp, _Alloc>::
+      merge(list& __x, _StrictWeakOrdering __comp)
+      {
+	// _GLIBCXX_RESOLVE_LIB_DEFECTS
+	// 300. list::merge() specification incomplete
+	if (this != &__x)
+	  {
+	    _M_check_equal_allocators(__x);
+
+	    iterator __first1 = begin();
+	    iterator __last1 = end();
+	    iterator __first2 = __x.begin();
+	    iterator __last2 = __x.end();
+	    while (__first1 != __last1 && __first2 != __last2)
+	      if (__comp(*__first2, *__first1))
+		{
+		  iterator __next = __first2;
+		  _M_transfer(__first1, __first2, ++__next);
+		  __first2 = __next;
+		}
+	      else
+		++__first1;
+	    if (__first2 != __last2)
+	      _M_transfer(__last1, __first2, __last2);
+	  }
+      }
 
   template<typename _Tp, typename _Alloc>
     void
@@ -312,34 +345,6 @@ namespace _GLIBCXX_STD
     template <typename _StrictWeakOrdering>
       void
       list<_Tp, _Alloc>::
-      merge(list& __x, _StrictWeakOrdering __comp)
-      {
-	// _GLIBCXX_RESOLVE_LIB_DEFECTS
-	// 300. list::merge() specification incomplete
-	if (this != &__x)
-	  {
-	    iterator __first1 = begin();
-	    iterator __last1 = end();
-	    iterator __first2 = __x.begin();
-	    iterator __last2 = __x.end();
-	    while (__first1 != __last1 && __first2 != __last2)
-	      if (__comp(*__first2, *__first1))
-		{
-		  iterator __next = __first2;
-		  _M_transfer(__first1, __first2, ++__next);
-		  __first2 = __next;
-		}
-	      else
-		++__first1;
-	    if (__first2 != __last2)
-	      _M_transfer(__last1, __first2, __last2);
-	  }
-      }
-
-  template<typename _Tp, typename _Alloc>
-    template <typename _StrictWeakOrdering>
-      void
-      list<_Tp, _Alloc>::
       sort(_StrictWeakOrdering __comp)
       {
 	// Do nothing if the list has length 0 or 1.
@@ -373,7 +378,8 @@ namespace _GLIBCXX_STD
 	    swap(*(__fill - 1));
 	  }
       }
-} // namespace std
+
+_GLIBCXX_END_NESTED_NAMESPACE
 
 #endif /* _LIST_TCC */
 

@@ -1,22 +1,22 @@
 /* Write out a Java(TM) class file.
-   Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005
-   Free Software Foundation, Inc.
+   Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006,
+   2007  Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
+
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA. 
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.
 
 Java and all Java-based marks are trademarks or registered trademarks
 of Sun Microsystems, Inc. in the United States and other countries.
@@ -80,7 +80,7 @@ const char *jcf_write_base_directory = NULL;
 /* Macro to call each time we pop I words from the JVM stack. */
 
 #define NOTE_POP(I) \
-  do { state->code_SP -= (I); if (state->code_SP < 0) abort(); } while (0)
+  do { state->code_SP -= (I); gcc_assert (state->code_SP >= 0); } while (0)
 
 /* A chunk or segment of a .class file. */
 
@@ -356,10 +356,8 @@ static int CHECK_PUT (void *, struct jcf_partial *, int);
 static int
 CHECK_PUT (void *ptr, struct jcf_partial *state, int i)
 {
-  if ((unsigned char *) ptr < state->chunk->data
-      || (unsigned char *) ptr + i > state->chunk->data + state->chunk->size)
-    abort ();
-
+  gcc_assert ((unsigned char *) ptr >= state->chunk->data
+	      && (unsigned char *) ptr + i <= state->chunk->data + state->chunk->size);
   return 0;
 }
 #else
@@ -406,9 +404,7 @@ static int CHECK_OP (struct jcf_partial *);
 static int
 CHECK_OP (struct jcf_partial *state)
 {
-  if (state->bytecode.ptr > state->bytecode.limit)
-    abort ();
-
+  gcc_assert (state->bytecode.ptr <= state->bytecode.limit);
   return 0;
 }
 #else
@@ -609,15 +605,13 @@ maybe_free_localvar (tree decl, struct jcf_partial *state, int really)
 
   info->end_label = end_label;
 
-  if (info->decl != decl)
-    abort ();
+  gcc_assert (info->decl == decl);
   if (! really)
     return;
   ptr[0] = NULL;
   if (wide)
     {
-      if (ptr[1] !=  (struct localvar_info *)(~0))
-	abort ();
+      gcc_assert (ptr[1] == (struct localvar_info *) (~0));
       ptr[1] = NULL;
     }
 }
@@ -667,7 +661,7 @@ get_access_flags (tree decl)
 	flags |= ACC_STRICT;
     }
   else
-    abort ();
+    gcc_unreachable ();
 
   if (TREE_CODE (decl) == FUNCTION_DECL)
     {
@@ -827,7 +821,7 @@ find_constant_index (tree value, struct jcf_partial *state)
     return find_string_constant (&state->cpool, value);
 
   else
-    abort ();
+    gcc_unreachable ();
 }
 
 /* Push 64-bit long constant on VM stack.
@@ -881,9 +875,9 @@ adjust_typed_op (tree type, int max)
     case RECORD_TYPE:   return 4;
     case BOOLEAN_TYPE:
       return TYPE_PRECISION (type) == 32 || max < 5 ? 0 : 5;
-    case CHAR_TYPE:
-      return TYPE_PRECISION (type) == 32 || max < 6 ? 0 : 6;
     case INTEGER_TYPE:
+      if (type == char_type_node || type == promoted_char_type_node)
+	return TYPE_PRECISION (type) == 32 || max < 6 ? 0 : 6;
       switch (TYPE_PRECISION (type))
 	{
 	case  8:       return max < 5 ? 0 : 5;
@@ -902,7 +896,7 @@ adjust_typed_op (tree type, int max)
     default:
       break;
     }
-  abort ();
+  gcc_unreachable ();
 }
 
 static void
@@ -942,7 +936,7 @@ emit_dup (int size, int offset, struct jcf_partial *state)
   else if (offset == 2)
     kind = size == 1 ? OPCODE_dup_x2 : OPCODE_dup2_x2;
   else
-    abort();
+    gcc_unreachable ();
   OP1 (kind);
   NOTE_PUSH (size);
 }
@@ -1134,8 +1128,7 @@ generate_bytecode_conditional (tree exp,
 	generate_bytecode_conditional (TREE_OPERAND (exp, 2),
 				       true_label, false_label,
 				       true_branch_first, state);
-	if (state->code_SP != save_SP_after)
-	  abort ();
+	gcc_assert (state->code_SP == save_SP_after);
       }
       break;
     case TRUTH_NOT_EXPR:
@@ -1243,7 +1236,8 @@ generate_bytecode_conditional (tree exp,
 	    {
 	    case EQ_EXPR:  op = OPCODE_if_acmpeq;  break;
 	    case NE_EXPR:  op = OPCODE_if_acmpne;  break;
-	    default:  abort();
+	    default:
+	      gcc_unreachable ();
 	    }
 	  if (integer_zerop (exp1) || integer_zerop (exp0))
 	    {
@@ -1333,8 +1327,7 @@ generate_bytecode_conditional (tree exp,
 	}
       break;
     }
-  if (save_SP != state->code_SP)
-    abort ();
+  gcc_assert (save_SP == state->code_SP);
 }
 
 /* Call pending cleanups i.e. those for surrounding TRY_FINALLY_EXPRs.
@@ -1496,8 +1489,7 @@ generate_bytecode_insns (tree exp, int target, struct jcf_partial *state)
       if (target == IGNORE_TARGET) ; /* do nothing */
       else if (TREE_CODE (type) == POINTER_TYPE)
 	{
-	  if (! integer_zerop (exp))
-	    abort();
+	  gcc_assert (integer_zerop (exp));
 	  RESERVE(1);
 	  OP1 (OPCODE_aconst_null);
 	  NOTE_PUSH (1);
@@ -1729,7 +1721,7 @@ generate_bytecode_insns (tree exp, int target, struct jcf_partial *state)
 	    unsigned HOST_WIDE_INT delta;
 	    /* Copy the chain of relocs into a sorted array. */
 	    struct jcf_relocation **relocs
-	      = xmalloc (sw_state.num_cases * sizeof (struct jcf_relocation *));
+	      = XNEWVEC (struct jcf_relocation *, sw_state.num_cases);
 	    /* The relocs arrays is a buffer with a gap.
 	       The assumption is that cases will normally come in "runs". */
 	    int gap_start = 0;
@@ -1834,7 +1826,7 @@ generate_bytecode_insns (tree exp, int target, struct jcf_partial *state)
       if (exp == NULL_TREE)
 	exp = build_java_empty_stmt ();
       else if (TREE_CODE (exp) != MODIFY_EXPR) 
-	abort ();
+	gcc_unreachable ();
       else
 	exp = TREE_OPERAND (exp, 1);
       generate_bytecode_return (exp, state);
@@ -1848,8 +1840,7 @@ generate_bytecode_insns (tree exp, int target, struct jcf_partial *state)
 	end_label->u.labeled_block = exp;
 	if (LABELED_BLOCK_BODY (exp))
 	  generate_bytecode_insns (LABELED_BLOCK_BODY (exp), target, state);
-	if (state->labeled_blocks != end_label)
-	  abort();
+	gcc_assert (state->labeled_blocks == end_label);
 	state->labeled_blocks = end_label->next;
 	define_jcf_label (end_label, state);
       }
@@ -1957,7 +1948,7 @@ generate_bytecode_insns (tree exp, int target, struct jcf_partial *state)
 	  offset = 0;
 	}
       else
-	abort ();
+	gcc_unreachable ();
 
       if (target != IGNORE_TARGET && post_op)
 	emit_dup (size, offset, state);
@@ -2081,7 +2072,7 @@ generate_bytecode_insns (tree exp, int target, struct jcf_partial *state)
 		NOTE_PUSH (TYPE_IS_WIDE (TREE_TYPE (lhs)) ? 2 : 1);
 	      }
 	    else
-	      abort ();
+	      gcc_unreachable ();
 
 	    /* This function correctly handles the case where the LHS
 	       of a binary expression is NULL_TREE.  */
@@ -2127,7 +2118,7 @@ generate_bytecode_insns (tree exp, int target, struct jcf_partial *state)
 	  NOTE_POP (TYPE_IS_WIDE (TREE_TYPE (exp)) ? 4 : 3);
 	}
       else
-	abort ();
+	gcc_unreachable ();
       break;
     case PLUS_EXPR:
       jopcode = OPCODE_iadd;
@@ -2313,8 +2304,7 @@ generate_bytecode_insns (tree exp, int target, struct jcf_partial *state)
 	struct jcf_block *end_label;  /* End of try clause. */
 	struct jcf_block *finished_label = gen_jcf_label (state);
 	tree clause = TREE_OPERAND (exp, 1);
-	if (target != IGNORE_TARGET)
-	  abort ();
+	gcc_assert (target == IGNORE_TARGET);
 	generate_bytecode_insns (try_clause, IGNORE_TARGET, state);
 	end_label = get_jcf_label_here (state);
 	if (end_label == start_label)
@@ -2369,8 +2359,7 @@ generate_bytecode_insns (tree exp, int target, struct jcf_partial *state)
 
 	if (CAN_COMPLETE_NORMALLY (finally))
 	  {
-	    if (state->labeled_blocks != finally_label)
-	      abort();
+	    gcc_assert (state->labeled_blocks == finally_label);
 	    state->labeled_blocks = finally_label->next;
 	  }
 	end_label = get_jcf_label_here (state);
@@ -2517,8 +2506,7 @@ generate_bytecode_insns (tree exp, int target, struct jcf_partial *state)
 	tree op0 = TREE_OPERAND (exp, 0);
 	tree op1 = TREE_OPERAND (exp, 1);
 	tree x;
-	if (TREE_SIDE_EFFECTS (op0) || TREE_SIDE_EFFECTS (op1))
-	  abort ();
+	gcc_assert (! TREE_SIDE_EFFECTS (op0) && ! TREE_SIDE_EFFECTS (op1));
 	x = build3 (COND_EXPR, TREE_TYPE (exp), 
 		    build2 (code, boolean_type_node, op0, op1), 
 		    op0, op1);	  
@@ -2622,32 +2610,40 @@ generate_bytecode_insns (tree exp, int target, struct jcf_partial *state)
 	    tree context = DECL_CONTEXT (f);
 	    int index, interface = 0;
 	    RESERVE (5);
+
+	    /* If the method is not static, use the qualifying type.
+	       However, don't use the qualifying type if the method
+	       was declared in Object.  */
+	    if (! METHOD_STATIC (f)
+		&& ! DECL_CONSTRUCTOR_P (f)
+		&& ! METHOD_PRIVATE (f)
+		&& DECL_CONTEXT (f) != object_type_node)
+	      {
+		tree arg1 = TREE_VALUE (TREE_OPERAND (exp, 1));
+		context = TREE_TYPE (TREE_TYPE (arg1));
+	      }
+
 	    if (METHOD_STATIC (f))
 	      OP1 (OPCODE_invokestatic);
 	    else if (DECL_CONSTRUCTOR_P (f) || CALL_USING_SUPER (exp)
-		|| METHOD_PRIVATE (f))
+		     || METHOD_PRIVATE (f))
 	      OP1 (OPCODE_invokespecial);
 	    else
 	      {
 		if (CLASS_INTERFACE (TYPE_NAME (context)))
-		  {
-		    tree arg1 = TREE_VALUE (TREE_OPERAND (exp, 1));
-		    context = TREE_TYPE (TREE_TYPE (arg1));
-		    if (CLASS_INTERFACE (TYPE_NAME (context)))
-		      interface = 1;
-		  }
+		  interface = 1;
 		if (interface)
 		  OP1 (OPCODE_invokeinterface);
 		else
 		  OP1 (OPCODE_invokevirtual);
 	      }
-	    index = find_methodref_with_class_index (&state->cpool, f, context);
+
+	    index = find_methodref_with_class_index (&state->cpool, f,
+						     context);
 	    OP2 (index);
 	    if (interface)
 	      {
-		if (nargs <= 0)
-		  abort ();
-
+		gcc_assert (nargs > 0);
 		OP1 (nargs);
 		OP1 (0);
 	      }
@@ -2655,10 +2651,14 @@ generate_bytecode_insns (tree exp, int target, struct jcf_partial *state)
 	    if (TREE_CODE (f) != VOID_TYPE)
 	      {
 		int size = TYPE_IS_WIDE (f) ? 2 : 1;
+		/* Always note the push here, so that we correctly
+		   compute the required maximum stack size.  */
+		NOTE_PUSH (size);
 		if (target == IGNORE_TARGET)
-		  emit_pop (size, state);
-		else
-		  NOTE_PUSH (size);
+		  {
+		    emit_pop (size, state);
+		    NOTE_POP (size);
+		  }
 	      }
 	    break;
 	  }
@@ -2863,8 +2863,7 @@ perform_relocations (struct jcf_partial *state)
 	      *--new_ptr = - reloc->kind;
 	    }
 	}
-      if (new_ptr != chunk->data)
-	abort ();
+      gcc_assert (new_ptr == chunk->data);
     }
   state->code_length = pc;
 }
@@ -3125,8 +3124,7 @@ generate_classfile (tree clas, struct jcf_partial *state)
 	  generate_bytecode_insns (body, IGNORE_TARGET, state);
 	  if (CAN_COMPLETE_NORMALLY (body))
 	    {
-	      if (TREE_CODE (TREE_TYPE (type)) != VOID_TYPE)
-		abort();
+	      gcc_assert (TREE_CODE (TREE_TYPE (type)) == VOID_TYPE);
 	      RESERVE (1);
 	      OP1 (OPCODE_return);
 	    }
@@ -3473,7 +3471,7 @@ make_class_file_name (tree clas)
       slash = dname + strlen (dname);
     }
 
-  r = xmalloc (slash - dname + strlen (cname) + 2);
+  r = XNEWVEC (char, slash - dname + strlen (cname) + 2);
   strncpy (r, dname, slash - dname);
   r[slash - dname] = sep;
   strcpy (&r[slash - dname + 1], cname);
@@ -3522,11 +3520,15 @@ write_classfile (tree clas)
     {
       FILE *stream;
       char *temporary_file_name;
+      char pid [sizeof (long) * 2 + 2];
 
-      /* The .class file is initially written to a ".tmp" file so that
+      /* The .class file is initially written to a ".PID" file so that
 	 if multiple instances of the compiler are running at once
-	 they do not see partially formed class files. */
-      temporary_file_name = concat (class_file_name, ".tmp", NULL);
+	 they do not see partially formed class files nor override
+	 each other, which may happen in libjava with parallel build.
+       */
+      sprintf (pid, ".%lx", (unsigned long) getpid ());
+      temporary_file_name = concat (class_file_name, pid, NULL);
       stream = fopen (temporary_file_name, "wb");
       if (stream == NULL)
 	fatal_error ("can't open %s for writing: %m", temporary_file_name);
@@ -3548,7 +3550,9 @@ write_classfile (tree clas)
 
       if (rename (temporary_file_name, class_file_name) == -1)
 	{
+	  int errno_saved = errno;
 	  remove (temporary_file_name);
+	  errno = errno_saved;
 	  fatal_error ("can't create %s: %m", class_file_name);
 	}
       free (temporary_file_name);

@@ -31,7 +31,7 @@ ARFLAGS = cru
 ACLOCAL = @ACLOCAL@
 AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
-CATALOGS = @CATALOGS@
+CATALOGS = $(patsubst %,po/%,@CATALOGS@)
 CC = @CC@
 CFLAGS = @CFLAGS@
 WARN_CFLAGS = @WARN_CFLAGS@ @WARN_PEDANTIC@ @WERROR@
@@ -180,21 +180,23 @@ maintainer-clean: distclean
 check:
 installcheck:
 dvi:
+pdf:
 html:
 info:
 install-info:
 install-man:
+install-html:
 
 update-po: $(CATALOGS:.gmo=.pox)
 
 .PHONY: installdirs install install-strip mostlyclean clean distclean \
-  maintainer-clean check installcheck dvi html info install-info \
-  install-man update-po
+  maintainer-clean check installcheck dvi pdf html info install-info \
+  install-man update-po install-html
 
 # Dependency rule.
 COMPILE.base = $(CC) $(DEFS) $(INCLUDES) $(CPPFLAGS) $(ALL_CFLAGS) -c
 ifeq ($(DEPMODE),depmode=gcc3)
-COMPILE = $(COMPILE.base) -o $@ -MT $@ -MD -MP -MF $(DEPDIR)/$*.Po
+COMPILE = $(COMPILE.base) -o $@ -MT $@ -MMD -MP -MF $(DEPDIR)/$*.Po
 else
 COMPILE = source='$<' object='$@' libtool=no DEPDIR=$(DEPDIR) $(DEPMODE) \
 	  $(depcomp) $(COMPILE.base)

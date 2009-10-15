@@ -1,6 +1,7 @@
 // Components for manipulating sequences of characters -*- C++ -*-
 
-// Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2005
+// Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
+// 2006, 2007
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -28,13 +29,13 @@
 // invalidate any other reasons why the executable file might be covered by
 // the GNU General Public License.
 
+/** @file include/string
+ *  This is a Standard C++ Library header.
+ */
+
 //
 // ISO C++ 14882: 21  Strings library
 //
-
-/** @file string
- *  This is a Standard C++ Library header.
- */
 
 #ifndef _GLIBCXX_STRING
 #define _GLIBCXX_STRING	1
@@ -47,6 +48,7 @@
 #include <memory> 	// For allocator.
 #include <bits/cpp_type_traits.h>
 #include <iosfwd> 	// For operators >>, <<, and getline decls.
+#include <bits/ostream_insert.h>
 #include <bits/stl_iterator.h>
 #include <bits/stl_function.h>  // For less
 #include <bits/basic_string.h>

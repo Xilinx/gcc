@@ -1,6 +1,6 @@
 /* Threads compatibility routines for libgcc2 and libobjc.  */
 /* Compile this one with gcc.  */
-/* Copyright (C) 1997, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006
+/* Copyright (C) 1997, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -59,8 +59,12 @@ typedef pthread_mutex_t __gthread_recursive_mutex_t;
 #endif
 
 #if SUPPORTS_WEAK && GTHREAD_USE_WEAK
+# ifndef __gthrw_pragma
+#  define __gthrw_pragma(pragma)
+# endif
 # define __gthrw2(name,name2,type) \
-  extern __typeof(type) name __attribute__ ((__weakref__(#name2)));
+  static __typeof(type) name __attribute__ ((__weakref__(#name2))); \
+  __gthrw_pragma(weak type)
 # define __gthrw_(name) __gthrw_ ## name
 #else
 # define __gthrw2(name,name2,type)
@@ -142,6 +146,59 @@ __gthrw(pthread_setschedparam)
 
 #if SUPPORTS_WEAK && GTHREAD_USE_WEAK
 
+/* On Solaris 2.6 up to 9, the libc exposes a POSIX threads interface even if
+   -pthreads is not specified.  The functions are dummies and most return an
+   error value.  However pthread_once returns 0 without invoking the routine
+   it is passed so we cannot pretend that the interface is active if -pthreads
+   is not specified.  On Solaris 2.5.1, the interface is not exposed at all so
+   we need to play the usual game with weak symbols.  On Solaris 10 and up, a
+   working interface is always exposed.  */
+
+#if defined(__sun) && defined(__svr4__)
+
+static volatile int __gthread_active = -1;
+
+static void
+__gthread_trigger (void)
+{
+  __gthread_active = 1;
+}
+
+static inline int
+__gthread_active_p (void)
+{
+  static pthread_mutex_t __gthread_active_mutex = PTHREAD_MUTEX_INITIALIZER;
+  static pthread_once_t __gthread_active_once = PTHREAD_ONCE_INIT;
+
+  /* Avoid reading __gthread_active twice on the main code path.  */
+  int __gthread_active_latest_value = __gthread_active;
+
+  /* This test is not protected to avoid taking a lock on the main code
+     path so every update of __gthread_active in a threaded program must
+     be atomic with regard to the result of the test.  */
+  if (__builtin_expect (__gthread_active_latest_value < 0, 0))
+    {
+      if (__gthrw_(pthread_once))
+	{
+	  /* If this really is a threaded program, then we must ensure that
+	     __gthread_active has been set to 1 before exiting this block.  */
+	  __gthrw_(pthread_mutex_lock) (&__gthread_active_mutex);
+	  __gthrw_(pthread_once) (&__gthread_active_once, __gthread_trigger);
+	  __gthrw_(pthread_mutex_unlock) (&__gthread_active_mutex);
+	}
+
+      /* Make sure we'll never enter this block again.  */
+      if (__gthread_active < 0)
+	__gthread_active = 0;
+
+      __gthread_active_latest_value = __gthread_active;
+    }
+
+  return __gthread_active_latest_value != 0;
+}
+
+#else /* not Solaris */
+
 static inline int
 __gthread_active_p (void)
 {
@@ -149,6 +206,8 @@ __gthread_active_p (void)
     = __extension__ (void *) &__gthrw_(pthread_cancel);
   return __gthread_active_ptr != 0;
 }
+
+#endif /* Solaris */
 
 #else /* not SUPPORTS_WEAK */
 

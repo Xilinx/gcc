@@ -28,10 +28,6 @@
 // invalidate any other reasons why the executable file might be covered by
 // the GNU General Public License.
 
-//
-// ISO C++ 14882: 20.4.6  C library
-//
-
 /** @file csignal
  *  This is a Standard C++ Library file.  You should @c #include this file
  *  in your programs, rather than any of the "*.h" implementation files.
@@ -42,21 +38,27 @@
  *  as macros in C).
  */
 
+//
+// ISO C++ 14882: 20.4.6  C library
+//
+
 #ifndef _GLIBCXX_CSIGNAL
 #define _GLIBCXX_CSIGNAL 1
 
 #pragma GCC system_header
 
+#include <bits/c++config.h>
 #include <signal.h>
 
 // Get rid of those macros defined in <signal.h> in lieu of real functions.
 #undef raise
 
-namespace std
-{
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
   using ::sig_atomic_t;
   using ::signal;
   using ::raise;
-}
+
+_GLIBCXX_END_NAMESPACE
 
 #endif

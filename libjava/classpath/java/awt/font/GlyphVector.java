@@ -46,6 +46,7 @@ import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 
 /**
+ * @author Lillian Angel (langel at redhat dot com)
  * @author Michael Koch
  */
 public abstract class GlyphVector implements Cloneable
@@ -71,13 +72,21 @@ public abstract class GlyphVector implements Cloneable
     
   public int getGlyphCharIndex (int glyphIndex)
   {
-    throw new Error ("not implemented");
+    return glyphIndex;
   }
     
-  public int[] getGlyphCharIndices (int beginGlyphIndex, int numEntries,
-                                    int[] codeReturn)
+  public int[] getGlyphCharIndices(int beginGlyphIndex, int numEntries,
+                                   int[] codeReturn)
   {
-    throw new Error ("not implemented");
+    if (codeReturn == null)
+      codeReturn = new int[numEntries];
+
+    int i = 0;
+    int j = beginGlyphIndex;
+    while (j < numEntries)
+      codeReturn[i++] = getGlyphCharIndex(j++);
+    
+    return codeReturn;
   }
     
   public abstract int getGlyphCode (int glyphIndex);
@@ -94,15 +103,27 @@ public abstract class GlyphVector implements Cloneable
 
   public abstract Shape getGlyphOutline (int glyphIndex);
 
-  public Shape getGlyphOutline (int glyphIndex, float x, float y)
+  public Shape getGlyphOutline(int glyphIndex, float x, float y)
   {
-    throw new Error ("not implemented");
+    Shape s = getGlyphOutline(glyphIndex);
+    
+    // This is the only way to translate the origin of a shape
+    AffineTransform at = AffineTransform.getTranslateInstance(x, y);
+    return at.createTransformedShape(s);
   }
 
-  public Rectangle getGlyphPixelBounds (int index, FontRenderContext renderFRC,
-                                        float x, float y)
+  public Rectangle getGlyphPixelBounds(int index, FontRenderContext renderFRC,
+                                       float x, float y)
   {
-    throw new Error ("not implemented");
+    Rectangle bounds = new Rectangle();
+    Rectangle2D rect = getGlyphVisualBounds(index).getBounds2D();
+    
+    bounds.x = (int) (rect.getX() + x);
+    bounds.y = (int) (rect.getY() + y);
+    bounds.width = (int) rect.getMaxX() - bounds.x;
+    bounds.height = (int) rect.getMaxY() - bounds.y;
+    
+    return bounds;
   }
 
   public abstract Point2D getGlyphPosition (int glyphIndex);
@@ -115,9 +136,9 @@ public abstract class GlyphVector implements Cloneable
 
   public abstract Shape getGlyphVisualBounds (int glyphIndex);
 
-  public int getLayoutFlags ()
+  public int getLayoutFlags()
   {
-    throw new Error ("not implemented");
+    return 0;
   }
 
   public abstract Rectangle2D getLogicalBounds ();
@@ -131,7 +152,15 @@ public abstract class GlyphVector implements Cloneable
   public Rectangle getPixelBounds (FontRenderContext renderFRC,
                                    float x, float y)
   {
-    throw new Error ("not implemented");
+    Rectangle bounds = new Rectangle();
+    Rectangle2D rect = getVisualBounds();
+    
+    bounds.x = (int) (rect.getX() + x);
+    bounds.y = (int) (rect.getY() + y);
+    bounds.width = (int) rect.getMaxX() - bounds.x;
+    bounds.height = (int) rect.getMaxY() - bounds.y;
+    
+    return bounds;
   }
 
   public abstract Rectangle2D getVisualBounds ();

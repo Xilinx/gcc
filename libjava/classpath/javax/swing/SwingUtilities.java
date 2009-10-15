@@ -1,5 +1,5 @@
 /* SwingUtilities.java --
-   Copyright (C) 2002, 2004, 2005  Free Software Foundation, Inc.
+   Copyright (C) 2002, 2004, 2005, 2006,  Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -83,31 +83,6 @@ public class SwingUtilities
   {
     // Do nothing.
   }
-  
-  /**
-   * Calculates the portion of the base rectangle which is inside the
-   * insets.
-   *
-   * @param base The rectangle to apply the insets to
-   * @param insets The insets to apply to the base rectangle
-   * @param ret A rectangle to use for storing the return value, or
-   * <code>null</code>
-   *
-   * @return The calculated area inside the base rectangle and its insets,
-   * either stored in ret or a new Rectangle if ret is <code>null</code>
-   *
-   * @see #calculateInnerArea
-   */
-  public static Rectangle calculateInsetArea(Rectangle base, Insets insets,
-                                             Rectangle ret)
-  {
-    if (ret == null)
-      ret = new Rectangle();
-    ret.setBounds(base.x + insets.left, base.y + insets.top,
-                  base.width - (insets.left + insets.right),
-                  base.height - (insets.top + insets.bottom));
-    return ret;
-  }
 
   /**
    * Calculates the portion of the component's bounds which is inside the
@@ -116,19 +91,24 @@ public class SwingUtilities
    * of the <em>component's</em> coordinate system, where (0,0) is the
    * upper left corner of the component's bounds.
    *
-   * @param c The component to measure the bounds of
-   * @param r A Rectangle to store the return value in, or
-   * <code>null</code>
+   * @param c  the component to measure the bounds of (if <code>null</code>, 
+   *     this method returns <code>null</code>).
+   * @param r  a carrier to store the return value in (if <code>null</code>, a
+   *     new <code>Rectangle</code> instance is created).
    *
-   * @return The calculated area inside the component and its border
-   * insets
-   *
-   * @see #calculateInsetArea
+   * @return The calculated area inside the component and its border insets.
    */
   public static Rectangle calculateInnerArea(JComponent c, Rectangle r)
   {
-    Rectangle b = getLocalBounds(c);
-    return calculateInsetArea(b, c.getInsets(), r);
+    if (c == null)
+      return null;
+    r = c.getBounds(r);
+    Insets i = c.getInsets();
+    r.x = i.left;
+    r.width = r.width - i.left - i.right;
+    r.y = i.top;
+    r.height = r.height - i.top - i.bottom;
+    return r;
   }
 
   /**
@@ -406,20 +386,17 @@ public class SwingUtilities
           app = (Applet) comp;
         comp = comp.getParent();
       }
-
+    
     if (win != null)
       return win;
-    else
-      return app;
+    return app;
   }
 
   /**
-   * Return true if a descends from b, in other words if b is an
-   * ancestor of a.
-   *
+   * Return true if a descends from b, in other words if b is an ancestor of a.
+   * 
    * @param a The child to search the ancestry of
    * @param b The potential ancestor to search for
-   *
    * @return true if a is a descendent of b, false otherwise
    */
   public static boolean isDescendingFrom(Component a, Component b)
@@ -620,20 +597,46 @@ public class SwingUtilities
    */
   public static void updateComponentTreeUI(Component comp)
   {
-    if (comp == null)
-      return;
-    
-    if (comp instanceof Container)
-      {
-        Component[] children = ((Container)comp).getComponents();
-        for (int i = 0; i < children.length; ++i)
-          updateComponentTreeUI(children[i]);
-      }
-
+    updateComponentTreeUIImpl(comp);
     if (comp instanceof JComponent)
-      ((JComponent)comp).updateUI();
+      {
+        JComponent jc = (JComponent) comp;
+        jc.revalidate();
+      }
+    else
+      {
+        comp.invalidate();
+        comp.validate();
+      }
+    comp.repaint();
   }
 
+  /**
+   * Performs the actual work for {@link #updateComponentTreeUI(Component)}.
+   * This calls updateUI() on c if it is a JComponent, and then walks down
+   * the component tree and calls this method on each child component.
+   *
+   * @param c the component to update the UI
+   */
+  private static void updateComponentTreeUIImpl(Component c)
+  {
+    if (c instanceof JComponent)
+      {
+        JComponent jc = (JComponent) c;
+        jc.updateUI();
+      }
+
+    Component[] components = null;
+    if (c instanceof JMenu)
+      components = ((JMenu) c).getMenuComponents();
+    else if (c instanceof Container)
+      components = ((Container) c).getComponents();
+    if (components != null)
+      {
+        for (int i = 0; i < components.length; ++i)
+          updateComponentTreeUIImpl(components[i]);
+      }
+  }
 
   /**
    * <p>Layout a "compound label" consisting of a text string and an icon
@@ -1021,11 +1024,16 @@ public class SwingUtilities
    *
    * @return The common Frame 
    */
-  static Frame getOwnerFrame()
+  static Window getOwnerFrame(Window owner)
   {
-    if (ownerFrame == null)
-      ownerFrame = new OwnerFrame();
-    return ownerFrame;
+    Window result = owner;
+    if (result == null)
+      {
+        if (ownerFrame == null)
+          ownerFrame = new OwnerFrame();
+        result = ownerFrame;
+      }
+    return result;
   }
 
   /**
@@ -1037,8 +1045,7 @@ public class SwingUtilities
    */
   public static boolean isLeftMouseButton(MouseEvent event)
   {
-    return ((event.getModifiersEx() & InputEvent.BUTTON1_DOWN_MASK)
-	     == InputEvent.BUTTON1_DOWN_MASK);
+    return ((event.getModifiers() & InputEvent.BUTTON1_MASK) != 0);
   }
 
   /**
@@ -1143,7 +1150,9 @@ public class SwingUtilities
             child = parent;
             parent = child.getParent();
           }
-        child.setParent(uiActionMap);
+        // Sanity check to avoid loops.
+        if (child != uiActionMap)
+          child.setParent(uiActionMap);
       }
   }
 
@@ -1185,7 +1194,9 @@ public class SwingUtilities
             child = parent;
             parent = parent.getParent();
           }
-        child.setParent(uiInputMap);
+        // Sanity check to avoid loops.
+        if (child != uiInputMap)
+          child.setParent(uiInputMap);
       }
   }
 
@@ -1262,26 +1273,31 @@ public class SwingUtilities
   }
 
   /**
-   * Calculates the intersection of two rectangles.
+   * Calculates the intersection of two rectangles. The result is stored
+   * in <code>rect</code>. This is basically the same
+   * like {@link Rectangle#intersection(Rectangle)}, only that it does not
+   * create new Rectangle instances. The tradeoff is that you loose any data in
+   * <code>rect</code>.
    *
    * @param x upper-left x coodinate of first rectangle
    * @param y upper-left y coodinate of first rectangle
    * @param w width of first rectangle
    * @param h height of first rectangle
    * @param rect a Rectangle object of the second rectangle
-   * @throws NullPointerException if rect is null.
+   *
+   * @throws NullPointerException if rect is null
    *
    * @return a rectangle corresponding to the intersection of the
-   * two rectangles. A zero rectangle is returned if the rectangles
-   * do not overlap.
+   *         two rectangles. An empty rectangle is returned if the rectangles
+   *         do not overlap
    */
   public static Rectangle computeIntersection(int x, int y, int w, int h,
                                               Rectangle rect)
   {
-    int x2 = (int) rect.getX();
-    int y2 = (int) rect.getY();
-    int w2 = (int) rect.getWidth();
-    int h2 = (int) rect.getHeight();
+    int x2 = (int) rect.x;
+    int y2 = (int) rect.y;
+    int w2 = (int) rect.width;
+    int h2 = (int) rect.height;
 
     int dx = (x > x2) ? x : x2;
     int dy = (y > y2) ? y : y2;
@@ -1289,9 +1305,11 @@ public class SwingUtilities
     int dh = (y + h < y2 + h2) ? (y + h - dy) : (y2 + h2 - dy);
 
     if (dw >= 0 && dh >= 0)
-      return new Rectangle(dx, dy, dw, dh);
+      rect.setBounds(dx, dy, dw, dh);
+    else
+      rect.setBounds(0, 0, 0, 0);
 
-    return new Rectangle(0, 0, 0, 0);
+    return rect;
   }
   
   /**
@@ -1308,26 +1326,31 @@ public class SwingUtilities
   }
 
   /**
-   * Calculates the union of two rectangles.
+   * Calculates the union of two rectangles. The result is stored in
+   * <code>rect</code>. This is basically the same as
+   * {@link Rectangle#union(Rectangle)} except that it avoids creation of new
+   * Rectangle objects. The tradeoff is that you loose any data in
+   * <code>rect</code>.
    *
    * @param x upper-left x coodinate of first rectangle
    * @param y upper-left y coodinate of first rectangle
    * @param w width of first rectangle
    * @param h height of first rectangle
    * @param rect a Rectangle object of the second rectangle
-   * @throws NullPointerException if rect is null.
+   *
+   * @throws NullPointerException if rect is null
    *
    * @return a rectangle corresponding to the union of the
-   * two rectangles. A rectangle encompassing both is returned if the
-   * rectangles do not overlap.
+   *         two rectangles; a rectangle encompassing both is returned if the
+   *         rectangles do not overlap
    */
   public static Rectangle computeUnion(int x, int y, int w, int h,
                                        Rectangle rect)
   {
-    int x2 = (int) rect.getX();
-    int y2 = (int) rect.getY();
-    int w2 = (int) rect.getWidth();
-    int h2 = (int) rect.getHeight();
+    int x2 = (int) rect.x;
+    int y2 = (int) rect.y;
+    int w2 = (int) rect.width;
+    int h2 = (int) rect.height;
 
     int dx = (x < x2) ? x : x2;
     int dy = (y < y2) ? y : y2;
@@ -1335,9 +1358,10 @@ public class SwingUtilities
     int dh = (y + h > y2 + h2) ? (y + h - dy) : (y2 + h2 - dy);
 
     if (dw >= 0 && dh >= 0)
-      return new Rectangle(dx, dy, dw, dh);
-
-    return new Rectangle(0, 0, 0, 0);
+      rect.setBounds(dx, dy, dw, dh);
+    else
+      rect.setBounds(0, 0, 0, 0);
+    return rect;
   }
 
   /**
@@ -1394,5 +1418,207 @@ public class SwingUtilities
       return component.getActionMap().getParent();
     else
       return null;
+  }
+
+  /**
+   * Processes key bindings for the component that is associated with the 
+   * key event. Note that this method does not make sense for
+   * JComponent-derived components, except when
+   * {@link JComponent#processKeyEvent(KeyEvent)} is overridden and super is
+   * not called.
+   *
+   * This method searches through the component hierarchy of the component's
+   * top-level container to find a <code>JComponent</code> that has a binding
+   * for the key event in the WHEN_IN_FOCUSED_WINDOW scope.
+   *
+   * @param ev the key event
+   *
+   * @return <code>true</code> if a binding has been found and processed,
+   *         <code>false</code> otherwise
+   *
+   * @since 1.4
+   */
+  public static boolean processKeyBindings(KeyEvent ev)
+  {
+    Component c = ev.getComponent();
+    KeyStroke s = KeyStroke.getKeyStrokeForEvent(ev);
+    KeyboardManager km = KeyboardManager.getManager();
+    return km.processKeyStroke(c, s, ev);
+  }
+  
+  /**
+   * Returns a string representing one of the horizontal alignment codes
+   * defined in the {@link SwingConstants} interface.  The following table
+   * lists the constants and return values:
+   * <p>
+   * <table border="0">
+   * <tr>
+   *   <th>Code:</th><th>Returned String:</th>
+   * </tr>
+   * <tr>
+   *   <td>{@link SwingConstants#CENTER}</td>
+   *   <td><code>"CENTER"</code></td>
+   * </tr>
+   * <tr>
+   *   <td>{@link SwingConstants#LEFT}</td>
+   *   <td><code>"LEFT"</code></td>
+   * </tr>
+   * <tr>
+   *   <td>{@link SwingConstants#RIGHT}</td>
+   *   <td><code>"RIGHT"</code></td>
+   * </tr>
+   * <tr>
+   *   <td>{@link SwingConstants#LEADING}</td>
+   *   <td><code>"LEADING"</code></td>
+   * </tr>
+   * <tr>
+   *   <td>{@link SwingConstants#TRAILING}</td>
+   *   <td><code>"TRAILING"</code></td>
+   * </tr>
+   * </table>
+   * </p>
+   * If the supplied code is not one of those listed, this methods will throw
+   * an {@link IllegalArgumentException}.
+   * 
+   * @param code  the code.
+   * 
+   * @return A string representing the given code.
+   */
+  static String convertHorizontalAlignmentCodeToString(int code)
+  {
+    switch (code) 
+    {
+      case SwingConstants.CENTER: 
+        return "CENTER";
+      case SwingConstants.LEFT:
+        return "LEFT";
+      case SwingConstants.RIGHT:
+        return "RIGHT";
+      case SwingConstants.LEADING:
+        return "LEADING";
+      case SwingConstants.TRAILING:
+        return "TRAILING";
+      default:
+        throw new IllegalArgumentException("Unrecognised code: " + code);
+    }
+  }
+  
+  /**
+   * Returns a string representing one of the vertical alignment codes
+   * defined in the {@link SwingConstants} interface.  The following table
+   * lists the constants and return values:
+   * <p>
+   * <table border="0">
+   * <tr>
+   *   <th>Code:</th><th>Returned String:</th>
+   * </tr>
+   * <tr>
+   *   <td>{@link SwingConstants#CENTER}</td>
+   *   <td><code>"CENTER"</code></td>
+   * </tr>
+   * <tr>
+   *   <td>{@link SwingConstants#TOP}</td>
+   *   <td><code>"TOP"</code></td>
+   * </tr>
+   * <tr>
+   *   <td>{@link SwingConstants#BOTTOM}</td>
+   *   <td><code>"BOTTOM"</code></td>
+   * </tr>
+   * </table>
+   * </p>
+   * If the supplied code is not one of those listed, this methods will throw
+   * an {@link IllegalArgumentException}.
+   * 
+   * @param code  the code.
+   * 
+   * @return A string representing the given code.
+   */
+  static String convertVerticalAlignmentCodeToString(int code)
+  {
+    switch (code)
+    {
+      case SwingConstants.CENTER:
+        return "CENTER";
+      case SwingConstants.TOP:
+        return "TOP";
+      case SwingConstants.BOTTOM:
+        return "BOTTOM";
+      default:
+        throw new IllegalArgumentException("Unrecognised code: " + code);
+    }
+  }
+  
+  /**
+   * Returns a string representing one of the default operation codes
+   * defined in the {@link WindowConstants} interface.  The following table
+   * lists the constants and return values:
+   * <p>
+   * <table border="0">
+   * <tr>
+   *   <th>Code:</th><th>Returned String:</th>
+   * </tr>
+   * <tr>
+   *   <td>{@link WindowConstants#DO_NOTHING_ON_CLOSE}</td>
+   *   <td><code>"DO_NOTHING_ON_CLOSE"</code></td>
+   * </tr>
+   * <tr>
+   *   <td>{@link WindowConstants#HIDE_ON_CLOSE}</td>
+   *   <td><code>"HIDE_ON_CLOSE"</code></td>
+   * </tr>
+   * <tr>
+   *   <td>{@link WindowConstants#DISPOSE_ON_CLOSE}</td>
+   *   <td><code>"DISPOSE_ON_CLOSE"</code></td>
+   * </tr>
+   * <tr>
+   *   <td>{@link WindowConstants#EXIT_ON_CLOSE}</td>
+   *   <td><code>"EXIT_ON_CLOSE"</code></td>
+   * </tr>
+   * </table>
+   * </p>
+   * If the supplied code is not one of those listed, this method will throw
+   * an {@link IllegalArgumentException}.
+   * 
+   * @param code  the code.
+   * 
+   * @return A string representing the given code.
+   */
+  static String convertWindowConstantToString(int code) 
+  {
+    switch (code)
+    {
+      case WindowConstants.DO_NOTHING_ON_CLOSE:
+        return "DO_NOTHING_ON_CLOSE";
+      case WindowConstants.HIDE_ON_CLOSE:
+        return "HIDE_ON_CLOSE";
+      case WindowConstants.DISPOSE_ON_CLOSE:
+        return "DISPOSE_ON_CLOSE";
+      case WindowConstants.EXIT_ON_CLOSE:
+        return "EXIT_ON_CLOSE";
+      default:
+        throw new IllegalArgumentException("Unrecognised code: " + code);
+    }
+  }
+
+  /**
+   * Converts a rectangle in the coordinate system of a child component into
+   * a rectangle of one of it's Ancestors. The result is stored in the input
+   * rectangle.
+   *
+   * @param comp the child component
+   * @param r the rectangle to convert
+   * @param ancestor the ancestor component
+   */
+  static void convertRectangleToAncestor(Component comp, Rectangle r,
+                                         Component ancestor)
+  {
+    if (comp == ancestor)
+      return;
+
+    r.x += comp.getX();
+    r.y += comp.getY();
+
+    Component parent = comp.getParent();
+    if (parent != null && parent != ancestor)
+      convertRectangleToAncestor(parent, r, ancestor);
   }
 }

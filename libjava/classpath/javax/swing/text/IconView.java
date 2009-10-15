@@ -44,7 +44,6 @@ import java.awt.Shape;
 
 import javax.swing.Icon;
 import javax.swing.JTextPane;
-import javax.swing.SwingConstants;
 
 /**
  * A View that can render an icon. This view is created by the
@@ -130,8 +129,6 @@ public class IconView
     throws BadLocationException
   {
     Element el = getElement();
-    if (pos < el.getStartOffset() || pos >= el.getEndOffset())
-      throw new BadLocationException("Illegal offset for this view", pos);
     Rectangle r = a.getBounds();
     Icon icon = StyleConstants.getIcon(el.getAttributes());
     return new Rectangle(r.x, r.y, icon.getIconWidth(), icon.getIconHeight());
@@ -159,33 +156,20 @@ public class IconView
   }
 
   /**
-   * Returns the document position that is (visually) nearest to the given
-   * document position <code>pos</code> in the given direction <code>d</code>.
+   * Returns the alignment for this view. This will be 1.0 for the Y_AXIS,
+   * and the super behaviour for the X_AXIS.
    *
-   * @param c the text component
-   * @param pos the document position
-   * @param b the bias for <code>pos</code>
-   * @param d the direction, must be either {@link SwingConstants#NORTH},
-   *        {@link SwingConstants#SOUTH}, {@link SwingConstants#WEST} or
-   *        {@link SwingConstants#EAST}
-   * @param biasRet an array of {@link Position.Bias} that can hold at least
-   *        one element, which is filled with the bias of the return position
-   *        on method exit
+   * @param axis the axis for which to calculate the alignment
    *
-   * @return the document position that is (visually) nearest to the given
-   *         document position <code>pos</code> in the given direction
-   *         <code>d</code>
-   *
-   * @throws BadLocationException if <code>pos</code> is not a valid offset in
-   *         the document model
+   * @return the alignment
    */
-  public int getNextVisualPositionFrom(JTextComponent c, int pos,
-                                       Position.Bias b, int d,
-                                       Position.Bias[] biasRet)
-    throws BadLocationException
+  public float getAlignment(int axis)
   {
-    // TODO: Implement this properly.
-    throw new AssertionError("Not implemented yet.");
+    float align;
+    if (axis == Y_AXIS)
+      align = 1.0F;
+    else
+      align = super.getAlignment(axis);
+    return align;
   }
-
 }

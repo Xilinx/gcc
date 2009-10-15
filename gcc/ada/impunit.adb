@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---           Copyright (C) 2000-2005, Free Software Foundation, Inc.        --
+--           Copyright (C) 2000-2006, Free Software Foundation, Inc.        --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -195,6 +195,11 @@ package body Impunit is
    -- GNAT Library Units --
    ------------------------
 
+     "g-altive",    -- GNAT.Altivec
+     "g-alvety",    -- GNAT.Altivec.Vector_Types
+     "g-alvevi",    -- GNAT.Altivec.Vector_Views
+     "g-alveop",    -- GNAT.Altivec.Vector_Operations
+     "g-altcon",    -- GNAT.Altivec.Conversions
      "g-arrspl",    -- GNAT.Array_Split
      "g-awk   ",    -- GNAT.AWK
      "g-boubuf",    -- GNAT.Bounded_Buffers
@@ -346,10 +351,15 @@ package body Impunit is
      "a-convec",    -- Ada.Containers.Vectors
      "a-coorma",    -- Ada.Containers.Ordered_Maps
      "a-coorse",    -- Ada.Containers.Ordered_Sets
+     "a-coteio",    -- Ada.Complex_Text_IO
      "a-direct",    -- Ada.Directories
+     "a-envvar",    -- Ada.Environment_Variables
+     "a-rttiev",    -- Ada.Real_Time.Timing_Events
      "a-secain",    -- Ada.Strings.Equal_Case_Insensitive
      "a-shcain",    -- Ada.Strings.Hash_Case_Insensitive
      "a-slcain",    -- Ada.Strings.Less_Case_Insensitive
+     "a-stboha",    -- Ada.Strings.Bounded.Hash
+     "a-stfiha",    -- Ada.Strings.Fixed.Hash
      "a-strhas",    -- Ada.Strings.Hash
      "a-stunha",    -- Ada.Strings.Unbounded.Hash
      "a-stwiha",    -- Ada.Strings.Wide_Hash
@@ -358,26 +368,37 @@ package body Impunit is
      "a-stzhas",    -- Ada.Strings.Wide_Wide_Hash
      "a-stzmap",    -- Ada.Strings.Wide_Wide_Maps
      "a-stzunb",    -- Ada.Strings.Wide_Wide_Unbounded
+     "a-swbwha",    -- Ada.Strings.Wide_Bounded.Wide_Hash
+     "a-swfwha",    -- Ada.Strings.Wide_Fixed.Wide_Hash
      "a-swuwha",    -- Ada.Strings.Wide_Unbounded.Wide_Hash
-     "a-szmzco",    -- Ada.Strings.Wide_Wide_Maps.Wide_Wide_Constants;
+     "a-szbzha",    -- Ada.Strings.Wide_Wide_Bounded.Wide_Wide_Hash
+     "a-szfzha",    -- Ada.Strings.Wide_Wide_Fixed.Wide_Wide_Hash
+     "a-szmzco",    -- Ada.Strings.Wide_Wide_Maps.Wide_Wide_Constants
      "a-szuzha",    -- Ada.Strings.Wide_Wide_Unbounded.Wide_Wide_Hash
-     "a-tgdico",    -- Ada.Tags.Generic_Dispatching_Constructor;
-     "a-tiunio",    -- Ada.Text_IO.Unbounded_IO;
+     "a-taster",    -- Ada.Task_Termination
+     "a-tgdico",    -- Ada.Tags.Generic_Dispatching_Constructor
+     "a-tiboio",    -- Ada.Text_IO.Bounded_IO
+     "a-tiunio",    -- Ada.Text_IO.Unbounded_IO
      "a-wichun",    -- Ada.Wide_Characters.Unicode
-     "a-wwunio",    -- Ada.Wide_Text_IO.Wide_Unbounded_IO;
+     "a-wwboio",    -- Ada.Wide_Text_IO.Wide_Bounded_IO
+     "a-wwunio",    -- Ada.Wide_Text_IO.Wide_Unbounded_IO
      "a-zchara",    -- Ada.Wide_Wide_Characters
      "a-zttest",    -- Ada.Wide_Wide_Text_IO.Text_Streams
      "a-ztexio",    -- Ada.Wide_Wide_Text_IO
+     "a-zzboio",    -- Ada.Wide_Wide_Text_IO.Wide_Wide_Bounded_IO
      "a-zzunio",    -- Ada.Wide_Wide_Text_IO.Wide_Wide_Unbounded_IO
 
    ------------------------------------------------------
    -- RM Required Additions to Ada 2005 for GNAT Types --
    ------------------------------------------------------
 
+     "a-lcteio",    -- Ada.Long_Complex_Text_IO
      "a-lfztio",    -- Ada.Long_Float_Wide_Wide_Text_IO
      "a-liztio",    -- Ada.Long_Integer_Wide_Wide_Text_IO
+     "a-llctio",    -- Ada.Long_Long_Complex_Text_IO
      "a-llfzti",    -- Ada.Long_Long_Float_Wide_Wide_Text_IO
      "a-llizti",    -- Ada.Long_Long_Integer_Wide_Wide_Text_IO
+     "a-scteio",    -- Ada.Short_Complex_Text_IO
      "a-sfztio",    -- Ada.Short_Float_Wide_Wide_Text_IO
      "a-siztio",    -- Ada.Short_Integer_Wide_Wide_Text_IO
      "a-ssizti",    -- Ada.Short_Short_Integer_Wide_Wide_Text_IO

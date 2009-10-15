@@ -1,12 +1,12 @@
 /* Callgraph based analysis of static variables.
-   Copyright (C) 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2007 Free Software Foundation, Inc.
    Contributed by Kenneth Zadeck <zadeck@naturalbridge.com>
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,10 +15,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  
-*/
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 /* This file gathers information about how variables whose scope is
    confined to the compilation unit are used.  
@@ -111,7 +109,7 @@ tree memory_identifier_string;
 static inline ipa_reference_vars_info_t
 get_reference_vars_info_from_cgraph (struct cgraph_node * node)
 {
-  return get_var_ann (node->decl)->reference_vars_info;
+  return get_function_ann (node->decl)->reference_vars_info;
 }
 
 /* Get a bitmap that contains all of the locally referenced static
@@ -119,7 +117,7 @@ get_reference_vars_info_from_cgraph (struct cgraph_node * node)
 static ipa_reference_local_vars_info_t
 get_local_reference_vars_info (tree fn) 
 {
-  ipa_reference_vars_info_t info = get_var_ann (fn)->reference_vars_info;
+  ipa_reference_vars_info_t info = get_function_ann (fn)->reference_vars_info;
 
   if (info)
     return info->local;
@@ -134,7 +132,7 @@ get_local_reference_vars_info (tree fn)
 static ipa_reference_global_vars_info_t
 get_global_reference_vars_info (tree fn) 
 {
-  ipa_reference_vars_info_t info = get_var_ann (fn)->reference_vars_info;
+  ipa_reference_vars_info_t info = get_function_ann (fn)->reference_vars_info;
 
   if (info)
     return info->global;
@@ -286,7 +284,7 @@ check_operand (ipa_reference_local_vars_info_t local,
 {
   if (!t) return;
 
-  if ((TREE_CODE (t) == VAR_DECL)
+  if ((TREE_CODE (t) == VAR_DECL || TREE_CODE (t) == FUNCTION_DECL)
       && (has_proper_scope_for_analysis (t))) 
     {
       if (checking_write)
@@ -343,7 +341,7 @@ look_for_address_of (tree t)
   if (TREE_CODE (t) == ADDR_EXPR)
     {
       tree x = get_base_var (t);
-      if (TREE_CODE (x) == VAR_DECL) 
+      if (TREE_CODE (x) == VAR_DECL || TREE_CODE (x) == FUNCTION_DECL) 
 	if (has_proper_scope_for_analysis (x))
 	  bitmap_set_bit (module_statics_escape, DECL_UID (x));
     }
@@ -507,6 +505,7 @@ scan_for_static_refs (tree *tp,
 	switch (TREE_CODE_CLASS (TREE_CODE (rhs))) 
 	  {
 	  case tcc_binary:	    
+	  case tcc_comparison:	    
  	    {
  	      tree op0 = TREE_OPERAND (rhs, 0);
  	      tree op1 = TREE_OPERAND (rhs, 1);
@@ -741,6 +740,7 @@ merge_callee_local_info (struct cgraph_node *target,
 static void 
 ipa_init (void) 
 {
+  struct cgraph_node *node;
   memory_identifier_string = build_string(7, "memory");
 
   reference_vars_to_consider =
@@ -750,6 +750,10 @@ ipa_init (void)
   module_statics_escape = BITMAP_ALLOC (&ipa_obstack);
   module_statics_written = BITMAP_ALLOC (&ipa_obstack);
   all_module_statics = BITMAP_ALLOC (&ipa_obstack);
+
+  /* This will add NODE->DECL to the splay trees.  */
+  for (node = cgraph_nodes; node; node = node->next)
+    has_proper_scope_for_analysis (node->decl);
 
   /* There are some shared nodes, in particular the initializers on
      static declarations.  We do not need to scan them more than once
@@ -790,7 +794,7 @@ analyze_function (struct cgraph_node *fn)
   tree decl = fn->decl;
 
   /* Add the info to the tree's annotation.  */
-  get_var_ann (fn->decl)->reference_vars_info = info;
+  get_function_ann (fn->decl)->reference_vars_info = info;
 
   info->local = l;
   l->statics_read = BITMAP_ALLOC (&ipa_obstack);
@@ -874,8 +878,8 @@ clean_function (struct cgraph_node *fn)
     }
 
   
-  free (get_var_ann (fn->decl)->reference_vars_info);
-  get_var_ann (fn->decl)->reference_vars_info = NULL;
+  free (get_function_ann (fn->decl)->reference_vars_info);
+  get_function_ann (fn->decl)->reference_vars_info = NULL;
 }
 
 
@@ -883,7 +887,7 @@ clean_function (struct cgraph_node *fn)
    on the local information that was produced by ipa_analyze_function
    and ipa_analyze_variable.  */
 
-static void
+static unsigned int
 static_execute (void)
 {
   struct cgraph_node *node;
@@ -963,6 +967,11 @@ static_execute (void)
     EXECUTE_IF_SET_IN_BITMAP (module_statics_readonly, 0, index, bi)
       {
 	tree var = get_static_decl (index);
+
+	/* Readonly on a function decl is very different from the
+	   variable.  */
+	if (TREE_CODE (var) == FUNCTION_DECL)
+	  continue;
 
 	/* Ignore variables in named sections - changing TREE_READONLY
 	   changes the section flags, potentially causing conflicts with
@@ -1292,6 +1301,7 @@ static_execute (void)
 	  && (cgraph_function_body_availability (node) == AVAIL_OVERWRITABLE))
 	clean_function (node);
     }
+  return 0;
 }
 
 

@@ -52,6 +52,7 @@ import java.util.EventListener;
 import javax.accessibility.Accessible;
 import javax.accessibility.AccessibleContext;
 import javax.accessibility.AccessibleRole;
+import javax.swing.event.MenuKeyListener;
 import javax.swing.event.PopupMenuEvent;
 import javax.swing.event.PopupMenuListener;
 import javax.swing.plaf.PopupMenuUI;
@@ -119,7 +120,7 @@ public class JPopupMenu extends JComponent implements Accessible, MenuElement
   private boolean lightWeightPopupEnabled;
 
   /** SelectionModel that keeps track of menu selection. */
-  private SingleSelectionModel selectionModel;
+  protected SingleSelectionModel selectionModel;
 
   /* Popup that is used to display JPopupMenu */
   private transient Popup popup;
@@ -292,7 +293,6 @@ public class JPopupMenu extends JComponent implements Accessible, MenuElement
   public void updateUI()
   {
     setUI((PopupMenuUI) UIManager.getUI(this));
-    invalidate();
   }
 
   /**
@@ -410,6 +410,36 @@ public class JPopupMenu extends JComponent implements Accessible, MenuElement
     this.insert(new Separator(), -1);
   }
 
+  /**
+   * Adds a MenuKeyListener to the popup.
+   * 
+   * @param l - the listener to add.
+   */
+  public void addMenuKeyListener(MenuKeyListener l)
+  {
+    listenerList.add(MenuKeyListener.class, l);
+  }
+  
+  /**
+   * Removes a MenuKeyListener from the popup.
+   * 
+   * @param l - the listener to remove.
+   */
+  public void removeMenuKeyListener(MenuKeyListener l)
+  {
+    listenerList.remove(MenuKeyListener.class, l);
+  }
+  
+  /**
+   * Returns array of getMenuKeyListeners that are listening to JPopupMenu.
+   * 
+   * @return array of getMenuKeyListeners that are listening to JPopupMenu
+   */
+  public MenuKeyListener[] getMenuKeyListeners()
+  {
+    return ((MenuKeyListener[]) listenerList.getListeners(MenuKeyListener.class));
+  }
+  
   /**
    * Adds popupMenuListener to listen for PopupMenuEvents fired
    * by the JPopupMenu
@@ -542,11 +572,25 @@ public class JPopupMenu extends JComponent implements Accessible, MenuElement
     this.visible = visible;
     if (old != isVisible())
       {
-        firePropertyChange("visible", old, isVisible());
         if (visible)
           {
+            if (invoker != null && !(invoker instanceof JMenu))
+              {
+                MenuElement[] menuEls;
+                if (getSubElements().length > 0)
+                  {
+                    menuEls = new MenuElement[2];
+                    menuEls[0] = this;
+                    menuEls[1] = getSubElements()[0];
+                }
+                else
+                  {
+                    menuEls = new MenuElement[1];
+                    menuEls[0] = this;
+                  }
+                MenuSelectionManager.defaultManager().setSelectedPath(menuEls);
+              }
             firePopupMenuWillBecomeVisible();
-
             PopupFactory pf = PopupFactory.getSharedInstance();
             pack();
             popup = pf.getPopup(invoker, this, popupLocationX, popupLocationY);
@@ -554,9 +598,11 @@ public class JPopupMenu extends JComponent implements Accessible, MenuElement
           }
         else
           {
+            getSelectionModel().clearSelection();
             firePopupMenuWillBecomeInvisible();
             popup.hide();
           }
+        firePropertyChange("visible", old, isVisible());
       }
   }
 
@@ -866,7 +912,7 @@ public class JPopupMenu extends JComponent implements Accessible, MenuElement
 
   /* This class resizes popup menu and repaints popup menu appropriately if one
    of item's action has changed */
-  protected class ActionChangeListener implements PropertyChangeListener
+  private class ActionChangeListener implements PropertyChangeListener
   {
     public void propertyChange(PropertyChangeEvent evt)
     {

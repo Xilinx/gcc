@@ -1,5 +1,5 @@
 /* SliderDemo.java -- An example showing JSlider in various configurations.
-   Copyright (C) 2005,  Free Software Foundation, Inc.
+   Copyright (C) 2005, 2006,  Free Software Foundation, Inc.
 
 This file is part of GNU Classpath examples.
 
@@ -29,13 +29,17 @@ import java.awt.event.ActionListener;
 
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
+import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JSlider;
+import javax.swing.SwingUtilities;
 
-public class SliderDemo extends JFrame implements ActionListener 
+public class SliderDemo
+  extends JPanel
+  implements ActionListener 
 {
-   
+
   JSlider hslider1;
   JSlider hslider2;
   JSlider hslider3;
@@ -56,17 +60,26 @@ public class SliderDemo extends JFrame implements ActionListener
 
   JCheckBox enabledCheckBox;
   
-  public SliderDemo(String frameTitle) 
+  public SliderDemo() 
   {
-    super(frameTitle);
-    JPanel content = createContent();
+    createContent();
+  }
+  
+  /**
+   * When the demo is run independently, the frame is displayed, so we should
+   * initialise the content panel (including the demo content and a close 
+   * button).  But when the demo is run as part of the Swing activity board,
+   * only the demo content panel is used, the frame itself is never displayed,
+   * so we can avoid this step.
+   */
+  void initFrameContent()
+  {
     JPanel closePanel = new JPanel();
     JButton closeButton = new JButton("Close");
     closeButton.setActionCommand("CLOSE");
     closeButton.addActionListener(this);
     closePanel.add(closeButton);
-    content.add(closePanel, BorderLayout.SOUTH);
-    getContentPane().add(content);
+    add(closePanel, BorderLayout.SOUTH);
   }
        
   /**
@@ -76,9 +89,9 @@ public class SliderDemo extends JFrame implements ActionListener
    * bottom of the panel if they want to (a close button is
    * added if this demo is being run as a standalone demo).
    */       
-  JPanel createContent() 
+  private void createContent() 
   {
-    JPanel content = new JPanel(new BorderLayout());
+    setLayout(new BorderLayout());
     JPanel panel = new JPanel(new GridLayout(1, 2));
     panel.add(createHorizontalPanel());
     panel.add(createVerticalPanel());
@@ -91,8 +104,7 @@ public class SliderDemo extends JFrame implements ActionListener
     JPanel panel2 = new JPanel(new BorderLayout());
     panel2.add(panel);
     panel2.add(checkBoxPanel, BorderLayout.SOUTH);
-    content.add(panel2);
-    return content;        
+    add(panel2);
   }
     
   private JPanel createHorizontalPanel() 
@@ -241,9 +253,35 @@ public class SliderDemo extends JFrame implements ActionListener
   }
   public static void main(String[] args) 
   {
-    SliderDemo app = new SliderDemo("Slider Demo");
-    app.pack();
-    app.setVisible(true);
+    SwingUtilities.invokeLater
+    (new Runnable()
+     {
+       public void run()
+       {
+         SliderDemo app = new SliderDemo();
+         app.initFrameContent();
+         JFrame frame = new JFrame("Slider Demo");
+         frame.getContentPane().add(app);
+         frame.pack();
+         frame.setVisible(true);
+       }
+     });
   }
 
+
+  /**
+   * Returns a DemoFactory that creates a SliderDemo.
+   *
+   * @return a DemoFactory that creates a SliderDemo
+   */
+  public static DemoFactory createDemoFactory()
+  {
+    return new DemoFactory()
+    {
+      public JComponent createDemo()
+      {
+        return new SliderDemo();
+      }
+    };
+  }
 }

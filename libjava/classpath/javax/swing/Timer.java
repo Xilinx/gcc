@@ -1,5 +1,5 @@
 /* Timer.java --
-   Copyright (C) 2002, 2004, 2005  Free Software Foundation, Inc.
+   Copyright (C) 2002, 2004, 2005, 2006,  Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -68,11 +68,11 @@ public class Timer
     public void run()
     {
       if (logTimers)
-	System.out.println("javax.swing.Timer -> queueEvent()");
+        System.out.println("javax.swing.Timer -> queueEvent()");
       queueEvent();
 
       if (!repeats)
-	task = null;
+        task = null;
     }
   }
 
@@ -141,8 +141,9 @@ public class Timer
 
   /**
    * The task that calls queueEvent(). When null this Timer is stopped.
+   * This is package private to avoid synthetic accessor method.
    */
-  private Task task;
+  Task task;
 
   /**
    * This object manages a "queue" of virtual actionEvents, maintained as a
@@ -263,9 +264,13 @@ public class Timer
    * firing the first event.
    *
    * @param d The time gap between the subsequent events, in milliseconds
+   * 
+   * @throws IllegalArgumentException if <code>d</code> is less than zero.
    */
   public void setDelay(int d)
   {
+    if (d < 0) 
+      throw new IllegalArgumentException("Invalid delay: " + d);
     delay = d;
   }
 
@@ -286,9 +291,13 @@ public class Timer
    * subsequent events.
    *
    * @param i the initial delay, in milliseconds
+   * 
+   * @throws IllegalArgumentException if <code>i</code> is less than zero.
    */
   public void setInitialDelay(int i)
   {
+    if (i < 0)
+      throw new IllegalArgumentException("Invalid initial delay: " + i);
     initialDelay = i;
   }
 

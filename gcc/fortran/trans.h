@@ -1,12 +1,13 @@
 /* Header for code translation functions
-   Copyright (C) 2002, 2003, 2004, 2005, 2006 Free Software Foundation, Inc.
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007
+   Free Software Foundation, Inc.
    Contributed by Paul Brook
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,9 +16,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #ifndef GFC_TRANS_H
 #define GFC_TRANS_H
@@ -107,6 +107,7 @@ typedef struct gfc_ss_info
      start is used in the calculation of these.  Indexed by scalarizer
      dimension.  */
   tree start[GFC_MAX_DIMENSIONS];
+  tree end[GFC_MAX_DIMENSIONS];
   tree stride[GFC_MAX_DIMENSIONS];
   tree delta[GFC_MAX_DIMENSIONS];
 
@@ -302,12 +303,19 @@ void gfc_conv_intrinsic_function (gfc_se *, gfc_expr *);
 /* Does an intrinsic map directly to an external library call.  */
 int gfc_is_intrinsic_libcall (gfc_expr *);
 
+/* Used to call the elemental subroutines used in operator assignments.  */
+tree gfc_conv_operator_assign (gfc_se *, gfc_se *, gfc_symbol *);
+
 /* Also used to CALL subroutines.  */
 int gfc_conv_function_call (gfc_se *, gfc_symbol *, gfc_actual_arglist *);
+
+void gfc_conv_aliased_arg (gfc_se *, gfc_expr *, int, sym_intent);
+bool is_aliased_array (gfc_expr *);
+
 /* gfc_trans_* shouldn't call push/poplevel, use gfc_push/pop_scope */
 
 /* Generate code for a scalar assignment.  */
-tree gfc_trans_scalar_assign (gfc_se *, gfc_se *, bt);
+tree gfc_trans_scalar_assign (gfc_se *, gfc_se *, gfc_typespec, bool, bool);
 
 /* Translate COMMON blocks.  */
 void gfc_trans_common (gfc_namespace *);
@@ -326,6 +334,8 @@ tree gfc_conv_string_tmp (gfc_se *, tree, tree);
 tree gfc_get_expr_charlen (gfc_expr *);
 /* Initialize a string length variable.  */
 void gfc_trans_init_string_length (gfc_charlen *, stmtblock_t *);
+/* Ensure type sizes can be gimplified.  */
+void gfc_trans_vla_type_sizes (gfc_symbol *, stmtblock_t *);
 
 /* Add an expression to the end of a block.  */
 void gfc_add_expr_to_block (stmtblock_t *, tree);
@@ -354,14 +364,8 @@ tree gfc_get_extern_function_decl (gfc_symbol *);
 /* Return the decl for a function.  */
 tree gfc_get_function_decl (gfc_symbol *);
 
-/* Build a CALL_EXPR.  */
-tree gfc_build_function_call (tree, tree);
-
 /* Build an ADDR_EXPR.  */
 tree gfc_build_addr_expr (tree, tree);
-
-/* Build an INDIRECT_REF.  */
-tree gfc_build_indirect_ref (tree);
 
 /* Build an ARRAY_REF.  */
 tree gfc_build_array_ref (tree, tree);
@@ -371,7 +375,7 @@ tree gfc_build_label_decl (tree);
 
 /* Return the decl used to hold the function return value.
    Do not use if the function has an explicit result variable.  */
-tree gfc_get_fake_result_decl (gfc_symbol *);
+tree gfc_get_fake_result_decl (gfc_symbol *, int);
 
 /* Get the return label for the current function.  */
 tree gfc_get_return_label (void);
@@ -430,7 +434,7 @@ bool get_array_ctor_strlen (gfc_constructor *, tree *);
 void gfc_trans_runtime_check (tree, const char *, stmtblock_t *, locus *);
 
 /* Generate code for an assignment, includes scalarization.  */
-tree gfc_trans_assignment (gfc_expr *, gfc_expr *);
+tree gfc_trans_assignment (gfc_expr *, gfc_expr *, bool);
 
 /* Generate code for a pointer assignment.  */
 tree gfc_trans_pointer_assignment (gfc_expr *, gfc_expr *);
@@ -451,6 +455,15 @@ tree getdecls (void);
 tree gfc_truthvalue_conversion (tree);
 tree builtin_function (const char *, tree, int, enum built_in_class,
 		       const char *, tree);
+
+/* In trans-openmp.c */
+bool gfc_omp_privatize_by_reference (tree);
+enum omp_clause_default_kind gfc_omp_predetermined_sharing (tree);
+tree gfc_omp_clause_default_ctor (tree, tree);
+bool gfc_omp_disregard_value_expr (tree, bool);
+bool gfc_omp_private_debug_clause (tree, bool);
+struct gimplify_omp_ctx;
+void gfc_omp_firstprivatize_type_sizes (struct gimplify_omp_ctx *, tree);
 
 /* Runtime library function decls.  */
 extern GTY(()) tree gfor_fndecl_internal_malloc;
@@ -503,7 +516,6 @@ extern GTY(()) tree gfor_fndecl_math_exponent10;
 extern GTY(()) tree gfor_fndecl_math_exponent16;
 
 /* String functions.  */
-extern GTY(()) tree gfor_fndecl_copy_string;
 extern GTY(()) tree gfor_fndecl_compare_string;
 extern GTY(()) tree gfor_fndecl_concat_string;
 extern GTY(()) tree gfor_fndecl_string_len_trim;
@@ -563,6 +575,9 @@ struct lang_decl		GTY(())
 #define GFC_DECL_PACKED_ARRAY(node) DECL_LANG_FLAG_0(node)
 #define GFC_DECL_PARTIAL_PACKED_ARRAY(node) DECL_LANG_FLAG_1(node)
 #define GFC_DECL_ASSIGN(node) DECL_LANG_FLAG_2(node)
+#define GFC_DECL_COMMON_OR_EQUIV(node) DECL_LANG_FLAG_3(node)
+#define GFC_DECL_CRAY_POINTEE(node) DECL_LANG_FLAG_4(node)
+#define GFC_DECL_RESULT(node) DECL_LANG_FLAG_5(node)
 
 /* An array descriptor.  */
 #define GFC_DESCRIPTOR_TYPE_P(node) TYPE_LANG_FLAG_1(node)
@@ -590,11 +605,13 @@ struct lang_decl		GTY(())
 #define gfc_todo_error(args...) fatal_error("gfc_todo: Not Implemented: " args)
 
 /* Build an expression with void type.  */
-#define build1_v(code, arg) build(code, void_type_node, arg)
+#define build1_v(code, arg) build1(code, void_type_node, arg)
 #define build2_v(code, arg1, arg2) build2(code, void_type_node, \
                                           arg1, arg2)
 #define build3_v(code, arg1, arg2, arg3) build3(code, void_type_node, \
                                                 arg1, arg2, arg3)
+#define build4_v(code, arg1, arg2, arg3, arg4) build4(code, void_type_node, \
+						      arg1, arg2, arg3, arg4)
 
 /* This group of functions allows a caller to evaluate an expression from
    the callee's interface.  It establishes a mapping between the interface's

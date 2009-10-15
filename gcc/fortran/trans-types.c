@@ -1,5 +1,6 @@
 /* Backend support for Fortran 95 basic types and derived types.
-   Copyright (C) 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007
+   Free Software Foundation, Inc.
    Contributed by Paul Brook <paul@nowt.org>
    and Steven Bosscher <s.bosscher@student.tudelft.nl>
 
@@ -7,7 +8,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -16,9 +17,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 /* trans-types.c -- gfortran backend types */
 
@@ -92,6 +92,10 @@ int gfc_default_logical_kind;
 int gfc_default_complex_kind;
 int gfc_c_int_kind;
 
+/* The kind size used for record offsets. If the target system supports
+   kind=8, this will be set to 8, otherwise it is set to 4.  */
+int gfc_intio_kind; 
+
 /* Query the target to determine which machine modes are available for
    computation.  Choose KIND numbers for them.  */
 
@@ -138,6 +142,17 @@ gfc_init_kinds (void)
 
       i_index += 1;
     }
+
+  /* Set the kind used to match GFC_INT_IO in libgfortran.  This is 
+     used for large file access.  */
+
+  if (saw_i8)
+    gfc_intio_kind = 8;
+  else
+    gfc_intio_kind = 4;
+
+  /* If we do not at least have kind = 4, everything is pointless.  */  
+  gcc_assert(saw_i4);  
 
   /* Set the maximum integer kind.  Used with at least BOZ constants.  */
   gfc_max_integer_kind = gfc_integer_kinds[i_index - 1].kind;
@@ -1289,27 +1304,13 @@ gfc_sym_type (gfc_symbol * sym)
   if (sym->attr.flavor == FL_PROCEDURE && !sym->attr.function)
     return void_type_node;
 
-  if (sym->backend_decl)
-    {
-      if (sym->attr.function)
-	return TREE_TYPE (TREE_TYPE (sym->backend_decl));
-      else
-	return TREE_TYPE (sym->backend_decl);
-    }
+  /* In the case of a function the fake result variable may have a
+     type different from the function type, so don't return early in
+     that case.  */
+  if (sym->backend_decl && !sym->attr.function)
+    return TREE_TYPE (sym->backend_decl);
 
   type = gfc_typenode_for_spec (&sym->ts);
-  if (gfc_option.flag_f2c
-      && sym->attr.function
-      && sym->ts.type == BT_REAL
-      && sym->ts.kind == gfc_default_real_kind
-      && !sym->attr.always_explicit)
-    {
-      /* Special case: f2c calling conventions require that (scalar) 
-	 default REAL functions return the C type double instead.  */
-      sym->ts.kind = gfc_default_double_kind;
-      type = gfc_typenode_for_spec (&sym->ts);
-      sym->ts.kind = gfc_default_real_kind;
-    }
 
   if (sym->attr.dummy && !sym->attr.function)
     byref = 1;
@@ -1466,21 +1467,24 @@ gfc_get_derived_type (gfc_symbol * derived)
 	 building anew so that potential dummy and actual arguments use the
 	 same TREE_TYPE.  If an equal type is found without a backend_decl,
 	 build the parent version and use it in the current namespace.  */
+
       if (derived->ns->parent)
 	ns = derived->ns->parent;
-      else if (derived->ns->proc_name
-		 && derived->ns->proc_name->ns != derived->ns)
-	/* Derived types in an interface body obtain their parent reference
-	   through the proc_name symbol.  */
+      /* Derived types in an interface body obtain their parent reference
+	 through the proc_name symbol.  */
+      if (derived->ns->proc_name
+	    && derived->ns->proc_name->ns != derived->ns)
 	ns = derived->ns->proc_name->ns;
       else
-	/* Sometimes there isn't a parent reference!  */
 	ns = NULL;
-
+      
       for (; ns; ns = ns->parent)
 	{
 	  for (dt = ns->derived_types; dt; dt = dt->next)
 	    {
+	      if (dt->derived == derived)
+		continue;
+
 	      if (dt->derived->backend_decl == NULL
 		    && gfc_compare_derived_types (dt->derived, derived))
 		gfc_get_derived_type (dt->derived);
@@ -1539,7 +1543,7 @@ gfc_get_derived_type (gfc_symbol * derived)
          required.  */
       if (c->dimension)
 	{
-	  if (c->pointer)
+	  if (c->pointer || c->allocatable)
 	    {
 	      /* Pointers to arrays aren't actually pointer types.  The
 	         descriptors are separate, but the data is common.  */
@@ -1573,11 +1577,8 @@ gfc_get_derived_type (gfc_symbol * derived)
 other_equal_dts:
   /* Add this backend_decl to all the other, equal derived types and
      their components in this and sibling namespaces.  */
-
-  for (dt = derived->ns->derived_types; dt; dt = dt->next)
-    copy_dt_decls_ifequal (derived, dt->derived);
-
-  for (ns = derived->ns->sibling; ns; ns = ns->sibling)
+  ns = derived->ns->parent ? derived->ns->parent->contained : derived->ns;
+  for (; ns; ns = ns->sibling)
     for (dt = ns->derived_types; dt; dt = dt->next)
       copy_dt_decls_ifequal (derived, dt->derived);
 
@@ -1733,7 +1734,7 @@ gfc_get_function_type (gfc_symbol * sym)
 	     this code was bad, except that it would give incorrect results.
 
 	     Contained procedures could pass by value as these are never
-	     used without an explicit interface, and connot be passed as
+	     used without an explicit interface, and cannot be passed as
 	     actual parameters for a dummy procedure.  */
 	  if (arg->ts.type == BT_CHARACTER)
             nstr++;
@@ -1750,7 +1751,8 @@ gfc_get_function_type (gfc_symbol * sym)
   while (nstr--)
     typelist = gfc_chainon_list (typelist, gfc_charlen_type_node);
 
-  typelist = gfc_chainon_list (typelist, void_type_node);
+  if (typelist)
+    typelist = gfc_chainon_list (typelist, void_type_node);
 
   if (alternate_return)
     type = integer_type_node;
@@ -1758,6 +1760,20 @@ gfc_get_function_type (gfc_symbol * sym)
     type = void_type_node;
   else if (sym->attr.mixed_entry_master)
     type = gfc_get_mixed_entry_union (sym->ns);
+  else if (gfc_option.flag_f2c
+	   && sym->ts.type == BT_REAL
+	   && sym->ts.kind == gfc_default_real_kind
+	   && !sym->attr.always_explicit)
+    {
+      /* Special case: f2c calling conventions require that (scalar) 
+	 default REAL functions return the C type double instead.  f2c
+	 compatibility is only an issue with functions that don't
+	 require an explicit interface, as only these could be
+	 implemented in Fortran 77.  */
+      sym->ts.kind = gfc_default_double_kind;
+      type = gfc_typenode_for_spec (&sym->ts);
+      sym->ts.kind = gfc_default_real_kind;
+    }
   else
     type = gfc_sym_type (sym);
 

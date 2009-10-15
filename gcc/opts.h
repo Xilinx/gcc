@@ -1,11 +1,12 @@
 /* Command line option handling.
-   Copyright (C) 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2002, 2003, 2004, 2005, 2007
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -14,9 +15,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #ifndef GCC_OPTS_H
 #define GCC_OPTS_H
@@ -46,6 +46,7 @@ struct cl_option
   const char *help;
   unsigned short back_chain;
   unsigned char opt_len;
+  int neg_index;
   unsigned int flags;
   void *flag_var;
   enum cl_var_type var_type;
@@ -63,6 +64,7 @@ struct cl_option_state {
 extern const struct cl_option cl_options[];
 extern const unsigned int cl_options_count;
 extern const char *const lang_names[];
+extern bool no_unit_at_a_time_default;
 
 #define CL_DISABLED		(1 << 21) /* Disabled in this configuration.  */
 #define CL_TARGET		(1 << 22) /* Target-specific option.  */
@@ -83,6 +85,8 @@ extern const char **in_fnames;
 
 extern unsigned num_in_fnames;
 
+size_t find_opt (const char *input, int lang_mask);
+extern void prune_options (int *argcp, char ***argvp);
 extern void decode_options (unsigned int argc, const char **argv);
 extern int option_enabled (int opt_idx);
 extern bool get_option_state (int, struct cl_option_state *);

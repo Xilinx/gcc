@@ -119,9 +119,6 @@ static void microblaze_asm_constructor          (rtx, int);
 static void microblaze_asm_destructor           (rtx, int);
 static void microblaze_select_section           (tree, int, 
 						 unsigned HOST_WIDE_INT);
-static void microblaze_select_rtx_section       (enum machine_mode, rtx, 
-						 unsigned HOST_WIDE_INT);
-static const char *microblaze_mode_to_mem_modifier (int, enum machine_mode);
 static bool microblaze_valid_base_register_p    (rtx, enum machine_mode, int);
 static bool microblaze_valid_index_register_p   (rtx, enum machine_mode, int);
 static bool microblaze_classify_address         (struct microblaze_address_info *,
@@ -152,6 +149,8 @@ static int microblaze_must_save_register 	(int);
 static bool microblaze_classify_unspec 		(struct microblaze_address_info *,
 						 rtx);
 static bool microblaze_elf_in_small_data_p      (tree);
+static int get_base_reg 			(rtx);
+static void microblaze_elf_asm_init_sections 	(void);
 
 /* Global variables for machine-dependent things.  */
 
@@ -346,8 +345,6 @@ enum reg_class microblaze_char_to_class[256] =
   NO_REGS,	NO_REGS,	NO_REGS,	NO_REGS,
 };
 
-int get_base_reg (rtx);
-static int printed = 0;
 
 /* Microblaze specific machine attributes.
    interrupt_handler - Interrupt handler attribute to add interrupt prologue 
@@ -365,6 +362,8 @@ const struct attribute_spec microblaze_attribute_table[] = {
 
 static int microblaze_interrupt_function_p (tree);
 static int microblaze_save_volatiles (tree);
+
+section *sdata2_section;
 
 #undef TARGET_ENCODE_SECTION_INFO
 #define TARGET_ENCODE_SECTION_INFO      microblaze_encode_section_info
@@ -398,9 +397,6 @@ static int microblaze_save_volatiles (tree);
 
 #undef TARGET_IN_SMALL_DATA_P
 #define TARGET_IN_SMALL_DATA_P          microblaze_elf_in_small_data_p
-
-#undef TARGET_ASM_SELECT_RTX_SECTION
-#define TARGET_ASM_SELECT_RTX_SECTION   microblaze_select_rtx_section
 
 #undef TARGET_ASM_SELECT_SECTION
 #define TARGET_ASM_SELECT_SECTION       microblaze_select_section
@@ -2154,23 +2150,23 @@ print_operand (FILE * file,	/* file to write to */
     {
       if (letter == 'h' || letter == 'j')
 	{
-	  int val[2];
+	  long val[2];
 	  if (GET_MODE (op) == DFmode)
 	    {
 	      REAL_VALUE_TYPE value;
 	      REAL_VALUE_FROM_CONST_DOUBLE (value, op);
-	      REAL_VALUE_TO_TARGET_DOUBLE (value, &val);
+	      REAL_VALUE_TO_TARGET_DOUBLE (value, val);
 	    }
 	  else
 	    {
 	      val[0] = CONST_DOUBLE_HIGH (op);
 	      val[1] = CONST_DOUBLE_LOW (op);
 	    }
-	  fprintf (file, "0x%8.8x", (letter == 'h') ? val[0] : val[1]);
+	  fprintf (file, "0x%8.8lx", (letter == 'h') ? val[0] : val[1]);
 	}
       else if (letter == 'F')
 	{
-	  unsigned int value_long;
+	  unsigned long value_long;
 	  REAL_VALUE_TYPE value;
 	  REAL_VALUE_FROM_CONST_DOUBLE (value, op);
 	  REAL_VALUE_TO_TARGET_SINGLE (value, value_long);
@@ -2387,7 +2383,7 @@ microblaze_asm_constructor (rtx symbol ATTRIBUTE_UNUSED, int priority)
       section = buf;
     }
 
-  named_section_flags (section, SECTION_WRITE);
+  switch_to_section (get_section (section, SECTION_WRITE, NULL));
   fputs ("\t.word\t", asm_out_file);
   output_addr_const (asm_out_file, symbol);
   fputs ("\n", asm_out_file);
@@ -2410,7 +2406,7 @@ microblaze_asm_destructor (rtx symbol, int priority)
       section = buf;
     }
 
-  named_section_flags (section, SECTION_WRITE);
+  switch_to_section (get_section (section, SECTION_WRITE, NULL));
   fputs ("\t.word\t", asm_out_file);
   output_addr_const (asm_out_file, symbol);
   fputs ("\n", asm_out_file);
@@ -3181,7 +3177,7 @@ microblaze_secondary_reload_class (enum reg_class class,
 
 /* Get the base register for accessing a value from the memory or
    Symbol ref. Used for Microblaze Small Data Area Pointer Optimization */
-int
+static int
 get_base_reg (rtx x)
 {
   tree decl;
@@ -3298,38 +3294,19 @@ microblaze_elf_in_small_data_p (tree decl)
   return (size > 0 && size <= microblaze_section_threshold);
 }
 
-/* A C statement or statements to switch to the appropriate section
-   for output of RTX in mode MODE.  You can assume that RTX is some
-   kind of constant in RTL.  The argument MODE is redundant except in
-   the case of a `const_int' rtx.  Select the section by calling
-   `text_section' or one of the alternatives for other sections.
-
-   Do not define this macro if you put all constants in the read-only
-   data section.  */
-
-static void
-microblaze_select_rtx_section (enum machine_mode mode, rtx x,
-			       unsigned HOST_WIDE_INT align)
-{
-  default_elf_select_rtx_section (mode, x, align);
-}
-
-/* A C statement or statements to switch to the appropriate
-   section for output of DECL.  DECL is either a `VAR_DECL' node
-   or a constant of some sort.  RELOC indicates whether forming
-   the initial value of DECL requires link-time relocations.  */
 
 static void
 microblaze_select_section (tree decl, int reloc, unsigned HOST_WIDE_INT align)
 {
-  switch (categorize_decl_for_section (decl, reloc, align))
+  switch (categorize_decl_for_section (decl, reloc))
     {
     case SECCAT_RODATA_MERGE_STR:
     case SECCAT_RODATA_MERGE_STR_INIT:
       /* MB binutils have various issues with mergeable string sections and
          relaxation/relocation. Currently, turning mergeable sections 
          into regular readonly sections. */
-      readonly_data_section ();
+
+      switch_to_section (readonly_data_section);
       return;
 
     default:
@@ -3605,4 +3582,24 @@ microblaze_return_addr (int count, rtx frame ATTRIBUTE_UNUSED)
 		       get_hard_reg_initial_val (Pmode,
 						 MB_ABI_SUB_RETURN_ADDR_REGNUM),
 		       GEN_INT (8));
+}
+
+/* Put string into .sdata2 if below threashold.  */
+void 
+microblaze_asm_output_ident (FILE *file ATTRIBUTE_UNUSED, const char *string)
+{
+  int size = strlen (string) + 1;
+  if (size <= microblaze_section_threshold)
+    switch_to_section (sdata2_section);
+  else
+    switch_to_section (readonly_data_section);
+  assemble_string (string, size);
+}
+
+static void
+microblaze_elf_asm_init_sections (void)
+{
+  sdata2_section
+    = get_unnamed_section (SECTION_WRITE, output_section_asm_op,
+			   SDATA2_SECTION_ASM_OP);
 }

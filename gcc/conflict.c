@@ -1,12 +1,12 @@
 /* Register conflict graph computation routines.
-   Copyright (C) 2000, 2003, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2000, 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
    Contributed by CodeSourcery, LLC
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,9 +15,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 /* References:
 
@@ -147,7 +146,7 @@ arc_eq (const void *arcp1, const void *arcp2)
 conflict_graph
 conflict_graph_new (int num_regs)
 {
-  conflict_graph graph = xmalloc (sizeof (struct conflict_graph_def));
+  conflict_graph graph = XNEW (struct conflict_graph_def);
   graph->num_regs = num_regs;
 
   /* Set up the hash table.  No delete action is specified; memory
@@ -159,7 +158,7 @@ conflict_graph_new (int num_regs)
   obstack_init (&graph->arc_obstack);
 	     
   /* Create and zero the lookup table by register number.  */
-  graph->neighbor_heads = xcalloc (num_regs, sizeof (conflict_graph_arc));
+  graph->neighbor_heads = XCNEWVEC (conflict_graph_arc, num_regs);
 
   return graph;
 }

@@ -3674,7 +3674,7 @@ EOF
       # Now hardcode the library paths
       rpath=
       hardcode_libdirs=
-      for libdir in $compile_rpath $finalize_rpath; do
+      for libdir in $compile_rpath; do
 	if test -n "$hardcode_libdir_flag_spec"; then
 	  if test -n "$hardcode_libdir_separator"; then
 	    if test -z "$hardcode_libdirs"; then
@@ -3839,7 +3839,13 @@ extern \"C\" {
 	    fi
 
 	    # Try sorting and uniquifying the output.
-	    if grep -v "^: " < "$nlist" | sort +2 | uniq > "$nlist"S; then
+	    if grep -v "^: " < "$nlist" |
+		if sort -k 3 </dev/null >/dev/null 2>&1; then
+		  sort -k 3
+		else
+		  sort +2
+		fi |
+		uniq > "$nlist"S; then
 	      :
 	    else
 	      grep -v "^: " < "$nlist" > "$nlist"S

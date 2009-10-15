@@ -1,5 +1,5 @@
 // -*- C++ -*- The GNU C++ exception personality routine.
-// Copyright (C) 2001, 2002, 2003, 2006 Free Software Foundation, Inc.
+// Copyright (C) 2001, 2002, 2003, 2006, 2008 Free Software Foundation, Inc.
 //
 // This file is part of GCC.
 //
@@ -26,7 +26,6 @@
 // the GNU General Public License.  This exception does not however
 // invalidate any other reasons why the executable file might be covered by
 // the GNU General Public License.
-
 
 #include <bits/c++config.h>
 #include <cstdlib>
@@ -327,6 +326,9 @@ empty_exception_spec (lsda_header_info *info, _Unwind_Sword filter_value)
   return tmp == 0;
 }
 
+namespace __cxxabiv1
+{
+
 // Using a different personality function name causes link failures
 // when trying to mix code using different exception handling models.
 #ifdef _GLIBCXX_SJLJ_EXCEPTIONS
@@ -365,6 +367,7 @@ PERSONALITY_FUNCTION (int version,
   int handler_switch_value;
   void* thrown_ptr = ue_header + 1;
   bool foreign_exception;
+  int ip_before_insn = 0;
 
 #ifdef __ARM_EABI_UNWINDER__
   _Unwind_Action actions;
@@ -431,7 +434,13 @@ PERSONALITY_FUNCTION (int version,
   // Parse the LSDA header.
   p = parse_lsda_header (context, language_specific_data, &info);
   info.ttype_base = base_of_encoded_value (info.ttype_encoding, context);
-  ip = _Unwind_GetIP (context) - 1;
+#ifdef _GLIBCXX_HAVE_GETIPINFO
+  ip = _Unwind_GetIPInfo (context, &ip_before_insn);
+#else
+  ip = _Unwind_GetIP (context);
+#endif
+  if (! ip_before_insn)
+    --ip;
   landing_pad = 0;
   action_record = 0;
   handler_switch_value = 0;
@@ -680,10 +689,10 @@ PERSONALITY_FUNCTION (int version,
   return _URC_INSTALL_CONTEXT;
 }
 
-/* The ARM EABI implementation of __cxa_call_unexpected is in a different
-   file so that the personality routine san be used standalone.  The generic
-   routine sahred datastructures with the PR so it is most convenient to
-   implement it here.  */
+/* The ARM EABI implementation of __cxa_call_unexpected is in a
+   different file so that the personality routine (PR) can be used
+   standalone.  The generic routine shared datastructures with the PR
+   so it is most convenient to implement it here.  */
 #ifndef __ARM_EABI_UNWINDER__
 extern "C" void
 __cxa_call_unexpected (void *exc_obj_in)
@@ -746,3 +755,5 @@ __cxa_call_unexpected (void *exc_obj_in)
     }
 }
 #endif
+
+} // namespace __cxxabiv1

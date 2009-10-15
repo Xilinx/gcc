@@ -1,5 +1,5 @@
 /* ViewportLayout.java --
-   Copyright (C) 2002, 2004 Free Software Foundation, Inc.
+   Copyright (C) 2002, 2004, 2006 Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -46,9 +46,16 @@ import java.awt.Rectangle;
 import java.io.Serializable;
 
 /**
- * ViewportLayout
- * @author	Andrew Selkirk
- * @author	Graydon Hoare
+ * The default layout for {@link JViewport}. The viewport makes its view the 
+ * same size as itself, but not smaller than its minimum size. 
+ * 
+ * If the port extends extends into space <em>past</em> the edge of the view,
+ * this layout manager moves the port up or to the left, in view space, by the
+ * amount of empty space (keep the lower and right edges lined up).
+ * 
+ * @author  Andrew Selkirk
+ * @author  Graydon Hoare
+ * @author  Audrius Meskauskas (audriusa@Bioinformatics.org)
  */
 public class ViewportLayout implements LayoutManager, Serializable
 {
@@ -58,17 +65,31 @@ public class ViewportLayout implements LayoutManager, Serializable
   {
     // Nothing to do here.
   }
-
+  
+  /**
+   * The method is not used with this manager.
+   */
   public void addLayoutComponent(String name, Component c) 
   {
     // Nothing to do here.
   }
 
+  /**
+   * The method is not used with this manager.
+   */
   public void removeLayoutComponent(Component c) 
   {
     // Nothing to do here.
   }
-
+  
+  /**
+   * Get the preferred layout size. If the view implements
+   * {@link Scrollable}, this method returns 
+   * {@link Scrollable#getPreferredScrollableViewportSize}.
+   * Otherwise, it returns {@link Component#getPreferredSize()}.
+   * 
+   * @return the preferred layout size, as described about.
+   */
   public Dimension preferredLayoutSize(Container parent) 
   {
     JViewport vp = (JViewport)parent;
@@ -83,98 +104,99 @@ public class ViewportLayout implements LayoutManager, Serializable
       return new Dimension();
   }
 
+  /**
+   * Get the minimum layout size. Normally this method returns the value,
+   * returned by the view method {@link Component#getMinimumSize()}.
+   * 
+   * If the view is not set, the zero size is returned. 
+   *
+   * @param parent the viewport
+   * @return the minimum layout size.
+   */
   public Dimension minimumLayoutSize(Container parent) 
   {
-    JViewport vp = (JViewport)parent;
-    Component view = vp.getView();
-    if (view != null)
-      return view.getMinimumSize();
-    else
-      return new Dimension();
+    // These values have been determined by the Mauve test for this method.
+    return new Dimension(4, 4);
   }
 
   /**
-   * Layout the view and viewport to respect the following rules. These are
-   * not precisely the rules described in sun's javadocs, but they are the
-   * rules which sun's swing implementation follows, if you watch its
-   * behavior:
-   *
-   * <ol> 
-   * 
-   * <li>If the port is larger than the view's minimum size, put the port
-   * at view position <code>(0,0)</code> and make the view's size equal to
-   * the port's.</li>
-   *
-   * <li>If the port is smaller than the view, leave the view at its
-   * minimum size. also, do not move the port, <em>unless</em> the port
-   * extends into space <em>past</em> the edge of the view. If so, move the
-   * port up or to the left, in view space, by the amount of empty space
-   * (keep the lower and right edges lined up)</li>
-   *
+   * Layout the view and viewport to respect the following rules. These are not
+   * precisely the rules described in sun's javadocs, but they are the rules
+   * which sun's swing implementation follows, if you watch its behavior:
+   * <ol>
+   * <li>If the port is smaller than the view, leave the view at its current
+   * size.</li>
+   * <li>If the view is smaller than the port, the view is top aligned.</li>
+   * <li>If the view tracks the port size, the view position is always zero and
+   * the size equal to the viewport size</li>
+   * <li>In {@link JViewport#setViewSize(Dimension)}, the view size is never
+   * set smaller that its minimum size.</li>
    * </ol>
-   *
+   * 
    * @see JViewport#getViewSize
    * @see JViewport#setViewSize
    * @see JViewport#getViewPosition
    * @see JViewport#setViewPosition
    */
-
-  public void layoutContainer(Container parent) 
+  public void layoutContainer(Container parent)
   {
     // The way to interpret this function is basically to ignore the names
     // of methods it calls, and focus on the variable names here. getViewRect
     // doesn't, for example, return the view; it returns the port bounds in
-    // view space. Likwise setViewPosition doesn't reposition the view; it 
+    // view space. Likwise setViewPosition doesn't reposition the view; it
     // positions the port, in view coordinates.
 
-    JViewport port = (JViewport) parent;    
+    JViewport port = (JViewport) parent;
     Component view = port.getView();
-    
+
     if (view == null)
       return;
 
-    // These dimensions and positions are in *view space*.  Do not mix
+    // These dimensions and positions are in *view space*. Do not mix
     // variables in here from port space (eg. parent.getBounds()). This
     // function should be entirely in view space, because the methods on
     // the viewport require inputs in view space.
 
     Rectangle portBounds = port.getViewRect();
-    Dimension viewPref = view.getPreferredSize();
-    Dimension viewMinimum = view.getMinimumSize();
+    Dimension viewPref = new Dimension(view.getPreferredSize());
+
     Point portLowerRight = new Point(portBounds.x + portBounds.width,
                                      portBounds.y + portBounds.height);
-        
+
     // vertical implementation of the above rules
-    if (portBounds.height >= viewMinimum.height)
+    if (view instanceof Scrollable)
       {
-        portBounds.y = 0;
-        if ( !(view instanceof Scrollable) || ((Scrollable)view).getScrollableTracksViewportHeight())
-          viewPref.height = portBounds.height;
-      }
-    else
-      {
-        viewPref.height = viewMinimum.height;
-        int overextension = portLowerRight.y - viewPref.height;
-        if (overextension > 0)
-            portBounds.y -= overextension;
+        Scrollable sView = (Scrollable) view;
+
+        // If the view size matches viewport size, the port offset can
+        // only be zero.
+        if (sView.getScrollableTracksViewportWidth())
+          {
+            viewPref.width = portBounds.width;
+            portBounds.x = 0;
+          }
+        if (sView.getScrollableTracksViewportHeight())
+          {
+            viewPref.height = portBounds.height;
+            portBounds.y = 0;
+          }
       }
 
-    // horizontal implementation of the above rules
-    if (portBounds.width >= viewMinimum.width)
-      {
-        portBounds.x = 0;
-        if ( !(view instanceof Scrollable) || ((Scrollable)view).getScrollableTracksViewportWidth())
-          viewPref.width = portBounds.width;
-      }
-    else
-      {
-        viewPref.width = viewMinimum.width;
-        int overextension = portLowerRight.x - viewPref.width;
-        if (overextension > 0)
-            portBounds.x -= overextension;
-      }
+     if (viewPref.width < portBounds.width)
+       viewPref.width = portBounds.width;
+     if (viewPref.height < portBounds.height)
+       viewPref.height = portBounds.height;
 
-    port.setViewPosition(portBounds.getLocation());
+    // If the view is larger than the port, the port is top and right
+    // aligned.
+    if (portLowerRight.x > viewPref.width)
+      portBounds.x = 0;
+
+    if (portLowerRight.y > viewPref.height)
+      portBounds.y = 0;
+
     port.setViewSize(viewPref);
+    port.setViewPosition(portBounds.getLocation());
   }
+
 }

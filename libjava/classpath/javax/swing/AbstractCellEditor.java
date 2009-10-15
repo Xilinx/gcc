@@ -1,5 +1,5 @@
 /* AbstractCellEditor.java --
-   Copyright (C) 2002, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2002, 2004, 2005, 2006, Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -69,10 +69,11 @@ public abstract class AbstractCellEditor
   /**
    * Creates a new instance of AbstractCellEditor.
    */
-  public AbstractCellEditor() {
+  public AbstractCellEditor() 
+  {
     listenerList = new EventListenerList();
     changeEvent = new ChangeEvent(this);
-  } // AbstractCellEditor()
+  }
 
   /**
    * Returns <code>true</code> if the cell is editable using
@@ -84,9 +85,10 @@ public abstract class AbstractCellEditor
    * @return <code>true</code> if the cell is editable using
    *     <code>event</code>, <code>false</code> if it's not
    */
-  public boolean isCellEditable(EventObject event) {
+  public boolean isCellEditable(EventObject event) 
+  {
     return true;
-  } // isCellEditable()
+  } 
 
   /**
    * Returns <code>true</code> if the editing cell should be selected,
@@ -99,29 +101,32 @@ public abstract class AbstractCellEditor
    * @return <code>true</code> if the editing cell should be selected,
    *     <code>false</code> otherwise
    */
-  public boolean shouldSelectCell(EventObject event) {
+  public boolean shouldSelectCell(EventObject event) 
+  {
     return true;
-  } // shouldSelectCell()
+  }
 
   /**
    * Stop editing the cell and accept any partial value that has been entered
    * into the cell.
    *
-   * @returns <code>true</code> if editing has been stopped successfully,
+   * @return <code>true</code> if editing has been stopped successfully,
    *     <code>false</code>otherwise
    */
-  public boolean stopCellEditing() {
+  public boolean stopCellEditing() 
+  {
     fireEditingStopped();
     return true;
-  } // stopCellEditing()
+  }
 
   /**
    * Stop editing the cell and do not accept any partial value that has
    * been entered into the cell.
    */
-  public void cancelCellEditing() {
+  public void cancelCellEditing() 
+  {
     fireEditingCanceled();
-  } // cancelCellEditing()
+  } 
 
   /**
    * Adds a CellEditorListener to the list of CellEditorListeners of this
@@ -129,9 +134,9 @@ public abstract class AbstractCellEditor
    *
    * @param listener the CellEditorListener to add
    */
-  public void addCellEditorListener (CellEditorListener listener)
+  public void addCellEditorListener(CellEditorListener listener)
   {
-    listenerList.add (CellEditorListener.class, listener);
+    listenerList.add(CellEditorListener.class, listener);
   }
 
   /**
@@ -140,9 +145,9 @@ public abstract class AbstractCellEditor
    *
    * @param listener the CellEditorListener to remove
    */
-  public void removeCellEditorListener (CellEditorListener listener)
+  public void removeCellEditorListener(CellEditorListener listener)
   {
-    listenerList.remove (CellEditorListener.class, listener);
+    listenerList.remove(CellEditorListener.class, listener);
   }
 	
   /**
@@ -156,8 +161,8 @@ public abstract class AbstractCellEditor
    */
   public CellEditorListener[] getCellEditorListeners()
   {
-    return (CellEditorListener[]) listenerList.getListeners
-      (CellEditorListener.class);
+    return (CellEditorListener[]) listenerList.getListeners(
+        CellEditorListener.class);
   }
 
   /**

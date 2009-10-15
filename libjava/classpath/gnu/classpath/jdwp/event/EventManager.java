@@ -1,5 +1,5 @@
 /* EventManager.java -- event management and notification infrastructure
-   Copyright (C) 2005 Free Software Foundation
+   Copyright (C) 2005, 2006 Free Software Foundation
 
 This file is part of GNU Classpath.
 
@@ -41,6 +41,7 @@ package gnu.classpath.jdwp.event;
 
 import gnu.classpath.jdwp.VMVirtualMachine;
 import gnu.classpath.jdwp.exception.InvalidEventTypeException;
+import gnu.classpath.jdwp.exception.JdwpException;
 
 import java.util.Collection;
 import java.util.Hashtable;
@@ -55,7 +56,7 @@ import java.util.Iterator;
  * 2) Filter event notifications from the VM
  * 
  * If an event request arrives from the debugger, the back-end will
- * call {@link #reqestEvent}, which will first check for a valid event.
+ * call {@link #requestEvent}, which will first check for a valid event.
  * If it is valid, <code>EventManager</code> will record the request
  * internally and register the event with the virtual machine, which may
  * choose to handle the request itself (as is likely the case with
@@ -68,7 +69,7 @@ import java.util.Iterator;
 public class EventManager
 {
   // Single instance
-  private static EventManager _instance = new EventManager ();
+  private static EventManager _instance = null;
 
   // maps event (EVENT_*) to lists of EventRequests
   private Hashtable _requests = null;
@@ -78,8 +79,11 @@ public class EventManager
    *
    * @return the event manager
    */
-  public static EventManager getDefault ()
+  public static EventManager getDefault()
   {
+    if (_instance == null)
+      _instance = new EventManager();
+
     return _instance;
   }
 
@@ -133,7 +137,7 @@ public class EventManager
 					EventRequest.EVENT_VM_DEATH,
 					EventRequest.SUSPEND_NONE));
       }
-    catch (InvalidEventTypeException e)
+    catch (JdwpException e)
       {
 	// This can't happen
       }
@@ -187,9 +191,10 @@ public class EventManager
    *
    * @param request  the request to monitor
    * @throws InvalidEventTypeException for invalid event kind
+   * @throws JdwpException for other errors involving request
    */
   public void requestEvent (EventRequest request)
-    throws InvalidEventTypeException
+    throws JdwpException
   {
     // Add request to request list
     Hashtable requests;
@@ -212,8 +217,10 @@ public class EventManager
    * @param  kind  the event kind
    * @param  id    the ID of the request to delete
    * @throws IllegalArgumentException for invalid event kind
+   * @throws JdwpException for other errors deleting request
    */
   public void deleteRequest (byte kind, int id)
+    throws JdwpException
   {
     Hashtable requests;
     requests = (Hashtable) _requests.get (new Byte (kind));
@@ -237,8 +244,10 @@ public class EventManager
    *
    * @param  kind  the event kind
    * @throws IllegalArgumentException for invalid event kind
+   * @throws JdwpException for error clearing events
    */
   public void clearRequests (byte kind)
+    throws JdwpException
   {
     Hashtable requests = (Hashtable) _requests.get (new Byte (kind));
     if (requests == null)

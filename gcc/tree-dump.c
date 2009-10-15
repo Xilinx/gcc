@@ -1,5 +1,5 @@
 /* Tree-dumping functionality for intermediate representation.
-   Copyright (C) 1999, 2000, 2002, 2003, 2004, 2005
+   Copyright (C) 1999, 2000, 2002, 2003, 2004, 2005, 2006, 2007
    Free Software Foundation, Inc.
    Written by Mark Mitchell <mark@codesourcery.com>
 
@@ -7,7 +7,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -16,9 +16,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -32,6 +31,7 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 #include "tree-pass.h"
 #include "langhooks.h"
 #include "tree-iterator.h"
+#include "real.h"
 
 static unsigned int queue (dump_info_p, tree, int);
 static void dump_index (dump_info_p, unsigned int);
@@ -60,10 +60,10 @@ queue (dump_info_p di, tree t, int flags)
       di->free_list = dq->next;
     }
   else
-    dq = xmalloc (sizeof (struct dump_queue));
+    dq = XNEW (struct dump_queue);
 
   /* Create a new entry in the splay-tree.  */
-  dni = xmalloc (sizeof (struct dump_node_info));
+  dni = XNEW (struct dump_node_info);
   dni->index = index;
   dni->binfo_p = ((flags & DUMP_BINFO) != 0);
   dq->node = splay_tree_insert (di->nodes, (splay_tree_key) t,
@@ -178,6 +178,19 @@ dump_int (dump_info_p di, const char *field, int i)
   fprintf (di->stream, "%-4s: %-7d ", field, i);
   di->column += 14;
 }
+
+/* Dump the floating point value R, using FIELD to identify it.  */
+
+static void
+dump_real (dump_info_p di, const char *field, const REAL_VALUE_TYPE *r)
+{
+  char buf[32];
+  real_to_decimal (buf, r, sizeof (buf), 0, true);
+  dump_maybe_newline (di);
+  fprintf (di->stream, "%-4s: %s ", field, buf);
+  di->column += strlen (buf) + 7;
+}
+
 
 /* Dump the string S.  */
 
@@ -343,7 +356,8 @@ dequeue_and_dump (dump_info_p di)
 	  di->column += 6 + strlen (filename) + 8;
 	}
       /* And any declaration can be compiler-generated.  */
-      if (DECL_ARTIFICIAL (t))
+      if (CODE_CONTAINS_STRUCT (TREE_CODE (t), TS_DECL_COMMON)
+	  && DECL_ARTIFICIAL (t))
 	dump_string_field (di, "note", "artificial");
       if (TREE_CHAIN (t) && !dump_flag (di, TDF_SLIM, NULL))
 	dump_child ("chan", TREE_CHAIN (t));
@@ -476,6 +490,11 @@ dequeue_and_dump (dump_info_p di)
     case CONST_DECL:
       dump_child ("cnst", DECL_INITIAL (t));
       break;
+      
+    case SYMBOL_MEMORY_TAG:
+    case NAME_MEMORY_TAG:
+    case STRUCT_FIELD_TAG:
+      break;
 
     case VAR_DECL:
     case PARM_DECL:
@@ -523,6 +542,10 @@ dequeue_and_dump (dump_info_p di)
     case STRING_CST:
       fprintf (di->stream, "strg: %-7s ", TREE_STRING_POINTER (t));
       dump_int (di, "lngt", TREE_STRING_LENGTH (t));
+      break;
+
+    case REAL_CST:
+      dump_real (di, "valu", TREE_REAL_CST_PTR (t));
       break;
 
     case TRUTH_NOT_EXPR:
@@ -647,6 +670,14 @@ dequeue_and_dump (dump_info_p di)
       	  dump_child ("labl", TREE_OPERAND (t,2));
         }
       break;
+    case OMP_CLAUSE:
+      {
+	int i;
+	fprintf (di->stream, "%s\n", omp_clause_code_name[OMP_CLAUSE_CODE (t)]);
+	for (i = 0; i < omp_clause_num_ops[OMP_CLAUSE_CODE (t)]; i++)
+	  dump_child ("op: ", OMP_CLAUSE_OPERAND (t, i));
+      }
+      break;
     default:
       /* There are no additional fields to print.  */
       break;
@@ -707,22 +738,23 @@ dump_node (tree t, int flags, FILE *stream)
 
 
 /* Table of tree dump switches. This must be consistent with the
-   TREE_DUMP_INDEX enumeration in tree.h */
+   TREE_DUMP_INDEX enumeration in tree.h.  */
 static struct dump_file_info dump_files[TDI_end] =
 {
   {NULL, NULL, NULL, 0, 0, 0, 0},
-  {".tu", "translation-unit", NULL, TDF_TREE, 0, 0, 0},
-  {".class", "class-hierarchy", NULL, TDF_TREE, 0, 1, 0},
-  {".original", "tree-original", NULL, TDF_TREE, 0, 2, 0},
-  {".gimple", "tree-gimple", NULL, TDF_TREE, 0, 3, 0},
-  {".nested", "tree-nested", NULL, TDF_TREE, 0, 4, 0},
-  {".inlined", "tree-inlined", NULL, TDF_TREE, 0, 5, 0},
-  {".vcg", "tree-vcg", NULL, TDF_TREE, 0, 6, 0},
+  {".cgraph", "ipa-cgraph", NULL, TDF_IPA, 0,  0, 0},
+  {".tu", "translation-unit", NULL, TDF_TREE, 0, 1, 0},
+  {".class", "class-hierarchy", NULL, TDF_TREE, 0, 2, 0},
+  {".original", "tree-original", NULL, TDF_TREE, 0, 3, 0},
+  {".gimple", "tree-gimple", NULL, TDF_TREE, 0, 4, 0},
+  {".nested", "tree-nested", NULL, TDF_TREE, 0, 5, 0},
+  {".inlined", "tree-inlined", NULL, TDF_TREE, 0, 6, 0},
+  {".vcg", "tree-vcg", NULL, TDF_TREE, 0, 7, 0},
+#define FIRST_AUTO_NUMBERED_DUMP 8
+
   {NULL, "tree-all", NULL, TDF_TREE, 0, 0, 0},
   {NULL, "rtl-all", NULL, TDF_RTL, 0, 0, 0},
   {NULL, "ipa-all", NULL, TDF_IPA, 0, 0, 0},
-
-  { ".cgraph", "ipa-cgraph", NULL,	TDF_IPA, 0,  0, 0},
 };
 
 /* Dynamically registered tree dump files and switches.  */
@@ -758,8 +790,11 @@ static const struct dump_option_value_info dump_options[] =
 
 unsigned int
 dump_register (const char *suffix, const char *swtch, const char *glob,
-	       int flags, unsigned int num, int letter)
+	       int flags, int letter)
 {
+  static int next_dump = FIRST_AUTO_NUMBERED_DUMP;
+  int num = next_dump++;
+
   size_t this = extra_dump_files_in_use++;
 
   if (this >= extra_dump_files_alloced)
@@ -805,7 +840,7 @@ get_dump_file_info (enum tree_dump_index phase)
 char *
 get_dump_file_name (enum tree_dump_index phase)
 {
-  char dump_id[7];
+  char dump_id[10];
   struct dump_file_info *dfi;
 
   if (phase == TDI_none)
@@ -819,15 +854,15 @@ get_dump_file_name (enum tree_dump_index phase)
     dump_id[0] = '\0';
   else
     {
-      const char *template;
+      char suffix;
       if (dfi->flags & TDF_TREE)
-	template = ".t%02d";
+	suffix = 't';
       else if (dfi->flags & TDF_IPA)
-	template = ".i%02d";
+	suffix = 'i';
       else
-	template = ".%02d";
+	suffix = 'r';
 
-      if (snprintf (dump_id, sizeof (dump_id), template, dfi->num) < 0)
+      if (snprintf (dump_id, sizeof (dump_id), ".%03d%c", dfi->num, suffix) < 0)
 	dump_id[0] = '\0';
     }
 
@@ -920,24 +955,25 @@ dump_end (enum tree_dump_index phase ATTRIBUTE_UNUSED, FILE *stream)
 static int
 dump_enable_all (int flags, int letter)
 {
+  int ir_type = (flags & (TDF_TREE | TDF_RTL | TDF_IPA));
   int n = 0;
   size_t i;
 
   for (i = TDI_none + 1; i < (size_t) TDI_end; i++)
-    if ((dump_files[i].flags & flags)
+    if ((dump_files[i].flags & ir_type)
 	&& (letter == 0 || letter == dump_files[i].letter))
       {
         dump_files[i].state = -1;
-        dump_files[i].flags = flags;
+        dump_files[i].flags |= flags;
         n++;
       }
 
   for (i = 0; i < extra_dump_files_in_use; i++)
-    if ((extra_dump_files[i].flags & flags)
+    if ((extra_dump_files[i].flags & ir_type)
 	&& (letter == 0 || letter == extra_dump_files[i].letter))
       {
         extra_dump_files[i].state = -1;
-        extra_dump_files[i].flags = flags;
+        extra_dump_files[i].flags |= flags;
 	n++;
       }
 
@@ -1048,7 +1084,7 @@ enable_rtl_dump_file (int letter)
   if (letter == 'a')
     letter = 0;
 
-  return dump_enable_all (TDF_RTL, letter) > 0;
+  return dump_enable_all (TDF_RTL | TDF_DETAILS | TDF_BLOCKS, letter) > 0;
 }
 
 

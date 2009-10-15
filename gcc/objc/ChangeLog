@@ -1,6 +1,30 @@
-2007-02-13  Release Manager
+2008-05-19  Release Manager
 
-	* GCC 4.1.2 released.
+	* GCC 4.2.4 released.
+
+2008-02-01  Release Manager
+
+	* GCC 4.2.3 released.
+
+2007-10-07  Release Manager
+
+	* GCC 4.2.2 released.
+
+2007-08-29  Nick Clifton  <nickc@redhat.com>
+
+	*  Make-lang.in: Change copyright header to refer to version 3 of
+	the GNU General Public License and to point readers at the
+	COPYING3 file and the FSF's license web page.
+	* lang-specs.h, objc-act.c, objc-tree.def, objc-act.h,
+	config-lang.in, objc-lang.c: Likewise.
+
+2007-07-19  Release Manager
+
+	* GCC 4.2.1 released.
+
+2007-05-13  Release Manager
+
+	* GCC 4.2.0 released.
 
 2007-01-23  Andrew Pinski  <pinskia@gmail.com>
 
@@ -8,7 +32,7 @@
 	* objc-act.c (objc_add_static_instance): Mark the decl as
 	TREE_USED.
 
-2007-01-21  Andrew Pinski  <pinskia@gmail.com>
+2007-01-20  Andrew Pinski  <pinskia@gmail.com>
 
 	PR objc/30479
 	* objc-act.c (hash_interface): Use IDENTIFIER_HASH_VALUE instead
@@ -16,24 +40,82 @@
 	(lookup_interface): Likewise.
 	(add_class): Likewise.
 
-2006-10-03  Andrew Pinski  <pinskia@physics.uc.edu>
+2006-10-10  Brooks Moses  <bmoses@stanford.edu>
+
+	* Make-lang.in: Added empty "objc.pdf" target.
+
+2006-09-26  Andrew Pinski  <pinskia@physics.uc.edu>
 
 	PR objc/29195
 	* objc-act.c (objc_push_parm): If we change the type of the
 	decl, relayout the decl.
 
-2006-05-24  Release Manager
+2006-09-19  Eric Christopher  <echristo@apple.com>
 
-	* GCC 4.1.1 released.
+	* objc-act.c (JBLEN): Rename to OBJC_JBLEN,
+	default to something innocuous.
+	(build_next_objc_exception_stuff): Rename JBLEN.
+
+2006-07-28  Volker Reichelt  <reichelt@igpm.rwth-aachen.de>
+
+	* Make-lang.in: Use $(HEADER_H) instead of header.h in dependencies.
+
+2006-07-19  Volker Reichelt  <reichelt@igpm.rwth-aachen.de>
+
+	PR obj-c++/28434
+	* objc-act.c (lookup_and_install_protocols): Skip error_mark_nodes.
+
+2006-06-06  Mike Stump  <mrs@apple.com>
+
+	* objc-act.c: Remove prototype for objc_build_volatilized_type.
+
+2006-05-24  Mike Stump  <mrs@apple.com>
+
+	* objc-act.c (build_next_objc_exception_stuff): Use JBLEN instead of _JBLEN.
 
 2006-05-05  Volker Reichelt  <reichelt@igpm.rwth-aachen.de>
 
 	PR objc/27240
 	* objc-act.c (objc_is_public): Return early on invalid type.
 
-2006-02-28  Release Manager
+2006-03-02 Fariborz Jahanian <fjahanian@apple.com>
 
-	* GCC 4.1.0 released.
+	* objc-act.c (init_module_descriptor): Remove file name from
+	module descriptor.
+	(gen_type_name_0): Fix ICE when issuing warning.
+
+2006-02-20 Rafael Ávila de Espíndola <rafael.espindola@gmail.com>
+	* Make-lang.in (OBJC): Remove
+	(OBJECTIVE-C): Remove
+	(objective-c): Remove
+	(.PHONY): Remove objective-c and ObjC
+
+2005-12-14  Andrew Pinski  <pinskia@physics.uc.edu>
+
+	PR objc/25360
+	* objc/objc-act.c (encode_type): Encode Complex types as 'j' followed
+	by the inner type.
+
+2005-12-12  Andrew Pinski  <pinskia@physics.uc.edu>
+
+	PR objc/25348
+	* objc-act.c (encode_array): Handle arrays to zero sized types.
+
+2005-12-07  Rafael Ávila de Espíndola  <rafael.espindola@gmail.com>
+
+	* Make-lang.in (objc.all.build, objc.install-normal): Remove.
+
+2005-12-07  Rafael Ávila de Espíndola  <rafael.espindola@gmail.com>
+
+	* Make-lang.in: Remove all dependencies on s-gtype.
+
+2005-12-02  Richard Guenther  <rguenther@suse.de>
+
+	* objc-act.c (objc_build_exc_ptr, next_sjlj_build_enter_and_setjmp
+	next_sjlj_build_exc_extract, next_sjlj_build_catch_list,
+	next_sjlj_build_try_catch_finally, objc_begin_catch_clause,
+	build_objc_method_call, objc_rewrite_function_call): Use buildN
+	instead of build.
 
 2005-10-20  Geoffrey Keating  <geoffk@apple.com>
 
@@ -42,7 +124,7 @@
 
 2005-10-17  Andreas Krebbel  <krebbel1@de.ibm.com>
 
-	* objc-act.c (objc_build_component_ref): Adjust call to 
+	* objc-act.c (objc_build_component_ref): Adjust call to
 	finish_class_member_access_expr due to a changed prototype.
 
 2005-08-31  Andrew Pinski  <pinskia@physics.uc.edu>
@@ -71,7 +153,7 @@
 	instead of build_constructor.
 
 2005-07-08  Daniel Berlin  <dberlin@dberlin.org>
-	
+
 	* objc-act.c (objc_push_parm): DECL_ARG_TYPE_AS_WRITTEN is
 	removed.
 	* objc-act.h (KEYWORD_ARG_NAME): Use decl_non_common.
@@ -376,7 +458,7 @@
 
 	* objc-act.c (objc_finish_file): In ObjC++ mode, set at_eof before
 	calling instantiate_pending_templates.
-	
+
 2005-01-26  Alexander Malmberg  <alexander@malmberg.org>
 
 	PR objc/18862
@@ -452,7 +534,7 @@
 	(objc_types_are_equivalent): Check TYPE_HAS_OBJC_INFO(...) before
 	accessing TYPE_OBJC_PROTOCOL_LIST.
 	* objc-act.h (OBJC_INFO_SLOT_ELTS, TYPE_OBJC_INFO, INIT_TYPE_OBJC_INFO,
-	DUP_TYPE_OBJC_INFO, ALLOC_OBJC_TYPE_LANG_SPECIFIC, 
+	DUP_TYPE_OBJC_INFO, ALLOC_OBJC_TYPE_LANG_SPECIFIC,
 	SIZEOF_OBJC_TYPE_LANG_SPECIFIC): New macros.
 	(TYPE_OBJC_INTERFACE): Replaces TREE_STATIC_INSTANCE and now points
 	to an actual @interface; stored in TYPE_LANG_SPECIFIC(...).

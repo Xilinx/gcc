@@ -1,12 +1,12 @@
 /* Implementation of subroutines for the GNU C++ pretty-printer.
-   Copyright (C) 2003, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
    Contributed by Gabriel Dos Reis <gdr@integrable-solutions.net>
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,9 +15,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -44,6 +43,7 @@ static void pp_cxx_abstract_declarator (cxx_pretty_printer *, tree);
 static void pp_cxx_statement (cxx_pretty_printer *, tree);
 static void pp_cxx_template_parameter (cxx_pretty_printer *, tree);
 static void pp_cxx_cast_expression (cxx_pretty_printer *, tree);
+static void pp_cxx_typeid_expression (cxx_pretty_printer *, tree);
 
 
 static inline void
@@ -204,6 +204,18 @@ pp_cxx_unqualified_id (cxx_pretty_printer *pp, tree t)
       pp_cxx_unqualified_id (pp, TEMPLATE_PARM_DECL (t));
       break;
 
+    case UNBOUND_CLASS_TEMPLATE:
+      pp_cxx_unqualified_id (pp, TYPE_NAME (t));
+      break;
+
+    case BOUND_TEMPLATE_TEMPLATE_PARM:
+      pp_cxx_cv_qualifier_seq (pp, t);
+      pp_cxx_unqualified_id (pp, TYPE_IDENTIFIER (t));
+      pp_cxx_begin_template_argument_list (pp);
+      pp_cxx_template_argument_list (pp, TYPE_TI_ARGS (t));
+      pp_cxx_end_template_argument_list (pp);
+      break;
+ 
     default:
       pp_unsupported_tree (pp, t);
       break;
@@ -292,6 +304,29 @@ pp_cxx_qualified_id (cxx_pretty_printer *pp, tree t)
     }
 }
 
+
+static void
+pp_cxx_constant (cxx_pretty_printer *pp, tree t)
+{
+  switch (TREE_CODE (t))
+    {
+    case STRING_CST:
+      {
+	const bool in_parens = PAREN_STRING_LITERAL_P (t);
+	if (in_parens)
+	  pp_cxx_left_paren (pp);
+	pp_c_constant (pp_c_base (pp), t);
+	if (in_parens)
+	  pp_cxx_right_paren (pp);
+      }
+      break;
+
+    default:
+      pp_c_constant (pp_c_base (pp), t);
+      break;
+    }
+}
+
 /* id-expression:
       unqualified-id
       qualified-id   */
@@ -314,17 +349,20 @@ pp_cxx_id_expression (cxx_pretty_printer *pp, tree t)
      :: operator-function-id
      :: qualifier-id
      ( expression )
-     id-expression   */
+     id-expression
+
+   GNU Extensions:
+     __builtin_va_arg ( assignment-expression , type-id )  */
 
 static void
 pp_cxx_primary_expression (cxx_pretty_printer *pp, tree t)
 {
   switch (TREE_CODE (t))
     {
-    case STRING_CST:
     case INTEGER_CST:
     case REAL_CST:
-      pp_c_constant (pp_c_base (pp), t);
+    case STRING_CST:
+      pp_cxx_constant (pp, t);
       break;
 
     case BASELINK:
@@ -350,6 +388,10 @@ pp_cxx_primary_expression (cxx_pretty_printer *pp, tree t)
       pp_cxx_left_paren (pp);
       pp_cxx_statement (pp, STMT_EXPR_STMT (t));
       pp_cxx_right_paren (pp);
+      break;
+
+    case VA_ARG_EXPR:
+      pp_cxx_va_arg_expression (pp, t);
       break;
 
     default:
@@ -478,14 +520,7 @@ pp_cxx_postfix_expression (cxx_pretty_printer *pp, tree t)
       break;
 
     case TYPEID_EXPR:
-      t = TREE_OPERAND (t, 0);
-      pp_cxx_identifier (pp, "typeid");
-      pp_left_paren (pp);
-      if (TYPE_P (t))
-	pp_cxx_type_id (pp, t);
-      else
-	pp_cxx_expression (pp, t);
-      pp_right_paren (pp);
+      pp_cxx_typeid_expression (pp, t);
       break;
 
     case PSEUDO_DTOR_EXPR:
@@ -581,10 +616,13 @@ pp_cxx_delete_expression (cxx_pretty_printer *pp, tree t)
       if (DELETE_EXPR_USE_GLOBAL (t))
 	pp_cxx_colon_colon (pp);
       pp_cxx_identifier (pp, "delete");
-      if (code == VEC_DELETE_EXPR)
+      pp_space (pp);
+      if (code == VEC_DELETE_EXPR
+	  || DELETE_EXPR_USE_VEC (t))
 	{
 	  pp_left_bracket (pp);
 	  pp_right_bracket (pp);
+	  pp_space (pp);
 	}
       pp_c_cast_expression (pp_c_base (pp), TREE_OPERAND (t, 0));
       break;
@@ -848,7 +886,7 @@ pp_cxx_expression (cxx_pretty_printer *pp, tree t)
     case STRING_CST:
     case INTEGER_CST:
     case REAL_CST:
-      pp_c_constant (pp_c_base (pp), t);
+      pp_cxx_constant (pp, t);
       break;
 
     case RESULT_DECL:
@@ -939,7 +977,7 @@ pp_cxx_expression (cxx_pretty_printer *pp, tree t)
 
     case NON_DEPENDENT_EXPR:
     case MUST_NOT_THROW_EXPR:
-      pp_cxx_expression (pp, t);
+      pp_cxx_expression (pp, TREE_OPERAND (t, 0));
       break;
 
     default:
@@ -1734,7 +1772,7 @@ pp_cxx_namespace_alias_definition (cxx_pretty_printer *pp, tree t)
   pp_equal (pp);
   pp_cxx_whitespace (pp);
   if (DECL_CONTEXT (DECL_NAMESPACE_ALIAS (t)))
-    pp_cxx_nested_name_specifier (pp, 
+    pp_cxx_nested_name_specifier (pp,
 				  DECL_CONTEXT (DECL_NAMESPACE_ALIAS (t)));
   pp_cxx_qualified_id (pp, DECL_NAMESPACE_ALIAS (t));
   pp_cxx_semicolon (pp);
@@ -1780,8 +1818,7 @@ pp_cxx_template_parameter_list (cxx_pretty_printer *pp, tree t)
      typename identifier(opt)
      typename identifier(opt) = type-id
      template < template-parameter-list > class identifier(opt)
-     template < template-parameter-list > class identifier(opt) = template-name
-*/
+     template < template-parameter-list > class identifier(opt) = template-name  */
 
 static void
 pp_cxx_template_parameter (cxx_pretty_printer *pp, tree t)
@@ -1935,6 +1972,30 @@ pp_cxx_declaration (cxx_pretty_printer *pp, tree t)
     }
 }
 
+static void
+pp_cxx_typeid_expression (cxx_pretty_printer *pp, tree t)
+{
+  t = TREE_OPERAND (t, 0);
+  pp_cxx_identifier (pp, "typeid");
+  pp_cxx_left_paren (pp);
+  if (TYPE_P (t))
+    pp_cxx_type_id (pp, t);
+  else
+    pp_cxx_expression (pp, t);
+  pp_cxx_right_paren (pp);
+}
+
+void
+pp_cxx_va_arg_expression (cxx_pretty_printer *pp, tree t)
+{
+  pp_cxx_identifier (pp, "va_arg");
+  pp_cxx_left_paren (pp);
+  pp_cxx_assignment_expression (pp, TREE_OPERAND (t, 0));
+  pp_cxx_separate_with (pp, ',');
+  pp_cxx_type_id (pp, TREE_TYPE (t));
+  pp_cxx_right_paren (pp);
+}
+
 
 typedef c_pretty_print_fn pp_fun;
 
@@ -1961,6 +2022,7 @@ pp_cxx_pretty_printer_init (cxx_pretty_printer *pp)
 
   /* pp->c_base.statement = (pp_fun) pp_cxx_statement;  */
 
+  pp->c_base.constant = (pp_fun) pp_cxx_constant;
   pp->c_base.id_expression = (pp_fun) pp_cxx_id_expression;
   pp->c_base.primary_expression = (pp_fun) pp_cxx_primary_expression;
   pp->c_base.postfix_expression = (pp_fun) pp_cxx_postfix_expression;

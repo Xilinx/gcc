@@ -1,5 +1,5 @@
 /* GtkCheckboxPeer.java -- Implements CheckboxPeer with GTK
-   Copyright (C) 1998, 1999, 2002, 2003 Free Software Foundation, Inc.
+   Copyright (C) 1998, 1999, 2002, 2003, 2006 Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -40,21 +40,38 @@ package gnu.java.awt.peer.gtk;
 
 import java.awt.Checkbox;
 import java.awt.CheckboxGroup;
+import java.awt.event.ItemEvent;
 import java.awt.peer.CheckboxPeer;
+import java.util.WeakHashMap;
 
+/**
+ * This class wraps either a GtkCheckButton or a GtkOptionButton
+ * depending on if this peer's owner belongs to a CheckboxGroup.
+ */
 public class GtkCheckboxPeer extends GtkComponentPeer
   implements CheckboxPeer
 {
-  // Group from last time it was set.
-  public GtkCheckboxGroupPeer old_group;
+  // The CheckboxGroup to which this GtkCheckboxPeer's owner belongs.
+  public CheckboxGroup current_group;
   // The current state of the GTK checkbox.
-  private boolean currentState;  
-  private boolean changing = false;
+  private boolean currentState;
 
-  public native void create (GtkCheckboxGroupPeer group);
-  public native void nativeSetCheckboxGroup (GtkCheckboxGroupPeer group);
+  // A map from CheckboxGroup to GSList* GTK option group pointer.
+  private static WeakHashMap groupMap = new WeakHashMap();
+
+  public native void createCheckButton ();
+  public native void createRadioButton (long groupPointer);
+
+  public native void addToGroup (long groupPointer);
+  public native void removeFromGroup ();
+  public native void switchToGroup (long groupPointer);
+  
   public native void connectSignals ();
-  native void gtkWidgetModifyFont (String name, int style, int size);
+
+  /**
+   * Overridden to set Font of label inside button.
+   */
+  protected native void gtkWidgetModifyFont(String name, int style, int size);
   native void gtkButtonSetLabel (String label);
   native void gtkToggleButtonSetActive (boolean is_active);
 
@@ -63,31 +80,62 @@ public class GtkCheckboxPeer extends GtkComponentPeer
     super (c);
   }
 
-  // FIXME: we must be able to switch between a checkbutton and a
-  // radiobutton dynamically.
   public void create ()
   {
     Checkbox checkbox = (Checkbox) awtComponent;
-    CheckboxGroup g = checkbox.getCheckboxGroup ();
-    old_group = GtkCheckboxGroupPeer.getCheckboxGroupPeer (g);
-    create (old_group);
-    gtkToggleButtonSetActive (checkbox.getState ());
-    gtkButtonSetLabel (checkbox.getLabel ());
+    current_group = checkbox.getCheckboxGroup ();
+    if (current_group == null)
+      {
+        // Initially we're not part of a group so we're backed by a
+        // GtkCheckButton.
+        createCheckButton();
+      }
+    else
+      {
+        // Initially we're part of a group.
+
+        // See if this group is already stored in our map.
+        Long groupPointer = null;
+        synchronized (groupMap)
+        {
+          groupPointer = (Long) groupMap.get(current_group);
+        }
+        
+        if (groupPointer == null)
+          {
+            // We don't know about this group.  Create a new native
+            // group pointer for this group and store it in our map.
+           createRadioButton(0);
+          }
+        else
+          {
+            // We already know about this group.  Pass the
+            // corresponding native group pointer value to the native
+            // create method.
+            createRadioButton(groupPointer.longValue());
+          }
+      }
+    currentState = checkbox.getState();
+    gtkToggleButtonSetActive(currentState);
+    
+    String label = checkbox.getLabel();
+    if (label != null)
+      gtkButtonSetLabel(label);
   }
 
-  public void setState (boolean state)
+  /**
+   * Sets native GtkCheckButton is state is different from current
+   * state.  Will set currentState to state to prevent posting an
+   * event since events should only be posted for user initiated
+   * clicks on the GtkCheckButton.
+   */
+  public synchronized void setState (boolean state)
   {
-    // prevent item_toggled_cb -> postItemEvent ->
-    // awtComponent.setState -> this.setState ->
-    // gtkToggleButtonSetActive self-deadlock on the GDK lock.
-    if (changing && Thread.currentThread() == GtkToolkit.mainThread)
-      {
-        changing = false;
-        return;
-      }
-
     if (currentState != state)
-      gtkToggleButtonSetActive (state);
+      {
+	currentState = state;
+	gtkToggleButtonSetActive(state);
+      }
   }
 
   public void setLabel (String label)
@@ -97,44 +145,110 @@ public class GtkCheckboxPeer extends GtkComponentPeer
 
   public void setCheckboxGroup (CheckboxGroup group)
   {
-    GtkCheckboxGroupPeer gp
-      = GtkCheckboxGroupPeer.getCheckboxGroupPeer (group);
-    if (gp != old_group)
+    if (current_group == null && group != null)
       {
-	if (old_group != null)
-	  old_group.remove (this);
-	nativeSetCheckboxGroup (gp);
-	old_group = gp;
+        // This peer's owner is currently not in a group, and now
+        // we're adding it to a group.  This means that the backing
+        // GtkWidget will change from a GtkCheckButton to a
+        // GtkRadioButton.
+
+        current_group = group;
+
+        // See if the new group is already stored in our map.
+        Long groupPointer = null;
+        synchronized (groupMap)
+        {
+          groupPointer = (Long) groupMap.get(current_group);
+        }
+        
+        if (groupPointer == null)
+          {
+            // We don't know about this group.  Create a new native
+            // group pointer for this group and store it in our map.
+            addToGroup(0);
+          }
+        else
+          {
+            // We already know about this group.  Pass the
+            // corresponding native group pointer value to the native
+            // create method.
+            addToGroup(groupPointer.longValue());
+          }
+      }
+    else if (current_group != null && group == null)
+      {
+        // This peer's owner is currently in a group, and now we're
+        // removing it from a group.  This means that the backing
+        // GtkWidget will change from a GtkRadioButton to a
+        // GtkCheckButton.
+        removeFromGroup();
+        current_group = null;
+      }
+    else if (current_group == null && group == null)
+      {
+        // This peer's owner is currently not in a group, and we're
+        // not adding it to a group, so simply return.
+        return;
+      }
+    else if (current_group != group)
+      {
+        // This peer's owner is currently in a group, and now we're
+        // putting it in another group.  This means that we must
+        // remove the backing GtkRadioButton from one group and add it
+        // to the other group.
+
+        current_group = group;
+        
+        // See if the new group is already stored in our map.
+        Long groupPointer = null;
+        synchronized (groupMap)
+        {
+          groupPointer = (Long) groupMap.get(current_group);
+        }
+        
+        if (groupPointer == null)
+          {
+            // We don't know about this group.  Create a new native
+            // group pointer for this group and store it in our map.
+            switchToGroup(0);
+          }
+        else
+          {
+            // We already know about this group.  Pass the
+            // corresponding native group pointer value to the native
+            // create method.
+            switchToGroup(groupPointer.longValue());
+          }
       }
   }
 
   // Override the superclass postItemEvent so that the peer doesn't
   // need information that we have.
   // called back by native side: item_toggled_cb
-  public void postItemEvent (Object item, int stateChange)
+  public synchronized void postItemEvent(Object item, boolean state)
   {
-    Checkbox currentCheckBox = ((Checkbox)awtComponent);
-    // A firing of the event is only desired if the state has changed due to a 
-    // button press. The currentCheckBox's state must be different from the 
-    // one that the stateChange is changing to. 
-    // stateChange = 1 if it goes from false -> true
-    // stateChange = 2 if it goes from true -> false
-    if (( !currentCheckBox.getState() && stateChange == 1)
-        || (currentCheckBox.getState() && stateChange == 2))
+    // Only fire event is state actually changed.
+    if (currentState != state)
+      {
+	currentState = state;
+	super.postItemEvent(awtComponent,
+			    state ? ItemEvent.SELECTED : ItemEvent.DESELECTED);
+      }
+  }
+  
+  public void addToGroupMap(long groupPointer)
+  {
+    synchronized (groupMap)
     {
-      super.postItemEvent (awtComponent, stateChange);
-      currentState = !currentCheckBox.getState();
-      changing = true;
-      currentCheckBox.setState(currentState);
+      groupMap.put(current_group, new Long (groupPointer));
     }
   }
 
   public void dispose ()
   {
-    // Notify the group so that the native state can be cleaned up
-    // appropriately.
-    if (old_group != null)
-      old_group.remove (this);
+    groupMap.clear();
+    current_group = null;
+    currentState = false;
     super.dispose ();
   }
 }

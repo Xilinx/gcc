@@ -28,11 +28,7 @@
 // invalidate any other reasons why the executable file might be covered by
 // the GNU General Public License.
 
-//
-// ISO C++ 14882: 20.4.6  C library
-//
-
-/** @file cstdarg
+/** @file include/cstdarg
  *  This is a Standard C++ Library file.  You should @c #include this file
  *  in your programs, rather than any of the "*.h" implementation files.
  *
@@ -42,11 +38,16 @@
  *  as macros in C).
  */
 
+//
+// ISO C++ 14882: 20.4.6  C library
+//
+
 #ifndef _GLIBCXX_CSTDARG
 #define _GLIBCXX_CSTDARG 1
 
 #pragma GCC system_header
 
+#include <bits/c++config.h>
 #include <stdarg.h>
 
 // Adhere to section 17.4.1.2 clause 5 of ISO 14882:1998
@@ -54,9 +55,10 @@
 #define va_end(ap) va_end (ap)
 #endif
 
-namespace std
-{
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
   using ::va_list;
-}
+
+_GLIBCXX_END_NAMESPACE
 
 #endif

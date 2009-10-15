@@ -1,4 +1,5 @@
-/* Copyright (C) 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+/* Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007
+   Free Software Foundation, Inc.
 
    This file is part of GCC.
 
@@ -25,7 +26,7 @@
    Public License.  */
 
 /* Implemented from the specification included in the Intel C++ Compiler
-   User Guide and Reference, version 8.0.  */
+   User Guide and Reference, version 9.0.  */
 
 #ifndef _XMMINTRIN_H_INCLUDED
 #define _XMMINTRIN_H_INCLUDED
@@ -40,8 +41,9 @@
 /* Get _mm_malloc () and _mm_free ().  */
 #include <mm_malloc.h>
 
-/* The data type intended for user use.  */
-typedef float __m128 __attribute__ ((__vector_size__ (16)));
+/* The Intel API is flexible enough that we must allow aliasing with other
+   vector types, and their scalar components.  */
+typedef float __m128 __attribute__ ((__vector_size__ (16), __may_alias__));
 
 /* Internal data types for implementing the intrinsics.  */
 typedef float __v4sf __attribute__ ((__vector_size__ (16)));
@@ -491,8 +493,17 @@ _mm_cvt_ss2si (__m128 __A)
 }
 
 #ifdef __x86_64__
-/* Convert the lower SPFP value to a 32-bit integer according to the current
-   rounding mode.  */
+/* Convert the lower SPFP value to a 32-bit integer according to the
+   current rounding mode.  */
+
+/* Intel intrinsic.  */
+static __inline long long __attribute__((__always_inline__))
+_mm_cvtss_si64 (__m128 __A)
+{
+  return __builtin_ia32_cvtss2si64 ((__v4sf) __A);
+}
+
+/* Microsoft intrinsic.  */
 static __inline long long __attribute__((__always_inline__))
 _mm_cvtss_si64x (__m128 __A)
 {
@@ -529,6 +540,15 @@ _mm_cvtt_ss2si (__m128 __A)
 
 #ifdef __x86_64__
 /* Truncate the lower SPFP value to a 32-bit integer.  */
+
+/* Intel intrinsic.  */
+static __inline long long __attribute__((__always_inline__))
+_mm_cvttss_si64 (__m128 __A)
+{
+  return __builtin_ia32_cvttss2si64 ((__v4sf) __A);
+}
+
+/* Microsoft intrinsic.  */
 static __inline long long __attribute__((__always_inline__))
 _mm_cvttss_si64x (__m128 __A)
 {
@@ -565,6 +585,15 @@ _mm_cvt_si2ss (__m128 __A, int __B)
 
 #ifdef __x86_64__
 /* Convert B to a SPFP value and insert it as element zero in A.  */
+
+/* Intel intrinsic.  */
+static __inline __m128 __attribute__((__always_inline__))
+_mm_cvtsi64_ss (__m128 __A, long long __B)
+{
+  return (__m128) __builtin_ia32_cvtsi642ss ((__v4sf) __A, __B);
+}
+
+/* Microsoft intrinsic.  */
 static __inline __m128 __attribute__((__always_inline__))
 _mm_cvtsi64x_ss (__m128 __A, long long __B)
 {
@@ -911,6 +940,12 @@ _mm_store_ss (float *__P, __m128 __A)
   *__P = __builtin_ia32_vec_ext_v4sf ((__v4sf)__A, 0);
 }
 
+static __inline float __attribute__((__always_inline__))
+_mm_cvtss_f32 (__m128 __A)
+{
+  return __builtin_ia32_vec_ext_v4sf ((__v4sf)__A, 0);
+}
+
 /* Store four SPFP values.  The address must be 16-byte aligned.  */
 static __inline void __attribute__((__always_inline__))
 _mm_store_ps (float *__P, __m128 __A)
@@ -1197,14 +1232,14 @@ _mm_pause (void)
 #define _MM_TRANSPOSE4_PS(row0, row1, row2, row3)			\
 do {									\
   __v4sf __r0 = (row0), __r1 = (row1), __r2 = (row2), __r3 = (row3);	\
-  __v4sf __t0 = __builtin_ia32_shufps (__r0, __r1, 0x44);		\
-  __v4sf __t2 = __builtin_ia32_shufps (__r0, __r1, 0xEE);		\
-  __v4sf __t1 = __builtin_ia32_shufps (__r2, __r3, 0x44);		\
-  __v4sf __t3 = __builtin_ia32_shufps (__r2, __r3, 0xEE);		\
-  (row0) = __builtin_ia32_shufps (__t0, __t1, 0x88);			\
-  (row1) = __builtin_ia32_shufps (__t0, __t1, 0xDD);			\
-  (row2) = __builtin_ia32_shufps (__t2, __t3, 0x88);			\
-  (row3) = __builtin_ia32_shufps (__t2, __t3, 0xDD);			\
+  __v4sf __t0 = __builtin_ia32_unpcklps (__r0, __r1);			\
+  __v4sf __t1 = __builtin_ia32_unpcklps (__r2, __r3);			\
+  __v4sf __t2 = __builtin_ia32_unpckhps (__r0, __r1);			\
+  __v4sf __t3 = __builtin_ia32_unpckhps (__r2, __r3);			\
+  (row0) = __builtin_ia32_movlhps (__t0, __t1);				\
+  (row1) = __builtin_ia32_movhlps (__t1, __t0);				\
+  (row2) = __builtin_ia32_movlhps (__t2, __t3);				\
+  (row3) = __builtin_ia32_movhlps (__t3, __t2);				\
 } while (0)
 
 /* For backward source compatibility.  */

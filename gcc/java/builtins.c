@@ -1,12 +1,12 @@
 /* Built-in and inline functions for gcj
-   Copyright (C) 2001, 2003, 2004, 2005
+   Copyright (C) 2001, 2003, 2004, 2005, 2006, 2007
    Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -14,10 +14,9 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  
+.
+
+.  
 
 Java and all Java-based marks are trademarks or registered trademarks
 of Sun Microsystems, Inc. in the United States and other countries.
@@ -39,6 +38,7 @@ The Free Software Foundation is independent of Sun Microsystems, Inc.  */
 static tree max_builtin (tree, tree);
 static tree min_builtin (tree, tree);
 static tree abs_builtin (tree, tree);
+static tree convert_real (tree, tree);
 
 static tree java_build_function_call_expr (tree, tree);
 
@@ -85,6 +85,10 @@ static GTY(()) struct builtin_record java_builtins[] =
   { { "java.lang.Math" }, { "sin" }, NULL, BUILT_IN_SIN },
   { { "java.lang.Math" }, { "sqrt" }, NULL, BUILT_IN_SQRT },
   { { "java.lang.Math" }, { "tan" }, NULL, BUILT_IN_TAN },
+  { { "java.lang.Float" }, { "intBitsToFloat" }, convert_real, 0 },
+  { { "java.lang.Double" }, { "longBitsToDouble" }, convert_real, 0 },
+  { { "java.lang.Float" }, { "floatToRawIntBits" }, convert_real, 0 },
+  { { "java.lang.Double" }, { "doubleToRawLongBits" }, convert_real, 0 },
   { { NULL }, { NULL }, NULL, END_BUILTINS }
 };
 
@@ -94,6 +98,9 @@ static GTY(()) struct builtin_record java_builtins[] =
 static tree
 max_builtin (tree method_return_type, tree method_arguments)
 {
+  /* MAX_EXPR does not handle -0.0 in the Java style.  */
+  if (TREE_CODE (method_return_type) == REAL_TYPE)
+    return NULL_TREE;
   return fold_build2 (MAX_EXPR, method_return_type,
 		      TREE_VALUE (method_arguments),
 		      TREE_VALUE (TREE_CHAIN (method_arguments)));
@@ -102,6 +109,9 @@ max_builtin (tree method_return_type, tree method_arguments)
 static tree
 min_builtin (tree method_return_type, tree method_arguments)
 {
+  /* MIN_EXPR does not handle -0.0 in the Java style.  */
+  if (TREE_CODE (method_return_type) == REAL_TYPE)
+    return NULL_TREE;
   return fold_build2 (MIN_EXPR, method_return_type,
 		      TREE_VALUE (method_arguments),
 		      TREE_VALUE (TREE_CHAIN (method_arguments)));
@@ -123,6 +133,13 @@ java_build_function_call_expr (tree fn, tree arglist)
   call_expr = build1 (ADDR_EXPR, build_pointer_type (TREE_TYPE (fn)), fn);
   return fold_build3 (CALL_EXPR, TREE_TYPE (TREE_TYPE (fn)),
 		      call_expr, arglist, NULL_TREE);
+}
+
+static tree
+convert_real (tree method_return_type, tree method_arguments)
+{
+  return build1 (VIEW_CONVERT_EXPR, method_return_type,
+		 TREE_VALUE (method_arguments));
 }
 
 
@@ -194,43 +211,43 @@ initialize_builtins (void)
 		  float_ftype_float_float, "fmodf", BUILTIN_CONST);
 
   define_builtin (BUILT_IN_ACOS, "__builtin_acos",
-		  double_ftype_double, "_ZN4java4lang4Math4acosEd",
+		  double_ftype_double, "_ZN4java4lang4Math4acosEJdd",
 		  BUILTIN_CONST);
   define_builtin (BUILT_IN_ASIN, "__builtin_asin",
-		  double_ftype_double, "_ZN4java4lang4Math4asinEd",
+		  double_ftype_double, "_ZN4java4lang4Math4asinEJdd",
 		  BUILTIN_CONST);
   define_builtin (BUILT_IN_ATAN, "__builtin_atan",
-		  double_ftype_double, "_ZN4java4lang4Math4atanEd",
+		  double_ftype_double, "_ZN4java4lang4Math4atanEJdd",
 		  BUILTIN_CONST);
   define_builtin (BUILT_IN_ATAN2, "__builtin_atan2",
-		  double_ftype_double_double, "_ZN4java4lang4Math5atan2Edd",
+		  double_ftype_double_double, "_ZN4java4lang4Math5atan2EJddd",
 		  BUILTIN_CONST);
   define_builtin (BUILT_IN_CEIL, "__builtin_ceil",
-		  double_ftype_double, "_ZN4java4lang4Math4ceilEd",
+		  double_ftype_double, "_ZN4java4lang4Math4ceilEJdd",
 		  BUILTIN_CONST);
   define_builtin (BUILT_IN_COS, "__builtin_cos",
-		  double_ftype_double, "_ZN4java4lang4Math3cosEd",
+		  double_ftype_double, "_ZN4java4lang4Math3cosEJdd",
 		  BUILTIN_CONST);
   define_builtin (BUILT_IN_EXP, "__builtin_exp",
-		  double_ftype_double, "_ZN4java4lang4Math3expEd",
+		  double_ftype_double, "_ZN4java4lang4Math3expEJdd",
 		  BUILTIN_CONST);
   define_builtin (BUILT_IN_FLOOR, "__builtin_floor",
-		  double_ftype_double, "_ZN4java4lang4Math5floorEd",
+		  double_ftype_double, "_ZN4java4lang4Math5floorEJdd",
 		  BUILTIN_CONST);
   define_builtin (BUILT_IN_LOG, "__builtin_log",
-		  double_ftype_double, "_ZN4java4lang4Math3logEd",
+		  double_ftype_double, "_ZN4java4lang4Math3logEJdd",
 		  BUILTIN_CONST);
   define_builtin (BUILT_IN_POW, "__builtin_pow",
-		  double_ftype_double_double, "_ZN4java4lang4Math3powEdd",
+		  double_ftype_double_double, "_ZN4java4lang4Math3powEJddd",
 		  BUILTIN_CONST);
   define_builtin (BUILT_IN_SIN, "__builtin_sin",
-		  double_ftype_double, "_ZN4java4lang4Math3sinEd",
+		  double_ftype_double, "_ZN4java4lang4Math3sinEJdd",
 		  BUILTIN_CONST);
   define_builtin (BUILT_IN_SQRT, "__builtin_sqrt",
-		  double_ftype_double, "_ZN4java4lang4Math4sqrtEd",
+		  double_ftype_double, "_ZN4java4lang4Math4sqrtEJdd",
 		  BUILTIN_CONST);
   define_builtin (BUILT_IN_TAN, "__builtin_tan",
-		  double_ftype_double, "_ZN4java4lang4Math3tanEd",
+		  double_ftype_double, "_ZN4java4lang4Math3tanEJdd",
 		  BUILTIN_CONST);
   
   t = tree_cons (NULL_TREE, boolean_type_node, end_params_node);
@@ -241,6 +258,10 @@ initialize_builtins (void)
 		  "__builtin_expect",
 		  BUILTIN_CONST | BUILTIN_NOTHROW);
 		  
+  define_builtin (BUILT_IN_SYNCHRONIZE, "__sync_synchronize",
+		  build_function_type (void_type_node, void_list_node),
+		  "__sync_synchronize", BUILTIN_NOTHROW);
+
   build_common_builtin_nodes ();
 }
 
@@ -265,11 +286,20 @@ check_for_builtin (tree method, tree call)
 	      tree fn;
 
 	      if (java_builtins[i].creator != NULL)
-		return (*java_builtins[i].creator) (method_return_type,
-						    method_arguments);
+		{
+		  tree result
+		    = (*java_builtins[i].creator) (method_return_type,
+						   method_arguments);
+		  return result == NULL_TREE ? call : result;
+		}
+
+	      /* Builtin functions emit a direct call which is incompatible
+	         with the BC-ABI.  */
+	      if (flag_indirect_dispatch)
+	        return call;
 	      fn = built_in_decls[java_builtins[i].builtin_code];
 	      if (fn == NULL_TREE)
-		return NULL_TREE;
+		return call;
 	      return java_build_function_call_expr (fn, method_arguments);
 	    }
 	}

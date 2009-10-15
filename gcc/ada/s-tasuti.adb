@@ -6,7 +6,7 @@
 --                                                                          --
 --                                  B o d y                                 --
 --                                                                          --
---         Copyright (C) 1992-2005, Free Software Foundation, Inc.          --
+--         Copyright (C) 1992-2006, Free Software Foundation, Inc.          --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -59,17 +59,12 @@ with System.Tasking.Queuing;
 --  used for Dequeue_Call
 --           Dequeue_Head
 
-with System.Tasking.Debug;
---  used for Trace
-
 with System.Parameters;
 --  used for Single_Lock
 --           Runtime_Traces
 
 with System.Traces.Tasking;
 --  used for Send_Trace_Info
-
-with Unchecked_Conversion;
 
 package body System.Tasking.Utilities is
 
@@ -117,9 +112,6 @@ package body System.Tasking.Utilities is
    -- Abort_Tasks --
    -----------------
 
-   --  Compiler interface only: Do not call from within the RTS,
-
-   --  except in the implementation of Ada.Task_Identification.
    --  This must be called to implement the abort statement.
    --  Much of the actual work of the abort is done by the abortee,
    --  via the Abort_Handler signal handler, and propagation of the
@@ -131,6 +123,17 @@ package body System.Tasking.Utilities is
       P       : Task_Id;
 
    begin
+      --  If pragma Detect_Blocking is active then Program_Error must be
+      --  raised if this potentially blocking operation is called from a
+      --  protected action.
+
+      if System.Tasking.Detect_Blocking
+        and then Self_Id.Common.Protected_Action_Nesting > 0
+      then
+         Ada.Exceptions.Raise_Exception
+           (Program_Error'Identity, "potentially blocking operation");
+      end if;
+
       Initialization.Defer_Abort_Nestable (Self_Id);
 
       --  ?????

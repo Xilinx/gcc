@@ -6,7 +6,7 @@
 --                                                                          --
 --                                  B o d y                                 --
 --                                                                          --
---         Copyright (C) 1992-2005, Free Software Foundation, Inc.          --
+--         Copyright (C) 1992-2006, Free Software Foundation, Inc.          --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -59,12 +59,19 @@ with Interfaces.C;
 --  used for int
 --           size_t
 
-with System.Parameters;
---  used for Size_Type
+with System.Soft_Links;
+--  used for Abort_Defer/Undefer
+
+--  We use System.Soft_Links instead of System.Tasking.Initialization
+--  because the later is a higher level package that we shouldn't depend on.
+--  For example when using the restricted run time, it is replaced by
+--  System.Tasking.Restricted.Stages.
 
 with Unchecked_Deallocation;
 
 package body System.Task_Primitives.Operations is
+
+   package SSL renames System.Soft_Links;
 
    use System.Tasking.Debug;
    use System.Tasking;
@@ -869,15 +876,7 @@ package body System.Task_Primitives.Operations is
       use System.Task_Info;
 
    begin
-      if Stack_Size = Unspecified_Size then
-         Adjusted_Stack_Size := Interfaces.C.size_t (Default_Stack_Size);
-
-      elsif Stack_Size < Minimum_Stack_Size then
-         Adjusted_Stack_Size := Interfaces.C.size_t (Minimum_Stack_Size);
-
-      else
-         Adjusted_Stack_Size := Interfaces.C.size_t (Stack_Size);
-      end if;
+      Adjusted_Stack_Size := Interfaces.C.size_t (Stack_Size);
 
       if Stack_Base_Available then
 
@@ -1100,6 +1099,8 @@ package body System.Task_Primitives.Operations is
    procedure Set_False (S : in out Suspension_Object) is
       Result  : Interfaces.C.int;
    begin
+      SSL.Abort_Defer.all;
+
       Result := pthread_mutex_lock (S.L'Access);
       pragma Assert (Result = 0);
 
@@ -1107,6 +1108,8 @@ package body System.Task_Primitives.Operations is
 
       Result := pthread_mutex_unlock (S.L'Access);
       pragma Assert (Result = 0);
+
+      SSL.Abort_Undefer.all;
    end Set_False;
 
    --------------
@@ -1116,6 +1119,8 @@ package body System.Task_Primitives.Operations is
    procedure Set_True (S : in out Suspension_Object) is
       Result : Interfaces.C.int;
    begin
+      SSL.Abort_Defer.all;
+
       Result := pthread_mutex_lock (S.L'Access);
       pragma Assert (Result = 0);
 
@@ -1136,6 +1141,8 @@ package body System.Task_Primitives.Operations is
 
       Result := pthread_mutex_unlock (S.L'Access);
       pragma Assert (Result = 0);
+
+      SSL.Abort_Undefer.all;
    end Set_True;
 
    ------------------------
@@ -1145,6 +1152,8 @@ package body System.Task_Primitives.Operations is
    procedure Suspend_Until_True (S : in out Suspension_Object) is
       Result : Interfaces.C.int;
    begin
+      SSL.Abort_Defer.all;
+
       Result := pthread_mutex_lock (S.L'Access);
       pragma Assert (Result = 0);
 
@@ -1155,6 +1164,8 @@ package body System.Task_Primitives.Operations is
 
          Result := pthread_mutex_unlock (S.L'Access);
          pragma Assert (Result = 0);
+
+         SSL.Abort_Undefer.all;
 
          raise Program_Error;
       else
@@ -1168,10 +1179,12 @@ package body System.Task_Primitives.Operations is
             S.Waiting := True;
             Result := pthread_cond_wait (S.CV'Access, S.L'Access);
          end if;
-      end if;
 
-      Result := pthread_mutex_unlock (S.L'Access);
-      pragma Assert (Result = 0);
+         Result := pthread_mutex_unlock (S.L'Access);
+         pragma Assert (Result = 0);
+
+         SSL.Abort_Undefer.all;
+      end if;
    end Suspend_Until_True;
 
    ----------------

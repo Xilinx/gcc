@@ -1,5 +1,5 @@
 /* JTable.java -- 
-   Copyright (C) 2002, 2004, 2005  Free Software Foundation, Inc.
+   Copyright (C) 2002, 2004, 2005, 2006  Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -46,8 +46,6 @@ import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Point;
 import java.awt.Rectangle;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.FocusListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
@@ -65,6 +63,7 @@ import javax.accessibility.AccessibleContext;
 import javax.accessibility.AccessibleExtendedTable;
 import javax.accessibility.AccessibleRole;
 import javax.accessibility.AccessibleSelection;
+import javax.accessibility.AccessibleState;
 import javax.accessibility.AccessibleStateSet;
 import javax.accessibility.AccessibleTable;
 import javax.accessibility.AccessibleTableModelChange;
@@ -86,8 +85,16 @@ import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableColumnModel;
 import javax.swing.table.TableModel;
-import javax.swing.text.Caret;
 
+/**
+ * The table component, displaying information, organized in rows and columns.
+ * The table can be placed in the scroll bar and have the optional header
+ * that is always visible. Cell values may be editable after double clicking
+ * on the cell. Cell columns may have various data types, that are 
+ * displayed and edited by the different renderers and editors. It is possible
+ * to set different column width. The columns are also resizeable by 
+ * dragging the column boundary in the header.
+ */
 public class JTable
   extends JComponent
   implements TableModelListener, Scrollable, TableColumnModelListener,
@@ -159,6 +166,8 @@ public class JTable
       public AccessibleRole getAccessibleRole()
       {
         // TODO: What is the role of the table cell?
+        // Seems like the RI returns UNKNOWN here for 'normal' cells, might
+        // be different for special renderers though (not tested yet).
         return AccessibleRole.UNKNOWN;
       }
 
@@ -169,8 +178,27 @@ public class JTable
        */
       public AccessibleStateSet getAccessibleStateSet()
       {
-        // TODO: What state shoiuld be returned here?
-        return new AccessibleStateSet();
+        AccessibleStateSet state = new AccessibleStateSet();
+
+        // Figure out the SHOWING state.
+        Rectangle visibleRect = getVisibleRect();
+        Rectangle cellRect = getCellRect(row, column, false);
+        if (visibleRect.intersects(cellRect))
+          state.add(AccessibleState.SHOWING);
+
+        // Figure out SELECTED state.
+        if (isCellSelected(row, column))
+          state.add(AccessibleState.SELECTED);
+
+        // Figure out ACTIVE state.
+        if (row == getSelectedRow() && column == getSelectedColumn())
+          state.add(AccessibleState.ACTIVE);
+
+        // TRANSIENT seems to be always set in the RI.
+        state.add(AccessibleState.TRANSIENT);
+
+        // TODO: Any other state to handle here?
+        return state;
       }
 
       /**
@@ -590,6 +618,503 @@ public class JTable
     }
 
     /**
+     * The RI returns an instance with this name in
+     * {@link #getAccessibleColumnHeader()}, this makes sense, so we do the
+     * same.
+     */
+    private class AccessibleTableHeader
+      implements AccessibleTable
+    {
+
+      /**
+       * The JTableHeader wrapped by this class.
+       */
+      private JTableHeader header;
+
+      /**
+       * Creates a new instance.
+       *
+       * @param h the JTableHeader to wrap
+       */
+      private AccessibleTableHeader(JTableHeader h)
+      {
+        header = h;
+      }
+
+      /**
+       * Returns the caption for the table header.
+       *
+       * @return the caption for the table header
+       */
+      public Accessible getAccessibleCaption()
+      {
+        // The RI seems to always return null here, so do we.
+        return null;
+      }
+
+      /**
+       * Sets the caption for the table header.
+       *
+       * @param caption the caption to set
+       */
+      public void setAccessibleCaption(Accessible caption)
+      {
+        // This seems to be a no-op in the RI, so we do the same.
+      }
+
+      /**
+       * Returns the caption for the table header.
+       *
+       * @return the caption for the table header
+       */
+      public Accessible getAccessibleSummary()
+      {
+        // The RI seems to always return null here, so do we.
+        return null;
+      }
+
+      /**
+       * Sets the summary for the table header.
+       *
+       * @param summary the caption to set
+       */
+      public void setAccessibleSummary(Accessible summary)
+      {
+        // This seems to be a no-op in the RI, so we do the same.
+      }
+
+      /**
+       * Returns the number of rows, which is always 1 for the table header.
+       *
+       * @return the number of rows
+       */
+      public int getAccessibleRowCount()
+      {
+        return 1;
+      }
+
+      /**
+       * Returns the number of columns in the table header.
+       *
+       * @return the number of columns in the table header
+       */
+      public int getAccessibleColumnCount()
+      {
+        return header.getColumnModel().getColumnCount();
+      }
+
+      /**
+       * Returns the accessible child at the specified row and column.
+       * The row number is ignored here, and we return an
+       * AccessibleJTableHeaderCell here with the renderer component as
+       * component.
+       *
+       * @param r the row number
+       * @param c the column number
+       *
+       * @return the accessible child at the specified row and column
+       */
+      public Accessible getAccessibleAt(int r, int c)
+      {
+        TableColumn column = header.getColumnModel().getColumn(c);
+        TableCellRenderer rend = column.getHeaderRenderer();
+        if (rend == null)
+          rend = header.getDefaultRenderer();
+        Component comp =
+          rend.getTableCellRendererComponent(header.getTable(),
+                                             column.getHeaderValue(), false,
+                                             false, -1, c);
+        return new AccessibleJTableHeaderCell(header, comp, r, c);
+      }
+
+      public int getAccessibleRowExtentAt(int r, int c)
+      {
+        // TODO Auto-generated method stub
+        return 0;
+      }
+
+      public int getAccessibleColumnExtentAt(int r, int c)
+      {
+        // TODO Auto-generated method stub
+        return 0;
+      }
+
+      public AccessibleTable getAccessibleRowHeader()
+      {
+        // TODO Auto-generated method stub
+        return null;
+      }
+
+      public void setAccessibleRowHeader(AccessibleTable header)
+      {
+        // TODO Auto-generated method stub
+        
+      }
+
+      public AccessibleTable getAccessibleColumnHeader()
+      {
+        // TODO Auto-generated method stub
+        return null;
+      }
+
+      public void setAccessibleColumnHeader(AccessibleTable header)
+      {
+        // TODO Auto-generated method stub
+        
+      }
+
+      public Accessible getAccessibleRowDescription(int r)
+      {
+        // TODO Auto-generated method stub
+        return null;
+      }
+
+      public void setAccessibleRowDescription(int r, Accessible description)
+      {
+        // TODO Auto-generated method stub
+        
+      }
+
+      public Accessible getAccessibleColumnDescription(int c)
+      {
+        // TODO Auto-generated method stub
+        return null;
+      }
+
+      public void setAccessibleColumnDescription(int c, Accessible description)
+      {
+        // TODO Auto-generated method stub
+        
+      }
+
+      public boolean isAccessibleSelected(int r, int c)
+      {
+        // TODO Auto-generated method stub
+        return false;
+      }
+
+      public boolean isAccessibleRowSelected(int r)
+      {
+        // TODO Auto-generated method stub
+        return false;
+      }
+
+      public boolean isAccessibleColumnSelected(int c)
+      {
+        // TODO Auto-generated method stub
+        return false;
+      }
+
+      public int[] getSelectedAccessibleRows()
+      {
+        // TODO Auto-generated method stub
+        return null;
+      }
+
+      public int[] getSelectedAccessibleColumns()
+      {
+        // TODO Auto-generated method stub
+        return null;
+      }
+        
+    }
+
+    /**
+     * The RI returns an instance of such class for table header cells. This
+     * makes sense so I added this class. This still needs to be fully
+     * implemented, I just don't feel motivated enough to do so just now.
+     */
+    private class AccessibleJTableHeaderCell
+      extends AccessibleContext
+      implements Accessible, AccessibleComponent
+    {
+
+      JTableHeader header;
+      
+      int columnIndex;
+      
+      /**
+       * 
+       * @param h  the table header.
+       * @param comp
+       * @param r
+       * @param c  the column index.
+       */
+      private AccessibleJTableHeaderCell(JTableHeader h, Component comp, int r,
+                                         int c)
+      {
+        header = h;
+        columnIndex = c;
+      }
+
+      /**
+       * Returns the header renderer.
+       * 
+       * @return The header renderer.
+       */
+      Component getColumnHeaderRenderer()
+      {
+        TableColumn tc = header.getColumnModel().getColumn(columnIndex);
+        TableCellRenderer r = tc.getHeaderRenderer();
+        if (r == null)
+          r = header.getDefaultRenderer();
+        return r.getTableCellRendererComponent(header.getTable(), 
+            tc.getHeaderValue(), false, false, -1, columnIndex);
+      }
+      
+      /**
+       * Returns the accessible role for the table header cell.
+       * 
+       * @return The accessible role.
+       */
+      public AccessibleRole getAccessibleRole()
+      {
+        Component renderer = getColumnHeaderRenderer();
+        if (renderer instanceof Accessible)
+          {
+            Accessible ac = (Accessible) renderer;
+            return ac.getAccessibleContext().getAccessibleRole();
+          }
+        return null;
+      }
+
+      public AccessibleStateSet getAccessibleStateSet()
+      {
+        // TODO Auto-generated method stub
+        return null;
+      }
+
+      public int getAccessibleIndexInParent()
+      {
+        // TODO Auto-generated method stub
+        return 0;
+      }
+
+      public int getAccessibleChildrenCount()
+      {
+        // TODO Auto-generated method stub
+        return 0;
+      }
+
+      public Accessible getAccessibleChild(int i)
+      {
+        // TODO Auto-generated method stub
+        return null;
+      }
+
+      public Locale getLocale()
+      {
+        // TODO Auto-generated method stub
+        return null;
+      }
+
+      /**
+       * Returns the accessible context.
+       * 
+       * @return <code>this</code>.
+       */
+      public AccessibleContext getAccessibleContext()
+      {
+        return this;
+      }
+
+      public Color getBackground()
+      {
+        // TODO Auto-generated method stub
+        return null;
+      }
+
+      public void setBackground(Color color)
+      {
+        // TODO Auto-generated method stub
+        
+      }
+
+      public Color getForeground()
+      {
+        // TODO Auto-generated method stub
+        return null;
+      }
+
+      public void setForeground(Color color)
+      {
+        // TODO Auto-generated method stub
+        
+      }
+
+      public Cursor getCursor()
+      {
+        // TODO Auto-generated method stub
+        return null;
+      }
+
+      public void setCursor(Cursor cursor)
+      {
+        // TODO Auto-generated method stub
+        
+      }
+
+      public Font getFont()
+      {
+        // TODO Auto-generated method stub
+        return null;
+      }
+
+      public void setFont(Font font)
+      {
+        // TODO Auto-generated method stub
+        
+      }
+
+      public FontMetrics getFontMetrics(Font font)
+      {
+        // TODO Auto-generated method stub
+        return null;
+      }
+
+      public boolean isEnabled()
+      {
+        // TODO Auto-generated method stub
+        return false;
+      }
+
+      public void setEnabled(boolean b)
+      {
+        // TODO Auto-generated method stub
+        
+      }
+
+      public boolean isVisible()
+      {
+        // TODO Auto-generated method stub
+        return false;
+      }
+
+      public void setVisible(boolean b)
+      {
+        // TODO Auto-generated method stub
+        
+      }
+
+      public boolean isShowing()
+      {
+        // TODO Auto-generated method stub
+        return false;
+      }
+
+      public boolean contains(Point point)
+      {
+        // TODO Auto-generated method stub
+        return false;
+      }
+
+      public Point getLocationOnScreen()
+      {
+        // TODO Auto-generated method stub
+        return null;
+      }
+
+      public Point getLocation()
+      {
+        // TODO Auto-generated method stub
+        return null;
+      }
+
+      public void setLocation(Point point)
+      {
+        // TODO Auto-generated method stub
+        
+      }
+
+      public Rectangle getBounds()
+      {
+        // TODO Auto-generated method stub
+        return null;
+      }
+
+      public void setBounds(Rectangle rectangle)
+      {
+        // TODO Auto-generated method stub
+        
+      }
+
+      public Dimension getSize()
+      {
+        // TODO Auto-generated method stub
+        return null;
+      }
+
+      public void setSize(Dimension dimension)
+      {
+        // TODO Auto-generated method stub
+        
+      }
+
+      public Accessible getAccessibleAt(Point point)
+      {
+        // TODO Auto-generated method stub
+        return null;
+      }
+
+      public boolean isFocusTraversable()
+      {
+        // TODO Auto-generated method stub
+        return false;
+      }
+
+      public void requestFocus()
+      {
+        // TODO Auto-generated method stub
+        
+      }
+
+      public void addFocusListener(FocusListener listener)
+      {
+        // TODO Auto-generated method stub
+        
+      }
+
+      public void removeFocusListener(FocusListener listener)
+      {
+        // TODO Auto-generated method stub
+        
+      }
+      
+    }
+
+    /**
+     * The last selected row. This is needed to track the selection in
+     * {@link #valueChanged(ListSelectionEvent)}.
+     */
+    private int lastSelectedRow;
+
+    /**
+     * The last selected column. This is needed to track the selection in
+     * {@link #valueChanged(ListSelectionEvent)}.
+     */
+    private int lastSelectedColumn;
+
+    /**
+     * The caption of the table.
+     */
+    private Accessible caption;
+
+    /**
+     * The summary of the table.
+     */
+    private Accessible summary;
+
+    /**
+     * Accessible descriptions for rows.
+     */
+    private Accessible[] rowDescriptions;
+
+    /**
+     * Accessible descriptions for columns.
+     */
+    private Accessible[] columnDescriptions;
+
+    /**
      * Creates a new <code>AccessibleJTable</code>.
      *
      * @since JDK1.5
@@ -599,9 +1124,33 @@ public class JTable
       getModel().addTableModelListener(this);
       getSelectionModel().addListSelectionListener(this);
       getColumnModel().addColumnModelListener(this);
-      getCellEditor().addCellEditorListener(this);
+      lastSelectedRow = getSelectedRow();
+      lastSelectedColumn = getSelectedColumn();
+      TableCellEditor editor = getCellEditor();
+      if (editor != null)
+        editor.addCellEditorListener(this);
     }
 
+    /**
+     * Returns the accessible role for the <code>JTable</code> component.
+     *
+     * @return {@link AccessibleRole#TABLE}.
+     */
+    public AccessibleRole getAccessibleRole()
+    {
+      return AccessibleRole.TABLE;
+    }
+    
+    /**
+     * Returns the accessible table.
+     * 
+     * @return <code>this</code>.
+     */
+    public AccessibleTable getAccessibleTable()
+    {
+      return this;
+    }
+    
     /**
      * Returns the number of selected items in this table.
      */
@@ -610,46 +1159,197 @@ public class JTable
       return getSelectedColumnCount();
     }
 
+    /**
+     * Returns the selected accessible object with the specified index
+     * <code>i</code>. This basically returns the i-th selected cell in the
+     * table when going though it row-wise, and inside the rows, column-wise.
+     *
+     * @param i the index of the selected object to find
+     *
+     * @return the selected accessible object with the specified index
+     *         <code>i</code>
+     */
     public Accessible getAccessibleSelection(int i)
     {
-      // TODO Auto-generated method stub
-      return null;
+      Accessible found = null;
+
+      int[] selectedRows = getSelectedRows();
+      int[] selectedColumns = getSelectedColumns();
+      int numCols = getColumnCount();
+      int numRows = getRowCount();
+
+      // We have to go through every selected row and column and count until we
+      // find the specified index. This is potentially inefficient, but I can't
+      // think of anything better atm.
+      if (getRowSelectionAllowed() && getColumnSelectionAllowed())
+        {
+          int current = -1;
+          int newIndex = current;
+          int lastSelectedRow = -1;
+          // Go through the selected rows array, don't forget the selected
+          // cells inside the not-selected rows' columns.
+          for (int j = 0; i < selectedRows.length; i++)
+            {
+              // Handle unselected rows between this selected and the last
+              // selected row, if any.
+              int selectedRow = selectedRows[j];
+              int r = -1;
+              int ci = -1;
+              for (r = lastSelectedRow + 1;
+                   r < selectedRow && current < i; r++)
+                {
+                  for (ci = 0; ci < selectedColumns.length && current < i;
+                       ci++)
+                    {
+                      current++;
+                    }
+                }
+              if (current == i)
+                {
+                  // We found the cell in the above loops, now get out of here.
+                  found = getAccessibleChild(r * numCols
+                                             + selectedColumns[ci]);
+                  break;
+                }
+
+              // If we're still here, handle the current selected row.
+              if (current < i && current + numCols >= i)
+                {
+                  // The cell must be in that row, which one is it?
+                  found = getAccessibleChild(r * numCols + (i - current));
+                  break;
+                }
+              current += numCols;
+            }
+          if (found == null)
+            {
+              // The cell can still be in the last couple of unselected rows.
+              int r = 0;
+              int ci = 0;
+              for (r = lastSelectedRow + 1;
+                   r < numRows && current < i; r++)
+                {
+                  for (ci = 0; ci < selectedColumns.length && current < i;
+                       ci++)
+                    {
+                      current++;
+                    }
+                }
+              if (current == i)
+                {
+                  // We found the cell in the above loops, now get out of here.
+                  found = getAccessibleChild(r * numCols
+                                             + selectedColumns[ci]);
+                }
+            }
+        }
+      // One or more rows can be completely selected.
+      else if (getRowSelectionAllowed())
+        {
+          int c = i % numCols;
+          int r = selectedRows[i / numCols];
+          found = getAccessibleChild(r * numCols + c);
+        }
+      // One or more columns can be completely selected.
+      else if (getRowSelectionAllowed())
+        {
+          int numSelectedColumns = selectedColumns.length;
+          int c = selectedColumns[i % numSelectedColumns];
+          int r = i / numSelectedColumns;
+          found = getAccessibleChild(r * numCols + c);
+        }
+
+      return found;
     }
 
+    /**
+     * Returns <code>true</code> if the accessible child with the index
+     * <code>i</code> is selected, <code>false</code> otherwise.
+     *
+     * @param i the index of the accessible to check
+     *
+     * @return <code>true</code> if the accessible child with the index
+     *         <code>i</code> is selected, <code>false</code> otherwise
+     */
     public boolean isAccessibleChildSelected(int i)
     {
-      // TODO Auto-generated method stub
-      return false;
+      int r = getAccessibleRowAtIndex(i);
+      int c = getAccessibleColumnAtIndex(i);
+      return isCellSelected(r, c);
     }
 
+    /**
+     * Adds the accessible child with the specified index <code>i</code> to the
+     * selection.
+     *
+     * @param i the index of the accessible child to add to the selection
+     */
     public void addAccessibleSelection(int i)
     {
-      // TODO Auto-generated method stub
-      
+      int r = getAccessibleRowAtIndex(i);
+      int c = getAccessibleColumnAtIndex(i);
+      changeSelection(r, c, true, false);
     }
 
+    /**
+     * Removes the accessible child with the specified index <code>i</code>
+     * from the current selection. This will only work on tables that have
+     * cell selection enabled (<code>rowSelectionAllowed == false &&
+     * columnSelectionAllowed == false</code>).
+     *
+     * @param i the index of the accessible to be removed from the selection
+     */
     public void removeAccessibleSelection(int i)
     {
-      // TODO Auto-generated method stub
-      
+      if (! getRowSelectionAllowed() && ! getColumnSelectionAllowed())
+        {
+          int r = getAccessibleRowAtIndex(i);
+          int c = getAccessibleColumnAtIndex(i);
+          removeRowSelectionInterval(r, r);
+          removeColumnSelectionInterval(c, c);
+        }
     }
 
+    /**
+     * Deselects all selected accessible children.
+     */
     public void clearAccessibleSelection()
     {
-      // TODO Auto-generated method stub
-      
+      clearSelection();
     }
 
+    /**
+     * Selects all accessible children that can be selected. This will only
+     * work on tables that support multiple selections and that have individual
+     * cell selection enabled.
+     */
     public void selectAllAccessibleSelection()
     {
-      // TODO Auto-generated method stub
-      
+      selectAll();
     }
 
+    /**
+     * Receives notification when the row selection changes and fires
+     * appropriate property change events.
+     *
+     * @param event the list selection event
+     */
     public void valueChanged(ListSelectionEvent event)
     {
-      // TODO Auto-generated method stub
-      
+      firePropertyChange(AccessibleContext.ACCESSIBLE_SELECTION_PROPERTY,
+                         Boolean.FALSE, Boolean.TRUE);
+      int r = getSelectedRow();
+      int c = getSelectedColumn();
+      if (r != lastSelectedRow || c != lastSelectedColumn)
+        {
+          Accessible o = getAccessibleAt(lastSelectedRow,
+                                         lastSelectedColumn);
+          Accessible n = getAccessibleAt(r, c);
+          firePropertyChange(AccessibleContext
+                             .ACCESSIBLE_ACTIVE_DESCENDANT_PROPERTY, o, n);
+          lastSelectedRow = r;
+          lastSelectedColumn = c;
+        }
     }
 
     /**
@@ -674,14 +1374,13 @@ public class JTable
 
     /**
      * Receives notification when one or more rows have been inserted into the
-     * table.
+     * table and fires appropriate property change events.
      *
      * @param event the table model event
      */
     public void tableRowsInserted(TableModelEvent event)
     {
-      // TODO: What to do here, if anything? This might be a hook method for
-      // subclasses...
+      handleRowChange(event);
     }
 
     /**
@@ -692,50 +1391,93 @@ public class JTable
      */
     public void tableRowsDeleted(TableModelEvent event)
     {
-      // TODO: What to do here, if anything? This might be a hook method for
-      // subclasses...
+      handleRowChange(event);
+    }
+
+    /**
+     * Fires a PropertyChangeEvent for inserted or deleted rows.
+     *
+     * @param event the table model event
+     */
+    private void handleRowChange(TableModelEvent event)
+    {
+      firePropertyChange(AccessibleContext.ACCESSIBLE_VISIBLE_DATA_PROPERTY,
+                         null, null);
+      int firstColumn = event.getColumn();
+      int lastColumn = event.getColumn();
+      if (firstColumn == TableModelEvent.ALL_COLUMNS)
+        {
+          firstColumn = 0;
+          lastColumn = getColumnCount() - 1;
+        }
+      AccessibleJTableModelChange change = new AccessibleJTableModelChange
+         (event.getType(), event.getFirstRow(), event.getLastRow(),
+          firstColumn, lastColumn);
+      firePropertyChange(AccessibleContext.ACCESSIBLE_TABLE_MODEL_CHANGED,
+                         null, change);
     }
 
     public void columnAdded(TableColumnModelEvent event)
     {
-      // TODO Auto-generated method stub
-      
-    }
-
-    public void columnMarginChanged(ChangeEvent event)
-    {
-      // TODO Auto-generated method stub
-      
-    }
-
-    public void columnMoved(TableColumnModelEvent event)
-    {
-      // TODO Auto-generated method stub
-      
+      firePropertyChange(AccessibleContext.ACCESSIBLE_VISIBLE_DATA_PROPERTY,
+                         null, null);
+      handleColumnChange(AccessibleTableModelChange.INSERT,
+                         event.getFromIndex(), event.getToIndex());
     }
 
     public void columnRemoved(TableColumnModelEvent event)
     {
-      // TODO Auto-generated method stub
-      
+      firePropertyChange(AccessibleContext.ACCESSIBLE_VISIBLE_DATA_PROPERTY,
+                         null, null);
+      handleColumnChange(AccessibleTableModelChange.DELETE,
+                         event.getFromIndex(), event.getToIndex());
+    }
+
+    public void columnMoved(TableColumnModelEvent event)
+    {
+      firePropertyChange(AccessibleContext.ACCESSIBLE_VISIBLE_DATA_PROPERTY,
+                         null, null);
+      handleColumnChange(AccessibleTableModelChange.DELETE,
+                         event.getFromIndex(), event.getFromIndex());
+      handleColumnChange(AccessibleTableModelChange.INSERT,
+                         event.getFromIndex(), event.getToIndex());
+    }
+
+    /**
+     * Fires a PropertyChangeEvent for inserted or deleted columns.
+     *
+     * @param type the type of change
+     * @param from the start of the change
+     * @param to the target of the change
+     */
+    private void handleColumnChange(int type, int from, int to)
+    {
+      AccessibleJTableModelChange change =
+        new AccessibleJTableModelChange(type, 0, 0, from, to);
+      firePropertyChange(AccessibleContext.ACCESSIBLE_TABLE_MODEL_CHANGED,
+                         null, change);
+    }
+
+    public void columnMarginChanged(ChangeEvent event)
+    {
+      firePropertyChange(AccessibleContext.ACCESSIBLE_VISIBLE_DATA_PROPERTY,
+                         null, null);
     }
 
     public void columnSelectionChanged(ListSelectionEvent event)
     {
-      // TODO Auto-generated method stub
-      
+      // AFAICS, nothing is done here.
     }
 
     public void editingCanceled(ChangeEvent event)
     {
-      // TODO Auto-generated method stub
-      
+      // AFAICS, nothing is done here.
     }
 
     public void editingStopped(ChangeEvent event)
     {
-      // TODO Auto-generated method stub
-      
+      firePropertyChange(AccessibleContext.ACCESSIBLE_VISIBLE_DATA_PROPERTY,
+                         null, null);
     }
 
     /**
@@ -778,156 +1520,385 @@ public class JTable
         }
     }
 
+    /**
+     * Returns the row number of an accessible child (cell) with the specified
+     * index.
+     *
+     * @param index the index of the cell of which the row number is queried
+     * 
+     * @return the row number of an accessible child (cell) with the specified
+     *         index 
+     */
     public int getAccessibleRow(int index)
     {
-      // TODO Auto-generated method stub
-      return 0;
+      return getAccessibleRowAtIndex(index);
     }
 
+    /**
+     * Returns the column number of an accessible child (cell) with the
+     * specified index.
+     *
+     * @param index the index of the cell of which the column number is queried
+     * 
+     * @return the column number of an accessible child (cell) with the
+     *         specified index 
+     */
     public int getAccessibleColumn(int index)
     {
-      // TODO Auto-generated method stub
-      return 0;
+      return getAccessibleColumnAtIndex(index);
     }
 
+    /**
+     * Returns the index of the accessible child at the specified row and
+     * column.
+     *
+     * @param r the row number
+     * @param c the column number
+     *
+     * @return the index of the accessible child at the specified row and
+     *         column
+     */
     public int getAccessibleIndex(int r, int c)
     {
-      // TODO Auto-generated method stub
-      return 0;
+      return getAccessibleIndexAt(r, c);
     }
 
+    /**
+     * Returns the caption of the table.
+     *
+     * @return the caption of the table
+     *
+     * @see #setAccessibleCaption(Accessible)
+     */
     public Accessible getAccessibleCaption()
     {
-      // TODO Auto-generated method stub
-      return null;
+      return caption;
     }
 
-    public void setAccessibleCaption(Accessible caption)
+    /**
+     * Sets the caption for the table.
+     *
+     * @param c the caption to set
+     */
+    public void setAccessibleCaption(Accessible c)
     {
-      // TODO Auto-generated method stub
-      
+      caption = c;
     }
 
+    /**
+     * Returns the summary for the table.
+     *
+     * @return the summary for the table
+     */
     public Accessible getAccessibleSummary()
     {
-      // TODO Auto-generated method stub
-      return null;
+      return summary;
     }
 
-    public void setAccessibleSummary(Accessible summary)
+    /**
+     * Sets the summary for the table.
+     *
+     * @param s the summary to set
+     */
+    public void setAccessibleSummary(Accessible s)
     {
-      // TODO Auto-generated method stub
-      
+      summary = s;
     }
 
+    /**
+     * Returns the number of rows in the table.
+     *
+     * @return the number of rows in the table
+     */
     public int getAccessibleRowCount()
     {
-      // TODO Auto-generated method stub
-      return 0;
+      return getRowCount();
     }
 
+    /**
+     * Returns the number of columns in the table.
+     *
+     * @return the number of columns in the table
+     */
     public int getAccessibleColumnCount()
     {
-      // TODO Auto-generated method stub
-      return 0;
+      return getColumnCount();
     }
 
+    /**
+     * Returns the accessible child at the given index.
+     *
+     * @param index  the child index.
+     * 
+     * @return The accessible child.
+     */
+    public Accessible getAccessibleChild(int index)
+    {
+      int r = getAccessibleRow(index);
+      int c = getAccessibleColumn(index);
+      return getAccessibleAt(r, c);  
+    }
+    
+    /**
+     * Returns the accessible child (table cell) at the specified row and
+     * column.
+     *
+     * @param r the row number
+     * @param c the column number
+     *
+     * @return the accessible child (table cell) at the specified row and
+     *         column
+     */
     public Accessible getAccessibleAt(int r, int c)
     {
-      // TODO Auto-generated method stub
+      TableCellRenderer cellRenderer = getCellRenderer(r, c);
+      Component renderer = cellRenderer.getTableCellRendererComponent(
+          JTable.this, getValueAt(r, c), isCellSelected(r, c), false, r, c);
+      if (renderer instanceof Accessible)
+        return (Accessible) renderer;
       return null;
     }
 
+    /**
+     * Returns the number of rows that the specified cell occupies. The
+     * standard table cells only occupy one row, so we return <code>1</code>
+     * here.
+     *
+     * @param r the row number
+     * @param c the column number
+     *
+     * @return the number of rows that the specified cell occupies
+     */
     public int getAccessibleRowExtentAt(int r, int c)
     {
-      // TODO Auto-generated method stub
-      return 0;
+      return 1;
     }
 
+    /**
+     * Returns the number of columns that the specified cell occupies. The
+     * standard table cells only occupy one column, so we return <code>1</code>
+     * here.
+     *
+     * @param r the row number
+     * @param c the column number
+     *
+     * @return the number of rows that the specified cell occupies
+     */
     public int getAccessibleColumnExtentAt(int r, int c)
     {
-      // TODO Auto-generated method stub
-      return 0;
+      return 1;
     }
 
+    /**
+     * Returns the accessible row header.
+     *
+     * @return the accessible row header
+     */
     public AccessibleTable getAccessibleRowHeader()
     {
-      // TODO Auto-generated method stub
+      // The RI seems to always return null here, so do we.
       return null;
     }
 
+    /**
+     * Sets the accessible row header.
+     *
+     * @param header the header to set
+     */
     public void setAccessibleRowHeader(AccessibleTable header)
     {
-      // TODO Auto-generated method stub
-      
+      // In the RI this seems to be a no-op.    
     }
 
+    /**
+     * Returns the column header.
+     *
+     * @return the column header, or <code>null</code> if there is no column
+     *         header
+     */
     public AccessibleTable getAccessibleColumnHeader()
     {
-      // TODO Auto-generated method stub
-      return null;
+      JTableHeader h = getTableHeader();
+      AccessibleTable header = null;
+      if (h != null)
+        header = new AccessibleTableHeader(h);
+      return header;
     }
 
+    /**
+     * Sets the accessible column header. The default implementation doesn't
+     * allow changing the header this way, so this is a no-op.
+     *
+     * @param header the accessible column header to set
+     */
     public void setAccessibleColumnHeader(AccessibleTable header)
     {
-      // TODO Auto-generated method stub
-      
+      // The RI doesn't seem to do anything, so we also do nothing.
     }
 
+    /**
+     * Returns the accessible description for the row with the specified index,
+     * or <code>null</code> if no description has been set.
+     *
+     * @param r the row for which the description is queried
+     *
+     * @return the accessible description for the row with the specified index,
+     *         or <code>null</code> if no description has been set
+     */
     public Accessible getAccessibleRowDescription(int r)
     {
-      // TODO Auto-generated method stub
-      return null;
+      Accessible descr = null;
+      if (rowDescriptions != null)
+        descr = rowDescriptions[r];
+      return descr;
     }
 
+    /**
+     * Sets the accessible description for the row with the specified index.
+     *
+     * @param r the row number for which to set the description
+     * @param description the description to set
+     */
     public void setAccessibleRowDescription(int r, Accessible description)
     {
-      // TODO Auto-generated method stub
-      
+      if (rowDescriptions == null)
+        rowDescriptions = new Accessible[getAccessibleRowCount()];
+      rowDescriptions[r] = description;
     }
 
+    /**
+     * Returns the accessible description for the column with the specified
+     * index, or <code>null</code> if no description has been set.
+     *
+     * @param c the column for which the description is queried
+     *
+     * @return the accessible description for the column with the specified
+     *         index, or <code>null</code> if no description has been set
+     */
     public Accessible getAccessibleColumnDescription(int c)
     {
-      // TODO Auto-generated method stub
-      return null;
+      Accessible descr = null;
+      if (columnDescriptions != null)
+        descr = columnDescriptions[c];
+      return descr;
     }
 
+    /**
+     * Sets the accessible description for the column with the specified index.
+     *
+     * @param c the column number for which to set the description
+     * @param description the description to set
+     */
     public void setAccessibleColumnDescription(int c, Accessible description)
     {
-      // TODO Auto-generated method stub
-      
+      if (columnDescriptions == null)
+        columnDescriptions = new Accessible[getAccessibleRowCount()];
+      columnDescriptions[c] = description;
     }
 
+    /**
+     * Returns <code>true</code> if the accessible child at the specified
+     * row and column is selected, <code>false</code> otherwise.
+     *
+     * @param r the row number of the child
+     * @param c the column number of the child
+     *
+     * @return <code>true</code> if the accessible child at the specified
+     *         row and column is selected, <code>false</code> otherwise
+     */
     public boolean isAccessibleSelected(int r, int c)
     {
-      // TODO Auto-generated method stub
-      return false;
+      return isCellSelected(r, c);
     }
 
+    /**
+     * Returns <code>true</code> if the row with the specified index is
+     * selected, <code>false</code> otherwise.
+     *
+     * @param r the row number
+     *
+     * @return <code>true</code> if the row with the specified index is
+     *        selected, <code>false</code> otherwise
+     */
     public boolean isAccessibleRowSelected(int r)
     {
-      // TODO Auto-generated method stub
-      return false;
+      return isRowSelected(r);
     }
 
+    /**
+     * Returns <code>true</code> if the column with the specified index is
+     * selected, <code>false</code> otherwise.
+     *
+     * @param c the column number
+     *
+     * @return <code>true</code> if the column with the specified index is
+     *        selected, <code>false</code> otherwise
+     */
     public boolean isAccessibleColumnSelected(int c)
     {
-      // TODO Auto-generated method stub
-      return false;
+      return isColumnSelected(c);
     }
 
+    /**
+     * Returns the indices of all selected rows.
+     *
+     * @return the indices of all selected rows
+     */
     public int[] getSelectedAccessibleRows()
     {
-      // TODO Auto-generated method stub
-      return null;
+      return getSelectedRows();
     }
 
+    /**
+     * Returns the indices of all selected columns.
+     *
+     * @return the indices of all selected columns
+     */
     public int[] getSelectedAccessibleColumns()
     {
-      // TODO Auto-generated method stub
-      return null;
+      return getSelectedColumns();
     }
-      
+
+    /**
+     * Returns the accessible row at the specified index.
+     *
+     * @param index the index for which to query the row
+     *
+     * @return the row number at the specified table index
+     */
+    public int getAccessibleRowAtIndex(int index)
+    {
+      // TODO: Back this up by a Mauve test and update API docs accordingly.
+      return index / getColumnCount();
+    }
+
+    /**
+     * Returns the accessible column at the specified index.
+     *
+     * @param index the index for which to query the column
+     *
+     * @return the column number at the specified table index
+     */
+    public int getAccessibleColumnAtIndex(int index)
+    {
+      // TODO: Back this up by a Mauve test and update API docs accordingly.
+      return index % getColumnCount();
+    }
+
+    /**
+     * Returns the accessible child index at the specified column and row.
+     *
+     * @param row the row
+     * @param column the column
+     *
+     * @return the index of the accessible child at the specified row and
+     *         column
+     */
+    public int getAccessibleIndexAt(int row, int column)
+    {
+      // TODO: Back this up by a Mauve test and update API docs accordingly.
+      return row * getColumnCount() + column;
+    }
   }
   /**
    * Handles property changes from the <code>TableColumn</code>s of this
@@ -939,9 +1910,9 @@ public class JTable
   class TableColumnPropertyChangeHandler implements PropertyChangeListener
   {
     /**
-     * Receives notification that a property of the observed TableColumns
-     * has changed.
-     *
+     * Receives notification that a property of the observed TableColumns has
+     * changed.
+     * 
      * @param ev the property change event
      */
     public void propertyChange(PropertyChangeEvent ev)
@@ -949,10 +1920,15 @@ public class JTable
       if (ev.getPropertyName().equals("preferredWidth"))
         {
           JTableHeader header = getTableHeader();
-          TableColumn col = (TableColumn) ev.getSource();
-          header.setResizingColumn(col);
-          doLayout();
-          header.setResizingColumn(null);
+          if (header != null)
+            // Do nothing if the table is in the resizing mode.
+            if (header.getResizingColumn() == null)
+              {
+                TableColumn col = (TableColumn) ev.getSource();
+                header.setResizingColumn(col);
+                doLayout();
+                header.setResizingColumn(null);
+              }
         }
     }
   }
@@ -963,22 +1939,38 @@ public class JTable
   private class BooleanCellRenderer
     extends DefaultTableCellRenderer
   {
-
     /**
      * The CheckBox that is used for rendering.
      */
-    private JCheckBox checkBox = new JCheckBox();
+    private final JCheckBox checkBox;
+    
+    /**
+     * Creates a new checkbox based boolean cell renderer. The checkbox is
+     * centered by default.
+     */
+    BooleanCellRenderer()
+    {
+       checkBox = new JCheckBox();
+       checkBox.setHorizontalAlignment(SwingConstants.CENTER);
+    }
+   
+    /**
+     * Get the check box.
+     */
+    JCheckBox getCheckBox()
+    {
+      return checkBox;
+    }
 
     /**
      * Returns the component that is used for rendering the value.
-     *
+     * 
      * @param table the JTable
      * @param value the value of the object
      * @param isSelected is the cell selected?
      * @param hasFocus has the cell the focus?
      * @param row the row to render
      * @param column the cell to render
-     * 
      * @return this component (the default table cell renderer)
      */
     public Component getTableCellRendererComponent(JTable table, Object value,
@@ -986,8 +1978,40 @@ public class JTable
                                                    boolean hasFocus, int row,
                                                    int column)
     {
-      Boolean boolValue = (Boolean) value;
-      checkBox.setSelected(boolValue.booleanValue());
+      if (isSelected)
+        {
+          checkBox.setBackground(table.getSelectionBackground());
+          checkBox.setForeground(table.getSelectionForeground());
+        }
+      else
+        {
+          checkBox.setBackground(table.getBackground());
+          checkBox.setForeground(table.getForeground());
+        }
+
+      if (hasFocus)
+        {
+          checkBox.setBorder(
+            UIManager.getBorder("Table.focusCellHighlightBorder"));
+          if (table.isCellEditable(row, column))
+            {
+              checkBox.setBackground(
+                UIManager.getColor("Table.focusCellBackground"));
+              checkBox.setForeground(
+                UIManager.getColor("Table.focusCellForeground"));
+            }
+        }
+      else
+        checkBox.setBorder(BorderFactory.createEmptyBorder(1, 1, 1, 1));
+
+      // Null is rendered as false.
+      if (value == null)
+        checkBox.setSelected(false);
+      else
+        {
+          Boolean boolValue = (Boolean) value;
+          checkBox.setSelected(boolValue.booleanValue());
+        }
       return checkBox;
     }
   }
@@ -1134,6 +2158,12 @@ public class JTable
   private class IconCellRenderer
     extends DefaultTableCellRenderer
   {
+    IconCellRenderer()
+    {
+      setHorizontalAlignment(SwingConstants.CENTER);
+    }
+    
+    
     /**
      * Returns the component that is used for rendering the value.
      *
@@ -1158,11 +2188,40 @@ public class JTable
           Icon iconValue = (Icon) value;
           setIcon(iconValue);
         }
+      else
+        {
+          setIcon(null);
+        }
+      setText("");
       return this;
     }
   }
+  
+    /**
+     * The JTable text component (used in editing) always has the table
+     * as its parent. The scrollRectToVisible must be adjusted taking the
+     * relative component position.
+     *
+     * @author Audrius Meskauskas (AudriusA@Bioinformatics.org)
+     */
+    private class TableTextField extends JTextField
+    {
+      /**
+       * Create the text field without the border.
+       */
+      TableTextField()
+      {
+        setBorder(BorderFactory.createLineBorder(getGridColor(), 2));
+      }
+    }    
+  
 
   private static final long serialVersionUID = 3876025080382781659L;
+  
+  /**
+   * This table, for referring identically name methods from inner classes.
+   */
+  final JTable this_table = this;
 
 
   /**
@@ -1201,20 +2260,19 @@ public class JTable
    */
   public static final int AUTO_RESIZE_LAST_COLUMN = 3;
 
+  /**
+   * A table mapping {@link java.lang.Class} objects to 
+   * {@link TableCellEditor} objects. This table is consulted by the 
+   * FIXME
+   */
+  protected Hashtable defaultEditorsByColumnClass = new Hashtable();
 
   /**
    * A table mapping {@link java.lang.Class} objects to 
    * {@link TableCellEditor} objects. This table is consulted by the 
    * FIXME
    */
-  protected Hashtable defaultEditorsByColumnClass;
-
-  /**
-   * A table mapping {@link java.lang.Class} objects to 
-   * {@link TableCellEditor} objects. This table is consulted by the 
-   * FIXME
-   */
-  protected Hashtable defaultRenderersByColumnClass;
+  protected Hashtable defaultRenderersByColumnClass = new Hashtable();
 
   /**
    * The column that is edited, -1 if the table is not edited currently.
@@ -1300,7 +2358,7 @@ public class JTable
   protected boolean rowSelectionAllowed;
 
   /**
-   * @deprecated Use {@link #rowSelectionAllowed}, {@link 
+   * Obsolete. Use {@link #rowSelectionAllowed}, {@link 
    * #getColumnSelectionAllowed}, or the combined methods {@link
    * #getCellSelectionEnabled} and {@link #setCellSelectionEnabled(boolean)}.
    */
@@ -1434,32 +2492,52 @@ public class JTable
   protected JTableHeader tableHeader;
 
   /**
-   * The row of the cell being edited.
-   */
-  int rowBeingEdited = -1;
-
-  /**
-   * The column of the cell being edited.
-   */
-  int columnBeingEdited = -1;
-
-  /**
-   * The action listener for the editor's Timer.
-   */
-  Timer editorTimer = new EditorUpdateTimer();
-
-  /**
-   * Stores the old value of a cell before it was edited, in case
-   * editing is cancelled
-   */
-  Object oldCellValue;
-
-  /**
    * The property handler for this table's columns.
    */
   TableColumnPropertyChangeHandler tableColumnPropertyChangeHandler =
     new TableColumnPropertyChangeHandler();
 
+  /**
+   * Whether cell editors should receive keyboard focus when the table is
+   * activated.
+   */
+  private boolean surrendersFocusOnKeystroke = false;
+
+  /**
+   * A Rectangle object to be reused in {@link #getCellRect}. 
+   */
+  private Rectangle rectCache = new Rectangle();
+
+  /**
+   * Indicates if the rowHeight property has been set by a client program or by
+   * the UI.
+   *
+   * @see #setUIProperty(String, Object)
+   * @see LookAndFeel#installProperty(JComponent, String, Object)
+   */
+  private boolean clientRowHeightSet = false;
+
+  /**
+   * Stores the sizes and positions of each row, when using non-uniform row
+   * heights. Initially the height of all rows is equal and stored in
+   * {link #rowHeight}. However, when an application calls
+   * {@link #setRowHeight(int,int)}, the table switches to non-uniform
+   * row height mode which stores the row heights in the SizeSequence
+   * object instead.
+   *
+   * @see #setRowHeight(int)
+   * @see #getRowHeight()
+   * @see #getRowHeight(int)
+   * @see #setRowHeight(int, int)
+   */
+  private SizeSequence rowHeights;
+  
+  /**
+   * This editor serves just a marker that the value must be simply changed to
+   * the opposite one instead of starting the editing session.
+   */
+  private transient TableCellEditor booleanInvertingEditor; 
+  
   /**
    * Creates a new <code>JTable</code> instance.
    */
@@ -1469,7 +2547,8 @@ public class JTable
   }
 
   /**
-   * Creates a new <code>JTable</code> instance.
+   * Creates a new <code>JTable</code> instance with the given number
+   * of rows and columns.
    *
    * @param numRows an <code>int</code> value
    * @param numColumns an <code>int</code> value
@@ -1480,10 +2559,12 @@ public class JTable
   }
 
   /**
-   * Creates a new <code>JTable</code> instance.
+   * Creates a new <code>JTable</code> instance, storing the given data 
+   * array and heaving the given column names. To see the column names,
+   * you must place the JTable into the {@link JScrollPane}.
    *
-   * @param data an <code>Object[][]</code> value
-   * @param columnNames an <code>Object[]</code> value
+   * @param data an <code>Object[][]</code> the table data
+   * @param columnNames an <code>Object[]</code> the column headers
    */
   public JTable(Object[][] data, Object[] columnNames)
   {
@@ -1491,20 +2572,31 @@ public class JTable
   }
 
   /**
-   * Creates a new <code>JTable</code> instance.
-   *
-   * @param dm a <code>TableModel</code> value
+   * Creates a new <code>JTable</code> instance, using the given data model
+   * object that provides information about the table content. The table model
+   * object is asked for the table size, other features and also receives
+   * notifications in the case when the table has been edited by the user.
+   * 
+   * @param model
+   *          the table model.
    */
-  public JTable (TableModel dm)
+  public JTable (TableModel model)
   {
-    this(dm, null, null);
+    this(model, null, null);
   }
 
   /**
-   * Creates a new <code>JTable</code> instance.
-   *
-   * @param dm a <code>TableModel</code> value
-   * @param cm a <code>TableColumnModel</code> value
+   * Creates a new <code>JTable</code> instance, using the given model object
+   * that provides information about the table content. The table data model
+   * object is asked for the table size, other features and also receives
+   * notifications in the case when the table has been edited by the user. The
+   * table column model provides more detailed control on the table column
+   * related features.
+   * 
+   * @param dm
+   *          the table data mode
+   * @param cm
+   *          the table column model
    */
   public JTable (TableModel dm, TableColumnModel cm)
   {
@@ -1512,22 +2604,33 @@ public class JTable
   }
 
   /**
-   * Creates a new <code>JTable</code> instance.
+   * Creates a new <code>JTable</code> instance, providing data model,
+   * column model and list selection model. The list selection model
+   * manages the selections.
    *
-   * @param dm a <code>TableModel</code> value
-   * @param cm a <code>TableColumnModel</code> value
-   * @param sm a <code>ListSelectionModel</code> value
+   * @param dm data model (manages table data)
+   * @param cm column model (manages table columns)
+   * @param sm list selection model (manages table selections)
    */
   public JTable (TableModel dm, TableColumnModel cm, ListSelectionModel sm)
   {
     boolean autoCreate = false;
+    TableColumnModel columnModel;
     if (cm != null)
-        setColumnModel(cm);
+        columnModel = cm;
     else 
       {
-        setColumnModel(createDefaultColumnModel());
+        columnModel = createDefaultColumnModel();
         autoCreate = true;
-      }        
+      }
+    
+    // Initialise the intercelar spacing before setting the column model to
+    // avoid firing unnecessary events.
+    // The initial incellar spacing is new Dimenstion(1,1). 
+    rowMargin = 1;
+    columnModel.setColumnMargin(1);
+    setColumnModel(columnModel);
+    
     setSelectionModel(sm == null ? createDefaultSelectionModel() : sm);
     setModel(dm == null ? createDefaultDataModel() : dm);
     setAutoCreateColumnsFromModel(autoCreate);
@@ -1544,23 +2647,32 @@ public class JTable
     columnModel.getSelectionModel().setAnchorSelectionIndex(0);
     columnModel.getSelectionModel().setLeadSelectionIndex(0);
     updateUI();
-  }    
-
+  }
+  
+  /**
+   * Creates a new <code>JTable</code> instance that uses data and column
+   * names, stored in {@link Vector}s.
+   *
+   * @param data the table data
+   * @param columnNames the table column names.
+   */
+  public JTable(Vector data, Vector columnNames)
+  {
+    this(new DefaultTableModel(data, columnNames));
+  }  
+  
+  /**
+   * Initialize local variables to default values.
+   */
   protected void initializeLocalVars()
   {
     setTableHeader(createDefaultTableHeader());
     if (autoCreateColumnsFromModel)
       createDefaultColumnsFromModel();
     this.columnModel.addColumnModelListener(this);
-    
-    this.defaultRenderersByColumnClass = new Hashtable();
-    createDefaultRenderers();
-
-    this.defaultEditorsByColumnClass = new Hashtable();
-    createDefaultEditors();
 
     this.autoResizeMode = AUTO_RESIZE_SUBSEQUENT_COLUMNS;
-    this.rowHeight = 16;
+    setRowHeight(16);
     this.rowMargin = 1;
     this.rowSelectionAllowed = true;
     // this.accessibleContext = new AccessibleJTable();
@@ -1572,65 +2684,19 @@ public class JTable
     this.showVerticalLines = true;
     this.editingColumn = -1;
     this.editingRow = -1;
-    setIntercellSpacing(new Dimension(1,1));
   }
-
+  
   /**
-   * Creates a new <code>JTable</code> instance.
-   *
-   * @param data a <code>Vector</code> value
-   * @param columnNames a <code>Vector</code> value
+   * Add the new table column. The table column class allows to specify column
+   * features more precisely, setting the preferred width, column data type
+   * (column class) and table headers.
+   * 
+   * There is no need the add columns to the table if the default column 
+   * handling is sufficient.
+   * 
+   * @param column
+   *          the new column to add.
    */
-  public JTable(Vector data, Vector columnNames)
-  {
-    this(new DefaultTableModel(data, columnNames));
-  }
-
-  /**
-   * The timer that updates the editor component.
-   */
-  private class EditorUpdateTimer
-    extends Timer
-    implements ActionListener
-  {
-    /**
-     * Creates a new EditorUpdateTimer object with a default delay of 0.5 seconds.
-     */
-    public EditorUpdateTimer()
-    {
-      super(500, null);
-      addActionListener(this);
-    }
-
-    /**
-     * Lets the caret blink and repaints the table.
-     */
-    public void actionPerformed(ActionEvent ev)
-    {
-      Caret c = ((JTextField)JTable.this.editorComp).getCaret();
-      if (c != null)
-        c.setVisible(!c.isVisible());
-      JTable.this.repaint();
-    }
-
-    /**
-     * Updates the blink delay according to the current caret.
-     */
-    public void update()
-    {
-      stop();
-      Caret c = ((JTextField)JTable.this.editorComp).getCaret();
-      if (c != null)
-	{
-	  setDelay(c.getBlinkRate());
-	  if (((JTextField)JTable.this.editorComp).isEditable())
-	    start();
-	  else
-	    c.setVisible(false);
-	}
-    }
-  }
-
   public void addColumn(TableColumn column)
   {
     if (column.getHeaderValue() == null)
@@ -1642,12 +2708,27 @@ public class JTable
     columnModel.addColumn(column);
     column.addPropertyChangeListener(tableColumnPropertyChangeHandler);
   }
-
+  
+  /**
+   * Create the default editors for this table. The default method creates
+   * the editor for Booleans.
+   * 
+   * Other fields are edited as strings at the moment.
+   */
   protected void createDefaultEditors()
   {
-    //FIXME: Create the editor object.
+    JCheckBox box = new BooleanCellRenderer().getCheckBox();
+    box.setBorder(BorderFactory.createLineBorder(getGridColor(), 2));
+    box.setBorderPainted(true);
+    booleanInvertingEditor = new DefaultCellEditor(box);    
+    setDefaultEditor(Boolean.class, booleanInvertingEditor);
   }
-
+  
+  /**
+   * Create the default renderers for this table. The default method creates
+   * renderers for Boolean, Number, Double, Date, Icon and ImageIcon.
+   *
+   */
   protected void createDefaultRenderers()
   {
     setDefaultRenderer(Boolean.class, new BooleanCellRenderer());
@@ -1656,6 +2737,7 @@ public class JTable
     setDefaultRenderer(Double.class, new FloatCellRenderer());
     setDefaultRenderer(Date.class, new DateCellRenderer());
     setDefaultRenderer(Icon.class, new IconCellRenderer());
+    setDefaultRenderer(ImageIcon.class, new IconCellRenderer());    
   }
   
   /**
@@ -1665,123 +2747,385 @@ public class JTable
   {
     return new JScrollPane(table);
   }
-
+  
+  /**
+   * Create the default table column model that is used if the user-defined
+   * column model is not provided. The default method creates
+   * {@link DefaultTableColumnModel}.
+   * 
+   * @return the created table column model.
+   */
   protected TableColumnModel createDefaultColumnModel()
   {
     return new DefaultTableColumnModel();
   }
 
+  /**
+   * Create the default table data model that is used if the user-defined
+   * data model is not provided. The default method creates
+   * {@link DefaultTableModel}.
+   * 
+   * @return the created table data model.
+   */
   protected TableModel createDefaultDataModel()
   {
     return new DefaultTableModel();
   }
 
+  /**
+   * Create the default table selection model that is used if the user-defined
+   * selection model is not provided. The default method creates
+   * {@link DefaultListSelectionModel}.
+   * 
+   * @return the created table data model.
+   */
   protected ListSelectionModel createDefaultSelectionModel()
   {
     return new DefaultListSelectionModel();
   }
-
+  
+  /**
+   * Create the default table header, if the user - defined table header is not
+   * provided.
+   * 
+   * @return the default table header.
+   */
   protected JTableHeader createDefaultTableHeader()
   {
     return new JTableHeader(columnModel);
   }
- 
-  // listener support 
-
+  
+  /**
+   * Invoked when the column is added. Revalidates and repains the table.
+   */
   public void columnAdded (TableColumnModelEvent event)
   {
     revalidate();
     repaint();
   }
 
+  /**
+   * Invoked when the column margin is changed. 
+   * Revalidates and repains the table.
+   */
   public void columnMarginChanged (ChangeEvent event)
   {
     revalidate();
     repaint();
   }
 
+  /**
+   * Invoked when the column is moved. Revalidates and repains the table.
+   */
   public void columnMoved (TableColumnModelEvent event)
   {
+    if (isEditing())
+      editingCanceled(null);
     revalidate();
     repaint();
   }
 
+  /**
+   * Invoked when the column is removed. Revalidates and repains the table.
+   */
   public void columnRemoved (TableColumnModelEvent event)
   {
     revalidate();
     repaint();
   }
   
+  /**
+   * Invoked when the the column selection changes, repaints the changed
+   * columns. It is not recommended to override this method, register the
+   * listener instead.
+   */
   public void columnSelectionChanged (ListSelectionEvent event)
   {
-    repaint();
-  }
+    // We must limit the indices to the bounds of the JTable's model, because
+    // we might get values of -1 or greater then columnCount in the case
+    // when columns get removed.
+    int idx0 = Math.max(0, Math.min(getColumnCount() - 1,
+                                    event.getFirstIndex()));
+    int idxn = Math.max(0, Math.min(getColumnCount() - 1,
+                                    event.getLastIndex()));
 
+    int minRow = 0;
+    int maxRow = getRowCount() - 1;
+    if (getRowSelectionAllowed())
+      {
+        minRow = selectionModel.getMinSelectionIndex();
+        maxRow = selectionModel.getMaxSelectionIndex();
+        int leadRow = selectionModel.getLeadSelectionIndex();
+        if (minRow == -1 && maxRow == -1)
+          {
+            minRow = leadRow;
+            maxRow = leadRow;
+          }
+        else
+          {
+            // In this case we need to repaint also the range to leadRow, not
+            // only between min and max.
+            if (leadRow != -1)
+              {
+                minRow = Math.min(minRow, leadRow);
+                maxRow = Math.max(maxRow, leadRow);
+              }
+          }
+      }
+    if (minRow != -1 && maxRow != -1)
+      {
+        Rectangle first = getCellRect(minRow, idx0, false);
+        Rectangle last = getCellRect(maxRow, idxn, false);
+        Rectangle dirty = SwingUtilities.computeUnion(first.x, first.y,
+                                                      first.width,
+                                                      first.height, last);
+        repaint(dirty);
+      }
+  }
+ 
+  /**
+   * Invoked when the editing is cancelled.
+   */
   public void editingCanceled (ChangeEvent event)
   {
-    if (rowBeingEdited > -1 && columnBeingEdited > -1)
+    if (editorComp!=null)
       {
-        if (getValueAt(rowBeingEdited, columnBeingEdited) instanceof JTextField)
-          {
-            remove ((Component)getValueAt(rowBeingEdited, columnBeingEdited));
-            setValueAt(oldCellValue, rowBeingEdited, columnBeingEdited);
-          }
-        rowBeingEdited = -1;
-        columnBeingEdited = -1;
+        remove(editorComp);
+        repaint(editorComp.getBounds());        
+        editorComp = null;
       }
-    editorTimer.stop();
-    editorComp = null;
-    cellEditor = null;
-    requestFocusInWindow(false);
-    repaint();
   }
-
+  
+  /**
+   * Finish the current editing session and update the table with the
+   * new value by calling {@link #setValueAt}.
+   * 
+   * @param event the change event
+   */
   public void editingStopped (ChangeEvent event)
   {
-    if (rowBeingEdited > -1 && columnBeingEdited > -1)
+    if (editorComp!=null)
       {
-        if (getValueAt(rowBeingEdited, columnBeingEdited) instanceof JTextField)
-          {
-            remove((Component)getValueAt(rowBeingEdited, columnBeingEdited));
-            setValueAt(((JTextField)editorComp).getText(), 
-                       rowBeingEdited, columnBeingEdited);
-          }
-        rowBeingEdited = -1;
-        columnBeingEdited = -1;
+        remove(editorComp);        
+        setValueAt(cellEditor.getCellEditorValue(), editingRow, editingColumn);            
+        repaint(editorComp.getBounds());
+        editorComp = null;
       }
-    editorTimer.stop();
-    editorComp = null;
-    cellEditor = null;
-    requestFocusInWindow(false);
-    repaint();
+    requestFocusInWindow();
   }
 
+  /**
+   * Invoked when the table changes.
+   * <code>null</code> means everything changed.
+   */
   public void tableChanged (TableModelEvent event)
   {
     // update the column model from the table model if the structure has
     // changed and the flag autoCreateColumnsFromModel is set
-    if ((event.getFirstRow() ==TableModelEvent.HEADER_ROW)
-        && autoCreateColumnsFromModel)
-
-        createDefaultColumnsFromModel();
-
-    // If the structure changes, we need to revalidate, since that might
-    // affect the size parameters of the JTable. Otherwise we only need
-    // to perform a repaint to update the view.
-    if (event.getType() == TableModelEvent.INSERT)
-      revalidate();
+    if (event == null || (event.getFirstRow() == TableModelEvent.HEADER_ROW))
+      handleCompleteChange(event);
+    else if (event.getType() == TableModelEvent.INSERT)
+      handleInsert(event);
     else if (event.getType() == TableModelEvent.DELETE)
-      {
-        if (dataModel.getRowCount() == 0)
-          clearSelection();
-        revalidate();
-      }
-    repaint();
+      handleDelete(event);
+    else
+      handleUpdate(event);
   }
 
+  /**
+   * Handles a request for complete relayout. This is the case when
+   * event.getFirstRow() == TableModelEvent.HEADER_ROW.
+   *
+   * @param ev the table model event
+   */
+  private void handleCompleteChange(TableModelEvent ev)
+  {
+    clearSelection();
+    checkSelection();
+    rowHeights = null;
+    if (getAutoCreateColumnsFromModel())
+      createDefaultColumnsFromModel();
+    else
+      resizeAndRepaint();
+  }
+
+  /**
+   * Handles table model insertions.
+   *
+   * @param ev the table model event
+   */
+  private void handleInsert(TableModelEvent ev)
+  {
+    // Sync selection model with data model.
+    int first = ev.getFirstRow();
+    if (first < 0)
+      first = 0;
+    int last = ev.getLastRow();
+    if (last < 0)
+      last = getRowCount() - 1;
+    selectionModel.insertIndexInterval(first, last - first + 1, true);
+    checkSelection();
+
+    // For variable height rows we must update the SizeSequence thing.
+    if (rowHeights != null)
+      {
+        rowHeights.insertEntries(first, last - first + 1, rowHeight);
+        // TODO: We repaint the whole thing when the rows have variable
+        // heights. We might want to handle this better though.
+        repaint();
+      }
+    else
+      {
+        // Repaint the dirty region and revalidate.
+        int rowHeight = getRowHeight();
+        Rectangle dirty = new Rectangle(0, first * rowHeight,
+                                        getColumnModel().getTotalColumnWidth(),
+                                        (getRowCount() - first) * rowHeight);
+        repaint(dirty);
+      }
+    revalidate();
+  }
+
+  /**
+   * Handles table model deletions.
+   *
+   * @param ev the table model event
+   */
+  private void handleDelete(TableModelEvent ev)
+  {
+    // Sync selection model with data model.
+    int first = ev.getFirstRow();
+    if (first < 0)
+      first = 0;
+    int last = ev.getLastRow();
+    if (last < 0)
+      last = getRowCount() - 1;
+
+    selectionModel.removeIndexInterval(first, last);
+
+    checkSelection();
+
+    if (dataModel.getRowCount() == 0)
+      clearSelection();
+
+    // For variable height rows we must update the SizeSequence thing.
+    if (rowHeights != null)
+      {
+        rowHeights.removeEntries(first, last - first + 1);
+        // TODO: We repaint the whole thing when the rows have variable
+        // heights. We might want to handle this better though.
+        repaint();
+      }
+    else
+      {
+        // Repaint the dirty region and revalidate.
+        int rowHeight = getRowHeight();
+        int oldRowCount = getRowCount() + last - first + 1;
+        Rectangle dirty = new Rectangle(0, first * rowHeight,
+                                        getColumnModel().getTotalColumnWidth(),
+                                        (oldRowCount - first) * rowHeight);
+        repaint(dirty);
+      }
+    revalidate();
+  }
+
+  /**
+   * Handles table model updates without structural changes.
+   *
+   * @param ev the table model event
+   */
+  private void handleUpdate(TableModelEvent ev)
+  {
+    if (rowHeights == null)
+      {
+        // Some cells have been changed without changing the structure.
+        // Figure out the dirty rectangle and repaint.
+        int firstRow = ev.getFirstRow();
+        int lastRow = ev.getLastRow();
+        int col = ev.getColumn();
+        Rectangle dirty;
+        if (col == TableModelEvent.ALL_COLUMNS)
+          {
+            // All columns changed. 
+            dirty = new Rectangle(0, firstRow * getRowHeight(),
+                                  getColumnModel().getTotalColumnWidth(), 0);
+          }
+        else
+          {
+            // Only one cell or column of cells changed.
+            // We need to convert to view column first.
+            int column = convertColumnIndexToModel(col);
+            dirty = getCellRect(firstRow, column, false);
+          }
+
+        // Now adjust the height of the dirty region.
+        dirty.height = (lastRow + 1) * getRowHeight();
+        // .. and repaint.
+        repaint(dirty);
+      }
+    else
+      {
+        // TODO: We repaint the whole thing when the rows have variable
+        // heights. We might want to handle this better though.
+        repaint();
+      }
+  }
+
+  /**
+   * Helper method for adjusting the lead and anchor indices when the
+   * table structure changed. This sets the lead and anchor to -1 if there's
+   * no more rows, or set them to 0 when they were at -1 and there are actually
+   * some rows now.
+   */
+  private void checkSelection()
+  {
+    TableModel m = getModel();
+    ListSelectionModel sm = selectionModel;
+    if (m != null)
+      {
+        int lead = sm.getLeadSelectionIndex();
+        int c = m.getRowCount();
+        if (c == 0 && lead != -1)
+          {
+            // No rows in the model, reset lead and anchor to -1.
+            sm.setValueIsAdjusting(true);
+            sm.setAnchorSelectionIndex(-1);
+            sm.setLeadSelectionIndex(-1);
+            sm.setValueIsAdjusting(false);
+          }
+        else if (c != 0 && lead == -1)
+          {
+            // We have rows, but no lead/anchor. Set them to 0. We
+            // do a little trick here so that the actual selection is not
+            // touched.
+            if (sm.isSelectedIndex(0))
+              sm.addSelectionInterval(0, 0);
+            else
+              sm.removeSelectionInterval(0, 0);
+          }
+        // Nothing to do in the other cases.
+      }
+  }
+
+  /**
+   * Invoked when another table row is selected. It is not recommended
+   * to override thid method, register the listener instead.
+   */
   public void valueChanged (ListSelectionEvent event)
   {
-    repaint();
+    // If we are in the editing process, end the editing session.
+    if (isEditing())
+      editingStopped(null);
+    
+    // Repaint the changed region.
+    int first = Math.max(0, Math.min(getRowCount() - 1, event.getFirstIndex()));
+    int last = Math.max(0, Math.min(getRowCount() - 1, event.getLastIndex()));
+    Rectangle rect1 = getCellRect(first, 0, false);
+    Rectangle rect2 = getCellRect(last, getColumnCount() - 1, false);
+    Rectangle dirty = SwingUtilities.computeUnion(rect2.x, rect2.y,
+                                                  rect2.width, rect2.height,
+                                                  rect1);
+    repaint(dirty);
   }
 
  /**
@@ -1794,51 +3138,52 @@ public class JTable
    */
   public int columnAtPoint(Point point)
   {
-    if (point != null)
-      {
-        int x0 = getLocation().x;
-        int ncols = getColumnCount();
-        Dimension gap = getIntercellSpacing();
-        TableColumnModel cols = getColumnModel();
-        int x = point.x;
+    int ncols = getColumnCount();
+    Dimension gap = getIntercellSpacing();
+    TableColumnModel cols = getColumnModel();
+    int x = point.x;
 
-        for (int i = 0; i < ncols; ++i)
-          {
-            int width = cols.getColumn(i).getWidth()
-                        + (gap == null ? 0 : gap.width);
-            if (0 <= x && x < width)
-              return i;
-            x -= width;
-          }
+    for (int i = 0; i < ncols; ++i)
+      {
+        int width = cols.getColumn(i).getWidth()
+                    + (gap == null ? 0 : gap.width);
+        if (0 <= x && x < width)
+          return i;
+        x -= width;
       }
     return -1;
   }
 
   /**
-   * Returns index of the row that contains specified point or 
-   * -1 if this table doesn't contain this point.
-   *
+   * Returns index of the row that contains specified point or -1 if this table
+   * doesn't contain this point.
+   * 
    * @param point point to identify the row
-   * @return index of the row that contains specified point or 
-   * -1 if this table doesn't contain this point.
+   * @return index of the row that contains specified point or -1 if this table
+   *         doesn't contain this point.
    */
   public int rowAtPoint(Point point)
   {
     if (point != null)
       {
-        int y0 = getLocation().y;
         int nrows = getRowCount();
-        int height = getRowHeight();
+        int r;
         int y = point.y;
-
-        for (int i = 0; i < nrows; ++i)
+        if (rowHeights == null)
           {
-            if (0 <= y && y < height)
-              return i;
-            y -= height;
+            int height = getRowHeight();
+            r = y / height;
           }
+        else
+          r = rowHeights.getIndex(y);
+
+        if (r < 0 || r >= nrows)
+          return -1;
+        else
+          return r;
       }
-    return -1;
+    else
+      return -1;
   }
 
   /** 
@@ -1861,24 +3206,70 @@ public class JTable
                                int column,
                                boolean includeSpacing)
   {
-    int height = getRowHeight(row);
-    int width = columnModel.getColumn(column).getWidth();
-    int x_gap = columnModel.getColumnMargin();
-    int y_gap = rowMargin;
+    Rectangle cellRect = new Rectangle(0, 0, 0, 0);
 
-    column = Math.max(0, Math.min(column, getColumnCount() - 1));
-    row = Math.max(0, Math.min(row, getRowCount() - 1));
+    // Check for valid range vertically.
+    if (row >= getRowCount())
+      {
+        cellRect.height = getHeight();
+      }
+    else if (row >= 0)
+      {
+        cellRect.height = getRowHeight(row);
+        if (rowHeights == null)
+          cellRect.y = row * cellRect.height;
+        else
+          cellRect.y = rowHeights.getPosition(row);
 
-    int x = 0;
-    int y = (height + y_gap) * row;
+        if (! includeSpacing)
+          {
+            // The rounding here is important.
+            int rMargin = getRowMargin();
+            cellRect.y += rMargin / 2;
+            cellRect.height -= rMargin;
+          }
+      }
+    // else row < 0, y = height = 0
 
-    for (int i = 0; i < column; ++i)
-      x += columnModel.getColumn(i).getWidth();
-
-    if (includeSpacing)
-      return new Rectangle(x, y, width, height);
+    // Check for valid range horizontally.
+    if (column < 0)
+      {
+        if (! getComponentOrientation().isLeftToRight())
+          {
+            cellRect.x = getWidth();
+          }
+      }
+    else if (column >= getColumnCount())
+      {
+        if (getComponentOrientation().isLeftToRight())
+          {
+            cellRect.x = getWidth();
+          }
+      }
     else
-      return new Rectangle(x, y, width - x_gap, height - y_gap);
+      {
+        TableColumnModel tcm = getColumnModel();
+        if (getComponentOrientation().isLeftToRight())
+          {
+            for (int i = 0; i < column; i++)
+              cellRect.x += tcm.getColumn(i).getWidth();
+          }
+        else
+          {
+            for (int i = tcm.getColumnCount() - 1; i > column; i--)
+              cellRect.x += tcm.getColumn(i).getWidth();
+          }
+        cellRect.width = tcm.getColumn(column).getWidth();
+        if (! includeSpacing)
+          {
+            // The rounding here is important.
+            int cMargin = tcm.getColumnMargin();
+            cellRect.x += cMargin / 2;
+            cellRect.width -= cMargin;
+          }
+      }
+
+    return cellRect;
   }
 
   public void clearSelection()
@@ -1941,67 +3332,121 @@ public class JTable
     else
       return true;
   }
-
-  public int getScrollableUnitIncrement(Rectangle visibleRect, int orientation, int direction)
+  
+  /**
+   * Return the preferred scrolling amount (in pixels) for the given scrolling
+   * direction and orientation. This method handles a partially exposed row by
+   * returning the distance required to completely expose the item. When
+   * scrolling the top item is completely exposed.
+   * 
+   * @param visibleRect the currently visible part of the component.
+   * @param orientation the scrolling orientation
+   * @param direction the scrolling direction (negative - up, positive -down).
+   *          The values greater than one means that more mouse wheel or similar
+   *          events were generated, and hence it is better to scroll the longer
+   *          distance.
+   * @author Audrius Meskauskas (audriusa@bioinformatics.org)
+   */
+  public int getScrollableUnitIncrement(Rectangle visibleRect, int orientation,
+                                        int direction)
   {
-    // FIXME: I don't exactly know what sun does here. in both cases they
-    // pick values which do *not* simply expose the next cell in a given
-    // scroll direction.
+    int h = (rowHeight + rowMargin);
+    int delta = h * direction;
 
+    // Round so that the top would start from the row boundary
     if (orientation == SwingConstants.VERTICAL)
-      return direction * rowHeight;
-    else
       {
-        int sum = 0;
-        for (int i = 0; i < getColumnCount(); ++i)
-          sum += columnModel.getColumn(0).getWidth();
-        int inc = getColumnCount() == 0 ? 10 : sum / getColumnCount();
-        return direction * inc;
+        // Completely expose the top row
+        int near = ((visibleRect.y + delta + h / 2) / h) * h;
+        int diff = visibleRect.y + delta - near;
+        delta -= diff;
       }
+    return delta;
+    // TODO when scrollng horizontally, scroll into the column boundary.
   }
 
-
+  /**
+   * Get the cell editor, suitable for editing the given cell. The default
+   * method requests the editor from the column model. If the column model does
+   * not provide the editor, the call is forwarded to the
+   * {@link #getDefaultEditor(Class)} with the parameter, obtained from
+   * {@link TableModel#getColumnClass(int)}.
+   * 
+   * @param row the cell row
+   * @param column the cell column
+   * @return the editor to edit that cell
+   */
   public TableCellEditor getCellEditor(int row, int column)
   {
     TableCellEditor editor = columnModel.getColumn(column).getCellEditor();
 
     if (editor == null)
-      editor = getDefaultEditor(dataModel.getColumnClass(column));
-    
+      {
+        int mcolumn = convertColumnIndexToModel(column);
+        editor = getDefaultEditor(dataModel.getColumnClass(mcolumn));
+      }
+
     return editor;
   }
-
+  
+  /**
+   * Get the default editor for editing values of the given type
+   * (String, Boolean and so on).
+   * 
+   * @param columnClass the class of the value that will be edited.
+   * 
+   * @return the editor, suitable for editing this data type
+   */
   public TableCellEditor getDefaultEditor(Class columnClass)
   {
     if (defaultEditorsByColumnClass.containsKey(columnClass))
       return (TableCellEditor) defaultEditorsByColumnClass.get(columnClass);
     else
       {
-	// FIXME: We have at least an editor for Object.class in our defaults.
-        TableCellEditor r = new DefaultCellEditor(new JTextField());
+        JTextField t = new TableTextField();        
+        TableCellEditor r = new DefaultCellEditor(t);
         defaultEditorsByColumnClass.put(columnClass, r);
         return r;
       }
   }
-
-
-
+  
+  /**
+   * Get the cell renderer for rendering the given cell.
+   * 
+   * @param row the cell row
+   * @param column the cell column
+   * @return the cell renderer to render that cell.
+   */
   public TableCellRenderer getCellRenderer(int row, int column)
   {
-    TableCellRenderer renderer =
-      columnModel.getColumn(column).getCellRenderer();
-    
+    TableCellRenderer renderer = columnModel.getColumn(column).getCellRenderer();
     if (renderer == null)
-      renderer = getDefaultRenderer(dataModel.getColumnClass(column));
-    
+      {
+        int mcolumn = convertColumnIndexToModel(column);
+        renderer = getDefaultRenderer(dataModel.getColumnClass(mcolumn));
+      }
     return renderer;
   }
-
+  
+  /**
+   * Set default renderer for rendering the given data type.
+   * 
+   * @param columnClass the data type (String, Boolean and so on) that must be
+   *          rendered.
+   * @param rend the renderer that will rend this data type
+   */
   public void setDefaultRenderer(Class columnClass, TableCellRenderer rend)
   {
     defaultRenderersByColumnClass.put(columnClass, rend);
   }
-
+  
+  /**
+   * Get the default renderer for rendering the given data type.
+   * 
+   * @param columnClass the data that must be rendered
+   * 
+   * @return the appropriate defauld renderer for rendering that data type.
+   */
   public TableCellRenderer getDefaultRenderer(Class columnClass)
   {
     if (defaultRenderersByColumnClass.containsKey(columnClass))
@@ -2013,7 +3458,19 @@ public class JTable
         return r;
       }
   }
-
+  
+  /**
+   * Convert the table model index into the table column number.
+   * The model number need not match the real column position. The columns
+   * may be rearranged by the user with mouse at any time by dragging the
+   * column headers.
+   *
+   * @param vc the column number (0=first).
+   * 
+   * @return the table column model index of this column.
+   * 
+   * @see TableColumn#getModelIndex()
+   */
   public int convertColumnIndexToModel(int vc)
   {
     if (vc < 0)
@@ -2021,7 +3478,19 @@ public class JTable
     else
       return columnModel.getColumn(vc).getModelIndex();
   }
-
+  
+  /**
+   * Convert the table column number to the table column model index.
+   * The model number need not match the real column position. The columns
+   * may be rearranged by the user with mouse at any time by dragging the
+   * column headers.
+   *  
+   * @param mc the table column index (0=first).
+   * 
+   * @return the table column number in the model
+   * 
+   * @see TableColumn#getModelIndex() 
+   */
   public int convertColumnIndexToView(int mc)
   {
     if (mc < 0)
@@ -2034,24 +3503,42 @@ public class JTable
       }
     return -1;
   }
-
+  
+  /**
+   * Prepare the renderer for rendering the given cell.
+   * 
+   * @param renderer the renderer being prepared
+   * @param row the row of the cell being rendered
+   * @param column the column of the cell being rendered
+   * 
+   * @return the component which .paint() method will paint the cell.
+   */
   public Component prepareRenderer(TableCellRenderer renderer,
                                    int row,
                                    int column)
   {
-    boolean rsa = getRowSelectionAllowed();
-    boolean csa = getColumnSelectionAllowed();
-    boolean rs = rsa ? getSelectionModel().isSelectedIndex(row) : false;
-    boolean cs = csa ? columnModel.getSelectionModel().isSelectedIndex(column) : false;
-    boolean isSelected = ((rsa && csa && rs && cs) 
-                          || (rsa && !csa && rs) 
-                          || (!rsa && csa && cs));
-    
+    boolean rowSelAllowed = getRowSelectionAllowed();
+    boolean colSelAllowed = getColumnSelectionAllowed();
+    boolean isSel = false;
+    if (rowSelAllowed && colSelAllowed || !rowSelAllowed && !colSelAllowed)
+      isSel = isCellSelected(row, column);
+    else
+      isSel = isRowSelected(row) && getRowSelectionAllowed()
+           || isColumnSelected(column) && getColumnSelectionAllowed();
+
+    // Determine the focused cell. The focused cell is the cell at the
+    // leadSelectionIndices of the row and column selection model.
+    ListSelectionModel rowSel = getSelectionModel();
+    ListSelectionModel colSel = getColumnModel().getSelectionModel();
+    boolean hasFocus = hasFocus() && isEnabled()
+                       && rowSel.getLeadSelectionIndex() == row
+                       && colSel.getLeadSelectionIndex() == column;
+
     return renderer.getTableCellRendererComponent(this,
                                                   dataModel.getValueAt(row, 
 						                       convertColumnIndexToModel(column)),
-                                                  isSelected,
-                                                  false, // hasFocus
+                                                  isSel,
+                                                  hasFocus,
                                                   row, column);
   }
 
@@ -2093,9 +3580,10 @@ public class JTable
    */
   public int getRowHeight(int row)
   {
-    // FIXME: return the height of the specified row
-    // which may be different from the general rowHeight
-    return rowHeight;
+    int rh = rowHeight;
+    if (rowHeights != null)
+      rh = rowHeights.getSize(row);
+    return rh;
   }
 
 
@@ -2113,6 +3601,8 @@ public class JTable
    * Get the value of the {@link #rowSelectionAllowed} property.
    *
    * @return The current value of the property
+   * 
+   * @see #setRowSelectionAllowed(boolean)
    */
   public boolean getRowSelectionAllowed()
   {
@@ -2141,7 +3631,7 @@ public class JTable
 
   /**
    * Get the value of the <code>columnCount</code> property by
-   * delegation to the @{link #columnModel} field.
+   * delegation to the {@link #columnModel} field.
    *
    * @return The current value of the columnCount property
    */
@@ -2152,7 +3642,7 @@ public class JTable
 
   /**
    * Get the value of the <code>rowCount</code> property by
-   * delegation to the @{link #dataModel} field.
+   * delegation to the {@link #dataModel} field.
    *
    * @return The current value of the rowCount property
    */
@@ -2173,7 +3663,7 @@ public class JTable
 
   /**
    * Get the value of the <code>selectedColumn</code> property by
-   * delegation to the @{link #columnModel} field.
+   * delegation to the {@link #columnModel} field.
    *
    * @return The current value of the selectedColumn property
    */
@@ -2217,7 +3707,6 @@ public class JTable
     int lo = lsm.getMinSelectionIndex();
     int hi = lsm.getMaxSelectionIndex();
     int j = 0;
-    java.util.ArrayList ls = new java.util.ArrayList();
     if (lo != -1 && hi != -1)
       {
         switch (lsm.getSelectionMode())
@@ -2243,7 +3732,7 @@ public class JTable
 
   /**
    * Get the value of the <code>selectedColumnCount</code> property by
-   * delegation to the @{link #columnModel} field.
+   * delegation to the {@link #columnModel} field.
    *
    * @return The current value of the selectedColumnCount property
    */  
@@ -2254,7 +3743,7 @@ public class JTable
 
   /**
    * Get the value of the <code>selectedColumns</code> property by
-   * delegation to the @{link #columnModel} field.
+   * delegation to the {@link #columnModel} field.
    *
    * @return The current value of the selectedColumns property
    */
@@ -2267,6 +3756,8 @@ public class JTable
    * Get the value of the <code>columnSelectionAllowed</code> property.
    *
    * @return The current value of the columnSelectionAllowed property
+   * 
+   * @see #setColumnSelectionAllowed(boolean)
    */
   public boolean getColumnSelectionAllowed()
   {
@@ -2275,7 +3766,7 @@ public class JTable
 
   /**
    * Get the value of the <code>selectedRowCount</code> property by
-   * delegation to the @{link #selectionModel} field.
+   * delegation to the {@link #selectionModel} field.
    *
    * @return The current value of the selectedRowCount property
    */
@@ -2286,7 +3777,7 @@ public class JTable
 
   /**
    * Get the value of the <code>selectedRows</code> property by
-   * delegation to the @{link #selectionModel} field.
+   * delegation to the {@link #selectionModel} field.
    *
    * @return The current value of the selectedRows property
    */
@@ -2302,6 +3793,17 @@ public class JTable
    */
   public AccessibleContext getAccessibleContext()
   {
+    if (accessibleContext == null)
+      {
+        AccessibleJTable ctx = new AccessibleJTable();
+        addPropertyChangeListener(ctx);
+        TableColumnModel tcm = getColumnModel();
+        tcm.addColumnModelListener(ctx);
+        tcm.getSelectionModel().addListSelectionListener(ctx);
+        getSelectionModel().addListSelectionListener(ctx);
+        
+        accessibleContext = ctx;
+      }
     return accessibleContext;
   }
 
@@ -2456,31 +3958,41 @@ public class JTable
   }
 
   /**
-   * Set the value of the {@link #rowHeight} property.
+   * Sets the height for all rows in the table. If you want to change the
+   * height of a single row instead, use {@link #setRowHeight(int, int)}.
    *
-   * @param r The new value of the rowHeight property
+   * @param r the height to set for all rows
+   *
+   * @see #getRowHeight()
+   * @see #setRowHeight(int, int)
+   * @see #getRowHeight(int)
    */ 
   public void setRowHeight(int r)
   {
     if (r < 1)
       throw new IllegalArgumentException();
-    
+
+    clientRowHeightSet = true;
+
     rowHeight = r;
+    rowHeights = null;
     revalidate();
     repaint();
   }
   
   /**
-   * Sets the value of the rowHeight property for the specified
-   * row.
+   * Sets the height of a single row in the table.
    * 
-   * @param rh is the new rowHeight
-   * @param row is the row to change the rowHeight of
+   * @param rh the new row height
+   * @param row the row to change the height of
    */
   public void setRowHeight(int row, int rh)
   {
-     setRowHeight(rh);
-     // FIXME: not implemented
+    if (rowHeights == null)
+      {
+        rowHeights = new SizeSequence(getRowCount(), rowHeight);
+      }
+    rowHeights.setSize(row, rh);
   }
   
   /**
@@ -2499,11 +4011,17 @@ public class JTable
    * Set the value of the {@link #rowSelectionAllowed} property.
    *
    * @param r The new value of the rowSelectionAllowed property
+   * 
+   * @see #getRowSelectionAllowed()
    */ 
   public void setRowSelectionAllowed(boolean r)
   {
-    rowSelectionAllowed = r;
-    repaint();
+    if (rowSelectionAllowed != r) 
+      {
+        rowSelectionAllowed = r;
+        firePropertyChange("rowSelectionAllowed", !r, r);
+        repaint();
+      }
   }
 
   /**
@@ -2552,6 +4070,10 @@ public class JTable
         // Add table as TableModelListener to new model.
         dataModel.addTableModelListener(this);
 
+        // Notify the tableChanged method.
+        tableChanged(new TableModelEvent(dataModel,
+                                         TableModelEvent.HEADER_ROW));
+
         // Automatically create columns.
         if (autoCreateColumnsFromModel)
           createDefaultColumnsFromModel();
@@ -2587,8 +4109,13 @@ public class JTable
     if (dataModel != null && columnModel != null)
       {
         int ncols = getColumnCount();
+        TableColumn column;
         for (int i = 0; i < ncols; ++i)
-          columnModel.getColumn(i).setHeaderValue(dataModel.getColumnName(i));
+          {
+            column = columnModel.getColumn(i); 
+            if (column.getHeaderValue()==null)
+              column.setHeaderValue(dataModel.getColumnName(i));
+          }
       }
 
     // according to Sun's spec we also have to set the tableHeader's
@@ -2604,11 +4131,17 @@ public class JTable
    * Set the value of the <code>columnSelectionAllowed</code> property.
    *
    * @param c The new value of the property
+   * 
+   * @see #getColumnSelectionAllowed()
    */ 
   public void setColumnSelectionAllowed(boolean c)
   {
-    getColumnModel().setColumnSelectionAllowed(c);
-    repaint();
+    if (columnModel.getColumnSelectionAllowed() != c)
+      {
+        columnModel.setColumnSelectionAllowed(c);
+        firePropertyChange("columnSelectionAllowed", !c, c);
+        repaint();
+      }
   }
 
   /**
@@ -2630,6 +4163,7 @@ public class JTable
     if (s != null)
       s.addListSelectionListener(this);
     selectionModel = s;
+    checkSelection();
   }
 
   /**
@@ -2846,19 +4380,44 @@ public class JTable
     for (int i = 0; i < cols.length; i++)
       {
         if (cols[i] != null)
-          cols[i].setWidth(cols[i].getWidth() + average);
+          cols[i].setWidth(cols[i].getPreferredWidth() + average);
       }
   }
-
+  
+  /**
+   * This distributes the superfluous width in a table, setting the width of the
+   * column being resized strictly to its preferred width.
+   */
+  private void distributeSpillResizing(TableColumn[] cols, int spill,
+                                       TableColumn resizeIt)
+  {
+    int average = 0;
+    if (cols.length != 1)
+      average = spill / (cols.length-1);
+    for (int i = 0; i < cols.length; i++)
+      {
+        if (cols[i] != null && !cols[i].equals(resizeIt))
+          cols[i].setWidth(cols[i].getPreferredWidth() + average);
+      }
+    resizeIt.setWidth(resizeIt.getPreferredWidth());
+  }  
+  
+  /**
+   * Set the widths of all columns, taking they preferred widths into
+   * consideration. The excess space, if any, will be distrubuted between
+   * all columns. This method also handles special cases when one of the
+   * collumns is currently being resized.
+   * 
+   * @see TableColumn#setPreferredWidth(int)
+   */
   public void doLayout()
   {
     TableColumn resizingColumn = null;
-
+    
     int ncols = getColumnCount();
     if (ncols < 1)
       return;
 
-    int[] pref = new int[ncols];
     int prefSum = 0;
     int rCol = -1;
 
@@ -2868,8 +4427,7 @@ public class JTable
     for (int i = 0; i < ncols; ++i)
       {
         TableColumn col = columnModel.getColumn(i);
-        int p = col.getWidth();
-        pref[i] = p;
+        int p = col.getPreferredWidth();
         prefSum += p;
         if (resizingColumn == col)
           rCol = i;
@@ -2881,7 +4439,7 @@ public class JTable
       {
         TableColumn col;
         TableColumn [] cols;
-
+        
         switch (getAutoResizeMode())
           {
           case AUTO_RESIZE_LAST_COLUMN:
@@ -2898,14 +4456,38 @@ public class JTable
             cols = new TableColumn[ncols];
             for (int i = 0; i < ncols; ++i)
               cols[i] = columnModel.getColumn(i);
-            distributeSpill(cols, spill);
+            distributeSpillResizing(cols, spill, resizingColumn);
             break;
 
           case AUTO_RESIZE_SUBSEQUENT_COLUMNS:
-            cols = new TableColumn[ncols];
-            for (int i = rCol; i < ncols; ++i)
-              cols[i] = columnModel.getColumn(i);
-            distributeSpill(cols, spill);
+            
+            // Subtract the width of the non-resized columns from the spill.
+            int w = 0;
+            int wp = 0;
+            TableColumn column;
+            for (int i = 0; i < rCol; i++)
+              {
+                column = columnModel.getColumn(i);
+                w += column.getWidth();
+                wp+= column.getPreferredWidth();
+              }
+
+            // The number of columns right from the column being resized.
+            int n = ncols-rCol-1;
+            if (n>0)
+              {
+                // If there are any columns on the right sied to resize.
+                spill = (getWidth()-w) - (prefSum-wp);
+                int average = spill / n;
+            
+                 // For all columns right from the column being resized:
+                for (int i = rCol+1; i < ncols; i++)
+                  {
+                    column = columnModel.getColumn(i);
+                    column.setWidth(column.getPreferredWidth() + average);
+                  }
+              }
+            resizingColumn.setWidth(resizingColumn.getPreferredWidth());
             break;
 
           case AUTO_RESIZE_OFF:
@@ -2919,9 +4501,43 @@ public class JTable
         TableColumn [] cols = new TableColumn[ncols];
         for (int i = 0; i < ncols; ++i)
           cols[i] = columnModel.getColumn(i);
-        distributeSpill(cols, spill);        
+        distributeSpill(cols, spill);
+      }
+    
+    if (editorComp!=null)
+      moveToCellBeingEdited(editorComp);
+    
+    int leftBoundary = getLeftResizingBoundary();
+    int width = getWidth() - leftBoundary;
+    repaint(leftBoundary, 0, width, getHeight());
+    if (tableHeader != null)
+      tableHeader.repaint(leftBoundary, 0, width, tableHeader.getHeight());
+  }
+  
+  /**
+   * Get the left boundary of the rectangle which changes during the column
+   * resizing.
+   */
+  int getLeftResizingBoundary()
+  {
+    if (tableHeader == null || getAutoResizeMode() == AUTO_RESIZE_ALL_COLUMNS)
+      return 0;
+    else
+      {
+        TableColumn resizingColumn = tableHeader.getResizingColumn();
+        if (resizingColumn == null)
+          return 0;
+
+        int rc = convertColumnIndexToView(resizingColumn.getModelIndex());
+        int p = 0;
+
+        for (int i = 0; i < rc; i++)
+          p += columnModel.getColumn(i).getWidth();
+        
+        return p;
       }
   }
+  
   
   /**
    * @deprecated Replaced by <code>doLayout()</code>
@@ -2930,7 +4546,7 @@ public class JTable
   {
     doLayout();
   }
-
+  
   /**
    * Obsolete since JDK 1.4. Please use <code>doLayout()</code>.
    */
@@ -2962,56 +4578,119 @@ public class JTable
   public void setUI(TableUI ui)
   {
     super.setUI(ui);
+    // The editors and renderers must be recreated because they constructors
+    // may use the look and feel properties.
+    createDefaultEditors();
+    createDefaultRenderers();
   }
 
   public void updateUI()
   {
     setUI((TableUI) UIManager.getUI(this));
-    revalidate();
-    repaint();
-  }
-
-  public Class getColumnClass(int column)
-  {
-    return dataModel.getColumnClass(column);
   }
   
+  /**
+   * Get the class (datatype) of the column. The cells are rendered and edited
+   * differently, depending from they data type.
+   * 
+   * @param column the column (not the model index).
+   * 
+   * @return the class, defining data type of that column (String.class for
+   * String, Boolean.class for boolean and so on).
+   */
+  public Class getColumnClass(int column)
+  {
+    return getModel().getColumnClass(convertColumnIndexToModel(column));
+  }
+  
+  /**
+   * Get the name of the column. If the column has the column identifier set,
+   * the return value is the result of the .toString() method call on that
+   * identifier. If the identifier is not explicitly set, the returned value
+   * is calculated by 
+   * {@link javax.swing.table.AbstractTableModel#getColumnName(int)}.
+   * 
+   * @param column the column
+   * 
+   * @return the name of that column.
+   */
   public String getColumnName(int column)
   {
     int modelColumn = columnModel.getColumn(column).getModelIndex();
     return dataModel.getColumnName(modelColumn);
   }
-
+  
+  /**
+   * Get the column, currently being edited
+   * 
+   * @return the column, currently being edited.
+   */
   public int getEditingColumn()
   {
     return editingColumn;
   }
-
+  
+  /**
+   * Set the column, currently being edited
+   * 
+   * @param column the column, currently being edited.
+   */
   public void setEditingColumn(int column)
   {
     editingColumn = column;
   }
   
+  /**
+   * Get the row currently being edited.
+   * 
+   * @return the row, currently being edited.
+   */
   public int getEditingRow()
   {
     return editingRow;
   }
-
-  public void setEditingRow(int column)
+  
+  /**
+   * Set the row currently being edited.
+   * 
+   * @param row the row, that will be edited
+   */
+  public void setEditingRow(int row)
   {
-    editingRow = column;
+    editingRow = row;
   }
   
+  /**
+   * Get the editor component that is currently editing one of the cells
+   * 
+   * @return the editor component or null, if none of the cells is being
+   * edited.
+   */
   public Component getEditorComponent()
   {
     return editorComp;
   }
   
+  /**
+   * Check if one of the table cells is currently being edited.
+   * 
+   * @return true if there is a cell being edited.
+   */
   public boolean isEditing()
   {
     return editorComp != null;
   }
-
+  
+  /**
+   * Set the default editor for the given column class (column data type).
+   * By default, String is handled by text field and Boolean is handled by
+   * the check box.
+   *  
+   * @param columnClass the column data type
+   * @param editor the editor that will edit this data type
+   * 
+   * @see TableModel#getColumnClass(int)
+   */
   public void setDefaultEditor(Class columnClass, TableCellEditor editor)
   {
     if (editor != null)
@@ -3019,7 +4698,7 @@ public class JTable
     else
       defaultEditorsByColumnClass.remove(columnClass);
   }
-
+  
   public void addColumnSelectionInterval(int index0, int index1)
   {
     if ((index0 < 0 || index0 > (getColumnCount()-1)
@@ -3074,23 +4753,55 @@ public class JTable
     getSelectionModel().removeSelectionInterval(index0, index1);
   }
   
+  /**
+   * Checks if the given column is selected.
+   * 
+   * @param column the column
+   * 
+   * @return true if the column is selected (as reported by the selection
+   * model, associated with the column model), false otherwise.
+   */
   public boolean isColumnSelected(int column)
   {
     return getColumnModel().getSelectionModel().isSelectedIndex(column);
   }
-
+  
+  /**
+   * Checks if the given row is selected.
+   * 
+   * @param row the row
+   * 
+   * @return true if the row is selected (as reported by the selection model),
+   * false otherwise.
+   */
   public boolean isRowSelected(int row)
   {
     return getSelectionModel().isSelectedIndex(row);
   }
-
+  
+  /**
+   * Checks if the given cell is selected. The cell is selected if both
+   * the cell row and the cell column are selected.
+   * 
+   * @param row the cell row
+   * @param column the cell column
+   * 
+   * @return true if the cell is selected, false otherwise
+   */
   public boolean isCellSelected(int row, int column)
   {
     return isRowSelected(row) && isColumnSelected(column);
   }
   
+  /**
+   * Select all table.
+   */
   public void selectAll()
   {
+    // The table is empty - nothing to do!
+    if (getRowCount() == 0 || getColumnCount() == 0)
+      return;
+    
     // rowLead and colLead store the current lead selection indices
     int rowLead = selectionModel.getLeadSelectionIndex();
     int colLead = getColumnModel().getSelectionModel().getLeadSelectionIndex();
@@ -3103,22 +4814,48 @@ public class JTable
     addColumnSelectionInterval(colLead,colLead);
     addRowSelectionInterval(rowLead, rowLead);
   }
-
+  
+  /**
+   * Get the cell value at the given position.
+   * 
+   * @param row the row to get the value
+   * @param column the actual column number (not the model index) 
+   * to get the value.
+   * 
+   * @return the cell value, as returned by model.
+   */
   public Object getValueAt(int row, int column)
   {
     return dataModel.getValueAt(row, convertColumnIndexToModel(column));
   }
-
+  
+  /**
+   * Set value for the cell at the given position. The modified cell is
+   * repainted.
+   * 
+   * @param value the value to set
+   * @param row the row of the cell being modified
+   * @param column the column of the cell being modified
+   */
   public void setValueAt(Object value, int row, int column)
   {
-    if (!isCellEditable(row, column))
-      return;
-
-    if (value instanceof Component)
-      add((Component)value);
     dataModel.setValueAt(value, row, convertColumnIndexToModel(column));
+    
+    repaint(getCellRect(row, column, true));
   }
-
+  
+  /**
+   * Get table column with the given identified.
+   * 
+   * @param identifier the column identifier
+   * 
+   * @return the table column with this identifier
+   * 
+   * @throws IllegalArgumentException if <code>identifier</code> is 
+   *         <code>null</code> or there is no column with that identifier.
+   * 
+   * @see TableColumn#setIdentifier(Object)
+   */
   public TableColumn getColumn(Object identifier)
   {
     return columnModel.getColumn(columnModel.getColumnIndex(identifier));
@@ -3131,7 +4868,7 @@ public class JTable
    * @param row  the row index.
    * @param column  the column index.
    *
-   * @return A boolean.
+   * @return true if the cell is editable, false otherwise.
    */
   public boolean isCellEditable(int row, int column)
   {
@@ -3214,22 +4951,66 @@ public class JTable
 
   /**
    * Programmatically starts editing the specified cell.
-   *
+   * 
    * @param row the row of the cell to edit.
    * @param column the column of the cell to edit.
    */
-  public boolean editCellAt (int row, int column)
+  public boolean editCellAt(int row, int column)
   {
-    oldCellValue = getValueAt(row, column);
-    setCellEditor(getCellEditor(row, column));
-    editorComp = prepareEditor(cellEditor, row, column);
-    cellEditor.addCellEditorListener(this);
-    rowBeingEdited = row;
-    columnBeingEdited = column;
-    setValueAt(editorComp, row, column);
-    ((JTextField)editorComp).requestFocusInWindow(false);
-    editorTimer.start();
-    return true;
+    // Complete the previous editing session, if still active.
+    if (isEditing())
+      editingStopped(new ChangeEvent("editingStopped"));
+
+    TableCellEditor editor = getCellEditor(row, column);
+    
+    // The boolean values are inverted by the single click without the
+    // real editing session.
+    if (editor == booleanInvertingEditor && isCellEditable(row, column))
+      {
+        if (Boolean.TRUE.equals(getValueAt(row, column)))
+          setValueAt(Boolean.FALSE, row, column);
+        else
+          setValueAt(Boolean.TRUE, row, column);
+        return false;
+      }
+    else
+      {
+        editingRow = row;
+        editingColumn = column;
+
+        setCellEditor(editor);
+        editorComp = prepareEditor(cellEditor, row, column);
+
+        // Remove the previous editor components, if present. Only one
+        // editor component at time is allowed in the table.
+        removeAll();
+        add(editorComp);
+        moveToCellBeingEdited(editorComp);
+        scrollRectToVisible(editorComp.getBounds());
+        editorComp.requestFocusInWindow();
+        
+        // Deliver the should select event.
+        return editor.shouldSelectCell(null);        
+      }
+  }
+
+  /**
+   * Move the given component under the cell being edited. 
+   * The table must be in the editing mode.
+   * 
+   * @param component the component to move.
+   */
+  private void moveToCellBeingEdited(Component component)
+  {
+     Rectangle r = getCellRect(editingRow, editingColumn, true);
+     // Adjust bounding box of the editing component, so that it lies
+     // 'above' the grid on all edges, not only right and bottom.
+     // The table grid is painted only at the right and bottom edge of a cell.
+     r.x -= 1;
+     r.y -= 1;
+     r.width += 1;
+     r.height += 1;
+     component.setBounds(r);
   }
 
   /**
@@ -3273,5 +5054,68 @@ public class JTable
   {
     revalidate();
     repaint();
+  }
+
+  /**
+   * Sets whether cell editors of this table should receive keyboard focus
+   * when the editor is activated by a keystroke. The default setting is
+   * <code>false</code> which means that the table should keep the keyboard
+   * focus until the cell is selected by a mouse click.
+   *
+   * @param value the value to set
+   *
+   * @since 1.4
+   */
+  public void setSurrendersFocusOnKeystroke(boolean value)
+  {
+    // TODO: Implement functionality of this property (in UI impl).
+    surrendersFocusOnKeystroke = value;
+  }
+  
+  /**
+   * Returns whether cell editors of this table should receive keyboard focus
+   * when the editor is activated by a keystroke. The default setting is
+   * <code>false</code> which means that the table should keep the keyboard
+   * focus until the cell is selected by a mouse click.
+   *
+   * @return whether cell editors of this table should receive keyboard focus
+   *         when the editor is activated by a keystroke
+   *
+   * @since 1.4
+   */
+  public boolean getSurrendersFocusOnKeystroke()
+  {
+    // TODO: Implement functionality of this property (in UI impl).
+    return surrendersFocusOnKeystroke;
+  }
+
+  /**
+   * Helper method for
+   * {@link LookAndFeel#installProperty(JComponent, String, Object)}.
+   * 
+   * @param propertyName the name of the property
+   * @param value the value of the property
+   *
+   * @throws IllegalArgumentException if the specified property cannot be set
+   *         by this method
+   * @throws ClassCastException if the property value does not match the
+   *         property type
+   * @throws NullPointerException if <code>c</code> or
+   *         <code>propertyValue</code> is <code>null</code>
+   */
+  void setUIProperty(String propertyName, Object value)
+  {
+    if (propertyName.equals("rowHeight"))
+      {
+        if (! clientRowHeightSet)
+          {
+            setRowHeight(((Integer) value).intValue());
+            clientRowHeightSet = false;
+          }
+      }
+    else
+      {
+        super.setUIProperty(propertyName, value);
+      }
   }
 }

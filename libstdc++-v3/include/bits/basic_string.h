@@ -1,6 +1,7 @@
 // Components for manipulating sequences of characters -*- C++ -*-
 
-// Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006
+// Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
+// 2006, 2007
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -28,25 +29,25 @@
 // invalidate any other reasons why the executable file might be covered by
 // the GNU General Public License.
 
-//
-// ISO C++ 14882: 21 Strings library
-//
-
 /** @file basic_string.h
  *  This is an internal header file, included by other library headers.
  *  You should not attempt to use it directly.
  */
+
+//
+// ISO C++ 14882: 21 Strings library
+//
 
 #ifndef _BASIC_STRING_H
 #define _BASIC_STRING_H 1
 
 #pragma GCC system_header
 
-#include <bits/atomicity.h>
+#include <ext/atomicity.h>
 #include <debug/debug.h>
 
-namespace std
-{
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
   /**
    *  @class basic_string basic_string.h <string>
    *  @brief  Managing sequences of characters and character-like objects.
@@ -177,7 +178,10 @@ namespace std
 
         static _Rep&
         _S_empty_rep()
-        {
+        { 
+	  // NB: Mild hack to avoid strict-aliasing warnings.  Note that
+	  // _S_empty_rep_storage is never modified and the punning should
+	  // be reasonably safe in this case.
 	  void* __p = reinterpret_cast<void*>(&_S_empty_rep_storage);
 	  return *reinterpret_cast<_Rep*>(__p);
 	}
@@ -229,7 +233,8 @@ namespace std
 #ifndef _GLIBCXX_FULLY_DYNAMIC_STRING
 	  if (__builtin_expect(this != &_S_empty_rep(), false))
 #endif
-	    if (__gnu_cxx::__exchange_and_add(&this->_M_refcount, -1) <= 0)
+	    if (__gnu_cxx::__exchange_and_add_dispatch(&this->_M_refcount,
+						       -1) <= 0)
 	      _M_destroy(__a);
 	}  // XXX MT
 
@@ -242,7 +247,7 @@ namespace std
 #ifndef _GLIBCXX_FULLY_DYNAMIC_STRING
 	  if (__builtin_expect(this != &_S_empty_rep(), false))
 #endif
-            __gnu_cxx::__atomic_add(&this->_M_refcount, 1);
+            __gnu_cxx::__atomic_add_dispatch(&this->_M_refcount, 1);
 	  return _M_refdata();
 	}  // XXX MT
 
@@ -1094,7 +1099,7 @@ namespace std
 	const size_type __pos = __p - _M_ibegin();
 	_M_replace_aux(__pos, size_type(0), size_type(1), __c);
 	_M_rep()->_M_set_leaked();
-	return this->_M_ibegin() + __pos;
+	return iterator(_M_data() + __pos);
       }
 
       /**
@@ -1135,7 +1140,7 @@ namespace std
 	const size_type __pos = __position - _M_ibegin();
 	_M_mutate(__pos, size_type(1), size_type(0));
 	_M_rep()->_M_set_leaked();
-	return _M_ibegin() + __pos;
+	return iterator(_M_data() + __pos);
       }
 
       /**
@@ -1155,7 +1160,7 @@ namespace std
         const size_type __pos = __first - _M_ibegin();
 	_M_mutate(__pos, __last - __first, size_type(0));
 	_M_rep()->_M_set_leaked();
-	return _M_ibegin() + __pos;
+	return iterator(_M_data() + __pos);
       }
 
       /**
@@ -1667,7 +1672,7 @@ namespace std
       /**
        *  @brief  Find position of a character of C substring.
        *  @param s  String containing characters to locate.
-       *  @param pos  Index of character to search from (default 0).
+       *  @param pos  Index of character to search from.
        *  @param n  Number of characters from s to search for.
        *  @return  Index of first occurrence.
        *
@@ -1728,7 +1733,7 @@ namespace std
       /**
        *  @brief  Find last position of a character of C substring.
        *  @param s  C string containing characters to locate.
-       *  @param pos  Index of character to search back from (default end).
+       *  @param pos  Index of character to search back from.
        *  @param n  Number of characters from s to search for.
        *  @return  Index of last occurrence.
        *
@@ -1759,7 +1764,7 @@ namespace std
       /**
        *  @brief  Find last position of a character.
        *  @param c  Character to locate.
-       *  @param pos  Index of character to search back from (default 0).
+       *  @param pos  Index of character to search back from (default end).
        *  @return  Index of last occurrence.
        *
        *  Starting from @a pos, searches backward for @a c within this string.
@@ -1789,7 +1794,7 @@ namespace std
       /**
        *  @brief  Find position of a character not in C substring.
        *  @param s  C string containing characters to avoid.
-       *  @param pos  Index of character to search from (default 0).
+       *  @param pos  Index of character to search from.
        *  @param n  Number of characters from s to consider.
        *  @return  Index of first occurrence.
        *
@@ -1834,8 +1839,8 @@ namespace std
       /**
        *  @brief  Find last position of a character not in string.
        *  @param str  String containing characters to avoid.
-       *  @param pos  Index of character to search from (default 0).
-       *  @return  Index of first occurrence.
+       *  @param pos  Index of character to search back from (default end).
+       *  @return  Index of last occurrence.
        *
        *  Starting from @a pos, searches backward for a character not
        *  contained in @a str within this string.  If found, returns the index
@@ -1848,9 +1853,9 @@ namespace std
       /**
        *  @brief  Find last position of a character not in C substring.
        *  @param s  C string containing characters to avoid.
-       *  @param pos  Index of character to search from (default 0).
+       *  @param pos  Index of character to search back from.
        *  @param n  Number of characters from s to consider.
-       *  @return  Index of first occurrence.
+       *  @return  Index of last occurrence.
        *
        *  Starting from @a pos, searches backward for a character not
        *  contained in the first @a n characters of @a s within this string.
@@ -1861,10 +1866,10 @@ namespace std
       find_last_not_of(const _CharT* __s, size_type __pos,
 		       size_type __n) const;
       /**
-       *  @brief  Find position of a character not in C string.
+       *  @brief  Find last position of a character not in C string.
        *  @param s  C string containing characters to avoid.
-       *  @param pos  Index of character to search from (default 0).
-       *  @return  Index of first occurrence.
+       *  @param pos  Index of character to search back from (default end).
+       *  @return  Index of last occurrence.
        *
        *  Starting from @a pos, searches backward for a character not
        *  contained in @a s within this string.  If found, returns the index
@@ -1880,8 +1885,8 @@ namespace std
       /**
        *  @brief  Find last position of a different character.
        *  @param c  Character to avoid.
-       *  @param pos  Index of character to search from (default 0).
-       *  @return  Index of first occurrence.
+       *  @param pos  Index of character to search back from (default end).
+       *  @return  Index of last occurrence.
        *
        *  Starting from @a pos, searches backward for a character other than
        *  @a c within this string.  If found, returns the index where it was
@@ -2390,9 +2395,14 @@ namespace std
    *  writing a C string.
    */
   template<typename _CharT, typename _Traits, typename _Alloc>
-    basic_ostream<_CharT, _Traits>&
+    inline basic_ostream<_CharT, _Traits>&
     operator<<(basic_ostream<_CharT, _Traits>& __os,
-	       const basic_string<_CharT, _Traits, _Alloc>& __str);
+	       const basic_string<_CharT, _Traits, _Alloc>& __str)
+    {
+      // _GLIBCXX_RESOLVE_LIB_DEFECTS
+      // 586. string inserter not a formatted function
+      return __ostream_insert(__os, __str.data(), __str.size());
+    }
 
   /**
    *  @brief  Read a line from stream into a string.
@@ -2427,8 +2437,9 @@ namespace std
   template<typename _CharT, typename _Traits, typename _Alloc>
     inline basic_istream<_CharT, _Traits>&
     getline(basic_istream<_CharT, _Traits>& __is,
-	    basic_string<_CharT, _Traits, _Alloc>& __str);
-    
+	    basic_string<_CharT, _Traits, _Alloc>& __str)
+    { return getline(__is, __str, __is.widen('\n')); }
+
   template<>
     basic_istream<char>&
     getline(basic_istream<char>& __in, basic_string<char>& __str,
@@ -2440,6 +2451,7 @@ namespace std
     getline(basic_istream<wchar_t>& __in, basic_string<wchar_t>& __str,
 	    wchar_t __delim);
 #endif  
-} // namespace std
+
+_GLIBCXX_END_NAMESPACE
 
 #endif /* _BASIC_STRING_H */

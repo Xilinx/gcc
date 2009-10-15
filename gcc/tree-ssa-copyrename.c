@@ -1,12 +1,12 @@
 /* Rename SSA copies.
-   Copyright (C) 2004 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2007 Free Software Foundation, Inc.
    Contributed by Andrew MacLeod <amacleod@redhat.com>
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -15,9 +15,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -208,8 +207,9 @@ copy_rename_partition_coalesce (var_map map, tree var1, tree var2, FILE *debug)
     }
 
   /* Don't coalesce if there are two different memory tags.  */
-  if (ann1->type_mem_tag && ann2->type_mem_tag
-      && ann1->type_mem_tag != ann2->type_mem_tag)
+  if (ann1->symbol_mem_tag
+      && ann2->symbol_mem_tag
+      && ann1->symbol_mem_tag != ann2->symbol_mem_tag)
     {
       if (debug)
 	fprintf (debug, " : 2 memory tags. No coalesce.\n");
@@ -270,10 +270,10 @@ copy_rename_partition_coalesce (var_map map, tree var1, tree var2, FILE *debug)
 
   /* Update the various flag widgitry of the current base representative.  */
   ann3 = var_ann (SSA_NAME_VAR (partition_to_var (map, p3)));
-  if (ann1->type_mem_tag)
-    ann3->type_mem_tag = ann1->type_mem_tag;
+  if (ann1->symbol_mem_tag)
+    ann3->symbol_mem_tag = ann1->symbol_mem_tag;
   else
-    ann3->type_mem_tag = ann2->type_mem_tag;
+    ann3->symbol_mem_tag = ann2->symbol_mem_tag;
 
   if (debug)
     {
@@ -291,7 +291,7 @@ copy_rename_partition_coalesce (var_map map, tree var1, tree var2, FILE *debug)
    then cause the SSA->normal pass to attempt to coalesce them all to the same 
    variable.  */
 
-static void
+static unsigned int
 rename_ssa_copies (void)
 {
   var_map map;
@@ -373,6 +373,7 @@ rename_ssa_copies (void)
     }
 
   delete_var_map (map);
+  return 0;
 }
 
 /* Return true if copy rename is to be performed.  */

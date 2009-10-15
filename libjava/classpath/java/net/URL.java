@@ -1,5 +1,5 @@
 /* URL.java -- Uniform Resource Locator Class
-   Copyright (C) 1998, 1999, 2000, 2002, 2003, 2004, 2005
+   Copyright (C) 1998, 1999, 2000, 2002, 2003, 2004, 2005, 2006
    Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
@@ -38,6 +38,7 @@ exception statement from your version. */
 
 package java.net;
 
+import gnu.classpath.SystemProperties;
 import gnu.java.net.URLParseError;
 
 import java.io.IOException;
@@ -198,7 +199,7 @@ public final class URL implements Serializable
 
   static
     {
-      String s = System.getProperty("gnu.java.net.nocache_protocol_handlers");
+      String s = SystemProperties.getProperty("gnu.java.net.nocache_protocol_handlers");
 
       if (s == null)
 	cache_handlers = true;
@@ -398,40 +399,59 @@ public final class URL implements Serializable
         && ! spec.regionMatches(colon, "://:", 0, 4))
       context = null;
 
+    boolean protocolSpecified = false;
+
     if ((colon = spec.indexOf(':')) > 0
         && (colon < slash || slash < 0))
       {
-	// Protocol specified in spec string.
+	// Protocol may have been specified in spec string.
+        protocolSpecified = true;
 	protocol = spec.substring(0, colon).toLowerCase();
-	if (context != null && context.protocol.equals(protocol))
-	  {
-	    // The 1.2 doc specifically says these are copied to the new URL.
-	    host = context.host;
-	    port = context.port;
-            userInfo = context.userInfo;
-	    authority = context.authority;
-	  }
+	if (context != null)
+          {
+            if (context.protocol.equals(protocol))
+              {
+                // The 1.2 doc specifically says these are copied to the new URL.
+                host = context.host;
+                port = context.port;
+                userInfo = context.userInfo;
+                authority = context.authority;
+              }
+            else
+              {
+                // There was a colon in the spec.  Check to see if
+                // what precedes it is a valid protocol.  If it was
+                // not, assume that it is relative to the context.
+                URLStreamHandler specPh = getURLStreamHandler(protocol.trim());
+                if (null == specPh)
+                    protocolSpecified = false;
+              }
+          }
       }
-    else if (context != null)
+
+    if (!protocolSpecified)
       {
-	// Protocol NOT specified in spec string.
-	// Use context fields (except ref) as a foundation for relative URLs.
-	colon = -1;
-	protocol = context.protocol;
-	host = context.host;
-	port = context.port;
-        userInfo = context.userInfo;
-	if (spec.indexOf(":/", 1) < 0)
-	  {
-	    file = context.file;
-	    if (file == null || file.length() == 0)
-	      file = "/";
-	  }
-	authority = context.authority;
+        if (context != null)
+          {
+            // Protocol NOT specified in spec string.
+            // Use context fields (except ref) as a foundation for relative URLs.
+            colon = -1;
+            protocol = context.protocol;
+            host = context.host;
+            port = context.port;
+            userInfo = context.userInfo;
+            if (spec.indexOf(":/", 1) < 0)
+              {
+                file = context.file;
+                if (file == null || file.length() == 0)
+                  file = "/";
+              }
+            authority = context.authority;
+          }
+        else // Protocol NOT specified in spec. and no context available.
+          throw new MalformedURLException("Absolute URL required with null"
+                                          + " context: " + spec);
       }
-    else // Protocol NOT specified in spec. and no context available.
-      throw new MalformedURLException("Absolute URL required with null"
-				      + " context: " + spec);
 
     protocol = protocol.trim();
 
@@ -462,7 +482,17 @@ public final class URL implements Serializable
       }
     catch (URLParseError e)
       {
-	throw new MalformedURLException(e.getMessage());
+        MalformedURLException mue = new MalformedURLException(e.getMessage());
+        mue.initCause(e);
+	throw mue;
+      }
+    catch (RuntimeException e)
+      {
+        // This isn't documented, but the JDK also catches
+        // RuntimeExceptions here.
+        MalformedURLException mue = new MalformedURLException(e.getMessage());
+        mue.initCause(e);
+        throw mue;
       }
 
     if (hashAt >= 0)
@@ -515,8 +545,7 @@ public final class URL implements Serializable
    */
   public Object getContent(Class[] classes) throws IOException
   {
-    // FIXME: implement this
-    return getContent();
+    return openConnection().getContent(classes);
   }
 
   /**
@@ -867,7 +896,7 @@ public final class URL implements Serializable
 	// Except in very unusual environments the JDK specified one shouldn't
 	// ever be needed (or available).
 	String ph_search_path =
-	  System.getProperty("java.protocol.handler.pkgs");
+	  SystemProperties.getProperty("java.protocol.handler.pkgs");
 
 	// Tack our default package on at the ends.
 	if (ph_search_path != null)

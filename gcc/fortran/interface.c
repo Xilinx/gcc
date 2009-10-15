@@ -1,12 +1,13 @@
 /* Deal with interfaces.
-   Copyright (C) 2000, 2001, 2002, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2000, 2001, 2002, 2004, 2005, 2007
+   Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,9 +16,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 
 /* Deal with interfaces.  An explicit interface is represented as a
@@ -374,6 +374,9 @@ gfc_compare_derived_types (gfc_symbol * derived1, gfc_symbol * derived2)
       if (dt1->dimension != dt2->dimension)
 	return 0;
 
+     if (dt1->allocatable != dt2->allocatable)
+	return 0;
+
       if (dt1->dimension && gfc_compare_array_spec (dt1->as, dt2->as) == 0)
 	return 0;
 
@@ -458,7 +461,9 @@ compare_type_rank_if (gfc_symbol * s1, gfc_symbol * s2)
   if (s1->attr.function && compare_type_rank (s1, s2) == 0)
     return 0;
 
-  return compare_interfaces (s1, s2, 0);	/* Recurse! */
+  /* Originally, gfortran recursed here to check the interfaces of passed
+     procedures.  This is explicitly not required by the standard.  */
+  return 1;
 }
 
 
@@ -960,12 +965,13 @@ check_interface0 (gfc_interface * p, const char *interface_name)
    here.  */
 
 static int
-check_interface1 (gfc_interface * p, gfc_interface * q,
-		  int generic_flag, const char *interface_name)
+check_interface1 (gfc_interface * p, gfc_interface * q0,
+		  int generic_flag, const char *interface_name,
+		  bool referenced)
 {
-
+  gfc_interface * q;
   for (; p; p = p->next)
-    for (; q; q = q->next)
+    for (q = q0; q; q = q->next)
       {
 	if (p->sym == q->sym)
 	  continue;		/* Duplicates OK here */
@@ -975,12 +981,20 @@ check_interface1 (gfc_interface * p, gfc_interface * q,
 
 	if (compare_interfaces (p->sym, q->sym, generic_flag))
 	  {
-	    gfc_error ("Ambiguous interfaces '%s' and '%s' in %s at %L",
-		       p->sym->name, q->sym->name, interface_name, &p->where);
+	    if (referenced)
+	      {
+		gfc_error ("Ambiguous interfaces '%s' and '%s' in %s at %L",
+			   p->sym->name, q->sym->name, interface_name,
+			   &p->where);
+	      }
+
+	    if (!p->sym->attr.use_assoc && q->sym->attr.use_assoc)
+	      gfc_warning ("Ambiguous interfaces '%s' and '%s' in %s at %L",
+			   p->sym->name, q->sym->name, interface_name,
+			   &p->where);
 	    return 1;
 	  }
       }
-
   return 0;
 }
 
@@ -993,7 +1007,8 @@ static void
 check_sym_interfaces (gfc_symbol * sym)
 {
   char interface_name[100];
-  gfc_symbol *s2;
+  bool k;
+  gfc_interface *p;
 
   if (sym->ns != gfc_current_ns)
     return;
@@ -1004,17 +1019,25 @@ check_sym_interfaces (gfc_symbol * sym)
       if (check_interface0 (sym->generic, interface_name))
 	return;
 
-      s2 = sym;
-      while (s2 != NULL)
+      for (p = sym->generic; p; p = p->next)
 	{
-	  if (check_interface1 (sym->generic, s2->generic, 1, interface_name))
-	    return;
-
-	  if (s2->ns->parent == NULL)
-	    break;
-	  if (gfc_find_symbol (sym->name, s2->ns->parent, 1, &s2))
-	    break;
+	  if (!p->sym->attr.use_assoc
+		&& p->sym->attr.mod_proc
+		&& p->sym->attr.if_source != IFSRC_DECL)
+	    {
+	      gfc_error ("MODULE PROCEDURE '%s' at %L does not come "
+			 "from a module", p->sym->name, &p->where);
+	      return;
+	    }
 	}
+
+      /* Originally, this test was aplied to host interfaces too;
+	 this is incorrect since host associated symbols, from any
+	 source, cannot be ambiguous with local symbols.  */
+      k = sym->attr.referenced || !sym->attr.use_assoc;
+      if (check_interface1 (sym->generic, sym->generic, 1,
+			    interface_name, k))
+	sym->attr.ambiguous_interfaces = 1;
     }
 }
 
@@ -1036,7 +1059,8 @@ check_uop_interfaces (gfc_user_op * uop)
       if (uop2 == NULL)
 	continue;
 
-      check_interface1 (uop->operator, uop2->operator, 0, interface_name);
+      check_interface1 (uop->operator, uop2->operator, 0,
+			interface_name, true);
     }
 }
 
@@ -1078,7 +1102,7 @@ gfc_check_interfaces (gfc_namespace * ns)
 
       for (ns2 = ns->parent; ns2; ns2 = ns2->parent)
 	if (check_interface1 (ns->operator[i], ns2->operator[i], 0,
-			      interface_name))
+			      interface_name, true))
 	  break;
     }
 
@@ -1091,6 +1115,26 @@ symbol_rank (gfc_symbol * sym)
 {
 
   return (sym->as == NULL) ? 0 : sym->as->rank;
+}
+
+
+/* Given a symbol of a formal argument list and an expression, if the
+   formal argument is allocatable, check that the actual argument is
+   allocatable. Returns nonzero if compatible, zero if not compatible.  */
+
+static int
+compare_allocatable (gfc_symbol * formal, gfc_expr * actual)
+{
+  symbol_attribute attr;
+
+  if (formal->attr.allocatable)
+    {
+      attr = gfc_expr_attr (actual);
+      if (!attr.allocatable)
+	return 0;
+    }
+
+  return 1;
 }
 
 
@@ -1188,7 +1232,6 @@ compare_actual_formal (gfc_actual_arglist ** ap,
 {
   gfc_actual_arglist **new, *a, *actual, temp;
   gfc_formal_arglist *f;
-  gfc_gsymbol *gsym;
   int i, n, na;
   bool rank_check;
 
@@ -1212,7 +1255,8 @@ compare_actual_formal (gfc_actual_arglist ** ap,
 
   for (a = actual; a; a = a->next, f = f->next)
     {
-      if (a->name != NULL)
+      /* Look for keywords but ignore g77 extensions like %VAL.  */
+      if (a->name != NULL && a->name[0] != '%')
 	{
 	  i = 0;
 	  for (f = formal; f; f = f->next, i++)
@@ -1294,16 +1338,10 @@ compare_actual_formal (gfc_actual_arglist ** ap,
 	  && a->expr->expr_type == EXPR_VARIABLE
 	  && f->sym->attr.flavor == FL_PROCEDURE)
 	{
-	  gsym = gfc_find_gsymbol (gfc_gsym_root,
-				   a->expr->symtree->n.sym->name);
-	  if (gsym == NULL || (gsym->type != GSYM_FUNCTION
-		&& gsym->type != GSYM_SUBROUTINE))
-	    {
-	      if (where)
-		gfc_error ("Expected a procedure for argument '%s' at %L",
-			   f->sym->name, &a->expr->where);
-	      return 0;
-	    }
+	  if (where)
+	    gfc_error ("Expected a procedure for argument '%s' at %L",
+			f->sym->name, &a->expr->where);
+	    return 0;
 	}
 
       if (f->sym->attr.flavor == FL_PROCEDURE
@@ -1341,13 +1379,23 @@ compare_actual_formal (gfc_actual_arglist ** ap,
 	  return 0;
 	}
 
+      if (a->expr->expr_type != EXPR_NULL
+	  && compare_allocatable (f->sym, a->expr) == 0)
+	{
+	  if (where)
+	    gfc_error ("Actual argument for '%s' must be ALLOCATABLE at %L",
+		       f->sym->name, &a->expr->where);
+	  return 0;
+	}
+
       /* Check intent = OUT/INOUT for definable actual argument.  */
       if (a->expr->expr_type != EXPR_VARIABLE
 	     && (f->sym->attr.intent == INTENT_OUT
 		   || f->sym->attr.intent == INTENT_INOUT))
 	{
-	  gfc_error ("Actual argument at %L must be definable to "
-		     "match dummy INTENT = OUT/INOUT", &a->expr->where);
+	  if (where)
+	    gfc_error ("Actual argument at %L must be definable to "
+		       "match dummy INTENT = OUT/INOUT", &a->expr->where);
           return 0;
         }
 
@@ -1364,6 +1412,13 @@ compare_actual_formal (gfc_actual_arglist ** ap,
     {
       if (new[i] != NULL)
 	continue;
+      if (f->sym == NULL)
+	{
+	  if (where)
+	    gfc_error ("Missing alternate return spec in subroutine call at %L",
+		       where);
+	  return 0;
+	}
       if (!f->sym->attr.optional)
 	{
 	  if (where)

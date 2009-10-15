@@ -1,5 +1,5 @@
 /* BasicListUI.java --
-   Copyright (C) 2002, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2002, 2004, 2005, 2006 Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -41,13 +41,11 @@ package javax.swing.plaf.basic;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Graphics;
+import java.awt.Insets;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.ComponentAdapter;
-import java.awt.event.ComponentEvent;
-import java.awt.event.ComponentListener;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 import java.awt.event.MouseEvent;
@@ -61,12 +59,12 @@ import javax.swing.DefaultListSelectionModel;
 import javax.swing.InputMap;
 import javax.swing.JComponent;
 import javax.swing.JList;
-import javax.swing.JViewport;
-import javax.swing.KeyStroke;
 import javax.swing.ListCellRenderer;
 import javax.swing.ListModel;
 import javax.swing.ListSelectionModel;
 import javax.swing.LookAndFeel;
+import javax.swing.SwingUtilities;
+import javax.swing.TransferHandler;
 import javax.swing.UIDefaults;
 import javax.swing.UIManager;
 import javax.swing.event.ListDataEvent;
@@ -76,8 +74,8 @@ import javax.swing.event.ListSelectionListener;
 import javax.swing.event.MouseInputListener;
 import javax.swing.plaf.ActionMapUIResource;
 import javax.swing.plaf.ComponentUI;
-import javax.swing.plaf.InputMapUIResource;
 import javax.swing.plaf.ListUI;
+import javax.swing.plaf.UIResource;
 
 /**
  * The Basic Look and Feel UI delegate for the 
@@ -85,21 +83,6 @@ import javax.swing.plaf.ListUI;
  */
 public class BasicListUI extends ListUI
 {
-
-  /**
-   * A helper class which listens for {@link ComponentEvent}s from
-   * the JList.
-   */
-  private class ComponentHandler extends ComponentAdapter {
-
-    /**
-     * Called when the component is hidden. Invalidates the internal
-     * layout.
-     */
-    public void componentResized(ComponentEvent ev) {
-      BasicListUI.this.damageLayout();
-    }
-  }
 
   /**
    * A helper class which listens for {@link FocusEvent}s
@@ -153,7 +136,8 @@ public class BasicListUI extends ListUI
      */
     public void contentsChanged(ListDataEvent e)
     {
-      BasicListUI.this.damageLayout();
+      updateLayoutStateNeeded |= modelChanged;
+      list.revalidate();
     }
 
     /**
@@ -163,7 +147,8 @@ public class BasicListUI extends ListUI
      */
     public void intervalAdded(ListDataEvent e)
     {
-      BasicListUI.this.damageLayout();
+      updateLayoutStateNeeded |= modelChanged;
+      list.revalidate();
     }
 
     /**
@@ -173,7 +158,8 @@ public class BasicListUI extends ListUI
      */
     public void intervalRemoved(ListDataEvent e)
     {
-      BasicListUI.this.damageLayout();
+      updateLayoutStateNeeded |= modelChanged;
+      list.revalidate();
     }
   }
 
@@ -193,7 +179,8 @@ public class BasicListUI extends ListUI
       int index1 = e.getFirstIndex();
       int index2 = e.getLastIndex();
       Rectangle damaged = getCellBounds(list, index1, index2);
-      list.repaint(damaged);
+      if (damaged != null)
+        list.repaint(damaged);
     }
   }
 
@@ -226,14 +213,32 @@ public class BasicListUI extends ListUI
       target.actionPerformed(derivedEvent);
     }
   }
-  
-  class ListAction extends AbstractAction
+
+  /**
+   * Implements the action for the JList's keyboard commands.
+   */
+  private class ListAction
+    extends AbstractAction
   {
-    public void actionPerformed (ActionEvent e)
+    // TODO: Maybe make a couple of classes out of this bulk Action.
+    // Form logical groups of Actions when doing this.
+
+    /**
+     * Creates a new ListAction for the specified command.
+     *
+     * @param cmd the actionCommand to set
+     */
+    ListAction(String cmd)
+    {
+      putValue(ACTION_COMMAND_KEY, cmd);
+    }
+
+    public void actionPerformed(ActionEvent e)
     {
       int lead = list.getLeadSelectionIndex();
       int max = list.getModel().getSize() - 1;
-      DefaultListSelectionModel selModel = (DefaultListSelectionModel)list.getSelectionModel();
+      DefaultListSelectionModel selModel 
+          = (DefaultListSelectionModel) list.getSelectionModel();
       String command = e.getActionCommand();
       // Do nothing if list is empty
       if (max == -1)
@@ -271,9 +276,8 @@ public class BasicListUI extends ListUI
           int target;
           if (lead == list.getLastVisibleIndex())
             {
-              target = Math.min
-                (max, lead + (list.getLastVisibleIndex() -
-                    list.getFirstVisibleIndex() + 1));
+              target = Math.min(max, lead + (list.getLastVisibleIndex() 
+                  - list.getFirstVisibleIndex() + 1));
             }
           else
             target = list.getLastVisibleIndex();
@@ -284,9 +288,8 @@ public class BasicListUI extends ListUI
           int target;
           if (lead == list.getLastVisibleIndex())
             {
-              target = Math.min
-                (max, lead + (list.getLastVisibleIndex() -
-                    list.getFirstVisibleIndex() + 1));
+              target = Math.min(max, lead + (list.getLastVisibleIndex() 
+                  - list.getFirstVisibleIndex() + 1));
             }
           else
             target = list.getLastVisibleIndex();
@@ -297,9 +300,8 @@ public class BasicListUI extends ListUI
           int target;
           if (lead == list.getFirstVisibleIndex())
             {
-              target = Math.max 
-                (0, lead - (list.getLastVisibleIndex() - 
-                    list.getFirstVisibleIndex() + 1));
+              target = Math.max(0, lead - (list.getLastVisibleIndex() 
+                  - list.getFirstVisibleIndex() + 1));
             }
           else
             target = list.getFirstVisibleIndex();
@@ -310,9 +312,8 @@ public class BasicListUI extends ListUI
           int target;
           if (lead == list.getFirstVisibleIndex())
             {
-              target = Math.max 
-                (0, lead - (list.getLastVisibleIndex() - 
-                    list.getFirstVisibleIndex() + 1));
+              target = Math.max(0, lead - (list.getLastVisibleIndex() 
+                  - list.getFirstVisibleIndex() + 1));
             }
           else
             target = list.getFirstVisibleIndex();
@@ -320,32 +321,31 @@ public class BasicListUI extends ListUI
         }
       else if (command.equals("selectNextRowExtendSelection"))
         {
-          selModel.setLeadSelectionIndex(Math.min(lead + 1,max));
+          selModel.setLeadSelectionIndex(Math.min(lead + 1, max));
         }
       else if (command.equals("selectFirstRow"))
         {
           list.setSelectedIndex(0);
         }
       else if (command.equals("selectFirstRowChangeLead"))
-          {
-            selModel.moveLeadSelectionIndex(0);
-          }
+        {
+          selModel.moveLeadSelectionIndex(0);
+        }
       else if (command.equals("selectFirstRowExtendSelection"))
         {
           selModel.setLeadSelectionIndex(0);
         }
       else if (command.equals("selectPreviousRowExtendSelection"))
         {
-          selModel.setLeadSelectionIndex(Math.max(0,lead - 1));
+          selModel.setLeadSelectionIndex(Math.max(0, lead - 1));
         }
       else if (command.equals("scrollUp"))
         {
           int target;
           if (lead == list.getFirstVisibleIndex())
             {
-              target = Math.max 
-                (0, lead - (list.getLastVisibleIndex() - 
-                    list.getFirstVisibleIndex() + 1));
+              target = Math.max(0, lead - (list.getLastVisibleIndex() 
+                  - list.getFirstVisibleIndex() + 1));
             }
           else
             target = list.getFirstVisibleIndex();
@@ -360,9 +360,8 @@ public class BasicListUI extends ListUI
           int target;
           if (lead == list.getLastVisibleIndex())
             {
-              target = Math.min
-                (max, lead + (list.getLastVisibleIndex() -
-                    list.getFirstVisibleIndex() + 1));
+              target = Math.min(max, lead + (list.getLastVisibleIndex() 
+                  - list.getFirstVisibleIndex() + 1));
             }
           else
             target = list.getLastVisibleIndex();
@@ -414,7 +413,7 @@ public class BasicListUI extends ListUI
       list.ensureIndexIsVisible(list.getLeadSelectionIndex());
     }
   }
-     
+
   /**
    * A helper class which listens for {@link MouseEvent}s 
    * from the {@link JList}.
@@ -462,9 +461,9 @@ public class BasicListUI extends ListUI
           if (list.getSelectionMode() == ListSelectionModel.SINGLE_SELECTION)
             list.setSelectedIndex(index);
           else if (list.isSelectedIndex(index))
-            list.removeSelectionInterval(index,index);
+            list.removeSelectionInterval(index, index);
           else
-            list.addSelectionInterval(index,index);
+            list.addSelectionInterval(index, index);
         }
       else
         list.setSelectedIndex(index);
@@ -480,7 +479,8 @@ public class BasicListUI extends ListUI
      */
     public void mousePressed(MouseEvent event)
     {
-      // TODO: What should be done here, if anything?
+      // We need to explicitly request focus.
+      list.requestFocusInWindow();
     }
 
     /**
@@ -524,7 +524,14 @@ public class BasicListUI extends ListUI
      */
     public void mouseDragged(MouseEvent event)
     {
-      // TODO: What should be done here, if anything?
+      Point click = event.getPoint();
+      int index = locationToIndex(list, click);
+      if (index == -1)
+        return;
+      if (!event.isShiftDown() && !event.isControlDown())
+        list.setSelectedIndex(index);
+      
+      list.ensureIndexIsVisible(list.getLeadSelectionIndex());
     }
 
     /**
@@ -552,30 +559,33 @@ public class BasicListUI extends ListUI
      */
     public void propertyChange(PropertyChangeEvent e)
     {
-      if (e.getSource() == BasicListUI.this.list)
+      if (e.getPropertyName().equals("model"))
         {
           if (e.getOldValue() != null && e.getOldValue() instanceof ListModel)
-            ((ListModel) e.getOldValue()).removeListDataListener(BasicListUI.this.listDataListener);
-
+            {
+              ListModel oldModel = (ListModel) e.getOldValue();
+              oldModel.removeListDataListener(listDataListener);
+            }
           if (e.getNewValue() != null && e.getNewValue() instanceof ListModel)
-            ((ListModel) e.getNewValue()).addListDataListener(BasicListUI.this.listDataListener);
+            {
+              ListModel newModel = (ListModel) e.getNewValue();
+              newModel.addListDataListener(BasicListUI.this.listDataListener);
+            }
+
+          updateLayoutStateNeeded |= modelChanged;
         }
-      // Update the updateLayoutStateNeeded flag.
-      if (e.getPropertyName().equals("model"))
-        updateLayoutStateNeeded += modelChanged;
       else if (e.getPropertyName().equals("selectionModel"))
-        updateLayoutStateNeeded += selectionModelChanged;
+        updateLayoutStateNeeded |= selectionModelChanged;
       else if (e.getPropertyName().equals("font"))
-        updateLayoutStateNeeded += fontChanged;
+        updateLayoutStateNeeded |= fontChanged;
       else if (e.getPropertyName().equals("fixedCellWidth"))
-        updateLayoutStateNeeded += fixedCellWidthChanged;
+        updateLayoutStateNeeded |= fixedCellWidthChanged;
       else if (e.getPropertyName().equals("fixedCellHeight"))
-        updateLayoutStateNeeded += fixedCellHeightChanged;
+        updateLayoutStateNeeded |= fixedCellHeightChanged;
       else if (e.getPropertyName().equals("prototypeCellValue"))
-        updateLayoutStateNeeded += prototypeCellValueChanged;
+        updateLayoutStateNeeded |= prototypeCellValueChanged;
       else if (e.getPropertyName().equals("cellRenderer"))
-        updateLayoutStateNeeded += cellRendererChanged;
-      BasicListUI.this.damageLayout();
+        updateLayoutStateNeeded |= cellRendererChanged;
     }
   }
 
@@ -640,11 +650,6 @@ public class BasicListUI extends ListUI
 
   /** The property change listener listening to the list. */
   protected PropertyChangeListener propertyChangeListener;
-
-
-  /** The component listener that receives notification for resizing the
-   * JList component.*/
-  private ComponentListener componentListener;
 
   /** Saved reference to the list this UI was created for. */
   protected JList list;
@@ -725,7 +730,8 @@ public class BasicListUI extends ListUI
    * @param index2 The last row to incude in the bounds
    *
    * @return A rectangle encompassing the range of rows between 
-   * <code>index1</code> and <code>index2</code> inclusive
+   * <code>index1</code> and <code>index2</code> inclusive, or null
+   * such a rectangle couldn't be calculated for the given indexes.
    */
   public Rectangle getCellBounds(JList l, int index1, int index2)
   {
@@ -737,18 +743,46 @@ public class BasicListUI extends ListUI
     int minIndex = Math.min(index1, index2);
     int maxIndex = Math.max(index1, index2);
     Point loc = indexToLocation(list, minIndex);
-    Rectangle bounds = new Rectangle(loc.x, loc.y, cellWidth,
-                                     getRowHeight(minIndex));
 
+    // When the layoutOrientation is VERTICAL, then the width == the list
+    // width. Otherwise the cellWidth field is used.
+    int width = cellWidth;
+    if (l.getLayoutOrientation() == JList.VERTICAL)
+      width = l.getWidth();
+
+    Rectangle bounds = new Rectangle(loc.x, loc.y, width,
+                                     getCellHeight(minIndex));
     for (int i = minIndex + 1; i <= maxIndex; i++)
       {
         Point hiLoc = indexToLocation(list, i);
-        Rectangle hibounds = new Rectangle(hiLoc.x, hiLoc.y, cellWidth,
-                                       getRowHeight(i));
-        bounds = bounds.union(hibounds);
+        bounds = SwingUtilities.computeUnion(hiLoc.x, hiLoc.y, width,
+                                             getCellHeight(i), bounds);
       }
 
     return bounds;
+  }
+
+  /**
+   * Calculates the maximum cell height.
+   *
+   * @param index the index of the cell
+   *
+   * @return the maximum cell height
+   */
+  private int getCellHeight(int index)
+  {
+    int height = cellHeight;
+    if (height <= 0)
+      {
+        if (list.getLayoutOrientation() == JList.VERTICAL)
+          height = getRowHeight(index);
+        else
+          {
+            for (int j = 0; j < cellHeights.length; j++)
+              height = Math.max(height, cellHeights[j]);
+          }
+      }
+    return height;
   }
 
   /**
@@ -804,7 +838,7 @@ public class BasicListUI extends ListUI
     // Update the layout if necessary.
     maybeUpdateLayoutState();
 
-    int index = list.getModel().getSize() - 1;;
+    int index = list.getModel().getSize() - 1;
 
     // If a fixed cell height is set, then we can work more efficient.
     if (cellHeight > 0)
@@ -878,21 +912,7 @@ public class BasicListUI extends ListUI
             Dimension dim = flyweight.getPreferredSize();
             cellWidth = Math.max(cellWidth, dim.width);
           }
-        if (list.getLayoutOrientation() == JList.VERTICAL)
-          cellWidth = Math.max(cellWidth, list.getSize().width);
       }
-  }
-
-  /**
-   * Marks the current layout as damaged and requests revalidation from the
-   * JList.
-   * This is package-private to avoid an accessor method.
-   *
-   * @see #updateLayoutStateNeeded
-   */
-  void damageLayout()
-  {
-    updateLayoutStateNeeded = 1;
   }
 
   /**
@@ -968,12 +988,6 @@ public class BasicListUI extends ListUI
     if (propertyChangeListener == null)
       propertyChangeListener = createPropertyChangeListener();
     list.addPropertyChangeListener(propertyChangeListener);
-
-    // FIXME: Are these two really needed? At least they are not documented.
-    //keyListener = new KeyHandler();
-    componentListener = new ComponentHandler();
-    list.addComponentListener(componentListener);
-    //list.addKeyListener(keyListener);
   }
 
   /**
@@ -985,7 +999,6 @@ public class BasicListUI extends ListUI
     list.getModel().removeListDataListener(listDataListener);
     list.removeListSelectionListener(listSelectionListener);
     list.removeMouseListener(mouseInputListener);
-    //list.removeKeyListener(keyListener);
     list.removeMouseMotionListener(mouseInputListener);
     list.removePropertyChangeListener(propertyChangeListener);
   }
@@ -995,30 +1008,68 @@ public class BasicListUI extends ListUI
    */
   protected void installKeyboardActions()
   {
+    // Install UI InputMap.
     InputMap focusInputMap = (InputMap) UIManager.get("List.focusInputMap");
-    InputMapUIResource parentInputMap = new InputMapUIResource();
-    // FIXME: The JDK uses a LazyActionMap for parentActionMap
-    ActionMap parentActionMap = new ActionMapUIResource();
-    action = new ListAction();
-    Object keys[] = focusInputMap.allKeys();
-    // Register key bindings in the UI InputMap-ActionMap pair
-    for (int i = 0; i < keys.length; i++)
-      {
-        KeyStroke stroke = (KeyStroke)keys[i];
-        String actionString = (String) focusInputMap.get(stroke);
-        parentInputMap.put(KeyStroke.getKeyStroke(stroke.getKeyCode(),
-                                                  stroke.getModifiers()),
-                           actionString);
+    SwingUtilities.replaceUIInputMap(list, JComponent.WHEN_FOCUSED,
+                                     focusInputMap);
 
-        parentActionMap.put (actionString, 
-                             new ActionListenerProxy(action, actionString));
+    // Install UI ActionMap.
+    ActionMap am = (ActionMap) UIManager.get("List.actionMap");
+    if (am == null)
+      {
+        // Create the actionMap once and store it in the current UIDefaults
+        // for use in other components.
+        am = new ActionMapUIResource();
+        ListAction action;
+        action = new ListAction("selectPreviousRow");
+        am.put("selectPreviousRow", action);
+        action = new ListAction("selectNextRow");
+        am.put("selectNextRow", action);
+        action = new ListAction("selectPreviousRowExtendSelection");
+        am.put("selectPreviousRowExtendSelection", action);
+        action = new ListAction("selectNextRowExtendSelection");
+        am.put("selectNextRowExtendSelection", action);
+
+        action = new ListAction("selectPreviousColumn");
+        am.put("selectPreviousColumn", action);
+        action = new ListAction("selectNextColumn");
+        am.put("selectNextColumn", action);
+        action = new ListAction("selectPreviousColumnExtendSelection");
+        am.put("selectPreviousColumnExtendSelection", action);
+        action = new ListAction("selectNextColumnExtendSelection");
+        am.put("selectNextColumnExtendSelection", action);
+
+        action = new ListAction("selectFirstRow");
+        am.put("selectFirstRow", action);
+        action = new ListAction("selectLastRow");
+        am.put("selectLastRow", action);
+        action = new ListAction("selectFirstRowExtendSelection");
+        am.put("selectFirstRowExtendSelection", action);
+        action = new ListAction("selectLastRowExtendSelection");
+        am.put("selectLastRowExtendSelection", action);
+
+        action = new ListAction("scrollUp");
+        am.put("scrollUp", action);
+        action = new ListAction("scrollUpExtendSelection");
+        am.put("scrollUpExtendSelection", action);
+        action = new ListAction("scrollDown");
+        am.put("scrollDown", action);
+        action = new ListAction("scrollDownExtendSelection");
+        am.put("scrollDownExtendSelection", action);
+
+        action = new ListAction("selectAll");
+        am.put("selectAll", action);
+        action = new ListAction("clearSelection");
+        am.put("clearSelection", action);
+
+        am.put("copy", TransferHandler.getCopyAction());
+        am.put("cut", TransferHandler.getCutAction());
+        am.put("paste", TransferHandler.getPasteAction());
+
+        UIManager.put("List.actionMap", am);
       }
-    // Register the new InputMap-ActionMap as the parents of the list's
-    // InputMap and ActionMap
-    parentInputMap.setParent(list.getInputMap().getParent());
-    parentActionMap.setParent(list.getActionMap().getParent());
-    list.getInputMap().setParent(parentInputMap);
-    list.getActionMap().setParent(parentActionMap);
+
+    SwingUtilities.replaceUIActionMap(list, am);
   }
 
   /**
@@ -1026,7 +1077,14 @@ public class BasicListUI extends ListUI
    */
   protected void uninstallKeyboardActions()
   {
-    // TODO: Implement this properly.
+    // Uninstall the InputMap.
+    InputMap im = SwingUtilities.getUIInputMap(list, JComponent.WHEN_FOCUSED);
+    if (im instanceof UIResource)
+      SwingUtilities.replaceUIInputMap(list, JComponent.WHEN_FOCUSED, null);
+
+    // Uninstall the ActionMap.
+    if (SwingUtilities.getUIActionMap(list) instanceof UIResource)
+      SwingUtilities.replaceUIActionMap(list, null);
   }
 
   /**
@@ -1073,33 +1131,62 @@ public class BasicListUI extends ListUI
    */
   public Dimension getPreferredSize(JComponent c)
   {
+    maybeUpdateLayoutState();
     int size = list.getModel().getSize();
-    if (size == 0)
-      return new Dimension(0, 0);
     int visibleRows = list.getVisibleRowCount();
     int layoutOrientation = list.getLayoutOrientation();
-    Rectangle bounds = getCellBounds(list, 0, list.getModel().getSize() - 1);
-    Dimension retVal = bounds.getSize();
-    Component parent = list.getParent();
-    if ((visibleRows == -1) && (parent instanceof JViewport))
-      {
-        JViewport viewport = (JViewport) parent;
 
-        if (layoutOrientation == JList.HORIZONTAL_WRAP)
+    int h;
+    int w;
+    int maxCellHeight = cellHeight;
+    if (maxCellHeight <= 0)
+      {
+        for (int i = 0; i < cellHeights.length; i++)
+          maxCellHeight = Math.max(maxCellHeight, cellHeights[i]);
+      }
+    if (layoutOrientation == JList.HORIZONTAL_WRAP)
+      {
+        if (visibleRows > 0)
           {
-            int h = viewport.getSize().height;
-            int cellsPerCol = h / cellHeight;
-            int w = size / cellsPerCol * cellWidth;
-            retVal = new Dimension(w, h);
+            // We cast to double here to force double divisions.
+            double modelSize = size;
+            int neededColumns = (int) Math.ceil(modelSize / visibleRows); 
+            int adjustedRows = (int) Math.ceil(modelSize / neededColumns);
+            h = maxCellHeight * adjustedRows;
+            w = cellWidth * neededColumns;
           }
-        else if (layoutOrientation == JList.VERTICAL_WRAP)
+        else
           {
-            int w = viewport.getSize().width;
-            int cellsPerRow = Math.max(w / cellWidth, 1);
-            int h = size / cellsPerRow * cellHeight;
-            retVal = new Dimension(w, h);
+            int neededColumns = Math.min(1, list.getWidth() / cellWidth);
+            h = size / neededColumns * maxCellHeight;
+            w = neededColumns * cellWidth;
           }
       }
+    else if (layoutOrientation == JList.VERTICAL_WRAP)
+      {
+        if (visibleRows > 0)
+          h = visibleRows * maxCellHeight;
+        else
+          h = Math.max(list.getHeight(), maxCellHeight);
+        int neededColumns = h / maxCellHeight;
+        w = cellWidth * neededColumns;
+      }
+    else
+      {
+        if (list.getFixedCellWidth() > 0)
+          w = list.getFixedCellWidth();
+        else
+          w = cellWidth;
+        if (list.getFixedCellHeight() > 0)
+          // FIXME: We need to add some cellVerticalMargins here, according
+          // to the specs.
+          h = list.getFixedCellHeight() * size;
+        else
+          h = maxCellHeight * size;
+      }
+    Insets insets = list.getInsets();
+    Dimension retVal = new Dimension(w + insets.left + insets.right,
+                                     h + insets.top + insets.bottom);
     return retVal;
   }
 
@@ -1124,7 +1211,7 @@ public class BasicListUI extends ListUI
     boolean hasFocus = (list.getLeadSelectionIndex() == row) && BasicListUI.this.list.hasFocus();
     Component comp = rend.getListCellRendererComponent(list,
                                                        data.getElementAt(row),
-                                                       0, isSel, hasFocus);
+                                                       row, isSel, hasFocus);
     rendererPane.paintComponent(g, comp, list, bounds);
   }
 
@@ -1148,14 +1235,14 @@ public class BasicListUI extends ListUI
     int lead = sel.getLeadSelectionIndex();
     Rectangle clip = g.getClipBounds();
 
-    int startIndex = list.locationToIndex(new Point(clip.x, clip.y));
-    int endIndex = list.locationToIndex(new Point(clip.x + clip.width,
-                                                  clip.y + clip.height));
+    int startIndex = locationToIndex(list, new Point(clip.x, clip.y));
+    int endIndex = locationToIndex(list, new Point(clip.x + clip.width,
+                                             clip.y + clip.height));
     
     for (int row = startIndex; row <= endIndex; ++row)
       {
         Rectangle bounds = getCellBounds(list, row, row);
-        if (bounds.intersects(clip))
+        if (bounds != null && bounds.intersects(clip))
           paintCell(g, row, bounds, render, model, sel, lead);
       }
   }
@@ -1165,13 +1252,13 @@ public class BasicListUI extends ListUI
    * location lies outside the bounds of the list, the greatest index in the
    * list model is returned.
    *
-   * @param list the list which on which the computation is based on
+   * @param l the list which on which the computation is based on
    * @param location the coordinates
    *
    * @return the index of the list item that is located at the given
    *         coordinates or <code>-1</code> if the list model is empty
    */
-  public int locationToIndex(JList list, Point location)
+  public int locationToIndex(JList l, Point location)
   {
     int layoutOrientation = list.getLayoutOrientation();
     int index = -1;
@@ -1182,52 +1269,34 @@ public class BasicListUI extends ListUI
         break;
       case JList.HORIZONTAL_WRAP:
         // determine visible rows and cells per row
-        int visibleRows = list.getVisibleRowCount();
+        int maxCellHeight = getCellHeight(0);
+        int visibleRows = list.getHeight() / maxCellHeight;
         int cellsPerRow = -1;
         int numberOfItems = list.getModel().getSize();
-        Dimension listDim = list.getSize();
-        if (visibleRows <= 0)
-          {
-            try
-              {
-                cellsPerRow = listDim.width / cellWidth;
-              }
-            catch (ArithmeticException ex)
-              {
-                cellsPerRow = 1;
-              }
-          }
-        else
-          {
-            cellsPerRow = numberOfItems / visibleRows + 1;
-          }
+        cellsPerRow = numberOfItems / visibleRows + 1;
 
         // determine index for the given location
         int cellsPerColumn = numberOfItems / cellsPerRow + 1;
         int gridX = Math.min(location.x / cellWidth, cellsPerRow - 1);
-        int gridY = Math.min(location.y / cellHeight, cellsPerColumn);
+        int gridY = Math.min(location.y / maxCellHeight, cellsPerColumn);
         index = gridX + gridY * cellsPerRow;
         break;
       case JList.VERTICAL_WRAP:
         // determine visible rows and cells per column
-        int visibleRows2 = list.getVisibleRowCount();
-        if (visibleRows2 <= 0)
-          {
-            Dimension listDim2 = list.getSize();
-            visibleRows2 = listDim2.height / cellHeight;
-          }
+        int maxCellHeight2 = getCellHeight(0);
+        int visibleRows2 = list.getHeight() / maxCellHeight2;
         int numberOfItems2 = list.getModel().getSize();
         int cellsPerRow2 = numberOfItems2 / visibleRows2 + 1;
 
         int gridX2 = Math.min(location.x / cellWidth, cellsPerRow2 - 1);
-        int gridY2 = Math.min(location.y / cellHeight, visibleRows2);
+        int gridY2 = Math.min(location.y / maxCellHeight2, visibleRows2);
         index = gridY2 + gridX2 * visibleRows2;
         break;
       }
     return index;
   }
 
-  public Point indexToLocation(JList list, int index)
+  public Point indexToLocation(JList l, int index)
   {
     int layoutOrientation = list.getLayoutOrientation();
     Point loc = null;
@@ -1238,40 +1307,31 @@ public class BasicListUI extends ListUI
         break;
       case JList.HORIZONTAL_WRAP:
         // determine visible rows and cells per row
-        int visibleRows = list.getVisibleRowCount();
+        int maxCellHeight = getCellHeight(0);
+        int visibleRows = list.getHeight() / maxCellHeight;
         int numberOfCellsPerRow = -1;
-        if (visibleRows <= 0)
-          {
-            Dimension listDim = list.getSize();
-            numberOfCellsPerRow = Math.max(listDim.width / cellWidth, 1);
-          }
-        else
-          {
-            int numberOfItems = list.getModel().getSize();
-            numberOfCellsPerRow = numberOfItems / visibleRows + 1;
-          }
+        int numberOfItems = list.getModel().getSize();
+        numberOfCellsPerRow = numberOfItems / visibleRows + 1;
+
         // compute coordinates inside the grid
         int gridX = index % numberOfCellsPerRow;
         int gridY = index / numberOfCellsPerRow;
         int locX = gridX * cellWidth;
-        int locY = gridY * cellHeight;
+        int locY;
+        locY = gridY * maxCellHeight;
         loc = new Point(locX, locY);
         break;
       case JList.VERTICAL_WRAP:
         // determine visible rows and cells per column
-        int visibleRows2 = list.getVisibleRowCount();
-        if (visibleRows2 <= 0)
-          {
-            Dimension listDim2 = list.getSize();
-            visibleRows2 = listDim2.height / cellHeight;
-          }
+        int maxCellHeight2 = getCellHeight(0);
+        int visibleRows2 = list.getHeight() / maxCellHeight2;
         // compute coordinates inside the grid
         if (visibleRows2 > 0)
           {
             int gridY2 = index % visibleRows2;
             int gridX2 = index / visibleRows2;
             int locX2 = gridX2 * cellWidth;
-            int locY2 = gridY2 * cellHeight;
+            int locY2 = gridY2 * maxCellHeight2;
             loc = new Point(locX2, locY2);
           }
         else

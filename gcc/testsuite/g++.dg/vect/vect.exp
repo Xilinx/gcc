@@ -1,8 +1,8 @@
-#   Copyright (C) 2004 Free Software Foundation, Inc.
+#   Copyright (C) 2004, 2007 Free Software Foundation, Inc.
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
+# the Free Software Foundation; either version 3 of the License, or
 # (at your option) any later version.
 #
 # This program is distributed in the hope that it will be useful,
@@ -11,8 +11,8 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+# along with GCC; see the file COPYING3.  If not see
+# <http://www.gnu.org/licenses/>.
 
 # GCC testsuite that uses the 'dg.exp' driver.
 
@@ -46,7 +46,10 @@ lappend DEFAULT_VECTCFLAGS "-O2" "-ftree-vectorize" \
 # code.  Set additional target-dependent vector flags, which can be
 # overridden by using dg-options in individual tests.
 if [istarget "powerpc*-*-*"] {
-    # If there are powerpc targets to skip, do it here.
+    # Skip targets not supporting -maltivec.
+    if ![is-effective-target powerpc_altivec_ok] {
+	return
+    }
 
     lappend DEFAULT_VECTCFLAGS "-maltivec"
     if [check_vmx_hw_available] {
@@ -61,7 +64,8 @@ if [istarget "powerpc*-*-*"] {
 } elseif { [istarget "i?86-*-*"] || [istarget "x86_64-*-*"] } {
     lappend DEFAULT_VECTCFLAGS "-msse2"
     set dg-do-what-default run
-} elseif [istarget "mipsisa64*-*-*"] {
+} elseif { [istarget "mipsisa64*-*-*"]
+	   && [check_effective_target_mpaired_single] } {
     lappend DEFAULT_VECTCFLAGS "-mpaired-single"
     set dg-do-what-default run
 } elseif [istarget "sparc*-*-*"] {
@@ -87,6 +91,16 @@ dg-init
 # Main loop.
 dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/*.{c,cc,S} ]] \
         "" $DEFAULT_VECTCFLAGS
+
+#### Tests with special options
+global SAVED_DEFAULT_VECTCFLAGS
+set SAVED_DEFAULT_VECTCFLAGS $DEFAULT_VECTCFLAGS
+    
+# --param max-aliased-vops=0
+set DEFAULT_VECTCFLAGS $SAVED_DEFAULT_VECTCFLAGS
+lappend DEFAULT_VECTCFLAGS "--param max-aliased-vops=0"
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/param-max-aliased*.\[cS\]]]  \
+        "" $DEFAULT_VECTCFLAGS 
 
 # Clean up.
 set dg-do-what-default ${save-dg-do-what-default} 

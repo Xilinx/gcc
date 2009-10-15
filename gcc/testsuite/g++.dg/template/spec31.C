@@ -7,4 +7,4 @@ template<int> struct A
 
 A<0> a;
 
-template<> A<0>::A() {} // { dg-error "specialization|invalid" } 
+template<> A<0>::A() {} // { dg-error "specialization" } 

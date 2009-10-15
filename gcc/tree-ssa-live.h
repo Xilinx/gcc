@@ -1,12 +1,12 @@
 /* Routines for liveness in SSA trees.
-   Copyright (C) 2003, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
    Contributed by Andrew MacLeod  <amacleod@redhat.com>
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -15,15 +15,15 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 
 #ifndef _TREE_SSA_LIVE_H
 #define _TREE_SSA_LIVE_H 1
 
 #include "partition.h"
+#include "vecprim.h"
 
 /* Used to create the variable mapping when we go out of SSA form.  */
 typedef struct _var_map
@@ -338,7 +338,7 @@ make_live_on_entry (tree_live_info_p live, basic_block bb , int p)
 typedef struct tree_partition_associator_d
 {
   VEC(tree,heap) *trees;
-  varray_type first_partition;
+  VEC(int,heap) *first_partition;
   int *next_partition;
   int *partition_to_tree_map;
   int num_trees;
@@ -384,7 +384,7 @@ tpa_tree (tpa_p tpa, int i)
 static inline int
 tpa_first_partition (tpa_p tpa, int i)
 {
-  return VARRAY_INT (tpa->first_partition, i);
+  return VEC_index (int, tpa->first_partition, i);
 }
 
 

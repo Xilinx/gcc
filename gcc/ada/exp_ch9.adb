@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2005, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2006, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -33,6 +33,7 @@ with Exp_Ch3;  use Exp_Ch3;
 with Exp_Ch11; use Exp_Ch11;
 with Exp_Ch6;  use Exp_Ch6;
 with Exp_Dbug; use Exp_Dbug;
+with Exp_Sel;  use Exp_Sel;
 with Exp_Smem; use Exp_Smem;
 with Exp_Tss;  use Exp_Tss;
 with Exp_Util; use Exp_Util;
@@ -61,10 +62,6 @@ with Uintp;    use Uintp;
 
 package body Exp_Ch9 is
 
-   --------------------------------
-   -- Select_Expansion_Utilities --
-   --------------------------------
-
    --  The following constant establishes the upper bound for the index of
    --  an entry family. It is used to limit the allocated size of protected
    --  types with defaulted discriminant of an integer type, when the bound
@@ -74,232 +71,6 @@ package body Exp_Ch9 is
    --  entry families are re-implemented as a single ordered queue.
 
    Entry_Family_Bound : constant Int := 2**16;
-
-   --  The following package contains helper routines used in the expansion of
-   --  dispatching asynchronous, conditional and timed selects.
-
-   package Select_Expansion_Utilities is
-      function Build_Abort_Block
-        (Loc         : Source_Ptr;
-         Abr_Blk_Ent : Entity_Id;
-         Cln_Blk_Ent : Entity_Id;
-         Blk         : Node_Id) return Node_Id;
-      --  Generate:
-      --    begin
-      --       Blk
-      --    exception
-      --       when Abort_Signal => Abort_Undefer;
-      --    end;
-      --  Abr_Blk_Ent is the name of the generated block, Cln_Blk_Ent is
-      --  the name of the encapsulated cleanup block, Blk is the actual
-      --  block node.
-
-      function Build_B
-        (Loc   : Source_Ptr;
-         Decls : List_Id) return Entity_Id;
-      --  Generate:
-      --    B : Boolean := False;
-      --  Append the object declaration to the list and return the name of
-      --  the object.
-
-      function Build_C
-        (Loc   : Source_Ptr;
-         Decls : List_Id) return Entity_Id;
-      --  Generate:
-      --    C : Ada.Tags.Prim_Op_Kind;
-      --  Append the object declaration to the list and return the name of
-      --  the object.
-
-      function Build_Cleanup_Block
-        (Loc       : Source_Ptr;
-         Blk_Ent   : Entity_Id;
-         Stmts     : List_Id;
-         Clean_Ent : Entity_Id) return Node_Id;
-      --  Generate:
-      --    declare
-      --       procedure _clean is
-      --       begin
-      --          ...
-      --       end _clean;
-      --    begin
-      --       Stmts
-      --    at end
-      --       _clean;
-      --    end;
-      --  Blk_Ent is the name of the generated block, Stmts is the list
-      --  of encapsulated statements and Clean_Ent is the parameter to
-      --  the _clean procedure.
-
-      function Build_S
-        (Loc      : Source_Ptr;
-         Decls    : List_Id;
-         Obj      : Entity_Id;
-         Call_Ent : Entity_Id) return Entity_Id;
-      --  Generate:
-      --    S : constant Integer :=
-      --          Ada.Tags.Get_Offset_Index (
-      --            Unchecked_Convert_To (Ada.Tags.Interface_Tag, Obj),
-      --            DT_Position (Call_Ent));
-      --  where Obj is the pointer to a secondary table, Call_Ent is the
-      --  entity of the dispatching call name. Append the object declaration
-      --  to the list and return its defining identifier.
-
-   end Select_Expansion_Utilities;
-
-   -----------------------------------------
-   -- Body for Select_Expansion_Utilities --
-   -----------------------------------------
-
-   package body Select_Expansion_Utilities is
-
-      -----------------------
-      -- Build_Abort_Block --
-      -----------------------
-
-      function Build_Abort_Block
-        (Loc         : Source_Ptr;
-         Abr_Blk_Ent : Entity_Id;
-         Cln_Blk_Ent : Entity_Id;
-         Blk         : Node_Id) return Node_Id
-      is
-      begin
-         return
-           Make_Block_Statement (Loc,
-             Identifier   => New_Reference_To (Abr_Blk_Ent, Loc),
-
-             Declarations => No_List,
-
-             Handled_Statement_Sequence =>
-               Make_Handled_Sequence_Of_Statements (Loc,
-                 Statements =>
-                   New_List (
-                     Make_Implicit_Label_Declaration (Loc,
-                       Defining_Identifier =>
-                         Cln_Blk_Ent,
-                       Label_Construct =>
-                         Blk),
-                     Blk),
-
-                 Exception_Handlers =>
-                   New_List (
-                     Make_Exception_Handler (Loc,
-                       Exception_Choices =>
-                         New_List (
-                           New_Reference_To (Stand.Abort_Signal, Loc)),
-                       Statements =>
-                         New_List (
-                           Make_Procedure_Call_Statement (Loc,
-                             Name =>
-                               New_Reference_To (RTE (
-                                 RE_Abort_Undefer), Loc),
-                             Parameter_Associations => No_List))))));
-      end Build_Abort_Block;
-
-      -------------
-      -- Build_B --
-      -------------
-
-      function Build_B
-        (Loc   : Source_Ptr;
-         Decls : List_Id) return Entity_Id
-      is
-         B : constant Entity_Id := Make_Defining_Identifier (Loc,
-                                     Chars => New_Internal_Name ('B'));
-
-      begin
-         Append_To (Decls,
-           Make_Object_Declaration (Loc,
-             Defining_Identifier =>
-               B,
-             Object_Definition =>
-               New_Reference_To (Standard_Boolean, Loc),
-             Expression =>
-               New_Reference_To (Standard_False, Loc)));
-
-         return B;
-      end Build_B;
-
-      -------------
-      -- Build_C --
-      -------------
-
-      function Build_C
-        (Loc   : Source_Ptr;
-         Decls : List_Id) return Entity_Id
-      is
-         C : constant Entity_Id := Make_Defining_Identifier (Loc,
-                                     Chars => New_Internal_Name ('C'));
-
-      begin
-         Append_To (Decls,
-           Make_Object_Declaration (Loc,
-             Defining_Identifier =>
-               C,
-             Object_Definition =>
-               New_Reference_To (RTE (RE_Prim_Op_Kind), Loc)));
-
-         return C;
-      end Build_C;
-
-      -------------------------
-      -- Build_Cleanup_Block --
-      -------------------------
-
-      function Build_Cleanup_Block
-        (Loc       : Source_Ptr;
-         Blk_Ent   : Entity_Id;
-         Stmts     : List_Id;
-         Clean_Ent : Entity_Id) return Node_Id
-      is
-         Cleanup_Block : constant Node_Id :=
-                           Make_Block_Statement (Loc,
-                             Identifier   => New_Reference_To (Blk_Ent, Loc),
-                             Declarations => No_List,
-                             Handled_Statement_Sequence =>
-                               Make_Handled_Sequence_Of_Statements (Loc,
-                                 Statements => Stmts),
-                             Is_Asynchronous_Call_Block => True);
-
-      begin
-         Set_Entry_Cancel_Parameter (Blk_Ent, Clean_Ent);
-
-         return Cleanup_Block;
-      end Build_Cleanup_Block;
-
-      -------------
-      -- Build_S --
-      -------------
-
-      function Build_S
-        (Loc      : Source_Ptr;
-         Decls    : List_Id;
-         Obj      : Entity_Id;
-         Call_Ent : Entity_Id) return Entity_Id
-      is
-         S : constant Entity_Id := Make_Defining_Identifier (Loc,
-                                     Chars => New_Internal_Name ('S'));
-
-      begin
-         Append_To (Decls,
-           Make_Object_Declaration (Loc,
-             Defining_Identifier => S,
-             Constant_Present    => True,
-
-             Object_Definition   =>
-               New_Reference_To (Standard_Integer, Loc),
-
-             Expression          =>
-               Make_Function_Call (Loc,
-                 Name => New_Reference_To (RTE (RE_Get_Offset_Index), Loc),
-                 Parameter_Associations => New_List (
-                   Unchecked_Convert_To (RTE (RE_Interface_Tag), Obj),
-                   Make_Integer_Literal (Loc, DT_Position (Call_Ent))))));
-
-         return S;
-      end Build_S;
-   end Select_Expansion_Utilities;
-
-   package SEU renames Select_Expansion_Utilities;
 
    -----------------------
    -- Local Subprograms --
@@ -342,9 +113,9 @@ package body Exp_Ch9 is
    --  select statements. Astat is the accept statement.
 
    function Build_Barrier_Function
-     (N    : Node_Id;
-      Ent  : Entity_Id;
-      Pid  : Node_Id) return Node_Id;
+     (N   : Node_Id;
+      Ent : Entity_Id;
+      Pid : Node_Id) return Node_Id;
    --  Build the function body returning the value of the barrier expression
    --  for the specified entry body.
 
@@ -1131,9 +902,9 @@ package body Exp_Ch9 is
    ----------------------------
 
    function Build_Barrier_Function
-     (N    : Node_Id;
-      Ent  : Entity_Id;
-      Pid  : Node_Id) return Node_Id
+     (N   : Node_Id;
+      Ent : Entity_Id;
+      Pid : Node_Id) return Node_Id
    is
       Loc         : constant Source_Ptr := Sloc (N);
       Ent_Formals : constant Node_Id    := Entry_Body_Formal_Part (N);
@@ -1809,7 +1580,7 @@ package body Exp_Ch9 is
 
       --  Return if no interface primitive can be overriden
 
-      if not Present (First_Param) then
+      if No (First_Param) then
          return Empty;
       end if;
 
@@ -2210,6 +1981,7 @@ package body Exp_Ch9 is
       if Abort_Allowed
         or else Restriction_Active (No_Entry_Queue) = False
         or else Number_Entries (Pid) > 1
+        or else (Has_Attach_Handler (Pid) and then not Restricted_Profile)
       then
          Complete := New_Reference_To (RTE (RE_Complete_Entry_Body), Loc);
       else
@@ -2251,6 +2023,7 @@ package body Exp_Ch9 is
          if Abort_Allowed
            or else Restriction_Active (No_Entry_Queue) = False
            or else Number_Entries (Pid) > 1
+           or else (Has_Attach_Handler (Pid) and then not Restricted_Profile)
          then
             Complete :=
               New_Reference_To (RTE (RE_Exceptional_Complete_Entry_Body), Loc);
@@ -2660,6 +2433,7 @@ package body Exp_Ch9 is
          if Abort_Allowed
            or else Restriction_Active (No_Entry_Queue) = False
            or else Number_Entries (Pid) > 1
+           or else (Has_Attach_Handler (Pid) and then not Restricted_Profile)
          then
             Lock_Name := New_Reference_To (RTE (RE_Lock_Entries), Loc);
             Service_Name := New_Reference_To (RTE (RE_Service_Entries), Loc);
@@ -2994,6 +2768,8 @@ package body Exp_Ch9 is
            or else Restriction_Active (No_Entry_Queue) = False
            or else not Is_Protected_Type (Conctyp)
            or else Number_Entries (Conctyp) > 1
+           or else (Has_Attach_Handler (Conctyp)
+                     and then not Restricted_Profile)
          then
             X := Make_Defining_Identifier (Loc, Name_uX);
 
@@ -3133,6 +2909,8 @@ package body Exp_Ch9 is
             if Abort_Allowed
               or else Restriction_Active (No_Entry_Queue) = False
               or else Number_Entries (Conctyp) > 1
+              or else (Has_Attach_Handler (Conctyp)
+                        and then not Restricted_Profile)
             then
                --  Change the type of the index declaration
 
@@ -4037,7 +3815,7 @@ package body Exp_Ch9 is
          --  allowed to modify queue orders for a given priority at will!
 
          if Opt.Task_Dispatching_Policy = 'F' and then
-           not Present (Handled_Statement_Sequence (N))
+           No (Handled_Statement_Sequence (N))
          then
             Set_Handled_Statement_Sequence (N,
               Make_Handled_Sequence_Of_Statements (Loc,
@@ -4898,86 +4676,98 @@ package body Exp_Ch9 is
    --  Ada 2005 (AI-345): If the trigger is a dispatching call, the select is
    --  expanded into:
 
-   --  declare
-   --     B   : Boolean := False;
-   --     Bnn : Communication_Block;
-   --     C   : Ada.Tags.Prim_Op_Kind;
-   --     P   : Parameters := (Param1 .. ParamN)
-   --     S   : constant Integer := DT_Position (<dispatching-call>);
-   --     U   : Boolean;
+   --    declare
+   --       B   : Boolean := False;
+   --       Bnn : Communication_Block;
+   --       C   : Ada.Tags.Prim_Op_Kind;
+   --       K   : Ada.Tags.Tagged_Kind :=
+   --               Ada.Tags.Get_Tagged_Kind (Ada.Tags.Tag (<object>));
+   --       P   : Parameters := (Param1 .. ParamN);
+   --       S   : Integer;
+   --       U   : Boolean;
 
-   --  begin
-   --     disp_get_prim_op_kind (<object>, S, C);
+   --    begin
+   --       if K = Ada.Tags.TK_Limited_Tagged then
+   --          <dispatching-call>;
+   --          <triggering-statements>;
 
-   --     if C = POK_Protected_Entry then
-   --        declare
-   --           procedure _clean is
-   --           begin
-   --              if Enqueued (Bnn) then
-   --                 Cancel_Protected_Entry_Call (Bnn);
-   --              end if;
-   --           end _clean;
+   --       else
+   --          S := Ada.Tags.Get_Offset_Index (Ada.Tags.Tag (<object>),
+   --                 DT_Position (<dispatching-call>));
 
-   --        begin
-   --           begin
-   --              disp_asynchronous_select
-   --                (Obj, S, P'address, Bnn, B);
+   --          _Disp_Get_Prim_Op_Kind (<object>, S, C);
 
-   --              Param1 := P.Param1;
-   --              ...
-   --              ParamN := P.ParamN;
+   --          if C = POK_Protected_Entry then
+   --             declare
+   --                procedure _clean is
+   --                begin
+   --                   if Enqueued (Bnn) then
+   --                      Cancel_Protected_Entry_Call (Bnn);
+   --                   end if;
+   --                end _clean;
 
-   --              if Enqueued (Bnn) then
-   --                 <abortable-statements>
-   --              end if;
-   --           at end
-   --              _clean;
-   --           end;
-   --        exception
-   --           when Abort_Signal => Abort_Undefer;
-   --        end;
+   --             begin
+   --                begin
+   --                   _Disp_Asynchronous_Select
+   --                     (<object>, S, P'address, Bnn, B);
 
-   --        if not Cancelled (Bnn) then
-   --           <triggering-statements>
-   --        end if;
+   --                   Param1 := P.Param1;
+   --                   ...
+   --                   ParamN := P.ParamN;
 
-   --     elsif C = POK_Task_Entry then
-   --        declare
-   --           procedure _clean is
-   --           begin
-   --              Cancel_Task_Entry_Call (U);
-   --           end _clean;
+   --                   if Enqueued (Bnn) then
+   --                      <abortable-statements>
+   --                   end if;
+   --                at end
+   --                   _clean;
+   --                end;
+   --             exception
+   --                when Abort_Signal => Abort_Undefer;
+   --             end;
 
-   --        begin
-   --           Abort_Defer;
+   --             if not Cancelled (Bnn) then
+   --                <triggering-statements>
+   --             end if;
 
-   --           disp_asynchronous_select
-   --             (<object>, S, P'address, Bnn, B);
+   --          elsif C = POK_Task_Entry then
+   --             declare
+   --                procedure _clean is
+   --                begin
+   --                   Cancel_Task_Entry_Call (U);
+   --                end _clean;
 
-   --           Param1 := P.Param1;
-   --           ...
-   --           ParamN := P.ParamN;
+   --             begin
+   --                Abort_Defer;
 
-   --           begin
-   --              begin
-   --                 Abort_Undefer;
-   --                 <abortable-statements>
-   --              at end
-   --                 _clean;
-   --              end;
-   --           exception
-   --              when Abort_Signal => Abort_Undefer;
-   --           end;
+   --                _Disp_Asynchronous_Select
+   --                  (<object>, S, P'address, Bnn, B);
 
-   --           if not U then
-   --              <triggering-statements>
-   --           end if;
-   --        end;
+   --                Param1 := P.Param1;
+   --                ...
+   --                ParamN := P.ParamN;
 
-   --     else
-   --        <dispatching-call>;
-   --        <triggering-statements>
-   --     end if;
+   --                begin
+   --                   begin
+   --                      Abort_Undefer;
+   --                      <abortable-statements>
+   --                   at end
+   --                      _clean;
+   --                   end;
+   --                exception
+   --                   when Abort_Signal => Abort_Undefer;
+   --                end;
+
+   --                if not U then
+   --                   <triggering-statements>
+   --                end if;
+   --             end;
+
+   --          else
+   --             <dispatching-call>;
+   --             <triggering-statements>
+   --          end if;
+   --       end if;
+   --    end;
 
    --  The job is to convert this to the asynchronous form
 
@@ -5011,6 +4801,7 @@ package body Exp_Ch9 is
       Cleanup_Block     : Node_Id;
       Cleanup_Block_Ent : Entity_Id;
       Cleanup_Stmts     : List_Id;
+      Conc_Typ_Stmts    : List_Id;
       Concval           : Node_Id;
       Dblock_Ent        : Entity_Id;
       Decl              : Node_Id;
@@ -5021,6 +4812,7 @@ package body Exp_Ch9 is
       Formals           : List_Id;
       Hdle              : List_Id;
       Index             : Node_Id;
+      Lim_Typ_Stmts     : List_Id;
       N_Orig            : Node_Id;
       Obj               : Entity_Id;
       Param             : Node_Id;
@@ -5037,6 +4829,7 @@ package body Exp_Ch9 is
       B   : Entity_Id;  --  Call status flag
       Bnn : Entity_Id;  --  Communication block
       C   : Entity_Id;  --  Call kind
+      K   : Entity_Id;  --  Tagged kind
       P   : Entity_Id;  --  Parameter block
       S   : Entity_Id;  --  Primitive operation slot
       T   : Entity_Id;  --  Additional status flag
@@ -5065,9 +4858,11 @@ package body Exp_Ch9 is
       if Nkind (Ecall) = N_Procedure_Call_Statement then
          if Ada_Version >= Ada_05
            and then
-             (not Present (Original_Node (Ecall))
+             (No (Original_Node (Ecall))
                 or else
-              Nkind (Original_Node (Ecall)) /= N_Delay_Relative_Statement)
+                  (Nkind (Original_Node (Ecall)) /= N_Delay_Relative_Statement
+                     and then
+                   Nkind (Original_Node (Ecall)) /= N_Delay_Until_Statement))
          then
             Extract_Dispatching_Call (Ecall, Call_Ent, Obj, Actuals, Formals);
 
@@ -5077,7 +4872,7 @@ package body Exp_Ch9 is
             --  Call status flag processing, generate:
             --    B : Boolean := False;
 
-            B := SEU.Build_B (Loc, Decls);
+            B := Build_B (Loc, Decls);
 
             --  Communication block processing, generate:
             --    Bnn : Communication_Block;
@@ -5094,7 +4889,13 @@ package body Exp_Ch9 is
             --  Call kind processing, generate:
             --    C : Ada.Tags.Prim_Op_Kind;
 
-            C := SEU.Build_C (Loc, Decls);
+            C := Build_C (Loc, Decls);
+
+            --  Tagged kind processing, generate:
+            --    K : Ada.Tags.Tagged_Kind :=
+            --          Ada.Tags.Get_Tagged_Kind (Ada.Tags.Tag (<object>));
+
+            K := Build_K (Loc, Decls, Obj);
 
             --  Parameter block processing
 
@@ -5104,12 +4905,9 @@ package body Exp_Ch9 is
                          (Loc, Blk_Typ, Actuals, Formals, Decls, Stmts);
 
             --  Dispatch table slot processing, generate:
-            --    S : constant Integer :=
-            --          Ada.Tags.Get_Offset_Index (
-            --            Unchecked_Convert_To (Ada.Tags.Interface_Tag, Obj),
-            --            DT_Position (<dispatching-procedure>));
+            --    S : Integer;
 
-            S := SEU.Build_S (Loc, Decls, Obj, Call_Ent);
+            S := Build_S (Loc, Decls);
 
             --  Additional status flag processing, generate:
 
@@ -5122,19 +4920,6 @@ package body Exp_Ch9 is
                 Object_Definition =>
                   New_Reference_To (Standard_Boolean, Loc)));
 
-            Append_To (Stmts,
-              Make_Procedure_Call_Statement (Loc,
-                Name =>
-                  New_Reference_To (
-                    Find_Prim_Op (Etype (Etype (Obj)),
-                      Name_uDisp_Get_Prim_Op_Kind),
-                  Loc),
-                Parameter_Associations =>
-                  New_List (
-                    New_Copy_Tree    (Obj),
-                    New_Reference_To (S, Loc),
-                    New_Reference_To (C, Loc))));
-
             --  ---------------------------------------------------------------
             --  Protected entry handling
 
@@ -5146,8 +4931,7 @@ package body Exp_Ch9 is
             Cleanup_Stmts := Parameter_Block_Unpack (Loc, P, Actuals, Formals);
 
             --  Generate:
-            --    _dispatching_asynchronous_select
-            --      (<object>, S, P'address, Bnn, B);
+            --    _Disp_Asynchronous_Select (<object>, S, P'address, Bnn, B);
 
             Prepend_To (Cleanup_Stmts,
               Make_Procedure_Call_Statement (Loc,
@@ -5155,7 +4939,7 @@ package body Exp_Ch9 is
                   New_Reference_To (
                     Find_Prim_Op (Etype (Etype (Obj)),
                       Name_uDisp_Asynchronous_Select),
-                  Loc),
+                    Loc),
                 Parameter_Associations =>
                   New_List (
                     New_Copy_Tree    (Obj),
@@ -5204,8 +4988,8 @@ package body Exp_Ch9 is
             Cleanup_Block_Ent :=
               Make_Defining_Identifier (Loc, New_Internal_Name ('C'));
 
-            Cleanup_Block := SEU.Build_Cleanup_Block (Loc,
-              Cleanup_Block_Ent, Cleanup_Stmts, Bnn);
+            Cleanup_Block :=
+              Build_Cleanup_Block (Loc, Cleanup_Block_Ent, Cleanup_Stmts, Bnn);
 
             --  Wrap the cleanup block in an exception handling block
 
@@ -5224,8 +5008,8 @@ package body Exp_Ch9 is
                 Make_Implicit_Label_Declaration (Loc,
                   Defining_Identifier => Abort_Block_Ent),
 
-                SEU.Build_Abort_Block (Loc,
-                  Abort_Block_Ent, Cleanup_Block_Ent, Cleanup_Block));
+                Build_Abort_Block
+                  (Loc, Abort_Block_Ent, Cleanup_Block_Ent, Cleanup_Block));
 
             --  Generate:
             --    if not Cancelled (Bnn) then
@@ -5258,8 +5042,7 @@ package body Exp_Ch9 is
             TaskE_Stmts := Parameter_Block_Unpack (Loc, P, Actuals, Formals);
 
             --  Generate:
-            --    _dispatching_asynchronous_select
-            --      (<object>, S, P'address, Bnn, B);
+            --    _Disp_Asynchronous_Select (<object>, S, P'address, Bnn, B);
 
             Prepend_To (TaskE_Stmts,
               Make_Procedure_Call_Statement (Loc,
@@ -5267,7 +5050,7 @@ package body Exp_Ch9 is
                   New_Reference_To (
                     Find_Prim_Op (Etype (Etype (Obj)),
                       Name_uDisp_Asynchronous_Select),
-                  Loc),
+                    Loc),
                 Parameter_Associations =>
                   New_List (
                     New_Copy_Tree    (Obj),
@@ -5319,8 +5102,8 @@ package body Exp_Ch9 is
             Cleanup_Block_Ent :=
               Make_Defining_Identifier (Loc, New_Internal_Name ('C'));
 
-            Cleanup_Block := SEU.Build_Cleanup_Block (Loc,
-              Cleanup_Block_Ent, Cleanup_Stmts, T);
+            Cleanup_Block :=
+              Build_Cleanup_Block (Loc, Cleanup_Block_Ent, Cleanup_Stmts, T);
 
             --  Wrap the cleanup block in an exception handling block
 
@@ -5339,8 +5122,8 @@ package body Exp_Ch9 is
                 Defining_Identifier => Abort_Block_Ent));
 
             Append_To (TaskE_Stmts,
-              SEU.Build_Abort_Block (Loc,
-                Abort_Block_Ent, Cleanup_Block_Ent, Cleanup_Block));
+              Build_Abort_Block
+                (Loc, Abort_Block_Ent, Cleanup_Block_Ent, Cleanup_Block));
 
             --  Generate:
             --    if not T then
@@ -5368,6 +5151,29 @@ package body Exp_Ch9 is
             Prepend_To (ProtP_Stmts, New_Copy_Tree (Ecall));
 
             --  Generate:
+            --    S := Ada.Tags.Get_Offset_Index (
+            --           Ada.Tags.Tag (<object>), DT_Position (Call_Ent));
+
+            Conc_Typ_Stmts := New_List (
+              Build_S_Assignment (Loc, S, Obj, Call_Ent));
+
+            --  Generate:
+            --    _Disp_Get_Prim_Op_Kind (<object>, S, C);
+
+            Append_To (Conc_Typ_Stmts,
+              Make_Procedure_Call_Statement (Loc,
+                Name =>
+                  New_Reference_To (
+                    Find_Prim_Op (Etype (Etype (Obj)),
+                      Name_uDisp_Get_Prim_Op_Kind),
+                    Loc),
+                Parameter_Associations =>
+                  New_List (
+                    New_Copy_Tree    (Obj),
+                    New_Reference_To (S, Loc),
+                    New_Reference_To (C, Loc))));
+
+            --  Generate:
             --    if C = POK_Procedure_Entry then
             --       ProtE_Stmts
             --    elsif C = POK_Task_Entry then
@@ -5376,7 +5182,7 @@ package body Exp_Ch9 is
             --       ProtP_Stmts
             --    end if;
 
-            Append_To (Stmts,
+            Append_To (Conc_Typ_Stmts,
               Make_If_Statement (Loc,
                 Condition =>
                   Make_Op_Eq (Loc,
@@ -5403,6 +5209,35 @@ package body Exp_Ch9 is
 
                 Else_Statements =>
                   ProtP_Stmts));
+
+            --  Generate:
+            --    <dispatching-call>;
+            --    <triggering-statements>
+
+            Lim_Typ_Stmts := New_Copy_List_Tree (Tstats);
+            Prepend_To (Lim_Typ_Stmts, New_Copy_Tree (Ecall));
+
+            --  Generate:
+            --    if K = Ada.Tags.TK_Limited_Tagged then
+            --       Lim_Typ_Stmts
+            --    else
+            --       Conc_Typ_Stmts
+            --    end if;
+
+            Append_To (Stmts,
+              Make_If_Statement (Loc,
+                Condition =>
+                   Make_Op_Eq (Loc,
+                     Left_Opnd =>
+                       New_Reference_To (K, Loc),
+                     Right_Opnd =>
+                       New_Reference_To (RTE (RE_TK_Limited_Tagged), Loc)),
+
+                Then_Statements =>
+                  Lim_Typ_Stmts,
+
+                Else_Statements =>
+                  Conc_Typ_Stmts));
 
             Rewrite (N,
               Make_Block_Statement (Loc,
@@ -5866,30 +5701,42 @@ package body Exp_Ch9 is
    --    declare
    --       B : Boolean := False;
    --       C : Ada.Tags.Prim_Op_Kind;
+   --       K : Ada.Tags.Tagged_Kind :=
+   --             Ada.Tags.Get_Tagged_Kind (Ada.Tags.Tag (<object>));
    --       P : Parameters := (Param1 .. ParamN);
-   --       S : constant Integer := DT_Position (<dispatching-procedure>);
+   --       S : Integer;
 
    --    begin
-   --       disp_conditional_select (<object>, S, P'address, C, B);
+   --       if K = Ada.Tags.TK_Limited_Tagged then
+   --          <dispatching-call>;
+   --          <triggering-statements>
 
-   --       if C = POK_Protected_Entry
-   --         or else C = POK_Task_Entry
-   --       then
-   --          Param1 := P.Param1;
-   --          ...
-   --          ParamN := P.ParamN;
-   --       end if;
-
-   --       if B then
-   --          if C = POK_Procedure
-   --            or else C = POK_Protected_Procedure
-   --            or else C = POK_Task_Procedure
-   --          then
-   --             <dispatching-procedure> (<object>, Param1 .. ParamN);
-   --          end if;
-   --          <normal-statements>
    --       else
-   --          <else-statements>
+   --          S := Ada.Tags.Get_Offset_Index (Ada.Tags.Tag (<object>),
+   --                 DT_Position (<dispatching-call>));
+
+   --          _Disp_Conditional_Select (<object>, S, P'address, C, B);
+
+   --          if C = POK_Protected_Entry
+   --            or else C = POK_Task_Entry
+   --          then
+   --             Param1 := P.Param1;
+   --             ...
+   --             ParamN := P.ParamN;
+   --          end if;
+
+   --          if B then
+   --             if C = POK_Procedure
+   --               or else C = POK_Protected_Procedure
+   --               or else C = POK_Task_Procedure
+   --             then
+   --                <dispatching-call>;
+   --             end if;
+
+   --             <triggering-statements>
+   --          else
+   --             <else-statements>
+   --          end if;
    --       end if;
    --    end;
 
@@ -5899,25 +5746,28 @@ package body Exp_Ch9 is
       Blk : Node_Id             := Entry_Call_Statement (Alt);
       Transient_Blk : Node_Id;
 
-      Actuals  : List_Id;
-      Blk_Typ  : Entity_Id;
-      Call     : Node_Id;
-      Call_Ent : Entity_Id;
-      Decl     : Node_Id;
-      Decls    : List_Id;
-      Formals  : List_Id;
-      N_Stats  : List_Id;
-      Obj      : Entity_Id;
-      Param    : Node_Id;
-      Params   : List_Id;
-      Stmt     : Node_Id;
-      Stmts    : List_Id;
-      Unpack   : List_Id;
+      Actuals        : List_Id;
+      Blk_Typ        : Entity_Id;
+      Call           : Node_Id;
+      Call_Ent       : Entity_Id;
+      Conc_Typ_Stmts : List_Id;
+      Decl           : Node_Id;
+      Decls          : List_Id;
+      Formals        : List_Id;
+      Lim_Typ_Stmts  : List_Id;
+      N_Stats        : List_Id;
+      Obj            : Entity_Id;
+      Param          : Node_Id;
+      Params         : List_Id;
+      Stmt           : Node_Id;
+      Stmts          : List_Id;
+      Unpack         : List_Id;
 
-      B        : Entity_Id;  --  Call status flag
-      C        : Entity_Id;  --  Call kind
-      P        : Entity_Id;  --  Parameter block
-      S        : Entity_Id;  --  Primitive operation slot
+      B : Entity_Id;  --  Call status flag
+      C : Entity_Id;  --  Call kind
+      K : Entity_Id;  --  Tagged kind
+      P : Entity_Id;  --  Parameter block
+      S : Entity_Id;  --  Primitive operation slot
 
    begin
       if Ada_Version >= Ada_05
@@ -5931,31 +5781,41 @@ package body Exp_Ch9 is
          --  Call status flag processing, generate:
          --    B : Boolean := False;
 
-         B := SEU.Build_B (Loc, Decls);
+         B := Build_B (Loc, Decls);
 
          --  Call kind processing, generate:
          --    C : Ada.Tags.Prim_Op_Kind;
 
-         C := SEU.Build_C (Loc, Decls);
+         C := Build_C (Loc, Decls);
+
+         --  Tagged kind processing, generate:
+         --    K : Ada.Tags.Tagged_Kind :=
+         --          Ada.Tags.Get_Tagged_Kind (Ada.Tags.Tag (<object>));
+
+         K := Build_K (Loc, Decls, Obj);
 
          --  Parameter block processing
 
          Blk_Typ := Build_Parameter_Block (Loc, Actuals, Formals, Decls);
-         P       := Parameter_Block_Pack  (Loc, Blk_Typ, Actuals, Formals,
-                      Decls, Stmts);
+         P       := Parameter_Block_Pack
+                      (Loc, Blk_Typ, Actuals, Formals, Decls, Stmts);
 
          --  Dispatch table slot processing, generate:
-         --    S : constant Integer :=
-         --          Ada.Tags.Get_Offset_Index (
-         --            Unchecked_Convert_To (Ada.Tags.Interface_Tag, Obj),
-         --            DT_Position (<dispatching-procedure>));
+         --    S : Integer;
 
-         S := SEU.Build_S (Loc, Decls, Obj, Call_Ent);
+         S := Build_S (Loc, Decls);
 
          --  Generate:
-         --    _dispatching_conditional_select (<object>, S, P'address, C, B);
+         --    S := Ada.Tags.Get_Offset_Index (
+         --           Ada.Tags.Tag (<object>), DT_Position (Call_Ent));
 
-         Append_To (Stmts,
+         Conc_Typ_Stmts := New_List (
+           Build_S_Assignment (Loc, S, Obj, Call_Ent));
+
+         --  Generate:
+         --    _Disp_Conditional_Select (<object>, S, P'address, C, B);
+
+         Append_To (Conc_Typ_Stmts,
            Make_Procedure_Call_Statement (Loc,
              Name =>
                New_Reference_To (
@@ -5987,7 +5847,7 @@ package body Exp_Ch9 is
          --  explicit assignments to their corresponding actuals.
 
          if Present (Unpack) then
-            Append_To (Stmts,
+            Append_To (Conc_Typ_Stmts,
               Make_If_Statement (Loc,
 
                 Condition =>
@@ -6006,7 +5866,8 @@ package body Exp_Ch9 is
                         Right_Opnd =>
                           New_Reference_To (RTE (RE_POK_Task_Entry), Loc))),
 
-                 Then_Statements => Unpack));
+                 Then_Statements =>
+                   Unpack));
          end if;
 
          --  Generate:
@@ -6015,7 +5876,7 @@ package body Exp_Ch9 is
          --         or else C = POK_Protected_Procedure
          --         or else C = POK_Task_Procedure
          --       then
-         --          <dispatching-procedure-call>
+         --          <dispatching-call>
          --       end if;
          --       <normal-statements>
          --    else
@@ -6056,11 +5917,40 @@ package body Exp_Ch9 is
              Then_Statements =>
                New_List (Blk)));
 
-         Append_To (Stmts,
+         Append_To (Conc_Typ_Stmts,
            Make_If_Statement (Loc,
              Condition       => New_Reference_To (B, Loc),
              Then_Statements => N_Stats,
              Else_Statements => Else_Statements (N)));
+
+         --  Generate:
+         --    <dispatching-call>;
+         --    <triggering-statements>
+
+         Lim_Typ_Stmts := New_Copy_List_Tree (Statements (Alt));
+         Prepend_To (Lim_Typ_Stmts, New_Copy_Tree (Blk));
+
+         --  Generate:
+         --    if K = Ada.Tags.TK_Limited_Tagged then
+         --       Lim_Typ_Stmts
+         --    else
+         --       Conc_Typ_Stmts
+         --    end if;
+
+         Append_To (Stmts,
+           Make_If_Statement (Loc,
+             Condition =>
+               Make_Op_Eq (Loc,
+                 Left_Opnd =>
+                   New_Reference_To (K, Loc),
+                 Right_Opnd =>
+                   New_Reference_To (RTE (RE_TK_Limited_Tagged), Loc)),
+
+             Then_Statements =>
+               Lim_Typ_Stmts,
+
+             Else_Statements =>
+               Conc_Typ_Stmts));
 
          Rewrite (N,
            Make_Block_Statement (Loc,
@@ -6771,8 +6661,10 @@ package body Exp_Ch9 is
 
       if Has_Entries
         and then (Abort_Allowed
-                    or else Restriction_Active (No_Entry_Queue) = False
-                    or else Num_Entries > 1)
+                  or else Restriction_Active (No_Entry_Queue) = False
+                  or else Num_Entries > 1
+                  or else (Has_Attach_Handler (Pid)
+                            and then not Restricted_Profile))
       then
          New_Op_Body := Build_Find_Body_Index (Pid);
          Insert_After (Current_Node, New_Op_Body);
@@ -6928,7 +6820,6 @@ package body Exp_Ch9 is
       Cdecls       : List_Id;
       Discr_Map    : constant Elist_Id := New_Elmt_List;
       Priv         : Node_Id;
-      Pent         : Entity_Id;
       New_Priv     : Node_Id;
       Comp         : Node_Id;
       Comp_Id      : Entity_Id;
@@ -7134,21 +7025,42 @@ package body Exp_Ch9 is
          while Present (Priv) loop
 
             if Nkind (Priv) = N_Component_Declaration then
-               Pent := Defining_Identifier (Priv);
-               New_Priv :=
-                 Make_Component_Declaration (Loc,
-                   Defining_Identifier =>
-                     Make_Defining_Identifier (Sloc (Pent), Chars (Pent)),
-                   Component_Definition =>
-                     Make_Component_Definition (Sloc (Pent),
-                       Aliased_Present    => False,
-                       Subtype_Indication =>
-                         New_Copy_Tree (Subtype_Indication
-                                         (Component_Definition (Priv)),
-                                        Discr_Map)),
-                   Expression => Expression (Priv));
 
-               Append_To (Cdecls, New_Priv);
+               --  The component definition consists of a subtype indication,
+               --  or (in Ada 2005) an access definition. Make a copy of the
+               --  proper definition.
+
+               declare
+                  Old_Comp : constant Node_Id   := Component_Definition (Priv);
+                  Pent     : constant Entity_Id := Defining_Identifier (Priv);
+                  New_Comp : Node_Id;
+
+               begin
+                  if Present (Subtype_Indication (Old_Comp)) then
+                     New_Comp :=
+                       Make_Component_Definition (Sloc (Pent),
+                         Aliased_Present    => False,
+                         Subtype_Indication =>
+                           New_Copy_Tree (Subtype_Indication (Old_Comp),
+                                           Discr_Map));
+                  else
+                     New_Comp :=
+                       Make_Component_Definition (Sloc (Pent),
+                         Aliased_Present    => False,
+                         Access_Definition  =>
+                           New_Copy_Tree (Access_Definition (Old_Comp),
+                                           Discr_Map));
+                  end if;
+
+                  New_Priv :=
+                    Make_Component_Declaration (Loc,
+                      Defining_Identifier =>
+                        Make_Defining_Identifier (Sloc (Pent), Chars (Pent)),
+                      Component_Definition => New_Comp,
+                      Expression => Expression (Priv));
+
+                  Append_To (Cdecls, New_Priv);
+               end;
 
             elsif Nkind (Priv) = N_Subprogram_Declaration then
 
@@ -7241,7 +7153,7 @@ package body Exp_Ch9 is
                Wrap_Spec := Empty;
 
                if Nkind (Vis_Decl) = N_Entry_Declaration
-                 and then not Present (Discrete_Subtype_Definition (Vis_Decl))
+                 and then No (Discrete_Subtype_Definition (Vis_Decl))
                then
                   Wrap_Spec :=
                     Build_Wrapper_Spec (Loc,
@@ -7494,6 +7406,8 @@ package body Exp_Ch9 is
          if Abort_Allowed
            or else Restriction_Active (No_Entry_Queue) = False
            or else E_Count > 1
+           or else (Has_Attach_Handler (Prottyp)
+                     and then not Restricted_Profile)
          then
             Body_Arr := Make_Object_Declaration (Loc,
               Defining_Identifier => Body_Id,
@@ -7543,6 +7457,8 @@ package body Exp_Ch9 is
          if Abort_Allowed
            or else Restriction_Active (No_Entry_Queue) = False
            or else E_Count > 1
+           or else (Has_Attach_Handler (Prottyp)
+                     and then not Restricted_Profile)
          then
             Sub :=
               Make_Subprogram_Declaration (Loc,
@@ -9538,31 +9454,43 @@ package body Exp_Ch9 is
    --       B  : Boolean := False;
    --       C  : Ada.Tags.Prim_Op_Kind;
    --       DX : Duration := To_Duration (D)
+   --       K : Ada.Tags.Tagged_Kind :=
+   --             Ada.Tags.Get_Tagged_Kind (Ada.Tags.Tag (<object>));
    --       M  : Integer :=...;
    --       P  : Parameters := (Param1 .. ParamN);
-   --       S  : constant Iteger := DT_Position (<dispatching-procedure>);
+   --       S  : Iteger;
 
    --    begin
-   --       disp_timed_select (<object>, S, P'Address, DX, M, C, B);
+   --       if K = Ada.Tags.TK_Limited_Tagged then
+   --          <dispatching-call>;
+   --          <triggering-statements>
 
-   --       if C = POK_Protected_Entry
-   --         or else C = POK_Task_Entry
-   --       then
-   --          Param1 := P.Param1;
-   --          ...
-   --          ParamN := P.ParamN;
-   --       end if;
-
-   --       if B then
-   --          if C = POK_Procedure
-   --            or else C = POK_Protected_Procedure
-   --            or else C = POK_Task_Procedure
-   --          then
-   --             T.E;
-   --          end if;
-   --          S1;
    --       else
-   --          S2;
+   --          S := Ada.Tags.Get_Offset_Index (Ada.Tags.Tag (<object>),
+   --                 DT_Position (<dispatching-call>));
+
+   --          _Disp_Timed_Select (<object>, S, P'Address, DX, M, C, B);
+
+   --          if C = POK_Protected_Entry
+   --            or else C = POK_Task_Entry
+   --          then
+   --             Param1 := P.Param1;
+   --             ...
+   --             ParamN := P.ParamN;
+   --          end if;
+
+   --          if B then
+   --             if C = POK_Procedure
+   --               or else C = POK_Protected_Procedure
+   --               or else C = POK_Task_Procedure
+   --             then
+   --                <dispatching-call>;
+   --             end if;
+
+   --             <triggering-statements>
+   --          else
+   --             <timed-statements>
+   --          end if;
    --       end if;
    --    end;
 
@@ -9578,30 +9506,33 @@ package body Exp_Ch9 is
       D_Stats : constant List_Id :=
                   Statements (Delay_Alternative (N));
 
-      Actuals  : List_Id;
-      Blk_Typ  : Entity_Id;
-      Call     : Node_Id;
-      Call_Ent : Entity_Id;
-      Concval  : Node_Id;
-      D_Conv   : Node_Id;
-      D_Disc   : Node_Id;
-      D_Type   : Entity_Id;
-      Decls    : List_Id;
-      Dummy    : Node_Id;
-      Ename    : Node_Id;
-      Formals  : List_Id;
-      Index    : Node_Id;
-      N_Stats  : List_Id;
-      Obj      : Entity_Id;
-      Param    : Node_Id;
-      Params   : List_Id;
-      Stmt     : Node_Id;
-      Stmts    : List_Id;
-      Unpack   : List_Id;
+      Actuals        : List_Id;
+      Blk_Typ        : Entity_Id;
+      Call           : Node_Id;
+      Call_Ent       : Entity_Id;
+      Conc_Typ_Stmts : List_Id;
+      Concval        : Node_Id;
+      D_Conv         : Node_Id;
+      D_Disc         : Node_Id;
+      D_Type         : Entity_Id;
+      Decls          : List_Id;
+      Dummy          : Node_Id;
+      Ename          : Node_Id;
+      Formals        : List_Id;
+      Index          : Node_Id;
+      Lim_Typ_Stmts  : List_Id;
+      N_Stats        : List_Id;
+      Obj            : Entity_Id;
+      Param          : Node_Id;
+      Params         : List_Id;
+      Stmt           : Node_Id;
+      Stmts          : List_Id;
+      Unpack         : List_Id;
 
       B : Entity_Id;  --  Call status flag
       C : Entity_Id;  --  Call kind
       D : Entity_Id;  --  Delay
+      K : Entity_Id;  --  Tagged kind
       M : Entity_Id;  --  Delay mode
       P : Entity_Id;  --  Parameter block
       S : Entity_Id;  --  Primitive operation slot
@@ -9651,7 +9582,7 @@ package body Exp_Ch9 is
          --  Generate:
          --    B : Boolean := False;
 
-         B := SEU.Build_B (Loc, Decls);
+         B := Build_B (Loc, Decls);
 
       else
          --  Generate:
@@ -9675,7 +9606,7 @@ package body Exp_Ch9 is
          --  Generate:
          --    C : Ada.Tags.Prim_Op_Kind;
 
-         C := SEU.Build_C (Loc, Decls);
+         C := Build_C (Loc, Decls);
       end if;
 
       --  Duration and mode processing
@@ -9747,20 +9678,30 @@ package body Exp_Ch9 is
       if Ada_Version >= Ada_05
         and then Nkind (E_Call) = N_Procedure_Call_Statement
       then
+         --  Tagged kind processing, generate:
+         --    K : Ada.Tags.Tagged_Kind :=
+         --          Ada.Tags.Get_Tagged_Kind (Ada.Tags.Tag <object>));
+
+         K := Build_K (Loc, Decls, Obj);
+
          Blk_Typ := Build_Parameter_Block (Loc, Actuals, Formals, Decls);
          P       := Parameter_Block_Pack  (Loc, Blk_Typ, Actuals, Formals,
                       Decls, Stmts);
 
          --  Dispatch table slot processing, generate:
-         --    S : constant Integer :=
-         --          Ada.Tags.Get_Offset_Index (
-         --            Unchecked_Convert_To (Ada.Tags.Interface_Tag, Obj),
-         --            DT_Position (<dispatching-procedure>));
+         --    S : Integer;
 
-         S := SEU.Build_S (Loc, Decls, Obj, Call_Ent);
+         S := Build_S (Loc, Decls);
 
          --  Generate:
-         --    _dispatching_timed_select (Obj, S, P'address, D, M, C, B);
+         --    S := Ada.Tags.Get_Offset_Index (
+         --           Ada.Tags.Tag (<object>), DT_Position (Call_Ent));
+
+         Conc_Typ_Stmts := New_List (
+           Build_S_Assignment (Loc, S, Obj, Call_Ent));
+
+         --  Generate:
+         --    _Disp_Timed_Select (<object>, S, P'address, D, M, C, B);
 
          --  where Obj is the controlling formal parameter, S is the dispatch
          --  table slot number of the dispatching operation, P is the wrapped
@@ -9779,7 +9720,7 @@ package body Exp_Ch9 is
          Append_To (Params, New_Reference_To (C, Loc));
          Append_To (Params, New_Reference_To (B, Loc));
 
-         Append_To (Stmts,
+         Append_To (Conc_Typ_Stmts,
            Make_Procedure_Call_Statement (Loc,
              Name =>
                New_Reference_To (
@@ -9804,7 +9745,7 @@ package body Exp_Ch9 is
          --  explicit assignments to their corresponding actuals.
 
          if Present (Unpack) then
-            Append_To (Stmts,
+            Append_To (Conc_Typ_Stmts,
               Make_If_Statement (Loc,
 
                 Condition =>
@@ -9823,7 +9764,8 @@ package body Exp_Ch9 is
                         Right_Opnd =>
                           New_Reference_To (RTE (RE_POK_Task_Entry), Loc))),
 
-                Then_Statements => Unpack));
+                Then_Statements =>
+                  Unpack));
          end if;
 
          --  Generate:
@@ -9833,11 +9775,11 @@ package body Exp_Ch9 is
          --         or else C = POK_Protected_Procedure
          --         or else C = POK_Task_Procedure
          --       then
-         --          <dispatching-procedure-call>
+         --          <dispatching-call>
          --       end if;
-         --       <normal-statements>
+         --       <triggering-statements>
          --    else
-         --       <delay-statements>
+         --       <timed-statements>
          --    end if;
 
          N_Stats := New_Copy_List_Tree (E_Stats);
@@ -9873,11 +9815,41 @@ package body Exp_Ch9 is
              Then_Statements =>
                New_List (E_Call)));
 
-         Append_To (Stmts,
+         Append_To (Conc_Typ_Stmts,
            Make_If_Statement (Loc,
              Condition       => New_Reference_To (B, Loc),
              Then_Statements => N_Stats,
              Else_Statements => D_Stats));
+
+         --  Generate:
+         --    <dispatching-call>;
+         --    <triggering-statements>
+
+         Lim_Typ_Stmts := New_Copy_List_Tree (E_Stats);
+         Prepend_To (Lim_Typ_Stmts, New_Copy_Tree (E_Call));
+
+         --  Generate:
+         --    if K = Ada.Tags.TK_Limited_Tagged then
+         --       Lim_Typ_Stmts
+         --    else
+         --       Conc_Typ_Stmts
+         --    end if;
+
+         Append_To (Stmts,
+           Make_If_Statement (Loc,
+             Condition =>
+               Make_Op_Eq (Loc,
+                 Left_Opnd =>
+                   New_Reference_To (K, Loc),
+                 Right_Opnd =>
+                   New_Reference_To (RTE (RE_TK_Limited_Tagged), Loc)),
+
+             Then_Statements =>
+               Lim_Typ_Stmts,
+
+             Else_Statements =>
+               Conc_Typ_Stmts));
+
       else
          --  Skip assignments to temporaries created for in-out parameters.
          --  This makes unwarranted assumptions about the shape of the expanded
@@ -10579,6 +10551,7 @@ package body Exp_Ch9 is
             if Abort_Allowed
               or else Restriction_Active (No_Entry_Queue) = False
               or else Number_Entries (Ptyp) > 1
+              or else (Has_Attach_Handler (Ptyp) and then not Restricted)
             then
                --  Find index mapping function (clumsy but ok for now)
 
@@ -10601,6 +10574,8 @@ package body Exp_Ch9 is
          if Abort_Allowed
            or else Restriction_Active (No_Entry_Queue) = False
            or else Number_Entries (Ptyp) > 1
+           or else (Has_Attach_Handler (Ptyp)
+                     and then not Restricted)
          then
             Append_To (L,
               Make_Procedure_Call_Statement (Loc,

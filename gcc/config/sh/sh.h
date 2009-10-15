@@ -1,6 +1,6 @@
 /* Definitions of target machine for GNU compiler for Renesas / SuperH SH.
    Copyright (C) 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002,
-   2003, 2004, 2005, 2006 Free Software Foundation, Inc.
+   2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
    Contributed by Steve Chamberlain (sac@cygnus.com).
    Improved by Jim Wilson (wilson@cygnus.com).
 
@@ -8,7 +8,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -17,9 +17,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #ifndef GCC_SH_H
 #define GCC_SH_H
@@ -92,11 +91,6 @@ do { \
     builtin_define ("__HITACHI__"); \
   builtin_define (TARGET_LITTLE_ENDIAN \
 		  ? "__LITTLE_ENDIAN__" : "__BIG_ENDIAN__"); \
-  if (flag_pic) \
-    { \
-      builtin_define ("__pic__"); \
-      builtin_define ("__PIC__"); \
-    } \
 } while (0)
 
 /* We can not debug without a frame pointer.  */
@@ -239,6 +233,9 @@ do { \
 #define TARGET_DIVIDE_INV20L (sh_div_strategy == SH_DIV_INV20L)
 #define TARGET_DIVIDE_INV_CALL (sh_div_strategy == SH_DIV_INV_CALL)
 #define TARGET_DIVIDE_INV_CALL2 (sh_div_strategy == SH_DIV_INV_CALL2)
+#define TARGET_DIVIDE_CALL_DIV1 (sh_div_strategy == SH_DIV_CALL_DIV1)
+#define TARGET_DIVIDE_CALL_FP (sh_div_strategy == SH_DIV_CALL_FP)
+#define TARGET_DIVIDE_CALL_TABLE (sh_div_strategy == SH_DIV_CALL_TABLE)
 
 #define SELECT_SH1               (MASK_SH1)
 #define SELECT_SH2               (MASK_SH2 | SELECT_SH1)
@@ -368,9 +365,9 @@ do { \
   SUBTARGET_EXTRA_SPECS
 
 #if TARGET_CPU_DEFAULT & MASK_HARD_SH4
-#define SUBTARGET_ASM_RELAX_SPEC "%{!m1:%{!m2:%{!m3*:%{!m5*:-isa=sh4}}}}"
+#define SUBTARGET_ASM_RELAX_SPEC "%{!m1:%{!m2:%{!m3*:%{!m5*:-isa=sh4-up}}}}"
 #else
-#define SUBTARGET_ASM_RELAX_SPEC "%{m4*:-isa=sh4}"
+#define SUBTARGET_ASM_RELAX_SPEC "%{m4*:-isa=sh4-up}"
 #endif
 
 #define SH_ASM_SPEC \
@@ -472,7 +469,7 @@ do {									\
       sh_div_str = SH_DIV_STR_FOR_SIZE ;				\
     }									\
   /* We can't meaningfully test TARGET_SHMEDIA here, because -m options	\
-     haven't been parsed yet, hence we';d read only the default.	\
+     haven't been parsed yet, hence we'd read only the default.	\
      sh_target_reg_class will return NO_REGS if this is not SHMEDIA, so	\
      it's OK to always set flag_branch_target_load_optimize.  */	\
   if (LEVEL > 1)							\
@@ -497,16 +494,24 @@ do {									\
 extern int assembler_dialect;
 
 enum sh_divide_strategy_e {
+  /* SH5 strategies.  */
   SH_DIV_CALL,
   SH_DIV_CALL2,
-  SH_DIV_FP,
+  SH_DIV_FP, /* We could do this also for SH4.  */
   SH_DIV_INV,
   SH_DIV_INV_MINLAT,
   SH_DIV_INV20U,
   SH_DIV_INV20L,
   SH_DIV_INV_CALL,
   SH_DIV_INV_CALL2,
-  SH_DIV_INV_FP
+  SH_DIV_INV_FP,
+  /* SH1 .. SH4 strategies.  Because of the small number of registers
+     available, the compiler uses knowledge of the actual set of registers
+     being clobbered by the different functions called.  */
+  SH_DIV_CALL_DIV1, /* No FPU, medium size, highest latency.  */
+  SH_DIV_CALL_FP,     /* FPU needed, small size, high latency.  */
+  SH_DIV_CALL_TABLE,  /* No FPU, large size, medium latency. */
+  SH_DIV_INTRINSIC
 };
 
 extern enum sh_divide_strategy_e sh_div_strategy;
@@ -616,17 +621,50 @@ do {									\
        targetm.asm_out.aligned_op.di = NULL;				\
        targetm.asm_out.unaligned_op.di = NULL;				\
     }									\
+  if (TARGET_SH1)							\
+    {									\
+      if (! strcmp (sh_div_str, "call-div1"))				\
+	sh_div_strategy = SH_DIV_CALL_DIV1;				\
+      else if (! strcmp (sh_div_str, "call-fp")				\
+	       && (TARGET_FPU_DOUBLE					\
+		   || (TARGET_HARD_SH4 && TARGET_SH2E)			\
+		   || (TARGET_SHCOMPACT && TARGET_FPU_ANY)))		\
+	sh_div_strategy = SH_DIV_CALL_FP;				\
+      else if (! strcmp (sh_div_str, "call-table") && TARGET_SH2)	\
+	sh_div_strategy = SH_DIV_CALL_TABLE;				\
+      else								\
+	/* Pick one that makes most sense for the target in general.	\
+	   It is not much good to use different functions depending	\
+	   on -Os, since then we'll end up with two different functions	\
+	   when some of the code is compiled for size, and some for	\
+	   speed.  */							\
+									\
+	/* SH4 tends to emphasize speed.  */				\
+	if (TARGET_HARD_SH4)						\
+	  sh_div_strategy = SH_DIV_CALL_TABLE;				\
+	/* These have their own way of doing things.  */		\
+	else if (TARGET_SH2A)						\
+	  sh_div_strategy = SH_DIV_INTRINSIC;				\
+	/* ??? Should we use the integer SHmedia function instead?  */	\
+	else if (TARGET_SHCOMPACT && TARGET_FPU_ANY)			\
+	  sh_div_strategy = SH_DIV_CALL_FP;				\
+        /* SH1 .. SH3 cores often go into small-footprint systems, so	\
+	   default to the smallest implementation available.  */	\
+	else if (TARGET_SH2)	/* ??? EXPERIMENTAL */			\
+	  sh_div_strategy = SH_DIV_CALL_TABLE;				\
+	else								\
+	  sh_div_strategy = SH_DIV_CALL_DIV1;				\
+    }									\
+  if (!TARGET_SH1)							\
+    TARGET_PRETEND_CMOVE = 0;						\
   if (sh_divsi3_libfunc[0])						\
     ; /* User supplied - leave it alone.  */				\
-  else if (TARGET_HARD_SH4 && TARGET_SH2E)				\
+  else if (TARGET_DIVIDE_CALL_FP)					\
     sh_divsi3_libfunc = "__sdivsi3_i4";					\
+  else if (TARGET_DIVIDE_CALL_TABLE)					\
+    sh_divsi3_libfunc = "__sdivsi3_i4i";				\
   else if (TARGET_SH5)							\
-    {									\
-      if (TARGET_FPU_ANY && TARGET_SH1)					\
-	sh_divsi3_libfunc = "__sdivsi3_i4";				\
-      else								\
-	sh_divsi3_libfunc = "__sdivsi3_1";				\
-    }									\
+    sh_divsi3_libfunc = "__sdivsi3_1";					\
   else									\
     sh_divsi3_libfunc = "__sdivsi3";					\
   if (TARGET_FMOVD)							\
@@ -1498,7 +1536,8 @@ extern enum reg_class reg_class_from_letter[];
     Bsc: SCRATCH - for the scratch register in movsi_ie in the
 	 fldi0 / fldi0 cases
    C: Constants other than only CONST_INT (constraint len == 3)
-    C16: 16 bit constant, literal or symbolic
+    Css: signed 16 bit constant, literal or symbolic
+    Csu: unsigned 16 bit constant, literal or symbolic
     Csy: label or symbol
     Cpg: non-explicit constants that can be directly loaded into a general
 	 purpose register in PIC code.  like 's' except we don't allow
@@ -1532,7 +1571,8 @@ extern enum reg_class reg_class_from_letter[];
    C is the letter, and VALUE is a constant value.
    Return 1 if VALUE is in the range specified by C.
 	I08: arithmetic operand -127..128, as used in add, sub, etc
-	I16: arithmetic operand -32768..32767, as used in SHmedia movi and shori
+	I16: arithmetic operand -32768..32767, as used in SHmedia movi
+	K16: arithmetic operand 0..65535, as used in SHmedia shori
 	P27: shift operand 1,2,8 or 16
 	K08: logical operand 0..255, as used in and, or, etc.
 	M: constant 1
@@ -1569,8 +1609,11 @@ extern enum reg_class reg_class_from_letter[];
 
 #define CONST_OK_FOR_K08(VALUE) (((HOST_WIDE_INT)(VALUE))>= 0 \
 				 && ((HOST_WIDE_INT)(VALUE)) <= 255)
+#define CONST_OK_FOR_K16(VALUE) (((HOST_WIDE_INT)(VALUE))>= 0 \
+				 && ((HOST_WIDE_INT)(VALUE)) <= 65535)
 #define CONST_OK_FOR_K(VALUE, STR) \
   ((STR)[1] == '0' && (STR)[2] == '8' ? CONST_OK_FOR_K08 (VALUE) \
+   : (STR)[1] == '1' && (STR)[2] == '6' ? CONST_OK_FOR_K16 (VALUE)	\
    : 0)
 #define CONST_OK_FOR_P27(VALUE) \
   ((VALUE)==1||(VALUE)==2||(VALUE)==8||(VALUE)==16)
@@ -1609,6 +1652,7 @@ extern enum reg_class reg_class_from_letter[];
    ? GENERAL_REGS \
    : (CLASS)) \
 
+#if 0
 #define SECONDARY_INOUT_RELOAD_CLASS(CLASS,MODE,X,ELSE) \
   ((((REGCLASS_HAS_FP_REG (CLASS) 					\
       && (GET_CODE (X) == REG						\
@@ -1680,6 +1724,9 @@ extern enum reg_class reg_class_from_letter[];
       && (GET_CODE (X) == LABEL_REF || PIC_DIRECT_ADDR_P (X)))		\
    ? TARGET_REGS							\
    : SECONDARY_INOUT_RELOAD_CLASS((CLASS),(MODE),(X), NO_REGS))
+#else
+#define HAVE_SECONDARY_RELOADS
+#endif
 
 /* Return the maximum number of consecutive registers
    needed to represent mode MODE in a register of class CLASS.
@@ -1798,7 +1845,6 @@ extern enum reg_class reg_class_from_letter[];
 	     && (TREE_CODE (VALTYPE) == INTEGER_TYPE			\
 		 || TREE_CODE (VALTYPE) == ENUMERAL_TYPE		\
 		 || TREE_CODE (VALTYPE) == BOOLEAN_TYPE			\
-		 || TREE_CODE (VALTYPE) == CHAR_TYPE			\
 		 || TREE_CODE (VALTYPE) == REAL_TYPE			\
 		 || TREE_CODE (VALTYPE) == OFFSET_TYPE))		\
              && sh_promote_prototypes (VALTYPE)				\
@@ -2099,7 +2145,9 @@ struct sh_args {
    && ((MODE) == BLKmode || (MODE) == TImode || (MODE) == CDImode \
        || (MODE) == DCmode) \
    && ((CUM).arg_count[(int) SH_ARG_INT]			\
-       + (int_size_in_bytes (TYPE) + 7) / 8) > NPARM_REGS (SImode))
+       + (((MODE) == BLKmode ? int_size_in_bytes (TYPE)		\
+			     : GET_MODE_SIZE (MODE))		\
+	  + 7) / 8) > NPARM_REGS (SImode))
 
 /* Perform any needed actions needed for a function that is receiving a
    variable number of arguments.  */
@@ -2313,10 +2361,25 @@ struct sh_args {
   ((STR)[1] == 's' && (STR)[2] == 'c' ? EXTRA_CONSTRAINT_Bsc (OP) \
    : 0)
 
-/* The `C16' constraint is a 16-bit constant, literal or symbolic.  */
-#define EXTRA_CONSTRAINT_C16(OP) \
+/* The `Css' constraint is a signed 16-bit constant, literal or symbolic.  */
+#define EXTRA_CONSTRAINT_Css(OP) \
   (GET_CODE (OP) == CONST \
    && GET_CODE (XEXP ((OP), 0)) == SIGN_EXTEND \
+   && (GET_MODE (XEXP ((OP), 0)) == DImode \
+       || GET_MODE (XEXP ((OP), 0)) == SImode) \
+   && GET_CODE (XEXP (XEXP ((OP), 0), 0)) == TRUNCATE \
+   && GET_MODE (XEXP (XEXP ((OP), 0), 0)) == HImode \
+   && (MOVI_SHORI_BASE_OPERAND_P (XEXP (XEXP (XEXP ((OP), 0), 0), 0)) \
+       || (GET_CODE (XEXP (XEXP (XEXP ((OP), 0), 0), 0)) == ASHIFTRT \
+	   && (MOVI_SHORI_BASE_OPERAND_P \
+	       (XEXP (XEXP (XEXP (XEXP ((OP), 0), 0), 0), 0))) \
+	   && GET_CODE (XEXP (XEXP (XEXP (XEXP ((OP), 0), 0), 0), \
+			      1)) == CONST_INT)))
+
+/* The `Csu' constraint is an unsigned 16-bit constant, literal or symbolic.  */
+#define EXTRA_CONSTRAINT_Csu(OP) \
+  (GET_CODE (OP) == CONST \
+   && GET_CODE (XEXP ((OP), 0)) == ZERO_EXTEND \
    && (GET_MODE (XEXP ((OP), 0)) == DImode \
        || GET_MODE (XEXP ((OP), 0)) == SImode) \
    && GET_CODE (XEXP (XEXP ((OP), 0), 0)) == TRUNCATE \
@@ -2414,7 +2477,8 @@ struct sh_args {
         && (! PIC_ADDR_P (OP) || PIC_OFFSET_P (OP)) \
         && GET_CODE (OP) != LABEL_REF)))
 #define EXTRA_CONSTRAINT_C(OP, STR) \
-  ((STR)[1] == '1' && (STR)[2] == '6' ? EXTRA_CONSTRAINT_C16 (OP) \
+  ((STR)[1] == 's' && (STR)[2] == 's' ? EXTRA_CONSTRAINT_Css (OP) \
+   : (STR)[1] == 's' && (STR)[2] == 'u' ? EXTRA_CONSTRAINT_Csu (OP) \
    : (STR)[1] == 's' && (STR)[2] == 'y' ? EXTRA_CONSTRAINT_Csy (OP) \
    : (STR)[1] == 'p' && (STR)[2] == 'g' ? EXTRA_CONSTRAINT_Cpg (OP) \
    : 0)
@@ -2755,6 +2819,12 @@ struct sh_args {
 /* Since the SH2e has only `float' support, it is desirable to make all
    floating point types equivalent to `float'.  */
 #define DOUBLE_TYPE_SIZE ((TARGET_SH2E && ! TARGET_SH4 && ! TARGET_SH2A_DOUBLE) ? 32 : 64)
+
+#if defined(__SH2E__) || defined(__SH3E__) || defined( __SH4_SINGLE_ONLY__)
+#define LIBGCC2_DOUBLE_TYPE_SIZE 32
+#else
+#define LIBGCC2_DOUBLE_TYPE_SIZE 64
+#endif
 
 /* 'char' is signed by default.  */
 #define DEFAULT_SIGNED_CHAR  1

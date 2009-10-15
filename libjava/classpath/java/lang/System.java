@@ -178,6 +178,23 @@ public final class System
     if (SecurityManager.current != null)
       SecurityManager.current.checkPermission
         (new RuntimePermission("setSecurityManager"));
+
+    // java.security.Security's class initialiser loads and parses the
+    // policy files.  If it hasn't been run already it will be run
+    // during the first permission check.  That initialisation will
+    // fail if a very restrictive security manager is in force, so we
+    // preload it here.
+    if (SecurityManager.current == null)
+      {
+	try
+	  {
+	    Class.forName("java.security.Security");
+	  }
+	catch (ClassNotFoundException e)
+	  {
+	  }
+      }
+    
     SecurityManager.current = sm;
   }
 
@@ -203,6 +220,36 @@ public final class System
   public static long currentTimeMillis()
   {
     return VMSystem.currentTimeMillis();
+  }
+
+  /** 
+   * <p>
+   * Returns the current value of a nanosecond-precise system timer.
+   * The value of the timer is an offset relative to some arbitrary fixed
+   * time, which may be in the future (making the value negative).  This
+   * method is useful for timing events where nanosecond precision is
+   * required.  This is achieved by calling this method before and after the
+   * event, and taking the difference betweent the two times:
+   * </p>
+   * <p>
+   * <code>long startTime = System.nanoTime();</code><br />
+   * <code>... <emph>event code</emph> ...</code><br />
+   * <code>long endTime = System.nanoTime();</code><br />
+   * <code>long duration = endTime - startTime;</code><br />
+   * </p>
+   * <p>
+   * Note that the value is only nanosecond-precise, and not accurate; there
+   * is no guarantee that the difference between two values is really a
+   * nanosecond.  Also, the value is prone to overflow if the offset
+   * exceeds 2^63.
+   * </p>
+   *
+   * @return the time of a system timer in nanoseconds.
+   * @since 1.5 
+   */
+  public static long nanoTime()
+  {
+    return VMSystem.nanoTime();
   }
 
   /**
@@ -302,6 +349,7 @@ public final class System
    * <dt>gnu.java.io.encoding_scheme_alias.iso-latin-_?</dt> <dd>8859_?</dd>
    * <dt>gnu.java.io.encoding_scheme_alias.latin?</dt>       <dd>8859_?</dd>
    * <dt>gnu.java.io.encoding_scheme_alias.utf-8</dt>        <dd>UTF8</dd>
+   * <dt>gnu.javax.print.server</dt>     <dd>Hostname of external CUPS server.</dd>
    * </dl>
    *
    * @return the system properties, will never be null
@@ -347,7 +395,7 @@ public final class System
     SecurityManager sm = SecurityManager.current; // Be thread-safe.
     if (sm != null)
       sm.checkPropertyAccess(key);
-    else if (key.length() == 0)
+    if (key.length() == 0)
       throw new IllegalArgumentException("key can't be empty");
     return SystemProperties.getProperty(key);
   }
@@ -368,6 +416,10 @@ public final class System
     SecurityManager sm = SecurityManager.current; // Be thread-safe.
     if (sm != null)
       sm.checkPropertyAccess(key);
+    // This handles both the null pointer exception and the illegal
+    // argument exception.
+    if (key.length() == 0)
+      throw new IllegalArgumentException("key can't be empty");
     return SystemProperties.getProperty(key, def);
   }
 
@@ -388,7 +440,34 @@ public final class System
     SecurityManager sm = SecurityManager.current; // Be thread-safe.
     if (sm != null)
       sm.checkPermission(new PropertyPermission(key, "write"));
+    // This handles both the null pointer exception and the illegal
+    // argument exception.
+    if (key.length() == 0)
+      throw new IllegalArgumentException("key can't be empty");
     return SystemProperties.setProperty(key, value);
+  }
+
+  /**
+   * Remove a single system property by name. A security check may be
+   * performed, <code>checkPropertyAccess(key, "write")</code>.
+   *
+   * @param key the name of the system property to remove
+   * @return the previous value, or null
+   * @throws SecurityException if permission is denied
+   * @throws NullPointerException if key is null
+   * @throws IllegalArgumentException if key is ""
+   * @since 1.5
+   */
+  public static String clearProperty(String key)
+  {
+    SecurityManager sm = SecurityManager.current; // Be thread-safe.
+    if (sm != null)
+      sm.checkPermission(new PropertyPermission(key, "write"));
+    // This handles both the null pointer exception and the illegal
+    // argument exception.
+    if (key.length() == 0)
+      throw new IllegalArgumentException("key can't be empty");
+    return SystemProperties.remove(key);
   }
 
   /**

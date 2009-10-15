@@ -54,7 +54,7 @@
       <ol>
          <li><a href="#2_1">How do I install libstdc++-v3?</a> </li>
          <li><a href="#2_2">[removed]</a> </li>
-         <li><a href="#2_3">What is this CVS thing that you keep
+         <li><a href="#2_3">What is this SVN thing that you keep
                             mentioning?</a> </li>
          <li><a href="#2_4">How do I know if it works?</a> </li>
          <li><a href="#2_5">This library is HUGE!  And what's libsupc++?</a> </li>
@@ -137,7 +137,7 @@
          For those who want to see exactly how
          far the project has come, or just want the latest
          bleeding-edge code, the up-to-date source is available over
-         anonymous CVS, and can even be browsed over the Web (see
+         anonymous SVN, and can even be browsed over the Web (see
          <a href="#1_4">1.4</a> below).
       </p>
       <p>The older libstdc++-v2 project is no longer maintained; the code
@@ -181,7 +181,7 @@
          all over the world, in the same way as GCC or Linux.
          Benjamin Kosnik, Gabriel Dos Reis, Phil Edwards, Ulrich Drepper,
          Loren James Rittle, and Paolo Carlini are the lead maintainers of
-         the CVS archive.
+         the SVN archive.
       </p>
       <p>Development and discussion is held on the libstdc++ mailing
          list.  Subscribing to the list, or searching the list
@@ -193,8 +193,8 @@
 <hr />
    <h2><a name="1_4">1.4 How do I get libstdc++?</a></h2>
       <p>The <a href="http://gcc.gnu.org/libstdc++/">homepage</a>
-         has instructions for retrieving the latest CVS sources, and for
-         browsing the CVS sources over the web.
+         has instructions for retrieving the latest SVN sources, and for
+         browsing the SVN sources over the web.
       </p>
       <p>Stable versions of libstdc++-v3 are included with releases of
          <a href="http://gcc.gnu.org/releases.html">the GCC compilers</a>.
@@ -250,7 +250,7 @@ which is no longer available, thanks deja...-->
          in the implementation, however handy they are.  (The extensions
          provided in the SGI STL aren't maintained by us and don't get
          a lot of our attention, because they don't require a lot of our
-         time.)  It is entirely plausable that the &quot;useful stuff&quot;
+         time.)  It is entirely plausible that the &quot;useful stuff&quot;
          from libg++ might be extracted into an updated utilities library,
          but nobody has started such a project yet.
       </p>
@@ -313,7 +313,7 @@ which is no longer available, thanks deja...-->
       <p>The top-level install.html and
          <a href="../17_intro/RELEASE-NOTES">RELEASE-NOTES</a> files contain
          the exact build and installation instructions.  You may wish to
-         browse those files over CVSweb ahead of time to get a feel for
+         browse those files over ViewVC ahead of time to get a feel for
          what's required.  RELEASE-NOTES is located in the
          &quot;.../docs/17_intro/&quot; directory of the distribution.
       </p>
@@ -325,17 +325,14 @@ which is no longer available, thanks deja...-->
       </p>
 
 <hr />
-   <h2><a name="2_3">2.3 What is this CVS thing that you
+   <h2><a name="2_3">2.3 What is this SVN thing that you
                          keep mentioning?</a></h2>
-      <p>The <em>Concurrent Versions System</em> is one of several revision
-         control packages.  It was selected for GNU projects because it's
-         free (speech), free (beer), and very high quality.  The <a
-         href="http://www.gnu.org/software/cvs/cvs.html">CVS entry in
-         the GNU software catalogue</a> has a better description as
-         well as a
-         <a href="http://www.cvshome.org/">link to the makers of CVS</a>.
+      <p><em>Subversion</em> is one of several revision control packages.
+         It was selected for GNU projects because it's free (speech), free (beer),
+         and very high quality.  The <a href="http://subversion.tigris.org">
+         Subversion home page</a> has a better description.
       </p>
-      <p>The &quot;anonymous client checkout&quot; feature of CVS is
+      <p>The &quot;anonymous client checkout&quot; feature of SVN is
          similar to anonymous FTP in that it allows anyone to retrieve
          the latest libstdc++ sources.
       </p>
@@ -507,7 +504,7 @@ which is no longer available, thanks deja...-->
       <p>These macros are typically used in C library headers, guarding new
          versions of functions from their older versions.  The C++ standard
          library includes the C standard library, but it requires the C90
-         version, which for backwards-compatability reasons is often not the
+         version, which for backwards-compatibility reasons is often not the
          default for many vendors.
       </p>
       <p>More to the point, the C++ standard requires behavior which is only
@@ -595,7 +592,7 @@ which is no longer available, thanks deja...-->
 
 <hr />
 <h1><a name="4_0">4.0 Known Bugs and Non-Bugs</a></h1>
-   <em>Note that this section can get rapdily outdated -- such is the
+   <em>Note that this section can get rapidly outdated -- such is the
        nature of an open-source project.  For the latest information, join
        the mailing list or look through recent archives.   The RELEASE-
        NOTES and BUGS files are generally kept up-to-date.</em>
@@ -1009,16 +1006,27 @@ http://clisp.cons.org/~haible/gccinclude-glibc-2.2-compat.diff
       </p>
 
       <p><strong>Function objects - Complete -</strong>
-         Function return types (i.e, result_of), the functions template
+         Function return types (i.e., result_of), the functions template
 	 mem_fn (a generalization of mem_fun and mem_fun_red), function
-	 object binders (e.g, bind, a generalization of bind1st and bind2nd),
-	 and polymorhpic function wrappers (e.g, class template function).
+	 object binders (e.g., bind, a generalization of bind1st and bind2nd),
+	 and polymorphic function wrappers (e.g, class template function).
       </p>
 
       <p><strong>Type traits - Complete -</strong>
          The type_traits class gives templates the ability to probe
 	 information about the input type and enable type-dependent logic
 	 to be performed without the need of template specializations.
+      </p>
+
+      <p><strong>A random number engine - Complete -</strong>
+         This library contains random number generators with several different
+	 choices of distribution.
+      </p>
+
+      <p><strong>Tuples - Complete -</strong>
+         The tuple class implements small heterogeneous arrays.  This is an
+	 enhanced pair.  In fact, the standard pair is enhanced with a tuple
+	 interface.
       </p>
 
       <p><strong>Fixed-size arrays - Complete -</strong>
@@ -1032,12 +1040,6 @@ http://clisp.cons.org/~haible/gccinclude-glibc-2.2-compat.diff
 	 multimap, and multiset containers respectively.  These classes are
 	 suitable replacements for the SGI STL hash_map and hash_set
 	 extensions.
-      </p>
-
-      <p><strong>Tuples - Complete -</strong>
-         The tuple class implements small heterogeneous arrays.  This is an
-	 enhanced pair.  In fact, the standard pair is enhanced with a tuple
-	 interface.
       </p>
 
       <p><strong>C99 compatibility - Under construction - </strong>
@@ -1056,11 +1058,6 @@ http://clisp.cons.org/~haible/gccinclude-glibc-2.2-compat.diff
       <p><strong>A regular expression engine</strong>
          This library provides for regular expression objects with traversal
 	 of text with return of subexpressions.
-      </p>
-
-      <p><strong>A random number engine</strong>
-         This library contains randow number generators with several different
-	 choices of distribution.
       </p>
 
 <hr />

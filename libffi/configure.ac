@@ -46,6 +46,7 @@ i*86-*-gnu*) TARGET=X86; TARGETDIR=x86;;
 i*86-*-solaris2.1[[0-9]]*) TARGET=X86_64; TARGETDIR=x86;;
 i*86-*-solaris*) TARGET=X86; TARGETDIR=x86;;
 i*86-*-beos*) TARGET=X86; TARGETDIR=x86;;
+i*86-*-darwin*) TARGET=X86_DARWIN; TARGETDIR=x86;;
 i*86-*-freebsd* | i*86-*-kfreebsd*-gnu) TARGET=X86; TARGETDIR=x86;;
 i*86-*-netbsdelf* | i*86-*-knetbsd*-gnu) TARGET=X86; TARGETDIR=x86;;
 i*86-*-rtems*) TARGET=X86; TARGETDIR=x86;;
@@ -57,8 +58,12 @@ sparc-sun-4*) TARGET=SPARC; TARGETDIR=sparc;;
 sparc*-sun-*) TARGET=SPARC; TARGETDIR=sparc;;
 sparc-*-linux* | sparc-*-netbsdelf* | sparc-*-knetbsd*-gnu) TARGET=SPARC; TARGETDIR=sparc;;
 sparc*-*-rtems*) TARGET=SPARC; TARGETDIR=sparc;;
-sparc64-*-linux* | sparc64-*-netbsd* | sparc64-*-knetbsd*-gnu) TARGET=SPARC; TARGETDIR=sparc;;
-alpha*-*-linux* | alpha*-*-osf* | alpha*-*-freebsd* | alpha*-*-kfreebsd*-gnu | alpha*-*-netbsd* | alpha*-*-knetbsd*-gnu) TARGET=ALPHA; TARGETDIR=alpha;;
+sparc64-*-linux* | sparc64-*-freebsd* | sparc64-*-netbsd* | sparc64-*-knetbsd*-gnu) TARGET=SPARC; TARGETDIR=sparc;;
+alpha*-*-linux* | alpha*-*-osf* | alpha*-*-freebsd* | alpha*-*-kfreebsd*-gnu | alpha*-*-netbsd* | alpha*-*-knetbsd*-gnu)
+	TARGET=ALPHA; TARGETDIR=alpha
+	# Support 128-bit long double, changable via command-line switch.
+	HAVE_LONG_DOUBLE='defined(__LONG_DOUBLE_128__)'
+	;;
 ia64*-*-*) TARGET=IA64; TARGETDIR=ia64;;
 m32r*-*-linux* ) TARGET=M32R; TARGETDIR=m32r;;
 m68k-*-linux*) TARGET=M68K; TARGETDIR=m68k;;
@@ -82,7 +87,9 @@ x86_64-*-linux* | x86_64-*-freebsd* | x86_64-*-kfreebsd*-gnu) TARGET=X86_64; TAR
 sh-*-linux* | sh[[34]]*-*-linux*) TARGET=SH; TARGETDIR=sh;;
 sh-*-rtems*) TARGET=SH; TARGETDIR=sh;;
 sh64-*-linux* | sh5*-*-linux*) TARGET=SH64; TARGETDIR=sh64;;
-hppa-*-linux* | parisc-*-linux*) TARGET=PA; TARGETDIR=pa;;
+hppa*-*-linux* | parisc*-*-linux*) TARGET=PA_LINUX; TARGETDIR=pa;;
+hppa*64-*-hpux*) TARGET=PA64_HPUX; TARGETDIR=pa;;
+hppa*-*-hpux*) TARGET=PA_HPUX; TARGETDIR=pa;;
 esac
 
 AC_SUBST(AM_RUNTESTFLAGS)
@@ -96,6 +103,7 @@ AM_CONDITIONAL(MIPS_LINUX, test x$TARGET = xMIPS_LINUX)
 AM_CONDITIONAL(SPARC, test x$TARGET = xSPARC)
 AM_CONDITIONAL(X86, test x$TARGET = xX86)
 AM_CONDITIONAL(X86_WIN32, test x$TARGET = xX86_WIN32)
+AM_CONDITIONAL(X86_DARWIN, test x$TARGET = xX86_DARWIN)
 AM_CONDITIONAL(ALPHA, test x$TARGET = xALPHA)
 AM_CONDITIONAL(IA64, test x$TARGET = xIA64)
 AM_CONDITIONAL(M32R, test x$TARGET = xM32R)
@@ -111,7 +119,9 @@ AM_CONDITIONAL(S390, test x$TARGET = xS390)
 AM_CONDITIONAL(X86_64, test x$TARGET = xX86_64)
 AM_CONDITIONAL(SH, test x$TARGET = xSH)
 AM_CONDITIONAL(SH64, test x$TARGET = xSH64)
-AM_CONDITIONAL(PA, test x$TARGET = xPA)
+AM_CONDITIONAL(PA_LINUX, test x$TARGET = xPA_LINUX)
+AM_CONDITIONAL(PA_HPUX, test x$TARGET = xPA_HPUX)
+AM_CONDITIONAL(PA64_HPUX, test x$TARGET = xPA64_HPUX)
 
 case x$TARGET in
   xMIPS*) TARGET=MIPS ;;
@@ -126,11 +136,13 @@ AC_CHECK_SIZEOF(double)
 AC_CHECK_SIZEOF(long double)
 
 # Also AC_SUBST this variable for ffi.h.
-HAVE_LONG_DOUBLE=0
-if test $ac_cv_sizeof_double != $ac_cv_sizeof_long_double; then
-  if test $ac_cv_sizeof_long_double != 0; then
-    HAVE_LONG_DOUBLE=1
-    AC_DEFINE(HAVE_LONG_DOUBLE, 1, [Define if you have the long double type and it is bigger than a double])
+if test -z "$HAVE_LONG_DOUBLE"; then
+  HAVE_LONG_DOUBLE=0
+  if test $ac_cv_sizeof_double != $ac_cv_sizeof_long_double; then
+    if test $ac_cv_sizeof_long_double != 0; then
+      HAVE_LONG_DOUBLE=1
+      AC_DEFINE(HAVE_LONG_DOUBLE, 1, [Define if you have the long double type and it is bigger than a double])
+    fi
   fi
 fi
 AC_SUBST(HAVE_LONG_DOUBLE)

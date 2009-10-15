@@ -1,13 +1,23 @@
-nativelib_LTLIBRARIES = libjavanet.la
+nativeexeclib_LTLIBRARIES = libjavanet.la
+
+if ENABLE_LOCAL_SOCKETS
+local_sources = gnu_java_net_local_LocalSocketImpl.c \
+		local.c \
+		local.h
+else
+local_sources = gnu_java_net_local_LocalSocketImpl.c
+endif
 
 libjavanet_la_SOURCES = javanet.c \
 			javanet.h \
 			java_net_VMInetAddress.c \
 			java_net_VMNetworkInterface.c \
-			gnu_java_net_PlainDatagramSocketImpl.c \
-                        gnu_java_net_PlainSocketImpl.c
+			java_net_VMURLConnection.c \
+			gnu_java_net_VMPlainDatagramSocketImpl.c \
+                        gnu_java_net_VMPlainSocketImpl.c \
+			$(local_sources)
 
-libjavanet_la_LIBADD = $(top_builddir)/native/jni/classpath/jcl.lo
+libjavanet_la_LIBADD = $(top_builddir)/native/jni/classpath/jcl.lo $(LIBMAGIC)
 
 AM_LDFLAGS = @CLASSPATH_MODULE@
 AM_CPPFLAGS = @CLASSPATH_INCLUDES@

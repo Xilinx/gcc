@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---                     Copyright (C) 2001-2005, AdaCore                     --
+--                     Copyright (C) 2001-2006, AdaCore                     --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -26,7 +26,6 @@
 
 with ALI;      use ALI;
 with Gnatvsn;  use Gnatvsn;
-with Hostparm;
 with MLib.Fil; use MLib.Fil;
 with MLib.Tgt; use MLib.Tgt;
 with MLib.Utl; use MLib.Utl;
@@ -40,6 +39,7 @@ with Sinput.P;
 with Snames;   use Snames;
 with Switch;   use Switch;
 with Table;
+with Targparm; use Targparm;
 
 with Ada.Characters.Handling;
 
@@ -55,12 +55,13 @@ package body MLib.Prj is
    pragma Import (C, Prj_Add_Obj_Files, "__gnat_prj_add_obj_files");
    Add_Object_Files : constant Boolean := Prj_Add_Obj_Files /= 0;
    --  Indicates if object files in pragmas Linker_Options (found in the
-   --  binder generated file) should be taken when linking aq stand-alone
-   --  library.
-   --  False for Windows, True for other platforms.
+   --  binder generated file) should be taken when linking a stand-alone
+   --  library. False for Windows, True for other platforms.
 
    ALI_Suffix : constant String := ".ali";
-   B_Start    : String := "b~";
+
+   B_Start : String_Ptr := new String'("b~");
+   --  Prefix of bind file, changed to b__ for VMS
 
    S_Osinte_Ads : Name_Id := No_Name;
    --  Name_Id for "s-osinte.ads"
@@ -227,6 +228,9 @@ package body MLib.Prj is
    procedure Display (Executable : String);
    --  Display invocation of gnatbind and of the compiler with the arguments
    --  in Arguments, except when Quiet_Output is True.
+
+   function Index (S, Pattern : String) return Natural;
+   --  Return the last occurrence of Pattern in S, or 0 if none
 
    procedure Process_Binder_File (Name : String);
    --  For Stand-Alone libraries, get the Linker Options in the binder
@@ -515,7 +519,7 @@ package body MLib.Prj is
 
       begin
          if not Libgnarl_Needed or
-           (Hostparm.OpenVMS and then
+           (OpenVMS_On_Target and then
               ((not Libdecgnat_Needed) or
                (not Gtrasymobj_Needed)))
          then
@@ -542,7 +546,7 @@ package body MLib.Prj is
                if ALI.Sdep.Table (Index).Sfile = S_Osinte_Ads then
                   Libgnarl_Needed := True;
 
-               elsif Hostparm.OpenVMS then
+               elsif OpenVMS_On_Target then
                   if ALI.Sdep.Table (Index).Sfile = S_Dec_Ads then
                      Libdecgnat_Needed := True;
 
@@ -799,18 +803,18 @@ package body MLib.Prj is
                Arguments := new String_List (1 .. Initial_Argument_Max);
             end if;
 
-            --  Add "-n -o b~<lib>.adb (b$<lib>.adb on VMS) -L<lib>"
+            --  Add "-n -o b~<lib>.adb (b__<lib>.adb on VMS) -L<lib>"
 
             Argument_Number := 2;
             Arguments (1) := No_Main;
             Arguments (2) := Output_Switch;
 
-            if Hostparm.OpenVMS then
-               B_Start (B_Start'Last) := '$';
+            if OpenVMS_On_Target then
+               B_Start := new String'("b__");
             end if;
 
             Add_Argument
-              (B_Start & Get_Name_String (Data.Library_Name) & ".adb");
+              (B_Start.all & Get_Name_String (Data.Library_Name) & ".adb");
             Add_Argument ("-L" & Get_Name_String (Data.Library_Name));
 
             if Data.Lib_Auto_Init and then SALs_Use_Constructors then
@@ -1006,7 +1010,7 @@ package body MLib.Prj is
                In_Tree             => In_Tree,
                Including_Libraries => True);
 
-            --  Invoke <gcc> -c b$$<lib>.adb
+            --  Invoke <gcc> -c b__<lib>.adb
 
             --  Allocate Arguments, if it is the first time we see a standalone
             --  library.
@@ -1018,12 +1022,12 @@ package body MLib.Prj is
             Argument_Number := 1;
             Arguments (1) := Compile_Switch;
 
-            if Hostparm.OpenVMS then
-               B_Start (B_Start'Last) := '$';
+            if OpenVMS_On_Target then
+               B_Start := new String'("b__");
             end if;
 
             Add_Argument
-              (B_Start & Get_Name_String (Data.Library_Name) & ".adb");
+              (B_Start.all & Get_Name_String (Data.Library_Name) & ".adb");
 
             --  If necessary, add the PIC option
 
@@ -1160,7 +1164,7 @@ package body MLib.Prj is
 
          --  Add the objects found in the object directory and the object
          --  directories of the extended files, if any, except for generated
-         --  object files (b~.. or B$..) from extended projects.
+         --  object files (b~.. or B__..) from extended projects.
          --  When there are one or more extended files, only add an object file
          --  if no object file with the same name have already been added.
 
@@ -1203,7 +1207,7 @@ package body MLib.Prj is
 
                         if In_Main_Object_Directory
                           or else Last < 5
-                          or else Filename (1 .. B_Start'Length) /= B_Start
+                          or else Filename (1 .. B_Start'Length) /= B_Start.all
                         then
                            Name_Len := Last;
                            Name_Buffer (1 .. Name_Len) := Filename (1 .. Last);
@@ -1281,7 +1285,31 @@ package body MLib.Prj is
          --  Rpath.
 
          if Path_Option /= null then
-            Add_Rpath (Lib_Directory);
+            declare
+               Libdir    : constant String := Lib_Directory;
+               GCC_Index : Natural := 0;
+
+            begin
+               Add_Rpath (Libdir);
+
+               --  For shared libraries, add to the Path Option the directory
+               --  of the shared version of libgcc.
+
+               if The_Build_Mode /= Static then
+                  GCC_Index := Index (Libdir, "/lib/");
+
+                  if GCC_Index = 0 then
+                     GCC_Index :=
+                       Index
+                         (Libdir,
+                          Directory_Separator & "lib" & Directory_Separator);
+                  end if;
+
+                  if GCC_Index /= 0 then
+                     Add_Rpath (Libdir (Libdir'First .. GCC_Index + 3));
+                  end if;
+               end if;
+            end;
          end if;
 
          if Libgnarl_Needed then
@@ -1302,10 +1330,17 @@ package body MLib.Prj is
 
          if Libdecgnat_Needed then
             Opts.Increment_Last;
+
             Opts.Table (Opts.Last) :=
               new String'("-L" & Lib_Directory & "/../declib");
+
             Opts.Increment_Last;
-            Opts.Table (Opts.Last) := new String'("-ldecgnat");
+
+            if The_Build_Mode = Static then
+               Opts.Table (Opts.Last) := new String'("-ldecgnat");
+            else
+               Opts.Table (Opts.Last) := new String'(Shared_Lib ("decgnat"));
+            end if;
          end if;
 
          Opts.Increment_Last;
@@ -1658,7 +1693,7 @@ package body MLib.Prj is
 
             declare
                Dir    : Dir_Type;
-               Delete : Boolean;
+               Delete : Boolean := False;
                Unit   : Unit_Data;
 
                Name : String (1 .. 200);
@@ -1790,8 +1825,8 @@ package body MLib.Prj is
                Object_Dir : Dir_Type;
 
             begin
-               if Hostparm.OpenVMS then
-                  B_Start (B_Start'Last) := '$';
+               if OpenVMS_On_Target then
+                  B_Start := new String'("b__");
                end if;
 
                --  If the library file does not exist, then the time stamp will
@@ -1810,7 +1845,7 @@ package body MLib.Prj is
                   --  generated file.
 
                   if Is_Obj (Name_Buffer (1 .. Name_Len))
-                    and then Name_Buffer (1 .. B_Start'Length) /= B_Start
+                    and then Name_Buffer (1 .. B_Start'Length) /= B_Start.all
                   then
                      --  Get the object file time stamp
 
@@ -2020,6 +2055,23 @@ package body MLib.Prj is
       end if;
    end Display;
 
+   -----------
+   -- Index --
+   -----------
+
+   function Index (S, Pattern : String) return Natural is
+      Len : constant Natural := Pattern'Length;
+
+   begin
+      for J in reverse S'First .. S'Last - Len + 1 loop
+         if Pattern = S (J .. J + Len - 1) then
+            return J;
+         end if;
+      end loop;
+
+      return 0;
+   end Index;
+
    -------------------------
    -- Process_Binder_File --
    -------------------------
@@ -2127,6 +2179,9 @@ package body MLib.Prj is
                Next_Line (1 .. Nlast) /= "-ldecgnat" and then
                Next_Line (1 .. Nlast) /= "-lgnarl" and then
                Next_Line (1 .. Nlast) /= "-lgnat" and then
+               Next_Line
+                 (1 .. Natural'Min (Nlast, 10 + Library_Version'Length)) /=
+                   Shared_Lib ("decgnat") and then
                Next_Line
                  (1 .. Natural'Min (Nlast, 8 + Library_Version'Length)) /=
                    Shared_Lib ("gnarl") and then

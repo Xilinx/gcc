@@ -1,6 +1,5 @@
 /* Subroutines for the C front end on the POWER and PowerPC architectures.
-   Copyright (C) 2002, 2003, 2004, 2005
-   Free Software Foundation, Inc.
+   Copyright (C) 2002, 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
 
    Contributed by Zack Weinberg <zack@codesourcery.com>
    and Paolo Bonzini <bonzini@gnu.org>
@@ -9,7 +8,7 @@
 
    GCC is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published
-   by the Free Software Foundation; either version 2, or (at your
+   by the Free Software Foundation; either version 3, or (at your
    option) any later version.
 
    GCC is distributed in the hope that it will be useful, but WITHOUT
@@ -18,9 +17,8 @@
    License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with GCC; see the file COPYING.  If not, write to the
-   Free Software Foundation, 51 Franklin Street, Fifth Floor, Boston,
-   MA 02110-1301, USA.  */
+   along with GCC; see the file COPYING3.  If not see
+   <http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -62,17 +60,17 @@ rs6000_pragma_longcall (cpp_reader *pfile ATTRIBUTE_UNUSED)
   /* If we get here, generic code has already scanned the directive
      leader and the word "longcall".  */
 
-  if (c_lex (&x) != CPP_OPEN_PAREN)
+  if (pragma_lex (&x) != CPP_OPEN_PAREN)
     SYNTAX_ERROR ("missing open paren");
-  if (c_lex (&n) != CPP_NUMBER)
+  if (pragma_lex (&n) != CPP_NUMBER)
     SYNTAX_ERROR ("missing number");
-  if (c_lex (&x) != CPP_CLOSE_PAREN)
+  if (pragma_lex (&x) != CPP_CLOSE_PAREN)
     SYNTAX_ERROR ("missing close paren");
 
   if (n != integer_zero_node && n != integer_one_node)
     SYNTAX_ERROR ("number must be 0 or 1");
 
-  if (c_lex (&x) != CPP_EOF)
+  if (pragma_lex (&x) != CPP_EOF)
     warning (OPT_Wpragmas, "junk at end of #pragma longcall");
 
   rs6000_default_long_calls = (n == integer_one_node);
@@ -133,7 +131,10 @@ rs6000_cpu_cpp_builtins (cpp_reader *pfile)
   RS6000_CPU_CPP_ENDIAN_BUILTINS();
 
   if (TARGET_LONG_DOUBLE_128)
-    builtin_define ("__LONG_DOUBLE_128__");
+    {
+      builtin_define ("__LONG_DOUBLE_128__");
+      builtin_define ("__LONGDOUBLE128");
+    }
 
   switch (rs6000_current_abi)
     {

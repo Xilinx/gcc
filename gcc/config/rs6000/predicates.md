@@ -1,11 +1,11 @@
 ;; Predicate definitions for POWER and PowerPC.
-;; Copyright (C) 2005 Free Software Foundation, Inc.
+;; Copyright (C) 2005, 2006, 2007 Free Software Foundation, Inc.
 ;;
 ;; This file is part of GCC.
 ;;
 ;; GCC is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 2, or (at your option)
+;; the Free Software Foundation; either version 3, or (at your option)
 ;; any later version.
 ;;
 ;; GCC is distributed in the hope that it will be useful,
@@ -14,9 +14,8 @@
 ;; GNU General Public License for more details.
 ;;
 ;; You should have received a copy of the GNU General Public License
-;; along with GCC; see the file COPYING.  If not, write to
-;; the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-;; Boston, MA 02110-1301, USA.
+;; along with GCC; see the file COPYING3.  If not see
+;; <http://www.gnu.org/licenses/>.
 
 ;; Return 1 for anything except PARALLEL.
 (define_predicate "any_operand"
@@ -63,12 +62,12 @@
 ;; Return 1 if op is a constant integer that can fit in a D field.
 (define_predicate "short_cint_operand"
   (and (match_code "const_int")
-       (match_test "CONST_OK_FOR_LETTER_P (INTVAL (op), 'I')")))
+       (match_test "satisfies_constraint_I (op)")))
 
 ;; Return 1 if op is a constant integer that can fit in an unsigned D field.
 (define_predicate "u_short_cint_operand"
   (and (match_code "const_int")
-       (match_test "CONST_OK_FOR_LETTER_P (INTVAL (op), 'K')")))
+       (match_test "satisfies_constraint_K (op)")))
 
 ;; Return 1 if op is a constant integer that cannot fit in a signed D field.
 (define_predicate "non_short_cint_operand"
@@ -119,7 +118,7 @@
 ;; or equal to const, which does not work for zero.
 (define_predicate "reg_or_neg_short_operand"
   (if_then_else (match_code "const_int")
-    (match_test "CONST_OK_FOR_LETTER_P (INTVAL (op), 'P')
+    (match_test "satisfies_constraint_P (op)
 		 && INTVAL (op) != 0")
     (match_operand 0 "gpc_reg_operand")))
 
@@ -189,13 +188,16 @@
   REAL_VALUE_TYPE rv;
 
   if (GET_MODE (op) != mode
-      || (GET_MODE_CLASS (mode) != MODE_FLOAT && mode != DImode))
+      || (!SCALAR_FLOAT_MODE_P (mode) && mode != DImode))
     return 0;
 
   /* Consider all constants with -msoft-float to be easy.  */
   if ((TARGET_SOFT_FLOAT || TARGET_E500_SINGLE)
       && mode != DImode)
     return 1;
+
+  if (DECIMAL_FLOAT_MODE_P (mode))
+    return 0;
 
   /* If we are using V.4 style PIC, consider all constants to be hard.  */
   if (flag_pic && DEFAULT_ABI == ABI_V4)
@@ -329,7 +331,7 @@
 ;; or non-special register register field no cr0
 (define_predicate "zero_fp_constant"
   (and (match_code "const_double")
-       (match_test "GET_MODE_CLASS (mode) == MODE_FLOAT
+       (match_test "SCALAR_FLOAT_MODE_P (mode)
 		    && op == CONST0_RTX (mode)")))
 
 ;; Return 1 if the operand is in volatile memory.  Note that during the
@@ -396,15 +398,15 @@
 ;; as the operand of a `mode' add insn.
 (define_predicate "add_operand"
   (if_then_else (match_code "const_int")
-    (match_test "CONST_OK_FOR_LETTER_P (INTVAL (op), 'I')
-		 || CONST_OK_FOR_LETTER_P (INTVAL (op), 'L')")
+    (match_test "satisfies_constraint_I (op)
+		 || satisfies_constraint_L (op)")
     (match_operand 0 "gpc_reg_operand")))
 
 ;; Return 1 if OP is a constant but not a valid add_operand.
 (define_predicate "non_add_cint_operand"
   (and (match_code "const_int")
-       (match_test "!CONST_OK_FOR_LETTER_P (INTVAL (op), 'I')
-		    && !CONST_OK_FOR_LETTER_P (INTVAL (op), 'L')")))
+       (match_test "!satisfies_constraint_I (op)
+		    && !satisfies_constraint_L (op)")))
 
 ;; Return 1 if the operand is a constant that can be used as the operand
 ;; of an OR or XOR.
@@ -616,11 +618,11 @@
 
 ;; Return 1 if the operand is a general non-special register or memory operand.
 (define_predicate "reg_or_mem_operand"
-  (if_then_else (match_code "mem")
      (ior (match_operand 0 "memory_operand")
-	  (ior (match_test "macho_lo_sum_memory_operand (op, mode)")
-	       (match_operand 0 "volatile_mem_operand")))
-     (match_operand 0 "gpc_reg_operand")))
+	  (ior (and (match_code "mem")
+		    (match_test "macho_lo_sum_memory_operand (op, mode)"))
+	       (ior (match_operand 0 "volatile_mem_operand")
+		    (match_operand 0 "gpc_reg_operand")))))
 
 ;; Return 1 if the operand is either an easy FP constant or memory or reg.
 (define_predicate "reg_or_none500mem_operand"
@@ -691,7 +693,9 @@
 (define_predicate "current_file_function_operand"
   (and (match_code "symbol_ref")
        (match_test "(DEFAULT_ABI != ABI_AIX || SYMBOL_REF_FUNCTION_P (op))
-		    && (SYMBOL_REF_LOCAL_P (op)
+		    && ((SYMBOL_REF_LOCAL_P (op)
+			 && (DEFAULT_ABI != ABI_AIX
+			     || !SYMBOL_REF_EXTERNAL_P (op)))
 		        || (op == XEXP (DECL_RTL (current_function_decl),
 						  0)))")))
 
@@ -705,7 +709,7 @@
     return 1;
 
   /* For floating-point, easy constants are valid.  */
-  if (GET_MODE_CLASS (mode) == MODE_FLOAT
+  if (SCALAR_FLOAT_MODE_P (mode)
       && CONSTANT_P (op)
       && easy_fp_constant (op, mode))
     return 1;
@@ -729,7 +733,7 @@
 
   /* For floating-point or multi-word mode, the only remaining valid type
      is a register.  */
-  if (GET_MODE_CLASS (mode) == MODE_FLOAT
+  if (SCALAR_FLOAT_MODE_P (mode)
       || GET_MODE_SIZE (mode) > UNITS_PER_WORD)
     return register_operand (op, mode);
 

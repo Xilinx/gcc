@@ -37,8 +37,11 @@ exception statement from your version. */
 
 package javax.swing.plaf.metal;
 
+import gnu.classpath.SystemProperties;
+
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.GradientPaint;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.TexturePaint;
@@ -88,7 +91,8 @@ class MetalUtils
   static void fillMetalPattern(Component c, Graphics g, int x, int y, int w, int h,
                                 Color light, Color dark)
   {
-    if (g instanceof Graphics2D)
+    if (g instanceof Graphics2D
+      && SystemProperties.getProperty("gnu.javax.swing.noGraphics2D") == null)
       fillMetalPattern2D((Graphics2D) g, x, y, w, h, light, dark);
     else
       {
@@ -101,9 +105,9 @@ class MetalUtils
             else
               g.setColor(dark);
 
-            for (int mX = x + (xOff); mX < (x + w); mX += 4)
+            for (int mX = x + xOff; mX < (x + w); mX += 4)
               {
-                g.drawLine(mX, mY, mX, mY);
+                g.fillRect(mX, mY, 1, 1);
               }
 
             // increase x offset
@@ -158,14 +162,11 @@ class MetalUtils
 
   /**
    * Paints the typical Metal gradient. See {@link #paintGradient(Graphics,
-   * int, int, int, int, double, double, Color, Color, Color, int)}
+   * int, int, int, int, float, float, Color, Color, Color, int, int[][])}
    * for more details.
    *
-   * The parameters are fetched from the UIManager using the key
-   * <code>uiProp</code>. The value is expected to be a {@link List} that
-   * contains 4 values: two {@link Double}s and 3 {@link Color} object that
-   * together make up the parameters passed to the painting method.
-   * 
+   * This variant paints a gradient without a mask.
+   *
    * @param g the graphics context to use
    * @param x the X coordinate of the upper left corner of the rectangle
    * @param y the Y coordinate of the upper left corner of the rectangle
@@ -177,13 +178,39 @@ class MetalUtils
   static void paintGradient(Graphics g, int x, int y, int w, int h,
                             int dir, String uiProp)
   {
+    paintGradient(g, x, y, w, h, dir, uiProp, null);
+  }
+  
+  /**
+   * Paints the typical Metal gradient. See {@link #paintGradient(Graphics,
+   * int, int, int, int, float, float, Color, Color, Color, int, int[][])}
+   * for more details.
+   *
+   * The parameters are fetched from the UIManager using the key
+   * <code>uiProp</code>. The value is expected to be a {@link List} that
+   * contains 4 values: two {@link Double}s and 3 {@link Color} object that
+   * together make up the parameters passed to the painting method.
+   *
+   * @param g the graphics context to use
+   * @param x the X coordinate of the upper left corner of the rectangle
+   * @param y the Y coordinate of the upper left corner of the rectangle
+   * @param w the width of the rectangle
+   * @param h the height of the rectangle
+   * @param dir the direction of the gradient, either
+   * @param uiProp the key of the UIManager property that has the parameters
+   * @param mask the mask that should be used when painting the gradient as
+   *        described above
+   */
+  static void paintGradient(Graphics g, int x, int y, int w, int h,
+                            int dir, String uiProp, int[][] mask)
+  {
     List params = (List) UIManager.get(uiProp);
-    double g1 = ((Double) params.get(0)).doubleValue();
-    double g2 = ((Double) params.get(1)).doubleValue();
+    float g1 = ((Float) params.get(0)).floatValue();
+    float g2 = ((Float) params.get(1)).floatValue();
     Color c1 = (Color) params.get(2);
     Color c2 = (Color) params.get(3);
     Color c3 = (Color) params.get(4);
-    paintGradient(g, x, y, w, h, g1, g2, c1, c2, c3, dir);
+    paintGradient(g, x, y, w, h, g1, g2, c1, c2, c3, dir, mask);
   }
 
   /**
@@ -206,6 +233,33 @@ class MetalUtils
    * <li>A gradient from color 2 to color 1 with the relative width specified
    *   by <code>g1</code></li>
    *
+   * The <code>mask</code> parameter is an array if int arrays, where the first
+   * index specifies the row (in the gradient direction), and the second index
+   * is the starting and end offset of that line. This way you can specify a
+   * mask that should be laid over the gradient for paintint non-rectangular
+   * gradients. The following example should demonstrate this for painting
+   * a circular shaped gradient (note that the first and last line should not
+   * be drawn at all, they are only here to show the circular shape more
+   * clearly). Everything <em>inside</code> the surrounded area is filled by
+   * the gradient:
+   *
+   * <pre>
+   *     012345678
+   *         xxx
+   * 0      x   x         { {4, 7},
+   * 1     x     x          {3, 8},
+   * 2     x     x          {3, 8},
+   * 3     x     x          {3, 8},
+   * 4      x   x           {4, 7} }
+   *         xxx
+   * </pre>
+   *
+   * The <code>mask</code> array is expected to have <code>w</code> or
+   * <code>h</code> array elements, depending on the direction.
+   *
+   * If the <code>mask</code> parameter is null, then the gradient is painted
+   * without a mask.
+   *
    * @param g the graphics context to use
    * @param x the X coordinate of the upper left corner of the rectangle
    * @param y the Y coordinate of the upper left corner of the rectangle
@@ -218,19 +272,23 @@ class MetalUtils
    * @param c3 the color 3
    * @param dir the direction of the gradient, either
    *        {@link SwingConstants#HORIZONTAL} or {@link SwingConstants#VERTICAL}
+   * @param mask the mask that should be used when painting the gradient as
+   *        described above
    */
-  static void paintGradient(Graphics g, int x, int y, int w, int h, double g1,
-                            double g2, Color c1, Color c2, Color c3, int dir)
+  static void paintGradient(Graphics g, int x, int y, int w, int h, float g1,
+                            float g2, Color c1, Color c2, Color c3, int dir,
+                            int[][] mask)
   {
     if (dir == SwingConstants.HORIZONTAL)
-      paintHorizontalGradient(g, x, y, w, h, g1, g2, c1, c2, c3);
+      paintHorizontalGradient(g, x, y, w, h, g1, g2, c1, c2, c3, mask);
     else
-      paintVerticalGradient(g, x, y, w, h, g1, g2, c1, c2, c3);
+      paintVerticalGradient(g, x, y, w, h, g1, g2, c1, c2, c3, mask);
   }
 
   /**
    * Paints a horizontal gradient. See {@link #paintGradient(Graphics, int,
-   * int, int, int, double, double, Color, Color, Color, int)} for details.
+   * int, int, int, float, float, Color, Color, Color, int, int[][])}
+   * for details.
    *
    * @param x the X coordinate of the upper left corner of the rectangle
    * @param y the Y coordinate of the upper left corner of the rectangle
@@ -241,12 +299,25 @@ class MetalUtils
    * @param c1 the color 1
    * @param c2 the color 2
    * @param c3 the color 3
+   * @param mask the mask that should be used when painting the gradient as
+   *        described above
    */
   static void paintHorizontalGradient(Graphics g, int x, int y, int w, int h,
-                                      double g1, double g2, Color c1, Color c2,
-                                      Color c3)
+                                      float g1, float g2, Color c1, Color c2,
+                                      Color c3, int[][] mask)
   {
+    
+    if (g instanceof Graphics2D
+        && SystemProperties.getProperty("gnu.javax.swing.noGraphics2D") == null)
+      {
+        paintHorizontalGradient2D((Graphics2D) g, x, y, w, h, g1, g2, c1, c2,
+                                  c3, mask);
+        return;
+      }
+
     // Calculate the coordinates.
+    int y0 = y;
+    int y1 = y + h;
     // The size of the first gradient area (c1->2).
     int w1 = (int) (w * g1);
     // The size of the solid c2 area.
@@ -273,11 +344,28 @@ class MetalUtils
             + c1.getBlue());
         Color interpolated = new Color(rInt, gInt, bInt);
         g.setColor(interpolated);
-        g.drawLine(xc, y, xc, y + h);
+        if (mask != null)
+          {
+            y0 = mask[xc - x0][0] + y;
+            y1 = mask[xc - x0][1] + y;
+          }
+        g.fillRect(xc, y0, 1, y1 - y0);
       }
     // Paint solid c2 area.
     g.setColor(c2);
-    g.fillRect(x1, y, x2 - x1, h);
+    if (mask == null)
+      {
+        g.fillRect(x1, y, x2 - x1, h);
+      }
+    else
+      {
+        for (xc = x1; xc < x2; xc++)
+          {
+            y0 = mask[xc - x0][0] + y;
+            y1 = mask[xc - x0][1] + y;
+            g.fillRect(xc, y0, 1, y1 - y0);
+          }
+      }
 
     // Paint second gradient area (c2->c1).
     for (xc = x2; xc < x3; xc++)
@@ -294,7 +382,12 @@ class MetalUtils
             + c2.getBlue());
         Color interpolated = new Color(rInt, gInt, bInt);
         g.setColor(interpolated);
-        g.drawLine(xc, y, xc, y + h);
+        if (mask != null)
+          {
+            y0 = mask[xc - x0][0] + y;
+            y1 = mask[xc - x0][1] + y;
+          }
+        g.fillRect(xc, y0, 1, y1 - y0);
       }
 
     // Paint third gradient area (c1->c3).
@@ -312,13 +405,18 @@ class MetalUtils
             + c1.getBlue());
         Color interpolated = new Color(rInt, gInt, bInt);
         g.setColor(interpolated);
-        g.drawLine(xc, y, xc, y + h);
+        if (mask != null)
+          {
+            y0 = mask[xc - x0][0] + y;
+            y1 = mask[xc - x0][1] + y;
+          }
+        g.drawLine(xc, y0, xc, y1);
       }
   }
 
   /**
    * Paints a vertical gradient. See {@link #paintGradient(Graphics, int, int,
-   * int, int, double, double, Color, Color, Color, int)} for details.
+   * int, int, float, float, Color, Color, Color, int, int[][])} for details.
    *
    * @param x the X coordinate of the upper left corner of the rectangle
    * @param y the Y coordinate of the upper left corner of the rectangle
@@ -329,12 +427,24 @@ class MetalUtils
    * @param c1 the color 1
    * @param c2 the color 2
    * @param c3 the color 3
+   * @param mask the mask that should be used when painting the gradient as
+   *        described above
    */
   static void paintVerticalGradient(Graphics g, int x, int y, int w, int h,
-                                    double g1, double g2, Color c1, Color c2,
-                                    Color c3)
+                                    float g1, float g2, Color c1, Color c2,
+                                    Color c3, int[][] mask)
   {
+    if (g instanceof Graphics2D
+        && SystemProperties.getProperty("gnu.javax.swing.noGraphics2D") == null)
+       {
+         paintVerticalGradient2D((Graphics2D) g, x, y, w, h, g1, g2, c1, c2,
+                                   c3, mask);
+         return;
+       }
+
     // Calculate the coordinates.
+    int x0 = x;
+    int x1 = x + w;
     // The size of the first gradient area (c1->2).
     int w1 = (int) (h * g1);
     // The size of the solid c2 area.
@@ -361,11 +471,28 @@ class MetalUtils
             + c1.getBlue());
         Color interpolated = new Color(rInt, gInt, bInt);
         g.setColor(interpolated);
-        g.drawLine(x, yc, x + w, yc);
+        if (mask != null)
+          {
+            x0 = mask[yc - y0][0] + x;
+            x1 = mask[yc - y0][1] + x;
+          }
+        g.fillRect(x0, yc, x1 - x0, 1);
       }
     // Paint solid c2 area.
     g.setColor(c2);
-    g.fillRect(x, y1, w, y2 - y1);
+    if (mask == null)
+      {
+        g.fillRect(x, y1, w, y2 - y1);
+      }
+    else
+      {
+        for (yc = y1; yc < y2; yc++)
+          {
+            x0 = mask[yc - y0][0] + x;
+            x1 = mask[yc - y0][1] + x;
+            g.fillRect(x0, yc, x1 - x0, 1);
+          }
+      }
 
     // Paint second gradient area (c2->c1).
     for (yc = y2; yc < y3; yc++)
@@ -382,7 +509,12 @@ class MetalUtils
             + c2.getBlue());
         Color interpolated = new Color(rInt, gInt, bInt);
         g.setColor(interpolated);
-        g.drawLine(x, yc, x + w, yc);
+        if (mask != null)
+          {
+            x0 = mask[yc - y0][0] + x;
+            x1 = mask[yc - y0][1] + x;
+          }
+        g.fillRect(x0, yc, x1 - x0, 1);
       }
 
     // Paint third gradient area (c1->c3).
@@ -400,7 +532,66 @@ class MetalUtils
             + c1.getBlue());
         Color interpolated = new Color(rInt, gInt, bInt);
         g.setColor(interpolated);
-        g.drawLine(x, yc, x + w, yc);
+        if (mask != null)
+          {
+            x0 = mask[yc - y0][0] + x;
+            x1 = mask[yc - y0][1] + x;
+          }
+        g.fillRect(x0, yc, x1 - x0, 1);
       }
+  }
+
+  /**
+   * Paints a horizontal gradient using Graphics2D functionality.
+   *
+   * @param g the Graphics2D instance
+   * @param x the X coordinate of the upper left corner of the rectangle
+   * @param y the Y coordinate of the upper left corner of the rectangle
+   * @param w the width of the rectangle
+   * @param h the height of the rectangle
+   * @param g1 the relative width of the c1->c2 gradients
+   * @param g2 the relative width of the c2 solid area
+   * @param c1 the color 1
+   * @param c2 the color 2
+   * @param c3 the color 3
+   * @param mask the mask that should be used when painting the gradient as
+   *        described above
+   */
+  private static void paintHorizontalGradient2D(Graphics2D g, int x, int y,
+                                                int w, int h, float g1,
+                                                float g2, Color c1,
+                                                Color c2, Color c3,
+                                                int[][] mask)
+  {
+    // FIXME: Handle the mask somehow, or do Graphics2D clipping instead.
+    GradientPaint p1 = new GradientPaint(x, y, c1, x + w * g1, y, c2);
+    g.setPaint(p1);
+    // This fills the first gradient and the solid area in one go.
+    g.fillRect(x, y, (int) (w * (g1 + g2)), h);
+
+    GradientPaint p2 = new GradientPaint(x + (w * (g1 + g2)), y, c2, x + w, y,
+                                         c3);
+    g.setPaint(p2);
+    g.fillRect((int) (x + (w * (g1 + g2))), y,
+               (int) (w * (1. - (g1 + g2))), h);
+  }
+
+  private static void paintVerticalGradient2D(Graphics2D g, int x, int y,
+                                              int w, int h, float g1,
+                                              float g2, Color c1,
+                                              Color c2, Color c3,
+                                              int[][] mask)
+  {
+    // FIXME: Handle the mask somehow, or do Graphics2D clipping instead.
+    GradientPaint p1 = new GradientPaint(x, y, c1, x, y + h * g1, c2);
+    g.setPaint(p1);
+    // This fills the first gradient and the solid area in one go.
+    g.fillRect(x, y, w, (int) (h * (g1 + g2)));
+
+    GradientPaint p2 = new GradientPaint(x, y + (h * (g1 + g2)), c2, x, y + h,
+                                         c3);
+    g.setPaint(p2);
+    g.fillRect(x, (int) (y + (h * (g1 + g2))), w,
+               (int) (h * (1. - (g1 + g2))));
   }
 }

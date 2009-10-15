@@ -206,7 +206,7 @@ public final class StringBuilder
         int max = value.length * 2 + 2;
         minimumCapacity = (minimumCapacity < max ? max : minimumCapacity);
         char[] nb = new char[minimumCapacity];
-        System.arraycopy(value, 0, nb, 0, count);
+        VMSystem.arraycopy(value, 0, nb, 0, count);
         value = nb;
       }
   }
@@ -285,7 +285,7 @@ public final class StringBuilder
   {
     if (srcOffset < 0 || srcEnd > count || srcEnd < srcOffset)
       throw new StringIndexOutOfBoundsException();
-    System.arraycopy(value, srcOffset, dst, dstOffset, srcEnd - srcOffset);
+    VMSystem.arraycopy(value, srcOffset, dst, dstOffset, srcEnd - srcOffset);
   }
 
   /**
@@ -355,7 +355,7 @@ public final class StringBuilder
       {
 	int len = stringBuffer.count;
 	ensureCapacity(count + len);
-	System.arraycopy(stringBuffer.value, 0, value, count, len);
+	VMSystem.arraycopy(stringBuffer.value, 0, value, count, len);
 	count += len;
       }
     return this;
@@ -395,7 +395,7 @@ public final class StringBuilder
     if (offset < 0 || count < 0 || offset > data.length - count)
       throw new StringIndexOutOfBoundsException();
     ensureCapacity(this.count + count);
-    System.arraycopy(data, offset, value, this.count, count);
+    VMSystem.arraycopy(data, offset, value, this.count, count);
     this.count += count;
     return this;
   }
@@ -558,7 +558,7 @@ public final class StringBuilder
     // This will unshare if required.
     ensureCapacity(count);
     if (count - end != 0)
-      System.arraycopy(value, end, value, start, count - end);
+      VMSystem.arraycopy(value, end, value, start, count - end);
     count -= end - start;
     return this;
   }
@@ -599,7 +599,7 @@ public final class StringBuilder
     ensureCapacity(count + delta);
 
     if (delta != 0 && end < count)
-      System.arraycopy(value, end, value, end + delta, count - end);
+      VMSystem.arraycopy(value, end, value, end + delta, count - end);
 
     str.getChars(0, len, value, start);
     count += delta;
@@ -677,8 +677,8 @@ public final class StringBuilder
         || str_offset < 0 || str_offset > str.length - len)
       throw new StringIndexOutOfBoundsException();
     ensureCapacity(count + len);
-    System.arraycopy(value, offset, value, offset + len, count - offset);
-    System.arraycopy(str, str_offset, value, offset, len);
+    VMSystem.arraycopy(value, offset, value, offset + len, count - offset);
+    VMSystem.arraycopy(str, str_offset, value, offset, len);
     count += len;
     return this;
   }
@@ -717,7 +717,7 @@ public final class StringBuilder
       str = "null";
     int len = str.count;
     ensureCapacity(count + len);
-    System.arraycopy(value, offset, value, offset + len, count - offset);
+    VMSystem.arraycopy(value, offset, value, offset + len, count - offset);
     str.getChars(0, len, value, offset);
     count += len;
     return this;
@@ -814,7 +814,7 @@ public final class StringBuilder
     if (offset < 0 || offset > count)
       throw new StringIndexOutOfBoundsException(offset);
     ensureCapacity(count + 1);
-    System.arraycopy(value, offset, value, offset + 1, count - offset);
+    VMSystem.arraycopy(value, offset, value, offset + 1, count - offset);
     value[offset] = ch;
     count++;
     return this;
@@ -1005,5 +1005,66 @@ public final class StringBuilder
       if (value[toffset++] != other.value[index++])
         return false;
     return true;
+  }
+
+  /**
+   * Get the code point at the specified index.  This is like #charAt(int),
+   * but if the character is the start of a surrogate pair, and the
+   * following character completes the pair, then the corresponding
+   * supplementary code point is returned.
+   * @param index the index of the codepoint to get, starting at 0
+   * @return the codepoint at the specified index
+   * @throws IndexOutOfBoundsException if index is negative or &gt;= length()
+   * @since 1.5
+   */
+  public int codePointAt(int index)
+  {
+    return Character.codePointAt(value, index, count);
+  }
+
+    /**
+   * Get the code point before the specified index.  This is like
+   * #codePointAt(int), but checks the characters at <code>index-1</code> and
+   * <code>index-2</code> to see if they form a supplementary code point.
+   * @param index the index just past the codepoint to get, starting at 0
+   * @return the codepoint at the specified index
+   * @throws IndexOutOfBoundsException if index is negative or &gt;= length()
+   * @since 1.5
+   */
+  public int codePointBefore(int index)
+  {
+    // Character.codePointBefore() doesn't perform this check.  We
+    // could use the CharSequence overload, but this is just as easy.
+    if (index >= count)
+      throw new IndexOutOfBoundsException();
+    return Character.codePointBefore(value, index, 1);
+  }
+
+  /**
+   * Returns the number of Unicode code points in the specified sub sequence.
+   * Surrogate pairs count as one code point.
+   * @param beginIndex the start of the subarray
+   * @param endIndex the index after the last char in the subarray
+   * @return the number of code points
+   * @throws IndexOutOfBoundsException if beginIndex is less than zero or 
+   * greater than endIndex or if endIndex is greater than the length of this 
+   * StringBuilder
+   */
+  public int codePointCount(int beginIndex,int endIndex)
+  {
+    if (beginIndex < 0 || beginIndex > endIndex || endIndex > count)
+      throw new IndexOutOfBoundsException("invalid indices: " + beginIndex
+                                          + ", " + endIndex);
+    return Character.codePointCount(value, beginIndex, endIndex - beginIndex);
+  }
+
+  public void trimToSize()
+  {
+    if (count < value.length)
+      {
+        char[] newValue = new char[count];
+        VMSystem.arraycopy(value, 0, newValue, 0, count);
+        value = newValue;
+      }
   }
 }

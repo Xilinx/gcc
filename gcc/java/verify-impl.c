@@ -1,4 +1,4 @@
-/* Copyright (C) 2001, 2002, 2003, 2004, 2005  Free Software Foundation
+/* Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006  Free Software Foundation
 
    This file is part of libgcj.
 
@@ -1975,6 +1975,10 @@ check_constant (int index)
     init_type_from_tag (&t, int_type);
   else if (vfy_tag (pool, index) == JV_CONSTANT_Float)
     init_type_from_tag (&t, float_type);
+  else if (vfy_tag (pool, index) == JV_CONSTANT_Class
+	   || vfy_tag (pool, index) == JV_CONSTANT_ResolvedClass)
+    /* FIXME: should only allow this for 1.5 bytecode.  */
+    init_type_from_class (&t, vfy_class_type ());
   else
     verify_fail_pc ("String, int, or float constant expected", vfr->start_PC);
   return t;
@@ -2887,9 +2891,11 @@ verify_instructions_0 (void)
 	  invalidate_pc ();
 	  break;
 	case op_return:
-	  /* We only need to check this when the return type is
-	     void, because all instance initializers return void.  */
-	  if (this_is_init)
+	  /* We only need to check this when the return type is void,
+	     because all instance initializers return void.  We also
+	     need to special-case Object constructors, as they can't
+	     call a superclass <init>.  */
+	  if (this_is_init && vfr->current_class != vfy_object_type ())
 	    state_check_this_initialized (vfr->current_state);
 	  check_return_type (make_type (void_type));
 	  invalidate_pc ();
@@ -3178,7 +3184,7 @@ collapse_type (type *t)
       return vfy_object_type ();
     }
 
-  abort ();
+  gcc_unreachable ();
 }
 
 static void
@@ -3220,8 +3226,7 @@ verify_instructions (void)
 				   vfy_unsuitable_type ());
 	    }
 	}
-      if (slot != curr->stackdepth)
-	abort ();
+      gcc_assert (slot == curr->stackdepth);
     }
 }
 

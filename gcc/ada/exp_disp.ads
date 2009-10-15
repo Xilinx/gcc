@@ -136,21 +136,14 @@ package Exp_Disp is
 
    --  Guidelines for addition of new predefined primitive operations
 
-   --      Update the value of constant Default_Prim_Op_Count in Exp_Disp.ads
-   --      to reflect the new number of PPOs.
-
    --      Update the value of constant Default_Prim_Op_Count in A-Tags.ads
-   --      to reflect the new number of PPOs. This value should be the same
-   --      as the one in Exp_Disp.ads.
+   --      to reflect the new number of PPOs.
 
    --      Introduce a new predefined name for the new PPO in Snames.ads and
    --      Snames.adb.
 
    --      Categorize the new PPO name as predefined by adding an entry in
    --      Is_Predefined_Dispatching_Operation in Exp_Util.adb.
-
-   --      Reserve a dispatch table position for the new PPO by adding an entry
-   --      in Default_Prim_Op_Position in Exp_Disp.adb.
 
    --      Generate the specification of the new PPO in Make_Predefined_
    --      Primitive_Spec in Exp_Ch3.adb. The Is_Internal flag of the defining
@@ -174,8 +167,6 @@ package Exp_Disp is
    --    Exp_Disp.Default_Prim_Op_Position - indirect use
    --    Exp_Disp.Set_All_DT_Position      - direct   use
 
-   Default_Prim_Op_Count : constant Int := 15;
-
    type DT_Access_Action is
       (CW_Membership,
        IW_Membership,
@@ -184,11 +175,12 @@ package Exp_Disp is
        Get_Access_Level,
        Get_Entry_Index,
        Get_External_Tag,
-       Get_Offset_Index,
+       Get_Predefined_Prim_Op_Address,
        Get_Prim_Op_Address,
        Get_Prim_Op_Kind,
        Get_RC_Offset,
        Get_Remotely_Callable,
+       Get_Tagged_Kind,
        Inherit_DT,
        Inherit_TSD,
        Register_Interface_Tag,
@@ -197,14 +189,18 @@ package Exp_Disp is
        Set_Entry_Index,
        Set_Expanded_Name,
        Set_External_Tag,
+       Set_Interface_Table,
        Set_Offset_Index,
        Set_OSD,
+       Set_Predefined_Prim_Op_Address,
        Set_Prim_Op_Address,
        Set_Prim_Op_Kind,
        Set_RC_Offset,
        Set_Remotely_Callable,
+       Set_Signature,
        Set_SSD,
        Set_TSD,
+       Set_Tagged_Kind,
        TSD_Entry_Size,
        TSD_Prologue_Size);
 
@@ -217,16 +213,17 @@ package Exp_Disp is
    --  Ada 2005 (AI-251): Displace all the actuals corresponding to class-wide
    --  interfaces to reference the interface tag of the actual object
 
-   procedure Expand_Interface_Conversion (N : Node_Id);
+   procedure Expand_Interface_Conversion
+     (N         : Node_Id;
+      Is_Static : Boolean := True);
    --  Ada 2005 (AI-251): N is a type-conversion node. Reference the base of
    --  the object to give access to the interface tag associated with the
-   --  secondary dispatch table
+   --  secondary dispatch table.
 
    function Expand_Interface_Thunk
      (N           : Node_Id;
       Thunk_Alias : Node_Id;
-      Thunk_Id    : Entity_Id;
-      Thunk_Tag   : Entity_Id) return Node_Id;
+      Thunk_Id    : Entity_Id) return Node_Id;
    --  Ada 2005 (AI-251): When a tagged type implements abstract interfaces we
    --  generate additional subprograms (thunks) to have a layout compatible
    --  with the C++ ABI. The thunk modifies the value of the first actual of

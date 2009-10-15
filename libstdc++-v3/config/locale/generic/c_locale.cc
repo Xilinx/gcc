@@ -1,6 +1,6 @@
 // Wrapper for underlying C-language localization -*- C++ -*-
 
-// Copyright (C) 2001, 2002, 2003, 2004, 2005
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -43,8 +43,8 @@
 #include <ieeefp.h>
 #endif
 
-namespace std 
-{
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
   // Specializations for all types used in num_get.
   template<>
     void
@@ -149,10 +149,11 @@ namespace std
   __c_locale
   locale::facet::_S_clone_c_locale(__c_locale&)
   { return __c_locale(); }
-} // namespace std
 
-namespace __gnu_cxx
-{
+_GLIBCXX_END_NAMESPACE
+
+_GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
+
   const char* const category_names[6 + _GLIBCXX_NUM_CATEGORIES] =
     {
       "LC_CTYPE", 
@@ -162,9 +163,18 @@ namespace __gnu_cxx
       "LC_MONETARY",
       "LC_MESSAGES"
     };
-}  
 
-namespace std
-{
+_GLIBCXX_END_NAMESPACE
+
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
   const char* const* const locale::_S_categories = __gnu_cxx::category_names;
-}  // namespace std
+
+_GLIBCXX_END_NAMESPACE
+
+// XXX GLIBCXX_ABI Deprecated
+#ifdef _GLIBCXX_LONG_DOUBLE_COMPAT
+#define _GLIBCXX_LDBL_COMPAT(dbl, ldbl) \
+  extern "C" void ldbl (void) __attribute__ ((alias (#dbl)))
+_GLIBCXX_LDBL_COMPAT(_ZSt14__convert_to_vIdEvPKcRT_RSt12_Ios_IostateRKPi, _ZSt14__convert_to_vIeEvPKcRT_RSt12_Ios_IostateRKPi);
+#endif // _GLIBCXX_LONG_DOUBLE_COMPAT

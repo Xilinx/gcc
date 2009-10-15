@@ -23,10 +23,8 @@ AC_DEFUN([CLASSPATH_FIND_JAVAC],
   AM_CONDITIONAL(FOUND_KJC, test "x${user_specified_javac}" = xkjc)
   AM_CONDITIONAL(FOUND_GCJX, test "x${user_specified_javac}" = xgcjx)
 
-  if test "x${GCJ}" = x && test "x${JIKES}" = x && test "x${user_specified_javac}" != xkjc && test "x${user_specified_javac}" != xgcjx; then
-      # FIXME: use autoconf error function
-      echo "configure: cannot find javac, try --with-gcj, --with-jikes, --with-kjc, or --with-gcjx" 1>&2
-      exit 1    
+  if test "x${GCJ}" = x && test "x${JIKES}" = x && test "x${user_specified_javac}" != xkjc && test "x${user_specified_javac}" != xgcjx && test "x${user_specified_javac}" != xecj; then
+      AC_MSG_ERROR([cannot find javac, try --with-gcj, --with-jikes, --with-kjc, --with-ecj, or --with-gcjx])
   fi
 ])
 
@@ -135,9 +133,18 @@ AC_DEFUN([CLASSPATH_CHECK_JIKES],
 
     JIKESENCODING=
     if test -n "`$JIKES --help 2>&1 | grep encoding`"; then
-       JIKESENCODING='-encoding UTF-8'
+      JIKESENCODING='-encoding UTF-8'
     fi
     AC_SUBST(JIKESENCODING)
+
+    JIKESWARNINGS="+Pno-switchcheck"
+    if test "x$JIKES_VERSION_MAJOR" = x"1" ; then
+      if ! test "x$JIKES_VERSION_MINOR" = x"19"; then
+        JIKESWARNINGS="$JIKESWARNINGS +Pno-shadow"
+      fi
+    fi
+    AC_SUBST(JIKESWARNINGS)
+
   fi
 ])
 
@@ -295,6 +302,19 @@ dnl -----------------------------------------------------------
 AC_DEFUN([CLASSPATH_WITH_GLIBJ],
 [
   AC_PATH_PROG(ZIP, zip)
+  AC_ARG_WITH([fastjar],
+	      [AS_HELP_STRING([--with-fastjar=PATH], [define to use a fastjar style tool])],
+	      [
+		AC_MSG_CHECKING([for user supplied fastjar])
+		FASTJAR=${withval}
+		AC_MSG_RESULT([${FASTJAR}])
+	      ],
+	      [AC_PATH_PROG(FASTJAR, fastjar)])
+dnl We disable ZIP by default if we find fastjar.
+  if test x"${FASTJAR}" != x; then
+    ZIP=""
+  fi
+  
   AC_ARG_WITH([glibj],
               [AS_HELP_STRING([--with-glibj],[define what to install (zip|flat|both|none|build) [default=zip]])],
               [
@@ -437,4 +457,17 @@ AC_DEFUN([CLASSPATH_CHECK_ECJ],
   else
     AC_PATH_PROG(ECJ, "ecj")
   fi
+])
+
+dnl -----------------------------------------------------------
+dnl GCJ LOCAL: Calculate toolexeclibdir
+dnl -----------------------------------------------------------
+AC_DEFUN([CLASSPATH_TOOLEXECLIBDIR],
+[
+  multi_os_directory=`$CC -print-multi-os-directory`
+  case $multi_os_directory in
+    .) toolexeclibdir=${libdir} ;; # Avoid trailing /.
+    *) toolexeclibdir=${libdir}/${multi_os_directory} ;;
+  esac
+  AC_SUBST(toolexeclibdir)
 ])

@@ -31,3 +31,4 @@ LOGICAL FUNCTION foobar (x)
    c = bar (x)
 END FUNCTION foobar
 ! { dg-final { cleanup-modules "types foo" } }
+

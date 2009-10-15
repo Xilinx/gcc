@@ -192,11 +192,14 @@ next_char (st_parameter_dt *dtp)
 	}
     }
 
-  /* Get the next character and handle end-of-record conditions */
+  /* Get the next character and handle end-of-record conditions.  */
 
   length = 1;
 
   p = salloc_r (dtp->u.p.current_unit->s, &length);
+  
+  if (is_stream_io (dtp))
+    dtp->u.p.current_unit->strm_pos++;
 
   if (is_internal_unit(dtp))
     {
@@ -304,10 +307,7 @@ eat_separator (st_parameter_dt *dtp)
       if (n == '\n')
 	dtp->u.p.at_eol = 1;
       else
-        {
-	  unget_char (dtp, n);
-	  unget_char (dtp, c);
-        } 
+	unget_char (dtp, n);
       break;
 
     case '\n':
@@ -2226,12 +2226,12 @@ nml_read_obj (st_parameter_dt *dtp, namelist_info * nl, index_type offset,
 	 and set the flag to zero to prevent further warnings.  */
       if (dtp->u.p.expanded_read == 2)
 	{
-	  notify_std (GFC_STD_GNU, "Non-standard expanded namelist read.");
+	  notify_std (&dtp->common, GFC_STD_GNU, "Non-standard expanded namelist read.");
 	  dtp->u.p.expanded_read = 0;
 	}
 
       /* If the expanded read warning flag is set, increment it,
-	 indicating that a single read has occured.  */
+	 indicating that a single read has occurred.  */
       if (dtp->u.p.expanded_read >= 1)
 	dtp->u.p.expanded_read++;
 
@@ -2310,7 +2310,7 @@ nml_get_obj_data (st_parameter_dt *dtp, namelist_info **pprev_nl,
       c = next_char (dtp);
       if (c != '?')
 	{
-	  st_sprintf (nml_err_msg, "namelist read: missplaced = sign");
+	  st_sprintf (nml_err_msg, "namelist read: misplaced = sign");
 	  goto nml_err_ret;
 	}
       nml_query (dtp, '=');
@@ -2566,6 +2566,10 @@ find_nml_name:
     case '$':
     case '&':
           break;
+
+    case '!':
+      eat_line (dtp);
+      goto find_nml_name;
 
     case '=':
       c = next_char (dtp);

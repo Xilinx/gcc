@@ -1,5 +1,5 @@
 /* JLabel.java --
-   Copyright (C) 2002, 2004, 2005  Free Software Foundation, Inc.
+   Copyright (C) 2002, 2004, 2005, 2006,  Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -38,44 +38,75 @@ exception statement from your version. */
 
 package javax.swing;
 
+import gnu.classpath.NotImplementedException;
+
 import java.awt.Component;
 import java.awt.Font;
 import java.awt.Image;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.event.KeyEvent;
+import java.beans.PropertyChangeEvent;
 
 import javax.accessibility.Accessible;
 import javax.accessibility.AccessibleContext;
 import javax.accessibility.AccessibleExtendedComponent;
+import javax.accessibility.AccessibleRole;
 import javax.accessibility.AccessibleText;
 import javax.swing.plaf.LabelUI;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.SimpleAttributeSet;
 
 /**
- * A swing widget that displays a text message and/or an icon.
+ * A component that displays a static text message and/or an icon.
  */
 public class JLabel extends JComponent implements Accessible, SwingConstants
 {
 
   /**
-   * Accessibility support for JLabel.
+   * Provides the accessibility features for the <code>JLabel</code>
+   * component.
    */
   protected class AccessibleJLabel
     extends JComponent.AccessibleJComponent
     implements AccessibleText, AccessibleExtendedComponent
   {
+    
     /**
-     * Returns the selected text. This is an empty string since JLabels
+     * Returns the accessible name.
+     * 
+     * @return The accessible name.
+     */
+    public String getAccessibleName()
+    {
+      if (accessibleName != null)
+        return accessibleName;
+      if (text != null)
+        return text;
+      else
+        return super.getAccessibleName();
+    }
+    
+    /**
+     * Returns the accessible role for the <code>JLabel</code> component.
+     *
+     * @return {@link AccessibleRole#LABEL}.
+     */
+    public AccessibleRole getAccessibleRole()
+    {
+      return AccessibleRole.LABEL;
+    }
+    
+    /**
+     * Returns the selected text. This is null since JLabels
      * are not selectable.
      *
-     * @return the selected text
+     * @return <code>null</code> because JLabels cannot have selected text
      */
     public String getSelectedText()
     {
-      // We return "" here since JLabel's text is not selectable.
-      return "";
+      // We return null here since JLabel's text is not selectable.
+      return null;
     }
 
     /**
@@ -85,8 +116,7 @@ public class JLabel extends JComponent implements Accessible, SwingConstants
      */
     public int getSelectionStart()
     {
-      // TODO: Figure out what should be returned here, because JLabels don't
-      // allow selection. I guess -1 for now.
+      // JLabel don't have selected text, so we return -1 here.
       return -1;
     }
 
@@ -97,8 +127,7 @@ public class JLabel extends JComponent implements Accessible, SwingConstants
      */
     public int getSelectionEnd()
     {
-      // TODO: Figure out what should be returned here, because JLabels don't
-      // allow selection. I guess -1 for now.
+      // JLabel don't have selected text, so we return -1 here.
       return -1;
     }
 
@@ -115,6 +144,8 @@ public class JLabel extends JComponent implements Accessible, SwingConstants
      */
     public AttributeSet getCharacterAttribute(int index)
     {
+      // FIXME: Return null here for simple labels, and query the HTML
+      // view for HTML labels.
       return new SimpleAttributeSet();
     }
 
@@ -259,6 +290,7 @@ public class JLabel extends JComponent implements Accessible, SwingConstants
      */
     public int getCharCount()
     {
+      // FIXME: Query HTML view for HTML labels.
       return text.length();
     }
 
@@ -271,6 +303,7 @@ public class JLabel extends JComponent implements Accessible, SwingConstants
      * @return the bounding box of the character at the specified index
      */
     public Rectangle getCharacterBounds(int index)
+      throws NotImplementedException
     {
       // FIXME: Implement this correctly.
       return new Rectangle();
@@ -286,14 +319,16 @@ public class JLabel extends JComponent implements Accessible, SwingConstants
      *         point
      */
     public int getIndexAtPoint(Point point)
+      throws NotImplementedException
     {
       // FIXME: Implement this correctly.
       return 0;
     }
   }
 
-  /** DOCUMENT ME! */
   private static final long serialVersionUID = 5496508283662221534L;
+
+  static final String LABEL_PROPERTY = "labeledBy";
 
   /**
    * The Component the label will give focus to when its mnemonic is
@@ -325,7 +360,7 @@ public class JLabel extends JComponent implements Accessible, SwingConstants
   /** The label's mnemnonic key. */
   private transient int displayedMnemonic = KeyEvent.VK_UNDEFINED;
 
-  /** The index of the menemonic character in the text. */
+  /** The index of the mnemonic character in the text. */
   private transient int displayedMnemonicIndex = -1;
 
   /** The gap between the icon and the text. */
@@ -337,7 +372,7 @@ public class JLabel extends JComponent implements Accessible, SwingConstants
    */
   public JLabel()
   {
-    this(null, null, LEADING);
+    this("", null, LEADING);
   }
 
   /**
@@ -348,7 +383,7 @@ public class JLabel extends JComponent implements Accessible, SwingConstants
    */
   public JLabel(Icon image)
   {
-    this(null, image, CENTER);
+    this("", image, CENTER);
   }
 
   /**
@@ -361,7 +396,7 @@ public class JLabel extends JComponent implements Accessible, SwingConstants
    */
   public JLabel(Icon image, int horizontalAlignment)
   {
-    this(null, image, horizontalAlignment);
+    this("", image, horizontalAlignment);
   }
 
   /**
@@ -401,11 +436,12 @@ public class JLabel extends JComponent implements Accessible, SwingConstants
     this.icon = icon;
     this.horizontalAlignment = horizontalAlignment;
     setAlignmentX(0.0F);
+    setInheritsPopupMenu(true);
     updateUI();
   }
 
   /**
-   * This method returns the label's UI delegate.
+   * Returns the label's UI delegate.
    *
    * @return The label's UI delegate.
    */
@@ -415,9 +451,9 @@ public class JLabel extends JComponent implements Accessible, SwingConstants
   }
 
   /**
-   * This method sets the label's UI delegate.
+   * Sets the label's UI delegate.
    *
-   * @param ui The label's UI delegate.
+   * @param ui The label's UI delegate (<code>null</code> not permitted).
    */
   public void setUI(LabelUI ui)
   {
@@ -425,8 +461,8 @@ public class JLabel extends JComponent implements Accessible, SwingConstants
   }
 
   /**
-   * This method resets the label's UI delegate to the default UI for the
-   * current look and feel.
+   * Resets the label's UI delegate to the default UI for the current look and 
+   * feel.
    */
   public void updateUI()
   {
@@ -434,10 +470,10 @@ public class JLabel extends JComponent implements Accessible, SwingConstants
   }
 
   /**
-   * This method returns a name to identify which look and feel class will be
+   * Returns a name to identify which look and feel class will be
    * the UI delegate for this label.
    *
-   * @return The UIClass identifier. "LabelUI"
+   * @return <code>"LabelUI"</code>
    */
   public String getUIClassID()
   {
@@ -445,20 +481,50 @@ public class JLabel extends JComponent implements Accessible, SwingConstants
   }
 
   /**
-   * This method is used primarily for debugging purposes and returns a string
-   * that can be used to represent this label.
+   * Returns a string describing the attributes for the <code>JLabel</code>
+   * component, for use in debugging.  The return value is guaranteed to be 
+   * non-<code>null</code>, but the format of the string may vary between
+   * implementations.
    *
-   * @return A string to represent this label.
+   * @return A string describing the attributes of the <code>JLabel</code>.
    */
   protected String paramString()
   {
-    return "JLabel";
+    StringBuffer sb = new StringBuffer(super.paramString());
+    sb.append(",defaultIcon=");
+    if (icon != null)
+      sb.append(icon);
+    sb.append(",disabledIcon=");
+    if (disabledIcon != null)
+      sb.append(disabledIcon);
+    sb.append(",horizontalAlignment=");
+    sb.append(SwingUtilities.convertHorizontalAlignmentCodeToString(
+        horizontalAlignment));
+    sb.append(",horizontalTextPosition=");
+    sb.append(SwingUtilities.convertHorizontalAlignmentCodeToString(
+        horizontalTextPosition));
+    sb.append(",iconTextGap=").append(iconTextGap);
+    sb.append(",labelFor=");
+    if (labelFor != null)
+      sb.append(labelFor);
+    sb.append(",text=");
+    if (text != null)
+      sb.append(text);
+    sb.append(",verticalAlignment=");
+    sb.append(SwingUtilities.convertVerticalAlignmentCodeToString(
+        verticalAlignment));
+    sb.append(",verticalTextPosition=");
+    sb.append(SwingUtilities.convertVerticalAlignmentCodeToString(
+        verticalTextPosition));
+    return sb.toString();
   }
 
   /**
-   * This method returns the label text.
+   * Returns the text displayed by the label.
    *
-   * @return The label text.
+   * @return The label text (possibly <code>null</code>).
+   * 
+   * @see #setText(String)
    */
   public String getText()
   {
@@ -466,31 +532,42 @@ public class JLabel extends JComponent implements Accessible, SwingConstants
   }
 
   /**
-   * This method changes the "text" property. The given text will be painted
-   * in the label.
+   * Sets the text for the label and sends a {@link PropertyChangeEvent} (with
+   * the name 'text') to all registered listeners.  This method will also 
+   * update the <code>displayedMnemonicIndex</code>, if necessary.
    *
-   * @param newText The label's text.
+   * @param newText The text (<code>null</code> permitted).
+   * 
+   * @see #getText()
+   * @see #getDisplayedMnemonicIndex()
    */
   public void setText(String newText)
   {
-    if (text != newText)
-      {
-        String oldText = text;
-        text = newText;
-        firePropertyChange("text", oldText, newText);
+    if (text == null && newText == null)
+      return;
+    if (text != null && text.equals(newText))
+      return;
 
-        if (text != null && text.length() <= displayedMnemonicIndex)
-          setDisplayedMnemonicIndex(text.length() - 1);
-        revalidate();
-        repaint();
-      }
+    String oldText = text;
+    text = newText;
+    firePropertyChange("text", oldText, newText);
+
+    if (text != null)
+      setDisplayedMnemonicIndex(text.toUpperCase().indexOf(displayedMnemonic));
+    else
+      setDisplayedMnemonicIndex(-1);
+    revalidate();
+    repaint();
   }
 
   /**
-   * This method returns the active icon. The active icon is painted when the
-   * label is enabled.
+   * Returns the active icon. The active icon is painted when the label is 
+   * enabled.
    *
    * @return The active icon.
+   * 
+   * @see #setIcon(Icon)
+   * @see #getDisabledIcon()
    */
   public Icon getIcon()
   {
@@ -498,80 +575,93 @@ public class JLabel extends JComponent implements Accessible, SwingConstants
   }
 
   /**
-   * This method changes the "icon" property. This icon (the active icon) will
-   * be the one displayed when the label is enabled.
+   * Sets the icon for the label (this is a bound property with the name 
+   * 'icon'). This icon will be displayed when the label is enabled.
    *
-   * @param newIcon The active icon.
+   * @param newIcon The icon (<code>null</code> permitted).
+   * 
+   * @see #getIcon()
+   * @see #setDisabledIcon(Icon)
    */
   public void setIcon(Icon newIcon)
   {
     if (icon != newIcon)
       {
-	Icon oldIcon = icon;
-	icon = newIcon;
-	firePropertyChange("icon", oldIcon, newIcon);
+        Icon oldIcon = icon;
+        icon = newIcon;
+        firePropertyChange("icon", oldIcon, newIcon);
+        repaint();
       }
   }
 
   /**
-   * This method returns the disabled icon. The disabled icon is painted when
-   * the label is disabled. If the disabled icon is null and the active icon
-   * is an ImageIcon, this method returns a grayed version of the icon. The
-   * grayed  version of the icon becomes the disabledIcon.
+   * Returns the disabled icon. The disabled icon is painted when the label is 
+   * disabled. If the disabled icon is <code>null</code> and the active icon
+   * is an {@link ImageIcon}, this method returns a grayed version of the icon. 
+   * The grayed version of the icon becomes the <code>disabledIcon</code>.
    *
    * @return The disabled icon.
+   * 
+   * @see #setDisabledIcon(Icon)
    */
   public Icon getDisabledIcon()
   {
     if (disabledIcon == null && icon instanceof ImageIcon)
-      disabledIcon = new ImageIcon(GrayFilter.createDisabledImage(((ImageIcon) icon)
-                                                                  .getImage()));
+      disabledIcon = new ImageIcon(
+          GrayFilter.createDisabledImage(((ImageIcon) icon).getImage()));
 
     return disabledIcon;
   }
 
   /**
-   * This method changes the "disabledIcon" property. This icon (the disabled
-   * icon) will be the one displayed when the label is disabled.
+   * Sets the icon displayed when the label is disabled (this is a bound
+   * property with the name 'disabledIcon').
    *
-   * @param newIcon The disabled icon.
+   * @param newIcon The disabled icon (<code>null</code> permitted).
+   * 
+   * @see #getDisabledIcon()
    */
   public void setDisabledIcon(Icon newIcon)
   {
     if (disabledIcon != newIcon)
       {
-	Icon oldIcon = disabledIcon;
-	disabledIcon = newIcon;
-	firePropertyChange("disabledIcon", oldIcon, newIcon);
+        Icon oldIcon = disabledIcon;
+        disabledIcon = newIcon;
+        firePropertyChange("disabledIcon", oldIcon, newIcon);
       }
   }
 
   /**
-   * This method sets the keycode that will be the label's mnemonic. If the
-   * label is used as a label for another component, the label will give
-   * focus to that component when the mnemonic is activated.
+   * Sets the keycode that will be the label's mnemonic (this is a bound
+   * property with the name 'displayedMnemonic').  If the label is used as a 
+   * label for another component, the label will give focus to that component 
+   * when the mnemonic is activated.
    *
    * @param mnemonic The keycode to use for the mnemonic.
+   * 
+   * @see #getDisplayedMnemonic()
    */
   public void setDisplayedMnemonic(int mnemonic)
   {
     if (displayedMnemonic != mnemonic)
       {
-	firePropertyChange("displayedMnemonic",
-	                   displayedMnemonic, mnemonic);
-	displayedMnemonic = mnemonic;
-
-	if (text != null)
-	  setDisplayedMnemonicIndex(text.toUpperCase().indexOf(mnemonic));
+        int old = displayedMnemonic;
+        displayedMnemonic = mnemonic;
+        firePropertyChange("displayedMnemonic", old, displayedMnemonic);
+        if (text != null)
+          setDisplayedMnemonicIndex(text.toUpperCase().indexOf(mnemonic));
       }
   }
 
   /**
-   * This method sets the character that will be the mnemonic used. If the
+   * Sets the character that will be the label's mnemonic. If the
    * label is used as a label for another component, the label will give
-   * focus to that component when the mnemonic is activated.
+   * focus to that component when the mnemonic is activated via the keyboard.
    *
-   * @param mnemonic The character to use for the mnemonic.
+   * @param mnemonic The character to use for the mnemonic (this will be
+   *     converted to the equivalent upper case character).
+   *     
+   * @see #getDisplayedMnemonic()
    */
   public void setDisplayedMnemonic(char mnemonic)
   {
@@ -579,51 +669,63 @@ public class JLabel extends JComponent implements Accessible, SwingConstants
   }
 
   /**
-   * This method returns the keycode that is used for the label's mnemonic.
+   * Returns the keycode that is used for the label's mnemonic.
    *
    * @return The keycode that is used for the label's mnemonic.
+   * 
+   * @see #setDisplayedMnemonic(int)
    */
   public int getDisplayedMnemonic()
   {
-    return (int) displayedMnemonic;
+    return displayedMnemonic;
   }
 
   /**
-   * This method sets which character in the text will be the underlined
-   * character. If the given index is -1, then this indicates  that there is
-   * no mnemonic. If the index is less than -1 or if the index is equal to
-   * the length, this method will throw an IllegalArgumentException.
+   * Sets the index of the character in the text that will be underlined to
+   * indicate that it is the mnemonic character for the label.  You only need
+   * to call this method if you wish to override the automatically calculated
+   * character index.  For instance, for a label "Find Next" with the mnemonic
+   * character 'n', you might wish to underline the second occurrence of 'n'
+   * rather than the first (which is the default).
+   * <br><br>
+   * Note that this method does not validate the character at the specified 
+   * index to ensure that it matches the key code returned by
+   * {@link #getDisplayedMnemonic()}.
    *
    * @param newIndex The index of the character to underline.
    *
-   * @throws IllegalArgumentException If index less than -1 or index equals
-   *         length.
+   * @throws IllegalArgumentException If index less than -1 or index is greater
+   *         than or equal to the label length.
+   *         
+   * @see #getDisplayedMnemonicIndex()
+   * @since 1.4
    */
   public void setDisplayedMnemonicIndex(int newIndex)
     throws IllegalArgumentException
   {
-    if (newIndex < -1 || (text != null && newIndex >= text.length()))
+    int maxValid = -1;
+    if (text != null)
+      maxValid = text.length() - 1;
+    if (newIndex < -1 || newIndex > maxValid)
       throw new IllegalArgumentException();
-
-    if (newIndex == -1
-        || text == null
-	|| text.charAt(newIndex) != displayedMnemonic)
-      newIndex = -1;
 
     if (newIndex != displayedMnemonicIndex)
       {
-	int oldIndex = displayedMnemonicIndex;
-	displayedMnemonicIndex = newIndex;
-	firePropertyChange("displayedMnemonicIndex",
-	                   oldIndex, newIndex);
+        int oldIndex = displayedMnemonicIndex;
+        displayedMnemonicIndex = newIndex;
+        firePropertyChange("displayedMnemonicIndex", oldIndex, newIndex);
       }
   }
 
   /**
-   * This method returns which character in the text will be  the underlined
-   * character.
+   * Returns the index of the character in the label's text that will be
+   * underlined (to indicate that it is the mnemonic character), or -1 if no
+   * character is to be underlined.
    *
    * @return The index of the character that will be underlined.
+   * 
+   * @see #setDisplayedMnemonicIndex(int)
+   * @since 1.4
    */
   public int getDisplayedMnemonicIndex()
   {
@@ -631,14 +733,16 @@ public class JLabel extends JComponent implements Accessible, SwingConstants
   }
 
   /**
-   * This method ensures that the key is valid as a horizontal alignment.
-   * Valid keys are: LEFT, CENTER, RIGHT, LEADING, TRAILING
+   * Checks the specified key to ensure that it is valid as a horizontal 
+   * alignment, throwing an {@link IllegalArgumentException} if the key is
+   * invalid.  Valid keys are {@link #LEFT}, {@link #CENTER}, {@link #RIGHT}, 
+   * {@link #LEADING} and {@link #TRAILING}.
    *
    * @param key The key to check.
    * @param message The message of the exception to be thrown if the key is
    *        invalid.
    *
-   * @return The key if it's valid.
+   * @return The key if it is valid.
    *
    * @throws IllegalArgumentException If the key is invalid.
    */
@@ -652,14 +756,15 @@ public class JLabel extends JComponent implements Accessible, SwingConstants
   }
 
   /**
-   * This method ensures that the key is valid as a  vertical alignment. Valid
-   * keys are: TOP, CENTER, and BOTTOM.
+   * Checks the specified key to ensure that it is valid as a vertical 
+   * alignment, throwing an {@link IllegalArgumentException} if the key is
+   * invalid.  Valid keys are {@link #TOP}, {@link #CENTER} and {@link #BOTTOM}.
    *
    * @param key The key to check.
    * @param message The message of the exception to be thrown if the key is
    *        invalid.
    *
-   * @return The key if it's valid.
+   * @return The key if it is valid.
    *
    * @throws IllegalArgumentException If the key is invalid.
    */
@@ -672,9 +777,11 @@ public class JLabel extends JComponent implements Accessible, SwingConstants
   }
 
   /**
-   * This method returns the gap between the icon and the text.
+   * Returns the gap between the icon and the text.
    *
    * @return The gap between the icon and the text.
+   * 
+   * @see #setIconTextGap(int)
    */
   public int getIconTextGap()
   {
@@ -682,10 +789,12 @@ public class JLabel extends JComponent implements Accessible, SwingConstants
   }
 
   /**
-   * This method changes the "iconTextGap" property. The iconTextGap
-   * determines how much space there is between the icon and the text.
+   * Sets the gap between the icon and the text, in the case that both are 
+   * visible (this is a bound property with the name 'iconTextGap'). 
    *
-   * @param newGap The gap between the icon and the text.
+   * @param newGap The gap (in pixels).
+   * 
+   * @see #getIconTextGap()
    */
   public void setIconTextGap(int newGap)
   {
@@ -697,9 +806,13 @@ public class JLabel extends JComponent implements Accessible, SwingConstants
   }
 
   /**
-   * This method returns the vertical alignment of the label.
+   * Returns the vertical alignment of the label (one of
+   * {@link #TOP}, {@link #CENTER} and {@link #BOTTOM}).  The default value
+   * depends on the installed look and feel, but is usually {@link #CENTER}.
    *
-   * @return The vertical alignment of the label.
+   * @return The vertical alignment.
+   * 
+   * @see #setVerticalAlignment(int)
    */
   public int getVerticalAlignment()
   {
@@ -707,12 +820,18 @@ public class JLabel extends JComponent implements Accessible, SwingConstants
   }
 
   /**
-   * This method changes the "verticalAlignment" property of the label. The
-   * vertical alignment determines how where the label will be placed
-   * vertically. If the alignment is not valid, it will default to the
-   * center.
+   * Sets the vertical alignment for the label (this is a bound property with
+   * the name 'verticalAlignment').  The vertical alignment determines where 
+   * the label (icon and text) will be placed vertically within the component 
+   * bounds.  Valid alignment codes are {@link #TOP}, {@link #CENTER} and 
+   * {@link #BOTTOM}.
    *
    * @param alignment The vertical alignment of the label.
+   * 
+   * @throws IllegalArgumentException if <code>alignment</code> is not one of 
+   *     the specified values.
+   *     
+   * @see #getVerticalAlignment()
    */
   public void setVerticalAlignment(int alignment)
   {
@@ -725,9 +844,14 @@ public class JLabel extends JComponent implements Accessible, SwingConstants
   }
 
   /**
-   * This method returns the horziontal alignment of the label.
+   * Returns the horizontal alignment of the label (one of {@link #LEFT}, 
+   * {@link #CENTER}, {@link #RIGHT}, {@link #LEADING} and {@link #TRAILING}).
+   * The default value depends on the installed look and feel, but is usually 
+   * {@link #LEFT}.
    *
-   * @return The horizontal alignment of the label.
+   * @return The horizontal alignment.
+   * 
+   * @see #setHorizontalAlignment(int)
    */
   public int getHorizontalAlignment()
   {
@@ -735,10 +859,18 @@ public class JLabel extends JComponent implements Accessible, SwingConstants
   }
 
   /**
-   * This method changes the "horizontalAlignment" property. The horizontal
-   * alignment determines where the label will be placed horizontally.
+   * Sets the horizontal alignment for the label (this is a bound property with
+   * the name 'horizontalAlignment').  The horizontal alignment determines where 
+   * the label (icon and text) will be placed horizontally within the 
+   * component bounds.  Valid alignment codes are {@link #LEFT}, 
+   * {@link #CENTER}, {@link #RIGHT}, {@link #LEADING} and {@link #TRAILING}.
    *
    * @param alignment The horizontal alignment of the label.
+   * 
+   * @throws IllegalArgumentException if <code>alignment</code> is not one of 
+   *     the specified values.
+   *     
+   * @see #getHorizontalAlignment()
    */
   public void setHorizontalAlignment(int alignment)
   {
@@ -752,9 +884,12 @@ public class JLabel extends JComponent implements Accessible, SwingConstants
   }
 
   /**
-   * This method returns the vertical text position of the label.
-   *
-   * @return The vertical text position of the label.
+   * Returns the vertical position of the label's text relative to the icon. 
+   * This will be one of {@link #TOP}, {@link #CENTER} and {@link #BOTTOM}.
+   * 
+   * @return The vertical position of the label's text relative to the icon.
+   * 
+   * @see #setVerticalTextPosition(int)
    */
   public int getVerticalTextPosition()
   {
@@ -762,28 +897,35 @@ public class JLabel extends JComponent implements Accessible, SwingConstants
   }
 
   /**
-   * This method changes the "verticalTextPosition" property of the label. The
-   * vertical text position determines where the text will be placed
-   * vertically relative to the icon.
+   * Sets the vertical position of the label's text relative to the icon (this
+   * is a bound property with the name 'verticalTextPosition').  Valid 
+   * positions are {@link #TOP}, {@link #CENTER} and {@link #BOTTOM}.
    *
    * @param textPosition The vertical text position.
+   * 
+   * @throws IllegalArgumentException if <code>textPosition</code> is not one
+   *     of the specified values.
    */
   public void setVerticalTextPosition(int textPosition)
   {
     if (textPosition != verticalTextPosition)
       {
-	int oldPos = verticalTextPosition;
-	verticalTextPosition = checkVerticalKey(textPosition,
-	                                        "verticalTextPosition");
-	firePropertyChange("verticalTextPosition", oldPos,
-	                   verticalTextPosition);
+        int oldPos = verticalTextPosition;
+        verticalTextPosition = checkVerticalKey(textPosition,
+	                                            "verticalTextPosition");
+        firePropertyChange("verticalTextPosition", oldPos, 
+                           verticalTextPosition);
       }
   }
 
   /**
-   * This method returns the horizontal text position of the label.
-   *
-   * @return The horizontal text position.
+   * Returns the horizontal position of the label's text relative to the icon. 
+   * This will be one of {@link #LEFT}, {@link #CENTER}, {@link #RIGHT}, 
+   * {@link #LEADING} and {@link #TRAILING}.
+   * 
+   * @return The horizontal position of the label's text relative to the icon.
+   * 
+   * @see #setHorizontalTextPosition(int)
    */
   public int getHorizontalTextPosition()
   {
@@ -791,28 +933,31 @@ public class JLabel extends JComponent implements Accessible, SwingConstants
   }
 
   /**
-   * This method changes the "horizontalTextPosition" property of the label.
-   * The horizontal text position determines where the text will be placed
-   * horizontally relative to the icon.
+   * Sets the horizontal position of the label's text relative to the icon (this
+   * is a bound property with the name 'horizontalTextPosition').  Valid 
+   * positions are {@link #LEFT}, {@link #CENTER}, {@link #RIGHT}, 
+   * {@link #LEADING} and {@link #TRAILING}.
    *
    * @param textPosition The horizontal text position.
+   * 
+   * @throws IllegalArgumentException if <code>textPosition</code> is not one
+   *     of the specified values.
    */
   public void setHorizontalTextPosition(int textPosition)
   {
     if (textPosition != horizontalTextPosition)
       {
-	int oldPos = horizontalTextPosition;
-	horizontalTextPosition = checkHorizontalKey(textPosition,
-	                                            "horizontalTextPosition");
-	firePropertyChange("horizontalTextPosition", oldPos,
-	                   horizontalTextPosition);
+        int oldPos = horizontalTextPosition;
+        horizontalTextPosition = checkHorizontalKey(textPosition,
+                                                    "horizontalTextPosition");
+        firePropertyChange("horizontalTextPosition", oldPos, 
+                           horizontalTextPosition);
       }
   }
 
   /**
-   * This method simply returns false if the current icon image (current  icon
-   * will depend on whether the label is enabled) is not equal to the passed
-   * in image.
+   * Returns false if the current icon image (current icon will depend on 
+   * whether the label is enabled) is not equal to the passed in image.
    *
    * @param img The image to check.
    * @param infoflags The bitwise inclusive OR of ABORT, ALLBITS, ERROR,
@@ -837,11 +982,11 @@ public class JLabel extends JComponent implements Accessible, SwingConstants
   }
 
   /**
-   * This method returns the component that the label gives focus to  when the
-   * mnemonic is activated.
+   * Returns the component that this <code>JLabel</code> is providing the label
+   * for.  This component will typically receive the focus when the label's 
+   * mnemonic key is activated via the keyboard.
    *
-   * @return The component that gets focus when the label's mnemonic is
-   *         activated.
+   * @return The component (possibly <code>null</code>).
    */
   public Component getLabelFor()
   {
@@ -849,28 +994,45 @@ public class JLabel extends JComponent implements Accessible, SwingConstants
   }
 
   /**
-   * This method changes the "labelFor" property. The component that the label
-   * is acting as a label for will request focus when the label's  mnemonic
-   * is activated.
+   * Sets the component that this <code>JLabel</code> is providing the label
+   * for (this is a bound property with the name 'labelFor').  This component
+   * will typically receive the focus when the label's mnemonic key is 
+   * activated via the keyboard.
    *
-   * @param c The component that gets focus when the label's mnemonic is
-   *        activated.
+   * @param c  the component (<code>null</code> permitted).
+   * 
+   * @see #getLabelFor()
    */
   public void setLabelFor(Component c)
   {
     if (c != labelFor)
       {
-	Component oldLabelFor = labelFor;
-	labelFor = c;
-	firePropertyChange("labelFor", oldLabelFor, labelFor);
+        Component oldLabelFor = labelFor;
+        labelFor = c;
+        firePropertyChange("labelFor", oldLabelFor, labelFor);
+
+        // We put the label into the client properties for the labeled
+        // component so that it can be read by the AccessibleJComponent.
+        // The other option would be to reserve a default visible field
+        // in JComponent, but since this is relatively seldomly used, it
+        // would be unnecessary waste of memory to do so.
+        if (oldLabelFor instanceof JComponent)
+          {
+            ((JComponent) oldLabelFor).putClientProperty(LABEL_PROPERTY, null);
+          }
+
+        if (labelFor instanceof JComponent)
+          {
+            ((JComponent) labelFor).putClientProperty(LABEL_PROPERTY, this);
+          }
+
       }
   }
 
   /**
-   * This method overrides setFont so that we can call for a repaint after the
-   * font is changed.
+   * Sets the font for the label (this a bound property with the name 'font').
    *
-   * @param f The font for this label.
+   * @param f The font (<code>null</code> permitted).
    */
   public void setFont(Font f)
   {
@@ -879,9 +1041,10 @@ public class JLabel extends JComponent implements Accessible, SwingConstants
   }
 
   /**
-   * DOCUMENT ME!
+   * Returns the object that provides accessibility features for this
+   * <code>JLabel</code> component.
    *
-   * @return The accessible context.
+   * @return The accessible context (an instance of {@link AccessibleJLabel}).
    */
   public AccessibleContext getAccessibleContext()
   {

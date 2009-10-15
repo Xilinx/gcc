@@ -3,7 +3,8 @@
 
 // 2001-05-21 Benjamin Kosnik  <bkoz@redhat.com>
 
-// Copyright (C) 2001, 2002, 2003, 2005 Free Software Foundation, Inc.
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006
+// Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -29,6 +30,10 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+
+// No asserts, avoid leaking the semaphores if a VERIFY fails.
+#undef _GLIBCXX_ASSERT
+
 #include <testsuite_hooks.h>
 
 class UnderBuf : public std::filebuf
@@ -45,7 +50,7 @@ public:
 
 // libstdc++/10097
 // filebuf::underflow drops characters.
-void test16()
+bool test16()
 {
   using namespace std;
   using namespace __gnu_test;
@@ -61,7 +66,7 @@ void test16()
       VERIFY( false );
     }
   
-  semaphore s1;
+  semaphore s1, s2;
   int fval = fork();
   if (fval == -1)
     {
@@ -72,17 +77,18 @@ void test16()
     {
       filebuf fbout;
       fbout.open(name, ios_base::in|ios_base::out);
-      VERIFY ( fbout.is_open() );
+      VERIFY( fbout.is_open() );
       fbout.sputn("0123456789", 10);
       fbout.pubsync();
-      s1.wait ();
+      s1.wait();
       fbout.close();
+      s2.signal();
       exit(0);
     }
 
   UnderBuf fb;
   fb.open(name, ios_base::in);
-  
+
   fb.sgetc();
   streamsize n = fb.pub_showmanyc();
 
@@ -97,11 +103,13 @@ void test16()
     }
 
   fb.close();
-  s1.signal ();
+  s1.signal();
+  s2.wait();
+
+  return test;
 }
 
 int main() 
 {
-  test16();
-  return 0;
+  return !test16();
 }

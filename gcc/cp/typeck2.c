@@ -1,7 +1,7 @@
 /* Report error messages, build initializers, and perform
    some front-end optimizations for C++ compiler.
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2004, 2005
+   1999, 2000, 2001, 2002, 2004, 2005, 2006, 2007
    Free Software Foundation, Inc.
    Hacked by Michael Tiemann (tiemann@cygnus.com)
 
@@ -9,7 +9,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -18,9 +18,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 
 /* This file is part of the C++ front end.
@@ -145,7 +144,8 @@ struct pending_abstract_type GTY((chain_next ("%h.next")))
 static hashval_t
 pat_calc_hash (const void* val)
 {
-  const struct pending_abstract_type* pat = val;
+  const struct pending_abstract_type *pat =
+     (const struct pending_abstract_type *) val;
   return (hashval_t) TYPE_UID (pat->type);
 }
 
@@ -156,7 +156,8 @@ pat_calc_hash (const void* val)
 static int
 pat_compare (const void* val1, const void* val2)
 {
-  const struct pending_abstract_type* pat1 = val1;
+  const struct pending_abstract_type *pat1 =
+     (const struct pending_abstract_type *) val1;
   tree type2 = (tree)val2;
 
   return (pat1->type == type2);
@@ -270,7 +271,7 @@ abstract_virtuals_error (tree decl, tree type)
 		    ? DECL_SOURCE_LOCATION (decl)
 		    : input_location);
 
-      pat->next = *slot;
+      pat->next = (struct pending_abstract_type *) *slot;
       *slot = pat;
 
       return 0;
@@ -375,7 +376,7 @@ cxx_incomplete_type_diagnostic (tree value, tree type, int diag_type)
     case UNION_TYPE:
     case ENUMERAL_TYPE:
       if (!decl)
-	p_msg ("invalid use of undefined type %q#T", type);
+	p_msg ("invalid use of incomplete type %q#T", type);
       if (!TYPE_TEMPLATE_INFO (type))
 	p_msg ("forward declaration of %q+#T", type);
       else
@@ -407,6 +408,10 @@ cxx_incomplete_type_diagnostic (tree value, tree type, int diag_type)
     case BOUND_TEMPLATE_TEMPLATE_PARM:
       p_msg ("invalid use of template template parameter %qT",
             TYPE_NAME (type));
+      break;
+
+    case TYPENAME_TYPE:
+      p_msg ("invalid use of dependent type %qT", type);
       break;
 
     case UNKNOWN_TYPE:
@@ -528,6 +533,9 @@ split_nonconstant_init_1 (tree dest, tree init)
     default:
       gcc_unreachable ();
     }
+
+  /* The rest of the initializer is now a constant. */
+  TREE_CONSTANT (init) = 1;
 }
 
 /* A subroutine of store_init_value.  Splits non-constant static
@@ -701,7 +709,8 @@ digest_init (tree type, tree init)
     }
 
   /* Handle scalar types (including conversions) and references.  */
-  if (SCALAR_TYPE_P (type) || code == REFERENCE_TYPE)
+  if (TREE_CODE (type) != COMPLEX_TYPE
+      && (SCALAR_TYPE_P (type) || code == REFERENCE_TYPE))
     return convert_for_initialization (0, type, init, LOOKUP_NORMAL,
 				       "initialization", NULL_TREE, 0);
 
@@ -791,8 +800,8 @@ process_init_constructor_array (tree type, tree init)
     /* Vectors are like simple fixed-size arrays.  */
     len = TYPE_VECTOR_SUBPARTS (type);
 
-  /* There cannot be more initializers than needed (or reshape_init would
-     detect this before we do.  */
+  /* There cannot be more initializers than needed as otherwise
+     reshape_init would have already rejected the initializer.  */
   if (!unbounded)
     gcc_assert (VEC_length (constructor_elt, v) <= len);
 
@@ -847,34 +856,12 @@ process_init_constructor_array (tree type, tree init)
 	     add anything to the CONSTRUCTOR.  */
 	  break;
 
-	flags |= picflag_from_initializer (next);    
+	flags |= picflag_from_initializer (next);
 	CONSTRUCTOR_APPEND_ELT (v, size_int (i), next);
       }
 
   CONSTRUCTOR_ELTS (init) = v;
   return flags;
-}
-
-/* INIT is the initializer for FIELD.  If FIELD is a bitfield, mask
-   INIT so that its range is bounded by that of FIELD.  Returns the
-   (possibly adjusted) initializer.  */
-
-tree
-adjust_bitfield_initializer (tree field, tree init)
-{
-  int width;
-  tree mask;
-
-  if (!DECL_C_BIT_FIELD (field))
-    return init;
-
-  width = tree_low_cst (DECL_SIZE (field), /*pos=*/1);
-  if (width < TYPE_PRECISION (TREE_TYPE (field)))
-    {
-      mask = build_low_bits_mask (TREE_TYPE (field), width);
-      init = cp_build_binary_op (BIT_AND_EXPR, init, mask);
-    }
-  return init;
 }
 
 /* Subroutine of process_init_constructor, which will process an initializer
@@ -924,7 +911,7 @@ process_init_constructor_record (tree type, tree init)
 	      gcc_assert (TREE_CODE (ce->index) == FIELD_DECL
 			  || TREE_CODE (ce->index) == IDENTIFIER_NODE);
 	      if (ce->index != field
-	          && ce->index != DECL_NAME (field))
+		  && ce->index != DECL_NAME (field))
 		{
 		  ce->value = error_mark_node;
 		  sorry ("non-trivial designated initializers not supported");
@@ -933,7 +920,6 @@ process_init_constructor_record (tree type, tree init)
 
 	  gcc_assert (ce->value);
 	  next = digest_init (TREE_TYPE (field), ce->value);
-	  next = adjust_bitfield_initializer (field, next);
 	  ++idx;
 	}
       else if (TYPE_NEEDS_CONSTRUCTING (TREE_TYPE (field)))
@@ -1035,12 +1021,7 @@ process_init_constructor_union (tree type, tree init)
       tree field = TYPE_FIELDS (type);
       while (field && (!DECL_NAME (field) || TREE_CODE (field) != FIELD_DECL))
 	field = TREE_CHAIN (field);
-      if (!field)
-	{
-	  error ("union %qT with no named members cannot be initialized",
-		 type);
-	  ce->value = error_mark_node;
-	}
+      gcc_assert (field);
       ce->index = field;
     }
 
@@ -1060,7 +1041,7 @@ process_init_constructor_union (tree type, tree init)
    After the execution, the initializer will have TREE_CONSTANT if all elts are
    constant, and TREE_STATIC set if, in addition, all elts are simple enough
    constants that the assembler and linker can compute them.
-   
+
    The function returns the initializer itself, or error_mark_node in case
    of error.  */
 
@@ -1239,9 +1220,7 @@ build_m_component_ref (tree datum, tree component)
   tree binfo;
   tree ctype;
 
-  datum = decay_conversion (datum);
-
-  if (datum == error_mark_node || component == error_mark_node)
+  if (error_operand_p (datum) || error_operand_p (component))
     return error_mark_node;
 
   ptrmem_type = TREE_TYPE (component);
@@ -1257,7 +1236,7 @@ build_m_component_ref (tree datum, tree component)
   if (! IS_AGGR_TYPE (objtype))
     {
       error ("cannot apply member pointer %qE to %qE, which is of "
-	     "non-aggregate type %qT",
+	     "non-class type %qT",
 	     component, datum, objtype);
       return error_mark_node;
     }
@@ -1368,7 +1347,9 @@ build_functional_cast (tree exp, tree parms)
   if (parms == NULL_TREE && !TYPE_NEEDS_CONSTRUCTING (type)
       && TYPE_HAS_DEFAULT_CONSTRUCTOR (type))
     {
-      exp = build_constructor (type, NULL);
+      exp = build_zero_init (type, 
+			     /*nelts=*/NULL_TREE,
+			     /*static_storage_p=*/false);
       return get_target_expr (exp);
     }
 

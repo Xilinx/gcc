@@ -1,6 +1,6 @@
 /* Definitions of target machine for GNU compiler, for Advanced RISC Machines
    ARM compilation, AOF Assembler.
-   Copyright (C) 1995, 1996, 1997, 2000, 2003, 2004
+   Copyright (C) 1995, 1996, 1997, 2000, 2003, 2004, 2007
    Free Software Foundation, Inc.
    Contributed by Richard Earnshaw (rearnsha@armltd.co.uk)
 
@@ -8,7 +8,7 @@
 
    GCC is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published
-   by the Free Software Foundation; either version 2, or (at your
+   by the Free Software Foundation; either version 3, or (at your
    option) any later version.
 
    GCC is distributed in the hope that it will be useful, but WITHOUT
@@ -17,9 +17,8 @@
    License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with GCC; see the file COPYING.  If not, write to
-   the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-   Boston, MA 02110-1301, USA.  */
+   along with GCC; see the file COPYING3.  If not see
+   <http://www.gnu.org/licenses/>.  */
    
 
 
@@ -43,48 +42,6 @@
 #endif
 
 #define LIBGCC_SPEC "libgcc.a%s"
-
-/* Dividing the Output into Sections (Text, Data, ...) */
-/* AOF Assembler syntax is a nightmare when it comes to areas, since once
-   we change from one area to another, we can't go back again.  Instead,
-   we must create a new area with the same attributes and add the new output
-   to that.  Unfortunately, there is nothing we can do here to guarantee that
-   two areas with the same attributes will be linked adjacently in the
-   resulting executable, so we have to be careful not to do pc-relative 
-   addressing across such boundaries.  */
-#define TEXT_SECTION_ASM_OP aof_text_section ()
-
-#define DATA_SECTION_ASM_OP aof_data_section ()
-
-#define EXTRA_SECTIONS in_zero_init, in_common
-
-#define EXTRA_SECTION_FUNCTIONS	\
-  ZERO_INIT_SECTION		\
-  COMMON_SECTION
-
-#define ZERO_INIT_SECTION					\
-  void								\
-  zero_init_section ()						\
-  {								\
-    static int zero_init_count = 1;				\
-								\
-    if (in_section != in_zero_init)				\
-      {								\
-        fprintf (asm_out_file, "\tAREA |C$$zidata%d|,NOINIT\n",	\
-	         zero_init_count++);				\
-        in_section = in_zero_init;				\
-      }								\
-  }
-
-/* Used by ASM_OUTPUT_COMMON (below) to tell varasm.c that we've
-   changed areas.  */
-#define COMMON_SECTION						\
-  void								\
-  common_section ()						\
-  {								\
-    if (in_section != in_common)				\
-      in_section = in_common;					\
-  }
 
 #define CTOR_LIST_BEGIN				\
   asm (CTORS_SECTION_ASM_OP);			\
@@ -130,6 +87,8 @@
    whole table generation until the end of the function.  */
 #define JUMP_TABLES_IN_TEXT_SECTION 1
 
+#define TARGET_ASM_INIT_SECTIONS aof_asm_init_sections
+
 /* Some systems use __main in a way incompatible with its use in gcc, in these
    cases use the macros NAME__MAIN to give a quoted symbol and SYMBOL__MAIN to
    give the same symbol without quotes for an alternative entry point.  You
@@ -159,7 +118,7 @@
 /* Output of Uninitialized Variables.  */
 
 #define ASM_OUTPUT_COMMON(STREAM, NAME, SIZE, ROUNDED)		\
-  (common_section (),						\
+  (in_section = NULL,						\
    fprintf ((STREAM), "\tAREA "),				\
    assemble_name ((STREAM), (NAME)),				\
    fprintf ((STREAM), ", DATA, COMMON\n\t%% %d\t%s size=%d\n",	\

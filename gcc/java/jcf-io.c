@@ -1,12 +1,12 @@
 /* Utility routines for finding and reading Java(TM) .class files.
-   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2002, 2003, 2004, 2005
-   Free Software Foundation, Inc.
+   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2002, 2003, 2004, 2005,
+   2007  Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -15,9 +15,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  
 
 Java and all Java-based marks are trademarks or registered trademarks
 of Sun Microsystems, Inc. in the United States and other countries.
@@ -188,11 +187,11 @@ int
 read_zip_member (JCF *jcf,  ZipDirectory *zipd, ZipFile *zipf)
 {
   jcf->filbuf = jcf_unexpected_eof;
-  jcf->zipd = (void *)zipd;
+  jcf->zipd = zipd;
 
   if (zipd->compression_method == Z_NO_COMPRESSION)
     {
-      jcf->buffer = ALLOC (zipd->size);
+      jcf->buffer = XNEWVEC (unsigned char, zipd->size);
       jcf->buffer_end = jcf->buffer + zipd->size;
       jcf->read_ptr = jcf->buffer;
       jcf->read_end = jcf->buffer_end;
@@ -208,13 +207,13 @@ read_zip_member (JCF *jcf,  ZipDirectory *zipd, ZipFile *zipf)
       d_stream.zfree = (free_func) 0;
       d_stream.opaque = (voidpf) 0;
 
-      jcf->buffer = ALLOC (zipd->uncompressed_size);
+      jcf->buffer = XNEWVEC (unsigned char, zipd->uncompressed_size);
       d_stream.next_out = jcf->buffer;
       d_stream.avail_out = zipd->uncompressed_size;
       jcf->buffer_end = jcf->buffer + zipd->uncompressed_size;
       jcf->read_ptr = jcf->buffer;
       jcf->read_end = jcf->buffer_end;
-      buffer = ALLOC (zipd->size);
+      buffer = XNEWVEC (char, zipd->size);
       d_stream.next_in = (unsigned char *) buffer;
       d_stream.avail_in = zipd->size;
       if (lseek (zipf->fd, zipd->filestart, 0) < 0
@@ -225,7 +224,7 @@ read_zip_member (JCF *jcf,  ZipDirectory *zipd, ZipFile *zipf)
       inflateInit2 (&d_stream, -MAX_WBITS);
       inflate (&d_stream, Z_NO_FLUSH);
       inflateEnd (&d_stream);
-      FREE (buffer);
+      free (buffer);
     }
 
   return 0;
@@ -246,7 +245,7 @@ open_class (const char *filename, JCF *jcf, int fd, const char *dep_name)
       if (dep_name != NULL)
 	jcf_dependency_add_file (dep_name, 0);
       JCF_ZERO (jcf);
-      jcf->buffer = ALLOC (stat_buf.st_size);
+      jcf->buffer = XNEWVEC (unsigned char, stat_buf.st_size);
       jcf->buffer_end = jcf->buffer + stat_buf.st_size;
       jcf->read_ptr = jcf->buffer;
       jcf->read_end = jcf->buffer_end;
@@ -383,8 +382,7 @@ caching_stat (char *filename, struct stat *buf)
   if (!*slot)
     {
       /* We have not already scanned this directory; scan it now.  */
-      dent = ((memoized_dirlist_entry *) 
-	      ALLOC (sizeof (memoized_dirlist_entry)));
+      dent = XNEW (memoized_dirlist_entry);
       dent->dir = xstrdup (filename);
       /* Unfortunately, scandir is not fully standardized.  In
 	 particular, the type of the function pointer passed as the

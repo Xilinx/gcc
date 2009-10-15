@@ -1,12 +1,12 @@
 /* Definitions for MIPS running Linux-based GNU systems with ELF format.
-   Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005
-   Free Software Foundation, Inc.
+   Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006,
+   2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -15,9 +15,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #undef WCHAR_TYPE
 #define WCHAR_TYPE "int"
@@ -56,11 +55,6 @@ Boston, MA 02110-1301, USA.  */
 #define TARGET_OS_CPP_BUILTINS()				\
   do {								\
     LINUX_TARGET_OS_CPP_BUILTINS();				\
-    if (TARGET_ABICALLS)					\
-      {								\
-	builtin_define ("__PIC__");				\
-	builtin_define ("__pic__");				\
-      }								\
     /* The GNU C++ standard library requires this.  */		\
     if (c_dialect_cxx ())					\
       builtin_define ("_GNU_SOURCE");				\
@@ -94,14 +88,22 @@ Boston, MA 02110-1301, USA.  */
     builtin_define ("_MIPS_SZINT=32");				\
   } while (0)
 
-#undef  SUBTARGET_CPP_SPEC
+#undef SUBTARGET_CPP_SPEC
 #define SUBTARGET_CPP_SPEC "%{posix:-D_POSIX_SOURCE} %{pthread:-D_REENTRANT}"
+
+/* A standard GNU/Linux mapping.  On most targets, it is included in
+   CC1_SPEC itself by config/linux.h, but mips.h overrides CC1_SPEC
+   and provides this hook instead.  */
+#undef SUBTARGET_CC1_SPEC
+#define SUBTARGET_CC1_SPEC "%{profile:-p}"
 
 /* From iris5.h */
 /* -G is incompatible with -KPIC which is the default, so only allow objects
    in the small data section if the user explicitly asks for it.  */
 #undef MIPS_DEFAULT_GVALUE
 #define MIPS_DEFAULT_GVALUE 0
+
+#define GLIBC_DYNAMIC_LINKER "/lib/ld.so.1"
 
 /* Borrowed from sparc/linux.h */
 #undef LINK_SPEC
@@ -112,7 +114,7 @@ Boston, MA 02110-1301, USA.  */
     %{!ibcs: \
       %{!static: \
         %{rdynamic:-export-dynamic} \
-        %{!dynamic-linker:-dynamic-linker /lib/ld.so.1}} \
+        %{!dynamic-linker:-dynamic-linker " LINUX_DYNAMIC_LINKER "}} \
         %{static:-static}}}"
 
 #undef SUBTARGET_ASM_SPEC

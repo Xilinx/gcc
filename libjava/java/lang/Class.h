@@ -39,6 +39,9 @@ extern "Java"
 
 // We declare these here to avoid including gcj/cni.h.
 extern "C" void _Jv_InitClass (jclass klass);
+extern "C" jclass _Jv_NewClassFromInitializer 
+   (const char *class_initializer);
+extern "C" void _Jv_RegisterNewClasses (char **classes);
 extern "C" void _Jv_RegisterClasses (const jclass *classes);
 extern "C" void _Jv_RegisterClasses_Counted (const jclass *classes,
 					     size_t count);
@@ -56,6 +59,14 @@ enum
   JV_STATE_NOTHING = 0,		// Set by compiler.
 
   JV_STATE_PRELOADING = 1,	// Can do _Jv_FindClass.
+
+  // There is an invariant through libgcj that a class will always be
+  // at a state greater than or equal to JV_STATE_LOADING when it is
+  // returned by a class loader to user code.  Hence, defineclass.cc
+  // installs supers before returning a class, C++-ABI-compiled
+  // classes are created with supers installed, and BC-ABI-compiled
+  // classes are linked to this state before being returned by their
+  // class loader.
   JV_STATE_LOADING = 3,		// Has super installed.
   JV_STATE_READ = 4,		// Has been completely defined.
   JV_STATE_LOADED = 5,		// Has Miranda methods defined.
@@ -69,7 +80,13 @@ enum
 
   JV_STATE_ERROR = 12,
 
-  JV_STATE_DONE = 14		// Must be last.
+  JV_STATE_PHANTOM = 13,	// Bytecode is missing. In many cases we can
+                                // work around that. If not, throw a
+                                // NoClassDefFoundError.
+
+  JV_STATE_DONE = 14,		// Must be last.
+
+
 };
 
 struct _Jv_Field;
@@ -79,7 +96,14 @@ struct _Jv_ArrayVTable;
 class _Jv_Linker;
 class _Jv_ExecutionEngine;
 class _Jv_CompiledEngine;
+class _Jv_IndirectCompiledEngine;
 class _Jv_InterpreterEngine;
+
+#ifdef INTERPRETER
+class _Jv_ClassReader;
+class _Jv_InterpClass;
+class _Jv_InterpMethod;
+#endif
 
 struct _Jv_Constants
 {
@@ -108,23 +132,14 @@ struct _Jv_Method
   { return this + 1; }
 };
 
-// Interface Dispatch Tables 
-union _Jv_IDispatchTable
+// The table used to resolve interface calls.
+struct _Jv_IDispatchTable
 {
-  struct
-  {
-    // Index into interface's ioffsets.
-    jshort iindex;
-    jshort itable_length;
-    // Class Interface dispatch table.
-    void **itable;
-  } cls;
-
-  struct
-  {
-    // Offsets into implementation class itables.
-    jshort *ioffsets;
-  } iface;
+  // Index into interface's ioffsets.
+  jshort iindex;
+  jshort itable_length;
+  // Class Interface dispatch table.
+  void *itable[0];
 };
 
 // Used by _Jv_Linker::get_interfaces ()
@@ -216,6 +231,13 @@ jmethodID _Jv_FromReflectedMethod (java::lang::reflect::Method *);
 jmethodID _Jv_FromReflectedConstructor (java::lang::reflect::Constructor *);
 jint JvNumMethods (jclass);
 jmethodID JvGetFirstMethod (jclass);
+_Jv_Utf8Const *_Jv_GetClassNameUtf8 (jclass);
+
+#ifdef INTERPRETER
+// Finds a desired interpreter method in the given class or NULL if not found
+class _Jv_MethodBase;
+_Jv_MethodBase *_Jv_FindInterpreterMethod (jclass, jmethodID);
+#endif
 
 // Friend classes and functions to implement the ClassLoader
 class java::lang::ClassLoader;
@@ -229,6 +251,8 @@ void _Jv_RegisterClassHookDefault (jclass klass);
 void _Jv_RegisterInitiatingLoader (jclass,java::lang::ClassLoader*);
 void _Jv_UnregisterInitiatingLoader (jclass,java::lang::ClassLoader*);
 void _Jv_UnregisterClass (jclass);
+jclass _Jv_FindClassNoException (_Jv_Utf8Const *name,
+		      java::lang::ClassLoader *loader);
 jclass _Jv_FindClass (_Jv_Utf8Const *name,
 		      java::lang::ClassLoader *loader);
 jclass _Jv_FindClassInCache (_Jv_Utf8Const *name);
@@ -242,7 +266,7 @@ jclass _Jv_NewClass (_Jv_Utf8Const *name, jclass superclass,
 void _Jv_InitNewClassFields (jclass klass);
 
 // Friend functions and classes in prims.cc
-void _Jv_InitPrimClass (jclass, char *, char, int);
+void _Jv_InitPrimClass (jclass, const char *, char, int);
 jstring _Jv_GetMethodString (jclass, _Jv_Method *, jclass = NULL);
 
 jboolean _Jv_CheckAccess (jclass self_klass, jclass other_klass,
@@ -252,14 +276,12 @@ jclass _Jv_GetArrayClass (jclass klass, java::lang::ClassLoader *loader);
 jboolean _Jv_IsInterpretedClass (jclass);
 jboolean _Jv_IsBinaryCompatibilityABI (jclass);
 
+jboolean _Jv_IsPhantomClass (jclass);
+
 void _Jv_CopyClassesToSystemLoader (gnu::gcj::runtime::SystemClassLoader *);
 
 #ifdef INTERPRETER
 void _Jv_InitField (jobject, jclass, int);
-
-class _Jv_ClassReader;
-class _Jv_InterpClass;
-class _Jv_InterpMethod;
 #endif
 
 class _Jv_StackTrace;
@@ -278,7 +300,9 @@ public:
   JArray<jclass> *getClasses (void);
 
   java::lang::ClassLoader *getClassLoader (void);
-
+private:
+  java::lang::ClassLoader *getClassLoader (jclass caller);
+public:
   // This is an internal method that circumvents the usual security
   // checks when getting the class loader.
   java::lang::ClassLoader *getClassLoaderInternal (void)
@@ -351,7 +375,7 @@ public:
 
   inline jclass getComponentType (void)
     {
-      return isArray () ? (* (jclass *) &methods) : 0;
+      return isArray () ? element_type : 0;
     }
 
   jboolean isAssignableFrom (jclass cls);
@@ -372,6 +396,13 @@ public:
   java::lang::Package *getPackage (void);
   jstring toString (void);
   jboolean desiredAssertionStatus (void);
+
+  JArray<java::lang::reflect::TypeVariable *> *getTypeParameters (void);
+
+  java::lang::Class *getEnclosingClass (void);
+  java::lang::reflect::Constructor *getEnclosingConstructor (void);
+  java::lang::reflect::Method *getEnclosingMethod (void);
+  jboolean isEnum (void);
 
   // FIXME: this probably shouldn't be public.
   jint size (void)
@@ -419,6 +450,8 @@ private:
 					       int method_idx);
 
   friend void ::_Jv_InitClass (jclass klass);
+  friend java::lang::Class* ::_Jv_NewClassFromInitializer (const char *class_initializer);
+  friend void _Jv_RegisterNewClasses (void **classes);
 
   friend _Jv_Method* ::_Jv_LookupDeclaredMethod (jclass, _Jv_Utf8Const *, 
 						 _Jv_Utf8Const*, jclass *);
@@ -442,6 +475,11 @@ private:
   friend jmethodID (::_Jv_FromReflectedConstructor) (java::lang::reflect::Constructor *);
   friend jint (::JvNumMethods) (jclass);
   friend jmethodID (::JvGetFirstMethod) (jclass);
+  friend _Jv_Utf8Const *::_Jv_GetClassNameUtf8 (jclass);
+#ifdef INTERPRETER
+  friend _Jv_MethodBase *(::_Jv_FindInterpreterMethod) (jclass klass,
+							jmethodID desired_method);
+#endif
 
   // Friends classes and functions to implement the ClassLoader
   friend class java::lang::ClassLoader;
@@ -458,6 +496,8 @@ private:
   friend void ::_Jv_RegisterInitiatingLoader (jclass,java::lang::ClassLoader*);
   friend void ::_Jv_UnregisterInitiatingLoader (jclass,java::lang::ClassLoader*);
   friend void ::_Jv_UnregisterClass (jclass);
+  friend jclass (::_Jv_FindClassNoException) (_Jv_Utf8Const *name,
+				   java::lang::ClassLoader *loader);
   friend jclass (::_Jv_FindClass) (_Jv_Utf8Const *name,
 				   java::lang::ClassLoader *loader);
   friend jclass (::_Jv_FindClassInCache) (_Jv_Utf8Const *name);
@@ -471,7 +511,7 @@ private:
   friend void ::_Jv_InitNewClassFields (jclass klass);
 
   // in prims.cc
-  friend void ::_Jv_InitPrimClass (jclass, char *, char, int);
+  friend void ::_Jv_InitPrimClass (jclass, const char *, char, int);
 
   friend jstring (::_Jv_GetMethodString) (jclass, _Jv_Method *, jclass);
 
@@ -487,6 +527,8 @@ private:
 
   friend jboolean (::_Jv_IsInterpretedClass) (jclass);
   friend jboolean (::_Jv_IsBinaryCompatibilityABI) (jclass);
+
+  friend jboolean (::_Jv_IsPhantomClass) (jclass);
 
 #ifdef INTERPRETER
   friend void ::_Jv_InitField (jobject, jclass, int);
@@ -507,6 +549,7 @@ private:
   friend class ::_Jv_Linker;
   friend class ::_Jv_ExecutionEngine;
   friend class ::_Jv_CompiledEngine;
+  friend class ::_Jv_IndirectCompiledEngine;
   friend class ::_Jv_InterpreterEngine;
 
   friend void ::_Jv_sharedlib_register_hook (jclass klass);
@@ -529,7 +572,11 @@ private:
   _Jv_Constants constants;
   // Methods.  If this is an array class, then this field holds a
   // pointer to the element type.
-  _Jv_Method *methods;
+  union
+  {
+    _Jv_Method *methods;
+    jclass element_type;
+  };
   // Number of methods.  If this class is primitive, this holds the
   // character used to represent this type in a signature.
   jshort method_count;
@@ -571,8 +618,13 @@ private:
   jshort depth;
   // Vector of this class's superclasses, ordered by decreasing depth.
   jclass *ancestors;
-  // Interface Dispatch Table.
-  _Jv_IDispatchTable *idt;
+  // In a regular class, this field points to the Class Interface Dispatch 
+  // Table. In an interface, it points to the ioffsets table.
+  union 
+  {
+    _Jv_IDispatchTable *idt;
+    jshort *ioffsets;
+  };
   // Pointer to the class that represents an array of this class.
   jclass arrayclass;
   // Security Domain to which this class belongs (or null).

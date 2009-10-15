@@ -1,5 +1,5 @@
 /* Target macros for the FRV port of GCC.
-   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005
+   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007
    Free Software Foundation, Inc.
    Contributed by Red Hat Inc.
 
@@ -7,7 +7,7 @@
 
    GCC is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published
-   by the Free Software Foundation; either version 2, or (at your
+   by the Free Software Foundation; either version 3, or (at your
    option) any later version.
 
    GCC is distributed in the hope that it will be useful, but WITHOUT
@@ -16,9 +16,8 @@
    License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with GCC; see the file COPYING.  If not, write to the Free
-   Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-   02110-1301, USA.  */
+   along with GCC; see the file COPYING3.  If not see
+   <http://www.gnu.org/licenses/>.  */
 
 #ifndef __FRV_H__
 #define __FRV_H__
@@ -1376,6 +1375,9 @@ extern enum reg_class reg_class_from_letter[];
    : (C) == 'U' ? EXTRA_CONSTRAINT_FOR_U (VALUE)			\
    : 0)
 
+#define EXTRA_MEMORY_CONSTRAINT(C,STR) \
+  ((C) == 'U' || (C) == 'R' || (C) == 'T')
+
 #define CONSTRAINT_LEN(C, STR) \
   ((C) == 'D' ? 3 : DEFAULT_CONSTRAINT_LEN ((C), (STR)))
 
@@ -1808,7 +1810,7 @@ typedef struct frv_stack {
 
 /* How Large Values are Returned.  */
 
-/* The number of the register that is used to to pass the structure
+/* The number of the register that is used to pass the structure
    value address.  */
 #define FRV_STRUCT_VALUE_REGNUM (GPR_FIRST + 3)
 
@@ -2272,43 +2274,6 @@ do {							\
    program so they can be changed program startup time if the program is loaded
    at a different address than linked for.  */
 #define FIXUP_SECTION_ASM_OP	"\t.section .rofixup,\"a\""
-
-/* A list of names for sections other than the standard two, which are
-   `in_text' and `in_data'.  You need not define this macro
-   on a system with no other sections (that GCC needs to use).  */
-#undef  EXTRA_SECTIONS
-#define EXTRA_SECTIONS in_sdata, in_const, in_fixup
-
-/* One or more functions to be defined in "varasm.c".  These
-   functions should do jobs analogous to those of `text_section' and
-   `data_section', for your additional sections.  Do not define this
-   macro if you do not define `EXTRA_SECTIONS'.  */
-#undef  EXTRA_SECTION_FUNCTIONS
-#define EXTRA_SECTION_FUNCTIONS                                         \
-	SDATA_SECTION_FUNCTION						\
-	FIXUP_SECTION_FUNCTION
-
-#define SDATA_SECTION_FUNCTION						\
-void									\
-sdata_section (void)							\
-{									\
-  if (in_section != in_sdata)						\
-    {									\
-      fprintf (asm_out_file, "%s\n", SDATA_SECTION_ASM_OP);		\
-      in_section = in_sdata;						\
-    }									\
-}
-
-#define FIXUP_SECTION_FUNCTION						\
-void									\
-fixup_section (void)							\
-{									\
-  if (in_section != in_fixup)						\
-    {									\
-      fprintf (asm_out_file, "%s\n", FIXUP_SECTION_ASM_OP);		\
-      in_section = in_fixup;						\
-    }									\
-}
 
 /* Position Independent Code.  */
 
@@ -2394,9 +2359,9 @@ extern int size_directive_output;
 #define ASM_OUTPUT_ALIGNED_DECL_LOCAL(STREAM, DECL, NAME, SIZE, ALIGN)	\
 do {                                                                   	\
   if ((SIZE) > 0 && (SIZE) <= g_switch_value)				\
-    named_section (0, ".sbss", 0);                                    	\
+    switch_to_section (get_named_section (NULL, ".sbss", 0));           \
   else                                                                 	\
-    bss_section ();                                                  	\
+    switch_to_section (bss_section);                                  	\
   ASM_OUTPUT_ALIGN (STREAM, floor_log2 ((ALIGN) / BITS_PER_UNIT));     	\
   ASM_DECLARE_OBJECT_NAME (STREAM, NAME, DECL);                        	\
   ASM_OUTPUT_SKIP (STREAM, (SIZE) ? (SIZE) : 1);                       	\
@@ -2652,8 +2617,8 @@ fprintf (STREAM, "\t.word .L%d\n", VALUE)
 #define ASM_OUTPUT_CASE_LABEL(STREAM, PREFIX, NUM, TABLE)               \
 do {                                                                    \
   if (flag_pic)                                                         \
-    function_section (current_function_decl);                           \
-  (*targetm.asm_out.internal_label) (STREAM, PREFIX, NUM);                      \
+    switch_to_section (function_section (current_function_decl));       \
+  (*targetm.asm_out.internal_label) (STREAM, PREFIX, NUM);              \
 } while (0)
 
 

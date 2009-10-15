@@ -6,7 +6,7 @@ struct a
   int a1[256];
 };
 
-void *malloc(long size) __attribute__((malloc));
+void *malloc(__SIZE_TYPE__ size) __attribute__((malloc));
 
 void f(void)
 {
@@ -22,3 +22,4 @@ void f(void)
 /* { dg-final { cleanup-tree-dump "alias3" } } */
 /* { dg-final { cleanup-tree-dump "alias4" } } */
 /* { dg-final { cleanup-tree-dump "alias5" } } */
+/* { dg-final { cleanup-tree-dump "alias6" } } */

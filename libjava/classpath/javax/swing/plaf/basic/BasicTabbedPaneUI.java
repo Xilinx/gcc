@@ -1,5 +1,5 @@
 /* BasicTabbedPaneUI.java --
-   Copyright (C) 2002, 2004, 2005  Free Software Foundation, Inc.
+   Copyright (C) 2002, 2004, 2005, 2006  Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -49,6 +49,7 @@ import java.awt.Insets;
 import java.awt.LayoutManager;
 import java.awt.Point;
 import java.awt.Rectangle;
+import java.awt.event.ActionEvent;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
@@ -58,7 +59,10 @@ import java.awt.event.MouseListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 
+import javax.swing.AbstractAction;
+import javax.swing.ActionMap;
 import javax.swing.Icon;
+import javax.swing.InputMap;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
@@ -70,6 +74,7 @@ import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+import javax.swing.plaf.ActionMapUIResource;
 import javax.swing.plaf.ComponentUI;
 import javax.swing.plaf.PanelUI;
 import javax.swing.plaf.TabbedPaneUI;
@@ -78,11 +83,127 @@ import javax.swing.text.View;
 
 /**
  * This is the Basic Look and Feel's UI delegate for JTabbedPane.
+ * 
+ * @author Lillian Angel (langel@redhat.com)
+ * @author Kim Ho (kho@redhat.com)
+ * @author Roman Kennke (kennke@aicas.com)
+ * @author Robert Schuster (robertschuster@fsfe.org)
  */
 public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
 {
+  
+  static class NavigateAction extends AbstractAction
+  {
+    int direction;
+    
+    NavigateAction(String name, int dir)
+    {
+      super(name);
+      direction = dir;
+    }
+
+    public void actionPerformed(ActionEvent event)
+    {
+      JTabbedPane tp = (JTabbedPane) event.getSource();
+      BasicTabbedPaneUI ui = (BasicTabbedPaneUI) tp.getUI();
+
+      ui.navigateSelectedTab(direction);
+    }
+  
+  }
+  
+  static class NavigatePageDownAction extends AbstractAction
+  {
+
+    public NavigatePageDownAction()
+    {
+      super("navigatePageDown");
+    }
+
+    public void actionPerformed(ActionEvent event)
+    {
+      JTabbedPane tp = (JTabbedPane) event.getSource();
+      BasicTabbedPaneUI ui = (BasicTabbedPaneUI) tp.getUI();
+      
+      int i = tp.getSelectedIndex();
+      
+      if (i < 0)
+        i = 0;
+      
+      ui.selectNextTabInRun(i);
+    }
+    
+  }
+  
+  static class NavigatePageUpAction extends AbstractAction
+  {
+
+    public NavigatePageUpAction()
+    {
+      super("navigatePageUp");
+    }
+
+    public void actionPerformed(ActionEvent event)
+    {
+      JTabbedPane tp = (JTabbedPane) event.getSource();
+      BasicTabbedPaneUI ui = (BasicTabbedPaneUI) tp.getUI();
+      
+      int i = tp.getSelectedIndex();
+      
+      if (i < 0)
+        i = 0;
+      
+      ui.selectPreviousTabInRun(i);
+
+    }    
+  }
+  
+  static class RequestFocusAction extends AbstractAction
+  {
+
+    public RequestFocusAction()
+    {
+      super("requestFocus");
+    }
+
+    public void actionPerformed(ActionEvent event)
+    {
+      ((JTabbedPane) event.getSource()).requestFocus();
+    }
+    
+  }
+
+  static class RequestFocusForVisibleComponentAction extends AbstractAction
+  {
+
+    public RequestFocusForVisibleComponentAction()
+    {
+      super("requestFocusForVisibleComponent");
+    }
+
+    public void actionPerformed(ActionEvent event)
+    {
+      JTabbedPane tp = (JTabbedPane) event.getSource();
+      
+      // FIXME: This should select a suitable component within
+      // the tab content. However I dont know whether we have
+      // to search for this component or wether the called is
+      // supposed to do that.
+      tp.getSelectedComponent().requestFocus();
+    }
+    
+  }
+
   /**
-   * A helper class that handles focus.
+   * A helper class that handles focus. 
+   * <p>The purpose of this class is to implement a more flexible focus
+   * handling for the tabbed pane, which is used to determine whether the
+   * focus indicator should be painted or not. When in scrolling layout
+   * mode the area containing the tabs is a scrollpane, so simply testing
+   * whether the tabbed pane has the focus does not work.</p>
+   * <p>The <code>FocusHandler</code> is installed on the scrollpane and
+   * the tabbed pane and sets the variable <code>hasFocus</code> to
+   * <code>false</code> only when both components do not hold the focus.</p>
    *
    * @specnote Apparently this class was intended to be protected,
    *           but was made public by a compiler bug and is now
@@ -97,7 +218,11 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
      */
     public void focusGained(FocusEvent e)
     {
-      // FIXME: Implement.
+      Object source = e.getSource();
+      if (source == panel )
+        tabPane.requestFocus();
+      else if (source == tabPane)
+        tabPane.repaint();
     }
 
     /**
@@ -107,7 +232,10 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
      */
     public void focusLost(FocusEvent e)
     {
-      // FIXME: Implement.
+      if (e.getOppositeComponent() == tabPane.getSelectedComponent())
+        tabPane.requestFocus();
+      else if (e.getSource() == tabPane)
+        tabPane.repaint();
     }
   }
 
@@ -122,6 +250,11 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
    */
   public class MouseHandler extends MouseAdapter
   {
+    public void mouseReleased(MouseEvent e)
+    {
+     // Nothing to do here. 
+    }
+    
     /**
      * This method is called when the mouse is pressed. The index cannot
      * change to a tab that is  not enabled.
@@ -130,52 +263,119 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
      */
     public void mousePressed(MouseEvent e)
     {
-      int x = e.getX();
-      int y = e.getY();
-      int tabCount = tabPane.getTabCount();
-
-      if (tabPane.getTabLayoutPolicy() == JTabbedPane.SCROLL_TAB_LAYOUT)
+      Object s = e.getSource();
+      int placement = tabPane.getTabPlacement();
+    
+      if (s == incrButton)
         {
-          if (e.getSource() == incrButton)
+          if(!incrButton.isEnabled())
+            return;
+
+          currentScrollLocation++;
+
+          switch (placement)
             {
-              if (++currentScrollLocation >= tabCount)
-                currentScrollLocation = tabCount - 1;
-              
-              int width = 0;
-              for (int i = currentScrollLocation - 1; i < tabCount; i++)
-                width += rects[i].width;
-              if (width < viewport.getWidth())
-                // FIXME: Still getting mouse events after the button is disabled.
-                //	incrButton.setEnabled(false);
-                currentScrollLocation--;
-              else if (! decrButton.isEnabled())
-                decrButton.setEnabled(true);
-              tabPane.revalidate();
-              tabPane.repaint();
-              return;
+              case JTabbedPane.TOP:
+              case JTabbedPane.BOTTOM: 
+                currentScrollOffset = getTabAreaInsets(placement).left;
+                for (int i = 0; i < currentScrollLocation; i++)
+                  currentScrollOffset += rects[i].width;
+                break;
+              default:
+                currentScrollOffset = getTabAreaInsets(placement).top;
+                for (int i = 0; i < currentScrollLocation; i++)
+                  currentScrollOffset += rects[i].height;
+                break;
             }
-          else if (e.getSource() == decrButton)
-            {
-              if (--currentScrollLocation < 0)
-                currentScrollLocation = 0;
-              if (currentScrollLocation == 0)
-                decrButton.setEnabled(false);
-              else if (! incrButton.isEnabled())
-                incrButton.setEnabled(true);
-              tabPane.revalidate();
-              tabPane.repaint();
-              return;
-            }
+            
+          updateViewPosition();
+          updateButtons();
+        
+          tabPane.repaint();
         }
+      else if (s == decrButton)
+        {
+          if(!decrButton.isEnabled())
+            return;
+        
+          // The scroll location may be zero but the offset
+          // greater than zero because of an adjustement to
+          // make a partially visible tab completely visible.
+          if (currentScrollLocation > 0)
+            currentScrollLocation--;
+        
+          // Set the offset back to 0 and recompute it.
+          currentScrollOffset = 0;
 
-      int index = tabForCoordinate(tabPane, x, y);
+          switch (placement)
+            {
+              case JTabbedPane.TOP:
+              case JTabbedPane.BOTTOM: 
+                // Take the tab area inset into account.
+                if (currentScrollLocation > 0)
+                  currentScrollOffset = getTabAreaInsets(placement).left;
+                // Recompute scroll offset.
+        for (int i = 0; i < currentScrollLocation; i++)
+          currentScrollOffset += rects[i].width;
+        break;
+        default:
+          // Take the tab area inset into account.
+          if (currentScrollLocation > 0)
+            currentScrollOffset = getTabAreaInsets(placement).top;
+        
+          for (int i = 0; i < currentScrollLocation; i++)
+            currentScrollOffset += rects[i].height;
+        }          
+        
+       updateViewPosition();
+       updateButtons();
+        
+       tabPane.repaint();
+      } else if (tabPane.isEnabled())
+        {
+          int index = tabForCoordinate(tabPane, e.getX(), e.getY());
+          if (tabPane.getTabLayoutPolicy() == JTabbedPane.SCROLL_TAB_LAYOUT
+              && s == panel)
+              scrollTab(index, placement);
+          
+          tabPane.setSelectedIndex(index);
+        }
+      
+    }
 
-      // We need to check since there are areas where tabs cannot be
-      // e.g. in the inset area.
-      if (index != -1 && tabPane.isEnabledAt(index))
-        tabPane.setSelectedIndex(index);
-      tabPane.revalidate();
-      tabPane.repaint();
+    /**
+     * Receives notification when the mouse pointer has entered the tabbed
+     * pane.
+     *
+     * @param ev the mouse event
+     */
+    public void mouseEntered(MouseEvent ev)
+    {
+      int tabIndex = tabForCoordinate(tabPane, ev.getX(), ev.getY());
+      setRolloverTab(tabIndex);
+    }
+
+    /**
+     * Receives notification when the mouse pointer has exited the tabbed
+     * pane.
+     *
+     * @param ev the mouse event
+     */
+    public void mouseExited(MouseEvent ev)
+    {
+      setRolloverTab(-1);
+    }
+
+    /**
+     * Receives notification when the mouse pointer has moved over the tabbed
+     * pane.
+     *
+     * @param ev the mouse event
+     */
+    public void mouseMoved(MouseEvent ev)
+    {
+      int tabIndex = tabForCoordinate(tabPane, ev.getX(), ev.getY());
+      setRolloverTab(tabIndex);
     }
   }
 
@@ -198,6 +398,8 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
     {
       if (e.getPropertyName().equals("tabLayoutPolicy"))
         {
+          currentScrollLocation = currentScrollOffset = 0;
+          
           layoutManager = createLayoutManager();
           
           tabPane.setLayout(layoutManager);
@@ -208,7 +410,7 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
           incrButton = createIncreaseButton();
           decrButton = createDecreaseButton();
         }
-      tabPane.layout();
+      tabPane.revalidate();
       tabPane.repaint();
     }
   }
@@ -241,18 +443,10 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
      */
     public void calculateLayoutInfo()
     {
-      calculateTabRects(tabPane.getTabPlacement(), tabPane.getTabCount());
-
-      if (tabPane.getSelectedIndex() != -1)
-        {
-          Component visible = getVisibleComponent();
-          Insets insets = getContentBorderInsets(tabPane.getTabPlacement());
-          if (visible != null)
-            visible.setBounds(contentRect.x + insets.left,
-                              contentRect.y + insets.top,
-                              contentRect.width - insets.left - insets.right,
-                              contentRect.height - insets.top - insets.bottom);
-        }
+      int count = tabPane.getTabCount();
+      assureRectsCreated(count);
+      calculateTabRects(tabPane.getTabPlacement(), count);
+      tabRunsDirty = false;
     }
 
     /**
@@ -266,52 +460,56 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
     protected Dimension calculateSize(boolean minimum)
     {
       int tabPlacement = tabPane.getTabPlacement();
+
       int width = 0;
       int height = 0;
-
-      int componentHeight = 0;
-      int componentWidth = 0;
       Component c;
       Dimension dims;
-      for (int i = 0; i < tabPane.getTabCount(); i++)
+
+      // Find out the minimum/preferred size to display the largest child
+      // of the tabbed pane.
+      int count = tabPane.getTabCount();
+      for (int i = 0; i < count; i++)
         {
           c = tabPane.getComponentAt(i);
           if (c == null)
             continue;
-          calcRect = c.getBounds();
-          dims = c.getPreferredSize();
+          dims = minimum ? c.getMinimumSize() : c.getPreferredSize(); 
           if (dims != null)
             {
-              componentHeight = Math.max(componentHeight, dims.height);
-              componentWidth = Math.max(componentWidth, dims.width);
+              height = Math.max(height, dims.height);
+              width = Math.max(width, dims.width);
             }
         }
-      Insets insets = tabPane.getInsets();
 
+      Insets tabAreaInsets = getTabAreaInsets(tabPlacement);
       if (tabPlacement == SwingConstants.TOP
           || tabPlacement == SwingConstants.BOTTOM)
         {
-          int min = calculateMaxTabWidth(tabPlacement);
-          width = Math.max(min, componentWidth);
+          width = Math.max(calculateMaxTabWidth(tabPlacement), width);
           
-          int tabAreaHeight = preferredTabAreaHeight(tabPlacement, width);
-          height = tabAreaHeight + componentHeight;
+          height += preferredTabAreaHeight(tabPlacement,
+                                           width - tabAreaInsets.left
+                                           - tabAreaInsets.right);
         }
       else
         {
-          int min = calculateMaxTabHeight(tabPlacement);
-          height = Math.max(min, componentHeight);
+          height = Math.max(calculateMaxTabHeight(tabPlacement), height);
           
-          int tabAreaWidth = preferredTabAreaWidth(tabPlacement, height);
-          width = tabAreaWidth + componentWidth;
+          width += preferredTabAreaWidth(tabPlacement,
+                                         height - tabAreaInsets.top
+                                         - tabAreaInsets.bottom);
         }
 
-      return new Dimension(width, height);
+      Insets tabPaneInsets = tabPane.getInsets();
+      return new Dimension(width + tabPaneInsets.left + tabPaneInsets.right,
+                           height + tabPaneInsets.top + tabPaneInsets.bottom);
     }
 
     // if tab placement is LEFT OR RIGHT, they share width.
     // if tab placement is TOP OR BOTTOM, they share height
-    // PRE STEP: finds the default sizes for the labels as well as their locations.
+    // PRE STEP: finds the default sizes for the labels as well as their
+    // locations.
     // AND where they will be placed within the run system.
     // 1. calls normalizeTab Runs.
     // 2. calls rotate tab runs.
@@ -329,191 +527,203 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
      */
     protected void calculateTabRects(int tabPlacement, int tabCount)
     {
+      Insets insets = tabPane.getInsets();
+      Insets tabAreaInsets = getTabAreaInsets(tabPlacement);
+      Dimension size = tabPane.getSize();
+      
+      // The coordinates of the upper left corner of the tab area.
+      int x;
+      int y;
+      // The location at which the runs must be broken.
+      int breakAt;
+
+      // Calculate the bounds for the tab area.
+      switch (tabPlacement)
+      {
+        case LEFT:
+          maxTabWidth = calculateMaxTabWidth(tabPlacement);
+          x = insets.left + tabAreaInsets.left;
+          y = insets.top + tabAreaInsets.top;
+          breakAt = size.height - (insets.bottom + tabAreaInsets.bottom);
+          break;
+        case RIGHT:
+          maxTabWidth = calculateMaxTabWidth(tabPlacement);
+          x = size.width - (insets.right + tabAreaInsets.right)
+              - maxTabWidth - 1;
+          y = insets.top + tabAreaInsets.top;
+          breakAt = size.height - (insets.bottom + tabAreaInsets.bottom);
+          break;
+        case BOTTOM:
+          maxTabHeight = calculateMaxTabHeight(tabPlacement);
+          x = insets.left + tabAreaInsets.left;
+          y = size.height - (insets.bottom + tabAreaInsets.bottom)
+              - maxTabHeight - 1;
+          breakAt = size.width - (insets.right + tabAreaInsets.right);
+          break;
+        case TOP:
+        default:
+          maxTabHeight = calculateMaxTabHeight(tabPlacement);
+          x = insets.left + tabAreaInsets.left;
+          y = insets.top + tabAreaInsets.top;
+          breakAt = size.width - (insets.right + tabAreaInsets.right);
+          break;
+      }
+
       if (tabCount == 0)
         return;
-      assureRectsCreated(tabCount);
 
       FontMetrics fm = getFontMetrics();
-      SwingUtilities.calculateInnerArea(tabPane, calcRect);
-      Insets tabAreaInsets = getTabAreaInsets(tabPlacement);
-      Insets insets = tabPane.getInsets();
-      int max = 0;
-      int runs = 0;
-      int start = getTabRunIndent(tabPlacement, 1);
+      runCount = 0;
+      selectedRun = -1;
+      int selectedIndex = tabPane.getSelectedIndex();
+      if (selectedIndex < 0)
+          selectedIndex = 0;
+
+      Rectangle rect;
+
+      // Go through all the tabs and build the tab runs.
       if (tabPlacement == SwingConstants.TOP
           || tabPlacement == SwingConstants.BOTTOM)
         {
-          int maxHeight = calculateMaxTabHeight(tabPlacement);
-
-          calcRect.width -= tabAreaInsets.left + tabAreaInsets.right;
-          max = calcRect.width + tabAreaInsets.left + insets.left;
-          start += tabAreaInsets.left + insets.left;
-          int width = 0;
-          int runWidth = start;
-
           for (int i = 0; i < tabCount; i++)
             {
-              width = calculateTabWidth(tabPlacement, i, fm);
-              if (runWidth + width > max)
+              rect = rects[i];
+              if (i > 0)
                 {
-                  runWidth = tabAreaInsets.left + insets.left
-                  + getTabRunIndent(tabPlacement, ++runs);
-                  rects[i] = new Rectangle(runWidth,
-                                           insets.top + tabAreaInsets.top,
-                                           width, maxHeight);
-                  runWidth += width;
-                  if (runs > tabRuns.length - 1)
-                    expandTabRunsArray();
-                  tabRuns[runs] = i;
+                  rect.x = rects[i - 1].x + rects[i - 1].width;
                 }
               else
                 {
-                  rects[i] = new Rectangle(runWidth,
-                                           insets.top + tabAreaInsets.top,
-                                           width, maxHeight);
-                  runWidth += width;
+                  tabRuns[0] = 0;
+                  runCount = 1;
+                  maxTabWidth = 0;
+                  rect.x = x;
                 }
-            }
-          runs++;
-          tabAreaRect.width = tabPane.getWidth() - insets.left - insets.right;
-          tabAreaRect.height = runs * maxTabHeight
-          - (runs - 1) * tabRunOverlay
-          + tabAreaInsets.top + tabAreaInsets.bottom;
-          contentRect.width = tabAreaRect.width;
-          contentRect.height = tabPane.getHeight() - insets.top
-          - insets.bottom - tabAreaRect.height;
-          contentRect.x = insets.left;
-          tabAreaRect.x = insets.left;
-          if (tabPlacement == SwingConstants.BOTTOM)
-            {
-              contentRect.y = insets.top;
-              tabAreaRect.y = contentRect.y + contentRect.height;
-            }
-          else
-            {
-              tabAreaRect.y = insets.top;
-              contentRect.y = tabAreaRect.y + tabAreaRect.height;
+              rect.width = calculateTabWidth(tabPlacement, i, fm);
+              maxTabWidth = Math.max(maxTabWidth, rect.width);
+
+              if (rect.x != 2 + insets.left && rect.x + rect.width > breakAt)
+                {
+                  if (runCount > tabRuns.length - 1)
+                    expandTabRunsArray();
+                  tabRuns[runCount] = i;
+                  runCount++;
+                  rect.x = x;
+                }
+
+              rect.y = y;
+              rect.height = maxTabHeight;
+              if (i == selectedIndex)
+                selectedRun = runCount - 1;
             }
         }
       else
         {
-          int maxWidth = calculateMaxTabWidth(tabPlacement);
-          calcRect.height -= tabAreaInsets.top + tabAreaInsets.bottom;
-          max = calcRect.height + tabAreaInsets.top + insets.top;
-
-          int height = 0;
-          start += tabAreaInsets.top + insets.top;
-          int runHeight = start;
-
-          int fontHeight = fm.getHeight();
-
           for (int i = 0; i < tabCount; i++)
             {
-              height = calculateTabHeight(tabPlacement, i, fontHeight);
-              if (runHeight + height > max)
+              rect = rects[i];
+              if (i > 0)
                 {
-                  runHeight = tabAreaInsets.top + insets.top
-                  + getTabRunIndent(tabPlacement, ++runs);
-                  rects[i] = new Rectangle(insets.left + tabAreaInsets.left,
-                                           runHeight, maxWidth, height);
-                  runHeight += height;
-                  if (runs > tabRuns.length - 1)
-                    expandTabRunsArray();
-                  tabRuns[runs] = i;
+                  rect.y = rects[i - 1].y + rects[i - 1].height;
                 }
               else
                 {
-                  rects[i] = new Rectangle(insets.left + tabAreaInsets.left,
-                                           runHeight, maxWidth, height);
-                  runHeight += height;
+                  tabRuns[0] = 0;
+                  runCount = 1;
+                  maxTabHeight = 0;
+                  rect.y = y;
                 }
-            }
-          runs++;
+              rect.height = calculateTabHeight(tabPlacement, i,
+                                               fm.getHeight());
+              maxTabHeight = Math.max(maxTabHeight, rect.height);
 
-          tabAreaRect.width = runs * maxTabWidth - (runs - 1) * tabRunOverlay
-          + tabAreaInsets.left + tabAreaInsets.right;
-          tabAreaRect.height = tabPane.getHeight() - insets.top
-          - insets.bottom;
-          tabAreaRect.y = insets.top;
-          contentRect.width = tabPane.getWidth() - insets.left - insets.right
-          - tabAreaRect.width;
-          contentRect.height = tabAreaRect.height;
-          contentRect.y = insets.top;
-          if (tabPlacement == SwingConstants.LEFT)
+              if (rect.y != 2 + insets.top && rect.y + rect.height > breakAt)
+                {
+                  if (runCount > tabRuns.length - 1)
+                    expandTabRunsArray();
+                  tabRuns[runCount] = i;
+                  runCount++;
+                  rect.y = y;
+                }
+
+              rect.x = x;
+              rect.width = maxTabWidth;
+
+              if (i == selectedIndex)
+                selectedRun = runCount - 1;
+            }
+        }
+
+      if (runCount > 1)
+        {
+          int start;
+          if  (tabPlacement == SwingConstants.TOP
+              || tabPlacement == SwingConstants.BOTTOM)
+            start = x;
+          else
+            start = y;
+          normalizeTabRuns(tabPlacement, tabCount, start, breakAt);
+          selectedRun = getRunForTab(tabCount, selectedIndex);
+          if (shouldRotateTabRuns(tabPlacement))
             {
-              tabAreaRect.x = insets.left;
-              contentRect.x = tabAreaRect.x + tabAreaRect.width;
+              rotateTabRuns(tabPlacement, selectedRun);
+            }
+        }
+      
+      // Suppress padding if we have only one tab run.
+      if (runCount == 1)
+        return;
+      
+      // Pad the runs.
+      int tabRunOverlay = getTabRunOverlay(tabPlacement);
+      for (int i = runCount - 1; i >= 0; --i)
+        {
+          int start = tabRuns[i];
+          int nextIndex;
+          if (i == runCount - 1)
+            nextIndex = 0;
+          else
+            nextIndex = i + 1;
+          int next = tabRuns[nextIndex];
+          int end = next != 0 ? next - 1 : tabCount - 1;
+          if (tabPlacement == SwingConstants.TOP
+              || tabPlacement == SwingConstants.BOTTOM)
+            {
+              for (int j = start; j <= end; ++j)
+                {
+                  rect = rects[j];
+                  rect.y = y;
+                  rect.x += getTabRunIndent(tabPlacement, i);
+                }
+              if (shouldPadTabRun(tabPlacement, i))
+                {
+                  padTabRun(tabPlacement, start, end, breakAt);
+                }
+              if (tabPlacement == BOTTOM)
+                y -= maxTabHeight - tabRunOverlay;
+              else
+                y += maxTabHeight - tabRunOverlay;
             }
           else
             {
-              contentRect.x = insets.left;
-              tabAreaRect.x = contentRect.x + contentRect.width;
+              for (int j = start; j <= end; ++j)
+                {
+                  rect = rects[j];
+                  rect.x = x;
+                  rect.y += getTabRunIndent(tabPlacement, i);
+                }
+              if (shouldPadTabRun(tabPlacement, i))
+                {
+                  padTabRun(tabPlacement, start, end, breakAt);
+                }
+              if (tabPlacement == RIGHT)
+                x -= maxTabWidth - tabRunOverlay;
+              else
+                x += maxTabWidth - tabRunOverlay;
+              
             }
         }
-      runCount = runs;
-
-      tabRuns[0] = 0;
-      normalizeTabRuns(tabPlacement, tabCount, start, max);
-      selectedRun = getRunForTab(tabCount, tabPane.getSelectedIndex());
-      if (shouldRotateTabRuns(tabPlacement))
-        rotateTabRuns(tabPlacement, selectedRun);
-
-      // Need to pad the runs and move them to the correct location.
-      for (int i = 0; i < runCount; i++)
-        {
-          int first = lastTabInRun(tabCount, getPreviousTabRun(i)) + 1;
-          if (first == tabCount)
-            first = 0;
-          int last = lastTabInRun(tabCount, i);
-          if (shouldPadTabRun(tabPlacement, i))
-            padTabRun(tabPlacement, first, last, max);
-
-          // Done padding, now need to move it.
-          if (tabPlacement == SwingConstants.TOP && i > 0)
-            {
-              for (int j = first; j <= last; j++)
-                rects[j].y += (runCount - i) * maxTabHeight
-                - (runCount - i) * tabRunOverlay;
-            }
-
-          if (tabPlacement == SwingConstants.BOTTOM)
-            {
-              int height = tabPane.getBounds().height - insets.bottom
-              - tabAreaInsets.bottom;
-              int adjustment;
-              if (i == 0)
-                adjustment = height - maxTabHeight;
-              else
-                adjustment = height - (runCount - i + 1) * maxTabHeight
-                - (runCount - i) * tabRunOverlay;
-
-              for (int j = first; j <= last; j++)
-                rects[j].y = adjustment;
-            }
-
-          if (tabPlacement == SwingConstants.LEFT && i > 0)
-            {
-              for (int j = first; j <= last; j++)
-                rects[j].x += (runCount - i) * maxTabWidth
-                - (runCount - i) * tabRunOverlay;
-            }
-
-          if (tabPlacement == SwingConstants.RIGHT)
-            {
-              int width = tabPane.getBounds().width - insets.right
-              - tabAreaInsets.right;
-              int adjustment;
-              if (i == 0)
-                adjustment = width - maxTabWidth;
-              else
-                adjustment = width - (runCount - i + 1) * maxTabWidth
-                + (runCount - i) * tabRunOverlay;
-
-              for (int j = first; j <= last; j++)
-                rects[j].x = adjustment;
-            }
-        }
-      padSelectedTab(tabPlacement, tabPane.getSelectedIndex());
+      padSelectedTab(tabPlacement, selectedIndex);
     }
 
     /**
@@ -526,6 +736,72 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
     public void layoutContainer(Container parent)
     {
       calculateLayoutInfo();
+
+      int tabPlacement = tabPane.getTabPlacement();
+      Insets insets = tabPane.getInsets();
+
+      int selectedIndex = tabPane.getSelectedIndex();
+      
+      Component selectedComponent = null;
+      if (selectedIndex >= 0)
+        selectedComponent = tabPane.getComponentAt(selectedIndex);
+      // The RI doesn't seem to change the component if the new selected
+      // component == null. This is probably so that applications can add
+      // one single component for every tab. 
+      if (selectedComponent != null)
+        {
+          setVisibleComponent(selectedComponent);
+        }
+
+      int childCount = tabPane.getComponentCount();
+      if (childCount > 0)
+        {
+          int compX;
+          int compY;
+          int tabAreaWidth = 0;
+          int tabAreaHeight = 0;
+          switch (tabPlacement)
+          {
+            case LEFT:
+              tabAreaWidth = calculateTabAreaWidth(tabPlacement, runCount,
+                                                   maxTabWidth);
+              compX = tabAreaWidth + insets.left + contentBorderInsets.left;
+              compY = insets.top + contentBorderInsets.top;
+              break;
+            case RIGHT:
+              tabAreaWidth = calculateTabAreaWidth(tabPlacement, runCount,
+                                                   maxTabWidth);
+              compX = insets.left + contentBorderInsets.left;
+              compY = insets.top + contentBorderInsets.top;
+              break;
+            case BOTTOM: 
+              tabAreaHeight = calculateTabAreaHeight(tabPlacement, runCount,
+                                                     maxTabHeight);
+              compX = insets.left + contentBorderInsets.left;
+              compY = insets.top + contentBorderInsets.top;
+              break;
+            case TOP:
+            default:
+              tabAreaHeight = calculateTabAreaHeight(tabPlacement, runCount,
+                                                     maxTabHeight);
+              compX = insets.left + contentBorderInsets.left;
+              compY = tabAreaHeight + insets.top + contentBorderInsets.top;
+          }
+          Rectangle bounds = tabPane.getBounds();
+          int compWidth = bounds.width - tabAreaWidth - insets.left
+                          - insets.right - contentBorderInsets.left
+                          - contentBorderInsets.right;
+          int compHeight = bounds.height - tabAreaHeight - insets.top
+                           - insets.bottom - contentBorderInsets.top
+                           - contentBorderInsets.bottom;
+
+
+          for (int i = 0; i < childCount; ++i)
+            {
+              Component c = tabPane.getComponent(i);
+              c.setBounds(compX, compY, compWidth, compHeight);
+            }
+        }
     }
 
     /**
@@ -537,16 +813,18 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
      */
     public Dimension minimumLayoutSize(Container parent)
     {
-      return calculateSize(false);
+      return calculateSize(true);
     }
 
-    // If there is more free space in an adjacent run AND the tab in the run can fit in the 
-    // adjacent run, move it. This method is not perfect, it is merely an approximation.
+    // If there is more free space in an adjacent run AND the tab
+    // in the run can fit in the adjacent run, move it. This method
+    // is not perfect, it is merely an approximation.
     // If you play around with Sun's JTabbedPane, you'll see that 
     // it does do some pretty strange things with regards to not moving tabs 
     // that should be moved. 
     // start = the x position where the tabs will begin
-    // max = the maximum position of where the tabs can go to (tabAreaInsets.left + the width of the tab area)
+    // max = the maximum position of where the tabs can go to
+    // (tabAreaInsets.left + the width of the tab area)
 
     /**
      * This method tries to "even out" the number of tabs in each run based on
@@ -564,18 +842,20 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
       if (tabPlacement == SwingUtilities.TOP
           || tabPlacement == SwingUtilities.BOTTOM)
         {
-          // We should only do this for runCount - 1, cause we can only shift that many times between
-          // runs.
+          // We should only do this for runCount - 1, cause we can
+          // only shift that many times between runs.
           for (int i = 1; i < runCount; i++)
             {
               Rectangle currRun = rects[lastTabInRun(tabCount, i)];
-              Rectangle nextRun = rects[lastTabInRun(tabCount, getNextTabRun(i))];
+              Rectangle nextRun = rects[lastTabInRun(tabCount,
+                                                     getNextTabRun(i))];
               int spaceInCurr = currRun.x + currRun.width;
               int spaceInNext = nextRun.x + nextRun.width;
 
               int diffNow = spaceInCurr - spaceInNext;
               int diffLater = (spaceInCurr - currRun.width)
               - (spaceInNext + currRun.width);
+              
               while (Math.abs(diffLater) < Math.abs(diffNow)
                   && spaceInNext + currRun.width < max)
                 {
@@ -587,11 +867,12 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
                   diffLater = (spaceInCurr - currRun.width)
                   - (spaceInNext + currRun.width);
                 }
-
-              // Fix the bounds.
-              int first = lastTabInRun(tabCount, i) + 1;
-              int last = lastTabInRun(tabCount, getNextTabRun(i));
-              int currX = tabAreaInsets.left;
+              
+              // Fixes the bounds of all tabs in the current
+              // run.
+              int first = tabRuns[i];
+              int last = lastTabInRun(tabCount, i);
+              int currX = start;
               for (int j = first; j <= last; j++)
                 {
                   rects[j].x = currX;
@@ -604,7 +885,8 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
           for (int i = 1; i < runCount; i++)
             {
               Rectangle currRun = rects[lastTabInRun(tabCount, i)];
-              Rectangle nextRun = rects[lastTabInRun(tabCount, getNextTabRun(i))];
+              Rectangle nextRun = rects[lastTabInRun(tabCount,
+                                                     getNextTabRun(i))];
               int spaceInCurr = currRun.y + currRun.height;
               int spaceInNext = nextRun.y + nextRun.height;
 
@@ -623,9 +905,10 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
                   - (spaceInNext + currRun.height);
                 }
 
-              int first = lastTabInRun(tabCount, i) + 1;
-              int last = lastTabInRun(tabCount, getNextTabRun(i));
-              int currY = tabAreaInsets.top;
+              // Fixes the bounds of tabs in the current run. 
+              int first = tabRuns[i];
+              int last = lastTabInRun(tabCount, i);
+              int currY = start;
               for (int j = first; j <= last; j++)
                 {
                   rects[j].y = currY;
@@ -651,7 +934,8 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
       rects[selectedIndex].height += insets.top + insets.bottom;
     }
 
-    // If the tabs on the run don't fill the width of the window, make it fit now.
+    // If the tabs on the run don't fill the width of the window, make it
+    // fit now.
     // start = starting index of the run
     // end = last index of the run
     // max = tabAreaInsets.left + width (or equivalent)
@@ -675,7 +959,7 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
           int runWidth = rects[end].x + rects[end].width;
           int spaceRemaining = max - runWidth;
           int numTabs = end - start + 1;
-
+          
           // now divvy up the space.
           int spaceAllocated = spaceRemaining / numTabs;
           int currX = rects[start].x;
@@ -683,11 +967,13 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
             {
               rects[i].x = currX;
               rects[i].width += spaceAllocated;
+              
               currX += rects[i].width;
               // This is used because since the spaceAllocated 
               // variable is an int, it rounds down. Sometimes,
               // we don't fill an entire row, so we make it do
               // so now.
+              
               if (i == end && rects[i].x + rects[i].width != max)
                 rects[i].width = max - rects[i].x;
             }
@@ -752,7 +1038,7 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
 
       // The reason why we can't use runCount:
       // This method is only called to calculate the size request
-      // for the tabbedPane. However, this size request is dependent on 
+      // for the tabbedPane. However, this size request is dependent on
       // our desired width. We need to find out what the height would
       // be IF we got our desired width.
       for (int i = 0; i < tabPane.getTabCount(); i++)
@@ -815,7 +1101,8 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
       runs++;
 
       int maxTabWidth = calculateMaxTabWidth(tabPlacement);
-      int tabAreaWidth = calculateTabAreaWidth(tabPlacement, runs, maxTabWidth);
+      int tabAreaWidth = calculateTabAreaWidth(tabPlacement, runs,
+                                               maxTabWidth);
       return tabAreaWidth;
     }
 
@@ -829,11 +1116,11 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
      */
     protected void rotateTabRuns(int tabPlacement, int selectedRun)
     {
-      if (runCount == 1 || selectedRun == 1 || selectedRun == -1)
+      if (runCount == 1 || selectedRun == 0 || selectedRun == -1)
         return;
       int[] newTabRuns = new int[tabRuns.length];
       int currentRun = selectedRun;
-      int i = 1;
+      int i = 0;
       do
         {
           newTabRuns[i] = tabRuns[currentRun];
@@ -841,8 +1128,6 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
           i++;
         }
       while (i < runCount);
-      if (runCount > 1)
-        newTabRuns[0] = tabRuns[currentRun];
 
       tabRuns = newTabRuns;
       BasicTabbedPaneUI.this.selectedRun = 1;
@@ -875,7 +1160,7 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
      */
     public Dimension preferredLayoutSize(Container parent)
     {
-      return super.calculateSize(true);
+      return super.calculateSize(false);
     }
 
     /**
@@ -944,37 +1229,32 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
     {
       if (tabCount == 0)
         return;
-      assureRectsCreated(tabCount);
 
       FontMetrics fm = getFontMetrics();
       SwingUtilities.calculateInnerArea(tabPane, calcRect);
       Insets tabAreaInsets = getTabAreaInsets(tabPlacement);
       Insets insets = tabPane.getInsets();
-      int max = 0;
-      int runs = 1;
-      int start = 0;
-      int top = 0;
       if (tabPlacement == SwingConstants.TOP
           || tabPlacement == SwingConstants.BOTTOM)
         {
           int maxHeight = calculateMaxTabHeight(tabPlacement);
           calcRect.width -= tabAreaInsets.left + tabAreaInsets.right;
-          max = calcRect.width + tabAreaInsets.left + insets.left;
-          start = tabAreaInsets.left + insets.left;
           int width = 0;
-          int runWidth = start;
-          top = insets.top + tabAreaInsets.top;
+          int runWidth = tabAreaInsets.left + insets.left;
+          int top = insets.top + tabAreaInsets.top;
           for (int i = 0; i < tabCount; i++)
             {
               width = calculateTabWidth(tabPlacement, i, fm);
-
-              rects[i] = new Rectangle(runWidth, top, width, maxHeight);
+              
+              // The proper instances should exists because
+              //  assureRectsCreated() was being run already.
+              rects[i].setBounds(runWidth, top, width, maxHeight);
+              
               runWidth += width;
             }
           tabAreaRect.width = tabPane.getWidth() - insets.left - insets.right;
-          tabAreaRect.height = runs * maxTabHeight
-          - (runs - 1) * tabRunOverlay
-          + tabAreaInsets.top + tabAreaInsets.bottom;
+          tabAreaRect.height = maxTabHeight + tabAreaInsets.top
+                               + tabAreaInsets.bottom;
           contentRect.width = tabAreaRect.width;
           contentRect.height = tabPane.getHeight() - insets.top
           - insets.bottom - tabAreaRect.height;
@@ -996,25 +1276,26 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
           int maxWidth = calculateMaxTabWidth(tabPlacement);
 
           calcRect.height -= tabAreaInsets.top + tabAreaInsets.bottom;
-          max = calcRect.height + tabAreaInsets.top;
           int height = 0;
-          start = tabAreaInsets.top + insets.top;
-          int runHeight = start;
+          int runHeight = tabAreaInsets.top + insets.top;;
           int fontHeight = fm.getHeight();
-          top = insets.left + tabAreaInsets.left;
+          int left = insets.left + tabAreaInsets.left;
           for (int i = 0; i < tabCount; i++)
             {
               height = calculateTabHeight(tabPlacement, i, fontHeight);
-              rects[i] = new Rectangle(top, runHeight, maxWidth, height);
+
+              // The proper instances should exists because
+              //  assureRectsCreated() was being run already.
+              rects[i].setBounds(left, runHeight, maxWidth, height);
               runHeight += height;
             }
-          tabAreaRect.width = runs * maxTabWidth - (runs - 1) * tabRunOverlay
-          + tabAreaInsets.left + tabAreaInsets.right;
+          tabAreaRect.width = maxTabWidth + tabAreaInsets.left
+                              + tabAreaInsets.right;
           tabAreaRect.height = tabPane.getHeight() - insets.top
-          - insets.bottom;
+                               - insets.bottom;
           tabAreaRect.y = insets.top;
           contentRect.width = tabPane.getWidth() - insets.left - insets.right
-          - tabAreaRect.width;
+                              - tabAreaRect.width;
           contentRect.height = tabAreaRect.height;
           contentRect.y = insets.top;
           if (tabPlacement == SwingConstants.LEFT)
@@ -1028,9 +1309,9 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
               tabAreaRect.x = contentRect.x + contentRect.width;
             }
         }
-      runCount = runs;
-
-      padSelectedTab(tabPlacement, tabPane.getSelectedIndex());
+      
+      // Unlike the behavior in the WRAP_TAB_LAYOUT the selected
+      // tab is not padded specially.
     }
 
     /**
@@ -1048,8 +1329,7 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
       if (tabCount == 0)
         return;
       int tabPlacement = tabPane.getTabPlacement();
-      incrButton.hide();
-      decrButton.hide();
+      
       if (tabPlacement == SwingConstants.TOP
           || tabPlacement == SwingConstants.BOTTOM)
         {
@@ -1059,17 +1339,48 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
               Dimension incrDims = incrButton.getPreferredSize();
               Dimension decrDims = decrButton.getPreferredSize();
 
-              decrButton.setBounds(tabAreaRect.x + tabAreaRect.width
-                                   - incrDims.width - decrDims.width,
-                                   tabAreaRect.y, decrDims.width,
-                                   tabAreaRect.height);
-              incrButton.setBounds(tabAreaRect.x + tabAreaRect.width
-                                   - incrDims.width, tabAreaRect.y,
-                                   decrDims.width, tabAreaRect.height);
-
+              if (tabPlacement == SwingConstants.BOTTOM)
+                {
+                  // Align scroll buttons with the bottom border of the tabbed
+                  // pane's content area.
+                  decrButton.setBounds(tabAreaRect.x + tabAreaRect.width
+                                       - incrDims.width - decrDims.width,
+                                       tabAreaRect.y, decrDims.width,
+                                       decrDims.height);
+                  incrButton.setBounds(tabAreaRect.x + tabAreaRect.width
+                                       - incrDims.width, tabAreaRect.y,
+                                       incrDims.width, incrDims.height);
+                }
+              else
+                {
+                  // Align scroll buttons with the top border of the tabbed
+                  // pane's content area.
+                  decrButton.setBounds(tabAreaRect.x + tabAreaRect.width
+                                       - incrDims.width - decrDims.width,
+                                       tabAreaRect.y + tabAreaRect.height
+                                       - decrDims.height, decrDims.width,
+                                       decrDims.height);
+                  incrButton.setBounds(tabAreaRect.x + tabAreaRect.width
+                                       - incrDims.width,
+                                       tabAreaRect.y + tabAreaRect.height
+                                       - incrDims.height,
+                                       incrDims.width, incrDims.height);
+                }
+              
               tabAreaRect.width -= decrDims.width + incrDims.width;
-              incrButton.show();
-              decrButton.show();
+              
+              updateButtons();
+              
+              incrButton.setVisible(true);
+              decrButton.setVisible(true);
+            }
+          else
+            {
+              incrButton.setVisible(false);
+              decrButton.setVisible(false);
+              
+              currentScrollOffset = 0;
+              currentScrollLocation = 0;
             }
         }
 
@@ -1082,34 +1393,54 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
               Dimension incrDims = incrButton.getPreferredSize();
               Dimension decrDims = decrButton.getPreferredSize();
 
-              decrButton.setBounds(tabAreaRect.x,
-                                   tabAreaRect.y + tabAreaRect.height
-                                   - incrDims.height - decrDims.height,
-                                   tabAreaRect.width, decrDims.height);
-              incrButton.setBounds(tabAreaRect.x,
-                                   tabAreaRect.y + tabAreaRect.height
-                                   - incrDims.height, tabAreaRect.width,
-                                   incrDims.height);
+              if (tabPlacement == SwingConstants.RIGHT)
+                {
+                  // Align scroll buttons with the right border of the tabbed
+                  // pane's content area.
+                  decrButton.setBounds(tabAreaRect.x,
+                                       tabAreaRect.y + tabAreaRect.height
+                                       - incrDims.height - decrDims.height,
+                                       decrDims.width, decrDims.height);
+                  incrButton.setBounds(tabAreaRect.x,
+                                       tabAreaRect.y + tabAreaRect.height
+                                       - incrDims.height, incrDims.width,
+                                       incrDims.height);
+                }
+              else
+                {
+                  // Align scroll buttons with the left border of the tabbed
+                  // pane's content area.
+                  decrButton.setBounds(tabAreaRect.x + tabAreaRect.width
+                                       - decrDims.width,
+                                       tabAreaRect.y + tabAreaRect.height
+                                       - incrDims.height - decrDims.height,
+                                       decrDims.width, decrDims.height);
+                  incrButton.setBounds(tabAreaRect.x + tabAreaRect.width
+                                       - incrDims.width,
+                                       tabAreaRect.y + tabAreaRect.height
+                                       - incrDims.height, incrDims.width,
+                                       incrDims.height);
+                }
 
               tabAreaRect.height -= decrDims.height + incrDims.height;
-              incrButton.show();
-              decrButton.show();
+
+              incrButton.setVisible(true);
+              decrButton.setVisible(true);
+            }
+          else
+            {
+              incrButton.setVisible(false);
+              decrButton.setVisible(false);
+
+              currentScrollOffset = 0;
+              currentScrollLocation = 0;
             }
         }
       viewport.setBounds(tabAreaRect.x, tabAreaRect.y, tabAreaRect.width,
                          tabAreaRect.height);
-      int tabC = tabPane.getTabCount() - 1;
-      if (tabCount > 0)
-        {
-          int w = Math.max(rects[tabC].width + rects[tabC].x, tabAreaRect.width);
-          int h = Math.max(rects[tabC].height, tabAreaRect.height);
-          p = findPointForIndex(currentScrollLocation);
-          
-          // we want to cover that entire space so that borders that run under
-          // the tab area don't show up when we move the viewport around.
-          panel.setSize(w + p.x, h + p.y);
-        }
-      viewport.setViewPosition(p);
+      
+      updateViewPosition();
+      
       viewport.repaint();
     }
   }
@@ -1133,7 +1464,9 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
     {
       selectedRun = getRunForTab(tabPane.getTabCount(),
                                  tabPane.getSelectedIndex());
-      tabPane.revalidate();
+      
+      if (tabPane.getTabLayoutPolicy() == JTabbedPane.WRAP_TAB_LAYOUT)
+        tabPane.revalidate();
       tabPane.repaint();
     }
   }
@@ -1159,7 +1492,17 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
        */
       public void paint(Graphics g, JComponent c)
       {
-        paintTabArea(g, tabPane.getTabPlacement(), tabPane.getSelectedIndex());
+        int placement = tabPane.getTabPlacement();
+        g.setColor(highlight);
+        if (placement == SwingUtilities.TOP
+            || placement == SwingUtilities.BOTTOM)
+          g.fillRect(currentScrollOffset, 0,
+                     tabAreaRect.width, tabAreaRect.height);
+        else
+          g.fillRect(0, currentScrollOffset,
+                     tabAreaRect.width, tabAreaRect.height);
+    
+        paintTabArea(g, placement, tabPane.getSelectedIndex());
       }
     }
 
@@ -1220,6 +1563,8 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
   /** The starting visible tab in the run in SCROLL_TAB_MODE.
    * This is package-private to avoid an accessor method.  */
   transient int currentScrollLocation;
+  
+  transient int currentScrollOffset;
 
   /** A reusable rectangle. */
   protected Rectangle calcRect;
@@ -1275,17 +1620,18 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
   /** The gap between text and label */
   protected int textIconGap;
 
-  // Keeps track of tab runs.
-  // The organization of this array is as follows (lots of experimentation to
-  // figure this out)
-  // index 0 = furthest away from the component area (aka outer run)
-  // index 1 = closest to component area (aka selected run)
-  // index > 1 = listed in order leading from selected run to outer run.
-  // each int in the array is the tab index + 1 (counting starts at 1)
-  // for the last tab in the run. (same as the rects array)
-
-  /** This array keeps track of which tabs are in which run. See above. */
+  /** This array keeps track of which tabs are in which run.
+   * <p>The value at index i denotes the index of the first tab in run i.</p>
+   * <p>If the value for any index (i > 0) is 0 then (i - 1) is the last
+   * run.</p>
+   */
   protected int[] tabRuns;
+
+  /**
+   * Indicates if the layout of the tab runs is ok or not. This is package
+   * private to avoid a synthetic accessor method.
+   */
+  boolean tabRunsDirty;
 
   /**
    * This is the keystroke for moving down.
@@ -1343,11 +1689,35 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
   transient Rectangle contentRect;
 
   /**
+   * The index over which the mouse is currently moving.
+   */
+  private int rolloverTab;
+
+  /**
+   * Determines if tabs are painted opaque or not. This can be adjusted using
+   * the UIManager property 'TabbedPane.tabsOpaque'.
+   */
+  private boolean tabsOpaque;
+
+  /**
+   * The currently visible component.
+   */
+  private Component visibleComponent;
+  
+  private Color selectedColor;
+  
+  private Rectangle tempTextRect = new Rectangle();
+  
+  private Rectangle tempIconRect = new Rectangle();
+  
+  /**
    * Creates a new BasicTabbedPaneUI object.
    */
   public BasicTabbedPaneUI()
   {
     super();
+    rects = new Rectangle[0];
+    tabRuns = new int[10];
   }
 
   /**
@@ -1428,7 +1798,114 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
     Point p = new Point(w, h);
     return p;
   }
+  
+  /** TabbedPanes in scrolling mode should use this method to
+   * scroll properly to the tab given by the index argument.
+   * 
+   * @param index The tab to scroll to.
+   * @param placement The tab's placement.
+   */
+  final void scrollTab(int index, int placement)
+  {
+    int diff;
+    if (index >= 0 && tabPane.isEnabledAt(index))
+      {
+        // If the user clicked on the last tab and that one was
+        // only partially visible shift the scroll offset to make
+        // it completely visible.
+        switch (placement)
+          {
+            case JTabbedPane.TOP:
+            case JTabbedPane.BOTTOM:                   
+              if ((diff = rects[index].x
+                  + rects[index].width
+                  - decrButton.getX() - currentScrollOffset) > 0)
+                currentScrollOffset += diff;
+              else if ((diff = rects[index].x - currentScrollOffset) < 0)
+                {
+                  if (index == 0)
+                    currentScrollOffset = 0;
+                  else
+                    currentScrollOffset += diff;
+                }
 
+              currentScrollLocation = tabForCoordinate(tabPane,
+                                                       currentScrollOffset,
+                                                       rects[index].y);
+              break;
+            default:
+              if ((diff = rects[index].y + rects[index].height
+                  - decrButton.getY() - currentScrollOffset) > 0)
+                currentScrollOffset += diff;
+              else if ((diff = rects[index].y - currentScrollOffset) < 0)
+                {
+                  if (index == 0)
+                    currentScrollOffset = 0;
+                  else
+                    currentScrollOffset += diff;
+                }
+  
+              currentScrollLocation = tabForCoordinate(tabPane,
+                                                       rects[index].x,
+                                                       currentScrollOffset);
+          }
+    
+        updateViewPosition();
+        updateButtons();
+      }
+  }
+  
+  /** Sets the enabled state of the increase and decrease button
+   * according to the current scrolling offset and tab pane width
+   * (or height in TOP/BOTTOM placement).
+   */
+  final void updateButtons()
+  {
+    int tc = tabPane.getTabCount();
+    
+    // The increase button should be enabled as long as the
+    // right/bottom border of the last tab is under the left/top
+    // border of the decrease button.
+    switch (tabPane.getTabPlacement())
+    {
+      case JTabbedPane.BOTTOM:
+      case JTabbedPane.TOP:
+        incrButton.setEnabled(currentScrollLocation + 1 < tc
+                              && rects[tc-1].x + rects[tc-1].width
+                              - currentScrollOffset > decrButton.getX());
+        break;
+      default:
+        incrButton.setEnabled(currentScrollLocation + 1 < tc
+                              && rects[tc-1].y + rects[tc-1].height
+                              - currentScrollOffset > decrButton.getY());
+    }
+
+    // The decrease button is enabled when the tab pane is scrolled in any way.
+    decrButton.setEnabled(currentScrollOffset > 0);
+
+  }
+
+  /**
+   * Updates the position of the scrolling viewport's view
+   * according to the current scroll offset.
+   */
+  final void updateViewPosition()
+  {
+    Point p = viewport.getViewPosition();
+  
+    switch (tabPane.getTabPlacement())
+    {
+      case JTabbedPane.LEFT:
+      case JTabbedPane.RIGHT:
+        p.y = currentScrollOffset;
+        break;
+      default:
+        p.x = currentScrollOffset;
+    }
+    
+    viewport.setViewPosition(p);
+  }
+  
   /**
    * This method creates a new BasicTabbedPaneUI.
    *
@@ -1460,7 +1937,6 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
         
         layoutManager = createLayoutManager();
         tabPane.setLayout(layoutManager);
-        tabPane.layout();
       }
   }
 
@@ -1495,22 +1971,30 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
       return new TabbedPaneLayout();
     else
       {
+        runCount = 1;
+        tabRuns[0] = 0;
+        
         incrButton = createIncreaseButton();
+        incrButton.addMouseListener(mouseListener);
+
         decrButton = createDecreaseButton();
-        viewport = new ScrollingViewport();
-        viewport.setLayout(null);
+        decrButton.addMouseListener(mouseListener);
+        decrButton.setEnabled(false);
+
         panel = new ScrollingPanel();
+        panel.setSize(Integer.MAX_VALUE, Integer.MAX_VALUE);
+        panel.addMouseListener(mouseListener);
+        panel.addFocusListener(focusListener);
+        
+        viewport = new ScrollingViewport();
+        viewport.setBackground(Color.LIGHT_GRAY);
         viewport.setView(panel);
+        viewport.setLayout(null);
+        
         tabPane.add(incrButton);
         tabPane.add(decrButton);
         tabPane.add(viewport);
-        currentScrollLocation = 0;
-        decrButton.setEnabled(false);
-        panel.addMouseListener(mouseListener);
-        incrButton.addMouseListener(mouseListener);
-        decrButton.addMouseListener(mouseListener);
-        viewport.setBackground(Color.LIGHT_GRAY);
-
+        
         return new TabbedPaneScrollLayout();
       }
   }
@@ -1528,7 +2012,14 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
    */
   protected void uninstallComponents()
   {
-    // Nothing to be done.
+    if (incrButton != null)
+      tabPane.remove(incrButton);
+    
+    if (decrButton != null)
+      tabPane.remove(decrButton);
+
+    if (viewport != null)
+      tabPane.remove(viewport);
   }
 
   /**
@@ -1541,8 +2032,8 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
                                      "TabbedPane.font");
     tabPane.setOpaque(false);
 
-    highlight = UIManager.getColor("TabbedPane.highlight");
-    lightHighlight = UIManager.getColor("TabbedPane.lightHighlight");
+    lightHighlight = UIManager.getColor("TabbedPane.highlight");
+    highlight = UIManager.getColor("TabbedPane.light");
 
     shadow = UIManager.getColor("TabbedPane.shadow");
     darkShadow = UIManager.getColor("TabbedPane.darkShadow");
@@ -1552,10 +2043,19 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
     textIconGap = UIManager.getInt("TabbedPane.textIconGap");
     tabRunOverlay = UIManager.getInt("TabbedPane.tabRunOverlay");
 
-    tabInsets = UIManager.getInsets("TabbedPane.tabbedPaneTabInsets");
-    selectedTabPadInsets = UIManager.getInsets("TabbedPane.tabbedPaneTabPadInsets");
-    tabAreaInsets = UIManager.getInsets("TabbedPane.tabbedPaneTabAreaInsets");
-    contentBorderInsets = UIManager.getInsets("TabbedPane.tabbedPaneContentBorderInsets");
+    tabInsets = UIManager.getInsets("TabbedPane.tabInsets");
+    selectedTabPadInsets
+      = UIManager.getInsets("TabbedPane.selectedTabPadInsets");
+    tabAreaInsets = UIManager.getInsets("TabbedPane.tabAreaInsets");
+    contentBorderInsets
+      = UIManager.getInsets("TabbedPane.contentBorderInsets");
+    tabsOpaque = UIManager.getBoolean("TabbedPane.tabsOpaque");
+    
+    // Although 'TabbedPane.contentAreaColor' is not defined in the defaults
+    // of BasicLookAndFeel it is used by this class.
+    selectedColor = UIManager.getColor("TabbedPane.contentAreaColor");
+    if (selectedColor == null)
+      selectedColor = UIManager.getColor("control");
 
     calcRect = new Rectangle();
     tabRuns = new int[10];
@@ -1572,6 +2072,9 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
     tabAreaRect = null;
     contentRect = null;
     tabRuns = null;
+    
+    tempIconRect = null;
+    tempTextRect = null;
 
     contentBorderInsets = null;
     tabAreaInsets = null;
@@ -1583,10 +2086,8 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
     shadow = null;
     lightHighlight = null;
     highlight = null;
-
-    tabPane.setBackground(null);
-    tabPane.setForeground(null);
-    tabPane.setFont(null);
+    
+    selectedColor = null;
   }
 
   /**
@@ -1614,6 +2115,18 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
     tabPane.removePropertyChangeListener(propertyChangeListener);
     tabPane.removeChangeListener(tabChangeListener);
     tabPane.removeMouseListener(mouseListener);
+    
+    if (incrButton != null)
+      incrButton.removeMouseListener(mouseListener);
+    
+    if (decrButton != null)
+      decrButton.removeMouseListener(mouseListener);
+    
+    if (panel != null)
+      {
+        panel.removeMouseListener(mouseListener);
+        panel.removeFocusListener(focusListener);
+      }
 
     focusListener = null;
     propertyChangeListener = null;
@@ -1666,7 +2179,17 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
    */
   protected void installKeyboardActions()
   {
-    // FIXME: Implement.
+    InputMap keyMap = (InputMap) UIManager.get("TabbedPane.focusInputMap");
+    SwingUtilities.replaceUIInputMap(tabPane, JComponent.WHEN_FOCUSED, keyMap);
+
+    keyMap = (InputMap) UIManager.get("TabbedPane.ancestorInputMap");
+    SwingUtilities
+      .replaceUIInputMap(tabPane,
+                         JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT,
+                         keyMap);
+    
+    ActionMap map = getActionMap();
+    SwingUtilities.replaceUIActionMap(tabPane, map);
   }
 
   /**
@@ -1674,7 +2197,12 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
    */
   protected void uninstallKeyboardActions()
   {
-    // FIXME: Implement.
+    SwingUtilities.replaceUIActionMap(tabPane, null);
+    SwingUtilities.replaceUIInputMap(tabPane, JComponent.WHEN_FOCUSED, null);
+    SwingUtilities
+      .replaceUIInputMap(tabPane,
+                         JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT,
+                         null);
   }
 
   /**
@@ -1709,11 +2237,30 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
    */
   public void paint(Graphics g, JComponent c)
   {
+    if (!tabPane.isValid())
+      tabPane.validate();
+
     if (tabPane.getTabCount() == 0)
       return;
+    
+    int index = tabPane.getSelectedIndex();
+    if (index < 0)
+      index = 0;
+    
+    int tabPlacement = tabPane.getTabPlacement();
+
+    // Paint the tab area only in WRAP_TAB_LAYOUT Mode from this method
+    // because it is done through the ScrollingViewport.paint() method
+    // for the SCROLL_TAB_LAYOUT mode.
     if (tabPane.getTabLayoutPolicy() == JTabbedPane.WRAP_TAB_LAYOUT)
-      paintTabArea(g, tabPane.getTabPlacement(), tabPane.getSelectedIndex());
-    paintContentBorder(g, tabPane.getTabPlacement(), tabPane.getSelectedIndex());
+      {
+        g.setColor(highlight);
+        g.fillRect(tabAreaRect.x, tabAreaRect.y,
+                   tabAreaRect.width, tabAreaRect.height);
+        paintTabArea(g, tabPlacement, index);
+      }
+    
+    paintContentBorder(g, tabPlacement, index);
   }
 
   /**
@@ -1726,54 +2273,35 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
    */
   protected void paintTabArea(Graphics g, int tabPlacement, int selectedIndex)
   {
-    Rectangle ir = new Rectangle();
-    Rectangle tr = new Rectangle();
-
-    boolean isScroll = tabPane.getTabLayoutPolicy() == JTabbedPane.SCROLL_TAB_LAYOUT;
-
     // Please note: the ordering of the painting is important. 
     // we WANT to paint the outermost run first and then work our way in.
+    
+    // The following drawing code works for both tab layouts.
     int tabCount = tabPane.getTabCount();
-    int currRun = 1;
-    
-    if (tabCount > runCount)
-      runCount = tabCount;
-    
-    if (tabCount < 1)
-      return;
-    
-    if (runCount > 1)
-      currRun = 0;    
-    for (int i = 0; i < runCount; i++)
+
+    for (int i = runCount - 1; i >= 0; --i)
       {
-        int first = lastTabInRun(tabCount, getPreviousTabRun(currRun)) + 1;
-        if (isScroll)
-          first = currentScrollLocation;
-        else if (first == tabCount)
-          first = 0;
-        int last = lastTabInRun(tabCount, currRun);
-        if (isScroll)
+        int start = tabRuns[i];
+        int next;
+        if (i == runCount - 1)
+          next = tabRuns[0];
+        else
+          next = tabRuns[i + 1];
+        int end = next != 0 ? next - 1 : tabCount - 1;
+        for (int j = start; j <= end; ++j)
           {
-            for (int k = first; k < tabCount; k++)
+            if (j != selectedIndex)
               {
-                if (rects[k].x + rects[k].width - rects[first].x > viewport
-                    .getWidth())
-                  {
-                    last = k;
-                    break;
-                  }
+                paintTab(g, tabPlacement, rects, j,
+                         tempIconRect, tempTextRect);
               }
           }
-
-        for (int j = first; j <= last; j++)
-          {
-            if (j != selectedIndex || isScroll)
-              paintTab(g, tabPlacement, rects, j, ir, tr);
-          }
-        currRun = getPreviousTabRun(currRun);
       }
-    if (! isScroll)
-      paintTab(g, tabPlacement, rects, selectedIndex, ir, tr);
+    
+    // Paint selected tab in front of every other tab.
+    if (selectedIndex >= 0)
+      paintTab(g, tabPlacement, rects, selectedIndex,
+               tempIconRect, tempTextRect);
   }
 
   /**
@@ -1790,49 +2318,36 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
   protected void paintTab(Graphics g, int tabPlacement, Rectangle[] rects,
                           int tabIndex, Rectangle iconRect, Rectangle textRect)
   {
+    Rectangle rect = rects[tabIndex];
+    boolean isSelected = tabIndex == tabPane.getSelectedIndex();
+    // Paint background if necessary.
+    if (tabsOpaque || tabPane.isOpaque())
+      {
+        paintTabBackground(g, tabPlacement, tabIndex, rect.x, rect.y,
+                           rect.width, rect.height, isSelected);
+      }
+
+    // Paint border.
+    paintTabBorder(g, tabPlacement, tabIndex, rect.x, rect.y, rect.width,
+                   rect.height, isSelected);
+
+
+    // Layout label.
     FontMetrics fm = getFontMetrics();
     Icon icon = getIconForTab(tabIndex);
     String title = tabPane.getTitleAt(tabIndex);
-    boolean isSelected = tabIndex == tabPane.getSelectedIndex();
-    calcRect = getTabBounds(tabPane, tabIndex);
-
-    int x = calcRect.x;
-    int y = calcRect.y;
-    int w = calcRect.width;
-    int h = calcRect.height;
-    if (getRunForTab(tabPane.getTabCount(), tabIndex) == 1)
-      {
-        Insets insets = getTabAreaInsets(tabPlacement);
-        switch (tabPlacement)
-        {
-        case TOP:
-          h += insets.bottom;
-          break;
-        case LEFT:
-          w += insets.right;
-          break;
-        case BOTTOM:
-          y -= insets.top;
-          h += insets.top;
-          break;
-        case RIGHT:
-          x -= insets.left;
-          w += insets.left;
-          break;
-        }
-      }
-
-    layoutLabel(tabPlacement, fm, tabIndex, title, icon, calcRect, iconRect,
+    layoutLabel(tabPlacement, fm, tabIndex, title, icon, rect, iconRect,
                 textRect, isSelected);
-    paintTabBackground(g, tabPlacement, tabIndex, x, y, w, h, isSelected);
-    paintTabBorder(g, tabPlacement, tabIndex, x, y, w, h, isSelected);
-
-    // FIXME: Paint little folding corner and jagged edge clipped tab.
-    if (icon != null)
-      paintIcon(g, tabPlacement, tabIndex, icon, iconRect, isSelected);
-    if (title != null && ! title.equals(""))
-      paintText(g, tabPlacement, tabPane.getFont(), fm, tabIndex, title,
-                textRect, isSelected);
+    // Paint the text.
+    paintText(g, tabPlacement, tabPane.getFont(), fm, tabIndex, title,
+              textRect, isSelected);
+    
+    // Paint icon if necessary.
+    paintIcon(g, tabPlacement, tabIndex, icon, iconRect, isSelected);
+    
+    // Paint focus indicator.
+    paintFocusIndicator(g, tabPlacement, rects, tabIndex, iconRect, textRect,
+                        isSelected);
   }
 
   /**
@@ -1884,7 +2399,8 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
   protected void paintIcon(Graphics g, int tabPlacement, int tabIndex,
                            Icon icon, Rectangle iconRect, boolean isSelected)
   {
-    icon.paintIcon(tabPane, g, iconRect.x, iconRect.y);
+    if (icon != null)
+      icon.paintIcon(tabPane, g, iconRect.x, iconRect.y);
   }
 
   /**
@@ -1903,6 +2419,7 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
                            FontMetrics metrics, int tabIndex, String title,
                            Rectangle textRect, boolean isSelected)
   {
+    g.setFont(font);
     View textView = getTextViewForTab(tabIndex);
     if (textView != null)
       {
@@ -1910,54 +2427,48 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
         return;
       }
 
-    Color fg = tabPane.getForegroundAt(tabIndex);
-    if (fg == null)
-      fg = tabPane.getForeground();
-    Color bg = tabPane.getBackgroundAt(tabIndex);
-    if (bg == null)
-      bg = tabPane.getBackground();
+    int ascent = metrics.getAscent();
 
-    Color saved_color = g.getColor();
-    Font f = g.getFont();
-    g.setFont(font);
-
-    if (tabPane.isEnabledAt(tabIndex))
+    int mnemIndex = tabPane.getDisplayedMnemonicIndexAt(tabIndex);
+    if (tabPane.isEnabled() && tabPane.isEnabledAt(tabIndex))
       {
+        Color fg = tabPane.getForegroundAt(tabIndex);
+        if (isSelected && (fg instanceof UIResource))
+          {
+            Color selectionForeground =
+              UIManager.getColor("TabbedPane.selectionForeground");
+            if (selectionForeground != null)
+              fg = selectionForeground;
+          }
         g.setColor(fg);
-
-        int mnemIndex = tabPane.getDisplayedMnemonicIndexAt(tabIndex);
 
         if (mnemIndex != -1)
           BasicGraphicsUtils.drawStringUnderlineCharAt(g, title, mnemIndex,
                                                        textRect.x,
-                                                       textRect.y
-                                                       + metrics.getAscent());
+                                                       textRect.y + ascent);
         else
-          g.drawString(title, textRect.x, textRect.y + metrics.getAscent());
+          g.drawString(title, textRect.x, textRect.y + ascent);
       }
     else
       {
+        Color bg = tabPane.getBackgroundAt(tabIndex);
         g.setColor(bg.brighter());
-
-        int mnemIndex = tabPane.getDisplayedMnemonicIndexAt(tabIndex);
-
         if (mnemIndex != -1)
           BasicGraphicsUtils.drawStringUnderlineCharAt(g, title, mnemIndex,
-                                                       textRect.x, textRect.y);
+                                                       textRect.x, textRect.y
+                                                       + ascent);
         else
-          g.drawString(title, textRect.x, textRect.y);
+          g.drawString(title, textRect.x, textRect.y + ascent);
 
         g.setColor(bg.darker());
         if (mnemIndex != -1)
           BasicGraphicsUtils.drawStringUnderlineCharAt(g, title, mnemIndex,
                                                        textRect.x + 1,
-                                                       textRect.y + 1);
+                                                       textRect.y + 1
+                                                       + ascent);
         else
-          g.drawString(title, textRect.x + 1, textRect.y + 1);
+          g.drawString(title, textRect.x + 1, textRect.y + 1 + ascent);
       }
-
-    g.setColor(saved_color);
-    g.setFont(f);
   }
 
   /**
@@ -1973,8 +2484,17 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
   protected int getTabLabelShiftX(int tabPlacement, int tabIndex,
                                   boolean isSelected)
   {
-    // No reason to shift.
-    return 0;
+    switch (tabPlacement)
+    {
+      default:
+      case SwingUtilities.TOP:
+      case SwingUtilities.BOTTOM:
+        return 1;
+      case SwingUtilities.LEFT:
+        return (isSelected) ? -1 : 1;
+      case SwingUtilities.RIGHT:
+        return (isSelected) ? 1 : -1;
+    }
   }
 
   /**
@@ -1990,8 +2510,17 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
   protected int getTabLabelShiftY(int tabPlacement, int tabIndex,
                                   boolean isSelected)
   {
-    // No reason to shift.
-    return 0;
+    switch (tabPlacement)
+    {
+      default:
+      case SwingUtilities.TOP:
+        return (isSelected) ? -1 : 1;
+      case SwingUtilities.BOTTOM:
+        return (isSelected) ? 1 : -1;
+      case SwingUtilities.LEFT:
+      case SwingUtilities.RIGHT:
+        return 0;
+    }
   }
 
   /**
@@ -2010,14 +2539,46 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
                                      Rectangle iconRect, Rectangle textRect,
                                      boolean isSelected)
   {
-    Color saved = g.getColor();
-    calcRect = iconRect.union(textRect);
+    if (tabPane.hasFocus() && isSelected)
+      {
+        Rectangle rect = rects[tabIndex];
+        // The focus rectangle.
+        int x;
+        int y;
+        int w;
+        int h;
 
-    g.setColor(focus);
-
-    g.drawRect(calcRect.x, calcRect.y, calcRect.width, calcRect.height);
-
-    g.setColor(saved);
+        g.setColor(focus);
+        switch (tabPlacement)
+          {
+          case LEFT:
+            x = rect.x + 3;
+            y = rect.y + 3;
+            w = rect.width - 5;
+            h = rect.height - 6;
+            break;
+          case RIGHT:
+            x = rect.x + 2;
+            y = rect.y + 3;
+            w = rect.width - 6;
+            h = rect.height - 5;
+            break;
+          case BOTTOM:
+            x = rect.x + 3;
+            y = rect.y + 2;
+            w = rect.width - 6;
+            h = rect.height - 5;
+            break;
+          case TOP:
+          default:
+            x = rect.x + 3;
+            y = rect.y + 3;
+            w = rect.width - 6;
+            h = rect.height - 5;
+          }
+        
+        BasicGraphicsUtils.drawDashedRect(g, x, y, w, h);
+      }
   }
 
   /**
@@ -2037,34 +2598,109 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
   {
     Color saved = g.getColor();
 
-    if (! isSelected || tabPlacement != SwingConstants.TOP)
-      {
+    switch (tabPlacement)
+    {
+      case SwingConstants.TOP:
         g.setColor(shadow);
-        g.drawLine(x + 1, y + h - 1, x + w - 1, y + h - 1);
-        g.setColor(darkShadow);
-        g.drawLine(x, y + h, x + w, y + h);
-      }
+        // Inner right line.
+        g.drawLine(x + w - 2, y + 2, x + w - 2, y + h);
 
-    if (! isSelected || tabPlacement != SwingConstants.LEFT)
-      {
         g.setColor(darkShadow);
-        g.drawLine(x + w, y, x + w, y + h);
+        // Outer right line.
+        g.drawLine(x + w - 1, y + 2, x + w - 1, y + h);
+        
+        // Upper right corner.
+        g.drawLine(x + w - 2, y + 1, x + w - 1, y + 2);
+            
+        g.setColor(lightHighlight);
+        
+        // Left line.
+        g.drawLine(x, y + 3, x, y + h);
+            
+        // Upper line.
+        g.drawLine(x + 3, y, x + w - 3, y);
+            
+        // Upper left corner.
+        g.drawLine(x, y + 2, x + 2, y);
+        
+        break;
+      case SwingConstants.LEFT:
+        g.setColor(lightHighlight);
+        // Top line.
+        g.drawLine(x + 3, y, x + w - 1, y);
+        
+        // Top left border.
+        g.drawLine(x + 2, y, x, y + 2);
+        
+        // Left line.
+        g.drawLine(x, y + 3, x, y + h - 4);
+        
+        // Bottom left corner.
+        g.drawLine(x, y + h - 3, x + 1, y + h - 2);
+        
+        g.setColor(darkShadow);
+        // Outer bottom line.
+        g.drawLine(x + 2, y + h - 1, x + w - 1, y + h - 1);
+        
         g.setColor(shadow);
-        g.drawLine(x + w - 1, y + 1, x + w - 1, y + h - 1);
-      }
+        // Inner bottom line.
+        g.drawLine(x + 2, y + h - 2,  x + w - 1, y + h - 2);
+        
+        break;
+      case SwingConstants.BOTTOM:
+        g.setColor(shadow);
+        // Inner right line.
+        g.drawLine(x + w - 2, y, x + w - 2, y + h - 2);
 
-    if (! isSelected || tabPlacement != SwingConstants.RIGHT)
-      {
+        // Inner bottom line.
+        g.drawLine(x + 2, y + h - 1, x + w - 3, y + h - 1);
+
+        g.setColor(darkShadow);
+        // Outer right line.
+        g.drawLine(x + w - 1, y, x + w - 1, y + h - 3);
+            
+        // Bottom right corner.
+        g.drawLine(x + w - 1, y + h - 2, x + w - 3, y + h);
+            
+        // Bottom line.
+        g.drawLine(x + 2, y + h, x + w - 4, y + h);
+            
         g.setColor(lightHighlight);
-        g.drawLine(x, y, x, y + h);
-      }
-
-    if (! isSelected || tabPlacement != SwingConstants.BOTTOM)
-      {
+        // Left line.
+        g.drawLine(x, y, x, y + h - 3);
+            
+        // Bottom left corner.
+        g.drawLine(x, y + h - 2, x + 1, y + h - 1);
+        break;
+      case SwingConstants.RIGHT:
         g.setColor(lightHighlight);
-        g.drawLine(x, y, x + w, y);
-      }
-
+        // Top line.
+        g.drawLine(x, y, x + w - 3, y);
+        
+        g.setColor(darkShadow);
+        // Top right corner.
+        g.drawLine(x + w - 2, y + 1, x + w - 1, y + 2);
+        
+        // Outer right line.
+        g.drawLine(x + w - 1, y + 3, x + w - 1, y + h - 3);
+        
+        // Bottom right corner.
+        g.drawLine(x + w - 2, y + h - 2, x + w - 3, y + h - 1);
+        
+        // Bottom line.
+        g.drawLine(x, y + h - 1, x + w - 4, y + h - 1);
+        
+        g.setColor(shadow);
+        
+        // Inner right line.
+        g.drawLine(x + w - 2, y + 2, x + w - 2, y + h - 3);
+        
+        // Inner bottom line.
+        g.drawLine(x, y + h - 2, x + w - 3, y + h - 2);
+        
+        break;
+    }
+    
     g.setColor(saved);
   }
 
@@ -2085,17 +2721,32 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
                                     boolean isSelected)
   {
     Color saved = g.getColor();
+    
     if (isSelected)
-      g.setColor(Color.LIGHT_GRAY);
+      g.setColor(selectedColor);
     else
       {
         Color bg = tabPane.getBackgroundAt(tabIndex);
         if (bg == null)
-          bg = Color.GRAY;
+          bg = Color.LIGHT_GRAY;
         g.setColor(bg);
       }
 
-    g.fillRect(x, y, w, h);
+    switch (tabPlacement)
+      {
+        case SwingConstants.TOP:
+          g.fillRect(x + 1, y + 1, w - 1, h - 1);
+          break;
+        case SwingConstants.BOTTOM:
+          g.fillRect(x, y, w - 1, h - 1);
+          break;
+        case SwingConstants.LEFT:
+          g.fillRect(x + 1, y + 1, w - 1, h - 2);
+          break;
+        case SwingConstants.RIGHT:
+          g.fillRect(x, y + 1, w - 1, h - 2);
+          break;
+      }
 
     g.setColor(saved);
   }
@@ -2110,11 +2761,44 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
   protected void paintContentBorder(Graphics g, int tabPlacement,
                                     int selectedIndex)
   {
-    Insets insets = getContentBorderInsets(tabPlacement);
-    int x = contentRect.x;
-    int y = contentRect.y;
-    int w = contentRect.width;
-    int h = contentRect.height;
+    int width = tabPane.getWidth();
+    int height = tabPane.getHeight();
+    Insets insets = tabPane.getInsets();
+    Insets tabAreaInsets = getTabAreaInsets(tabPlacement);
+
+    // Calculate coordinates of content area.
+    int x = insets.left;
+    int y = insets.top;
+    int w = width - insets.left - insets.right;
+    int h = height - insets.top - insets.bottom;
+
+    switch (tabPlacement)
+    {
+    case LEFT:
+      x += calculateTabAreaWidth(tabPlacement, runCount, maxTabWidth);
+      w -= x - insets.left;
+      break;
+    case RIGHT:
+      w -= calculateTabAreaWidth(tabPlacement, runCount, maxTabWidth);
+      break;
+    case BOTTOM:
+      h -= calculateTabAreaHeight(tabPlacement, runCount, maxTabHeight);
+      break;
+    case TOP:
+    default:
+      y += calculateTabAreaHeight(tabPlacement, runCount, maxTabHeight);
+      h -= y - insets.top;
+    }
+
+    // Fill background if necessary.
+    if (tabPane.isOpaque())
+      {
+        Color bg = UIManager.getColor("TabbedPane.contentAreaColor");
+        g.setColor(bg);
+        g.fillRect(x, y, w, h);
+      }
+
+    // Paint border.
     paintContentBorderTopEdge(g, tabPlacement, selectedIndex, x, y, w, h);
     paintContentBorderLeftEdge(g, tabPlacement, selectedIndex, x, y, w, h);
     paintContentBorderBottomEdge(g, tabPlacement, selectedIndex, x, y, w, h);
@@ -2139,25 +2823,27 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
     Color saved = g.getColor();
     g.setColor(lightHighlight);
 
-    int startgap = rects[selectedIndex].x;
-    int endgap = rects[selectedIndex].x + rects[selectedIndex].width;
+    int startgap = rects[selectedIndex].x - currentScrollOffset;
+    int endgap = rects[selectedIndex].x + rects[selectedIndex].width
+                 - currentScrollOffset;
 
-    int diff = 0;
-
-    if (tabPlacement == SwingConstants.TOP)
+    // Paint the highlight line with a gap if the tabs are at the top
+    // and the selected tab is inside the visible area.
+    if (tabPlacement == SwingConstants.TOP && startgap >= 0)
       {
-        if (tabPane.getTabLayoutPolicy() == JTabbedPane.SCROLL_TAB_LAYOUT)
-          {
-            Point p = findPointForIndex(currentScrollLocation);
-            diff = p.x;
-          }
-
-        g.drawLine(x, y, startgap - diff, y);
-        g.drawLine(endgap - diff, y, x + w, y);
+        g.drawLine(x, y, startgap, y);
+        g.drawLine(endgap, y, x + w - 1, y);
+        
+        g.setColor(selectedColor);
+        g.drawLine(startgap, y, endgap - 1, y);
       }
     else
       g.drawLine(x, y, x + w, y);
-
+    
+    g.setColor(selectedColor);
+    g.drawLine(x, y + 1, x + w - 1, y + 1);
+    g.drawLine(x, y + 2, x + w - 1, y + 2);
+    
     g.setColor(saved);
   }
 
@@ -2179,24 +2865,25 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
     Color saved = g.getColor();
     g.setColor(lightHighlight);
 
-    int startgap = rects[selectedIndex].y;
-    int endgap = rects[selectedIndex].y + rects[selectedIndex].height;
+    int startgap = rects[selectedIndex].y - currentScrollOffset;
+    int endgap = rects[selectedIndex].y + rects[selectedIndex].height
+                 - currentScrollOffset;
 
     int diff = 0;
 
-    if (tabPlacement == SwingConstants.LEFT)
+    if (tabPlacement == SwingConstants.LEFT && startgap >= 0)
       {
-        if (tabPane.getTabLayoutPolicy() == JTabbedPane.SCROLL_TAB_LAYOUT)
-          {
-            Point p = findPointForIndex(currentScrollLocation);
-            diff = p.y;
-          }
-
-        g.drawLine(x, y, x, startgap - diff);
-        g.drawLine(x, endgap - diff, x, y + h);
+        g.drawLine(x, y, x, startgap);
+        g.drawLine(x, endgap, x, y + h - 1);
+        
+        g.setColor(selectedColor);
+        g.drawLine(x, startgap, x, endgap - 1);
       }
     else
-      g.drawLine(x, y, x, y + h);
+      g.drawLine(x, y, x, y + h - 1);
+    
+    g.setColor(selectedColor);
+    g.drawLine(x + 1, y + 1, x + 1, y + h - 4);
 
     g.setColor(saved);
   }
@@ -2218,34 +2905,34 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
   {
     Color saved = g.getColor();
 
-    int startgap = rects[selectedIndex].x;
-    int endgap = rects[selectedIndex].x + rects[selectedIndex].width;
+    int startgap = rects[selectedIndex].x - currentScrollOffset;
+    int endgap = rects[selectedIndex].x + rects[selectedIndex].width
+                 - currentScrollOffset;
 
-    int diff = 0;
-
-    if (tabPlacement == SwingConstants.BOTTOM)
+    if (tabPlacement == SwingConstants.BOTTOM && startgap >= 0)
       {
-        if (tabPane.getTabLayoutPolicy() == JTabbedPane.SCROLL_TAB_LAYOUT)
-          {
-            Point p = findPointForIndex(currentScrollLocation);
-            diff = p.x;
-          }
-
         g.setColor(shadow);
-        g.drawLine(x + 1, y + h - 1, startgap - diff, y + h - 1);
-        g.drawLine(endgap - diff, y + h - 1, x + w - 1, y + h - 1);
+        g.drawLine(x + 1, y + h - 2, startgap, y + h - 2);
+        g.drawLine(endgap, y + h - 2, x + w - 2, y + h - 2);
 
         g.setColor(darkShadow);
-        g.drawLine(x, y + h, startgap - diff, y + h);
-        g.drawLine(endgap - diff, y + h, x + w, y + h);
+        g.drawLine(x, y + h - 1, startgap , y + h - 1);
+        g.drawLine(endgap, y + h - 1, x + w - 1, y + h - 1);
+        
+        g.setColor(selectedColor);
+        g.drawLine(startgap, y + h - 1, endgap - 1, y + h - 1);
+        g.drawLine(startgap, y + h - 2, endgap - 1, y + h - 2);
       }
     else
       {
         g.setColor(shadow);
-        g.drawLine(x + 1, y + h - 1, x + w - 1, y + h - 1);
+        g.drawLine(x + 1, y + h - 2, x + w - 1, y + h - 2);
         g.setColor(darkShadow);
-        g.drawLine(x, y + h, x + w, y + h);
+        g.drawLine(x, y + h - 1, x + w - 1, y + h - 1);
       }
+    
+    g.setColor(selectedColor);
+    g.drawLine(x + 1, y + h - 3, x + w - 2, y + h - 3);
 
     g.setColor(saved);
   }
@@ -2266,34 +2953,36 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
                                              int w, int h)
   {
     Color saved = g.getColor();
-    int startgap = rects[selectedIndex].y;
-    int endgap = rects[selectedIndex].y + rects[selectedIndex].height;
+    int startgap = rects[selectedIndex].y - currentScrollOffset;
+    int endgap = rects[selectedIndex].y + rects[selectedIndex].height
+                 - currentScrollOffset;
 
     int diff = 0;
 
-    if (tabPlacement == SwingConstants.RIGHT)
+    if (tabPlacement == SwingConstants.RIGHT && startgap >= 0)
       {
-        if (tabPane.getTabLayoutPolicy() == JTabbedPane.SCROLL_TAB_LAYOUT)
-          {
-            Point p = findPointForIndex(currentScrollLocation);
-            diff = p.y;
-          }
-
         g.setColor(shadow);
-        g.drawLine(x + w - 1, y + 1, x + w - 1, startgap - diff);
-        g.drawLine(x + w - 1, endgap - diff, x + w - 1, y + h - 1);
+        g.drawLine(x + w - 2, y + 1, x + w - 2, startgap);
+        g.drawLine(x + w - 2, endgap, x + w - 2, y + h - 2);
 
         g.setColor(darkShadow);
-        g.drawLine(x + w, y, x + w, startgap - diff);
-        g.drawLine(x + w, endgap - diff, x + w, y + h);
+        g.drawLine(x + w - 1, y, x + w - 1, startgap);
+        g.drawLine(x + w - 1, endgap, x + w - 1, y + h - 2);
+        
+        g.setColor(selectedColor);
+        g.drawLine(x + w - 2, startgap, x + w - 2, endgap - 1);
+        g.drawLine(x + w - 1, startgap, x + w - 1, endgap - 1);
       }
     else
       {
         g.setColor(shadow);
-        g.drawLine(x + w - 1, y + 1, x + w - 1, y + h - 1);
+        g.drawLine(x + w - 2, y + 1, x + w - 2, y + h - 2);
         g.setColor(darkShadow);
-        g.drawLine(x + w, y, x + w, y + h);
+        g.drawLine(x + w - 1, y, x + w - 1, y + h - 2);
       }
+    
+    g.setColor(selectedColor);
+    g.drawLine(x + w - 3, y + 1, x + w - 3, y + h - 4);
 
     g.setColor(saved);
   }
@@ -2308,6 +2997,9 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
    */
   public Rectangle getTabBounds(JTabbedPane pane, int i)
   {
+    // Need to re-layout container if tab does not exist.
+    if (i >= rects.length)
+      layoutManager.layoutContainer(pane);
     return rects[i];
   }
 
@@ -2334,23 +3026,25 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
    */
   public int tabForCoordinate(JTabbedPane pane, int x, int y)
   {
-    Point p = new Point(x, y);
+    // Note: This code is tab layout mode agnostic.
+    if (! tabPane.isValid())
+      tabPane.validate();
+    
     int tabCount = tabPane.getTabCount();
-    int currRun = 1;
-    for (int i = 0; i < runCount; i++)
+    
+    // If the user clicked outside of any tab rect the
+    // selection should not change.
+    int index = tabPane.getSelectedIndex();
+    for (int i = 0; i < tabCount; ++i)
       {
-        int first = lastTabInRun(tabCount, getPreviousTabRun(currRun)) + 1;
-        if (first == tabCount)
-          first = 0;
-        int last = lastTabInRun(tabCount, currRun);
-        for (int j = first; j <= last; j++)
+        if (rects[i].contains(x, y))
           {
-            if (getTabBounds(pane, j).contains(p))
-              return j;
+            index = i;
+            break;
           }
-        currRun = getNextTabRun(currRun);
       }
-    return -1;
+
+    return index;
   }
 
   /**
@@ -2374,7 +3068,7 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
    */
   protected Component getVisibleComponent()
   {
-    return tabPane.getComponentAt(tabPane.getSelectedIndex());
+    return visibleComponent;
   }
 
   /**
@@ -2384,8 +3078,19 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
    */
   protected void setVisibleComponent(Component component)
   {
-    component.setVisible(true);
-    tabPane.setSelectedComponent(component);
+    // Make old component invisible.
+    if (visibleComponent != null && visibleComponent != component
+        && visibleComponent.getParent() == tabPane)
+      {
+        visibleComponent.setVisible(false);
+      }
+
+    // Make new component visible.
+    if (component != null && ! component.isVisible())
+      {
+        component.setVisible(true);
+      }
+    visibleComponent = component;
   }
 
   /**
@@ -2396,16 +3101,13 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
    */
   protected void assureRectsCreated(int tabCount)
   {
-    if (rects == null)
-      rects = new Rectangle[tabCount];
-    if (tabCount == rects.length)
-      return;
-    else
+    if (rects.length < tabCount)
       {
-        int numToCopy = Math.min(tabCount, rects.length);
-        Rectangle[] tmp = new Rectangle[tabCount];
-        System.arraycopy(rects, 0, tmp, 0, numToCopy);
-        rects = tmp;
+        Rectangle[] old = rects;
+        rects = new Rectangle[tabCount];
+        System.arraycopy(old, 0, rects, 0, old.length);
+        for (int i = old.length; i < rects.length; i++)
+          rects[i] = new Rectangle();
       }
   }
 
@@ -2437,7 +3139,7 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
   protected int getRunForTab(int tabCount, int tabIndex)
   {
     if (runCount == 1 && tabIndex < tabCount && tabIndex >= 0)
-      return 1;
+      return 0;
     for (int i = 0; i < runCount; i++)
       {
         int first = lastTabInRun(tabCount, getPreviousTabRun(i)) + 1;
@@ -2460,10 +3162,23 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
    */
   protected int lastTabInRun(int tabCount, int run)
   {
-    if (tabRuns[run] == 0)
-      return tabCount - 1;
+    int lastTab;
+    if (runCount == 1)
+      lastTab = tabCount - 1;
     else
-      return tabRuns[run] - 1;
+      {
+        int nextRun;
+        if (run == runCount - 1)
+          nextRun = 0;
+        else
+          nextRun = run + 1;
+
+        if (tabRuns[nextRun] == 0)
+          lastTab = tabCount - 1;
+        else
+          lastTab = tabRuns[nextRun] - 1;
+      }
+    return lastTab;
   }
 
   /**
@@ -2543,6 +3258,8 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
    */
   protected View getTextViewForTab(int tabIndex)
   {
+    // FIXME: When the label contains HTML this should return something
+    // non-null.
     return null;
   }
 
@@ -2559,24 +3276,14 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
   protected int calculateTabHeight(int tabPlacement, int tabIndex,
                                    int fontHeight)
   {
+    // FIXME: Handle HTML by using the view (see getTextViewForTab).
+
+    int height = fontHeight;
     Icon icon = getIconForTab(tabIndex);
-    Insets insets = getTabInsets(tabPlacement, tabIndex);
-
-    int height = 0;
+    Insets tabInsets = getTabInsets(tabPlacement, tabIndex);
     if (icon != null)
-      {
-        Rectangle vr = new Rectangle();
-        Rectangle ir = new Rectangle();
-        Rectangle tr = new Rectangle();
-        layoutLabel(tabPlacement, getFontMetrics(), tabIndex,
-                    tabPane.getTitleAt(tabIndex), icon, vr, ir, tr,
-                    tabIndex == tabPane.getSelectedIndex());
-        height = tr.union(ir).height;
-      }
-    else
-      height = fontHeight;
-
-    height += insets.top + insets.bottom;
+      height = Math.max(height, icon.getIconHeight());
+    height += tabInsets.top + tabInsets.bottom + 2;
     return height;
   }
 
@@ -2709,9 +3416,7 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
    */
   protected Insets getTabInsets(int tabPlacement, int tabIndex)
   {
-    Insets target = new Insets(0, 0, 0, 0);
-    rotateInsets(tabInsets, target, tabPlacement);
-    return target;
+    return tabInsets;
   }
 
   /**
@@ -2763,7 +3468,7 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
    */
   protected FontMetrics getFontMetrics()
   {
-    FontMetrics fm = tabPane.getToolkit().getFontMetrics(tabPane.getFont());
+    FontMetrics fm = tabPane.getFontMetrics(tabPane.getFont());
     return fm;
   }
 
@@ -2788,8 +3493,9 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
           {
             int offset = getTabRunOffset(tabPlacement, tabPane.getTabCount(),
                                          tabPane.getSelectedIndex(),
-                                         (tabPlacement == SwingConstants.RIGHT)
-                                         ? true : false);
+                                         (tabPlacement == SwingConstants.TOP)
+                                         ? direction == SwingConstants.NORTH
+                                         : direction == SwingConstants.SOUTH);
             selectAdjacentRunTab(tabPlacement, tabPane.getSelectedIndex(),
                                  offset);
           }
@@ -2805,8 +3511,9 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
           {
             int offset = getTabRunOffset(tabPlacement, tabPane.getTabCount(),
                                          tabPane.getSelectedIndex(),
-                                         (tabPlacement == SwingConstants.RIGHT)
-                                         ? true : false);
+                                         (tabPlacement == SwingConstants.LEFT)
+                                         ? direction == SwingConstants.WEST
+                                         : direction == SwingConstants.EAST);
             selectAdjacentRunTab(tabPlacement, tabPane.getSelectedIndex(),
                                  offset);
           }
@@ -2820,8 +3527,13 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
    */
   protected void selectNextTabInRun(int current)
   {
-    tabPane.setSelectedIndex(getNextTabIndexInRun(tabPane.getTabCount(),
-                                                  current));
+    current = getNextTabIndexInRun(tabPane.getTabCount(),
+                                   current);
+    
+    if (tabPane.getTabLayoutPolicy() == JTabbedPane.SCROLL_TAB_LAYOUT)
+      scrollTab(current, tabPane.getTabPlacement());
+
+    tabPane.setSelectedIndex(current);
   }
 
   /**
@@ -2831,8 +3543,13 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
    */
   protected void selectPreviousTabInRun(int current)
   {
-    tabPane.setSelectedIndex(getPreviousTabIndexInRun(tabPane.getTabCount(),
-                                                      current));
+    current = getPreviousTabIndexInRun(tabPane.getTabCount(),
+                                       current);
+    
+    if (tabPane.getTabLayoutPolicy() == JTabbedPane.SCROLL_TAB_LAYOUT)
+      scrollTab(current, tabPane.getTabPlacement());
+
+    tabPane.setSelectedIndex(current);
   }
 
   /**
@@ -2842,7 +3559,12 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
    */
   protected void selectNextTab(int current)
   {
-    tabPane.setSelectedIndex(getNextTabIndex(current));
+    current = getNextTabIndex(current);
+
+    if (tabPane.getTabLayoutPolicy() == JTabbedPane.SCROLL_TAB_LAYOUT)
+      scrollTab(current, tabPane.getTabPlacement());
+
+    tabPane.setSelectedIndex(current);
   }
 
   /**
@@ -2852,7 +3574,12 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
    */
   protected void selectPreviousTab(int current)
   {
-    tabPane.setSelectedIndex(getPreviousTabIndex(current));
+    current = getPreviousTabIndex(current);
+    
+    if (tabPane.getTabLayoutPolicy() == JTabbedPane.SCROLL_TAB_LAYOUT)
+      scrollTab(current, tabPane.getTabPlacement());
+
+    tabPane.setSelectedIndex(current);
   }
 
   /**
@@ -2886,7 +3613,11 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
 
     int index = tabForCoordinate(tabPane, x, y);
     if (index != -1)
-      tabPane.setSelectedIndex(index);
+      {
+        if (tabPane.getTabLayoutPolicy() == JTabbedPane.SCROLL_TAB_LAYOUT)
+          scrollTab(index, tabPlacement);
+        tabPane.setSelectedIndex(index);
+      }
   }
 
   // This method is called when you press up/down to cycle through tab runs.
@@ -2915,7 +3646,7 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
   {
     int currRun = getRunForTab(tabCount, tabIndex);
     int offset;
-    int nextRun = (forward) ? getNextTabRun(currRun) : getPreviousTabRun(currRun);
+    int nextRun = forward ? getNextTabRun(currRun) : getPreviousTabRun(currRun);
     if (tabPlacement == SwingConstants.TOP
         || tabPlacement == SwingConstants.BOTTOM)
       offset = rects[lastTabInRun(tabCount, nextRun)].y
@@ -2923,6 +3654,7 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
     else
       offset = rects[lastTabInRun(tabCount, nextRun)].x
                - rects[lastTabInRun(tabCount, currRun)].x;
+
     return offset;
   }
 
@@ -2969,9 +3701,12 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
   {
     int index = getNextTabIndex(base);
     int run = getRunForTab(tabCount, base);
-    if (index == lastTabInRun(tabCount, run) + 1)
-      index = lastTabInRun(tabCount, getPreviousTabRun(run)) + 1;
-    return getNextTabIndex(base);
+    if (base == lastTabInRun(tabCount, run))
+      index = (run > 0) 
+              ? lastTabInRun(tabCount, getPreviousTabRun(run)) + 1
+              : 0;
+    
+    return index;
   }
 
   /**
@@ -2989,7 +3724,8 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
     int run = getRunForTab(tabCount, base);
     if (index == lastTabInRun(tabCount, getPreviousTabRun(run)))
       index = lastTabInRun(tabCount, run);
-    return getPreviousTabIndex(base);
+    
+    return index;
   }
 
   /**
@@ -3047,6 +3783,7 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
     // so I won't check it either.
     switch (targetPlacement)
     {
+    default:
     case SwingConstants.TOP:
       targetInsets.top = topInsets.top;
       targetInsets.left = topInsets.left;
@@ -3072,5 +3809,72 @@ public class BasicTabbedPaneUI extends TabbedPaneUI implements SwingConstants
       targetInsets.right = topInsets.top;
       break;
     }
+  }
+  
+  ActionMap getActionMap() 
+  {
+    ActionMap map = (ActionMap) UIManager.get("TabbedPane.actionMap");
+
+    if (map == null) // first time here
+      {
+        map = createActionMap();
+        if (map != null)
+          UIManager.put("TabbedPane.actionMap", map);
+      }
+    return map;
+  }
+
+  ActionMap createActionMap()
+  {
+    ActionMap map = new ActionMapUIResource();
+    
+    map.put("navigatePageDown", new NavigatePageDownAction());
+    map.put("navigatePageUp", new NavigatePageUpAction());
+    map.put("navigateDown",
+            new NavigateAction("navigateDown", SwingConstants.SOUTH));
+    
+    map.put("navigateUp",
+            new NavigateAction("navigateUp", SwingConstants.NORTH));
+    
+    map.put("navigateLeft",
+            new NavigateAction("navigateLeft", SwingConstants.WEST));
+    
+    map.put("navigateRight",
+            new NavigateAction("navigateRight", SwingConstants.EAST));
+    
+    map.put("requestFocusForVisibleComponent",
+            new RequestFocusForVisibleComponentAction());
+    map.put("requestFocus", new RequestFocusAction());
+    
+    return map;
+  }
+
+  /**
+   * Sets the tab which should be highlighted when in rollover mode. And
+   * <code>index</code> of <code>-1</code> means that the rollover tab
+   * is deselected (i.e. the mouse is outside of the tabarea).
+   *
+   * @param index the index of the tab that is under the mouse, <code>-1</code>
+   *        for no tab
+   *
+   * @since 1.5
+   */
+  protected void setRolloverTab(int index)
+  {
+    rolloverTab = index;
+  }
+
+  /**
+   * Retunrs the index of the tab over which the mouse is currently moving,
+   * or <code>-1</code> for no tab.
+   *
+   * @return the index of the tab over which the mouse is currently moving,
+   *         or <code>-1</code> for no tab
+   *
+   * @since 1.5
+   */
+  protected int getRolloverTab()
+  {
+    return rolloverTab;
   }
 }

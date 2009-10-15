@@ -1,5 +1,5 @@
 /* Toolkit.java -- AWT Toolkit superclass
-   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005
+   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006
    Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
@@ -39,6 +39,9 @@ exception statement from your version. */
 
 package java.awt;
 
+import gnu.classpath.SystemProperties;
+import gnu.java.awt.peer.GLightweightPeer;
+
 import java.awt.datatransfer.Clipboard;
 import java.awt.dnd.DragGestureEvent;
 import java.awt.dnd.DragGestureListener;
@@ -46,6 +49,7 @@ import java.awt.dnd.DragGestureRecognizer;
 import java.awt.dnd.DragSource;
 import java.awt.dnd.peer.DragSourceContextPeer;
 import java.awt.event.AWTEventListener;
+import java.awt.event.AWTEventListenerProxy;
 import java.awt.event.KeyEvent;
 import java.awt.im.InputMethodHighlight;
 import java.awt.image.ColorModel;
@@ -66,6 +70,7 @@ import java.awt.peer.ListPeer;
 import java.awt.peer.MenuBarPeer;
 import java.awt.peer.MenuItemPeer;
 import java.awt.peer.MenuPeer;
+import java.awt.peer.MouseInfoPeer;
 import java.awt.peer.PanelPeer;
 import java.awt.peer.PopupMenuPeer;
 import java.awt.peer.ScrollPanePeer;
@@ -75,9 +80,15 @@ import java.awt.peer.TextFieldPeer;
 import java.awt.peer.WindowPeer;
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
+import java.io.File;
+import java.io.FileInputStream;
 import java.net.URL;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.Properties;
+import java.util.StringTokenizer;
 
 /**
  * The AWT system uses a set of native peer objects to implement its
@@ -114,10 +125,17 @@ public abstract class Toolkit
     = new PropertyChangeSupport(this);
 
   /**
+   * All registered AWTEventListener objects. This is package private, so the
+   * event queue can efficiently access this list.
+   */
+  AWTEventListenerProxy[] awtEventListeners;
+
+  /**
    * Default constructor for subclasses.
    */
   public Toolkit()
   {
+    awtEventListeners = new AWTEventListenerProxy[0];
   }
 
   /**
@@ -315,6 +333,18 @@ public abstract class Toolkit
   protected abstract MenuItemPeer createMenuItem(MenuItem target);
 
   /**
+   * Returns a MouseInfoPeer. 
+   * The default implementation of this method throws
+   * UnsupportedOperationException.
+   *
+   * Toolkit implementations should overload this if possible, however.
+   */
+  protected MouseInfoPeer getMouseInfoPeer()
+  {
+    throw new UnsupportedOperationException("No mouse info peer.");
+  }
+
+  /**
    * Creates a peer object for the specified <code>FileDialog</code>.
    *
    * @param target The <code>FileDialog</code> to create the peer for.
@@ -349,7 +379,7 @@ public abstract class Toolkit
    */
   protected LightweightPeer createComponent(Component target)
   {
-    return new gnu.java.awt.peer.GLightweightPeer (target);
+    return new GLightweightPeer(target);
   }
 
   /**
@@ -462,7 +492,7 @@ public abstract class Toolkit
    */
   public Insets getScreenInsets(GraphicsConfiguration gc)
   {
-    return null;
+    return new Insets(0, 0, 0, 0);
   }
 
   /**
@@ -514,16 +544,27 @@ public abstract class Toolkit
   {
     if (toolkit != null)
       return toolkit;
-    String toolkit_name = System.getProperty("awt.toolkit",
-                                             default_toolkit_name);
+    String toolkit_name = SystemProperties.getProperty("awt.toolkit",
+                                                       default_toolkit_name);
     try
       {
-        Class cls = Class.forName(toolkit_name);
+        ClassLoader cl;
+        cl = (ClassLoader) AccessController.doPrivileged
+        (new PrivilegedAction()
+          {
+            public Object run()
+              {
+                return ClassLoader.getSystemClassLoader();
+              }
+          });
+        Class cls = Class.forName(toolkit_name, true, cl);
         Object obj = cls.newInstance();
         if (!(obj instanceof Toolkit))
           throw new AWTError(toolkit_name + " is not a subclass of " +
                              "java.awt.Toolkit");
         toolkit = (Toolkit) obj;
+
+        initAccessibility();
         return toolkit;
       }
     catch (ThreadDeath death)
@@ -667,6 +708,14 @@ public abstract class Toolkit
   public PrintJob getPrintJob(Frame frame, String title,
                               JobAttributes jobAttr, PageAttributes pageAttr)
   {
+    // FIXME: it is possible this check may be removed
+    // if this method, when written, always delegates to
+    // getPrintJob(Frame, String, Properties).
+    SecurityManager sm;
+    sm = System.getSecurityManager();
+    if (sm != null)
+      sm.checkPrintJobAccess();
+
     return null;
   }
 
@@ -685,9 +734,18 @@ public abstract class Toolkit
   public abstract Clipboard getSystemClipboard();
 
   /**
-   * Gets the singleton instance of the system selection as a Clipboard object.
+   * Gets the singleton instance of the system selection as a
+   * Clipboard object. The system selection contains the selected text
+   * of the last component/widget that had focus and a text selection.
+   * The default implementation returns null.
    *
-   * @exception HeadlessException If GraphicsEnvironment.isHeadless() is true.
+   * @return The Clipboard holding the system (text) selection or null
+   * if the Toolkit or system doesn't support a selection clipboard.
+   *
+   * @exception HeadlessException If GraphicsEnvironment.isHeadless()
+   * is true.
+   * @exception SecurityException If the current security manager
+   * checkSystemClipboardAccess() doesn't allow access.
    *
    * @since 1.4
    */
@@ -965,37 +1023,368 @@ public abstract class Toolkit
     return desktopPropsSupport.getPropertyChangeListeners(name);
   }
 
+  /**
+   * Adds an AWTEventListener to this toolkit. This listener is informed about
+   * all events that pass the eventqueue that match the specified
+   * <code>evenMask</code>. The <code>eventMask</code> is an ORed combination
+   * of event masks as defined in {@link AWTEvent}.
+   *
+   * If a security manager is installed, it is asked first if an
+   * <code>AWTPermission(&quot;listenToAllAWTEvents&quot;)</code> is allowed.
+   * This may result in a <code>SecurityException</code> beeing thrown.
+   *
+   * It is not recommended to use this kind of notification for normal
+   * applications. It is intended solely for the purpose of debugging and to
+   * support special facilities.
+   *
+   * @param listener the listener to add
+   * @param eventMask the event mask of event types which the listener is
+   *        interested in
+   *
+   * @since 1.2
+   *
+   * @throws SecurityException if there is a <code>SecurityManager</code> that
+   *         doesn't grant
+   *         <code>AWTPermission(&quot;listenToAllAWTEvents&quot;)</code>
+   *
+   * @see #getAWTEventListeners()
+   * @see #getAWTEventListeners(long)
+   * @see #removeAWTEventListener(AWTEventListener)
+   */
   public void addAWTEventListener(AWTEventListener listener, long eventMask)
   {
-    // SecurityManager s = System.getSecurityManager();
-    // if (s != null)
-    //  s.checkPermission(AWTPermission("listenToAllAWTEvents"));
-    // FIXME
-  }
+    // First we must check the security permissions.
+    SecurityManager s = System.getSecurityManager();
+    if (s != null)
+      s.checkPermission(new AWTPermission("listenToAllAWTEvents"));
 
-  public void removeAWTEventListener(AWTEventListener listener)
-  {
-    // FIXME
+    // Go through the list and check if the requested listener is already
+    // registered.
+    boolean found = false;
+    for (int i = 0; i < awtEventListeners.length; ++i)
+      {
+        AWTEventListenerProxy proxy = awtEventListeners[i];
+        if (proxy.getListener() == listener)
+          {
+            found = true;
+            // Modify the proxies event mask to include the new event mask.
+            AWTEventListenerProxy newProxy =
+              new AWTEventListenerProxy(proxy.getEventMask() | eventMask,
+                                        listener);
+            awtEventListeners[i] = newProxy;
+            break;
+          }
+      }
+
+    // If that listener was not found, then add it.
+    if (! found)
+      {
+        AWTEventListenerProxy proxy =
+          new AWTEventListenerProxy(eventMask, listener);
+        AWTEventListenerProxy[] newArray =
+          new AWTEventListenerProxy[awtEventListeners.length + 1];
+        System.arraycopy(awtEventListeners, 0, newArray, 0,
+                         awtEventListeners.length);
+        newArray[newArray.length - 1] = proxy;
+        awtEventListeners = newArray;
+      }
   }
 
   /**
+   * Removes an AWT event listener from this toolkit. This listener is no
+   * longer informed of any event types it was registered in.
+   *
+   * If a security manager is installed, it is asked first if an
+   * <code>AWTPermission(&quot;listenToAllAWTEvents&quot;)</code> is allowed.
+   * This may result in a <code>SecurityException</code> beeing thrown.
+   *
+   * It is not recommended to use this kind of notification for normal
+   * applications. It is intended solely for the purpose of debugging and to
+   * support special facilities.
+   *
+   * @param listener the listener to remove
+   *
+   * @throws SecurityException if there is a <code>SecurityManager</code> that
+   *         doesn't grant
+   *         <code>AWTPermission(&quot;listenToAllAWTEvents&quot;)</code>
+   *
+   * @since 1.2
+   *
+   * @see #addAWTEventListener(AWTEventListener, long)
+   * @see #getAWTEventListeners()
+   * @see #getAWTEventListeners(long)
+   */
+  public void removeAWTEventListener(AWTEventListener listener)
+  {
+    // First we must check the security permissions.
+    SecurityManager s = System.getSecurityManager();
+    if (s != null)
+      s.checkPermission(new AWTPermission("listenToAllAWTEvents"));
+
+
+    // Find the index of the listener.
+    int index = -1;
+    for (int i = 0; i < awtEventListeners.length; ++i)
+      {
+        AWTEventListenerProxy proxy = awtEventListeners[i];
+        if (proxy.getListener() == listener)
+          {
+            index = i;
+            break;
+          }
+      }
+
+    // Copy over the arrays and leave out the removed element.
+    if (index != -1)
+      {
+        AWTEventListenerProxy[] newArray =
+          new AWTEventListenerProxy[awtEventListeners.length - 1];
+        if (index > 0)
+          System.arraycopy(awtEventListeners, 0, newArray, 0, index);
+        if (index < awtEventListeners.length - 1)
+          System.arraycopy(awtEventListeners, index + 1, newArray, index,
+                           awtEventListeners.length - index - 1);
+        awtEventListeners = newArray;
+      }
+  }
+
+  /**
+   * Returns all registered AWT event listeners. This method returns a copy of
+   * the listener array, so that application cannot trash the listener list.
+   *
+   * If a security manager is installed, it is asked first if an
+   * <code>AWTPermission(&quot;listenToAllAWTEvents&quot;)</code> is allowed.
+   * This may result in a <code>SecurityException</code> beeing thrown.
+   *
+   * It is not recommended to use this kind of notification for normal
+   * applications. It is intended solely for the purpose of debugging and to
+   * support special facilities.
+   *
+   * @return all registered AWT event listeners
+   *
+   * @throws SecurityException if there is a <code>SecurityManager</code> that
+   *         doesn't grant
+   *         <code>AWTPermission(&quot;listenToAllAWTEvents&quot;)</code>
+   *
    * @since 1.4
+   *
+   * @see #addAWTEventListener(AWTEventListener, long)
+   * @see #removeAWTEventListener(AWTEventListener)
+   * @see #getAWTEventListeners(long)
    */
   public AWTEventListener[] getAWTEventListeners()
   {
-    return null;
+    // First we must check the security permissions.
+    SecurityManager s = System.getSecurityManager();
+    if (s != null)
+      s.checkPermission(new AWTPermission("listenToAllAWTEvents"));
+
+    // Create a copy of the array.
+    AWTEventListener[] copy = new AWTEventListener[awtEventListeners.length];
+    System.arraycopy(awtEventListeners, 0, copy, 0, awtEventListeners.length);
+    return copy;
   }
 
   /**
+   * Returns all registered AWT event listeners that listen for events with
+   * the specified <code>eventMask</code>. This method returns a copy of
+   * the listener array, so that application cannot trash the listener list.
+   *
+   * If a security manager is installed, it is asked first if an
+   * <code>AWTPermission(&quot;listenToAllAWTEvents&quot;)</code> is allowed.
+   * This may result in a <code>SecurityException</code> beeing thrown.
+   *
+   * It is not recommended to use this kind of notification for normal
+   * applications. It is intended solely for the purpose of debugging and to
+   * support special facilities.
+   *
+   * @param mask the event mask
+   *
+   * @throws SecurityException if there is a <code>SecurityManager</code> that
+   *         doesn't grant
+   *         <code>AWTPermission(&quot;listenToAllAWTEvents&quot;)</code>
+   *
+   *
    * @since 1.4
+   *
+   * @see #addAWTEventListener(AWTEventListener, long)
+   * @see #removeAWTEventListener(AWTEventListener)
+   * @see #getAWTEventListeners()
    */
   public AWTEventListener[] getAWTEventListeners(long mask)
   {
-    return null;
+    // First we must check the security permissions.
+    SecurityManager s = System.getSecurityManager();
+    if (s != null)
+      s.checkPermission(new AWTPermission("listenToAllAWTEvents"));
+
+    // Create a copy of the array with only the requested listeners in it.
+    ArrayList l = new ArrayList(awtEventListeners.length);
+    for (int i = 0; i < awtEventListeners.length; ++i)
+      {
+        if ((awtEventListeners[i].getEventMask() & mask) != 0)
+          l.add(awtEventListeners[i]);
+      }
+
+    return (AWTEventListener[] ) l.toArray(new AWTEventListener[l.size()]);
+  }
+
+
+  /**
+   * Dispatches events to listeners registered to this Toolkit. This is called
+   * by {@link Component#dispatchEventImpl(AWTEvent)} in order to dispatch
+   * events globally.
+   *
+   * @param ev the event to dispatch
+   */
+  void globalDispatchEvent(AWTEvent ev)
+  {
+    // We do not use the accessor methods here because they create new
+    // arrays each time. We must be very efficient, so we access this directly.
+    for (int i = 0; i < awtEventListeners.length; ++i)
+      {
+        AWTEventListenerProxy proxy = awtEventListeners[i];
+        if ((proxy.getEventMask() & AWTEvent.eventIdToMask(ev.getID())) != 0)
+          proxy.eventDispatched(ev);
+      }
   }
 
   /**
    * @since 1.3
    */
   public abstract Map mapInputMethodHighlight(InputMethodHighlight highlight);
+
+  /**
+   * Initializes the accessibility framework. In particular, this loads the
+   * properties javax.accessibility.screen_magnifier_present and
+   * javax.accessibility.screen_reader_present and loads
+   * the classes specified in javax.accessibility.assistive_technologies.
+   */
+  private static void initAccessibility()
+  {
+    AccessController.doPrivileged
+    (new PrivilegedAction()
+     {
+       public Object run()
+       {
+         Properties props = new Properties();
+         String sep = File.separator;
+
+         // Try the user configuration.
+         try
+           {
+             File propsFile = new File(System.getProperty("user.home") + sep
+                                       + ".accessibility.properties");
+             FileInputStream in = new FileInputStream(propsFile);
+             props.load(in);
+             in.close();
+           }
+         catch (Exception ex)
+           {
+             // User configuration not present, ignore.
+           }
+
+         // Try the system configuration if there was no user configuration.
+         if (props.size() == 0)
+           {
+             try
+               {
+                 File propsFile =
+                   new File(System.getProperty("gnu.classpath.home.url")
+                            + sep + "accessibility.properties");
+                 FileInputStream in = new FileInputStream(propsFile);
+                 props.load(in);
+                 in.close();
+               }
+             catch (Exception ex)
+               {
+                 // System configuration not present, ignore.
+               }
+           }
+
+       // Fetch the screen_magnifier_present property. Check systen properties
+       // first, then fallback to the configuration file.
+       String magPresent = SystemProperties.getProperty
+                              ("javax.accessibility.screen_magnifier_present");
+       if (magPresent == null)
+         {
+           magPresent = props.getProperty("screen_magnifier_present");
+           if (magPresent != null)
+             {
+               SystemProperties.setProperty
+                 ("javax.accessibility.screen_magnifier_present", magPresent);
+             }
+         }
+
+       // Fetch the screen_reader_present property. Check systen properties
+       // first, then fallback to the configuration file.
+       String readerPresent = SystemProperties.getProperty
+                                ("javax.accessibility.screen_reader_present");
+       if (readerPresent == null)
+         {
+           readerPresent = props.getProperty("screen_reader_present");
+           if (readerPresent != null)
+             {
+               SystemProperties.setProperty
+                 ("javax.accessibility.screen_reader_present", readerPresent);
+             }
+         }
+
+       // Fetch the list of classes to be loaded.
+       String classes = SystemProperties.getProperty
+         ("javax.accessibility.assistive_technologies");
+       if (classes == null)
+         {
+           classes = props.getProperty("assistive_technologies");
+           if (classes != null)
+             {
+               SystemProperties.setProperty
+               ("javax.accessibility.assistive_technologies", classes);
+             }
+         }
+
+       // Try to load the assisitive_technologies classes.
+       if (classes != null)
+         {
+           ClassLoader cl = ClassLoader.getSystemClassLoader();
+           StringTokenizer tokenizer = new StringTokenizer(classes, ",");
+           while (tokenizer.hasMoreTokens())
+             {
+               String className = tokenizer.nextToken();
+               try
+                 {
+                   Class atClass = cl.loadClass(className);
+                   atClass.newInstance();
+                 }
+               catch (ClassNotFoundException ex)
+                 {
+                   AWTError err = new AWTError("Assistive Technology class not"
+                                               + " found: " + className);
+                   err.initCause(ex);
+                   throw err;
+                 }
+               catch (InstantiationException ex)
+                 {
+                   AWTError err =
+                     new AWTError("Assistive Technology class cannot be "
+                                  + "instantiated: " + className);
+                   err.initCause(ex);
+                   throw err;
+                 }
+               catch (IllegalAccessException ex)
+                 {
+                   AWTError err =
+                     new AWTError("Assistive Technology class cannot be "
+                                  + "accessed: " + className);
+                   err.initCause(err);
+                   throw err;
+                 }
+             }
+         }
+       return null;
+       }
+     });
+
+  }
+
 } // class Toolkit

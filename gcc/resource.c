@@ -1,12 +1,12 @@
 /* Definitions for computing resource usage of specific insns.
-   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005
+   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007
    Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,9 +15,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -664,9 +663,8 @@ mark_set_resources (rtx x, struct resources *res, int in_dest,
 	  rtx link;
 
 	  res->cc = res->memory = 1;
-	  for (r = 0; r < FIRST_PSEUDO_REGISTER; r++)
-	    if (call_used_regs[r] || global_regs[r])
-	      SET_HARD_REG_BIT (res->regs, r);
+
+	  IOR_HARD_REG_SET (res->regs, regs_invalidated_by_call);
 
 	  for (link = CALL_INSN_FUNCTION_USAGE (x);
 	       link; link = XEXP (link, 1))
@@ -949,7 +947,7 @@ mark_target_live_regs (rtx insns, rtx target, struct resources *res)
 	{
 	  /* Allocate a place to put our results and chain it into the
 	     hash table.  */
-	  tinfo = xmalloc (sizeof (struct target_info));
+	  tinfo = XNEW (struct target_info);
 	  tinfo->uid = INSN_UID (target);
 	  tinfo->block = b;
 	  tinfo->next
@@ -1226,8 +1224,8 @@ init_resource_info (rtx epilogue_insn)
     }
 
   /* Allocate and initialize the tables used by mark_target_live_regs.  */
-  target_hash_table = xcalloc (TARGET_HASH_PRIME, sizeof (struct target_info *));
-  bb_ticks = xcalloc (last_basic_block, sizeof (int));
+  target_hash_table = XCNEWVEC (struct target_info *, TARGET_HASH_PRIME);
+  bb_ticks = XCNEWVEC (int, last_basic_block);
 }
 
 /* Free up the resources allocated to mark_target_live_regs ().  This

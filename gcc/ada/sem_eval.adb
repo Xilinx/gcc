@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2005, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2006, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -38,6 +38,7 @@ with Nlists;   use Nlists;
 with Opt;      use Opt;
 with Sem;      use Sem;
 with Sem_Cat;  use Sem_Cat;
+with Sem_Ch6;  use Sem_Ch6;
 with Sem_Ch8;  use Sem_Ch8;
 with Sem_Res;  use Sem_Res;
 with Sem_Util; use Sem_Util;
@@ -2201,25 +2202,29 @@ package body Sem_Eval is
             end if;
          end;
 
-      --  Another special case: comparisons against null for pointers that
-      --  are known to be non-null. This is useful when migrating from Ada95
-      --  code when non-null restrictions are added to type declarations and
-      --  parameter specifications.
+      --  Another special case: comparisons of access types, where one or both
+      --  operands are known to be null, so the result can be determined.
 
-      elsif Is_Access_Type (Typ)
-        and then Comes_From_Source (N)
-        and then
-          ((Is_Entity_Name (Left)
-             and then Is_Known_Non_Null (Entity (Left))
-             and then Nkind (Right) = N_Null)
-          or else
-            (Is_Entity_Name (Right)
-              and then Is_Known_Non_Null (Entity (Right))
-              and then Nkind (Left) = N_Null))
-      then
-         Fold_Uint (N, Test (Nkind (N) = N_Op_Ne), False);
-         Warn_On_Known_Condition (N);
-         return;
+      elsif Is_Access_Type (Typ) then
+         if Known_Null (Left) then
+            if Known_Null (Right) then
+               Fold_Uint (N, Test (Nkind (N) = N_Op_Eq), False);
+               Warn_On_Known_Condition (N);
+               return;
+
+            elsif Known_Non_Null (Right) then
+               Fold_Uint (N, Test (Nkind (N) = N_Op_Ne), False);
+               Warn_On_Known_Condition (N);
+               return;
+            end if;
+
+         elsif Known_Non_Null (Left) then
+            if Known_Null (Right) then
+               Fold_Uint (N, Test (Nkind (N) = N_Op_Ne), False);
+               Warn_On_Known_Condition (N);
+               return;
+            end if;
+         end if;
       end if;
 
       --  Can only fold if type is scalar (don't fold string ops)
@@ -4013,13 +4018,8 @@ package body Sem_Eval is
       elsif
          Has_Unknown_Discriminants (T1) /= Has_Unknown_Discriminants (T2)
       then
-         if Is_Generic_Actual_Type (T1)
-           and then Etype (T1) = T2
-         then
-            return True;
-         else
-            return False;
-         end if;
+         return
+           Is_Generic_Actual_Type (T1) or else Is_Generic_Actual_Type (T2);
 
       --  Array type
 
@@ -4056,9 +4056,23 @@ package body Sem_Eval is
          end;
 
       elsif Is_Access_Type (T1) then
-         return Subtypes_Statically_Match
-                  (Designated_Type (T1),
-                   Designated_Type (T2));
+         if Can_Never_Be_Null (T1) /= Can_Never_Be_Null (T2) then
+            return False;
+
+         elsif Ekind (T1) = E_Access_Subprogram_Type
+           or else Ekind (T1) = E_Anonymous_Access_Subprogram_Type
+         then
+            return
+              Subtype_Conformant
+                (Designated_Type (T1),
+                 Designated_Type (T2));
+         else
+            return
+              Subtypes_Statically_Match
+                (Designated_Type (T1),
+                 Designated_Type (T2))
+              and then Is_Access_Constant (T1) = Is_Access_Constant (T2);
+         end if;
 
       --  All other types definitely match
 

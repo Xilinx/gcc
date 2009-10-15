@@ -1,23 +1,61 @@
-2007-02-13  Release Manager
+2008-05-19  Release Manager
 
-	* GCC 4.1.2 released.
+	* GCC 4.2.4 released.
 
-2006-05-24  Release Manager
+2008-02-01  Release Manager
 
-	* GCC 4.1.1 released.
+	* GCC 4.2.3 released.
 
-2006-03-31  H.J. Lu  <hongjiu.lu@intel.com>
+2007-10-07  Release Manager
 
-	Backport from mainline
-	2006-01-18  Andrew Pinski  <pinskia@physics.uc.edu>
+	* GCC 4.2.2 released.
+
+2007-07-19  Release Manager
+
+	* GCC 4.2.1 released.
+
+2007-05-13  Release Manager
+
+	* GCC 4.2.0 released.
+
+2006-09-05  Geoffrey Keating  <geoffk@apple.com>
+
+	* btest-gcc.sh: .bad_compare has moved to toplevel from gcc/.
+
+2006-01-18  Andrew Pinski  <pinskia@physics.uc.edu>
 
 	* btest-gcc.sh: gcc.sum has moved to gcc/testsuite/gcc/gcc.sum.
 	g++.sum has moved to gcc/testsuite/g++/g++.sum.
 	objc.sum has moved to gcc/testsuite/objc/objc.sum.
 
-2006-02-28  Release Manager
+2005-12-20  Geoffrey Keating  <geoffk@apple.com>
 
-	* GCC 4.1.0 released.
+	* btest-gcc.sh: Support -j option.
+
+2005-11-28  Geoffrey Keating  <geoffk@geoffk.org>
+
+	* GCC Regression Tester.wdgt: Rename to GCC_Regression_Tester.wdgt.
+	* GCC_Regression_Tester.wdgt/Info.plist
+	(CFBundleDisplayName): Update for rename.
+	(CFBundleName): Use shorter name.
+	(CFBundleVersion): Update to 1.0.1.
+	(CFBundleShortVersionString): Update to 1.0.1.
+	(LSHasLocalizedDisplayName): New.
+	(NSHumanReadableCopyright): New.
+	* GCC_Regression_Tester.wdgt/de.lproj/InfoPlist.strings: New.
+	* GCC_Regression_Tester.wdgt/en.lproj/InfoPlist.strings: New.
+	* GCC_Regression_Tester.wdgt/ja.lproj/InfoPlist.strings: New.
+
+	* GCC_Regression_Tester.wdgt/widget.html: Use max-age=30
+	to help out intermediate caches.
+
+2005-11-23  Geoffrey Keating  <geoffk@geoffk.org>
+
+	* GCC Regression Tester.wdgt/widget.html: New file.
+	* GCC Regression Tester.wdgt/Info.plist: New file.
+	* GCC Regression Tester.wdgt/Icon.png: New file.
+	* GCC Regression Tester.wdgt/Default.png: New file.
+	* README: Describe new files.
 
 2005-06-07  Hans-Peter Nilsson  <hp@bitrange.com>
 

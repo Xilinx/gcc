@@ -1,12 +1,12 @@
 /* Structure for saving state for a nested function.
    Copyright (C) 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2003, 2004, 2005 Free Software Foundation, Inc.
+   1999, 2000, 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,12 +15,14 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #ifndef GCC_FUNCTION_H
 #define GCC_FUNCTION_H
+
+#include "tree.h"
+#include "hashtab.h"
 
 struct var_refs_queue GTY(())
 {
@@ -156,30 +158,35 @@ struct expr_status GTY(())
 #define forced_labels (cfun->expr->x_forced_labels)
 #define stack_pointer_delta (cfun->expr->x_stack_pointer_delta)
 
+struct temp_slot;
+typedef struct temp_slot *temp_slot_p;
+
+DEF_VEC_P(temp_slot_p);
+DEF_VEC_ALLOC_P(temp_slot_p,gc);
+
+enum function_frequency {
+  /* This function most likely won't be executed at all.
+     (set only when profile feedback is available).  */
+  FUNCTION_FREQUENCY_UNLIKELY_EXECUTED,
+  /* The default value.  */
+  FUNCTION_FREQUENCY_NORMAL,
+  /* Optimize this function hard
+     (set only when profile feedback is available).  */
+  FUNCTION_FREQUENCY_HOT
+};
+
 /* This structure can save all the important global and static variables
    describing the status of the current function.  */
 
 struct function GTY(())
 {
   struct eh_status *eh;
-  struct eh_status *saved_eh;
   struct expr_status *expr;
   struct emit_status *emit;
   struct varasm_status *varasm;
 
   /* The control flow graph for this function.  */
   struct control_flow_graph *cfg;
-  struct control_flow_graph *saved_cfg;
-  bool after_inlining;
-
-  /* For tree-optimize.c.  */
-
-  /* Saved tree and arguments during tree optimization.  Used later for
-     inlining */
-  tree saved_args;
-  tree saved_static_chain_decl;
-  tree saved_blocks;
-  tree saved_unexpanded_var_list;
 
   /* For function.c.  */
 
@@ -248,7 +255,7 @@ struct function GTY(())
   rtx x_stack_slot_list;
 
   /* Place after which to insert the tail_recursion_label if we need one.  */
-  rtx x_tail_recursion_reentry;
+  rtx x_stack_check_probe_note;
 
   /* Location at which to save the argument pointer if it will need to be
      referenced.  There are two cases where this is done: if nonlocal gotos
@@ -274,23 +281,17 @@ struct function GTY(())
   rtx x_parm_birth_insn;
 
   /* List of all used temporaries allocated, by level.  */
-  struct varray_head_tag * GTY((param_is (struct temp_slot))) x_used_temp_slots;
+  VEC(temp_slot_p,gc) *x_used_temp_slots;
 
   /* List of available temp slots.  */
   struct temp_slot *x_avail_temp_slots;
-
-  /* Current nesting level for temporaries.  */
-  int x_temp_slot_level;
 
   /* This slot is initialized as 0 and is added to
      during the nested function.  */
   struct var_refs_queue *fixup_var_refs_queue;
 
-  /* For integrate.c.  */
-  int inlinable;
-  int no_debugging_symbols;
-  rtvec original_arg_vector;
-  tree original_decl_initial;
+  /* Current nesting level for temporaries.  */
+  int x_temp_slot_level;
 
   /* Highest label number in current function.  */
   int inl_max_label_num;
@@ -309,36 +310,24 @@ struct function GTY(())
 
   /* tm.h can use this to store whatever it likes.  */
   struct machine_function * GTY ((maybe_undef)) machine;
+
   /* The largest alignment of slot allocated on the stack.  */
   unsigned int stack_alignment_needed;
+
   /* Preferred alignment of the end of stack frame.  */
   unsigned int preferred_stack_boundary;
-  /* Set when the call to function itself has been emit.  */
-  bool recursive_call_emit;
-  /* Set when the tail call has been produced.  */
-  bool tail_call_emit;
 
   /* Language-specific code can use this to store whatever it likes.  */
   struct language_function * language;
+
+  /* Used types hash table.  */
+  htab_t GTY ((param_is (union tree_node))) used_types_hash;
 
   /* For reorg.  */
 
   /* If some insns can be deferred to the delay slots of the epilogue, the
      delay list for them is recorded here.  */
   rtx epilogue_delay_list;
-
-  /* How commonly executed the function is.  Initialized during branch
-     probabilities pass.  */
-  enum function_frequency {
-    /* This function most likely won't be executed at all.
-       (set only when profile feedback is available).  */
-    FUNCTION_FREQUENCY_UNLIKELY_EXECUTED,
-    /* The default value.  */
-    FUNCTION_FREQUENCY_NORMAL,
-    /* Optimize this function hard
-       (set only when profile feedback is available).  */
-    FUNCTION_FREQUENCY_HOT
-  } function_frequency;
 
   /* Maximal number of entities in the single jumptable.  Used to estimate
      final flowgraph size.  */
@@ -351,7 +340,7 @@ struct function GTY(())
   location_t function_end_locus;
 
   /* Array mapping insn uids to blocks.  */
-  struct varray_head_tag *ib_boundaries_block;
+  VEC(tree,gc) *ib_boundaries_block;
 
   /* The variables unexpanded so far.  */
   tree unexpanded_var_list;
@@ -395,7 +384,7 @@ struct function GTY(())
   unsigned int calls_alloca : 1;
 
   /* Nonzero if function being compiled called builtin_return_addr or
-     builtin_frame_address with non-zero count.  */
+     builtin_frame_address with nonzero count.  */
   unsigned int accesses_prior_frames : 1;
 
   /* Nonzero if the function calls __builtin_eh_return.  */
@@ -452,6 +441,18 @@ struct function GTY(())
 
   /* Nonzero if code to initialize arg_pointer_save_area has been emitted.  */
   unsigned int arg_pointer_save_area_init : 1;
+
+  unsigned int after_inlining : 1;
+
+  /* Set when the call to function itself has been emit.  */
+  unsigned int recursive_call_emit : 1;
+
+  /* Set when the tail call has been produced.  */
+  unsigned int tail_call_emit : 1;
+
+  /* How commonly executed the function is.  Initialized during branch
+     probabilities pass.  */
+  ENUM_BITFIELD (function_frequency) function_frequency : 2;
 
   /* Number of units of general registers that need saving in stdarg
      function.  What unit is depends on the backend, either it is number
@@ -512,7 +513,7 @@ extern int trampolines_created;
 #define stack_slot_list (cfun->x_stack_slot_list)
 #define parm_birth_insn (cfun->x_parm_birth_insn)
 #define frame_offset (cfun->x_frame_offset)
-#define tail_recursion_reentry (cfun->x_tail_recursion_reentry)
+#define stack_check_probe_note (cfun->x_stack_check_probe_note)
 #define arg_pointer_save_area (cfun->x_arg_pointer_save_area)
 #define used_temp_slots (cfun->x_used_temp_slots)
 #define avail_temp_slots (cfun->x_avail_temp_slots)
@@ -543,6 +544,11 @@ extern void free_block_changes (void);
    the caller may have to do that.  */
 extern HOST_WIDE_INT get_frame_size (void);
 
+/* Issue an error message and return TRUE if frame OFFSET overflows in
+   the signed target pointer arithmetics for function FUNC.  Otherwise
+   return FALSE.  */
+extern bool frame_offset_overflow (HOST_WIDE_INT, tree);
+
 /* A pointer to a function to create target specific, per-function
    data structures.  */
 extern struct machine_function * (*init_machine_status) (void);
@@ -556,13 +562,9 @@ extern void init_varasm_status (struct function *);
 #ifdef RTX_CODE
 extern void diddle_return_value (void (*)(rtx, void*), void*);
 extern void clobber_return_register (void);
-extern void use_return_register (void);
 #endif
 
 extern rtx get_arg_pointer_save_area (struct function *);
-
-extern void init_virtual_regs (struct emit_status *);
-extern void instantiate_virtual_regs (void);
 
 /* Returns the name of the current function.  */
 extern const char *current_function_name (void);
@@ -573,5 +575,7 @@ extern bool pass_by_reference (CUMULATIVE_ARGS *, enum machine_mode,
 			       tree, bool);
 extern bool reference_callee_copied (CUMULATIVE_ARGS *, enum machine_mode,
 				     tree, bool);
+
+extern void used_types_insert (tree);
 
 #endif  /* GCC_FUNCTION_H */

@@ -1,12 +1,12 @@
 /* Program to generate "main" a Java(TM) class containing a main method.
-   Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005
+   Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007
    Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -15,9 +15,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA. 
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.
 
 Java and all Java-based marks are trademarks or registered trademarks
 of Sun Microsystems, Inc. in the United States and other countries.
@@ -127,11 +126,11 @@ main (int argc, char **argv)
     }
   fprintf (stream, "  0\n};\n\n");
 
-  fprintf (stream, "extern int %s;\n", mangled_classname);
   fprintf (stream, "int main (int argc, const char **argv)\n");
   fprintf (stream, "{\n");
   fprintf (stream, "   _Jv_Compiler_Properties = props;\n");
-  fprintf (stream, "   JvRunMain (&%s, argc, argv);\n", mangled_classname);
+  fprintf (stream, "   extern void *%s;\n", mangled_classname);
+  fprintf (stream, "   JvRunMain (%s, argc, argv);\n", mangled_classname);
   fprintf (stream, "}\n");
   if (stream != stdout && fclose (stream) != 0)
     {
@@ -153,16 +152,16 @@ do_mangle_classname (const char *string)
 
   for (ptr = string; *ptr; ptr++ )
     {
-      if (ptr[0] == '.')
+      if (*ptr == '.')
 	{
-	  append_gpp_mangled_name (&ptr [-count], count);
+	  append_gpp_mangled_name (ptr - count, count);
 	  count = 0;
 	}
       else
 	count++;
     }
   append_gpp_mangled_name (&ptr [-count], count);
-  obstack_grow (mangle_obstack, "6class$E", 8);
+  obstack_grow (mangle_obstack, "7class$$E", strlen ("7class$$E"));
   obstack_1grow (mangle_obstack, '\0');
   return obstack_finish (mangle_obstack);
 }

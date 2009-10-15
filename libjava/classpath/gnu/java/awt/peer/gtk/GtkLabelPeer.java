@@ -1,5 +1,5 @@
 /* GtkLabelPeer.java -- Implements LabelPeer with GTK
-   Copyright (C) 1998, 1999, 2005  Free Software Foundation, Inc.
+   Copyright (C) 1998, 1999, 2005, 2006  Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -48,10 +48,15 @@ public class GtkLabelPeer extends GtkComponentPeer
     implements LabelPeer
 {
   native void create (String text, float alignment);
-  native void gtkWidgetModifyFont (String name, int style, int size);
+
+  /**
+   * Overridden to set the Font of the label inside the gtk_event_box.
+   */
+  protected native void gtkWidgetModifyFont(String name, int style, int size);
+
   native void nativeSetAlignment (float alignment);
 
-  public native void setText(String text);
+  public native void setNativeText(String text);
   native void setNativeBounds (int x, int y, int width, int height);
 
   // Because this is a composite widget, we need to retrieve the
@@ -64,6 +69,12 @@ public class GtkLabelPeer extends GtkComponentPeer
     create (label.getText (), getGtkAlignment (label.getAlignment ()));
   }
 
+  public void setText(String text)
+  {
+    if (text != null)
+      setNativeText(text);
+  }
+  
   public GtkLabelPeer (Label l)
   {
     super (l);

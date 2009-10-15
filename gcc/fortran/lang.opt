@@ -1,11 +1,12 @@
 ; Options for the Fortran 95 front end.
-; Copyright (C) 2003, 2004, 2005, 2006 Free Software Foundation, Inc.
+; Copyright (C) 2003, 2004, 2005, 2006, 2007
+; Free Software Foundation, Inc.
 ;
 ; This file is part of GCC.
 ;
 ; GCC is free software; you can redistribute it and/or modify it under
 ; the terms of the GNU General Public License as published by the Free
-; Software Foundation; either version 2, or (at your option) any later
+; Software Foundation; either version 3, or (at your option) any later
 ; version.
 ; 
 ; GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -14,9 +15,8 @@
 ; for more details.
 ; 
 ; You should have received a copy of the GNU General Public License
-; along with GCC; see the file COPYING.  If not, write to the Free
-; Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-; 02110-1301, USA.
+; along with GCC; see the file COPYING3.  If not see
+; <http://www.gnu.org/licenses/>.
 
 ; See the GCC internals manual for a description of this file's format.
 
@@ -34,7 +34,7 @@ Fortran Joined
 -J<directory>	Put MODULE files in 'directory'
 
 Wall
-Fortran RejectNegative
+Fortran
 ; Documented in C
 
 Waliasing
@@ -43,7 +43,11 @@ Warn about possible aliasing of dummy arguments
 
 Wampersand
 Fortran
-Warn about missing ampersand in continued character literals
+Warn about missing ampersand in continued character constants
+
+Wcharacter-truncation
+Fortran
+Warn about truncated character expressions
 
 Wconversion
 Fortran
@@ -65,13 +69,17 @@ Wsurprising
 Fortran
 Warn about \"suspicious\" constructs
 
+Wtabs
+Fortran
+Permit nonconforming uses of the tab character
+
 Wunderflow
 Fortran
 Warn about underflow of numerical constant expressions
 
-Wunused-labels
-Fortran
-Warn when a label is unused
+fall-intrinsics
+Fortran RejectNegative
+All intrinsics procedures are available regardless of selected standard
 
 fautomatic
 Fortran
@@ -114,12 +122,16 @@ Fortran
 Use f2c calling convention
 
 ffixed-form
-Fortran
+Fortran RejectNegative
 Assume that the source file is fixed form
 
 ffree-form
-Fortran
+Fortran RejectNegative
 Assume that the source file is free form
+
+fopenmp
+Fortran
+Enable OpenMP
 
 funderscoring
 Fortran
@@ -153,17 +165,21 @@ ffree-line-length-
 Fortran RejectNegative Joined UInteger
 -ffree-line-length-<n>		Use n as character line width in free mode
 
+fmax-errors=
+Fortran RejectNegative Joined UInteger
+-fmax-errors=<n>	Maximum number of errors to report
+
 fmax-identifier-length=
 Fortran RejectNegative Joined UInteger
 -fmax-identifier-length=<n>	Maximum identifier length
 
+fmax-subrecord-length=
+Fortran RejectNegative Joined UInteger
+-fmax-subrecord-length=<n>	Maximum length for subrecords
+
 fmax-stack-var-size=
 Fortran RejectNegative Joined UInteger
 -fmax-stack-var-size=<n>	Size in bytes of the largest array that will be put on the stack
-
-fmodule-private
-Fortran
-Set default accessibility of module entities to PRIVATE
 
 fno-backend
 Fortran RejectNegative
@@ -184,10 +200,6 @@ Copy array sections into a contiguous block on procedure entry
 fpreprocessed
 Fortran
 Treat the input file as preprocessed
-
-qkind=
-Fortran RejectNegative Joined UInteger
--qkind=<n>	Set the kind for a real with the 'q' exponent to 'n'
 
 ffpe-trap=
 Fortran RejectNegative JoinedOrMissing

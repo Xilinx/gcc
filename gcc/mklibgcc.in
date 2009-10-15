@@ -1,6 +1,7 @@
 #!/bin/sh
 # Construct makefile for libgcc.
-#   Copyright (C) 2000, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+#   Copyright (C) 2000, 2002, 2003, 2004, 2005, 2006
+#   Free Software Foundation, Inc.
 #
 # This file is part of GCC.
 
@@ -10,6 +11,7 @@
 # objext
 # LIB1ASMFUNCS
 # LIB2FUNCS_ST
+# LIB2FUNCS_EXCLUDE
 # LIBGCOV
 # LIB2ADD
 # LIB2ADD_ST 
@@ -25,10 +27,18 @@
 # FPBIT_FUNCS
 # LIB2_DIVMOD_FUNCS
 # LIB2_SIDITI_CONV_FUNCS
+# DFP_ENABLE
+# DFP_CFLAGS
 # DPBIT
 # DPBIT_FUNCS
 # TPBIT
 # TPBIT_FUNCS
+# D32PBIT
+# D32PBIT_FUNCS
+# D64PBIT
+# D64PBIT_FUNCS
+# D128PBIT
+# D128PBIT_FUNCS
 # LIBGCC
 # MULTILIBS
 # EXTRA_MULTILIB_PARTS
@@ -54,6 +64,8 @@ echo 'all: stmp-dirs'
 echo 'dirs = libgcc'
 echo
 
+# Library members defined in libgcc2.c.
+
 # The floating-point conversion routines that involve a single-word integer.
 # XX stands for the integer mode.
 swfloatfuncs=
@@ -65,7 +77,7 @@ done
 dwfloatfuncs=
 for mode in sf df xf tf; do
   dwfloatfuncs="$dwfloatfuncs _fix${mode}XX _fixuns${mode}XX"
-  dwfloatfuncs="$dwfloatfuncs _floatXX${mode}"
+  dwfloatfuncs="$dwfloatfuncs _floatXX${mode} _floatunXX${mode}"
 done
 
 # Entries of the form <objfile>:<func>:<wordsize> indicate that libgcc2.c
@@ -127,6 +139,12 @@ libgcov_c_dep='stmp-dirs $(srcdir)/libgcov.c $(srcdir)/gcov-io.h $(srcdir)/gcov-
 # Dependencies for fp-bit.c
 fpbit_c_dep='stmp-dirs config.status tsystem.h'
 
+# Dependencies for decnumber and friends.  This is an overzealous set,
+# but at least we can be sure to recompile if anything gets modified.
+decnumber_dep='stmp-dirs $(srcdir)/../libdecnumber/decContext.h $(srcdir)/../libdecnumber/decNumber.h
+	$(srcdir)/../libdecnumber/decNumberLocal.h $(srcdir)/../libdecnumber/decimal32.h $(srcdir)/../libdecnumber/decimal64.h
+	$(srcdir)/../libdecnumber/decimal128.h $(srcdir)/../libdecnumber/decDPD.h $(srcdir)/../libdecnumber/decUtility.h'
+
 # Flag whether we need eh_dummy.c
 need_eh_dummy=
 
@@ -174,8 +192,9 @@ else
 fi
 
 # Remove any objects from lib2funcs and LIB2_DIVMOD_FUNCS that are
-# defined as optimized assembly code in LIB1ASMFUNCS.
-for name in $LIB1ASMFUNCS; do
+# defined as optimized assembly code in LIB1ASMFUNCS or as C code
+# in LIB2FUNCS_EXCLUDE.
+for name in $LIB1ASMFUNCS $LIB2FUNCS_EXCLUDE; do
   lib2funcs=`echo $lib2funcs | sed -e 's/^'$name'[ :]//' \
 				   -e 's/ '$name'[ :]/ /' \
 				   -e 's/ '$name'$//'`
@@ -353,94 +372,95 @@ for ml in $MULTILIBS; do
   # Build software floating point functions.
   #
 
-  if [ "$FPBIT" ]; then
-    for name in $FPBIT_FUNCS; do
-      [ "$name" = _sf_to_tf -a -z "$TPBIT" ] && continue
-      if [ "$libgcc_s_so" ]; then
-	out="libgcc/${dir}/${name}${objext}"
-	outS="libgcc/${dir}/${name}_s${objext}"
+  for fpbit_var in FPBIT DPBIT TPBIT ; do
+      fpfuncs_var="${fpbit_var}_FUNCS"
+      eval fpbit=\$$fpbit_var
+      eval fpfuncs=\$$fpfuncs_var
 
-	echo $outS: $FPBIT $fpbit_c_dep
-	echo "	$gcc_s_compile" -DFINE_GRAINED_LIBRARIES $flags -DL$name \
-	  -c $FPBIT -o $outS
+      if [ "$fpbit" ] ; then
+	  for name in $fpfuncs; do
+	      case "$name" in
+		# _sf_to_tf and _df_to_tf require tp-bit.c
+		# being compiled in.
+		_[sd]f_to_tf) [ -z "$TPBIT" ] && continue;;
+	      esac
+	      if [ "$libgcc_s_so" ]; then
+		  out="libgcc/${dir}/${name}${objext}"
+		  outS="libgcc/${dir}/${name}_s${objext}"
 
-        echo $out: $FPBIT $fpbit_c_dep
-        echo "	$gcc_compile" -DFINE_GRAINED_LIBRARIES $flags -DL$name \
-	  '$(vis_hide)' -c $FPBIT -o $out
+		  echo $outS: $fpbit $fpbit_c_dep
+		  echo "	$gcc_s_compile" -DFINE_GRAINED_LIBRARIES $flags -DL$name \
+		      -c $fpbit -o $outS
 
-	echo $libgcc_a: $out
-	echo $libgcc_s_so: $outS
-	if [ "$SHLIB_MKMAP" ]; then
-	  echo libgcc/${dir}/libgcc.map: $outS
-	fi
-      else
-	out="libgcc/${dir}/${name}${objext}"
-	echo $out: $FPBIT $fpbit_c_dep
-	echo "	$gcc_compile" -DFINE_GRAINED_LIBRARIES $flags -DL$name \
-	  -c $FPBIT -o $out
-
-	echo $libgcc_a: $out
+		  echo $out: $fpbit $fpbit_c_dep
+		  echo "	$gcc_compile" -DFINE_GRAINED_LIBRARIES $flags -DL$name \
+		      '$(vis_hide)' -c $fpbit -o $out
+		  
+		  echo $libgcc_a: $out
+		  echo $libgcc_s_so: $outS
+		  if [ "$SHLIB_MKMAP" ]; then
+		      echo libgcc/${dir}/libgcc.map: $outS
+		  fi
+	      else
+		  out="libgcc/${dir}/${name}${objext}"
+		  echo $out: $fpbit $fpbit_c_dep
+		  echo "	$gcc_compile" -DFINE_GRAINED_LIBRARIES $flags -DL$name \
+		      -c $fpbit -o $out
+		  
+		  echo $libgcc_a: $out
+	      fi
+	  done
       fi
+  done
+
+  if [ "@enable_decimal_float@" = "yes" -a -z "$libgcc_so" ]; then
+    # If $DFP_ENABLE is set, then we want all data type sizes.
+    if [ "$DFP_ENABLE" ] ; then
+	D32PBIT=1; D64PBIT=1; D128PBIT=1
+    fi
+
+    # Bring in the DFP support code if D32PBIT, D64PBIT or D128PBIT are set.
+    if [ -n "$D32PBIT" -o -n "$D64PBIT" -o -n "$D128PBIT" ] ; then
+      dec_filenames="decContext decNumber decRound decLibrary decUtility"
+    fi
+
+    # Only bring in decimal*.c files for types we support.
+    if [ -n "$D32PBIT" ] ; then
+      dec_filenames="$dec_filenames decimal32"
+    fi
+    if [ -n "$D64PBIT" ] ; then
+      dec_filenames="$dec_filenames decimal64"
+    fi
+    if [ -n "$D128PBIT" ] ; then
+      dec_filenames="$dec_filenames decimal128"
+    fi
+
+    for name in $dec_filenames ; do
+      out="libgcc/${dir}/${name}${objext}"
+      echo $out: "\$(srcdir)/../libdecnumber/${name}.c" $decnumber_dep
+      echo "	$gcc_compile" $flags -c "\$(srcdir)/../libdecnumber/${name}.c" -o $out
+      echo $libgcc_a: $out
     done
-  fi
 
-  if [ "$DPBIT" ]; then
-    for name in $DPBIT_FUNCS; do
-      [ "$name" = _df_to_tf -a -z "$TPBIT" ] && continue
-      if [ "$libgcc_s_so" ]; then
-	out="libgcc/${dir}/${name}${objext}"
-	outS="libgcc/${dir}/${name}_s${objext}"
+    # For individual functions, loop over each variable by name.
+    for dpbit_var in D32PBIT D64PBIT D128PBIT ; do
+      dpfuncs_var="${dpbit_var}_FUNCS"
+      eval dpbit=\$$dpbit_var
+      eval dpfuncs=\$$dpfuncs_var
+      case "$dpbit_var" in
+	  D32PBIT)  dpwidth=32 ;;
+	  D64PBIT)  dpwidth=64 ;;
+	  D128PBIT) dpwidth=128 ;;
+      esac
 
-	echo $outS: $DPBIT $fpbit_c_dep
-	echo "	$gcc_s_compile" -DFINE_GRAINED_LIBRARIES $flags -DL$name \
-	  -c $DPBIT -o $outS
-
-        echo $out: $DPBIT $fpbit_c_dep
-        echo "	$gcc_compile" -DFINE_GRAINED_LIBRARIES $flags -DL$name \
-	  '$(vis_hide)' -c $DPBIT -o $out
-
-	echo $libgcc_a: $out
-	echo $libgcc_s_so: $outS
-	if [ "$SHLIB_MKMAP" ]; then
-	  echo libgcc/${dir}/libgcc.map: $outS
-	fi
-      else
-	out="libgcc/${dir}/${name}${objext}"
-	echo $out: $DPBIT $fpbit_c_dep
-	echo "	$gcc_compile" -DFINE_GRAINED_LIBRARIES $flags -DL$name \
-	  -c $DPBIT -o $out
-
-	echo $libgcc_a: $out
-      fi
-    done
-  fi
-
-  if [ "$TPBIT" ]; then
-    for name in $TPBIT_FUNCS; do
-      if [ "$libgcc_s_so" ]; then
-	out="libgcc/${dir}/${name}${objext}"
-	outS="libgcc/${dir}/${name}_s${objext}"
-
-	echo $outS: $TPBIT $fpbit_c_dep
-	echo "	$gcc_s_compile" -DFINE_GRAINED_LIBRARIES $flags -DL$name \
-	  -c $TPBIT -o $outS
-
-        echo $out: $TPBIT $fpbit_c_dep
-        echo "	$gcc_compile" -DFINE_GRAINED_LIBRARIES $flags -DL$name \
-	  '$(vis_hide)' -c $TPBIT -o $out
-
-	echo $libgcc_a: $out
-	echo $libgcc_s_so: $outS
-	if [ "$SHLIB_MKMAP" ]; then
-	  echo libgcc/${dir}/libgcc.map: $outS
-	fi
-      else
-	out="libgcc/${dir}/${name}${objext}"
-	echo $out: $TPBIT $fpbit_c_dep
-	echo "	$gcc_compile" -DFINE_GRAINED_LIBRARIES $flags -DL$name \
-	  -c $TPBIT -o $out
-
-	echo $libgcc_a: $out
+      if [ "$dpbit" ]; then
+        for name in $dpfuncs; do
+          out="libgcc/${dir}/${name}${objext}"
+	  echo $out: config/dfp-bit.h config/dfp-bit.c $fpbit_c_dep
+	  echo "	$gcc_compile" -DFINE_GRAINED_LIBRARIES $flags -DL$name -DWIDTH=$dpwidth \
+	      $DFP_CFLAGS -c $\(srcdir\)/config/dfp-bit.c -o $out
+	  echo $libgcc_a: $out
+        done
       fi
     done
   fi

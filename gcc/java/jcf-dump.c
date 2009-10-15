@@ -2,13 +2,13 @@
    Functionally similar to Sun's javap.
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
-   2006 Free Software Foundation, Inc.
+   2006, 2007  Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -17,9 +17,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  
 
 Java and all Java-based marks are trademarks or registered trademarks
 of Sun Microsystems, Inc. in the United States and other countries.
@@ -395,8 +394,10 @@ print_access_flags (FILE *stream, uint16 flags, char context)
   if (flags & ACC_ABSTRACT) fprintf (stream, " abstract");
   if (flags & ACC_STATIC) fprintf (stream, " static");
   if (flags & ACC_FINAL) fprintf (stream, " final");
-  if (flags & ACC_TRANSIENT) fprintf (stream, " transient");
-  if (flags & ACC_VOLATILE) fprintf (stream, " volatile");
+  if (flags & ACC_TRANSIENT)
+    fprintf (stream, context == 'm' ? " varargs" : " transient");
+  if (flags & ACC_VOLATILE)
+    fprintf (stream, context == 'm' ? " bridge" : " volatile");
   if (flags & ACC_NATIVE) fprintf (stream, " native");
   if (flags & ACC_SYNCHRONIZED)
     {
@@ -405,8 +406,11 @@ print_access_flags (FILE *stream, uint16 flags, char context)
       else
 	fprintf (stream, " synchronized");
     }
-  if (flags & ACC_INTERFACE) fprintf (stream, " interface");
+  if (flags & ACC_INTERFACE)
+    fprintf (stream, (flags & ACC_ANNOTATION) ? " @interface" : " interface");
+  if (flags & ACC_ENUM) fprintf (stream, " enum");
   if (flags & ACC_STRICT) fprintf (stream, " strictfp");
+  if (flags & ACC_SYNTHETIC) fprintf (stream, " synthetic");
 }
 
 
@@ -574,7 +578,7 @@ print_constant (FILE *out, JCF *jcf, int index, int verbosity)
 	  }
 
 	if (verbosity > 1)
-	  fprintf (out, ", bits = 0x%08lx", JPOOL_UINT (jcf, index));
+	  fprintf (out, ", bits = 0x%08lx", (long) JPOOL_UINT (jcf, index));
 	
 	break;
       }

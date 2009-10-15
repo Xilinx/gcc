@@ -1,5 +1,5 @@
 /* Target definitions for PowerPC running Darwin (Mac OS X).
-   Copyright (C) 1997, 2000, 2001, 2003, 2004, 2005, 2006
+   Copyright (C) 1997, 2000, 2001, 2003, 2004, 2005, 2006, 2007
    Free Software Foundation, Inc.
    Contributed by Apple Computer Inc.
 
@@ -7,7 +7,7 @@
 
    GCC is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published
-   by the Free Software Foundation; either version 2, or (at your
+   by the Free Software Foundation; either version 3, or (at your
    option) any later version.
 
    GCC is distributed in the hope that it will be useful, but WITHOUT
@@ -16,9 +16,8 @@
    License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with GCC; see the file COPYING.  If not, write to the
-   Free Software Foundation, 51 Franklin Street, Fifth Floor, Boston,
-   MA 02110-1301, USA.  */
+   along with GCC; see the file COPYING3.  If not see
+   <http://www.gnu.org/licenses/>.  */
 
 #undef  TARGET_VERSION
 #define TARGET_VERSION fprintf (stderr, " (Darwin/PowerPC)");
@@ -27,9 +26,21 @@
 
 #define DEFAULT_ABI ABI_DARWIN
 
+#ifdef IN_LIBGCC2
+#undef TARGET_64BIT
+#ifdef __powerpc64__
+#define TARGET_64BIT 1
+#else
+#define TARGET_64BIT 0
+#endif
+#endif
+
 /* The object file format is Mach-O.  */
 
 #define TARGET_OBJECT_FORMAT OBJECT_MACHO
+
+/* Size of the Obj-C jump buffer.  */
+#define OBJC_JBLEN ((TARGET_64BIT) ? (26*2 + 18*2 + 129 + 1) : (26 + 18*2 + 129 + 1))
 
 /* We're not ever going to do TOCs.  */
 
@@ -43,10 +54,6 @@
 /* Translate config/rs6000/darwin.opt to config/darwin.h.  */
 #define TARGET_DYNAMIC_NO_PIC (TARGET_MACHO_DYNAMIC_NO_PIC)
 
-/* Handle #pragma weak and #pragma pack.  */
-#define HANDLE_SYSV_PRAGMA 1
-
-
 #define TARGET_OS_CPP_BUILTINS()                \
   do                                            \
     {                                           \
@@ -55,16 +62,14 @@
       builtin_define ("__POWERPC__");           \
       builtin_define ("__NATURAL_ALIGNMENT__"); \
       darwin_cpp_builtins (pfile);		\
-      SUBTARGET_OS_CPP_BUILTINS ();             \
     }                                           \
   while (0)
 
 
-/* The Darwin ABI always includes AltiVec, can't be (validly) turned
-   off.  */
-
 #define SUBTARGET_OVERRIDE_OPTIONS					\
 do {									\
+  /* The Darwin ABI always includes AltiVec, can't be (validly) turned	\
+     off.  */								\
   rs6000_altivec_abi = 1;						\
   TARGET_ALTIVEC_VRSAVE = 1;						\
   if (DEFAULT_ABI == ABI_DARWIN)					\
@@ -77,8 +82,6 @@ do {									\
       }									\
     else if (flag_pic == 1)						\
       {									\
-        /* Darwin doesn't support -fpic.  */				\
-        warning (0, "-fpic is not supported; -fPIC assumed");		\
         flag_pic = 2;							\
       }									\
   }									\
@@ -87,7 +90,44 @@ do {									\
       target_flags |= MASK_POWERPC64;					\
       warning (0, "-m64 requires PowerPC64 architecture, enabling");	\
     }									\
+  if (flag_mkernel)							\
+    {									\
+      rs6000_default_long_calls = 1;					\
+      target_flags |= MASK_SOFT_FLOAT;					\
+    }									\
+									\
+  /* Make -m64 imply -maltivec.  Darwin's 64-bit ABI includes		\
+     Altivec.  */							\
+  if (!flag_mkernel && !flag_apple_kext					\
+      && TARGET_64BIT							\
+      && ! (target_flags_explicit & MASK_ALTIVEC))			\
+    target_flags |= MASK_ALTIVEC;					\
+									\
+  /* Unless the user (not the configurer) has explicitly overridden	\
+     it with -mcpu=G3 or -mno-altivec, then 10.5+ targets default to	\
+     G4 unless targetting the kernel.  */				\
+  if (!flag_mkernel							\
+      && !flag_apple_kext						\
+      && darwin_macosx_version_min					\
+      && strverscmp (darwin_macosx_version_min, "10.5") >= 0		\
+      && ! (target_flags_explicit & MASK_ALTIVEC)			\
+      && ! rs6000_select[1].string)					\
+    {									\
+      target_flags |= MASK_ALTIVEC;					\
+    }									\
 } while(0)
+
+#define C_COMMON_OVERRIDE_OPTIONS do {					\
+  /* On powerpc, __cxa_get_exception_ptr is available starting in the	\
+     10.4.6 libstdc++.dylib.  */					\
+  if ((! darwin_macosx_version_min					\
+       || strverscmp (darwin_macosx_version_min, "10.4.6") < 0)		\
+      && flag_use_cxa_get_exception_ptr == 2)				\
+    flag_use_cxa_get_exception_ptr = 0;					\
+  if (flag_mkernel)							\
+    flag_no_builtin = 1;						\
+  SUBTARGET_C_COMMON_OVERRIDE_OPTIONS;					\
+} while (0)
 
 /* Darwin has 128-bit long double support in libc in 10.4 and later.
    Default to 128-bit long doubles even on earlier platforms for ABI
@@ -101,9 +141,11 @@ do {									\
    the kernel or some such.  */
 
 #define CC1_SPEC "\
-%{g: %{!fno-eliminate-unused-debug-symbols: -feliminate-unused-debug-symbols }} \
-%{static: %{Zdynamic: %e conflicting code gen style switches are used}}\
-%{!static:%{!mdynamic-no-pic:-fPIC}}"
+  %{g: %{!fno-eliminate-unused-debug-symbols: -feliminate-unused-debug-symbols }} \
+  %{static: %{Zdynamic: %e conflicting code gen style switches are used}}\
+  %{!mkernel:%{!static:%{!mdynamic-no-pic:-fPIC}}}"
+
+#define DARWIN_ARCH_SPEC "%{m64:ppc64;:ppc}"
 
 #define DARWIN_SUBARCH_SPEC "			\
  %{m64: ppc64}					\
@@ -130,7 +172,7 @@ do {									\
 
 #undef SUBTARGET_EXTRA_SPECS
 #define SUBTARGET_EXTRA_SPECS			\
-  { "darwin_arch", "%{m64:ppc64;:ppc}" },	\
+  { "darwin_arch", DARWIN_ARCH_SPEC },		\
   { "darwin_crt2", DARWIN_CRT2_SPEC },		\
   { "darwin_subarch", DARWIN_SUBARCH_SPEC },
 
@@ -237,8 +279,6 @@ do {									\
 
 /* This says how to output an assembler line to define a global common
    symbol.  */
-/* ? */
-#undef  ASM_OUTPUT_ALIGNED_COMMON
 #define ASM_OUTPUT_COMMON(FILE, NAME, SIZE, ROUNDED)			\
   do {									\
     unsigned HOST_WIDE_INT _new_size = SIZE;				\
@@ -274,20 +314,20 @@ do {									\
         fprintf (FILE, "\t.align32 %d,0x60000000\n", (LOG));  \
     } while (0)
 
-/* Generate insns to call the profiler.  */
-
 #ifdef HAVE_GAS_MAX_SKIP_P2ALIGN
 /* This is supported in cctools 465 and later.  The macro test
    above prevents using it in earlier build environments.  */
-#define ASM_OUTPUT_MAX_SKIP_ALIGN(FILE,LOG,MAX_SKIP)           \
-   if ((LOG) != 0)                                             \
-     {                                                         \
-       if ((MAX_SKIP) == 0)                                    \
-         fprintf ((FILE), "\t.p2align %d\n", (LOG));           \
-       else                                                    \
-         fprintf ((FILE), "\t.p2align %d,,%d\n", (LOG), (MAX_SKIP)); \
-     }
+#define ASM_OUTPUT_MAX_SKIP_ALIGN(FILE,LOG,MAX_SKIP)          \
+  if ((LOG) != 0)                                             \
+    {                                                         \
+      if ((MAX_SKIP) == 0)                                    \
+        fprintf ((FILE), "\t.p2align %d\n", (LOG));           \
+      else                                                    \
+        fprintf ((FILE), "\t.p2align %d,,%d\n", (LOG), (MAX_SKIP)); \
+    }
 #endif
+
+/* Generate insns to call the profiler.  */
 
 #define PROFILE_HOOK(LABEL)   output_profile_hook (LABEL)
 
@@ -318,7 +358,7 @@ do {									\
 
 /* Since Darwin doesn't do TOCs, stub this out.  */
 
-#define ASM_OUTPUT_SPECIAL_POOL_ENTRY_P(X, MODE)  0
+#define ASM_OUTPUT_SPECIAL_POOL_ENTRY_P(X, MODE)  ((void)X, (void)MODE, 0)
 
 /* Unlike most other PowerPC targets, chars are signed, for
    consistency with other Darwin architectures.  */
@@ -326,11 +366,11 @@ do {									\
 #undef DEFAULT_SIGNED_CHAR
 #define DEFAULT_SIGNED_CHAR (1)
 
-/* Given an rtx X being reloaded into a reg required to be      
-   in class CLASS, return the class of reg to actually use.     
+/* Given an rtx X being reloaded into a reg required to be
+   in class CLASS, return the class of reg to actually use.
    In general this is just CLASS; but on some machines
    in some cases it is preferable to use a more restrictive class.
-  
+
    On the RS/6000, we have to return NO_REGS when we want to reload a
    floating-point CONST_DOUBLE to force it to be copied to memory.
 
@@ -427,3 +467,7 @@ do {									\
   (TARGET_64BIT							\
    || (darwin_macosx_version_min				\
        && strverscmp (darwin_macosx_version_min, "10.3") >= 0))
+
+/* When generating kernel code or kexts, we don't use Altivec by
+   default, as kernel code doesn't save/restore those registers.  */
+#define OS_MISSING_ALTIVEC (flag_mkernel || flag_apple_kext)

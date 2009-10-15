@@ -1,23 +1,22 @@
 ; Options for the language- and target-independent parts of the compiler.
 
-; Copyright (C) 2003, 2004, 2005 Free Software Foundation, Inc.
+; Copyright (C) 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
 ;
 ; This file is part of GCC.
 ;
 ; GCC is free software; you can redistribute it and/or modify it under
 ; the terms of the GNU General Public License as published by the Free
-; Software Foundation; either version 2, or (at your option) any later
+; Software Foundation; either version 3, or (at your option) any later
 ; version.
-; 
+;
 ; GCC is distributed in the hope that it will be useful, but WITHOUT ANY
 ; WARRANTY; without even the implied warranty of MERCHANTABILITY or
 ; FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 ; for more details.
-; 
+;
 ; You should have received a copy of the GNU General Public License
-; along with GCC; see the file COPYING.  If not, write to the Free
-; Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-; 02110-1301, USA.
+; along with GCC; see the file COPYING3.  If not see
+; <http://www.gnu.org/licenses/>.
 
 ; See the GCC internals manual for a description of this file's format.
 
@@ -77,6 +76,10 @@ Werror
 Common Var(warnings_are_errors)
 Treat all warnings as errors
 
+Werror=
+Common Joined
+Treat specified warning as error
+
 Wextra
 Common
 Print extra (possibly unwanted) warnings
@@ -101,6 +104,10 @@ Wmissing-noreturn
 Common Var(warn_missing_noreturn)
 Warn about functions which might be candidates for __attribute__((noreturn))
 
+Woverflow
+Common Var(warn_overflow) Init(1)
+Warn about overflow in arithmetic expressions
+
 Wpacked
 Common Var(warn_packed)
 Warn when the packed attribute has no effect on struct layout
@@ -122,8 +129,16 @@ Common
 Warn about code which might break strict aliasing rules
 
 Wstrict-aliasing=
-Common Joined UInteger
+Common Joined UInteger Var(warn_strict_aliasing) Init(-1)
 Warn about code which might break strict aliasing rules
+
+Wstrict-overflow
+Common
+Warn about optimizations that assume that signed overflow is undefined
+
+Wstrict-overflow=
+Common Joined UInteger Var(warn_strict_overflow) Init(-1)
+Warn about optimizations that assume that signed overflow is undefined
 
 Wswitch
 Common Var(warn_switch)
@@ -245,7 +260,9 @@ Common RejectNegative Joined UInteger
 ; 1 if pointer arguments may not alias each other but may alias
 ;   global variables.
 ; 2 if pointer arguments may not alias each other and may not
-;   alias global variables.  True in Fortran.
+;   alias global variables.
+; 3 if pointer arguments may not alias anything.  True in Fortran.
+;   Set by the front end.
 fargument-alias
 Common Report Var(flag_argument_noalias,0)
 Specify that arguments may alias each other and globals
@@ -257,6 +274,10 @@ Assume arguments may alias globals but not each other
 fargument-noalias-global
 Common Report Var(flag_argument_noalias,2) VarExists
 Assume arguments alias neither each other nor globals
+
+fargument-noalias-anything
+Common Report Var(flag_argument_noalias,3) VarExists
+Assume arguments alias no other storage
 
 fasynchronous-unwind-tables
 Common Report Var(flag_asynchronous_unwind_tables)
@@ -359,9 +380,13 @@ fdump-
 Common Joined RejectNegative
 -fdump-<type>	Dump various compiler internals to a file
 
+fdump-noaddr
+Common Report Var(flag_dump_noaddr)
+Suppress output of addresses in debugging dumps
+
 fdump-unnumbered
 Common Report Var(flag_dump_unnumbered) VarExists
-Suppress output of instruction numbers and line number notes in debugging dumps
+Suppress output of instruction numbers, line number notes and addresses in debugging dumps
 
 fearly-inlining
 Common Report Var(flag_early_inlining) Init(1)
@@ -378,6 +403,10 @@ Perform unused type elimination in debug info
 feliminate-unused-debug-types
 Common Report Var(flag_eliminate_unused_debug_types) Init(1)
 Perform unused type elimination in debug info
+
+femit-class-debug-always
+Common Report Var(flag_emit_class_debug_always) Init(0)
+Do not suppress C++ class debug information.
 
 fexceptions
 Common Report Var(flag_exceptions)
@@ -511,6 +540,10 @@ fipa-pure-const
 Common Report Var(flag_ipa_pure_const) Init(0)
 Discover pure and const functions
 
+fipa-pta
+Common Report Var(flag_ipa_pta) Init(0)
+Perform interprocedural points-to analysis
+
 fipa-reference
 Common Report Var(flag_ipa_reference) Init(0)
 Discover readonly and non addressable static variables
@@ -540,12 +573,8 @@ Common Report Var(flag_leading_underscore) Init(-1)
 Give external symbols a leading underscore
 
 floop-optimize
-Common Report Var(flag_loop_optimize)
-Perform loop optimizations
-
-floop-optimize2
-Common Report Var(flag_loop_optimize2)
-Perform loop optimizations using the new loop optimizer
+Common
+Does nothing.  Preserved for backward compatibility.
 
 fmath-errno
 Common Report Var(flag_errno_math) Init(1)
@@ -575,7 +604,7 @@ Common Report Var(flag_modulo_sched)
 Perform SMS based modulo scheduling before the first scheduling pass
 
 fmove-loop-invariants
-Common Report Var(flag_move_loop_invariants)
+Common Report Var(flag_move_loop_invariants) Init(1)
 Move loop invariant computations out of loops
 
 fmudflap
@@ -583,7 +612,7 @@ Common RejectNegative Report Var(flag_mudflap)
 Add mudflap bounds-checking instrumentation for single-threaded program
 
 fmudflapth
-Common RejectNegative Report Var(flag_mudflap_threads)
+Common RejectNegative Report VarExists Var(flag_mudflap,2)
 Add mudflap bounds-checking instrumentation for multi-threaded program
 
 fmudflapir
@@ -710,8 +739,8 @@ Common Report Var(flag_rerun_cse_after_loop) Init(2)
 Add a common subexpression elimination pass after loop optimizations
 
 frerun-loop-opt
-Common Report Var(flag_rerun_loop_opt)
-Run the loop optimizer twice
+Common
+Does nothing.  Preserved for backward compatibility.
 
 frounding-math
 Common Report Var(flag_rounding_math)
@@ -760,7 +789,7 @@ Common Report Var(flag_sched_stalled_insns)
 Allow premature scheduling of queued insns
 
 fsched-stalled-insns=
-Common RejectNegative Joined UInteger 
+Common RejectNegative Joined UInteger
 -fsched-stalled-insns=<number>	Set number of queued insns that can be prematurely scheduled
 
 ; sched_stalled_insns_dep controls how many recently scheduled cycles will
@@ -775,9 +804,17 @@ fsched-stalled-insns-dep=
 Common RejectNegative Joined UInteger
 -fsched-stalled-insns-dep=<number>	Set dependence distance checking in premature scheduling of queued insns
 
-fshared-data
-Common Report Var(flag_shared_data)
-Mark data as shared rather than private
+fsection-anchors
+Common Report Var(flag_section_anchors)
+Access data in the same section from shared anchor points
+
+frtl-abstract-sequences
+Common Report Var(flag_rtl_seqabstr)
+Perform sequence abstraction optimization on RTL
+
+fsee
+Common Report Var(flag_see) Init(0)
+Eliminate redundant sign extensions using LCM.
 
 fshow-column
 Common C ObjC C++ ObjC++ Report Var(flag_show_column) Init(1)
@@ -796,7 +833,7 @@ Common Report Var(flag_split_ivs_in_unroller) Init(1)
 Split lifetimes of induction variables when loops are unrolled
 
 fvariable-expansion-in-unroller
-Common Report Var(flag_variable_expansion_in_unroller) 
+Common Report Var(flag_variable_expansion_in_unroller)
 Apply variable expansion when loops are unrolled
 
 ; Emit code to probe the stack, to help detect stack overflow; also
@@ -825,8 +862,8 @@ Common Report RejectNegative Var(flag_stack_protect, 2) VarExists
 Use a stack protection method for every function
 
 fstrength-reduce
-Common Report Var(flag_strength_reduce)
-Perform strength reduction optimizations
+Common
+Does nothing.  Preserved for backward compatibility.
 
 ; Nonzero if we should do (language-dependent) alias analysis.
 ; Typically, this analysis will assume that expressions of certain
@@ -835,6 +872,10 @@ Perform strength reduction optimizations
 fstrict-aliasing
 Common Report Var(flag_strict_aliasing)
 Assume strict aliasing rules apply
+
+fstrict-overflow
+Common Report Var(flag_strict_overflow)
+Treat signed overflow as undefined
 
 fsyntax-only
 Common Report Var(flag_syntax_only)
@@ -855,6 +896,10 @@ Report the time taken by each compiler pass
 ftls-model=
 Common Joined RejectNegative
 -ftls-model=[global-dynamic|local-dynamic|initial-exec|local-exec]	Set the default thread-local storage code generation model
+
+ftoplevel-reorder
+Common Report Var(flag_toplevel_reorder) Init(1)
+Reorder top level functions, variables, and asms
 
 ftracer
 Common Report Var(flag_tracer)
@@ -1050,11 +1095,11 @@ Common JoinedOrMissing
 Generate debug information in default format
 
 gcoff
-Common JoinedOrMissing
+Common JoinedOrMissing Negative(gdwarf-2)
 Generate debug information in COFF format
 
 gdwarf-2
-Common JoinedOrMissing
+Common JoinedOrMissing Negative(gstabs)
 Generate debug information in DWARF v2 format
 
 ggdb
@@ -1062,23 +1107,23 @@ Common JoinedOrMissing
 Generate debug information in default extended format
 
 gstabs
-Common JoinedOrMissing
+Common JoinedOrMissing Negative(gstabs+)
 Generate debug information in STABS format
 
 gstabs+
-Common JoinedOrMissing
+Common JoinedOrMissing Negative(gvms)
 Generate debug information in extended STABS format
 
 gvms
-Common JoinedOrMissing
+Common JoinedOrMissing Negative(gxcoff)
 Generate debug information in VMS format
 
 gxcoff
-Common JoinedOrMissing
+Common JoinedOrMissing Negative(gxcoff+)
 Generate debug information in XCOFF format
 
 gxcoff+
-Common JoinedOrMissing
+Common JoinedOrMissing Negative(gcoff)
 Generate debug information in extended XCOFF format
 
 o

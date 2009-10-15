@@ -1,13 +1,13 @@
 /* Specific flags and argument handling of the front-end of the 
    GNU compiler for the Java(TM) language.
-   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005
-   Free Software Foundation, Inc.
+   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
+   2005, 2006, 2007  Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -16,9 +16,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA. 
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>. 
 
 Java and all Java-based marks are trademarks or registered trademarks
 of Sun Microsystems, Inc. in the United States and other countries.
@@ -90,7 +89,7 @@ find_spec_file (const char *dir)
   int x;
   struct stat sb;
 
-  spec = xmalloc (strlen (dir) + sizeof (SPEC_FILE)
+  spec = XNEWVEC (char, strlen (dir) + sizeof (SPEC_FILE)
 		  + sizeof ("-specs=") + 4);
   strcpy (spec, "-specs=");
   x = strlen (spec);
@@ -243,11 +242,14 @@ lang_specific_driver (int *in_argc, const char *const **in_argv,
   /* The argument we use to specify the spec file.  */
   char *spec_file = NULL;
 
+  /* If linking, nonzero if the BC-ABI is in use.  */
+  int link_for_bc_abi = 0;
+
   argc = *in_argc;
   argv = *in_argv;
   added_libraries = *in_added_libraries;
 
-  args = xcalloc (argc, sizeof (int));
+  args = XCNEWVEC (int, argc);
 
   for (i = 1; i < argc; i++)
     {
@@ -355,7 +357,6 @@ lang_specific_driver (int *in_argc, const char *const **in_argv,
 	  else if (strcmp (argv[i], "-fsyntax-only") == 0
 		   || strcmp (argv[i], "--syntax-only") == 0)
 	    {
-	      want_spec_file = 0;
 	      library = 0;
 	      will_link = 0;
 	      continue;
@@ -365,6 +366,11 @@ lang_specific_driver (int *in_argc, const char *const **in_argv,
           else if (strcmp (argv[i], "-static-libgcc") == 0
                    || strcmp (argv[i], "-static") == 0)
 	    shared_libgcc = 0;
+	  else if (strcmp (argv[i], "-findirect-dispatch") == 0
+		   || strcmp (argv[i], "--indirect-dispatch") == 0)
+	    {
+	      link_for_bc_abi = 1;
+	    }
 	  else
 	    /* Pass other options through.  */
 	    continue;
@@ -490,7 +496,9 @@ lang_specific_driver (int *in_argc, const char *const **in_argv,
   
   num_args += shared_libgcc;
 
-  arglist = xmalloc ((num_args + 1) * sizeof (char *));
+  num_args += link_for_bc_abi;
+
+  arglist = XNEWVEC (const char *, num_args + 1);
   j = 0;
 
   arglist[j++] = argv[0];
@@ -599,6 +607,9 @@ lang_specific_driver (int *in_argc, const char *const **in_argv,
   if (shared_libgcc)
     arglist[j++] = "-shared-libgcc";
 
+  if (link_for_bc_abi)
+    arglist[j++] = "-s-bc-abi";
+
   arglist[j] = NULL;
 
   *in_argc = j;
@@ -635,9 +646,3 @@ lang_specific_pre_link (void)
     }
   return err;
 }
-
-/* Table of language-specific spec functions.  */ 
-const struct spec_function lang_specific_spec_functions[] =
-{
-  { 0, 0 }
-};

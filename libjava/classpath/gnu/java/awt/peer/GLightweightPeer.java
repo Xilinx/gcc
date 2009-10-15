@@ -1,5 +1,5 @@
 /* GLightweightPeer.java --
-   Copyright (C) 2003, 2004 Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2006 Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -54,11 +54,14 @@ import java.awt.Insets;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.Toolkit;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.awt.event.PaintEvent;
 import java.awt.image.ColorModel;
 import java.awt.image.ImageObserver;
 import java.awt.image.ImageProducer;
 import java.awt.image.VolatileImage;
+import java.awt.peer.ComponentPeer;
 import java.awt.peer.ContainerPeer;
 import java.awt.peer.LightweightPeer;
 
@@ -79,7 +82,7 @@ import java.awt.peer.LightweightPeer;
  * Lightweight components are painted directly onto their parent
  * containers through an Image object provided by the toolkit.
  */
-public class GLightweightPeer
+public class GLightweightPeer 
   implements LightweightPeer, ContainerPeer
 {
   private Component comp;
@@ -227,7 +230,12 @@ public class GLightweightPeer
 
   public void print(Graphics graphics) {}
 
-  public void repaint(long tm, int x, int y, int width, int height) {}
+  public void repaint(long tm, int x, int y, int width, int height)
+  {
+    Component p = comp.getParent();
+    if (p != null)
+      p.repaint(tm, x + comp.getX(), y + comp.getY(), width, height);
+  }
 
   public void requestFocus() {}
 
@@ -242,7 +250,25 @@ public class GLightweightPeer
 
   public void setBounds(int x, int y, int width, int height) {}
 
-  public void setCursor(Cursor cursor) {}
+  /**
+   * Sets the cursor on the heavy-weight parent peer.
+   * Called by the MouseListener on mouse enter.
+   */
+  public void setCursor(Cursor cursor)
+  {
+    Component p = comp.getParent();
+    while (p != null && p.isLightweight())
+      p = p.getParent();
+
+    if (p != null)
+      {
+	// Don't actually change the cursor of the component
+	// otherwise other childs inherit this cursor.
+	ComponentPeer peer = p.getPeer();
+	if (peer != null)
+	  peer.setCursor(cursor);
+      }
+  }
 
   public void setEnabled(boolean enabled) {}
 

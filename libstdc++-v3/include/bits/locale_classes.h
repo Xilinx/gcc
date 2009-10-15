@@ -28,14 +28,14 @@
 // invalidate any other reasons why the executable file might be covered by
 // the GNU General Public License.
 
-//
-// ISO C++ 14882: 22.1  Locales
-//
-
 /** @file locale_classes.h
  *  This is an internal header file, included by other library headers.
  *  You should not attempt to use it directly.
  */
+
+//
+// ISO C++ 14882: 22.1  Locales
+//
 
 #ifndef _LOCALE_CLASSES_H
 #define _LOCALE_CLASSES_H 1
@@ -45,11 +45,10 @@
 #include <bits/localefwd.h>
 #include <cstring>		// For strcmp.
 #include <string>
-#include <bits/atomicity.h>
-#include <bits/gthr.h>
+#include <ext/atomicity.h>
 
-namespace std
-{
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
   // 22.1.1 Class locale
   /**
    *  @brief  Container class for localization functionality.
@@ -400,12 +399,12 @@ namespace std
   private:
     inline void
     _M_add_reference() const throw()
-    { __gnu_cxx::__atomic_add(&_M_refcount, 1); }
+    { __gnu_cxx::__atomic_add_dispatch(&_M_refcount, 1); }
 
     inline void
     _M_remove_reference() const throw()
     {
-      if (__gnu_cxx::__exchange_and_add(&_M_refcount, -1) == 1)
+      if (__gnu_cxx::__exchange_and_add_dispatch(&_M_refcount, -1) == 1)
 	{
 	  try
 	    { delete this; }
@@ -505,12 +504,12 @@ namespace std
 
     inline void
     _M_add_reference() throw()
-    { __gnu_cxx::__atomic_add(&_M_refcount, 1); }
+    { __gnu_cxx::__atomic_add_dispatch(&_M_refcount, 1); }
 
     inline void
     _M_remove_reference() throw()
     {
-      if (__gnu_cxx::__exchange_and_add(&_M_refcount, -1) == 1)
+      if (__gnu_cxx::__exchange_and_add_dispatch(&_M_refcount, -1) == 1)
 	{
 	  try
 	    { delete this; }
@@ -577,6 +576,7 @@ namespace std
       delete [] _M_impl->_M_names[0];
       _M_impl->_M_names[0] = 0;   // Unnamed.
     }
-} // namespace std
+
+_GLIBCXX_END_NAMESPACE
 
 #endif

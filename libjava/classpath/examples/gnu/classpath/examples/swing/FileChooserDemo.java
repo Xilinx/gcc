@@ -1,5 +1,5 @@
 /* FileChooserDemo.java -- An example showing file choosers in Swing.
-   Copyright (C) 2005,  Free Software Foundation, Inc.
+   Copyright (C) 2005, 2006,  Free Software Foundation, Inc.
 
 This file is part of GNU Classpath examples.
 
@@ -30,19 +30,23 @@ import java.io.File;
 import javax.swing.BorderFactory;
 import javax.swing.DefaultListModel;
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.SwingUtilities;
 import javax.swing.filechooser.FileFilter;
 
 /**
  * A simple demo showing the {@link JFileChooser} component used in different
  * ways.
  */
-public class FileChooserDemo extends JFrame implements ActionListener 
+public class FileChooserDemo
+  extends JPanel
+  implements ActionListener 
 {
   /**
    * A file filter for Java source files.
@@ -63,7 +67,7 @@ public class FileChooserDemo extends JFrame implements ActionListener
         return false;
     }
   }
-    
+
   /** A label to display the selected file. */
   JLabel selectedFileLabel;
     
@@ -78,20 +82,28 @@ public class FileChooserDemo extends JFrame implements ActionListener
     
   /**
    * Creates a new demo instance. 
-   * 
-   * @param frameTitle  the frame title.
    */
-  public FileChooserDemo(String frameTitle) 
+  public FileChooserDemo() 
   {
-    super(frameTitle);
-    JPanel content = createContent();
+    super();
+    createContent();
+  }
+  
+  /**
+   * When the demo is run independently, the frame is displayed, so we should
+   * initialise the content panel (including the demo content and a close 
+   * button).  But when the demo is run as part of the Swing activity board,
+   * only the demo content panel is used, the frame itself is never displayed,
+   * so we can avoid this step.
+   */
+  void initFrameContent() 
+  {
     JPanel closePanel = new JPanel();
     JButton closeButton = new JButton("Close");
     closeButton.setActionCommand("CLOSE");
     closeButton.addActionListener(this);
     closePanel.add(closeButton);
-    content.add(closePanel, BorderLayout.SOUTH);
-    getContentPane().add(content);
+    add(closePanel, BorderLayout.SOUTH);
   }
       
   /**
@@ -101,10 +113,10 @@ public class FileChooserDemo extends JFrame implements ActionListener
    * bottom of the panel if they want to (a close button is
    * added if this demo is being run as a standalone demo).
    */
-  JPanel createContent()
-  {      
-    JPanel panel = new JPanel(new BorderLayout());
-     
+  private void createContent()
+  {
+    setLayout(new BorderLayout());
+        
     // create a panel of buttons to select the different styles of file 
     // chooser...
     JPanel buttonPanel = new JPanel(new GridLayout(5, 1));
@@ -128,11 +140,11 @@ public class FileChooserDemo extends JFrame implements ActionListener
     openMultiButton.setActionCommand("OPEN_MULTI");
     openMultiButton.addActionListener(this);
     buttonPanel.add(openMultiButton);
-    panel.add(buttonPanel, BorderLayout.WEST);
-    
+    add(buttonPanel, BorderLayout.WEST);
+        
     // create a panel to display the selected file(s) and the return code
     JPanel displayPanel = new JPanel(new BorderLayout());
-     
+        
     selectedFileLabel = new JLabel("-");
     selectedFileLabel.setBorder(BorderFactory.createTitledBorder("Selected File/Directory: "));
     displayPanel.add(selectedFileLabel, BorderLayout.NORTH);
@@ -141,13 +153,12 @@ public class FileChooserDemo extends JFrame implements ActionListener
     JScrollPane sp = new JScrollPane(selectedFilesList);
     sp.setBorder(BorderFactory.createTitledBorder("Selected Files: "));
     displayPanel.add(sp);
-
+        
     returnCodeLabel = new JLabel("0");
     returnCodeLabel.setBorder(BorderFactory.createTitledBorder("Return Code:"));
     displayPanel.add(returnCodeLabel, BorderLayout.SOUTH);
         
-    panel.add(displayPanel);
-    return panel;        
+    add(displayPanel);
   }
     
   /**
@@ -220,9 +231,34 @@ public class FileChooserDemo extends JFrame implements ActionListener
     
   public static void main(String[] args) 
   {
-    FileChooserDemo app = new FileChooserDemo("File Chooser Demo");
-    app.pack();
-    app.setVisible(true);
+    SwingUtilities.invokeLater
+    (new Runnable()
+     {
+       public void run()
+       {
+         FileChooserDemo app = new FileChooserDemo();
+         app.initFrameContent();
+         JFrame frame = new JFrame("FileChooser Demo");
+         frame.getContentPane().add(app);
+         frame.pack();
+         frame.setVisible(true);
+       }
+     });
   }
 
+  /**
+   * Returns a DemoFactory that creates a FileChooserDemo.
+   *
+   * @return a DemoFactory that creates a FileChooserDemo
+   */
+  public static DemoFactory createDemoFactory()
+  {
+    return new DemoFactory()
+    {
+      public JComponent createDemo()
+      {
+        return new FileChooserDemo();
+      }
+    };
+  }
 }

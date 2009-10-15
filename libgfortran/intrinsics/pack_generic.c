@@ -41,7 +41,7 @@ Boston, MA 02110-1301, USA.  */
    Description: Pack an array into an array of rank one under the
    control of a mask.
 
-   Class: Transformational fucntion.
+   Class: Transformational function.
 
    Arguments:
       ARRAY   may be of any type. It shall not be scalar.
@@ -93,15 +93,19 @@ pack_internal (gfc_array_char *ret, const gfc_array_char *array,
 
   index_type count[GFC_MAX_DIMENSIONS];
   index_type extent[GFC_MAX_DIMENSIONS];
+  int zero_sized;
   index_type n;
   index_type dim;
   index_type nelem;
 
   dim = GFC_DESCRIPTOR_RANK (array);
+  zero_sized = 0;
   for (n = 0; n < dim; n++)
     {
       count[n] = 0;
       extent[n] = array->dim[n].ubound + 1 - array->dim[n].lbound;
+      if (extent[n] <= 0)
+       zero_sized = 1;
       sstride[n] = array->dim[n].stride * size;
       mstride[n] = mask->dim[n].stride;
     }
@@ -154,6 +158,8 @@ pack_internal (gfc_array_char *ret, const gfc_array_char *array,
 	  const GFC_LOGICAL_4 *m = mptr;
 
 	  total = 0;
+	  if (zero_sized)
+	    m = NULL;
 
 	  while (m)
 	    {
@@ -171,7 +177,7 @@ pack_internal (gfc_array_char *ret, const gfc_array_char *array,
 		     and increment the next dimension.  */
 		  count[n] = 0;
 		  /* We could precalculate this product, but this is a
-		     less frequently used path so proabably not worth
+		     less frequently used path so probably not worth
 		     it.  */
 		  m -= mstride[n] * extent[n];
 		  n++;
@@ -233,7 +239,7 @@ pack_internal (gfc_array_char *ret, const gfc_array_char *array,
              the next dimension.  */
           count[n] = 0;
           /* We could precalculate these products, but this is a less
-             frequently used path so proabably not worth it.  */
+             frequently used path so probably not worth it.  */
           sptr -= sstride[n] * extent[n];
           mptr -= mstride[n] * extent[n];
           n++;
@@ -406,7 +412,7 @@ pack_s_internal (gfc_array_char *ret, const gfc_array_char *array,
 		 increment the next dimension.  */
 	      count[n] = 0;
 	      /* We could precalculate these products, but this is a
-		 less frequently used path so proabably not worth it.  */
+		 less frequently used path so probably not worth it.  */
 	      sptr -= sstride[n] * extent[n];
 	      n++;
 	      if (n >= dim)

@@ -1,5 +1,4 @@
-## GCJ LOCAL: don't install this library
-noinst_LTLIBRARIES = libxmlj.la
+nativeexeclib_LTLIBRARIES = libxmlj.la
 
 libxmlj_la_SOURCES = \
 xmlj_dom.c \
@@ -16,6 +15,8 @@ xmlj_transform.c \
 xmlj_util.c \
 xmlj_util.h \
 xmlj_xpath.c
+
+libxmlj_la_LIBADD = $(top_builddir)/native/jni/classpath/jcl.lo
 
 AM_LDFLAGS = @CLASSPATH_MODULE@ @XML_LIBS@ @XSLT_LIBS@
 AM_CPPFLAGS = @CLASSPATH_INCLUDES@

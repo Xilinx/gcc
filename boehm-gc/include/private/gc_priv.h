@@ -262,17 +262,6 @@ typedef char * ptr_t;	/* A generic pointer to which we can add	*/
 /*                               */
 /*********************************/
 
-#ifdef SAVE_CALL_CHAIN
-
-/* Fill in the pc and argument information for up to NFRAMES of my	*/
-/* callers.  Ignore my frame and my callers frame.			*/
-struct callinfo;
-void GC_save_callers GC_PROTO((struct callinfo info[NFRAMES]));
-  
-void GC_print_callers GC_PROTO((struct callinfo info[NFRAMES]));
-
-#endif
-
 #ifdef NEED_CALLINFO
     struct callinfo {
 	word ci_pc;  	/* Caller, not callee, pc	*/
@@ -284,6 +273,16 @@ void GC_print_callers GC_PROTO((struct callinfo info[NFRAMES]));
 	    word ci_dummy;
 #	endif
     };
+#endif
+
+#ifdef SAVE_CALL_CHAIN
+
+/* Fill in the pc and argument information for up to NFRAMES of my	*/
+/* callers.  Ignore my frame and my callers frame.			*/
+void GC_save_callers GC_PROTO((struct callinfo info[NFRAMES]));
+  
+void GC_print_callers GC_PROTO((struct callinfo info[NFRAMES]));
+
 #endif
 
 
@@ -469,6 +468,53 @@ extern GC_warn_proc GC_current_warn_proc;
 #   define GETENV(name) 0
 #endif
 
+#if defined(DARWIN)
+#      if defined(POWERPC)
+#              if CPP_WORDSZ == 32
+#                define GC_THREAD_STATE_T ppc_thread_state_t
+#		  define GC_MACH_THREAD_STATE PPC_THREAD_STATE
+#		  define GC_MACH_THREAD_STATE_COUNT PPC_THREAD_STATE_COUNT
+#                define GC_MACH_HEADER mach_header
+#                define GC_MACH_SECTION section
+#              else
+#                define GC_THREAD_STATE_T ppc_thread_state64_t
+#		  define GC_MACH_THREAD_STATE PPC_THREAD_STATE64
+#		  define GC_MACH_THREAD_STATE_COUNT PPC_THREAD_STATE64_COUNT
+#                define GC_MACH_HEADER mach_header_64
+#                define GC_MACH_SECTION section_64
+#              endif
+#      elif defined(I386) || defined(X86_64)
+#              if CPP_WORDSZ == 32
+#                define GC_THREAD_STATE_T x86_thread_state32_t
+#                define GC_MACH_THREAD_STATE x86_THREAD_STATE32
+#                define GC_MACH_THREAD_STATE_COUNT x86_THREAD_STATE32_COUNT
+#                define GC_MACH_HEADER mach_header
+#                define GC_MACH_SECTION section
+#              else
+#                define GC_THREAD_STATE_T x86_thread_state64_t
+#                define GC_MACH_THREAD_STATE x86_THREAD_STATE64
+#                define GC_MACH_THREAD_STATE_COUNT x86_THREAD_STATE64_COUNT
+#                define GC_MACH_HEADER mach_header_64
+#                define GC_MACH_SECTION section_64
+#              endif
+#      else
+#              error define GC_THREAD_STATE_T
+#              define GC_MACH_THREAD_STATE MACHINE_THREAD_STATE
+#              define GC_MACH_THREAD_STATE_COUNT MACHINE_THREAD_STATE_COUNT
+#      endif
+/* Try to work out the right way to access thread state structure members.
+   The structure has changed its definition in different Darwin versions.
+   This now defaults to the (older) names without __, thus hopefully,
+   not breaking any existing Makefile.direct builds.  */
+#      if defined (HAS_PPC_THREAD_STATE___R0) \
+	 || defined (HAS_PPC_THREAD_STATE64___R0) \
+	 || defined (HAS_X86_THREAD_STATE32___EAX) \
+	 || defined (HAS_X86_THREAD_STATE64___RAX)
+#        define THREAD_FLD(x) __ ## x
+#      else
+#        define THREAD_FLD(x) x
+#      endif
+#endif
 /*********************************/
 /*                               */
 /* Word-size-dependent defines   */

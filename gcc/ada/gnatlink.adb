@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1996-2005 Free Software Foundation, Inc.          --
+--          Copyright (C) 1996-2006, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -27,6 +27,7 @@
 --  Gnatlink usage: please consult the gnat documentation
 
 with ALI;      use ALI;
+with Csets;
 with Gnatvsn;  use Gnatvsn;
 with Hostparm;
 with Indepsw;  use Indepsw;
@@ -34,9 +35,11 @@ with Namet;    use Namet;
 with Opt;
 with Osint;    use Osint;
 with Output;   use Output;
+with Snames;
 with Switch;   use Switch;
 with System;   use System;
 with Table;
+with Targparm; use Targparm;
 with Types;
 
 with Ada.Command_Line;     use Ada.Command_Line;
@@ -48,6 +51,11 @@ with System.CRTL;
 
 procedure Gnatlink is
    pragma Ident (Gnatvsn.Gnat_Static_Version_String);
+
+   Shared_Libgcc_String : constant String := "-shared-libgcc";
+   Shared_Libgcc        : constant String_Access :=
+                            new String'(Shared_Libgcc_String);
+   --  Used to invoke gcc when the binder is invoked with -shared
 
    package Gcc_Linker_Options is new Table.Table (
      Table_Component_Type => String_Access,
@@ -171,22 +179,22 @@ procedure Gnatlink is
    Object_List_File_Required : Boolean := False;
    --  Set to True to force generation of a response file
 
-   function Base_Name (File_Name : in String) return String;
+   function Base_Name (File_Name : String) return String;
    --  Return just the file name part without the extension (if present)
 
-   procedure Delete (Name : in String);
+   procedure Delete (Name : String);
    --  Wrapper to unlink as status is ignored by this application
 
-   procedure Error_Msg (Message : in String);
+   procedure Error_Msg (Message : String);
    --  Output the error or warning Message
 
-   procedure Exit_With_Error (Error : in String);
+   procedure Exit_With_Error (Error : String);
    --  Output Error and exit program with a fatal condition
 
    procedure Process_Args;
    --  Go through all the arguments and build option tables
 
-   procedure Process_Binder_File (Name : in String);
+   procedure Process_Binder_File (Name : String);
    --  Reads the binder file and extracts linker arguments
 
    procedure Write_Header;
@@ -199,7 +207,7 @@ procedure Gnatlink is
    -- Base_Name --
    ---------------
 
-   function Base_Name (File_Name : in String) return String is
+   function Base_Name (File_Name : String) return String is
       Findex1 : Natural;
       Findex2 : Natural;
 
@@ -234,7 +242,7 @@ procedure Gnatlink is
    -- Delete --
    ------------
 
-   procedure Delete (Name : in String) is
+   procedure Delete (Name : String) is
       Status : int;
       pragma Unreferenced (Status);
    begin
@@ -246,7 +254,7 @@ procedure Gnatlink is
    -- Error_Msg --
    ---------------
 
-   procedure Error_Msg (Message : in String) is
+   procedure Error_Msg (Message : String) is
    begin
       Write_Str (Base_Name (Command_Name));
       Write_Str (": ");
@@ -258,7 +266,7 @@ procedure Gnatlink is
    -- Exit_With_Error --
    ---------------------
 
-   procedure Exit_With_Error (Error : in String) is
+   procedure Exit_With_Error (Error : String) is
    begin
       Error_Msg (Error);
       Exit_Program (E_Fatal);
@@ -301,9 +309,7 @@ procedure Gnatlink is
                  new String'(Arg);
 
             elsif Arg'Length /= 0 and then Arg (1) = '-' then
-               if Arg'Length > 4
-                 and then Arg (2 .. 5) =  "gnat"
-               then
+               if Arg'Length > 4 and then Arg (2 .. 5) =  "gnat" then
                   Exit_With_Error
                     ("invalid switch: """ & Arg & """ (gnat not needed here)");
                end if;
@@ -335,6 +341,7 @@ procedure Gnatlink is
                elsif Arg'Length >= 3 and then Arg (2) = 'M' then
                   declare
                      Switches : String_List_Access;
+
                   begin
                      Convert (Map_File, Arg (3 .. Arg'Last), Switches);
 
@@ -461,7 +468,6 @@ procedure Gnatlink is
                     Linker_Options.Table (Linker_Options.Last);
 
                elsif Arg'Length >= 7 and then Arg (1 .. 7) = "--LINK=" then
-
                   if Arg'Length = 7 then
                      Exit_With_Error ("Missing argument for --LINK=");
                   end if;
@@ -500,6 +506,15 @@ procedure Gnatlink is
                               then
                                  Debug_Flag_Present := True;
                               end if;
+                           end if;
+
+                           --  Add directory to source search dirs so that
+                           --  Get_Target_Parameters can find system.ads
+
+                           if Arg (AF .. AF + 1) = "-I"
+                             and then Arg'Length > 2
+                           then
+                              Add_Src_Search_Dir (Arg (AF + 2 .. Arg'Last));
                            end if;
 
                            --  Pass to gcc for compiling binder generated file
@@ -546,7 +561,20 @@ procedure Gnatlink is
                      Exit_With_Error ("cannot handle more than one ALI file");
                   end if;
 
-               --  If object file, record object file
+               --  If target object file, record object file
+
+               elsif Arg'Length > Get_Target_Object_Suffix.all'Length
+                 and then Arg
+                   (Arg'Last -
+                    Get_Target_Object_Suffix.all'Length + 1 .. Arg'Last)
+                   = Get_Target_Object_Suffix.all
+               then
+                  Linker_Objects.Increment_Last;
+                  Linker_Objects.Table (Linker_Objects.Last) :=
+                    new String'(Arg);
+
+               --  If host object file, record object file
+               --  e.g. accept foo.o as well as foo.obj on VMS target
 
                elsif Arg'Length > Get_Object_Suffix.all'Length
                  and then Arg
@@ -603,7 +631,7 @@ procedure Gnatlink is
    -- Process_Binder_File --
    -------------------------
 
-   procedure Process_Binder_File (Name : in String) is
+   procedure Process_Binder_File (Name : String) is
       Fd : FILEs;
       --  Binder file's descriptor
 
@@ -706,7 +734,7 @@ procedure Gnatlink is
       function Index (S, Pattern : String) return Natural;
       --  Return the last occurrence of Pattern in S, or 0 if none
 
-      function Is_Option_Present (Opt : in String) return Boolean;
+      function Is_Option_Present (Opt : String) return Boolean;
       --  Return true if the option Opt is already present in
       --  Linker_Options table.
 
@@ -768,7 +796,7 @@ procedure Gnatlink is
       -- Is_Option_Present --
       -----------------------
 
-      function Is_Option_Present (Opt : in String) return Boolean is
+      function Is_Option_Present (Opt : String) return Boolean is
       begin
          for I in 1 .. Linker_Options.Last loop
 
@@ -908,7 +936,9 @@ procedure Gnatlink is
 
          --  If target is using the GNU linker we must add a special header
          --  and footer in the response file.
+
          --  The syntax is : INPUT (object1.o object2.o ... )
+
          --  Because the GNU linker does not like name with characters such
          --  as '!', we must put the object paths between double quotes.
 
@@ -976,6 +1006,7 @@ procedure Gnatlink is
 
          declare
             N : Integer;
+
          begin
             N := Objs_End - Objs_Begin + 1;
 
@@ -1012,7 +1043,7 @@ procedure Gnatlink is
             --  The following test needs comments, why is it VMS specific.
             --  The above comment looks out of date ???
 
-            elsif not (Hostparm.OpenVMS
+            elsif not (OpenVMS_On_Target
                          and then
                        Is_Option_Present (Next_Line (Nfirst .. Nlast)))
             then
@@ -1265,6 +1296,13 @@ procedure Gnatlink is
          end loop;
       end if;
 
+      --  If -shared was specified, invoke gcc with -shared-libgcc
+
+      if GNAT_Shared then
+         Linker_Options.Increment_Last;
+         Linker_Options.Table (Linker_Options.Last) := Shared_Libgcc;
+      end if;
+
       Status := fclose (Fd);
    end Process_Binder_File;
 
@@ -1279,7 +1317,9 @@ procedure Gnatlink is
          Write_Str ("GNATLINK ");
          Write_Str (Gnat_Version_String);
          Write_Eol;
-         Write_Str ("Copyright 1995-2005 Free Software Foundation, Inc");
+         Write_Str ("Copyright 1995-" &
+                    Current_Year &
+                    ", Free Software Foundation, Inc");
          Write_Eol;
       end if;
    end Write_Header;
@@ -1424,17 +1464,24 @@ begin
 
    if not Is_Regular_File (Ali_File_Name.all) then
       Exit_With_Error (Ali_File_Name.all & " not found");
+   end if;
+
+   --  Get target parameters
+
+   Namet.Initialize;
+   Csets.Initialize;
+   Snames.Initialize;
+   Osint.Add_Default_Search_Dirs;
+   Targparm.Get_Target_Parameters;
 
    --  Read the ALI file of the main subprogram if the binder generated
    --  file needs to be compiled and no --GCC= switch has been specified.
    --  Fetch the back end switches from this ALI file and use these switches
    --  to compile the binder generated file
 
-   elsif Compile_Bind_File and then Standard_Gcc then
-      --  Do some initializations
+   if Compile_Bind_File and then Standard_Gcc then
 
       Initialize_ALI;
-      Namet.Initialize;
       Name_Len := Ali_File_Name'Length;
       Name_Buffer (1 .. Name_Len) := Ali_File_Name.all;
 
@@ -1445,7 +1492,6 @@ begin
          A : ALI_Id;
 
       begin
-         --  Osint.Add_Default_Search_Dirs;
          --  Load the ALI file
 
          T := Read_Library_Info (F, True);
@@ -1494,10 +1540,9 @@ begin
    --  If no output name specified, then use the base name of .ali file name
 
    if Output_File_Name = null then
-
       Output_File_Name :=
         new String'(Base_Name (Ali_File_Name.all)
-                       & Get_Debuggable_Suffix.all);
+                       & Get_Target_Debuggable_Suffix.all);
 
       Linker_Options.Increment_Last;
       Linker_Options.Table (Linker_Options.Last) :=
@@ -1506,7 +1551,6 @@ begin
       Linker_Options.Increment_Last;
       Linker_Options.Table (Linker_Options.Last) :=
         new String'(Output_File_Name.all);
-
    end if;
 
    --  Warn if main program is called "test", as that may be a built-in command
@@ -1554,63 +1598,49 @@ begin
                         "__gnat_get_maximum_file_name_length");
 
       Maximum_File_Name_Length : constant Integer :=
-        Get_Maximum_File_Name_Length;
+                                   Get_Maximum_File_Name_Length;
 
-      Second_Char : Character;
-      --  Second character of name of files
+      Bind_File_Prefix : Types.String_Ptr;
+      --  Contains prefix used for bind files
 
    begin
-      --  Set proper second character of file name
+      --  Set prefix
 
       if not Ada_Bind_File then
-         Second_Char := '_';
-
-      elsif Hostparm.OpenVMS then
-         Second_Char := '$';
-
+         Bind_File_Prefix := new String'("b_");
+      elsif OpenVMS_On_Target then
+         Bind_File_Prefix := new String'("b__");
       else
-         Second_Char := '~';
+         Bind_File_Prefix := new String'("b~");
       end if;
 
       --  If the length of the binder file becomes too long due to
       --  the addition of the "b?" prefix, then truncate it.
 
       if Maximum_File_Name_Length > 0 then
-         while Fname_Len > Maximum_File_Name_Length - 2 loop
+         while Fname_Len >
+                 Maximum_File_Name_Length - Bind_File_Prefix.all'Length
+         loop
             Fname_Len := Fname_Len - 1;
          end loop;
       end if;
 
-      if Ada_Bind_File then
-         Binder_Spec_Src_File :=
-           new String'('b'
-                       & Second_Char
-                       & Fname (Fname'First .. Fname'First + Fname_Len - 1)
-                       & ".ads");
-         Binder_Body_Src_File :=
-           new String'('b'
-                       & Second_Char
-                       & Fname (Fname'First .. Fname'First + Fname_Len - 1)
-                       & ".adb");
-         Binder_Ali_File :=
-           new String'('b'
-                       & Second_Char
-                       & Fname (Fname'First .. Fname'First + Fname_Len - 1)
-                       & ".ali");
+      declare
+         Fnam : constant String :=
+                  Bind_File_Prefix.all &
+                    Fname (Fname'First .. Fname'First + Fname_Len - 1);
 
-      else
-         Binder_Body_Src_File :=
-           new String'('b'
-                       & Second_Char
-                       & Fname (Fname'First .. Fname'First + Fname_Len - 1)
-                       & ".c");
-      end if;
+      begin
+         if Ada_Bind_File then
+            Binder_Spec_Src_File := new String'(Fnam & ".ads");
+            Binder_Body_Src_File := new String'(Fnam & ".adb");
+            Binder_Ali_File      := new String'(Fnam & ".ali");
+         else
+            Binder_Body_Src_File := new String'(Fnam & ".c");
+         end if;
 
-      Binder_Obj_File :=
-        new String'('b'
-                    & Second_Char
-                    & Fname (Fname'First .. Fname'First + Fname_Len - 1)
-                    & Get_Object_Suffix.all);
+         Binder_Obj_File := new String'(Fnam & Get_Target_Object_Suffix.all);
+      end;
 
       if Fname_Len /= Fname'Length then
          Binder_Options.Increment_Last;
@@ -1618,7 +1648,6 @@ begin
          Binder_Options.Increment_Last;
          Binder_Options.Table (Binder_Options.Last) := Binder_Obj_File;
       end if;
-
    end Make_Binder_File_Names;
 
    Process_Binder_File (Binder_Body_Src_File.all & ASCII.NUL);
@@ -1698,6 +1727,7 @@ begin
 
          Clean_Link_Option_Set : declare
             J : Natural := Linker_Options.First;
+            Shared_Libgcc_Seen : Boolean := False;
 
          begin
             while J <= Linker_Options.Last loop
@@ -1716,6 +1746,20 @@ begin
 
                   else
                      Stack_Op := True;
+                  end if;
+               end if;
+
+               --  Remove duplicate -shared-libgcc switch
+
+               if Linker_Options.Table (J).all = Shared_Libgcc_String then
+                  if Shared_Libgcc_Seen then
+                     Linker_Options.Table (J .. Linker_Options.Last - 1) :=
+                       Linker_Options.Table (J + 1 .. Linker_Options.Last);
+                     Linker_Options.Decrement_Last;
+                     Num_Args := Num_Args - 1;
+
+                  else
+                     Shared_Libgcc_Seen := True;
                   end if;
                end if;
 

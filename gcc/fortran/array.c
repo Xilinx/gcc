@@ -1,12 +1,13 @@
 /* Array things
-   Copyright (C) 2000, 2001, 2002, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2000, 2001, 2002, 2004, 2005, 2007
+   Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,9 +16,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -319,6 +319,15 @@ match_array_element_spec (gfc_array_spec * as)
   if (m == MATCH_NO)
     return AS_ASSUMED_SHAPE;
 
+  /* If the size is negative in this dimension, set it to zero.  */
+  if ((*lower)->expr_type == EXPR_CONSTANT
+      && (*upper)->expr_type == EXPR_CONSTANT
+      && mpz_cmp ((*upper)->value.integer, (*lower)->value.integer) < 0)
+    {
+      gfc_free_expr (*upper);
+      *upper = gfc_copy_expr (*lower);
+      mpz_sub_ui ((*upper)->value.integer, (*upper)->value.integer, 1);
+    }
   return AS_EXPLICIT;
 }
 
@@ -1586,7 +1595,7 @@ got_charlen:
 	  /* Update the element constructors.  */
 	  for (p = expr->value.constructor; p; p = p->next)
 	    if (p->expr->expr_type == EXPR_CONSTANT)
-	      gfc_set_constant_character_len (max_length, p->expr);
+	      gfc_set_constant_character_len (max_length, p->expr, true);
 	}
     }
 }

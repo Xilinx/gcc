@@ -38,12 +38,19 @@ exception statement from your version. */
 
 package javax.swing.plaf.metal;
 
+import java.awt.Graphics;
+import java.awt.Point;
 import java.awt.event.ContainerListener;
+import java.awt.event.MouseEvent;
+
 import java.beans.PropertyChangeListener;
 
 import javax.swing.JComponent;
 import javax.swing.JToolBar;
+import javax.swing.SwingConstants;
+import javax.swing.UIManager;
 import javax.swing.border.Border;
+import javax.swing.event.MouseInputListener;
 import javax.swing.plaf.ComponentUI;
 import javax.swing.plaf.basic.BasicToolBarUI;
 
@@ -158,5 +165,134 @@ public class MetalToolBarUI extends BasicToolBarUI
   {
     return MetalBorders.getToolbarButtonBorder();   
   }
+  
+  /**
+   * Sets the offset for the window used for dragging the toolbar.
+   * It is set as long as the window is not null (it has been installed).
+   */
+  protected void setDragOffset(Point p)
+  {
+    if (dragWindow != null)
+      dragWindow.setOffset(p);
+  }
+  
+  /** 
+   * Creates and returns an instance of MetalDockingListener.
+   * 
+   * @return an instance of MetalDockingListener.
+   */
+  protected MouseInputListener createDockingListener()
+  {
+    return new MetalDockingListener(toolBar);
+  }
+  
+  /**
+   * This is the MouseHandler class that allows the user to drag the JToolBar
+   * in and out of the parent and dock it if it can.
+   */
+  protected class MetalDockingListener extends BasicToolBarUI.DockingListener
+  {    
+    /**
+     * Creates a new DockingListener object.
+     *
+     * @param t The JToolBar this DockingListener is being used for.
+     */
+    public MetalDockingListener(JToolBar t)
+    {
+      super(t);
+    }
+    
+    /**
+     * This method is called when the mouse is pressed in the JToolBar. If the
+     * press doesn't occur in a place where it causes the JToolBar to be
+     * dragged, it returns. Otherwise, it starts a drag session.
+     *
+     * @param e The MouseEvent.
+     */
+    public void mousePressed(MouseEvent e)
+    {
+      super.mousePressed(e);
+      setDragOffset(new Point(e.getX(), e.getY()));
+    }
+    
+    /**
+     * This method is called when the mouse is dragged. It delegates the drag
+     * painting to the dragTo method.
+     *
+     * @param e The MouseEvent.
+     */
+    public void mouseDragged(MouseEvent e)
+    {
+      // Does not do anything differently than dragging 
+      // BasicToolBarUI.DockingListener
+      super.mouseDragged(e);
+    }
+  }
 
+  /**
+   * Installs the UI on the toolbar. This calls super and sets the rollover
+   * property according to the <code>UIManager</code> property
+   * &quot;ToolBar.isRollover&quot;.
+   *
+   * @param c the component to install the UI on
+   */
+  public void installUI(JComponent c)
+  {
+    super.installUI(c);
+    if (c instanceof JToolBar)
+      {
+        JToolBar tb = (JToolBar) c;
+        tb.setRollover(UIManager.getBoolean("ToolBar.isRollover"));
+      }
+  }
+
+  /**
+   * Uninstalls the UI from the toolbar. This calls super and resets the
+   * rollover property.
+   *
+   * @param c the component to uninstall the UI from
+   */
+  public void uninstallUI(JComponent c)
+  {
+    if (c instanceof JToolBar)
+      {
+        JToolBar tb = (JToolBar) c;
+        tb.setRollover(false);
+      }
+    super.uninstallUI(c);
+  }
+
+  /**
+   * Paints the background of the component if necessary and then calls
+   * <code>paint(g, c)</code>.
+   *
+   * This is overridden to implement the OceanTheme gradient when an OceanTheme
+   * is installed.
+   *
+   * @param g the graphics to use
+   * @param c the component to paint.
+   *
+   * @since 1.5
+   */
+  public void update(Graphics g, JComponent c)
+  {
+    // TODO: Sun's implementation uses the MenuBar.gradient here.
+    // I would consider this a bug, but implement it like this
+    // for compatibility.
+    if (MetalLookAndFeel.getCurrentTheme() instanceof OceanTheme
+        && UIManager.get("MenuBar.gradient") != null)
+      {
+        if (c.isOpaque())
+          {
+            MetalUtils.paintGradient(g, 0, 0, c.getWidth(), c.getHeight(),
+                                     SwingConstants.VERTICAL,
+                                     "MenuBar.gradient");
+          }
+        paint(g, c);
+      }
+    else
+      {
+        super.update(g, c);
+      }
+  }
 }

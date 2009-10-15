@@ -1,12 +1,13 @@
 /* Check functions
-   Copyright (C) 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007
+   Free Software Foundation, Inc.
    Contributed by Andy Vaught & Katherine Holcomb
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,9 +16,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 
 /* These functions check to see if an argument list is compatible with
@@ -199,7 +199,7 @@ scalar_check (gfc_expr * e, int n)
 }
 
 
-/* Make sure two expression have the same type.  */
+/* Make sure two expressions have the same type.  */
 
 static try
 same_type_check (gfc_expr * e, int n, gfc_expr * f, int m)
@@ -317,34 +317,6 @@ dim_check (gfc_expr * dim, int n, int optional)
   return SUCCESS;
 }
 
-/* Compare the size of a along dimension ai with the size of b along
-   dimension bi, returning 0 if they are known not to be identical,
-   and 1 if they are identical, or if this cannot be determined.  */
-
-static int
-identical_dimen_shape (gfc_expr *a, int ai, gfc_expr *b, int bi)
-{
-  mpz_t a_size, b_size;
-  int ret;
-
-  gcc_assert (a->rank > ai);
-  gcc_assert (b->rank > bi);
-
-  ret = 1;
-
-  if (gfc_array_dimen_size (a, ai, &a_size) == SUCCESS)
-    {
-      if (gfc_array_dimen_size (b, bi, &b_size) == SUCCESS)
-	{
-	  if (mpz_cmp (a_size, b_size) != 0)
-	    ret = 0;
-  
-	  mpz_clear (b_size);
-	}
-      mpz_clear (a_size);
-    }
-  return ret;
-}
 
 /* If a DIM parameter is a constant, make sure that it is greater than
    zero and less than or equal to the rank of the given array.  If
@@ -377,8 +349,37 @@ dim_rank_check (gfc_expr * dim, gfc_expr * array, int allow_assumed)
   return SUCCESS;
 }
 
+/* Compare the size of a along dimension ai with the size of b along
+   dimension bi, returning 0 if they are known not to be identical,
+   and 1 if they are identical, or if this cannot be determined.  */
+
+static int
+identical_dimen_shape (gfc_expr *a, int ai, gfc_expr *b, int bi)
+{
+  mpz_t a_size, b_size;
+  int ret;
+
+  gcc_assert (a->rank > ai);
+  gcc_assert (b->rank > bi);
+
+  ret = 1;
+
+  if (gfc_array_dimen_size (a, ai, &a_size) == SUCCESS)
+    {
+      if (gfc_array_dimen_size (b, bi, &b_size) == SUCCESS)
+	{
+	  if (mpz_cmp (a_size, b_size) != 0)
+	    ret = 0;
+  
+	  mpz_clear (b_size);
+	}
+      mpz_clear (a_size);
+    }
+  return ret;
+}
+
 /* Error return for transformational intrinsics not allowed in
-   initalization expressions.  */
+   initialization expressions.  */
  
 static try
 non_init_transformational (void)
@@ -442,6 +443,22 @@ gfc_check_achar (gfc_expr * a)
 
 
 try
+gfc_check_access_func (gfc_expr * name, gfc_expr * mode)
+{
+  if (type_check (name, 0, BT_CHARACTER) == FAILURE
+      || scalar_check (name, 0) == FAILURE)
+    return FAILURE;
+
+
+  if (type_check (mode, 1, BT_CHARACTER) == FAILURE
+      || scalar_check (mode, 1) == FAILURE)
+    return FAILURE;
+
+  return SUCCESS;
+}
+
+
+try
 gfc_check_all_any (gfc_expr * mask, gfc_expr * dim)
 {
   if (logical_array_check (mask, 0) == FAILURE)
@@ -460,13 +477,16 @@ gfc_check_all_any (gfc_expr * mask, gfc_expr * dim)
 try
 gfc_check_allocated (gfc_expr * array)
 {
+  symbol_attribute attr;
+
   if (variable_check (array, 0) == FAILURE)
     return FAILURE;
 
   if (array_check (array, 0) == FAILURE)
     return FAILURE;
 
-  if (!array->symtree->n.sym->attr.allocatable)
+  attr = gfc_variable_attr (array, NULL);
+  if (!attr.allocatable)
     {
       gfc_error ("'%s' argument of '%s' intrinsic at %L must be ALLOCATABLE",
 		 gfc_current_intrinsic_arg[0], gfc_current_intrinsic,
@@ -670,6 +690,41 @@ gfc_check_chdir_sub (gfc_expr * dir, gfc_expr * status)
     return FAILURE;
 
   if (scalar_check (status, 1) == FAILURE)
+    return FAILURE;
+
+  return SUCCESS;
+}
+
+
+try
+gfc_check_chmod (gfc_expr * name, gfc_expr * mode)
+{
+  if (type_check (name, 0, BT_CHARACTER) == FAILURE)
+    return FAILURE;
+
+  if (type_check (mode, 1, BT_CHARACTER) == FAILURE)
+    return FAILURE;
+
+  return SUCCESS;
+}
+
+
+try
+gfc_check_chmod_sub (gfc_expr * name, gfc_expr * mode, gfc_expr * status)
+{
+  if (type_check (name, 0, BT_CHARACTER) == FAILURE)
+    return FAILURE;
+
+  if (type_check (mode, 1, BT_CHARACTER) == FAILURE)
+    return FAILURE;
+
+  if (status == NULL)
+    return SUCCESS;
+
+  if (type_check (status, 2, BT_INTEGER) == FAILURE)
+    return FAILURE;
+
+  if (scalar_check (status, 2) == FAILURE)
     return FAILURE;
 
   return SUCCESS;
@@ -1086,7 +1141,7 @@ gfc_check_ichar_iachar (gfc_expr * c)
       if (!ref)
 	{
           /* Check that the argument is length one.  Non-constant lengths
-	     can't be checked here, so assume thay are ok.  */
+	     can't be checked here, so assume they are ok.  */
 	  if (c->ts.cl && c->ts.cl->length)
 	    {
 	      /* If we already have a length for this expression then use it.  */
@@ -1199,6 +1254,16 @@ gfc_check_int (gfc_expr * x, gfc_expr * kind)
 
 
 try
+gfc_check_intconv (gfc_expr * x)
+{
+  if (numeric_check (x, 0) == FAILURE)
+    return FAILURE;
+
+  return SUCCESS;
+}
+
+
+try
 gfc_check_ior (gfc_expr * i, gfc_expr * j)
 {
   if (type_check (i, 0, BT_INTEGER) == FAILURE)
@@ -1262,7 +1327,13 @@ gfc_check_kill_sub (gfc_expr * pid, gfc_expr * sig, gfc_expr * status)
   if (type_check (pid, 0, BT_INTEGER) == FAILURE)
     return FAILURE;
 
+  if (scalar_check (pid, 0) == FAILURE)
+    return FAILURE;
+
   if (type_check (sig, 1, BT_INTEGER) == FAILURE)
+    return FAILURE;
+
+  if (scalar_check (sig, 1) == FAILURE)
     return FAILURE;
 
   if (status == NULL)
@@ -1752,6 +1823,64 @@ gfc_check_merge (gfc_expr * tsource, gfc_expr * fsource, gfc_expr * mask)
   return SUCCESS;
 }
 
+try
+gfc_check_move_alloc (gfc_expr * from, gfc_expr * to)
+{
+  symbol_attribute attr;
+
+  if (variable_check (from, 0) == FAILURE)
+    return FAILURE;
+
+  if (array_check (from, 0) == FAILURE)
+    return FAILURE;
+
+  attr = gfc_variable_attr (from, NULL);
+  if (!attr.allocatable)
+    {
+      gfc_error ("'%s' argument of '%s' intrinsic at %L must be ALLOCATABLE",
+		 gfc_current_intrinsic_arg[0], gfc_current_intrinsic,
+		 &from->where);
+      return FAILURE;
+    }
+
+  if (variable_check (to, 0) == FAILURE)
+    return FAILURE;
+
+  if (array_check (to, 0) == FAILURE)
+    return FAILURE;
+
+  attr = gfc_variable_attr (to, NULL);
+  if (!attr.allocatable)
+    {
+      gfc_error ("'%s' argument of '%s' intrinsic at %L must be ALLOCATABLE",
+		 gfc_current_intrinsic_arg[0], gfc_current_intrinsic,
+		 &to->where);
+      return FAILURE;
+    }
+
+  if (same_type_check (from, 0, to, 1) == FAILURE)
+    return FAILURE;
+
+  if (to->rank != from->rank)
+    {
+      gfc_error ("the '%s' and '%s' arguments of '%s' intrinsic at %L must "
+		 "have the same rank %d/%d", gfc_current_intrinsic_arg[0],
+		 gfc_current_intrinsic_arg[1], gfc_current_intrinsic,
+		 &to->where,  from->rank, to->rank);
+      return FAILURE;
+    }
+
+  if (to->ts.kind != from->ts.kind)
+    {
+      gfc_error ("the '%s' and '%s' arguments of '%s' intrinsic at %L must "
+		 "be of the same kind %d/%d", gfc_current_intrinsic_arg[0],
+		 gfc_current_intrinsic_arg[1], gfc_current_intrinsic,
+		 &to->where, from->ts.kind, to->ts.kind);
+      return FAILURE;
+    }
+
+  return SUCCESS;
+}
 
 try
 gfc_check_nearest (gfc_expr * x, gfc_expr * s)
@@ -1765,6 +1894,14 @@ gfc_check_nearest (gfc_expr * x, gfc_expr * s)
   return SUCCESS;
 }
 
+try
+gfc_check_new_line (gfc_expr * a)
+{
+  if (type_check (a, 0, BT_CHARACTER) == FAILURE)
+    return FAILURE;
+
+  return SUCCESS;
+}
 
 try
 gfc_check_null (gfc_expr * mold)
@@ -1979,6 +2116,7 @@ gfc_check_reshape (gfc_expr * source, gfc_expr * shape,
 		   gfc_expr * pad, gfc_expr * order)
 {
   mpz_t size;
+  mpz_t nelems;
   int m;
 
   if (array_check (source, 0) == FAILURE)
@@ -2017,6 +2155,38 @@ gfc_check_reshape (gfc_expr * source, gfc_expr * shape,
 
   if (order != NULL && array_check (order, 3) == FAILURE)
     return FAILURE;
+
+  if (pad == NULL
+	&& shape->expr_type == EXPR_ARRAY
+	&& gfc_is_constant_expr (shape)
+	&& !(source->expr_type == EXPR_VARIABLE
+	       && source->symtree->n.sym->as
+	       && source->symtree->n.sym->as->type == AS_ASSUMED_SIZE))
+    {
+      /* Check the match in size between source and destination.  */
+      if (gfc_array_size (source, &nelems) == SUCCESS)
+	{
+	  gfc_constructor *c;
+	  bool test;
+
+	  c = shape->value.constructor;
+	  mpz_init_set_ui (size, 1);
+	  for (; c; c = c->next)
+	    mpz_mul (size, size, c->expr->value.integer);
+
+	  test = mpz_cmp (nelems, size) < 0 && mpz_cmp_ui (size, 0) > 0;
+	  mpz_clear (nelems);
+	  mpz_clear (size);
+
+	  if (test)
+	    {
+	      gfc_error ("Without padding, there are not enough elements in the "
+			 "intrinsic RESHAPE source at %L to match the shape",
+			 &source->where);
+	      return FAILURE;
+	    }
+	}
+    }
 
   return SUCCESS;
 }
@@ -2824,6 +2994,9 @@ gfc_check_alarm_sub (gfc_expr * seconds, gfc_expr * handler, gfc_expr * status)
   if (type_check (status, 2, BT_INTEGER) == FAILURE)
     return FAILURE;
 
+  if (kind_value_check (status, 2, gfc_default_integer_kind) == FAILURE)
+    return FAILURE;
+
   return SUCCESS;
 }
 
@@ -3067,6 +3240,37 @@ gfc_check_itime_idate (gfc_expr * values)
     return FAILURE;
 
   if (kind_value_check(values, 0, gfc_default_integer_kind) == FAILURE)
+    return FAILURE;
+
+  return SUCCESS;
+}
+
+
+try
+gfc_check_ltime_gmtime (gfc_expr * time, gfc_expr * values)
+{
+  if (type_check (time, 0, BT_INTEGER) == FAILURE)
+    return FAILURE;
+
+  if (kind_value_check(time, 0, gfc_default_integer_kind) == FAILURE)
+    return FAILURE;
+
+  if (scalar_check (time, 0) == FAILURE)
+    return FAILURE;
+
+  if (array_check (values, 1) == FAILURE)
+    return FAILURE;
+
+  if (rank_check (values, 1, 1) == FAILURE)
+    return FAILURE;
+
+  if (variable_check (values, 1) == FAILURE)
+    return FAILURE;
+
+  if (type_check (values, 1, BT_INTEGER) == FAILURE)
+    return FAILURE;
+
+  if (kind_value_check(values, 1, gfc_default_integer_kind) == FAILURE)
     return FAILURE;
 
   return SUCCESS;

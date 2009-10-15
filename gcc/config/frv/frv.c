@@ -1,4 +1,4 @@
-/* Copyright (C) 1997, 1998, 1999, 2000, 2001, 2003, 2004, 2005
+/* Copyright (C) 1997, 1998, 1999, 2000, 2001, 2003, 2004, 2005, 2007
    Free Software Foundation, Inc.
    Contributed by Red Hat, Inc.
 
@@ -6,7 +6,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -15,9 +15,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -2203,8 +2202,8 @@ frv_expand_builtin_va_start (tree valist, rtx nextarg)
       debug_rtx (nextarg);
     }
 
-  t = build (MODIFY_EXPR, TREE_TYPE (valist), valist,
-	     make_tree (ptr_type_node, nextarg));
+  t = build2 (MODIFY_EXPR, TREE_TYPE (valist), valist,
+	      make_tree (ptr_type_node, nextarg));
   TREE_SIDE_EFFECTS (t) = 1;
 
   expand_expr (t, const0_rtx, VOIDmode, EXPAND_NORMAL);
@@ -9542,7 +9541,7 @@ frv_rtx_costs (rtx x,
 static void
 frv_asm_out_constructor (rtx symbol, int priority ATTRIBUTE_UNUSED)
 {
-  ctors_section ();
+  switch_to_section (ctors_section);
   assemble_align (POINTER_SIZE);
   if (TARGET_FDPIC)
     {
@@ -9557,7 +9556,7 @@ frv_asm_out_constructor (rtx symbol, int priority ATTRIBUTE_UNUSED)
 static void
 frv_asm_out_destructor (rtx symbol, int priority ATTRIBUTE_UNUSED)
 {
-  dtors_section ();
+  switch_to_section (dtors_section);
   assemble_align (POINTER_SIZE);
   if (TARGET_FDPIC)
     {

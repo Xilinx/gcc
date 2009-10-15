@@ -1,5 +1,5 @@
 /* Target Definitions for R8C/M16C/M32C
-   Copyright (C) 2005
+   Copyright (C) 2005, 2007
    Free Software Foundation, Inc.
    Contributed by Red Hat.
 
@@ -7,7 +7,7 @@
 
    GCC is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published
-   by the Free Software Foundation; either version 2, or (at your
+   by the Free Software Foundation; either version 3, or (at your
    option) any later version.
 
    GCC is distributed in the hope that it will be useful, but WITHOUT
@@ -16,9 +16,8 @@
    License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with GCC; see the file COPYING.  If not, write to the Free
-   Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-   02110-1301, USA.  */
+   along with GCC; see the file COPYING3.  If not see
+   <http://www.gnu.org/licenses/>.  */
 
 #ifndef GCC_M32C_H
 #define GCC_M32C_H
@@ -171,6 +170,9 @@ machine_function;
 
 #define DEFAULT_SIGNED_CHAR 1
 
+#undef PTRDIFF_TYPE
+#define PTRDIFF_TYPE (TARGET_A16 ? "int" : "long int")
+
 /* REGISTER USAGE */
 
 /* Register Basics */
@@ -218,6 +220,13 @@ machine_function;
 #endif
 #define PC_REGNUM PC_REGNO
 
+/* Order of Allocation of Registers */
+
+#define REG_ALLOC_ORDER { \
+	0, 1, 2, 3, 4, 5, /* r0..r3, a0, a1 */ \
+	12, 13, 14, 15, 16, 17, 18, /* mem0..mem7 */  \
+	6, 7, 8, 9, 10, 11 /* sb, fb, sp, pc, flg, ap */ }
+
 /* How Values Fit in Registers */
 
 #define HARD_REGNO_NREGS(R,M) m32c_hard_regno_nregs (R, M)
@@ -254,10 +263,12 @@ machine_function;
   { 0x0000000a }, /* R23 - r2 r3 */\
   { 0x0000000f }, /* R03 - r0r2 r1r3 */\
   { 0x0000000f }, /* DI  - r0r2r1r3 + mems */\
+  { 0x00000010 }, /* A0  - a0 */\
+  { 0x00000020 }, /* A1  - a1 */\
   { 0x00000030 }, /* A   - a0 a1 */\
   { 0x000000f0 }, /* AD  - a0 a1 sb fp */\
   { 0x000001f0 }, /* PS  - a0 a1 sb fp sp */\
-  { 0x0000003f }, /* SI  - r0r2 r1r3 a0a1 */\
+  { 0x0000000f }, /* SI  - r0r2 r1r3 a0a1 */\
   { 0x0000003f }, /* HI  - r0 r1 r2 r3 a0 a1 */\
   { 0x0000003f }, /* RA  - r0..r3 a0 a1 */\
   { 0x0000007f }, /* GENERAL */\
@@ -290,6 +301,8 @@ enum reg_class
   R23_REGS,
   R03_REGS,
   DI_REGS,
+  A0_REGS,
+  A1_REGS,
   A_REGS,
   AD_REGS,
   PS_REGS,
@@ -328,6 +341,8 @@ enum reg_class
 "R23_REGS", \
 "R03_REGS", \
 "DI_REGS", \
+"A0_REGS", \
+"A1_REGS", \
 "A_REGS", \
 "AD_REGS", \
 "PS_REGS", \
@@ -415,7 +430,7 @@ enum reg_class
 #define RETURN_ADDR_RTX(COUNT,FA) m32c_return_addr_rtx (COUNT)
 
 #define INCOMING_RETURN_ADDR_RTX m32c_incoming_return_addr_rtx()
-#define INCOMING_FRAME_SP_OFFSET 3
+#define INCOMING_FRAME_SP_OFFSET (TARGET_A24 ? 4 : 3)
 
 /* Exception Handling Support */
 
@@ -575,6 +590,15 @@ typedef struct m32c_cumulative_args
 #define DATA_SECTION_ASM_OP ".data"
 #define BSS_SECTION_ASM_OP ".bss"
 
+#define CTOR_LIST_BEGIN
+#define CTOR_LIST_END
+#define DTOR_LIST_BEGIN
+#define DTOR_LIST_END
+#define CTORS_SECTION_ASM_OP "\t.section\t.init_array,\"aw\",%init_array"
+#define DTORS_SECTION_ASM_OP "\t.section\t.fini_array,\"aw\",%fini_array"
+#define INIT_ARRAY_SECTION_ASM_OP "\t.section\t.init_array,\"aw\",%init_array"
+#define FINI_ARRAY_SECTION_ASM_OP "\t.section\t.fini_array,\"aw\",%fini_array"
+
 /* The Overall Framework of an Assembler File */
 
 #define ASM_COMMENT_START ";"
@@ -639,6 +663,8 @@ typedef struct m32c_cumulative_args
 
 #define MOVE_MAX 4
 #define TRULY_NOOP_TRUNCATION(op,ip) 1
+
+#define STORE_FLAG_VALUE 1
 
 /* 16 or 24 bit pointers */
 #define Pmode (TARGET_A16 ? HImode : PSImode)

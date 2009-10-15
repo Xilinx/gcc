@@ -1,12 +1,13 @@
-/* Analyze RTL for C-Compiler
+/* Analyze RTL for GNU compiler.
    Copyright (C) 1987, 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Free Software
+   Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,9 +16,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 
 #include "config.h"
@@ -38,7 +38,6 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 #include "function.h"
 
 /* Forward declarations */
-static int global_reg_mentioned_p_1 (rtx *, void *);
 static void set_of_1 (rtx, rtx, void *);
 static bool covers_regno_p (rtx, unsigned int);
 static bool covers_regno_no_parallel_p (rtx, unsigned int);
@@ -67,6 +66,22 @@ static int non_rtx_starting_operands[NUM_RTX_CODE];
    and set by `-m...' switches.  Must be defined in rtlanal.c.  */
 
 int target_flags;
+
+/* Truncation narrows the mode from SOURCE mode to DESTINATION mode.
+   If TARGET_MODE_REP_EXTENDED (DESTINATION, DESTINATION_REP) is
+   SIGN_EXTEND then while narrowing we also have to enforce the
+   representation and sign-extend the value to mode DESTINATION_REP.
+
+   If the value is already sign-extended to DESTINATION_REP mode we
+   can just switch to DESTINATION mode on it.  For each pair of
+   integral modes SOURCE and DESTINATION, when truncating from SOURCE
+   to DESTINATION, NUM_SIGN_BIT_COPIES_IN_REP[SOURCE][DESTINATION]
+   contains the number of high-order bits in SOURCE that have to be
+   copies of the sign-bit so that we can do this mode-switch to
+   DESTINATION.  */
+
+static unsigned int
+num_sign_bit_copies_in_rep[MAX_MODE_INT + 1][MAX_MODE_INT + 1];
 
 /* Return 1 if the value of X is unstable
    (would be different at a different point in the program).
@@ -352,17 +367,7 @@ nonzero_address_p (rtx x)
 
     case PLUS:
       if (GET_CODE (XEXP (x, 1)) == CONST_INT)
-	{
-	  /* Pointers aren't allowed to wrap.  If we've got a register
-	     that is known to be a pointer, and a positive offset, then
-	     the composite can't be zero.  */
-	  if (INTVAL (XEXP (x, 1)) > 0
-	      && REG_P (XEXP (x, 0))
-	      && REG_POINTER (XEXP (x, 0)))
-	    return true;
-
-	  return nonzero_address_p (XEXP (x, 0));
-	}
+        return nonzero_address_p (XEXP (x, 0));
       /* Handle PIC references.  */
       else if (XEXP (x, 0) == pic_offset_table_rtx
 	       && CONSTANT_P (XEXP (x, 1)))
@@ -473,78 +478,6 @@ get_related_value (rtx x)
 	   && GET_CODE (XEXP (x, 1)) == CONST_INT)
     return XEXP (x, 0);
   return 0;
-}
-
-/* A subroutine of global_reg_mentioned_p, returns 1 if *LOC mentions
-   a global register.  */
-
-static int
-global_reg_mentioned_p_1 (rtx *loc, void *data ATTRIBUTE_UNUSED)
-{
-  int regno;
-  rtx x = *loc;
-
-  if (! x)
-    return 0;
-
-  switch (GET_CODE (x))
-    {
-    case SUBREG:
-      if (REG_P (SUBREG_REG (x)))
-	{
-	  if (REGNO (SUBREG_REG (x)) < FIRST_PSEUDO_REGISTER
-	      && global_regs[subreg_regno (x)])
-	    return 1;
-	  return 0;
-	}
-      break;
-
-    case REG:
-      regno = REGNO (x);
-      if (regno < FIRST_PSEUDO_REGISTER && global_regs[regno])
-	return 1;
-      return 0;
-
-    case SCRATCH:
-    case PC:
-    case CC0:
-    case CONST_INT:
-    case CONST_DOUBLE:
-    case CONST:
-    case LABEL_REF:
-      return 0;
-
-    case CALL:
-      /* A non-constant call might use a global register.  */
-      return 1;
-
-    default:
-      break;
-    }
-
-  return 0;
-}
-
-/* Returns nonzero if X mentions a global register.  */
-
-int
-global_reg_mentioned_p (rtx x)
-{
-  if (INSN_P (x))
-    {
-      if (CALL_P (x))
-	{
-	  if (! CONST_OR_PURE_CALL_P (x))
-	    return 1;
-	  x = CALL_INSN_FUNCTION_USAGE (x);
-	  if (x == 0)
-	    return 0;
-	}
-      else
-	x = PATTERN (x);
-    }
-
-  return for_each_rtx (&x, global_reg_mentioned_p_1, NULL);
 }
 
 /* Return the number of places FIND appears within X.  If COUNT_DEST is
@@ -1656,6 +1589,8 @@ find_reg_note (rtx insn, enum reg_note kind, rtx datum)
 {
   rtx link;
 
+  gcc_assert (insn);
+
   /* Ignore anything that is not an INSN, JUMP_INSN or CALL_INSN.  */
   if (! INSN_P (insn))
     return 0;
@@ -2103,16 +2038,25 @@ side_effects_p (rtx x)
   return 0;
 }
 
-/* Return nonzero if evaluating rtx X might cause a trap.  UNALIGNED_MEMS
-   controls whether nonzero is returned for unaligned memory accesses on
-   strict alignment machines.  */
+enum may_trap_p_flags
+{
+  MTP_UNALIGNED_MEMS = 1,
+  MTP_AFTER_MOVE = 2
+};
+/* Return nonzero if evaluating rtx X might cause a trap.
+   (FLAGS & MTP_UNALIGNED_MEMS) controls whether nonzero is returned for
+   unaligned memory accesses on strict alignment machines.  If
+   (FLAGS & AFTER_MOVE) is true, returns nonzero even in case the expression
+   cannot trap at its current location, but it might become trapping if moved
+   elsewhere.  */
 
 static int
-may_trap_p_1 (rtx x, bool unaligned_mems)
+may_trap_p_1 (rtx x, unsigned flags)
 {
   int i;
   enum rtx_code code;
   const char *fmt;
+  bool unaligned_mems = (flags & MTP_UNALIGNED_MEMS) != 0;
 
   if (x == 0)
     return 0;
@@ -2142,7 +2086,11 @@ may_trap_p_1 (rtx x, bool unaligned_mems)
 
       /* Memory ref can trap unless it's a static var or a stack slot.  */
     case MEM:
-      if (MEM_NOTRAP_P (x)
+      if (/* MEM_NOTRAP_P only relates to the actual position of the memory
+	     reference; moving it out of condition might cause its address
+	     become invalid.  */
+	  !(flags & MTP_AFTER_MOVE)
+	  && MEM_NOTRAP_P (x)
 	  && (!STRICT_ALIGNMENT || !unaligned_mems))
 	return 0;
       return
@@ -2155,7 +2103,7 @@ may_trap_p_1 (rtx x, bool unaligned_mems)
     case UMOD:
       if (HONOR_SNANS (GET_MODE (x)))
 	return 1;
-      if (GET_MODE_CLASS (GET_MODE (x)) == MODE_FLOAT)
+      if (SCALAR_FLOAT_MODE_P (GET_MODE (x)))
 	return flag_trapping_math;
       if (!CONSTANT_P (XEXP (x, 1)) || (XEXP (x, 1) == const0_rtx))
 	return 1;
@@ -2212,7 +2160,7 @@ may_trap_p_1 (rtx x, bool unaligned_mems)
 
     default:
       /* Any floating arithmetic may trap.  */
-      if (GET_MODE_CLASS (GET_MODE (x)) == MODE_FLOAT
+      if (SCALAR_FLOAT_MODE_P (GET_MODE (x))
 	  && flag_trapping_math)
 	return 1;
     }
@@ -2222,14 +2170,14 @@ may_trap_p_1 (rtx x, bool unaligned_mems)
     {
       if (fmt[i] == 'e')
 	{
-	  if (may_trap_p_1 (XEXP (x, i), unaligned_mems))
+	  if (may_trap_p_1 (XEXP (x, i), flags))
 	    return 1;
 	}
       else if (fmt[i] == 'E')
 	{
 	  int j;
 	  for (j = 0; j < XVECLEN (x, i); j++)
-	    if (may_trap_p_1 (XVECEXP (x, i, j), unaligned_mems))
+	    if (may_trap_p_1 (XVECEXP (x, i, j), flags))
 	      return 1;
 	}
     }
@@ -2241,10 +2189,19 @@ may_trap_p_1 (rtx x, bool unaligned_mems)
 int
 may_trap_p (rtx x)
 {
-  return may_trap_p_1 (x, false);
+  return may_trap_p_1 (x, 0);
 }
 
-/* Same as above, but additionally return non-zero if evaluating rtx X might
+/* Return nonzero if evaluating rtx X might cause a trap, when the expression
+   is moved from its current location by some optimization.  */
+
+int
+may_trap_after_code_motion_p (rtx x)
+{
+  return may_trap_p_1 (x, MTP_AFTER_MOVE);
+}
+
+/* Same as above, but additionally return nonzero if evaluating rtx X might
    cause a fault.  We define a fault for the purpose of this function as a
    erroneous execution condition that cannot be encountered during the normal
    execution of a valid program; the typical example is an unaligned memory
@@ -2287,7 +2244,7 @@ may_trap_p (rtx x)
 int
 may_trap_or_fault_p (rtx x)
 {
-  return may_trap_p_1 (x, true);
+  return may_trap_p_1 (x, MTP_UNALIGNED_MEMS);
 }
 
 /* Return nonzero if X contains a comparison that is not either EQ or NE,
@@ -2419,106 +2376,6 @@ replace_rtx (rtx x, rtx from, rtx to)
   return x;
 }
 
-/* Throughout the rtx X, replace many registers according to REG_MAP.
-   Return the replacement for X (which may be X with altered contents).
-   REG_MAP[R] is the replacement for register R, or 0 for don't replace.
-   NREGS is the length of REG_MAP; regs >= NREGS are not mapped.
-
-   We only support REG_MAP entries of REG or SUBREG.  Also, hard registers
-   should not be mapped to pseudos or vice versa since validate_change
-   is not called.
-
-   If REPLACE_DEST is 1, replacements are also done in destinations;
-   otherwise, only sources are replaced.  */
-
-rtx
-replace_regs (rtx x, rtx *reg_map, unsigned int nregs, int replace_dest)
-{
-  enum rtx_code code;
-  int i;
-  const char *fmt;
-
-  if (x == 0)
-    return x;
-
-  code = GET_CODE (x);
-  switch (code)
-    {
-    case SCRATCH:
-    case PC:
-    case CC0:
-    case CONST_INT:
-    case CONST_DOUBLE:
-    case CONST_VECTOR:
-    case CONST:
-    case SYMBOL_REF:
-    case LABEL_REF:
-      return x;
-
-    case REG:
-      /* Verify that the register has an entry before trying to access it.  */
-      if (REGNO (x) < nregs && reg_map[REGNO (x)] != 0)
-	{
-	  /* SUBREGs can't be shared.  Always return a copy to ensure that if
-	     this replacement occurs more than once then each instance will
-	     get distinct rtx.  */
-	  if (GET_CODE (reg_map[REGNO (x)]) == SUBREG)
-	    return copy_rtx (reg_map[REGNO (x)]);
-	  return reg_map[REGNO (x)];
-	}
-      return x;
-
-    case SUBREG:
-      /* Prevent making nested SUBREGs.  */
-      if (REG_P (SUBREG_REG (x)) && REGNO (SUBREG_REG (x)) < nregs
-	  && reg_map[REGNO (SUBREG_REG (x))] != 0
-	  && GET_CODE (reg_map[REGNO (SUBREG_REG (x))]) == SUBREG)
-	{
-	  rtx map_val = reg_map[REGNO (SUBREG_REG (x))];
-	  return simplify_gen_subreg (GET_MODE (x), map_val,
-				      GET_MODE (SUBREG_REG (x)),
-				      SUBREG_BYTE (x));
-	}
-      break;
-
-    case SET:
-      if (replace_dest)
-	SET_DEST (x) = replace_regs (SET_DEST (x), reg_map, nregs, 0);
-
-      else if (MEM_P (SET_DEST (x))
-	       || GET_CODE (SET_DEST (x)) == STRICT_LOW_PART)
-	/* Even if we are not to replace destinations, replace register if it
-	   is CONTAINED in destination (destination is memory or
-	   STRICT_LOW_PART).  */
-	XEXP (SET_DEST (x), 0) = replace_regs (XEXP (SET_DEST (x), 0),
-					       reg_map, nregs, 0);
-      else if (GET_CODE (SET_DEST (x)) == ZERO_EXTRACT)
-	/* Similarly, for ZERO_EXTRACT we replace all operands.  */
-	break;
-
-      SET_SRC (x) = replace_regs (SET_SRC (x), reg_map, nregs, 0);
-      return x;
-
-    default:
-      break;
-    }
-
-  fmt = GET_RTX_FORMAT (code);
-  for (i = GET_RTX_LENGTH (code) - 1; i >= 0; i--)
-    {
-      if (fmt[i] == 'e')
-	XEXP (x, i) = replace_regs (XEXP (x, i), reg_map, nregs, replace_dest);
-      else if (fmt[i] == 'E')
-	{
-	  int j;
-	  for (j = 0; j < XVECLEN (x, i); j++)
-	    XVECEXP (x, i, j) = replace_regs (XVECEXP (x, i, j), reg_map,
-					      nregs, replace_dest);
-	}
-    }
-  return x;
-}
-
 /* Replace occurrences of the old label in *X with the new one.
    DATA is a REPLACE_LABEL_DATA containing the old and new labels.  */
 
@@ -2975,82 +2832,6 @@ auto_inc_p (rtx x)
   return 0;
 }
 
-/* Return 1 if the sequence of instructions beginning with FROM and up
-   to and including TO is safe to move.  If NEW_TO is non-NULL, and
-   the sequence is not already safe to move, but can be easily
-   extended to a sequence which is safe, then NEW_TO will point to the
-   end of the extended sequence.
-
-   For now, this function only checks that the region contains whole
-   exception regions, but it could be extended to check additional
-   conditions as well.  */
-
-int
-insns_safe_to_move_p (rtx from, rtx to, rtx *new_to)
-{
-  int eh_region_count = 0;
-  int past_to_p = 0;
-  rtx r = from;
-
-  /* By default, assume the end of the region will be what was
-     suggested.  */
-  if (new_to)
-    *new_to = to;
-
-  while (r)
-    {
-      if (NOTE_P (r))
-	{
-	  switch (NOTE_LINE_NUMBER (r))
-	    {
-	    case NOTE_INSN_EH_REGION_BEG:
-	      ++eh_region_count;
-	      break;
-
-	    case NOTE_INSN_EH_REGION_END:
-	      if (eh_region_count == 0)
-		/* This sequence of instructions contains the end of
-		   an exception region, but not he beginning.  Moving
-		   it will cause chaos.  */
-		return 0;
-
-	      --eh_region_count;
-	      break;
-
-	    default:
-	      break;
-	    }
-	}
-      else if (past_to_p)
-	/* If we've passed TO, and we see a non-note instruction, we
-	   can't extend the sequence to a movable sequence.  */
-	return 0;
-
-      if (r == to)
-	{
-	  if (!new_to)
-	    /* It's OK to move the sequence if there were matched sets of
-	       exception region notes.  */
-	    return eh_region_count == 0;
-
-	  past_to_p = 1;
-	}
-
-      /* It's OK to move the sequence if there were matched sets of
-	 exception region notes.  */
-      if (past_to_p && eh_region_count == 0)
-	{
-	  *new_to = r;
-	  return 1;
-	}
-
-      /* Go to the next instruction.  */
-      r = NEXT_INSN (r);
-    }
-
-  return 0;
-}
-
 /* Return nonzero if IN contains a piece of rtl that has the address LOC.  */
 int
 loc_mentioned_in_p (rtx *loc, rtx in)
@@ -3474,7 +3255,7 @@ rtx_cost (rtx x, enum rtx_code outer_code ATTRIBUTE_UNUSED)
       total = COSTS_N_INSNS (7);
       break;
     case USE:
-      /* Used in loop.c and combine.c as a marker.  */
+      /* Used in combine.c as a marker.  */
       total = 0;
       break;
     default:
@@ -4558,6 +4339,7 @@ canonicalize_condition (rtx insn, rtx cond, int reverse, rtx *earliest,
   rtx op0, op1;
   int reverse_code = 0;
   enum machine_mode mode;
+  basic_block bb = BLOCK_FOR_INSN (insn);
 
   code = GET_CODE (cond);
   mode = GET_MODE (cond);
@@ -4619,7 +4401,11 @@ canonicalize_condition (rtx insn, rtx cond, int reverse, rtx *earliest,
 
       if ((prev = prev_nonnote_insn (prev)) == 0
 	  || !NONJUMP_INSN_P (prev)
-	  || FIND_REG_INC_NOTE (prev, NULL_RTX))
+	  || FIND_REG_INC_NOTE (prev, NULL_RTX)
+	  /* In cfglayout mode, there do not have to be labels at the
+	     beginning of a block, or jumps at the end, so the previous
+	     conditions would not stop us when we reach bb boundary.  */
+	  || BLOCK_FOR_INSN (prev) != bb)
 	break;
 
       set = set_of (op0, prev);
@@ -4663,7 +4449,7 @@ canonicalize_condition (rtx insn, rtx cond, int reverse, rtx *earliest,
 				<< (GET_MODE_BITSIZE (inner_mode) - 1))))
 #ifdef FLOAT_STORE_FLAG_VALUE
 		     || (code == LT
-			 && GET_MODE_CLASS (inner_mode) == MODE_FLOAT
+			 && SCALAR_FLOAT_MODE_P (inner_mode)
 			 && (fsfv = FLOAT_STORE_FLAG_VALUE (inner_mode),
 			     REAL_VALUE_NEGATIVE (fsfv)))
 #endif
@@ -4683,7 +4469,7 @@ canonicalize_condition (rtx insn, rtx cond, int reverse, rtx *earliest,
 				<< (GET_MODE_BITSIZE (inner_mode) - 1))))
 #ifdef FLOAT_STORE_FLAG_VALUE
 		     || (code == GE
-			 && GET_MODE_CLASS (inner_mode) == MODE_FLOAT
+			 && SCALAR_FLOAT_MODE_P (inner_mode)
 			 && (fsfv = FLOAT_STORE_FLAG_VALUE (inner_mode),
 			     REAL_VALUE_NEGATIVE (fsfv)))
 #endif
@@ -4831,6 +4617,71 @@ get_condition (rtx jump, rtx *earliest, int allow_cc_mode, int valid_at_insn_p)
 				 allow_cc_mode, valid_at_insn_p);
 }
 
+/* Initialize the table NUM_SIGN_BIT_COPIES_IN_REP based on
+   TARGET_MODE_REP_EXTENDED.
+
+   Note that we assume that the property of
+   TARGET_MODE_REP_EXTENDED(B, C) is sticky to the integral modes
+   narrower than mode B.  I.e., if A is a mode narrower than B then in
+   order to be able to operate on it in mode B, mode A needs to
+   satisfy the requirements set by the representation of mode B.  */
+
+static void
+init_num_sign_bit_copies_in_rep (void)
+{
+  enum machine_mode mode, in_mode;
+
+  for (in_mode = GET_CLASS_NARROWEST_MODE (MODE_INT); in_mode != VOIDmode;
+       in_mode = GET_MODE_WIDER_MODE (mode))
+    for (mode = GET_CLASS_NARROWEST_MODE (MODE_INT); mode != in_mode;
+	 mode = GET_MODE_WIDER_MODE (mode))
+      {
+	enum machine_mode i;
+
+	/* Currently, it is assumed that TARGET_MODE_REP_EXTENDED
+	   extends to the next widest mode.  */
+	gcc_assert (targetm.mode_rep_extended (mode, in_mode) == UNKNOWN
+		    || GET_MODE_WIDER_MODE (mode) == in_mode);
+
+	/* We are in in_mode.  Count how many bits outside of mode
+	   have to be copies of the sign-bit.  */
+	for (i = mode; i != in_mode; i = GET_MODE_WIDER_MODE (i))
+	  {
+	    enum machine_mode wider = GET_MODE_WIDER_MODE (i);
+
+	    if (targetm.mode_rep_extended (i, wider) == SIGN_EXTEND
+		/* We can only check sign-bit copies starting from the
+		   top-bit.  In order to be able to check the bits we
+		   have already seen we pretend that subsequent bits
+		   have to be sign-bit copies too.  */
+		|| num_sign_bit_copies_in_rep [in_mode][mode])
+	      num_sign_bit_copies_in_rep [in_mode][mode]
+		+= GET_MODE_BITSIZE (wider) - GET_MODE_BITSIZE (i);
+	  }
+      }
+}
+
+/* Suppose that truncation from the machine mode of X to MODE is not a
+   no-op.  See if there is anything special about X so that we can
+   assume it already contains a truncated value of MODE.  */
+
+bool
+truncated_to_mode (enum machine_mode mode, rtx x)
+{
+  /* This register has already been used in MODE without explicit
+     truncation.  */
+  if (REG_P (x) && rtl_hooks.reg_truncated_to_mode (mode, x))
+    return true;
+
+  /* See if we already satisfy the requirements of MODE.  If yes we
+     can just switch to MODE.  */
+  if (num_sign_bit_copies_in_rep[GET_MODE (x)][mode]
+      && (num_sign_bit_copies (x, GET_MODE (x))
+	  >= num_sign_bit_copies_in_rep[GET_MODE (x)][mode] + 1))
+    return true;
+
+  return false;
+}
 
 /* Initialize non_rtx_starting_operands, which is used to speed up
    for_each_rtx.  */
@@ -4844,4 +4695,15 @@ init_rtlanal (void)
       const char *first = strpbrk (format, "eEV");
       non_rtx_starting_operands[i] = first ? first - format : -1;
     }
+
+  init_num_sign_bit_copies_in_rep ();
 }
+
+/* Check whether this is a constant pool constant.  */
+bool
+constant_pool_constant_p (rtx x)
+{
+  x = avoid_constant_pool_reference (x);
+  return GET_CODE (x) == CONST_DOUBLE;
+}
+

@@ -1,6 +1,28 @@
-2007-02-13  Release Manager
+2008-05-19  Release Manager
 
-	* GCC 4.1.2 released.
+	* GCC 4.2.4 released.
+
+2008-02-01  Release Manager
+
+	* GCC 4.2.3 released.
+
+2007-10-07  Release Manager
+
+	* GCC 4.2.2 released.
+
+2007-07-19  Release Manager
+
+	* GCC 4.2.1 released.
+
+2007-05-13  Release Manager
+
+	* GCC 4.2.0 released.
+
+2007-04-23  Tom Tromey  <tromey@redhat.com>
+
+	PR preprocessor/30468:
+	* mkdeps.c (apply_vpath): Strip successive '/'s if we stripped
+	'./'.
 
 2006-12-29  Jakub Jelinek  <jakub@redhat.com>
 
@@ -8,13 +30,78 @@
 	* directives.c (do_linemarker): Set pfile->buffer->sysp always, not
 	only when new_sysp is non-zero.
 
-2006-05-24  Release Manager
+2006-10-12  Jakub Jelinek  <jakub@redhat.com>
 
-	* GCC 4.1.1 released.
+	PR preprocessor/28709
+	* macro.c (paste_tokens): Do error reporting here, use BUF with the
+	spelled LHS token as opposed to spelling it again.
+	(paste_all_tokens): Don't report errors here, just break on failure.
 
-2006-02-28  Release Manager
+2006-10-10  Brooks Moses  <bmoses@stanford.edu>
 
-	* GCC 4.1.0 released.
+	* Makefile.in: Added empty "pdf" target.
+
+2006-09-22  Geoffrey Keating  <geoffk@apple.com>
+
+	* configure.ac: Make need_64_bit_hwint case for x86-darwin
+	match exactly the glob in gcc/config.gcc.
+	* configure: Regenerate.
+
+2006-09-13  Joseph S. Myers  <joseph@codesourcery.com>
+
+	PR c/28768
+	PR preprocessor/14634
+	* lex.c (lex_string): Pedwarn for unterminated literals.
+
+2006-09-08  Eric Christopher  <echristo@apple.com>
+
+	* configure.ac: Add 64-bit HWI support for i?86-darwin.
+
+2006-08-14  Steve Ellcey  <sje@cup.hp.com>
+
+	PR c++/28288
+	PR c++/14556
+	* include/cpplib.h: Remove <?, >?, <?=, and >?= tokens.
+	(CPP_LAST_EQ): Change.
+	(CPP_LAST_PUNCTUATOR): Change.
+	* expr.c (cpp_operator): Remove MIN and MAX.
+	(reduce): Remove CPP_MIN and CPP_MAX.
+	(num_binary_op): Ditto.
+	* lex.c (_cpp_lex_direct): Ditto.
+	(cpp_avoid_paste): Remove ? as legal symbol after > or <.
+
+2006-06-09  Jakub Jelinek  <jakub@redhat.com>
+
+	PR preprocessor/27746
+	* directives.c (do_pragma): Handle pragma with valid namespace
+	and invalid name coming from macro expansion.
+	* directives.c (destringize_and_run): Initialize next field in
+	context.
+
+	PR c/27747
+	PR c++/27748
+	* directives.c (destringize_and_run): Set NO_EXPAND on the
+	tokens.
+
+	* macro.c (_cpp_backup_tokens): Fix comment typo.
+
+2006-05-31  Daniel Jacobowitz  <dan@codesourcery.com>
+
+	* Makefile.in (CATALOGS): Add po/ prefix.
+	* configure: Regenerated.
+
+2006-05-23  Carlos O'Donell  <carlos@codesourcery.com>
+
+	* Makefile.in: Add install-html target. Add install-html to .PHONY
+
+2006-02-17  Grigory Zagorodnev <grigory_zagorodnev@linux.intel.com>
+
+	* macro.c (_cpp_builtin_macro_text): Handle BT_TIMESTAMP.
+	* files.c (_cpp_get_file_stat): New function.
+	* include/cpplib.h (builtin_type): Add BT_TIMESTAMP.
+	* init.c (builtin_array): Add support for __TIMESTAMP__/BT_TIMESTAMP.
+	* internal.h (_cpp_get_file_stat): Prototype.
+	(struct cpp_buffer): Add timestamp.
 
 2006-01-23  Jakub Jelinek  <jakub@redhat.com>
 
@@ -25,6 +112,45 @@
 	* macro.c (_cpp_builtin_macro_text) <case BT_STDC>: Only check
 	cpp_in_system_header condition.
 
+2006-01-05  Paolo Bonzini  <bonzini@gnu.org>
+
+	* Makefile.in: Use -MMD instead of -MD.
+
+2006-01-04  Dmitry Kurochkin <dmitry.kurochkin@gmail.com>
+	    Richard Henderson  <rth@redhat.com>
+
+	Merge from gomp branch:
+	* directives.c (struct pragma_entry): Add is_deferred.  Add ident
+	entry to value union.
+	(end_directive): Don't eat the line if in_deferred_pragma.
+	(run_directive): Remove pragma hacks.
+	(insert_pragma_entry): Remove.
+	(new_pragma_entry): New.
+	(register_pragma_1): Split out of register_pragma.  Only handle
+	the lookup tree and return the new entry.
+	(cpp_register_pragma): Fill in the pragma entry here.
+	(cpp_register_deferred_pragma): New.
+	(register_pragma_internal): New.
+	(_cpp_init_internal_pragmas): Use register_pragma_internal.
+	(do_pragma): Allow pragma expansion after namespace.  For deferred
+	pragmas, don't slurp the line into a string.
+	(destringize_and_run): Save tokens for deferred pragmas.
+	(cpp_handle_deferred_pragma): Remove.
+	* macro.c (builtin_macro): Remove pragma token hack.
+	(_cpp_push_token_context): Rename from push_token_context and export.
+	* internal.h (struct lexer_state): Add pragma_allow_expansion.
+	(_cpp_push_token_context): Declare.
+	* lex.c (_cpp_lex_token): Allow _cpp_handle_directive to return
+	a token.  Update the line number correctly if so.
+	(_cpp_lex_direct): Emit CPP_PRAGMA_EOL tokens.
+	(cpp_token_val_index): Return CPP_TOKEN_FLD_PRAGMA for pragmas.
+	* include/cpplib.h (PRAGMA_EOL): New.
+	(CPP_TOKEN_FLD_PRAGMA): New.
+	(struct cpp_token): Add val.pragma.
+	(struct cpp_options): Remove defer_pragmas.
+	(cpp_handle_deferred_pragma): Remove.
+	(cpp_register_deferred_pragma): Declare.
+
 2006-01-01  Jakub Jelinek  <jakub@redhat.com>
 
 	PR c++/25294
@@ -32,15 +158,28 @@
 	block comment, end the saved deferred pragma string before that
 	comment.  Handle embedded '\0' chars on the pragma line.
 
+2005-12-22  Volker Reichelt  <reichelt@igpm.rwth-aachen.de>
+
+	PR c++/23333
+	* include/cpplib.h: Add PURE_ZERO to flags for the cpp_token structure.
+
+2005-12-07  Jon Grimm  <jgrimm2@us.ibm.com>
+	    Ben Elliston  <bje@au.ibm.com>
+
+	* include/cpplib.h (CPP_N_DFLOAT): New.
+	* expr.c (interpret_float_suffix): Identify df, dd, and dl
+	suffixes as decimal floating point constants.
+	(cpp_classify_number): Disallow hexadecimal DFP constants.
+
 2005-11-14  Gerald Pfeifer  <gerald@pfeifer.com>
-            Ian Lance Taylor  <ian@airs.com>
+	    Ian Lance Taylor  <ian@airs.com>
 
 	* include/cpplib.h (struct cpp_callbacks): Annotate error with
 	ATTRIBUTE_FPTR_PRINTF(3,0) instead of ATTRIBUTE_PRINTF(3,0).
 
 2005-11-09  Per Bothner  <per@bothner.com>
 	    Uros Bizjak  <uros@kss-loka.si>
-	
+
 	PR c/24101
 	* init.c (read_original_filename): Temporarily set
 	state.in_directive before calling _cpp_lex_direct for
@@ -82,7 +221,7 @@
 	Use in print_dep assignment.
 	* init.c (cpp_read_main_file): Pass additional arg to _cpp_find_file.
 	* internal.h (_cpp_find_file): Add new parm to declaration.
-	
+
 2005-10-08  Kazu Hirata  <kazu@codesourcery.com>
 
 	* configure.ac: Require 64-bit int for arm*-*-*eabi*.

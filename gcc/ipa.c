@@ -1,11 +1,11 @@
 /* Basic IPA optimizations and utilities.
-   Copyright (C) 2003, 2004, 2005 Free Software Foundation, Inc.  
+   Copyright (C) 2003, 2004, 2005, 2007 Free Software Foundation, Inc.  
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -14,9 +14,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -36,7 +35,7 @@ cgraph_postorder (struct cgraph_node **order)
   struct cgraph_edge *edge, last;
 
   struct cgraph_node **stack =
-    xcalloc (cgraph_n_nodes, sizeof (struct cgraph_node *));
+    XCNEWVEC (struct cgraph_node *, cgraph_n_nodes);
 
   /* We have to deal with cycles nicely, so use a depth first traversal
      output algorithm.  Ignore the fact that some functions won't need
@@ -94,18 +93,18 @@ cgraph_postorder (struct cgraph_node **order)
    removes unneeded bodies of extern inline functions.  */
 
 bool
-cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *dump_file)
+cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
 {
   struct cgraph_node *first = (void *) 1;
-  struct cgraph_node *node;
+  struct cgraph_node *node, *next;
   bool changed = false;
   int insns = 0;
 
 #ifdef ENABLE_CHECKING
   verify_cgraph ();
 #endif
-  if (dump_file)
-    fprintf (dump_file, "\nReclaiming functions:");
+  if (file)
+    fprintf (file, "\nReclaiming functions:");
 #ifdef ENABLE_CHECKING
   for (node = cgraph_nodes; node; node = node->next)
     gcc_assert (!node->aux);
@@ -151,8 +150,9 @@ cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *dump_file)
      unanalyzed nodes so they look like for true extern functions to the rest
      of code.  Body of such functions is released via remove_node once the
      inline clones are eliminated.  */
-  for (node = cgraph_nodes; node; node = node->next)
+  for (node = cgraph_nodes; node; node = next)
     {
+      next = node->next;
       if (!node->aux)
 	{
 	  int local_insns;
@@ -163,8 +163,8 @@ cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *dump_file)
 	    local_insns = node->local.self_insns;
 	  else
 	    local_insns = 0;
-	  if (dump_file)
-	    fprintf (dump_file, " %s", cgraph_node_name (node));
+	  if (file)
+	    fprintf (file, " %s", cgraph_node_name (node));
 	  if (!node->analyzed || !DECL_EXTERNAL (node->decl)
 	      || before_inlining_p)
 	    cgraph_remove_node (node);
@@ -203,7 +203,7 @@ cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *dump_file)
     }
   for (node = cgraph_nodes; node; node = node->next)
     node->aux = NULL;
-  if (dump_file)
-    fprintf (dump_file, "\nReclaimed %i insns", insns);
+  if (file)
+    fprintf (file, "\nReclaimed %i insns", insns);
   return changed;
 }

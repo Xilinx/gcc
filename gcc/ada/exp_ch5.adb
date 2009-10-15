@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2005, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2006, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -506,7 +506,7 @@ package body Exp_Ch5 is
       if Nkind (Rhs) = N_String_Literal then
          declare
             Temp : constant Entity_Id :=
-                     Make_Defining_Identifier (Loc, Name_T);
+                     Make_Defining_Identifier (Loc, New_Internal_Name ('T'));
             Decl : Node_Id;
 
          begin
@@ -1631,18 +1631,6 @@ package body Exp_Ch5 is
          Apply_Constraint_Check (Rhs, Etype (Lhs));
       end if;
 
-      --  If we are assigning an access type and the left side is an
-      --  entity, then make sure that Is_Known_Non_Null properly
-      --  reflects the state of the entity after the assignment
-
-      if Is_Access_Type (Typ)
-        and then Is_Entity_Name (Lhs)
-        and then Known_Non_Null (Rhs)
-        and then Safe_To_Capture_Value (N, Entity (Lhs))
-      then
-         Set_Is_Known_Non_Null (Entity (Lhs), Known_Non_Null (Rhs));
-      end if;
-
       --  Case of assignment to a bit packed array element
 
       if Nkind (Lhs) = N_Indexed_Component
@@ -1705,13 +1693,44 @@ package body Exp_Ch5 is
 
                begin
                   --  If the assignment is dispatching, make sure to use the
-                  --  ??? where is rest of this comment ???
+                  --  proper type.
 
                   if Is_Class_Wide_Type (Typ) then
                      F_Typ := Class_Wide_Type (F_Typ);
                   end if;
 
-                  L := New_List (
+                  L := New_List;
+
+                  --  In case of assignment to a class-wide tagged type, before
+                  --  the assignment we generate run-time check to ensure that
+                  --  the tag of the Target is covered by the tag of the source
+
+                  if Is_Class_Wide_Type (Typ)
+                    and then Is_Tagged_Type (Typ)
+                    and then Is_Tagged_Type (Underlying_Type (Etype (Rhs)))
+                  then
+                     Append_To (L,
+                       Make_Raise_Constraint_Error (Loc,
+                         Condition =>
+                           Make_Op_Not (Loc,
+                             Make_Function_Call (Loc,
+                               Name => New_Reference_To
+                                         (RTE (RE_CW_Membership), Loc),
+                               Parameter_Associations => New_List (
+                                 Make_Selected_Component (Loc,
+                                   Prefix =>
+                                     Duplicate_Subexpr (Lhs),
+                                   Selector_Name =>
+                                     Make_Identifier (Loc, Name_uTag)),
+                                 Make_Selected_Component (Loc,
+                                   Prefix =>
+                                     Duplicate_Subexpr (Rhs),
+                                   Selector_Name =>
+                                     Make_Identifier (Loc, Name_uTag))))),
+                         Reason => CE_Tag_Check_Failed));
+                  end if;
+
+                  Append_To (L,
                     Make_Procedure_Call_Statement (Loc,
                       Name => New_Reference_To (Op, Loc),
                       Parameter_Associations => New_List (
@@ -2778,14 +2797,14 @@ package body Exp_Ch5 is
 
       --  Nothing to do if we are returning by reference, or this is not
       --  a type that requires special processing (indicated by the fact
-      --  that it requires a cleanup scope for the secondary stack case)
+      --  that it requires a cleanup scope for the secondary stack case).
 
       if Is_Return_By_Reference_Type (T) then
          null;
 
       elsif not Requires_Transient_Scope (Return_Type) then
 
-         --  mutable records with no variable length components are not
+         --  Mutable records with no variable length components are not
          --  returned on the sec-stack so we need to make sure that the
          --  backend will only copy back the size of the actual value  and not
          --  the maximum size. We create an actual subtype for this purpose

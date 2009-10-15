@@ -503,7 +503,7 @@ static variable variable_table[] = {
    stringize (DEFAULT_RECL), 0},
 
   {"GFORTRAN_LIST_SEPARATOR", 0, NULL, init_sep, show_sep,
-   "Separatator to use when writing list output.  May contain any number of "
+   "Separator to use when writing list output.  May contain any number of "
    "spaces\nand at most one comma.  Default is a single space.", 0},
 
   /* Memory related controls */
@@ -855,20 +855,19 @@ mark_range (int unit1, int unit2)
 
 /* Parse the GFORTRAN_CONVERT_UNITS variable.  This is called
    twice, once to count the units and once to actually mark them in
-   the table.  When counting, we don't check for double occurences
+   the table.  When counting, we don't check for double occurrences
    of units.  */
 
 static int
 do_parse (void)
 {
-  int tok, def;
+  int tok;
   int unit1;
   int continue_ulist;
   char *start;
 
   unit_count = 0;
 
-  def = 0;
   start = p;
 
   /* Parse the string.  First, let's look for a default.  */
@@ -923,6 +922,7 @@ do_parse (void)
       break;
 
     case END:
+      def = endian;
       goto end;
       break;
 
@@ -939,6 +939,18 @@ do_parse (void)
       tok = next_token ();
       switch (tok)
 	{
+	case NATIVE:
+	  if (next_token () != ':')
+	    goto error;
+	  endian = CONVERT_NATIVE;
+	  break;
+
+	case SWAP:
+	  if (next_token () != ':')
+	    goto error;
+	  endian = CONVERT_SWAP;
+	  break;
+
 	case LITTLE:
 	  if (next_token () != ':')
 	    goto error;

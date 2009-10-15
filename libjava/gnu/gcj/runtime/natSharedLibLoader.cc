@@ -20,6 +20,8 @@ details.  */
 #include <java/lang/UnsupportedOperationException.h>
 #include <java/lang/UnknownError.h>
 
+#include <java/lang/VMClassLoader.h>
+
 // If we're using the Boehm GC, then we need this include to override dlopen.
 #ifdef HAVE_BOEHM_GC
 // Set GC_DEBUG before including gc.h!
@@ -44,7 +46,8 @@ _Jv_sharedlib_register_hook (jclass cls)
 {
   cls->protectionDomain = curHelper->domain;
   cls->loader = curLoader;
-  cls->engine = &_Jv_soleCompiledEngine;
+  if (! cls->engine)
+    cls->engine = &_Jv_soleCompiledEngine;
   curHelper->registerClass(cls->getName(), cls);
 }
 
@@ -86,7 +89,8 @@ gnu::gcj::runtime::SharedLibHelper::init(void)
     flags = RTLD_GLOBAL | RTLD_LAZY;
   JvSynchronize dummy1(&java::lang::Class::class$);
   SharedLibDummy dummy2;
-  curLoader = loader;
+  curLoader = ((void*)loader == java::lang::VMClassLoader::bootLoader
+	       ? NULL : loader);
   curHelper = this;
   _Jv_RegisterClassHook = _Jv_sharedlib_register_hook;
   _Jv_RegisterCoreHook = core_hook;

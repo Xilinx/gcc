@@ -1,5 +1,5 @@
 /* Prototypes for exported functions defined in arm.c and pe.c
-   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005
+   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007
    Free Software Foundation, Inc.
    Contributed by Richard Earnshaw (rearnsha@arm.com)
    Minor hacks by Nick Clifton (nickc@cygnus.com)
@@ -8,7 +8,7 @@
 
    GCC is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2, or (at your option)
+   the Free Software Foundation; either version 3, or (at your option)
    any later version.
 
    GCC is distributed in the hope that it will be useful,
@@ -17,9 +17,8 @@
    GNU General Public License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with GCC; see the file COPYING.  If not, write to
-   the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-   Boston, MA 02110-1301, USA.  */
+   along with GCC; see the file COPYING3.  If not see
+   <http://www.gnu.org/licenses/>.  */
 
 #ifndef GCC_ARM_PROTOS_H
 #define GCC_ARM_PROTOS_H
@@ -66,7 +65,8 @@ extern rtx thumb_legitimize_reload_address (rtx *, enum machine_mode, int, int,
 					    int);
 extern int arm_const_double_rtx (rtx);
 extern int neg_const_double_rtx_ok_for_fpa (rtx);
-extern enum reg_class vfp_secondary_reload_class (enum machine_mode, rtx);
+extern enum reg_class coproc_secondary_reload_class (enum machine_mode, rtx,
+						     bool);
 extern bool arm_tls_referenced_p (rtx);
 
 extern int cirrus_memory_offset (rtx);
@@ -139,12 +139,9 @@ extern int arm_apply_result_size (void);
 
 #if defined AOF_ASSEMBLER
 extern rtx aof_pic_entry (rtx);
-extern char *aof_text_section (void);
-extern char *aof_data_section (void);
 extern void aof_add_import (const char *);
 extern void aof_delete_import (const char *);
 extern void zero_init_section (void);
-extern void common_section (void);
 #endif /* AOF_ASSEMBLER */
 
 #endif /* RTX_CODE */

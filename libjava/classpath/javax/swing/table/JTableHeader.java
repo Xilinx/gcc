@@ -1,5 +1,5 @@
 /* JTableHeader.java --
-   Copyright (C) 2003, 2004, 2005  Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2006,  Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -39,6 +39,7 @@ exception statement from your version. */
 package javax.swing.table;
 
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Font;
@@ -67,6 +68,11 @@ import javax.swing.event.TableColumnModelEvent;
 import javax.swing.event.TableColumnModelListener;
 import javax.swing.plaf.TableHeaderUI;
 
+/**
+ * Represents the table header. The header displays the column header values,
+ * is always visible event if the rest of the table scrolls up and down and
+ * supports column reordering and resizing with mouse.
+ */
 public class JTableHeader extends JComponent
   implements TableColumnModelListener, Accessible
 {
@@ -75,238 +81,521 @@ public class JTableHeader extends JComponent
     protected class AccessibleJTableHeaderEntry extends AccessibleContext
       implements Accessible, AccessibleComponent
     {
-      public AccessibleJTableHeaderEntry(int c, JTableHeader p, JTable t) 
+      
+      private int columnIndex;
+      
+      private JTableHeader parent;
+      
+      private JTable table;
+      
+      public AccessibleJTableHeaderEntry(int c, JTableHeader p, JTable t)
       {
-        throw new Error("not implemented");
+        columnIndex = c;
+        parent = p;
+        table = t;
       }
       
+      /**
+       * Returns the column header renderer.
+       * 
+       * @return The column header renderer.
+       */
+      Component getColumnHeaderRenderer()
+      {
+        TableColumn tc = parent.getColumnModel().getColumn(columnIndex);
+        TableCellRenderer r = tc.getHeaderRenderer();
+        if (r == null)
+          r = parent.getDefaultRenderer();
+        return r.getTableCellRendererComponent(table, tc.headerValue, 
+            false, false, -1, columnIndex);
+      }
+      
+      /**
+       * Returns the accessible context for the column header renderer, or 
+       * <code>null</code>.
+       * 
+       * @return The accessible context.
+       */
+      AccessibleContext getAccessibleColumnHeaderRenderer()
+      {
+        Component c = getColumnHeaderRenderer();
+        if (c instanceof Accessible)
+          return c.getAccessibleContext();
+        return null;
+      }
+      
+      /**
+       * @see #removeFocusListener(FocusListener)
+       */
       public void addFocusListener(FocusListener l)
       {
-        throw new Error("not implemented");
+        AccessibleContext ac = getAccessibleColumnHeaderRenderer();
+        AccessibleComponent c = ac.getAccessibleComponent();
+        if (c != null)
+          c.addFocusListener(l);
       }
       
+      /**
+       * @see #removePropertyChangeListener(PropertyChangeListener)
+       */
       public void addPropertyChangeListener(PropertyChangeListener l)
       {
-        throw new Error("not implemented");
+        // add the listener to the accessible context for the header
+        // renderer...
+        AccessibleContext ac = getAccessibleColumnHeaderRenderer();
+        if (ac != null)
+          ac.addPropertyChangeListener(l);
       }
       
       public boolean contains(Point p)
       {
-        throw new Error("not implemented");
+        AccessibleContext ac = getAccessibleColumnHeaderRenderer();
+        AccessibleComponent c = ac.getAccessibleComponent();
+        if (c != null)
+          return c.contains(p);
+        else 
+          return false;
       }
       
       public AccessibleAction getAccessibleAction()
       {
-        throw new Error("not implemented");
+        AccessibleContext ac = getAccessibleColumnHeaderRenderer();
+        if (ac instanceof AccessibleAction)
+          return (AccessibleAction) ac;
+        else 
+          return null;
       }
       
       public Accessible getAccessibleAt(Point p)
       {
-        throw new Error("not implemented");
+        AccessibleContext ac = getAccessibleColumnHeaderRenderer();
+        AccessibleComponent c = ac.getAccessibleComponent();
+        if (c != null)
+          return c.getAccessibleAt(p);
+        else
+          return null;
       }
       
+      /**
+       * Returns <code>null</code> as the header entry has no accessible
+       * children.
+       * 
+       * @return <code>null</code>.
+       */
       public Accessible getAccessibleChild(int i)
       {
-        throw new Error("not implemented");
+        return null;
       }
       
+      /**
+       * Returns the number of accessible children, zero in this case.
+       * 
+       * @return 0
+       */
       public int getAccessibleChildrenCount()
       {
-        throw new Error("not implemented");
+        return 0;
       }
       
+      /**
+       * Returns the accessible component for this header entry.
+       * 
+       * @return <code>this</code>.
+       */
       public AccessibleComponent getAccessibleComponent()
       {
-        throw new Error("not implemented");
+        return this;
       }
       
+      /**
+       * Returns the accessible context for this header entry.
+       * 
+       * @return <code>this</code>.
+       */
       public AccessibleContext getAccessibleContext()
       {
-        throw new Error("not implemented");
+        return this;
       }
       
+      /**
+       * Returns the accessible description.
+       * 
+       * @return The accessible description.
+       * 
+       * @see #setAccessibleDescription(String)
+       */
       public String getAccessibleDescription()
       {
-        throw new Error("not implemented");
+        AccessibleContext ac = getAccessibleColumnHeaderRenderer();
+        if (ac != null)
+          return ac.getAccessibleDescription();
+        return accessibleDescription;
       }
       
+      /**
+       * Returns the index of this header entry.
+       * 
+       * @return The index of this header entry.
+       */
       public int getAccessibleIndexInParent()
       {
-        throw new Error("not implemented");
+        return columnIndex;
       }
       
+      /**
+       * Returns the accessible name.
+       * 
+       * @return The accessible name.
+       * 
+       * @see #setAccessibleName(String)
+       */
       public String getAccessibleName()
       {
-        throw new Error("not implemented");
+        AccessibleContext ac = getAccessibleColumnHeaderRenderer();
+        if (ac != null)
+          return ac.getAccessibleName();
+        return accessibleName;
       }
       
+      /**
+       * Returns the accessible role for the header entry.
+       * 
+       * @return The accessible role.
+       */
       public AccessibleRole getAccessibleRole()
       {
-        throw new Error("not implemented");
+        AccessibleContext ac = getAccessibleColumnHeaderRenderer();
+        if (ac != null)
+          return ac.getAccessibleRole();
+        else
+          return null;
       }
       
       public AccessibleSelection getAccessibleSelection()
       {
-        throw new Error("not implemented");
+        AccessibleContext ac = getAccessibleColumnHeaderRenderer();
+        if (ac instanceof AccessibleValue)
+          return (AccessibleSelection) ac;
+        else 
+          return null;
       }
       
       public AccessibleStateSet getAccessibleStateSet()
       {
-        throw new Error("not implemented");
+        AccessibleContext ac = getAccessibleColumnHeaderRenderer();
+        if (ac != null)
+          return ac.getAccessibleStateSet();
+        else 
+          return null;
       }
       
       public AccessibleText getAccessibleText()
       {
-        throw new Error("not implemented");
+        AccessibleContext ac = getAccessibleColumnHeaderRenderer();
+        if (ac != null)
+          return ac.getAccessibleText();
+        else 
+          return null;
       }
       
       public AccessibleValue getAccessibleValue()
       {
-        throw new Error("not implemented");
+        AccessibleContext ac = getAccessibleColumnHeaderRenderer();
+        if (ac instanceof AccessibleValue)
+          return (AccessibleValue) ac;
+        else 
+          return null;
       }
       
       public Color getBackground()
       {
-        throw new Error("not implemented");
+        AccessibleContext ac = getAccessibleColumnHeaderRenderer();
+        AccessibleComponent c = ac.getAccessibleComponent();
+        if (c != null)
+          return c.getBackground();
+        else
+          return null;
       }
       
       public Rectangle getBounds()
       {
-        throw new Error("not implemented");
+        AccessibleContext ac = getAccessibleColumnHeaderRenderer();
+        AccessibleComponent c = ac.getAccessibleComponent();
+        if (c != null)
+          return c.getBounds();
+        else
+          return null;
       }
       
       public Cursor getCursor()
       {
-        throw new Error("not implemented");
+        AccessibleContext ac = getAccessibleColumnHeaderRenderer();
+        AccessibleComponent c = ac.getAccessibleComponent();
+        if (c != null)
+          return c.getCursor();
+        else
+          return null;
       }
       
       public Font getFont()
       {
-        throw new Error("not implemented");
+        AccessibleContext ac = getAccessibleColumnHeaderRenderer();
+        AccessibleComponent c = ac.getAccessibleComponent();
+        if (c != null)
+          return c.getFont();
+        else
+          return null;
       }
       
       public FontMetrics getFontMetrics(Font f)
       {
-        throw new Error("not implemented");
+        AccessibleContext ac = getAccessibleColumnHeaderRenderer();
+        AccessibleComponent c = ac.getAccessibleComponent();
+        if (c != null)
+          return c.getFontMetrics(f);
+        else
+          return null;
       }
       
       public Color getForeground()
       {
-        throw new Error("not implemented");
+        AccessibleContext ac = getAccessibleColumnHeaderRenderer();
+        AccessibleComponent c = ac.getAccessibleComponent();
+        if (c != null)
+          return c.getForeground();
+        else
+          return null;
       }
       
       public Locale getLocale()
       {
-        throw new Error("not implemented");
+        Component c = getColumnHeaderRenderer();
+        if (c != null)
+          return c.getLocale();
+        return null;
       }
       
       public Point getLocation()
       {
-        throw new Error("not implemented");
+        AccessibleContext ac = getAccessibleColumnHeaderRenderer();
+        AccessibleComponent c = ac.getAccessibleComponent();
+        if (c != null)
+          return c.getLocation();
+        else
+          return null;
       }
       
       public Point getLocationOnScreen()
       {
-        throw new Error("not implemented");
+        AccessibleContext ac = getAccessibleColumnHeaderRenderer();
+        AccessibleComponent c = ac.getAccessibleComponent();
+        if (c != null)
+          return c.getLocationOnScreen();
+        else
+          return null;
       }
       
       public Dimension getSize()
       {
-        throw new Error("not implemented");
+        AccessibleContext ac = getAccessibleColumnHeaderRenderer();
+        AccessibleComponent c = ac.getAccessibleComponent();
+        if (c != null)
+          return c.getSize();
+        else
+          return null;
       }
       
       public boolean isEnabled()
       {
-        throw new Error("not implemented");
+        AccessibleContext ac = getAccessibleColumnHeaderRenderer();
+        AccessibleComponent c = ac.getAccessibleComponent();
+        if (c != null)
+          return c.isEnabled();
+        else
+          return false;
       }
       
       public boolean isFocusTraversable()
       {
-        throw new Error("not implemented");
+        AccessibleContext ac = getAccessibleColumnHeaderRenderer();
+        AccessibleComponent c = ac.getAccessibleComponent();
+        if (c != null)
+          return c.isFocusTraversable();
+        else
+          return false;
       }
       
       public boolean isShowing()
       {
-        throw new Error("not implemented");
+        AccessibleContext ac = getAccessibleColumnHeaderRenderer();
+        AccessibleComponent c = ac.getAccessibleComponent();
+        if (c != null)
+          return c.isShowing();
+        else
+          return false;
       }
       
       public boolean isVisible()
       {
-        throw new Error("not implemented");
+        AccessibleContext ac = getAccessibleColumnHeaderRenderer();
+        AccessibleComponent c = ac.getAccessibleComponent();
+        if (c != null)
+          return c.isVisible();
+        else
+          return false;
       }
       
+      /**
+       * @see #addFocusListener(FocusListener)
+       */
       public void removeFocusListener(FocusListener l)
       {
-        throw new Error("not implemented");
+        AccessibleContext ac = getAccessibleColumnHeaderRenderer();
+        AccessibleComponent c = ac.getAccessibleComponent();
+        if (c != null)
+          c.removeFocusListener(l);
       }
       
+      /**
+       * @see #addPropertyChangeListener(PropertyChangeListener)
+       */
       public void removePropertyChangeListener(PropertyChangeListener l)
       {
-        throw new Error("not implemented");
+        AccessibleContext ac = getAccessibleColumnHeaderRenderer();
+        if (ac != null)
+          ac.removePropertyChangeListener(l);
       }
       
+      /**
+       * @see #addFocusListener(FocusListener)
+       */
       public void requestFocus()
       {
-        throw new Error("not implemented");
+        AccessibleContext ac = getAccessibleColumnHeaderRenderer();
+        AccessibleComponent c = ac.getAccessibleComponent();
+        if (c != null)
+          c.requestFocus();
       }
       
+      /**
+       * @see #getAccessibleDescription()
+       */
       public void setAccessibleDescription(String s)
       {
-        throw new Error("not implemented");
+        AccessibleContext ac = getAccessibleColumnHeaderRenderer();
+        if (ac != null)
+          ac.setAccessibleDescription(s);
+        else
+          accessibleDescription = s;
       }
       
+      /**
+       * @see #getAccessibleName()
+       */
       public void setAccessibleName(String s)
       {
-        throw new Error("not implemented");
+        AccessibleContext ac = getAccessibleColumnHeaderRenderer();
+        if (ac != null)
+          ac.setAccessibleName(s);
       }
       
       public void setBackground(Color c)
       {
-        throw new Error("not implemented");
+        AccessibleContext ac = getAccessibleColumnHeaderRenderer();
+        AccessibleComponent comp = ac.getAccessibleComponent();
+        if (comp != null)
+          comp.setBackground(c);
       }
       
       public void setBounds(Rectangle r)
       {
-        throw new Error("not implemented");
+        AccessibleContext ac = getAccessibleColumnHeaderRenderer();
+        AccessibleComponent comp = ac.getAccessibleComponent();
+        if (comp != null)
+          comp.setBounds(r);
       }
       
       public void setCursor(Cursor c)
       {
-        throw new Error("not implemented");
+        AccessibleContext ac = getAccessibleColumnHeaderRenderer();
+        AccessibleComponent comp = ac.getAccessibleComponent();
+        if (comp != null)
+          comp.setCursor(c);
       }
       
       public void setEnabled(boolean b)
       {
-        throw new Error("not implemented");
+        AccessibleContext ac = getAccessibleColumnHeaderRenderer();
+        AccessibleComponent comp = ac.getAccessibleComponent();
+        if (comp != null)
+          comp.setEnabled(b);
       }
       
       public void setFont(Font f)
       {
-        throw new Error("not implemented");
+        AccessibleContext ac = getAccessibleColumnHeaderRenderer();
+        AccessibleComponent comp = ac.getAccessibleComponent();
+        if (comp != null)
+          comp.setFont(f);
       }
       
       public void setForeground(Color c)
       {
-        throw new Error("not implemented");
+        AccessibleContext ac = getAccessibleColumnHeaderRenderer();
+        AccessibleComponent comp = ac.getAccessibleComponent();
+        if (comp != null)
+          comp.setForeground(c);
       }
       
       public void setLocation(Point p)
       {
-        throw new Error("not implemented");
+        AccessibleContext ac = getAccessibleColumnHeaderRenderer();
+        AccessibleComponent comp = ac.getAccessibleComponent();
+        if (comp != null)
+          comp.setLocation(p);
       }
       
       public void setSize(Dimension d)
       {
-        throw new Error("not implemented");
+        AccessibleContext ac = getAccessibleColumnHeaderRenderer();
+        AccessibleComponent comp = ac.getAccessibleComponent();
+        if (comp != null)
+          comp.setSize(d);
       }
       
       public void setVisible(boolean b)
       {
-        throw new Error("not implemented");
+        AccessibleContext ac = getAccessibleColumnHeaderRenderer();
+        AccessibleComponent comp = ac.getAccessibleComponent();
+        if (comp != null)
+          comp.setVisible(b);
       }
     };
+    
+    public AccessibleRole getAccessibleRole()
+    {
+      return AccessibleRole.PANEL;
+    }
+    
+    public int getAccessibleChildrenCount()
+    {
+      return table.getColumnCount();
+    }
+    
+    public Accessible getAccessibleChild(int i)
+    {
+      return new AccessibleJTableHeaderEntry(i, JTableHeader.this, table);
+    }
+    
+    public Accessible getAccessibleAt(Point p)
+    {
+      return getAccessibleChild(columnAtPoint(p));
+    }
   }
-
+  
+  /**
+   * Use serialVersionUid for interoperability.
+   */
   private static final long serialVersionUID = 5144633983372967710L;
 
   /**
@@ -409,9 +698,10 @@ public class JTableHeader extends JComponent
   }
 
   /**
-   * Get the value of the {@link #draggedColumn} property.
+   * Get the column that is currently being dragged. This is used when
+   * handling the column reordering with mouse.
    *
-   * @return The current value of the property
+   * @return the column being dragged, null if none.
    */
   public TableColumn getDraggedColumn()
   {
@@ -429,29 +719,34 @@ public class JTableHeader extends JComponent
   }
 
   /**
-   * Get the value of the {@link #reorderingAllowed} property.
+   * Check if it is possible to reorder the table columns by dragging column
+   * header with mouse. The table reordering is enabled by default, but can be
+   * disabled with {@link #setReorderingAllowed(boolean)}.
    *
-   * @return The current value of the property
-   */
+   * @return true if reordering is allowed, false otherwise.
+   */ 
   public boolean getReorderingAllowed()
   {
     return reorderingAllowed;
   }
 
   /**
-   * Get the value of the {@link #resizingAllowed} property.
+   * Check if it is possible to resize the table columns by dragging the column
+   * boundary in the table header with mouse. The resizing is enabled
+   * by default, but can be disabled with {@link #setResizingAllowed(boolean)}.
    *
-   * @return The current value of the property
-   */
+   * @return true if resizing is allowed, false otherwise.
+   */ 
   public boolean getResizingAllowed()
   {
     return resizingAllowed;
   }
 
   /**
-   * Get the value of the {@link #resizingColumn} property.
+   * Get the column that is currently being resized. This is used when
+   * handling the column resizing with mouse.
    *
-   * @return The current value of the property
+   * @return the column being currently resized, null if none.
    */
   public TableColumn getResizingColumn()
   {
@@ -459,9 +754,9 @@ public class JTableHeader extends JComponent
   }
 
   /**
-   * Get the value of the {@link #table} property.
+   * Get the table, having this header.
    *
-   * @return The current value of the property
+   * @return the table, having this header.
    */
   public JTable getTable()
   {
@@ -501,13 +796,15 @@ public class JTableHeader extends JComponent
   }
 
   /**
-   * Set the value of the {@link #draggedColumn} property.
+   * Set the column that is currently being dragged. This is used when
+   * dragging the column with mouse. Setting to null will stop the 
+   * dragging session immediately.
    *
-   * @param d The new value of the property
+   * @param draggingIt the column being currently dragged, null if none.
    */ 
-  public void setDraggedColumn(TableColumn d)
+  public void setDraggedColumn(TableColumn draggingIt)
   {
-    draggedColumn = d;
+    draggedColumn = draggingIt;
   }
 
   /**
@@ -531,33 +828,39 @@ public class JTableHeader extends JComponent
   }
 
   /**
-   * Set the value of the {@link #reorderingAllowed} property.
+   * Set the table ability to reorder columns by dragging column header
+   * with mouse. The table reordering is enabled by default, but can be
+   * disabled with this method.
    *
-   * @param r The new value of the property
+   * @param allowed true if reordering is allowed, false otherwise.
    */ 
-  public void setReorderingAllowed(boolean r)
+  public void setReorderingAllowed(boolean allowed)
   {
-    reorderingAllowed = r;
+    reorderingAllowed = allowed;
   }
 
   /**
-   * Set the value of the {@link #resizingAllowed} property.
+   * Set the table ability to resize columns by dragging the column
+   * boundary in the table header with mouse. The resizing is enabled
+   * by default, but can be disabled using this method.
    *
-   * @param r The new value of the property
+   * @param allowed true if resizing is allowed, false otherwise.
    */ 
-  public void setResizingAllowed(boolean r)
+  public void setResizingAllowed(boolean allowed)
   {
-    resizingAllowed = r;
+    resizingAllowed = allowed;
   }
 
   /**
-   * Set the value of the {@link #resizingColumn} property.
+   * The the column that is currently being resized. This property is used
+   * when handling table resizing with mouse. Setting to null would stop
+   * the resizing session immediately.
    *
-   * @param r The new value of the property
+   * @param resizingIt the column being currently resized
    */ 
-  public void setResizingColumn(TableColumn r)
+  public void setResizingColumn(TableColumn resizingIt)
   {
-    resizingColumn = r;
+    resizingColumn = resizingIt;
   }
 
   /**
@@ -609,7 +912,14 @@ public class JTableHeader extends JComponent
   {
     this.cellRenderer = cellRenderer;
   }
-
+  
+  /**
+   * Get the rectangle, occupied by the header of the given column.
+   * 
+   * @param column the column, for that the header area is requested.
+   * 
+   * @return the column header area.
+   */
   public Rectangle getHeaderRect(int column)
   {
     Rectangle r = getTable().getCellRect(-1, column, false);

@@ -78,6 +78,8 @@ public class InternationalFormatter
     minimum = null;
     maximum = null;
     format = null;
+    setCommitsOnValidEdit(false);
+    setOverwriteMode(false);
   }
 
   /**
@@ -226,6 +228,8 @@ public class InternationalFormatter
   public String valueToString(Object value)
     throws ParseException
   {
+    if (value == null)
+      return "";
     if (format != null)
       return format.format(value);
     else
@@ -346,7 +350,7 @@ public class InternationalFormatter
    *     There is no such method in the whole API! So we just call
    *     super.getActions here.
    */
-  public Action[] getActions()
+  protected Action[] getActions()
   {
     return super.getActions();
   }

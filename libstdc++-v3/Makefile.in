@@ -47,7 +47,9 @@ subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/../config/enable.m4 \
 	$(top_srcdir)/../config/lead-dot.m4 \
+	$(top_srcdir)/../config/multi.m4 \
 	$(top_srcdir)/../config/no-executables.m4 \
+	$(top_srcdir)/../config/unwind_ipinfo.m4 \
 	$(top_srcdir)/../libtool.m4 $(top_srcdir)/crossconfig.m4 \
 	$(top_srcdir)/linkage.m4 $(top_srcdir)/acinclude.m4 \
 	$(top_srcdir)/../config/tls.m4 $(top_srcdir)/configure.ac
@@ -131,10 +133,16 @@ ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
 EGREP = @EGREP@
-ENABLE_SYMVERS_DARWIN_EXPORT_FALSE = @ENABLE_SYMVERS_DARWIN_EXPORT_FALSE@
-ENABLE_SYMVERS_DARWIN_EXPORT_TRUE = @ENABLE_SYMVERS_DARWIN_EXPORT_TRUE@
+ENABLE_SYMVERS_DARWIN_FALSE = @ENABLE_SYMVERS_DARWIN_FALSE@
+ENABLE_SYMVERS_DARWIN_TRUE = @ENABLE_SYMVERS_DARWIN_TRUE@
+ENABLE_SYMVERS_FALSE = @ENABLE_SYMVERS_FALSE@
 ENABLE_SYMVERS_GNU_FALSE = @ENABLE_SYMVERS_GNU_FALSE@
+ENABLE_SYMVERS_GNU_NAMESPACE_FALSE = @ENABLE_SYMVERS_GNU_NAMESPACE_FALSE@
+ENABLE_SYMVERS_GNU_NAMESPACE_TRUE = @ENABLE_SYMVERS_GNU_NAMESPACE_TRUE@
 ENABLE_SYMVERS_GNU_TRUE = @ENABLE_SYMVERS_GNU_TRUE@
+ENABLE_SYMVERS_TRUE = @ENABLE_SYMVERS_TRUE@
+ENABLE_VISIBILITY_FALSE = @ENABLE_VISIBILITY_FALSE@
+ENABLE_VISIBILITY_TRUE = @ENABLE_VISIBILITY_TRUE@
 EXEEXT = @EXEEXT@
 EXTRA_CXX_FLAGS = @EXTRA_CXX_FLAGS@
 GLIBCXX_BUILD_DEBUG_FALSE = @GLIBCXX_BUILD_DEBUG_FALSE@
@@ -150,6 +158,8 @@ GLIBCXX_C_HEADERS_C_TRUE = @GLIBCXX_C_HEADERS_C_TRUE@
 GLIBCXX_HOSTED_FALSE = @GLIBCXX_HOSTED_FALSE@
 GLIBCXX_HOSTED_TRUE = @GLIBCXX_HOSTED_TRUE@
 GLIBCXX_INCLUDES = @GLIBCXX_INCLUDES@
+GLIBCXX_LDBL_COMPAT_FALSE = @GLIBCXX_LDBL_COMPAT_FALSE@
+GLIBCXX_LDBL_COMPAT_TRUE = @GLIBCXX_LDBL_COMPAT_TRUE@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
@@ -183,7 +193,7 @@ SECTION_LDFLAGS = @SECTION_LDFLAGS@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 STRIP = @STRIP@
-SYMVER_MAP = @SYMVER_MAP@
+SYMVER_FILE = @SYMVER_FILE@
 TOPLEVEL_INCLUDES = @TOPLEVEL_INCLUDES@
 USE_NLS = @USE_NLS@
 VERSION = @VERSION@
@@ -780,6 +790,11 @@ check-%:
 # All the machinations with string instantiations messes up the
 # automake-generated TAGS rule. Make a simple one here.
 TAGS: tags-recursive $(LISP)
+
+# Installation of distribution html documentation not yet supported
+# TODO: Write custom install-html rule.
+.PHONY: install-html
+install-html:
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:

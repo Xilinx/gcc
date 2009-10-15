@@ -4,17 +4,19 @@ dnl This file is part of the GNU Fortran 95 Runtime Library (libgfortran)
 dnl Distributed under the GNU GPL with exception.  See COPYING for details.
 define(START_FOREACH_FUNCTION,
 `
-extern void name`'rtype_qual`_'atype_code (rtype * retarray, atype *array);
+extern void name`'rtype_qual`_'atype_code (rtype * const restrict retarray, 
+	atype * const restrict array);
 export_proto(name`'rtype_qual`_'atype_code);
 
 void
-name`'rtype_qual`_'atype_code (rtype * retarray, atype *array)
+name`'rtype_qual`_'atype_code (rtype * const restrict retarray, 
+	atype * const restrict array)
 {
   index_type count[GFC_MAX_DIMENSIONS];
   index_type extent[GFC_MAX_DIMENSIONS];
   index_type sstride[GFC_MAX_DIMENSIONS];
   index_type dstride;
-  atype_name *base;
+  const atype_name *base;
   rtype_name *dest;
   index_type rank;
   index_type n;
@@ -39,15 +41,7 @@ name`'rtype_qual`_'atype_code (rtype * retarray, atype *array)
 
       if (retarray->dim[0].ubound + 1 - retarray->dim[0].lbound != rank)
         runtime_error ("dimension of return array incorrect");
-
-      if (retarray->dim[0].stride == 0)
-	retarray->dim[0].stride = 1;
     }
-
-  /* TODO:  It should be a front end job to correctly set the strides.  */
-
-  if (array->dim[0].stride == 0)
-    array->dim[0].stride = 1;
 
   dstride = retarray->dim[0].stride;
   dest = retarray->data;
@@ -91,7 +85,7 @@ define(FINISH_FOREACH_FUNCTION,
              the next dimension.  */
           count[n] = 0;
           /* We could precalculate these products, but this is a less
-             frequently used path so proabably not worth it.  */
+             frequently used path so probably not worth it.  */
           base -= sstride[n] * extent[n];
           n++;
           if (n == rank)
@@ -111,12 +105,14 @@ define(FINISH_FOREACH_FUNCTION,
 }')dnl
 define(START_MASKED_FOREACH_FUNCTION,
 `
-extern void `m'name`'rtype_qual`_'atype_code (rtype *, atype *, gfc_array_l4 *);
+extern void `m'name`'rtype_qual`_'atype_code (rtype * const restrict, 
+	atype * const restrict, gfc_array_l4 * const restrict);
 export_proto(`m'name`'rtype_qual`_'atype_code);
 
 void
-`m'name`'rtype_qual`_'atype_code (rtype * retarray, atype *array,
-				  gfc_array_l4 * mask)
+`m'name`'rtype_qual`_'atype_code (rtype * const restrict retarray, 
+	atype * const restrict array,
+	gfc_array_l4 * const restrict mask)
 {
   index_type count[GFC_MAX_DIMENSIONS];
   index_type extent[GFC_MAX_DIMENSIONS];
@@ -124,7 +120,7 @@ void
   index_type mstride[GFC_MAX_DIMENSIONS];
   index_type dstride;
   rtype_name *dest;
-  atype_name *base;
+  const atype_name *base;
   GFC_LOGICAL_4 *mbase;
   int rank;
   index_type n;
@@ -149,18 +145,7 @@ void
 
       if (retarray->dim[0].ubound + 1 - retarray->dim[0].lbound != rank)
         runtime_error ("dimension of return array incorrect");
-
-      if (retarray->dim[0].stride == 0)
-	retarray->dim[0].stride = 1;
     }
-
-  /* TODO:  It should be a front end job to correctly set the strides.  */
-
-  if (array->dim[0].stride == 0)
-    array->dim[0].stride = 1;
-
-  if (mask->dim[0].stride == 0)
-    mask->dim[0].stride = 1;
 
   dstride = retarray->dim[0].stride;
   dest = retarray->data;
@@ -212,7 +197,7 @@ define(FINISH_MASKED_FOREACH_FUNCTION,
              the next dimension.  */
           count[n] = 0;
           /* We could precalculate these products, but this is a less
-             frequently used path so proabably not worth it.  */
+             frequently used path so probably not worth it.  */
           base -= sstride[n] * extent[n];
           mbase -= mstride[n] * extent[n];
           n++;
@@ -287,9 +272,6 @@ void
 
       if (retarray->dim[0].ubound + 1 - retarray->dim[0].lbound != rank)
         runtime_error ("dimension of return array incorrect");
-
-      if (retarray->dim[0].stride == 0)
-	retarray->dim[0].stride = 1;
     }
 
   dstride = retarray->dim[0].stride;

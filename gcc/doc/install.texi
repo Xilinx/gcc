@@ -7,6 +7,8 @@
 @c %**end of header
 @c @end ifnothtml
 
+@include gcc-common.texi
+
 @c Specify title for specific html page
 @ifset indexhtml
 @settitle Installing GCC
@@ -43,8 +45,13 @@
 @end ifset
 
 @c Copyright (C) 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-@c 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
+@c 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
 @c *** Converted to texinfo by Dean Wakerley, dean@wakerley.com
+
+@c IMPORTANT: whenever you modify this file, run `install.texi2html' to
+@c test the generation of HTML documents for the gcc.gnu.org web pages.
+@c
+@c Do not use @footnote{} in this file as it breaks install.texi2html!
 
 @c Include everything if we're not making html
 @ifnothtml
@@ -64,7 +71,7 @@
 @c Part 2 Summary Description and Copyright
 @copying
 Copyright @copyright{} 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-1999, 2000, 2001, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006 Free Software Foundation, Inc.
 @sp 1
 Permission is granted to copy, distribute and/or modify this document
 under the terms of the GNU Free Documentation License, Version 1.2 or
@@ -87,16 +94,15 @@ Free Documentation License}''.
 @ifinfo
 @insertcopying
 @end ifinfo
-@dircategory Programming
+@dircategory Software development
 @direntry
 * gccinstall: (gccinstall).    Installing the GNU Compiler Collection.
 @end direntry
 
 @c Part 3 Titlepage and Copyright
 @titlepage
-@sp 10
-@comment The title is printed in a large font.
-@center @titlefont{Installing GCC}
+@title Installing GCC
+@versionsubtitle
 
 @c The following two commands start the copyright page.
 @page
@@ -104,7 +110,7 @@ Free Documentation License}''.
 @insertcopying
 @end titlepage
 
-@c Part 4 Top node and Master Menu
+@c Part 4 Top node, Master Menu, and/or Table of Contents
 @ifinfo
 @node    Top, , , (dir)
 @comment node-name, next,          Previous, up
@@ -123,6 +129,10 @@ Free Documentation License}''.
 * Concept Index::   This index has two entries.
 @end menu
 @end ifinfo
+
+@iftex
+@contents
+@end iftex
 
 @c Part 5 The Body of the Document
 @c ***Installing GCC**********************************************************
@@ -285,20 +295,29 @@ Necessary (only on some platforms) to untar the source code.  Many
 systems' @command{tar} programs will also work, only try GNU
 @command{tar} if you have problems.
 
-@item GNU Multiple Precision Library (GMP) version 4.0 (or later)
+@item GNU Multiple Precision Library (GMP) version 4.1 (or later)
 
-Necessary to build the Fortran frontend.  If you don't have it
+Necessary to build the Fortran frontend.  If you do not have it
 installed in your library search path, you will have to configure with
-the @option{--with-gmp} or @option{--with-gmp-dir} configure option.
+the @option{--with-gmp} configure option.  See also
+@option{--with-gmp-lib} and @option{--with-gmp-include}.
 
-@item MPFR Library
+@item MPFR Library version 2.2.1 (or later)
 
 Necessary to build the Fortran frontend.  It can be downloaded from
-@uref{http://www.mpfr.org/}.  It is also included in the current GMP
-release (4.1.3) when configured with @option{--enable-mpfr}.
+@uref{http://www.mpfr.org/}.  The version of MPFR that is bundled with
+GMP 4.1.x contains numerous bugs.  Although GNU Fortran will appear
+to function with the buggy versions of MPFR, there are a few GNU Fortran
+bugs that will not be fixed when using this version.  It is strongly
+recommended to upgrade to the recommended version of MPFR.
 
-The @option{--with-mpfr} or @option{--with-mpfr-dir} configure option should
-be used if your MPFR Library is not installed in your library search path.
+The @option{--with-mpfr} configure option should be used if your MPFR
+Library is not installed in your default library search path.  See
+also @option{--with-mpfr-lib} and @option{--with-mpfr-include}.
+
+@item @command{jar}, or InfoZIP (@command{zip} and @command{unzip})
+
+Necessary to build libgcj, the GCJ runtime.
 
 @end table
 
@@ -313,7 +332,7 @@ to regenerate @file{configure} and @file{config.in} files.  Most
 directories require autoconf 2.59 (exactly), but the toplevel
 still requires autoconf 2.13 (exactly).
 
-@item automake versions 1.9.3
+@item automake version 1.9.6
 
 Necessary when modifying a @file{Makefile.am} file to regenerate its
 associated @file{Makefile.in}.
@@ -324,7 +343,7 @@ file.  Specifically this applies to the @file{gcc}, @file{intl},
 as any of their subdirectories.
 
 For directories that use automake, GCC requires the latest release in
-the 1.9.x series, which is currently 1.9.3.  When regenerating a directory
+the 1.9.x series, which is currently 1.9.6.  When regenerating a directory
 to a newer version, please update all the directories using an older 1.9.x
 to the latest released version.
 
@@ -373,10 +392,14 @@ Necessary to build GCC during development because the generated output
 files are not included in the SVN repository.  They are included in
 releases.
 
-@item Texinfo version 4.2 (or later)
+@item Texinfo version 4.4 (or later)
 
 Necessary for running @command{makeinfo} when modifying @file{*.texi}
 files to test your changes.
+
+Necessary for running @command{make dvi} or @command{make pdf} to
+create printable documentation in DVI or PDF format.  Texinfo version
+4.8 or later is required for @command{make pdf}.
 
 Necessary to build GCC documentation during development because the
 generated output files are not included in the SVN repository.  They are
@@ -384,8 +407,9 @@ included in releases.
 
 @item @TeX{} (any working version)
 
-Necessary for running @command{texi2dvi}, used when running
-@command{make dvi} to create DVI files.
+Necessary for running @command{texi2dvi} and @command{texi2pdf}, which 
+are used when running @command{make dvi} or @command{make pdf} to create
+DVI or PDF files, respectively.
 
 @item SVN (any version)
 @itemx SSH (any version)
@@ -443,11 +467,11 @@ components.
 Please refer to the @uref{http://gcc.gnu.org/releases.html,,releases web page}
 for information on how to obtain GCC@.
 
-The full distribution includes the C, C++, Objective-C, Fortran 77, Fortran
-(in case of GCC 4.0 and later), Java, and Ada (in case of GCC 3.1 and later)
-compilers.  The full distribution also includes runtime libraries for C++,
-Objective-C, Fortran 77, Fortran, and Java.  In GCC 3.0 and later versions,
-GNU compiler testsuites are also included in the full distribution.
+The full distribution includes the C, C++, Objective-C, Fortran, Java,
+and Ada (in the case of GCC 3.1 and later) compilers.  The full
+distribution also includes runtime libraries for C++, Objective-C,
+Fortran, and Java.  In GCC 3.0 and later versions, the GNU compiler
+testsuites are also included in the full distribution.
 
 If you choose to download specific components, you must download the core
 GCC distribution plus any language specific distributions you wish to
@@ -527,6 +551,7 @@ Second, when configuring a native system, either @command{cc} or
 your environment before running configure.  Otherwise the configuration
 scripts may fail.
 
+@ignore
 Note that the bootstrap compiler and the resulting GCC must be link
 compatible, else the bootstrap will fail with linker errors about
 incompatible object file formats.  Several multilibed targets are
@@ -537,6 +562,7 @@ affected by this requirement, see
 @ifhtml
 @uref{specific.html,,host/target specific installation notes}.
 @end ifhtml
+@end ignore
 
 To configure GCC:
 
@@ -777,7 +803,8 @@ assembler found is not actually the GNU assembler.  (Confusion may also
 result if the compiler finds the GNU assembler but has not been
 configured with @option{--with-gnu-as}.)  If you have more than one
 assembler installed on your system, you may want to use this option in
-connection with @option{--with-as=@var{pathname}}.
+connection with @option{--with-as=@var{pathname}} or
+@option{--with-build-time-tools=@var{pathname}}.
 
 The following systems are the only ones where it makes a difference
 whether you use the GNU assembler.  On any other system,
@@ -800,28 +827,40 @@ the 386, if you use the GNU assembler, you should also use the GNU linker
 (and specify @option{--with-gnu-ld}).
 
 @item @anchor{with-as}--with-as=@var{pathname}
-Specify that the
-compiler should use the assembler pointed to by @var{pathname}, rather
-than the one found by the standard rules to find an assembler, which
-are:
+Specify that the compiler should use the assembler pointed to by
+@var{pathname}, rather than the one found by the standard rules to find
+an assembler, which are:
 @itemize @bullet
 @item
-Check the @file{@var{libexec}/gcc/@var{target}/@var{version}}
-directory, where @var{libexec} defaults to
-@file{@var{exec-prefix}/libexec} and @var{exec-prefix} defaults to
-@var{prefix} which defaults to @file{/usr/local} unless overridden by
-the @option{--prefix=@var{pathname}} switch described
-above.  @var{target} is the target system triple, such as
-@samp{sparc-sun-solaris2.7}, and @var{version} denotes the GCC
-version, such as 3.0.
+Unless GCC is being built with a cross compiler, check the
+@file{@var{libexec}/gcc/@var{target}/@var{version}} directory.
+@var{libexec} defaults to @file{@var{exec-prefix}/libexec};
+@var{exec-prefix} defaults to @var{prefix}, which
+defaults to @file{/usr/local} unless overridden by the
+@option{--prefix=@var{pathname}} switch described above.  @var{target}
+is the target system triple, such as @samp{sparc-sun-solaris2.7}, and
+@var{version} denotes the GCC version, such as 3.0.
+
 @item
-Check operating system specific directories (e.g.@: @file{/usr/ccs/bin} on
+If the target system is the same that you are building on, check
+operating system specific directories (e.g.@: @file{/usr/ccs/bin} on
 Sun Solaris 2).
+
+@item
+Check in the @env{PATH} for a tool whose name is prefixed by the
+target system triple.
+
+@item
+Check in the @env{PATH} for a tool whose name is not prefixed by the
+target system triple, if the host and target system triple are
+the same (in other words, we use a host tool if it can be used for
+the target as well).
 @end itemize
-Note that these rules do not check for the value of @env{PATH}.  You may
-want to use @option{--with-as} if no assembler is installed in the
-directories listed above, or if you have multiple assemblers installed
-and want to choose one that is not found by the above rules.
+
+You may want to use @option{--with-as} if no assembler
+is installed in the directories listed above, or if you have multiple
+assemblers installed and want to choose one that is not found by the
+above rules.
 
 @item @anchor{with-gnu-ld}--with-gnu-ld
 Same as @uref{#with-gnu-as,,@option{--with-gnu-as}}
@@ -975,6 +1014,10 @@ options and for @option{-mhard-float} or @option{-msoft-float}.  As with
 @option{--with-cpu}, which switches will be accepted and acceptable values
 of the arguments depend on the target.
 
+@item --with-mode=@var{mode}
+Specify if the compiler should default to @option{-marm} or @option{-mthumb}.
+This option is only supported on ARM targets.
+
 @item --with-divide=@var{type}
 Specify how the compiler should generate code for checking for
 division by zero.  This option is only supported on the MIPS target.
@@ -1024,6 +1067,20 @@ catalog, configuring with @option{--enable-maintainer-mode} will enable
 this.  Note that you need a recent version of the @code{gettext} tools
 to do so.
 
+@item --disable-bootstrap
+For a native build, the default configuration is to perform
+a 3-stage bootstrap of the compiler when @samp{make} is invoked,
+testing that GCC can compile itself correctly.  If you want to disable
+this process, you can configure with @option{--disable-bootstrap}.
+
+@item --enable-bootstrap
+In special cases, you may want to perform a 3-stage build
+even if the target and host triplets are different.
+This could happen when the host can run code compiled for
+the target (e.g.@: host is i686-linux, target is i486-linux).
+Starting from GCC 4.2, to do this you have to configure explicitly
+with @option{--enable-bootstrap}.
+
 @item --enable-generated-files-in-srcdir
 Neither the .c and .h files that are generated from Bison and flex nor the
 info manuals and man pages that are built from the .texi files are present
@@ -1072,9 +1129,9 @@ Building the Ada compiler has special requirements, see below.
 If you do not pass this flag, or specify the option @code{all}, then all
 default languages available in the @file{gcc} sub-tree will be configured.
 Ada, Objective-C++, and treelang are not default languages; the rest are.
-Re-defining @code{LANGUAGES} when calling @samp{make bootstrap}
-@strong{does not} work anymore, as those language sub-directories might
-not have been configured!
+Re-defining @code{LANGUAGES} when calling @samp{make} @strong{does not}
+work anymore, as those language sub-directories might not have been
+configured!
 
 @item --disable-libada
 Specify that the run-time libraries and tools used by GNAT should not
@@ -1085,6 +1142,9 @@ do a @samp{make -C gcc gnatlib_and_tools}.
 @item --disable-libssp
 Specify that the run-time libraries for stack smashing protection
 should not be built.
+
+@item --disable-libgomp
+Specify that the run-time libraries used by GOMP should not be built.
 
 @item --with-dwarf2
 Specify that the compiler should
@@ -1224,6 +1284,22 @@ error message.
 All support for systems which have been obsoleted in one release of GCC
 is removed entirely in the next major release, unless someone steps
 forward to maintain the port.
+
+@item --enable-decimal-float
+@itemx --disable-decimal-float
+Enable (or disable) support for the C decimal floating point
+extension.  This is enabled by default only on PowerPC GNU/Linux
+systems.  Other systems may also support it, but require the user to
+specifically enable it.
+
+@item --with-long-double-128
+Specify if @code{long double} type should be 128-bit by default on selected
+GNU/Linux architectures.  If using @code{--without-long-double-128},
+@code{long double} will be by default 64-bit, the same as @code{double} type.
+When neither of these configure options are used, the default will be
+128-bit @code{long double} when built against GNU C Library 2.4 and later,
+64-bit @code{long double} otherwise.
+
 @end table
 
 @subheading Cross-Compiler-Specific Options
@@ -1280,29 +1356,56 @@ Specifies a list of directories which contain the target runtime
 libraries.  These libraries will be copied into the @file{gcc} install
 directory.  If the directory list is omitted, this option has no
 effect.
+
 @item --with-newlib
 Specifies that @samp{newlib} is
 being used as the target C library.  This causes @code{__eprintf} to be
 omitted from @file{libgcc.a} on the assumption that it will be provided by
 @samp{newlib}.
+
+@item --with-build-time-tools=@var{dir}
+Specifies where to find the set of target tools (assembler, linker, etc.)
+that will be used while building GCC itself.  This option can be useful
+if the directory layouts are different between the system you are building
+GCC on, and the system where you will deploy it.
+
+For example, on a @option{ia64-hp-hpux} system, you may have the GNU
+assembler and linker in @file{/usr/bin}, and the native tools in a
+different path, and build a toolchain that expects to find the
+native tools in @file{/usr/bin}.
+
+When you use this option, you should ensure that @var{dir} includes
+@command{ar}, @command{as}, @command{ld}, @command{nm},
+@command{ranlib} and @command{strip} if necessary, and possibly
+@command{objdump}.  Otherwise, GCC may use an inconsistent set of
+tools.
 @end table
 
-@subheading Fortran-specific Option
+@subheading Fortran-Specific Options
 
 The following options apply to the build of the Fortran front end.
 
 @table @code
 
 @item --with-gmp=@var{pathname}
+@itemx --with-gmp-include=@var{pathname}
+@itemx --with-gmp-lib=@var{pathname}
 @itemx --with-mpfr=@var{pathname}
-@itemx --with-gmp-dir=@var{pathname}
-@itemx --with-mpfr-dir=@var{pathname}
-If you don't have GMP (the GNU Multiple Precision library) and the MPFR
-Libraries installed in a standard location and you want to build the Fortran
-front-end, you can explicitly specify the directory where they are installed
-(@samp{--with-gmp=gmpinstalldir}, @samp{--with-mpfr=mpfrinstalldir}) or where
-you built them without installing (@samp{--with-gmp-dir=gmpbuilddir},
-@samp{--with-mpfr-dir=gmpbuilddir}).
+@itemx --with-mpfr-include=@var{pathname}
+@itemx --with-mpfr-lib=@var{pathname}
+If you do not have GMP (the GNU Multiple Precision library) and the
+MPFR Libraries installed in a standard location and you want to build
+the Fortran front-end, you can explicitly specify the directory where
+they are installed (@samp{--with-gmp=@var{gmpinstalldir}},
+@samp{--with-mpfr=@var{mpfrinstalldir}}).  The
+@option{--with-gmp=@var{gmpinstalldir}} option is shorthand for
+@option{--with-gmp-lib=@var{gmpinstalldir}/lib} and
+@option{--with-gmp-include=@var{gmpinstalldir}/include}.  Likewise the
+@option{--with-mpfr=@var{mpfrinstalldir}} option is shorthand for
+@option{--with-mpfr-lib=@var{mpfrinstalldir}/lib} and
+@option{--with-mpfr-include=@var{mpfrinstalldir}/include}.  If these
+shorthand assumptions are not correct, you can use the explicit
+include and lib options directly.
 
 @end table
 
@@ -1374,9 +1477,9 @@ file to compile into a @file{.class} file.
 Search for libiconv in @file{DIR/include} and @file{DIR/lib}.
 
 @item --enable-sjlj-exceptions
-Force use of @code{builtin_setjmp} for exceptions.  @samp{configure}
-ordinarily picks the correct value based on the platform.  Only use
-this option if you are sure you need a different setting.
+Force use of the @code{setjmp}/@code{longjmp}-based scheme for exceptions.
+@samp{configure} ordinarily picks the correct value based on the platform.
+Only use this option if you are sure you need a different setting.
 
 @item --with-system-zlib
 Use installed @samp{zlib} rather than that included with GCC@.
@@ -1500,28 +1603,32 @@ parser sources, releases contain the Bison-generated files and you do
 not need Bison installed to build them.
 
 When building from SVN or snapshots, or if you modify Texinfo
-documentation, you need version 4.2 or later of Texinfo installed if you
+documentation, you need version 4.4 or later of Texinfo installed if you
 want Info documentation to be regenerated.  Releases contain Info
 documentation pre-built for the unmodified documentation in the release.
 
 @section Building a native compiler
 
-For a native build issue the command @samp{make bootstrap}.  This
-will build the entire GCC system, which includes the following steps:
+For a native build, the default configuration is to perform
+a 3-stage bootstrap of the compiler when @samp{make} is invoked.
+This will build the entire GCC system and ensure that it compiles
+itself correctly.  It can be disabled with the @option{--disable-bootstrap}
+parameter to @samp{configure}, but bootstrapping is suggested because
+the compiler will be tested more completely and could also have
+better performance.
+
+The bootstrapping process will complete the following steps:
 
 @itemize @bullet
 @item
-Build host tools necessary to build the compiler such as texinfo, bison,
-gperf.
+Build tools necessary to build the compiler.
 
 @item
-Build target tools for use by the compiler such as binutils (bfd,
-binutils, gas, gprof, ld, and opcodes)
-if they have been individually linked
-or moved into the top level GCC source tree before configuring.
-
-@item
-Perform a 3-stage bootstrap of the compiler.
+Perform a 3-stage bootstrap of the compiler.  This includes building
+three times the target tools for use by the compiler such as binutils
+(bfd, binutils, gas, gprof, ld, and opcodes) if they have been
+individually linked or moved into the top level GCC source tree before
+configuring.
 
 @item
 Perform a comparison test of the stage2 and stage3 compilers.
@@ -1532,8 +1639,8 @@ Build runtime libraries using the stage3 compiler from the previous step.
 @end itemize
 
 If you are short on disk space you might consider @samp{make
-bootstrap-lean} instead.  This is identical to @samp{make
-bootstrap} except that object files from the stage1 and
+bootstrap-lean} instead.  The sequence of compilation is the
+same described above, but object files from the stage1 and
 stage2 of the 3-stage bootstrap of the compiler are deleted as
 soon as they are no longer needed.
 
@@ -1550,7 +1657,7 @@ roughly 40% of disk space both for the bootstrap and the final installation.
 
 If you wish to use non-default GCC flags when compiling the stage2 and
 stage3 compilers, set @code{BOOT_CFLAGS} on the command line when doing
-@samp{make bootstrap}.  Non-default optimization flags are less well
+@samp{make}.  Non-default optimization flags are less well
 tested here than the default of @samp{-g -O2}, but should still work.
 In a few cases, you may find that you need to specify special flags such
 as @option{-msoft-float} here to complete the bootstrap; or, if the
@@ -1559,17 +1666,17 @@ around this, by choosing @code{BOOT_CFLAGS} to avoid the parts of the
 stage1 compiler that were miscompiled, or by using @samp{make
 bootstrap4} to increase the number of stages of bootstrap.
 
-Note that using non-standard @code{CFLAGS} can cause bootstrap to fail in
-@file{libiberty}, if these trigger a warning with the new compiler.  For
-example using @samp{-O2 -g -mcpu=i686} on @code{i686-pc-linux-gnu} will
-cause bootstrap failure as @option{-mcpu=} is deprecated in 3.4.0 and above.
+Note that using non-standard @code{CFLAGS} can cause bootstrap to fail
+if these trigger a warning with the new compiler.  For example using
+@samp{-O2 -g -mcpu=i686} on @code{i686-pc-linux-gnu} will cause bootstrap
+failure as @option{-mcpu=} is deprecated in 3.4.0 and above.
 
 
 If you used the flag @option{--enable-languages=@dots{}} to restrict
 the compilers to be built, only those you've actually enabled will be
 built.  This will of course only build those runtime libraries, for
 which the particular compiler has been built.  Please note,
-that re-defining @env{LANGUAGES} when calling @samp{make bootstrap}
+that re-defining @env{LANGUAGES} when calling @samp{make}
 @strong{does not} work anymore!
 
 If the comparison of stage2 and stage3 fails, this normally indicates
@@ -1578,6 +1685,15 @@ a potentially serious bug which you should investigate and report.  (On
 a few systems, meaningful comparison of object files is impossible; they
 always appear ``different''.  If you encounter this problem, you will
 need to disable comparison in the @file{Makefile}.)
+
+If you do not want to bootstrap your compiler, you can configure with
+@option{--disable-bootstrap}.  In particular cases, you may want to
+bootstrap your compiler even if the target system is not the same as
+the one you are building on: for example, you could build a
+@code{powerpc-unknown-linux-gnu} toolchain on a
+@code{powerpc64-unknown-linux-gnu} host.  In this case, pass
+@option{--enable-bootstrap} to the configure script.
+
 
 @section Building a cross compiler
 
@@ -1658,21 +1774,25 @@ compilation options.  Check your target's definition of
 
 @section Building in parallel
 
-You can use @samp{make bootstrap MAKE="make -j 2" -j 2}, or just
-@samp{make -j 2 bootstrap} for GNU Make 3.79 and above, instead of
-@samp{make bootstrap} to build GCC in parallel.
-You can also specify a bigger number, and in most cases using a value
-greater than the number of processors in your machine will result in
-fewer and shorter I/O latency hits, thus improving overall throughput;
-this is especially true for slow drives and network filesystems.
+GNU Make 3.79 and above, which is necessary to build GCC, support
+building in parallel.  To activate this, you can use @samp{make -j 2}
+instead of @samp{make}.  You can also specify a bigger number, and 
+in most cases using a value greater than the number of processors in
+your machine will result in fewer and shorter I/O latency hits, thus
+improving overall throughput; this is especially true for slow drives
+and network filesystems.
 
 @section Building the Ada compiler
 
 In order to build GNAT, the Ada compiler, you need a working GNAT
-compiler (GNAT version 3.14 or later, or GCC version 3.1 or later),
-including GNAT tools such as @command{gnatmake} and @command{gnatlink},
-since the Ada front end is written in Ada (with some
-GNAT-specific extensions), and GNU make.
+compiler (GNAT version 3.14 or later, or GCC version 3.1 or later).
+This includes GNAT tools such as @command{gnatmake} and
+@command{gnatlink}, since the Ada front end is written in Ada and
+uses some GNAT-specific extensions.
+
+In order to build a cross compiler, it is suggested to install
+the new compiler as native first, and then use it to build the cross
+compiler.
 
 @command{configure} does not test whether the GNAT installation works
 and has a sufficiently recent version; if too old a GNAT version is
@@ -1684,7 +1804,7 @@ used to disable building the Ada front end.
 It is possible to use profile feedback to optimize the compiler itself.  This
 should result in a faster compiler binary.  Experiments done on x86 using gcc
 3.3 showed approximately 7 percent speedup on compiling C programs.  To
-bootstrap compiler with profile feedback, use @code{make profiledbootstrap}.
+bootstrap the compiler with profile feedback, use @code{make profiledbootstrap}.
 
 When @samp{make profiledbootstrap} is run, it will first build a @code{stage1}
 compiler.  This compiler is used to build a @code{stageprofile} compiler
@@ -1692,7 +1812,7 @@ instrumented to collect execution counts of instruction and branch
 probabilities.  Then runtime libraries are compiled with profile collected.
 Finally a @code{stagefeedback} compiler is built using the information collected.
 
-Unlike @samp{make bootstrap} several additional restrictions apply.  The
+Unlike standard bootstrap, several additional restrictions apply.  The
 compiler used to build @code{stage1} needs to support a 64-bit integral type.
 It is recommended to only use GCC for this.  Also parallel make is currently
 not supported since collisions in profile collecting may occur.
@@ -1955,10 +2075,7 @@ cd @var{objdir}; make install
 @end smallexample
 
 We strongly recommend to install into a target directory where there is
-no previous version of GCC present.  Also, the GNAT runtime should not
-be stripped, as this would break certain features of the debugger that
-depend on this debugging information (catching Ada exceptions for
-instance).
+no previous version of GCC present.
 
 That step completes the installation of GCC; user level binaries can
 be found in @file{@var{prefix}/bin} where @var{prefix} is the value
@@ -2001,7 +2118,7 @@ it will not be created otherwise.  This is regarded as a feature,
 not as a bug, because it gives slightly more control to the packagers
 using the @code{DESTDIR} feature.
 
-If you built a released version of GCC using @samp{make bootstrap} then please
+If you are bootstrapping a released version of GCC then please
 quickly review the build status page for your release, available from
 @uref{http://gcc.gnu.org/buildstat.html}.
 If your system is not listed for the version of GCC that you built,
@@ -2067,10 +2184,13 @@ If you find a bug, please report it following the
 @uref{../bugs.html,,bug reporting guidelines}.
 
 If you want to print the GCC manuals, do @samp{cd @var{objdir}; make
-dvi}.  You will need to have @command{texi2dvi} (version at least 4.2)
+dvi}.  You will need to have @command{texi2dvi} (version at least 4.4)
 and @TeX{} installed.  This creates a number of @file{.dvi} files in
 subdirectories of @file{@var{objdir}}; these may be converted for
-printing with programs such as @command{dvips}.  You can also
+printing with programs such as @command{dvips}.  Alternately, by using
+@samp{make pdf} in place of @samp{make dvi}, you can create documentation
+in the form of @file{.pdf} files; this requires @command{texi2pdf}, which
+is included with Texinfo version 4.8 and later.  You can also
 @uref{http://www.gnu.org/order/order.html,,buy printed manuals from the
 Free Software Foundation}, though such manuals may not be for the most
 recent version of GCC@.
@@ -2176,7 +2296,7 @@ number of platforms.
 
 @item
 The @uref{http://gcc.gnu.org/wiki/GFortranBinaries,,GFortran Wiki} has
-links to gfortran binaries for several platforms.
+links to GNU Fortran binaries for several platforms.
 @end itemize
 
 In addition to those specific offerings, you can get a binary
@@ -2214,6 +2334,11 @@ works.
 
 Please read this document carefully @emph{before} installing the
 GNU Compiler Collection on your machine.
+
+Note that this list of install notes is @emph{not} a list of supported
+hosts or targets.  Not all supported hosts and targets are listed
+here, only the ones that require host-specific or target-specific
+information are.
 
 @ifhtml
 @itemize
@@ -2459,17 +2584,16 @@ and it is not possible to build parallel applications.  Cray modules are not
 supported; in particular, Craylibs are assumed to be in
 @file{/opt/ctl/craylibs/craylibs}.
 
-You absolutely @strong{must} use GNU make on this platform.  Also, you
-need to tell GCC where to find the assembler and the linker.  The
-simplest way to do so is by providing @option{--with-as} and
-@option{--with-ld} to @file{configure}, e.g.@:
+On this platform, you need to tell GCC where to find the assembler and
+the linker.  The simplest way to do so is by providing @option{--with-as}
+and @option{--with-ld} to @file{configure}, e.g.@:
 
 @smallexample
     configure --with-as=/opt/ctl/bin/cam --with-ld=/opt/ctl/bin/cld \
       --enable-languages=c
 @end smallexample
 
-The comparison test during @samp{make bootstrap} fails on Unicos/Mk
+The comparison test at the end of the bootstrapping process fails on Unicos/Mk
 because the assembler inserts timestamps into object files.  You should
 be able to work around this by doing @samp{make all} after getting this
 failure.
@@ -2807,9 +2931,9 @@ and Latin-America.
 
 The HP assembler on these systems has some problems.  Most notably the
 assembler inserts timestamps into each object file it creates, causing
-the 3-stage comparison test to fail during a @samp{make bootstrap}.
-You should be able to continue by saying @samp{make all} after getting
-the failure from @samp{make bootstrap}.
+the 3-stage comparison test to fail during a bootstrap.
+You should be able to continue by saying @samp{make all-host all-target}
+after getting the failure from @samp{make}.
 
 GCC 4.0 requires CVS binutils as of April 28, 2004 or later.  Earlier
 versions require binutils 2.8 or later.
@@ -2833,6 +2957,10 @@ to build the Ada language as it can't be bootstrapped using C@.  Ada is
 only available for the 32-bit PA-RISC runtime.  The libffi and libjava
 haven't been ported to HP-UX and don't build.
 
+Starting with GCC 3.4 an ISO C compiler is required to bootstrap.  The
+bundled compiler supports only traditional C; you will need either HP's
+unbundled compiler, or a binary distribution of GCC@.
+
 It is possible to build GCC 3.3 starting with the bundled HP compiler,
 but the process requires several steps.  GCC 3.3 can then be used to
 build later versions.  The fastjar program contains ISO C code and
@@ -2840,10 +2968,6 @@ can't be built with the HP bundled compiler.  This problem can be
 avoided by not building the Java language.  For example, use the
 @option{--enable-languages="c,c++,f77,objc"} option in your configure
 command.
-
-Starting with GCC 3.4 an ISO C compiler is required to bootstrap.  The
-bundled compiler supports only traditional C; you will need either HP's
-unbundled compiler, or a binary distribution of GCC@.
 
 There are several possible approaches to building the distribution.
 Binutils can be built first using the HP tools.  Then, the GCC
@@ -2895,10 +3019,10 @@ many limitations.  For example, it does not support weak symbols or alias
 definitions.  As a result, explicit template instantiations are required
 when using C++.  This makes it difficult if not impossible to build many
 C++ applications.  You can't generate debugging information when using
-the HP assembler.  Finally, @samp{make bootstrap} fails in the final
+the HP assembler.  Finally, bootstrapping fails in the final
 comparison of object modules due to the time stamps that it inserts into
 the modules.  The bootstrap can be continued from this point with
-@samp{make all}.
+@samp{make all-host all-target}.
 
 A recent linker patch must be installed for the correct operation of
 GCC 3.3 and later.  @code{PHSS_26559} and @code{PHSS_24304} are the
@@ -3063,7 +3187,7 @@ command like this:
 @emph{You should substitute @samp{i686} in the above command with the appropriate
 processor for your host.}
 
-After the usual @samp{make bootstrap} and
+After the usual @samp{make} and
 @samp{make install}, you can then access the UDK-targeted GCC
 tools by adding @command{udk-} before the commonly known name.  For
 example, to invoke the C compiler, you would use @command{udk-gcc}.
@@ -3112,9 +3236,6 @@ removed and the system libunwind library will always be used.
 @heading @anchor{x-ibm-aix}*-ibm-aix*
 Support for AIX version 3 and older was discontinued in GCC 3.4.
 
-AIX Make frequently has problems with GCC makefiles.  GNU Make 3.79.1 or
-newer is recommended to build on this platform.
-
 ``out of memory'' bootstrap failures may indicate a problem with
 process resource limits (ulimit).  Hard limits are configured in the
 @file{/etc/security/limits} system configuration file.
@@ -3127,9 +3248,14 @@ one may use GNU Bash instead of AIX @command{/bin/sh}, e.g.,
    % export CONFIG_SHELL
 @end smallexample
 
-and then proceed as described in @uref{build.html,,the build instructions},
-where we strongly recommend using GNU make and specifying an absolute path
+and then proceed as described in @uref{build.html,,the build
+instructions}, where we strongly recommend specifying an absolute path
 to invoke @var{srcdir}/configure.
+
+Because GCC on AIX is built as a 32-bit executable by default,
+(although it can generate 64-bit programs) the GMP and MPFR libraries
+required by gfortran must be 32-bit libraries.  Building GMP and MPFR
+as static archive libraries works better than shared libraries.
 
 Errors involving @code{alloca} when building GCC generally are due
 to an incorrect definition of @code{CC} in the Makefile or mixing files
@@ -3359,6 +3485,14 @@ currently do not work, because the auxiliary programs
 anything but a MIPS.  It does work to cross compile for a MIPS
 if you use the GNU assembler and linker.
 
+The assembler from GNU binutils 2.17 and earlier has a bug in the way
+it sorts relocations for REL targets (o32, o64, EABI).  This can cause
+bad code to be generated for simple C++ programs.  Also the linker
+from GNU binutils versions prior to 2.17 has a bug which causes the
+runtime linker stubs in very large programs, like @file{libgcj.so}, to
+be incorrectly generated.  Binutils CVS snapshots and releases made
+after Nov. 9, 2006 are thought to be free from both of these problems.
+
 @html
 <hr />
 @end html
@@ -3520,7 +3654,7 @@ or newer for a working GCC@.
 @end html
 @heading @anchor{powerpc-x-netbsd}powerpc-*-netbsd*
 PowerPC system in big endian mode running NetBSD@.  To build the
-documentation you will need Texinfo version 4.2 (NetBSD 1.5.1 included
+documentation you will need Texinfo version 4.4 (NetBSD 1.5.1 included
 Texinfo version 3.12).
 
 @html

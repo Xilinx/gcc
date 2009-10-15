@@ -1,10 +1,17 @@
-//PR c++/28258
-
-struct A 
-{            // { dg-error "" }
-  A(void x); // { dg-error "invalid use|incomplete type|candidates" }
+/* { dg-options "-O1" } */
+struct A
+{
+  ERROR; /* { dg-error "ERROR" } */
+  ~A();
 };
 
-struct B : A {}; // { dg-error "no matching function for call" }
- 
-B b; // { dg-error "synthesized method" }
+struct B
+{
+  virtual ~B();
+};
+
+struct C : B, A {};
+
+struct D : C {};
+
+D d;

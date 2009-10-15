@@ -22,8 +22,8 @@
    iX2(1:n,1) = matmul( iB(2,1:n),iC(1:n,1:n) )
 
 ! Whereas, we should have 8, 8, 99
-   if (any (iX1(1:n,1) .ne. (/8, 8, 99/))) print *, "#1", iX1
-   if (any (iX1 .ne. iX2)) print *,"#2",  iX2
+   if (any (iX1(1:n,1) .ne. (/8, 8, 99/))) call abort ()
+   if (any (iX1 .ne. iX2)) call abort ()
 
 ! Make sure that the fix does not break transpose temporaries.
    iB = reshape((/(i, i = 1, 9)/),(/3,3/))
@@ -31,6 +31,6 @@
    iX1 = transpose (iB)
    iX1 = matmul (iX1, iC)
    iX2 = matmul (transpose (iB), iC)
-   if (any (iX1 .ne. iX2)) print *,"#3",  iX1
-   if (any (iX1 .ne. iChk)) print *,"#4",  iChk
+   if (any (iX1 .ne. iX2)) call abort ()
+   if (any (iX1 .ne. iChk)) call abort ()
 end

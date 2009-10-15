@@ -1,12 +1,13 @@
 /* Subroutines used by or related to instruction recognition.
    Copyright (C) 1987, 1988, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998
-   1999, 2000, 2001, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,9 +16,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 
 #include "config.h"
@@ -31,6 +31,7 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 #include "hard-reg-set.h"
 #include "recog.h"
 #include "regs.h"
+#include "addresses.h"
 #include "expr.h"
 #include "function.h"
 #include "flags.h"
@@ -238,45 +239,6 @@ validate_change (rtx object, rtx *loc, rtx new, int in_group)
 }
 
 
-/* Function to be passed to for_each_rtx to test whether a piece of
-   RTL contains any mem/v.  */
-static int
-volatile_mem_p (rtx *x, void *data ATTRIBUTE_UNUSED)
-{
-  return (MEM_P (*x) && MEM_VOLATILE_P (*x));
-}
-
-/* Same as validate_change, but doesn't support groups, and it accepts
-   volatile mems if they're already present in the original insn.  */
-
-int
-validate_change_maybe_volatile (rtx object, rtx *loc, rtx new)
-{
-  int result;
-
-  if (validate_change (object, loc, new, 0))
-    return 1;
-
-  if (volatile_ok
-      /* If there isn't a volatile MEM, there's nothing we can do.  */
-      || !for_each_rtx (&PATTERN (object), volatile_mem_p, 0)
-      /* Make sure we're not adding or removing volatile MEMs.  */
-      || for_each_rtx (loc, volatile_mem_p, 0)
-      || for_each_rtx (&new, volatile_mem_p, 0)
-      || !insn_invalid_p (object))
-    return 0;
-
-  volatile_ok = 1;
-
-  gcc_assert (!insn_invalid_p (object));
-
-  result = validate_change (object, loc, new, 0);
-
-  volatile_ok = 0;
-
-  return result;
-}
-
 /* This subroutine of apply_change_group verifies whether the changes to INSN
    were valid; i.e. whether INSN can still be recognized.  */
 
@@ -339,7 +301,7 @@ num_changes_pending (void)
 /* Tentatively apply the changes numbered NUM and up.
    Return 1 if all changes are valid, zero otherwise.  */
 
-static int
+int
 verify_changes (int num)
 {
   int i;
@@ -688,17 +650,6 @@ validate_replace_rtx_1 (rtx *loc, rtx from, rtx to, rtx object)
     }
 }
 
-/* Try replacing every occurrence of FROM in subexpression LOC of INSN
-   with TO.  After all changes have been made, validate by seeing
-   if INSN is still valid.  */
-
-int
-validate_replace_rtx_subexp (rtx from, rtx to, rtx insn, rtx *loc)
-{
-  validate_replace_rtx_1 (loc, from, to, insn);
-  return apply_change_group ();
-}
-
 /* Try replacing every occurrence of FROM in INSN with TO.  After all
    changes have been made, validate by seeing if INSN is still valid.  */
 
@@ -746,6 +697,46 @@ validate_replace_src_group (rtx from, rtx to, rtx insn)
   d.to = to;
   d.insn = insn;
   note_uses (&PATTERN (insn), validate_replace_src_1, &d);
+}
+
+/* Try simplify INSN.
+   Invoke simplify_rtx () on every SET_SRC and SET_DEST inside the INSN's
+   pattern and return true if something was simplified.  */
+
+bool
+validate_simplify_insn (rtx insn)
+{
+  int i;
+  rtx pat = NULL;
+  rtx newpat = NULL;
+
+  pat = PATTERN (insn);
+
+  if (GET_CODE (pat) == SET)
+    {
+      newpat = simplify_rtx (SET_SRC (pat));
+      if (newpat && !rtx_equal_p (SET_SRC (pat), newpat))
+	validate_change (insn, &SET_SRC (pat), newpat, 1);
+      newpat = simplify_rtx (SET_DEST (pat));
+      if (newpat && !rtx_equal_p (SET_DEST (pat), newpat))
+	validate_change (insn, &SET_DEST (pat), newpat, 1);
+    }
+  else if (GET_CODE (pat) == PARALLEL)
+    for (i = 0; i < XVECLEN (pat, 0); i++)
+      {
+	rtx s = XVECEXP (pat, 0, i);
+
+	if (GET_CODE (XVECEXP (pat, 0, i)) == SET)
+	  {
+	    newpat = simplify_rtx (SET_SRC (s));
+	    if (newpat && !rtx_equal_p (SET_SRC (s), newpat))
+	      validate_change (insn, &SET_SRC (s), newpat, 1);
+	    newpat = simplify_rtx (SET_DEST (s));
+	    if (newpat && !rtx_equal_p (SET_DEST (s), newpat))
+	      validate_change (insn, &SET_DEST (s), newpat, 1);
+	  }
+      }
+  return ((num_changes_pending () > 0) && (apply_change_group () > 0));
 }
 
 #ifdef HAVE_cc0
@@ -1003,7 +994,7 @@ general_operand (rtx op, enum machine_mode mode)
 
       /* FLOAT_MODE subregs can't be paradoxical.  Combine will occasionally
 	 create such rtl, and we must reject it.  */
-      if (GET_MODE_CLASS (GET_MODE (op)) == MODE_FLOAT
+      if (SCALAR_FLOAT_MODE_P (GET_MODE (op))
 	  && GET_MODE_SIZE (GET_MODE (op)) > GET_MODE_SIZE (GET_MODE (sub)))
 	return 0;
 
@@ -1087,7 +1078,7 @@ register_operand (rtx op, enum machine_mode mode)
 
       /* FLOAT_MODE subregs can't be paradoxical.  Combine will occasionally
 	 create such rtl, and we must reject it.  */
-      if (GET_MODE_CLASS (GET_MODE (op)) == MODE_FLOAT
+      if (SCALAR_FLOAT_MODE_P (GET_MODE (op))
 	  && GET_MODE_SIZE (GET_MODE (op)) > GET_MODE_SIZE (GET_MODE (sub)))
 	return 0;
 
@@ -1991,6 +1982,7 @@ extract_insn_cached (rtx insn)
   extract_insn (insn);
   recog_data.insn = insn;
 }
+
 /* Do cached extract_insn, constrain_operands and complain about failures.
    Used by insn_attrtab.  */
 void
@@ -2001,6 +1993,7 @@ extract_constrain_insn_cached (rtx insn)
       && !constrain_operands (reload_completed))
     fatal_insn_not_found (insn);
 }
+
 /* Do cached constrain_operands and complain about failures.  */
 int
 constrain_operands_cached (int strict)
@@ -2205,7 +2198,7 @@ preprocess_constraints (void)
 		case 'p':
 		  op_alt[j].is_address = 1;
 		  op_alt[j].cl = reg_class_subunion[(int) op_alt[j].cl]
-		    [(int) MODE_BASE_REG_CLASS (VOIDmode)];
+		      [(int) base_reg_class (VOIDmode, ADDRESS, SCRATCH)];
 		  break;
 
 		case 'g':
@@ -2226,7 +2219,8 @@ preprocess_constraints (void)
 		      op_alt[j].cl
 			= (reg_class_subunion
 			   [(int) op_alt[j].cl]
-			   [(int) MODE_BASE_REG_CLASS (VOIDmode)]);
+			   [(int) base_reg_class (VOIDmode, ADDRESS,
+						  SCRATCH)]);
 		      break;
 		    }
 
@@ -2314,20 +2308,10 @@ constrain_operands (int strict)
 
 	  earlyclobber[opno] = 0;
 
-#ifndef KEEP_UNARY_OPERATORS_AT_CONSTRAINT_CHECKING
-	  /* This macro and the code within is slated for removal in
-	     4.2, hence not documented further than in this comment.
-	     It only makes a difference if both an insn operand
-	     predicate is absent or allows unary operators and its
-	     constraints are present.  See gcc-patches mailing list
-	     thread starting at
-	     <URL:http://gcc.gnu.org/ml/gcc-patches/2005-10/msg00940.html>.  */
-
 	  /* A unary operator may be accepted by the predicate, but it
 	     is irrelevant for matching constraints.  */
 	  if (UNARY_P (op))
 	    op = XEXP (op, 0);
-#endif
 
 	  if (GET_CODE (op) == SUBREG)
 	    {
@@ -2399,16 +2383,12 @@ constrain_operands (int strict)
 		      rtx op1 = recog_data.operand[match];
 		      rtx op2 = recog_data.operand[opno];
 
-#ifndef KEEP_UNARY_OPERATORS_AT_CONSTRAINT_CHECKING
-		      /* See comment at similar #ifndef above.  */
-
 		      /* A unary operator may be accepted by the predicate,
 			 but it is irrelevant for matching constraints.  */
 		      if (UNARY_P (op1))
 			op1 = XEXP (op1, 0);
 		      if (UNARY_P (op2))
 			op2 = XEXP (op2, 0);
-#endif
 
 		      val = operands_match_p (op1, op2);
 		    }
@@ -2687,6 +2667,10 @@ reg_fits_class_p (rtx operand, enum reg_class cl, int offset,
 		  enum machine_mode mode)
 {
   int regno = REGNO (operand);
+
+  if (cl == NO_REGS)
+    return 0;
+
   if (regno < FIRST_PSEUDO_REGISTER
       && TEST_HARD_REG_BIT (reg_class_contents[(int) cl],
 			    regno + offset))
@@ -2832,7 +2816,7 @@ split_all_insns (int upd_life)
 /* Same as split_all_insns, but do not expect CFG to be available.
    Used by machine dependent reorg passes.  */
 
-void
+unsigned int
 split_all_insns_noflow (void)
 {
   rtx next, insn;
@@ -2862,6 +2846,7 @@ split_all_insns_noflow (void)
 	    split_insn (insn);
 	}
     }
+  return 0;
 }
 
 #ifdef HAVE_peephole2
@@ -3045,8 +3030,8 @@ peep2_find_free_register (int from, int to, const char *class_str,
 
 /* Perform the peephole2 optimization pass.  */
 
-void
-peephole2_optimize (FILE *dump_file ATTRIBUTE_UNUSED)
+static void
+peephole2_optimize (void)
 {
   rtx insn, prev;
   regset live;
@@ -3465,12 +3450,13 @@ gate_handle_peephole2 (void)
   return (optimize > 0 && flag_peephole2);
 }
 
-static void
+static unsigned int
 rest_of_handle_peephole2 (void)
 {
 #ifdef HAVE_peephole2
-  peephole2_optimize (dump_file);
+  peephole2_optimize ();
 #endif
+  return 0;
 }
 
 struct tree_opt_pass pass_peephole2 =
@@ -3490,10 +3476,11 @@ struct tree_opt_pass pass_peephole2 =
   'z'                                   /* letter */
 };
 
-static void
+static unsigned int
 rest_of_handle_split_all_insns (void)
 {
   split_all_insns (1);
+  return 0;
 }
 
 struct tree_opt_pass pass_split_all_insns =
@@ -3577,4 +3564,3 @@ struct tree_opt_pass pass_split_before_regstack =
   TODO_dump_func,                       /* todo_flags_finish */
   0                                     /* letter */
 };
-

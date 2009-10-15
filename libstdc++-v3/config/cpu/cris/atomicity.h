@@ -27,10 +27,10 @@
 // invalidate any other reasons why the executable file might be covered by
 // the GNU General Public License.
 
-#include <bits/atomicity.h>
+#include <ext/atomicity.h>
 
-namespace __gnu_cxx
-{
+_GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
+
   _Atomic_word
   __exchange_and_add(volatile _Atomic_word* __mem, int __val)
   {
@@ -74,4 +74,5 @@ namespace __gnu_cxx
   void
   __atomic_add(volatile _Atomic_word* __mem, int __val)
   { __exchange_and_add(__mem, __val); }
-} // namespace __gnu_cxx
+
+_GLIBCXX_END_NAMESPACE

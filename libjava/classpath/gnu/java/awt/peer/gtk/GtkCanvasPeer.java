@@ -38,11 +38,8 @@ exception statement from your version. */
 
 package gnu.java.awt.peer.gtk;
 
-import java.awt.AWTEvent;
 import java.awt.Canvas;
 import java.awt.Dimension;
-import java.awt.Graphics;
-import java.awt.event.PaintEvent;
 import java.awt.peer.CanvasPeer;
 
 public class GtkCanvasPeer extends GtkComponentPeer implements CanvasPeer
@@ -54,47 +51,10 @@ public class GtkCanvasPeer extends GtkComponentPeer implements CanvasPeer
     super (c);
   }
 
-  public Graphics getGraphics ()
+  // Preferred size for a drawing widget is always what the user
+  // requested.
+  public Dimension preferredSize()
   {
-    if (GtkToolkit.useGraphics2D ())
-      return new GdkGraphics2D (this);
-    else
-    return new GdkGraphics (this);
-  }
-
-  public void handleEvent (AWTEvent event)
-  {
-    int id = event.getID();
-      
-    switch (id)
-      {
-      case PaintEvent.PAINT:
-      case PaintEvent.UPDATE:
-	{
-	  try 
-	    {
-	      Graphics g = getGraphics ();
-	      g.setClip (((PaintEvent)event).getUpdateRect());
-		
-	      if (id == PaintEvent.PAINT)
-		awtComponent.paint (g);
-	      else
-		awtComponent.update (g);
-	      
-	      g.dispose ();
-	    } 
-	  catch (InternalError e)
-	    { 
-	      System.err.println (e);
-	    }
-	}
-	break;
-      }
-  }
-
-  /* Preferred size for a drawing widget is always what the user requested */
-  public Dimension getPreferredSize ()
-  {
-    return awtComponent.getSize ();
+    return awtComponent.getSize();
   }
 }

@@ -1,13 +1,13 @@
 /* Definitions for Motorola 68k running Linux-based GNU systems with
    ELF format.
-   Copyright (C) 1995, 1996, 1997, 1998, 1999, 2000, 2002, 2003, 2004
-   Free Software Foundation, Inc.
+   Copyright (C) 1995, 1996, 1997, 1998, 1999, 2000, 2002, 2003, 2004, 2006,
+   2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -16,9 +16,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #undef TARGET_VERSION
 #define TARGET_VERSION fprintf (stderr, " (68k GNU/Linux with ELF)");
@@ -94,10 +93,10 @@ Boston, MA 02110-1301, USA.  */
 #undef CPP_SPEC
 #if TARGET_DEFAULT & MASK_68881
 #define CPP_SPEC \
-  "%{fPIC|fpic|fPIE|fpie:-D__PIC__ -D__pic__} %{!msoft-float:-D__HAVE_68881__} %{posix:-D_POSIX_SOURCE} %{pthread:-D_REENTRANT}"
+  "%{!msoft-float:-D__HAVE_68881__} %{posix:-D_POSIX_SOURCE} %{pthread:-D_REENTRANT}"
 #else
 #define CPP_SPEC \
-  "%{fPIC|fpic|fPIE|fpie:-D__PIC__ -D__pic__} %{m68881:-D__HAVE_68881__} %{posix:-D_POSIX_SOURCE} %{pthread:-D_REENTRANT}"
+  "%{m68881:-D__HAVE_68881__} %{posix:-D_POSIX_SOURCE} %{pthread:-D_REENTRANT}"
 #endif
 
 /* We override the ASM_SPEC from svr4.h because we must pass -m68040 down
@@ -123,12 +122,14 @@ Boston, MA 02110-1301, USA.  */
 
 /* If ELF is the default format, we should not use /lib/elf.  */
 
+#define GLIBC_DYNAMIC_LINKER "/lib/ld.so.1"
+
 #undef	LINK_SPEC
 #define LINK_SPEC "-m m68kelf %{shared} \
   %{!shared: \
     %{!static: \
       %{rdynamic:-export-dynamic} \
-      %{!dynamic-linker*:-dynamic-linker /lib/ld.so.1}} \
+      %{!dynamic-linker*:-dynamic-linker " LINUX_DYNAMIC_LINKER "}} \
     %{static}}"
 
 /* For compatibility with linux/a.out */
@@ -224,11 +225,7 @@ Boston, MA 02110-1301, USA.  */
 
 #undef FUNCTION_VALUE
 #define FUNCTION_VALUE(VALTYPE, FUNC)					\
-  (TREE_CODE (VALTYPE) == REAL_TYPE && TARGET_68881			\
-   ? gen_rtx_REG (TYPE_MODE (VALTYPE), 16)				\
-   : (POINTER_TYPE_P (VALTYPE)						\
-      ? gen_rtx_REG (TYPE_MODE (VALTYPE), 8)				\
-      : gen_rtx_REG (TYPE_MODE (VALTYPE), 0)))
+  m68k_function_value (VALTYPE, FUNC)
 
 /* For compatibility with the large body of existing code which does
    not always properly declare external functions returning pointer
@@ -251,10 +248,7 @@ do {									\
 
 #undef LIBCALL_VALUE
 #define LIBCALL_VALUE(MODE)						\
-  ((((MODE) == SFmode || (MODE) == DFmode || (MODE) == XFmode)		\
-    && TARGET_68881)							\
-   ? gen_rtx_REG ((MODE), 16)						\
-   : gen_rtx_REG ((MODE), 0))
+  m68k_libcall_value (MODE)
 
 /* For m68k SVR4, structures are returned using the reentrant
    technique.  */

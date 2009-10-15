@@ -1,5 +1,5 @@
 `/* Implementation of the RESHAPE
-   Copyright 2002 Free Software Foundation, Inc.
+   Copyright 2002, 2006 Free Software Foundation, Inc.
    Contributed by Paul Brook <paul@nowt.org>
 
 This file is part of the GNU Fortran 95 runtime library (libgfortran).
@@ -42,13 +42,19 @@ dnl For integer routines, only the kind (ie size) is used to name the
 dnl function.  The same function will be used for integer and logical
 dnl arrays of the same kind.
 
-extern void reshape_`'rtype_ccode (rtype *, rtype *, shape_type *,
-				    rtype *, shape_type *);
+extern void reshape_`'rtype_ccode (rtype * const restrict, 
+	rtype * const restrict, 
+	shape_type * const restrict,
+	rtype * const restrict, 
+	shape_type * const restrict);
 export_proto(reshape_`'rtype_ccode);
 
 void
-reshape_`'rtype_ccode (rtype * ret, rtype * source, shape_type * shape,
-                      rtype * pad, shape_type * order)
+reshape_`'rtype_ccode (rtype * const restrict ret, 
+	rtype * const restrict source, 
+	shape_type * const restrict shape,
+	rtype * const restrict pad, 
+	shape_type * const restrict order)
 {
   /* r.* indicates the return array.  */
   index_type rcount[GFC_MAX_DIMENSIONS];
@@ -81,15 +87,6 @@ reshape_`'rtype_ccode (rtype * ret, rtype * source, shape_type * shape,
   int dim;
   int sempty, pempty;
 
-  if (source->dim[0].stride == 0)
-    source->dim[0].stride = 1;
-  if (shape->dim[0].stride == 0)
-    shape->dim[0].stride = 1;
-  if (pad && pad->dim[0].stride == 0)
-    pad->dim[0].stride = 1;
-  if (order && order->dim[0].stride == 0)
-    order->dim[0].stride = 1;
-
   if (ret->data == NULL)
     {
       rdim = shape->dim[0].ubound - shape->dim[0].lbound + 1;
@@ -109,8 +106,6 @@ reshape_`'rtype_ccode (rtype * ret, rtype * source, shape_type * shape,
   else
     {
       rdim = GFC_DESCRIPTOR_RANK (ret);
-      if (ret->dim[0].stride == 0)
-	ret->dim[0].stride = 1;
     }
 
   rsize = 1;
@@ -237,7 +232,7 @@ reshape_`'rtype_ccode (rtype * ret, rtype * source, shape_type * shape,
              the next dimension.  */
           rcount[n] = 0;
           /* We could precalculate these products, but this is a less
-             frequently used path so proabably not worth it.  */
+             frequently used path so probably not worth it.  */
           rptr -= rstride[n] * rextent[n];
           n++;
           if (n == rdim)
@@ -260,7 +255,7 @@ reshape_`'rtype_ccode (rtype * ret, rtype * source, shape_type * shape,
              the next dimension.  */
           scount[n] = 0;
           /* We could precalculate these products, but this is a less
-             frequently used path so proabably not worth it.  */
+             frequently used path so probably not worth it.  */
           src -= sstride[n] * sextent[n];
           n++;
           if (n == sdim)

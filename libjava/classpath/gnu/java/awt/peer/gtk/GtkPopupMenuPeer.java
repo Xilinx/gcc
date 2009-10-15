@@ -1,5 +1,5 @@
 /* GtkPopupMenuPeer.java -- Implements PopupMenuPeer with GTK+
-   Copyright (C) 1999 Free Software Foundation, Inc.
+   Copyright (C) 1999, 2006 Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -40,7 +40,6 @@ package gnu.java.awt.peer.gtk;
 
 import java.awt.Component;
 import java.awt.Event;
-import java.awt.MenuItem;
 import java.awt.Point;
 import java.awt.PopupMenu;
 import java.awt.peer.PopupMenuPeer;
@@ -54,11 +53,6 @@ public class GtkPopupMenuPeer extends GtkMenuPeer
   }
 
   native void setupAccelGroup (GtkGenericPeer container);
-
-  void setParent (MenuItem item)
-  {
-    // we don't need to "add" ourselves to our parent
-  }
 
   native void show (int x, int y, long time);
   public void show (Component origin, int x, int y)

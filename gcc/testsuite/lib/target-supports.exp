@@ -1,9 +1,9 @@
-#   Copyright (C) 1999, 2001, 2003, 2004, 2005, 2006
-#   Free Software Foundation, Inc.
+#   Copyright (C) 1999, 2001, 2003, 2004, 2005, 2006, 2007
+#    Free Software Foundation, Inc.
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
+# the Free Software Foundation; either version 3 of the License, or
 # (at your option) any later version.
 #
 # This program is distributed in the hope that it will be useful,
@@ -12,8 +12,8 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+# along with GCC; see the file COPYING3.  If not see
+# <http://www.gnu.org/licenses/>.
 
 # Please email any bugs, comments, and/or additions to this file to:
 # gcc-patches@gcc.gnu.org
@@ -163,7 +163,7 @@ proc check_weak_available { } {
 
     # HP-UX 10.X doesn't support it
 
-    if { [regexp "hppa.*hpux10" $target_triplet] } {
+    if { [istarget "hppa*-*-hpux10*"] } {
 	return 0
     }
 
@@ -345,6 +345,8 @@ proc check_profiling_available { test_what } {
 	     || [istarget xscale*-*-elf]
 	     || [istarget cris-*-*]
 	     || [istarget h8300-*-*]
+	     || [istarget m32c-*-elf]
+	     || [istarget m68k-*-elf]
 	     || [istarget mips*-*-elf]
 	     || [istarget xtensa-*-elf]
 	     || [istarget *-*-windiss] } {
@@ -462,6 +464,15 @@ proc check_effective_target_tls_runtime {} {
     return $et_tls_runtime_saved
 }
 
+# Return 1 if compilation with -fopenmp is error-free for trivial
+# code, 0 otherwise.
+
+proc check_effective_target_fopenmp {} {
+    return [check_no_compiler_messages fopenmp object {
+	void foo (void) { }
+    } "-fopenmp"]
+}
+
 # Return 1 if compilation with -freorder-blocks-and-partition is error-free
 # for trivial code, 0 otherwise.
 
@@ -488,6 +499,24 @@ proc check_effective_target_fpic { } {
 	}
     }
     return 0
+}
+
+# Return true if the target supports -mpaired-single (as used on MIPS).
+
+proc check_effective_target_mpaired_single { } {
+    return [check_no_compiler_messages mpaired_single object {
+	void foo (void) { }
+    } "-mpaired-single"]
+}
+
+# Return 1 if the current multilib does not generate PIC by default.
+
+proc check_effective_target_nonpic { } {
+    return [check_no_compiler_messages nonpic assembly {
+	#if __PIC__
+	#error FOO
+	#endif
+    }]
 }
 
 # Return true if iconv is supported on the target. In particular IBM1047.
@@ -978,6 +1007,9 @@ proc check_cxa_atexit_available { } {
 
     if [info exists et_cxa_atexit] {
 	verbose "check_cxa_atexit_available: using cached result" 2
+    } elseif { [istarget "hppa*-*-hpux10*"] } {
+	# HP-UX 10 doesn't have __cxa_atexit but subsequent test passes.
+	set et_cxa_atexit 0
     } else {
 	set et_cxa_atexit 0
 
@@ -1099,6 +1131,87 @@ proc check_effective_target_lp64 { } {
     }]
 }
 
+# Return 1 if the target supports compiling decimal floating point,
+# 0 otherwise.
+
+proc check_effective_target_dfp_nocache { } {
+    verbose "check_effective_target_dfp_nocache: compiling source" 2
+    set ret [string match "" [get_compiler_messages dfp 0 object {
+        _Decimal32 x; _Decimal64 y; _Decimal128 z;
+    }]]
+    verbose "check_effective_target_dfp_nocache: returning $ret" 2
+    return $ret
+}
+
+proc check_effective_target_dfprt_nocache { } {
+    global tool
+
+    set ret 0
+
+    verbose "check_effective_target_dfprt_nocache: compiling source" 2
+    # Set up, compile, and execute a test program containing decimal
+    # float operations.
+    set src dfprt[pid].c
+    set exe dfprt[pid].x
+
+    set f [open $src "w"]
+    puts $f "_Decimal32 x = 1.2df; _Decimal64 y = 2.3dd; _Decimal128 z;"
+    puts $f "int main () { z = x + y; return 0; }"
+    close $f
+
+    verbose "check_effective_target_dfprt_nocache: compiling testfile $src" 2
+    set lines [${tool}_target_compile $src $exe executable ""]
+    file delete $src
+
+    if [string match "" $lines] then {
+	# No error message, compilation succeeded.
+	set result [${tool}_load "./$exe" "" ""]
+	set status [lindex $result 0]
+	remote_file build delete $exe
+	verbose "check_effective_target_dfprt_nocache: testfile status is <$status>" 2
+	if { $status == "pass" } then {
+	    set ret 1
+	}
+    }
+    return $ret
+    verbose "check_effective_target_dfprt_nocache: returning $ret" 2
+}
+
+# Return 1 if the target supports compiling Decimal Floating Point,
+# 0 otherwise.
+#
+# This won't change for different subtargets so cache the result.
+
+proc check_effective_target_dfp { } {
+    global et_dfp_saved
+
+    if [info exists et_dfp_saved] {
+	verbose "check_effective_target_dfp: using cached result" 2
+    } else {
+	set et_dfp_saved [check_effective_target_dfp_nocache]
+    }
+    verbose "check_effective_target_dfp: returning $et_dfp_saved" 2
+    return $et_dfp_saved
+}
+
+# Return 1 if the target supports linking and executing Decimal Floating
+# Point, # 0 otherwise.
+#
+# This won't change for different subtargets so cache the result.
+
+proc check_effective_target_dfprt { } {
+    global et_dfprt_saved
+    global tool
+
+    if [info exists et_dfprt_saved] {
+	verbose "check_effective_target_dfprt: using cached result" 2
+    } else {
+	set et_dfprt_saved [check_effective_target_dfprt_nocache]
+    }
+    verbose "check_effective_target_dfprt: returning $et_dfprt_saved" 2
+    return $et_dfprt_saved
+}
+
 # Return 1 if the target needs a command line argument to enable a SIMD
 # instruction set.
 
@@ -1127,7 +1240,10 @@ proc check_effective_target_vect_cmdline_needed { } {
 	set et_vect_cmdline_needed_saved 1
 	if { [istarget ia64-*-*]
 	     || (([istarget x86_64-*-*] || [istarget i?86-*-*])
-		 && [check_effective_target_lp64])} {
+		 && [check_effective_target_lp64])
+	     || ([istarget powerpc*-*-*]
+		 && ([check_effective_target_powerpc_spe]
+		     || [check_effective_target_powerpc_altivec]))} {
 	   set et_vect_cmdline_needed_saved 0
 	}
     }
@@ -1241,6 +1357,38 @@ proc check_effective_target_powerpc_altivec_ok { } {
 	return [check_no_compiler_messages powerpc_altivec_ok object {
 	    int dummy;
 	} "-maltivec"]
+    } else {
+	return 0
+    }
+}
+
+# Return 1 if this is a PowerPC target with SPE enabled.
+
+proc check_effective_target_powerpc_spe { } {
+    if { [istarget powerpc*-*-*] } {
+	return [check_no_compiler_messages powerpc_spe object {
+	    #ifndef __SPE__
+	    #error not SPE
+	    #else
+	    int dummy;
+	    #endif
+	}]
+    } else {
+	return 0
+    }
+}
+
+# Return 1 if this is a PowerPC target with Altivec enabled.
+
+proc check_effective_target_powerpc_altivec { } {
+    if { [istarget powerpc*-*-*] } {
+	return [check_no_compiler_messages powerpc_altivec object {
+	    #ifndef __ALTIVEC__
+	    #error not Altivec
+	    #else
+	    int dummy;
+	    #endif
+	}]
     } else {
 	return 0
     }
@@ -1389,6 +1537,173 @@ proc check_effective_target_vect_no_bitwise { } {
     return $et_vect_no_bitwise_saved
 }
 
+# Return 1 if the target plus current options supports a vector
+# widening summation of *short* args into *int* result, 0 otherwise.
+#
+# This won't change for different subtargets so cache the result.
+                                                                                                
+proc check_effective_target_vect_widen_sum_hi_to_si { } {
+    global et_vect_widen_sum_hi_to_si
+                                                                                                
+    if [info exists et_vect_widen_sum_hi_to_si_saved] {
+        verbose "check_effective_target_vect_widen_sum_hi_to_si: using cached result" 2
+    } else {
+        set et_vect_widen_sum_hi_to_si_saved 0
+        if { [istarget powerpc*-*-*]
+	     || [istarget ia64-*-*] } {
+            set et_vect_widen_sum_hi_to_si_saved 1
+        }
+    }
+    verbose "check_effective_target_vect_widen_sum_hi_to_si: returning $et_vect_widen_sum_hi_to_si_saved" 2
+    return $et_vect_widen_sum_hi_to_si_saved
+}
+
+# Return 1 if the target plus current options supports a vector
+# widening summation of *char* args into *short* result, 0 otherwise.
+#
+# This won't change for different subtargets so cache the result.
+                                                                                                
+proc check_effective_target_vect_widen_sum_qi_to_hi { } {
+    global et_vect_widen_sum_qi_to_hi
+                                                                                                
+    if [info exists et_vect_widen_sum_qi_to_hi_saved] {
+        verbose "check_effective_target_vect_widen_sum_qi_to_hi: using cached result" 2
+    } else {
+        set et_vect_widen_sum_qi_to_hi_saved 0
+        if { [istarget ia64-*-*] } {
+            set et_vect_widen_sum_qi_to_hi_saved 1
+        }
+    }
+    verbose "check_effective_target_vect_widen_sum_qi_to_hi: returning $et_vect_widen_sum_qi_to_hi_saved" 2
+    return $et_vect_widen_sum_qi_to_hi_saved
+}
+
+# Return 1 if the target plus current options supports a vector
+# widening summation of *char* args into *int* result, 0 otherwise.
+#
+# This won't change for different subtargets so cache the result.
+                                                                                                
+proc check_effective_target_vect_widen_sum_qi_to_si { } {
+    global et_vect_widen_sum_qi_to_si
+                                                                                                
+    if [info exists et_vect_widen_sum_qi_to_si_saved] {
+        verbose "check_effective_target_vect_widen_sum_qi_to_si: using cached result" 2
+    } else {
+        set et_vect_widen_sum_qi_to_si_saved 0
+        if { [istarget powerpc*-*-*] } {
+            set et_vect_widen_sum_qi_to_si_saved 1
+        }
+    }
+    verbose "check_effective_target_vect_widen_sum_qi_to_si: returning $et_vect_widen_sum_qi_to_si_saved" 2
+    return $et_vect_widen_sum_qi_to_si_saved
+}
+
+# Return 1 if the target plus current options supports a vector
+# widening summation, 0 otherwise.
+#
+# This won't change for different subtargets so cache the result.
+                                                                                                
+proc check_effective_target_vect_widen_sum { } {
+    global et_vect_widen_sum
+                                                                                                
+    if [info exists et_vect_widen_sum_saved] {
+        verbose "check_effective_target_vect_widen_sum: using cached result" 2
+    } else {
+        set et_vect_widen_sum_saved 0
+        if { [istarget powerpc*-*-*]
+	     || [istarget ia64-*-*] } {
+            set et_vect_widen_sum_saved 1
+        }
+    }
+    verbose "check_effective_target_vect_widen_sum: returning $et_vect_widen_sum_saved" 2
+    return $et_vect_widen_sum_saved
+}
+
+# Return 1 if the target plus current options supports a vector
+# dot-product of signed chars, 0 otherwise.
+#
+# This won't change for different subtargets so cache the result.
+
+proc check_effective_target_vect_sdot_qi { } {
+    global et_vect_sdot_qi
+
+    if [info exists et_vect_sdot_qi_saved] {
+        verbose "check_effective_target_vect_sdot_qi: using cached result" 2
+    } else {
+        set et_vect_sdot_qi_saved 0
+        if { [istarget ia64-*-*] } {
+            set et_vect_sdot_qi_saved 1
+        }
+    }
+    verbose "check_effective_target_vect_sdot_qi: returning $et_vect_sdot_qi_saved" 2
+    return $et_vect_sdot_qi_saved
+}
+
+# Return 1 if the target plus current options supports a vector
+# dot-product of unsigned chars, 0 otherwise.
+#
+# This won't change for different subtargets so cache the result.
+
+proc check_effective_target_vect_udot_qi { } {
+    global et_vect_udot_qi
+
+    if [info exists et_vect_udot_qi_saved] {
+        verbose "check_effective_target_vect_udot_qi: using cached result" 2
+    } else {
+        set et_vect_udot_qi_saved 0
+        if { [istarget powerpc*-*-*]
+             || [istarget ia64-*-*] } {
+            set et_vect_udot_qi_saved 1
+        }
+    }
+    verbose "check_effective_target_vect_udot_qi: returning $et_vect_udot_qi_saved" 2
+    return $et_vect_udot_qi_saved
+}
+
+# Return 1 if the target plus current options supports a vector
+# dot-product of signed shorts, 0 otherwise.
+#
+# This won't change for different subtargets so cache the result.
+
+proc check_effective_target_vect_sdot_hi { } {
+    global et_vect_sdot_hi
+
+    if [info exists et_vect_sdot_hi_saved] {
+        verbose "check_effective_target_vect_sdot_hi: using cached result" 2
+    } else {
+        set et_vect_sdot_hi_saved 0
+        if { [istarget powerpc*-*-*] 
+	     || [istarget i?86-*-*]
+             || [istarget x86_64-*-*]
+             || [istarget ia64-*-*] } {
+            set et_vect_sdot_hi_saved 1
+        }
+    }
+    verbose "check_effective_target_vect_sdot_hi: returning $et_vect_sdot_hi_saved" 2
+    return $et_vect_sdot_hi_saved
+}
+
+# Return 1 if the target plus current options supports a vector
+# dot-product of unsigned shorts, 0 otherwise.
+#
+# This won't change for different subtargets so cache the result.
+
+proc check_effective_target_vect_udot_hi { } {
+    global et_vect_udot_hi
+
+    if [info exists et_vect_udot_hi_saved] {
+        verbose "check_effective_target_vect_udot_hi: using cached result" 2
+    } else {
+        set et_vect_udot_hi_saved 0
+        if { [istarget powerpc*-*-*] } {
+            set et_vect_udot_hi_saved 1
+        }
+    }
+    verbose "check_effective_target_vect_udot_hi: returning $et_vect_udot_hi_saved" 2
+    return $et_vect_udot_hi_saved
+}
+
+
 # Return 1 if the target plus current options does not support a vector
 # alignment mechanism, 0 otherwise.
 #
@@ -1409,6 +1724,27 @@ proc check_effective_target_vect_no_align { } {
     }
     verbose "check_effective_target_vect_no_align: returning $et_vect_no_align_saved" 2
     return $et_vect_no_align_saved
+}
+
+# Return 1 if arrays are naturally aligned to the vector
+# alignment boundary, 0 otherwise.
+#
+# This won't change for different subtargets so cache the result.
+
+proc check_effective_target_vect_aligned_arrays { } {
+    global et_vect_aligned_arrays
+
+    if [info exists et_vect_aligned_arrays_saved] {
+	verbose "check_effective_target_vect_aligned_arrays: using cached result" 2
+    } else {
+	set et_vect_aligned_arrays_saved 0
+	if { ([istarget x86_64-*-*]
+	      || [istarget i?86-*-*]) && [is-effective-target lp64] } {
+	    set et_vect_aligned_arrays_saved 1
+	}
+    }
+    verbose "check_effective_target_vect_aligned_arrays: returning $et_vect_aligned_arrays_saved" 2
+    return $et_vect_aligned_arrays_saved
 }
 
 # Return 1 if the target supports vector conditional operations, 0 otherwise.
@@ -1432,6 +1768,46 @@ proc check_effective_target_vect_condition { } {
     return $et_vect_cond_saved
 }
 
+# Return 1 if the target supports vector char multiplication, 0 otherwise.
+
+proc check_effective_target_vect_char_mult { } {
+    global et_vect_char_mult_saved
+
+    if [info exists et_vect_char_mult_saved] {
+	verbose "check_effective_target_vect_char_mult: using cached result" 2
+    } else {
+	set et_vect_char_mult_saved 0
+	if { [istarget ia64-*-*]
+	     || [istarget i?86-*-*]
+	     || [istarget x86_64-*-*] } {
+	   set et_vect_char_mult_saved 1
+	}
+    }
+
+    verbose "check_effective_target_vect_char_mult: returning $et_vect_char_mult_saved" 2
+    return $et_vect_char_mult_saved
+}
+
+# Return 1 if the target supports vector short multiplication, 0 otherwise.
+
+proc check_effective_target_vect_short_mult { } {
+    global et_vect_short_mult_saved
+
+    if [info exists et_vect_short_mult_saved] {
+	verbose "check_effective_target_vect_short_mult: using cached result" 2
+    } else {
+	set et_vect_short_mult_saved 0
+	if { [istarget ia64-*-*]
+	     || [istarget i?86-*-*]
+	     || [istarget x86_64-*-*] } {
+	   set et_vect_short_mult_saved 1
+	}
+    }
+
+    verbose "check_effective_target_vect_short_mult: returning $et_vect_short_mult_saved" 2
+    return $et_vect_short_mult_saved
+}
+
 # Return 1 if the target supports vector int multiplication, 0 otherwise.
 
 proc check_effective_target_vect_int_mult { } {
@@ -1452,6 +1828,24 @@ proc check_effective_target_vect_int_mult { } {
     return $et_vect_int_mult_saved
 }
 
+# Return 1 if the target supports section-anchors
+
+proc check_effective_target_section_anchors { } {
+    global et_section_anchors_saved
+
+    if [info exists et_section_anchors_saved] {
+        verbose "check_effective_target_section_anchors: using cached result" 2
+    } else {
+        set et_section_anchors_saved 0
+        if { [istarget powerpc*-*-*] } {
+           set et_section_anchors_saved 1
+        }
+    }
+
+    verbose "check_effective_target_section_anchors: returning $et_section_anchors_saved" 2
+    return $et_section_anchors_saved
+}
+
 # Return 1 if the target supports atomic operations on "int" and "long".
 
 proc check_effective_target_sync_int_long { } {
@@ -1468,7 +1862,9 @@ proc check_effective_target_sync_int_long { } {
 	     || [istarget x86_64-*-*]
 	     || [istarget alpha*-*-*] 
 	     || [istarget s390*-*-*] 
-	     || [istarget powerpc*-*-*] } {
+	     || [istarget powerpc*-*-*]
+	     || [istarget sparc64-*-*]
+	     || [istarget sparcv9-*-*] } {
            set et_sync_int_long_saved 1
         }
     }
@@ -1493,7 +1889,9 @@ proc check_effective_target_sync_char_short { } {
 	     || [istarget x86_64-*-*]
 	     || [istarget alpha*-*-*] 
 	     || [istarget s390*-*-*] 
-	     || [istarget powerpc*-*-*] } {
+	     || [istarget powerpc*-*-*]
+	     || [istarget sparc64-*-*]
+	     || [istarget sparcv9-*-*] } {
            set et_sync_char_short_saved 1
         }
     }
@@ -1557,4 +1955,23 @@ proc check_effective_target_string_merging { } {
 		"rodata\\.str" assembly {
 		    const char *var = "String";
 		} {-O2}]
+}
+
+# Return 1 if programs are intended to be run on a simulator
+# (i.e. slowly) rather than hardware (i.e. fast).
+
+proc check_effective_target_simulator { } {
+
+    # All "src/sim" simulators set this one.
+    if [board_info target exists is_simulator] {
+	return [board_info target is_simulator]
+    }
+
+    # The "sid" simulators don't set that one, but at least they set
+    # this one.
+    if [board_info target exists slow_simulator] {
+	return [board_info target slow_simulator]
+    }
+
+    return 0
 }

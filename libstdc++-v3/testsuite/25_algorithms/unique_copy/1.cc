@@ -1,4 +1,4 @@
-// Copyright (C) 2005 Free Software Foundation, Inc.
+// Copyright (C) 2005, 2006 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -16,7 +16,7 @@
 // Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
 // USA.
 
-// 25.5.8 [lib.alg.unique]
+// 25.2.8 [lib.alg.unique]
 
 #include <algorithm>
 #include <testsuite_hooks.h>
@@ -26,7 +26,7 @@ using __gnu_test::test_container;
 using __gnu_test::input_iterator_wrapper;
 using __gnu_test::forward_iterator_wrapper;
 using __gnu_test::output_iterator_wrapper;
-using std::unique;
+using std::unique_copy;
 
 typedef test_container<int, input_iterator_wrapper> Icontainer;
 typedef test_container<int, forward_iterator_wrapper> Fcontainer;
@@ -41,7 +41,7 @@ test1()
   bool test __attribute__((unused)) = true;
   Icontainer con1(array1, array1);
   Ocontainer con2(array2, array2);
-  VERIFY(unique_copy(con1.begin(), con1.end(), con2.begin()).ptr == array2);
+  VERIFY( unique_copy(con1.begin(), con1.end(), con2.begin()).ptr == array2 );
 }
 
 void
@@ -50,9 +50,9 @@ test2()
   bool test __attribute__((unused)) = true;
   Icontainer con1(array1, array1 + 6);
   Ocontainer con2(array2, array2 + 2);
-  VERIFY(unique_copy(con1.begin(), con1.end(), con2.begin()).ptr 
-         == array2 + 2);
-  VERIFY(array2[0] == 0 && array2[1] == 1);
+  VERIFY( unique_copy(con1.begin(), con1.end(), con2.begin()).ptr 
+	  == array2 + 2 );
+  VERIFY( array2[0] == 0 && array2[1] == 1 );
 }
 
 void
@@ -61,7 +61,7 @@ test3()
   bool test __attribute__((unused)) = true;
   Icontainer con1(array1, array1);
   Fcontainer con2(array2, array2);
-  VERIFY(unique_copy(con1.begin(), con1.end(), con2.begin()).ptr == array2);
+  VERIFY( unique_copy(con1.begin(), con1.end(), con2.begin()).ptr == array2 );
 }
 
 void
@@ -70,9 +70,9 @@ test4()
   bool test __attribute__((unused)) = true;
   Icontainer con1(array1, array1 + 6);
   Fcontainer con2(array2, array2 + 2);
-  VERIFY(unique_copy(con1.begin(), con1.end(), con2.begin()).ptr
-         == array2 + 2);
-  VERIFY(array2[0] == 0 && array2[1] == 1);
+  VERIFY( unique_copy(con1.begin(), con1.end(), con2.begin()).ptr
+	  == array2 + 2 );
+  VERIFY( array2[0] == 0 && array2[1] == 1 );
 }
 
 int 

@@ -1,13 +1,13 @@
 /* Alias analysis for GNU C
-   Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006
-   Free Software Foundation, Inc.
+   Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006,
+   2007 Free Software Foundation, Inc.
    Contributed by John Carr (jfc@mit.edu).
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -16,9 +16,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -49,7 +48,7 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 
 /* The aliasing API provided here solves related but different problems:
 
-   Say there exists (in c) 
+   Say there exists (in c)
 
    struct X {
      struct Y y1;
@@ -87,7 +86,7 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
    this may be too conservative for some C++ types.
 
    The pass ipa-type-escape does this analysis for the types whose
-   instances do not escape across the compilation boundary.  
+   instances do not escape across the compilation boundary.
 
    Historically in GCC, these two problems were combined and a single
    data structure was used to represent the solution to these
@@ -109,11 +108,11 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
    `double'.  (However, a store to an `int' cannot alias a `double'
    and vice versa.)  We indicate this via a tree structure that looks
    like:
-           struct S
-            /   \
+	   struct S
+	    /   \
 	   /     \
-         |/_     _\|
-         int    double
+	 |/_     _\|
+	 int    double
 
    (The arrows are directed and point downwards.)
     In this situation we say the alias set for `struct S' is the
@@ -206,32 +205,21 @@ static void record_alias_subset (HOST_WIDE_INT, HOST_WIDE_INT);
    current function performs nonlocal memory memory references for the
    purposes of marking the function as a constant function.  */
 
-static GTY(()) varray_type reg_base_value;
+static GTY(()) VEC(rtx,gc) *reg_base_value;
 static rtx *new_reg_base_value;
 
 /* We preserve the copy of old array around to avoid amount of garbage
    produced.  About 8% of garbage produced were attributed to this
    array.  */
-static GTY((deletable)) varray_type old_reg_base_value;
+static GTY((deletable)) VEC(rtx,gc) *old_reg_base_value;
 
 /* Static hunks of RTL used by the aliasing code; these are initialized
    once per function to avoid unnecessary RTL allocations.  */
 static GTY (()) rtx static_reg_base_value[FIRST_PSEUDO_REGISTER];
 
-#define REG_BASE_VALUE(X) \
-  (reg_base_value && REGNO (X) < VARRAY_SIZE (reg_base_value) \
-   ? VARRAY_RTX (reg_base_value, REGNO (X)) : 0)
-
-/* Vector of known invariant relationships between registers.  Set in
-   loop unrolling.  Indexed by register number, if nonzero the value
-   is an expression describing this register in terms of another.
-
-   The length of this array is REG_BASE_VALUE_SIZE.
-
-   Because this array contains only pseudo registers it has no effect
-   after reload.  */
-static GTY((length("alias_invariant_size"))) rtx *alias_invariant;
-static GTY(()) unsigned int alias_invariant_size;
+#define REG_BASE_VALUE(X)				\
+  (REGNO (X) < VEC_length (rtx, reg_base_value)		\
+   ? VEC_index (rtx, reg_base_value, REGNO (X)) : 0)
 
 /* Vector indexed by N giving the initial (unchanging) value known for
    pseudo-register N.  This array is initialized in init_alias_analysis,
@@ -259,8 +247,11 @@ static bool *reg_known_equiv_p;
    NOTE_INSN_FUNCTION_BEG note.  */
 static bool copying_arguments;
 
+DEF_VEC_P(alias_set_entry);
+DEF_VEC_ALLOC_P(alias_set_entry,gc);
+
 /* The splay-tree used to store the various alias set entries.  */
-static GTY ((param_is (struct alias_set_entry))) varray_type alias_sets;
+static GTY (()) VEC(alias_set_entry,gc) *alias_sets;
 
 /* Returns a pointer to the alias set entry for ALIAS_SET, if there is
    such an entry, or NULL otherwise.  */
@@ -268,7 +259,7 @@ static GTY ((param_is (struct alias_set_entry))) varray_type alias_sets;
 static inline alias_set_entry
 get_alias_set_entry (HOST_WIDE_INT alias_set)
 {
-  return (alias_set_entry)VARRAY_GENERIC_PTR (alias_sets, alias_set);
+  return VEC_index (alias_set_entry, alias_sets, alias_set);
 }
 
 /* Returns nonzero if the alias sets for MEM1 and MEM2 are such that
@@ -633,18 +624,15 @@ get_alias_set (tree t)
 
 /* Return a brand-new alias set.  */
 
-static GTY(()) HOST_WIDE_INT last_alias_set;
-
 HOST_WIDE_INT
 new_alias_set (void)
 {
   if (flag_strict_aliasing)
     {
-      if (!alias_sets)
-	VARRAY_GENERIC_PTR_INIT (alias_sets, 10, "alias sets");
-      else
-	VARRAY_GROW (alias_sets, last_alias_set + 2);
-      return ++last_alias_set;
+      if (alias_sets == 0)
+	VEC_safe_push (alias_set_entry, gc, alias_sets, 0);
+      VEC_safe_push (alias_set_entry, gc, alias_sets, 0);
+      return VEC_length (alias_set_entry, alias_sets) - 1;
     }
   else
     return 0;
@@ -686,7 +674,7 @@ record_alias_subset (HOST_WIDE_INT superset, HOST_WIDE_INT subset)
       superset_entry->children
 	= splay_tree_new_ggc (splay_tree_compare_ints);
       superset_entry->has_zero_child = 0;
-      VARRAY_GENERIC_PTR (alias_sets, superset) = superset_entry;
+      VEC_replace (alias_set_entry, alias_sets, superset, superset_entry);
     }
 
   if (subset == 0)
@@ -741,7 +729,7 @@ record_component_aliases (tree type)
 	{
 	  int i;
 	  tree binfo, base_binfo;
-	  
+
 	  for (binfo = TYPE_BINFO (type), i = 0;
 	       BINFO_BASE_ITERATE (binfo, i, base_binfo); i++)
 	    record_alias_subset (superset,
@@ -826,7 +814,7 @@ find_base_value (rtx src)
 	 The test above is not sufficient because the scheduler may move
 	 a copy out of an arg reg past the NOTE_INSN_FUNCTION_BEGIN.  */
       if ((regno >= FIRST_PSEUDO_REGISTER || fixed_regs[regno])
-	  && regno < VARRAY_SIZE (reg_base_value))
+	  && regno < VEC_length (rtx, reg_base_value))
 	{
 	  /* If we're inside init_alias_analysis, use new_reg_base_value
 	     to reduce the number of relaxation iterations.  */
@@ -834,8 +822,8 @@ find_base_value (rtx src)
 	      && REG_N_SETS (regno) == 1)
 	    return new_reg_base_value[regno];
 
-	  if (VARRAY_RTX (reg_base_value, regno))
-	    return VARRAY_RTX (reg_base_value, regno);
+	  if (VEC_index (rtx, reg_base_value, regno))
+	    return VEC_index (rtx, reg_base_value, regno);
 	}
 
       return 0;
@@ -979,7 +967,7 @@ record_set (rtx dest, rtx set, void *data ATTRIBUTE_UNUSED)
 
   regno = REGNO (dest);
 
-  gcc_assert (regno < VARRAY_SIZE (reg_base_value));
+  gcc_assert (regno < VEC_length (rtx, reg_base_value));
 
   /* If this spans multiple hard registers, then we must indicate that every
      register has an unusable value.  */
@@ -1034,7 +1022,7 @@ record_set (rtx dest, rtx set, void *data ATTRIBUTE_UNUSED)
      If neither case holds, reject the original base value as invalid.
      Note that the following situation is not detected:
 
-         extern int x, y;  int *p = &x; p += (&y-&x);
+	 extern int x, y;  int *p = &x; p += (&y-&x);
 
      ANSI C does not allow computing the difference of addresses
      of distinct top level objects.  */
@@ -1079,31 +1067,6 @@ record_set (rtx dest, rtx set, void *data ATTRIBUTE_UNUSED)
   reg_seen[regno] = 1;
 }
 
-/* Called from loop optimization when a new pseudo-register is
-   created.  It indicates that REGNO is being set to VAL.  f INVARIANT
-   is true then this value also describes an invariant relationship
-   which can be used to deduce that two registers with unknown values
-   are different.  */
-
-void
-record_base_value (unsigned int regno, rtx val, int invariant)
-{
-  if (invariant && alias_invariant && regno < alias_invariant_size)
-    alias_invariant[regno] = val;
-
-  if (regno >= VARRAY_SIZE (reg_base_value))
-    VARRAY_GROW (reg_base_value, max_reg_num ());
-
-  if (REG_P (val))
-    {
-      VARRAY_RTX (reg_base_value, regno)
-	 = REG_BASE_VALUE (val);
-      return;
-    }
-  VARRAY_RTX (reg_base_value, regno)
-     = find_base_value (val);
-}
-
 /* Clear alias info for a register.  This is used if an RTL transformation
    changes the value of a register.  This is used in flow by AUTO_INC_DEC
    optimizations.  We don't need to clear reg_base_value, since flow only
@@ -1127,7 +1090,7 @@ clear_reg_alias_info (rtx reg)
 
 /* If a value is known for REGNO, return it.  */
 
-rtx 
+rtx
 get_reg_known_value (unsigned int regno)
 {
   if (regno >= FIRST_PSEUDO_REGISTER)
@@ -1656,7 +1619,7 @@ addr_side_effect_eval (rtx addr, int size, int n_refs)
 
   if (offset)
     addr = gen_rtx_PLUS (GET_MODE (addr), XEXP (addr, 0),
-		         GEN_INT (offset));
+			 GEN_INT (offset));
   else
     addr = XEXP (addr, 0);
   addr = canon_rtx (addr);
@@ -1791,25 +1754,6 @@ memrefs_conflict_p (int xsize, rtx x, int ysize, rtx y, HOST_WIDE_INT c)
 	  c /= INTVAL (x1);
 	  return memrefs_conflict_p (xsize, x0, ysize, y0, c);
 	}
-
-      case REG:
-	/* Are these registers known not to be equal?  */
-	if (alias_invariant)
-	  {
-	    unsigned int r_x = REGNO (x), r_y = REGNO (y);
-	    rtx i_x, i_y;	/* invariant relationships of X and Y */
-
-	    i_x = r_x >= alias_invariant_size ? 0 : alias_invariant[r_x];
-	    i_y = r_y >= alias_invariant_size ? 0 : alias_invariant[r_y];
-
-	    if (i_x == 0 && i_y == 0)
-	      break;
-
-	    if (! memrefs_conflict_p (xsize, i_x ? i_x : x,
-				      ysize, i_y ? i_y : y, c))
-	      return 0;
-	  }
-	break;
 
       default:
 	break;
@@ -2056,14 +2000,14 @@ nonoverlapping_memrefs_p (rtx x, rtx y)
   /* Unless both have exprs, we can't tell anything.  */
   if (exprx == 0 || expry == 0)
     return 0;
-  
+
   /* If both are field references, we may be able to determine something.  */
   if (TREE_CODE (exprx) == COMPONENT_REF
       && TREE_CODE (expry) == COMPONENT_REF
       && nonoverlapping_component_refs_p (exprx, expry))
     return 1;
 
-  
+
   /* If the field reference test failed, look at the DECLs involved.  */
   moffsetx = MEM_OFFSET (x);
   if (TREE_CODE (exprx) == COMPONENT_REF)
@@ -2075,7 +2019,7 @@ nonoverlapping_memrefs_p (rtx x, rtx y)
 	 tree fieldcontext = DECL_FIELD_CONTEXT (field);
 	 if (ipa_type_escape_field_does_not_clobber_p (fieldcontext,
 						       TREE_TYPE (field)))
-	   return 1;	 
+	   return 1;
 	}
       {
 	tree t = decl_for_component_ref (exprx);
@@ -2103,7 +2047,7 @@ nonoverlapping_memrefs_p (rtx x, rtx y)
 	 tree fieldcontext = DECL_FIELD_CONTEXT (field);
 	 if (ipa_type_escape_field_does_not_clobber_p (fieldcontext,
 						       TREE_TYPE (field)))
-	   return 1;	 
+	   return 1;
 	}
       {
 	tree t = decl_for_component_ref (expry);
@@ -2479,27 +2423,19 @@ init_alias_analysis (void)
   reg_known_value = ggc_calloc (reg_known_value_size, sizeof (rtx));
   reg_known_equiv_p = xcalloc (reg_known_value_size, sizeof (bool));
 
-  /* Overallocate reg_base_value to allow some growth during loop
-     optimization.  Loop unrolling can create a large number of
-     registers.  */
+  /* If we have memory allocated from the previous run, use it.  */
   if (old_reg_base_value)
-    {
-      reg_base_value = old_reg_base_value;
-      /* If varray gets large zeroing cost may get important.  */
-      if (VARRAY_SIZE (reg_base_value) > 256
-          && VARRAY_SIZE (reg_base_value) > 4 * maxreg)
-	VARRAY_GROW (reg_base_value, maxreg);
-      VARRAY_CLEAR (reg_base_value);
-      if (VARRAY_SIZE (reg_base_value) < maxreg)
-	VARRAY_GROW (reg_base_value, maxreg);
-    }
-  else
-    {
-      VARRAY_RTX_INIT (reg_base_value, maxreg, "reg_base_value");
-    }
+    reg_base_value = old_reg_base_value;
 
-  new_reg_base_value = xmalloc (maxreg * sizeof (rtx));
-  reg_seen = xmalloc (maxreg);
+  if (reg_base_value)
+    VEC_truncate (rtx, reg_base_value, 0);
+
+  VEC_safe_grow (rtx, gc, reg_base_value, maxreg);
+  memset (VEC_address (rtx, reg_base_value), 0,
+	  sizeof (rtx) * VEC_length (rtx, reg_base_value));
+
+  new_reg_base_value = XNEWVEC (rtx, maxreg);
+  reg_seen = XNEWVEC (char, maxreg);
 
   /* The basic idea is that each pass through this loop will use the
      "constant" information from the previous pass to propagate alias
@@ -2569,8 +2505,8 @@ init_alias_analysis (void)
 #endif
 
 	      /* If this insn has a noalias note, process it,  Otherwise,
-	         scan for sets.  A simple set will have no side effects
-	         which could change the base value of any other register.  */
+		 scan for sets.  A simple set will have no side effects
+		 which could change the base value of any other register.  */
 
 	      if (GET_CODE (PATTERN (insn)) == SET
 		  && REG_NOTES (insn) != 0
@@ -2627,15 +2563,15 @@ init_alias_analysis (void)
 
       /* Now propagate values from new_reg_base_value to reg_base_value.  */
       gcc_assert (maxreg == (unsigned int) max_reg_num());
-      
+
       for (ui = 0; ui < maxreg; ui++)
 	{
 	  if (new_reg_base_value[ui]
-	      && new_reg_base_value[ui] != VARRAY_RTX (reg_base_value, ui)
+	      && new_reg_base_value[ui] != VEC_index (rtx, reg_base_value, ui)
 	      && ! rtx_equal_p (new_reg_base_value[ui],
-				VARRAY_RTX (reg_base_value, ui)))
+				VEC_index (rtx, reg_base_value, ui)))
 	    {
-	      VARRAY_RTX (reg_base_value, ui) = new_reg_base_value[ui];
+	      VEC_replace (rtx, reg_base_value, ui, new_reg_base_value[ui]);
 	      changed = 1;
 	    }
 	}
@@ -2664,15 +2600,15 @@ init_alias_analysis (void)
       pass++;
       for (ui = 0; ui < maxreg; ui++)
 	{
-	  rtx base = VARRAY_RTX (reg_base_value, ui);
+	  rtx base = VEC_index (rtx, reg_base_value, ui);
 	  if (base && REG_P (base))
 	    {
 	      unsigned int base_regno = REGNO (base);
 	      if (base_regno == ui)		/* register set from itself */
-		VARRAY_RTX (reg_base_value, ui) = 0;
+		VEC_replace (rtx, reg_base_value, ui, 0);
 	      else
-		VARRAY_RTX (reg_base_value, ui)
-		  = VARRAY_RTX (reg_base_value, base_regno);
+		VEC_replace (rtx, reg_base_value, ui,
+			     VEC_index (rtx, reg_base_value, base_regno));
 	      changed = 1;
 	    }
 	}
@@ -2696,42 +2632,6 @@ end_alias_analysis (void)
   reg_known_value_size = 0;
   free (reg_known_equiv_p);
   reg_known_equiv_p = 0;
-  if (alias_invariant)
-    {
-      ggc_free (alias_invariant);
-      alias_invariant = 0;
-      alias_invariant_size = 0;
-    }
 }
-
-/* Do control and data flow analysis; write some of the results to the
-   dump file.  */
-static void
-rest_of_handle_cfg (void)
-{
-  if (dump_file)
-    dump_flow_info (dump_file);
-  if (optimize)
-    cleanup_cfg (CLEANUP_EXPENSIVE
-                 | (flag_thread_jumps ? CLEANUP_THREADING : 0));
-}
-
-struct tree_opt_pass pass_cfg =
-{
-  "cfg",                                /* name */
-  NULL,					/* gate */   
-  rest_of_handle_cfg,                   /* execute */       
-  NULL,                                 /* sub */
-  NULL,                                 /* next */
-  0,                                    /* static_pass_number */
-  TV_FLOW,                              /* tv_id */
-  0,                                    /* properties_required */
-  0,                                    /* properties_provided */
-  0,                                    /* properties_destroyed */
-  0,                                    /* todo_flags_start */
-  TODO_dump_func,                       /* todo_flags_finish */
-  'f'                                   /* letter */
-};
-
 
 #include "gt-alias.h"

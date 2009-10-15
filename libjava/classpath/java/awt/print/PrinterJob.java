@@ -1,5 +1,5 @@
 /* PrinterJob.java -- This job is the printer control class
-   Copyright (C) 1999, 2004, 2005  Free Software Foundation, Inc.
+   Copyright (C) 1999, 2004, 2005, 2006  Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -38,9 +38,13 @@ exception statement from your version. */
 
 package java.awt.print;
 
-import java.awt.HeadlessException;
+import gnu.java.awt.print.JavaPrinterJob;
 
+import java.awt.HeadlessException;
 import javax.print.PrintService;
+import javax.print.PrintServiceLookup;
+import javax.print.DocFlavor;
+import javax.print.StreamPrintServiceFactory;
 import javax.print.attribute.PrintRequestAttributeSet;
 
 /**
@@ -60,8 +64,7 @@ public abstract class PrinterJob
    */
   public static PrinterJob getPrinterJob()
   {
-    // FIXME: Need to fix this to load a default implementation instance.
-    return null;
+    return new JavaPrinterJob();
   }
 
   /**
@@ -244,13 +247,11 @@ public abstract class PrinterJob
    */
   public static PrintService[] lookupPrintServices()
   {
-    return new PrintService[0];
-    // FIXME:
-    // Enable this when javax.print has this implemented.
-//    return PrintServiceLookup.lookupPrintServices(
-//          new DocFlavor("application/x-java-jvm-local-objectref",
-//                        "java.awt.print.Pageable"),
-//          null);
+    return PrintServiceLookup.lookupPrintServices
+      (
+       new DocFlavor("application/x-java-jvm-local-objectref",
+		     "java.awt.print.Pageable"),
+       null);
   }
 
   /**
@@ -263,8 +264,8 @@ public abstract class PrinterJob
    * @return Array of stream print services, could be empty.
    * @since 1.4
    */
-  	// FIXME:
-  	// Enable when javax.print has StreamPrintServiceFactory 
+  // FIXME:
+  // Enable when StreamPrintServiceFactory has lookupStreamServiceFactories
 //  public static StreamPrintServiceFactory[] lookupStreamPrintServices(String mimeType)
 //  {
 //    return StreamPrintServiceFactory.lookupStreamServiceFactories(
@@ -282,7 +283,7 @@ public abstract class PrinterJob
    */
   public PrintService getPrintService()
   {
-    return null;
+    return printer;
   }
 
   /**
@@ -297,6 +298,6 @@ public abstract class PrinterJob
   public void setPrintService(PrintService service)
     throws PrinterException
   {
-    throw new PrinterException();
+    printer = service;
   }
 }

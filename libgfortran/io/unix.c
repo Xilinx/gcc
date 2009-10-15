@@ -1,4 +1,4 @@
-/* Copyright (C) 2002, 2003, 2004, 2005
+/* Copyright (C) 2002, 2003, 2004, 2005, 2007
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -349,9 +349,9 @@ fd_flush (unix_stream * s)
   size_t writelen;
 
   if (s->ndirty == 0)
-    return SUCCESS;;
-
-  if (s->physical_offset != s->dirty_offset &&
+    return SUCCESS;
+  
+  if (s->file_length != -1 && s->physical_offset != s->dirty_offset &&
       lseek (s->fd, s->dirty_offset, SEEK_SET) < 0)
     return FAILURE;
 
@@ -465,7 +465,7 @@ fd_alloc_r_at (unix_stream * s, int *len, gfc_offset where)
       if (n < 0)
 	return NULL;
 
-      s->physical_offset = where + n;
+      s->physical_offset = m + n;
       s->active += n;
     }
   else
@@ -476,7 +476,7 @@ fd_alloc_r_at (unix_stream * s, int *len, gfc_offset where)
       if (do_read (s, s->buffer + s->active, &n) != 0)
 	return NULL;
 
-      s->physical_offset = where + n;
+      s->physical_offset = m + n;
       s->active += n;
     }
 
@@ -536,8 +536,10 @@ fd_alloc_w_at (unix_stream * s, int *len, gfc_offset where)
 
   s->logical_offset = where + *len;
 
-  if (where + *len > s->file_length)
-    s->file_length = where + *len;
+  /* Don't increment file_length if the file is non-seekable.  */
+
+  if (s->file_length != -1 && s->logical_offset > s->file_length)
+     s->file_length = s->logical_offset;
 
   n = s->logical_offset - s->buffer_offset;
   if (n > s->active)
@@ -562,6 +564,10 @@ fd_sfree (unix_stream * s)
 static try
 fd_seek (unix_stream * s, gfc_offset offset)
 {
+
+  if (s->file_length == -1)
+    return SUCCESS;
+
   if (s->physical_offset == offset) /* Are we lucky and avoid syscall?  */
     {
       s->logical_offset = offset;
@@ -582,13 +588,19 @@ fd_seek (unix_stream * s, gfc_offset offset)
 static try
 fd_truncate (unix_stream * s)
 {
+  /* Non-seekable files, like terminals and fifo's fail the lseek so just
+     return success, there is nothing to truncate.  If its not a pipe there
+     is a real problem.  */
   if (lseek (s->fd, s->logical_offset, SEEK_SET) == -1)
-    return FAILURE;
+    {
+      if (errno == ESPIPE)
+	return SUCCESS;
+      else
+	return FAILURE;
+    }
 
-  /* non-seekable files, like terminals and fifo's fail the lseek.
-     Using ftruncate on a seekable special file (like /dev/null)
-     is undefined, so we treat it as if the ftruncate succeeded.
-  */
+  /* Using ftruncate on a seekable special file (like /dev/null)
+     is undefined, so we treat it as if the ftruncate succeeded.  */
 #ifdef HAVE_FTRUNCATE
   if (s->special_file || ftruncate (s->fd, s->logical_offset))
 #else
@@ -1009,7 +1021,12 @@ fd_to_stream (int fd, int prot)
   /* Get the current length of the file. */
 
   fstat (fd, &statbuf);
-  s->file_length = S_ISREG (statbuf.st_mode) ? statbuf.st_size : -1;
+
+  if (lseek (fd, 0, SEEK_CUR) == (off_t) -1)
+    s->file_length = -1;
+  else
+    s->file_length = S_ISREG (statbuf.st_mode) ? statbuf.st_size : -1;
+
   s->special_file = !S_ISREG (statbuf.st_mode);
 
   fd_open (s);
@@ -1169,7 +1186,7 @@ regular_file (st_parameter_open *opp, unit_flags *flags)
       break;
 
     case STATUS_REPLACE:
-        crflag = O_CREAT | O_TRUNC;
+      crflag = O_CREAT | O_TRUNC;
       break;
 
     default:
@@ -1185,14 +1202,14 @@ regular_file (st_parameter_open *opp, unit_flags *flags)
   mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
   fd = open (path, rwflag | crflag, mode);
   if (flags->action != ACTION_UNSPECIFIED)
-      return fd;
+    return fd;
 
   if (fd >= 0)
     {
       flags->action = ACTION_READWRITE;
       return fd;
     }
-  if (errno != EACCES)
+  if (errno != EACCES && errno != EROFS)
      return fd;
 
   /* retry for read-only access */
@@ -1289,6 +1306,9 @@ input_stream (void)
 stream *
 output_stream (void)
 {
+#if defined(HAVE_CRLF) && defined(HAVE_SETMODE)
+  setmode (STDOUT_FILENO, O_BINARY);
+#endif
   return fd_to_stream (STDOUT_FILENO, PROT_WRITE);
 }
 
@@ -1299,6 +1319,9 @@ output_stream (void)
 stream *
 error_stream (void)
 {
+#if defined(HAVE_CRLF) && defined(HAVE_SETMODE)
+  setmode (STDERR_FILENO, O_BINARY);
+#endif
   return fd_to_stream (STDERR_FILENO, PROT_WRITE);
 }
 

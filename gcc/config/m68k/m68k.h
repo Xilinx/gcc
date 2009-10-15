@@ -1,12 +1,12 @@
 /* Definitions of target machine for GCC for Motorola 680x0/ColdFire.
    Copyright (C) 1987, 1988, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -15,9 +15,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 /* We need to have MOTOROLA always defined (either 0 or 1) because we use
    if-statements and ?: on it.  This way we have compile-time error checking
@@ -90,14 +89,12 @@ Boston, MA 02110-1301, USA.  */
 	  builtin_define ("__mcf5400__");	\
 	  builtin_define ("__mcf5407__");	\
 	}					\
+      if (TARGET_CFV4E)				\
+	{					\
+	  builtin_define ("__mcfv4e__");	\
+	}					\
       if (TARGET_CF_HWDIV)			\
 	builtin_define ("__mcfhwdiv__");	\
-      if (flag_pic)				\
-	{					\
-	  builtin_define ("__pic__");		\
-	  if (flag_pic > 1)			\
-	    builtin_define ("__PIC__");		\
-	}					\
       builtin_assert ("cpu=m68k");		\
       builtin_assert ("machine=m68k");		\
     }						\
@@ -118,8 +115,16 @@ Boston, MA 02110-1301, USA.  */
 #define TARGET_CPU32	(TARGET_68020 && !TARGET_BITFIELD)
 
 /* Is the target a ColdFire?  */
-#define MASK_COLDFIRE	(MASK_5200 | MASK_528x | MASK_CFV3 | MASK_CFV4)
+#define MASK_COLDFIRE \
+  (MASK_5200 | MASK_528x | MASK_CFV3 | MASK_CFV4 | MASK_CFV4E)
 #define TARGET_COLDFIRE	((target_flags & MASK_COLDFIRE) != 0)
+
+#define TARGET_COLDFIRE_FPU	TARGET_CFV4E
+
+#define TARGET_HARD_FLOAT	(TARGET_68881 || TARGET_COLDFIRE_FPU)
+/* Size (in bytes) of FPU registers.  */
+#define TARGET_FP_REG_SIZE	(TARGET_COLDFIRE ? 8 : 12)
+
 
 #define OVERRIDE_OPTIONS   override_options()
 
@@ -235,7 +240,7 @@ Boston, MA 02110-1301, USA.  */
 {								\
   int i;							\
   HARD_REG_SET x;						\
-  if (! TARGET_68881)						\
+  if (!TARGET_HARD_FLOAT)					\
     {								\
       COPY_HARD_REG_SET (x, reg_class_contents[(int)FP_REGS]);	\
       for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)		\
@@ -268,7 +273,7 @@ Boston, MA 02110-1301, USA.  */
   m68k_regno_mode_ok ((REGNO), (MODE))
 
 #define MODES_TIEABLE_P(MODE1, MODE2)			\
-  (! TARGET_68881					\
+  (! TARGET_HARD_FLOAT					\
    || ((GET_MODE_CLASS (MODE1) == MODE_FLOAT		\
 	|| GET_MODE_CLASS (MODE1) == MODE_COMPLEX_FLOAT)	\
        == (GET_MODE_CLASS (MODE2) == MODE_FLOAT		\
@@ -342,8 +347,8 @@ extern enum reg_class regno_reg_class[];
 #define REG_CLASS_FROM_LETTER(C) \
   ((C) == 'a' ? ADDR_REGS :			\
    ((C) == 'd' ? DATA_REGS :			\
-    ((C) == 'f' ? (TARGET_68881 ? FP_REGS :	\
-		   NO_REGS) :			\
+    ((C) == 'f' ? (TARGET_HARD_FLOAT ?		\
+		   FP_REGS : NO_REGS) :		\
      NO_REGS)))
 
 /* For the m68k, `I' is used for the range 1 to 8
@@ -413,7 +418,7 @@ extern enum reg_class regno_reg_class[];
    ? DATA_REGS					\
    : (GET_CODE (X) == CONST_DOUBLE					\
       && GET_MODE_CLASS (GET_MODE (X)) == MODE_FLOAT)			\
-   ? (TARGET_68881 && (CLASS == FP_REGS || CLASS == DATA_OR_FP_REGS)	\
+   ? (TARGET_HARD_FLOAT && (CLASS == FP_REGS || CLASS == DATA_OR_FP_REGS) \
       ? FP_REGS : NO_REGS)						\
    : (TARGET_PCREL				\
       && (GET_CODE (X) == SYMBOL_REF || GET_CODE (X) == CONST \
@@ -758,16 +763,34 @@ __transfer_from_trampoline ()					\
 	&& GET_CODE (XEXP (X, 1)) == CONST_INT		\
 	&& (INTVAL (XEXP (X, 1)) == 2			\
 	    || INTVAL (XEXP (X, 1)) == 4		\
-	    || (INTVAL (XEXP (X, 1)) == 8 && !TARGET_COLDFIRE))))
+	    || (INTVAL (XEXP (X, 1)) == 8		\
+		&& (TARGET_CFV4E || !TARGET_COLDFIRE)))))
+
+/* Coldfire FPU only accepts addressing modes 2-5 */
+#define GO_IF_COLDFIRE_FPU_LEGITIMATE_ADDRESS(MODE, X, ADDR)		\
+{ if (LEGITIMATE_BASE_REG_P (X)						\
+      || ((GET_CODE (X) == PRE_DEC || GET_CODE (X) == POST_INC)		\
+          && LEGITIMATE_BASE_REG_P (XEXP (X, 0)))			\
+      || ((GET_CODE (X) == PLUS) && LEGITIMATE_BASE_REG_P (XEXP (X, 0))	\
+          && (GET_CODE (XEXP (X, 1)) == CONST_INT)			\
+          && ((((unsigned) INTVAL (XEXP (X, 1)) + 0x8000) < 0x10000))))	\
+  goto ADDR;}
 
 /* If pic, we accept INDEX+LABEL, which is what do_tablejump makes.  */
 #define GO_IF_LEGITIMATE_ADDRESS(MODE, X, ADDR)				\
-{ GO_IF_NONINDEXED_ADDRESS (X, ADDR);					\
-  GO_IF_INDEXED_ADDRESS (X, ADDR);					\
-  if (flag_pic && MODE == CASE_VECTOR_MODE && GET_CODE (X) == PLUS	\
-      && LEGITIMATE_INDEX_P (XEXP (X, 0))				\
-      && GET_CODE (XEXP (X, 1)) == LABEL_REF)				\
-    goto ADDR; }
+{ if (TARGET_COLDFIRE_FPU && (GET_MODE_CLASS (MODE) == MODE_FLOAT))	\
+    {									\
+      GO_IF_COLDFIRE_FPU_LEGITIMATE_ADDRESS (MODE, X, ADDR);		\
+    }									\
+  else									\
+    {									\
+      GO_IF_NONINDEXED_ADDRESS (X, ADDR);				\
+      GO_IF_INDEXED_ADDRESS (X, ADDR);					\
+      if (flag_pic && MODE == CASE_VECTOR_MODE && GET_CODE (X) == PLUS	\
+	  && LEGITIMATE_INDEX_P (XEXP (X, 0))				\
+	  && GET_CODE (XEXP (X, 1)) == LABEL_REF)			\
+	goto ADDR;							\
+    }}
 
 /* Don't call memory_address_noforce for the address to fetch
    the switch offset.  This address is ok as it stands (see above),
@@ -789,7 +812,9 @@ __transfer_from_trampoline ()					\
 	{ COPY_ONCE (X); XEXP (X, 1) = force_operand (XEXP (X, 1), 0);}	\
       if (ch && GET_CODE (XEXP (X, 1)) == REG				\
 	  && GET_CODE (XEXP (X, 0)) == REG)				\
-	goto WIN;							\
+	{ if (TARGET_CFV4E && GET_MODE_CLASS (MODE) == MODE_FLOAT)	\
+	    { COPY_ONCE (X); X = force_operand (X, 0);}			\
+	  goto WIN; }							\
       if (ch) { GO_IF_LEGITIMATE_ADDRESS (MODE, X, WIN); }		\
       if (GET_CODE (XEXP (X, 0)) == REG					\
 	       || (GET_CODE (XEXP (X, 0)) == SIGN_EXTEND		\
@@ -800,6 +825,9 @@ __transfer_from_trampoline ()					\
 	  emit_move_insn (temp, val);					\
 	  COPY_ONCE (X);						\
 	  XEXP (X, 1) = temp;						\
+	  if (TARGET_COLDFIRE_FPU && GET_MODE_CLASS (MODE) == MODE_FLOAT \
+	      && GET_CODE (XEXP (X, 0)) == REG)				\
+	    X = force_operand (X, 0);					\
 	  goto WIN; }							\
       else if (GET_CODE (XEXP (X, 1)) == REG				\
 	       || (GET_CODE (XEXP (X, 1)) == SIGN_EXTEND		\
@@ -810,6 +838,9 @@ __transfer_from_trampoline ()					\
 	  emit_move_insn (temp, val);					\
 	  COPY_ONCE (X);						\
 	  XEXP (X, 0) = temp;						\
+	  if (TARGET_COLDFIRE_FPU && GET_MODE_CLASS (MODE) == MODE_FLOAT \
+	      && GET_CODE (XEXP (X, 1)) == REG)				\
+	    X = force_operand (X, 0);					\
 	  goto WIN; }}}
 
 /* On the 68000, only predecrement and postincrement address depend thus
@@ -895,6 +926,12 @@ do { if (cc_prev_status.flags & CC_IN_68881)			\
 /* Before the prologue, RA is at 0(%sp).  */
 #define INCOMING_RETURN_ADDR_RTX \
   gen_rtx_MEM (VOIDmode, gen_rtx_REG (VOIDmode, STACK_POINTER_REGNUM))
+
+/* After the prologue, RA is at 4(AP) in the current frame.  */
+#define RETURN_ADDR_RTX(COUNT, FRAME)					   \
+  ((COUNT) == 0								   \
+   ? gen_rtx_MEM (Pmode, plus_constant (arg_pointer_rtx, UNITS_PER_WORD)) \
+   : gen_rtx_MEM (Pmode, plus_constant (FRAME, UNITS_PER_WORD)))
 
 /* We must not use the DBX register numbers for the DWARF 2 CFA column
    numbers because that maps to numbers beyond FIRST_PSEUDO_REGISTER.

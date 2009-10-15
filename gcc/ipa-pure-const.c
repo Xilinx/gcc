@@ -1,12 +1,12 @@
 /* Callgraph based analysis of static variables.
-   Copyright (C) 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2007 Free Software Foundation, Inc.
    Contributed by Kenneth Zadeck <zadeck@naturalbridge.com>
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,9 +15,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 /* This file mark functions as being either const (TREE_READONLY) or
    pure (DECL_IS_PURE).
@@ -500,7 +499,7 @@ scan_function (tree *tp,
 static void
 analyze_function (struct cgraph_node *fn)
 {
-  funct_state l = xcalloc (1, sizeof (struct funct_state_d));
+  funct_state l = XCNEW (struct funct_state_d);
   tree decl = fn->decl;
   struct ipa_dfs_info * w_info = fn->aux;
 
@@ -592,13 +591,13 @@ end:
    on the local information that was produced by ipa_analyze_function
    and ipa_analyze_variable.  */
 
-static void
+static unsigned int
 static_execute (void)
 {
   struct cgraph_node *node;
   struct cgraph_node *w;
   struct cgraph_node **order =
-    xcalloc (cgraph_n_nodes, sizeof (struct cgraph_node *));
+    XCNEWVEC (struct cgraph_node *, cgraph_n_nodes);
   int order_pos = order_pos = ipa_utils_reduced_inorder (order, true, false);
   int i;
   struct ipa_dfs_info * w_info;
@@ -639,6 +638,7 @@ static_execute (void)
   for (i = 0; i < order_pos; i++ )
     {
       enum pure_const_state_e pure_const_state = IPA_CONST;
+      int count = 0;
       node = order[i];
 
       /* Find the worst state for any node in the cycle.  */
@@ -655,11 +655,40 @@ static_execute (void)
 	  if (!w_l->state_set_in_source)
 	    {
 	      struct cgraph_edge *e;
+	      count++;
+
+	      /* FIXME!!!  Because of pr33826, we cannot have either
+		 immediate or transitive recursive functions marked as
+		 pure or const because dce can delete a function that
+		 is in reality an infinite loop.  A better solution
+		 than just outlawing them is to add another bit the
+		 functions to distinguish recursive from non recursive
+		 pure and const function.  This would allow the
+		 recursive ones to be cse'd but not dce'd.  In this
+		 same vein, we could allow functions with loops to
+		 also be cse'd but not dce'd.
+
+		 Unfortunately we are late in stage 3, and the fix
+		 described above is is not appropriate.  */
+	      if (count > 1)
+		{
+		  pure_const_state = IPA_NEITHER;
+		  break;
+		}
+		    
 	      for (e = w->callees; e; e = e->next_callee) 
 		{
 		  struct cgraph_node *y = e->callee;
 		  /* Only look at the master nodes and skip external nodes.  */
 		  y = cgraph_master_clone (y);
+
+		  /* Check for immediate recursive functions.  See the
+		     FIXME above.  */
+		  if (w == y)
+		    {
+		      pure_const_state = IPA_NEITHER;
+		      break;
+		    }
 		  if (y)
 		    {
 		      funct_state y_l = get_function_state (y);
@@ -723,6 +752,7 @@ static_execute (void)
       }
 
   free (order);
+  return 0;
 }
 
 static bool

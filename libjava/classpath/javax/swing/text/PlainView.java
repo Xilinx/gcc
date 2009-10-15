@@ -1,5 +1,5 @@
 /* PlainView.java -- 
-   Copyright (C) 2004, 2005  Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2006  Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -46,7 +46,7 @@ import java.awt.Graphics;
 import java.awt.Rectangle;
 import java.awt.Shape;
 
-import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentEvent.ElementChange;
 
@@ -59,6 +59,18 @@ public class PlainView extends View implements TabExpander
    * The color that is used to draw disabled text fields.
    */
   Color disabledColor;
+  
+  /**
+   * While painting this is the textcomponent's current start index
+   * of the selection.
+   */
+  int selectionStart;
+
+  /**
+   * While painting this is the textcomponent's current end index
+   * of the selection.
+   */
+  int selectionEnd;
 
   Font font;
   
@@ -137,22 +149,67 @@ public class PlainView extends View implements TabExpander
     return rect;
   }
   
+  /**
+   * Draws a line of text. The X and Y coordinates specify the start of
+   * the <em>baseline</em> of the line.
+   *
+   * @param lineIndex the index of the line
+   * @param g the graphics to use for drawing the text
+   * @param x the X coordinate of the baseline
+   * @param y the Y coordinate of the baseline
+   */
   protected void drawLine(int lineIndex, Graphics g, int x, int y)
   {
     try
       {
-	metrics = g.getFontMetrics();
-	// FIXME: Selected text are not drawn yet.
-	Element line = getElement().getElement(lineIndex);
-	drawUnselectedText(g, x, y, line.getStartOffset(), line.getEndOffset());
-	//drawSelectedText(g, , , , );
+        Element line = getElement().getElement(lineIndex);
+        int startOffset = line.getStartOffset();
+        int endOffset = line.getEndOffset() - 1;
+        
+        if (selectionStart <= startOffset)
+          // Selection starts before the line ...
+          if (selectionEnd <= startOffset)
+            {
+              // end ends before the line: Draw completely unselected text.
+              drawUnselectedText(g, x, y, startOffset, endOffset);
+            }
+          else if (selectionEnd <= endOffset)
+            {
+              // and ends within the line: First part is selected,
+              // second is not.
+              x = drawSelectedText(g, x, y, startOffset, selectionEnd);
+              drawUnselectedText(g, x, y, selectionEnd, endOffset);
+            }
+          else
+            // and ends behind the line: Draw completely selected text.
+            drawSelectedText(g, x, y, startOffset, endOffset);
+        else if (selectionStart < endOffset)
+          // Selection starts within the line ..
+          if (selectionEnd < endOffset)
+            {
+              // and ends within it: First part unselected, second part
+              // selected, third part unselected.
+              x = drawUnselectedText(g, x, y, startOffset, selectionStart);
+              x = drawSelectedText(g, x, y, selectionStart, selectionEnd);
+              drawUnselectedText(g, x, y, selectionEnd, endOffset);
+            }
+          else
+            {
+              // and ends behind the line: First part unselected, second
+              // part selected.
+              x = drawUnselectedText(g, x, y, startOffset, selectionStart);
+              drawSelectedText(g, x, y, selectionStart, endOffset);
+            }
+        else
+          // Selection is behind this line: Draw completely unselected text.
+          drawUnselectedText(g, x, y, startOffset, endOffset);
       }
     catch (BadLocationException e)
-      {
-	AssertionError ae = new AssertionError("Unexpected bad location");
-	ae.initCause(e);
-	throw ae;
-      }
+    {
+      AssertionError ae = new AssertionError("Unexpected bad location");
+      ae.initCause(e);
+      throw ae;
+    }
   }
 
   protected int drawSelectedText(Graphics g, int x, int y, int p0, int p1)
@@ -161,9 +218,23 @@ public class PlainView extends View implements TabExpander
     g.setColor(selectedColor);
     Segment segment = getLineBuffer();
     getDocument().getText(p0, p1 - p0, segment);
-    return Utilities.drawTabbedText(segment, x, y, g, this, 0);
+    return Utilities.drawTabbedText(segment, x, y, g, this, segment.offset);
   }
 
+  /**
+   * Draws a chunk of unselected text.
+   *
+   * @param g the graphics to use for drawing the text
+   * @param x the X coordinate of the baseline
+   * @param y the Y coordinate of the baseline
+   * @param p0 the start position in the text model
+   * @param p1 the end position in the text model
+   *
+   * @return the X location of the end of the range
+   *
+   * @throws BadLocationException if <code>p0</code> or <code>p1</code> are
+   *         invalid
+   */
   protected int drawUnselectedText(Graphics g, int x, int y, int p0, int p1)
     throws BadLocationException
   {
@@ -185,22 +256,25 @@ public class PlainView extends View implements TabExpander
     
     JTextComponent textComponent = (JTextComponent) getContainer();
 
-    g.setFont(textComponent.getFont());
     selectedColor = textComponent.getSelectedTextColor();
     unselectedColor = textComponent.getForeground();
     disabledColor = textComponent.getDisabledTextColor();
+    selectionStart = textComponent.getSelectionStart();
+    selectionEnd = textComponent.getSelectionEnd();
 
     Rectangle rect = s.getBounds();
 
     // FIXME: Text may be scrolled.
     Document document = textComponent.getDocument();
     Element root = document.getDefaultRootElement();
-    int y = rect.y;
+    int y = rect.y + metrics.getAscent();
+    int height = metrics.getHeight();
     
-    for (int i = 0; i < root.getElementCount(); i++)
+    int count = root.getElementCount();
+    for (int i = 0; i < count; i++)
       {
-	drawLine(i, g, rect.x, y);
-	y += metrics.getHeight();
+        drawLine(i, g, rect.x, y);
+        y += height;
       }
   }
 
@@ -251,7 +325,7 @@ public class PlainView extends View implements TabExpander
       {
         Element child = el.getElement(i);
         int start = child.getStartOffset();
-        int end = child.getEndOffset();
+        int end = child.getEndOffset() - 1;
         try
           {
             el.getDocument().getText(start, end - start, seg);
@@ -285,18 +359,20 @@ public class PlainView extends View implements TabExpander
     // make sure we have the metrics
     updateMetrics();
 
-    float span = 0;
     Element el = getElement();
+    float span;
 
     switch (axis)
       {
       case X_AXIS:
         span = determineMaxLineLength();
+        break;
       case Y_AXIS:
       default:
         span = metrics.getHeight() * el.getElementCount();
         break;
       }
+    
     return span;
   }
 
@@ -319,12 +395,19 @@ public class PlainView extends View implements TabExpander
     Element root = doc.getDefaultRootElement();
     
     // PlainView doesn't support line-wrapping so we can find out which
-    // Element was clicked on just by the y-position    
-    int lineClicked = (int) (y - rec.y) / metrics.getHeight();
-    if (lineClicked >= root.getElementCount())
-      return getEndOffset() - 1;
+    // Element was clicked on just by the y-position.    
+    // Since the coordinates may be outside of the coordinate space
+    // of the allocation area (e.g. user dragged mouse outside
+    // the component) we have to limit the values.
+    // This has the nice effect that the user can drag the
+    // mouse above or below the component and it will still
+    // react to the x values (e.g. when selecting).
+    int lineClicked
+      = Math.min(Math.max((int) (y - rec.y) / metrics.getHeight(), 0),
+                          root.getElementCount() - 1);
     
     Element line = root.getElement(lineClicked);
+    
     Segment s = getLineBuffer();
     int start = line.getStartOffset();
     // We don't want the \n at the end of the line.
@@ -354,100 +437,92 @@ public class PlainView extends View implements TabExpander
    */
   protected void updateDamage(DocumentEvent changes, Shape a, ViewFactory f)
   {
-    Element el = getElement();
-    ElementChange ec = changes.getChange(el);
-    
-    // If ec is null then no lines were added or removed, just 
-    // repaint the changed line
-    if (ec == null)
+    // This happens during initialization.
+    if (metrics == null)
       {
-        int line = getElement().getElementIndex(changes.getOffset());
-        damageLineRange(line, line, a, getContainer());
-        return;
-      }
-    
-    Element[] removed = ec.getChildrenRemoved();
-    Element[] newElements = ec.getChildrenAdded();
-    
-    // If no Elements were added or removed, we just want to repaint
-    // the area containing the line that was modified
-    if (removed == null && newElements == null)
-      {
-        int line = getElement().getElementIndex(changes.getOffset());
-        damageLineRange(line, line, a, getContainer());
+        updateMetrics();
+        preferenceChanged(null, true, true);
         return;
       }
 
-    // Check to see if we removed the longest line, if so we have to
-    // search through all lines and find the longest one again
-    if (removed != null)
+    Element element = getElement();
+
+    // Find longest line if it hasn't been initialized yet.
+    if (longestLine == null)
+      findLongestLine(0, element.getElementCount() - 1);
+
+    ElementChange change = changes.getChange(element);
+    if (changes.getType() == DocumentEvent.EventType.INSERT)
       {
-        for (int i = 0; i < removed.length; i++)
-          if (removed[i].equals(longestLine))
-            {
-              // reset maxLineLength and search through all lines for longest one
-              maxLineLength = -1;
-              determineMaxLineLength();
-              ((JTextComponent)getContainer()).repaint();
-              return;
+        // Handles character/line insertion.
+
+        // Determine if lines have been added. In this case we repaint
+        // differently.
+        boolean linesAdded = true;
+        if (change == null)
+          linesAdded = false;
+
+        // Determine the start line.
+        int start;
+        if (linesAdded)
+          start = change.getIndex();
+        else
+          start = element.getElementIndex(changes.getOffset());
+
+        // Determine the length of the updated region.
+        int length = 0;
+        if (linesAdded)
+          length = change.getChildrenAdded().length - 1;
+
+        // Update the longest line and length.
+        int oldMaxLength = (int) maxLineLength;
+        if (longestLine.getEndOffset() < changes.getOffset()
+            || longestLine.getStartOffset() > changes.getOffset()
+                                             + changes.getLength())
+          {
+            findLongestLine(start, start + length);
+          }
+        else
+          {
+            findLongestLine(0, element.getElementCount() - 1);
+          }
+
+        // Trigger a preference change so that the layout gets updated
+        // correctly.
+        preferenceChanged(null, maxLineLength != oldMaxLength, linesAdded);
+
+        // Damage the updated line range.
+        int endLine = start;
+        if (linesAdded)
+          endLine = element.getElementCount() - 1;
+        damageLineRange(start, endLine, a, getContainer());
+
+      }
+    else
+      {
+        // Handles character/lines removals.
+
+        // Update the longest line and length and trigger preference changed.
+        int oldMaxLength = (int) maxLineLength;
+        if (change != null)
+          {
+            // Line(s) have been removed.
+            findLongestLine(0, element.getElementCount() - 1);
+            preferenceChanged(null, maxLineLength != oldMaxLength, true);
+          }
+        else
+          {
+            // No line has been removed.
+            int lineNo = getElement().getElementIndex(changes.getOffset());
+            Element line = getElement().getElement(lineNo);
+            if (longestLine == line)
+              {
+                findLongestLine(0, element.getElementCount() - 1);
+                preferenceChanged(null, maxLineLength != oldMaxLength, false);
             }
+            damageLineRange(lineNo, lineNo, a, getContainer());
+        }
       }
-    
-    // If we've reached here, that means we haven't removed the longest line
-    if (newElements == null)
-      {
-        // No lines were added, just repaint the container and exit
-        ((JTextComponent)getContainer()).repaint();
-        return;
-      }
-
-    //  Make sure we have the metrics
-    updateMetrics();
-       
-    // If we've reached here, that means we haven't removed the longest line
-    // and we have added at least one line, so we have to check if added lines
-    // are longer than the previous longest line        
-    Segment seg = getLineBuffer();
-    float longestNewLength = 0;
-    Element longestNewLine = null;    
-
-    // Loop through the added lines to check their length
-    for (int i = 0; i < newElements.length; i++)
-      {
-        Element child = newElements[i];
-        int start = child.getStartOffset();
-        int end = child.getEndOffset();
-        try
-          {
-            el.getDocument().getText(start, end - start, seg);
-          }
-        catch (BadLocationException ex)
-          {
-            AssertionError ae = new AssertionError("Unexpected bad location");
-	    ae.initCause(ex);
-	    throw ae;
-          }
-                
-        if (seg == null || seg.array == null || seg.count == 0)
-          continue;
-        
-        int width = metrics.charsWidth(seg.array, seg.offset, seg.count);
-        if (width > longestNewLength)
-          {
-            longestNewLine = child;
-            longestNewLength = width;
-          }
-      }
-    
-    // Check if the longest of the new lines is longer than our previous
-    // longest line, and if so update our values
-    if (longestNewLength > maxLineLength)
-      {
-        maxLineLength = longestNewLength;
-        longestLine = longestNewLine;
-      }
-    // Repaint the container
-    ((JTextComponent)getContainer()).repaint();
   }
 
   /**
@@ -512,8 +587,11 @@ public class PlainView extends View implements TabExpander
       host.repaint();
     else
       {
-        Rectangle repaintRec = rec0.union(rec1);
-        host.repaint();
+        Rectangle repaintRec = SwingUtilities.computeUnion(rec0.x, rec0.y,
+                                                           rec0.width,
+                                                           rec0.height, rec1);
+        host.repaint(repaintRec.x, repaintRec.y, repaintRec.width,
+                     repaintRec.height);
       }    
   }
 
@@ -524,7 +602,7 @@ public class PlainView extends View implements TabExpander
    * @returna {@link Segment} object, that can be used to fetch text from
    *          the document
    */
-  protected Segment getLineBuffer()
+  protected final Segment getLineBuffer()
   {
     if (lineBuffer == null)
       lineBuffer = new Segment();
@@ -532,33 +610,52 @@ public class PlainView extends View implements TabExpander
   }
 
   /**
-   * Returns the document position that is (visually) nearest to the given
-   * document position <code>pos</code> in the given direction <code>d</code>.
+   * Finds and updates the longest line in the view inside an interval of
+   * lines.
    *
-   * @param c the text component
-   * @param pos the document position
-   * @param b the bias for <code>pos</code>
-   * @param d the direction, must be either {@link SwingConstants#NORTH},
-   *        {@link SwingConstants#SOUTH}, {@link SwingConstants#WEST} or
-   *        {@link SwingConstants#EAST}
-   * @param biasRet an array of {@link Position.Bias} that can hold at least
-   *        one element, which is filled with the bias of the return position
-   *        on method exit
-   *
-   * @return the document position that is (visually) nearest to the given
-   *         document position <code>pos</code> in the given direction
-   *         <code>d</code>
-   *
-   * @throws BadLocationException if <code>pos</code> is not a valid offset in
-   *         the document model
+   * @param start the start of the search interval
+   * @param end the end of the search interval
    */
-  public int getNextVisualPositionFrom(JTextComponent c, int pos,
-                                       Position.Bias b, int d,
-                                       Position.Bias[] biasRet)
-    throws BadLocationException
+  private void findLongestLine(int start, int end)
   {
-    // TODO: Implement this properly.
-    throw new AssertionError("Not implemented yet.");
+    for (int i = start; i <= end; i++)
+      {
+        int w = getLineLength(i);
+        if (w > maxLineLength)
+          {
+            maxLineLength = w;
+            longestLine = getElement().getElement(i);
+          }
+      }
+  }
+
+  /**
+   * Determines the length of the specified line.
+   *
+   * @param line the number of the line
+   *
+   * @return the length of the line in pixels
+   */
+  private int getLineLength(int line)
+  {
+    Element lineEl = getElement().getElement(line);
+    Segment buffer = getLineBuffer();
+    try
+      {
+        Document doc = getDocument();
+        doc.getText(lineEl.getStartOffset(),
+                    lineEl.getEndOffset() - lineEl.getStartOffset() - 1,
+                    buffer);
+      }
+    catch (BadLocationException ex)
+      {
+        AssertionError err = new AssertionError("Unexpected bad location");
+        err.initCause(ex);
+        throw err;
+      }
+
+    return Utilities.getTabbedTextWidth(buffer, metrics, 0, this,
+                                        lineEl.getStartOffset());
   }
 }
 

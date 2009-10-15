@@ -1,6 +1,6 @@
 // Debug-mode error formatting implementation -*- C++ -*-
 
-// Copyright (C) 2003, 2004, 2005 Free Software Foundation, Inc.
+// Copyright (C) 2003, 2004, 2005, 2006 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -26,6 +26,10 @@
 // the GNU General Public License.  This exception does not however
 // invalidate any other reasons why the executable file might be covered by
 // the GNU General Public License.
+
+/** @file debug/formatter.h
+ *  This file is a GNU debug extension to the Standard C++ Library.
+ */
 
 #ifndef _GLIBCXX_DEBUG_FORMATTER_H
 #define _GLIBCXX_DEBUG_FORMATTER_H 1

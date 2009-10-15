@@ -1,12 +1,12 @@
 ;; GCC machine description for MMX and 3dNOW! instructions
-;; Copyright (C) 2005
+;; Copyright (C) 2005, 2007
 ;; Free Software Foundation, Inc.
 ;;
 ;; This file is part of GCC.
 ;;
 ;; GCC is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 2, or (at your option)
+;; the Free Software Foundation; either version 3, or (at your option)
 ;; any later version.
 ;;
 ;; GCC is distributed in the hope that it will be useful,
@@ -15,9 +15,8 @@
 ;; GNU General Public License for more details.
 ;;
 ;; You should have received a copy of the GNU General Public License
-;; along with GCC; see the file COPYING.  If not, write to
-;; the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-;; Boston, MA 02110-1301, USA.
+;; along with GCC; see the file COPYING3.  If not see
+;; <http://www.gnu.org/licenses/>.
 
 ;; The MMX and 3dNOW! patterns are in the same file because they use
 ;; the same register file, and 3dNOW! adds a number of extensions to
@@ -82,7 +81,7 @@
     movq\t{%1, %0|%0, %1}
     movd\t{%1, %0|%0, %1}
     movd\t{%1, %0|%0, %1}"
-  [(set_attr "type" "imov,imov,mmxmov,mmxmov,mmxmov,ssecvt,ssecvt,ssemov,ssemov,ssemov,ssemov,ssemov")
+  [(set_attr "type" "imov,imov,mmx,mmxmov,mmxmov,ssecvt,ssecvt,sselog1,ssemov,ssemov,ssemov,ssemov")
    (set_attr "unit" "*,*,*,*,*,mmx,mmx,*,*,*,*,*")
    (set_attr "mode" "DI")])
 
@@ -108,7 +107,7 @@
     movlps\t{%1, %0|%0, %1}
     #
     #"
-  [(set_attr "type" "mmxmov,mmxmov,mmxmov,ssecvt,ssecvt,ssemov,ssemov,ssemov,ssemov,ssemov,ssemov,ssemov,*,*")
+  [(set_attr "type" "mmx,mmxmov,mmxmov,ssecvt,ssecvt,sselog1,ssemov,ssemov,sselog1,ssemov,ssemov,ssemov,*,*")
    (set_attr "unit" "*,*,*,mmx,mmx,*,*,*,*,*,*,*,*,*")
    (set_attr "mode" "DI,DI,DI,DI,DI,TI,DI,DI,V4SF,V4SF,V2SF,V2SF,DI,DI")])
 
@@ -142,7 +141,7 @@
     movlps\t{%1, %0|%0, %1}
     movd\t{%1, %0|%0, %1}
     movd\t{%1, %0|%0, %1}"
-  [(set_attr "type" "imov,imov,mmxmov,mmxmov,mmxmov,ssecvt,ssecvt,ssemov,ssemov,ssemov,ssemov,ssemov,ssemov")
+  [(set_attr "type" "imov,imov,mmx,mmxmov,mmxmov,ssecvt,ssecvt,ssemov,sselog1,ssemov,ssemov,ssemov,ssemov")
    (set_attr "unit" "*,*,*,*,*,mmx,mmx,*,*,*,*,*,*")
    (set_attr "mode" "DI,DI,DI,DI,DI,DI,DI,V4SF,V4SF,V2SF,V2SF,DI,DI")])
 
@@ -165,7 +164,7 @@
     movlps\t{%1, %0|%0, %1}
     #
     #"
-  [(set_attr "type" "mmxmov,mmxmov,mmxmov,ssecvt,ssecvt,ssemov,ssemov,ssemov,ssemov,*,*")
+  [(set_attr "type" "mmx,mmxmov,mmxmov,ssecvt,ssecvt,sselog1,ssemov,ssemov,ssemov,*,*")
    (set_attr "unit" "*,*,*,mmx,mmx,*,*,*,*,*,*")
    (set_attr "mode" "DI,DI,DI,DI,DI,V4SF,V4SF,V2SF,V2SF,DI,DI")])
 
@@ -573,7 +572,7 @@
 	 [(plus:DI (match_operand:DI 1 "nonimmediate_operand" "%0")
 		   (match_operand:DI 2 "nonimmediate_operand" "ym"))]
 	 UNSPEC_NOP))]
-  "TARGET_MMX && ix86_binary_operator_ok (PLUS, DImode, operands)"
+  "TARGET_SSE2 && ix86_binary_operator_ok (PLUS, DImode, operands)"
   "paddq\t{%2, %0|%0, %2}"
   [(set_attr "type" "mmxadd")
    (set_attr "mode" "DI")])
@@ -614,7 +613,7 @@
 	 [(minus:DI (match_operand:DI 1 "register_operand" "0")
 		    (match_operand:DI 2 "nonimmediate_operand" "ym"))]
 	 UNSPEC_NOP))]
-  "TARGET_MMX"
+  "TARGET_SSE2"
   "psubq\t{%2, %0|%0, %2}"
   [(set_attr "type" "mmxadd")
    (set_attr "mode" "DI")])

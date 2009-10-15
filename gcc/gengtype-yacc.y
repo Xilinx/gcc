@@ -1,12 +1,12 @@
 /* -*- indented-text -*- */
 /* Process source files and output type information.
-   Copyright (C) 2002, 2004 Free Software Foundation, Inc.
+   Copyright (C) 2002, 2004, 2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,9 +15,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 %{
 #include "bconfig.h"
@@ -232,17 +231,11 @@ type: SCALAR
       | type '*'
          { $$ = create_pointer ($1); }
       | STRUCT ID '{' struct_fields '}'
-         {
-	   new_structure ($2, 0, &lexer_line, $4, NULL);
-           $$ = find_structure ($2, 0);
-	 }
+         { $$ = new_structure ($2, 0, &lexer_line, $4, NULL); }
       | STRUCT ID
          { $$ = find_structure ($2, 0); }
       | UNION ID '{' struct_fields '}'
-         {
-	   new_structure ($2, 1, &lexer_line, $4, NULL);
-           $$ = find_structure ($2, 1);
-	 }
+         { $$ = new_structure ($2, 1, &lexer_line, $4, NULL); }
       | UNION ID
          { $$ = find_structure ($2, 1); }
       | ENUM ID
@@ -275,11 +268,11 @@ type_option : ALIAS
 	      ;
 
 option:   ID
-	    { $$ = create_option ($1, (void *)""); }
+	    { $$ = create_option (NULL, $1, (void *)""); }
         | ID '(' stringseq ')'
-            { $$ = create_option ($1, (void *)$3); }
+            { $$ = create_option (NULL, $1, (void *)$3); }
 	| type_option '(' type ')'
-	    { $$ = create_option ($1, adjust_field_type ($3, NULL)); }
+	    { $$ = create_option (NULL, $1, adjust_field_type ($3, NULL)); }
 	| NESTED_PTR '(' type ',' stringseq ',' stringseq ')'
 	    {
 	      struct nested_ptr_data d;
@@ -287,7 +280,7 @@ option:   ID
 	      d.type = adjust_field_type ($3, NULL);
 	      d.convert_to = $5;
 	      d.convert_from = $7;
-	      $$ = create_option ("nested_ptr",
+	      $$ = create_option (NULL, "nested_ptr",
 				  xmemdup (&d, sizeof (d), sizeof (d)));
 	    }
 	;

@@ -259,6 +259,15 @@ public class File implements Serializable, Comparable
       return path.equalsIgnoreCase(other.path);
   }
 
+  /*
+   * This method tests whether or not the file represented by the
+   * object actually exists on the filesystem.
+   */
+  private boolean internalExists()
+  {
+    return _access (EXISTS);
+  }
+  
   /**
    * This method tests whether or not the file represented by the object
    * actually exists on the filesystem.
@@ -270,7 +279,7 @@ public class File implements Serializable, Comparable
   public boolean exists()
   {
     checkRead();
-    return _access (EXISTS);
+    return internalExists();
   }
 
   /**
@@ -508,9 +517,9 @@ public class File implements Serializable, Comparable
   /**
    * This method returns a canonical representation of the pathname of
    * this file.  The actual form of the canonical representation is
-   * different.  On the GNU system, the canonical form differs from the
-   * absolute form in that all relative file references to "." and ".."
-   * are resolved and removed.
+   * system-dependent.  On the GNU system, conversion to canonical
+   * form involves the removal of redundant separators, references to
+   * "." and "..", and symbolic links.
    * <p>
    * Note that this method, unlike the other methods which return path
    * names, can throw an IOException.  This is because native method 
@@ -685,6 +694,15 @@ public class File implements Serializable, Comparable
    */
   public native boolean isAbsolute();
 
+  /*
+   * This method tests whether or not the file represented by this
+   * object is a directory.
+   */
+  private boolean internalIsDirectory()
+  {
+    return _stat (DIRECTORY);
+  }
+  
   /**
    * This method tests whether or not the file represented by this object
    * is a directory.  In order for this method to return <code>true</code>,
@@ -698,7 +716,7 @@ public class File implements Serializable, Comparable
   public boolean isDirectory()
   {
     checkRead();
-    return _stat (DIRECTORY);
+    return internalIsDirectory();
   }
 
   /**
@@ -1069,10 +1087,10 @@ public class File implements Serializable, Comparable
           throw new IOException("Cannot determine system temporary directory"); 
 	
         directory = new File(dirname);
-        if (!directory.exists())
+        if (!directory.internalExists())
           throw new IOException("System temporary directory "
                                 + directory.getName() + " does not exist.");
-        if (!directory.isDirectory())
+        if (!directory.internalIsDirectory())
           throw new IOException("System temporary directory "
                                 + directory.getName()
                                 + " is not really a directory.");
@@ -1298,12 +1316,10 @@ public class File implements Serializable, Comparable
   public synchronized boolean renameTo(File dest)
   {
     SecurityManager s = System.getSecurityManager();
-    String sname = getName();
-    String dname = dest.getName();
     if (s != null)
       {
-	s.checkWrite (sname);
-	s.checkWrite (dname);
+	s.checkWrite (getPath());
+	s.checkWrite (dest.getPath());
       }
     return performRenameTo (dest);
   }
@@ -1372,7 +1388,7 @@ public class File implements Serializable, Comparable
     // Check the SecurityManager
     SecurityManager sm = System.getSecurityManager();
     if (sm != null)
-      sm.checkDelete (getName());
+      sm.checkDelete (getPath());
 
     DeleteFileHelper.add(this);
   }

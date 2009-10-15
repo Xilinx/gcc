@@ -108,14 +108,17 @@ package Exp_Ch7 is
      (Ref         : Node_Id;
       Typ         : Entity_Id;
       Flist_Ref   : Node_Id;
-      With_Attach : Node_Id) return List_Id;
+      With_Attach : Node_Id;
+      Allocator   : Boolean := False) return List_Id;
    --  Ref is an expression (with no-side effect and is not required to
    --  have been previously analyzed) that references the object to be
    --  adjusted. Typ is the expected type of Ref, which is a controlled
    --  type (Is_Controlled) or a type with controlled components
    --  (Has_Controlled).  With_Attach is an integer expression representing
    --  the level of attachment, see Attach_To_Final_List's Nb_Link param
-   --  documentation in s-finimp.ads.
+   --  documentation in s-finimp.ads. Note: if Typ is Finalize_Storage_Only
+   --  and the object is at library level, then With_Attach will be ignored,
+   --  and a zero link level will be passed to Attach_To_Final_List.
    --
    --  This function will generate the appropriate calls to make
    --  sure that the objects referenced by Ref are adjusted. The generated
@@ -124,6 +127,12 @@ package Exp_Ch7 is
    --  details are in the body. The objects must be attached when the adjust
    --  takes place after an initialization expression but not when it takes
    --  place after a regular assignment.
+   --
+   --  If Allocator is True, we are adjusting a newly-created object. The
+   --  existing chaining pointers should not be left unchanged, because they
+   --  may come from a bit-for-bit copy of those from an initializing object.
+   --  So, when this flag is True, if the chaining pointers should otherwise
+   --  be left unset, instead they are reset to null.
 
    function Make_Final_Call
      (Ref         : Node_Id;

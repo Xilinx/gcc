@@ -171,7 +171,7 @@ package System.WCh_Con is
 
    subtype WC_ESC_Encoding_Method is
      WC_Encoding_Method range WCEM_Hex .. WCEM_Hex;
-   --  Encoding methods using an ESC character at the start of the sequence.
+   --  Encoding methods using an ESC character at the start of the sequence
 
    subtype WC_Upper_Half_Encoding_Method is
      WC_Encoding_Method range WCEM_Upper .. WCEM_UTF8;
@@ -181,5 +181,9 @@ package System.WCh_Con is
    WC_Longest_Sequence : constant := 10;
    --  The longest number of characters that can be used for a wide character
    --  or wide wide character sequence for any of the active encoding methods.
+
+   function Get_WC_Encoding_Method (C : Character) return WC_Encoding_Method;
+   --  Given a character C, returns corresponding encoding method (see array
+   --  WC_Encoding_Letters above). Raises Constraint_Error if not in list.
 
 end System.WCh_Con;

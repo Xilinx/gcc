@@ -37,8 +37,11 @@ exception statement from your version. */
 
 package javax.swing.filechooser;
 
+import gnu.classpath.NotImplementedException;
+
 import java.io.File;
 import java.io.IOException;
+
 import javax.swing.Icon;
 
 
@@ -103,16 +106,34 @@ class UnixFileSystemView extends FileSystemView
 
   /**
    * Returns the name of a file as it would be displayed by the underlying 
-   * system.  This method is NOT YET IMPLEMENTED.
+   * system.
    *
    * @param f  the file.
    *
-   * @return <code>null</code>.
+   * @return the name of a file as it would be displayed by the underlying 
+   *         system
    */
   public String getSystemDisplayName(File f)
   {
-    // FIXME: Implement;
-    return null;
+    String name = null;
+    if (f != null)
+      {
+        if (isRoot(f))
+          name = f.getAbsolutePath();
+        else
+          {
+            try
+              {
+                String path = f.getCanonicalPath();
+                name = path.substring(path.lastIndexOf(File.separator) + 1);
+              }
+            catch (IOException e)
+              {
+                name = f.getName();
+              }
+          }
+      }
+    return name;
   }
 
   /**
@@ -124,6 +145,7 @@ class UnixFileSystemView extends FileSystemView
    * @return <code>null</code>.
    */
   public Icon getSystemIcon(File f)
+    throws NotImplementedException
   {
     // FIXME: Implement;
     return null;
@@ -138,6 +160,7 @@ class UnixFileSystemView extends FileSystemView
    * @return <code>null</code>.
    */
   public String getSystemTypeDescription(File f)
+    throws NotImplementedException
   {
     // FIXME: Implement.
     return null;

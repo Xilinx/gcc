@@ -1,12 +1,12 @@
 /* Utility macros to handle Java(TM) byte codes.
 
-   Copyright (C) 1996, 1998, 1999, 2003 Free Software Foundation, Inc.
+   Copyright (C) 1996, 1998, 1999, 2003, 2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -15,9 +15,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  
 
 Java and all Java-based marks are trademarks or registered trademarks
 of Sun Microsystems, Inc. in the United States and other countries.
@@ -30,18 +29,40 @@ The Free Software Foundation is independent of Sun Microsystems, Inc.  */
 
 typedef	unsigned char	uint8;
 #ifndef int16
+#if __SHRT_MAX__ == 32767
 #define int16 short
+#elif __INT_MAX__ == 32767
+#define int16 int
+#elif __LONG_MAX__ == 32767
+#define int16 long
+#else
+#define int16 short
+#endif
 #endif
 typedef unsigned int16	uint16;
 
 #ifndef int32
+#if __INT_MAX__ == 2147483647
+#define int32 int
+#elif __LONG_MAX__ == 2147483647
 #define int32 long
+#elif __SHRT_MAX__ == 2147483647
+#define int32 short
+#else
+#define int32 int
+#endif
 #endif
 typedef unsigned int32	uint32;
 
 /* A signed 64-bit (or more) integral type, suitable for Java's 'long'.  */
 #ifndef int64
+#if __LONG_MAX__ == 9223372036854775807LL
+#define int64 long
+#elif __LONG_LONG_MAX__ == 9223372036854775807LL
 #define int64 long long
+#else
+#define int64 long long
+#endif
 #endif
 /* An unsigned 64-bit (or more) integral type, same length as int64. */
 #ifndef uint64
@@ -82,7 +103,14 @@ typedef struct _jdouble {
 
 
 #ifndef jword
+#if defined (__LP64__) || defined (__alpha__) || defined (__MMIX__) \
+    || (defined (_ARCH_PPC) && defined (__64BIT__)) \
+    || defined (__powerpc64__) || defined (__s390x__) || defined (__x86_64__) \
+    || defined (__sparcv9) || (defined (__sparc__) && defined (__arch64__))
+#define jword uint64
+#else
 #define jword uint32
+#endif
 #endif
 
 #ifndef IMMEDIATE_u1

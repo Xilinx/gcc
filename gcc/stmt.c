@@ -1,13 +1,13 @@
 /* Expands front end tree to back end RTL for GCC
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997,
-   1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005
+   1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
    Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -16,9 +16,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 /* This file handles the generation of rtl code from tree structure
    above the level of expressions, using subroutines in exp*.c and emit-rtl.c.
@@ -112,7 +111,6 @@ static bool check_unique_operand_names (tree, tree);
 static char *resolve_operand_name_1 (char *, tree, tree);
 static void expand_null_return_1 (void);
 static void expand_value_return (rtx);
-static void do_jump_if_equal (rtx, rtx, rtx, int);
 static int estimate_case_costs (case_node_ptr);
 static bool lshift_cheap_p (void);
 static int case_bit_test_cmp (const void *, const void *);
@@ -182,7 +180,7 @@ emit_jump (rtx label)
 void
 expand_computed_goto (tree exp)
 {
-  rtx x = expand_expr (exp, NULL_RTX, VOIDmode, 0);
+  rtx x = expand_normal (exp);
 
   x = convert_memory_address (Pmode, x);
 
@@ -886,9 +884,13 @@ expand_asm_operands (tree string, tree outputs, tree inputs,
 
       val = TREE_VALUE (tail);
       type = TREE_TYPE (val);
+      /* EXPAND_INITIALIZER will not generate code for valid initializer
+	 constants, but will still generate code for other types of operand.
+	 This is the behavior we want for constant constraints.  */
       op = expand_expr (val, NULL_RTX, VOIDmode,
-			(allows_mem && !allows_reg
-			 ? EXPAND_MEMORY : EXPAND_NORMAL));
+			allows_reg ? EXPAND_NORMAL
+			: allows_mem ? EXPAND_MEMORY
+			: EXPAND_INITIALIZER);
 
       /* Never pass a CONCAT to an ASM.  */
       if (GET_CODE (op) == CONCAT)
@@ -1375,8 +1377,7 @@ expand_expr_stmt (tree exp)
 
 	  /* Compare the value with itself to reference it.  */
 	  emit_cmp_and_jump_insns (value, value, EQ,
-				   expand_expr (TYPE_SIZE (type),
-						NULL_RTX, VOIDmode, 0),
+				   expand_normal (TYPE_SIZE (type)),
 				   BLKmode, 0, lab);
 	  emit_label (lab);
 	}
@@ -1419,6 +1420,7 @@ warn_if_unused_value (tree exp, location_t locus)
     case TRY_CATCH_EXPR:
     case WITH_CLEANUP_EXPR:
     case EXIT_EXPR:
+    case VA_ARG_EXPR:
       return 0;
 
     case BIND_EXPR:
@@ -1568,7 +1570,7 @@ expand_return (tree retval)
   /* If function wants no value, give it none.  */
   if (TREE_CODE (TREE_TYPE (TREE_TYPE (current_function_decl))) == VOID_TYPE)
     {
-      expand_expr (retval, NULL_RTX, VOIDmode, 0);
+      expand_normal (retval);
       expand_null_return ();
       return;
     }
@@ -1615,7 +1617,7 @@ expand_return (tree retval)
 	= MIN (TYPE_ALIGN (TREE_TYPE (retval_rhs)), BITS_PER_WORD);
       rtx *result_pseudos = alloca (sizeof (rtx) * n_regs);
       rtx result_reg, src = NULL_RTX, dst = NULL_RTX;
-      rtx result_val = expand_expr (retval_rhs, NULL_RTX, VOIDmode, 0);
+      rtx result_val = expand_normal (retval_rhs);
       enum machine_mode tmpmode, result_reg_mode;
 
       if (bytes == 0)
@@ -1960,7 +1962,7 @@ expand_decl (tree decl)
 
       /* Compute the variable's size, in bytes.  This will expand any
 	 needed SAVE_EXPRs for the first time.  */
-      size = expand_expr (DECL_SIZE_UNIT (decl), NULL_RTX, VOIDmode, 0);
+      size = expand_normal (DECL_SIZE_UNIT (decl));
       free_temp_slots ();
 
       /* Allocate space on the stack for the variable.  Note that
@@ -2191,7 +2193,11 @@ case_bit_test_cmp (const void *p1, const void *p2)
   const struct case_bit_test *d1 = p1;
   const struct case_bit_test *d2 = p2;
 
-  return d2->bits - d1->bits;
+  if (d2->bits != d1->bits)
+    return d2->bits - d1->bits;
+
+  /* Stabilize the sort.  */
+  return CODE_LABEL_NUMBER (d2->label) - CODE_LABEL_NUMBER (d1->label);
 }
 
 /*  Expand a switch statement by a short sequence of bit-wise
@@ -2256,11 +2262,11 @@ emit_case_bit_tests (tree index_type, tree index_expr, tree minval,
   index_expr = fold_build2 (MINUS_EXPR, index_type,
 			    fold_convert (index_type, index_expr),
 			    fold_convert (index_type, minval));
-  index = expand_expr (index_expr, NULL_RTX, VOIDmode, 0);
+  index = expand_normal (index_expr);
   do_pending_stack_adjust ();
 
   mode = TYPE_MODE (index_type);
-  expr = expand_expr (range, NULL_RTX, VOIDmode, 0);
+  expr = expand_normal (range);
   emit_cmp_and_jump_insns (index, expr, GTU, NULL_RTX, mode, 1,
 			   default_label);
 
@@ -2366,18 +2372,8 @@ expand_case (tree exp)
 	}
 
 
-      /* Make sure start points to something that won't need any
-	 transformation before the end of this function.  */
-      start = get_last_insn ();
-      if (! NOTE_P (start))
-	{
-	  emit_note (NOTE_INSN_DELETED);
-	  start = get_last_insn ();
-	}
-
+      before_case = start = get_last_insn ();
       default_label = label_rtx (default_label_decl);
-
-      before_case = get_last_insn ();
 
       /* Get upper and lower bounds of case values.  */
 
@@ -2474,7 +2470,7 @@ expand_case (tree exp)
 		  only go this way.  */
 	       || (!HAVE_casesi && !HAVE_tablejump))
 	{
-	  index = expand_expr (index_expr, NULL_RTX, VOIDmode, 0);
+	  index = expand_normal (index_expr);
 
 	  /* If the index is a short or char that we do not have
 	     an insn to handle comparisons directly, convert it to
@@ -2597,21 +2593,14 @@ expand_case (tree exp)
   free_temp_slots ();
 }
 
-/* Generate code to jump to LABEL if OP1 and OP2 are equal.  */
+/* Generate code to jump to LABEL if OP0 and OP1 are equal in mode MODE.  */
 
 static void
-do_jump_if_equal (rtx op1, rtx op2, rtx label, int unsignedp)
+do_jump_if_equal (enum machine_mode mode, rtx op0, rtx op1, rtx label,
+		  int unsignedp)
 {
-  if (GET_CODE (op1) == CONST_INT && GET_CODE (op2) == CONST_INT)
-    {
-      if (op1 == op2)
-	emit_jump (label);
-    }
-  else
-    emit_cmp_and_jump_insns (op1, op2, EQ, NULL_RTX,
-			     (GET_MODE (op1) == VOIDmode
-			     ? GET_MODE (op2) : GET_MODE (op1)),
-			     unsignedp, label);
+  do_compare_rtx_and_jump (op0, op1, EQ, unsignedp, mode,
+			   NULL_RTX, NULL_RTX, label);
 }
 
 /* Not all case values are encountered equally.  This function
@@ -2967,10 +2956,9 @@ emit_case_nodes (rtx index, case_node_ptr node, rtx default_label,
       /* Node is single valued.  First see if the index expression matches
 	 this node and then check our children, if any.  */
 
-      do_jump_if_equal (index,
+      do_jump_if_equal (mode, index,
 			convert_modes (mode, imode,
-				       expand_expr (node->low, NULL_RTX,
-						    VOIDmode, 0),
+				       expand_normal (node->low),
 				       unsignedp),
 			label_rtx (node->code_label), unsignedp);
 
@@ -2987,8 +2975,7 @@ emit_case_nodes (rtx index, case_node_ptr node, rtx default_label,
 	      emit_cmp_and_jump_insns (index,
 				       convert_modes
 				       (mode, imode,
-					expand_expr (node->high, NULL_RTX,
-						     VOIDmode, 0),
+					expand_normal (node->high),
 					unsignedp),
 				       GT, NULL_RTX, mode, unsignedp,
 				       label_rtx (node->right->code_label));
@@ -3000,8 +2987,7 @@ emit_case_nodes (rtx index, case_node_ptr node, rtx default_label,
 	      emit_cmp_and_jump_insns (index,
 				       convert_modes
 				       (mode, imode,
-					expand_expr (node->high, NULL_RTX,
-						     VOIDmode, 0),
+					expand_normal (node->high),
 					unsignedp),
 				       LT, NULL_RTX, mode, unsignedp,
 				       label_rtx (node->left->code_label));
@@ -3023,22 +3009,18 @@ emit_case_nodes (rtx index, case_node_ptr node, rtx default_label,
 
 	      /* See if the value matches what the right hand side
 		 wants.  */
-	      do_jump_if_equal (index,
+	      do_jump_if_equal (mode, index,
 				convert_modes (mode, imode,
-					       expand_expr (node->right->low,
-							    NULL_RTX,
-							    VOIDmode, 0),
+					       expand_normal (node->right->low),
 					       unsignedp),
 				label_rtx (node->right->code_label),
 				unsignedp);
 
 	      /* See if the value matches what the left hand side
 		 wants.  */
-	      do_jump_if_equal (index,
+	      do_jump_if_equal (mode, index,
 				convert_modes (mode, imode,
-					       expand_expr (node->left->low,
-							    NULL_RTX,
-							    VOIDmode, 0),
+					       expand_normal (node->left->low),
 					       unsignedp),
 				label_rtx (node->left->code_label),
 				unsignedp);
@@ -3055,8 +3037,7 @@ emit_case_nodes (rtx index, case_node_ptr node, rtx default_label,
 	      emit_cmp_and_jump_insns (index,
 				       convert_modes
 				       (mode, imode,
-					expand_expr (node->high, NULL_RTX,
-						     VOIDmode, 0),
+					expand_normal (node->high),
 					unsignedp),
 				       GT, NULL_RTX, mode, unsignedp,
 				       label_rtx (test_label));
@@ -3091,8 +3072,7 @@ emit_case_nodes (rtx index, case_node_ptr node, rtx default_label,
 		  emit_cmp_and_jump_insns (index,
 					   convert_modes
 					   (mode, imode,
-					    expand_expr (node->high, NULL_RTX,
-							 VOIDmode, 0),
+					    expand_normal (node->high),
 					    unsignedp),
 					   LT, NULL_RTX, mode, unsignedp,
 					   default_label);
@@ -3104,11 +3084,10 @@ emit_case_nodes (rtx index, case_node_ptr node, rtx default_label,
 	    /* We cannot process node->right normally
 	       since we haven't ruled out the numbers less than
 	       this node's value.  So handle node->right explicitly.  */
-	    do_jump_if_equal (index,
+	    do_jump_if_equal (mode, index,
 			      convert_modes
 			      (mode, imode,
-			       expand_expr (node->right->low, NULL_RTX,
-					    VOIDmode, 0),
+			       expand_normal (node->right->low),
 			       unsignedp),
 			      label_rtx (node->right->code_label), unsignedp);
 	}
@@ -3124,8 +3103,7 @@ emit_case_nodes (rtx index, case_node_ptr node, rtx default_label,
 		  emit_cmp_and_jump_insns (index,
 					   convert_modes
 					   (mode, imode,
-					    expand_expr (node->high, NULL_RTX,
-							 VOIDmode, 0),
+					    expand_normal (node->high),
 					    unsignedp),
 					   GT, NULL_RTX, mode, unsignedp,
 					   default_label);
@@ -3137,11 +3115,10 @@ emit_case_nodes (rtx index, case_node_ptr node, rtx default_label,
 	    /* We cannot process node->left normally
 	       since we haven't ruled out the numbers less than
 	       this node's value.  So handle node->left explicitly.  */
-	    do_jump_if_equal (index,
+	    do_jump_if_equal (mode, index,
 			      convert_modes
 			      (mode, imode,
-			       expand_expr (node->left->low, NULL_RTX,
-					    VOIDmode, 0),
+			       expand_normal (node->left->low),
 			       unsignedp),
 			      label_rtx (node->left->code_label), unsignedp);
 	}
@@ -3167,8 +3144,7 @@ emit_case_nodes (rtx index, case_node_ptr node, rtx default_label,
 	    emit_cmp_and_jump_insns (index,
 				     convert_modes
 				     (mode, imode,
-				      expand_expr (node->high, NULL_RTX,
-						   VOIDmode, 0),
+				      expand_normal (node->high),
 				      unsignedp),
 				     GT, NULL_RTX, mode, unsignedp,
 				     label_rtx (node->right->code_label));
@@ -3181,8 +3157,7 @@ emit_case_nodes (rtx index, case_node_ptr node, rtx default_label,
 	      emit_cmp_and_jump_insns (index,
 				       convert_modes
 				       (mode, imode,
-					expand_expr (node->high, NULL_RTX,
-						     VOIDmode, 0),
+					expand_normal (node->high),
 					unsignedp),
 				       GT, NULL_RTX, mode, unsignedp,
 				       label_rtx (test_label));
@@ -3193,8 +3168,7 @@ emit_case_nodes (rtx index, case_node_ptr node, rtx default_label,
 	  emit_cmp_and_jump_insns (index,
 				   convert_modes
 				   (mode, imode,
-				    expand_expr (node->low, NULL_RTX,
-						 VOIDmode, 0),
+				    expand_normal (node->low),
 				    unsignedp),
 				   GE, NULL_RTX, mode, unsignedp,
 				   label_rtx (node->code_label));
@@ -3224,8 +3198,7 @@ emit_case_nodes (rtx index, case_node_ptr node, rtx default_label,
 	      emit_cmp_and_jump_insns (index,
 				       convert_modes
 				       (mode, imode,
-					expand_expr (node->low, NULL_RTX,
-						     VOIDmode, 0),
+					expand_normal (node->low),
 					unsignedp),
 				       LT, NULL_RTX, mode, unsignedp,
 				       default_label);
@@ -3236,8 +3209,7 @@ emit_case_nodes (rtx index, case_node_ptr node, rtx default_label,
 	  emit_cmp_and_jump_insns (index,
 				   convert_modes
 				   (mode, imode,
-				    expand_expr (node->high, NULL_RTX,
-						 VOIDmode, 0),
+				    expand_normal (node->high),
 				    unsignedp),
 				   LE, NULL_RTX, mode, unsignedp,
 				   label_rtx (node->code_label));
@@ -3254,8 +3226,7 @@ emit_case_nodes (rtx index, case_node_ptr node, rtx default_label,
 	      emit_cmp_and_jump_insns (index,
 				       convert_modes
 				       (mode, imode,
-					expand_expr (node->high, NULL_RTX,
-						     VOIDmode, 0),
+					expand_normal (node->high),
 					unsignedp),
 				       GT, NULL_RTX, mode, unsignedp,
 				       default_label);
@@ -3266,8 +3237,7 @@ emit_case_nodes (rtx index, case_node_ptr node, rtx default_label,
 	  emit_cmp_and_jump_insns (index,
 				   convert_modes
 				   (mode, imode,
-				    expand_expr (node->low, NULL_RTX,
-						 VOIDmode, 0),
+				    expand_normal (node->low),
 				    unsignedp),
 				   GE, NULL_RTX, mode, unsignedp,
 				   label_rtx (node->code_label));
@@ -3288,8 +3258,7 @@ emit_case_nodes (rtx index, case_node_ptr node, rtx default_label,
 	      emit_cmp_and_jump_insns (index,
 				       convert_modes
 				       (mode, imode,
-					expand_expr (node->high, NULL_RTX,
-						     VOIDmode, 0),
+					expand_normal (node->high),
 					unsignedp),
 				       GT, NULL_RTX, mode, unsignedp,
 				       default_label);
@@ -3300,8 +3269,7 @@ emit_case_nodes (rtx index, case_node_ptr node, rtx default_label,
 	      emit_cmp_and_jump_insns (index,
 				       convert_modes
 				       (mode, imode,
-					expand_expr (node->low, NULL_RTX,
-						     VOIDmode, 0),
+					expand_normal (node->low),
 					unsignedp),
 				       LT, NULL_RTX, mode, unsignedp,
 				       default_label);
@@ -3316,13 +3284,13 @@ emit_case_nodes (rtx index, case_node_ptr node, rtx default_label,
 
 	      /* Instead of doing two branches, emit one unsigned branch for
 		 (index-low) > (high-low).  */
-	      low_rtx = expand_expr (low, NULL_RTX, mode, 0);
+	      low_rtx = expand_expr (low, NULL_RTX, mode, EXPAND_NORMAL);
 	      new_index = expand_simple_binop (mode, MINUS, index, low_rtx,
 					       NULL_RTX, unsignedp,
 					       OPTAB_WIDEN);
 	      new_bound = expand_expr (fold_build2 (MINUS_EXPR, type,
 						    high, low),
-				       NULL_RTX, mode, 0);
+				       NULL_RTX, mode, EXPAND_NORMAL);
 
 	      emit_cmp_and_jump_insns (new_index, new_bound, GT, NULL_RTX,
 				       mode, 1, default_label);

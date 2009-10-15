@@ -1,12 +1,12 @@
 /* Define per-register tables for data flow info and register allocation.
    Copyright (C) 1987, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2003, 2004 Free Software Foundation, Inc.
+   1999, 2000, 2003, 2004, 2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,9 +15,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #ifndef GCC_REGS_H
 #define GCC_REGS_H
@@ -65,15 +64,20 @@ typedef struct reg_info_def
   int basic_block;		/* # of basic blocks (REG n) is used in */
 } reg_info;
 
-extern varray_type reg_n_info;
+typedef reg_info *reg_info_p;
+
+DEF_VEC_P(reg_info_p);
+DEF_VEC_ALLOC_P(reg_info_p,heap);
+
+extern VEC(reg_info_p,heap) *reg_n_info;
 
 /* Indexed by n, gives number of times (REG n) is used or set.  */
 
-#define REG_N_REFS(N) (VARRAY_REG (reg_n_info, N)->refs)
+#define REG_N_REFS(N) (VEC_index (reg_info_p, reg_n_info, N)->refs)
 
 /* Estimate frequency of references to register N.  */
 
-#define REG_FREQ(N) (VARRAY_REG (reg_n_info, N)->freq)
+#define REG_FREQ(N) (VEC_index (reg_info_p, reg_n_info, N)->freq)
 
 /* The weights for each insn varries from 0 to REG_FREQ_BASE.
    This constant does not need to be high, as in infrequently executed
@@ -97,7 +101,7 @@ extern varray_type reg_n_info;
    ??? both regscan and flow allocate space for this.  We should settle
    on just copy.  */
 
-#define REG_N_SETS(N) (VARRAY_REG (reg_n_info, N)->sets)
+#define REG_N_SETS(N) (VEC_index (reg_info_p, reg_n_info, N)->sets)
 
 /* Indexed by N, gives number of insns in which register N dies.
    Note that if register N is live around loops, it can die
@@ -105,7 +109,7 @@ extern varray_type reg_n_info;
    So this is only a reliable indicator of how many regions of life there are
    for registers that are contained in one basic block.  */
 
-#define REG_N_DEATHS(N) (VARRAY_REG (reg_n_info, N)->deaths)
+#define REG_N_DEATHS(N) (VEC_index (reg_info_p, reg_n_info, N)->deaths)
 
 /* Get the number of consecutive words required to hold pseudo-reg N.  */
 
@@ -124,13 +128,14 @@ extern varray_type reg_n_info;
 
 /* Indexed by N, gives number of CALL_INSNS across which (REG n) is live.  */
 
-#define REG_N_CALLS_CROSSED(N) (VARRAY_REG (reg_n_info, N)->calls_crossed)
+#define REG_N_CALLS_CROSSED(N)					\
+  (VEC_index (reg_info_p, reg_n_info, N)->calls_crossed)
 
 /* Indexed by N, gives number of CALL_INSNS that may throw, across which
    (REG n) is live.  */
 
 #define REG_N_THROWING_CALLS_CROSSED(N) \
-  (VARRAY_REG (reg_n_info, N)->throw_calls_crossed)
+  (VEC_index (reg_info_p, reg_n_info, N)->throw_calls_crossed)
 
 /* Total number of instructions at which (REG n) is live.
    The larger this is, the less priority (REG n) gets for
@@ -147,7 +152,8 @@ extern varray_type reg_n_info;
    is not required.  global.c makes an allocno for this but does
    not try to assign a hard register to it.  */
 
-#define REG_LIVE_LENGTH(N) (VARRAY_REG (reg_n_info, N)->live_length)
+#define REG_LIVE_LENGTH(N)				\
+  (VEC_index (reg_info_p, reg_n_info, N)->live_length)
 
 /* Vector of substitutions of register numbers,
    used to map pseudo regs into hardware regs.
@@ -182,7 +188,7 @@ extern enum machine_mode reg_raw_mode[FIRST_PSEUDO_REGISTER];
    It is sometimes adjusted for subsequent changes during loop,
    but not adjusted by cse even if cse invalidates it.  */
 
-#define REGNO_FIRST_UID(N) (VARRAY_REG (reg_n_info, N)->first_uid)
+#define REGNO_FIRST_UID(N) (VEC_index (reg_info_p, reg_n_info, N)->first_uid)
 
 /* Vector indexed by regno; gives uid of last insn using that reg.
    This is computed by reg_scan for use by cse and loop.
@@ -190,7 +196,7 @@ extern enum machine_mode reg_raw_mode[FIRST_PSEUDO_REGISTER];
    but not adjusted by cse even if cse invalidates it.
    This is harmless since cse won't scan through a loop end.  */
 
-#define REGNO_LAST_UID(N) (VARRAY_REG (reg_n_info, N)->last_uid)
+#define REGNO_LAST_UID(N) (VEC_index (reg_info_p, reg_n_info, N)->last_uid)
 
 /* List made of EXPR_LIST rtx's which gives pairs of pseudo registers
    that have to go in the same hard reg.  */

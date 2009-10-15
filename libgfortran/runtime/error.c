@@ -436,7 +436,11 @@ translate_error (int code)
       break;
 
     case ERROR_SHORT_RECORD:
-      p = "Short record on unformatted read";
+      p = "I/O past end of record on unformatted file";
+      break;
+
+    case ERROR_CORRUPT_FILE:
+      p = "Unformatted file structure has been corrupted";
       break;
 
     default:
@@ -531,7 +535,7 @@ notification_std (int std)
    standard does not contain the requested bits.  */
 
 try
-notify_std (int std, const char * message)
+notify_std (st_parameter_common *cmp, int std, const char * message)
 {
   int warning;
 
@@ -544,10 +548,15 @@ notify_std (int std, const char * message)
 
   if (!warning)
     {
+      recursion_check ();
+      show_locus (cmp);
       st_printf ("Fortran runtime error: %s\n", message);
       sys_exit (2);
     }
   else
-    st_printf ("Fortran runtime warning: %s\n", message);
+    {
+      show_locus (cmp);
+      st_printf ("Fortran runtime warning: %s\n", message);
+    }
   return FAILURE;
 }

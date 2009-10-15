@@ -124,8 +124,6 @@ public class DefaultDesktopManager implements DesktopManager, Serializable
   public void closeFrame(JInternalFrame frame)
   {
     Container c = frame.getParent();
-    frame.doDefaultCloseAction();
-
     if (c != null)
       {
 	if (frame.isIcon())
@@ -244,7 +242,9 @@ public class DefaultDesktopManager implements DesktopManager, Serializable
             c.add(icon);
             icon.setVisible(true);
           }
+        Rectangle b = frame.getBounds();
         c.remove(frame);
+        c.repaint(b.x, b.y, b.width, b.height);
       }
   }
 
@@ -400,8 +400,8 @@ public class DefaultDesktopManager implements DesktopManager, Serializable
                           dragCache.width, dragCache.height);
         pane = null;
         dragCache = null;
+        component.repaint();        
       }
-    component.repaint();
   }
 
   /**
@@ -463,8 +463,8 @@ public class DefaultDesktopManager implements DesktopManager, Serializable
                           dragCache.width, dragCache.height);
         pane = null;
         dragCache = null;
+        component.repaint();        
       }
-    component.repaint();
   }
 
   /**
@@ -481,13 +481,6 @@ public class DefaultDesktopManager implements DesktopManager, Serializable
                                 int newWidth, int newHeight)
   {
     component.setBounds(newX, newY, newWidth, newHeight);
-    component.revalidate();
-
-    // If not null, I'd rather repaint the parent
-    if (component.getParent() != null)
-      component.getParent().repaint();
-    else
-      component.repaint();
   }
 
   /**
@@ -501,7 +494,11 @@ public class DefaultDesktopManager implements DesktopManager, Serializable
     JDesktopIcon icon = frame.getDesktopIcon();
     Container c = icon.getParent();
     if (c != null && icon != null)
-      c.remove(icon);
+      {
+        Rectangle b = icon.getBounds();
+        c.remove(icon);
+        c.repaint(b.x, b.y, b.width, b.height);
+      }
   }
 
   /**

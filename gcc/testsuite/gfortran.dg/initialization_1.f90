@@ -1,5 +1,5 @@
 !==================initialization_1.f90======================
-!
+
 ! { dg-do compile }
 ! Tests fix for PR25018 in which an ICE resulted from using a
 ! variable in a parameter initialization expression. In the course
@@ -20,21 +20,19 @@ contains
 
     real(8) :: x (1:2, *)
     real(8) :: y (0:,:)
-    real(8) :: z (2,2)
+    integer :: i
+    real :: z(2, 2)
 
 ! However, this gives a warning because it is an initialization expression.
     integer :: l1 = len (ch1)     ! { dg-warning "assumed character length variable" }
 
-! Dependence on upper bound of final dimension of assumed size array knocks these out.
-    integer :: m1 = size (x, 2)   ! { dg-error "not a valid dimension index" }
-    integer :: m2(2) = shape (x)  ! { dg-error "assumed size array" }
-
 ! These are warnings because they are gfortran extensions.
-    integer :: m3 = size (x, 1)   ! { dg-warning "upper bound in the last dimension" }
+    integer :: m3 = size (x, 1)   ! { dg-warning "Evaluation of nonstandard initialization" }
     integer :: m4(2) = shape (z)  ! { dg-warning "Evaluation of nonstandard initialization" }
 
 ! This does not depend on non-constant properties.
     real(8) :: big = huge (x)
+
   end subroutine foo  
 end module const
 

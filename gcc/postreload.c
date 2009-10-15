@@ -1,12 +1,12 @@
 /* Perform simple optimizations to clean up the result of reload.
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,9 +15,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -731,7 +730,7 @@ reload_combine (void)
      destination.  */
   min_labelno = get_first_label_num ();
   n_labels = max_label_num () - min_labelno;
-  label_live = xmalloc (n_labels * sizeof (HARD_REG_SET));
+  label_live = XNEWVEC (HARD_REG_SET, n_labels);
   CLEAR_HARD_REG_SET (ever_live_at_start);
 
   FOR_EACH_BB_REVERSE (bb)
@@ -1572,7 +1571,7 @@ gate_handle_postreload (void)
 }
 
 
-static void
+static unsigned int
 rest_of_handle_postreload (void)
 {
   /* Do a very simple CSE pass over just the hard registers.  */
@@ -1581,6 +1580,7 @@ rest_of_handle_postreload (void)
      Remove any EH edges associated with them.  */
   if (flag_non_call_exceptions)
     purge_all_dead_edges ();
+  return 0;
 }
 
 struct tree_opt_pass pass_postreload_cse =

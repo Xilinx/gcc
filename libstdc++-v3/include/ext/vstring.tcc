@@ -1,6 +1,6 @@
 // Versatile string -*- C++ -*-
 
-// Copyright (C) 2005 Free Software Foundation, Inc.
+// Copyright (C) 2005, 2006, 2007 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -38,8 +38,8 @@
 
 #pragma GCC system_header
 
-namespace __gnu_cxx
-{
+_GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
+
   template<typename _CharT, typename _Traits, typename _Alloc,
 	   template <typename, typename, typename> class _Base>
     const typename __versa_string<_CharT, _Traits, _Alloc, _Base>::size_type
@@ -84,7 +84,7 @@ namespace __gnu_cxx
       __versa_string<_CharT, _Traits, _Alloc, _Base>&
       __versa_string<_CharT, _Traits, _Alloc, _Base>::
       _M_replace_dispatch(iterator __i1, iterator __i2, _InputIterator __k1,
-			  _InputIterator __k2, __false_type)
+			  _InputIterator __k2, std::__false_type)
       {
 	const __versa_string __s(__k1, __k2);
 	const size_type __n1 = __i2 - __i1;
@@ -271,17 +271,21 @@ namespace __gnu_cxx
     find(const _CharT* __s, size_type __pos, size_type __n) const
     {
       __glibcxx_requires_string_len(__s, __n);
-      size_type __ret = npos;
       const size_type __size = this->size();
-      if (__pos + __n <= __size)
+      const _CharT* __data = this->_M_data();
+
+      if (__n == 0)
+	return __pos <= __size ? __pos : npos;
+
+      if (__n <= __size)
 	{
-	  const _CharT* __data = this->_M_data();
-	  const _CharT* __p = std::search(__data + __pos, __data + __size,
-					  __s, __s + __n, traits_type::eq);
-	  if (__p != __data + __size || __n == 0)
-	    __ret = __p - __data;
+	  for (; __pos <= __size - __n; ++__pos)
+	    if (traits_type::eq(__data[__pos], __s[0])
+		&& traits_type::compare(__data + __pos + 1,
+					__s + 1, __n - 1) == 0)
+	      return __pos;
 	}
-      return __ret;
+      return npos;
     }
 
   template<typename _CharT, typename _Traits, typename _Alloc,
@@ -536,10 +540,10 @@ namespace __gnu_cxx
       return __r;
     }
 
-} // namespace __gnu_cxx
+_GLIBCXX_END_NAMESPACE
 
-namespace std
-{
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
   template<typename _CharT, typename _Traits, typename _Alloc,
            template <typename, typename, typename> class _Base>
     basic_istream<_CharT, _Traits>&
@@ -608,39 +612,6 @@ namespace std
 	__in.setstate(__err);
       return __in;
     }      
-
-  template<typename _CharT, typename _Traits, typename _Alloc,
-           template <typename, typename, typename> class _Base>
-    basic_ostream<_CharT, _Traits>&
-    operator<<(basic_ostream<_CharT, _Traits>& __out,
-	       const __gnu_cxx::__versa_string<_CharT, _Traits,
-	                                       _Alloc, _Base>& __str)
-    {
-      typedef basic_ostream<_CharT, _Traits>            __ostream_type;
-
-      typename __ostream_type::sentry __cerb(__out);
-      if (__cerb)
-	{
-	  const streamsize __w = __out.width();
-	  streamsize __len = static_cast<streamsize>(__str.size());
-	  const _CharT* __s = __str.data();
-
-	  // _GLIBCXX_RESOLVE_LIB_DEFECTS
-	  // 25. String operator<< uses width() value wrong
-	  if (__w > __len)
-	    {
-	      _CharT* __cs = (static_cast<
-			      _CharT*>(__builtin_alloca(sizeof(_CharT) * __w)));
-	      __pad<_CharT, _Traits>::_S_pad(__out, __out.fill(), __cs,
-					     __s, __w, __len, false);
-	      __s = __cs;
-	      __len = __w;
-	    }
-	  __out._M_write(__s, __len);
-	  __out.width(0);
-	}
-      return __out;
-    }
 
   template<typename _CharT, typename _Traits, typename _Alloc,
            template <typename, typename, typename> class _Base>
@@ -714,6 +685,6 @@ namespace std
       return __in;
     }      
   
-} // namespace std
+_GLIBCXX_END_NAMESPACE
 
 #endif // _VSTRING_TCC

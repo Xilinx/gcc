@@ -1,6 +1,6 @@
 // posix.cc -- Helper functions for POSIX-flavored OSs.
 
-/* Copyright (C) 2000, 2001, 2002  Free Software Foundation
+/* Copyright (C) 2000, 2001, 2002, 2006  Free Software Foundation
 
    This file is part of libgcj.
 
@@ -17,7 +17,12 @@ details.  */
 #include <signal.h>
 #include <stdio.h>
 
+#ifdef HAVE_DLFCN_H
+#include <dlfcn.h>
+#endif
+
 #include <jvm.h>
+#include <java-stack.h>
 #include <java/lang/Thread.h>
 #include <java/io/InterruptedIOException.h>
 #include <java/util/Properties.h>
@@ -66,6 +71,38 @@ _Jv_platform_gettimeofday ()
 #endif
 }
 
+jlong
+_Jv_platform_nanotime ()
+{
+#ifdef HAVE_CLOCK_GETTIME
+  struct timespec now;
+  clockid_t id;
+#ifdef CLOCK_MONOTONIC
+  id = CLOCK_MONOTONIC;
+#elif defined (CLOCK_HIGHRES)
+  id = CLOCK_HIGHRES;
+#else
+  id = CLOCK_REALTIME;
+#endif
+  if (clock_gettime (id, &now) == 0)
+    {
+      jlong result = (jlong) now.tv_sec;
+      result = result * 1000000000LL + now.tv_nsec;
+      return result;
+    }
+  // clock_gettime failed, but we can fall through.
+#endif // HAVE_CLOCK_GETTIME
+#if defined (HAVE_GETTIMEOFDAY)
+ {
+   timeval tv;
+   gettimeofday (&tv, NULL);
+   return (tv.tv_sec * 1000000000LL) + tv.tv_usec * 1000LL;
+ }
+#else
+  return _Jv_platform_gettimeofday () * 1000000LL;
+#endif
+}
+
 // Platform-specific VM initialization.
 void
 _Jv_platform_initialize (void)
@@ -98,7 +135,7 @@ _Jv_platform_initProperties (java::util::Properties* newprops)
   SET ("file.separator", "/");
   SET ("path.separator", ":");
   SET ("line.separator", "\n");
-  char *tmpdir = ::getenv("TMPDIR");
+  const char *tmpdir = ::getenv("TMPDIR");
   if (! tmpdir)
     tmpdir = "/tmp";
   SET ("java.io.tmpdir", tmpdir);
@@ -178,4 +215,32 @@ _Jv_select (int n, fd_set *readfds, fd_set  *writefds,
 #else /* HAVE_SELECT */
   return 0;
 #endif
+}
+
+// Given an address, find the object that defines it and the nearest
+// defined symbol to that address.  Returns 0 if no object defines this
+// address.
+int
+_Jv_platform_dladdr (void *addr, _Jv_AddrInfo *info)
+{
+  int ret_val = 0;
+
+#if defined (HAVE_DLFCN_H) && defined (HAVE_DLADDR)
+  Dl_info addr_info;
+  ret_val = dladdr (addr, &addr_info);
+  if (ret_val != 0)
+    {
+      info->file_name = addr_info.dli_fname;
+      info->base = addr_info.dli_fbase;
+      info->sym_name = addr_info.dli_sname;
+      info->sym_addr = addr_info.dli_saddr;
+    }
+#else
+  info->file_name = NULL;
+  info->base = NULL;
+  info->sym_name = NULL;
+  info->sym_addr = NULL;
+#endif
+
+  return ret_val;
 }

@@ -257,7 +257,7 @@ while (0)
 	"%{mno-xl-barrel-shift:%<mxl-barrel-shift}", 	\
 	"%{mno-xl-pattern-compare:%<mxl-pattern-compare}", \
 	"%{mxl-soft-div:%<mno-xl-soft-div}", 		\
-	"%{msoft-float:%<mhard-float}",
+	"%{msoft-float:%<mhard-float}"
 
 /* Tell collect what flags to pass to nm.  */
 #ifndef NM_FLAGS
@@ -1270,11 +1270,11 @@ do {									\
   if (SIZE > 0 && SIZE <= microblaze_section_threshold                  \
       && TARGET_XLGP_OPT)                                               \
     {                                                                   \
-      sbss_section ();							\
+      switch_to_section (sbss_section);					\
     }									\
   else									\
     {									\
-      bss_section();                                                    \
+      switch_to_section (bss_section);					\
     }                                                                   \
   fprintf (FILE, "%s", COMMON_ASM_OP);                                  \
   assemble_name ((FILE), (NAME));					\
@@ -1289,11 +1289,11 @@ do {									\
   if (SIZE > 0 && SIZE <= microblaze_section_threshold                  \
       && TARGET_XLGP_OPT)                                               \
     {                                                                   \
-      sbss_section ();							\
+      switch_to_section (sbss_section);					\
     }									\
   else									\
     {									\
-      bss_section();                                                    \
+      switch_to_section (bss_section);					\
     }                                                                   \
   fprintf (FILE, "%s", LCOMMON_ASM_OP);                                 \
   assemble_name ((FILE), (NAME));					\
@@ -1398,15 +1398,7 @@ do {									\
 #endif
 
 #define ASM_OUTPUT_IDENT(FILE, STRING)					\
-{									\
-  const char *p = STRING;							\
-  int size = strlen (p) + 1;						\
-  if(size <= microblaze_section_threshold)				\
-     sdata2_section ();							\
-  else 									\
-     rodata_section ();							\
-  assemble_string (p, size);						\
-}
+  microblaze_asm_output_ident (FILE, STRING)
 
 /* Default to -G 8 */
 #ifndef MICROBLAZE_DEFAULT_GVALUE
@@ -1571,6 +1563,9 @@ do {									 \
 #undef TARGET_UNIQUE_SECTION
 #define TARGET_UNIQUE_SECTION microblaze_unique_section
 
+#undef TARGET_ASM_INIT_SECTIONS
+#define TARGET_ASM_INIT_SECTIONS microblaze_elf_asm_init_sections
+
 /* Define the strings to put out for each section in the object file.  
    
    Note: For ctors/dtors, we want to give these sections the SHF_WRITE 
@@ -1595,7 +1590,7 @@ do {									 \
 #define HOT_TEXT_SECTION_NAME   ".text.hot"
 #define UNLIKELY_EXECUTED_TEXT_SECTION_NAME \
                                 ".text.unlikely"
-
+#if 0
 #define READONLY_DATA_SECTION   rodata_section
 #define SDATA_SECTION           sdata_section
 #define READONLY_SDATA_SECTION  sdata2_section
@@ -1635,6 +1630,7 @@ void FN (void)								\
       in_section = ENUM;						\
     }									\
 }
+#endif
 
 /* We do this to save a few 10s of code space that would be taken up
    by the call_FUNC () wrappers, used by the generic CRT_CALL_STATIC_FUNCTION

@@ -6,18 +6,17 @@
  *                                                                          *
  *                          C Implementation File                           *
  *                                                                          *
- *          Copyright (C) 1992-2005, Free Software Foundation, Inc.         *
+ *          Copyright (C) 1992-2007, Free Software Foundation, Inc.         *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
- * ware  Foundation;  either version 2,  or (at your option) any later ver- *
+ * ware  Foundation;  either version 3,  or (at your option) any later ver- *
  * sion.  GNAT is distributed in the hope that it will be useful, but WITH- *
  * OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY *
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License *
- * for  more details.  You should have  received  a copy of the GNU General *
- * Public License  distributed with GNAT;  see file COPYING.  If not, write *
- * to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, *
- * Boston, MA 02110-1301, USA.                                              *
+ * for  more details.  You should have received a copy of the GNU General   *
+ * Public License along with GCC; see the file COPYING3.  If not see        *
+ * <http://www.gnu.org/licenses/>.                                          *
  *                                                                          *
  * GNAT was originally developed  by the GNAT team at  New York University. *
  * Extensive contributions were provided by Ada Core Technologies Inc.      *
@@ -37,6 +36,7 @@
 #include "types.h"
 #include "atree.h"
 #include "stringt.h"
+#include "namet.h"
 #include "uintp.h"
 #include "fe.h"
 #include "elists.h"
@@ -118,19 +118,6 @@ get_base_type (tree type)
   while (TREE_TYPE (type)
 	 && (TREE_CODE (type) == INTEGER_TYPE
 	     || TREE_CODE (type) == REAL_TYPE))
-    type = TREE_TYPE (type);
-
-  return type;
-}
-
-/* Likewise, but only return types known to the Ada source.  */
-tree
-get_ada_base_type (tree type)
-{
-  while (TREE_TYPE (type)
-	 && (TREE_CODE (type) == INTEGER_TYPE
-	     || TREE_CODE (type) == REAL_TYPE)
-	 && !TYPE_EXTRA_SUBTYPE_P (type))
     type = TREE_TYPE (type);
 
   return type;
@@ -231,8 +218,13 @@ find_common_type (tree t1, tree t2)
   else if (TYPE_MODE (t2) != BLKmode)
     return t2;
 
-  /* Otherwise, return the type that has a constant size.  */
-  if (TREE_CONSTANT (TYPE_SIZE (t1)))
+  /* If both types have constant size, use the smaller one.  Keep returning
+     T1 if we have a tie, to be consistent with the other cases.  */
+  if (TREE_CONSTANT (TYPE_SIZE (t1)) && TREE_CONSTANT (TYPE_SIZE (t2)))
+    return tree_int_cst_lt (TYPE_SIZE (t2), TYPE_SIZE (t1)) ? t2 : t1;
+
+  /* Otherwise, if either type has a constant size, use it.  */
+  else if (TREE_CONSTANT (TYPE_SIZE (t1)))
     return t1;
   else if (TREE_CONSTANT (TYPE_SIZE (t2)))
     return t2;
@@ -854,7 +846,8 @@ build_binary_op (enum tree_code op_code, tree result_type,
 	       && TREE_CODE (right_operand) == CONSTRUCTOR
 	       && integer_zerop (VEC_index (constructor_elt,
 					    CONSTRUCTOR_ELTS (right_operand),
-					    0)->value))
+					    0)
+				 ->value))
 	{
 	  right_operand = build_component_ref (left_operand, NULL_TREE,
 					       TYPE_FIELDS (left_base_type),
@@ -1107,13 +1100,13 @@ build_unary_op (enum tree_code op_code, tree result_type, tree operand)
 	     a pointer to our type.  */
 	  if (TREE_CODE (type) == RECORD_TYPE && TYPE_IS_PADDING_P (type))
 	    {
-	      result = VEC_index (constructor_elt,
-				  CONSTRUCTOR_ELTS (operand),
-				  0)->value;
-	      result
-		= build_unary_op (ADDR_EXPR, NULL_TREE, result);
+	      result = (VEC_index (constructor_elt,
+				   CONSTRUCTOR_ELTS (operand),
+				   0)
+			->value);
+
 	      result = convert (build_pointer_type (TREE_TYPE (operand)),
-				result);
+				build_unary_op (ADDR_EXPR, NULL_TREE, result));
 	      break;
 	    }
 
@@ -1437,22 +1430,40 @@ build_call_0_expr (tree fundecl)
 		      build_unary_op (ADDR_EXPR, NULL_TREE, fundecl),
 		      NULL_TREE, NULL_TREE);
 
-  TREE_SIDE_EFFECTS (call) = 1;
+  /* We rely on build3 to compute TREE_SIDE_EFFECTS.  This makes it possible
+     to propagate the DECL_IS_PURE flag on parameterless functions.  */
 
   return call;
 }
 
 /* Call a function that raises an exception and pass the line number and file
-   name, if requested.  MSG says which exception function to call.  */
+   name, if requested.  MSG says which exception function to call.
+
+   GNAT_NODE is the gnat node conveying the source location for which the
+   error should be signaled, or Empty in which case the error is signaled on
+   the current ref_file_name/input_line.  */
 
 tree
-build_call_raise (int msg)
+build_call_raise (int msg, Node_Id gnat_node)
 {
   tree fndecl = gnat_raise_decls[msg];
+
   const char *str
-    = (Debug_Flag_NN || Exception_Locations_Suppressed) ? "" : ref_filename;
+    = (Debug_Flag_NN || Exception_Locations_Suppressed)
+      ? ""
+      : (gnat_node != Empty)
+        ? IDENTIFIER_POINTER
+          (get_identifier (Get_Name_String
+			   (Debug_Source_Name
+			    (Get_Source_File_Index (Sloc (gnat_node))))))
+        : ref_filename;
+
   int len = strlen (str) + 1;
   tree filename = build_string (len, str);
+
+  int line_number
+    = (gnat_node != Empty)
+      ? Get_Logical_Line_Number (Sloc(gnat_node)) : input_line;
 
   TREE_TYPE (filename)
     = build_array_type (char_type_node,
@@ -1462,7 +1473,7 @@ build_call_raise (int msg)
     build_call_2_expr (fndecl,
 		       build1 (ADDR_EXPR, build_pointer_type (char_type_node),
 			       filename),
-		       build_int_cst (NULL_TREE, input_line));
+		       build_int_cst (NULL_TREE, line_number));
 }
 
 /* qsort comparer for the bit positions of two constructor elements
@@ -1598,7 +1609,8 @@ build_simple_component_ref (tree record_variable, tree component,
 
       for (new_field = TYPE_FIELDS (record_type); new_field;
 	   new_field = TREE_CHAIN (new_field))
-	if (DECL_ORIGINAL_FIELD (new_field) == field
+	if (field == new_field
+	    || DECL_ORIGINAL_FIELD (new_field) == field
 	    || new_field == DECL_ORIGINAL_FIELD (field)
 	    || (DECL_ORIGINAL_FIELD (field)
 		&& (DECL_ORIGINAL_FIELD (field)
@@ -1629,6 +1641,14 @@ build_simple_component_ref (tree record_variable, tree component,
     }
 
   if (!field)
+    return NULL_TREE;
+
+  /* If the field's offset has overflowed, do not attempt to access it
+     as doing so may trigger sanity checks deeper in the back-end.
+     Note that we don't need to warn since this will be done on trying
+     to declare the object.  */
+  if (TREE_CODE (DECL_FIELD_OFFSET (field)) == INTEGER_CST
+      && TREE_CONSTANT_OVERFLOW (DECL_FIELD_OFFSET (field)))
     return NULL_TREE;
 
   /* It would be nice to call "fold" here, but that can lose a type
@@ -1663,7 +1683,7 @@ build_component_ref (tree record_variable, tree component,
      abort.  */
   gcc_assert (field);
   return build1 (NULL_EXPR, TREE_TYPE (field),
-		 build_call_raise (CE_Discriminant_Check_Failed));
+		 build_call_raise (CE_Discriminant_Check_Failed, Empty));
 }
 
 /* Build a GCC tree to call an allocation or deallocation function.

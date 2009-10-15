@@ -1,5 +1,5 @@
 `/* Implementation of the MATMUL intrinsic
-   Copyright 2002, 2005 Free Software Foundation, Inc.
+   Copyright 2002, 2005, 2006 Free Software Foundation, Inc.
    Contributed by Paul Brook <paul@nowt.org>
 
 This file is part of the GNU Fortran 95 runtime library (libgfortran).
@@ -37,16 +37,29 @@ include(iparm.m4)dnl
 
 `#if defined (HAVE_'rtype_name`)'
 
-/* This is a C version of the following fortran pseudo-code. The key
-   point is the loop order -- we access all arrays column-first, which
-   improves the performance enough to boost galgel spec score by 50%.
+/* The order of loops is different in the case of plain matrix
+   multiplication C=MATMUL(A,B), and in the frequent special case where
+   the argument A is the temporary result of a TRANSPOSE intrinsic:
+   C=MATMUL(TRANSPOSE(A),B).  Transposed temporaries are detected by
+   looking at their strides.
+
+   The equivalent Fortran pseudo-code is:
 
    DIMENSION A(M,COUNT), B(COUNT,N), C(M,N)
-   C = 0
-   DO J=1,N
-     DO K=1,COUNT
+   IF (.NOT.IS_TRANSPOSED(A)) THEN
+     C = 0
+     DO J=1,N
+       DO K=1,COUNT
+         DO I=1,M
+           C(I,J) = C(I,J)+A(I,K)*B(K,J)
+   ELSE
+     DO J=1,N
        DO I=1,M
-         C(I,J) = C(I,J)+A(I,K)*B(K,J)
+         S = 0
+         DO K=1,COUNT
+           S = S+A(I,K)+B(K,J)
+         C(I,J) = S
+   ENDIF
 */
 
 extern void matmul_`'rtype_code (rtype * const restrict retarray, 
@@ -107,15 +120,6 @@ matmul_`'rtype_code (rtype * const restrict retarray,
 	= internal_malloc_size (sizeof (rtype_name) * size0 ((array_t *) retarray));
       retarray->offset = 0;
     }
-
-  if (retarray->dim[0].stride == 0)
-    retarray->dim[0].stride = 1;
-
-  /* This prevents constifying the input arguments.  */
-  if (a->dim[0].stride == 0)
-    a->dim[0].stride = 1;
-  if (b->dim[0].stride == 0)
-    b->dim[0].stride = 1;
 
 sinclude(`matmul_asm_'rtype_code`.m4')dnl
 

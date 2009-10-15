@@ -41,17 +41,16 @@ package java.util.zip;
 
 import gnu.java.util.EmptyEnumeration;
 
-import java.io.BufferedInputStream;
-import java.io.DataInput;
 import java.io.EOFException;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.io.UnsupportedEncodingException;
 import java.util.Enumeration;
-import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 
 /**
  * This class represents a Zip archive.  You can ask for the contained
@@ -77,6 +76,11 @@ public class ZipFile implements ZipConstants
    */
   public static final int OPEN_DELETE = 0x4;
 
+  /**
+   * This field isn't defined in the JDK's ZipConstants, but should be.
+   */
+  static final int ENDNRD =  4;
+
   // Name of this zip file.
   private final String name;
 
@@ -84,9 +88,40 @@ public class ZipFile implements ZipConstants
   private final RandomAccessFile raf;
 
   // The entries of this zip file when initialized and not yet closed.
-  private HashMap entries;
+  private LinkedHashMap entries;
 
   private boolean closed = false;
+
+
+  /**
+   * Helper function to open RandomAccessFile and throw the proper
+   * ZipException in case opening the file fails.
+   *
+   * @param name the file name, or null if file is provided
+   *
+   * @param file the file, or null if name is provided
+   *
+   * @return the newly open RandomAccessFile, never null
+   */
+  private RandomAccessFile openFile(String name, 
+                                    File file) 
+    throws ZipException, IOException
+  {                                       
+    try 
+      {
+        return 
+          (name != null)
+          ? new RandomAccessFile(name, "r")
+          : new RandomAccessFile(file, "r");
+      }
+    catch (FileNotFoundException f)
+      { 
+        ZipException ze = new ZipException(f.getMessage());
+        ze.initCause(f);
+        throw ze;
+      }
+  }
+
 
   /**
    * Opens a Zip file with the given name for reading.
@@ -96,7 +131,7 @@ public class ZipFile implements ZipConstants
    */
   public ZipFile(String name) throws ZipException, IOException
   {
-    this.raf = new RandomAccessFile(name, "r");
+    this.raf = openFile(name,null);
     this.name = name;
     checkZipFile();
   }
@@ -109,7 +144,7 @@ public class ZipFile implements ZipConstants
    */
   public ZipFile(File file) throws ZipException, IOException
   {
-    this.raf = new RandomAccessFile(file, "r");
+    this.raf = openFile(null,file);
     this.name = file.getPath();
     checkZipFile();
   }
@@ -136,28 +171,38 @@ public class ZipFile implements ZipConstants
       throw new IllegalArgumentException("invalid mode");
     if ((mode & OPEN_DELETE) != 0)
       file.deleteOnExit();
-    this.raf = new RandomAccessFile(file, "r");
+    this.raf = openFile(null,file);
     this.name = file.getPath();
     checkZipFile();
   }
 
-  private void checkZipFile() throws IOException, ZipException
+  private void checkZipFile() throws ZipException
   {
-    byte[] magicBuf = new byte[4];
-    boolean validRead = true;
+    boolean valid = false;
 
     try 
       {
-	raf.readFully(magicBuf);
-      } 
-    catch (EOFException eof) 
+        byte[] buf = new byte[4];
+        raf.readFully(buf);
+        int sig = buf[0] & 0xFF
+                | ((buf[1] & 0xFF) << 8)
+                | ((buf[2] & 0xFF) << 16)
+                | ((buf[3] & 0xFF) << 24);
+        valid = sig == LOCSIG;
+      }
+    catch (IOException _)
       {
-	validRead = false;
       } 
 
-    if (validRead == false || readLeInt(magicBuf, 0) != LOCSIG)
+    if (!valid)
       {
-	raf.close();
+        try
+          {
+	    raf.close();
+          }
+        catch (IOException _)
+          {
+          }
 	throw new ZipException("Not a valid zip file");
       }
   }
@@ -172,69 +217,6 @@ public class ZipFile implements ZipConstants
   }
 
   /**
-   * Read an unsigned short in little endian byte order from the given
-   * DataInput stream using the given byte buffer.
-   *
-   * @param di DataInput stream to read from.
-   * @param b the byte buffer to read in (must be at least 2 bytes long).
-   * @return The value read.
-   *
-   * @exception IOException if a i/o error occured.
-   * @exception EOFException if the file ends prematurely
-   */
-  private int readLeShort(DataInput di, byte[] b) throws IOException
-  {
-    di.readFully(b, 0, 2);
-    return (b[0] & 0xff) | (b[1] & 0xff) << 8;
-  }
-
-  /**
-   * Read an int in little endian byte order from the given
-   * DataInput stream using the given byte buffer.
-   *
-   * @param di DataInput stream to read from.
-   * @param b the byte buffer to read in (must be at least 4 bytes long).
-   * @return The value read.
-   *
-   * @exception IOException if a i/o error occured.
-   * @exception EOFException if the file ends prematurely
-   */
-  private int readLeInt(DataInput di, byte[] b) throws IOException
-  {
-    di.readFully(b, 0, 4);
-    return ((b[0] & 0xff) | (b[1] & 0xff) << 8)
-	    | ((b[2] & 0xff) | (b[3] & 0xff) << 8) << 16;
-  }
-
-  /**
-   * Read an unsigned short in little endian byte order from the given
-   * byte buffer at the given offset.
-   *
-   * @param b the byte array to read from.
-   * @param off the offset to read from.
-   * @return The value read.
-   */
-  private int readLeShort(byte[] b, int off)
-  {
-    return (b[off] & 0xff) | (b[off+1] & 0xff) << 8;
-  }
-
-  /**
-   * Read an int in little endian byte order from the given
-   * byte buffer at the given offset.
-   *
-   * @param b the byte array to read from.
-   * @param off the offset to read from.
-   * @return The value read.
-   */
-  private int readLeInt(byte[] b, int off)
-  {
-    return ((b[off] & 0xff) | (b[off+1] & 0xff) << 8)
-	    | ((b[off+2] & 0xff) | (b[off+3] & 0xff) << 8) << 16;
-  }
-  
-
-  /**
    * Read the central directory of a zip file and fill the entries
    * array.  This is called exactly once when first needed. It is called
    * while holding the lock on <code>raf</code>.
@@ -246,63 +228,48 @@ public class ZipFile implements ZipConstants
   {
     /* Search for the End Of Central Directory.  When a zip comment is 
      * present the directory may start earlier.
-     * FIXME: This searches the whole file in a very slow manner if the
-     * file isn't a zip file.
+     * Note that a comment has a maximum length of 64K, so that is the
+     * maximum we search backwards.
      */
+    PartialInputStream inp = new PartialInputStream(raf, 4096);
     long pos = raf.length() - ENDHDR;
-    byte[] ebs  = new byte[CENHDR];
-    
+    long top = Math.max(0, pos - 65536);
     do
       {
-	if (pos < 0)
+	if (pos < top)
 	  throw new ZipException
 	    ("central directory not found, probably not a zip file: " + name);
-	raf.seek(pos--);
+	inp.seek(pos--);
       }
-    while (readLeInt(raf, ebs) != ENDSIG);
+    while (inp.readLeInt() != ENDSIG);
     
-    if (raf.skipBytes(ENDTOT - ENDNRD) != ENDTOT - ENDNRD)
+    if (inp.skip(ENDTOT - ENDNRD) != ENDTOT - ENDNRD)
       throw new EOFException(name);
-    int count = readLeShort(raf, ebs);
-    if (raf.skipBytes(ENDOFF - ENDSIZ) != ENDOFF - ENDSIZ)
+    int count = inp.readLeShort();
+    if (inp.skip(ENDOFF - ENDSIZ) != ENDOFF - ENDSIZ)
       throw new EOFException(name);
-    int centralOffset = readLeInt(raf, ebs);
+    int centralOffset = inp.readLeInt();
 
-    entries = new HashMap(count+count/2);
-    raf.seek(centralOffset);
+    entries = new LinkedHashMap(count+count/2);
+    inp.seek(centralOffset);
     
-    byte[] buffer = new byte[16];
     for (int i = 0; i < count; i++)
       {
-      	raf.readFully(ebs);
-	if (readLeInt(ebs, 0) != CENSIG)
+	if (inp.readLeInt() != CENSIG)
 	  throw new ZipException("Wrong Central Directory signature: " + name);
 
-	int method = readLeShort(ebs, CENHOW);
-	int dostime = readLeInt(ebs, CENTIM);
-	int crc = readLeInt(ebs, CENCRC);
-	int csize = readLeInt(ebs, CENSIZ);
-	int size = readLeInt(ebs, CENLEN);
-	int nameLen = readLeShort(ebs, CENNAM);
-	int extraLen = readLeShort(ebs, CENEXT);
-	int commentLen = readLeShort(ebs, CENCOM);
-	
-	int offset = readLeInt(ebs, CENOFF);
-
-	int needBuffer = Math.max(nameLen, commentLen);
-	if (buffer.length < needBuffer)
-	  buffer = new byte[needBuffer];
-
-	raf.readFully(buffer, 0, nameLen);
-	String name;
-	try
-	  {
-	    name = new String(buffer, 0, nameLen, "UTF-8");
-	  }
-	catch (UnsupportedEncodingException uee)
-	  {
-	    throw new AssertionError(uee);
-	  }
+        inp.skip(6);
+	int method = inp.readLeShort();
+	int dostime = inp.readLeInt();
+	int crc = inp.readLeInt();
+	int csize = inp.readLeInt();
+	int size = inp.readLeInt();
+	int nameLen = inp.readLeShort();
+	int extraLen = inp.readLeShort();
+	int commentLen = inp.readLeShort();
+        inp.skip(8);
+	int offset = inp.readLeInt();
+	String name = inp.readString(nameLen);
 
 	ZipEntry entry = new ZipEntry(name);
 	entry.setMethod(method);
@@ -313,20 +280,12 @@ public class ZipFile implements ZipConstants
 	if (extraLen > 0)
 	  {
 	    byte[] extra = new byte[extraLen];
-	    raf.readFully(extra);
+	    inp.readFully(extra);
 	    entry.setExtra(extra);
 	  }
 	if (commentLen > 0)
 	  {
-	    raf.readFully(buffer, 0, commentLen);
-	    try
-	      {
-		entry.setComment(new String(buffer, 0, commentLen, "UTF-8"));
-	      }
-	    catch (UnsupportedEncodingException uee)
-	      {
-		throw new AssertionError(uee);
-	      }
+            entry.setComment(inp.readString(commentLen));
 	  }
 	entry.offset = offset;
 	entries.put(name, entry);
@@ -388,7 +347,7 @@ public class ZipFile implements ZipConstants
    * @exception IllegalStateException when the ZipFile has already been closed.
    * @exception IOException when the entries could not be read.
    */
-  private HashMap getEntries() throws IOException
+  private LinkedHashMap getEntries() throws IOException
   {
     synchronized(raf)
       {
@@ -416,7 +375,7 @@ public class ZipFile implements ZipConstants
 
     try
       {
-	HashMap entries = getEntries();
+	LinkedHashMap entries = getEntries();
 	ZipEntry entry = (ZipEntry) entries.get(name);
         // If we didn't find it, maybe it's a directory.
         if (entry == null && !name.endsWith("/"))
@@ -426,40 +385,6 @@ public class ZipFile implements ZipConstants
     catch (IOException ioe)
       {
 	return null;
-      }
-  }
-
-
-  //access should be protected by synchronized(raf)
-  private byte[] locBuf = new byte[LOCHDR];
-
-  /**
-   * Checks, if the local header of the entry at index i matches the
-   * central directory, and returns the offset to the data.
-   * 
-   * @param entry to check.
-   * @return the start offset of the (compressed) data.
-   *
-   * @exception IOException if a i/o error occured.
-   * @exception ZipException if the local header doesn't match the 
-   * central directory header
-   */
-  private long checkLocalHeader(ZipEntry entry) throws IOException
-  {
-    synchronized (raf)
-      {
-	raf.seek(entry.offset);
-	raf.readFully(locBuf);
-	
-	if (readLeInt(locBuf, 0) != LOCSIG)
-	  throw new ZipException("Wrong Local header signature: " + name);
-
-	if (entry.getMethod() != readLeShort(locBuf, LOCHOW))
-	  throw new ZipException("Compression method mismatch: " + name);
-
-	int nameLen = readLeShort(locBuf, LOCNAM);
-	int extraLen = nameLen + readLeShort(locBuf, LOCEXT);
-	return entry.offset + LOCHDR + extraLen;
       }
   }
 
@@ -489,24 +414,51 @@ public class ZipFile implements ZipConstants
   {
     checkClosed();
 
-    HashMap entries = getEntries();
+    LinkedHashMap entries = getEntries();
     String name = entry.getName();
     ZipEntry zipEntry = (ZipEntry) entries.get(name);
     if (zipEntry == null)
       return null;
 
-    long start = checkLocalHeader(zipEntry);
+    PartialInputStream inp = new PartialInputStream(raf, 1024);
+    inp.seek(zipEntry.offset);
+
+    if (inp.readLeInt() != LOCSIG)
+      throw new ZipException("Wrong Local header signature: " + name);
+
+    inp.skip(4);
+
+    if (zipEntry.getMethod() != inp.readLeShort())
+      throw new ZipException("Compression method mismatch: " + name);
+
+    inp.skip(16);
+
+    int nameLen = inp.readLeShort();
+    int extraLen = inp.readLeShort();
+    inp.skip(nameLen + extraLen);
+
+    inp.setLength(zipEntry.getCompressedSize());
+
     int method = zipEntry.getMethod();
-    PartialInputStream pIn
-      = new PartialInputStream(raf, start, zipEntry.getCompressedSize());
-    InputStream is = new BufferedInputStream(pIn);
     switch (method)
       {
       case ZipOutputStream.STORED:
-	return is;
+	return inp;
       case ZipOutputStream.DEFLATED:
-	pIn.addDummyByte();
-	return new InflaterInputStream(is, new Inflater(true));
+        inp.addDummyByte();
+        final Inflater inf = new Inflater(true);
+        final int sz = (int) entry.getSize();
+        return new InflaterInputStream(inp, inf)
+        {
+          public int available() throws IOException
+          {
+            if (sz == -1)
+              return super.available();
+            if (super.available() != 0)
+              return sz - inf.getTotalOut();
+            return 0;
+          }
+        };
       default:
 	throw new ZipException("Unknown compression method " + method);
       }
@@ -562,79 +514,192 @@ public class ZipFile implements ZipConstants
     }
   }
 
-  private static class PartialInputStream extends InputStream
+  private static final class PartialInputStream extends InputStream
   {
     private final RandomAccessFile raf;
-    long filepos, end;
-    boolean addDummyByte;
-    byte[] singleByte;
+    private final byte[] buffer;
+    private long bufferOffset;
+    private int pos;
+    private long end;
+    // We may need to supply an extra dummy byte to our reader.
+    // See Inflater.  We use a count here to simplify the logic
+    // elsewhere in this class.  Note that we ignore the dummy
+    // byte in methods where we know it is not needed.
+    private int dummyByteCount;
 
-    public PartialInputStream(RandomAccessFile raf, long start, long len)
+    public PartialInputStream(RandomAccessFile raf, int bufferSize)
+      throws IOException
     {
       this.raf = raf;
-      filepos = start;
-      end = start + len;
-      addDummyByte = false;
-      singleByte = new byte[1];
+      buffer = new byte[bufferSize];
+      bufferOffset = -buffer.length;
+      pos = buffer.length;
+      end = raf.length();
+    }
+
+    void setLength(long length)
+    {
+      end = bufferOffset + pos + length;
+    }
+
+    private void fillBuffer() throws IOException
+    {
+      synchronized (raf)
+        {
+          long len = end - bufferOffset;
+          if (len == 0 && dummyByteCount > 0)
+            {
+              buffer[0] = 0;
+              dummyByteCount = 0;
+            }
+          else
+            {
+              raf.seek(bufferOffset);
+              raf.readFully(buffer, 0, (int) Math.min(buffer.length, len));
+            }
+        }
     }
     
     public int available()
     {
-      long amount = end - filepos;
+      long amount = end - (bufferOffset + pos);
       if (amount > Integer.MAX_VALUE)
 	return Integer.MAX_VALUE;
       return (int) amount;
     }
-
+    
     public int read() throws IOException
     {
-      int r = read(singleByte, 0, 1);
-      if (r != 1)
-	return r;
-      return singleByte[0] & 0xff;
+      if (bufferOffset + pos >= end + dummyByteCount)
+	return -1;
+      if (pos == buffer.length)
+        {
+          bufferOffset += buffer.length;
+          pos = 0;
+          fillBuffer();
+        }
+      
+      return buffer[pos++] & 0xFF;
     }
 
     public int read(byte[] b, int off, int len) throws IOException
     {
-      if (end - filepos == 0)
+      if (len > end + dummyByteCount - (bufferOffset + pos))
 	{
-	  if (len > 0 && addDummyByte)
-	    {
-	      addDummyByte = false;
-	      b[0] = 0;
-	      return 1;
-	    }
-	}
-
-      if (len > end - filepos)
-	{
-	  len = (int) (end - filepos);
+	  len = (int) (end + dummyByteCount - (bufferOffset + pos));
 	  if (len == 0)
 	    return -1;
 	}
-      synchronized (raf)
-	{
-	  raf.seek(filepos);
-	  int count = raf.read(b, off, len);
-	  if (count > 0)
-	    filepos += len;
-	  return count;
-	}
+
+      int totalBytesRead = Math.min(buffer.length - pos, len);
+      System.arraycopy(buffer, pos, b, off, totalBytesRead);
+      pos += totalBytesRead;
+      off += totalBytesRead;
+      len -= totalBytesRead;
+
+      while (len > 0)
+        {
+          bufferOffset += buffer.length;
+          pos = 0;
+          fillBuffer();
+          int remain = Math.min(buffer.length, len);
+          System.arraycopy(buffer, pos, b, off, remain);
+          pos += remain;
+          off += remain;
+          len -= remain;
+          totalBytesRead += remain;
+        }
+      
+      return totalBytesRead;
     }
 
-    public long skip(long amount)
+    public long skip(long amount) throws IOException
     {
       if (amount < 0)
-	throw new IllegalArgumentException();
-      if (amount > end - filepos)
-	amount = end - filepos;
-      filepos += amount;
+	return 0;
+      if (amount > end - (bufferOffset + pos))
+	amount = end - (bufferOffset + pos);
+      seek(bufferOffset + pos + amount);
       return amount;
+    }
+
+    void seek(long newpos) throws IOException
+    {
+      long offset = newpos - bufferOffset;
+      if (offset >= 0 && offset <= buffer.length)
+        {
+          pos = (int) offset;
+        }
+      else
+        {
+          bufferOffset = newpos;
+          pos = 0;
+          fillBuffer();
+        }
+    }
+
+    void readFully(byte[] buf) throws IOException
+    {
+      if (read(buf, 0, buf.length) != buf.length)
+        throw new EOFException();
+    }
+
+    void readFully(byte[] buf, int off, int len) throws IOException
+    {
+      if (read(buf, off, len) != len)
+        throw new EOFException();
+    }
+
+    int readLeShort() throws IOException
+    {
+      int b0 = read();
+      int b1 = read();
+      if (b1 == -1)
+        throw new EOFException();
+      return (b0 & 0xff) | (b1 & 0xff) << 8;
+    }
+
+    int readLeInt() throws IOException
+    {
+      int b0 = read();
+      int b1 = read();
+      int b2 = read();
+      int b3 = read();
+      if (b3 == -1)
+        throw new EOFException();
+      return ((b0 & 0xff) | (b1 & 0xff) << 8)
+            | ((b2 & 0xff) | (b3 & 0xff) << 8) << 16;
+    }
+
+    String readString(int length) throws IOException
+    {
+      if (length > end - (bufferOffset + pos))
+        throw new EOFException();
+
+      try
+        {
+          if (buffer.length - pos >= length)
+            {
+              String s = new String(buffer, pos, length, "UTF-8");
+              pos += length;
+              return s;
+            }
+          else
+            {
+              byte[] b = new byte[length];
+              readFully(b);
+              return new String(b, 0, length, "UTF-8");
+            }
+        }
+      catch (UnsupportedEncodingException uee)
+        {
+          throw new AssertionError(uee);
+        }
     }
 
     public void addDummyByte()
     {
-      addDummyByte = true;
+      dummyByteCount = 1;
     }
   }
 }

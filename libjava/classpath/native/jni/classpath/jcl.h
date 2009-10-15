@@ -1,5 +1,5 @@
 /* jcl.h
-   Copyright (C) 1998 Free Software Foundation, Inc.
+   Copyright (C) 1998, 2006 Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -50,6 +50,10 @@ typedef jlong jpointer;
 #error "Unknown pointer size"
 #endif
 
+/* Helper macros for going between pointers and jlongs.  */
+#define JLONG_TO_PTR(T,P) ((T *)(long)P)
+#define PTR_TO_JLONG(P) ((jlong)(long)P)
+
 JNIEXPORT jclass JNICALL JCL_FindClass (JNIEnv * env, const char *className);
 JNIEXPORT void JNICALL JCL_ThrowException (JNIEnv * env,
 					   const char *className,
@@ -71,9 +75,20 @@ JNIEXPORT void * JNICALL JCL_GetRawData (JNIEnv * env, jobject rawdata);
 
 /* Simple debug macro */
 #ifdef DEBUG
-#define DBG(x) fprintf(stderr, (x));
+#define DBG(x) fprintf(stderr, "%s", (x));
 #else
 #define DBG(x)
 #endif
+
+/* Some O/S's don't declare 'environ' */
+#if HAVE_CRT_EXTERNS_H
+/* Darwin does not have a variable named environ
+   but has a function which you can get the environ
+   variable with.  */
+#include <crt_externs.h>
+#define environ (*_NSGetEnviron())
+#else
+extern char **environ;
+#endif /* HAVE_CRT_EXTERNS_H */
 
 #endif

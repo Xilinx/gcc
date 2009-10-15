@@ -1,14 +1,14 @@
 /* Breadth-first and depth-first routines for
    searching multiple-inheritance lattice for GNU C++.
    Copyright (C) 1987, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   1999, 2000, 2002, 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
    Contributed by Michael Tiemann (tiemann@cygnus.com)
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -17,9 +17,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 /* High-level class interface.  */
 
@@ -97,7 +96,7 @@ struct lookup_base_data_s
 static tree
 dfs_lookup_base (tree binfo, void *data_)
 {
-  struct lookup_base_data_s *data = data_;
+  struct lookup_base_data_s *data = (struct lookup_base_data_s *) data_;
 
   if (SAME_BINFO_TYPE_P (BINFO_TYPE (binfo), data->base))
     {
@@ -306,7 +305,7 @@ struct dcast_data_s
 static tree
 dfs_dcast_hint_pre (tree binfo, void *data_)
 {
-  struct dcast_data_s *data = data_;
+  struct dcast_data_s *data = (struct dcast_data_s *) data_;
 
   if (BINFO_VIRTUAL_P (binfo))
     data->virt_depth++;
@@ -334,7 +333,7 @@ dfs_dcast_hint_pre (tree binfo, void *data_)
 static tree
 dfs_dcast_hint_post (tree binfo, void *data_)
 {
-  struct dcast_data_s *data = data_;
+  struct dcast_data_s *data = (struct dcast_data_s *) data_;
 
   if (BINFO_VIRTUAL_P (binfo))
     data->virt_depth--;
@@ -875,8 +874,8 @@ accessible_p (tree type, tree decl, bool consider_local_p)
      instantiation.  However, PROCESSING_TEMPLATE_DECL is set in the
      parameter list for a template (because we may see dependent types
      in default arguments for template parameters), and access
-     checking should be performed in the outermost parameter list.  */ 
-  if (processing_template_decl 
+     checking should be performed in the outermost parameter list.  */
+  if (processing_template_decl
       && (!processing_template_parmlist || processing_template_decl > 1))
     return 1;
 
@@ -1200,6 +1199,9 @@ lookup_member (tree xbasetype, tree name, int protect, bool want_type)
 
   const char *errstr = 0;
 
+  if (name == error_mark_node)
+    return NULL_TREE;
+
   gcc_assert (TREE_CODE (name) == IDENTIFIER_NODE);
 
   if (TREE_CODE (xbasetype) == TREE_BINFO)
@@ -1253,9 +1255,27 @@ lookup_member (tree xbasetype, tree name, int protect, bool want_type)
   /* [class.access]
 
      In the case of overloaded function names, access control is
-     applied to the function selected by overloaded resolution.  */
-  if (rval && protect && !is_overloaded_fn (rval))
-    perform_or_defer_access_check (basetype_path, rval);
+     applied to the function selected by overloaded resolution.  
+
+     We cannot check here, even if RVAL is only a single non-static
+     member function, since we do not know what the "this" pointer
+     will be.  For:
+
+        class A { protected: void f(); };
+        class B : public A { 
+          void g(A *p) {
+            f(); // OK
+            p->f(); // Not OK.
+          }
+        };
+
+    only the first call to "f" is valid.  However, if the function is
+    static, we can check.  */
+  if (rval && protect 
+      && !really_overloaded_fn (rval)
+      && !(TREE_CODE (rval) == FUNCTION_DECL
+	   && DECL_NONSTATIC_MEMBER_FUNCTION_P (rval)))
+    perform_or_defer_access_check (basetype_path, rval, rval);
 
   if (errstr && protect)
     {
@@ -2042,6 +2062,10 @@ maybe_suppress_debug_info (tree t)
 
   /* We might have set this earlier in cp_finish_decl.  */
   TYPE_DECL_SUPPRESS_DEBUG (TYPE_MAIN_DECL (t)) = 0;
+
+  /* Always emit the information for each class every time. */
+  if (flag_emit_class_debug_always)
+    return;
 
   /* If we already know how we're handling this class, handle debug info
      the same way.  */

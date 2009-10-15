@@ -1,6 +1,6 @@
 /* Definitions of target machine for GNU compiler, for the HP Spectrum.
    Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   2001, 2002, 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
    Contributed by Michael Tiemann (tiemann@cygnus.com) of Cygnus Support
    and Tim Moore (moore@defmacro.cs.utah.edu) of the Center for
    Software Science at the University of Utah.
@@ -9,7 +9,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -18,9 +18,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 enum cmp_type				/* comparison type */
 {
@@ -82,6 +81,11 @@ extern int flag_pa_unix;
 /* HP-UX 10.10 UNIX 95 features.  */
 #ifndef TARGET_HPUX_10_10
 #define TARGET_HPUX_10_10 0
+#endif
+
+/* HP-UX 11.* features (11.00, 11.11, 11.23, etc.)  */
+#ifndef TARGET_HPUX_11
+#define TARGET_HPUX_11 0
 #endif
 
 /* HP-UX 11i multibyte and UNIX 98 extensions.  */
@@ -345,7 +349,7 @@ typedef struct machine_function GTY(())
    If HARD_REGNO_MODE_OK could produce different values for MODE1 and MODE2,
    for any hard reg, then this must be 0 for correct output.  */
 #define MODES_TIEABLE_P(MODE1, MODE2) \
-  (GET_MODE_CLASS (MODE1) == GET_MODE_CLASS (MODE2))
+  pa_modes_tieable_p (MODE1, MODE2)
 
 /* Specify the registers used for certain standard purposes.
    The values of these macros are register numbers.  */
@@ -532,29 +536,8 @@ extern struct rtx_def *hppa_pic_save_rtx (void);
    in some cases it is preferable to use a more restrictive class.  */
 #define PREFERRED_RELOAD_CLASS(X,CLASS) (CLASS)
 
-/* Return the register class of a scratch register needed to copy
-   IN into a register in CLASS in MODE, or a register in CLASS in MODE
-   to IN.  If it can be done directly NO_REGS is returned. 
-
-  Avoid doing any work for the common case calls.  */
-#define SECONDARY_RELOAD_CLASS(CLASS,MODE,IN) \
-  ((CLASS == BASE_REG_CLASS && GET_CODE (IN) == REG		\
-    && REGNO (IN) < FIRST_PSEUDO_REGISTER)			\
-   ? NO_REGS : secondary_reload_class (CLASS, MODE, IN))
-
 #define MAYBE_FP_REG_CLASS_P(CLASS) \
   reg_classes_intersect_p ((CLASS), FP_REGS)
-
-/* On the PA it is not possible to directly move data between
-   GENERAL_REGS and FP_REGS.  On the 32-bit port, we use the
-   location at SP-16.  We don't expose this location in the RTL to
-   avoid scheduling related problems.  For example, the store and
-   load could be separated by a call to a pure or const function
-   which has no frame and uses SP-16.  */
-#define SECONDARY_MEMORY_NEEDED(CLASS1, CLASS2, MODE)			\
-  (TARGET_64BIT								\
-   && (MAYBE_FP_REG_CLASS_P (CLASS1) != FP_REG_CLASS_P (CLASS2)		\
-       || MAYBE_FP_REG_CLASS_P (CLASS2) != FP_REG_CLASS_P (CLASS1)))
 
 
 /* Stack layout; function entry, exit and calling.  */
@@ -1240,6 +1223,24 @@ extern int may_call_alloca;
       (GET_CODE (OP) == CONST_INT && INTVAL (OP) == 63) : 0)))))))
 	
 
+/* Nonzero if 14-bit offsets can be used for all loads and stores.
+   This is not possible when generating PA 1.x code as floating point
+   loads and stores only support 5-bit offsets.  Note that we do not
+   forbid the use of 14-bit offsets in GO_IF_LEGITIMATE_ADDRESS.
+   Instead, we use pa_secondary_reload() to reload integer mode
+   REG+D memory addresses used in floating point loads and stores.
+
+   FIXME: the ELF32 linker clobbers the LSB of the FP register number
+   in PA 2.0 floating-point insns with long displacements.  This is
+   because R_PARISC_DPREL14WR and other relocations like it are not
+   yet supported by GNU ld.  For now, we reject long displacements
+   on this target.  */
+
+#define INT14_OK_STRICT \
+  (TARGET_SOFT_FLOAT                                                   \
+   || TARGET_DISABLE_FPREGS                                            \
+   || (TARGET_PA_20 && !TARGET_ELF32))
+
 /* The macros REG_OK_FOR..._P assume that the arg is a REG rtx
    and check its validity for a certain class.
    We have two alternate definitions for each of them.
@@ -1258,16 +1259,18 @@ extern int may_call_alloca;
 /* Nonzero if X is a hard reg that can be used as an index
    or if it is a pseudo reg.  */
 #define REG_OK_FOR_INDEX_P(X) \
-(REGNO (X) && (REGNO (X) < 32 || REGNO (X) >= FIRST_PSEUDO_REGISTER))
+  (REGNO (X) && (REGNO (X) < 32 || REGNO (X) >= FIRST_PSEUDO_REGISTER))
+
 /* Nonzero if X is a hard reg that can be used as a base reg
    or if it is a pseudo reg.  */
 #define REG_OK_FOR_BASE_P(X) \
-(REGNO (X) && (REGNO (X) < 32 || REGNO (X) >= FIRST_PSEUDO_REGISTER))
+  (REGNO (X) && (REGNO (X) < 32 || REGNO (X) >= FIRST_PSEUDO_REGISTER))
 
 #else
 
 /* Nonzero if X is a hard reg that can be used as an index.  */
 #define REG_OK_FOR_INDEX_P(X) REGNO_OK_FOR_INDEX_P (REGNO (X))
+
 /* Nonzero if X is a hard reg that can be used as a base reg.  */
 #define REG_OK_FOR_BASE_P(X) REGNO_OK_FOR_BASE_P (REGNO (X))
 
@@ -1319,11 +1322,7 @@ extern int may_call_alloca;
 
    We treat a SYMBOL_REF as legitimate if it is part of the current
    function's constant-pool, because such addresses can actually be
-   output as REG+SMALLINT. 
-
-   Note we only allow 5 bit immediates for access to a constant address;
-   doing so avoids losing for loading/storing a FP register at an address
-   which will not fit in 5 bits.  */
+   output as REG+SMALLINT.  */
 
 #define VAL_5_BITS_P(X) ((unsigned HOST_WIDE_INT)(X) + 0x10 < 0x20)
 #define INT_5_BITS(X) VAL_5_BITS_P (INTVAL (X))
@@ -1351,7 +1350,8 @@ extern int may_call_alloca;
   ((TARGET_64BIT && (MODE) == DImode)					\
    || (MODE) == SImode							\
    || (MODE) == HImode							\
-   || (!TARGET_SOFT_FLOAT && ((MODE) == DFmode || (MODE) == SFmode)))
+   || (MODE) == SFmode							\
+   || (MODE) == DFmode)
 
 /* These are the modes that we allow for unscaled indexing.  */
 #define MODE_OK_FOR_UNSCALED_INDEXING_P(MODE) \
@@ -1359,7 +1359,8 @@ extern int may_call_alloca;
    || (MODE) == SImode							\
    || (MODE) == HImode							\
    || (MODE) == QImode							\
-   || (!TARGET_SOFT_FLOAT && ((MODE) == DFmode || (MODE) == SFmode)))
+   || (MODE) == SFmode							\
+   || (MODE) == DFmode)
 
 #define GO_IF_LEGITIMATE_ADDRESS(MODE, X, ADDR) \
 {									\
@@ -1393,20 +1394,10 @@ extern int may_call_alloca;
 			   || (INTVAL (index) % 8) == 0))		\
 		   /* Similarly, the base register for SFmode/DFmode	\
 		      loads and stores with long displacements must	\
-		      be aligned.					\
-									\
-		      FIXME: the ELF32 linker clobbers the LSB of	\
-		      the FP register number in PA 2.0 floating-point	\
-		      insns with long displacements.  This is because	\
-		      R_PARISC_DPREL14WR and other relocations like	\
-		      it are not supported.  For now, we reject long	\
-		      displacements on this target.  */			\
+		      be aligned.  */					\
 		   || (((MODE) == SFmode || (MODE) == DFmode)		\
-		       && (TARGET_SOFT_FLOAT				\
-			   || (TARGET_PA_20				\
-			       && !TARGET_ELF32				\
-			       && (INTVAL (index)			\
-				   % GET_MODE_SIZE (MODE)) == 0)))))	\
+		       && INT14_OK_STRICT				\
+		       && (INTVAL (index) % GET_MODE_SIZE (MODE)) == 0))) \
 	       || INT_5_BITS (index)))					\
 	goto ADDR;							\
       if (!TARGET_DISABLE_INDEXING					\
@@ -1506,7 +1497,7 @@ do { 									\
   rtx new, temp = NULL_RTX;						\
 									\
   mask = (GET_MODE_CLASS (MODE) == MODE_FLOAT				\
-	  ? (TARGET_PA_20 && !TARGET_ELF32 ? 0x3fff : 0x1f) : 0x3fff);	\
+	  ? (INT14_OK_STRICT ? 0x3fff : 0x1f) : 0x3fff);		\
 									\
   if (optimize && GET_CODE (AD) == PLUS)				\
     temp = simplify_binary_operation (PLUS, Pmode,			\
@@ -1528,9 +1519,10 @@ do { 									\
 	newoffset = offset & ~mask;					\
 									\
       /* Ensure that long displacements are aligned.  */		\
-      if (!VAL_5_BITS_P (newoffset)					\
-	  && GET_MODE_CLASS (MODE) == MODE_FLOAT)			\
-	newoffset &= ~(GET_MODE_SIZE (MODE) -1);			\
+      if (mask == 0x3fff						\
+	  && (GET_MODE_CLASS (MODE) == MODE_FLOAT			\
+	      || (TARGET_64BIT && (MODE) == DImode)))			\
+	newoffset &= ~(GET_MODE_SIZE (MODE) - 1);			\
 									\
       if (newoffset != 0 && VAL_14_BITS_P (newoffset))			\
 	{								\
@@ -1583,72 +1575,6 @@ do { 									\
 #define IN_NAMED_SECTION_P(DECL) \
   ((TREE_CODE (DECL) == FUNCTION_DECL || TREE_CODE (DECL) == VAR_DECL) \
    && DECL_SECTION_NAME (DECL) != NULL_TREE)
-
-/* The following extra sections and extra section functions are only used
-   for SOM, but they must be provided unconditionally because pa.c's calls
-   to the functions might not get optimized out when other object formats
-   are in use.  */
-
-#define EXTRA_SECTIONS							\
-  in_som_readonly_data,							\
-  in_som_one_only_readonly_data,					\
-  in_som_one_only_data
-
-#define EXTRA_SECTION_FUNCTIONS						\
-  SOM_READONLY_DATA_SECTION_FUNCTION					\
-  SOM_ONE_ONLY_READONLY_DATA_SECTION_FUNCTION				\
-  SOM_ONE_ONLY_DATA_SECTION_FUNCTION					\
-  FORGET_SECTION_FUNCTION
-
-/* SOM puts readonly data in the default $LIT$ subspace when PIC code
-   is not being generated.  */
-#define SOM_READONLY_DATA_SECTION_FUNCTION				\
-void									\
-som_readonly_data_section (void)					\
-{									\
-  if (!TARGET_SOM)							\
-    return;								\
-  if (in_section != in_som_readonly_data)				\
-    {									\
-      in_section = in_som_readonly_data;				\
-      fputs ("\t.SPACE $TEXT$\n\t.SUBSPA $LIT$\n", asm_out_file);	\
-    }									\
-}
-
-/* When secondary definitions are not supported, SOM makes readonly data one
-   only by creating a new $LIT$ subspace in $TEXT$ with the comdat flag.  */
-#define SOM_ONE_ONLY_READONLY_DATA_SECTION_FUNCTION			\
-void									\
-som_one_only_readonly_data_section (void)				\
-{									\
-  if (!TARGET_SOM)							\
-    return;								\
-  in_section = in_som_one_only_readonly_data;				\
-  fputs ("\t.SPACE $TEXT$\n"						\
-	 "\t.NSUBSPA $LIT$,QUAD=0,ALIGN=8,ACCESS=0x2c,SORT=16,COMDAT\n",\
-	 asm_out_file);							\
-}
-
-/* When secondary definitions are not supported, SOM makes data one only by
-   creating a new $DATA$ subspace in $PRIVATE$ with the comdat flag.  */
-#define SOM_ONE_ONLY_DATA_SECTION_FUNCTION				\
-void									\
-som_one_only_data_section (void)					\
-{									\
-  if (!TARGET_SOM)							\
-    return;								\
-  in_section = in_som_one_only_data;					\
-  fputs ("\t.SPACE $PRIVATE$\n"						\
-	 "\t.NSUBSPA $DATA$,QUAD=1,ALIGN=8,ACCESS=31,SORT=24,COMDAT\n",	\
-	 asm_out_file);							\
-}
-
-#define FORGET_SECTION_FUNCTION						\
-void									\
-forget_section (void)							\
-{									\
-  in_section = no_section;						\
-}
 
 /* Define this macro if references to a symbol must be treated
    differently depending on something about the variable or

@@ -1,6 +1,6 @@
 // Components for manipulating sequences of characters -*- C++ -*-
 
-// Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003
+// Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -42,8 +42,8 @@
 # define C char
 #endif
 
-namespace std
-{
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
   typedef basic_string<C> S;
 
   template class basic_string<C>;
@@ -77,15 +77,12 @@ namespace std
     S::_S_construct(const C*, const C*, const allocator<C>&,
 		    forward_iterator_tag);
 
-  // Used in str::find.
-  template
-    const C*
-    search(const C*, const C*, const C*, const C*, bool(*)(const C&, const C&));
-} // namespace std
+_GLIBCXX_END_NAMESPACE
 
-namespace __gnu_cxx
-{
+_GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
+
   using std::S;
   template bool operator==(const S::iterator&, const S::iterator&);
   template bool operator==(const S::const_iterator&, const S::const_iterator&);
-} // namespace __gnu_cxx
+
+_GLIBCXX_END_NAMESPACE

@@ -1,13 +1,14 @@
 /* Language-level data type conversion for GNU C++.
    Copyright (C) 1987, 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   Free Software Foundation, Inc.
    Hacked by Michael Tiemann (tiemann@cygnus.com)
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -16,9 +17,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 
 /* This file contains the functions for converting C++ expressions
@@ -40,6 +40,7 @@ Boston, MA 02110-1301, USA.  */
 
 static tree cp_convert_to_pointer (tree, tree, bool);
 static tree convert_to_pointer_force (tree, tree);
+static tree build_type_conversion (tree, tree);
 static tree build_up_reference (tree, tree, int, tree);
 static void warn_ref_binding (tree, tree, tree);
 
@@ -280,7 +281,7 @@ cp_convert_to_pointer (tree type, tree expr, bool force)
     }
 
   if (type_unknown_p (expr))
-    return instantiate_type (type, expr, tf_error | tf_warning);
+    return instantiate_type (type, expr, tf_warning_or_error);
 
   error ("cannot convert %qE from type %qT to type %qT",
 	 expr, intype, type);
@@ -451,7 +452,7 @@ convert_to_reference (tree reftype, tree expr, int convtype,
       && TREE_TYPE (expr) == unknown_type_node)
     expr = instantiate_type (type, expr,
 			     (flags & LOOKUP_COMPLAIN)
-			     ? tf_error | tf_warning : tf_none);
+			     ? tf_warning_or_error : tf_none);
 
   if (expr == error_mark_node)
     return error_mark_node;
@@ -891,6 +892,25 @@ convert_to_void (tree expr, const char *implicit)
 	break;
       }
 
+    case TARGET_EXPR:
+      /* Don't bother with the temporary object returned from a function if
+	 we don't use it and don't need to destroy it.  We'll still
+	 allocate space for it in expand_call or declare_return_variable,
+	 but we don't need to track it through all the tree phases.  */
+      if (TARGET_EXPR_IMPLICIT_P (expr)
+	  && TYPE_HAS_TRIVIAL_DESTRUCTOR (TREE_TYPE (expr)))
+	{
+	  tree init = TARGET_EXPR_INITIAL (expr);
+	  if (TREE_CODE (init) == AGGR_INIT_EXPR
+	      && !AGGR_INIT_VIA_CTOR_P (init))
+	    {
+	      tree fn = TREE_OPERAND (init, 0);
+	      expr = build3 (CALL_EXPR, TREE_TYPE (TREE_TYPE (TREE_TYPE (fn))),
+			     fn, TREE_OPERAND (init, 1), NULL_TREE);
+	    }
+	}
+      break;
+
     default:;
     }
   {
@@ -909,7 +929,7 @@ convert_to_void (tree expr, const char *implicit)
     else if (implicit && probe == expr && is_overloaded_fn (probe))
       {
 	/* Only warn when there is no &.  */
-	warning (0, "%s is a reference, not call, to function %qE",
+	warning (OPT_Waddress, "%s is a reference, not call, to function %qE",
 		 implicit, expr);
 	if (TREE_CODE (expr) == COMPONENT_REF)
 	  expr = TREE_OPERAND (expr, 0);
@@ -926,7 +946,7 @@ convert_to_void (tree expr, const char *implicit)
 	  /* The middle end does not warn about expressions that have
 	     been explicitly cast to void, so we must do so here.  */
 	  if (!TREE_SIDE_EFFECTS (expr))
-	    warning (0, "%s has no effect", implicit);
+	    warning (OPT_Wunused_value, "%s has no effect", implicit);
 	  else
 	    {
 	      tree e;
@@ -958,7 +978,7 @@ convert_to_void (tree expr, const char *implicit)
 			    || code == PREINCREMENT_EXPR
 			    || code == POSTDECREMENT_EXPR
 			    || code == POSTINCREMENT_EXPR)))
-		warning (0, "value computed is not used");
+		warning (OPT_Wunused_value, "value computed is not used");
 	    }
 	}
       expr = build1 (CONVERT_EXPR, void_type_node, expr);
@@ -1045,7 +1065,7 @@ convert_force (tree type, tree expr, int convtype)
    that doesn't do it.  This will probably wait for an overloading rewrite.
    (jason 8/9/95)  */
 
-tree
+static tree
 build_type_conversion (tree xtype, tree expr)
 {
   /* C++: check to see if we can convert this aggregate type
@@ -1068,7 +1088,7 @@ build_expr_type_conversion (int desires, tree expr, bool complain)
   if (expr == null_node
       && (desires & WANT_INT)
       && !(desires & WANT_NULL))
-    warning (0, "converting NULL to non-pointer type");
+    warning (OPT_Wconversion, "converting NULL to non-pointer type");
 
   basetype = TREE_TYPE (expr);
 

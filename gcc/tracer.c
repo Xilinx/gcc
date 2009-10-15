@@ -1,12 +1,13 @@
 /* The tracer pass for the GNU compiler.
    Contributed by Jan Hubicka, SuSE Labs.
-   Copyright (C) 2001, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2007
+   Free Software Foundation, Inc.
 
    This file is part of GCC.
 
    GCC is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2, or (at your option)
+   the Free Software Foundation; either version 3, or (at your option)
    any later version.
 
    GCC is distributed in the hope that it will be useful, but WITHOUT
@@ -15,9 +16,8 @@
    License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with GCC; see the file COPYING.  If not, write to the Free
-   Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-   02110-1301, USA.  */
+   along with GCC; see the file COPYING3.  If not see
+   <http://www.gnu.org/licenses/>.  */
 
 /* This pass performs the tail duplication needed for superblock formation.
    For more information see:
@@ -72,7 +72,7 @@ static int branch_ratio_cutoff;
 static bool
 ignore_bb_p (basic_block bb)
 {
-  if (bb->index < 0)
+  if (bb->index < NUM_FIXED_BLOCKS)
     return true;
   if (!maybe_hot_bb_p (bb))
     return true;
@@ -199,9 +199,9 @@ find_trace (basic_block bb, basic_block *trace)
 static void
 tail_duplicate (void)
 {
-  fibnode_t *blocks = xcalloc (last_basic_block, sizeof (fibnode_t));
-  basic_block *trace = xmalloc (sizeof (basic_block) * n_basic_blocks);
-  int *counts = xmalloc (sizeof (int) * last_basic_block);
+  fibnode_t *blocks = XCNEWVEC (fibnode_t, last_basic_block);
+  basic_block *trace = XNEWVEC (basic_block, n_basic_blocks);
+  int *counts = XNEWVEC (int, last_basic_block);
   int ninsns = 0, nduplicated = 0;
   gcov_type weighted_insns = 0, traced_insns = 0;
   fibheap_t heap = fibheap_new ();
@@ -363,17 +363,17 @@ layout_superblocks (void)
 void
 tracer (unsigned int flags)
 {
-  if (n_basic_blocks <= 1)
+  if (n_basic_blocks <= NUM_FIXED_BLOCKS + 1)
     return;
 
   cfg_layout_initialize (flags);
   mark_dfs_back_edges ();
   if (dump_file)
-    dump_flow_info (dump_file);
+    dump_flow_info (dump_file, dump_flags);
   tail_duplicate ();
   layout_superblocks ();
   if (dump_file)
-    dump_flow_info (dump_file);
+    dump_flow_info (dump_file, dump_flags);
   cfg_layout_finalize ();
 
   /* Merge basic blocks in duplicated traces.  */
@@ -387,14 +387,15 @@ gate_handle_tracer (void)
 }
 
 /* Run tracer.  */
-static void
+static unsigned int
 rest_of_handle_tracer (void)
 {
   if (dump_file)
-    dump_flow_info (dump_file);
+    dump_flow_info (dump_file, dump_flags);
   tracer (0);
   cleanup_cfg (CLEANUP_EXPENSIVE);
   reg_scan (get_insns (), max_reg_num ());
+  return 0;
 }
 
 struct tree_opt_pass pass_tracer =

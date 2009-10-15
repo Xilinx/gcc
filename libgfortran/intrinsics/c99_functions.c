@@ -76,7 +76,6 @@ float complex clog10f(float complex);
 double complex clog10(double complex);
 long double complex clog10l(long double complex);
 
-
 #ifndef HAVE_ACOSF
 #define HAVE_ACOSF 1
 float
@@ -86,12 +85,28 @@ acosf(float x)
 }
 #endif
 
+#if HAVE_ACOSH && !HAVE_ACOSHF
+float
+acoshf (float x)
+{
+  return (float) acosh ((double) x);
+}
+#endif
+
 #ifndef HAVE_ASINF
 #define HAVE_ASINF 1
 float
 asinf(float x)
 {
   return (float) asin(x);
+}
+#endif
+
+#if HAVE_ASINH && !HAVE_ASINHF
+float
+asinhf (float x)
+{
+  return (float) asinh ((double) x);
 }
 #endif
 
@@ -110,6 +125,14 @@ float
 atanf(float x)
 {
   return (float) atan(x);
+}
+#endif
+
+#if HAVE_ATANH && !HAVE_ATANHF
+float
+atanhf (float x)
+{
+  return (float) atanh ((double) x);
 }
 #endif
 
@@ -226,7 +249,11 @@ log10f(float x)
 double
 scalbn(double x, int y)
 {
+#if (FLT_RADIX == 2) && defined(HAVE_LDEXP)
+  return ldexp (x, y);
+#else
   return x * pow(FLT_RADIX, y);
+#endif
 }
 #endif
 

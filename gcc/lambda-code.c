@@ -1,12 +1,12 @@
 /*  Loop transformation code generation
-    Copyright (C) 2003, 2004, 2005, 2006 Free Software Foundation, Inc.
+    Copyright (C) 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
     Contributed by Daniel Berlin <dberlin@dberlin.org>
 
     This file is part of GCC.
     
     GCC is free software; you can redistribute it and/or modify it under
     the terms of the GNU General Public License as published by the Free
-    Software Foundation; either version 2, or (at your option) any later
+    Software Foundation; either version 3, or (at your option) any later
     version.
     
     GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,9 +15,8 @@
     for more details.
     
     You should have received a copy of the GNU General Public License
-    along with GCC; see the file COPYING.  If not, write to the Free
-    Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-    02110-1301, USA.  */
+    along with GCC; see the file COPYING3.  If not see
+    <http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -41,6 +40,7 @@
 #include "tree-scalar-evolution.h"
 #include "vec.h"
 #include "lambda.h"
+#include "vecprim.h"
 
 /* This loop nest code generation is based on non-singular matrix
    math.
@@ -113,9 +113,6 @@
 
  Fourier-Motzkin elimination is used to compute the bounds of the base space
  of the lattice.  */
-
-DEF_VEC_I(int);
-DEF_VEC_ALLOC_I(int,heap);
 
 static bool perfect_nestify (struct loops *, 
 			     struct loop *, VEC(tree,heap) *, 
@@ -442,45 +439,6 @@ lambda_lattice_compute_base (lambda_loopnest nest)
   return ret;
 }
 
-/* Compute the greatest common denominator of two numbers (A and B) using
-   Euclid's algorithm.  */
-
-static int
-gcd (int a, int b)
-{
-
-  int x, y, z;
-
-  x = abs (a);
-  y = abs (b);
-
-  while (x > 0)
-    {
-      z = y % x;
-      y = x;
-      x = z;
-    }
-
-  return (y);
-}
-
-/* Compute the greatest common denominator of a VECTOR of SIZE numbers.  */
-
-static int
-gcd_vector (lambda_vector vector, int size)
-{
-  int i;
-  int gcd1 = 0;
-
-  if (size > 0)
-    {
-      gcd1 = vector[0];
-      for (i = 1; i < size; i++)
-	gcd1 = gcd (gcd1, vector[i]);
-    }
-  return gcd1;
-}
-
 /* Compute the least common multiple of two numbers A and B .  */
 
 static int
@@ -664,7 +622,7 @@ compute_nest_using_fourier_motzkin (int size,
    4. Multiply the composed transformation matrix times the matrix form of the
    loop.
    5. Transform the newly created matrix (from step 4) back into a loop nest
-   using fourier motzkin elimination to figure out the bounds.  */
+   using Fourier-Motzkin elimination to figure out the bounds.  */
 
 static lambda_loopnest
 lambda_compute_auxillary_space (lambda_loopnest nest,
@@ -783,7 +741,7 @@ lambda_compute_auxillary_space (lambda_loopnest nest,
   lambda_matrix_add_mc (B, 1, B1, -1, B1, size, invariants);
 
   /* Now compute the auxiliary space bounds by first inverting U, multiplying
-     it by A1, then performing fourier motzkin.  */
+     it by A1, then performing Fourier-Motzkin.  */
 
   invertedtrans = lambda_matrix_new (depth, depth);
 
@@ -849,7 +807,7 @@ lambda_compute_target_space (lambda_loopnest auxillary_nest,
       LN_LOOPS (target_nest)[i] = target_loop;
 
       /* Computes the gcd of the coefficients of the linear part.  */
-      gcd1 = gcd_vector (target[i], i);
+      gcd1 = lambda_vector_gcd (target[i], i);
 
       /* Include the denominator in the GCD.  */
       gcd1 = gcd (gcd1, determinant);
@@ -912,9 +870,9 @@ lambda_compute_target_space (lambda_loopnest auxillary_nest,
 	    }
 	  /* Find the gcd and divide by it here, rather than doing it
 	     at the tree level.  */
-	  gcd1 = gcd_vector (LLE_COEFFICIENTS (target_expr), depth);
-	  gcd2 = gcd_vector (LLE_INVARIANT_COEFFICIENTS (target_expr),
-			     invariants);
+	  gcd1 = lambda_vector_gcd (LLE_COEFFICIENTS (target_expr), depth);
+	  gcd2 = lambda_vector_gcd (LLE_INVARIANT_COEFFICIENTS (target_expr),
+				    invariants);
 	  gcd1 = gcd (gcd1, gcd2);
 	  gcd1 = gcd (gcd1, LLE_CONSTANT (target_expr));
 	  gcd1 = gcd (gcd1, LLE_DENOMINATOR (target_expr));
@@ -968,9 +926,9 @@ lambda_compute_target_space (lambda_loopnest auxillary_nest,
 	    }
 	  /* Find the gcd and divide by it here, instead of at the
 	     tree level.  */
-	  gcd1 = gcd_vector (LLE_COEFFICIENTS (target_expr), depth);
-	  gcd2 = gcd_vector (LLE_INVARIANT_COEFFICIENTS (target_expr),
-			     invariants);
+	  gcd1 = lambda_vector_gcd (LLE_COEFFICIENTS (target_expr), depth);
+	  gcd2 = lambda_vector_gcd (LLE_INVARIANT_COEFFICIENTS (target_expr),
+				    invariants);
 	  gcd1 = gcd (gcd1, gcd2);
 	  gcd1 = gcd (gcd1, LLE_CONSTANT (target_expr));
 	  gcd1 = gcd (gcd1, LLE_DENOMINATOR (target_expr));
@@ -1435,8 +1393,8 @@ gcc_loop_to_lambda_loop (struct loop *loop, int depth,
   ubound = gcc_tree_to_linear_expression (depth, uboundvar,
 					  outerinductionvars,
 					  *invariants, extra);
-  uboundresult = build (PLUS_EXPR, TREE_TYPE (uboundvar), uboundvar,
-			build_int_cst (TREE_TYPE (uboundvar), extra));
+  uboundresult = build2 (PLUS_EXPR, TREE_TYPE (uboundvar), uboundvar,
+			 build_int_cst (TREE_TYPE (uboundvar), extra));
   VEC_safe_push (tree, heap, *uboundvars, uboundresult);
   VEC_safe_push (tree, heap, *lboundvars, lboundvar);
   VEC_safe_push (int, heap, *steps, stepint);
@@ -1580,10 +1538,10 @@ lbv_to_gcc_expression (lambda_body_vector lbv,
   /* Create a statement list and a linear expression temporary.  */
   stmts = alloc_stmt_list ();
   resvar = create_tmp_var (type, "lbvtmp");
-  add_referenced_tmp_var (resvar);
+  add_referenced_var (resvar);
 
   /* Start at 0.  */
-  stmt = build (MODIFY_EXPR, void_type_node, resvar, integer_zero_node);
+  stmt = build2 (MODIFY_EXPR, void_type_node, resvar, integer_zero_node);
   name = make_ssa_name (resvar, stmt);
   TREE_OPERAND (stmt, 0) = name;
   tsi = tsi_last (stmts);
@@ -1598,8 +1556,8 @@ lbv_to_gcc_expression (lambda_body_vector lbv,
 	  
 	  /* newname = coefficient * induction_variable */
 	  coeffmult = build_int_cst (type, LBV_COEFFICIENTS (lbv)[i]);
-	  stmt = build (MODIFY_EXPR, void_type_node, resvar,
-			fold_build2 (MULT_EXPR, type, iv, coeffmult));
+	  stmt = build2 (MODIFY_EXPR, void_type_node, resvar,
+			 fold_build2 (MULT_EXPR, type, iv, coeffmult));
 
 	  newname = make_ssa_name (resvar, stmt);
 	  TREE_OPERAND (stmt, 0) = newname;
@@ -1608,8 +1566,8 @@ lbv_to_gcc_expression (lambda_body_vector lbv,
 	  tsi_link_after (&tsi, stmt, TSI_CONTINUE_LINKING);
 
 	  /* name = name + newname */
-	  stmt = build (MODIFY_EXPR, void_type_node, resvar,
-			build (PLUS_EXPR, type, name, newname));
+	  stmt = build2 (MODIFY_EXPR, void_type_node, resvar,
+			 build2 (PLUS_EXPR, type, name, newname));
 	  name = make_ssa_name (resvar, stmt);
 	  TREE_OPERAND (stmt, 0) = name;
 	  fold_stmt (&stmt);
@@ -1623,8 +1581,8 @@ lbv_to_gcc_expression (lambda_body_vector lbv,
   if (LBV_DENOMINATOR (lbv) != 1)
     {
       tree denominator = build_int_cst (type, LBV_DENOMINATOR (lbv));
-      stmt = build (MODIFY_EXPR, void_type_node, resvar,
-		    build (CEIL_DIV_EXPR, type, name, denominator));
+      stmt = build2 (MODIFY_EXPR, void_type_node, resvar,
+		     build2 (CEIL_DIV_EXPR, type, name, denominator));
       name = make_ssa_name (resvar, stmt);
       TREE_OPERAND (stmt, 0) = name;
       fold_stmt (&stmt);
@@ -1667,14 +1625,14 @@ lle_to_gcc_expression (lambda_linear_expression lle,
   /* Create a statement list and a linear expression temporary.  */
   stmts = alloc_stmt_list ();
   resvar = create_tmp_var (type, "lletmp");
-  add_referenced_tmp_var (resvar);
+  add_referenced_var (resvar);
 
   /* Build up the linear expressions, and put the variable representing the
      result in the results array.  */
   for (; lle != NULL; lle = LLE_NEXT (lle))
     {
       /* Start at name = 0.  */
-      stmt = build (MODIFY_EXPR, void_type_node, resvar, integer_zero_node);
+      stmt = build2 (MODIFY_EXPR, void_type_node, resvar, integer_zero_node);
       name = make_ssa_name (resvar, stmt);
       TREE_OPERAND (stmt, 0) = name;
       fold_stmt (&stmt);
@@ -1705,7 +1663,7 @@ lle_to_gcc_expression (lambda_linear_expression lle,
 		}
 
 	      /* newname = mult */
-	      stmt = build (MODIFY_EXPR, void_type_node, resvar, mult);
+	      stmt = build2 (MODIFY_EXPR, void_type_node, resvar, mult);
 	      newname = make_ssa_name (resvar, stmt);
 	      TREE_OPERAND (stmt, 0) = newname;
 	      fold_stmt (&stmt);
@@ -1713,8 +1671,8 @@ lle_to_gcc_expression (lambda_linear_expression lle,
 	      tsi_link_after (&tsi, stmt, TSI_CONTINUE_LINKING);
 
 	      /* name = name + newname */
-	      stmt = build (MODIFY_EXPR, void_type_node, resvar,
-			    build (PLUS_EXPR, type, name, newname));
+	      stmt = build2 (MODIFY_EXPR, void_type_node, resvar,
+			     build2 (PLUS_EXPR, type, name, newname));
 	      name = make_ssa_name (resvar, stmt);
 	      TREE_OPERAND (stmt, 0) = name;
 	      fold_stmt (&stmt);
@@ -1746,7 +1704,7 @@ lle_to_gcc_expression (lambda_linear_expression lle,
 		}
 
 	      /* newname = mult */
-	      stmt = build (MODIFY_EXPR, void_type_node, resvar, mult);
+	      stmt = build2 (MODIFY_EXPR, void_type_node, resvar, mult);
 	      newname = make_ssa_name (resvar, stmt);
 	      TREE_OPERAND (stmt, 0) = newname;
 	      fold_stmt (&stmt);
@@ -1754,8 +1712,8 @@ lle_to_gcc_expression (lambda_linear_expression lle,
 	      tsi_link_after (&tsi, stmt, TSI_CONTINUE_LINKING);
 
 	      /* name = name + newname */
-	      stmt = build (MODIFY_EXPR, void_type_node, resvar,
-			    build (PLUS_EXPR, type, name, newname));
+	      stmt = build2 (MODIFY_EXPR, void_type_node, resvar,
+			     build2 (PLUS_EXPR, type, name, newname));
 	      name = make_ssa_name (resvar, stmt);
 	      TREE_OPERAND (stmt, 0) = name;
 	      fold_stmt (&stmt);
@@ -1768,9 +1726,9 @@ lle_to_gcc_expression (lambda_linear_expression lle,
          name = name + constant.  */
       if (LLE_CONSTANT (lle) != 0)
 	{
-	  stmt = build (MODIFY_EXPR, void_type_node, resvar,
-			build (PLUS_EXPR, type, name, 
-			       build_int_cst (type, LLE_CONSTANT (lle))));
+	  stmt = build2 (MODIFY_EXPR, void_type_node, resvar,
+			 build2 (PLUS_EXPR, type, name, 
+			         build_int_cst (type, LLE_CONSTANT (lle))));
 	  name = make_ssa_name (resvar, stmt);
 	  TREE_OPERAND (stmt, 0) = name;
 	  fold_stmt (&stmt);
@@ -1782,9 +1740,9 @@ lle_to_gcc_expression (lambda_linear_expression lle,
          name = name + linear offset.  */
       if (LLE_CONSTANT (offset) != 0)
 	{
-	  stmt = build (MODIFY_EXPR, void_type_node, resvar,
-			build (PLUS_EXPR, type, name, 
-			       build_int_cst (type, LLE_CONSTANT (offset))));
+	  stmt = build2 (MODIFY_EXPR, void_type_node, resvar,
+			 build2 (PLUS_EXPR, type, name, 
+			         build_int_cst (type, LLE_CONSTANT (offset))));
 	  name = make_ssa_name (resvar, stmt);
 	  TREE_OPERAND (stmt, 0) = name;
 	  fold_stmt (&stmt);
@@ -1796,9 +1754,9 @@ lle_to_gcc_expression (lambda_linear_expression lle,
       if (LLE_DENOMINATOR (lle) != 1)
 	{
 	  stmt = build_int_cst (type, LLE_DENOMINATOR (lle));
-	  stmt = build (wrap == MAX_EXPR ? CEIL_DIV_EXPR : FLOOR_DIV_EXPR,
-			type, name, stmt);
-	  stmt = build (MODIFY_EXPR, void_type_node, resvar, stmt);
+	  stmt = build2 (wrap == MAX_EXPR ? CEIL_DIV_EXPR : FLOOR_DIV_EXPR,
+			 type, name, stmt);
+	  stmt = build2 (MODIFY_EXPR, void_type_node, resvar, stmt);
 
 	  /* name = {ceil, floor}(name/denominator) */
 	  name = make_ssa_name (resvar, stmt);
@@ -1818,8 +1776,8 @@ lle_to_gcc_expression (lambda_linear_expression lle,
     {
       tree op1 = VEC_index (tree, results, 0);
       tree op2 = VEC_index (tree, results, 1);
-      stmt = build (MODIFY_EXPR, void_type_node, resvar,
-		    build (wrap, type, op1, op2));
+      stmt = build2 (MODIFY_EXPR, void_type_node, resvar,
+		     build2 (wrap, type, op1, op2));
       name = make_ssa_name (resvar, stmt);
       TREE_OPERAND (stmt, 0) = name;
       tsi = tsi_last (stmts);
@@ -1887,7 +1845,7 @@ lambda_loopnest_to_gcc_loopnest (struct loop *old_loopnest,
       /* First, build the new induction variable temporary  */
 
       ivvar = create_tmp_var (type, "lnivtmp");
-      add_referenced_tmp_var (ivvar);
+      add_referenced_var (ivvar);
 
       VEC_safe_push (tree, heap, new_ivs, ivvar);
 
@@ -1934,10 +1892,10 @@ lambda_loopnest_to_gcc_loopnest (struct loop *old_loopnest,
 	 dominate the block containing the exit condition.
 	 So we simply create our own incremented iv to use in the new exit
 	 test,  and let redundancy elimination sort it out.  */
-      inc_stmt = build (PLUS_EXPR, type, 
-			ivvar, build_int_cst (type, LL_STEP (newloop)));
-      inc_stmt = build (MODIFY_EXPR, void_type_node, SSA_NAME_VAR (ivvar),
-			inc_stmt);
+      inc_stmt = build2 (PLUS_EXPR, type, 
+			 ivvar, build_int_cst (type, LL_STEP (newloop)));
+      inc_stmt = build2 (MODIFY_EXPR, void_type_node, SSA_NAME_VAR (ivvar),
+			 inc_stmt);
       ivvarinced = make_ssa_name (SSA_NAME_VAR (ivvar), inc_stmt);
       TREE_OPERAND (inc_stmt, 0) = ivvarinced;
       bsi = bsi_for_stmt (exitcond);
@@ -1955,9 +1913,9 @@ lambda_loopnest_to_gcc_loopnest (struct loop *old_loopnest,
       if (exit->flags & EDGE_FALSE_VALUE)
 	testtype = swap_tree_comparison (testtype);
 
-      COND_EXPR_COND (exitcond) = build (testtype,
-					 boolean_type_node,
-					 newupperbound, ivvarinced);
+      COND_EXPR_COND (exitcond) = build2 (testtype,
+					  boolean_type_node,
+					  newupperbound, ivvarinced);
       update_stmt (exitcond);
       VEC_replace (tree, new_ivs, i, ivvar);
 
@@ -1971,9 +1929,10 @@ lambda_loopnest_to_gcc_loopnest (struct loop *old_loopnest,
   for (i = 0; VEC_iterate (tree, old_ivs, i, oldiv); i++)
     {
       imm_use_iterator imm_iter;
-      use_operand_p imm_use;
+      use_operand_p use_p;
       tree oldiv_def;
       tree oldiv_stmt = SSA_NAME_DEF_STMT (oldiv);
+      tree stmt;
 
       if (TREE_CODE (oldiv_stmt) == PHI_NODE)
         oldiv_def = PHI_RESULT (oldiv_stmt);
@@ -1981,37 +1940,31 @@ lambda_loopnest_to_gcc_loopnest (struct loop *old_loopnest,
 	oldiv_def = SINGLE_SSA_TREE_OPERAND (oldiv_stmt, SSA_OP_DEF);
       gcc_assert (oldiv_def != NULL_TREE);
 
-      FOR_EACH_IMM_USE_SAFE (imm_use, imm_iter, oldiv_def)
-	{
-	  tree stmt = USE_STMT (imm_use);
-	  use_operand_p use_p;
-	  ssa_op_iter iter;
-	  gcc_assert (TREE_CODE (stmt) != PHI_NODE);
-	  FOR_EACH_SSA_USE_OPERAND (use_p, stmt, iter, SSA_OP_USE)
-	    {
-	      if (USE_FROM_PTR (use_p) == oldiv)
-		{
-		  tree newiv, stmts;
-		  lambda_body_vector lbv, newlbv;
-		  /* Compute the new expression for the induction
-		     variable.  */
-		  depth = VEC_length (tree, new_ivs);
-		  lbv = lambda_body_vector_new (depth);
-		  LBV_COEFFICIENTS (lbv)[i] = 1;
-		  
-		  newlbv = lambda_body_vector_compute_new (transform, lbv);
+      FOR_EACH_IMM_USE_STMT (stmt, imm_iter, oldiv_def)
+        {
+	  tree newiv, stmts;
+	  lambda_body_vector lbv, newlbv;
 
-		  newiv = lbv_to_gcc_expression (newlbv, TREE_TYPE (oldiv),
-						 new_ivs, &stmts);
-		  bsi = bsi_for_stmt (stmt);
-		  /* Insert the statements to build that
-		     expression.  */
-		  bsi_insert_before (&bsi, stmts, BSI_SAME_STMT);
-		  propagate_value (use_p, newiv);
-		  update_stmt (stmt);
-		  
-		}
-	    }
+	  gcc_assert (TREE_CODE (stmt) != PHI_NODE);
+
+	  /* Compute the new expression for the induction
+	     variable.  */
+	  depth = VEC_length (tree, new_ivs);
+	  lbv = lambda_body_vector_new (depth);
+	  LBV_COEFFICIENTS (lbv)[i] = 1;
+	  
+	  newlbv = lambda_body_vector_compute_new (transform, lbv);
+
+	  newiv = lbv_to_gcc_expression (newlbv, TREE_TYPE (oldiv),
+					 new_ivs, &stmts);
+	  bsi = bsi_for_stmt (stmt);
+	  /* Insert the statements to build that
+	     expression.  */
+	  bsi_insert_before (&bsi, stmts, BSI_SAME_STMT);
+
+	  FOR_EACH_IMM_USE_ON_STMT (use_p, imm_iter)
+	    propagate_value (use_p, newiv);
+	  update_stmt (stmt);
 	}
     }
   VEC_free (tree, heap, new_ivs);
@@ -2231,7 +2184,7 @@ replace_uses_equiv_to_x_with_y (struct loop *loop, tree stmt, tree x,
 	 of the loop body basic block, right after the PHI node
 	 which sets Y.  */
       var = create_tmp_var (TREE_TYPE (use), "perfecttmp");
-      add_referenced_tmp_var (var);
+      add_referenced_var (var);
       val = force_gimple_operand_bsi (firstbsi, val, false, NULL);
       setstmt = build2 (MODIFY_EXPR, void_type_node, var, val);
       var = make_ssa_name (var, setstmt);
@@ -2263,23 +2216,20 @@ exit_phi_for_loop_p (struct loop *loop, tree stmt)
   return true;
 }
 
-/* Return true if STMT can be put back into INNER, a loop by moving it to the 
-   beginning of that loop.  */
+/* Return true if STMT can be put back into the loop INNER, by
+   copying it to the beginning of that loop and changing the uses.  */
 
 static bool
 can_put_in_inner_loop (struct loop *inner, tree stmt)
 {
   imm_use_iterator imm_iter;
   use_operand_p use_p;
-  basic_block use_bb = NULL;
   
   gcc_assert (TREE_CODE (stmt) == MODIFY_EXPR);
   if (!ZERO_SSA_OPERANDS (stmt, SSA_OP_ALL_VIRTUALS)
       || !expr_invariant_in_loop_p (inner, TREE_OPERAND (stmt, 1)))
     return false;
   
-  /* We require that the basic block of all uses be the same, or the use be an
-     exit phi.  */
   FOR_EACH_IMM_USE_FAST (use_p, imm_iter, TREE_OPERAND (stmt, 0))
     {
       if (!exit_phi_for_loop_p (inner, USE_STMT (use_p)))
@@ -2288,18 +2238,12 @@ can_put_in_inner_loop (struct loop *inner, tree stmt)
 
 	  if (!flow_bb_inside_loop_p (inner, immbb))
 	    return false;
-	  if (use_bb == NULL)
-	    use_bb = immbb;
-	  else if (immbb != use_bb)
-	    return false;
 	}
     }
-  return true;
-  
+  return true;  
 }
 
 /* Return true if STMT can be put *after* the inner loop of LOOP.  */
-
 static bool
 can_put_after_inner_loop (struct loop *loop, tree stmt)
 {
@@ -2324,6 +2268,8 @@ can_put_after_inner_loop (struct loop *loop, tree stmt)
     }
   return true;
 }
+
+
 
 /* Return TRUE if LOOP is an imperfect nest that we can convert to a
    perfect one.  At the moment, we only handle imperfect nests of
@@ -2357,15 +2303,14 @@ can_convert_to_perfect_nest (struct loop *loop)
 		  || stmt_is_bumper_for_loop (loop, stmt))
 		continue;
 
-	      /* If this is a simple operation like a cast that is invariant
-		 in the inner loop, only used there, and we can place it
-		 there, then it's not going to hurt us.
-		 This means that we will propagate casts and other cheap
-		 invariant operations *back*
-		 into the inner loop if we can interchange the loop, on the
-		 theory that we are going to gain a lot more by interchanging
-		 the loop than we are by leaving some invariant code there for
-		 some other pass to clean up.  */
+	      /* If this is a scalar operation that can be put back
+	         into the inner loop, or after the inner loop, through
+		 copying, then do so. This works on the theory that
+		 any amount of scalar code we have to reduplicate
+		 into or after the loops is less expensive that the
+		 win we get from rearranging the memory walk
+		 the loop is doing so that it has better
+		 cache behavior.  */
 	      if (TREE_CODE (stmt) == MODIFY_EXPR)
 		{
 		  use_operand_p use_a, use_b;
@@ -2556,11 +2501,11 @@ perfect_nestify (struct loops *loops,
   make_edge (headerbb, bodybb, EDGE_FALLTHRU); 
   then_label = build1 (GOTO_EXPR, void_type_node, tree_block_label (latchbb));
   else_label = build1 (GOTO_EXPR, void_type_node, tree_block_label (olddest));
-  cond_stmt = build (COND_EXPR, void_type_node,
-		     build (NE_EXPR, boolean_type_node, 
-			    integer_one_node, 
-			    integer_zero_node), 
-		     then_label, else_label);
+  cond_stmt = build3 (COND_EXPR, void_type_node,
+		      build2 (NE_EXPR, boolean_type_node, 
+			      integer_one_node, 
+			      integer_zero_node), 
+		      then_label, else_label);
   bsi = bsi_start (bodybb);
   bsi_insert_after (&bsi, cond_stmt, BSI_NEW_STMT);
   e = make_edge (bodybb, olddest, EDGE_FALSE_VALUE);
@@ -2584,7 +2529,7 @@ perfect_nestify (struct loops *loops,
   /* Create the new iv.  */
   oldivvar = VEC_index (tree, loopivs, 0);
   ivvar = create_tmp_var (TREE_TYPE (oldivvar), "perfectiv");
-  add_referenced_tmp_var (ivvar);
+  add_referenced_var (ivvar);
   standard_iv_increment_position (newloop, &bsi, &insert_after);
   create_iv (VEC_index (tree, lbounds, 0),
 	     build_int_cst (TREE_TYPE (oldivvar), VEC_index (int, steps, 0)),
@@ -2595,9 +2540,9 @@ perfect_nestify (struct loops *loops,
 
   exit_condition = get_loop_exit_condition (newloop);
   uboundvar = create_tmp_var (integer_type_node, "uboundvar");
-  add_referenced_tmp_var (uboundvar);
-  stmt = build (MODIFY_EXPR, void_type_node, uboundvar, 
-		VEC_index (tree, ubounds, 0));
+  add_referenced_var (uboundvar);
+  stmt = build2 (MODIFY_EXPR, void_type_node, uboundvar, 
+		 VEC_index (tree, ubounds, 0));
   uboundvar = make_ssa_name (uboundvar, stmt);
   TREE_OPERAND (stmt, 0) = uboundvar;
 
@@ -2606,10 +2551,10 @@ perfect_nestify (struct loops *loops,
   else
     bsi_insert_before (&bsi, stmt, BSI_SAME_STMT);
   update_stmt (stmt);
-  COND_EXPR_COND (exit_condition) = build (GE_EXPR, 
-					   boolean_type_node,
-					   uboundvar,
-					   ivvarinced);
+  COND_EXPR_COND (exit_condition) = build2 (GE_EXPR, 
+					    boolean_type_node,
+					    uboundvar,
+					    ivvarinced);
   update_stmt (exit_condition);
   replacements = htab_create_ggc (20, tree_map_hash,
 				  tree_map_eq, NULL);
@@ -2710,7 +2655,7 @@ perfect_nestify (struct loops *loops,
 bool
 lambda_transform_legal_p (lambda_trans_matrix trans, 
 			  int nb_loops,
-			  varray_type dependence_relations)
+			  VEC (ddr_p, heap) *dependence_relations)
 {
   unsigned int i, j;
   lambda_vector distres;
@@ -2721,8 +2666,7 @@ lambda_transform_legal_p (lambda_trans_matrix trans,
 
   /* When there is an unknown relation in the dependence_relations, we
      know that it is no worth looking at this loop nest: give up.  */
-  ddr = (struct data_dependence_relation *) 
-    VARRAY_GENERIC_PTR (dependence_relations, 0);
+  ddr = VEC_index (ddr_p, dependence_relations, 0);
   if (ddr == NULL)
     return true;
   if (DDR_ARE_DEPENDENT (ddr) == chrec_dont_know)
@@ -2731,11 +2675,8 @@ lambda_transform_legal_p (lambda_trans_matrix trans,
   distres = lambda_vector_new (nb_loops);
 
   /* For each distance vector in the dependence graph.  */
-  for (i = 0; i < VARRAY_ACTIVE_SIZE (dependence_relations); i++)
+  for (i = 0; VEC_iterate (ddr_p, dependence_relations, i, ddr); i++)
     {
-      ddr = (struct data_dependence_relation *) 
-	VARRAY_GENERIC_PTR (dependence_relations, i);     
-
       /* Don't care about relations for which we know that there is no
 	 dependence, nor about read-read (aka. output-dependences):
 	 these data accesses can happen in any order.  */

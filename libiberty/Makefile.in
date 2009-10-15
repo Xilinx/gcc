@@ -1,6 +1,6 @@
 #
 # Makefile
-#   Copyright (C) 1990, 91-99, 2000, 2001, 2002, 2003, 2004, 2005
+#   Copyright (C) 1990, 91-99, 2000, 2001, 2002, 2003, 2004, 2005, 2006
 #   Free Software Foundation
 #
 # This file is part of the libiberty library.
@@ -245,7 +245,63 @@ info: libiberty.info info-subdir
 install-info: install-info-subdir
 clean-info: clean-info-subdir
 dvi: libiberty.dvi dvi-subdir
-html: libiberty.html
+pdf: libiberty.pdf pdf-subdir
+
+# html, install-html targets
+HTMLS = libiberty.html
+
+html: $(HTMLS)
+
+.PHONY: install-html install-html-am install-html-recursive
+
+NORMAL_INSTALL = :
+mkdir_p = mkdir -p --
+ 
+html__strip_dir = `echo $$p | sed -e 's|^.*/||'`;
+
+install-html: install-html-recursive  install-html-am
+
+install-html-am: $(HTMLS)
+	@$(NORMAL_INSTALL)
+	test -z "$(htmldir)" || $(mkdir_p) "$(DESTDIR)$(htmldir)"
+	@list='$(HTMLS)'; for p in $$list; do \
+	  if test -f "$$p" || test -d "$$p"; then d=""; else d="$(srcdir)/"; fi; \
+	  f=$(html__strip_dir) \
+	  if test -d "$$d$$p"; then \
+	    echo " $(mkdir_p) '$(DESTDIR)$(htmldir)/$$f'"; \
+	    $(mkdir_p) "$(DESTDIR)$(htmldir)/$$f" || exit 1; \
+	    echo " $(INSTALL_DATA) '$$d$$p'/* '$(DESTDIR)$(htmldir)/$$f'"; \
+	    $(INSTALL_DATA) "$$d$$p"/* "$(DESTDIR)$(htmldir)/$$f"; \
+	  else \
+	    echo " $(INSTALL_DATA) '$$d$$p' '$(DESTDIR)$(htmldir)/$$f'"; \
+	    $(INSTALL_DATA) "$$d$$p" "$(DESTDIR)$(htmldir)/$$f"; \
+	  fi; \
+	done
+
+install-html-recursive:
+	@failcom='exit 1'; \
+	for f in x $$MAKEFLAGS; do \
+	  case $$f in \
+	    *=* | --[!k]*);; \
+	    *k*) failcom='fail=yes';; \
+	  esac; \
+	done; \
+	dot_seen=no; \
+	target=`echo $@ | sed s/-recursive//`; \
+	list='$(SUBDIRS)'; for subdir in $$list; do \
+	  echo "Making $$target in $$subdir"; \
+	  if test "$$subdir" = "."; then \
+	    dot_seen=yes; \
+	    local_target="$$target-am"; \
+	  else \
+	    local_target="$$target"; \
+	  fi; \
+	  (cd $$subdir && $(MAKE) $(AM_MAKEFLAGS) $$local_target) \
+	  || eval $$failcom; \
+	done; \
+	if test "$$dot_seen" = "no"; then \
+	  $(MAKE) $(AM_MAKEFLAGS) "$$target-am" || exit 1; \
+	fi; test -z "$$fail"
 
 TEXISRC = \
 	$(srcdir)/libiberty.texi \
@@ -264,6 +320,9 @@ libiberty.info : $(srcdir)/libiberty.texi $(TEXISRC)
 libiberty.dvi : $(srcdir)/libiberty.texi $(TEXISRC)
 	texi2dvi $(srcdir)/libiberty.texi
 
+libiberty.pdf : $(srcdir)/libiberty.texi $(TEXISRC)
+	texi2pdf $(srcdir)/libiberty.texi
+
 libiberty.html : $(srcdir)/libiberty.texi $(TEXISRC)
 	$(MAKEINFO) --no-split --html -I$(srcdir) -o $@ $<
 
@@ -277,15 +336,20 @@ libiberty.html : $(srcdir)/libiberty.texi $(TEXISRC)
 INSTALL_DEST = @INSTALL_DEST@
 install: install_to_$(INSTALL_DEST) install-subdir
 
+# This is tricky.  Even though CC in the Makefile contains
+# multilib-specific flags, it's overridden by FLAGS_TO_PASS from the
+# default multilib, so we have to take LIBCFLAGS into account as well,
+# since it will be passed the multilib flags.
+MULTIOSDIR = `$(CC) $(LIBCFLAGS) -print-multi-os-directory`
 install_to_libdir: all
-	${mkinstalldirs} $(DESTDIR)$(libdir)$(MULTISUBDIR)
-	$(INSTALL_DATA) $(TARGETLIB) $(DESTDIR)$(libdir)$(MULTISUBDIR)/$(TARGETLIB)n
-	( cd $(DESTDIR)$(libdir)$(MULTISUBDIR) ; chmod 644 $(TARGETLIB)n ;$(RANLIB) $(TARGETLIB)n )
-	mv -f $(DESTDIR)$(libdir)$(MULTISUBDIR)/$(TARGETLIB)n $(DESTDIR)$(libdir)$(MULTISUBDIR)/$(TARGETLIB)
+	${mkinstalldirs} $(DESTDIR)$(libdir)/$(MULTIOSDIR)
+	$(INSTALL_DATA) $(TARGETLIB) $(DESTDIR)$(libdir)/$(MULTIOSDIR)/$(TARGETLIB)n
+	( cd $(DESTDIR)$(libdir)/$(MULTIOSDIR) ; chmod 644 $(TARGETLIB)n ;$(RANLIB) $(TARGETLIB)n )
+	mv -f $(DESTDIR)$(libdir)/$(MULTIOSDIR)/$(TARGETLIB)n $(DESTDIR)$(libdir)/$(MULTIOSDIR)/$(TARGETLIB)
 	if test -n "${target_header_dir}"; then \
 	  case "${target_header_dir}" in \
 	    /*)    thd=${target_header_dir};; \
-	    *)     thd=${includedir}${MULTISUBDIR}/${target_header_dir};; \
+	    *)     thd=${includedir}/${target_header_dir};; \
 	  esac; \
 	  ${mkinstalldirs} $(DESTDIR)$${thd}; \
 	  for h in ${INSTALLED_HEADERS}; do \
@@ -294,11 +358,6 @@ install_to_libdir: all
 	fi
 	@$(MULTIDO) $(FLAGS_TO_PASS) multi-do DO=install
 
-# This is tricky.  Even though CC in the Makefile contains
-# multilib-specific flags, it's overridden by FLAGS_TO_PASS from the
-# default multilib, so we have to take LIBCFLAGS into account as well,
-# since it will be passed the multilib flags.
-MULTIOSDIR = `$(CC) $(LIBCFLAGS) -print-multi-os-directory`
 install_to_tooldir: all
 	${mkinstalldirs} $(DESTDIR)$(tooldir)/lib/$(MULTIOSDIR)
 	$(INSTALL_DATA) $(TARGETLIB) $(DESTDIR)$(tooldir)/lib/$(MULTIOSDIR)/$(TARGETLIB)n
@@ -379,7 +438,7 @@ mostlyclean: mostlyclean-subdir
 clean: clean-subdir
 	$(MAKE) SUBDIRS="" mostlyclean
 	-rm -f *.a required-list tmpmulti.out
-	-rm -f libiberty.dvi libiberty.info* libiberty.html
+	-rm -f libiberty.dvi libiberty.pdf libiberty.info* libiberty.html
 	@$(MULTICLEAN) multi-clean DO=clean
 distclean: distclean-subdir
 	$(MAKE) SUBDIRS="" clean
@@ -408,7 +467,7 @@ config.status: $(srcdir)/configure
 # if needed.  This prevents problems with parallel builds, in case
 # subdirectories need to run config.status also.
 all-subdir check-subdir installcheck-subdir info-subdir	\
-install-info-subdir clean-info-subdir dvi-subdir install-subdir	\
+install-info-subdir clean-info-subdir dvi-subdir pdf-subdir install-subdir	\
 etags-subdir mostlyclean-subdir clean-subdir distclean-subdir \
 maintainer-clean-subdir: config.h
 	@subdirs='$(SUBDIRS)'; \

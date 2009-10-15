@@ -63,10 +63,53 @@ public class ParagraphView extends FlowView implements TabExpander
     {
       super(el, X_AXIS);
     }
+
     public float getAlignment(int axis)
     {
-      // FIXME: This is very likely not 100% correct. Work this out.
-      return 0.0F;
+      float align;
+      if (axis == X_AXIS)
+        align = 0.0F; // TODO: Implement according to justification
+      else
+        align = super.getAlignment(axis);
+      return align;
+    }
+
+    /**
+     * Allows rows to span the whole parent view.
+     */
+    public float getMaximumSpan(int axis)
+    {
+      float max;
+      if (axis == X_AXIS)
+        max = Float.MAX_VALUE;
+      else
+        max = super.getMaximumSpan(axis);
+      return max;
+    }
+
+    /**
+     * Overridden because child views are not necessarily laid out in model
+     * order.
+     */
+    protected int getViewIndexAtPosition(int pos)
+    {
+      int index = -1;
+      if (pos >= getStartOffset() && pos < getEndOffset())
+        {
+          int nviews = getViewCount();
+          for (int i = 0; i < nviews && index == -1; i++)
+            {
+              View child = getView(i);
+              if (pos >= child.getStartOffset() && pos < child.getEndOffset())
+                index = i;
+            }
+        }
+      return index;
+    }
+
+    protected void loadChildren(ViewFactory vf)
+    {
+      // Do nothing here. The children are added while layouting.
     }
   }
 
@@ -128,17 +171,18 @@ public class ParagraphView extends FlowView implements TabExpander
    */
   public float getAlignment(int axis)
   {
+    float align;
     if (axis == X_AXIS)
-      return 0.0F;
+      align = 0.5F;
     else if (getViewCount() > 0)
       {
-
         float prefHeight = getPreferredSpan(Y_AXIS);
         float firstRowHeight = getView(0).getPreferredSpan(Y_AXIS);
-        return (firstRowHeight / 2.F) / prefHeight;
+        align = (firstRowHeight / 2.F) / prefHeight;
       }
     else
-      return 0.0F;
+      align = 0.5F;
+    return align;
   }
 
   /**
@@ -228,5 +272,185 @@ public class ParagraphView extends FlowView implements TabExpander
   protected TabSet getTabSet()
   {
     return tabSet;
+  }
+
+  /**
+   * Finds the next offset in the document that has one of the characters
+   * specified in <code>string</code>. If there is no such character found,
+   * this returns -1.
+   *
+   * @param string the characters to search for
+   * @param start the start offset
+   *
+   * @return the next offset in the document that has one of the characters
+   *         specified in <code>string</code>
+   */
+  protected int findOffsetToCharactersInString(char[] string, int start)
+  {
+    int offset = -1;
+    Document doc = getDocument();
+    Segment text = new Segment();
+    try
+      {
+        doc.getText(start, doc.getLength() - start, text);
+        int index = start;
+
+        searchLoop:
+        while (true)
+          {
+            char ch = text.next();
+            if (ch == Segment.DONE)
+              break;
+
+            for (int j = 0; j < string.length; ++j)
+              {
+                if (string[j] == ch)
+                  {
+                    offset = index;
+                    break searchLoop;
+                  }
+              }
+            index++;
+          }
+      }
+    catch (BadLocationException ex)
+      {
+        // Ignore this and return -1.
+      }
+    return offset;
+  }
+
+  protected int getClosestPositionTo(int pos, Position.Bias bias, Shape a,
+                                     int direction, Position.Bias[] biasRet,
+                                     int rowIndex, int x)
+    throws BadLocationException
+  {
+    // FIXME: Implement this properly. However, this looks like it might
+    // have been replaced by viewToModel.
+    return pos;
+  }
+
+  /**
+   * Returns the size that is used by this view (or it's child views) between
+   * <code>startOffset</code> and <code>endOffset</code>. If the child views
+   * implement the {@link TabableView} interface, then this is used to
+   * determine the span, otherwise we use the preferred span of the child
+   * views.
+   *
+   * @param startOffset the start offset
+   * @param endOffset the end offset
+   *
+   * @return the span used by the view between <code>startOffset</code> and
+   *         <code>endOffset</cod>
+   */
+  protected float getPartialSize(int startOffset, int endOffset)
+  {
+    int startIndex = getViewIndex(startOffset, Position.Bias.Backward);
+    int endIndex = getViewIndex(endOffset, Position.Bias.Forward);
+    float span;
+    if (startIndex == endIndex)
+      {
+        View child = getView(startIndex);
+        if (child instanceof TabableView)
+          {
+            TabableView tabable = (TabableView) child;
+            span = tabable.getPartialSpan(startOffset, endOffset);
+          }
+        else
+          span = child.getPreferredSpan(X_AXIS);
+      }
+    else if (endIndex - startIndex == 1)
+      {
+        View child1 = getView(startIndex);
+        if (child1 instanceof TabableView)
+          {
+            TabableView tabable = (TabableView) child1;
+            span = tabable.getPartialSpan(startOffset, child1.getEndOffset());
+          }
+        else
+          span = child1.getPreferredSpan(X_AXIS);
+        View child2 = getView(endIndex);
+        if (child2 instanceof TabableView)
+          {
+            TabableView tabable = (TabableView) child2;
+            span += tabable.getPartialSpan(child2.getStartOffset(), endOffset);
+          }
+        else
+          span += child2.getPreferredSpan(X_AXIS);
+      }
+    else
+      {
+        // Start with the first view.
+        View child1 = getView(startIndex);
+        if (child1 instanceof TabableView)
+          {
+            TabableView tabable = (TabableView) child1;
+            span = tabable.getPartialSpan(startOffset, child1.getEndOffset());
+          }
+        else
+          span = child1.getPreferredSpan(X_AXIS);
+
+        // Add up the view spans between the start and the end view.
+        for (int i = startIndex + 1; i < endIndex; i++)
+          {
+            View child = getView(i);
+            span += child.getPreferredSpan(X_AXIS);
+          }
+
+        // Add the span of the last view.
+        View child2 = getView(endIndex);
+        if (child2 instanceof TabableView)
+          {
+            TabableView tabable = (TabableView) child2;
+            span += tabable.getPartialSpan(child2.getStartOffset(), endOffset);
+          }
+        else
+          span += child2.getPreferredSpan(X_AXIS);
+      }
+    return span;
+  }
+
+  /**
+   * Returns the location where the tabs are calculated from. This returns
+   * <code>0.0F</code> by default.
+   *
+   * @return the location where the tabs are calculated from
+   */
+  protected float getTabBase()
+  {
+    return 0.0F;
+  }
+
+  /**
+   * @specnote This method is specified to take a Row parameter, which is a
+   *           private inner class of that class, which makes it unusable from
+   *           application code. Also, this method seems to be replaced by
+   *           {@link FlowStrategy#adjustRow(FlowView, int, int, int)}.
+   *
+   */
+  protected void adjustRow(Row r, int desiredSpan, int x)
+  {
+  }
+
+  /**
+   * @specnote This method's signature differs from the one defined in
+   *           {@link View} and is therefore never called. It is probably there
+   *           for historical reasons.
+   */
+  public View breakView(int axis, float len, Shape a)
+  {
+    // This method is not used.
+    return null;
+  }
+
+  /**
+   * @specnote This method's signature differs from the one defined in
+   *           {@link View} and is therefore never called. It is probably there
+   *           for historical reasons.
+   */
+  public int getBreakWeight(int axis, float len)
+  {
+    // This method is not used.
+    return 0;
   }
 }

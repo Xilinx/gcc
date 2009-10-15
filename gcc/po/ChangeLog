@@ -1,10 +1,93 @@
-2007-02-13  Release Manager
+2008-05-19  Release Manager
 
-	* GCC 4.1.2 released.
+	* GCC 4.2.4 released.
 
-2007-02-13  Mark Mitchell  <mark@codesourcery.com>
+2008-05-19  Joseph S. Myers  <joseph@codesourcery.com>
 
-	* gcc.pot: Regenerated.
+	* gcc.pot: Regenerate.
+
+2008-03-14  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* ca.po, rw.po: Remove.
+
+2008-02-01  Release Manager
+
+	* GCC 4.2.3 released.
+
+2008-02-01  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* gcc.pot: Regenerate.
+
+2007-10-21  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* de.po, es.po, zh_CN.po: Update.
+
+2007-10-10  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* be.po, ca.po, da.po, de.po, el.po, es.po, fr.po, ja.po, nl.po,
+	ru.po, sr.po, sv.po, tr.po, zh_CN.po, zh_TW.po: Update.
+
+2007-10-07  Release Manager
+
+	* GCC 4.2.2 released.
+
+2007-10-07  Mark Mitchell  <mark@codesourcery.com>
+
+	* gcc.pot: Regenerate.
+
+2007-09-05  Philipp Thomas  <pth@suse.de>
+
+	* de.po, sr.po, sv.po: Update.
+
+2007-08-21  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* be.po, ca.po, da.po, de.po, el.po, es.po, fr.po, ja.po, nl.po,
+	ru.po, sr.po, sv.po, tr.po, zh_CN.po, zh_TW.po: Update.
+
+2007-08-01  Philipp Thomas <pth@suse.de>
+
+	* sv.po: Update to latest version.
+
+2007-07-31  Philipp Thomas <pth@suse.de>
+
+	* de.po: Update to latest version.
+
+2007-07-19  Release Manager
+
+	* GCC 4.2.1 released.
+
+2007-07-18  Mark Mitchell  <mark@codesourcery.com>
+
+	* gcc.pot: Regenerate.
+
+2007-07-07  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* zh_CN.po: Update.
+
+2007-06-26  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* be.po, ca.po, da.po, de.po, el.po, es.po, fr.po, ja.po, nl.po,
+	ru.po, rw.po, sr.po, sv.po, tr.po, zh_CN.po, zh_TW.po: Update.
+
+2007-05-13  Release Manager
+
+	* GCC 4.2.0 released.
+
+2007-05-13  Mark Mitchell  <mark@codesourcery.com>
+
+	* gcc.pot: Regenerate.
+
+2007-04-21  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* sv.po: Update.
+
+2007-03-08  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* sr.po: New.
+
+2007-03-07  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* gcc.pot: Regenerate.
 
 2007-02-12  Joseph S. Myers  <joseph@codesourcery.com>
 
@@ -17,6 +100,10 @@
 2006-11-28  Joseph S. Myers  <joseph@codesourcery.com>
 
 	* sv.po, tr.po: Update.
+
+2006-10-22  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* gcc.pot: Regenerate.
 
 2006-10-19  Joseph S. Myers  <joseph@codesourcery.com>
 
@@ -47,14 +134,6 @@
 
 	* sv.po: Update.
 
-2006-05-24  Release Manager
-
-	* GCC 4.1.1 released.
-
-2006-05-24  Mark Mitchell  <mark@codesourcery.com>
-
-	* gcc.pot: Regenerated.
-
 2006-05-20  Joseph S. Myers  <joseph@codesourcery.com>
 
 	* sv.po, tr.po: Update.
@@ -72,14 +151,6 @@
 
 	* be.po, ca.po, da.po, de.po, el.po, es.po, fr.po, ja.po, nl.po,
 	rw.po, sv.po, tr.po, zh_CN.po: Update.
-
-2006-02-28  Release Manager
-
-	* GCC 4.1.0 released.
-
-2006-02-28  Mark Mitchell  <mark@codesourcery.com>
-
-	* gcc.pot: Regenerate.
 
 2006-01-18  Joseph S. Myers  <joseph@codesourcery.com>
 

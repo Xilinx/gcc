@@ -1,12 +1,12 @@
 ;; ARM VFP coprocessor Machine Description
-;; Copyright (C) 2003, 2005 Free Software Foundation, Inc.
+;; Copyright (C) 2003, 2005, 2007 Free Software Foundation, Inc.
 ;; Written by CodeSourcery, LLC.
 ;;
 ;; This file is part of GCC.
 ;;
 ;; GCC is free software; you can redistribute it and/or modify it
 ;; under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 2, or (at your option)
+;; the Free Software Foundation; either version 3, or (at your option)
 ;; any later version.
 ;;
 ;; GCC is distributed in the hope that it will be useful, but
@@ -15,9 +15,8 @@
 ;; General Public License for more details.
 ;;
 ;; You should have received a copy of the GNU General Public License
-;; along with GCC; see the file COPYING.  If not, write to the Free
-;; Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-;; 02110-1301, USA.  */
+;; along with GCC; see the file COPYING3.  If not see
+;; <http://www.gnu.org/licenses/>.  */
 
 ;; Additional register numbers
 (define_constants
@@ -148,7 +147,9 @@
 (define_insn "*arm_movdi_vfp"
   [(set (match_operand:DI 0 "nonimmediate_di_operand" "=r, r,m,w,r,w,w, Uv")
 	(match_operand:DI 1 "di_operand"              "rIK,mi,r,r,w,w,Uvi,w"))]
-  "TARGET_ARM && TARGET_HARD_FLOAT && TARGET_VFP"
+  "TARGET_ARM && TARGET_HARD_FLOAT && TARGET_VFP
+   && (   register_operand (operands[0], DImode)
+       || register_operand (operands[1], DImode))"
   "*
   switch (which_alternative)
     {
@@ -179,10 +180,12 @@
 
 
 ;; SFmode moves
+;; Disparage the w<->r cases because reloading an invalid address is
+;; preferable to loading the value via integer registers.
 
 (define_insn "*movsf_vfp"
-  [(set (match_operand:SF 0 "nonimmediate_operand" "=w,r,w  ,Uv,r ,m,w,r")
-	(match_operand:SF 1 "general_operand"	   " r,w,UvE,w, mE,r,w,r"))]
+  [(set (match_operand:SF 0 "nonimmediate_operand" "=w,?r,w  ,Uv,r ,m,w,r")
+	(match_operand:SF 1 "general_operand"	   " ?r,w,UvE,w, mE,r,w,r"))]
   "TARGET_ARM && TARGET_HARD_FLOAT && TARGET_VFP
    && (   s_register_operand (operands[0], SFmode)
        || s_register_operand (operands[1], SFmode))"
@@ -205,9 +208,11 @@
 ;; DFmode moves
 
 (define_insn "*movdf_vfp"
-  [(set (match_operand:DF 0 "nonimmediate_soft_df_operand" "=w,r,r, m,w  ,Uv,w,r")
-	(match_operand:DF 1 "soft_df_operand"		   " r,w,mF,r,UvF,w, w,r"))]
-  "TARGET_ARM && TARGET_HARD_FLOAT && TARGET_VFP"
+  [(set (match_operand:DF 0 "nonimmediate_soft_df_operand" "=w,?r,r, m,w  ,Uv,w,r")
+	(match_operand:DF 1 "soft_df_operand"		   " ?r,w,mF,r,UvF,w, w,r"))]
+  "TARGET_ARM && TARGET_HARD_FLOAT && TARGET_VFP
+   && (   register_operand (operands[0], DFmode)
+       || register_operand (operands[1], DFmode))"
   "*
   {
     switch (which_alternative)

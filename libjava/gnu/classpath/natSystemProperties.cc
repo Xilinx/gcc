@@ -1,7 +1,7 @@
 // natSystemProperties.cc - Implementation of native side of
 // SystemProperties class.
 
-/* Copyright (C) 2005  Free Software Foundation
+/* Copyright (C) 2005, 2006  Free Software Foundation
 
    This file is part of libgcj.
 
@@ -62,11 +62,11 @@ _Jv_SetDLLSearchPath (const char *)
 #if ! defined (DEFAULT_FILE_ENCODING) && defined (HAVE_ICONV) \
     && defined (HAVE_NL_LANGINFO)
 
-static char *
+static const char *
 file_encoding ()
 {
   setlocale (LC_CTYPE, "");
-  char *e = nl_langinfo (CODESET);
+  const char *e = nl_langinfo (CODESET);
   if (e == NULL || *e == '\0')
     e = "8859_1";
   return e;
@@ -80,9 +80,9 @@ file_encoding ()
 #define DEFAULT_FILE_ENCODING "8859_1"
 #endif
 
-static char *default_file_encoding = DEFAULT_FILE_ENCODING;
+static const char *default_file_encoding = DEFAULT_FILE_ENCODING;
 
-#if HAVE_GETPWUID_R
+#if defined(HAVE_GETPWUID_R) && defined(_POSIX_PTHREAD_SEMANTICS)
 /* Use overload resolution to find out the signature of getpwuid_r.  */
 
   /* This is Posix getpwuid_r.  */
@@ -121,6 +121,26 @@ getpwuid_adaptor(T_passwd * (*getpwuid_r)(T_uid user_id, T_passwd *pwd_r,
 }
 #endif
 
+// Prepend GCJ_VERSIONED_LIBDIR to a module search path stored in a
+// Java string, if the path is not already prefixed by
+// GCJ_VERSIONED_LIBDIR.  Return a newly JvMalloc'd char buffer.  The
+// result should be freed using JvFree.  See
+// _Jv_PrependVersionedLibdir in prims.cc.
+static char*
+PrependVersionedLibdir (::java::lang::String* libpath)
+{
+  char* retval = 0;
+
+  // Extract a C char array from libpath.
+  char* val = (char*) _Jv_Malloc (JvGetStringUTFLength (libpath) + 1);
+  jsize total = JvGetStringUTFRegion (libpath, 0, libpath->length(), val);
+  val[total] = '\0';
+  retval = _Jv_PrependVersionedLibdir (val);
+  JvFree (val);
+
+  return retval;
+}
+
 void
 gnu::classpath::SystemProperties::insertSystemProperties (java::util::Properties *newprops)
 {
@@ -136,7 +156,7 @@ gnu::classpath::SystemProperties::insertSystemProperties (java::util::Properties
   SET ("java.runtime.version", JV_VERSION);
   SET ("java.vendor", "Free Software Foundation, Inc.");
   SET ("java.vendor.url", "http://gcc.gnu.org/java/");
-  SET ("java.class.version", "46.0");
+  SET ("java.class.version", "48.0");
   SET ("java.vm.specification.version", "1.0");
   SET ("java.vm.specification.name", "Java(tm) Virtual Machine Specification");
   SET ("java.vm.specification.vendor", "Sun Microsystems Inc.");
@@ -163,11 +183,11 @@ gnu::classpath::SystemProperties::insertSystemProperties (java::util::Properties
   // redefine `java.home' with `-D' if necessary.
   SET ("java.home", JAVA_HOME);
   SET ("gnu.classpath.home", PREFIX);
-  // This is set to $(libdir) because we use this to find .security
-  // files at runtime.
-  char val2[sizeof ("file://") + sizeof (LIBDIR) + 1];
+  // This is set to $(toolexeclibdir) because we use this to find
+  // .security files at runtime.
+  char val2[sizeof ("file://") + sizeof (TOOLEXECLIBDIR) + 1];
   strcpy (val2, "file://");
-  strcat (val2, LIBDIR);
+  strcat (val2, TOOLEXECLIBDIR);
   SET ("gnu.classpath.home.url", val2);
 
   SET ("file.encoding", default_file_encoding);
@@ -203,7 +223,7 @@ gnu::classpath::SystemProperties::insertSystemProperties (java::util::Properties
   uid_t user_id = getuid ();
   struct passwd *pwd_entry;
 
-#ifdef HAVE_GETPWUID_R
+#if defined(HAVE_GETPWUID_R) && defined(_POSIX_PTHREAD_SEMANTICS)
   struct passwd pwd_r;
   size_t len_r = 200;
   char *buf_r = (char *) _Jv_AllocBytes (len_r);
@@ -230,6 +250,7 @@ gnu::classpath::SystemProperties::insertSystemProperties (java::util::Properties
     {
       SET ("user.name", pwd_entry->pw_name);
       SET ("user.home", pwd_entry->pw_dir);
+      SET ("gnu.gcj.user.realname", pwd_entry->pw_gecos);
     }
 #endif /* HAVE_PWD_H */
 #endif /* NO_GETUID */
@@ -288,8 +309,11 @@ gnu::classpath::SystemProperties::insertSystemProperties (java::util::Properties
       SET ("user.region", "US");
     }  
 
-  // The java extensions directory.
-  SET ("java.ext.dirs", JAVA_EXT_DIRS);
+  // Set the java extension directories property if it has not yet been
+  // specified.
+  ::java::lang::String *extdirs = newprops->getProperty(JvNewStringLatin1("java.ext.dirs"));
+  if (! extdirs)
+    SET ("java.ext.dirs", JAVA_EXT_DIRS);
 
   // The endorsed directories that libgcj knows about by default.
   // This is a way to get other jars into the boot class loader
@@ -339,13 +363,13 @@ gnu::classpath::SystemProperties::insertSystemProperties (java::util::Properties
   _Jv_platform_initProperties (newprops);
 
   // If java.library.path is set, tell libltdl so we search the new
-  // directories as well.  FIXME: does this work properly on Windows?
+  // directories as well.
   ::java::lang::String *path = newprops->getProperty(JvNewStringLatin1("java.library.path"));
   if (path)
     {
-      char *val = (char *) _Jv_Malloc (JvGetStringUTFLength (path) + 1);
-      jsize total = JvGetStringUTFRegion (path, 0, path->length(), val);
-      val[total] = '\0';
+      // Prepend GCJ_VERSIONED_LIBDIR to the module load path so that
+      // libgcj will find its own JNI libraries, like libgtkpeer.so.
+      char* val = PrependVersionedLibdir (path);
       _Jv_SetDLLSearchPath (val);
       _Jv_Free (val);
     }
@@ -354,11 +378,10 @@ gnu::classpath::SystemProperties::insertSystemProperties (java::util::Properties
       // Set a value for user code to see.
 #ifdef USE_LTDL
       char *libpath = getenv (LTDL_SHLIBPATH_VAR);
-      if (libpath)
-        newprops->put(JvNewStringLatin1 ("java.library.path"),
-                      JvNewStringLatin1 (libpath));
-      else
-        SET ("java.library.path", "");
+      char* val = _Jv_PrependVersionedLibdir (libpath);
+      SET ("java.library.path", val);
+      _Jv_SetDLLSearchPath (val);
+      _Jv_Free (val);
 #else
       SET ("java.library.path", "");
 #endif

@@ -1,5 +1,5 @@
 /* JEditorPane.java --
-   Copyright (C) 2002, 2004, 2005  Free Software Foundation, Inc.
+   Copyright (C) 2002, 2004, 2005, 2006,  Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -38,13 +38,16 @@ exception statement from your version. */
 
 package javax.swing;
 
+import java.awt.Container;
 import java.awt.Dimension;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.io.StringReader;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.HashMap;
 
 import javax.accessibility.AccessibleContext;
 import javax.accessibility.AccessibleHyperlink;
@@ -88,6 +91,7 @@ import javax.swing.text.html.HTMLEditorKit;
  *
  * @author original author unknown
  * @author Roman Kennke (roman@kennke.org)
+ * @author Anthony Balkissoon abalkiss at redhat dot com
  */
 public class JEditorPane extends JTextComponent
 {
@@ -167,6 +171,14 @@ public class JEditorPane extends JTextComponent
     extends AccessibleJEditorPane implements AccessibleHypertext
   {
 
+    /**
+     * Creates a new JEditorPaneAccessibleHypertextSupport object.
+     */
+    public JEditorPaneAccessibleHypertextSupport()
+    {
+      super();
+    }
+    
     /**
      * The accessible representation of a HTML link. 
      *
@@ -499,9 +511,16 @@ public class JEditorPane extends JTextComponent
   private EditorKit editorKit;
   
   boolean focus_root;
+  
+  // A mapping between content types and registered EditorKit types
+  static HashMap registerMap;
+  
+  // A mapping between content types and used EditorKits
+  HashMap editorMap;  
 
   public JEditorPane()
   {
+    init();
     setEditorKit(createDefaultEditorKit());
   }
 
@@ -512,14 +531,34 @@ public class JEditorPane extends JTextComponent
 
   public JEditorPane(String type, String text)
   {
+    init();
     setEditorKit(createEditorKitForContentType(type));
     setText(text);
   }
 
   public JEditorPane(URL url) throws IOException
   {
-    this();
+    init();
+    setEditorKit(createEditorKitForContentType("text/html"));;
     setPage(url);
+  }
+  
+  /**
+   * Called by the constructors to set up the default bindings for content 
+   * types and EditorKits.
+   */
+  void init()
+  {
+    editorMap = new HashMap();
+    registerMap = new HashMap();
+    registerEditorKitForContentType("application/rtf",
+                                    "javax.swing.text.rtf.RTFEditorKit");
+    registerEditorKitForContentType("text/plain",
+                                    "javax.swing.JEditorPane$PlainEditorKit");
+    registerEditorKitForContentType("text/html",
+                                    "javax.swing.text.html.HTMLEditorKit");
+    registerEditorKitForContentType("text/rtf",
+                                    "javax.swing.text.rtf.RTFEditorKit");
   }
 
   protected EditorKit createDefaultEditorKit()
@@ -527,9 +566,34 @@ public class JEditorPane extends JTextComponent
     return new PlainEditorKit();
   }
 
+  /**
+   * Creates and returns an EditorKit that is appropriate for the given 
+   * content type.  This is created using the default recognized types
+   * plus any EditorKit types that have been registered.
+   * 
+   * @see #registerEditorKitForContentType(String, String)
+   * @see #registerEditorKitForContentType(String, String, ClassLoader)
+   * @param type the content type
+   * @return an EditorKit for use with the given content type
+   */
   public static EditorKit createEditorKitForContentType(String type)
   {
-    return new PlainEditorKit();
+    // TODO: Have to handle the case where a ClassLoader was specified
+    // when the EditorKit was registered
+    EditorKit e = null;
+    String className = (String) registerMap.get(type);
+    if (className != null)
+      {
+        try
+        {
+          e = (EditorKit) Class.forName(className).newInstance();
+        }
+        catch (Exception e2)
+        {    
+          // TODO: Not sure what to do here.
+        }
+      }
+    return e;
   }
 
   /**
@@ -578,38 +642,100 @@ public class JEditorPane extends JTextComponent
     return editorKit;
   }
 
+  /**
+   * Returns the class name of the EditorKit associated with the given
+   * content type.
+   * 
+   * @since 1.3
+   * @param type the content type
+   * @return the class name of the EditorKit associated with this content type
+   */
   public static String getEditorKitClassNameForContentType(String type)
   {
-    return "text/plain";
-  }
-
-  public EditorKit getEditorKitForContentType(String type)
-  {
-    return editorKit;
+    return (String) registerMap.get(type);
   }
 
   /**
-   * Returns the preferred size for the JEditorPane.  
+   * Returns the EditorKit to use for the given content type.  If an
+   * EditorKit has been explicitly set via 
+   * <code>setEditorKitForContentType</code>
+   * then it will be returned.  Otherwise an attempt will be made to create
+   * an EditorKit from the default recognzied content types or any
+   * EditorKits that have been registered.  If none can be created, a
+   * PlainEditorKit is created.
+   * 
+   * @see #registerEditorKitForContentType(String, String)
+   * @see #registerEditorKitForContentType(String, String, ClassLoader)
+   * @param type the content type
+   * @return an appropriate EditorKit for the given content type
+   */
+  public EditorKit getEditorKitForContentType(String type)
+  {
+    // First check if an EditorKit has been explicitly set.
+    EditorKit e = (EditorKit) editorMap.get(type);
+    // Then check to see if we can create one.
+    if (e == null)
+      e = createEditorKitForContentType(type);
+    // Otherwise default to PlainEditorKit.
+    if (e == null)
+      e = new PlainEditorKit();
+    return e;
+  }
+
+  /**
+   * Returns the preferred size for the JEditorPane. This is implemented to
+   * return the super's preferred size, unless one of
+   * {@link #getScrollableTracksViewportHeight()} or
+   * {@link #getScrollableTracksViewportWidth()} returns <code>true</code>,
+   * in which case the preferred width and/or height is replaced by the UI's
+   * minimum size.
+   *
+   * @return the preferred size for the JEditorPane
    */
   public Dimension getPreferredSize()
   {
-    return super.getPreferredSize();
+    Dimension pref = super.getPreferredSize();
+    if (getScrollableTracksViewportWidth())
+      pref.width = getUI().getMinimumSize(this).width;
+    if (getScrollableTracksViewportHeight())
+      pref.height = getUI().getMinimumSize(this).height;
+    return pref;
   }
 
+  /**
+   * Returns <code>true</code> when a Viewport should force the height of
+   * this component to match the viewport height. This is implemented to return
+   * <code>true</code> when  the parent is an instance of JViewport and
+   * the viewport height > the UI's minimum height.
+   *
+   * @return <code>true</code> when a Viewport should force the height of
+   *         this component to match the viewport height
+   */
   public boolean getScrollableTracksViewportHeight()
   {
-  /*  Container parent = getParent();
-    return (parent instanceof JViewport &&
-        parent.isValid());*/
-    return isValid();
+    // Tests show that this returns true when the parent is a JViewport
+    // and has a height > minimum UI height.
+    Container parent = getParent();
+    return parent instanceof JViewport
+           && parent.getHeight() > getUI().getMinimumSize(this).height;
   }
 
+  /**
+   * Returns <code>true</code> when a Viewport should force the width of
+   * this component to match the viewport width. This is implemented to return
+   * <code>true</code> when  the parent is an instance of JViewport and
+   * the viewport width > the UI's minimum width.
+   *
+   * @return <code>true</code> when a Viewport should force the width of
+   *         this component to match the viewport width
+   */
   public boolean getScrollableTracksViewportWidth()
   {
-    /*Container parent = getParent();
-    return (parent instanceof JViewport &&
-        parent.isValid());*/
-    return isValid();
+    // Tests show that this returns true when the parent is a JViewport
+    // and has a width > minimum UI width.
+    Container parent = getParent();
+    return parent != null && parent instanceof JViewport
+           && parent.getWidth() > getUI().getMinimumSize(this).width;
   }
 
   public URL getPage()
@@ -669,12 +795,17 @@ public class JEditorPane extends JTextComponent
   }
 
   /**
-   * Establishes the default bindings of type to classname. 
+   * Establishes a binding between type and classname.  This enables
+   * us to create an EditorKit later for the given content type.
+   * 
+   * @param type the content type
+   * @param classname the name of the class that is associated with this 
+   * content type
    */
   public static void registerEditorKitForContentType(String type,
                                                      String classname)
   {
-    // TODO: Implement this properly.
+    registerMap.put(type, classname);
   }
 
   /**
@@ -694,6 +825,7 @@ public class JEditorPane extends JTextComponent
   public void replaceSelection(String content)
   {
     // TODO: Implement this properly.
+    super.replaceSelection(content);
   }
 
   /**
@@ -741,9 +873,14 @@ public class JEditorPane extends JTextComponent
     accessibleContext = null;
   }
 
+  /**
+   * Explicitly sets an EditorKit to be used for the given content type.
+   * @param type the content type
+   * @param k the EditorKit to use for the given content type
+   */
   public void setEditorKitForContentType(String type, EditorKit k)
   {
-    // FIXME: editorKitCache.put(type, kit);
+    editorMap.put(type, k);
   }
 
   /**
@@ -773,9 +910,36 @@ public class JEditorPane extends JTextComponent
       }
   }
 
+  /**
+   * Sets the text of the JEditorPane.  The argument <code>t</code>
+   * is expected to be in the format of the current EditorKit.  This removes
+   * the content of the current document and uses the EditorKit to read in the
+   * new text.  This allows the EditorKit to handle the String rather than just
+   * inserting in plain text.
+   * 
+   * @param t the text to display in this JEditorPane
+   */
   public void setText(String t)
   {
-    super.setText(t);
+    try
+    {
+      // Remove the current content.
+      Document doc = getDocument();
+      doc.remove(0, doc.getLength());
+      if (t == null || t.equals(""))
+        return;
+      
+      // Let the EditorKit read the text into the Document.
+      getEditorKit().read(new StringReader(t), doc, 0);
+    }
+    catch (BadLocationException ble)
+    {
+      // TODO: Don't know what to do here.
+    }
+    catch (IOException ioe)
+    {
+      // TODO: Don't know what to do here.
+    }
   }
 
   /**

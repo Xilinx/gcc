@@ -38,7 +38,6 @@ exception statement from your version. */
 
 package javax.swing.plaf.basic;
 
-import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
 import java.awt.Dimension;
@@ -161,31 +160,6 @@ public class BasicSplitPaneDivider extends Container
    */
   transient int currentDividerLocation = 1;
 
-  /** DOCUMENT ME! */
-  private transient Border tmpBorder = new Border()
-    {
-      public Insets getBorderInsets(Component c)
-      {
-	return new Insets(2, 2, 2, 2);
-      }
-
-      public boolean isBorderOpaque()
-      {
-	return false;
-      }
-
-      public void paintBorder(Component c, Graphics g, int x, int y,
-                              int width, int height)
-      {
-	Color saved = g.getColor();
-	g.setColor(Color.BLACK);
-
-	g.drawRect(x + 2, y + 2, width - 4, height - 4);
-
-	g.setColor(saved);
-      }
-    };
-
   /**
    * Constructs a new divider.
    *
@@ -196,7 +170,6 @@ public class BasicSplitPaneDivider extends Container
     setLayout(new DividerLayout());
     setBasicSplitPaneUI(ui);
     setDividerSize(splitPane.getDividerSize());
-    setBorder(tmpBorder);
   }
 
   /**
@@ -212,8 +185,6 @@ public class BasicSplitPaneDivider extends Container
     if (splitPane != null)
       {
 	splitPane.removePropertyChangeListener(this);
-	splitPane.removeMouseListener(mouseHandler);
-	splitPane.removeMouseMotionListener(mouseHandler);
 	removeMouseListener(mouseHandler);
 	removeMouseMotionListener(mouseHandler);
 	splitPane = null;
@@ -227,8 +198,6 @@ public class BasicSplitPaneDivider extends Container
     if (splitPane != null)
       {
 	splitPane.addPropertyChangeListener(this);
-	splitPane.addMouseListener(mouseHandler);
-	splitPane.addMouseMotionListener(mouseHandler);
 	addMouseListener(mouseHandler);
 	addMouseMotionListener(mouseHandler);
 	hiddenDivider = splitPaneUI.getNonContinuousLayoutDivider();
@@ -375,6 +344,11 @@ public class BasicSplitPaneDivider extends Container
       {
 	dividerSize = getSize();
 	border.paintBorder(this, g, 0, 0, dividerSize.width, dividerSize.height);
+      }
+    if (splitPane.isOneTouchExpandable())
+      {
+        ((BasicArrowButton) rightButton).paint(g);
+        ((BasicArrowButton) leftButton).paint(g);
       }
   }
 
@@ -583,7 +557,7 @@ public class BasicSplitPaneDivider extends Container
     public void mouseReleased(MouseEvent e)
     {
       if (isDragging)
-	dragger.completeDrag(e);
+        dragger.completeDrag(e);
       isDragging = false;
     }
 
@@ -596,7 +570,7 @@ public class BasicSplitPaneDivider extends Container
     public void mouseDragged(MouseEvent e)
     {
       if (dragger != null)
-	dragger.continueDrag(e);
+        dragger.continueDrag(e);
     }
 
     /**

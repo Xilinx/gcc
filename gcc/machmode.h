@@ -1,12 +1,12 @@
 /* Machine mode definitions for GCC; included by rtl.h and tree.h.
-   Copyright (C) 1991, 1993, 1994, 1996, 1998, 1999, 2000, 2001, 2003
-   Free Software Foundation, Inc.
+   Copyright (C) 1991, 1993, 1994, 1996, 1998, 1999, 2000, 2001, 2003,
+   2007  Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,9 +15,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #ifndef HAVE_MACHINE_MODES
 #define HAVE_MACHINE_MODES
@@ -54,6 +53,7 @@ extern const unsigned char mode_class[NUM_MACHINE_MODES];
 /* Nonzero if MODE is a floating-point mode.  */
 #define FLOAT_MODE_P(MODE)		\
   (GET_MODE_CLASS (MODE) == MODE_FLOAT	\
+   || GET_MODE_CLASS (MODE) == MODE_DECIMAL_FLOAT \
    || GET_MODE_CLASS (MODE) == MODE_COMPLEX_FLOAT \
    || GET_MODE_CLASS (MODE) == MODE_VECTOR_FLOAT)
 
@@ -74,7 +74,19 @@ extern const unsigned char mode_class[NUM_MACHINE_MODES];
 
 /* Nonzero if MODE is a scalar floating point mode.  */
 #define SCALAR_FLOAT_MODE_P(MODE)		\
-  (GET_MODE_CLASS (MODE) == MODE_FLOAT)
+  (GET_MODE_CLASS (MODE) == MODE_FLOAT		\
+   || GET_MODE_CLASS (MODE) == MODE_DECIMAL_FLOAT)
+
+/* Nonzero if MODE is a decimal floating point mode.  */
+#define DECIMAL_FLOAT_MODE_P(MODE)		\
+  (GET_MODE_CLASS (MODE) == MODE_DECIMAL_FLOAT)
+
+/* Nonzero if CLASS modes can be widened.  */
+#define CLASS_HAS_WIDER_MODES_P(CLASS)         \
+  (CLASS == MODE_INT                           \
+   || CLASS == MODE_FLOAT                      \
+   || CLASS == MODE_DECIMAL_FLOAT              \
+   || CLASS == MODE_COMPLEX_FLOAT)
 
 /* Get the size in bytes and bits of an object of mode MODE.  */
 

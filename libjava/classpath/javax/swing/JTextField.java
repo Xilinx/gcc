@@ -1,5 +1,5 @@
 /* JTextField.java --
-   Copyright (C) 2002, 2004, 2005  Free Software Foundation, Inc.
+   Copyright (C) 2002, 2004, 2005, 2006  Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -41,6 +41,8 @@ package javax.swing;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.FontMetrics;
+import java.awt.Insets;
+import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.beans.PropertyChangeEvent;
@@ -109,8 +111,7 @@ public class JTextField extends JTextComponent
   
   private int columns;
   private int align;
-  private int scrollOffset;
-
+  
   /** @since 1.3 */
   private Action action;
 
@@ -183,6 +184,9 @@ public class JTextField extends JTextComponent
 
     this.columns = columns;
 
+    // Initialize the horizontal visibility model.
+    horizontalVisibility = new DefaultBoundedRangeModel();
+
     setDocument(doc == null ? createDefaultModel() : doc);
 
     if (text != null)
@@ -190,9 +194,6 @@ public class JTextField extends JTextComponent
 
     // default value for alignment
     align = LEADING;
-
-    // Initialize the horizontal visibility model.
-    horizontalVisibility = new DefaultBoundedRangeModel();
   }
 
   /**
@@ -203,9 +204,22 @@ public class JTextField extends JTextComponent
    */
   protected Document createDefaultModel()
   {
-    PlainDocument doc = new PlainDocument();
+    return new PlainDocument();
+  }
+
+  /**
+   * Sets the document to be used for this JTextField.
+   *
+   * This sets the document property <code>filterNewlines</code> to
+   * <code>true</code> and then calls the super behaviour to setup a view and
+   * revalidate the text field.
+   *
+   * @param doc the document to set
+   */
+  public void setDocument(Document doc)
+  {
     doc.putProperty("filterNewlines", Boolean.TRUE);
-    return doc;
+    super.setDocument(doc);
   }
 
   /**
@@ -256,7 +270,7 @@ public class JTextField extends JTextComponent
    */
   protected void fireActionPerformed()
   {
-    ActionEvent event = new ActionEvent(this, 0, notifyAction);
+    ActionEvent event = new ActionEvent(this, 0, getText());
     ActionListener[] listeners = getActionListeners();
 
     for (int index = 0; index < listeners.length; ++index)
@@ -339,7 +353,10 @@ public class JTextField extends JTextComponent
     Dimension size = super.getPreferredSize();
 
     if (columns != 0)
-      size.width = columns * getColumnWidth();
+      {
+        Insets i = getInsets();
+        size.width = columns * getColumnWidth() + i.left + i.right;
+      }
 
     return size;
   }
@@ -351,8 +368,7 @@ public class JTextField extends JTextComponent
    */
   public int getScrollOffset()
   {
-    //FIXME: this should return horizontalVisibility's value
-    return scrollOffset;
+    return horizontalVisibility.getValue();
   }
 
   /**
@@ -362,8 +378,13 @@ public class JTextField extends JTextComponent
    */
   public void setScrollOffset(int offset)
   {
-    //FIXME: this should actualy scroll the field if needed
-    scrollOffset = offset;
+    // Automatically sets to the highest possible value if
+    // offset is bigger than that.
+    horizontalVisibility.setValue(
+                                  Math.min(horizontalVisibility.getMaximum()
+                                           - horizontalVisibility.getExtent(),
+                                           offset));
+    
   }
 
   /**
@@ -508,9 +529,41 @@ public class JTextField extends JTextComponent
    */
   public BoundedRangeModel getHorizontalVisibility()
   {
-    // TODO: The real implementation of this property is still missing.
-    // However, this is not done in JTextField but must instead be handled in
-    // javax.swing.text.FieldView.
     return horizontalVisibility;
   }
+
+  /**
+   * Returns <code>true</code>, unless this is embedded in a
+   * <code>JViewport</code> in which case the viewport takes responsibility of
+   * validating.
+   *
+   * @return <code>true</code>, unless this is embedded in a
+   *         <code>JViewport</code> in which case the viewport takes
+   *         responsibility of validating
+   */
+  public boolean isValidateRoot()
+  {
+    return ! (getParent() instanceof JViewport);
+  }
+  
+  public void scrollRectToVisible(Rectangle r)
+  {
+    int v = horizontalVisibility.getValue();
+    
+    // The extent value is the inner width of the text field.
+    int e = horizontalVisibility.getExtent();
+    Insets i = getInsets();
+    
+    // The x value in the rectangle (usually) denotes the new location
+    // of the caret. We check whether the location lies inside the left or
+    // right border and scroll into the appropriate direction.
+    // The calculation has to be shifted by the BoundedRangeModel's value
+    // because that value was already used to calculate r.x (this happens
+    // as part of a modelToView() call in FieldView).
+    if (r.x < i.left)
+      setScrollOffset(v + r.x - i.left);
+    else if (r.x > e + i.left)
+      setScrollOffset(r.x + v - e - i.left);
+  }
+  
 }

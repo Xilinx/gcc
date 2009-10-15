@@ -1,5 +1,5 @@
 /* BasicSplitPaneUI.java --
-   Copyright (C) 2003, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2006, Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -55,13 +55,20 @@ import java.awt.event.FocusListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 
+import javax.swing.AbstractAction;
+import javax.swing.ActionMap;
+import javax.swing.InputMap;
 import javax.swing.JComponent;
+import javax.swing.JSlider;
 import javax.swing.JSplitPane;
 import javax.swing.KeyStroke;
 import javax.swing.LookAndFeel;
+import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
+import javax.swing.plaf.ActionMapUIResource;
 import javax.swing.plaf.ComponentUI;
 import javax.swing.plaf.SplitPaneUI;
+import javax.swing.plaf.UIResource;
 
 /**
  * This is the Basic Look and Feel implementation of the SplitPaneUI  class.
@@ -98,6 +105,16 @@ public class BasicSplitPaneUI extends SplitPaneUI
      * for components.
      */
     protected int[] sizes = new int[3];
+
+    /**
+     * Creates a new instance. This is package private because the reference
+     * implementation has no public constructor either. Still, we need to
+     * call it from BasicVerticalLayoutManager.
+     */
+    BasicHorizontalLayoutManager()
+    {
+      // Nothing to do here.
+    }
 
     /**
      * This method adds the component given to the JSplitPane. The position of
@@ -253,20 +270,21 @@ public class BasicSplitPaneUI extends SplitPaneUI
           JSplitPane split = (JSplitPane) container;
           distributeExtraSpace();
           Insets insets = split.getInsets();
-          int width = getInitialLocation(insets);
           Dimension dims = split.getSize();
-          for (int i = 0; i < components.length; i += 2)
-            {
-              if (components[i] == null)
-                continue;
-              setComponentToSize(components[i], sizes[i], width, insets, dims);
-              width += sizes[i];
-            }
-          if (components[1] != null)
-            {
-              setComponentToSize(components[1], sizes[1], width, insets, dims);
-              width += sizes[1];
-            }
+          int loc = getInitialLocation(insets);
+          int available = getAvailableSize(dims, insets);
+          sizes[0] = getDividerLocation(split) - loc;
+          sizes[1] = available - sizes[0] - sizes[2];
+          // The size of the divider won't change.
+
+          // Layout component#1.
+          setComponentToSize(components[0], sizes[0], loc, insets, dims);
+          // Layout divider.
+          loc += sizes[0];
+          setComponentToSize(components[2], sizes[2], loc, insets, dims);
+          // Layout component#2. 
+          loc += sizes[2];
+          setComponentToSize(components[1], sizes[1], loc, insets, dims);
         }
     }
 
@@ -388,6 +406,8 @@ public class BasicSplitPaneUI extends SplitPaneUI
     {
       for (int i = 0; i < components.length; i++)
         resetSizeAt(i);
+      setDividerLocation(splitPane,
+                         getInitialLocation(splitPane.getInsets()) + sizes[0]);
     }
 
     /**
@@ -451,21 +471,7 @@ public class BasicSplitPaneUI extends SplitPaneUI
      */
     void distributeExtraSpace()
     {
-      int availSize = getAvailableSize(splitPane.getSize(),
-                                       splitPane.getInsets());
-      int[] newSizes = new int[3];
-      double weight = splitPane.getResizeWeight();
-
-      int oldLen = sizes[0] + sizes[1];
-
-      // dividers don't change size.
-      availSize -= sizes[2] + oldLen;
-
-      int rightAlloc = (int) (availSize * (1 - weight));
-      int leftAlloc = availSize - rightAlloc;
-
-      sizes[0] += leftAlloc;
-      sizes[1] += rightAlloc;
+      // FIXME: This needs to be reimplemented correctly.
     }
 
     /**
@@ -674,7 +680,9 @@ public class BasicSplitPaneUI extends SplitPaneUI
      */
     public void focusGained(FocusEvent ev)
     {
-      // FIXME: implement.
+      // repaint the divider because its background color may change due to
+      // the focus state...
+      divider.repaint();
     }
 
     /**
@@ -684,7 +692,9 @@ public class BasicSplitPaneUI extends SplitPaneUI
      */
     public void focusLost(FocusEvent ev)
     {
-      // FIXME: implement.
+      // repaint the divider because its background color may change due to
+      // the focus state...
+      divider.repaint();
     }
   }
 
@@ -835,8 +845,6 @@ public class BasicSplitPaneUI extends SplitPaneUI
           if (prop <= 1 && prop >= 0)
             splitPane.setDividerLocation(prop);
         }
-      layoutManager.layoutContainer(splitPane);
-      splitPane.repaint();
       // Don't have to deal with continuous_layout - only
       // necessary in dragging modes (and it's checked
       // every time you drag there)
@@ -933,6 +941,8 @@ public class BasicSplitPaneUI extends SplitPaneUI
   /** The JSplitPane that this UI draws. */
   protected JSplitPane splitPane;
 
+  private int dividerLocation;
+
   /**
    * Creates a new BasicSplitPaneUI object.
    */
@@ -992,6 +1002,7 @@ public class BasicSplitPaneUI extends SplitPaneUI
                               "SplitPane.foreground");
     LookAndFeel.installBorder(splitPane, "SplitPane.border");
     divider = createDefaultDivider();
+    divider.setBorder(UIManager.getBorder("SplitPaneDivider.border"));
     resetLayoutManager();
     nonContinuousLayoutDivider = createDefaultNonContinuousLayoutDivider();
     splitPane.add(divider, JSplitPane.DIVIDER);
@@ -1012,8 +1023,10 @@ public class BasicSplitPaneUI extends SplitPaneUI
     divider = null;
     nonContinuousLayoutDivider = null;
 
-    splitPane.setBackground(null);
-    splitPane.setBorder(null);
+    if (splitPane.getBackground() instanceof UIResource)
+      splitPane.setBackground(null);
+    if (splitPane.getBorder() instanceof UIResource)
+      splitPane.setBorder(null);
   }
 
   /**
@@ -1041,11 +1054,133 @@ public class BasicSplitPaneUI extends SplitPaneUI
   }
 
   /**
-   * This method installs the keyboard actions for the JSplitPane.
+   * Returns the input map for the specified condition.
+   * 
+   * @param condition  the condition.
+   * 
+   * @return The input map.
+   */
+  InputMap getInputMap(int condition) 
+  {
+    if (condition == JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT)
+      return (InputMap) UIManager.get("SplitPane.ancestorInputMap");
+    return null;
+  }
+
+  /**
+   * Returns the action map for the {@link JSplitPane}.  All sliders share
+   * a single action map which is created the first time this method is 
+   * called, then stored in the UIDefaults table for subsequent access.
+   * 
+   * @return The shared action map.
+   */
+  ActionMap getActionMap() 
+  {
+    ActionMap map = (ActionMap) UIManager.get("SplitPane.actionMap");
+
+    if (map == null) // first time here
+      {
+        map = createActionMap();
+        if (map != null)
+          UIManager.put("SplitPane.actionMap", map);
+      }
+    return map;
+  }
+
+  /**
+   * Creates the action map shared by all {@link JSlider} instances.
+   * This method is called once by {@link #getActionMap()} when it 
+   * finds no action map in the UIDefaults table...after the map is 
+   * created, it gets added to the defaults table so that subsequent 
+   * calls to {@link #getActionMap()} will return the same shared 
+   * instance.
+   * 
+   * @return The action map.
+   */
+  ActionMap createActionMap()
+  {
+    ActionMap map = new ActionMapUIResource();
+    map.put("toggleFocus", 
+            new AbstractAction("toggleFocus") {
+              public void actionPerformed(ActionEvent event)
+              {
+                // FIXME: What to do here?
+              }
+            }
+    );
+    map.put("startResize", 
+            new AbstractAction("startResize") {
+              public void actionPerformed(ActionEvent event)
+              {
+                splitPane.requestFocus();
+              }
+            }
+    );
+    map.put("selectMax", 
+            new AbstractAction("selectMax") {
+              public void actionPerformed(ActionEvent event)
+              {
+                splitPane.setDividerLocation(1.0);
+              }
+            }
+    );
+    map.put("selectMin", 
+            new AbstractAction("selectMin") {
+              public void actionPerformed(ActionEvent event)
+              {
+                splitPane.setDividerLocation(0.0);
+              }
+            }
+    );
+    map.put("negativeIncrement", 
+            new AbstractAction("negativeIncrement") {
+              public void actionPerformed(ActionEvent event)
+              {
+                setDividerLocation(splitPane, Math.max(dividerLocation 
+                    - KEYBOARD_DIVIDER_MOVE_OFFSET, 0));
+              }
+            }
+    );
+    map.put("positiveIncrement", 
+            new AbstractAction("positiveIncrement") {
+              public void actionPerformed(ActionEvent event)
+              {
+                setDividerLocation(splitPane, dividerLocation 
+                    + KEYBOARD_DIVIDER_MOVE_OFFSET);
+              }
+            }
+    );
+    map.put("focusOutBackward",
+            new AbstractAction("focusOutBackward") {
+              public void actionPerformed(ActionEvent event)
+              {
+                // FIXME: implement this
+              }
+            }
+    );    
+    map.put("focusOutForward",
+            new AbstractAction("focusOutForward") {
+              public void actionPerformed(ActionEvent event)
+              {
+                // FIXME: implement this
+              }
+            }
+    );    
+    return map;
+  }
+
+  /**
+   * Installs any keyboard actions. The list of keys that need to be bound are
+   * listed in Basic look and feel's defaults.
    */
   protected void installKeyboardActions()
   {
-    // FIXME: implement.
+    InputMap keyMap = getInputMap(
+        JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
+    SwingUtilities.replaceUIInputMap(splitPane, 
+        JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT, keyMap);
+    ActionMap map = getActionMap();
+    SwingUtilities.replaceUIActionMap(splitPane, map);
   }
 
   /**
@@ -1053,7 +1188,9 @@ public class BasicSplitPaneUI extends SplitPaneUI
    */
   protected void uninstallKeyboardActions()
   {
-    // FIXME: implement.
+    SwingUtilities.replaceUIActionMap(splitPane, null);
+    SwingUtilities.replaceUIInputMap(splitPane, 
+        JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT, null);
   }
 
   /**
@@ -1219,7 +1356,8 @@ public class BasicSplitPaneUI extends SplitPaneUI
     if (nonContinuousLayoutDivider == null)
       {
         nonContinuousLayoutDivider = new Canvas();
-        nonContinuousLayoutDivider.setBackground(Color.DARK_GRAY);
+        Color c = UIManager.getColor("SplitPaneDivider.draggingColor");
+        nonContinuousLayoutDivider.setBackground(c);
       }
     return nonContinuousLayoutDivider;
   }
@@ -1298,44 +1436,7 @@ public class BasicSplitPaneUI extends SplitPaneUI
    */
   public void setDividerLocation(JSplitPane jc, int location)
   {
-    location = validLocation(location);
-    Container p = jc.getParent();
-    Component right = jc.getRightComponent();
-    Dimension rightPrefSize = right == null ? new Dimension(0, 0)
-                                           : right.getPreferredSize();
-    Dimension size = jc.getSize();
-    // check if the size has been set for the splitpane
-    if (size.width == 0 && size.height == 0)
-      size = jc.getPreferredSize();
-
-    if (getOrientation() == 0 && location > size.height)
-      {
-        location = size.height;
-        while (p != null)
-          {
-            p.setSize(p.getWidth(), p.getHeight() + rightPrefSize.height);
-            p = p.getParent();
-          }
-      }
-    else if (location > size.width)
-      {
-        location = size.width;
-        while (p != null)
-          {
-            p.setSize(p.getWidth() + rightPrefSize.width, p.getHeight());
-            p = p.getParent();
-          }
-      }
-
-    setLastDragLocation(getDividerLocation(splitPane));
-    splitPane.setLastDividerLocation(getDividerLocation(splitPane));
-    int[] tmpSizes = layoutManager.getSizes();
-    tmpSizes[0] = location
-                  - layoutManager.getInitialLocation(splitPane.getInsets());
-    tmpSizes[1] = layoutManager.getAvailableSize(splitPane.getSize(),
-                                                 splitPane.getInsets())
-                  - tmpSizes[0];
-    layoutManager.setSizes(tmpSizes);
+    dividerLocation = location;
     splitPane.revalidate();
     splitPane.repaint();
   }
@@ -1349,8 +1450,7 @@ public class BasicSplitPaneUI extends SplitPaneUI
    */
   public int getDividerLocation(JSplitPane jc)
   {
-    return layoutManager.sizes[0]
-           + layoutManager.getInitialLocation(splitPane.getInsets());
+    return dividerLocation;
   }
 
   /**
@@ -1365,7 +1465,7 @@ public class BasicSplitPaneUI extends SplitPaneUI
   {
     int value = layoutManager.getInitialLocation(jc.getInsets());
     if (layoutManager.components[0] != null)
-      value -= layoutManager.minimumSizeOfComponent(0);
+      value += layoutManager.minimumSizeOfComponent(0);
     return value;
   }
 
@@ -1501,8 +1601,6 @@ public class BasicSplitPaneUI extends SplitPaneUI
         nonContinuousLayoutDivider.setVisible(true);
         nonContinuousLayoutDivider.setBounds(divider.getBounds());
       }
-    splitPane.revalidate();
-    splitPane.repaint();
   }
 
   /**
@@ -1544,11 +1642,9 @@ public class BasicSplitPaneUI extends SplitPaneUI
       nonContinuousLayoutDivider.setVisible(false);
     draggingHW = false;
     location = validLocation(location);
-    dragDividerTo(location);
     splitPane.setDividerLocation(location);
     splitPane.setLastDividerLocation(beginDragDividerLocation);
     beginDragDividerLocation = -1;
-    splitPane.repaint();
   }
 
   /**

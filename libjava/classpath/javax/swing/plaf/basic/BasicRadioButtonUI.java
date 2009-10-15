@@ -1,5 +1,5 @@
 /* BasicRadioButtonUI.java
-   Copyright (C) 2002, 2004 Free Software Foundation, Inc.
+   Copyright (C) 2002, 2004, 2006, Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -42,9 +42,11 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
+import java.awt.Insets;
 import java.awt.Rectangle;
 
 import javax.swing.AbstractButton;
+import javax.swing.ButtonModel;
 import javax.swing.Icon;
 import javax.swing.JComponent;
 import javax.swing.SwingUtilities;
@@ -69,7 +71,8 @@ public class BasicRadioButtonUI extends BasicToggleButtonUI
    *
    * @return a new instance of <code>BasicRadioButtonUI</code>
    */
-  public static ComponentUI createUI(final JComponent c)  {
+  public static ComponentUI createUI(final JComponent c)  
+  {
     return new BasicRadioButtonUI();
   }
 
@@ -90,14 +93,6 @@ public class BasicRadioButtonUI extends BasicToggleButtonUI
   protected void installDefaults(AbstractButton b)
   {
     super.installDefaults(b);
-    if (b.getIcon() == null)
-      b.setIcon(icon);
-    if (b.getSelectedIcon() == null)
-      b.setSelectedIcon(icon);
-    if (b.getDisabledIcon() == null)
-      b.setDisabledIcon(icon);
-    if (b.getDisabledSelectedIcon() == null)
-      b.setDisabledSelectedIcon(icon);
   }
 
   /**
@@ -142,32 +137,75 @@ public class BasicRadioButtonUI extends BasicToggleButtonUI
 
     g.setFont(f);
 
-    Icon currentIcon = null;
-    if (b.isSelected() && b.isEnabled())
-      currentIcon = b.getSelectedIcon();
-    else if (!b.isSelected() && b.isEnabled())
-      currentIcon = b.getIcon();
-    else if (b.isSelected() && !b.isEnabled())
-      currentIcon = b.getDisabledSelectedIcon();
-    else // (!b.isSelected() && !b.isEnabled())
-      currentIcon = b.getDisabledIcon();
+    ButtonModel m = b.getModel();
+    // FIXME: Do a filtering on any customized icon if the following property
+    // is set.
+    boolean enabled = b.isEnabled();
+    
+    Icon currentIcon = b.getIcon();
 
+    if (currentIcon == null)
+      {
+        currentIcon = getDefaultIcon();
+      }
+    
     SwingUtilities.calculateInnerArea(b, vr);
-    String text = SwingUtilities.layoutCompoundLabel
-      (c, g.getFontMetrics(f), b.getText(), currentIcon,
+    String text = SwingUtilities.layoutCompoundLabel(c, g.getFontMetrics(f), 
+       b.getText(), currentIcon,
        b.getVerticalAlignment(), b.getHorizontalAlignment(),
        b.getVerticalTextPosition(), b.getHorizontalTextPosition(),
        vr, ir, tr, b.getIconTextGap() + defaultTextShiftOffset);
     
-    if (currentIcon != null)
-      {
-        currentIcon.paintIcon(c, g, ir.x, ir.y);
-      }
+    currentIcon.paintIcon(c, g, ir.x, ir.y);
+    
     if (text != null)
       paintText(g, b, tr, text);
-    // TODO: Figure out what is the size parameter?
-    if (b.hasFocus() && b.isFocusPainted() && b.isEnabled())
-      paintFocus(g, tr, null);
+    if (b.hasFocus() && b.isFocusPainted() && m.isEnabled())
+      paintFocus(g, tr, c.getSize());
+  }
+  
+  public Dimension getPreferredSize(JComponent c)
+  {
+    // This is basically the same code as in
+    // BasicGraphicsUtils.getPreferredButtonSize() but takes the default icon
+    // property into account. JRadioButton and subclasses always have an icon:
+    // the check box. If the user explicitly changes it with setIcon() that
+    // one will be used for layout calculations and painting instead.
+    // The other icon properties are ignored.
+    AbstractButton b = (AbstractButton) c;
+    
+    Rectangle contentRect;
+    Rectangle viewRect;
+    Rectangle iconRect = new Rectangle();
+    Rectangle textRect = new Rectangle();
+    Insets insets = b.getInsets();
+    
+    Icon i = b.getIcon();
+    if (i == null)
+      i = getDefaultIcon(); 
+    
+    viewRect = new Rectangle();
+
+    SwingUtilities.layoutCompoundLabel(
+      b, // for the component orientation
+      b.getFontMetrics(b.getFont()),
+      b.getText(),
+      i,
+      b.getVerticalAlignment(), 
+      b.getHorizontalAlignment(),
+      b.getVerticalTextPosition(),
+      b.getHorizontalTextPosition(),
+      viewRect, iconRect, textRect,
+      defaultTextIconGap + defaultTextShiftOffset);
+
+    contentRect = textRect.union(iconRect);
+    
+    return new Dimension(insets.left
+                         + contentRect.width 
+                         + insets.right + b.getHorizontalAlignment(),
+                         insets.top
+                         + contentRect.height 
+                         + insets.bottom);
   }
 
   /**
@@ -175,9 +213,8 @@ public class BasicRadioButtonUI extends BasicToggleButtonUI
    *
    * @param g the graphics context
    * @param tr the rectangle for the text label
-   * @param size the size (??)
+   * @param size the size of the <code>JRadioButton</code> component.
    */
-  // TODO: Figure out what for is the size parameter.
   protected void paintFocus(Graphics g, Rectangle tr, Dimension size)
   {
     Color focusColor = UIManager.getColor(getPropertyPrefix() + ".focus");

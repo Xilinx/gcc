@@ -6,7 +6,7 @@
 --                                                                          --
 --                                  B o d y                                 --
 --                                                                          --
---         Copyright (C) 1992-2005, Free Software Foundation, Inc.          --
+--         Copyright (C) 1992-2006, Free Software Foundation, Inc.          --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -53,18 +53,25 @@ with Interfaces.C;
 with Interfaces.C.Strings;
 --  used for Null_Ptr
 
-with System.OS_Interface;
---  used for various type, constant, and operations
-
-with System.Parameters;
---  used for Size_Type
-
 with System.Task_Info;
 --  used for Unspecified_Task_Info
+
+with System.Interrupt_Management;
+--  used for Initialize
+
+with System.Soft_Links;
+--  used for Abort_Defer/Undefer
+
+--  We use System.Soft_Links instead of System.Tasking.Initialization
+--  because the later is a higher level package that we shouldn't depend on.
+--  For example when using the restricted run time, it is replaced by
+--  System.Tasking.Restricted.Stages.
 
 with Unchecked_Deallocation;
 
 package body System.Task_Primitives.Operations is
+
+   package SSL renames System.Soft_Links;
 
    use System.Tasking.Debug;
    use System.Tasking;
@@ -74,10 +81,12 @@ package body System.Task_Primitives.Operations is
    use System.Parameters;
    use System.OS_Primitives;
 
-   pragma Link_With ("-Xlinker --stack=0x800000,0x1000");
-   --  Change the stack size (8 MB) for tasking programs on Windows. This
-   --  permit to have more than 30 tasks running at the same time. Note that
+   pragma Link_With ("-Xlinker --stack=0x200000,0x1000");
+   --  Change the default stack size (2 MB) for tasking programs on Windows.
+   --  This allows about 1000 tasks running at the same time. Note that
    --  we set the stack size for non tasking programs on System unit.
+   --  Also note that under Windows XP, we use a Windows XP extension to
+   --  specify the stack size on a per task basis, as done under other OSes.
 
    ----------------
    -- Local Data --
@@ -818,12 +827,15 @@ package body System.Task_Primitives.Operations is
       Priority   : System.Any_Priority;
       Succeeded  : out Boolean)
    is
-      pragma Unreferenced (Stack_Size);
-
       Initial_Stack_Size : constant := 1024;
-      --  We set the initial stack size to 1024. On Windows there is no way to
-      --  fix a task stack size. Only the initial stack size can be set, the
-      --  operating system will raise the task stack size if needed.
+      --  We set the initial stack size to 1024. On Windows version prior to XP
+      --  there is no way to fix a task stack size. Only the initial stack size
+      --  can be set, the operating system will raise the task stack size if
+      --  needed.
+
+      function Is_Windows_XP return Integer;
+      pragma Import (C, Is_Windows_XP, "__gnat_is_windows_xp");
+      --  Returns 1 if running on Windows XP
 
       hTask          : HANDLE;
       TaskId         : aliased DWORD;
@@ -836,13 +848,24 @@ package body System.Task_Primitives.Operations is
 
       Entry_Point := To_PTHREAD_START_ROUTINE (Wrapper);
 
-      hTask := CreateThread
-         (null,
-          Initial_Stack_Size,
-          Entry_Point,
-          pTaskParameter,
-          DWORD (Create_Suspended),
-          TaskId'Unchecked_Access);
+      if Is_Windows_XP = 1 then
+         hTask := CreateThread
+           (null,
+            DWORD (Stack_Size),
+            Entry_Point,
+            pTaskParameter,
+            DWORD (Create_Suspended) or
+              DWORD (Stack_Size_Param_Is_A_Reservation),
+            TaskId'Unchecked_Access);
+      else
+         hTask := CreateThread
+           (null,
+            Initial_Stack_Size,
+            Entry_Point,
+            pTaskParameter,
+            DWORD (Create_Suspended),
+            TaskId'Unchecked_Access);
+      end if;
 
       --  Step 1: Create the thread in blocked mode
 
@@ -973,6 +996,7 @@ package body System.Task_Primitives.Operations is
    begin
       Environment_Task_Id := Environment_Task;
       OS_Primitives.Initialize;
+      Interrupt_Management.Initialize;
 
       if Time_Slice_Val = 0 or else Dispatching_Policy = 'F' then
 
@@ -1073,11 +1097,15 @@ package body System.Task_Primitives.Operations is
 
    procedure Set_False (S : in out Suspension_Object) is
    begin
+      SSL.Abort_Defer.all;
+
       EnterCriticalSection (S.L'Access);
 
       S.State := False;
 
       LeaveCriticalSection (S.L'Access);
+
+      SSL.Abort_Undefer.all;
    end Set_False;
 
    --------------
@@ -1087,6 +1115,8 @@ package body System.Task_Primitives.Operations is
    procedure Set_True (S : in out Suspension_Object) is
       Result : BOOL;
    begin
+      SSL.Abort_Defer.all;
+
       EnterCriticalSection (S.L'Access);
 
       --  If there is already a task waiting on this suspension object then
@@ -1105,6 +1135,8 @@ package body System.Task_Primitives.Operations is
       end if;
 
       LeaveCriticalSection (S.L'Access);
+
+      SSL.Abort_Undefer.all;
    end Set_True;
 
    ------------------------
@@ -1115,6 +1147,8 @@ package body System.Task_Primitives.Operations is
       Result      : DWORD;
       Result_Bool : BOOL;
    begin
+      SSL.Abort_Defer.all;
+
       EnterCriticalSection (S.L'Access);
 
       if S.Waiting then
@@ -1123,6 +1157,8 @@ package body System.Task_Primitives.Operations is
          --  (ARM D.10 par. 10).
 
          LeaveCriticalSection (S.L'Access);
+
+         SSL.Abort_Undefer.all;
 
          raise Program_Error;
       else
@@ -1134,6 +1170,8 @@ package body System.Task_Primitives.Operations is
             S.State := False;
 
             LeaveCriticalSection (S.L'Access);
+
+            SSL.Abort_Undefer.all;
          else
             S.Waiting := True;
 
@@ -1143,6 +1181,8 @@ package body System.Task_Primitives.Operations is
             pragma Assert (Result_Bool = True);
 
             LeaveCriticalSection (S.L'Access);
+
+            SSL.Abort_Undefer.all;
 
             Result := WaitForSingleObject (S.CV, Wait_Infinite);
             pragma Assert (Result = 0);

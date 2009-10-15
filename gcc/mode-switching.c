@@ -1,12 +1,12 @@
 /* CPU mode switching
-   Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005
+   Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007
    Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,9 +15,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -104,7 +103,7 @@ static struct seginfo *
 new_seginfo (int mode, rtx insn, int bb, HARD_REG_SET regs_live)
 {
   struct seginfo *ptr;
-  ptr = xmalloc (sizeof (struct seginfo));
+  ptr = XNEW (struct seginfo);
   ptr->mode = mode;
   ptr->insn_ptr = insn;
   ptr->bbnum = bb;
@@ -382,8 +381,8 @@ create_pre_exit (int n_entities, int *entity_map, const int *num_modes)
 /* Find all insns that need a particular mode setting, and insert the
    necessary mode switches.  Return true if we did work.  */
 
-int
-optimize_mode_switching (FILE *file)
+static int
+optimize_mode_switching (void)
 {
   rtx insn;
   int e;
@@ -415,7 +414,7 @@ optimize_mode_switching (FILE *file)
 	entry_exit_extra = 3;
 #endif
 	bb_info[n_entities]
-	  = xcalloc (last_basic_block + entry_exit_extra, sizeof **bb_info);
+	  = XCNEWVEC (struct bb_info, last_basic_block + entry_exit_extra);
 	entity_map[n_entities++] = e;
 	if (num_modes[e] > max_num_modes)
 	  max_num_modes = num_modes[e];
@@ -465,7 +464,11 @@ optimize_mode_switching (FILE *file)
 	      if (e->flags & EDGE_COMPLEX)
 		break;
 	    if (e)
-	      RESET_BIT (transp[bb->index], j);
+	      {
+		ptr = new_seginfo (no_mode, BB_HEAD (bb), bb->index, live_now);
+		add_seginfo (info + bb->index, ptr);
+		RESET_BIT (transp[bb->index], j);
+	      }
 	  }
 
 	  for (insn = BB_HEAD (bb);
@@ -563,7 +566,7 @@ optimize_mode_switching (FILE *file)
 
       FOR_EACH_BB (bb)
 	sbitmap_not (kill[bb->index], transp[bb->index]);
-      edge_list = pre_edge_lcm (file, n_entities, transp, comp, antic,
+      edge_list = pre_edge_lcm (n_entities, transp, comp, antic,
 				kill, &insert, &delete);
 
       for (j = n_entities - 1; j >= 0; j--)
@@ -608,38 +611,11 @@ optimize_mode_switching (FILE *file)
 	      if (mode_set == NULL_RTX)
 		continue;
 
-	      /* If this is an abnormal edge, we'll insert at the end
-		 of the previous block.  */
-	      if (eg->flags & EDGE_ABNORMAL)
-		{
-		  emited = true;
-		  if (JUMP_P (BB_END (src_bb)))
-		    emit_insn_before (mode_set, BB_END (src_bb));
-		  else
-		    {
-		      /* It doesn't make sense to switch to normal
-		         mode after a CALL_INSN.  The cases in which a
-		         CALL_INSN may have an abnormal edge are
-		         sibcalls and EH edges.  In the case of
-		         sibcalls, the dest basic-block is the
-		         EXIT_BLOCK, that runs in normal mode; it is
-		         assumed that a sibcall insn requires normal
-		         mode itself, so no mode switch would be
-		         required after the call (it wouldn't make
-		         sense, anyway).  In the case of EH edges, EH
-		         entry points also start in normal mode, so a
-		         similar reasoning applies.  */
-		      gcc_assert (NONJUMP_INSN_P (BB_END (src_bb)));
-		      emit_insn_after (mode_set, BB_END (src_bb));
-		    }
-		  bb_info[j][src_bb->index].computing = mode;
-		  RESET_BIT (transp[src_bb->index], j);
-		}
-	      else
-		{
-		  need_commit = 1;
-		  insert_insn_on_edge (mode_set, eg);
-		}
+	      /* We should not get an abnormal edge here.  */
+	      gcc_assert (! (eg->flags & EDGE_ABNORMAL));
+
+	      need_commit = 1;
+	      insert_insn_on_edge (mode_set, eg);
 	    }
 
 	  FOR_EACH_BB_REVERSE (bb)
@@ -735,14 +711,15 @@ gate_mode_switching (void)
 #endif
 }
 
-static void
+static unsigned int
 rest_of_handle_mode_switching (void)
 {
 #ifdef OPTIMIZE_MODE_SWITCHING
   no_new_pseudos = 0;
-  optimize_mode_switching (NULL);
+  optimize_mode_switching ();
   no_new_pseudos = 1;
 #endif /* OPTIMIZE_MODE_SWITCHING */
+  return 0;
 }
 
 

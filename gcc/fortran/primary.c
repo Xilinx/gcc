@@ -1,13 +1,13 @@
 /* Primary expression subroutines
-   Copyright (C) 2000, 2001, 2002, 2004, 2005 Free Software Foundation,
-   Inc.
+   Copyright (C) 2000, 2001, 2002, 2004, 2005, 2006, 2007
+   Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -16,9 +16,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 
 #include "config.h"
@@ -40,10 +39,8 @@ match_kind_param (int *kind)
   gfc_symbol *sym;
   const char *p;
   match m;
-  int cnt;
 
-  /* cnt is unused, here.  */
-  m = gfc_match_small_literal_int (kind, &cnt);
+  m = gfc_match_small_literal_int (kind, NULL);
   if (m != MATCH_NO)
     return m;
 
@@ -267,7 +264,7 @@ match_hollerith_constant (gfc_expr ** result)
 	}
       if (e->ts.kind != gfc_default_integer_kind)
 	{
-	  gfc_error ("Invalid Hollerith constant: Interger kind at %L "
+	  gfc_error ("Invalid Hollerith constant: Integer kind at %L "
 		"should be default", &old_loc);
 	  goto cleanup;
 	}
@@ -582,16 +579,6 @@ done:
       kind = gfc_default_double_kind;
       break;
 
-    case 'q':
-      if (kind != -2)
-	{
-	  gfc_error
-	    ("Real number at %C has a 'q' exponent and an explicit kind");
-	  goto cleanup;
-	}
-      kind = gfc_option.q_kind;
-      break;
-
     default:
       if (kind == -2)
 	kind = gfc_default_real_kind;
@@ -787,7 +774,7 @@ next_string_char (char delimiter)
     return c;
 
   old_locus = gfc_current_locus;
-  c = gfc_next_char_literal (1);
+  c = gfc_next_char_literal (0);
 
   if (c == delimiter)
     return c;
@@ -866,7 +853,7 @@ static match
 match_string_constant (gfc_expr ** result)
 {
   char *p, name[GFC_MAX_SYMBOL_LEN + 1];
-  int i, c, kind, length, delimiter;
+  int i, c, kind, length, delimiter, warn_ampersand;
   locus old_locus, start_locus;
   gfc_symbol *sym;
   gfc_expr *e;
@@ -993,10 +980,16 @@ got_delim:
   gfc_current_locus = start_locus;
   gfc_next_char ();		/* Skip delimiter */
 
+  /* We disable the warning for the following loop as the warning has already
+     been printed in the loop above.  */
+  warn_ampersand = gfc_option.warn_ampersand;
+  gfc_option.warn_ampersand = 0;
+
   for (i = 0; i < length; i++)
     *p++ = next_string_char (delimiter);
 
   *p = '\0';	/* TODO: C-style string is for development/debug purposes.  */
+  gfc_option.warn_ampersand = warn_ampersand;
 
   if (next_string_char (delimiter) != -1)
     gfc_internal_error ("match_string_constant(): Delimiter not found");
@@ -1039,7 +1032,10 @@ match_logical_constant (gfc_expr ** result)
     kind = gfc_default_logical_kind;
 
   if (gfc_validate_kind (BT_LOGICAL, kind, true) < 0)
-    gfc_error ("Bad kind for logical constant at %C");
+    {
+      gfc_error ("Bad kind for logical constant at %C");
+      return MATCH_ERROR;
+    }
 
   e = gfc_get_expr ();
 
@@ -1089,6 +1085,10 @@ match_sym_complex_part (gfc_expr ** result)
       gfc_error ("Scalar PARAMETER required in complex constant at %C");
       return MATCH_ERROR;
     }
+
+  if (gfc_notify_std (GFC_STD_F2003, "Fortran 2003: PARAMETER symbol in "
+		      "complex constant at %C") == FAILURE)
+    return MATCH_ERROR;
 
   switch (sym->value->ts.type)
     {
@@ -1440,6 +1440,80 @@ cleanup:
 }
 
 
+/* Match an argument list function, such as %VAL.  */
+
+static match
+match_arg_list_function (gfc_actual_arglist *result)
+{
+  char name[GFC_MAX_SYMBOL_LEN + 1];
+  locus old_locus;
+  match m;
+
+  old_locus = gfc_current_locus;
+
+  if (gfc_match_char ('%') != MATCH_YES)
+    {
+      m = MATCH_NO;
+      goto cleanup;
+    }
+
+  m = gfc_match ("%n (", name);
+  if (m != MATCH_YES)
+    goto cleanup;
+
+  if (name[0] != '\0')
+    {
+      switch (name[0])
+	{
+	case 'l':
+	  if (strncmp(name, "loc", 3) == 0)
+	    {
+	      result->name = "%LOC";
+	      break;
+	    }
+	case 'r':
+	  if (strncmp(name, "ref", 3) == 0)
+	    {
+	      result->name = "%REF";
+	      break;
+	    }
+	case 'v':
+	  if (strncmp(name, "val", 3) == 0)
+	    {
+	      result->name = "%VAL";
+	      break;
+	    }
+	default:
+	  m = MATCH_ERROR;
+	  goto cleanup;
+	}
+    }
+
+  if (gfc_notify_std (GFC_STD_GNU, "Extension: argument list "
+		      "function at %C") == FAILURE)
+    {
+      m = MATCH_ERROR;
+      goto cleanup;
+    }
+
+  m = match_actual_arg (&result->expr);
+  if (m != MATCH_YES)
+    goto cleanup;
+
+  if (gfc_match_char (')') != MATCH_YES)
+    {
+      m = MATCH_NO;
+      goto cleanup;
+    }
+
+  return MATCH_YES;
+
+cleanup:
+  gfc_current_locus = old_locus;
+  return m;
+}
+
+
 /* Matches an actual argument list of a function or subroutine, from
    the opening parenthesis to the closing parenthesis.  The argument
    list is assumed to allow keyword arguments because we don't know if
@@ -1508,12 +1582,20 @@ gfc_match_actual_arglist (int sub_flag, gfc_actual_arglist ** argp)
 	}
       else
 	{
-	  /* See if we have the first keyword argument.  */
-	  m = match_keyword_arg (tail, head);
-	  if (m == MATCH_YES)
-	    seen_keyword = 1;
+	  /* Try an argument list function, like %VAL.  */
+	  m = match_arg_list_function (tail);
 	  if (m == MATCH_ERROR)
 	    goto cleanup;
+
+	  /* See if we have the first keyword argument.  */
+	  if (m == MATCH_NO)
+	    {
+	      m = match_keyword_arg (tail, head);
+	      if (m == MATCH_YES)
+		seen_keyword = 1;
+	      if (m == MATCH_ERROR)
+		goto cleanup;
+	    }
 
 	  if (m == MATCH_NO)
 	    {
@@ -1525,6 +1607,7 @@ gfc_match_actual_arglist (int sub_flag, gfc_actual_arglist ** argp)
 		goto syntax;
 	    }
 	}
+
 
     next:
       if (gfc_match_char (')') == MATCH_YES)
@@ -1717,7 +1800,7 @@ check_substring:
 symbol_attribute
 gfc_variable_attr (gfc_expr * expr, gfc_typespec * ts)
 {
-  int dimension, pointer, target;
+  int dimension, pointer, allocatable, target;
   symbol_attribute attr;
   gfc_ref *ref;
 
@@ -1729,6 +1812,7 @@ gfc_variable_attr (gfc_expr * expr, gfc_typespec * ts)
 
   dimension = attr.dimension;
   pointer = attr.pointer;
+  allocatable = attr.allocatable;
 
   target = attr.target;
   if (pointer)
@@ -1749,12 +1833,12 @@ gfc_variable_attr (gfc_expr * expr, gfc_typespec * ts)
 	    break;
 
 	  case AR_SECTION:
-	    pointer = 0;
+	    allocatable = pointer = 0;
 	    dimension = 1;
 	    break;
 
 	  case AR_ELEMENT:
-	    pointer = 0;
+	    allocatable = pointer = 0;
 	    break;
 
 	  case AR_UNKNOWN:
@@ -1769,18 +1853,20 @@ gfc_variable_attr (gfc_expr * expr, gfc_typespec * ts)
 	  *ts = ref->u.c.component->ts;
 
 	pointer = ref->u.c.component->pointer;
+	allocatable = ref->u.c.component->allocatable;
 	if (pointer)
 	  target = 1;
 
 	break;
 
       case REF_SUBSTRING:
-	pointer = 0;
+	allocatable = pointer = 0;
 	break;
       }
 
   attr.dimension = dimension;
   attr.pointer = pointer;
+  attr.allocatable = allocatable;
   attr.target = target;
 
   return attr;
@@ -2289,6 +2375,17 @@ match_variable (gfc_expr ** result, int equiv_flag, int host_flag)
   locus where;
   match m;
 
+  /* Since nothing has any business being an lvalue in a module
+     specification block, an interface block or a contains section,
+     we force the changed_symbols mechanism to work by setting
+     host_flag to 0. This prevents valid symbols that have the name
+     of keywords, such as 'end', being turned into variables by
+     failed matching to assignments for, eg., END INTERFACE.  */
+  if (gfc_current_state () == COMP_MODULE
+      || gfc_current_state () == COMP_INTERFACE
+      || gfc_current_state () == COMP_CONTAINS)
+    host_flag = 0;
+
   m = gfc_match_sym_tree (&st, host_flag);
   if (m != MATCH_YES)
     return m;
@@ -2301,19 +2398,24 @@ match_variable (gfc_expr ** result, int equiv_flag, int host_flag)
     case FL_VARIABLE:
       break;
 
-    case FL_PROGRAM:
-      return MATCH_NO;
-      break;
-
     case FL_UNKNOWN:
       if (gfc_add_flavor (&sym->attr, FL_VARIABLE,
 			  sym->name, NULL) == FAILURE)
 	return MATCH_ERROR;
       break;
 
+    case FL_PARAMETER:
+      if (equiv_flag)
+	gfc_error ("Named constant at %C in an EQUIVALENCE");
+      else
+	gfc_error ("Cannot assign to a named constant at %C");
+      return MATCH_ERROR;
+      break;
+
     case FL_PROCEDURE:
       /* Check for a nonrecursive function result */
-      if (sym->attr.function && (sym->result == sym || sym->attr.entry))
+      if (sym->attr.function && (sym->result == sym || sym->attr.entry)
+	  && !sym->attr.external)
 	{
 	  /* If a function result is a derived type, then the derived
 	     type may still have to be resolved.  */

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1996-2005, Free Software Foundation, Inc.         --
+--          Copyright (C) 1996-2006, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -24,10 +24,11 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with Gnatvsn;
+with Gnatvsn;  use Gnatvsn;
 with Hostparm;
 with Opt;
-with Osint; use Osint;
+with Osint;    use Osint;
+with Targparm; use Targparm;
 
 with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Command_Line;        use Ada.Command_Line;
@@ -185,7 +186,7 @@ package body VMS_Conv is
       Object_Dirs := Object_Dirs + 1;
       Object_Dir (Object_Dirs) := new String'("-lgnat");
 
-      if Hostparm.OpenVMS then
+      if OpenVMS_On_Target then
          Object_Dirs := Object_Dirs + 1;
          Object_Dir (Object_Dirs) := new String'("-ldecgnat");
       end if;
@@ -240,6 +241,16 @@ package body VMS_Conv is
                                            3 => new String'("-c")),
             Switches => GCC_Switches'Access,
             Params   => new Parameter_Array'(1 => Files_Or_Wildcard),
+            Defext   => "   "),
+
+         Check =>
+           (Cname    => new S'("CHECK"),
+            Usage    => new S'("GNAT CHECK name /qualifiers"),
+            VMS_Only => False,
+            Unixcmd  => new S'("gnatcheck"),
+            Unixsws  => null,
+            Switches => Check_Switches'Access,
+            Params   => new Parameter_Array'(1 => Unlimited_Files),
             Defext   => "   "),
 
          Elim =>
@@ -651,7 +662,9 @@ package body VMS_Conv is
    begin
       Put ("GNAT ");
       Put_Line (Gnatvsn.Gnat_Version_String);
-      Put_Line ("Copyright 1996-2005, Free Software Foundation, Inc.");
+      Put_Line ("Copyright 1996-" &
+                Current_Year &
+                ", Free Software Foundation, Inc.");
    end Output_Version;
 
    -----------

@@ -39,6 +39,7 @@ exception statement from your version. */
 package java.nio.channels;
 
 import gnu.java.nio.ChannelReader;
+import gnu.java.nio.ChannelWriter;
 import gnu.java.nio.InputStreamChannel;
 import gnu.java.nio.OutputStreamChannel;
 
@@ -49,6 +50,7 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CharsetEncoder;
+import java.nio.charset.UnsupportedCharsetException;
 
 
 /**
@@ -125,8 +127,7 @@ public final class Channels
   public static Writer newWriter(WritableByteChannel ch, CharsetEncoder enc,
                                  int minBufferCap)
   {
-    // FIXME: implement java.nio.channels.Channel.newWriter(WritableByteChannel, CharsetEncoder, int) 
-    throw new Error("not implemented");
+    return new ChannelWriter(ch, enc, minBufferCap);
   }
 
   /**

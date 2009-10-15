@@ -1,6 +1,7 @@
 /* Perform instruction reorganizations for delay slot filling.
    Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007
+   Free Software Foundation, Inc.
    Contributed by Richard Kenner (kenner@vlsi1.ultra.nyu.edu).
    Hacked by Michael Tiemann (tiemann@cygnus.com).
 
@@ -8,7 +9,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -17,9 +18,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 /* Instruction reorganization pass.
 
@@ -963,9 +963,8 @@ static int
 mostly_true_jump (rtx jump_insn, rtx condition)
 {
   rtx target_label = JUMP_LABEL (jump_insn);
-  rtx insn, note;
-  int rare_dest = rare_destination (target_label);
-  int rare_fallthrough = rare_destination (NEXT_INSN (jump_insn));
+  rtx note;
+  int rare_dest, rare_fallthrough;
 
   /* If branch probabilities are available, then use that number since it
      always gives a correct answer.  */
@@ -984,32 +983,10 @@ mostly_true_jump (rtx jump_insn, rtx condition)
 	return -1;
     }
 
-  /* ??? Ought to use estimate_probability instead.  */
-
-  /* If this is a branch outside a loop, it is highly unlikely.  */
-  if (GET_CODE (PATTERN (jump_insn)) == SET
-      && GET_CODE (SET_SRC (PATTERN (jump_insn))) == IF_THEN_ELSE
-      && ((GET_CODE (XEXP (SET_SRC (PATTERN (jump_insn)), 1)) == LABEL_REF
-	   && LABEL_OUTSIDE_LOOP_P (XEXP (SET_SRC (PATTERN (jump_insn)), 1)))
-	  || (GET_CODE (XEXP (SET_SRC (PATTERN (jump_insn)), 2)) == LABEL_REF
-	      && LABEL_OUTSIDE_LOOP_P (XEXP (SET_SRC (PATTERN (jump_insn)), 2)))))
-    return -1;
-
-  if (target_label)
-    {
-      /* If this is the test of a loop, it is very likely true.  We scan
-	 backwards from the target label.  If we find a NOTE_INSN_LOOP_BEG
-	 before the next real insn, we assume the branch is to the top of
-	 the loop.  */
-      for (insn = PREV_INSN (target_label);
-	   insn && NOTE_P (insn);
-	   insn = PREV_INSN (insn))
-	if (NOTE_LINE_NUMBER (insn) == NOTE_INSN_LOOP_BEG)
-	  return 2;
-    }
-
   /* Look at the relative rarities of the fallthrough and destination.  If
      they differ, we can predict the branch that way.  */
+  rare_dest = rare_destination (target_label);
+  rare_fallthrough = rare_destination (NEXT_INSN (jump_insn));
 
   switch (rare_fallthrough - rare_dest)
     {
@@ -1029,33 +1006,6 @@ mostly_true_jump (rtx jump_insn, rtx condition)
      taken.  This should be rare.  */
   if (condition == 0)
     return 0;
-
-  /* EQ tests are usually false and NE tests are usually true.  Also,
-     most quantities are positive, so we can make the appropriate guesses
-     about signed comparisons against zero.  */
-  switch (GET_CODE (condition))
-    {
-    case CONST_INT:
-      /* Unconditional branch.  */
-      return 1;
-    case EQ:
-      return 0;
-    case NE:
-      return 1;
-    case LE:
-    case LT:
-      if (XEXP (condition, 1) == const0_rtx)
-	return 0;
-      break;
-    case GE:
-    case GT:
-      if (XEXP (condition, 1) == const0_rtx)
-	return 1;
-      break;
-
-    default:
-      break;
-    }
 
   /* Predict backward branches usually take, forward branches usually not.  If
      we don't know whether this is forward or backward, assume the branch
@@ -3584,14 +3534,14 @@ make_return_insns (rtx first)
 /* Try to find insns to place in delay slots.  */
 
 void
-dbr_schedule (rtx first, FILE *file)
+dbr_schedule (rtx first)
 {
   rtx insn, next, epilogue_insn = 0;
   int i;
 
   /* If the current function has no insns other than the prologue and
      epilogue, then do not try to fill any delay slots.  */
-  if (n_basic_blocks == 0)
+  if (n_basic_blocks == NUM_FIXED_BLOCKS)
     return;
 
   /* Find the highest INSN_UID and allocate and initialize our map from
@@ -3690,7 +3640,7 @@ dbr_schedule (rtx first, FILE *file)
   /* It is not clear why the line below is needed, but it does seem to be.  */
   unfilled_firstobj = obstack_alloc (&unfilled_slots_obstack, 0);
 
-  if (file)
+  if (dump_file)
     {
       int i, j, need_comma;
       int total_delay_slots[MAX_DELAY_HISTOGRAM + 1];
@@ -3700,25 +3650,25 @@ dbr_schedule (rtx first, FILE *file)
 	   reorg_pass_number < MAX_REORG_PASSES;
 	   reorg_pass_number++)
 	{
-	  fprintf (file, ";; Reorg pass #%d:\n", reorg_pass_number + 1);
+	  fprintf (dump_file, ";; Reorg pass #%d:\n", reorg_pass_number + 1);
 	  for (i = 0; i < NUM_REORG_FUNCTIONS; i++)
 	    {
 	      need_comma = 0;
-	      fprintf (file, ";; Reorg function #%d\n", i);
+	      fprintf (dump_file, ";; Reorg function #%d\n", i);
 
-	      fprintf (file, ";; %d insns needing delay slots\n;; ",
+	      fprintf (dump_file, ";; %d insns needing delay slots\n;; ",
 		       num_insns_needing_delays[i][reorg_pass_number]);
 
 	      for (j = 0; j < MAX_DELAY_HISTOGRAM + 1; j++)
 		if (num_filled_delays[i][j][reorg_pass_number])
 		  {
 		    if (need_comma)
-		      fprintf (file, ", ");
+		      fprintf (dump_file, ", ");
 		    need_comma = 1;
-		    fprintf (file, "%d got %d delays",
+		    fprintf (dump_file, "%d got %d delays",
 			     num_filled_delays[i][j][reorg_pass_number], j);
 		  }
-	      fprintf (file, "\n");
+	      fprintf (dump_file, "\n");
 	    }
 	}
       memset (total_delay_slots, 0, sizeof total_delay_slots);
@@ -3744,35 +3694,35 @@ dbr_schedule (rtx first, FILE *file)
 		total_delay_slots[0]++;
 	    }
 	}
-      fprintf (file, ";; Reorg totals: ");
+      fprintf (dump_file, ";; Reorg totals: ");
       need_comma = 0;
       for (j = 0; j < MAX_DELAY_HISTOGRAM + 1; j++)
 	{
 	  if (total_delay_slots[j])
 	    {
 	      if (need_comma)
-		fprintf (file, ", ");
+		fprintf (dump_file, ", ");
 	      need_comma = 1;
-	      fprintf (file, "%d got %d delays", total_delay_slots[j], j);
+	      fprintf (dump_file, "%d got %d delays", total_delay_slots[j], j);
 	    }
 	}
-      fprintf (file, "\n");
+      fprintf (dump_file, "\n");
 #if defined (ANNUL_IFTRUE_SLOTS) || defined (ANNUL_IFFALSE_SLOTS)
-      fprintf (file, ";; Reorg annuls: ");
+      fprintf (dump_file, ";; Reorg annuls: ");
       need_comma = 0;
       for (j = 0; j < MAX_DELAY_HISTOGRAM + 1; j++)
 	{
 	  if (total_annul_slots[j])
 	    {
 	      if (need_comma)
-		fprintf (file, ", ");
+		fprintf (dump_file, ", ");
 	      need_comma = 1;
-	      fprintf (file, "%d got %d delays", total_annul_slots[j], j);
+	      fprintf (dump_file, "%d got %d delays", total_annul_slots[j], j);
 	    }
 	}
-      fprintf (file, "\n");
+      fprintf (dump_file, "\n");
 #endif
-      fprintf (file, "\n");
+      fprintf (dump_file, "\n");
     }
 
   /* For all JUMP insns, fill in branch prediction notes, so that during
@@ -3827,12 +3777,13 @@ gate_handle_delay_slots (void)
 }
 
 /* Run delay slot optimization.  */
-static void
+static unsigned int
 rest_of_handle_delay_slots (void)
 {
 #ifdef DELAY_SLOTS
-  dbr_schedule (get_insns (), dump_file);
+  dbr_schedule (get_insns ());
 #endif
+  return 0;
 }   
 
 struct tree_opt_pass pass_delay_slots =
@@ -3861,10 +3812,11 @@ gate_handle_machine_reorg (void)
 }
 
 
-static void
+static unsigned int
 rest_of_handle_machine_reorg (void)
 {
   targetm.machine_dependent_reorg ();
+  return 0;
 }
 
 struct tree_opt_pass pass_machine_reorg =

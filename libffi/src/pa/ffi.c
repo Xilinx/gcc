@@ -2,6 +2,7 @@
    ffi.c - (c) 2003-2004 Randolph Chung <tausq@debian.org>
 
    HPPA Foreign Function Interface
+   HP-UX PA ABI support (c) 2006 Free Software Foundation, Inc.
 
    Permission is hereby granted, free of charge, to any person obtaining
    a copy of this software and associated documentation files (the
@@ -134,7 +135,7 @@ static inline int ffi_struct_type(ffi_type *t)
    NOTE: We load floating point args in this function... that means we
    assume gcc will not mess with fp regs in here.  */
 
-void ffi_prep_args_LINUX(UINT32 *stack, extended_cif *ecif, unsigned bytes)
+void ffi_prep_args_pa32(UINT32 *stack, extended_cif *ecif, unsigned bytes)
 {
   register unsigned int i;
   register ffi_type **p_arg;
@@ -213,6 +214,14 @@ void ffi_prep_args_LINUX(UINT32 *stack, extended_cif *ecif, unsigned bytes)
 	    }
 	  break;
 
+#ifdef PA_HPUX
+	case FFI_TYPE_LONGDOUBLE:
+	  /* Long doubles are passed in the same manner as structures
+	     larger than 8 bytes.  */
+	  *(UINT32 *)(stack - slot) = (UINT32)(*p_argv);
+	  break;
+#endif
+
 	case FFI_TYPE_STRUCT:
 
 	  /* Structs smaller or equal than 4 bytes are passed in one
@@ -262,7 +271,7 @@ void ffi_prep_args_LINUX(UINT32 *stack, extended_cif *ecif, unsigned bytes)
   return;
 }
 
-static void ffi_size_stack_LINUX(ffi_cif *cif)
+static void ffi_size_stack_pa32(ffi_cif *cif)
 {
   ffi_type **ptr;
   int i;
@@ -280,6 +289,9 @@ static void ffi_size_stack_LINUX(ffi_cif *cif)
 	  z += 2 + (z & 1); /* must start on even regs, so we may waste one */
 	  break;
 
+#ifdef PA_HPUX
+	case FFI_TYPE_LONGDOUBLE:
+#endif
 	case FFI_TYPE_STRUCT:
 	  z += 1; /* pass by ptr, callee will copy */
 	  break;
@@ -311,6 +323,13 @@ ffi_status ffi_prep_cif_machdep(ffi_cif *cif)
       cif->flags = (unsigned) cif->rtype->type;
       break;
 
+#ifdef PA_HPUX
+    case FFI_TYPE_LONGDOUBLE:
+      /* Long doubles are treated like a structure.  */
+      cif->flags = FFI_TYPE_STRUCT;
+      break;
+#endif
+
     case FFI_TYPE_STRUCT:
       /* For the return type we have to check the size of the structures.
 	 If the size is smaller or equal 4 bytes, the result is given back
@@ -334,8 +353,8 @@ ffi_status ffi_prep_cif_machdep(ffi_cif *cif)
      own stack sizing.  */
   switch (cif->abi)
     {
-    case FFI_LINUX:
-      ffi_size_stack_LINUX(cif);
+    case FFI_PA32:
+      ffi_size_stack_pa32(cif);
       break;
 
     default:
@@ -346,7 +365,7 @@ ffi_status ffi_prep_cif_machdep(ffi_cif *cif)
   return FFI_OK;
 }
 
-extern void ffi_call_LINUX(void (*)(UINT32 *, extended_cif *, unsigned),
+extern void ffi_call_pa32(void (*)(UINT32 *, extended_cif *, unsigned),
 			  extended_cif *, unsigned, unsigned, unsigned *,
 			  void (*fn)());
 
@@ -360,17 +379,25 @@ void ffi_call(ffi_cif *cif, void (*fn)(), void *rvalue, void **avalue)
   /* If the return value is a struct and we don't have a return
      value address then we need to make one.  */
 
-  if (rvalue == NULL && cif->rtype->type == FFI_TYPE_STRUCT)
-    ecif.rvalue = alloca(cif->rtype->size);
+  if (rvalue == NULL
+#ifdef PA_HPUX
+      && (cif->rtype->type == FFI_TYPE_STRUCT
+	  || cif->rtype->type == FFI_TYPE_LONGDOUBLE))
+#else
+      && cif->rtype->type == FFI_TYPE_STRUCT)
+#endif
+    {
+      ecif.rvalue = alloca(cif->rtype->size);
+    }
   else
     ecif.rvalue = rvalue;
 
 
   switch (cif->abi)
     {
-    case FFI_LINUX:
-      debug(3, "Calling ffi_call_LINUX: ecif=%p, bytes=%u, flags=%u, rvalue=%p, fn=%p\n", &ecif, cif->bytes, cif->flags, ecif.rvalue, (void *)fn);
-      ffi_call_LINUX(ffi_prep_args_LINUX, &ecif, cif->bytes,
+    case FFI_PA32:
+      debug(3, "Calling ffi_call_pa32: ecif=%p, bytes=%u, flags=%u, rvalue=%p, fn=%p\n", &ecif, cif->bytes, cif->flags, ecif.rvalue, (void *)fn);
+      ffi_call_pa32(ffi_prep_args_pa32, &ecif, cif->bytes,
 		     cif->flags, ecif.rvalue, fn);
       break;
 
@@ -385,7 +412,7 @@ void ffi_call(ffi_cif *cif, void (*fn)(), void *rvalue, void **avalue)
    the stack, and we need to fill them into a cif structure and invoke
    the user function. This really ought to be in asm to make sure
    the compiler doesn't do things we don't expect.  */
-ffi_status ffi_closure_inner_LINUX(ffi_closure *closure, UINT32 *stack)
+ffi_status ffi_closure_inner_pa32(ffi_closure *closure, UINT32 *stack)
 {
   ffi_cif *cif;
   void **avalue;
@@ -432,6 +459,7 @@ ffi_status ffi_closure_inner_LINUX(ffi_closure *closure, UINT32 *stack)
 	  break;
 
 	case FFI_TYPE_FLOAT:
+#ifdef PA_LINUX
 	  /* The closure call is indirect.  In Linux, floating point
 	     arguments in indirect calls with a prototype are passed
 	     in the floating point registers instead of the general
@@ -445,17 +473,20 @@ ffi_status ffi_closure_inner_LINUX(ffi_closure *closure, UINT32 *stack)
 	    case 2: fstw(fr6, (void *)(stack - slot)); break;
 	    case 3: fstw(fr7, (void *)(stack - slot)); break;
 	    }
+#endif
 	  avalue[i] = (void *)(stack - slot);
 	  break;
 
 	case FFI_TYPE_DOUBLE:
 	  slot += (slot & 1) ? 1 : 2;
+#ifdef PA_LINUX
 	  /* See previous comment for FFI_TYPE_FLOAT.  */
 	  switch (slot - FIRST_ARG_SLOT)
 	    {
 	    case 1: fstd(fr5, (void *)(stack - slot)); break;
 	    case 3: fstd(fr7, (void *)(stack - slot)); break;
 	    }
+#endif
 	  avalue[i] = (void *)(stack - slot);
 	  break;
 
@@ -579,7 +610,7 @@ ffi_status ffi_closure_inner_LINUX(ffi_closure *closure, UINT32 *stack)
    cif specifies the argument and result types for fun.
    The cif must already be prep'ed.  */
 
-extern void ffi_closure_LINUX(void);
+extern void ffi_closure_pa32(void);
 
 ffi_status
 ffi_prep_closure (ffi_closure* closure,
@@ -588,12 +619,16 @@ ffi_prep_closure (ffi_closure* closure,
 		  void *user_data)
 {
   UINT32 *tramp = (UINT32 *)(closure->tramp);
+#ifdef PA_HPUX
+  UINT32 *tmp;
+#endif
 
-  FFI_ASSERT (cif->abi == FFI_LINUX);
+  FFI_ASSERT (cif->abi == FFI_PA32);
 
   /* Make a small trampoline that will branch to our
      handler function. Use PC-relative addressing.  */
 
+#ifdef PA_LINUX
   tramp[0] = 0xeaa00000; /* b,l .+8,%r21        ; %r21 <- pc+8 */
   tramp[1] = 0xd6a01c1e; /* depi 0,31,2,%r21    ; mask priv bits */
   tramp[2] = 0x4aa10028; /* ldw 20(%r21),%r1    ; load plabel */
@@ -601,7 +636,7 @@ ffi_prep_closure (ffi_closure* closure,
   tramp[4] = 0x0c201096; /* ldw 0(%r1),%r22     ; address of handler */
   tramp[5] = 0xeac0c000; /* bv%r0(%r22)         ; branch to handler */
   tramp[6] = 0x0c281093; /* ldw 4(%r1),%r19     ; GP of handler */
-  tramp[7] = ((UINT32)(ffi_closure_LINUX) & ~2);
+  tramp[7] = ((UINT32)(ffi_closure_pa32) & ~2);
 
   /* Flush d/icache -- have to flush up 2 two lines because of
      alignment.  */
@@ -622,6 +657,45 @@ ffi_prep_closure (ffi_closure* closure,
 		   : "r"((unsigned long)tramp & ~31),
 		     "r"(32 /* stride */)
 		   : "memory");
+#endif
+
+#ifdef PA_HPUX
+  tramp[0] = 0xeaa00000; /* b,l .+8,%r21        ; %r21 <- pc+8  */
+  tramp[1] = 0xd6a01c1e; /* depi 0,31,2,%r21    ; mask priv bits  */
+  tramp[2] = 0x4aa10038; /* ldw 28(%r21),%r1    ; load plabel  */
+  tramp[3] = 0x36b53ff1; /* ldo -8(%r21),%r21   ; get closure addr  */
+  tramp[4] = 0x0c201096; /* ldw 0(%r1),%r22     ; address of handler  */
+  tramp[5] = 0x02c010b4; /* ldsid (%r22),%r20   ; load space id  */
+  tramp[6] = 0x00141820; /* mtsp %r20,%sr0      ; into %sr0  */
+  tramp[7] = 0xe2c00000; /* be 0(%sr0,%r22)     ; branch to handler  */
+  tramp[8] = 0x0c281093; /* ldw 4(%r1),%r19     ; GP of handler  */
+  tramp[9] = ((UINT32)(ffi_closure_pa32) & ~2);
+
+  /* Flush d/icache -- have to flush three lines because of alignment.  */
+  __asm__ volatile(
+		   "copy %1,%0\n\t"
+		   "fdc,m %2(%0)\n\t"
+		   "fdc,m %2(%0)\n\t"
+		   "fdc,m %2(%0)\n\t"
+		   "ldsid (%1),%0\n\t"
+		   "mtsp %0,%%sr0\n\t"
+		   "copy %1,%0\n\t"
+		   "fic,m %2(%%sr0,%0)\n\t"
+		   "fic,m %2(%%sr0,%0)\n\t"
+		   "fic,m %2(%%sr0,%0)\n\t"
+		   "sync\n\t"
+		   "nop\n\t"
+		   "nop\n\t"
+		   "nop\n\t"
+		   "nop\n\t"
+		   "nop\n\t"
+		   "nop\n\t"
+		   "nop\n"
+		   : "=&r" ((unsigned long)tmp)
+		   : "r" ((unsigned long)tramp & ~31),
+		     "r" (32/* stride */)
+		   : "memory");
+#endif
 
   closure->cif  = cif;
   closure->user_data = user_data;

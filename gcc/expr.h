@@ -1,13 +1,13 @@
 /* Definitions for code generation pass of GNU compiler.
    Copyright (C) 1987, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
    Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -16,9 +16,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #ifndef GCC_EXPR_H
 #define GCC_EXPR_H
@@ -29,8 +28,8 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 #include "rtl.h"
 /* For optimize_size */
 #include "flags.h"
-/* For host_integerp, tree_low_cst, convert, size_binop, ssize_int, TREE_CODE,
-   TYPE_SIZE, int_size_in_bytes,    */
+/* For host_integerp, tree_low_cst, fold_convert, size_binop, ssize_int,
+   TREE_CODE, TYPE_SIZE, int_size_in_bytes,    */
 #include "tree.h"
 /* For GET_MODE_BITSIZE, word_mode */
 #include "machmode.h"
@@ -123,42 +122,42 @@ struct locate_and_pad_arg_data
 
 /* Add the value of the tree INC to the `struct args_size' TO.  */
 
-#define ADD_PARM_SIZE(TO, INC)				\
-do {							\
-  tree inc = (INC);					\
-  if (host_integerp (inc, 0))				\
-    (TO).constant += tree_low_cst (inc, 0);		\
-  else if ((TO).var == 0)				\
-    (TO).var = convert (ssizetype, inc);		\
-  else							\
-    (TO).var = size_binop (PLUS_EXPR, (TO).var,		\
-			   convert (ssizetype, inc));	\
+#define ADD_PARM_SIZE(TO, INC)					\
+do {								\
+  tree inc = (INC);						\
+  if (host_integerp (inc, 0))					\
+    (TO).constant += tree_low_cst (inc, 0);			\
+  else if ((TO).var == 0)					\
+    (TO).var = fold_convert (ssizetype, inc);			\
+  else								\
+    (TO).var = size_binop (PLUS_EXPR, (TO).var,			\
+			   fold_convert (ssizetype, inc));	\
 } while (0)
 
-#define SUB_PARM_SIZE(TO, DEC)				\
-do {							\
-  tree dec = (DEC);					\
-  if (host_integerp (dec, 0))				\
-    (TO).constant -= tree_low_cst (dec, 0);		\
-  else if ((TO).var == 0)				\
-    (TO).var = size_binop (MINUS_EXPR, ssize_int (0),	\
-			   convert (ssizetype, dec));	\
-  else							\
-    (TO).var = size_binop (MINUS_EXPR, (TO).var,	\
-			   convert (ssizetype, dec));	\
+#define SUB_PARM_SIZE(TO, DEC)					\
+do {								\
+  tree dec = (DEC);						\
+  if (host_integerp (dec, 0))					\
+    (TO).constant -= tree_low_cst (dec, 0);			\
+  else if ((TO).var == 0)					\
+    (TO).var = size_binop (MINUS_EXPR, ssize_int (0),		\
+			   fold_convert (ssizetype, dec));	\
+  else								\
+    (TO).var = size_binop (MINUS_EXPR, (TO).var,		\
+			   fold_convert (ssizetype, dec));	\
 } while (0)
 
 /* Convert the implicit sum in a `struct args_size' into a tree
    of type ssizetype.  */
 #define ARGS_SIZE_TREE(SIZE)					\
 ((SIZE).var == 0 ? ssize_int ((SIZE).constant)			\
- : size_binop (PLUS_EXPR, convert (ssizetype, (SIZE).var),	\
+ : size_binop (PLUS_EXPR, fold_convert (ssizetype, (SIZE).var),	\
 	       ssize_int ((SIZE).constant)))
 
 /* Convert the implicit sum in a `struct args_size' into an rtx.  */
 #define ARGS_SIZE_RTX(SIZE)					\
 ((SIZE).var == 0 ? GEN_INT ((SIZE).constant)			\
- : expand_expr (ARGS_SIZE_TREE (SIZE), NULL_RTX, VOIDmode, 0))
+ : expand_normal (ARGS_SIZE_TREE (SIZE)))
 
 /* Supply a default definition for FUNCTION_ARG_PADDING:
    usually pad upward, but pad short args downward on
@@ -493,6 +492,12 @@ expand_expr (tree exp, rtx target, enum machine_mode mode,
   return expand_expr_real (exp, target, mode, modifier, NULL);
 }
 
+static inline rtx
+expand_normal (tree exp)
+{
+  return expand_expr_real (exp, NULL_RTX, VOIDmode, EXPAND_NORMAL, NULL);
+}
+
 extern void expand_var (tree);
 
 /* At the start of a function, record that we have no previously-pushed
@@ -640,6 +645,8 @@ extern rtx widen_memory_access (rtx, enum machine_mode, HOST_WIDE_INT);
    valid address.  */
 extern rtx validize_mem (rtx);
 
+extern rtx use_anchored_address (rtx);
+
 /* Given REF, a MEM, and T, either the type of X or the expression
    corresponding to REF, set the memory attributes.  OBJECTP is nonzero
    if we are making a new object of this type.  */
@@ -722,8 +729,6 @@ extern rtx extract_bit_field (rtx, unsigned HOST_WIDE_INT,
 			      unsigned HOST_WIDE_INT, int, rtx,
 			      enum machine_mode, enum machine_mode);
 extern rtx expand_mult (enum machine_mode, rtx, rtx, rtx, int);
-extern bool const_mult_add_overflow_p (rtx, rtx, rtx, enum machine_mode, int);
-extern rtx expand_mult_add (rtx, rtx, rtx, rtx,enum machine_mode, int);
 extern rtx expand_mult_highpart_adjust (enum machine_mode, rtx, rtx, rtx, rtx, int);
 
 extern rtx assemble_static_space (unsigned HOST_WIDE_INT);
@@ -736,10 +741,6 @@ extern void init_all_optabs (void);
 
 /* Call this to initialize an optab function entry.  */
 extern rtx init_one_libfunc (const char *);
-
-extern void do_jump_by_parts_equality_rtx (rtx, rtx, rtx);
-extern void do_jump_by_parts_greater_rtx (enum machine_mode, int, rtx, rtx,
-					  rtx, rtx);
 
 extern int vector_mode_valid_p (enum machine_mode);
 

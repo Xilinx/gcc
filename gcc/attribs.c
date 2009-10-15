@@ -1,12 +1,12 @@
 /* Functions dealing with attribute handling, used by most front ends.
    Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001,
-   2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   2002, 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,9 +15,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -77,21 +76,21 @@ init_attributes (void)
 	  /* The name must not begin and end with __.  */
 	  const char *name = attribute_tables[i][j].name;
 	  int len = strlen (name);
-	  
+
 	  gcc_assert (!(name[0] == '_' && name[1] == '_'
 			&& name[len - 1] == '_' && name[len - 2] == '_'));
-	  
+
 	  /* The minimum and maximum lengths must be consistent.  */
 	  gcc_assert (attribute_tables[i][j].min_length >= 0);
-	  
+
 	  gcc_assert (attribute_tables[i][j].max_length == -1
 		      || (attribute_tables[i][j].max_length
 			  >= attribute_tables[i][j].min_length));
-	  
+
 	  /* An attribute cannot require both a DECL and a TYPE.  */
 	  gcc_assert (!attribute_tables[i][j].decl_required
 		      || !attribute_tables[i][j].type_required);
-	  
+
 	  /* If an attribute requires a function type, in particular
 	     it requires a type.  */
 	  gcc_assert (!attribute_tables[i][j].function_type_required
@@ -138,6 +137,9 @@ decl_attributes (tree *node, tree attributes, int flags)
 {
   tree a;
   tree returned_attrs = NULL_TREE;
+
+  if (TREE_TYPE (*node) == error_mark_node)
+    return NULL_TREE;
 
   if (!attributes_initialized)
     init_attributes ();
@@ -227,8 +229,8 @@ decl_attributes (tree *node, tree attributes, int flags)
 		 pull out the target type now, frob it as appropriate, and
 		 rebuild the pointer type later.
 
-	         This would all be simpler if attributes were part of the
-	         declarator, grumble grumble.  */
+		 This would all be simpler if attributes were part of the
+		 declarator, grumble grumble.  */
 	      fn_ptr_tmp = TREE_TYPE (*anode);
 	      anode = &fn_ptr_tmp;
 	      flags &= ~(int) ATTR_FLAG_TYPE_IN_PLACE;
@@ -248,6 +250,14 @@ decl_attributes (tree *node, tree attributes, int flags)
 		       IDENTIFIER_POINTER (name));
 	      continue;
 	    }
+	}
+
+      if (TYPE_P (*anode)
+	  && (flags & (int) ATTR_FLAG_TYPE_IN_PLACE)
+	  && TYPE_SIZE (*anode) != NULL_TREE)
+	{
+	  warning (OPT_Wattributes, "type attributes ignored after type is already defined");
+	  continue;
 	}
 
       if (spec->handler != NULL)

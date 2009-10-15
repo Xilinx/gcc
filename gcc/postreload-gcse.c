@@ -1,12 +1,12 @@
 /* Post reload partially redundant load elimination
-   Copyright (C) 2004, 2005
+   Copyright (C) 2004, 2005, 2007
    Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,9 +15,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -224,7 +223,7 @@ alloc_mem (void)
   rtx insn;
 
   /* Find the largest UID and create a mapping from UIDs to CUIDs.  */
-  uid_cuid = xcalloc (get_max_uid () + 1, sizeof (int));
+  uid_cuid = XCNEWVEC (int, get_max_uid () + 1);
   i = 1;
   FOR_EACH_BB (bb)
     FOR_BB_INSNS (bb, insn)
@@ -1318,7 +1317,7 @@ delete_redundant_insns (void)
 /* Main entry point of the GCSE after reload - clean some redundant loads
    due to spilling.  */
 
-void
+static void
 gcse_after_reload_main (rtx f ATTRIBUTE_UNUSED)
 {
 
@@ -1365,12 +1364,13 @@ gate_handle_gcse2 (void)
 }
 
 
-static void
+static unsigned int
 rest_of_handle_gcse2 (void)
 {
   gcse_after_reload_main (get_insns ());
   rebuild_jump_labels (get_insns ());
   delete_trivially_dead_insns (get_insns (), max_reg_num ());
+  return 0;
 }
 
 struct tree_opt_pass pass_gcse2 =

@@ -1,6 +1,6 @@
 // jvm.h - Header file for private implementation information. -*- c++ -*-
 
-/* Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005  Free Software Foundation
+/* Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006  Free Software Foundation
 
    This file is part of libgcj.
 
@@ -72,6 +72,7 @@ struct _Jv_VTable
   {
     return (2 * sizeof (void *)) + (index * vtable_elt_size ());
   }
+
   static _Jv_VTable *new_vtable (int count);
 };
 
@@ -131,10 +132,10 @@ union _Jv_value
    ? (((PTR)[-3]&0x0F) << 12) + (((PTR)[-2]&0x3F) << 6) + ((PTR)[-1]&0x3F) \
    : ((PTR)++, -1))
 
-extern int _Jv_strLengthUtf8(char* str, int len);
+extern int _Jv_strLengthUtf8(const char* str, int len);
 
 typedef struct _Jv_Utf8Const Utf8Const;
-_Jv_Utf8Const *_Jv_makeUtf8Const (char *s, int len);
+_Jv_Utf8Const *_Jv_makeUtf8Const (const char *s, int len);
 _Jv_Utf8Const *_Jv_makeUtf8Const (jstring string);
 extern jboolean _Jv_equalUtf8Consts (const _Jv_Utf8Const *, const _Jv_Utf8Const *);
 extern jboolean _Jv_equal (_Jv_Utf8Const *, jstring, jint);
@@ -238,8 +239,10 @@ namespace gcj
 class _Jv_Linker
 {
 private:
+  typedef unsigned int uaddr __attribute__ ((mode (pointer)));
+
   static _Jv_Field *find_field_helper(jclass, _Jv_Utf8Const *, _Jv_Utf8Const *,
-				      jclass *);
+				      jclass, jclass *);
   static _Jv_Field *find_field(jclass, jclass, jclass *, _Jv_Utf8Const *,
 			       _Jv_Utf8Const *);
   static void prepare_constant_time_tables(jclass);
@@ -263,7 +266,31 @@ private:
   static jshort append_partial_itable(jclass, jclass, void **, jshort);
   static _Jv_Method *search_method_in_class (jclass, jclass,
 					     _Jv_Utf8Const *,
-					     _Jv_Utf8Const *);
+					     _Jv_Utf8Const *,
+					     bool check_perms = true);
+  static _Jv_Method *search_method_in_superclasses (jclass cls, jclass klass, 
+						    _Jv_Utf8Const *method_name,
+ 						    _Jv_Utf8Const *method_signature,
+						    jclass *found_class,
+						    bool check_perms = true);
+  static void *create_error_method(_Jv_Utf8Const *);
+
+  /* The least significant bit of the signature pointer in a symbol
+     table is set to 1 by the compiler if the reference is "special",
+     i.e. if it is an access to a private field or method.  Extract
+     that bit, clearing it in the address and setting the LSB of
+     SPECIAL accordingly.  */
+  static void maybe_adjust_signature (_Jv_Utf8Const *&s, uaddr &special)
+  {
+    union {
+      _Jv_Utf8Const *signature;
+      uaddr signature_bits;
+    };
+    signature = s;
+    special = signature_bits & 1;
+    signature_bits -= special;
+    s = signature;
+  }  
 
 public:
 
@@ -271,7 +298,7 @@ public:
   static void print_class_loaded (jclass);
   static void resolve_class_ref (jclass, jclass *);
   static void wait_for_state(jclass, int);
-  static _Jv_word resolve_pool_entry (jclass, int);
+  static _Jv_word resolve_pool_entry (jclass, int, bool =false);
   static void resolve_field (_Jv_Field *, java::lang::ClassLoader *);
   static void verify_type_assertions (jclass);
 };
@@ -373,16 +400,12 @@ void _Jv_RunMain (jclass klass, const char *name, int argc, const char **argv,
 void _Jv_RunMain (struct _Jv_VMInitArgs *vm_args, jclass klass,
                   const char *name, int argc, const char **argv, bool is_jar);
 
-// Delayed until after _Jv_AllocBytes is declared.
-//
-// Note that we allocate this as unscanned memory -- the vtables
-// are handled specially by the GC.
-
+// Delayed until after _Jv_AllocRawObj is declared.
 inline _Jv_VTable *
 _Jv_VTable::new_vtable (int count)
 {
   size_t size = sizeof(_Jv_VTable) + (count - 1) * vtable_elt_size ();
-  return (_Jv_VTable *) _Jv_AllocBytes (size);
+  return (_Jv_VTable *) _Jv_AllocRawObj (size);
 }
 
 // Determine if METH gets an entry in a VTable.
@@ -463,9 +486,18 @@ extern "C" jobject _Jv_UnwrapJNIweakReference (jobject);
 
 extern jclass _Jv_FindClass (_Jv_Utf8Const *name,
 			     java::lang::ClassLoader *loader);
+
+extern jclass _Jv_FindClassNoException (_Jv_Utf8Const *name,
+			     java::lang::ClassLoader *loader);
+
 extern jclass _Jv_FindClassFromSignature (char *,
 					  java::lang::ClassLoader *loader,
 					  char ** = NULL);
+
+extern jclass _Jv_FindClassFromSignatureNoException (char *,
+					  java::lang::ClassLoader *loader,
+					  char ** = NULL);
+
 extern void _Jv_GetTypesFromSignature (jmethodID method,
 				       jclass declaringClass,
 				       JArray<jclass> **arg_types_out,
@@ -535,11 +567,18 @@ void _Jv_SetCurrentJNIEnv (_Jv_JNIEnv *);
 /* Free a JNIEnv. */
 void _Jv_FreeJNIEnv (_Jv_JNIEnv *);
 
-/* Free a JNIEnv. */
-void _Jv_FreeJNIEnv (_Jv_JNIEnv *);
+extern "C" void _Jv_JNI_PopSystemFrame (_Jv_JNIEnv *);
+_Jv_JNIEnv *_Jv_GetJNIEnvNewFrameWithLoader (::java::lang::ClassLoader *);
 
 struct _Jv_JavaVM;
 _Jv_JavaVM *_Jv_GetJavaVM (); 
+
+/* Get a JVMTI environment */
+struct _Jv_JVMTIEnv;
+_Jv_JVMTIEnv *_Jv_GetJVMTIEnv (void);
+
+/* Initialize JVMTI */
+extern void _Jv_JVMTI_Init (void);
 
 // Some verification functions from defineclass.cc.
 bool _Jv_VerifyFieldSignature (_Jv_Utf8Const*sig);
@@ -642,5 +681,18 @@ _Jv_IsBinaryCompatibilityABI (jclass c)
   // that will work once the class has been registered.
   return c->otable_syms || c->atable_syms || c->itable_syms;
 }
+
+// Returns whether the given class does not really exists (ie. we have no
+// bytecode) but still allows us to do some very conservative actions.
+// E.g. throwing a NoClassDefFoundError with the name of the missing
+// class.
+extern inline jboolean
+_Jv_IsPhantomClass (jclass c)
+{
+  return c->state == JV_STATE_PHANTOM;
+}
+
+// A helper function defined in prims.cc.
+char* _Jv_PrependVersionedLibdir (char* libpath);
 
 #endif /* __JAVA_JVM_H__ */

@@ -9,8 +9,9 @@ details.  */
 package gnu.gcj.runtime;
 
 import java.io.*;
+import java.lang.reflect.Field;
 import java.util.StringTokenizer;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.net.URL;
 import java.net.URLClassLoader;
 
@@ -20,6 +21,10 @@ public final class SystemClassLoader extends URLClassLoader
   {
     super(new URL[0], parent);
   }
+
+  // This holds all the "native" classes linked into the executable
+  // and registered with this loader.
+  private HashMap nativeClasses = new HashMap();
 
   // This is called to register a native class which was linked into
   // the application but which is registered with the system class
@@ -37,8 +42,12 @@ public final class SystemClassLoader extends URLClassLoader
 	// precompiled manifest.
 	definePackage(packageName, null, null, null, null, null, null, null);
       }
-    loadedClasses.put(className, klass);
+      
+    // Use reflection to access the package-private "loadedClasses" field.
+    nativeClasses.put(className, klass);
   }
+
+  protected native Class findClass(String name);
 
   // We add the URLs to the system class loader late.  The reason for
   // this is that during bootstrap we don't want to parse URLs or

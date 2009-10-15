@@ -6,18 +6,17 @@
  *                                                                          *
  *                          C Implementation File                           *
  *                                                                          *
- *          Copyright (C) 1992-2005, Free Software Foundation, Inc.         *
+ *          Copyright (C) 1992-2007, Free Software Foundation, Inc.         *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
- * ware  Foundation;  either version 2,  or (at your option) any later ver- *
+ * ware  Foundation;  either version 3,  or (at your option) any later ver- *
  * sion.  GNAT is distributed in the hope that it will be useful, but WITH- *
  * OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY *
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License *
- * for  more details.  You should have  received  a copy of the GNU General *
- * Public License  distributed with GNAT;  see file COPYING.  If not, write *
- * to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, *
- * Boston, MA 02110-1301, USA.                                              *
+ * for  more details.  You should have received a copy of the GNU General   *
+ * Public License along with GCC; see the file COPYING3.  If not see        *
+ * <http://www.gnu.org/licenses/>.                                          *
  *                                                                          *
  * GNAT was originally developed  by the GNAT team at  New York University. *
  * Extensive contributions were provided by Ada Core Technologies Inc.      *
@@ -84,7 +83,7 @@ static tree handle_const_attribute (tree *, tree, tree, int, bool *);
 static tree handle_nothrow_attribute (tree *, tree, tree, int, bool *);
 
 /* Table of machine-independent internal attributes for Ada.  We support
-   this minimal set ot attributes to accomodate the Alpha back-end which
+   this minimal set of attributes to accommodate the Alpha back-end which
    unconditionally puts them on its builtins.  */
 const struct attribute_spec gnat_internal_attribute_table[] =
 {
@@ -148,7 +147,6 @@ static tree float_type_for_precision (int, enum machine_mode);
 static tree convert_to_fat_pointer (tree, tree);
 static tree convert_to_thin_pointer (tree, tree);
 static tree make_descriptor_field (const char *,tree, tree, tree);
-static bool value_factor_p (tree, HOST_WIDE_INT);
 static bool potential_alignment_gap (tree, tree, tree);
 
 /* Initialize the association of GNAT nodes to GCC trees.  */
@@ -202,7 +200,7 @@ present_gnu_tree (Entity_Id gnat_entity)
 }
 
 
-/* Return non-zero if we are currently in the global binding level.  */
+/* Return nonzero if we are currently in the global binding level.  */
 
 int
 global_bindings_p (void)
@@ -519,6 +517,8 @@ init_gigi_decls (tree long_long_float_type, tree exception_type)
     (get_identifier ("system__soft_links__get_jmpbuf_address_soft"),
      NULL_TREE, build_function_type (jmpbuf_ptr_type, NULL_TREE),
      NULL_TREE, false, true, true, NULL, Empty);
+  /* Avoid creating superfluous edges to __builtin_setjmp receivers.  */
+  DECL_IS_PURE (get_jmpbuf_decl) = 1;
 
   set_jmpbuf_decl
     = create_subprog_decl
@@ -535,6 +535,8 @@ init_gigi_decls (tree long_long_float_type, tree exception_type)
      NULL_TREE,
      build_function_type (build_pointer_type (except_type_node), NULL_TREE),
      NULL_TREE, false, true, true, NULL, Empty);
+  /* Avoid creating superfluous edges to __builtin_setjmp receivers.  */
+  DECL_IS_PURE (get_excptr_decl) = 1;
 
   /* Functions that raise exceptions. */
   raise_nodefer_decl
@@ -1230,9 +1232,10 @@ create_type_decl (tree type_name, tree type, struct attrib *attr_list,
 
   /* Pass type declaration information to the debugger unless this is an
      UNCONSTRAINED_ARRAY_TYPE, which the debugger does not support,
-     and ENUMERAL_TYPE or RECORD_TYPE which is handled separately,
-     a dummy type, which will be completed later, or a type for which
-     debugging information was not requested.  */
+     and ENUMERAL_TYPE or RECORD_TYPE which is handled separately, or
+     type for which debugging information was not requested.  */
+  if (code == UNCONSTRAINED_ARRAY_TYPE || ! debug_info_p)
+    DECL_IGNORED_P (type_decl) = 1;
   if (code == UNCONSTRAINED_ARRAY_TYPE || TYPE_IS_DUMMY_P (type)
       || !debug_info_p)
     DECL_IGNORED_P (type_decl) = 1;
@@ -1308,10 +1311,10 @@ create_var_decl (tree var_name, tree asm_name, tree type, tree var_init,
      try to fiddle with DECL_COMMON.  However, on platforms that don't
      support global BSS sections, uninitialized global variables would
      go in DATA instead, thus increasing the size of the executable.  */
-#if !defined(ASM_OUTPUT_BSS) && !defined(ASM_OUTPUT_ALIGNED_BSS)
-  if (TREE_CODE (var_decl) == VAR_DECL)
-    DECL_COMMON   (var_decl) = !flag_no_common;
-#endif
+  if (!flag_no_common
+      && TREE_CODE (var_decl) == VAR_DECL
+      && !have_global_bss_p ())
+    DECL_COMMON (var_decl) = 1;
   DECL_INITIAL  (var_decl) = var_init;
   TREE_READONLY (var_decl) = const_flag;
   DECL_EXTERNAL (var_decl) = extern_flag;
@@ -1588,7 +1591,7 @@ process_attributes (tree decl, struct attrib *attr_list)
 /* Return true if VALUE is a known to be a multiple of FACTOR, which must be
    a power of 2. */
 
-static bool
+bool
 value_factor_p (tree value, HOST_WIDE_INT factor)
 {
   if (host_integerp (value, 1))
@@ -2072,6 +2075,22 @@ max_size (tree exp, bool max_p)
 	  if (code == COMPOUND_EXPR)
 	    return max_size (TREE_OPERAND (exp, 1), max_p);
 
+	  /* Calculate "(A ? B : C) - D" as "A ? B - D : C - D" which
+	     may provide a tighter bound on max_size.  */
+	  if (code == MINUS_EXPR
+	      && TREE_CODE (TREE_OPERAND (exp, 0)) == COND_EXPR)
+	    {
+	      tree lhs = fold_build2 (MINUS_EXPR, type,
+				      TREE_OPERAND (TREE_OPERAND (exp, 0), 1),
+				      TREE_OPERAND (exp, 1));
+	      tree rhs = fold_build2 (MINUS_EXPR, type,
+				      TREE_OPERAND (TREE_OPERAND (exp, 0), 2),
+				      TREE_OPERAND (exp, 1));
+	      return fold_build2 (max_p ? MAX_EXPR : MIN_EXPR, type,
+				  max_size (lhs, max_p),
+				  max_size (rhs, max_p));
+	    }
+
 	  {
 	    tree lhs = max_size (TREE_OPERAND (exp, 0), max_p);
 	    tree rhs = max_size (TREE_OPERAND (exp, 1),
@@ -2083,12 +2102,19 @@ max_size (tree exp, bool max_p)
 	       Likewise, handle a MINUS_EXPR or PLUS_EXPR with the LHS
 	       overflowing or the maximum possible value and the RHS
 	       a variable.  */
-	    if (max_p && code == MIN_EXPR && TREE_OVERFLOW (rhs))
+	    if (max_p
+		&& code == MIN_EXPR
+		&& TREE_CODE (rhs) == INTEGER_CST
+		&& TREE_OVERFLOW (rhs))
 	      return lhs;
-	    else if (max_p && code == MIN_EXPR && TREE_OVERFLOW (lhs))
+	    else if (max_p
+		     && code == MIN_EXPR
+		     && TREE_CODE (lhs) == INTEGER_CST
+		     && TREE_OVERFLOW (lhs))
 	      return rhs;
 	    else if ((code == MINUS_EXPR || code == PLUS_EXPR)
-		     && ((TREE_CONSTANT (lhs) && TREE_OVERFLOW (lhs))
+		     && ((TREE_CODE (lhs) == INTEGER_CST
+			  && TREE_OVERFLOW (lhs))
 			 || operand_equal_p (lhs, TYPE_MAX_VALUE (type), 0))
 		     && !TREE_CONSTANT (rhs))
 	      return lhs;
@@ -2516,7 +2542,8 @@ build_unc_object_type (tree template_type, tree object_type, tree name)
 /* Same, taking a thin or fat pointer type instead of a template type. */
 
 tree
-build_unc_object_type_from_ptr (tree thin_fat_ptr_type, tree object_type, tree name)
+build_unc_object_type_from_ptr (tree thin_fat_ptr_type, tree object_type,
+				tree name)
 {
   tree template_type;
 
@@ -2637,7 +2664,13 @@ update_pointer_to (tree old_type, tree new_type)
 				  TREE_CHAIN (TYPE_FIELDS (ptr)), new_ref));
 
       for (var = TYPE_MAIN_VARIANT (ptr); var; var = TYPE_NEXT_VARIANT (var))
-	SET_TYPE_UNCONSTRAINED_ARRAY (var, new_type);
+	{
+	  SET_TYPE_UNCONSTRAINED_ARRAY (var, new_type);
+
+	  /* This may seem a bit gross, in particular wrt DECL_CONTEXT, but
+	     actually is in keeping with what build_qualified_type does.  */
+	  TYPE_FIELDS (var) = TYPE_FIELDS (ptr);
+	}
 
       TYPE_POINTER_TO (new_type) = TYPE_REFERENCE_TO (new_type)
 	= TREE_TYPE (new_type) = ptr;
@@ -2767,7 +2800,6 @@ convert (tree type, tree expr)
   enum tree_code code = TREE_CODE (type);
   tree etype = TREE_TYPE (expr);
   enum tree_code ecode = TREE_CODE (etype);
-  tree tem;
 
   /* If EXPR is already the right type, we are done.  */
   if (type == etype)
@@ -2834,9 +2866,8 @@ convert (tree type, tree expr)
   /* If the input is a biased type, adjust first.  */
   if (ecode == INTEGER_TYPE && TYPE_BIASED_REPRESENTATION_P (etype))
     return convert (type, fold (build2 (PLUS_EXPR, TREE_TYPE (etype),
-					fold (build1 (NOP_EXPR,
-						      TREE_TYPE (etype),
-						      expr)),
+					fold_convert (TREE_TYPE (etype),
+						      expr),
 					TYPE_MIN_VALUE (etype))));
 
   /* If the input is a justified modular type, we need to extract the actual
@@ -2914,7 +2945,7 @@ convert (tree type, tree expr)
     case VIEW_CONVERT_EXPR:
       {
 	/* GCC 4.x is very sensitive to type consistency overall, and view
-	   conversions thus are very frequent.  Eventhough just "convert"ing
+	   conversions thus are very frequent.  Even though just "convert"ing
 	   the inner operand to the output type is fine in most cases, it
 	   might expose unexpected input/output type mismatches in special
 	   circumstances so we avoid such recursive calls when we can.  */
@@ -2922,7 +2953,7 @@ convert (tree type, tree expr)
 	tree op0 = TREE_OPERAND (expr, 0);
 
 	/* If we are converting back to the original type, we can just
-	   lift the input conversion.  This is a common occurence with
+	   lift the input conversion.  This is a common occurrence with
 	   switches back-and-forth amongst type variants.  */
 	if (type == TREE_TYPE (op0))
 	  return op0;
@@ -2938,11 +2969,9 @@ convert (tree type, tree expr)
 	      return build1 (VIEW_CONVERT_EXPR, type, op0);
 
 	    /* Otherwise, we may just bypass the input view conversion unless
-	       one of the types is a fat pointer, or we're converting to an
-	       unchecked union type.  Both are handled by specialized code
-	       below and the latter relies on exact type matching.  */
-	    else if (!TYPE_FAT_POINTER_P (type) && !TYPE_FAT_POINTER_P (etype)
-		     && !(code == UNION_TYPE && TYPE_UNCHECKED_UNION_P (type)))
+	       one of the types is a fat pointer,  which is handled by
+	       specialized code below which relies on exact type matching.  */
+	    else if (!TYPE_FAT_POINTER_P (type) && !TYPE_FAT_POINTER_P (etype))
 	      return convert (type, op0);
 	  }
       }
@@ -2985,7 +3014,7 @@ convert (tree type, tree expr)
   else if (TYPE_MAIN_VARIANT (type) == TYPE_MAIN_VARIANT (etype)
 	   || (code == INTEGER_CST && ecode == INTEGER_CST
 	       && (type == TREE_TYPE (etype) || etype == TREE_TYPE (type))))
-    return fold (build1 (NOP_EXPR, type, expr));
+    return fold_convert (type, expr);
 
   switch (code)
     {
@@ -2993,7 +3022,7 @@ convert (tree type, tree expr)
       return build1 (CONVERT_EXPR, type, expr);
 
     case BOOLEAN_TYPE:
-      return fold (build1 (NOP_EXPR, type, gnat_truthvalue_conversion (expr)));
+      return fold_convert (type, gnat_truthvalue_conversion (expr));
 
     case INTEGER_TYPE:
       if (TYPE_HAS_ACTUAL_BOUNDS_P (type)
@@ -3001,10 +3030,10 @@ convert (tree type, tree expr)
 	      || (ecode == RECORD_TYPE && TYPE_CONTAINS_TEMPLATE_P (etype))))
 	return unchecked_convert (type, expr, false);
       else if (TYPE_BIASED_REPRESENTATION_P (type))
-	return fold (build1 (CONVERT_EXPR, type,
-			     fold (build2 (MINUS_EXPR, TREE_TYPE (type),
-					   convert (TREE_TYPE (type), expr),
-					   TYPE_MIN_VALUE (type)))));
+	return fold_convert (type,
+			     fold_build2 (MINUS_EXPR, TREE_TYPE (type),
+					  convert (TREE_TYPE (type), expr),
+					  TYPE_MIN_VALUE (type)));
 
       /* ... fall through ... */
 
@@ -3066,29 +3095,10 @@ convert (tree type, tree expr)
       return unchecked_convert (type, expr, false);
 
     case UNION_TYPE:
-      /* For unchecked unions, just validate that the type is indeed that of
-	 a field of the type.  Then make the simple conversion.  */
-      if (TYPE_UNCHECKED_UNION_P (type))
-	{
-	  for (tem = TYPE_FIELDS (type); tem; tem = TREE_CHAIN (tem))
-	    {
-	      if (TREE_TYPE (tem) == etype)
-		return build1 (CONVERT_EXPR, type, expr);
-	      else if (TREE_CODE (TREE_TYPE (tem)) == RECORD_TYPE
-		       && (TYPE_JUSTIFIED_MODULAR_P (TREE_TYPE (tem))
-			   || TYPE_IS_PADDING_P (TREE_TYPE (tem)))
-		       && TREE_TYPE (TYPE_FIELDS (TREE_TYPE (tem))) == etype)
-		return build1 (CONVERT_EXPR, type,
-			       convert (TREE_TYPE (tem), expr));
-	    }
-
-	  gcc_unreachable ();
-	}
-      else
-	/* Otherwise, this is a conversion between a tagged type and some
-	   subtype, which we have to mark as a UNION_TYPE because of
-	   overlapping fields.  */
-	return unchecked_convert (type, expr, false);
+      /* This is a either a conversion between a tagged type and some
+	 subtype, which we have to mark as a UNION_TYPE because of
+	 overlapping fields or a conversion of an Unchecked_Union.  */
+      return unchecked_convert (type, expr, false);
 
     case UNCONSTRAINED_ARRAY_TYPE:
       /* If EXPR is a constrained array, take its address, convert it to a
@@ -3140,9 +3150,10 @@ remove_conversions (tree exp, bool true_address)
       if (true_address
 	  && TREE_CODE (TREE_TYPE (exp)) == RECORD_TYPE
 	  && TYPE_JUSTIFIED_MODULAR_P (TREE_TYPE (exp)))
-	return remove_conversions (VEC_index (constructor_elt,
-					      CONSTRUCTOR_ELTS (exp), 0)->value,
-				   true);
+	return
+	  remove_conversions (VEC_index (constructor_elt,
+					 CONSTRUCTOR_ELTS (exp), 0)->value,
+			      true);
       break;
 
     case COMPONENT_REF:

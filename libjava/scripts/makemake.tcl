@@ -7,9 +7,15 @@ proc makearray {name} {
   unset ary(_)
 }
 
+global is_verbose
+set is_verbose 0
+
 # Verbose printer.
 proc verbose {text} {
-# puts stderr $text
+  global is_verbose
+  if {$is_verbose} {
+    puts stderr $text
+  }
 }
 
 # This maps a name to its style:
@@ -37,15 +43,20 @@ set package_map(.) package
 set package_map(gnu/test) ignore
 set package_map(gnu/javax/swing/plaf/gtk) ignore
 
+set package_map(gnu/java/awt/peer/swing) bc
+
 set package_map(gnu/xml) bc
 set package_map(javax/imageio) bc
 set package_map(javax/xml) bc
 set package_map(gnu/java/beans) bc
+set package_map(gnu/java/util/prefs/gconf) bc
 set package_map(gnu/java/awt/peer/gtk) bc
+set package_map(gnu/java/awt/dnd/peer/gtk) bc
 set package_map(gnu/java/awt/peer/qt) bc
 set package_map(gnu/javax/sound/midi) bc
 set package_map(org/xml) bc
 set package_map(org/w3c) bc
+set package_map(org/relaxng) bc
 set package_map(javax/rmi) bc
 set package_map(org/omg) bc
 set package_map(gnu/CORBA) bc
@@ -84,6 +95,20 @@ makearray name_map
 # our own sources.
 global dir_map
 makearray dir_map
+
+# An entry in this map means that all .properties files in the
+# corresponding directory should be ignored.
+global properties_map
+makearray properties_map
+
+# logging.properties is installed and is editable.
+set properties_map(java/util/logging) _
+# We haven't merged locale resources yet.
+set properties_map(gnu/java/locale) _
+
+
+# List of all properties files.
+set properties_files {}
 
 # List of all '@' files that we are going to compile.
 set package_files {}
@@ -143,9 +168,9 @@ proc classify_source_file {basedir file} {
   set pkg $file
   while {1} {
     if {[info exists package_map($pkg)]} {
-      # If the entry for '.' is 'package', then set up a new entry for
-      # the file's package.
-      if {$pkg == "." && $package_map($pkg) == "package"} {
+      # If the entry is 'package', then set up a new entry for the
+      # file's package.
+      if {$package_map($pkg) == "package"} {
 	set pkg [file dirname $file]
 	set package_map($pkg) package
       }
@@ -160,11 +185,11 @@ proc classify_source_file {basedir file} {
   error "can't happen"
 }
 
-# Scan a directory and its subdirectories for .java source files.
-# Note that we keep basedir and subdir separate so we can properly
-# update our global data structures.
+# Scan a directory and its subdirectories for .java source files or
+# .properties files.  Note that we keep basedir and subdir separate so
+# we can properly update our global data structures.
 proc scan_directory {basedir subdir} {
-  global dir_map
+  global dir_map properties_map properties_files
 
   set subdirs {}
   set files {}
@@ -173,8 +198,16 @@ proc scan_directory {basedir subdir} {
   foreach file [lsort [glob -nocomplain *]] {
     if {[string match *.java $file]} {
       lappend files $subdir/$file
+    } elseif {[string match *.properties $file]} {
+      if {! [info exists properties_map($subdir)]} {
+	# We assume there aren't any overrides.
+	lappend properties_files $basedir/$subdir/$file
+      }
     } elseif {[file isdirectory $file]} {
       lappend subdirs $subdir/$file
+    } elseif {$subdir == "META-INF/services"} {
+      # All service files are included as properties.
+      lappend properties_files $basedir/$subdir/$file
     }
   }
   cd $here
@@ -192,7 +225,7 @@ proc scan_directory {basedir subdir} {
 # Scan known packages beneath the base directory for .java source
 # files.
 proc scan_packages {basedir} {
-  foreach subdir {gnu java javax org} {
+  foreach subdir {gnu java javax org META-INF} {
     if {[file exists $basedir/$subdir]} {
       scan_directory $basedir $subdir
     }
@@ -221,16 +254,11 @@ proc emit_bc_rule {package} {
     set omit "| grep -v $exclusion_map($package)"
   }
   puts  "\t@find classpath/lib/$package -name '*.class'${omit} > $tname"
-  puts "\t\$(LTGCJCOMPILE) -fjni -findirect-dispatch -c -o $loname @$tname"
+  puts "\t\$(LTGCJCOMPILE) -fjni -findirect-dispatch -fno-indirect-classes -c -o $loname @$tname"
   puts "\t@rm -f $tname"
   puts ""
 
-  # We skip these because they are built into their own libraries and
-  # are handled specially in Makefile.am.
-  if {$loname != "gnu-java-awt-peer-gtk.lo"
-      && $loname != "gnu-java-awt-peer-qt.lo"} {
-    lappend bc_objects $loname
-  }
+  lappend bc_objects $loname
 }
 
 # Emit a rule for a 'package' package.
@@ -328,6 +356,11 @@ proc pp_var {name valueList {pre ""} {post ""}} {
   puts ""
 }
 
+global argv
+if {[llength $argv] > 0 && [lindex $argv 0] == "-verbose"} {
+  set is_verbose 1
+}
+
 # Read the proper .omit files.
 read_omit_file standard.omit.in
 read_omit_file classpath/lib/standard.omit
@@ -336,13 +369,17 @@ read_omit_file classpath/lib/standard.omit
 scan_packages classpath
 scan_packages classpath/external/sax
 scan_packages classpath/external/w3c_dom
+scan_packages classpath/external/relaxngDatatype
+# Resource files.
+scan_packages classpath/resource
 # Now scan our own files; this will correctly override decisions made
 # when scanning classpath.
 scan_packages .
 # Files created by the build.
 classify_source_file . java/lang/ConcreteProcess.java
-classify_source_file classpath java/util/LocaleData.java
+classify_source_file classpath gnu/java/locale/LocaleData.java
 classify_source_file classpath gnu/classpath/Configuration.java
+classify_source_file classpath gnu/java/security/Configuration.java
 
 puts "## This file was automatically generated by scripts/makemake.tcl"
 puts "## Do not edit!"
@@ -372,3 +409,4 @@ foreach package [lsort [array names package_map]] {
 pp_var all_packages_source_files $package_files
 pp_var ordinary_header_files $header_vars "\$(" ")"
 pp_var bc_objects $bc_objects
+pp_var property_files $properties_files

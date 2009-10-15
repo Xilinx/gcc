@@ -1,13 +1,12 @@
-//PR c++/29022
+//PR c++/27952
 
 struct A
 {
-  operator int();
+    virtual ~A() {}
 };
 
-struct B : virtual A, A<0> {};  // { dg-error "token" }
+struct B : A, virtual A {};     // { dg-error "duplicate base|forward declaration" }
 
-int foo(B &b)
-{
-  return b;                     // { dg-error "cannot convert" }
-}
+struct C : A, B {};             // { dg-error "duplicate base|invalid use" }
+
+C c;                            // { dg-error "aggregate" }

@@ -1,5 +1,5 @@
 dnl
-dnl This file contains details for non-natives builds.
+dnl This file contains details for non-native builds.
 dnl
 
 AC_DEFUN([GLIBCXX_CROSSCONFIG],[
@@ -17,7 +17,6 @@ case "${host}" in
     machine/param.h sys/machine.h fp.h locale.h float.h inttypes.h gconv.h \
     sys/types.h])
 
-    GLIBCXX_CHECK_COMPILER_FEATURES
     # Don't call GLIBCXX_CHECK_LINKER_FEATURES, Darwin doesn't have a GNU ld
     GLIBCXX_CHECK_MATH_SUPPORT
     GLIBCXX_CHECK_BUILTIN_MATH_SUPPORT
@@ -52,7 +51,6 @@ case "${host}" in
       memory.h stdint.h stdlib.h strings.h string.h unistd.h \
       wchar.h wctype.h machine/endian.h sys/ioctl.h sys/param.h \
       sys/resource.h sys/stat.h sys/time.h sys/types.h sys/uio.h])
-    GLIBCXX_CHECK_COMPILER_FEATURES
     GLIBCXX_CHECK_LINKER_FEATURES
     GLIBCXX_CHECK_MATH_SUPPORT
     GLIBCXX_CHECK_BUILTIN_MATH_SUPPORT
@@ -149,19 +147,17 @@ case "${host}" in
       fp.h float.h endian.h inttypes.h locale.h float.h stdint.h])
     SECTION_FLAGS='-ffunction-sections -fdata-sections'
     AC_SUBST(SECTION_FLAGS)
+    GLIBCXX_CHECK_COMPILER_FEATURES
     GLIBCXX_CHECK_LINKER_FEATURES
+    GLIBCXX_CHECK_MATH_SUPPORT
+    GLIBCXX_CHECK_BUILTIN_MATH_SUPPORT
     GLIBCXX_CHECK_COMPLEX_MATH_SUPPORT
     GLIBCXX_CHECK_ICONV_SUPPORT
+    GLIBCXX_CHECK_STDLIB_SUPPORT
 
     # For LFS.
     AC_DEFINE(HAVE_INT64_T)
-    case "$target" in
-      *-uclinux*)
-        # Don't enable LFS with uClibc
-        ;;
-      *)
-        AC_DEFINE(_GLIBCXX_USE_LFS)
-    esac
+    GLIBCXX_CHECK_LFS
 
     # For showmanyc_helper().
     AC_CHECK_HEADERS(sys/ioctl.h sys/filio.h)
@@ -171,68 +167,6 @@ case "${host}" in
     # For xsputn_2().
     AC_CHECK_HEADERS(sys/uio.h)
     GLIBCXX_CHECK_WRITEV
-
-    AC_DEFINE(HAVE_ACOSF)
-    AC_DEFINE(HAVE_ASINF)
-    AC_DEFINE(HAVE_ATANF)
-    AC_DEFINE(HAVE_ATAN2F)
-    AC_DEFINE(HAVE_CEILF)
-    AC_DEFINE(HAVE_COPYSIGN)
-    AC_DEFINE(HAVE_COPYSIGNF)
-    AC_DEFINE(HAVE_COSF)
-    AC_DEFINE(HAVE_COSHF)
-    AC_DEFINE(HAVE_EXPF)
-    AC_DEFINE(HAVE_FABSF)
-    AC_DEFINE(HAVE_FINITE)
-    AC_DEFINE(HAVE_FINITEF)
-    AC_DEFINE(HAVE_FLOORF)
-    AC_DEFINE(HAVE_FMODF)
-    AC_DEFINE(HAVE_FREXPF)
-    AC_DEFINE(HAVE_HYPOT)
-    AC_DEFINE(HAVE_HYPOTF)
-    AC_DEFINE(HAVE_ISINF)
-    AC_DEFINE(HAVE_ISINFF)
-    AC_DEFINE(HAVE_ISNAN)
-    AC_DEFINE(HAVE_ISNANF)
-    AC_DEFINE(HAVE_LOGF)
-    AC_DEFINE(HAVE_LOG10F)
-    AC_DEFINE(HAVE_MODFF)
-    AC_DEFINE(HAVE_SINF)
-    AC_DEFINE(HAVE_SINHF)
-    AC_DEFINE(HAVE_SINCOS)
-    AC_DEFINE(HAVE_SINCOSF)
-    AC_DEFINE(HAVE_SQRTF)
-    AC_DEFINE(HAVE_TANF)
-    AC_DEFINE(HAVE_TANHF)
-    if test x"long_double_math_on_this_cpu" = x"yes"; then
-      AC_DEFINE(HAVE_ACOSL)
-      AC_DEFINE(HAVE_ASINL)
-      AC_DEFINE(HAVE_ATANL)
-      AC_DEFINE(HAVE_ATAN2L)
-      AC_DEFINE(HAVE_CEILL)
-      AC_DEFINE(HAVE_COPYSIGNL)
-      AC_DEFINE(HAVE_COSL)
-      AC_DEFINE(HAVE_COSHL)
-      AC_DEFINE(HAVE_EXPL)
-      AC_DEFINE(HAVE_FABSL)
-      AC_DEFINE(HAVE_FINITEL)
-      AC_DEFINE(HAVE_FLOORL)
-      AC_DEFINE(HAVE_FMODL)
-      AC_DEFINE(HAVE_FREXPL)
-      AC_DEFINE(HAVE_HYPOTL)
-      AC_DEFINE(HAVE_ISINFL)
-      AC_DEFINE(HAVE_ISNANL)
-      AC_DEFINE(HAVE_LOGL)
-      AC_DEFINE(HAVE_LOG10L)
-      AC_DEFINE(HAVE_MODFL)
-      AC_DEFINE(HAVE_POWL)
-      AC_DEFINE(HAVE_SINL)
-      AC_DEFINE(HAVE_SINHL)
-      AC_DEFINE(HAVE_SINCOSL)
-      AC_DEFINE(HAVE_SQRTL)
-      AC_DEFINE(HAVE_TANL)
-      AC_DEFINE(HAVE_TANHL)
-    fi
     ;;
   *-mingw32*)
     AC_CHECK_HEADERS([sys/types.h locale.h float.h])

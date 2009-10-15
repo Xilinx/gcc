@@ -49,12 +49,13 @@ details.  */
 #include <java/lang/ArrayIndexOutOfBoundsException.h>
 #include <java/lang/ArithmeticException.h>
 #include <java/lang/ClassFormatError.h>
+#include <java/lang/ClassNotFoundException.h>
 #include <java/lang/InternalError.h>
 #include <java/lang/NegativeArraySizeException.h>
+#include <java/lang/NoClassDefFoundError.h>
 #include <java/lang/NullPointerException.h>
 #include <java/lang/OutOfMemoryError.h>
 #include <java/lang/System.h>
-#include <java/lang/VMThrowable.h>
 #include <java/lang/VMClassLoader.h>
 #include <java/lang/reflect/Modifier.h>
 #include <java/io/PrintStream.h>
@@ -63,6 +64,10 @@ details.  */
 #include <gnu/gcj/runtime/ExtensionClassLoader.h>
 #include <gnu/gcj/runtime/FinalizerThread.h>
 #include <execution.h>
+#include <gnu/classpath/jdwp/Jdwp.h>
+#include <gnu/classpath/jdwp/VMVirtualMachine.h>
+#include <gnu/classpath/jdwp/event/VmDeathEvent.h>
+#include <gnu/classpath/jdwp/event/VmInitEvent.h>
 #include <gnu/java/lang/MainThread.h>
 
 #ifdef USE_LTDL
@@ -71,6 +76,9 @@ details.  */
 
 // Execution engine for compiled code.
 _Jv_CompiledEngine _Jv_soleCompiledEngine;
+
+// Execution engine for code compiled with -findirect-classes
+_Jv_IndirectCompiledEngine _Jv_soleIndirectCompiledEngine;
 
 // We allocate a single OutOfMemoryError exception which we keep
 // around for use if we run out of memory.
@@ -93,6 +101,10 @@ property_pair *_Jv_Environment_Properties;
 // Stash the argv pointer to benefit native libraries that need it.
 const char **_Jv_argv;
 int _Jv_argc;
+
+// Debugging options
+static bool remoteDebug = false;
+static char *jdwpOptions = "";
 
 // Argument support.
 int
@@ -168,7 +180,6 @@ SIGNAL_HANDLER (catch_fpe)
 }
 #endif
 
-
 
 jboolean
 _Jv_equalUtf8Consts (const Utf8Const* a, const Utf8Const *b)
@@ -236,9 +247,123 @@ _Jv_equaln (Utf8Const *a, jstring str, jint n)
   return true;
 }
 
+// Determines whether the given Utf8Const object contains
+// a type which is primitive or some derived form of it, eg.
+// an array or multi-dimensional array variant.
+jboolean
+_Jv_isPrimitiveOrDerived(const Utf8Const *a)
+{
+  unsigned char *aptr = (unsigned char *) a->data;
+  unsigned char *alimit = aptr + a->length;
+  int ac = UTF8_GET(aptr, alimit);
+
+  // Skips any leading array marks.
+  while (ac == '[')
+    ac = UTF8_GET(aptr, alimit);
+
+  // There should not be another character. This implies that
+  // the type name is only one character long.
+  if (UTF8_GET(aptr, alimit) == -1)
+    switch ( ac )
+      {
+        case 'Z':
+        case 'B':
+        case 'C':
+        case 'S':
+        case 'I':
+        case 'J':
+        case 'F':
+        case 'D':
+          return true;
+        default:
+          break;
+       }
+
+   return false;
+}
+
+// Find out whether two _Jv_Utf8Const candidates contain the same
+// classname.
+// The method is written to handle the different formats of classnames.
+// Eg. "Ljava/lang/Class;", "Ljava.lang.Class;", "java/lang/Class" and
+// "java.lang.Class" will be seen as equal.
+// Warning: This function is not smart enough to declare "Z" and "boolean"
+// and similar cases as equal (and is not meant to be used this way)!
+jboolean
+_Jv_equalUtf8Classnames (const Utf8Const *a, const Utf8Const *b)
+{
+  // If the class name's length differs by two characters
+  // it is possible that we have candidates which are given
+  // in the two different formats ("Lp1/p2/cn;" vs. "p1/p2/cn")
+  switch (a->length - b->length)
+    {
+      case -2:
+      case 0:
+      case 2:
+        break;
+      default:
+        return false;
+    }
+
+  unsigned char *aptr = (unsigned char *) a->data;
+  unsigned char *alimit = aptr + a->length;
+  unsigned char *bptr = (unsigned char *) b->data;
+  unsigned char *blimit = bptr + b->length;
+
+  if (alimit[-1] == ';')
+    alimit--;
+
+  if (blimit[-1] == ';')
+    blimit--;
+
+  int ac = UTF8_GET(aptr, alimit);
+  int bc = UTF8_GET(bptr, blimit);
+
+  // Checks whether both strings have the same amount of leading [ characters.
+  while (ac == '[')
+    {
+      if (bc == '[')
+        {
+          ac = UTF8_GET(aptr, alimit);
+          bc = UTF8_GET(bptr, blimit);
+          continue;
+        }
+
+      return false;
+    }
+
+  // Skips leading L character.
+  if (ac == 'L')
+    ac = UTF8_GET(aptr, alimit);
+        
+  if (bc == 'L')
+    bc = UTF8_GET(bptr, blimit);
+
+  // Compares the remaining characters.
+  while (ac != -1 && bc != -1)
+    {
+      // Replaces package separating dots with slashes.
+      if (ac == '.')
+        ac = '/';
+
+      if (bc == '.')
+        bc = '/';
+      
+      // Now classnames differ if there is at least one non-matching
+      // character.
+      if (ac != bc)
+        return false;
+
+      ac = UTF8_GET(aptr, alimit);
+      bc = UTF8_GET(bptr, blimit);
+    }
+
+  return (ac == bc);
+}
+
 /* Count the number of Unicode chars encoded in a given Ut8 string. */
 int
-_Jv_strLengthUtf8(char* str, int len)
+_Jv_strLengthUtf8(const char* str, int len)
 {
   unsigned char* ptr;
   unsigned char* limit;
@@ -259,7 +384,7 @@ _Jv_strLengthUtf8(char* str, int len)
  * This returns the same hash value as specified or java.lang.String.hashCode.
  */
 jint
-_Jv_hashUtf8String (char* str, int len)
+_Jv_hashUtf8String (const char* str, int len)
 {
   unsigned char* ptr = (unsigned char*) str;
   unsigned char* limit = ptr + len;
@@ -276,7 +401,7 @@ _Jv_hashUtf8String (char* str, int len)
 }
 
 void
-_Jv_Utf8Const::init(char *s, int len)
+_Jv_Utf8Const::init(const char *s, int len)
 {
   ::memcpy (data, s, len);
   data[len] = 0;
@@ -285,7 +410,7 @@ _Jv_Utf8Const::init(char *s, int len)
 }
 
 _Jv_Utf8Const *
-_Jv_makeUtf8Const (char* s, int len)
+_Jv_makeUtf8Const (const char* s, int len)
 {
   if (len < 0)
     len = strlen (s);
@@ -434,6 +559,9 @@ _Jv_AllocObjectNoInitNoFinalizer (jclass klass)
 jobject
 _Jv_AllocObjectNoFinalizer (jclass klass)
 {
+  if (_Jv_IsPhantomClass(klass) )
+    throw new java::lang::NoClassDefFoundError(klass->getName());
+
   _Jv_InitClass (klass);
   jint size = klass->size ();
   jobject obj = (jobject) _Jv_AllocObj (size, klass);
@@ -512,6 +640,11 @@ _Jv_AllocPtrFreeObject (jclass klass)
 jobjectArray
 _Jv_NewObjectArray (jsize count, jclass elementClass, jobject init)
 {
+  // Creating an array of an unresolved type is impossible. So we throw
+  // the NoClassDefFoundError.
+  if ( _Jv_IsPhantomClass(elementClass) )
+    throw new java::lang::NoClassDefFoundError(elementClass->getName());
+
   if (__builtin_expect (count < 0, false))
     throw new java::lang::NegativeArraySizeException;
 
@@ -639,6 +772,11 @@ _Jv_NewMultiArray (jclass type, jint dimensions, jint *sizes)
 jobject
 _Jv_NewMultiArray (jclass array_type, jint dimensions, ...)
 {
+  // Creating an array of an unresolved type is impossible. So we throw
+  // the NoClassDefFoundError.
+  if (_Jv_IsPhantomClass(array_type))
+    throw new java::lang::NoClassDefFoundError(array_type->getName());
+
   va_list args;
   jint sizes[dimensions];
   va_start (args, dimensions);
@@ -671,7 +809,7 @@ DECLARE_PRIM_TYPE(double)
 DECLARE_PRIM_TYPE(void)
 
 void
-_Jv_InitPrimClass (jclass cl, char *cname, char sig, int len)
+_Jv_InitPrimClass (jclass cl, const char *cname, char sig, int len)
 {    
   using namespace java::lang::reflect;
 
@@ -766,7 +904,28 @@ _Jv_FindClassFromSignature (char *sig, java::lang::ClassLoader *loader,
   return result;
 }
 
-
+
+jclass
+_Jv_FindClassFromSignatureNoException (char *sig, java::lang::ClassLoader *loader,
+                                       char **endp)
+{
+  jclass klass;
+
+  try
+    {
+      klass = _Jv_FindClassFromSignature(sig, loader, endp);
+    }
+  catch (java::lang::NoClassDefFoundError *ncdfe)
+    {
+      return NULL;
+    }
+  catch (java::lang::ClassNotFoundException *cnfe)
+    {
+      return NULL;
+    }
+
+  return klass;
+}
 
 JArray<jstring> *
 JvConvertArgv (int argc, const char **argv)
@@ -987,7 +1146,18 @@ parse_x_arg (char* option_string)
     }
   else if (! strcmp (option_string, "debug"))
     {
-      // FIXME: add JDWP/JVMDI support
+      remoteDebug = true;
+    }
+  else if (! strncmp (option_string, "runjdwp:", 8))
+    {
+      if (strlen (option_string) > 8)
+	  jdwpOptions = &option_string[8];
+      else
+	{
+	  fprintf (stderr,
+		   "libgcj: argument required for JDWP options");
+	  return -1;
+	}
     }
   else if (! strncmp (option_string, "bootclasspath:", 14))
     {
@@ -1252,8 +1422,6 @@ _Jv_CreateJavaVM (JvVMInitArgs* vm_args)
   if (runtimeInitialized)
     return -1;
 
-  runtimeInitialized = true;
-
   jint result = parse_init_args (vm_args);
   if (result < 0)
     return -1;
@@ -1295,10 +1463,6 @@ _Jv_CreateJavaVM (JvVMInitArgs* vm_args)
   _Jv_InitPrimClass (&_Jv_doubleClass,  "double",  'D', 8);
   _Jv_InitPrimClass (&_Jv_voidClass,    "void",    'V', 0);
 
-  // Turn stack trace generation off while creating exception objects.
-  _Jv_InitClass (&java::lang::VMThrowable::class$);
-  java::lang::VMThrowable::trace_enabled = 0;
-  
   // We have to initialize this fairly early, to avoid circular class
   // initialization.  In particular we want to start the
   // initialization of ClassLoader before we start the initialization
@@ -1313,8 +1477,6 @@ _Jv_CreateJavaVM (JvVMInitArgs* vm_args)
 
   no_memory = new java::lang::OutOfMemoryError;
 
-  java::lang::VMThrowable::trace_enabled = 1;
-
 #ifdef USE_LTDL
   LTDL_SET_PRELOADED_SYMBOLS ();
 #endif
@@ -1322,6 +1484,7 @@ _Jv_CreateJavaVM (JvVMInitArgs* vm_args)
   _Jv_platform_initialize ();
 
   _Jv_JNI_Init ();
+  _Jv_JVMTI_Init ();
 
   _Jv_GCInitializeFinalizers (&::gnu::gcj::runtime::FinalizerThread::finalizerReady);
 
@@ -1336,6 +1499,8 @@ _Jv_CreateJavaVM (JvVMInitArgs* vm_args)
   catch (java::lang::VirtualMachineError *ignore)
     {
     }
+
+  runtimeInitialized = true;
 
   return 0;
 }
@@ -1372,8 +1537,28 @@ _Jv_RunMain (JvVMInitArgs *vm_args, jclass klass, const char *name, int argc,
       if (klass)
 	main_thread = new MainThread (klass, arg_vec);
       else
-	main_thread = new MainThread (JvNewStringLatin1 (name),
+	main_thread = new MainThread (JvNewStringUTF (name),
 				      arg_vec, is_jar);
+      _Jv_AttachCurrentThread (main_thread);
+
+      // Start JDWP
+      if (remoteDebug)
+	{
+	  using namespace gnu::classpath::jdwp;
+	  VMVirtualMachine::initialize ();
+	  Jdwp *jdwp = new Jdwp ();
+	  jdwp->setDaemon (true);
+	  jdwp->configure (JvNewStringLatin1 (jdwpOptions));
+	  jdwp->start ();
+
+	  // Wait for JDWP to initialize and start
+	  jdwp->join ();
+	}
+
+      // Send VmInit
+      gnu::classpath::jdwp::event::VmInitEvent *event;
+      event = new gnu::classpath::jdwp::event::VmInitEvent (main_thread);
+      gnu::classpath::jdwp::Jdwp::notify (event);
     }
   catch (java::lang::Throwable *t)
     {
@@ -1386,8 +1571,15 @@ _Jv_RunMain (JvVMInitArgs *vm_args, jclass klass, const char *name, int argc,
       ::exit (1);
     }
 
-  _Jv_AttachCurrentThread (main_thread);
   _Jv_ThreadRun (main_thread);
+
+  // Notify debugger of VM's death
+  if (gnu::classpath::jdwp::Jdwp::isDebugging)
+    {
+      using namespace gnu::classpath::jdwp;
+      event::VmDeathEvent *event = new event::VmDeathEvent ();
+      Jdwp::notify (event);
+    }
 
   // If we got here then something went wrong, as MainThread is not
   // supposed to terminate.
@@ -1570,4 +1762,49 @@ _Jv_CheckAccess (jclass self_klass, jclass other_klass, jint flags)
 	  || (((flags & Modifier::PRIVATE) == 0)
 	      && _Jv_ClassNameSamePackage (self_klass->name,
 					   other_klass->name)));
+}
+
+// Prepend GCJ_VERSIONED_LIBDIR to a module search path stored in a C
+// char array, if the path is not already prefixed by
+// GCJ_VERSIONED_LIBDIR.  Return a newly JvMalloc'd char buffer.  The
+// result should be freed using JvFree.
+char*
+_Jv_PrependVersionedLibdir (char* libpath)
+{
+  char* retval = 0;
+
+  if (libpath && libpath[0] != '\0')
+    {
+      if (! strncmp (libpath,
+                     GCJ_VERSIONED_LIBDIR,
+                     sizeof (GCJ_VERSIONED_LIBDIR) - 1))
+        {
+          // LD_LIBRARY_PATH is already prefixed with
+          // GCJ_VERSIONED_LIBDIR.
+          retval = (char*) _Jv_Malloc (strlen (libpath) + 1);
+          strcpy (retval, libpath);
+        }
+      else
+        {
+          // LD_LIBRARY_PATH is not prefixed with
+          // GCJ_VERSIONED_LIBDIR.
+	  char path_sep[2];
+	  path_sep[0] = (char) _Jv_platform_path_separator;
+	  path_sep[1] = '\0';
+          jsize total = ((sizeof (GCJ_VERSIONED_LIBDIR) - 1)
+			 + 1 /* path separator */ + strlen (libpath) + 1);
+          retval = (char*) _Jv_Malloc (total);
+          strcpy (retval, GCJ_VERSIONED_LIBDIR);
+          strcat (retval, path_sep);
+          strcat (retval, libpath);
+        }
+    }
+  else
+    {
+      // LD_LIBRARY_PATH was not specified or is empty.
+      retval = (char*) _Jv_Malloc (sizeof (GCJ_VERSIONED_LIBDIR));
+      strcpy (retval, GCJ_VERSIONED_LIBDIR);
+    }
+
+  return retval;
 }

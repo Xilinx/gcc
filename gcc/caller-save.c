@@ -1,12 +1,12 @@
 /* Save and restore call-clobbered registers which are live across a call.
-   Copyright (C) 1989, 1992, 1994, 1995, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 1989, 1992, 1994, 1995, 1997, 1998, 1999, 2000, 2001, 2002,
+   2003, 2004, 2005, 2007  Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,9 +15,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -35,6 +34,7 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 #include "expr.h"
 #include "toplev.h"
 #include "tm_p.h"
+#include "addresses.h"
 
 #ifndef MAX_MOVE_MAX
 #define MAX_MOVE_MAX MOVE_MAX
@@ -153,7 +153,7 @@ init_caller_save (void)
   for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)
     if (TEST_HARD_REG_BIT
 	(reg_class_contents
-	 [(int) MODE_BASE_REG_CLASS (regno_save_mode [i][1])], i))
+	 [(int) base_reg_class (regno_save_mode [i][1], PLUS, CONST_INT)], i))
       break;
 
   gcc_assert (i < FIRST_PSEUDO_REGISTER);
@@ -194,7 +194,7 @@ init_caller_save (void)
   for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)
     for (mode = 0 ; mode < MAX_MACHINE_MODE; mode++)
       if (HARD_REGNO_MODE_OK (i, mode))
-        {
+	{
 	  int ok;
 
 	  /* Update the register number and modes of the register
@@ -211,7 +211,7 @@ init_caller_save (void)
 	  reg_restore_code[i][mode] = recog_memoized (restinsn);
 
 	  /* Now extract both insns and see if we can meet their
-             constraints.  */
+	     constraints.  */
 	  ok = (reg_save_code[i][mode] != -1
 		&& reg_restore_code[i][mode] != -1);
 	  if (ok)
@@ -227,7 +227,7 @@ init_caller_save (void)
 	      reg_save_code[i][mode] = -1;
 	      reg_restore_code[i][mode] = -1;
 	    }
-        }
+	}
       else
 	{
 	  reg_save_code[i][mode] = -1;
@@ -846,7 +846,7 @@ insert_one_insn (struct insn_chain *chain, int before_p, int code, rtx pat)
 	 registers from the live sets, and observe REG_UNUSED notes.  */
       COPY_REG_SET (&new->live_throughout, &chain->live_throughout);
       /* Registers that are set in CHAIN->INSN live in the new insn.
-         (Unless there is a REG_UNUSED note for them, but we don't
+	 (Unless there is a REG_UNUSED note for them, but we don't
 	  look for them here.) */
       note_stores (PATTERN (chain->insn), add_stored_regs,
 		   &new->live_throughout);

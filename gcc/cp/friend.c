@@ -1,12 +1,12 @@
 /* Help friends in C++.
-   Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005
-   Free Software Foundation, Inc.
+   Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
+   2007  Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -15,9 +15,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -102,8 +101,7 @@ is_friend (tree type, tree supplicant)
     }
   else
     {
-      if (TYPE_CONTEXT (supplicant)
-	  && TYPE_P (TYPE_CONTEXT (supplicant)))
+      if (TYPE_CLASS_SCOPE_P (supplicant))
 	/* Nested classes get the same access as their enclosing types, as
 	   per DR 45 (this is a change from the standard).  */
 	context = TYPE_CONTEXT (supplicant);
@@ -172,7 +170,7 @@ add_friend (tree type, tree decl, bool complain)
 
   ctx = DECL_CONTEXT (decl);
   if (ctx && CLASS_TYPE_P (ctx) && !uses_template_parms (ctx))
-    perform_or_defer_access_check (TYPE_BINFO (ctx), decl);
+    perform_or_defer_access_check (TYPE_BINFO (ctx), decl, decl);
 
   maybe_add_class_template_decl_list (type, decl, /*friend_p=*/1);
 
@@ -397,25 +395,21 @@ make_friend_class (tree type, tree friend_type, bool complain)
     }
 }
 
-/* Main friend processor.
-
-   CTYPE is the class this friend belongs to.
-
-   DECLARATOR is the name of the friend.
-
-   DECL is the FUNCTION_DECL that the friend is.
-
-   FLAGS is just used for `grokclassfn'.
-
-   QUALS say what special qualifies should apply to the object
-   pointed to by `this'.  */
+/* Record DECL (a FUNCTION_DECL) as a friend of the
+   CURRENT_CLASS_TYPE.  If DECL is a member function, CTYPE is the
+   class of which it is a member, as named in the friend declaration.
+   DECLARATOR is the name of the friend.  FUNCDEF_FLAG is true if the
+   friend declaration is a definition of the function.  FLAGS is as
+   for grokclass fn.  */
 
 tree
 do_friend (tree ctype, tree declarator, tree decl,
 	   tree attrlist, enum overload_flags flags,
-	   cp_cv_quals quals,
-	   int funcdef_flag)
+	   bool funcdef_flag)
 {
+  gcc_assert (TREE_CODE (decl) == FUNCTION_DECL);
+  gcc_assert (!ctype || IS_AGGR_TYPE (ctype));
+
   /* Every decl that gets here is a friend of something.  */
   DECL_FRIEND_P (decl) = 1;
 
@@ -425,8 +419,6 @@ do_friend (tree ctype, tree declarator, tree decl,
       if (is_overloaded_fn (declarator))
 	declarator = DECL_NAME (get_first_fn (declarator));
     }
-
-  gcc_assert (TREE_CODE (decl) == FUNCTION_DECL);
 
   if (ctype)
     {
@@ -462,8 +454,7 @@ do_friend (tree ctype, tree declarator, tree decl,
       if (flags == NO_SPECIAL && declarator == cname)
 	DECL_CONSTRUCTOR_P (decl) = 1;
 
-      /* This will set up DECL_ARGUMENTS for us.  */
-      grokclassfn (ctype, decl, flags, quals);
+      grokclassfn (ctype, decl, flags);
 
       if (friend_depth)
 	{

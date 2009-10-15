@@ -1,5 +1,5 @@
 /* JToolBar.java --
-   Copyright (C) 2002, 2004, 2005  Free Software Foundation, Inc.
+   Copyright (C) 2002, 2004, 2005, 2006,  Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -50,7 +50,6 @@ import javax.accessibility.Accessible;
 import javax.accessibility.AccessibleContext;
 import javax.accessibility.AccessibleRole;
 import javax.accessibility.AccessibleStateSet;
-import javax.swing.JButton;
 import javax.swing.plaf.ToolBarUI;
 
 /**
@@ -66,17 +65,15 @@ import javax.swing.plaf.ToolBarUI;
 public class JToolBar extends JComponent implements SwingConstants, Accessible
 {
   /**
-   * AccessibleJToolBar
+   * Provides the accessibility features for the <code>JToolBar</code>
+   * component.
    */
-  // FIXME: This inner class is a complete stub and must be implemented
-  // properly.
   protected class AccessibleJToolBar extends AccessibleJComponent
   {
-    /** DOCUMENT ME! */
     private static final long serialVersionUID = -5516888265903814215L;
 
     /**
-     * Constructor AccessibleJToolBar
+     * Creates a new <code>AccessibleJToolBar</code> instance.
      */
     protected AccessibleJToolBar()
     {
@@ -84,19 +81,23 @@ public class JToolBar extends JComponent implements SwingConstants, Accessible
     }
 
     /**
-     * getAccessibleStateSet
+     * Returns a set containing the current state of the {@link JToolBar} 
+     * component.  The current implementation simply calls the superclass.
      *
-     * @return AccessibleStateSet
+     * @return The accessible state set.
      */
     public AccessibleStateSet getAccessibleStateSet()
     {
-      return null; // TODO
+      // running tests against the reference implementation, I was unable
+      // to find any state information that is set specifically by the
+      // tool bar...
+      return super.getAccessibleStateSet();
     }
 
     /**
-     * getAccessibleRole
+     * Returns the accessible role for the <code>JToolBar</code> component.
      *
-     * @return AccessibleRole
+     * @return {@link AccessibleRole#TOOL_BAR}.
      */
     public AccessibleRole getAccessibleRole()
     {
@@ -426,8 +427,9 @@ public class JToolBar extends JComponent implements SwingConstants, Accessible
     setOrientation(orientation);
     setLayout(new DefaultToolBarLayout());
     revalidate();
+    setOpaque(true);
     updateUI();
-  } // JToolBar()
+  }
 
   /**
    * This method adds a new JButton that performs the given Action to the
@@ -481,9 +483,7 @@ public class JToolBar extends JComponent implements SwingConstants, Accessible
   public void updateUI()
   {
     setUI((ToolBarUI) UIManager.getUI(this));
-    revalidate();
-    repaint();
-  } // updateUI()
+  }
 
   /**
    * This method returns the String identifier for the UI class to the used
@@ -757,19 +757,34 @@ public class JToolBar extends JComponent implements SwingConstants, Accessible
   } // addImpl()
 
   /**
-   * This method returns a String description of the JToolBar.
+   * Returns a string describing the attributes for the <code>JToolBar</code>
+   * component, for use in debugging.  The return value is guaranteed to be 
+   * non-<code>null</code>, but the format of the string may vary between
+   * implementations.
    *
-   * @return A String description of the JToolBar.
+   * @return A string describing the attributes of the <code>JToolBar</code>.
    */
   protected String paramString()
   {
-    return "JToolBar";
-  } // paramString()
+    StringBuffer sb = new StringBuffer(super.paramString());
+    sb.append(",floatable=").append(floatable);
+    sb.append(",margin=");
+    if (margin != null)
+      sb.append(margin);
+    sb.append(",orientation=");
+    if (orientation == HORIZONTAL)
+      sb.append("HORIZONTAL");
+    else
+      sb.append(VERTICAL);
+    sb.append(",paintBorder=").append(paintBorder);
+    return sb.toString();
+  }
 
   /**
-   * getAccessibleContext
+   * Returns the object that provides accessibility features for this
+   * <code>JToolBar</code> component.
    *
-   * @return AccessibleContext
+   * @return The accessible context (an instance of {@link AccessibleJToolBar}).
    */
   public AccessibleContext getAccessibleContext()
   {

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2005, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2006, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -35,8 +35,6 @@ with System.Address_Image;
 with System.Parameters;
 with System.Soft_Links;
 with System.Task_Primitives.Operations;
-with System.Tasking;
-
 with Unchecked_Conversion;
 
 pragma Warnings (Off);
@@ -44,7 +42,8 @@ pragma Warnings (Off);
 --  package will be categorized as Preelaborate. See AI-362 for details.
 --  It is safe in the context of the run-time to violate the rules!
 
-with System.Tasking.Stages;
+with System.Tasking.Utilities;
+--  Used for Abort_Tasks
 
 pragma Warnings (On);
 
@@ -81,7 +80,7 @@ package body Ada.Task_Identification is
       if T = Null_Task_Id then
          raise Program_Error;
       else
-         System.Tasking.Stages.Abort_Tasks
+         System.Tasking.Utilities.Abort_Tasks
            (System.Tasking.Task_List'(1 => Convert_Ids (T)));
       end if;
    end Abort_Task;

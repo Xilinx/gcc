@@ -53,9 +53,7 @@ public class VmDeathEvent
   extends Event
 {
   /**
-   * Constructs a <code>VmDeathEvent</code> object
-   *
-   * @param thread  the initial thread
+   * Constructs a new VmDeathEvent object
    */
   public VmDeathEvent ()
   {
@@ -69,7 +67,7 @@ public class VmDeathEvent
    * @param type  the type of parameter desired
    * @returns the desired parameter or <code>null</code>
    */
-  public Object getParameter (Class type)
+  public Object getParameter (int type)
   {
     return null;
   }

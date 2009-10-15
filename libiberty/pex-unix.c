@@ -270,13 +270,15 @@ static void pex_child_error (struct pex_obj *, const char *, const char *, int)
 static int pex_unix_open_read (struct pex_obj *, const char *, int);
 static int pex_unix_open_write (struct pex_obj *, const char *, int);
 static long pex_unix_exec_child (struct pex_obj *, int, const char *,
-				 char * const *, int, int, int, int,
+				 char * const *, char * const *,
+				 int, int, int, int,
 				 const char **, int *);
 static int pex_unix_close (struct pex_obj *, int);
 static int pex_unix_wait (struct pex_obj *, long, int *, struct pex_time *,
 			  int, const char **, int *);
 static int pex_unix_pipe (struct pex_obj *, int *, int);
 static FILE *pex_unix_fdopenr (struct pex_obj *, int, int);
+static FILE *pex_unix_fdopenw (struct pex_obj *, int, int);
 static void pex_unix_cleanup (struct pex_obj *);
 
 /* The list of functions we pass to the common routines.  */
@@ -290,6 +292,7 @@ const struct pex_funcs funcs =
   pex_unix_wait,
   pex_unix_pipe,
   pex_unix_fdopenr,
+  pex_unix_fdopenw,
   pex_unix_cleanup
 };
 
@@ -350,12 +353,16 @@ pex_child_error (struct pex_obj *obj, const char *executable,
 
 /* Execute a child.  */
 
+extern char **environ;
+
 static long
 pex_unix_exec_child (struct pex_obj *obj, int flags, const char *executable,
-		     char * const * argv, int in, int out, int errdes,
+		     char * const * argv, char * const * env,
+                     int in, int out, int errdes,
 		     int toclose, const char **errmsg, int *err)
 {
   pid_t pid;
+
   /* We declare these to be volatile to avoid warnings from gcc about
      them being clobbered by vfork.  */
   volatile int sleep_interval;
@@ -412,6 +419,10 @@ pex_unix_exec_child (struct pex_obj *obj, int flags, const char *executable,
 	  if (dup2 (STDOUT_FILE_NO, STDERR_FILE_NO) < 0)
 	    pex_child_error (obj, executable, "dup2", errno);
 	}
+
+      if (env)
+        environ = (char**) env;
+
       if ((flags & PEX_SEARCH) != 0)
 	{
 	  execvp (executable, argv);
@@ -498,6 +509,15 @@ pex_unix_fdopenr (struct pex_obj *obj ATTRIBUTE_UNUSED, int fd,
 		  int binary ATTRIBUTE_UNUSED)
 {
   return fdopen (fd, "r");
+}
+
+static FILE *
+pex_unix_fdopenw (struct pex_obj *obj ATTRIBUTE_UNUSED, int fd,
+		  int binary ATTRIBUTE_UNUSED)
+{
+  if (fcntl (fd, F_SETFD, FD_CLOEXEC) < 0)
+    return NULL;
+  return fdopen (fd, "w");
 }
 
 static void

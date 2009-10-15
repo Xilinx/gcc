@@ -28,10 +28,6 @@
 // invalidate any other reasons why the executable file might be covered by
 // the GNU General Public License.
 
-//
-// ISO C++ 14882: 20.4.6  C library
-//
-
 /** @file csetjmp
  *  This is a Standard C++ Library file.  You should @c #include this file
  *  in your programs, rather than any of the "*.h" implementation files.
@@ -42,11 +38,16 @@
  *  as macros in C).
  */
 
+//
+// ISO C++ 14882: 20.4.6  C library
+//
+
 #ifndef _GLIBCXX_CSETJMP
 #define _GLIBCXX_CSETJMP 1
 
 #pragma GCC system_header
 
+#include <bits/c++config.h>
 #include <setjmp.h>
 
 // Get rid of those macros defined in <setjmp.h> in lieu of real functions.
@@ -57,10 +58,11 @@
 #define setjmp(env) setjmp (env)
 #endif
 
-namespace std
-{
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
   using ::jmp_buf;
   using ::longjmp;
-}
+
+_GLIBCXX_END_NAMESPACE
 
 #endif

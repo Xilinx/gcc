@@ -1,4 +1,4 @@
-// underlying io library  -*- C++ -*-
+// Underlying io library details -*- C++ -*-
 
 // Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006
 // Free Software Foundation, Inc.
@@ -28,6 +28,11 @@
 // invalidate any other reasons why the executable file might be covered by
 // the GNU General Public License.
 
+/** @file c++io.h
+ *  This is an internal header file, included by other library headers.
+ *  You should not attempt to use it directly.
+ */
+
 // c_io_stdio.h - Defines for using "C" stdio.h
 
 #ifndef _C_IO_STDIO_H
@@ -37,12 +42,13 @@
 #include <cstddef>
 #include <bits/gthr.h>
 
-namespace std 
-{
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
   typedef __gthread_mutex_t __c_lock;
 
   // for basic_file.h
   typedef FILE __c_file;
-}
+
+_GLIBCXX_END_NAMESPACE
 
 #endif

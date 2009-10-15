@@ -1,12 +1,12 @@
 /* Prototypes for alpha.c functions used in the md file & elsewhere.
-   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005
+   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007
    Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -15,9 +15,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 extern int alpha_next_sequence_number;
 
@@ -51,10 +50,12 @@ extern rtx alpha_legitimize_reload_address (rtx, enum machine_mode,
 extern rtx split_small_symbolic_operand (rtx);
 
 extern void get_aligned_mem (rtx, rtx *, rtx *);
-extern rtx get_unaligned_address (rtx, int);
+extern rtx get_unaligned_address (rtx);
+extern rtx get_unaligned_offset (rtx, HOST_WIDE_INT);
 extern enum reg_class alpha_preferred_reload_class (rtx, enum reg_class);
-extern enum reg_class secondary_reload_class (enum reg_class,
-					      enum machine_mode, rtx, int);
+extern enum reg_class alpha_secondary_reload_class (enum reg_class,
+						    enum machine_mode, rtx,
+						    int);
 
 extern void alpha_set_memflags (rtx, rtx);
 extern bool alpha_split_const_mov (enum machine_mode, rtx *);
@@ -63,7 +64,7 @@ extern bool alpha_expand_mov_nobwx (enum machine_mode, rtx *);
 extern void alpha_expand_movmisalign (enum machine_mode, rtx *);
 extern void alpha_emit_floatuns (rtx[]);
 extern rtx alpha_emit_conditional_move (rtx, enum machine_mode);
-extern void alpha_split_tfmode_pair (rtx[]);
+extern void alpha_split_tmode_pair (rtx[], enum machine_mode, bool);
 extern void alpha_split_tfmode_frobsign (rtx[], rtx (*)(rtx, rtx, rtx));
 extern void alpha_expand_unaligned_load (rtx, rtx, HOST_WIDE_INT,
 					 HOST_WIDE_INT, int);
@@ -126,8 +127,6 @@ extern rtx unicosmk_add_call_info_word (rtx);
 extern void unicosmk_defer_case_vector (rtx, rtx);
 extern void unicosmk_add_extern (const char *);
 extern void unicosmk_output_align (FILE *, int);
-extern char * unicosmk_text_section (void);
-extern char * unicosmk_data_section (void);
 extern void unicosmk_output_common (FILE *, const char *, int, int);
 extern int unicosmk_initial_elimination_offset (int, int);
 #endif

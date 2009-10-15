@@ -1,6 +1,6 @@
 // win32-threads.cc - interface between libjava and Win32 threads.
 
-/* Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003 Free Software
+/* Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2006 Free Software
    Foundation, Inc.
 
    This file is part of libgcj.
@@ -419,3 +419,4 @@ _Jv_ThreadInterrupt (_Jv_Thread_t *data)
   SetEvent (data->interrupt_event);
   LeaveCriticalSection (&data->interrupt_mutex);
 }
+

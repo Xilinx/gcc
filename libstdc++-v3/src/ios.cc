@@ -34,10 +34,9 @@
 
 #include <ios>
 #include <limits>
-#include <bits/atomicity.h>
 
-namespace std 
-{  
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
   // Definitions for static const members of ios_base.
   const ios_base::fmtflags ios_base::boolalpha;
   const ios_base::fmtflags ios_base::dec;
@@ -107,7 +106,7 @@ namespace std
     // Implementation note: Initialize top to zero to ensure that
     // initialization occurs before main() is started.
     static _Atomic_word _S_top = 0; 
-    return __gnu_cxx::__exchange_and_add(&_S_top, 1) + 4;
+    return __gnu_cxx::__exchange_and_add_dispatch(&_S_top, 1) + 4;
   }
 
   void 
@@ -191,4 +190,5 @@ namespace std
       }
     _M_callbacks = 0;
   }
-} // namespace std
+
+_GLIBCXX_END_NAMESPACE

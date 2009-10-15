@@ -38,6 +38,8 @@ exception statement from your version. */
 
 package java.awt;
 
+import gnu.classpath.NotImplementedException;
+
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.awt.image.ColorModel;
@@ -63,6 +65,13 @@ import java.awt.image.VolatileImage;
  */
 public abstract class GraphicsConfiguration
 {
+  
+  /** The cached image capabilities. */
+  private ImageCapabilities imageCapabilities;
+  
+  /** The cached buffer capabilities. */
+  private BufferCapabilities bufferCapabilities;
+  
   /**
    * The default constructor.
    *
@@ -217,7 +226,13 @@ public abstract class GraphicsConfiguration
    */
   public BufferCapabilities getBufferCapabilities()
   {
-    throw new Error("not implemented");
+    if (imageCapabilities == null)
+      getImageCapabilities();
+    
+    if (bufferCapabilities == null)
+      bufferCapabilities = new BufferCapabilities(imageCapabilities,
+                                                  imageCapabilities, null);
+    return bufferCapabilities;
   }
 
   /**
@@ -228,6 +243,8 @@ public abstract class GraphicsConfiguration
    */
   public ImageCapabilities getImageCapabilities()
   {
-    throw new Error("not implemented");
+    if (imageCapabilities == null)
+      imageCapabilities = new ImageCapabilities(false);
+    return imageCapabilities;
   }
 } // class GraphicsConfiguration

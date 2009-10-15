@@ -1,11 +1,11 @@
 /* Global, SSA-based optimizations using mathematical identities.
-   Copyright (C) 2005 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2007 Free Software Foundation, Inc.
    
 This file is part of GCC.
    
 GCC is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the
-Free Software Foundation; either version 2, or (at your option) any
+Free Software Foundation; either version 3, or (at your option) any
 later version.
    
 GCC is distributed in the hope that it will be useful, but WITHOUT
@@ -14,9 +14,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
    
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 /* Currently, the only mini-pass in this file tries to CSE reciprocal
    operations.  These are common in sequences such as this one:
@@ -276,36 +275,11 @@ is_division_by (tree use_stmt, tree def)
 {
   return TREE_CODE (use_stmt) == MODIFY_EXPR
 	 && TREE_CODE (TREE_OPERAND (use_stmt, 1)) == RDIV_EXPR
-	 && TREE_OPERAND (TREE_OPERAND (use_stmt, 1), 1) == def;
-}
-
-/* Return the LHS of a RDIV_EXPR that computes a reciprocal in type TYPE.  */
-static tree
-get_constant_one (tree type)
-{
-  tree scalar, cst;
-  int i;
-
-  gcc_assert (FLOAT_TYPE_P (type));
-  switch (TREE_CODE (type))
-    {
-    case REAL_TYPE:
-      return build_real (type, dconst1);
-
-    case VECTOR_TYPE:
-      scalar = build_real (TREE_TYPE (type), dconst1);
-
-      /* Create 'vect_cst_ = {cst,cst,...,cst}'  */
-      cst = NULL_TREE;
-      for (i = TYPE_VECTOR_SUBPARTS (type); --i >= 0; )
-        cst = tree_cons (NULL_TREE, scalar, cst);
-
-      return build_vector (type, cst);
-
-    default:
-      /* Complex operations have been split already.  */
-      gcc_unreachable ();
-    }
+	 && TREE_OPERAND (TREE_OPERAND (use_stmt, 1), 1) == def
+	 /* Do not recognize x / x as valid division, as we are getting
+	    confused later by replacing all immediate uses x in such
+	    a stmt.  */
+	 && TREE_OPERAND (TREE_OPERAND (use_stmt, 1), 0) != def;
 }
 
 /* Walk the subset of the dominator tree rooted at OCC, setting the
@@ -333,7 +307,7 @@ insert_reciprocals (block_stmt_iterator *def_bsi, struct occurrence *occ,
       type = TREE_TYPE (def);
       recip_def = make_rename_temp (type, "reciptmp");
       new_stmt = build2 (MODIFY_EXPR, void_type_node, recip_def,
-		         fold_build2 (RDIV_EXPR, type, get_constant_one (type),
+		         fold_build2 (RDIV_EXPR, type, build_one_cst (type),
 				      def));
   
   
@@ -446,17 +420,20 @@ execute_cse_reciprocals_1 (block_stmt_iterator *def_bsi, tree def)
   threshold = targetm.min_divisions_for_recip_mul (TYPE_MODE (TREE_TYPE (def)));
   if (count >= threshold)
     {
+      tree use_stmt;
       for (occ = occ_head; occ; occ = occ->next)
 	{
 	  compute_merit (occ);
 	  insert_reciprocals (def_bsi, occ, def, NULL, threshold);
 	}
 
-      FOR_EACH_IMM_USE_SAFE (use_p, use_iter, def)
+      FOR_EACH_IMM_USE_STMT (use_stmt, use_iter, def)
 	{
-	  tree use_stmt = USE_STMT (use_p);
 	  if (is_division_by (use_stmt, def))
-	    replace_reciprocal (use_p);
+	    {
+	      FOR_EACH_IMM_USE_ON_STMT (use_p, use_iter)
+		replace_reciprocal (use_p);
+	    }
 	}
     }
 
@@ -476,7 +453,7 @@ gate_cse_reciprocals (void)
 
 /* Go through all the floating-point SSA_NAMEs, and call
    execute_cse_reciprocals_1 on each of them.  */
-static void
+static unsigned int
 execute_cse_reciprocals (void)
 {
   basic_block bb;
@@ -527,6 +504,7 @@ execute_cse_reciprocals (void)
   free_dominance_info (CDI_DOMINATORS);
   free_dominance_info (CDI_POST_DOMINATORS);
   free_alloc_pool (occ_pool);
+  return 0;
 }
 
 struct tree_opt_pass pass_cse_reciprocals =

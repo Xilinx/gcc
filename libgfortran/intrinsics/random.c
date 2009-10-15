@@ -1,5 +1,5 @@
 /* Implementation of the RANDOM intrinsics
-   Copyright 2002, 2004, 2005 Free Software Foundation, Inc.
+   Copyright 2002, 2004, 2005, 2006 Free Software Foundation, Inc.
    Contributed by Lars Segerlund <seger@linuxmail.org>
    and Steve Kargl.
 
@@ -31,7 +31,7 @@ Boston, MA 02110-1301, USA.  */
 
 #include "config.h"
 #include "libgfortran.h"
-#include "../io/io.h"
+#include <gthr.h>
 
 extern void random_r4 (GFC_REAL_4 *);
 iexport_proto(random_r4);
@@ -373,9 +373,6 @@ arandom_r4 (gfc_array_r4 *x)
 
   dest = x->data;
 
-  if (x->dim[0].stride == 0)
-    x->dim[0].stride = 1;
-
   dim = GFC_DESCRIPTOR_RANK (x);
 
   for (n = 0; n < dim; n++)
@@ -442,9 +439,6 @@ arandom_r8 (gfc_array_r8 *x)
   int n;
 
   dest = x->data;
-
-  if (x->dim[0].stride == 0)
-    x->dim[0].stride = 1;
 
   dim = GFC_DESCRIPTOR_RANK (x);
 
@@ -679,9 +673,6 @@ random_seed (GFC_INTEGER_4 *size, gfc_array_i4 *put, gfc_array_i4 *get)
       if (((put->dim[0].ubound + 1 - put->dim[0].lbound)) < kiss_size)
         runtime_error ("Array size of PUT is too small.");
 
-      if (put->dim[0].stride == 0)
-	put->dim[0].stride = 1;
-
       /*  This code now should do correct strides.  */
       for (i = 0; i < kiss_size; i++)
 	kiss_seed[i] =(GFC_UINTEGER_4) put->data[i * put->dim[0].stride];
@@ -697,9 +688,6 @@ random_seed (GFC_INTEGER_4 *size, gfc_array_i4 *put, gfc_array_i4 *get)
       /* If the array is too small, abort.  */
       if (((get->dim[0].ubound + 1 - get->dim[0].lbound)) < kiss_size)
 	runtime_error ("Array size of GET is too small.");
-
-      if (get->dim[0].stride == 0)
-	get->dim[0].stride = 1;
 
       /*  This code now should do correct strides.  */
       for (i = 0; i < kiss_size; i++)

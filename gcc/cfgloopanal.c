@@ -1,11 +1,11 @@
 /* Natural loop analysis code for GNU compiler.
-   Copyright (C) 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -14,9 +14,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -83,7 +82,9 @@ struct graph
 /* Dumps graph G into F.  */
 
 extern void dump_graph (FILE *, struct graph *);
-void dump_graph (FILE *f, struct graph *g)
+
+void
+dump_graph (FILE *f, struct graph *g)
 {
   int i;
   struct edge *e;
@@ -111,10 +112,10 @@ void dump_graph (FILE *f, struct graph *g)
 static struct graph *
 new_graph (int n_vertices)
 {
-  struct graph *g = xmalloc (sizeof (struct graph));
+  struct graph *g = XNEW (struct graph);
 
   g->n_vertices = n_vertices;
-  g->vertices = xcalloc (n_vertices, sizeof (struct vertex));
+  g->vertices = XCNEWVEC (struct vertex, n_vertices);
 
   return g;
 }
@@ -178,7 +179,7 @@ dfs (struct graph *g, int *qs, int nq, int *qt, bool forward)
 	    {
 	      if (qt)
 		qt[tick] = v;
- 	      g->vertices[v].post = tick++;
+	      g->vertices[v].post = tick++;
 
 	      if (!top)
 		break;
@@ -257,7 +258,7 @@ free_graph (struct graph *g)
    for parts of cycles that only "pass" through some loop -- i.e. for
    each cycle, we want to mark blocks that belong directly to innermost
    loop containing the whole cycle.
-   
+
    LOOPS is the loop tree.  */
 
 #define LOOP_REPR(LOOP) ((LOOP)->num + last_basic_block)
@@ -271,8 +272,8 @@ mark_irreducible_loops (struct loops *loops)
   edge_iterator ei;
   int i, src, dest;
   struct graph *g;
-  int *queue1 = xmalloc ((last_basic_block + loops->num) * sizeof (int));
-  int *queue2 = xmalloc ((last_basic_block + loops->num) * sizeof (int));
+  int *queue1 = XNEWVEC (int, last_basic_block + loops->num);
+  int *queue2 = XNEWVEC (int, last_basic_block + loops->num);
   int nq, depth;
   struct loop *cloop;
 
@@ -290,8 +291,8 @@ mark_irreducible_loops (struct loops *loops)
   FOR_BB_BETWEEN (act, ENTRY_BLOCK_PTR, EXIT_BLOCK_PTR, next_bb)
     FOR_EACH_EDGE (e, ei, act->succs)
       {
-        /* Ignore edges to exit.  */
-        if (e->dest == EXIT_BLOCK_PTR)
+	/* Ignore edges to exit.  */
+	if (e->dest == EXIT_BLOCK_PTR)
 	  continue;
 
 	/* And latch edges.  */
@@ -433,9 +434,9 @@ expected_loop_iterations (const struct loop *loop)
 	  count_in += e->count;
 
       if (count_in == 0)
-        expected = count_latch * 2;
+	expected = count_latch * 2;
       else
-        expected = (count_latch + count_in - 1) / count_in;
+	expected = (count_latch + count_in - 1) / count_in;
 
       /* Avoid overflows.  */
       return (expected > REG_BR_PROB_BASE ? REG_BR_PROB_BASE : expected);
@@ -526,7 +527,7 @@ init_set_costs (void)
   target_res_regs = 3;
 
   /* These are really just heuristic values.  */
-  
+
   start_sequence ();
   emit_move_insn (reg1, reg2);
   seq = get_insns ();
@@ -572,7 +573,7 @@ mark_loop_exit_edges (struct loops *loops)
 {
   basic_block bb;
   edge e;
- 
+
   if (loops->num <= 1)
     return;
 

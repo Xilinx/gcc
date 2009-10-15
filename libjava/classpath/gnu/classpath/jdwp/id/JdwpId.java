@@ -1,5 +1,5 @@
 /* JdwpId.java -- base class for all object ID types
-   Copyright (C) 2005 Free Software Foundation
+   Copyright (C) 2005, 2006 Free Software Foundation
 
 This file is part of GNU Classpath.
 
@@ -51,6 +51,11 @@ import java.lang.ref.SoftReference;
 public abstract class JdwpId
 {
   /**
+   * The size of an ID. The default is 8 bytes (a long).
+   */
+   public static final int SIZE = 8;
+
+  /**
    * ID assigned to this object
    */
   protected long _id;
@@ -58,7 +63,7 @@ public abstract class JdwpId
   /**
    * Tag of ID's type (see {@link gnu.classpath.jdwp.JdwpConstants.Tag})
    * for object-like IDs or the type tag (see {@link
-   * gnu.classpath.JdwpConstants.TypeTag}) for reference type IDs.
+   * gnu.classpath.jdwp.JdwpConstants.TypeTag}) for reference type IDs.
    */
   private byte _tag;
 
@@ -120,11 +125,6 @@ public abstract class JdwpId
   {
     return (id.getId () == getId ());
   }
-
-  /**
-   * Returns size of this type (used by IDSizes)
-   */
-  public abstract int size ();
 
   /**
    * Writes the contents of this type to the <code>DataOutputStream</code>

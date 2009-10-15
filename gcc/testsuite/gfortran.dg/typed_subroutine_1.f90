@@ -1,5 +1,5 @@
 ! { dg-do compile }
-! Tests the fix for 20858, in which the compiler failed to detect that
+! Tests the fix for 25088, in which the compiler failed to detect that
 ! a called object had a type.
 !
 ! Contributed by Joost VandeVondele  <jv244@cam.ac.uk>

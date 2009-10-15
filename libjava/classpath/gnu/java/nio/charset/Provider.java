@@ -1,5 +1,5 @@
 /* Provider.java -- 
-   Copyright (C) 2002, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2002, 2005, 2006 Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -39,6 +39,8 @@ package gnu.java.nio.charset;
 
 import java.nio.charset.Charset;
 import java.nio.charset.spi.CharsetProvider;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -47,6 +49,11 @@ import java.util.Iterator;
  * Charset provider for the required charsets.  Used by
  * {@link Charset#charsetForName} and * {@link Charset#availableCharsets}.
  *
+ * Note: This class is a privileged class, because it can be instantiated without
+ * requiring the RuntimePermission("charsetProvider"). There is a check in
+ * java.nio.charset.spi.CharsetProvider to skip the security check if the provider
+ * is an instance of this class.
+ *
  * @author Jesse Rosenstock
  * @author Robert Schuster (thebohemian@gmx.net)
  * @see Charset
@@ -54,14 +61,6 @@ import java.util.Iterator;
 public final class Provider extends CharsetProvider
 {
   private static Provider singleton;
-
-  static
-  {
-    synchronized (Provider.class)
-      {
-        singleton = null;
-      }
-  }
 
   /**
    * Map from charset name to charset canonical name. The strings
@@ -82,7 +81,8 @@ public final class Provider extends CharsetProvider
    */
   private boolean extendedLoaded;
 
-  private Provider ()
+  // Package private to avoid an accessor method in PrivilegedAction below.
+  Provider ()
   {
     extendedLoaded = false;
     canonicalNames = new HashMap ();
@@ -155,9 +155,9 @@ public final class Provider extends CharsetProvider
  /**
   * Load non-mandatory charsets.
   */
-  private void loadExtended ()
+  private synchronized void loadExtended ()
   {
-    if(extendedLoaded)
+    if (extendedLoaded)
       return;
 
     addCharset (new ISO_8859_3 ());    // ISO-8859-3 aka ISO-LATIN-3
@@ -165,6 +165,12 @@ public final class Provider extends CharsetProvider
     addCharset (new ISO_8859_8 ());    // ISO-8859-8 (Hebrew)
 
     // Some more codepages
+    addCharset (new Cp424());
+    addCharset (new Cp437());
+    addCharset (new Cp737());
+    addCharset (new Cp775());
+    addCharset (new Cp850());
+    addCharset (new Cp852());
     addCharset (new Cp855()); // IBM Cyrillic
     addCharset (new Cp857()); // IBM Turkish
     addCharset (new Cp860()); // MSDOS Portugese
@@ -176,6 +182,24 @@ public final class Provider extends CharsetProvider
     addCharset (new Cp866()); // MSDOS Russian
     addCharset (new Cp869()); // IBM modern Greek
     addCharset (new Cp874()); // IBM Thai
+
+    addCharset (new MacCentralEurope());
+    addCharset (new MacCroatian());
+    addCharset (new MacCyrillic());
+    addCharset (new MacDingbat());
+    addCharset (new MacGreek());
+    addCharset (new MacIceland());
+    addCharset (new MacRoman());
+    addCharset (new MacRomania());
+    addCharset (new MacSymbol());
+    addCharset (new MacThai());
+    addCharset (new MacTurkish());
+    addCharset (new MS874());
+
+    addCharset (new Windows1255());
+    addCharset (new Windows1256());
+    addCharset (new Windows1258());
+
     extendedLoaded = true;
   }
 
@@ -199,7 +223,7 @@ public final class Provider extends CharsetProvider
   public Charset charsetForName (String charsetName)
   {
     Charset cs = (Charset) charsets.get(canonicalNames.get(charsetName.toLowerCase()));
-    if(cs == null && !extendedLoaded)
+    if (cs == null)
      {
        loadExtended();
        cs = (Charset) charsets.get(canonicalNames.get(charsetName.toLowerCase()));
@@ -232,8 +256,16 @@ public final class Provider extends CharsetProvider
 
   public static synchronized Provider provider ()
   {
+    // The default provider is safe to instantiate.
     if (singleton == null)
-      singleton = new Provider ();
+      singleton = (Provider) AccessController.doPrivileged
+	(new PrivilegedAction()
+	  {
+	    public Object run()
+	    {
+	      return new Provider();
+	    }
+	  });
     return singleton;
   }
 }

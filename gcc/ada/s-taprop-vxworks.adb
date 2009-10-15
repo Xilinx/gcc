@@ -6,7 +6,7 @@
 --                                                                          --
 --                                  B o d y                                 --
 --                                                                          --
---         Copyright (C) 1992-2005, Free Software Foundation, Inc.          --
+--         Copyright (C) 1992-2006, Free Software Foundation, Inc.          --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -40,11 +40,6 @@ pragma Polling (Off);
 --  Turn off polling, we do not want ATC polling to take place during
 --  tasking operations. It causes infinite loops and other problems.
 
-with System.Tasking;
---  used for Ada_Task_Control_Block
---           Task_Id
---           ATCB components and types
-
 with System.Tasking.Debug;
 --  used for Known_Tasks
 
@@ -54,18 +49,22 @@ with System.Interrupt_Management;
 --           Signal_ID
 --           Initialize_Interrupts
 
-with System.OS_Interface;
---  used for various type, constant, and operations
-
-with System.Parameters;
---  used for Size_Type
-
 with Interfaces.C;
+
+with System.Soft_Links;
+--  used for Abort_Defer/Undefer
+
+--  We use System.Soft_Links instead of System.Tasking.Initialization
+--  because the later is a higher level package that we shouldn't depend on.
+--  For example when using the restricted run time, it is replaced by
+--  System.Tasking.Restricted.Stages.
 
 with Unchecked_Conversion;
 with Unchecked_Deallocation;
 
 package body System.Task_Primitives.Operations is
+
+   package SSL renames System.Soft_Links;
 
    use System.Tasking.Debug;
    use System.Tasking;
@@ -866,16 +865,6 @@ package body System.Task_Primitives.Operations is
    is
       Adjusted_Stack_Size : size_t;
    begin
-      if Stack_Size = Unspecified_Size then
-         Adjusted_Stack_Size := size_t (Default_Stack_Size);
-
-      elsif Stack_Size < Minimum_Stack_Size then
-         Adjusted_Stack_Size := size_t (Minimum_Stack_Size);
-
-      else
-         Adjusted_Stack_Size := size_t (Stack_Size);
-      end if;
-
       --  Ask for four extra bytes of stack space so that the ATCB pointer can
       --  be stored below the stack limit, plus extra space for the frame of
       --  Task_Wrapper. This is so the user gets the amount of stack requested
@@ -890,7 +879,7 @@ package body System.Task_Primitives.Operations is
       --  ??? - we should come back and visit this so we can set the task name
       --        to something appropriate.
 
-      Adjusted_Stack_Size := Adjusted_Stack_Size + 2048;
+      Adjusted_Stack_Size := size_t (Stack_Size) + 2048;
 
       --  Since the initial signal mask of a thread is inherited from the
       --  creator, and the Environment task has all its signals masked, we do
@@ -1051,6 +1040,8 @@ package body System.Task_Primitives.Operations is
    procedure Set_False (S : in out Suspension_Object) is
       Result  : STATUS;
    begin
+      SSL.Abort_Defer.all;
+
       Result := semTake (S.L, WAIT_FOREVER);
       pragma Assert (Result = OK);
 
@@ -1058,6 +1049,8 @@ package body System.Task_Primitives.Operations is
 
       Result := semGive (S.L);
       pragma Assert (Result = OK);
+
+      SSL.Abort_Undefer.all;
    end Set_False;
 
    --------------
@@ -1067,6 +1060,8 @@ package body System.Task_Primitives.Operations is
    procedure Set_True (S : in out Suspension_Object) is
       Result : STATUS;
    begin
+      SSL.Abort_Defer.all;
+
       Result := semTake (S.L, WAIT_FOREVER);
       pragma Assert (Result = OK);
 
@@ -1087,6 +1082,8 @@ package body System.Task_Primitives.Operations is
 
       Result := semGive (S.L);
       pragma Assert (Result = OK);
+
+      SSL.Abort_Undefer.all;
    end Set_True;
 
    ------------------------
@@ -1096,6 +1093,8 @@ package body System.Task_Primitives.Operations is
    procedure Suspend_Until_True (S : in out Suspension_Object) is
       Result : STATUS;
    begin
+      SSL.Abort_Defer.all;
+
       Result := semTake (S.L, WAIT_FOREVER);
 
       if S.Waiting then
@@ -1105,6 +1104,8 @@ package body System.Task_Primitives.Operations is
 
          Result := semGive (S.L);
          pragma Assert (Result = OK);
+
+         SSL.Abort_Undefer.all;
 
          raise Program_Error;
       else
@@ -1117,6 +1118,8 @@ package body System.Task_Primitives.Operations is
 
             Result := semGive (S.L);
             pragma Assert (Result = 0);
+
+            SSL.Abort_Undefer.all;
          else
             S.Waiting := True;
 
@@ -1124,6 +1127,8 @@ package body System.Task_Primitives.Operations is
 
             Result := semGive (S.L);
             pragma Assert (Result = OK);
+
+            SSL.Abort_Undefer.all;
 
             Result := semTake (S.CV, WAIT_FOREVER);
             pragma Assert (Result = 0);

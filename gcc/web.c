@@ -1,12 +1,12 @@
 /* Web construction code for GNU compiler.
    Contributed by Jan Hubicka.
-   Copyright (C) 2001, 2002, 2004 Free Software Foundation, Inc.
+   Copyright (C) 2001, 2002, 2004, 2006, 2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,9 +15,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 /* Simple optimization pass that splits independent uses of each pseudo,
    increasing effectiveness of other optimizations.  The optimization can
@@ -60,25 +59,12 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 #include "tree-pass.h"
 
 
-/* This entry is allocated for each reference in the insn stream.  */
-struct web_entry
-{
-  /* Pointer to the parent in the union/find tree.  */
-  struct web_entry *pred;
-  /* Newly assigned register to the entry.  Set only for roots.  */
-  rtx reg;
-};
-
-static struct web_entry *unionfind_root (struct web_entry *);
-static void unionfind_union (struct web_entry *, struct web_entry *);
-static void union_defs (struct df *, struct ref *, struct web_entry *, 
-                        struct web_entry *);
-static rtx entry_register (struct web_entry *, struct ref *, char *);
-static void replace_ref (struct ref *, rtx);
+static rtx entry_register (struct web_entry *, struct df_ref *, char *);
+static void replace_ref (struct df_ref *, rtx);
 
 /* Find the root of unionfind tree (the representative of set).  */
 
-static struct web_entry *
+struct web_entry *
 unionfind_root (struct web_entry *element)
 {
   struct web_entry *element1 = element, *element2;
@@ -94,30 +80,48 @@ unionfind_root (struct web_entry *element)
   return element;
 }
 
-/* Union sets.  */
+/* Union sets.  
+   Return true if FIRST and SECOND points to the same web entry structure and
+   nothing is done.  Otherwise, return false.  */
 
-static void
+bool
 unionfind_union (struct web_entry *first, struct web_entry *second)
 {
   first = unionfind_root (first);
   second = unionfind_root (second);
   if (first == second)
-    return;
+    return true;
   second->pred = first;
+  return false;
 }
 
 /* For each use, all possible defs reaching it must come in the same
-   register, union them.  */
+   register, union them.
+   FUN is the function that does the union.  */
 
-static void
-union_defs (struct df *df, struct ref *use, struct web_entry *def_entry,
-            struct web_entry *use_entry)
+void
+union_defs (struct df *df, struct df_ref *use, struct web_entry *def_entry,
+ 	    struct web_entry *use_entry,
+ 	    bool (*fun) (struct web_entry *, struct web_entry *))
 {
   rtx insn = DF_REF_INSN (use);
   struct df_link *link = DF_REF_CHAIN (use);
-  struct df_link *use_link = DF_INSN_USES (df, insn);
-  struct df_link *def_link = DF_INSN_DEFS (df, insn);
-  rtx set = single_set (insn);
+  struct df_ref *use_link;
+  struct df_ref *def_link;
+  rtx set;
+
+  if (insn)
+    {
+      use_link = DF_INSN_USES (df, insn);
+      def_link = DF_INSN_DEFS (df, insn);
+      set = single_set (insn);
+    }
+  else
+    {
+      use_link = NULL;
+      def_link = NULL;
+      set = NULL;
+    }
 
   /* Some instructions may use match_dup for their operands.  In case the
      operands are dead, we will assign them different pseudos, creating
@@ -126,11 +130,11 @@ union_defs (struct df *df, struct ref *use, struct web_entry *def_entry,
 
   while (use_link)
     {
-      if (use != use_link->ref
-	  && DF_REF_REAL_REG (use) == DF_REF_REAL_REG (use_link->ref))
-	unionfind_union (use_entry + DF_REF_ID (use),
-		         use_entry + DF_REF_ID (use_link->ref));
-      use_link = use_link->next;
+      if (use != use_link
+	  && DF_REF_REAL_REG (use) == DF_REF_REAL_REG (use_link))
+ 	(*fun) (use_entry + DF_REF_ID (use),
+ 		use_entry + DF_REF_ID (use_link));
+      use_link = use_link->next_ref;
     }
 
   /* Recognize trivial noop moves and attempt to keep them as noop.
@@ -143,16 +147,16 @@ union_defs (struct df *df, struct ref *use, struct web_entry *def_entry,
     {
       while (def_link)
 	{
-	  if (DF_REF_REAL_REG (use) == DF_REF_REAL_REG (def_link->ref))
-	    unionfind_union (use_entry + DF_REF_ID (use),
-			     def_entry + DF_REF_ID (def_link->ref));
-	  def_link = def_link->next;
+	  if (DF_REF_REAL_REG (use) == DF_REF_REAL_REG (def_link))
+ 	    (*fun) (use_entry + DF_REF_ID (use),
+ 		    def_entry + DF_REF_ID (def_link));
+	  def_link = def_link->next_ref;
 	}
     }
   while (link)
     {
-      unionfind_union (use_entry + DF_REF_ID (use),
-		       def_entry + DF_REF_ID (link->ref));
+      (*fun) (use_entry + DF_REF_ID (use),
+	      def_entry + DF_REF_ID (link->ref));
       link = link->next;
     }
 
@@ -160,14 +164,19 @@ union_defs (struct df *df, struct ref *use, struct web_entry *def_entry,
      register.  Find it and union.  */
   if (use->flags & DF_REF_READ_WRITE)
     {
-      struct df_link *link = DF_INSN_DEFS (df, DF_REF_INSN (use));
+      struct df_ref *link;
+
+      if (DF_REF_INSN (use))
+	link = DF_INSN_DEFS (df, DF_REF_INSN (use));
+      else
+	link = NULL;
 
       while (link)
 	{
-	  if (DF_REF_REAL_REG (link->ref) == DF_REF_REAL_REG (use))
-	    unionfind_union (use_entry + DF_REF_ID (use),
-			     def_entry + DF_REF_ID (link->ref));
-	  link = link->next;
+	  if (DF_REF_REAL_REG (link) == DF_REF_REAL_REG (use))
+ 	    (*fun) (use_entry + DF_REF_ID (use),
+ 		    def_entry + DF_REF_ID (link));
+	  link = link->next_ref;
 	}
     }
 }
@@ -175,7 +184,7 @@ union_defs (struct df *df, struct ref *use, struct web_entry *def_entry,
 /* Find the corresponding register for the given entry.  */
 
 static rtx
-entry_register (struct web_entry *entry, struct ref *ref, char *used)
+entry_register (struct web_entry *entry, struct df_ref *ref, char *used)
 {
   struct web_entry *root;
   rtx reg, newreg;
@@ -217,7 +226,7 @@ entry_register (struct web_entry *entry, struct ref *ref, char *used)
 /* Replace the reference by REG.  */
 
 static void
-replace_ref (struct ref *ref, rtx reg)
+replace_ref (struct df_ref *ref, rtx reg)
 {
   rtx oldreg = DF_REF_REAL_REG (ref);
   rtx *loc = DF_REF_REAL_LOC (ref);
@@ -232,7 +241,7 @@ replace_ref (struct ref *ref, rtx reg)
 
 /* Main entry point.  */
 
-void
+static void
 web_main (void)
 {
   struct df *df;
@@ -242,28 +251,31 @@ web_main (void)
   int max = max_reg_num ();
   char *used;
 
-  df = df_init ();
-  df_analyze (df, 0, DF_UD_CHAIN | DF_EQUIV_NOTES);
+  df = df_init (DF_EQUIV_NOTES);
+  df_chain_add_problem (df, DF_UD_CHAIN);
+  df_analyze (df);
+  df_reorganize_refs (&df->def_info);
+  df_reorganize_refs (&df->use_info);
 
-  def_entry = xcalloc (df->n_defs, sizeof (struct web_entry));
-  use_entry = xcalloc (df->n_uses, sizeof (struct web_entry));
-  used = xcalloc (max, sizeof (char));
+  def_entry = XCNEWVEC (struct web_entry, DF_DEFS_SIZE (df));
+  use_entry = XCNEWVEC (struct web_entry, DF_USES_SIZE (df));
+  used = XCNEWVEC (char, max);
 
   if (dump_file)
-    df_dump (df, DF_UD_CHAIN | DF_DU_CHAIN, dump_file);
+    df_dump (df, dump_file);
 
   /* Produce the web.  */
-  for (i = 0; i < df->n_uses; i++)
-    union_defs (df, df->uses[i], def_entry, use_entry);
+  for (i = 0; i < DF_USES_SIZE (df); i++)
+    union_defs (df, DF_USES_GET (df, i), def_entry, use_entry, unionfind_union);
 
   /* Update the instruction stream, allocating new registers for split pseudos
      in progress.  */
-  for (i = 0; i < df->n_uses; i++)
-    replace_ref (df->uses[i], entry_register (use_entry + i, df->uses[i],
-					      used));
-  for (i = 0; i < df->n_defs; i++)
-    replace_ref (df->defs[i], entry_register (def_entry + i, df->defs[i],
-					      used));
+  for (i = 0; i < DF_USES_SIZE (df); i++)
+    replace_ref (DF_USES_GET (df, i), 
+		 entry_register (use_entry + i, DF_USES_GET (df, i), used));
+  for (i = 0; i < DF_DEFS_SIZE (df); i++)
+    replace_ref (DF_DEFS_GET (df, i), 
+		 entry_register (def_entry + i, DF_DEFS_GET (df, i), used));
 
   /* Dataflow information is corrupt here, but it can be easily updated
      by creating new entries for new registers and updates or calling
@@ -272,6 +284,7 @@ web_main (void)
   free (use_entry);
   free (used);
   df_finish (df);
+  df = NULL;
 }
 
 static bool
@@ -280,13 +293,14 @@ gate_handle_web (void)
   return (optimize > 0 && flag_web);
 }
 
-static void
+static unsigned int
 rest_of_handle_web (void)
 {
   web_main ();
   delete_trivially_dead_insns (get_insns (), max_reg_num ());
   cleanup_cfg (CLEANUP_EXPENSIVE);
   reg_scan (get_insns (), max_reg_num ());
+  return 0;
 }
 
 struct tree_opt_pass pass_web =

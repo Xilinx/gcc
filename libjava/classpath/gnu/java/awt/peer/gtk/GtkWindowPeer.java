@@ -1,5 +1,5 @@
 /* GtkWindowPeer.java -- Implements WindowPeer with GTK
-   Copyright (C) 1998, 1999, 2002, 2005  Free Software Foundation, Inc.
+   Copyright (C) 1998, 1999, 2002, 2005, 2006  Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -40,7 +40,13 @@ package gnu.java.awt.peer.gtk;
 
 import java.awt.Component;
 import java.awt.Frame;
+import java.awt.Graphics;
+import java.awt.KeyboardFocusManager;
+import java.awt.Rectangle;
 import java.awt.Window;
+import java.awt.event.ComponentEvent;
+import java.awt.event.FocusEvent;
+import java.awt.event.PaintEvent;
 import java.awt.event.WindowEvent;
 import java.awt.peer.WindowPeer;
 
@@ -59,20 +65,38 @@ public class GtkWindowPeer extends GtkContainerPeer
   private boolean hasBeenShown = false;
   private int oldState = Frame.NORMAL;
 
+  // Cached awt window component location, width and height.
+  private int x, y, width, height;
+
   native void gtkWindowSetTitle (String title);
   native void gtkWindowSetResizable (boolean resizable);
   native void gtkWindowSetModal (boolean modal);
-
+  native void gtkWindowSetAlwaysOnTop ( boolean alwaysOnTop );
+  native boolean gtkWindowHasFocus();
   native void realize ();
 
-  int getWidth ()
+  /** Returns the cached width of the AWT window component. */
+  int getX ()
   {
-    return awtComponent.getWidth();
+    return x;
   }
 
+  /** Returns the cached width of the AWT window component. */
+  int getY ()
+  {
+    return y;
+  }
+
+  /** Returns the cached width of the AWT window component. */
+  int getWidth ()
+  {
+    return width;
+  }
+
+  /** Returns the cached height of the AWT window component. */
   int getHeight ()
   {
-    return awtComponent.getHeight();
+    return height;
   }
 
   native void create (int type, boolean decorated, GtkWindowPeer parent);
@@ -82,6 +106,10 @@ public class GtkWindowPeer extends GtkContainerPeer
     Window window = (Window) awtComponent;
     GtkWindowPeer parent_peer = null;
     Component parent = awtComponent.getParent();
+    x = awtComponent.getX();
+    y = awtComponent.getY();
+    height = awtComponent.getHeight();
+    width = awtComponent.getWidth();
     
     if (!window.isFocusableWindow())
       type = GDK_WINDOW_TYPE_HINT_MENU;
@@ -123,24 +151,31 @@ public class GtkWindowPeer extends GtkContainerPeer
 
   native void nativeSetBounds (int x, int y, int width, int height);
   native void nativeSetBoundsUnlocked (int x, int y, int width, int height);
+  native void nativeSetLocation (int x, int y);
+  native void nativeSetLocationUnlocked (int x, int y);
+
+  // Called from show.
+  protected void setLocation (int x, int y)
+  {
+    nativeSetLocation (x, y);
+  }
 
   public void setBounds (int x, int y, int width, int height)
   {
-    // prevent window_configure_cb -> awtComponent.setSize ->
-    // peer.setBounds -> nativeSetBounds self-deadlock on GDK lock.
-    if (Thread.currentThread() == GtkToolkit.mainThread)
-      return;
-
-    nativeSetBounds (x, y,
-		     width - insets.left - insets.right,
-		     height - insets.top - insets.bottom);
-  }
-
-  public void setBoundsUnlocked (int x, int y, int width, int height)
-  {
-    nativeSetBoundsUnlocked (x, y,
-                             width - insets.left - insets.right,
-                             height - insets.top - insets.bottom);
+    if (x != getX()
+	|| y != getY()
+	|| width != getWidth()
+	|| height != getHeight())
+      {
+	this.x = x;
+	this.y = y;
+	this.width = width;
+	this.height = height;
+	
+	nativeSetBounds (x, y,
+			 width - insets.left - insets.right,
+			 height - insets.top - insets.bottom);
+      }
   }
 
   public void setTitle (String title)
@@ -148,15 +183,25 @@ public class GtkWindowPeer extends GtkContainerPeer
     gtkWindowSetTitle (title);
   }
 
-  native void setSize (int width, int height);
-
+  // Called from setResizable
+  protected native void setSize (int width, int height);
+  
+  /**
+   * Needed by both GtkFramePeer and GtkDialogPeer subclasses, so
+   * implemented here. But never actually called on a GtkWindowPeer
+   * itself.
+   */
   public void setResizable (boolean resizable)
   {
     // Call setSize; otherwise when resizable is changed from true to
     // false the window will shrink to the dimensions it had before it
     // was resizable.
-    setSize (awtComponent.getWidth() - insets.left - insets.right,
-	     awtComponent.getHeight() - insets.top - insets.bottom);
+    x = awtComponent.getX();
+    y = awtComponent.getY();
+    width = awtComponent.getWidth();
+    height = awtComponent.getHeight();
+    setSize (width - insets.left - insets.right,
+	     height - insets.top - insets.bottom);
     gtkWindowSetResizable (resizable);
   }
 
@@ -176,28 +221,35 @@ public class GtkWindowPeer extends GtkContainerPeer
     int frame_width = width + insets.left + insets.right;
     int frame_height = height + insets.top + insets.bottom;
 
-    if (frame_width != awtComponent.getWidth()
-	|| frame_height != awtComponent.getHeight())
-      awtComponent.setSize(frame_width, frame_height);
+    if (frame_width != getWidth()
+	|| frame_height != getHeight())
+      {
+	this.width = frame_width;
+	this.height = frame_height;
+	q().postEvent(new ComponentEvent(awtComponent,
+					 ComponentEvent.COMPONENT_RESIZED));
+      }
 
     int frame_x = x - insets.left;
     int frame_y = y - insets.top;
 
-    if (frame_x != awtComponent.getX()
-	|| frame_y != awtComponent.getY())
+    if (frame_x != getX()
+	|| frame_y != getY())
       {
-        // awtComponent.setLocation(frame_x, frame_y);
+	this.x = frame_x;
+	this.y = frame_y;
+	q().postEvent(new ComponentEvent(awtComponent,
+					 ComponentEvent.COMPONENT_MOVED));
       }
   }
 
   public void show ()
   {
-    // Prevent the window manager from automatically placing this
-    // window when it is shown.
-    setBounds (awtComponent.getX(),
-	       awtComponent.getY(),
-	       awtComponent.getWidth(),
-	       awtComponent.getHeight());
+    x = awtComponent.getX();
+    y = awtComponent.getY();
+    width = awtComponent.getWidth();
+    height = awtComponent.getHeight();
+    setLocation(x, y);
     setVisible (true);
   }
 
@@ -225,14 +277,103 @@ public class GtkWindowPeer extends GtkContainerPeer
     else
       q().postEvent (new WindowEvent ((Window) awtComponent, id, opposite));
   }
+
+  /**
+   * Update the always-on-top status of the native window.
+   */
   public void updateAlwaysOnTop()
   {
-    // TODO Auto-generated method stub
-    
+    gtkWindowSetAlwaysOnTop( ((Window)awtComponent).isAlwaysOnTop() );
   }
+
+  protected void postExposeEvent (int x, int y, int width, int height)
+  {
+    // Translate GTK co-ordinates, which do not include a window
+    // frame's insets, to AWT co-ordinates, which do include a window
+    // frame's insets.  GtkWindowPeer should always have all-zero
+    // insets but GtkFramePeer and GtkDialogPeer insets will be
+    // non-zero.
+    q().postEvent (new PaintEvent (awtComponent, PaintEvent.PAINT,
+                                   new Rectangle (x + insets.left, 
+                                                  y + insets.top, 
+                                                  width, height)));
+  }
+
   public boolean requestWindowFocus()
   {
     // TODO Auto-generated method stub
     return false;
+  }
+
+  public boolean requestFocus (Component request, boolean temporary, 
+                               boolean allowWindowFocus, long time)
+  {
+    assert request == awtComponent || isLightweightDescendant(request);
+    boolean retval = false;
+    if (gtkWindowHasFocus())
+      {
+        KeyboardFocusManager kfm =
+          KeyboardFocusManager.getCurrentKeyboardFocusManager();
+        Component currentFocus = kfm.getFocusOwner();
+        if (currentFocus == request)
+          // Nothing to do in this trivial case.
+          retval = true;
+        else
+          {
+            // Requested component is a lightweight descendant of this one
+            // or the actual heavyweight.
+            // Since this (native) component is already focused, we simply
+            // change the actual focus and be done.
+            postFocusEvent(FocusEvent.FOCUS_GAINED, temporary);
+            retval = true;
+          }
+      }
+    else
+      {
+        if (allowWindowFocus)
+          {
+            retval = requestWindowFocus();
+          }
+      }
+    return retval;
+  }
+
+  public Graphics getGraphics ()
+  {
+    Graphics g = super.getGraphics ();
+    // Translate AWT co-ordinates, which include a window frame's
+    // insets, to GTK co-ordinates, which do not include a window
+    // frame's insets.  GtkWindowPeer should always have all-zero
+    // insets but GtkFramePeer and GtkDialogPeer insets will be
+    // non-zero.
+    g.translate (-insets.left, -insets.top);
+    return g;
+  }
+
+  protected void updateComponent (PaintEvent event)
+  {
+    // Do not clear anything before painting.  Sun never calls
+    // Window.update, only Window.paint.
+    paintComponent(event);
+  }
+
+  protected void postMouseEvent(int id, long when, int mods, int x, int y, 
+				int clickCount, boolean popupTrigger)
+  {
+    // Translate AWT co-ordinates, which include a window frame's
+    // insets, to GTK co-ordinates, which do not include a window
+    // frame's insets.  GtkWindowPeer should always have all-zero
+    // insets but GtkFramePeer and GtkDialogPeer insets will be
+    // non-zero.
+    super.postMouseEvent (id, when, mods, 
+			  x + insets.left, y + insets.top, 
+			  clickCount, popupTrigger);
+  }
+
+  // We override this to keep it in sync with our internal
+  // representation.
+  public Rectangle getBounds()
+  {
+    return new Rectangle(x, y, width, height);
   }
 }

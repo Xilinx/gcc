@@ -1,12 +1,13 @@
 /* Default language-specific hooks.
-   Copyright 2001, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   Copyright 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   Free Software Foundation, Inc.
    Contributed by Alexandre Oliva  <aoliva@redhat.com>
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -15,9 +16,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -264,6 +264,16 @@ lhd_decl_printable_name (tree decl, int ARG_UNUSED (verbosity))
   return IDENTIFIER_POINTER (DECL_NAME (decl));
 }
 
+/* This is the default dwarf_name function.  */
+
+const char *
+lhd_dwarf_name (tree t, int verbosity)
+{
+  gcc_assert (DECL_P (t));
+
+  return lang_hooks.decl_printable_name (t, verbosity);
+}
+
 /* This compares two types for equivalence ("compatible" in C-based languages).
    This routine should only return 1 if it is sure.  It should not be used
    in contexts where erroneously returning 0 causes problems.  */
@@ -467,7 +477,7 @@ write_global_declarations (void)
 
   tree globals = lang_hooks.decls.getdecls ();
   int len = list_length (globals);
-  tree *vec = xmalloc (sizeof (tree) * len);
+  tree *vec = XNEWVEC (tree, len);
   int i;
   tree decl;
 
@@ -549,4 +559,32 @@ lhd_expr_to_decl (tree expr, bool *tc ATTRIBUTE_UNUSED,
 		  bool *ti ATTRIBUTE_UNUSED, bool *se ATTRIBUTE_UNUSED)
 {
   return expr;
+}
+
+/* Return sharing kind if OpenMP sharing attribute of DECL is
+   predetermined, OMP_CLAUSE_DEFAULT_UNSPECIFIED otherwise.  */
+
+enum omp_clause_default_kind
+lhd_omp_predetermined_sharing (tree decl ATTRIBUTE_UNUSED)
+{
+  if (DECL_ARTIFICIAL (decl))
+    return OMP_CLAUSE_DEFAULT_SHARED;
+  return OMP_CLAUSE_DEFAULT_UNSPECIFIED;
+}
+
+/* Generate code to copy SRC to DST.  */
+
+tree
+lhd_omp_assignment (tree clause ATTRIBUTE_UNUSED, tree dst, tree src)
+{
+  return build2 (MODIFY_EXPR, void_type_node, dst, src);
+}
+
+/* Register language specific type size variables as potentially OpenMP
+   firstprivate variables.  */
+
+void
+lhd_omp_firstprivatize_type_sizes (struct gimplify_omp_ctx *c ATTRIBUTE_UNUSED,
+				   tree t ATTRIBUTE_UNUSED)
+{
 }

@@ -1,14 +1,15 @@
 /* Handle the hair of processing (but not expanding) inline functions.
    Also manage function and variable name overloading.
    Copyright (C) 1987, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007
+   Free Software Foundation, Inc.
    Contributed by Michael Tiemann (tiemann@cygnus.com)
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -17,9 +18,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 
 /* Handle method declarations.  */
@@ -137,8 +137,6 @@ make_thunk (tree function, bool this_adjusting,
   TREE_READONLY (thunk) = TREE_READONLY (function);
   TREE_THIS_VOLATILE (thunk) = TREE_THIS_VOLATILE (function);
   TREE_PUBLIC (thunk) = TREE_PUBLIC (function);
-  if (flag_weak)
-    comdat_linkage (thunk);
   SET_DECL_THUNK_P (thunk, this_adjusting);
   THUNK_TARGET (thunk) = function;
   THUNK_FIXED_OFFSET (thunk) = d;
@@ -163,6 +161,9 @@ make_thunk (tree function, bool this_adjusting,
   DECL_DECLARED_INLINE_P (thunk) = 0;
   /* Nor has it been deferred.  */
   DECL_DEFERRED_FN (thunk) = 0;
+  /* Nor is it a template instantiation.  */
+  DECL_USE_TEMPLATE (thunk) = 0;
+  DECL_TEMPLATE_INFO (thunk) = NULL;
 
   /* Add it to the list of thunks associated with FUNCTION.  */
   TREE_CHAIN (thunk) = DECL_THUNKS (function);
@@ -381,8 +382,8 @@ use_thunk (tree thunk_fndecl, bool emit_p)
   DECL_VISIBILITY (thunk_fndecl) = DECL_VISIBILITY (function);
   DECL_VISIBILITY_SPECIFIED (thunk_fndecl)
     = DECL_VISIBILITY_SPECIFIED (function);
-  if (flag_weak && TREE_PUBLIC (thunk_fndecl))
-    comdat_linkage (thunk_fndecl);
+  if (DECL_ONE_ONLY (function))
+    make_decl_one_only (thunk_fndecl);
 
   if (flag_syntax_only)
     {
@@ -783,7 +784,7 @@ synthesize_method (tree fndecl)
       tree arg_chain = FUNCTION_FIRST_USER_PARMTYPE (fndecl);
       if (arg_chain != void_list_node)
 	do_build_copy_constructor (fndecl);
-      else if (TYPE_NEEDS_CONSTRUCTING (current_class_type))
+      else
 	finish_mem_initializers (NULL_TREE);
     }
 
@@ -976,7 +977,7 @@ locate_copy (tree type, void *client_)
    reference argument or a non-const reference.  Returns the
    FUNCTION_DECL for the implicitly declared function.  */
 
-tree
+static tree
 implicitly_declare_fn (special_function_kind kind, tree type, bool const_p)
 {
   tree fn;
@@ -985,6 +986,7 @@ implicitly_declare_fn (special_function_kind kind, tree type, bool const_p)
   tree fn_type;
   tree raises = empty_except_spec;
   tree rhs_parm_type = NULL_TREE;
+  tree this_parm;
   tree name;
   HOST_WIDE_INT saved_processing_template_decl;
 
@@ -1074,8 +1076,7 @@ implicitly_declare_fn (special_function_kind kind, tree type, bool const_p)
       DECL_ASSIGNMENT_OPERATOR_P (fn) = 1;
       SET_OVERLOADED_OPERATOR_CODE (fn, NOP_EXPR);
     }
-  /* Create the argument list.  The call to "grokclassfn" will add the
-     "this" parameter and any other implicit parameters.  */
+  /* Create the explicit arguments.  */
   if (rhs_parm_type)
     {
       /* Note that this parameter is *not* marked DECL_ARTIFICIAL; we
@@ -1084,10 +1085,12 @@ implicitly_declare_fn (special_function_kind kind, tree type, bool const_p)
       DECL_ARGUMENTS (fn) = cp_build_parm_decl (NULL_TREE, rhs_parm_type);
       TREE_READONLY (DECL_ARGUMENTS (fn)) = 1;
     }
+  /* Add the "this" parameter.  */
+  this_parm = build_this_parm (fn_type, TYPE_UNQUALIFIED);
+  TREE_CHAIN (this_parm) = DECL_ARGUMENTS (fn);
+  DECL_ARGUMENTS (fn) = this_parm;
 
-  grokclassfn (type, fn, kind == sfk_destructor ? DTOR_FLAG : NO_SPECIAL,
-	       TYPE_UNQUALIFIED);
-  grok_special_member_properties (fn);
+  grokclassfn (type, fn, kind == sfk_destructor ? DTOR_FLAG : NO_SPECIAL);
   set_linkage_according_to_type (type, fn);
   rest_of_decl_compilation (fn, toplevel_bindings_p (), at_eof);
   DECL_IN_AGGR_P (fn) = 1;
@@ -1142,7 +1145,7 @@ lazily_declare_fn (special_function_kind sfk, tree type)
 	 TYPE_METHODS list, which cause the destructor to be emitted
 	 in an incorrect location in the vtable.  */
       if (warn_abi && DECL_VIRTUAL_P (fn))
-	warning (0, "vtable layout for class %qT may not be ABI-compliant"
+	warning (OPT_Wabi, "vtable layout for class %qT may not be ABI-compliant"
 		 "and may change in a future version of GCC due to "
 		 "implicit virtual destructor",
 		 type);

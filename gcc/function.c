@@ -1,13 +1,13 @@
 /* Expands front end tree to back end RTL for GCC.
    Copyright (C) 1987, 1988, 1989, 1991, 1992, 1993, 1994, 1995, 1996, 1997,
-   1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005
+   1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
    Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -16,9 +16,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 /* This file handles the generation of rtl code from tree structure
    at the level of the function as a whole.
@@ -63,6 +62,7 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 #include "tree-gimple.h"
 #include "tree-pass.h"
 #include "predict.h"
+#include "vecprim.h"
 
 #ifndef LOCAL_ALIGNMENT
 #define LOCAL_ALIGNMENT(TYPE, ALIGNMENT) ALIGNMENT
@@ -122,9 +122,6 @@ struct machine_function * (*init_machine_status) (void);
 
 /* The currently compiled function.  */
 struct function *cfun = 0;
-
-DEF_VEC_I(int);
-DEF_VEC_ALLOC_I(int,heap);
 
 /* These arrays record the INSN_UIDs of the prologue and epilogue insns.  */
 static VEC(int,heap) *prologue;
@@ -197,7 +194,6 @@ static struct temp_slot *find_temp_slot_from_address (rtx);
 static void pad_to_arg_alignment (struct args_size *, int, struct args_size *);
 static void pad_below (struct args_size *, enum machine_mode, tree);
 static void reorder_blocks_1 (rtx, tree, VEC(tree,heap) **);
-static void reorder_fix_fragments (tree);
 static int all_blocks (tree, tree *);
 static tree *get_block_vector (tree, int *);
 extern tree debug_find_var_in_block_tree (tree, tree);
@@ -331,11 +327,9 @@ free_after_compilation (struct function *f)
   f->x_return_label = NULL;
   f->x_naked_return_label = NULL;
   f->x_stack_slot_list = NULL;
-  f->x_tail_recursion_reentry = NULL;
+  f->x_stack_check_probe_note = NULL;
   f->x_arg_pointer_save_area = NULL;
   f->x_parm_birth_insn = NULL;
-  f->original_arg_vector = NULL;
-  f->original_decl_initial = NULL;
   f->epilogue_delay_list = NULL;
 }
 
@@ -358,10 +352,31 @@ get_func_frame_size (struct function *f)
 /* Return size needed for stack frame based on slots so far allocated.
    This size counts from zero.  It is not rounded to PREFERRED_STACK_BOUNDARY;
    the caller may have to do that.  */
+
 HOST_WIDE_INT
 get_frame_size (void)
 {
   return get_func_frame_size (cfun);
+}
+
+/* Issue an error message and return TRUE if frame OFFSET overflows in
+   the signed target pointer arithmetics for function FUNC.  Otherwise
+   return FALSE.  */
+
+bool
+frame_offset_overflow (HOST_WIDE_INT offset, tree func)
+{  
+  unsigned HOST_WIDE_INT size = FRAME_GROWS_DOWNWARD ? -offset : offset;
+
+  if (size > ((unsigned HOST_WIDE_INT) 1 << (GET_MODE_BITSIZE (Pmode) - 1))
+	       /* Leave room for the fixed part of the frame.  */
+	       - 64 * UNITS_PER_WORD)
+    {
+      error ("%Jtotal size of local objects too large", func);
+      return TRUE;
+    }
+
+  return FALSE;
 }
 
 /* Allocate a stack slot of SIZE bytes and return a MEM rtx for it
@@ -479,20 +494,8 @@ assign_stack_local_1 (enum machine_mode mode, HOST_WIDE_INT size, int align,
   function->x_stack_slot_list
     = gen_rtx_EXPR_LIST (VOIDmode, x, function->x_stack_slot_list);
 
-  /* Try to detect frame size overflows on native platforms.  */
-#if BITS_PER_WORD >= 32
-  if ((FRAME_GROWS_DOWNWARD
-       ? (unsigned HOST_WIDE_INT) -function->x_frame_offset
-       : (unsigned HOST_WIDE_INT) function->x_frame_offset)
-	> ((unsigned HOST_WIDE_INT) 1 << (BITS_PER_WORD - 1))
-	    /* Leave room for the fixed part of the frame.  */
-	    - 64 * UNITS_PER_WORD)
-    {
-      error ("%Jtotal size of local objects too large", function->decl);
-      /* Avoid duplicate error messages as much as possible.  */
-      function->x_frame_offset = 0;
-    }
-#endif
+  if (frame_offset_overflow (function->x_frame_offset, function->decl))
+    function->x_frame_offset = 0;
 
   return x;
 }
@@ -539,14 +542,18 @@ insert_slot_to_list (struct temp_slot *temp, struct temp_slot **list)
 static struct temp_slot **
 temp_slots_at_level (int level)
 {
+  if (level >= (int) VEC_length (temp_slot_p, used_temp_slots))
+    {
+      size_t old_length = VEC_length (temp_slot_p, used_temp_slots);
+      temp_slot_p *p;
 
-  if (!used_temp_slots)
-    VARRAY_GENERIC_PTR_INIT (used_temp_slots, 3, "used_temp_slots");
+      VEC_safe_grow (temp_slot_p, gc, used_temp_slots, level + 1);
+      p = VEC_address (temp_slot_p, used_temp_slots);
+      memset (&p[old_length], 0,
+	      sizeof (temp_slot_p) * (level + 1 - old_length));
+    }
 
-  while (level >= (int) VARRAY_ACTIVE_SIZE (used_temp_slots))
-    VARRAY_PUSH_GENERIC_PTR (used_temp_slots, NULL);
-
-  return (struct temp_slot **) &VARRAY_GENERIC_PTR (used_temp_slots, level);
+  return &(VEC_address (temp_slot_p, used_temp_slots)[level]);
 }
 
 /* Returns the maximal temporary slot level.  */
@@ -557,7 +564,7 @@ max_slot_level (void)
   if (!used_temp_slots)
     return -1;
 
-  return VARRAY_ACTIVE_SIZE (used_temp_slots) - 1;
+  return VEC_length (temp_slot_p, used_temp_slots) - 1;
 }
 
 /* Moves temporary slot TEMP to LEVEL.  */
@@ -625,22 +632,30 @@ assign_stack_temp_for_type (enum machine_mode mode, HOST_WIDE_INT size,
 
   /* Try to find an available, already-allocated temporary of the proper
      mode which meets the size and alignment requirements.  Choose the
-     smallest one with the closest alignment.  */
-  for (p = avail_temp_slots; p; p = p->next)
+     smallest one with the closest alignment.
+   
+     If assign_stack_temp is called outside of the tree->rtl expansion,
+     we cannot reuse the stack slots (that may still refer to
+     VIRTUAL_STACK_VARS_REGNUM).  */
+  if (!virtuals_instantiated)
     {
-      if (p->align >= align && p->size >= size && GET_MODE (p->slot) == mode
-	  && objects_must_conflict_p (p->type, type)
-	  && (best_p == 0 || best_p->size > p->size
-	      || (best_p->size == p->size && best_p->align > p->align)))
+      for (p = avail_temp_slots; p; p = p->next)
 	{
-	  if (p->align == align && p->size == size)
+	  if (p->align >= align && p->size >= size
+	      && GET_MODE (p->slot) == mode
+	      && objects_must_conflict_p (p->type, type)
+	      && (best_p == 0 || best_p->size > p->size
+		  || (best_p->size == p->size && best_p->align > p->align)))
 	    {
-	      selected = p;
-	      cut_slot_from_list (selected, &avail_temp_slots);
-	      best_p = 0;
-	      break;
+	      if (p->align == align && p->size == size)
+		{
+		  selected = p;
+		  cut_slot_from_list (selected, &avail_temp_slots);
+		  best_p = 0;
+		  break;
+		}
+	      best_p = p;
 	    }
-	  best_p = p;
 	}
     }
 
@@ -804,7 +819,6 @@ assign_temp (tree type_or_decl, int keep, int memory_required,
   if (mode == BLKmode || memory_required)
     {
       HOST_WIDE_INT size = int_size_in_bytes (type);
-      tree size_tree;
       rtx tmp;
 
       /* Zero sized arrays are GNU C extension.  Set size to 1 to avoid
@@ -813,20 +827,10 @@ assign_temp (tree type_or_decl, int keep, int memory_required,
 	size = 1;
 
       /* Unfortunately, we don't yet know how to allocate variable-sized
-	 temporaries.  However, sometimes we have a fixed upper limit on
-	 the size (which is stored in TYPE_ARRAY_MAX_SIZE) and can use that
-	 instead.  This is the case for Chill variable-sized strings.  */
-      if (size == -1 && TREE_CODE (type) == ARRAY_TYPE
-	  && TYPE_ARRAY_MAX_SIZE (type) != NULL_TREE
-	  && host_integerp (TYPE_ARRAY_MAX_SIZE (type), 1))
-	size = tree_low_cst (TYPE_ARRAY_MAX_SIZE (type), 1);
-
-      /* If we still haven't been able to get a size, see if the language
-	 can compute a maximum size.  */
-      if (size == -1
-	  && (size_tree = lang_hooks.types.max_size (type)) != 0
-	  && host_integerp (size_tree, 1))
-	size = tree_low_cst (size_tree, 1);
+	 temporaries.  However, sometimes we can find a fixed upper limit on
+	 the size, so try that instead.  */
+      else if (size == -1)
+	size = max_int_size_in_bytes (type);
 
       /* The size of the temporary may be too large to fit into an integer.  */
       /* ??? Not sure this should happen except for user silliness, so limit
@@ -1664,7 +1668,7 @@ instantiate_decls (tree fndecl)
 /* Pass through the INSNS of function FNDECL and convert virtual register
    references to hard register references.  */
 
-void
+static unsigned int
 instantiate_virtual_regs (void)
 {
   rtx insn;
@@ -1716,6 +1720,7 @@ instantiate_virtual_regs (void)
   /* Indicate that, from now on, assign_stack_local should use
      frame_pointer_rtx.  */
   virtuals_instantiated = 1;
+  return 0;
 }
 
 struct tree_opt_pass pass_instantiate_virtual_regs =
@@ -1749,15 +1754,21 @@ aggregate_value_p (tree exp, tree fntype)
 
   tree type = (TYPE_P (exp)) ? exp : TREE_TYPE (exp);
 
+  /* DECL node associated with FNTYPE when relevant, which we might need to
+     check for by-invisible-reference returns, typically for CALL_EXPR input
+     EXPressions.  */
+  tree fndecl = NULL_TREE;
+  
   if (fntype)
     switch (TREE_CODE (fntype))
       {
       case CALL_EXPR:
-	fntype = get_callee_fndecl (fntype);
-	fntype = fntype ? TREE_TYPE (fntype) : 0;
+	fndecl = get_callee_fndecl (fntype);
+	fntype = fndecl ? TREE_TYPE (fndecl) : 0;
 	break;
       case FUNCTION_DECL:
-	fntype = TREE_TYPE (fntype);
+	fndecl = fntype;
+	fntype = TREE_TYPE (fndecl);
 	break;
       case FUNCTION_TYPE:
       case METHOD_TYPE:
@@ -1772,11 +1783,23 @@ aggregate_value_p (tree exp, tree fntype)
 
   if (TREE_CODE (type) == VOID_TYPE)
     return 0;
+
   /* If the front end has decided that this needs to be passed by
      reference, do so.  */
   if ((TREE_CODE (exp) == PARM_DECL || TREE_CODE (exp) == RESULT_DECL)
       && DECL_BY_REFERENCE (exp))
     return 1;
+
+  /* If the EXPression is a CALL_EXPR, honor DECL_BY_REFERENCE set on the
+     called function RESULT_DECL, meaning the function returns in memory by
+     invisible reference.  This check lets front-ends not set TREE_ADDRESSABLE
+     on the function type, which used to be the way to request such a return
+     mechanism but might now be causing troubles at gimplification time if
+     temporaries with the function type need to be created.  */
+  if (TREE_CODE (exp) == CALL_EXPR && fndecl && DECL_RESULT (fndecl)
+      && DECL_BY_REFERENCE (DECL_RESULT (fndecl)))
+    return 1;
+      
   if (targetm.calls.return_in_memory (type, fntype))
     return 1;
   /* Types that are TREE_ADDRESSABLE must be constructed in memory,
@@ -2631,8 +2654,10 @@ assign_parm_setup_reg (struct assign_parm_data_all *all, tree parm,
   /* Store the parm in a pseudoregister during the function, but we may
      need to do it in a wider mode.  */
 
+  /* This is not really promoting for a call.  However we need to be
+     consistent with assign_parm_find_data_types and expand_expr_real_1.  */
   promoted_nominal_mode
-    = promote_mode (data->nominal_type, data->nominal_mode, &unsignedp, 0);
+    = promote_mode (data->nominal_type, data->nominal_mode, &unsignedp, 1);
 
   parmreg = gen_reg_rtx (promoted_nominal_mode);
 
@@ -3564,9 +3589,6 @@ reorder_blocks (void)
   reorder_blocks_1 (get_insns (), block, &block_stack);
   BLOCK_SUBBLOCKS (block) = blocks_nreverse (BLOCK_SUBBLOCKS (block));
 
-  /* Remove deleted blocks from the block fragment chains.  */
-  reorder_fix_fragments (block);
-
   VEC_free (tree, heap, block_stack);
 }
 
@@ -3595,17 +3617,18 @@ reorder_blocks_1 (rtx insns, tree current_block, VEC(tree,heap) **p_block_stack)
 	  if (NOTE_LINE_NUMBER (insn) == NOTE_INSN_BLOCK_BEG)
 	    {
 	      tree block = NOTE_BLOCK (insn);
+	      tree origin;
+
+	      origin = (BLOCK_FRAGMENT_ORIGIN (block)
+			? BLOCK_FRAGMENT_ORIGIN (block)
+			: block);
 
 	      /* If we have seen this block before, that means it now
 		 spans multiple address regions.  Create a new fragment.  */
 	      if (TREE_ASM_WRITTEN (block))
 		{
 		  tree new_block = copy_node (block);
-		  tree origin;
 
-		  origin = (BLOCK_FRAGMENT_ORIGIN (block)
-			    ? BLOCK_FRAGMENT_ORIGIN (block)
-			    : block);
 		  BLOCK_FRAGMENT_ORIGIN (new_block) = origin;
 		  BLOCK_FRAGMENT_CHAIN (new_block)
 		    = BLOCK_FRAGMENT_CHAIN (origin);
@@ -3622,10 +3645,13 @@ reorder_blocks_1 (rtx insns, tree current_block, VEC(tree,heap) **p_block_stack)
 		 will cause infinite recursion.  */
 	      if (block != current_block)
 		{
+		  if (block != origin)
+		    gcc_assert (BLOCK_SUPERCONTEXT (origin) == current_block);
+
 		  BLOCK_SUPERCONTEXT (block) = current_block;
 		  BLOCK_CHAIN (block) = BLOCK_SUBBLOCKS (current_block);
 		  BLOCK_SUBBLOCKS (current_block) = block;
-		  current_block = block;
+		  current_block = origin;
 		}
 	      VEC_safe_push (tree, heap, *p_block_stack, block);
 	    }
@@ -3637,61 +3663,6 @@ reorder_blocks_1 (rtx insns, tree current_block, VEC(tree,heap) **p_block_stack)
 	      current_block = BLOCK_SUPERCONTEXT (current_block);
 	    }
 	}
-    }
-}
-
-/* Rationalize BLOCK_FRAGMENT_ORIGIN.  If an origin block no longer
-   appears in the block tree, select one of the fragments to become
-   the new origin block.  */
-
-static void
-reorder_fix_fragments (tree block)
-{
-  while (block)
-    {
-      tree dup_origin = BLOCK_FRAGMENT_ORIGIN (block);
-      tree new_origin = NULL_TREE;
-
-      if (dup_origin)
-	{
-	  if (! TREE_ASM_WRITTEN (dup_origin))
-	    {
-	      new_origin = BLOCK_FRAGMENT_CHAIN (dup_origin);
-
-	      /* Find the first of the remaining fragments.  There must
-		 be at least one -- the current block.  */
-	      while (! TREE_ASM_WRITTEN (new_origin))
-		new_origin = BLOCK_FRAGMENT_CHAIN (new_origin);
-	      BLOCK_FRAGMENT_ORIGIN (new_origin) = NULL_TREE;
-	    }
-	}
-      else if (! dup_origin)
-	new_origin = block;
-
-      /* Re-root the rest of the fragments to the new origin.  In the
-	 case that DUP_ORIGIN was null, that means BLOCK was the origin
-	 of a chain of fragments and we want to remove those fragments
-	 that didn't make it to the output.  */
-      if (new_origin)
-	{
-	  tree *pp = &BLOCK_FRAGMENT_CHAIN (new_origin);
-	  tree chain = *pp;
-
-	  while (chain)
-	    {
-	      if (TREE_ASM_WRITTEN (chain))
-		{
-		  BLOCK_FRAGMENT_ORIGIN (chain) = new_origin;
-		  *pp = chain;
-		  pp = &BLOCK_FRAGMENT_CHAIN (chain);
-		}
-	      chain = BLOCK_FRAGMENT_CHAIN (chain);
-	    }
-	  *pp = NULL_TREE;
-	}
-
-      reorder_fix_fragments (BLOCK_SUBBLOCKS (block));
-      block = BLOCK_CHAIN (block);
     }
 }
 
@@ -3751,7 +3722,7 @@ get_block_vector (tree block, int *n_blocks_p)
   tree *block_vector;
 
   *n_blocks_p = all_blocks (block, NULL);
-  block_vector = xmalloc (*n_blocks_p * sizeof (tree));
+  block_vector = XNEWVEC (tree, *n_blocks_p);
   all_blocks (block, block_vector);
 
   return block_vector;
@@ -3931,7 +3902,7 @@ init_function_start (tree subr)
 
 /* Make sure all values used by the optimization passes have sane
    defaults.  */
-void
+unsigned int
 init_function_for_compilation (void)
 {
   reg_renumber = 0;
@@ -3941,6 +3912,7 @@ init_function_for_compilation (void)
   gcc_assert (VEC_length (int, prologue) == 0);
   gcc_assert (VEC_length (int, epilogue) == 0);
   gcc_assert (VEC_length (int, sibcall_epilogue) == 0);
+  return 0;
 }
 
 struct tree_opt_pass pass_init_function =
@@ -4106,7 +4078,7 @@ expand_function_start (tree subr)
       else
 #endif
 	{
-	  rtx sv = targetm.calls.struct_value_rtx (TREE_TYPE (subr), 1);
+	  rtx sv = targetm.calls.struct_value_rtx (TREE_TYPE (subr), 2);
 	  /* Expect to be passed the address of a place to store the value.
 	     If it is passed as an argument, assign_parms will take care of
 	     it.  */
@@ -4210,8 +4182,8 @@ expand_function_start (tree subr)
      as opposed to parm setup.  */
   emit_note (NOTE_INSN_FUNCTION_BEG);
 
-  if (!NOTE_P (get_last_insn ()))
-    emit_note (NOTE_INSN_DELETED);
+  gcc_assert (NOTE_P (get_last_insn ()));
+
   parm_birth_insn = get_last_insn ();
 
   if (current_function_profile)
@@ -4221,10 +4193,10 @@ expand_function_start (tree subr)
 #endif
     }
 
-  /* After the display initializations is where the tail-recursion label
-     should go, if we end up needing one.   Ensure we have a NOTE here
-     since some things (like trampolines) get placed before this.  */
-  tail_recursion_reentry = emit_note (NOTE_INSN_DELETED);
+  /* After the display initializations is where the stack checking
+     probe should go.  */
+  if(flag_stack_check)
+    stack_check_probe_note = emit_note (NOTE_INSN_DELETED);
 
   /* Make sure there is a line number after the function entry setup code.  */
   force_next_line_note ();
@@ -4302,7 +4274,7 @@ do_use_return_reg (rtx reg, void *arg ATTRIBUTE_UNUSED)
   emit_insn (gen_rtx_USE (VOIDmode, reg));
 }
 
-void
+static void
 use_return_register (void)
 {
   diddle_return_value (do_use_return_reg, NULL);
@@ -4350,7 +4322,7 @@ expand_function_end (void)
 			       GEN_INT (STACK_CHECK_MAX_FRAME_SIZE));
 	    seq = get_insns ();
 	    end_sequence ();
-	    emit_insn_before (seq, tail_recursion_reentry);
+	    emit_insn_before (seq, stack_check_probe_note);
 	    break;
 	  }
     }
@@ -5103,6 +5075,14 @@ thread_prologue_and_epilogue_insns (rtx f ATTRIBUTE_UNUSED)
       /* Retain a map of the prologue insns.  */
       record_insns (seq, &prologue);
       prologue_end = emit_note (NOTE_INSN_PROLOGUE_END);
+ 
+#ifndef PROFILE_BEFORE_PROLOGUE
+      /* Ensure that instructions are not moved into the prologue when
+	 profiling is on.  The call to the profiling routine can be
+	 emitted within the live range of a call-clobbered register.  */
+      if (current_function_profile)
+	emit_insn (gen_rtx_ASM_INPUT (VOIDmode, ""));
+#endif
 
       seq = get_insns ();
       end_sequence ();
@@ -5291,7 +5271,8 @@ thread_prologue_and_epilogue_insns (rtx f ATTRIBUTE_UNUSED)
 	fixup_fallthru_exit_predecessor.  */
       cfg_layout_initialize (0);
       FOR_EACH_BB (cur_bb)
-	if (cur_bb->index >= 0 && cur_bb->next_bb->index >= 0)
+	if (cur_bb->index >= NUM_FIXED_BLOCKS
+	    && cur_bb->next_bb->index >= NUM_FIXED_BLOCKS)
 	  cur_bb->aux = cur_bb->next_bb;
       cfg_layout_finalize ();
     }
@@ -5505,8 +5486,8 @@ reposition_prologue_and_epilogue_notes (rtx f ATTRIBUTE_UNUSED)
 void
 reset_block_changes (void)
 {
-  VARRAY_TREE_INIT (cfun->ib_boundaries_block, 100, "ib_boundaries_block");
-  VARRAY_PUSH_TREE (cfun->ib_boundaries_block, NULL_TREE);
+  cfun->ib_boundaries_block = VEC_alloc (tree, gc, 100);
+  VEC_quick_push (tree, cfun->ib_boundaries_block, NULL_TREE);
 }
 
 /* Record the boundary for BLOCK.  */
@@ -5522,17 +5503,17 @@ record_block_change (tree block)
   if(!cfun->ib_boundaries_block)
     return;
 
-  last_block = VARRAY_TOP_TREE (cfun->ib_boundaries_block);
-  VARRAY_POP (cfun->ib_boundaries_block);
+  last_block = VEC_pop (tree, cfun->ib_boundaries_block);
   n = get_max_uid ();
-  for (i = VARRAY_ACTIVE_SIZE (cfun->ib_boundaries_block); i < n; i++)
-    VARRAY_PUSH_TREE (cfun->ib_boundaries_block, last_block);
+  for (i = VEC_length (tree, cfun->ib_boundaries_block); i < n; i++)
+    VEC_safe_push (tree, gc, cfun->ib_boundaries_block, last_block);
 
-  VARRAY_PUSH_TREE (cfun->ib_boundaries_block, block);
+  VEC_safe_push (tree, gc, cfun->ib_boundaries_block, block);
 }
 
 /* Finishes record of boundaries.  */
-void finalize_block_changes (void)
+void
+finalize_block_changes (void)
 {
   record_block_change (DECL_INITIAL (current_function_decl));
 }
@@ -5543,17 +5524,17 @@ check_block_change (rtx insn, tree *block)
 {
   unsigned uid = INSN_UID (insn);
 
-  if (uid >= VARRAY_ACTIVE_SIZE (cfun->ib_boundaries_block))
+  if (uid >= VEC_length (tree, cfun->ib_boundaries_block))
     return;
 
-  *block = VARRAY_TREE (cfun->ib_boundaries_block, uid);
+  *block = VEC_index (tree, cfun->ib_boundaries_block, uid);
 }
 
 /* Releases the ib_boundaries_block records.  */
 void
 free_block_changes (void)
 {
-  cfun->ib_boundaries_block = NULL;
+  VEC_free (tree, gc, cfun->ib_boundaries_block);
 }
 
 /* Returns the name of the current function.  */
@@ -5564,13 +5545,42 @@ current_function_name (void)
 }
 
 
-static void
+static unsigned int
 rest_of_handle_check_leaf_regs (void)
 {
 #ifdef LEAF_REGISTERS
   current_function_uses_only_leaf_regs
     = optimize > 0 && only_leaf_regs_used () && leaf_function_p ();
 #endif
+  return 0;
+}
+
+/* Insert a TYPE into the used types hash table of CFUN.  */
+static void
+used_types_insert_helper (tree type, struct function *func)
+{
+  if (type != NULL && func != NULL)
+    {
+      void **slot;
+
+      if (func->used_types_hash == NULL)
+	func->used_types_hash = htab_create_ggc (37, htab_hash_pointer,
+						 htab_eq_pointer, NULL);
+      slot = htab_find_slot (func->used_types_hash, type, INSERT);
+      if (*slot == NULL)
+	*slot = type;
+    }
+}
+
+/* Given a type, insert it into the used hash table in cfun.  */
+void
+used_types_insert (tree t)
+{
+  while (POINTER_TYPE_P (t) || TREE_CODE (t) == ARRAY_TYPE)
+    t = TREE_TYPE (t);
+  t = TYPE_MAIN_VARIANT (t);
+  if (debug_info_level > DINFO_LEVEL_NONE)
+    used_types_insert_helper (t, cfun);
 }
 
 struct tree_opt_pass pass_leaf_regs =

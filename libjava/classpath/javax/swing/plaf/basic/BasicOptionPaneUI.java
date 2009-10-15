@@ -43,6 +43,7 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -56,10 +57,14 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyVetoException;
 
+import javax.swing.AbstractAction;
+import javax.swing.Action;
+import javax.swing.ActionMap;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.Icon;
+import javax.swing.InputMap;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
@@ -74,6 +79,7 @@ import javax.swing.LookAndFeel;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.border.Border;
+import javax.swing.plaf.ActionMapUIResource;
 import javax.swing.plaf.ComponentUI;
 import javax.swing.plaf.OptionPaneUI;
 
@@ -82,6 +88,21 @@ import javax.swing.plaf.OptionPaneUI;
  */
 public class BasicOptionPaneUI extends OptionPaneUI
 {
+  /**
+   * Implements the "close" keyboard action.
+   */
+  static class OptionPaneCloseAction
+    extends AbstractAction
+  {
+
+    public void actionPerformed(ActionEvent event)
+    {
+      JOptionPane op = (JOptionPane) event.getSource();
+      op.setValue(new Integer(JOptionPane.CLOSED_OPTION));
+    }
+    
+  }
+
   /**
    * This is a helper class that listens to the buttons located at the bottom
    * of the JOptionPane.
@@ -137,8 +158,8 @@ public class BasicOptionPaneUI extends OptionPaneUI
 	((JDialog) owner).dispose();
 
       //else we probably have some kind of internal frame.
-      JInternalFrame inf = (JInternalFrame) SwingUtilities.getAncestorOfClass(JInternalFrame.class,
-                                                                              optionPane);
+      JInternalFrame inf = (JInternalFrame) SwingUtilities.getAncestorOfClass(
+          JInternalFrame.class, optionPane);
       if (inf != null)
         {
           try
@@ -387,36 +408,20 @@ public class BasicOptionPaneUI extends OptionPaneUI
      */
     public void propertyChange(PropertyChangeEvent e)
     {
-      if (e.getPropertyName().equals(JOptionPane.ICON_PROPERTY)
-          || e.getPropertyName().equals(JOptionPane.MESSAGE_TYPE_PROPERTY))
-	addIcon(messageAreaContainer);
-      else if (e.getPropertyName().equals(JOptionPane.INITIAL_SELECTION_VALUE_PROPERTY))
-	resetSelectedValue();
-      else if (e.getPropertyName().equals(JOptionPane.INITIAL_VALUE_PROPERTY)
-               || e.getPropertyName().equals(JOptionPane.OPTIONS_PROPERTY)
-               || e.getPropertyName().equals(JOptionPane.OPTION_TYPE_PROPERTY))
+      String property = e.getPropertyName();
+      if (property.equals(JOptionPane.ICON_PROPERTY)
+          || property.equals(JOptionPane.INITIAL_SELECTION_VALUE_PROPERTY)
+          || property.equals(JOptionPane.INITIAL_VALUE_PROPERTY)
+          || property.equals(JOptionPane.MESSAGE_PROPERTY)
+          || property.equals(JOptionPane.MESSAGE_TYPE_PROPERTY)
+          || property.equals(JOptionPane.OPTION_TYPE_PROPERTY)
+          || property.equals(JOptionPane.OPTIONS_PROPERTY)
+          || property.equals(JOptionPane.WANTS_INPUT_PROPERTY))
         {
-	  Container newButtons = createButtonArea();
-	  optionPane.remove(buttonContainer);
-	  optionPane.add(newButtons);
-	  buttonContainer = newButtons;
+          uninstallComponents();
+          installComponents();
+          optionPane.validate();
         }
-
-      else if (e.getPropertyName().equals(JOptionPane.MESSAGE_PROPERTY)
-               || e.getPropertyName().equals(JOptionPane.WANTS_INPUT_PROPERTY)
-               || e.getPropertyName().equals(JOptionPane.SELECTION_VALUES_PROPERTY))
-        {
-          optionPane.remove(messageAreaContainer);
-          messageAreaContainer = createMessageArea();
-          optionPane.add(messageAreaContainer);
-          Container newButtons = createButtonArea();
-          optionPane.remove(buttonContainer);
-          optionPane.add(newButtons);
-          buttonContainer = newButtons;
-          optionPane.add(buttonContainer);
-        }
-      optionPane.invalidate();
-      optionPane.repaint();
     }
   }
 
@@ -431,7 +436,7 @@ public class BasicOptionPaneUI extends OptionPaneUI
   public static final int MinimumHeight = 90;
 
   /** Whether the JOptionPane contains custom components. */
-  protected boolean hasCustomComponents = false;
+  protected boolean hasCustomComponents;
 
   // The initialFocusComponent seems to always be set to a button (even if 
   // I try to set initialSelectionValue). This is different from what the 
@@ -458,17 +463,7 @@ public class BasicOptionPaneUI extends OptionPaneUI
   protected JOptionPane optionPane;
 
   /** The size of the icons. */
-  // FIXME: wrong name for a constant.
-  private static final int iconSize = 36;
-
-  /** The foreground color for the message area. */
-  private transient Color messageForeground;
-
-  /** The border around the message area. */
-  private transient Border messageBorder;
-
-  /** The border around the button area. */
-  private transient Border buttonBorder;
+  private static final int ICON_SIZE = 36;
 
   /** The string used to describe OK buttons. */
   private static final String OK_STRING = "OK";
@@ -503,7 +498,7 @@ public class BasicOptionPaneUI extends OptionPaneUI
      */
     public int getIconWidth()
     {
-      return iconSize;
+      return ICON_SIZE;
     }
 
     /**
@@ -513,7 +508,7 @@ public class BasicOptionPaneUI extends OptionPaneUI
      */
     public int getIconHeight()
     {
-      return iconSize;
+      return ICON_SIZE;
     }
 
     /**
@@ -564,7 +559,7 @@ public class BasicOptionPaneUI extends OptionPaneUI
 	// Should be purple.
 	g.setColor(Color.RED);
 
-	g.fillOval(0, 0, iconSize, iconSize);
+	g.fillOval(0, 0, ICON_SIZE, ICON_SIZE);
 
 	g.setColor(Color.BLACK);
 	g.drawOval(16, 6, 4, 4);
@@ -613,7 +608,7 @@ public class BasicOptionPaneUI extends OptionPaneUI
 	Color saved = g.getColor();
 	g.setColor(Color.GREEN);
 
-	g.fillRect(0, 0, iconSize, iconSize);
+	g.fillRect(0, 0, ICON_SIZE, ICON_SIZE);
 
 	g.setColor(Color.BLACK);
 
@@ -621,7 +616,7 @@ public class BasicOptionPaneUI extends OptionPaneUI
 	g.drawOval(14, 5, 10, 10);
 
 	g.setColor(Color.GREEN);
-	g.fillRect(0, 10, iconSize, iconSize - 10);
+	g.fillRect(0, 10, ICON_SIZE, ICON_SIZE - 10);
 
 	g.setColor(Color.BLACK);
 
@@ -637,10 +632,6 @@ public class BasicOptionPaneUI extends OptionPaneUI
 	g.translate(-x, -y);
       }
     };
-
-  // FIXME: Uncomment when the ImageIcons are fixed.
-
-  /*  IconUIResource warningIcon, questionIcon, infoIcon, errorIcon;*/
 
   /**
    * Creates a new BasicOptionPaneUI object.
@@ -703,6 +694,7 @@ public class BasicOptionPaneUI extends OptionPaneUI
     if (icon != null)
       {
 	iconLabel = new JLabel(icon);
+        configureLabel(iconLabel);
 	top.add(iconLabel, BorderLayout.WEST);
       }
   }
@@ -764,7 +756,9 @@ public class BasicOptionPaneUI extends OptionPaneUI
       }
     else if (msg instanceof Icon)
       {
-	container.add(new JLabel((Icon) msg), cons);
+        JLabel label = new JLabel((Icon) msg);
+        configureLabel(label);
+	container.add(label, cons);
 	cons.gridy++;
       }
     else
@@ -774,15 +768,18 @@ public class BasicOptionPaneUI extends OptionPaneUI
 	// it will create a box and burst the string.
 	// otherwise, it will just create a label and re-call 
 	// this method with the label o.O
-	if (msg.toString().length() > maxll)
+	if (msg.toString().length() > maxll || msg.toString().contains("\n"))
 	  {
 	    Box tmp = new Box(BoxLayout.Y_AXIS);
 	    burstStringInto(tmp, msg.toString(), maxll);
 	    addMessageComponents(container, cons, tmp, maxll, true);
 	  }
 	else
-	  addMessageComponents(container, cons, new JLabel(msg.toString()),
-	                       maxll, true);
+          {
+            JLabel label = new JLabel(msg.toString());
+            configureLabel(label);
+            addMessageComponents(container, cons, label, maxll, true);
+          }
       }
   }
 
@@ -796,17 +793,40 @@ public class BasicOptionPaneUI extends OptionPaneUI
    */
   protected void burstStringInto(Container c, String d, int maxll)
   {
-    // FIXME: Verify that this is the correct behaviour.
-    // One interpretation of the spec is that this method
-    // should recursively call itself to create (and add) 
-    // JLabels to the container if the length of the String d
-    // is greater than maxll.
-    // but in practice, even with a really long string, this is 
-    // all that happens.
     if (d == null || c == null)
       return;
-    JLabel label = new JLabel(d);
+
+    int newlineIndex = d.indexOf('\n');
+    String line;
+    String remainder;
+    if (newlineIndex >= 0 && newlineIndex < maxll)
+      {
+        line = d.substring(0, newlineIndex);
+        remainder = d.substring(newlineIndex + 1);
+      }
+    else
+      {
+        line = d.substring(0, maxll);
+        remainder = d.substring(maxll);
+      }
+    JLabel label = new JLabel(line);
+    configureLabel(label);
     c.add(label);
+
+    // If there is nothing left to burst, then we can stop.
+    if (remainder.length() == 0)
+      return;
+
+    // Recursively call ourselves to burst the remainder of the string, 
+    if (remainder.length() > maxll || remainder.contains("\n"))
+      burstStringInto(c, remainder, maxll);
+    else
+      {
+        // Add the remainder to the container and be done.
+        JLabel l = new JLabel(remainder);
+        configureLabel(l);
+        c.add(l);
+      }
   }
 
   /**
@@ -842,6 +862,9 @@ public class BasicOptionPaneUI extends OptionPaneUI
   protected Container createButtonArea()
   {
     JPanel buttonPanel = new JPanel();
+    Border b = UIManager.getBorder("OptionPane.buttonAreaBorder");
+    if (b != null)
+      buttonPanel.setBorder(b);
 
     buttonPanel.setLayout(createLayoutManager());
     addButtonComponents(buttonPanel, getButtons(), getInitialValueIndex());
@@ -867,6 +890,10 @@ public class BasicOptionPaneUI extends OptionPaneUI
   protected Container createMessageArea()
   {
     JPanel messageArea = new JPanel();
+    Border messageBorder = UIManager.getBorder("OptionPane.messageAreaBorder");
+    if (messageBorder != null)
+      messageArea.setBorder(messageBorder);
+
     messageArea.setLayout(new BorderLayout());
     addIcon(messageArea);
 
@@ -921,8 +948,9 @@ public class BasicOptionPaneUI extends OptionPaneUI
    */
   protected Container createSeparator()
   {
-    // FIXME: Figure out what this method is supposed to return and where
-    // this should be added to the OptionPane.
+    // The reference implementation returns null here. When overriding
+    // to return something non-null, the component gets added between
+    // the message area and the button area. See installComponents().
     return null;
   }
 
@@ -957,9 +985,9 @@ public class BasicOptionPaneUI extends OptionPaneUI
       case JOptionPane.OK_CANCEL_OPTION:
 	return new Object[] { OK_STRING, CANCEL_STRING };
       case JOptionPane.DEFAULT_OPTION:
-        return (optionPane.getWantsInput() ) ?
+        return (optionPane.getWantsInput()) ?
                new Object[] { OK_STRING, CANCEL_STRING } :
-               ( optionPane.getMessageType() == JOptionPane.QUESTION_MESSAGE ) ?
+               (optionPane.getMessageType() == JOptionPane.QUESTION_MESSAGE) ?
                new Object[] { YES_STRING, NO_STRING, CANCEL_STRING } :
                // ERROR_MESSAGE, INFORMATION_MESSAGE, WARNING_MESSAGE, PLAIN_MESSAGE
                new Object[] { OK_STRING };
@@ -1123,35 +1151,17 @@ public class BasicOptionPaneUI extends OptionPaneUI
    */
   protected void installComponents()
   {
-    // reset it.
-    hasCustomComponents = false;
-    Container msg = createMessageArea();
-    if (msg != null)
-      {
-	((JComponent) msg).setBorder(messageBorder);
-	msg.setForeground(messageForeground);
-	messageAreaContainer = msg;
-	optionPane.add(msg);
-      }
+    // First thing is the message area.
+    optionPane.add(createMessageArea());
 
-    // FIXME: Figure out if the separator should be inserted here or what
-    // this thing is supposed to do. Note: The JDK does NOT insert another
-    // component at this place. The JOptionPane only has two panels in it
-    // and there actually are applications that depend on this beeing so.
+    // Add separator when createSeparator() is overridden to return
+    // something other than null.
     Container sep = createSeparator();
     if (sep != null)
       optionPane.add(sep);
 
-    Container button = createButtonArea();
-    if (button != null)
-      {
-	((JComponent) button).setBorder(buttonBorder);
-	buttonContainer = button;
-	optionPane.add(button);
-      }
-
-    optionPane.setBorder(BorderFactory.createEmptyBorder(12, 12, 11, 11));
-    optionPane.invalidate();
+    // Last thing is the button area.
+    optionPane.add(createButtonArea());
   }
 
   /**
@@ -1164,10 +1174,6 @@ public class BasicOptionPaneUI extends OptionPaneUI
                                      "OptionPane.font");
     LookAndFeel.installBorder(optionPane, "OptionPane.border");
     optionPane.setOpaque(true);
-
-    messageBorder = UIManager.getBorder("OptionPane.messageAreaBorder");
-    messageForeground = UIManager.getColor("OptionPane.messageForeground");
-    buttonBorder = UIManager.getBorder("OptionPane.buttonAreaBorder");
 
     minimumSize = UIManager.getDimension("OptionPane.minimumSize");
 
@@ -1187,7 +1193,43 @@ public class BasicOptionPaneUI extends OptionPaneUI
    */
   protected void installKeyboardActions()
   {
-    // FIXME: implement.
+    // Install the input map.
+    Object[] bindings =
+      (Object[]) SharedUIDefaults.get("OptionPane.windowBindings");
+    InputMap inputMap = LookAndFeel.makeComponentInputMap(optionPane,
+                                                          bindings);
+    SwingUtilities.replaceUIInputMap(optionPane,
+                                     JComponent.WHEN_IN_FOCUSED_WINDOW,
+                                     inputMap);
+
+    // FIXME: The JDK uses a LazyActionMap for parentActionMap
+    SwingUtilities.replaceUIActionMap(optionPane, getActionMap());
+  }
+
+  /**
+   * Fetches the action map from  the UI defaults, or create a new one
+   * if the action map hasn't been initialized.
+   *
+   * @return the action map
+   */
+  private ActionMap getActionMap()
+  {
+    ActionMap am = (ActionMap) UIManager.get("OptionPane.actionMap");
+    if (am == null)
+      {
+        am = createDefaultActions();
+        UIManager.getLookAndFeelDefaults().put("OptionPane.actionMap", am);
+      }
+    return am;
+  }
+
+  private ActionMap createDefaultActions()
+  {
+    ActionMapUIResource am = new ActionMapUIResource();
+    Action action = new OptionPaneCloseAction();
+
+    am.put("close", action);
+    return am;
   }
 
   /**
@@ -1300,10 +1342,6 @@ public class BasicOptionPaneUI extends OptionPaneUI
 
     minimumSize = null;
 
-    messageBorder = null;
-    buttonBorder = null;
-    messageForeground = null;
-
     // FIXME: ImageIcons don't seem to work properly
 
     /*
@@ -1319,7 +1357,9 @@ public class BasicOptionPaneUI extends OptionPaneUI
    */
   protected void uninstallKeyboardActions()
   {
-    // FIXME: implement.
+    SwingUtilities.replaceUIInputMap(optionPane, JComponent.
+                                     WHEN_ANCESTOR_OF_FOCUSED_COMPONENT, null);
+    SwingUtilities.replaceUIActionMap(optionPane, null);
   }
 
   /**
@@ -1344,5 +1384,21 @@ public class BasicOptionPaneUI extends OptionPaneUI
     uninstallDefaults();
 
     optionPane = null;
+  }
+
+  /**
+   * Applies the proper UI configuration to labels that are added to
+   * the OptionPane.
+   *
+   * @param l the label to configure
+   */
+  private void configureLabel(JLabel l)
+  {
+    Color c = UIManager.getColor("OptionPane.messageForeground");
+    if (c != null)
+      l.setForeground(c);
+    Font f = UIManager.getFont("OptionPane.messageFont");
+    if (f != null)
+      l.setFont(f);
   }
 }

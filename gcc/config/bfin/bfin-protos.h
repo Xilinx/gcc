@@ -1,11 +1,11 @@
 /* Prototypes for Blackfin functions used in the md file & elsewhere.
-   Copyright (C) 2005 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2007 Free Software Foundation, Inc.
 
    This file is part of GNU CC.
 
    GNU CC is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2, or (at your option)
+   the Free Software Foundation; either version 3, or (at your option)
    any later version.
 
    GNU CC is distributed in the hope that it will be useful,
@@ -14,9 +14,8 @@
    GNU General Public License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with GNU CC; see the file COPYING.  If not, write to
-   the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-   Boston, MA 02110-1301, USA.  */
+   along with GCC; see the file COPYING3.  If not see
+   <http://www.gnu.org/licenses/>.  */
 
 /* Function prototypes that cannot exist in bfin.h due to dependency
    complications.  */
@@ -47,6 +46,7 @@ extern rtx bfin_gen_compare (rtx, Mmode);
 extern void expand_move (rtx *, Mmode);
 extern void bfin_expand_call (rtx, rtx, rtx, rtx, int);
 extern bool bfin_longcall_p (rtx, int);
+extern bool bfin_dsp_memref_p (rtx);
 extern bool bfin_expand_strmov (rtx, rtx, rtx, rtx);
 
 extern void conditional_register_usage (void);
@@ -82,6 +82,7 @@ extern void output_push_multiple (rtx, rtx *);
 extern void output_pop_multiple (rtx, rtx *);
 extern int bfin_hard_regno_rename_ok (unsigned int, unsigned int);
 extern rtx bfin_return_addr_rtx (int);
+extern void bfin_hardware_loop (void);
 #undef  Mmode 
 
 #endif

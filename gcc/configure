@@ -309,7 +309,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS build build_cpu build_vendor build_os host host_cpu host_vendor host_os target target_cpu target_vendor target_os target_noncanonical build_subdir host_subdir target_subdir GENINSRC CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT NO_MINUS_C_MINUS_O OUTPUT_OPTION CPP EGREP strict1_warn warn_cflags WERROR nocommon_flag TREEBROWSER valgrind_path valgrind_path_defines valgrind_command coverage_flags enable_multilib enable_shared TARGET_SYSTEM_ROOT TARGET_SYSTEM_ROOT_DEFINE CROSS_SYSTEM_HEADER_DIR onestep SET_MAKE AWK LN_S LN RANLIB ac_ct_RANLIB ranlib_flags INSTALL INSTALL_PROGRAM INSTALL_DATA make_compare_target have_mktemp_command MAKEINFO BUILD_INFO GENERATED_MANPAGES FLEX BISON NM AR stage1_cflags COLLECT2_LIBS GNAT_LIBEXC LDEXP_LIB TARGET_GETGROUPS_T LIBICONV LTLIBICONV LIBICONV_DEP manext objext gthread_flags extra_modes_file extra_opt_files USE_NLS LIBINTL LIBINTL_DEP INCINTL XGETTEXT GMSGFMT POSUB CATALOGS host_cc_for_libada CROSS ALL SYSTEM_HEADER_DIR inhibit_libc CC_FOR_BUILD BUILD_CFLAGS STMP_FIXINC STMP_FIXPROTO collect2 gcc_cv_as ORIGINAL_AS_FOR_TARGET gcc_cv_ld ORIGINAL_LD_FOR_TARGET gcc_cv_nm ORIGINAL_NM_FOR_TARGET gcc_cv_objdump ORIGINAL_OBJDUMP_FOR_TARGET libgcc_visibility GGC zlibdir zlibinc MAINT gcc_tooldir dollar slibdir objdir subdirs srcdir all_boot_languages all_compilers all_gtfiles all_gtfiles_files_langs all_gtfiles_files_files all_lang_makefrags all_lang_makefiles all_languages all_stagestuff build_exeext build_install_headers_dir build_xm_file_list build_xm_include_list build_xm_defines check_languages cc_set_by_configure quoted_cc_set_by_configure cpp_install_dir xmake_file tmake_file extra_gcc_objs extra_headers_list extra_objs extra_parts extra_passes extra_programs float_h_file gcc_config_arguments gcc_gxx_include_dir libstdcxx_incdir host_exeext host_xm_file_list host_xm_include_list host_xm_defines out_host_hook_obj install lang_opt_files lang_specs_files lang_tree_files local_prefix md_file objc_boehm_gc out_file out_object_file stage_prefix_set_by_configure quoted_stage_prefix_set_by_configure thread_file tm_file_list tm_include_list tm_defines tm_p_file_list tm_p_include_list xm_file_list xm_include_list xm_defines c_target_objs cxx_target_objs target_cpu_default GMPLIBS GMPINC LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS build build_cpu build_vendor build_os host host_cpu host_vendor host_os target target_cpu target_vendor target_os target_noncanonical build_libsubdir build_subdir host_subdir target_subdir GENINSRC CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT NO_MINUS_C_MINUS_O OUTPUT_OPTION CPP EGREP strict1_warn cxx_compat_warn warn_cflags WERROR nocommon_flag TREEBROWSER valgrind_path valgrind_path_defines valgrind_command coverage_flags enable_multilib enable_decimal_float enable_shared TARGET_SYSTEM_ROOT TARGET_SYSTEM_ROOT_DEFINE CROSS_SYSTEM_HEADER_DIR onestep datarootdir docdir htmldir SET_MAKE AWK LN_S LN RANLIB ac_ct_RANLIB ranlib_flags INSTALL INSTALL_PROGRAM INSTALL_DATA make_compare_target have_mktemp_command MAKEINFO BUILD_INFO GENERATED_MANPAGES FLEX BISON NM AR stage1_cflags COLLECT2_LIBS GNAT_LIBEXC LDEXP_LIB TARGET_GETGROUPS_T LIBICONV LTLIBICONV LIBICONV_DEP manext objext gthread_flags extra_modes_file extra_opt_files USE_NLS LIBINTL LIBINTL_DEP INCINTL XGETTEXT GMSGFMT POSUB CATALOGS DATADIRNAME INSTOBJEXT GENCAT CATOBJEXT host_cc_for_libada CROSS ALL SYSTEM_HEADER_DIR inhibit_libc CC_FOR_BUILD BUILD_CFLAGS STMP_FIXINC STMP_FIXPROTO collect2 gcc_cv_as ORIGINAL_AS_FOR_TARGET gcc_cv_ld ORIGINAL_LD_FOR_TARGET gcc_cv_nm ORIGINAL_NM_FOR_TARGET gcc_cv_objdump libgcc_visibility GGC zlibdir zlibinc MAINT gcc_tooldir dollar slibdir objdir subdirs srcdir all_boot_languages all_compilers all_gtfiles all_gtfiles_files_langs all_gtfiles_files_files all_lang_makefrags all_lang_makefiles all_languages all_selected_languages all_stagestuff build_exeext build_install_headers_dir build_xm_file_list build_xm_include_list build_xm_defines build_file_translate check_languages cc_set_by_configure quoted_cc_set_by_configure cpp_install_dir xmake_file tmake_file extra_gcc_objs extra_headers_list extra_objs extra_parts extra_passes extra_programs float_h_file gcc_config_arguments gcc_gxx_include_dir host_exeext host_xm_file_list host_xm_include_list host_xm_defines out_host_hook_obj install lang_opt_files lang_specs_files lang_tree_files local_prefix md_file objc_boehm_gc out_file out_object_file stage_prefix_set_by_configure quoted_stage_prefix_set_by_configure thread_file tm_file_list tm_include_list tm_defines tm_p_file_list tm_p_include_list xm_file_list xm_include_list xm_defines c_target_objs cxx_target_objs target_cpu_default GMPLIBS GMPINC LIBOBJS LTLIBOBJS'
 ac_subst_files='language_hooks'
 
 # Initialize some variables set by options.
@@ -880,6 +880,7 @@ Optional Features:
   --enable-gather-detailed-mem-stats         enable detailed memory allocation stats gathering
   --enable-multilib       enable library support for multiple ABIs
   --enable-__cxa_atexit   enable __cxa_atexit for C++
+  --enable-decimal-float  enable decimal float extension to C
   --enable-threads        enable thread usage for target GCC
   --enable-threads=LIB    use LIB thread package for target GCC
   --enable-tls            enable or disable generation of tls code
@@ -911,6 +912,7 @@ Optional Features:
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
+  --with-build-libsubdir=DIR  Directory where to find libraries for build system
   --with-local-prefix=DIR specifies directory to put local include
   --with-gxx-include-dir=DIR
                           specifies directory to put g++ header files
@@ -931,10 +933,14 @@ Optional Packages:
   --with-libiconv-prefix[=DIR]  search for libiconv in DIR/include and DIR/lib
   --without-libiconv-prefix     don't search for libiconv in includedir and libdir
   --with-system-libunwind use installed libunwind
+  --with-long-double-128  Use 128-bit long double by default.
   --with-gc={page,zone}   choose the garbage collection mechanism to use
                           with the compiler
   --with-system-zlib      use installed libz
-  --with-slibdir=DIR      shared libraries in DIR LIBDIR
+  --with-slibdir=DIR      shared libraries in DIR [LIBDIR]
+  --with-datarootdir=DIR  Use DIR as the data root [PREFIX/share]
+  --with-docdir=DIR       Install documentation in DIR [DATAROOTDIR]
+  --with-htmldir=DIR      html documentation in in DIR [DOCDIR]
 
 Some influential environment variables:
   CC          C compiler command
@@ -1520,8 +1526,26 @@ esac
 
 
 # Determine the target- and build-specific subdirectories
-  # Prefix 'build-' so this never conflicts with target_subdir.
+
+# post-stage1 host modules use a different CC_FOR_BUILD so, in order to
+# have matching libraries, they should use host libraries: Makefile.tpl
+# arranges to pass --with-build-libsubdir=$(HOST_SUBDIR).
+# However, they still use the build modules, because the corresponding
+# host modules (e.g. bison) are only built for the host when bootstrap
+# finishes. So:
+# - build_subdir is where we find build modules, and never changes.
+# - build_libsubdir is where we find build libraries, and can be overridden.
+
+# Prefix 'build-' so this never conflicts with target_subdir.
 build_subdir="build-${build_noncanonical}"
+
+# Check whether --with-build-libsubdir or --without-build-libsubdir was given.
+if test "${with_build_libsubdir+set}" = set; then
+  withval="$with_build_libsubdir"
+  build_libsubdir="$withval"
+else
+  build_libsubdir="$build_subdir"
+fi;
 # --srcdir=. covers the toplevel, while "test -d" covers the subdirectories
 if ( test $srcdir = . && test -d gcc ) \
    || test -d $srcdir/../host-${host_noncanonical}; then
@@ -1653,12 +1677,16 @@ no)	;;
 esac
 fi;
 
+# This logic must match libstdc++-v3/acinclude.m4:GLIBCXX_EXPORT_INSTALL_INFO.
 if test x${gcc_gxx_include_dir} = x; then
   if test x${enable_version_specific_runtime_libs} = xyes; then
     gcc_gxx_include_dir='${libsubdir}/include/c++'
   else
-    libstdcxx_incdir='c++/$(version)'
-    gcc_gxx_include_dir="\$(libsubdir)/\$(unlibsubdir)/..\`echo \$(exec_prefix) | sed -e 's|^\$(prefix)||' -e 's|/[^/]*|/..|g'\`/include/"${libstdcxx_incdir}
+    libstdcxx_incdir='include/c++/$(version)'
+    if test x$host != x$target; then
+       libstdcxx_incdir="$target_alias/$libstdcxx_incdir"
+    fi
+    gcc_gxx_include_dir="\$(libsubdir)/\$(unlibsubdir)/..\`echo \$(exec_prefix) | sed -e 's|^\$(prefix)||' -e 's|/[^/]*|/..|g'\`/$libstdcxx_incdir"
   fi
 fi
 
@@ -2869,6 +2897,14 @@ else
   OUTPUT_OPTION='-o $@'
 fi
 
+
+
+# Remove the -O2: for historical reasons, unless bootstrapping we prefer
+# optimizations to be activated explicitly by the toplevel.
+case "$CC" in
+  */prev-gcc/xgcc*) ;;
+  *) CFLAGS=`echo $CFLAGS | sed "s/-O[s0-9]* *//" ` ;;
+esac
 
 
 # -------------------------
@@ -6058,6 +6094,7 @@ fi
 # We want to use -pedantic, but we don't want warnings about
 # * 'long long'
 # * variadic macros
+# * overlong strings
 # So, we only use -pedantic if we can disable those warnings.
 
 echo "$as_me:$LINENO: checking whether ${CC} accepts -Wno-long-long" >&5
@@ -6162,10 +6199,62 @@ fi
 echo "$as_me:$LINENO: result: $ac_cv_prog_cc_w_no_variadic_macros" >&5
 echo "${ECHO_T}$ac_cv_prog_cc_w_no_variadic_macros" >&6
 
+echo "$as_me:$LINENO: checking whether ${CC} accepts -Wno-overlength-strings" >&5
+echo $ECHO_N "checking whether ${CC} accepts -Wno-overlength-strings... $ECHO_C" >&6
+if test "${ac_cv_prog_cc_w_no_overlength_strings+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  save_CFLAGS="$CFLAGS"
+  CFLAGS="-Wno-overlength-strings"
+  cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+_ACEOF
+rm -f conftest.$ac_objext
+if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
+  (eval $ac_compile) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_c_werror_flag"
+			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest.$ac_objext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_prog_cc_w_no_overlength_strings=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+ac_cv_prog_cc_w_no_overlength_strings=no
+fi
+rm -f conftest.err conftest.$ac_objext conftest.$ac_ext
+  CFLAGS="$save_CFLAGS"
+
+fi
+echo "$as_me:$LINENO: result: $ac_cv_prog_cc_w_no_overlength_strings" >&5
+echo "${ECHO_T}$ac_cv_prog_cc_w_no_overlength_strings" >&6
+
 strict1_warn=
 if test $ac_cv_prog_cc_w_no_long_long = yes \
-   && test $ac_cv_prog_cc_w_no_variadic_macros = yes ; then
-  strict1_warn="-pedantic -Wno-long-long -Wno-variadic-macros"
+   && test $ac_cv_prog_cc_w_no_variadic_macros = yes \
+   && test $ac_cv_prog_cc_w_no_overlength_strings = yes ; then
+  strict1_warn="-pedantic -Wno-long-long -Wno-variadic-macros -Wno-overlength-strings"
 fi
 
 # Add -Wold-style-definition if it's accepted
@@ -6289,6 +6378,63 @@ fi;
 if test x${enable_werror_always} = xyes ; then
   strict1_warn="${strict1_warn} -Werror"
   WERROR=-Werror
+fi
+
+
+
+# Get C++ compatibility warning flag, if supported.
+echo "$as_me:$LINENO: checking whether ${CC} accepts -Wc++-compat" >&5
+echo $ECHO_N "checking whether ${CC} accepts -Wc++-compat... $ECHO_C" >&6
+if test "${ac_cv_prog_cc_w_cxx_compat+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  save_CFLAGS="$CFLAGS"
+  CFLAGS="-Wc++-compat"
+  cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+_ACEOF
+rm -f conftest.$ac_objext
+if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
+  (eval $ac_compile) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_c_werror_flag"
+			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest.$ac_objext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_prog_cc_w_cxx_compat=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+ac_cv_prog_cc_w_cxx_compat=no
+fi
+rm -f conftest.err conftest.$ac_objext conftest.$ac_ext
+  CFLAGS="$save_CFLAGS"
+
+fi
+echo "$as_me:$LINENO: result: $ac_cv_prog_cc_w_cxx_compat" >&5
+echo "${ECHO_T}$ac_cv_prog_cc_w_cxx_compat" >&6
+if test x${ac_cv_prog_cc_w_cxx_compat} = xyes; then
+  cxx_compat_warn="-Wc++-compat"
 fi
 
 
@@ -6882,6 +7028,37 @@ if test "${enable___cxa_atexit+set}" = set; then
 
 fi;
 
+# Enable C extension for decimal float if target supports it.
+# Check whether --enable-decimal-float or --disable-decimal-float was given.
+if test "${enable_decimal_float+set}" = set; then
+  enableval="$enable_decimal_float"
+
+  if test x$enablevar = xyes ; then
+    case $target in
+    powerpc*-*-linux* | i?86*-*-linux*)
+      enable_decimal_float=yes
+      ;;
+    *)
+      { echo "$as_me:$LINENO: WARNING: decimal float is not supported for this target" >&5
+echo "$as_me: WARNING: decimal float is not supported for this target" >&2;}
+      enable_decimal_float=no
+      ;;
+    esac
+  fi
+
+else
+  enable_decimal_float=no
+fi;
+
+
+
+dfp=`if test $enable_decimal_float = yes; then echo 1; else echo 0; fi`
+
+cat >>confdefs.h <<_ACEOF
+#define ENABLE_DECIMAL_FLOAT $dfp
+_ACEOF
+
+
 # Enable threads
 # Pass with no value to take the default
 # Pass with a value to specify a thread package
@@ -7042,27 +7219,9 @@ else
   enable_languages=c
 fi;
 
-subdirs=
-for lang in ${srcdir}/*/config-lang.in
-do
-	case $lang in
-	# The odd quoting in the next line works around
-	# an apparent bug in bash 1.12 on linux.
-	${srcdir}/[*]/config-lang.in) ;;
-	*)
-	  lang_alias=`sed -n -e 's,^language=['"'"'"'"]\(.*\)["'"'"'"'].*$,\1,p' -e 's,^language=\([^   ]*\).*$,\1,p' $lang`
-	  if test "x$lang_alias" = x
-	  then
-	        echo "$lang doesn't set \$language." 1>&2
-	        exit 1
-	  fi
-	  case ",$enable_languages," in
-	  *,$lang_alias,*)
-	    subdirs="$subdirs `echo $lang | sed -e 's,^.*/\([^/]*\)/config-lang.in$,\1,'`" ;;
-	  esac
-	  ;;
-	esac
-done
+# Used by documentation targets
+
+
 
 
 # -------------------------
@@ -7492,10 +7651,10 @@ if test "${gcc_cv_prog_makeinfo_modern+set}" = set; then
 else
     ac_prog_version=`$MAKEINFO --version 2>&1 |
                    sed -n 's/^.*GNU texinfo.* \([0-9][0-9.]*\).*$/\1/p'`
-  echo "configure:7495: version of makeinfo is $ac_prog_version" >&5
+  echo "configure:7654: version of makeinfo is $ac_prog_version" >&5
   case $ac_prog_version in
     '')     gcc_cv_prog_makeinfo_modern=no;;
-    4.[2-9]*)
+    4.[4-9]*|4.[1-9][0-9]*|[5-9]*|[1-9][0-9]*)
             gcc_cv_prog_makeinfo_modern=yes;;
     *)      gcc_cv_prog_makeinfo_modern=no;;
   esac
@@ -8677,13 +8836,6 @@ vax-*-*)
   else
     stage1_cflags="-J"
   fi
-  ;;
-powerpc-*-darwin*)
-  # The spiffy cpp-precomp chokes on some legitimate constructs in GCC
-  # sources; use -no-cpp-precomp to get to GNU cpp.
-  # Apple's GCC has bugs in designated initializer handling, so disable
-  # that too.
-  stage1_cflags="-no-cpp-precomp -DHAVE_DESIGNATED_INITIALIZERS=0"
   ;;
 esac
 
@@ -11635,6 +11787,88 @@ fi
 done
 
 
+
+for ac_func in sigaltstack
+do
+  ac_tr_decl=`echo "HAVE_DECL_$ac_func" | $as_tr_cpp`
+echo "$as_me:$LINENO: checking whether $ac_func is declared" >&5
+echo $ECHO_N "checking whether $ac_func is declared... $ECHO_C" >&6
+if eval "test \"\${gcc_cv_have_decl_$ac_func+set}\" = set"; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+#undef $ac_tr_decl
+#define $ac_tr_decl 1
+
+#include "ansidecl.h"
+#include "system.h"
+#include <signal.h>
+
+
+int
+main ()
+{
+#ifndef $ac_func
+char *(*pfn) = (char *(*)) $ac_func ;
+#endif
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext
+if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
+  (eval $ac_compile) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_c_werror_flag"
+			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest.$ac_objext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  eval "gcc_cv_have_decl_$ac_func=yes"
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+eval "gcc_cv_have_decl_$ac_func=no"
+fi
+rm -f conftest.err conftest.$ac_objext conftest.$ac_ext
+fi
+
+if eval "test \"`echo '$gcc_cv_have_decl_'$ac_func`\" = yes"; then
+  echo "$as_me:$LINENO: result: yes" >&5
+echo "${ECHO_T}yes" >&6 ; cat >>confdefs.h <<_ACEOF
+#define $ac_tr_decl 1
+_ACEOF
+
+else
+  echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6 ; cat >>confdefs.h <<_ACEOF
+#define $ac_tr_decl 0
+_ACEOF
+
+fi
+
+done
+
+
 # More time-related stuff.
 echo "$as_me:$LINENO: checking for struct tms" >&5
 echo $ECHO_N "checking for struct tms... $ECHO_C" >&6
@@ -11919,13 +12153,35 @@ objext='.o'
 # Check whether --enable-sjlj-exceptions or --disable-sjlj-exceptions was given.
 if test "${enable_sjlj_exceptions+set}" = set; then
   enableval="$enable_sjlj_exceptions"
+  case $target in
+  *-*-hpux10*)
+    if test $enableval != yes; then
+      { echo "$as_me:$LINENO: WARNING: dwarf2 exceptions not supported, sjlj exceptions forced" >&5
+echo "$as_me: WARNING: dwarf2 exceptions not supported, sjlj exceptions forced" >&2;}
+      enableval=yes
+    fi
+    ;;
+esac
+force_sjlj_exceptions=yes
+else
+  case $target in
+  *-*-hpux10*)
+    force_sjlj_exceptions=yes
+    enableval=yes
+    ;;
+  *)
+    force_sjlj_exceptions=no
+    ;;
+esac
+fi;
+if test $force_sjlj_exceptions = yes; then
   sjlj=`if test $enableval = yes; then echo 1; else echo 0; fi`
 
 cat >>confdefs.h <<_ACEOF
 #define CONFIG_SJLJ_EXCEPTIONS $sjlj
 _ACEOF
 
-fi;
+fi
 
 # For platforms with the unwind ABI which includes an unwind library,
 # libunwind, we can choose to use the system libunwind.
@@ -11935,6 +12191,15 @@ if test "${with_system_libunwind+set}" = set; then
   withval="$with_system_libunwind"
 
 fi;
+
+# config.gcc also contains tests of with_system_libunwind.
+if test x$with_system_libunwind = xyes; then
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_GETIPINFO 1
+_ACEOF
+
+fi
 
 # --------------------------------------------------------
 # Build, host, and target specific configuration fragments
@@ -12073,6 +12338,63 @@ if test "$host_xm_file" != "$build_xm_file"; then
 		done
 	fi
 fi
+
+case ${host} in
+  powerpc*-*-darwin*)
+    echo "$as_me:$LINENO: checking whether mcontext_t fields have underscores" >&5
+echo $ECHO_N "checking whether mcontext_t fields have underscores... $ECHO_C" >&6
+if test "${gcc_cv_mcontext_underscores+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  cat >conftest.$ac_ext <<_ACEOF
+
+#include <sys/signal.h>
+#include <ucontext.h>
+int main() { mcontext_t m; if (m->ss.srr0) return 0; return 0; }
+
+_ACEOF
+rm -f conftest.$ac_objext
+if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
+  (eval $ac_compile) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_c_werror_flag"
+			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest.$ac_objext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  gcc_cv_mcontext_underscores=no
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+gcc_cv_mcontext_underscores=yes
+fi
+rm -f conftest.err conftest.$ac_objext conftest.$ac_ext
+fi
+echo "$as_me:$LINENO: result: $gcc_cv_mcontext_underscores" >&5
+echo "${ECHO_T}$gcc_cv_mcontext_underscores" >&6
+      if test $gcc_cv_mcontext_underscores = yes; then
+
+cat >>confdefs.h <<\_ACEOF
+#define HAS_MCONTEXT_T_UNDERSCORES
+_ACEOF
+
+      fi
+    ;;
+esac
 
 # ---------
 # Threading
@@ -12225,10 +12547,154 @@ fi
   if test x$use_cxa_atexit = xyes; then
 
 cat >>confdefs.h <<\_ACEOF
-#define DEFAULT_USE_CXA_ATEXIT 1
+#define DEFAULT_USE_CXA_ATEXIT 2
 _ACEOF
 
   fi
+fi
+
+use_getipinfo=yes
+if test x$with_system_libunwind = xyes; then
+   if test x$host = x$target; then
+     echo "$as_me:$LINENO: checking for library containing _Unwind_GetIPInfo" >&5
+echo $ECHO_N "checking for library containing _Unwind_GetIPInfo... $ECHO_C" >&6
+if test "${ac_cv_search__Unwind_GetIPInfo+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_func_search_save_LIBS=$LIBS
+ac_cv_search__Unwind_GetIPInfo=no
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char _Unwind_GetIPInfo ();
+int
+main ()
+{
+_Unwind_GetIPInfo ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_c_werror_flag"
+			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_search__Unwind_GetIPInfo="none required"
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+fi
+rm -f conftest.err conftest.$ac_objext \
+      conftest$ac_exeext conftest.$ac_ext
+if test "$ac_cv_search__Unwind_GetIPInfo" = no; then
+  for ac_lib in unwind; do
+    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
+    cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char _Unwind_GetIPInfo ();
+int
+main ()
+{
+_Unwind_GetIPInfo ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_c_werror_flag"
+			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_search__Unwind_GetIPInfo="-l$ac_lib"
+break
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+fi
+rm -f conftest.err conftest.$ac_objext \
+      conftest$ac_exeext conftest.$ac_ext
+  done
+fi
+LIBS=$ac_func_search_save_LIBS
+fi
+echo "$as_me:$LINENO: result: $ac_cv_search__Unwind_GetIPInfo" >&5
+echo "${ECHO_T}$ac_cv_search__Unwind_GetIPInfo" >&6
+if test "$ac_cv_search__Unwind_GetIPInfo" != no; then
+  test "$ac_cv_search__Unwind_GetIPInfo" = "none required" || LIBS="$ac_cv_search__Unwind_GetIPInfo $LIBS"
+
+else
+  use_getipinfo=no
+fi
+
+   fi
+fi
+
+if test x$use_getipinfo = xyes; then
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_GETIPINFO 1
+_ACEOF
+
+else
+   echo "The system unwind library does not support _Unwind_GetIPInfo."
 fi
 
 # Look for a file containing extra machine modes.
@@ -12335,8 +12801,9 @@ INCINTL=
 XGETTEXT=
 GMSGFMT=
 POSUB=
-if test -f ../intl/config.intl; then
-  . ../intl/config.intl
+
+if test -f  ../intl/config.intl; then
+  .  ../intl/config.intl
 fi
 echo "$as_me:$LINENO: checking whether NLS is requested" >&5
 echo $ECHO_N "checking whether NLS is requested... $ECHO_C" >&6
@@ -12368,8 +12835,8 @@ echo $ECHO_N "checking for catalogs to be installed... $ECHO_C" >&6
     # by the backticks, then collapsed again by the double quotes,
     # leaving us with one backslash in the sed expression (right
     # before the dot that mustn't act as a wildcard).
-    cat=`echo $cat | sed -e "s!$srcdir/!!" -e "s!\\\\.po!.gmo!"`
-    lang=`echo $cat | sed -e 's!po/!!' -e "s!\\\\.gmo!!"`
+    cat=`echo $cat | sed -e "s!$srcdir/po/!!" -e "s!\\\\.po!.gmo!"`
+    lang=`echo $cat | sed -e "s!\\\\.gmo!!"`
     # The user is allowed to set LINGUAS to a list of languages to
     # install catalogs for.  If it's empty that means "all of them."
     if test "x$LINGUAS" = x; then
@@ -12386,6 +12853,16 @@ echo $ECHO_N "checking for catalogs to be installed... $ECHO_C" >&6
   LINGUAS="$XLINGUAS"
   echo "$as_me:$LINENO: result: $LINGUAS" >&5
 echo "${ECHO_T}$LINGUAS" >&6
+
+
+    DATADIRNAME=share
+
+  INSTOBJEXT=.mo
+
+  GENCAT=gencat
+
+  CATOBJEXT=.gmo
+
 fi
 
 # If LIBINTL contains LIBICONV, then clear LIBICONV so we don't get
@@ -12831,105 +13308,27 @@ esac
 # If build != host, and we aren't building gas in-tree, we identify a
 # build->target assembler and hope that it will have the same features
 # as the host->target assembler we'll be using.
-in_tree_gas=no
-gcc_cv_as=
 gcc_cv_gas_major_version=
 gcc_cv_gas_minor_version=
 gcc_cv_as_gas_srcdir=`echo $srcdir | sed -e 's,/gcc$,,'`/gas
+
+if test "${gcc_cv_as+set}" = set; then
+  :
+else
+
 if test -x "$DEFAULT_ASSEMBLER"; then
 	gcc_cv_as="$DEFAULT_ASSEMBLER"
 elif test -f $gcc_cv_as_gas_srcdir/configure.in \
      && test -f ../gas/Makefile \
      && test x$build = x$host; then
-  # Single tree build which includes gas.  We want to prefer it
-  # over whatever linker top-level may have detected, since
-  # we'll use what we're building after installation anyway.
-  in_tree_gas=yes
-  gcc_cv_as_bfd_srcdir=`echo $srcdir | sed -e 's,/gcc$,,'`/bfd
-for f in $gcc_cv_as_bfd_srcdir/configure \
-         $gcc_cv_as_gas_srcdir/configure \
-         $gcc_cv_as_gas_srcdir/configure.in \
-         $gcc_cv_as_gas_srcdir/Makefile.in ; do
-  gcc_cv_gas_version=`sed -n -e 's/^[ 	]*\(VERSION=[0-9]*\.[0-9]*.*\)/\1/p' < $f`
-  if test x$gcc_cv_gas_version != x; then
-    break
-  fi
-done
-gcc_cv_gas_major_version=`expr "$gcc_cv_gas_version" : "VERSION=\([0-9]*\)"`
-gcc_cv_gas_minor_version=`expr "$gcc_cv_gas_version" : "VERSION=[0-9]*\.\([0-9]*\)"`
-gcc_cv_gas_patch_version=`expr "$gcc_cv_gas_version" : "VERSION=[0-9]*\.[0-9]*\.\([0-9]*\)"`
-case $gcc_cv_gas_patch_version in
-  "") gcc_cv_gas_patch_version="0" ;;
-esac
-gcc_cv_gas_vers=`expr \( \( $gcc_cv_gas_major_version \* 1000 \) \
-			    + $gcc_cv_gas_minor_version \) \* 1000 \
-			    + $gcc_cv_gas_patch_version`
-
-  gcc_cv_as=../gas/as-new$build_exeext
-  in_tree_gas_is_elf=no
-  if grep 'obj_format = elf' ../gas/Makefile > /dev/null \
-     || (grep 'obj_format = multi' ../gas/Makefile \
-         && grep 'extra_objects =.* obj-elf' ../gas/Makefile) > /dev/null
-  then
-    in_tree_gas_is_elf=yes
-  fi
+	gcc_cv_as=../gas/as-new$build_exeext
 elif test -x as$build_exeext; then
 	# Build using assembler in the current directory.
 	gcc_cv_as=./as$build_exeext
-fi
-
-
-# When searching for the assembler or linker, search the same directories
-# that the installed compiler will search.  Else we may find the wrong
-# assembler or linker and lose.  If we do not find a suitable binary,
-# then try the user's path.
-#
-# Also note we have to check MD_EXEC_PREFIX before checking the user's path.
-if test "x$exec_prefix" = xNONE; then
-	if test "x$prefix" = xNONE; then
-		gcc_cv_tool_prefix=/usr/local
-	else
-		gcc_cv_tool_prefix=$prefix
-	fi
+elif test -x $AS_FOR_TARGET; then
+        gcc_cv_as="$AS_FOR_TARGET"
 else
-	gcc_cv_tool_prefix=$exec_prefix
-fi
-
-if test x$host = x$build; then
-    gcc_cv_tool_dirs="$gcc_cv_tool_prefix/libexec/gcc/$target_noncanonical/$gcc_version"
-    gcc_cv_tool_dirs="$gcc_cv_tool_dirs$PATH_SEPARATOR$gcc_cv_tool_prefix/libexec/gcc/$target_noncanonical"
-    gcc_cv_tool_dirs="$gcc_cv_tool_dirs$PATH_SEPARATOR/usr/lib/gcc/$target_noncanonical/$gcc_version"
-    gcc_cv_tool_dirs="$gcc_cv_tool_dirs$PATH_SEPARATOR/usr/lib/gcc/$target_noncanonical"
-    gcc_cv_tool_dirs="$gcc_cv_tool_dirs$PATH_SEPARATOR$gcc_cv_tool_prefix/$target_noncanonical/bin/$target_noncanonical/$gcc_version"
-    gcc_cv_tool_dirs="$gcc_cv_tool_dirs$PATH_SEPARATOR$gcc_cv_tool_prefix/$target_noncanonical/bin"
-else
-    gcc_cv_tool_dirs=
-fi
-
-if test x$build = x$target; then
-    # Rummage through tm_files looking for MD_EXEC_PREFIX
-    md_dirs=
-    for f in ${tm_file_list}; do
-	if test -f $f; then
-	    if grep '^#[ 	]*undef[ 	]*MD_EXEC_PREFIX' $f > /dev/null; then
-		md_dirs=
-	    fi
-	    md_dirs="$md_dirs "`sed -n -e 's@^#[ 	]*define[ 	]*MD_EXEC_PREFIX[ 	]*"\(.*\)/"@\1@p' < $f`
-	fi
-    done
-    for f in ${md_dirs}; do
-        gcc_cv_tool_dirs="$gcc_cv_tool_dirs$PATH_SEPARATOR$f"
-    done
-fi
-
-
-
-
-exec 6>/dev/null
-
-# First try the environment variables.  Handle full paths or basenames.
-if test "x$gcc_cv_as" = x && test -n "$AS_FOR_TARGET"; then
-	# Extract the first word of "$AS_FOR_TARGET", so it can be a program name with args.
+        # Extract the first word of "$AS_FOR_TARGET", so it can be a program name with args.
 set dummy $AS_FOR_TARGET; ac_word=$2
 echo "$as_me:$LINENO: checking for $ac_word" >&5
 echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
@@ -12969,173 +13368,53 @@ echo "${ECHO_T}no" >&6
 fi
 
 fi
-if test "x$gcc_cv_as" = x && test -n "$AS" && test x$host = x$target; then
-	# Extract the first word of "$AS", so it can be a program name with args.
-set dummy $AS; ac_word=$2
-echo "$as_me:$LINENO: checking for $ac_word" >&5
-echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
-if test "${ac_cv_path_gcc_cv_as+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-  case $gcc_cv_as in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_gcc_cv_as="$gcc_cv_as" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-  for ac_exec_ext in '' $ac_executable_extensions; do
-  if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_path_gcc_cv_as="$as_dir/$ac_word$ac_exec_ext"
-    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-done
-
-  ;;
-esac
-fi
-gcc_cv_as=$ac_cv_path_gcc_cv_as
-
-if test -n "$gcc_cv_as"; then
-  echo "$as_me:$LINENO: result: $gcc_cv_as" >&5
-echo "${ECHO_T}$gcc_cv_as" >&6
-else
-  echo "$as_me:$LINENO: result: no" >&5
-echo "${ECHO_T}no" >&6
 fi
 
-fi
 
-if test "x$gcc_cv_as" = x; then
-	# The AC_PATH_PROGS macro doesn't work properly when its 4th argument
-	# is empty.
-	if test "x$gcc_cv_tool_dirs" = x; then
-		gcc_cv_as=
-	else
-		for ac_prog in as
-do
-  # Extract the first word of "$ac_prog", so it can be a program name with args.
-set dummy $ac_prog; ac_word=$2
-echo "$as_me:$LINENO: checking for $ac_word" >&5
-echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
-if test "${ac_cv_path_gcc_cv_as+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-  case $gcc_cv_as in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_gcc_cv_as="$gcc_cv_as" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $gcc_cv_tool_dirs
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-  for ac_exec_ext in '' $ac_executable_extensions; do
-  if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_path_gcc_cv_as="$as_dir/$ac_word$ac_exec_ext"
-    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-done
+ORIGINAL_AS_FOR_TARGET=$gcc_cv_as
 
-  ;;
-esac
-fi
-gcc_cv_as=$ac_cv_path_gcc_cv_as
-
-if test -n "$gcc_cv_as"; then
-  echo "$as_me:$LINENO: result: $gcc_cv_as" >&5
-echo "${ECHO_T}$gcc_cv_as" >&6
-else
-  echo "$as_me:$LINENO: result: no" >&5
-echo "${ECHO_T}no" >&6
-fi
-
-  test -n "$gcc_cv_as" && break
-done
-
-	fi
-fi
-if test "x$gcc_cv_as" = x; then
-	# If the loop above did not find a tool, then use whatever
-	# one we can find in the users's path.  We are looking for a
-	# ${build} -> ${target} tool.
-	if test "x$program_prefix" != xNONE; then
-		default_tool_name=${program_prefix}as
-	elif test x$build != x$host && test x$build != x$target; then
-		default_tool_name=${target_noncanonical}-as
-	else
-		default_tool_name=`echo as | sed "${program_transform_name}"`
-	fi
-	for ac_prog in $default_tool_name
-do
-  # Extract the first word of "$ac_prog", so it can be a program name with args.
-set dummy $ac_prog; ac_word=$2
-echo "$as_me:$LINENO: checking for $ac_word" >&5
-echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
-if test "${ac_cv_path_gcc_cv_as+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-  case $gcc_cv_as in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_gcc_cv_as="$gcc_cv_as" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-  for ac_exec_ext in '' $ac_executable_extensions; do
-  if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_path_gcc_cv_as="$as_dir/$ac_word$ac_exec_ext"
-    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-done
-
-  ;;
-esac
-fi
-gcc_cv_as=$ac_cv_path_gcc_cv_as
-
-if test -n "$gcc_cv_as"; then
-  echo "$as_me:$LINENO: result: $gcc_cv_as" >&5
-echo "${ECHO_T}$gcc_cv_as" >&6
-else
-  echo "$as_me:$LINENO: result: no" >&5
-echo "${ECHO_T}no" >&6
-fi
-
-  test -n "$gcc_cv_as" && break
-done
-test -n "$gcc_cv_as" || gcc_cv_as="$gcc_cv_tool_prefix/bin/$default_tool_name$build_exeext"
-
-fi
-test "$silent" != yes && exec 6>&1
-
-ORIGINAL_AS_FOR_TARGET="$gcc_cv_as"
 
 echo "$as_me:$LINENO: checking what assembler to use" >&5
 echo $ECHO_N "checking what assembler to use... $ECHO_C" >&6
-case $in_tree_gas in
-  yes)
-    echo "$as_me:$LINENO: result: \"newly built gas\"" >&5
-echo "${ECHO_T}\"newly built gas\"" >&6
-    ;;
-  no)
-    echo "$as_me:$LINENO: result: $gcc_cv_as" >&5
-echo "${ECHO_T}$gcc_cv_as" >&6
-    ;;
+if test "$gcc_cv_as" = ../gas/as-new$build_exeext; then
+  # Single tree build which includes gas.  We want to prefer it
+  # over whatever linker top-level may have detected, since
+  # we'll use what we're building after installation anyway.
+  echo "$as_me:$LINENO: result: newly built gas" >&5
+echo "${ECHO_T}newly built gas" >&6
+  in_tree_gas=yes
+  gcc_cv_as_bfd_srcdir=`echo $srcdir | sed -e 's,/gcc$,,'`/bfd
+for f in $gcc_cv_as_bfd_srcdir/configure \
+         $gcc_cv_as_gas_srcdir/configure \
+         $gcc_cv_as_gas_srcdir/configure.in \
+         $gcc_cv_as_gas_srcdir/Makefile.in ; do
+  gcc_cv_gas_version=`sed -n -e 's/^[ 	]*\(VERSION=[0-9]*\.[0-9]*.*\)/\1/p' < $f`
+  if test x$gcc_cv_gas_version != x; then
+    break
+  fi
+done
+gcc_cv_gas_major_version=`expr "$gcc_cv_gas_version" : "VERSION=\([0-9]*\)"`
+gcc_cv_gas_minor_version=`expr "$gcc_cv_gas_version" : "VERSION=[0-9]*\.\([0-9]*\)"`
+gcc_cv_gas_patch_version=`expr "$gcc_cv_gas_version" : "VERSION=[0-9]*\.[0-9]*\.\([0-9]*\)"`
+case $gcc_cv_gas_patch_version in
+  "") gcc_cv_gas_patch_version="0" ;;
 esac
+gcc_cv_gas_vers=`expr \( \( $gcc_cv_gas_major_version \* 1000 \) \
+			    + $gcc_cv_gas_minor_version \) \* 1000 \
+			    + $gcc_cv_gas_patch_version`
+
+  in_tree_gas_is_elf=no
+  if grep 'obj_format = elf' ../gas/Makefile > /dev/null \
+     || (grep 'obj_format = multi' ../gas/Makefile \
+         && grep 'extra_objects =.* obj-elf' ../gas/Makefile) > /dev/null
+  then
+    in_tree_gas_is_elf=yes
+  fi
+else
+  echo "$as_me:$LINENO: result: $gcc_cv_as" >&5
+echo "${ECHO_T}$gcc_cv_as" >&6
+  in_tree_gas=no
+fi
 
 # Identify the linker which will work hand-in-glove with the newly
 # built GCC, so that we can examine its features.  This is the linker
@@ -13144,51 +13423,28 @@ esac
 # If build != host, and we aren't building gas in-tree, we identify a
 # build->target linker and hope that it will have the same features
 # as the host->target linker we'll be using.
-in_tree_ld=no
-gcc_cv_ld=
 gcc_cv_gld_major_version=
 gcc_cv_gld_minor_version=
 gcc_cv_ld_gld_srcdir=`echo $srcdir | sed -e 's,/gcc$,,'`/ld
 gcc_cv_ld_bfd_srcdir=`echo $srcdir | sed -e 's,/gcc$,,'`/bfd
+
+if test "${gcc_cv_ld+set}" = set; then
+  :
+else
+
 if test -x "$DEFAULT_LINKER"; then
 	gcc_cv_ld="$DEFAULT_LINKER"
 elif test -f $gcc_cv_ld_gld_srcdir/configure.in \
      && test -f ../ld/Makefile \
      && test x$build = x$host; then
-	# Single tree build which includes ld.  We want to prefer it
-	# over whatever linker top-level may have detected, since
-	# we'll use what we're building after installation anyway.
-	in_tree_ld=yes
-	in_tree_ld_is_elf=no
-	if (grep 'EMUL = .*elf' ../ld/Makefile \
-	    || grep 'EMUL = .*linux' ../ld/Makefile \
-	    || grep 'EMUL = .*lynx' ../ld/Makefile) > /dev/null; then
-	  in_tree_ld_is_elf=yes
-	fi
-	for f in $gcc_cv_ld_bfd_srcdir/configure $gcc_cv_ld_gld_srcdir/configure $gcc_cv_ld_gld_srcdir/configure.in $gcc_cv_ld_gld_srcdir/Makefile.in
-	do
-		gcc_cv_gld_version=`sed -n -e 's/^[ 	]*\(VERSION=[0-9]*\.[0-9]*.*\)/\1/p' < $f`
-		if test x$gcc_cv_gld_version != x; then
-			break
-		fi
-	done
-	gcc_cv_gld_major_version=`expr "$gcc_cv_gld_version" : "VERSION=\([0-9]*\)"`
-	gcc_cv_gld_minor_version=`expr "$gcc_cv_gld_version" : "VERSION=[0-9]*\.\([0-9]*\)"`
 	gcc_cv_ld=../ld/ld-new$build_exeext
 elif test -x collect-ld$build_exeext; then
 	# Build using linker in the current directory.
 	gcc_cv_ld=./collect-ld$build_exeext
-fi
-
-
-
-
-
-exec 6>/dev/null
-
-# First try the environment variables.  Handle full paths or basenames.
-if test "x$gcc_cv_ld" = x && test -n "$LD_FOR_TARGET"; then
-	# Extract the first word of "$LD_FOR_TARGET", so it can be a program name with args.
+elif test -x $LD_FOR_TARGET; then
+        gcc_cv_ld="$LD_FOR_TARGET"
+else
+        # Extract the first word of "$LD_FOR_TARGET", so it can be a program name with args.
 set dummy $LD_FOR_TARGET; ac_word=$2
 echo "$as_me:$LINENO: checking for $ac_word" >&5
 echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
@@ -13228,196 +13484,58 @@ echo "${ECHO_T}no" >&6
 fi
 
 fi
-if test "x$gcc_cv_ld" = x && test -n "$LD" && test x$host = x$target; then
-	# Extract the first word of "$LD", so it can be a program name with args.
-set dummy $LD; ac_word=$2
-echo "$as_me:$LINENO: checking for $ac_word" >&5
-echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
-if test "${ac_cv_path_gcc_cv_ld+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-  case $gcc_cv_ld in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_gcc_cv_ld="$gcc_cv_ld" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-  for ac_exec_ext in '' $ac_executable_extensions; do
-  if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_path_gcc_cv_ld="$as_dir/$ac_word$ac_exec_ext"
-    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-done
-
-  ;;
-esac
-fi
-gcc_cv_ld=$ac_cv_path_gcc_cv_ld
-
-if test -n "$gcc_cv_ld"; then
-  echo "$as_me:$LINENO: result: $gcc_cv_ld" >&5
-echo "${ECHO_T}$gcc_cv_ld" >&6
-else
-  echo "$as_me:$LINENO: result: no" >&5
-echo "${ECHO_T}no" >&6
 fi
 
-fi
 
-if test "x$gcc_cv_ld" = x; then
-	# The AC_PATH_PROGS macro doesn't work properly when its 4th argument
-	# is empty.
-	if test "x$gcc_cv_tool_dirs" = x; then
-		gcc_cv_ld=
-	else
-		for ac_prog in ld
-do
-  # Extract the first word of "$ac_prog", so it can be a program name with args.
-set dummy $ac_prog; ac_word=$2
-echo "$as_me:$LINENO: checking for $ac_word" >&5
-echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
-if test "${ac_cv_path_gcc_cv_ld+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-  case $gcc_cv_ld in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_gcc_cv_ld="$gcc_cv_ld" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $gcc_cv_tool_dirs
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-  for ac_exec_ext in '' $ac_executable_extensions; do
-  if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_path_gcc_cv_ld="$as_dir/$ac_word$ac_exec_ext"
-    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-done
+ORIGINAL_LD_FOR_TARGET=$gcc_cv_ld
 
-  ;;
-esac
-fi
-gcc_cv_ld=$ac_cv_path_gcc_cv_ld
-
-if test -n "$gcc_cv_ld"; then
-  echo "$as_me:$LINENO: result: $gcc_cv_ld" >&5
-echo "${ECHO_T}$gcc_cv_ld" >&6
-else
-  echo "$as_me:$LINENO: result: no" >&5
-echo "${ECHO_T}no" >&6
-fi
-
-  test -n "$gcc_cv_ld" && break
-done
-
-	fi
-fi
-if test "x$gcc_cv_ld" = x; then
-	# If the loop above did not find a tool, then use whatever
-	# one we can find in the users's path.  We are looking for a
-	# ${build} -> ${target} tool.
-	if test "x$program_prefix" != xNONE; then
-		default_tool_name=${program_prefix}ld
-	elif test x$build != x$host && test x$build != x$target; then
-		default_tool_name=${target_noncanonical}-ld
-	else
-		default_tool_name=`echo ld | sed "${program_transform_name}"`
-	fi
-	for ac_prog in $default_tool_name
-do
-  # Extract the first word of "$ac_prog", so it can be a program name with args.
-set dummy $ac_prog; ac_word=$2
-echo "$as_me:$LINENO: checking for $ac_word" >&5
-echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
-if test "${ac_cv_path_gcc_cv_ld+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-  case $gcc_cv_ld in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_gcc_cv_ld="$gcc_cv_ld" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-  for ac_exec_ext in '' $ac_executable_extensions; do
-  if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_path_gcc_cv_ld="$as_dir/$ac_word$ac_exec_ext"
-    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-done
-
-  ;;
-esac
-fi
-gcc_cv_ld=$ac_cv_path_gcc_cv_ld
-
-if test -n "$gcc_cv_ld"; then
-  echo "$as_me:$LINENO: result: $gcc_cv_ld" >&5
-echo "${ECHO_T}$gcc_cv_ld" >&6
-else
-  echo "$as_me:$LINENO: result: no" >&5
-echo "${ECHO_T}no" >&6
-fi
-
-  test -n "$gcc_cv_ld" && break
-done
-test -n "$gcc_cv_ld" || gcc_cv_ld="$gcc_cv_tool_prefix/bin/$default_tool_name$build_exeext"
-
-fi
-test "$silent" != yes && exec 6>&1
-
-ORIGINAL_LD_FOR_TARGET="$gcc_cv_ld"
 
 echo "$as_me:$LINENO: checking what linker to use" >&5
 echo $ECHO_N "checking what linker to use... $ECHO_C" >&6
-case $in_tree_ld in
-  yes)
-    echo "$as_me:$LINENO: result: \"newly built ld\"" >&5
-echo "${ECHO_T}\"newly built ld\"" >&6
-    ;;
-  no)
-    echo "$as_me:$LINENO: result: $gcc_cv_ld" >&5
+if test "$gcc_cv_ld" = ../ld/ld-new$build_exeext; then
+	# Single tree build which includes ld.  We want to prefer it
+	# over whatever linker top-level may have detected, since
+	# we'll use what we're building after installation anyway.
+	echo "$as_me:$LINENO: result: newly built ld" >&5
+echo "${ECHO_T}newly built ld" >&6
+	in_tree_ld=yes
+	in_tree_ld_is_elf=no
+	if (grep 'EMUL = .*elf' ../ld/Makefile \
+	    || grep 'EMUL = .*linux' ../ld/Makefile \
+	    || grep 'EMUL = .*lynx' ../ld/Makefile) > /dev/null; then
+	  in_tree_ld_is_elf=yes
+	fi
+	for f in $gcc_cv_ld_bfd_srcdir/configure $gcc_cv_ld_gld_srcdir/configure $gcc_cv_ld_gld_srcdir/configure.in $gcc_cv_ld_gld_srcdir/Makefile.in
+	do
+		gcc_cv_gld_version=`sed -n -e 's/^[ 	]*\(VERSION=[0-9]*\.[0-9]*.*\)/\1/p' < $f`
+		if test x$gcc_cv_gld_version != x; then
+			break
+		fi
+	done
+	gcc_cv_gld_major_version=`expr "$gcc_cv_gld_version" : "VERSION=\([0-9]*\)"`
+	gcc_cv_gld_minor_version=`expr "$gcc_cv_gld_version" : "VERSION=[0-9]*\.\([0-9]*\)"`
+else
+	echo "$as_me:$LINENO: result: $gcc_cv_ld" >&5
 echo "${ECHO_T}$gcc_cv_ld" >&6
-    ;;
-esac
+	in_tree_ld=no
+fi
 
 # Figure out what nm we will be using.
 gcc_cv_binutils_srcdir=`echo $srcdir | sed -e 's,/gcc$,,'`/binutils
-in_tree_nm=no
-gcc_cv_nm=
+if test "${gcc_cv_nm+set}" = set; then
+  :
+else
+
 if test -f $gcc_cv_binutils_srcdir/configure.in \
-     && test -f ../binutils/Makefile; then
-	# Single tree build which includes binutils.
-	in_tree_nm=yes
+     && test -f ../binutils/Makefile \
+     && test x$build = x$host; then
 	gcc_cv_nm=../binutils/nm-new$build_exeext
 elif test -x nm$build_exeext; then
 	gcc_cv_nm=./nm$build_exeext
-fi
-
-
-
-
-
-exec 6>/dev/null
-
-# First try the environment variables.  Handle full paths or basenames.
-if test "x$gcc_cv_nm" = x && test -n "$NM_FOR_TARGET"; then
-	# Extract the first word of "$NM_FOR_TARGET", so it can be a program name with args.
+elif test -x $NM_FOR_TARGET; then
+        gcc_cv_nm="$NM_FOR_TARGET"
+else
+        # Extract the first word of "$NM_FOR_TARGET", so it can be a program name with args.
 set dummy $NM_FOR_TARGET; ac_word=$2
 echo "$as_me:$LINENO: checking for $ac_word" >&5
 echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
@@ -13457,191 +13575,41 @@ echo "${ECHO_T}no" >&6
 fi
 
 fi
-if test "x$gcc_cv_nm" = x && test -n "$NM" && test x$host = x$target; then
-	# Extract the first word of "$NM", so it can be a program name with args.
-set dummy $NM; ac_word=$2
-echo "$as_me:$LINENO: checking for $ac_word" >&5
-echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
-if test "${ac_cv_path_gcc_cv_nm+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-  case $gcc_cv_nm in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_gcc_cv_nm="$gcc_cv_nm" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-  for ac_exec_ext in '' $ac_executable_extensions; do
-  if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_path_gcc_cv_nm="$as_dir/$ac_word$ac_exec_ext"
-    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-done
-
-  ;;
-esac
-fi
-gcc_cv_nm=$ac_cv_path_gcc_cv_nm
-
-if test -n "$gcc_cv_nm"; then
-  echo "$as_me:$LINENO: result: $gcc_cv_nm" >&5
-echo "${ECHO_T}$gcc_cv_nm" >&6
-else
-  echo "$as_me:$LINENO: result: no" >&5
-echo "${ECHO_T}no" >&6
 fi
 
-fi
-
-if test "x$gcc_cv_nm" = x; then
-	# The AC_PATH_PROGS macro doesn't work properly when its 4th argument
-	# is empty.
-	if test "x$gcc_cv_tool_dirs" = x; then
-		gcc_cv_nm=
-	else
-		for ac_prog in nm
-do
-  # Extract the first word of "$ac_prog", so it can be a program name with args.
-set dummy $ac_prog; ac_word=$2
-echo "$as_me:$LINENO: checking for $ac_word" >&5
-echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
-if test "${ac_cv_path_gcc_cv_nm+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-  case $gcc_cv_nm in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_gcc_cv_nm="$gcc_cv_nm" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $gcc_cv_tool_dirs
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-  for ac_exec_ext in '' $ac_executable_extensions; do
-  if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_path_gcc_cv_nm="$as_dir/$ac_word$ac_exec_ext"
-    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-done
-
-  ;;
-esac
-fi
-gcc_cv_nm=$ac_cv_path_gcc_cv_nm
-
-if test -n "$gcc_cv_nm"; then
-  echo "$as_me:$LINENO: result: $gcc_cv_nm" >&5
-echo "${ECHO_T}$gcc_cv_nm" >&6
-else
-  echo "$as_me:$LINENO: result: no" >&5
-echo "${ECHO_T}no" >&6
-fi
-
-  test -n "$gcc_cv_nm" && break
-done
-
-	fi
-fi
-if test "x$gcc_cv_nm" = x; then
-	# If the loop above did not find a tool, then use whatever
-	# one we can find in the users's path.  We are looking for a
-	# ${build} -> ${target} tool.
-	if test "x$program_prefix" != xNONE; then
-		default_tool_name=${program_prefix}nm
-	elif test x$build != x$host && test x$build != x$target; then
-		default_tool_name=${target_noncanonical}-nm
-	else
-		default_tool_name=`echo nm | sed "${program_transform_name}"`
-	fi
-	for ac_prog in $default_tool_name
-do
-  # Extract the first word of "$ac_prog", so it can be a program name with args.
-set dummy $ac_prog; ac_word=$2
-echo "$as_me:$LINENO: checking for $ac_word" >&5
-echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
-if test "${ac_cv_path_gcc_cv_nm+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-  case $gcc_cv_nm in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_gcc_cv_nm="$gcc_cv_nm" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-  for ac_exec_ext in '' $ac_executable_extensions; do
-  if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_path_gcc_cv_nm="$as_dir/$ac_word$ac_exec_ext"
-    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-done
-
-  ;;
-esac
-fi
-gcc_cv_nm=$ac_cv_path_gcc_cv_nm
-
-if test -n "$gcc_cv_nm"; then
-  echo "$as_me:$LINENO: result: $gcc_cv_nm" >&5
-echo "${ECHO_T}$gcc_cv_nm" >&6
-else
-  echo "$as_me:$LINENO: result: no" >&5
-echo "${ECHO_T}no" >&6
-fi
-
-  test -n "$gcc_cv_nm" && break
-done
-test -n "$gcc_cv_nm" || gcc_cv_nm="$gcc_cv_tool_prefix/bin/$default_tool_name$build_exeext"
-
-fi
-test "$silent" != yes && exec 6>&1
-
-ORIGINAL_NM_FOR_TARGET="$gcc_cv_nm"
 
 echo "$as_me:$LINENO: checking what nm to use" >&5
 echo $ECHO_N "checking what nm to use... $ECHO_C" >&6
-case $in_tree_nm in
-  yes) echo "$as_me:$LINENO: result: \"newly built nm\"" >&5
-echo "${ECHO_T}\"newly built nm\"" >&6 ;;
-  no)  echo "$as_me:$LINENO: result: $gcc_cv_nm" >&5
-echo "${ECHO_T}$gcc_cv_nm" >&6 ;;
-esac
+if test "$gcc_cv_nm" = ../binutils/nm-new$build_exeext; then
+	# Single tree build which includes binutils.
+	echo "$as_me:$LINENO: result: newly built nm" >&5
+echo "${ECHO_T}newly built nm" >&6
+	in_tree_nm=yes
+else
+	echo "$as_me:$LINENO: result: $gcc_cv_nm" >&5
+echo "${ECHO_T}$gcc_cv_nm" >&6
+	in_tree_nm=no
+fi
+
+ORIGINAL_NM_FOR_TARGET=$gcc_cv_nm
+
 
 # Figure out what objdump we will be using.
-in_tree_objdump=no
-gcc_cv_objdump=
+if test "${gcc_cv_objdump+set}" = set; then
+  :
+else
+
 if test -f $gcc_cv_binutils_srcdir/configure.in \
-     && test -f ../binutils/Makefile; then
+     && test -f ../binutils/Makefile \
+     && test x$build = x$host; then
 	# Single tree build which includes binutils.
-	in_tree_objdump=yes
 	gcc_cv_objdump=../binutils/objdump$build_exeext
 elif test -x objdump$build_exeext; then
 	gcc_cv_objdump=./objdump$build_exeext
-fi
-
-
-
-
-
-exec 6>/dev/null
-
-# First try the environment variables.  Handle full paths or basenames.
-if test "x$gcc_cv_objdump" = x && test -n "$OBJDUMP_FOR_TARGET"; then
-	# Extract the first word of "$OBJDUMP_FOR_TARGET", so it can be a program name with args.
+elif test -x $OBJDUMP_FOR_TARGET; then
+        gcc_cv_objdump="$OBJDUMP_FOR_TARGET"
+else
+        # Extract the first word of "$OBJDUMP_FOR_TARGET", so it can be a program name with args.
 set dummy $OBJDUMP_FOR_TARGET; ac_word=$2
 echo "$as_me:$LINENO: checking for $ac_word" >&5
 echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
@@ -13681,169 +13649,22 @@ echo "${ECHO_T}no" >&6
 fi
 
 fi
-if test "x$gcc_cv_objdump" = x && test -n "$OBJDUMP" && test x$host = x$target; then
-	# Extract the first word of "$OBJDUMP", so it can be a program name with args.
-set dummy $OBJDUMP; ac_word=$2
-echo "$as_me:$LINENO: checking for $ac_word" >&5
-echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
-if test "${ac_cv_path_gcc_cv_objdump+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-  case $gcc_cv_objdump in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_gcc_cv_objdump="$gcc_cv_objdump" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-  for ac_exec_ext in '' $ac_executable_extensions; do
-  if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_path_gcc_cv_objdump="$as_dir/$ac_word$ac_exec_ext"
-    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-done
-
-  ;;
-esac
-fi
-gcc_cv_objdump=$ac_cv_path_gcc_cv_objdump
-
-if test -n "$gcc_cv_objdump"; then
-  echo "$as_me:$LINENO: result: $gcc_cv_objdump" >&5
-echo "${ECHO_T}$gcc_cv_objdump" >&6
-else
-  echo "$as_me:$LINENO: result: no" >&5
-echo "${ECHO_T}no" >&6
 fi
 
-fi
-
-if test "x$gcc_cv_objdump" = x; then
-	# The AC_PATH_PROGS macro doesn't work properly when its 4th argument
-	# is empty.
-	if test "x$gcc_cv_tool_dirs" = x; then
-		gcc_cv_objdump=
-	else
-		for ac_prog in objdump
-do
-  # Extract the first word of "$ac_prog", so it can be a program name with args.
-set dummy $ac_prog; ac_word=$2
-echo "$as_me:$LINENO: checking for $ac_word" >&5
-echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
-if test "${ac_cv_path_gcc_cv_objdump+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-  case $gcc_cv_objdump in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_gcc_cv_objdump="$gcc_cv_objdump" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $gcc_cv_tool_dirs
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-  for ac_exec_ext in '' $ac_executable_extensions; do
-  if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_path_gcc_cv_objdump="$as_dir/$ac_word$ac_exec_ext"
-    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-done
-
-  ;;
-esac
-fi
-gcc_cv_objdump=$ac_cv_path_gcc_cv_objdump
-
-if test -n "$gcc_cv_objdump"; then
-  echo "$as_me:$LINENO: result: $gcc_cv_objdump" >&5
-echo "${ECHO_T}$gcc_cv_objdump" >&6
-else
-  echo "$as_me:$LINENO: result: no" >&5
-echo "${ECHO_T}no" >&6
-fi
-
-  test -n "$gcc_cv_objdump" && break
-done
-
-	fi
-fi
-if test "x$gcc_cv_objdump" = x; then
-	# If the loop above did not find a tool, then use whatever
-	# one we can find in the users's path.  We are looking for a
-	# ${build} -> ${target} tool.
-	if test "x$program_prefix" != xNONE; then
-		default_tool_name=${program_prefix}objdump
-	elif test x$build != x$host && test x$build != x$target; then
-		default_tool_name=${target_noncanonical}-objdump
-	else
-		default_tool_name=`echo objdump | sed "${program_transform_name}"`
-	fi
-	for ac_prog in $default_tool_name
-do
-  # Extract the first word of "$ac_prog", so it can be a program name with args.
-set dummy $ac_prog; ac_word=$2
-echo "$as_me:$LINENO: checking for $ac_word" >&5
-echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
-if test "${ac_cv_path_gcc_cv_objdump+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-  case $gcc_cv_objdump in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_gcc_cv_objdump="$gcc_cv_objdump" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-  for ac_exec_ext in '' $ac_executable_extensions; do
-  if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_path_gcc_cv_objdump="$as_dir/$ac_word$ac_exec_ext"
-    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-done
-
-  ;;
-esac
-fi
-gcc_cv_objdump=$ac_cv_path_gcc_cv_objdump
-
-if test -n "$gcc_cv_objdump"; then
-  echo "$as_me:$LINENO: result: $gcc_cv_objdump" >&5
-echo "${ECHO_T}$gcc_cv_objdump" >&6
-else
-  echo "$as_me:$LINENO: result: no" >&5
-echo "${ECHO_T}no" >&6
-fi
-
-  test -n "$gcc_cv_objdump" && break
-done
-test -n "$gcc_cv_objdump" || gcc_cv_objdump="$gcc_cv_tool_prefix/bin/$default_tool_name$build_exeext"
-
-fi
-test "$silent" != yes && exec 6>&1
-
-ORIGINAL_OBJDUMP_FOR_TARGET="$gcc_cv_objdump"
 
 echo "$as_me:$LINENO: checking what objdump to use" >&5
 echo $ECHO_N "checking what objdump to use... $ECHO_C" >&6
-case $in_tree_objdump in
-  yes) echo "$as_me:$LINENO: result: \"newly built objdump\"" >&5
-echo "${ECHO_T}\"newly built objdump\"" >&6 ;;
-  no)  echo "$as_me:$LINENO: result: $gcc_cv_objdump" >&5
-echo "${ECHO_T}$gcc_cv_objdump" >&6 ;;
-esac
+if test "$gcc_cv_objdump" = ../binutils/objdump$build_exeext; then
+	# Single tree build which includes binutils.
+	echo "$as_me:$LINENO: result: newly built objdump" >&5
+echo "${ECHO_T}newly built objdump" >&6
+elif test x$gcc_cv_objdump = x; then
+	echo "$as_me:$LINENO: result: not found" >&5
+echo "${ECHO_T}not found" >&6
+else
+	echo "$as_me:$LINENO: result: $gcc_cv_objdump" >&5
+echo "${ECHO_T}$gcc_cv_objdump" >&6
+fi
 
 # Figure out what assembler alignment features are present.
 echo "$as_me:$LINENO: checking assembler for .balign and .p2align" >&5
@@ -14138,9 +13959,7 @@ else
   ld_ver=`$gcc_cv_ld --version 2>/dev/null | sed 1q`
   if echo "$ld_ver" | grep GNU > /dev/null; then
     ld_vers=`echo $ld_ver | sed -n \
-	-e 's,^.*[	 ]\([0-9][0-9]*\.[0-9][0-9]*\)$,\1,p' \
-	-e 's,^.*[	 ]\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)$,\1,p' \
-	-e 's,^.*[	 ]\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)$,\1,p' \
+	-e 's,^.*[	 ]\([0-9][0-9]*\.[0-9][0-9]*.*\)$,\1,p' \
 	-e 's,^.*[	 ]\([0-9][0-9]*\.[0-9][0-9]*\)[	 ].*$,\1,p' \
 	-e 's,^.*[	 ]\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)[	 ].*$,\1,p' \
 	-e 's,^.*[ 	 ]\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)[ 	].*$,\1,p' \
@@ -14316,11 +14135,14 @@ cat > conftest.big <<EOF
 EOF
   # If the assembler didn't choke, and we can objdump,
   # and we got the correct data, then succeed.
+  # The text in the here-document typically retains its unix-style line
+  # endings, while the output of objdump will use host line endings.
+  # Therefore, use diff -b for the comparisons.
   if test x$gcc_cv_objdump != x \
   && $gcc_cv_objdump -s -j .eh_frame conftest.o 2>/dev/null \
      | tail -3 > conftest.got \
-  && { cmp conftest.lit conftest.got > /dev/null 2>&1 \
-    || cmp conftest.big conftest.got > /dev/null 2>&1; }
+  && { diff -b conftest.lit conftest.got > /dev/null 2>&1 \
+    || diff -b conftest.big conftest.got > /dev/null 2>&1; }
   then
     gcc_cv_as_eh_frame=yes
   elif { ac_try='$gcc_cv_as -o conftest.o --traditional-format /dev/null'
@@ -15402,6 +15224,39 @@ _ACEOF
 
 fi
 
+    echo "$as_me:$LINENO: checking assembler for ffreep mnemonic" >&5
+echo $ECHO_N "checking assembler for ffreep mnemonic... $ECHO_C" >&6
+if test "${gcc_cv_as_ix86_ffreep+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  gcc_cv_as_ix86_ffreep=no
+  if test x$gcc_cv_as != x; then
+    echo 'ffreep %st(1)' > conftest.s
+    if { ac_try='$gcc_cv_as  -o conftest.o conftest.s >&5'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }
+    then
+	gcc_cv_as_ix86_ffreep=yes
+    else
+      echo "configure: failed program was" >&5
+      cat conftest.s >&5
+    fi
+    rm -f conftest.o conftest.s
+  fi
+fi
+echo "$as_me:$LINENO: result: $gcc_cv_as_ix86_ffreep" >&5
+echo "${ECHO_T}$gcc_cv_as_ix86_ffreep" >&6
+if test $gcc_cv_as_ix86_ffreep = yes; then
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_AS_IX86_FFREEP 1
+_ACEOF
+
+fi
+
     # This one is used unconditionally by i386.[ch]; it is to be defined
     # to 1 if the feature is present, 0 otherwise.
     echo "$as_me:$LINENO: checking assembler for GOTOFF in data" >&5
@@ -16213,6 +16068,47 @@ _ACEOF
 
 fi
 
+# Check if TFmode long double should be used by default or not.
+# Some glibc targets used DFmode long double, but with glibc 2.4
+# and later they can use TFmode.
+case "$target" in
+  powerpc*-*-*gnu* | \
+  sparc*-*-linux* | \
+  s390*-*-linux* | \
+  alpha*-*-linux*)
+
+# Check whether --with-long-double-128 or --without-long-double-128 was given.
+if test "${with_long_double_128+set}" = set; then
+  withval="$with_long_double_128"
+  gcc_cv_target_ldbl128="$with_long_double_128"
+else
+  gcc_cv_target_ldbl128=no
+      if test x$host != x$target || test "x$TARGET_SYSTEM_ROOT" != x; then
+	if test "x$with_sysroot" = x; then
+	  glibc_header_dir="${exec_prefix}/${target_noncanonical}/sys-include"
+	elif test "x$with_sysroot" = xyes; then
+	  glibc_header_dir="${exec_prefix}/${target_noncanonical}/sys-root/usr/include"
+	else
+	  glibc_header_dir="${with_sysroot}/usr/include"
+	fi
+      else
+	glibc_header_dir=/usr/include
+      fi
+      grep '^[ 	]*#[ 	]*define[ 	][ 	]*__LONG_DOUBLE_MATH_OPTIONAL' \
+        $glibc_header_dir/bits/wordsize.h > /dev/null 2>&1 \
+      && gcc_cv_target_ldbl128=yes
+
+fi;
+    ;;
+esac
+if test x$gcc_cv_target_ldbl128 = xyes; then
+
+cat >>confdefs.h <<\_ACEOF
+#define TARGET_DEFAULT_LONG_DOUBLE_128 1
+_ACEOF
+
+fi
+
 # Find out what GC implementation we want, or may, use.
 
 # Check whether --with-gc or --without-gc was given.
@@ -16283,22 +16179,10 @@ fi
 # Make empty files to contain the specs and options for each language.
 # Then add #include lines to for a compiler that has specs and/or options.
 
+subdirs=
 lang_opt_files=
 lang_specs_files=
 lang_tree_files=
-for subdir in . $subdirs
-do
-	if test -f $srcdir/$subdir/lang.opt; then
-	    lang_opt_files="$lang_opt_files $srcdir/$subdir/lang.opt"
-	fi
-	if test -f $srcdir/$subdir/lang-specs.h; then
-	    lang_specs_files="$lang_specs_files $srcdir/$subdir/lang-specs.h"
-	fi
-	if test -f $srcdir/$subdir/$subdir-tree.def; then
-	    lang_tree_files="$lang_tree_files $srcdir/$subdir/$subdir-tree.def"
-	fi
-done
-
 # These (without "all_") are set in each config-lang.in.
 # `language' must be a single word so is spelled singularly.
 all_languages=
@@ -16316,6 +16200,10 @@ all_gtfiles="$target_gtfiles"
 all_gtfiles_files_langs=
 all_gtfiles_files_files=
 
+# These are the languages that are set in --enable-languages,
+# and are available in the GCC tree.
+all_selected_languages=
+
 # Add the language fragments.
 # Languages are added via two mechanisms.  Some information must be
 # recorded in makefile variables, these are defined in config-lang.in.
@@ -16325,73 +16213,114 @@ all_gtfiles_files_files=
 
 language_hooks="Make-hooks"
 
-for s in $subdirs
+for lang in ${srcdir}/*/config-lang.in
 do
-		language=
-		boot_language=
-		compilers=
-		stagestuff=
-		outputs=
-		gtfiles=
-		. ${srcdir}/$s/config-lang.in
-		if test "x$language" = x
-		then
-			echo "${srcdir}/$s/config-lang.in doesn't set \$language." 1>&2
-			exit 1
-		fi
-		all_lang_makefrags="$all_lang_makefrags \$(srcdir)/$s/Make-lang.in"
-		if test -f ${srcdir}/$s/Makefile.in
-		then all_lang_makefiles="$s/Makefile"
-		fi
-		all_languages="$all_languages $language"
-		if test "x$boot_language" = xyes
-		then
-			all_boot_languages="$all_boot_languages $language"
-		fi
-		all_compilers="$all_compilers $compilers"
-		all_stagestuff="$all_stagestuff $stagestuff"
-		all_outputs="$all_outputs $outputs"
-		all_gtfiles="$all_gtfiles $gtfiles"
-                for f in $gtfiles
-                do
-                         all_gtfiles_files_langs="$all_gtfiles_files_langs ${s} "
-                         all_gtfiles_files_files="$all_gtfiles_files_files ${f} "
-                done
+	test "$lang" = "${srcdir}/*/config-lang.in" && continue
+
+        lang_alias=`sed -n -e 's,^language=['"'"'"'"]\(.*\)["'"'"'"'].*$,\1,p' -e 's,^language=\([^   ]*\).*$,\1,p' $lang`
+        if test "x$lang_alias" = x
+        then
+              echo "$lang doesn't set \$language." 1>&2
+              exit 1
+        fi
+        subdir="`echo $lang | sed -e 's,^.*/\([^/]*\)/config-lang.in$,\1,'`"
+        subdirs="$subdirs $subdir"
+        case ",$enable_languages," in
+        *,$lang_alias,*)
+            all_selected_languages="$all_selected_languages $lang_alias"
+	    if test -f $srcdir/$subdir/lang-specs.h; then
+	        lang_specs_files="$lang_specs_files $srcdir/$subdir/lang-specs.h"
+	    fi
+	    ;;
+        esac
+
+	language=
+	boot_language=
+	compilers=
+	stagestuff=
+	outputs=
+	gtfiles=
+	subdir_requires=
+	. ${srcdir}/$subdir/config-lang.in
+	if test "x$language" = x
+	then
+		echo "${srcdir}/$subdir/config-lang.in doesn't set \$language." 1>&2
+		exit 1
+	fi
+
+	ok=:
+        case ",$enable_languages," in
+        	*,$lang_alias,*) ;;
+		*)
+			for i in $subdir_requires; do
+				test -f "${srcdir}/$i/config-lang.in" && continue
+				ok=false
+				break
+			done
+		;;
+	esac
+	$ok || continue
+
+	all_lang_makefrags="$all_lang_makefrags \$(srcdir)/$subdir/Make-lang.in"
+	if test -f $srcdir/$subdir/lang.opt; then
+	    lang_opt_files="$lang_opt_files $srcdir/$subdir/lang.opt"
+	fi
+	if test -f $srcdir/$subdir/$subdir-tree.def; then
+	    lang_tree_files="$lang_tree_files $srcdir/$subdir/$subdir-tree.def"
+	fi
+	if test -f ${srcdir}/$subdir/Makefile.in
+		then all_lang_makefiles="$subdir/Makefile"
+	fi
+	all_languages="$all_languages $language"
+	if test "x$boot_language" = xyes
+	then
+		all_boot_languages="$all_boot_languages $language"
+	fi
+	all_compilers="$all_compilers $compilers"
+	all_stagestuff="$all_stagestuff $stagestuff"
+	all_outputs="$all_outputs $outputs"
+	all_gtfiles="$all_gtfiles $gtfiles"
+	for f in $gtfiles
+	do
+		all_gtfiles_files_langs="$all_gtfiles_files_langs ${subdir} "
+		all_gtfiles_files_files="$all_gtfiles_files_files ${f} "
+	done
 done
 
 # Pick up gtfiles for c
 gtfiles=
-s="c"
+subdir="c"
 . ${srcdir}/c-config-lang.in
 all_gtfiles="$all_gtfiles $gtfiles"
 for f in $gtfiles
 do
-        all_gtfiles_files_langs="$all_gtfiles_files_langs ${s} "
+        all_gtfiles_files_langs="$all_gtfiles_files_langs ${subdir} "
         all_gtfiles_files_files="$all_gtfiles_files_files ${f} "
 done
 
 check_languages=
-for language in $all_languages
+for language in $all_selected_languages
 do
-		check_languages="$check_languages check-$language"
+	check_languages="$check_languages check-$language"
 done
 
 # We link each language in with a set of hooks, reached indirectly via
-# lang.${target}.
+# lang.${target}.  Only do so for selected languages.
 
 rm -f Make-hooks
 touch Make-hooks
-target_list="all.build all.cross start.encap rest.encap tags \
-	install-normal install-common install-man \
+target_list="all.cross start.encap rest.encap tags \
+	install-common install-man install-info dvi pdf html \
 	uninstall info man srcextra srcman srcinfo \
 	mostlyclean clean distclean maintainer-clean \
 	stage1 stage2 stage3 stage4 stageprofile stagefeedback"
+
 for t in $target_list
 do
 	x=
-	for lang in $all_languages
+	for lang in $all_selected_languages
 	do
-			x="$x $lang.$t"
+		x="$x $lang.$t"
 	done
 	echo "lang.$t: $x" >> Make-hooks
 done
@@ -16480,7 +16409,38 @@ fi;
 objdir=`${PWDCMD-pwd}`
 
 
+
+# Check whether --with-datarootdir or --without-datarootdir was given.
+if test "${with_datarootdir+set}" = set; then
+  withval="$with_datarootdir"
+  datarootdir="\${prefix}/$with_datarootdir"
+else
+  datarootdir='$(prefix)/share'
+fi;
+
+
+
+# Check whether --with-docdir or --without-docdir was given.
+if test "${with_docdir+set}" = set; then
+  withval="$with_docdir"
+  docdir="\${prefix}/$with_docdir"
+else
+  docdir='$(datarootdir)'
+fi;
+
+
+
+# Check whether --with-htmldir or --without-htmldir was given.
+if test "${with_htmldir+set}" = set; then
+  withval="$with_htmldir"
+  htmldir="\${prefix}/$with_htmldir"
+else
+  htmldir='$(docdir)'
+fi;
+
+
 # Substitute configuration variables
+
 
 
 
@@ -17210,6 +17170,7 @@ s,@target_cpu@,$target_cpu,;t t
 s,@target_vendor@,$target_vendor,;t t
 s,@target_os@,$target_os,;t t
 s,@target_noncanonical@,$target_noncanonical,;t t
+s,@build_libsubdir@,$build_libsubdir,;t t
 s,@build_subdir@,$build_subdir,;t t
 s,@host_subdir@,$host_subdir,;t t
 s,@target_subdir@,$target_subdir,;t t
@@ -17226,6 +17187,7 @@ s,@OUTPUT_OPTION@,$OUTPUT_OPTION,;t t
 s,@CPP@,$CPP,;t t
 s,@EGREP@,$EGREP,;t t
 s,@strict1_warn@,$strict1_warn,;t t
+s,@cxx_compat_warn@,$cxx_compat_warn,;t t
 s,@warn_cflags@,$warn_cflags,;t t
 s,@WERROR@,$WERROR,;t t
 s,@nocommon_flag@,$nocommon_flag,;t t
@@ -17235,11 +17197,15 @@ s,@valgrind_path_defines@,$valgrind_path_defines,;t t
 s,@valgrind_command@,$valgrind_command,;t t
 s,@coverage_flags@,$coverage_flags,;t t
 s,@enable_multilib@,$enable_multilib,;t t
+s,@enable_decimal_float@,$enable_decimal_float,;t t
 s,@enable_shared@,$enable_shared,;t t
 s,@TARGET_SYSTEM_ROOT@,$TARGET_SYSTEM_ROOT,;t t
 s,@TARGET_SYSTEM_ROOT_DEFINE@,$TARGET_SYSTEM_ROOT_DEFINE,;t t
 s,@CROSS_SYSTEM_HEADER_DIR@,$CROSS_SYSTEM_HEADER_DIR,;t t
 s,@onestep@,$onestep,;t t
+s,@datarootdir@,$datarootdir,;t t
+s,@docdir@,$docdir,;t t
+s,@htmldir@,$htmldir,;t t
 s,@SET_MAKE@,$SET_MAKE,;t t
 s,@AWK@,$AWK,;t t
 s,@LN_S@,$LN_S,;t t
@@ -17280,6 +17246,10 @@ s,@XGETTEXT@,$XGETTEXT,;t t
 s,@GMSGFMT@,$GMSGFMT,;t t
 s,@POSUB@,$POSUB,;t t
 s,@CATALOGS@,$CATALOGS,;t t
+s,@DATADIRNAME@,$DATADIRNAME,;t t
+s,@INSTOBJEXT@,$INSTOBJEXT,;t t
+s,@GENCAT@,$GENCAT,;t t
+s,@CATOBJEXT@,$CATOBJEXT,;t t
 s,@host_cc_for_libada@,$host_cc_for_libada,;t t
 s,@CROSS@,$CROSS,;t t
 s,@ALL@,$ALL,;t t
@@ -17297,7 +17267,6 @@ s,@ORIGINAL_LD_FOR_TARGET@,$ORIGINAL_LD_FOR_TARGET,;t t
 s,@gcc_cv_nm@,$gcc_cv_nm,;t t
 s,@ORIGINAL_NM_FOR_TARGET@,$ORIGINAL_NM_FOR_TARGET,;t t
 s,@gcc_cv_objdump@,$gcc_cv_objdump,;t t
-s,@ORIGINAL_OBJDUMP_FOR_TARGET@,$ORIGINAL_OBJDUMP_FOR_TARGET,;t t
 s,@libgcc_visibility@,$libgcc_visibility,;t t
 s,@GGC@,$GGC,;t t
 s,@zlibdir@,$zlibdir,;t t
@@ -17317,12 +17286,14 @@ s,@all_gtfiles_files_files@,$all_gtfiles_files_files,;t t
 s,@all_lang_makefrags@,$all_lang_makefrags,;t t
 s,@all_lang_makefiles@,$all_lang_makefiles,;t t
 s,@all_languages@,$all_languages,;t t
+s,@all_selected_languages@,$all_selected_languages,;t t
 s,@all_stagestuff@,$all_stagestuff,;t t
 s,@build_exeext@,$build_exeext,;t t
 s,@build_install_headers_dir@,$build_install_headers_dir,;t t
 s,@build_xm_file_list@,$build_xm_file_list,;t t
 s,@build_xm_include_list@,$build_xm_include_list,;t t
 s,@build_xm_defines@,$build_xm_defines,;t t
+s,@build_file_translate@,$build_file_translate,;t t
 s,@check_languages@,$check_languages,;t t
 s,@cc_set_by_configure@,$cc_set_by_configure,;t t
 s,@quoted_cc_set_by_configure@,$quoted_cc_set_by_configure,;t t
@@ -17338,7 +17309,6 @@ s,@extra_programs@,$extra_programs,;t t
 s,@float_h_file@,$float_h_file,;t t
 s,@gcc_config_arguments@,$gcc_config_arguments,;t t
 s,@gcc_gxx_include_dir@,$gcc_gxx_include_dir,;t t
-s,@libstdcxx_incdir@,$libstdcxx_incdir,;t t
 s,@host_exeext@,$host_exeext,;t t
 s,@host_xm_file_list@,$host_xm_file_list,;t t
 s,@host_xm_include_list@,$host_xm_include_list,;t t

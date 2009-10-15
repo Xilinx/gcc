@@ -448,6 +448,37 @@ extern const char *pex_run (struct pex_obj *obj, int flags,
 			    const char *outname, const char *errname,
 			    int *err);
 
+/* As for pex_run (), but takes an extra parameter to enable the
+   environment for the child process to be specified.
+
+   ENV		The environment for the child process, specified as
+		an array of character pointers.  Each element of the
+		array should point to a string of the form VAR=VALUE,
+                with the exception of the last element which must be
+                a null pointer.
+*/
+
+extern const char *pex_run_in_environment (struct pex_obj *obj, int flags,
+			                   const char *executable,
+                                           char * const *argv,
+                                           char * const *env,
+              	          		   const char *outname,
+					   const char *errname, int *err);
+
+/* Return a stream for a temporary file to pass to the first program
+   in the pipeline as input.  The file name is chosen as for pex_run.
+   pex_run closes the file automatically; don't close it yourself.  */
+
+extern FILE *pex_input_file (struct pex_obj *obj, int flags,
+                             const char *in_name);
+
+/* Return a stream for a pipe connected to the standard input of the
+   first program in the pipeline.  You must have passed
+   `PEX_USE_PIPES' to `pex_init'.  Close the returned stream
+   yourself.  */
+
+extern FILE *pex_input_pipe (struct pex_obj *obj, int binary);
+
 /* Read the standard output of the last program to be executed.
    pex_run can not be called after this.  BINARY should be non-zero if
    the file should be opened in binary mode; this is ignored on Unix.

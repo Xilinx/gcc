@@ -1,19 +1,71 @@
-2007-02-13  Release Manager
+2008-05-19  Release Manager
 
-	* GCC 4.1.2 released.
+	* GCC 4.2.4 released.
 
-2006-05-24  Release Manager
+2008-02-01  Release Manager
 
-	* GCC 4.1.1 released.
+	* GCC 4.2.3 released.
 
-2006-02-28  Release Manager
+2007-10-07  Release Manager
 
-	* GCC 4.1.0 released.
+	* GCC 4.2.2 released.
+
+2007-07-19  Release Manager
+
+	* GCC 4.2.1 released.
+
+2007-05-13  Release Manager
+
+	* GCC 4.2.0 released.
+
+2006-10-14  Geoffrey Keating  <geoffk@apple.com>
+
+	* Makefile.in: Use multi_basedir instead of toplevel_srcdir.
+	* configure.ac: Use multi.m4 from aclocal rather than custom
+	code.  Use multi_basedir instead of toplevel_srcdir.
+	* aclocal.m4: Regenerate.
+	* configure: Regenerate.
+
+2006-10-10  Brooks Moses  <bmoses@stanford.edu>
+
+	* Makefile.in: Added empty "pdf" target.
+
+2006-07-18  Paolo Bonzini  <bonzini@gnu.org>
+
+	* configure: Regenerate.
+
+2006-05-23  Carlos O'Donell  <carlos@codesourcery.com>
+
+	* Makefile.in: Add install-html target. Add install-html to .PHONY
 
 2006-02-21  Rainer Orth  <ro@TechFak.Uni-Bielefeld.DE>
 
 	PR libobjc/26309
 	* thr-objc.c (_XOPEN_SOURCE): Don't define on Tru64 UNIX.
+
+2006-01-24  David Ayers  <d.ayers@inode.at>
+
+	PR libobjc/9751
+	* gc.c (class_ivar_set_gcinvisible): Replace strncpy with memcpy
+	and insure the new strings are '\0' termintated.
+
+2006-01-24  David Ayers  <d.ayers@inode.at>
+
+	PR libobjc/13946
+	* configure.ac: Add include directives for --enable-objc-gc.
+	* Makefile.in: Ditto.
+	* configure: Regenerate.
+
+	* gc.c (__objc_class_structure_encoding): Increment the used bytes
+	instead of the local pointer to them.
+
+2005-12-14  Andrew Pinski  <pinskia@physics.uc.edu>
+
+	PR objc/25360
+	* objc/objc-api.c (_C_COMPLEX): New define.
+	* encoding.c (objc_sizeof_type): Handle _C_Complex.
+	(objc_alignof_type): Likewise.
+	(objc_skip_typespec): Likewise.
 
 2005-12-15  David Ayers  <d.ayers@inode.at>
 
@@ -21,6 +73,43 @@
 	* README (+load,+initialize): Fix documentation to reflect
 	intended and implemented semantics for +load and +initialize.
 	
+2005-12-12  Andrew Pinski  <pinskia@physics.uc.edu>
+
+	* encoding.c (TYPE_FIELDS): Fix to skip over just _C_STRUCT_B and
+	the name.
+	(get_inner_array_type): Fix to skip over _C_ARY_B and size.
+	(rs6000_special_round_type_align): Update for the ABI fix.
+	(objc_layout_finish_structure): Correct the encoding which is passed to
+	ROUND_TYPE_ALIGN.
+
+2005-12-11  Andrew Pinski  <pinskia@physics.uc.edu>
+
+	PR libobjc/25347
+	* encoding.c (objc_sizeof_type): Don't handle _C_UNION_B special
+	but use the struct layout functions.
+	(objc_alignof_type): Likewise.
+	(objc_layout_structure): Handle _C_UNION_B also.
+	(objc_layout_structure_next_member): Likewise.
+	(objc_layout_finish_structure): Likewise.
+
+2005-12-11  Andrew Pinski  <pinskia@physics.uc.edu>
+
+	PR libobjc/25346
+	* objc/objc-api.h (_C_BOOL): New define.
+	* encoding.c (objc_sizeof_type): Handle _C_BOOL.
+	(objc_alignof_type): Likewise.
+	(objc_skip_typespec): Likewise.
+
+2005-11-20  David Ayers  <d.ayers@inode.at>
+
+	PR libobjc/19024
+	* objc/hash.h: Remove deprecated hash API.
+	* hash_compat.c: Remove.
+	* Makefile.in: Remove reference to hash_compat.c.
+
+	* configure.ac (VERSION): Bump library version to 2:0:0.
+	* configure: Regenerate.
+
 2005-11-09  Alexandre Oliva  <aoliva@redhat.com>
 
 	PR other/4372

@@ -28,6 +28,10 @@
 // invalidate any other reasons why the executable file might be covered by
 // the GNU General Public License.
 
+/** @file debug/set.h
+ *  This file is a GNU debug extension to the Standard C++ Library.
+ */
+
 #ifndef _GLIBCXX_DEBUG_SET_H
 #define _GLIBCXX_DEBUG_SET_H 1
 
@@ -35,7 +39,9 @@
 #include <debug/safe_iterator.h>
 #include <utility>
 
-namespace __gnu_debug_def
+namespace std 
+{
+namespace __debug
 {
   template<typename _Key, typename _Compare = std::less<_Key>,
 	   typename _Allocator = std::allocator<_Key> >
@@ -320,6 +326,7 @@ namespace __gnu_debug_def
     swap(set<_Key,_Compare,_Allocator>& __x,
 	 set<_Key,_Compare,_Allocator>& __y)
     { return __x.swap(__y); }
-} // namespace __gnu_debug_def
+} // namespace __debug
+} // namespace std
 
 #endif

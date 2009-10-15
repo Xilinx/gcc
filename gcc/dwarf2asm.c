@@ -1,11 +1,11 @@
 /* Dwarf2 assembler output helper routines.
-   Copyright (C) 2001, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -14,9 +14,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 
 #include "config.h"
@@ -69,13 +68,17 @@ dw2_asm_output_data (int size, unsigned HOST_WIDE_INT value,
 		     const char *comment, ...)
 {
   va_list ap;
+  const char *op = integer_asm_op (size, FALSE);
 
   va_start (ap, comment);
 
   if (size * 8 < HOST_BITS_PER_WIDE_INT)
     value &= ~(~(unsigned HOST_WIDE_INT) 0 << (size * 8));
 
-  dw2_assemble_integer (size, GEN_INT (value));
+  if (op)
+    fprintf (asm_out_file, "%s" HOST_WIDE_INT_PRINT_HEX, op, value);
+  else
+    assemble_integer (GEN_INT (value), size, BITS_PER_UNIT, 1);
 
   if (flag_debug_asm && comment)
     {
@@ -119,14 +122,16 @@ dw2_asm_output_delta (int size, const char *lab1, const char *lab2,
   va_end (ap);
 }
 
-/* Output a section-relative reference to a label.  In general this
-   can only be done for debugging symbols.  E.g. on most targets with
-   the GNU linker, this is accomplished with a direct reference and
-   the knowledge that the debugging section will be placed at VMA 0.
-   Some targets have special relocations for this that we must use.  */
+/* Output a section-relative reference to a LABEL, which was placed in
+   BASE.  In general this can only be done for debugging symbols.
+   E.g. on most targets with the GNU linker, this is accomplished with
+   a direct reference and the knowledge that the debugging section
+   will be placed at VMA 0.  Some targets have special relocations for
+   this that we must use.  */
 
 void
 dw2_asm_output_offset (int size, const char *label,
+		       section *base ATTRIBUTE_UNUSED,
 		       const char *comment, ...)
 {
   va_list ap;
@@ -134,7 +139,7 @@ dw2_asm_output_offset (int size, const char *label,
   va_start (ap, comment);
 
 #ifdef ASM_OUTPUT_DWARF_OFFSET
-  ASM_OUTPUT_DWARF_OFFSET (asm_out_file, size, label);
+  ASM_OUTPUT_DWARF_OFFSET (asm_out_file, size, label, base);
 #else
   dw2_assemble_integer (size, gen_rtx_SYMBOL_REF (Pmode, label));
 #endif

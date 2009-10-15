@@ -1,5 +1,5 @@
 /* BasicLabelUI.java
- Copyright (C) 2002, 2004 Free Software Foundation, Inc.
+ Copyright (C) 2002, 2004, 2006, Free Software Foundation, Inc.
 
  This file is part of GNU Classpath.
 
@@ -38,22 +38,29 @@
 package javax.swing.plaf.basic;
 
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Dimension;
-import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Insets;
 import java.awt.Rectangle;
+import java.awt.event.ActionEvent;
+import java.awt.event.KeyEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 
+import javax.swing.AbstractAction;
+import javax.swing.ActionMap;
 import javax.swing.Icon;
+import javax.swing.InputMap;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
+import javax.swing.KeyStroke;
 import javax.swing.LookAndFeel;
 import javax.swing.SwingUtilities;
 import javax.swing.plaf.ComponentUI;
 import javax.swing.plaf.LabelUI;
+import javax.swing.text.View;
 
 /**
  * This is the Basic Look and Feel class for the JLabel.  One BasicLabelUI
@@ -65,11 +72,22 @@ public class BasicLabelUI extends LabelUI implements PropertyChangeListener
   protected static BasicLabelUI labelUI;
 
   /**
+   * These fields hold the rectangles for the whole label,
+   * the icon and the text.
+   */
+  private Rectangle vr;
+  private Rectangle ir;
+  private Rectangle tr;
+
+  /**
    * Creates a new BasicLabelUI object.
    */
   public BasicLabelUI()
   {
     super();
+    vr = new Rectangle();
+    ir = new Rectangle();
+    tr = new Rectangle();
   }
 
   /**
@@ -100,13 +118,11 @@ public class BasicLabelUI extends LabelUI implements PropertyChangeListener
   public Dimension getPreferredSize(JComponent c)
   {
     JLabel lab = (JLabel) c;
-    Rectangle vr = new Rectangle();
-    Rectangle ir = new Rectangle();
-    Rectangle tr = new Rectangle();
     Insets insets = lab.getInsets();
-    FontMetrics fm = lab.getToolkit().getFontMetrics(lab.getFont());
+    FontMetrics fm = lab.getFontMetrics(lab.getFont());
     layoutCL(lab, fm, lab.getText(), lab.getIcon(), vr, ir, tr);
-    Rectangle cr = tr.union(ir);
+    Rectangle cr = SwingUtilities.computeUnion(tr.x, tr.y, tr.width, tr.height,
+                                               ir);
     return new Dimension(insets.left + cr.width + insets.right, insets.top
         + cr.height + insets.bottom);
 
@@ -149,18 +165,7 @@ public class BasicLabelUI extends LabelUI implements PropertyChangeListener
   public void paint(Graphics g, JComponent c)
   {
     JLabel b = (JLabel) c;
-
-    Font saved_font = g.getFont();
-
-    Rectangle tr = new Rectangle();
-    Rectangle ir = new Rectangle();
-    Rectangle vr = new Rectangle();
-
-    Font f = c.getFont();
-
-    g.setFont(f);
-    FontMetrics fm = g.getFontMetrics(f);
-
+    FontMetrics fm = g.getFontMetrics();
     vr = SwingUtilities.calculateInnerArea(c, vr);
 
     if (vr.width < 0)
@@ -175,15 +180,21 @@ public class BasicLabelUI extends LabelUI implements PropertyChangeListener
     if (icon != null)
       icon.paintIcon(b, g, ir.x, ir.y);        
 
-    if (text != null && !text.equals(""))
-    {
-      if (b.isEnabled())
-        paintEnabledText(b, g, text, tr.x, tr.y + fm.getAscent());
-      else
-        paintDisabledText(b, g, text, tr.x, tr.y + fm.getAscent());
-    }
-
-    g.setFont(saved_font);
+    Object htmlRenderer = b.getClientProperty(BasicHTML.propertyKey);
+    if (htmlRenderer == null)
+      {
+        if (text != null && !text.equals(""))
+          {
+            if (b.isEnabled())
+              paintEnabledText(b, g, text, tr.x, tr.y + fm.getAscent());
+            else
+              paintDisabledText(b, g, text, tr.x, tr.y + fm.getAscent());
+          }
+      }
+    else
+      {
+        ((View) htmlRenderer).paint(g, tr);
+      }
   }
 
   /**
@@ -321,7 +332,7 @@ public class BasicLabelUI extends LabelUI implements PropertyChangeListener
    */
   protected void installComponents(JLabel c)
   {
-    //FIXME: fix javadoc + implement.
+    BasicHTML.updateRenderer(c, c.getText());
   }
 
   /**
@@ -331,7 +342,8 @@ public class BasicLabelUI extends LabelUI implements PropertyChangeListener
    */
   protected void uninstallComponents(JLabel c)
   {
-    //FIXME: fix javadoc + implement.
+    c.putClientProperty(BasicHTML.propertyKey, null);
+    c.putClientProperty(BasicHTML.documentBaseKey, null);
   }
 
   /**
@@ -362,13 +374,39 @@ public class BasicLabelUI extends LabelUI implements PropertyChangeListener
   }
 
   /**
-   * This method installs the keyboard actions for the given {@link JLabel}.
+   * Installs the keyboard actions for the given {@link JLabel}.
    *
    * @param l The {@link JLabel} to install keyboard actions for.
    */
   protected void installKeyboardActions(JLabel l)
   {
-    //FIXME: implement.
+    Component c = l.getLabelFor();
+    if (c != null)
+      {
+        int mnemonic = l.getDisplayedMnemonic();
+        if (mnemonic > 0)
+          {
+            // add a keystroke for the given mnemonic mapping to 'press';
+            InputMap keyMap = new InputMap();
+            keyMap.put(KeyStroke.getKeyStroke(mnemonic, KeyEvent.VK_ALT), 
+                "press");
+            SwingUtilities.replaceUIInputMap(l, 
+                JComponent.WHEN_IN_FOCUSED_WINDOW, keyMap);
+            
+            // add an action to focus the component when 'press' happens
+            ActionMap map = new ActionMap();
+            map.put("press", new AbstractAction() {
+              public void actionPerformed(ActionEvent event)
+              {
+                JLabel label = (JLabel) event.getSource();
+                Component c = label.getLabelFor();
+                if (c != null)
+                  c.requestFocus();
+              }
+            });
+            SwingUtilities.replaceUIActionMap(l, map);
+          }
+      }   
   }
 
   /**
@@ -378,7 +416,9 @@ public class BasicLabelUI extends LabelUI implements PropertyChangeListener
    */
   protected void uninstallKeyboardActions(JLabel l)
   {
-    //FIXME: implement.
+    SwingUtilities.replaceUIActionMap(l, null);
+    SwingUtilities.replaceUIInputMap(l, JComponent.WHEN_IN_FOCUSED_WINDOW, 
+                                     null);
   }
 
   /**
@@ -411,6 +451,36 @@ public class BasicLabelUI extends LabelUI implements PropertyChangeListener
    */
   public void propertyChange(PropertyChangeEvent e)
   {
-    // What to do here?
+    if (e.getPropertyName().equals("text"))
+      {
+        String text = (String) e.getNewValue();
+        JLabel l = (JLabel) e.getSource();
+        BasicHTML.updateRenderer(l, text);
+      }
+    else if (e.getPropertyName().equals("displayedMnemonic"))
+      {
+        // update the key to action mapping
+        JLabel label = (JLabel) e.getSource();
+        if (label.getLabelFor() != null)
+          {
+            int oldMnemonic = ((Integer) e.getOldValue()).intValue();
+            int newMnemonic = ((Integer) e.getNewValue()).intValue();
+            InputMap keyMap = label.getInputMap(
+                JComponent.WHEN_IN_FOCUSED_WINDOW);
+            keyMap.put(KeyStroke.getKeyStroke(oldMnemonic, 
+                KeyEvent.ALT_DOWN_MASK), null);
+            keyMap.put(KeyStroke.getKeyStroke(newMnemonic, 
+                KeyEvent.ALT_DOWN_MASK), "press");
+          }
+      }
+    else if (e.getPropertyName().equals("labelFor"))
+      {
+        JLabel label = (JLabel) e.getSource();
+        InputMap keyMap = label.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
+        int mnemonic = label.getDisplayedMnemonic();
+        if (mnemonic > 0)
+          keyMap.put(KeyStroke.getKeyStroke(mnemonic, KeyEvent.ALT_DOWN_MASK), 
+              "press");       
+      }
   }
 }

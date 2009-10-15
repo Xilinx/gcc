@@ -1,5 +1,5 @@
 /* GtkPanelPeer.java -- Implements PanelPeer with GTK
-   Copyright (C) 1998, 1999 Free Software Foundation, Inc.
+   Copyright (C) 1998, 1999, 2006 Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -53,17 +53,14 @@ public class GtkPanelPeer extends GtkContainerPeer
     super (p);
   }
 
-  public void handleEvent (AWTEvent event)
+  public void handleEvent(AWTEvent event)
   {
     int id = event.getID();
 
-    switch (id)
-      {
-      case MouseEvent.MOUSE_PRESSED:
-        awtComponent.requestFocusInWindow ();
-        break;
-      }
-    super.handleEvent (event);
+    if (id == MouseEvent.MOUSE_PRESSED)
+      awtComponent.requestFocusInWindow();
+    
+    super.handleEvent(event);
   }
 
   native void connectSignals ();

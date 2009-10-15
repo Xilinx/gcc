@@ -1,12 +1,13 @@
 /* Supporting functions for resolving DATA statement.
-   Copyright (C) 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2002, 2003, 2004, 2005, 2007
+   Free Software Foundation, Inc.
    Contributed by Lifang Zeng <zlf605@hotmail.com>
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,9 +16,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor,Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 
 /* Notes for DATA statement implementation:
@@ -245,7 +245,7 @@ gfc_assign_data_value (gfc_expr * lvalue, gfc_expr * rvalue, mpz_t index)
       /* Break out of the loop if we find a substring.  */
       if (ref->type == REF_SUBSTRING)
 	{
-	  /* A substring should always br the last subobject reference.  */
+	  /* A substring should always be the last subobject reference.  */
 	  gcc_assert (ref->next == NULL);
 	  break;
 	}
@@ -344,11 +344,16 @@ gfc_assign_data_value (gfc_expr * lvalue, gfc_expr * rvalue, mpz_t index)
 	  /* Order in which the expressions arrive here depends on whether they
 	     are from data statements or F95 style declarations. Therefore,
 	     check which is the most recent.  */
+#ifdef USE_MAPPED_LOCATION
+	  expr = (LOCATION_LINE (init->where.lb->location)
+		  > LOCATION_LINE (rvalue->where.lb->location))
+	    ? init : rvalue;
+#else
 	  expr = (init->where.lb->linenum > rvalue->where.lb->linenum) ?
 		    init : rvalue;
+#endif
 	  gfc_notify_std (GFC_STD_GNU, "Extension: re-initialization "
 			  "of '%s' at %L",  symbol->name, &expr->where);
-	  return;
 	}
 
       expr = gfc_copy_expr (rvalue);

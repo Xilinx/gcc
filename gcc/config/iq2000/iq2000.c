@@ -1,11 +1,11 @@
 /* Subroutines used for code generation on Vitesse IQ2000 processors
-   Copyright (C) 2003, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -14,9 +14,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -154,7 +153,8 @@ static enum machine_mode gpr_mode;
 /* Initialize the GCC target structure.  */
 static struct machine_function* iq2000_init_machine_status (void);
 static bool iq2000_handle_option      (size_t, const char *, int);
-static void iq2000_select_rtx_section (enum machine_mode, rtx, unsigned HOST_WIDE_INT);
+static section *iq2000_select_rtx_section (enum machine_mode, rtx,
+					   unsigned HOST_WIDE_INT);
 static void iq2000_init_builtins      (void);
 static rtx  iq2000_expand_builtin     (tree, rtx, rtx, enum machine_mode, int);
 static bool iq2000_return_in_memory   (tree, tree);
@@ -163,7 +163,7 @@ static void iq2000_setup_incoming_varargs (CUMULATIVE_ARGS *,
 					   int);
 static bool iq2000_rtx_costs          (rtx, int, int, int *);
 static int  iq2000_address_cost       (rtx);
-static void iq2000_select_section     (tree, int, unsigned HOST_WIDE_INT);
+static section *iq2000_select_section (tree, int, unsigned HOST_WIDE_INT);
 static bool iq2000_return_in_memory   (tree, tree);
 static bool iq2000_pass_by_reference  (CUMULATIVE_ARGS *, enum machine_mode,
 				       tree, bool);
@@ -184,6 +184,11 @@ static int  iq2000_arg_partial_bytes  (CUMULATIVE_ARGS *, enum machine_mode,
 #define TARGET_ADDRESS_COST		iq2000_address_cost
 #undef  TARGET_ASM_SELECT_SECTION
 #define TARGET_ASM_SELECT_SECTION	iq2000_select_section
+
+/* The assembler supports switchable .bss sections, but
+   iq2000_select_section doesn't yet make use of them.  */
+#undef  TARGET_HAVE_SWITCHABLE_BSS_SECTIONS
+#define TARGET_HAVE_SWITCHABLE_BSS_SECTIONS false
 
 #undef  TARGET_PROMOTE_FUNCTION_ARGS
 #define TARGET_PROMOTE_FUNCTION_ARGS	hook_bool_tree_true
@@ -2146,15 +2151,13 @@ symbolic_expression_p (rtx x)
 /* Choose the section to use for the constant rtx expression X that has
    mode MODE.  */
 
-static void
+static section *
 iq2000_select_rtx_section (enum machine_mode mode, rtx x ATTRIBUTE_UNUSED,
 			   unsigned HOST_WIDE_INT align)
 {
   /* For embedded applications, always put constants in read-only data,
      in order to reduce RAM usage.  */
-      /* For embedded applications, always put constants in read-only data,
-         in order to reduce RAM usage.  */
-  mergeable_constant_section (mode, align, 0);
+  return mergeable_constant_section (mode, align, 0);
 }
 
 /* Choose the section to use for DECL.  RELOC is true if its value contains
@@ -2164,7 +2167,7 @@ iq2000_select_rtx_section (enum machine_mode mode, rtx x ATTRIBUTE_UNUSED,
    ENCODE_SECTION_INFO in iq2000.h so that references to these symbols
    are done correctly.  */
 
-static void
+static section *
 iq2000_select_section (tree decl, int reloc ATTRIBUTE_UNUSED,
 		       unsigned HOST_WIDE_INT align ATTRIBUTE_UNUSED)
 {
@@ -2179,9 +2182,9 @@ iq2000_select_section (tree decl, int reloc ATTRIBUTE_UNUSED,
 	       || TREE_CONSTANT (DECL_INITIAL (decl))))
 	  /* Deal with calls from output_constant_def_contents.  */
 	  || TREE_CODE (decl) != VAR_DECL)
-	readonly_data_section ();
+	return readonly_data_section;
       else
-	data_section ();
+	return data_section;
     }
   else
     {
@@ -2194,9 +2197,9 @@ iq2000_select_section (tree decl, int reloc ATTRIBUTE_UNUSED,
 	       || TREE_CONSTANT (DECL_INITIAL (decl))))
 	  /* Deal with calls from output_constant_def_contents.  */
 	  || TREE_CODE (decl) != VAR_DECL)
-	readonly_data_section ();
+	return readonly_data_section;
       else
-	data_section ();
+	return data_section;
     }
 }
 /* Return register to use for a function return value with VALTYPE for function

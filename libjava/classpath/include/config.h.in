@@ -6,8 +6,8 @@
 /* Define to 1 if you want native library runtime debugging code enabled */
 #undef DEBUG
 
-/* defined if cairo support was built in */
-#undef GTK_CAIRO
+/* Define to enable support for local sockets. */
+#undef ENABLE_LOCAL_SOCKETS
 
 /* Define to 1 if you have the `accept' function. */
 #undef HAVE_ACCEPT
@@ -96,8 +96,14 @@
 /* Define to 1 if you have the `lseek' function. */
 #undef HAVE_LSEEK
 
+/* Define to 1 if you have the `lstat' function. */
+#undef HAVE_LSTAT
+
 /* Define to 1 if you have the `madvise' function. */
 #undef HAVE_MADVISE
+
+/* Define to 1 if you have the <magic.h> header file. */
+#undef HAVE_MAGIC_H
 
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
@@ -129,6 +135,9 @@
 /* Define to 1 if you have the `read' function. */
 #undef HAVE_READ
 
+/* Define to 1 if you have the `readlink' function. */
+#undef HAVE_READLINK
+
 /* Define to 1 if you have the `recvfrom' function. */
 #undef HAVE_RECVFROM
 
@@ -143,6 +152,9 @@
 
 /* Define to 1 if you have the `setsockopt' function. */
 #undef HAVE_SETSOCKOPT
+
+/* Define to 1 if you have the `shutdown' function. */
+#undef HAVE_SHUTDOWN
 
 /* Define to 1 if you have the `socket' function. */
 #undef HAVE_SOCKET
@@ -224,6 +236,12 @@
 /* Define to 1 if you have the `write' function. */
 #undef HAVE_WRITE
 
+/* Define to 1 if you have libXrandr. */
+#undef HAVE_XRANDR
+
+/* Define to 1 if you have libXrender. */
+#undef HAVE_XRENDER
+
 /* Define if the host machine stores words of multi-word integers in
    big-endian order. */
 #undef HOST_WORDS_BIG_ENDIAN
@@ -252,6 +270,21 @@
 /* Define if you want to synchronize VM threads portably by default; undef
    otherwise */
 #undef PORTABLE_NATIVE_SYNC
+
+/* The size of a `char', as computed by sizeof. */
+#undef SIZEOF_CHAR
+
+/* The size of a `int', as computed by sizeof. */
+#undef SIZEOF_INT
+
+/* The size of a `long', as computed by sizeof. */
+#undef SIZEOF_LONG
+
+/* The size of a `short', as computed by sizeof. */
+#undef SIZEOF_SHORT
+
+/* The size of a `void*', as computed by sizeof. */
+#undef SIZEOF_VOIDP
 
 /* The number of bytes in type void * */
 #undef SIZEOF_VOID_P

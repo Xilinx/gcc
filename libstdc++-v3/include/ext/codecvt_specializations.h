@@ -1,6 +1,6 @@
 // Locale support (codecvt) -*- C++ -*-
 
-// Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005
+// Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006
 //  Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -34,16 +34,26 @@
 
 // Written by Benjamin Kosnik <bkoz@redhat.com>
 
-/** @file bits/codecvt_specializations.h
+/** @file ext/codecvt_specializations.h
  *  This file is a GNU extension to the Standard C++ Library.
  */
+
+#ifndef _EXT_CODECVT_SPECIALIZATIONS_H
+#define _EXT_CODECVT_SPECIALIZATIONS_H 1
+
+#include <bits/c++config.h>
+
+#ifdef _GLIBCXX_USE_ICONV
+
+#include <locale>
+#include <iconv.h>
 
   // XXX
   // Define this here so codecvt.cc can have _S_max_size definition.
 #define _GLIBCXX_USE_ENCODING_STATE 1
 
-namespace __gnu_cxx
-{
+_GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
+
   /// @brief  Extension to use icov for dealing with character encodings.
   // This includes conversions and comparisons between various character
   // sets.  This object encapsulates data that may need to be shared between
@@ -118,7 +128,7 @@ namespace __gnu_cxx
     bool
     good() const throw()
     { 
-      const descriptor_type __err = reinterpret_cast<iconv_t>(-1);
+      const descriptor_type __err = (iconv_t)(-1);
       bool __test = _M_in_desc && _M_in_desc != __err; 
       __test &=  _M_out_desc && _M_out_desc != __err;
       return __test;
@@ -156,7 +166,7 @@ namespace __gnu_cxx
     void
     init()
     {
-      const descriptor_type __err = reinterpret_cast<iconv_t>(-1);
+      const descriptor_type __err = (iconv_t)(-1);
       const bool __have_encodings = _M_int_enc.size() && _M_ext_enc.size();
       if (!_M_in_desc && __have_encodings)
 	{
@@ -189,7 +199,7 @@ namespace __gnu_cxx
     void
     destroy() throw()
     {
-      const descriptor_type __err = reinterpret_cast<iconv_t>(-1);
+      const descriptor_type __err = (iconv_t)(-1);
       if (_M_in_desc && _M_in_desc != __err) 
 	{
 	  iconv_close(_M_in_desc);
@@ -213,10 +223,12 @@ namespace __gnu_cxx
       typedef encoding_state				state_type;
       typedef typename std::fpos<state_type>		pos_type;
     };
-} // namespace __gnu_cxx
 
-namespace std
-{
+_GLIBCXX_END_NAMESPACE
+
+
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
   using __gnu_cxx::encoding_state;
 
   /// @brief  codecvt<InternT, _ExternT, encoding_state> specialization.
@@ -289,12 +301,12 @@ namespace std
   // argument to iconv():  SUSv2 and others use 'const char**', but glibc 2.2
   // uses 'char**', which matches the POSIX 1003.1-2001 standard.
   // Using this adaptor, g++ will do the work for us.
-  template<typename _T>
+  template<typename _Tp>
     inline size_t
-    __iconv_adaptor(size_t(*__func)(iconv_t, _T, size_t*, char**, size_t*),
+    __iconv_adaptor(size_t(*__func)(iconv_t, _Tp, size_t*, char**, size_t*),
                     iconv_t __cd, char** __inbuf, size_t* __inbytes,
                     char** __outbuf, size_t* __outbytes)
-    { return __func(__cd, (_T)__inbuf, __inbytes, __outbuf, __outbytes); }
+    { return __func(__cd, (_Tp)__inbuf, __inbytes, __outbuf, __outbytes); }
 
   template<typename _InternT, typename _ExternT>
     codecvt_base::result
@@ -501,5 +513,9 @@ namespace std
     codecvt<_InternT, _ExternT, encoding_state>::
     do_max_length() const throw()
     { return 1; }
-} // namespace std
 
+_GLIBCXX_END_NAMESPACE
+
+#endif
+
+#endif

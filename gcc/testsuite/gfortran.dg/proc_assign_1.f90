@@ -11,11 +11,10 @@ function ext1 ()
     ext1 = 1
     entry ext2 (arg)
     ext2 = arg
-! gcc-4.2 version contains this:
-!contains
-!    subroutine int_1 ()
-!        ext1 = arg * arg     ! OK - host associated.
-!    end subroutine int_1
+contains
+    subroutine int_1 ()
+        ext1 = arg * arg     ! OK - host associated.
+    end subroutine int_1
 end function ext1
 
 module simple
@@ -50,12 +49,12 @@ end module simpler
     use simpler
     real w, stmt_fcn
     interface
-	function ext1 ()
-	    integer ext1
-	end function ext1
-	function ext2 (arg)
-	    integer ext2, arg
-	end function ext2
+        function ext1 ()
+            integer ext1
+        end function ext1
+        function ext2 (arg)
+            integer ext2, arg
+        end function ext2
     end interface
     stmt_fcn (w) = sin (w)     
     call x (y ())

@@ -39,14 +39,17 @@ exception statement from your version. */
 package javax.swing.plaf.metal;
 
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Rectangle;
 
 import javax.swing.AbstractButton;
+import javax.swing.ButtonModel;
 import javax.swing.JButton;
 import javax.swing.JComponent;
+import javax.swing.JToolBar;
 import javax.swing.SwingConstants;
 import javax.swing.UIManager;
 import javax.swing.plaf.ComponentUI;
@@ -120,7 +123,8 @@ public class MetalButtonUI
    * 
    * @return A new instance of <code>MetalButtonUI</code>.
    */
-  public static ComponentUI createUI(JComponent c) {
+  public static ComponentUI createUI(JComponent c) 
+  {
     return new MetalButtonUI();
   }
 
@@ -160,8 +164,8 @@ public class MetalButtonUI
   }    
 
   /**
-   * Paints the background of the button to indicate that it is in the "pressed"
-   * state.
+   * Paints the background of the button to indicate that it is in the
+   * "pressed" state.
    * 
    * @param g  the graphics context.
    * @param b  the button.
@@ -186,7 +190,8 @@ public class MetalButtonUI
    * @param iconRect  the icon bounds.
    */
   protected void paintFocus(Graphics g, AbstractButton b, Rectangle viewRect,
-          Rectangle textRect, Rectangle iconRect) {
+          Rectangle textRect, Rectangle iconRect) 
+  {
     if (b.isEnabled() && b.hasFocus() && b.isFocusPainted())
     {
       Color savedColor = g.getColor();
@@ -234,15 +239,61 @@ public class MetalButtonUI
   public void update(Graphics g, JComponent c)
   {
     AbstractButton b = (AbstractButton) c;
-    if (b.isOpaque() && UIManager.get(getPropertyPrefix() + "gradient") != null
-        && !b.getModel().isPressed() && b.isEnabled())
+    if ((b.getBackground() instanceof UIResource)
+        && b.isContentAreaFilled() && b.isEnabled())
       {
-        MetalUtils.paintGradient(g, 0, 0, c.getWidth(), c.getHeight(),
-                                 SwingConstants.VERTICAL,
-                                 getPropertyPrefix() + "gradient");
-        paint(g, c);
+        ButtonModel m = b.getModel();
+        String uiKey = "Button.gradient";
+        if (! isToolbarButton(b))
+          {
+            if (! m.isArmed() && ! m.isPressed() && isDrawingGradient(uiKey))
+              {
+                MetalUtils.paintGradient(g, 0, 0, b.getWidth(), b.getHeight(),
+                                         SwingConstants.VERTICAL,
+                                         uiKey);
+                paint(g, c);
+                return;
+              }
+          }
+        else if (m.isRollover() && isDrawingGradient(uiKey))
+          {
+            MetalUtils.paintGradient(g, 0, 0, b.getWidth(), b.getHeight(),
+                                     SwingConstants.VERTICAL,
+                                     uiKey);
+            paint(g, c);
+            return;
+          }
       }
-    else
-      super.update(g, c);
+    // Fallback if we didn't have any of the two above cases.
+    super.update(g, c);
+  }
+
+  /**
+   * Returns <code>true</code> when the button is a toolbar button,
+   * <code>false</code> otherwise.
+   *
+   * @param b the button component to test
+   *
+   * @return <code>true</code> when the button is a toolbar button,
+   *         <code>false</code> otherwise
+   */
+  private boolean isToolbarButton(Component b)
+  {
+    Component parent = b.getParent();
+    return parent instanceof JToolBar;
+  }
+
+  /**
+   * Returns <code>true</code> if we should draw the button gradient,
+   * <code>false</code> otherwise.
+   *
+   * @param uiKey the UIManager key for the gradient
+   *
+   * @return <code>true</code> if we should draw the button gradient,
+   *         <code>false</code> otherwise
+   */
+  private boolean isDrawingGradient(String uiKey)
+  {
+    return (UIManager.get(uiKey) != null);
   }
 }

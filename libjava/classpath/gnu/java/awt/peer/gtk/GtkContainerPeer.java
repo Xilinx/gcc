@@ -1,5 +1,5 @@
 /* GtkContainerPeer.java -- Implements ContainerPeer with GTK
-   Copyright (C) 1998, 1999 Free Software Foundation, Inc.
+   Copyright (C) 1998, 1999, 2006 Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -42,10 +42,7 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
 import java.awt.Font;
-import java.awt.Graphics;
 import java.awt.Insets;
-import java.awt.Window;
-import java.awt.peer.ComponentPeer;
 import java.awt.peer.ContainerPeer;
 
 public class GtkContainerPeer extends GtkComponentPeer
@@ -65,29 +62,6 @@ public class GtkContainerPeer extends GtkComponentPeer
 
   public void endValidate ()
   {
-    Component parent = awtComponent.getParent ();
-
-    // Only set our parent on the GTK side if our parent on the AWT
-    // side is not showing.  Otherwise the gtk peer will be shown
-    // before we've had a chance to position and size it properly.
-    if (parent != null && parent.isShowing ())
-      {
-        Component[] components = ((Container) awtComponent).getComponents ();
-        int ncomponents = components.length;
-
-        for (int i = 0; i < ncomponents; i++)
-          {
-            ComponentPeer peer = components[i].getPeer ();
-
-            // Skip lightweight peers.
-            if (peer instanceof GtkComponentPeer)
-              ((GtkComponentPeer) peer).setParentAndBounds ();
-          }
-
-        // GTK windows don't have parents.
-        if (!(awtComponent instanceof Window))
-          setParentAndBounds ();
-      }
   }
 
   public Insets getInsets() 
@@ -120,11 +94,6 @@ public class GtkContainerPeer extends GtkComponentPeer
               peer.setFont(f);
           }
       }
-  }
-
-  public Graphics getGraphics ()
-  {
-    return super.getGraphics();
   }
 
   public void beginLayout () { }

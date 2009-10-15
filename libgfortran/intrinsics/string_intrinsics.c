@@ -44,9 +44,6 @@ Boston, MA 02110-1301, USA.  */
 
 /* String functions.  */
 
-extern void copy_string (GFC_INTEGER_4, char *, GFC_INTEGER_4, const char *);
-export_proto(copy_string);
-
 extern void concat_string (GFC_INTEGER_4, char *,
 			   GFC_INTEGER_4, const char *,
 			   GFC_INTEGER_4, const char *);
@@ -79,26 +76,6 @@ export_proto(string_trim);
 extern void string_repeat (char *, GFC_INTEGER_4, const char *, GFC_INTEGER_4);
 export_proto(string_repeat);
 
-/* The two areas may overlap so we use memmove.  */
-
-void
-copy_string (GFC_INTEGER_4 destlen, char * dest,
-	     GFC_INTEGER_4 srclen, const char * src)
-{
-  if (srclen >= destlen)
-    {
-      /* This will truncate if too long.  */
-      memmove (dest, src, destlen);
-    }
-  else
-    {
-      memmove (dest, src, srclen);
-      /* Pad with spaces.  */
-      memset (&dest[srclen], ' ', destlen - srclen);
-    }
-}
-
-
 /* Strings of unequal length are extended with pad characters.  */
 
 GFC_INTEGER_4
@@ -106,7 +83,7 @@ compare_string (GFC_INTEGER_4 len1, const char * s1,
 		GFC_INTEGER_4 len2, const char * s2)
 {
   int res;
-  const char *s;
+  const unsigned char *s;
   int len;
 
   res = memcmp (s1, s2, (len1 < len2) ? len1 : len2);
@@ -119,13 +96,13 @@ compare_string (GFC_INTEGER_4 len1, const char * s1,
   if (len1 < len2)
     {
       len = len2 - len1;
-      s = &s2[len1];
+      s = (unsigned char *) &s2[len1];
       res = -1;
     }
   else
     {
       len = len1 - len2;
-      s = &s1[len2];
+      s = (unsigned char *) &s1[len2];
       res = 1;
     }
 
@@ -385,14 +362,8 @@ string_repeat (char * dest, GFC_INTEGER_4 slen,
 {
   int i;
 
-  /* See if ncopies is valid.  */
-  if (ncopies < 0)
-    {
-      /* The error is already reported.  */
-      runtime_error ("Augument NCOPIES is negative.");
-    }
-
-  /* Copy characters.  */
+  /* We don't need to check that ncopies is non-negative here, because
+     the front-end already generates code for that check.  */
   for (i = 0; i < ncopies; i++) 
     {
       memmove (dest + (i * slen), src, slen);

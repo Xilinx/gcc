@@ -1,12 +1,12 @@
 /* Call-backs for C++ error reporting.
    This code is non-reentrant.
    Copyright (C) 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2002,
-   2003, 2004, 2005 Free Software Foundation, Inc.
+   2003, 2004, 2005, 2007 Free Software Foundation, Inc.
    This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -15,9 +15,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -166,8 +165,14 @@ dump_template_argument_list (tree args, int flags)
 static void
 dump_template_parameter (tree parm, int flags)
 {
-  tree p = TREE_VALUE (parm);
-  tree a = TREE_PURPOSE (parm);
+  tree p;
+  tree a;
+
+  if (parm == error_mark_node)
+   return;
+
+  p = TREE_VALUE (parm);
+  a = TREE_PURPOSE (parm);
 
   if (TREE_CODE (p) == TYPE_DECL)
     {
@@ -895,6 +900,10 @@ dump_decl (tree t, int flags)
 	pp_type_id (cxx_pp, t);
       break;
 
+    case UNBOUND_CLASS_TEMPLATE:
+      dump_type (t, flags);
+      break;
+
     default:
       pp_unsupported_tree (cxx_pp, t);
       /* Fall through to error.  */
@@ -1236,7 +1245,15 @@ dump_template_parms (tree info, int primary, int flags)
 
       for (ix = 0; ix != len; ix++)
 	{
-	  tree parm = TREE_VALUE (TREE_VEC_ELT (parms, ix));
+	  tree parm;
+
+          if (TREE_VEC_ELT (parms, ix) == error_mark_node)
+            {
+              pp_identifier (cxx_pp, "<template parameter error>");
+              continue;
+            }
+
+          parm = TREE_VALUE (TREE_VEC_ELT (parms, ix));
 
 	  if (ix)
 	    pp_separate_with_comma (cxx_pp);
@@ -1287,10 +1304,14 @@ static tree
 resolve_virtual_fun_from_obj_type_ref (tree ref)
 {
   tree obj_type = TREE_TYPE (OBJ_TYPE_REF_OBJECT (ref));
-  int index = tree_low_cst (OBJ_TYPE_REF_TOKEN (ref), 1);
+  HOST_WIDE_INT index = tree_low_cst (OBJ_TYPE_REF_TOKEN (ref), 1);
   tree fun = BINFO_VIRTUALS (TYPE_BINFO (TREE_TYPE (obj_type)));
-    while (index--)
+  while (index)
+    {
       fun = TREE_CHAIN (fun);
+      index -= (TARGET_VTABLE_USES_DESCRIPTORS
+		? TARGET_VTABLE_USES_DESCRIPTORS : 1);
+    }
 
   return BV_FN (fun);
 }
@@ -1302,6 +1323,12 @@ dump_expr (tree t, int flags)
 {
   if (t == 0)
     return;
+
+  if (STATEMENT_CLASS_P (t))
+    {
+      pp_cxx_identifier (cxx_pp, "<statement>");
+      return;
+    }
 
   switch (TREE_CODE (t))
     {
@@ -1318,17 +1345,10 @@ dump_expr (tree t, int flags)
       dump_decl (t, (flags & ~TFF_DECL_SPECIFIERS) | TFF_NO_FUNCTION_ARGUMENTS);
       break;
 
-    case STRING_CST:
-      if (PAREN_STRING_LITERAL_P (t))
-	pp_cxx_left_paren (cxx_pp);
-      pp_c_constant (pp_c_base (cxx_pp), t);
-      if (PAREN_STRING_LITERAL_P (t))
-	pp_cxx_right_paren (cxx_pp);
-      break;
-
     case INTEGER_CST:
     case REAL_CST:
-       pp_c_constant (pp_c_base (cxx_pp), t);
+    case STRING_CST:
+      pp_constant (cxx_pp, t);
       break;
 
     case THROW_EXPR:
@@ -1403,9 +1423,9 @@ dump_expr (tree t, int flags)
 	if (TREE_CODE (fn) == ADDR_EXPR)
 	  fn = TREE_OPERAND (fn, 0);
 
-        /* Nobody is interested in seeing the guts of vcalls.  */
-        if (TREE_CODE (fn) == OBJ_TYPE_REF)
-          fn = resolve_virtual_fun_from_obj_type_ref (fn);
+	/* Nobody is interested in seeing the guts of vcalls.  */
+	if (TREE_CODE (fn) == OBJ_TYPE_REF)
+	  fn = resolve_virtual_fun_from_obj_type_ref (fn);
 
 	if (TREE_TYPE (fn) != NULL_TREE && NEXT_CODE (fn) == METHOD_TYPE)
 	  {
@@ -1413,13 +1433,13 @@ dump_expr (tree t, int flags)
 	    if (TREE_CODE (ob) == ADDR_EXPR)
 	      {
 		dump_expr (TREE_OPERAND (ob, 0), flags | TFF_EXPR_IN_PARENS);
-		pp_dot (cxx_pp);
+		pp_cxx_dot (cxx_pp);
 	      }
 	    else if (TREE_CODE (ob) != PARM_DECL
 		     || strcmp (IDENTIFIER_POINTER (DECL_NAME (ob)), "this"))
 	      {
 		dump_expr (ob, flags | TFF_EXPR_IN_PARENS);
-		pp_arrow (cxx_pp);
+		pp_cxx_arrow (cxx_pp);
 	      }
 	    args = TREE_CHAIN (args);
 	  }
@@ -1748,10 +1768,6 @@ dump_expr (tree t, int flags)
       dump_decl (TEMPLATE_PARM_DECL (t), flags & ~TFF_DECL_SPECIFIERS);
       break;
 
-    case SCOPE_REF:
-      pp_expression (cxx_pp, t);
-      break;
-
     case CAST_EXPR:
       if (TREE_OPERAND (t, 0) == NULL_TREE
 	  || TREE_CHAIN (TREE_OPERAND (t, 0)))
@@ -1877,6 +1893,18 @@ dump_expr (tree t, int flags)
 
     case NON_DEPENDENT_EXPR:
       dump_expr (TREE_OPERAND (t, 0), flags);
+      break;
+
+    case VA_ARG_EXPR:
+      pp_cxx_va_arg_expression (cxx_pp, t);
+      break;
+
+    case SCOPE_REF:
+    case TYPEID_EXPR:
+    case DELETE_EXPR:
+    case VEC_DELETE_EXPR:
+    case MODOP_EXPR:
+      pp_expression (cxx_pp, t);
       break;
 
       /*  This list is incomplete, but should suffice for now.
@@ -2062,7 +2090,7 @@ language_to_string (enum languages c)
     default:
       gcc_unreachable ();
     }
-  return 0;
+  return NULL;
 }
 
 /* Return the proper printed version of a parameter to a C++ function.  */

@@ -1,12 +1,12 @@
 /* Liveness for SSA trees.
-   Copyright (C) 2003, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
    Contributed by Andrew MacLeod <amacleod@redhat.com>
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -15,9 +15,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -38,6 +37,7 @@ Boston, MA 02110-1301, USA.  */
 #include "tree-dump.h"
 #include "tree-ssa-live.h"
 #include "toplev.h"
+#include "vecprim.h"
 
 static void live_worklist (tree_live_info_p, int *, int);
 static tree_live_info_p new_tree_live_info (var_map);
@@ -296,6 +296,9 @@ mark_all_vars_used_1 (tree *tp, int *walk_subtrees,
 {
   tree t = *tp;
 
+  if (TREE_CODE (t) == SSA_NAME)
+    t = SSA_NAME_VAR (t);
+
   /* Ignore TREE_ORIGINAL for TARGET_MEM_REFS, as well as other
      fields that do not contain vars.  */
   if (TREE_CODE (t) == TARGET_MEM_REF)
@@ -325,6 +328,72 @@ static inline void
 mark_all_vars_used (tree *expr_p)
 {
   walk_tree (expr_p, mark_all_vars_used_1, NULL, NULL);
+}
+
+
+/* Remove local variables that are not referenced in the IL.  */
+
+void
+remove_unused_locals (void)
+{
+  basic_block bb;
+  tree t, *cell;
+
+  /* Assume all locals are unused.  */
+  for (t = cfun->unexpanded_var_list; t; t = TREE_CHAIN (t))
+    {
+      tree var = TREE_VALUE (t);
+      if (TREE_CODE (var) != FUNCTION_DECL
+	  && var_ann (var))
+	var_ann (var)->used = false;
+    }
+
+  /* Walk the CFG marking all referenced symbols.  */
+  FOR_EACH_BB (bb)
+    {
+      block_stmt_iterator bsi;
+      tree phi, def;
+
+      /* Walk the statements.  */
+      for (bsi = bsi_start (bb); !bsi_end_p (bsi); bsi_next (&bsi))
+	mark_all_vars_used (bsi_stmt_ptr (bsi));
+
+      for (phi = phi_nodes (bb); phi; phi = PHI_CHAIN (phi))
+        {
+          use_operand_p arg_p;
+          ssa_op_iter i;
+
+	  /* No point processing globals.  */
+	  if (is_global_var (SSA_NAME_VAR (PHI_RESULT (phi))))
+	    continue;
+
+          def = PHI_RESULT (phi);
+          mark_all_vars_used (&def);
+
+          FOR_EACH_PHI_ARG (arg_p, phi, i, SSA_OP_ALL_USES)
+            {
+	      tree arg = USE_FROM_PTR (arg_p);
+	      mark_all_vars_used (&arg);
+            }
+        }
+    }
+
+  /* Remove unmarked vars and clear used flag.  */
+  for (cell = &cfun->unexpanded_var_list; *cell; )
+    {
+      tree var = TREE_VALUE (*cell);
+      var_ann_t ann;
+
+      if (TREE_CODE (var) != FUNCTION_DECL
+	  && (!(ann = var_ann (var))
+	      || !ann->used))
+	{
+	  *cell = TREE_CHAIN (*cell);
+	  continue;
+	}
+
+      cell = &TREE_CHAIN (*cell);
+    }
 }
 
 /* This function looks through the program and uses FLAGS to determine what 
@@ -362,6 +431,7 @@ create_ssa_var_map (int flags)
   FOR_EACH_BB (bb)
     {
       tree phi, arg;
+
       for (phi = phi_nodes (bb); phi; phi = PHI_CHAIN (phi))
 	{
 	  int i;
@@ -639,7 +709,7 @@ calculate_live_on_entry (var_map map)
 	}
     }
 
-  stack = xmalloc (sizeof (int) * last_basic_block);
+  stack = XNEWVEC (int, last_basic_block);
   EXECUTE_IF_SET_IN_BITMAP (live->global, 0, i, bi)
     {
       live_worklist (live, stack, i);
@@ -811,7 +881,7 @@ tpa_init (var_map map)
 
   x = MAX (40, (num_partitions / 20));
   tpa->trees = VEC_alloc (tree, heap, x);
-  VARRAY_INT_INIT (tpa->first_partition, x, "first_partition");
+  tpa->first_partition = VEC_alloc (int, heap, x);
 
   return tpa;
 
@@ -828,7 +898,8 @@ tpa_remove_partition (tpa_p tpa, int tree_index, int partition_index)
   i = tpa_first_partition (tpa, tree_index);
   if (i == partition_index)
     {
-      VARRAY_INT (tpa->first_partition, tree_index) = tpa->next_partition[i];
+      VEC_replace (int, tpa->first_partition, tree_index,
+		   tpa->next_partition[i]);
     }
   else
     {
@@ -853,6 +924,7 @@ tpa_delete (tpa_p tpa)
     return;
 
   VEC_free (tree, heap, tpa->trees);
+  VEC_free (int, heap, tpa->first_partition);
   free (tpa->partition_to_tree_map);
   free (tpa->next_partition);
   free (tpa);
@@ -887,20 +959,20 @@ tpa_compact (tpa_p tpa)
       if (tpa_next_partition (tpa, first) == NO_PARTITION)
         {
 	  swap_t = VEC_index (tree, tpa->trees, last);
-	  swap_i = VARRAY_INT (tpa->first_partition, last);
+	  swap_i = VEC_index (int, tpa->first_partition, last);
 
 	  /* Update the last entry. Since it is known to only have one
 	     partition, there is nothing else to update.  */
 	  VEC_replace (tree, tpa->trees, last,
 		       VEC_index (tree, tpa->trees, x));
-	  VARRAY_INT (tpa->first_partition, last) 
-	    = VARRAY_INT (tpa->first_partition, x);
+	  VEC_replace (int, tpa->first_partition, last,
+		       VEC_index (int, tpa->first_partition, x));
 	  tpa->partition_to_tree_map[tpa_first_partition (tpa, last)] = last;
 
 	  /* Since this list is known to have more than one partition, update
 	     the list owner entries.  */
 	  VEC_replace (tree, tpa->trees, x, swap_t);
-	  VARRAY_INT (tpa->first_partition, x) = swap_i;
+	  VEC_replace (int, tpa->first_partition, x, swap_i);
 	  for (y = tpa_first_partition (tpa, x); 
 	       y != NO_PARTITION; 
 	       y = tpa_next_partition (tpa, y))
@@ -970,16 +1042,16 @@ root_var_init (var_map map)
       ann = var_ann (t);
       if (ann->root_var_processed)
         {
-	  rv->next_partition[p] = VARRAY_INT (rv->first_partition, 
-					      VAR_ANN_ROOT_INDEX (ann));
-	  VARRAY_INT (rv->first_partition, VAR_ANN_ROOT_INDEX (ann)) = p;
+	  rv->next_partition[p] = VEC_index (int, rv->first_partition, 
+					     VAR_ANN_ROOT_INDEX (ann));
+	  VEC_replace (int, rv->first_partition, VAR_ANN_ROOT_INDEX (ann), p);
 	}
       else
         {
 	  ann->root_var_processed = 1;
 	  VAR_ANN_ROOT_INDEX (ann) = rv->num_trees++;
 	  VEC_safe_push (tree, heap, rv->trees, t);
-	  VARRAY_PUSH_INT (rv->first_partition, p);
+	  VEC_safe_push (int, heap, rv->first_partition, p);
 	}
       rv->partition_to_tree_map[p] = VAR_ANN_ROOT_INDEX (ann);
     }
@@ -1008,12 +1080,12 @@ type_var_init (var_map map)
   tree t;
   sbitmap seen;
 
-  seen = sbitmap_alloc (num_partitions);
-  sbitmap_zero (seen);
-
   tv = tpa_init (map);
   if (!tv)
     return NULL;
+
+  seen = sbitmap_alloc (num_partitions);
+  sbitmap_zero (seen);
 
   for (x = num_partitions - 1; x >= 0; x--)
     {
@@ -1049,12 +1121,12 @@ type_var_init (var_map map)
         {
 	  tv->num_trees++;
 	  VEC_safe_push (tree, heap, tv->trees, t);
-	  VARRAY_PUSH_INT (tv->first_partition, p);
+	  VEC_safe_push (int, heap, tv->first_partition, p);
 	}
       else
         {
-	  tv->next_partition[p] = VARRAY_INT (tv->first_partition, y);
-	  VARRAY_INT (tv->first_partition, y) = p;
+	  tv->next_partition[p] = VEC_index (int, tv->first_partition, y);
+	  VEC_replace (int, tv->first_partition, y, p);
 	}
       tv->partition_to_tree_map[p] = y;
     }
@@ -1188,7 +1260,27 @@ add_coalesce (coalesce_list_p cl, int p1, int p2,
 static
 int compare_pairs (const void *p1, const void *p2)
 {
+#if 0
+  partition_pair_p * pp1 = (partition_pair_p *) p1;
+  partition_pair_p * pp2 = (partition_pair_p *) p2;
+  int result;
+
+  result = (* pp2)->cost - (* pp1)->cost;
+  /* Issue 128204: Cygwin vs Linux host differences:
+     If the costs are the same, use the partition indicies in order to
+     obtain a stable, reproducible sort.  Otherwise the ordering will
+     be at the mercy of the host's qsort library function implementation.  */
+  if (result == 0)
+    {
+      result = (* pp2)->first_partition - (* pp1)->first_partition;
+      if (result == 0)
+	result = (* pp2)->second_partition - (* pp1)->second_partition;
+    }
+
+  return result;
+#else  
   return (*(partition_pair_p *)p2)->cost - (*(partition_pair_p *)p1)->cost;
+#endif
 }
 
 
@@ -1224,7 +1316,7 @@ sort_coalesce_list (coalesce_list_p cl)
   /* Only call qsort if there are more than 2 items.  */
   if (num > 2)
     {
-      list = xmalloc (sizeof (partition_pair_p) * num);
+      list = XNEWVEC (partition_pair_p, num);
       count = 0;
       for (p = chain; p != NULL; p = p->next)
 	list[count++] = p;
@@ -1315,9 +1407,6 @@ add_conflicts_if_valid (tpa_p tpa, conflict_graph graph,
     }
 }
 
-DEF_VEC_I(int);
-DEF_VEC_ALLOC_I(int,heap);
-
 /* Return a conflict graph for the information contained in LIVE_INFO.  Only
    conflicts between items in the same TPA list are added.  If optional 
    coalesce list CL is passed in, any copies encountered are added.  */
@@ -1345,8 +1434,8 @@ build_tree_conflict_graph (tree_live_info_p liveinfo, tpa_p tpa,
 
   live = BITMAP_ALLOC (NULL);
 
-  partition_link = xcalloc (num_var_partitions (map) + 1, sizeof (int));
-  tpa_nodes = xcalloc (tpa_num_trees (tpa), sizeof (int));
+  partition_link = XCNEWVEC (int, num_var_partitions (map) + 1);
+  tpa_nodes = XCNEWVEC (int, tpa_num_trees (tpa));
   tpa_to_clear = VEC_alloc (int, heap, 50);
 
   FOR_EACH_BB (bb)

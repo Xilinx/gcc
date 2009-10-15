@@ -185,10 +185,6 @@ Java_gnu_java_awt_peer_gtk_GtkToolkit_gtkInit (JNIEnv *env,
   old_glog_func = g_log_set_default_handler (&glog_func, NULL);
 #endif
 
-#if GTK_CAIRO
-  cp_gtk_graphics2d_init_jni ();
-#endif
-  cp_gtk_graphics_init_jni ();
   cp_gtk_button_init_jni ();
   cp_gtk_checkbox_init_jni ();
   cp_gtk_choice_init_jni ();
@@ -385,6 +381,37 @@ Java_gnu_java_awt_peer_gtk_GtkToolkit_getScreenResolution
   gdk_threads_enter ();
 
   res = gdk_screen_width () / (gdk_screen_width_mm () / 25.4);
+
+  gdk_threads_leave ();
+
+  return res;
+}
+
+/**
+ * Report the number of mouse buttons
+ * Returns the number of buttons of the first mouse found, or -1 if no mouse
+ * seems to be connected.
+ */
+JNIEXPORT jint JNICALL 
+Java_gnu_java_awt_peer_gtk_GtkToolkit_getMouseNumberOfButtons
+  (JNIEnv *env __attribute__((unused)), jobject obj __attribute__((unused)))
+{
+  jint res = -1;
+  GList *devices;
+  GdkDevice *d;
+
+  gdk_threads_enter ();
+
+  /* FIXME: Why doesn't this return the correct number? */
+  devices = gdk_devices_list();
+
+  while( res == -1 && devices != NULL )
+    {
+      d = GDK_DEVICE( devices->data );
+      if( d->source == GDK_SOURCE_MOUSE )
+	res = d->num_keys;
+      devices = devices->next;
+    }
 
   gdk_threads_leave ();
 

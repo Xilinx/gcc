@@ -1,11 +1,11 @@
 /* Variable tracking routines for the GNU compiler.
-   Copyright (C) 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2002, 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
 
    This file is part of GCC.
 
    GCC is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2, or (at your option)
+   the Free Software Foundation; either version 3, or (at your option)
    any later version.
 
    GCC is distributed in the hope that it will be useful, but WITHOUT
@@ -14,9 +14,8 @@
    License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with GCC; see the file COPYING.  If not, write to the Free
-   Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-   02110-1301, USA.  */
+   along with GCC; see the file COPYING3.  If not see
+   <http://www.gnu.org/licenses/>.  */
 
 /* This file contains the variable tracking pass.  It computes where
    variables are located (which registers or where in memory) at each position
@@ -114,6 +113,8 @@ enum micro_operation_type
   MO_USE_NO_VAR,/* Use location which is not associated with a variable
 		   or the variable is not trackable.  */
   MO_SET,	/* Set location.  */
+  MO_COPY,	/* Copy the same portion of a variable from one
+		   location to another.  */
   MO_CLOBBER,	/* Clobber location.  */
   MO_CALL,	/* Call insn.  */
   MO_ADJUST	/* Adjust stack pointer.  */
@@ -140,7 +141,11 @@ typedef struct micro_operation_def
     HOST_WIDE_INT adjust;
   } u;
 
-  /* The instruction which the micro operation is in.  */
+  /* The instruction which the micro operation is in, for MO_USE,
+     MO_USE_NO_VAR, MO_CALL and MO_ADJUST, or the subsequent
+     instruction or note in the original flow (before any var-tracking
+     notes are inserted, to simplify emission of notes), for MO_SET
+     and MO_CLOBBER.  */
   rtx insn;
 } micro_operation;
 
@@ -253,6 +258,9 @@ typedef struct variable_def
 /* Pointer to the BB's information specific to variable tracking pass.  */
 #define VTI(BB) ((variable_tracking_info) (BB)->aux)
 
+/* Macro to access MEM_OFFSET as an HOST_WIDE_INT.  Evaluates MEM twice.  */
+#define INT_MEM_OFFSET(mem) (MEM_OFFSET (mem) ? INTVAL (MEM_OFFSET (mem)) : 0)
+
 /* Alloc pool for struct attrs_def.  */
 static alloc_pool attrs_pool;
 
@@ -291,11 +299,14 @@ static void vars_clear (htab_t);
 static variable unshare_variable (dataflow_set *set, variable var);
 static int vars_copy_1 (void **, void *);
 static void vars_copy (htab_t, htab_t);
-static void var_reg_delete_and_set (dataflow_set *, rtx);
-static void var_reg_delete (dataflow_set *, rtx);
+static tree var_debug_decl (tree);
+static void var_reg_set (dataflow_set *, rtx);
+static void var_reg_delete_and_set (dataflow_set *, rtx, bool);
+static void var_reg_delete (dataflow_set *, rtx, bool);
 static void var_regno_delete (dataflow_set *, int);
-static void var_mem_delete_and_set (dataflow_set *, rtx);
-static void var_mem_delete (dataflow_set *, rtx);
+static void var_mem_set (dataflow_set *, rtx);
+static void var_mem_delete_and_set (dataflow_set *, rtx, bool);
+static void var_mem_delete (dataflow_set *, rtx, bool);
 
 static void dataflow_set_init (dataflow_set *, int);
 static void dataflow_set_clear (dataflow_set *);
@@ -312,6 +323,7 @@ static void dataflow_set_destroy (dataflow_set *);
 
 static bool contains_symbol_ref (rtx);
 static bool track_expr_p (tree);
+static bool same_variable_part_p (rtx, tree, HOST_WIDE_INT);
 static int count_uses (rtx *, void *);
 static void count_uses_1 (rtx *, void *);
 static void count_stores (rtx, rtx, void *);
@@ -329,6 +341,7 @@ static void dump_dataflow_sets (void);
 
 static void variable_was_changed (variable, htab_t);
 static void set_variable_part (dataflow_set *, rtx, tree, HOST_WIDE_INT);
+static void clobber_variable_part (dataflow_set *, rtx, tree, HOST_WIDE_INT);
 static void delete_variable_part (dataflow_set *, rtx, tree, HOST_WIDE_INT);
 static int emit_note_insn_var_location (void **, void *);
 static void emit_notes_for_changes (rtx, enum emit_note_where);
@@ -485,7 +498,7 @@ bb_stack_adjust_offset (basic_block bb)
 
 /* Compute stack adjustments for all blocks by traversing DFS tree.
    Return true when the adjustments on all incoming edges are consistent.
-   Heavily borrowed from flow_depth_first_order_compute.  */
+   Heavily borrowed from pre_and_rev_post_order_compute.  */
 
 static bool
 vt_stack_adjustments (void)
@@ -498,7 +511,7 @@ vt_stack_adjustments (void)
   VTI (ENTRY_BLOCK_PTR)->out.stack_adjust = INCOMING_FRAME_SP_OFFSET;
 
   /* Allocate stack for back-tracking up CFG.  */
-  stack = xmalloc ((n_basic_blocks + 1) * sizeof (edge_iterator));
+  stack = XNEWVEC (edge_iterator, n_basic_blocks + 1);
   sp = 0;
 
   /* Push the first edge on to the stack.  */
@@ -792,16 +805,54 @@ vars_copy (htab_t dst, htab_t src)
   htab_traverse (src, vars_copy_1, dst);
 }
 
-/* Delete current content of register LOC in dataflow set SET
-   and set the register to contain REG_EXPR (LOC), REG_OFFSET (LOC).  */
+/* Map a decl to its main debug decl.  */
+
+static inline tree
+var_debug_decl (tree decl)
+{
+  if (decl && DECL_P (decl)
+      && DECL_DEBUG_EXPR_IS_FROM (decl) && DECL_DEBUG_EXPR (decl)
+      && DECL_P (DECL_DEBUG_EXPR (decl)))
+    decl = DECL_DEBUG_EXPR (decl);
+
+  return decl;
+}
+
+/* Set the register to contain REG_EXPR (LOC), REG_OFFSET (LOC).  */
 
 static void
-var_reg_delete_and_set (dataflow_set *set, rtx loc)
+var_reg_set (dataflow_set *set, rtx loc)
+{
+  tree decl = REG_EXPR (loc);
+  HOST_WIDE_INT offset = REG_OFFSET (loc);
+  attrs node;
+
+  decl = var_debug_decl (decl);
+
+  for (node = set->regs[REGNO (loc)]; node; node = node->next)
+    if (node->decl == decl && node->offset == offset)
+      break;
+  if (!node)
+    attrs_list_insert (&set->regs[REGNO (loc)], decl, offset, loc);
+  set_variable_part (set, loc, decl, offset);
+}
+
+/* Delete current content of register LOC in dataflow set SET and set
+   the register to contain REG_EXPR (LOC), REG_OFFSET (LOC).  If
+   MODIFY is true, any other live copies of the same variable part are
+   also deleted from the dataflow set, otherwise the variable part is
+   assumed to be copied from another location holding the same
+   part.  */
+
+static void
+var_reg_delete_and_set (dataflow_set *set, rtx loc, bool modify)
 {
   tree decl = REG_EXPR (loc);
   HOST_WIDE_INT offset = REG_OFFSET (loc);
   attrs node, next;
   attrs *nextp;
+
+  decl = var_debug_decl (decl);
 
   nextp = &set->regs[REGNO (loc)];
   for (node = *nextp; node; node = next)
@@ -819,18 +870,30 @@ var_reg_delete_and_set (dataflow_set *set, rtx loc)
 	  nextp = &node->next;
 	}
     }
-  if (set->regs[REGNO (loc)] == NULL)
-    attrs_list_insert (&set->regs[REGNO (loc)], decl, offset, loc);
-  set_variable_part (set, loc, decl, offset);
+  if (modify)
+    clobber_variable_part (set, loc, decl, offset);
+  var_reg_set (set, loc);
 }
 
-/* Delete current content of register LOC in dataflow set SET.  */
+/* Delete current content of register LOC in dataflow set SET.  If
+   CLOBBER is true, also delete any other live copies of the same
+   variable part.  */
 
 static void
-var_reg_delete (dataflow_set *set, rtx loc)
+var_reg_delete (dataflow_set *set, rtx loc, bool clobber)
 {
   attrs *reg = &set->regs[REGNO (loc)];
   attrs node, next;
+
+  if (clobber)
+    {
+      tree decl = REG_EXPR (loc);
+      HOST_WIDE_INT offset = REG_OFFSET (loc);
+
+      decl = var_debug_decl (decl);
+
+      clobber_variable_part (set, NULL, decl, offset);
+    }
 
   for (node = *reg; node; node = next)
     {
@@ -858,28 +921,54 @@ var_regno_delete (dataflow_set *set, int regno)
   *reg = NULL;
 }
 
-/* Delete and set the location part of variable MEM_EXPR (LOC)
-   in dataflow set SET to LOC.
+/* Set the location part of variable MEM_EXPR (LOC) in dataflow set
+   SET to LOC.
    Adjust the address first if it is stack pointer based.  */
 
 static void
-var_mem_delete_and_set (dataflow_set *set, rtx loc)
+var_mem_set (dataflow_set *set, rtx loc)
 {
   tree decl = MEM_EXPR (loc);
-  HOST_WIDE_INT offset = MEM_OFFSET (loc) ? INTVAL (MEM_OFFSET (loc)) : 0;
+  HOST_WIDE_INT offset = INT_MEM_OFFSET (loc);
+
+  decl = var_debug_decl (decl);
 
   set_variable_part (set, loc, decl, offset);
 }
 
-/* Delete the location part LOC from dataflow set SET.
+/* Delete and set the location part of variable MEM_EXPR (LOC) in
+   dataflow set SET to LOC.  If MODIFY is true, any other live copies
+   of the same variable part are also deleted from the dataflow set,
+   otherwise the variable part is assumed to be copied from another
+   location holding the same part.
    Adjust the address first if it is stack pointer based.  */
 
 static void
-var_mem_delete (dataflow_set *set, rtx loc)
+var_mem_delete_and_set (dataflow_set *set, rtx loc, bool modify)
 {
   tree decl = MEM_EXPR (loc);
-  HOST_WIDE_INT offset = MEM_OFFSET (loc) ? INTVAL (MEM_OFFSET (loc)) : 0;
+  HOST_WIDE_INT offset = INT_MEM_OFFSET (loc);
 
+  decl = var_debug_decl (decl);
+
+  if (modify)
+    clobber_variable_part (set, NULL, decl, offset);
+  var_mem_set (set, loc);
+}
+
+/* Delete the location part LOC from dataflow set SET.  If CLOBBER is
+   true, also delete any other live copies of the same variable part.
+   Adjust the address first if it is stack pointer based.  */
+
+static void
+var_mem_delete (dataflow_set *set, rtx loc, bool clobber)
+{
+  tree decl = MEM_EXPR (loc);
+  HOST_WIDE_INT offset = INT_MEM_OFFSET (loc);
+
+  decl = var_debug_decl (decl);
+  if (clobber)
+    clobber_variable_part (set, NULL, decl, offset);
   delete_variable_part (set, loc, decl, offset);
 }
 
@@ -1070,7 +1159,7 @@ variable_union (void **slot, void *data)
 	  dst_l = 0;
 	  for (node = dst->var_part[j].loc_chain; node; node = node->next)
 	    dst_l++;
-	  vui = xcalloc (src_l + dst_l, sizeof (struct variable_union_info));
+	  vui = XCNEWVEC (struct variable_union_info, src_l + dst_l);
 
 	  /* Fill in the locations from DST.  */
 	  for (node = dst->var_part[j].loc_chain, jj = 0; node;
@@ -1442,7 +1531,8 @@ track_expr_p (tree expr)
   if (MEM_P (decl_rtl))
     {
       /* Do not track structures and arrays.  */
-      if (GET_MODE (decl_rtl) == BLKmode)
+      if (GET_MODE (decl_rtl) == BLKmode
+	  || AGGREGATE_TYPE_P (TREE_TYPE (realdecl)))
 	return 0;
       if (MEM_SIZE (decl_rtl)
 	  && INTVAL (MEM_SIZE (decl_rtl)) > MAX_VAR_PARTS)
@@ -1451,6 +1541,53 @@ track_expr_p (tree expr)
 
   return 1;
 }
+
+/* Return true if OFFSET is a valid offset for a register or memory
+   access we want to track.  This is used to reject out-of-bounds
+   accesses that can cause assertions to fail later.  Note that we
+   don't reject negative offsets because they can be generated for
+   paradoxical subregs on big-endian architectures.  */
+
+static inline bool
+offset_valid_for_tracked_p (HOST_WIDE_INT offset)
+{
+  return (-MAX_VAR_PARTS < offset) && (offset < MAX_VAR_PARTS);
+}
+
+/* Determine whether a given LOC refers to the same variable part as
+   EXPR+OFFSET.  */
+
+static bool
+same_variable_part_p (rtx loc, tree expr, HOST_WIDE_INT offset)
+{
+  tree expr2;
+  HOST_WIDE_INT offset2;
+
+  if (! DECL_P (expr))
+    return false;
+
+  if (REG_P (loc))
+    {
+      expr2 = REG_EXPR (loc);
+      offset2 = REG_OFFSET (loc);
+    }
+  else if (MEM_P (loc))
+    {
+      expr2 = MEM_EXPR (loc);
+      offset2 = INT_MEM_OFFSET (loc);
+    }
+  else
+    return false;
+
+  if (! expr2 || ! DECL_P (expr2))
+    return false;
+
+  expr = var_debug_decl (expr);
+  expr2 = var_debug_decl (expr2);
+
+  return (expr == expr2 && offset == offset2);
+}
+
 
 /* Count uses (register and memory references) LOC which will be tracked.
    INSN is instruction which the LOC is part of.  */
@@ -1467,7 +1604,8 @@ count_uses (rtx *loc, void *insn)
     }
   else if (MEM_P (*loc)
 	   && MEM_EXPR (*loc)
-	   && track_expr_p (MEM_EXPR (*loc)))
+	   && track_expr_p (MEM_EXPR (*loc))
+	   && offset_valid_for_tracked_p (INT_MEM_OFFSET (*loc)))
     {
       VTI (bb)->n_mos++;
     }
@@ -1503,14 +1641,19 @@ add_uses (rtx *loc, void *insn)
       basic_block bb = BLOCK_FOR_INSN ((rtx) insn);
       micro_operation *mo = VTI (bb)->mos + VTI (bb)->n_mos++;
 
-      mo->type = ((REG_EXPR (*loc) && track_expr_p (REG_EXPR (*loc)))
-		  ? MO_USE : MO_USE_NO_VAR);
+      if (REG_EXPR (*loc)
+	  && track_expr_p (REG_EXPR (*loc))
+	  && offset_valid_for_tracked_p (REG_OFFSET (*loc)))
+	mo->type = MO_USE;
+      else
+	mo->type = MO_USE_NO_VAR;
       mo->u.loc = *loc;
       mo->insn = (rtx) insn;
     }
   else if (MEM_P (*loc)
 	   && MEM_EXPR (*loc)
-	   && track_expr_p (MEM_EXPR (*loc)))
+	   && track_expr_p (MEM_EXPR (*loc))
+	   && offset_valid_for_tracked_p (INT_MEM_OFFSET (*loc)))
     {
       basic_block bb = BLOCK_FOR_INSN ((rtx) insn);
       micro_operation *mo = VTI (bb)->mos + VTI (bb)->n_mos++;
@@ -1543,22 +1686,42 @@ add_stores (rtx loc, rtx expr, void *insn)
       basic_block bb = BLOCK_FOR_INSN ((rtx) insn);
       micro_operation *mo = VTI (bb)->mos + VTI (bb)->n_mos++;
 
-      mo->type = ((GET_CODE (expr) != CLOBBER && REG_EXPR (loc)
-		   && track_expr_p (REG_EXPR (loc)))
-		  ? MO_SET : MO_CLOBBER);
+      if (GET_CODE (expr) == CLOBBER
+	  || !(REG_EXPR (loc)
+	       && track_expr_p (REG_EXPR (loc))
+	       && offset_valid_for_tracked_p (REG_OFFSET (loc))))
+	mo->type = MO_CLOBBER;
+      else if (GET_CODE (expr) == SET
+	       && SET_DEST (expr) == loc
+	       && same_variable_part_p (SET_SRC (expr),
+					REG_EXPR (loc),
+					REG_OFFSET (loc)))
+	mo->type = MO_COPY;
+      else
+	mo->type = MO_SET;
       mo->u.loc = loc;
-      mo->insn = (rtx) insn;
+      mo->insn = NEXT_INSN ((rtx) insn);
     }
   else if (MEM_P (loc)
 	   && MEM_EXPR (loc)
-	   && track_expr_p (MEM_EXPR (loc)))
+	   && track_expr_p (MEM_EXPR (loc))
+	   && offset_valid_for_tracked_p (INT_MEM_OFFSET (loc)))
     {
       basic_block bb = BLOCK_FOR_INSN ((rtx) insn);
       micro_operation *mo = VTI (bb)->mos + VTI (bb)->n_mos++;
 
-      mo->type = GET_CODE (expr) == CLOBBER ? MO_CLOBBER : MO_SET;
+      if (GET_CODE (expr) == CLOBBER)
+	mo->type = MO_CLOBBER;
+      else if (GET_CODE (expr) == SET
+	       && SET_DEST (expr) == loc
+	       && same_variable_part_p (SET_SRC (expr),
+					MEM_EXPR (loc),
+					INT_MEM_OFFSET (loc)))
+	mo->type = MO_COPY;
+      else
+	mo->type = MO_SET;
       mo->u.loc = loc;
-      mo->insn = (rtx) insn;
+      mo->insn = NEXT_INSN ((rtx) insn);
     }
 }
 
@@ -1589,26 +1752,57 @@ compute_bb_dataflow (basic_block bb)
 	    break;
 
 	  case MO_USE:
+	    {
+	      rtx loc = VTI (bb)->mos[i].u.loc;
+
+	      if (GET_CODE (loc) == REG)
+		var_reg_set (out, loc);
+	      else if (GET_CODE (loc) == MEM)
+		var_mem_set (out, loc);
+	    }
+	    break;
+
 	  case MO_SET:
 	    {
 	      rtx loc = VTI (bb)->mos[i].u.loc;
 
 	      if (REG_P (loc))
-		var_reg_delete_and_set (out, loc);
+		var_reg_delete_and_set (out, loc, true);
 	      else if (MEM_P (loc))
-		var_mem_delete_and_set (out, loc);
+		var_mem_delete_and_set (out, loc, true);
+	    }
+	    break;
+
+	  case MO_COPY:
+	    {
+	      rtx loc = VTI (bb)->mos[i].u.loc;
+
+	      if (REG_P (loc))
+		var_reg_delete_and_set (out, loc, false);
+	      else if (MEM_P (loc))
+		var_mem_delete_and_set (out, loc, false);
 	    }
 	    break;
 
 	  case MO_USE_NO_VAR:
+	    {
+	      rtx loc = VTI (bb)->mos[i].u.loc;
+
+	      if (REG_P (loc))
+		var_reg_delete (out, loc, false);
+	      else if (MEM_P (loc))
+		var_mem_delete (out, loc, false);
+	    }
+	    break;
+
 	  case MO_CLOBBER:
 	    {
 	      rtx loc = VTI (bb)->mos[i].u.loc;
 
 	      if (REG_P (loc))
-		var_reg_delete (out, loc);
+		var_reg_delete (out, loc, true);
 	      else if (MEM_P (loc))
-		var_mem_delete (out, loc);
+		var_mem_delete (out, loc, true);
 	    }
 	    break;
 
@@ -1638,10 +1832,10 @@ vt_find_locations (void)
 
   /* Compute reverse completion order of depth first search of the CFG
      so that the data-flow runs faster.  */
-  rc_order = xmalloc (n_basic_blocks * sizeof (int));
-  bb_order = xmalloc (last_basic_block * sizeof (int));
-  flow_depth_first_order_compute (NULL, rc_order);
-  for (i = 0; i < n_basic_blocks; i++)
+  rc_order = XNEWVEC (int, n_basic_blocks - NUM_FIXED_BLOCKS);
+  bb_order = XNEWVEC (int, last_basic_block);
+  pre_and_rev_post_order_compute (NULL, rc_order, false);
+  for (i = 0; i < n_basic_blocks - NUM_FIXED_BLOCKS; i++)
     bb_order[rc_order[i]] = i;
   free (rc_order);
 
@@ -1788,7 +1982,7 @@ dump_dataflow_set (dataflow_set *set)
 
   fprintf (dump_file, "Stack adjustment: " HOST_WIDE_INT_PRINT_DEC "\n",
 	   set->stack_adjust);
-  for (i = 1; i < FIRST_PSEUDO_REGISTER; i++)
+  for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)
     {
       if (set->regs[i])
 	{
@@ -1866,6 +2060,39 @@ variable_was_changed (variable var, htab_t htab)
     }
 }
 
+/* Look for the index in VAR->var_part corresponding to OFFSET.
+   Return -1 if not found.  If INSERTION_POINT is non-NULL, the
+   referenced int will be set to the index that the part has or should
+   have, if it should be inserted.  */
+
+static inline int
+find_variable_location_part (variable var, HOST_WIDE_INT offset,
+			     int *insertion_point)
+{
+  int pos, low, high;
+
+  /* Find the location part.  */
+  low = 0;
+  high = var->n_var_parts;
+  while (low != high)
+    {
+      pos = (low + high) / 2;
+      if (var->var_part[pos].offset < offset)
+	low = pos + 1;
+      else
+	high = pos;
+    }
+  pos = low;
+
+  if (insertion_point)
+    *insertion_point = pos;
+
+  if (pos < var->n_var_parts && var->var_part[pos].offset == offset)
+    return pos;
+
+  return -1;
+}
+
 /* Set the part of variable's location in the dataflow set SET.  The variable
    part is specified by variable's declaration DECL and offset OFFSET and the
    part's location by LOC.  */
@@ -1873,7 +2100,7 @@ variable_was_changed (variable var, htab_t htab)
 static void
 set_variable_part (dataflow_set *set, rtx loc, tree decl, HOST_WIDE_INT offset)
 {
-  int pos, low, high;
+  int pos;
   location_chain node, next;
   location_chain *nextp;
   variable var;
@@ -1896,22 +2123,13 @@ set_variable_part (dataflow_set *set, rtx loc, tree decl, HOST_WIDE_INT offset)
     }
   else
     {
+      int inspos = 0;
+
       var = (variable) *slot;
 
-      /* Find the location part.  */
-      low = 0;
-      high = var->n_var_parts;
-      while (low != high)
-	{
-	  pos = (low + high) / 2;
-	  if (var->var_part[pos].offset < offset)
-	    low = pos + 1;
-	  else
-	    high = pos;
-	}
-      pos = low;
+      pos = find_variable_location_part (var, offset, &inspos);
 
-      if (pos < var->n_var_parts && var->var_part[pos].offset == offset)
+      if (pos >= 0)
 	{
 	  node = var->var_part[pos].loc_chain;
 
@@ -1943,10 +2161,10 @@ set_variable_part (dataflow_set *set, rtx loc, tree decl, HOST_WIDE_INT offset)
 	     thus there are at most MAX_VAR_PARTS different offsets.  */
 	  gcc_assert (var->n_var_parts < MAX_VAR_PARTS);
 
-	  /* We have to move the elements of array starting at index low to the
-	     next position.  */
-	  for (high = var->n_var_parts; high > low; high--)
-	    var->var_part[high] = var->var_part[high - 1];
+	  /* We have to move the elements of array starting at index
+	     inspos to the next position.  */
+	  for (pos = var->n_var_parts; pos > inspos; pos--)
+	    var->var_part[pos] = var->var_part[pos - 1];
 
 	  var->n_var_parts++;
 	  var->var_part[pos].offset = offset;
@@ -1986,6 +2204,67 @@ set_variable_part (dataflow_set *set, rtx loc, tree decl, HOST_WIDE_INT offset)
     }
 }
 
+/* Remove all recorded register locations for the given variable part
+   from dataflow set SET, except for those that are identical to loc.
+   The variable part is specified by variable's declaration DECL and
+   offset OFFSET.  */
+
+static void
+clobber_variable_part (dataflow_set *set, rtx loc, tree decl,
+		      HOST_WIDE_INT offset)
+{
+  void **slot;
+
+  if (! decl || ! DECL_P (decl))
+    return;
+
+  slot = htab_find_slot_with_hash (set->vars, decl, VARIABLE_HASH_VAL (decl),
+				   NO_INSERT);
+  if (slot)
+    {
+      variable var = (variable) *slot;
+      int pos = find_variable_location_part (var, offset, NULL);
+
+      if (pos >= 0)
+	{
+	  location_chain node, next;
+
+	  /* Remove the register locations from the dataflow set.  */
+	  next = var->var_part[pos].loc_chain;
+	  for (node = next; node; node = next)
+	    {
+	      next = node->next;
+	      if (node->loc != loc)
+		{
+		  if (REG_P (node->loc))
+		    {
+		      attrs anode, anext;
+		      attrs *anextp;
+
+		      /* Remove the variable part from the register's
+			 list, but preserve any other variable parts
+			 that might be regarded as live in that same
+			 register.  */
+		      anextp = &set->regs[REGNO (node->loc)];
+		      for (anode = *anextp; anode; anode = anext)
+			{
+			  anext = anode->next;
+			  if (anode->decl == decl
+			      && anode->offset == offset)
+			    {
+			      pool_free (attrs_pool, anode);
+			      *anextp = anext;
+			    }
+			}
+		    }
+
+		  delete_variable_part (set, node->loc, decl, offset);
+		}
+	    }
+	}
+    }
+}
+
 /* Delete the part of variable's location from dataflow set SET.  The variable
    part is specified by variable's declaration DECL and offset OFFSET and the
    part's location by LOC.  */
@@ -1994,7 +2273,6 @@ static void
 delete_variable_part (dataflow_set *set, rtx loc, tree decl,
 		      HOST_WIDE_INT offset)
 {
-  int pos, low, high;
   void **slot;
     
   slot = htab_find_slot_with_hash (set->vars, decl, VARIABLE_HASH_VAL (decl),
@@ -2002,21 +2280,9 @@ delete_variable_part (dataflow_set *set, rtx loc, tree decl,
   if (slot)
     {
       variable var = (variable) *slot;
+      int pos = find_variable_location_part (var, offset, NULL);
 
-      /* Find the location part.  */
-      low = 0;
-      high = var->n_var_parts;
-      while (low != high)
-	{
-	  pos = (low + high) / 2;
-	  if (var->var_part[pos].offset < offset)
-	    low = pos + 1;
-	  else
-	    high = pos;
-	}
-      pos = low;
-
-      if (pos < var->n_var_parts && var->var_part[pos].offset == offset)
+      if (pos >= 0)
 	{
 	  location_chain node, next;
 	  location_chain *nextp;
@@ -2082,7 +2348,7 @@ delete_variable_part (dataflow_set *set, rtx loc, tree decl,
 		}
 	    }
 	  if (changed)
-	      variable_was_changed (var, set->vars);
+	    variable_was_changed (var, set->vars);
 	}
     }
 }
@@ -2356,36 +2622,67 @@ emit_notes_in_bb (basic_block bb)
 	    break;
 
 	  case MO_USE:
+	    {
+	      rtx loc = VTI (bb)->mos[i].u.loc;
+
+	      if (GET_CODE (loc) == REG)
+		var_reg_set (&set, loc);
+	      else
+		var_mem_set (&set, loc);
+
+	      emit_notes_for_changes (insn, EMIT_NOTE_AFTER_INSN);
+	    }
+	    break;
+
 	  case MO_SET:
 	    {
 	      rtx loc = VTI (bb)->mos[i].u.loc;
 
 	      if (REG_P (loc))
-		var_reg_delete_and_set (&set, loc);
+		var_reg_delete_and_set (&set, loc, true);
 	      else
-		var_mem_delete_and_set (&set, loc);
+		var_mem_delete_and_set (&set, loc, true);
 
-	      if (VTI (bb)->mos[i].type == MO_USE)
-		emit_notes_for_changes (insn, EMIT_NOTE_BEFORE_INSN);
+	      emit_notes_for_changes (insn, EMIT_NOTE_BEFORE_INSN);
+	    }
+	    break;
+
+	  case MO_COPY:
+	    {
+	      rtx loc = VTI (bb)->mos[i].u.loc;
+
+	      if (REG_P (loc))
+		var_reg_delete_and_set (&set, loc, false);
 	      else
-		emit_notes_for_changes (insn, EMIT_NOTE_AFTER_INSN);
+		var_mem_delete_and_set (&set, loc, false);
+
+	      emit_notes_for_changes (insn, EMIT_NOTE_BEFORE_INSN);
 	    }
 	    break;
 
 	  case MO_USE_NO_VAR:
+	    {
+	      rtx loc = VTI (bb)->mos[i].u.loc;
+
+	      if (REG_P (loc))
+		var_reg_delete (&set, loc, false);
+	      else
+		var_mem_delete (&set, loc, false);
+
+	      emit_notes_for_changes (insn, EMIT_NOTE_AFTER_INSN);
+	    }
+	    break;
+
 	  case MO_CLOBBER:
 	    {
 	      rtx loc = VTI (bb)->mos[i].u.loc;
 
 	      if (REG_P (loc))
-		var_reg_delete (&set, loc);
+		var_reg_delete (&set, loc, true);
 	      else
-		var_mem_delete (&set, loc);
+		var_mem_delete (&set, loc, true);
 
-	      if (VTI (bb)->mos[i].type == MO_USE_NO_VAR)
-		emit_notes_for_changes (insn, EMIT_NOTE_BEFORE_INSN);
-	      else
-		emit_notes_for_changes (insn, EMIT_NOTE_AFTER_INSN);
+	      emit_notes_for_changes (insn, EMIT_NOTE_BEFORE_INSN);
 	    }
 	    break;
 
@@ -2450,7 +2747,7 @@ vt_get_decl_and_offset (rtx rtl, tree *declp, HOST_WIDE_INT *offsetp)
       if (MEM_ATTRS (rtl))
 	{
 	  *declp = MEM_EXPR (rtl);
-	  *offsetp = MEM_OFFSET (rtl) ? INTVAL (MEM_OFFSET (rtl)) : 0;
+	  *offsetp = INT_MEM_OFFSET (rtl);
 	  return true;
 	}
     }
@@ -2546,8 +2843,7 @@ vt_initialize (void)
 	}
 
       /* Add the micro-operations to the array.  */
-      VTI (bb)->mos = xmalloc (VTI (bb)->n_mos
-			       * sizeof (struct micro_operation_def));
+      VTI (bb)->mos = XNEWVEC (micro_operation, VTI (bb)->n_mos);
       VTI (bb)->n_mos = 0;
       for (insn = BB_HEAD (bb); insn != NEXT_INSN (BB_END (bb));
 	   insn = NEXT_INSN (insn))
@@ -2599,15 +2895,19 @@ vt_initialize (void)
 		}
 
 	      n1 = VTI (bb)->n_mos;
+	      /* This will record NEXT_INSN (insn), such that we can
+		 insert notes before it without worrying about any
+		 notes that MO_USEs might emit after the insn.  */
 	      note_stores (PATTERN (insn), add_stores, insn);
 	      n2 = VTI (bb)->n_mos - 1;
 
-	      /* Order the MO_SETs to be before MO_CLOBBERs.  */
+	      /* Order the MO_CLOBBERs to be before MO_SETs.  */
 	      while (n1 < n2)
 		{
-		  while (n1 < n2 && VTI (bb)->mos[n1].type == MO_SET)
+		  while (n1 < n2 && VTI (bb)->mos[n1].type == MO_CLOBBER)
 		    n1++;
-		  while (n1 < n2 && VTI (bb)->mos[n2].type == MO_CLOBBER)
+		  while (n1 < n2 && (VTI (bb)->mos[n2].type == MO_SET
+				     || VTI (bb)->mos[n2].type == MO_COPY))
 		    n2--;
 		  if (n1 < n2)
 		    {
@@ -2677,11 +2977,11 @@ vt_finalize (void)
 
 /* The entry point to variable tracking pass.  */
 
-void
+unsigned int
 variable_tracking_main (void)
 {
   if (n_basic_blocks > 500 && n_edges / n_basic_blocks >= 20)
-    return;
+    return 0;
 
   mark_dfs_back_edges ();
   vt_initialize ();
@@ -2690,20 +2990,21 @@ variable_tracking_main (void)
       if (!vt_stack_adjustments ())
 	{
 	  vt_finalize ();
-	  return;
+	  return 0;
 	}
     }
 
   vt_find_locations ();
   vt_emit_notes ();
 
-  if (dump_file)
+  if (dump_file && (dump_flags & TDF_DETAILS))
     {
       dump_dataflow_sets ();
-      dump_flow_info (dump_file);
+      dump_flow_info (dump_file, dump_flags);
     }
 
   vt_finalize ();
+  return 0;
 }
 
 static bool

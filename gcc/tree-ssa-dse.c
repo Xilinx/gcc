@@ -1,11 +1,11 @@
 /* Dead store elimination
-   Copyright (C) 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -14,9 +14,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -91,7 +90,7 @@ struct address_walk_data
 };
 
 static bool gate_dse (void);
-static void tree_ssa_dse (void);
+static unsigned int tree_ssa_dse (void);
 static void dse_initialize_block_local_data (struct dom_walk_data *,
 					     basic_block,
 					     bool);
@@ -249,7 +248,7 @@ dse_optimize_stmt (struct dom_walk_data *walk_data,
     {
       use_operand_p first_use_p = NULL_USE_OPERAND_P;
       use_operand_p use_p = NULL;
-      tree use, use_stmt, temp;
+      tree use_stmt, temp;
       tree defvar = NULL_TREE, usevar = NULL_TREE;
       bool fail = false;
       use_operand_p var2;
@@ -279,7 +278,6 @@ dse_optimize_stmt (struct dom_walk_data *walk_data,
 	  single_imm_use (defvar, &use_p, &temp);
 	  gcc_assert (use_p != NULL_USE_OPERAND_P);
 	  first_use_p = use_p;
-	  use = USE_FROM_PTR (use_p);
 
 	  /* If the immediate use of DEF_VAR is not the same as the
 	     previously find immediate uses, then we will not be able
@@ -320,8 +318,7 @@ dse_optimize_stmt (struct dom_walk_data *walk_data,
 
 	  /* Skip past this PHI and loop again in case we had a PHI
 	     chain.  */
-	  if (single_imm_use (PHI_RESULT (use_stmt), &use_p, &use_stmt))
-	    use = USE_FROM_PTR (use_p);
+	  single_imm_use (PHI_RESULT (use_stmt), &use_p, &use_stmt);
 	}
 
       /* If we have precisely one immediate use at this point, then we may
@@ -351,7 +348,7 @@ dse_optimize_stmt (struct dom_walk_data *walk_data,
 	      SET_USE (use_p, USE_FROM_PTR (var2));
 	    }
 	  /* Remove the dead store.  */
-	  bsi_remove (&bsi);
+	  bsi_remove (&bsi, true);
 
 	  /* And release any SSA_NAMEs set in this statement back to the
 	     SSA_NAME manager.  */
@@ -398,7 +395,7 @@ dse_finalize_block (struct dom_walk_data *walk_data,
       }
 }
 
-static void
+static unsigned int
 tree_ssa_dse (void)
 {
   struct dom_walk_data walk_data;
@@ -455,6 +452,7 @@ tree_ssa_dse (void)
 
   /* For now, just wipe the post-dominator information.  */
   free_dominance_info (CDI_POST_DOMINATORS);
+  return 0;
 }
 
 static bool

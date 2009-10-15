@@ -1,13 +1,13 @@
 /* Subroutines for insn-output.c for NEC V850 series
-   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005
-   Free Software Foundation, Inc.
+   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
+   2007 Free Software Foundation, Inc.
    Contributed by Jeff Law (law@cygnus.com).
 
    This file is part of GCC.
 
    GCC is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2, or (at your option)
+   the Free Software Foundation; either version 3, or (at your option)
    any later version.
 
    GCC is distributed in the hope that it will be useful, but WITHOUT
@@ -16,9 +16,8 @@
    for more details.
 
    You should have received a copy of the GNU General Public License
-   along with GCC; see the file COPYING.  If not, write to the Free
-   Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-   02110-1301, USA.  */
+   along with GCC; see the file COPYING3.  If not see
+   <http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -62,7 +61,8 @@ const struct attribute_spec v850_attribute_table[];
 static tree v850_handle_interrupt_attribute (tree *, tree, tree, int, bool *);
 static tree v850_handle_data_area_attribute (tree *, tree, tree, int, bool *);
 static void v850_insert_attributes   (tree, tree *);
-static void v850_select_section (tree, int, unsigned HOST_WIDE_INT);
+static void v850_asm_init_sections   (void);
+static section *v850_select_section (tree, int, unsigned HOST_WIDE_INT);
 static void v850_encode_data_area    (tree, rtx);
 static void v850_encode_section_info (tree, rtx, int);
 static bool v850_return_in_memory    (tree, tree);
@@ -96,6 +96,12 @@ static int v850_interrupt_cache_p = FALSE;
 
 /* Whether current function is an interrupt handler.  */
 static int v850_interrupt_p = FALSE;
+
+static GTY(()) section *rosdata_section;
+static GTY(()) section *rozdata_section;
+static GTY(()) section *tdata_section;
+static GTY(()) section *zdata_section;
+static GTY(()) section *zbss_section;
 
 /* Initialize the GCC target structure.  */
 #undef TARGET_ASM_ALIGNED_HI_OP
@@ -109,6 +115,11 @@ static int v850_interrupt_p = FALSE;
 
 #undef  TARGET_ASM_SELECT_SECTION
 #define TARGET_ASM_SELECT_SECTION  v850_select_section
+
+/* The assembler supports switchable .bss sections, but
+   v850_select_section doesn't yet make use of them.  */
+#undef  TARGET_HAVE_SWITCHABLE_BSS_SECTIONS
+#define TARGET_HAVE_SWITCHABLE_BSS_SECTIONS false
 
 #undef TARGET_ENCODE_SECTION_INFO
 #define TARGET_ENCODE_SECTION_INFO v850_encode_section_info
@@ -1058,7 +1069,7 @@ ep_memory_operand (rtx op, enum machine_mode mode, int unsigned_load)
   int mask;
 
   /* If we are not using the EP register on a per-function basis
-     then do not allow this optimisation at all.  This is to
+     then do not allow this optimization at all.  This is to
      prevent the use of the SLD/SST instructions which cannot be
      guaranteed to work properly due to a hardware bug.  */
   if (!TARGET_EP)
@@ -2498,18 +2509,18 @@ v850_output_aligned_bss (FILE * file,
   switch (v850_get_data_area (decl))
     {
     case DATA_AREA_ZDA:
-      zbss_section ();
+      switch_to_section (zbss_section);
       break;
 
     case DATA_AREA_SDA:
-      sbss_section ();
+      switch_to_section (sbss_section);
       break;
 
     case DATA_AREA_TDA:
-      tdata_section ();
+      switch_to_section (tdata_section);
       
     default:
-      bss_section ();
+      switch_to_section (bss_section);
       break;
     }
   
@@ -2927,7 +2938,34 @@ v850_return_addr (int count)
   return get_hard_reg_initial_val (Pmode, LINK_POINTER_REGNUM);
 }
 
+/* Implement TARGET_ASM_INIT_SECTIONS.  */
+
 static void
+v850_asm_init_sections (void)
+{
+  rosdata_section
+    = get_unnamed_section (0, output_section_asm_op,
+			   "\t.section .rosdata,\"a\"");
+
+  rozdata_section
+    = get_unnamed_section (0, output_section_asm_op,
+			   "\t.section .rozdata,\"a\"");
+
+  tdata_section
+    = get_unnamed_section (SECTION_WRITE, output_section_asm_op,
+			   "\t.section .tdata,\"aw\"");
+
+  zdata_section
+    = get_unnamed_section (SECTION_WRITE, output_section_asm_op,
+			   "\t.section .zdata,\"aw\"");
+
+  zbss_section
+    = get_unnamed_section (SECTION_WRITE | SECTION_BSS,
+			   output_section_asm_op,
+			   "\t.section .zbss,\"aw\"");
+}
+
+static section *
 v850_select_section (tree exp,
                      int reloc ATTRIBUTE_UNUSED,
                      unsigned HOST_WIDE_INT align ATTRIBUTE_UNUSED)
@@ -2947,33 +2985,19 @@ v850_select_section (tree exp,
       switch (v850_get_data_area (exp))
         {
         case DATA_AREA_ZDA:
-	  if (is_const)
-	    rozdata_section ();
-	  else
-	    zdata_section ();
-	  break;
+	  return is_const ? rozdata_section : zdata_section;
 
         case DATA_AREA_TDA:
-	  tdata_section ();
-	  break;
+	  return tdata_section;
 
         case DATA_AREA_SDA:
-	  if (is_const)
-	    rosdata_section ();
-	  else
-	    sdata_section ();
-	  break;
+	  return is_const ? rosdata_section : sdata_section;
 
         default:
-          if (is_const)
-	    readonly_data_section ();
-	  else
-	    data_section ();
-	  break;
+	  return is_const ? readonly_data_section : data_section;
         }
     }
-  else
-    readonly_data_section ();
+  return readonly_data_section;
 }
 
 /* Worker function for TARGET_RETURN_IN_MEMORY.  */
@@ -2996,3 +3020,5 @@ v850_setup_incoming_varargs (CUMULATIVE_ARGS *ca,
 {
   ca->anonymous_args = (!TARGET_GHS ? 1 : 0);
 }
+
+#include "gt-v850.h"

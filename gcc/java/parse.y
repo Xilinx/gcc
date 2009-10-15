@@ -1,14 +1,14 @@
 /* Source code parsing and tree node generation for the GNU compiler
    for the Java(TM) language.
-   Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005
-   Free Software Foundation, Inc.
+   Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
+   2006, 2007  Free Software Foundation, Inc.
    Contributed by Alexandre Petit-Bianco (apbianco@cygnus.com)
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -17,9 +17,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.
 
 Java and all Java-based marks are trademarks or registered trademarks
 of Sun Microsystems, Inc. in the United States and other countries.
@@ -134,7 +133,7 @@ static tree resolve_no_layout (tree, tree);
 static int invocation_mode (tree, int);
 static tree find_applicable_accessible_methods_list (int, tree, tree, tree);
 static void search_applicable_methods_list (int, tree, tree, tree, tree *, tree *);
-static tree find_most_specific_methods_list (tree);
+static tree find_most_specific_methods_list (tree, tree);
 static int argument_types_convertible (tree, tree);
 static tree patch_invoke (tree, tree, tree);
 static int maybe_use_access_method (int, tree *, tree *);
@@ -8010,7 +8009,8 @@ maybe_generate_pre_expand_clinit (tree class_type)
 }
 
 /* Analyzes a method body and look for something that isn't a
-   MODIFY_EXPR with a constant value.  */
+   MODIFY_EXPR with a constant value.  Return true if <clinit> is
+   needed, false otherwise.  */
 
 static int
 analyze_clinit_body (tree this_class, tree bbody)
@@ -8048,6 +8048,11 @@ analyze_clinit_body (tree this_class, tree bbody)
 	return (! TREE_CONSTANT (TREE_OPERAND (bbody, 1))
 		|| ! DECL_INITIAL (TREE_OPERAND (bbody, 0))
 		|| DECL_CONTEXT (TREE_OPERAND (bbody, 0)) != this_class);
+
+      case NOP_EXPR:
+	/* We might see an empty statement here, which is
+	   ignorable.  */
+	return ! IS_EMPTY_STMT (bbody);
 
       default:
 	return 1;
@@ -11037,8 +11042,14 @@ patch_invoke (tree patch, tree method, tree args)
       switch (invocation_mode (method, CALL_USING_SUPER (patch)))
 	{
 	case INVOKE_VIRTUAL:
-	  dtable = invoke_build_dtable (0, args);
-	  func = build_invokevirtual (dtable, method);
+	  {
+	    tree signature = build_java_signature (TREE_TYPE (method));
+	    tree special;
+	    maybe_rewrite_invocation (&method, &args, &signature, &special);
+
+	    dtable = invoke_build_dtable (0, args);
+	    func = build_invokevirtual (dtable, method, special);
+	  }
 	  break;
 
 	case INVOKE_NONVIRTUAL:
@@ -11060,9 +11071,11 @@ patch_invoke (tree patch, tree method, tree args)
 	case INVOKE_STATIC:
 	  {
 	    tree signature = build_java_signature (TREE_TYPE (method));
+	    tree special;
+	    maybe_rewrite_invocation (&method, &args, &signature, &special);
 	    func = build_known_method_ref (method, TREE_TYPE (method),
 					   DECL_CONTEXT (method),
-					   signature, args);
+					   signature, args, special);
 	  }
 	  break;
 
@@ -11247,7 +11260,7 @@ lookup_method_invoke (int lc, tree cl, tree class, tree name, tree arg_list)
   /* Find all candidates and then refine the list, searching for the
      most specific method. */
   list = find_applicable_accessible_methods_list (lc, class, name, atl);
-  list = find_most_specific_methods_list (list);
+  list = find_most_specific_methods_list (list, class);
   if (list && !TREE_CHAIN (list))
     return TREE_VALUE (list);
 
@@ -11439,7 +11452,7 @@ search_applicable_methods_list (int lc, tree method, tree name, tree arglist,
 /* 15.11.2.2 Choose the Most Specific Method */
 
 static tree
-find_most_specific_methods_list (tree list)
+find_most_specific_methods_list (tree list, tree class)
 {
   int max = 0;
   int abstract, candidates;
@@ -11462,8 +11475,23 @@ find_most_specific_methods_list (tree list)
 	  /* Compare arguments and location where methods where declared */
 	  if (argument_types_convertible (method_v, current_v))
 	    {
+	      /* We have a rather odd special case here.  The front
+		 end doesn't properly implement inheritance, so we
+		 work around it here.  The idea is, if we are
+		 comparing a method declared in a class to one
+		 declared in an interface, and the invocation's
+		 qualifying class is a class (and not an interface),
+		 then we consider the method's class to be the
+		 qualifying class of the invocation.  This lets us
+		 fake the result of ordinary inheritance.  */
+	      tree context_v = DECL_CONTEXT (current_v);
+	      if (TYPE_INTERFACE_P (DECL_CONTEXT (method_v))
+		  && ! TYPE_INTERFACE_P (context_v)
+		  && ! TYPE_INTERFACE_P (class))
+		context_v = class;
+
 	      if (valid_method_invocation_conversion_p
-		  (DECL_CONTEXT (method_v), DECL_CONTEXT (current_v)))
+		  (DECL_CONTEXT (method_v), context_v))
 		{
 		  int v = (DECL_SPECIFIC_COUNT (current_v) += 1);
 		  max = (v > max ? v : max);
@@ -12375,7 +12403,18 @@ java_complete_lhs (tree node)
 	 how to handle those cases. */
       wfl_op1 = TREE_OPERAND (node, 0);
       CAN_COMPLETE_NORMALLY (node) = 1;
-      TREE_OPERAND (node, 0) = java_complete_tree (wfl_op1);
+      if (TREE_CODE (node) == PREDECREMENT_EXPR
+	  || TREE_CODE (node) == PREINCREMENT_EXPR
+	  || TREE_CODE (node) == POSTDECREMENT_EXPR
+	  || TREE_CODE (node) == POSTINCREMENT_EXPR)
+	{ /* We don't want static finals to be resolved to their value
+	     to avoid ICEing later. It solves PR8923. */
+	  TREE_OPERAND (node, 0) = java_complete_lhs (wfl_op1);
+	}
+      else
+	{
+	  TREE_OPERAND (node, 0) = java_complete_tree (wfl_op1);
+	}
       if (TREE_OPERAND (node, 0) == error_mark_node)
 	return error_mark_node;
       node = patch_unaryop (node, wfl_op1);
@@ -13335,8 +13374,7 @@ static tree
 do_unary_numeric_promotion (tree arg)
 {
   tree type = TREE_TYPE (arg);
-  if ((TREE_CODE (type) == INTEGER_TYPE && TYPE_PRECISION (type) < 32)
-      || TREE_CODE (type) == CHAR_TYPE)
+  if (TREE_CODE (type) == INTEGER_TYPE && TYPE_PRECISION (type) < 32)
     arg = convert (int_type_node, arg);
   return arg;
 }
@@ -14195,6 +14233,14 @@ build_incdec (int op_token, int op_location, tree op1, int is_post_p)
   /* Store the location of the operator, for better error report. The
      string of the operator will be rebuild based on the OP value. */
   EXPR_WFL_LINECOL (node) = op_location;
+
+  /* Report an error if the operand is a constant. */
+  if (TREE_CONSTANT (op1)) {
+    parse_error_context (node, "%qs cannot be used with a constant",
+                         operator_string (node));
+    return error_mark_node;
+  }
+
   return node;
 }
 
@@ -14349,7 +14395,7 @@ patch_unaryop (tree node, tree wfl_op)
 	  error_found = 1;
 	}
 
-      /* From now on, we know that op if a variable and that it has a
+      /* From now on, we know that op is a variable and that it has a
          valid wfl. We use wfl_op to locate errors related to the
          ++/-- operand. */
       if (!JNUMERIC_TYPE_P (op_type))

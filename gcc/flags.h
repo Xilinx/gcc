@@ -1,13 +1,13 @@
 /* Compilation switch flag definitions for GCC.
    Copyright (C) 1987, 1988, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2002,
-   2003, 2004, 2005
+   2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -16,9 +16,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #ifndef GCC_FLAGS_H
 #define GCC_FLAGS_H
@@ -58,15 +57,16 @@ extern enum debug_info_level debug_info_level;
    debugging information.  */
 extern bool use_gnu_debug_info_extensions;
 
-/* Enumerate visibility settings.  */
+/* Enumerate visibility settings.  This is deliberately ordered from most
+   to least visibility.  */
 #ifndef SYMBOL_VISIBILITY_DEFINED
 #define SYMBOL_VISIBILITY_DEFINED
 enum symbol_visibility
 {
   VISIBILITY_DEFAULT,
-  VISIBILITY_INTERNAL,
+  VISIBILITY_PROTECTED,
   VISIBILITY_HIDDEN,
-  VISIBILITY_PROTECTED
+  VISIBILITY_INTERNAL
 };
 #endif
 
@@ -107,11 +107,6 @@ extern void set_Wunused (int setting);
 
 extern bool warn_larger_than;
 extern HOST_WIDE_INT larger_than_size;
-
-/* Nonzero means warn about constructs which might not be strict
-   aliasing safe.  */
-
-extern int warn_strict_aliasing;
 
 /* Temporarily suppress certain warnings.
    This is set while reading code from a system header file.  */
@@ -263,7 +258,7 @@ extern const char *flag_random_seed;
 
 /* True if the given mode has a NaN representation and the treatment of
    NaN operands is important.  Certain optimizations, such as folding
-   x * 0 into x, are not correct for NaN operands, and are normally
+   x * 0 into 0, are not correct for NaN operands, and are normally
    disabled for modes with NaNs.  The user can ask for them to be
    done anyway using the -funsafe-math-optimizations switch.  */
 #define HONOR_NANS(MODE) \
@@ -286,5 +281,57 @@ extern const char *flag_random_seed;
    and the rounding mode is important.  */
 #define HONOR_SIGN_DEPENDENT_ROUNDING(MODE) \
   (MODE_HAS_SIGN_DEPENDENT_ROUNDING (MODE) && flag_rounding_math)
+
+/* True if overflow wraps around for the given integral type.  That
+   is, TYPE_MAX + 1 == TYPE_MIN.  */
+#define TYPE_OVERFLOW_WRAPS(TYPE) \
+  (TYPE_UNSIGNED (TYPE) || flag_wrapv)
+
+/* True if overflow is undefined for the given integral type.  We may
+   optimize on the assumption that values in the type never overflow.
+
+   IMPORTANT NOTE: Any optimization based on TYPE_OVERFLOW_UNDEFINED
+   must issue a warning based on warn_strict_overflow.  In some cases
+   it will be appropriate to issue the warning immediately, and in
+   other cases it will be appropriate to simply set a flag and let the
+   caller decide whether a warning is appropriate or not.  */
+#define TYPE_OVERFLOW_UNDEFINED(TYPE) \
+  (!TYPE_UNSIGNED (TYPE) && !flag_wrapv && !flag_trapv && flag_strict_overflow)
+
+/* True if overflow for the given integral type should issue a
+   trap.  */
+#define TYPE_OVERFLOW_TRAPS(TYPE) \
+  (!TYPE_UNSIGNED (TYPE) && flag_trapv)
+
+/* True if pointer types have undefined overflow.  */
+#define POINTER_TYPE_OVERFLOW_UNDEFINED (flag_strict_overflow)
+
+/* Names for the different levels of -Wstrict-overflow=N.  The numeric
+   values here correspond to N.  */
+
+enum warn_strict_overflow_code
+{
+  /* Overflow warning that should be issued with -Wall: a questionable
+     construct that is easy to avoid even when using macros.  Example:
+     folding (x + CONSTANT > x) to 1.  */
+  WARN_STRICT_OVERFLOW_ALL = 1,
+  /* Overflow warning about folding a comparison to a constant because
+     of undefined signed overflow, other than cases covered by
+     WARN_STRICT_OVERFLOW_ALL.  Example: folding (abs (x) >= 0) to 1
+     (this is false when x == INT_MIN).  */
+  WARN_STRICT_OVERFLOW_CONDITIONAL = 2,
+  /* Overflow warning about changes to comparisons other than folding
+     them to a constant.  Example: folding (x + 1 > 1) to (x > 0).  */
+  WARN_STRICT_OVERFLOW_COMPARISON = 3,
+  /* Overflow warnings not covered by the above cases.  Example:
+     folding ((x * 10) / 5) to (x * 2).  */
+  WARN_STRICT_OVERFLOW_MISC = 4,
+  /* Overflow warnings about reducing magnitude of constants in
+     comparison.  Example: folding (x + 2 > y) to (x + 1 >= y).  */
+  WARN_STRICT_OVERFLOW_MAGNITUDE = 5
+};
+
+/* Whether to emit an overflow warning whose code is C.  */
+#define issue_strict_overflow_warning(c) (warn_strict_overflow >= (int) (c))
 
 #endif /* ! GCC_FLAGS_H */

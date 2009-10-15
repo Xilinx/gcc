@@ -1,5 +1,6 @@
 /* { dg-do compile } */ 
 /* { dg-options "-O2 -ftree-loop-linear -fdump-tree-ltrans-all" } */
+/* { dg-require-effective-target size32plus } */
 
 int foo()
 {

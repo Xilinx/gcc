@@ -1,12 +1,12 @@
 /* Specific flags and argument handling of the Fortran front-end.
-   Copyright (C) 1997, 1999, 2000, 2001, 2002, 2003, 2004, 2005 Free
-   Software Foundation, Inc.
+   Copyright (C) 1997, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006,
+   2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GNU CC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GNU CC is distributed in the hope that it will be useful,
@@ -99,8 +99,6 @@ static void append_arg (const char *);
 /* The new argument list will be built here.  */
 static int g77_newargc;
 static const char **g77_newargv;
-
-const struct spec_function lang_specific_spec_functions[] = {{0,0}};
 
 /* --- This comes from gcc.c (2.8.1) verbatim: */
 
@@ -346,8 +344,8 @@ lang_specific_driver (int *in_argc, const char *const **in_argv,
 	  break;
 
 	case OPTION_version:
-	  printf ("GNU Fortran 95 (GCC) %s\n", version_string);
-	  printf ("Copyright %s 2006 Free Software Foundation, Inc.\n\n",
+	  printf ("GNU Fortran (GCC) %s\n", version_string);
+	  printf ("Copyright %s 2007 Free Software Foundation, Inc.\n\n",
 	          _("(C)"));
 	  printf (_("GNU Fortran comes with NO WARRANTY, to the extent permitted by law.\n\
 You may redistribute copies of GNU Fortran\n\
@@ -399,7 +397,7 @@ For more information about these matters, see the file named COPYING\n\n"));
 
           if (argv[i][2] == '\0')
             {
-              p = xmalloc (strlen (argv[i + 1]) + 2);
+              p = XNEWVEC (char, strlen (argv[i + 1]) + 2);
               p[0] = '-';
               p[1] = 'J';
               strcpy (&p[2], argv[i + 1]);
@@ -407,7 +405,7 @@ For more information about these matters, see the file named COPYING\n\n"));
             }
           else
             {
-              p = xmalloc (strlen (argv[i]) + 1);
+              p = XNEWVEC (char, strlen (argv[i]) + 1);
               strcpy (p, argv[i]);
             }
           append_arg (p);

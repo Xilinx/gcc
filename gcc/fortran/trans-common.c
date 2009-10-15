@@ -1,12 +1,13 @@
 /* Common block and equivalence list handling
-   Copyright (C) 2000, 2003, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2000, 2003, 2004, 2005, 2006, 2007
+   Free Software Foundation, Inc.
    Contributed by Canqun Yang <canqun@nudt.edu.cn>
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,9 +16,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */     
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */     
 
 /* The core algorithm is based on Andy Vaught's g95 tree.  Also the
    way to build UNION_TYPE is borrowed from Richard Henderson.
@@ -83,7 +83,7 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
    a diagonal matrix in the matrix formulation.
  
    Each segment is described by a chain of segment_info structures.  Each
-   segment_info structure describes the extents of a single varible within
+   segment_info structure describes the extents of a single variable within
    the segment.  This list is maintained in the order the elements are
    positioned withing the segment.  If two elements have the same starting
    offset the smaller will come first.  If they also have the same size their
@@ -96,9 +96,11 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
+#include "target.h"
 #include "tree.h"
 #include "toplev.h"
 #include "tm.h"
+#include "rtl.h"
 #include "gfortran.h"
 #include "trans.h"
 #include "trans-types.h"
@@ -166,6 +168,7 @@ copy_equiv_list_to_ns (segment_info *c)
       l->equiv = s;
       s->sym = f->sym;
       s->offset = f->offset;
+      s->length = f->length;
     }
 }
 
@@ -307,6 +310,7 @@ build_equiv_decl (tree union_type, bool is_init, bool is_saved)
     {
       decl = gfc_create_var (union_type, "equiv");
       TREE_STATIC (decl) = 1;
+      GFC_DECL_COMMON_OR_EQUIV (decl) = 1;
       return decl;
     }
 
@@ -321,6 +325,7 @@ build_equiv_decl (tree union_type, bool is_init, bool is_saved)
 
   TREE_ADDRESSABLE (decl) = 1;
   TREE_USED (decl) = 1;
+  GFC_DECL_COMMON_OR_EQUIV (decl) = 1;
 
   /* The source location has been lost, and doesn't really matter.
      We need to set it to something though.  */
@@ -353,14 +358,15 @@ build_common_decl (gfc_common_head *com, tree union_type, bool is_init)
       tree size = TYPE_SIZE_UNIT (union_type);
       if (tree_int_cst_lt (DECL_SIZE_UNIT (decl), size))
         {
-          /* Named common blocks of the same name shall be of the same size
-             in all scoping units of a program in which they appear, but
-             blank common blocks may be of different sizes.  */
-          if (strcmp (com->name, BLANK_COMMON_NAME))
+	  /* Named common blocks of the same name shall be of the same size
+	     in all scoping units of a program in which they appear, but
+	     blank common blocks may be of different sizes.  */
+	  if (strcmp (com->name, BLANK_COMMON_NAME))
 	    gfc_warning ("Named COMMON block '%s' at %L shall be of the "
 			 "same size", com->name, &com->where);
-          DECL_SIZE_UNIT (decl) = size;
-        }
+	  DECL_SIZE_UNIT (decl) = size;
+	  TREE_TYPE (decl) = union_type;
+	}
      }
 
   /* If this common block has been declared in a previous program unit,
@@ -378,8 +384,12 @@ build_common_decl (gfc_common_head *com, tree union_type, bool is_init)
       TREE_STATIC (decl) = 1;
       DECL_ALIGN (decl) = BIGGEST_ALIGNMENT;
       DECL_USER_ALIGN (decl) = 0;
+      GFC_DECL_COMMON_OR_EQUIV (decl) = 1;
 
       gfc_set_decl_location (decl, &com->where);
+
+      if (com->threadprivate && targetm.have_tls)
+	DECL_TLS_MODEL (decl) = decl_default_tls_model (decl);
 
       /* Place the back end declaration for this common block in
          GLOBAL_BINDING_LEVEL.  */
@@ -522,6 +532,7 @@ create_common (gfc_common_head *com, segment_info * head, bool saw_equiv)
 			   build3 (COMPONENT_REF, TREE_TYPE (s->field),
 				   decl, s->field, NULL_TREE));
       DECL_HAS_VALUE_EXPR_P (var_decl) = 1;
+      GFC_DECL_COMMON_OR_EQUIV (var_decl) = 1;
 
       if (s->sym->attr.assign)
 	{
@@ -837,7 +848,7 @@ align_segment (unsigned HOST_WIDE_INT * palign)
 	    {
 	      /* Aligning this field would misalign a previous field.  */
 	      gfc_error ("The equivalence set for variable '%s' "
-			 "declared at %L violates alignment requirents",
+			 "declared at %L violates alignment requirements",
 			 s->sym->name, &s->sym->declared_at);
 	    }
 	  offset += this_offset;

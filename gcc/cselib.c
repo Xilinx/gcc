@@ -1,12 +1,12 @@
 /* Common subexpression elimination library for GNU compiler.
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2003, 2004, 2005 Free Software Foundation, Inc.
+   1999, 2000, 2001, 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,9 +15,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -74,7 +73,7 @@ static void cselib_record_sets (rtx);
      the locations of the entries with the rtx we are looking up.  */
 
 /* A table that enables us to look up elts by their value.  */
-static htab_t hash_table;
+static htab_t cselib_hash_table;
 
 /* This is a global so we don't have to pass this through every function.
    It is used in new_elt_loc_list to set SETTING_INSN.  */
@@ -212,7 +211,7 @@ cselib_clear_table (void)
 
   n_used_regs = 0;
 
-  htab_empty (hash_table);
+  htab_empty (cselib_hash_table);
 
   n_useless_values = 0;
 
@@ -332,7 +331,7 @@ discard_useless_values (void **x, void *info ATTRIBUTE_UNUSED)
   if (v->locs == 0)
     {
       CSELIB_VAL_PTR (v->u.val_rtx) = NULL;
-      htab_clear_slot (hash_table, x);
+      htab_clear_slot (cselib_hash_table, x);
       unchain_one_value (v);
       n_useless_values--;
     }
@@ -352,7 +351,7 @@ remove_useless_values (void)
   do
     {
       values_became_useless = 0;
-      htab_traverse (hash_table, discard_useless_locs, 0);
+      htab_traverse (cselib_hash_table, discard_useless_locs, 0);
     }
   while (values_became_useless);
 
@@ -367,7 +366,7 @@ remove_useless_values (void)
       }
   *p = &dummy_val;
 
-  htab_traverse (hash_table, discard_useless_values, 0);
+  htab_traverse (cselib_hash_table, discard_useless_values, 0);
 
   gcc_assert (!n_useless_values);
 }
@@ -817,7 +816,7 @@ cselib_lookup_mem (rtx x, int create)
 
   mem_elt = new_cselib_val (++next_unknown_value, mode);
   add_mem_for_addr (addr, mem_elt, x);
-  slot = htab_find_slot_with_hash (hash_table, wrap_constant (mode, x),
+  slot = htab_find_slot_with_hash (cselib_hash_table, wrap_constant (mode, x),
 				   mem_elt->value, INSERT);
   *slot = mem_elt;
   return mem_elt;
@@ -968,7 +967,7 @@ cselib_lookup (rtx x, enum machine_mode mode, int create)
 	  REG_VALUES (i) = new_elt_list (REG_VALUES (i), NULL);
 	}
       REG_VALUES (i)->next = new_elt_list (REG_VALUES (i)->next, e);
-      slot = htab_find_slot_with_hash (hash_table, x, e->value, INSERT);
+      slot = htab_find_slot_with_hash (cselib_hash_table, x, e->value, INSERT);
       *slot = e;
       return e;
     }
@@ -981,7 +980,7 @@ cselib_lookup (rtx x, enum machine_mode mode, int create)
   if (! hashval)
     return 0;
 
-  slot = htab_find_slot_with_hash (hash_table, wrap_constant (mode, x),
+  slot = htab_find_slot_with_hash (cselib_hash_table, wrap_constant (mode, x),
 				   hashval, create ? INSERT : NO_INSERT);
   if (slot == 0)
     return 0;
@@ -1451,7 +1450,11 @@ cselib_process_insn (rtx insn)
     cselib_current_insn_in_libcall = false;
   cselib_current_insn = 0;
 
-  if (n_useless_values > MAX_USELESS_VALUES)
+  if (n_useless_values > MAX_USELESS_VALUES
+      /* remove_useless_values is linear in the hash table size.  Avoid
+         quadratic behaviour for very large hashtables with very few
+	 useless elements.  */
+      && (unsigned int)n_useless_values > cselib_hash_table->n_elements / 4)
     remove_useless_values ();
 }
 
@@ -1467,8 +1470,7 @@ cselib_init (bool record_memory)
 				         sizeof (struct elt_loc_list), 10);
   cselib_val_pool = create_alloc_pool ("cselib_val_list", 
 				       sizeof (cselib_val), 10);
-  value_pool = create_alloc_pool ("value", 
-				  RTX_SIZE (VALUE), 100);
+  value_pool = create_alloc_pool ("value", RTX_CODE_SIZE (VALUE), 100);
   cselib_record_memory = record_memory;
   /* This is only created once.  */
   if (! callmem)
@@ -1486,11 +1488,12 @@ cselib_init (bool record_memory)
       /* Some space for newly emit instructions so we don't end up
 	 reallocating in between passes.  */
       reg_values_size = cselib_nregs + (63 + cselib_nregs) / 16;
-      reg_values = xcalloc (reg_values_size, sizeof (reg_values));
+      reg_values = XCNEWVEC (struct elt_list *, reg_values_size);
     }
-  used_regs = xmalloc (sizeof (*used_regs) * cselib_nregs);
+  used_regs = XNEWVEC (unsigned int, cselib_nregs);
   n_used_regs = 0;
-  hash_table = htab_create (31, get_value_hash, entry_and_rtx_equal_p, NULL);
+  cselib_hash_table = htab_create (31, get_value_hash,
+				   entry_and_rtx_equal_p, NULL);
   cselib_current_insn_in_libcall = false;
 }
 
@@ -1504,10 +1507,10 @@ cselib_finish (void)
   free_alloc_pool (cselib_val_pool);
   free_alloc_pool (value_pool);
   cselib_clear_table ();
-  htab_delete (hash_table);
+  htab_delete (cselib_hash_table);
   free (used_regs);
   used_regs = 0;
-  hash_table = 0;
+  cselib_hash_table = 0;
   n_useless_values = 0;
   next_unknown_value = 0;
 }

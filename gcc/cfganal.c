@@ -1,12 +1,12 @@
 /* Control flow graph analysis code for GNU compiler.
    Copyright (C) 1987, 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2003, 2004, 2005 Free Software Foundation, Inc.
+   1999, 2000, 2001, 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,9 +15,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 /* This file contains various simple utilities to analyze the CFG.  */
 #include "config.h"
@@ -152,7 +151,7 @@ could_fall_through (basic_block src, basic_block target)
      Steven Muchnick
      Morgan Kaufmann, 1997
 
-   and heavily borrowed from flow_depth_first_order_compute.  */
+   and heavily borrowed from pre_and_rev_post_order_compute.  */
 
 bool
 mark_dfs_back_edges (void)
@@ -167,11 +166,11 @@ mark_dfs_back_edges (void)
   bool found = false;
 
   /* Allocate the preorder and postorder number arrays.  */
-  pre = xcalloc (last_basic_block, sizeof (int));
-  post = xcalloc (last_basic_block, sizeof (int));
+  pre = XCNEWVEC (int, last_basic_block);
+  post = XCNEWVEC (int, last_basic_block);
 
   /* Allocate stack for back-tracking up CFG.  */
-  stack = xmalloc ((n_basic_blocks + 1) * sizeof (edge_iterator));
+  stack = XNEWVEC (edge_iterator, n_basic_blocks + 1);
   sp = 0;
 
   /* Allocate bitmap to track nodes that have been visited.  */
@@ -282,7 +281,7 @@ find_unreachable_blocks (void)
   edge_iterator ei;
   basic_block *tos, *worklist, bb;
 
-  tos = worklist = xmalloc (sizeof (basic_block) * n_basic_blocks);
+  tos = worklist = XNEWVEC (basic_block, n_basic_blocks);
 
   /* Clear all the reachability flags.  */
 
@@ -345,7 +344,7 @@ create_edge_list (void)
   basic_block bb;
   edge_iterator ei;
 
-  block_count = n_basic_blocks + 2;   /* Include the entry and exit blocks.  */
+  block_count = n_basic_blocks; /* Include the entry and exit blocks.  */
 
   num_edges = 0;
 
@@ -356,10 +355,10 @@ create_edge_list (void)
       num_edges += EDGE_COUNT (bb->succs);
     }
 
-  elist = xmalloc (sizeof (struct edge_list));
+  elist = XNEW (struct edge_list);
   elist->num_blocks = block_count;
   elist->num_edges = num_edges;
-  elist->index_to_edge = xmalloc (sizeof (edge) * num_edges);
+  elist->index_to_edge = XNEWVEC (edge, num_edges);
 
   num_edges = 0;
 
@@ -391,7 +390,7 @@ print_edge_list (FILE *f, struct edge_list *elist)
   int x;
 
   fprintf (f, "Compressed edge list, %d BBs + entry & exit, and %d edges\n",
-	   elist->num_blocks - 2, elist->num_edges);
+	   elist->num_blocks, elist->num_edges);
 
   for (x = 0; x < elist->num_edges; x++)
     {
@@ -645,18 +644,22 @@ connect_infinite_loops_to_exit (void)
   return;
 }
 
-/* Compute reverse top sort order.  */
+/* Compute reverse top sort order.  
+   This is computing a post order numbering of the graph.  */
 
-void
-flow_reverse_top_sort_order_compute (int *rts_order)
+int
+post_order_compute (int *post_order, bool include_entry_exit)
 {
   edge_iterator *stack;
   int sp;
-  int postnum = 0;
+  int post_order_num = 0;
   sbitmap visited;
 
+  if (include_entry_exit)
+    post_order[post_order_num++] = EXIT_BLOCK;
+
   /* Allocate stack for back-tracking up CFG.  */
-  stack = xmalloc ((n_basic_blocks + 1) * sizeof (edge_iterator));
+  stack = XNEWVEC (edge_iterator, n_basic_blocks + 1);
   sp = 0;
 
   /* Allocate bitmap to track nodes that have been visited.  */
@@ -690,12 +693,12 @@ flow_reverse_top_sort_order_compute (int *rts_order)
 	       time, check its successors.  */
 	    stack[sp++] = ei_start (dest->succs);
 	  else
-	    rts_order[postnum++] = dest->index;
+	    post_order[post_order_num++] = dest->index;
 	}
       else
 	{
 	  if (ei_one_before_end_p (ei) && src != ENTRY_BLOCK_PTR)
-	   rts_order[postnum++] = src->index;
+	   post_order[post_order_num++] = src->index;
 
 	  if (!ei_one_before_end_p (ei))
 	    ei_next (&stack[sp - 1]);
@@ -704,29 +707,49 @@ flow_reverse_top_sort_order_compute (int *rts_order)
 	}
     }
 
+  if (include_entry_exit)
+    post_order[post_order_num++] = ENTRY_BLOCK;
+
   free (stack);
   sbitmap_free (visited);
+  return post_order_num;
 }
 
 /* Compute the depth first search order and store in the array
-  DFS_ORDER if nonzero, marking the nodes visited in VISITED.  If
-  RC_ORDER is nonzero, return the reverse completion number for each
+  PRE_ORDER if nonzero, marking the nodes visited in VISITED.  If
+  REV_POST_ORDER is nonzero, return the reverse completion number for each
   node.  Returns the number of nodes visited.  A depth first search
   tries to get as far away from the starting point as quickly as
-  possible.  */
+  possible. 
+
+  pre_order is a really a preorder numbering of the graph.
+  rev_post_order is really a reverse postorder numbering of the graph.
+ */
 
 int
-flow_depth_first_order_compute (int *dfs_order, int *rc_order)
+pre_and_rev_post_order_compute (int *pre_order, int *rev_post_order, 
+				bool include_entry_exit)
 {
   edge_iterator *stack;
   int sp;
-  int dfsnum = 0;
-  int rcnum = n_basic_blocks - 1;
+  int pre_order_num = 0;
+  int rev_post_order_num = n_basic_blocks - 1;
   sbitmap visited;
 
   /* Allocate stack for back-tracking up CFG.  */
-  stack = xmalloc ((n_basic_blocks + 1) * sizeof (edge_iterator));
+  stack = XNEWVEC (edge_iterator, n_basic_blocks + 1);
   sp = 0;
+
+  if (include_entry_exit)
+    {
+      if (pre_order)
+	pre_order[pre_order_num] = ENTRY_BLOCK;
+      pre_order_num++;
+      if (rev_post_order)
+	rev_post_order[rev_post_order_num--] = ENTRY_BLOCK;
+    }
+  else 
+    rev_post_order_num -= NUM_FIXED_BLOCKS;
 
   /* Allocate bitmap to track nodes that have been visited.  */
   visited = sbitmap_alloc (last_basic_block);
@@ -754,27 +777,27 @@ flow_depth_first_order_compute (int *dfs_order, int *rc_order)
 	  /* Mark that we have visited the destination.  */
 	  SET_BIT (visited, dest->index);
 
-	  if (dfs_order)
-	    dfs_order[dfsnum] = dest->index;
+	  if (pre_order)
+	    pre_order[pre_order_num] = dest->index;
 
-	  dfsnum++;
+	  pre_order_num++;
 
 	  if (EDGE_COUNT (dest->succs) > 0)
 	    /* Since the DEST node has been visited for the first
 	       time, check its successors.  */
 	    stack[sp++] = ei_start (dest->succs);
-	  else if (rc_order)
+	  else if (rev_post_order)
 	    /* There are no successors for the DEST node so assign
 	       its reverse completion number.  */
-	    rc_order[rcnum--] = dest->index;
+	    rev_post_order[rev_post_order_num--] = dest->index;
 	}
       else
 	{
 	  if (ei_one_before_end_p (ei) && src != ENTRY_BLOCK_PTR
-	      && rc_order)
+	      && rev_post_order)
 	    /* There are no more successors for the SRC node
 	       so assign its reverse completion number.  */
-	    rc_order[rcnum--] = src->index;
+	    rev_post_order[rev_post_order_num--] = src->index;
 
 	  if (!ei_one_before_end_p (ei))
 	    ei_next (&stack[sp - 1]);
@@ -786,10 +809,22 @@ flow_depth_first_order_compute (int *dfs_order, int *rc_order)
   free (stack);
   sbitmap_free (visited);
 
-  /* The number of nodes visited should be the number of blocks.  */
-  gcc_assert (dfsnum == n_basic_blocks);
+  if (include_entry_exit)
+    {
+      if (pre_order)
+	pre_order[pre_order_num] = EXIT_BLOCK;
+      pre_order_num++;
+      if (rev_post_order)
+	rev_post_order[rev_post_order_num--] = EXIT_BLOCK;
+      /* The number of nodes visited should be the number of blocks.  */
+      gcc_assert (pre_order_num == n_basic_blocks);
+    }
+  else
+    /* The number of nodes visited should be the number of blocks minus
+       the entry and exit blocks which are not visited here.  */
+    gcc_assert (pre_order_num == n_basic_blocks - NUM_FIXED_BLOCKS);
 
-  return dfsnum;
+  return pre_order_num;
 }
 
 /* Compute the depth first search order on the _reverse_ graph and
@@ -826,12 +861,11 @@ static void
 flow_dfs_compute_reverse_init (depth_first_search_ds data)
 {
   /* Allocate stack for back-tracking up CFG.  */
-  data->stack = xmalloc ((n_basic_blocks - (INVALID_BLOCK + 1))
-			 * sizeof (basic_block));
+  data->stack = XNEWVEC (basic_block, n_basic_blocks);
   data->sp = 0;
 
   /* Allocate bitmap to track nodes that have been visited.  */
-  data->visited_blocks = sbitmap_alloc (last_basic_block - (INVALID_BLOCK + 1));
+  data->visited_blocks = sbitmap_alloc (last_basic_block);
 
   /* None of the nodes in the CFG have been visited yet.  */
   sbitmap_zero (data->visited_blocks);
@@ -847,7 +881,7 @@ static void
 flow_dfs_compute_reverse_add_bb (depth_first_search_ds data, basic_block bb)
 {
   data->stack[data->sp++] = bb;
-  SET_BIT (data->visited_blocks, bb->index - (INVALID_BLOCK + 1));
+  SET_BIT (data->visited_blocks, bb->index);
 }
 
 /* Continue the depth-first search through the reverse graph starting with the
@@ -869,14 +903,13 @@ flow_dfs_compute_reverse_execute (depth_first_search_ds data,
 
       /* Perform depth-first search on adjacent vertices.  */
       FOR_EACH_EDGE (e, ei, bb->preds)
-	if (!TEST_BIT (data->visited_blocks,
-		       e->src->index - (INVALID_BLOCK + 1)))
+	if (!TEST_BIT (data->visited_blocks, e->src->index))
 	  flow_dfs_compute_reverse_add_bb (data, e->src);
     }
 
   /* Determine if there are unvisited basic blocks.  */
   FOR_BB_BETWEEN (bb, last_unvisited, NULL, prev_bb)
-    if (!TEST_BIT (data->visited_blocks, bb->index - (INVALID_BLOCK + 1)))
+    if (!TEST_BIT (data->visited_blocks, bb->index))
       return bb;
 
   return NULL;
@@ -912,12 +945,12 @@ dfs_enumerate_from (basic_block bb, int reverse,
   static sbitmap visited;
   static unsigned v_size;
 
-#define MARK_VISITED(BB) (SET_BIT (visited, (BB)->index + 2))
-#define UNMARK_VISITED(BB) (RESET_BIT (visited, (BB)->index + 2))
-#define VISITED_P(BB) (TEST_BIT (visited, (BB)->index + 2))
+#define MARK_VISITED(BB) (SET_BIT (visited, (BB)->index)) 
+#define UNMARK_VISITED(BB) (RESET_BIT (visited, (BB)->index)) 
+#define VISITED_P(BB) (TEST_BIT (visited, (BB)->index)) 
 
   /* Resize the VISITED sbitmap if necessary.  */
-  size = last_basic_block + 2;
+  size = last_basic_block; 
   if (size < 10)
     size = 10;
 
@@ -938,7 +971,7 @@ dfs_enumerate_from (basic_block bb, int reverse,
       v_size = size;
     }
 
-  st = xcalloc (rslt_max, sizeof (basic_block));
+  st = XCNEWVEC (basic_block, rslt_max);
   rslt[tv++] = st[sp++] = bb;
   MARK_VISITED (bb);
   while (sp)
@@ -947,23 +980,23 @@ dfs_enumerate_from (basic_block bb, int reverse,
       edge_iterator ei;
       lbb = st[--sp];
       if (reverse)
-        {
+	{
 	  FOR_EACH_EDGE (e, ei, lbb->preds)
 	    if (!VISITED_P (e->src) && predicate (e->src, data))
 	      {
-	        gcc_assert (tv != rslt_max);
-	        rslt[tv++] = st[sp++] = e->src;
-	        MARK_VISITED (e->src);
+		gcc_assert (tv != rslt_max);
+		rslt[tv++] = st[sp++] = e->src;
+		MARK_VISITED (e->src);
 	      }
-        }
+	}
       else
-        {
+	{
 	  FOR_EACH_EDGE (e, ei, lbb->succs)
 	    if (!VISITED_P (e->dest) && predicate (e->dest, data))
 	      {
-	        gcc_assert (tv != rslt_max);
-	        rslt[tv++] = st[sp++] = e->dest;
-	        MARK_VISITED (e->dest);
+		gcc_assert (tv != rslt_max);
+		rslt[tv++] = st[sp++] = e->dest;
+		MARK_VISITED (e->dest);
 	      }
 	}
     }
@@ -978,24 +1011,24 @@ dfs_enumerate_from (basic_block bb, int reverse,
 
 
 /* Compute dominance frontiers, ala Harvey, Ferrante, et al.
-   
+
    This algorithm can be found in Timothy Harvey's PhD thesis, at
    http://www.cs.rice.edu/~harv/dissertation.pdf in the section on iterative
    dominance algorithms.
 
    First, we identify each join point, j (any node with more than one
-   incoming edge is a join point). 
+   incoming edge is a join point).
 
    We then examine each predecessor, p, of j and walk up the dominator tree
-   starting at p. 
-   
+   starting at p.
+
    We stop the walk when we reach j's immediate dominator - j is in the
    dominance frontier of each of  the nodes in the walk, except for j's
    immediate dominator. Intuitively, all of the rest of j's dominators are
    shared by j's predecessors as well.
    Since they dominate j, they will not have j in their dominance frontiers.
 
-   The number of nodes touched by this algorithm is equal to the size 
+   The number of nodes touched by this algorithm is equal to the size
    of the dominance frontiers, no more, no less.
 */
 
@@ -1016,11 +1049,13 @@ compute_dominance_frontiers_1 (bitmap *frontiers)
 	      basic_block domsb;
 	      if (runner == ENTRY_BLOCK_PTR)
 		continue;
-	      
+
 	      domsb = get_immediate_dominator (CDI_DOMINATORS, b);
 	      while (runner != domsb)
 		{
-		  bitmap_set_bit (frontiers[runner->index], 
+		  if (bitmap_bit_p (frontiers[runner->index], b->index))
+		    break;
+		  bitmap_set_bit (frontiers[runner->index],
 				  b->index);
 		  runner = get_immediate_dominator (CDI_DOMINATORS,
 						    runner);
@@ -1028,8 +1063,8 @@ compute_dominance_frontiers_1 (bitmap *frontiers)
 	    }
 	}
     }
-}	      
-  
+}
+
 
 void
 compute_dominance_frontiers (bitmap *frontiers)

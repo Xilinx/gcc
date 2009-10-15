@@ -53,7 +53,7 @@
  * purpose.  It is provided "as is" without express or implied warranty.
  */
 
-/** @file queue
+/** @file include/queue
  *  This is a Standard C++ Library header.
  */
 

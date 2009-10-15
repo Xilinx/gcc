@@ -1,12 +1,12 @@
 /* Some code common to C++ and ObjC++ front ends.
-   Copyright (C) 2004 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2007 Free Software Foundation, Inc.
    Contributed by Ziemowit Laski  <zlaski@apple.com>
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,9 +15,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -154,7 +153,7 @@ void
 cxx_initialize_diagnostics (diagnostic_context *context)
 {
   pretty_printer *base = context->printer;
-  cxx_pretty_printer *pp = xmalloc (sizeof (cxx_pretty_printer));
+  cxx_pretty_printer *pp = XNEW (cxx_pretty_printer);
   memcpy (pp_base (pp), base, sizeof (pretty_printer));
   pp_cxx_pretty_printer_init (pp);
   context->printer = (pretty_printer *) pp;
@@ -185,6 +184,21 @@ cxx_types_compatible_p (tree x, tree y)
   return 0;
 }
 
+tree
+cxx_staticp (tree arg)
+{
+  switch (TREE_CODE (arg))
+    {
+    case BASELINK:
+      return staticp (BASELINK_FUNCTIONS (arg));
+
+    default:
+      break;
+    }
+  
+  return NULL_TREE;
+}
+
 /* Stubs to keep c-opts.c happy.  */
 void
 push_file_scope (void)
@@ -203,19 +217,19 @@ has_c_linkage (tree decl)
   return DECL_EXTERN_C_P (decl);
 }
 
-static GTY ((if_marked ("tree_map_marked_p"), param_is (struct tree_map))) 
+static GTY ((if_marked ("tree_map_marked_p"), param_is (struct tree_map)))
      htab_t shadowed_var_for_decl;
 
 /* Lookup a shadowed var for FROM, and return it if we find one.  */
 
-tree 
+tree
 decl_shadowed_for_var_lookup (tree from)
 {
   struct tree_map *h, in;
   in.from = from;
 
-  h = htab_find_with_hash (shadowed_var_for_decl, &in, 
-			   htab_hash_pointer (from));
+  h = (struct tree_map *) htab_find_with_hash (shadowed_var_for_decl, &in,
+					       htab_hash_pointer (from));
   if (h)
     return h->to;
   return NULL_TREE;
@@ -229,7 +243,7 @@ decl_shadowed_for_var_insert (tree from, tree to)
   struct tree_map *h;
   void **loc;
 
-  h = ggc_alloc (sizeof (struct tree_map));
+  h = GGC_NEW (struct tree_map);
   h->hash = htab_hash_pointer (from);
   h->from = from;
   h->to = to;

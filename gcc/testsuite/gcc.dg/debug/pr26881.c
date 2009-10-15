@@ -1,15 +1,16 @@
-/* PR debug/26881 */
 /* { dg-do compile } */
-
+/* { dg-options "-g -O0" } */
 int
-foo ()
+main (int argc, char **argv)
 {
   if (0)
     {
-      static union { } u;
+      static union
+      {
+      }
+      u;
       typedef char tt;
-      static tt cccc[8];
-      return cccc[0] == 0x01 && cccc[1] == 0x02;
+      static tt c[8];
+      return c[0] == 0x01 && c[1] == 0x02;
     }
-  return 0;
 }

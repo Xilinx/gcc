@@ -1,5 +1,5 @@
 /* DefaultHighlighter.java --
-   Copyright (C) 2004  Free Software Foundation, Inc.
+   Copyright (C) 2004, 2006  Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -38,11 +38,17 @@ exception statement from your version. */
 
 package javax.swing.text;
 
+import gnu.classpath.NotImplementedException;
+
 import java.awt.Color;
 import java.awt.Graphics;
+import java.awt.Insets;
 import java.awt.Rectangle;
 import java.awt.Shape;
-import java.util.Vector;
+import java.util.ArrayList;
+
+import javax.swing.SwingUtilities;
+import javax.swing.plaf.TextUI;
 
 public class DefaultHighlighter extends LayeredHighlighter
 {
@@ -68,56 +74,102 @@ public class DefaultHighlighter extends LayeredHighlighter
     }
     
     public void paint(Graphics g, int p0, int p1, Shape bounds,
-		      JTextComponent c)
+		      JTextComponent t)
     {
-      Rectangle r0 = null;
-      Rectangle r1 = null;
-      Rectangle rect = bounds.getBounds();
+      if (p0 == p1)
+        return;
       
-      try
-	{
-	  r0 = c.modelToView(p0);
-	  r1 = c.modelToView(p1);
-	}
-      catch (BadLocationException e)
-        {
-	  // This should never occur.
-          return;
-	}
-
-      if (r0 == null || r1 == null)
-	return;
+      Rectangle rect = bounds.getBounds();
 
       if (color == null)
-	g.setColor(c.getSelectionColor());
+        g.setColor(t.getSelectionColor());
       else
-	g.setColor(color);
+        g.setColor(color);
 
-      // Check if only one line to highlight.
-      if (r0.y == r1.y)
-	{
-	  r0.width = r1.x - r0.x;
-	  paintHighlight(g, r0);
-	  return;
-	}
-
-      // First line, from p0 to end-of-line.
-      r0.width = rect.x + rect.width - r0.x;
-      paintHighlight(g, r0);
+      TextUI ui = t.getUI();
       
-      // FIXME: All the full lines in between, if any (assumes that all lines
-      // have the same height -- not a good assumption with JEditorPane/JTextPane).
-      r0.y += r0.height;
-      r0.x = rect.x;
+      try
+      {
+        
+        Rectangle l0 = ui.modelToView(t, p0, null);
+        Rectangle l1 = ui.modelToView(t, p1, null);
+        
+        // Note: The computed locations may lie outside of the allocation
+        // area if the text is scrolled.
+        
+        if (l0.y == l1.y)
+          {
+            SwingUtilities.computeUnion(l0.x, l0.y, l0.width, l0.height, l1);
 
-      while (r0.y < r1.y)
-	{
-	  paintHighlight(g, r0);
-	  r0.y += r0.height;
-	}
-
-      // Last line, from beginnin-of-line to p1.
-      paintHighlight(g, r1);
+            // Paint only inside the allocation area.
+            SwingUtilities.computeIntersection(rect.x, rect.y, rect.width, rect.height, l1);
+        
+            paintHighlight(g, l1);
+          }
+        else
+          {
+            // 1. The line of p0 is painted from the position of p0
+            // to the right border.
+            // 2. All lines between the ones where p0 and p1 lie on
+            // are completely highlighted. The allocation area is used to find
+            // out the bounds.
+            // 3. The final line is painted from the left border to the
+            // position of p1.
+            
+            // Highlight first line until the end.
+            // If rect.x is non-zero the calculation will properly adjust the
+            // area to be painted.
+            l0.x -= rect.x;
+            l0.width = rect.width - l0.x - rect.x;
+            
+            paintHighlight(g, l0);
+            
+            int posBelow = Utilities.getPositionBelow(t, p0, l0.x);
+            int p1RowStart = Utilities.getRowStart(t, p1);
+            if (posBelow != -1
+                && posBelow != p0
+                && Utilities.getRowStart(t, posBelow)
+                   != p1RowStart)
+              {
+                Rectangle grow = ui.modelToView(t, posBelow);
+                grow.x = rect.x;
+                grow.width = rect.width;
+                
+                // Find further lines which have to be highlighted completely.
+                int nextPosBelow = posBelow;
+                while (nextPosBelow != -1
+                       && Utilities.getRowStart(t, nextPosBelow) != p1RowStart)
+                  {
+                    posBelow = nextPosBelow;
+                    nextPosBelow = Utilities.getPositionBelow(t, posBelow, l0.x);
+                    
+                    if (nextPosBelow == posBelow)
+                      break;
+                  }
+                // Now posBelow is an offset on the last line which has to be painted
+                // completely. (newPosBelow is on the same line as p1)
+                 
+                // Retrieve the rectangle of posBelow and use its y and height
+                // value to calculate the final height of the multiple line
+                // spanning rectangle.
+                Rectangle end = ui.modelToView(t, posBelow);
+                grow.height = end.y + end.height - grow.y;
+                
+                paintHighlight(g, grow);
+              }
+            
+            // Paint last line from its beginning to the position of p1.
+            l1.width = l1.x + l1.width - rect.x;
+            l1.x = rect.x;
+            paintHighlight(g, l1);
+          }
+      }
+    catch (BadLocationException ex)
+      {
+        AssertionError err = new AssertionError("Unexpected bad location exception");
+        err.initCause(ex);
+        throw err;
+      }
     }
 
     public Shape paintLayer(Graphics g, int p0, int p1, Shape bounds,
@@ -127,7 +179,7 @@ public class DefaultHighlighter extends LayeredHighlighter
     }
   }
   
-  private class HighlightEntry
+  private class HighlightEntry implements Highlighter.Highlight
   {
     int p0;
     int p1;
@@ -140,12 +192,12 @@ public class DefaultHighlighter extends LayeredHighlighter
       this.painter = painter;
     }
 
-    public int getStartPosition()
+    public int getStartOffset()
     {
       return p0;
     }
 
-    public int getEndPosition()
+    public int getEndOffset()
     {
       return p1;
     }
@@ -163,7 +215,7 @@ public class DefaultHighlighter extends LayeredHighlighter
     new DefaultHighlightPainter(null);
   
   private JTextComponent textComponent;
-  private Vector highlights = new Vector();
+  private ArrayList highlights = new ArrayList();
   private boolean drawsLayeredHighlights = true;
   
   public DefaultHighlighter()
@@ -208,12 +260,20 @@ public class DefaultHighlighter extends LayeredHighlighter
     checkPositions(p0, p1);
     HighlightEntry entry = new HighlightEntry(p0, p1, painter);
     highlights.add(entry);
+    
+    textComponent.getUI().damageRange(textComponent, p0, p1);
+    
     return entry;
   }
 
   public void removeHighlight(Object tag)
   {
     highlights.remove(tag);
+
+    HighlightEntry entry = (HighlightEntry) tag;
+    textComponent.getUI().damageRange(textComponent,
+                                      entry.p0,
+                                      entry.p1);
   }
 
   public void removeAllHighlights()
@@ -223,34 +283,120 @@ public class DefaultHighlighter extends LayeredHighlighter
 
   public Highlighter.Highlight[] getHighlights()
   {
-    return null;
+    return (Highlighter.Highlight[]) 
+      highlights.toArray(new Highlighter.Highlight[highlights.size()]);
   }
 
-  public void changeHighlight(Object tag, int p0, int p1)
+  public void changeHighlight(Object tag, int n0, int n1)
     throws BadLocationException
   {
-    checkPositions(p0, p1);
+    int o0, o1;
+    
+    checkPositions(n0, n1);
     HighlightEntry entry = (HighlightEntry) tag;
-    entry.p0 = p0;
-    entry.p1 = p1;
+    o0 = entry.p0;
+    o1 = entry.p1;
+    
+    // Prevent useless write & repaint operations.
+    if (o0 == n0 && o1 == n1)
+      return;
+    
+    entry.p0 = n0;
+    entry.p1 = n1;
+    
+    TextUI ui = textComponent.getUI();
+    
+    // Special situation where the old area has to be cleared simply.
+    if (n0 == n1)
+      ui.damageRange(textComponent, o0, o1);
+    // Calculates the areas where a change is really neccessary
+    else if ((o1 > n0 && o1 <= n1)
+        || (n1 > o0 && n1 <= o1))
+      {
+        // [fds, fde) - the first damage region
+        // [sds, sde] - the second damage region
+        int fds, sds;
+        int fde, sde;
+
+        // Calculate first damaged region.
+        if(o0 < n0)
+          {
+            // Damaged region will be cleared as
+            // the old highlight region starts first.
+            fds = o0;
+            fde = n0;
+          }
+        else
+          {
+            // Damaged region will be painted as
+            // the new highlight region starts first.
+            fds = n0;
+            fde = o0;
+          }
+
+        if (o1 < n1)
+          {
+            // Final region will be painted as the
+            // old highlight region finishes first
+            sds = o1;
+            sde = n1;
+          }
+        else
+          {
+            // Final region will be cleared as the
+            // new highlight region finishes first.
+            sds = n1;
+            sde = o1;
+          }
+        
+        // If there is no undamaged region in between
+        // call damageRange only once.
+        if (fde == sds)
+          ui.damageRange(textComponent, fds, sde);
+        else
+          {
+            if (fds != fde)
+              ui.damageRange(textComponent, fds, fde);
+        
+            if (sds != sde)
+              ui.damageRange(textComponent, sds, sde);
+          }
+      }
+    else
+      {
+        // The two regions do not overlap. So mark
+        // both areas as damaged.
+        ui.damageRange(textComponent, o0, o1);
+        ui.damageRange(textComponent, n0, n1);
+      }
+    
   }
 
   public void paintLayeredHighlights(Graphics g, int p0, int p1,
                                      Shape viewBounds, JTextComponent editor,
                                      View view)
+  throws NotImplementedException
   {
     // TODO: Implement this properly.
   }
 
   public void paint(Graphics g)
   {
+    int size = highlights.size();
+    
     // Check if there are any highlights.
-    if (highlights.size() == 0)
+    if (size == 0)
       return;
+
+    // Prepares the rectangle of the inner drawing area.
+    Insets insets = textComponent.getInsets();
+    Shape bounds =
+      new Rectangle(insets.left,
+                    insets.top,
+                    textComponent.getWidth() - insets.left - insets.right,
+                    textComponent.getHeight() - insets.top - insets.bottom);
     
-    Shape bounds = textComponent.getBounds();
-    
-    for (int index = 0; index < highlights.size(); ++index)
+    for (int index = 0; index < size; ++index)
       {
 	HighlightEntry entry = (HighlightEntry) highlights.get(index);
 	entry.painter.paint(g, entry.p0, entry.p1, bounds, textComponent);

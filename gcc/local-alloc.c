@@ -1,12 +1,13 @@
 /* Allocate registers within a basic block, for GNU compiler.
    Copyright (C) 1987, 1988, 1991, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,9 +16,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 /* Allocation of hard register numbers to pseudo registers is done in
    two passes.  In this pass we consider only regs that are born and
@@ -338,7 +338,7 @@ alloc_qty (int regno, enum machine_mode mode, int size, int birth)
 
 /* Main entry point of this file.  */
 
-int
+static int
 local_alloc (void)
 {
   int i;
@@ -368,15 +368,15 @@ local_alloc (void)
      See the declarations of these variables, above,
      for what they mean.  */
 
-  qty = xmalloc (max_qty * sizeof (struct qty));
-  qty_phys_copy_sugg = xmalloc (max_qty * sizeof (HARD_REG_SET));
-  qty_phys_num_copy_sugg = xmalloc (max_qty * sizeof (short));
-  qty_phys_sugg = xmalloc (max_qty * sizeof (HARD_REG_SET));
-  qty_phys_num_sugg = xmalloc (max_qty * sizeof (short));
+  qty = XNEWVEC (struct qty, max_qty);
+  qty_phys_copy_sugg = XNEWVEC (HARD_REG_SET, max_qty);
+  qty_phys_num_copy_sugg = XNEWVEC (short, max_qty);
+  qty_phys_sugg = XNEWVEC (HARD_REG_SET, max_qty);
+  qty_phys_num_sugg = XNEWVEC (short, max_qty);
 
-  reg_qty = xmalloc (max_regno * sizeof (int));
-  reg_offset = xmalloc (max_regno * sizeof (char));
-  reg_next_in_qty = xmalloc (max_regno * sizeof (int));
+  reg_qty = XNEWVEC (int, max_regno);
+  reg_offset = XNEWVEC (char, max_regno);
+  reg_next_in_qty = XNEWVEC (int, max_regno);
 
   /* Determine which pseudo-registers can be allocated by local-alloc.
      In general, these are the registers used only in a single block and
@@ -798,7 +798,7 @@ update_equiv_regs (void)
   regset_head cleared_regs;
   int clear_regnos = 0;
 
-  reg_equiv = xcalloc (max_regno, sizeof *reg_equiv);
+  reg_equiv = XCNEWVEC (struct equivalence, max_regno);
   INIT_REG_SET (&cleared_regs);
   reg_equiv_init = ggc_alloc_cleared (max_regno * sizeof (rtx));
   reg_equiv_init_size = max_regno;
@@ -1305,7 +1305,7 @@ block_alloc (int b)
 
   /* +2 to leave room for a post_mark_life at the last insn and for
      the birth of a CLOBBER in the first insn.  */
-  regs_live_at = xcalloc ((2 * insn_count + 2), sizeof (HARD_REG_SET));
+  regs_live_at = XCNEWVEC (HARD_REG_SET, 2 * insn_count + 2);
 
   /* Initialize table of hardware registers currently live.  */
 
@@ -1559,7 +1559,7 @@ block_alloc (int b)
      number of suggested registers they need so we allocate those with
      the most restrictive needs first.  */
 
-  qty_order = xmalloc (next_qty * sizeof (int));
+  qty_order = XNEWVEC (int, next_qty);
   for (i = 0; i < next_qty; i++)
     qty_order[i] = i;
 
@@ -2522,7 +2522,7 @@ dump_local_alloc (FILE *file)
 
 /* Run old register allocator.  Return TRUE if we must exit
    rest_of_compilation upon return.  */
-static void
+static unsigned int
 rest_of_handle_local_alloc (void)
 {
   int rebuild_notes;
@@ -2536,12 +2536,14 @@ rest_of_handle_local_alloc (void)
   allocate_reg_info (max_regno, FALSE, TRUE);
 
   /* And the reg_equiv_memory_loc array.  */
-  VARRAY_GROW (reg_equiv_memory_loc_varray, max_regno);
-  reg_equiv_memory_loc = &VARRAY_RTX (reg_equiv_memory_loc_varray, 0);
+  VEC_safe_grow (rtx, gc, reg_equiv_memory_loc_vec, max_regno);
+  memset (VEC_address (rtx, reg_equiv_memory_loc_vec), 0,
+	  sizeof (rtx) * max_regno);
+  reg_equiv_memory_loc = VEC_address (rtx, reg_equiv_memory_loc_vec);
 
   allocate_initial_values (reg_equiv_memory_loc);
 
-  regclass (get_insns (), max_reg_num (), dump_file);
+  regclass (get_insns (), max_reg_num ());
   rebuild_notes = local_alloc ();
 
   /* Local allocation may have turned an indirect jump into a direct
@@ -2558,13 +2560,14 @@ rest_of_handle_local_alloc (void)
       timevar_pop (TV_JUMP);
     }
 
-  if (dump_enabled_p (pass_local_alloc.static_pass_number))
+  if (dump_file && (dump_flags & TDF_DETAILS))
     {
       timevar_push (TV_DUMP);
-      dump_flow_info (dump_file);
+      dump_flow_info (dump_file, dump_flags);
       dump_local_alloc (dump_file);
       timevar_pop (TV_DUMP);
     }
+  return 0;
 }
 
 struct tree_opt_pass pass_local_alloc =

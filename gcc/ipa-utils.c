@@ -1,12 +1,12 @@
 /* Utilities for ipa analysis.
-   Copyright (C) 2005 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2007 Free Software Foundation, Inc.
    Contributed by Kenneth Zadeck <zadeck@naturalbridge.com>
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,10 +15,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  
-*/
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -78,7 +76,7 @@ struct searchc_env {
    has been customized for cgraph_nodes.  The env parameter is because
    it is recursive and there are no nested functions here.  This
    function should only be called from itself or
-   cgraph_reduced_inorder.  ENV is a stack env and would be
+   ipa_utils_reduced_inorder.  ENV is a stack env and would be
    unnecessary if C had nested functions.  V is the node to start
    searching from.  */
 
@@ -161,7 +159,7 @@ ipa_utils_reduced_inorder (struct cgraph_node **order,
   struct cgraph_node *node;
   struct searchc_env env;
   splay_tree_node result;
-  env.stack = xcalloc (cgraph_n_nodes, sizeof (struct cgraph_node *));
+  env.stack = XCNEWVEC (struct cgraph_node *, cgraph_n_nodes);
   env.stack_size = 0;
   env.result = order;
   env.order_pos = 0;

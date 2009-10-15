@@ -1,6 +1,6 @@
 // Versatile string utility -*- C++ -*-
 
-// Copyright (C) 2005, 2006 Free Software Foundation, Inc.
+// Copyright (C) 2005, 2006, 2007 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -44,9 +44,10 @@
 #include <bits/functexcept.h>
 #include <locale>
 #include <algorithm> // For std::distance, srd::search.
+#include <bits/ostream_insert.h>
 
-namespace __gnu_cxx
-{
+_GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
+
   template<typename _CharT, typename _Traits, typename _Alloc>
     struct __vstring_utility
     {
@@ -170,26 +171,7 @@ namespace __gnu_cxx
       _S_copy_chars(_CharT* __p, const _CharT* __k1, const _CharT* __k2)
       { _S_copy(__p, __k1, __k2 - __k1); }
     };
-} // namespace __gnu_cxx
 
-namespace std
-{
-  // To implement Option 3 of DR 431 (vstring only in 4_1-branch).
-  template<typename _Alloc, bool = std::__is_empty<_Alloc>::__value>
-    struct __alloc_swap
-    { static void _S_do_it(_Alloc&, _Alloc&) { } };
-
-  template<typename _Alloc>
-    struct __alloc_swap<_Alloc, false>
-    {
-      static void
-      _S_do_it(_Alloc& __one, _Alloc& __two)
-      {
-	// Precondition: swappable allocators.
-	if (__one != __two)
-	  swap(__one, __two);
-      }
-    };
-}
+_GLIBCXX_END_NAMESPACE
 
 #endif /* _VSTRING_UTIL_H */

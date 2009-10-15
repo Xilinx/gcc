@@ -1,11 +1,12 @@
 /* Definitions for code generation pass of GNU compiler.
-   Copyright (C) 2001, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -14,9 +15,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #ifndef GCC_OPTABS_H
 #define GCC_OPTABS_H
@@ -82,6 +82,8 @@ enum optab_index
   /* Signed multiply with result one machine mode wider than args */
   OTI_smul_widen,
   OTI_umul_widen,
+  /* Widening multiply of one unsigned and one signed operand.  */
+  OTI_usmul_widen,
 
   /* Signed divide */
   OTI_sdiv,
@@ -239,6 +241,14 @@ enum optab_index
   OTI_reduc_splus,
   OTI_reduc_uplus,
 
+  /* Summation, with result machine mode one or more wider than args.  */
+  OTI_ssum_widen,
+  OTI_usum_widen,
+
+  /* Dot product, with result machine mode one or more wider than args.  */
+  OTI_sdot_prod,
+  OTI_udot_prod,
+
   /* Set specified field of vector operand.  */
   OTI_vec_set,
   /* Extract specified field of vector operand.  */
@@ -268,6 +278,7 @@ extern GTY(()) optab optab_table[OTI_MAX];
 #define umul_highpart_optab (optab_table[OTI_umul_highpart])
 #define smul_widen_optab (optab_table[OTI_smul_widen])
 #define umul_widen_optab (optab_table[OTI_umul_widen])
+#define usmul_widen_optab (optab_table[OTI_usmul_widen])
 #define sdiv_optab (optab_table[OTI_sdiv])
 #define smulv_optab (optab_table[OTI_smulv])
 #define sdivv_optab (optab_table[OTI_sdivv])
@@ -364,6 +375,11 @@ extern GTY(()) optab optab_table[OTI_MAX];
 #define reduc_umin_optab (optab_table[OTI_reduc_umin])
 #define reduc_splus_optab (optab_table[OTI_reduc_splus])
 #define reduc_uplus_optab (optab_table[OTI_reduc_uplus])
+                                                                                
+#define ssum_widen_optab (optab_table[OTI_ssum_widen])
+#define usum_widen_optab (optab_table[OTI_usum_widen])
+#define sdot_prod_optab (optab_table[OTI_sdot_prod])
+#define udot_prod_optab (optab_table[OTI_udot_prod])
 
 #define vec_set_optab (optab_table[OTI_vec_set])
 #define vec_extract_optab (optab_table[OTI_vec_extract])
@@ -491,6 +507,9 @@ extern enum insn_code sync_lock_test_and_set[NUM_MACHINE_MODES];
 extern enum insn_code sync_lock_release[NUM_MACHINE_MODES];
 
 /* Define functions given in optabs.c.  */
+
+extern rtx expand_widen_pattern_expr (tree exp, rtx op0, rtx op1, rtx wide_op,
+                                      rtx target, int unsignedp);
 
 extern rtx expand_ternary_op (enum machine_mode mode, optab ternary_optab,
 			      rtx op0, rtx op1, rtx op2, rtx target,

@@ -1,5 +1,5 @@
 /* InputStream.java -- Base class for input
-   Copyright (C) 1998, 1999, 2001, 2005  Free Software Foundation, Inc.
+   Copyright (C) 1998, 1999, 2001, 2004, 2005 Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -48,7 +48,7 @@ package java.io;
   * @author Aaron M. Renn (arenn@urbanophile.com)
   * @author Warren Levy (warrenl@cygnus.com)
   */
-public abstract class InputStream
+public abstract class InputStream implements Closeable
 {
   /**
    * Default, no-arg, public constructor
@@ -193,10 +193,8 @@ public abstract class InputStream
    */
   public int read(byte[] b, int off, int len) throws IOException
   {
-    if (off < 0 || len < 0 || off + len > b.length)
+    if (off < 0 || len < 0 || b.length - off < len)
       throw new IndexOutOfBoundsException();
-    if (b.length == 0)
-      return 0;
 
     int i, ch;
 

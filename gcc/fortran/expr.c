@@ -1,13 +1,13 @@
 /* Routines for manipulation of expression nodes.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006 Free Software 
-   Foundation, Inc.
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -16,9 +16,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -1188,7 +1187,8 @@ find_array_section (gfc_expr *expr, gfc_ref *ref)
       for (d = 0; d < rank; d++)
 	{
 	  mpz_set (tmp_mpz, ctr[d]);
-	  mpz_sub_ui (tmp_mpz, tmp_mpz, one);
+	  mpz_sub (tmp_mpz, tmp_mpz,
+		   ref->u.ar.as->lower[d]->value.integer);
 	  mpz_mul (tmp_mpz, tmp_mpz, delta[d]);
 	  mpz_add (ptr, ptr, tmp_mpz);
 
@@ -1746,12 +1746,12 @@ check_inquiry (gfc_expr * e, int not_restricted)
     }
 
   /* Assumed character length will not reduce to a constant expression
-     with LEN,as required by the standard.  */
+     with LEN, as required by the standard.  */
   if (i == 4 && not_restricted
 	&& e->symtree->n.sym->ts.type == BT_CHARACTER
 	&& e->symtree->n.sym->ts.cl->length == NULL)
-    gfc_notify_std (GFC_STD_GNU, "The F95 does not permit the assumed character "
-		    "length variable '%s' in constant expression at %L.",
+    gfc_notify_std (GFC_STD_GNU, "assumed character length "
+		    "variable '%s' in constant expression at %L",
 		    e->symtree->n.sym->name, &e->where);
 
   return SUCCESS;
@@ -1824,6 +1824,9 @@ check_init_expr (gfc_expr * e)
 	  t = simplify_parameter_variable (e, 0);
 	  break;
 	}
+
+      if (gfc_in_match_data ())
+	break;
 
       gfc_error ("Parameter '%s' at %L has not been declared or is "
 		 "a variable, which does not reduce to a constant "
@@ -1908,7 +1911,8 @@ gfc_match_init_expr (gfc_expr ** result)
   /* Not all inquiry functions are simplified to constant expressions
      so it is necessary to call check_inquiry again.  */ 
   if (!gfc_is_constant_expr (expr)
-	&& check_inquiry (expr, 1) == FAILURE)
+	&& check_inquiry (expr, 1) == FAILURE
+	&& !gfc_in_match_data ())
     {
       gfc_error ("Initialization expression didn't reduce %C");
       return MATCH_ERROR;
@@ -2046,14 +2050,15 @@ check_restricted (gfc_expr * e)
 
       /* gfc_is_formal_arg broadcasts that a formal argument list is being processed
 	 in resolve.c(resolve_formal_arglist).  This is done so that host associated
-	 dummy array indices are accepted (PR23446).  */
+	 dummy array indices are accepted (PR23446). This mechanism also does the
+	 same for the specification expressions of array-valued functions.  */
       if (sym->attr.in_common
 	  || sym->attr.use_assoc
 	  || sym->attr.dummy
 	  || sym->ns != gfc_current_ns
 	  || (sym->ns->proc_name != NULL
 	      && sym->ns->proc_name->attr.flavor == FL_MODULE)
-	  || gfc_is_formal_arg ())
+	  || (gfc_is_formal_arg () && (sym->ns == gfc_current_ns)))
 	{
 	  t = SUCCESS;
 	  break;
@@ -2209,7 +2214,7 @@ gfc_check_assign (gfc_expr * lvalue, gfc_expr * rvalue, int conform)
       if (sym->attr.use_assoc)
 	bad_proc = true;
 
-      /* (ii) The assignement is in the main program; or  */
+      /* (ii) The assignment is in the main program; or  */
       if (gfc_current_ns->proc_name->attr.is_main_program)
 	bad_proc = true;
 
@@ -2409,26 +2414,6 @@ gfc_check_pointer_assign (gfc_expr * lvalue, gfc_expr * rvalue)
       return FAILURE;
     }
 
-  if (rvalue->symtree->n.sym
-	&& rvalue->symtree->n.sym->as
-	&& rvalue->symtree->n.sym->as->type == AS_ASSUMED_SIZE)
-    {
-      gfc_ref * ref;
-      int dim = 0;
-      int last = 0;
-      for (ref = rvalue->ref; ref; ref = ref->next)
-	if (ref->type == REF_ARRAY)
-	  for (dim = 0;dim < ref->u.ar.as->rank; dim++)
-	    last = ref->u.ar.end[dim] == NULL;
-      if (last)
-	{
-	  gfc_error ("The upper bound in the last dimension of the "
-		     "assumed_size array on the rhs of the pointer "
-		     "assignment at %L must be set", &rvalue->where);
-	  return FAILURE;
-	}
-    }
-
   return SUCCESS;
 }
 
@@ -2477,7 +2462,7 @@ gfc_default_initializer (gfc_typespec *ts)
   /* See if we have a default initializer.  */
   for (c = ts->derived->components; c; c = c->next)
     {
-      if (c->initializer && init == NULL)
+      if ((c->initializer || c->allocatable) && init == NULL)
         init = gfc_get_expr ();
     }
 
@@ -2501,6 +2486,13 @@ gfc_default_initializer (gfc_typespec *ts)
 
       if (c->initializer)
         tail->expr = gfc_copy_expr (c->initializer);
+
+      if (c->allocatable)
+	{
+	  tail->expr = gfc_get_expr ();
+	  tail->expr->expr_type = EXPR_NULL;
+	  tail->expr->ts = c->ts;
+	}
     }
   return init;
 }

@@ -28,10 +28,14 @@
 // invalidate any other reasons why the executable file might be covered by
 // the GNU General Public License.
 
-/** @file functional_iterate.h
+/** @file tr1/functional_iterate.h
  *  This is an internal header file, included by other library headers.
  *  You should not attempt to use it directly.
  */
+
+namespace std
+{
+_GLIBCXX_BEGIN_NAMESPACE(tr1)
 
 template<typename _Res _GLIBCXX_COMMA _GLIBCXX_TEMPLATE_PARAMS>
   struct _Weak_result_type_impl<_Res(_GLIBCXX_TEMPLATE_ARGS)>
@@ -117,12 +121,10 @@ template<typename _Functor _GLIBCXX_COMMA _GLIBCXX_TEMPLATE_PARAMS>
  */
 template<typename _Functor _GLIBCXX_COMMA _GLIBCXX_TEMPLATE_PARAMS>
   inline
-  typename __enable_if<
-             typename result_of<_Functor(_GLIBCXX_TEMPLATE_ARGS)>::type,
-             (!is_member_pointer<_Functor>::value
-              && !is_function<_Functor>::value
-              && !is_function<typename remove_pointer<_Functor>::type>::value)
-           >::__type
+  typename __gnu_cxx::__enable_if<(!is_member_pointer<_Functor>::value
+			&& !is_function<_Functor>::value
+              && !is_function<typename remove_pointer<_Functor>::type>::value),
+           typename result_of<_Functor(_GLIBCXX_TEMPLATE_ARGS)>::type>::__type
   __invoke(_Functor& __f _GLIBCXX_COMMA _GLIBCXX_REF_PARAMS)
   {
     return __f(_GLIBCXX_ARGS);
@@ -131,11 +133,10 @@ template<typename _Functor _GLIBCXX_COMMA _GLIBCXX_TEMPLATE_PARAMS>
 #if _GLIBCXX_NUM_ARGS > 0
 template<typename _Functor _GLIBCXX_COMMA _GLIBCXX_TEMPLATE_PARAMS>
   inline
-  typename __enable_if<
-             typename result_of<_Functor(_GLIBCXX_TEMPLATE_ARGS)>::type,
-             (is_member_pointer<_Functor>::value
-              && !is_function<_Functor>::value
-              && !is_function<typename remove_pointer<_Functor>::type>::value)
+  typename __gnu_cxx::__enable_if<(is_member_pointer<_Functor>::value
+			&& !is_function<_Functor>::value
+              && !is_function<typename remove_pointer<_Functor>::type>::value),
+             typename result_of<_Functor(_GLIBCXX_TEMPLATE_ARGS)>::type
            >::__type
   __invoke(_Functor& __f _GLIBCXX_COMMA _GLIBCXX_REF_PARAMS)
   {
@@ -146,10 +147,9 @@ template<typename _Functor _GLIBCXX_COMMA _GLIBCXX_TEMPLATE_PARAMS>
 // To pick up function references (that will become function pointers)
 template<typename _Functor _GLIBCXX_COMMA _GLIBCXX_TEMPLATE_PARAMS>
   inline
-  typename __enable_if<
-             typename result_of<_Functor(_GLIBCXX_TEMPLATE_ARGS)>::type,
-             (is_pointer<_Functor>::value
-              && is_function<typename remove_pointer<_Functor>::type>::value)
+  typename __gnu_cxx::__enable_if<(is_pointer<_Functor>::value
+	&& is_function<typename remove_pointer<_Functor>::type>::value),
+             typename result_of<_Functor(_GLIBCXX_TEMPLATE_ARGS)>::type
            >::__type
   __invoke(_Functor __f _GLIBCXX_COMMA _GLIBCXX_REF_PARAMS)
   {
@@ -396,7 +396,7 @@ namespace placeholders
 namespace
 {
    _Placeholder<_GLIBCXX_NUM_ARGS> _GLIBCXX_JOIN(_,_GLIBCXX_NUM_ARGS);
-}
+} // anonymous namespace
 }
 #endif
 
@@ -667,9 +667,7 @@ class function<_Res(_GLIBCXX_TEMPLATE_ARGS)>
    */
   template<typename _Functor>
     function(_Functor __f,
-             typename __enable_if<_Useless,
-                                  !is_integral<_Functor>::value>::__type
-               = _Useless());
+             typename __gnu_cxx::__enable_if<!is_integral<_Functor>::value, _Useless>::__type = _Useless());
 
   /**
    *  @brief %Function assignment operator.
@@ -723,7 +721,7 @@ class function<_Res(_GLIBCXX_TEMPLATE_ARGS)>
    *  reference_wrapper<F>, this function will not throw.
    */
   template<typename _Functor>
-    typename __enable_if<function&, !is_integral<_Functor>::value>::__type
+    typename __gnu_cxx::__enable_if<!is_integral<_Functor>::value, function&>::__type
     operator=(_Functor __f)
     {
       function(__f).swap(*this);
@@ -841,8 +839,7 @@ template<typename _Res _GLIBCXX_COMMA _GLIBCXX_TEMPLATE_PARAMS>
 template<typename _Functor>
   function<_Res(_GLIBCXX_TEMPLATE_ARGS)>
   ::function(_Functor __f,
-             typename __enable_if<_Useless,
-                                  !is_integral<_Functor>::value>::__type)
+        typename __gnu_cxx::__enable_if<!is_integral<_Functor>::value, _Useless>::__type)
     : _Function_base()
 {
   typedef _Function_handler<_Signature_type, _Functor> _My_handler;
@@ -921,3 +918,5 @@ template<typename _Functor>
       }
   }
 
+_GLIBCXX_END_NAMESPACE
+}

@@ -1,6 +1,7 @@
 // List implementation -*- C++ -*-
 
-// Copyright (C) 2001, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006
+// Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -63,8 +64,8 @@
 
 #include <bits/concept_check.h>
 
-namespace _GLIBCXX_STD
-{
+_GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
+
   // Supporting structures are split into common and templated types; the
   // latter publicly inherits from the former in an effort to reduce code
   // duplication.  This results in some "needless" static_cast'ing later on,
@@ -322,13 +323,21 @@ namespace _GLIBCXX_STD
   public:
       typedef _Alloc allocator_type;
 
+      _Node_alloc_type&
+      _M_get_Node_allocator()
+      { return *static_cast<_Node_alloc_type*>(&this->_M_impl); }
+
+      const _Node_alloc_type&
+      _M_get_Node_allocator() const
+      { return *static_cast<const _Node_alloc_type*>(&this->_M_impl); }
+
       _Tp_alloc_type
       _M_get_Tp_allocator() const
-      { return *static_cast<const _Node_alloc_type*>(&this->_M_impl); }
+      { return _Tp_alloc_type(_M_get_Node_allocator()); }
 
       allocator_type
       get_allocator() const
-      { return _M_get_Tp_allocator(); }
+      { return allocator_type(_M_get_Node_allocator()); }
 
       _List_base(const allocator_type& __a)
       : _M_impl(__a)
@@ -424,16 +433,11 @@ namespace _GLIBCXX_STD
       // iterator types.
       typedef _List_node<_Tp>				 _Node;
 
-      /** @if maint
-       *  One data member plus two memory-handling functions.  If the
-       *  _Alloc type requires separate instances, then one of those
-       *  will also be included, accumulated from the topmost parent.
-       *  @endif
-       */
       using _Base::_M_impl;
       using _Base::_M_put_node;
       using _Base::_M_get_node;
       using _Base::_M_get_Tp_allocator;
+      using _Base::_M_get_Node_allocator;
 
       /**
        *  @if maint
@@ -479,7 +483,7 @@ namespace _GLIBCXX_STD
       list(size_type __n, const value_type& __value = value_type(),
 	   const allocator_type& __a = allocator_type())
       : _Base(__a)
-      { this->insert(begin(), __n, __value); }
+      { _M_fill_initialize(__n, __value); }
 
       /**
        *  @brief  %List copy constructor.
@@ -489,8 +493,8 @@ namespace _GLIBCXX_STD
        *  by @a x.
        */
       list(const list& __x)
-      : _Base(__x.get_allocator())
-      { this->insert(begin(), __x.begin(), __x.end()); }
+      : _Base(__x._M_get_Node_allocator())
+      { _M_initialize_dispatch(__x.begin(), __x.end(), __false_type()); }
 
       /**
        *  @brief  Builds a %list from a range.
@@ -500,17 +504,16 @@ namespace _GLIBCXX_STD
        *  Create a %list consisting of copies of the elements from
        *  [@a first,@a last).  This is linear in N (where N is
        *  distance(@a first,@a last)).
-       *
-       *  @if maint
-       *  We don't need any dispatching tricks here, because insert does all of
-       *  that anyway.
-       *  @endif
        */
       template<typename _InputIterator>
         list(_InputIterator __first, _InputIterator __last,
 	     const allocator_type& __a = allocator_type())
         : _Base(__a)
-        { this->insert(begin(), __first, __last); }
+        { 
+	  // Check whether it's an integral type.  If so, it's not an iterator.
+	  typedef typename std::__is_integer<_InputIterator>::__type _Integral;
+	  _M_initialize_dispatch(__first, __last, _Integral());
+	}
 
       /**
        *  No explicit dtor needed as the _Base dtor takes care of
@@ -659,7 +662,7 @@ namespace _GLIBCXX_STD
       /**  Returns the size() of the largest possible %list.  */
       size_type
       max_size() const
-      { return size_type(-1); }
+      { return _M_get_Tp_allocator().max_size(); }
 
       /**
        *  @brief Resizes the %list to the specified number of elements.
@@ -798,13 +801,15 @@ namespace _GLIBCXX_STD
        *  This function will insert a specified number of copies of the
        *  given data before the location specified by @a position.
        *
-       *  Due to the nature of a %list this operation can be done in
-       *  constant time, and does not invalidate iterators and
-       *  references.
+       *  This operation is linear in the number of elements inserted and
+       *  does not invalidate iterators and references.
        */
       void
       insert(iterator __position, size_type __n, const value_type& __x)
-      { _M_fill_insert(__position, __n, __x); }
+      {  
+	list __tmp(__n, __x, _M_get_Node_allocator());
+	splice(__position, __tmp);
+      }
 
       /**
        *  @brief  Inserts a range into the %list.
@@ -816,18 +821,16 @@ namespace _GLIBCXX_STD
        *  first,@a last) into the %list before the location specified by
        *  @a position.
        *
-       *  Due to the nature of a %list this operation can be done in
-       *  constant time, and does not invalidate iterators and
-       *  references.
+       *  This operation is linear in the number of elements inserted and
+       *  does not invalidate iterators and references.
        */
       template<typename _InputIterator>
         void
         insert(iterator __position, _InputIterator __first,
 	       _InputIterator __last)
         {
-	  // Check whether it's an integral type.  If so, it's not an iterator.
-	  typedef typename std::__is_integer<_InputIterator>::__type _Integral;
-	  _M_insert_dispatch(__position, __first, __last, _Integral());
+	  list __tmp(__first, __last, _M_get_Node_allocator());
+	  splice(__position, __tmp);
 	}
 
       /**
@@ -859,13 +862,12 @@ namespace _GLIBCXX_STD
        *  This function will erase the elements in the range @a
        *  [first,last) and shorten the %list accordingly.
        *
-       *  Due to the nature of a %list this operation can be done in
-       *  constant time, and only invalidates iterators/references to
-       *  the element being removed.  The user is also cautioned that
-       *  this function only erases the elements, and that if the
-       *  elements themselves are pointers, the pointed-to memory is not
-       *  touched in any way.  Managing the pointer is the user's
-       *  responsibilty.
+       *  This operation is linear time in the size of the range and only
+       *  invalidates iterators/references to the element being removed.
+       *  The user is also cautioned that this function only erases the
+       *  elements, and that if the elements themselves are pointers, the
+       *  pointed-to memory is not touched in any way.  Managing the pointer
+       *  is the user's responsibilty.
        */
       iterator
       erase(iterator __first, iterator __last)
@@ -886,7 +888,14 @@ namespace _GLIBCXX_STD
        */
       void
       swap(list& __x)
-      { _List_node_base::swap(this->_M_impl._M_node, __x._M_impl._M_node); }
+      {
+	_List_node_base::swap(this->_M_impl._M_node, __x._M_impl._M_node);
+
+	// _GLIBCXX_RESOLVE_LIB_DEFECTS
+	// 431. Swapping containers with unequal allocators.
+	std::__alloc_swap<typename _Base::_Node_alloc_type>::
+	  _S_do_it(_M_get_Node_allocator(), __x._M_get_Node_allocator());
+      }
 
       /**
        *  Erases all the elements.  Note that this function only erases
@@ -910,12 +919,18 @@ namespace _GLIBCXX_STD
        *  The elements of @a x are inserted in constant time in front of
        *  the element referenced by @a position.  @a x becomes an empty
        *  list.
+       *
+       *  Requires this != @a x.
        */
       void
       splice(iterator __position, list& __x)
       {
 	if (!__x.empty())
-	  this->_M_transfer(__position, __x.begin(), __x.end());
+	  {
+	    _M_check_equal_allocators(__x);
+
+	    this->_M_transfer(__position, __x.begin(), __x.end());
+	  }
       }
 
       /**
@@ -928,12 +943,16 @@ namespace _GLIBCXX_STD
        *  inserts it into the current list before @a position.
        */
       void
-      splice(iterator __position, list&, iterator __i)
+      splice(iterator __position, list& __x, iterator __i)
       {
 	iterator __j = __i;
 	++__j;
 	if (__position == __i || __position == __j)
 	  return;
+
+	if (this != &__x)
+	  _M_check_equal_allocators(__x);
+
 	this->_M_transfer(__position, __i, __j);
       }
 
@@ -950,10 +969,15 @@ namespace _GLIBCXX_STD
        *  Undefined if @a position is in [first,last).
        */
       void
-      splice(iterator __position, list&, iterator __first, iterator __last)
+      splice(iterator __position, list& __x, iterator __first, iterator __last)
       {
 	if (__first != __last)
-	  this->_M_transfer(__position, __first, __last);
+	  {
+	    if (this != &__x)
+	      _M_check_equal_allocators(__x);
+
+	    this->_M_transfer(__position, __first, __last);
+	  }
       }
 
       /**
@@ -982,8 +1006,8 @@ namespace _GLIBCXX_STD
        *  responsibilty.
        */
       template<typename _Predicate>
-      void
-      remove_if(_Predicate);
+        void
+        remove_if(_Predicate);
 
       /**
        *  @brief  Remove consecutive duplicate elements.
@@ -1071,6 +1095,37 @@ namespace _GLIBCXX_STD
         sort(_StrictWeakOrdering);
 
     protected:
+      // Internal constructor functions follow.
+
+      // Called by the range constructor to implement [23.1.1]/9
+      template<typename _Integer>
+        void
+        _M_initialize_dispatch(_Integer __n, _Integer __x, __true_type)
+        {
+	  _M_fill_initialize(static_cast<size_type>(__n),
+			     static_cast<value_type>(__x));
+	}
+
+      // Called by the range constructor to implement [23.1.1]/9
+      template<typename _InputIterator>
+        void
+        _M_initialize_dispatch(_InputIterator __first, _InputIterator __last,
+			       __false_type)
+        {
+	  for (; __first != __last; ++__first)
+	    push_back(*__first);
+	}
+
+      // Called by list(n,v,a), and the range constructor when it turns out
+      // to be the same thing.
+      void
+      _M_fill_initialize(size_type __n, const value_type& __x)
+      {
+	for (; __n > 0; --__n)
+	  push_back(__x);
+      }
+
+
       // Internal assign functions follow.
 
       // Called by the range assign to implement [23.1.1]/9
@@ -1094,39 +1149,6 @@ namespace _GLIBCXX_STD
       _M_fill_assign(size_type __n, const value_type& __val);
 
 
-      // Internal insert functions follow.
-
-      // Called by the range insert to implement [23.1.1]/9
-      template<typename _Integer>
-        void
-        _M_insert_dispatch(iterator __pos, _Integer __n, _Integer __x,
-			   __true_type)
-        {
-	  _M_fill_insert(__pos, static_cast<size_type>(__n),
-			 static_cast<value_type>(__x));
-	}
-
-      // Called by the range insert to implement [23.1.1]/9
-      template<typename _InputIterator>
-        void
-        _M_insert_dispatch(iterator __pos,
-			   _InputIterator __first, _InputIterator __last,
-			   __false_type)
-        {
-	  for (; __first != __last; ++__first)
-	    _M_insert(__pos, *__first);
-	}
-
-      // Called by insert(p,n,x), and the range insert when it turns out
-      // to be the same thing.
-      void
-      _M_fill_insert(iterator __pos, size_type __n, const value_type& __x)
-      {
-	for (; __n > 0; --__n)
-	  _M_insert(__pos, __x);
-      }
-
-
       // Moves the elements from [first,last) before position.
       void
       _M_transfer(iterator __position, iterator __first, iterator __last)
@@ -1148,6 +1170,14 @@ namespace _GLIBCXX_STD
         _Node* __n = static_cast<_Node*>(__position._M_node);
         _M_get_Tp_allocator().destroy(&__n->_M_data);
         _M_put_node(__n);
+      }
+
+      // To implement the splice (and merge) bits of N1599.
+      void
+      _M_check_equal_allocators(list& __x)
+      {
+	if (_M_get_Node_allocator() != __x._M_get_Node_allocator())
+	  __throw_runtime_error(__N("list::_M_check_equal_allocators"));
       }
     };
 
@@ -1225,7 +1255,8 @@ namespace _GLIBCXX_STD
     inline void
     swap(list<_Tp, _Alloc>& __x, list<_Tp, _Alloc>& __y)
     { __x.swap(__y); }
-} // namespace std
+
+_GLIBCXX_END_NESTED_NAMESPACE
 
 #endif /* _LIST_H */
 

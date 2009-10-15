@@ -15,3 +15,4 @@ contains
     namelist /ops/ my
   end subroutine bar
 end program main
+

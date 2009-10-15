@@ -1,3 +1,19 @@
+2009-09-24  Michael Eager <eager@eagercon.com>
+
+	* Merge changes between gcc-4.2.3 and gcc-4.2.4.
+
+2009-09-24  Michael Eager <eager@eagercon.com>
+
+	* Merge changes between gcc-4.2.2 and gcc-4.2.3.
+
+2009-09-24  Michael Eager <eager@eagercon.com>
+
+	* Merge changes between gcc-4.2.1 and gcc-4.2.2.
+
+2009-09-23  Michael Eager <eager@eagercon.com>
+
+	* Merge changes between gcc-4.2.0 and gcc-4.2.1.
+
 2009-08-17  Michael Eager <eager@eagercon.com>
 
 	* config.sub, config.guess: Add microblaze.  
@@ -82,9 +98,35 @@
 	(stage[+id+]-bubble): Likewise, and invoke the comparison at the end.
 	([+bootstrap-target+]): Inline most of the `all' target.
 
-2005-10-24  Kean Johnston  <jkj@sco.com>
+2005-11-29  Ben Elliston  <bje@au.ibm.com>
+
+	* Makefile.tpl (clean-target-libgcc): Invoke clean-target-libgcc
+	from the gcc build directory.
+	* Makefile.in: Regenerate.
+
+2005-11-29  Ben Elliston  <bje@au.ibm.com>
+
+	* Makefile.def: Add new libdecnumber host_module.  Make all-gcc
+	depend on all-libdecnumber.
+	* configure.in (host_libs): Include libdecnumber.
+	* Makefile.in: Regenerate.
+	* configure: Likewise.
+
+2005-11-29  Ben Elliston  <bje@au.ibm.com>
+
+	* libdecnumber: Import decNumber sources from the dfp-branch.
+
+2005-11-21  Kean Johnston  <jkj@sco.com>
 
 	* config.sub, config.guess: Sync from upstream sources.
+
+2005-11-21  Ben Elliston  <bje@au.ibm.com>
+
+	Import from Autoconf sources:
+
+	2005-09-06  Paul Eggert  <eggert@cs.ucla.edu>
+	* config/move-if-change: Don't output "$2 is unchanged";
+	suggested by Ben Elliston.  Handle weird characters correctly.
 
 2005-11-18  Andreas Tobler  <a.tobler@schweiz.ch>
 
@@ -150,7 +192,7 @@
 	(USUAL_OBJDUMP_FOR_TARGET): New.
 	(EXTRA_TARGET_FLAGS): Add OBJDUMP.
 	* configure.in: Check for $OBJDUMP_FOR_TARGET.
-	* configure, Makefile: Regenerated.
+	* configure, Makefile.in: Regenerated.
 
 2005-10-05  Paolo Bonzini  <bonzini@gnu.org>
 
@@ -439,7 +481,7 @@
 	non-ported target libraries in noconfigdirs.
 	<cris-*, crisv32-*> Ditto, except for non-aout, non-elf,
 	non-linux-gnu.  Remove libgcj_ex_libffi.
- 	<lang_frag loop>: Set add_this_lang=no if the language is in
+	<lang_frag loop>: Set add_this_lang=no if the language is in
 	unsupported_languages.
 	* configure: Regenerate.
 
@@ -1681,7 +1723,7 @@
 	of libf2c.
 	* configure, Makefile.in: Regenerate.
 
-2004-05-13  Tobias Schlüter  <tobi@gcc.gnu.org>
+2004-05-13  Tobias SchlÃÂÃÂ¼ter  <tobi@gcc.gnu.org>
 
 	* MAINTAINERS (Write After Approval): Add myself.
 
@@ -2149,8 +2191,8 @@
 
 2003-12-21  Bernardo Innocenti  <bernie@develer.com>
 
- 	* configure.in (*-*-uclinux): Exclude newlib, libgloss and rda.
- 	* configure: Regenerated.
+	* configure.in (*-*-uclinux): Exclude newlib, libgloss and rda.
+	* configure: Regenerated.
 
 2003-12-16  Jan Hubicka  <jh@suse.cz>
 
@@ -2277,7 +2319,7 @@
 
 2003-09-30  Carlo Wood  <carlo@alinoe.com>
 
-       * MAINTAINERS (Write After Approval): Add myself.
+	* MAINTAINERS (Write After Approval): Add myself.
 
 2003-09-29  Paul Koning  <ni1d@arrl.net>
 
@@ -2321,7 +2363,7 @@
 
 2003-09-16  Dorit Naishlos  <dorit@il.ibm.com>
 
-       * MAINTAINERS (Write After Approval): Add myself.
+	* MAINTAINERS (Write After Approval): Add myself.
 
 2003-09-09  Ian Lance Taylor  <ian@wasabisystems.com>
 
@@ -11068,8 +11110,8 @@ Mon May 10 05:58:35 1993  Ken Raeburn  (raeburn@kr-pc.cygnus.com)
 
 Sun May  9 17:47:57 1993  Rob Savoye  (rob at darkstar.cygnus.com)
 
-       * Makefile.in: Use srcroot to find runtest rather than rootme.
-       Pass RUNTESTFLAGS and EXPECT down in BASE_FLAGS_TO_PASS.
+	* Makefile.in: Use srcroot to find runtest rather than rootme.
+	Pass RUNTESTFLAGS and EXPECT down in BASE_FLAGS_TO_PASS.
 
 Fri May  7 14:55:59 1993  Ian Lance Taylor  (ian@cygnus.com)
 

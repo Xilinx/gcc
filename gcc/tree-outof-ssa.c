@@ -1,12 +1,12 @@
 /* Convert a program in SSA form into Normal form.
-   Copyright (C) 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2007 Free Software Foundation, Inc.
    Contributed by Andrew Macleod <amacleod@redhat.com>
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -15,9 +15,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -46,15 +45,13 @@ Boston, MA 02110-1301, USA.  */
 #include "tree-ssa-live.h"
 #include "tree-pass.h"
 #include "toplev.h"
+#include "vecprim.h"
 
 /* Flags to pass to remove_ssa_form.  */
 
 #define SSANORM_PERFORM_TER		0x1
 #define SSANORM_COMBINE_TEMPS		0x2
 #define SSANORM_COALESCE_PARTITIONS	0x4
-
-DEF_VEC_I(int);
-DEF_VEC_ALLOC_I(int,heap);
 
 /* Used to hold all the components required to do SSA PHI elimination.
    The node and pred/succ list is a simple linear list of nodes and
@@ -91,7 +88,7 @@ typedef struct _elim_graph {
   sbitmap visited;
 
   /* Stack for visited nodes.  */
-  varray_type stack;
+  VEC(int,heap) *stack;
   
   /* The variable partition map.  */
   var_map map;
@@ -170,14 +167,14 @@ create_temp (tree t)
     }
   DECL_ARTIFICIAL (tmp) = DECL_ARTIFICIAL (t);
   DECL_IGNORED_P (tmp) = DECL_IGNORED_P (t);
-  add_referenced_tmp_var (tmp);
+  add_referenced_var (tmp);
 
-  /* add_referenced_tmp_var will create the annotation and set up some
+  /* add_referenced_var will create the annotation and set up some
      of the flags in the annotation.  However, some flags we need to
      inherit from our original variable.  */
-  var_ann (tmp)->type_mem_tag = var_ann (t)->type_mem_tag;
+  var_ann (tmp)->symbol_mem_tag = var_ann (t)->symbol_mem_tag;
   if (is_call_clobbered (t))
-    mark_call_clobbered (tmp);
+    mark_call_clobbered (tmp, var_ann (t)->escape_mask);
 
   return tmp;
 }
@@ -191,7 +188,7 @@ insert_copy_on_edge (edge e, tree dest, tree src)
 {
   tree copy;
 
-  copy = build (MODIFY_EXPR, TREE_TYPE (dest), dest, src);
+  copy = build2 (MODIFY_EXPR, TREE_TYPE (dest), dest, src);
   set_is_used (dest);
 
   if (TREE_CODE (src) == ADDR_EXPR)
@@ -224,7 +221,7 @@ new_elim_graph (int size)
   g->nodes = VEC_alloc (tree, heap, 30);
   g->const_copies = VEC_alloc (tree, heap, 20);
   g->edge_list = VEC_alloc (int, heap, 20);
-  VARRAY_INT_INIT (g->stack, 30, " Elimination Stack");
+  g->stack = VEC_alloc (int, heap, 30);
   
   g->visited = sbitmap_alloc (size);
 
@@ -248,6 +245,7 @@ static inline void
 delete_elim_graph (elim_graph g)
 {
   sbitmap_free (g->visited);
+  VEC_free (int, heap, g->stack);
   VEC_free (int, heap, g->edge_list);
   VEC_free (tree, heap, g->const_copies);
   VEC_free (tree, heap, g->nodes);
@@ -418,7 +416,7 @@ elim_forward (elim_graph g, int T)
       if (!TEST_BIT (g->visited, S))
         elim_forward (g, S);
     });
-  VARRAY_PUSH_INT (g->stack, T);
+  VEC_safe_push (int, heap, g->stack, T);
 }
 
 
@@ -514,7 +512,7 @@ eliminate_phi (edge e, elim_graph g)
       tree var;
 
       sbitmap_zero (g->visited);
-      VARRAY_POP_ALL (g->stack);
+      VEC_truncate (int, g->stack, 0);
 
       for (x = 0; VEC_iterate (tree, g->nodes, x, var); x++)
         {
@@ -524,10 +522,9 @@ eliminate_phi (edge e, elim_graph g)
 	}
        
       sbitmap_zero (g->visited);
-      while (VARRAY_ACTIVE_SIZE (g->stack) > 0)
+      while (VEC_length (int, g->stack) > 0)
 	{
-	  x = VARRAY_TOP_INT (g->stack);
-	  VARRAY_POP (g->stack);
+	  x = VEC_pop (int, g->stack);
 	  if (!TEST_BIT (g->visited, x))
 	    elim_create (g, x);
 	}
@@ -1299,7 +1296,8 @@ typedef struct value_expr_d
 typedef struct temp_expr_table_d 
 {
   var_map map;
-  void **version_info;		
+  void **version_info;
+  bitmap *expr_vars;
   value_expr_p *partition_dep_list;
   bitmap replaceable;
   bool saw_replaceable;
@@ -1322,7 +1320,7 @@ static inline void add_value_to_list (temp_expr_table_p, value_expr_p *, int);
 static inline void add_info_to_list (temp_expr_table_p, value_expr_p *, 
 				     value_expr_p);
 static value_expr_p remove_value_from_list (value_expr_p *, int);
-static void add_dependance (temp_expr_table_p, int, tree);
+static void add_dependence (temp_expr_table_p, int, tree);
 static bool check_replaceable (temp_expr_table_p, tree);
 static void finish_expr (temp_expr_table_p, int, bool);
 static void mark_replaceable (temp_expr_table_p, tree);
@@ -1340,12 +1338,13 @@ new_temp_expr_table (var_map map)
 {
   temp_expr_table_p t;
 
-  t = (temp_expr_table_p) xmalloc (sizeof (struct temp_expr_table_d));
+  t = XNEW (struct temp_expr_table_d);
   t->map = map;
 
-  t->version_info = xcalloc (num_ssa_names + 1, sizeof (void *));
-  t->partition_dep_list = xcalloc (num_var_partitions (map) + 1, 
-				   sizeof (value_expr_p));
+  t->version_info = XCNEWVEC (void *, num_ssa_names + 1);
+  t->expr_vars = XCNEWVEC (bitmap, num_ssa_names + 1);
+  t->partition_dep_list = XCNEWVEC (value_expr_p,
+                                    num_var_partitions (map) + 1);
 
   t->replaceable = BITMAP_ALLOC (NULL);
   t->partition_in_use = BITMAP_ALLOC (NULL);
@@ -1367,6 +1366,7 @@ free_temp_expr_table (temp_expr_table_p t)
 {
   value_expr_p p;
   tree *ret = NULL;
+  unsigned i;
 
 #ifdef ENABLE_CHECKING
   unsigned x;
@@ -1382,6 +1382,11 @@ free_temp_expr_table (temp_expr_table_p t)
 
   BITMAP_FREE (t->partition_in_use);
   BITMAP_FREE (t->replaceable);
+
+  for (i = 0; i <= num_ssa_names; i++)
+    if (t->expr_vars[i])
+      BITMAP_FREE (t->expr_vars[i]);
+  free (t->expr_vars);
 
   free (t->partition_dep_list);
   if (t->saw_replaceable)
@@ -1504,7 +1509,7 @@ remove_value_from_list (value_expr_p *list, int value)
    expression table.  */
 
 static void
-add_dependance (temp_expr_table_p tab, int version, tree var)
+add_dependence (temp_expr_table_p tab, int version, tree var)
 {
   int i, x;
   value_expr_p info;
@@ -1545,11 +1550,12 @@ add_dependance (temp_expr_table_p tab, int version, tree var)
 static bool
 check_replaceable (temp_expr_table_p tab, tree stmt)
 {
-  tree var, def;
+  tree var, def, basevar;
   int version;
   var_map map = tab->map;
   ssa_op_iter iter;
   tree call_expr;
+  bitmap def_vars, use_vars;
 
   if (TREE_CODE (stmt) != MODIFY_EXPR)
     return false;
@@ -1570,6 +1576,12 @@ check_replaceable (temp_expr_table_p tab, tree stmt)
   if (flag_float_store && FLOAT_TYPE_P (TREE_TYPE (TREE_OPERAND (stmt, 1))))
     return false;
 
+  /* An assignment with a register variable on the RHS is not
+     replaceable.  */
+  if (TREE_CODE (TREE_OPERAND (stmt, 1)) == VAR_DECL
+     && DECL_HARD_REGISTER (TREE_OPERAND (stmt, 1)))
+   return false;
+
   /* Calls to functions with side-effects cannot be replaced.  */
   if ((call_expr = get_call_expr_in (stmt)) != NULL_TREE)
     {
@@ -1580,12 +1592,20 @@ check_replaceable (temp_expr_table_p tab, tree stmt)
     }
 
   version = SSA_NAME_VERSION (def);
+  basevar = SSA_NAME_VAR (def);
+  def_vars = BITMAP_ALLOC (NULL);
+  bitmap_set_bit (def_vars, DECL_UID (basevar));
 
   /* Add this expression to the dependency list for each use partition.  */
   FOR_EACH_SSA_TREE_OPERAND (var, stmt, iter, SSA_OP_USE)
     {
-      add_dependance (tab, version, var);
+      add_dependence (tab, version, var);
+
+      use_vars = tab->expr_vars[SSA_NAME_VERSION (var)];
+      if (use_vars)
+	bitmap_ior_into (def_vars, use_vars);
     }
+  tab->expr_vars[version] = def_vars;
 
   /* If there are VUSES, add a dependence on virtual defs.  */
   if (!ZERO_SSA_OPERANDS (stmt, SSA_OP_VUSE))
@@ -1704,7 +1724,7 @@ static void
 find_replaceable_in_bb (temp_expr_table_p tab, basic_block bb)
 {
   block_stmt_iterator bsi;
-  tree stmt, def;
+  tree stmt, def, use;
   stmt_ann_t ann;
   int partition;
   var_map map = tab->map;
@@ -1717,30 +1737,34 @@ find_replaceable_in_bb (temp_expr_table_p tab, basic_block bb)
       ann = stmt_ann (stmt);
 
       /* Determine if this stmt finishes an existing expression.  */
-      FOR_EACH_SSA_TREE_OPERAND (def, stmt, iter, SSA_OP_USE)
+      FOR_EACH_SSA_TREE_OPERAND (use, stmt, iter, SSA_OP_USE)
 	{
-	  if (tab->version_info[SSA_NAME_VERSION (def)])
+	  unsigned ver = SSA_NAME_VERSION (use);
+
+	  if (tab->version_info[ver])
 	    {
 	      bool same_root_var = false;
-	      tree def2;
 	      ssa_op_iter iter2;
+	      bitmap vars = tab->expr_vars[ver];
 
 	      /* See if the root variables are the same.  If they are, we
 		 do not want to do the replacement to avoid problems with
 		 code size, see PR tree-optimization/17549.  */
-	      FOR_EACH_SSA_TREE_OPERAND (def2, stmt, iter2, SSA_OP_DEF)
-		if (SSA_NAME_VAR (def) == SSA_NAME_VAR (def2))
-		  {
-		    same_root_var = true;
-		    break;
-		  }
+	      FOR_EACH_SSA_TREE_OPERAND (def, stmt, iter2, SSA_OP_DEF)
+		{
+		  if (bitmap_bit_p (vars, DECL_UID (SSA_NAME_VAR (def))))
+		    {
+		      same_root_var = true;
+		      break;
+		    }
+		}
 
 	      /* Mark expression as replaceable unless stmt is volatile
 		 or DEF sets the same root variable as STMT.  */
 	      if (!ann->has_volatile_ops && !same_root_var)
-		mark_replaceable (tab, def);
+		mark_replaceable (tab, use);
 	      else
-		finish_expr (tab, SSA_NAME_VERSION (def), false);
+		finish_expr (tab, ver, false);
 	    }
 	}
       
@@ -1940,7 +1964,7 @@ rewrite_trees (var_map map, tree *values)
 
 	  /* Remove any stmts marked for removal.  */
 	  if (remove)
-	    bsi_remove (&si);
+	    bsi_remove (&si, true);
 	  else
 	    bsi_next (&si);
 	}
@@ -2052,11 +2076,10 @@ fini_analyze_edges_for_bb (void)
 
 
 /* Look at all the incoming edges to block BB, and decide where the best place
-   to insert the stmts on each edge are, and perform those insertions.   Output
-   any debug information to DEBUG_FILE.  */
+   to insert the stmts on each edge are, and perform those insertions.  */
 
 static void
-analyze_edges_for_bb (basic_block bb, FILE *debug_file)
+analyze_edges_for_bb (basic_block bb)
 {
   edge e;
   edge_iterator ei;
@@ -2180,8 +2203,8 @@ analyze_edges_for_bb (basic_block bb, FILE *debug_file)
     }
 
 
-  if (debug_file)
-    fprintf (debug_file, "\nOpportunities in BB %d for stmt/block reduction:\n",
+  if (dump_file)
+    fprintf (dump_file, "\nOpportunities in BB %d for stmt/block reduction:\n",
 	     bb->index);
 
   
@@ -2197,7 +2220,7 @@ analyze_edges_for_bb (basic_block bb, FILE *debug_file)
 	leader_match = leader;
 
 	/* The tree_* cfg manipulation routines use the PENDING_EDGE field
-	   for various PHI manipulations, so it gets cleared whhen calls are 
+	   for various PHI manipulations, so it gets cleared when calls are 
 	   made to make_forwarder_block(). So make sure the edge is clear, 
 	   and use the saved stmt list.  */
 	PENDING_STMT (leader) = NULL;
@@ -2207,19 +2230,19 @@ analyze_edges_for_bb (basic_block bb, FILE *debug_file)
         new_edge = make_forwarder_block (leader->dest, same_stmt_list_p, 
 					 NULL);
 	bb = new_edge->dest;
-	if (debug_file)
+	if (dump_file)
 	  {
-	    fprintf (debug_file, "Splitting BB %d for Common stmt list.  ", 
+	    fprintf (dump_file, "Splitting BB %d for Common stmt list.  ", 
 		     leader->dest->index);
-	    fprintf (debug_file, "Original block is now BB%d.\n", bb->index);
-	    print_generic_stmt (debug_file, curr_stmt_list, TDF_VOPS);
+	    fprintf (dump_file, "Original block is now BB%d.\n", bb->index);
+	    print_generic_stmt (dump_file, curr_stmt_list, TDF_VOPS);
 	  }
 
 	FOR_EACH_EDGE (e, ei, new_edge->src->preds)
 	  {
 	    e->aux = NULL;
-	    if (debug_file)
-	      fprintf (debug_file, "  Edge (%d->%d) lands here.\n", 
+	    if (dump_file)
+	      fprintf (dump_file, "  Edge (%d->%d) lands here.\n", 
 		       e->src->index, e->dest->index);
 	  }
 
@@ -2246,11 +2269,10 @@ analyze_edges_for_bb (basic_block bb, FILE *debug_file)
 /* This function will analyze the insertions which were performed on edges,
    and decide whether they should be left on that edge, or whether it is more
    efficient to emit some subset of them in a single block.  All stmts are
-   inserted somewhere, and if non-NULL, debug information is printed via 
-   DUMP_FILE.  */
+   inserted somewhere.  */
 
 static void
-perform_edge_inserts (FILE *dump_file)
+perform_edge_inserts (void)
 {
   basic_block bb;
 
@@ -2268,9 +2290,9 @@ perform_edge_inserts (FILE *dump_file)
   init_analyze_edges_for_bb ();
 
   FOR_EACH_BB (bb)
-    analyze_edges_for_bb (bb, dump_file);
+    analyze_edges_for_bb (bb);
 
-  analyze_edges_for_bb (EXIT_BLOCK_PTR, dump_file);
+  analyze_edges_for_bb (EXIT_BLOCK_PTR);
 
   /* Free data structures used in analyze_edges_for_bb.   */
   fini_analyze_edges_for_bb ();
@@ -2311,20 +2333,16 @@ perform_edge_inserts (FILE *dump_file)
 }
 
 
-/* Remove the variables specified in MAP from SSA form.  Any debug information
-   is sent to DUMP.  FLAGS indicate what options should be used.  */
+/* Remove the variables specified in MAP from SSA form.  FLAGS indicate what
+   options should be used.  */
 
 static void
-remove_ssa_form (FILE *dump, var_map map, int flags)
+remove_ssa_form (var_map map, int flags)
 {
   tree_live_info_p liveinfo;
   basic_block bb;
   tree phi, next;
-  FILE *save;
   tree *values = NULL;
-
-  save = dump_file;
-  dump_file = dump;
 
   /* If we are not combining temps, don't calculate live ranges for variables
      with only one SSA version.  */
@@ -2396,9 +2414,7 @@ remove_ssa_form (FILE *dump, var_map map, int flags)
   fini_ssa_operands ();
 
   /* If any copies were inserted on edges, analyze and insert them now.  */
-  perform_edge_inserts (dump_file);
-
-  dump_file = save;
+  perform_edge_inserts ();
 }
 
 /* Search every PHI node for arguments associated with backedges which
@@ -2471,8 +2487,8 @@ insert_backedge_copies (void)
 
 		  /* Create a new instance of the underlying
 		     variable of the PHI result.  */
-		  stmt = build (MODIFY_EXPR, TREE_TYPE (result_var),
-				NULL, PHI_ARG_DEF (phi, i));
+		  stmt = build2 (MODIFY_EXPR, TREE_TYPE (result_var),
+				 NULL_TREE, PHI_ARG_DEF (phi, i));
 		  name = make_ssa_name (result_var, stmt);
 		  TREE_OPERAND (stmt, 0) = name;
 
@@ -2493,7 +2509,7 @@ insert_backedge_copies (void)
    R. Morgan, ``Building an Optimizing Compiler'',
    Butterworth-Heinemann, Boston, MA, 1998. pp 176-186.  */
 
-static void
+static unsigned int
 rewrite_out_of_ssa (void)
 {
   var_map map;
@@ -2527,7 +2543,7 @@ rewrite_out_of_ssa (void)
   if (flag_tree_ter && !flag_mudflap)
     ssa_flags |= SSANORM_PERFORM_TER;
 
-  remove_ssa_form (dump_file, map, ssa_flags);
+  remove_ssa_form (map, ssa_flags);
 
   if (dump_file && (dump_flags & TDF_DETAILS))
     dump_tree_cfg (dump_file, dump_flags & ~TDF_DETAILS);
@@ -2536,6 +2552,7 @@ rewrite_out_of_ssa (void)
   delete_var_map (map);
 
   in_ssa_p = false;
+  return 0;
 }
 
 
@@ -2556,6 +2573,8 @@ struct tree_opt_pass pass_del_ssa =
   PROP_ssa,				/* properties_destroyed */
   TODO_verify_ssa | TODO_verify_flow
     | TODO_verify_stmts,		/* todo_flags_start */
-  TODO_dump_func | TODO_ggc_collect,	/* todo_flags_finish */
+  TODO_dump_func
+  | TODO_ggc_collect
+  | TODO_remove_unused_locals,		/* todo_flags_finish */
   0					/* letter */
 };

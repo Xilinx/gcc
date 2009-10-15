@@ -1,6 +1,6 @@
 // Compatibility symbols for previous versions -*- C++ -*-
 
-// Copyright (C) 2005
+// Copyright (C) 2005, 2006
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -30,7 +30,7 @@
 
 #include <bits/c++config.h>
 
-#if defined(_GLIBCXX_SYMVER) && defined(PIC)
+#if defined(_GLIBCXX_SYMVER_GNU) && defined(PIC)
 #define istreambuf_iterator istreambuf_iteratorXX
 #define basic_fstream basic_fstreamXX
 #define basic_ifstream basic_ifstreamXX
@@ -43,17 +43,18 @@
 #define _M_set_length_and_sharable(a) _M_set_length_and_sharableXX(a)
 #define ignore ignoreXX
 #define eq eqXX
+#define _List_node_base _List_node_baseXX
 #endif
 
 #include <string>
 #include <istream>
 #include <fstream>
 #include <sstream>
+#include <cmath>
 
-namespace std
-{
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
   // std::istream ignore explicit specializations.
-
   template<>
     basic_istream<char>&
     basic_istream<char>::
@@ -82,7 +83,7 @@ namespace std
 		    {
 		      streamsize __size = std::min(streamsize(__sb->egptr()
 							      - __sb->gptr()),
-						   streamsize(__n - _M_gcount));
+					          streamsize(__n - _M_gcount));
 		      if (__size > 1)
 			{
 			  __sb->gbump(__size);
@@ -147,7 +148,7 @@ namespace std
 		    {
 		      streamsize __size = std::min(streamsize(__sb->egptr()
 							      - __sb->gptr()),
-						   streamsize(__n - _M_gcount));
+						  streamsize(__n - _M_gcount));
 		      if (__size > 1)
 			{
 			  __sb->gbump(__size);
@@ -184,18 +185,21 @@ namespace std
       return *this;
     }
 #endif
-}
+
+_GLIBCXX_END_NAMESPACE
+
 
 // NB: These symbols renames should go into the shared library only,
 // and only those shared libraries that support versioning.
-#if defined(_GLIBCXX_SYMVER) && defined(PIC)
+#if defined(_GLIBCXX_SYMVER_GNU) && defined(PIC)
 
 /* gcc-3.4.4
 _ZNSt19istreambuf_iteratorIcSt11char_traitsIcEEppEv
 _ZNSt19istreambuf_iteratorIwSt11char_traitsIwEEppEv
  */
-namespace std
-{
+
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
   template
     istreambuf_iterator<char>&
     istreambuf_iterator<char>::operator++();
@@ -205,7 +209,9 @@ namespace std
     istreambuf_iterator<wchar_t>&
     istreambuf_iterator<wchar_t>::operator++();
 #endif
-} // namespace std
+
+_GLIBCXX_END_NAMESPACE
+
 
 /* gcc-4.0.0
 _ZNSs4_Rep26_M_set_length_and_sharableEj
@@ -236,8 +242,8 @@ _ZNSt13basic_istreamIwSt11char_traitsIwEE6ignoreEv
 _ZNSt11char_traitsIcE2eqERKcS2_
 _ZNSt11char_traitsIwE2eqERKwS2_
  */
-namespace std
-{
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
   // std::char_traits is explicitly specialized
   bool (* __p1)(const char&, const char&) = &char_traits<char>::eq;
 
@@ -329,7 +335,8 @@ namespace std
     bool
     basic_ofstream<wchar_t>::is_open() const;
 #endif
-}
+
+_GLIBCXX_END_NAMESPACE
 
 // The rename syntax for default exported names is
 //   asm (".symver name1,exportedname@GLIBCXX_3.4")
@@ -360,10 +367,143 @@ namespace std
 #include <bits/compatibility.h>
 #undef _GLIBCXX_APPLY_SYMVER
 
+
+/* gcc-3.4.0
+_ZN10__gnu_norm15_List_node_base4hookEPS0_;
+_ZN10__gnu_norm15_List_node_base4swapERS0_S1_;
+_ZN10__gnu_norm15_List_node_base6unhookEv;
+_ZN10__gnu_norm15_List_node_base7reverseEv;
+_ZN10__gnu_norm15_List_node_base8transferEPS0_S1_;
+*/
+#include "list.cc"
+_GLIBCXX_ASM_SYMVER(_ZNSt17_List_node_baseXX4hookEPS_, \
+_ZN10__gnu_norm15_List_node_base4hookEPS0_, \
+GLIBCXX_3.4)
+
+_GLIBCXX_ASM_SYMVER(_ZNSt17_List_node_baseXX4swapERS_S0_, \
+_ZN10__gnu_norm15_List_node_base4swapERS0_S1_, \
+GLIBCXX_3.4)
+
+_GLIBCXX_ASM_SYMVER(_ZNSt17_List_node_baseXX6unhookEv, \
+_ZN10__gnu_norm15_List_node_base6unhookEv, \
+GLIBCXX_3.4)
+
+_GLIBCXX_ASM_SYMVER(_ZNSt17_List_node_baseXX7reverseEv, \
+_ZN10__gnu_norm15_List_node_base7reverseEv, \
+GLIBCXX_3.4)
+
+_GLIBCXX_ASM_SYMVER(_ZNSt17_List_node_baseXX8transferEPS_S0_, \
+_ZN10__gnu_norm15_List_node_base8transferEPS0_S1_, \
+GLIBCXX_3.4)
+#undef _List_node_base
+
+// gcc-4.1.0
+#ifdef _GLIBCXX_LONG_DOUBLE_COMPAT
+#define _GLIBCXX_MATHL_WRAPPER(name, argdecl, args, ver) \
+extern "C" double						\
+__ ## name ## l_wrapper argdecl					\
+{								\
+  return name args;						\
+}								\
+asm (".symver __" #name "l_wrapper, " #name "l@" #ver)
+
+#define _GLIBCXX_MATHL_WRAPPER1(name, ver) \
+  _GLIBCXX_MATHL_WRAPPER (name, (double x), (x), ver)
+
+#define _GLIBCXX_MATHL_WRAPPER2(name, ver) \
+  _GLIBCXX_MATHL_WRAPPER (name, (double x, double y), (x, y), ver)
+
+#ifdef _GLIBCXX_HAVE_ACOSL
+_GLIBCXX_MATHL_WRAPPER1 (acos, GLIBCXX_3.4.3);
+#endif
+#ifdef _GLIBCXX_HAVE_ASINL
+_GLIBCXX_MATHL_WRAPPER1 (asin, GLIBCXX_3.4.3);
+#endif
+#ifdef _GLIBCXX_HAVE_ATAN2L
+_GLIBCXX_MATHL_WRAPPER2 (atan2, GLIBCXX_3.4);
+#endif
+#ifdef _GLIBCXX_HAVE_ATANL
+_GLIBCXX_MATHL_WRAPPER1 (atan, GLIBCXX_3.4.3);
+#endif
+#ifdef _GLIBCXX_HAVE_CEILL
+_GLIBCXX_MATHL_WRAPPER1 (ceil, GLIBCXX_3.4.3);
+#endif
+#ifdef _GLIBCXX_HAVE_COSHL
+_GLIBCXX_MATHL_WRAPPER1 (cosh, GLIBCXX_3.4);
+#endif
+#ifdef _GLIBCXX_HAVE_COSL
+_GLIBCXX_MATHL_WRAPPER1 (cos, GLIBCXX_3.4);
+#endif
+#ifdef _GLIBCXX_HAVE_EXPL
+_GLIBCXX_MATHL_WRAPPER1 (exp, GLIBCXX_3.4);
+#endif
+#ifdef _GLIBCXX_HAVE_FLOORL
+_GLIBCXX_MATHL_WRAPPER1 (floor, GLIBCXX_3.4.3);
+#endif
+#ifdef _GLIBCXX_HAVE_FMODL
+_GLIBCXX_MATHL_WRAPPER2 (fmod, GLIBCXX_3.4.3);
+#endif
+#ifdef _GLIBCXX_HAVE_FREXPL
+_GLIBCXX_MATHL_WRAPPER (frexp, (double x, int *y), (x, y), GLIBCXX_3.4.3);
+#endif
+#ifdef _GLIBCXX_HAVE_HYPOTL
+_GLIBCXX_MATHL_WRAPPER2 (hypot, GLIBCXX_3.4);
+#endif
+#ifdef _GLIBCXX_HAVE_LDEXPL
+_GLIBCXX_MATHL_WRAPPER (ldexp, (double x, int y), (x, y), GLIBCXX_3.4.3);
+#endif
+#ifdef _GLIBCXX_HAVE_LOG10L
+_GLIBCXX_MATHL_WRAPPER1 (log10, GLIBCXX_3.4);
+#endif
+#ifdef _GLIBCXX_HAVE_LOGL
+_GLIBCXX_MATHL_WRAPPER1 (log, GLIBCXX_3.4);
+#endif
+#ifdef _GLIBCXX_HAVE_MODFL
+_GLIBCXX_MATHL_WRAPPER (modf, (double x, double *y), (x, y), GLIBCXX_3.4.3);
+#endif
+#ifdef _GLIBCXX_HAVE_POWL
+_GLIBCXX_MATHL_WRAPPER2 (pow, GLIBCXX_3.4);
+#endif
+#ifdef _GLIBCXX_HAVE_SINHL
+_GLIBCXX_MATHL_WRAPPER1 (sinh, GLIBCXX_3.4);
+#endif
+#ifdef _GLIBCXX_HAVE_SINL
+_GLIBCXX_MATHL_WRAPPER1 (sin, GLIBCXX_3.4);
+#endif
+#ifdef _GLIBCXX_HAVE_SQRTL
+_GLIBCXX_MATHL_WRAPPER1 (sqrt, GLIBCXX_3.4);
+#endif
+#ifdef _GLIBCXX_HAVE_TANHL
+_GLIBCXX_MATHL_WRAPPER1 (tanh, GLIBCXX_3.4);
+#endif
+#ifdef _GLIBCXX_HAVE_TANL
+_GLIBCXX_MATHL_WRAPPER1 (tan, GLIBCXX_3.4);
+#endif
+#endif // _GLIBCXX_LONG_DOUBLE_COMPAT
+
 #endif
 
-#ifdef __APPLE__
-#if (defined(__ppc__) || defined (__ppc64__)) && defined (PIC)
+#ifdef _GLIBCXX_LONG_DOUBLE_COMPAT
+extern void *_ZTVN10__cxxabiv123__fundamental_type_infoE[];
+extern void *_ZTVN10__cxxabiv119__pointer_type_infoE[];
+extern __attribute__((used, weak)) const char _ZTSe[2] = "e";
+extern __attribute__((used, weak)) const char _ZTSPe[3] = "Pe";
+extern __attribute__((used, weak)) const char _ZTSPKe[4] = "PKe";
+extern __attribute__((used, weak)) const void *_ZTIe[2]
+  = { (void *) &_ZTVN10__cxxabiv123__fundamental_type_infoE[2],
+      (void *) _ZTSe };
+extern __attribute__((used, weak)) const void *_ZTIPe[4]
+  = { (void *) &_ZTVN10__cxxabiv119__pointer_type_infoE[2],
+      (void *) _ZTSPe, (void *) 0L, (void *) _ZTIe };
+extern __attribute__((used, weak)) const void *_ZTIPKe[4]
+  = { (void *) &_ZTVN10__cxxabiv119__pointer_type_infoE[2],
+      (void *) _ZTSPKe, (void *) 1L, (void *) _ZTIe };
+#endif // _GLIBCXX_LONG_DOUBLE_COMPAT
+
+
+
+#ifdef _GLIBCXX_SYMVER_DARWIN
+#if (defined(__ppc__) || defined(__ppc64__)) && defined(PIC)
 /* __eprintf shouldn't have been made visible from libstdc++, or
    anywhere, but on Mac OS X 10.4 it was defined in
    libstdc++.6.0.3.dylib; so on that platform we have to keep defining
@@ -377,12 +517,12 @@ namespace std
 using namespace std;
 
 extern "C" void
-__eprintf (const char *string, const char *expression,
-	   unsigned int line, const char *filename)
+__eprintf(const char *string, const char *expression,
+	  unsigned int line, const char *filename)
 {
-  fprintf (stderr, string, expression, line, filename);
-  fflush (stderr);
-  abort ();
+  fprintf(stderr, string, expression, line, filename);
+  fflush(stderr);
+  abort();
 }
 #endif
-#endif /* __APPLE__ */
+#endif

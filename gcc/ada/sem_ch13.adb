@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2005, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2006, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -582,7 +582,7 @@ package body Sem_Ch13 is
                   Mark_Aliased_Address_As_Volatile (Expr);
 
                   --  Second case is where we have a constant whose
-                  --  definition is of the form of an adress as in:
+                  --  definition is of the form of an address as in:
 
                   --     A : constant Address := K'Address;
                   --     ...
@@ -981,9 +981,10 @@ package body Sem_Ch13 is
                         Size /= System_Storage_Unit * 8
                      then
                         Error_Msg_Uint_1 := UI_From_Int (System_Storage_Unit);
+                        Error_Msg_Uint_2 := Error_Msg_Uint_1 * 8;
                         Error_Msg_N
                           ("size for primitive object must be a power of 2"
-                            & " and at least ^", N);
+                            & " in the range ^-^", N);
                      end if;
                   end if;
 
@@ -1731,6 +1732,9 @@ package body Sem_Ch13 is
       Ccount : Natural := 0;
       --  Number of component clauses in record rep clause
 
+      CR_Pragma : Node_Id := Empty;
+      --  Points to N_Pragma node if Complete_Representation pragma present
+
    begin
       Find_Type (Ident);
       Rectype := Entity (Ident);
@@ -1893,10 +1897,16 @@ package body Sem_Ch13 is
 
       while Present (CC) loop
 
-         --  If pragma, just analyze it
+         --  Pragma
 
          if Nkind (CC) = N_Pragma then
             Analyze (CC);
+
+            --  The only pragma of interest is Complete_Representation
+
+            if Chars (CC) = Name_Complete_Representation then
+               CR_Pragma := CC;
+            end if;
 
          --  Processing for real component clause
 
@@ -2271,9 +2281,7 @@ package body Sem_Ch13 is
             if Ekind (Comp) = E_Component
               or else Ekind (Comp) = E_Discriminant
             then
-               if No (Component_Clause (Comp)) then
-                  return;
-               end if;
+               exit when No (Component_Clause (Comp));
             end if;
 
             Next_Entity (Comp);
@@ -2282,7 +2290,28 @@ package body Sem_Ch13 is
          --  If we fall out of loop, all components have component clauses
          --  and so we can set the size to the maximum value.
 
-         Set_RM_Size (Rectype, Hbit + 1);
+         if No (Comp) then
+            Set_RM_Size (Rectype, Hbit + 1);
+         end if;
+      end if;
+
+      --  Check missing components if Complete_Representation pragma appeared
+
+      if Present (CR_Pragma) then
+         Comp := First_Entity (Rectype);
+         while Present (Comp) loop
+            if Ekind (Comp) = E_Component
+                 or else
+               Ekind (Comp) = E_Discriminant
+            then
+               if No (Component_Clause (Comp)) then
+                  Error_Msg_NE
+                    ("missing component clause for &", CR_Pragma, Comp);
+               end if;
+            end if;
+
+            Next_Entity (Comp);
+         end loop;
       end if;
    end Analyze_Record_Representation_Clause;
 
@@ -2571,7 +2600,6 @@ package body Sem_Ch13 is
                Check_Expr_Constants (Prefix (Nod));
 
             when N_Attribute_Reference =>
-
                if Attribute_Name (Nod) = Name_Address
                    or else
                   Attribute_Name (Nod) = Name_Access
@@ -3326,7 +3354,7 @@ package body Sem_Ch13 is
 
          if Present (Freeze_Node (S)) then
             Error_Msg_NE
-              ("?no more representation items for }!", Freeze_Node (S), S);
+              ("?no more representation items for }", Freeze_Node (S), S);
          end if;
 
          return True;

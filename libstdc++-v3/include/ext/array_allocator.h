@@ -39,20 +39,23 @@
 #include <bits/functexcept.h>
 #include <tr1/array>
 
-namespace __gnu_cxx
-{
+_GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
+
+ using std::size_t;
+ using std::ptrdiff_t;
+
   /// @brief  Base class.
  template<typename _Tp>
     class array_allocator_base
     {
     public:
-      typedef size_t     size_type;
-      typedef ptrdiff_t  difference_type;
-      typedef _Tp*       pointer;
-      typedef const _Tp* const_pointer;
-      typedef _Tp&       reference;
-      typedef const _Tp& const_reference;
-      typedef _Tp        value_type;
+      typedef size_t     	size_type;
+      typedef ptrdiff_t  	difference_type;
+      typedef _Tp*       	pointer;
+      typedef const _Tp* 	const_pointer;
+      typedef _Tp&       	reference;
+      typedef const _Tp&	const_reference;
+      typedef _Tp        	value_type;
 
       pointer
       address(reference __x) const { return &__x; }
@@ -88,43 +91,43 @@ namespace __gnu_cxx
     class array_allocator : public array_allocator_base<_Tp>
     {
     public:
-      typedef size_t     size_type;
-      typedef ptrdiff_t  difference_type;
-      typedef _Tp*       pointer;
-      typedef const _Tp* const_pointer;
-      typedef _Tp&       reference;
-      typedef const _Tp& const_reference;
-      typedef _Tp        value_type;
+      typedef size_t     	size_type;
+      typedef ptrdiff_t  	difference_type;
+      typedef _Tp*       	pointer;
+      typedef const _Tp* 	const_pointer;
+      typedef _Tp&       	reference;
+      typedef const _Tp& 	const_reference;
+      typedef _Tp        	value_type;
+      typedef _Array		array_type;
 
-      typedef _Array	array_type;
+    private:
+      array_type* 	_M_array;
+      size_type 	_M_used;
 
-      array_type* _M_array;
-      
+    public:
      template<typename _Tp1, typename _Array1 = _Array>
         struct rebind
         { typedef array_allocator<_Tp1, _Array1> other; };
 
       array_allocator(array_type* __array = NULL) throw() 
-      : _M_array(__array) 
-      { }
+      : _M_array(__array), _M_used(size_type()) { }
 
       array_allocator(const array_allocator& __o)  throw() 
-      : _M_array(__o._M_array) { }
+      : _M_array(__o._M_array), _M_used(__o._M_used) { }
 
       template<typename _Tp1, typename _Array1>
         array_allocator(const array_allocator<_Tp1, _Array1>&) throw()
-	: _M_array(NULL) { }
+	: _M_array(NULL), _M_used(size_type()) { }
 
       ~array_allocator() throw() { }
 
       pointer
       allocate(size_type __n, const void* = 0)
       {
-	static size_type __array_used;
-	if (_M_array == 0 || __array_used + __n > _M_array->size())
+	if (_M_array == 0 || _M_used + __n > _M_array->size())
 	  std::__throw_bad_alloc();
-	pointer __ret = _M_array->begin() + __array_used;
-	__array_used += __n;
+	pointer __ret = _M_array->begin() + _M_used;
+	_M_used += __n;
 	return __ret;
       }
     };
@@ -140,6 +143,7 @@ namespace __gnu_cxx
     operator!=(const array_allocator<_Tp, _Array>&, 
 	       const array_allocator<_Tp, _Array>&)
     { return false; }
-} // namespace __gnu_cxx
+
+_GLIBCXX_END_NAMESPACE
 
 #endif

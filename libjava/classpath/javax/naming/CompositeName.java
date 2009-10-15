@@ -1,5 +1,5 @@
 /* CompositeName.java --
-   Copyright (C) 2001, 2005  Free Software Foundation, Inc.
+   Copyright (C) 2001, 2005, 2006  Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -38,21 +38,27 @@ exception statement from your version. */
 
 package javax.naming;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.Enumeration;
 import java.util.NoSuchElementException;
 import java.util.Vector;
 
 /**
+ * Represents names that may span over several namespaces. For instance,
+ * the composite name http://www.gnu.org/software/classpath/index.html spans
+ * over three namespaces (the protocol http, the web server location
+ * (www.gnu.org) and the index.html location on the server).
+ * 
  * @author Tom Tromey (tromey@redhat.com)
- * @date May 16, 2001
- *
- * FIXME: must write readObject and writeObject to conform to
- * serialization spec.
  */
 public class CompositeName implements Name, Cloneable, Serializable
 {
   private static final long serialVersionUID = 1667768148915813118L;
+  
+  private transient Vector elts;  
 
   public CompositeName ()
   {
@@ -316,6 +322,20 @@ public class CompositeName implements Name, Cloneable, Serializable
       }
     return result.toString ();
   }
+  
+  private void readObject(ObjectInputStream s) 
+    throws IOException, ClassNotFoundException
+  {
+    int size = s.readInt();
+    elts = new Vector(size);
+    for (int i = 0; i < size; i++)
+      elts.add(s.readObject());
+  }
 
-  private transient Vector elts;
+  private void writeObject(ObjectOutputStream s) throws IOException
+  {
+    s.writeInt(elts.size());
+    for (int i = 0; i < elts.size(); i++)
+      s.writeObject(elts.get(i));
+  }
 }

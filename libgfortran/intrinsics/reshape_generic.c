@@ -1,5 +1,5 @@
 /* Generic implementation of the RESHAPE intrinsic
-   Copyright 2002 Free Software Foundation, Inc.
+   Copyright 2002, 2006 Free Software Foundation, Inc.
    Contributed by Paul Brook <paul@nowt.org>
 
 This file is part of the GNU Fortran 95 runtime library (libgfortran).
@@ -72,15 +72,6 @@ reshape_internal (parray *ret, parray *source, shape_type *shape,
   int dim;
   int sempty, pempty;
 
-  if (source->dim[0].stride == 0)
-    source->dim[0].stride = 1;
-  if (shape->dim[0].stride == 0)
-    shape->dim[0].stride = 1;
-  if (pad && pad->dim[0].stride == 0)
-    pad->dim[0].stride = 1;
-  if (order && order->dim[0].stride == 0)
-    order->dim[0].stride = 1;
-
   if (ret->data == NULL)
     {
       rdim = shape->dim[0].ubound - shape->dim[0].lbound + 1;
@@ -100,8 +91,6 @@ reshape_internal (parray *ret, parray *source, shape_type *shape,
   else
     {
       rdim = GFC_DESCRIPTOR_RANK (ret);
-      if (ret->dim[0].stride == 0)
-	ret->dim[0].stride = 1;
     }
 
   rsize = 1;
@@ -228,7 +217,7 @@ reshape_internal (parray *ret, parray *source, shape_type *shape,
              the next dimension.  */
           rcount[n] = 0;
           /* We could precalculate these products, but this is a less
-             frequently used path so proabably not worth it.  */
+             frequently used path so probably not worth it.  */
           rptr -= rstride[n] * rextent[n] * size;
           n++;
           if (n == rdim)
@@ -252,7 +241,7 @@ reshape_internal (parray *ret, parray *source, shape_type *shape,
              the next dimension.  */
           scount[n] = 0;
           /* We could precalculate these products, but this is a less
-             frequently used path so proabably not worth it.  */
+             frequently used path so probably not worth it.  */
           src -= sstride[n] * sextent[n] * size;
           n++;
           if (n == sdim)
@@ -277,7 +266,7 @@ reshape_internal (parray *ret, parray *source, shape_type *shape,
           else
             {
               scount[n]++;
-              sptr += sstride[n] * size;
+              src += sstride[n] * size;
             }
         }
     }

@@ -36,10 +36,10 @@
 #ifndef _RC_STRING_BASE_H
 #define _RC_STRING_BASE_H 1
 
-#include <bits/atomicity.h>
+#include <ext/atomicity.h>
 
-namespace __gnu_cxx
-{
+_GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
+
   /**
    *  @if maint
    *  Documentation?  What's that?
@@ -134,7 +134,7 @@ namespace __gnu_cxx
 	_CharT*
 	_M_refcopy() throw()
 	{
-	  __atomic_add(&_M_info._M_refcount, 1);
+	  __atomic_add_dispatch(&_M_info._M_refcount, 1);
 	  return _M_refdata();
 	}  // XXX MT
 	
@@ -204,7 +204,8 @@ namespace __gnu_cxx
       void
       _M_dispose()
       {
-	if (__exchange_and_add(&_M_rep()->_M_info._M_refcount, -1) <= 0)
+	if (__exchange_and_add_dispatch(&_M_rep()->_M_info._M_refcount,
+					-1) <= 0)
 	  _M_rep()->_M_destroy(_M_get_allocator());
       }  // XXX MT
 
@@ -224,7 +225,7 @@ namespace __gnu_cxx
       template<typename _InIterator>
         static _CharT*
         _S_construct_aux(_InIterator __beg, _InIterator __end,
-			 const _Alloc& __a, __false_type)
+			 const _Alloc& __a, std::__false_type)
 	{
           typedef typename iterator_traits<_InIterator>::iterator_category _Tag;
           return _S_construct(__beg, __end, __a, _Tag());
@@ -233,7 +234,7 @@ namespace __gnu_cxx
       template<typename _InIterator>
         static _CharT*
         _S_construct_aux(_InIterator __beg, _InIterator __end,
-			 const _Alloc& __a, __true_type)
+			 const _Alloc& __a, std::__true_type)
 	{ return _S_construct(static_cast<size_type>(__beg),
 			      static_cast<value_type>(__end), __a); }
 
@@ -593,8 +594,9 @@ namespace __gnu_cxx
       _CharT* __tmp = _M_data();
       _M_data(__rcs._M_data());
       __rcs._M_data(__tmp);
-      
-      // NB: Implement Option 3 of DR 431 (see N1599).
+
+      // _GLIBCXX_RESOLVE_LIB_DEFECTS
+      // 431. Swapping containers with unequal allocators.
       std::__alloc_swap<allocator_type>::_S_do_it(_M_get_allocator(),
 						  __rcs._M_get_allocator());
     } 
@@ -697,6 +699,7 @@ namespace __gnu_cxx
       return false;
     }
 
+#ifdef _GLIBCXX_USE_WCHAR_T
   template<>
     inline bool
     __rc_string_base<wchar_t, std::char_traits<wchar_t>,
@@ -707,6 +710,8 @@ namespace __gnu_cxx
 	return true;
       return false;
     }
-} // namespace __gnu_cxx
+#endif
+
+_GLIBCXX_END_NAMESPACE
 
 #endif /* _RC_STRING_BASE_H */

@@ -1,11 +1,11 @@
 /* Process source files and output type information.
-   Copyright (C) 2002, 2003, 2004 Free Software Foundation, Inc.
+   Copyright (C) 2002, 2003, 2004, 2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -14,9 +14,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 /* A file position, mostly for error messages.  
    The FILE element may be compared using pointer equality.  */
@@ -133,14 +132,14 @@ extern char * xasprintf (const char *, ...)
 /* Constructor routines for types.  */
 extern void do_typedef (const char *s, type_p t, struct fileloc *pos);
 extern type_p resolve_typedef (const char *s, struct fileloc *pos);
-extern void new_structure (const char *name, int isunion, 
-			   struct fileloc *pos, pair_p fields, 
-			   options_p o);
+extern type_p new_structure (const char *name, int isunion,
+			     struct fileloc *pos, pair_p fields,
+			     options_p o);
 extern type_p find_structure (const char *s, int isunion);
 extern type_p create_scalar_type (const char *name, size_t name_len);
 extern type_p create_pointer (type_p t);
 extern type_p create_array (type_p t, const char *len);
-extern options_p create_option (const char *name, void *info);
+extern options_p create_option (options_p, const char *name, const void *info);
 extern type_p adjust_field_type (type_p, options_p);
 extern void note_variable (const char *s, type_p t, options_p o,
 			   struct fileloc *pos);

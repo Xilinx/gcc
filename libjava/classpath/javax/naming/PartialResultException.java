@@ -1,5 +1,5 @@
 /* PartialResultException.java --
-   Copyright (C) 2000, 2004 Free Software Foundation, Inc.
+   Copyright (C) 2000, 2004, 2006 Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -38,9 +38,15 @@ exception statement from your version. */
 
 package javax.naming;
 
- 
+/**
+ * Thrown from the {@link javax.naming.NamingEnumeration}, this exception
+ * indicates that the enumeration represents only part of the existing
+ * elements that would be an answer to the specified request.
+ */ 
 public class PartialResultException extends NamingException
 {
+  private static final long serialVersionUID = 2572144970049426786L;
+
   public PartialResultException ()
   {
     super ();

@@ -1,5 +1,5 @@
 `/* Implementation of the TRANSPOSE intrinsic
-   Copyright 2003, 2005 Free Software Foundation, Inc.
+   Copyright 2003, 2005, 2006 Free Software Foundation, Inc.
    Contributed by Tobias Schlüter
 
 This file is part of the GNU Fortran 95 runtime library (libgfortran).
@@ -35,11 +35,13 @@ include(iparm.m4)dnl
 
 `#if defined (HAVE_'rtype_name`)'
 
-extern void transpose_`'rtype_code (rtype * ret, rtype * source);
+extern void transpose_`'rtype_code (rtype * const restrict ret, 
+	rtype * const restrict source);
 export_proto(transpose_`'rtype_code);
 
 void
-transpose_`'rtype_code (rtype * ret, rtype * source)
+transpose_`'rtype_code (rtype * const restrict ret, 
+	rtype * const restrict source)
 {
   /* r.* indicates the return array.  */
   index_type rxstride, rystride;
@@ -69,11 +71,6 @@ transpose_`'rtype_code (rtype * ret, rtype * source)
       ret->data = internal_malloc_size (sizeof (rtype_name) * size0 ((array_t *) ret));
       ret->offset = 0;
     }
-
-  if (ret->dim[0].stride == 0)
-    ret->dim[0].stride = 1;
-  if (source->dim[0].stride == 0)
-    source->dim[0].stride = 1;
 
   sxstride = source->dim[0].stride;
   systride = source->dim[1].stride;

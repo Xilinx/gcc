@@ -1,14 +1,14 @@
 /* Handle a .class file embedded in a .zip archive.
    This extracts a member from a .zip file, but does not handle
    uncompression (since that is not needed for classes.zip).
-   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2003, 2004, 2005
-   Free Software Foundation, Inc.
+   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2003, 2004, 2005,
+   2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -17,9 +17,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  
 
 Java and all Java-based marks are trademarks or registered trademarks
 of Sun Microsystems, Inc. in the United States and other countries.
@@ -308,9 +307,8 @@ read_zip_archive (ZipFile *zipf)
     }
   zipf->count = makeword((const uch *) &buffer[TOTAL_ENTRIES_CENTRAL_DIR]);
   zipf->dir_size = makelong((const uch *) &buffer[SIZE_CENTRAL_DIRECTORY]);
-#define ALLOC xmalloc
   /* Allocate 1 more to allow appending '\0' to last filename. */
-  zipf->central_directory = ALLOC (zipf->dir_size+1);
+  zipf->central_directory = XNEWVEC (char, zipf->dir_size + 1);
   if (lseek (zipf->fd, -(zipf->dir_size+ECREC_SIZE+4), SEEK_CUR) < 0)
     return -2;
   if (read (zipf->fd, zipf->central_directory, zipf->dir_size) < 0)

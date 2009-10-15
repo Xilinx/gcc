@@ -28,6 +28,10 @@
 // invalidate any other reasons why the executable file might be covered by
 // the GNU General Public License.
 
+/** @file debug/map.h
+ *  This file is a GNU debug extension to the Standard C++ Library.
+ */
+
 #ifndef _GLIBCXX_DEBUG_MAP_H
 #define _GLIBCXX_DEBUG_MAP_H 1
 
@@ -35,7 +39,9 @@
 #include <debug/safe_iterator.h>
 #include <utility>
 
-namespace __gnu_debug_def
+namespace std
+{
+namespace __debug
 {
   template<typename _Key, typename _Tp, typename _Compare = std::less<_Key>,
 	   typename _Allocator = std::allocator<std::pair<const _Key, _Tp> > >
@@ -322,6 +328,7 @@ namespace __gnu_debug_def
     swap(map<_Key,_Tp,_Compare,_Allocator>& __lhs,
 	 map<_Key,_Tp,_Compare,_Allocator>& __rhs)
     { __lhs.swap(__rhs); }
-} // namespace __gnu_debug_def
+} // namespace __debug
+} // namespace std
 
 #endif

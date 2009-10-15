@@ -1,6 +1,6 @@
 // -*- C++ -*- C forwarding header.
 
-// Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005
+// Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -28,11 +28,7 @@
 // invalidate any other reasons why the executable file might be covered by
 // the GNU General Public License.
 
-//
-// ISO C++ 14882: 26.5  C library
-//
-
-/** @file cmath
+/** @file include/cmath
  *  This is a Standard C++ Library file.  You should @c #include this file
  *  in your programs, rather than any of the "*.h" implementation files.
  *
@@ -42,6 +38,10 @@
  *  as macros in C).
  */
 
+//
+// ISO C++ 14882: 26.5  C library
+//
+
 #ifndef _GLIBCXX_CMATH
 #define _GLIBCXX_CMATH 1
 
@@ -49,6 +49,7 @@
 
 #include <bits/c++config.h>
 #include <bits/cpp_type_traits.h>
+#include <ext/type_traits.h>
 
 #include <math.h>
 
@@ -78,9 +79,8 @@
 #undef tan
 #undef tanh
 
+_GLIBCXX_BEGIN_NAMESPACE(std)
 
-namespace std
-{
   // Forward declaration of a helper function.  This really should be
   // an `exported' forward declaration.
   template<typename _Tp> _Tp __cmath_power(_Tp, unsigned int);
@@ -108,11 +108,10 @@ namespace std
   { return __builtin_acosl(__x); }
 
   template<typename _Tp>
-    inline typename __enable_if<double, __is_integer<_Tp>::__value>::__type
+    inline typename __gnu_cxx::__enable_if<__is_integer<_Tp>::__value, 
+					   double>::__type
     acos(_Tp __x)
-    {
-      return __builtin_acos(__x);
-    }
+    { return __builtin_acos(__x); }
 
   using ::asin;
 
@@ -125,7 +124,8 @@ namespace std
   { return __builtin_asinl(__x); }
 
   template<typename _Tp>
-    inline typename __enable_if<double, __is_integer<_Tp>::__value>::__type
+  inline typename __gnu_cxx::__enable_if<__is_integer<_Tp>::__value,
+					 double>::__type
     asin(_Tp __x)
     { return __builtin_asin(__x); }
 
@@ -140,7 +140,8 @@ namespace std
   { return __builtin_atanl(__x); }
 
   template<typename _Tp>
-    inline typename __enable_if<double, __is_integer<_Tp>::__value>::__type
+  inline typename __gnu_cxx::__enable_if<__is_integer<_Tp>::__value, 
+					 double>::__type
     atan(_Tp __x)
     { return __builtin_atan(__x); }
 
@@ -155,8 +156,9 @@ namespace std
   { return __builtin_atan2l(__y, __x); }
 
   template<typename _Tp, typename _Up>
-    inline typename __enable_if<double, __is_integer<_Tp>::__value
-                                        && __is_integer<_Up>::__value>::__type
+    inline typename __gnu_cxx::__enable_if<__is_integer<_Tp>::__value
+    					   && __is_integer<_Up>::__value, 
+					   double>::__type
     atan2(_Tp __y, _Up __x)
     { return __builtin_atan2(__y, __x); }
 
@@ -171,7 +173,8 @@ namespace std
   { return __builtin_ceill(__x); }
 
   template<typename _Tp>
-    inline typename __enable_if<double, __is_integer<_Tp>::__value>::__type
+    inline typename __gnu_cxx::__enable_if<__is_integer<_Tp>::__value, 
+					   double>::__type
     ceil(_Tp __x)
     { return __builtin_ceil(__x); }
 
@@ -186,7 +189,8 @@ namespace std
   { return __builtin_cosl(__x); }
 
   template<typename _Tp>
-    inline typename __enable_if<double, __is_integer<_Tp>::__value>::__type
+    inline typename __gnu_cxx::__enable_if<__is_integer<_Tp>::__value, 
+					   double>::__type
     cos(_Tp __x)
     { return __builtin_cos(__x); }
 
@@ -201,7 +205,8 @@ namespace std
   { return __builtin_coshl(__x); }
 
   template<typename _Tp>
-    inline typename __enable_if<double, __is_integer<_Tp>::__value>::__type
+    inline typename __gnu_cxx::__enable_if<__is_integer<_Tp>::__value, 
+					   double>::__type
     cosh(_Tp __x)
     { return __builtin_cosh(__x); }
 
@@ -216,7 +221,8 @@ namespace std
   { return __builtin_expl(__x); }
 
   template<typename _Tp>
-    inline typename __enable_if<double, __is_integer<_Tp>::__value>::__type
+    inline typename __gnu_cxx::__enable_if<__is_integer<_Tp>::__value, 
+					   double>::__type
     exp(_Tp __x)
     { return __builtin_exp(__x); }
 
@@ -231,7 +237,8 @@ namespace std
   { return __builtin_fabsl(__x); }
 
   template<typename _Tp>
-    inline typename __enable_if<double, __is_integer<_Tp>::__value>::__type
+    inline typename __gnu_cxx::__enable_if<__is_integer<_Tp>::__value, 
+					   double>::__type
     fabs(_Tp __x)
     { return __builtin_fabs(__x); }
 
@@ -246,7 +253,8 @@ namespace std
   { return __builtin_floorl(__x); }
 
   template<typename _Tp>
-    inline typename __enable_if<double, __is_integer<_Tp>::__value>::__type
+    inline typename __gnu_cxx::__enable_if<__is_integer<_Tp>::__value, 
+					   double>::__type
     floor(_Tp __x)
     { return __builtin_floor(__x); }
 
@@ -271,7 +279,8 @@ namespace std
   { return __builtin_frexpl(__x, __exp); }
 
   template<typename _Tp>
-    inline typename __enable_if<double, __is_integer<_Tp>::__value>::__type
+    inline typename __gnu_cxx::__enable_if<__is_integer<_Tp>::__value, 
+					   double>::__type
     frexp(_Tp __x, int* __exp)
     { return __builtin_frexp(__x, __exp); }
 
@@ -286,7 +295,8 @@ namespace std
   { return __builtin_ldexpl(__x, __exp); }
 
   template<typename _Tp>
-  inline typename __enable_if<double, __is_integer<_Tp>::__value>::__type
+    inline typename __gnu_cxx::__enable_if<__is_integer<_Tp>::__value, 
+					   double>::__type
   ldexp(_Tp __x, int __exp)
   { return __builtin_ldexp(__x, __exp); }
 
@@ -301,7 +311,8 @@ namespace std
   { return __builtin_logl(__x); }
 
   template<typename _Tp>
-    inline typename __enable_if<double, __is_integer<_Tp>::__value>::__type
+    inline typename __gnu_cxx::__enable_if<__is_integer<_Tp>::__value, 
+					   double>::__type
     log(_Tp __x)
     { return __builtin_log(__x); }
 
@@ -316,7 +327,8 @@ namespace std
   { return __builtin_log10l(__x); }
 
   template<typename _Tp>
-    inline typename __enable_if<double, __is_integer<_Tp>::__value>::__type
+    inline typename __gnu_cxx::__enable_if<__is_integer<_Tp>::__value, 
+					   double>::__type
     log10(_Tp __x)
     { return __builtin_log10(__x); }
 
@@ -372,7 +384,8 @@ namespace std
   { return __builtin_sinl(__x); }
 
   template<typename _Tp>
-    inline typename __enable_if<double, __is_integer<_Tp>::__value>::__type
+    inline typename __gnu_cxx::__enable_if<__is_integer<_Tp>::__value, 
+					   double>::__type
     sin(_Tp __x)
     { return __builtin_sin(__x); }
 
@@ -387,7 +400,8 @@ namespace std
   { return __builtin_sinhl(__x); }
 
   template<typename _Tp>
-    inline typename __enable_if<double, __is_integer<_Tp>::__value>::__type
+    inline typename __gnu_cxx::__enable_if<__is_integer<_Tp>::__value, 
+					   double>::__type
     sinh(_Tp __x)
     { return __builtin_sinh(__x); }
 
@@ -402,7 +416,8 @@ namespace std
   { return __builtin_sqrtl(__x); }
 
   template<typename _Tp>
-    inline typename __enable_if<double, __is_integer<_Tp>::__value>::__type
+    inline typename __gnu_cxx::__enable_if<__is_integer<_Tp>::__value, 
+					   double>::__type
     sqrt(_Tp __x)
     { return __builtin_sqrt(__x); }
 
@@ -417,7 +432,8 @@ namespace std
   { return __builtin_tanl(__x); }
 
   template<typename _Tp>
-    inline typename __enable_if<double, __is_integer<_Tp>::__value>::__type
+    inline typename __gnu_cxx::__enable_if<__is_integer<_Tp>::__value, 
+					   double>::__type
     tan(_Tp __x)
     { return __builtin_tan(__x); }
 
@@ -432,18 +448,21 @@ namespace std
   { return __builtin_tanhl(__x); }
 
   template<typename _Tp>
-    inline typename __enable_if<double, __is_integer<_Tp>::__value>::__type
+    inline typename __gnu_cxx::__enable_if<__is_integer<_Tp>::__value, 
+					   double>::__type
     tanh(_Tp __x)
     { return __builtin_tanh(__x); }
-}
+
+_GLIBCXX_END_NAMESPACE
 
 #if _GLIBCXX_USE_C99_MATH
 #if !_GLIBCXX_USE_C99_FP_MACROS_DYNAMIC
 // These are possible macros imported from C99-land. For strict
 // conformance, remove possible C99-injected names from the global
 // namespace, and sequester them in the __gnu_cxx extension namespace.
-namespace __gnu_cxx
-{
+
+_GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
+
   template<typename _Tp>
     inline int
     __capture_fpclassify(_Tp __f) { return fpclassify(__f); }
@@ -496,7 +515,8 @@ namespace __gnu_cxx
     inline int
     __capture_isunordered(_Tp __f1, _Tp __f2)
     { return isunordered(__f1, __f2); }
-}
+
+_GLIBCXX_END_NAMESPACE
 
 // Only undefine the C99 FP macros, if actually captured for namespace movement
 #undef fpclassify
@@ -512,62 +532,64 @@ namespace __gnu_cxx
 #undef islessgreater
 #undef isunordered
 
-namespace std
-{
-  template<typename _Tp>
-    inline int
-    fpclassify(_Tp __f) { return __gnu_cxx::__capture_fpclassify(__f); }
+_GLIBCXX_BEGIN_NAMESPACE(std)
 
   template<typename _Tp>
     inline int
-    isfinite(_Tp __f) { return __gnu_cxx::__capture_isfinite(__f); }
+    fpclassify(_Tp __f) { return ::__gnu_cxx::__capture_fpclassify(__f); }
 
   template<typename _Tp>
     inline int
-    isinf(_Tp __f) { return __gnu_cxx::__capture_isinf(__f); }
+    isfinite(_Tp __f) { return ::__gnu_cxx::__capture_isfinite(__f); }
 
   template<typename _Tp>
     inline int
-    isnan(_Tp __f) { return __gnu_cxx::__capture_isnan(__f); }
+    isinf(_Tp __f) { return ::__gnu_cxx::__capture_isinf(__f); }
 
   template<typename _Tp>
     inline int
-    isnormal(_Tp __f) { return __gnu_cxx::__capture_isnormal(__f); }
+    isnan(_Tp __f) { return ::__gnu_cxx::__capture_isnan(__f); }
 
   template<typename _Tp>
     inline int
-    signbit(_Tp __f) { return __gnu_cxx::__capture_signbit(__f); }
+    isnormal(_Tp __f) { return ::__gnu_cxx::__capture_isnormal(__f); }
+
+  template<typename _Tp>
+    inline int
+    signbit(_Tp __f) { return ::__gnu_cxx::__capture_signbit(__f); }
 
   template<typename _Tp>
     inline int
     isgreater(_Tp __f1, _Tp __f2)
-    { return __gnu_cxx::__capture_isgreater(__f1, __f2); }
+    { return ::__gnu_cxx::__capture_isgreater(__f1, __f2); }
 
   template<typename _Tp>
     inline int
     isgreaterequal(_Tp __f1, _Tp __f2)
-    { return __gnu_cxx::__capture_isgreaterequal(__f1, __f2); }
+    { return ::__gnu_cxx::__capture_isgreaterequal(__f1, __f2); }
 
   template<typename _Tp>
     inline int
     isless(_Tp __f1, _Tp __f2)
-    { return __gnu_cxx::__capture_isless(__f1, __f2); }
+    { return ::__gnu_cxx::__capture_isless(__f1, __f2); }
 
   template<typename _Tp>
     inline int
     islessequal(_Tp __f1, _Tp __f2)
-    { return __gnu_cxx::__capture_islessequal(__f1, __f2); }
+    { return ::__gnu_cxx::__capture_islessequal(__f1, __f2); }
 
   template<typename _Tp>
     inline int
     islessgreater(_Tp __f1, _Tp __f2)
-    { return __gnu_cxx::__capture_islessgreater(__f1, __f2); }
+    { return ::__gnu_cxx::__capture_islessgreater(__f1, __f2); }
 
   template<typename _Tp>
     inline int
     isunordered(_Tp __f1, _Tp __f2)
-    { return __gnu_cxx::__capture_isunordered(__f1, __f2); }
-}
+    { return ::__gnu_cxx::__capture_isunordered(__f1, __f2); }
+
+_GLIBCXX_END_NAMESPACE
+
 #endif /* _GLIBCXX_USE_C99_FP_MACROS_DYNAMIC */
 #endif
 

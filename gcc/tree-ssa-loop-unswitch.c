@@ -1,11 +1,11 @@
 /* Loop unswitching.
-   Copyright (C) 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2007 Free Software Foundation, Inc.
    
 This file is part of GCC.
    
 GCC is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the
-Free Software Foundation; either version 2, or (at your option) any
+Free Software Foundation; either version 3, or (at your option) any
 later version.
    
 GCC is distributed in the hope that it will be useful, but WITHOUT
@@ -14,9 +14,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
    
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -80,7 +79,7 @@ static tree tree_may_unswitch_on (basic_block, struct loop *);
 
 /* Main entry point.  Perform loop unswitching on all suitable LOOPS.  */
 
-void
+unsigned int
 tree_ssa_unswitch_loops (struct loops *loops)
 {
   int i, num;
@@ -104,7 +103,8 @@ tree_ssa_unswitch_loops (struct loops *loops)
     }
 
   if (changed)
-    cleanup_tree_cfg_loop ();
+    return TODO_cleanup_cfg;
+  return 0;
 }
 
 /* Checks whether we can unswitch LOOP on condition at end of BB -- one of its
@@ -255,6 +255,7 @@ tree_unswitch_single_loop (struct loops *loops, struct loop *loop, int num)
   if (!nloop)
     {
       free_original_copy_tables ();
+      free (bbs);
       return changed;
     }
 
@@ -265,6 +266,7 @@ tree_unswitch_single_loop (struct loops *loops, struct loop *loop, int num)
   /* Invoke itself on modified loops.  */
   tree_unswitch_single_loop (loops, nloop, num + 1);
   tree_unswitch_single_loop (loops, loop, num + 1);
+  free (bbs);
   return true;
 }
 

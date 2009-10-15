@@ -1,5 +1,5 @@
 /* JMenuBar.java --
-   Copyright (C) 2002, 2004, 2005  Free Software Foundation, Inc.
+   Copyright (C) 2002, 2004, 2005, 2006  Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -50,6 +50,8 @@ import javax.accessibility.AccessibleRole;
 import javax.accessibility.AccessibleSelection;
 import javax.accessibility.AccessibleStateSet;
 import javax.swing.plaf.MenuBarUI;
+
+import javax.swing.border.Border;
 
 /**
  * JMenuBar is a container for menu's. For a menu bar to be seen on the
@@ -368,10 +370,30 @@ public class JMenuBar extends JComponent implements Accessible, MenuElement
   {
     MenuElement[] subElements = new MenuElement[getComponentCount()];
 
+    int j = 0;
+    boolean doResize = false;
+    MenuElement menu;
     for (int i = 0; i < getComponentCount(); i++)
-      subElements[i] = (MenuElement) getMenu(i);
+      {
+        menu = getMenu(i);
+        if (menu != null)
+          {
+            subElements[j++] = (MenuElement) menu;
+          }
+        else
+          doResize = true;
+      }
 
-    return subElements;
+    if (! doResize)
+      return subElements;
+    else
+      {
+        MenuElement[] subElements2 = new MenuElement[j];
+        for (int i = 0; i < j; i++)
+          subElements2[i] = subElements[i];
+
+        return subElements2;
+      }
   }
 
   /**
@@ -437,8 +459,12 @@ public class JMenuBar extends JComponent implements Accessible, MenuElement
   protected void paintBorder(Graphics g)
   {
     if (borderPainted)
-      getBorder().paintBorder(this, g, 0, 0, getSize(null).width,
-                              getSize(null).height);
+      {
+        Border border = getBorder();
+        if (border != null)
+          getBorder().paintBorder(this, g, 0, 0, getSize(null).width,
+                                  getSize(null).height);
+      }
   }
 
   /**
@@ -516,6 +542,9 @@ public class JMenuBar extends JComponent implements Accessible, MenuElement
                                          KeyEvent e, int condition,
                                          boolean pressed)
   {
+    if (menuElement == null)
+      return false;
+
     // First check the menuElement itself, if it's a JComponent
     if (menuElement instanceof JComponent
         && ((JComponent) menuElement).processKeyBinding(ks, e, condition,
@@ -652,6 +681,5 @@ public class JMenuBar extends JComponent implements Accessible, MenuElement
   public void updateUI()
   {
     setUI((MenuBarUI) UIManager.getUI(this));
-    invalidate();
   }
 }

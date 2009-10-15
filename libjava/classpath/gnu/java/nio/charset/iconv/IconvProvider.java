@@ -1,5 +1,5 @@
 /* IconvProvider.java --
-   Copyright (C) 2005 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2006 Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -40,27 +40,22 @@ package gnu.java.nio.charset.iconv;
 
 import java.nio.charset.Charset;
 import java.nio.charset.spi.CharsetProvider;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Vector;
 
 /**
  * Charset provider wrapping iconv.
  *
+ * Note: This class is a privileged class, because it can be instantiated without
+ * requiring the RuntimePermission("charsetProvider"). There is a check in
+ * java.nio.charset.spi.CharsetProvider to skip the security check if the provider
+ * is an instance of this class.
+ *
  * @author Sven de Marothy
  */
 public final class IconvProvider extends CharsetProvider
 {
   private static IconvProvider singleton;
-
-  static
-    {
-      synchronized (IconvProvider.class)
-        {
-	  singleton = null;
-        }
-    }
 
   // Declaring the construtor public may violate the use of singleton.
   // But it must be public so that an instance of this class can be

@@ -1,14 +1,14 @@
 /* Operating system specific defines to be used when targeting GCC for
    hosting on Windows32, using a Unix style C library and tools.
    Copyright (C) 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003,
-   2004, 2005
+   2004, 2005, 2007
    Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -17,9 +17,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #define DBX_DEBUGGING_INFO 1
 #define SDB_DEBUGGING_INFO 1
@@ -37,13 +36,13 @@ Boston, MA 02110-1301, USA.  */
 /* Use section relative relocations for debugging offsets.  Unlike
    other targets that fake this by putting the section VMA at 0, PE
    won't allow it.  */
-#define ASM_OUTPUT_DWARF_OFFSET(FILE, SIZE, LABEL)    \
-  do {                                                \
-    if (SIZE != 4)                                    \
-      abort ();                                       \
-                                                      \
-    fputs ("\t.secrel32\t", FILE);                    \
-    assemble_name (FILE, LABEL);                      \
+#define ASM_OUTPUT_DWARF_OFFSET(FILE, SIZE, LABEL, SECTION)	\
+  do {								\
+    if (SIZE != 4)						\
+      abort ();							\
+								\
+    fputs ("\t.secrel32\t", FILE);				\
+    assemble_name (FILE, LABEL);				\
   } while (0)
 #endif
 
@@ -108,52 +107,13 @@ Boston, MA 02110-1301, USA.  */
 union tree_node;
 #define TREE union tree_node *
 
-#undef EXTRA_SECTIONS
-#define EXTRA_SECTIONS in_drectve
-
-#undef EXTRA_SECTION_FUNCTIONS
-#define EXTRA_SECTION_FUNCTIONS					\
-  DRECTVE_SECTION_FUNCTION					\
-  SWITCH_TO_SECTION_FUNCTION
-
-#define DRECTVE_SECTION_FUNCTION \
-void									\
-drectve_section (void)							\
-{									\
-  if (in_section != in_drectve)						\
-    {									\
-      fprintf (asm_out_file, "%s\n", "\t.section .drectve\n");		\
-      in_section = in_drectve;						\
-    }									\
-}
-void drectve_section (void);
+#define drectve_section() \
+  (fprintf (asm_out_file, "\t.section .drectve\n"), \
+   in_section = NULL)
 
 /* Older versions of gas don't handle 'r' as data.
    Explicitly set data flag with 'd'.  */  
 #define READONLY_DATA_SECTION_ASM_OP "\t.section .rdata,\"dr\""
-
-/* Switch to SECTION (an `enum in_section').
-
-   ??? This facility should be provided by GCC proper.
-   The problem is that we want to temporarily switch sections in
-   ASM_DECLARE_OBJECT_NAME and then switch back to the original section
-   afterwards.  */
-#define SWITCH_TO_SECTION_FUNCTION				\
-void switch_to_section (enum in_section, tree);			\
-void								\
-switch_to_section (enum in_section section, tree decl)		\
-{								\
-  switch (section)						\
-    {								\
-      case in_text: text_section (); break;			\
-      case in_unlikely_executed_text: unlikely_text_section (); break; \
-      case in_data: data_section (); break;			\
-      case in_readonly_data: readonly_data_section (); break;	\
-      case in_named: named_section (decl, NULL, 0); break;	\
-      case in_drectve: drectve_section (); break;		\
-      default: abort (); break;				\
-    }								\
-}
 
 /* Don't allow flag_pic to propagate since gas may produce invalid code
    otherwise.  */
@@ -348,6 +308,16 @@ extern int i386_pe_dllimport_name_p (const char *);
 /* No data type wants to be aligned rounder than this.  */
 #undef	BIGGEST_ALIGNMENT
 #define BIGGEST_ALIGNMENT 128
+
+/* Biggest alignment supported by the object file format of this
+   machine.  Use this macro to limit the alignment which can be
+   specified using the `__attribute__ ((aligned (N)))' construct.  If
+   not defined, the default value is `BIGGEST_ALIGNMENT'.  */
+#undef MAX_OFILE_ALIGNMENT
+/* IMAGE_SCN_ALIGN_8192BYTES is the largest section alignment flag
+   specified in the PECOFF60 spec.  Native MS compiler also limits
+   user-specified alignment to 8192 bytes.  */
+#define MAX_OFILE_ALIGNMENT (8192 * 8)
 
 /* Native complier aligns internal doubles in structures on dword boundaries.  */
 #undef	BIGGEST_FIELD_ALIGNMENT

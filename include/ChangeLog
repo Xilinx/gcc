@@ -1,14 +1,52 @@
-2007-02-13  Release Manager
+2008-05-19  Release Manager
 
-	* GCC 4.1.2 released.
+	* GCC 4.2.4 released.
 
-2006-05-24  Release Manager
+2008-02-01  Release Manager
 
-	* GCC 4.1.1 released.
+	* GCC 4.2.3 released.
 
-2006-02-28  Release Manager
+2007-10-07  Release Manager
 
-	* GCC 4.1.0 released.
+	* GCC 4.2.2 released.
+
+2007-07-19  Release Manager
+
+	* GCC 4.2.1 released.
+
+2007-05-13  Release Manager
+
+	* GCC 4.2.0 released.
+
+2007-05-04  Mark Mitchell  <mark@codesourcery.com>
+
+	* demangle.h: Change license to LGPL + exception.
+
+2007-02-09  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* libiberty.h (pex_write_input): Remove prototype.
+
+2006-04-11  Jim Blandy  <jimb@codesourcery.com>
+
+	* libiberty.h (pex_input_file, pex_input_pipe): New declarations.
+
+2006-01-18  DJ Delorie  <dj@redhat.com>
+
+	* md5.h: Include ansidecl.h
+
+2006-01-09  Bob Wilson  <bob.wilson@acm.org>
+
+	* xtensa-config.h (XCHAL_HAVE_MUL32_HIGH): Define.
+
+2005-12-30  Bob Wilson  <bob.wilson@acm.org>
+
+	* xtensa-config.h (XCHAL_HAVE_WIDE_BRANCHES): New.
+
+2005-12-10  Terry Laurenzo  <tlaurenzo@gmail.com>
+
+	PR java/9861
+	* demangle.h : Add DMGL_RET_POSTFIX define to enable alternative
+	output format for return types
 
 2005-10-31  Mark Kettenis  <kettenis@gnu.org>
 

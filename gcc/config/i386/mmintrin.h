@@ -1,4 +1,5 @@
-/* Copyright (C) 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+/* Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007
+   Free Software Foundation, Inc.
 
    This file is part of GCC.
 
@@ -25,7 +26,7 @@
    Public License.  */
 
 /* Implemented from the specification included in the Intel C++ Compiler
-   User Guide and Reference, version 8.0.  */
+   User Guide and Reference, version 9.0.  */
 
 #ifndef _MMINTRIN_H_INCLUDED
 #define _MMINTRIN_H_INCLUDED
@@ -33,8 +34,9 @@
 #ifndef __MMX__
 # error "MMX instruction set not enabled"
 #else
-/* The data type intended for user use.  */
-typedef int __m64 __attribute__ ((__vector_size__ (8)));
+/* The Intel API is flexible enough that we must allow aliasing with other
+   vector types, and their scalar components.  */
+typedef int __m64 __attribute__ ((__vector_size__ (8), __may_alias__));
 
 /* Internal data types for implementing the intrinsics.  */
 typedef int __v2si __attribute__ ((__vector_size__ (8)));
@@ -69,13 +71,27 @@ _m_from_int (int __i)
 
 #ifdef __x86_64__
 /* Convert I to a __m64 object.  */
+
+/* Intel intrinsic.  */
+static __inline __m64  __attribute__((__always_inline__))
+_m_from_int64 (long long __i)
+{
+  return (__m64) __i;
+}
+
+static __inline __m64  __attribute__((__always_inline__))
+_mm_cvtsi64_m64 (long long __i)
+{
+  return (__m64) __i;
+}
+
+/* Microsoft intrinsic.  */
 static __inline __m64  __attribute__((__always_inline__))
 _mm_cvtsi64x_si64 (long long __i)
 {
   return (__m64) __i;
 }
 
-/* Convert I to a __m64 object.  */
 static __inline __m64  __attribute__((__always_inline__))
 _mm_set_pi64x (long long __i)
 {
@@ -97,7 +113,22 @@ _m_to_int (__m64 __i)
 }
 
 #ifdef __x86_64__
-/* Convert the lower 32 bits of the __m64 object into an integer.  */
+/* Convert the __m64 object to a 64bit integer.  */
+
+/* Intel intrinsic.  */
+static __inline long long __attribute__((__always_inline__))
+_m_to_int64 (__m64 __i)
+{
+  return (long long)__i;
+}
+
+static __inline long long __attribute__((__always_inline__))
+_mm_cvtm64_si64 (__m64 __i)
+{
+  return (long long)__i;
+}
+
+/* Microsoft intrinsic.  */
 static __inline long long __attribute__((__always_inline__))
 _mm_cvtsi64_si64x (__m64 __i)
 {
@@ -274,11 +305,13 @@ _m_paddd (__m64 __m1, __m64 __m2)
 }
 
 /* Add the 64-bit values in M1 to the 64-bit values in M2.  */
+#ifdef __SSE2__
 static __inline __m64 __attribute__((__always_inline__))
 _mm_add_si64 (__m64 __m1, __m64 __m2)
 {
   return (__m64) __builtin_ia32_paddq ((long long)__m1, (long long)__m2);
 }
+#endif
 
 /* Add the 8-bit values in M1 to the 8-bit values in M2 using signed
    saturated arithmetic.  */
@@ -376,11 +409,13 @@ _m_psubd (__m64 __m1, __m64 __m2)
 }
 
 /* Add the 64-bit values in M1 to the 64-bit values in M2.  */
+#ifdef __SSE2__
 static __inline __m64 __attribute__((__always_inline__))
 _mm_sub_si64 (__m64 __m1, __m64 __m2)
 {
   return (__m64) __builtin_ia32_psubq ((long long)__m1, (long long)__m2);
 }
+#endif
 
 /* Subtract the 8-bit values in M2 from the 8-bit values in M1 using signed
    saturating arithmetic.  */

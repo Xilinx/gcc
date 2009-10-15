@@ -1,4 +1,4 @@
-/* Copyright (C) 2003, 2004, 2005 Free Software Foundation, Inc.
+/* Copyright (C) 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
 
    This file is part of GCC.
 
@@ -25,7 +25,7 @@
    Public License.  */
 
 /* Implemented from the specification included in the Intel C++ Compiler
-   User Guide and Reference, version 8.0.  */
+   User Guide and Reference, version 9.0.  */
 
 #ifndef _EMMINTRIN_H_INCLUDED
 #define _EMMINTRIN_H_INCLUDED
@@ -40,8 +40,10 @@ typedef int __v4si __attribute__ ((__vector_size__ (16)));
 typedef short __v8hi __attribute__ ((__vector_size__ (16)));
 typedef char __v16qi __attribute__ ((__vector_size__ (16)));
 
-typedef __v2di __m128i;
-typedef __v2df __m128d;
+/* The Intel API is flexible enough that we must allow aliasing with other
+   vector types, and their scalar components.  */
+typedef long long __m128i __attribute__ ((__vector_size__ (16), __may_alias__));
+typedef double __m128d __attribute__ ((__vector_size__ (16), __may_alias__));
 
 /* Create a selector for use with the SHUFPD instruction.  */
 #define _MM_SHUFFLE2(fp1,fp0) \
@@ -158,6 +160,12 @@ _mm_store_sd (double *__P, __m128d __A)
   *__P = __builtin_ia32_vec_ext_v2df (__A, 0);
 }
 
+static __inline double __attribute__((__always_inline__))
+_mm_cvtsd_f64 (__m128d __A)
+{
+  return __builtin_ia32_vec_ext_v2df (__A, 0);
+}
+
 static __inline void __attribute__((__always_inline__))
 _mm_storel_pd (double *__P, __m128d __A)
 {
@@ -199,6 +207,14 @@ _mm_cvtsi128_si32 (__m128i __A)
 }
 
 #ifdef __x86_64__
+/* Intel intrinsic.  */
+static __inline long long __attribute__((__always_inline__))
+_mm_cvtsi128_si64 (__m128i __A)
+{
+  return __builtin_ia32_vec_ext_v2di ((__v2di)__A, 0);
+}
+
+/* Microsoft intrinsic.  */
 static __inline long long __attribute__((__always_inline__))
 _mm_cvtsi128_si64x (__m128i __A)
 {
@@ -789,6 +805,14 @@ _mm_cvtsd_si32 (__m128d __A)
 }
 
 #ifdef __x86_64__
+/* Intel intrinsic.  */
+static __inline long long __attribute__((__always_inline__))
+_mm_cvtsd_si64 (__m128d __A)
+{
+  return __builtin_ia32_cvtsd2si64 ((__v2df) __A);
+}
+
+/* Microsoft intrinsic.  */
 static __inline long long __attribute__((__always_inline__))
 _mm_cvtsd_si64x (__m128d __A)
 {
@@ -803,6 +827,14 @@ _mm_cvttsd_si32 (__m128d __A)
 }
 
 #ifdef __x86_64__
+/* Intel intrinsic.  */
+static __inline long long __attribute__((__always_inline__))
+_mm_cvttsd_si64 (__m128d __A)
+{
+  return __builtin_ia32_cvttsd2si64 ((__v2df) __A);
+}
+
+/* Microsoft intrinsic.  */
 static __inline long long __attribute__((__always_inline__))
 _mm_cvttsd_si64x (__m128d __A)
 {
@@ -823,6 +855,14 @@ _mm_cvtsi32_sd (__m128d __A, int __B)
 }
 
 #ifdef __x86_64__
+/* Intel intrinsic.  */
+static __inline __m128d __attribute__((__always_inline__))
+_mm_cvtsi64_sd (__m128d __A, long long __B)
+{
+  return (__m128d)__builtin_ia32_cvtsi642sd ((__v2df) __A, __B);
+}
+
+/* Microsoft intrinsic.  */
 static __inline __m128d __attribute__((__always_inline__))
 _mm_cvtsi64x_sd (__m128d __A, long long __B)
 {
@@ -1092,15 +1132,15 @@ _mm_srai_epi32 (__m128i __A, int __B)
 
 #if 0
 static __m128i __attribute__((__always_inline__))
-_mm_srli_si128 (__m128i __A, const int __B)
+_mm_srli_si128 (__m128i __A, int __B)
 {
-  return ((__m128i)__builtin_ia32_psrldqi128 (__A, __B))
+  return ((__m128i)__builtin_ia32_psrldqi128 (__A, __B * 8));
 }
 
 static __m128i __attribute__((__always_inline__))
-_mm_srli_si128 (__m128i __A, const int __B)
+_mm_srli_si128 (__m128i __A, int __B)
 {
-  return ((__m128i)__builtin_ia32_pslldqi128 (__A, __B))
+  return ((__m128i)__builtin_ia32_pslldqi128 (__A, __B * 8));
 }
 #else
 #define _mm_srli_si128(__A, __B) \
@@ -1130,49 +1170,49 @@ _mm_srli_epi64 (__m128i __A, int __B)
 static __inline __m128i __attribute__((__always_inline__))
 _mm_sll_epi16 (__m128i __A, __m128i __B)
 {
-  return _mm_slli_epi16 (__A, _mm_cvtsi128_si32 (__B));
+  return (__m128i)__builtin_ia32_psllw128((__v8hi)__A, (__v8hi)__B);
 }
 
 static __inline __m128i __attribute__((__always_inline__))
 _mm_sll_epi32 (__m128i __A, __m128i __B)
 {
-  return _mm_slli_epi32 (__A, _mm_cvtsi128_si32 (__B));
+  return (__m128i)__builtin_ia32_pslld128((__v4si)__A, (__v4si)__B);
 }
 
 static __inline __m128i __attribute__((__always_inline__))
 _mm_sll_epi64 (__m128i __A, __m128i __B)
 {
-  return _mm_slli_epi64 (__A, _mm_cvtsi128_si32 (__B));
+  return (__m128i)__builtin_ia32_psllq128((__v2di)__A, (__v2di)__B);
 }
 
 static __inline __m128i __attribute__((__always_inline__))
 _mm_sra_epi16 (__m128i __A, __m128i __B)
 {
-  return _mm_srai_epi16 (__A, _mm_cvtsi128_si32 (__B));
+  return (__m128i)__builtin_ia32_psraw128 ((__v8hi)__A, (__v8hi)__B);
 }
 
 static __inline __m128i __attribute__((__always_inline__))
 _mm_sra_epi32 (__m128i __A, __m128i __B)
 {
-  return _mm_srai_epi32 (__A, _mm_cvtsi128_si32 (__B));
+  return (__m128i)__builtin_ia32_psrad128 ((__v4si)__A, (__v4si)__B);
 }
 
 static __inline __m128i __attribute__((__always_inline__))
 _mm_srl_epi16 (__m128i __A, __m128i __B)
 {
-  return _mm_srli_epi16 (__A, _mm_cvtsi128_si32 (__B));
+  return (__m128i)__builtin_ia32_psrlw128 ((__v8hi)__A, (__v8hi)__B);
 }
 
 static __inline __m128i __attribute__((__always_inline__))
 _mm_srl_epi32 (__m128i __A, __m128i __B)
 {
-  return _mm_srli_epi32 (__A, _mm_cvtsi128_si32 (__B));
+  return (__m128i)__builtin_ia32_psrld128 ((__v4si)__A, (__v4si)__B);
 }
 
 static __inline __m128i __attribute__((__always_inline__))
 _mm_srl_epi64 (__m128i __A, __m128i __B)
 {
-  return _mm_srli_epi64 (__A, _mm_cvtsi128_si32 (__B));
+  return (__m128i)__builtin_ia32_psrlq128 ((__v2di)__A, (__v2di)__B);
 }
 
 static __inline __m128i __attribute__((__always_inline__))
@@ -1379,6 +1419,14 @@ _mm_cvtsi32_si128 (int __A)
 }
 
 #ifdef __x86_64__
+/* Intel intrinsic.  */
+static __inline __m128i __attribute__((__always_inline__))
+_mm_cvtsi64_si128 (long long __A)
+{
+  return _mm_set_epi64x (0, __A);
+}
+
+/* Microsoft intrinsic.  */
 static __inline __m128i __attribute__((__always_inline__))
 _mm_cvtsi64x_si128 (long long __A)
 {

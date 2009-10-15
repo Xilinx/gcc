@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2005, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2006, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -41,6 +41,7 @@ with Opt;      use Opt;
 with Output;   use Output;
 with Restrict; use Restrict;
 with Rident;   use Rident;
+with Rtsfind;  use Rtsfind;
 with Sem;      use Sem;
 with Sem_Cat;  use Sem_Cat;
 with Sem_Ch3;  use Sem_Ch3;
@@ -1870,6 +1871,12 @@ package body Sem_Ch4 is
       --  in any case.
 
       Set_Etype (N, Standard_Boolean);
+
+      if Comes_From_Source (N)
+        and then Is_CPP_Class (Etype (Etype (Right_Opnd (N))))
+      then
+         Error_Msg_N ("membership test not applicable to cpp-class types", N);
+      end if;
    end Analyze_Membership_Op;
 
    ----------------------
@@ -2040,7 +2047,7 @@ package body Sem_Ch4 is
       then
          return;
 
-      elsif not Present (Actuals) then
+      elsif No (Actuals) then
 
          --  If Normalize succeeds, then there are default parameters for
          --  all formals.
@@ -2946,7 +2953,7 @@ package body Sem_Ch4 is
                      Set_Entity_With_Style_Check (Sel, Comp);
                      Set_Etype (Sel, Etype (Comp));
                      Set_Etype (N,   Etype (Comp));
-                     exit;
+                     return;
                   end if;
 
                   Next_Component (Comp);
@@ -3834,6 +3841,31 @@ package body Sem_Ch4 is
                end loop;
             end if;
 
+         --  If operands are aggregates, we must assume that they may be
+         --  boolean arrays, and leave disambiguation for the second pass.
+         --  If only one is an aggregate, verify that the other one has an
+         --  interpretation as a boolean array
+
+         elsif Nkind (L) = N_Aggregate then
+            if Nkind (R) = N_Aggregate then
+               Add_One_Interp (N, Op_Id, Etype (L));
+
+            elsif not Is_Overloaded (R) then
+               if Valid_Boolean_Arg (Etype (R)) then
+                  Add_One_Interp (N, Op_Id, Etype (R));
+               end if;
+
+            else
+               Get_First_Interp (R, Index, It);
+               while Present (It.Typ) loop
+                  if Valid_Boolean_Arg (It.Typ) then
+                     Add_One_Interp (N, Op_Id, It.Typ);
+                  end if;
+
+                  Get_Next_Interp (Index, It);
+               end loop;
+            end if;
+
          elsif Valid_Boolean_Arg (Etype (L))
            and then Has_Compatible_Type (R, Etype (L))
          then
@@ -4064,18 +4096,31 @@ package body Sem_Ch4 is
          --  universal, the context will impose the correct type. An anonymous
          --  type for a 'Access reference is also universal in this sense, as
          --  the actual type is obtained from context.
+         --  In Ada 2005, the equality operator for anonymous access types
+         --  is declared in Standard, and preference rules apply to it.
 
-         if Present (Scop)
-            and then not Defined_In_Scope (T1, Scop)
-            and then T1 /= Universal_Integer
-            and then T1 /= Universal_Real
-            and then T1 /= Any_Access
-            and then T1 /= Any_String
-            and then T1 /= Any_Composite
-            and then (Ekind (T1) /= E_Access_Subprogram_Type
-                        or else Comes_From_Source (T1))
-         then
-            return;
+         if Present (Scop) then
+            if Defined_In_Scope (T1, Scop)
+              or else T1 = Universal_Integer
+              or else T1 = Universal_Real
+              or else T1 = Any_Access
+              or else T1 = Any_String
+              or else T1 = Any_Composite
+              or else (Ekind (T1) = E_Access_Subprogram_Type
+                          and then not Comes_From_Source (T1))
+            then
+               null;
+
+            elsif Ekind (T1) = E_Anonymous_Access_Type
+              and then Scop = Standard_Standard
+            then
+               null;
+
+            else
+               --  The scope does not contain an operator for the type
+
+               return;
+            end if;
          end if;
 
          --  Ada 2005 (AI-230): Keep restriction imposed by Ada 83 and 95:
@@ -4123,6 +4168,11 @@ package body Sem_Ch4 is
             if Etype (N) = Any_Type then
                Found := False;
             end if;
+
+         elsif Scop = Standard_Standard
+           and then Ekind (T1) = E_Anonymous_Access_Type
+         then
+            Found := True;
          end if;
       end Try_One_Interp;
 
@@ -4379,9 +4429,9 @@ package body Sem_Ch4 is
             --  If either operand is a junk operand (e.g. package name), then
             --  post appropriate error messages, but do not complain further.
 
-            --  Note that the use of OR in this test instead of OR ELSE
-            --  is quite deliberate, we may as well check both operands
-            --  in the binary operator case.
+            --  Note that the use of OR in this test instead of OR ELSE is
+            --  quite deliberate, we may as well check both operands in the
+            --  binary operator case.
 
             elsif Junk_Operand (R)
               or (Nkind (N) in N_Binary_Op and then Junk_Operand (L))
@@ -4389,10 +4439,10 @@ package body Sem_Ch4 is
                return;
 
             --  If we have a logical operator, one of whose operands is
-            --  Boolean, then we know that the other operand cannot resolve
-            --  to Boolean (since we got no interpretations), but in that
-            --  case we pretty much know that the other operand should be
-            --  Boolean, so resolve it that way (generating an error)
+            --  Boolean, then we know that the other operand cannot resolve to
+            --  Boolean (since we got no interpretations), but in that case we
+            --  pretty much know that the other operand should be Boolean, so
+            --  resolve it that way (generating an error)
 
             elsif Nkind (N) = N_Op_And
                     or else
@@ -4476,10 +4526,10 @@ package body Sem_Ch4 is
                return;
             end if;
 
-            --  If we fall through then just give general message. Note
-            --  that in the following messages, if the operand is overloaded
-            --  we choose an arbitrary type to complain about, but that is
-            --  probably more useful than not giving a type at all.
+            --  If we fall through then just give general message. Note that in
+            --  the following messages, if the operand is overloaded we choose
+            --  an arbitrary type to complain about, but that is probably more
+            --  useful than not giving a type at all.
 
             if Nkind (N) in N_Unary_Op then
                Error_Msg_Node_2 := Etype (R);
@@ -4543,23 +4593,21 @@ package body Sem_Ch4 is
       It           : Interp;
       Abstract_Op  : Entity_Id := Empty;
 
-      --  AI-310: If overloaded, remove abstract non-dispatching
-      --  operations. We activate this if either extensions are
-      --  enabled, or if the abstract operation in question comes
-      --  from a predefined file. This latter test allows us to
-      --  use abstract to make operations invisible to users. In
-      --  particular, if type Address is non-private and abstract
-      --  subprograms are used to hide its operators, they will be
-      --  truly hidden.
+      --  AI-310: If overloaded, remove abstract non-dispatching operations. We
+      --  activate this if either extensions are enabled, or if the abstract
+      --  operation in question comes from a predefined file. This latter test
+      --  allows us to use abstract to make operations invisible to users. In
+      --  particular, if type Address is non-private and abstract subprograms
+      --  are used to hide its operators, they will be truly hidden.
 
       type Operand_Position is (First_Op, Second_Op);
       Univ_Type : constant Entity_Id := Universal_Interpretation (N);
 
       procedure Remove_Address_Interpretations (Op : Operand_Position);
-      --  Ambiguities may arise when the operands are literal and the
-      --  address operations in s-auxdec are visible. In that case, remove
-      --  the interpretation of a literal as Address, to retain the semantics
-      --  of Address as a private type.
+      --  Ambiguities may arise when the operands are literal and the address
+      --  operations in s-auxdec are visible. In that case, remove the
+      --  interpretation of a literal as Address, to retain the semantics of
+      --  Address as a private type.
 
       ------------------------------------
       -- Remove_Address_Interpretations --
@@ -4597,27 +4645,56 @@ package body Sem_Ch4 is
             if not Is_Type (It.Nam)
               and then Is_Abstract (It.Nam)
               and then not Is_Dispatching_Operation (It.Nam)
-              and then
-                (Ada_Version >= Ada_05
-                   or else Is_Predefined_File_Name
-                             (Unit_File_Name (Get_Source_Unit (It.Nam))))
-
             then
                Abstract_Op := It.Nam;
-               Remove_Interp (I);
-               exit;
+
+               --  In Ada 2005, this operation does not participate in Overload
+               --  resolution. If the operation is defined in in a predefined
+               --  unit, it is one of the operations declared abstract in some
+               --  variants of System, and it must be removed as well.
+
+               if Ada_Version >= Ada_05
+                   or else Is_Predefined_File_Name
+                             (Unit_File_Name (Get_Source_Unit (It.Nam)))
+                   or else Is_Descendent_Of_Address (It.Typ)
+               then
+                  Remove_Interp (I);
+                  exit;
+               end if;
             end if;
 
             Get_Next_Interp (I, It);
          end loop;
 
          if No (Abstract_Op) then
-            return;
+
+            --  If some interpretation yields an integer type, it is still
+            --  possible that there are address interpretations. Remove them
+            --  if one operand is a literal, to avoid spurious ambiguities
+            --  on systems where Address is a visible integer type.
+
+            if Is_Overloaded (N)
+              and then  Nkind (N) in N_Op
+              and then Is_Integer_Type (Etype (N))
+            then
+               if Nkind (N) in N_Binary_Op then
+                  if Nkind (Right_Opnd (N)) = N_Integer_Literal then
+                     Remove_Address_Interpretations (Second_Op);
+
+                  elsif Nkind (Right_Opnd (N)) = N_Integer_Literal then
+                     Remove_Address_Interpretations (First_Op);
+                  end if;
+               end if;
+            end if;
 
          elsif Nkind (N) in N_Op then
 
-            --  Remove interpretations that treat literals as addresses.
-            --  This is never appropriate.
+            --  Remove interpretations that treat literals as addresses. This
+            --  is never appropriate, even when Address is defined as a visible
+            --  Integer type. The reason is that we would really prefer Address
+            --  to behave as a private type, even in this case, which is there
+            --  only to accomodate oddities of VMS address sizes. If Address is
+            --  a visible integer type, we get lots of overload ambiguities.
 
             if Nkind (N) in N_Binary_Op then
                declare
@@ -4627,10 +4704,11 @@ package body Sem_Ch4 is
                      Present (Universal_Interpretation (Left_Opnd (N)));
 
                begin
-                  if U1 and then not U2 then
+                  if U1 then
                      Remove_Address_Interpretations (Second_Op);
+                  end if;
 
-                  elsif U2 and then not U1 then
+                  if U2 then
                      Remove_Address_Interpretations (First_Op);
                   end if;
 
@@ -4655,15 +4733,17 @@ package body Sem_Ch4 is
                     and then Present (Univ_Type)
                   then
                      --  If both operands have a universal interpretation,
-                     --  select the predefined operator and discard others.
+                     --  it is still necessary to remove interpretations that
+                     --  yield Address. Any remaining ambiguities will be
+                     --  removed in Disambiguate.
 
                      Get_First_Interp (N, I, It);
                      while Present (It.Nam) loop
-                        if Scope (It.Nam) = Standard_Standard then
-                           Set_Etype (N, Univ_Type);
+                        if Is_Descendent_Of_Address (It.Typ) then
+                           Remove_Interp (I);
+
+                        elsif not Is_Type (It.Nam) then
                            Set_Entity (N, It.Nam);
-                           Set_Is_Overloaded (N, False);
-                           exit;
                         end if;
 
                         Get_Next_Interp (I, It);
@@ -4690,10 +4770,11 @@ package body Sem_Ch4 is
                         Present (Universal_Interpretation (Next (Arg1)));
 
             begin
-               if U1 and then not U2 then
+               if U1 then
                   Remove_Address_Interpretations (First_Op);
+               end if;
 
-               elsif U2 and then not U1 then
+               if U2 then
                   Remove_Address_Interpretations (Second_Op);
                end if;
 
@@ -4882,6 +4963,8 @@ package body Sem_Ch4 is
          Node_To_Replace : Node_Id;
          Subprog         : Node_Id)
       is
+         Formal_Type  : constant Entity_Id :=
+                          Etype (First_Formal (Entity (Subprog)));
          First_Actual : Node_Id;
 
       begin
@@ -4896,12 +4979,26 @@ package body Sem_Ch4 is
 
          --  If need be, rewrite first actual as an explicit dereference
 
-         if not Is_Access_Type (Etype (First_Formal (Entity (Subprog))))
+         if not Is_Access_Type (Formal_Type)
            and then Is_Access_Type (Etype (Obj))
          then
             Rewrite (First_Actual,
               Make_Explicit_Dereference (Sloc (Obj), Obj));
             Analyze (First_Actual);
+
+         --  Conversely, if the formal is an access parameter and the
+         --  object is not, replace the actual with a 'Access reference.
+         --   Its analysis will check that the object is aliased.
+
+         elsif Is_Access_Type (Formal_Type)
+           and then not Is_Access_Type (Etype (Obj))
+         then
+            Rewrite (First_Actual,
+              Make_Attribute_Reference (Loc,
+                Attribute_Name => Name_Access,
+                Prefix => Relocate_Node (Obj)));
+            Analyze (First_Actual);
+
          else
             Rewrite (First_Actual, Obj);
          end if;
@@ -5038,7 +5135,7 @@ package body Sem_Ch4 is
                  and then Etype (First_Formal (Hom)) =
                             Class_Wide_Type (Anc_Type)
                then
-                  Hom_Ref := New_Reference_To (Hom, Loc);
+                  Hom_Ref := New_Reference_To (Hom, Sloc (Subprog));
 
                   Set_Etype (Call_Node, Any_Type);
                   Set_Parent (Call_Node, Parent (Node_To_Replace));
@@ -5089,8 +5186,9 @@ package body Sem_Ch4 is
       is
          Elmt        : Elmt_Id;
          Prim_Op     : Entity_Id;
-         Prim_Op_Ref : Node_Id;
-         Success     : Boolean;
+         Prim_Op_Ref : Node_Id := Empty;
+         Success     : Boolean := False;
+         Op_Exists   : Boolean := False;
 
          function Valid_First_Argument_Of (Op : Entity_Id) return Boolean;
          --  Verify that the prefix, dereferenced if need be, is a valid
@@ -5126,7 +5224,9 @@ package body Sem_Ch4 is
       --  Start of processing for Try_Primitive_Operation
 
       begin
-         --  Look for the subprogram in the list of primitive operations
+         --  Look for subprograms in the list of primitive operations
+         --  The name must be identical, and the kind of call indicates
+         --  the expected kind of operation (function or procedure).
 
          Elmt := First_Elmt (Primitive_Operations (Obj_Type));
          while Present (Elmt) loop
@@ -5135,35 +5235,73 @@ package body Sem_Ch4 is
             if Chars (Prim_Op) = Chars (Subprog)
               and then Present (First_Formal (Prim_Op))
               and then Valid_First_Argument_Of (Prim_Op)
+              and then
+                 (Nkind (Call_Node) = N_Function_Call)
+                   = (Ekind (Prim_Op) = E_Function)
             then
-               Prim_Op_Ref := New_Reference_To (Prim_Op, Loc);
+               --  If this primitive operation corresponds with an immediate
+               --  ancestor interface there is no need to add it to the list
+               --  of interpretations; the corresponding aliased primitive is
+               --  also in this list of primitive operations and will be
+               --  used instead.
 
-               Set_Etype (Call_Node, Any_Type);
-               Set_Parent (Call_Node, Parent (Node_To_Replace));
+               if Present (Abstract_Interface_Alias (Prim_Op))
+                 and then Present (DTC_Entity (Alias (Prim_Op)))
+                 and then Etype (DTC_Entity (Alias (Prim_Op))) = RTE (RE_Tag)
+               then
+                  goto Continue;
+               end if;
 
-               Set_Name (Call_Node, Prim_Op_Ref);
+               if not Success then
+                  Prim_Op_Ref := New_Reference_To (Prim_Op, Sloc (Subprog));
 
-               Analyze_One_Call
-                 (N          => Call_Node,
-                  Nam        => Prim_Op,
-                  Report     => False,
-                  Success    => Success,
-                  Skip_First => True);
+                  Set_Etype (Call_Node, Any_Type);
+                  Set_Parent (Call_Node, Parent (Node_To_Replace));
 
-               if Success then
-                  Complete_Object_Operation
-                    (Call_Node       => Call_Node,
-                     Node_To_Replace => Node_To_Replace,
-                     Subprog         => Prim_Op_Ref);
+                  Set_Name (Call_Node, Prim_Op_Ref);
 
-                  return True;
+                  Analyze_One_Call
+                    (N          => Call_Node,
+                     Nam        => Prim_Op,
+                     Report     => False,
+                     Success    => Success,
+                     Skip_First => True);
+
+                  if Success then
+                     Op_Exists := True;
+
+                     --  If the operation is a procedure call, there can only
+                     --  be one candidate and we found it. If it is a function
+                     --  we must collect all interpretations, because there
+                     --  may be several primitive operations that differ only
+                     --  in the return type.
+
+                     if Nkind (Call_Node) = N_Procedure_Call_Statement then
+                        exit;
+                     end if;
+                  end if;
+
+               elsif Ekind (Prim_Op) = E_Function then
+
+                  --  Collect remaining function interpretations, to be
+                  --  resolved from context.
+
+                  Add_One_Interp (Prim_Op_Ref, Prim_Op, Etype (Prim_Op));
                end if;
             end if;
 
+            <<Continue>>
             Next_Elmt (Elmt);
          end loop;
 
-         return False;
+         if Op_Exists then
+            Complete_Object_Operation
+              (Call_Node       => Call_Node,
+               Node_To_Replace => Node_To_Replace,
+               Subprog         => Prim_Op_Ref);
+         end if;
+
+         return Op_Exists;
       end Try_Primitive_Operation;
 
    --  Start of processing for Try_Object_Operation

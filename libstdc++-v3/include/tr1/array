@@ -27,24 +27,25 @@
 // invalidate any other reasons why the executable file might be covered by
 // the GNU General Public License.
 
-/** @file 
+/** @file tr1/array
  *  This is a TR1 C++ Library header. 
  */
 
-#ifndef _ARRAY
-#define _ARRAY 1
+#ifndef _TR1_ARRAY
+#define _TR1_ARRAY 1
 
 #include <new>
 #include <iterator>
 #include <algorithm>
 #include <cstddef>
 #include <bits/functexcept.h>
+#include <ext/type_traits.h>
 
 //namespace std::tr1
 namespace std
 {
-namespace tr1
-{
+_GLIBCXX_BEGIN_NAMESPACE(tr1)
+
   /// @brief  struct array [6.2.2].
   /// NB: Requires complete type _Tp.
   template<typename _Tp, std::size_t _Nm>
@@ -127,11 +128,17 @@ namespace tr1
 
       reference
       at(size_type __n)
-      { return _M_at<_Nm>(__n); }
+      { 
+	_M_check<_Nm>(__n);
+	return _M_instance[__n];
+      }
 
       const_reference
       at(size_type __n) const
-      { return _M_at<_Nm>(__n); }
+      {
+	_M_check<_Nm>(__n);
+	return _M_instance[__n];
+      }
 
       reference 
       front()
@@ -159,39 +166,18 @@ namespace tr1
 
     private:
       template<std::size_t _Mm>
-        typename std::__enable_if<reference, _Mm>::__type
-        _M_at(size_type __n)
+        typename __gnu_cxx::__enable_if<_Mm, void>::__type
+        _M_check(size_type __n) const
         {
 	  if (__builtin_expect(__n >= _Mm, false))
-	    std::__throw_out_of_range("array::_M_at");
-	  return _M_instance[__n];
+	    std::__throw_out_of_range(__N("array::_M_check"));
 	}
 
       // Avoid "unsigned comparison with zero" warnings.
       template<std::size_t _Mm>
-        typename std::__enable_if<reference, !_Mm>::__type
-        _M_at(size_type)
-        {
-	  std::__throw_out_of_range("array::_M_at");
-	  return _M_instance[0];
-	}
-
-      template<std::size_t _Mm>
-        typename std::__enable_if<const_reference, _Mm>::__type
-        _M_at(size_type __n) const
-        {
-	  if (__builtin_expect(__n >= _Mm, false))
-	    std::__throw_out_of_range("array::_M_at");
-	  return _M_instance[__n];
-	}
-
-      template<std::size_t _Mm>
-        typename std::__enable_if<const_reference, !_Mm>::__type
-        _M_at(size_type) const
-        {
-	  std::__throw_out_of_range("array::_M_at");
-	  return _M_instance[0];
-	}     
+        typename __gnu_cxx::__enable_if<!_Mm, void>::__type
+        _M_check(size_type) const
+        { std::__throw_out_of_range(__N("array::_M_check")); }
     };
 
   // Array comparisons.
@@ -242,6 +228,9 @@ namespace tr1
     struct tuple_size<array<_Tp, _Nm> >
     { static const int value = _Nm; };
 
+  template<typename _Tp, std::size_t _Nm>
+    const int tuple_size<array<_Tp, _Nm> >::value;
+
   template<int _Int, typename _Tp, std::size_t _Nm>
     struct tuple_element<_Int, array<_Tp, _Nm> >
     { typedef _Tp type; };
@@ -255,7 +244,8 @@ namespace tr1
     inline const _Tp&
     get(const array<_Tp, _Nm>& __arr)
     { return __arr[_Int]; }
-} // namespace std::tr1
+
+_GLIBCXX_END_NAMESPACE
 }
 
 #endif

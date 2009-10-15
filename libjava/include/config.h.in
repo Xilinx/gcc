@@ -49,9 +49,6 @@
 /* Define to 1 if you have the <arpa/inet.h> header file. */
 #undef HAVE_ARPA_INET_H
 
-/* Define if your platform has a working backtrace() function. */
-#undef HAVE_BACKTRACE
-
 /* Define if Boehm GC in use. */
 #undef HAVE_BOEHM_GC
 
@@ -63,6 +60,9 @@
 
 /* Define to 1 if you have the `chmod' function. */
 #undef HAVE_CHMOD
+
+/* Define if you have clock_gettime() */
+#undef HAVE_CLOCK_GETTIME
 
 /* Define to 1 if you have the <dirent.h> header file. */
 #undef HAVE_DIRENT_H
@@ -115,11 +115,17 @@
 /* Define if gethostname is declared in <unistd.h>. */
 #undef HAVE_GETHOSTNAME_DECL
 
-/* Define to 1 if you have the `getpagesize' function. */
-#undef HAVE_GETPAGESIZE
+/* Define to 1 if you have the `getifaddrs' function. */
+#undef HAVE_GETIFADDRS
+
+/* Define if _Unwind_GetIPInfo is available. */
+#undef HAVE_GETIPINFO
 
 /* Define to 1 if you have the `getpwuid_r' function. */
 #undef HAVE_GETPWUID_R
+
+/* Define to 1 if you have the `getrlimit' function. */
+#undef HAVE_GETRLIMIT
 
 /* Define to 1 if you have the `gettimeofday' function. */
 #undef HAVE_GETTIMEOFDAY
@@ -129,6 +135,9 @@
 
 /* Define if you have the iconv() function. */
 #undef HAVE_ICONV
+
+/* Define to 1 if you have the <ifaddrs.h> header file. */
+#undef HAVE_IFADDRS_H
 
 /* Define if inet6 structures are defined in netinet/in.h. */
 #undef HAVE_INET6
@@ -172,6 +181,9 @@
 /* Define to 1 if you have the `localtime_r' function. */
 #undef HAVE_LOCALTIME_R
 
+/* Define to 1 if you have the `lstat' function. */
+#undef HAVE_LSTAT
+
 /* Define to 1 if you have the `memcpy' function. */
 #undef HAVE_MEMCPY
 
@@ -187,7 +199,7 @@
 /* Define is you have 'mktime' in <time.h> */
 #undef HAVE_MKTIME
 
-/* Define to 1 if you have a working `mmap' system call. */
+/* Define to 1 if you have the `mmap' function. */
 #undef HAVE_MMAP
 
 /* Define to 1 if you have the <netdb.h> header file. */
@@ -229,8 +241,8 @@
 /* Define to 1 if you have the `readdir_r' function. */
 #undef HAVE_READDIR_R
 
-/* Define to 1 if you have the `realpath' function. */
-#undef HAVE_REALPATH
+/* Define to 1 if you have the `readlink' function. */
+#undef HAVE_READLINK
 
 /* Define to 1 if you have the `rename' function. */
 #undef HAVE_RENAME
@@ -294,6 +306,12 @@
 
 /* Define to 1 if you have the <sys/ioctl.h> header file. */
 #undef HAVE_SYS_IOCTL_H
+
+/* Define to 1 if you have the <sys/resource.h> header file. */
+#undef HAVE_SYS_RESOURCE_H
+
+/* Define to 1 if you have the <sys/rw_lock.h> header file. */
+#undef HAVE_SYS_RW_LOCK_H
 
 /* Define to 1 if you have the <sys/select.h> header file. */
 #undef HAVE_SYS_SELECT_H

@@ -246,7 +246,7 @@ void *arg2;
     	byte_sz = WORDS_TO_BYTES(word_sz);
 	if (GC_all_interior_pointers) {
 	    /* We need one extra byte; don't fill in GC_size_map[byte_sz] */
-	    byte_sz--;
+	    byte_sz -= EXTRA_BYTES;
 	}
 
     	for (j = low_limit; j <= byte_sz; j++) GC_size_map[j] = word_sz;  
@@ -674,7 +674,13 @@ void GC_init_inner()
 #   if !defined(THREADS) || defined(GC_PTHREADS) || defined(GC_WIN32_THREADS) \
 	|| defined(GC_SOLARIS_THREADS)
       if (GC_stackbottom == 0) {
-	GC_stackbottom = GC_get_stack_base();
+        # if defined(GC_PTHREADS) && ! defined(GC_SOLARIS_THREADS)
+	/* Use thread_stack_base if available, as GC could be initialized from
+	   a thread that is not the "main" thread.  */
+	GC_stackbottom = GC_get_thread_stack_base();
+	# endif
+	if (GC_stackbottom == 0)
+	  GC_stackbottom = GC_get_stack_base();
 #       if (defined(LINUX) || defined(HPUX)) && defined(IA64)
 	  GC_register_stackbottom = GC_get_register_stack_base();
 #       endif
@@ -805,7 +811,10 @@ void GC_init_inner()
 
 void GC_enable_incremental GC_PROTO(())
 {
-# if !defined(SMALL_CONFIG)
+# if !defined(SMALL_CONFIG) && !defined(KEEP_BACK_PTRS)
+  /* If we are keeping back pointers, the GC itself dirties all	*/
+  /* pages on which objects have been marked, making 		*/
+  /* incremental GC pointless.					*/
   if (!GC_find_leak) {
     DCL_LOCK_STATE;
     

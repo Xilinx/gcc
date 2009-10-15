@@ -50,6 +50,7 @@ import java.awt.Rectangle;
 import java.io.Serializable;
 
 import javax.accessibility.Accessible;
+import javax.accessibility.AccessibleContext;
 import javax.accessibility.AccessibleRole;
 import javax.swing.plaf.RootPaneUI;
 
@@ -120,11 +121,6 @@ public class JRootPane extends JComponent implements Accessible
     private Rectangle menuBarBounds;
 
     /**
-     * The cached preferred size.
-     */
-    private Dimension prefSize;
-
-    /**
      * Creates a new <code>RootLayout</code> object.
      */
     protected RootLayout()
@@ -191,7 +187,6 @@ public class JRootPane extends JComponent implements Accessible
           layeredPaneBounds = null;
           contentPaneBounds = null;
           menuBarBounds = null;
-          prefSize = null;
         }
     }
 
@@ -251,7 +246,7 @@ public class JRootPane extends JComponent implements Accessible
       layeredPane.setBounds(layeredPaneBounds);
       if (menuBar != null)
         menuBar.setBounds(menuBarBounds);
-      contentPane.setBounds(contentPaneBounds);
+      getContentPane().setBounds(contentPaneBounds);
     }
 
     /**
@@ -287,29 +282,20 @@ public class JRootPane extends JComponent implements Accessible
      */
     public Dimension preferredLayoutSize(Container c)
     {
-      // We must synchronize here, otherwise we cannot guarantee that the
-      // prefSize is still non-null when returning.
-      synchronized (this)
+      Dimension prefSize = new Dimension();
+      Insets i = getInsets();
+      prefSize = new Dimension(i.left + i.right, i.top + i.bottom);
+      Dimension contentPrefSize = getContentPane().getPreferredSize();
+      prefSize.width += contentPrefSize.width;
+      prefSize.height += contentPrefSize.height;
+      if (menuBar != null)
         {
-          if (prefSize == null)
-            {
-              Insets i = getInsets();
-              prefSize = new Dimension(i.left + i.right, i.top + i.bottom);
-              Dimension contentPrefSize = contentPane.getPreferredSize();
-              prefSize.width += contentPrefSize.width;
-              prefSize.height += contentPrefSize.height;
-              if (menuBar != null)
-                {
-                  Dimension menuBarSize = menuBar.getPreferredSize();
-                  if (menuBarSize.width > contentPrefSize.width)
-                    prefSize.width += menuBarSize.width - contentPrefSize.width;
-                  prefSize.height += menuBarSize.height;
-                }
-            }
-          // Return a copy here so the cached value won't get trashed by some
-          // other component.
-          return new Dimension(prefSize);
-      }
+          Dimension menuBarSize = menuBar.getPreferredSize();
+          if (menuBarSize.width > contentPrefSize.width)
+            prefSize.width += menuBarSize.width - contentPrefSize.width;
+          prefSize.height += menuBarSize.height;
+        }
+      return prefSize;
     }
 
     /**
@@ -541,6 +527,7 @@ public class JRootPane extends JComponent implements Accessible
     getGlassPane();
     getLayeredPane();
     getContentPane();
+    setOpaque(true);
     updateUI();
   }
 
@@ -638,12 +625,15 @@ public class JRootPane extends JComponent implements Accessible
   
   public void setDefaultButton(JButton newButton)
   {
-    if (defaultButton == newButton)
-      return;
-    
-    JButton oldButton = defaultButton;
-    defaultButton = newButton;
-    firePropertyChange("defaultButton", oldButton, newButton);
+    // We only change the default button if the new button is defaultCapable
+    // or null and the old and new button are different objects.
+    if (defaultButton != newButton
+        && (newButton == null || newButton.isDefaultCapable()))
+      {
+        JButton oldButton = defaultButton;
+        defaultButton = newButton;
+        firePropertyChange("defaultButton", oldButton, newButton);
+      }
   }
 
   /**
@@ -673,5 +663,32 @@ public class JRootPane extends JComponent implements Accessible
     int oldStyle = windowDecorationStyle;
     windowDecorationStyle = style;
     firePropertyChange("windowDecorationStyle", oldStyle, style);
+  }
+
+  /**
+   * This returns <code>true</code> if the <code>glassPane</code> is not
+   * visible because then the root pane can guarantee to tile its children
+   * (the only other direct child is a JLayeredPane which must figure its
+   * <code>optimizeDrawingEnabled</code> state on its own).
+   *
+   * @return <code>true</code> if the <code>glassPane</code> is not
+   *         visible
+   */
+  public boolean isOptimizedDrawingEnable()
+  {
+    return ! glassPane.isVisible();
+  }
+
+  /**
+   * Returns the accessible context for this JRootPane. This will be
+   * an instance of {@link AccessibleJRootPane}.
+   *
+   * @return the accessible context for this JRootPane
+   */
+  public AccessibleContext getAccessibleContext()
+  {
+    if (accessibleContext == null)
+      accessibleContext = new AccessibleJRootPane();
+    return accessibleContext;
   }
 }

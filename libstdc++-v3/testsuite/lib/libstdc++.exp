@@ -1,6 +1,7 @@
 # libstdc++ "tool init file" for DejaGNU
 
-# Copyright (C) 2001, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+# Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007
+# Free Software Foundation, Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -82,11 +83,12 @@ proc libstdc++_init { testfile } {
     global env
     global v3-sharedlib 
     global srcdir blddir objdir tool_root_dir
-    global cxx cxxflags
+    global cxx cxxflags cxxldflags
     global includes
     global gluefile wrap_flags
     global ld_library_path
     global target_triplet
+    global flags_file
 
     # We set LC_ALL and LANG to C so that we get the same error
     # messages as expected.
@@ -172,34 +174,32 @@ proc libstdc++_init { testfile } {
     # Do a bunch of handstands and backflips for cross compiling and
     # finding simulators...
     if [is_remote host] {
-        set header [remote_download host ${blddir}/testsuite/testsuite_hooks.h]
+        set header [remote_download host ${blddir}/testsuite/util/testsuite_hooks.h]
         if { $header == "" } {
-            verbose -log "Unable to download ${blddir}/testsuite/testsuite_hooks.h to host."
+            verbose -log "Unable to download ${blddir}/testsuite/util/testsuite_hooks.h to host."
             return "untested"
         }
       set cxx [transform "g++"]
       set cxxflags "-ggdb3"
+      set cxxldflags ""
       set includes "-I./"
     } else {
         # If we find a testsuite_flags file, we're testing in the build dir.
         if { [file exists $flags_file] } {
             set cxx [exec sh $flags_file --build-cxx]
             set cxxflags [exec sh $flags_file --cxxflags]
+            set cxxldflags [exec sh $flags_file --cxxldflags]
             set includes [exec sh $flags_file --build-includes]
         } else {
             set cxx [transform "g++"]
+            set cxxldflags ""
             set cxxflags "-g -O2 -D_GLIBCXX_ASSERT -fmessage-length=0" 
-            set includes "-I${srcdir}"
-	    # Guess at the location of the installed locale files.
-	    # (It would be nice if "gcc --print-file-name" could find
-	    # message files, but it cannot.)
-	    set absolute_cxx [which $cxx]
-	    if { $absolute_cxx != "" } {
-		set localedir "[file dirname $absolute_cxx]/../share/locale"
-	    }
-	    set cxxflags "$cxxflags -DLOCALEDIR=\"$localedir\""
+            set includes "-I${srcdir}/util"
         }
     }
+
+    # Always use MO files built by this test harness.
+    set cxxflags "$cxxflags -DLOCALEDIR=\".\""
 
     # If a PCH file is available, use it.  We must delay performing
     # this check until $cxx and such have been initialized because we
@@ -213,8 +213,10 @@ proc libstdc++_init { testfile } {
 	close $f
 
 	set lines [v3_target_compile $src "config[pid].o" object \
-		   "additional_flags=-include additional_flags=bits/stdc++.h"]
+	         "additional_flags=-include additional_flags=bits/stdtr1c++.h"]
 	if {$lines == "" } {
+#	    set PCH_CXXFLAGS "-include bits/extc++.h"
+#	    set PCH_CXXFLAGS "-include bits/stdtr1c++.h"
 	    set PCH_CXXFLAGS "-include bits/stdc++.h"
 	} else {
 	    set PCH_CXXFLAGS ""
@@ -223,7 +225,7 @@ proc libstdc++_init { testfile } {
 	v3track PCH_CXXFLAGS 2
     }
 
-    libstdc++_maybe_build_wrapper "${objdir}/testglue.o"
+    libstdc++_maybe_build_wrapper "${objdir}/testglue.o" "-fexceptions"
 }
 
 # Callback for cleanup routines.
@@ -264,7 +266,7 @@ proc libstdc++-dg-test { prog do_what extra_tool_flags } {
             set output_file "./[file rootname [file tail $prog]].exe"
             # This is the only place where we care if an executable was
             # created or not.  If it was, dg.exp will try to run it.
-            remote_file build delete $output_file;
+            catch { remote_file build delete $output_file }
         }
 	default {
             perror "$do_what: not a valid dg-do keyword"
@@ -272,23 +274,22 @@ proc libstdc++-dg-test { prog do_what extra_tool_flags } {
         }
     }
 
+    # Short-circut a bunch of complicated goo here for the special
+    # case of compiling a test file as a "C" file, not as C++. Why? So
+    # -nostdc++ doesn't trip us up. So all the extra object files
+    # don't trip us up. So automatically linking in libstdc++ doesn't
+    # happen. So CXXFLAGS don't error.
+    set select_compile "v3_target_compile"
     set options ""
     if { $extra_tool_flags != "" } {
 	verbose -log "extra_tool_flags are:"
 	verbose -log $extra_tool_flags
 	if { [string first "-x c" $extra_tool_flags ] != -1 } {
-	    # Short-circut a bunch of complicated goo here for the
-	    # special case of compiling a test file as a "C" file, not
-	    # as C++: just use target_compile, instead of the usual
-	    # gimmicks.
 	    verbose -log "compiling and executing as C, not C++"
-            set compile_type "executable"
-            set output_file "./[file rootname [file tail $prog]].exe"
-            remote_file build delete $output_file;
-	    lappend options "additional_flags=$extra_tool_flags"
-	    set comp_output [target_compile "$prog" "$output_file" "$compile_type" $options];
-	    set comp_output [ prune_g++_output $comp_output ];
-	    return [list $comp_output $output_file]
+	    set edit_tool_flags $extra_tool_flags
+	    regsub -all ".x c" $edit_tool_flags "" edit_tool_flags
+	    lappend options "additional_flags=$edit_tool_flags"
+	    set select_compile "v3_target_compile_as_c"
         } else {
 	    lappend options "additional_flags=$extra_tool_flags"
 	}
@@ -296,7 +297,7 @@ proc libstdc++-dg-test { prog do_what extra_tool_flags } {
 
     # There is a libstdc++_compile made for us by default (via the tool-
     # and-target file), but the defaults are lacking in goodness.
-    set comp_output [v3_target_compile "$prog" "$output_file" "$compile_type" $options];
+    set comp_output [$select_compile "$prog" "$output_file" "$compile_type" $options];
     set comp_output [ prune_g++_output $comp_output ];
 
     return [list $comp_output $output_file]
@@ -311,9 +312,6 @@ set v3-threads 0
 # True if the library supports symbol versioning.
 set v3-symver 0
 
-# A string naming object files to be linked into all tests.
-set v3-test_objs ""
-
 # Called from libstdc++-dg-test above.  Calls back into system's
 # target_compile to actually do the work.
 proc v3_target_compile { source dest type options } {
@@ -321,9 +319,8 @@ proc v3_target_compile { source dest type options } {
     global wrap_flags
     global cxx
     global cxxflags
+    global cxxldflags
     global includes
-    global blddir
-    global v3-test_objs
 
     if { [target_info needs_status_wrapper] != "" && [info exists gluefile] } {
         lappend options "libs=${gluefile}"
@@ -339,7 +336,8 @@ proc v3_target_compile { source dest type options } {
     # Flag setting based on type argument.
     if { $type == "executable" } {
 	# Link the support objects into executables.
-	set cxx_final [concat $cxx_final ${v3-test_objs}]
+        set cxx_final [concat $cxx_final $cxxldflags]
+	lappend options "additional_flags=./libtestc++.a"
     } else {
 	if { $type == "sharedlib" } {
 	    # Don't link in anything.
@@ -348,19 +346,64 @@ proc v3_target_compile { source dest type options } {
     }
 
     lappend options "compiler=$cxx_final"
+    lappend options "timeout=600"
 
     return [target_compile $source $dest $type $options]
 }
 
 
+# Called from libstdc++-dg-test above, but only for "C" compilation.
+# Calls back into system's target_compile to actually do the work.
+proc v3_target_compile_as_c { source dest type options } {
+    global gluefile 
+    global wrap_flags
+    global includes
+    global flags_file
+    global blddir
+
+    if { [target_info needs_status_wrapper] != "" && [info exists gluefile] } {
+        lappend options "libs=${gluefile}"
+        lappend options "ldflags=${wrap_flags}"
+    }
+
+    set tname [target_info name]
+    set cc [board_info $tname compiler]
+    set cc_final $cc
+    set cxxlibglossflags [libgloss_link_flags]
+    set cc_final [concat $cc_final $cxxlibglossflags]
+    set cc_final [concat $cc_final $includes]
+    regsub -all ".nostdinc.." $cc_final "" cc_final
+
+    # This is needed for "C" tests, as this type of test may need the
+    # C++ includes. And if we're not testing in the build directory,
+    # the includes variable is not likely to include the necessary info.
+    if { ![file exists $flags_file] } {
+	set version [exec ${cc} -dumpversion]
+	set machine [exec ${cc} -dumpmachine]
+	set comp_base_dir [file dirname [file dirname [file dirname [file dirname [file dirname [exec ${cc} --print-prog-name=cc1]]]]]]
+	set includesbase "${comp_base_dir}/include/c++/${version}"
+	set includestarget "${includesbase}/${machine}"
+	set cc_final [concat $cc_final "-I$includesbase -I$includestarget"]
+
+        set libsup "${comp_base_dir}/lib"
+    } else {
+        set libsup "${blddir}/libsupc++/.libs"
+    }
+
+    set cc_final [concat $cc_final "-L$libsup"]
+
+    lappend options "compiler=$cc_final"
+    lappend options "timeout=600"
+
+    return [target_compile $source $dest $type $options]
+}
+
 # Build the support objects linked in with the libstdc++ tests.  In
-# addition, set v3-wchar_t, v3-threads, v3-test_objs, and v3-symver
-# appropriately.
+# addition, set v3-wchar_t, v3-threads, and v3-symver appropriately.
 proc v3-build_support { } {
     global srcdir
     global v3-wchar_t
     global v3-threads
-    global v3-test_objs
     global v3-symver
     global v3-sharedlib
 
@@ -368,7 +411,7 @@ proc v3-build_support { } {
     set v3-wchar_t 0
     set v3-threads 0
     set v3-symver 0
-    set v3-test_objs ""
+    set libtest_objs ""
 
     set config_src "config.cc"
     set f [open $config_src "w"]
@@ -390,30 +433,60 @@ proc v3-build_support { } {
 	set v3-threads 1
     }
 
+    # Try to build the MO files that are used by some of the locale
+    # tests.  If we can't build them, that's OK; it just means that
+    # those tests will fail.
+    foreach lang [list "fr" "de"] {
+	catch {
+	    file mkdir "$lang/LC_MESSAGES"
+	    remote_exec "build" "msgfmt" "-o $lang/LC_MESSAGES/libstdc++.mo $srcdir/../po/$lang.po"
+	    if [is_remote host] {
+		remote_exec "host" "mkdir" "-p $lang/LC_MESSAGES"
+		remote_download "host" "$lang/LC_MESSAGES/libstdc++.mo" "$lang/LC_MESSAGES/libstdc++.mo"
+	    }
+	}
+    }
+
     # Build the support objects.
-    set source_files \
-	[list testsuite_abi.cc testsuite_allocator.cc testsuite_character.cc testsuite_hooks.cc ]
+    set source_files [list testsuite_abi.cc testsuite_allocator.cc \
+			  testsuite_character.cc testsuite_hooks.cc \
+	       	 rng/twister_rand_gen.cc io/verified_cmd_line_input.cc \
+			  io/prog_bar.cc performance/time/elapsed_timer.cc ]
     foreach f $source_files {
-	set object_file [file rootname $f].o
+	set obj [file rootname $f].o
+	set object_file [file tail $obj]
 	# Compile with "-w" so that warnings issued by the compiler
 	# do not prevent compilation.
-	if { [v3_target_compile $srcdir/$f $object_file "object" \
+	if { [v3_target_compile $srcdir/util/$f $object_file "object" \
 		  [list "incdir=$srcdir" "additional_flags=-w"]]
 	     != "" } {
 	    error "could not compile $f"
 	}
-	append v3-test_objs "$object_file "
+	append libtest_objs "$object_file "
     }
 
-    # Build the shared support objects.
+    # Collect into libtestc++.a
+    set ar [transform "ar"]
+    set arcommand "$ar -rc ./libtestc++.a ${libtest_objs}"
+    set result [lindex [local_exec "$arcommand" "" "" 300] 0]
+    verbose "link result is $result"
+    if { $result == 0 } {
+	set ranlib [transform "ranlib"]
+	set ranlibcommand "$ranlib ./libtestc++.a"
+	set result [lindex [local_exec "$ranlibcommand" "" "" 300] 0]
+	if { $result != 0 } {
+	    error "could not link libtestc++.a"
+	}
+    }
+
+    # Build any shared objects needed for regression testing.
     if { ${v3-sharedlib} == 1 } {
-	set source_files \
-	    [list testsuite_shared.cc]
+	set source_files [list testsuite_shared.cc]
 	foreach f $source_files {
 	    set object_file [file rootname $f].so
 	    # Compile with "-w" so that warnings issued by the compiler
 	    # do not prevent compilation.
-	    if { [v3_target_compile $srcdir/$f $object_file "sharedlib" \
+	    if { [v3_target_compile $srcdir/util/$f $object_file "sharedlib" \
 	     [list "incdir=$srcdir" "additional_flags=-w -shared -fPIC -DPIC"]]
 		 != "" } {
 		error "could not compile $f"
@@ -513,90 +586,6 @@ proc check_v3_target_namedlocale { } {
 	}
     }
     return $et_namedlocale_saved
-}
-
-proc check_v3_target_cxa_atexit { } {
-    global et_cxa_atexit
-    global et_cxa_atexit_target_name
-    global tool	
-
-    if { ![info exists et_cxa_atexit_target_name] } {
-	set et_cxa_atexit_target_name ""
-    }
-
-    # If the target has changed since we set the cached value, clear it.
-    set current_target [current_target_name]
-    if { $current_target != $et_cxa_atexit_target_name } {
-	verbose "check_v3_target_cxa_atexit: `$et_cxa_atexit_target_name'" 2
-	set et_cxa_atexit_target_name $current_target
-	if [info exists et_cxa_atexit] {
-	    verbose "check_v3_target_cxa_atexit: removing cached result" 2
-	    unset et_cxa_atexit
-	}
-    }
-
-    if [info exists et_cxa_atexit] {
-	verbose "check_v3_target_cxa_atexit: using cached result" 2
-    } else {
-	set et_cxa_atexit 0
-
-	# Set up, compile, and execute a C++ test program that depends
-	# on correct ordering of static object destructors. This is
-	# indicative of the presence and use of __cxa_atexit.
-	set src cxaatexit[pid].cc
-	set exe cxaatexit[pid].x
-
-	set f [open $src "w"]
-	puts $f "#include <stdlib.h>"
-	puts $f "static unsigned int count;"
-	puts $f "struct X"
-	puts $f "{"
-	puts $f "  X() { count = 1; }"
-	puts $f "  ~X()"
-	puts $f "  {"
-	puts $f "    if (count != 3)"
-	puts $f "      exit(1);"
-	puts $f "    count = 4;"
-        puts $f "  }"
-        puts $f "};"
-	puts $f "void f()"
-	puts $f "{"
-	puts $f "  static X x;"
-        puts $f "}"
-	puts $f "struct Y"
-	puts $f "{"
-	puts $f "  Y() { f(); count = 2; }"
-	puts $f "  ~Y()"
-	puts $f "  {"
-	puts $f "    if (count != 2)"
-	puts $f "      exit(1);"
-	puts $f "    count = 3;"
-        puts $f "  }"
-        puts $f "};"
-	puts $f "Y y;"
-	puts $f "int main()"
-	puts $f "{ return 0; }"
-	close $f
-
-	set lines [v3_target_compile $src $exe executable ""]
-	file delete $src
-
-	if [string match "" $lines] {
-	    # No error message, compilation succeeded.
-	    set result [${tool}_load "./$exe" "" ""]
-	    set status [lindex $result 0]
-	    remote_file build delete $exe
-
-	    verbose "check_v3_target_cxa_atexit: status is <$status>" 2
-
-	    if { $status == "pass" } {
-		set et_cxa_atexit 1
-	    }
-	} else {
-	    verbose "check_v3_target_cxa_atexit: compilation failed" 2
-	}
-    }
-    return $et_cxa_atexit
 }
 
 proc check_v3_target_debug_mode { } {

@@ -1,12 +1,13 @@
 /* Data and Control Flow Analysis for Trees.
-   Copyright (C) 2001, 2003, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2001, 2003, 2004, 2005, 2007
+   Free Software Foundation, Inc.
    Contributed by Diego Novillo <dnovillo@redhat.com>
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -15,9 +16,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #ifndef _TREE_FLOW_H
 #define _TREE_FLOW_H 1
@@ -92,13 +92,16 @@ struct ptr_info_def GTY(())
      pointer will be represented by this memory tag, instead of the type
      tag computed by TBAA.  */
   tree name_mem_tag;
+
+  /* Mask of reasons this pointer's value escapes the function  */
+  unsigned int escape_mask;
 };
 
 
 /*---------------------------------------------------------------------------
 		   Tree annotations stored in tree_common.ann
 ---------------------------------------------------------------------------*/
-enum tree_ann_type { TREE_ANN_COMMON, VAR_ANN, STMT_ANN };
+enum tree_ann_type { TREE_ANN_COMMON, VAR_ANN, FUNCTION_ANN, STMT_ANN };
 
 struct tree_ann_common_d GTY(())
 {
@@ -137,28 +140,6 @@ enum need_phi_state {
   NEED_PHI_STATE_MAYBE
 };
 
-
-/* When computing aliasing information, we represent the memory pointed-to
-   by pointers with artificial variables called "memory tags" (MT).  There
-   are two kinds of tags: type and name.  Type tags (TMT) are used in
-   type-based alias analysis, they represent all the pointed-to locations
-   and variables of the same alias set class.  Name tags (NMT) are used in
-   flow-sensitive points-to alias analysis, they represent the variables
-   and memory locations pointed-to by a specific SSA_NAME pointer.  */
-enum mem_tag_kind {
-  /* This variable is not a memory tag.  */
-  NOT_A_TAG,
-
-  /* This variable is a type memory tag (TMT).  */
-  TYPE_TAG,
-
-  /* This variable is a name memory tag (NMT).  */
-  NAME_TAG,
-
-  /* This variable represents a structure field.  */
-  STRUCT_FIELD
-};
-
 struct subvar;
 typedef struct subvar *subvar_t;
 
@@ -167,12 +148,6 @@ struct subvar GTY(())
 {
   /* Fake variable.  */
   tree var;
-
-  /* Offset inside structure.  */
-  unsigned HOST_WIDE_INT offset;
-
-  /* Size of the field.  */
-  unsigned HOST_WIDE_INT size;
 
   /* Next subvar for this structure.  */
   subvar_t next;
@@ -189,13 +164,8 @@ struct var_ann_d GTY(())
   /* Used when building root_var structures in tree_ssa_live.[ch].  */
   unsigned root_var_processed : 1;
 
-  /* If nonzero, this variable is a memory tag.  */
-  ENUM_BITFIELD (mem_tag_kind) mem_tag_kind : 2;
-
-  /* Nonzero if this variable is an alias tag that represents references to
-     other variables (i.e., this variable appears in the MAY_ALIASES array
-     of other variables).  */
-  unsigned is_alias_tag : 1;
+  /* Nonzero if this variable is in the alias set of another variable.  */
+  unsigned is_aliased : 1;
 
   /* Nonzero if this variable was used after SSA optimizations were
      applied.  We set this when translating out of SSA form.  */
@@ -215,13 +185,13 @@ struct var_ann_d GTY(())
   unsigned in_v_may_def_list : 1;
 
   /* An artificial variable representing the memory location pointed-to by
-     all the pointers that TBAA (type-based alias analysis) considers
-     to be aliased.  If the variable is not a pointer or if it is never
-     dereferenced, this must be NULL.  */
-  tree type_mem_tag;
+     all the pointer symbols that flow-insensitive alias analysis
+     (mostly type-based) considers to be aliased.  If the variable is
+     not a pointer or if it is never dereferenced, this must be NULL.  */
+  tree symbol_mem_tag;
 
   /* Variables that may alias this variable.  */
-  varray_type may_aliases;
+  VEC(tree, gc) *may_aliases;
 
   /* Used when going out of SSA form to indicate which partition this
      variable represents storage for.  */
@@ -230,32 +200,40 @@ struct var_ann_d GTY(())
   /* Used by the root-var object in tree-ssa-live.[ch].  */
   unsigned root_index;
 
-  /* Default definition for this symbol.  If this field is not NULL, it
-     means that the first reference to this variable in the function is a
-     USE or a VUSE.  In those cases, the SSA renamer creates an SSA name
-     for this variable with an empty defining statement.  */
-  tree default_def;
-
   /* During into-ssa and the dominator optimizer, this field holds the
      current version of this variable (an SSA_NAME).  */
   tree current_def;
   
+  /* If this variable is a structure, this fields holds a list of
+     symbols representing each of the fields of the structure.  */
+  subvar_t subvars;
+
+  /* Mask of values saying the reasons why this variable has escaped
+     the function.  */
+  unsigned int escape_mask;
+};
+
+struct function_ann_d GTY(())
+{
+  struct tree_ann_common_d common;
+
   /* Pointer to the structure that contains the sets of global
      variables modified by function calls.  This field is only used
      for FUNCTION_DECLs.  */
   ipa_reference_vars_info_t GTY ((skip)) reference_vars_info;
-
-  /* If this variable is a structure, this fields holds a list of
-     symbols representing each of the fields of the structure.  */
-  subvar_t subvars;
 };
-
 
 typedef struct immediate_use_iterator_d
 {
+  /* This is the current use the iterator is processing.  */
   ssa_use_operand_t *imm_use;
+  /* This marks the last use in the list (use node from SSA_NAME)  */
   ssa_use_operand_t *end_p;
+  /* This node is inserted and used to mark the end of the uses for a stmt.  */
   ssa_use_operand_t iter_node;
+  /* This is the next ssa_name to visit.  IMM_USE may get removed before
+     the next one is traversed to, so it must be cached early.  */
+  ssa_use_operand_t *next_imm_name;
 } imm_use_iterator;
 
 
@@ -267,17 +245,42 @@ typedef struct immediate_use_iterator_d
        !end_readonly_imm_use_p (&(ITER));			\
        (DEST) = next_readonly_imm_use (&(ITER)))
   
+/* Use this iterator to visit each stmt which has a use of SSAVAR.  */
 
-#define FOR_EACH_IMM_USE_SAFE(DEST, ITER, SSAVAR)		\
-  for ((DEST) = first_safe_imm_use (&(ITER), (SSAVAR));		\
-       !end_safe_imm_use_p (&(ITER));				\
-       (DEST) = next_safe_imm_use (&(ITER)))
+#define FOR_EACH_IMM_USE_STMT(STMT, ITER, SSAVAR)		\
+  for ((STMT) = first_imm_use_stmt (&(ITER), (SSAVAR));		\
+       !end_imm_use_stmt_p (&(ITER));				\
+       (STMT) = next_imm_use_stmt (&(ITER)))
 
-#define BREAK_FROM_SAFE_IMM_USE(ITER)				\
+/* Use this to terminate the FOR_EACH_IMM_USE_STMT loop early.  Failure to 
+   do so will result in leaving a iterator marker node in the immediate
+   use list, and nothing good will come from that.   */
+#define BREAK_FROM_IMM_USE_STMT(ITER)				\
    {								\
-     end_safe_imm_use_traverse (&(ITER));			\
+     end_imm_use_stmt_traverse (&(ITER));			\
      break;							\
    }
+
+
+/* Use this iterator in combination with FOR_EACH_IMM_USE_STMT to 
+   get access to each occurrence of ssavar on the stmt returned by
+   that iterator..  for instance:
+
+     FOR_EACH_IMM_USE_STMT (stmt, iter, var)
+       {
+         FOR_EACH_IMM_USE_ON_STMT (use_p, iter)
+	   {
+	     SET_USE (use_p) = blah;
+	   }
+	 update_stmt (stmt);
+       }							 */
+
+#define FOR_EACH_IMM_USE_ON_STMT(DEST, ITER)			\
+  for ((DEST) = first_imm_use_on_stmt (&(ITER));		\
+       !end_imm_use_on_stmt_p (&(ITER));			\
+       (DEST) = next_imm_use_on_stmt (&(ITER)))
+
+
 
 struct stmt_ann_d GTY(())
 {
@@ -286,12 +289,6 @@ struct stmt_ann_d GTY(())
   /* Nonzero if the statement has been modified (meaning that the operands
      need to be scanned again).  */
   unsigned modified : 1;
-
-  /* Nonzero if the statement makes aliased loads.  */
-  unsigned makes_aliased_loads : 1;
-
-  /* Nonzero if the statement makes aliased stores.  */
-  unsigned makes_aliased_stores : 1;
 
   /* Nonzero if the statement makes references to volatile storage.  */
   unsigned has_volatile_ops : 1;
@@ -324,7 +321,8 @@ struct stmt_ann_d GTY(())
 union tree_ann_d GTY((desc ("ann_type ((tree_ann_t)&%h)")))
 {
   struct tree_ann_common_d GTY((tag ("TREE_ANN_COMMON"))) common;
-  struct var_ann_d GTY((tag ("VAR_ANN"))) decl;
+  struct var_ann_d GTY((tag ("VAR_ANN"))) vdecl;
+  struct function_ann_d GTY((tag ("FUNCTION_ANN"))) fdecl;
   struct stmt_ann_d GTY((tag ("STMT_ANN"))) stmt;
 };
 
@@ -332,12 +330,16 @@ extern GTY(()) VEC(tree,gc) *modified_noreturn_calls;
 
 typedef union tree_ann_d *tree_ann_t;
 typedef struct var_ann_d *var_ann_t;
+typedef struct function_ann_d *function_ann_t;
 typedef struct stmt_ann_d *stmt_ann_t;
+typedef struct tree_ann_common_d *tree_ann_common_t;
 
-static inline tree_ann_t tree_ann (tree);
-static inline tree_ann_t get_tree_ann (tree);
+static inline tree_ann_common_t tree_common_ann (tree);
+static inline tree_ann_common_t get_tree_common_ann (tree);
 static inline var_ann_t var_ann (tree);
 static inline var_ann_t get_var_ann (tree);
+static inline function_ann_t function_ann (tree);
+static inline function_ann_t get_function_ann (tree);
 static inline stmt_ann_t stmt_ann (tree);
 static inline stmt_ann_t get_stmt_ann (tree);
 static inline enum tree_ann_type ann_type (tree_ann_t);
@@ -346,24 +348,22 @@ extern void set_bb_for_stmt (tree, basic_block);
 static inline bool noreturn_call_p (tree);
 static inline void update_stmt (tree);
 static inline bool stmt_modified_p (tree);
-static inline varray_type may_aliases (tree);
+static inline VEC(tree, gc) *may_aliases (tree);
 static inline int get_lineno (tree);
 static inline const char *get_filename (tree);
 static inline bool is_exec_stmt (tree);
 static inline bool is_label_stmt (tree);
 static inline bitmap addresses_taken (tree);
-static inline void set_default_def (tree, tree);
-static inline tree default_def (tree);
 
 /*---------------------------------------------------------------------------
                   Structure representing predictions in tree level.
 ---------------------------------------------------------------------------*/
-struct edge_prediction GTY((chain_next ("%h.next")))
+struct edge_prediction GTY((chain_next ("%h.ep_next")))
 {
-  struct edge_prediction *next;
-  edge edge;
-  enum br_predictor predictor;
-  int probability;
+  struct edge_prediction *ep_next;
+  edge ep_edge;
+  enum br_predictor ep_predictor;
+  int ep_probability;
 };
 
 /* Accessors for basic block annotations.  */
@@ -421,8 +421,11 @@ typedef struct
 /* Array of all variables referenced in the function.  */
 extern GTY((param_is (struct int_tree_map))) htab_t referenced_vars;
 
+/* Default defs for undefined symbols. */
+extern GTY((param_is (struct int_tree_map))) htab_t default_defs;
+
 extern tree referenced_var_lookup (unsigned int);
-extern tree referenced_var_lookup_if_exists (unsigned int);
+extern bool referenced_var_check_and_insert (tree);
 #define num_referenced_vars htab_elements (referenced_vars)
 #define referenced_var(i) referenced_var_lookup (i)
 
@@ -434,6 +437,10 @@ extern GTY(()) VEC(tree,gc) *ssa_names;
 
 /* Artificial variable used to model the effects of function calls.  */
 extern GTY(()) tree global_var;
+
+/* Artificial variable used to model the effects of nonlocal
+   variables.  */
+extern GTY(()) tree nonlocal_all;
 
 /* Call clobbered variables in the function.  If bit I is set, then
    REFERENCED_VARS (I) is call-clobbered.  */
@@ -476,7 +483,7 @@ static inline void bsi_prev (block_stmt_iterator *);
 static inline tree bsi_stmt (block_stmt_iterator);
 static inline tree * bsi_stmt_ptr (block_stmt_iterator);
 
-extern void bsi_remove (block_stmt_iterator *);
+extern void bsi_remove (block_stmt_iterator *, bool);
 extern void bsi_move_before (block_stmt_iterator *, block_stmt_iterator *);
 extern void bsi_move_after (block_stmt_iterator *, block_stmt_iterator *);
 extern void bsi_move_to_bb_end (block_stmt_iterator *, basic_block);
@@ -500,6 +507,54 @@ extern void bsi_insert_after (block_stmt_iterator *, tree,
 extern void bsi_replace (const block_stmt_iterator *, tree, bool);
 
 /*---------------------------------------------------------------------------
+			      OpenMP Region Tree
+---------------------------------------------------------------------------*/
+
+/* Parallel region information.  Every parallel and workshare
+   directive is enclosed between two markers, the OMP_* directive
+   and a corresponding OMP_RETURN statement.  */
+
+struct omp_region
+{
+  /* The enclosing region.  */
+  struct omp_region *outer;
+
+  /* First child region.  */
+  struct omp_region *inner;
+
+  /* Next peer region.  */
+  struct omp_region *next;
+
+  /* Block containing the omp directive as its last stmt.  */
+  basic_block entry;
+
+  /* Block containing the OMP_RETURN as its last stmt.  */
+  basic_block exit;
+
+  /* Block containing the OMP_CONTINUE as its last stmt.  */
+  basic_block cont;
+
+  /* If this is a combined parallel+workshare region, this is a list
+     of additional arguments needed by the combined parallel+workshare
+     library call.  */
+  tree ws_args;
+
+  /* The code for the omp directive of this region.  */
+  enum tree_code type;
+
+  /* Schedule kind, only used for OMP_FOR type regions.  */
+  enum omp_clause_schedule_kind sched_kind;
+
+  /* True if this is a combined parallel+workshare region.  */
+  bool is_combined_parallel;
+};
+
+extern struct omp_region *root_omp_region;
+extern struct omp_region *new_omp_region (basic_block, enum tree_code,
+					  struct omp_region *);
+extern void free_omp_regions (void);
+
+/*---------------------------------------------------------------------------
 			      Function prototypes
 ---------------------------------------------------------------------------*/
 /* In tree-cfg.c  */
@@ -514,6 +569,7 @@ extern bool is_ctrl_stmt (tree);
 extern bool is_ctrl_altering_stmt (tree);
 extern bool computed_goto_p (tree);
 extern bool simple_goto_p (tree);
+extern bool tree_can_make_abnormal_goto (tree);
 extern basic_block single_noncomplex_succ (basic_block bb);
 extern void tree_dump_bb (basic_block, FILE *, int);
 extern void debug_tree_bb (basic_block);
@@ -546,6 +602,7 @@ extern bool tree_duplicate_sese_region (edge, edge, basic_block *, unsigned,
 					basic_block *);
 extern void add_phi_args_after_copy_bb (basic_block);
 extern void add_phi_args_after_copy (basic_block *, unsigned);
+extern bool tree_purge_dead_abnormal_call_edges (basic_block);
 extern bool tree_purge_dead_eh_edges (basic_block);
 extern bool tree_purge_all_dead_eh_edges (bitmap);
 extern tree gimplify_val (block_stmt_iterator *, tree, tree);
@@ -557,9 +614,12 @@ extern tree gimplify_build3 (block_stmt_iterator *, enum tree_code,
 			     tree, tree, tree, tree);
 extern void init_empty_tree_cfg (void);
 extern void fold_cond_expr_cond (void);
+extern void make_abnormal_goto_edges (basic_block, bool);
 extern void replace_uses_by (tree, tree);
 extern void start_recording_case_labels (void);
 extern void end_recording_case_labels (void);
+extern basic_block move_sese_region_to_fn (struct function *, basic_block,
+				           basic_block);
 
 /* In tree-cfgcleanup.c  */
 extern bool cleanup_tree_cfg (void);
@@ -570,8 +630,9 @@ extern void dump_generic_bb (FILE *, basic_block, int, int);
 
 /* In tree-dfa.c  */
 extern var_ann_t create_var_ann (tree);
+extern function_ann_t create_function_ann (tree);
 extern stmt_ann_t create_stmt_ann (tree);
-extern tree_ann_t create_tree_ann (tree);
+extern tree_ann_common_t create_tree_common_ann (tree);
 extern void dump_dfa_stats (FILE *);
 extern void debug_dfa_stats (void);
 extern void debug_referenced_vars (void);
@@ -581,11 +642,14 @@ extern void debug_variable (tree);
 extern void dump_subvars_for (FILE *, tree);
 extern void debug_subvars_for (tree);
 extern tree get_virtual_var (tree);
-extern void add_referenced_tmp_var (tree);
+extern void add_referenced_var (tree);
 extern void mark_new_vars_to_rename (tree);
 extern void find_new_referenced_vars (tree *);
 
 extern tree make_rename_temp (tree, const char *);
+extern void set_default_def (tree, tree);
+extern tree default_def (tree);
+extern tree default_def_fn (struct function *, tree);
 
 /* In tree-phinodes.c  */
 extern void reserve_phi_args_for_new_edge (basic_block);
@@ -596,8 +660,9 @@ extern void remove_phi_node (tree, tree);
 extern tree phi_reverse (tree);
 
 /* In gimple-low.c  */
+extern void record_vars_into (tree, tree);
 extern void record_vars (tree);
-extern bool block_may_fallthru (tree block);
+extern bool block_may_fallthru (tree);
 
 /* In tree-ssa-alias.c  */
 extern void dump_may_aliases_for (FILE *, tree);
@@ -610,20 +675,20 @@ extern void dump_points_to_info_for (FILE *, tree);
 extern void debug_points_to_info_for (tree);
 extern bool may_be_aliased (tree);
 extern bool is_aliased_with (tree, tree);
+extern bool may_aliases_intersect (tree, tree);
 extern struct ptr_info_def *get_ptr_info (tree);
-extern void add_type_alias (tree, tree);
-extern void new_type_alias (tree, tree);
+extern void new_type_alias (tree, tree, tree);
 extern void count_uses_and_derefs (tree, tree, unsigned *, unsigned *, bool *);
 static inline subvar_t get_subvars_for_var (tree);
 static inline tree get_subvar_at (tree, unsigned HOST_WIDE_INT);
 static inline bool ref_contains_array_ref (tree);
 static inline bool array_ref_contains_indirect_ref (tree);
-extern tree okay_component_ref_for_subvars (tree, unsigned HOST_WIDE_INT *,
-					    unsigned HOST_WIDE_INT *);
+extern tree get_ref_base_and_extent (tree, HOST_WIDE_INT *,
+				     HOST_WIDE_INT *, HOST_WIDE_INT *);
 static inline bool var_can_have_subvars (tree);
 static inline bool overlap_subvar (unsigned HOST_WIDE_INT,
 				   unsigned HOST_WIDE_INT,
-				   subvar_t, bool *);
+				   tree, bool *);
 
 /* Call-back function for walk_use_def_chains().  At each reaching
    definition, a function with this prototype is called.  */
@@ -664,7 +729,7 @@ bool fold_stmt_inplace (tree);
 tree widen_bitfield (tree, tree, tree);
 
 /* In tree-vrp.c  */
-tree vrp_evaluate_conditional (tree, bool);
+tree vrp_evaluate_conditional (tree, tree);
 void simplify_stmt_using_ranges (tree);
 
 /* In tree-ssa-dom.c  */
@@ -679,6 +744,17 @@ extern void propagate_tree_value (tree *, tree);
 extern void replace_exp (use_operand_p, tree);
 extern bool may_propagate_copy (tree, tree);
 extern bool may_propagate_copy_into_asm (tree);
+
+/* Affine iv.  */
+
+typedef struct
+{
+  /* Iv = BASE + STEP * i.  */
+  tree base, step;
+
+  /* True if this iv does not overflow.  */
+  bool no_overflow;
+} affine_iv;
 
 /* Description of number of iterations of a loop.  All the expressions inside
    the structure can be evaluated at the end of the loop's preheader
@@ -710,10 +786,21 @@ struct tree_niter_desc
 			   MAX_SIGNED_INT.  However if the (n <= 0) assumption
 			   is eliminated (by looking at the guard on entry of
 			   the loop), then the information would be lost.  */
+
+  /* The simplified shape of the exit condition.  The loop exits if
+     CONTROL CMP BOUND is false, where CMP is one of NE_EXPR,
+     LT_EXPR, or GT_EXPR, and step of CONTROL is positive if CMP is
+     LE_EXPR and negative if CMP is GE_EXPR.  This information is used
+     by loop unrolling.  */
+  affine_iv control;
+  tree bound;
+  enum tree_code cmp;
 };
 
 /* In tree-vectorizer.c */
 void vectorize_loops (struct loops *);
+extern bool vect_can_force_dr_alignment_p (tree, unsigned int);
+extern tree get_vectype_for_scalar_type (tree);
 
 /* In tree-ssa-phiopt.c */
 bool empty_block_p (basic_block);
@@ -721,10 +808,11 @@ bool empty_block_p (basic_block);
 /* In tree-ssa-loop*.c  */
 
 void tree_ssa_lim (struct loops *);
-void tree_ssa_unswitch_loops (struct loops *);
-void canonicalize_induction_variables (struct loops *);
-void tree_unroll_loops_completely (struct loops *, bool);
-void remove_empty_loops (struct loops *);
+unsigned int tree_ssa_unswitch_loops (struct loops *);
+unsigned int canonicalize_induction_variables (struct loops *);
+unsigned int tree_unroll_loops_completely (struct loops *, bool);
+unsigned int tree_ssa_prefetch_arrays (struct loops *);
+unsigned int remove_empty_loops (struct loops *);
 void tree_ssa_iv_optimize (struct loops *);
 
 bool number_of_iterations_exit (struct loop *, edge,
@@ -749,7 +837,6 @@ bool for_each_index (tree *, bool (*) (tree, tree *, void *), void *);
 void create_iv (tree, tree, tree, struct loop *, block_stmt_iterator *, bool,
 		tree *, tree *);
 void split_loop_exit_edge (edge);
-void compute_phi_arg_on_exit (edge, tree, tree);
 unsigned force_expr_to_var_cost (tree);
 basic_block bsi_insert_on_edge_immediate_loop (edge, tree);
 void standard_iv_increment_position (struct loop *, block_stmt_iterator *,
@@ -765,7 +852,16 @@ struct loop *tree_ssa_loop_version (struct loops *, struct loop *, tree,
 tree expand_simple_operations (tree);
 void substitute_in_loop_info (struct loop *, tree, tree);
 edge single_dom_exit (struct loop *);
+bool can_unroll_loop_p (struct loop *loop, unsigned factor,
+			struct tree_niter_desc *niter);
+void tree_unroll_loop (struct loops *, struct loop *, unsigned,
+		       edge, struct tree_niter_desc *);
 bool contains_abnormal_ssa_name_p (tree);
+
+/* In tree-ssa-threadedge.c */
+extern bool potentially_threadable_block (basic_block);
+extern void thread_across_edge (tree, edge, bool,
+				VEC(tree, heap) **, tree (*) (tree, tree));
 
 /* In tree-ssa-loop-im.c  */
 /* The possibilities of statement movement.  */
@@ -779,9 +875,27 @@ enum move_pos
   };
 extern enum move_pos movement_possibility (tree);
 
+/* The reasons a variable may escape a function.  */
+enum escape_type 
+  {
+    NO_ESCAPE = 0, /* Doesn't escape.  */
+    ESCAPE_STORED_IN_GLOBAL = 1 << 1,
+    ESCAPE_TO_ASM = 1 << 2,  /* Passed by address to an assembly
+				statement.  */
+    ESCAPE_TO_CALL = 1 << 3,  /* Escapes to a function call.  */
+    ESCAPE_BAD_CAST = 1 << 4, /* Cast from pointer to integer */
+    ESCAPE_TO_RETURN = 1 << 5, /* Returned from function.  */
+    ESCAPE_TO_PURE_CONST = 1 << 6, /* Escapes to a pure or constant
+				      function call.  */
+    ESCAPE_IS_GLOBAL = 1 << 7,  /* Is a global variable.  */
+    ESCAPE_IS_PARM = 1 << 8, /* Is an incoming function parameter.  */
+    ESCAPE_UNKNOWN = 1 << 9 /* We believe it escapes for some reason
+			       not enumerated above.  */
+  };
+
 /* In tree-flow-inline.h  */
 static inline bool is_call_clobbered (tree);
-static inline void mark_call_clobbered (tree);
+static inline void mark_call_clobbered (tree, unsigned int);
 static inline void set_is_used (tree);
 static inline bool unmodifiable_var_p (tree);
 
@@ -805,10 +919,14 @@ void print_value_expressions (FILE *, tree);
 /* In tree-vn.c  */
 bool expressions_equal_p (tree, tree);
 tree get_value_handle (tree);
-hashval_t vn_compute (tree, hashval_t, tree);
+hashval_t vn_compute (tree, hashval_t);
+void sort_vuses (VEC (tree, gc) *);
 tree vn_lookup_or_add (tree, tree);
-void vn_add (tree, tree, tree);
+tree vn_lookup_or_add_with_vuses (tree, VEC (tree, gc) *);
+void vn_add (tree, tree);
+void vn_add_with_vuses (tree, tree, VEC (tree, gc) *);
 tree vn_lookup (tree, tree);
+tree vn_lookup_with_vuses (tree, VEC (tree, gc) *);
 void vn_init (void);
 void vn_delete (void);
 
@@ -831,7 +949,8 @@ bool multiplier_allowed_in_address_p (HOST_WIDE_INT);
 unsigned multiply_by_cost (HOST_WIDE_INT, enum machine_mode);
 
 /* In tree-ssa-threadupdate.c.  */
-extern bool thread_through_all_blocks (bitmap);
+extern bool thread_through_all_blocks (void);
+extern void register_jump_thread (edge, edge);
 
 /* In gimplify.c  */
 tree force_gimple_operand (tree, tree *, bool, tree);
@@ -839,6 +958,9 @@ tree force_gimple_operand_bsi (block_stmt_iterator *, tree, bool, tree);
 
 /* In tree-ssa-structalias.c */
 bool find_what_p_points_to (tree);
+
+/* In tree-ssa-live.c */
+extern void remove_unused_locals (void);
 
 /* In tree-ssa-address.c  */
 
@@ -881,6 +1003,7 @@ tree create_mem_ref (block_stmt_iterator *, tree,
 rtx addr_for_mem_ref (struct mem_address *, bool);
 void get_address_description (tree, struct mem_address *);
 tree maybe_fold_tmr (tree);
+
 /* This structure is simply used during pushing fields onto the fieldstack
    to track the offset of the field, since bitpos_of_field gives it relative
    to its immediate containing type, and we want it relative to the ultimate
@@ -888,7 +1011,9 @@ tree maybe_fold_tmr (tree);
 
 struct fieldoff
 {
-  tree field;
+  tree type;
+  tree size;
+  tree decl;
   HOST_WIDE_INT offset;  
 };
 typedef struct fieldoff fieldoff_s;
@@ -904,4 +1029,8 @@ void delete_alias_heapvars (void);
 
 #include "tree-flow-inline.h"
 
+void swap_tree_operands (tree, tree *, tree *);
+
+extern void recalculate_used_alone (void);
+extern bool updating_used_alone;
 #endif /* _TREE_FLOW_H  */

@@ -1,5 +1,5 @@
 /* Matching subroutines in all sizes, shapes and colors.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -7,7 +7,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -16,9 +16,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 
 #include "config.h"
@@ -139,7 +138,8 @@ gfc_match_eos (void)
 
 /* Match a literal integer on the input, setting the value on
    MATCH_YES.  Literal ints occur in kind-parameters as well as
-   old-style character length specifications.  */
+   old-style character length specifications.  If cnt is non-NULL it
+   will be set to the number of digits.  */
 
 match
 gfc_match_small_literal_int (int *value, int *cnt)
@@ -152,7 +152,8 @@ gfc_match_small_literal_int (int *value, int *cnt)
 
   gfc_gobble_whitespace ();
   c = gfc_next_char ();
-  *cnt = 0;
+  if (cnt)
+    *cnt = 0;
 
   if (!ISDIGIT (c))
     {
@@ -184,7 +185,8 @@ gfc_match_small_literal_int (int *value, int *cnt)
   gfc_current_locus = old_loc;
 
   *value = i;
-  *cnt = j;
+  if (cnt)
+    *cnt = j;
   return MATCH_YES;
 }
 
@@ -379,7 +381,9 @@ gfc_match_strings (mstring * a)
 
 
 /* See if the current input looks like a name of some sort.  Modifies
-   the passed buffer which must be GFC_MAX_SYMBOL_LEN+1 bytes long.  */
+   the passed buffer which must be GFC_MAX_SYMBOL_LEN+1 bytes long.
+   Note that options.c restricts max_identifier_length to not more
+   than GFC_MAX_SYMBOL_LEN.  */
 
 match
 gfc_match_name (char *buffer)
@@ -530,12 +534,6 @@ gfc_match_iterator (gfc_iterator * iter, int init_flag)
     {
       gfc_error ("Loop variable '%s' at %C cannot be INTENT(IN)",
 		 var->symtree->n.sym->name);
-      goto cleanup;
-    }
-
-  if (var->symtree->n.sym->attr.pointer)
-    {
-      gfc_error ("Loop variable at %C cannot have the POINTER attribute");
       goto cleanup;
     }
 
@@ -840,21 +838,24 @@ gfc_match_assignment (void)
 
   old_loc = gfc_current_locus;
 
-  lvalue = rvalue = NULL;
+  lvalue = NULL;
   m = gfc_match (" %v =", &lvalue);
   if (m != MATCH_YES)
-    goto cleanup;
-
-  if (lvalue->symtree->n.sym->attr.flavor == FL_PARAMETER)
     {
-      gfc_error ("Cannot assign to a PARAMETER variable at %C");
-      m = MATCH_ERROR;
-      goto cleanup;
+      gfc_current_locus = old_loc;
+      gfc_free_expr (lvalue);
+      return MATCH_NO;
     }
 
+  rvalue = NULL;
   m = gfc_match (" %e%t", &rvalue);
   if (m != MATCH_YES)
-    goto cleanup;
+    {
+      gfc_current_locus = old_loc;
+      gfc_free_expr (lvalue);
+      gfc_free_expr (rvalue);
+      return m;
+    }
 
   gfc_set_sym_referenced (lvalue->symtree->n.sym);
 
@@ -865,12 +866,6 @@ gfc_match_assignment (void)
   gfc_check_do_variable (lvalue->symtree);
 
   return MATCH_YES;
-
-cleanup:
-  gfc_current_locus = old_loc;
-  gfc_free_expr (lvalue);
-  gfc_free_expr (rvalue);
-  return m;
 }
 
 
@@ -935,8 +930,8 @@ match_arithmetic_if (void)
       return MATCH_ERROR;
     }
 
-  if (gfc_notify_std (GFC_STD_F95_DEL,
-		      "Obsolete: arithmetic IF statement at %C") == FAILURE)
+  if (gfc_notify_std (GFC_STD_F95_OBS,
+		      "Obsolescent: arithmetic IF statement at %C") == FAILURE)
     return MATCH_ERROR;
 
   new_st.op = EXEC_ARITHMETIC_IF;
@@ -1011,8 +1006,8 @@ gfc_match_if (gfc_statement * if_type)
 	  return MATCH_ERROR;
 	}
       
-      if (gfc_notify_std (GFC_STD_F95_DEL,
-  		          "Obsolete: arithmetic IF statement at %C")
+      if (gfc_notify_std (GFC_STD_F95_OBS,
+  		          "Obsolescent: arithmetic IF statement at %C")
 	  == FAILURE)
         return MATCH_ERROR;
 
@@ -1058,9 +1053,9 @@ gfc_match_if (gfc_statement * if_type)
   gfc_undo_symbols ();
   gfc_current_locus = old_loc;
 
-  /* m can be MATCH_NO or MATCH_ERROR, here.  For MATCH_NO, continue to
-     call the various matchers.  For MATCH_ERROR, a mangled assignment
-     was found.  */
+  /* m can be MATCH_NO or MATCH_ERROR, here.  For MATCH_ERROR, a mangled
+     assignment was found.  For MATCH_NO, continue to call the various
+     matchers.  */
   if (m == MATCH_ERROR)
     return MATCH_ERROR;
 
@@ -1086,30 +1081,43 @@ gfc_match_if (gfc_statement * if_type)
   gfc_clear_error ();
 
   match ("allocate", gfc_match_allocate, ST_ALLOCATE)
-    match ("assign", gfc_match_assign, ST_LABEL_ASSIGNMENT)
-    match ("backspace", gfc_match_backspace, ST_BACKSPACE)
-    match ("call", gfc_match_call, ST_CALL)
-    match ("close", gfc_match_close, ST_CLOSE)
-    match ("continue", gfc_match_continue, ST_CONTINUE)
-    match ("cycle", gfc_match_cycle, ST_CYCLE)
-    match ("deallocate", gfc_match_deallocate, ST_DEALLOCATE)
-    match ("end file", gfc_match_endfile, ST_END_FILE)
-    match ("exit", gfc_match_exit, ST_EXIT)
-    match ("flush", gfc_match_flush, ST_FLUSH)
-    match ("forall", match_simple_forall, ST_FORALL)
-    match ("go to", gfc_match_goto, ST_GOTO)
-    match ("if", match_arithmetic_if, ST_ARITHMETIC_IF)
-    match ("inquire", gfc_match_inquire, ST_INQUIRE)
-    match ("nullify", gfc_match_nullify, ST_NULLIFY)
-    match ("open", gfc_match_open, ST_OPEN)
-    match ("pause", gfc_match_pause, ST_NONE)
-    match ("print", gfc_match_print, ST_WRITE)
-    match ("read", gfc_match_read, ST_READ)
-    match ("return", gfc_match_return, ST_RETURN)
-    match ("rewind", gfc_match_rewind, ST_REWIND)
-    match ("stop", gfc_match_stop, ST_STOP)
-    match ("where", match_simple_where, ST_WHERE)
-    match ("write", gfc_match_write, ST_WRITE)
+  match ("assign", gfc_match_assign, ST_LABEL_ASSIGNMENT)
+  match ("backspace", gfc_match_backspace, ST_BACKSPACE)
+  match ("call", gfc_match_call, ST_CALL)
+  match ("close", gfc_match_close, ST_CLOSE)
+  match ("continue", gfc_match_continue, ST_CONTINUE)
+  match ("cycle", gfc_match_cycle, ST_CYCLE)
+  match ("deallocate", gfc_match_deallocate, ST_DEALLOCATE)
+  match ("end file", gfc_match_endfile, ST_END_FILE)
+  match ("exit", gfc_match_exit, ST_EXIT)
+  match ("flush", gfc_match_flush, ST_FLUSH)
+  match ("forall", match_simple_forall, ST_FORALL)
+  match ("go to", gfc_match_goto, ST_GOTO)
+  match ("if", match_arithmetic_if, ST_ARITHMETIC_IF)
+  match ("inquire", gfc_match_inquire, ST_INQUIRE)
+  match ("nullify", gfc_match_nullify, ST_NULLIFY)
+  match ("open", gfc_match_open, ST_OPEN)
+  match ("pause", gfc_match_pause, ST_NONE)
+  match ("print", gfc_match_print, ST_WRITE)
+  match ("read", gfc_match_read, ST_READ)
+  match ("return", gfc_match_return, ST_RETURN)
+  match ("rewind", gfc_match_rewind, ST_REWIND)
+  match ("stop", gfc_match_stop, ST_STOP)
+  match ("where", match_simple_where, ST_WHERE)
+  match ("write", gfc_match_write, ST_WRITE)
+
+  /* The gfc_match_assignment() above may have returned a MATCH_NO
+     where the assignment was to a named constant.  Check that 
+     special case here.  */
+  m = gfc_match_assignment ();
+  if (m == MATCH_NO)
+   {
+      gfc_error ("Cannot assign to a named constant at %C");
+      gfc_free_expr (expr);
+      gfc_undo_symbols ();
+      gfc_current_locus = old_loc;
+      return MATCH_ERROR;
+   }
 
   /* All else has failed, so give up.  See if any of the matchers has
      stored an error message of some sort.  */
@@ -1344,7 +1352,7 @@ cleanup:
 static match
 match_exit_cycle (gfc_statement st, gfc_exec_op op)
 {
-  gfc_state_data *p;
+  gfc_state_data *p, *o;
   gfc_symbol *sym;
   match m;
 
@@ -1371,9 +1379,11 @@ match_exit_cycle (gfc_statement st, gfc_exec_op op)
 
   /* Find the loop mentioned specified by the label (or lack of a
      label).  */
-  for (p = gfc_state_stack; p; p = p->previous)
+  for (o = NULL, p = gfc_state_stack; p; p = p->previous)
     if (p->state == COMP_DO && (sym == NULL || sym == p->sym))
       break;
+    else if (o == NULL && p->state == COMP_OMP_STRUCTURED_BLOCK)
+      o = p;
 
   if (p == NULL)
     {
@@ -1384,6 +1394,25 @@ match_exit_cycle (gfc_statement st, gfc_exec_op op)
 	gfc_error ("%s statement at %C is not within loop '%s'",
 		   gfc_ascii_statement (st), sym->name);
 
+      return MATCH_ERROR;
+    }
+
+  if (o != NULL)
+    {
+      gfc_error ("%s statement at %C leaving OpenMP structured block",
+		 gfc_ascii_statement (st));
+      return MATCH_ERROR;
+    }
+  else if (st == ST_EXIT
+	   && p->previous != NULL
+	   && p->previous->state == COMP_OMP_STRUCTURED_BLOCK
+	   && (p->previous->head->op == EXEC_OMP_DO
+	       || p->previous->head->op == EXEC_OMP_PARALLEL_DO))
+    {
+      gcc_assert (p->previous->head->next != NULL);
+      gcc_assert (p->previous->head->next->op == EXEC_DO
+		  || p->previous->head->next->op == EXEC_DO_WHILE);
+      gfc_error ("EXIT statement at %C terminating !$OMP DO loop");
       return MATCH_ERROR;
     }
 
@@ -1437,10 +1466,10 @@ gfc_match_stopcode (gfc_statement st)
         goto cleanup;
 
       if (m == MATCH_YES && cnt > 5)
-        {
-          gfc_error ("Too many digits in STOP code at %C");
-          goto cleanup;
-        }
+	{
+	  gfc_error ("Too many digits in STOP code at %C");
+	  goto cleanup;
+	}
 
       if (m == MATCH_NO)
         {
@@ -2277,8 +2306,8 @@ gfc_match_common (void)
       gsym = gfc_get_gsymbol (name);
       if (gsym->type != GSYM_UNKNOWN && gsym->type != GSYM_COMMON)
 	{
-	  gfc_error ("Symbol '%s' at %C is already an external symbol "
-		     " that is not COMMON", name);
+	  gfc_error ("Symbol '%s' at %C is already an external symbol that is not COMMON",
+		     name);
 	  goto cleanup;
 	}
 
@@ -2557,12 +2586,19 @@ gfc_match_namelist (void)
 	      && gfc_add_in_namelist (&sym->attr, sym->name, NULL) == FAILURE)
 	    goto error;
 
-	  /* Use gfc_error_check here, rather than goto error, so that this
+	  /* Use gfc_error_check here, rather than goto error, so that
 	     these are the only errors for the next two lines.  */
 	  if (sym->as && sym->as->type == AS_ASSUMED_SIZE)
 	    {
 	      gfc_error ("Assumed size array '%s' in namelist '%s'at "
 		         "%C is not allowed.", sym->name, group_name->name);
+	      gfc_error_check ();
+	    }
+
+	  if (sym->ts.type == BT_CHARACTER && sym->ts.cl->length == NULL)
+	    {
+	      gfc_error ("Assumed character length '%s' in namelist '%s' at "
+			 "%C is not allowed", sym->name, group_name->name);
 	      gfc_error_check ();
 	    }
 
@@ -3019,7 +3055,6 @@ match_case_eos (void)
   if (gfc_match_eos () == MATCH_YES)
     return MATCH_YES;
 
-
   /* If the case construct doesn't have a case-construct-name, we
      should have matched the EOS.  */
   if (!gfc_current_block ())
@@ -3328,7 +3363,10 @@ gfc_free_forall_iterator (gfc_forall_iterator * iter)
 
 /* Match an iterator as part of a FORALL statement.  The format is:
 
-     <var> = <start>:<end>[:<stride>][, <scalar mask>]  */
+     <var> = <start>:<end>[:<stride>]
+
+   On MATCH_NO, the caller tests for the possibility that there is a
+   scalar mask expression.  */
 
 static match
 match_forall_iterator (gfc_forall_iterator ** result)
@@ -3340,11 +3378,12 @@ match_forall_iterator (gfc_forall_iterator ** result)
   where = gfc_current_locus;
   iter = gfc_getmem (sizeof (gfc_forall_iterator));
 
-  m = gfc_match_variable (&iter->var, 0);
+  m = gfc_match_expr (&iter->var);
   if (m != MATCH_YES)
     goto cleanup;
 
-  if (gfc_match_char ('=') != MATCH_YES)
+  if (gfc_match_char ('=') != MATCH_YES
+	|| iter->var->expr_type != EXPR_VARIABLE)
     {
       m = MATCH_NO;
       goto cleanup;
@@ -3374,6 +3413,9 @@ match_forall_iterator (gfc_forall_iterator ** result)
 	goto cleanup;
     }
 
+  /* Mark the iteration variable's symbol as used as a FORALL index.  */
+  iter->var->symtree->n.sym->forall_index = true;
+
   *result = iter;
   return MATCH_YES;
 
@@ -3382,13 +3424,6 @@ syntax:
   m = MATCH_ERROR;
 
 cleanup:
-  /* Make sure that potential internal function references in the
-     mask do not get messed up.  */
-  if (iter->var
-	&& iter->var->expr_type == EXPR_VARIABLE
-	&& iter->var->symtree->n.sym->refs == 1)
-    iter->var->symtree->n.sym->attr.flavor = FL_UNKNOWN;
-
   gfc_current_locus = where;
   gfc_free_forall_iterator (iter);
   return m;

@@ -1,6 +1,6 @@
 /* Definitions for ARM running Linux-based GNU systems using ELF
    Copyright (C) 1993, 1994, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
-   2005
+   2005, 2006, 2007
    Free Software Foundation, Inc.
    Contributed by Philip Blundell <philb@gnu.org>
 
@@ -8,7 +8,7 @@
 
    GCC is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published
-   by the Free Software Foundation; either version 2, or (at your
+   by the Free Software Foundation; either version 3, or (at your
    option) any later version.
 
    GCC is distributed in the hope that it will be useful, but WITHOUT
@@ -17,9 +17,8 @@
    License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with this program; see the file COPYING.  If not, write to
-   the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-   Boston, MA 02110-1301, USA.  */
+   along with GCC; see the file COPYING3.  If not see
+   <http://www.gnu.org/licenses/>.  */
 
 /* elfos.h should have already been included.  Now just override
    any conflicting definitions and add any extras.  */
@@ -51,7 +50,7 @@
 
 #define LIBGCC_SPEC "%{msoft-float:-lfloat} %{mfloat-abi=soft*:-lfloat} -lgcc"
 
-#define LINUX_TARGET_INTERPRETER "/lib/ld-linux.so.2"
+#define GLIBC_DYNAMIC_LINKER "/lib/ld-linux.so.2"
 
 #define LINUX_TARGET_LINK_SPEC  "%{h*} %{version:-v} \
    %{b} \
@@ -59,7 +58,7 @@
    %{shared:-shared} \
    %{symbolic:-Bsymbolic} \
    %{rdynamic:-export-dynamic} \
-   %{!dynamic-linker:-dynamic-linker " LINUX_TARGET_INTERPRETER "} \
+   %{!dynamic-linker:-dynamic-linker " LINUX_DYNAMIC_LINKER "} \
    -X \
    %{mbig-endian:-EB}" \
    SUBTARGET_EXTRA_LINK_SPEC
@@ -71,11 +70,6 @@
   do						\
     {						\
 	LINUX_TARGET_OS_CPP_BUILTINS();		\
-	if (flag_pic)				\
-	  {					\
-		builtin_define ("__PIC__");	\
-		builtin_define ("__pic__");	\
-	  }					\
     }						\
   while (0)
 

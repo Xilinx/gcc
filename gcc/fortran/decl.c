@@ -1,12 +1,13 @@
 /* Declaration statement matcher
-   Copyright (C) 2002, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2002, 2004, 2005, 2006, 2007 Free Software Foundation,
+   Inc.
    Contributed by Andy Vaught
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,9 +16,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 
 #include "config.h"
@@ -73,6 +73,20 @@ gfc_symbol *gfc_new_block;
 
 
 /********************* DATA statement subroutines *********************/
+
+static bool in_match_data = false;
+
+bool
+gfc_in_match_data (void)
+{
+  return in_match_data;
+}
+
+void
+gfc_set_in_match_data (bool set_value)
+{
+  in_match_data = set_value;
+}
 
 /* Free a gfc_data_variable structure and everything beneath it.  */
 
@@ -438,6 +452,8 @@ gfc_match_data (void)
   gfc_data *new;
   match m;
 
+  gfc_set_in_match_data (true);
+
   for (;;)
     {
       new = gfc_get_data ();
@@ -460,6 +476,8 @@ gfc_match_data (void)
       gfc_match_char (',');	/* Optional comma */
     }
 
+  gfc_set_in_match_data (false);
+
   if (gfc_pure (NULL))
     {
       gfc_error ("DATA statement at %C is not allowed in a PURE procedure");
@@ -469,6 +487,7 @@ gfc_match_data (void)
   return MATCH_YES;
 
 cleanup:
+  gfc_set_in_match_data (false);
   gfc_free_data (new);
   return MATCH_ERROR;
 }
@@ -518,15 +537,14 @@ char_len_param_value (gfc_expr ** expr)
 static match
 match_char_length (gfc_expr ** expr)
 {
-  int length, cnt;
+  int length;
   match m;
 
   m = gfc_match_char ('*');
   if (m != MATCH_YES)
     return m;
 
-  /* cnt is unused, here.  */
-  m = gfc_match_small_literal_int (&length, &cnt);
+  m = gfc_match_small_literal_int (&length, NULL);
   if (m == MATCH_ERROR)
     return m;
 
@@ -726,7 +744,7 @@ build_sym (const char *name, gfc_charlen * cl,
    truncated.  */
 
 void
-gfc_set_constant_character_len (int len, gfc_expr * expr)
+gfc_set_constant_character_len (int len, gfc_expr * expr, bool array)
 {
   char * s;
   int slen;
@@ -741,6 +759,18 @@ gfc_set_constant_character_len (int len, gfc_expr * expr)
       memcpy (s, expr->value.character.string, MIN (len, slen));
       if (len > slen)
 	memset (&s[slen], ' ', len - slen);
+
+      if (gfc_option.warn_character_truncation && slen > len)
+	gfc_warning_now ("CHARACTER expression at %L is being truncated "
+			 "(%d/%d)", &expr->where, slen, len);
+
+      /* Apply the standard by 'hand' otherwise it gets cleared for
+	 initializers.  */
+      if (array && slen < len && !(gfc_option.allow_std & GFC_STD_GNU))
+	gfc_error_now ("The CHARACTER elements of the array constructor "
+		       "at %L must have the same length (%d/%d)",
+		        &expr->where, slen, len);
+
       s[len] = '\0';
       gfc_free (expr->value.character.string);
       expr->value.character.string = s;
@@ -758,7 +788,7 @@ gfc_set_constant_character_len (int len, gfc_expr * expr)
    INIT points to its enumerator value.   */
 
 static void 
-create_enum_history(gfc_symbol *sym, gfc_expr *init)
+create_enum_history (gfc_symbol *sym, gfc_expr *init)
 {
   enumerator_history *new_enum_history;
   gcc_assert (sym != NULL && init != NULL);
@@ -789,7 +819,7 @@ create_enum_history(gfc_symbol *sym, gfc_expr *init)
 /* Function to free enum kind history.  */ 
 
 void 
-gfc_free_enum_history(void)
+gfc_free_enum_history (void)
 {
   enumerator_history *current = enum_history;  
   enumerator_history *next;  
@@ -892,13 +922,18 @@ add_init_expr_to_sym (const char *name, gfc_expr ** initp,
 	      gfc_constructor * p;
 
 	      if (init->expr_type == EXPR_CONSTANT)
-		gfc_set_constant_character_len (len, init);
+		gfc_set_constant_character_len (len, init, false);
 	      else if (init->expr_type == EXPR_ARRAY)
 		{
-		  gfc_free_expr (init->ts.cl->length);
+		  /* Build a new charlen to prevent simplification from
+		     deleting the length before it is resolved.  */
+		  init->ts.cl = gfc_get_charlen ();
+		  init->ts.cl->next = gfc_current_ns->cl_list;
+		  gfc_current_ns->cl_list = sym->ts.cl;
 		  init->ts.cl->length = gfc_copy_expr (sym->ts.cl->length);
+
 		  for (p = init->value.constructor; p; p = p->next)
-		    gfc_set_constant_character_len (len, p->expr);
+		    gfc_set_constant_character_len (len, p->expr, false);
 		}
 	    }
 	}
@@ -910,10 +945,6 @@ add_init_expr_to_sym (const char *name, gfc_expr ** initp,
       sym->value = init;
       *initp = NULL;
     }
-
-  /* Maintain enumerator history.  */
-  if (gfc_current_state () == COMP_ENUM)
-    create_enum_history (sym, init);
 
   return SUCCESS;
 }
@@ -966,14 +997,31 @@ build_struct (const char *name, gfc_charlen * cl, gfc_expr ** init,
 
   /* Check array components.  */
   if (!c->dimension)
-    return SUCCESS;
+    {
+      if (c->allocatable)
+	{
+	  gfc_error ("Allocatable component at %C must be an array");
+	  return FAILURE;
+	}
+      else
+	return SUCCESS;
+    }
 
   if (c->pointer)
     {
       if (c->as->type != AS_DEFERRED)
 	{
-	  gfc_error ("Pointer array component of structure at %C "
-		     "must have a deferred shape");
+	  gfc_error ("Pointer array component of structure at %C must have a "
+		     "deferred shape");
+	  return FAILURE;
+	}
+    }
+  else if (c->allocatable)
+    {
+      if (c->as->type != AS_DEFERRED)
+	{
+	  gfc_error ("Allocatable component of structure at %C must have a "
+		     "deferred shape");
 	  return FAILURE;
 	}
     }
@@ -1073,14 +1121,6 @@ variable_decl (int elem)
 
   if (m == MATCH_NO)
     as = gfc_copy_array_spec (current_as);
-  else if (gfc_current_state () == COMP_ENUM)
-    {
-      gfc_error ("Enumerator cannot be array at %C");
-      gfc_free_enum_history ();
-      m = MATCH_ERROR;
-      goto cleanup;
-    }
-
 
   char_len = NULL;
   cl = NULL;
@@ -1179,11 +1219,13 @@ variable_decl (int elem)
       goto cleanup;
     }
 
-  /* An interface body specifies all of the procedure's characteristics and these
-     shall be consistent with those specified in the procedure definition, except
-     that the interface may specify a procedure that is not pure if the procedure
-     is defined to be pure(12.3.2).  */
+  /* An interface body specifies all of the procedure's
+     characteristics and these shall be consistent with those
+     specified in the procedure definition, except that the interface
+     may specify a procedure that is not pure if the procedure is
+     defined to be pure(12.3.2).  */
   if (current_ts.type == BT_DERIVED
+	&& gfc_current_ns->proc_name
 	&& gfc_current_ns->proc_name->attr.if_source == IFSRC_IFBODY
 	&& current_ts.derived->ns != gfc_current_ns)
     {
@@ -1288,28 +1330,12 @@ variable_decl (int elem)
 	}
     }
 
-  /* Check if we are parsing an enumeration and if the current enumerator
-     variable has an initializer or not. If it does not have an
-     initializer, the initialization value of the previous enumerator 
-     (stored in last_initializer) is incremented by 1 and is used to
-     initialize the current enumerator.  */
-  if (gfc_current_state () == COMP_ENUM)
+  if (initializer != NULL && current_attr.allocatable
+	&& gfc_current_state () == COMP_DERIVED)
     {
-      if (initializer == NULL)
-        initializer = gfc_enum_initializer (last_initializer, old_locus);
- 
-      if (initializer == NULL || initializer->ts.type != BT_INTEGER)
-        {
-          gfc_error("ENUMERATOR %L not initialized with integer expression",
-		    &var_locus);
-          m = MATCH_ERROR; 
-          gfc_free_enum_history ();
-          goto cleanup;
-        }
-
-      /* Store this current initializer, for the next enumerator
-	 variable to be parsed.  */
-      last_initializer = initializer;
+      gfc_error ("Initialization of allocatable component at %C is not allowed");
+      m = MATCH_ERROR;
+      goto cleanup;
     }
 
   /* Add the initializer.  Note that it is fine if initializer is
@@ -1319,8 +1345,9 @@ variable_decl (int elem)
     t = add_init_expr_to_sym (name, &initializer, &var_locus);
   else
     {
-      if (current_ts.type == BT_DERIVED && !current_attr.pointer
-	  && !initializer)
+      if (current_ts.type == BT_DERIVED
+	    && !current_attr.pointer
+	    && !initializer)
 	initializer = gfc_default_initializer (&current_ts);
       t = build_struct (name, cl, &initializer, &as);
     }
@@ -1336,19 +1363,20 @@ cleanup:
 }
 
 
-/* Match an extended-f77 kind specification.  */
+/* Match an extended-f77 "TYPESPEC*bytesize"-style kind specification.
+   This assumes that the byte size is equal to the kind number for
+   non-COMPLEX types, and equal to twice the kind number for COMPLEX.  */
 
 match
 gfc_match_old_kind_spec (gfc_typespec * ts)
 {
   match m;
-  int original_kind, cnt;
+  int original_kind;
 
   if (gfc_match_char ('*') != MATCH_YES)
     return MATCH_NO;
 
-  /* cnt is unused, here.  */
-  m = gfc_match_small_literal_int (&ts->kind, &cnt);
+  m = gfc_match_small_literal_int (&ts->kind, NULL);
   if (m != MATCH_YES)
     return MATCH_ERROR;
 
@@ -2033,12 +2061,6 @@ match_attr_spec (void)
       if (d == DECL_NONE || d == DECL_COLON)
 	break;
        
-      if (gfc_current_state () == COMP_ENUM)
-        {
-          gfc_error ("Enumerator cannot have attributes %C");
-          return MATCH_ERROR;
-        }
-
       seen[d]++;
       seen_at[d] = gfc_current_locus;
 
@@ -2055,18 +2077,6 @@ match_attr_spec (void)
 	  if (m == MATCH_ERROR)
 	    goto cleanup;
 	}
-    }
-
-  /* If we are parsing an enumeration and have ensured that no other
-     attributes are present we can now set the parameter attribute.  */
-  if (gfc_current_state () == COMP_ENUM)
-    {
-      t = gfc_add_flavor (&current_attr, FL_PARAMETER, NULL, NULL);
-      if (t == FAILURE)
-        {
-          m = MATCH_ERROR;
-          goto cleanup;
-        }
     }
 
   /* No double colon, so assume that we've been looking at something
@@ -2146,11 +2156,24 @@ match_attr_spec (void)
 	  && d != DECL_DIMENSION && d != DECL_POINTER
 	  && d != DECL_COLON && d != DECL_NONE)
 	{
-
-	  gfc_error ("Attribute at %L is not allowed in a TYPE definition",
-		     &seen_at[d]);
-	  m = MATCH_ERROR;
-	  goto cleanup;
+	  if (d == DECL_ALLOCATABLE)
+	    {
+	      if (gfc_notify_std (GFC_STD_F2003, 
+				   "In the selected standard, the ALLOCATABLE "
+				   "attribute at %C is not allowed in a TYPE "
+				   "definition") == FAILURE)         
+		{
+		  m = MATCH_ERROR;
+		  goto cleanup;
+		}
+            }
+          else
+	    {
+	      gfc_error ("Attribute at %L is not allowed in a TYPE definition",
+			  &seen_at[d]);
+	      m = MATCH_ERROR;
+	      goto cleanup;
+	    }
 	}
 
       if ((d == DECL_PRIVATE || d == DECL_PUBLIC)
@@ -2329,7 +2352,8 @@ ok:
 	break;
     }
 
-  gfc_error ("Syntax error in data declaration at %C");
+  if (gfc_error_flag_test () == 0)
+    gfc_error ("Syntax error in data declaration at %C");
   m = MATCH_ERROR;
 
 cleanup:
@@ -2610,7 +2634,12 @@ gfc_match_function_decl (void)
 
   m = gfc_match_formal_arglist (sym, 0, 0);
   if (m == MATCH_NO)
-    gfc_error ("Expected formal argument list in function definition at %C");
+    {
+      gfc_error ("Expected formal argument list in function "
+                "definition at %C");
+      m = MATCH_ERROR;
+      goto cleanup;
+    }
   else if (m == MATCH_ERROR)
     goto cleanup;
 
@@ -2856,12 +2885,6 @@ gfc_match_entry (void)
 	    return MATCH_ERROR;
 
 	  entry->result = result;
-	}
-
-      if (proc->attr.recursive && result == NULL)
-	{
-	  gfc_error ("RESULT attribute required in ENTRY statement at %C");
-	  return MATCH_ERROR;
 	}
     }
 
@@ -3253,7 +3276,7 @@ attr_decl1 (void)
 	goto cleanup;
     }
 
-  if (gfc_add_attribute (&sym->attr, &var_locus, current_attr.intent) == FAILURE)
+  if (gfc_add_attribute (&sym->attr, &var_locus) == FAILURE)
     {
       m = MATCH_ERROR;
       goto cleanup;
@@ -3761,7 +3784,7 @@ do_parm (void)
       && init->ts.type == BT_CHARACTER
       && init->ts.kind == 1)
     gfc_set_constant_character_len (
-      mpz_get_si (sym->ts.cl->length->value.integer), init);
+      mpz_get_si (sym->ts.cl->length->value.integer), init, false);
 
   sym->value = init;
   return MATCH_YES;
@@ -3920,6 +3943,8 @@ gfc_match_modproc (void)
 
       if (gfc_add_interface (sym) == FAILURE)
 	return MATCH_ERROR;
+
+      sym->attr.mod_proc = 1;
 
       if (gfc_match_eos () == MATCH_YES)
 	break;
@@ -4081,11 +4106,102 @@ gfc_match_enum (void)
     return m;
 
   if (gfc_notify_std (GFC_STD_F2003, 
-		      "New in Fortran 2003: ENUM AND ENUMERATOR at %C")
+		      "New in Fortran 2003: ENUM and ENUMERATOR at %C")
       == FAILURE)
     return MATCH_ERROR;
 
   return MATCH_YES;
+}
+
+
+/* Match a variable name with an optional initializer.  When this
+   subroutine is called, a variable is expected to be parsed next.
+   Depending on what is happening at the moment, updates either the
+   symbol table or the current interface.  */
+
+static match
+enumerator_decl (void)
+{
+  char name[GFC_MAX_SYMBOL_LEN + 1];
+  gfc_expr *initializer;
+  gfc_array_spec *as = NULL;
+  gfc_symbol *sym;
+  locus var_locus;
+  match m;
+  try t;
+  locus old_locus;
+
+  initializer = NULL;
+  old_locus = gfc_current_locus;
+
+  /* When we get here, we've just matched a list of attributes and
+     maybe a type and a double colon.  The next thing we expect to see
+     is the name of the symbol.  */
+  m = gfc_match_name (name);
+  if (m != MATCH_YES)
+    goto cleanup;
+
+  var_locus = gfc_current_locus;
+
+  /* OK, we've successfully matched the declaration.  Now put the
+     symbol in the current namespace. If we fail to create the symbol,
+     bail out.  */
+  if (build_sym (name, NULL, &as, &var_locus) == FAILURE)
+    {
+      m = MATCH_ERROR;
+      goto cleanup;
+    }
+
+  /* The double colon must be present in order to have initializers.
+     Otherwise the statement is ambiguous with an assignment statement.  */
+  if (colon_seen)
+    {
+      if (gfc_match_char ('=') == MATCH_YES)
+	{
+	  m = gfc_match_init_expr (&initializer);
+	  if (m == MATCH_NO)
+	    {
+	      gfc_error ("Expected an initialization expression at %C");
+	      m = MATCH_ERROR;
+	    }
+
+	  if (m != MATCH_YES)
+	    goto cleanup;
+	}
+    }
+
+  /* If we do not have an initializer, the initialization value of the
+     previous enumerator (stored in last_initializer) is incremented
+     by 1 and is used to initialize the current enumerator.  */
+  if (initializer == NULL)
+    initializer = gfc_enum_initializer (last_initializer, old_locus);
+ 
+  if (initializer == NULL || initializer->ts.type != BT_INTEGER)
+    {
+      gfc_error("ENUMERATOR %L not initialized with integer expression",
+		&var_locus);
+      m = MATCH_ERROR; 
+      gfc_free_enum_history ();
+      goto cleanup;
+    }
+
+  /* Store this current initializer, for the next enumerator variable
+     to be parsed.  add_init_expr_to_sym() zeros initializer, so we
+     use last_initializer below.  */
+  last_initializer = initializer;
+  t = add_init_expr_to_sym (name, &initializer, &var_locus);
+
+  /* Maintain enumerator history.  */
+  gfc_find_symbol (name, NULL, 0, &sym);
+  create_enum_history (sym, last_initializer);
+
+  return (t == SUCCESS) ? MATCH_YES : MATCH_ERROR;
+
+cleanup:
+  /* Free stuff up and return.  */
+  gfc_free_expr (initializer);
+
+  return m;
 }
 
 
@@ -4095,13 +4211,19 @@ match
 gfc_match_enumerator_def (void)
 {
   match m;
-  int elem; 
+  try t;
   
   gfc_clear_ts (&current_ts);
   
   m = gfc_match (" enumerator");
   if (m != MATCH_YES)
     return m;
+
+  m = gfc_match (" :: ");
+  if (m == MATCH_ERROR)
+    return m;
+
+  colon_seen = (m == MATCH_YES);
   
   if (gfc_current_state () != COMP_ENUM)
     {
@@ -4113,17 +4235,17 @@ gfc_match_enumerator_def (void)
   (&current_ts)->type = BT_INTEGER;
   (&current_ts)->kind = gfc_c_int_kind;
   
-  m = match_attr_spec ();
-  if (m == MATCH_ERROR)
+  gfc_clear_attr (&current_attr);
+  t = gfc_add_flavor (&current_attr, FL_PARAMETER, NULL, NULL);
+  if (t == FAILURE)
     {
-      m = MATCH_NO;
+      m = MATCH_ERROR;
       goto cleanup;
     }
 
-  elem = 1;
   for (;;)
     {
-      m = variable_decl (elem++);
+      m = enumerator_decl ();
       if (m == MATCH_ERROR)
 	goto cleanup;
       if (m == MATCH_NO)

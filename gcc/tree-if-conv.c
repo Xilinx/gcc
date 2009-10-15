@@ -1,12 +1,12 @@
 /* If-conversion for vectorizer.
-   Copyright (C) 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2007 Free Software Foundation, Inc.
    Contributed by Devang Patel <dpatel@apple.com>
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,9 +15,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 /* This pass implements tree level if-conversion transformation of loops.
    Initial goal is to help vectorizer vectorize loops with conditions.
@@ -102,7 +101,7 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 #include "target.h"
 
 /* local function prototypes */
-static void main_tree_if_conversion (void);
+static unsigned int main_tree_if_conversion (void);
 static tree tree_if_convert_stmt (struct loop *loop, tree, tree,
 				  block_stmt_iterator *);
 static void tree_if_convert_cond_expr (struct loop *, tree, tree,
@@ -113,7 +112,8 @@ static bool if_convertible_stmt_p (struct loop *, basic_block, tree);
 static bool if_convertible_bb_p (struct loop *, basic_block, basic_block);
 static bool if_convertible_loop_p (struct loop *, bool);
 static void add_to_predicate_list (basic_block, tree);
-static tree add_to_dst_predicate_list (struct loop * loop, basic_block, tree, tree,
+static tree add_to_dst_predicate_list (struct loop * loop, edge,
+				       tree, tree,
 				       block_stmt_iterator *);
 static void clean_predicate_lists (struct loop *loop);
 static basic_block find_phi_replacement_condition (struct loop *loop,
@@ -143,7 +143,6 @@ tree_if_conversion (struct loop *loop, bool for_vectorizer)
 {
   basic_block bb;
   block_stmt_iterator itr;
-  tree cond;
   unsigned int i;
 
   ifc_bbs = NULL;
@@ -163,11 +162,11 @@ tree_if_conversion (struct loop *loop, bool for_vectorizer)
       return false;
     }
 
-  cond = NULL_TREE;
-
   /* Do actual work now.  */
   for (i = 0; i < loop->num_nodes; i++)
     {
+      tree cond;
+
       bb = ifc_bbs [i];
 
       /* Update condition using predicate list.  */
@@ -191,7 +190,6 @@ tree_if_conversion (struct loop *loop, bool for_vectorizer)
 	  basic_block bb_n = single_succ (bb);
 	  if (cond != NULL_TREE)
 	    add_to_predicate_list (bb_n, cond);
-	  cond = NULL_TREE;
 	}
     }
 
@@ -275,19 +273,19 @@ tree_if_convert_cond_expr (struct loop *loop, tree stmt, tree cond,
   /* Add new condition into destination's predicate list.  */
 
   /* If 'c' is true then TRUE_EDGE is taken.  */
-  add_to_dst_predicate_list (loop, true_edge->dest, cond,
+  add_to_dst_predicate_list (loop, true_edge, cond,
 			     unshare_expr (c), bsi);
 
   /* If 'c' is false then FALSE_EDGE is taken.  */
   c2 = invert_truthvalue (unshare_expr (c));
-  add_to_dst_predicate_list (loop, false_edge->dest, cond, c2, bsi);
+  add_to_dst_predicate_list (loop, false_edge, cond, c2, bsi);
 
   /* Now this conditional statement is redundant. Remove it.
      But, do not remove exit condition! Update exit condition
      using new condition.  */
   if (!bb_with_exit_edge_p (loop, bb_for_stmt (stmt)))
     {
-      bsi_remove (bsi);
+      bsi_remove (bsi, true);
       cond = NULL_TREE;
     }
   return;
@@ -565,7 +563,15 @@ if_convertible_loop_p (struct loop *loop, bool for_vectorizer ATTRIBUTE_UNUSED)
       /* ??? Check data dependency for vectorizer.  */
 
       /* What about phi nodes ? */
-      for (phi = phi_nodes (bb); phi; phi = PHI_CHAIN (phi))
+      phi = phi_nodes (bb);
+
+      /* Clear aux field of incoming edges to a bb with a phi node.  */
+      if (phi)
+	FOR_EACH_EDGE (e, ei, bb->preds)
+	  e->aux = NULL;
+
+      /* Check statements.  */
+      for (; phi; phi = PHI_CHAIN (phi))
 	if (!if_convertible_phi_p (loop, bb, phi))
 	  return false;
 
@@ -602,13 +608,13 @@ add_to_predicate_list (basic_block bb, tree new_cond)
    existing condition.  */
 
 static tree
-add_to_dst_predicate_list (struct loop * loop, basic_block bb,
+add_to_dst_predicate_list (struct loop * loop, edge e,
 			   tree prev_cond, tree cond,
 			   block_stmt_iterator *bsi)
 {
   tree new_cond = NULL_TREE;
 
-  if (!flow_bb_inside_loop_p (loop, bb))
+  if (!flow_bb_inside_loop_p (loop, e->dest))
     return NULL_TREE;
 
   if (prev_cond == boolean_true_node || !prev_cond)
@@ -629,29 +635,42 @@ add_to_dst_predicate_list (struct loop * loop, basic_block bb,
       if (tmp_stmts2)
         bsi_insert_before (bsi, tmp_stmts2, BSI_SAME_STMT);
 
+      /* Add the condition to aux field of the edge.  In case edge
+	 destination is a PHI node, this condition will be ANDed with
+	 block predicate to construct complete condition.  */
+      e->aux = cond;
+
       /* new_cond == prev_cond AND cond */
-      tmp = build (TRUTH_AND_EXPR, boolean_type_node,
-		   unshare_expr (prev_cond), cond);
+      tmp = build2 (TRUTH_AND_EXPR, boolean_type_node,
+		    unshare_expr (prev_cond), cond);
       tmp_stmt = ifc_temp_var (boolean_type_node, tmp);
       bsi_insert_before (bsi, tmp_stmt, BSI_SAME_STMT);
       new_cond = TREE_OPERAND (tmp_stmt, 0);
     }
-  add_to_predicate_list (bb, new_cond);
+  add_to_predicate_list (e->dest, new_cond);
   return new_cond;
 }
 
-/* During if-conversion aux field from basic block is used to hold predicate
-   list. Clean each basic block's predicate list for the given LOOP.  */
+/* During if-conversion aux field from basic block structure is used to hold
+   predicate list. Clean each basic block's predicate list for the given LOOP.
+   Also clean aux field of succesor edges, used to hold true and false
+   condition from conditional expression.  */
 
 static void
 clean_predicate_lists (struct loop *loop)
 {
   basic_block *bb;
   unsigned int i;
+  edge e;
+  edge_iterator ei;
+
   bb = get_loop_body (loop);
   for (i = 0; i < loop->num_nodes; i++)
-    bb[i]->aux = NULL;
-
+    {
+      bb[i]->aux = NULL;
+      FOR_EACH_EDGE (e, ei, bb[i]->succs)
+	e->aux = NULL;
+    }
   free (bb);
 }
 
@@ -664,13 +683,12 @@ find_phi_replacement_condition (struct loop *loop,
 				basic_block bb, tree *cond,
                                 block_stmt_iterator *bsi)
 {
-  basic_block first_bb = NULL;
-  basic_block second_bb = NULL;
+  edge first_edge, second_edge;
   tree tmp_cond, new_stmts;
 
   gcc_assert (EDGE_COUNT (bb->preds) == 2);
-  first_bb = (EDGE_PRED (bb, 0))->src;
-  second_bb = (EDGE_PRED (bb, 1))->src;
+  first_edge = EDGE_PRED (bb, 0);
+  second_edge = EDGE_PRED (bb, 1);
 
   /* Use condition based on following criteria:
      1)
@@ -691,48 +709,63 @@ find_phi_replacement_condition (struct loop *loop,
        S3: x = (c == d) ? b : a;
 
        S3 is preferred over S1 and S2*, Make 'b' first_bb and use 
-       its condition.  
+       its condition.
 
      4) If  pred B is dominated by pred A then use pred B's condition.
         See PR23115.  */
 
   /* Select condition that is not TRUTH_NOT_EXPR.  */
-  tmp_cond = first_bb->aux;
+  tmp_cond = (first_edge->src)->aux;
   if (TREE_CODE (tmp_cond) == TRUTH_NOT_EXPR)
     {
-      basic_block tmp_bb;
-      tmp_bb = first_bb;
-      first_bb = second_bb;
-      second_bb = tmp_bb;
+      edge tmp_edge;
+
+      tmp_edge = first_edge;
+      first_edge = second_edge;
+      second_edge = tmp_edge;
     }
 
   /* Check if FIRST_BB is loop header or not and make sure that
      FIRST_BB does not dominate SECOND_BB.  */
-  if (first_bb == loop->header
-      || dominated_by_p (CDI_DOMINATORS, second_bb, first_bb))
+  if (first_edge->src == loop->header
+      || dominated_by_p (CDI_DOMINATORS,
+			 second_edge->src, first_edge->src))
     {
-      tmp_cond = second_bb->aux;
-      if (TREE_CODE (tmp_cond) == TRUTH_NOT_EXPR)
-	{
-	  /* Select non loop header condition but do not switch basic blocks.  */
-	  *cond = invert_truthvalue (unshare_expr (tmp_cond));
-	}
+      *cond = (second_edge->src)->aux;
+
+      /* If there is a condition on an incoming edge,
+	 AND it with the incoming bb predicate.  */
+      if (second_edge->aux)
+	*cond = build2 (TRUTH_AND_EXPR, boolean_type_node,
+			*cond, second_edge->aux);
+
+      if (TREE_CODE (*cond) == TRUTH_NOT_EXPR)
+	/* We can be smart here and choose inverted
+	   condition without switching bbs.  */
+	*cond = invert_truthvalue (*cond);
       else
-	{
-	  /* Select non loop header condition.  */
-	  first_bb = second_bb;
-	  *cond = first_bb->aux;
-	}
+	/* Select non loop header bb.  */
+	first_edge = second_edge;
     }
   else
-    /* FIRST_BB is not loop header */
-    *cond = first_bb->aux;
+    {
+      /* FIRST_BB is not loop header */
+      *cond = (first_edge->src)->aux;
+
+      /* If there is a condition on an incoming edge,
+	 AND it with the incoming bb predicate.  */
+      if (first_edge->aux)
+	*cond = build2 (TRUTH_AND_EXPR, boolean_type_node,
+			*cond, first_edge->aux);
+    }
 
   /* Create temp. for the condition. Vectorizer prefers to have gimple
      value as condition. Various targets use different means to communicate
-     condition in vector compare operation. Using gimple value allows compiler
-     to emit vector compare and select RTL without exposing compare's result.  */
-  *cond = force_gimple_operand (*cond, &new_stmts, false, NULL_TREE);
+     condition in vector compare operation. Using gimple value allows
+     compiler to emit vector compare and select RTL without exposing
+     compare's result.  */
+  *cond = force_gimple_operand (unshare_expr (*cond), &new_stmts,
+				false, NULL_TREE);
   if (new_stmts)
     bsi_insert_before (bsi, new_stmts, BSI_SAME_STMT);
   if (!is_gimple_reg (*cond) && !is_gimple_condexpr (*cond))
@@ -746,7 +779,7 @@ find_phi_replacement_condition (struct loop *loop,
 
   gcc_assert (*cond);
 
-  return first_bb;
+  return first_edge->src;
 }
 
 
@@ -777,10 +810,6 @@ replace_phi_with_cond_modify_expr (tree phi, tree cond, basic_block true_bb,
   /* Find basic block and initialize iterator.  */
   bb = bb_for_stmt (phi);
 
-  new_stmt = NULL_TREE;
-  arg_0 = NULL_TREE;
-  arg_1 = NULL_TREE;
-
   /* Use condition that is not TRUTH_NOT_EXPR in conditional modify expr.  */
   if (EDGE_PRED (bb, 1)->src == true_bb)
     {
@@ -794,13 +823,13 @@ replace_phi_with_cond_modify_expr (tree phi, tree cond, basic_block true_bb,
     }
 
   /* Build new RHS using selected condition and arguments.  */
-  rhs = build (COND_EXPR, TREE_TYPE (PHI_RESULT (phi)),
-	       unshare_expr (cond), unshare_expr (arg_0),
-	       unshare_expr (arg_1));
+  rhs = build3 (COND_EXPR, TREE_TYPE (PHI_RESULT (phi)),
+	        unshare_expr (cond), unshare_expr (arg_0),
+	        unshare_expr (arg_1));
 
   /* Create new MODIFY expression using RHS.  */
-  new_stmt = build (MODIFY_EXPR, TREE_TYPE (PHI_RESULT (phi)),
-		    unshare_expr (PHI_RESULT (phi)), rhs);
+  new_stmt = build2 (MODIFY_EXPR, TREE_TYPE (PHI_RESULT (phi)),
+		     unshare_expr (PHI_RESULT (phi)), rhs);
 
   /* Make new statement definition of the original phi result.  */
   SSA_NAME_DEF_STMT (PHI_RESULT (phi)) = new_stmt;
@@ -938,7 +967,7 @@ combine_blocks (struct loop *loop)
       for (bsi = bsi_start (bb); !bsi_end_p (bsi); )
 	{
 	  if (TREE_CODE (bsi_stmt (bsi)) == LABEL_EXPR)
-	    bsi_remove (&bsi);
+	    bsi_remove (&bsi, true);
 	  else
 	    {
 	      set_bb_for_stmt (bsi_stmt (bsi), merge_target_bb);
@@ -988,10 +1017,10 @@ ifc_temp_var (tree type, tree exp)
 
   /* Create new temporary variable.  */
   var = create_tmp_var (type, name);
-  add_referenced_tmp_var (var);
+  add_referenced_var (var);
 
   /* Build new statement to assign EXP to new variable.  */
-  stmt = build (MODIFY_EXPR, type, var, exp);
+  stmt = build2 (MODIFY_EXPR, type, var, exp);
 
   /* Get SSA name for the new variable and set make new statement
      its definition statement.  */
@@ -1036,7 +1065,7 @@ get_loop_body_in_if_conv_order (const struct loop *loop)
   gcc_assert (loop->num_nodes);
   gcc_assert (loop->latch != EXIT_BLOCK_PTR);
 
-  blocks = xcalloc (loop->num_nodes, sizeof (basic_block));
+  blocks = XCNEWVEC (basic_block, loop->num_nodes);
   visited = BITMAP_ALLOC (NULL);
 
   blocks_in_bfs_order = get_loop_body_in_bfs_order (loop);
@@ -1097,14 +1126,14 @@ bb_with_exit_edge_p (struct loop *loop, basic_block bb)
 
 /* Tree if-conversion pass management.  */
 
-static void
+static unsigned int
 main_tree_if_conversion (void)
 {
   unsigned i, loop_num;
   struct loop *loop;
 
   if (!current_loops)
-    return;
+    return 0;
 
   loop_num = current_loops->num;
   for (i = 0; i < loop_num; i++)
@@ -1115,7 +1144,7 @@ main_tree_if_conversion (void)
 
       tree_if_conversion (loop, true);
     }
-
+  return 0;
 }
 
 static bool

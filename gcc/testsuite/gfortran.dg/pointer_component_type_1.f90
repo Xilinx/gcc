@@ -22,8 +22,6 @@
   DD=TEST(IP)          ! { dg-error "INTEGER but should be REAL" }
 ! Check right target type is OK.
   DD=TEST(NULL(RP))
-!
-  DD=TEST(NULL())
 ! Check non-pointer is OK.
   EE= TEST1(1)
 ! Test attempted conversion from character to real.

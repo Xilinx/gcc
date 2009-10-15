@@ -1,13 +1,13 @@
 /* Functions to support a pool of allocatable objects.
-   Copyright (C) 1987, 1997, 1998, 1999, 2000, 2001, 2003, 2004, 2005
-   Free Software Foundation, Inc.
+   Copyright (C) 1987, 1997, 1998, 1999, 2000, 2001, 2003, 2004, 2005, 2006,
+   2007  Free Software Foundation, Inc.
    Contributed by Daniel Berlin <dan@cgsoftware.com>
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -16,9 +16,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -103,7 +102,7 @@ alloc_pool_descriptor (const char *name)
 
   slot = (struct alloc_pool_descriptor **)
     htab_find_slot_with_hash (alloc_pool_hash, name,
-		    	      htab_hash_pointer (name),
+			      htab_hash_pointer (name),
 			      1);
   if (*slot)
     return *slot;
@@ -207,6 +206,17 @@ free_alloc_pool (alloc_pool pool)
   free (pool);
 }
 
+/* Frees the alloc_pool, if it is empty and zero *POOL in this case.  */
+void
+free_alloc_pool_if_empty (alloc_pool *pool)
+{
+  if ((*pool)->elts_free == (*pool)->elts_allocated)
+    {
+      free_alloc_pool (*pool);
+      *pool = NULL;
+    }
+}
+
 /* Allocates one element from the pool specified.  */
 void *
 pool_alloc (alloc_pool pool)
@@ -228,7 +238,7 @@ pool_alloc (alloc_pool pool)
       alloc_pool_list block_header;
 
       /* Make the block.  */
-      block = xmalloc (pool->block_size);
+      block = XNEWVEC (char, pool->block_size);
       block_header = (alloc_pool_list) block;
       block += align_eight (sizeof (struct alloc_pool_list_def));
 #ifdef GATHER_STATISTICS
@@ -248,12 +258,12 @@ pool_alloc (alloc_pool pool)
 	/* Mark the element to be free.  */
 	((allocation_object *) block)->id = 0;
 #endif
-        header = (alloc_pool_list) USER_PTR_FROM_ALLOCATION_OBJECT_PTR (block);
-        header->next = pool->free_list;
-        pool->free_list = header;
+	header = (alloc_pool_list) USER_PTR_FROM_ALLOCATION_OBJECT_PTR (block);
+	header->next = pool->free_list;
+	pool->free_list = header;
       }
       /* Also update the number of elements we have free/allocated, and
-         increment the allocated block count.  */
+	 increment the allocated block count.  */
       pool->elts_allocated += pool->elts_per_block;
       pool->elts_free += pool->elts_per_block;
       pool->blocks_allocated += 1;
@@ -328,7 +338,8 @@ print_statistics (void **slot, void *b)
 #endif
 
 /* Output per-alloc_pool memory usage statistics.  */
-void dump_alloc_pool_statistics (void)
+void
+dump_alloc_pool_statistics (void)
 {
 #ifdef GATHER_STATISTICS
   struct output_info info;

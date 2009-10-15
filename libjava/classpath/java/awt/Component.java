@@ -1,5 +1,6 @@
 /* Component.java -- a graphics component
-   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004  Free Software Foundation
+   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2006
+   Free Software Foundation
 
 This file is part of GNU Classpath.
 
@@ -40,6 +41,7 @@ package java.awt;
 
 import java.awt.dnd.DropTarget;
 import java.awt.event.ActionEvent;
+import java.awt.event.AdjustmentEvent;
 import java.awt.event.ComponentEvent;
 import java.awt.event.ComponentListener;
 import java.awt.event.FocusEvent;
@@ -68,6 +70,7 @@ import java.awt.image.ImageProducer;
 import java.awt.image.VolatileImage;
 import java.awt.peer.ComponentPeer;
 import java.awt.peer.LightweightPeer;
+import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
 import java.io.IOException;
@@ -210,6 +213,12 @@ public abstract class Component
    * as a lock object.
    */
   static final Object treeLock = new String("AWT_TREE_LOCK");
+
+  /**
+   * The default maximum size.
+   */
+  private static final Dimension DEFAULT_MAX_SIZE 
+                             = new Dimension(Short.MAX_VALUE, Short.MAX_VALUE);
 
   // Serialized fields from the serialization spec.
 
@@ -425,11 +434,35 @@ public abstract class Component
   Dimension minSize;
 
   /**
+   * Flag indicating whether the minimum size for the component has been set
+   * by a call to {@link #setMinimumSize(Dimension)} with a non-null value.
+   */
+  boolean minSizeSet;
+  
+  /**
+   * The maximum size for the component.
+   * @see #setMaximumSize(Dimension)
+   */
+  Dimension maxSize;
+  
+  /**
+   * A flag indicating whether the maximum size for the component has been set
+   * by a call to {@link #setMaximumSize(Dimension)} with a non-null value.
+   */
+  boolean maxSizeSet;
+  
+  /**
    * Cached information on the preferred size. Should have been transient.
    *
    * @serial ignore
    */
   Dimension prefSize;
+
+  /**
+   * Flag indicating whether the preferred size for the component has been set
+   * by a call to {@link #setPreferredSize(Dimension)} with a non-null value.
+   */
+  boolean prefSizeSet;
 
   /**
    * Set to true if an event is to be handled by this component, false if
@@ -561,6 +594,17 @@ public abstract class Component
   transient BufferStrategy bufferStrategy;
 
   /**
+   * The number of hierarchy listeners of this container plus all of its
+   * children. This is needed for efficient handling of HierarchyEvents.
+   * These must be propagated to all child components with HierarchyListeners
+   * attached. To avoid traversal of the whole subtree, we keep track of
+   * the number of HierarchyListeners here and only walk the paths that
+   * actually have listeners.
+   */
+  int numHierarchyListeners;
+  int numHierarchyBoundsListeners;
+
+  /**
    * true if requestFocus was called on this component when its
    * top-level ancestor was not focusable.
    */
@@ -605,16 +649,19 @@ public abstract class Component
   }
 
   /**
-   * Sets the name of this component to the specified name.
+   * Sets the name of this component to the specified name (this is a bound
+   * property with the name 'name').
    *
-   * @param name the new name of this component
+   * @param name the new name (<code>null</code> permitted).
    * @see #getName()
    * @since 1.1
    */
   public void setName(String name)
   {
     nameExplicitlySet = true;
+    String old = this.name;
     this.name = name;
+    firePropertyChange("name", old, name);
   }
 
   /**
@@ -716,7 +763,9 @@ public abstract class Component
    */
   public boolean isValid()
   {
-    return valid;
+    // Tests show that components are invalid as long as they are not showing, even after validate()
+    // has been called on them.
+    return peer != null && valid;
   }
 
   /**
@@ -802,9 +851,17 @@ public abstract class Component
    */
   public void enable()
   {
-    this.enabled = true;
-    if (peer != null)
-      peer.setEnabled (true);
+    if (! enabled)
+      {
+        // Need to lock the tree here, because the peers are involved.
+        synchronized (getTreeLock())
+          {
+            enabled = true;
+            ComponentPeer p = peer;
+            if (p != null)
+              p.enable();
+          }
+      }
   }
 
   /**
@@ -829,9 +886,17 @@ public abstract class Component
    */
   public void disable()
   {
-    this.enabled = false;
-    if (peer != null)
-      peer.setEnabled (false);
+    if (enabled)
+      {
+        // Need to lock the tree here, because the peers are involved.
+        synchronized (getTreeLock())
+          {
+            enabled = false;
+            ComponentPeer p = peer;
+            if (p != null)
+              p.disable();
+          }
+      }
   }
 
   /**
@@ -896,16 +961,38 @@ public abstract class Component
     // and its children.
     if(!isVisible())
       {
-        this.visible = true;
-        // Avoid NullPointerExceptions by creating a local reference.
-        ComponentPeer currentPeer=peer;
-        if (currentPeer != null)
-            currentPeer.setVisible(true);
+        // Need to lock the tree here to avoid races and inconsistencies.
+        synchronized (getTreeLock())
+          {
+            visible = true;
+            // Avoid NullPointerExceptions by creating a local reference.
+            ComponentPeer currentPeer=peer;
+            if (currentPeer != null)
+              {
+                currentPeer.show();
 
-        // The JDK repaints the component before invalidating the parent.
-        // So do we.
-        if (isShowing())
-          repaint();
+                // Fire HierarchyEvent.
+                fireHierarchyEvent(HierarchyEvent.HIERARCHY_CHANGED,
+                                   this, parent,
+                                   HierarchyEvent.SHOWING_CHANGED);
+
+                // The JDK repaints the component before invalidating the parent.
+                // So do we.
+                if (isLightweight())
+                  repaint();
+              }
+
+            // Only post an event if this component actually has a listener
+            // or has this event explicitly enabled.
+            if (componentListener != null
+                || (eventMask & AWTEvent.COMPONENT_EVENT_MASK) != 0)
+              {
+                ComponentEvent ce =
+                  new ComponentEvent(this,ComponentEvent.COMPONENT_SHOWN);
+                getToolkit().getSystemEventQueue().postEvent(ce);
+              }
+          }
+
         // Invalidate the parent if we have one. The component itself must
         // not be invalidated. We also avoid NullPointerException with
         // a local reference here.
@@ -913,9 +1000,6 @@ public abstract class Component
         if (currentParent != null)
           currentParent.invalidate();
 
-        ComponentEvent ce =
-          new ComponentEvent(this,ComponentEvent.COMPONENT_SHOWN);
-        getToolkit().getSystemEventQueue().postEvent(ce);
       }
   }
 
@@ -943,27 +1027,45 @@ public abstract class Component
   {
     if (isVisible())
       {
-        // Avoid NullPointerExceptions by creating a local reference.
-        ComponentPeer currentPeer=peer;
-        if (currentPeer != null)
-            currentPeer.setVisible(false);
-        boolean wasShowing = isShowing();
-        this.visible = false;
+        // Need to lock the tree here to avoid races and inconsistencies.
+        synchronized (getTreeLock())
+          {
+            visible = false;
 
-        // The JDK repaints the component before invalidating the parent.
-        // So do we.
-        if (wasShowing)
-          repaint();
-        // Invalidate the parent if we have one. The component itself must
+            // Avoid NullPointerExceptions by creating a local reference.
+            ComponentPeer currentPeer=peer;
+            if (currentPeer != null)
+              {
+                currentPeer.hide();
+
+                // Fire hierarchy event.
+                fireHierarchyEvent(HierarchyEvent.HIERARCHY_CHANGED,
+                                   this, parent,
+                                   HierarchyEvent.SHOWING_CHANGED);
+                // The JDK repaints the component before invalidating the
+                // parent. So do we. This only applies for lightweights.
+                if (peer instanceof LightweightPeer)
+                  repaint();
+              }
+
+            // Only post an event if this component actually has a listener
+            // or has this event explicitly enabled.
+            if (componentListener != null
+                || (eventMask & AWTEvent.COMPONENT_EVENT_MASK) != 0)
+              {
+                ComponentEvent ce =
+                  new ComponentEvent(this,ComponentEvent.COMPONENT_HIDDEN);
+                getToolkit().getSystemEventQueue().postEvent(ce);
+              }
+          }
+
+        // Invalidate the parent if we have one. The component itself need
         // not be invalidated. We also avoid NullPointerException with
         // a local reference here.
         Container currentParent = parent;
         if (currentParent != null)
           currentParent.invalidate();
 
-        ComponentEvent ce =
-          new ComponentEvent(this,ComponentEvent.COMPONENT_HIDDEN);
-        getToolkit().getSystemEventQueue().postEvent(ce);
       }
   }
 
@@ -1038,14 +1140,10 @@ public abstract class Component
     if ((c != null) && c.equals(background))
       return;
 
-    // If c is null, inherit from closest ancestor whose bg is set.
-    if (c == null && parent != null)
-      c = parent.getBackground();
-    if (peer != null && c != null)
-      peer.setBackground(c);
-    
     Color previous = background;
     background = c;
+    if (peer != null && c != null)
+      peer.setBackground(c);
     firePropertyChange("background", previous, c);
   }
 
@@ -1077,8 +1175,6 @@ public abstract class Component
     Component p = parent;
     if (p != null)
       return p.getFont();
-    if (peer != null)
-      return peer.getGraphics().getFont();
     return null;
   }
 
@@ -1092,16 +1188,13 @@ public abstract class Component
    */
   public void setFont(Font newFont)
   {
-    if((newFont != null && (font == null || !font.equals(newFont)))
-       || newFont == null)
-      {
-        Font oldFont = font;
-        font = newFont;
-        if (peer != null)
-          peer.setFont(font);
-        firePropertyChange("font", oldFont, newFont);
-        invalidate();
-      }
+    Font oldFont = font;
+    font = newFont;
+    if (peer != null)
+      peer.setFont(font);
+    firePropertyChange("font", oldFont, newFont);
+    if (valid)
+      invalidate();
   }
 
   /**
@@ -1193,8 +1286,15 @@ public abstract class Component
       throw new IllegalComponentStateException("component "
                                                + getClass().getName()
                                                + " not showing");
-    // We know peer != null here.
-    return peer.getLocationOnScreen();
+
+    // Need to lock the tree here. We get crazy races and explosions when
+    // the tree changes while we are trying to find the location of this
+    // component.
+    synchronized (getTreeLock())
+      {
+        // We know peer != null here.
+        return peer.getLocationOnScreen();
+      }
   }
 
   /**
@@ -1388,51 +1488,98 @@ public abstract class Component
    */
   public void reshape(int x, int y, int width, int height)
   {
-    int oldx = this.x;
-    int oldy = this.y;
-    int oldwidth = this.width;
-    int oldheight = this.height;
-
-    if (this.x == x && this.y == y
-        && this.width == width && this.height == height)
-      return;
-    invalidate ();
-    this.x = x;
-    this.y = y;
-    this.width = width;
-    this.height = height;
-    if (peer != null)
-      peer.setBounds (x, y, width, height);
-
-    // Erase old bounds and repaint new bounds for lightweights.
-    if (isLightweight() && isShowing())
+    // We need to lock the tree here, otherwise we risk races and
+    // inconsistencies.
+    synchronized (getTreeLock())
       {
-        if (parent != null)
+        int oldx = this.x;
+        int oldy = this.y;
+        int oldwidth = this.width;
+        int oldheight = this.height;
+    
+        boolean resized = oldwidth != width || oldheight != height;
+        boolean moved = oldx != x || oldy != y;
+
+        if (resized || moved)
           {
-            Rectangle oldBounds = new Rectangle(oldx, oldy, oldwidth,
-                                                oldheight);
-            Rectangle newBounds = new Rectangle(x, y, width, height);
-            Rectangle destroyed = oldBounds.union(newBounds);
-            if (!destroyed.isEmpty())
-              parent.repaint(0, destroyed.x, destroyed.y, destroyed.width,
-                             destroyed.height);
+            // Update the fields.
+            this.x = x;
+            this.y = y;
+            this.width = width;
+            this.height = height;
+
+            if (peer != null)
+              {
+                peer.setBounds (x, y, width, height);
+                if (resized)
+                  invalidate();
+                if (parent != null && parent.valid)
+                  parent.invalidate();
+              }
+
+            // Send some events to interested listeners.
+            notifyReshape(resized, moved);
+
+            // Repaint this component and the parent if appropriate.
+            if (parent != null && peer instanceof LightweightPeer
+                && isShowing())
+              {
+                // The parent repaints the area that we occupied before.
+                parent.repaint(oldx, oldy, oldwidth, oldheight);
+                // This component repaints the area that we occupy now.
+                repaint();
+              }
           }
       }
+  }
 
-    // Only post event if this component is visible and has changed size.
-    if (isShowing ()
-        && (oldx != x || oldy != y))
+  private void notifyReshape(boolean resized, boolean moved)
+  {
+    // Only post an event if this component actually has a listener
+    // or has this event explicitly enabled.
+    if (componentListener != null
+        || (eventMask & AWTEvent.COMPONENT_EVENT_MASK) != 0)
       {
-        ComponentEvent ce = new ComponentEvent(this,
-                                               ComponentEvent.COMPONENT_MOVED);
-        getToolkit().getSystemEventQueue().postEvent(ce);
+        // Fire component event on this component.
+        if (moved)
+          {
+            ComponentEvent ce = new ComponentEvent(this,
+                                           ComponentEvent.COMPONENT_MOVED);
+            getToolkit().getSystemEventQueue().postEvent(ce);
+          }
+        if (resized)
+          {
+            ComponentEvent ce = new ComponentEvent(this,
+                                         ComponentEvent.COMPONENT_RESIZED);
+            getToolkit().getSystemEventQueue().postEvent(ce);
+          }
       }
-    if (isShowing ()
-        && (oldwidth != width || oldheight != height))
+    else
       {
-        ComponentEvent ce = new ComponentEvent(this,
-                                               ComponentEvent.COMPONENT_RESIZED);
-        getToolkit().getSystemEventQueue().postEvent(ce);
+        // Otherwise we might need to notify child components when this is
+        // a Container.
+        if (this instanceof Container)
+          {
+            Container cont = (Container) this;
+            if (resized)
+              {
+                for (int i = 0; i < cont.getComponentCount(); i++)
+                  {
+                    Component child = cont.getComponent(i);
+                    child.fireHierarchyEvent(HierarchyEvent.ANCESTOR_RESIZED,
+                                             this, parent, 0);
+                  }
+              }
+            if (moved)
+              {
+                for (int i = 0; i < cont.getComponentCount(); i++)
+                  {
+                    Component child = cont.getComponent(i);
+                    child.fireHierarchyEvent(HierarchyEvent.ANCESTOR_MOVED,
+                                             this, parent, 0);
+                  }
+              }
+          }
       }
   }
 
@@ -1586,6 +1733,7 @@ public abstract class Component
    *
    * @return the component's preferred size
    * @see #getMinimumSize()
+   * @see #setPreferredSize(Dimension)
    * @see LayoutManager
    */
   public Dimension getPreferredSize()
@@ -1594,6 +1742,40 @@ public abstract class Component
   }
 
   /**
+   * Sets the preferred size that will be returned by 
+   * {@link #getPreferredSize()} always, and sends a 
+   * {@link PropertyChangeEvent} (with the property name 'preferredSize') to 
+   * all registered listeners.
+   * 
+   * @param size  the preferred size (<code>null</code> permitted).
+   * 
+   * @since 1.5
+   * 
+   * @see #getPreferredSize()
+   */
+  public void setPreferredSize(Dimension size)
+  {
+    Dimension old = prefSizeSet ? prefSize : null;
+    prefSize = size;
+    prefSizeSet = (size != null);
+    firePropertyChange("preferredSize", old, size);
+  }
+  
+  /**
+   * Returns <code>true</code> if the current preferred size is not 
+   * <code>null</code> and was set by a call to 
+   * {@link #setPreferredSize(Dimension)}, otherwise returns <code>false</code>.
+   * 
+   * @return A boolean.
+   * 
+   * @since 1.5
+   */
+  public boolean isPreferredSizeSet()
+  {
+    return prefSizeSet;
+  }
+  
+  /**
    * Returns the component's preferred size.
    *
    * @return the component's preferred size
@@ -1601,19 +1783,44 @@ public abstract class Component
    */
   public Dimension preferredSize()
   {
-    if (prefSize == null)
-      if (peer == null)
-	return new Dimension(width, height);
-      else 
-        prefSize = peer.getPreferredSize();
-    return prefSize;
+    // Create a new Dimension object, so that the application doesn't mess
+    // with the actual values.
+    return new Dimension(preferredSizeImpl());
+  }
+
+  /**
+   * The actual calculation is pulled out of preferredSize() so that
+   * we can call it from Container.preferredSize() and avoid creating a
+   * new intermediate Dimension object.
+   * 
+   * @return the preferredSize of the component
+   */
+  Dimension preferredSizeImpl()
+  {
+    Dimension size = prefSize;
+    // Try to use a cached value.
+    if (size == null || !(valid || prefSizeSet))
+      {
+        // We need to lock here, because the calculation depends on the
+        // component structure not changing.
+        synchronized (getTreeLock())
+          {
+            ComponentPeer p = peer;
+            if (p != null)
+              size = peer.preferredSize();
+            else
+              size = minimumSizeImpl();
+          }
+      }
+    return size;
   }
 
   /**
    * Returns the component's minimum size.
-   *
+   * 
    * @return the component's minimum size
    * @see #getPreferredSize()
+   * @see #setMinimumSize(Dimension)
    * @see LayoutManager
    */
   public Dimension getMinimumSize()
@@ -1622,6 +1829,39 @@ public abstract class Component
   }
 
   /**
+   * Sets the minimum size that will be returned by {@link #getMinimumSize()}
+   * always, and sends a {@link PropertyChangeEvent} (with the property name
+   * 'minimumSize') to all registered listeners.
+   * 
+   * @param size  the minimum size (<code>null</code> permitted).
+   * 
+   * @since 1.5
+   * 
+   * @see #getMinimumSize()
+   */
+  public void setMinimumSize(Dimension size)
+  {
+    Dimension old = minSizeSet ? minSize : null;
+    minSize = size;
+    minSizeSet = (size != null);
+    firePropertyChange("minimumSize", old, size);
+  }
+  
+  /**
+   * Returns <code>true</code> if the current minimum size is not 
+   * <code>null</code> and was set by a call to 
+   * {@link #setMinimumSize(Dimension)}, otherwise returns <code>false</code>.
+   * 
+   * @return A boolean.
+   * 
+   * @since 1.5
+   */
+  public boolean isMinimumSizeSet()
+  {
+    return minSizeSet;
+  }
+  
+  /**
    * Returns the component's minimum size.
    *
    * @return the component's minimum size
@@ -1629,10 +1869,36 @@ public abstract class Component
    */
   public Dimension minimumSize()
   {
-    if (minSize == null)
-      minSize = (peer != null ? peer.getMinimumSize()
-                 : new Dimension(width, height));
-    return minSize;
+    // Create a new Dimension object, so that the application doesn't mess
+    // with the actual values.
+    return new Dimension(minimumSizeImpl());
+  }
+
+  /**
+   * The actual calculation is pulled out of minimumSize() so that
+   * we can call it from Container.preferredSize() and
+   * Component.preferredSizeImpl and avoid creating a
+   * new intermediate Dimension object.
+   * 
+   * @return the minimum size of the component
+   */
+  Dimension minimumSizeImpl()
+  {
+    Dimension size = minSize;
+    if (size == null || !(valid || minSizeSet))
+      {
+        // We need to lock here, because the calculation depends on the
+        // component structure not changing.
+        synchronized (getTreeLock())
+          {
+            ComponentPeer p = peer;
+            if (p != null)
+              size = peer.minimumSize();
+            else
+              size = size();
+          }
+      }
+    return size;
   }
 
   /**
@@ -1640,14 +1906,65 @@ public abstract class Component
    *
    * @return the component's maximum size
    * @see #getMinimumSize()
+   * @see #setMaximumSize(Dimension)
    * @see #getPreferredSize()
    * @see LayoutManager
    */
   public Dimension getMaximumSize()
   {
-    return new Dimension(Short.MAX_VALUE, Short.MAX_VALUE);
+    return new Dimension(maximumSizeImpl());
   }
 
+  /**
+   * This is pulled out from getMaximumSize(), so that we can access it
+   * from Container.getMaximumSize() without creating an additional
+   * intermediate Dimension object.
+   *
+   * @return the maximum size of the component
+   */
+  Dimension maximumSizeImpl()
+  {
+    Dimension size;
+    if (maxSizeSet)
+      size = maxSize;
+    else
+      size = DEFAULT_MAX_SIZE;
+    return size;
+  }
+
+  /**
+   * Sets the maximum size that will be returned by {@link #getMaximumSize()}
+   * always, and sends a {@link PropertyChangeEvent} (with the property name
+   * 'maximumSize') to all registered listeners.
+   * 
+   * @param size  the maximum size (<code>null</code> permitted).
+   * 
+   * @since 1.5
+   * 
+   * @see #getMaximumSize()
+   */
+  public void setMaximumSize(Dimension size)
+  {
+    Dimension old = maxSizeSet ? maxSize : null;
+    maxSize = size;
+    maxSizeSet = (size != null);
+    firePropertyChange("maximumSize", old, size);
+  }
+
+  /**
+   * Returns <code>true</code> if the current maximum size is not 
+   * <code>null</code> and was set by a call to 
+   * {@link #setMaximumSize(Dimension)}, otherwise returns <code>false</code>.
+   * 
+   * @return A boolean.
+   * 
+   * @since 1.5
+   */
+  public boolean isMaximumSizeSet()
+  {
+    return maxSizeSet;
+  }
+  
   /**
    * Returns the preferred horizontal alignment of this component. The value
    * returned will be between {@link #LEFT_ALIGNMENT} and
@@ -1716,11 +2033,25 @@ public abstract class Component
    */
   public void invalidate()
   {
-    valid = false;
-    prefSize = null;
-    minSize = null;
-    if (parent != null && parent.isValid())
-      parent.invalidate();
+    // Need to lock here, to avoid races and other ugly stuff when doing
+    // layout or structure changes in other threads.
+    synchronized (getTreeLock())
+      {
+        // Invalidate.
+        valid = false;
+
+        // Throw away cached layout information.
+        if (! minSizeSet)
+          minSize = null;
+        if (! prefSizeSet)
+          prefSize = null;
+        if (! maxSizeSet)
+          maxSize = null;
+
+        // Also invalidate the parent, if it hasn't already been invalidated.
+        if (parent != null && parent.isValid())
+          parent.invalidate();
+      }
   }
 
   /**
@@ -1739,9 +2070,8 @@ public abstract class Component
         if (gfx == null && parent != null)
           {
             gfx = parent.getGraphics();
-            Rectangle bounds = getBounds();
-            gfx.setClip(bounds);
-            gfx.translate(bounds.x, bounds.y);
+            gfx.clipRect(getX(), getY(), getWidth(), getHeight());
+            gfx.translate(getX(), getY());
             return gfx;
           }
         gfx.setFont(font);
@@ -1827,11 +2157,9 @@ public abstract class Component
   }
 
   /**
-   * Updates this component. This is called in response to
-   * <code>repaint</code>. This method fills the component with the
-   * background color, then sets the foreground color of the specified
-   * graphics context to the foreground color of this component and calls
-   * the <code>paint()</code> method. The coordinates of the graphics are
+   * Updates this component. This is called for heavyweight components in
+   * response to {@link #repaint()}. The default implementation simply forwards
+   * to {@link #paint(Graphics)}. The coordinates of the graphics are
    * relative to this component. Subclasses should call either
    * <code>super.update(g)</code> or <code>paint(g)</code>.
    *
@@ -1839,27 +2167,17 @@ public abstract class Component
    *
    * @see #paint(Graphics)
    * @see #repaint()
-   *
-   * @specnote In contrast to what the spec says, tests show that the exact
-   *           behaviour is to clear the background on lightweight and
-   *           top-level components only. Heavyweight components are not
-   *           affected by this method and only call paint().
    */
   public void update(Graphics g)
   {
-    // Tests show that the clearing of the background is only done in
-    // two cases:
-    // - If the component is lightweight (yes this is in contrast to the spec).
-    // or
-    // - If the component is a toplevel container.
-    if (isLightweight() || getParent() == null)
-      {
-        Rectangle clip = g.getClipBounds();
-        if (clip == null)
-          g.clearRect(0, 0, width, height);
-        else
-          g.clearRect(clip.x, clip.y, clip.width, clip.height);
-      }
+    // Note 1: We used to clear the background here for lightweights and
+    // toplevel components. Tests show that this is not what the JDK does
+    // here. Note that there is some special handling and background
+    // clearing code in Container.update(Graphics).
+
+    // Note 2 (for peer implementors): The JDK doesn't seem call update() for
+    // toplevel components, even when an UPDATE event is sent (as a result
+    // of repaint).
     paint(g);
   }
 
@@ -1886,8 +2204,7 @@ public abstract class Component
    */
   public void repaint()
   {   
-    if (isShowing())
-      repaint(0, 0, 0, width, height);
+    repaint(0, 0, 0, width, height);
   }
 
   /**
@@ -1901,8 +2218,7 @@ public abstract class Component
    */
   public void repaint(long tm)
   {
-    if (isShowing())
-      repaint(tm, 0, 0, width, height);
+    repaint(tm, 0, 0, width, height);
   }
 
   /**
@@ -1919,8 +2235,7 @@ public abstract class Component
    */
   public void repaint(int x, int y, int w, int h)
   {
-    if (isShowing())
-      repaint(0, x, y, w, h);
+    repaint(0, x, y, w, h);
   }
 
   /**
@@ -1938,11 +2253,46 @@ public abstract class Component
    */
   public void repaint(long tm, int x, int y, int width, int height)
   {
-    if (isShowing())
+    // The repaint() call has previously been delegated to
+    // {@link ComponentPeer.repaint()}. Testing on the JDK using some
+    // dummy peers show that this methods is never called. I think it makes
+    // sense to actually perform the tasks below here, since it's pretty
+    // much peer independent anyway, and makes sure only heavyweights are
+    // bothered by this.
+    ComponentPeer p = peer;
+
+    // Let the nearest heavyweight parent handle repainting for lightweight
+    // components.
+    // This goes up the hierarchy until we hit
+    // a heavyweight component that handles this and translates the
+    // rectangle while doing so.
+
+    // We perform some boundary checking to restrict the paint
+    // region to this component.
+    int px = (x < 0 ? 0 : x);
+    int py = (y < 0 ? 0 : y);
+    int pw = width;
+    int ph = height;
+    Component par = this;
+    while (par != null && p instanceof LightweightPeer)
       {
-        ComponentPeer p = peer;
-        if (p != null)
-          p.repaint(tm, x, y, width, height);
+        px += par.x; 
+        py += par.y; 
+        // We perform some boundary checking to restrict the paint
+        // region to this component.
+        pw = Math.min(pw, par.width);
+        ph = Math.min(ph, par.height);
+        par = par.parent;
+        p = par.peer;
+      }
+
+    // Now send an UPDATE event to the heavyweight component that we've found.
+    if (par != null && par.isVisible() && p != null && pw > 0 && ph > 0)
+      {
+        assert ! (p instanceof LightweightPeer);
+        PaintEvent pe = new PaintEvent(par, PaintEvent.UPDATE,
+                                       new Rectangle(px, py, pw, ph));
+        getToolkit().getSystemEventQueue().postEvent(pe);
       }
   }
 
@@ -1961,10 +2311,7 @@ public abstract class Component
   }
 
   /**
-   * Prints this component, including all sub-components. This method is
-   * provided so that printing can be done in a different manner from
-   * painting. However, the implementation in this class simply calls the
-   * <code>paintAll()</code> method.
+   * Prints this component, including all sub-components. 
    *
    * @param g the graphics context of the print device
    * 
@@ -1972,7 +2319,9 @@ public abstract class Component
    */
   public void printAll(Graphics g)
   {
-    paintAll(g);
+    if( peer != null )
+      peer.print( g );
+    paintAll( g );
   }
 
   /**
@@ -2070,11 +2419,9 @@ public abstract class Component
    */
   public VolatileImage createVolatileImage(int width, int height)
   {
-    if (GraphicsEnvironment.isHeadless())
-      return null;
-    GraphicsConfiguration config = getGraphicsConfiguration();
-    return config == null ? null
-      : config.createCompatibleVolatileImage(width, height);
+    if (peer != null)
+      return peer.createVolatileImage(width, height);
+    return null;
   }
 
   /**
@@ -2093,11 +2440,9 @@ public abstract class Component
                                            ImageCapabilities caps)
     throws AWTException
   {
-    if (GraphicsEnvironment.isHeadless())
-      return null;
-    GraphicsConfiguration config = getGraphicsConfiguration();
-    return config == null ? null
-      : config.createCompatibleVolatileImage(width, height, caps);
+    if (peer != null)
+      return peer.createVolatileImage(width, height);
+    return null;
   }
 
   /**
@@ -2312,11 +2657,30 @@ public abstract class Component
    */
   public final void dispatchEvent(AWTEvent e)
   {
+    Event oldEvent = translateEvent(e);
+    if (oldEvent != null)
+      postEvent (oldEvent);
+
+    // Give toolkit a chance to dispatch the event
+    // to globally registered listeners.
+    Toolkit.getDefaultToolkit().globalDispatchEvent(e);
+
     // Some subclasses in the AWT package need to override this behavior,
     // hence the use of dispatchEventImpl().
     dispatchEventImpl(e);
   }
 
+  /**
+   * By default, no old mouse events should be ignored.
+   * This can be overridden by subclasses.
+   * 
+   * @return false, no mouse events are ignored.
+   */
+  static boolean ignoreOldMouseEvents()
+  {
+    return false;
+  }
+  
   /**
    * AWT 1.0 event handler.
    *
@@ -2449,6 +2813,14 @@ public abstract class Component
     hierarchyListener = AWTEventMulticaster.add(hierarchyListener, listener);
     if (hierarchyListener != null)
       enableEvents(AWTEvent.HIERARCHY_EVENT_MASK);
+
+    // Need to lock the tree, otherwise we might end up inconsistent.
+    synchronized (getTreeLock())
+      {
+        numHierarchyListeners++;
+        if (parent != null)
+          parent.updateHierarchyListenerCount(AWTEvent.HIERARCHY_EVENT_MASK, 1);
+      }
   }
 
   /**
@@ -2464,6 +2836,15 @@ public abstract class Component
   public synchronized void removeHierarchyListener(HierarchyListener listener)
   {
     hierarchyListener = AWTEventMulticaster.remove(hierarchyListener, listener);
+
+    // Need to lock the tree, otherwise we might end up inconsistent.
+    synchronized (getTreeLock())
+      {
+        numHierarchyListeners--;
+        if (parent != null)
+          parent.updateHierarchyListenerCount(AWTEvent.HIERARCHY_EVENT_MASK,
+                                              -1);
+      }
   }
 
   /**
@@ -2499,6 +2880,16 @@ public abstract class Component
       AWTEventMulticaster.add(hierarchyBoundsListener, listener);
     if (hierarchyBoundsListener != null)
       enableEvents(AWTEvent.HIERARCHY_BOUNDS_EVENT_MASK);
+
+    // Need to lock the tree, otherwise we might end up inconsistent.
+    synchronized (getTreeLock())
+      {
+        numHierarchyBoundsListeners++;
+        if (parent != null)
+          parent.updateHierarchyListenerCount
+                                        (AWTEvent.HIERARCHY_BOUNDS_EVENT_MASK,
+                                         1);
+      }
   }
 
   /**
@@ -2516,6 +2907,16 @@ public abstract class Component
   {
     hierarchyBoundsListener =
       AWTEventMulticaster.remove(hierarchyBoundsListener, listener);
+
+    // Need to lock the tree, otherwise we might end up inconsistent.
+    synchronized (getTreeLock())
+      {
+        numHierarchyBoundsListeners--;
+        if (parent != null)
+          parent.updateHierarchyListenerCount
+                                         (AWTEvent.HIERARCHY_BOUNDS_EVENT_MASK,
+                                          -1);
+      }
   }
 
   /**
@@ -2531,6 +2932,40 @@ public abstract class Component
     return (HierarchyBoundsListener[])
       AWTEventMulticaster.getListeners(hierarchyBoundsListener,
                                        HierarchyBoundsListener.class);
+  }
+
+  /**
+   * Fires a HierarchyEvent or HierarchyChangeEvent on this component.
+   *
+   * @param id the event id
+   * @param changed the changed component
+   * @param parent the parent
+   * @param flags the event flags
+   */
+  void fireHierarchyEvent(int id, Component changed, Container parent,
+                          long flags)
+  {
+    boolean enabled = false;
+    switch (id)
+    {
+      case HierarchyEvent.HIERARCHY_CHANGED:
+        enabled = hierarchyListener != null
+                  || (eventMask & AWTEvent.HIERARCHY_EVENT_MASK) != 0;
+        break;
+      case HierarchyEvent.ANCESTOR_MOVED:
+      case HierarchyEvent.ANCESTOR_RESIZED:
+        enabled = hierarchyBoundsListener != null
+                  || (eventMask & AWTEvent.HIERARCHY_BOUNDS_EVENT_MASK) != 0;
+          break;
+      default:
+        assert false : "Should not reach here";
+    }
+    if (enabled)
+      {
+        HierarchyEvent ev = new HierarchyEvent(this, id, changed, parent,
+                                               flags);
+        dispatchEvent(ev);
+      }
   }
 
   /**
@@ -2642,7 +3077,7 @@ public abstract class Component
   {
     mouseMotionListener = AWTEventMulticaster.add(mouseMotionListener, listener);
     if (mouseMotionListener != null)
-      enableEvents(AWTEvent.MOUSE_EVENT_MASK);
+      enableEvents(AWTEvent.MOUSE_MOTION_EVENT_MASK);
   }
 
   /**
@@ -2775,10 +3210,19 @@ public abstract class Component
   }
 
   /**
-   * Returns all registered EventListers of the given listenerType.
+   * Returns all registered {@link EventListener}s of the given 
+   * <code>listenerType</code>.
    *
-   * @param listenerType the class of listeners to filter
-   * @return an array of registered listeners
+   * @param listenerType the class of listeners to filter (<code>null</code> 
+   *                     not permitted).
+   *                     
+   * @return An array of registered listeners.
+   * 
+   * @throws ClassCastException if <code>listenerType</code> does not implement
+   *                            the {@link EventListener} interface.
+   * @throws NullPointerException if <code>listenerType</code> is 
+   *                              <code>null</code>.
+   *                            
    * @see #getComponentListeners()
    * @see #getFocusListeners()
    * @see #getHierarchyListeners()
@@ -3077,6 +3521,8 @@ public abstract class Component
           mouseListener.mouseClicked(e);
         break;
         case MouseEvent.MOUSE_ENTERED:
+ 	  if( isLightweight() )
+ 	    setCursor( getCursor() );
           mouseListener.mouseEntered(e);
         break;
         case MouseEvent.MOUSE_EXITED:
@@ -3089,7 +3535,6 @@ public abstract class Component
           mouseListener.mouseReleased(e);
         break;
       }
-      e.consume();
   }
 
   /**
@@ -3414,26 +3859,35 @@ public abstract class Component
   }
 
   /**
-   * Called to inform this component it has been added to a container.
-   * A native peer - if any - is created at this time. This method is
-   * called automatically by the AWT system and should not be called by
-   * user level code.
+   * Called when the parent of this Component is made visible or when
+   * the Component is added to an already visible Container and needs
+   * to be shown.  A native peer - if any - is created at this
+   * time. This method is called automatically by the AWT system and
+   * should not be called by user level code.
    *
    * @see #isDisplayable()
    * @see #removeNotify()
    */
   public void addNotify()
   {
-    if (peer == null)
-      peer = getToolkit().createComponent(this);
-    /* Now that all the children has gotten their peers, we should
+    // We need to lock the tree here to avoid races and inconsistencies.
+    synchronized (getTreeLock())
+      {
+        if (peer == null)
+          peer = getToolkit().createComponent(this);
+        else if (parent != null && parent.isLightweight())
+          new HeavyweightInLightweightListener(parent);
+        /* Now that all the children has gotten their peers, we should
        have the event mask needed for this component and its
        lightweight subcomponents. */
-    peer.setEventMask(eventMask);
-    /* We do not invalidate here, but rather leave that job up to
+        peer.setEventMask(eventMask);
+        /* We do not invalidate here, but rather leave that job up to
        the peer. For efficiency, the peer can choose not to
        invalidate if it is happy with the current dimensions,
        etc. */
+       if (dropTarget != null) 
+         dropTarget.addNotify(peer);
+      }
   }
 
   /**
@@ -3447,17 +3901,21 @@ public abstract class Component
    */
   public void removeNotify()
   {
-    // We null our peer field before disposing of it, such that if we're
-    // not the event dispatch thread and the dispatch thread is awoken by
-    // the dispose call, there will be no race checking the peer's null
-    // status.
-
-    ComponentPeer tmp = peer;
-    peer = null;
-    if (tmp != null)
+    // We need to lock the tree here to avoid races and inconsistencies.
+    synchronized (getTreeLock())
       {
-        tmp.hide();
-        tmp.dispose();
+        // We null our peer field before disposing of it, such that if we're
+        // not the event dispatch thread and the dispatch thread is awoken by
+        // the dispose call, there will be no race checking the peer's null
+        // status.
+
+        ComponentPeer tmp = peer;
+        peer = null;
+        if (tmp != null)
+          {
+            tmp.hide();
+            tmp.dispose();
+          }
       }
   }
 
@@ -3778,56 +4236,7 @@ public abstract class Component
    */
   public void requestFocus ()
   {
-    if (isDisplayable ()
-	&& isShowing ()
-	&& isFocusable ())
-      {
-        synchronized (getTreeLock ())
-          {
-            // Find this Component's top-level ancestor.            
-            Container parent = (this instanceof Container) ? (Container) this
-                                                          : getParent();            
-            while (parent != null
-                   && !(parent instanceof Window))
-              parent = parent.getParent ();
-
-            if (parent == null)
-              return;
-            
-            Window toplevel = (Window) parent;
-            if (toplevel.isFocusableWindow ())
-              {
-                if (peer != null && !isLightweight())
-                  // This call will cause a FOCUS_GAINED event to be
-                  // posted to the system event queue if the native
-                  // windowing system grants the focus request.
-                  peer.requestFocus ();
-                else
-                  {
-                    // Either our peer hasn't been created yet or we're a
-                    // lightweight component.  In either case we want to
-                    // post a FOCUS_GAINED event.
-                    EventQueue eq = Toolkit.getDefaultToolkit ().getSystemEventQueue ();
-                    synchronized (eq)
-                      {
-                        KeyboardFocusManager manager = KeyboardFocusManager.getCurrentKeyboardFocusManager ();
-                        Component currentFocusOwner = manager.getGlobalPermanentFocusOwner ();
-                        if (currentFocusOwner != null)
-                          {
-                            eq.postEvent (new FocusEvent(currentFocusOwner, FocusEvent.FOCUS_LOST,
-                                                         false, this));
-                            eq.postEvent (new FocusEvent(this, FocusEvent.FOCUS_GAINED, false,
-                                                         currentFocusOwner));
-                          }
-                        else
-                          eq.postEvent (new FocusEvent(this, FocusEvent.FOCUS_GAINED, false));
-                      }
-                  }
-              }
-            else
-              pendingFocusRequest = new FocusEvent(this, FocusEvent.FOCUS_GAINED);
-          }
-      }
+    requestFocusImpl(false, true);
   }
 
   /**
@@ -3867,61 +4276,7 @@ public abstract class Component
    */
   protected boolean requestFocus (boolean temporary)
   {
-    if (isDisplayable ()
-	&& isShowing ()
-	&& isFocusable ())
-      {
-        synchronized (getTreeLock ())
-          {
-            // Find this Component's top-level ancestor.
-            Container parent = getParent ();
-
-            while (parent != null
-                   && !(parent instanceof Window))
-              parent = parent.getParent ();
-
-            Window toplevel = (Window) parent;
-            if (toplevel.isFocusableWindow ())
-              {
-                if (peer != null && !isLightweight())
-                  // This call will cause a FOCUS_GAINED event to be
-                  // posted to the system event queue if the native
-                  // windowing system grants the focus request.
-                  peer.requestFocus ();
-                else
-                  {
-                    // Either our peer hasn't been created yet or we're a
-                    // lightweight component.  In either case we want to
-                    // post a FOCUS_GAINED event.
-                    EventQueue eq = Toolkit.getDefaultToolkit ().getSystemEventQueue ();
-                    synchronized (eq)
-                      {
-                        KeyboardFocusManager manager = KeyboardFocusManager.getCurrentKeyboardFocusManager ();
-                        Component currentFocusOwner = manager.getGlobalPermanentFocusOwner ();
-                        if (currentFocusOwner != null)
-                          {
-                            eq.postEvent (new FocusEvent(currentFocusOwner,
-                                                         FocusEvent.FOCUS_LOST,
-                                                         temporary, this));
-                            eq.postEvent (new FocusEvent(this,
-                                                         FocusEvent.FOCUS_GAINED,
-                                                         temporary,
-                                                         currentFocusOwner));
-                          }
-                        else
-                          eq.postEvent (new FocusEvent(this, FocusEvent.FOCUS_GAINED, temporary));
-                      }
-                  }
-              }
-            else
-              // FIXME: need to add a focus listener to our top-level
-              // ancestor, so that we can post this event when it becomes
-              // the focused window.
-              pendingFocusRequest = new FocusEvent(this, FocusEvent.FOCUS_GAINED, temporary);
-          }
-      }
-    // Always return true.
-    return true;
+    return requestFocusImpl(temporary, true);
   }
 
   /**
@@ -3949,7 +4304,7 @@ public abstract class Component
    */
   public boolean requestFocusInWindow ()
   {
-    return requestFocusInWindow (false);
+    return requestFocusImpl(false, false);
   }
 
   /**
@@ -3980,65 +4335,84 @@ public abstract class Component
    */
   protected boolean requestFocusInWindow (boolean temporary)
   {
-    KeyboardFocusManager manager = KeyboardFocusManager.getCurrentKeyboardFocusManager ();
+    return requestFocusImpl(temporary, false);
+  }
 
-    Window focusedWindow = manager.getFocusedWindow ();
-
-    if (isDisplayable ()
-	&& isShowing ()
-	&& isFocusable ())
+  /**
+   * Helper method for all 4 requestFocus variants.
+   *
+   * @param temporary indicates if the focus change is temporary
+   * @param focusWindow indicates if the window focus may be changed
+   *
+   * @return <code>false</code> if the request has been definitely denied,
+   *         <code>true</code> otherwise
+   */
+  private boolean requestFocusImpl(boolean temporary, boolean focusWindow)
+  {
+    boolean retval = false;
+ 
+    // Don't try to focus non-focusable and non-visible components.
+    if (isFocusable() && isVisible())
       {
-        if (focusedWindow != null)
+        ComponentPeer myPeer = peer;
+        if (peer != null)
           {
-            synchronized (getTreeLock ())
+            // Find Window ancestor and find out if we're showing while
+            // doing this.
+            boolean showing = true;
+            Component window = this;
+            while (! (window instanceof Window))
               {
-                Container parent = getParent ();
+                if (! window.isVisible())
+                  showing = false;
+                window = window.parent;
+              }
+            // Don't allow focus when there is no window or the window
+            // is not focusable.
+            if (window != null && ((Window) window).isFocusableWindow()
+                && showing)
+              {
+                // Search for nearest heavy ancestor (including this
+                // component).
+                Component heavyweightParent = this;
+                while (heavyweightParent.peer instanceof LightweightPeer)
+                  heavyweightParent = heavyweightParent.parent;
 
-                while (parent != null
-                       && !(parent instanceof Window))
-                  parent = parent.getParent ();
-
-                Window toplevel = (Window) parent;
-
-                // Check if top-level ancestor is currently focused window.
-                if (focusedWindow == toplevel)
+                // Don't allow focus on lightweight components without
+                // visible heavyweight ancestor
+                if (heavyweightParent != null && heavyweightParent.isVisible())
                   {
-                    if (peer != null
-                        && !isLightweight()
-                        && !(this instanceof Window))
-                      // This call will cause a FOCUS_GAINED event to be
-                      // posted to the system event queue if the native
-                      // windowing system grants the focus request.
-                      peer.requestFocus ();
-                    else
+                    // Don't allow focus when heavyweightParent has no peer.
+                    myPeer = heavyweightParent.peer;
+                    if (myPeer != null)
                       {
-                        // Either our peer hasn't been created yet or we're a
-                        // lightweight component.  In either case we want to
-                        // post a FOCUS_GAINED event.
-                        EventQueue eq = Toolkit.getDefaultToolkit ().getSystemEventQueue ();
-                        synchronized (eq)
+                        // Register lightweight focus request.
+                        if (heavyweightParent != this)
                           {
-                            Component currentFocusOwner = manager.getGlobalPermanentFocusOwner ();
-                            if (currentFocusOwner != null)
-                              {
-                                eq.postEvent (new FocusEvent(currentFocusOwner, FocusEvent.FOCUS_LOST,
-                                                             temporary, this));
-                                eq.postEvent (new FocusEvent(this, FocusEvent.FOCUS_GAINED, temporary,
-                                                             currentFocusOwner));
-                              }
-                            else
-                              eq.postEvent (new FocusEvent(this, FocusEvent.FOCUS_GAINED, temporary));
+                            KeyboardFocusManager
+                            .addLightweightFocusRequest(heavyweightParent,
+                                                        this);
                           }
+
+                        // Try to focus the component.
+                        long time = EventQueue.getMostRecentEventTime();
+                        boolean success = myPeer.requestFocus(this, temporary,
+                                                              focusWindow,
+                                                              time);
+                        if (! success)
+                          {
+                            // Dequeue key events if focus request failed.
+                            KeyboardFocusManager kfm =
+                              KeyboardFocusManager.getCurrentKeyboardFocusManager();
+                            kfm.dequeueKeyEvents(time, this);
+                          }
+                        retval = success;
                       }
                   }
-                else
-                  return false;
               }
           }
-
-        return true;
       }
-    return false;
+    return retval;
   }
 
   /**
@@ -4064,14 +4438,9 @@ public abstract class Component
    */
   public Container getFocusCycleRootAncestor ()
   {
-    if (this instanceof Window
-	&& ((Container) this).isFocusCycleRoot ())
-      return (Container) this;
-
     Container parent = getParent ();
 
-    while (parent != null
-	   && !parent.isFocusCycleRoot ())
+    while (parent != null && !parent.isFocusCycleRoot())
       parent = parent.getParent ();
 
     return parent;
@@ -4099,9 +4468,32 @@ public abstract class Component
    */
   public void nextFocus ()
   {
-    KeyboardFocusManager manager = KeyboardFocusManager.getCurrentKeyboardFocusManager ();
+    // Find the nearest valid (== showing && focusable && enabled) focus
+    // cycle root ancestor and the focused component in it.
+    Container focusRoot = getFocusCycleRootAncestor();
+    Component focusComp = this;
+    while (focusRoot != null
+           && ! (focusRoot.isShowing() && focusRoot.isFocusable()
+                 && focusRoot.isEnabled()))
+      {
+        focusComp = focusRoot;
+        focusRoot = focusComp.getFocusCycleRootAncestor();
+      }
 
-    manager.focusNextComponent (this);
+    if (focusRoot != null)
+      {
+        // First try to get the componentBefore from the policy.
+        FocusTraversalPolicy policy = focusRoot.getFocusTraversalPolicy();
+        Component nextFocus = policy.getComponentAfter(focusRoot, focusComp);
+
+        // If this fails, then ask for the defaultComponent.
+        if (nextFocus == null)
+          nextFocus = policy.getDefaultComponent(focusRoot);
+
+        // Request focus on this component, if not null.
+        if (nextFocus != null)
+          nextFocus.requestFocus();
+      }
   }
 
   /**
@@ -4113,9 +4505,32 @@ public abstract class Component
    */
   public void transferFocusBackward ()
   {
-    KeyboardFocusManager manager = KeyboardFocusManager.getCurrentKeyboardFocusManager ();
+    // Find the nearest valid (== showing && focusable && enabled) focus
+    // cycle root ancestor and the focused component in it.
+    Container focusRoot = getFocusCycleRootAncestor();
+    Component focusComp = this;
+    while (focusRoot != null
+           && ! (focusRoot.isShowing() && focusRoot.isFocusable()
+                 && focusRoot.isEnabled()))
+      {
+        focusComp = focusRoot;
+        focusRoot = focusComp.getFocusCycleRootAncestor();
+      }
 
-    manager.focusPreviousComponent (this);
+    if (focusRoot != null)
+      {
+        // First try to get the componentBefore from the policy.
+        FocusTraversalPolicy policy = focusRoot.getFocusTraversalPolicy();
+        Component nextFocus = policy.getComponentBefore(focusRoot, focusComp);
+
+        // If this fails, then ask for the defaultComponent.
+        if (nextFocus == null)
+          nextFocus = policy.getDefaultComponent(focusRoot);
+
+        // Request focus on this component, if not null.
+        if (nextFocus != null)
+          nextFocus.requestFocus();
+      }
   }
 
   /**
@@ -4129,9 +4544,63 @@ public abstract class Component
    */
   public void transferFocusUpCycle ()
   {
-    KeyboardFocusManager manager = KeyboardFocusManager.getCurrentKeyboardFocusManager ();
+    // Find the nearest focus cycle root ancestor that is itself
+    // focusable, showing and enabled.
+    Container focusCycleRoot = getFocusCycleRootAncestor();
+    while (focusCycleRoot != null &&
+           ! (focusCycleRoot.isShowing() && focusCycleRoot.isFocusable()
+              && focusCycleRoot.isEnabled()))
+      {
+        focusCycleRoot = focusCycleRoot.getFocusCycleRootAncestor();
+      }
 
-    manager.upFocusCycle (this);
+    KeyboardFocusManager fm =
+      KeyboardFocusManager.getCurrentKeyboardFocusManager();
+
+    if (focusCycleRoot != null)
+      {
+        // If we found a focus cycle root, then we make this the new
+        // focused component, and make it's focus cycle root the new
+        // global focus cycle root. If the found root has no focus cycle
+        // root ancestor itself, then the component will be both the focused
+        // component and the new global focus cycle root.
+        Container focusCycleAncestor =
+          focusCycleRoot.getFocusCycleRootAncestor();
+        Container globalFocusCycleRoot;
+        if (focusCycleAncestor == null)
+          globalFocusCycleRoot = focusCycleRoot;
+        else
+          globalFocusCycleRoot = focusCycleAncestor;
+
+        fm.setGlobalCurrentFocusCycleRoot(globalFocusCycleRoot);
+        focusCycleRoot.requestFocus();
+      }
+    else
+      {
+        // If this component has no applicable focus cycle root, we try
+        // find the nearest window and set this as the new global focus cycle
+        // root and the default focus component of this window the new focused
+        // component.
+        Container cont;
+        if (this instanceof Container)
+          cont = (Container) this;
+        else
+          cont = getParent();
+
+        while (cont != null && !(cont instanceof Window))
+          cont = cont.getParent();
+
+        if (cont != null)
+          {
+            FocusTraversalPolicy policy = cont.getFocusTraversalPolicy();
+            Component focusComp = policy.getDefaultComponent(cont);
+            if (focusComp != null)
+              {
+                fm.setGlobalCurrentFocusCycleRoot(cont);
+                focusComp.requestFocus();
+              }
+          }
+      }
   }
 
   /**
@@ -4444,7 +4913,7 @@ p   * <li>the set of backward traversal keys
                                     Object newValue)
   {
     if (changeSupport != null)
-      changeSupport.firePropertyChange(propertyName, oldValue, newValue);
+      changeSupport.firePropertyChange(propertyName, oldValue, newValue);  
   }
 
   /**
@@ -4476,20 +4945,121 @@ p   * <li>the set of backward traversal keys
   }
 
   /**
+   * Report a change in a bound property to any registered property listeners.
+   *
+   * @param propertyName the property that changed
+   * @param oldValue the old property value
+   * @param newValue the new property value
+   *
+   * @since 1.5
+   */
+  public void firePropertyChange(String propertyName, byte oldValue,
+                                    byte newValue)
+  {
+    if (changeSupport != null)
+      changeSupport.firePropertyChange(propertyName, new Byte(oldValue),
+                                       new Byte(newValue));
+  }
+
+  /**
+   * Report a change in a bound property to any registered property listeners.
+   *
+   * @param propertyName the property that changed
+   * @param oldValue the old property value
+   * @param newValue the new property value
+   *
+   * @since 1.5
+   */
+  public void firePropertyChange(String propertyName, char oldValue,
+                                    char newValue)
+  {
+    if (changeSupport != null)
+      changeSupport.firePropertyChange(propertyName, new Character(oldValue),
+                                       new Character(newValue));
+  }
+
+  /**
+   * Report a change in a bound property to any registered property listeners.
+   *
+   * @param propertyName the property that changed
+   * @param oldValue the old property value
+   * @param newValue the new property value
+   *
+   * @since 1.5
+   */
+  public void firePropertyChange(String propertyName, short oldValue,
+                                    short newValue)
+  {
+    if (changeSupport != null)
+      changeSupport.firePropertyChange(propertyName, new Short(oldValue),
+                                       new Short(newValue));
+  }
+
+  /**
+   * Report a change in a bound property to any registered property listeners.
+   *
+   * @param propertyName the property that changed
+   * @param oldValue the old property value
+   * @param newValue the new property value
+   *
+   * @since 1.5
+   */
+  public void firePropertyChange(String propertyName, long oldValue,
+                                    long newValue)
+  {
+    if (changeSupport != null)
+      changeSupport.firePropertyChange(propertyName, new Long(oldValue),
+                                       new Long(newValue));
+  }
+
+  /**
+   * Report a change in a bound property to any registered property listeners.
+   *
+   * @param propertyName the property that changed
+   * @param oldValue the old property value
+   * @param newValue the new property value
+   *
+   * @since 1.5
+   */
+  public void firePropertyChange(String propertyName, float oldValue,
+                                    float newValue)
+  {
+    if (changeSupport != null)
+      changeSupport.firePropertyChange(propertyName, new Float(oldValue),
+                                       new Float(newValue));
+  }
+
+
+  /**
+   * Report a change in a bound property to any registered property listeners.
+   *
+   * @param propertyName the property that changed
+   * @param oldValue the old property value
+   * @param newValue the new property value
+   *
+   * @since 1.5
+   */
+  public void firePropertyChange(String propertyName, double oldValue,
+                                 double newValue)
+  {
+    if (changeSupport != null)
+      changeSupport.firePropertyChange(propertyName, new Double(oldValue),
+                                       new Double(newValue));
+  }
+
+  /**
    * Sets the text layout orientation of this component. New components default
    * to UNKNOWN (which behaves like LEFT_TO_RIGHT). This method affects only
    * the current component, while
    * {@link #applyComponentOrientation(ComponentOrientation)} affects the
    * entire hierarchy.
    *
-   * @param o the new orientation
-   * @throws NullPointerException if o is null
+   * @param o the new orientation (<code>null</code> is accepted)
    * @see #getComponentOrientation()
    */
   public void setComponentOrientation(ComponentOrientation o)
   {
-    if (o == null)
-      throw new NullPointerException();
+ 
     ComponentOrientation oldOrientation = orientation;
     orientation = o;
     firePropertyChange("componentOrientation", oldOrientation, o);
@@ -4498,7 +5068,7 @@ p   * <li>the set of backward traversal keys
   /**
    * Determines the text layout orientation used by this component.
    *
-   * @return the component orientation
+   * @return the component orientation (this can be <code>null</code>)
    * @see #setComponentOrientation(ComponentOrientation)
    */
   public ComponentOrientation getComponentOrientation()
@@ -4592,10 +5162,40 @@ p   * <li>the set of backward traversal keys
    */
   static Event translateEvent (AWTEvent e)
   {
-    Component target = (Component) e.getSource ();
+    Object target = e.getSource ();
     Event translated = null;
+    
+    if (e instanceof WindowEvent)
+      {
+        WindowEvent we = (WindowEvent) e;
+        int id = we.id;
+        int newId = 0;
+        
+        switch (id)
+          {
+          case WindowEvent.WINDOW_DEICONIFIED:
+            newId = Event.WINDOW_DEICONIFY;
+            break;
+          case WindowEvent.WINDOW_CLOSED:
+          case WindowEvent.WINDOW_CLOSING:
+            newId = Event.WINDOW_DESTROY;
+            break;
+          case WindowEvent.WINDOW_ICONIFIED:
+            newId = Event.WINDOW_ICONIFY;
+            break;
+          case WindowEvent.WINDOW_GAINED_FOCUS:
+            newId = Event.GOT_FOCUS;
+            break;
+          case WindowEvent.WINDOW_LOST_FOCUS:
+            newId = Event.LOST_FOCUS;
+            break;
+          default:
+            return null;
+          }
 
-    if (e instanceof InputEvent)
+        translated = new Event(target, 0, newId, 0, 0, 0, 0);
+      }
+    else if (e instanceof InputEvent)
       {
         InputEvent ie = (InputEvent) e;
         long when = ie.getWhen ();
@@ -4623,7 +5223,7 @@ p   * <li>the set of backward traversal keys
         if ((mods & InputEvent.ALT_DOWN_MASK) != 0)
           oldMods |= Event.ALT_MASK;
 
-        if (e instanceof MouseEvent)
+        if (e instanceof MouseEvent && !ignoreOldMouseEvents())
           {
             if (id == MouseEvent.MOUSE_PRESSED)
               oldID = Event.MOUSE_DOWN;
@@ -4758,12 +5358,31 @@ p   * <li>the set of backward traversal keys
                 oldKey = Event.UP;
                 break;
               default:
-                oldKey = newKey;
+                oldKey = (int) ((KeyEvent) e).getKeyChar();
               }
 
             translated = new Event (target, when, oldID,
                                     0, 0, oldKey, oldMods);
           }
+      }
+    else if (e instanceof AdjustmentEvent)
+      {
+	AdjustmentEvent ae = (AdjustmentEvent) e;
+	int type = ae.getAdjustmentType();
+	int oldType;
+	if (type == AdjustmentEvent.BLOCK_DECREMENT)
+	  oldType = Event.SCROLL_PAGE_UP;
+	else if (type == AdjustmentEvent.BLOCK_INCREMENT)
+	  oldType = Event.SCROLL_PAGE_DOWN;
+	else if (type == AdjustmentEvent.TRACK)
+	  oldType = Event.SCROLL_ABSOLUTE;
+	else if (type == AdjustmentEvent.UNIT_DECREMENT)
+	  oldType = Event.SCROLL_LINE_UP;
+	else if (type == AdjustmentEvent.UNIT_INCREMENT)
+	  oldType = Event.SCROLL_LINE_DOWN;
+	else
+	  oldType = type;
+	translated = new Event(target, oldType, new Integer(ae.getValue()));
       }
     else if (e instanceof ActionEvent)
       translated = new Event (target, Event.ACTION_EVENT,
@@ -4785,44 +5404,26 @@ p   * <li>the set of backward traversal keys
 
   void dispatchEventImpl(AWTEvent e)
   {
-    Event oldEvent = translateEvent (e);
-
-    if (oldEvent != null)
-      postEvent (oldEvent);
-
-    if (eventTypeEnabled (e.id))
+    // Retarget focus events before dispatching it to the KeyboardFocusManager
+    // in order to handle lightweight components properly.
+    boolean dispatched = false;
+    if (! e.isFocusManagerEvent)
       {
-        // the trick we use to communicate between dispatch and redispatch
-        // is to have KeyboardFocusManager.redispatch synchronize on the
-        // object itself. we then do not redispatch to KeyboardFocusManager
-        // if we are already holding the lock.
-        if (! Thread.holdsLock(e))
-          {
-            switch (e.id)
-              {
-              case WindowEvent.WINDOW_GAINED_FOCUS:
-              case WindowEvent.WINDOW_LOST_FOCUS:
-              case KeyEvent.KEY_PRESSED:
-              case KeyEvent.KEY_RELEASED:
-              case KeyEvent.KEY_TYPED:
-              case FocusEvent.FOCUS_GAINED:
-              case FocusEvent.FOCUS_LOST:
-                if (KeyboardFocusManager
-                    .getCurrentKeyboardFocusManager()
-                    .dispatchEvent(e))
-                    return;
-              case MouseEvent.MOUSE_PRESSED:
-                if (isLightweight())
-                  requestFocus();
-                break;
-              }
-          }
-        if (e.id != PaintEvent.PAINT && e.id != PaintEvent.UPDATE)
-          processEvent(e);
+        e = KeyboardFocusManager.retargetFocusEvent(e);
+        dispatched = KeyboardFocusManager.getCurrentKeyboardFocusManager()
+                                          .dispatchEvent(e);
       }
 
-    if (peer != null)
-      peer.handleEvent(e);
+    if (! dispatched)
+      {
+        if (eventTypeEnabled (e.id))
+          {
+            if (e.id != PaintEvent.PAINT && e.id != PaintEvent.UPDATE)
+              processEvent(e);
+          }
+        if (peer != null)
+          peer.handleEvent(e);
+      }
   }
 
   /**
@@ -4835,6 +5436,15 @@ p   * <li>the set of backward traversal keys
 
     switch (type)
       {
+      case HierarchyEvent.HIERARCHY_CHANGED:
+        return (hierarchyListener != null 
+            || (eventMask & AWTEvent.HIERARCHY_EVENT_MASK) != 0);
+        
+      case HierarchyEvent.ANCESTOR_MOVED:
+      case HierarchyEvent.ANCESTOR_RESIZED:
+        return (hierarchyBoundsListener != null 
+            || (eventMask & AWTEvent.HIERARCHY_BOUNDS_EVENT_MASK) != 0);
+        
       case ComponentEvent.COMPONENT_HIDDEN:
       case ComponentEvent.COMPONENT_MOVED:
       case ComponentEvent.COMPONENT_RESIZED:
@@ -4853,11 +5463,15 @@ p   * <li>the set of backward traversal keys
       case MouseEvent.MOUSE_EXITED:
       case MouseEvent.MOUSE_PRESSED:
       case MouseEvent.MOUSE_RELEASED:
+        return (mouseListener != null
+                || (eventMask & AWTEvent.MOUSE_EVENT_MASK) != 0);
       case MouseEvent.MOUSE_MOVED:
       case MouseEvent.MOUSE_DRAGGED:
-        return (mouseListener != null
-                || mouseMotionListener != null
-                || (eventMask & AWTEvent.MOUSE_EVENT_MASK) != 0);
+        return (mouseMotionListener != null
+                || (eventMask & AWTEvent.MOUSE_MOTION_EVENT_MASK) != 0);
+      case MouseEvent.MOUSE_WHEEL:
+        return (mouseWheelListener != null
+                || (eventMask & AWTEvent.MOUSE_WHEEL_EVENT_MASK) != 0);
         
       case FocusEvent.FOCUS_GAINED:
       case FocusEvent.FOCUS_LOST:
@@ -4913,16 +5527,6 @@ p   * <li>the set of backward traversal keys
     Rectangle r1 = queuedEvent.getUpdateRect();
     Rectangle r2 = newEvent.getUpdateRect();
     Rectangle union = r1.union(r2);
-
-    int r1a = r1.width * r1.height;
-    int r2a = r2.width * r2.height;
-    int ua  = union.width * union.height;
-
-    if (ua > (r1a+r2a)*2)
-      return null;
-    /* The 2 factor should maybe be reconsidered. Perhaps 3/2
-       would be better? */
-
     newEvent.setUpdateRect(union);
     return newEvent;
   }
@@ -5002,9 +5606,76 @@ p   * <li>the set of backward traversal keys
     s.writeObject(null);
   }
 
-
+  
   // Nested classes.
+  
+  /**
+   * This class fixes the bounds for a Heavyweight component that
+   * is placed inside a Lightweight container. When the lightweight is
+   * moved or resized, setBounds for the lightweight peer does nothing.
+   * Therefore, it was never moved on the screen. This class is 
+   * attached to the lightweight, and it adjusts the position and size
+   * of the peer when notified.
+   * This is the same for show and hide.
+   */
+  class HeavyweightInLightweightListener
+      implements ComponentListener
+  {
+    
+    /**
+     * Constructor. Adds component listener to lightweight parent.
+     * 
+     * @param parent - the lightweight container.
+     */
+    public HeavyweightInLightweightListener(Container parent)
+    {
+      parent.addComponentListener(this);
+    }
+    
+    /**
+     * This method is called when the component is resized.
+     * 
+     * @param event the <code>ComponentEvent</code> indicating the resize
+     */
+    public void componentResized(ComponentEvent event)
+    {
+      // Nothing to do here, componentMoved will be called.
+    }
 
+    /**
+     * This method is called when the component is moved.
+     * 
+     * @param event the <code>ComponentEvent</code> indicating the move
+     */
+    public void componentMoved(ComponentEvent event)
+    {
+      if (peer != null)
+        peer.setBounds(x, y, width, height);
+    }
+
+    /**
+     * This method is called when the component is made visible.
+     * 
+     * @param event the <code>ComponentEvent</code> indicating the visibility
+     */
+    public void componentShown(ComponentEvent event)
+    {
+      if (isShowing())
+        peer.show();
+    }
+
+    /**
+     * This method is called when the component is hidden.
+     * 
+     * @param event the <code>ComponentEvent</code> indicating the visibility
+     */
+    public void componentHidden(ComponentEvent event)
+    {
+      if (!isShowing())
+        peer.hide();
+    }
+  }
+  
   /**
    * This class provides accessibility support for subclasses of container.
    *
@@ -5088,7 +5759,7 @@ p   * <li>the set of backward traversal keys
      */
     public String getAccessibleName()
     {
-      return accessibleName == null ? getName() : accessibleName;
+      return accessibleName;
     }
 
     /**
@@ -5128,8 +5799,10 @@ p   * <li>the set of backward traversal keys
         s.add(AccessibleState.FOCUSABLE);
       if (isFocusOwner())
         s.add(AccessibleState.FOCUSED);
-      if (isOpaque())
-        s.add(AccessibleState.OPAQUE);
+      // Note: While the java.awt.Component has an 'opaque' property, it
+      // seems that it is not added to the accessible state set here, even
+      // if this property is true. However, it is handled for
+      // javax.swing.JComponent, so we add it there.
       if (Component.this.isShowing())
         s.add(AccessibleState.SHOWING);
       if (Component.this.isVisible())
@@ -5413,7 +6086,7 @@ p   * <li>the set of backward traversal keys
      */
     public Point getLocation()
     {
-      return Component.this.isShowing() ? Component.this.getLocation() : null;
+      return Component.this.getLocation();
     }
 
     /**
@@ -5437,7 +6110,7 @@ p   * <li>the set of backward traversal keys
      */
     public Rectangle getBounds()
     {
-      return Component.this.isShowing() ? Component.this.getBounds() : null;
+      return Component.this.getBounds();
     }
 
     /**
@@ -5460,7 +6133,7 @@ p   * <li>the set of backward traversal keys
      */
     public Dimension getSize()
     {
-      return Component.this.isShowing() ? Component.this.getSize() : null;
+      return Component.this.getSize();
     }
 
     /**

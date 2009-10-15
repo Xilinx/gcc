@@ -1,7 +1,7 @@
 /* VMVirtualMachine.java -- A reference implementation of a JDWP virtual
    machine
 
-   Copyright (C) 2005 Free Software Foundation
+   Copyright (C) 2005, 2006 Free Software Foundation
 
 This file is part of GNU Classpath.
 
@@ -42,18 +42,13 @@ exception statement from your version. */
 package gnu.classpath.jdwp;
 
 import gnu.classpath.jdwp.event.EventRequest;
-import gnu.classpath.jdwp.exception.InvalidClassException;
-import gnu.classpath.jdwp.exception.InvalidObjectException;
-import gnu.classpath.jdwp.id.ObjectId;
-import gnu.classpath.jdwp.id.ReferenceTypeId;
-import gnu.classpath.jdwp.util.LineTable;
+import gnu.classpath.jdwp.exception.InvalidMethodException;
+import gnu.classpath.jdwp.exception.JdwpException;
 import gnu.classpath.jdwp.util.MethodResult;
-import gnu.classpath.jdwp.util.VariableTable;
-
-import java.io.IOException;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Hashtable;
 import java.util.Iterator;
 
 /**
@@ -63,21 +58,28 @@ import java.util.Iterator;
  */
 public class VMVirtualMachine
 {
+  // Thread suspension table. Maps Thread to suspend count (Integer)
+  private static Hashtable _jdwp_suspend_counts;
+
+  public static native void initialize ();
+
   /**
    * Suspend a thread
    *
    * @param  thread  the thread to suspend
    */
-  public static void suspendThread (Thread thread) { }
+  public static native void suspendThread (Thread thread)
+    throws JdwpException;
 
   /**
    * Suspend all threads
    */
   public static void suspendAllThreads ()
+    throws JdwpException
   {
     // Our JDWP thread group -- don't suspend any of those threads
     Thread current = Thread.currentThread ();
-    ThreadGroup jdwpGroup = current.getThreadGroup ();
+    ThreadGroup jdwpGroup = Jdwp.getDefault().getJdwpThreadGroup();
 
     // Find the root ThreadGroup
     ThreadGroup group = jdwpGroup;
@@ -109,7 +111,8 @@ public class VMVirtualMachine
       }
 
     // Now suspend the current thread
-    suspendThread (current);
+    if (current.getThreadGroup() != jdwpGroup)
+      suspendThread (current);
   }
 
   /**
@@ -118,7 +121,8 @@ public class VMVirtualMachine
    *
    * @param  thread  the thread to resume
    */
-  public static void resumeThread (Thread thread) { }
+  public static native void resumeThread (Thread thread)
+    throws JdwpException;
 
   /**
    * Resume all threads. This simply decrements the thread's
@@ -126,6 +130,7 @@ public class VMVirtualMachine
    * to run.
    */
   public static void resumeAllThreads ()
+    throws JdwpException
   {
     // Our JDWP thread group -- don't resume
     Thread current = Thread.currentThread ();
@@ -167,17 +172,20 @@ public class VMVirtualMachine
    * @param  thread  the thread whose suspend count is desired
    * @return the number of times the thread has been suspended
    */
-  public static int getSuspendCount (Thread thread) { return -1; }
+  public static native int getSuspendCount (Thread thread)
+    throws JdwpException;
  
   /**
    * Returns a count of the number of loaded classes in the VM
    */
-  public static int getAllLoadedClassesCount () { return -1; }
+  public static native int getAllLoadedClassesCount ()
+    throws JdwpException;
 
   /**
    * Returns an iterator over all the loaded classes in the VM
    */
-  public static Iterator getAllLoadedClasses () { return null; }
+  public static native Iterator getAllLoadedClasses ()
+    throws JdwpException;
 
   /**
    * Returns the status of the given class
@@ -186,8 +194,32 @@ public class VMVirtualMachine
    * @return a flag containing the class's status
    * @see JdwpConstants.ClassStatus
    */
-  public static int getClassStatus (Class clazz) { return -1; }
+  public static native int getClassStatus (Class clazz)
+    throws JdwpException;
 
+  /**
+   * Returns all of the methods defined in the given class. This
+   * includes all methods, constructors, and class initializers.
+   *
+   * @param  klass  the class whose methods are desired
+   * @return an array of virtual machine methods
+   */
+  public static native VMMethod[] getAllClassMethods (Class klass)
+    throws JdwpException;
+
+  /**
+   * A factory method for getting valid virtual machine methods
+   * which may be passed to/from the debugger.
+   *
+   * @param klass the class in which the method is defined
+   * @param id    the ID of the desired method
+   * @return the desired internal representation of the method
+   * @throws InvalidMethodException if the method is not defined
+   *           in the class
+   * @throws JdwpException for any other error
+   */
+  public static native VMMethod getClassMethod(Class klass, long id)
+    throws JdwpException;
 
   /**
    * Returns the thread's call stack
@@ -197,9 +229,9 @@ public class VMVirtualMachine
    * @param  length  number of frames to return (-1 for all frames)
    * @return a list of frames
    */
-  public static ArrayList getFrames (Thread thread, int strart,
+  public static native ArrayList getFrames (Thread thread, int start,
 					    int length)
-  { return null; }
+    throws JdwpException;
 
   /**
    * Returns the frame for a given thread with the frame ID in
@@ -211,8 +243,8 @@ public class VMVirtualMachine
    * @param  bb      buffer containing the frame's ID
    * @return the desired frame
    */
-  public static VMFrame getFrame (Thread thread, ByteBuffer bb)
-  { return null; }
+  public static native VMFrame getFrame (Thread thread, ByteBuffer bb)
+    throws JdwpException;
 
   /**
    * Returns the number of frames in the thread's stack
@@ -220,8 +252,8 @@ public class VMVirtualMachine
    * @param  thread  the thread for which to get a frame count
    * @return the number of frames in the thread's stack
    */
-  public static int getFrameCount (Thread thread)
-  { return -1; }
+  public static native int getFrameCount (Thread thread)
+    throws JdwpException;
 
 
   /**
@@ -231,8 +263,8 @@ public class VMVirtualMachine
    * @return integer status of the thread
    * @see JdwpConstants.ThreadStatus
    */
-  public static int getThreadStatus (Thread thread)
-  { return -1; }
+  public static native int getThreadStatus (Thread thread)
+    throws JdwpException;
 
   /**
    * Returns a list of all classes which this class loader has been
@@ -241,8 +273,8 @@ public class VMVirtualMachine
    * @param  cl  the class loader
    * @return a list of all visible classes
    */
-  public static ArrayList getLoadRequests (ClassLoader cl)
-  { return null; }
+  public static native ArrayList getLoadRequests (ClassLoader cl)
+    throws JdwpException;
 
   /**
    * Executes a method in the virtual machine
@@ -256,38 +288,11 @@ public class VMVirtualMachine
    *                     (instance methods only) "
    * @return a result object containing the results of the invocation
    */
-  public static MethodResult executeMethod (Object obj, Thread thread,
+  public static native MethodResult executeMethod (Object obj, Thread thread,
 					    Class clazz, Method method,
 					    Object[] values,
 					    boolean nonVirtual)
-  { return null; }
-
-  /**
-   * "Returns variable information for the method. The variable table
-   * includes arguments and locals declared within the method. For instance
-   * methods, the "this" reference is included in the table. Also, synthetic
-   * variables may be present."
-   *
-   * @param  clazz   the class in which the method is defined
-   * @param  method  the method for which variable information is desired
-   * @return a result object containing the information
-   */
-  public static VariableTable getVarTable (Class clazz, Method method)
-  { return null; }
-
-  /**
-   * "Returns line number information for the method, if present. The line
-   * table maps source line numbers to the initial code index of the line.
-   * The line table is ordered by code index (from lowest to highest). The
-   * line number information is constant unless a new class definition is
-   * installed using RedefineClasses."
-   *
-   * @param  clazz   the class in which the method is defined
-   * @param  method  the method whose line table is desired
-   * @return a result object containing the line table
-   */
-  public static LineTable getLineTable (Class clazz, Method method)
-  { return null; }
+    throws JdwpException;
 
   /**
    * "Returns the name of source file in which a reference type was declared"
@@ -296,8 +301,8 @@ public class VMVirtualMachine
    * @return a string containing the source file name; "no path information
    *         for the file is included"
    */
-  public static String getSourceFile (Class clazz)
-  { return null; }
+  public static native String getSourceFile (Class clazz)
+    throws JdwpException;
 
   /**
    * Register a request from the debugger
@@ -308,16 +313,16 @@ public class VMVirtualMachine
    * or do some internal work to set up the event notification (useful for
    * execution-related events like breakpoints, single-stepping, etc.).
    */
-  public static void registerEvent (EventRequest request)
-  { }
+  public static native void registerEvent (EventRequest request)
+    throws JdwpException;
 
   /**
    * Unregisters the given request
    *
    * @param  request  the request to unregister
    */
-  public static void unregisterEvent (EventRequest request)
-  { }
+  public static native void unregisterEvent (EventRequest request)
+    throws JdwpException;
 
 
   /**
@@ -325,5 +330,6 @@ public class VMVirtualMachine
    *
    * @param  kind  the type of events to clear
    */
-  public static void clearEvents (byte kind) { }
+  public static native void clearEvents (byte kind)
+    throws JdwpException;
 }

@@ -40,6 +40,7 @@ exception statement from your version. */
 #define _JAVANET_LOADED 
 
 #include <jni.h>
+#include "jcl.h"
 
 /*************************************************************************/
 
@@ -50,6 +51,7 @@ exception statement from your version. */
 /* Exception Classes */
 #define BIND_EXCEPTION "java/net/BindException"
 #define IO_EXCEPTION "java/io/IOException"
+#define CONNECT_EXCEPTION "java/net/ConnectException"
 #define SOCKET_EXCEPTION "java/net/SocketException"
 #define UNKNOWN_HOST_EXCEPTION "java/net/UnknownHostException"
 
@@ -72,19 +74,6 @@ exception statement from your version. */
 /*************************************************************************/
 
 /*
- * Macros
- */
-
-/* Simple debug macro */
-#ifdef DEBUG
-#define DBG(x) fprintf(stderr, (x));
-#else
-#define DBG(x)
-#endif
-
-/*************************************************************************/
-
-/*
  * Function Prototypes
  */
 
@@ -92,7 +81,7 @@ extern int _javanet_get_int_field(JNIEnv *, jobject, const char *);
 extern int _javanet_get_netaddr(JNIEnv *, jobject);
 extern void _javanet_create(JNIEnv *, jobject, jboolean);
 extern void _javanet_close(JNIEnv *, jobject, int);
-extern void _javanet_connect(JNIEnv *, jobject, jobject, jint);
+extern void _javanet_connect(JNIEnv *, jobject, jobject, jint, jboolean);
 extern void _javanet_bind(JNIEnv *, jobject, jobject, jint, int);
 extern void _javanet_listen(JNIEnv *, jobject, jint);
 extern void _javanet_accept(JNIEnv *, jobject, jobject);

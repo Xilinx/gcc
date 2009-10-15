@@ -1,11 +1,11 @@
 /* Prototypes for exported functions defined in ms1.c
-   Copyright (C) 2005 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2007 Free Software Foundation, Inc.
 
    This file is part of GCC.
 
    GCC is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published
-   by the Free Software Foundation; either version 2, or (at your
+   by the Free Software Foundation; either version 3, or (at your
    option) any later version.
 
    GCC is distributed in the hope that it will be useful,but WITHOUT
@@ -14,9 +14,8 @@
    License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with GCC; see the file COPYING.  If not, write to the Free
-   Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-   02110-1301, USA.  */
+   along with GCC; see the file COPYING3.  If not see
+   <http://www.gnu.org/licenses/>.  */
 
 extern void         mt_init_expanders	 (void);
 extern void         mt_expand_prologue	 (void);
@@ -26,6 +25,7 @@ extern void	    mt_override_options (void);
 extern int	    mt_initial_elimination_offset (int, int);
 extern const char * mt_asm_output_opcode (FILE *, const char *);
 extern int          mt_epilogue_uses	 (int);
+extern void	    mt_add_loop 	 (void);
 
 #ifdef TREE_CODE
 extern const char * mt_cannot_inline_p	 (tree);

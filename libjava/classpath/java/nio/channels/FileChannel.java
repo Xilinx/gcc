@@ -114,12 +114,7 @@ public abstract class FileChannel extends AbstractInterruptibleChannel
    */
   public final long write(ByteBuffer[] srcs) throws IOException
   {
-    long result = 0;
-
-    for (int i = 0; i < srcs.length; i++)
-      result += write(srcs[i]);
-
-    return result;
+    return write(srcs, 0, srcs.length);
   }
 
   /**
@@ -169,12 +164,7 @@ public abstract class FileChannel extends AbstractInterruptibleChannel
    */
   public final long read(ByteBuffer[] dsts) throws IOException
   {
-    long result = 0;
-
-    for (int i = 0; i < dsts.length; i++)
-      read(dsts[i]);
-
-    return result;
+    return read(dsts, 0, dsts.length);
   }
 
   /**
@@ -219,7 +209,7 @@ public abstract class FileChannel extends AbstractInterruptibleChannel
   public abstract void force(boolean metaData) throws IOException;
 
   /**
-   * Creates a file lock for the whole assoziated file.
+   * Creates a file lock for the whole associated file.
    *
    * @exception AsynchronousCloseException If another thread closes this channel
    * while the transfer is in progress.
@@ -242,7 +232,7 @@ public abstract class FileChannel extends AbstractInterruptibleChannel
   }
 
   /**
-   * Creates a file lock for a region of the assoziated file.
+   * Creates a file lock for a region of the associated file.
    *
    * @exception AsynchronousCloseException If another thread closes this channel
    * while the transfer is in progress.
@@ -265,7 +255,7 @@ public abstract class FileChannel extends AbstractInterruptibleChannel
     throws IOException;
 
   /**
-   * Tries to aqquire alock on the whole assoziated file.
+   * Tries to aqquire alock on the whole associated file.
    *
    * @exception ClosedChannelException If this channel is closed.
    * @exception IOException If an I/O error occurs.
@@ -280,7 +270,7 @@ public abstract class FileChannel extends AbstractInterruptibleChannel
   }
 
   /**
-   * Tries to aqquire a lock on a region of the assoziated file.
+   * Tries to aqquire a lock on a region of the associated file.
    *
    * @exception ClosedChannelException If this channel is closed.
    * @exception IllegalArgumentException If the preconditions on the parameters

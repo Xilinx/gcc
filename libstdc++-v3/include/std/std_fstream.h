@@ -1,6 +1,7 @@
 // File based streams -*- C++ -*-
 
-// Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005
+// Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
+// 2006, 2007
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -28,13 +29,13 @@
 // invalidate any other reasons why the executable file might be covered by
 // the GNU General Public License.
 
-//
-// ISO C++ 14882: 27.8  File-based streams
-//
-
 /** @file fstream
  *  This is a Standard C++ Library header.
  */
+
+//
+// ISO C++ 14882: 27.8  File-based streams
+//
 
 #ifndef _GLIBCXX_FSTREAM
 #define _GLIBCXX_FSTREAM 1
@@ -48,8 +49,8 @@
 #include <bits/basic_file.h>
 #include <bits/gthr.h>
 
-namespace std
-{
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
   // [27.8.1.1] template class basic_filebuf
   /**
    *  @brief  The actual work of input and output (for files).
@@ -257,9 +258,30 @@ namespace std
        *  Otherwise it tries to open the file named @a s using the flags
        *  given in @a mode.
        *
-       *  [Table 92 gives the relation between openmode combinations and the
-       *  equivalent fopen() flags, but the table has not been copied yet.]
-      */
+       *  Table 92, adapted here, gives the relation between openmode
+       *  combinations and the equivalent fopen() flags.
+       *  (NB: lines in|out|app and binary|in|out|app per DR 596)
+       *  +---------------------------------------------------------+
+       *  | ios_base Flag combination            stdio equivalent   |
+       *  |binary  in  out  trunc  app                              |
+       *  +---------------------------------------------------------+
+       *  |             +                        "w"                |
+       *  |             +           +            "a"                |
+       *  |             +     +                  "w"                |
+       *  |         +                            "r"                |
+       *  |         +   +                        "r+"               |
+       *  |         +   +     +                  "w+"               |
+       *  |         +   +           +            "a+"               |
+       *  +---------------------------------------------------------+
+       *  |   +         +                        "wb"               |
+       *  |   +         +           +            "ab"               |
+       *  |   +         +     +                  "wb"               |
+       *  |   +     +                            "rb"               |
+       *  |   +     +   +                        "r+b"              |
+       *  |   +     +   +     +                  "w+b"              |
+       *  |   +     +   +           +            "a+b"              |
+       *  +---------------------------------------------------------+
+       */
       __filebuf_type*
       open(const char* __s, ios_base::openmode __mode);
 
@@ -776,7 +798,8 @@ namespace std
 	  this->setstate(ios_base::failbit);
       }
     };
-} // namespace std
+
+_GLIBCXX_END_NAMESPACE
 
 #ifndef _GLIBCXX_EXPORT_TEMPLATE
 # include <bits/fstream.tcc>

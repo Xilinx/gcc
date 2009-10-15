@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2005, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2006, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -347,7 +347,7 @@ package body Bindgen is
 
    procedure Gen_Adafinal_C is
    begin
-      WBI ("void " & Ada_Final_Name.all & " () {");
+      WBI ("void " & Ada_Final_Name.all & " (void) {");
       WBI ("   system__standard_library__adafinal ();");
       WBI ("}");
       WBI ("");
@@ -523,7 +523,8 @@ package body Bindgen is
          WBI ("         Unreserve_All_Interrupts : Integer;");
          WBI ("         Exception_Tracebacks     : Integer;");
          WBI ("         Zero_Cost_Exceptions     : Integer;");
-         WBI ("         Detect_Blocking          : Integer);");
+         WBI ("         Detect_Blocking          : Integer;");
+         WBI ("         Default_Stack_Size       : Integer);");
          WBI ("      pragma Import (C, Set_Globals, ""__gnat_set_globals"");");
 
          --  Import entry point for elaboration time signal handler
@@ -631,6 +632,12 @@ package body Bindgen is
          else
             Set_Int (0);
          end if;
+
+         Set_String (",");
+         Write_Statement_Buffer;
+
+         Set_String ("         Default_Stack_Size       => ");
+         Set_Int (Default_Stack_Size);
 
          Set_String (");");
          Write_Statement_Buffer;
@@ -876,10 +883,18 @@ package body Bindgen is
             Set_Int (0);
          end if;
 
-         Set_String (");");
+         Set_String (",");
          Tab_To (24);
          Set_String ("/* Detect_Blocking            */");
          Write_Statement_Buffer;
+
+         Set_String ("      ");
+         Set_Int    (Default_Stack_Size);
+         Set_String (");");
+         Tab_To (24);
+         Set_String ("/* Default_Stack_Size     */");
+         Write_Statement_Buffer;
+
          WBI ("");
 
          --  Install elaboration time signal handler
@@ -1268,6 +1283,22 @@ package body Bindgen is
          WBI ("      pragma Import (C, finalize, ""__gnat_finalize"");");
       end if;
 
+      --  If we want to analyze the stack, we have to import corresponding
+      --  symbols
+
+      if Dynamic_Stack_Measurement then
+         WBI ("");
+         WBI ("      procedure Output_Results;");
+         WBI ("      pragma Import (C, Output_Results, " &
+              """__gnat_stack_usage_output_results"");");
+
+         WBI ("");
+         WBI ("      " &
+              "procedure Initialize_Stack_Analysis (Buffer_Size : Natural);");
+         WBI ("      pragma Import (C, Initialize_Stack_Analysis, " &
+              """__gnat_stack_usage_initialize"");");
+      end if;
+
       --  Deal with declarations for main program case
 
       if not No_Main_Subprogram then
@@ -1318,10 +1349,15 @@ package body Bindgen is
       --  The reference stops Ada_Main_Program_Name from being optimized
       --  away by smart linkers, such as the AiX linker.
 
+      --  Because this variable is unused, we make this variable "aliased"
+      --  with a pragma Volatile in order to tell the compiler to preserve
+      --  this variable at any level of optimization.
+
       if Bind_Main_Program then
          WBI
-           ("      Ensure_Reference : System.Address := " &
+           ("      Ensure_Reference : aliased System.Address := " &
             "Ada_Main_Program_Name'Address;");
+         WBI ("      pragma Volatile (Ensure_Reference);");
          WBI ("");
       end if;
 
@@ -1356,6 +1392,13 @@ package body Bindgen is
       then
          Set_String ("      Set_Exit_Status (");
          Set_Int (Opt.Default_Exit_Status);
+         Set_String (");");
+         Write_Statement_Buffer;
+      end if;
+
+      if Dynamic_Stack_Measurement then
+         Set_String ("      Initialize_Stack_Analysis (");
+         Set_Int (Dynamic_Stack_Measurement_Array_Size);
          Set_String (");");
          Write_Statement_Buffer;
       end if;
@@ -1396,6 +1439,12 @@ package body Bindgen is
          else
             WBI ("      Do_Finalize;");
          end if;
+      end if;
+
+      --  Prints the result of static stack analysis
+
+      if Dynamic_Stack_Measurement then
+         WBI ("      Output_Results;");
       end if;
 
       --  Finalize is only called if we have a run time
@@ -1442,7 +1491,7 @@ package body Bindgen is
       --  Case of no command line arguments on target
 
       else
-         Write_Statement_Buffer (" ()");
+         Write_Statement_Buffer (" (void)");
       end if;
 
       WBI ("{");
@@ -1453,8 +1502,13 @@ package body Bindgen is
       --  place). The reference stops Ada_Main_Program_Name from being
       --  optimized away by smart linkers, such as the AiX linker.
 
+      --  Because this variable is unused, we declare this variable as
+      --  volatile in order to tell the compiler to preserve it at any
+      --  level of optimization.
+
       if Bind_Main_Program then
-         WBI ("   char *ensure_reference __attribute__ ((__unused__)) = " &
+         WBI ("   char * volatile ensure_reference " &
+              "__attribute__ ((__unused__)) = " &
               "__gnat_ada_main_program_name;");
          WBI ("");
 
@@ -1506,6 +1560,15 @@ package body Bindgen is
          Write_Statement_Buffer;
       end if;
 
+      --  Initializes dynamic stack measurement if needed
+
+      if Dynamic_Stack_Measurement then
+         Set_String ("   __gnat_stack_usage_initialize (");
+         Set_Int (Dynamic_Stack_Measurement_Array_Size);
+         Set_String (");");
+         Write_Statement_Buffer;
+      end if;
+
       --  The __gnat_initialize routine is used only if we have a run-time
 
       if not Suppress_Standard_Library_On_Target then
@@ -1550,6 +1613,12 @@ package body Bindgen is
       if not Cumulative_Restrictions.Set (No_Finalization) then
          WBI (" ");
          WBI ("   system__standard_library__adafinal ();");
+      end if;
+
+      --  Outputs the dynamic stack measurement if needed
+
+      if Dynamic_Stack_Measurement then
+         WBI ("   __gnat_stack_usage_output_results ();");
       end if;
 
       --  The finalize routine is used only if we have a run-time
@@ -1681,7 +1750,7 @@ package body Bindgen is
                --  filename object is seen. Multiply defined symbols will
                --  result.
 
-               if Hostparm.OpenVMS
+               if OpenVMS_On_Target
                  and then Is_Internal_File_Name
                   (ALIs.Table
                    (Units.Table (Elab_Order.Table (E)).My_ALI).Sfile)
@@ -1782,7 +1851,13 @@ package body Bindgen is
 
          if With_DECGNAT then
             Name_Len := 0;
-            Add_Str_To_Name_Buffer ("-ldecgnat");
+
+            if Opt.Shared_Libgnat then
+               Add_Str_To_Name_Buffer (Shared_Lib ("decgnat"));
+            else
+               Add_Str_To_Name_Buffer ("-ldecgnat");
+            end if;
+
             Write_Linker_Option;
          end if;
 
@@ -2185,7 +2260,7 @@ package body Bindgen is
       WBI ("extern void __gnat_set_globals");
       WBI ("  (int, int, char, char, char, char,");
       WBI ("   const char *, const char *,");
-      WBI ("   int, int, int, int, int);");
+      WBI ("   int, int, int, int, int, int);");
 
       if Use_Pragma_Linker_Constructor then
          WBI ("extern void " & Ada_Final_Name.all &
@@ -2242,6 +2317,12 @@ package body Bindgen is
          WBI ("extern void __gnat_initialize (void *);");
          WBI ("extern void __gnat_finalize (void);");
          WBI ("extern void __gnat_install_handler (void);");
+      end if;
+
+      if Dynamic_Stack_Measurement then
+         WBI ("");
+         WBI ("extern void __gnat_stack_usage_output_results (void);");
+         WBI ("extern void __gnat_stack_usage_initialize (int size);");
       end if;
 
       WBI ("");
@@ -2311,7 +2392,7 @@ package body Bindgen is
 
       if Suppress_Standard_Library_On_Target then
          WBI ("");
-         WBI ("void __gnat_break_start () {}");
+         WBI ("void __gnat_break_start (void) {}");
       end if;
 
       --  Generate the __gnat_version and __gnat_ada_main_program_name info
@@ -2780,7 +2861,7 @@ package body Bindgen is
             With_GNARL := True;
          end if;
 
-         if Hostparm.OpenVMS and then Name_Buffer (1 .. 5) = "dec%s" then
+         if OpenVMS_On_Target and then Name_Buffer (1 .. 5) = "dec%s" then
             With_DECGNAT := True;
          end if;
       end loop;

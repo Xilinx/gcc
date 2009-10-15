@@ -8,4 +8,4 @@ template<int N> struct B : A<N>
 };
 
 B<0> b;
- 
+

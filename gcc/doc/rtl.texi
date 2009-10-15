@@ -455,6 +455,16 @@ that is, some sort of constant.  In this case, the @code{symbol_ref}
 is an entry in the per-file constant pool; again, there is no associated
 front end symbol table entry.
 
+@findex SYMBOL_REF_CONSTANT
+@item SYMBOL_REF_CONSTANT (@var{x})
+If @samp{CONSTANT_POOL_ADDRESS_P (@var{x})} is true, this is the constant
+pool entry for @var{x}.  It is null otherwise.
+
+@findex SYMBOL_REF_DATA
+@item SYMBOL_REF_DATA (@var{x})
+A field of opaque type used to store @code{SYMBOL_REF_DECL} or
+@code{SYMBOL_REF_CONSTANT}.
+
 @findex SYMBOL_REF_FLAGS
 @item SYMBOL_REF_FLAGS (@var{x})
 In a @code{symbol_ref}, this is used to communicate various predicates
@@ -491,11 +501,41 @@ See @code{TARGET_IN_SMALL_DATA_P}.
 This is a multi-bit field accessor that returns the @code{tls_model}
 to be used for a thread-local storage symbol.  It returns zero for
 non-thread-local symbols.
+
+@findex SYMBOL_REF_HAS_BLOCK_INFO_P
+@findex SYMBOL_FLAG_HAS_BLOCK_INFO
+@item SYMBOL_FLAG_HAS_BLOCK_INFO
+Set if the symbol has @code{SYMBOL_REF_BLOCK} and
+@code{SYMBOL_REF_BLOCK_OFFSET} fields.
+
+@findex SYMBOL_REF_ANCHOR_P
+@findex SYMBOL_FLAG_ANCHOR
+@cindex @option{-fsection-anchors}
+@item SYMBOL_FLAG_ANCHOR
+Set if the symbol is used as a section anchor.  ``Section anchors''
+are symbols that have a known position within an @code{object_block}
+and that can be used to access nearby members of that block.
+They are used to implement @option{-fsection-anchors}.
+
+If this flag is set, then @code{SYMBOL_FLAG_HAS_BLOCK_INFO} will be too.
 @end table
 
 Bits beginning with @code{SYMBOL_FLAG_MACH_DEP} are available for
 the target's use.
 @end table
+
+@findex SYMBOL_REF_BLOCK
+@item SYMBOL_REF_BLOCK (@var{x})
+If @samp{SYMBOL_REF_HAS_BLOCK_INFO_P (@var{x})}, this is the
+@samp{object_block} structure to which the symbol belongs,
+or @code{NULL} if it has not been assigned a block.
+
+@findex SYMBOL_REF_BLOCK_OFFSET
+@item SYMBOL_REF_BLOCK_OFFSET (@var{x})
+If @samp{SYMBOL_REF_HAS_BLOCK_INFO_P (@var{x})}, this is the offset of @var{x}
+from the first object in @samp{SYMBOL_REF_BLOCK (@var{x})}.  The value is
+negative if @var{x} has not yet been assigned to a block, or it has not
+been given an offset within that block.
 @end table
 
 @node Flags
@@ -568,14 +608,6 @@ branch is not taken.  When @code{INSN_ANNULLED_BRANCH_P} is not set,
 this insn will always be executed.  Stored in the @code{in_struct}
 field and printed as @samp{/s}.
 
-@findex LABEL_OUTSIDE_LOOP_P
-@cindex @code{label_ref} and @samp{/s}
-@cindex @code{in_struct}, in @code{label_ref}
-@item LABEL_OUTSIDE_LOOP_P (@var{x})
-In @code{label_ref} expressions, nonzero if this is a reference to a
-label that is outside the innermost loop containing the reference to the
-label.  Stored in the @code{in_struct} field and printed as @samp{/s}.
-
 @findex LABEL_PRESERVE_P
 @cindex @code{code_label} and @samp{/i}
 @cindex @code{note} and @samp{/i}
@@ -616,8 +648,8 @@ are already in a non-addressable component of an aggregate.
 Stored in the @code{jump} field and printed as @samp{/j}.
 
 @findex MEM_SCALAR_P
-@cindex @code{mem} and @samp{/f}
-@cindex @code{frame_related}, in @code{mem}
+@cindex @code{mem} and @samp{/i}
+@cindex @code{return_val}, in @code{mem}
 @item MEM_SCALAR_P (@var{x})
 In @code{mem} expressions, nonzero for reference to a scalar known not
 to be a member of a structure, union, or array.  Zero for such
@@ -625,7 +657,7 @@ references and for indirections through pointers, even pointers pointing
 to scalar types.  If both this flag and @code{MEM_IN_STRUCT_P} are clear,
 then we don't know whether this @code{mem} is in a structure or not.
 Both flags should never be simultaneously set.
-Stored in the @code{frame_related} field and printed as @samp{/f}.
+Stored in the @code{return_val} field and printed as @samp{/i}.
 
 @findex MEM_VOLATILE_P
 @cindex @code{mem} and @samp{/v}
@@ -644,13 +676,20 @@ Stored in the @code{volatil} field and printed as @samp{/v}.
 In @code{mem}, nonzero for memory references that will not trap.
 Stored in the @code{call} field and printed as @samp{/c}.
 
+@findex MEM_POINTER
+@cindex @code{mem} and @samp{/f}
+@cindex @code{frame_related}, in @code{mem}
+@item MEM_POINTER (@var{x})
+Nonzero in a @code{mem} if the memory reference holds a pointer.
+Stored in the @code{frame_related} field and printed as @samp{/f}.
+
 @findex REG_FUNCTION_VALUE_P
 @cindex @code{reg} and @samp{/i}
-@cindex @code{integrated}, in @code{reg}
+@cindex @code{return_val}, in @code{reg}
 @item REG_FUNCTION_VALUE_P (@var{x})
 Nonzero in a @code{reg} if it is the place in which this function's
 value is going to be returned.  (This happens only in a hard
-register.)  Stored in the @code{integrated} field and printed as
+register.)  Stored in the @code{return_val} field and printed as
 @samp{/i}.
 
 @findex REG_POINTER
@@ -706,19 +745,6 @@ computation performed by this instruction, i.e., one that
 
 This flag is required for exception handling support on targets with RTL
 prologues.
-
-@cindex @code{insn} and @samp{/i}
-@cindex @code{call_insn} and @samp{/i}
-@cindex @code{jump_insn} and @samp{/i}
-@cindex @code{barrier} and @samp{/i}
-@cindex @code{code_label} and @samp{/i}
-@cindex @code{insn_list} and @samp{/i}
-@cindex @code{const} and @samp{/i}
-@cindex @code{note} and @samp{/i}
-@cindex @code{integrated}, in @code{insn}, @code{call_insn}, @code{jump_insn}, @code{barrier}, @code{code_label}, @code{insn_list}, @code{const}, and @code{note}
-@code{code_label}, @code{insn_list}, @code{const}, or @code{note} if it
-resulted from an in-line function call.
-Stored in the @code{integrated} field and printed as @samp{/i}.
 
 @findex MEM_READONLY_P
 @cindex @code{mem} and @samp{/u}
@@ -818,10 +844,10 @@ once.  Stored in the @code{used} field.
 
 @findex SYMBOL_REF_WEAK
 @cindex @code{symbol_ref} and @samp{/i}
-@cindex @code{integrated}, in @code{symbol_ref}
+@cindex @code{return_val}, in @code{symbol_ref}
 @item SYMBOL_REF_WEAK (@var{x})
 In a @code{symbol_ref}, indicates that @var{x} has been declared weak.
-Stored in the @code{integrated} field and printed as @samp{/i}.
+Stored in the @code{return_val} field and printed as @samp{/i}.
 
 @findex SYMBOL_REF_FLAG
 @cindex @code{symbol_ref} and @samp{/v}
@@ -855,10 +881,10 @@ frame pointer.
 
 In @code{reg} expressions, 1 means that the register holds a pointer.
 
+In @code{mem} expressions, 1 means that the memory reference holds a pointer.
+
 In @code{symbol_ref} expressions, 1 means that the reference addresses
 this function's string constant pool.
-
-In @code{mem} expressions, 1 means that the reference is to a scalar.
 
 In an RTL dump, this flag is represented as @samp{/f}.
 
@@ -898,17 +924,17 @@ must be scheduled as part of a group together with the previous insn.
 
 In an RTL dump, this flag is represented as @samp{/s}.
 
-@findex integrated
+@findex return_val
 @cindex @samp{/i} in RTL dump
-@item integrated
-In an @code{insn}, @code{insn_list}, or @code{const}, 1 means the RTL was
-produced by procedure integration.
-
+@item return_val
 In @code{reg} expressions, 1 means the register contains
 the value to be returned by the current function.  On
 machines that pass parameters in registers, the same register number
 may be used for parameters as well, but this flag is not set on such
 uses.
+
+In @code{mem} expressions, 1 means the memory reference is to a scalar
+known not to be a member of a structure, union, or array.
 
 In @code{symbol_ref} expressions, 1 means the referenced symbol is weak.
 
@@ -1081,6 +1107,22 @@ number.  This mode only has 80 meaningful bits (ten bytes).  Some
 processors require such numbers to be padded to twelve bytes, others
 to sixteen; this mode is used for either.
 
+@findex SDmode
+@item SDmode
+``Single Decimal Floating'' mode represents a four byte decimal
+floating point number (as distinct from conventional binary floating
+point).
+
+@findex DDmode
+@item DDmode
+``Double Decimal Floating'' mode represents an eight byte decimal
+floating point number.
+
+@findex TDmode
+@item TDmode
+``Tetra Decimal Floating'' mode represents a sixteen byte decimal
+floating point number all 128 of whose bits are meaningful.
+
 @findex TFmode
 @item TFmode
 ``Tetra Floating'' mode represents a sixteen byte floating point number
@@ -1172,6 +1214,11 @@ The ``partial integer'' modes, @code{PQImode}, @code{PHImode},
 Floating point modes.  By default these are @code{QFmode},
 @code{HFmode}, @code{TQFmode}, @code{SFmode}, @code{DFmode},
 @code{XFmode} and @code{TFmode}.
+
+@findex MODE_DECIMAL_FLOAT
+@item MODE_DECIMAL_FLOAT
+Decimal floating point modes.  By default these are @code{SDmode},
+@code{DDmode} and @code{TDmode}.
 
 @findex MODE_COMPLEX_INT
 @item MODE_COMPLEX_INT
@@ -1828,9 +1875,18 @@ or the first operand must be loaded into a register while its mode is
 still known.
 
 @findex neg
+@findex ss_neg
+@cindex negation
+@cindex negation with signed saturation
 @item (neg:@var{m} @var{x})
-Represents the negation (subtraction from zero) of the value represented
-by @var{x}, carried out in mode @var{m}.
+@itemx (ss_neg:@var{m} @var{x})
+These two expressions represent the negation (subtraction from zero) of
+the value represented by @var{x}, carried out in mode @var{m}.  They
+differ in the behavior on overflow of integer modes.  In the case of
+@code{neg}, the negation of the operand may be a number not representable
+in mode @var{m}, in which case it is truncated to @var{m}.  @code{ss_neg}
+ensures that an out-of-bounds result saturates to the maximum or minimum
+representable value.
 
 @findex mult
 @cindex multiplication
@@ -1937,12 +1993,21 @@ and @var{y}, carried out in machine mode @var{m}, which must be a
 fixed-point mode.
 
 @findex ashift
+@findex ss_ashift
 @cindex left shift
 @cindex shift
 @cindex arithmetic shift
+@cindex arithmetic shift with signed saturation
 @item (ashift:@var{m} @var{x} @var{c})
-Represents the result of arithmetically shifting @var{x} left by @var{c}
-places.  @var{x} have mode @var{m}, a fixed-point machine mode.  @var{c}
+@itemx (ss_ashift:@var{m} @var{x} @var{c})
+These two expressions represent the result of arithmetically shifting @var{x}
+left by @var{c} places.  They differ in their behavior on overflow of integer
+modes.  An @code{ashift} operation is a plain shift with no special behavior
+in case of a change in the sign bit; @code{ss_ashift} saturates to the minimum
+or maximum representable value if any of the bits shifted out differs from the
+final sign bit.
+
+@var{x} have mode @var{m}, a fixed-point machine mode.  @var{c}
 be a fixed-point mode or be a constant with mode @code{VOIDmode}; which
 mode is determined by the mode called for in the machine description
 entry for the left-shift instruction.  For example, on the VAX, the mode
@@ -2970,14 +3035,7 @@ TARGET_PASS_BY_REFERENCE}) are stored.  If the argument is
 caller-copied (@pxref{Register Arguments, TARGET_CALLEE_COPIES}),
 the stack slot will be mentioned in @code{CLOBBER} and @code{USE}
 entries; if it's callee-copied, only a @code{USE} will appear, and the
-@code{MEM} may point to addresses that are not stack slots.  These
-@code{MEM}s are used only in libcalls, because, unlike regular function
-calls, @code{CONST_CALL}s (which libcalls generally are, @pxref{Flags,
-CONST_CALL_P}) aren't assumed to read and write all memory, so flow
-would consider the stores dead and remove them.  Note that, since a
-libcall must never return values in memory (@pxref{Aggregate Return,
-RETURN_IN_MEMORY}), there will never be a @code{CLOBBER} for a memory
-address holding a return value.
+@code{MEM} may point to addresses that are not stack slots.
 
 @code{CLOBBER}ed registers in this list augment registers specified in
 @code{CALL_USED_REGISTERS} (@pxref{Register Basics}).

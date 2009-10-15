@@ -1,6 +1,6 @@
 // posix.h -- Helper functions for POSIX-flavored OSs.
 
-/* Copyright (C) 2000, 2002, 2003  Free Software Foundation
+/* Copyright (C) 2000, 2002, 2003, 2006  Free Software Foundation
 
    This file is part of libgcj.
 
@@ -37,6 +37,12 @@ details.  */
 
 #include <fcntl.h>
 
+/* The header file <sys/rw_lock.h> needs to be included before javaprims.h
+   on HP-UX 11 to avoid a compilation error.  */
+#ifdef HAVE_SYS_RW_LOCK_H
+#include <sys/rw_lock.h>
+#endif
+
 #include <gcj/cni.h>
 #include <java/util/Properties.h>
 
@@ -44,6 +50,8 @@ details.  */
 #define _Jv_platform_solib_prefix "lib"
 #if defined(__APPLE__) && defined(__MACH__)
 #define _Jv_platform_solib_suffix ".dylib"
+#elif defined(HPUX) && defined(HP_PA)
+#define _Jv_platform_solib_suffix ".sl"
 #else
 #define _Jv_platform_solib_suffix ".so"
 #endif
@@ -79,17 +87,9 @@ details.  */
 
 extern int _Jv_select (int n, fd_set *, fd_set *, fd_set *, struct timeval *);
 extern jlong _Jv_platform_gettimeofday ();
+extern jlong _Jv_platform_nanotime ();
 extern void _Jv_platform_initialize (void);
 extern void _Jv_platform_initProperties (java::util::Properties*);
-
-inline void
-_Jv_platform_close_on_exec (jint fd)
-{
-  // Ignore errors.
-  ::fcntl (fd, F_SETFD, FD_CLOEXEC);
-}
-
-#undef fcntl
 
 #ifdef JV_HASH_SYNCHRONIZATION
 #ifndef HAVE_USLEEP_DECL
@@ -184,5 +184,12 @@ _Jv_pipe (int filedes[2])
 {
   return ::pipe (filedes);
 }
+
+// Forward declaration.  See java-stack.h for definition.
+struct _Jv_AddrInfo;
+
+// Given an address, determine the executable or shared object that defines
+// it and the nearest named symbol.
+extern int _Jv_platform_dladdr (void *addr, _Jv_AddrInfo *info);
 
 #endif /* __JV_POSIX_H__ */

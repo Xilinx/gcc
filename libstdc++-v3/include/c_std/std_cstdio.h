@@ -28,11 +28,7 @@
 // invalidate any other reasons why the executable file might be covered by
 // the GNU General Public License.
 
-//
-// ISO C++ 14882: 27.8.2  C Library files
-//
-
-/** @file cstdio
+/** @file include/cstdio
  *  This is a Standard C++ Library file.  You should @c #include this file
  *  in your programs, rather than any of the "*.h" implementation files.
  *
@@ -41,6 +37,10 @@
  *  contained in the namespace @c std (except for names which are defined
  *  as macros in C).
  */
+
+//
+// ISO C++ 14882: 27.8.2  C Library files
+//
 
 #ifndef _GLIBCXX_CSTDIO
 #define _GLIBCXX_CSTDIO 1
@@ -95,8 +95,8 @@
 #undef vprintf
 #undef vsprintf
 
-namespace std
-{
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
   using ::FILE;
   using ::fpos_t;
 
@@ -141,7 +141,8 @@ namespace std
   using ::vfprintf;
   using ::vprintf;
   using ::vsprintf;
-}
+
+_GLIBCXX_END_NAMESPACE
 
 #if _GLIBCXX_USE_C99
 
@@ -151,8 +152,8 @@ namespace std
 #undef vsnprintf
 #undef vsscanf
 
-namespace __gnu_cxx
-{
+_GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
+
 #if _GLIBCXX_USE_C99_CHECK || _GLIBCXX_USE_C99_DYNAMIC
   extern "C" int
   (snprintf)(char * restrict, size_t, const char * restrict, ...);
@@ -172,16 +173,19 @@ namespace __gnu_cxx
   using ::vsnprintf;
   using ::vsscanf;
 #endif
-}
 
-namespace std
-{
-  using __gnu_cxx::snprintf;
-  using __gnu_cxx::vfscanf;
-  using __gnu_cxx::vscanf;
-  using __gnu_cxx::vsnprintf;
-  using __gnu_cxx::vsscanf;
-}
+_GLIBCXX_END_NAMESPACE
+
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
+  using ::__gnu_cxx::snprintf;
+  using ::__gnu_cxx::vfscanf;
+  using ::__gnu_cxx::vscanf;
+  using ::__gnu_cxx::vsnprintf;
+  using ::__gnu_cxx::vsscanf;
+
+_GLIBCXX_END_NAMESPACE
+
 #endif
 
 #endif

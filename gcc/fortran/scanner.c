@@ -1,5 +1,5 @@
 /* Character scanner.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -7,7 +7,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -16,9 +16,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 /* Set of subroutines to (ultimately) return the next character to the
    various matching subroutines.  This file's job is to read files and
@@ -60,7 +59,9 @@ static gfc_directorylist *include_dirs;
 
 static gfc_file *file_head, *current_file;
 
-static int continue_flag, end_flag;
+static int continue_flag, end_flag, openmp_flag;
+static int continue_count, continue_line;
+static locus openmp_locus;
 
 gfc_source_form gfc_current_form;
 static gfc_linebuf *line_head, *line_tail;
@@ -70,6 +71,7 @@ const char *gfc_source_file;
 static FILE *gfc_src_file;
 static char *gfc_src_preprocessor_lines[2];
 
+extern int pedantic;
 
 /* Main scanner initialization.  */
 
@@ -79,6 +81,9 @@ gfc_scanner_init_1 (void)
   file_head = NULL;
   line_head = NULL;
   line_tail = NULL;
+
+  continue_count = 0;
+  continue_line = 0;
 
   end_flag = 0;
 }
@@ -171,6 +176,9 @@ gfc_open_included_file (const char *name, const bool include_cwd)
   char *fullname;
   gfc_directorylist *p;
   FILE *f;
+
+  if (IS_ABSOLUTE_PATH (name))
+    return gfc_open_file (name);
 
   if (include_cwd)
     {
@@ -290,7 +298,7 @@ next_char (void)
   if (gfc_current_locus.nextc == NULL)
     return '\n';
 
-  c = *gfc_current_locus.nextc++;
+  c = (unsigned char) *gfc_current_locus.nextc++;
   if (c == '\0')
     {
       gfc_current_locus.nextc--; /* Remain on this line.  */
@@ -321,24 +329,26 @@ skip_comment_line (void)
 
 
 /* Comment lines are null lines, lines containing only blanks or lines
-   on which the first nonblank line is a '!'.  */
+   on which the first nonblank line is a '!'.
+   Return true if !$ openmp conditional compilation sentinel was
+   seen.  */
 
-static void
+static bool
 skip_free_comments (void)
 {
   locus start;
   char c;
+  int at_bol;
 
   for (;;)
     {
+      at_bol = gfc_at_bol ();
       start = gfc_current_locus;
       if (gfc_at_eof ())
 	break;
 
       do
-	{
-	  c = next_char ();
-	}
+	c = next_char ();
       while (gfc_is_whitespace (c));
 
       if (c == '\n')
@@ -349,6 +359,47 @@ skip_free_comments (void)
 
       if (c == '!')
 	{
+	  /* If -fopenmp, we need to handle here 2 things:
+	     1) don't treat !$omp as comments, but directives
+	     2) handle OpenMP conditional compilation, where
+		!$ should be treated as 2 spaces (for initial lines
+		only if followed by space).  */
+	  if (gfc_option.flag_openmp && at_bol)
+	    {
+	      locus old_loc = gfc_current_locus;
+	      if (next_char () == '$')
+		{
+		  c = next_char ();
+		  if (c == 'o' || c == 'O')
+		    {
+		      if (((c = next_char ()) == 'm' || c == 'M')
+			  && ((c = next_char ()) == 'p' || c == 'P')
+			  && ((c = next_char ()) == ' ' || continue_flag))
+			{
+			  while (gfc_is_whitespace (c))
+			    c = next_char ();
+			  if (c != '\n' && c != '!')
+			    {
+			      openmp_flag = 1;
+			      openmp_locus = old_loc;
+			      gfc_current_locus = start;
+			      return false;
+			    }
+			}
+		      gfc_current_locus = old_loc;
+		      next_char ();
+		      c = next_char ();
+		    }
+		  if (continue_flag || c == ' ')
+		    {
+		      gfc_current_locus = old_loc;
+		      next_char ();
+		      openmp_flag = 0;
+		      return true;
+		    }
+		}
+	      gfc_current_locus = old_loc;
+	    }
 	  skip_comment_line ();
 	  continue;
 	}
@@ -356,7 +407,10 @@ skip_free_comments (void)
       break;
     }
 
+  if (openmp_flag && at_bol)
+    openmp_flag = 0;
   gfc_current_locus = start;
+  return false;
 }
 
 
@@ -371,6 +425,28 @@ skip_fixed_comments (void)
   locus start;
   int col;
   char c;
+
+  if (! gfc_at_bol ())
+    {
+      start = gfc_current_locus;
+      if (! gfc_at_eof ())
+	{
+	  do
+	    c = next_char ();
+	  while (gfc_is_whitespace (c));
+
+	  if (c == '\n')
+	    gfc_advance_line ();
+	  else if (c == '!')
+	    skip_comment_line ();
+	}
+
+      if (! gfc_at_bol ())
+	{
+	  gfc_current_locus = start;
+	  return;
+	}
+    }
 
   for (;;)
     {
@@ -387,6 +463,66 @@ skip_fixed_comments (void)
 
       if (c == '!' || c == 'c' || c == 'C' || c == '*')
 	{
+	  /* If -fopenmp, we need to handle here 2 things:
+	     1) don't treat !$omp|c$omp|*$omp as comments, but directives
+	     2) handle OpenMP conditional compilation, where
+		!$|c$|*$ should be treated as 2 spaces if the characters
+		in columns 3 to 6 are valid fixed form label columns
+		characters.  */
+	  if (gfc_option.flag_openmp)
+	    {
+	      if (next_char () == '$')
+		{
+		  c = next_char ();
+		  if (c == 'o' || c == 'O')
+		    {
+		      if (((c = next_char ()) == 'm' || c == 'M')
+			  && ((c = next_char ()) == 'p' || c == 'P'))
+			{
+			  c = next_char ();
+			  if (c != '\n'
+			      && ((openmp_flag && continue_flag)
+				  || c == ' ' || c == '0'))
+			    {
+			      c = next_char ();
+			      while (gfc_is_whitespace (c))
+				c = next_char ();
+			      if (c != '\n' && c != '!')
+				{
+				  /* Canonicalize to *$omp.  */
+				  *start.nextc = '*';
+				  openmp_flag = 1;
+				  gfc_current_locus = start;
+				  return;
+				}
+			    }
+			}
+		    }
+		  else
+		    {
+		      int digit_seen = 0;
+
+		      for (col = 3; col < 6; col++, c = next_char ())
+			if (c == ' ')
+			  continue;
+			else if (c < '0' || c > '9')
+			  break;
+			else
+			  digit_seen = 1;
+
+		      if (col == 6 && c != '\n'
+			  && ((continue_flag && !digit_seen)
+			      || c == ' ' || c == '0'))
+			{
+			  gfc_current_locus = start;
+			  start.nextc[0] = ' ';
+			  start.nextc[1] = ' ';
+			  continue;
+			}
+		    }
+		}
+	      gfc_current_locus = start;
+	    }
 	  skip_comment_line ();
 	  continue;
 	}
@@ -425,18 +561,17 @@ skip_fixed_comments (void)
       break;
     }
 
+  openmp_flag = 0;
   gfc_current_locus = start;
 }
 
 
-/* Skips the current line if it is a comment.  Assumes that we are at
-   the start of the current line.  */
+/* Skips the current line if it is a comment.  */
 
 void
 gfc_skip_comments (void)
 {
-
-  if (!gfc_at_bol () || gfc_current_form == FORM_FREE)
+  if (gfc_current_form == FORM_FREE)
     skip_free_comments ();
   else
     skip_fixed_comments ();
@@ -454,20 +589,29 @@ int
 gfc_next_char_literal (int in_string)
 {
   locus old_loc;
-  int i, c;
+  int i, c, prev_openmp_flag;
 
   continue_flag = 0;
 
 restart:
   c = next_char ();
   if (gfc_at_end ())
-    return c;
+    {
+      continue_count = 0;
+      return c;
+    }
 
   if (gfc_current_form == FORM_FREE)
     {
+      bool openmp_cond_flag;
 
       if (!in_string && c == '!')
 	{
+	  if (openmp_flag
+	      && memcmp (&gfc_current_locus, &openmp_locus,
+		 sizeof (gfc_current_locus)) == 0)
+	    goto done;
+
 	  /* This line can't be continued */
 	  do
 	    {
@@ -485,7 +629,7 @@ restart:
 	goto done;
 
       /* If the next nonblank character is a ! or \n, we've got a
-         continuation line.  */
+	 continuation line.  */
       old_loc = gfc_current_locus;
 
       c = next_char ();
@@ -493,7 +637,7 @@ restart:
 	c = next_char ();
 
       /* Character constants to be continued cannot have commentary
-         after the '&'.  */
+	 after the '&'.  */
 
       if (in_string && c != '\n')
 	{
@@ -509,20 +653,46 @@ restart:
 	  goto done;
 	}
 
+      prev_openmp_flag = openmp_flag;
       continue_flag = 1;
       if (c == '!')
 	skip_comment_line ();
       else
 	gfc_advance_line ();
+      
+      if (gfc_at_eof())
+	goto not_continuation;
 
-      /* We've got a continuation line and need to find where it continues.
-         First eat any comment lines.  */
-      gfc_skip_comments ();
+      /* We've got a continuation line.  If we are on the very next line after
+	 the last continuation, increment the continuation line count and
+	 check whether the limit has been exceeded.  */
+      if (gfc_current_locus.lb->linenum == continue_line + 1)
+	{
+	  if (++continue_count == gfc_option.max_continue_free)
+	    {
+	      if (gfc_notification_std (GFC_STD_GNU)
+		  || pedantic)
+		gfc_warning ("Limit of %d continuations exceeded in statement at %C",
+			      gfc_option.max_continue_free);
+	    }
+	}
+      continue_line = gfc_current_locus.lb->linenum;
+
+      /* Now find where it continues. First eat any comment lines.  */
+      openmp_cond_flag = skip_free_comments ();
+
+      if (prev_openmp_flag != openmp_flag)
+	{
+	  gfc_current_locus = old_loc;
+	  openmp_flag = prev_openmp_flag;
+	  c = '&';
+	  goto done;
+	}
 
       /* Now that we have a non-comment line, probe ahead for the
-         first non-whitespace character.  If it is another '&', then
-         reading starts at the next character, otherwise we must back
-         up to where the whitespace started and resume from there.  */
+	 first non-whitespace character.  If it is another '&', then
+	 reading starts at the next character, otherwise we must back
+	 up to where the whitespace started and resume from there.  */
 
       old_loc = gfc_current_locus;
 
@@ -530,13 +700,37 @@ restart:
       while (gfc_is_whitespace (c))
 	c = next_char ();
 
-      if (c != '&')
-       {
-         if (in_string && gfc_option.warn_ampersand)
-           gfc_warning ("Missing '&' in continued character constant at %C");
+      if (openmp_flag)
+	{
+	  for (i = 0; i < 5; i++, c = next_char ())
+	    {
+	      gcc_assert (TOLOWER (c) == "!$omp"[i]);
+	      if (i == 4)
+		old_loc = gfc_current_locus;
+	    }
+	  while (gfc_is_whitespace (c))
+	    c = next_char ();
+	}
 
-         gfc_current_locus.nextc--;
-       }
+      if (c != '&')
+	{
+	  if (in_string)
+	    {
+	      if (gfc_option.warn_ampersand)
+		gfc_warning_now ("Missing '&' in continued character constant at %C");
+	      gfc_current_locus.nextc--;
+	    }
+	  /* Both !$omp and !$ -fopenmp continuation lines have & on the
+	     continuation line only optionally.  */
+	  else if (openmp_flag || openmp_cond_flag)
+	    gfc_current_locus.nextc--;
+	  else
+	    {
+	      c = ' ';
+	      gfc_current_locus = old_loc;
+	      goto done;
+	    }
+	}
     }
   else
     {
@@ -557,23 +751,55 @@ restart:
       if (c != '\n')
 	goto done;
 
+      prev_openmp_flag = openmp_flag;
       continue_flag = 1;
       old_loc = gfc_current_locus;
 
       gfc_advance_line ();
-      gfc_skip_comments ();
+      skip_fixed_comments ();
 
       /* See if this line is a continuation line.  */
-      for (i = 0; i < 5; i++)
+      if (openmp_flag != prev_openmp_flag)
 	{
-	  c = next_char ();
-	  if (c != ' ')
-	    goto not_continuation;
+	  openmp_flag = prev_openmp_flag;
+	  goto not_continuation;
 	}
 
+      if (!openmp_flag)
+	for (i = 0; i < 5; i++)
+	  {
+	    c = next_char ();
+	    if (c != ' ')
+	      goto not_continuation;
+	  }
+      else
+	for (i = 0; i < 5; i++)
+	  {
+	    c = next_char ();
+	    if (TOLOWER (c) != "*$omp"[i])
+	      goto not_continuation;
+	  }
+
       c = next_char ();
-      if (c == '0' || c == ' ')
+      if (c == '0' || c == ' ' || c == '\n')
 	goto not_continuation;
+
+      /* We've got a continuation line.  If we are on the very next line after
+	 the last continuation, increment the continuation line count and
+	 check whether the limit has been exceeded.  */
+      if (gfc_current_locus.lb->linenum == continue_line + 1)
+	{
+	  if (++continue_count == gfc_option.max_continue_fixed)
+	    {
+	      if (gfc_notification_std (GFC_STD_GNU)
+		  || pedantic)
+		gfc_warning ("Limit of %d continuations exceeded in statement at %C",
+			      gfc_option.max_continue_fixed);
+	    }
+	}
+
+      if (continue_line < gfc_current_locus.lb->linenum)
+	continue_line = gfc_current_locus.lb->linenum;
     }
 
   /* Ready to read first character of continuation line, which might
@@ -585,6 +811,8 @@ not_continuation:
   gfc_current_locus = old_loc;
 
 done:
+  if (c == '\n')
+    continue_count = 0;
   continue_flag = 0;
   return c;
 }
@@ -677,6 +905,7 @@ gfc_error_recovery (void)
 void
 gfc_gobble_whitespace (void)
 {
+  static int linenum = 0;
   locus old_loc;
   int c;
 
@@ -684,6 +913,22 @@ gfc_gobble_whitespace (void)
     {
       old_loc = gfc_current_locus;
       c = gfc_next_char_literal (0);
+      /* Issue a warning for nonconforming tabs.  We keep track of the line
+	 number because the Fortran matchers will often back up and the same
+	 line will be scanned multiple times.  */
+      if (!gfc_option.warn_tabs && c == '\t')
+	{
+#ifdef USE_MAPPED_LOCATION
+	  int cur_linenum = LOCATION_LINE (gfc_current_locus.lb->location);
+#else
+	  int cur_linenum = gfc_current_locus.lb->linenum;
+#endif
+	  if (cur_linenum != linenum)
+	    {
+	      linenum = cur_linenum;
+	      gfc_warning_now ("Nonconforming tab character at %C");
+	    }
+	}
     }
   while (gfc_is_whitespace (c));
 
@@ -701,13 +946,19 @@ gfc_gobble_whitespace (void)
    In fixed mode, we expand a tab that occurs within the statement
    label region to expand to spaces that leave the next character in
    the source region.
-   load_line returns whether the line was truncated.  */
+   load_line returns whether the line was truncated.
+
+   NOTE: The error machinery isn't available at this point, so we can't
+	 easily report line and column numbers consistent with other 
+	 parts of gfortran.  */
 
 static int
 load_line (FILE * input, char **pbuf, int *pbuflen)
 {
+  static int linenum = 0, current_line = 1;
   int c, maxlen, i, preprocessor_flag, buflen = *pbuflen;
-  int trunc_flag = 0;
+  int trunc_flag = 0, seen_comment = 0;
+  int seen_printable = 0, seen_ampersand = 0;
   char *buffer;
 
   /* Determine the maximum allowed line length.
@@ -759,22 +1010,60 @@ load_line (FILE * input, char **pbuf, int *pbuflen)
       if (c == EOF)
 	break;
       if (c == '\n')
-	break;
+	{
+	  /* Check for illegal use of ampersand. See F95 Standard 3.3.1.3.  */
+	  if (gfc_current_form == FORM_FREE 
+		&& !seen_printable && seen_ampersand)
+	    {
+	      if (pedantic)
+		gfc_error_now
+		  ("'&' not allowed by itself in line %d", current_line);
+	      else
+		gfc_warning_now
+		  ("'&' not allowed by itself in line %d", current_line);
+	    }
+	  break;
+	}
 
       if (c == '\r')
 	continue;		/* Gobble characters.  */
       if (c == '\0')
 	continue;
 
-      if (c == '\032')
+      /* Check for illegal use of ampersand. See F95 Standard 3.3.1.3.  */
+      if (c == '&')
+	seen_ampersand = 1;
+
+      if ((c != ' ' && c != '&' && c != '!') || (c == '!' && !seen_ampersand))
+	seen_printable = 1;
+      
+      if (gfc_current_form == FORM_FREE 
+	    && c == '!' && !seen_printable && seen_ampersand)
 	{
-	  /* Ctrl-Z ends the file.  */
-	  while (fgetc (input) != EOF);
-	  break;
+	  if (pedantic)
+	    gfc_error_now (
+	      "'&' not allowed by itself with comment in line %d", current_line);
+	  else
+	    gfc_warning_now (
+	      "'&' not allowed by itself with comment in line %d", current_line);
+	  seen_printable = 1;
 	}
 
+      /* Is this a fixed-form comment?  */
+      if (gfc_current_form == FORM_FIXED && i == 0
+	  && (c == '*' || c == 'c' || c == 'd'))
+	seen_comment = 1;
+
       if (gfc_current_form == FORM_FIXED && c == '\t' && i <= 6)
-	{			/* Tab expansion.  */
+	{
+	  if (!gfc_option.warn_tabs && seen_comment == 0
+	      && current_line != linenum)
+	    {
+	      linenum = current_line;
+	      gfc_warning_now (
+		"Nonconforming tab character in column 1 of line %d", linenum);
+	    }
+
 	  while (i <= 6)
 	    {
 	      *buffer++ = ' ';
@@ -826,6 +1115,7 @@ load_line (FILE * input, char **pbuf, int *pbuflen)
 
   *buffer = '\0';
   *pbuflen = buflen;
+  current_line++;
 
   return trunc_flag;
 }
@@ -1013,8 +1303,26 @@ static bool
 include_line (char *line)
 {
   char quote, *c, *begin, *stop;
-  
+
   c = line;
+
+  if (gfc_option.flag_openmp)
+    {
+      if (gfc_current_form == FORM_FREE)
+	{
+	  while (*c == ' ' || *c == '\t')
+	    c++;
+	  if (*c == '!' && c[1] == '$' && (c[2] == ' ' || c[2] == '\t'))
+	    c += 3;
+	}
+      else
+	{
+	  if ((*c == '!' || *c == 'c' || *c == 'C' || *c == '*')
+	      && c[1] == '$' && (c[2] == ' ' || c[2] == '\t'))
+	    c += 3;
+	}
+    }
+
   while (*c == ' ' || *c == '\t')
     c++;
 

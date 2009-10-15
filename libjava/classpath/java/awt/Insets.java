@@ -1,5 +1,5 @@
 /* Insets.java -- information about a container border
-   Copyright (C) 1999, 2000, 2002, 2005  Free Software Foundation, Inc.
+   Copyright (C) 1999, 2000, 2002, 2005, 2006  Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -100,11 +100,31 @@ public class Insets implements Cloneable, Serializable
   }
 
   /**
+   * Set the contents of this Insets object to the specified values.
+   *
+   * @param top the top inset
+   * @param left the left inset
+   * @param bottom the bottom inset
+   * @param right the right inset
+   *
+   * @since 1.5
+   */
+  public void set(int top, int left, int bottom, int right)
+  {
+    this.top = top;
+    this.left = left;
+    this.bottom = bottom;
+    this.right = right;
+  }
+
+  /**
    * Tests whether this object is equal to the specified object. The other
    * object must be an instance of Insets with identical field values.
    *
    * @param obj the object to test against
    * @return true if the specified object is equal to this one
+   *
+   * @since 1.1
    */
   public boolean equals(Object obj)
   {
@@ -129,14 +149,13 @@ public class Insets implements Cloneable, Serializable
 
   /**
    * Returns a string representation of this object, which will be non-null.
-   * The format is unspecified, but appears to be <code>XXX what is it?</code>.
    *
    * @return a string representation of this object
    */
   public String toString()
   {
-    return getClass().getName() + "(top=" + top + ",bottom=" + bottom +
-      ",left=" + left + ",right=" + right + ')';
+    return getClass().getName() + "[top=" + top + ",left=" + left
+      + ",bottom=" + bottom + ",right=" + right + ']';
   }
 
   /**

@@ -12,7 +12,7 @@ This file contains important information you will need to know if you
 are going to write an interface between GNU Classpath and a Virtual
 Machine.
 
-Copyright (C) 1998-2002, 2004, 2005 Free Software Foundation, Inc.
+Copyright (C) 1998-2002, 2004, 2005, 2006 Free Software Foundation, Inc.
 
 @ifnotplaintext
 @dircategory GNU Libraries
@@ -66,6 +66,7 @@ This document is incomplete, as we are still in alpha with the interface.
 * Classpath Hooks::             Hooks from Classpath to the VM
 * VM Hooks::                    Hooks from the underlying VM to Classpath
 * JNI Implementation::		Hooking the VM to jni.h
+* JVMTI Implementation::        Hooking the VM to jvmti.h
 * Miscellaneous VM Requirements::  
 @end menu
 
@@ -200,6 +201,10 @@ implementation.
 * java.nio::
 * java.nio.channels::
 * gnu.java.nio::
+* java.lang.reflect::
+* gnu.java.lang::
+* gnu.java.lang.management::
+* java.lang.management::
 * Classpath Callbacks::
 @end menu
 
@@ -226,6 +231,7 @@ become operable.
 * java.lang.VMRuntime::
 * java.lang.VMString::
 * java.lang.VMThread::
+* java.lang.VMMath::
 @end menu
 
 @node java.lang.VMClass, java.lang.VMObject ,java.lang,java.lang
@@ -272,9 +278,12 @@ VM should filter out non-public classes.
 @item @code{getDeclaredConstructors(Class,boolean)} -- And constructors.
 @item @code{getClassLoader(Class)} -- Returns the @code{ClassLoader} instance
 which is responsible for the specified class.
-@item @code{forName(String)} -- The VM should create a @code{Class} instance
-corresponding to the named class.  As noted in @ref{VM Hooks}, the internal
-content of the instance is the responsibility of the VM.
+@item @code{forName(String, boolean, ClassLoader)} -- The VM should create a
+@code{Class} instance corresponding to the named class.  As noted in
+@ref{VM Hooks}, the internal content of the instance is the
+responsibility of the VM.  The supplied class loader is recorded as that
+which loaded the class, and the boolean specifies whether or not to
+run the class initializer.
 @item @code{isArray(Class)} -- Another property test, corresponding to a
 class file flag.
 @item @code{initialize(Class)} -- The VM should initialize the class fully,
@@ -305,15 +314,44 @@ information stored in the class file.
 an inner or member class, or @code{null} if the instance refers to a top-level
 class.
 @end itemize
+@item 1.5
+@itemize @bullet
+@item @code{isSynthetic(Class)} -- Returns true if the flags for this class
+mark it as synthetic.
+@item @code{isAnnotation(Class)} -- Returns true if the flags for this class
+mark it as an annotation.
+@item @code{isEnum(Class)} -- Returns true if the flags for this class
+mark it as an enumeration.
+@item @code{getSimpleName(Class)} -- Returns the simple name of the class.
+A default implementation is provided, but a more efficient version may instead
+be provided by the VM.
+@item @code{getCanonicalName(Class)} -- Returns the canonical name of the
+class.  A default implementation is provided, but a more efficient
+version may instead be provided by the VM.
+@item @code{getEnclosingClass(Class)} -- Returns the immediately enclosing
+class (null for a top-level class).
+@item @code{getEnclosingConstructor(Class)} -- Returns the constructor
+which immediately encloses the supplied class.
+@item @code{getEnclosingMethod(Class)} -- Returns the method
+which immediately encloses the supplied class.
+@item @code{getClassSignature(Class)} -- Returns the generic signature of
+the class or null if there isn't one.
+@item @code{isAnonymousClass(Class)} -- Returns true if the class is an
+anonymous class.
+@item @code{isLocalClass(Class)} -- Returns true if the class is an
+local class.
+@item @code{isMemberClass(Class)} -- Returns true if the class is an
+member class.
+@end itemize
 @end itemize
 
 @node java.lang.VMObject, java.lang.VMClassLoader, java.lang.VMClass, java.lang
 @subsection @code{java.lang.VMObject}
 
-@code{VMObject} is the bridge between the low level @code{Object} facilities
-such as making a clone, getting the class of the object and the wait/notify
-semantics.  This is accomplished using the following @code{native}
-methods.
+@code{VMObject} is the bridge between the low level @code{Object}
+facilities such as making a clone, getting the class of the object and
+the wait/notify semantics.  This is accomplished using the following
+@code{native} methods.
 
 @itemize @bullet
 @item @code{getClass(Object)} -- Returns the @code{Class} instance for the
@@ -411,13 +449,15 @@ and direct memory manipulation than would have been achieved by using Java.
 @item @code{currentTimeMillis()} -- Gets the system time in milliseconds.
 @item @code{getenv(String)} -- Returns the value of the specified environment
 variable.
+@item @code{getenv()} -- Returns a list of `name=value' pairs which correspond
+to the environment variables.
 @end itemize
 @item Java Methods
 @itemize @bullet
 @item @code{makeStandardInputStream()} -- Helps provide the functionality of
-@code{System.in} by wrapping the appropriate file descriptor in a buffered
-file input stream.  VMs may choose to create the stream from the descriptor
-differently rather than using this method.
+@code{System.in} by wrapping the appropriate file descriptor in a
+buffered file input stream.  VMs may choose to create the stream from
+the descriptor differently rather than using this method.
 @item @code{makeStandardOutputStream()} -- Helps provide the functionality of
 @code{System.out} by wrapping the appropriate file descriptor in a buffered
 file output stream.  VMs may choose to create the stream from the descriptor
@@ -538,11 +578,14 @@ for all three by Classpath, making VM implementation optional.  These use
 the POSIX functions, @code{fork()}, @code{waitpid()} and @code{kill()}.
 
 @itemize @bullet
-@item @code{nativeSpawn(String[],String[],File)} -- The VM should create a
-new process which uses the specified command-line arguments, environment
-variables and working directory.  Unlike the other two methods, this
-method is linked to an instance, and must call @code{setProcessInfo()} with
-the results before returning.
+@item @code{nativeSpawn(String[],String[],File,boolean)} -- The VM should
+create a new process which uses the specified command-line arguments,
+environment variables and working directory.  Unlike the other two
+methods, this method is linked to an instance, and must call
+@code{setProcessInfo()} with the results before returning.  The
+boolean argument maps to the @code{redirectErrorStream} property of
+@code{java.lang.ProcessBuilder}.  When true, the output and error streams
+are merged.
 @item @code{nativeReap()} -- This is called to perform a reap of any
 zombie processes, and should not block, instead returning a boolean as to
 whether reaping actually took place.
@@ -607,7 +650,7 @@ A new mapping is created for each new string being @code{intern}ed.
 A VM may implement this differently by implementing this method,
 which is @code{static} and the only one in @code{VMString}.
 
-@node java.lang.VMThread,, java.lang.VMString, java.lang
+@node java.lang.VMThread, java.lang.VMMath, java.lang.VMString, java.lang
 @subsection @code{java.lang.VMThread}
 
 @code{VMThread} provides the link between Java's threads and the platform
@@ -664,6 +707,9 @@ to allow the setting to flow down to the native thread.
 @item @code{nativeStop(Throwable)} -- The VM should stop the thread abnormally
 and throw the specified exception.  This is clearly deprecated, due to the
 ambiguous state an abruptly-stopped thread may leave.
+@item @code{getState()} -- Returns the VM's impression of the current state
+of the thread.  The applicable states are supplied by the @code{State}
+enumeration in @code{java.lang.Thread}.
 @end itemize
 @item Mandatory Class Methods
 @itemize @bullet
@@ -683,6 +729,55 @@ having returned true, and is thus deprecated as a result.
 @end itemize
 @end itemize
 
+@node java.lang.VMMath,, java.lang.VMThread, java.lang
+@subsection @code{java.lang.VMMath}
+
+The @code{VMMath} class provides a series of native methods
+for some of the mathematical functions present in @code{java.lang.Math}.
+Classpath provides a default implementation of these which maps the
+functions to those provided by @code{fdlibm}.  VM implementors are welcome
+to replace this with more efficent implementations, as long as the accuracy
+contract of these methods, specified in @code{java.lang.Math}, is maintained.
+
+@itemize @bullet
+@item 1.0
+@itemize @bullet
+@item @code{sin(double)} -- Returns the sine value for the given angle.
+@item @code{cos(double)} -- Returns the cosine value for the given angle.
+@item @code{tan(double)} -- Returns the tangent value for the given angle.
+@item @code{asin(double)} -- Returns the arc sine value for the given angle.
+@item @code{acos(double)} -- Returns the arc cosine value for the given angle.
+@item @code{atan(double)} -- Returns the arc tangent value for the given angle.
+@item @code{atan2(double,double)} -- Returns the arc tangent of the ratio of
+the two arguments.
+@item @code{exp(double)} -- Returns the exponent raised to the given power.
+@item @code{log(double)} -- Returns the natural logarithm for the given value.
+@item @code{sqrt(double)} -- Returns the square root of the value.
+@item @code{pow(double,double)} -- Returns x to the power of y.
+@item @code{IEEEremainder(double,double)} -- Returns the IEEE 754 remainder
+for the two values.
+@item @code{ceil(double)} -- Returns the nearest integer >= the value.
+@item @code{floor(double)} -- Returns the nearest integer <= the value.
+@item @code{rint(double)} -- Returns the nearest integer or the even one
+if the distance between the two is equal.
+@end itemize
+@item 1.5
+@itemize @bullet
+@item @code{cbrt(double)} -- Returns the cube root of the value.
+@item @code{cosh(double)} -- Returns the hyperbolic cosine value for the given
+angle.
+@item @code{expm1(double)} -- Returns the exponent of the value minus one.
+@item @code{hypot(double,double)} -- Returns the hypotenuse corresponding to
+x and y.
+@item @code{log10(double)} -- Returns the base 10 logarithm of the given value.
+@item @code{log1p(double)} -- Returns the natural logarithm of the value plus
+one.
+@item @code{sinh(double)} -- Returns the hyperbolic sine value for the given
+angle.
+@item @code{tanh(double)} -- Returns the hyperbolic tangent value for the given angle.
+@end itemize
+@end itemize
+
 @node gnu.classpath, java.util, java.lang, Classpath Hooks
 @section @code{gnu.classpath}
 
@@ -693,6 +788,7 @@ includes the context of a class (the stack) and the system properties.
 @menu
 * gnu.classpath.VMStackWalker::
 * gnu.classpath.VMSystemProperties::
+* gnu.classpath.Unsafe::
 @end menu
 
 @node gnu.classpath.VMStackWalker,gnu.classpath.VMSystemProperties,gnu.classpath,gnu.classpath
@@ -716,7 +812,7 @@ accessing @code{getCallingClass()}.
 loader of the class.
 @end itemize
 
-@node gnu.classpath.VMSystemProperties,,gnu.classpath.VMStackWalker,gnu.classpath
+@node gnu.classpath.VMSystemProperties,gnu.classpath.Unsafe,gnu.classpath.VMStackWalker,gnu.classpath
 @subsection @code{gnu.classpath.VMSystemProperties}
 
 @code{VMSystemProperties} allows the VM to hook into the property creation
@@ -739,6 +835,38 @@ additional VM-specific ones may also be added.
 @item @code{postInit(Properties)} -- Same as the last, but called after the
 Classpath properties have been added.  The main purpose of this is to allow
 the VM to alter the properties added by GNU Classpath to suit it.
+@end itemize
+
+@node gnu.classpath.Unsafe,,gnu.classpath.VMSystemProperties,gnu.classpath
+@subsection @code{gnu.classpath.Unsafe}
+
+The @code{Unsafe} class provides access to some low-level unsafe operations
+as required by the addition of the java.util.concurrent classes.  These
+focus on direct memory access to the fields within the VM and providing
+atomic update methods.
+
+@itemize @bullet
+@item @code{objectFieldOffset(Field)} -- Provides the caller with the memory
+offset of a particular field.
+@item @code{compareAndSwap*(Object,long,*,*)} -- One of these methods is
+provided for each of int, long and Object (hence the *s).  The value of
+a field pointed to by the given Object and offset is compared with the
+first value and replaced with the second if they are the same.  The reason
+for this method is to make this change operation atomic.
+@item @code{put/get*(Object,long,*)} -- These are like the last set of
+methods, handling integers, longs and Objects, but the field is always
+changed on a put.  Different methods are provided for different semantics.
+Ordered variants perform a lazy put, in that the change does not
+immediately propogate to other threads, while the others provide
+volatile or 'normal' semantics.
+@item @code{arrayBaseOffset(Class)} and @code{arrayIndexScale(Class)} --
+These two methods allow an array class to be traversed by pointer
+arithmetic, by gaining the address of the first element and then
+scaling appropriately for the later ones.
+@item @code{park(boolean,long)} and @code{unpark(Thread)} -- These methods
+block and unblock threads respectively, with an optional timeout being
+provided for the blocking.  @code{unpark} is unsafe as the thread may have
+been destroyed by native code. 
 @end itemize
 
 @node java.util, java.io, gnu.classpath, Classpath Hooks
@@ -877,14 +1005,14 @@ is optional.
 @section java.security
 
 The @code{java.security} package provides support for Java's security
-architecture.  At present, @code{VMAccessController} represents the sole
-VM hook for this.
+architecture.  
 
 @menu
 * java.security.VMAccessController::
+* java.security.VMSecureRandom::
 @end menu
 
-@node java.security.VMAccessController,,java.security,java.security
+@node java.security.VMAccessController,java.security.VMSecureRandom,java.security,java.security
 @subsection @code{java.security.VMAccessController}
 
 The @code{AccessController} is used to perform privileged actions.  Its
@@ -906,6 +1034,23 @@ the top of the context stack.
 arrays of classes and method names.  The actual implementation returns
 an empty array, indicating that there are no permissions.
 @end itemize
+
+@node java.security.VMSecureRandom,,java.security.VMAccessController,java.security
+@subsection @code{java.security.VMSecureRandom}
+
+The @code{VMSecureRandom} class is used to provide access to
+cryptographically secure random numbers.  The default implementation
+of the class runs eight threads that increment counters in a tight
+loop, and XORs each counter to produce one byte of seed data. This is
+not very efficient, and is not guaranteed to be random (the thread
+scheduler is probably deterministic, after all). VM implementors
+should provide a version of this class, which implements the method
+@code{generateSeed(byte[],int,int)}, so that it fills the buffer using
+a random seed from a system facility, such as a system entropy
+gathering device or hardware random number generator.  The parameters
+are the usual set of buffer, offset and length and the method returns
+the number of bytes actually generated, which may be less than that
+requested.
 
 @node java.net, java.nio, java.security, Classpath Hooks
 @section java.net
@@ -1018,7 +1163,7 @@ in a @code{FileInputStream}.
 in a @code{FileOutputStream}.
 @end itemize
 
-@node gnu.java.nio, Classpath Callbacks, java.nio.channels, Classpath Hooks
+@node gnu.java.nio, java.lang.reflect, java.nio.channels, Classpath Hooks
 @section gnu.java.nio
 
 The @code{gnu.java.nio} class provides Classpath implementations of the
@@ -1049,7 +1194,454 @@ operation to be performed.  This is represented by the @code{static}
 @code{native} method, @code{select(int[],int[],int[],long)}, and a default
 implementation of this is provided.
 
-@node Classpath Callbacks, , gnu.java.nio, Classpath Hooks
+@node java.lang.reflect, gnu.java.lang, gnu.java.nio, Classpath Hooks
+@section @code{java.lang.reflect}
+@code{java.lang.reflect} provides the interface to Java's reflection
+facilities.  Via reflection, programmers can obtain type information about
+a particular instance at runtime or dynamically create new instances.
+
+@menu
+* java.lang.reflect.VMArray::
+@end menu
+
+@node java.lang.reflect.VMArray,,,java.lang.reflect
+@subsection @code{java.lang.reflect.VMArray}
+
+The @code{VMArray} class provides a hook, @code{createObjectArray},
+which the VM uses to generate a new non-primitive array of a
+particular class and size.  The default implementation simply passes
+the job down to the standard JNI function, @code{NewObjectArray}.
+
+@node gnu.java.lang, gnu.java.lang.management, java.lang.reflect, Classpath Hooks
+@section @code{gnu.java.lang}
+
+@code{gnu.java.lang} provides VM interfaces for the GNU
+implementations of features in java.lang.  Currently, this includes the
+implementation of instrumentation.
+
+@menu
+* gnu.java.lang.VMInstrumentationImpl::
+@end menu
+
+@node gnu.java.lang.VMInstrumentationImpl,,,gnu.java.lang
+@subsection @code{gnu.java.lang.VMInstrumentationImpl}
+
+The @code{gnu.java.lang.VMInstrumentationImpl} and
+@code{gnu.java.lang.InstrumentationImpl} classes provide an implementation of the
+@code{java.lang.instrument.Instrument} interface. 
+A @code{InstrumentationImpl} object should be created by the VM when agents
+are given in the command line (see the @code{java.lang.instrument} package
+documentation). The VM has to set the static field
+@code{VMClassLoader.instrumenter} to this object. The VM should implement the
+static native methods of the @code{VMInstrumentationImpl} class.
+
+@itemize @bullet
+@item @code{isRedefineClassesSupported()} -- Returns true if the JVM supports
+class redefinition.
+@item @code{redefineClasses()} -- Gives a set of classes with new bytecodes.
+The VM must redefine the classes by reading the new bytecodes.
+@item @code{getAllLoadedClass()} -- Returns an array of all loaded classes.
+@item @code{getInitiatedClass()} -- Returns an array of all classes loaded
+by a specific class loader.
+@item @code{getObjectSize()} -- Gives the size of an object.
+@end itemize
+
+Instrumentation allows to modify the bytecode of a class before it gets read
+by the VM. In GNU Classpath, the @code{ClassLoader.defineClass} method calls
+the @code{VMClassLoader.defineClassWithTransformers} method which first checks
+if @code{VMClassLoader.instrumenter} is @code{null}. If it's the case, it
+directly calls @code{VMClassLoader.defineClass}. If it's not the case, the
+method calls at first the @code{InstrumentationImpl.callTransformers} method,
+which calls each transformer registered to the @code{InstrumentationImpl}
+object and returns a new bytecode array. Then, it calls the
+@code{VMClassLoader.defineClass} method with this new bytecode array.
+
+The second use of instrumentation is to redefine a class after it has been
+loaded by the VM. This is done in the Java application by calling the
+@code{Instrumentation.redefineClasses} method of the standard interface on
+a @code{Instrumentation} object. The @code{InstrumentationImpl.redefineClasses}
+method calls the @code{VMInstrumentationImpl.redefineClasses} native method
+which must be implemented by the VM. The implementation should call the
+@code{InstrumentationImpl.callTransformers} method.
+
+@node gnu.java.lang.management, java.lang.management, gnu.java.lang, Classpath Hooks
+@section @code{gnu.java.lang.management}
+
+@code{gnu.java.lang.management} provides the VM interfaces for the GNU
+implementations of the management beans.  
+
+@menu
+* gnu.java.lang.management.VMRuntimeMXBeanImpl::
+* gnu.java.lang.management.VMClassLoadingMXBeanImpl::
+* gnu.java.lang.management.VMThreadMXBeanImpl::
+* gnu.java.lang.management.VMMemoryMXBeanImpl::
+* gnu.java.lang.management.VMCompilationMXBeanImpl::
+* gnu.java.lang.management.VMMemoryPoolMXBeanImpl::
+* gnu.java.lang.management.VMMemoryManagerMXBeanImpl::
+* gnu.java.lang.management.VMGarbageCollectorMXBeanImpl::
+@end menu
+
+@node gnu.java.lang.management.VMRuntimeMXBeanImpl,gnu.java.lang.management.VMClassLoadingMXBeanImpl,,gnu.java.lang.management
+@subsection @code{gnu.java.lang.management.VMRuntimeMXBeanImpl}
+
+The @code{gnu.java.lang.management.RuntimeMXBeanImpl} provides an
+implementation of the @code{java.lang.management.RuntimeMXBean} interface,
+and is supported by VM functionality in the form of
+@code{gnu.java.lang.management.VMRuntimeMXBeanImpl}.  This provides a
+series of methods, which should be implemented by the virtual machine
+in order to provide the required information for the bean.  The VM
+methods are generally representative of information that is only
+available from the virtual machine, such as the command-line arguments
+it was given at startup.
+
+The methods are as follows:
+
+@itemize @bullet
+@item @code{(getInputArguments())} -- The VM should supply
+a @code{String} array containing each of the command-line
+arguments, excluding those that are directed at the
+@code{main()} method.  The reference implementation expects
+this to be a native method.
+@item @code{(getName())} -- The VM developer should choose
+an appropriate name for the virtual machine.  This name can
+be instance-specific e.g. it can include things like the
+process identifier or host name of the machine, which only
+apply to the current running instance.  Thus, the intention is
+that this name refers to the entity that the other information
+refers to, rather than the VM in general.  The reference
+implementation supplies a default concatenation of the VM
+name and version.
+@item @code{(getStartTime())} -- This should return the number
+of milliseconds at which the virtual machine was started.
+The uptime property of the bean is provided relative to this
+value.  Again, the reference implementation also expects
+this method to be native.
+@end itemize
+
+The virtual machine also needs to provide either the
+@code{sun.boot.class.path} or @code{java.boot.class.path}
+property in order to support the optional boot class path
+retrieval functionality.
+
+@node gnu.java.lang.management.VMClassLoadingMXBeanImpl,gnu.java.lang.management.VMThreadMXBeanImpl,gnu.java.lang.management.VMRuntimeMXBeanImpl,gnu.java.lang.management
+@subsection @code{gnu.java.lang.management.VMClassLoadingMXBeanImpl}
+
+The @code{gnu.java.lang.management.ClassLoadingMXBeanImpl} provides an
+implementation of the @code{java.lang.management.ClassLoadingMXBean} interface,
+and is supported by VM functionality in the form of
+@code{gnu.java.lang.management.VMClassLoadingMXBeanImpl}.  This provides a
+series of methods, which should be implemented by the virtual machine
+in order to provide the required information for the bean.  Implementing
+this bean requires the VM to monitor when classes are loaded and unloaded,
+and provide the option of verbose class loading output.
+
+The methods are as follows:
+
+@itemize @bullet
+@item @code{(getLoadedClassCount())} -- This should return
+the number of classes that are currently loaded by the VM.
+@item @code{(getUnloadedClassCount())} -- This should return
+the number of classes that have been loaded by the VM, but
+have since been unloaded.
+@item @code{(isVerbose())} -- This should return @code{true}
+or @code{false}, depending on whether verbose class loading
+output is turned or not, respectively.
+@item @code{(setVerbose(boolean))} -- This should allow the
+verbose class loading output to be turned on and off.
+@end itemize
+
+@node gnu.java.lang.management.VMThreadMXBeanImpl,gnu.java.lang.management.VMMemoryMXBeanImpl,gnu.java.lang.management.VMClassLoadingMXBeanImpl,gnu.java.lang.management
+@subsection @code{gnu.java.lang.management.VMThreadMXBeanImpl}
+
+The @code{gnu.java.lang.management.ThreadMXBeanImpl} provides an
+implementation of the @code{java.lang.management.ThreadMXBean} interface,
+and is supported by VM functionality in the form of
+@code{gnu.java.lang.management.VMThreadMXBeanImpl}.  This provides a
+series of methods, which should be implemented by the virtual machine
+in order to provide the required information for the bean.  Implementing
+this bean requires the VM to monitor thread-related statistics such as
+how often the blocked and waiting states have been entered, as well as
+additional optional support for time and contention monitoring.
+
+Optional support is determined by the following properties:
+
+@itemize @bullet
+@item @code{gnu.java.lang.management.CurrentThreadTimeSupport} --
+This property should be present if the VM supports monitoring the
+time used by the current thread.  If time monitoring for all threads
+is supported, this need not be provided.
+@item @code{gnu.java.lang.management.ThreadTimeSupport} --
+This property should be present if the VM supports monitoring the
+time used by all threads.
+@item @code{gnu.java.lang.management.ThreadContentionSupport} --
+This property should be present if the VM supports thread contention
+monitoring.
+@end itemize
+
+In addition, the property
+@code{gnu.java.lang.management.ThreadTimeInitallyEnabled} may be
+set to the @code{String} value, @code{"true"}, if time monitoring
+is enabled at startup.
+
+The methods are as follows:
+
+@itemize @bullet
+@item @code{(findMonitorDeadlockedThreads())} -- This should return
+an array of thread identifiers which match threads involved in
+deadlock cycles (where each thread is waiting to obtain a lock
+held by one of the others).  This is specified as a native method
+in the reference implementation.
+@item @code{(getAllThreads())} -- This should return an array of
+all live threads and set the @code{filled} variable to the number
+found.  A default implementation is provided.
+@item @code{(getAllThreadIds())} -- This should return an array of
+all live thread identifiers.  An implementation is provided against
+@code{getAllThreads()} by default.
+@item @code{(getCurrentThreadCpuTime())} -- This should return the
+approximate number of nanoseconds of CPU time the current thread
+has used.  This is an optional native method, which is used by VMs
+supporting time monitoring.
+@item @code{(getCurrentThreadUserTime())} -- This should return the
+approximate number of nanoseconds of user time the current thread
+has used.  This is an optional native method, which is used by VMs
+supporting time monitoring.
+@item @code{(getDaemonThreadCount())} -- This should return the number
+of live daemon threads.  A default implementation is provided, based
+on @code{getAllThreads()}.
+@item @code{(getPeakThreadCount())} -- The VM should maintain a record
+of the peak number of live threads, and return it when this method is
+called.  This is specified as a native method in the reference
+implementation.
+@item @code{(resetPeakThreadCount())} -- This should reset the record
+of the peak number of live threads to the current number of live
+threads.  This is specified as a native method in the reference
+implementation.
+@item @code{(getThreadCount())} -- This should return the number of
+live threads.  A default implementation is provided, based on
+@code{getAllThreads()}.
+@item @code{(getThreadCpuTime(long))} -- This should return the
+approximate number of nanoseconds of CPU time the specified thread
+has used.  This is an optional native method, which is used by VMs
+supporting time monitoring.
+@item @code{(getThreadUserTime(long))} -- This should return the
+approximate number of nanoseconds of CPU time the specified thread
+has used.  This is an optional native method, which is used by VMs
+supporting time monitoring.
+@item @code{(getThreadInfoForId(long, int))} -- This return an instance
+of @code{java.lang.management.ThreadInfo} for the specified thread.
+The class includes a private constructor which VMs should use to initialise
+it with the appropriate values for the thread.  The second argument
+given here specifies the depth of the stack trace supplied on construction
+of the instance.  Special values are 0 (return an empty array) and
+@code{Integer.MAX_VALUE} (return the maximum depth possible).  This
+is specified as a native method in the reference implementation.
+@item @code{(getTotalStartedThreadCount())} -- This should return the
+total number of threads that have been started by the VM, including ones
+that have died.  This is specified as a native method in the reference
+implementation.
+@end itemize
+
+@node gnu.java.lang.management.VMMemoryMXBeanImpl,gnu.java.lang.management.VMCompilationMXBeanImpl,gnu.java.lang.management.VMThreadMXBeanImpl,gnu.java.lang.management
+@subsection @code{gnu.java.lang.management.VMMemoryMXBeanImpl}
+
+The @code{gnu.java.lang.management.MemoryMXBeanImpl} provides an
+implementation of the @code{java.lang.management.MemoryMXBean} interface,
+and is supported by VM functionality in the form of
+@code{gnu.java.lang.management.VMMemoryMXBeanImpl}.  This provides a
+series of methods, which should be implemented by the virtual machine
+in order to provide the required information for the bean.  Implementing
+this bean requires the VM to monitor the levels of heap and non-heap
+memory, and provide the number of objects which are eligible for garbage
+collection.
+
+The methods are as follows:
+
+@itemize @bullet
+@item @code{(getHeapMemoryUsage())} -- This should return
+an instance of @code{java.lang.management.MemoryUsage} with
+values pertaining to the heap.  A default implementation is
+provided, based on @code{java.lang.Runtime}'s methods.
+@item @code{(getNonHeapMemoryUsage())} -- This should return
+an instance of @code{java.lang.management.MemoryUsage} with
+values pertaining to non-heap memory.
+@item @code{(getObjectPendingFinalizationCount())} -- Returns
+the number of objects which are no longer referenced, and which
+will thus be garbage collected on the next run of the garbage
+collector.
+@item @code{(isVerbose())} -- This should return @code{true}
+or @code{false}, depending on whether verbose memory management
+output is turned or not, respectively.
+@item @code{(setVerbose(boolean))} -- This should allow the
+verbose memory management output to be turned on and off.
+@end itemize
+
+@node gnu.java.lang.management.VMCompilationMXBeanImpl,gnu.java.lang.management.VMMemoryPoolMXBeanImpl,gnu.java.lang.management.VMMemoryMXBeanImpl,gnu.java.lang.management
+@subsection @code{gnu.java.lang.management.VMCompilationMXBeanImpl}
+
+The @code{gnu.java.lang.management.CompilationMXBeanImpl} provides an
+implementation of the optional @code{java.lang.management.CompilationMXBean}
+interface, and is supported by VM functionality in the form of
+@code{gnu.java.lang.management.VMCompilationMXBeanImpl}.  This provides a
+single method for returning the number of milliseconds the virtual
+machine's Just-In-Time (JIT) compiler has spent compiling.  Even if
+a JIT compiler is available and an instance of the bean supplied, this
+method is still optional.
+
+Optional support is determined by the following properties:
+
+@itemize @bullet
+@item @code{gnu.java.lang.compiler.name} -- This property should
+specify the name of the JIT compiler.  Classpath also uses this,
+within @code{java.lang.management.ManagementFactory}, to determine
+whether a bean should be created.  If this property is set to a
+non-null value, a bean will be created and its @code{getName()}
+method will return this value.
+@item @code{gnu.java.lang.management.CompilationTimeSupport} --
+This property should be present if the VM supports monitoring the
+time spent compiling.
+@end itemize
+
+Time support is implemented by the following method:
+
+@itemize @bullet
+@item @code{(getTotalCompilationTime())} -- This should return the
+number of milliseconds the JIT compiler has spent compiling.
+@end itemize
+
+@node gnu.java.lang.management.VMMemoryPoolMXBeanImpl,gnu.java.lang.management.VMMemoryManagerMXBeanImpl,gnu.java.lang.management.VMCompilationMXBeanImpl,gnu.java.lang.management
+@subsection @code{gnu.java.lang.management.VMMemoryPoolMXBeanImpl}
+
+The @code{gnu.java.lang.management.MemoryPoolMXBeanImpl} provides an
+implementation of the optional @code{java.lang.management.MemoryPoolMXBean}
+interface, and is supported by VM functionality in the form of
+@code{gnu.java.lang.management.VMMemoryPoolMXBeanImpl}.  Providing
+this interface requires implementing a number of methods for each supported
+pool.  These return statistics on memory usage, and, optionally, allows
+monitoring of when memory usage exceedes a preset threshold.
+
+Optional support is determined by the following properties:
+
+@itemize @bullet
+@item @code{gnu.java.lang.management.CollectionUsageThresholdSupport} --
+This property should be present if the VM supports setting a collection
+usage threshold and monitoring when it is matched or exceeded.  Collection
+usage thresholds are related to the remaining memory usage following a
+garbage collection cycle.
+@item @code{gnu.java.lang.management.UsageThresholdSupport} --
+This property should be present if the VM supports setting a 
+usage threshold and monitoring when it is matched or exceeded.  
+@end itemize
+
+The methods are as follows (all take a pool name as their
+first parameter):
+
+@itemize @bullet
+@item @code{(getCollectionUsage(String))} -- Returns a
+@code{java.lang.management.MemoryUsage} object, containing the
+memory usage statistics following a garbage collection cycle
+for the specified pool.  This may also return @code{null} if
+the pool isn't an appropriate pool for this particular task.
+@item @code{(getCollectionUsageThreshold(String))} -- Returns
+the pool's collection usage threshold, if supported.
+@item @code{(getCollectionUsageThresholdCount(String))} -- Returns
+the number of times the specified pool has matched or exceeded
+its collection usage threshold, if supported.
+@item @code{(getMemoryManagerNames(String))} -- Returns a list
+of names of memory managers which manage the specified pool.
+@item @code{(getPeakUsage(String))} -- Returns a
+@code{java.lang.management.MemoryUsage} object for the peak
+usage level of the specified pool.
+@item @code{(getType(String))} -- Returns a string containing
+either @code{"HEAP"} or @code{"NON_HEAP"} which indicates the type of
+memory used by the specified pool.
+@item @code{(getUsage(String))} -- Returns a
+@code{java.lang.management.MemoryUsage} object for the current
+usage level of the specified pool.
+@item @code{(getUsageThreshold(String))} -- Returns
+the pool's usage threshold, if supported.
+@item @code{(getUsageThresholdCount(String))} -- Returns
+the number of times the specified pool has matched or exceeded
+its usage threshold, if supported.
+@item @code{(isValid(String))} -- Returns true if the pool
+is still in use by the virtual machine.
+@item @code{(resetPeakUsage(String))} -- Resets the peak usage
+levels to the current usage levels for the specified pool.
+@item @code{(setCollectionUsageThreshold(String, long))} -- Sets
+the pool's collection usage threshold, if supported.
+@item @code{(setUsageThreshold(String, long))} -- Sets
+the pool's usage threshold, if supported.
+@end itemize
+
+@node gnu.java.lang.management.VMMemoryManagerMXBeanImpl,gnu.java.lang.management.VMGarbageCollectorMXBeanImpl,gnu.java.lang.management.VMMemoryPoolMXBeanImpl,gnu.java.lang.management
+@subsection @code{gnu.java.lang.management.VMMemoryManagerMXBeanImpl}
+
+The @code{gnu.java.lang.management.MemoryManagerMXBeanImpl} provides an
+implementation of the optional @code{java.lang.management.MemoryManagerMXBean}
+interface, and is supported by VM functionality in the form of
+@code{gnu.java.lang.management.VMMemoryManagerMXBeanImpl}.  Providing
+this interface requires implementing two methods (each takes the name
+of the manager as the first argument):
+
+@itemize @bullet
+@item @code{(getMemoryPoolNames(String))} -- Returns a list of the
+memory pools that the manager maintains.  A default implementation
+which scans the results of @code{getMemoryManagerNames()} for each
+pool is provided.
+@item @code{(isValid(String))} -- Returns true if the specified
+manager is still valid i.e. it is still in use by the virtual machine.
+@end itemize
+
+@node gnu.java.lang.management.VMGarbageCollectorMXBeanImpl,,gnu.java.lang.management.VMMemoryManagerMXBeanImpl,gnu.java.lang.management
+@subsection @code{gnu.java.lang.management.VMGarbageCollectorMXBeanImpl}
+
+The @code{gnu.java.lang.management.GarbageCollectorMXBeanImpl} provides an
+implementation of the optional @code{java.lang.management.GarbageCollectorMXBean}
+interface, and is supported by VM functionality in the form of
+@code{gnu.java.lang.management.VMGarbageCollectorMXBeanImpl}.  Providing
+this interface requires implementing two methods (each takes the name
+of the garbage collector as the first argument):
+
+@itemize @bullet
+@item @code{(getCollectionCount(String))} -- Returns the number of
+times the specified garbage collector has run.
+@item @code{(getCollectionTime(String))} -- Returns the accumulated
+number of milliseconds for which the garbage collector has run.
+@end itemize
+
+Note that each garbage collector is also a memory manager, and so an
+implementation of the @code{gnu.java.lang.management.VMMemoryManagerMXBeanImpl}
+methods for its name should also be provided.
+
+@node java.lang.management, Classpath Callbacks, gnu.java.lang.management, Classpath Hooks
+@section @code{java.lang.management}
+
+@code{gnu.java.lang.management} provides the VM interfaces for the GNU
+implementations of the management beans.  
+
+@menu
+* java.lang.management.VMManagementFactory::
+@end menu
+
+@node java.lang.management.VMManagementFactory,,,java.lang.management
+@subsection @code{java.lang.management.VMManagementFactory}
+
+This VM interface provides the names of the memory pools, memory managers
+and garbage collectors for use by the @code{java.lang.management.ManagementFactory}
+in creating lists of appropriate beans for these types of managed object.
+
+The methods are as follows:
+
+@itemize @bullet
+@item @code{(getMemoryPoolNames())} -- Returns a list of the names
+of the current memory pools in use by the virtual machine.
+@item @code{(getMemoryManagerNames())} -- Returns a list of the names
+of the current memory managers in use by the virtual machine.  This
+should not include those that are also garbage collectors.
+@item @code{(getGarbageCollectorNames())} -- Returns a list of the names
+of the current garbage collectors in use by the virtual machine.
+@end itemize
+
+@node Classpath Callbacks, , java.lang.management, Classpath Hooks
 Some of the classes you implement for the VM will need to call back to
 package-private methods in Classpath:
 
@@ -1060,6 +1652,26 @@ the group.
 
 @item @code{java.lang.ThreadGroup.removeThread(Thread)}
 Call this method from @code{Thread} when a @code{Thread} is stopped or destroyed.
+
+@item @code{gnu.java.lang.management.MemoryMXBeanImpl.fireThresholdExceededNotification(String, long, long, long, long)}
+If the monitoring of memory usage thresholds is supported, this method
+should be called when the normal usage of a memory pool crosses the
+threshold, in order to emit a notification.  Another notification
+should not be emitted until there is an intermittent period where the
+usage is again below the threshold.  The parameters are the memory
+pool name, the usage levels (init, used, committed and max) and the
+number of times the threshold has been crossed.
+
+@item @code{gnu.java.lang.management.MemoryMXBeanImpl.fireCollectionThresholdExceededNotification(String, long, long, long, long)}
+If the monitoring of memory usage thresholds is supported, this method
+should be called when the usage of a memory pool after a garbage
+collection cycle crosses the threshold, in order to emit a
+notification.  Another notification should not be emitted until there
+is an intermittent period where the usage is again below the
+threshold.  The parameters are the memory pool name, the usage levels
+(init, used, committed and max) and the number of times the threshold
+has been crossed.
+
 @end itemize
 
 @node VM Hooks, JNI Implementation, Classpath Hooks, Top
@@ -1160,7 +1772,7 @@ reinitialize it yourself, there should be no harm.
 
 @end itemize
 
-@node JNI Implementation, Miscellaneous VM Requirements, VM Hooks, Top
+@node JNI Implementation, JVMTI Implementation, VM Hooks, Top
 @comment  node-name,  next,  previous,  up
 @chapter JNI Implementation
 
@@ -1203,8 +1815,33 @@ be a sequence of field declarations.
 
 @end itemize
 
+@node JVMTI Implementation, Miscellaneous VM Requirements, JNI Implementation, Top
+@comment node-name, next, previous, up
+@chapter JVMTI Implementation
 
-@node Miscellaneous VM Requirements,  , JNI Implementation, Top
+Classpath comes with its own implementation of @file{jvmti.h}.  This
+file can be customized by the VM in a few ways by defining macros that
+affect the interpretation of the file.  These macros are all intended
+for use for use by a VM which uses GNU Classpath and which wants to
+use a single copy of @file{jvmti.h} for both internal and external use.
+
+@itemize @bullet
+@item _CLASSPATH_VM_JVMTI_TYPES_DEFINED
+Some VMs like to define JVMTI ``object'' types in a special way.  If
+this macro is defined, the Classpath @file{jvmti.h} will avoid defining
+these types.  By default these types are defined in @file{jvmti.h}.  
+The full list of types and macros treated this way is: @samp{jthread},
+@samp{jthreadGroup}, @samp{jlocation}, and @samp{jrawMonitorID}.  By
+default @samp{jrawMonitorID} is defined as an opaque pointer which
+must be defined by the VM.
+
+@item _CLASSPATH_JVMTIENV_CONTENTS
+A VM can add fields to the @samp{jvmtiEnv} structure by defining this
+to be a sequence of field declarations.
+
+@end itemize
+
+@node Miscellaneous VM Requirements,  , JVMTI Implementation, Top
 @comment  node-name,  next,  previous,  up
 @chapter Miscellaneous VM Requirements
 

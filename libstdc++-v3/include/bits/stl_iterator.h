@@ -1,6 +1,7 @@
 // Iterators -*- C++ -*-
 
-// Copyright (C) 2001, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006
+// Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -66,9 +67,10 @@
 #define _ITERATOR_H 1
 
 #include <bits/cpp_type_traits.h>
+#include <ext/type_traits.h>
 
-namespace std
-{
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
   // 24.4.1 Reverse iterators
   /**
    *  "Bidirectional and random access iterators have corresponding reverse
@@ -616,10 +618,11 @@ namespace std
       return insert_iterator<_Container>(__x,
 					 typename _Container::iterator(__i));
     }
-} // namespace std
 
-namespace __gnu_cxx
-{
+_GLIBCXX_END_NAMESPACE
+
+_GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
+
   // This iterator adapter is 'normal' in the sense that it does not
   // change the semantics of any of the operators of its iterator
   // parameter.  Its primary purpose is to convert an iterator that is
@@ -652,10 +655,9 @@ namespace __gnu_cxx
       // Allow iterator to const_iterator conversion
       template<typename _Iter>
         __normal_iterator(const __normal_iterator<_Iter,
-			  typename std::__enable_if<_Container,
-			  (std::__are_same<_Iter,
-			   typename _Container::pointer>::__value)
-			  >::__type>& __i)
+			  typename __enable_if<
+      	       (std::__are_same<_Iter, typename _Container::pointer>::__value),
+		      _Container>::__type>& __i)
         : _M_current(__i.base()) { }
 
       // Forward iterator requirements
@@ -809,14 +811,17 @@ namespace __gnu_cxx
     { return __lhs.base() - __rhs.base(); }
 
   template<typename _Iterator, typename _Container>
+    inline typename __normal_iterator<_Iterator, _Container>::difference_type
+    operator-(const __normal_iterator<_Iterator, _Container>& __lhs,
+	      const __normal_iterator<_Iterator, _Container>& __rhs)
+    { return __lhs.base() - __rhs.base(); }
+
+  template<typename _Iterator, typename _Container>
     inline __normal_iterator<_Iterator, _Container>
     operator+(typename __normal_iterator<_Iterator, _Container>::difference_type
 	      __n, const __normal_iterator<_Iterator, _Container>& __i)
     { return __normal_iterator<_Iterator, _Container>(__i.base() + __n); }
-} // namespace __gnu_cxx
+
+_GLIBCXX_END_NAMESPACE
 
 #endif
-
-// Local Variables:
-// mode:C++
-// End:

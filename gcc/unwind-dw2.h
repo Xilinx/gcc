@@ -53,7 +53,9 @@ typedef struct
 	REG_UNSAVED,
 	REG_SAVED_OFFSET,
 	REG_SAVED_REG,
-	REG_SAVED_EXP
+	REG_SAVED_EXP,
+	REG_SAVED_VAL_OFFSET,
+	REG_SAVED_VAL_EXP
       } how;
     } reg[DWARF_FRAME_REGISTERS+1];
 
@@ -83,6 +85,7 @@ typedef struct
   unsigned char fde_encoding;
   unsigned char lsda_encoding;
   unsigned char saw_z;
+  unsigned char signal_frame;
   void *eh_ptr;
 } _Unwind_FrameState;
 

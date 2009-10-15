@@ -1,11 +1,11 @@
 /* Interprocedural analyses.
-   Copyright (C) 2005 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -14,9 +14,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -167,7 +166,7 @@ static inline void
 ipa_method_tree_map_create (struct cgraph_node *mt)
 {
   IPA_NODE_REF (mt)->ipa_param_tree =
-    xcalloc (ipa_method_formal_count (mt), sizeof (tree));
+    XCNEWVEC (tree, ipa_method_formal_count (mt));
 }
 
 /* Create modify structure for MT.  */
@@ -175,7 +174,7 @@ static inline void
 ipa_method_modify_create (struct cgraph_node *mt)
 {
   ((struct ipa_node *) mt->aux)->ipa_mod =
-    xcalloc (ipa_method_formal_count (mt), sizeof (bool));
+    XCNEWVEC (bool, ipa_method_formal_count (mt));
 }
 
 /* Set modify of I-th formal of MT to VAL.  */
@@ -388,7 +387,7 @@ static inline void
 ipa_callsite_param_map_create (struct cgraph_edge *cs)
 {
   IPA_EDGE_REF (cs)->ipa_param_map =
-    xcalloc (ipa_callsite_param_count (cs), sizeof (struct ipa_jump_func));
+    XCNEWVEC (struct ipa_jump_func, ipa_callsite_param_count (cs));
 }
 
 /* Return the call expr tree related to callsite CS.  */

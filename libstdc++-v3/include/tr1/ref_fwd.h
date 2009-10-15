@@ -29,7 +29,7 @@
 // invalidate any other reasons why the executable file might be covered by
 // the GNU General Public License.
 
-/** @file ref_fwd.h
+/** @file tr1/ref_fwd.h
  *  This is an internal header file, included by other library headers.
  *  You should not attempt to use it directly.
  */
@@ -40,8 +40,7 @@
 
 namespace std
 {
-namespace tr1
-{
+_GLIBCXX_BEGIN_NAMESPACE(tr1)
 
 template<typename _Tp>
   class reference_wrapper;
@@ -54,6 +53,7 @@ template<typename _Tp>
 template<typename _Tp>
   reference_wrapper<const _Tp>
   cref(const _Tp& __t);
-}
+
+_GLIBCXX_END_NAMESPACE
 }
 #endif

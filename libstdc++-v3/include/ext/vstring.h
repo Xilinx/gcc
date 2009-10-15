@@ -1,6 +1,6 @@
 // Versatile string -*- C++ -*-
 
-// Copyright (C) 2005, 2006 Free Software Foundation, Inc.
+// Copyright (C) 2005, 2006, 2007 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -40,8 +40,8 @@
 #include <ext/rc_string_base.h>
 #include <ext/sso_string_base.h>
 
-namespace __gnu_cxx
-{
+_GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
+
   /**
    *  @class __versa_string vstring.h
    *  @brief  Managing sequences of characters and character-like objects.
@@ -74,8 +74,6 @@ namespace __gnu_cxx
       typedef std::reverse_iterator<iterator>		    reverse_iterator;
 
       // Data Member (public):
-      // NB: This is an unsigned type, and thus represents the maximum
-      // size that the allocator can hold.
       ///  Value returned by various member functions when they fail.
       static const size_type	npos = static_cast<size_type>(-1);
 
@@ -1202,13 +1200,13 @@ namespace __gnu_cxx
       template<class _Integer>
 	__versa_string&
 	_M_replace_dispatch(iterator __i1, iterator __i2, _Integer __n,
-			    _Integer __val, __true_type)
+			    _Integer __val, std::__true_type)
         { return _M_replace_aux(__i1 - _M_ibegin(), __i2 - __i1, __n, __val); }
 
       template<class _InputIterator>
 	__versa_string&
 	_M_replace_dispatch(iterator __i1, iterator __i2, _InputIterator __k1,
-			    _InputIterator __k2, __false_type);
+			    _InputIterator __k2, std::__false_type);
 
       __versa_string&
       _M_replace_aux(size_type __pos1, size_type __n1, size_type __n2,
@@ -1274,7 +1272,7 @@ namespace __gnu_cxx
       */
       allocator_type
       get_allocator() const
-      { return this->_M_get_allocator(); }
+      { return allocator_type(this->_M_get_allocator()); }
 
       /**
        *  @brief  Find position of a C substring.
@@ -1409,7 +1407,7 @@ namespace __gnu_cxx
       /**
        *  @brief  Find position of a character of C substring.
        *  @param s  String containing characters to locate.
-       *  @param pos  Index of character to search from (default 0).
+       *  @param pos  Index of character to search from.
        *  @param n  Number of characters from s to search for.
        *  @return  Index of first occurrence.
        *
@@ -1470,7 +1468,7 @@ namespace __gnu_cxx
       /**
        *  @brief  Find last position of a character of C substring.
        *  @param s  C string containing characters to locate.
-       *  @param pos  Index of character to search back from (default end).
+       *  @param pos  Index of character to search back from.
        *  @param n  Number of characters from s to search for.
        *  @return  Index of last occurrence.
        *
@@ -1501,7 +1499,7 @@ namespace __gnu_cxx
       /**
        *  @brief  Find last position of a character.
        *  @param c  Character to locate.
-       *  @param pos  Index of character to search back from (default 0).
+       *  @param pos  Index of character to search back from (default end).
        *  @return  Index of last occurrence.
        *
        *  Starting from @a pos, searches backward for @a c within this string.
@@ -1531,7 +1529,7 @@ namespace __gnu_cxx
       /**
        *  @brief  Find position of a character not in C substring.
        *  @param s  C string containing characters to avoid.
-       *  @param pos  Index of character to search from (default 0).
+       *  @param pos  Index of character to search from.
        *  @param n  Number of characters from s to consider.
        *  @return  Index of first occurrence.
        *
@@ -1576,8 +1574,8 @@ namespace __gnu_cxx
       /**
        *  @brief  Find last position of a character not in string.
        *  @param str  String containing characters to avoid.
-       *  @param pos  Index of character to search from (default 0).
-       *  @return  Index of first occurrence.
+       *  @param pos  Index of character to search back from (default end).
+       *  @return  Index of last occurrence.
        *
        *  Starting from @a pos, searches backward for a character not
        *  contained in @a str within this string.  If found, returns the index
@@ -1591,9 +1589,9 @@ namespace __gnu_cxx
       /**
        *  @brief  Find last position of a character not in C substring.
        *  @param s  C string containing characters to avoid.
-       *  @param pos  Index of character to search from (default 0).
+       *  @param pos  Index of character to search back from.
        *  @param n  Number of characters from s to consider.
-       *  @return  Index of first occurrence.
+       *  @return  Index of last occurrence.
        *
        *  Starting from @a pos, searches backward for a character not
        *  contained in the first @a n characters of @a s within this string.
@@ -1604,10 +1602,10 @@ namespace __gnu_cxx
       find_last_not_of(const _CharT* __s, size_type __pos,
 		       size_type __n) const;
       /**
-       *  @brief  Find position of a character not in C string.
+       *  @brief  Find last position of a character not in C string.
        *  @param s  C string containing characters to avoid.
-       *  @param pos  Index of character to search from (default 0).
-       *  @return  Index of first occurrence.
+       *  @param pos  Index of character to search back from (default end).
+       *  @return  Index of last occurrence.
        *
        *  Starting from @a pos, searches backward for a character not
        *  contained in @a s within this string.  If found, returns the index
@@ -1623,8 +1621,8 @@ namespace __gnu_cxx
       /**
        *  @brief  Find last position of a different character.
        *  @param c  Character to avoid.
-       *  @param pos  Index of character to search from (default 0).
-       *  @return  Index of first occurrence.
+       *  @param pos  Index of character to search back from (default end).
+       *  @return  Index of last occurrence.
        *
        *  Starting from @a pos, searches backward for a character other than
        *  @a c within this string.  If found, returns the index where it was
@@ -2109,10 +2107,10 @@ namespace __gnu_cxx
 	 __versa_string<_CharT, _Traits, _Alloc, _Base>& __rhs)
     { __lhs.swap(__rhs); }
 
-} // namespace __gnu_cxx
+_GLIBCXX_END_NAMESPACE
 
-namespace std
-{
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
   /**
    *  @brief  Read stream into a string.
    *  @param is  Input stream.
@@ -2142,10 +2140,15 @@ namespace std
    */
   template<typename _CharT, typename _Traits, typename _Alloc,
            template <typename, typename, typename> class _Base>
-    basic_ostream<_CharT, _Traits>&
+    inline basic_ostream<_CharT, _Traits>&
     operator<<(basic_ostream<_CharT, _Traits>& __os,
 	       const __gnu_cxx::__versa_string<_CharT, _Traits,
-	                                       _Alloc, _Base>& __str);
+	                                       _Alloc, _Base>& __str)
+    {
+      // _GLIBCXX_RESOLVE_LIB_DEFECTS
+      // 586. string inserter not a formatted function
+      return __ostream_insert(__os, __str.data(), __str.size());
+    }
 
   /**
    *  @brief  Read a line from stream into a string.
@@ -2186,7 +2189,7 @@ namespace std
 	    __gnu_cxx::__versa_string<_CharT, _Traits, _Alloc, _Base>& __str)
     { return getline(__is, __str, __is.widen('\n')); }      
 
-} // namespace std
+_GLIBCXX_END_NAMESPACE
 
 #ifndef _GLIBCXX_EXPORT_TEMPLATE
 # include "vstring.tcc" 

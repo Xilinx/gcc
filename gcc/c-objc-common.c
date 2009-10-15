@@ -1,11 +1,11 @@
 /* Some code common to C and ObjC front ends.
-   Copyright (C) 2001, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -14,9 +14,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -198,7 +197,7 @@ c_tree_printer (pretty_printer *pp, text_info *text, const char *spec,
     case 'T':
       gcc_assert (TYPE_P (t));
       name = TYPE_NAME (t);
-      
+
       if (name && TREE_CODE (name) == TYPE_DECL)
 	{
 	  if (DECL_NAME (name))
@@ -256,4 +255,12 @@ int
 c_types_compatible_p (tree x, tree y)
 {
     return comptypes (TYPE_MAIN_VARIANT (x), TYPE_MAIN_VARIANT (y));
+}
+
+/* Determine if the type is a vla type for the backend.  */
+
+bool
+c_vla_unspec_p (tree x, tree fn ATTRIBUTE_UNUSED)
+{
+  return c_vla_type_p (x);
 }

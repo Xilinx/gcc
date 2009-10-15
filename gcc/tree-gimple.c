@@ -1,5 +1,5 @@
 /* Functions to analyze and validate GIMPLE trees.
-   Copyright (C) 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2002, 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
    Contributed by Diego Novillo <dnovillo@redhat.com>
    Rewritten by Jason Merrill <jason@redhat.com>
 
@@ -7,7 +7,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -16,9 +16,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -115,7 +114,9 @@ is_gimple_mem_rhs (tree t)
      to be stored in memory, since it's cheap and prevents erroneous
      tailcalls (PR 17526).  */
   if (is_gimple_reg_type (TREE_TYPE (t))
-      || TYPE_MODE (TREE_TYPE (t)) != BLKmode)
+      || (TYPE_MODE (TREE_TYPE (t)) != BLKmode
+	  && (TREE_CODE (t) != CALL_EXPR
+              || ! aggregate_value_p (t, t))))
     return is_gimple_val (t);
   else
     return is_gimple_formal_tmp_rhs (t);
@@ -193,11 +194,12 @@ is_gimple_stmt (tree t)
 {
   enum tree_code code = TREE_CODE (t);
 
-  if (IS_EMPTY_STMT (t))
-    return 1;
-
   switch (code)
     {
+    case NOP_EXPR:
+      /* The only valid NOP_EXPR is the empty statement.  */
+      return IS_EMPTY_STMT (t);
+
     case BIND_EXPR:
     case COND_EXPR:
       /* These are only valid if they're void.  */
@@ -216,6 +218,16 @@ is_gimple_stmt (tree t)
     case RESX_EXPR:
     case PHI_NODE:
     case STATEMENT_LIST:
+    case OMP_PARALLEL:
+    case OMP_FOR:
+    case OMP_SECTIONS:
+    case OMP_SECTION:
+    case OMP_SINGLE:
+    case OMP_MASTER:
+    case OMP_ORDERED:
+    case OMP_CRITICAL:
+    case OMP_RETURN:
+    case OMP_CONTINUE:
       /* These are always void.  */
       return true;
 
@@ -266,10 +278,11 @@ is_gimple_reg_type (tree type)
 bool
 is_gimple_reg (tree t)
 {
-  var_ann_t ann;
-
   if (TREE_CODE (t) == SSA_NAME)
     t = SSA_NAME_VAR (t);
+
+  if (MTAG_P (t))
+    return false;
 
   if (!is_gimple_variable (t))
     return false;
@@ -304,12 +317,6 @@ is_gimple_reg (tree t)
      assignments to the individual components.  */
   if (TREE_CODE (TREE_TYPE (t)) == COMPLEX_TYPE)
     return DECL_COMPLEX_GIMPLE_REG_P (t);
-
-  /* Some compiler temporaries are created to be used exclusively in
-     virtual operands (currently memory tags and sub-variables).
-     These variables should never be considered GIMPLE registers.  */
-  if (DECL_ARTIFICIAL (t) && (ann = var_ann (t)) != NULL)
-    return ann->mem_tag_kind == NOT_A_TAG;
 
   return true;
 }

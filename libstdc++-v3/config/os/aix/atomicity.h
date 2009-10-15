@@ -1,6 +1,6 @@
 // Low-level functions for atomic operations: AIX version  -*- C++ -*-
 
-// Copyright (C) 2000, 2001, 2004 Free Software Foundation, Inc.
+// Copyright (C) 2000, 2001, 2004, 2005 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -27,7 +27,7 @@
 // invalidate any other reasons why the executable file might be covered by
 // the GNU General Public License.
 
-#include <bits/atomicity.h>
+#include <ext/atomicity.h>
 
 /* We cannot use the cpu/powerpc/bits/atomicity.h inline assembly
    definitions for these operations since they depend on operations
@@ -43,19 +43,16 @@ extern "C"
 #include <sys/atomic_op.h>
 }
 
-namespace __gnu_cxx
-{
+_GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
+
   _Atomic_word
   __attribute__ ((__unused__))
   __exchange_and_add (volatile _Atomic_word* __mem, int __val)
-  {
-    return ::fetch_and_add (const_cast<atomic_p>(__mem), __val);
-  }
+  { return ::fetch_and_add(const_cast<atomic_p>(__mem), __val); }
 
   void
   __attribute__ ((__unused__))
   __atomic_add (volatile _Atomic_word* __mem, int __val)
-  {
-    (void) ::fetch_and_add (const_cast<atomic_p>(__mem), __val);
-  }
-} // namespace __gnu_cxx
+  { (void) ::fetch_and_add(const_cast<atomic_p>(__mem), __val); }
+
+_GLIBCXX_END_NAMESPACE

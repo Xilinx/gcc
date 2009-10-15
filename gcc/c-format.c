@@ -1,12 +1,12 @@
 /* Check calls to formatted I/O functions (-Wformat).
    Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   2001, 2002, 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,9 +15,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -291,6 +290,8 @@ static const format_length_info printf_length_specs[] =
   { "Z", FMT_LEN_z, STD_EXT, NULL, 0, 0 },
   { "t", FMT_LEN_t, STD_C99, NULL, 0, 0 },
   { "j", FMT_LEN_j, STD_C99, NULL, 0, 0 },
+  { "H", FMT_LEN_H, STD_EXT, NULL, 0, 0 },
+  { "D", FMT_LEN_D, STD_EXT, "DD", FMT_LEN_DD, STD_EXT },
   { NULL, 0, 0, NULL, 0, 0 }
 };
 
@@ -325,6 +326,8 @@ static const format_length_info scanf_length_specs[] =
   { "z", FMT_LEN_z, STD_C99, NULL, 0, 0 },
   { "t", FMT_LEN_t, STD_C99, NULL, 0, 0 },
   { "j", FMT_LEN_j, STD_C99, NULL, 0, 0 },
+  { "H", FMT_LEN_H, STD_EXT, NULL, 0, 0 },
+  { "D", FMT_LEN_D, STD_EXT, "DD", FMT_LEN_DD, STD_EXT },
   { NULL, 0, 0, NULL, 0, 0 }
 };
 
@@ -489,34 +492,34 @@ static const format_flag_pair strfmon_flag_pairs[] =
 static const format_char_info print_char_table[] =
 {
   /* C89 conversion specifiers.  */
-  { "di",  0, STD_C89, { T89_I,   T99_SC,  T89_S,   T89_L,   T9L_LL,  TEX_LL,  T99_SST, T99_PD,  T99_IM  }, "-wp0 +'I",  "i",  NULL },
-  { "oxX", 0, STD_C89, { T89_UI,  T99_UC,  T89_US,  T89_UL,  T9L_ULL, TEX_ULL, T99_ST,  T99_UPD, T99_UIM }, "-wp0#",     "i",  NULL },
-  { "u",   0, STD_C89, { T89_UI,  T99_UC,  T89_US,  T89_UL,  T9L_ULL, TEX_ULL, T99_ST,  T99_UPD, T99_UIM }, "-wp0'I",    "i",  NULL },
-  { "fgG", 0, STD_C89, { T89_D,   BADLEN,  BADLEN,  T99_D,   BADLEN,  T89_LD,  BADLEN,  BADLEN,  BADLEN  }, "-wp0 +#'I", "",   NULL },
-  { "eE",  0, STD_C89, { T89_D,   BADLEN,  BADLEN,  T99_D,   BADLEN,  T89_LD,  BADLEN,  BADLEN,  BADLEN  }, "-wp0 +#I",  "",   NULL },
-  { "c",   0, STD_C89, { T89_I,   BADLEN,  BADLEN,  T94_WI,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "-w",        "",   NULL },
-  { "s",   1, STD_C89, { T89_C,   BADLEN,  BADLEN,  T94_W,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "-wp",       "cR", NULL },
-  { "p",   1, STD_C89, { T89_V,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "-w",        "c",  NULL },
-  { "n",   1, STD_C89, { T89_I,   T99_SC,  T89_S,   T89_L,   T9L_LL,  BADLEN,  T99_SST, T99_PD,  T99_IM  }, "",          "W",  NULL },
+  { "di",  0, STD_C89, { T89_I,   T99_SC,  T89_S,   T89_L,   T9L_LL,  TEX_LL,  T99_SST, T99_PD,  T99_IM,  BADLEN,  BADLEN,  BADLEN  }, "-wp0 +'I",  "i",  NULL },
+  { "oxX", 0, STD_C89, { T89_UI,  T99_UC,  T89_US,  T89_UL,  T9L_ULL, TEX_ULL, T99_ST,  T99_UPD, T99_UIM, BADLEN,  BADLEN,  BADLEN }, "-wp0#",     "i",  NULL },
+  { "u",   0, STD_C89, { T89_UI,  T99_UC,  T89_US,  T89_UL,  T9L_ULL, TEX_ULL, T99_ST,  T99_UPD, T99_UIM, BADLEN,  BADLEN,  BADLEN }, "-wp0'I",    "i",  NULL },
+  { "fgG", 0, STD_C89, { T89_D,   BADLEN,  BADLEN,  T99_D,   BADLEN,  T89_LD,  BADLEN,  BADLEN,  BADLEN,  TEX_D32, TEX_D64, TEX_D128 }, "-wp0 +#'I", "",   NULL },
+  { "eE",  0, STD_C89, { T89_D,   BADLEN,  BADLEN,  T99_D,   BADLEN,  T89_LD,  BADLEN,  BADLEN,  BADLEN,  TEX_D32, TEX_D64, TEX_D128 }, "-wp0 +#I",  "",   NULL },
+  { "c",   0, STD_C89, { T89_I,   BADLEN,  BADLEN,  T94_WI,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN }, "-w",        "",   NULL },
+  { "s",   1, STD_C89, { T89_C,   BADLEN,  BADLEN,  T94_W,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN }, "-wp",       "cR", NULL },
+  { "p",   1, STD_C89, { T89_V,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN }, "-w",        "c",  NULL },
+  { "n",   1, STD_C89, { T89_I,   T99_SC,  T89_S,   T89_L,   T9L_LL,  BADLEN,  T99_SST, T99_PD,  T99_IM,  BADLEN,  BADLEN,  BADLEN }, "",          "W",  NULL },
   /* C99 conversion specifiers.  */
-  { "F",   0, STD_C99, { T99_D,   BADLEN,  BADLEN,  T99_D,   BADLEN,  T99_LD,  BADLEN,  BADLEN,  BADLEN  }, "-wp0 +#'I", "",   NULL },
-  { "aA",  0, STD_C99, { T99_D,   BADLEN,  BADLEN,  T99_D,   BADLEN,  T99_LD,  BADLEN,  BADLEN,  BADLEN  }, "-wp0 +#",   "",   NULL },
+  { "F",   0, STD_C99, { T99_D,   BADLEN,  BADLEN,  T99_D,   BADLEN,  T99_LD,  BADLEN,  BADLEN,  BADLEN,  TEX_D32, TEX_D64, TEX_D128 }, "-wp0 +#'I", "",   NULL },
+  { "aA",  0, STD_C99, { T99_D,   BADLEN,  BADLEN,  T99_D,   BADLEN,  T99_LD,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN }, "-wp0 +#",   "",   NULL },
   /* X/Open conversion specifiers.  */
-  { "C",   0, STD_EXT, { TEX_WI,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "-w",        "",   NULL },
-  { "S",   1, STD_EXT, { TEX_W,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "-wp",       "R",  NULL },
+  { "C",   0, STD_EXT, { TEX_WI,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN }, "-w",        "",   NULL },
+  { "S",   1, STD_EXT, { TEX_W,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN }, "-wp",       "R",  NULL },
   /* GNU conversion specifiers.  */
-  { "m",   0, STD_EXT, { T89_V,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "-wp",       "",   NULL },
+  { "m",   0, STD_EXT, { T89_V,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN }, "-wp",       "",   NULL },
   { NULL,  0, 0, NOLENGTHS, NULL, NULL, NULL }
 };
 
 static const format_char_info asm_fprintf_char_table[] =
 {
   /* C89 conversion specifiers.  */
-  { "di",  0, STD_C89, { T89_I,   BADLEN,  BADLEN,  T89_L,   T9L_LL,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "-wp0 +",  "i", NULL },
-  { "oxX", 0, STD_C89, { T89_UI,  BADLEN,  BADLEN,  T89_UL,  T9L_ULL, BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "-wp0#",   "i", NULL },
-  { "u",   0, STD_C89, { T89_UI,  BADLEN,  BADLEN,  T89_UL,  T9L_ULL, BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "-wp0",    "i", NULL },
-  { "c",   0, STD_C89, { T89_I,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "-w",       "", NULL },
-  { "s",   1, STD_C89, { T89_C,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "-wp",    "cR", NULL },
+  { "di",  0, STD_C89, { T89_I,   BADLEN,  BADLEN,  T89_L,   T9L_LL,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "-wp0 +",  "i", NULL },
+  { "oxX", 0, STD_C89, { T89_UI,  BADLEN,  BADLEN,  T89_UL,  T9L_ULL, BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "-wp0#",   "i", NULL },
+  { "u",   0, STD_C89, { T89_UI,  BADLEN,  BADLEN,  T89_UL,  T9L_ULL, BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "-wp0",    "i", NULL },
+  { "c",   0, STD_C89, { T89_I,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "-w",       "", NULL },
+  { "s",   1, STD_C89, { T89_C,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "-wp",    "cR", NULL },
 
   /* asm_fprintf conversion specifiers.  */
   { "O",   0, STD_C89, NOARGUMENTS, "",      "",   NULL },
@@ -524,7 +527,7 @@ static const format_char_info asm_fprintf_char_table[] =
   { "I",   0, STD_C89, NOARGUMENTS, "",      "",   NULL },
   { "L",   0, STD_C89, NOARGUMENTS, "",      "",   NULL },
   { "U",   0, STD_C89, NOARGUMENTS, "",      "",   NULL },
-  { "r",   0, STD_C89, { T89_I,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "",  "", NULL },
+  { "r",   0, STD_C89, { T89_I,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "",  "", NULL },
   { "@",   0, STD_C89, NOARGUMENTS, "",      "",   NULL },
   { NULL,  0, 0, NOLENGTHS, NULL, NULL, NULL }
 };
@@ -532,20 +535,20 @@ static const format_char_info asm_fprintf_char_table[] =
 static const format_char_info gcc_diag_char_table[] =
 {
   /* C89 conversion specifiers.  */
-  { "di",  0, STD_C89, { T89_I,   BADLEN,  BADLEN,  T89_L,   T9L_LL,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q",  "",   NULL },
-  { "ox",  0, STD_C89, { T89_UI,  BADLEN,  BADLEN,  T89_UL,  T9L_ULL, BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q",  "",   NULL },
-  { "u",   0, STD_C89, { T89_UI,  BADLEN,  BADLEN,  T89_UL,  T9L_ULL, BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q",  "",   NULL },
-  { "c",   0, STD_C89, { T89_I,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q",  "",   NULL },
-  { "s",   1, STD_C89, { T89_C,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "pq", "cR", NULL },
-  { "p",   1, STD_C89, { T89_V,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q",  "c",  NULL },
+  { "di",  0, STD_C89, { T89_I,   BADLEN,  BADLEN,  T89_L,   T9L_LL,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q",  "",   NULL },
+  { "ox",  0, STD_C89, { T89_UI,  BADLEN,  BADLEN,  T89_UL,  T9L_ULL, BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q",  "",   NULL },
+  { "u",   0, STD_C89, { T89_UI,  BADLEN,  BADLEN,  T89_UL,  T9L_ULL, BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q",  "",   NULL },
+  { "c",   0, STD_C89, { T89_I,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q",  "",   NULL },
+  { "s",   1, STD_C89, { T89_C,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "pq", "cR", NULL },
+  { "p",   1, STD_C89, { T89_V,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q",  "c",  NULL },
 
   /* Custom conversion specifiers.  */
 
   /* %H will require "location_t" at runtime.  */
-  { "H",   0, STD_C89, { T89_V,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q",  "",   NULL },
+  { "H",   0, STD_C89, { T89_V,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q",  "",   NULL },
 
   /* These will require a "tree" at runtime.  */
-  { "J", 0, STD_C89, { T89_V,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q",    "",   NULL },
+  { "J", 0, STD_C89, { T89_V,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q",    "",   NULL },
 
   { "<>'", 0, STD_C89, NOARGUMENTS, "",      "",   NULL },
   { "m",   0, STD_C89, NOARGUMENTS, "q",     "",   NULL },
@@ -578,20 +581,20 @@ static const format_char_info gcc_tdiag_char_table[] =
 static const format_char_info gcc_cdiag_char_table[] =
 {
   /* C89 conversion specifiers.  */
-  { "di",  0, STD_C89, { T89_I,   BADLEN,  BADLEN,  T89_L,   T9L_LL,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q",  "",   NULL },
-  { "ox",  0, STD_C89, { T89_UI,  BADLEN,  BADLEN,  T89_UL,  T9L_ULL, BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q",  "",   NULL },
-  { "u",   0, STD_C89, { T89_UI,  BADLEN,  BADLEN,  T89_UL,  T9L_ULL, BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q",  "",   NULL },
-  { "c",   0, STD_C89, { T89_I,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q",  "",   NULL },
-  { "s",   1, STD_C89, { T89_C,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "pq", "cR", NULL },
-  { "p",   1, STD_C89, { T89_V,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q",  "c",  NULL },
+  { "di",  0, STD_C89, { T89_I,   BADLEN,  BADLEN,  T89_L,   T9L_LL,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q",  "",   NULL },
+  { "ox",  0, STD_C89, { T89_UI,  BADLEN,  BADLEN,  T89_UL,  T9L_ULL, BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q",  "",   NULL },
+  { "u",   0, STD_C89, { T89_UI,  BADLEN,  BADLEN,  T89_UL,  T9L_ULL, BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q",  "",   NULL },
+  { "c",   0, STD_C89, { T89_I,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q",  "",   NULL },
+  { "s",   1, STD_C89, { T89_C,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "pq", "cR", NULL },
+  { "p",   1, STD_C89, { T89_V,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q",  "c",  NULL },
 
   /* Custom conversion specifiers.  */
 
   /* %H will require "location_t" at runtime.  */
-  { "H",   0, STD_C89, { T89_V,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q",  "",   NULL },
+  { "H",   0, STD_C89, { T89_V,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q",  "",   NULL },
 
   /* These will require a "tree" at runtime.  */
-  { "DEFJT", 0, STD_C89, { T89_V,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q+", "",   NULL },
+  { "DEFJT", 0, STD_C89, { T89_V,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q+", "",   NULL },
 
   { "<>'", 0, STD_C89, NOARGUMENTS, "",      "",   NULL },
   { "m",   0, STD_C89, NOARGUMENTS, "q",     "",   NULL },
@@ -601,23 +604,23 @@ static const format_char_info gcc_cdiag_char_table[] =
 static const format_char_info gcc_cxxdiag_char_table[] =
 {
   /* C89 conversion specifiers.  */
-  { "di",  0, STD_C89, { T89_I,   BADLEN,  BADLEN,  T89_L,   T9L_LL,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q",  "",   NULL },
-  { "ox",  0, STD_C89, { T89_UI,  BADLEN,  BADLEN,  T89_UL,  T9L_ULL, BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q",  "",   NULL },
-  { "u",   0, STD_C89, { T89_UI,  BADLEN,  BADLEN,  T89_UL,  T9L_ULL, BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q",  "",   NULL },
-  { "c",   0, STD_C89, { T89_I,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q",  "",   NULL },
-  { "s",   1, STD_C89, { T89_C,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "pq", "cR", NULL },
-  { "p",   1, STD_C89, { T89_V,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q",  "c",  NULL },
+  { "di",  0, STD_C89, { T89_I,   BADLEN,  BADLEN,  T89_L,   T9L_LL,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q",  "",   NULL },
+  { "ox",  0, STD_C89, { T89_UI,  BADLEN,  BADLEN,  T89_UL,  T9L_ULL, BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q",  "",   NULL },
+  { "u",   0, STD_C89, { T89_UI,  BADLEN,  BADLEN,  T89_UL,  T9L_ULL, BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q",  "",   NULL },
+  { "c",   0, STD_C89, { T89_I,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q",  "",   NULL },
+  { "s",   1, STD_C89, { T89_C,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "pq", "cR", NULL },
+  { "p",   1, STD_C89, { T89_V,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q",  "c",  NULL },
 
   /* Custom conversion specifiers.  */
 
   /* %H will require "location_t" at runtime.  */
-  { "H",   0, STD_C89, { T89_V,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q",  "",   NULL },
+  { "H",   0, STD_C89, { T89_V,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q",  "",   NULL },
 
   /* These will require a "tree" at runtime.  */
-  { "ADEFJTV",0,STD_C89,{ T89_V,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q+#",   "",   NULL },
+  { "ADEFJTV",0,STD_C89,{ T89_V,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q+#",   "",   NULL },
 
   /* These accept either an 'int' or an 'enum tree_code' (which is handled as an 'int'.)  */
-  { "CLOPQ",0,STD_C89, { T89_I,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q",  "",   NULL },
+  { "CLOPQ",0,STD_C89, { T89_I,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q",  "",   NULL },
 
   { "<>'", 0, STD_C89, NOARGUMENTS, "",      "",   NULL },
   { "m",   0, STD_C89, NOARGUMENTS, "q",     "",   NULL },
@@ -644,20 +647,21 @@ static const format_char_info gcc_gfc_char_table[] =
 static const format_char_info scan_char_table[] =
 {
   /* C89 conversion specifiers.  */
-  { "di",    1, STD_C89, { T89_I,   T99_SC,  T89_S,   T89_L,   T9L_LL,  TEX_LL,  T99_SST, T99_PD,  T99_IM  }, "*w'I", "W",   NULL },
-  { "u",     1, STD_C89, { T89_UI,  T99_UC,  T89_US,  T89_UL,  T9L_ULL, TEX_ULL, T99_ST,  T99_UPD, T99_UIM }, "*w'I", "W",   NULL },
-  { "oxX",   1, STD_C89, { T89_UI,  T99_UC,  T89_US,  T89_UL,  T9L_ULL, TEX_ULL, T99_ST,  T99_UPD, T99_UIM }, "*w",   "W",   NULL },
-  { "efgEG", 1, STD_C89, { T89_F,   BADLEN,  BADLEN,  T89_D,   BADLEN,  T89_LD,  BADLEN,  BADLEN,  BADLEN  }, "*w'",  "W",   NULL },
-  { "c",     1, STD_C89, { T89_C,   BADLEN,  BADLEN,  T94_W,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "*w",   "cW",  NULL },
-  { "s",     1, STD_C89, { T89_C,   BADLEN,  BADLEN,  T94_W,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "*aw",  "cW",  NULL },
-  { "[",     1, STD_C89, { T89_C,   BADLEN,  BADLEN,  T94_W,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "*aw",  "cW[", NULL },
-  { "p",     2, STD_C89, { T89_V,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "*w",   "W",   NULL },
-  { "n",     1, STD_C89, { T89_I,   T99_SC,  T89_S,   T89_L,   T9L_LL,  BADLEN,  T99_SST, T99_PD,  T99_IM  }, "",     "W",   NULL },
+  { "di",    1, STD_C89, { T89_I,   T99_SC,  T89_S,   T89_L,   T9L_LL,  TEX_LL,  T99_SST, T99_PD,  T99_IM,  BADLEN,  BADLEN,  BADLEN }, "*w'I", "W",   NULL },
+  { "u",     1, STD_C89, { T89_UI,  T99_UC,  T89_US,  T89_UL,  T9L_ULL, TEX_ULL, T99_ST,  T99_UPD, T99_UIM, BADLEN,  BADLEN,  BADLEN }, "*w'I", "W",   NULL },
+  { "oxX",   1, STD_C89, { T89_UI,  T99_UC,  T89_US,  T89_UL,  T9L_ULL, TEX_ULL, T99_ST,  T99_UPD, T99_UIM, BADLEN,  BADLEN,  BADLEN }, "*w",   "W",   NULL },
+  { "efgEG", 1, STD_C89, { T89_F,   BADLEN,  BADLEN,  T89_D,   BADLEN,  T89_LD,  BADLEN,  BADLEN,  BADLEN,  TEX_D32, TEX_D64, TEX_D128 }, "*w'",  "W",   NULL },
+  { "c",     1, STD_C89, { T89_C,   BADLEN,  BADLEN,  T94_W,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN }, "*w",   "cW",  NULL },
+  { "s",     1, STD_C89, { T89_C,   BADLEN,  BADLEN,  T94_W,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN }, "*aw",  "cW",  NULL },
+  { "[",     1, STD_C89, { T89_C,   BADLEN,  BADLEN,  T94_W,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN }, "*aw",  "cW[", NULL },
+  { "p",     2, STD_C89, { T89_V,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN }, "*w",   "W",   NULL },
+  { "n",     1, STD_C89, { T89_I,   T99_SC,  T89_S,   T89_L,   T9L_LL,  BADLEN,  T99_SST, T99_PD,  T99_IM,  BADLEN,  BADLEN,  BADLEN }, "",     "W",   NULL },
   /* C99 conversion specifiers.  */
-  { "FaA",   1, STD_C99, { T99_F,   BADLEN,  BADLEN,  T99_D,   BADLEN,  T99_LD,  BADLEN,  BADLEN,  BADLEN  }, "*w'",  "W",   NULL },
+  { "F",   1, STD_C99, { T99_F,   BADLEN,  BADLEN,  T99_D,   BADLEN,  T99_LD,  BADLEN,  BADLEN,  BADLEN,  TEX_D32, TEX_D64, TEX_D128 }, "*w'",  "W",   NULL },
+  { "aA",   1, STD_C99, { T99_F,   BADLEN,  BADLEN,  T99_D,   BADLEN,  T99_LD,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN }, "*w'",  "W",   NULL },
   /* X/Open conversion specifiers.  */
-  { "C",     1, STD_EXT, { TEX_W,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "*w",   "W",   NULL },
-  { "S",     1, STD_EXT, { TEX_W,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "*aw",  "W",   NULL },
+  { "C",     1, STD_EXT, { TEX_W,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN }, "*w",   "W",   NULL },
+  { "S",     1, STD_EXT, { TEX_W,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN }, "*aw",  "W",   NULL },
   { NULL, 0, 0, NOLENGTHS, NULL, NULL, NULL }
 };
 
@@ -665,20 +669,20 @@ static const format_char_info time_char_table[] =
 {
   /* C89 conversion specifiers.  */
   { "ABZab",		0, STD_C89, NOLENGTHS, "^#",     "",   NULL },
-  { "cx", 		0, STD_C89, NOLENGTHS, "E",      "3",  NULL },
+  { "cx",		0, STD_C89, NOLENGTHS, "E",      "3",  NULL },
   { "HIMSUWdmw",	0, STD_C89, NOLENGTHS, "-_0Ow",  "",   NULL },
   { "j",		0, STD_C89, NOLENGTHS, "-_0Ow",  "o",  NULL },
   { "p",		0, STD_C89, NOLENGTHS, "#",      "",   NULL },
   { "X",		0, STD_C89, NOLENGTHS, "E",      "",   NULL },
-  { "y", 		0, STD_C89, NOLENGTHS, "EO-_0w", "4",  NULL },
+  { "y",		0, STD_C89, NOLENGTHS, "EO-_0w", "4",  NULL },
   { "Y",		0, STD_C89, NOLENGTHS, "-_0EOw", "o",  NULL },
   { "%",		0, STD_C89, NOLENGTHS, "",       "",   NULL },
   /* C99 conversion specifiers.  */
   { "C",		0, STD_C99, NOLENGTHS, "-_0EOw", "o",  NULL },
-  { "D", 		0, STD_C99, NOLENGTHS, "",       "2",  NULL },
+  { "D",		0, STD_C99, NOLENGTHS, "",       "2",  NULL },
   { "eVu",		0, STD_C99, NOLENGTHS, "-_0Ow",  "",   NULL },
   { "FRTnrt",		0, STD_C99, NOLENGTHS, "",       "",   NULL },
-  { "g", 		0, STD_C99, NOLENGTHS, "O-_0w",  "2o", NULL },
+  { "g",		0, STD_C99, NOLENGTHS, "O-_0w",  "2o", NULL },
   { "G",		0, STD_C99, NOLENGTHS, "-_0Ow",  "o",  NULL },
   { "h",		0, STD_C99, NOLENGTHS, "^#",     "",   NULL },
   { "z",		0, STD_C99, NOLENGTHS, "O",      "o",  NULL },
@@ -690,56 +694,56 @@ static const format_char_info time_char_table[] =
 
 static const format_char_info monetary_char_table[] =
 {
-  { "in", 0, STD_C89, { T89_D, BADLEN, BADLEN, BADLEN, BADLEN, T89_LD, BADLEN, BADLEN, BADLEN }, "=^+(!-w#p", "", NULL },
+  { "in", 0, STD_C89, { T89_D, BADLEN, BADLEN, BADLEN, BADLEN, T89_LD, BADLEN, BADLEN, BADLEN, BADLEN, BADLEN, BADLEN }, "=^+(!-w#p", "", NULL },
   { NULL, 0, 0, NOLENGTHS, NULL, NULL, NULL }
 };
 
 /* This must be in the same order as enum format_type.  */
 static const format_kind_info format_types_orig[] =
 {
-  { "printf",   printf_length_specs,  print_char_table, " +#0-'I", NULL, 
+  { "printf",   printf_length_specs,  print_char_table, " +#0-'I", NULL,
     printf_flag_specs, printf_flag_pairs,
     FMT_FLAG_ARG_CONVERT|FMT_FLAG_DOLLAR_MULTIPLE|FMT_FLAG_USE_DOLLAR|FMT_FLAG_EMPTY_PREC_OK,
     'w', 0, 'p', 0, 'L',
     &integer_type_node, &integer_type_node
   },
-  { "asm_fprintf",   asm_fprintf_length_specs,  asm_fprintf_char_table, " +#0-", NULL, 
+  { "asm_fprintf",   asm_fprintf_length_specs,  asm_fprintf_char_table, " +#0-", NULL,
     asm_fprintf_flag_specs, asm_fprintf_flag_pairs,
     FMT_FLAG_ARG_CONVERT|FMT_FLAG_EMPTY_PREC_OK,
     'w', 0, 'p', 0, 'L',
     NULL, NULL
   },
-  { "gcc_diag",   gcc_diag_length_specs,  gcc_diag_char_table, "q+", NULL, 
+  { "gcc_diag",   gcc_diag_length_specs,  gcc_diag_char_table, "q+", NULL,
     gcc_diag_flag_specs, gcc_diag_flag_pairs,
     FMT_FLAG_ARG_CONVERT,
     0, 0, 'p', 0, 'L',
     NULL, &integer_type_node
   },
-  { "gcc_tdiag",   gcc_tdiag_length_specs,  gcc_tdiag_char_table, "q+", NULL, 
+  { "gcc_tdiag",   gcc_tdiag_length_specs,  gcc_tdiag_char_table, "q+", NULL,
     gcc_tdiag_flag_specs, gcc_tdiag_flag_pairs,
     FMT_FLAG_ARG_CONVERT,
     0, 0, 'p', 0, 'L',
     NULL, &integer_type_node
   },
-  { "gcc_cdiag",   gcc_cdiag_length_specs,  gcc_cdiag_char_table, "q+", NULL, 
+  { "gcc_cdiag",   gcc_cdiag_length_specs,  gcc_cdiag_char_table, "q+", NULL,
     gcc_cdiag_flag_specs, gcc_cdiag_flag_pairs,
     FMT_FLAG_ARG_CONVERT,
     0, 0, 'p', 0, 'L',
     NULL, &integer_type_node
   },
-  { "gcc_cxxdiag",   gcc_cxxdiag_length_specs,  gcc_cxxdiag_char_table, "q+#", NULL, 
+  { "gcc_cxxdiag",   gcc_cxxdiag_length_specs,  gcc_cxxdiag_char_table, "q+#", NULL,
     gcc_cxxdiag_flag_specs, gcc_cxxdiag_flag_pairs,
     FMT_FLAG_ARG_CONVERT,
     0, 0, 'p', 0, 'L',
     NULL, &integer_type_node
   },
-  { "gcc_gfc", NULL, gcc_gfc_char_table, "", NULL, 
+  { "gcc_gfc", NULL, gcc_gfc_char_table, "", NULL,
     NULL, gcc_gfc_flag_pairs,
     FMT_FLAG_ARG_CONVERT,
     0, 0, 0, 0, 0,
     NULL, NULL
   },
-  { "scanf",    scanf_length_specs,   scan_char_table,  "*'I", NULL, 
+  { "scanf",    scanf_length_specs,   scan_char_table,  "*'I", NULL,
     scanf_flag_specs, scanf_flag_pairs,
     FMT_FLAG_ARG_CONVERT|FMT_FLAG_SCANF_A_KLUDGE|FMT_FLAG_USE_DOLLAR|FMT_FLAG_ZERO_WIDTH_BAD|FMT_FLAG_DOLLAR_GAP_POINTER_OK,
     'w', 0, 0, '*', 'L',
@@ -750,7 +754,7 @@ static const format_kind_info format_types_orig[] =
     FMT_FLAG_FANCY_PERCENT_OK, 'w', 0, 0, 0, 0,
     NULL, NULL
   },
-  { "strfmon",  strfmon_length_specs, monetary_char_table, "=^+(!-", NULL, 
+  { "strfmon",  strfmon_length_specs, monetary_char_table, "=^+(!-", NULL,
     strfmon_flag_specs, strfmon_flag_pairs,
     FMT_FLAG_ARG_CONVERT, 'w', '#', 'p', 0, 'L',
     NULL, NULL
@@ -1361,7 +1365,7 @@ check_format_arg (void *ctx, tree format_tree,
     {
       /* Variable length arrays can't be initialized.  */
       gcc_assert (TREE_CODE (array_size) == INTEGER_CST);
-      
+
       if (host_integerp (array_size, 0))
 	{
 	  HOST_WIDE_INT array_size_value = TREE_INT_CST_LOW (array_size);
@@ -1815,7 +1819,7 @@ check_format_info_main (format_check_results *res,
 	  ++fci;
       if (fci->format_chars == 0)
 	{
-          if (ISGRAPH (format_char))
+	  if (ISGRAPH (format_char))
 	    warning (OPT_Wformat, "unknown conversion type character %qc in format",
 		     format_char);
 	  else
@@ -2072,7 +2076,7 @@ check_format_info_main (format_check_results *res,
 	      fci = fci->chain;
 	      if (fci)
 		{
-		  wanted_type_ptr = ggc_alloc (sizeof (main_wanted_type));
+		  wanted_type_ptr = GGC_NEW (format_wanted_type);
 		  arg_num++;
 		  wanted_type = *fci->types[length_chars_val].type;
 		  wanted_type_name = fci->types[length_chars_val].name;
@@ -2281,7 +2285,7 @@ format_type_warning (const char *descr, const char *format_start,
      this is adequate, but formats taking pointers to functions or
      arrays would require the full type to be built up in order to
      print it with %T.  */
-  p = alloca (pointer_count + 2);
+  p = (char *) alloca (pointer_count + 2);
   if (pointer_count == 0)
     p[0] = 0;
   else if (c_dialect_cxx ())
@@ -2332,7 +2336,7 @@ find_char_info_specifier_index (const format_char_info *fci, int c)
   for (i = 0; fci->format_chars; i++, fci++)
     if (strchr (fci->format_chars, c))
       return i;
-  
+
   /* We shouldn't be looking for a non-existent specifier.  */
   gcc_unreachable ();
 }
@@ -2348,7 +2352,7 @@ find_length_info_modifier_index (const format_length_info *fli, int c)
   for (i = 0; fli->name; i++, fli++)
     if (strchr (fli->name, c))
       return i;
-  
+
   /* We shouldn't be looking for a non-existent modifier.  */
   gcc_unreachable ();
 }
@@ -2365,7 +2369,7 @@ init_dynamic_asm_fprintf_info (void)
     {
       format_length_info *new_asm_fprintf_length_specs;
       unsigned int i;
-	  
+
       /* Find the underlying type for HOST_WIDE_INT.  For the %w
 	 length modifier to work, one must have issued: "typedef
 	 HOST_WIDE_INT __gcc_host_wide_int__;" in one's source code
@@ -2419,7 +2423,7 @@ static void
 init_dynamic_gfc_info (void)
 {
   static tree locus;
-  
+
   if (!locus)
     {
       static format_char_info *gfc_fci;
@@ -2433,7 +2437,8 @@ init_dynamic_gfc_info (void)
 	  locus = identifier_global_value (locus);
 	  if (locus)
 	    {
-	      if (TREE_CODE (locus) != TYPE_DECL)
+	      if (TREE_CODE (locus) != TYPE_DECL
+		  || TREE_TYPE (locus) == error_mark_node)
 		{
 		  error ("%<locus%> is not defined as a type");
 		  locus = 0;
@@ -2453,7 +2458,7 @@ init_dynamic_gfc_info (void)
 			      sizeof (gcc_gfc_char_table),
 			      sizeof (gcc_gfc_char_table));
       if (locus)
-        {
+	{
 	  const unsigned i = find_char_info_specifier_index (gfc_fci, 'L');
 	  gfc_fci[i].types[0].type = &locus;
 	  gfc_fci[i].pointer_count = 1;
@@ -2517,7 +2522,7 @@ init_dynamic_diag_info (void)
 		t = TREE_TYPE (TREE_TYPE (t));
 	    }
 	}
-    
+
       /* Find the underlying type for HOST_WIDE_INT.  For the %w
 	 length modifier to work, one must have issued: "typedef
 	 HOST_WIDE_INT __gcc_host_wide_int__;" in one's source code
@@ -2546,7 +2551,7 @@ init_dynamic_diag_info (void)
 		}
 	    }
 	}
-      
+
       /* Assign the new data for use.  */
 
       /* All the GCC diag formats use the same length specs.  */
@@ -2558,9 +2563,9 @@ init_dynamic_diag_info (void)
 	  diag_ls = (format_length_info *)
 		    xmemdup (gcc_diag_length_specs,
 			     sizeof (gcc_diag_length_specs),
-			     sizeof (gcc_diag_length_specs)); 
+			     sizeof (gcc_diag_length_specs));
       if (hwi)
-        {
+	{
 	  /* HOST_WIDE_INT must be one of 'long' or 'long long'.  */
 	  i = find_length_info_modifier_index (diag_ls, 'w');
 	  if (hwi == long_integer_type_node)
@@ -2579,13 +2584,13 @@ init_dynamic_diag_info (void)
 			      sizeof (gcc_diag_char_table),
 			      sizeof (gcc_diag_char_table));
       if (loc)
-        {
+	{
 	  i = find_char_info_specifier_index (diag_fci, 'H');
 	  diag_fci[i].types[0].type = &loc;
 	  diag_fci[i].pointer_count = 1;
 	}
       if (t)
-        {
+	{
 	  i = find_char_info_specifier_index (diag_fci, 'J');
 	  diag_fci[i].types[0].type = &t;
 	  diag_fci[i].pointer_count = 1;
@@ -2599,13 +2604,13 @@ init_dynamic_diag_info (void)
 			       sizeof (gcc_tdiag_char_table),
 			       sizeof (gcc_tdiag_char_table));
       if (loc)
-        {
+	{
 	  i = find_char_info_specifier_index (tdiag_fci, 'H');
 	  tdiag_fci[i].types[0].type = &loc;
 	  tdiag_fci[i].pointer_count = 1;
 	}
       if (t)
-        {
+	{
 	  /* All specifiers taking a tree share the same struct.  */
 	  i = find_char_info_specifier_index (tdiag_fci, 'D');
 	  tdiag_fci[i].types[0].type = &t;
@@ -2623,13 +2628,13 @@ init_dynamic_diag_info (void)
 			       sizeof (gcc_cdiag_char_table),
 			       sizeof (gcc_cdiag_char_table));
       if (loc)
-        {
+	{
 	  i = find_char_info_specifier_index (cdiag_fci, 'H');
 	  cdiag_fci[i].types[0].type = &loc;
 	  cdiag_fci[i].pointer_count = 1;
 	}
       if (t)
-        {
+	{
 	  /* All specifiers taking a tree share the same struct.  */
 	  i = find_char_info_specifier_index (cdiag_fci, 'D');
 	  cdiag_fci[i].types[0].type = &t;
@@ -2647,13 +2652,13 @@ init_dynamic_diag_info (void)
 				 sizeof (gcc_cxxdiag_char_table),
 				 sizeof (gcc_cxxdiag_char_table));
       if (loc)
-        {
+	{
 	  i = find_char_info_specifier_index (cxxdiag_fci, 'H');
 	  cxxdiag_fci[i].types[0].type = &loc;
 	  cxxdiag_fci[i].pointer_count = 1;
 	}
       if (t)
-        {
+	{
 	  /* All specifiers taking a tree share the same struct.  */
 	  i = find_char_info_specifier_index (cxxdiag_fci, 'D');
 	  cxxdiag_fci[i].types[0].type = &t;
@@ -2745,14 +2750,14 @@ handle_format_attribute (tree *node, tree ARG_UNUSED (name), tree args,
       || info.format_type == gcc_cxxdiag_format_type)
     {
       /* Our first time through, we have to make sure that our
-         format_type data is allocated dynamically and is modifiable.  */
+	 format_type data is allocated dynamically and is modifiable.  */
       if (!dynamic_format_types)
 	format_types = dynamic_format_types = (format_kind_info *)
 	  xmemdup (format_types_orig, sizeof (format_types_orig),
 		   sizeof (format_types_orig));
 
       /* If this is format __asm_fprintf__, we have to initialize
-         GCC's notion of HOST_WIDE_INT for checking %wd.  */
+	 GCC's notion of HOST_WIDE_INT for checking %wd.  */
       if (info.format_type == asm_fprintf_format_type)
 	init_dynamic_asm_fprintf_info ();
       /* If this is format __gcc_gfc__, we have to initialize GCC's
@@ -2760,7 +2765,7 @@ handle_format_attribute (tree *node, tree ARG_UNUSED (name), tree args,
       else if (info.format_type == gcc_gfc_format_type)
 	init_dynamic_gfc_info ();
       /* If this is one of the diagnostic attributes, then we have to
-         initialize 'location_t' and 'tree' at runtime.  */
+	 initialize 'location_t' and 'tree' at runtime.  */
       else if (info.format_type == gcc_diag_format_type
 	       || info.format_type == gcc_tdiag_format_type
 	       || info.format_type == gcc_cdiag_format_type

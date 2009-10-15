@@ -1,12 +1,13 @@
 /* Definitions of Tensilica's Xtensa target machine for GNU compiler.
-   Copyright 2001, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   Copyright 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   Free Software Foundation, Inc.
    Contributed by Bob Wilson (bwilson@tensilica.com) at Tensilica.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,9 +16,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 /* Get Xtensa configuration settings */
 #include "xtensa-config.h"
@@ -90,11 +90,6 @@ extern unsigned xtensa_current_frame_size;
     builtin_define (TARGET_BIG_ENDIAN ? "__XTENSA_EB__" : "__XTENSA_EL__"); \
     if (!TARGET_HARD_FLOAT)						\
       builtin_define ("__XTENSA_SOFT_FLOAT__");				\
-    if (flag_pic)							\
-      {									\
-        builtin_define ("__PIC__");					\
-        builtin_define ("__pic__");					\
-      }									\
   } while (0)
 
 #define CPP_SPEC " %(subtarget_cpp_spec) "
@@ -733,15 +728,7 @@ typedef struct xtensa_args
 #define FUNCTION_INCOMING_ARG(CUM, MODE, TYPE, NAMED) \
   function_arg (&CUM, MODE, TYPE, TRUE)
 
-/* Specify function argument alignment.  */
-#define FUNCTION_ARG_BOUNDARY(MODE, TYPE)				\
-  ((TYPE) != 0								\
-   ? (TYPE_ALIGN (TYPE) <= PARM_BOUNDARY				\
-      ? PARM_BOUNDARY							\
-      : TYPE_ALIGN (TYPE))						\
-   : (GET_MODE_ALIGNMENT (MODE) <= PARM_BOUNDARY			\
-      ? PARM_BOUNDARY							\
-      : GET_MODE_ALIGNMENT (MODE)))
+#define FUNCTION_ARG_BOUNDARY function_arg_boundary
 
 /* Profiling Xtensa code is typically done with the built-in profiling
    feature of Tensilica's instruction set simulator, which does not
@@ -1198,35 +1185,17 @@ typedef struct xtensa_args
 #define BSS_SECTION_ASM_OP	"\t.section\t.bss"
 
 
-/* Define output to appear before the constant pool.  If the function
-   has been assigned to a specific ELF section, or if it goes into a
-   unique section, set the name of that section to be the literal
-   prefix.  */
+/* Define output to appear before the constant pool.  */
 #define ASM_OUTPUT_POOL_PROLOGUE(FILE, FUNNAME, FUNDECL, SIZE)          \
   do {									\
-    tree fnsection;							\
-    resolve_unique_section ((FUNDECL), 0, flag_function_sections);	\
-    fnsection = DECL_SECTION_NAME (FUNDECL);				\
-    if (fnsection != NULL_TREE)						\
-      {									\
-	const char *fnsectname = TREE_STRING_POINTER (fnsection);	\
-	fprintf (FILE, "\t.begin\tliteral_prefix %s\n",			\
-		 strcmp (fnsectname, ".text") ? fnsectname : "");	\
-      }									\
     if ((SIZE) > 0)							\
       {									\
-	function_section (FUNDECL);  					\
+	resolve_unique_section ((FUNDECL), 0, flag_function_sections);	\
+	switch_to_section (function_section (FUNDECL));			\
 	fprintf (FILE, "\t.literal_position\n");			\
       }									\
   } while (0)
 
-
-/* Define code to write out the ".end literal_prefix" directive for a
-   function in a special section.  This is appended to the standard ELF
-   code for ASM_DECLARE_FUNCTION_SIZE.  */
-#define XTENSA_DECLARE_FUNCTION_SIZE(FILE, FNAME, DECL)			\
-  if (DECL_SECTION_NAME (DECL) != NULL_TREE)				\
-    fprintf (FILE, "\t.end\tliteral_prefix\n")
 
 /* A C statement (with or without semicolon) to output a constant in
    the constant pool, if it needs special treatment.  */
@@ -1239,8 +1208,12 @@ typedef struct xtensa_args
 /* How to start an assembler comment.  */
 #define ASM_COMMENT_START "#"
 
-/* Exception handling TODO!! */
-#define DWARF_UNWIND_INFO 0
+/* Generate DWARF2 unwind info to get the DW_AT_frame_base set correctly,
+   even though we don't yet use it for unwinding.  */
+#define MUST_USE_SJLJ_EXCEPTIONS 1
+#define DWARF2_UNWIND_INFO 1
+#define INCOMING_RETURN_ADDR_RTX gen_rtx_REG (Pmode, 0)
+#define DWARF_FRAME_RETURN_COLUMN DWARF_FRAME_REGNUM (0)
 
 /* Xtensa constant pool breaks the devices in crtstuff.c to control
    section in where code resides.  We have to write it as asm code.  Use

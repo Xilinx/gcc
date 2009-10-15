@@ -1,21 +1,21 @@
 /* Preprocess only, using cpplib.
-   Copyright (C) 1995, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004
+   Copyright (C) 1995, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2007
    Free Software Foundation, Inc.
    Written by Per Bothner, 1994-95.
 
-This program is free software; you can redistribute it and/or modify it
-under the terms of the GNU General Public License as published by the
-Free Software Foundation; either version 2, or (at your option) any
-later version.
+   This program is free software; you can redistribute it and/or modify it
+   under the terms of the GNU General Public License as published by the
+   Free Software Foundation; either version 3, or (at your option) any
+   later version.
 
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.  */
+   You should have received a copy of the GNU General Public License
+   along with this program; see the file COPYING3.  If not see
+   <http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -246,7 +246,8 @@ print_line (source_location src_loc, const char *special_flags)
       const struct line_map *map = linemap_lookup (&line_table, src_loc);
 
       size_t to_file_len = strlen (map->to_file);
-      unsigned char *to_file_quoted = alloca (to_file_len * 4 + 1);
+      unsigned char *to_file_quoted =
+         (unsigned char *) alloca (to_file_len * 4 + 1);
       unsigned char *p;
 
       print.src_line = SOURCE_LINE (map, src_loc);
@@ -323,7 +324,8 @@ cb_define (cpp_reader *pfile, source_location line, cpp_hashnode *node)
     fputs ((const char *) NODE_NAME (node), print.outf);
 
   putc ('\n', print.outf);
-  print.src_line++;
+  if (linemap_lookup (&line_table, line)->to_line != 0)
+    print.src_line++;
 }
 
 static void
@@ -368,7 +370,8 @@ void
 pp_dir_change (cpp_reader *pfile ATTRIBUTE_UNUSED, const char *dir)
 {
   size_t to_file_len = strlen (dir);
-  unsigned char *to_file_quoted = alloca (to_file_len * 4 + 1);
+  unsigned char *to_file_quoted =
+     (unsigned char *) alloca (to_file_len * 4 + 1);
   unsigned char *p;
 
   /* cpp_quote_string does not nul-terminate, so we have to do it ourselves.  */
@@ -449,7 +452,7 @@ cb_read_pch (cpp_reader *pfile, const char *name,
 	     int fd, const char *orig_name ATTRIBUTE_UNUSED)
 {
   c_common_read_pch (pfile, name, fd, orig_name);
-  
+
   fprintf (print.outf, "#pragma GCC pch_preprocess \"%s\"\n", name);
   print.src_line++;
 }

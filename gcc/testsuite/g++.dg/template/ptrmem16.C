@@ -18,5 +18,3 @@ int main()
   baz<0>();
   return 0;
 }
-
-

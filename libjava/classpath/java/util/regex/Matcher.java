@@ -38,8 +38,9 @@ exception statement from your version. */
 
 package java.util.regex;
 
-import gnu.regexp.RE;
-import gnu.regexp.REMatch;
+import gnu.java.util.regex.CharIndexed;
+import gnu.java.util.regex.RE;
+import gnu.java.util.regex.REMatch;
 
 /**
  * Instance of a regular expression applied to a char sequence.
@@ -50,6 +51,10 @@ public final class Matcher implements MatchResult
 {
   private Pattern pattern;
   private CharSequence input;
+  // We use CharIndexed as an input object to the getMatch method in order
+  // that /\G/ (the end of the previous match) may work.  The information
+  // of the previous match is stored in the CharIndexed object.
+  private CharIndexed inputCharIndexed;
   private int position;
   private int appendPosition;
   private REMatch match;
@@ -58,6 +63,7 @@ public final class Matcher implements MatchResult
   {
     this.pattern = pattern;
     this.input = input;
+    this.inputCharIndexed = RE.makeCharIndexed(input, 0);
   }
   
   /**
@@ -75,7 +81,8 @@ public final class Matcher implements MatchResult
     assertMatchOp();
     sb.append(input.subSequence(appendPosition,
 				match.getStartIndex()).toString());
-    sb.append(match.substituteInto(replacement));
+    sb.append(RE.getReplacement(replacement, match,
+	RE.REG_REPLACE_USE_BACKSLASHESCAPE));
     appendPosition = match.getEndIndex();
     return this;
   }
@@ -118,7 +125,7 @@ public final class Matcher implements MatchResult
   public boolean find ()
   {
     boolean first = (match == null);
-    match = pattern.getRE().getMatch(input, position);
+    match = pattern.getRE().getMatch(inputCharIndexed, position);
     if (match != null)
       {
 	int endIndex = match.getEndIndex();
@@ -149,7 +156,7 @@ public final class Matcher implements MatchResult
    */
   public boolean find (int start)
   {
-    match = pattern.getRE().getMatch(input, start);
+    match = pattern.getRE().getMatch(inputCharIndexed, start);
     if (match != null)
       {
 	position = match.getEndIndex();
@@ -190,7 +197,8 @@ public final class Matcher implements MatchResult
   {
     reset();
     // Semantics might not quite match
-    return pattern.getRE().substitute(input, replacement, position);
+    return pattern.getRE().substitute(input, replacement, position,
+	RE.REG_REPLACE_USE_BACKSLASHESCAPE);
   }
 
   /**
@@ -199,7 +207,8 @@ public final class Matcher implements MatchResult
   public String replaceAll (String replacement)
   {
     reset();
-    return pattern.getRE().substituteAll(input, replacement, position);
+    return pattern.getRE().substituteAll(input, replacement, position,
+	RE.REG_REPLACE_USE_BACKSLASHESCAPE);
   }
   
   public int groupCount ()
@@ -209,7 +218,7 @@ public final class Matcher implements MatchResult
  
   public boolean lookingAt ()
   {
-    match = pattern.getRE().getMatch(input, 0);
+    match = pattern.getRE().getMatch(inputCharIndexed, 0);
     if (match != null)
       {
 	if (match.getStartIndex() == 0)
@@ -234,7 +243,7 @@ public final class Matcher implements MatchResult
    */
   public boolean matches ()
   {
-    match = pattern.getRE().getMatch(input, 0, RE.REG_TRY_ENTIRE_MATCH);
+    match = pattern.getRE().getMatch(inputCharIndexed, 0, RE.REG_TRY_ENTIRE_MATCH);
     if (match != null)
       {
 	if (match.getStartIndex() == 0)

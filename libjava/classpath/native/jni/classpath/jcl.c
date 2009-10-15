@@ -43,7 +43,9 @@ exception statement from your version. */
 #include <jcl.h>
 
 #ifndef __GNUC__
-#define __attribute__(x)	/* nothing */
+  #ifndef __attribute__
+    #define __attribute__(x)	/* nothing */
+  #endif
 #endif
 
 JNIEXPORT void JNICALL
@@ -66,9 +68,9 @@ JCL_ThrowException (JNIEnv * env, const char *className, const char *errMsg)
 	  if (errExcClass == NULL)
 	    {
 	      fprintf (stderr, "JCL: Utterly failed to throw exeption ");
-	      fprintf (stderr, className);
+	      fprintf (stderr, "%s", className);
 	      fprintf (stderr, " with message ");
-	      fprintf (stderr, errMsg);
+	      fprintf (stderr, "%s", errMsg);
 	      return;
 	    }
 	}

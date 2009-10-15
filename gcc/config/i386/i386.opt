@@ -1,12 +1,12 @@
 ; Options for the IA-32 and AMD64 ports of the compiler.
 
-; Copyright (C) 2005 Free Software Foundation, Inc.
+; Copyright (C) 2005, 2007 Free Software Foundation, Inc.
 ;
 ; This file is part of GCC.
 ;
 ; GCC is free software; you can redistribute it and/or modify it under
 ; the terms of the GNU General Public License as published by the Free
-; Software Foundation; either version 2, or (at your option) any later
+; Software Foundation; either version 3, or (at your option) any later
 ; version.
 ;
 ; GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,16 +15,15 @@
 ; for more details.
 ;
 ; You should have received a copy of the GNU General Public License
-; along with GCC; see the file COPYING.  If not, write to the Free
-; Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-; 02110-1301, USA.
+; along with GCC; see the file COPYING3.  If not see
+; <http://www.gnu.org/licenses/>.
 
 m128bit-long-double
 Target RejectNegative Report Mask(128BIT_LONG_DOUBLE)
 sizeof(long double) is 16
 
 m32
-Target RejectNegative Report InverseMask(64BIT)
+Target RejectNegative Negative(m64) Report InverseMask(64BIT)
 Generate 32bit i386 code
 
 m386
@@ -40,7 +39,7 @@ Target RejectNegative Undocumented
 ;; Deprecated
 
 m64
-Target RejectNegative Report Mask(64BIT)
+Target RejectNegative Negative(m32) Report Mask(64BIT)
 Generate 64bit x86-64 code
 
 m80387
@@ -200,6 +199,10 @@ Support MMX, SSE, SSE2 and SSE3 built-in functions and code generation
 msseregparm
 Target RejectNegative Mask(SSEREGPARM)
 Use SSE register passing conventions for SF and DF mode
+
+mstackrealign
+Target Report Var(ix86_force_align_arg_pointer)
+Realign stack in prologue
 
 msvr3-shlib
 Target Report Mask(SVR3_SHLIB)

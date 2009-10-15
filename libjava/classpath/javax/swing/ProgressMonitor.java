@@ -1,5 +1,5 @@
 /* ProgressMonitor.java --
-   Copyright (C) 2002, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2002, 2004, 2005, 2006, Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -38,8 +38,10 @@ exception statement from your version. */
 package javax.swing;
 
 import java.awt.Component;
-import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+
+import javax.accessibility.AccessibleContext;
 
 /**
  * <p>Using this class you can easily monitor tasks where you cannot
@@ -62,6 +64,12 @@ import java.awt.event.ActionEvent;
  */
 public class ProgressMonitor
 {
+  
+  /**
+   * The accessible content for this component
+   */
+  protected AccessibleContext accessibleContext;
+  
   /**
    * parentComponent
    */
@@ -100,10 +108,16 @@ public class ProgressMonitor
   boolean canceled;
 
   /**
-   * Constructor ProgressMonitor
-   * @param component The parent component of the progress dialog or <code>null</code>.
-   * @param message A constant message object which works in the way it does in <code>JOptionPane</code>.
-   * @param note A string message which can be changed while the operation goes on.
+   * Creates a new <code>ProgressMonitor</code> instance.  This is used to 
+   * monitor a task and pops up a dialog if the task is taking a long time to 
+   * run.
+   * 
+   * @param component The parent component of the progress dialog or 
+   *                  <code>null</code>.
+   * @param message A constant message object which works in the way it does 
+   *                in {@link JOptionPane}.
+   * @param note A string message which can be changed while the operation goes
+   *             on.
    * @param minimum The minimum value for the operation (start value).
    * @param maximum The maximum value for the operation (end value).
    */
@@ -128,12 +142,12 @@ public class ProgressMonitor
    */
   public void close()
   {
-    if ( progressDialog != null )
+    if (progressDialog != null)
       {
         progressDialog.setVisible(false);
       }
 
-    if ( timer != null )
+    if (timer != null)
       {
         timer.stop();
         timer = null;
@@ -159,7 +173,7 @@ public class ProgressMonitor
     // Initializes and starts a timer with a task
     // which measures the duration and displays
     // a progress dialog if neccessary.
-    if ( timer == null && progressDialog == null )
+    if (timer == null && progressDialog == null)
       {
         timer = new Timer(25, null);
         timer.addActionListener(new TimerListener());
@@ -168,7 +182,7 @@ public class ProgressMonitor
 
     // Cancels timer and hides progress dialog if the
     // maximum value is reached.
-    if ( progressBar != null && this.progress >= progressBar.getMaximum() )
+    if (progressBar != null && this.progress >= progressBar.getMaximum())
       {
         // The reason for using progressBar.getMaximum() instead of max is that
         // we want to prevent that changes to the value have any effect after the
@@ -178,9 +192,10 @@ public class ProgressMonitor
 
   }
 
-  /** Returns the minimum or start value of the operation.
+  /** 
+   * Returns the minimum or start value of the operation.
    *
-   * @returns Minimum or start value of the operation.
+   * @return Minimum or start value of the operation.
    */
   public int getMinimum()
   {
@@ -207,7 +222,7 @@ public class ProgressMonitor
   /**
    * Return the maximum or end value of your operation.
    *
-   * @returns Maximum or end value.
+   * @return Maximum or end value.
    */
   public int getMaximum()
   {
@@ -228,7 +243,7 @@ public class ProgressMonitor
   /**
    * Returns whether the user canceled the operation.
    *
-   * @returns Whether the operation was canceled.
+   * @return Whether the operation was canceled.
    */
   public boolean isCanceled()
   {
@@ -243,7 +258,7 @@ public class ProgressMonitor
    * until the ProgressMonitor should decide whether
    * a progress dialog is to be shown or not.
    *
-   * @returns The duration in milliseconds.
+   * @return The duration in milliseconds.
    */
   public int getMillisToDecideToPopup()
   {
@@ -266,8 +281,12 @@ public class ProgressMonitor
   }
 
   /**
-   * getMillisToPopup
-   * @returns int
+   * Returns the number of milliseconds to wait before displaying the progress
+   * dialog.  The default value is 2000.
+   * 
+   * @return The number of milliseconds.
+   * 
+   * @see #setMillisToPopup(int)
    */
   public int getMillisToPopup()
   {
@@ -275,8 +294,12 @@ public class ProgressMonitor
   }
 
   /**
-   * setMillisToPopup
-   * @param time TODO
+   * Sets the number of milliseconds to wait before displaying the progress
+   * dialog.
+   * 
+   * @param time  the number of milliseconds.
+   * 
+   * @see #getMillisToPopup()
    */
   public void setMillisToPopup(int time)
   {
@@ -286,7 +309,7 @@ public class ProgressMonitor
   /**
    * Returns a message which is shown in the progress dialog.
    *
-   * @returns The changeable message visible in the progress dialog.
+   * @return The changeable message visible in the progress dialog.
    */
   public String getNote()
   {
@@ -303,7 +326,7 @@ public class ProgressMonitor
    */
   public void setNote(String note)
   {
-    if ( noteLabel != null )
+    if (noteLabel != null)
       {
         noteLabel.setText(note);
       }
@@ -313,7 +336,8 @@ public class ProgressMonitor
       }
   }
 
-  /** Internal method that creates the progress dialog.
+  /** 
+   * Internal method that creates the progress dialog.
    */
   void createDialog()
   {
@@ -377,14 +401,18 @@ public class ProgressMonitor
     {
        long now = System.currentTimeMillis();
 
-       if ( first )
+       if (first)
        {
-         if (( now - timestamp ) > millisToDecideToPopup )
+         if ((now - timestamp) > millisToDecideToPopup)
          {
            first = false;
-           long expected = ( now - timestamp ) * ( max - min ) / ( progress - min );
 
-           if ( expected > millisToPopup )
+
+           long expected = (progress - min == 0) ? 
+	     (now - timestamp) * (max - min) : 
+	     (now - timestamp) * (max - min) / (progress - min);
+
+           if (expected > millisToPopup)
            {
              createDialog();
            }
@@ -396,14 +424,14 @@ public class ProgressMonitor
            return;
          }
        }
-       else if ( progressDialog != null )
+       else if (progressDialog != null)
        {
          // The progress dialog is being displayed. We now calculate
          // whether setting the progress bar to the current progress
          // value would result in a visual difference. 
          int delta = progress - progressBar.getValue();
 
-         if ( ( delta * progressBar.getWidth() / (max - min) ) > 0 )
+         if ((delta * progressBar.getWidth() / (max - min)) > 0)
          {
            // At least one pixel would change.
            progressBar.setValue(progress);
@@ -419,5 +447,14 @@ public class ProgressMonitor
       timestamp = now;
     }
   }
-
+  
+  /**
+   * Gets the accessible context.
+   * 
+   * @return the accessible context.
+   */
+  public AccessibleContext getAccessibleContext()
+  {
+    return accessibleContext;
+  }
 }

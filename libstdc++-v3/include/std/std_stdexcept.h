@@ -1,6 +1,6 @@
 // Standard exception classes  -*- C++ -*-
 
-// Copyright (C) 2001, 2002 Free Software Foundation, Inc.
+// Copyright (C) 2001, 2002, 2005 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -27,13 +27,13 @@
 // invalidate any other reasons why the executable file might be covered by
 // the GNU General Public License.
 
-//
-// ISO C++ 19.1  Exception classes
-//
-
 /** @file stdexcept
  *  This is a Standard C++ Library header.
  */
+
+//
+// ISO C++ 19.1  Exception classes
+//
 
 #ifndef _GLIBCXX_STDEXCEPT
 #define _GLIBCXX_STDEXCEPT 1
@@ -43,8 +43,8 @@
 #include <exception>
 #include <string>
 
-namespace std 
-{
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
   /** Logic errors represent problems in the internal logic of a program;
    *  in theory, these are preventable, and even detectable before the
    *  program runs (e.g., violations of class invariants).
@@ -142,6 +142,7 @@ namespace std
   public:
     explicit underflow_error(const string&  __arg);
   };
-} // namespace std
+
+_GLIBCXX_END_NAMESPACE
 
 #endif /* _GLIBCXX_STDEXCEPT */

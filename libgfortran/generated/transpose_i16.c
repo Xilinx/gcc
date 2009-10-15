@@ -1,5 +1,5 @@
 /* Implementation of the TRANSPOSE intrinsic
-   Copyright 2003, 2005 Free Software Foundation, Inc.
+   Copyright 2003, 2005, 2006 Free Software Foundation, Inc.
    Contributed by Tobias Schlüter
 
 This file is part of the GNU Fortran 95 runtime library (libgfortran).
@@ -34,11 +34,13 @@ Boston, MA 02110-1301, USA.  */
 
 #if defined (HAVE_GFC_INTEGER_16)
 
-extern void transpose_i16 (gfc_array_i16 * ret, gfc_array_i16 * source);
+extern void transpose_i16 (gfc_array_i16 * const restrict ret, 
+	gfc_array_i16 * const restrict source);
 export_proto(transpose_i16);
 
 void
-transpose_i16 (gfc_array_i16 * ret, gfc_array_i16 * source)
+transpose_i16 (gfc_array_i16 * const restrict ret, 
+	gfc_array_i16 * const restrict source)
 {
   /* r.* indicates the return array.  */
   index_type rxstride, rystride;
@@ -68,11 +70,6 @@ transpose_i16 (gfc_array_i16 * ret, gfc_array_i16 * source)
       ret->data = internal_malloc_size (sizeof (GFC_INTEGER_16) * size0 ((array_t *) ret));
       ret->offset = 0;
     }
-
-  if (ret->dim[0].stride == 0)
-    ret->dim[0].stride = 1;
-  if (source->dim[0].stride == 0)
-    source->dim[0].stride = 1;
 
   sxstride = source->dim[0].stride;
   systride = source->dim[1].stride;

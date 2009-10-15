@@ -1,8 +1,8 @@
-# Copyright (C) 2002, 2003 Free Software Foundation, Inc.
+# Copyright (C) 2002, 2003, 2007 Free Software Foundation, Inc.
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
+# the Free Software Foundation; either version 3 of the License, or
 # (at your option) any later version.
 #
 # This program is distributed in the hope that it will be useful,
@@ -11,8 +11,8 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+# along with GCC; see the file COPYING3.  If not see
+# <http://www.gnu.org/licenses/>.
 #
 # This file was written by Janis Johnson, <janis187@us.ibm.com>
 
@@ -34,6 +34,7 @@ global ALT_CC_UNDER_TEST
 global compat_save_gcc_under_test
 global compat_use_alt
 global compat_same_alt
+global compat_have_dfp
 
 # Load procedures from common libraries. 
 load_lib standard.exp
@@ -68,6 +69,8 @@ if [info exists ALT_CC_UNDER_TEST] then {
 	set compat_same_alt 1
     }
 }
+
+compat_setup_dfp
 
 # Main loop.
 foreach src [lsort [find $srcdir/$subdir *_main.c]] {

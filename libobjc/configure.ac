@@ -1,6 +1,6 @@
 # Process this file with autoconf to produce a configure script.
 #   Copyright 1994, 1995, 1996, 1997, 1998, 1999, 2001, 2002, 2003, 2004
-#   Free Software Foundation, Inc.
+#   2005, 2006 Free Software Foundation, Inc.
 #   Originally contributed by Dave Love (d.love@dl.ac.uk).
 #
 #This file is part of GCC.
@@ -28,7 +28,7 @@ GCC_TOPLEV_SUBDIRS
 # We need the following definitions because AC_PROG_LIBTOOL relies on them
 PACKAGE=libobjc
 # Version is pulled out to make it a bit easier to change using sed.
-VERSION=1:0:0
+VERSION=2:0:0
 AC_SUBST(VERSION)
 
 # This works around the fact that libtool configuration may change LD
@@ -40,16 +40,6 @@ ORIGINAL_LD_FOR_MULTILIBS=$LD
 # -------
 # Options
 # -------
-
-# Default to --enable-multilib
-AC_ARG_ENABLE(multilib,
-  [  --enable-multilib       build hella library versions (default)],
-  [case "${enableval}" in
-    yes) multilib=yes ;;
-    no)  multilib=no ;;
-    *)   AC_MSG_ERROR(bad value ${enableval} for multilib option) ;;
-   esac],
-  [multilib=yes])
 
 # We use these options to decide which functions to include.
 AC_ARG_WITH(target-subdir,
@@ -73,37 +63,25 @@ AC_ARG_ENABLE(objc-gc,
 [  --enable-objc-gc       enable the use of Boehm's garbage collector with
                           the GNU Objective-C runtime.],
 [case $enable_objc_gc in
-  no) OBJC_BOEHM_GC='' ;;
-  *) OBJC_BOEHM_GC=libobjc_gc.la ;;
+  no)
+    OBJC_BOEHM_GC=''
+    OBJC_BOEHM_GC_INCLUDES=''
+    ;;
+  *)
+    OBJC_BOEHM_GC=libobjc_gc.la
+    OBJC_BOEHM_GC_INCLUDES='-I$(top_srcdir)/../boehm-gc/include -I../boehm-gc/include'
+    ;;
 esac],
-[OBJC_BOEHM_GC=''])
+[OBJC_BOEHM_GC=''; OBJC_BOEHM_GC_INCLUDES=''])
 AC_SUBST(OBJC_BOEHM_GC)
+AC_SUBST(OBJC_BOEHM_GC_INCLUDES)
 
 # -----------
 # Directories
 # -----------
 
-# When building with srcdir == objdir, links to the source files will
-# be created in directories within the target_subdir.  We have to
-# adjust toplevel_srcdir accordingly, so that configure finds
-# install-sh and other auxiliary files that live in the top-level
-# source directory.
-if test "${srcdir}" = "."; then
-  if test -z "${with_target_subdir}"; then
-    toprel=".."
-  else
-    if test "${with_target_subdir}" != "."; then
-      toprel="${with_multisrctop}../.."
-    else
-      toprel="${with_multisrctop}.."
-    fi
-  fi
-else
-  toprel=".."
-fi
-AC_CONFIG_AUX_DIR(${srcdir}/$toprel)
-toplevel_srcdir=\${srcdir}/$toprel
-AC_SUBST(toplevel_srcdir)
+# Find the rest of the source tree framework.
+AM_ENABLE_MULTILIB(, ..)
 
 AC_CANONICAL_SYSTEM
 ACX_NONCANONICAL_TARGET
@@ -301,7 +279,7 @@ AC_CONFIG_COMMANDS([default],
     # FIXME: We shouldn't need to set ac_file
     ac_file=Makefile
     LD="${ORIGINAL_LD_FOR_MULTILIBS}"
-    . ${toplevel_srcdir}/config-ml.in
+    . ${multi_basedir}/config-ml.in
   fi
 fi]],
 [[srcdir=${srcdir}
@@ -310,7 +288,7 @@ target=${target}
 with_target_subdir=${with_target_subdir}
 with_multisubdir=${with_multisubdir}
 ac_configure_args="--enable-multilib ${ac_configure_args}"
-toplevel_srcdir=${toplevel_srcdir}
+multi_basedir=${multi_basedir}
 CONFIG_SHELL=${CONFIG_SHELL-/bin/sh}
 ORIGINAL_LD_FOR_MULTILIBS="${ORIGINAL_LD_FOR_MULTILIBS}"
 ]])

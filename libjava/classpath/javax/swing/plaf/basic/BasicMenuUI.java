@@ -38,10 +38,11 @@ exception statement from your version. */
 
 package javax.swing.plaf.basic;
 
+import gnu.classpath.NotImplementedException;
+
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.event.MouseEvent;
-import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 
 import javax.swing.JComponent;
@@ -220,7 +221,7 @@ public class BasicMenuUI extends BasicMenuItemUI
    */
   protected void installKeyboardActions()
   {
-    // FIXME: Need to implement
+    super.installKeyboardActions();
   }
 
   /**
@@ -228,13 +229,12 @@ public class BasicMenuUI extends BasicMenuItemUI
    */
   protected void installListeners()
   {
-    ((JMenu) menuItem).addMouseListener(mouseInputListener);
-    ((JMenu) menuItem).addMouseMotionListener(mouseInputListener);
+    super.installListeners();
     ((JMenu) menuItem).addMenuListener(menuListener);
-    ((JMenu) menuItem).addMenuDragMouseListener(menuDragMouseListener);
   }
 
   protected void setupPostTimer(JMenu menu)
+  throws NotImplementedException
   {
     // TODO: Implement this properly.
   }
@@ -264,7 +264,7 @@ public class BasicMenuUI extends BasicMenuItemUI
    */
   protected void uninstallKeyboardActions()
   {
-    // FIXME: Need to implement
+    super.installKeyboardActions();
   }
 
   /**
@@ -273,9 +273,8 @@ public class BasicMenuUI extends BasicMenuItemUI
    */
   protected void uninstallListeners()
   {
-    ((JMenu) menuItem).removeMouseListener(mouseInputListener);
+    super.uninstallListeners();
     ((JMenu) menuItem).removeMenuListener(menuListener);
-    ((JMenu) menuItem).removePropertyChangeListener(propertyChangeListener);
   }
 
   /**
@@ -348,7 +347,7 @@ public class BasicMenuUI extends BasicMenuItemUI
 
     public void mouseMoved(MouseEvent e)
     {
-      // TODO: What should be done here, if anything?
+      // Nothing to do here.
     }
 
     public void mousePressed(MouseEvent e)
@@ -391,7 +390,7 @@ public class BasicMenuUI extends BasicMenuItemUI
   /**
    * This class handles MenuEvents fired by the JMenu
    */
-  protected class MenuHandler implements MenuListener
+  private class MenuHandler implements MenuListener
   {
     /**
      * This method is called when menu is cancelled. The menu is cancelled
@@ -440,24 +439,7 @@ public class BasicMenuUI extends BasicMenuItemUI
   }
 
   /**
-   * This class handles PropertyChangeEvents fired from the JMenu
-   */
-  protected class PropertyChangeHandler implements PropertyChangeListener
-  {
-    /**
-      * This method is called whenever one of the properties of the menu item
-      * changes.
-      *
-      * @param e The PropertyChangeEvent.
-      */
-    public void propertyChange(PropertyChangeEvent e)
-    {
-      // TODO: Implement this properly.
-    }
-  }
-
-  /**
-   * @deprecated
+   * Obsolete as of JDK1.4.
    */
   public class ChangeHandler implements ChangeListener
   {
@@ -486,7 +468,8 @@ public class BasicMenuUI extends BasicMenuItemUI
      */
     public ChangeHandler(JMenu m, BasicMenuUI ui)
     {
-      // Not used.
+      menu = m;
+      this.ui = ui;
     }
 
     /**
@@ -501,7 +484,7 @@ public class BasicMenuUI extends BasicMenuItemUI
   /**
    * This class handles mouse dragged events occuring in the menu.
    */
-  protected class MenuDragMouseHandler implements MenuDragMouseListener
+  private class MenuDragMouseHandler implements MenuDragMouseListener
   {
     /**
      * This method is invoked when mouse is dragged over the menu item.
@@ -534,7 +517,7 @@ public class BasicMenuUI extends BasicMenuItemUI
      */
     public void menuDragMouseExited(MenuDragMouseEvent e)
     {
-      // TODO: What should be done here, if anything?
+      // Nothing to do here.
     }
 
     /**
@@ -545,7 +528,7 @@ public class BasicMenuUI extends BasicMenuItemUI
      */
     public void menuDragMouseReleased(MenuDragMouseEvent e)
     {
-      // TODO: What should be done here, if anything?
+      // Nothing to do here.
     }
   }
 
@@ -553,7 +536,7 @@ public class BasicMenuUI extends BasicMenuItemUI
    * This class handles key events occuring when menu item is visible on the
    * screen.
    */
-  protected class MenuKeyHandler implements MenuKeyListener
+  private class MenuKeyHandler implements MenuKeyListener
   {
     /**
      * This method is invoked when key has been pressed
@@ -562,7 +545,7 @@ public class BasicMenuUI extends BasicMenuItemUI
      */
     public void menuKeyPressed(MenuKeyEvent e)
     {
-      // TODO: What should be done here, if anything?
+      // Nothing to do here.
     }
 
     /**
@@ -572,7 +555,7 @@ public class BasicMenuUI extends BasicMenuItemUI
      */
     public void menuKeyReleased(MenuKeyEvent e)
     {
-      // TODO: What should be done here, if anything?
+      // Nothing to do here.
     }
 
     /**
@@ -582,6 +565,7 @@ public class BasicMenuUI extends BasicMenuItemUI
      * @param e A {@link MenuKeyEvent}.
      */
     public void menuKeyTyped(MenuKeyEvent e)
+    throws NotImplementedException
     {
       // TODO: What should be done here, if anything?
     }

@@ -1,5 +1,5 @@
 /* GtkListPeer.java -- Implements ListPeer with GTK
-   Copyright (C) 1998, 1999 Free Software Foundation, Inc.
+   Copyright (C) 1998, 1999, 2006 Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -40,6 +40,7 @@ package gnu.java.awt.peer.gtk;
 
 import java.awt.AWTEvent;
 import java.awt.Dimension;
+import java.awt.FontMetrics;
 import java.awt.List;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
@@ -59,7 +60,12 @@ public class GtkListPeer extends GtkComponentPeer
 
   native void create (int rows);
   native void connectSignals ();
-  native void gtkWidgetModifyFont (String name, int style, int size);
+
+  /**
+   * Overridden to set the Font of the text insode the gtk_scrolled_window.
+   */
+  protected native void gtkWidgetModifyFont (String name, int style, int size);
+
   native void gtkWidgetRequestFocus ();
 
   native void getSize (int rows, int visibleRows, int dims[]);
@@ -115,11 +121,12 @@ public class GtkListPeer extends GtkComponentPeer
 
   public Dimension preferredSize (int rows)
   {
-    int dims[] = new int[2];
-
-    int visibleRows = ((List) awtComponent).getRows();
-    getSize (rows, visibleRows, dims);
-    return new Dimension (dims[0], dims[1]);
+    // getSize returns the minimum size of the list.
+    // The width is too narrow for a typical list.
+    List l = (List) awtComponent;
+    Dimension d = getMinimumSize();
+    FontMetrics fm = l.getFontMetrics(l.getFont());
+    return new Dimension(d.width + fm.stringWidth("1234567890"), d.height);
   }
 
   public void removeAll ()

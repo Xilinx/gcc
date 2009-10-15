@@ -150,6 +150,14 @@ public class DomDocument
   }
 
   /**
+   * Sets whether to check for document characters.
+   */
+  public void setCheckingCharacters(boolean flag)
+  {
+    checkingCharacters = flag;
+  }  
+  
+  /**
    * <b>DOM L1</b>
    * Returns the constant "#document".
    */
@@ -235,6 +243,18 @@ public class DomDocument
         if (current.getNodeType() == ELEMENT_NODE)
           {
             DomElement element = (DomElement) current;
+            if (element.userIdAttrs != null)
+              {
+                for (Iterator i = element.userIdAttrs.iterator();
+                     i.hasNext(); )
+                  {
+                    Node idAttr = (Node) i.next();
+                    if (id.equals(idAttr.getNodeValue()))
+                      {
+                        return element;
+                      }
+                  }
+              }
             if (doctype != null)
               {
                 DTDElementTypeInfo info =
@@ -243,18 +263,6 @@ public class DomDocument
                     id.equals(element.getAttribute(info.idAttrName)))
                   {
                     return element;
-                  }
-                else if (element.userIdAttrs != null)
-                  {
-                    for (Iterator i = element.userIdAttrs.iterator();
-                         i.hasNext(); )
-                      {
-                        Node idAttr = (Node) i.next();
-                        if (id.equals(idAttr.getNodeValue()))
-                          {
-                            return element;
-                          }
-                      }
                   }
               }
             // xml:id
@@ -535,11 +543,9 @@ public class DomDocument
     int index = name.indexOf(':');
     if (index != -1)
       {
-        if (index == 0 || index == (len - 1) ||
-            name.lastIndexOf(':') != index)
+        if (index == 0 || index == (len - 1) || name.lastIndexOf(':') != index)
           {
-            throw new DomDOMException(DOMException.NAMESPACE_ERR,
-                                      name, null, 0);
+            throw new DomDOMException(DOMException.NAMESPACE_ERR, name, null, 0);
           }
       }
   }
@@ -1311,6 +1317,31 @@ public class DomDocument
         config = new DomDocumentConfiguration();
       }
     return config;
+  }
+
+  public boolean isEqualNode(Node arg)
+  {
+    if (!super.isEqualNode(arg))
+      return false;
+    Document d = (Document) arg;
+    String dversion = d.getXmlVersion();
+    if (dversion == null || !dversion.equals(version))
+      return false;
+    boolean dstandalone = d.getXmlStandalone();
+    if (dstandalone != standalone)
+      return false;
+    String dencoding = d.getXmlEncoding();
+    if (dencoding == null || dencoding.equalsIgnoreCase("UTF-8"))
+      {
+        if (encoding != null && !encoding.equalsIgnoreCase("UTF-8"))
+          return false;
+      }
+    else
+      {
+        if (!dencoding.equals(encoding))
+          return false;
+      }
+    return true;
   }
 
   public void normalizeDocument()

@@ -41,6 +41,7 @@ package javax.swing;
 import java.awt.Component;
 import java.awt.FlowLayout;
 import java.awt.Point;
+import java.awt.Rectangle;
 
 
 /**
@@ -160,7 +161,7 @@ public class Popup
       super(owner, contents, x, y);
 
       this.contents = contents;
-      window = new JWindow();
+      window = new JWindow(SwingUtilities.getWindowAncestor(owner));
       window.getContentPane().add(contents);
       window.setLocation(x, y);
       window.setFocusableWindowState(false);
@@ -284,6 +285,7 @@ public class Popup
       Point layeredPaneLoc = layeredPane.getLocationOnScreen();
       panel.setLocation(x - layeredPaneLoc.x, y - layeredPaneLoc.y);
       layeredPane.add(panel, JLayeredPane.POPUP_LAYER);
+      panel.repaint();
     }
 
     /**
@@ -291,7 +293,9 @@ public class Popup
      */
     public void hide()
     {
+      Rectangle bounds = panel.getBounds();
       layeredPane.remove(panel);
+      layeredPane.repaint(bounds.x, bounds.y, bounds.width, bounds.height);
     }
   }
 }

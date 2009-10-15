@@ -9,7 +9,7 @@
   integer :: u(7,4,2,9)
 
   call foo(u,4)
-!  call jackal(-1,-8) ! 4.1 branch doesn't support zero-sized sections
+  call jackal(-1,-8)
   call jackal(-1,8)
 
   if (any(lbound(i(-1:1,-1:1)) /= 1)) call abort
@@ -194,7 +194,7 @@ contains
   subroutine foo (x,n)
     integer :: x(7,n,2,*), n
 
-    !if (ubound(x,1) /= 7 .or. ubound(x,2) /= 4 .or. ubound(x,3) /= 2) call abort
+    if (ubound(x,1) /= 7 .or. ubound(x,2) /= 4 .or. ubound(x,3) /= 2) call abort
   end subroutine foo
 
   subroutine jackal (b, c)

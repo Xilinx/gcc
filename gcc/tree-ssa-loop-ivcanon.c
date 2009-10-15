@@ -1,11 +1,11 @@
 /* Induction variable canonicalization.
-   Copyright (C) 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2007 Free Software Foundation, Inc.
    
 This file is part of GCC.
    
 GCC is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the
-Free Software Foundation; either version 2, or (at your option) any
+Free Software Foundation; either version 3, or (at your option) any
 later version.
    
 GCC is distributed in the hope that it will be useful, but WITHOUT
@@ -14,9 +14,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
    
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 /* This pass detects the loops that iterate a constant number of times,
    adds a canonical induction variable (step -1, tested against 0) 
@@ -100,7 +99,7 @@ create_canonical_iv (struct loop *loop, edge exit, tree niter)
 		       build_int_cst (type, 1));
   incr_at = bsi_last (in->src);
   create_iv (niter,
-	     fold_convert (type, integer_minus_one_node),
+	     build_int_cst (type, -1),
 	     NULL_TREE, loop,
 	     &incr_at, false, NULL, &var);
 
@@ -224,7 +223,7 @@ try_unroll_loop_completely (struct loops *loops ATTRIBUTE_UNUSED,
   if (n_unroll)
     {
       sbitmap wont_exit;
-      edge *edges_to_remove = xmalloc (sizeof (edge *) * n_unroll);
+      edge *edges_to_remove = XNEWVEC (edge, n_unroll);
       unsigned int n_to_remove = 0;
 
       old_cond = COND_EXPR_COND (cond);
@@ -330,7 +329,7 @@ canonicalize_loop_induction_variables (struct loops *loops, struct loop *loop,
 /* The main entry point of the pass.  Adds canonical induction variables
    to the suitable LOOPS.  */
 
-void
+unsigned int
 canonicalize_induction_variables (struct loops *loops)
 {
   unsigned i;
@@ -352,14 +351,15 @@ canonicalize_induction_variables (struct loops *loops)
   scev_reset ();
 
   if (changed)
-    cleanup_tree_cfg_loop ();
+    return TODO_cleanup_cfg;
+  return 0;
 }
 
 /* Unroll LOOPS completely if they iterate just few times.  Unless
    MAY_INCREASE_SIZE is true, perform the unrolling only if the
    size of the code does not increase.  */
 
-void
+unsigned int
 tree_unroll_loops_completely (struct loops *loops, bool may_increase_size)
 {
   unsigned i;
@@ -388,7 +388,8 @@ tree_unroll_loops_completely (struct loops *loops, bool may_increase_size)
   scev_reset ();
 
   if (changed)
-    cleanup_tree_cfg_loop ();
+    return TODO_cleanup_cfg;
+  return 0;
 }
 
 /* Checks whether LOOP is empty.  */
@@ -562,7 +563,7 @@ try_remove_empty_loop (struct loop *loop, bool *changed)
 
 /* Remove the empty LOOPS.  */
 
-void
+unsigned int
 remove_empty_loops (struct loops *loops)
 {
   bool changed = false;
@@ -574,6 +575,7 @@ remove_empty_loops (struct loops *loops)
   if (changed)
     {
       scev_reset ();
-      cleanup_tree_cfg_loop ();
+      return TODO_cleanup_cfg;
     }
+  return 0;
 }

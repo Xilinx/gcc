@@ -362,16 +362,15 @@ public class StyleContext
 	
     public boolean isEqual(AttributeSet attr)
     {
-      return attr != null 
-        && attr.containsAttributes(this)
-        && this.containsAttributes(attr);
+      return getAttributeCount() == attr.getAttributeCount()
+             && this.containsAttributes(attr);
     }
 	
     public String toString()
     {
       StringBuffer sb = new StringBuffer();
       sb.append("[StyleContext.SmallattributeSet:");
-      for (int i = 0; i < attrs.length; ++i)
+      for (int i = 0; i < attrs.length - 1; ++i)
         {
           sb.append(" (");
           sb.append(attrs[i].toString());
@@ -407,7 +406,12 @@ public class StyleContext
 
   static StyleContext defaultStyleContext = new StyleContext();
   static final int compressionThreshold = 9;
-  
+
+  /**
+   * These attribute keys are handled specially in serialization.
+   */
+  private static Hashtable staticAttributeKeys = new Hashtable();
+
   EventListenerList listenerList;
   Hashtable styleTable;
   
@@ -701,41 +705,136 @@ public class StyleContext
       }	
   }
 
-
-  // FIXME: there's some sort of quasi-serialization stuff in here which I
-  // have left incomplete; I'm not sure I understand the intent properly.
-
+  /**
+   * Gets the object previously registered with registerStaticAttributeKey.
+   * 
+   * @param key - the key that was registered.
+   * @return the object previously registered with registerStaticAttributeKey.
+   */
   public static Object getStaticAttribute(Object key)
   {
-    throw new InternalError("not implemented");
+    if (key == null)
+      return null;
+    return staticAttributeKeys.get(key);
   }
   
+  /**
+   * Returns the String that key will be registered with
+   * registerStaticAttributeKey.
+   * 
+   * @param key - the key that will be registered.
+   * @return the string the key will be registered with.
+   */
   public static Object getStaticAttributeKey(Object key)
   {
-    throw new InternalError("not implemented");
+    return key.getClass().getName() + "." + key.toString();
   }
 
+  /**
+   * Reads a set of attributes from the given object input stream. This will
+   * attempt to restore keys that were static objects by considering only the
+   * keys that have were registered with registerStaticAttributeKey. The
+   * attributes retrieved will be placed into the given set.
+   * 
+   * @param in - the stream to read from
+   * @param a - the set of attributes
+   * @throws ClassNotFoundException - may be encountered when reading from
+   *           stream
+   * @throws IOException - any I/O error
+   */
   public static void readAttributeSet(ObjectInputStream in, MutableAttributeSet a)
     throws ClassNotFoundException, IOException
   {
-    throw new InternalError("not implemented");
+    if (in == null || a == null)
+      return;
+    
+    Object key = in.readObject();
+    Object val = in.readObject();
+    while (key != null && val != null)
+      {
+        Object staticKey = staticAttributeKeys.get(key);
+        Object staticVal = staticAttributeKeys.get(val);
+        
+        if (staticKey != null)
+          key = staticKey;
+        if (staticVal != null)
+          val = staticVal;
+        
+        a.addAttribute(key, val);
+        key = in.readObject();
+        val = in.readObject();
+      }
   }
   
+  /**
+   * Serialize an attribute set in a way that is compatible with it
+   * being read in again by {@link #readAttributeSet(ObjectInputStream, MutableAttributeSet)}.
+   * In particular registered static keys are transformed properly.
+   * 
+   * @param out - stream to write to
+   * @param a - the attribute set
+   * @throws IOException - any I/O error
+   */
   public static void writeAttributeSet(ObjectOutputStream out, AttributeSet a)
     throws IOException
   {
-    throw new InternalError("not implemented");
+    Enumeration e = a.getAttributeNames();
+    while (e.hasMoreElements())
+      {
+        Object oldKey = e.nextElement();
+        Object newKey = getStaticAttribute(oldKey);
+        Object key = (newKey == null) ? oldKey : newKey;
+ 
+        out.writeObject(key);
+        out.writeObject(a.getAttribute(oldKey));
+      }
+    out.writeObject(null);
+    out.writeObject(null);
   }
 
+  /**
+   * Handles reading in the attributes. 
+   * @see #readAttributeSet(ObjectInputStream, MutableAttributeSet)
+   * 
+   * @param in - the stream to read from
+   * @param a - the set of attributes
+   * @throws ClassNotFoundException - may be encountered when reading from stream
+   * @throws IOException - any I/O error
+   */
   public void readAttributes(ObjectInputStream in, MutableAttributeSet a)
-    throws ClassNotFoundException, IOException 
+    throws ClassNotFoundException, IOException
   {
-    throw new InternalError("not implemented");
+    readAttributeSet(in, a);
   }
 
+  /**
+   * Handles writing of the given attributes.
+   * @see #writeAttributeSet(ObjectOutputStream, AttributeSet)
+   * 
+   * @param out - stream to write to
+   * @param a - the attribute set
+   * @throws IOException - any I/O error
+   */
   public void writeAttributes(ObjectOutputStream out, AttributeSet a)
     throws IOException
   {
-    throw new InternalError("not implemented");
+    writeAttributeSet(out, a);
+  }
+
+  /**
+   * Registers an attribute key as a well-known keys. When an attribute with
+   * such a key is written to a stream, a special syntax is used so that it
+   * can be recognized when it is read back in. All attribute keys defined
+   * in <code>StyleContext</code> are registered as static keys. If you define
+   * additional attribute keys that you want to exist as nonreplicated objects,
+   * then you should register them using this method.
+   *
+   * @param key the key to register as static attribute key
+   */
+  public static void registerStaticAttributeKey(Object key)
+  {
+    if (key != null)
+      staticAttributeKeys.put(key.getClass().getName() + "." + key.toString(),
+                              key);
   }
 }

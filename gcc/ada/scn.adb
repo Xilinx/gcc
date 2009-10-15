@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2005 Free Software Foundation, Inc.          --
+--          Copyright (C) 1992-2006, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -26,6 +26,7 @@
 
 with Atree;    use Atree;
 with Csets;    use Csets;
+with Hostparm; use Hostparm;
 with Namet;    use Namet;
 with Opt;      use Opt;
 with Restrict; use Restrict;
@@ -104,7 +105,7 @@ package body Scn is
    begin
       if Style_Check then
          Style.Check_Line_Terminator (Len);
-      elsif Len > Opt.Max_Line_Length then
+      elsif Len > Max_Line_Length then
          Error_Long_Line;
       end if;
    end Check_End_Of_Line;
@@ -266,7 +267,7 @@ package body Scn is
    begin
       Error_Msg
         ("this line is too long",
-         Current_Line_Start + Source_Ptr (Opt.Max_Line_Length));
+         Current_Line_Start + Source_Ptr (Max_Line_Length));
    end Error_Long_Line;
 
    ------------------------
@@ -280,7 +281,13 @@ package body Scn is
       GNAT_Hedr : constant Text_Buffer (1 .. 78) := (others => '-');
 
    begin
-      Scanner.Initialize_Scanner (Unit, Index);
+      Scanner.Initialize_Scanner (Index);
+
+      if Index /= Internal_Source_File then
+         Set_Unit (Index, Unit);
+      end if;
+
+      Current_Source_Unit := Unit;
 
       --  Set default for Comes_From_Source (except if we are going to process
       --  an artificial string internally created within the compiler and

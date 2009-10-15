@@ -1,11 +1,11 @@
 /* Default target hook functions.
-   Copyright (C) 2003, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -14,9 +14,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 /* The migration of target macros to target hooks works as follows:
 
@@ -63,6 +62,9 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 #include "target-def.h"
 #include "ggc.h"
 #include "hard-reg-set.h"
+#include "reload.h"
+#include "optabs.h"
+#include "recog.h"
 
 
 void
@@ -151,6 +153,15 @@ unsigned int
 default_min_divisions_for_recip_mul (enum machine_mode mode ATTRIBUTE_UNUSED)
 {
   return have_insn_for (DIV, mode) ? 3 : 2;
+}
+
+/* The default implementation of TARGET_MODE_REP_EXTENDED.  */
+
+int
+default_mode_rep_extended (enum machine_mode mode ATTRIBUTE_UNUSED,
+			   enum machine_mode mode_rep ATTRIBUTE_UNUSED)
+{
+  return UNKNOWN;
 }
 
 /* Generic hook that takes a CUMULATIVE_ARGS pointer and returns true.  */
@@ -267,9 +278,20 @@ default_scalar_mode_supported_p (enum machine_mode mode)
 	return true;
       return false;
 
+    case MODE_DECIMAL_FLOAT:
+      return false;
+
     default:
       gcc_unreachable ();
     }
+}
+
+/* True if the target supports decimal floating point.  */
+
+bool
+default_decimal_float_supported_p (void)
+{
+  return ENABLE_DECIMAL_FLOAT;
 }
 
 /* NULL if INSN insn is valid within a low-overhead loop, otherwise returns
@@ -321,6 +343,11 @@ hook_int_CUMULATIVE_ARGS_mode_tree_bool_0 (
 	tree type ATTRIBUTE_UNUSED, bool named ATTRIBUTE_UNUSED)
 {
   return 0;
+}
+
+void 
+hook_void_bitmap (bitmap regs ATTRIBUTE_UNUSED)
+{
 }
 
 const char *
@@ -463,6 +490,133 @@ default_internal_arg_pointer (void)
     return copy_to_reg (virtual_incoming_args_rtx);
   else
     return virtual_incoming_args_rtx;
+}
+
+enum reg_class
+default_secondary_reload (bool in_p ATTRIBUTE_UNUSED, rtx x ATTRIBUTE_UNUSED,
+			  enum reg_class reload_class ATTRIBUTE_UNUSED,
+			  enum machine_mode reload_mode ATTRIBUTE_UNUSED,
+			  secondary_reload_info *sri)
+{
+  enum reg_class class = NO_REGS;
+
+  if (sri->prev_sri && sri->prev_sri->t_icode != CODE_FOR_nothing)
+    {
+      sri->icode = sri->prev_sri->t_icode;
+      return NO_REGS;
+    }
+#ifdef SECONDARY_INPUT_RELOAD_CLASS
+  if (in_p)
+    class = SECONDARY_INPUT_RELOAD_CLASS (reload_class, reload_mode, x);
+#endif
+#ifdef SECONDARY_OUTPUT_RELOAD_CLASS
+  if (! in_p)
+    class = SECONDARY_OUTPUT_RELOAD_CLASS (reload_class, reload_mode, x);
+#endif
+  if (class != NO_REGS)
+    {
+      enum insn_code icode = (in_p ? reload_in_optab[(int) reload_mode]
+			      : reload_out_optab[(int) reload_mode]);
+
+      if (icode != CODE_FOR_nothing
+	  && insn_data[(int) icode].operand[in_p].predicate
+	  && ! insn_data[(int) icode].operand[in_p].predicate (x, reload_mode))
+	icode = CODE_FOR_nothing;
+      else if (icode != CODE_FOR_nothing)
+	{
+	  const char *insn_constraint, *scratch_constraint;
+	  char insn_letter, scratch_letter;
+	  enum reg_class insn_class, scratch_class;
+
+	  gcc_assert (insn_data[(int) icode].n_operands == 3);
+	  insn_constraint = insn_data[(int) icode].operand[!in_p].constraint;
+	  if (!*insn_constraint)
+	    insn_class = ALL_REGS;
+	  else
+	    {
+	      if (in_p)
+		{
+		  gcc_assert (*insn_constraint == '=');
+		  insn_constraint++;
+		}
+	      insn_letter = *insn_constraint;
+	      insn_class
+		= (insn_letter == 'r' ? GENERAL_REGS
+		   : REG_CLASS_FROM_CONSTRAINT ((unsigned char) insn_letter,
+						insn_constraint));
+	      gcc_assert (insn_class != NO_REGS);
+	    }
+
+	  scratch_constraint = insn_data[(int) icode].operand[2].constraint;
+	  /* The scratch register's constraint must start with "=&",
+	     except for an input reload, where only "=" is necessary,
+	     and where it might be beneficial to re-use registers from
+	     the input.  */
+	  gcc_assert (scratch_constraint[0] == '='
+		      && (in_p || scratch_constraint[1] == '&'));
+	  scratch_constraint++;
+	  if (*scratch_constraint == '&')
+	    scratch_constraint++;
+	  scratch_letter = *scratch_constraint;
+	  scratch_class
+	    = (scratch_letter == 'r' ? GENERAL_REGS
+	       : REG_CLASS_FROM_CONSTRAINT ((unsigned char) scratch_letter,
+					    scratch_constraint));
+
+	  if (reg_class_subset_p (reload_class, insn_class))
+	    {
+	      gcc_assert (scratch_class == class);
+	      class = NO_REGS;
+	    }
+	  else
+	    class = insn_class;
+
+        }
+      if (class == NO_REGS)
+	sri->icode = icode;
+      else
+	sri->t_icode = icode;
+    }
+  return class;
+}
+
+
+/* If STRICT_ALIGNMENT is true we use the container type for accessing
+   volatile bitfields.  This is generally the preferred behavior for memory
+   mapped peripherals on RISC architectures.
+   If STRICT_ALIGNMENT is false we use the narrowest type possible.  This
+   is typically used to avoid spurious page faults and extra memory accesses
+   due to unaligned accesses on CISC architectures.  */
+
+bool
+default_narrow_bitfield (void)
+{
+  return !STRICT_ALIGNMENT;
+}
+
+/* By default, if flag_pic is true, then neither local nor global relocs
+   should be placed in readonly memory.  */
+
+int
+default_reloc_rw_mask (void)
+{
+  return flag_pic ? 3 : 0;
+}
+
+bool
+default_builtin_vector_alignment_reachable (tree type, bool is_packed)
+{
+  if (is_packed)
+    return false;
+
+  /* Assuming that types whose size is > pointer-size are not guaranteed to be
+     naturally aligned.  */
+  if (tree_int_cst_compare (TYPE_SIZE (type), bitsize_int (POINTER_SIZE)) > 0)
+    return false;
+
+  /* Assuming that types whose size is <= pointer-size
+     are naturally aligned.  */
+  return true;
 }
 
 #include "gt-targhooks.h"

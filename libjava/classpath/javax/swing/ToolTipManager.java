@@ -1,5 +1,5 @@
 /* ToolTipManager.java --
-   Copyright (C) 2002, 2004 Free Software Foundation, Inc.
+   Copyright (C) 2002, 2004, 2006, Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -40,9 +40,6 @@ package javax.swing;
 import java.awt.Component;
 import java.awt.Container;
 import java.awt.Dimension;
-import java.awt.FlowLayout;
-import java.awt.LayoutManager;
-import java.awt.Panel;
 import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -270,10 +267,12 @@ public class ToolTipManager extends MouseAdapter implements MouseMotionListener
   }
 
   /**
-   * This method sets the initial delay before the ToolTip is shown when the
+   * Sets the initial delay before the ToolTip is shown when the
    * mouse enters a Component.
    *
    * @param delay The initial delay before the ToolTip is shown.
+   * 
+   * @throws IllegalArgumentException if <code>delay</code> is less than zero.
    */
   public void setInitialDelay(int delay)
   {
@@ -292,9 +291,11 @@ public class ToolTipManager extends MouseAdapter implements MouseMotionListener
   }
 
   /**
-   * This method sets the time the ToolTip will be shown before being hidden.
+   * Sets the time the ToolTip will be shown before being hidden.
    *
-   * @param delay The time the ToolTip will be shown before being hidden.
+   * @param delay  the delay (in milliseconds) before tool tips are hidden.
+   * 
+   * @throws IllegalArgumentException if <code>delay</code> is less than zero.
    */
   public void setDismissDelay(int delay)
   {
@@ -313,10 +314,12 @@ public class ToolTipManager extends MouseAdapter implements MouseMotionListener
   }
 
   /**
-   * This method sets the amount of delay where if the mouse re-enters a
+   * Sets the amount of delay where if the mouse re-enters a
    * Component, the tooltip will be shown immediately.
    *
-   * @param delay The reshow delay.
+   * @param delay The reshow delay (in milliseconds).
+   * 
+   * @throws IllegalArgumentException if <code>delay</code> is less than zero.
    */
   public void setReshowDelay(int delay)
   {

@@ -28,10 +28,6 @@
 // invalidate any other reasons why the executable file might be covered by
 // the GNU General Public License.
 
-//
-// ISO C++ 14882: 18.1  Types
-//
-
 /** @file cstddef
  *  This is a Standard C++ Library file.  You should @c #include this file
  *  in your programs, rather than any of the "*.h" implementation files.
@@ -42,17 +38,23 @@
  *  as macros in C).
  */
 
+//
+// ISO C++ 14882: 18.1  Types
+//
+
 #ifndef _GLIBCXX_CSTDDEF
 #define _GLIBCXX_CSTDDEF 1
 
 #pragma GCC system_header
 
+#include <bits/c++config.h>
 #include <stddef.h>
 
-namespace std
-{
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
   using ::ptrdiff_t;
   using ::size_t;
-}
+
+_GLIBCXX_END_NAMESPACE
 
 #endif

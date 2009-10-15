@@ -28,16 +28,16 @@
 // invalidate any other reasons why the executable file might be covered by
 // the GNU General Public License.
 
+/** @file complex
+ *  This is a Standard C++ Library header.
+ */
+
 //
 // ISO C++ 14882: 26.2  Complex Numbers
 // Note: this is not a conforming implementation.
 // Initially implemented by Ulrich Drepper <drepper@cygnus.com>
 // Improved by Gabriel Dos Reis <dosreis@cmla.ens-cachan.fr>
 //
-
-/** @file complex
- *  This is a Standard C++ Library header.
- */
 
 #ifndef _GLIBCXX_COMPLEX
 #define _GLIBCXX_COMPLEX 1
@@ -49,8 +49,8 @@
 #include <cmath>
 #include <sstream>
 
-namespace std
-{
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
   // Forward declarations.
   template<typename _Tp> class complex;
   template<> class complex<float>;
@@ -1483,6 +1483,7 @@ namespace std
   inline
   complex<long double>::complex(const complex<double>& __z)
   : _M_value(__z.__rep()) { }
-} // namespace std
+
+_GLIBCXX_END_NAMESPACE
 
 #endif	/* _GLIBCXX_COMPLEX */

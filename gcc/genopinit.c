@@ -1,12 +1,12 @@
 /* Generate code to initialize optabs from machine description.
    Copyright (C) 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   2001, 2002, 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,9 +15,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 
 #include "bconfig.h"
@@ -84,6 +83,7 @@ static const char * const optabs[] =
   "smul_highpart_optab->handlers[$A].insn_code = CODE_FOR_$(smul$a3_highpart$)",
   "smul_widen_optab->handlers[$B].insn_code = CODE_FOR_$(mul$a$b3$)$N",
   "umul_widen_optab->handlers[$B].insn_code = CODE_FOR_$(umul$a$b3$)$N",
+  "usmul_widen_optab->handlers[$B].insn_code = CODE_FOR_$(usmul$a$b3$)$N",
   "sdiv_optab->handlers[$A].insn_code = CODE_FOR_$(div$a3$)",
   "sdivv_optab->handlers[$A].insn_code = CODE_FOR_$(div$V$I$a3$)",
   "udiv_optab->handlers[$A].insn_code = CODE_FOR_$(udiv$I$a3$)",
@@ -202,6 +202,10 @@ static const char * const optabs[] =
   "vec_realign_load_optab->handlers[$A].insn_code = CODE_FOR_$(vec_realign_load_$a$)",
   "vcond_gen_code[$A] = CODE_FOR_$(vcond$a$)",
   "vcondu_gen_code[$A] = CODE_FOR_$(vcondu$a$)",
+  "ssum_widen_optab->handlers[$A].insn_code = CODE_FOR_$(widen_ssum$I$a3$)",
+  "usum_widen_optab->handlers[$A].insn_code = CODE_FOR_$(widen_usum$I$a3$)",
+  "udot_prod_optab->handlers[$A].insn_code = CODE_FOR_$(udot_prod$I$a$)",
+  "sdot_prod_optab->handlers[$A].insn_code = CODE_FOR_$(sdot_prod$I$a$)",
   "reduc_smax_optab->handlers[$A].insn_code = CODE_FOR_$(reduc_smax_$a$)",
   "reduc_umax_optab->handlers[$A].insn_code = CODE_FOR_$(reduc_umax_$a$)",
   "reduc_smin_optab->handlers[$A].insn_code = CODE_FOR_$(reduc_smin_$a$)",
@@ -303,7 +307,9 @@ gen_insn (rtx insn)
                             || mode_class[i] == MODE_INT
                             || mode_class[i] == MODE_PARTIAL_INT
 			    || mode_class[i] == MODE_VECTOR_INT)
-			&& (! force_float || mode_class[i] == MODE_FLOAT 
+			&& (! force_float
+			    || mode_class[i] == MODE_FLOAT 
+			    || mode_class[i] == MODE_DECIMAL_FLOAT
 			    || mode_class[i] == MODE_COMPLEX_FLOAT
 			    || mode_class[i] == MODE_VECTOR_FLOAT))
 		      break;
@@ -353,7 +359,7 @@ gen_insn (rtx insn)
 	  case 'I':  case 'F':  case 'N':
 	    break;
 	  case 'V':
-            if (GET_MODE_CLASS (m1) == MODE_FLOAT)
+	    if (SCALAR_FLOAT_MODE_P (m1))
               printf ("v");
             break;
 	  case 'a':
@@ -445,11 +451,4 @@ from the machine description file `md'.  */\n\n");
 
   fflush (stdout);
   return (ferror (stdout) != 0 ? FATAL_EXIT_CODE : SUCCESS_EXIT_CODE);
-}
-
-/* Define this so we can link with print-rtl.o to get debug_rtx function.  */
-const char *
-get_insn_name (int code ATTRIBUTE_UNUSED)
-{
-  return NULL;
 }

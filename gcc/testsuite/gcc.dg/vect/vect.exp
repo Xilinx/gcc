@@ -1,8 +1,8 @@
-# Copyright (C) 1997, 2004 Free Software Foundation, Inc.
+# Copyright (C) 1997, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
+# the Free Software Foundation; either version 3 of the License, or
 # (at your option) any later version.
 # 
 # This program is distributed in the hope that it will be useful,
@@ -11,8 +11,8 @@
 # GNU General Public License for more details.
 # 
 # You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.  
+# along with GCC; see the file COPYING3.  If not see
+# <http://www.gnu.org/licenses/>.
 
 # GCC testsuite that uses the `dg.exp' driver.
 
@@ -37,7 +37,10 @@ set save-dg-do-what-default ${dg-do-what-default}
 # code.  Set additional target-dependent vector flags, which can be
 # overridden by using dg-options in individual tests.
 if [istarget "powerpc*-*-*"] {
-    # If there are powerpc targets to skip, do it here.
+    # Skip targets not supporting -maltivec.
+    if ![is-effective-target powerpc_altivec_ok] {
+	return
+    }
 
     lappend DEFAULT_VECTCFLAGS "-maltivec"
     if [check_vmx_hw_available] {
@@ -52,7 +55,8 @@ if [istarget "powerpc*-*-*"] {
 } elseif { [istarget "i?86-*-*"] || [istarget "x86_64-*-*"] } {
     lappend DEFAULT_VECTCFLAGS "-msse2"
     set dg-do-what-default run
-} elseif [istarget "mipsisa64*-*-*"] {
+} elseif { [istarget "mipsisa64*-*-*"]
+	   && [check_effective_target_mpaired_single] } {
     lappend DEFAULT_VECTCFLAGS "-mpaired-single"
     set dg-do-what-default run
 } elseif [istarget "sparc*-*-*"] {
@@ -78,7 +82,7 @@ dg-init
 dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/nodump-*.\[cS\]]]  \
 	"" $DEFAULT_VECTCFLAGS
 
-lappend DEFAULT_VECTCFLAGS "-ftree-vectorizer-verbose=4" "-fdump-tree-vect-stats"
+lappend DEFAULT_VECTCFLAGS "-fdump-tree-vect-details"
 
 # Main loop.
 dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/pr*.\[cS\]]]  \
@@ -96,10 +100,40 @@ lappend DEFAULT_VECTCFLAGS "-ffast-math"
 dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/fast-math-vect*.\[cS\]]]  \
 	"" $DEFAULT_VECTCFLAGS
 
+# -fwrapv tests
+set DEFAULT_VECTCFLAGS $SAVED_DEFAULT_VECTCFLAGS
+lappend DEFAULT_VECTCFLAGS "-fwrapv"
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/wrapv-vect*.\[cS\]]]  \
+        "" $DEFAULT_VECTCFLAGS
+
 # -ftrapv tests
 set DEFAULT_VECTCFLAGS $SAVED_DEFAULT_VECTCFLAGS
 lappend DEFAULT_VECTCFLAGS "-ftrapv"
 dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/trapv-vect*.\[cS\]]]  \
+	"" $DEFAULT_VECTCFLAGS
+
+# -fdump-tree-dceloop-details tests
+set DEFAULT_VECTCFLAGS $SAVED_DEFAULT_VECTCFLAGS
+lappend DEFAULT_VECTCFLAGS "-fdump-tree-dceloop-details"
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/dump-tree-dceloop-*.\[cS\]]]  \
+        "" $DEFAULT_VECTCFLAGS
+
+# -fno-tree-dce tests
+set DEFAULT_VECTCFLAGS $SAVED_DEFAULT_VECTCFLAGS
+lappend DEFAULT_VECTCFLAGS "-fno-tree-dce"
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/no-tree-dce-*.\[cS\]]]  \
+	"" $DEFAULT_VECTCFLAGS
+
+# -fsection-anchors tests
+set DEFAULT_VECTCFLAGS $SAVED_DEFAULT_VECTCFLAGS
+lappend DEFAULT_VECTCFLAGS "-fsection-anchors"
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/section-anchors-*.\[cS\]]]  \
+	"" $DEFAULT_VECTCFLAGS
+
+# -fno-section-anchors tests
+set DEFAULT_VECTCFLAGS $SAVED_DEFAULT_VECTCFLAGS
+lappend DEFAULT_VECTCFLAGS "-fno-section-anchors"
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/no-section-anchors-*.\[cS\]]]  \
 	"" $DEFAULT_VECTCFLAGS
 
 # -funswitch-loops tests

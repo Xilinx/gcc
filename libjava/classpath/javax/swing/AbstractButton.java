@@ -1,5 +1,5 @@
 /* AbstractButton.java -- Provides basic button functionality.
-   Copyright (C) 2002, 2004 Free Software Foundation, Inc.
+   Copyright (C) 2002, 2004, 2006, Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -37,12 +37,17 @@ exception statement from your version. */
 
 package javax.swing;
 
+import gnu.classpath.NotImplementedException;
+
+import java.awt.Component;
 import java.awt.Graphics;
 import java.awt.Image;
 import java.awt.Insets;
 import java.awt.ItemSelectable;
+import java.awt.LayoutManager;
 import java.awt.Point;
 import java.awt.Rectangle;
+import java.awt.Shape;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
@@ -51,17 +56,26 @@ import java.awt.image.ImageObserver;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.Serializable;
+import java.util.Enumeration;
 
+import javax.accessibility.Accessible;
 import javax.accessibility.AccessibleAction;
+import javax.accessibility.AccessibleContext;
 import javax.accessibility.AccessibleIcon;
+import javax.accessibility.AccessibleRelation;
 import javax.accessibility.AccessibleRelationSet;
+import javax.accessibility.AccessibleState;
 import javax.accessibility.AccessibleStateSet;
 import javax.accessibility.AccessibleText;
 import javax.accessibility.AccessibleValue;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.plaf.ButtonUI;
+import javax.swing.plaf.basic.BasicHTML;
 import javax.swing.text.AttributeSet;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.Position;
+import javax.swing.text.View;
 
 
 /**
@@ -159,6 +173,14 @@ public abstract class AbstractButton extends JComponent
     private static final long serialVersionUID = 1471056094226600578L;
 
     /**
+     * The spec has no public/protected constructor for this class, so do we.
+     */
+    ButtonChangeListener()
+    {
+      // Nothing to do here.
+    }
+
+    /**
      * Notified when the target of the listener changes its state.
      *
      * @param ev the ChangeEvent describing the change
@@ -177,7 +199,7 @@ public abstract class AbstractButton extends JComponent
   Icon pressed_icon;
 
   /** The icon displayed when the button is disabled. */
-  Icon disabeldIcon;
+  Icon disabledIcon;
 
   /** The icon displayed when the button is selected. */
   Icon selectedIcon;
@@ -252,7 +274,7 @@ public abstract class AbstractButton extends JComponent
   protected ChangeListener changeListener;
 
   /**
-   * The time in miliseconds in which clicks get coalesced into a single
+   * The time in milliseconds in which clicks get coalesced into a single
    * <code>ActionEvent</code>.
    */
   long multiClickThreshhold;
@@ -266,6 +288,42 @@ public abstract class AbstractButton extends JComponent
   /** ChangeEvent that is fired to button's ChangeEventListeners  */  
   protected ChangeEvent changeEvent = new ChangeEvent(this);
   
+  /**
+   * Indicates if the borderPainted property has been set by a client
+   * program or by the UI.
+   *
+   * @see #setUIProperty(String, Object)
+   * @see LookAndFeel#installProperty(JComponent, String, Object)
+   */
+  private boolean clientBorderPaintedSet = false;
+
+  /**
+   * Indicates if the rolloverEnabled property has been set by a client
+   * program or by the UI.
+   *
+   * @see #setUIProperty(String, Object)
+   * @see LookAndFeel#installProperty(JComponent, String, Object)
+   */
+  private boolean clientRolloverEnabledSet = false;
+
+  /**
+   * Indicates if the iconTextGap property has been set by a client
+   * program or by the UI.
+   *
+   * @see #setUIProperty(String, Object)
+   * @see LookAndFeel#installProperty(JComponent, String, Object)
+   */
+  private boolean clientIconTextGapSet = false;
+
+  /**
+   * Indicates if the contentAreaFilled property has been set by a client
+   * program or by the UI.
+   *
+   * @see #setUIProperty(String, Object)
+   * @see LookAndFeel#installProperty(JComponent, String, Object)
+   */
+  private boolean clientContentAreaFilledSet = false;
+
   /**
    * Fired in a PropertyChangeEvent when the "borderPainted" property changes.
    */
@@ -380,134 +438,405 @@ public abstract class AbstractButton extends JComponent
       // Nothing to do here yet.
     }
 
+    /**
+     * Returns the accessible state set of this object. In addition to the
+     * superclass's states, the <code>AccessibleAbstractButton</code>
+     * supports the following states: {@link AccessibleState#ARMED},
+     * {@link AccessibleState#FOCUSED}, {@link AccessibleState#PRESSED} and
+     * {@link AccessibleState#CHECKED}.
+     *
+     * @return the current state of this accessible object
+     */
     public AccessibleStateSet getAccessibleStateSet()
     {
-      return null; // TODO
+      AccessibleStateSet state = super.getAccessibleStateSet();
+
+      if (getModel().isArmed())
+        state.add(AccessibleState.ARMED);
+      if (getModel().isPressed())
+        state.add(AccessibleState.PRESSED);
+      if (isSelected())
+        state.add(AccessibleState.CHECKED);
+
+      return state;
     }
 
+    /**
+     * Returns the accessible name for the button.
+     */
     public String getAccessibleName()
     {
-      return null; // TODO
+      String result = super.getAccessibleName();
+      if (result == null)
+        result = text;
+      return result;
     }
 
+    /**
+     * Returns the accessible icons of this object. If the AbstractButton's
+     * icon is an Accessible, and it's AccessibleContext is an AccessibleIcon,
+     * then this AccessibleIcon is returned, otherwise <code>null</code>.
+     *
+     * @return the accessible icons of this object, or <code>null</code> if
+     *         there is no accessible icon
+     */
     public AccessibleIcon[] getAccessibleIcon()
     {
-      return null; // TODO
+      AccessibleIcon[] ret = null;
+      Icon icon = getIcon();
+      if (icon instanceof Accessible)
+        {
+          AccessibleContext ctx = ((Accessible) icon).getAccessibleContext();
+          if (ctx instanceof AccessibleIcon)
+            {
+              ret = new AccessibleIcon[]{ (AccessibleIcon) ctx };
+            }
+        }
+      return ret;
     }
 
+    /**
+     * Returns the accessible relations of this AccessibleAbstractButton.
+     * If the AbstractButton is part of a ButtonGroup, then all the buttons
+     * in this button group are added as targets in a MEMBER_OF relation,
+     * otherwise an empty relation set is returned (from super).
+     *
+     * @return the accessible relations of this AccessibleAbstractButton
+     */
     public AccessibleRelationSet getAccessibleRelationSet()
     {
-      return null; // TODO
+      AccessibleRelationSet relations = super.getAccessibleRelationSet();
+      ButtonModel model = getModel();
+      if (model instanceof DefaultButtonModel)
+        {
+          ButtonGroup group = ((DefaultButtonModel) model).getGroup();
+          if (group != null)
+            {
+              Object[] target = new Object[group.getButtonCount()];
+              Enumeration els = group.getElements();
+              
+              for (int index = 0; els.hasMoreElements(); ++index)
+                {
+                  target[index] = els.nextElement();
+                }
+
+              AccessibleRelation rel =
+                new AccessibleRelation(AccessibleRelation.MEMBER_OF);
+              rel.setTarget(target);
+              relations.add(rel);
+            }
+        }
+      return relations;
     }
 
+    /**
+     * Returns the accessible action associated with this object. For buttons,
+     * this will be <code>this</code>.
+     *
+     * @return <code>this</code>
+     */
     public AccessibleAction getAccessibleAction()
     {
-      return null; // TODO
+      return this;
     }
 
+    /**
+     * Returns the accessible value of this AccessibleAbstractButton, which
+     * is always <code>this</code>.
+     *
+     * @return the accessible value of this AccessibleAbstractButton, which
+     *         is always <code>this</code>
+     */
     public AccessibleValue getAccessibleValue()
     {
-      return null; // TODO
+      return this;
     }
 
+    /**
+     * Returns the number of accessible actions that are supported by this
+     * object. Buttons support one action by default ('press button'), so this
+     * method always returns <code>1</code>.
+     *
+     * @return <code>1</code>, the number of supported accessible actions
+     */
     public int getAccessibleActionCount()
     {
-      return 0; // TODO
+      return 1;
     }
 
-    public String getAccessibleActionDescription(int value0)
+    /**
+     * Returns a description for the action with the specified index or
+     * <code>null</code> if such action does not exist.
+     *
+     * @param actionIndex the zero based index to the actions
+     *
+     * @return a description for the action with the specified index or
+     *         <code>null</code> if such action does not exist
+     */
+    public String getAccessibleActionDescription(int actionIndex)
     {
-      return null; // TODO
+      String descr = null;
+      if (actionIndex == 0)
+        {
+          // FIXME: Supply localized descriptions in the UIDefaults.
+          descr = UIManager.getString("AbstractButton.clickText");
+        }
+      return descr;
     }
 
-    public boolean doAccessibleAction(int value0)
+    /**
+     * Performs the acccessible action with the specified index on this object.
+     * Since buttons have only one action by default (which is to press the
+     * button), this method performs a 'press button' when the specified index
+     * is <code>0</code> and nothing otherwise.
+     *
+     * @param actionIndex a zero based index into the actions of this button
+     *
+     * @return <code>true</code> if the specified action has been performed
+     *         successfully, <code>false</code> otherwise
+     */
+    public boolean doAccessibleAction(int actionIndex)
     {
-      return false; // TODO
+      boolean retVal = false;
+      if (actionIndex == 0)
+        {
+          doClick();
+          retVal = true;
+        }
+      return retVal;
     }
 
+    /**
+     * Returns the current value of this object as a number. This
+     * implementation returns an <code>Integer(1)</code> if the button is
+     * selected, <code>Integer(0)</code> if the button is not selected.
+     *
+     * @return the current value of this object as a number
+     */
     public Number getCurrentAccessibleValue()
     {
-      return null; // TODO
+      Integer retVal;
+      if (isSelected())
+        retVal = new Integer(1);
+      else
+        retVal = new Integer(0);
+      return retVal;
     }
 
-    public boolean setCurrentAccessibleValue(Number value0)
+    /**
+     * Sets the current accessible value as object. If the specified number 
+     * is 0 the button will be deselected, otherwise the button will
+     * be selected.
+     *
+     * @param value 0 for deselected button, other for selected button
+     *
+     * @return <code>true</code> if the value has been set, <code>false</code>
+     *         otherwise
+     */
+    public boolean setCurrentAccessibleValue(Number value)
     {
-      return false; // TODO
+      boolean retVal = false;
+      if (value != null)
+        {
+          if (value.intValue() == 0)
+            setSelected(false);
+          else
+            setSelected(true);
+          retVal = true;
+        }
+      return retVal;
     }
 
+    /**
+     * Returns the minimum accessible value for the AccessibleAbstractButton,
+     * which is <code>0</code>.
+     *
+     * @return the minimimum accessible value for the AccessibleAbstractButton,
+     *         which is <code>0</code>
+     */
     public Number getMinimumAccessibleValue()
     {
-      return null; // TODO
+      return new Integer(0);
     }
 
+    /**
+     * Returns the maximum accessible value for the AccessibleAbstractButton,
+     * which is <code>1</code>.
+     *
+     * @return the maximum accessible value for the AccessibleAbstractButton,
+     *         which is <code>1</code>
+     */
     public Number getMaximumAccessibleValue()
     {
-      return null; // TODO
+      return new Integer(1);
     }
 
+    /**
+     * Returns the accessible text for this AccessibleAbstractButton. This
+     * will be <code>null</code> if the button has a non-HTML label, otherwise
+     * <code>this</code>.
+     *
+     * @return the accessible text for this AccessibleAbstractButton
+     */
     public AccessibleText getAccessibleText()
     {
-      return null; // TODO
+      AccessibleText accessibleText = null;
+      if (getClientProperty(BasicHTML.propertyKey) != null)
+        accessibleText = this;
+
+      return accessibleText;
     }
 
-    public int getIndexAtPoint(Point value0)
+    /**
+     * Returns the index of the label's character at the specified point,
+     * relative to the local bounds of the button. This only works for
+     * HTML labels.
+     *
+     * @param p the point, relative to the buttons local bounds
+     *
+     * @return the index of the label's character at the specified point
+     */
+    public int getIndexAtPoint(Point p)
     {
-      return 0; // TODO
+      int index = -1;
+      View view = (View) getClientProperty(BasicHTML.propertyKey);
+      if (view != null)
+        {
+          Rectangle shape = new Rectangle(0, 0, getWidth(), getHeight());
+          index = view.viewToModel(p.x, p.y, shape, new Position.Bias[1]);
+        }
+      return index;
     }
 
-    public Rectangle getCharacterBounds(int value0)
+    /**
+     * Returns the bounds of the character at the specified index of the
+     * button's label. This will only work for HTML labels.
+     *
+     * @param i the index of the character of the label
+     *
+     * @return the bounds of the character at the specified index of the
+     *         button's label
+     */
+    public Rectangle getCharacterBounds(int i)
     {
-      return null; // TODO
+      Rectangle rect = null;
+      View view = (View) getClientProperty(BasicHTML.propertyKey);
+      if (view != null)
+        {
+          Rectangle shape = new Rectangle(0, 0, getWidth(), getHeight());
+          try
+            {
+              Shape s = view.modelToView(i, shape, Position.Bias.Forward);
+              rect = s.getBounds();
+            }
+          catch (BadLocationException ex)
+            {
+              rect = null;
+            }
+        }
+      return rect;
     }
 
+    /**
+     * Returns the number of characters in the button's label.
+     *
+     * @return the bounds of the character at the specified index of the
+     *         button's label
+     */
     public int getCharCount()
     {
-      return 0; // TODO
+      int charCount;
+      View view = (View) getClientProperty(BasicHTML.propertyKey);
+      if (view != null)
+        {
+          charCount = view.getDocument().getLength();
+        }
+      else
+        {
+          charCount = getAccessibleName().length();
+        }
+      return charCount;
     }
 
+    /**
+     * This always returns <code>-1</code> since there is no caret in a button.
+     *
+     * @return <code>-1</code> since there is no caret in a button
+     */
     public int getCaretPosition()
     {
-      return 0; // TODO
+      return -1;
     }
 
     public String getAtIndex(int value0, int value1)
+      throws NotImplementedException
     {
       return null; // TODO
     }
 
     public String getAfterIndex(int value0, int value1)
+      throws NotImplementedException
     {
       return null; // TODO
     }
 
     public String getBeforeIndex(int value0, int value1)
+      throws NotImplementedException
     {
       return null; // TODO
     }
 
-    public AttributeSet getCharacterAttribute(int value0)
+    /**
+     * Returns the text attribute for the character at the specified character
+     * index.
+     *
+     * @param i the character index
+     *
+     * @return the character attributes for the specified character or
+     *         <code>null</code> if the character has no attributes
+     */
+    public AttributeSet getCharacterAttribute(int i)
     {
-      return null; // TODO
+      AttributeSet atts = null;
+      View view = (View) getClientProperty(BasicHTML.propertyKey); 
+      if (view != null)
+        {
+          
+        }
+      return atts;
     }
 
+    /**
+     * This always returns <code>-1</code> since
+     * button labels can't be selected.
+     *
+     * @return <code>-1</code>, button labels can't be selected
+     */
     public int getSelectionStart()
     {
-      return 0; // TODO
+      return -1;
     }
 
+    /**
+     * This always returns <code>-1</code> since
+     * button labels can't be selected.
+     *
+     * @return <code>-1</code>, button labels can't be selected
+     */
     public int getSelectionEnd()
     {
-      return 0; // TODO
+      return -1;
     }
 
+    /**
+     * Returns the selected text. This always returns <code>null</code> since
+     * button labels can't be selected.
+     *
+     * @return <code>null</code>, button labels can't be selected
+     */
     public String getSelectedText()
     {
-      return null; // TODO
-    }
-
-    private Rectangle getTextRectangle()
-    {
-      return null; // TODO
+      return null;
     }
   }
 
@@ -594,7 +923,7 @@ public abstract class AbstractButton extends JComponent
     // constructor).
     // This way the behavior of the JDK is matched.
     if(text != null)
-        this.text = text;
+      setText(text);
 
     if (icon != null)
       default_icon = icon;
@@ -897,6 +1226,7 @@ public abstract class AbstractButton extends JComponent
    */
   public void setRolloverEnabled(boolean r)
   {
+    clientRolloverEnabledSet = true;
     if (rollOverEnabled != r)
       {
         rollOverEnabled = r;
@@ -967,9 +1297,11 @@ public abstract class AbstractButton extends JComponent
    * alignment is a numeric constant from {@link SwingConstants}. It must
    * be one of: <code>RIGHT</code>, <code>LEFT</code>, <code>CENTER</code>,
    * <code>LEADING</code> or <code>TRAILING</code>.  The default is
-   * <code>RIGHT</code>.
+   * <code>CENTER</code>.
    * 
    * @return The current horizontal alignment
+   * 
+   * @see #setHorizontalAlignment(int)
    */
   public int getHorizontalAlignment()
   {
@@ -981,17 +1313,21 @@ public abstract class AbstractButton extends JComponent
    * alignment is a numeric constant from {@link SwingConstants}. It must
    * be one of: <code>RIGHT</code>, <code>LEFT</code>, <code>CENTER</code>,
    * <code>LEADING</code> or <code>TRAILING</code>.  The default is
-   * <code>RIGHT</code>.
+   * <code>CENTER</code>.
    *
    * @param a The new horizontal alignment
    * @throws IllegalArgumentException If alignment is not one of the legal
    * constants.
+   * 
+   * @see #getHorizontalAlignment()
    */
   public void setHorizontalAlignment(int a)
   {
     if (horizontalAlignment == a)
       return;
-
+    if (a != LEFT && a != CENTER && a != RIGHT && a != LEADING 
+        && a != TRAILING)
+      throw new IllegalArgumentException("Invalid alignment.");
     int old = horizontalAlignment;
     horizontalAlignment = a;
     firePropertyChange(HORIZONTAL_ALIGNMENT_CHANGED_PROPERTY, old, a);
@@ -1028,6 +1364,9 @@ public abstract class AbstractButton extends JComponent
   {
     if (horizontalTextPosition == t)
       return;
+    if (t != LEFT && t != CENTER && t != RIGHT && t != LEADING 
+        && t != TRAILING)
+      throw new IllegalArgumentException("Invalid alignment.");
 
     int old = horizontalTextPosition;
     horizontalTextPosition = t;
@@ -1043,6 +1382,8 @@ public abstract class AbstractButton extends JComponent
    * <code>BOTTOM</code>. The default is <code>CENTER</code>.
    *
    * @return The current vertical alignment
+   * 
+   * @see #setVerticalAlignment(int)
    */
   public int getVerticalAlignment()
   {
@@ -1058,12 +1399,16 @@ public abstract class AbstractButton extends JComponent
    * @param a The new vertical alignment
    * @throws IllegalArgumentException If alignment is not one of the legal
    * constants.
+   * 
+   * @see #getVerticalAlignment()
    */
   public void setVerticalAlignment(int a)
   {
     if (verticalAlignment == a)
       return;
-    
+    if (a != TOP && a != CENTER && a != BOTTOM)
+      throw new IllegalArgumentException("Invalid alignment.");
+
     int old = verticalAlignment;
     verticalAlignment = a;
     firePropertyChange(VERTICAL_ALIGNMENT_CHANGED_PROPERTY, old, a);
@@ -1100,6 +1445,8 @@ public abstract class AbstractButton extends JComponent
   {
     if (verticalTextPosition == t)
       return;
+    if (t != TOP && t != CENTER && t != BOTTOM)
+      throw new IllegalArgumentException("Invalid alignment.");
     
     int old = verticalTextPosition;
     verticalTextPosition = t;
@@ -1129,9 +1476,9 @@ public abstract class AbstractButton extends JComponent
    */
   public void setBorderPainted(boolean b)
   {
+    clientBorderPaintedSet = true;
     if (borderPainted == b)
       return;
-    
     boolean old = borderPainted;
     borderPainted = b;
     firePropertyChange(BORDER_PAINTED_CHANGED_PROPERTY, old, b);
@@ -1275,15 +1622,18 @@ public abstract class AbstractButton extends JComponent
    * Set the value of the {@link #iconTextGap} property.
    * 
    * @param i The new value of the property
+   * 
+   * @since 1.4
    */
   public void setIconTextGap(int i)
   {
+    clientIconTextGapSet = true;
     if (iconTextGap == i)
       return;
     
     int old = iconTextGap;
     iconTextGap = i;
-    fireStateChanged();
+    firePropertyChange("iconTextGap", new Integer(old), new Integer(i));
     revalidate();
     repaint();
   }
@@ -1292,6 +1642,8 @@ public abstract class AbstractButton extends JComponent
    * Get the value of the {@link #iconTextGap} property.
    *
    * @return The current value of the property
+   * 
+   * @since 1.4
    */
   public int getIconTextGap()
   {
@@ -1373,14 +1725,14 @@ public abstract class AbstractButton extends JComponent
    */
   public Icon getDisabledIcon()
   {
-    if (disabeldIcon == null && default_icon instanceof ImageIcon)
+    if (disabledIcon == null && default_icon instanceof ImageIcon)
       {
         Image iconImage = ((ImageIcon) default_icon).getImage();
         Image grayImage = GrayFilter.createDisabledImage(iconImage);
-        disabeldIcon = new ImageIcon(grayImage);
+        disabledIcon = new ImageIcon(grayImage);
       }
       
-    return disabeldIcon;
+    return disabledIcon;
   }
 
   /**
@@ -1394,7 +1746,11 @@ public abstract class AbstractButton extends JComponent
    */
   public void setDisabledIcon(Icon d)
   {
-    disabeldIcon = d;
+    if (disabledIcon == d)
+      return;
+    Icon old = disabledIcon;
+    disabledIcon = d;
+    firePropertyChange(DISABLED_ICON_CHANGED_PROPERTY, old, d);
     revalidate();
     repaint();
   }
@@ -1757,7 +2113,8 @@ public abstract class AbstractButton extends JComponent
   }
 
   /**
-   * Set the button's rollover icon. The look and feel class should
+   * Set the button's rollover icon and sets the <code>rolloverEnabled</code>
+   * property to <code>true</code>. The look and feel class should
    * paint this icon when the "rolloverEnabled" property of the button is
    * <code>true</code> and the mouse rolls over the button.
    *
@@ -1771,6 +2128,7 @@ public abstract class AbstractButton extends JComponent
     Icon old = rolloverIcon;
     rolloverIcon = r;
     firePropertyChange(ROLLOVER_ICON_CHANGED_PROPERTY, old, rolloverIcon);
+    setRolloverEnabled(true);
     revalidate();
     repaint();
   }
@@ -1789,12 +2147,13 @@ public abstract class AbstractButton extends JComponent
   }
 
   /**
-   * Set the button's rollover selected icon. The look and feel class
-   * should paint this icon when the "rolloverEnabled" property of the button
-   * is <code>true</code>, the "selected" property of the button's model is
-   * <code>true</code>, and the mouse rolls over the button.
+   * Set the button's rollover selected icon and sets the 
+   * <code>rolloverEnabled</code> property to <code>true</code>. The look and 
+   * feel class should paint this icon when the "rolloverEnabled" property of 
+   * the button is <code>true</code>, the "selected" property of the button's 
+   * model is <code>true</code>, and the mouse rolls over the button.
    *
-   * @param r The new rollover selected icon
+   * @param r The new rollover selected icon.
    */
   public void setRolloverSelectedIcon(Icon r)
   {
@@ -1804,6 +2163,7 @@ public abstract class AbstractButton extends JComponent
     Icon old = rolloverSelectedIcon;
     rolloverSelectedIcon = r;
     firePropertyChange(ROLLOVER_SELECTED_ICON_CHANGED_PROPERTY, old, r);
+    setRolloverEnabled(true);
     revalidate();
     repaint();
   }
@@ -1909,15 +2269,16 @@ public abstract class AbstractButton extends JComponent
    */
   public void setContentAreaFilled(boolean b)
   {
+    clientContentAreaFilledSet = true;
     if (contentAreaFilled == b)
       return;
     
-    boolean old = contentAreaFilled;
-    contentAreaFilled = b;
-    firePropertyChange(CONTENT_AREA_FILLED_CHANGED_PROPERTY, old, b);
     // The JDK sets the opaque property to the value of the contentAreaFilled
     // property, so should we do.
     setOpaque(b);
+    boolean old = contentAreaFilled;
+    contentAreaFilled = b;
+    firePropertyChange(CONTENT_AREA_FILLED_CHANGED_PROPERTY, old, b);
    }
 
   /**
@@ -2035,5 +2396,98 @@ public abstract class AbstractButton extends JComponent
       throw new IllegalArgumentException();
 
     multiClickThreshhold = threshhold;
+  }
+
+  /**
+   * Adds the specified component to this AbstractButton. This overrides the
+   * default in order to install an {@link OverlayLayout} layout manager
+   * before adding the component. The layout manager is only installed if
+   * no other layout manager has been installed before.
+   *
+   * @param comp the component to be added
+   * @param constraints constraints for the layout manager
+   * @param index the index at which the component is added
+   *
+   * @since 1.5
+   */
+  protected void addImpl(Component comp, Object constraints, int index)
+  {
+    // We use a client property here, so that no extra memory is used in
+    // the common case with no layout manager.
+    if (getClientProperty("AbstractButton.customLayoutSet") == null)
+      setLayout(new OverlayLayout(this));
+    super.addImpl(comp, constraints, index);
+  }
+
+  /**
+   * Sets a layout manager on this AbstractButton. This is overridden in order
+   * to detect if the application sets a custom layout manager. If no custom
+   * layout manager is set, {@link #addImpl(Component, Object, int)} installs
+   * an OverlayLayout before adding a component.
+   *
+   * @param layout the layout manager to install
+   *
+   * @since 1.5
+   */
+  public void setLayout(LayoutManager layout)
+  {
+    // We use a client property here, so that no extra memory is used in
+    // the common case with no layout manager.
+    putClientProperty("AbstractButton.customLayoutSet", Boolean.TRUE);
+    super.setLayout(layout);
+  }
+
+  /**
+   * Helper method for
+   * {@link LookAndFeel#installProperty(JComponent, String, Object)}.
+   * 
+   * @param propertyName the name of the property
+   * @param value the value of the property
+   *
+   * @throws IllegalArgumentException if the specified property cannot be set
+   *         by this method
+   * @throws ClassCastException if the property value does not match the
+   *         property type
+   * @throws NullPointerException if <code>c</code> or
+   *         <code>propertyValue</code> is <code>null</code>
+   */
+  void setUIProperty(String propertyName, Object value)
+  {
+    if (propertyName.equals("borderPainted"))
+      {
+        if (! clientBorderPaintedSet)
+          {
+            setBorderPainted(((Boolean) value).booleanValue());
+            clientBorderPaintedSet = false;
+          }
+      }
+    else if (propertyName.equals("rolloverEnabled"))
+      {
+        if (! clientRolloverEnabledSet)
+          {
+            setRolloverEnabled(((Boolean) value).booleanValue());
+            clientRolloverEnabledSet = false;
+          }
+      }
+    else if (propertyName.equals("iconTextGap"))
+      {
+        if (! clientIconTextGapSet)
+          {
+            setIconTextGap(((Integer) value).intValue());
+            clientIconTextGapSet = false;
+          }
+      }
+    else if (propertyName.equals("contentAreaFilled"))
+      {
+        if (! clientContentAreaFilledSet)
+          {
+            setContentAreaFilled(((Boolean) value).booleanValue());
+            clientContentAreaFilledSet = false;
+          }
+      }
+    else
+      {
+        super.setUIProperty(propertyName, value);
+      }
   }
 }

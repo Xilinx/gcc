@@ -1,12 +1,13 @@
 /* C/ObjC/C++ command line option handling.
-   Copyright (C) 2002, 2003, 2004, 2005, 2006 Free Software Foundation, Inc.
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Free Software Foundation, Inc.
    Contributed by Neil Booth.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,9 +16,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -78,6 +78,9 @@ static const char *deps_file;
 
 /* The prefix given by -iprefix, if any.  */
 static const char *iprefix;
+
+/* The multilib directory given by -imultilib, if any.  */
+static const char *imultilib;
 
 /* The system root, if any.  Overridden by -isysroot.  */
 static const char *sysroot = TARGET_SYSTEM_ROOT;
@@ -222,9 +225,9 @@ c_common_init_options (unsigned int argc, const char **argv)
      before passing on command-line options to cpplib.  */
   cpp_opts->warn_dollars = 0;
 
-  flag_const_strings = c_dialect_cxx ();
   flag_exceptions = c_dialect_cxx ();
   warn_pointer_arith = c_dialect_cxx ();
+  warn_write_strings = c_dialect_cxx();
 
   deferred_opts = XNEWVEC (struct deferred_opt, argc);
 
@@ -389,7 +392,11 @@ c_common_handle_option (size_t scode, const char *arg, int value)
       if (c_dialect_cxx ())
 	warn_sign_compare = value;
       warn_switch = value;
-      warn_strict_aliasing = value;
+      if (warn_strict_aliasing == -1)
+	warn_strict_aliasing = value;
+      if (warn_strict_overflow == -1)
+	warn_strict_overflow = value;
+      warn_address = value;
 
       /* Only warn about unknown pragmas that are not in system
 	 headers.  */
@@ -408,7 +415,6 @@ c_common_handle_option (size_t scode, const char *arg, int value)
       else
 	{
 	  /* C++-specific warnings.  */
-	  warn_nonvdtor = value;
 	  warn_reorder = value;
 	  warn_nontemplate_friend = value;
 	}
@@ -429,10 +435,6 @@ c_common_handle_option (size_t scode, const char *arg, int value)
 
     case OPT_Wdeprecated:
       cpp_opts->warn_deprecated = value;
-      break;
-
-    case OPT_Wdiv_by_zero:
-      warn_div_by_zero = value;
       break;
 
     case OPT_Wendif_labels:
@@ -535,10 +537,13 @@ c_common_handle_option (size_t scode, const char *arg, int value)
       break;
 
     case OPT_Wwrite_strings:
-      if (!c_dialect_cxx ())
-	flag_const_strings = value;
-      else
-	warn_write_strings = value;
+      warn_write_strings = value;
+      break;
+
+    case OPT_Weffc__:
+      warn_ecpp = value;
+      if (value)
+        warn_nonvdtor = true;
       break;
 
     case OPT_ansi:
@@ -650,10 +655,6 @@ c_common_handle_option (size_t scode, const char *arg, int value)
       flag_conserve_space = value;
       break;
 
-    case OPT_fconst_strings:
-      flag_const_strings = value;
-      break;
-
     case OPT_fconstant_string_class_:
       constant_string_class_name = arg;
       break;
@@ -746,7 +747,7 @@ c_common_handle_option (size_t scode, const char *arg, int value)
     case OPT_freplace_objc_classes:
       flag_replace_objc_classes = value;
       break;
-      
+
     case OPT_frepo:
       flag_use_repository = value;
       if (value)
@@ -791,6 +792,10 @@ c_common_handle_option (size_t scode, const char *arg, int value)
       flag_use_cxa_atexit = value;
       break;
       
+    case OPT_fuse_cxa_get_exception_ptr:
+      flag_use_cxa_get_exception_ptr = value;
+      break;
+
     case OPT_fvisibility_inlines_hidden:
       visibility_options.inlines_hidden = value;
       break;
@@ -818,6 +823,10 @@ c_common_handle_option (size_t scode, const char *arg, int value)
     case OPT_imacros:
     case OPT_include:
       defer_opt (code, arg);
+      break;
+
+    case OPT_imultilib:
+      imultilib = arg;
       break;
 
     case OPT_iprefix:
@@ -883,6 +892,8 @@ c_common_handle_option (size_t scode, const char *arg, int value)
       cpp_opts->warn_endif_labels = 1;
       if (warn_pointer_sign == -1)
 	warn_pointer_sign = 1;
+      if (warn_overlength_strings == -1)
+	warn_overlength_strings = 1;
       break;
 
     case OPT_print_objc_runtime_info:
@@ -979,8 +990,14 @@ c_common_post_options (const char **pfilename)
 
   sanitize_cpp_opts ();
 
-  register_include_chains (parse_in, sysroot, iprefix,
+  register_include_chains (parse_in, sysroot, iprefix, imultilib,
 			   std_inc, std_cxx_inc && c_dialect_cxx (), verbose);
+
+#ifdef C_COMMON_OVERRIDE_OPTIONS
+  /* Some machines may reject certain combinations of C
+     language-specific options.  */
+  C_COMMON_OVERRIDE_OPTIONS;
+#endif
 
   flag_inline_trees = 1;
 
@@ -989,6 +1006,12 @@ c_common_post_options (const char **pfilename)
     flag_no_inline = 1;
   if (flag_inline_functions)
     flag_inline_trees = 2;
+
+  /* We recognize -fgnu89-inline in preparation for 4.3 where the
+     option will be meaningful.  Here we just reject
+     -fno-gnu89-inline, since we don't support it.  */
+  if (!flag_gnu89_inline)
+    error ("-fno-gnu89-inline is not supported");
 
   /* If we are given more than one input file, we must use
      unit-at-a-time mode.  */
@@ -1001,17 +1024,30 @@ c_common_post_options (const char **pfilename)
   if (flag_objc_exceptions && !flag_objc_sjlj_exceptions)
     flag_exceptions = 1;
 
-  /* -Wextra implies -Wsign-compare and -Wmissing-field-initializers,
-     but not if explicitly overridden.  */
+  /* -Wextra implies -Wsign-compare, -Wmissing-field-initializers and
+     -Woverride-init, but not if explicitly overridden.  */
   if (warn_sign_compare == -1)
     warn_sign_compare = extra_warnings;
   if (warn_missing_field_initializers == -1)
     warn_missing_field_initializers = extra_warnings;
+  if (warn_override_init == -1)
+    warn_override_init = extra_warnings;
 
   /* -Wpointer_sign is disabled by default, but it is enabled if any
      of -Wall or -pedantic are given.  */
   if (warn_pointer_sign == -1)
     warn_pointer_sign = 0;
+
+  if (warn_strict_aliasing == -1)
+    warn_strict_aliasing = 0;
+  if (warn_strict_overflow == -1)
+    warn_strict_overflow = 0;
+
+  /* -Woverlength-strings is off by default, but is enabled by -pedantic.
+     It is never enabled in C++, as the minimum limit is not normative
+     in that standard.  */
+  if (warn_overlength_strings == -1 || c_dialect_cxx ())
+    warn_overlength_strings = 0;
 
   /* Special format checking options don't work without -Wformat; warn if
      they are used.  */
@@ -1161,7 +1197,7 @@ c_common_parse_file (int set_yydebug)
       this_input_filename
 	= cpp_read_main_file (parse_in, in_fnames[i]);
       /* If an input file is missing, abandon further compilation.
-         cpplib has issued a diagnostic.  */
+	 cpplib has issued a diagnostic.  */
       if (!this_input_filename)
 	break;
     }
@@ -1361,7 +1397,10 @@ finish_options (void)
 	 their acceptance on the -std= setting.  */
       cpp_opts->warn_dollars = (cpp_opts->pedantic && !cpp_opts->c99);
 
-      cpp_change_file (parse_in, LC_RENAME, _("<command line>"));
+      cb_file_change (parse_in,
+		      linemap_add (&line_table, LC_RENAME, 0,
+				   _("<command-line>"), 0));
+
       for (i = 0; i < deferred_count; i++)
 	{
 	  struct deferred_opt *opt = &deferred_opts[i];

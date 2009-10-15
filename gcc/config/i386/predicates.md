@@ -1,11 +1,11 @@
 ;; Predicate definitions for IA-32 and x86-64.
-;; Copyright (C) 2004, 2005 Free Software Foundation, Inc.
+;; Copyright (C) 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
 ;;
 ;; This file is part of GCC.
 ;;
 ;; GCC is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 2, or (at your option)
+;; the Free Software Foundation; either version 3, or (at your option)
 ;; any later version.
 ;;
 ;; GCC is distributed in the hope that it will be useful,
@@ -14,9 +14,8 @@
 ;; GNU General Public License for more details.
 ;;
 ;; You should have received a copy of the GNU General Public License
-;; along with GCC; see the file COPYING.  If not, write to
-;; the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-;; Boston, MA 02110-1301, USA.
+;; along with GCC; see the file COPYING3.  If not see
+;; <http://www.gnu.org/licenses/>.
 
 ;; Return nonzero if OP is either a i387 or SSE fp register.
 (define_predicate "any_fp_register_operand"
@@ -74,6 +73,11 @@
   /* Be careful to accept only registers having upper parts.  */
   return REGNO (op) > LAST_VIRTUAL_REGISTER || REGNO (op) < 4;
 })
+
+;; Return true if op is the AX register.
+(define_predicate "ax_reg_operand"
+  (and (match_code "reg")
+       (match_test "REGNO (op) == 0")))
 
 ;; Return true if op is the flags register.
 (define_predicate "flags_reg_operand"
@@ -465,6 +469,15 @@
   (and (match_code "symbol_ref")
        (match_test "SYMBOL_REF_TLS_MODEL (op) != 0")))
 
+(define_predicate "tls_modbase_operand"
+  (and (match_code "symbol_ref")
+       (match_test "op == ix86_tls_module_base ()")))
+
+(define_predicate "tp_or_register_operand"
+  (ior (match_operand 0 "register_operand")
+       (and (match_code "unspec")
+	    (match_test "XINT (op, 1) == UNSPEC_TP"))))
+
 ;; Test for a pc-relative call operand
 (define_predicate "constant_call_address_operand"
   (ior (match_code "symbol_ref")
@@ -622,7 +635,7 @@
 {
   /* On Pentium4, the inc and dec operations causes extra dependency on flag
      registers, since carry flag is not set.  */
-  if ((TARGET_PENTIUM4 || TARGET_NOCONA) && !optimize_size)
+  if (!TARGET_USE_INCDEC && !optimize_size)
     return 0;
   return op == const1_rtx || op == constm1_rtx;
 })
@@ -667,10 +680,43 @@
   return 1;
 })
 
-;; Return 1 when OP is operand acceptable for standard SSE move.
+/* Return true if operand is a vector constant that is all ones. */
+(define_predicate "vector_all_ones_operand"
+  (match_code "const_vector")
+{
+  int nunits = GET_MODE_NUNITS (mode);
+
+  if (GET_CODE (op) == CONST_VECTOR
+      && CONST_VECTOR_NUNITS (op) == nunits)
+    {
+      int i;
+      for (i = 0; i < nunits; ++i)
+        {
+          rtx x = CONST_VECTOR_ELT (op, i);
+          if (x != constm1_rtx)
+            return 0;
+        }
+      return 1;
+    }
+
+  return 0;
+})
+
+; Return 1 when OP is operand acceptable for standard SSE move.
 (define_predicate "vector_move_operand"
   (ior (match_operand 0 "nonimmediate_operand")
        (match_operand 0 "const0_operand")))
+
+;; Return 1 when OP is nonimmediate or standard SSE constant.
+(define_predicate "nonimmediate_or_sse_const_operand"
+  (match_operand 0 "general_operand")
+{
+  if (nonimmediate_operand (op, mode))
+    return 1;
+  if (standard_sse_constant_p (op) > 0)
+    return 1;
+  return 0;
+})
 
 ;; Return true if OP is a register or a zero.
 (define_predicate "reg_or_0_operand"
@@ -700,6 +746,11 @@
   /* Registers and immediate operands are always "aligned".  */
   if (GET_CODE (op) != MEM)
     return 1;
+
+  /* All patterns using aligned_operand on memory operands ends up
+     in promoting memory operand to 64bit and thus causing memory mismatch.  */
+  if (TARGET_MEMORY_MISMATCH_STALL && !optimize_size)
+    return 0;
 
   /* Don't even try to do any aligned optimizations with volatiles.  */
   if (MEM_VOLATILE_P (op))
@@ -750,6 +801,22 @@
 
   ok = ix86_decompose_address (XEXP (op, 0), &parts);
   gcc_assert (ok);
+  return parts.disp != NULL_RTX;
+})
+
+;; Returns 1 if OP is memory operand with a displacement only.
+(define_predicate "memory_displacement_only_operand"
+  (match_operand 0 "memory_operand")
+{
+  struct ix86_address parts;
+  int ok;
+
+  ok = ix86_decompose_address (XEXP (op, 0), &parts);
+  gcc_assert (ok);
+
+  if (parts.base || parts.index)
+    return 0;
+
   return parts.disp != NULL_RTX;
 })
 
@@ -904,21 +971,16 @@
 ;; ??? It seems likely that this will only work because cmpsi is an
 ;; expander, and no actual insns use this.
 
-(define_predicate "cmpsi_operand_1"
-  (match_code "and")
-{
-  return (GET_MODE (op) == SImode
-	  && GET_CODE (XEXP (op, 0)) == ZERO_EXTRACT
-	  && GET_CODE (XEXP (XEXP (op, 0), 1)) == CONST_INT
-	  && GET_CODE (XEXP (XEXP (op, 0), 2)) == CONST_INT
-	  && INTVAL (XEXP (XEXP (op, 0), 1)) == 8
-	  && INTVAL (XEXP (XEXP (op, 0), 2)) == 8
-	  && GET_CODE (XEXP (op, 1)) == CONST_INT);
-})
-
 (define_predicate "cmpsi_operand"
   (ior (match_operand 0 "nonimmediate_operand")
-       (match_operand 0 "cmpsi_operand_1")))
+       (and (match_code "and")
+	    (match_code "zero_extract" "0")
+	    (match_code "const_int"    "1")
+	    (match_code "const_int"    "01")
+	    (match_code "const_int"    "02")
+	    (match_test "INTVAL (XEXP (XEXP (op, 0), 1)) == 8")
+	    (match_test "INTVAL (XEXP (XEXP (op, 0), 2)) == 8")
+       )))
 
 (define_predicate "compare_operator"
   (match_code "compare"))

@@ -1,5 +1,5 @@
 /* Definitions for GCC.  Part of the machine description for CRIS.
-   Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005
+   Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007
    Free Software Foundation, Inc.
    Contributed by Axis Communications.  Written by Hans-Peter Nilsson.
 
@@ -7,7 +7,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -16,9 +16,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 /* After the first "Node:" comment comes all preprocessor directives and
    attached declarations described in the info files, the "Using and
@@ -638,10 +637,6 @@ enum reg_class
 
 #define EXTRA_MEMORY_CONSTRAINT(X, STR) ((X) == 'Q')
 
-/* We want the unary operators visible for constraint checking.
-   (will always be the case in 4.2).  */
-#define KEEP_UNARY_OPERATORS_AT_CONSTRAINT_CHECKING
-
 #define EXTRA_CONSTRAINT_Q(X)				\
  (							\
   /* Just an indirect register (happens to also be	\
@@ -1246,9 +1241,6 @@ enum cris_pic_symbol_type
 #undef ASM_OUTPUT_ALIGNED_DECL_LOCAL
 #define ASM_OUTPUT_ALIGNED_DECL_LOCAL(FILE, DECL, NAME, SIZE, ALIGN) \
  CRIS_ASM_OUTPUT_ALIGNED_DECL_COMMON(FILE, DECL, NAME, SIZE, ALIGN, 1)
-
-/* FIXME: define ASM_OUTPUT_SHARED_COMMON and emit an error when it is
-   used with -melinux and a.out.  */
 
 /* Node: Label Output */
 

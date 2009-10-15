@@ -28,11 +28,7 @@
 // invalidate any other reasons why the executable file might be covered by
 // the GNU General Public License.
 
-//
-// ISO C++ 14882: 20.5  Date and time
-//
-
-/** @file ctime
+/** @file include/ctime
  *  This is a Standard C++ Library file.  You should @c #include this file
  *  in your programs, rather than any of the "*.h" implementation files.
  *
@@ -42,13 +38,16 @@
  *  as macros in C).
  */
 
+//
+// ISO C++ 14882: 20.5  Date and time
+//
+
 #ifndef _GLIBCXX_CTIME
 #define _GLIBCXX_CTIME 1
 
 #pragma GCC system_header
 
 #include <cstddef>
-
 #include <time.h>
 
 // Get rid of those macros defined in <time.h> in lieu of real functions.
@@ -62,8 +61,8 @@
 #undef localtime
 #undef strftime
 
-namespace std
-{
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
   using ::clock_t;
   using ::time_t;
   using ::tm;
@@ -77,6 +76,7 @@ namespace std
   using ::gmtime;
   using ::localtime;
   using ::strftime;
-}
+
+_GLIBCXX_END_NAMESPACE
 
 #endif

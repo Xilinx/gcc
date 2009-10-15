@@ -1,5 +1,5 @@
 /* Helper function for repacking arrays.
-   Copyright 2003 Free Software Foundation, Inc.
+   Copyright 2003, 2006 Free Software Foundation, Inc.
    Contributed by Paul Brook <paul@nowt.org>
 
 This file is part of the GNU Fortran 95 runtime library (libgfortran).
@@ -52,9 +52,6 @@ internal_unpack_4 (gfc_array_i4 * d, const GFC_INTEGER_4 * src)
   if (src == dest || !src)
     return;
 
-  if (d->dim[0].stride == 0)
-    d->dim[0].stride = 1;
-
   dim = GFC_DESCRIPTOR_RANK (d);
   dsize = 1;
   for (n = 0; n < dim; n++)
@@ -94,7 +91,7 @@ internal_unpack_4 (gfc_array_i4 * d, const GFC_INTEGER_4 * src)
              the next dimension.  */
           count[n] = 0;
           /* We could precalculate these products, but this is a less
-             frequently used path so proabably not worth it.  */
+             frequently used path so probably not worth it.  */
           dest -= stride[n] * extent[n];
           n++;
           if (n == dim)

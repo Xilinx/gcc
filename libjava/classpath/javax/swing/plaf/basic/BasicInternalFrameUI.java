@@ -1,5 +1,5 @@
 /* BasicInternalFrameUI.java --
-   Copyright (C) 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2006 Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -38,24 +38,27 @@ exception statement from your version. */
 
 package javax.swing.plaf.basic;
 
-import java.awt.AWTEvent;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
+import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Insets;
 import java.awt.LayoutManager;
+import java.awt.LayoutManager2;
 import java.awt.Point;
 import java.awt.Rectangle;
+import java.awt.event.ActionEvent;
 import java.awt.event.ComponentEvent;
 import java.awt.event.ComponentListener;
 import java.awt.event.MouseEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyVetoException;
-import java.beans.VetoableChangeListener;
 
+import javax.swing.AbstractAction;
+import javax.swing.ActionMap;
 import javax.swing.DefaultDesktopManager;
 import javax.swing.DesktopManager;
 import javax.swing.JComponent;
@@ -71,6 +74,7 @@ import javax.swing.event.InternalFrameEvent;
 import javax.swing.event.InternalFrameListener;
 import javax.swing.event.MouseInputAdapter;
 import javax.swing.event.MouseInputListener;
+import javax.swing.plaf.ActionMapUIResource;
 import javax.swing.plaf.ComponentUI;
 import javax.swing.plaf.InternalFrameUI;
 import javax.swing.plaf.UIResource;
@@ -93,7 +97,7 @@ public class BasicInternalFrameUI extends InternalFrameUI
      */
     public void internalFrameActivated(InternalFrameEvent e)
     {
-      // FIXME: Implement.
+      frame.getGlassPane().setVisible(false);
     }
 
     /**
@@ -123,7 +127,7 @@ public class BasicInternalFrameUI extends InternalFrameUI
      */
     public void internalFrameDeactivated(InternalFrameEvent e)
     {
-      // FIXME: Implement.
+      frame.getGlassPane().setVisible(true);
     }
 
     /**
@@ -165,21 +169,26 @@ public class BasicInternalFrameUI extends InternalFrameUI
   protected class BorderListener extends MouseInputAdapter
     implements SwingConstants
   {
+    /**
+     * The current shape of the cursor. 
+     */
+    transient int showingCursor;
+    
     /** FIXME: Use for something. */
     protected final int RESIZE_NONE = 0;
 
     /** The x offset from the top left corner of the JInternalFrame. */
-    private transient int xOffset = 0;
+    private transient int xOffset;
 
     /** The y offset from the top left corner of the JInternalFrame. */
-    private transient int yOffset = 0;
+    private transient int yOffset;
 
     /** The direction that the resize is occuring in. */
     private transient int direction = -1;
 
     /** Cache rectangle that can be reused. */
     private transient Rectangle cacheRect = new Rectangle();
-
+    
     /**
      * This method is called when the mouse is clicked.
      *
@@ -187,6 +196,20 @@ public class BasicInternalFrameUI extends InternalFrameUI
      */
     public void mouseClicked(MouseEvent e)
     {
+      // Do minimization/maximization when double-clicking in the title pane.
+      if (e.getSource() == titlePane && e.getClickCount() == 2)
+        try
+          {
+            if (frame.isMaximizable() && ! frame.isMaximum())
+              frame.setMaximum(true);
+            else if (frame.isMaximum())
+              frame.setMaximum(false);
+          }
+        catch (PropertyVetoException pve)
+          {
+            // We do nothing if the attempt has been vetoed.
+          }
+        
       // There is nothing to do when the mouse is clicked
       // on the border.
     }
@@ -215,34 +238,34 @@ public class BasicInternalFrameUI extends InternalFrameUI
         {
           switch (direction)
             {
-            case NORTH:
+            case Cursor.N_RESIZE_CURSOR:
               cacheRect.setBounds(b.x, Math.min(b.y + y, b.y + b.height
                                                          - min.height),
                                   b.width, b.height - y);
               break;
-            case NORTH_EAST:
+            case Cursor.NE_RESIZE_CURSOR:
               cacheRect.setBounds(b.x, Math.min(b.y + y, b.y + b.height
-                                                         - min.height), x,
+                                                         - min.height), x + 1,
                                   b.height - y);
               break;
-            case EAST:
-              cacheRect.setBounds(b.x, b.y, x, b.height);
+            case Cursor.E_RESIZE_CURSOR:
+              cacheRect.setBounds(b.x, b.y, x + 1, b.height);
               break;
-            case SOUTH_EAST:
-              cacheRect.setBounds(b.x, b.y, x, y);
+            case Cursor.SE_RESIZE_CURSOR:
+              cacheRect.setBounds(b.x, b.y, x + 1, y + 1);
               break;
-            case SOUTH:
-              cacheRect.setBounds(b.x, b.y, b.width, y);
+            case Cursor.S_RESIZE_CURSOR:
+              cacheRect.setBounds(b.x, b.y, b.width, y + 1);
               break;
-            case SOUTH_WEST:
+            case Cursor.SW_RESIZE_CURSOR:
               cacheRect.setBounds(Math.min(b.x + x, b.x + b.width - min.width),
-                                  b.y, b.width - x, y);
+                                  b.y, b.width - x, y + 1);
               break;
-            case WEST:
+            case Cursor.W_RESIZE_CURSOR:
               cacheRect.setBounds(Math.min(b.x + x, b.x + b.width - min.width),
                                   b.y, b.width - x, b.height);
               break;
-            case NORTH_WEST:
+            case Cursor.NW_RESIZE_CURSOR:
               cacheRect.setBounds(
                                   Math.min(b.x + x, b.x + b.width - min.width),
                                   Math.min(b.y + y, b.y + b.height - min.height),
@@ -252,11 +275,12 @@ public class BasicInternalFrameUI extends InternalFrameUI
           dm.resizeFrame(frame, cacheRect.x, cacheRect.y,
                          Math.max(min.width, cacheRect.width),
                          Math.max(min.height, cacheRect.height));
+          setCursor(e);
         }
       else if (e.getSource() == titlePane)
         {
           Rectangle fBounds = frame.getBounds();
-
+          frame.putClientProperty("bufferedDragging", Boolean.TRUE);
           dm.dragFrame(frame, e.getX() - xOffset + b.x, e.getY() - yOffset
                                                         + b.y);
         }
@@ -264,30 +288,56 @@ public class BasicInternalFrameUI extends InternalFrameUI
 
     /**
      * This method is called when the mouse exits the JInternalFrame.
-     *
+     * 
      * @param e The MouseEvent.
      */
     public void mouseExited(MouseEvent e)
     {
-      // There is nothing to do when the mouse exits 
-      // the border area.
+      if (showingCursor != Cursor.DEFAULT_CURSOR)
+        {
+          frame.setCursor(Cursor.getDefaultCursor());
+          showingCursor = Cursor.DEFAULT_CURSOR;
+        }
     }
 
     /**
-     * This method is called when the mouse is moved inside the
-     * JInternalFrame.
-     *
+     * This method is called when the mouse is moved inside the JInternalFrame.
+     * 
      * @param e The MouseEvent.
      */
     public void mouseMoved(MouseEvent e)
     {
-      // There is nothing to do when the mouse moves
-      // over the border area.
+      // Turn off the resize cursor if we are in the frame header.
+      if (showingCursor != Cursor.DEFAULT_CURSOR && e.getSource() != frame)
+        {
+          frame.setCursor(Cursor.getDefaultCursor());
+          showingCursor = Cursor.DEFAULT_CURSOR;
+        }
+      else if (e.getSource() == frame && frame.isResizable())
+        {
+          setCursor(e);
+        }
+    }
+    
+    /**
+     * Set the mouse cursor, how applicable.
+     * 
+     * @param e the current mouse event.
+     */
+    void setCursor(MouseEvent e)
+    {
+      int cursor = sectionOfClick(e.getX(), e.getY());
+      if (cursor != showingCursor)
+        {
+          Cursor resize = Cursor.getPredefinedCursor(cursor);
+          frame.setCursor(resize);
+          showingCursor = cursor;
+        }
     }
 
     /**
      * This method is called when the mouse is pressed.
-     *
+     * 
      * @param e The MouseEvent.
      */
     public void mousePressed(MouseEvent e)
@@ -327,7 +377,12 @@ public class BasicInternalFrameUI extends InternalFrameUI
       if (e.getSource() == frame && frame.isResizable())
         dm.endResizingFrame(frame);
       else if (e.getSource() == titlePane)
-        dm.endDraggingFrame(frame);
+        {
+          dm.endDraggingFrame(frame);
+          frame.putClientProperty("bufferedDragging", null);
+        }
+      
+      setCursor(e);
     }
 
     /**
@@ -337,30 +392,31 @@ public class BasicInternalFrameUI extends InternalFrameUI
      * @param x The x coordinate of the MouseEvent.
      * @param y The y coordinate of the MouseEvent.
      *
-     * @return The direction of the resize (a SwingConstant direction).
+     * @return The cursor constant, determining the resizing direction.
      */
     private int sectionOfClick(int x, int y)
     {
-      Insets insets = frame.getInsets();
       Rectangle b = frame.getBounds();
-      if (x < insets.left && y < insets.top)
-        return NORTH_WEST;
-      else if (x > b.width - insets.right && y < insets.top)
-        return NORTH_EAST;
-      else if (x > b.width - insets.right && y > b.height - insets.bottom)
-        return SOUTH_EAST;
-      else if (x < insets.left && y > b.height - insets.bottom)
-        return SOUTH_WEST;
-      else if (y < insets.top)
-        return NORTH;
-      else if (x < insets.left)
-        return WEST;
-      else if (y > b.height - insets.bottom)
-        return SOUTH;
-      else if (x > b.width - insets.right)
-        return EAST;
+      int corner = InternalFrameBorder.cornerSize;
+      
+      if (x < corner && y < corner)
+        return Cursor.NW_RESIZE_CURSOR;
+      else if (x > b.width - corner && y < corner)
+        return Cursor.NE_RESIZE_CURSOR;
+      else if (x > b.width - corner && y > b.height - corner)
+        return Cursor.SE_RESIZE_CURSOR;
+      else if (x < corner && y > b.height - corner)
+        return Cursor.SW_RESIZE_CURSOR;
+      else if (y < corner)
+        return Cursor.N_RESIZE_CURSOR;
+      else if (x < corner)
+        return Cursor.W_RESIZE_CURSOR;
+      else if (y > b.height - corner)
+        return Cursor.S_RESIZE_CURSOR;
+      else if (x > b.width - corner)
+        return Cursor.E_RESIZE_CURSOR;
 
-      return -1;
+      return Cursor.DEFAULT_CURSOR;
     }
   }
 
@@ -463,8 +519,6 @@ public class BasicInternalFrameUI extends InternalFrameUI
       dims.width -= insets.left + insets.right;
       dims.height -= insets.top + insets.bottom;
 
-      frame.getRootPane().getGlassPane().setBounds(0, 0, dims.width,
-                                                   dims.height);
       int nh = 0;
       int sh = 0;
       int ew = 0;
@@ -522,18 +576,6 @@ public class BasicInternalFrameUI extends InternalFrameUI
     public Dimension minimumLayoutSize(Container c)
     {
       return getSize(c, true);
-    }
-
-    /**
-     * This method returns the maximum layout size.
-     * 
-     * @param c
-     *          The Container to find a maximum layout size for.
-     * @return The maximum dimensions for the JInternalFrame.
-     */
-    public Dimension maximumLayoutSize(Container c)
-    {
-      return preferredLayoutSize(c);
     }
 
     /**
@@ -649,17 +691,12 @@ public class BasicInternalFrameUI extends InternalFrameUI
     /** The MouseEvent target. */
     private transient Component mouseEventTarget;
 
-    /** The component pressed. */
-    private transient Component pressedComponent;
+    private Component dragTarget;
 
-    /** The last component entered. */
-    private transient Component lastComponentEntered;
-
-    /** Used to store/reset lastComponentEntered. */
-    private transient Component tempComponent;
-
-    /** The number of presses. */
-    private transient int pressCount;
+    /**
+     * Indicates if we are currently in a dragging operation or not.
+     */
+    private boolean isDragging;
 
     /**
      * This method is called when the mouse enters the glass pane.
@@ -724,7 +761,10 @@ public class BasicInternalFrameUI extends InternalFrameUI
      */
     public void mousePressed(MouseEvent e)
     {
-      activateFrame(frame);
+      // Experiments show that this seems to call the
+      // borderListener.mousePressed() method to activate the frame.
+      if (borderListener != null)
+        borderListener.mousePressed(e);
       handleEvent(e);
     }
 
@@ -740,149 +780,104 @@ public class BasicInternalFrameUI extends InternalFrameUI
     }
 
     /**
-     * This method acquires a candidate component to dispatch the MouseEvent to.
+     * This is a helper method that dispatches the GlassPane MouseEvents to the
+     * proper component.
      * 
-     * @param me
-     *          The MouseEvent to acquire a component for.
+     * @param e the mouse event to be dispatched
      */
-    private void acquireComponentForMouseEvent(MouseEvent me)
+    private void handleEvent(MouseEvent e)
     {
-      int x = me.getX();
-      int y = me.getY();
+      // Find candidate component inside the JInternalFrame.
+      Component target = frame.getLayeredPane().findComponentAt(e.getX(),
+                                                                e.getY());
 
-      // Find the candidate which should receive this event.
-      Component parent = frame.getLayeredPane();
-      if (parent == null)
-        return;
-      Component candidate = null;
-      Point p = me.getPoint();
-      while (candidate == null && parent != null)
+      // Now search upwards to find a component that actually has
+      // a MouseListener attached.
+      while (target != null
+             && target.getMouseListeners().length == 0
+             && target.getMouseMotionListeners().length == 0
+             && target.getMouseWheelListeners().length == 0)
         {
-          candidate = SwingUtilities.getDeepestComponentAt(parent, p.x, p.y);
-          if (candidate == null)
-            {
-              p = SwingUtilities.convertPoint(parent, p.x, p.y,
-                                              parent.getParent());
-              parent = parent.getParent();
-            }
+          target = target.getParent();
         }
 
-      // If the only candidate we found was the native container itself,
-      // don't dispatch any event at all. We only care about the lightweight
-      // children here.
-      if (candidate == frame.getContentPane())
-        candidate = null;
-
-      // If our candidate is new, inform the old target we're leaving.
-      if (lastComponentEntered != null && lastComponentEntered.isShowing()
-          && lastComponentEntered != candidate)
+      if (target != null)
         {
-          Point tp = SwingUtilities.convertPoint(frame.getContentPane(), x, y,
-                                                 lastComponentEntered);
-          MouseEvent exited = new MouseEvent(lastComponentEntered,
-                                             MouseEvent.MOUSE_EXITED,
-                                             me.getWhen(), me.getModifiersEx(),
-                                             tp.x, tp.y, me.getClickCount(),
-                                             me.isPopupTrigger(),
-                                             me.getButton());
-          tempComponent = lastComponentEntered;
-          lastComponentEntered = null;
-          tempComponent.dispatchEvent(exited);
-        }
-
-      // If we have a candidate, maybe enter it.
-      if (candidate != null)
-        {
-          mouseEventTarget = candidate;
-          if (candidate.isLightweight() && candidate.isShowing()
-              && candidate != frame.getContentPane()
-              && candidate != lastComponentEntered)
-            {
-              lastComponentEntered = mouseEventTarget;
-              Point cp = SwingUtilities.convertPoint(frame.getContentPane(), x,
-                                                     y, lastComponentEntered);
-              MouseEvent entered = new MouseEvent(lastComponentEntered,
-                                                  MouseEvent.MOUSE_ENTERED,
-                                                  me.getWhen(),
-                                                  me.getModifiersEx(), cp.x,
-                                                  cp.y, me.getClickCount(),
-                                                  me.isPopupTrigger(),
-                                                  me.getButton());
-              lastComponentEntered.dispatchEvent(entered);
-            }
-        }
-
-      if (me.getID() == MouseEvent.MOUSE_RELEASED
-          || me.getID() == MouseEvent.MOUSE_PRESSED && pressCount > 0
-          || me.getID() == MouseEvent.MOUSE_DRAGGED)
-        // If any of the following events occur while a button is held down,
-        // they should be dispatched to the same component to which the
-        // original MOUSE_PRESSED event was dispatched:
-        // - MOUSE_RELEASED
-        // - MOUSE_PRESSED: another button pressed while the first is held down
-        // - MOUSE_DRAGGED
-        mouseEventTarget = pressedComponent;
-      else if (me.getID() == MouseEvent.MOUSE_CLICKED)
-        {
-          // Don't dispatch CLICKED events whose target is not the same as the
-          // target for the original PRESSED event.
-          if (candidate != pressedComponent)
-            mouseEventTarget = null;
-          else if (pressCount == 0)
-            pressedComponent = null;
+          int id = e.getID();
+          switch (id)
+          {
+            case MouseEvent.MOUSE_ENTERED:
+              // Now redispatch the thing.
+              if (! isDragging || frame.isSelected())
+                {
+                  mouseEventTarget = target;
+                  redispatch(id, e, mouseEventTarget);
+                }
+              break;
+            case MouseEvent.MOUSE_EXITED:
+              if (! isDragging || frame.isSelected())
+                {
+                  redispatch(id, e, mouseEventTarget);
+                }
+              break;
+            case MouseEvent.MOUSE_PRESSED:
+              mouseEventTarget = target;
+              redispatch(id, e, mouseEventTarget);
+              // Start dragging.
+              dragTarget = target;
+              break;
+            case MouseEvent.MOUSE_RELEASED:
+              if (isDragging)
+                {
+                  redispatch(id, e, dragTarget);
+                  isDragging = false;
+                }
+              else
+                redispatch(id, e, mouseEventTarget);
+              break;
+            case MouseEvent.MOUSE_CLICKED:
+              redispatch(id, e, mouseEventTarget);
+              break;
+            case MouseEvent.MOUSE_MOVED:
+              if (target != mouseEventTarget)
+                {
+                  // Create additional MOUSE_EXITED/MOUSE_ENTERED pairs.
+                  redispatch(MouseEvent.MOUSE_EXITED, e, mouseEventTarget);
+                  mouseEventTarget = target;
+                  redispatch(MouseEvent.MOUSE_ENTERED, e, mouseEventTarget);
+                }
+              redispatch(id, e, mouseEventTarget);
+              break;
+            case MouseEvent.MOUSE_DRAGGED:
+              if (! isDragging)
+                isDragging = true;
+              redispatch(id, e, mouseEventTarget);
+              break;
+            case MouseEvent.MOUSE_WHEEL:
+              redispatch(id, e, mouseEventTarget);
+              break;
+            default:
+              assert false : "Must not reach here";
+          }
         }
     }
 
     /**
-     * This is a helper method that dispatches the GlassPane MouseEvents to the
-     * proper component.
-     * 
-     * @param e
-     *          The AWTEvent to be dispatched. Usually an instance of
-     *          MouseEvent.
+     * Redispatches the event to the real target with the specified id.
+     *
+     * @param id the new event ID
+     * @param e the original event
+     * @param target the real event target
      */
-    private void handleEvent(AWTEvent e)
+    private void redispatch(int id, MouseEvent e, Component target)
     {
-      if (e instanceof MouseEvent)
-        {
-          MouseEvent me = (MouseEvent) e;
-          acquireComponentForMouseEvent(me);
-
-          //If there is no target, return
-          if (mouseEventTarget == null)
-            return;
-          
-          //Avoid re-dispatching to ourselves and causing an infinite loop
-          if (mouseEventTarget.equals(frame.getGlassPane()))
-            return;
-
-          // Avoid dispatching ENTERED and EXITED events twice.
-          if (mouseEventTarget.isShowing()
-              && e.getID() != MouseEvent.MOUSE_ENTERED
-              && e.getID() != MouseEvent.MOUSE_EXITED)
-            {
-              MouseEvent newEvt = SwingUtilities.convertMouseEvent(
-                                                                   frame.getGlassPane(),
-                                                                   me,
-                                                                   mouseEventTarget);
-              mouseEventTarget.dispatchEvent(newEvt);
-
-              switch (e.getID())
-                {
-                case MouseEvent.MOUSE_PRESSED:
-                  if (pressCount++ == 0)
-                    pressedComponent = mouseEventTarget;
-                  break;
-                case MouseEvent.MOUSE_RELEASED:
-                  // Clear our memory of the original PRESSED event, only if
-                  // we're not expecting a CLICKED event after this. If
-                  // there is a CLICKED event after this, it will do clean up.
-                  if (--pressCount == 0 && mouseEventTarget != pressedComponent)
-                    pressedComponent = null;
-                  break;
-                }
-            }
-        }
+      Point p = SwingUtilities.convertPoint(frame.getLayeredPane(), e.getX(),
+                                            e.getY(), target);
+      MouseEvent ev = new MouseEvent(target, id, e.getWhen(),
+                                     e.getModifiers() | e.getModifiersEx(),
+                                     p.x, p.y, e.getClickCount(),
+                                     e.isPopupTrigger());
+      target.dispatchEvent(ev);
     }
   }
 
@@ -890,37 +885,9 @@ public class BasicInternalFrameUI extends InternalFrameUI
    * This helper class listens for PropertyChangeEvents from the
    * JInternalFrame.
    */
-  public class InternalFramePropertyChangeListener implements
-      PropertyChangeListener, VetoableChangeListener
+  public class InternalFramePropertyChangeListener
+    implements PropertyChangeListener
   {
-
-    /**
-     * This method is called when one of the JInternalFrame's properties change.
-     * This method is to allow JInternalFrame to veto an attempt to close the
-     * internal frame. This allows JInternalFrame to honour its
-     * defaultCloseOperation if that is DO_NOTHING_ON_CLOSE.
-     */
-    public void vetoableChange(PropertyChangeEvent e)
-        throws PropertyVetoException
-    {
-      if (e.getPropertyName().equals(JInternalFrame.IS_CLOSED_PROPERTY))
-        {
-          if (frame.getDefaultCloseOperation() == JInternalFrame.HIDE_ON_CLOSE)
-            {
-              frame.setVisible(false);
-              frame.getDesktopPane().repaint();
-              throw new PropertyVetoException(
-                                              "close operation is HIDE_ON_CLOSE\n",
-                                              e);
-            }
-          else if (frame.getDefaultCloseOperation() == JInternalFrame.DISPOSE_ON_CLOSE)
-            closeFrame(frame);
-          else
-            throw new PropertyVetoException(
-                                            "close operation is DO_NOTHING_ON_CLOSE\n",
-                                            e);
-        }
-    }
 
     /**
      * This method is called when one of the JInternalFrame's properties change.
@@ -930,40 +897,60 @@ public class BasicInternalFrameUI extends InternalFrameUI
      */
     public void propertyChange(PropertyChangeEvent evt)
     {
-      if (evt.getPropertyName().equals(JInternalFrame.IS_MAXIMUM_PROPERTY))
+      String property = evt.getPropertyName();
+      if (property.equals(JInternalFrame.IS_MAXIMUM_PROPERTY))
         {
           if (frame.isMaximum())
             maximizeFrame(frame);
           else
             minimizeFrame(frame);
         }
-      else if (evt.getPropertyName().equals(JInternalFrame.IS_ICON_PROPERTY))
+      else if (property.equals(JInternalFrame.IS_ICON_PROPERTY))
         {
           if (frame.isIcon())
             iconifyFrame(frame);
           else
             deiconifyFrame(frame);
         }
-      else if (evt.getPropertyName().equals(JInternalFrame.IS_SELECTED_PROPERTY))
+      else if (property.equals(JInternalFrame.IS_SELECTED_PROPERTY))
         {
+          Component glassPane = frame.getGlassPane();
           if (frame.isSelected())
-            activateFrame(frame);
+            {
+              activateFrame(frame);
+              glassPane.setVisible(false);
+            }
           else
-            deactivateFrame(frame);
+            {
+              deactivateFrame(frame);
+              glassPane.setVisible(true);
+            }
         }
-      else if (evt.getPropertyName().equals(JInternalFrame.ROOT_PANE_PROPERTY)
-               || evt.getPropertyName().equals(
-                                               JInternalFrame.GLASS_PANE_PROPERTY))
+      else if (property.equals(JInternalFrame.ROOT_PANE_PROPERTY)
+               || property.equals(JInternalFrame.GLASS_PANE_PROPERTY))
         {
           Component old = (Component) evt.getOldValue();
-          old.removeMouseListener(glassPaneDispatcher);
-          old.removeMouseMotionListener(glassPaneDispatcher);
+          if (old != null)
+            {
+              old.removeMouseListener(glassPaneDispatcher);
+              old.removeMouseMotionListener(glassPaneDispatcher);
+            }
 
           Component newPane = (Component) evt.getNewValue();
-          newPane.addMouseListener(glassPaneDispatcher);
-          newPane.addMouseMotionListener(glassPaneDispatcher);
+          if (newPane != null)
+            {
+              newPane.addMouseListener(glassPaneDispatcher);
+              newPane.addMouseMotionListener(glassPaneDispatcher);
+            }
 
           frame.revalidate();
+        }
+      else if (property.equals(JInternalFrame.IS_CLOSED_PROPERTY))
+        {
+          if (evt.getNewValue() == Boolean.TRUE)
+            {
+              closeFrame(frame);
+            }
         }
       /*
        * FIXME: need to add ancestor properties to JComponents. else if
@@ -979,14 +966,18 @@ public class BasicInternalFrameUI extends InternalFrameUI
   /**
    * This helper class is the border for the JInternalFrame.
    */
-  private class InternalFrameBorder extends AbstractBorder implements
+  class InternalFrameBorder extends AbstractBorder implements
       UIResource
   {
-    /** The width of the border. */
-    private static final int bSize = 5;
+    /** 
+     * The width of the border. 
+     */
+    static final int bSize = 5;
 
-    /** The size of the corners. */
-    private static final int offset = 10;
+    /**
+     * The size of the corners (also used by the mouse listener).
+     */
+    static final int cornerSize = 10;
 
     /**
      * This method returns whether the border is opaque.
@@ -1056,13 +1047,32 @@ public class BasicInternalFrameUI extends InternalFrameUI
       g.fillRect(0, y3, b.width, bSize);
       g.fillRect(x3, 0, bSize, b.height);
 
-      g.fill3DRect(0, offset, bSize, b.height - 2 * offset, false);
-      g.fill3DRect(offset, 0, b.width - 2 * offset, bSize, false);
-      g.fill3DRect(offset, b.height - bSize, b.width - 2 * offset, bSize, false);
-      g.fill3DRect(b.width - bSize, offset, bSize, b.height - 2 * offset, false);
+      g.fill3DRect(0, cornerSize, bSize, b.height - 2 * cornerSize, false);
+      g.fill3DRect(cornerSize, 0, b.width - 2 * cornerSize, bSize, false);
+      g.fill3DRect(cornerSize, b.height - bSize, b.width - 2 * cornerSize, 
+                   bSize, false);
+      g.fill3DRect(b.width - bSize, cornerSize, bSize, 
+                   b.height - 2 * cornerSize, false);
 
       g.translate(-x, -y);
       g.setColor(saved);
+    }
+  }
+
+  /**
+   * This action triggers the system menu.
+   *
+   * @author Roman Kennke (kennke@aicas.com)
+   */
+  private class ShowSystemMenuAction
+    extends AbstractAction
+  {
+    public void actionPerformed(ActionEvent e)
+    {
+      if (titlePane != null)
+        {
+          titlePane.showSystemMenu();
+        }
     }
   }
 
@@ -1089,13 +1099,6 @@ public class BasicInternalFrameUI extends InternalFrameUI
    * PropertyChangeEvents from the JInternalFrame.
    */
   protected PropertyChangeListener propertyChangeListener;
-
-  /**
-   * The VetoableChangeListener.  Listens to PropertyChangeEvents
-   * from the JInternalFrame and allows the JInternalFrame to 
-   * veto attempts to close it.
-   */
-  private VetoableChangeListener internalFrameVetoableChangeListener;
 
   /** The InternalFrameListener that listens to the JInternalFrame. */
   private transient BasicInternalFrameListener internalFrameListener;
@@ -1164,19 +1167,13 @@ public class BasicInternalFrameUI extends InternalFrameUI
       {
         frame = (JInternalFrame) c;
 
-        internalFrameLayout = createLayoutManager();
-        frame.setLayout(internalFrameLayout);
-
-        ((JComponent) frame.getRootPane().getGlassPane()).setOpaque(false);
-        frame.getRootPane().getGlassPane().setVisible(true);
-
         installDefaults();
         installListeners();
         installComponents();
         installKeyboardActions();
 
-        frame.setOpaque(true);
-        frame.invalidate();
+        if (! frame.isSelected())
+          frame.getGlassPane().setVisible(true);
       }
   }
 
@@ -1192,10 +1189,7 @@ public class BasicInternalFrameUI extends InternalFrameUI
     uninstallListeners();
     uninstallDefaults();
 
-    frame.setLayout(null);
-    ((JComponent) frame.getRootPane().getGlassPane()).setOpaque(true);
     frame.getRootPane().getGlassPane().setVisible(false);
-
     frame = null;
   }
 
@@ -1204,10 +1198,19 @@ public class BasicInternalFrameUI extends InternalFrameUI
    */
   protected void installDefaults()
     {
+      internalFrameLayout = createLayoutManager();
+      frame.setLayout(internalFrameLayout);
       LookAndFeel.installBorder(frame, "InternalFrame.border");
       frame.setFrameIcon(UIManager.getIcon("InternalFrame.icon"));
-      // InternalFrames are invisible by default.
-      frame.setVisible(false);
+
+      // Let the content pane inherit the background color from its
+      // frame by setting the background to null.
+      Component contentPane = frame.getContentPane();
+      if (contentPane != null
+          && contentPane.getBackground() instanceof UIResource)
+        {
+          contentPane.setBackground(null);
+        }
   }
 
   /**
@@ -1215,7 +1218,16 @@ public class BasicInternalFrameUI extends InternalFrameUI
    */
   protected void installKeyboardActions()
   {
-    // FIXME: Implement.
+    ActionMapUIResource am = new ActionMapUIResource();
+    am.put("showSystemMenu", new ShowSystemMenuAction());
+
+    // The RI impl installs the audio actions as parent of the UI action map,
+    // so do we.
+    BasicLookAndFeel blaf = (BasicLookAndFeel) UIManager.getLookAndFeel();
+    ActionMap audioActionMap = blaf.getAudioActionMap();
+    am.setParent(audioActionMap);
+
+    SwingUtilities.replaceUIActionMap(frame, am);
   }
 
   /**
@@ -1239,13 +1251,11 @@ public class BasicInternalFrameUI extends InternalFrameUI
     borderListener = createBorderListener(frame);
     componentListener = createComponentListener();
     propertyChangeListener = createPropertyChangeListener();
-    internalFrameVetoableChangeListener = new InternalFramePropertyChangeListener();
 
     frame.addMouseListener(borderListener);
     frame.addMouseMotionListener(borderListener);
     frame.addInternalFrameListener(internalFrameListener);
     frame.addPropertyChangeListener(propertyChangeListener);
-    frame.addVetoableChangeListener(internalFrameVetoableChangeListener);
     frame.getRootPane().getGlassPane().addMouseListener(glassPaneDispatcher);
     frame.getRootPane().getGlassPane().addMouseMotionListener(glassPaneDispatcher);
   }
@@ -1256,6 +1266,8 @@ public class BasicInternalFrameUI extends InternalFrameUI
   protected void uninstallDefaults()
   {
     frame.setBorder(null);
+    frame.setLayout(null);
+    internalFrameLayout = null;
   }
 
   /**
@@ -1297,7 +1309,9 @@ public class BasicInternalFrameUI extends InternalFrameUI
    */
   protected void uninstallKeyboardActions()
   {
-    // FIXME: Implement.
+    SwingUtilities.replaceUIActionMap(frame, null);
+    SwingUtilities.replaceUIInputMap(frame, JComponent.WHEN_IN_FOCUSED_WINDOW,
+                                     null);
   }
 
   /**
@@ -1329,7 +1343,13 @@ public class BasicInternalFrameUI extends InternalFrameUI
    */
   public Dimension getPreferredSize(JComponent x)
   {
-    return internalFrameLayout.preferredLayoutSize(x);
+    Dimension pref = null;
+    LayoutManager layout = frame.getLayout();
+    if (frame == x && layout != null)
+      pref = layout.preferredLayoutSize(frame);
+    else
+      pref = new Dimension(100, 100);
+    return pref;
   }
 
   /**
@@ -1341,7 +1361,13 @@ public class BasicInternalFrameUI extends InternalFrameUI
    */
   public Dimension getMinimumSize(JComponent x)
   {
-    return internalFrameLayout.minimumLayoutSize(x);
+    Dimension min = null;
+    LayoutManager layout = frame.getLayout();
+    if (frame == x && layout != null)
+      min = layout.minimumLayoutSize(frame);
+    else
+      min = new Dimension(0, 0);
+    return min;
   }
 
   /**
@@ -1353,7 +1379,13 @@ public class BasicInternalFrameUI extends InternalFrameUI
    */
   public Dimension getMaximumSize(JComponent x)
   {
-    return new Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE);
+    Dimension max = null;
+    LayoutManager layout = frame.getLayout();
+    if (frame == x && layout != null && layout instanceof LayoutManager2)
+      max = ((LayoutManager2) layout).maximumLayoutSize(frame);
+    else
+      max = new Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE);
+    return max;
   }
 
   /**

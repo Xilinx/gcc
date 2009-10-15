@@ -1,11 +1,11 @@
 /* Loop invariant motion.
-   Copyright (C) 2003, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
    
 This file is part of GCC.
    
 GCC is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the
-Free Software Foundation; either version 2, or (at your option) any
+Free Software Foundation; either version 3, or (at your option) any
 later version.
    
 GCC is distributed in the hope that it will be useful, but WITHOUT
@@ -14,9 +14,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
    
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -174,7 +173,6 @@ for_each_index (tree *addr_p, bool (*cbck) (tree, tree *, void *), void *data)
 
 	case BIT_FIELD_REF:
 	case VIEW_CONVERT_EXPR:
-	case ARRAY_RANGE_REF:
 	case REALPART_EXPR:
 	case IMAGPART_EXPR:
 	  nxt = &TREE_OPERAND (*addr_p, 0);
@@ -192,6 +190,7 @@ for_each_index (tree *addr_p, bool (*cbck) (tree, tree *, void *), void *data)
 	  break;
 
 	case ARRAY_REF:
+	case ARRAY_RANGE_REF:
 	  nxt = &TREE_OPERAND (*addr_p, 0);
 	  if (!cbck (*addr_p, &TREE_OPERAND (*addr_p, 1), data))
 	    return false;
@@ -401,7 +400,7 @@ add_dependency (tree def, struct lim_aux_data *data, struct loop *loop,
       && def_bb->loop_father == loop)
     data->cost += LIM_DATA (def_stmt)->cost;
 
-  dep = xmalloc (sizeof (struct depend));
+  dep = XNEW (struct depend);
   dep->stmt = def_stmt;
   dep->next = data->depends;
   data->depends = dep;
@@ -624,7 +623,7 @@ determine_invariantness_stmt (struct dom_walk_data *dw_data ATTRIBUTE_UNUSED,
 
 	  /* stmt must be MODIFY_EXPR.  */
 	  var = create_tmp_var (TREE_TYPE (rhs), "reciptmp");
-	  add_referenced_tmp_var (var);
+	  add_referenced_var (var);
 
 	  stmt1 = build2 (MODIFY_EXPR, void_type_node, var,
 			  build2 (RDIV_EXPR, TREE_TYPE (rhs),
@@ -759,7 +758,7 @@ move_computations_stmt (struct dom_walk_data *dw_data ATTRIBUTE_UNUSED,
 		   cost, level->num);
 	}
       bsi_insert_on_edge (loop_preheader_edge (level), stmt);
-      bsi_remove (&bsi);
+      bsi_remove (&bsi, false);
     }
 }
 
@@ -887,7 +886,7 @@ force_move_till (tree ref, tree *index, void *data)
 static void
 record_mem_ref_loc (struct mem_ref_loc **mem_refs, tree stmt, tree *ref)
 {
-  struct mem_ref_loc *aref = xmalloc (sizeof (struct mem_ref_loc));
+  struct mem_ref_loc *aref = XNEW (struct mem_ref_loc);
 
   aref->stmt = stmt;
   aref->ref = ref;
@@ -1070,7 +1069,7 @@ schedule_sm (struct loop *loop, edge *exits, unsigned n_exits, tree ref,
       LIM_DATA (aref->stmt)->sm_done = true;
 
   /* Emit the load & stores.  */
-  load = build (MODIFY_EXPR, void_type_node, tmp_var, ref);
+  load = build2 (MODIFY_EXPR, void_type_node, tmp_var, ref);
   get_stmt_ann (load)->common.aux = xcalloc (1, sizeof (struct lim_aux_data));
   LIM_DATA (load)->max_loop = loop;
   LIM_DATA (load)->tgt_loop = loop;
@@ -1081,8 +1080,8 @@ schedule_sm (struct loop *loop, edge *exits, unsigned n_exits, tree ref,
 
   for (i = 0; i < n_exits; i++)
     {
-      store = build (MODIFY_EXPR, void_type_node,
-		     unshare_expr (ref), tmp_var);
+      store = build2 (MODIFY_EXPR, void_type_node,
+		      unshare_expr (ref), tmp_var);
       bsi_insert_on_edge (exits[i], store);
     }
 }
@@ -1258,7 +1257,7 @@ gather_mem_refs_stmt (struct loop *loop, htab_t mem_refs,
     ref = *slot;
   else
     {
-      ref = xmalloc (sizeof (struct mem_ref));
+      ref = XNEW (struct mem_ref);
       ref->mem = *mem;
       ref->hash = hash;
       ref->locs = NULL;

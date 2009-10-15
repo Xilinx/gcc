@@ -9,7 +9,7 @@
 # Contents:
 #   Script to create a GCC release.
 #
-# Copyright (c) 2001, 2002 Free Software Foundation.
+# Copyright (c) 2001, 2002, 2006 Free Software Foundation.
 #
 # This file is part of GCC.
 #
@@ -236,7 +236,7 @@ EOF
     inform "Building compiler"
     OBJECT_DIRECTORY=../objdir
     contrib/gcc_build -d ${SOURCE_DIRECTORY} -o ${OBJECT_DIRECTORY} \
-      -c "--enable-generated-files-in-srcdir" build || \
+      -c "--enable-generated-files-in-srcdir --disable-multilib" build || \
       error "Could not rebuild GCC"
   fi
 
@@ -518,11 +518,14 @@ Last modified "${TEXT_DATE}"
 # Initialization
 ########################################################################
 
+LC_ALL=C
+export LC_ALL
+
 # Today's date.
 DATE=`date "+%Y%m%d"`
 LONG_DATE=`date "+%Y-%m-%d"`
 
-SVN=${SVN:-/usr/bin/svn}
+SVN=${SVN:-svn}
 # The CVS server containing the GCC repository.
 SVN_SERVER="gcc.gnu.org"
 # The path to the repository on that server.
@@ -580,7 +583,7 @@ CPLUSPLUS_DIRS="gcc/cp libstdc++-v3"
 FORTRAN_DIRS="gcc/f libf2c"
 FORTRAN95_DIRS="gcc/fortran libgfortran"
 JAVA_DIRS="gcc/java libjava libffi fastjar zlib boehm-gc"
-OBJECTIVEC_DIRS="gcc/objc libobjc"
+OBJECTIVEC_DIRS="gcc/objc gcc/objcp libobjc"
 TESTSUITE_DIRS="gcc/testsuite"
 
 # Non-zero if this is the final release, rather than a prerelease.
@@ -696,10 +699,10 @@ if [ $SNAPSHOT -eq 0 ]; then
   # and minor release numbers.
   SVNBRANCH="branches/gcc-${RELEASE_MAJOR}_${RELEASE_MINOR}-branch"
 
-  # If this is not a final release, set various parameters acordingly.
+  # If this is not a final release, set various parameters accordingly.
   if [ ${FINAL} -ne 1 ]; then
-    RELEASE="${RELEASE}-${DATE}"
-    FTP_PATH="${FTP_PATH}/prerelease-${RELEASE}/"
+    RELEASE="${RELEASE}-RC-${DATE}"
+    FTP_PATH="${SNAPSHOTS_DIR}/${RELEASE}"
   else
     FTP_PATH="${FTP_PATH}/releases/gcc-${RELEASE}/"
   fi

@@ -1,9 +1,9 @@
-#   Copyright (C) 1997, 1999, 2000, 2003, 2004, 2005, 2006
+#   Copyright (C) 1997, 1999, 2000, 2003, 2004, 2005, 2006, 2007
 #   Free Software Foundation, Inc.
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
+# the Free Software Foundation; either version 3 of the License, or
 # (at your option) any later version.
 #
 # This program is distributed in the hope that it will be useful,
@@ -12,8 +12,8 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+# along with GCC; see the file COPYING3.  If not see
+# <http://www.gnu.org/licenses/>.
 
 load_lib dg.exp
 load_lib file-format.exp
@@ -292,7 +292,12 @@ proc gcc-dg-debug-runtest { target_compile trivial opt_opts testcases } {
 
 	foreach flags $DEBUG_TORTURE_OPTIONS {
 	    set doit 1
-	    if { [string match {*/debug-[126].c} "$nshort"] \
+
+	    # These tests check for information which may be deliberately
+	    # suppressed at -g1.
+	    if { ([string match {*/debug-[126].c} "$nshort"] \
+		   || [string match {*/enum-1.c} "$nshort"] \
+		   || [string match {*/enum-[12].C} "$nshort"]) \
 		    && [string match "*1" [lindex "$flags" 0] ] } {
 		set doit 0
 	    }
@@ -376,21 +381,21 @@ proc cleanup-repo-files { } {
 #
 # SUFFIX is the filename suffix pattern.
 proc cleanup-rtl-dump { suffix } {
-  cleanup-dump "\[0-9\]\[0-9\].$suffix"
+  cleanup-dump "\[0-9\]\[0-9\]\[0-9\]r.$suffix"
 }
 
 # Remove a specific tree dump file for the current test.
 #
 # SUFFIX is the tree dump file suffix pattern.
 proc cleanup-tree-dump { suffix } {
-  cleanup-dump "t\[0-9\]\[0-9\].$suffix"
+  cleanup-dump "\[0-9\]\[0-9\]\[0-9\]t.$suffix"
 }
 
 # Remove a specific ipa dump file for the current test.
 #
 # SUFFIX is the ipa dump file suffix pattern.
 proc cleanup-ipa-dump { suffix } {
-  cleanup-dump "i\[0-9\]\[0-9\].$suffix"
+  cleanup-dump "\[0-9\]\[0-9\]\[0-9\]i.$suffix"
 }
 
 # Remove all dump files with the provided suffix.

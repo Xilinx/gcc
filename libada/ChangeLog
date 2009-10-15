@@ -1,19 +1,40 @@
-2007-02-13  Release Manager
+2008-05-19  Release Manager
 
-	* GCC 4.1.2 released.
+	* GCC 4.2.4 released.
 
-2006-05-24  Release Manager
+2008-02-01  Release Manager
 
-	* GCC 4.1.1 released.
+	* GCC 4.2.3 released.
 
-2006-02-28  Release Manager
+2007-10-07  Release Manager
 
-	* GCC 4.1.0 released.
+	* GCC 4.2.2 released.
 
-2006-02-23  Mark Mitchell  <mark@codesourcery.com>
+2007-07-19  Release Manager
 
-	Backport:
-	2005-12-05  Paolo Bonzini  <bonzini@gnu.org>
+	* GCC 4.2.1 released.
+
+2007-05-13  Release Manager
+
+	* GCC 4.2.0 released.
+
+2006-11-16  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR bootstrap/29802
+	* configure.ac: Call GCC_TOPLEV_SUBDIRS.
+	* configure: Regenerate.
+	* Makefile.in: Replace host_subdir.
+
+2006-10-16  Brooks Moses  <bmoses@stanford.edu>
+
+	* Makefile.in: Add dummy "pdf" target.
+
+2006-05-23  Carlos O'Donell  <carlos@codesourcery.com>
+
+	* Makefile.in: Add install-html target.
+
+2005-12-05  Paolo Bonzini  <bonzini@gnu.org>
+
 	* Makefile.in (FLAGS_TO_PASS): Add GCC_FOR_TARGET.
 
 2005-04-27  James E Wilson  <wilson@specifixinc.com>

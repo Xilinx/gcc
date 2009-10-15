@@ -39,17 +39,19 @@ Boston, MA 02110-1301, USA.  */
 #if defined (HAVE_GFC_INTEGER_16) && defined (HAVE_GFC_INTEGER_16)
 
 
-extern void maxloc0_16_i16 (gfc_array_i16 * retarray, gfc_array_i16 *array);
+extern void maxloc0_16_i16 (gfc_array_i16 * const restrict retarray, 
+	gfc_array_i16 * const restrict array);
 export_proto(maxloc0_16_i16);
 
 void
-maxloc0_16_i16 (gfc_array_i16 * retarray, gfc_array_i16 *array)
+maxloc0_16_i16 (gfc_array_i16 * const restrict retarray, 
+	gfc_array_i16 * const restrict array)
 {
   index_type count[GFC_MAX_DIMENSIONS];
   index_type extent[GFC_MAX_DIMENSIONS];
   index_type sstride[GFC_MAX_DIMENSIONS];
   index_type dstride;
-  GFC_INTEGER_16 *base;
+  const GFC_INTEGER_16 *base;
   GFC_INTEGER_16 *dest;
   index_type rank;
   index_type n;
@@ -74,15 +76,7 @@ maxloc0_16_i16 (gfc_array_i16 * retarray, gfc_array_i16 *array)
 
       if (retarray->dim[0].ubound + 1 - retarray->dim[0].lbound != rank)
         runtime_error ("dimension of return array incorrect");
-
-      if (retarray->dim[0].stride == 0)
-	retarray->dim[0].stride = 1;
     }
-
-  /* TODO:  It should be a front end job to correctly set the strides.  */
-
-  if (array->dim[0].stride == 0)
-    array->dim[0].stride = 1;
 
   dstride = retarray->dim[0].stride;
   dest = retarray->data;
@@ -109,7 +103,7 @@ maxloc0_16_i16 (gfc_array_i16 * retarray, gfc_array_i16 *array)
 
   GFC_INTEGER_16 maxval;
 
-  maxval = -GFC_INTEGER_16_HUGE;
+  maxval = (-GFC_INTEGER_16_HUGE-1);
 
   while (base)
     {
@@ -134,7 +128,7 @@ maxloc0_16_i16 (gfc_array_i16 * retarray, gfc_array_i16 *array)
              the next dimension.  */
           count[n] = 0;
           /* We could precalculate these products, but this is a less
-             frequently used path so proabably not worth it.  */
+             frequently used path so probably not worth it.  */
           base -= sstride[n] * extent[n];
           n++;
           if (n == rank)
@@ -154,12 +148,14 @@ maxloc0_16_i16 (gfc_array_i16 * retarray, gfc_array_i16 *array)
 }
 
 
-extern void mmaxloc0_16_i16 (gfc_array_i16 *, gfc_array_i16 *, gfc_array_l4 *);
+extern void mmaxloc0_16_i16 (gfc_array_i16 * const restrict, 
+	gfc_array_i16 * const restrict, gfc_array_l4 * const restrict);
 export_proto(mmaxloc0_16_i16);
 
 void
-mmaxloc0_16_i16 (gfc_array_i16 * retarray, gfc_array_i16 *array,
-				  gfc_array_l4 * mask)
+mmaxloc0_16_i16 (gfc_array_i16 * const restrict retarray, 
+	gfc_array_i16 * const restrict array,
+	gfc_array_l4 * const restrict mask)
 {
   index_type count[GFC_MAX_DIMENSIONS];
   index_type extent[GFC_MAX_DIMENSIONS];
@@ -167,7 +163,7 @@ mmaxloc0_16_i16 (gfc_array_i16 * retarray, gfc_array_i16 *array,
   index_type mstride[GFC_MAX_DIMENSIONS];
   index_type dstride;
   GFC_INTEGER_16 *dest;
-  GFC_INTEGER_16 *base;
+  const GFC_INTEGER_16 *base;
   GFC_LOGICAL_4 *mbase;
   int rank;
   index_type n;
@@ -192,18 +188,7 @@ mmaxloc0_16_i16 (gfc_array_i16 * retarray, gfc_array_i16 *array,
 
       if (retarray->dim[0].ubound + 1 - retarray->dim[0].lbound != rank)
         runtime_error ("dimension of return array incorrect");
-
-      if (retarray->dim[0].stride == 0)
-	retarray->dim[0].stride = 1;
     }
-
-  /* TODO:  It should be a front end job to correctly set the strides.  */
-
-  if (array->dim[0].stride == 0)
-    array->dim[0].stride = 1;
-
-  if (mask->dim[0].stride == 0)
-    mask->dim[0].stride = 1;
 
   dstride = retarray->dim[0].stride;
   dest = retarray->data;
@@ -242,7 +227,7 @@ mmaxloc0_16_i16 (gfc_array_i16 * retarray, gfc_array_i16 *array,
 
   GFC_INTEGER_16 maxval;
 
-  maxval = -GFC_INTEGER_16_HUGE;
+  maxval = (-GFC_INTEGER_16_HUGE-1);
 
   while (base)
     {
@@ -268,7 +253,7 @@ mmaxloc0_16_i16 (gfc_array_i16 * retarray, gfc_array_i16 *array,
              the next dimension.  */
           count[n] = 0;
           /* We could precalculate these products, but this is a less
-             frequently used path so proabably not worth it.  */
+             frequently used path so probably not worth it.  */
           base -= sstride[n] * extent[n];
           mbase -= mstride[n] * extent[n];
           n++;
@@ -331,9 +316,6 @@ smaxloc0_16_i16 (gfc_array_i16 * const restrict retarray,
 
       if (retarray->dim[0].ubound + 1 - retarray->dim[0].lbound != rank)
         runtime_error ("dimension of return array incorrect");
-
-      if (retarray->dim[0].stride == 0)
-	retarray->dim[0].stride = 1;
     }
 
   dstride = retarray->dim[0].stride;

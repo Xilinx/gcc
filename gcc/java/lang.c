@@ -1,12 +1,12 @@
 /* Java(TM) language-specific utility routines.
-   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005
-   Free Software Foundation, Inc.
+   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
+   2005, 2007  Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -15,9 +15,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.
 
 Java and all Java-based marks are trademarks or registered trademarks
 of Sun Microsystems, Inc. in the United States and other countries.
@@ -346,7 +345,7 @@ java_handle_option (size_t scode, const char *arg, int value)
     default:
       if (cl_options[code].flags & CL_Java)
 	break;
-      abort();
+      gcc_unreachable ();
     }
 
   return 1;
@@ -367,6 +366,9 @@ java_init (void)
      init optimization.  */
   if (flag_indirect_dispatch)
     always_initialize_class_p = true;
+
+  if (!flag_indirect_dispatch)
+    flag_indirect_classes = false;
 
   /* Force minimum function alignment if g++ uses the least significant
      bit of function pointers to store the virtual bit. This is required
@@ -412,7 +414,7 @@ put_decl_string (const char *str, int len)
       if (decl_buf == NULL)
 	{
 	  decl_buflen = len + 100;
-	  decl_buf = xmalloc (decl_buflen);
+	  decl_buf = XNEWVEC (char, decl_buflen);
 	}
       else
 	{
@@ -585,6 +587,10 @@ java_init_options (unsigned int argc ATTRIBUTE_UNUSED,
   /* Java requires left-to-right evaluation of subexpressions.  */
   flag_evaluation_order = 1;
 
+  /* Unit at a time is disabled for Java because it is considered
+     too expensive.  */
+  no_unit_at_a_time_default = 1;
+
   jcf_path_init ();
 
   return CL_Java;
@@ -615,6 +621,15 @@ java_post_options (const char **pfilename)
   if (! flag_indirect_dispatch)
     flag_verify_invocations = true;
 
+  if (flag_reduced_reflection)
+    {
+      if (flag_indirect_dispatch)
+        error ("-findirect-dispatch is incompatible "
+               "with -freduced-reflection");
+      if (flag_jni)
+        error ("-fjni is incompatible with -freduced-reflection");
+    }
+
   /* Open input file.  */
 
   if (filename == 0 || !strcmp (filename, "-"))
@@ -642,7 +657,7 @@ java_post_options (const char **pfilename)
 		error ("couldn't determine target name for dependency tracking");
 	      else
 		{
-		  char *buf = xmalloc (dot - filename +
+		  char *buf = XNEWVEC (char, dot - filename +
 				       3 + sizeof (TARGET_OBJECT_SUFFIX));
 		  strncpy (buf, filename, dot - filename);
 
@@ -788,8 +803,7 @@ merge_init_test_initialization (void **entry, void *x)
   /* See if we have remapped this declaration.  If we haven't there's
      a bug in the inliner.  */
   n = splay_tree_lookup (decl_map, (splay_tree_key) ite->value);
-  if (! n)
-    abort ();
+  gcc_assert (n);
 
   /* Create a new entry for the class and its remapped boolean
      variable.  If we already have a mapping for this class we've

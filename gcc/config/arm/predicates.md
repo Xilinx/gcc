@@ -1,12 +1,12 @@
 ;; Predicate definitions for ARM and Thumb
-;; Copyright (C) 2004 Free Software Foundation, Inc.
+;; Copyright (C) 2004, 2007 Free Software Foundation, Inc.
 ;; Contributed by ARM Ltd.
 
 ;; This file is part of GCC.
 
 ;; GCC is free software; you can redistribute it and/or modify it
 ;; under the terms of the GNU General Public License as published
-;; by the Free Software Foundation; either version 2, or (at your
+;; by the Free Software Foundation; either version 3, or (at your
 ;; option) any later version.
 
 ;; GCC is distributed in the hope that it will be useful, but WITHOUT
@@ -15,9 +15,8 @@
 ;; License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GCC; see the file COPYING.  If not, write to
-;; the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-;; Boston, MA 02110-1301, USA.
+;; along with GCC; see the file COPYING3.  If not see
+;; <http://www.gnu.org/licenses/>.
 
 (define_predicate "s_register_operand"
   (match_code "reg,subreg")
@@ -109,6 +108,14 @@
        (match_test
         "offsettable_address_p (reload_completed | reload_in_progress,
 				mode, XEXP (op, 0))")))
+
+;; True if the operand is a memory operand that does not have an
+;; automodified base register (and thus will not generate output reloads).
+(define_predicate "call_memory_operand"
+  (and (match_code "mem")
+       (and (match_test "GET_RTX_CLASS (GET_CODE (XEXP (op, 0)))
+			 != RTX_AUTOINC")
+	    (match_operand 0 "memory_operand"))))
 
 (define_predicate "arm_reload_memory_operand"
   (and (match_code "mem,reg,subreg")

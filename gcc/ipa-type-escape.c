@@ -1,12 +1,12 @@
 /* Type based alias analysis.
-   Copyright (C) 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
    Contributed by Kenneth Zadeck <zadeck@naturalbridge.com>
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,9 +15,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 /* This pass determines which types in the program contain only
    instances that are completely encapsulated by the compilation unit.
@@ -200,7 +199,7 @@ compare_type_brand (splay_tree_key sk1, splay_tree_key sk2)
 static tree
 discover_unique_type (tree type)
 {
-  struct type_brand_s * brand = xmalloc (sizeof (struct type_brand_s));
+  struct type_brand_s * brand = XNEW (struct type_brand_s);
   int i = 0;
   splay_tree_node result;
 
@@ -267,7 +266,6 @@ type_to_consider (tree type)
   switch (TREE_CODE (type))
     {
     case BOOLEAN_TYPE:
-    case CHAR_TYPE:
     case COMPLEX_TYPE:
     case ENUMERAL_TYPE:
     case INTEGER_TYPE:
@@ -395,7 +393,7 @@ ipa_type_escape_type_contained_p (tree type)
 			get_canon_type_uid (type, true, false));
 }
 
-/* Return true a modification to a field of type FIELD_TYPE cannot
+/* Return true if a modification to a field of type FIELD_TYPE cannot
    clobber a record of RECORD_TYPE.  */
 
 bool 
@@ -1349,13 +1347,10 @@ analyze_variable (struct cgraph_varpool_node *vnode)
   if (vnode->externally_visible)
     mark_interesting_type (type, FULL_ESCAPE);
 
-  if (TREE_CODE (global) == VAR_DECL)
-    {
-      if (DECL_INITIAL (global)) 
-	walk_tree (&DECL_INITIAL (global), scan_for_refs, 
-		   NULL, visited_nodes);
-    } 
-  else abort();
+  gcc_assert (TREE_CODE (global) == VAR_DECL);
+
+  if (DECL_INITIAL (global))
+    walk_tree (&DECL_INITIAL (global), scan_for_refs, NULL, visited_nodes);
 }
 
 /* This is the main routine for finding the reference patterns for
@@ -1674,7 +1669,7 @@ close_addressof_down (int uid)
 
 /* The main entry point for type escape analysis.  */
 
-static void
+static unsigned int
 type_escape_execute (void)
 {
   struct cgraph_node *node;
@@ -1776,9 +1771,6 @@ type_escape_execute (void)
       result = splay_tree_successor (all_canon_types, (splay_tree_key) key);
     }
 
-/*   { */
-/*     FILE * tmp = dump_file; */
-/*     dump_file = stderr; */
   if (dump_file)
     { 
       EXECUTE_IF_SET_IN_BITMAP (global_types_seen, 0, i, bi)
@@ -1795,8 +1787,6 @@ type_escape_execute (void)
 	    fprintf(dump_file, " contained\n");
 	}
     }
-/*   dump_file = tmp; */
-/*   } */
 
   /* Get rid of uid_to_addressof_up_map and its bitmaps.  */
   result = splay_tree_min (uid_to_addressof_up_map);
@@ -1826,6 +1816,7 @@ type_escape_execute (void)
   BITMAP_FREE (been_there_done_that);
   BITMAP_FREE (bitmap_tmp);
   BITMAP_FREE (results_of_malloc);
+  return 0;
 }
 
 static bool

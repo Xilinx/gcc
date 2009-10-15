@@ -575,7 +575,7 @@ parse_format_list (st_parameter_dt *dtp)
     case FMT_DOLLAR:
       get_fnode (fmt, &head, &tail, FMT_DOLLAR);
       tail->repeat = 1;
-      notify_std (GFC_STD_GNU, "Extension: $ descriptor");
+      notify_std (&dtp->common, GFC_STD_GNU, "Extension: $ descriptor");
       goto between_desc;
 
     case FMT_T:
@@ -671,7 +671,7 @@ parse_format_list (st_parameter_dt *dtp)
 	    {
 	      fmt->saved_token = t;
 	      fmt->value = 1;	/* Default width */
-	      notify_std(GFC_STD_GNU, posint_required);
+	      notify_std (&dtp->common, GFC_STD_GNU, posint_required);
 	    }
 	}
 
@@ -725,8 +725,16 @@ parse_format_list (st_parameter_dt *dtp)
       t = format_lex (fmt);
       if (t != FMT_PERIOD)
 	{
-	  fmt->error = period_required;
-	  goto finished;
+	  /* We treat a missing decimal descriptor as 0.  Note: This is only
+	     allowed if -std=legacy, otherwise an error occurs.  */
+	  if (compile_options.warn_std != 0)
+	    {
+	      fmt->error = period_required;
+	      goto finished;
+	    }
+	  fmt->saved_token = t;
+	  tail->u.real.d = 0;
+	  break;
 	}
 
       t = format_lex (fmt);
@@ -852,10 +860,11 @@ parse_format_list (st_parameter_dt *dtp)
     case FMT_SLASH:
       get_fnode (fmt, &head, &tail, FMT_SLASH);
       tail->repeat = 1;
-
-      /* Fall Through */
+      goto optional_comma;
 
     case FMT_COLON:
+      get_fnode (fmt, &head, &tail, FMT_COLON);
+      tail->repeat = 1;
       goto optional_comma;
 
     case FMT_END:

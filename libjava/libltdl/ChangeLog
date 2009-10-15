@@ -1,14 +1,62 @@
-2007-02-13  Release Manager
+2008-05-19  Release Manager
 
-	* GCC 4.1.2 released.
+	* GCC 4.2.4 released.
 
-2006-05-24  Release Manager
+2008-02-01  Release Manager
 
-	* GCC 4.1.1 released.
+	* GCC 4.2.3 released.
 
-2006-02-28  Release Manager
+2007-10-07  Release Manager
 
-	* GCC 4.1.0 released.
+	* GCC 4.2.2 released.
+
+2007-07-19  Release Manager
+
+	* GCC 4.2.1 released.
+
+2007-05-13  Release Manager
+
+	* GCC 4.2.0 released.
+
+2007-01-16  Jack Howarth  <howarth@bromo.med.uc.edu>
+
+	* Makefile.am: Add ACLOCAL_AMFLAGS to use multi.m4.
+	* configure.ac: Use multi.m4 from aclocal rather than
+	custom code.
+	* aclocal.m4: Regenerate.
+	* configure: Regenerate.
+	* Makefile.in: Regenerate.
+
+2006-06-05  Tom Tromey  <tromey@redhat.com>
+
+	PR gcc/27818:
+	* Makefile.in: Rebuilt.
+	* Makefile.am (install-data-local): Define conditionally.
+
+2006-04-08  Andreas Tobler  <a.tobler@schweiz.ch>
+
+	* configure: Rebuilt.
+
+2006-04-06  Andreas Tobler  <a.tobler@schweiz.ch>
+
+	* acinclude.m4 (AC_LTDL_SHLIBEXT): Add GCJ LOCAL marker to indicate
+	GCJ specific stuff.
+
+2006-03-30  Tom Tromey  <tromey@redhat.com>
+
+	* aclocal.m4, configure, Makefile.in: Rebuilt.
+	* configure.ac: Use AM_MAINTAINER_MODE.
+
+2006-03-29  Andreas Tobler  <a.tobler@schweiz.ch>
+
+	* acinclude.m4: Restore the situation that we don't build modules on
+	darwin.
+	* configure: Regenerated.
+
+2006-03-28  Tom Tromey  <tromey@redhat.com>
+
+	PR libgcj/26441:
+	* Merged libltdl 1.5.16 from vendor branch.
 
 2004-11-24  Kelley Cook  <kcook@gcc.gnu.org>
 

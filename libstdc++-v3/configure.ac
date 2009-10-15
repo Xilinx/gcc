@@ -12,7 +12,7 @@ AC_CONFIG_HEADER(config.h)
 ### am handles this now?  ORIGINAL_LD_FOR_MULTILIBS=$LD
 
 # For libtool versioning info, format is CURRENT:REVISION:AGE
-libtool_VERSION=6:8:0
+libtool_VERSION=6:9:0
 AC_SUBST(libtool_VERSION)
 
 # Find the rest of the source tree framework.
@@ -112,7 +112,8 @@ GLIBCXX_ENABLE_FULLY_DYNAMIC_STRING([no])
 
 # No surprises, no surprises...
 GLIBCXX_ENABLE_THREADS
-if test $atomicity_dir = cpu/generic ; then
+GLIBCXX_ENABLE_ATOMIC_BUILTINS
+if test $atomicity_dir = cpu/generic/atomic_mutex ; then
   AC_MSG_WARN([No native atomic operations are provided for this platform.])
   if test $target_thread_file = single; then
     AC_MSG_WARN([They cannot be faked when thread support is disabled.])
@@ -123,6 +124,7 @@ if test $atomicity_dir = cpu/generic ; then
   fi
 fi
 
+GLIBCXX_CHECK_COMPILER_FEATURES
 
 if $GLIBCXX_IS_NATIVE; then
 
@@ -134,7 +136,6 @@ if $GLIBCXX_IS_NATIVE; then
   machine/param.h sys/machine.h fp.h locale.h float.h inttypes.h gconv.h \
   sys/types.h sys/ipc.h sys/sem.h])
 
-  GLIBCXX_CHECK_COMPILER_FEATURES
   GLIBCXX_CHECK_LINKER_FEATURES
   GLIBCXX_CHECK_MATH_SUPPORT
   GLIBCXX_CHECK_BUILTIN_MATH_SUPPORT
@@ -157,8 +158,17 @@ if $GLIBCXX_IS_NATIVE; then
   # For LFS support.
   GLIBCXX_CHECK_LFS
 
+  # For C99 support to TR1.
+  GLIBCXX_CHECK_C99_TR1
+
+  # For dev/random and dev/urandom for TR1.
+  GLIBCXX_CHECK_RANDOM_TR1
+
   # For TLS support.
   GCC_CHECK_TLS
+
+  # For _Unwind_GetIPInfo.
+  GCC_CHECK_UNWIND_GETIPINFO
 
   AC_LC_MESSAGES
 
@@ -200,7 +210,6 @@ else
   fi
 
   # Construct crosses by hand, eliminating bits that need ld...
-  # GLIBCXX_CHECK_COMPILER_FEATURES
   # GLIBCXX_CHECK_BUILTIN_MATH_SUPPORT
   # GLIBCXX_CHECK_MATH_SUPPORT
 
@@ -276,10 +285,33 @@ else
     AC_DEFINE(HAVE_TANHL)
   fi
 
+  # Assume we have _Unwind_GetIPInfo for cross-compiles.
+  AC_DEFINE(HAVE_GETIPINFO)
+
 fi
 
 # This depends on GLIBCXX CHECK_LINKER_FEATURES, but without it assumes no.
 GLIBCXX_ENABLE_SYMVERS([yes])
+GLIBCXX_ENABLE_VISIBILITY([yes])
+
+ac_ldbl_compat=no
+case "$target" in
+  powerpc*-*-*gnu* | \
+  sparc*-*-linux* | \
+  s390*-*-linux* | \
+  alpha*-*-linux*)
+  AC_TRY_COMPILE(, [
+#if !defined __LONG_DOUBLE_128__ || (defined(__sparc__) && defined(__arch64__))
+#error no need for long double compatibility
+#endif
+  ], [ac_ldbl_compat=yes], [ac_ldbl_compat=no])
+  if test "$ac_ldbl_compat" = yes; then
+    AC_DEFINE([_GLIBCXX_LONG_DOUBLE_COMPAT],1,
+	      [Define if compatibility should be provided for -mlong-double-64.])
+    port_specific_symbol_files="\$(top_srcdir)/config/os/gnu-linux/ldbl-extra.ver"
+  fi
+esac
+GLIBCXX_CONDITIONAL(GLIBCXX_LDBL_COMPAT, test $ac_ldbl_compat = yes)
 
 # This depends on GLIBCXX_ENABLE_SYMVERS and GLIBCXX_IS_NATIVE.
 GLIBCXX_CONFIGURE_TESTSUITE
@@ -295,6 +327,7 @@ AC_SUBST(ATOMIC_WORD_SRCDIR)
 AC_SUBST(CPU_DEFINES_SRCDIR)
 AC_SUBST(ABI_TWEAKS_SRCDIR)
 AC_SUBST(OS_INC_SRCDIR)
+
 
 # Determine cross-compile flags and AM_CONDITIONALs.
 #AC_SUBST(GLIBCXX_IS_NATIVE)

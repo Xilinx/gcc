@@ -1,12 +1,12 @@
 /* Handle types for the GNU compiler for the Java(TM) language.
-   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2003, 2004, 2005
-   Free Software Foundation, Inc.
+   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2003, 2004, 2005,
+   2007  Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -15,9 +15,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  
 
 Java and all Java-based marks are trademarks or registered trademarks
 of Sun Microsystems, Inc. in the United States and other countries.
@@ -55,8 +54,7 @@ set_local_type (int slot, tree type)
   int max_locals = DECL_MAX_LOCALS(current_function_decl);
   int nslots = TYPE_IS_WIDE (type) ? 2 : 1;
 
-  if (slot < 0 || slot + nslots - 1 >= max_locals)
-    abort ();
+  gcc_assert (slot >= 0 && (slot + nslots - 1 < max_locals));
 
   type_map[slot] = type;
   while (--nslots > 0)
@@ -126,10 +124,12 @@ convert (tree type, tree expr)
     return error_mark_node;
   if (code == VOID_TYPE)
     return build1 (CONVERT_EXPR, type, expr);
-  if (code == BOOLEAN_TYPE || code ==  CHAR_TYPE)
+  if (code == BOOLEAN_TYPE)
     return fold_convert (type, expr);
   if (code == INTEGER_TYPE)
     {
+      if (type == char_type_node || type == promoted_char_type_node)
+	return fold_convert (type, expr);
       if ((really_constant_p (expr)
 	   || (! flag_unsafe_math_optimizations
 	       && ! flag_emit_class_files))
@@ -355,7 +355,7 @@ tree
 build_java_array_type (tree element_type, HOST_WIDE_INT length)
 {
   tree sig, t, fld, atype, arfld;
-  char buf[12];
+  char buf[23]; /* 20 for the digits of a 64 bit number + "[]" + \0 */
   tree elsig = build_java_signature (element_type);
   tree el_name = element_type;
   buf[0] = '[';
@@ -378,15 +378,17 @@ build_java_array_type (tree element_type, HOST_WIDE_INT length)
   if (TREE_CODE (el_name) == TYPE_DECL)
     el_name = DECL_NAME (el_name);
   {
-    char suffix[12];
+    char suffix[23];
     if (length >= 0)
       sprintf (suffix, "[%d]", (int)length); 
     else
       strcpy (suffix, "[]");
     TYPE_NAME (t) 
+      = TYPE_STUB_DECL (t)
       = build_decl (TYPE_DECL,
 		    identifier_subst (el_name, "", '.', '.', suffix),
                              t);
+    TYPE_DECL_SUPPRESS_DEBUG (TYPE_STUB_DECL (t)) = true;
   }
 
   set_java_signature (t, sig);
@@ -431,11 +433,9 @@ promote_type (tree type)
       if (type == boolean_type_node)
 	return promoted_boolean_type_node;
       goto handle_int;
-    case CHAR_TYPE:
+    case INTEGER_TYPE:
       if (type == char_type_node)
 	return promoted_char_type_node;
-      goto handle_int;
-    case INTEGER_TYPE:
     handle_int:
       if (TYPE_PRECISION (type) < TYPE_PRECISION (int_type_node))
 	{
@@ -458,9 +458,7 @@ static tree
 parse_signature_type (const unsigned char **ptr, const unsigned char *limit)
 {
   tree type;
-
-  if (*ptr >= limit)
-    abort ();
+  gcc_assert (*ptr < limit);
 
   switch (**ptr)
     {
@@ -484,8 +482,7 @@ parse_signature_type (const unsigned char **ptr, const unsigned char *limit)
 	const unsigned char *str = start;
 	for ( ; ; str++)
 	  {
-	    if (str >= limit)
-	      abort ();
+	    gcc_assert (str < limit);
 	    if (*str == ';')
 	      break;
 	  }
@@ -494,7 +491,7 @@ parse_signature_type (const unsigned char **ptr, const unsigned char *limit)
 	break;
       }
     default:
-      abort ();
+      gcc_unreachable ();
     }
   return promote_type (type);
 }
@@ -605,9 +602,13 @@ build_java_signature (tree type)
       switch (TREE_CODE (type))
 	{
 	case BOOLEAN_TYPE: sg[0] = 'Z';  goto native;
-	case CHAR_TYPE:    sg[0] = 'C';  goto native;
 	case VOID_TYPE:    sg[0] = 'V';  goto native;
 	case INTEGER_TYPE:
+          if (type == char_type_node || type == promoted_char_type_node)
+	    {
+	      sg[0] = 'C';
+	      goto native;
+	    }
 	  switch (TYPE_PRECISION (type))
 	    {
 	    case  8:       sg[0] = 'B';  goto native;
@@ -662,7 +663,7 @@ build_java_signature (tree type)
 	  break;
 	bad_type:
 	default:
-	  abort ();
+	  gcc_unreachable ();
 	}
       TYPE_SIGNATURE (type) = sig;
     }

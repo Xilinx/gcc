@@ -1,13 +1,13 @@
 /* Subroutines for insn-output.c for Windows NT.
    Contributed by Douglas Rupp (drupp@cs.washington.edu)
-   Copyright (C) 1995, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005
-   Free Software Foundation, Inc.
+   Copyright (C) 1995, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
+   2005, 2006, 2007  Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -16,9 +16,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -88,17 +87,10 @@ ix86_handle_selectany_attribute (tree *node, tree name,
 				 bool *no_add_attrs)
 {
   /* The attribute applies only to objects that are initialized and have
-     external linkage,  */	
-  if (TREE_CODE (*node) == VAR_DECL && TREE_PUBLIC (*node)
-      && (DECL_INITIAL (*node)
-          /* If an object is initialized with a ctor, the static
-	     initialization and destruction code for it is present in
-	     each unit defining the object.  The code that calls the
-	     ctor is protected by a link-once guard variable, so that
-	     the object still has link-once semantics,  */
-    	  || TYPE_NEEDS_CONSTRUCTING (TREE_TYPE (*node))))
-    make_decl_one_only (*node);
-  else
+     external linkage.  However, we may not know about initialization
+     until the language frontend has processed the decl. We'll check for
+     initialization later in encode_section_info.  */	
+  if (TREE_CODE (*node) != VAR_DECL || !TREE_PUBLIC (*node))
     {	
       error ("%qs attribute applies only to initialized variables"
        	     " with external linkage",  IDENTIFIER_POINTER (name));
@@ -148,18 +140,28 @@ i386_pe_dllimport_p (tree decl)
        && TREE_CODE (decl) != FUNCTION_DECL)
     return false;
 
-  /* Lookup the attribute rather than rely on the DECL_DLLIMPORT_P flag.
+  /* Lookup the attribute in addition to checking the DECL_DLLIMPORT_P flag.
      We may need to override an earlier decision.  */
-  if (lookup_attribute ("dllimport", DECL_ATTRIBUTES (decl)))
-    return true;
-
+  if (DECL_DLLIMPORT_P (decl)
+      && lookup_attribute ("dllimport", DECL_ATTRIBUTES (decl)))
+    {
+       /* Make a final check to see if this is a definition before we generate
+          RTL for an indirect reference.  */   
+       if (!DECL_EXTERNAL (decl))
+	{
+	  error ("%q+D: definition is marked as dllimport", decl);
+	  DECL_DLLIMPORT_P (decl) = 0;
+          return false;
+        }
+      return true;
+    }
   /* The DECL_DLLIMPORT_P flag was set for decls in the class definition
      by  targetm.cxx.adjust_class_at_definition.  Check again to emit
-     warnings if the class attribute has been overriden by an
+     warnings if the class attribute has been overridden by an
      out-of-class definition.  */
-  if (associated_type (decl)
-      && lookup_attribute ("dllimport",
-			    TYPE_ATTRIBUTES (associated_type (decl))))
+  else if (associated_type (decl)
+           && lookup_attribute ("dllimport",
+				TYPE_ATTRIBUTES (associated_type (decl))))
     return i386_pe_type_dllimport_p (decl);
 
   return false;
@@ -229,7 +231,7 @@ i386_pe_mark_dllexport (tree decl)
   idp = get_identifier (newname);
 
   symref = gen_rtx_SYMBOL_REF (Pmode, IDENTIFIER_POINTER (idp));
-  SYMBOL_REF_DECL (symref) = decl;
+  SET_SYMBOL_REF_DECL (symref, decl);
   XEXP (DECL_RTL (decl), 0) = symref;
 }
 
@@ -274,7 +276,7 @@ i386_pe_mark_dllimport (tree decl)
   idp = get_identifier (newname);
 
   symref = gen_rtx_SYMBOL_REF (Pmode, IDENTIFIER_POINTER (idp));
-  SYMBOL_REF_DECL (symref) = decl;
+  SET_SYMBOL_REF_DECL (symref, decl);
   newrtl = gen_rtx_MEM (Pmode,symref);
   XEXP (DECL_RTL (decl), 0) = newrtl;
 
@@ -360,6 +362,22 @@ i386_pe_encode_section_info (tree decl, rtx rtl, int first)
 	     should catch the mismatch before this is called.  */ 
 	  change_decl_assembler_name (decl, newid);
 	}
+    }
+
+  else if (TREE_CODE (decl) == VAR_DECL
+           && lookup_attribute ("selectany", DECL_ATTRIBUTES (decl)))
+    {
+      if (DECL_INITIAL (decl)
+ 	  /* If an object is initialized with a ctor, the static
+	     initialization and destruction code for it is present in
+	     each unit defining the object.  The code that calls the
+	     ctor is protected by a link-once guard variable, so that
+	     the object still has link-once semantics,  */
+    	   || TYPE_NEEDS_CONSTRUCTING (TREE_TYPE (decl)))
+	make_decl_one_only (decl);
+      else
+	error ("%q+D:'selectany' attribute applies only to initialized objects",
+	       decl);
     }
 
   /* Mark the decl so we can tell from the rtl whether the object is

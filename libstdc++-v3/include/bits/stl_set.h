@@ -1,6 +1,6 @@
 // Set implementation -*- C++ -*-
 
-// Copyright (C) 2001, 2002, 2004, 2005 Free Software Foundation, Inc.
+// Copyright (C) 2001, 2002, 2004, 2005, 2006 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -63,22 +63,7 @@
 
 #include <bits/concept_check.h>
 
-namespace _GLIBCXX_STD
-{
-  // Forward declarations of operators < and ==, needed for friend declaration.
-  template<class _Key, class _Compare = std::less<_Key>,
-	   class _Alloc = std::allocator<_Key> >
-    class set;
-
-  template<class _Key, class _Compare, class _Alloc>
-    inline bool
-    operator==(const set<_Key, _Compare, _Alloc>& __x,
-	       const set<_Key, _Compare, _Alloc>& __y);
-
-  template<class _Key, class _Compare, class _Alloc>
-    inline bool
-    operator<(const set<_Key, _Compare, _Alloc>& __x,
-	      const set<_Key, _Compare, _Alloc>& __y);
+_GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
 
   /**
    *  @brief A standard container made up of unique keys, which can be
@@ -103,7 +88,8 @@ namespace _GLIBCXX_STD
    *  called (*_unique versus *_equal, same as the standard).
    *  @endif
   */
-  template<class _Key, class _Compare, class _Alloc>
+  template<class _Key, class _Compare = std::less<_Key>,
+	   class _Alloc = std::allocator<_Key> >
     class set
     {
       // concept requirements
@@ -177,7 +163,7 @@ namespace _GLIBCXX_STD
       template<class _InputIterator>
         set(_InputIterator __first, _InputIterator __last)
         : _M_t(_Compare(), allocator_type())
-        { _M_t.insert_unique(__first, __last); }
+        { _M_t._M_insert_unique(__first, __last); }
 
       /**
        *  @brief  Builds a %set from a range.
@@ -195,7 +181,7 @@ namespace _GLIBCXX_STD
 	    const _Compare& __comp,
 	    const allocator_type& __a = allocator_type())
 	: _M_t(__comp, __a)
-        { _M_t.insert_unique(__first, __last); }
+        { _M_t._M_insert_unique(__first, __last); }
 
       /**
        *  @brief  Set copy constructor.
@@ -318,7 +304,7 @@ namespace _GLIBCXX_STD
       insert(const value_type& __x)
       {
 	std::pair<typename _Rep_type::iterator, bool> __p =
-	  _M_t.insert_unique(__x);
+	  _M_t._M_insert_unique(__x);
 	return std::pair<iterator, bool>(__p.first, __p.second);
       }
 
@@ -343,7 +329,7 @@ namespace _GLIBCXX_STD
        */
       iterator
       insert(iterator __position, const value_type& __x)
-      { return _M_t.insert_unique(__position, __x); }
+      { return _M_t._M_insert_unique(__position, __x); }
 
       /**
        *  @brief A template function that attemps to insert a range of elements.
@@ -356,7 +342,7 @@ namespace _GLIBCXX_STD
       template<class _InputIterator>
         void
         insert(_InputIterator __first, _InputIterator __last)
-        { _M_t.insert_unique(__first, __last); }
+        { _M_t._M_insert_unique(__first, __last); }
 
       /**
        *  @brief Erases an element from a %set.
@@ -587,6 +573,6 @@ namespace _GLIBCXX_STD
     swap(set<_Key, _Compare, _Alloc>& __x, set<_Key, _Compare, _Alloc>& __y)
     { __x.swap(__y); }
 
-} // namespace std
+_GLIBCXX_END_NESTED_NAMESPACE
 
 #endif /* _SET_H */

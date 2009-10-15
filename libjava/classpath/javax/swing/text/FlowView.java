@@ -38,14 +38,10 @@ exception statement from your version. */
 
 package javax.swing.text;
 
-import java.awt.Container;
-import java.awt.Graphics;
 import java.awt.Rectangle;
 import java.awt.Shape;
-import java.util.Iterator;
-import java.util.Vector;
 
-import javax.swing.SwingConstants;
+import javax.swing.SizeRequirements;
 import javax.swing.event.DocumentEvent;
 
 /**
@@ -89,7 +85,7 @@ public abstract class FlowView extends BoxView
      */
     public void insertUpdate(FlowView fv, DocumentEvent e, Rectangle alloc)
     {
-      layout(fv);
+      // The default implementation does nothing.
     }
 
     /**
@@ -105,7 +101,7 @@ public abstract class FlowView extends BoxView
      */
     public void removeUpdate(FlowView fv, DocumentEvent e, Rectangle alloc)
     {
-      layout(fv);
+      // The default implementation does nothing.
     }
 
     /**
@@ -121,7 +117,7 @@ public abstract class FlowView extends BoxView
      */
     public void changedUpdate(FlowView fv, DocumentEvent e, Rectangle alloc)
     {
-      layout(fv);
+      // The default implementation does nothing.
     }
 
     /**
@@ -131,7 +127,7 @@ public abstract class FlowView extends BoxView
      *
      * @return the logical view of the managed <code>FlowView</code>
      */
-    public View getLogicalView(FlowView fv)
+    protected View getLogicalView(FlowView fv)
     {
       return fv.layoutPool;
     }
@@ -163,46 +159,66 @@ public abstract class FlowView extends BoxView
     }
 
     /**
-     * Lays out one row of the flow view. This is called by {@link #layout}
-     * to fill one row with child views until the available span is exhausted.
-     *
+     * Lays out one row of the flow view. This is called by {@link #layout} to
+     * fill one row with child views until the available span is exhausted. The
+     * default implementation fills the row by calling
+     * {@link #createView(FlowView, int, int, int)} until the available space is
+     * exhausted, a forced break is encountered or there are no more views in
+     * the logical view. If the available space is exhausted,
+     * {@link #adjustRow(FlowView, int, int, int)} is called to fit the row into
+     * the available span.
+     * 
      * @param fv the flow view for which we perform the layout
      * @param rowIndex the index of the row
-     * @param pos the start position for the row
-     *
+     * @param pos the model position for the beginning of the row
      * @return the start position of the next row
      */
     protected int layoutRow(FlowView fv, int rowIndex, int pos)
     {
-      int spanLeft = fv.getFlowSpan(rowIndex);
-      if (spanLeft <= 0)
-        return -1;
-
-      int offset = pos;
       View row = fv.getView(rowIndex);
-      int flowAxis = fv.getFlowAxis();
+      int axis = fv.getFlowAxis();
+      int span = fv.getFlowSpan(rowIndex);
+      int x = fv.getFlowStart(rowIndex);
+      int offset = pos;
+      View logicalView = getLogicalView(fv);
+      // Special case when span == 0. We need to layout the row as if it had
+      // a span of Integer.MAX_VALUE.
+      if (span == 0)
+        span = Integer.MAX_VALUE;
 
-      while (spanLeft > 0)
+      Row: while (span > 0)
         {
-          View child = createView(fv, offset, spanLeft, rowIndex);
-          if (child == null)
-            {
-              offset = -1;
-              break;
-            }
+          if (logicalView.getViewIndex(offset, Position.Bias.Forward) == - 1)
+            break;
+          View view = createView(fv, offset, span, rowIndex);
+          if (view == null)
+            break;
 
-          int span = (int) child.getPreferredSpan(flowAxis);
-          if (span > spanLeft)
-            {
-              offset = -1;
-              break;
-            }
+          int viewSpan = (int) view.getPreferredSpan(axis);
+          int breakWeight = view.getBreakWeight(axis, x, span);
 
-          row.append(child);
-          spanLeft -= span;
-          offset = child.getEndOffset();
+          row.append(view);
+          offset += (view.getEndOffset() - view.getStartOffset());
+          x += viewSpan;
+          span -= viewSpan;
+
+          // Break if the line if the view does not fit in this row or the
+          // line just must be broken.
+          if (span < 0 || breakWeight >= View.ForcedBreakWeight)
+            {
+              int flowStart = fv.getFlowStart(axis);
+              int flowSpan = fv.getFlowSpan(axis);
+              adjustRow(fv, rowIndex, flowSpan, flowStart);
+              int rowViewCount = row.getViewCount();
+              if (rowViewCount > 0)
+                offset = row.getView(rowViewCount - 1).getEndOffset();
+              else
+                offset = - 1;
+              break Row;
+            }
         }
-      return offset;
+
+      return offset != pos ? offset : - 1;
     }
 
     /**
@@ -212,36 +228,89 @@ public abstract class FlowView extends BoxView
      * available span and can be broken down) or <code>null</code> (if it does
      * not fit in the available span and also cannot be broken down).
      *
+     * The default implementation fetches the logical view at the specified
+     * <code>startOffset</code>. If that view has a different startOffset than
+     * specified in the argument, a fragment is created using
+     * {@link View#createFragment(int, int)} that has the correct startOffset
+     * and the logical view's endOffset.
+     *
      * @param fv the flow view
-     * @param offset the start offset for the view to be created
+     * @param startOffset the start offset for the view to be created
      * @param spanLeft the available span
      * @param rowIndex the index of the row
      *
      * @return a view to fill the row with, or <code>null</code> if there
      *         is no view or view fragment that fits in the available span
      */
-    protected View createView(FlowView fv, int offset, int spanLeft,
+    protected View createView(FlowView fv, int startOffset, int spanLeft,
                               int rowIndex)
     {
-      // Find the logical element for the given offset.
-      View logicalView = getLogicalView(fv);
+       View logicalView = getLogicalView(fv);
+       // FIXME: Handle the bias thing correctly.
+       int index = logicalView.getViewIndex(startOffset, Position.Bias.Forward);
+       View retVal = null;
+       if (index >= 0)
+         {
+           retVal = logicalView.getView(index);
+           if (retVal.getStartOffset() != startOffset)
+             retVal = retVal.createFragment(startOffset, retVal.getEndOffset());
+         }
+       return retVal;
+    }
 
-      int viewIndex = logicalView.getViewIndex(offset, Position.Bias.Forward);
-      if (viewIndex == -1)
-        return null;
+    /**
+     * Tries to adjust the specified row to fit within the desired span. The
+     * default implementation iterates through the children of the specified
+     * row to find the view that has the highest break weight and - if there
+     * is more than one view with such a break weight - which is nearest to
+     * the end of the row. If there is such a view that has a break weight >
+     * {@link View#BadBreakWeight}, this view is broken using the
+     * {@link View#breakView(int, int, float, float)} method and this view and
+     * all views after the now broken view are replaced by the broken view.
+     *
+     * @param fv the flow view
+     * @param rowIndex the index of the row to be adjusted
+     * @param desiredSpan the layout span
+     * @param x the X location at which the row starts
+     */
+    protected void adjustRow(FlowView fv, int rowIndex, int desiredSpan, int x) {
+      // Determine the last view that has the highest break weight.
+      int axis = fv.getFlowAxis();
+      View row = fv.getView(rowIndex);
+      int count = row.getViewCount();
+      int breakIndex = -1;
+      int maxBreakWeight = View.BadBreakWeight;
+      int breakX = x;
+      int breakSpan = desiredSpan;
+      int currentX = x;
+      int currentSpan = desiredSpan;
+      for (int i = 0; i < count; ++i)
+        {
+          View view = row.getView(i);
+          int weight = view.getBreakWeight(axis, currentX, currentSpan);
+          if (weight >= maxBreakWeight)
+            {
+              breakIndex = i;
+              breakX = currentX;
+              breakSpan = currentSpan;
+              maxBreakWeight = weight;
+            }
+          int size = (int) view.getPreferredSpan(axis);
+          currentX += size;
+          currentSpan -= size;
+        }
 
-      View child = logicalView.getView(viewIndex);
-      int flowAxis = fv.getFlowAxis();
-      int span = (int) child.getPreferredSpan(flowAxis);
-
-      if (span <= spanLeft)
-        return child;
-      else if (child.getBreakWeight(flowAxis, offset, spanLeft)
-               > BadBreakWeight)
-        // FIXME: What to do with the pos parameter here?
-        return child.breakView(flowAxis, offset, 0, spanLeft);
-      else
-        return null;
+      // If there is a potential break location found, break the row at
+      // this location.
+      if (breakIndex > -1)
+        {
+          View toBeBroken = row.getView(breakIndex);
+          View brokenView = toBeBroken.breakView(axis,
+                                                 toBeBroken.getStartOffset(),
+                                                 breakX, breakSpan);
+          row.replace(breakIndex, count - breakIndex,
+                      new View[]{brokenView});
+        }
     }
   }
 
@@ -251,181 +320,14 @@ public abstract class FlowView extends BoxView
    * visual representation, this is handled by the physical view implemented
    * in the <code>FlowView</code>.
    */
-  class LogicalView extends View
+  class LogicalView extends BoxView
   {
-    /**
-     * The child views of this logical view.
-     */
-    Vector children;
-
     /**
      * Creates a new LogicalView instance.
      */
-    LogicalView(Element el)
+    LogicalView(Element el, int axis)
     {
-      super(el);
-      children = new Vector();
-    }
-
-    /**
-     * Returns the container that holds this view. The logical view returns
-     * the enclosing FlowView's container here.
-     *
-     * @return the container that holds this view
-     */
-    public Container getContainer()
-    {
-      return FlowView.this.getContainer();
-    }
-
-    /**
-     * Returns the number of child views of this logical view.
-     *
-     * @return the number of child views of this logical view
-     */
-    public int getViewCount()
-    {
-      return children.size();
-    }
-
-    /**
-     * Returns the child view at the specified index.
-     *
-     * @param index the index
-     *
-     * @return the child view at the specified index
-     */
-    public View getView(int index)
-    {
-      return (View) children.get(index);
-    }
-
-    /**
-     * Replaces some child views with other child views.
-     *
-     * @param offset the offset at which to replace child views
-     * @param length the number of children to remove
-     * @param views the views to be inserted
-     */
-    public void replace(int offset, int length, View[] views)
-    {
-      if (length > 0)
-        {
-          for (int count = 0; count < length; ++count)
-            children.remove(offset);
-        }
-
-      int endOffset = offset + views.length;
-      for (int i = offset; i < endOffset; ++i)
-        {
-          children.add(i, views[i - offset]);
-          // Set the parent of the child views to the flow view itself so
-          // it has something to resolve.
-          views[i - offset].setParent(FlowView.this);
-        }
-    }
-
-    /**
-     * Returns the index of the child view that contains the specified
-     * position in the document model.
-     *
-     * @param pos the position for which we are searching the child view
-     * @param b the bias
-     *
-     * @return the index of the child view that contains the specified
-     *         position in the document model
-     */
-    public int getViewIndex(int pos, Position.Bias b)
-    {
-      int index = -1;
-      int i = 0;
-      for (Iterator it = children.iterator(); it.hasNext(); i++)
-        {
-          View child = (View) it.next();
-          if (child.getStartOffset() >= pos
-              && child.getEndOffset() < pos)
-            {
-              index = i;
-              break;
-            }
-        }
-      return index;
-    }
-
-    /**
-     * Throws an AssertionError because it must never be called. LogicalView
-     * only serves as a holder for child views and has no visual
-     * representation.
-     */
-    public float getPreferredSpan(int axis)
-    {
-      throw new AssertionError("This method must not be called in "
-                               + "LogicalView.");
-    }
-
-    /**
-     * Throws an AssertionError because it must never be called. LogicalView
-     * only serves as a holder for child views and has no visual
-     * representation.
-     */
-    public Shape modelToView(int pos, Shape a, Position.Bias b)
-      throws BadLocationException
-    {
-      throw new AssertionError("This method must not be called in "
-                               + "LogicalView.");
-    }
-
-    /**
-     * Throws an AssertionError because it must never be called. LogicalView
-     * only serves as a holder for child views and has no visual
-     * representation.
-     */
-    public void paint(Graphics g, Shape s)
-    {
-      throw new AssertionError("This method must not be called in "
-                               + "LogicalView.");
-    }
-
-    /**
-     * Throws an AssertionError because it must never be called. LogicalView
-     * only serves as a holder for child views and has no visual
-     * representation.
-     */
-    public int viewToModel(float x, float y, Shape a, Position.Bias[] b)
-    {
-      throw new AssertionError("This method must not be called in "
-                               + "LogicalView.");
-    }
-
-    /**
-     * Returns the document position that is (visually) nearest to the given
-     * document position <code>pos</code> in the given direction <code>d</code>.
-     *
-     * @param c the text component
-     * @param pos the document position
-     * @param b the bias for <code>pos</code>
-     * @param d the direction, must be either {@link SwingConstants#NORTH},
-     *        {@link SwingConstants#SOUTH}, {@link SwingConstants#WEST} or
-     *        {@link SwingConstants#EAST}
-     * @param biasRet an array of {@link Position.Bias} that can hold at least
-     *        one element, which is filled with the bias of the return position
-     *        on method exit
-     *
-     * @return the document position that is (visually) nearest to the given
-     *         document position <code>pos</code> in the given direction
-     *         <code>d</code>
-     *
-     * @throws BadLocationException if <code>pos</code> is not a valid offset in
-     *         the document model
-     */
-    public int getNextVisualPositionFrom(JTextComponent c, int pos,
-                                         Position.Bias b, int d,
-                                         Position.Bias[] biasRet)
-      throws BadLocationException
-    {
-      assert false : "getNextVisualPositionFrom() must not be called in "
-        + "LogicalView";
-      return 0;
+      super(el, axis);
     }
   }
 
@@ -455,6 +357,11 @@ public abstract class FlowView extends BoxView
   protected FlowStrategy strategy;
 
   /**
+   * Indicates if the flow should be rebuild during the next layout.
+   */
+  private boolean layoutDirty;
+
+  /**
    * Creates a new <code>FlowView</code> for the given
    * <code>Element</code> and <code>axis</code>.
    *
@@ -467,6 +374,7 @@ public abstract class FlowView extends BoxView
   {
     super(element, axis);
     strategy = sharedStrategy;
+    layoutDirty = true;
   }
 
   /**
@@ -528,7 +436,7 @@ public abstract class FlowView extends BoxView
   /**
    * Loads the children of this view. The <code>FlowView</code> does not
    * directly load its children. Instead it creates a logical view
-   * (@{link #layoutPool}) which is filled by the logical child views.
+   * ({@link #layoutPool}) which is filled by the logical child views.
    * The real children are created at layout time and each represent one
    * row.
    *
@@ -541,16 +449,8 @@ public abstract class FlowView extends BoxView
   {
     if (layoutPool == null)
       {
-        layoutPool = new LogicalView(getElement());
-
-        Element el = getElement();
-        int count = el.getElementCount();
-        for (int i = 0; i < count; ++i)
-          {
-            Element childEl = el.getElement(i);
-            View childView = vf.create(childEl);
-            layoutPool.append(childView);
-          }
+        layoutPool = new LogicalView(getElement(), getAxis());
+        layoutPool.setParent(this);
       }
   }
 
@@ -565,27 +465,32 @@ public abstract class FlowView extends BoxView
    */
   protected void layout(int width, int height)
   {
-    boolean rebuild = false;
-
     int flowAxis = getFlowAxis();
     if (flowAxis == X_AXIS)
       {
-        rebuild = !(width == layoutSpan);
-        layoutSpan = width;
+        if (layoutSpan != width)
+          {
+            layoutChanged(Y_AXIS);
+            layoutSpan = width;
+          }
       }
     else
       {
-        rebuild = !(height == layoutSpan);
-        layoutSpan = height;
+        if (layoutSpan != height)
+          {
+            layoutChanged(X_AXIS);
+            layoutSpan = height;
+          }
       }
 
-    if (rebuild)
-      strategy.layout(this);
+    if (layoutDirty)
+      {
+        strategy.layout(this);
+        layoutDirty = false;
+      }
 
-    // TODO: If the span along the box axis has changed in the process of
-    // relayouting the rows (that is, if rows have been added or removed),
-    // call preferenceChanged in order to throw away cached layout information
-    // of the surrounding BoxView.
+    if (getPreferredSpan(getAxis()) != height)
+      preferenceChanged(this, false, true);
 
     super.layout(width, height);
   }
@@ -605,6 +510,7 @@ public abstract class FlowView extends BoxView
     // be updated accordingly.
     layoutPool.insertUpdate(changes, a, vf);
     strategy.insertUpdate(this, changes, getInsideAllocation(a));
+    layoutDirty = true;
   }
 
   /**
@@ -618,7 +524,9 @@ public abstract class FlowView extends BoxView
    */
   public void removeUpdate(DocumentEvent changes, Shape a, ViewFactory vf)
   {
+    layoutPool.removeUpdate(changes, a, vf);
     strategy.removeUpdate(this, changes, getInsideAllocation(a));
+    layoutDirty = true;
   }
 
   /**
@@ -632,7 +540,9 @@ public abstract class FlowView extends BoxView
    */
   public void changedUpdate(DocumentEvent changes, Shape a, ViewFactory vf)
   {
+    layoutPool.changedUpdate(changes, a, vf);
     strategy.changedUpdate(this, changes, getInsideAllocation(a));
+    layoutDirty = true;
   }
 
   /**
@@ -670,5 +580,33 @@ public abstract class FlowView extends BoxView
           }
       }
     return result;
+  }
+
+  /**
+   * Calculates the size requirements of this <code>BoxView</code> along
+   * its minor axis, that is the axis opposite to the axis specified in the
+   * constructor.
+   *
+   * This is overridden and forwards the request to the logical view.
+   *
+   * @param axis the axis that is examined
+   * @param r the <code>SizeRequirements</code> object to hold the result,
+   *        if <code>null</code>, a new one is created
+   *
+   * @return the size requirements for this <code>BoxView</code> along
+   *         the specified axis
+   */
+  protected SizeRequirements calculateMinorAxisRequirements(int axis,
+                                                            SizeRequirements r)
+  {
+    SizeRequirements res = r;
+    if (res == null)
+      res = new SizeRequirements();
+    res.minimum = (int) layoutPool.getMinimumSpan(axis);
+    res.preferred = Math.max(res.minimum,
+                             (int) layoutPool.getMinimumSpan(axis));
+    res.maximum = Integer.MAX_VALUE;
+    res.alignment = 0.5F;
+    return res;
   }
 }

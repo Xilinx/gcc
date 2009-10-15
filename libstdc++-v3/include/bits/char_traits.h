@@ -28,14 +28,14 @@
 // invalidate any other reasons why the executable file might be covered by
 // the GNU General Public License.
 
-//
-// ISO C++ 14882: 21  Strings library
-//
-
 /** @file char_traits.h
  *  This is an internal header file, included by other library headers.
  *  You should not attempt to use it directly.
  */
+
+//
+// ISO C++ 14882: 21  Strings library
+//
 
 #ifndef _CHAR_TRAITS_H
 #define _CHAR_TRAITS_H 1
@@ -46,8 +46,8 @@
 #include <bits/stl_algobase.h>// For copy, lexicographical_compare, fill_n
 #include <bits/postypes.h>    // For streampos
 
-namespace __gnu_cxx
-{
+_GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
+
   /**
    *  @brief  Mapping from character type to associated types.
    *
@@ -148,7 +148,7 @@ namespace __gnu_cxx
     char_traits<_CharT>::
     compare(const char_type* __s1, const char_type* __s2, std::size_t __n)
     {
-      for (size_t __i = 0; __i < __n; ++__i)
+      for (std::size_t __i = 0; __i < __n; ++__i)
 	if (lt(__s1[__i], __s2[__i]))
 	  return -1;
 	else if (lt(__s2[__i], __s1[__i]))
@@ -204,10 +204,11 @@ namespace __gnu_cxx
       std::fill_n(__s, __n, __a);
       return __s;
     }
-}
 
-namespace std
-{
+_GLIBCXX_END_NAMESPACE
+
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
   // 21.1
   /**
    *  @brief  Basis for explicit traits specializations.
@@ -361,6 +362,6 @@ namespace std
   };
 #endif //_GLIBCXX_USE_WCHAR_T
 
-} // namespace std
+_GLIBCXX_END_NAMESPACE
 
 #endif

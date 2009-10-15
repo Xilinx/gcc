@@ -1,5 +1,5 @@
 /* Image.java -- superclass for images
-   Copyright (C) 1999, 2002, 2004, 2005  Free Software Foundation, Inc.
+   Copyright (C) 1999, 2002, 2004, 2005, 2006  Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -50,7 +50,7 @@ import java.awt.image.ReplicateScaleFilter;
  *
  * @author Aaron M. Renn (arenn@urbanophile.com)
  * @since 1.0
- * @status updated to 1.4
+ * @status updated to 1.5
  */
 public abstract class Image
 {
@@ -100,6 +100,12 @@ public abstract class Image
    * @since 1.1
    */
   public static final int SCALE_AREA_AVERAGING = 16;
+
+  /**
+   * The acceleration priority of the image
+   * @since 1.5
+   */
+  protected float accelerationPriority;
 
   /**
    * A default constructor for subclasses.
@@ -166,6 +172,8 @@ public abstract class Image
    * loading will be produced according to the hints of the algorithm
    * requested. If either the width or height is non-positive, it is adjusted
    * to preserve the original aspect ratio.
+   * If an illegal value of <code>flags</code> is passed,
+   * the default algorithm is used.
    *
    * @param width the width of the scaled image
    * @param height the height of the scaled image
@@ -183,18 +191,15 @@ public abstract class Image
     ImageFilter filter;
     switch (flags)
     {
+      case SCALE_AREA_AVERAGING:
+      case SCALE_SMOOTH:
+	filter = new AreaAveragingScaleFilter(width, height);
+	break;
       case SCALE_DEFAULT:
       case SCALE_FAST:
       case SCALE_REPLICATE:
-	filter = new ReplicateScaleFilter(width, height);
-	break;
-      case SCALE_AREA_AVERAGING:
-	filter = new AreaAveragingScaleFilter(width, height);
-	break;
-      case SCALE_SMOOTH:
-        throw new Error("SCALE_SMOOTH: not implemented");
       default:
-        throw new Error("Unknown flag or not implemented: " + flags);
+	filter = new ReplicateScaleFilter(width, height);
     }
 
     ImageProducer producer = new FilteredImageSource(getSource(), filter);
@@ -206,4 +211,32 @@ public abstract class Image
    * includes the actual image data.
    */
   public abstract void flush();
+
+  /**
+   * Sets the acceleration priority of the image.
+   * This is a value from 0 (lowest) to 1 (highest), which may
+   * be used as a hint for image acceleration. 
+   * E.g. higher priority images may be stored in video memory.
+   * @param priority - the priority
+   * @throws IllegalArgumentException if priority is not >= 0 and <= 1.
+   *
+   * @since 1.5
+   */
+  public void setAccelerationPriority(float priority)
+  {
+    if( priority < 0f || priority > 1f)
+      throw new IllegalArgumentException("Invalid priority value.");
+    accelerationPriority = priority;
+  }
+
+  /**
+   * Returns the acceleration priority of the image.
+   *
+   * @see #setAccelerationPriority(float)
+   * @since 1.5
+   */
+  public float getAccelerationPriority()
+  {
+    return accelerationPriority;
+  }
 } // class Image

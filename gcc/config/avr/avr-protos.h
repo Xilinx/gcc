@@ -1,13 +1,14 @@
 /* Prototypes for exported functions defined in avr.c
    
-   Copyright (C) 2000, 2001, 2002, 2003, 2004 Free Software Foundation, Inc.
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2006, 2007
+   Free Software Foundation, Inc.
    Contributed by Denis Chertykov (denisc@overta.ru)
 
    This file is part of GCC.
 
    GCC is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2, or (at your option)
+   the Free Software Foundation; either version 3, or (at your option)
    any later version.
 
    GCC is distributed in the hope that it will be useful,
@@ -16,9 +17,8 @@
    GNU General Public License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with GCC; see the file COPYING.  If not, write to
-   the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-   Boston, MA 02110-1301, USA.  */
+   along with GCC; see the file COPYING3.  If not see
+   <http://www.gnu.org/licenses/>.  */
 
 
 extern int function_arg_regno_p (int r);
@@ -35,7 +35,6 @@ extern void asm_globalize_label (FILE *file, const char *name);
 extern void order_regs_for_local_alloc (void);
 extern int initial_elimination_offset (int from, int to);
 extern int avr_simple_epilogue (void);
-extern void progmem_section (void);
 extern int mask_one_bit_p (HOST_WIDE_INT mask);
 extern void gas_output_limited_string (FILE *file, const char *str);
 extern void gas_output_ascii (FILE *file, const char *str, size_t length);
@@ -93,7 +92,7 @@ extern void avr_output_addr_vec_elt (FILE *stream, int value);
 extern const char *avr_out_sbxx_branch (rtx insn, rtx operands[]);
 
 extern enum reg_class preferred_reload_class (rtx x, enum reg_class class);
-extern int extra_constraint (rtx x, int c);
+extern int extra_constraint_Q (rtx x);
 extern rtx legitimize_address (rtx x, rtx oldx, enum machine_mode mode);
 extern int adjust_insn_length (rtx insn, int len);
 extern rtx avr_libcall_value (enum machine_mode mode);

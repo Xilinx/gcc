@@ -1,5 +1,5 @@
 /* LoginContext.java
-   Copyright (C) 2004 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2006 Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -82,7 +82,20 @@ public class LoginContext
                        final CallbackHandler cbHandler)
     throws LoginException
   {
-    Configuration config = Configuration.getConfig();
+    this (name, subject, cbHandler, null);
+  }
+
+  /** @since 1.5 */
+  public LoginContext (final String name, final Subject subject,
+                       final CallbackHandler cbHandler,
+                       Configuration config)
+    throws LoginException
+  {
+    this.name = name;
+    this.subject = subject;
+    this.cbHandler = cbHandler;
+    if (config == null)
+      config = Configuration.getConfig();
     AppConfigurationEntry[] entries = config.getAppConfigurationEntry (name);
     if (entries == null)
       entries = config.getAppConfigurationEntry (OTHER);
@@ -94,9 +107,6 @@ public class LoginContext
     sharedState = new HashMap();
     for (int i = 0; i < entries.length; i++)
       modules[i] = lookupModule (entries[i], subject, sharedState);
-    this.name = name;
-    this.subject = subject;
-    this.cbHandler = cbHandler;
   }
 
   /**

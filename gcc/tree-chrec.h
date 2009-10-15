@@ -1,12 +1,12 @@
 /* Chains of recurrences.
-   Copyright (C) 2003, 2004, 2005 Free Software Foundation, Inc.
-   Contributed by Sebastian Pop <s.pop@laposte.net>
+   Copyright (C) 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+   Contributed by Sebastian Pop <pop@cri.ensmp.fr>
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,9 +15,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #ifndef GCC_TREE_CHREC_H
 #define GCC_TREE_CHREC_H
@@ -69,7 +68,6 @@ extern tree chrec_fold_minus (tree, tree, tree);
 extern tree chrec_fold_multiply (tree, tree, tree);
 extern tree chrec_convert (tree, tree, tree);
 extern tree chrec_convert_aggressive (tree, tree);
-extern tree chrec_type (tree);
 
 /* Operations.  */
 extern tree chrec_apply (unsigned, tree, tree);
@@ -82,6 +80,7 @@ extern tree reset_evolution_in_loop (unsigned, tree, tree);
 extern tree chrec_merge (tree, tree);
 
 /* Observers.  */
+extern bool eq_evolutions_p (tree, tree);
 extern bool is_multivariate_chrec (tree);
 extern bool chrec_is_positive (tree, bool *);
 extern bool chrec_contains_symbols (tree);
@@ -105,8 +104,10 @@ build_polynomial_chrec (unsigned loop_num,
       || right == chrec_dont_know)
     return chrec_dont_know;
 
-  return build (POLYNOMIAL_CHREC, TREE_TYPE (left), 
-		build_int_cst (NULL_TREE, loop_num), left, right);
+  gcc_assert (TREE_TYPE (left) == TREE_TYPE (right));
+
+  return build3 (POLYNOMIAL_CHREC, TREE_TYPE (left), 
+		 build_int_cst (NULL_TREE, loop_num), left, right);
 }
 
 
@@ -206,5 +207,17 @@ no_evolution_in_loop_p (tree chrec, unsigned loop_num, bool *res)
   *res = !tree_is_chrec (scev);
   return true;
 }
+
+/* Returns the type of the chrec.  */
+
+static inline tree
+chrec_type (tree chrec)
+{
+  if (automatically_generated_chrec_p (chrec))
+    return NULL_TREE;
+
+  return TREE_TYPE (chrec);
+}
+
 
 #endif  /* GCC_TREE_CHREC_H  */

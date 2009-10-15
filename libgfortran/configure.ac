@@ -152,15 +152,19 @@ case "${host}" in
 esac
 AC_SUBST(extra_ldflags_libgfortran)
 
+# We need a working compiler at that point, otherwise give a clear
+# error message and bail out.
+LIBGFOR_WORKING_GFORTRAN
+
 AC_SYS_LARGEFILE
-AC_FUNC_MMAP
 AC_TYPE_OFF_T
 
 # check header files
 AC_STDC_HEADERS
+AC_HEADER_TIME
 AC_HAVE_HEADERS(stdlib.h stdio.h string.h stddef.h math.h unistd.h signal.h)
 AC_CHECK_HEADERS(time.h sys/params.h sys/time.h sys/times.h sys/resource.h)
-AC_CHECK_HEADERS(sys/types.h sys/stat.h floatingpoint.h ieeefp.h)
+AC_CHECK_HEADERS(sys/types.h sys/stat.h sys/wait.h floatingpoint.h ieeefp.h)
 AC_CHECK_HEADERS(fenv.h fptrap.h float.h)
 AC_CHECK_HEADER([complex.h],[AC_DEFINE([HAVE_COMPLEX_H], [1], [complex.h exists])])
 GCC_HEADER_STDINT(gstdint.h)
@@ -172,7 +176,11 @@ AC_CHECK_MEMBERS([struct stat.st_rdev])
 # Check for library functions.
 AC_CHECK_FUNCS(getrusage times mkstemp strtof strtold snprintf ftruncate chsize)
 AC_CHECK_FUNCS(chdir strerror getlogin gethostname kill link symlink perror)
-AC_CHECK_FUNCS(sleep time ttyname signal alarm ctime)
+AC_CHECK_FUNCS(sleep time ttyname signal alarm ctime clock access fork execl)
+AC_CHECK_FUNCS(wait setmode gettimeofday stat fstat lstat)
+
+# Check for types
+AC_CHECK_TYPES([intptr_t])
 
 # Check libc for getgid, getpid, getuid
 AC_CHECK_LIB([c],[getgid],[AC_DEFINE([HAVE_GETGID],[1],[libc includes getgid])])
@@ -247,6 +255,9 @@ AC_CHECK_LIB([m],[frexpl],[AC_DEFINE([HAVE_FREXPL],[1],[libm includes frexpl])])
 AC_CHECK_LIB([m],[hypotf],[AC_DEFINE([HAVE_HYPOTF],[1],[libm includes hypotf])])
 AC_CHECK_LIB([m],[hypot],[AC_DEFINE([HAVE_HYPOT],[1],[libm includes hypot])])
 AC_CHECK_LIB([m],[hypotl],[AC_DEFINE([HAVE_HYPOTL],[1],[libm includes hypotl])])
+AC_CHECK_LIB([m],[ldexpf],[AC_DEFINE([HAVE_LDEXPF],[1],[libm includes ldexpf])])
+AC_CHECK_LIB([m],[ldexp],[AC_DEFINE([HAVE_LDEXP],[1],[libm includes ldexp])])
+AC_CHECK_LIB([m],[ldexpl],[AC_DEFINE([HAVE_LDEXPL],[1],[libm includes ldexpl])])
 AC_CHECK_LIB([m],[logf],[AC_DEFINE([HAVE_LOGF],[1],[libm includes logf])])
 AC_CHECK_LIB([m],[log],[AC_DEFINE([HAVE_LOG],[1],[libm includes log])])
 AC_CHECK_LIB([m],[logl],[AC_DEFINE([HAVE_LOGL],[1],[libm includes logl])])
@@ -367,11 +378,6 @@ AC_CHECK_FUNC([fp_enable],[have_fp_enable=yes AC_DEFINE([HAVE_FP_ENABLE],[1],[fp
 AC_MSG_NOTICE([FPU dependent file will be ${fpu_host}.h])
 FPU_HOST_HEADER=config/${fpu_host}.h
 AC_SUBST(FPU_HOST_HEADER)
-
-# The standard autoconf HAVE_STRUCT_TIMEZONE doesn't actually check
-# for struct timezone, as you might think.  We also need to check how
-# to call gettimeofday if we have it.
-LIBGFOR_GETTIMEOFDAY
 
 # Attempt to assert that the target is of common type in case we don't
 # have C99 integer types at all.

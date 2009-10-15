@@ -1,12 +1,12 @@
 ;; Patterns for the Intel Wireless MMX technology architecture.
-;; Copyright (C) 2003, 2004, 2005 Free Software Foundation, Inc.
+;; Copyright (C) 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
 ;; Contributed by Red Hat.
 
 ;; This file is part of GCC.
 
 ;; GCC is free software; you can redistribute it and/or modify it under
 ;; the terms of the GNU General Public License as published by the Free
-;; Software Foundation; either version 2, or (at your option) any later
+;; Software Foundation; either version 3, or (at your option) any later
 ;; version.
 
 ;; GCC is distributed in the hope that it will be useful, but WITHOUT
@@ -15,9 +15,8 @@
 ;; License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GCC; see the file COPYING.  If not, write to
-;; the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-;; Boston, MA 02110-1301, USA.
+;; along with GCC; see the file COPYING3.  If not see
+;; <http://www.gnu.org/licenses/>.
 
 (define_insn "iwmmxt_iordi3"
   [(set (match_operand:DI         0 "register_operand" "=y,?&r,?&r")
@@ -66,7 +65,9 @@
 (define_insn "*iwmmxt_arm_movdi"
   [(set (match_operand:DI 0 "nonimmediate_di_operand" "=r, r, m,y,y,yr,y,yrUy")
 	(match_operand:DI 1 "di_operand"              "rIK,mi,r,y,yr,y,yrUy,y"))]
-  "TARGET_REALLY_IWMMXT"
+  "TARGET_REALLY_IWMMXT
+   && (   register_operand (operands[0], DImode)
+       || register_operand (operands[1], DImode))"
   "*
 {
   switch (which_alternative)

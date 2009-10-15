@@ -1,12 +1,12 @@
 /* Hooks for cfg representation specific functions.
-   Copyright (C) 2003, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
    Contributed by Sebastian Pop <s.pop@laposte.net>
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -15,9 +15,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #ifndef GCC_CFGHOOKS_H
 #define GCC_CFGHOOKS_H
@@ -122,16 +121,16 @@ struct cfg_hooks
   /* Add condition to new basic block and update CFG used in loop
      versioning.  */
   void (*lv_add_condition_to_bb) (basic_block, basic_block, basic_block,
-  				  void *);
+				  void *);
   /* Update the PHI nodes in case of loop versioning.  */
   void (*lv_adjust_loop_header_phi) (basic_block, basic_block,
 				     basic_block, edge);
-				    
+
   /* Given a condition BB extract the true/false taken/not taken edges
      (depending if we are on tree's or RTL). */
   void (*extract_cond_bb_edges) (basic_block, edge *, edge *);
 
-  
+
   /* Add PHI arguments queued in PENDINT_STMT list on edge E to edge
      E->dest (only in tree-ssa loop versioning.  */
   void (*flush_pending_stmts) (edge);

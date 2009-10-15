@@ -28,13 +28,13 @@
 // invalidate any other reasons why the executable file might be covered by
 // the GNU General Public License.
 
-//
-// ISO C++ 14882: 27.7  String-based streams
-//
-
 /** @file sstream
  *  This is a Standard C++ Library header.
  */
+
+//
+// ISO C++ 14882: 27.7  String-based streams
+//
 
 #ifndef _GLIBCXX_SSTREAM
 #define _GLIBCXX_SSTREAM 1
@@ -44,8 +44,8 @@
 #include <istream>
 #include <ostream>
 
-namespace std
-{
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
   // [27.7.1] template class basic_stringbuf
   /**
    *  @brief  The actual work of input and output (for std::string).
@@ -228,8 +228,8 @@ namespace std
 	      ios_base::openmode __mode = ios_base::in | ios_base::out);
 
       // Internal function for correctly updating the internal buffer
-      // for a particular _M_string, due to initialization or
-      // re-sizing of an existing _M_string.
+      // for a particular _M_string, due to initialization or re-sizing
+      // of an existing _M_string.
       void
       _M_sync(char_type* __base, __size_type __i, __size_type __o);
 
@@ -581,7 +581,8 @@ namespace std
       str(const __string_type& __s)
       { _M_stringbuf.str(__s); }
     };
-} // namespace std
+
+_GLIBCXX_END_NAMESPACE
 
 #ifndef _GLIBCXX_EXPORT_TEMPLATE
 # include <bits/sstream.tcc>

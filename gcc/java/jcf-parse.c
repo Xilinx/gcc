@@ -1,12 +1,12 @@
 /* Parser for Java(TM) .class files.
-   Copyright (C) 1996, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005
-   Free Software Foundation, Inc.
+   Copyright (C) 1996, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
+   2007  Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -15,9 +15,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.
 
 Java and all Java-based marks are trademarks or registered trademarks
 of Sun Microsystems, Inc. in the United States and other countries.
@@ -120,7 +119,7 @@ handle_deprecated (void)
   else
     {
       /* Shouldn't happen.  */
-      abort ();
+      gcc_unreachable ();
     }
 }
 
@@ -160,7 +159,7 @@ set_source_filename (JCF *jcf, int index)
 	  /* Length of prefix, not counting final dot. */
 	  int i = dot - class_name;
 	  /* Concatenate current package prefix with new sfname. */
-	  char *buf = xmalloc (i + new_len + 2); /* Space for '.' and '\0'. */
+	  char *buf = XNEWVEC (char, i + new_len + 2); /* Space for '.' and '\0'. */
 	  strcpy (buf + i + 1, sfname);
 	  /* Copy package from class_name, replacing '.' by DIR_SEPARATOR.
 	     Note we start at the end with the final package dot. */
@@ -285,12 +284,12 @@ set_source_filename (JCF *jcf, int index)
 tree
 parse_signature (JCF *jcf, int sig_index)
 {
-  if (sig_index <= 0 || sig_index >= JPOOL_SIZE (jcf)
-      || JPOOL_TAG (jcf, sig_index) != CONSTANT_Utf8)
-    abort ();
-  else
-    return parse_signature_string (JPOOL_UTF_DATA (jcf, sig_index),
-				   JPOOL_UTF_LENGTH (jcf, sig_index));
+  gcc_assert (sig_index > 0
+	      && sig_index < JPOOL_SIZE (jcf)
+	      && JPOOL_TAG (jcf, sig_index) == CONSTANT_Utf8);
+
+  return parse_signature_string (JPOOL_UTF_DATA (jcf, sig_index),
+				 JPOOL_UTF_LENGTH (jcf, sig_index));
 }
 
 tree
@@ -395,10 +394,7 @@ tree
 get_name_constant (JCF *jcf, int index)
 {
   tree name = get_constant (jcf, index);
-
-  if (TREE_CODE (name) != IDENTIFIER_NODE)
-    abort ();
-
+  gcc_assert (TREE_CODE (name) == IDENTIFIER_NODE);
   return name;
 }
 
@@ -445,10 +441,10 @@ handle_innerclass_attribute (int count, JCF *jcf)
 static tree
 give_name_to_class (JCF *jcf, int i)
 {
-  if (i <= 0 || i >= JPOOL_SIZE (jcf)
-      || JPOOL_TAG (jcf, i) != CONSTANT_Class)
-    abort ();
-  else
+  gcc_assert (i > 0
+	      && i < JPOOL_SIZE (jcf)
+	      && JPOOL_TAG (jcf, i) == CONSTANT_Class);
+
     {
       tree package_name = NULL_TREE, tmp;
       tree this_class;
@@ -489,9 +485,9 @@ tree
 get_class_constant (JCF *jcf, int i)
 {
   tree type;
-  if (i <= 0 || i >= JPOOL_SIZE (jcf)
-      || (JPOOL_TAG (jcf, i) & ~CONSTANT_ResolvedFlag) != CONSTANT_Class)
-    abort ();
+  gcc_assert (i > 0
+	      && i < JPOOL_SIZE (jcf)
+	      && (JPOOL_TAG (jcf, i) & ~CONSTANT_ResolvedFlag) == CONSTANT_Class);
 
   if (JPOOL_TAG (jcf, i) != CONSTANT_ResolvedClass)
     {
@@ -1084,7 +1080,7 @@ java_parse_file (int set_yydebug ATTRIBUTE_UNUSED)
       finput = fopen (main_input_filename, "r");
       if (finput == NULL)
 	fatal_error ("can't open %s: %m", input_filename);
-      list = xmalloc(avail);
+      list = XNEWVEC (char, avail);
       next = list;
       for (;;)
 	{
@@ -1351,7 +1347,7 @@ compute_class_name (struct ZipDirectory *zdir)
     }
 
   filename_length -= strlen (".class");
-  class_name = ALLOC (filename_length + 1);
+  class_name = XNEWVEC (char, filename_length + 1);
   memcpy (class_name, class_name_in_zip_dir, filename_length);
   class_name [filename_length] = '\0';
 
@@ -1421,12 +1417,9 @@ parse_zip_file_entries (void)
 	    
 	    CLASS_FROM_CURRENTLY_COMPILED_P (current_class) = 1;
 
-	    if (TYPE_DUMMY (class))
-	      {
-		/* This is a dummy class, and now we're compiling it
-		   for real.  */
-		abort ();
-	      }
+	    /* This is a dummy class, and now we're compiling it for
+	       real.  */
+	    gcc_assert (! TYPE_DUMMY (class));
 
 	    /* This is for a corner case where we have a superclass
 	       but no superclass fields.  
@@ -1455,7 +1448,7 @@ parse_zip_file_entries (void)
 	    if (TYPE_SIZE (current_class) != error_mark_node)
 	      {
 		parse_class_file ();
-		FREE (current_jcf->buffer); /* No longer necessary */
+		free (current_jcf->buffer); /* No longer necessary */
 		/* Note: there is a way to free this buffer right after a
 		   class seen in a zip file has been parsed. The idea is the
 		   set its jcf in such a way that buffer will be reallocated
@@ -1468,11 +1461,11 @@ parse_zip_file_entries (void)
 	  {
 	    char *file_name, *class_name_in_zip_dir, *buffer;
 	    JCF *jcf;
-	    file_name = ALLOC (zdir->filename_length + 1);
+	    file_name = XNEWVEC (char, zdir->filename_length + 1);
 	    class_name_in_zip_dir = ZIPDIR_FILENAME (zdir);
 	    strncpy (file_name, class_name_in_zip_dir, zdir->filename_length);
 	    file_name[zdir->filename_length] = '\0';
-	    jcf = ALLOC (sizeof (JCF));
+	    jcf = XNEW (JCF);
 	    JCF_ZERO (jcf);
 	    jcf->read_state  = finput;
 	    jcf->filbuf      = jcf_filbuf_from_stdio;
@@ -1484,7 +1477,7 @@ parse_zip_file_entries (void)
 	    if (read_zip_member (jcf, zdir, localToFile) < 0)
 	      fatal_error ("error while reading %s from zip file", file_name);
 
-	    buffer = ALLOC (zdir->filename_length + 1 +
+	    buffer = XNEWVEC (char, zdir->filename_length + 1 +
 			    (jcf->buffer_end - jcf->buffer));
 	    strcpy (buffer, file_name);
 	    /* This is not a typo: we overwrite the trailing \0 of the
@@ -1495,13 +1488,13 @@ parse_zip_file_entries (void)
 	    compile_resource_data (file_name, buffer,
 				   jcf->buffer_end - jcf->buffer);
 	    JCF_FINISH (jcf);
-	    FREE (jcf);
-	    FREE (buffer);
+	    free (jcf);
+	    free (buffer);
 	  }
 	  break;
 
 	default:
-	  abort ();
+	  gcc_unreachable ();
 	}
     }
 }
@@ -1529,7 +1522,7 @@ process_zip_dir (FILE *finput)
 	continue;
 
       class_name = compute_class_name (zdir);
-      file_name  = ALLOC (zdir->filename_length+1);
+      file_name  = XNEWVEC (char, zdir->filename_length+1);
       jcf = ggc_alloc (sizeof (JCF));
       JCF_ZERO (jcf);
 

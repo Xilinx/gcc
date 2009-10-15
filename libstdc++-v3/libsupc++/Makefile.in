@@ -44,7 +44,9 @@ subdir = libsupc++
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/../config/enable.m4 \
 	$(top_srcdir)/../config/lead-dot.m4 \
+	$(top_srcdir)/../config/multi.m4 \
 	$(top_srcdir)/../config/no-executables.m4 \
+	$(top_srcdir)/../config/unwind_ipinfo.m4 \
 	$(top_srcdir)/../libtool.m4 $(top_srcdir)/crossconfig.m4 \
 	$(top_srcdir)/linkage.m4 $(top_srcdir)/acinclude.m4 \
 	$(top_srcdir)/../config/tls.m4 $(top_srcdir)/configure.ac
@@ -155,10 +157,16 @@ ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
 EGREP = @EGREP@
-ENABLE_SYMVERS_DARWIN_EXPORT_FALSE = @ENABLE_SYMVERS_DARWIN_EXPORT_FALSE@
-ENABLE_SYMVERS_DARWIN_EXPORT_TRUE = @ENABLE_SYMVERS_DARWIN_EXPORT_TRUE@
+ENABLE_SYMVERS_DARWIN_FALSE = @ENABLE_SYMVERS_DARWIN_FALSE@
+ENABLE_SYMVERS_DARWIN_TRUE = @ENABLE_SYMVERS_DARWIN_TRUE@
+ENABLE_SYMVERS_FALSE = @ENABLE_SYMVERS_FALSE@
 ENABLE_SYMVERS_GNU_FALSE = @ENABLE_SYMVERS_GNU_FALSE@
+ENABLE_SYMVERS_GNU_NAMESPACE_FALSE = @ENABLE_SYMVERS_GNU_NAMESPACE_FALSE@
+ENABLE_SYMVERS_GNU_NAMESPACE_TRUE = @ENABLE_SYMVERS_GNU_NAMESPACE_TRUE@
 ENABLE_SYMVERS_GNU_TRUE = @ENABLE_SYMVERS_GNU_TRUE@
+ENABLE_SYMVERS_TRUE = @ENABLE_SYMVERS_TRUE@
+ENABLE_VISIBILITY_FALSE = @ENABLE_VISIBILITY_FALSE@
+ENABLE_VISIBILITY_TRUE = @ENABLE_VISIBILITY_TRUE@
 EXEEXT = @EXEEXT@
 EXTRA_CXX_FLAGS = @EXTRA_CXX_FLAGS@
 GLIBCXX_BUILD_DEBUG_FALSE = @GLIBCXX_BUILD_DEBUG_FALSE@
@@ -174,6 +182,8 @@ GLIBCXX_C_HEADERS_C_TRUE = @GLIBCXX_C_HEADERS_C_TRUE@
 GLIBCXX_HOSTED_FALSE = @GLIBCXX_HOSTED_FALSE@
 GLIBCXX_HOSTED_TRUE = @GLIBCXX_HOSTED_TRUE@
 GLIBCXX_INCLUDES = @GLIBCXX_INCLUDES@
+GLIBCXX_LDBL_COMPAT_FALSE = @GLIBCXX_LDBL_COMPAT_FALSE@
+GLIBCXX_LDBL_COMPAT_TRUE = @GLIBCXX_LDBL_COMPAT_TRUE@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
@@ -207,7 +217,7 @@ SECTION_LDFLAGS = @SECTION_LDFLAGS@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 STRIP = @STRIP@
-SYMVER_MAP = @SYMVER_MAP@
+SYMVER_FILE = @SYMVER_FILE@
 TOPLEVEL_INCLUDES = @TOPLEVEL_INCLUDES@
 USE_NLS = @USE_NLS@
 VERSION = @VERSION@
@@ -396,8 +406,9 @@ LTCOMPILE = $(LIBTOOL) --tag CC --tag disable-shared --mode=compile $(CC) \
 # CXX undo the affect of disable-shared.
 LTCXXCOMPILE = $(LIBTOOL) --tag CXX --tag disable-shared \
 	       --mode=compile $(CXX) $(TOPLEVEL_INCLUDES) \
-	       $(AM_CPPFLAGS) $(CPPFLAGS) $(CXXFLAGS) $(AM_CXXFLAGS)
+	       $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) 
 
+LTLDFLAGS = $(shell $(SHELL) $(top_srcdir)/../libtool-ldflags $(LDFLAGS))
 
 # 3) We'd have a problem when building the shared libstdc++ object if
 # the rules automake generates would be used.  We cannot allow g++ to
@@ -407,7 +418,7 @@ LTCXXCOMPILE = $(LIBTOOL) --tag CXX --tag disable-shared \
 # compilation driver.
 CXXLINK = $(LIBTOOL) --tag CXX --tag disable-shared \
 	  --mode=link $(CXX) \
-	  $(OPT_LDFLAGS) $(SECTION_LDFLAGS) $(AM_CXXFLAGS) $(LDFLAGS) -o $@
+	  $(OPT_LDFLAGS) $(SECTION_LDFLAGS) $(AM_CXXFLAGS) $(LTLDFLAGS) -o $@
 
 all: all-am
 

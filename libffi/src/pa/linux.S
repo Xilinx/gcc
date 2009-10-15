@@ -31,7 +31,7 @@
 	.level 1.1
 	.align 4
 
-	/* void ffi_call_LINUX(void (*)(char *, extended_cif *),
+	/* void ffi_call_pa32(void (*)(char *, extended_cif *),
 			       extended_cif *ecif,
 			       unsigned bytes,
 			       unsigned flags,
@@ -39,12 +39,12 @@
 			       void (*fn)());
 	 */
 
-	.export ffi_call_LINUX,code
-	.import ffi_prep_args_LINUX,code
+	.export ffi_call_pa32,code
+	.import ffi_prep_args_pa32,code
 
-	.type ffi_call_LINUX, @function
+	.type ffi_call_pa32, @function
 .LFB1:
-ffi_call_LINUX:
+ffi_call_pa32:
 	.proc
 	.callinfo FRAME=64,CALLS,SAVE_RP,SAVE_SP,ENTRY_GR=4
 	.entry
@@ -63,7 +63,7 @@ ffi_call_LINUX:
 	   [ 64-bytes register save area               ] <- %r4
 
 	   [ Stack space for actual call, passed as    ] <- %arg0
-	   [     arg0 to ffi_prep_args_LINUX           ]
+	   [     arg0 to ffi_prep_args_pa32           ]
 
 	   [ Stack for calling prep_args               ] <- %sp
 	 */
@@ -80,7 +80,7 @@ ffi_call_LINUX:
 	   %arg0(stack) -- set up above
 	   %arg1(ecif) -- same as incoming param
 	   %arg2(bytes) -- same as incoming param */
-	bl ffi_prep_args_LINUX,%r2
+	bl ffi_prep_args_pa32,%r2
 	ldo 64(%arg0), %sp
 	ldo -64(%sp), %sp
 
@@ -250,14 +250,14 @@ ffi_call_LINUX:
 	.procend
 .LFE1:
 
-	/* void ffi_closure_LINUX(void);
+	/* void ffi_closure_pa32(void);
 	   Called with closure argument in %r21 */
-	.export ffi_closure_LINUX,code
-	.import ffi_closure_inner_LINUX,code
+	.export ffi_closure_pa32,code
+	.import ffi_closure_inner_pa32,code
 
-	.type ffi_closure_LINUX, @function
+	.type ffi_closure_pa32, @function
 .LFB2:
-ffi_closure_LINUX:
+ffi_closure_pa32:
 	.proc
 	.callinfo FRAME=64,CALLS,SAVE_RP,SAVE_SP,ENTRY_GR=3
 	.entry
@@ -277,7 +277,7 @@ ffi_closure_LINUX:
 	stw %arg3, -48(%r3)
 
 	copy %r21, %arg0
-	bl ffi_closure_inner_LINUX, %r2
+	bl ffi_closure_inner_pa32, %r2
 	copy %r3, %arg1
 
 	ldwm -64(%sp), %r3

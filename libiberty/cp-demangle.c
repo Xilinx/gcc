@@ -1939,7 +1939,7 @@ d_function_type (struct d_info *di)
   return ret;
 }
 
-/* <bare-function-type> ::= <type>+  */
+/* <bare-function-type> ::= [J]<type>+  */
 
 static struct demangle_component *
 d_bare_function_type (struct d_info *di, int has_return_type)
@@ -1947,13 +1947,22 @@ d_bare_function_type (struct d_info *di, int has_return_type)
   struct demangle_component *return_type;
   struct demangle_component *tl;
   struct demangle_component **ptl;
+  char peek;
+
+  /* Detect special qualifier indicating that the first argument
+     is the return type.  */
+  peek = d_peek_char (di);
+  if (peek == 'J')
+    {
+      d_advance (di, 1);
+      has_return_type = 1;
+    }
 
   return_type = NULL;
   tl = NULL;
   ptl = &tl;
   while (1)
     {
-      char peek;
       struct demangle_component *type;
 
       peek = d_peek_char (di);
@@ -2072,12 +2081,21 @@ d_pointer_to_member_type (struct d_info *di)
      g++ does not work that way.  g++ treats only the CV-qualified
      member function as a substitution source.  FIXME.  So to work
      with g++, we need to pull off the CV-qualifiers here, in order to
-     avoid calling add_substitution() in cplus_demangle_type().  */
+     avoid calling add_substitution() in cplus_demangle_type().  But
+     for a CV-qualified member which is not a function, g++ does
+     follow the ABI, so we need to handle that case here by calling
+     d_add_substitution ourselves.  */
 
   pmem = d_cv_qualifiers (di, &mem, 1);
   if (pmem == NULL)
     return NULL;
   *pmem = cplus_demangle_type (di);
+
+  if (pmem != &mem && (*pmem)->type != DEMANGLE_COMPONENT_FUNCTION_TYPE)
+    {
+      if (! d_add_substitution (di, mem))
+	return NULL;
+    }
 
   return d_make_comp (di, DEMANGLE_COMPONENT_PTRMEM_TYPE, cl, mem);
 }
@@ -2486,6 +2504,8 @@ d_substitution (struct d_info *di, int prefix)
 	      else if (IS_UPPER (c))
 		id = id * 36 + c - 'A' + 10;
 	      else
+		return NULL;
+	      if (id < 0)
 		return NULL;
 	      c = d_next_char (di);
 	    }
@@ -3025,13 +3045,16 @@ d_print_comp (struct d_print_info *dpi,
 
     case DEMANGLE_COMPONENT_FUNCTION_TYPE:
       {
+	if ((dpi->options & DMGL_RET_POSTFIX) != 0)
+	  d_print_function_type (dpi, dc, dpi->modifiers);
+
+	/* Print return type if present */
 	if (d_left (dc) != NULL)
 	  {
 	    struct d_print_mod dpm;
 
 	    /* We must pass this type down as a modifier in order to
 	       print it in the right location.  */
-
 	    dpm.next = dpi->modifiers;
 	    dpi->modifiers = &dpm;
 	    dpm.mod = dc;
@@ -3045,10 +3068,14 @@ d_print_comp (struct d_print_info *dpi,
 	    if (dpm.printed)
 	      return;
 
-	    d_append_char (dpi, ' ');
+	    /* In standard prefix notation, there is a space between the
+	       return type and the function signature.  */
+	    if ((dpi->options & DMGL_RET_POSTFIX) == 0)
+	      d_append_char (dpi, ' ');
 	  }
 
-	d_print_function_type (dpi, dc, dpi->modifiers);
+	if ((dpi->options & DMGL_RET_POSTFIX) == 0) 
+	  d_print_function_type (dpi, dc, dpi->modifiers);
 
 	return;
       }
@@ -4003,7 +4030,8 @@ java_demangle_v3 (const char* mangled)
   char *from;
   char *to;
 
-  demangled = d_demangle (mangled, DMGL_JAVA | DMGL_PARAMS, &alc);
+  demangled = d_demangle (mangled, DMGL_JAVA | DMGL_PARAMS | DMGL_RET_POSTFIX, 
+			  &alc);
 
   if (demangled == NULL)
     return NULL;

@@ -1,11 +1,11 @@
 /* Copy propagation and SSA_NAME replacement support routines.
-   Copyright (C) 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -14,9 +14,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -108,8 +107,8 @@ may_propagate_copy (tree dest, tree orig)
       && POINTER_TYPE_P (type_d)
       && POINTER_TYPE_P (type_o))
     {
-      tree mt_dest = var_ann (SSA_NAME_VAR (dest))->type_mem_tag;
-      tree mt_orig = var_ann (SSA_NAME_VAR (orig))->type_mem_tag;
+      tree mt_dest = var_ann (SSA_NAME_VAR (dest))->symbol_mem_tag;
+      tree mt_orig = var_ann (SSA_NAME_VAR (orig))->symbol_mem_tag;
       if (mt_dest && mt_orig && mt_dest != mt_orig)
 	return false;
       else if (!lang_hooks.types_compatible_p (type_d, type_o))
@@ -202,16 +201,16 @@ merge_alias_info (tree orig, tree new)
 	      == get_alias_set (TREE_TYPE (TREE_TYPE (orig_sym))));
 #endif
 
-  /* Synchronize the type tags.  If both pointers had a tag and they
-     are different, then something has gone wrong.  Type tags can
+  /* Synchronize the symbol tags.  If both pointers had a tag and they
+     are different, then something has gone wrong.  Symbol tags can
      always be merged because they are flow insensitive, all the SSA
-     names of the same base DECL share the same type tag.  */
-  if (new_ann->type_mem_tag == NULL_TREE)
-    new_ann->type_mem_tag = orig_ann->type_mem_tag;
-  else if (orig_ann->type_mem_tag == NULL_TREE)
-    orig_ann->type_mem_tag = new_ann->type_mem_tag;
+     names of the same base DECL share the same symbol tag.  */
+  if (new_ann->symbol_mem_tag == NULL_TREE)
+    new_ann->symbol_mem_tag = orig_ann->symbol_mem_tag;
+  else if (orig_ann->symbol_mem_tag == NULL_TREE)
+    orig_ann->symbol_mem_tag = new_ann->symbol_mem_tag;
   else
-    gcc_assert (new_ann->type_mem_tag == orig_ann->type_mem_tag);
+    gcc_assert (new_ann->symbol_mem_tag == orig_ann->symbol_mem_tag);
 
   /* Check that flow-sensitive information is compatible.  Notice that
      we may not merge flow-sensitive information here.  This function
@@ -391,7 +390,10 @@ stmt_may_generate_copy (tree stmt)
   /* Otherwise, the only statements that generate useful copies are
      assignments whose RHS is just an SSA name that doesn't flow
      through abnormal edges.  */
-  return TREE_CODE (rhs) == SSA_NAME && !SSA_NAME_OCCURS_IN_ABNORMAL_PHI (rhs);
+  return (do_store_copy_prop
+	  && TREE_CODE (lhs) == SSA_NAME)
+	 || (TREE_CODE (rhs) == SSA_NAME
+	     && !SSA_NAME_OCCURS_IN_ABNORMAL_PHI (rhs));
 }
 
 
@@ -494,15 +496,15 @@ set_copy_of_val (tree dest, tree first, tree mem_ref)
 }
 
 
-/* Dump the copy-of value for variable VAR to DUMP_FILE.  */
+/* Dump the copy-of value for variable VAR to FILE.  */
 
 static void
-dump_copy_of (FILE *dump_file, tree var)
+dump_copy_of (FILE *file, tree var)
 {
   tree val;
   sbitmap visited;
 
-  print_generic_expr (dump_file, var, dump_flags);
+  print_generic_expr (file, var, dump_flags);
 
   if (TREE_CODE (var) != SSA_NAME)
     return;
@@ -511,17 +513,17 @@ dump_copy_of (FILE *dump_file, tree var)
   sbitmap_zero (visited);
   SET_BIT (visited, SSA_NAME_VERSION (var));
   
-  fprintf (dump_file, " copy-of chain: ");
+  fprintf (file, " copy-of chain: ");
 
   val = var;
-  print_generic_expr (dump_file, val, 0);
-  fprintf (dump_file, " ");
+  print_generic_expr (file, val, 0);
+  fprintf (file, " ");
   while (copy_of[SSA_NAME_VERSION (val)].value)
     {
-      fprintf (dump_file, "-> ");
+      fprintf (file, "-> ");
       val = copy_of[SSA_NAME_VERSION (val)].value;
-      print_generic_expr (dump_file, val, 0);
-      fprintf (dump_file, " ");
+      print_generic_expr (file, val, 0);
+      fprintf (file, " ");
       if (TEST_BIT (visited, SSA_NAME_VERSION (val)))
         break;
       SET_BIT (visited, SSA_NAME_VERSION (val));
@@ -529,11 +531,11 @@ dump_copy_of (FILE *dump_file, tree var)
 
   val = get_copy_of_val (var)->value;
   if (val == NULL_TREE)
-    fprintf (dump_file, "[UNDEFINED]");
+    fprintf (file, "[UNDEFINED]");
   else if (val != var)
-    fprintf (dump_file, "[COPY]");
+    fprintf (file, "[COPY]");
   else
-    fprintf (dump_file, "[NOT A COPY]");
+    fprintf (file, "[NOT A COPY]");
   
   sbitmap_free (visited);
 }
@@ -696,6 +698,34 @@ copy_prop_visit_stmt (tree stmt, edge *taken_edge_p, tree *result_p)
 	 see if the lattice value of its output has changed.  */
       retval = copy_prop_visit_assignment (stmt, result_p);
     }
+  else if (TREE_CODE (stmt) == MODIFY_EXPR
+	   && TREE_CODE (TREE_OPERAND (stmt, 0)) == SSA_NAME
+	   && do_store_copy_prop
+	   && stmt_makes_single_load (stmt))
+    {
+      /* If the statement is a copy assignment with a memory load
+	 on the RHS, see if we know the value of this load and
+	 update the lattice accordingly.  */
+      prop_value_t *val = get_value_loaded_by (stmt, copy_of);
+      if (val
+	  && val->mem_ref
+	  && is_gimple_reg (val->value)
+	  && operand_equal_p (val->mem_ref, TREE_OPERAND (stmt, 1), 0))
+        {
+	  bool changed;
+	  changed = set_copy_of_val (TREE_OPERAND (stmt, 0),
+				     val->value, val->mem_ref);
+	  if (changed)
+	    {
+	      *result_p = TREE_OPERAND (stmt, 0);
+	      retval = SSA_PROP_INTERESTING;
+	    }
+	  else
+	    retval = SSA_PROP_NOT_INTERESTING;
+	}
+      else
+        retval = SSA_PROP_VARYING;
+    }
   else if (TREE_CODE (stmt) == COND_EXPR)
     {
       /* See if we can determine which edge goes out of a conditional
@@ -847,14 +877,14 @@ copy_prop_visit_phi_node (tree phi)
    opportunities.  */
 
 static void
-init_copy_prop (bool phis_only)
+init_copy_prop (void)
 {
   basic_block bb;
 
-  copy_of = xmalloc (num_ssa_names * sizeof (*copy_of));
+  copy_of = XNEWVEC (prop_value_t, num_ssa_names);
   memset (copy_of, 0, num_ssa_names * sizeof (*copy_of));
 
-  cached_last_copy_of = xmalloc (num_ssa_names * sizeof (*cached_last_copy_of));
+  cached_last_copy_of = XNEWVEC (tree, num_ssa_names);
   memset (cached_last_copy_of, 0, num_ssa_names * sizeof (*cached_last_copy_of));
 
   FOR_EACH_BB (bb)
@@ -880,7 +910,7 @@ init_copy_prop (bool phis_only)
 	     exposed for copy propagation.  */
 	  if (stmt_ends_bb_p (stmt))
 	    DONT_SIMULATE_AGAIN (stmt) = false;
-	  else if (!phis_only && stmt_may_generate_copy (stmt)
+	  else if (stmt_may_generate_copy (stmt)
 		   && loop_depth_of_name (TREE_OPERAND (stmt, 1)) <= depth)
 	    DONT_SIMULATE_AGAIN (stmt) = false;
 	  else
@@ -923,7 +953,7 @@ fini_copy_prop (void)
   
   /* Set the final copy-of value for each variable by traversing the
      copy-of chains.  */
-  tmp = xmalloc (num_ssa_names * sizeof (*tmp));
+  tmp = XNEWVEC (prop_value_t, num_ssa_names);
   memset (tmp, 0, num_ssa_names * sizeof (*tmp));
   for (i = 1; i < num_ssa_names; i++)
     {
@@ -1048,10 +1078,10 @@ fini_copy_prop (void)
    x_53 and x_54 are both copies of x_898.  */
 
 static void
-execute_copy_prop (bool store_copy_prop, bool phis_only)
+execute_copy_prop (bool store_copy_prop)
 {
   do_store_copy_prop = store_copy_prop;
-  init_copy_prop (phis_only);
+  init_copy_prop ();
   ssa_propagate (copy_prop_visit_stmt, copy_prop_visit_phi_node);
   fini_copy_prop ();
 }
@@ -1063,10 +1093,11 @@ gate_copy_prop (void)
   return flag_tree_copy_prop != 0;
 }
 
-static void
+static unsigned int
 do_copy_prop (void)
 {
-  execute_copy_prop (false, false);
+  execute_copy_prop (false);
+  return 0;
 }
 
 struct tree_opt_pass pass_copy_prop =
@@ -1090,35 +1121,6 @@ struct tree_opt_pass pass_copy_prop =
   0					/* letter */
 };
 
-
-static void
-do_phi_only_copy_prop (void)
-{
-  execute_copy_prop (false, true);
-}
-
-struct tree_opt_pass pass_phi_only_copy_prop =
-{
-  "phionlycopyprop",			/* name */
-  gate_copy_prop,			/* gate */
-  do_phi_only_copy_prop,		/* execute */
-  NULL,					/* sub */
-  NULL,					/* next */
-  0,					/* static_pass_number */
-  TV_TREE_COPY_PROP,			/* tv_id */
-  PROP_ssa | PROP_alias | PROP_cfg,	/* properties_required */
-  0,					/* properties_provided */
-  0,					/* properties_destroyed */
-  0,					/* todo_flags_start */
-  TODO_cleanup_cfg
-    | TODO_dump_func
-    | TODO_ggc_collect
-    | TODO_verify_ssa
-    | TODO_update_ssa,			/* todo_flags_finish */
-  0					/* letter */
-};
-
-
 static bool
 gate_store_copy_prop (void)
 {
@@ -1129,11 +1131,12 @@ gate_store_copy_prop (void)
   return flag_tree_store_copy_prop != 0 || flag_tree_copy_prop != 0;
 }
 
-static void
+static unsigned int
 store_copy_prop (void)
 {
   /* If STORE-COPY-PROP is not enabled, we just run regular COPY-PROP.  */
-  execute_copy_prop (flag_tree_store_copy_prop != 0, false);
+  execute_copy_prop (flag_tree_store_copy_prop != 0);
+  return 0;
 }
 
 struct tree_opt_pass pass_store_copy_prop =

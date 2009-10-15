@@ -1,5 +1,5 @@
 /* DDG - Data Dependence Graph implementation.
-   Copyright (C) 2004, 2005
+   Copyright (C) 2004, 2005, 2006, 2007
    Free Software Foundation, Inc.
    Contributed by Ayal Zaks and Mustafa Hagog <zaks,mustafa@il.ibm.com>
 
@@ -7,7 +7,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -16,9 +16,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 
 #include "config.h"
@@ -222,10 +221,10 @@ create_ddg_dep_no_link (ddg_ptr g, ddg_node_ptr from, ddg_node_ptr to,
    for all its uses in the next iteration, and an output dependence to the
    first def of the next iteration.  */
 static void
-add_deps_for_def (ddg_ptr g, struct df *df, struct ref *rd)
+add_deps_for_def (ddg_ptr g, struct df *df, struct df_ref *rd)
 {
   int regno = DF_REF_REGNO (rd);
-  struct bb_info *bb_info = DF_BB_INFO (df, g->bb);
+  struct df_ru_bb_info *bb_info = DF_RU_BB_INFO (df, g->bb);
   struct df_link *r_use;
   int use_before_def = false;
   rtx def_insn = DF_REF_INSN (rd);
@@ -235,7 +234,7 @@ add_deps_for_def (ddg_ptr g, struct df *df, struct ref *rd)
      that is upwards exposed in RD's block.  */
   for (r_use = DF_REF_CHAIN (rd); r_use != NULL; r_use = r_use->next)
     {
-      if (bitmap_bit_p (bb_info->ru_gen, r_use->ref->id))
+      if (bitmap_bit_p (bb_info->gen, r_use->ref->id))
 	{
 	  rtx use_insn = DF_REF_INSN (r_use->ref);
 	  ddg_node_ptr dest_node = get_node_of_insn (g, use_insn);
@@ -257,7 +256,7 @@ add_deps_for_def (ddg_ptr g, struct df *df, struct ref *rd)
      there is a use between the two defs.  */
   if (! use_before_def)
     {
-      struct ref *def = df_bb_regno_first_def_find (df, g->bb, regno);
+      struct df_ref *def = df_bb_regno_first_def_find (df, g->bb, regno);
       int i;
       ddg_node_ptr dest_node;
 
@@ -266,7 +265,7 @@ add_deps_for_def (ddg_ptr g, struct df *df, struct ref *rd)
 
       /* Check if there are uses after RD.  */
       for (i = src_node->cuid + 1; i < g->num_nodes; i++)
-	 if (df_reg_used (df, g->nodes[i].insn, rd->reg))
+	 if (df_find_use (df, g->nodes[i].insn, rd->reg))
 	   return;
 
       dest_node = get_node_of_insn (g, def->insn);
@@ -278,16 +277,16 @@ add_deps_for_def (ddg_ptr g, struct df *df, struct ref *rd)
    (nearest BLOCK_BEGIN) def of the next iteration, unless USE is followed
    by a def in the block.  */
 static void
-add_deps_for_use (ddg_ptr g, struct df *df, struct ref *use)
+add_deps_for_use (ddg_ptr g, struct df *df, struct df_ref *use)
 {
   int i;
   int regno = DF_REF_REGNO (use);
-  struct ref *first_def = df_bb_regno_first_def_find (df, g->bb, regno);
+  struct df_ref *first_def = df_bb_regno_first_def_find (df, g->bb, regno);
   ddg_node_ptr use_node;
   ddg_node_ptr def_node;
-  struct bb_info *bb_info;
+  struct df_rd_bb_info *bb_info;
 
-  bb_info = DF_BB_INFO (df, g->bb);
+  bb_info = DF_RD_BB_INFO (df, g->bb);
 
   if (!first_def)
     return;
@@ -304,7 +303,7 @@ add_deps_for_use (ddg_ptr g, struct df *df, struct ref *use)
   /* We must not add ANTI dep when there is an intra-loop TRUE dep in
      the opposite direction. If the first_def reaches the USE then there is
      such a dep.  */
-  if (! bitmap_bit_p (bb_info->rd_gen, first_def->id))
+  if (! bitmap_bit_p (bb_info->gen, first_def->id))
     create_ddg_dep_no_link (g, use_node, def_node, ANTI_DEP, REG_DEP, 1);
 }
 
@@ -313,29 +312,32 @@ static void
 build_inter_loop_deps (ddg_ptr g, struct df *df)
 {
   unsigned rd_num, u_num;
-  struct bb_info *bb_info;
+  struct df_rd_bb_info *rd_bb_info;
+  struct df_ru_bb_info *ru_bb_info;
   bitmap_iterator bi;
 
-  bb_info = DF_BB_INFO (df, g->bb);
+  rd_bb_info = DF_RD_BB_INFO (df, g->bb);
 
   /* Find inter-loop output and true deps by connecting downward exposed defs
      to the first def of the BB and to upwards exposed uses.  */
-  EXECUTE_IF_SET_IN_BITMAP (bb_info->rd_gen, 0, rd_num, bi)
+  EXECUTE_IF_SET_IN_BITMAP (rd_bb_info->gen, 0, rd_num, bi)
     {
-      struct ref *rd = df->defs[rd_num];
+      struct df_ref *rd = DF_DEFS_GET (df, rd_num);
 
       add_deps_for_def (g, df, rd);
     }
 
+  ru_bb_info = DF_RU_BB_INFO (df, g->bb);
+
   /* Find inter-loop anti deps.  We are interested in uses of the block that
      appear below all defs; this implies that these uses are killed.  */
-  EXECUTE_IF_SET_IN_BITMAP (bb_info->ru_kill, 0, u_num, bi)
+  EXECUTE_IF_SET_IN_BITMAP (ru_bb_info->kill, 0, u_num, bi)
     {
-      struct ref *use = df->uses[u_num];
+      struct df_ref *use = DF_USES_GET (df, u_num);
 
       /* We are interested in uses of this BB.  */
       if (BLOCK_FOR_INSN (use->insn) == g->bb)
-      	add_deps_for_use (g, df,use);
+      	add_deps_for_use (g, df, use);
     }
 }
 
@@ -379,7 +381,7 @@ build_intra_loop_deps (ddg_ptr g)
   init_deps (&tmp_deps);
 
   /* Do the intra-block data dependence analysis for the given block.  */
-  get_block_head_tail (g->bb->index, &head, &tail);
+  get_ebb_head_tail (g->bb, g->bb, &head, &tail);
   sched_analyze (&tmp_deps, head, tail);
 
   /* Build intra-loop data dependencies using the scheduler dependency
@@ -398,8 +400,7 @@ build_intra_loop_deps (ddg_ptr g)
 	  if (!src_node)
 	    continue;
 
-      	  add_forward_dependence (XEXP (link, 0), dest_node->insn,
-				  REG_NOTE_KIND (link));
+      	  add_forw_dep (dest_node->insn, link);
 	  create_ddg_dependence (g, src_node, dest_node,
 				 INSN_DEPEND (src_node->insn));
 	}
@@ -543,7 +544,7 @@ free_ddg (ddg_ptr g)
 }
 
 void
-print_ddg_edge (FILE *dump_file, ddg_edge_ptr e)
+print_ddg_edge (FILE *file, ddg_edge_ptr e)
 {
   char dep_c;
 
@@ -558,13 +559,13 @@ print_ddg_edge (FILE *dump_file, ddg_edge_ptr e)
       dep_c = 'T';
   }
 
-  fprintf (dump_file, " [%d -(%c,%d,%d)-> %d] ", INSN_UID (e->src->insn),
+  fprintf (file, " [%d -(%c,%d,%d)-> %d] ", INSN_UID (e->src->insn),
 	   dep_c, e->latency, e->distance, INSN_UID (e->dest->insn));
 }
 
 /* Print the DDG nodes with there in/out edges to the dump file.  */
 void
-print_ddg (FILE *dump_file, ddg_ptr g)
+print_ddg (FILE *file, ddg_ptr g)
 {
   int i;
 
@@ -572,34 +573,34 @@ print_ddg (FILE *dump_file, ddg_ptr g)
     {
       ddg_edge_ptr e;
 
-      print_rtl_single (dump_file, g->nodes[i].insn);
-      fprintf (dump_file, "OUT ARCS: ");
+      print_rtl_single (file, g->nodes[i].insn);
+      fprintf (file, "OUT ARCS: ");
       for (e = g->nodes[i].out; e; e = e->next_out)
-	print_ddg_edge (dump_file, e);
+	print_ddg_edge (file, e);
 
-      fprintf (dump_file, "\nIN ARCS: ");
+      fprintf (file, "\nIN ARCS: ");
       for (e = g->nodes[i].in; e; e = e->next_in)
-	print_ddg_edge (dump_file, e);
+	print_ddg_edge (file, e);
 
-      fprintf (dump_file, "\n");
+      fprintf (file, "\n");
     }
 }
 
 /* Print the given DDG in VCG format.  */
 void
-vcg_print_ddg (FILE *dump_file, ddg_ptr g)
+vcg_print_ddg (FILE *file, ddg_ptr g)
 {
   int src_cuid;
 
-  fprintf (dump_file, "graph: {\n");
+  fprintf (file, "graph: {\n");
   for (src_cuid = 0; src_cuid < g->num_nodes; src_cuid++)
     {
       ddg_edge_ptr e;
       int src_uid = INSN_UID (g->nodes[src_cuid].insn);
 
-      fprintf (dump_file, "node: {title: \"%d_%d\" info1: \"", src_cuid, src_uid);
-      print_rtl_single (dump_file, g->nodes[src_cuid].insn);
-      fprintf (dump_file, "\"}\n");
+      fprintf (file, "node: {title: \"%d_%d\" info1: \"", src_cuid, src_uid);
+      print_rtl_single (file, g->nodes[src_cuid].insn);
+      fprintf (file, "\"}\n");
       for (e = g->nodes[src_cuid].out; e; e = e->next_out)
 	{
 	  int dst_uid = INSN_UID (e->dest->insn);
@@ -607,16 +608,16 @@ vcg_print_ddg (FILE *dump_file, ddg_ptr g)
 
 	  /* Give the backarcs a different color.  */
 	  if (e->distance > 0)
-	    fprintf (dump_file, "backedge: {color: red ");
+	    fprintf (file, "backedge: {color: red ");
 	  else
-	    fprintf (dump_file, "edge: { ");
+	    fprintf (file, "edge: { ");
 
-	  fprintf (dump_file, "sourcename: \"%d_%d\" ", src_cuid, src_uid);
-	  fprintf (dump_file, "targetname: \"%d_%d\" ", dst_cuid, dst_uid);
-	  fprintf (dump_file, "label: \"%d_%d\"}\n", e->latency, e->distance);
+	  fprintf (file, "sourcename: \"%d_%d\" ", src_cuid, src_uid);
+	  fprintf (file, "targetname: \"%d_%d\" ", dst_cuid, dst_uid);
+	  fprintf (file, "label: \"%d_%d\"}\n", e->latency, e->distance);
 	}
     }
-  fprintf (dump_file, "}\n");
+  fprintf (file, "}\n");
 }
 
 /* Create an edge and initialize it with given values.  */

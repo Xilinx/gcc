@@ -1,5 +1,5 @@
 /* GtkImage.java
-   Copyright (C) 2005 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2006 Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -39,12 +39,10 @@ exception statement from your version. */
 package gnu.java.awt.peer.gtk;
 
 import java.awt.Graphics;
-import java.awt.Color;
 import java.awt.Image;
 import java.awt.image.ColorModel;
 import java.awt.image.DirectColorModel;
 import java.awt.image.MemoryImageSource;
-import java.awt.image.ImageConsumer;
 import java.awt.image.ImageObserver;
 import java.awt.image.ImageProducer;
 import java.io.File;
@@ -57,14 +55,7 @@ import java.net.URL;
 import gnu.classpath.Pointer;
 
 /**
- * GtkImage - wraps a GdkPixbuf or GdkPixmap.
- *
- * The constructor GtkImage(int, int) creates an 'off-screen' GdkPixmap,
- * this can be drawn to (it's a GdkDrawable), and correspondingly, you can
- * create a GdkGraphics object for it. 
- *
- * This corresponds to the Image implementation returned by 
- * Component.createImage(int, int). 
+ * GtkImage - wraps a GdkPixbuf.
  *
  * A GdkPixbuf is 'on-screen' and the gdk cannot draw to it,
  * this is used for the other constructors (and other createImage methods), and
@@ -88,19 +79,15 @@ public class GtkImage extends Image
   boolean isLoaded;
 
   /**
-   * Pointer to the GdkPixbuf
+   * Pointer to the GdkPixbuf - 
+   * don't change the name without changing the native code.
    */
-  Pointer pixmap;
+  Pointer pixbuf;
 
   /**
    * Observer queue.
    */
   Vector observers;
-
-  /**
-   * If offScreen is set, a GdkBitmap is wrapped and not a Pixbuf.
-   */
-  boolean offScreen;
 
   /**
    * Error flag for loading.
@@ -122,60 +109,64 @@ public class GtkImage extends Image
 						       0xFF000000);
 
   /**
-   * Returns a copy of the pixel data as a java array.
+   * The singleton GtkImage that is returned on errors by GtkToolkit.
    */
-  private native int[] getPixels();
+  private static GtkImage errorImage;
+
+  /**
+   * Lock that should be held for all gdkpixbuf operations. We don't use
+   * the global gdk_threads_enter/leave functions in most places since
+   * most gdkpixbuf operations can be done in parallel to drawing and 
+   * manipulating gtk widgets.
+   */
+  static Object pixbufLock = new Object();
+
+  /**
+   * Allocate a PixBuf from a given ARGB32 buffer pointer.
+   */
+  private native void initFromBuffer( long bufferPointer );
+
+  /**
+   * Returns a copy of the pixel data as a java array.
+   * Should be called with the pixbufLock held.
+   */
+  native int[] getPixels();
 
   /**
    * Sets the pixel data from a java array.
+   * Should be called with the pixbufLock held.
    */
   private native void setPixels(int[] pixels);
 
   /**
    * Loads an image using gdk-pixbuf from a file.
+   * Should be called with the pixbufLock held.
    */
   private native boolean loadPixbuf(String name);
 
   /**
    * Loads an image using gdk-pixbuf from data.
+   * Should be called with the pixbufLock held.
    */
   private native boolean loadImageFromData(byte[] data);
 
   /**
-   * Allocates a Gtk Pixbuf or pixmap
+   * Allocates a Gtk Pixbuf
+   * Should be called with the pixbufLock held.
    */
-  private native void createPixmap();
+  private native void createPixbuf();
 
   /**
    * Frees the above.
+   * Should be called with the pixbufLock held.
    */
-  private native void freePixmap();
+  private native void freePixbuf();
 
   /**
-   * Sets the pixmap to scaled copy of src image. hints are rendering hints.
+   * Sets the pixbuf to scaled copy of src image. hints are rendering hints.
+   * Should be called with the pixbufLock held.
    */
-  private native void createScaledPixmap(GtkImage src, int hints);
-
-  /**
-   * Draws the image, optionally scaled and composited.
-   */
-  private native void drawPixelsScaled (GdkGraphics gc, 
-					int bg_red, int bg_green, int bg_blue, 
-					int x, int y, int width, int height, 
-					boolean composite);
-
-  /**
-   * Draws the image, optionally scaled flipped and composited.
-   */
-  private native void drawPixelsScaledFlipped (GdkGraphics gc, 
-					       int bg_red, int bg_green, 
-					       int bg_blue, 
-					       boolean flipX, boolean flipY,
-					       int srcX, int srcY,
-					       int srcWidth, int srcHeight,
-					       int dstX, int dstY,
-					       int dstWidth, int dstHeight,
-					       boolean composite);
+  private native void createScaledPixbuf(GtkImage src, int hints);
 
   /**
    * Constructs a GtkImage from an ImageProducer. Asynchronity is handled in
@@ -191,7 +182,6 @@ public class GtkImage extends Image
     source = producer;
     errorLoading = false;
     source.startProduction(new GtkImageConsumer(this, source));
-    offScreen = false;
   }
 
   /**
@@ -204,7 +194,6 @@ public class GtkImage extends Image
   {
     isLoaded = true;
     observers = null;
-    offScreen = false;
     props = new Hashtable();
     errorLoading = false;
   }
@@ -219,17 +208,25 @@ public class GtkImage extends Image
     File f = new File(filename);
     try
       {
-	if (loadPixbuf(f.getCanonicalPath()) != true)
-	  throw new IllegalArgumentException("Couldn't load image: "+filename);
+	String path = f.getCanonicalPath();
+	synchronized(pixbufLock)
+	  {
+	    if (loadPixbuf(f.getCanonicalPath()) != true)
+	      throw new IllegalArgumentException("Couldn't load image: "
+						 + filename);
+	  }
       } 
     catch(IOException e)
       {
-	  throw new IllegalArgumentException("Couldn't load image: "+filename);
+	IllegalArgumentException iae;
+	iae = new IllegalArgumentException("Couldn't load image: "
+					   + filename);
+	iae.initCause(e);
+	throw iae;
       }
 
     isLoaded = true;
     observers = null;
-    offScreen = false;
     props = new Hashtable();
   }
 
@@ -241,12 +238,14 @@ public class GtkImage extends Image
    */
   public GtkImage (byte[] data)
   {
-    if (loadImageFromData (data) != true)
-      throw new IllegalArgumentException ("Couldn't load image.");
+    synchronized(pixbufLock)
+      {
+	if (loadImageFromData (data) != true)
+	  throw new IllegalArgumentException ("Couldn't load image.");
+      }
 
     isLoaded = true;
     observers = null;
-    offScreen = false;
     props = new Hashtable();
     errorLoading = false;
   }
@@ -277,26 +276,16 @@ public class GtkImage extends Image
       {
 	throw new IllegalArgumentException ("Couldn't load image.");
       }
-    if (loadImageFromData (baos.toByteArray()) != true)
-      throw new IllegalArgumentException ("Couldn't load image.");
+    byte[] array = baos.toByteArray();
+    synchronized(pixbufLock)
+      {
+	if (loadImageFromData(array) != true)
+	  throw new IllegalArgumentException ("Couldn't load image.");
+      }
 
     isLoaded = true;
     observers = null;
     props = new Hashtable();
-  }
-
-  /**
-   * Constructs an empty GtkImage.
-   */
-  public GtkImage (int width, int height)
-  {
-    this.width = width;
-    this.height = height;
-    props = new Hashtable();
-    isLoaded = true;
-    observers = null;
-    offScreen = true;
-    createPixmap();
   }
 
   /**
@@ -309,10 +298,12 @@ public class GtkImage extends Image
     props = new Hashtable();
     isLoaded = true;
     observers = null;
-    offScreen = false;
 
     // Use the GDK scaling method.
-    createScaledPixmap(src, hints);
+    synchronized(pixbufLock)
+      {
+	createScaledPixbuf(src, hints);
+      }
   }
 
   /**
@@ -321,16 +312,49 @@ public class GtkImage extends Image
    */
   GtkImage (Pointer pixbuf)
   {
-    pixmap = pixbuf;
-    createFromPixbuf();
+    this.pixbuf = pixbuf;
+    synchronized(pixbufLock)
+      {
+	createFromPixbuf();
+      }
     isLoaded = true;
     observers = null;
-    offScreen = false;
     props = new Hashtable();
   }
 
   /**
+   * Wraps a buffer with a GtkImage.
+   *
+   * @param bufferPointer a pointer to an ARGB32 buffer
+   */
+  GtkImage(int width, int height, long bufferPointer)
+  {
+    this.width = width;
+    this.height = height;
+    props = new Hashtable();
+    isLoaded = true;
+    observers = null;
+    initFromBuffer( bufferPointer );
+  }
+
+  /**
+   * Returns an empty GtkImage with the errorLoading flag set.
+   * Called from GtkToolKit when some error occured, but an image needs
+   * to be returned anyway.
+   */
+  static synchronized GtkImage getErrorImage()
+  {
+    if (errorImage == null)
+      {
+	errorImage = new GtkImage();
+	errorImage.errorLoading = true;
+      }
+    return errorImage;
+  }
+
+  /**
    * Native helper function for constructor that takes a pixbuf Pointer.
+   * Should be called with the pixbufLock held.
    */
   private native void createFromPixbuf();
 
@@ -352,8 +376,11 @@ public class GtkImage extends Image
 
     isLoaded = true;
     deliver();
-    createPixmap();
-    setPixels(pixels);
+    synchronized(pixbufLock)
+      {
+	createPixbuf();
+	setPixels(pixels);
+      }
   }
 
   // java.awt.Image methods ////////////////////////////////////////////////
@@ -390,26 +417,30 @@ public class GtkImage extends Image
   {
     if (!isLoaded)
       return null;
-    return new MemoryImageSource(width, height, nativeModel, getPixels(), 
+
+    int[] pixels;
+    synchronized (pixbufLock)
+      {
+        if (!errorLoading)
+          pixels = getPixels();
+        else
+          return null;
+      }
+    return new MemoryImageSource(width, height, nativeModel, pixels, 
 				 0, width);
   }
 
   /**
-   * Creates a GdkGraphics context for this pixmap.
+   * Does nothing. Should not be called.
    */
   public Graphics getGraphics ()
   {
-    if (!isLoaded) 
-      return null;
-    if (offScreen)
-      return new GdkGraphics(this);
-    else
-      throw new IllegalAccessError("This method only works for off-screen"
-				   +" Images.");
+    throw new IllegalAccessError("This method only works for off-screen"
+				 +" Images.");
   }
   
   /**
-   * Returns a scaled instance of this pixmap.
+   * Returns a scaled instance of this pixbuf.
    */
   public Image getScaledInstance(int width,
 				 int height,
@@ -436,7 +467,10 @@ public class GtkImage extends Image
       {
 	observers = new Vector();
 	isLoaded = false;
-	freePixmap();
+	synchronized(pixbufLock)
+	  {
+	    freePixbuf();
+	  }
 	source.startProduction(new GtkImageConsumer(this, source));
       }
   }
@@ -444,7 +478,12 @@ public class GtkImage extends Image
   public void finalize()
   {
     if (isLoaded)
-      freePixmap();
+      {
+	synchronized(pixbufLock)
+	  {
+	    freePixbuf();
+	  }
+      }
   }
 
   /**
@@ -463,92 +502,6 @@ public class GtkImage extends Image
     return ImageObserver.ALLBITS | ImageObserver.WIDTH | ImageObserver.HEIGHT;
   }
 
-  // Drawing methods ////////////////////////////////////////////////
-
-  /**
-   * Draws an image with eventual scaling/transforming.
-   */
-  public boolean drawImage (GdkGraphics g, int dx1, int dy1, int dx2, int dy2, 
-			    int sx1, int sy1, int sx2, int sy2, 
-			    Color bgcolor, ImageObserver observer)
-  {
-    if (addObserver(observer))
-      return false;
-
-    boolean flipX = (dx1 > dx2)^(sx1 > sx2);
-    boolean flipY = (dy1 > dy2)^(sy1 > sy2);
-    int dstWidth = Math.abs (dx2 - dx1);
-    int dstHeight = Math.abs (dy2 - dy1);
-    int srcWidth = Math.abs (sx2 - sx1);
-    int srcHeight = Math.abs (sy2 - sy1);
-    int srcX = (sx1 < sx2) ? sx1 : sx2;
-    int srcY = (sy1 < sy2) ? sy1 : sy2;
-    int dstX = (dx1 < dx2) ? dx1 : dx2;
-    int dstY = (dy1 < dy2) ? dy1 : dy2;
-
-    // Clipping. This requires the dst to be scaled as well, 
-    if (srcWidth > width)
-      {
-	dstWidth = (int)((double)dstWidth*((double)width/(double)srcWidth));
-	srcWidth = width - srcX;
-      }
-
-    if (srcHeight > height) 
-      {
-	dstHeight = (int)((double)dstHeight*((double)height/(double)srcHeight));
-	srcHeight = height - srcY;
-      }
-
-    if (srcWidth + srcX > width)
-      {
-	dstWidth = (int)((double)dstWidth * (double)(width - srcX)/(double)srcWidth);
-	srcWidth = width - srcX;
-      }
-
-    if (srcHeight + srcY > height)
-      {
-	dstHeight = (int)((double)dstHeight * (double)(width - srcY)/(double)srcHeight);
-	srcHeight = height - srcY;
-      }
-
-    if ( srcWidth <= 0 || srcHeight <= 0 || dstWidth <= 0 || dstHeight <= 0)
-      return true;
-
-    if(bgcolor != null)
-      drawPixelsScaledFlipped (g, bgcolor.getRed (), bgcolor.getGreen (), 
-			       bgcolor.getBlue (), 
-			       flipX, flipY,
-			       srcX, srcY,
-			       srcWidth, srcHeight,
-			       dstX,  dstY,
-			       dstWidth, dstHeight,
-			       true);
-    else
-      drawPixelsScaledFlipped (g, 0, 0, 0, flipX, flipY,
-			       srcX, srcY, srcWidth, srcHeight,
-			       dstX,  dstY, dstWidth, dstHeight,
-			       false);
-    return true;
-  }
-
-  /**
-   * Draws an image to the GdkGraphics context, at (x,y) scaled to 
-   * width and height, with optional compositing with a background color.
-   */
-  public boolean drawImage (GdkGraphics g, int x, int y, int width, int height,
-			    Color bgcolor, ImageObserver observer)
-  {
-    if (addObserver(observer))
-      return false;
-
-    if(bgcolor != null)
-      drawPixelsScaled(g, bgcolor.getRed (), bgcolor.getGreen (), 
-		       bgcolor.getBlue (), x, y, width, height, true);
-    else
-      drawPixelsScaled(g, 0, 0, 0, x, y, width, height, false);
-
-    return true;
-  }
 
   // Private methods ////////////////////////////////////////////////
 

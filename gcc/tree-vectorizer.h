@@ -1,12 +1,12 @@
 /* Loop Vectorization
-   Copyright (C) 2003, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
    Contributed by Dorit Naishlos <dorit@il.ibm.com>
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,9 +15,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #ifndef GCC_TREE_VECTORIZER_H
 #define GCC_TREE_VECTORIZER_H
@@ -43,10 +42,11 @@ enum vect_var_kind {
   vect_scalar_var
 };
 
-/* Defines type of operation: unary or binary.  */
+/* Defines type of operation.  */
 enum operation_type {
   unary_op = 1,
-  binary_op
+  binary_op,
+  ternary_op
 };
 
 /* Define type of available alignment support.  */
@@ -121,10 +121,10 @@ typedef struct _loop_vec_info {
   int ptr_mask;
 
   /* All data references in the loop.  */
-  varray_type datarefs;
+  VEC (data_reference_p, heap) *datarefs;
 
   /* All data dependences in the loop.  */
-  varray_type ddrs;
+  VEC (ddr_p, heap) *ddrs;
 
   /* Statements in the loop that have data references that are candidates for a
      runtime (loop versioning) misalignment check.  */
@@ -204,6 +204,20 @@ typedef struct _stmt_vec_info {
   /* Information about the data-ref (access function, etc).  */
   struct data_reference *data_ref_info;
 
+  /* Stmt is part of some pattern (computation idiom)  */
+  bool in_pattern_p;
+
+  /* Used for various bookkeeping purposes, generally holding a pointer to 
+     some other stmt S that is in some way "related" to this stmt. 
+     Current use of this field is:
+        If this stmt is part of a pattern (i.e. the field 'in_pattern_p' is 
+        true): S is the "pattern stmt" that represents (and replaces) the 
+        sequence of stmts that constitutes the pattern.  Similarly, the 
+        related_stmt of the "pattern stmt" points back to this stmt (which is 
+        the last stmt in the original sequence of stmts that constitutes the 
+        pattern).  */
+  tree related_stmt;
+
   /* List of datarefs that are known to have the same alignment as the dataref
      of this stmt.  */
   VEC(dr_p,heap) *same_align_refs;
@@ -222,14 +236,16 @@ typedef struct _stmt_vec_info {
 #define STMT_VINFO_VECTYPE(S)             (S)->vectype
 #define STMT_VINFO_VEC_STMT(S)            (S)->vectorized_stmt
 #define STMT_VINFO_DATA_REF(S)            (S)->data_ref_info
+#define STMT_VINFO_IN_PATTERN_P(S)        (S)->in_pattern_p
+#define STMT_VINFO_RELATED_STMT(S)        (S)->related_stmt
 #define STMT_VINFO_SAME_ALIGN_REFS(S)     (S)->same_align_refs
 #define STMT_VINFO_DEF_TYPE(S)            (S)->def_type
 
-static inline void set_stmt_info (tree_ann_t ann, stmt_vec_info stmt_info);
+static inline void set_stmt_info (stmt_ann_t ann, stmt_vec_info stmt_info);
 static inline stmt_vec_info vinfo_for_stmt (tree stmt);
 
 static inline void
-set_stmt_info (tree_ann_t ann, stmt_vec_info stmt_info)
+set_stmt_info (stmt_ann_t ann, stmt_vec_info stmt_info)
 {
   if (ann)
     ann->common.aux = (char *) stmt_info;
@@ -238,7 +254,7 @@ set_stmt_info (tree_ann_t ann, stmt_vec_info stmt_info)
 static inline stmt_vec_info
 vinfo_for_stmt (tree stmt)
 {
-  tree_ann_t ann = tree_ann (stmt);
+  stmt_ann_t ann = stmt_ann (stmt);
   return ann ? (stmt_vec_info) ann->common.aux : NULL;
 }
 
@@ -302,7 +318,6 @@ extern void slpeel_verify_cfg_after_peeling (struct loop *, struct loop *);
   General Vectorization Utilities
  *************************************************************************/
 /** In tree-vectorizer.c **/
-extern tree vect_strip_conversion (tree);
 extern tree get_vectype_for_scalar_type (tree);
 extern bool vect_is_simple_use (tree, loop_vec_info, tree *, tree *,
 				enum vect_def_type *);
@@ -312,7 +327,6 @@ extern bool vect_can_force_dr_alignment_p (tree, unsigned int);
 extern enum dr_alignment_support vect_supportable_dr_alignment
   (struct data_reference *);
 extern bool reduction_code_for_scalar_code (enum tree_code, enum tree_code *);
-
 /* Creation and deletion of loop and stmt info structs.  */
 extern loop_vec_info new_loop_vec_info (struct loop *loop);
 extern void destroy_loop_vec_info (loop_vec_info);
@@ -320,9 +334,20 @@ extern stmt_vec_info new_stmt_vec_info (tree stmt, loop_vec_info);
 /* Main driver.  */
 extern void vectorize_loops (struct loops *);
 
+
 /** In tree-vect-analyze.c  **/
 /* Driver for analysis stage.  */
 extern loop_vec_info vect_analyze_loop (struct loop *);
+
+
+/** In tree-vect-patterns.c  **/
+/* Pattern recognition functions.
+   Additional pattern recognition functions can (and will) be added
+   in the future.  */
+typedef tree (* vect_recog_func_ptr) (tree, tree *, tree *);
+#define NUM_PATTERNS 3
+void vect_pattern_recog (loop_vec_info);
+
 
 /** In tree-vect-transform.c  **/
 extern bool vectorizable_load (tree, block_stmt_iterator *, tree *);

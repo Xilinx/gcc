@@ -1,12 +1,12 @@
 /* Pass computing data for optimizing stdarg functions.
-   Copyright (C) 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2007 Free Software Foundation, Inc.
    Contributed by Jakub Jelinek <jakub@redhat.com>
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -15,9 +15,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -59,7 +58,7 @@ reachable_at_most_once (basic_block va_arg_bb, basic_block va_start_bb)
   if (! dominated_by_p (CDI_DOMINATORS, va_arg_bb, va_start_bb))
     return false;
 
-  stack = xmalloc ((n_basic_blocks + 1) * sizeof (edge));
+  stack = XNEWVEC (edge, n_basic_blocks + 1);
   sp = 0;
 
   visited = sbitmap_alloc (last_basic_block);
@@ -125,7 +124,7 @@ va_list_counter_bump (struct stdarg_info *si, tree counter, tree rhs,
     {
       unsigned int i;
 
-      si->offsets = xmalloc (num_ssa_names * sizeof (int));
+      si->offsets = XNEWVEC (int, num_ssa_names);
       for (i = 0; i < num_ssa_names; ++i)
 	si->offsets[i] = -1;
     }
@@ -603,7 +602,7 @@ gate_optimize_stdarg (void)
 
 /* Entry point to the stdarg optimization pass.  */
 
-static void
+static unsigned int
 execute_optimize_stdarg (void)
 {
   basic_block bb;
@@ -903,6 +902,7 @@ finish:
 	fprintf (dump_file, "%d", cfun->va_list_fpr_size);
       fputs (" FPR units.\n", dump_file);
     }
+  return 0;
 }
 
 

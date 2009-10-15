@@ -5,9 +5,9 @@ struct A
   operator int();
 };
 
-struct B : virtual A;	// { dg-error "token" }
+struct B : virtual A, A<0> {};  // { dg-error "token" }
 
 int foo(B &b)
 {
-  return b;		// { dg-error "cannot convert" }
+  return b;                     // { dg-error "cannot convert" }
 }

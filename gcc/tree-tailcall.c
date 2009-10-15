@@ -1,11 +1,11 @@
 /* Tail call optimization on trees.
-   Copyright (C) 2003, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -14,9 +14,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -144,9 +143,8 @@ suitable_for_tail_opt_p (void)
   FOR_EACH_REFERENCED_VAR (var, rvi)
     {
 
-      if (!(TREE_STATIC (var) || DECL_EXTERNAL (var))
-	  && (var_ann (var)->mem_tag_kind == NOT_A_TAG
-	      || var_ann (var)->mem_tag_kind == STRUCT_FIELD)
+      if (!is_global_var (var)
+	  && (!MTAG_P (var) || TREE_CODE (var) == STRUCT_FIELD_TAG)
 	  && is_call_clobbered (var))
 	return false;
     }
@@ -527,7 +525,7 @@ find_tail_calls (basic_block bb, struct tailcall **ret)
   if (!tail_recursion && (m || a))
     return;
 
-  nw = xmalloc (sizeof (struct tailcall));
+  nw = XNEW (struct tailcall);
 
   nw->call_block = bb;
   nw->call_bsi = bsi;
@@ -559,11 +557,11 @@ adjust_accumulator_values (block_stmt_iterator bsi, tree m, tree a, edge back)
 	    var = m_acc;
 	  else
 	    {
-	      stmt = build (MODIFY_EXPR, ret_type, NULL_TREE,
-			    build (MULT_EXPR, ret_type, m_acc, a));
+	      stmt = build2 (MODIFY_EXPR, ret_type, NULL_TREE,
+			     build2 (MULT_EXPR, ret_type, m_acc, a));
 
 	      tmp = create_tmp_var (ret_type, "acc_tmp");
-	      add_referenced_tmp_var (tmp);
+	      add_referenced_var (tmp);
 
 	      var = make_ssa_name (tmp, stmt);
 	      TREE_OPERAND (stmt, 0) = var;
@@ -573,8 +571,8 @@ adjust_accumulator_values (block_stmt_iterator bsi, tree m, tree a, edge back)
       else
 	var = a;
 
-      stmt = build (MODIFY_EXPR, ret_type, NULL_TREE,
-		    build (PLUS_EXPR, ret_type, a_acc, var));
+      stmt = build2 (MODIFY_EXPR, ret_type, NULL_TREE,
+		     build2 (PLUS_EXPR, ret_type, a_acc, var));
       var = make_ssa_name (SSA_NAME_VAR (a_acc), stmt);
       TREE_OPERAND (stmt, 0) = var;
       bsi_insert_after (&bsi, stmt, BSI_NEW_STMT);
@@ -583,8 +581,8 @@ adjust_accumulator_values (block_stmt_iterator bsi, tree m, tree a, edge back)
 
   if (m)
     {
-      stmt = build (MODIFY_EXPR, ret_type, NULL_TREE,
-		    build (MULT_EXPR, ret_type, m_acc, m));
+      stmt = build2 (MODIFY_EXPR, ret_type, NULL_TREE,
+		     build2 (MULT_EXPR, ret_type, m_acc, m));
       var = make_ssa_name (SSA_NAME_VAR (m_acc), stmt);
       TREE_OPERAND (stmt, 0) = var;
       bsi_insert_after (&bsi, stmt, BSI_NEW_STMT);
@@ -638,11 +636,11 @@ adjust_return_value (basic_block bb, tree m, tree a)
 
   if (m)
     {
-      stmt = build (MODIFY_EXPR, ret_type, NULL_TREE,
-		    build (MULT_EXPR, ret_type, m_acc, ret_var));
+      stmt = build2 (MODIFY_EXPR, ret_type, NULL_TREE,
+		     build2 (MULT_EXPR, ret_type, m_acc, ret_var));
 
       tmp = create_tmp_var (ret_type, "acc_tmp");
-      add_referenced_tmp_var (tmp);
+      add_referenced_var (tmp);
 
       var = make_ssa_name (tmp, stmt);
       TREE_OPERAND (stmt, 0) = var;
@@ -653,11 +651,11 @@ adjust_return_value (basic_block bb, tree m, tree a)
 
   if (a)
     {
-      stmt = build (MODIFY_EXPR, ret_type, NULL_TREE,
-		    build (PLUS_EXPR, ret_type, a_acc, var));
+      stmt = build2 (MODIFY_EXPR, ret_type, NULL_TREE,
+		     build2 (PLUS_EXPR, ret_type, a_acc, var));
 
       tmp = create_tmp_var (ret_type, "acc_tmp");
-      add_referenced_tmp_var (tmp);
+      add_referenced_var (tmp);
 
       var = make_ssa_name (tmp, stmt);
       TREE_OPERAND (stmt, 0) = var;
@@ -691,6 +689,25 @@ decrease_profile (basic_block bb, gcov_type count, int frequency)
     e->count = 0;
 }
 
+/* Returns true if argument PARAM of the tail recursive call needs to be copied
+   when the call is eliminated.  */
+
+static bool
+arg_needs_copy_p (tree param)
+{
+  tree def;
+
+  if (!is_gimple_reg (param) || !var_ann (param))
+    return false;
+		
+  /* Parameters that are only defined but never used need not be copied.  */
+  def = default_def (param);
+  if (!def)
+    return false;
+
+  return true;
+}
+
 /* Eliminates tail call described by T.  TMP_VARS is a list of
    temporary variables used to copy the function arguments.  */
 
@@ -702,9 +719,6 @@ eliminate_tail_call (struct tailcall *t)
   edge e;
   tree phi;
   block_stmt_iterator bsi;
-  use_operand_p mayuse;
-  def_operand_p maydef;
-  ssa_op_iter iter;
   tree orig_stmt;
 
   stmt = orig_stmt = bsi_stmt (t->call_bsi);
@@ -736,7 +750,7 @@ eliminate_tail_call (struct tailcall *t)
       if (TREE_CODE (t) == RETURN_EXPR)
 	break;
 
-      bsi_remove (&bsi);
+      bsi_remove (&bsi, true);
       release_defs (t);
     }
 
@@ -752,65 +766,21 @@ eliminate_tail_call (struct tailcall *t)
   gcc_assert (e);
   PENDING_STMT (e) = NULL_TREE;
 
-  /* Add phi node entries for arguments.  Not every PHI node corresponds to
-     a function argument (there may be PHI nodes for virtual definitions of the
-     eliminated calls), so we search for a PHI corresponding to each argument
-     rather than searching for which argument a PHI node corresponds to.  */
-  
+  /* Add phi node entries for arguments.  The ordering of the phi nodes should
+     be the same as the ordering of the arguments.  */
   for (param = DECL_ARGUMENTS (current_function_decl),
-       args = TREE_OPERAND (stmt, 1);
+       args = TREE_OPERAND (stmt, 1),
+       phi = phi_nodes (first);
        param;
        param = TREE_CHAIN (param),
        args = TREE_CHAIN (args))
     {
-      
-      for (phi = phi_nodes (first); phi; phi = PHI_CHAIN (phi))
-	if (param == SSA_NAME_VAR (PHI_RESULT (phi)))
-	  break;
-
-      /* The phi node indeed does not have to be there, in case the operand is
-	 invariant in the function.  */
-      if (!phi)
+      if (!arg_needs_copy_p (param))
 	continue;
+      gcc_assert (param == SSA_NAME_VAR (PHI_RESULT (phi)));
 
       add_phi_arg (phi, TREE_VALUE (args), e);
-    }
-
-  /* Add phi nodes for the call clobbered variables.  */
-  FOR_EACH_SSA_MAYDEF_OPERAND (maydef, mayuse, orig_stmt, iter)
-    {
-      param = SSA_NAME_VAR (DEF_FROM_PTR (maydef));
-      for (phi = phi_nodes (first); phi; phi = PHI_CHAIN (phi))
-	if (param == SSA_NAME_VAR (PHI_RESULT (phi)))
-	  break;
-
-      if (!phi)
-	{
-	  tree name = default_def (param);
-	  tree new_name;
-
-	  if (!name)
-	    {
-	      /* It may happen that the tag does not have a default_def in case
-		 when all uses of it are dominated by a MUST_DEF.  This however
-		 means that it is not necessary to add a phi node for this
-		 tag.  */
-	      continue;
-	    }
-	  new_name = make_ssa_name (param, SSA_NAME_DEF_STMT (name));
-
-	  set_default_def (param, new_name);
-	  phi = create_phi_node (name, first);
-	  SSA_NAME_DEF_STMT (name) = phi;
-	  add_phi_arg (phi, new_name, single_succ_edge (ENTRY_BLOCK_PTR));
-
-	  /* For all calls the same set of variables should be clobbered.  This
-	     means that there always should be the appropriate phi node except
-	     for the first time we eliminate the call.  */
-	  gcc_assert (EDGE_COUNT (first->preds) <= 2);
-	}
-
-      add_phi_arg (phi, USE_FROM_PTR (mayuse), e);
+      phi = PHI_CHAIN (phi);
     }
 
   /* Update the values of accumulators.  */
@@ -826,8 +796,40 @@ eliminate_tail_call (struct tailcall *t)
       SSA_NAME_DEF_STMT (rslt) = build_empty_stmt ();
     }
 
-  bsi_remove (&t->call_bsi);
+  bsi_remove (&t->call_bsi, true);
   release_defs (call);
+}
+
+/* Add phi nodes for the virtual operands defined in the function to the
+   header of the loop created by tail recursion elimination.
+
+   Originally, we used to add phi nodes only for call clobbered variables,
+   as the value of the non-call clobbered ones obviously cannot be used
+   or changed within the recursive call.  However, the local variables
+   from multiple calls now share the same location, so the virtual ssa form
+   requires us to say that the location dies on further iterations of the loop,
+   which requires adding phi nodes.
+*/
+static void
+add_virtual_phis (void)
+{
+  referenced_var_iterator rvi;
+  tree var;
+
+  /* The problematic part is that there is no way how to know what
+     to put into phi nodes (there in fact does not have to be such
+     ssa name available).  A solution would be to have an artificial
+     use/kill for all virtual operands in EXIT node.  Unless we have
+     this, we cannot do much better than to rebuild the ssa form for
+     possibly affected virtual ssa names from scratch.  */
+
+  FOR_EACH_REFERENCED_VAR (var, rvi)
+    {
+      if (!is_gimple_reg (var) && default_def (var) != NULL_TREE)
+	mark_sym_for_renaming (var);
+    }
+
+  update_ssa (TODO_update_ssa_only_virtuals);
 }
 
 /* Optimizes the tailcall described by T.  If OPT_TAILCALLS is true, also
@@ -898,7 +900,6 @@ tree_optimize_tail_calls_1 (bool opt_tailcalls)
 
       if (!phis_constructed)
 	{
-	  tree name;
 	  /* Ensure that there is only one predecessor of the block.  */
 	  if (!single_pred_p (first))
 	    first = split_edge (single_succ_edge (ENTRY_BLOCK_PTR));
@@ -907,21 +908,17 @@ tree_optimize_tail_calls_1 (bool opt_tailcalls)
 	  for (param = DECL_ARGUMENTS (current_function_decl);
 	       param;
 	       param = TREE_CHAIN (param))
-	    if (is_gimple_reg (param)
-		&& var_ann (param)
-		/* Also parameters that are only defined but never used need not
-		   be copied.  */
-		&& ((name = default_def (param))
-		    && TREE_CODE (name) == SSA_NAME))
-	    {
-	      tree new_name = make_ssa_name (param, SSA_NAME_DEF_STMT (name));
-	      tree phi;
+	    if (arg_needs_copy_p (param))
+	      {
+		tree name = default_def (param);
+		tree new_name = make_ssa_name (param, SSA_NAME_DEF_STMT (name));
+		tree phi;
 
-	      set_default_def (param, new_name);
-	      phi = create_phi_node (name, first);
-	      SSA_NAME_DEF_STMT (name) = phi;
-	      add_phi_arg (phi, new_name, single_pred_edge (first));
-	    }
+		set_default_def (param, new_name);
+		phi = create_phi_node (name, first);
+		SSA_NAME_DEF_STMT (name) = phi;
+		add_phi_arg (phi, new_name, single_pred_edge (first));
+	      }
 	  phis_constructed = true;
 	}
 
@@ -930,7 +927,7 @@ tree_optimize_tail_calls_1 (bool opt_tailcalls)
 	  ret_type = TREE_TYPE (DECL_RESULT (current_function_decl));
 
 	  tmp = create_tmp_var (ret_type, "add_acc");
-	  add_referenced_tmp_var (tmp);
+	  add_referenced_var (tmp);
 
 	  phi = create_phi_node (tmp, first);
 	  add_phi_arg (phi,
@@ -946,7 +943,7 @@ tree_optimize_tail_calls_1 (bool opt_tailcalls)
 	  ret_type = TREE_TYPE (DECL_RESULT (current_function_decl));
 
 	  tmp = create_tmp_var (ret_type, "mult_acc");
-	  add_referenced_tmp_var (tmp);
+	  add_referenced_var (tmp);
 
 	  phi = create_phi_node (tmp, first);
 	  add_phi_arg (phi,
@@ -956,6 +953,14 @@ tree_optimize_tail_calls_1 (bool opt_tailcalls)
 		       single_pred_edge (first));
 	  m_acc = PHI_RESULT (phi);
 	}
+    }
+
+
+  if (phis_constructed)
+    {
+      /* Reverse the order of the phi nodes, so that it matches the order
+	 of operands of the function, as assumed by eliminate_tail_call.  */
+      set_phi_nodes (first, phi_reverse (phi_nodes (first)));
     }
 
   for (; tailcalls; tailcalls = next)
@@ -983,12 +988,16 @@ tree_optimize_tail_calls_1 (bool opt_tailcalls)
       free_dominance_info (CDI_DOMINATORS);
       cleanup_tree_cfg ();
     }
+
+  if (phis_constructed)
+    add_virtual_phis ();
 }
 
-static void
+static unsigned int
 execute_tail_recursion (void)
 {
   tree_optimize_tail_calls_1 (false);
+  return 0;
 }
 
 static bool
@@ -997,10 +1006,11 @@ gate_tail_calls (void)
   return flag_optimize_sibling_calls != 0;
 }
 
-static void
+static unsigned int
 execute_tail_calls (void)
 {
   tree_optimize_tail_calls_1 (true);
+  return 0;
 }
 
 struct tree_opt_pass pass_tail_recursion = 

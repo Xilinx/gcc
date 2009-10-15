@@ -1,8 +1,71 @@
-2007-02-13  Release Manager
+2008-05-19  Release Manager
 
-	* GCC 4.1.2 released.
+	* GCC 4.2.4 released.
 
-2006-10-15  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+2008-03-13  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+	    Andreas Tobler  <a.tobler@schweiz.org>
+
+	* inclhack.def (solaris_math_10): New.
+	* tests/base/iso/math_c99.h: Update.
+	* fixincl.x: Regenerate.
+
+2008-02-04  Ismail Dönmez  <ismail@pardus.org.tr>
+
+	* inclhack.def: (bsd_stdio_attrs_conflict, freebsd_gcc3_breakage,
+	freebsd_gcc4_breakage, hpux11_abs, netbsd_extra_semicolon):  Add
+	quotes around mach entries.
+	* fixincl.x: Regenerate with latest autogen (5.9.4), updating license
+	to GPLv3.
+
+2008-02-01  Release Manager
+
+	* GCC 4.2.3 released.
+
+2007-10-07  Release Manager
+
+	* GCC 4.2.2 released.
+
+2007-07-21  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	PR target/32641
+
+	* inclhack.def (solaris_math_4, solaris_math_5, solaris_math_6,
+	solaris_math_7): Constify and make FP exception-safe.
+	* tests/base/iso/math_c99.h: Update.
+
+	* fixincl.x: Regenerate.
+
+2007-07-19  Release Manager
+
+	* GCC 4.2.1 released.
+
+2007-07-10  Rainer Orth  <ro@TechFak.Uni-Bielefeld.DE>
+
+	PR libgcj/28190
+	* inclhack.def (irix_stdint_c99): New fix.
+	* fixincl.x: Regenerate.
+	* tests/base/stdint.h: New test.
+
+2007-05-13  Release Manager
+
+	* GCC 4.2.0 released.
+
+2007-02-04  Mike Stump  <mrs@apple.com>
+
+	* mkheaders.in: Allow optional isysroot parameter.
+
+2006-11-02  Steve Ellcey  <sje@cup.hp.com>
+
+	* inclhack.def (hpux11_extern_sendfile): New.
+	(hpux11_extern_sendpath): New.
+	* fixincl.x: Regenerate.
+	* tests/base/sys/socket.h: Update.
+
+2006-10-10  Brooks Moses  <bmoses@stanford.edu>
+
+	* Makefile.in: Added empty "pdf" target.
+
+2006-10-07  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
 
 	PR target/29300
 	* inclhack.def (hpux_pthread_initializers): New hack.
@@ -54,25 +117,37 @@
 	
 	* fixincl.x: Regenerate.
 
-2006-07-24  Roger Sayle  <roger@eyesopen.com>
+2006-07-17  Roger Sayle  <roger@eyesopen.com>
 
-	Backport from mainline.
 	* tests/base/errno.h: New file.
+	* tests/base/architecture/ppc/math.h: Likewise.
 	* tests/base/ia64/sys/getppdp.h: Likewise.
 
-2006-07-10  Steve Ellcey  <sje@cup.hp.com>
+2006-07-10  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	PR bootstrap/20437
+	* Makefile.in (configure, config.h.in): Change into $(srcdir)
+	before autoconf or autoheader call.
+
+2006-06-23  Steve Ellcey  <sje@cup.hp.com>
 
 	PR target/28084
 	* inclhack.def (hpux_extern_errno): New.
 	* fixincl.x: Regenerate.
 
-2006-05-24  Release Manager
+2006-05-23  Carlos O'Donell  <carlos@codesourcery.com>
 
-	* GCC 4.1.1 released.
+	* Makefile.in: Add dvi info html and install-html to .PHONY
+	Add install-html target.
 
-2006-02-28  Release Manager
+2006-05-16  Mike Stump  <mrs@apple.com>
 
-	* GCC 4.1.0 released.
+	* configure.ac: Add -Wno-overlength-strings.
+	* configure: Regenerate.
+
+2006-05-14  Bernhard Fischer  <aldot@gcc.gnu.org>
+
+	* README: Fix typo.
 
 2006-02-18  Steve Ellcey  <sje@cup.hp.com>
 
@@ -80,11 +155,25 @@
 	* inclhack.def (hpux_spu_info): New.
 	* fixincl.x: Regenerate
 
-2005-11-25  Bruce Korb  <bkorb@gnu.org>
+2006-01-31  Marcin Dalecki  <martin@dalecki.de>
 
-	* fixincl.c (write_replacement): "here strings" in AutoGen often
-	[generally] don't have a terminating newline.  Check the last byte
-	for '\n'.
+	* configure.ac: Check for asprintf, basename, vasprintf.
+	* config.h.in: Regenerate.
+	* configure: Regenerate.
+
+2006-01-19  Andrew Pinski  <pinskia@physics.uc.edu>
+
+	PR target/15642
+	* inclhack.def (AAB_darwin7_9_long_double_funcs [replace]): Define
+	__APPLE_CC_ as 1345.
+	(broken_nan): New.
+	* fixincl.x: Regenerate.
+
+2005-11-24  Bruce Korb  <bkorb@gnu.org>
+
+	* fixincl.c (write_replacement): "here strings" in AutoGen
+	often/generally don't have a terminating newline.  Check the
+	last byte for '\n'.
 
 2005-11-13  Andreas Jaeger  <aj@suse.de>
 

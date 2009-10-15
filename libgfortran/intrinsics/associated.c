@@ -39,6 +39,8 @@ associated (const gfc_array_void *pointer, const gfc_array_void *target)
 {
   int n, rank;
 
+  if (GFC_DESCRIPTOR_DATA (pointer) == NULL)
+    return 0;
   if (GFC_DESCRIPTOR_DATA (pointer) != GFC_DESCRIPTOR_DATA (target))
     return 0;
   if (GFC_DESCRIPTOR_DTYPE (pointer) != GFC_DESCRIPTOR_DTYPE (target))
@@ -52,6 +54,8 @@ associated (const gfc_array_void *pointer, const gfc_array_void *target)
       if ((pointer->dim[n].ubound - pointer->dim[n].lbound)
           != (target->dim[n].ubound - target->dim[n].lbound))
         return 0;
+      if (pointer->dim[n].ubound < pointer->dim[n].lbound)
+	return 0;
     }
 
   return 1;

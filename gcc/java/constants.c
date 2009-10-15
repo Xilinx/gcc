@@ -1,12 +1,12 @@
 /* Handle the constant pool of the Java(TM) Virtual Machine.
-   Copyright (C) 1997, 1998, 1999, 2000, 2001, 2003, 2004, 2005, 2006
-   Free Software Foundation, Inc.
+   Copyright (C) 1997, 1998, 1999, 2000, 2001, 2003, 2004, 2005, 2006,
+   2007  Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -14,9 +14,8 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA. 
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>. 
 
 Java and all Java-based marks are trademarks or registered trademarks
 of Sun Microsystems, Inc. in the United States and other countries.
@@ -313,8 +312,7 @@ write_constant_pool (CPool *cpool, unsigned char *buffer, int length)
 	}
     }
 
-  if (ptr != buffer + length)
-    abort ();
+  gcc_assert (ptr == buffer + length);
 }
 
 static GTY(()) tree tag_nodes[13];
@@ -459,8 +457,29 @@ build_ref_from_constant_pool (int index)
 {
   tree d = build_constant_data_ref ();
   tree i = build_int_cst (NULL_TREE, index);
-  return build4 (ARRAY_REF, TREE_TYPE (TREE_TYPE (d)), d, i,
+  if (flag_indirect_classes)
+    {
+      tree decl = build_class_ref (output_class);
+      tree klass = build1 (INDIRECT_REF, TREE_TYPE (TREE_TYPE (decl)),
+			   decl);
+      tree constants = build3 (COMPONENT_REF, 
+			       TREE_TYPE (constants_field_decl_node), klass,
+			       constants_field_decl_node,
+			       NULL_TREE);
+      tree data = build3 (COMPONENT_REF, 
+			  TREE_TYPE (constants_data_field_decl_node), 
+			  constants,
+			  constants_data_field_decl_node,
+			  NULL_TREE);
+      data = fold_convert (build_pointer_type (TREE_TYPE (d)), data);
+      d = build1 (INDIRECT_REF, TREE_TYPE (d), data);
+      /* FIXME: These should be cached.  */
+      TREE_INVARIANT (d) = 1;
+    }
+  d = build4 (ARRAY_REF, TREE_TYPE (TREE_TYPE (d)), d, i,
 		 NULL_TREE, NULL_TREE);
+  TREE_INVARIANT (d) = 1;
+  return d;
 }
 
 /* Build an initializer for the constants field of the current constant pool.
@@ -483,8 +502,11 @@ build_constants_constructor (void)
 	{
 	  unsigned HOST_WIDE_INT temp = outgoing_cpool->data[i].w;
 
-	  /* Make sure that on a 64-bit big-endian machine this 32-bit
-	     jint appears in the first word.  */
+	  /* Make sure that on a 64-bit big-endian machine this
+	     32-bit jint appears in the first word.  
+	     FIXME: This is a kludge.  The field we're initializing is
+	     not a scalar but a union, and that's how we should
+	     represent it in the compiler.  We should fix this.  */
 	  if (BYTES_BIG_ENDIAN && BITS_PER_WORD > 32)
 	    temp <<= BITS_PER_WORD - 32;
 

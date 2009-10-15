@@ -1,13 +1,14 @@
 /* Separate lexical analyzer for GNU C++.
    Copyright (C) 1987, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007
+   Free Software Foundation, Inc.
    Hacked by Michael Tiemann (tiemann@cygnus.com)
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -16,9 +17,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 
 /* This file is the lexical analyzer for GNU C++.  */
@@ -316,7 +316,7 @@ init_reswords (void)
 	      | D_OBJC
 	      | (flag_no_gnu_keywords ? D_EXT : 0));
 
-  ridpointers = ggc_calloc ((int) RID_MAX, sizeof (tree));
+  ridpointers = GGC_CNEWVEC (tree, (int) RID_MAX);
   for (i = 0; i < ARRAY_SIZE (reswords); i++)
     {
       id = get_identifier (reswords[i].word);
@@ -460,20 +460,19 @@ parse_strconst_pragma (const char* name, int opt)
   tree result, x;
   enum cpp_ttype t;
 
-  t = c_lex (&x);
+  t = pragma_lex (&result);
   if (t == CPP_STRING)
     {
-      result = x;
-      if (c_lex (&x) != CPP_EOF)
+      if (pragma_lex (&x) != CPP_EOF)
 	warning (0, "junk at end of #pragma %s", name);
       return result;
     }
 
   if (t == CPP_EOF && opt)
-    return 0;
+    return NULL_TREE;
 
   error ("invalid #pragma %s", name);
-  return (tree)-1;
+  return error_mark_node;
 }
 
 static void
@@ -497,7 +496,7 @@ handle_pragma_interface (cpp_reader* dfile ATTRIBUTE_UNUSED )
   struct c_fileinfo *finfo;
   const char *filename;
 
-  if (fname == (tree)-1)
+  if (fname == error_mark_node)
     return;
   else if (fname == 0)
     filename = lbasename (input_filename);
@@ -537,7 +536,7 @@ handle_pragma_implementation (cpp_reader* dfile ATTRIBUTE_UNUSED )
   const char *filename;
   struct impl_files *ifiles = impl_file_chain;
 
-  if (fname == (tree)-1)
+  if (fname == error_mark_node)
     return;
 
   if (fname == 0)
@@ -571,7 +570,7 @@ handle_pragma_implementation (cpp_reader* dfile ATTRIBUTE_UNUSED )
     }
   if (ifiles == 0)
     {
-      ifiles = xmalloc (sizeof (struct impl_files));
+      ifiles = XNEW (struct impl_files);
       ifiles->filename = filename;
       ifiles->next = impl_file_chain;
       impl_file_chain = ifiles;
@@ -580,10 +579,10 @@ handle_pragma_implementation (cpp_reader* dfile ATTRIBUTE_UNUSED )
 
 /* Indicate that this file uses Java-personality exception handling.  */
 static void
-handle_pragma_java_exceptions (cpp_reader* dfile ATTRIBUTE_UNUSED )
+handle_pragma_java_exceptions (cpp_reader* dfile ATTRIBUTE_UNUSED)
 {
   tree x;
-  if (c_lex (&x) != CPP_EOF)
+  if (pragma_lex (&x) != CPP_EOF)
     warning (0, "junk at end of #pragma GCC java_exceptions");
 
   choose_personality_routine (lang_java);
@@ -827,4 +826,19 @@ make_aggr_type (enum tree_code code)
     SET_IS_AGGR_TYPE (t, 1);
 
   return t;
+}
+
+/* Returns true if we are currently in the main source file, or in a
+   template instantiation started from the main source file.  */
+
+bool
+in_main_input_context (void)
+{
+  tree tl = outermost_tinst_level();
+
+  if (tl)
+    return strcmp (main_input_filename,
+		   LOCATION_FILE (TINST_LOCATION (tl))) == 0;
+  else
+    return strcmp (main_input_filename, input_filename) == 0;
 }

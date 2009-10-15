@@ -1,5 +1,5 @@
 /* JInternalFrame.java --
-   Copyright (C) 2002, 2004, 2005  Free Software Foundation, Inc.
+   Copyright (C) 2002, 2004, 2005, 2006,  Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -38,12 +38,15 @@ exception statement from your version. */
 
 package javax.swing;
 
+import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Container;
 import java.awt.Graphics;
+import java.awt.IllegalComponentStateException;
 import java.awt.KeyboardFocusManager;
 import java.awt.LayoutManager;
 import java.awt.Rectangle;
+import java.beans.PropertyChangeEvent;
 import java.beans.PropertyVetoException;
 
 import javax.accessibility.Accessible;
@@ -67,11 +70,12 @@ public class JInternalFrame extends JComponent implements Accessible,
                                                           WindowConstants,
                                                           RootPaneContainer
 {
-  /** DOCUMENT ME! */
+
   private static final long serialVersionUID = -5425177187760785402L;
 
   /**
-   * DOCUMENT ME!
+   * Provides the accessibility features for the <code>JInternalFrame</code>
+   * component.
    */
   protected class AccessibleJInternalFrame extends AccessibleJComponent
     implements AccessibleValue
@@ -79,7 +83,7 @@ public class JInternalFrame extends JComponent implements Accessible,
     private static final long serialVersionUID = 5931936924175476797L;
 
     /**
-     * Creates a new AccessibleJInternalFrame object.
+     * Creates a new <code>AccessibleJInternalFrame</code> instance.
      */
     protected AccessibleJInternalFrame()
     {
@@ -87,75 +91,83 @@ public class JInternalFrame extends JComponent implements Accessible,
     }
 
     /**
-     * DOCUMENT ME!
+     * Returns the frame title.
      *
-     * @return DOCUMENT ME!
+     * @return The frame title.
      */
     public String getAccessibleName()
     {
-      return null;
+      return getTitle();
     }
 
     /**
-     * DOCUMENT ME!
+     * Returns the accessible role for the <code>JInternalFrame</code> 
+     * component.
      *
-     * @return DOCUMENT ME!
+     * @return {@link AccessibleRole#INTERNAL_FRAME}.
      */
     public AccessibleRole getAccessibleRole()
     {
-      return null;
+      return AccessibleRole.INTERNAL_FRAME;
     }
 
     /**
-     * DOCUMENT ME!
+     * Returns an object that provides access to the current, minimum and 
+     * maximum values for the {@link JInternalFrame}.  Since this class 
+     * implements {@link AccessibleValue}, it returns itself.
      *
-     * @return DOCUMENT ME!
+     * @return The accessible value.
      */
     public AccessibleValue getAccessibleValue()
     {
-      return null;
+      return this;
     }
 
     /**
-     * DOCUMENT ME!
+     * Returns the current layer for the {@link JInternalFrame} component, 
+     * as an {@link Integer}.
      *
-     * @return DOCUMENT ME!
+     * @return The layer for the {@link JInternalFrame} component.
      */
     public Number getCurrentAccessibleValue()
     {
-      return null;
+      return new Integer(getLayer());
     }
 
     /**
-     * DOCUMENT ME!
+     * Returns the maximum permitted accessible value.
      *
-     * @return DOCUMENT ME!
+     * @return <code>Integer(Integer.MAX_VALUE)</code>.
      */
     public Number getMaximumAccessibleValue()
     {
-      return null;
+      return new Integer(Integer.MAX_VALUE);
     }
 
     /**
-     * DOCUMENT ME!
+     * Returns the minimum permitted accessible value.
      *
-     * @return DOCUMENT ME!
+     * @return <code>Integer(Integer.MIN_VALUE)</code>.
      */
     public Number getMinimumAccessibleValue()
     {
-      return null;
+      return new Integer(Integer.MIN_VALUE);
     }
 
     /**
-     * DOCUMENT ME!
+     * Sets the layer for the internal frame.
      *
-     * @param n DOCUMENT ME!
+     * @param n  the layer (see the constants defined in {@link JLayeredPane}).
      *
-     * @return DOCUMENT ME!
+     * @return <code>true</code> if the value is set, and <code>false</code>
+     *         if it was not set.
      */
     public boolean setCurrentAccessibleValue(Number n)
     {
-      return false;
+      if (n == null)
+        return false;
+      setLayer(n.intValue());
+      return true;
     }
   }
 
@@ -165,7 +177,8 @@ public class JInternalFrame extends JComponent implements Accessible,
   public static class JDesktopIcon extends JComponent implements Accessible
   {
     /**
-     * DOCUMENT ME!
+     * Provides the accessibility features for the <code>JDesktopIcon</code>
+     * component.
      */
     protected class AccessibleJDesktopIcon extends AccessibleJComponent
       implements AccessibleValue
@@ -173,73 +186,83 @@ public class JInternalFrame extends JComponent implements Accessible,
       private static final long serialVersionUID = 5035560458941637802L;
 
       /**
-       * Creates a new AccessibleJDesktopIcon object.
+       * Creates a new <code>AccessibleJDesktopIcon</code> instance.
        */
       protected AccessibleJDesktopIcon()
       {
-	super();
+        super();
       }
 
       /**
-       * DOCUMENT ME!
+       * Returns the accessible role for the <code>JDesktopIcon</code> 
+       * component.
        *
-       * @return DOCUMENT ME!
+       * @return {@link AccessibleRole#DESKTOP_ICON}.
        */
       public AccessibleRole getAccessibleRole()
       {
-	return null;
+        return AccessibleRole.DESKTOP_ICON;
       }
 
       /**
-       * DOCUMENT ME!
+       * Returns an object that provides access to the current, minimum and 
+       * maximum values for the {@link JDesktopIcon}.  Since this class 
+       * implements {@link AccessibleValue}, it returns itself.
        *
-       * @return DOCUMENT ME!
+       * @return The accessible value.
        */
       public AccessibleValue getAccessibleValue()
       {
-	return null;
+        return this;
       }
 
       /**
-       * DOCUMENT ME!
+       * Returns the current layer for the {@link JInternalFrame} component
+       * represented by this <code>JDesktopIcon</code>, as an {@link Integer}.
        *
-       * @return DOCUMENT ME!
+       * @return The layer.
        */
       public Number getCurrentAccessibleValue()
       {
-	return null;
+        return new Integer(frame.getLayer());
       }
 
       /**
-       * DOCUMENT ME!
+       * Returns the maximum permitted accessible value.
        *
-       * @return DOCUMENT ME!
+       * @return <code>Integer(Integer.MAX_VALUE)</code>.
        */
       public Number getMaximumAccessibleValue()
       {
-	return null;
+        return new Integer(Integer.MAX_VALUE);
       }
 
       /**
-       * DOCUMENT ME!
+       * Returns the minimum permitted accessible value.
        *
-       * @return DOCUMENT ME!
+       * @return <code>Integer(Integer.MIN_VALUE)</code>.
        */
       public Number getMinimumAccessibleValue()
       {
-	return null;
+        return new Integer(Integer.MIN_VALUE);
       }
 
       /**
-       * DOCUMENT ME!
+       * Sets the layer for the internal frame represented by this 
+       * <code>JDesktopIcon</code> component.
        *
-       * @param n DOCUMENT ME!
+       * @param n  the layer (see the constants defined in 
+       *           {@link JLayeredPane}).
        *
-       * @return DOCUMENT ME!
+       * @return <code>true</code> if the value is set, and <code>false</code>
+       *         if it was not set.
        */
       public boolean setCurrentAccessibleValue(Number n)
       {
-	return false;
+        if (n == null)
+          return false;
+        frame.setLayer(n.intValue());
+        return true;
       }
     }
 
@@ -259,15 +282,17 @@ public class JInternalFrame extends JComponent implements Accessible,
       updateUI();
     }
 
-    /**
-     * DOCUMENT ME!
-     *
-     * @return DOCUMENT ME!
-     */
+  /**
+   * Returns the object that provides accessibility features for this
+   * <code>JDesktopIcon</code> component.
+   *
+   * @return The accessible context (an instance of 
+   *         {@link AccessibleJDesktopIcon}).
+   */
     public AccessibleContext getAccessibleContext()
     {
       if (accessibleContext == null)
-	accessibleContext = new AccessibleJDesktopIcon();
+        accessibleContext = new AccessibleJDesktopIcon();
       return accessibleContext;
     }
 
@@ -467,22 +492,17 @@ public class JInternalFrame extends JComponent implements Accessible,
   /** Whether the JInternalFrame has become visible for the very first time. */
   private transient boolean isFirstTimeVisible = true;
 
-  /**
-   * Whether the JInternalFrame is in the transition from being a maximized
-   * frame back to a regular sized frame.
-   */
-  private transient boolean maxTransition = false;
-
   /** DOCUMENT ME! */
   private transient boolean wasIcon = false;
 
   /**
-   * Creates a new JInternalFrame object that has no title, and is
-   * non-resizable, non-maximizable, non-iconifiable, and non-closable.
+   * Creates a new JInternalFrame object that has an empty string for its 
+   * title, and is non-resizable, non-maximizable, non-iconifiable, and 
+   * non-closable.
    */
   public JInternalFrame()
   {
-    this(null, false, false, false, false);
+    this("", false, false, false, false);
   }
 
   /**
@@ -557,8 +577,12 @@ public class JInternalFrame extends JComponent implements Accessible,
     this.closable = closable;
     this.maximizable = maximizable;
     this.iconable = iconifiable;
-    storedBounds = new Rectangle();
+    isMaximum = false;
     setRootPane(createRootPane());
+    // JInternalFrames are invisible and opaque by default.
+    setVisible(false);
+    setOpaque(true);
+    desktopIcon = new JDesktopIcon(this);
     updateUI();
     setRootPaneCheckingEnabled(true); // Done the init stage, now adds go to content pane.
   }
@@ -616,24 +640,25 @@ public class JInternalFrame extends JComponent implements Accessible,
    */
   public void dispose()
   {
-    hide();
-    JDesktopPane pane = getDesktopPane();
-    if (pane != null)
-      pane.setSelectedFrame(null);
-    else
+    if (isVisible())
+      setVisible(false);
+    if (isSelected())
       {
-	try
-	  {
-	    setSelected(false);
-	  }
-	catch (PropertyVetoException e)
-	  {
-	    // Do nothing if they don't want to be unselected.
-	  }
+        try
+          {
+            setSelected(false);
+          }
+        catch (PropertyVetoException e)
+          {
+            // Do nothing if they don't want to be unselected.
+          }
       }
-    isClosed = true;
+    if (! isClosed)
+      {
+        firePropertyChange(IS_CLOSED_PROPERTY, Boolean.FALSE, Boolean.TRUE);
+        isClosed = true;
+      }
     fireInternalFrameEvent(InternalFrameEvent.INTERNAL_FRAME_CLOSED);
-    removeNotify();
   }
 
   /**
@@ -647,11 +672,11 @@ public class JInternalFrame extends JComponent implements Accessible,
     switch (getDefaultCloseOperation())
       {
       case HIDE_ON_CLOSE:
-	hide();
-	break;
+	    setVisible(false);
+	    break;
       case DISPOSE_ON_CLOSE:
-	dispose();
-	break;
+	    dispose();
+	    break;
       }
   }
 
@@ -724,9 +749,11 @@ public class JInternalFrame extends JComponent implements Accessible,
   }
 
   /**
-   * DOCUMENT ME!
+   * Returns the object that provides accessibility features for this
+   * <code>JInternalFrame</code> component.
    *
-   * @return DOCUMENT ME!
+   * @return The accessible context (an instance of 
+   *     {@link AccessibleJInternalFrame}).
    */
   public AccessibleContext getAccessibleContext()
   {
@@ -746,10 +773,16 @@ public class JInternalFrame extends JComponent implements Accessible,
   }
 
   /**
-   * This method returns the default action taken when this JInternalFrame is
-   * closed.
+   * Returns a code for the default action taken when this 
+   * <code>JInternalFrame</code> is closed.
    *
-   * @return The default action taken when this JInternalFrame is closed.
+   * @return The action code (usually one of 
+   *     {@link WindowConstants#DO_NOTHING_ON_CLOSE}, 
+   *     {@link WindowConstants#HIDE_ON_CLOSE}, or 
+   *     {@link WindowConstants#DISPOSE_ON_CLOSE}).
+   * 
+   * @see #setDefaultCloseOperation(int)
+   * @see #doDefaultCloseAction()
    */
   public int getDefaultCloseOperation()
   {
@@ -757,16 +790,13 @@ public class JInternalFrame extends JComponent implements Accessible,
   }
 
   /**
-   * This method returns the JDesktopIcon that represents this JInternalFrame
-   * while it is iconified.
+   * Returns the <code>JDesktopIcon</code> that represents this 
+   * <code>JInternalFrame</code> while it is iconified.
    *
-   * @return The JDesktopIcon that represents this JInternalFrame while it is
-   *         iconified.
+   * @return The desktop icon component.
    */
   public JDesktopIcon getDesktopIcon()
   {
-    if (desktopIcon == null)
-      desktopIcon = new JDesktopIcon(this);
     return desktopIcon;
   }
 
@@ -870,13 +900,7 @@ public class JInternalFrame extends JComponent implements Accessible,
    */
   public int getLayer()
   {
-    JDesktopPane pane = getDesktopPane();
-    if (pane != null)
-      // The cast here forces the call to the instance method getLayer()
-      // instead of the static method (this would lead to infinite
-      // recursion).
-      return pane.getLayer((Component) this);
-    return -1;
+    return JLayeredPane.getLayer(this);
   }
 
   /**
@@ -931,7 +955,7 @@ public class JInternalFrame extends JComponent implements Accessible,
    */
   public Rectangle getNormalBounds()
   {
-    if (! isMaximum() && ! maxTransition)
+    if (storedBounds == null)
       return getBounds();
     else
       return storedBounds;
@@ -948,9 +972,11 @@ public class JInternalFrame extends JComponent implements Accessible,
   }
 
   /**
-   * This method sets the title of the JInternalFrame.
+   * Returns the frame's title.
    *
-   * @return The String displayed in the TitlePane of this JInternalFrame.
+   * @return The frame's title (can be <code>null</code>).
+   * 
+   * @see #setTitle(String)
    */
   public String getTitle()
   {
@@ -994,20 +1020,8 @@ public class JInternalFrame extends JComponent implements Accessible,
    */
   public void hide()
   {
-    JDesktopPane pane = getDesktopPane();
-    if (pane != null)
-      pane.setSelectedFrame(null);
-    else
-      {
-	try
-	  {
-	    setSelected(false);
-	  }
-	catch (PropertyVetoException e)
-	  {
-	    // Do nothing.
-	  }
-      }
+    if (isIcon())
+      getDesktopIcon().hide();
     super.hide();
   }
 
@@ -1121,8 +1135,9 @@ public class JInternalFrame extends JComponent implements Accessible,
    */
   public void moveToBack()
   {
-    if (getParent() instanceof JLayeredPane)
-      ((JLayeredPane) getParent()).moveToBack(this);
+    Container p = getParent();
+    if (p instanceof JLayeredPane)
+      ((JLayeredPane) p).moveToBack(this);
   }
 
   /**
@@ -1131,8 +1146,9 @@ public class JInternalFrame extends JComponent implements Accessible,
    */
   public void moveToFront()
   {
-    if (getParent() instanceof JLayeredPane)
-      ((JLayeredPane) getParent()).moveToFront(this);
+    Container p = getParent();
+    if (p != null && p instanceof JLayeredPane)
+      ((JLayeredPane) p).moveToFront(this);
   }
 
   /**
@@ -1155,6 +1171,7 @@ public class JInternalFrame extends JComponent implements Accessible,
 	// Do nothing if they don't want to be restored first.
       }
     setSize(getPreferredSize());
+    validate();
   }
 
   /**
@@ -1169,13 +1186,15 @@ public class JInternalFrame extends JComponent implements Accessible,
   }
 
   /**
-   * This method returns a String describing this JInternalFrame.
+   * An implementation dependent string describing the current state of this 
+   * <code>JInternalFrame</code> instance.
    *
-   * @return A String describing this JInternalFrame.
+   * @return A string describing the current state of this 
+   *     <code>JInternalFrame</code> instance.
    */
   protected String paramString()
   {
-    return super.paramString();
+    return super.paramString() + ",title=" + getTitle();
   }
 
   /**
@@ -1187,7 +1206,7 @@ public class JInternalFrame extends JComponent implements Accessible,
   {
     // If we're removing the root pane, use super.remove.  Otherwise
     // pass it on to the content pane instead.
-    if (comp==rootPane)
+    if (comp==rootPane || ! isRootPaneCheckingEnabled())
       super.remove(comp);
     else
       getContentPane().remove(comp);
@@ -1236,7 +1255,11 @@ public class JInternalFrame extends JComponent implements Accessible,
    */
   public void setClosable(boolean b)
   {
-    closable = b;
+    if (closable != b)
+      {
+        closable = b;
+        firePropertyChange("closable", ! closable, closable);
+      }
   }
 
   /**
@@ -1257,13 +1280,13 @@ public class JInternalFrame extends JComponent implements Accessible,
   {
     if (b && ! isClosed())
       {
-	fireInternalFrameEvent(InternalFrameEvent.INTERNAL_FRAME_CLOSING);
-	fireVetoableChange(IS_CLOSED_PROPERTY, false, true);
+        fireInternalFrameEvent(InternalFrameEvent.INTERNAL_FRAME_CLOSING);
+        fireVetoableChange(IS_CLOSED_PROPERTY, false, true);
 
-	isClosed = b;
+        isClosed = b;
+        dispose();
 
-	firePropertyChange(IS_CLOSED_PROPERTY, false, true);
-	fireInternalFrameEvent(InternalFrameEvent.INTERNAL_FRAME_CLOSED);
+        firePropertyChange(IS_CLOSED_PROPERTY, false, true);
       }
   }
 
@@ -1284,12 +1307,17 @@ public class JInternalFrame extends JComponent implements Accessible,
   }
 
   /**
-   * This method sets the action taken when this JInternalFrame is closed.
+   * Sets a code for the action to be taken when this 
+   * <code>JInternalFrame</code> is closed.  Note that no validation is 
+   * performed on the <code>operation</code> code, any integer will be 
+   * accepted (nevertheless, you should pass in one of the listed values).
    *
-   * @param operation One of DO_NOTHING_ON_CLOSE, HIDE_ON_CLOSE or
-   *        DISPOSE_ON_CLOSE.
-   *
-   * @throws Error If the given operation is not one of the allowed modes.
+   * @param operation  one of {@link WindowConstants#DO_NOTHING_ON_CLOSE}, 
+   *   {@link WindowConstants#HIDE_ON_CLOSE} or 
+   *   {@link WindowConstants#DISPOSE_ON_CLOSE}.
+   *   
+   * @see #getDefaultCloseOperation()
+   * @see #doDefaultCloseAction()
    */
   public void setDefaultCloseOperation(int operation)
   {
@@ -1301,16 +1329,24 @@ public class JInternalFrame extends JComponent implements Accessible,
   }
 
   /**
-   * This method sets the JDesktopIcon that represents this JInternalFrame
-   * while it is iconified.
+   * Sets the <code>JDesktopIcon</code> instance that represents this 
+   * <code>JInternalFrame</code> while it is iconified and, if the new icon is
+   * not the same instance as the existing icon, sends a 
+   * {@link PropertyChangeEvent} (with the property name 
+   * <code>"desktopIcon"</code>) to all registered listeners..
    *
-   * @param d The JDesktopIcon that represents this JInternalFrame while it is
-   *        iconified.
+   * @param d  the icon.
+   * 
+   * @see #getDesktopIcon()
    */
   public void setDesktopIcon(JDesktopIcon d)
   {
-    d.setInternalFrame(this);
-    desktopIcon = d;
+    if (desktopIcon != d)
+      {
+        JDesktopIcon oldIcon = desktopIcon;
+        desktopIcon = d;
+        firePropertyChange("desktopIcon", oldIcon, d);
+      }
   }
 
   /**
@@ -1393,7 +1429,11 @@ public class JInternalFrame extends JComponent implements Accessible,
    */
   public void setIconifiable(boolean b)
   {
-    iconable = b;
+    if (iconable != b)
+      {
+        iconable = b;
+        firePropertyChange("iconable", ! iconable, iconable);
+      }
   }
 
   /**
@@ -1403,7 +1443,9 @@ public class JInternalFrame extends JComponent implements Accessible,
    */
   public void setJMenuBar(JMenuBar b)
   {
+    JMenuBar old = getJMenuBar();
     getRootPane().setJMenuBar(b);
+    firePropertyChange(MENU_BAR_PROPERTY, old, b);
   }
 
   /**
@@ -1428,11 +1470,17 @@ public class JInternalFrame extends JComponent implements Accessible,
    */
   public void setLayer(Integer layer)
   {
-    JDesktopPane p = getDesktopPane();
-    if (p != null)
+    Container p = getParent();
+    if (p instanceof JLayeredPane)
       {
-	int pos = p.getPosition(this);
-	p.setLayer(this, layer.intValue(), pos);
+        JLayeredPane lp = (JLayeredPane) p;
+        lp.setLayer(this, layer.intValue(), lp.getPosition(this));
+      }
+    else
+      {
+        JLayeredPane.putLayer(this, layer.intValue());
+        if (p != null)
+          p.repaint(getX(), getY(), getWidth(), getHeight());
       }
   }
 
@@ -1443,6 +1491,9 @@ public class JInternalFrame extends JComponent implements Accessible,
    */
   public void setLayeredPane(JLayeredPane layered)
   {
+    if (layered == null)
+      throw new IllegalComponentStateException("LayeredPane must not be null");
+
     if (layered != getLayeredPane())
       {
 	JLayeredPane old = getLayeredPane();
@@ -1458,7 +1509,11 @@ public class JInternalFrame extends JComponent implements Accessible,
    */
   public void setMaximizable(boolean b)
   {
-    maximizable = b;
+    if (maximizable != b)
+      {
+        maximizable = b;
+        firePropertyChange("maximizable", ! maximizable, maximizable);
+      }
   }
 
   /**
@@ -1492,15 +1547,11 @@ public class JInternalFrame extends JComponent implements Accessible,
    */
   public void setMaximum(boolean b) throws PropertyVetoException
   {
-    if (b != isMaximum())
+    if (b != isMaximum)
       {
-	fireVetoableChange(IS_MAXIMUM_PROPERTY, b, isMaximum);
+	fireVetoableChange(IS_MAXIMUM_PROPERTY, isMaximum, b);
 	isMaximum = b;
-	if (b)
-	  setNormalBounds(getBounds());
-	maxTransition = ! b;
 	firePropertyChange(IS_MAXIMUM_PROPERTY, ! isMaximum, isMaximum);
-	maxTransition = false;
       }
   }
 
@@ -1524,7 +1575,7 @@ public class JInternalFrame extends JComponent implements Accessible,
    */
   public void setNormalBounds(Rectangle r)
   {
-    storedBounds.setBounds(r.x, r.y, r.width, r.height);
+    storedBounds = r;
   }
 
   /**
@@ -1535,7 +1586,11 @@ public class JInternalFrame extends JComponent implements Accessible,
    */
   public void setResizable(boolean b)
   {
-    resizable = b;
+    if (b != resizable)
+      {
+        resizable = b;
+        firePropertyChange("resizable", ! resizable, resizable);
+      }
   }
 
   /**
@@ -1548,8 +1603,23 @@ public class JInternalFrame extends JComponent implements Accessible,
     if (rootPane != null)
       remove(rootPane);
 
+    JRootPane old = rootPane;
     rootPane = root;
-    add(root);
+
+    if (rootPane != null)
+      {
+        boolean checkingEnabled = isRootPaneCheckingEnabled();
+        try
+          {
+            setRootPaneCheckingEnabled(false);
+            add(rootPane, BorderLayout.CENTER);
+          }
+        finally
+          {
+            setRootPaneCheckingEnabled(checkingEnabled);
+          }
+      }
+    firePropertyChange(ROOT_PANE_PROPERTY, old, rootPane);
   }
 
   /**
@@ -1579,43 +1649,43 @@ public class JInternalFrame extends JComponent implements Accessible,
    */
   public void setSelected(boolean selected) throws PropertyVetoException
   {
-    if (selected != isSelected())
+    if (selected != isSelected
+        && (! selected || (isIcon ? desktopIcon.isShowing() : isShowing())))
       {
-	fireVetoableChange(IS_SELECTED_PROPERTY, selected, isSelected);
+        fireVetoableChange(IS_SELECTED_PROPERTY, isSelected, selected);
 
-	if (! selected)
-	  defaultFocus = getMostRecentFocusOwner();
+        if (! selected)
+          defaultFocus = getMostRecentFocusOwner();
 
-	isSelected = selected;
+        isSelected = selected;
+        firePropertyChange(IS_SELECTED_PROPERTY, ! isSelected, isSelected);
 
-	if (selected)
-	  restoreSubcomponentFocus();
+        if (isSelected)
+          fireInternalFrameEvent(InternalFrameEvent.INTERNAL_FRAME_ACTIVATED);
+        else
+          fireInternalFrameEvent(InternalFrameEvent.INTERNAL_FRAME_DEACTIVATED);
 
-	firePropertyChange(IS_SELECTED_PROPERTY, ! isSelected, isSelected);
+        if (selected)
+          restoreSubcomponentFocus();
 
-	if (isSelected)
-	  fireInternalFrameEvent(InternalFrameEvent.INTERNAL_FRAME_ACTIVATED);
-	else
-	  fireInternalFrameEvent(InternalFrameEvent.INTERNAL_FRAME_DEACTIVATED);
+        repaint();
       }
   }
 
   /**
-   * This method sets the title displayed in the TitlePane of this
-   * JInternalFrame.
+   * Sets the title for the <code>JInternalFrame</code> and sends a 
+   * {@link PropertyChangeEvent} (with the property name 
+   * {@link #TITLE_PROPERTY}) to all registered listeners.
    *
-   * @param title The title displayed.
+   * @param title  the new title (<code>null</code> permitted).
+   * 
+   * @see #getTitle()
    */
   public void setTitle(String title)
   {
-    if (title == null && this.title == null)
-      return;
-    if (title == null || this.title == null || ! this.title.equals(title))
-      {
-	String old = title;
-	this.title = title;
-	firePropertyChange(TITLE_PROPERTY, old, this.title);
-      }
+    String old = this.title;
+    this.title = title;
+    firePropertyChange(TITLE_PROPERTY, old, this.title);
   }
 
   /**
@@ -1628,28 +1698,31 @@ public class JInternalFrame extends JComponent implements Accessible,
   {
     if (! isVisible())
       {
-	moveToFront();
-	super.show();
+        if (isFirstTimeVisible)
+          {
+            isFirstTimeVisible = false;
+            fireInternalFrameEvent(InternalFrameEvent.INTERNAL_FRAME_OPENED);
+          }
 
-	JDesktopPane pane = getDesktopPane();
-	if (pane != null)
-	  pane.setSelectedFrame(this);
-	else
-	  {
-	    try
-	      {
-		setSelected(true);
-	      }
-	    catch (PropertyVetoException e)
-	      {
-		// Do nothing. if they don't want to be selected.
-	      }
-	  }
-	if (isFirstTimeVisible)
-	  {
-	    isFirstTimeVisible = false;
-	    fireInternalFrameEvent(InternalFrameEvent.INTERNAL_FRAME_OPENED);
-	  }
+        getDesktopIcon().setVisible(true);
+
+        toFront();
+        super.show();
+
+        if (isIcon())
+          return;
+
+        if (! isSelected())
+          {
+            try
+              {
+                setSelected(true);
+              }
+            catch (PropertyVetoException e)
+              {
+                // Do nothing. if they don't want to be selected.
+              }
+          }
       }
   }
 

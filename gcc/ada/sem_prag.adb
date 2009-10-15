@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2005, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2006, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -341,7 +341,7 @@ package body Sem_Prag is
 
       procedure Check_Component (Comp : Node_Id);
       --  Examine Unchecked_Union component for correct use of per-object
-      --  constrained subtypes.
+      --  constrained subtypes, and for restrictions on finalizable components.
 
       procedure Check_Duplicated_Export_Name (Nam : Node_Id);
       --  Nam is an N_String_Literal node containing the external name set
@@ -988,7 +988,8 @@ package body Sem_Prag is
             declare
                Sindic : constant Node_Id :=
                           Subtype_Indication (Component_Definition (Comp));
-
+               Typ    : constant Entity_Id :=
+                          Etype (Defining_Identifier (Comp));
             begin
                if Nkind (Sindic) = N_Subtype_Indication then
 
@@ -1003,6 +1004,15 @@ package body Sem_Prag is
                      Error_Msg_N ("component subtype subject to per-object" &
                        " constraint must be an Unchecked_Union", Comp);
                   end if;
+               end if;
+
+               if Is_Controlled (Typ) then
+                  Error_Msg_N
+                   ("component of unchecked union cannot be controlled", Comp);
+
+               elsif Has_Task (Typ) then
+                  Error_Msg_N
+                   ("component of unchecked union cannot have tasks", Comp);
                end if;
             end;
          end if;
@@ -1440,12 +1450,6 @@ package body Sem_Prag is
          Comp  : Node_Id;
 
       begin
-         if Present (Variant_Part (Clist)) then
-            Error_Msg_N
-              ("Unchecked_Union may not have nested variants",
-               Variant_Part (Clist));
-         end if;
-
          if not Is_Non_Empty_List (Component_Items (Clist)) then
             Error_Msg_N
               ("Unchecked_Union may not have empty component list",
@@ -1957,6 +1961,24 @@ package body Sem_Prag is
 
          procedure Set_Convention_From_Pragma (E : Entity_Id) is
          begin
+            --  Check invalid attempt to change convention for an overridden
+            --  dispatching operation. This is Ada 2005 AI 430. Technically
+            --  this is an amendment and should only be done in Ada 2005 mode.
+            --  However, this is clearly a mistake, since the problem that is
+            --  addressed by this AI is that there is a clear gap in the RM!
+
+            if Is_Dispatching_Operation (E)
+              and then Present (Overridden_Operation (E))
+              and then C /= Convention (Overridden_Operation (E))
+            then
+               Error_Pragma_Arg
+                 ("cannot change convention for " &
+                  "overridden dispatching operation",
+                  Arg1);
+            end if;
+
+            --  Set the convention
+
             Set_Convention (E, C);
             Set_Has_Convention_Pragma (E);
 
@@ -2862,7 +2884,7 @@ package body Sem_Prag is
                else
                   Dval := Default_Value (Formal);
 
-                  if not Present (Dval) then
+                  if No (Dval) then
                      Error_Msg_NE
                        ("optional formal& does not have default value!",
                         Arg_First_Optional_Parameter, Formal);
@@ -4222,9 +4244,9 @@ package body Sem_Prag is
             Error_Msg_Sloc := Task_Dispatching_Policy_Sloc;
             Error_Pragma ("Profile (Ravenscar) incompatible with policy#");
 
-         --  Set the FIFO_Within_Priorities policy, but always
-         --  preserve System_Location since we like the error
-         --  message with the run time name.
+         --  Set the FIFO_Within_Priorities policy, but always preserve
+         --  System_Location since we like the error message with the run time
+         --  name.
 
          else
             Task_Dispatching_Policy := 'F';
@@ -4242,9 +4264,8 @@ package body Sem_Prag is
             Error_Msg_Sloc := Locking_Policy_Sloc;
             Error_Pragma ("Profile (Ravenscar) incompatible with policy#");
 
-         --  Set the Ceiling_Locking policy, but always preserve
-         --  System_Location since we like the error message with the
-         --  run time name.
+         --  Set the Ceiling_Locking policy, but preserve System_Location since
+         --  we like the error message with the run time name.
 
          else
             Locking_Policy := 'C';
@@ -4268,7 +4289,7 @@ package body Sem_Prag is
    begin
       if not Is_Pragma_Name (Chars (N)) then
          if Warn_On_Unrecognized_Pragma then
-            Error_Pragma ("unrecognized pragma%!?");
+            Error_Pragma ("unrecognized pragma%?");
          else
             return;
          end if;
@@ -4368,17 +4389,20 @@ package body Sem_Prag is
             Ada_Version_Explicit := Ada_Version;
             Check_Arg_Count (0);
 
-         ------------
-         -- Ada_05 --
-         ------------
+         ---------------------
+         -- Ada_05/Ada_2005 --
+         ---------------------
 
          --  pragma Ada_05;
          --  pragma Ada_05 (LOCAL_NAME);
 
-         --  Note: this pragma also has some specific processing in Par.Prag
+         --  pragma Ada_2005;
+         --  pragma Ada_2005 (LOCAL_NAME):
+
+         --  Note: these pragma also have some specific processing in Par.Prag
          --  because we want to set the Ada 2005 version mode during parsing.
 
-         when Pragma_Ada_05 => declare
+         when Pragma_Ada_05 | Pragma_Ada_2005 => declare
             E_Id : Node_Id;
 
          begin
@@ -4397,7 +4421,7 @@ package body Sem_Prag is
             else
                Check_Arg_Count (0);
                Ada_Version := Ada_05;
-               Ada_Version_Explicit := Ada_Version;
+               Ada_Version_Explicit := Ada_05;
             end if;
          end;
 
@@ -4618,7 +4642,7 @@ package body Sem_Prag is
 
             procedure Process_Async_Pragma is
             begin
-               if not Present (L) then
+               if No (L) then
                   Set_Is_Asynchronous (Nm);
                   return;
                end if;
@@ -4967,6 +4991,21 @@ package body Sem_Prag is
             end if;
          end Compile_Time_Warning;
 
+         -----------------------------
+         -- Complete_Representation --
+         -----------------------------
+
+         --  pragma Complete_Representation;
+
+         when Pragma_Complete_Representation =>
+            GNAT_Pragma;
+            Check_Arg_Count (0);
+
+            if Nkind (Parent (N)) /= N_Record_Representation_Clause then
+               Error_Pragma
+                 ("pragma & must appear within record representation clause");
+            end if;
+
          ----------------------------
          -- Complex_Representation --
          ----------------------------
@@ -5240,16 +5279,15 @@ package body Sem_Prag is
                     ("only tagged records can contain vtable pointers", Arg1);
                end if;
 
-            --  Case of tagged type with no vtable ptr
-
-            --  What is test for Typ = Root_Typ (Typ) about here ???
+            --  Case of tagged type with no user-defined vtable ptr. In this
+            --  case, because of our C++ ABI compatibility, the programmer
+            --  does not need to specify the tag component.
 
             elsif Is_Tagged_Type (Typ)
-              and then Typ = Root_Type (Typ)
               and then No (Default_DTC)
             then
-               Error_Pragma_Arg
-                 ("a cpp_class must contain a vtable pointer", Arg1);
+               Set_Is_CPP_Class (Typ);
+               Set_Is_Limited_Record (Typ);
 
             --  Tagged type that has a vtable ptr
 
@@ -5423,6 +5461,8 @@ package body Sem_Prag is
                Next_Component (DTC);
             end loop;
 
+            --  Case of tagged type with no user-defined vtable ptr
+
             if No (DTC) then
                Error_Msg_NE ("must be a& component name", Arg, Typ);
                raise Pragma_Exit;
@@ -5573,18 +5613,39 @@ package body Sem_Prag is
          -- Debug --
          -----------
 
-         --  pragma Debug (PROCEDURE_CALL_STATEMENT);
+         --  pragma Debug ([boolean_EXPRESSION,] PROCEDURE_CALL_STATEMENT);
 
-         when Pragma_Debug => Debug : begin
+         when Pragma_Debug => Debug : declare
+               Cond : Node_Id;
+
+         begin
             GNAT_Pragma;
 
-            --  Rewrite into a conditional with a static condition
+            Cond :=
+              New_Occurrence_Of
+                (Boolean_Literals (Debug_Pragmas_Enabled and Expander_Active),
+                 Loc);
+
+            if Arg_Count = 2 then
+               Cond :=
+                 Make_And_Then (Loc,
+                   Left_Opnd   => Relocate_Node (Cond),
+                   Right_Opnd  => Expression (Arg1));
+            end if;
+
+            --  Rewrite into a conditional with an appropriate condition. We
+            --  wrap the procedure call in a block so that overhead from e.g.
+            --  use of the secondary stack does not generate execution overhead
+            --  for suppressed conditions.
 
             Rewrite (N, Make_Implicit_If_Statement (N,
-              Condition => New_Occurrence_Of (Boolean_Literals (
-                Debug_Pragmas_Enabled and Expander_Active), Loc),
-              Then_Statements => New_List (
-                Relocate_Node (Debug_Statement (N)))));
+              Condition => Cond,
+                 Then_Statements => New_List (
+                   Make_Block_Statement (Loc,
+                     Handled_Statement_Sequence =>
+                       Make_Handled_Sequence_Of_Statements (Loc,
+                         Statements => New_List (
+                           Relocate_Node (Debug_Statement (N))))))));
             Analyze (N);
          end Debug;
 
@@ -8065,48 +8126,57 @@ package body Sem_Prag is
          -- No_Return --
          ---------------
 
-         --  pragma No_Return (procedure_LOCAL_NAME);
+         --  pragma No_Return (procedure_LOCAL_NAME {, procedure_Local_Name});
 
          when Pragma_No_Return => No_Return : declare
             Id    : Node_Id;
             E     : Entity_Id;
             Found : Boolean;
+            Arg   : Node_Id;
 
          begin
             GNAT_Pragma;
-            Check_Arg_Count (1);
-            Check_No_Identifiers;
-            Check_Arg_Is_Local_Name (Arg1);
-            Id := Expression (Arg1);
-            Analyze (Id);
+            Check_At_Least_N_Arguments (1);
 
-            if not Is_Entity_Name (Id) then
-               Error_Pragma_Arg ("entity name required", Arg1);
-            end if;
+            --  Loop through arguments of pragma
 
-            if Etype (Id) = Any_Type then
-               raise Pragma_Exit;
-            end if;
+            Arg := Arg1;
+            while Present (Arg) loop
+               Check_Arg_Is_Local_Name (Arg);
+               Id := Expression (Arg);
+               Analyze (Id);
 
-            E := Entity (Id);
-
-            Found := False;
-            while Present (E)
-              and then Scope (E) = Current_Scope
-            loop
-               if Ekind (E) = E_Procedure
-                 or else Ekind (E) = E_Generic_Procedure
-               then
-                  Set_No_Return (E);
-                  Found := True;
+               if not Is_Entity_Name (Id) then
+                  Error_Pragma_Arg ("entity name required", Arg);
                end if;
 
-               E := Homonym (E);
-            end loop;
+               if Etype (Id) = Any_Type then
+                  raise Pragma_Exit;
+               end if;
 
-            if not Found then
-               Error_Pragma ("no procedures found for pragma%");
-            end if;
+               --  Loop to find matching procedures
+
+               E := Entity (Id);
+               Found := False;
+               while Present (E)
+                 and then Scope (E) = Current_Scope
+               loop
+                  if Ekind (E) = E_Procedure
+                    or else Ekind (E) = E_Generic_Procedure
+                  then
+                     Set_No_Return (E);
+                     Found := True;
+                  end if;
+
+                  E := Homonym (E);
+               end loop;
+
+               if not Found then
+                  Error_Pragma_Arg ("no procedure & found for pragma%", Arg);
+               end if;
+
+               Next (Arg);
+            end loop;
          end No_Return;
 
          ------------------------
@@ -8145,7 +8215,7 @@ package body Sem_Prag is
          -- Obsolescent --
          -----------------
 
-            --  pragma Obsolescent [(static_string_EXPRESSION [, Ada_05])];
+         --  pragma Obsolescent [(static_string_EXPRESSION [, Ada_05])];
 
          when Pragma_Obsolescent => Obsolescent : declare
             Subp   : Node_Or_Entity_Id;
@@ -8753,6 +8823,8 @@ package body Sem_Prag is
 
          --  pragma Propagate_Exceptions;
 
+         --  Note: this pragma is obsolete and has no effect
+
          when Pragma_Propagate_Exceptions =>
             GNAT_Pragma;
             Check_Arg_Count (0);
@@ -8920,6 +8992,7 @@ package body Sem_Prag is
 
             Ent := Find_Lib_Unit_Name;
             Set_Is_Pure (Ent);
+            Set_Has_Pragma_Pure (Ent);
             Set_Suppress_Elaboration_Warnings (Ent);
          end Pure;
 
@@ -9587,17 +9660,20 @@ package body Sem_Prag is
                         exit when not In_Character_Range (C);
                         Options (J) := Get_Character (C);
 
+                        --  If at end of string, set options. As per discussion
+                        --  above, no need to check for errors, since we issued
+                        --  them in the parser.
+
                         if J = Slen then
                            Set_Style_Check_Options (Options);
                            exit;
-                        else
-                           J := J + 1;
                         end if;
+
+                        J := J + 1;
                      end loop;
                   end;
 
                elsif Nkind (A) = N_Identifier then
-
                   if Chars (A) = Name_All_Checks then
                      Set_Default_Style_Check_Options;
 
@@ -9606,7 +9682,6 @@ package body Sem_Prag is
 
                   elsif Chars (A) = Name_Off then
                      Style_Check := False;
-
                   end if;
                end if;
             end if;
@@ -10108,18 +10183,14 @@ package body Sem_Prag is
 
                Discr := First_Discriminant (Typ);
 
-               if Present (Next_Discriminant (Discr)) then
-                  Error_Msg_N
-                    ("Unchecked_Union must have exactly one discriminant",
-                     Next_Discriminant (Discr));
-                  return;
-               end if;
-
-               if No (Discriminant_Default_Value (Discr)) then
-                  Error_Msg_N
-                    ("Unchecked_Union discriminant must have default value",
-                     Discr);
-               end if;
+               while Present (Discr) loop
+                  if No (Discriminant_Default_Value (Discr)) then
+                     Error_Msg_N
+                       ("Unchecked_Union discriminant must have default value",
+                        Discr);
+                  end if;
+                  Next_Discriminant (Discr);
+               end loop;
 
                Tdef  := Type_Definition (Declaration_Node (Typ));
                Clist := Component_List (Tdef);
@@ -10648,6 +10719,7 @@ package body Sem_Prag is
       Pragma_Ada_83                       => -1,
       Pragma_Ada_95                       => -1,
       Pragma_Ada_05                       => -1,
+      Pragma_Ada_2005                     => -1,
       Pragma_All_Calls_Remote             => -1,
       Pragma_Annotate                     => -1,
       Pragma_Assert                       => -1,
@@ -10664,6 +10736,7 @@ package body Sem_Prag is
       Pragma_Comment                      =>  0,
       Pragma_Common_Object                => -1,
       Pragma_Compile_Time_Warning         => -1,
+      Pragma_Complete_Representation      =>  0,
       Pragma_Complex_Representation       =>  0,
       Pragma_Component_Alignment          => -1,
       Pragma_Controlled                   =>  0,

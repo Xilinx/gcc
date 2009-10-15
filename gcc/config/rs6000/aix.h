@@ -1,13 +1,13 @@
 /* Definitions of target machine for GNU compiler,
    for IBM RS/6000 POWER running AIX.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
    Free Software Foundation, Inc.
 
    This file is part of GCC.
 
    GCC is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published
-   by the Free Software Foundation; either version 2, or (at your
+   by the Free Software Foundation; either version 3, or (at your
    option) any later version.
 
    GCC is distributed in the hope that it will be useful, but WITHOUT
@@ -16,9 +16,8 @@
    License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with GCC; see the file COPYING.  If not, write to the
-   Free Software Foundation, 51 Franklin Street, Fifth Floor, Boston,
-   MA 02110-1301, USA.  */
+   along with GCC; see the file COPYING3.  If not see
+   <http://www.gnu.org/licenses/>.  */
 
 /* Yes!  We are AIX!  */
 #define DEFAULT_ABI ABI_AIX
@@ -32,6 +31,10 @@
 
 /* AIX allows r13 to be used in 32-bit mode.  */
 #define FIXED_R13 0
+
+/* 32-bit and 64-bit AIX stack boundary is 128.  */
+#undef  STACK_BOUNDARY
+#define STACK_BOUNDARY 128
 
 /* AIX does not support Altivec.  */
 #undef  TARGET_ALTIVEC
@@ -166,12 +169,12 @@
 
 /* AIX increases natural record alignment to doubleword if the first
    field is an FP double while the FP fields remain word aligned.  */
-#define ROUND_TYPE_ALIGN(STRUCT, COMPUTED, SPECIFIED)				\
-  ((TREE_CODE (STRUCT) == RECORD_TYPE						\
-    || TREE_CODE (STRUCT) == UNION_TYPE						\
-    || TREE_CODE (STRUCT) == QUAL_UNION_TYPE)					\
-   && TARGET_ALIGN_NATURAL == 0							\
-   ? rs6000_special_round_type_align (STRUCT, COMPUTED, SPECIFIED)		\
+#define ROUND_TYPE_ALIGN(STRUCT, COMPUTED, SPECIFIED)			\
+  ((TREE_CODE (STRUCT) == RECORD_TYPE					\
+    || TREE_CODE (STRUCT) == UNION_TYPE					\
+    || TREE_CODE (STRUCT) == QUAL_UNION_TYPE)				\
+   && TARGET_ALIGN_NATURAL == 0						\
+   ? rs6000_special_round_type_align (STRUCT, COMPUTED, SPECIFIED)	\
    : MAX ((COMPUTED), (SPECIFIED)))
 
 /* The AIX ABI isn't explicit on whether aggregates smaller than a

@@ -1,5 +1,5 @@
 /* MatteBorder.java -- 
-   Copyright (C) 2003, 2004  Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2006  Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -146,9 +146,6 @@ public class MatteBorder extends EmptyBorder
                      Icon tileIcon)
   {
     super(top, left, bottom, right);
-
-    if (tileIcon == null)
-      throw new IllegalArgumentException();
 
     this.tileIcon = tileIcon;
   }
@@ -299,6 +296,8 @@ public class MatteBorder extends EmptyBorder
    * Returns the color that is used for filling the border, or
    * <code>null</code> if the border is filled with repetitions of a
    * tile icon.
+   * 
+   * @return The color (possibly <code>null</code>).
    */
   public Color getMatteColor()
   {
@@ -310,6 +309,8 @@ public class MatteBorder extends EmptyBorder
    * Returns the icon is used for tiling the border, or
    * <code>null</code> if the border is filled with a color instead of
    * an icon.
+   * 
+   * @return The icon (possibly <code>null</code>).
    */
   public Icon getTileIcon()
   {
@@ -371,6 +372,10 @@ public class MatteBorder extends EmptyBorder
       }
       return;
     }
+    
+    // If this border has no icon end painting here.
+    if (tileIcon == null)
+      return;
 
     /* Determine the width and height of the icon. Some icons return
      * -1 if it is an image whose dimensions have not yet been

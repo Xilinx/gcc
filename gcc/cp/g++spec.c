@@ -1,12 +1,12 @@
 /* Specific flags and argument handling of the C++ front-end.
-   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004
-   Free Software Foundation, Inc.
+   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
+   2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -15,9 +15,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -113,7 +112,7 @@ lang_specific_driver (int *in_argc, const char *const **in_argv,
   argv = *in_argv;
   added_libraries = *in_added_libraries;
 
-  args = xcalloc (argc, sizeof (int));
+  args = XCNEWVEC (int, argc);
 
   for (i = 1; i < argc; i++)
     {
@@ -149,19 +148,19 @@ lang_specific_driver (int *in_argc, const char *const **in_argv,
 	    saw_verbose_flag = 1;
 	  else if (strncmp (argv[i], "-x", 2) == 0)
 	    {
-	      if (library == 0)
-		{
-		  const char * arg;
-		  if (argv[i][2] != '\0')
-		    arg = argv[i]+2;
-		  else if (argv[i+1] != NULL)
-		    arg = argv[i+1];
-		  else  /* Error condition, message will be printed later.  */
-		    arg = "";
-		  if (strcmp (arg, "c++") == 0
-		      || strcmp (arg, "c++-cpp-output") == 0)
-		    library = 1;
-		}
+	      const char * arg;
+	      if (argv[i][2] != '\0')
+		arg = argv[i]+2;
+	      else if ((argv[i+1]) != NULL)
+		/* We need to swallow arg on next loop.  */
+		quote = arg = argv[i+1];
+  	      else  /* Error condition, message will be printed later.  */
+		arg = "";
+	      if (library == 0
+		  && (strcmp (arg, "c++") == 0
+		      || strcmp (arg, "c++-cpp-output") == 0))
+		library = 1;
+		
 	      saw_speclang = 1;
 	    }
 	  /* Arguments that go directly to the linker might be .o files,
@@ -252,7 +251,7 @@ lang_specific_driver (int *in_argc, const char *const **in_argv,
 
   /* Make sure to have room for the trailing NULL argument.  */
   num_args = argc + added + need_math + shared_libgcc + (library > 0) + 1;
-  arglist = xmalloc (num_args * sizeof (char *));
+  arglist = XNEWVEC (const char *, num_args);
 
   i = 0;
   j = 0;
@@ -343,9 +342,3 @@ int lang_specific_pre_link (void)  /* Not used for C++.  */
 
 /* Number of extra output files that lang_specific_pre_link may generate.  */
 int lang_specific_extra_outfiles = 0;  /* Not used for C++.  */
-
-/* Table of language-specific spec functions.  */
-const struct spec_function lang_specific_spec_functions[] =
-{
-  { 0, 0 }
-};

@@ -163,7 +163,13 @@ public class DefaultKeyboardFocusManager extends KeyboardFocusManager
         if (e.id == WindowEvent.WINDOW_ACTIVATED)
           setGlobalActiveWindow (target);
         else if (e.id == WindowEvent.WINDOW_GAINED_FOCUS)
-          setGlobalFocusedWindow (target);
+          {
+            setGlobalFocusedWindow (target);
+            FocusTraversalPolicy p = target.getFocusTraversalPolicy();
+            Component toFocus = p.getInitialComponent(target);
+            if (toFocus != null)
+              toFocus.requestFocusInWindow();
+          }
         else if (e.id != WindowEvent.WINDOW_LOST_FOCUS
                  && e.id != WindowEvent.WINDOW_DEACTIVATED)
           return false;
@@ -173,51 +179,18 @@ public class DefaultKeyboardFocusManager extends KeyboardFocusManager
       }
     else if (e instanceof FocusEvent)
       {
-        Component target = (Component) e.getSource ();
+        FocusEvent fe = (FocusEvent) e;
+        Component target = fe.getComponent ();
 
+        boolean retval = false;
         if (e.id == FocusEvent.FOCUS_GAINED)
           {
-            if (! (target instanceof Window))
-              {
-                if (((FocusEvent) e).isTemporary ())
-                  setGlobalFocusOwner (target);
-                else
-                  setGlobalPermanentFocusOwner (target);
-              }
-
-            // Keep track of this window's focus owner.
-
-            // Find the target Component's top-level ancestor.  target
-            // may be a window.
-            Container parent = target.getParent ();
-
-            while (parent != null
-                   && !(parent instanceof Window))
-              parent = parent.getParent ();
-
-            // If the parent is null and target is not a window, then target is an
-            // unanchored component and so we don't want to set the focus owner.
-            if (! (parent == null && ! (target instanceof Window)))
-              {
-                Window toplevel = parent == null ?
-                  (Window) target : (Window) parent;
-
-                Component focusOwner = getFocusOwner ();
-                if (focusOwner != null
-                    && ! (focusOwner instanceof Window))
-                  toplevel.setFocusOwner (focusOwner);
-              }
+            retval = handleFocusGained(fe);
           }
         else if (e.id == FocusEvent.FOCUS_LOST)
           {
-            if (((FocusEvent) e).isTemporary ())
-              setGlobalFocusOwner (null);
-            else
-              setGlobalPermanentFocusOwner (null);
+            retval = handleFocusLost(fe);
           }
-
-        redispatchEvent(target, e);
-
         return true;
       }
     else if (e instanceof KeyEvent)
@@ -256,6 +229,95 @@ public class DefaultKeyboardFocusManager extends KeyboardFocusManager
     return false;
   }
 
+  /**
+   * Handles FOCUS_GAINED events in {@link #dispatchEvent(AWTEvent)}.
+   *
+   * @param fe the focus event
+   */
+  private boolean handleFocusGained(FocusEvent fe)
+  {
+    Component target = fe.getComponent ();
+
+    // If old focus owner != new focus owner, notify old focus
+    // owner that it has lost focus.
+    Component oldFocusOwner = getGlobalFocusOwner();
+    if (oldFocusOwner != null && oldFocusOwner != target)
+      {
+        FocusEvent lost = new FocusEvent(oldFocusOwner,
+                                         FocusEvent.FOCUS_LOST,
+                                         fe.isTemporary(), target);
+        oldFocusOwner.dispatchEvent(lost);
+      }
+
+     setGlobalFocusOwner (target);
+     if (target != getGlobalFocusOwner())
+       {
+         // Focus transfer was rejected, like when the target is not
+         // focusable.
+         dequeueKeyEvents(-1, target);
+         // FIXME: Restore focus somehow.
+       }
+     else
+       {
+         if (! fe.isTemporary())
+           {
+             setGlobalPermanentFocusOwner (target);
+             if (target != getGlobalPermanentFocusOwner())
+               {
+                 // Focus transfer was rejected, like when the target is not
+                 // focusable.
+                 dequeueKeyEvents(-1, target);
+                 // FIXME: Restore focus somehow.
+               }
+             else
+               {
+                 redispatchEvent(target, fe);
+               }
+           }
+       }
+
+     return true;
+  }
+
+  /**
+   * Handles FOCUS_LOST events for {@link #dispatchEvent(AWTEvent)}.
+   *
+   * @param fe the focus event
+   *
+   * @return if the event has been handled
+   */
+  private boolean handleFocusLost(FocusEvent fe)
+  {
+    Component currentFocus = getGlobalFocusOwner();
+    if (currentFocus != fe.getOppositeComponent())
+      {
+        setGlobalFocusOwner(null);
+        if (getGlobalFocusOwner() != null)
+          {
+            // TODO: Is this possible? If so, then we should try to restore
+            // the focus.
+          }
+        else
+          {
+            if (! fe.isTemporary())
+              {
+                setGlobalPermanentFocusOwner(null);
+                if (getGlobalPermanentFocusOwner() != null)
+                  {
+                    // TODO: Is this possible? If so, then we should try to
+                    // restore the focus.
+                  }
+                else
+                  {
+                    fe.setSource(currentFocus);
+                    redispatchEvent(currentFocus, fe);
+                  }
+              }
+          }
+      }
+    return true;
+  }
+
   private boolean enqueueKeyEvent (KeyEvent e)
   {
     Iterator i = delayRequests.iterator ();
@@ -274,10 +336,12 @@ public class DefaultKeyboardFocusManager extends KeyboardFocusManager
 
   public boolean dispatchKeyEvent (KeyEvent e)
   {
-    Component focusOwner = getGlobalPermanentFocusOwner ();
-
+    Component focusOwner = getFocusOwner();
+    if (focusOwner == null)
+      focusOwner = getFocusedWindow();
+    
     if (focusOwner != null)
-      redispatchEvent(focusOwner, e);
+      redispatchEvent(focusOwner, e);      
 
     // Loop through all registered KeyEventPostProcessors, giving
     // each a chance to process this event.
@@ -294,7 +358,7 @@ public class DefaultKeyboardFocusManager extends KeyboardFocusManager
     // MenuShortcut.
     if (postProcessKeyEvent (e))
       return true;
-
+    
     // Always return true.
     return true;
   }
@@ -478,59 +542,25 @@ public class DefaultKeyboardFocusManager extends KeyboardFocusManager
 
   public void focusPreviousComponent (Component comp)
   {
-    Component focusComp = (comp == null) ? getGlobalFocusOwner () : comp;
-    Container focusCycleRoot = focusComp.getFocusCycleRootAncestor ();
-    FocusTraversalPolicy policy = focusCycleRoot.getFocusTraversalPolicy ();
-
-    Component previous = policy.getComponentBefore (focusCycleRoot, focusComp);
-    if (previous != null)
-      previous.requestFocusInWindow ();
+    if (comp != null)
+      comp.transferFocusBackward();
   }
 
   public void focusNextComponent (Component comp)
   {
-    Component focusComp = (comp == null) ? getGlobalFocusOwner () : comp;
-    Container focusCycleRoot = focusComp.getFocusCycleRootAncestor ();
-    FocusTraversalPolicy policy = focusCycleRoot.getFocusTraversalPolicy ();
-
-    Component next = policy.getComponentAfter (focusCycleRoot, focusComp);
-    if (next != null)
-      next.requestFocusInWindow ();
+    if (comp != null)
+      comp.transferFocus();
   }
 
   public void upFocusCycle (Component comp)
   {
-    Component focusComp = (comp == null) ? getGlobalFocusOwner () : comp;
-    Container focusCycleRoot = focusComp.getFocusCycleRootAncestor ();
-
-    if (focusCycleRoot instanceof Window)
-      {
-        FocusTraversalPolicy policy = focusCycleRoot.getFocusTraversalPolicy ();
-        Component defaultComponent = policy.getDefaultComponent (focusCycleRoot);
-        if (defaultComponent != null)
-          defaultComponent.requestFocusInWindow ();
-      }
-    else
-      {
-        Container parentFocusCycleRoot = focusCycleRoot.getFocusCycleRootAncestor ();
-
-        focusCycleRoot.requestFocusInWindow ();
-        setGlobalCurrentFocusCycleRoot (parentFocusCycleRoot);
-      }
+    if (comp != null)
+      comp.transferFocusUpCycle();
   }
 
   public void downFocusCycle (Container cont)
   {
-    if (cont == null)
-      return;
-
-    if (cont.isFocusCycleRoot (cont))
-      {
-        FocusTraversalPolicy policy = cont.getFocusTraversalPolicy ();
-        Component defaultComponent = policy.getDefaultComponent (cont);
-        if (defaultComponent != null)
-          defaultComponent.requestFocusInWindow ();        
-        setGlobalCurrentFocusCycleRoot (cont);
-      }
+    if (cont != null)
+      cont.transferFocusDownCycle();
   }
 } // class DefaultKeyboardFocusManager

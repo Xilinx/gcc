@@ -1,5 +1,5 @@
 /* Implementation of the SHAPE intrinsic
-   Copyright 2002 Free Software Foundation, Inc.
+   Copyright 2002, 2006 Free Software Foundation, Inc.
    Contributed by Paul Brook <paul@nowt.org>
 
 This file is part of the GNU Fortran 95 runtime library (libgfortran).
@@ -35,18 +35,18 @@ Boston, MA 02110-1301, USA.  */
 
 #if defined (HAVE_GFC_INTEGER_16)
 
-extern void shape_16 (gfc_array_i16 * ret, const gfc_array_i16 * array);
+extern void shape_16 (gfc_array_i16 * const restrict ret, 
+	const gfc_array_i16 * const restrict array);
 export_proto(shape_16);
 
 void
-shape_16 (gfc_array_i16 * ret, const gfc_array_i16 * array)
+shape_16 (gfc_array_i16 * const restrict ret, 
+	const gfc_array_i16 * const restrict array)
 {
   int n;
   index_type stride;
 
   stride = ret->dim[0].stride;
-  if (stride == 0)
-    stride = 1;
 
   for (n = 0; n < GFC_DESCRIPTOR_RANK (array); n++)
     {

@@ -1,11 +1,11 @@
 /* Lower vector operations to scalar operations.
-   Copyright (C) 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
    
 GCC is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the
-Free Software Foundation; either version 2, or (at your option) any
+Free Software Foundation; either version 3, or (at your option) any
 later version.
    
 GCC is distributed in the hope that it will be useful, but WITHOUT
@@ -14,9 +14,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
    
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -301,14 +300,14 @@ expand_vector_operation (block_stmt_iterator *bsi, tree type, tree compute_type,
       {
       case PLUS_EXPR:
       case MINUS_EXPR:
-        if (!TYPE_TRAP_SIGNED (type))
+        if (!TYPE_OVERFLOW_TRAPS (type))
           return expand_vector_addition (bsi, do_binop, do_plus_minus, type,
 		      		         TREE_OPERAND (rhs, 0),
 					 TREE_OPERAND (rhs, 1), code);
 	break;
 
       case NEGATE_EXPR:
-        if (!TYPE_TRAP_SIGNED (type))
+        if (!TYPE_OVERFLOW_TRAPS (type))
           return expand_vector_addition (bsi, do_unop, do_negate, type,
 		      		         TREE_OPERAND (rhs, 0),
 					 NULL_TREE, code);
@@ -348,7 +347,7 @@ type_for_widest_vector_mode (enum machine_mode inner_mode, optab op)
   enum machine_mode best_mode = VOIDmode, mode;
   int best_nunits = 0;
 
-  if (GET_MODE_CLASS (inner_mode) == MODE_FLOAT)
+  if (SCALAR_FLOAT_MODE_P (inner_mode))
     mode = MIN_MODE_VECTOR_FLOAT;
   else
     mode = MIN_MODE_VECTOR_INT;
@@ -411,6 +410,11 @@ expand_vector_operations_1 (block_stmt_iterator *bsi)
   gcc_assert (code != CONVERT_EXPR);
   op = optab_for_tree_code (code, type);
 
+  /* For widening vector operations, the relevant type is of the arguments,
+     not the widened result.  */
+  if (code == WIDEN_SUM_EXPR)
+    type = TREE_TYPE (TREE_OPERAND (rhs, 0));
+
   /* Optabs will try converting a negation into a subtraction, so
      look for it as well.  TODO: negation of floating-point vectors
      might be turned into an exclusive OR toggling the sign bit.  */
@@ -464,7 +468,7 @@ gate_expand_vector_operations (void)
   return flag_tree_vectorize != 0;
 }
 
-static void
+static unsigned int
 expand_vector_operations (void)
 {
   block_stmt_iterator bsi;
@@ -478,6 +482,7 @@ expand_vector_operations (void)
 	  update_stmt_if_modified (bsi_stmt (bsi));
 	}
     }
+  return 0;
 }
 
 struct tree_opt_pass pass_lower_vector = 

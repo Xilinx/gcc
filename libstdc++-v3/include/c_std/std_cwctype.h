@@ -28,11 +28,7 @@
 // invalidate any other reasons why the executable file might be covered by
 // the GNU General Public License.
 
-//
-// ISO C++ 14882: <cwctype>
-//
-
-/** @file cwctype
+/** @file include/cwctype
  *  This is a Standard C++ Library file.  You should @c #include this file
  *  in your programs, rather than any of the "*.h" implementation files.
  *
@@ -41,6 +37,10 @@
  *  contained in the namespace @c std (except for names which are defined
  *  as macros in C).
  */
+
+//
+// ISO C++ 14882: <cwctype>
+//
 
 #ifndef _GLIBCXX_CWCTYPE
 #define _GLIBCXX_CWCTYPE 1
@@ -76,8 +76,9 @@
 #undef wctype
 
 #if _GLIBCXX_USE_WCHAR_T
-namespace std
-{
+
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
   using ::wint_t;	  // cwchar
 
   using ::wctype_t;
@@ -103,7 +104,9 @@ namespace std
   using ::towupper;
   using ::wctrans;
   using ::wctype;
-}
+
+_GLIBCXX_END_NAMESPACE
+
 #endif //_GLIBCXX_USE_WCHAR_T
 
 #endif

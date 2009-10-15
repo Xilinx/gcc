@@ -132,6 +132,11 @@ convert the front end trees to GIMPLE@.  Usually such a hook will involve
 much of the same code for expanding front end trees to RTL@.  This function
 can return fully lowered GIMPLE, or it can return GENERIC trees and let the
 main gimplifier lower them the rest of the way; this is often simpler.
+GIMPLE that is not fully lowered is known as ``high GIMPLE'' and
+consists of the IL before the pass @code{pass_lower_cf}.  High GIMPLE
+still contains lexical scopes and nested expressions, while low GIMPLE
+exposes all of the implicit jumps for control expressions like
+@code{COND_EXPR}.
 
 The C and C++ front ends currently convert directly from front end
 trees to GIMPLE, and hand that off to the back end rather than first
@@ -394,10 +399,10 @@ Other jumps are expressed by either @code{GOTO_EXPR} or @code{RETURN_EXPR}.
 The operand of a @code{GOTO_EXPR} must be either a label or a variable
 containing the address to jump to.
 
-The operand of a @code{RETURN_EXPR} is either @code{NULL_TREE} or a
-@code{MODIFY_EXPR} which sets the return value.  It would be nice to
-move the @code{MODIFY_EXPR} into a separate statement, but the special
-return semantics in @code{expand_return} make that difficult.  It may
+The operand of a @code{RETURN_EXPR} is either @code{NULL_TREE},
+@code{RESULT_DECL}, or a @code{MODIFY_EXPR} which sets the return value.  It
+would be nice to move the @code{MODIFY_EXPR} into a separate statement, but the
+special return semantics in @code{expand_return} make that difficult.  It may
 still happen in the future, perhaps by moving most of that logic into
 @code{expand_assignment}.
 
@@ -1087,15 +1092,21 @@ FOR_EACH_PHI_OR_STMT_DEF (def_operand_p, phi, iter, flags)
 
 Immediate use information is now always available.  Using the immediate use 
 iterators, you may examine every use of any @code{SSA_NAME}. For instance,
-to change each use of @code{ssa_var} to @code{ssa_var2}:
+to change each use of @code{ssa_var} to @code{ssa_var2} and call fold_stmt on
+each stmt after that is done:
 
 @smallexample
   use_operand_p imm_use_p;
   imm_use_iterator iterator;
-  tree ssa_var
+  tree ssa_var, stmt;
 
-  FOR_EACH_IMM_USE_SAFE (imm_use_p, iterator, ssa_var)
-    SET_USE (imm_use_p, ssa_var_2);
+
+  FOR_EACH_IMM_USE_STMT (stmt, iterator, ssa_var)
+    @{
+      FOR_EACH_IMM_USE_ON_STMT (imm_use_p, iterator)
+        SET_USE (imm_use_p, ssa_var_2);
+      fold_stmt (stmt);
+    @}
 @end smallexample
 
 There are 2 iterators which can be used. @code{FOR_EACH_IMM_USE_FAST} is
@@ -1103,21 +1114,26 @@ used when the immediate uses are not changed, i.e., you are looking at the
 uses, but not setting them.  
 
 If they do get changed, then care must be taken that things are not changed 
-under the iterators, so use the @code{FOR_EACH_IMM_USE_SAFE} iterator.  It 
-attempts to preserve the sanity of the use list by moving an iterator element
-through the use list, preventing insertions and deletions in the list from
-resulting in invalid pointers.  This is a little slower since it adds a
-placeholder element and moves it through the list.  This element must be 
-also be removed if the loop is terminated early.  A macro 
-(@code{BREAK_FROM SAFE_IMM_USE}) is provided for this:
+under the iterators, so use the @code{FOR_EACH_IMM_USE_STMT} and 
+@code{FOR_EACH_IMM_USE_ON_STMT} iterators.  They attempt to preserve the 
+sanity of the use list by moving all the uses for a statement into 
+a controlled position, and then iterating over those uses.  Then the 
+optimization can manipulate the stmt when all the uses have been
+processed.  This is a little slower than the FAST version since it adds a 
+placeholder element and must sort through the list a bit for each statement.  
+This placeholder element must be also be removed if the loop is 
+terminated early.  The macro @code{BREAK_FROM_IMM_USE_SAFE} is provided 
+to do this :
 
 @smallexample
-  FOR_EACH_IMM_USE_SAFE (use_p, iter, var)
+  FOR_EACH_IMM_USE_STMT (stmt, iterator, ssa_var)
     @{
-      if (var == last_var)
+      if (stmt == last_stmt)
         BREAK_FROM_SAFE_IMM_USE (iter);
-      else
-        SET_USE (use_p, var2);
+
+      FOR_EACH_IMM_USE_ON_STMT (imm_use_p, iterator)
+        SET_USE (imm_use_p, ssa_var_2);
+      fold_stmt (stmt);
     @}
 @end smallexample
 
@@ -1379,6 +1395,26 @@ There are several @code{TODO} flags that control the behavior of
       renaming are processed@.
 @end itemize
 
+@subsection Preserving the virtual SSA form
+@cindex preserving virtual SSA form
+
+The virtual SSA form is harder to preserve than the non-virtual SSA form
+mainly because the set of virtual operands for a statement may change at
+what some would consider unexpected times.  In general, any time you
+have modified a statement that has virtual operands, you should verify
+whether the list of virtual operands has changed, and if so, mark the
+newly exposed symbols by calling @code{mark_new_vars_to_rename}.
+
+There is one additional caveat to preserving virtual SSA form.  When the
+entire set of virtual operands may be eliminated due to better
+disambiguation, a bare SMT will be added to the list of virtual
+operands, to signify the non-visible aliases that the are still being
+referenced.  If the set of bare SMT's may change,
+@code{TODO_update_smt_usage} should be added to the todo flags.
+
+With the current pruning code, this can only occur when constants are
+propagated into array references that were previously non-constant, or
+address expressions are propagated into their uses.
 
 @subsection Examining @code{SSA_NAME} nodes
 @cindex examining SSA_NAMEs
@@ -1501,7 +1537,7 @@ int bar (void)
 @}
 @end smallexample
 
-If you copy the type tag for a variable for some reason, you probably
+If you copy the symbol tag for a variable for some reason, you probably
 also want to copy the subvariables for that variable.
 
 @item	Points-to and escape analysis.
@@ -1535,12 +1571,12 @@ the variables pointed-to by P_i (and its memory tag) also escape.
 
 We have two classes of memory tags.  Memory tags associated with
 the pointed-to data type of the pointers in the program.  These
-tags are called ``type memory tag'' (TMT)@.  The other class are
+tags are called ``symbol memory tag'' (SMT)@.  The other class are
 those associated with SSA_NAMEs, called ``name memory tag'' (NMT)@.
 The basic idea is that when adding operands for an INDIRECT_REF
 *P_i, we will first check whether P_i has a name tag, if it does
 we use it, because that will have more precise aliasing
-information.  Otherwise, we use the standard type tag.
+information.  Otherwise, we use the standard symbol tag.
 
 In this phase, we go through all the pointers we found in
 points-to analysis and create alias sets for the name memory tags
@@ -1550,11 +1586,11 @@ call-clobbered the variables it points to and its tag.
 
 @item	Compute flow-insensitive aliases
 
-This pass will compare the alias set of every type memory tag and
-every addressable variable found in the program.  Given a type
-memory tag TMT and an addressable variable V@.  If the alias sets
-of TMT and V conflict (as computed by may_alias_p), then V is
-marked as an alias tag and added to the alias set of TMT@.
+This pass will compare the alias set of every symbol memory tag and
+every addressable variable found in the program.  Given a symbol
+memory tag SMT and an addressable variable V@.  If the alias sets
+of SMT and V conflict (as computed by may_alias_p), then V is
+marked as an alias tag and added to the alias set of SMT@.
 @end enumerate
 
 For instance, consider the following function:
@@ -1576,7 +1612,7 @@ foo (int i)
 @}
 @end smallexample
 
-After aliasing analysis has finished, the type memory tag for
+After aliasing analysis has finished, the symbol memory tag for
 pointer @code{p} will have two aliases, namely variables @code{a} and
 @code{b}.
 Every time pointer @code{p} is dereferenced, we want to mark the

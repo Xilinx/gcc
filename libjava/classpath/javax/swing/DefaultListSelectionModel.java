@@ -150,9 +150,14 @@ public class DefaultListSelectionModel implements Cloneable,
   boolean setLeadCalledFromAdd = false;
 
   /**
-   * Gets the value of the {@link #selectionMode} property.
-   *
-   * @return The current value of the property
+   * Returns the selection mode, which is one of {@link #SINGLE_SELECTION}, 
+   * {@link #SINGLE_INTERVAL_SELECTION} and 
+   * {@link #MULTIPLE_INTERVAL_SELECTION}.  The default value is
+   * {@link #MULTIPLE_INTERVAL_SELECTION}.
+   * 
+   * @return The selection mode.
+   * 
+   * @see #setSelectionMode(int)
    */
   public int getSelectionMode()
   {
@@ -162,11 +167,14 @@ public class DefaultListSelectionModel implements Cloneable,
   /**
    * Sets the value of the {@link #selectionMode} property.
    *
-   * @param a The new value of the property
+   * @param mode The new value of the property
    */
-  public void setSelectionMode(int a)
+  public void setSelectionMode(int mode)
   {
-    selectionMode = a;
+    if (mode < ListSelectionModel.SINGLE_SELECTION 
+        || mode > ListSelectionModel.MULTIPLE_INTERVAL_SELECTION)
+      throw new IllegalArgumentException("Unrecognised mode: " + mode);
+    selectionMode = mode;
   }
 
   /**
@@ -184,13 +192,19 @@ public class DefaultListSelectionModel implements Cloneable,
   /**
    * Sets the value of the {@link #anchorSelectionIndex} property.
    * 
-   * @param anchorIndex The new property value
+   * @param index The new property value
    *
    * @see #getAnchorSelectionIndex
    */
-  public void setAnchorSelectionIndex(int anchorIndex)
+  public void setAnchorSelectionIndex(int index)
   {
-    anchorSelectionIndex = anchorIndex;
+    if (anchorSelectionIndex != index)
+      {
+        int old = anchorSelectionIndex;
+        anchorSelectionIndex = index;
+        if (leadAnchorNotificationEnabled)
+          fireValueChanged(index, old);
+      }
   }
   
   /**
@@ -286,8 +300,14 @@ public class DefaultListSelectionModel implements Cloneable,
     int beg = sel.nextSetBit(0), end = -1;
     for(int i=beg; i >= 0; i=sel.nextSetBit(i+1)) 
       end = i;
-    if (sel.equals(oldSel) == false)
-      fireValueChanged(beg, end, valueIsAdjusting);    
+    
+    BitSet old = (BitSet) oldSel;
+    
+    // The new and previous lead location requires repainting.
+    old.set(oldLeadIndex, !sel.get(oldLeadIndex));
+    old.set(leadSelectionIndex, !sel.get(leadSelectionIndex));
+    
+    fireDifference(sel, old);
   }
 
   /**
@@ -447,12 +467,17 @@ public class DefaultListSelectionModel implements Cloneable,
    */
   public void addSelectionInterval(int index0, int index1) 
   {
+    if (index0 == -1 || index1 == -1)
+      return;
+    
+    if (selectionMode == SINGLE_SELECTION)
+      setSelectionInterval(index0, index1);
+    else
+    {
     int lo = Math.min(index0, index1);
     int hi = Math.max(index0, index1);
     oldSel = sel.clone();
 
-    if (selectionMode == SINGLE_SELECTION)
-      setSelectionInterval(index0, index1);
 
     // COMPAT: Like Sun (but not like IBM), we allow calls to 
     // addSelectionInterval when selectionMode is
@@ -489,9 +514,9 @@ public class DefaultListSelectionModel implements Cloneable,
         leadSelectionIndex = index1;
         anchorSelectionIndex = index0;
         sel.set(lo, hi+1);
-        if (sel.equals(oldSel) == false)
-          fireValueChanged(lo, hi, valueIsAdjusting);
+        fireDifference(sel, (BitSet) oldSel);
       }
+    }
   }
 
 
@@ -508,6 +533,9 @@ public class DefaultListSelectionModel implements Cloneable,
   public void removeSelectionInterval(int index0,
                                       int index1)
   {
+    if (index0 == -1 || index1 == -1)
+      return;
+    
     oldSel = sel.clone();
     int lo = Math.min(index0, index1);
     int hi = Math.max(index0, index1);
@@ -524,8 +552,8 @@ public class DefaultListSelectionModel implements Cloneable,
     //TODO: will probably need MouseDragged to test properly and know if this works
     setAnchorSelectionIndex(index0);
     leadSelectionIndex = index1;
-    if (sel.equals(oldSel) == false)
-      fireValueChanged(lo, hi, valueIsAdjusting);
+    
+    fireDifference(sel, (BitSet) oldSel);
   }
 
   /**
@@ -533,37 +561,123 @@ public class DefaultListSelectionModel implements Cloneable,
    */
   public void clearSelection()
   {
-    oldSel = sel.clone();
-    int sz = sel.size();
+    // Find the selected interval.
+    int from = sel.nextSetBit(0);
+    if (from < 0)
+      return; // Empty selection - nothing to do.
+    int to = from;
+    
+    int i;
+
+    for (i = from; i>=0; i=sel.nextSetBit(i+1))
+      to = i;
+    
     sel.clear();
-    if (sel.equals(oldSel) == false)
-      fireValueChanged(0, sz, valueIsAdjusting);
+    fireValueChanged(from, to, valueIsAdjusting);
   }
   
   /**
-   * Clears the current selection and marks a given interval as
-   * "selected". If the current selection mode is
-   * <code>SINGLE_SELECTION</code> only the index <code>index2</code> is
-   * selected.
-   *
-   * @param index0 The low end of the new selection 
-   * @param index1 The high end of the new selection
+   * Fire the change event, covering the difference between the two sets.
+   * 
+   * @param current the current set
+   * @param x the previous set, the object will be reused.
    */
-  public void setSelectionInterval(int index0, int index1)
+  private void fireDifference(BitSet current, BitSet x)
   {
-    oldSel = sel.clone();
-    sel.clear();
-    if (selectionMode == SINGLE_SELECTION)
-      index0 = index1;
+    x.xor(current);
+    int from = x.nextSetBit(0);
+    if (from < 0)
+      return; // No difference.
+    int to = from;
+    int i;
 
-    int lo = Math.min(index0, index1);
-    int hi = Math.max(index0, index1);
-    sel.set(lo, hi+1);
-    // update the anchorSelectionIndex and leadSelectionIndex variables
-    setAnchorSelectionIndex(index0);
-    leadSelectionIndex=index1;
-    if (sel.equals(oldSel) == false)
-      fireValueChanged(lo, hi, valueIsAdjusting);
+    for (i = from; i >= 0; i = x.nextSetBit(i+1))
+      to = i;
+
+    fireValueChanged(from, to, valueIsAdjusting);
+  }
+  
+  /**
+   * Clears the current selection and marks a given interval as "selected". If
+   * the current selection mode is <code>SINGLE_SELECTION</code> only the
+   * index <code>index2</code> is selected.
+   * 
+   * @param anchor  the anchor selection index.
+   * @param lead  the lead selection index.
+   */
+  public void setSelectionInterval(int anchor, int lead)
+  {
+    if (anchor == -1 || lead == -1)
+      return;
+    if (selectionMode == SINGLE_SELECTION)
+      {
+        int lo = lead;
+        int hi = lead;
+        int selected = sel.nextSetBit(0);
+        if (selected == lead)
+          return;  // the selection is not changing
+        if (selected >= 0)
+          {
+            lo = Math.min(lo, selected);
+            hi = Math.max(hi, selected);
+          }
+        if (anchorSelectionIndex >= 0)
+          {
+            lo = Math.min(lo, anchorSelectionIndex);
+            hi = Math.max(hi, anchorSelectionIndex);
+          }
+        sel.clear();
+        sel.set(lead);
+        leadSelectionIndex = lead;
+        anchorSelectionIndex = lead;
+        fireValueChanged(lo, hi);
+      }
+    else if (selectionMode == SINGLE_INTERVAL_SELECTION)
+      {
+        // determine the current interval
+        int first = sel.nextSetBit(0);
+        int last = first;
+        if (first >= 0)
+          last += (sel.cardinality() - 1);
+        
+        // update the selection
+        int lo = Math.min(anchor, lead);
+        int hi = Math.max(anchor, lead);
+        if (lo == first && hi == last)
+          return;  // selected interval is not being changed
+        sel.clear();
+        sel.set(lo, hi + 1);
+        
+        // include the old selection in the event range
+        if (first >= 0)
+          lo = Math.min(lo, first);
+        if (last >= 0)
+          hi = Math.max(hi, last);
+        if (anchorSelectionIndex >= 0)
+          {
+            lo = Math.min(lo, anchorSelectionIndex);
+            hi = Math.max(hi, anchorSelectionIndex);
+          }
+        anchorSelectionIndex = anchor;
+        leadSelectionIndex = lead;
+        fireValueChanged(lo, hi);
+      }    
+    else
+    {
+      BitSet oldSel = (BitSet) sel.clone();
+      sel.clear();
+      if (selectionMode == SINGLE_SELECTION)
+        anchor = lead;
+
+      int lo = Math.min(anchor, lead);
+      int hi = Math.max(anchor, lead);
+      sel.set(lo, hi+1);
+      // update the anchorSelectionIndex and leadSelectionIndex variables
+      setAnchorSelectionIndex(anchor);
+      leadSelectionIndex = lead;
+    
+      fireDifference(sel, oldSel);
+    }
   }
 
   /**
@@ -735,6 +849,7 @@ public class DefaultListSelectionModel implements Cloneable,
     DefaultListSelectionModel model =
       (DefaultListSelectionModel) super.clone();
     model.sel = (BitSet) sel.clone();
+    model.listenerList = new EventListenerList();
     return model;
   }
 }

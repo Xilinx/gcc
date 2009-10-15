@@ -17,7 +17,7 @@ PACKAGES
 . gnu.xml.xpath.* ... JAXP XPath implementation
 . gnu.xml.transform.* ... JAXP XSL transformer implementation
 . gnu.xml.pipeline.* ... SAX2 event pipeline support
-. gnu.xml.stream.* ... StAX pull parser implementation
+. gnu.xml.stream.* ... StAX pull parser and SAX-over-StAX driver
 . gnu.xml.util.* ... various XML utility classes
 . gnu.xml.libxmlj.dom.* ... libxmlj DOM Level 3 Core and XPath
 . gnu.xml.libxmlj.sax.* ... libxmlj SAX parser
@@ -30,6 +30,7 @@ classes in the above packages.
 
 . org.xml.sax.* ... SAX2 interfaces
 . org.w3c.dom.* ... DOM Level 3 interfaces
+. org.relaxng.datatype.* ... RELAX NG pluggable datatypes API
 
 CONFORMANCE
 
@@ -139,6 +140,9 @@ To enable the various GNU JAXP factories, set the following system properties
    -Djavax.xml.stream.XMLInputFactory=gnu.xml.stream.XMLInputFactoryImpl
    -Djavax.xml.stream.XMLOutputFactory=gnu.xml.stream.XMLOutputFactoryImpl
 
+  GNU SAX-over-StAX:
+   -Djavax.xml.parsers.SAXParserFactory=gnu.xml.stream.SAXParserFactory
+
   libxmlj SAX:
    -Djavax.xml.parsers.SAXParserFactory=gnu.xml.libxmlj.sax.GnomeSAXParserFactory
 
@@ -172,3 +176,29 @@ using thread context variables.
 Update: thread context variables have been introduced. This is very
 untested though, libxmll therefore still has the single thread
 bottleneck.
+
+
+Validation
+===================================================
+
+Pluggable datatypes
+---------------------------------------------------
+Validators should use the RELAX NG pluggable datatypes API to retrieve
+datatype (XML Schema simple type) implementations in a schema-neutral
+fashion. The following code demonstrates looking up a W3C XML Schema
+nonNegativeInteger datatype:
+
+  DatatypeLibrary xsd = DatatypeLibraryLoader
+    .createDatatypeLibrary(XMLConstants.W3C_XML_SCHEMA_NS_URI);
+  Datatype nonNegativeInteger = xsd.createDatatype("nonNegativeInteger");
+
+It is also possible to create new types by derivation. For instance,
+to create a datatype that will match a US ZIP code:
+
+  DatatypeBuilder b = xsd.createDatatypeBuilder("string");
+  b.addParameter("pattern", "(^[0-9]{5}$)|(^[0-9]{5}-[0-9]{4}$)");
+  Datatype zipCode = b.createDatatype();
+
+A datatype library implementation for XML Schema is provided; other
+library implementations may be added.
+

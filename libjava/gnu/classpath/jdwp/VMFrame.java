@@ -1,5 +1,5 @@
 /* VMFrame.java -- Reference implementation of VM hooks for JDWP Frame access.
-   Copyright (C) 2005 Free Software Foundation
+   Copyright (C) 2005, 2006 Free Software Foundation
 
 This file is part of GNU Classpath.
 
@@ -49,6 +49,11 @@ import gnu.classpath.jdwp.util.Location;
 
 public class VMFrame
 {
+  /**
+   * Returns the size of a frame ID over JDWP
+   */
+  public static final int SIZE = 8;
+
   // The object this frame resides in
   private Object obj;
   
@@ -71,14 +76,14 @@ public class VMFrame
    * 
    * @param slot the slot containing the variable
    */
-  public Object getValue(int slot) { return null; }
+  public native Object getValue(int slot);
 
   /**
    * Assigns the given variable to the given value. 
    * @param slot The slot which contains the variable
    * @param value The value to assign the variable to
    */
-  public void setValue(int slot, Object value) { }
+  public native void setValue(int slot, Object value);
 
   /**
    * Get the object which is represented by 'this' in the context of the frame,

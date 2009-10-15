@@ -4,7 +4,7 @@
 # include "private/gc_priv.h"
 
 # if defined(GC_PTHREADS) && !defined(GC_SOLARIS_THREADS) \
-     && !defined(GC_IRIX_THREADS) && !defined(GC_WIN32_THREADS)
+     && !defined(GC_WIN32_THREADS)
      
 #if defined(GC_DARWIN_THREADS)
 # include "private/darwin_stop_world.h"
@@ -33,6 +33,7 @@ typedef struct GC_Thread_Rep {
 #	define FINISHED 1   	/* Thread has exited.	*/
 #	define DETACHED 2	/* Thread is intended to be detached.	*/
 #	define MAIN_THREAD 4	/* True for the original thread only.	*/
+#       define SUSPENDED 8      /* True if thread was suspended externally */
     short thread_blocked;	/* Protected by GC lock.		*/
     				/* Treated as a boolean value.  If set,	*/
     				/* thread will acquire GC lock before	*/

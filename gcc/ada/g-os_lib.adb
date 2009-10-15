@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---                     Copyright (C) 1995-2005, AdaCore                     --
+--                     Copyright (C) 1995-2006, AdaCore                     --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -384,7 +384,18 @@ package body GNAT.OS_Lib is
          procedure Free is new Unchecked_Deallocation (Buf, Buf_Ptr);
 
       begin
-         if From = Invalid_FD or else To = Invalid_FD then
+         --  Check for invalid descriptors, making sure that we do not
+         --  accidentally leave an open file descriptor around.
+
+         if From = Invalid_FD then
+            if To /= Invalid_FD then
+               Close (To, Status_To);
+            end if;
+
+            raise Copy_Error;
+
+         elsif To = Invalid_FD then
+            Close (From, Status_From);
             raise Copy_Error;
          end if;
 
@@ -605,11 +616,11 @@ package body GNAT.OS_Lib is
             C_Source : String (1 .. Source'Length + 1);
             C_Dest   : String (1 .. Dest'Length + 1);
          begin
-            C_Source (1 .. C_Source'Length) := Source;
-            C_Source (C_Source'Last)        := ASCII.Nul;
+            C_Source (1 .. Source'Length) := Source;
+            C_Source (C_Source'Last)      := ASCII.NUL;
 
-            C_Dest (1 .. C_Dest'Length) := Dest;
-            C_Dest (C_Dest'Last)        := ASCII.Nul;
+            C_Dest (1 .. Dest'Length) := Dest;
+            C_Dest (C_Dest'Last)      := ASCII.NUL;
 
             if Copy_Attributes (C_Source'Address, C_Dest'Address, 0) = -1 then
                Success := False;
@@ -903,6 +914,36 @@ package body GNAT.OS_Lib is
       return Result;
    end Get_Debuggable_Suffix;
 
+   ----------------------------------
+   -- Get_Target_Debuggable_Suffix --
+   ----------------------------------
+
+   function Get_Target_Debuggable_Suffix return String_Access is
+      Target_Exec_Ext_Ptr : Address;
+      pragma Import
+        (C, Target_Exec_Ext_Ptr, "__gnat_target_debuggable_extension");
+
+      procedure Strncpy (Astring_Addr, Cstring : Address; N : Integer);
+      pragma Import (C, Strncpy, "strncpy");
+
+      function Strlen (Cstring : Address) return Integer;
+      pragma Import (C, Strlen, "strlen");
+
+      Suffix_Length : Integer;
+      Result        : String_Access;
+
+   begin
+      Suffix_Length := Strlen (Target_Exec_Ext_Ptr);
+
+      Result := new String (1 .. Suffix_Length);
+
+      if Suffix_Length > 0 then
+         Strncpy (Result.all'Address, Target_Exec_Ext_Ptr, Suffix_Length);
+      end if;
+
+      return Result;
+   end Get_Target_Debuggable_Suffix;
+
    ---------------------------
    -- Get_Executable_Suffix --
    ---------------------------
@@ -929,6 +970,36 @@ package body GNAT.OS_Lib is
 
       return Result;
    end Get_Executable_Suffix;
+
+   ----------------------------------
+   -- Get_Target_Executable_Suffix --
+   ----------------------------------
+
+   function Get_Target_Executable_Suffix return String_Access is
+      Target_Exec_Ext_Ptr : Address;
+      pragma Import
+        (C, Target_Exec_Ext_Ptr, "__gnat_target_executable_extension");
+
+      procedure Strncpy (Astring_Addr, Cstring : Address; N : Integer);
+      pragma Import (C, Strncpy, "strncpy");
+
+      function Strlen (Cstring : Address) return Integer;
+      pragma Import (C, Strlen, "strlen");
+
+      Suffix_Length : Integer;
+      Result        : String_Access;
+
+   begin
+      Suffix_Length := Strlen (Target_Exec_Ext_Ptr);
+
+      Result := new String (1 .. Suffix_Length);
+
+      if Suffix_Length > 0 then
+         Strncpy (Result.all'Address, Target_Exec_Ext_Ptr, Suffix_Length);
+      end if;
+
+      return Result;
+   end Get_Target_Executable_Suffix;
 
    -----------------------
    -- Get_Object_Suffix --
@@ -957,13 +1028,43 @@ package body GNAT.OS_Lib is
       return Result;
    end Get_Object_Suffix;
 
+   ------------------------------
+   -- Get_Target_Object_Suffix --
+   ------------------------------
+
+   function Get_Target_Object_Suffix return String_Access is
+      Target_Object_Ext_Ptr : Address;
+      pragma Import
+        (C, Target_Object_Ext_Ptr, "__gnat_target_object_extension");
+
+      procedure Strncpy (Astring_Addr, Cstring : Address; N : Integer);
+      pragma Import (C, Strncpy, "strncpy");
+
+      function Strlen (Cstring : Address) return Integer;
+      pragma Import (C, Strlen, "strlen");
+
+      Suffix_Length : Integer;
+      Result        : String_Access;
+
+   begin
+      Suffix_Length := Strlen (Target_Object_Ext_Ptr);
+
+      Result := new String (1 .. Suffix_Length);
+
+      if Suffix_Length > 0 then
+         Strncpy (Result.all'Address, Target_Object_Ext_Ptr, Suffix_Length);
+      end if;
+
+      return Result;
+   end Get_Target_Object_Suffix;
+
    ------------
    -- Getenv --
    ------------
 
    function Getenv (Name : String) return String_Access is
       procedure Get_Env_Value_Ptr (Name, Length, Ptr : Address);
-      pragma Import (C, Get_Env_Value_Ptr, "__gnat_get_env_value_ptr");
+      pragma Import (C, Get_Env_Value_Ptr, "__gnat_getenv");
 
       procedure Strncpy (Astring_Addr, Cstring : Address; N : Integer);
       pragma Import (C, Strncpy, "strncpy");
@@ -1608,12 +1709,11 @@ package body GNAT.OS_Lib is
          --  Directory given, add directory separator if needed
 
          if Dir'Length > 0 then
-            if Dir (Dir'Length) = Directory_Separator then
+            if Dir (Dir'Last) = Directory_Separator then
                return Directory;
             else
                declare
                   Result : String (1 .. Dir'Length + 1);
-
                begin
                   Result (1 .. Dir'Length) := Dir;
                   Result (Result'Length) := Directory_Separator;
@@ -2219,7 +2319,7 @@ package body GNAT.OS_Lib is
       F_Value : String (1 .. Value'Length + 1);
 
       procedure Set_Env_Value (Name, Value : System.Address);
-      pragma Import (C, Set_Env_Value, "__gnat_set_env_value");
+      pragma Import (C, Set_Env_Value, "__gnat_setenv");
 
    begin
       F_Name (1 .. Name'Length) := Name;

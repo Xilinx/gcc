@@ -1,4 +1,4 @@
-! { dg-do run }
+! { dg-do compile }
 ! PR 18197: Check that dummy functions with RESULT variable and dimension works.
 module innerfun
 contains
@@ -25,7 +25,6 @@ contains
      end interface
 
      y = funname(n, (/ 0.2, 0.3 /) )
-     if (any(y /= 1.0)) call abort()
 
    end subroutine foo
 end module outerfun

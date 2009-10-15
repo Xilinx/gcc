@@ -1,5 +1,5 @@
 /* CompositeView.java -- An abstract view that manages child views
-   Copyright (C) 2005  Free Software Foundation, Inc.
+   Copyright (C) 2005, 2006  Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -217,21 +217,65 @@ public abstract class CompositeView
   public Shape modelToView(int pos, Shape a, Position.Bias bias)
     throws BadLocationException
   {
-    int childIndex = getViewIndex(pos, bias);
-    if (childIndex != -1)
+    boolean backward = bias == Position.Bias.Backward;
+    int testpos = backward ? Math.max(0, pos - 1) : pos;
+
+    Shape ret = null;
+    if (! backward || testpos >= getStartOffset())
       {
-        View child = getView(childIndex);
-        Rectangle r = a.getBounds();
-        childAllocation(childIndex, r);
-        Shape result = child.modelToView(pos, r, bias);
-        if (result == null)
-          throw new AssertionError("" + child.getClass().getName()
-                                   + ".modelToView() must not return null");
-        return result;
+        int childIndex = getViewIndexAtPosition(testpos);
+        if (childIndex != -1 && childIndex < getViewCount())
+          {
+            View child = getView(childIndex);
+            if (child != null && testpos >= child.getStartOffset()
+                && testpos < child.getEndOffset())
+              {
+                Shape childAlloc = getChildAllocation(childIndex, a);
+                if (childAlloc != null)
+                  {
+                    ret = child.modelToView(pos, childAlloc, bias);
+                    // Handle corner case.
+                    if (ret == null && child.getEndOffset() == pos)
+                      {
+                        childIndex++;
+                        if (childIndex < getViewCount())
+                          {
+                            child = getView(childIndex);
+                            childAlloc = getChildAllocation(childIndex, a);
+                            ret = child.modelToView(pos, childAlloc, bias);
+                          }
+                      }
+                  }
+              }
+          }
+        else
+          {
+            throw new BadLocationException("Position " + pos
+                                           + " is not represented by view.", pos);
+          }    
       }
-    else
-      throw new BadLocationException("No child view for the specified location",
-                                     pos);
+    return ret;
+  }
+
+  /**
+   * A helper method for {@link #modelToView(int, Position.Bias, int,
+   * Position.Bias, Shape)}. This creates a default location when there is
+   * no child view that can take responsibility for mapping the position to
+   * view coordinates. Depending on the specified bias this will be the
+   * left or right edge of this view's allocation.
+   *
+   * @param a the allocation for this view
+   * @param bias the bias
+   *
+   * @return a default location
+   */
+  private Shape createDefaultLocation(Shape a, Position.Bias bias)
+  {
+    Rectangle alloc = a.getBounds();
+    Rectangle location = new Rectangle(alloc.x, alloc.y, 1, alloc.height);
+    if (bias == Position.Bias.Forward)
+      location.x = alloc.x + alloc.width;
+    return location;
   }
 
   /**
@@ -278,7 +322,7 @@ public abstract class CompositeView
       {
         Rectangle r = getInsideAllocation(a);
         View view = getViewAtPoint((int) x, (int) y, r);
-        return view.viewToModel(x, y, a, b);
+        return view.viewToModel(x, y, r, b);
       }
     return 0;
   }
@@ -350,8 +394,12 @@ public abstract class CompositeView
    */
   public int getViewIndex(int pos, Position.Bias b)
   {
-    // FIXME: Handle bias somehow.
-    return getViewIndexAtPosition(pos);
+    if (b == Position.Bias.Backward && pos != 0)
+      pos -= 1;
+    int i = -1;
+    if (pos >= getStartOffset() && pos < getEndOffset())
+      i = getViewIndexAtPosition(pos);
+    return i;
   }
 
   /**
@@ -419,9 +467,13 @@ public abstract class CompositeView
    */
   protected View getViewAtPosition(int pos, Rectangle a)
   {
+    View view = null;
     int i = getViewIndexAtPosition(pos);
-    View view = children[i];
-    childAllocation(i, a);
+    if (i >= 0 && i < getViewCount() && a != null)
+      {
+        view = getView(i);
+        childAllocation(i, a);
+      }
     return view;
   }
 
@@ -437,17 +489,10 @@ public abstract class CompositeView
    */
   protected int getViewIndexAtPosition(int pos)
   {
-    int index = -1;
-    for (int i = 0; i < children.length; i++)
-      {
-        if (children[i].getStartOffset() <= pos
-            && children[i].getEndOffset() > pos)
-          {
-            index = i;
-            break;
-          }
-      }
-    return index;
+    // We have a 1:1 mapping of elements to views here, so we forward
+    // this to the element.
+    Element el = getElement();
+    return el.getElementIndex(pos);
   }
 
   /**
@@ -606,8 +651,51 @@ public abstract class CompositeView
                                                     Position.Bias[] biasRet)
     throws BadLocationException
   {
-    // FIXME: Implement this correctly.
-    return pos;
+    // TODO: It is unknown to me how this method has to be implemented and
+    // there is no specification telling me how to do it properly. Therefore
+    // the implementation was done for cases that are known.
+    //
+    // If this method ever happens to act silly for your particular case then
+    // it is likely that it is a cause of not knowing about your case when it
+    // was implemented first. You are free to fix the behavior.
+    //
+    // Here are the assumptions that lead to the implementation:
+    // If direction is NORTH chose the View preceding the one that contains the
+    // offset 'pos' (imagine the views are stacked on top of each other where
+    // the top is 0 and the bottom is getViewCount()-1.
+    // Consecutively when the direction is SOUTH the View following the one
+    // the offset 'pos' lies in is questioned.
+    //
+    // This limitation is described as PR 27345.
+    int index = getViewIndex(pos, b);
+    View v = null;
+    
+    if (index == -1)
+      return pos;
+
+    switch (direction)
+    {
+      case NORTH:
+        // If we cannot calculate a proper offset return the one that was
+        // provided.
+        if (index <= 0)
+          return pos;
+        
+        v = getView(index - 1);
+        break;
+      case SOUTH:
+        // If we cannot calculate a proper offset return the one that was
+        // provided.
+        if (index >= getViewCount() - 1)
+          return pos;
+        
+        v = getView(index + 1);
+        break;
+      default:
+          throw new IllegalArgumentException();
+    }
+    
+    return v.getNextVisualPositionFrom(pos, b, a, direction, biasRet);
   }
 
   /**
@@ -640,8 +728,55 @@ public abstract class CompositeView
                                                   Position.Bias[] biasRet)
     throws BadLocationException
   {
-    // FIXME: Implement this correctly.
-    return pos;
+    // TODO: It is unknown to me how this method has to be implemented and
+    // there is no specification telling me how to do it properly. Therefore
+    // the implementation was done for cases that are known.
+    //
+    // If this method ever happens to act silly for your particular case then
+    // it is likely that it is a cause of not knowing about your case when it
+    // was implemented first. You are free to fix the behavior.
+    //
+    // Here are the assumptions that lead to the implementation:
+    // If direction is EAST increase the offset by one and ask the View to
+    // which that index belong to calculate the 'next visual position'.
+    // If the direction is WEST do the same with offset 'pos' being decreased
+    // by one.
+    // This behavior will fail in a right-to-left or bidi environment!
+    //
+    // This limitation is described as PR 27346.
+    int index;
+    
+    View v = null;
+    
+    switch (direction)
+    {
+      case EAST:
+        index = getViewIndex(pos + 1, b);
+        // If we cannot calculate a proper offset return the one that was
+        // provided.
+        if (index == -1)
+          return pos;
+        
+        v  = getView(index);
+        break;
+      case WEST:
+        index = getViewIndex(pos - 1, b);
+        // If we cannot calculate a proper offset return the one that was
+        // provided.
+        if (index == -1)
+          return pos;
+        
+        v  = getView(index);
+        break;
+      default:
+        throw new IllegalArgumentException();
+    }
+    
+    return v.getNextVisualPositionFrom(pos,
+                                       b,
+                                       a,
+                                       direction,
+                                       biasRet);
   }
 
   /**
@@ -660,35 +795,5 @@ public abstract class CompositeView
   protected boolean flipEastAndWestAtEnds(int pos, Position.Bias bias)
   {
     return false;
-  }
-
-  /**
-   * Returns the document position that is (visually) nearest to the given
-   * document position <code>pos</code> in the given direction <code>d</code>.
-   *
-   * @param c the text component
-   * @param pos the document position
-   * @param b the bias for <code>pos</code>
-   * @param d the direction, must be either {@link SwingConstants#NORTH},
-   *        {@link SwingConstants#SOUTH}, {@link SwingConstants#WEST} or
-   *        {@link SwingConstants#EAST}
-   * @param biasRet an array of {@link Position.Bias} that can hold at least
-   *        one element, which is filled with the bias of the return position
-   *        on method exit
-   *
-   * @return the document position that is (visually) nearest to the given
-   *         document position <code>pos</code> in the given direction
-   *         <code>d</code>
-   *
-   * @throws BadLocationException if <code>pos</code> is not a valid offset in
-   *         the document model
-   */
-  public int getNextVisualPositionFrom(JTextComponent c, int pos,
-                                       Position.Bias b, int d,
-                                       Position.Bias[] biasRet)
-    throws BadLocationException
-  {
-    // TODO: Implement this properly.
-    throw new AssertionError("Not implemented yet.");
   }
 }

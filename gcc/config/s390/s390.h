@@ -1,6 +1,6 @@
 /* Definitions of target machine for GNU compiler, for IBM S/390
-   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006
-   Free Software Foundation, Inc.
+   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006,
+   2007 Free Software Foundation, Inc.
    Contributed by Hartmut Penner (hpenner@de.ibm.com) and
                   Ulrich Weigand (uweigand@de.ibm.com).
 
@@ -8,7 +8,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -17,9 +17,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #ifndef _S390_H
 #define _S390_H
@@ -355,36 +354,15 @@ if (INTEGRAL_MODE_P (MODE) &&	        	    	\
 
    Condition code modes fit only into the CC register.  */
 
+/* Because all registers in a class have the same size HARD_REGNO_NREGS
+   is equivalent to CLASS_MAX_NREGS.  */
 #define HARD_REGNO_NREGS(REGNO, MODE)                           \
-  (FP_REGNO_P(REGNO)?                                           \
-   (GET_MODE_CLASS(MODE) == MODE_COMPLEX_FLOAT ?                \
-    2 * ((GET_MODE_SIZE(MODE) / 2 + 8 - 1) / 8) : 		\
-    ((GET_MODE_SIZE(MODE) + 8 - 1) / 8)) :			\
-   GENERAL_REGNO_P(REGNO)?                                      \
-    ((GET_MODE_SIZE(MODE)+UNITS_PER_WORD-1) / UNITS_PER_WORD) : \
-   ACCESS_REGNO_P(REGNO)?					\
-    ((GET_MODE_SIZE(MODE) + 4 - 1) / 4) : 			\
-   1)
+  s390_class_max_nregs (REGNO_REG_CLASS (REGNO), (MODE))
 
-#define HARD_REGNO_MODE_OK(REGNO, MODE)                             \
-  (FP_REGNO_P(REGNO)?                                               \
-   (((MODE) == SImode || (MODE) == DImode                           \
-     || GET_MODE_CLASS(MODE) == MODE_FLOAT                          \
-     || GET_MODE_CLASS(MODE) == MODE_COMPLEX_FLOAT)                 \
-    && (HARD_REGNO_NREGS(REGNO, MODE) == 1 || !((REGNO) & 1))) :    \
-   GENERAL_REGNO_P(REGNO)?                                          \
-   ((HARD_REGNO_NREGS(REGNO, MODE) == 1 || !((REGNO) & 1))	    \
-    && (((MODE) != TFmode && (MODE) != TCmode) || TARGET_64BIT)) :  \
-   CC_REGNO_P(REGNO)?                                               \
-     GET_MODE_CLASS (MODE) == MODE_CC :                             \
-   FRAME_REGNO_P(REGNO)?                                            \
-     (enum machine_mode) (MODE) == Pmode :                          \
-   ACCESS_REGNO_P(REGNO)?					    \
-     (((MODE) == SImode || ((enum machine_mode) (MODE) == Pmode))   \
-      && (HARD_REGNO_NREGS(REGNO, MODE) == 1 || !((REGNO) & 1))) :  \
-   0)
+#define HARD_REGNO_MODE_OK(REGNO, MODE)         \
+  s390_hard_regno_mode_ok ((REGNO), (MODE))
 
-#define HARD_REGNO_RENAME_OK(FROM, TO) \
+#define HARD_REGNO_RENAME_OK(FROM, TO)          \
   s390_hard_regno_rename_ok (FROM, TO)
 
 #define MODES_TIEABLE_P(MODE1, MODE2)		\
@@ -394,13 +372,7 @@ if (INTEGRAL_MODE_P (MODE) &&	        	    	\
 /* Maximum number of registers to represent a value of mode MODE
    in a register of class CLASS.  */
 #define CLASS_MAX_NREGS(CLASS, MODE)   					\
-     ((CLASS) == FP_REGS ? 						\
-      (GET_MODE_CLASS(MODE) == MODE_COMPLEX_FLOAT ?                     \
-       2 * (GET_MODE_SIZE (MODE) / 2 + 8 - 1) / 8 :		        \
-       (GET_MODE_SIZE (MODE) + 8 - 1) / 8) :				\
-      (CLASS) == ACCESS_REGS ?						\
-      (GET_MODE_SIZE (MODE) + 4 - 1) / 4 :				\
-      (GET_MODE_SIZE (MODE) + UNITS_PER_WORD - 1) / UNITS_PER_WORD)
+  s390_class_max_nregs ((CLASS), (MODE))
 
 /* If a 4-byte value is loaded into a FPR, it is placed into the
    *upper* half of the register, not the lower.  Therefore, we
@@ -476,8 +448,8 @@ extern const enum reg_class regclass_map[FIRST_PSEUDO_REGISTER];
    or a pseudo register currently allocated to one such.  */
 #define REGNO_OK_FOR_INDEX_P(REGNO)					\
     (((REGNO) < FIRST_PSEUDO_REGISTER 					\
-     && REGNO_REG_CLASS ((REGNO)) == ADDR_REGS) 			\
-    || (reg_renumber[REGNO] > 0 && reg_renumber[REGNO] < 16))
+      && REGNO_REG_CLASS ((REGNO)) == ADDR_REGS) 			\
+     || ADDR_REGNO_P (reg_renumber[REGNO]))
 #define REGNO_OK_FOR_BASE_P(REGNO) REGNO_OK_FOR_INDEX_P (REGNO)
 
 
@@ -507,34 +479,6 @@ extern const enum reg_class regclass_map[FIRST_PSEUDO_REGISTER];
   ? mode_for_size (32, GET_MODE_CLASS (MODE), 0)	\
   : MODE)
 
-
-/* Define various machine-dependent constraint letters.  */
-
-#define REG_CLASS_FROM_LETTER(C)                                        \
-  ((C) == 'a' ? ADDR_REGS :                                             \
-   (C) == 'd' ? GENERAL_REGS :                                          \
-   (C) == 'f' ? FP_REGS :                                               \
-   (C) == 'c' ? CC_REGS : 						\
-   (C) == 't' ? ACCESS_REGS : NO_REGS)
-
-#define CONST_OK_FOR_CONSTRAINT_P(VALUE, C, STR)                          \
-  s390_const_ok_for_constraint_p ((VALUE), (C), (STR))
-
-#define CONST_DOUBLE_OK_FOR_CONSTRAINT_P(VALUE, C, STR)			\
-  s390_const_double_ok_for_constraint_p ((VALUE), (C), (STR))
-
-#define EXTRA_CONSTRAINT_STR(OP, C, STR)                               	\
-  s390_extra_constraint_str ((OP), (C), (STR))
-#define EXTRA_MEMORY_CONSTRAINT(C, STR)					\
-  ((C) == 'Q' || (C) == 'R' || (C) == 'S' || (C) == 'T' || (C) == 'A')
-#define EXTRA_ADDRESS_CONSTRAINT(C, STR)				\
-  ((C) == 'U' || (C) == 'W' || (C) == 'Y')
-
-#define CONSTRAINT_LEN(C, STR)                                  	\
-  ((C) == 'N' ? 5 : 	                                                \
-   (C) == 'O' ? 2 :							\
-   (C) == 'A' ? 2 :							\
-   (C) == 'B' ? 2 : DEFAULT_CONSTRAINT_LEN ((C), (STR)))
 
 /* Stack layout and calling conventions.  */
 
@@ -728,38 +672,6 @@ CUMULATIVE_ARGS;
 
 /* Maximum number of registers that can appear in a valid memory address.  */
 #define MAX_REGS_PER_ADDRESS 2
-
-/* The macros REG_OK_FOR..._P assume that the arg is a REG rtx and check
-   its validity for a certain class.  We have two alternate definitions
-   for each of them.  The usual definition accepts all pseudo regs; the
-   other rejects them all.  The symbol REG_OK_STRICT causes the latter
-   definition to be used.
-
-   Most source files want to accept pseudo regs in the hope that they will
-   get allocated to the class that the insn wants them to be in.
-   Some source files that are used after register allocation
-   need to be strict.  */
-
-#define REG_OK_FOR_INDEX_NONSTRICT_P(X)   	\
-((GET_MODE (X) == Pmode) &&			\
- ((REGNO (X) >= FIRST_PSEUDO_REGISTER) 		\
-  || REGNO_REG_CLASS (REGNO (X)) == ADDR_REGS))
-
-#define REG_OK_FOR_BASE_NONSTRICT_P(X)    REG_OK_FOR_INDEX_NONSTRICT_P (X)
-
-#define REG_OK_FOR_INDEX_STRICT_P(X) 				\
-((GET_MODE (X) == Pmode) && (REGNO_OK_FOR_INDEX_P (REGNO (X))))
-
-#define REG_OK_FOR_BASE_STRICT_P(X)				\
-((GET_MODE (X) == Pmode) && (REGNO_OK_FOR_BASE_P (REGNO (X))))
-
-#ifndef REG_OK_STRICT
-#define REG_OK_FOR_INDEX_P(X)  REG_OK_FOR_INDEX_NONSTRICT_P(X)
-#define REG_OK_FOR_BASE_P(X)   REG_OK_FOR_BASE_NONSTRICT_P(X)
-#else
-#define REG_OK_FOR_INDEX_P(X)  REG_OK_FOR_INDEX_STRICT_P(X)
-#define REG_OK_FOR_BASE_P(X)   REG_OK_FOR_BASE_STRICT_P(X)
-#endif
 
 /* S/390 has no mode dependent addresses.  */
 #define GO_IF_MODE_DEPENDENT_ADDRESS(ADDR, LABEL)

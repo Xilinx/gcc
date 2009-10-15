@@ -1,6 +1,6 @@
 /* Definitions of target machine GNU compiler.  IA-64 version.
-   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006
-   Free Software Foundation, Inc.
+   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006,
+   2007 Free Software Foundation, Inc.
    Contributed by James E. Wilson <wilson@cygnus.com> and
    		  David Mosberger <davidm@hpl.hp.com>.
 
@@ -8,7 +8,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -17,9 +17,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 /* ??? Look at ABI group documents for list of preprocessor macros and
    other features required for ABI compliance.  */
@@ -1020,6 +1019,9 @@ enum reg_class
    pointer.  */
 #define INCOMING_FRAME_SP_OFFSET STACK_POINTER_OFFSET
 
+/* We shorten debug info by using CFA-16 as DW_AT_frame_base.  */
+#define CFA_FRAME_BASE_OFFSET(FUNDECL) (-INCOMING_FRAME_SP_OFFSET)
+
 
 /* Register That Address the Stack Frame.  */
 
@@ -1888,12 +1890,12 @@ do {									\
 /* Use section-relative relocations for debugging offsets.  Unlike other
    targets that fake this by putting the section VMA at 0, IA-64 has
    proper relocations for them.  */
-#define ASM_OUTPUT_DWARF_OFFSET(FILE, SIZE, LABEL)	\
-  do {							\
-    fputs (integer_asm_op (SIZE, FALSE), FILE);		\
-    fputs ("@secrel(", FILE);				\
-    assemble_name (FILE, LABEL);			\
-    fputc (')', FILE);					\
+#define ASM_OUTPUT_DWARF_OFFSET(FILE, SIZE, LABEL, SECTION)	\
+  do {								\
+    fputs (integer_asm_op (SIZE, FALSE), FILE);			\
+    fputs ("@secrel(", FILE);					\
+    assemble_name (FILE, LABEL);				\
+    fputc (')', FILE);						\
   } while (0)
 
 /* Emit a PC-relative relocation.  */
@@ -2039,5 +2041,9 @@ struct machine_function GTY(())
 
 /* Switch on code for querying unit reservations.  */
 #define CPU_UNITS_QUERY 1
+
+/* Define this to change the optimizations performed by default.  */
+#define OPTIMIZATION_OPTIONS(LEVEL, SIZE) \
+  ia64_optimization_options ((LEVEL), (SIZE))
 
 /* End of ia64.h */

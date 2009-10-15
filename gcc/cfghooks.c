@@ -1,12 +1,12 @@
 /* Hooks for cfg representation specific functions.
-   Copyright (C) 2003, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
    Contributed by Sebastian Pop <s.pop@laposte.net>
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -15,9 +15,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -77,8 +76,8 @@ verify_flow_info (void)
   basic_block *last_visited;
 
   timevar_push (TV_CFG_VERIFY);
-  last_visited = xcalloc (last_basic_block + 2, sizeof (basic_block));
-  edge_checksum = xcalloc (last_basic_block + 2, sizeof (size_t));
+  last_visited = XCNEWVEC (basic_block, last_basic_block);
+  edge_checksum = XCNEWVEC (size_t, last_basic_block);
 
   /* Check bb chain & numbers.  */
   last_bb_seen = ENTRY_BLOCK_PTR;
@@ -111,18 +110,18 @@ verify_flow_info (void)
       if (bb->count < 0)
 	{
 	  error ("verify_flow_info: Wrong count of block %i %i",
-	         bb->index, (int)bb->count);
+		 bb->index, (int)bb->count);
 	  err = 1;
 	}
       if (bb->frequency < 0)
 	{
 	  error ("verify_flow_info: Wrong frequency of block %i %i",
-	         bb->index, bb->frequency);
+		 bb->index, bb->frequency);
 	  err = 1;
 	}
       FOR_EACH_EDGE (e, ei, bb->succs)
 	{
-	  if (last_visited [e->dest->index + 2] == bb)
+	  if (last_visited [e->dest->index] == bb)
 	    {
 	      error ("verify_flow_info: Duplicate edge %i->%i",
 		     e->src->index, e->dest->index);
@@ -141,7 +140,7 @@ verify_flow_info (void)
 	      err = 1;
 	    }
 
-	  last_visited [e->dest->index + 2] = bb;
+	  last_visited [e->dest->index] = bb;
 
 	  if (e->flags & EDGE_FALLTHRU)
 	    n_fallthru++;
@@ -158,7 +157,7 @@ verify_flow_info (void)
 	      err = 1;
 	    }
 
-	  edge_checksum[e->dest->index + 2] += (size_t) e;
+	  edge_checksum[e->dest->index] += (size_t) e;
 	}
       if (n_fallthru > 1)
 	{
@@ -192,7 +191,7 @@ verify_flow_info (void)
 	      err = 1;
 	    }
 
-	  edge_checksum[e->dest->index + 2] -= (size_t) e;
+	  edge_checksum[e->dest->index] -= (size_t) e;
 	}
     }
 
@@ -202,14 +201,14 @@ verify_flow_info (void)
     edge_iterator ei;
 
     FOR_EACH_EDGE (e, ei, ENTRY_BLOCK_PTR->succs)
-      edge_checksum[e->dest->index + 2] += (size_t) e;
+      edge_checksum[e->dest->index] += (size_t) e;
 
     FOR_EACH_EDGE (e, ei, EXIT_BLOCK_PTR->preds)
-      edge_checksum[e->dest->index + 2] -= (size_t) e;
+      edge_checksum[e->dest->index] -= (size_t) e;
   }
 
   FOR_BB_BETWEEN (bb, ENTRY_BLOCK_PTR, NULL, next_bb)
-    if (edge_checksum[bb->index + 2])
+    if (edge_checksum[bb->index])
       {
 	error ("basic block %i edge lists are corrupted", bb->index);
 	err = 1;
@@ -238,7 +237,7 @@ dump_bb (basic_block bb, FILE *outf, int indent)
   edge e;
   edge_iterator ei;
   char *s_indent;
- 
+
   s_indent = alloca ((size_t) indent + 1);
   memset (s_indent, ' ', (size_t) indent);
   s_indent[indent] = '\0';
@@ -767,7 +766,7 @@ duplicate_block (basic_block bb, edge e, basic_block after)
 /* Return 1 if BB ends with a call, possibly followed by some
    instructions that must stay with the call, 0 otherwise.  */
 
-bool 
+bool
 block_ends_with_call_p (basic_block bb)
 {
   if (!cfg_hooks->block_ends_with_call_p)
@@ -778,7 +777,7 @@ block_ends_with_call_p (basic_block bb)
 
 /* Return 1 if BB ends with a conditional branch, 0 otherwise.  */
 
-bool 
+bool
 block_ends_with_condjump_p (basic_block bb)
 {
   if (!cfg_hooks->block_ends_with_condjump_p)
@@ -800,7 +799,7 @@ int
 flow_call_edges_add (sbitmap blocks)
 {
   if (!cfg_hooks->flow_call_edges_add)
-    internal_error ("%s does not support flow_call_edges_add", 
+    internal_error ("%s does not support flow_call_edges_add",
 		    cfg_hooks->name);
 
   return (cfg_hooks->flow_call_edges_add) (blocks);
@@ -826,8 +825,8 @@ execute_on_shrinking_pred (edge e)
     cfg_hooks->execute_on_shrinking_pred (e);
 }
 
-/* This is used inside loop versioning when we want to insert 
-   stmts/insns on the edges, which have a different behavior 
+/* This is used inside loop versioning when we want to insert
+   stmts/insns on the edges, which have a different behavior
    in tree's and in RTL, so we made a CFG hook.  */
 void
 lv_flush_pending_stmts (edge e)
@@ -851,7 +850,7 @@ cfg_hook_duplicate_loop_to_header_edge (struct loop *loop, edge e,
 					unsigned int *n_to_remove, int flags)
 {
   gcc_assert (cfg_hooks->cfg_hook_duplicate_loop_to_header_edge);
-  return cfg_hooks->cfg_hook_duplicate_loop_to_header_edge (loop, e, loops, 							    
+  return cfg_hooks->cfg_hook_duplicate_loop_to_header_edge (loop, e, loops,
 							    ndupl, wont_exit,
 							    orig, to_remove,
 							    n_to_remove, flags);
@@ -887,4 +886,4 @@ lv_add_condition_to_bb (basic_block first, basic_block second,
 {
   gcc_assert (cfg_hooks->lv_add_condition_to_bb);
   cfg_hooks->lv_add_condition_to_bb (first, second, new, cond);
-}  
+}

@@ -64,7 +64,7 @@ typedef struct {
 
 #if SUPPORTS_WEAK && GTHREAD_USE_WEAK
 # define __gthrw(name) \
-  extern __typeof(name) __gthrw_ ## name __attribute__ ((__weakref__(#name)));
+  static __typeof(name) __gthrw_ ## name __attribute__ ((__weakref__(#name)));
 # define __gthrw_(name) __gthrw_ ## name
 #else
 # define __gthrw(name)

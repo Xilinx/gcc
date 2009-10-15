@@ -1,5 +1,5 @@
 /* StateEditable.java -- Interface for collaborating with StateEdit.
-   Copyright (C) 2002, 2003 Free Software Foundation, Inc.
+   Copyright (C) 2002, 2003, 2006, Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -78,9 +78,11 @@ public interface StateEditable
    * System (RCS).  This certainly should not be part of the API
    * specification. But in order to be API-compatible with
    * Sun&#x2019;s reference implementation, GNU Classpath also has to
-   * provide this field. However, we do not try to match its value.
+   * provide this field and match its value. The value used here has
+   * been in every JDK release at least from 1.2 to 1.5.
    */
-  String RCSID = "";
+  String RCSID = "$" +
+    "Id: StateEditable.java,v 1.2 1997/09/08 19:39:08 marklin Exp $";
 
 
   /**
@@ -88,9 +90,9 @@ public interface StateEditable
    * from the specified hash table.
    *
    * <p><b>Note to implementors of this interface:</b> To increase
-   * efficiency, the <code>StateEdit</code> class {@linkplan
-   * StateEdit#removeRedundantState() removes redundant state
-   * information}. Therefore, implementations of this interface must be
+   * efficiency, the <code>StateEdit</code> class {@link
+   * StateEdit#removeRedundantState()} removes redundant state
+   * information. Therefore, implementations of this interface must be
    * prepared for the case where certain keys were stored into the
    * table by {@link #storeState}, but are not present anymore
    * when the <code>restoreState</code> method gets called.

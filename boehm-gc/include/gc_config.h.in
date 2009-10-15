@@ -45,9 +45,6 @@
 /* support for Tru64 pthreads */
 #undef GC_OSF1_THREADS
 
-/* symbol version of pthread_create */
-#undef GC_PTHREAD_SYM_VERSION
-
 /* support for Solaris pthreads */
 #undef GC_SOLARIS_PTHREADS
 
@@ -57,11 +54,38 @@
 /* support for win32 threads */
 #undef GC_WIN32_THREADS
 
+/* ppc_thread_state64_t has field r0 */
+#undef HAS_PPC_THREAD_STATE64_R0
+
+/* ppc_thread_state64_t has field __r0 */
+#undef HAS_PPC_THREAD_STATE64___R0
+
+/* ppc_thread_state_t has field r0 */
+#undef HAS_PPC_THREAD_STATE_R0
+
+/* ppc_thread_state_t has field __r0 */
+#undef HAS_PPC_THREAD_STATE___R0
+
+/* x86_thread_state32_t has field eax */
+#undef HAS_X86_THREAD_STATE32_EAX
+
+/* x86_thread_state32_t has field __eax */
+#undef HAS_X86_THREAD_STATE32___EAX
+
+/* x86_thread_state64_t has field rax */
+#undef HAS_X86_THREAD_STATE64_RAX
+
+/* x86_thread_state64_t has field __rax */
+#undef HAS_X86_THREAD_STATE64___RAX
+
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
+
+/* Define to 1 if you have the `pthread_getattr_np' function. */
+#undef HAVE_PTHREAD_GETATTR_NP
 
 /* Define to 1 if you have the <stdint.h> header file. */
 #undef HAVE_STDINT_H
@@ -148,11 +172,14 @@
 /* define GC_local_malloc() & GC_local_malloc_atomic() */
 #undef THREAD_LOCAL_ALLOC
 
+/* use tls for boehm */
+#undef USE_COMPILER_TLS
+
 /* use MMAP instead of sbrk to get new memory */
 #undef USE_MMAP
 
 /* POSIX version of C Source */
 #undef _POSIX_C_SOURCE
 
-/* Use reentrant code */
+/* Required define if using POSIX threads */
 #undef _REENTRANT

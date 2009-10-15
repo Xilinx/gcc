@@ -1,5 +1,5 @@
 /* Xstormy16 cpu description.
-   Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004
+   Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2007
    Free Software Foundation, Inc.
    Contributed by Red Hat, Inc.
 
@@ -7,7 +7,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -16,9 +16,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 
 /* Driver configuration */
@@ -618,29 +617,10 @@ do {							\
 #undef DTORS_SECTION_ASM_OP
 #define CTORS_SECTION_ASM_OP	"\t.section\t.ctors,\"a\""
 #define DTORS_SECTION_ASM_OP	"\t.section\t.dtors,\"a\""
-#define EXTRA_SECTIONS in_bss100
 
-/* We define the function body in a separate macro so that if we ever
-   add another section, we can just add an entry to
-   EXTRA_SECTION_FUNCTIONS without making it difficult to read.  It is
-   not used anywhere else.  */
-#define XSTORMY16_SECTION_FUNCTION(name, in, string, bits) 			  \
-  void										  \
-  name ()									  \
-  { 										  \
-    if (in_section != in)							  \
-      { 									  \
-	fprintf (asm_out_file, "\t.section %s,\"aw\",@%sbits\n", string, bits);   \
-	in_section = in;							  \
-      }										  \
-  }
-
-#undef  EXTRA_SECTION_FUNCTIONS
-#define EXTRA_SECTION_FUNCTIONS		\
-  XSTORMY16_SECTION_FUNCTION (bss100_section, in_bss100, ".bss_below100", "no")
+#define TARGET_ASM_INIT_SECTIONS xstormy16_asm_init_sections
 
 #define JUMP_TABLES_IN_TEXT_SECTION 1
-
 
 /* The Overall Framework of an Assembler File.  */
 

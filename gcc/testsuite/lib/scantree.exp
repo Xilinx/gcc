@@ -1,8 +1,9 @@
-#   Copyright (C) 2000, 2002, 2003, 2005 Free Software Foundation, Inc.
+#   Copyright (C) 2000, 2002, 2003, 2005, 2006, 2007
+#   Free Software Foundation, Inc.
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
+# the Free Software Foundation; either version 3 of the License, or
 # (at your option) any later version.
 # 
 # This program is distributed in the hope that it will be useful,
@@ -11,8 +12,8 @@
 # GNU General Public License for more details.
 # 
 # You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.  
+# along with GCC; see the file COPYING3.  If not see
+# <http://www.gnu.org/licenses/>.
 
 # Various utilities for scanning tree dump output, used by gcc-dg.exp and
 # g++-dg.exp.
@@ -36,9 +37,9 @@ proc scan-tree-dump { args } {
 	return
     }
     if { [llength $args] >= 3 } {
-	scan-dump "tree" [lindex $args 0] "t\[0-9\]\[0-9\].[lindex $args 1]" [lindex $args 2]
+	scan-dump "tree" [lindex $args 0] "\[0-9\]\[0-9\]\[0-9\]t.[lindex $args 1]" [lindex $args 2]
     } else {
-	scan-dump "tree" [lindex $args 0] "t\[0-9\]\[0-9\].[lindex $args 1]"
+	scan-dump "tree" [lindex $args 0] "\[0-9\]\[0-9\]\[0-9\]t.[lindex $args 1]"
     }
 }
 
@@ -59,10 +60,10 @@ proc scan-tree-dump-times { args } {
     }
     if { [llength $args] >= 4 } {
 	scan-dump-times "tree" [lindex $args 0] [lindex $args 1] \
-			"t\[0-9\]\[0-9\].[lindex $args 2]" [lindex $args 3]
+			"\[0-9\]\[0-9\]\[0-9\]t.[lindex $args 2]" [lindex $args 3]
     } else {
 	scan-dump-times "tree" [lindex $args 0] [lindex $args 1] \
-			"t\[0-9\]\[0-9\].[lindex $args 2]"
+			"\[0-9\]\[0-9\]\[0-9\]t.[lindex $args 2]"
     }
 }
 
@@ -83,10 +84,10 @@ proc scan-tree-dump-not { args } {
     }
     if { [llength $args] >= 3 } {
 	scan-dump-not "tree" [lindex $args 0] \
-		      "t\[0-9\]\[0-9\].[lindex $args 1]" [lindex $args 2]
+		      "\[0-9\]\[0-9\]\[0-9\]t.[lindex $args 1]" [lindex $args 2]
     } else {
 	scan-dump-not "tree" [lindex $args 0] \
-		      "t\[0-9\]\[0-9\].[lindex $args 1]"
+		      "\[0-9\]\[0-9\]\[0-9\]t.[lindex $args 1]"
     }
 }
 
@@ -108,10 +109,10 @@ proc scan-tree-dump-dem { args } {
     }
     if { [llength $args] >= 3 } {
 	scan-dump-dem "tree" [lindex $args 0] \
-		      "t\[0-9\]\[0-9\].[lindex $args 1]" [lindex $args 2]
+		      "\[0-9\]\[0-9\]\[0-9\]t.[lindex $args 1]" [lindex $args 2]
     } else {
 	scan-dump-dem "tree" [lindex $args 0] \
-		      "t\[0-9\]\[0-9\].[lindex $args 1]"
+		      "\[0-9\]\[0-9\]\[0-9\]t.[lindex $args 1]"
     }
 }
 
@@ -132,10 +133,10 @@ proc scan-tree-dump-dem-not { args } {
     }
     if { [llength $args] >= 3 } {
 	scan-dump-dem-not "tree" [lindex $args 0] \
-			  "t\[0-9\]\[0-9\].[lindex $args 1]" \
+			  "\[0-9\]\[0-9\]\[0-9\]t.[lindex $args 1]" \
 			  [lindex $args 2]
     } else {
 	scan-dump-dem-not "tree" [lindex $args 0] \
-			  "t\[0-9\]\[0-9\].[lindex $args 1]"
+			  "\[0-9\]\[0-9\]\[0-9\]t.[lindex $args 1]"
     }
 }

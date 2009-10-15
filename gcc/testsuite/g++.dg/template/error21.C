@@ -12,4 +12,4 @@ void A<int>::function(T){}
 
 template<>
 template<typename T>
-void A<double>::function(T*){} // { dg-error "match|invalid" }
+void A<double>::function(T*){} // { dg-error "match" }

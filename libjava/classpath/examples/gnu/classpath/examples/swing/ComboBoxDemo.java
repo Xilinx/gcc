@@ -1,5 +1,5 @@
 /* ComboBoxDemo.java -- An example showing various combo boxes in Swing.
-   Copyright (C) 2005,  Free Software Foundation, Inc.
+   Copyright (C) 2005, 2006,  Free Software Foundation, Inc.
 
 This file is part of GNU Classpath examples.
 
@@ -37,17 +37,18 @@ import javax.swing.Icon;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
+import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JList;
 import javax.swing.JPanel;
-import javax.swing.UIManager;
+import javax.swing.SwingUtilities;
 import javax.swing.plaf.metal.MetalIconFactory;
 
 /**
  * A simple demo showing various combo boxes in different states.
  */
 public class ComboBoxDemo 
-  extends JFrame 
+  extends JPanel
   implements ActionListener 
 {
  
@@ -95,20 +96,28 @@ public class ComboBoxDemo
   
   /**
    * Creates a new demo instance.
-   * 
-   * @param title  the frame title.
    */
-  public ComboBoxDemo(String title) 
+  public ComboBoxDemo() 
   {
-    super(title);
-    JPanel content = createContent();
+    super();
+    createContent();
+  }
+  
+  /**
+   * When the demo is run independently, the frame is displayed, so we should
+   * initialise the content panel (including the demo content and a close 
+   * button).  But when the demo is run as part of the Swing activity board,
+   * only the demo content panel is used, the frame itself is never displayed,
+   * so we can avoid this step.
+   */
+  void initFrameContent() 
+  {
     JPanel closePanel = new JPanel();
     JButton closeButton = new JButton("Close");
     closeButton.setActionCommand("CLOSE");
     closeButton.addActionListener(this);
     closePanel.add(closeButton);
-    content.add(closePanel, BorderLayout.SOUTH);
-    getContentPane().add(content);
+    add(closePanel, BorderLayout.SOUTH);
   }
        
   /**
@@ -118,9 +127,9 @@ public class ComboBoxDemo
    * bottom of the panel if they want to (a close button is
    * added if this demo is being run as a standalone demo).
    */       
-  JPanel createContent() 
+  private void createContent() 
   {
-    JPanel content = new JPanel(new BorderLayout());
+    setLayout(new BorderLayout());
     JPanel panel = new JPanel(new GridLayout(6, 1));
     panel.add(createPanel1());
     panel.add(createPanel2());
@@ -128,8 +137,7 @@ public class ComboBoxDemo
     panel.add(createPanel4());
     panel.add(createPanel5());
     panel.add(createPanel6());
-    content.add(panel);
-    return content;        
+    add(panel);
   }
     
   private JPanel createPanel1() 
@@ -345,16 +353,34 @@ public class ComboBoxDemo
 
   public static void main(String[] args) 
   {
-    try
-    {
-      UIManager.setLookAndFeel(new javax.swing.plaf.metal.MetalLookAndFeel());
-    }
-    catch (Exception e) {
-        e.printStackTrace();
-    }
-    ComboBoxDemo app = new ComboBoxDemo("ComboBox Demo");
-    app.pack();
-    app.setVisible(true);
+    SwingUtilities.invokeLater
+    (new Runnable()
+     {
+       public void run()
+       {
+         ComboBoxDemo app = new ComboBoxDemo();
+         app.initFrameContent();
+         JFrame frame = new JFrame();
+         frame.getContentPane().add(app);
+         frame.pack();
+         frame.setVisible(true);
+       }
+     });
   }
 
+  /**
+   * Returns a DemoFactory that creates a ComboBoxDemo.
+   *
+   * @return a DemoFactory that creates a ComboBoxDemo
+   */
+  public static DemoFactory createDemoFactory()
+  {
+    return new DemoFactory()
+    {
+      public JComponent createDemo()
+      {
+        return new ComboBoxDemo();
+      }
+    };
+  }
 }

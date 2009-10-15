@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2005, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2006, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -32,8 +32,10 @@ with Elists;   use Elists;
 with Nlists;   use Nlists;
 with Errout;   use Errout;
 with Lib;      use Lib;
+with Namet;    use Namet;
 with Opt;      use Opt;
 with Output;   use Output;
+with Rtsfind;  use Rtsfind;
 with Sem;      use Sem;
 with Sem_Ch6;  use Sem_Ch6;
 with Sem_Ch8;  use Sem_Ch8;
@@ -385,7 +387,20 @@ package body Sem_Type is
         and then Is_Subprogram (E)
         and then Present (Abstract_Interface_Alias (E))
       then
-         Add_One_Interp (N, Abstract_Interface_Alias (E), T);
+         --  Ada 2005 (AI-251): If this primitive operation corresponds with
+         --  an inmediate ancestor interface there is no need to add it to the
+         --  list of interpretations; the corresponding aliased primitive is
+         --  also in this list of primitive operations and will be used instead
+         --  because otherwise we have a dummy between the two subprograms that
+         --  are in fact the same.
+
+         if Present (DTC_Entity (Abstract_Interface_Alias (E)))
+           and then Etype (DTC_Entity (Abstract_Interface_Alias (E)))
+                      /= RTE (RE_Tag)
+         then
+            Add_One_Interp (N, Abstract_Interface_Alias (E), T);
+         end if;
+
          return;
       end if;
 
@@ -896,10 +911,26 @@ package body Sem_Type is
       then
          return True;
 
+      --  In instances, or with types exported from instantiations, check
+      --  whether a partial and a full view match. Verify that types are
+      --  legal, to prevent cascaded errors.
+
       elsif In_Instance
         and then
           (Full_View_Covers (T1, T2)
             or else Full_View_Covers (T2, T1))
+      then
+         return True;
+
+      elsif Is_Type (T2)
+        and then Is_Generic_Actual_Type (T2)
+        and then Full_View_Covers (T1, T2)
+      then
+         return True;
+
+      elsif Is_Type (T1)
+        and then  Is_Generic_Actual_Type (T1)
+        and then Full_View_Covers (T2, T1)
       then
          return True;
 
@@ -1000,7 +1031,9 @@ package body Sem_Type is
       --  ambiguities when two formal types have the same actual.
 
       function Standard_Operator return Boolean;
-      --  Comment required ???
+      --  Check whether subprogram is predefined operator declared in Standard.
+      --  It may given by an operator name, or by an expanded name whose prefix
+      --  is Standard.
 
       function Remove_Conversions return Interp;
       --  Last chance for pathological cases involving comparisons on literals,
@@ -1018,6 +1051,10 @@ package body Sem_Type is
       --  DEC tests c460vsa, c460vsb. It also handles ai00136a, which pushes
       --  pathology in the other direction with calls whose multiple overloaded
       --  actuals make them truly unresolvable.
+
+      --  The new rules concerning abstract operations create additional need
+      --  for special handling of expressions with universal operands, see
+      --  comments to Has_Abstract_Interpretation below.
 
       ------------------------
       --  In_Generic_Actual --
@@ -1105,12 +1142,43 @@ package body Sem_Type is
          Act1 : Node_Id;
          Act2 : Node_Id;
 
+         function Has_Abstract_Interpretation (N : Node_Id) return Boolean;
+         --  If an operation has universal operands the universal operation
+         --  is present among its interpretations. If there is an abstract
+         --  interpretation for the operator, with a numeric result, this
+         --  interpretation was already removed in sem_ch4, but the universal
+         --  one is still visible. We must rescan the list of operators and
+         --  remove the universal interpretation to resolve the ambiguity.
+
+         ---------------------------------
+         -- Has_Abstract_Interpretation --
+         ---------------------------------
+
+         function Has_Abstract_Interpretation (N : Node_Id) return Boolean is
+            E : Entity_Id;
+
+         begin
+            E := Current_Entity (N);
+            while Present (E) loop
+               if Is_Abstract (E)
+                 and then Is_Numeric_Type (Etype (E))
+               then
+                  return True;
+               else
+                  E := Homonym (E);
+               end if;
+            end loop;
+
+            return False;
+         end Has_Abstract_Interpretation;
+
+      --  Start of processing for Remove_Conversions
+
       begin
          It1 := No_Interp;
 
          Get_First_Interp (N, I, It);
          while Present (It.Typ) loop
-
             if not Is_Overloadable (It.Nam) then
                return No_Interp;
             end if;
@@ -1184,6 +1252,19 @@ package body Sem_Type is
 
                   else
                      It1 := It;
+                  end if;
+
+               elsif Nkind (Act1) in N_Op
+                 and then Is_Overloaded (Act1)
+                 and then Present (Universal_Interpretation (Act1))
+                 and then Is_Numeric_Type (Etype (F1))
+                 and then Ada_Version >= Ada_05
+                 and then Has_Abstract_Interpretation (Act1)
+               then
+                  if It = Disambiguate.It1 then
+                     return Disambiguate.It2;
+                  elsif It = Disambiguate.It2 then
+                     return Disambiguate.It1;
                   end if;
                end if;
             end if;
@@ -1266,6 +1347,19 @@ package body Sem_Type is
 
       It2  := It;
       Nam2 := It.Nam;
+
+      if Ada_Version < Ada_05 then
+
+         --  Check whether one of the entities is an Ada 2005 entity and we are
+         --  operating in an earlier mode, in which case we discard the Ada
+         --  2005 entity, so that we get proper Ada 95 overload resolution.
+
+         if Is_Ada_2005 (Nam1) then
+            return It2;
+         elsif Is_Ada_2005 (Nam2) then
+            return It1;
+         end if;
+      end if;
 
       --  If the context is universal, the predefined operator is preferred.
       --  This includes bounds in numeric type declarations, and expressions
@@ -1529,6 +1623,43 @@ package body Sem_Type is
                else
                   return It2;
                end if;
+
+            --  Ada 2005, AI-420: preference rule for "=" on Universal_Access
+            --  states that the operator defined in Standard is not available
+            --  if there is a user-defined equality with the proper signature,
+            --  declared in the same declarative list as the type. The node
+            --  may be an operator or a function call.
+
+            elsif (Chars (Nam1) = Name_Op_Eq
+                     or else
+                   Chars (Nam1) = Name_Op_Ne)
+              and then Ada_Version >= Ada_05
+              and then Etype (User_Subp) = Standard_Boolean
+            then
+               declare
+                  Opnd : Node_Id;
+               begin
+                  if Nkind (N) = N_Function_Call then
+                     Opnd := First_Actual (N);
+                  else
+                     Opnd := Left_Opnd (N);
+                  end if;
+
+                  if Ekind (Etype (Opnd)) = E_Anonymous_Access_Type
+                    and then
+                     List_Containing (Parent (Designated_Type (Etype (Opnd))))
+                       = List_Containing (Unit_Declaration_Node (User_Subp))
+                  then
+                     if It2.Nam = Predef_Subp then
+                        return It1;
+                     else
+                        return It2;
+                     end if;
+                  else
+                     return No_Interp;
+                  end if;
+               end;
+
             else
                return No_Interp;
             end if;
@@ -1639,15 +1770,25 @@ package body Sem_Type is
       --    function "="  (L, R : universal_access) return Boolean;
       --    function "/=" (L, R : universal_access) return Boolean;
 
+      --  Pool specific access types (E_Access_Type) are not covered by these
+      --  operators because of the legality rule of 4.5.2(9.2): "The operands
+      --  of the equality operators for universal_access shall be convertible
+      --  to one another (see 4.6)". For example, considering the type decla-
+      --  ration "type P is access Integer" and an anonymous access to Integer,
+      --  P is convertible to "access Integer" by 4.6 (24.11-24.15), but there
+      --  is no rule in 4.6 that allows "access Integer" to be converted to P.
+
       elsif Ada_Version >= Ada_05
         and then Ekind (Etype (L)) = E_Anonymous_Access_Type
         and then Is_Access_Type (Etype (R))
+        and then Ekind (Etype (R)) /= E_Access_Type
       then
          return Etype (L);
 
       elsif Ada_Version >= Ada_05
         and then Ekind (Etype (R)) = E_Anonymous_Access_Type
         and then Is_Access_Type (Etype (L))
+        and then Ekind (Etype (L)) /= E_Access_Type
       then
          return Etype (R);
 
@@ -1912,6 +2053,7 @@ package body Sem_Type is
          if Present (Interface_List (Parent (Target_Typ))) then
             declare
                AI : Node_Id;
+
             begin
                AI := First (Interface_List (Parent (Target_Typ)));
                while Present (AI) loop
@@ -2669,11 +2811,20 @@ package body Sem_Type is
          Get_First_Interp (N, I, It);
          Write_Str ("Overloaded entity ");
          Write_Eol;
+         Write_Str ("      Name           Type");
+         Write_Eol;
+         Write_Str ("===============================");
+         Write_Eol;
          Nam := It.Nam;
 
          while Present (Nam) loop
-            Write_Entity_Info (Nam,  "      ");
-            Write_Str ("=================");
+            Write_Int (Int (Nam));
+            Write_Str ("   ");
+            Write_Name (Chars (Nam));
+            Write_Str ("   ");
+            Write_Int (Int (It.Typ));
+            Write_Str ("   ");
+            Write_Name (Chars (It.Typ));
             Write_Eol;
             Get_Next_Interp (I, It);
             Nam := It.Nam;

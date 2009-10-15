@@ -1,12 +1,13 @@
 /* Command line option handling.
-   Copyright (C) 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007
+   Free Software Foundation, Inc.
    Contributed by Neil Booth.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,9 +16,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -56,10 +56,6 @@ bool extra_warnings;
 bool warn_larger_than;
 HOST_WIDE_INT larger_than_size;
 
-/* Nonzero means warn about constructs which might not be
-   strict-aliasing safe.  */
-int warn_strict_aliasing;
-
 /* Hack for cooperation between set_Wunused and set_Wextra.  */
 static bool maybe_warn_unused_parameter;
 
@@ -80,6 +76,11 @@ bool use_gnu_debug_info_extensions;
 /* The default visibility for all symbols (unless overridden) */
 enum symbol_visibility default_visibility = VISIBILITY_DEFAULT;
 
+/* Disable unit-at-a-time for frontends that might be still broken in this
+   respect.  */
+  
+bool no_unit_at_a_time_default;
+
 /* Global visibility options.  */
 struct visibility_flags visibility_options;
 
@@ -95,14 +96,13 @@ static bool profile_arc_flag_set, flag_profile_values_set;
 static bool flag_unroll_loops_set, flag_tracer_set;
 static bool flag_value_profile_transformations_set;
 static bool flag_peel_loops_set, flag_branch_probabilities_set;
-static bool flag_loop_optimize_set;
 
 /* Input file names.  */
 const char **in_fnames;
 unsigned num_in_fnames;
 
-static size_t find_opt (const char *, int);
-static int common_handle_option (size_t scode, const char *arg, int value);
+static int common_handle_option (size_t scode, const char *arg, int value,
+				 unsigned int lang_mask);
 static void handle_param (const char *);
 static void set_Wextra (int);
 static unsigned int handle_option (const char **argv, unsigned int lang_mask);
@@ -118,90 +118,6 @@ static void print_filtered_help (unsigned int);
 static unsigned int print_switch (const char *text, unsigned int indent);
 static void set_debug_level (enum debug_info_type type, int extended,
 			     const char *arg);
-
-/* Perform a binary search to find which option the command-line INPUT
-   matches.  Returns its index in the option array, and N_OPTS
-   (cl_options_count) on failure.
-
-   This routine is quite subtle.  A normal binary search is not good
-   enough because some options can be suffixed with an argument, and
-   multiple sub-matches can occur, e.g. input of "-pedantic" matching
-   the initial substring of "-pedantic-errors".
-
-   A more complicated example is -gstabs.  It should match "-g" with
-   an argument of "stabs".  Suppose, however, that the number and list
-   of switches are such that the binary search tests "-gen-decls"
-   before having tested "-g".  This doesn't match, and as "-gen-decls"
-   is less than "-gstabs", it will become the lower bound of the
-   binary search range, and "-g" will never be seen.  To resolve this
-   issue, opts.sh makes "-gen-decls" point, via the back_chain member,
-   to "-g" so that failed searches that end between "-gen-decls" and
-   the lexicographically subsequent switch know to go back and see if
-   "-g" causes a match (which it does in this example).
-
-   This search is done in such a way that the longest match for the
-   front end in question wins.  If there is no match for the current
-   front end, the longest match for a different front end is returned
-   (or N_OPTS if none) and the caller emits an error message.  */
-static size_t
-find_opt (const char *input, int lang_mask)
-{
-  size_t mn, mx, md, opt_len;
-  size_t match_wrong_lang;
-  int comp;
-
-  mn = 0;
-  mx = cl_options_count;
-
-  /* Find mn such this lexicographical inequality holds:
-     cl_options[mn] <= input < cl_options[mn + 1].  */
-  while (mx - mn > 1)
-    {
-      md = (mn + mx) / 2;
-      opt_len = cl_options[md].opt_len;
-      comp = strncmp (input, cl_options[md].opt_text + 1, opt_len);
-
-      if (comp < 0)
-	mx = md;
-      else
-	mn = md;
-    }
-
-  /* This is the switch that is the best match but for a different
-     front end, or cl_options_count if there is no match at all.  */
-  match_wrong_lang = cl_options_count;
-
-  /* Backtrace the chain of possible matches, returning the longest
-     one, if any, that fits best.  With current GCC switches, this
-     loop executes at most twice.  */
-  do
-    {
-      const struct cl_option *opt = &cl_options[mn];
-
-      /* Is the input either an exact match or a prefix that takes a
-	 joined argument?  */
-      if (!strncmp (input, opt->opt_text + 1, opt->opt_len)
-	  && (input[opt->opt_len] == '\0' || (opt->flags & CL_JOINED)))
-	{
-	  /* If language is OK, return it.  */
-	  if (opt->flags & lang_mask)
-	    return mn;
-
-	  /* If we haven't remembered a prior match, remember this
-	     one.  Any prior match is necessarily better.  */
-	  if (match_wrong_lang == cl_options_count)
-	    match_wrong_lang = mn;
-	}
-
-      /* Try the next possibility.  This is cl_options_count if there
-	 are no more.  */
-      mn = opt->back_chain;
-    }
-  while (mn != cl_options_count);
-
-  /* Return the best wrong match, or cl_options_count if none.  */
-  return match_wrong_lang;
-}
 
 /* If ARG is a non-negative integer made up solely of digits, return its
    value, otherwise return -1.  */
@@ -231,7 +147,7 @@ write_langs (unsigned int mask)
     if (mask & (1U << n))
       len += strlen (lang_name) + 1;
 
-  result = xmalloc (len);
+  result = XNEWVEC (char, len);
   len = 0;
   for (n = 0; (lang_name = lang_names[n]) != 0; n++)
     if (mask & (1U << n))
@@ -287,7 +203,7 @@ handle_option (const char **argv, unsigned int lang_mask)
       /* Drop the "no-" from negative switches.  */
       size_t len = strlen (opt) - 3;
 
-      dup = xmalloc (len + 1);
+      dup = XNEWVEC (char, len + 1);
       dup[0] = '-';
       dup[1] = opt[1];
       memcpy (dup + 2, opt + 5, len - 2 + 1);
@@ -405,7 +321,7 @@ handle_option (const char **argv, unsigned int lang_mask)
       result = 0;
 
   if (result && (option->flags & CL_COMMON))
-    if (common_handle_option (opt_index, arg, value) == 0)
+    if (common_handle_option (opt_index, arg, value, lang_mask) == 0)
       result = 0;
 
   if (result && (option->flags & CL_TARGET))
@@ -520,7 +436,6 @@ decode_options (unsigned int argc, const char **argv)
 #endif
       flag_guess_branch_prob = 1;
       flag_cprop_registers = 1;
-      flag_loop_optimize = 1;
       flag_if_conversion = 1;
       flag_if_conversion2 = 1;
       flag_ipa_pure_const = 1;
@@ -537,7 +452,8 @@ decode_options (unsigned int argc, const char **argv)
       flag_tree_copy_prop = 1;
       flag_tree_sink = 1;
       flag_tree_salias = 1;
-      flag_unit_at_a_time = 1;
+      if (!no_unit_at_a_time_default)
+        flag_unit_at_a_time = 1;
 
       if (!optimize_size)
 	{
@@ -559,9 +475,7 @@ decode_options (unsigned int argc, const char **argv)
       flag_gcse = 1;
       flag_expensive_optimizations = 1;
       flag_ipa_type_escape = 1;
-      flag_strength_reduce = 1;
       flag_rerun_cse_after_loop = 1;
-      flag_rerun_loop_opt = 1;
       flag_caller_saves = 1;
       flag_peephole2 = 1;
 #ifdef INSN_SCHEDULING
@@ -570,6 +484,7 @@ decode_options (unsigned int argc, const char **argv)
 #endif
       flag_regmove = 1;
       flag_strict_aliasing = 1;
+      flag_strict_overflow = 1;
       flag_delete_null_pointer_checks = 1;
       flag_reorder_blocks = 1;
       flag_reorder_functions = 1;
@@ -719,7 +634,8 @@ decode_options (unsigned int argc, const char **argv)
    VALUE assigned to a variable, it happens automatically.  */
 
 static int
-common_handle_option (size_t scode, const char *arg, int value)
+common_handle_option (size_t scode, const char *arg, int value,
+		      unsigned int lang_mask)
 {
   enum opt_code code = (enum opt_code) scode;
 
@@ -759,6 +675,33 @@ common_handle_option (size_t scode, const char *arg, int value)
       set_Wextra (value);
       break;
 
+    case OPT_Werror_:
+      {
+	char *new_option;
+	int option_index;
+	new_option = XNEWVEC (char, strlen (arg) + 2);
+	new_option[0] = 'W';
+	strcpy (new_option+1, arg);
+	option_index = find_opt (new_option, lang_mask);
+	if (option_index == N_OPTS)
+	  {
+	    error ("-Werror=%s: No option -%s", arg, new_option);
+	  }
+	else
+	  {
+	    int kind = value ? DK_ERROR : DK_WARNING;
+	    diagnostic_classify_diagnostic (global_dc, option_index, kind);
+
+	    /* -Werror=foo implies -Wfoo.  */
+	    if (cl_options[option_index].var_type == CLVC_BOOLEAN
+		&& cl_options[option_index].flag_var
+		&& kind == DK_ERROR)
+	      *(int *) cl_options[option_index].flag_var = 1;
+	    free (new_option);
+	  }
+      }
+      break;
+
     case OPT_Wextra:
       set_Wextra (value);
       break;
@@ -771,6 +714,16 @@ common_handle_option (size_t scode, const char *arg, int value)
     case OPT_Wstrict_aliasing:
     case OPT_Wstrict_aliasing_:
       warn_strict_aliasing = value;
+      break;
+
+    case OPT_Wstrict_overflow:
+      warn_strict_overflow = (value
+			      ? (int) WARN_STRICT_OVERFLOW_CONDITIONAL
+			      : 0);
+      break;
+
+    case OPT_Wstrict_overflow_:
+      warn_strict_overflow = value;
       break;
 
     case OPT_Wunused:
@@ -822,10 +775,6 @@ common_handle_option (size_t scode, const char *arg, int value)
 
     case OPT_fbranch_probabilities:
       flag_branch_probabilities_set = true;
-      break;
-
-    case OPT_floop_optimize:
-      flag_loop_optimize_set = true;
       break;
 
     case OPT_fcall_used_:
@@ -904,9 +853,6 @@ common_handle_option (size_t scode, const char *arg, int value)
         flag_tracer = value;
       if (!flag_value_profile_transformations_set)
         flag_value_profile_transformations = value;
-      /* Old loop optimizer is incompatible with tree profiling.  */
-      if (!flag_loop_optimize_set)
-	flag_loop_optimize = 0;
       break;
 
     case OPT_fprofile_generate:
@@ -1055,7 +1001,13 @@ common_handle_option (size_t scode, const char *arg, int value)
       break;
 
     case OPT_fforce_mem:
-      warning (0, "-f[no-]force-mem is nop and option will be removed in 4.2");
+      warning (0, "-f[no-]force-mem is nop and option will be removed in 4.3");
+      break;
+
+    case OPT_floop_optimize:
+    case OPT_frerun_loop_opt:
+    case OPT_fstrength_reduce:
+      /* These are no-ops, preserved for backward compatibility.  */
       break;
 
     default:

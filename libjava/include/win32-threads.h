@@ -1,7 +1,7 @@
 // -*- c++ -*-
 // win32-threads.h - Defines for using Win32 threads.
 
-/* Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003 Free Software
+/* Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2006 Free Software
    Foundation
 
    This file is part of libgcj.
@@ -47,7 +47,7 @@ typedef struct
 
 } _Jv_Mutex_t;
 
-typedef struct
+typedef struct _Jv_Thread_t
 {
   int flags;            // Flags are defined in implementation.
   HANDLE handle;        // Actual handle to the thread
@@ -71,6 +71,15 @@ _Jv_ThreadSelf (void)
 }
 
 typedef void _Jv_ThreadStartFunc (java::lang::Thread *);
+
+// Type identifying a win32 thread.
+typedef HANDLE _Jv_ThreadDesc_t;
+
+inline _Jv_ThreadDesc_t
+_Jv_GetPlatformThreadID(_Jv_Thread_t *t)
+{
+  return t->handle;
+}
 
 //
 // Condition variables.

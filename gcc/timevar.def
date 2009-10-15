@@ -1,6 +1,6 @@
 /* This file contains the definitions for timing variables used to
    measure run-time performance of the compiler.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2007
    Free Software Foundation, Inc.
    Contributed by Alex Samuel <samuel@codesourcery.com>
 
@@ -8,7 +8,7 @@
 
    GCC is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2, or (at your option)
+   the Free Software Foundation; either version 3, or (at your option)
    any later version.
 
    GCC is distributed in the hope that it will be useful,
@@ -17,9 +17,8 @@
    GNU General Public License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with GCC; see the file COPYING.  If not, write to
-   the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-   Boston, MA 02110-1301, USA.  */
+   along with GCC; see the file COPYING3.  If not see
+   <http://www.gnu.org/licenses/>.  */
 
 /* This file contains timing variable definitions, used by timevar.h
    and timevar.c.
@@ -46,6 +45,7 @@ DEFTIMEVAR (TV_IPA_CONSTANT_PROP     , "ipa cp")
 DEFTIMEVAR (TV_IPA_REFERENCE         , "ipa reference")
 DEFTIMEVAR (TV_IPA_PURE_CONST        , "ipa pure const")
 DEFTIMEVAR (TV_IPA_TYPE_ESCAPE       , "ipa type escape")
+DEFTIMEVAR (TV_IPA_PTA               , "ipa points-to")
 /* Time spent by constructing CFG.  */
 DEFTIMEVAR (TV_CFG                   , "cfg construction")
 /* Time spent by cleaning up CFG.  */
@@ -85,6 +85,7 @@ DEFTIMEVAR (TV_TREE_SSA_DOMINATOR_OPTS   , "dominator optimization")
 DEFTIMEVAR (TV_TREE_SRA              , "tree SRA")
 DEFTIMEVAR (TV_TREE_STORE_CCP	     , "tree STORE-CCP")
 DEFTIMEVAR (TV_TREE_CCP		     , "tree CCP")
+DEFTIMEVAR (TV_TREE_PHI_CPROP	     , "tree PHI const/copy prop")
 DEFTIMEVAR (TV_TREE_SPLIT_EDGES      , "tree split crit edges")
 DEFTIMEVAR (TV_TREE_REASSOC          , "tree reassociation")
 DEFTIMEVAR (TV_TREE_PRE		     , "tree PRE")
@@ -106,6 +107,7 @@ DEFTIMEVAR (TV_TREE_LOOP_UNSWITCH    , "tree loop unswitching")
 DEFTIMEVAR (TV_COMPLETE_UNROLL       , "complete unrolling")
 DEFTIMEVAR (TV_TREE_VECTORIZATION    , "tree vectorization")
 DEFTIMEVAR (TV_TREE_LINEAR_TRANSFORM , "tree loop linear")
+DEFTIMEVAR (TV_TREE_PREFETCH	     , "tree prefetching")
 DEFTIMEVAR (TV_TREE_LOOP_IVOPTS	     , "tree iv optimization")
 DEFTIMEVAR (TV_TREE_LOOP_INIT	     , "tree loop init")
 DEFTIMEVAR (TV_TREE_LOOP_FINI	     , "tree loop fini")
@@ -118,6 +120,7 @@ DEFTIMEVAR (TV_TREE_SSA_VERIFY       , "tree SSA verifier")
 DEFTIMEVAR (TV_TREE_STMT_VERIFY      , "tree STMT verifier")
 DEFTIMEVAR (TV_CGRAPH_VERIFY         , "callgraph verifier")
 DEFTIMEVAR (TV_DOM_FRONTIERS         , "dominance frontiers")
+DEFTIMEVAR (TV_DOMINANCE             , "dominance computation")
 DEFTIMEVAR (TV_CONTROL_DEPENDENCES   , "control dependences")
 DEFTIMEVAR (TV_OVERLOAD              , "overload resolution")
 DEFTIMEVAR (TV_TEMPLATE_INSTANTIATION, "template instantiation")
@@ -141,6 +144,7 @@ DEFTIMEVAR (TV_VPT                   , "value profile opts")
 DEFTIMEVAR (TV_FLOW                  , "flow analysis")
 DEFTIMEVAR (TV_COMBINE               , "combiner")
 DEFTIMEVAR (TV_IFCVT		     , "if-conversion")
+DEFTIMEVAR (TV_SEE                   , "see")
 DEFTIMEVAR (TV_REGMOVE               , "regmove")
 DEFTIMEVAR (TV_MODE_SWITCH           , "mode switching")
 DEFTIMEVAR (TV_SMS		     , "sms modulo scheduling")
@@ -148,6 +152,7 @@ DEFTIMEVAR (TV_SCHED                 , "scheduling")
 DEFTIMEVAR (TV_LOCAL_ALLOC           , "local alloc")
 DEFTIMEVAR (TV_GLOBAL_ALLOC          , "global alloc")
 DEFTIMEVAR (TV_RELOAD_CSE_REGS       , "reload CSE regs")
+DEFTIMEVAR (TV_SEQABSTR              , "sequence abstraction")
 DEFTIMEVAR (TV_GCSE_AFTER_RELOAD      , "load CSE after reload")
 DEFTIMEVAR (TV_FLOW2                 , "flow 2")
 DEFTIMEVAR (TV_IFCVT2		     , "if-conversion 2")

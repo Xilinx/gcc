@@ -1,13 +1,13 @@
 /* Functions related to mangling class names for the GNU compiler
    for the Java(TM) language.
-   Copyright (C) 1998, 1999, 2001, 2002, 2003
+   Copyright (C) 1998, 1999, 2001, 2002, 2003, 2007
    Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -16,9 +16,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA. 
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>. 
 
 Java and all Java-based marks are trademarks or registered trademarks
 of Sun Microsystems, Inc. in the United States and other countries.
@@ -79,6 +78,9 @@ static GTY(()) tree atms;
 void
 java_mangle_decl (tree decl)
 {
+  if (TREE_CODE (decl) == RECORD_TYPE)
+    mangle_type (decl);
+
   /* A copy of the check from the beginning of lhd_set_decl_assembler_name.
      Only FUNCTION_DECLs and VAR_DECLs for variables with static storage
      duration need a real DECL_ASSEMBLER_NAME.  */
@@ -99,7 +101,7 @@ java_mangle_decl (tree decl)
 	    {
 	      if (DECL_CLASS_FIELD_P (decl))
 		{
-		  mangle_class_field (DECL_CONTEXT (decl));
+		  mangle_class_field (decl);
 		  break;
 		}
 	      else if (DECL_VTABLE_P (decl))
@@ -130,10 +132,14 @@ java_mangle_decl (tree decl)
 /* Beginning of the helper functions */
 
 static void
-mangle_class_field (tree type)
+mangle_class_field (tree decl)
 {
+  tree type = DECL_CONTEXT (decl);
   mangle_record_type (type, /* for_pointer = */ 0);
-  MANGLE_RAW_STRING ("6class$");
+  if (TREE_CODE (TREE_TYPE (decl)) == RECORD_TYPE)
+    MANGLE_RAW_STRING ("6class$");
+  else
+    MANGLE_RAW_STRING ("7class$$");
   obstack_1grow (mangle_obstack, 'E');
 }
 
@@ -188,6 +194,14 @@ mangle_method_decl (tree mdecl)
   if (TREE_CODE (TREE_TYPE (mdecl)) == METHOD_TYPE)
     arglist = TREE_CHAIN (arglist);
   
+  /* Output literal 'J' and mangle the return type IF not a 
+     constructor.  */
+  if (!ID_INIT_P (method_name))
+    {
+      obstack_1grow (mangle_obstack, 'J');
+      mangle_type(TREE_TYPE(TREE_TYPE(mdecl)));
+    }
+  
   /* No arguments is easy. We shortcut it. */
   if (arglist == end_params_node)
     obstack_1grow (mangle_obstack, 'v');
@@ -221,7 +235,7 @@ mangle_member_name (tree name)
   append_gpp_mangled_name (IDENTIFIER_POINTER (name),
 			   IDENTIFIER_LENGTH (name));
 
-  /* If NAME happens to be a C++ keyword, add `$'. */
+  /* If NAME happens to be a C++ keyword, add `$'.  */
   if (cxx_keyword_p (IDENTIFIER_POINTER (name), IDENTIFIER_LENGTH (name)))
     obstack_1grow (mangle_obstack, '$');
 }
@@ -235,9 +249,13 @@ mangle_type (tree type)
     {
       char code;
     case BOOLEAN_TYPE: code = 'b';  goto primitive;
-    case CHAR_TYPE:    code = 'w';  goto primitive;
     case VOID_TYPE:    code = 'v';  goto primitive;
     case INTEGER_TYPE:
+      if (type == char_type_node || type == promoted_char_type_node)
+	{
+	  code = 'w';
+	  goto primitive;
+	}
       /* Get the original type instead of the arguments promoted type.
 	 Avoid symbol name clashes. Should call a function to do that.
 	 FIXME.  */
@@ -272,7 +290,7 @@ mangle_type (tree type)
       break;
     bad_type:
     default:
-      abort ();
+      gcc_unreachable ();
     }
 }
 
@@ -389,8 +407,7 @@ mangle_record_type (tree type, int for_pointer)
 #define ADD_N() \
   do { obstack_1grow (mangle_obstack, 'N'); nadded_p = 1; } while (0)
 
-  if (TREE_CODE (type) != RECORD_TYPE)
-    abort ();
+  gcc_assert (TREE_CODE (type) == RECORD_TYPE);
 
   if (!TYPE_PACKAGE_LIST (type))
     set_type_package_list (type);
@@ -442,8 +459,7 @@ mangle_pointer_type (tree type)
   /* This didn't work. We start by mangling the pointed-to type */
   pointer_type = type;
   type = TREE_TYPE (type);
-  if (TREE_CODE (type) != RECORD_TYPE)
-    abort ();
+  gcc_assert (TREE_CODE (type) == RECORD_TYPE);
   
   obstack_1grow (mangle_obstack, 'P');
   if (mangle_record_type (type, /* for_pointer = */ 1))
@@ -465,8 +481,7 @@ mangle_array_type (tree p_type)
   int match;
 
   type = TREE_TYPE (p_type);
-  if (!type)
-    abort ();
+  gcc_assert (type);
 
   elt_type = TYPE_ARRAY_ELEMENT (type);
 

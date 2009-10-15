@@ -1,11 +1,11 @@
 /* Loop unswitching for GNU compiler.
-   Copyright (C) 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2002, 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -14,9 +14,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -172,7 +171,7 @@ unswitch_loops (struct loops *loops)
 static rtx
 may_unswitch_on (basic_block bb, struct loop *loop, rtx *cinsn)
 {
-  rtx test, at, insn, op[2], stest;
+  rtx test, at, op[2], stest;
   struct rtx_iv iv;
   unsigned i;
   enum machine_mode mode;
@@ -205,8 +204,7 @@ may_unswitch_on (basic_block bb, struct loop *loop, rtx *cinsn)
       if (CONSTANT_P (op[i]))
 	continue;
 
-      insn = iv_get_reaching_def (at, op[i]);
-      if (!iv_analyze (insn, op[i], &iv))
+      if (!iv_analyze (at, op[i], &iv))
 	return NULL_RTX;
       if (iv.step != const0_rtx
 	  || iv.first_special)
@@ -426,8 +424,11 @@ unswitch_loop (struct loops *loops, struct loop *loop, basic_block unswitch_on,
   sbitmap_zero (zero_bitmap);
   if (!duplicate_loop_to_header_edge (loop, entry, loops, 1,
 	zero_bitmap, NULL, NULL, NULL, 0))
-    return NULL;
-  free (zero_bitmap);
+    {
+      sbitmap_free (zero_bitmap);
+      return NULL;
+    }
+  sbitmap_free (zero_bitmap);
   entry->flags |= irred_flag;
 
   /* Record the block with condition we unswitch on.  */

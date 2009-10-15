@@ -1,5 +1,5 @@
 /* MetalBorders.java
-   Copyright (C) 2005 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2006, Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -59,6 +59,7 @@ import javax.swing.SwingConstants;
 import javax.swing.UIManager;
 import javax.swing.border.AbstractBorder;
 import javax.swing.border.Border;
+import javax.swing.border.CompoundBorder;
 import javax.swing.plaf.BorderUIResource;
 import javax.swing.plaf.UIResource;
 import javax.swing.plaf.basic.BasicBorders;
@@ -102,7 +103,16 @@ public class MetalBorders
   private static BasicBorders.MarginBorder marginBorder;
 
   /**
-   * A border used for {@link JButton} components.
+   * <p>A border used for {@link JButton} components.</p>
+   * 
+   * <p>This {@link Border} implementation can handle only instances of
+   * {@link AbstractButton} and their subclasses.</p>
+   * 
+   * <p>If the Metal Look and Feel's current theme is 'Ocean' the border
+   * will be painted with a special highlight when the mouse cursor if
+   * over the button (ie. the property <code>rollover</code> of the
+   * button's model is <code>true</code>) and is not a <b>direct</b>
+   * child of a {@link JToolBar}.</p> 
    */
   public static class ButtonBorder extends AbstractBorder implements UIResource
   {
@@ -138,24 +148,65 @@ public class MetalBorders
       if (MetalLookAndFeel.getCurrentTheme() instanceof OceanTheme)
         paintOceanButtonBorder(c, g, x, y, w, h);
       else
+        paintDefaultButtonBorder(c, g, x, y, w, h);
+    }
+
+    /**
+     * Paints the button border for the DefaultMetalTheme.
+     *
+     * @param c the component (button)
+     * @param g the graphics object to use
+     * @param x the upper left corner of the component, X coordinate
+     * @param y the upper left corner of the component, Y coordinate
+     * @param w the width of the component
+     * @param h the height of the component
+     */
+    private void paintDefaultButtonBorder(Component c, Graphics g, int x,
+                                          int y, int w, int h)
+    {
+      ButtonModel bmodel = null;
+
+      // The RI will fail with a ClassCastException in such a situation.
+      // This code tries to be more helpful.
+      if (c instanceof AbstractButton)
+        bmodel = ((AbstractButton) c).getModel();
+      else
+        throw new IllegalStateException("A ButtonBorder is supposed to work "
+                                        + "only with AbstractButton and"
+                                        + "subclasses.");
+
+      Color darkShadow = MetalLookAndFeel.getControlDarkShadow();
+      Color shadow = MetalLookAndFeel.getControlShadow();
+      Color light = MetalLookAndFeel.getControlHighlight();
+      Color middle = MetalLookAndFeel.getControl();
+
+      if (c.isEnabled())
         {
-          ButtonModel bmodel = null;
-      
-          if (c instanceof AbstractButton)
-            bmodel = ((AbstractButton) c).getModel();
+          // draw dark border
+          g.setColor(darkShadow);
+          g.drawRect(x, y, w - 2, h - 2);
 
-          Color darkShadow = MetalLookAndFeel.getControlDarkShadow();
-          Color shadow = MetalLookAndFeel.getControlShadow();
-          Color light = MetalLookAndFeel.getControlHighlight();
-          Color middle = MetalLookAndFeel.getControl();
-
-          if (c.isEnabled())
+          // If the button is the default button, we paint a special border,
+          // regardless of the pressed state.
+          if (c instanceof JButton && ((JButton) c).isDefaultButton())
             {
-              // draw dark border
-              g.setColor(darkShadow);
-              g.drawRect(x, y, w - 2, h - 2);
-
-              if (!bmodel.isPressed())
+              g.drawRect(x + 1, y + 1, w - 4, h - 4);
+              // Draw white highlight.
+              g.setColor(light);
+              g.drawLine(x + 2, y + 2, x + w - 4, y + 2);
+              g.drawLine(x + 2, y + 2, x + 2, y + h - 4);
+              g.drawLine(x + 2, y + h - 1, x + w - 1, y + h - 1);
+              g.drawLine(x + w - 1, y + 2, x + w - 1, y + h - 1);
+              // Draw crossing pixels.
+              g.setColor(middle);
+              g.fillRect(x + w - 2, y + 2, 1, 1);
+              g.fillRect(x + 2, y + h - 2, 1, 1);
+            }
+          else
+            {
+              // The normal border. This is used when the button is not
+              // pressed or the button is not armed.
+              if (! (bmodel.isPressed() && bmodel.isArmed()))
                 {
                   // draw light border
                   g.setColor(light);
@@ -166,6 +217,8 @@ public class MetalBorders
                   g.drawLine(x + 1, y + h - 2, x + 1, y + h - 2);
                   g.drawLine(x + w - 2, y + 1, x + w - 2, y + 1);
                 }
+              // The pressed border. This border is painted only when
+              // the button is both pressed and armed.
               else
                 {
                   // draw light border
@@ -184,12 +237,12 @@ public class MetalBorders
                   g.drawRect(x + w - 2, y + 1, 0, 0);
                 }
             }
-          else 
-            {
-              // draw disabled border
-              g.setColor(MetalLookAndFeel.getInactiveControlTextColor());
-              g.drawRect(x, y, w - 2, h - 2);          
-            }
+        }
+      else 
+        {
+          // draw disabled border
+          g.setColor(MetalLookAndFeel.getInactiveControlTextColor());
+          g.drawRect(x, y, w - 2, h - 2);          
         }
     }
 
@@ -208,8 +261,14 @@ public class MetalBorders
     {
       ButtonModel bmodel = null;
       
+      // The RI will fail with a ClassCastException in such a situation.
+      // This code tries to be more helpful.
       if (c instanceof AbstractButton)
         bmodel = ((AbstractButton) c).getModel();
+      else
+        throw new IllegalStateException("A ButtonBorder is supposed to work "
+                                        + "only with AbstractButton and"
+                                        + "subclasses.");
 
       Color darkShadow = MetalLookAndFeel.getControlDarkShadow();
       Color shadow = MetalLookAndFeel.getControlShadow();
@@ -218,14 +277,21 @@ public class MetalBorders
 
       if (c.isEnabled())
         {
-          if (bmodel.isPressed())
+          // Paint the pressed border if the button is pressed, or if
+          // the button is the default button. In the OceanTheme, the default
+          // button has the same border as a pressed button.
+          if (bmodel.isPressed() || ((c instanceof JButton)
+                                     && ((JButton) c).isDefaultButton()))
             {
-              // draw fat border
-              g.drawLine(x + 1, y + 1, x + w - 2, y + 1);
-              g.drawLine(x + 1, y + 1, x + 1, y + h - 2);
+              // Draw fat border.
+              g.setColor(darkShadow);
+              g.drawRect(x, y, w - 1, h - 1);
+              g.drawRect(x + 1, y + 1, w - 3, h - 3);
             }
-          else if (bmodel.isRollover())
+          else if (bmodel.isRollover() && !(c.getParent() instanceof JToolBar))
             {
+              // Paint a bigger border when the mouse is over the button but
+              // only if it is *not* part of a JToolBar.
               g.setColor(shadow);
               g.drawRect(x, y, w - 1, h - 1);
               g.drawRect(x + 2, y + 2, w - 5, h - 5);
@@ -249,30 +315,27 @@ public class MetalBorders
     /**
      * Returns the insets of the <code>ButtonBorder</code>.
      *
-     * @param c the component for which the border is used
+     * @param c the component for which the border is used (ignored).
      *
-     * @return The insets of the ButtonBorder
+     * @return The insets of the <code>ButtonBorder</code>.
      */
     public Insets getBorderInsets(Component c)
     {
-      return getBorderInsets(c, null);
+      return borderInsets;
     }
 
     /**
      * Returns the insets of the <code>ButtonBorder</code> in the specified 
      * <code>newInsets</code> object.
      *
-     * @param c the component for which the border is used
-     * @param newInsets the insets object where to put the values (if 
-     *        <code>null</code>, a new instance is created).
+     * @param c the component for which the border is used (ignored).
+     * @param newInsets the insets object where to put the values (
+     *                  <code>null</code> not permitted).
      *
-     * @return The insets.
+     * @return The <code>newInsets</code> reference.
      */
     public Insets getBorderInsets(Component c, Insets newInsets)
     {
-      if (newInsets == null)
-        newInsets = new Insets(0, 0, 0, 0);
-
       newInsets.bottom = borderInsets.bottom;
       newInsets.left = borderInsets.left;
       newInsets.right = borderInsets.right;
@@ -352,6 +415,8 @@ public class MetalBorders
   public static class Flush3DBorder extends AbstractBorder
     implements UIResource
   {
+    private static final Insets borderInsets = new Insets(2, 2, 2, 2);
+    
     /**
      * Creates a new border instance.
      */
@@ -369,26 +434,25 @@ public class MetalBorders
      */
     public Insets getBorderInsets(Component c)
     {
-      return getBorderInsets(c, null);
+      return borderInsets;
     }
     
     /**
      * Returns the border insets.
      * 
      * @param c  the component (ignored).
-     * @return The border insets.
+     * @param newInsets  an existing insets instance, that will be populated
+     *                   with the border insets and returned as the result
+     *                   (<code>null</code> not permitted).
+     *                   
+     * @return The <code>newInsets</code> reference.
      */
     public Insets getBorderInsets(Component c, Insets newInsets)
     {
-      if (newInsets == null)
-        newInsets = new Insets(2, 2, 2, 2);
-      else
-        {
-          newInsets.top = 2;
-          newInsets.left = 2;
-          newInsets.bottom = 2;
-          newInsets.right = 2;
-        }
+      newInsets.top = borderInsets.top;
+      newInsets.left = borderInsets.left;
+      newInsets.bottom = borderInsets.bottom;
+      newInsets.right = borderInsets.right;
       return newInsets;  
     }
     
@@ -427,6 +491,8 @@ public class MetalBorders
   public static class PaletteBorder extends AbstractBorder
     implements UIResource
   {
+    private static final Insets borderInsets = new Insets(1, 1, 1, 1);
+
     /**
      * Creates a new <code>PaletteBorder</code>.
      */
@@ -444,29 +510,25 @@ public class MetalBorders
      */
     public Insets getBorderInsets(Component c)
     {
-      return getBorderInsets(c, null);
+      return borderInsets;
     }
 
     /**
      * Returns the border insets.
      * 
      * @param c  the component (ignored).
-     * @param newInsets  the insets object that, if non-<code>null</code>, will 
-     *                   be populated with the result from this method.
-     * 
-     * @return The border insets.
+     * @param newInsets  an existing insets instance, that will be populated
+     *                   with the border insets and returned as the result
+     *                   (<code>null</code> not permitted).
+     *                   
+     * @return The <code>newInsets</code> reference.
      */
     public Insets getBorderInsets(Component c, Insets newInsets)
     {        
-      if (newInsets == null)
-        newInsets = new Insets(1, 1, 1, 1);
-      else
-        {
-          newInsets.top = 1;
-          newInsets.left = 1;
-          newInsets.bottom = 1;
-          newInsets.right = 1;
-        }
+      newInsets.top = borderInsets.top;
+      newInsets.left = borderInsets.left;
+      newInsets.bottom = borderInsets.bottom;
+      newInsets.right = borderInsets.right;
       return newInsets;  
     }
     
@@ -529,12 +591,12 @@ public class MetalBorders
     {
       boolean enabledTextBorder;
       if (c instanceof JTextComponent)
-	{
-	  JTextComponent tc = (JTextComponent) c;
-	  enabledTextBorder = tc.isEnabled() && tc.isEditable();
-	}
+        {
+          JTextComponent tc = (JTextComponent) c;
+          enabledTextBorder = tc.isEnabled() && tc.isEditable();
+        }
       else
-	enabledTextBorder = false;
+        enabledTextBorder = false;
 
       if (enabledTextBorder)
         super.paintBorder(c, g, x, y, w, h);
@@ -555,6 +617,8 @@ public class MetalBorders
   public static class InternalFrameBorder extends AbstractBorder
     implements UIResource
   {
+    private static final Insets borderInsets = new Insets(5, 5, 5, 5);
+
     /**
      * Creates a new border instance.
      */
@@ -572,26 +636,25 @@ public class MetalBorders
      */
     public Insets getBorderInsets(Component c)
     {
-      return getBorderInsets(c, null);
+      return borderInsets;
     }
     
     /**
      * Returns the border insets.
      * 
      * @param c  the component (ignored).
-     * @return The border insets.
+     * @param newInsets  an existing insets instance, that will be populated
+     *                   with the border insets and returned as the result
+     *                   (<code>null</code> not permitted).
+     *                   
+     * @return The <code>newInsets</code> reference.
      */
     public Insets getBorderInsets(Component c, Insets newInsets)
     {
-      if (newInsets == null)
-        newInsets = new Insets(5, 5, 5, 5);
-      else
-        {
-          newInsets.top = 5;
-          newInsets.left = 5;
-          newInsets.bottom = 5;
-          newInsets.right = 5;
-        }
+      newInsets.top = borderInsets.top;
+      newInsets.left = borderInsets.left;
+      newInsets.bottom = borderInsets.bottom;
+      newInsets.right = borderInsets.right;
       return newInsets;  
     }
     
@@ -763,7 +826,7 @@ public class MetalBorders
     implements UIResource
   {
     /** The border insets. */
-    protected static Insets borderInsets = new Insets(1, 1, 1, 1);
+    protected static Insets borderInsets = new Insets(2, 2, 2, 2);
     
     /**
      * Creates a new border instance.
@@ -789,35 +852,36 @@ public class MetalBorders
     {
       Color dark = MetalLookAndFeel.getPrimaryControlDarkShadow();
       Color light = MetalLookAndFeel.getPrimaryControlHighlight();
-      if (c instanceof JMenu) {
-        JMenu menu = (JMenu) c;
-        if (menu.isSelected())
+      if (c instanceof JMenu) 
         {
-          g.setColor(dark);
-          g.drawLine(x, y, x, y + h);
-          g.drawLine(x, y, x + w, y);
-          g.drawLine(x + w - 2, y + 1, x + w - 2, y + h);
-          g.setColor(light);
-          g.drawLine(x + w - 1, y + 1, x + w - 1, y + h);
+          JMenu menu = (JMenu) c;
+          if (menu.isSelected())
+            {
+              g.setColor(dark);
+              g.drawLine(x, y, x, y + h);
+              g.drawLine(x, y, x + w, y);
+              g.drawLine(x + w - 2, y + 1, x + w - 2, y + h);
+              g.setColor(light);
+              g.drawLine(x + w - 1, y + 1, x + w - 1, y + h);
+            }
         }
-      }
       else if (c instanceof JMenuItem)
-      {
-        JMenuItem item = (JMenuItem) c;
-        if (item.isArmed()) 
-          {
-            g.setColor(dark);
-            g.drawLine(x, y, x + w, y);
-            g.setColor(light);
-            g.drawLine(x, y + h - 1, x + w, y + h - 1);
-          }
-        else
-          {
-            // Normally we draw a light line on the left.
-            g.setColor(light);
-            g.drawLine(x, y, x, y + h);
-          }
-      }
+        {
+          JMenuItem item = (JMenuItem) c;
+          if (item.isArmed()) 
+            {
+              g.setColor(dark);
+              g.drawLine(x, y, x + w, y);
+              g.setColor(light);
+              g.drawLine(x, y + h - 1, x + w, y + h - 1);
+            }
+          else
+            {
+              // Normally we draw a light line on the left.
+              g.setColor(light);
+              g.drawLine(x, y, x, y + h);
+            }
+        }
     }
     
     /**
@@ -1028,14 +1092,10 @@ public class MetalBorders
     public void paintBorder(Component c, Graphics g, int x, int y, int w, 
             int h)
     {
-      boolean mouseIsOver = false;
-      if (c instanceof AbstractButton)
-        {
-          ButtonModel bmodel = ((AbstractButton) c).getModel();
-          mouseIsOver = bmodel.isRollover();
-        }
-      if (mouseIsOver)
-        super.paintBorder(c, g, x, y, w, h);
+      // TODO: What should be done here? Obviously the ButtonBorder already
+      // handles the rollover state in Sun's impl. Maybe this is only there
+      // for backwards compatibility.
+      super.paintBorder(c, g, x, y, w, h);
     }
   }
   
@@ -1433,8 +1493,8 @@ public class MetalBorders
       {
         Border outer = new ButtonBorder();
         Border inner = getMarginBorder();
-        buttonBorder = new BorderUIResource.CompoundBorderUIResource
-            (outer, inner);
+        buttonBorder = new BorderUIResource.CompoundBorderUIResource(outer, 
+            inner);
       }
     return buttonBorder;
   }
@@ -1452,8 +1512,8 @@ public class MetalBorders
       {
         Border outer = new ToggleButtonBorder();
         Border inner = getMarginBorder();
-        toggleButtonBorder = new BorderUIResource.CompoundBorderUIResource
-            (outer, inner);
+        toggleButtonBorder = new BorderUIResource.CompoundBorderUIResource(
+            outer, inner);
       }
     return toggleButtonBorder;
   }
@@ -1523,8 +1583,7 @@ public class MetalBorders
       {
         Border outer = new ButtonBorder();
         Border inner = new RolloverMarginBorder();
-        toolbarButtonBorder = new BorderUIResource.CompoundBorderUIResource
-          (outer, inner);
+        toolbarButtonBorder = new CompoundBorder(outer, inner);
       }
     return toolbarButtonBorder;
   }

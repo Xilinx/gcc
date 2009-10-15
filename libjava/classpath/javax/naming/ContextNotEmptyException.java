@@ -1,5 +1,5 @@
 /* ContextNotEmptyException.java --
-   Copyright (C) 2000, 2004 Free Software Foundation, Inc.
+   Copyright (C) 2000, 2004, 2006 Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -38,9 +38,16 @@ exception statement from your version. */
 
 package javax.naming;
 
- 
+/**
+ * This exception is thrown in response to the attempt to destroy the non
+ * empty context. Only empty contexts (without bindings) can be destroyed.
+ * 
+ * @see Context#destroySubcontext
+ */ 
 public class ContextNotEmptyException extends NamingException
 {
+  private static final long serialVersionUID = 1090963683348219877L;
+
   public ContextNotEmptyException ()
   {
     super ();

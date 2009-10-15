@@ -1,5 +1,5 @@
 /* URLConnection.java -- Abstract superclass for reading from URL's
-   Copyright (C) 1998, 2002, 2003, 2004 Free Software Foundation, Inc.
+   Copyright (C) 1998, 2002, 2003, 2004, 2006 Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -38,6 +38,8 @@ exception statement from your version. */
 
 package java.net;
 
+import gnu.classpath.SystemProperties;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -49,6 +51,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.Locale;
 import java.util.Map;
+import java.util.StringTokenizer;
 
 /**
  * Written using on-line Java Platform 1.2 API Specification, as well
@@ -114,6 +117,12 @@ public abstract class URLConnection
   private static boolean defaultUseCaches = true;
 
   /**
+   * Default internal content handler factory.
+   */
+  private static ContentHandlerFactory defaultFactory
+    = new gnu.java.net.DefaultContentHandlerFactory();
+
+  /**
    * This variable determines whether or not interaction is allowed with
    * the user.  For example, to prompt for a username and password.
    */
@@ -160,15 +169,21 @@ public abstract class URLConnection
    * This is the URL associated with this connection
    */
   protected URL url;
+
   private static SimpleDateFormat[] dateFormats;
   private static boolean dateformats_initialized;
+  
+  /**
+   * The timeout period.
+   */
+  private int timeout;
 
   /* Cached ParsePosition, used when parsing dates. */
   private ParsePosition position;
 
   /**
    * Creates a URL connection to a given URL. A real connection is not made.
-   * Use #connect to do this.
+   * Use <code>connect()</code> to do this.
    *
    * @param url The Object to create the URL connection to
    *
@@ -198,6 +213,38 @@ public abstract class URLConnection
   public URL getURL()
   {
     return url;
+  }
+
+  /**
+   * Returns the connection timeout speed, in milliseconds, or zero if the timeout
+   * is infinite or not set.
+   *
+   * @return The timeout.
+   *
+   * @since 1.5
+   */
+  public int getConnectTimeout()
+  {
+    return timeout;
+  }
+
+  /**
+   * Set the connection timeout speed, in milliseconds, or zero if the timeout
+   * is to be considered infinite. Note that in certain socket 
+   * implementations/platforms this method may not have any effect.
+   *
+   * Throws an <code>IllegalArgumentException</code> if timeout < 0.
+   *
+   * @param timeout - The timeout, in milliseconds.
+   *
+   * @since 1.5
+   */
+  public void setConnectTimeout(int timeout)
+    throws IllegalArgumentException
+  {
+    if( timeout < 0 )
+      throw new IllegalArgumentException("Timeout must be 0 or positive.");
+    this.timeout = timeout;
   }
 
   /**
@@ -277,8 +324,8 @@ public abstract class URLConnection
   /**
    * Return a String representing the header value at the specified index.
    * This allows the caller to walk the list of header fields.  The analogous
-   * getHeaderFieldKey(int) method allows access to the corresponding key
-   * for this header field
+   * {@link #getHeaderField(int)} method allows access to the corresponding 
+   * key for this header field
    *
    * @param index The index into the header field list to retrieve the value for
    *
@@ -305,9 +352,10 @@ public abstract class URLConnection
   }
 
   /**
-   * Returns a map of all sent header fields
-   *
-   * @return all header fields
+   * Returns an unmodifiable Map containing all sent header fields.
+   * 
+   * @return The map of header fields. The map consists of String keys with 
+   * an unmodifiable List of String objects as value.
    *
    * @since 1.4
    */
@@ -355,7 +403,7 @@ public abstract class URLConnection
    * @param defaultValue The default date if the header field is not found
    * or can't be converted.
    *
-   * @return Returns the date value of the header filed or the default value
+   * @return The date value of the header filed or the default value
    * if the field is missing or malformed
    */
   public long getHeaderFieldDate(String name, long defaultValue)
@@ -388,8 +436,8 @@ public abstract class URLConnection
   /**
    * Returns a String representing the header key at the specified index.
    * This allows the caller to walk the list of header fields.  The analogous
-   * getHeaderField(int) method allows access to the corresponding value for
-   * this tag.
+   * {@link #getHeaderField(int)} method allows access to the corresponding 
+   * value for this tag.
    *
    * @param index The index into the header field list to retrieve the key for.
    *
@@ -458,10 +506,16 @@ public abstract class URLConnection
    * @exception UnknownServiceException If the protocol does not support the
    * content type
    */
-  public Object getContent(Class[] classes) throws IOException
+  public Object getContent(Class[] classes)
+    throws IOException
   {
-    // FIXME: implement this
-    return getContent();
+    if (! connected)
+      connect();
+    String type = getContentType();
+    ContentHandler ch = getContentHandler(type);
+    if (ch != null)
+      return ch.getContent(this, classes);
+    throw new UnknownServiceException("protocol does not support the content type");
   }
 
   /**
@@ -598,6 +652,9 @@ public abstract class URLConnection
    */
   public void setAllowUserInteraction(boolean allow)
   {
+    if (connected)
+      throw new IllegalStateException("Already connected");
+    
     allowUserInteraction = allow;
   }
 
@@ -719,7 +776,9 @@ public abstract class URLConnection
   }
 
   /**
-   * Sets the value of the named request property
+   * Sets the value of the named request property. 
+   * This method does overwrite the value of existing properties with 
+   * the new value.
    *
    * @param key The name of the property
    * @param value The value of the property
@@ -754,8 +813,8 @@ public abstract class URLConnection
    * @exception IllegalStateException If already connected
    * @exception NullPointerException If key is null
    *
-   * @see URLConnection#getRequestProperty(String key)
-   * @see URLConnection#setRequestProperty(String key, String value)
+   * @see URLConnection#getRequestProperty(String)
+   * @see URLConnection#setRequestProperty(String, String)
    *
    * @since 1.4
    */
@@ -776,12 +835,12 @@ public abstract class URLConnection
    *
    * @param key The name of the property
    *
-   * @return Value of the property
+   * @return Value of the property, or <code>null</code> if key is null.
    *
    * @exception IllegalStateException If already connected
    *
-   * @see URLConnection#setRequestProperty(String key, String value)
-   * @see URLConnection#addRequestProperty(String key, String value)
+   * @see URLConnection#setRequestProperty(String, String)
+   * @see URLConnection#addRequestProperty(String, String)
    */
   public String getRequestProperty(String key)
   {
@@ -795,8 +854,9 @@ public abstract class URLConnection
 
   /**
    * Returns an unmodifiable Map containing the request properties.
-   *
-   * @return The map of properties
+   * 
+   * @return The map of properties. The map consists of String keys with an 
+   * unmodifiable List of String objects as value.
    *
    * @exception IllegalStateException If already connected
    *
@@ -823,7 +883,7 @@ public abstract class URLConnection
    * @deprecated 1.3 The method setRequestProperty should be used instead.
    * This method does nothing now.
    *
-   * @see URLConnection#setRequestProperty(String key, String value)
+   * @see URLConnection#setRequestProperty(String, String)
    */
   public static void setDefaultRequestProperty(String key, String value)
   {
@@ -842,7 +902,7 @@ public abstract class URLConnection
    * @deprecated 1.3 The method getRequestProperty should be used instead.
    * This method does nothing now.
    *
-   * @see URLConnection#getRequestProperty(String key)
+   * @see URLConnection#getRequestProperty(String)
    */
   public static String getDefaultRequestProperty(String key)
   {
@@ -912,7 +972,10 @@ public abstract class URLConnection
   public static String guessContentTypeFromStream(InputStream is)
     throws IOException
   {
-    return "application/octet-stream";
+    String result = VMURLConnection.guessContentTypeFromStream(is);
+    if (result == null)
+      return "application/octet-stream";
+    return result;
   }
 
   /**
@@ -966,44 +1029,66 @@ public abstract class URLConnection
     if (factory != null)
       handler = factory.createContentHandler(contentType);
 
-    // Then try our default class.
-    try
-      {
-	String typeClass = contentType.replace('/', '.');
+    // Now try default factory. Using this factory to instantiate built-in
+    // content handlers is preferable  
+    if (handler == null)
+      handler = defaultFactory.createContentHandler(contentType);
 
-	// Deal with "Content-Type: text/html; charset=ISO-8859-1".
-	int parameterBegin = typeClass.indexOf(';');
-	if (parameterBegin >= 1)
-	  typeClass = typeClass.substring(0, parameterBegin);
+    // User-set factory has not returned a handler. Use the default search 
+    // algorithm.
+    if (handler == null)
+      {
+        // Get the list of packages to check and append our default handler
+        // to it, along with the JDK specified default as a last resort.
+        // Except in very unusual environments the JDK specified one shouldn't
+        // ever be needed (or available).
+        String propVal = SystemProperties.getProperty("java.content.handler.pkgs");
+        propVal = (((propVal == null) ? "" : (propVal + "|"))
+                   + "gnu.java.net.content|sun.net.www.content");
 
-	Class cls = Class.forName("gnu.java.net.content." + typeClass);
-	Object obj = cls.newInstance();
+        // Deal with "Content-Type: text/html; charset=ISO-8859-1".
+        int parameterBegin = contentType.indexOf(';');
+        if (parameterBegin >= 1)
+          contentType = contentType.substring(0, parameterBegin);
+        contentType = contentType.trim();
 
-	if (obj instanceof ContentHandler)
-	  {
-	    handler = (ContentHandler) obj;
-	    return handler;
-	  }
-      }
-    catch (ClassNotFoundException e)
-      {
-	// Ignore.
-      }
-    catch (InstantiationException e)
-      {
-	// Ignore.
-      }
-    catch (IllegalAccessException e)
-      {
-	// Ignore.
+        // Replace the '/' character in the content type with '.' and
+        // all other non-alphabetic, non-numeric characters with '_'.
+        char[] cArray = contentType.toCharArray();
+        for (int i = 0; i < cArray.length; i++)
+          {
+            if (cArray[i] == '/')
+              cArray[i] = '.';
+            else if (! ((cArray[i] >= 'A' && cArray[i] <= 'Z') || 
+                        (cArray[i] >= 'a' && cArray[i] <= 'z') ||
+                        (cArray[i] >= '0' && cArray[i] <= '9')))
+              cArray[i] = '_';
+          }
+        String contentClass = new String(cArray);
+
+        // See if a class of this content type exists in any of the packages.
+        StringTokenizer pkgPrefix = new StringTokenizer(propVal, "|");
+        do
+          {
+            String facName = pkgPrefix.nextToken() + "." + contentClass;
+            try
+              {
+                handler =
+                  (ContentHandler) Class.forName(facName).newInstance();
+              }
+            catch (Exception e)
+              {
+                // Can't instantiate; handler still null, go on to next element.
+              }
+          } while (handler == null && pkgPrefix.hasMoreTokens());
       }
 
     return handler;
   }
   
   // We don't put these in a static initializer, because it creates problems
-  // with initializer co-dependency: SimpleDateFormat's constructors eventually 
-  // depend on URLConnection (via the java.text.*Symbols classes).
+  // with initializer co-dependency: SimpleDateFormat's constructors
+  // eventually depend on URLConnection (via the java.text.*Symbols classes).
   private static synchronized void initializeDateFormats()
   {
     if (dateformats_initialized)

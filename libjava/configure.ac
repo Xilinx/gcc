@@ -15,27 +15,8 @@ AC_ARG_WITH(target-subdir,
 # We may get other options which we don't document:
 # --with-target-subdir, --with-multisrctop, --with-multisubdir
 
-# When building with srcdir == objdir, links to the source files will
-# be created in directories within the target_subdir.  We have to
-# adjust toplevel_srcdir accordingly, so that configure finds
-# install-sh and other auxiliary files that live in the top-level
-# source directory.
-if test "${srcdir}" = "."; then
-  if test -z "${with_target_subdir}"; then
-    toprel=".."
-  else
-    if test "${with_target_subdir}" != "."; then
-      toprel="${with_multisrctop}../.."
-    else
-      toprel="${with_multisrctop}.."
-    fi
-  fi
-else
-  toprel=".."
-fi
-
-libgcj_basedir=$srcdir/$toprel/./libjava
-AC_SUBST(libgcj_basedir)
+# Find the rest of the source tree framework.
+AM_ENABLE_MULTILIB(, ..)
 
 AC_CANONICAL_SYSTEM
 _GCC_TOPLEV_NONCANONICAL_BUILD
@@ -74,15 +55,27 @@ AC_ARG_ENABLE(version-specific-runtime-libs,
     [version_specific_libs=no]
 )
 
-# Default to --enable-multilib
-AC_ARG_ENABLE(multilib,
-  AS_HELP_STRING([--enable-multilib],
-                 [build many library versions (default)]),
-[case "${enableval}" in
-  yes) multilib=yes ;;
-  no)  multilib=no ;;
-  *)   AC_MSG_ERROR(bad value ${enableval} for multilib option) ;;
- esac], [multilib=yes])dnl
+AC_ARG_ENABLE(plugin,
+  AS_HELP_STRING([--enable-plugin],
+                 [build gcjwebplugin web browser plugin]),
+    [case "$enableval" in
+      yes) plugin_enabled=yes ;;
+      no)  plugin_enabled=no ;;
+      *)   AC_MSG_ERROR([Unknown argument to enable/disable plugin]);;
+     esac],
+    [plugin_enabled=no]
+)
+
+AC_ARG_ENABLE(gconf-peer,
+  AS_HELP_STRING([--enable-gconf-peer],
+                 [compile GConf native peers for util.preferences]),
+    [case "$enableval" in
+      yes) gconf_enabled=yes ;;
+      no)  gconf_enabled=no ;;
+      *)   AC_MSG_ERROR([Unknown argument to enable/disable gconf-peer]);;
+     esac],
+    [gconf_enabled=no]
+)
 
 # It may not be safe to run linking tests in AC_PROG_CC/AC_PROG_CXX.
 GCC_NO_EXECUTABLES
@@ -113,8 +106,22 @@ AC_SUBST(LDFLAGS)
 AM_INIT_AUTOMAKE([1.9.0])
 
 AC_CHECK_TOOL(AS, as)
+AC_CHECK_TOOL(LD, ld)
 AC_CHECK_TOOL(AR, ar)
 AC_CHECK_TOOL(RANLIB, ranlib, :)
+AC_PROG_AWK
+AC_CHECK_PROGS([JAR], [jar fastjar], no)
+AC_PATH_PROG([ZIP], [zip], no)
+AC_PATH_PROG([UNZIP], [unzip], unzip)
+AM_CONDITIONAL(BASH_JAR, test "$JAR" = no)
+if test "$ZIP" = no; then
+  if test "$JAR" = no; then
+    AC_MSG_ERROR([cannot find neither zip nor jar, cannot continue])
+  fi
+else
+  # InfoZIP available, use the 'guaranteed' Bourne-shell JAR to build libjava
+  JAR=`pwd`/scripts/jar
+fi
 
 AC_PROG_INSTALL
 
@@ -222,20 +229,12 @@ for peer in $peerlibs ; do
 done
 
 AM_CONDITIONAL(XLIB_AWT, test "$use_xlib_awt" = yes)
-AM_CONDITIONAL(GTK_AWT, test "$use_gtk_awt" = yes)
-AM_CONDITIONAL(QT_AWT, test "$use_qt_awt" = yes)
 
 # Create standard.omit based on decisions we just made.
 cp $srcdir/standard.omit.in standard.omit
 if test "$use_xlib_awt" != yes; then
    echo gnu/awt/xlib >> standard.omit
    echo gnu/gcj/xlib >> standard.omit
-fi
-if test "$use_gtk_awt" != yes; then
-   echo gnu/java/awt/peer/gtk >> standard.omit
-fi
-if test "$use_qt_awt" != yes; then
-   echo gnu/java/awt/peer/qt >> standard.omit
 fi
 
 if test -z "${with_multisubdir}"; then
@@ -288,7 +287,6 @@ case "${which_gcj}" in
    built)
       GCJ="$built_gcc_dir/gcj -B`${PWDCMD-pwd}`/ -B$built_gcc_dir/"
       GCJH='$(top_builddir)/$(MULTIBUILDTOP)../../$(host_subdir)/gcc/gcjh'
-      ZIP='$(top_builddir)/$(MULTIBUILDTOP)../../$(host_subdir)/fastjar/fastjar'
    ;;
    cross)
       if test "x${with_newlib}" = "xyes"; then
@@ -298,20 +296,15 @@ case "${which_gcj}" in
       else
          GCJ="${target_noncanonical}-gcj -B`${PWDCMD-pwd}`/"
       fi
-      ZIP='$(target_noncanonical)-fastjar'
       GCJH='$(target_noncanonical)-gcjh'
    ;;
    path)
       GCJ="gcj -B`${PWDCMD-pwd}`/"
-      ## In this case, gcj is found outside the build tree.  However, zip is
-      ## found in the build tree.
-      ZIP='$(top_builddir)/$(MULTIBUILDTOP)../$(COMPPATH)/fastjar/fastjar'
       GCJH=gcjh
    ;;
 esac
 
 AC_SUBST(GCJH)
-AC_SUBST(ZIP)
 
 # Create it, so that compile/link tests don't fail
 test -f libgcj.spec || touch libgcj.spec
@@ -320,6 +313,8 @@ test -f libgcj.spec || touch libgcj.spec
 
 # Set up to configure Classpath.
 # FIXME: no supported way to pass args in autoconf.
+ac_configure_args="$ac_configure_args --with-fastjar=$JAR"
+ac_configure_args="$ac_configure_args --enable-tool-wrappers"
 ac_configure_args="$ac_configure_args --disable-load-library"
 ac_configure_args="$ac_configure_args --${LIBGCJDEBUG}-debug"
 ac_configure_args="$ac_configure_args --enable-default-toolkit=$TOOLKIT"
@@ -330,6 +325,13 @@ ac_configure_args="$ac_configure_args --disable-core-jni"
 dnl FIXME?
 ac_configure_args="$ac_configure_args --disable-examples"
 ac_configure_args="$ac_configure_args --with-glibj=build"
+if test "$plugin_enabled" != yes; then
+  ac_configure_args="$ac_configure_args --disable-plugin"
+fi
+if test "$gconf_enabled" != yes; then
+  ac_configure_args="$ac_configure_args --disable-gconf-peer"
+  ac_configure_args="$ac_configure_args --enable-default-preferences-peer=gnu.java.util.prefs.FileBasedFactory"
+fi
 if test "$use_gtk_awt" != yes; then
   ac_configure_args="$ac_configure_args --disable-gtk-peer"
 fi
@@ -568,8 +570,6 @@ AC_ARG_WITH(ecos,
 TARGET_ECOS="$with_ecos"
 )
 
-supply_backtrace=no
-
 PLATFORM_INNER_NAT_HDRS=
 case "$TARGET_ECOS" in
    no) case "$host" in
@@ -678,21 +678,6 @@ AC_SUBST(ZLIBTESTSPEC)
 
 AC_PATH_XTRA
 
-# determine whether to enable the cairo GTK Graphics2D backend
-AC_ARG_ENABLE(gtk-cairo,
-  AS_HELP_STRING([--enable-gtk-cairo],
-                 [build the cairo Graphics2D implementation on GTK]))
-AM_CONDITIONAL(GTK_CAIRO, test "x${enable_gtk_cairo}" = xyes)
-if test "x${enable_gtk_cairo}" = xyes
-then
-	PKG_CHECK_MODULES(CAIRO, cairo)
-	PKG_CHECK_MODULES(PANGOFT2, pangoft2)
-fi
-AC_SUBST(CAIRO_LIBS)
-AC_SUBST(CAIRO_CFLAGS)
-AC_SUBST(PANGOFT2_LIBS)
-AC_SUBST(PANGOFT2_CFLAGS)
-
 # FIXME: this should be _libs on some hosts.
 libsubdir=.libs
 
@@ -784,6 +769,7 @@ THREADINCS=
 THREADDEPS=
 THREADH=
 THREADSPEC=
+THREADSTARTFILESPEC=
 case "$THREADS" in
  posix)
     case "$host" in
@@ -808,7 +794,7 @@ case "$THREADS" in
 	THREADLDFLAGS=-pthread
 	THREADSPEC=-lpthread
 	;;
-     alpha*-dec-osf*)
+     alpha*-dec-osf* | hppa*-hp-hpux*)
 	THREADCXXFLAGS=-pthread
 	# boehm-gc needs some functions from librt, so link that too.
 	THREADLIBS='-lpthread -lrt'
@@ -835,6 +821,20 @@ case "$THREADS" in
 
  win32)
     THREADH=win32-threads.h
+    THREADCXXFLAGS=-mthreads
+    # We need thread-safe exception handling so _CRT_MT should be set to 1.
+    # But we do not want the executables created to be dependent on
+    # mingwm10.dll which provides a __mingwthr_key_dtor() that cleans up
+    # exception handling contexts.  The following kludge achieves this effect
+    # and causes a dummy __mingwthr_key_dtor() to be linked in from
+    # libmingw32.a.  This causes a memory leak of about 24 bytes per thread.
+    # A workaround is to explicitly use -mthreads while linking Java programs.
+    # See PR libgcj/28263.
+    #
+    # FIXME: In Java we are able to detect thread death at the end of
+    # Thread.run() so we should be able to clean up the exception handling
+    # contexts ourselves.
+    THREADSTARTFILESPEC='crtmt%O%s'
     ;;
 
  none)
@@ -846,16 +846,24 @@ AC_SUBST(THREADLIBS)
 AC_SUBST(THREADINCS)
 AC_SUBST(THREADDEPS)
 AC_SUBST(THREADSPEC)
+AC_SUBST(THREADSTARTFILESPEC)
 AC_SUBST(THREADLDFLAGS)
 AC_SUBST(THREADCXXFLAGS)
 AM_CONDITIONAL(USING_POSIX_THREADS, test "$THREADS" = posix)
 AM_CONDITIONAL(USING_WIN32_THREADS, test "$THREADS" = win32)
 AM_CONDITIONAL(USING_NO_THREADS, test "$THREADS" = none)
+AM_CONDITIONAL(USE_LIBGCJ_BC, test "$use_libgcj_bc" = yes)
 
 if test -d sysdep; then true; else mkdir sysdep; fi
 AC_CONFIG_LINKS(sysdep/locks.h:sysdep/$sysdeps_dir/locks.h)
 AC_CONFIG_LINKS(sysdep/backtrace.h:$fallback_backtrace_h)
 AC_CONFIG_LINKS(sysdep/descriptor.h:$descriptor_h)
+
+LIBGCJ_SPEC="%{s-bc-abi:} -lgcj"
+if test "$use_libgcj_bc" = yes; then
+  LIBGCJ_SPEC="%{s-bc-abi:-lgcj_bc;:-lgcj}"
+fi
+AC_SUBST(LIBGCJ_SPEC)
 
 HASH_SYNC_SPEC=
 # Hash synchronization is only useful with posix threads right now.
@@ -868,7 +876,7 @@ AC_SUBST(HASH_SYNC_SPEC)
 AM_CONDITIONAL(USING_GCC, test "$GCC" = yes)
 
 # We're in the tree with gcc, and need to include some of its headers.
-GCC_UNWIND_INCLUDE='-I$(libgcj_basedir)/../gcc'
+GCC_UNWIND_INCLUDE='-I$(multi_basedir)/./libjava/../gcc'
 
 if test "x${with_newlib}" = "xyes"; then
    # We are being configured with a cross compiler.  AC_REPLACE_FUNCS
@@ -895,43 +903,20 @@ if test "x${with_newlib}" = "xyes"; then
 else
    AC_CHECK_FUNCS([strerror ioctl select fstat open fsync sleep opendir \
                    gmtime_r localtime_r readdir_r getpwuid_r getcwd \
-		   access stat mkdir rename rmdir unlink realpath utime chmod \
+		   access stat lstat mkdir rename rmdir unlink utime chmod readlink \
 		   nl_langinfo setlocale \
 		   inet_pton uname inet_ntoa \
-		   fork execvp pipe sigaction ftruncate])
+		   fork execvp getrlimit pipe sigaction ftruncate mmap \
+		   getifaddrs])
    AC_CHECK_FUNCS(inet_aton inet_addr, break)
-   AC_CHECK_HEADERS(execinfo.h unistd.h dlfcn.h) 
-   AC_CHECK_FUNC(backtrace, [
-     case "$host" in
-       ia64-*-linux*)
-	 # Has broken backtrace()
-	 ;;
-       mips*-*-linux*)
-         # Has broken backtrace(), but we supply our own.
-         if test -d sysdep; then true; else mkdir -p sysdep; fi
-	 supply_backtrace=yes
-         AC_DEFINE(HAVE_BACKTRACE, 1,
-           [Define if your platform has a working backtrace() function.])
-         ;;
-       *)
-         AC_DEFINE(HAVE_BACKTRACE, 1,
-           [Define if your platform has a working backtrace() function.])
-	 ;;
-     esac
-   ], [
-     case "$host" in
-       *mingw*)
-         # Has backtrace() defined in libgcj itself
-         AC_DEFINE(HAVE_BACKTRACE, 1,
-           [Define if your platform has a working backtrace() function.])
-         ;;
-     esac
-   ])
-
+   AC_CHECK_HEADERS(execinfo.h unistd.h dlfcn.h sys/resource.h)
+   # Do an additional check on dld, HP-UX for example has dladdr in libdld.sl
    AC_CHECK_LIB(dl, dladdr, [
-       AC_DEFINE(HAVE_DLADDR, 1, [Define if you have dladdr()])])
+       AC_DEFINE(HAVE_DLADDR, 1, [Define if you have dladdr()])], [
+       AC_CHECK_LIB(dld, dladdr, [
+       AC_DEFINE(HAVE_DLADDR, 1, [Define if you have dladdr()])])])
 
-   if test x"$build" = x"$host"; then
+   if test x"$cross_compiling" = x"no"; then
      AC_CHECK_FILES(/proc/self/exe, [
        AC_DEFINE(HAVE_PROC_SELF_EXE, 1, [Define if you have /proc/self/exe])])
    else
@@ -1043,6 +1028,17 @@ else
 	    AC_DEFINE(HAVE_SCHED_YIELD)
 	    THREADLIBS="$THREADLIBS -lposix4"
 	    THREADSPEC="$THREADSPEC -lposix4"])])])
+
+      AC_CHECK_LIB(rt, clock_gettime, [
+         AC_DEFINE(HAVE_CLOCK_GETTIME, 1, [Define if you have clock_gettime()])
+	 case "$THREADSPEC" in
+	   *-lrt*) ;;
+	   *)
+ 	     THREADSPEC="$THREADSPEC -lrt"
+	     THREADLIBS="$THREADLIBS -lrt"
+	     ;;
+	 esac])
+
       LIBS="$save_LIBS"
 
       # We can save a little space at runtime if the mutex has m_count
@@ -1072,9 +1068,11 @@ else
    if test "$memcpy_found" = no; then
       AC_MSG_ERROR([memcpy is required])
    fi
-
+   # Do an additional check on dld, HP-UX for example has dlopen in libdld.sl
    AC_CHECK_LIB(dl, dlopen, [
-       AC_DEFINE(HAVE_DLOPEN, 1, [Define if dlopen is available])])
+       AC_DEFINE(HAVE_DLOPEN, 1, [Define if dlopen is available])], [
+       AC_CHECK_LIB(dld, dlopen, [
+       AC_DEFINE(HAVE_DLOPEN, 1, [Define if dlopen is available])])])
 
    # Some library-finding code we stole from Tcl.
    #--------------------------------------------------------------------
@@ -1153,10 +1151,18 @@ else
    # On Solaris, and maybe other architectures, the Boehm collector
    # requires -ldl.
    if test "$GC" = boehm; then
-      AC_CHECK_LIB(dl, main, SYSTEMSPEC="$SYSTEMSPEC -ldl")
+      case "${host}" in
+          mips-sgi-irix6*)
+	    # IRIX 6 lacks a N64 libdl.so, but only the N32 (default multilib)
+	    # libgcj.spec is used, so override here
+	    SYSTEMSPEC="$SYSTEMSPEC %{!mabi=64:-ldl}"
+	  ;;
+	  *)
+	    AC_CHECK_LIB(dl, main, SYSTEMSPEC="$SYSTEMSPEC -ldl")
+	  ;;
+      esac
    fi
 fi
-AM_CONDITIONAL(SUPPLY_BACKTRACE, test "$supply_backtrace" = yes)
 
 # Use a semicolon as CLASSPATH separator for MinGW, otherwise a colon.
 case $build in
@@ -1263,11 +1269,16 @@ AC_SUBST(toolexecdir)
 AC_SUBST(toolexecmainlibdir)
 AC_SUBST(toolexeclibdir)
 
-# Determine where the standard .db file is found.
+# Determine where the standard .db file and GNU Classpath JNI
+# libraries are found.
 multi_os_directory=`$CC -print-multi-os-directory`
 case $multi_os_directory in
-  .) dbexecdir='$(libdir)/gcj-$(gcc_version)' ;; # Avoid /.
-  *) dbexecdir='$(libdir)/'$multi_os_directory'/gcj-$(gcc_version)' ;;
+  .)
+   dbexecdir='$(libdir)/gcj-$(gcc_version)' # Avoid /.
+   ;;
+  *)
+   dbexecdir='$(libdir)/'$multi_os_directory'/gcj-$(gcc_version)'
+   ;;
 esac
 AC_SUBST(dbexecdir)
 
@@ -1291,7 +1302,7 @@ AC_CHECK_HEADERS([unistd.h bstring.h sys/time.h sys/types.h fcntl.h \
 		  sys/ioctl.h sys/filio.h sys/stat.h sys/select.h \
 		  sys/socket.h netinet/in.h arpa/inet.h netdb.h net/if.h \
 		  pwd.h sys/config.h stdint.h langinfo.h locale.h \
-		  dirent.h])
+		  dirent.h sys/rw_lock.h ifaddrs.h])
 AC_CHECK_HEADERS(inttypes.h, [
     AC_DEFINE(HAVE_INTTYPES_H, 1, [Define if <inttypes.h> is available])
     AC_DEFINE(JV_HAVE_INTTYPES_H, 1, [Define if <inttypes.h> is available])
@@ -1366,7 +1377,6 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <time.h>]], [[struct tm tim; tim.t
           [AC_MSG_RESULT(no)])])])
 
 AC_FUNC_ALLOCA
-AC_FUNC_MMAP
 
 AC_CHECK_PROGS(PERL, perl, false)
 
@@ -1386,6 +1396,9 @@ case "${host}" in
 #    ;;
  hppa*-*-linux*)
     SIGNAL_HANDLER=include/pa-signal.h
+    ;;
+ hppa*-hp-hpux*)
+    SIGNAL_HANDLER=include/hppa-signal.h
     ;;
  ia64-*-linux*)
     SIGNAL_HANDLER=include/dwarf2-signal.h
@@ -1415,7 +1428,7 @@ case "${host}" in
  mips*-*-linux*)
     SIGNAL_HANDLER=include/mips-signal.h
     ;;
- *-*-darwin*)
+ powerpc*-*-darwin*)
     SIGNAL_HANDLER=include/darwin-signal.h
     ;;
  *)
@@ -1447,6 +1460,20 @@ fi
 # See if we support thread-local storage.
 GCC_CHECK_TLS
 
+# For _Unwind_GetIPInfo.
+GCC_CHECK_UNWIND_GETIPINFO
+
+# Check if linker supports static linking on a per library basis
+LD_START_STATIC_SPEC=
+LD_FINISH_STATIC_SPEC=
+if $LD --help 2>&1 | grep -q -e -call_shared ; then
+  if $LD --help 2>&1 | grep -q -e -non_shared ; then
+    LD_START_STATIC_SPEC='%{static-libgcj:-non_shared}'
+    LD_FINISH_STATIC_SPEC='%{static-libgcj:-call_shared}'
+  fi
+fi
+AC_SUBST(LD_START_STATIC_SPEC)
+AC_SUBST(LD_FINISH_STATIC_SPEC)
 
 here=`${PWDCMD-pwd}`
 AC_SUBST(here)
@@ -1464,12 +1491,14 @@ include/Makefile
 testsuite/Makefile
 ])
 
+AC_CONFIG_FILES([scripts/jar], [chmod +x scripts/jar])
+
 AC_CONFIG_COMMANDS([default],
 [# Only add multilib support code if we just rebuilt top-level Makefile.
 case " $CONFIG_FILES " in
  *" Makefile "*)
    LD="${ORIGINAL_LD_FOR_MULTILIBS}"
-   ac_file=Makefile . ${libgcj_basedir}/../config-ml.in
+   ac_file=Makefile . ${multi_basedir}/./libjava/../config-ml.in
    ;;
 esac
 for ac_multi_file in $CONFIG_FILES; do
@@ -1485,7 +1514,7 @@ target=${target}
 with_multisubdir=${with_multisubdir}
 ac_configure_args="${multilib_arg} ${ac_configure_args}"
 CONFIG_SHELL=${CONFIG_SHELL-/bin/sh}
-libgcj_basedir=${libgcj_basedir}
+multi_basedir=${multi_basedir}
 CC="${CC}"
 CXX="${CXX}"
 ORIGINAL_LD_FOR_MULTILIBS="${ORIGINAL_LD_FOR_MULTILIBS}"

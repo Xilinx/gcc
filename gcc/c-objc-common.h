@@ -1,12 +1,12 @@
 /* Language hooks common to C and ObjC front ends.
-   Copyright (C) 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2007 Free Software Foundation, Inc.
    Contributed by Ziemowit Laski  <zlaski@apple.com>
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -15,9 +15,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #ifndef GCC_C_OBJC_COMMON
 #define GCC_C_OBJC_COMMON
@@ -127,13 +126,17 @@ extern void c_initialize_diagnostics (diagnostic_context *);
 
 #undef LANG_HOOKS_GETDECLS
 #define LANG_HOOKS_GETDECLS lhd_return_null_tree_v
-#undef LANG_HOOKS_LOOKUP_NAME
-#define LANG_HOOKS_LOOKUP_NAME lookup_name
 #undef LANG_HOOKS_WRITE_GLOBALS
 #define LANG_HOOKS_WRITE_GLOBALS c_write_global_declarations
 
 /* Hooks for tree gimplification.  */
 #undef LANG_HOOKS_GIMPLIFY_EXPR
 #define LANG_HOOKS_GIMPLIFY_EXPR c_gimplify_expr
+
+#undef LANG_HOOKS_OMP_PREDETERMINED_SHARING
+#define LANG_HOOKS_OMP_PREDETERMINED_SHARING c_omp_predetermined_sharing
+
+#undef LANG_HOOKS_TREE_INLINING_VAR_MOD_TYPE_P
+#define LANG_HOOKS_TREE_INLINING_VAR_MOD_TYPE_P c_vla_unspec_p
 
 #endif /* GCC_C_OBJC_COMMON */

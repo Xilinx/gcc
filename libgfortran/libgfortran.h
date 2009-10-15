@@ -197,6 +197,18 @@ typedef off_t gfc_offset;
 
 #include "kinds.h"
 
+/* Define the type used for the current record number for large file I/O.
+   The size must be consistent with the size defined on the compiler side.  */
+#ifdef HAVE_GFC_INTEGER_8
+typedef GFC_INTEGER_8 GFC_IO_INT;
+#else
+#ifdef HAVE_GFC_INTEGER_4
+typedef GFC_INTEGER_4 GFC_IO_INT;
+#else
+#error "GFC_INTEGER_4 should be available for the library to compile".
+#endif
+#endif
+
 /* The following two definitions must be consistent with the types used
    by the compiler.  */
 /* The type used of array indices, amongst other things.  */
@@ -211,6 +223,10 @@ internal_proto(l8_to_l4_offset);
 #define GFOR_POINTER_L8_TO_L4(p8) \
   (l8_to_l4_offset + (GFC_LOGICAL_4 *)(p8))
 
+#define GFC_INTEGER_1_HUGE \
+  (GFC_INTEGER_1)((((GFC_UINTEGER_1)1) << 7) - 1)
+#define GFC_INTEGER_2_HUGE \
+  (GFC_INTEGER_2)((((GFC_UINTEGER_2)1) << 15) - 1)
 #define GFC_INTEGER_4_HUGE \
   (GFC_INTEGER_4)((((GFC_UINTEGER_4)1) << 31) - 1)
 #define GFC_INTEGER_8_HUGE \
@@ -270,6 +286,8 @@ struct {\
 /* Commonly used array descriptor types.  */
 typedef GFC_ARRAY_DESCRIPTOR (GFC_MAX_DIMENSIONS, void) gfc_array_void;
 typedef GFC_ARRAY_DESCRIPTOR (GFC_MAX_DIMENSIONS, char) gfc_array_char;
+typedef GFC_ARRAY_DESCRIPTOR (GFC_MAX_DIMENSIONS, GFC_INTEGER_1) gfc_array_i1;
+typedef GFC_ARRAY_DESCRIPTOR (GFC_MAX_DIMENSIONS, GFC_INTEGER_2) gfc_array_i2;
 typedef GFC_ARRAY_DESCRIPTOR (GFC_MAX_DIMENSIONS, GFC_INTEGER_4) gfc_array_i4;
 typedef GFC_ARRAY_DESCRIPTOR (GFC_MAX_DIMENSIONS, GFC_INTEGER_8) gfc_array_i8;
 #ifdef HAVE_GFC_INTEGER_16
@@ -358,6 +376,7 @@ typedef struct
   int pedantic;
   int convert;
   size_t record_marker;
+  int max_subrecord_length;
 }
 compile_options_t;
 
@@ -367,6 +386,7 @@ internal_proto(compile_options);
 extern void init_compile_options (void);
 internal_proto(init_compile_options);
 
+#define GFC_MAX_SUBRECORD_LENGTH 2147483639   /* 2**31 - 9 */
 
 /* Structure for statement options.  */
 
@@ -402,6 +422,7 @@ typedef enum
   ERROR_ALLOCATION,
   ERROR_DIRECT_EOR,
   ERROR_SHORT_RECORD,
+  ERROR_CORRUPT_FILE,
   ERROR_LAST			/* Not a real error, the last error # + 1.  */
 }
 error_codes;
@@ -433,6 +454,11 @@ error_codes;
 typedef enum
 { SILENT, WARNING, ERROR }
 notification;
+
+/* This is returned by notify_std and several io functions.  */
+typedef enum
+{ SUCCESS = 1, FAILURE }
+try;
 
 /* The filename and line number don't go inside the globals structure.
    They are set by the rest of the program and must be linked to.  */
@@ -512,6 +538,9 @@ internal_proto(translate_error);
 extern void generate_error (struct st_parameter_common *, int, const char *);
 internal_proto(generate_error);
 
+extern try notify_std (struct st_parameter_common *, int, const char *);
+internal_proto(notify_std);
+
 /* fpu.c */
 
 extern void set_fpu (void);
@@ -564,6 +593,9 @@ internal_proto(init_units);
 
 extern void close_units (void);
 internal_proto(close_units);
+
+extern int unit_to_fd (int);
+internal_proto(unit_to_fd);
 
 /* stop.c */
 
@@ -622,6 +654,11 @@ internal_proto(internal_unpack_c8);
 #if defined HAVE_GFC_COMPLEX_10
 extern void internal_unpack_c10 (gfc_array_c10 *, const GFC_COMPLEX_10 *);
 internal_proto(internal_unpack_c10);
+#endif
+
+#if defined HAVE_GFC_COMPLEX_16
+extern void internal_unpack_c16 (gfc_array_c16 *, const GFC_COMPLEX_16 *);
+internal_proto(internal_unpack_c16);
 #endif
 
 /* string_intrinsics.c */
