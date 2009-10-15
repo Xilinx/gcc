@@ -2057,12 +2057,12 @@ obtained by quoting an integer.}#
   :disc_super discr_any_receiver
   :named_name '"DISCR_GIMPLE")
 
-;;; the discriminant for gimpleseqs
-(definstance discr_gimpleseq class_discriminant
-  :predef DISCR_GIMPLESEQ
+;;; the discriminant for gimple_seqs
+(definstance discr_gimple_seq class_discriminant
+  :predef DISCR_GIMPLE_SEQ
   :obj_num OBMAG_GIMPLESEQ
   :disc_super discr_any_receiver
-  :named_name '"DISCR_GIMPLESEQ")
+  :named_name '"DISCR_GIMPLE_SEQ")
 
 ;;; the discriminant for edges
 (definstance discr_edge class_discriminant
@@ -2071,60 +2071,60 @@ obtained by quoting an integer.}#
   :disc_super discr_any_receiver
   :named_name '"DISCR_EDGE")
 
-(definstance discr_basicblock class_discriminant
-  :predef DISCR_BASICBLOCK
+(definstance discr_basic_block class_discriminant
+  :predef DISCR_BASIC_BLOCK
   :obj_num OBMAG_BASICBLOCK
   :disc_super discr_any_receiver
-  :named_name '"DISCR_BASICBLOCK")
+  :named_name '"DISCR_BASIC_BLOCK")
 
 ;;; the discriminant for maps of objects
-(definstance discr_mapobjects class_discriminant
-  :predef DISCR_MAPOBJECTS
+(definstance discr_map_objects class_discriminant
+  :predef DISCR_MAP_OBJECTS
   :obj_num OBMAG_MAPOBJECTS
   :disc_super discr_any_receiver
-  :named_name '"DISCR_MAPOBJECTS")
+  :named_name '"DISCR_MAP_OBJECTS")
 
 ;;; the discriminant for maps of strings
-(definstance discr_mapstrings class_discriminant
-  :predef DISCR_MAPSTRINGS
+(definstance discr_map_strings class_discriminant
+  :predef DISCR_MAP_STRINGS
   :obj_num OBMAG_MAPSTRINGS
   :disc_super discr_any_receiver
-  :named_name '"DISCR_MAPSTRINGS")
+  :named_name '"DISCR_MAP_STRINGS")
 
 ;;; the discriminant for maps of trees
-(definstance discr_maptrees class_discriminant
-  :predef DISCR_MAPTREES
+(definstance discr_map_trees class_discriminant
+  :predef DISCR_MAP_TREES
   :obj_num OBMAG_MAPTREES
   :disc_super discr_any_receiver
-  :named_name '"DISCR_MAPTREES")
+  :named_name '"DISCR_MAP_TREES")
 
 ;;; the discriminant for maps of gimples
-(definstance discr_mapgimples class_discriminant
-  :predef DISCR_MAPGIMPLES
+(definstance discr_map_gimples class_discriminant
+  :predef DISCR_MAP_GIMPLES
   :obj_num OBMAG_MAPGIMPLES
   :disc_super discr_any_receiver
-  :named_name '"DISCR_MAPGIMPLES")
+  :named_name '"DISCR_MAP_GIMPLES")
 
-;;; the discriminant for maps of gimpleseqs
-(definstance discr_mapgimpleseqs class_discriminant
-  :predef DISCR_MAPGIMPLESEQS
+;;; the discriminant for maps of gimple_seqs
+(definstance discr_map_gimple_seqs class_discriminant
+  :predef DISCR_MAP_GIMPLE_SEQS
   :obj_num OBMAG_MAPGIMPLESEQS
   :disc_super discr_any_receiver
-  :named_name '"DISCR_MAPGIMPLESEQS")
+  :named_name '"DISCR_MAP_GIMPLE_SEQS")
 
 ;;; the discriminant for maps of edges
-(definstance discr_mapedges class_discriminant
-  :predef DISCR_MAPEDGES
+(definstance discr_map_edges class_discriminant
+  :predef DISCR_MAP_EDGES
   :obj_num OBMAG_MAPEDGES
   :disc_super discr_any_receiver
-  :named_name '"DISCR_MAPEDGES")
+  :named_name '"DISCR_MAP_EDGES")
 
-;;; the discriminant for maps of basicblocks
-(definstance discr_mapbasicblocks class_discriminant
-  :predef DISCR_MAPBASICBLOCKS
+;;; the discriminant for maps of basic_blocks
+(definstance discr_map_basic_blocks class_discriminant
+  :predef DISCR_MAP_BASIC_BLOCKS
   :obj_num OBMAG_MAPBASICBLOCKS
   :disc_super discr_any_receiver
-  :named_name '"DISCR_MAPBASICBLOCKS")
+  :named_name '"DISCR_MAP_BASIC_BLOCKS")
 
 
 ;;; the discriminant for PPL constraint system (not predefined)
@@ -2171,7 +2171,7 @@ obtained by quoting an integer.}#
 (definstance discr_methodmap class_discriminant
   :predef DISCR_METHODMAP
   :obj_num OBMAG_MAPOBJECTS
-  :disc_super discr_mapobjects
+  :disc_super discr_map_objects
   :named_name '"DISCR_METHODMAP")
 
 ;;; the discriminant for charcode integers
@@ -2305,11 +2305,12 @@ Also add the ctype as symbol data in the keyword and the alternate keyword if pr
   )
 (install_ctype_descr ctype_gimple "GCC gimple pointer")
 
-;; the C type for gcc gimpleseqs
-(definstance ctype_gimpleseq class_ctype
-  :predef CTYPE_GIMPLESEQ
-  :named_name  '"CTYPE_GIMPLESEQ"
-  :ctype_keyword ':gimpleseq
+;; the C type for gcc gimple_seqs
+(definstance ctype_gimple_seq class_ctype
+  :predef CTYPE_GIMPLE_SEQ
+  :named_name  '"CTYPE_GIMPLE_SEQ"
+  :ctype_keyword ':gimple_seq
+  :ctype_altkeyword ':gimpleseq
   :ctype_cname  '"gimple_seq"
   :ctype_parchar '"BPAR_GIMPLESEQ"
   :ctype_parstring '"BPARSTR_GIMPLESEQ"
@@ -2317,13 +2318,14 @@ Also add the ctype as symbol data in the keyword and the alternate keyword if pr
   :ctype_resfield '"bp_gimpleseqptr"
   :ctype_marker '"gt_ggc_mx_gimple_seq_d"
   )
-(install_ctype_descr ctype_gimpleseq "GCC gimpleseq pointer")
+(install_ctype_descr ctype_gimple_seq "GCC gimpleseq pointer")
 
-;; the C type for gcc basicblocks
-(definstance ctype_basicblock class_ctype
-  :predef CTYPE_BASICBLOCK
-  :named_name  '"CTYPE_BASICBLOCK"
-  :ctype_keyword ':basicblock
+;; the C type for gcc basic_blocks
+(definstance ctype_basic_block class_ctype
+  :predef CTYPE_BASIC_BLOCK
+  :named_name  '"CTYPE_BASIC_BLOCK"
+  :ctype_keyword ':basic_block
+  :ctype_altkeyword ':basicblock
   :ctype_cname  '"basic_block"
   :ctype_parchar '"BPAR_BB"
   :ctype_parstring '"BPARSTR_BB"
@@ -2331,7 +2333,7 @@ Also add the ctype as symbol data in the keyword and the alternate keyword if pr
   :ctype_resfield '"bp_bbptr"
   :ctype_marker '"gt_ggc_mx_basic_block_def"
   )
-(install_ctype_descr ctype_basicblock "GCC basicblock")
+(install_ctype_descr ctype_basic_block "GCC basic_block")
 
 ;; the C type for gcc edges
 (definstance ctype_edge class_ctype
@@ -2487,7 +2489,7 @@ Also add the ctype as symbol data in the keyword and the alternate keyword if pr
 
 ;;; container of a mapstring for cloning symbol, maping symbol names to boxed integer
 (definstance container_clonemapstring class_container
-  :container_value (make_mapstring discr_mapstrings 200)
+  :container_value (make_mapstring discr_map_strings 200)
   )
 
 (defun clone_symbol (symb)
@@ -2904,7 +2906,7 @@ Also add the ctype as symbol data in the keyword and the alternate keyword if pr
 (defun displaydebugmsg (val :cstring msgstr :long count)
   (let ( (:long dbgcounter (progn (increment_dbgcounter) (the_dbgcounter)))
 	 (sbuf (make_strbuf discr_strbuf)) 
-	 (occmap (make_mapobject discr_mapobjects 50))
+	 (occmap (make_mapobject discr_map_objects 50))
 	 (boxedmaxdepth (make_integerbox discr_integer 14))
 	 (dbgi (instance class_debuginfo
 			 :dbgi_out sbuf
@@ -2926,7 +2928,7 @@ Also add the ctype as symbol data in the keyword and the alternate keyword if pr
   (if (need_dbg 0) 
       (let ( (:long dbgcounter (progn (increment_dbgcounter) (the_dbgcounter)))
 	     (sbuf (make_strbuf discr_strbuf)) 
-	     (occmap (make_mapobject discr_mapobjects 53))
+	     (occmap (make_mapobject discr_map_objects 53))
 	     (boxedmaxdepth (make_integerbox discr_integer 10)) ;;;; @@@ DEBUGDEPTH
 	     (dbgi (instance class_debuginfo
 			     :dbgi_out sbuf
@@ -2946,18 +2948,18 @@ Also add the ctype as symbol data in the keyword and the alternate keyword if pr
 (definstance initial_system_data class_system_data
   :predef INITIAL_SYSTEM_DATA
   :named_name '"INITIAL_SYSTEM_DATA"
-  :sysdata_mode_dict  (make_mapstring discr_mapstrings 40) ;stringmap for modes
+  :sysdata_mode_dict  (make_mapstring discr_map_strings 40) ;stringmap for modes
   :sysdata_cont_fresh_env initfresh_contenvmaker	;fresh environment maker in module
   :sysdata_value_exporter initvalue_exporter ;value exporter in module
   :sysdata_macro_exporter initmacro_exporter ;macro exporter in module
-  :sysdata_symboldict  (make_mapstring discr_mapstrings 600) ;stringmap for symbols
-  :sysdata_keywdict  (make_mapstring discr_mapstrings 100) ;stringmap for keywords
+  :sysdata_symboldict  (make_mapstring discr_map_strings 600) ;stringmap for symbols
+  :sysdata_keywdict  (make_mapstring discr_map_strings 100) ;stringmap for keywords
   :sysdata_addsymbol  add_new_symbol_token ;closure to add a symbol of given name
   :sysdata_addkeyw add_new_keyword_token ;closure to add a keyword of given name
   :sysdata_internsymbol	intern_symbol	 ;closure to intern a symbol
   :sysdata_internkeyw intern_keyword	 ;closure to intern a keyword
   :sysdata_value_importer initvalue_importer
-  :sysdata_pass_dict (make_mapstring discr_mapstrings 100) ;stringmap for gcc passes
+  :sysdata_pass_dict (make_mapstring discr_map_strings 100) ;stringmap for gcc passes
   :sysdata_exit_finalizer init_exitfinalizer
   :sysdata_patmacro_exporter initpatmacro_exporter ; patmacro exporter in module
   :sysdata_debugmsg debugmsg
@@ -3942,7 +3944,7 @@ list.}#
 	 (:long mapcount (mapobject_count self))
 	 )
     (assert_msg "check out at start" (is_out out))
-    (if (== dis DISCR_MAPOBJECTS)
+    (if (== dis DISCR_MAP_OBJECTS)
 	(add2out_strconst out " {")
       (progn
 	(add2out_strconst out " |")
@@ -4011,7 +4013,7 @@ list.}#
 		   (add2out_strconst out "; ")
 		   )))))
 	  (add2out_strconst out "}")))))
-(install_method discr_mapobjects dbg_output dbgout_mapobject_method)
+(install_method discr_map_objects dbg_output dbgout_mapobject_method)
 
 
 
@@ -4075,7 +4077,7 @@ list.}#
 	 (boxedminusone (make_integerbox discr_integer -1))
 	 (tupl (make_multiple discr_multiple mapcount))
 	 )
-    (if (== dis DISCR_MAPSTRINGS)
+    (if (== dis DISCR_MAP_STRINGS)
 	(add2sbuf_strconst sbuf " <(")
       (progn
 	(add2sbuf_strconst sbuf " |")
@@ -4132,7 +4134,7 @@ list.}#
 		       (dbg_out curval dbgi (+i nextdepth 2))
 		       ))))))))
     (add2sbuf_strconst sbuf " )>")))
-(install_method discr_mapstrings dbg_output dbgout_mapstring_method)
+(install_method discr_map_strings dbg_output dbgout_mapstring_method)
 
 
 ;;;; generic object debug
@@ -4438,16 +4440,16 @@ list.}#
   (if (or (null parenv) (is_a parenv class_environment))
       (if descr
 	  (instance class_described_environment
-		    :env_bind (make_mapobject discr_mapobjects 26)
+		    :env_bind (make_mapobject discr_map_objects 26)
 		    :env_prev parenv
 		    :denv_descr descr)
 	(instance class_environment 
-		  :env_bind (make_mapobject discr_mapobjects 6)
+		  :env_bind (make_mapobject discr_map_objects 6)
 		  :env_prev parenv))))
 
 ;; the initial environment
 (definstance initial_environment class_described_environment
-  :env_bind  (make_mapobject discr_mapobjects 500)
+  :env_bind  (make_mapobject discr_map_objects 500)
   :denv_descr '"Initial Environment"
   )
 
@@ -4566,7 +4568,7 @@ list.}#
   (if (need_dbg 0) 
       (let ( (:long dbgcounter (progn (the_dbgcounter)))
 	     (out (get_field :sysdata_dumpfile initial_system_data)) 
-	     (occmap (make_mapobject discr_mapobjects 50))
+	     (occmap (make_mapobject discr_map_objects 50))
 	     (boxedmaxdepth (make_integerbox discr_integer 17)) ;;;; @@@ DEBUGDEPTH
 	     )
 	;; it may happen that OUT is null, e.g. because the dumpfile
@@ -5006,11 +5008,11 @@ list.}#
  )
 ;; export the discriminants and instances and selectors defined above
 (export_values				;alphabetical order
- ctype_basicblock
+ ctype_basic_block
  ctype_cstring     
  ctype_edge                   
  ctype_gimple
- ctype_gimpleseq
+ ctype_gimple_seq
  ctype_long   
  ctype_ppl_coefficient
  ctype_ppl_constraint
@@ -5022,7 +5024,7 @@ list.}#
  dbg_output
  dbg_outputagain
  discr_any_receiver                        
- discr_basicblock   
+ discr_basic_block   
  discr_box 
  discr_charinteger                    
  discr_class_sequence                       
@@ -5032,16 +5034,16 @@ list.}#
  discr_field_sequence                       
  discr_file
  discr_gimple
- discr_gimpleseq
+ discr_gimple_seq
  discr_integer                        
  discr_list                           
- discr_mapbasicblocks
- discr_mapedges
- discr_mapgimples
- discr_mapgimpleseqs
- discr_mapobjects                     
- discr_mapstrings                     
- discr_maptrees
+ discr_map_basic_blocks
+ discr_map_edges
+ discr_map_gimples
+ discr_map_gimple_seqs
+ discr_map_objects                     
+ discr_map_strings                     
+ discr_map_trees
  discr_methodmap 
  discr_mixed_bigint
  discr_mixed_integer                       
@@ -5147,6 +5149,7 @@ list.}#
 (compile_warning "temporary synonyms")
 ;;; (export_synonym previousname currentname)
 (export_synonym class_discr class_discriminant)
+(export_synonym ctype_gimpleseq ctype_gimple_seq)
 (export_synonym discr_anyrecv discr_any_receiver)
 (export_synonym discr_constinteger discr_constant_integer)
 (export_synonym discr_mixbigint discr_mixed_bigint)
@@ -5157,4 +5160,13 @@ list.}#
 (export_synonym discr_verbatimstring discr_verbatim_string)
 (export_synonym discr_seqclass discr_class_sequence)
 (export_synonym discr_seqfield discr_field_sequence)
+(export_synonym discr_basicblock discr_basic_block)
+(export_synonym discr_gimpleseq discr_gimple_seq)
+(export_synonym discr_mapobjects discr_map_objects)
+(export_synonym discr_mapbasicblocks discr_map_basic_blocks)
+(export_synonym discr_mapedges discr_map_edges)
+(export_synonym discr_mapgimples discr_map_gimples)
+(export_synonym discr_mapgimpleseqs discr_map_gimple_seqs)
+(export_synonym discr_mapstrings discr_map_strings)
+(export_synonym discr_maptrees discr_map_trees)
 ;; eof warmelt-first.melt

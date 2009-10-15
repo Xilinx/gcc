@@ -1,4 +1,31 @@
 2009-10-16  Basile Starynkevitch  <basile@starynkevitch.net>
+	[still renaming...]
+	* melt-predef.list: renaming *BASICBLOCK *GIMPLE_SEQ *MAP*
+	* melt-runtime.c (meltgc_new_gimpleseq) renamed DISCR_GIMPLESEQ as
+	DISCR_GIMPLE_SEQ
+	(meltgc_new_basicblock) renamed DISCR_BASICBLOCK as
+	DISCR_BASIC_BLOCK.
+	(readassoc) renamed DISCR_MAPOBJECTS as DISCR_MAP_OBJECTS.
+	* run-melt.h: other temporary #define-s.
+	* melt/warmelt-first.melt:  added renames
+	  ctype :basicblock ==> :basic_block
+	  ctype  :gimpleseq  ==> :gimple_seq
+	  and
+	    discr_basicblock => discr_basic_block)
+	    discr_gimpleseq => discr_gimple_seq)
+	    discr_mapobjects => discr_map_objects)
+	    discr_mapbasicblocks => discr_map_basic_blocks)
+	    discr_mapedges => discr_map_edges)
+	    discr_mapgimples => discr_map_gimples)
+	    discr_mapgimpleseqs => discr_map_gimple_seqs)
+	    discr_mapstrings => discr_map_strings)
+	    discr_maptrees => discr_map_trees)
+	..
+	* melt/ana-base.melt:
+	  did :gimpleseq ==> :gimple_seq && :basicblock ==> :basic_block
+	..
+
+2009-10-16  Basile Starynkevitch  <basile@starynkevitch.net>
 	[starting renaming...]
 	* melt-predef.list: sorted alphabetically & some renamed...
 	* melt-runtime.h: renamed DISCR_NULLRECV as DISCR_NULL_RECEIVER &

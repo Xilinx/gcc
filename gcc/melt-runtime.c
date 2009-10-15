@@ -2934,7 +2934,7 @@ meltgc_new_gimpleseq (meltobject_ptr_t discr_p, gimple_seq g)
 #define object_discrv ((meltobject_ptr_t)(discrv))
   discrv = (void *) discr_p;
   if (!discrv)
-    discrv = MELT_PREDEF (DISCR_GIMPLESEQ);
+    discrv = MELT_PREDEF (DISCR_GIMPLE_SEQ);
   if (melt_magic_discr ((melt_ptr_t) discrv) != OBMAG_OBJECT)
     goto end;
   if (object_discrv->object_magic != OBMAG_GIMPLESEQ)
@@ -2952,7 +2952,7 @@ end:
 }
 
 
-/* allocate a new boxed basic_block of given DISCR [or DISCR_BASICBLOCK] & content
+/* allocate a new boxed basic_block of given DISCR [or DISCR_BASIC_BLOCK] & content
    VAL */
 melt_ptr_t
 meltgc_new_basicblock (meltobject_ptr_t discr_p, basic_block bb)
@@ -2963,7 +2963,7 @@ meltgc_new_basicblock (meltobject_ptr_t discr_p, basic_block bb)
 #define object_discrv ((meltobject_ptr_t)(discrv))
   discrv = (void *) discr_p;
   if (!discrv)
-    discrv = MELT_PREDEF (DISCR_BASICBLOCK);
+    discrv = MELT_PREDEF (DISCR_BASIC_BLOCK);
   if (melt_magic_discr ((melt_ptr_t) discrv) != OBMAG_OBJECT)
     goto end;
   if (object_discrv->object_magic != OBMAG_BASICBLOCK)
@@ -6413,7 +6413,7 @@ readassoc (struct reading_st *rd)
     sz = MELT_MAXLEN;
   else if (sz < 0)
     sz = 2;
-  mapv = meltgc_new_mapobjects ((meltobject_ptr_t) MELT_PREDEF (DISCR_MAPOBJECTS), sz);
+  mapv = meltgc_new_mapobjects ((meltobject_ptr_t) MELT_PREDEF (DISCR_MAP_OBJECTS), sz);
   c = skipspace_getc (rd, COMMENT_SKIP);
   while (c != '}' && !rdeof ())
     {

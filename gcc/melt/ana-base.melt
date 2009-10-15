@@ -966,7 +966,7 @@
 (defcmatcher gimple_bind
   (:gimple gr)
   (:tree tvars tblock
-  :gimpleseq gbody
+  :gimple_seq gbody
 	 )
   gimpbind
   ;; test
@@ -1050,10 +1050,10 @@
 (defprimitive is_gimpleseq (v) :long
   #{(melt_magic_discr((melt_ptr_t)($v)) == OBMAG_GIMPLESEQ)}# )
 
-(defprimitive make_gimpleseq (discr :gimpleseq g) :value
+(defprimitive make_gimpleseq (discr :gimple_seq g) :value
   #{(meltgc_new_gimpleseq((meltobject_ptr_t)($discr),($g)))}# )
 
-(defprimitive gimpleseq_content (v) :gimpleseq
+(defprimitive gimpleseq_content (v) :gimple_seq
   #{(melt_gimpleseq_content((melt_ptr_t)($v)))}# )
 
 
@@ -1286,32 +1286,32 @@
 (defprimitive is_basicblock (v) :long
  #{ (melt_magic_discr((melt_ptr_t)($v)) == OBMAG_BASICBLOCK)}# )
 
-(defprimitive isnull_basicblock (:basicblock bb) :long
+(defprimitive isnull_basicblock (:basic_block bb) :long
  #{($bb == (basic_block)0)}# )
 
-(defprimitive notnull_basicblock (:basicblock bb) :long
+(defprimitive notnull_basicblock (:basic_block bb) :long
  #{($bb != (basic_block)0)}# )
 
-(defprimitive null_basicblock () :basicblock #{((basic_block)0)}#)
+(defprimitive null_basicblock () :basic_block #{((basic_block)0)}#)
 
-(defprimitive make_basicblock (discr :basicblock bb) :value
+(defprimitive make_basicblock (discr :basic_block bb) :value
  #{(meltgc_new_basicblock((meltobject_ptr_t)($discr),($bb)))}# )
 
 
-(defprimitive basicblock_content (v) :basicblock
+(defprimitive basicblock_content (v) :basic_block
  #{(melt_basicblock_content((melt_ptr_t)($v)))}# )
 
-(defprimitive basicblock_gimpleseq (v) :gimpleseq
+(defprimitive basicblock_gimpleseq (v) :gimple_seq
   #{(melt_basicblock_gimpleseq((melt_ptr_t)($v)))}# )
   
-(defprimitive basicblock_phinodes (v) :gimpleseq
+(defprimitive basicblock_phinodes (v) :gimple_seq
   #{(melt_basicblock_phinodes((melt_ptr_t)($v)))}# )
   
 (defprimitive ppstrbuf_gimple (sbuf :long indent :gimple g) :void
   #{ meltgc_ppstrbuf_gimple((melt_ptr_t)($sbuf), 
 			       (int) ($indent), ($g)) }# )
 
-(defprimitive ppstrbuf_gimple_seq (sbuf :long indent :gimpleseq gseq) :void
+(defprimitive ppstrbuf_gimple_seq (sbuf :long indent :gimple_seq gseq) :void
   #{ meltgc_ppstrbuf_gimple_seq((melt_ptr_t)($sbuf),
 				   (int) ($indent), ($gseq)) }# )
 
@@ -1319,21 +1319,21 @@
   #{ meltgc_ppstrbuf_tree((melt_ptr_t)($sbuf), 
 			     (int) ($indent), ($t)) }# )
 
-(defprimitive ppstrbuf_basicblock (sbuf :long indent :basicblock bb) :void
+(defprimitive ppstrbuf_basicblock (sbuf :long indent :basic_block bb) :void
   #{ meltgc_ppstrbuf_basicblock((melt_ptr_t)($sbuf),
 				   (int) ($indent), ($bb)) }# )
 
-(defprimitive basicblock_single_succ (:basicblock bb) :basicblock
+(defprimitive basicblock_single_succ (:basic_block bb) :basic_block
   #{(($bb && single_succ_p($bb))?single_succ($bb):NULL)}# )
 
-(defprimitive basicblock_nb_succ (:basicblock bb) :long
+(defprimitive basicblock_nb_succ (:basic_block bb) :long
   #{(($bb)?EDGE_COUNT($bb->succs):0)}#)
 
-(defprimitive basicblock_nth_succ_edge  (:basicblock bb :long ix) :edge
+(defprimitive basicblock_nth_succ_edge  (:basic_block bb :long ix) :edge
   #{(($bb && $ix>=0 && $ix<EDGE_COUNT($bb->succs))?EDGE_SUCC($bb,$ix):NULL)}#)
 
 ;;;;
-(defprimitive null_gimpleseq () :gimpleseq #{((gimple_seq)0)}#)
+(defprimitive null_gimpleseq () :gimple_seq #{((gimple_seq)0)}#)
 ;;;;;;;;;;;;;;;;
 
 (defprimitive is_mapbasicblock (map) :long
@@ -1344,22 +1344,22 @@
 (defprimitive mapbasicblock_count (map) :long
   #{(melt_count_mapbasicblocks((struct meltmapbasicblocks_st*)($map)))}#)
 ;; get an entry in a mapbasicblock from a C basicblock
-(defprimitive mapbasicblock_get (map :basicblock bb) :value
+(defprimitive mapbasicblock_get (map :basic_block bb) :value
   #{(melt_get_mapbasicblocks(($map), ($bb)))}#)
 ;; primitive for making a new map of basicblocks
 (defprimitive make_mapbasicblock (discr :long len) :value
   #{(meltgc_new_mapbasicblocks( (meltobject_ptr_t) ($discr),
 				   ($len)))}#)
 ;; primitive for putting into a map of basicblocks
-(defprimitive mapbasicblock_put (map :basicblock key :value val) :void
+(defprimitive mapbasicblock_put (map :basic_block key :value val) :void
   #{melt_put_mapbasicblocks( (struct meltmapbasicblocks_st *)
 				($map), ($key), (melt_ptr_t) ($val))}#)
 ;; primivite for removing from a map of basicblocks
-(defprimitive mapbasicblock_remove (map :basicblock key) :void
+(defprimitive mapbasicblock_remove (map :basic_block key) :void
  #{meltgc_remove_mapbasicblocks( (struct meltmapbasicblocks_st*) ($map), ($key))}#)
 
 ;; primitive to get the nth basicblock of a mapbasicblock
-(defprimitive mapbasicblock_nth_attr (map :long n) :basicblock
+(defprimitive mapbasicblock_nth_attr (map :long n) :basic_block
  #{(melt_nthattr_mapbasicblocks((struct meltmapbasicblocks_st*)($map), 
 				   (int)($n)))}#)
 ;; primitive to get the nth value of a mapobject
@@ -1369,7 +1369,7 @@
 (defciterator foreach_mapbasicblock 
   (bbmap)				; startformals
   eachmapbb 				;state symbol
-  (:basicblock bbatt :value bbval)	;local formals
+  (:basic_block bbatt :value bbval)	;local formals
   ;; before expansion
   #{
    /*eachbbmap*/ int  $eachmapbb#_rk=0;
@@ -1388,7 +1388,7 @@
   )
 
 (defciterator foreach_basicblock_succ_edge
-  (:basicblock bb)
+  (:basic_block bb)
   eachbbsucc
   (:edge e :long eix)
   #{
@@ -1695,7 +1695,7 @@
     (add2out_strconst out "!{")
     (foreach_mapbasicblock
      (self)
-     (:basicblock bbatt :value bbval)
+     (:basic_block bbatt :value bbval)
      (add2out_indentnl out (+i depth 1))
      (add2out_strconst out "*")
      (ppstrbuf_basicblock out (+i depth 1) bbatt)
@@ -1755,7 +1755,7 @@
 (defciterator each_cgraph_fun_body 
   ()					; startformals
   eachcgrfun 				;state symbol
-  (:tree funtree :gimpleseq funbody)	;local formals
+  (:tree funtree :gimple_seq funbody)	;local formals
   ;; before expansion
   #{
    struct cgraph_node *$eachcgrfun#_nd = NULL; 
@@ -1781,7 +1781,7 @@
 (defciterator each_cgraph_fun_entryblock
   ()					;startformals
   eachcgrblo				;state symbol
-  (:tree funtree :basicblock funbb)	;local formals
+  (:tree funtree :basic_block funbb)	;local formals
   ;;before expansion
   #{
    struct cgraph_node *$eachcgrblo#_nd = NULL; 
@@ -1831,7 +1831,7 @@
   ()					;startformals
   eachbbcfun				;state symbol
   (					;local formals
-   :basicblock cfunbb 
+   :basic_block cfunbb 
    :tree cfundecl
    )	
   ;;before expansion
@@ -1866,11 +1866,11 @@
 )
 
 ;; the basic block source of an edge
-(defprimitive edge_src_bb (:edge eg) :basicblock
+(defprimitive edge_src_bb (:edge eg) :basic_block
 #{ ($eg)?($eg->src):NULL }#)
 
 ;; the basic block destination of an edge
-(defprimitive edge_dest_bb (:edge eg) :basicblock
+(defprimitive edge_dest_bb (:edge eg) :basic_block
 #{ ($eg)?($eg->dest):NULL }#)
 
 ;; test if an edge is for a true value of a branch
@@ -1895,12 +1895,12 @@
   if (flag_melt_debug) debug_gimple_stmt($g);} while(0)
 }# )
 
-(defprimitive debuggimpleseq(:cstring msg :gimpleseq gs) :void
+(defprimitive debuggimpleseq(:cstring msg :gimple_seq gs) :void
   #{ do{debugeprintf("debuggimpleseq %s @%p", $msg, (void*)$gs);
   if (flag_melt_debug && $gs) debug_gimple_seq($gs);}while(0) 
   }#)
 
-(defprimitive debugbasicblock(:cstring msg :basicblock bb) :void
+(defprimitive debugbasicblock(:cstring msg :basic_block bb) :void
   #{ do{debugeprintf("debugbasicblock %s @%p", $msg, (void*)$bb);
   if (flag_melt_debug && $bb) debug_bb($bb);}while(0) 
 }#)
@@ -1909,7 +1909,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;; gimpleseq iteration
 ;;;; iterate on a gimpleseq
 (defciterator each_in_gimpleseq
-  (:gimpleseq gseq)			;start formals
+  (:gimple_seq gseq)			;start formals
   eachgimplseq
   (:gimple g)				;local formals
   ;;; before expansion
@@ -1927,7 +1927,7 @@
 
 ;;;; reverseiterate on a gimpleseq
 (defciterator reveach_in_gimpleseq
-  (:gimpleseq gseq)			;start formals
+  (:gimple_seq gseq)			;start formals
   eachgimplseq
   (:gimple g)				;local formals
   ;;; before expansion
@@ -1943,7 +1943,7 @@
   #{ } }# )
 
 ;; apply a function to each boxed gimple in a gimple seq
-(defun do_each_gimpleseq (f :gimpleseq gseq)
+(defun do_each_gimpleseq (f :gimple_seq gseq)
   (each_in_gimpleseq 
    (gseq) (:gimple g)
    (let ( (gplval (make_gimple discr_gimple g)) )
@@ -1952,7 +1952,7 @@
 
 
 ;; apply a function to each boxed gimple in a gimple seq
-(defun do_reveach_gimpleseq (f :gimpleseq gseq)
+(defun do_reveach_gimpleseq (f :gimple_seq gseq)
   (reveach_in_gimpleseq 
    (gseq) (:gimple g)
    (let ( (gplval (make_gimple discr_gimple g)) )
@@ -1962,7 +1962,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;; basicblock iteration
 
 (defciterator eachgimple_in_basicblock
-  (:basicblock bb)			;start formals
+  (:basic_block bb)			;start formals
   eachgimpbb
   (:gimple g)				;local formals
   ;;; before expansion
@@ -1979,7 +1979,7 @@
   #{ } /* end $eachgimpbb */ }#  )
   
 
-(defun do_eachgimple_in_basicblock (f :basicblock bb)
+(defun do_eachgimple_in_basicblock (f :basic_block bb)
   (eachgimple_in_basicblock 
    (bb) (:gimple g)
    (let ( (gplval (make_gimple discr_gimple g)) )
@@ -2011,7 +2011,7 @@
 ;;; safe queries to the cfun (when cfun is null, return null or 0)
 (defprimitive has_cfun () :long #{ cfun != NULL }#)
 
-(defprimitive cfun_gimple_body () :gimpleseq 
+(defprimitive cfun_gimple_body () :gimple_seq 
   #{ (cfun?(cfun->gimple_body):NULL) }#)
 
 (defprimitive cfun_decl () :tree 
@@ -2029,7 +2029,7 @@
 (defprimitive cfun_has_cfg () :long
   #{ (cfun?(cfun->cfg != NULL):0) }#)
 
-(defprimitive cfun_cfg_entry_block () :basicblock
+(defprimitive cfun_cfg_entry_block () :basic_block
   #{ ((cfun && cfun->cfg)? ENTRY_BLOCK_PTR_FOR_FUNCTION(cfun):NULL) }#)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
