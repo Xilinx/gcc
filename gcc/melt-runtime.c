@@ -5060,7 +5060,11 @@ compile_to_dyl (const char *srcfile, const char *dlfile)
   const char* compscrstr = melt_argument ("compile-script");
   char pwdbuf[500];
   memset(pwdbuf, 0, sizeof(pwdbuf));
-  getcwd(pwdbuf, sizeof(pwdbuf)-1);
+  if (flag_melt_debug) {
+    char* cwd = getcwd(pwdbuf, sizeof(pwdbuf)-1);
+    if (!cwd) 
+      fatal_error("Melt: getcwd failed %m");
+  }
   ourmeltcompilescript = CONST_CAST (char *, compscrstr);
   if (!ourmeltcompilescript || !ourmeltcompilescript[0])
     ourmeltcompilescript = melt_compile_script;

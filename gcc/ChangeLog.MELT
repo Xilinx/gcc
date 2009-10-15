@@ -1,4 +1,6 @@
 2009-10-16  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (compile_to_dyl): getcwd checked for failure.
+2009-10-16  Basile Starynkevitch  <basile@starynkevitch.net>
 	[most important renaming done]
 	* run-melt.h: commented out uneeded #define
 	* melt-predef.list: renamed:
