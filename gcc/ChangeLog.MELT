@@ -1,6 +1,9 @@
 2009-10-16  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.melt: added more documentation.
+
+2009-10-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (compile_to_dyl): getcwd checked for failure.
-2009-10-16  Basile Starynkevitch  <basile@starynkevitch.net>
+2009-10-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	[most important renaming done]
 	* run-melt.h: commented out uneeded #define
 	* melt-predef.list: renamed:
@@ -20,7 +23,7 @@
 	* melt/warmelt-outobj.melt: renaming as above.
 	* melt/ana-base.melt: renaming as above.
 	* melt/ana-simple.melt: renaming as above.
-	
+
 	[regenerated painfully a lot of times!]
 	* melt/warmelt-macro-0.c: regenerated.
 	* melt/warmelt-outobj-0.c: regenerated.
@@ -29,7 +32,7 @@
 	* melt/warmelt-normal-0.c: regenerated.
 	* melt/warmelt-first-0.c: regenerated.
 
-2009-10-16  Basile Starynkevitch  <basile@starynkevitch.net>
+2009-10-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	[still renaming...]
 	* melt-predef.list: renaming *BASICBLOCK *GIMPLE_SEQ *MAP*
 	* melt-runtime.c (meltgc_new_gimpleseq) renamed DISCR_GIMPLESEQ as
@@ -56,7 +59,7 @@
 	  did :gimpleseq ==> :gimple_seq && :basicblock ==> :basic_block
 	..
 
-2009-10-16  Basile Starynkevitch  <basile@starynkevitch.net>
+2009-10-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	[starting renaming...]
 	* melt-predef.list: sorted alphabetically & some renamed...
 	* melt-runtime.h: renamed DISCR_NULLRECV as DISCR_NULL_RECEIVER &

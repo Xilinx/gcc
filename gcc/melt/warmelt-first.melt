@@ -1851,96 +1851,98 @@ number $NUM opaque location number $LOC.}#
 
 
 
-(compile_warning "should document below this.")
 ;; test for mixbigint
 (defprimitive is_mixbigint (mb) :long
+  :doc #{Test if value $MB is a mixed bigint.}#
   "(melt_magic_discr((melt_ptr_t)(" mb ")) == OBMAG_MIXBIGINT)")
 (defprimitive mixbigint_val (mb) :value
+  :doc #{Retrieve the value inside a mixed bigint $MB.}#
   #{melt_val_mixbigint($mb)}#)
 
 (defprimitive ppstrbuf_mixbigint (:value sbuf :long indent :value mb) :void
+ :doc #{Pretty prints into string buffer $SBUF at indentation $INDENT the mixed bigint $MB.}#
  #{meltgc_ppstrbuf_mixbigint($sbuf,$indent,$mb);}#
 )
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; READ FILE primitive
 (defprimitive read_file (filnam) :value
-  "(meltgc_read_file (melt_string_str((melt_ptr_t)(" filnam ")), (char*)0))")
+  :doc #{Read from file named by the $FILNAM string balue a list of MELT s-expressions.}#
+  #{(meltgc_read_file (melt_string_str((melt_ptr_t)($filnam)), (char*)0))}#)
 
 
-;; to signal an error in a melt source with some additional string value
-(defprimitive error_strv (loc :cstring msg :value strv) :void
-  "melt_error_str((melt_ptr_t)(" loc "), (" msg 
-  "), (melt_ptr_t)(" strv "))")
+;; to signal an error in a  source with some additional string value
+(defprimitive error_strv (loc :cstring cmsg :value strv) :void
+  :doc #{Show an error at boxed location $LOC with raw message string $CMSG and string value $STRV.}#
+  #{melt_error_str((melt_ptr_t)($loc), ($cmsg), (melt_ptr_t)($strv))}#)
 
-;; signal a plain error in a melt source
-(defprimitive error_plain (loc :cstring msg) :void
-  "melt_error_str((melt_ptr_t)(" loc "), (" msg 
-  "), (melt_ptr_t)0)")
-
-
-;; to signal an warning in a melt source with some additional string value
-(defprimitive warning_strv (loc :cstring msg :value strv) :void
-  "melt_warning_str(0, (melt_ptr_t)(" loc "), (" msg 
-  "), (melt_ptr_t)(" strv "))")
-
-;; signal a plain warning in a melt source
-(defprimitive warning_plain (loc :cstring msg) :void
-  "melt_warning_str(0, (melt_ptr_t)(" loc "), (" msg 
-  "), (melt_ptr_t)0)")
+;; signal a plain error in a  source
+(defprimitive error_plain (loc :cstring cmsg) :void
+  :doc #{Show a plain error at boxed location $LOC with raw message string $CMSG.}#
+  #{melt_error_str((melt_ptr_t)($loc), ($cmsg), (melt_ptr_t)0)}#)
 
 
-;; signal a plain warning 
-(defprimitive warningmsg_plain (:cstring msg) :void
-  "warning(0, \"MELT WARNING MSG [#%ld]::: %s \", melt_dbgcounter, ("
-  msg "))"
-  )
+;; to signal an warning in a  source with some additional string value
+(defprimitive warning_strv (loc :cstring cmsg :value strv) :void
+  :doc #{Show a warning at boxed location $LOC with raw message string $CMSG and string value $STRV.}#
+  #{melt_warning_str(0, (melt_ptr_t)($loc), ($cmsg), (melt_ptr_t)($strv))}#)
+
+;; signal a plain warning in a  source
+(defprimitive warning_plain (loc :cstring cmsg) :void
+  :doc #{Show a plain warning at boxed location $LOC with raw message string $CMSG.}#
+  #{melt_warning_str(0, (melt_ptr_t)($loc), ($cmsg), (melt_ptr_t)0)}#)
 
 
 ;; signal a plain warning 
-(defprimitive warningmsg_strv (:cstring msg :value strv) :void
-  "warning(0, \"MELT WARNING MSG [#%ld]::: %s - %s\", melt_dbgcounter, ("
-  msg 
-  "), melt_string_str((melt_ptr_t)(" strv ")))"
+(defprimitive warningmsg_plain (:cstring cmsg) :void
+  :doc #{Show a plain warning with raw message string $CMSG.}#
+  #{warning(0, "MELT WARNING MSG [#%ld]::: %s", melt_dbgcounter, ($cmsg))}#  )
+
+
+;; signal a plain warning 
+(defprimitive warningmsg_strv (:cstring cmsg :value strv) :void
+  :doc #{Show a plain warning with raw message string $CMSG and string value $STRV.}#
+  #{warning(0, "MELT WARNING MSG [#%ld]::: %s - %s", melt_dbgcounter, ($cmsg), 
+	       melt_string_str((melt_ptr_t)($strv)))}#
   )
 
 ;; signal a plain error 
-(defprimitive errormsg_plain (:cstring msg) :void
-  "error(\"MELT ERROR MSG [#%ld]::: %s \", melt_dbgcounter, ("
-  msg "))"
+(defprimitive errormsg_plain (:cstring cmsg) :void
+  :doc #{Show a plain error with raw message string $CMSG.}#
+  #{error("MELT ERROR MSG [#%ld]::: %s", melt_dbgcounter, ($cmsg))}#
   )
 
 
 ;; signal a plain error
-(defprimitive errormsg_strv (:cstring msg :value strv) :void
-  "error(\"MELT ERROR MSG [#%ld]::: %s - %s\", melt_dbgcounter, ("
-  msg 
-  "), melt_string_str((melt_ptr_t)(" strv ")))"
+(defprimitive errormsg_strv (:cstring cmsg :value strv) :void
+  :doc #{Show a plain error with raw message string $CMSG and string value $STRV.}#
+  #{error("MELT ERROR MSG [#%ld]::: %s - %s", melt_dbgcounter, ($cmsg),
+	  melt_string_str((melt_ptr_t)($strv)))}#
   )
 
 
-;; to signal an inform in a melt source with some additional string value
-(defprimitive inform_strv (loc :cstring msg :value strv) :void
-  "melt_inform_str((melt_ptr_t)(" loc "), (" msg 
-  "), (melt_ptr_t)(" strv "))")
-;; signal a plain inform in a melt source
-(defprimitive inform_plain (loc :cstring msg) :void
-  "melt_inform_str((melt_ptr_t)(" loc "), (" msg 
-  "), (melt_ptr_t)0)")
+;; to signal an inform in a  source with some additional string value
+(defprimitive inform_strv (loc :cstring cmsg :value strv) :void
+  :doc #{Show a notice at boxed location $LOC with raw message string $CMSG and string value $STRV.}#
+  #{melt_inform_str((melt_ptr_t)($loc), ($cmsg), (melt_ptr_t)($strv))}#)
+;; signal a plain inform in a  source
+(defprimitive inform_plain (loc :cstring cmsg) :void
+  :doc #{Show a plain warning at boxed location $LOC with raw message string $CMSG.}#
+  #{melt_inform_str((melt_ptr_t)($loc), ($cmsg), (melt_ptr_t)0)}#)
 
-(defprimitive informsg_strv (:cstring msg :value strv) :void
-  "inform(UNKNOWN_LOCATION, (\"MELT INFORM [#%ld]: %s - %s\"), melt_dbgcounter, ("
-  msg
-  "), melt_string_str((melt_ptr_t)(" strv ")))"
+(defprimitive informsg_strv (:cstring cmsg :value strv) :void
+  :doc #{Show a plain notice with raw message string $CMSG and string value $STRV.}#
+  #{inform(UNKNOWN_LOCATION, ("MELT INFORM [#%ld]: %s - %s"), melt_dbgcounter, ($cmsg), 
+			     melt_string_str((melt_ptr_t)($strv)))}#
   )
 
-(defprimitive informsg_plain (:cstring msg) :void
-  "inform(UNKNOWN_LOCATION, (\"MELT INFORM [#%ld]: %s \"),  melt_dbgcounter, ("
-  msg
-  "))"
+(defprimitive informsg_plain (:cstring cmsg) :void
+  :doc #{Show a plain notice with raw message string $CMSG.}#
+  #{inform(UNKNOWN_LOCATION, "MELT INFORM [#%ld]: %s",  melt_dbgcounter, ($cmsg))}#
   )
 
 (defprimitive informsg_long (:cstring msg :long n) :void
-  "inform(UNKNOWN_LOCATION, (\"MELT INFORM [#%ld]: %s * %ld\"),  melt_dbgcounter, ("  msg  "), (" n "))"
+  :doc #{Show a plain notice with raw message string $CMSG and number $N.}#
+  #{inform(UNKNOWN_LOCATION, "MELT INFORM [#%ld]: %s * %ld",  melt_dbgcounter, ($msg), ($n))}#
   )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1949,6 +1951,7 @@ number $NUM opaque location number $LOC.}#
 (definstance discr_name_string class_discriminant
   :predef DISCR_NAME_STRING
   :obj_num OBMAG_STRING
+  :doc #{The $DISCR_NAME_STRING is the discriminant of name strings, such as the $NAMED_NAME of symbols.}#
 ;;; :named_name '"DISCR_NAME_STRING"
 ;;; :disc_super discr_string   ;; forward reference not allowed
   )
@@ -1957,6 +1960,8 @@ number $NUM opaque location number $LOC.}#
 (definstance discr_string class_discriminant
   :predef DISCR_STRING
   :obj_num OBMAG_STRING
+  :doc #{The $DISCR_STRING is the discriminant of strings. See also
+$DISCR_NAME_STRING and $DISCR_VERBATIM_STRING.}#
   :named_name '"DISCR_STRING")
 
 (unsafe_put_fields discr_name_string :disc_super discr_string)
@@ -1966,12 +1971,14 @@ number $NUM opaque location number $LOC.}#
 (definstance discr_verbatim_string class_discriminant
   :obj_num OBMAG_STRING
   :predef DISCR_VERBATIM_STRING
+  :doc #{The $DISCR_VERBATIM_STRING is the discriminant of verbatim strings. See also $DISCR_STRING.}#
   :named_name '"DISCR_VERBATIM_STRING"
   :disc_super discr_string
   )
 
 ;;; the discriminant for any receiver (used for sending to everything)
 (definstance discr_any_receiver class_discriminant
+  :doc #{The $DISCR_ANY_RECEIVER is the topmost discriminant of any value. See also $CTYPE_VALUE.}#
   :named_name '"DISCR_ANY_RECEIVER"
   )
 
@@ -1979,12 +1986,14 @@ number $NUM opaque location number $LOC.}#
 
 ;;; the discriminant for null reciever (used for sending to nil)
 (definstance discr_null_receiver class_discriminant
+  :doc #{The $DISCR_NULL_RECEIVER is the discriminant of the nil value, handling messages sent to nil.}#
   :predef DISCR_NULL_RECEIVER
   :disc_super discr_any_receiver
   :named_name '"DISCR_NULL_RECEIVER")
 
 ;;; the discriminant for strbuf
 (definstance discr_strbuf class_discriminant
+  :doc #{The $DISCR_STRBUF is the discriminant of string buffer values.}#
   :predef DISCR_STRBUF
   :obj_num OBMAG_STRBUF  
   :disc_super discr_any_receiver
@@ -1992,6 +2001,7 @@ number $NUM opaque location number $LOC.}#
 
 ;;; the discriminant for integers
 (definstance discr_integer class_discriminant
+  :doc #{The $DISCR_INTEGER is the discriminant of boxed integers. See also $CTYPE_LONG.}#
   :predef DISCR_INTEGER
   :obj_num OBMAG_INT 
   :disc_super discr_any_receiver
@@ -2003,12 +2013,14 @@ number $NUM opaque location number $LOC.}#
   :obj_num OBMAG_INT
   :disc_super discr_integer
   :named_name '"DISCR_CONSTANT_INTEGER"
-  :doc #{The discriminant for constant integers, in particular those
-obtained by quoting an integer.}# 
-)
+  :doc #{The $DISCR_CONSTANT_INTEGER is the discriminant for constant
+integer values, in particular those obtained by quoting an
+integer. The number inside is constant and remains unchanged by
+$PUT_INT. See also $DISCR_INTEGER.}# )
 
 ;;; the discriminant for lists
 (definstance discr_list class_discriminant
+  :doc #{The $DISCR_LIST is the discriminant of list values, made of pairs. See also $DISCR_PAIR.}#
   :predef DISCR_LIST
   :obj_num OBMAG_LIST 
   :disc_super discr_any_receiver
@@ -2016,6 +2028,7 @@ obtained by quoting an integer.}#
 
 ;;; the discriminant for pairs
 (definstance discr_pair class_discriminant
+  :doc #{The $DISCR_PAIR is the discriminant of pairs, notably inside lists. See also $DISCR_LIST.}#
   :predef DISCR_PAIR
   :obj_num OBMAG_PAIR 
   :disc_super discr_any_receiver
@@ -2023,6 +2036,8 @@ obtained by quoting an integer.}#
 
 ;;; the discriminant for multiples
 (definstance discr_multiple class_discriminant
+  :doc #{The $DISCR_MULTIPLE is the discriminant of multiple values, i.e. tuples. 
+See also $DISCR_FIELD_SEQUENCE and $DISCR_CLASS_SEQUENCE.}#
   :predef DISCR_MULTIPLE
   :obj_num OBMAG_MULTIPLE
   :disc_super discr_any_receiver
@@ -2030,6 +2045,9 @@ obtained by quoting an integer.}#
 
 ;;; the discriminant for sequence of fields
 (definstance discr_field_sequence class_discriminant
+  :doc #{The $DISCR_FIELD_SEQUENCE is the discriminant of field
+sequence tuple values, e.g. within classes. See also $DISCR_MULTIPLE
+and $CLASS_CLASS.}#
   :predef DISCR_FIELD_SEQUENCE
   :obj_num OBMAG_MULTIPLE
   :named_name '"DISCR_FIELD_SEQUENCE"
@@ -2038,6 +2056,8 @@ obtained by quoting an integer.}#
 
 ;;; the discriminant for boxes
 (definstance discr_box class_discriminant
+  :doc #{The $DISCR_BOX is the discriminant of box values, containing
+a single mutable value. See also $CLASS_CONTAINER.}#
   :predef DISCR_BOX
   :obj_num OBMAG_BOX
   :disc_super discr_any_receiver
@@ -2045,6 +2065,7 @@ obtained by quoting an integer.}#
 
 ;;; the discriminant for trees
 (definstance discr_tree class_discriminant
+  :doc #{The $DISCR_TREE is the discriminant of boxed GCC tree values. See also $CTYPE_TREE.}#
   :predef DISCR_TREE
   :obj_num OBMAG_TREE
   :disc_super discr_any_receiver
@@ -2052,6 +2073,7 @@ obtained by quoting an integer.}#
 
 ;;; the discriminant for gimples
 (definstance discr_gimple class_discriminant
+  :doc #{The $DISCR_GIMPLE is the discriminant of boxed GCC gimple values. See also $CTYPE_GIMPLE.}#
   :predef DISCR_GIMPLE
   :obj_num OBMAG_GIMPLE
   :disc_super discr_any_receiver
@@ -2059,6 +2081,7 @@ obtained by quoting an integer.}#
 
 ;;; the discriminant for gimple_seqs
 (definstance discr_gimple_seq class_discriminant
+  :doc #{The $DISCR_GIMPLE_SEQ is the discriminant of boxed GCC gimple_seq values. See also $CTYPE_GIMPLE_SEQ.}#
   :predef DISCR_GIMPLE_SEQ
   :obj_num OBMAG_GIMPLESEQ
   :disc_super discr_any_receiver
@@ -2066,12 +2089,15 @@ obtained by quoting an integer.}#
 
 ;;; the discriminant for edges
 (definstance discr_edge class_discriminant
+  :doc #{The $DISCR_EDGE is the discriminant of boxed GCC edge values. See also $CTYPE_EDGE.}#
   :predef DISCR_EDGE
   :obj_num OBMAG_EDGE
   :disc_super discr_any_receiver
   :named_name '"DISCR_EDGE")
 
 (definstance discr_basic_block class_discriminant
+  :doc #{The $DISCR_BASIC_BLOCK is the discriminant of boxed GCC basic_block values. See
+also $CTYPE_BASIC_BLOCK.}#
   :predef DISCR_BASIC_BLOCK
   :obj_num OBMAG_BASICBLOCK
   :disc_super discr_any_receiver
@@ -2079,6 +2105,8 @@ obtained by quoting an integer.}#
 
 ;;; the discriminant for maps of objects
 (definstance discr_map_objects class_discriminant
+  :doc #{The $DISCR_MAP_OBJECTS is the discriminant of hash-map values associating MELT objects to
+non-nil value.}#
   :predef DISCR_MAP_OBJECTS
   :obj_num OBMAG_MAPOBJECTS
   :disc_super discr_any_receiver
@@ -2086,6 +2114,8 @@ obtained by quoting an integer.}#
 
 ;;; the discriminant for maps of strings
 (definstance discr_map_strings class_discriminant
+  :doc #{The $DISCR_MAP_STRINGS is the discriminant of hash-map values associating raw strings to 
+non-nil value. See also $CTYPE_CSTRING.}#
   :predef DISCR_MAP_STRINGS
   :obj_num OBMAG_MAPSTRINGS
   :disc_super discr_any_receiver
@@ -2093,6 +2123,8 @@ obtained by quoting an integer.}#
 
 ;;; the discriminant for maps of trees
 (definstance discr_map_trees class_discriminant
+  :doc #{The $DISCR_MAP_TREES is the discriminant of hash-map values associating raw GCC tree-s
+to non-nil value. See also $CTYPE_TREE.}#
   :predef DISCR_MAP_TREES
   :obj_num OBMAG_MAPTREES
   :disc_super discr_any_receiver
@@ -2100,6 +2132,8 @@ obtained by quoting an integer.}#
 
 ;;; the discriminant for maps of gimples
 (definstance discr_map_gimples class_discriminant
+  :doc #{The $DISCR_MAP_GIMPLES is the discriminant of hash-map values associating raw GCC gimple-s 
+to non-nil value. See also $CTYPE_GIMPLE.}#
   :predef DISCR_MAP_GIMPLES
   :obj_num OBMAG_MAPGIMPLES
   :disc_super discr_any_receiver
@@ -2107,6 +2141,8 @@ obtained by quoting an integer.}#
 
 ;;; the discriminant for maps of gimple_seqs
 (definstance discr_map_gimple_seqs class_discriminant
+  :doc #{The $DISCR_MAP_GIMPLE_SEQS is the discriminant of hash-map values associating raw GCC gimple_seq-s 
+to non-nil value. See also $CTYPE_GIMPLE_SEQ.}#
   :predef DISCR_MAP_GIMPLE_SEQS
   :obj_num OBMAG_MAPGIMPLESEQS
   :disc_super discr_any_receiver
@@ -2114,6 +2150,8 @@ obtained by quoting an integer.}#
 
 ;;; the discriminant for maps of edges
 (definstance discr_map_edges class_discriminant
+  :doc #{The $DISCR_MAP_EDGES is the discriminant of hash-map values associating raw GCC edge-s 
+to non-nil value. See also $CTYPE_EDGE.}#
   :predef DISCR_MAP_EDGES
   :obj_num OBMAG_MAPEDGES
   :disc_super discr_any_receiver
@@ -2121,6 +2159,8 @@ obtained by quoting an integer.}#
 
 ;;; the discriminant for maps of basic_blocks
 (definstance discr_map_basic_blocks class_discriminant
+  :doc #{The $DISCR_MAP_BASIC_BLOCKS is the discriminant of hash-map values associating raw GCC basic_block-s 
+to non-nil value. See also $CTYPE_BASIC_BLOCK.}#
   :predef DISCR_MAP_BASIC_BLOCKS
   :obj_num OBMAG_MAPBASICBLOCKS
   :disc_super discr_any_receiver
@@ -2130,6 +2170,7 @@ obtained by quoting an integer.}#
 ;;; the discriminant for PPL constraint system (not predefined)
 (definstance discr_ppl_constraint_system class_discriminant
   :obj_num OBMAG_SPECPPL_CONSTRAINT_SYSTEM
+  :doc #{The $DISCR_PPL_CONSTRAINT_SYSTEM is the discriminant of boxed PPL constraint systems.}#
   :disc_super discr_any_receiver
   :named_name '"DISCR_PPL_CONSTRAINT_SYSTEM"
   )
@@ -2137,6 +2178,7 @@ obtained by quoting an integer.}#
 ;;; the discriminant for PPL polyhedron
 (definstance discr_ppl_polyhedron class_discriminant
   :obj_num OBMAG_SPECPPL_POLYHEDRON
+  :doc #{The $DISCR_PPL_POLYHEDRON is the discriminant of boxed PPL polyhedra.}#
   :disc_super discr_any_receiver
   :named_name '"DISCR_PPL_POLYHEDRON"
   )
@@ -2145,6 +2187,8 @@ obtained by quoting an integer.}#
 ;;; predefined)
 (definstance discr_file class_discriminant
   :obj_num OBMAG_SPEC_FILE
+  :doc #{The $DISCR_FILE is the discriminant of boxed FILE*, which are fclose-d when the 
+boxed value is inaccessible. See also $DISCR_RAWFILE.}#
   :disc_super discr_any_receiver
   :named_name '"DISCR_FILE"
   )
@@ -2152,6 +2196,8 @@ obtained by quoting an integer.}#
 ;; the discrimiant for raw files [not closed implicitly] (not
 ;;; predefined)
 (definstance discr_rawfile class_discriminant
+  :doc #{The $DISCR_RAWFILE is the discriminant of boxed FILE*, The MELT garbage collector dont
+fclose them. See also $DISCR_FILE.}#
   :obj_num OBMAG_SPEC_RAWFILE
   :disc_super discr_file
   :named_name '"DISCR_RAWFILE"
@@ -2160,6 +2206,8 @@ obtained by quoting an integer.}#
 
 ;;; the discriminant for sequence of classes 
 (definstance discr_class_sequence class_discriminant
+  :doc #{The $DISCR_CLASS_SEQUENCE is the discriminant of class sequence tuple values, e.g. inside classes. 
+See also $CLASS_CLASS and $DISCR_MULTIPLE.}#
   :predef DISCR_CLASS_SEQUENCE
   :obj_num OBMAG_MULTIPLE
   :named_name '"DISCR_CLASS_SEQUENCE"
@@ -2169,6 +2217,10 @@ obtained by quoting an integer.}#
 
 ;;; the discriminant for method dictionnary maps
 (definstance discr_method_map class_discriminant
+  :doc #{The $DISCR_METHOD_MAP is the discriminant of method
+dictionnary maps, associating selector values to closure value. See
+also $CLASS_CLASS, $CLASS_SELECTOR, $DISCR_CLOSURE and
+$DISCR_MAP_OBJECTS.}#
   :predef DISCR_METHOD_MAP
   :obj_num OBMAG_MAPOBJECTS
   :disc_super discr_map_objects
@@ -2176,6 +2228,8 @@ obtained by quoting an integer.}#
 
 ;;; the discriminant for charcode integers
 (definstance discr_character_integer class_discriminant
+  :doc #{The $DISCR_CHARACTER_INTEGER is the discriminant of 'character' boxed integer values. 
+See also $DISCR_INTEGER.}#
   :predef DISCR_CHARACTER_INTEGER
   :obj_num OBMAG_INT
   :named_name '"DISCR_CHARACTER_INTEGER"
@@ -2185,6 +2239,8 @@ obtained by quoting an integer.}#
 
 ;;; the discriminant for mixedintegers
 (definstance discr_mixed_integer class_discriminant
+  :doc #{The $DISCR_MIXED_INTEGER is the discriminant of mixed integer values, 
+containing both a number and a value component.}#
   :predef DISCR_MIXED_INTEGER
   :obj_num OBMAG_MIXINT
   :disc_super discr_any_receiver
@@ -2193,6 +2249,8 @@ obtained by quoting an integer.}#
 
 ;;; the discriminant for mixedintegers
 (definstance discr_mixed_bigint class_discriminant
+  :doc #{The $DISCR_MIXED_BIGINT is the discriminant of mixed bigint values, 
+containing both a GMP number and a value component.}#
   :predef DISCR_MIXED_BIGINT
   :obj_num OBMAG_MIXBIGINT
   :disc_super discr_any_receiver
@@ -2202,6 +2260,8 @@ obtained by quoting an integer.}#
 
 ;;; the discriminant for mixed locations
 (definstance discr_mixed_location class_discriminant
+  :doc #{The $DISCR_MIXED_LOCATION is the discriminant of mixed location values, 
+containing both a GCC location and a value component.}#
   :predef DISCR_MIXED_LOCATION
   :obj_num OBMAG_MIXLOC
   :disc_super discr_any_receiver
@@ -2210,6 +2270,8 @@ obtained by quoting an integer.}#
 
 ;;; the discriminant for closures
 (definstance discr_closure class_discriminant
+  :doc #{The $DISCR_CLOSURE is the discriminant of MELT function closures, i.e. functional values. 
+See also $DISCR_ROUTINE.}#
   :predef DISCR_CLOSURE
   :obj_num OBMAG_CLOSURE
   :disc_super discr_any_receiver
@@ -2217,6 +2279,8 @@ obtained by quoting an integer.}#
 
 ;;; the discriminant for routines
 (definstance discr_routine class_discriminant
+  :doc #{The $DISCR_ROUTINE is the discriminant of MELT routine values, which boxes 
+the routine pointer and the constants inside MELT function closure values. See also $DISCR_CLOSURE.}#
   :predef DISCR_ROUTINE
   :obj_num OBMAG_ROUTINE
   :disc_super discr_any_receiver
@@ -2251,6 +2315,7 @@ Also add the ctype as symbol data in the keyword and the alternate keyword if pr
 ;;; which should be enhanced for any new ctype
 ;; the C type for values
 (definstance ctype_value class_ctype
+  :doc #{The $CTYPE_VALUE is the c-type of any MELT value. See also $DISCR_ANY_RECEIVER, $CLASS_ROOT etc. Keyword is :value.}#
   :predef CTYPE_VALUE
   :named_name  '"CTYPE_VALUE"
   :ctype_keyword ':value
@@ -2266,6 +2331,7 @@ Also add the ctype as symbol data in the keyword and the alternate keyword if pr
 
 ;; the C type for long
 (definstance ctype_long class_ctype
+  :doc #{The $CTYPE_LONG is the c-type of raw long number stuff. See also $DISCR_INTEGER. Keyword is :long.}#
   :predef CTYPE_LONG
   :named_name  '"CTYPE_LONG"
   :ctype_keyword ':long
@@ -2279,6 +2345,7 @@ Also add the ctype as symbol data in the keyword and the alternate keyword if pr
 
 ;; the C type for gcc trees
 (definstance ctype_tree class_ctype
+  :doc #{The $CTYPE_TREE is the c-type of raw GCC tree stuff. See also $DISCR_TREE. Keyword is :tree.}#
   :predef CTYPE_TREE
   :named_name  '"CTYPE_TREE"
   :ctype_keyword ':tree
@@ -2293,6 +2360,7 @@ Also add the ctype as symbol data in the keyword and the alternate keyword if pr
 
 ;; the C type for gcc gimples
 (definstance ctype_gimple class_ctype
+  :doc #{The $CTYPE_GIMPLE is the c-type of raw GCC gimple stuff. See also $DISCR_GIMPLE. Keyword is :gimple.}#
   :predef CTYPE_GIMPLE
   :named_name  '"CTYPE_GIMPLE"
   :ctype_keyword ':gimple
@@ -2307,6 +2375,8 @@ Also add the ctype as symbol data in the keyword and the alternate keyword if pr
 
 ;; the C type for gcc gimple_seqs
 (definstance ctype_gimple_seq class_ctype
+  :doc #{The $CTYPE_GIMPLE_SEQ is the c-type of raw GCC gimple_seq stuff. See also $DISCR_GIMPLE_SEQ. 
+Keyword is :gimple_seq.}#
   :predef CTYPE_GIMPLE_SEQ
   :named_name  '"CTYPE_GIMPLE_SEQ"
   :ctype_keyword ':gimple_seq
@@ -2322,6 +2392,8 @@ Also add the ctype as symbol data in the keyword and the alternate keyword if pr
 
 ;; the C type for gcc basic_blocks
 (definstance ctype_basic_block class_ctype
+  :doc #{The $CTYPE_BASIC_BLOCK is the c-type of raw GCC basic_block stuff. See also $DISCR_BASIC_BLOCK.
+Keyword is :basic_block.}#
   :predef CTYPE_BASIC_BLOCK
   :named_name  '"CTYPE_BASIC_BLOCK"
   :ctype_keyword ':basic_block
@@ -2337,6 +2409,8 @@ Also add the ctype as symbol data in the keyword and the alternate keyword if pr
 
 ;; the C type for gcc edges
 (definstance ctype_edge class_ctype
+  :doc #{The $CTYPE_EDGE is the c-type of raw GCC edge stuff. See also $DISCR_EDGE.
+Keyword is :edge.}#
   :predef CTYPE_EDGE
   :named_name  '"CTYPE_EDGE"
   :ctype_keyword ':edge
@@ -2352,6 +2426,8 @@ Also add the ctype as symbol data in the keyword and the alternate keyword if pr
 ;;; the ctype for PPL coefficients
 (definstance ctype_ppl_coefficient class_ctype
   :predef CTYPE_PPL_COEFFICIENT
+  :doc #{The $CTYPE_PPL_COEFFICIENT is the c-type of raw PPL coefficient stuff. See also $DISCR_PPL_POLYHEDRON.
+Keyword is :ppl_coefficient.}#
   :named_name '"CTYPE_PPL_COEFFICIENT"
   :ctype_keyword ':ppl_coefficient
   :ctype_cname  '"ppl_Coefficient_t"
@@ -2365,6 +2441,8 @@ Also add the ctype as symbol data in the keyword and the alternate keyword if pr
 ;;;; PPL linear expressions
 (definstance ctype_ppl_linear_expression class_ctype
   :predef CTYPE_PPL_LINEAR_EXPRESSION
+  :doc #{The $CTYPE_PPL_LINEAR_EXPRESSION is the c-type of raw PPL linear expression stuff.
+Keyword is :ppl_linear_expression.}#
   :named_name '"CTYPE_PPL_LINEAR_EXPRESSION"
   :ctype_keyword ':ppl_linear_expression
   :ctype_cname  '"ppl_Linear_Expression_t"
@@ -2378,6 +2456,8 @@ Also add the ctype as symbol data in the keyword and the alternate keyword if pr
 ;;; the ctype for PPL constraints
 (definstance ctype_ppl_constraint class_ctype
   :predef CTYPE_PPL_CONSTRAINT
+  :doc #{The $CTYPE_PPL_CONSTRAINT is the c-type of raw PPL constraint stuff.
+Keyword is :ppl_constraint.}#
   :named_name '"CTYPE_PPL_CONSTRAINT"
   :ctype_keyword ':ppl_constraint
   :ctype_cname  '"ppl_Constraint_t"
@@ -2391,6 +2471,8 @@ Also add the ctype as symbol data in the keyword and the alternate keyword if pr
 ;;; the ctype for PPL constraint_systems
 (definstance ctype_ppl_constraint_system class_ctype
   :predef CTYPE_PPL_CONSTRAINT_SYSTEM
+  :doc #{The $CTYPE_PPL_CONSTRAINT_SYSTEM is the c-type of raw PPL constraint system stuff.
+Keyword is :ppl_constraint_system.}#
   :named_name '"CTYPE_PPL_CONSTRAINT_SYSTEM"
   :ctype_keyword ':ppl_constraint_system
   :ctype_cname  '"ppl_Constraint_System_t"
@@ -2405,6 +2487,8 @@ Also add the ctype as symbol data in the keyword and the alternate keyword if pr
 (definstance ctype_ppl_polyhedron class_ctype
   :predef CTYPE_PPL_POLYHEDRON
   :named_name '"CTYPE_PPL_POLYHEDRON"
+  :doc #{The $CTYPE_PPL_POLYHEDRON is the c-type of raw PPL polyhedron stuff.
+Keyword is :ppl_polyhedron.}#
   :ctype_keyword ':ppl_polyhedron
   :ctype_cname  '"ppl_Polyhedron_t"
   :ctype_parchar '"BPAR_PPL_POLYHEDRON"
@@ -2418,6 +2502,8 @@ Also add the ctype as symbol data in the keyword and the alternate keyword if pr
 ;; the C type for void
 (definstance ctype_void class_ctype
   :predef CTYPE_VOID
+  :doc #{The $CTYPE_VOID is the c-type of void stuff, used for expressions, e.g. primitive invocations, 
+with only a side effect and no results. Keyword is :void but cannot be used to type an argument or a result.}#
   :named_name  '"CTYPE_VOID"
   :ctype_keyword ':void
   :ctype_cname  '"void"
@@ -2427,6 +2513,8 @@ Also add the ctype as symbol data in the keyword and the alternate keyword if pr
 
 ;; the C type for constant C strings
 (definstance ctype_cstring class_ctype
+  :doc #{The $CTYPE_CSTRING is the c-type of raw C string [const char*] stuff. See also DISCR_STRING.
+Keyword is :cstring.}#
   :predef CTYPE_CSTRING
   :named_name  '"CTYPE_CSTRING"
   :ctype_keyword ':cstring
@@ -2437,6 +2525,10 @@ Also add the ctype as symbol data in the keyword and the alternate keyword if pr
   )
 (install_ctype_descr ctype_cstring "C constant strings (statically allocated outside of any heap)")
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(compile_warning "document after here")
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; function to box a value
 
 (defun boxval (v) 
@@ -5147,33 +5239,9 @@ list.}#
  )
 
 ;; we predefine :true as the TRUE. Currently no handcoded C function
-;; use it, but perhaps that could change!!
+;; uses it, but perhaps that could change!!
 
 (let ( ( truekeyword :true) )
   (code_chunk storetruekeyword #{MELT_STORE_PREDEF(TRUE,$truekeyword)}#))
 
-;;;;;;;;;;;;;;;;
-;;; synonyms for compatibility with older versions
-;(compile_warning "temporary synonyms")
-;(export_synonym discr_seqclass discr_class_sequence)
-;(export_synonym discr_seqfield discr_field_sequence)
-;(export_synonym discr_mapobjects discr_map_objects)
-;(export_synonym discr_mapstrings discr_map_strings)
-
-;; export_synonym discr_maptrees discr_map_trees)
-;; export_synonym discr_mapbasicblocks discr_map_basic_blocks)
-;; export_synonym discr_mapedges discr_map_edges)
-;; export_synonym discr_mapgimples discr_map_gimples)
-;; export_synonym discr_mapgimpleseqs discr_map_gimple_seqs)
-;;; (export_synonym previousname currentname)
-;; export_synonym class_discr class_discriminant)
-;; export_synonym ctype_gimpleseq ctype_gimple_seq)
-;(export_synonym discr_anyrecv discr_any_receiver)
-;(export_synonym discr_constinteger discr_constant_integer)
-;(export_synonym discr_mixbigint discr_mixed_bigint)
-;; export_synonym discr_mixedint discr_mixed_integer)
-;; export_synonym discr_mixedloc discr_mixed_location)
-;; export_synonym discr_namestring discr_name_string)
-;(export_synonym discr_nullrecv discr_null_receiver)
-;(export_synonym discr_verbatimstring discr_verbatim_string)
 ;; eof warmelt-first.melt
