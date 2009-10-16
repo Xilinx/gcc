@@ -1,5 +1,36 @@
 2009-10-16  Basile Starynkevitch  <basile@starynkevitch.net>
 	[the value importer takes the imported symbol name cstring as an
+	extra argument and also the module name as a string. Also renamed
+	class_debuginfo => class_debug_information class_genercontext =>
+	class_c_generation_context class_initgenercontext =>
+	class_initial_generation_context class_modulecontext =>
+	class_module_context class_normcontext =>
+	class_normalization_context class_normlet_binding =>
+	class_normal_let_binding class_objcode => class_generated_c_code
+	class_src => class_source ]
+	* melt/warmelt-first.melt: added more documentation. Renamed
+	classes as above. The value import protocol has been enhanced. The
+	module's name is added to the imported as an extra raw c-string
+	argument.
+	* melt/warmelt-macro.melt: Renamed classes as above.
+	* melt/warmelt-normal.melt: Renamed classes as above.
+	* melt/warmelt-genobj.melt: Renamed classes as
+	above. compile2obj_initproc improved to add the module's name in
+	imports.
+	* melt/warmelt-outobj.melt: Renamed classes as above.
+
+	[regenerated, since we renamed important classes, and since the
+	import protocol has changed - it has an another extra string
+	argument for the module!]
+	* melt/warmelt-macro-0.c: regenerated.
+	* melt/warmelt-outobj-0.c: regenerated.
+	* melt/warmelt-genobj-0.c: regenerated.
+	* melt/warmelt-normatch-0.c: regenerated.
+	* melt/warmelt-normal-0.c: regenerated.
+	* melt/warmelt-first-0.c: regenerated.
+
+2009-10-16  Basile Starynkevitch  <basile@starynkevitch.net>
+	[the value importer takes the imported symbol name cstring as an
 	extra argument; this facilitates error messages in the importer
 	when the import is failing. Also renamed class_clonedsymbol as
 	class_cloned_symbol.]
@@ -11,7 +42,8 @@
 	exported.
 	* melt/warmelt-normal.melt: renamed class_clonedsymbol as
 	class_cloned_symbol.
-	* melt/warmelt-genobj.melt: likewise.
+	* melt/warmelt-genobj.melt: likewise. compile2obj_initproc
+	improved to better generated import of values.
 	* melt/warmelt-outobj.melt: likewise.
 	* melt-make.mk: file warmelt-first*.c is specific [because it has
 	no parent module] so should never be compiled in "dynamic" mode

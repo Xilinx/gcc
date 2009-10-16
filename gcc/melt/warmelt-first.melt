@@ -208,8 +208,9 @@ $DEFUNMATCHER macro.}#
   :fields (sexp_contents		;list of contents
 	   )
   :doc #{The $CLASS_SEXPR is the class of source expressions, as
-parsed by the reader before their macro expansion. The $SEXP_CONTENTS
-field is a list of contents.}# )
+parsed by the reader before their macro expansion into abstract syntax
+tree [see $CLASS_SOURCE]. The $SEXP_CONTENTS field is a list of
+contents.}# )
 
 ;; class of message selectors
 (defclass class_selector
@@ -247,9 +248,11 @@ integer. Cloned symbols are not interned.}#)
   :predef CLASS_KEYWORD
   :super class_symbol
   :doc #{The $CLASS_KEYWORD is the sub-class of keywords, that is
-symbols starting with a colon, which are handled specially. The reader
-parses as keyword any symbol starting with a colon. Keywords are
-interned inside the $INITIAL_SYSTEM_DATA.}#
+symbols starting with a colon, which are handled specially and
+implicitly quoted. Most ctypes are denoted by such keywords
+like @code{:long :value} etc. The reader parses as keyword any symbol
+starting with a colon. Keywords are interned inside the
+$INITIAL_SYSTEM_DATA.}#
   :fields ())
 
 ;; class of C types keywords - it is predefined to ensure
@@ -322,13 +325,13 @@ don't instanciate this class!}#
 
 
 ;; class for debug information (used for debug_msg & dbgout* stuff)
-(defclass class_debuginfo 
+(defclass class_debug_information 
   :super class_root
   :fields (dbgi_out 			;the produced outbuf
 	   dbgi_occmap ;the occurrence map (to avoid outputing twice the same object)
 	   dbgi_maxdepth ;the boxed integer maximal depth
 	   )
-  :doc #{The $CLASS_DEBUGINFO is for debug information output,
+  :doc #{The $CLASS_DEBUG_INFORMATION is for debug information output,
 e.g. $DEBUG_MSG macro.  The produced output or buffer is $DBGI_OUT,
 the occurrence map is $DBGI_OCCMAP, used to avoid outputting twice the
 same object. The boxed maximal depth is $DBGI_MAXDEPTH.}# )
@@ -404,7 +407,8 @@ See The $EXPORT_VALUES macro.}#
   ;;the obj_num is the argument rank
   :predef CLASS_FORMAL_BINDING
   :doc #{The $CLASS_FORMAL_BINDING is the class of formal argument
-bindings. The $FBIND_TYPE gives the formal's c-type.}# )
+bindings [like in @code{defun lambda defprimitive defciterator}
+etc..]. The $FBIND_TYPE gives the formal's c-type.}# )
 
 
 ;;; fixed bindings are defined in a compilation unit and can be
@@ -413,7 +417,7 @@ bindings. The $FBIND_TYPE gives the formal's c-type.}# )
   :super class_any_binding
   :fields (fixbind_data			;the common slot describing data
 	   )
-  :doc #{The internal $CLASS_FIXED_BINDING is a superclass of bindings
+  :doc #{The internal $CLASS_FIXED_BINDING is a super-class of bindings
   inside a compilation unit. The data description is inside
   $FIXBIND_DATA. Fixed bindings are internal to the translator.}#)
 
@@ -518,16 +522,16 @@ $FMBIND_FUNMATCHER and its definition in $FMBIND_DEFUNMATCHER.}#)
 	   letbind_loc			;the optional src location
 	   )
   :doc #{The internal $CLASS_LET_BINDING is for internal let
-  bindings. See The $LET macro. The c-type of the bound valus is
+  bindings. See The $LET macro and also the
+  $CLASS_NORMAL_LET_BINDING. The c-type of the bound valus is
   $LETBIND_TYPE, the expression is $LETNIND_EXPR, the source location
-  if any is $LEBIND_LOC.}#
-)
+  if any is $LEBIND_LOC.}# )
 
 ;; normalized let binding
-(defclass class_normlet_binding
+(defclass class_normal_let_binding
   :super class_let_binding
   :fields  ()
-  :doc #{The internal $CLASS_NORMLET_BINDING is for internal
+  :doc #{The internal $CLASS_NORMAL_LET_BINDING is for internal
 normalized bindings. The bound expression is in normal form. Very
 often the $BINDER is a cloned symbol.}# 
 ) ;no additional field, but letbind_expr is "normal"
@@ -619,12 +623,12 @@ data. See the $INSTALL_MELT_MODE function. }# )
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; ================  source program elements
 
-;; common superclass of source elements
-(defclass class_src 
+;; common superclass of source abstract syntax tree elements
+(defclass class_source 
   :super class_located
   :fields ( 
 	  )
-  :doc #{The $CLASS_SRC is the common super-class of source elements,
+  :doc #{The $CLASS_SOURCE is the common super-class of source elements,
 i.e. of abstract syntax tree elements after macro-expansion. Its
 subclasses are produced by macro expanders.}# )
 
@@ -633,14 +637,14 @@ subclasses are produced by macro expanders.}# )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; module compilation context
-(defclass class_modulecontext
+(defclass class_module_context
   :super class_root
   :fields (mocx_modulename		;the module name
 	   mocx_expfieldict		;dict of exported fields
 	   mocx_expclassdict		;dict of exported classes
 	   mocx_initialenv		;the initial environment
 	   )
-  :doc #{The internal $CLASS_MODULECONTEXT describes the whole module
+  :doc #{The internal $CLASS_MODULE_CONTEXT describes the whole module
 context of a translation. $MOCX_MODULENAME gives the module name,
 $MOCX_EXPFIELDICT gives the dictionnary of exported fields,
 $MOCX_EXPCLASSDICT gives the dictionnary of exported classes, and
@@ -648,7 +652,7 @@ $MOCX_INITIALENV the initial environment. For gurus!}# )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; normalization context
-(defclass class_normcontext
+(defclass class_normalization_context
   :super class_root
   :fields (nctx_initproc		;initial procedure
 	   nctx_proclist		;list of procedures
@@ -666,7 +670,7 @@ $MOCX_INITIALENV the initial environment. For gurus!}# )
 	   nctx_qdatparmodenv		;quasi data for parent_module_environment
 	   nctx_procurmodenvlist	;list of procedures using the current_module_environment_container construct
 	   )
-  :doc #{The internal $CLASS_NORMCONTEXT (for gurus only) is used for
+  :doc #{The internal $CLASS_NORMALIZATION_CONTEXT (for gurus only) is used for
 expression normalization by the translator. $NCTX_INITPROC gives the
 initial procedure. $NCTX_PROCLIST is the list of
 procedures. $NCTX_DATALIST is the list of data. $NCTX_VALUELIST gives
@@ -688,7 +692,7 @@ using the current module environment is in $NCTX_PROCURMODENVLIST.}# )
 
 
 ;;; code generation context
-(defclass class_genercontext
+(defclass class_c_generation_context
   :super class_root
   :fields ( gncx_objrout 		;the containing object routine
 	    gncx_locmap			;objmap from normal bindings to locals
@@ -701,7 +705,7 @@ using the current module environment is in $NCTX_PROCURMODENVLIST.}# )
 	    gncx_matchmap		;map keyed by normal matchers
 					;giving a unique label prefix
 	    )
-  :doc #{The internal $CLASS_GENERCONTEXT (for gurus) is the class of
+  :doc #{The internal $CLASS_C_GENERATION_CONTEXT (for gurus) is the class of
 contexts for C code generation, while generating a single C
 routine. The containing object routine is $GNCX_OBJROUT. The object
 map from normal bindings to local is given in $GNCX_LOCMAP. The list
@@ -715,14 +719,14 @@ label prefix is in $GNCX_MATCHMAP.}# )
 
 
 ;; code generation context for initial routine
-(defclass class_initgenercontext
-  :super class_genercontext
+(defclass class_initial_generation_context
+  :super class_c_generation_context
   :fields (igncx_prevenvloc	    ;local for previous environment [parent_module_environment]
 	   igncx_contenvloc	    ;local for the container of environment
 	   igncx_procurmodenvlist   ;list of routines using the current_module_environment_container
 	   igncx_importmap	    ;mapping of imported symbols to locvars
 	   )
-  :doc #{The internal $CLASS_INITGENERCONTEXT (for gurus) is used when
+  :doc #{The internal $CLASS_INITIAL_GENERATION_CONTEXT (for gurus) is used when
 generating the initial routine of a module, which builds the current
 environment and evaluates the module toplevel expressions. The
 $IGNCX_PREVENVLOC is the local for the parent environment. The
@@ -733,12 +737,15 @@ $IGNCX_IMPORTMAP.}# )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; common superclass for objcode
-(defclass class_objcode
+(defclass class_generated_c_code
   :super class_root
   :fields (
 	   )
-  :doc #{The super-class $CLASS_OBJCODE is a common super-class for
-representing generated C abstract syntax trees.}#)
+  :doc #{The super-class $CLASS_GENERATED_C_CODE is a common
+super-class for representing generated C abstract syntax trees inside
+the MELT translator. Within MELT, it has nothing in common with GCC
+compiled C abstract syntax trees (that is @code{:tree} and
+@code{:gimple}).}#)
 
 
 ;; 
@@ -2645,7 +2652,6 @@ Keyword is :cstring.}#
     ))
 
 ;; initial value exporter - inside INITIAL_SYSTEM_DATA
-(compile_warning "the initial value importer should also get the symbol's :cstring")
 (defun initvalue_exporter (sym val contenv)
   ;;(debug_msg sym "initvalue_exporter sym")
   ;;(debug_msg val "initvalue_exporter val")
@@ -2736,7 +2742,9 @@ Keyword is :cstring.}#
 
 
 ;; initial value importer - inside INITIAL_SYSTEM_DATA
-(defun initvalue_importer (sym parenv :cstring strnam)
+(defun initvalue_importer (sym parenv :cstring strnam modnam)
+  (code_chunk ensuremodnam #{ /* $ensuremodnam */ if (!$modnam) $modnam = "???"; 
+	      }#)
   (if (is_not_a sym class_symbol)
       (progn
 	(debug_msg sym "initvalue_importer bad symb")
@@ -2744,9 +2752,9 @@ Keyword is :cstring.}#
 		    #{ /* $errfailimport */ 
 		    if ($strnam)
 		      error ("MELT [%s]: imported symbol %s not found",
-				 lbasename(__FILE__), $strnam);
+				 $modnam, $strnam);
 		    else
-		      error ("MELT [%s]: importing non symbol", lbasename(__FILE__));
+		      error ("MELT [%s]: importing non symbol", $modnam);
 		    }#)
 	(return)
 	))
@@ -2764,7 +2772,7 @@ Keyword is :cstring.}#
 		      #{ /* $errbadimport */
 		      const char* $errbadimport#_str = melt_string_str ((melt_ptr_t)$symnam);
 		      error ("MELT [%s]: imported symbol %s has unexpected binding of %s",
-			     lbasename(__FILE__),
+			     $modnam,
 			     $errbadimport#_str?$errbadimport#_str:$strnam,
 			     melt_string_str ((melt_ptr_t)$bindiscrnam));
 		    }#)
@@ -3034,7 +3042,7 @@ end of compilation unit in last place}#
 	 (sbuf (make_strbuf discr_strbuf)) 
 	 (occmap (make_mapobject discr_map_objects 50))
 	 (boxedmaxdepth (make_integerbox discr_integer 14))
-	 (dbgi (instance class_debuginfo
+	 (dbgi (instance class_debug_information
 			 :dbgi_out sbuf
 			 :dbgi_occmap occmap
 			 :dbgi_maxdepth boxedmaxdepth))
@@ -3056,7 +3064,7 @@ end of compilation unit in last place}#
 	     (sbuf (make_strbuf discr_strbuf)) 
 	     (occmap (make_mapobject discr_map_objects 53))
 	     (boxedmaxdepth (make_integerbox discr_integer 10)) ;;;; @@@ DEBUGDEPTH
-	     (dbgi (instance class_debuginfo
+	     (dbgi (instance class_debug_information
 			     :dbgi_out sbuf
 			     :dbgi_occmap occmap
 			     :dbgi_maxdepth boxedmaxdepth))
@@ -3550,14 +3558,14 @@ list.}#
 
 ;;; selector to output for debugging
 ;;; reciever: any object or value
-;;; arguments: the debuginfo (instance of class_debuginfo), the depth (long)
+;;; arguments: the debuginfo (instance of class_debug_information), the depth (long)
 (defselector dbg_output class_selector
   )
 
 
 ;;; selector to output again for debugging
 ;;; reciever: any object (already output)
-;;; arguments: the debuginfo (instance of class_debuginfo), the depth (long)
+;;; arguments: the debuginfo (instance of class_debug_information), the depth (long)
 (defselector dbg_outputagain class_selector
   )
 
@@ -3567,7 +3575,7 @@ list.}#
   )
 
 (defun dbg_outobject (obj dbgi :long depth)
-  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
   (let ( (occmap (unsafe_get_field :dbgi_occmap dbgi)) )
     (if (is_mapobject occmap)
 	(let ( (occ (mapobject_get occmap obj)) )
@@ -3585,7 +3593,7 @@ list.}#
   )
 
 (defun dbg_out (obj dbgi  :long depth) 
-  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
   (checkcallstack_msg "start dbg_out")
   (let ( (out (unsafe_get_field :dbgi_out dbgi))
 	 (discr (discrim obj))
@@ -3609,7 +3617,7 @@ list.}#
 
 ;; utility to dump fields in an object from a given rank to a given rank
 (defun dbgout_fields (obj dbgi :long depth fromrank torank)
-  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
   (assert_msg "check obj" (is_object obj))
   (let ( (:long nbf (object_length obj)) 
 	 (cla (discrim obj))
@@ -3644,7 +3652,7 @@ list.}#
 
 ;; utility to dump again fields in an object from a given rank to a given rank
 (defun dbgoutagain_fields (obj dbgi :long depth fromrank torank)
-  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
   (assert_msg "check obj" (is_object obj))
   (let ( (:long nbf (object_length obj)) 
 	 (cla (discrim obj))
@@ -3687,7 +3695,7 @@ list.}#
 
 ;; string debug output
 (defun dbgout_string_method (self dbgi :long depth)
-  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
   (let ( (dis (discrim self)) 
 	 (sbuf  (unsafe_get_field :dbgi_out dbgi))
 	 )
@@ -3711,7 +3719,7 @@ list.}#
 
 ;; integer debug output
 (defun dbgout_integer_method (self dbgi :long depth)
-  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
   (let ( (dis (discrim self)) 
 	 (sbuf  (unsafe_get_field :dbgi_out dbgi))
 	 )
@@ -3731,7 +3739,7 @@ list.}#
 
 ;; mixint debug value
 (defun dbgout_mixint_method (self dbgi :long depth)
-  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
   (let ( (dis (discrim self)) 
 	 (sbuf  (unsafe_get_field :dbgi_out dbgi))
 	 )
@@ -3758,7 +3766,7 @@ list.}#
 
 ;; mixloc debug value
 (defun dbgout_mixloc_method (self dbgi :long depth)
-  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
   (assert_msg "check self mixloc" (is_mixloc self))
   (let ( (dis (discrim self)) 
 	 (sbuf  (unsafe_get_field :dbgi_out dbgi))
@@ -3787,7 +3795,7 @@ list.}#
 
 ;; mixbigint debug value
 (defun dbgout_mixbigint_method (self dbgi :long depth)
-  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
   (assert_msg "check self mixbigint" (is_mixbigint self))
   (let ( (dis (discrim self)) 
 	 (sbuf  (unsafe_get_field :dbgi_out dbgi))
@@ -3809,7 +3817,7 @@ list.}#
 
 ;; multiple debug out
 (defun dbgout_multiple_method (self dbgi :long depth)
-  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
   (let ( (dis (discrim self)) 
 	 (sbuf (unsafe_get_field :dbgi_out dbgi))
 	 )
@@ -3843,7 +3851,7 @@ list.}#
 
 ;; routine debug out - don't print the routine components if depth is >0
 (defun dbgout_routine_method (self dbgi :long depth)
-  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
   (let ( (dis (discrim self)) 
 	 (sbuf (unsafe_get_field :dbgi_out dbgi))
 	 (boxdepthp1 (make_integerbox discr_integer (+i depth 1)))
@@ -3870,7 +3878,7 @@ list.}#
 
 ;; closure debug out 
 (defun dbgout_closure_method (self dbgi :long depth)
-  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
   (let ( (dis (discrim self)) 
 	 (:long oldmaxdepth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
 	 (sbuf  (unsafe_get_field :dbgi_out dbgi)) )
@@ -3906,7 +3914,7 @@ list.}#
 
 ;; list debug out 
 (defun dbgout_list_method (self dbgi :long depth)
-  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
   (let ( (dis (discrim self)) 
 	 (sbuf  (unsafe_get_field :dbgi_out dbgi)) )
     (if (== dis DISCR_LIST)
@@ -3946,7 +3954,7 @@ list.}#
 
 ;; pair debug output
 (defun dbgout_pair_method (self dbgi :long depth)
-  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
   (let ( (dis (discrim self)) 
 	 (sbuf  (unsafe_get_field :dbgi_out dbgi)) )
     (if (== dis DISCR_PAIR)
@@ -3966,7 +3974,7 @@ list.}#
 
 ;; box debug output
 (defun dbgout_box_method (self dbgi :long depth)
-  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
   (let ( (dis (discrim self)) 
 	 (sbuf  (unsafe_get_field :dbgi_out dbgi)) )
     (if (== dis DISCR_BOX)
@@ -4065,7 +4073,7 @@ list.}#
 
 
 (defun dbgout_mapobject_method (self dbgi :long depth)
-  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
   (let ( (dis (discrim self)) 
 	 (out  (get_field :dbgi_out dbgi))
 	 (:long mapcount (mapobject_count self))
@@ -4192,7 +4200,7 @@ list.}#
 
 ;; multiple debug out
 (defun dbgout_mapstring_method (self dbgi :long depth)
-  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
   (let ( (dis (discrim self)) 
 	 (sbuf (unsafe_get_field :dbgi_out dbgi))
 	 (:long ix 0)
@@ -4266,7 +4274,7 @@ list.}#
 
 ;;;; generic object debug
 (defun dbgout_anyobject_method (self dbgi :long depth)
-  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
   (let ( (dis (discrim self)) 
 	 (sbuf  (unsafe_get_field :dbgi_out dbgi)) ) 
     (add2sbuf_strconst sbuf "|")
@@ -4295,7 +4303,7 @@ list.}#
 
 ;;;; generic value debug
 (defun dbgout_anyrecv_method (self dbgi :long depth)
-  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
   (let ( (dis (discrim self)) 
 	 (sbuf  (unsafe_get_field :dbgi_out dbgi)) ) 
     (add2sbuf_strconst sbuf " ?.")
@@ -4306,7 +4314,7 @@ list.}#
 
 ;;; generic object debug outputagain
 (defun dbgoutagain_anyobject_method (self dbgi :long depth)
-  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
   (let ( (dis (discrim self)) 
 	 (sbuf  (unsafe_get_field :dbgi_out dbgi)) 
 	 (:long onum (obj_num self)) 
@@ -4330,7 +4338,7 @@ list.}#
 
 ;;;; named object debug
 (defun dbgout_namedobject_method (self dbgi :long depth)
-  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
   (let ( (dis (discrim self)) 
 	 (out  (unsafe_get_field :dbgi_out dbgi))
 	 (onam (unsafe_get_field :named_name self))
@@ -4369,7 +4377,7 @@ list.}#
 
 ;;;; named object debug outputagain
 (defun dbgoutagain_namedobject_method (self dbgi :long depth)
-  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
   (let ( (dis (discrim self)) 
 	 (out  (unsafe_get_field :dbgi_out dbgi))
 	 (onam (unsafe_get_field :named_name self)) 
@@ -4391,7 +4399,7 @@ list.}#
 
 ;;;; symbol output debug & again
 (defun dbgout_symbol_method (self dbgi :long depth)
-  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
   (assert_msg "check self" (is_a self class_symbol))
   (if (<=i depth 0)
       (dbgout_namedobject_method self dbgi 0)
@@ -4399,7 +4407,7 @@ list.}#
 (install_method class_symbol dbg_output dbgout_symbol_method)
 
 (defun dbgoutagain_symbol_method (self dbgi :long depth)
-  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
   (assert_msg "check self" (is_a self class_symbol))
   (let ( (out  (unsafe_get_field :dbgi_out dbgi))
 	 (onam (unsafe_get_field :named_name self))
@@ -4419,7 +4427,7 @@ list.}#
 
 ;;;; class output debug & again
 (defun dbgout_class_method (self dbgi :long depth)
-  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
   (assert_msg "check self" (is_a self class_class))
   (if (<=i depth 0)
       (dbgout_namedobject_method self dbgi 0)
@@ -4428,7 +4436,7 @@ list.}#
 
 ;;;; keyword output debug & again
 (defun dbgout_keyword_method (self dbgi :long depth)
-  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
   (assert_msg "check self" (is_a self class_keyword))
   (if (<=i depth 0)
       (dbgout_namedobject_method self dbgi 0)
@@ -4436,7 +4444,7 @@ list.}#
 (install_method class_keyword dbg_output dbgout_keyword_method)
 
 (defun dbgoutagain_keyword_method (self dbgi :long depth)
-  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
   (assert_msg "check self" (is_a self class_keyword))
   (let ( (out  (unsafe_get_field :dbgi_out dbgi))
 	 (onam (unsafe_get_field :named_name self))
@@ -4456,7 +4464,7 @@ list.}#
 
 ;;;; cloned_symbol output debug & again
 (defun dbgout_cloned_symbol_method (self dbgi :long depth)
-  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
   (assert_msg "check self" (is_a self class_cloned_symbol))
   (if (<=i depth 0)
       (dbgout_namedobject_method self dbgi 0)
@@ -4488,7 +4496,7 @@ list.}#
 
 ;;;; environment output debug
 (defun dbgout_environment_method (self dbgi :long depth)
-  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
   (assert_msg "check self" (is_a self class_environment))
   (let ( (dis (discrim self)) 
 	 (out (unsafe_get_field :dbgi_out dbgi)) 
@@ -4534,7 +4542,7 @@ list.}#
 
 ;;;; ctype output debug & again
 (defun dbgout_ctype_method (self dbgi :long depth)
-  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
   (assert_msg "check self" (is_a self class_ctype))
   (if (<=i depth 0)
       (dbgout_namedobject_method self dbgi 0)
@@ -4714,7 +4722,7 @@ list.}#
 		(setq out (get_field :sysdata_stderr initial_system_data))
 		)))
 	(let ( 
-	      (dbgi (instance class_debuginfo
+	      (dbgi (instance class_debug_information
 			      :dbgi_out out
 			      :dbgi_occmap occmap
 			      :dbgi_maxdepth boxedmaxdepth))
@@ -4757,7 +4765,7 @@ list.}#
 
 ;;;; any binding debug output
 (defun dbgout_anybinding_method (self dbgi :long depth)
-  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
   (assert_msg "check self" (is_a self class_any_binding))
   (let ( (dis (discrim self)) 
 	 (out  (unsafe_get_field :dbgi_out dbgi)) 
@@ -4859,7 +4867,7 @@ list.}#
  class_cmatcher_binding
  class_cmatcher
  class_ctype
- class_debuginfo 
+ class_debug_information 
  class_described_environment
  class_discriminant 
  class_environment
@@ -4871,12 +4879,12 @@ list.}#
  class_function_binding
  class_funmatcher
  class_funmatcher_binding
- class_genercontext
+ class_c_generation_context
  class_gcc_gimple_pass
  class_gcc_pass
  class_gcc_rtl_pass
  class_gcc_simple_ipa_pass
- class_initgenercontext
+ class_initial_generation_context
  class_instance_binding
  class_keyword
  class_label_binding
@@ -4884,11 +4892,11 @@ list.}#
  class_located
  class_macro_binding
  class_melt_mode
- class_modulecontext
+ class_module_context
  class_named
- class_normcontext
- class_normlet_binding
- class_objcode
+ class_normalization_context
+ class_normal_let_binding
+ class_generated_c_code
  class_patmacro_binding
  class_primitive
  class_primitive_binding
@@ -4897,7 +4905,7 @@ list.}#
  class_selector
  class_selector_binding 
  class_sexpr
- class_src
+ class_source
  class_symbol
  class_system_data
  class_value_binding 

@@ -252,7 +252,7 @@
   )
 
 (defun dbgout_smallabstractenv (self dbgi :long depth)
-  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
   (assert_msg "check self" (is_a self class_smallabstractenv))
   (let ( (dis (discrim self)) 
 	 (out (unsafe_get_field :dbgi_out dbgi)) 

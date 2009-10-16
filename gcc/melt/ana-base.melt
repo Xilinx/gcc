@@ -1625,7 +1625,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; boxed gimple debug
 (defun dbgout_boxgimple_method (self dbgi :long depth)
-  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
   (let ( (dis (discrim self)) 
 	 (out (unsafe_get_field :dbgi_out dbgi)) ) 
     (add2out_strconst out " ?/")
@@ -1639,7 +1639,7 @@
 
 ;;;; boxed gimple seq debug
 (defun dbgout_boxgimpleseq_method (self dbgi :long depth)
-  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
   (let ( (dis (discrim self)) 
 	 (out  (unsafe_get_field :dbgi_out dbgi)) ) 
     (add2out_strconst out " ?/")
@@ -1653,7 +1653,7 @@
 
 ;;;; boxed tree debug
 (defun dbgout_boxtree_method (self dbgi :long depth)
-  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
   (let ( (dis (discrim self)) 
 	 (out  (unsafe_get_field :dbgi_out dbgi)) ) 
     (add2out_strconst out " ?/")
@@ -1667,7 +1667,7 @@
 
 ;;;; boxed basicblock debug
 (defun dbgout_boxbasicblock_method (self dbgi :long depth)
-  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
   (let ( (dis (discrim self)) 
 	 (out  (unsafe_get_field :dbgi_out dbgi)) ) 
     (add2out_strconst out " ?/")
@@ -1683,7 +1683,7 @@
 
 ;;;; basicblockmap debug
 (defun dbgout_mapbasicblock_method (self dbgi :long depth)
-  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
   (assert_msg "check self" (is_mapbasicblock self))
   (let ( (dis (discrim self)) 
 	 (:long mapcount (mapbasicblock_count self))
@@ -1710,7 +1710,7 @@
 
 ;;;; treemap debug
 (defun dbgout_maptree_method (self dbgi :long depth)
-  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
   (assert_msg "check self" (is_maptree self))
   (let ( (dis (discrim self)) 
 	 (:long mapcount (maptree_count self))

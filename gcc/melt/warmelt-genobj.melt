@@ -32,7 +32,7 @@
 
 ;;;; value like objects
 (defclass class_objvalue
-  :super class_objcode
+  :super class_generated_c_code
   :fields ( obv_type			;the ctype
 	    ))
 
@@ -145,7 +145,7 @@
 
 ;;;; instructions
 (defclass class_objinstr
-  :super class_objcode
+  :super class_generated_c_code
   :fields (obi_loc			;src location
 	   ))
 
@@ -585,7 +585,7 @@
   (let ( (discr (discrim recv)) ) (outstr_err (unsafe_get_field :named_name discr)))
   (outnewline_err)
   (assert_msg "@@ unexpected catchall putobjdest objcod" ()))
-(install_method class_objcode put_objdest putobjdest_catchall_objcode)
+(install_method class_generated_c_code put_objdest putobjdest_catchall_objcode)
 
 
 (defun putobjdest_catchall_anydiscr (recv desto)
@@ -677,7 +677,7 @@
   ;;(debug_msg compicache "compilproc compicache")
   (assert_msg "check pro" (is_a pro class_nrep_routproc))
   (assert_msg "check compicache" (is_mapobject compicache))
-  (assert_msg "check modctx" (is_a modctx class_modulecontext))
+  (assert_msg "check modctx" (is_a modctx class_module_context))
   (let ( (namsbuf (make_strbuf discr_strbuf)) 
 	 (routfunam ())
 	 )
@@ -709,7 +709,7 @@
 			    :oprout_funam routfunam
 			    )) 
 	  (locmap (make_mapobject discr_map_objects (+i 20 (*i 3 (multiple_length nargb)))))
-	  (gcx (instance class_genercontext
+	  (gcx (instance class_c_generation_context
 			 :gncx_objrout obrout
 			 :gncx_locmap locmap
 			 :gncx_freeptrlist (make_list discr_list)
@@ -796,7 +796,7 @@
 (defun compile2obj_initproc (ipro modctx idata compicache procurmodenvlist importvalues)
   (assert_msg "check ipro" (is_a ipro class_nrep_initproc))
   (assert_msg "check idata" (is_list idata))
-  (assert_msg "check modctx" (is_a modctx class_modulecontext))
+  (assert_msg "check modctx" (is_a modctx class_module_context))
   (assert_msg "check compicache" (is_mapobject compicache))
   (assert_msg "check importvalues" (is_list importvalues))
   (debug_msg ipro "compile2obj_initproc ipro")
@@ -820,7 +820,7 @@
 		   ))
 	(importmap (make_mapobject discr_map_objects 50))
 	(gcx (instance 
-	      class_initgenercontext
+	      class_initial_generation_context
 	      :gncx_objrout oinitrout
 	      :gncx_locmap locmap
 	      :gncx_freeptrlist (make_list discr_list)
@@ -1021,12 +1021,13 @@
 		   (let ( (impsym (unsafe_get_field :nimport_symb curimport)) 
 			  (impsydat (unsafe_get_field :nimport_sydata curimport))
 			  (impsymstr (get_field :named_name impsym))
+			  (modulstr (get_field :mocx_modulename modctx)) 
 			  (osymdat (compile_obj impsydat gcx))
 			  (oimplocv (mapobject_get importmap impsym))
 			  (oimpappl (instance class_objapply
 					      :obdi_destlist (list1 oimplocv)
 					      :obapp_clos ovalueimporter
-					      :obapp_args (make_tuple3 discr_multiple osymdat oprevenv impsymstr)))
+					      :obapp_args (make_tuple4 discr_multiple osymdat oprevenv impsymstr modulstr)))
 			  )
 		     (list_append oiniprolog oimpappl)
 		     )))
@@ -1104,7 +1105,7 @@
 ;;;function to get a free local value pointer for some name
 ;; any free ptr is only reused for its offset. the objlocv is not reused...
 (defun get_free_objlocptr (gcx nam)
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   ;;(debug_msg nam "get_free_objlocptr start nam")
   (let ( (orout (unsafe_get_field :gncx_objrout gcx))
 	 (freeli (unsafe_get_field :gncx_freeptrlist gcx)) 
@@ -1155,7 +1156,7 @@
 
 ;;; function to get a free local long for some name
 (defun get_free_objloclong (gcx nam)
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (let ( (orout (unsafe_get_field :gncx_objrout gcx))
 	 (freeli (unsafe_get_field :gncx_freelonglist gcx)) 
 	 (pfree (list_popfirst freeli))
@@ -1198,7 +1199,7 @@
 (defun get_free_objloctyped (gcx nam ctyp)
   (debug_msg nam "get_free_objloctyped nam")
   (debug_msg ctyp "get_free_objloctyped ctyp")
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (assert_msg "check ctyp" (is_a ctyp class_ctype))
   (cond ( (== ctyp ctype_long)
 	  (return (get_free_objloclong gcx nam)))
@@ -1258,7 +1259,7 @@
 ;; function to dispose, i.e. mark as free and reusable, an  objlocation
 (defun dispose_objloc (oldloc gcx)
   (assert_msg "check oldloc" (is_a oldloc class_objlocv))
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   ;; the obl_proc iff it has already been freed
   (assert_msg "check used oldloc" (unsafe_get_field :obl_proc oldloc))
   (let ( (oldcty (unsafe_get_field :obv_type oldloc)) )
@@ -1287,7 +1288,7 @@
 ;; function to dispose, i.e. mark as free, a binding 
 (defun dispose_bnd_obj (bnd gcx)
   (assert_msg "check bnd" (is_a bnd class_any_binding))
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (debug_msg bnd "dispose_bnd_obj start bnd")
   (let ( (locmap (unsafe_get_field :gncx_locmap gcx))
 	 (oldloc (mapobject_get locmap bnd)) )
@@ -1310,7 +1311,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_nrep_chunk (nchk gcx)
   (assert_msg "check nchk" (is_a nchk class_nrep_chunk))
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (debug_msg nchk "compilobj nrepchunk nchk")
   (let ( (loc (unsafe_get_field :nrep_loc nchk))
 	 (nexp (unsafe_get_field :nchunk_expansion nchk))
@@ -1355,7 +1356,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_nrep_nil (nilo gcx)
   (assert_msg "check nilo" (is_a nilo class_nrep_nil))
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (debug_msg nilo "compilobj_nrep_nil nilo")
   (let ( (obnil (instance class_objnil
 			  :obv_type ctype_value)) )
@@ -1367,7 +1368,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_nrep_comment (ncomm gcx)
   (assert_msg "check ncomm" (is_a ncomm class_nrep_comment))
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (debug_msg ncomm "compilobj_nrep_comment start")
   (let ( (coms (unsafe_get_field :ncomm_string ncomm))
 	 (nloc (unsafe_get_field :nrep_loc ncomm))
@@ -1391,7 +1392,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_nrep_locsymocc (lsyo gcx)
   (assert_msg "check nchk" (is_a lsyo class_nrep_locsymocc))
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (let ( (loc (unsafe_get_field :nrep_loc lsyo))
 	 (locmap (unsafe_get_field :gncx_locmap gcx))
 	 (sym (unsafe_get_field :nocc_symb lsyo))
@@ -1428,7 +1429,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_nrep_closedocc (nclo gcx)
   (assert_msg "check nclo" (is_a nclo class_nrep_closedocc))
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (debug_msg nclo "compilobj closedocc nclo")
   ;;(debug_msg gcx "compilobj closedocc gcx")
   (let ( 
@@ -1482,7 +1483,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_nrep_constocc (ncnst gcx)
   (assert_msg "check ncnst" (is_a ncnst class_nrep_constocc))
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (debug_msg ncnst "compilobj_nrep_constocc ncnst")
   ;;(debug_msg gcx "compilobj constocc gcx")
   (let ( 
@@ -1533,7 +1534,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_nrep_importedval (nsva gcx)
-  (assert_msg "check gcx" (is_a gcx class_initgenercontext))
+  (assert_msg "check gcx" (is_a gcx class_initial_generation_context))
   (assert_msg "check nsva" (is_a nsva class_nrep_importedval))
   (debug_msg nsva "compilobj_nrep_importedval nsva")
   (debug_msg gcx "compilobj_nrep_importedval gcx")
@@ -1550,7 +1551,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; compile a quasiconstant
 (defun compilobj_nrep_quasiconstant (nconst gcx)
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (assert_msg "check nconst" (is_a nconst class_nrep_quasiconstant))
   (debug_msg nconst "compilobj quasiconstant nconst")
   (let ( (nloc (unsafe_get_field :nrep_loc nconst))
@@ -1638,7 +1639,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; compile a forever
 (defun compilobj_nrep_forever (nfor gcx)
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (assert_msg "check nfor" (is_a nfor class_nrep_forever))
   (debug_msg nfor "compilobj_nrep_forever nfor")
   ;;(debug_msg gcx "compilobj_nrep_forever gcx")
@@ -1688,7 +1689,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; compile an exit
 (defun compilobj_nrep_exit (nexi gcx)
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (assert_msg "check nexi" (is_a nexi class_nrep_exit))
   (debug_msg nexi "compilobj_nrep_exit nexi")
   ;;(debug_msg gcx "compilobj_nrep_exit gcx")
@@ -1727,7 +1728,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_discrany (anyv gcx)
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
 					;  (debug_msg anyv "compilobj_discrany anyv")
   anyv
   )
@@ -1736,7 +1737,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_nrep_let (rlet gcx)
   (assert_msg "check rlet" (is_a rlet class_nrep_let))
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (let ( (loc (unsafe_get_field :nrep_loc rlet))
 	 (bnds (unsafe_get_field :nlet_bindings rlet))
 	 (bdy (unsafe_get_field :nlet_body rlet))
@@ -1765,7 +1766,7 @@
        (debug_msg loc "compilobj_nrep_let current normbinding loc")
        (debug_msg nlbnd "compilobj_nrep_let current normbinding nlbnd")
        (debug_msg locmap "compilobj_nrep_let current normbinding locmap")
-       (assert_msg "check nlbnd in compilobj_nrep_let" (is_a nlbnd class_normlet_binding))
+       (assert_msg "check nlbnd in compilobj_nrep_let" (is_a nlbnd class_normal_let_binding))
        (let ( (bder (unsafe_get_field :binder nlbnd))
 	      (cty (unsafe_get_field :letbind_type nlbnd))
 	      (nexp (unsafe_get_field :letbind_expr nlbnd))
@@ -1841,7 +1842,7 @@
 
 (defun compilobj_nrep_citeration (nciter gcx)
   (assert_msg "check nciter" (is_a nciter class_nrep_citeration))
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (debug_msg nciter "compilobj_nrep_citeration nciter")
   (let ( (loc (unsafe_get_field :nrep_loc nciter))
 	 (obrout (unsafe_get_field :gncx_objrout gcx))
@@ -1856,7 +1857,7 @@
 	 (nbodbind (unsafe_get_field :nciter_bodbindings nciter))
 	 (nchkaft (unsafe_get_field :nciter_chunkafter nciter))
 	 (nstatbind (let ( (bi (unsafe_get_field :nocc_bind nstatocc)) )
-		      (assert_msg "check nstatbind" (is_a bi class_normlet_binding))
+		      (assert_msg "check nstatbind" (is_a bi class_normal_let_binding))
 		      bi))
 	 (nstatsy (unsafe_get_field :binder nstatbind))
 	 (ostat (get_free_objloctyped gcx nstatsy (unsafe_get_field :nocc_ctyp nstatocc)))
@@ -1880,7 +1881,7 @@
      nlocbind
      (lambda (nlbnd :long ix)
        (debug_msg nlbnd "compilobj_nrep_citeration current nlocbinding nlbnd")
-       (assert_msg "check nlbnd in compilobj_nrep_citeration" (is_a nlbnd class_normlet_binding))
+       (assert_msg "check nlbnd in compilobj_nrep_citeration" (is_a nlbnd class_normal_let_binding))
        (let ( (bder (unsafe_get_field :binder nlbnd))
 	      (cty (unsafe_get_field :letbind_type nlbnd))
 	      (nexp (unsafe_get_field :letbind_expr nlbnd))
@@ -1944,7 +1945,7 @@
      nbodbind
      (lambda (nbbnd :long ix)
        (debug_msg nbbnd "compilobj_nrep_citeration current nbodbinding nbbnd")
-       (assert_msg "check nbbnd in compilobj_nrep_citeration" (is_a nbbnd class_normlet_binding))
+       (assert_msg "check nbbnd in compilobj_nrep_citeration" (is_a nbbnd class_normal_let_binding))
        (let ( (bder (unsafe_get_field :binder nbbnd))
 	      (cty (unsafe_get_field :letbind_type nbbnd))
 	      (nexp (unsafe_get_field :letbind_expr nbbnd))
@@ -1998,7 +1999,7 @@
 ;;;; compile a setq
 (defun compilobj_nrep_setq (nsq gcx)
   (assert_msg "check nsq" (is_a nsq class_nrep_setq))
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (debug_msg nsq "compilobj_nrep_setq nsq")
   (let ( (loc (unsafe_get_field :nrep_loc nsq))
 	 (var (unsafe_get_field :nstq_var nsq))
@@ -2020,7 +2021,7 @@
 ;;;; compile a progn
 (defun compilobj_nrep_progn (npro gcx)
   (assert_msg "check npro" (is_a npro class_nrep_progn))
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (debug_msg npro "compilobj_nrep_progn npro")
   (let ( (loc (unsafe_get_field :nrep_loc npro))
 	 (nseq (unsafe_get_field :nprogn_seq npro))
@@ -2048,7 +2049,7 @@
 ;;;; compile a multacc [data multiple accessor]
 (defun compilobj_nrep_multacc (nma gcx)
   (assert_msg "check nma" (is_a nma class_nrep_multacc))
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (debug_msg nma "compilobj_nrep_multacc nma")
   (let ( (loc (unsafe_get_field :nrep_loc nma))
 	 (mul (unsafe_get_field :naccm_mul nma))
@@ -2100,7 +2101,7 @@
 ;;;; compile a fieldacc [data field accessor]
 (defun compilobj_nrep_fieldacc (nfa gcx)
   (assert_msg "check nfa" (is_a nfa class_nrep_fieldacc))
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (debug_msg nfa "compilobj_nrep_fieldacc nfa")
   (let ( (loc (unsafe_get_field :nrep_loc nfa))
 	 (obj (unsafe_get_field :naccf_obj nfa))
@@ -2155,7 +2156,7 @@
 ;;;; compile an unsafe get field access
 (defun compilobj_nrep_unsafe_get_field (nugf gcx)
   (assert_msg "check nugf" (is_a nugf class_nrep_unsafe_get_field))
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (debug_msg nugf "compilobj_nrep_unsafe_get_field nugf")
   (let ( (loc (unsafe_get_field :nrep_loc nugf)) 
 	 (nobj (unsafe_get_field :nuget_obj nugf))
@@ -2177,7 +2178,7 @@
 ;;;; compile an unsafe put fields
 (defun compilobj_nrep_unsafe_put_fields (nupf gcx)
   (assert_msg "check nupf" (is_a nupf class_nrep_unsafe_put_fields))
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (debug_msg nupf "compilobj_nrep_unsafe_put_fields nupf")
   (let ( (loc (unsafe_get_field :nrep_loc nupf)) 
 	 (nobj (unsafe_get_field :nuput_obj nupf))
@@ -2223,7 +2224,7 @@
 ;;;; compile a simple application
 (defun compilobj_nrep_apply (napp gcx)
   (assert_msg "check napp" (is_a napp class_nrep_apply))
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (let ( (loc (unsafe_get_field :nrep_loc napp))
 	 (fun (unsafe_get_field :napp_fun napp))
 	 (args (unsafe_get_field :napp_args napp))
@@ -2254,7 +2255,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_nrep_multiapply (nmapp gcx)
   (assert_msg "check napp" (is_a nmapp class_nrep_multiapply))
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (debug_msg nmapp "compilobj_nrep_multiapply nmapp")
   (let ( (loc (unsafe_get_field :nrep_loc nmapp))
 	 (rbinds (unsafe_get_field :nmulapp_bindings nmapp))
@@ -2340,7 +2341,7 @@
 ;;;; compile a simple message send
 (defun compilobj_nrep_msend (nsnd gcx)
   (assert_msg "check nsnd" (is_a nsnd class_nrep_msend))
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (let ( (loc (unsafe_get_field :nrep_loc nsnd))
 	 (nsel (unsafe_get_field :nsend_sel nsnd))
 	 (nrecv (unsafe_get_field :nsend_recv nsnd))
@@ -2371,7 +2372,7 @@
 ;;;; compile a multiresult message send
 (defun compilobj_nrep_multimsend (nmsnd gcx)
   (assert_msg "check nmsnd" (is_a nmsnd class_nrep_multimsend))
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (debug_msg nmsnd "compilobj_nrep_multimsend nmsnd")
   (let ( (loc (unsafe_get_field :nrep_loc nmsnd)) 
 	 (rbinds (unsafe_get_field :nmulsend_bindings nmsnd))
@@ -2461,7 +2462,7 @@
 ;;; compile bindings
 (defun compilobj_any_binding  (bind gcx)
   (assert_msg "check bind" (is_a bind class_any_binding))
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (debug_msg bind "compilobj_any_binding bind")
   (displaydebugmsg bind "class_bind compile_obj recv")
   (outcstring_err "* compilobj unimplemented reciever binding class ")
@@ -2475,7 +2476,7 @@
 ;;; compile value bindings
 (defun compilobj_value_binding  (bind gcx)
   (assert_msg "check bind" (is_a bind class_value_binding))
-  (assert_msg "check gcx" (is_a gcx class_initgenercontext))
+  (assert_msg "check gcx" (is_a gcx class_initial_generation_context))
   (debug_msg bind "compilobj_value_binding bind")
   (let ( (sym (unsafe_get_field :binder bind))
 	 (importmap (unsafe_get_field :igncx_importmap gcx))
@@ -2491,7 +2492,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_fixed_binding (bind gcx)
   (assert_msg "check bind" (is_a bind class_fixed_binding))
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (debug_msg bind "compilobj_fixed_binding bind")
   (let ( (sbdata (unsafe_get_field :fixbind_data bind)) 
 	 (osdata (compile_obj sbdata gcx)) )
@@ -2723,7 +2724,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_nrep_if (rif gcx)
   (assert_msg "check rif" (is_a rif class_nrep_if))
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (debug_msg rif "compilobj_nrep_if rif")
   (let ( (loc (unsafe_get_field :nrep_loc rif))
 	 (ntest (unsafe_get_field :nif_test rif))
@@ -2752,7 +2753,7 @@
 ;;;;;;;;;;;;;;;;
 (defun compilobj_nrep_ifisa (rif gcx)
   (assert_msg "check rif" (is_a rif class_nrep_ifisa))
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (debug_msg rif "compilobj_nrep_ifisa rif")
   (let ( (loc (unsafe_get_field :nrep_loc rif))
 	 (nthen (unsafe_get_field :nif_then rif))
@@ -2818,7 +2819,7 @@
 
 (defun compilobj_nrep_cppif (pif gcx)
   (assert_msg "check pif" (is_a pif class_nrep_cppif))
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (debug_msg pif "compilobj_nrep_cppif pif")
   (let ( (loc (unsafe_get_field :nrep_loc pif))
 	 (ncond (unsafe_get_field :nifp_cond pif))
@@ -2870,7 +2871,7 @@
 ;;;;
 (defun compilobj_nrep_return (nret gcx)
   (assert_msg "check nret" (is_a nret class_nrep_return))
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
 					;  (debug_msg gcx "compilobj_nrep_return gcx")
   (debug_msg nret "compilobj_nrep_return nret")
   (let ( (rloc (unsafe_get_field :nrep_loc nret))
@@ -2921,7 +2922,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_nrep_lambda (nlam gcx)
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (assert_msg "check nlam" (is_a nlam class_nrep_lambda))
   (debug_msg nlam "compilobj_nrep_lambda nlam")
   (let ( (nloc (unsafe_get_field :nrep_loc nlam))
@@ -2976,7 +2977,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_nrep_makeinst (nmki gcx)
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (assert_msg "check nmki" (is_a nmki class_nrep_make_instance))
   (debug_msg nmki "compilobj_nrep_makeinst nmki")
   ;; (debug_msg gcx "compilobj_nrep_makeinst gcx")
@@ -3034,7 +3035,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; compile a procedure should not be called
 (defun compilobj_routproc (npro gcx)
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (assert_msg "check npro" (is_a npro class_nrep_routproc))
   (debug_msg gcx "compilobj_routproc gcx")
   (debug_msg npro "compilobj_routproc npro")
@@ -3044,7 +3045,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;
 (defun compilobj_predef (npr gcx)
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
 					;  (debug_msg npr "compilobj_predef npr")
   (let ( (opr (instance class_objpredef
 			:obv_type ctype_value
@@ -3066,7 +3067,7 @@
   (assert_msg "compil_data_and_slots_fill check obj" (is_a obj class_objinitobject))
   (assert_msg "compil_data_and_slots_fill check odiscr" (is_a odiscr class_objvalue))
   (assert_msg "compil_data_and_slots_fill check irout" (is_a irout class_initialroutineobj))
-  (assert_msg "compil_data_and_slots_fill check gcx" (is_a gcx class_genercontext))
+  (assert_msg "compil_data_and_slots_fill check gcx" (is_a gcx class_c_generation_context))
   (debug_msg ndat "compil_data_and_slots_fill start ndat")
   (debug_msg obj "compil_data_and_slots_fill start obj")
   (debug_msg odiscr "compil_data_and_slots_fill odiscr")
@@ -3138,7 +3139,7 @@
      dlocbind
      (lambda (lbind :long bindrk)
        ;; (debug_msg lbind "compil_data_and_slots_fill lbind")
-       (assert_msg "compil_data_and_slots_fill check lbind" (is_a lbind class_normlet_binding))
+       (assert_msg "compil_data_and_slots_fill check lbind" (is_a lbind class_normal_let_binding))
        (let ( (bder (unsafe_get_field :binder lbind))
 	      (cty (unsafe_get_field :letbind_type lbind))
 	      (nexp (unsafe_get_field :letbind_expr lbind))
@@ -3207,7 +3208,7 @@
 
 ;; probably useless function
 (defun dispose_dlocbind_after_data_and_slots_fill (dlocbind gcx)
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (debug_msg dlocbind "dispose_dlocbind_after_data_and_slots_fill dlocbind")
   (multiple_every
    dlocbind
@@ -3215,7 +3216,7 @@
   )
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_datasymbol (syv gcx)
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (assert_msg "check syv" (is_a syv class_nrep_datasymbol))
   (debug_msg syv "compilobj_datasymbol syv")
   (let ( (compicache (unsafe_get_field :gncx_compicache gcx)) 
@@ -3266,7 +3267,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;; compilobj of datainstance
 (defun compilobj_datainstance (dai gcx)
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
 					;  (debug_msg gcx "compilobj_datainstance gcx")
   (debug_msg dai "compilobj_datainstance dai")
   (let ( (compicache (unsafe_get_field :gncx_compicache gcx)) 
@@ -3345,7 +3346,7 @@
 ;;;;;;;;;;;;;;;; compile a data tuple
 (defun compilobj_datatuple (nti gcx)
   (assert_msg "check nti" (is_a nti class_nrep_datatuple))
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   ;;(debug_msg gcx "compilobj_datatuple gcx")
   (debug_msg nti "compilobj_datatuple nti")
   (let ( (compicache (unsafe_get_field :gncx_compicache gcx)) 
@@ -3416,7 +3417,7 @@
 ;;;;;;;;;;;;;;;; compile a data string
 (defun compilobj_datastring (nds gcx)
   (assert_msg "check nds" (is_a nds class_nrep_datastring))
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
 					; (debug_msg gcx "compilobj_datastring gcx")
   (debug_msg nds "compilobj_datastring nds")
   (let ( (compicache (unsafe_get_field :gncx_compicache gcx)) 
@@ -3464,7 +3465,7 @@
 ;;;;;;;;;;;;;;;; compile a data boxed integer
 (defun compilobj_databoxedinteger (ndi gcx)
   (assert_msg "check ndi" (is_a ndi class_nrep_databoxedinteger))
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
 					; (debug_msg gcx "compilobj_datastring gcx")
   (debug_msg ndi "compilobj_databoxedinteger ndi")
   (let ( (compicache (unsafe_get_field :gncx_compicache gcx)) 
@@ -3512,7 +3513,7 @@
 ;;;;;;;;;;;;;;;; compile a data closure
 (defun compilobj_dataclosure (ncl gcx)
   (assert_msg "check ncl" (is_a ncl class_nrep_dataclosure))
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
 					;(debug_msg gcx "compilobj_dataclosure gcx")
   (debug_msg ncl "compilobj_dataclosure ncl")
   (let ( (compicache (unsafe_get_field :gncx_compicache gcx)) 
@@ -3603,7 +3604,7 @@
 ;;;;;;;;;;;;;;;; compile a data routine
 (defun compilobj_dataroutine (ndrou gcx)
   (assert_msg "check ndrou" (is_a ndrou class_nrep_dataroutine))
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   ;;(debug_msg gcx "compilobj_dataroutine+ gcx" )
   (debug_msg ndrou "compilobj_dataroutine+ ndrou")
   (let ( (compicache (unsafe_get_field :gncx_compicache gcx)) 
@@ -3730,7 +3731,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_quasidata_current_module_environment_container (qdcm gcx)
   (assert_msg "check qdcm" (is_a qdcm class_nrep_quasidata_current_module_environment_container))
-  (assert_msg "check gcx" (is_a gcx class_initgenercontext))
+  (assert_msg "check gcx" (is_a gcx class_initial_generation_context))
   (debug_msg qdcm "compilobj_quasidata_current_module_environment_container qdcm")
   (let ( (locbox (unsafe_get_field :igncx_contenvloc gcx)) 
 	 )
@@ -3742,7 +3743,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_quasidata_parent_module_environment (qdpm gcx)
   (assert_msg "check qdpm" (is_a qdpm class_nrep_quasidata_parent_module_environment))
-  (assert_msg "check gcx" (is_a gcx class_initgenercontext))
+  (assert_msg "check gcx" (is_a gcx class_initial_generation_context))
   (debug_msg qdpm "compilobj_quasidata_parent_module_environment qdpm")
   (let ( (prevenvloc (unsafe_get_field :igncx_prevenvloc gcx)) 
 	 )
@@ -3754,7 +3755,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_nrep_store_predefined (nspr gcx)
   (assert_msg "check nspr" (is_a nspr class_nrep_store_predefined))
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (debug_msg nspr "compilobj_nrep_store_predefined start nspr")
   (let ( (nloc (unsafe_get_field :nrep_loc nspr))
 	 (npred (unsafe_get_field :nstpd_predef nspr))
@@ -3809,7 +3810,7 @@
 
 (defun compilobj_nrep_update_current_module_environment_container (nucmeb gcx)
   (assert_msg "check nucmeb" (is_a nucmeb class_nrep_update_current_module_environment_container))
-  (assert_msg "check gcx" (is_a gcx class_initgenercontext))
+  (assert_msg "check gcx" (is_a gcx class_initial_generation_context))
   (debug_msg nucmeb "compilobj_nrep_update_current_module_environment_container nucmeb")
   (let ( (nloc (unsafe_get_field :nrep_loc nucmeb))
 	 (ncomm (unsafe_get_field :ncumeb_comment nucmeb))
@@ -3948,7 +3949,7 @@
 ;;;; catch all
 (defun compiltst_anytester (ntester gcx tcx)
   (assert_msg "check ntester" (is_a ntester class_normtester_any))
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (assert_msg "check tcx" (is_a tcx class_testercompilcontext))
   (debug_msg ntester "compiltst_anytester ntester")
   (outcstring_err "* compiltst unimplemented reciever class ")
@@ -3962,7 +3963,7 @@
 ;;;; compilation of matches
 (defun compilobj_nrep_match (nmat gcx)
   (assert_msg "check nmat" (is_a nmat class_nrep_match))
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (debug_msg nmat "compilobj_nrep_match nmat")
   (let ( 
 	(nloc (unsafe_get_field :nrep_loc nmat))
@@ -4166,7 +4167,7 @@
 ;; utility function to return the label instr of a tester
 (defun normtester_labelinstr (nt gcx)
   (debug_msg nt "normtester_labelinstr start nt")
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (if (is_not_a nt class_normtester_any)
       (progn
 	(debug_msg () "normtester_labelinstr return nil")
@@ -4198,7 +4199,7 @@
 ;; utility function to return the goto instr into a tester
 (defun normtester_gotoinstr (nt gcx)
   (debug_msg nt "normtester_gotoinstr start nt")
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (if (is_not_a nt class_normtester_any)
       (progn
 	(debug_msg () "normtester_gotoinstr return nil")
@@ -4231,7 +4232,7 @@
 ;;; utility function to return the goto instr at end of matcher
 (defun endmatch_gotoinstr (nma gcx nloc)
   (assert_msg "check nma" (is_a nma class_nrep_match))
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (debug_msg nma "endmatch_gotoinstr nma")
   (shortbacktrace_dbg "endmatch_gotoinstr" 15)
   (let ( 
@@ -4257,7 +4258,7 @@
   (debug_msg ntest "testmatch_gotoinstr ntest")
   (assert_msg "check ntest" (is_a ntest class_normtester_any))
   (assert_msg "check nma" (is_a nma class_nrep_match))
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (shortbacktrace_dbg "testmatch_gotoinstr" 15)
   (let ( 
 	(matchmap (unsafe_get_field :gncx_matchmap gcx))
@@ -4282,7 +4283,7 @@
 (defun normtester_free_objloc_list (nt gcx tcx)
   (debug_msg nt "normtester_free_objloc_list nt")
   (assert_msg "check nt" (is_a nt class_normtester_any))
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (assert_msg "check tcx" (is_a tcx class_testercompilcontext))
   (let ( 
 	(nloclist (unsafe_get_field :ntest_locclist nt))
@@ -4323,7 +4324,7 @@
 (defun compiltst_normtester_matcher (ntma gcx tcx)
   (debug_msg ntma "compiltst_normtester_matcher ntma")
   (assert_msg "check ntma" (is_a ntma class_normtester_matcher))
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (assert_msg "check tcx" (is_a tcx class_testercompilcontext))
   (let ( 
 	(nloc (unsafe_get_field :nrep_loc ntma))
@@ -4399,7 +4400,7 @@
 (defun compiltst_normtester_instance (ntmi gcx tcx)
   (debug_msg ntmi "compiltst_normtester_instance ntmi")
   (assert_msg "check ntmi" (is_a ntmi class_normtester_instance))
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (assert_msg "check tcx" (is_a tcx class_testercompilcontext))
   (let ( 
 	(nloc (unsafe_get_field :nrep_loc ntmi))
@@ -4481,7 +4482,7 @@
 		  (fldget (unsafe_get_field :letbind_expr flbind))
 		  (ofget (compile_obj fldget gcx))
 		  )
-	     (assert_msg "check flbind" (is_a flbind class_normlet_binding))
+	     (assert_msg "check flbind" (is_a flbind class_normal_let_binding))
 	     (assert_msg "check fldget" (is_a fldget class_nrep_unsafe_get_field))
 	     (put_objdest ofget flovar)
 	     (debug_msg ofget "compiltst_normtester_instance ofget")
@@ -4505,7 +4506,7 @@
 (defun compiltst_normtester_same (ntsa gcx tcx)
   (debug_msg ntsa "compiltst_normtester_same ntsa")
   (assert_msg "check ntsa" (is_a ntsa class_normtester_same))
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (assert_msg "check tcx" (is_a tcx class_testercompilcontext))
   (let ( 
 	(nloc (unsafe_get_field :nrep_loc ntsa))
@@ -4583,7 +4584,7 @@
   (debug_msg ntsu "compiltst_normtester_success ntsu")
   (debug_msg tcx "compiltst_normtester_success tcx")
   (assert_msg "check ntsu" (is_a ntsu class_normtester_success))
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (assert_msg "check tcx" (is_a tcx class_testercompilcontext))
   (let ( 
 	(nloc (unsafe_get_field :nrep_loc ntsu))
@@ -4620,7 +4621,7 @@
 (defun compiltst_normtester_disjunction (ntdj gcx tcx)
   (debug_msg ntdj "compiltst_normtester_disjunction ntdj")
   (assert_msg "check ntdj" (is_a ntdj class_normtester_disjunction))
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (assert_msg "check tcx" (is_a tcx class_testercompilcontext))
   (let (
 	(nloc (unsafe_get_field :nrep_loc ntdj))
@@ -4642,7 +4643,7 @@
   (debug_msg mcx "compilmatcher_cmatcher mcx")
   (assert_msg "check cmat" (is_a cmat class_cmatcher))
   (assert_msg "check mcx" (is_a mcx class_matchcompilcontext))
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (let (
 	(cmins (unsafe_get_field :amatch_in cmat))
 	(cmbind (unsafe_get_field :amatch_matchbind cmat))
@@ -4809,7 +4810,7 @@
   (debug_msg mcx "compilmatcher_funmatcher mcx")
   (assert_msg "check fmat" (is_a fmat class_funmatcher))
   (assert_msg "check mcx" (is_a mcx class_matchcompilcontext))
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (let (
 	(fmins (unsafe_get_field :amatch_in fmat))
 	(fmbind (unsafe_get_field :amatch_matchbind fmat))

@@ -2891,7 +2891,7 @@
 
 (defun output_exported_offsets (modctx declbuf implbuf)
   (debug_msg modctx "output_exported_offsets modctx")
-  (assert_msg "check modctx" (is_a modctx class_modulecontext))
+  (assert_msg "check modctx" (is_a modctx class_module_context))
   (let ( (sortedfields (sorted_named_dict_tuple
 			(unsafe_get_field :mocx_expfieldict modctx)))
 	 (sortedclasses (sorted_named_dict_tuple
@@ -2940,7 +2940,7 @@
   (assert_msg "check modnamstr" (is_string modnamstr))
   (assert_msg "check inienv" (is_a inienv class_environment))
   (let (
-	(modctx (instance class_modulecontext
+	(modctx (instance class_module_context
 			  :mocx_modulename modnamstr
 			  :mocx_expfieldict (make_mapstring discr_map_strings 90)
 			  :mocx_expclassdict (make_mapstring discr_map_strings 40)
@@ -2948,15 +2948,15 @@
 			  ))
 	(ncx (create_normcontext modctx)) )
     (debug_msg ncx "compile_list_sexpr initial ncx")
-    (assert_msg "check ncx" (is_a ncx class_normcontext))
+    (assert_msg "check ncx" (is_a ncx class_normalization_context))
     (let ( (xlist (macroexpand_toplevel_list lsexp inienv)) 
 	   (firstx (pair_head (list_first xlist)))
-	   (firstloc (if (is_a firstx class_src) (unsafe_get_field :loca_location firstx)))
+	   (firstloc (if (is_a firstx class_source) (unsafe_get_field :loca_location firstx)))
 	   (iniproc (unsafe_get_field :nctx_initproc ncx))
 	   (declbuf (make_strbuf discr_strbuf))
 	   (implbuf (make_strbuf discr_strbuf)) 
 	   ;; make an update_current_module_environment at the very beginning
-	   (ucmeb1 (instance class_src_update_current_module_environment_container
+	   (ucmeb1 (instance class_source_update_current_module_environment_container
 			     :loca_location firstloc
 			     :sucme_comment '"at very start"
 			     ))
@@ -2980,7 +2980,7 @@
 	       )
 	   ;; special hack to handle toplevel comment specially; the generated comment goes into the declbuf
 	   ;; practically useful to copy a copyright notice into the generated C code
-	   (if (is_a sexp class_src_comment)
+	   (if (is_a sexp class_source_comment)
 	       (let ( (sloc (unsafe_get_field :loca_location sexp))
 		      (scomm (unsafe_get_field :scomm_str sexp)) 
 		      )
@@ -3309,7 +3309,7 @@
 	(add_formal_occ
 	 (lambda (formbind def)
 	   (assert_msg "check formbind" (is_a formbind class_formal_binding))
-	   (assert_msg "check def" (is_a def class_srcdef))
+	   (assert_msg "check def" (is_a def class_source_definition))
 	   (let ( (formsym (get_field :binder formbind)) 
 		  (formocclist (mapobject_get formaloccmap formsym))
 		  )
@@ -3336,7 +3336,7 @@
 ;;;;;;;;;;;
 ;;; handle defclass
 	(?(instance
-	   class_src_defclass
+	   class_source_defclass
 	   :sdef_name ?dnam
 	   :sdef_doc 
 	   ?(instance class_sexpr 
@@ -3379,7 +3379,7 @@
 ;;;;
 ;;; handle defselector
 	(?(instance
-	   class_src_defselector
+	   class_source_defselector
 	   :sdef_name ?dnam
 	   :sdef_doc 
 	   ?(instance class_sexpr 
@@ -3395,7 +3395,7 @@
 	  )
 ;;; handle definstance
 	(?(instance
-	   class_src_definstance
+	   class_source_definstance
 	   :sdef_name ?dnam
 	   :sdef_doc 
 	   ?(instance class_sexpr 
@@ -3412,7 +3412,7 @@
 ;;;;;;;
 ;;; handle defprimitive
 	(?(instance
-	   class_src_defprimitive
+	   class_source_defprimitive
 	   :sdef_name ?dnam
 	   :sdef_doc 
 	   ?(instance class_sexpr 
@@ -3430,7 +3430,7 @@
 ;;;;;;;
 ;;; handle defun
 	(?(instance
-	   class_src_defun
+	   class_source_defun
 	   :sdef_name ?dnam
 	   :sdef_doc 
 	   ?(instance class_sexpr 
@@ -3448,7 +3448,7 @@
 ;;;;;;;
 ;;; handle defciterator
 	(?(instance
-	   class_src_defciterator
+	   class_source_defciterator
 	   :sdef_name ?dnam
 	   :sdef_doc 
 	   ?(instance class_sexpr 
@@ -3466,7 +3466,7 @@
 ;;;;;;;
 ;;; handle defcmatcher
 	(?(instance
-	   class_src_defcmatcher
+	   class_source_defcmatcher
 	   :sdef_name ?dnam
 	   :sdef_doc 
 	   ?(instance class_sexpr 
@@ -3484,7 +3484,7 @@
 ;;;;;;;
 ;;; handle export_patmacro
 	(?(instance
-	   class_src_export_patmacro
+	   class_source_export_patmacro
 	   :loca_location ?loc
 	   :sexpmac_mname ?mname
 	   :sexpmac_doc 
@@ -3498,7 +3498,7 @@
 ;;;;;;;
 ;;; handle export_macro
 	(?(instance
-	   class_src_export_macro
+	   class_source_export_macro
 	   :loca_location ?loc
 	   :sexpmac_mname ?mname
 	   :sexpmac_doc 
@@ -3511,7 +3511,7 @@
 	  )
 ;;;;;;;
 ;;; catchall with warning
-	(?(instance class_srcdef 
+	(?(instance class_source_definition 
 		    :sdef_name ?dnam
 		    :sdef_doc 
 		    ?(as ?doc 
@@ -3530,7 +3530,7 @@
 ;;;;; output the location, if any, of a definition
 (defun makedoc_outdefloc (outb def :cstring prefstr)
   (assert_msg "check outb" (is_strbuf outb))
-  (assert_msg "check def" (is_a def class_srcdef))
+  (assert_msg "check def" (is_a def class_source_definition))
   (let ( (loc (get_field :loca_location def)) 
 	 )
     (if (null loc) (return))
@@ -3621,7 +3621,7 @@
 (defun makedoc_outclassdef (mdinfo outb cladef :long claix)
   (assert_msg "check mdinfo" (is_a mdinfo class_makedoc_info))
   (assert_msg "check outb" (is_strbuf outb))
-  (assert_msg "check cladef" (is_a cladef class_src_defclass))
+  (assert_msg "check cladef" (is_a cladef class_source_defclass))
   (let ( (cla (get_field :cbind_class (get_field :sclass_clabind cladef)))
 	 (clancs (get_field :class_ancestors cla))
 	 (clflds (get_field :class_fields cla))
@@ -3766,7 +3766,7 @@
      (sortedmactuple)
      (curmac :long macix)
      (debug_msg curmac "makedoc_genmacro curmac")
-     (assert_msg "check curmac" (is_a curmac class_src_export_macro))
+     (assert_msg "check curmac" (is_a curmac class_source_export_macro))
      (let ( (mnam (get_field :named_name (get_field :sexpmac_mname curmac)))
 	    (mloc (get_field :loca_location curmac))
 	    (mdoc (get_field :sexpmac_doc curmac))
@@ -3819,7 +3819,7 @@
      (sortedpatmactuple)
      (patmac :long pmacix)
      (debug_msg patmac "makedoc_genpatmacro patmac")
-     (assert_msg "check patmac" (is_a patmac class_src_export_patmacro))
+     (assert_msg "check patmac" (is_a patmac class_source_export_patmacro))
      (add2sbuf_indentnl outb 0)
      (let ( (mnam (get_field :named_name (get_field :sexpmac_mname patmac)))
 	    (mloc (get_field :loca_location patmac))
@@ -3869,7 +3869,7 @@
 	  (get_field :mkdoc_classes mdinfo)
 	  discr_multiple
 	  (lambda (cldef)
-	    (assert_msg "check cldef" (is_a cldef class_src_defclass))
+	    (assert_msg "check cldef" (is_a cldef class_source_defclass))
 	    (get_field :cbind_class (get_field :sclass_clabind cldef)))
 	  ))
 	(cmpclassdepthname
@@ -3927,8 +3927,8 @@
 	 )
 	(cmpclassdef
 	 (lambda (cdf0 cdf1)
-	   (assert_msg "check cdf0" (is_a cdf0 class_src_defclass))
-	   (assert_msg "check cdf1" (is_a cdf1 class_src_defclass))
+	   (assert_msg "check cdf0" (is_a cdf0 class_source_defclass))
+	   (assert_msg "check cdf1" (is_a cdf1 class_source_defclass))
 	   (compare_named_alpha (get_field :sdef_name cdf0) (get_field :sdef_name cdf1))
 	   ))
 	(alphasortedclassdeftuple
@@ -3971,7 +3971,7 @@
     (foreach_in_multiple
      (alphasortedclassdeftuple)
      (curcladef :long claix)
-     (assert_msg "check curcladef" (is_a curcladef class_src_defclass))
+     (assert_msg "check curcladef" (is_a curcladef class_source_defclass))
      (makedoc_outclassdef mdinfo outb curcladef claix)
      )
     )
@@ -3982,7 +3982,7 @@
 (defun makedoc_outprimitivedef (mdinfo outb primdef :long primix)
   (assert_msg "check mdinfo" (is_a mdinfo class_makedoc_info))
   (assert_msg "check outb" (is_strbuf outb))
-  (assert_msg "check primdef" (is_a primdef class_src_defprimitive))
+  (assert_msg "check primdef" (is_a primdef class_source_defprimitive))
   (let ( (pnam (get_field :sdef_name primdef)) 
 	 (args (get_field :sformal_args primdef))
 	 (type (get_field :sprim_type primdef))
@@ -4028,7 +4028,7 @@
     (foreach_in_multiple
      (sortedprimtup)
      (curprimdef :long primix)
-     (assert_msg "check curprim" (is_a curprimdef class_src_defprimitive))
+     (assert_msg "check curprim" (is_a curprimdef class_source_defprimitive))
      (makedoc_outprimitivedef mdinfo outb curprimdef primix)
      (add2sbuf_indentnl outb 0)
      )
@@ -4041,7 +4041,7 @@
 (defun makedoc_outfunctiondef (mdinfo outb fundef :long primix)
   (assert_msg "check mdinfo" (is_a mdinfo class_makedoc_info))
   (assert_msg "check outb" (is_strbuf outb))
-  (assert_msg "check fundef" (is_a fundef class_src_defun))
+  (assert_msg "check fundef" (is_a fundef class_source_defun))
   (let ( (fnam (get_field :sdef_name fundef)) 
 	 (args (get_field :sformal_args fundef))
 	 (doc (get_field :sdef_doc fundef))
@@ -4082,7 +4082,7 @@
     (foreach_in_multiple
      (sortedfuntup)
      (curfundef :long funix)
-     (assert_msg "check curfun" (is_a curfundef class_src_defun))
+     (assert_msg "check curfun" (is_a curfundef class_source_defun))
      (makedoc_outfunctiondef mdinfo outb curfundef funix)
      (add2sbuf_indentnl outb 0)
      )
@@ -4114,7 +4114,7 @@
      (sortedcitertup)
      (curciterdef :long citix)
      (debug_msg curciterdef "makedoc_genciterator curciter")
-     (assert_msg "check curciterdef" (is_a curciterdef class_src_defciterator))
+     (assert_msg "check curciterdef" (is_a curciterdef class_source_defciterator))
      (let ( (sloc (get_field :loca_location curciterdef) )
 	    (snam (get_field :sdef_name curciterdef))
 	    (sdoc (get_field :sdef_doc curciterdef))
@@ -4166,7 +4166,7 @@
      (sortedcmatchtup)
      (curcmatchdef :long citix)
      (debug_msg curcmatchdef "makedoc_gencmatcher curcmatch")
-     (assert_msg "check curcmatchdef" (is_a curcmatchdef class_src_defcmatcher))
+     (assert_msg "check curcmatchdef" (is_a curcmatchdef class_source_defcmatcher))
      (let (
 	   (snam (get_field :sdef_name curcmatchdef))
 	   (sdoc (get_field :sdef_doc curcmatchdef))
