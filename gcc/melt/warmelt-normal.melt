@@ -2595,7 +2595,7 @@
       (unsafe_put_fields slbind :labind_clonsy resy)
       (debug_msg slbind "normexp_forever updated slbind")
       (debug_msg resy "normexp_forever clonsy put resy")
-      (assert_msg "check resy" (is_a resy class_clonedsymbol))
+      (assert_msg "check resy" (is_a resy class_cloned_symbol))
       (debug_msg (unsafe_get_field :labind_clonsy slbind) "normexp_forever got1 clonsy")
       (assert_msg "check did1 put resy" (== (unsafe_get_field :labind_clonsy slbind) resy))
       (assert_msg "check resy obj2" (is_object resy))

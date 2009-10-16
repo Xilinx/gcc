@@ -1017,14 +1017,16 @@
 		 (lambda (curimport)
 		   (debug_msg curimport "compile2obj_initproc curimport")
 		   (assert_msg "check curimport" (is_a curimport class_nrep_importedval))
+		   (compile_warning "the generated import should have a cstring")
 		   (let ( (impsym (unsafe_get_field :nimport_symb curimport)) 
 			  (impsydat (unsafe_get_field :nimport_sydata curimport))
+			  (impsymstr (get_field :named_name impsym))
 			  (osymdat (compile_obj impsydat gcx))
 			  (oimplocv (mapobject_get importmap impsym))
 			  (oimpappl (instance class_objapply
 					      :obdi_destlist (list1 oimplocv)
 					      :obapp_clos ovalueimporter
-					      :obapp_args (make_tuple2 discr_multiple osymdat oprevenv)))
+					      :obapp_args (make_tuple3 discr_multiple osymdat oprevenv impsymstr)))
 			  )
 		     (list_append oiniprolog oimpappl)
 		     )))
@@ -1671,7 +1673,7 @@
 			    :obloop_label closy
 			    :obloop_resv oresv))
 	   )
-      (assert_msg "check closy" (is_a closy class_clonedsymbol))
+      (assert_msg "check closy" (is_a closy class_cloned_symbol))
       (multiple_every
        nbody
        (lambda (ncomp :long ix)

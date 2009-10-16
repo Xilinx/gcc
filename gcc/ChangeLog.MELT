@@ -1,4 +1,33 @@
 2009-10-16  Basile Starynkevitch  <basile@starynkevitch.net>
+	[the value importer takes the imported symbol name cstring as an
+	extra argument; this facilitates error messages in the importer
+	when the import is failing. Also renamed class_clonedsymbol as
+	class_cloned_symbol.]
+	* melt/warmelt-first.melt: added more documentation. Renamed
+	class_clonedsymbol as class_cloned_symbol. The class_delayed_queue
+	is now private so is not exported. The value importer takes a
+	extra :cstring argument and displays an error when failing.
+	Several functions put inside initial_system_data are no more
+	exported.
+	* melt/warmelt-normal.melt: renamed class_clonedsymbol as
+	class_cloned_symbol.
+	* melt/warmelt-genobj.melt: likewise.
+	* melt/warmelt-outobj.melt: likewise.
+	* melt-make.mk: file warmelt-first*.c is specific [because it has
+	no parent module] so should never be compiled in "dynamic" mode
+	into a warmelt-first*.d.so. This is to enable it to define a
+	private class, like class_delayed_queue.
+
+	[regenerated, since the import protocol has changed - it has an
+	extra string argument!]
+	* melt/warmelt-macro-0.c: regenerated.
+	* melt/warmelt-outobj-0.c: regenerated.
+	* melt/warmelt-genobj-0.c: regenerated.
+	* melt/warmelt-normatch-0.c: regenerated.
+	* melt/warmelt-normal-0.c: regenerated.
+	* melt/warmelt-first-0.c: regenerated.
+
+2009-10-16  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-first.melt: added more documentation.
 
 2009-10-15  Basile Starynkevitch  <basile@starynkevitch.net>

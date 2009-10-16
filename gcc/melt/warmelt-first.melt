@@ -232,11 +232,11 @@ a formal argument list) and the $SEL_DATA is for additional data.}#
   :fields (symb_data))
 
 ;; class of generated (ie cloned) symbols - like lisp gensym-ed
-(defclass class_clonedsymbol
+(defclass class_cloned_symbol
   :super class_symbol
   :fields (csym_urank			;unique rank as a boxed integer
 	   )
-  :doc #{The $CLASS_CLONEDSYMBOL is the sub-class of cloned symbols,
+  :doc #{The $CLASS_CLONED_SYMBOL is the sub-class of cloned symbols,
 e.g. like GENSYM-ed symbols is many Lisps.  Cloned symbols are
 internally generated inside the MELT translator by the $CLONE_SYMBOL
 function. Their $CSYM_URANK field gives their unique rank as a boxed
@@ -1901,14 +1901,14 @@ number $NUM opaque location number $LOC.}#
 ;; signal a plain warning 
 (defprimitive warningmsg_strv (:cstring cmsg :value strv) :void
   :doc #{Show a plain warning with raw message string $CMSG and string value $STRV.}#
-  #{warning(0, "MELT WARNING MSG [#%ld]::: %s - %s", melt_dbgcounter, ($cmsg), 
+  #{warning (0, "MELT WARNING MSG [#%ld]::: %s - %s", melt_dbgcounter, ($cmsg), 
 	       melt_string_str((melt_ptr_t)($strv)))}#
   )
 
 ;; signal a plain error 
 (defprimitive errormsg_plain (:cstring cmsg) :void
   :doc #{Show a plain error with raw message string $CMSG.}#
-  #{error("MELT ERROR MSG [#%ld]::: %s", melt_dbgcounter, ($cmsg))}#
+  #{error ("MELT ERROR MSG [#%ld]::: %s", melt_dbgcounter, ($cmsg))}#
   )
 
 
@@ -2526,15 +2526,8 @@ Keyword is :cstring.}#
 (install_ctype_descr ctype_cstring "C constant strings (statically allocated outside of any heap)")
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(compile_warning "document after here")
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; function to box a value
 
-(defun boxval (v) 
-  (make_box discr_box v))
-
-;; function to add a new symbol
+;; function to add a new symbol [called by meltgc_named_symbol in the runtime]
 (defun add_new_symbol_token (syda str)
   (assert_msg "check syda" (is_a syda class_system_data))
   (let ( (sy (instance class_symbol :named_name str)) 
@@ -2543,7 +2536,7 @@ Keyword is :cstring.}#
     (mapstring_putstr sydict str sy)
     sy))
 
-;; function to add a new keyword
+;; function to add a new keyword [called by meltgc_named_keyword in the runtime]
 (defun add_new_keyword_token (syda str)
   (assert_msg "check syda" (is_a syda class_system_data))
   (let ( (kw (instance class_keyword :named_name str)) 
@@ -2586,6 +2579,7 @@ Keyword is :cstring.}#
   )
 
 (defun clone_symbol (symb)
+  :doc #{Function to clone a given symbol or string $SYMB, producing a new instance of class_cloned_symbol}#
   (let ( (mapstr (unsafe_get_field :container_value container_clonemapstring)) 
 	 (synam
 	  (cond
@@ -2628,7 +2622,7 @@ Keyword is :cstring.}#
     (let ( (:long i (get_int boxi)) )
       (setq i (+i i 1))
       (put_int boxi i)
-      (instance class_clonedsymbol
+      (instance class_cloned_symbol
 		:named_name synam
 		:csym_urank (make_integerbox discr_integer i)))))
 
@@ -2636,9 +2630,8 @@ Keyword is :cstring.}#
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; initial fresh environment container maker
+;; initial fresh environment container maker - inside INITIAL_SYSTEM_DATA
 (defun initfresh_contenvmaker (prevenv :cstring modnam)
-					;(debug_msg prevenv "initfresh_contenvmaker prevenv")
   (if (need_dbg 0) 
       (shortbacktrace_dbg "initfresh_contenvmaker" 15))
   (let (
@@ -2651,7 +2644,8 @@ Keyword is :cstring.}#
     (return newcont)
     ))
 
-;; initial value exporter
+;; initial value exporter - inside INITIAL_SYSTEM_DATA
+(compile_warning "the initial value importer should also get the symbol's :cstring")
 (defun initvalue_exporter (sym val contenv)
   ;;(debug_msg sym "initvalue_exporter sym")
   ;;(debug_msg val "initvalue_exporter val")
@@ -2741,20 +2735,46 @@ Keyword is :cstring.}#
 	))))
 
 
-;; initial value importer
-(defun initvalue_importer (sym parenv)
+;; initial value importer - inside INITIAL_SYSTEM_DATA
+(defun initvalue_importer (sym parenv :cstring strnam)
   (if (is_not_a sym class_symbol)
       (progn
-	(debug_msg sym "initvalue_importer bad symb")))
+	(debug_msg sym "initvalue_importer bad symb")
+	(code_chunk errfailimport 
+		    #{ /* $errfailimport */ 
+		    if ($strnam)
+		      error ("MELT [%s]: imported symbol %s not found",
+				 lbasename(__FILE__), $strnam);
+		    else
+		      error ("MELT [%s]: importing non symbol", lbasename(__FILE__));
+		    }#)
+	(return)
+	))
   (assert_msg "check sym" (is_a sym class_symbol))
   (assert_msg "check parenv" (is_a parenv class_environment))
   (let ( (valbind (find_env parenv sym))
 	 )
+    (if (is_not_a valbind class_value_binding)
+	(let ( (symnam (get_field :named_name sym)) 
+	       (bindiscr (discrim valbind))
+	       (bindiscrnam (get_field :named_name bindiscr))
+	       )
+	  (assert_msg "check symnam" (is_string symnam))
+	  (code_chunk errbadimport 
+		      #{ /* $errbadimport */
+		      const char* $errbadimport#_str = melt_string_str ((melt_ptr_t)$symnam);
+		      error ("MELT [%s]: imported symbol %s has unexpected binding of %s",
+			     lbasename(__FILE__),
+			     $errbadimport#_str?$errbadimport#_str:$strnam,
+			     melt_string_str ((melt_ptr_t)$bindiscrnam));
+		    }#)
+	  (return)
+	  ))
     (assert_msg "check valbind" (is_a valbind class_value_binding))
     (return (unsafe_get_field :vbind_value valbind))
     ))
 
-;; initial macro exporter
+;; initial macro exporter - inside INITIAL_SYSTEM_DATA
 (defun initmacro_exporter (sym val contenv)
   (assert_msg "check sym" (is_a sym class_symbol))
   (if (null contenv)
@@ -2785,7 +2805,7 @@ Keyword is :cstring.}#
       (return)
       )))
 
-;; initial patmacro exporter
+;; initial patmacro exporter - inside INITIAL_SYSTEM_DATA
 (defun initpatmacro_exporter (sym macval patval contenv)
   (debug_msg sym "initpatmacro_exporter sym")
   (assert_msg "check sym" (is_a sym class_symbol))
@@ -2818,15 +2838,18 @@ Keyword is :cstring.}#
       (return)
       )))
 
-(defclass class_delayedqueue
+
+;; internal non-exported class for delayed queues.
+(defclass class_delayed_queue
   :super class_named
   :fields (delqu_first
 	   delqu_last
 	   delqu_data
 	   ))
 
-(definstance final_delayedqueue class_delayedqueue
-  :named_name '"final_delayedqueue"
+;; private final queue
+(definstance final_delayed_queue class_delayed_queue
+  :named_name '"final_delayed_queue"
   :delqu_first (make_list discr_list)
   :delqu_last (make_list discr_list)
   )
@@ -2834,9 +2857,9 @@ Keyword is :cstring.}#
 
 ;;;;;; the queue for full exit
 (defun init_exitfinalizer ()
-  (debug_msg final_delayedqueue "init_exitfinalizer final_delayedqueue at start")
-  (let ( (firstlist (unsafe_get_field :delqu_first final_delayedqueue))
-	 (lastlist (unsafe_get_field :delqu_last final_delayedqueue))
+  (debug_msg final_delayed_queue "init_exitfinalizer final_delayed_queue at start")
+  (let ( (firstlist (unsafe_get_field :delqu_first final_delayed_queue))
+	 (lastlist (unsafe_get_field :delqu_last final_delayed_queue))
 	 (revlastlist (make_list discr_list))
 	 (rescont (instance class_container))
 	 )
@@ -2845,7 +2868,7 @@ Keyword is :cstring.}#
      firstlist
      (lambda (firstproc)
        (let ( (prevres (unsafe_get_field :container_value rescont)) 
-	      (nextres (firstproc prevres final_delayedqueue))
+	      (nextres (firstproc prevres final_delayed_queue))
 	      )
 	 (unsafe_put_fields rescont :container_value nextres)
 	 )))
@@ -2859,7 +2882,7 @@ Keyword is :cstring.}#
      revlastlist
      (lambda (lastproc)
        (let ( (prevres (unsafe_get_field :container_value rescont)) 
-	      (nextres (lastproc prevres final_delayedqueue))
+	      (nextres (lastproc prevres final_delayed_queue))
 	      )
 	 (unsafe_put_fields rescont :container_value nextres)
 	 )))
@@ -2868,29 +2891,33 @@ Keyword is :cstring.}#
 
 
 (defun at_exit_first (fun)
-  (let ( (firstlist (unsafe_get_field :delqu_first final_delayedqueue))
+  :doc #{Use $AT_EXIT_FIRST to register a function to be run at MELT
+exit, in first place.}#
+  (let ( (firstlist (unsafe_get_field :delqu_first final_delayed_queue))
 	 )
     (if (is_closure fun) (list_append firstlist fun)))
   )  
 
 (defun at_exit_last (fun)
-  (let ( (lastlist (unsafe_get_field :delqu_last final_delayedqueue))
+  :doc #{Use $AT_EXIT_LAST to register a function to be run at MELT
+exit, in last place.}#
+  (let ( (lastlist (unsafe_get_field :delqu_last final_delayed_queue))
 	 )
     (if (is_closure fun) (list_append lastlist fun)))
   )
 
-;;;;;; the queue for start of compilation unit
-(definstance startunit_delayedqueue class_delayedqueue
-  :named_name '"startunit_delayedqueue"
+;;;;;; private queue for start of compilation unit
+(definstance start_unit_delayed_queue class_delayed_queue
+  :named_name '"start_unit_delayed_queue"
   :delqu_first (make_list discr_list)
   :delqu_last (make_list discr_list)
   )
 
 
 (defun init_unitstarter ()
-  (debug_msg startunit_delayedqueue "init_unitstarter startunit_delayedqueue at start")
-  (let ( (firstlist (unsafe_get_field :delqu_first startunit_delayedqueue))
-	 (lastlist (unsafe_get_field :delqu_last startunit_delayedqueue))
+  (debug_msg start_unit_delayed_queue "init_unitstarter start_unit_delayed_queue at start")
+  (let ( (firstlist (unsafe_get_field :delqu_first start_unit_delayed_queue))
+	 (lastlist (unsafe_get_field :delqu_last start_unit_delayed_queue))
 	 (revlastlist (make_list discr_list))
 	 (rescont (instance class_container))
 	 )
@@ -2899,7 +2926,7 @@ Keyword is :cstring.}#
      firstlist
      (lambda (firstproc)
        (let ( (prevres (unsafe_get_field :container_value rescont)) 
-	      (nextres (firstproc prevres startunit_delayedqueue))
+	      (nextres (firstproc prevres start_unit_delayed_queue))
 	      )
 	 (unsafe_put_fields rescont :container_value nextres)
 	 )))
@@ -2913,7 +2940,7 @@ Keyword is :cstring.}#
      revlastlist
      (lambda (lastproc)
        (let ( (prevres (unsafe_get_field :container_value rescont)) 
-	      (nextres (lastproc prevres startunit_delayedqueue))
+	      (nextres (lastproc prevres start_unit_delayed_queue))
 	      )
 	 (unsafe_put_fields rescont :container_value nextres)
 	 )))
@@ -2922,29 +2949,31 @@ Keyword is :cstring.}#
 
 
 (defun at_start_unit_first (fun)
-  (let ( (firstlist (unsafe_get_field :delqu_first startunit_delayedqueue))
+  :doc #{Use $AT_START_UNIT_FIRST to register a function to be run at start of translation unit, in first place.}#
+  (let ( (firstlist (unsafe_get_field :delqu_first start_unit_delayed_queue))
 	 )
     (if (is_closure fun) (list_append firstlist fun)))
   )  
 
 (defun at_start_unit_last (fun)
-  (let ( (lastlist (unsafe_get_field :delqu_last startunit_delayedqueue))
+  :doc #{Use $AT_START_UNIT_LAST to register a function to be run at start of translation unit, in first place.}#
+  (let ( (lastlist (unsafe_get_field :delqu_last start_unit_delayed_queue))
 	 )
     (if (is_closure fun) (list_append lastlist fun)))
   )
 
 
-;;;; the queue for compilation unit finish
-(definstance finishunit_delayedqueue class_delayedqueue
-  :named_name '"finishunit_delayedqueue"
+;;;; the private queue for compilation unit finish
+(definstance finish_unit_delayed_queue class_delayed_queue
+  :named_name '"finish_unit_delayed_queue"
   :delqu_first (make_list discr_list)
   :delqu_last (make_list discr_list)
   )
 
 (defun init_unitfinisher ()
-  (debug_msg finishunit_delayedqueue "init_unitfinisher finishunit_delayedqueue at start")
-  (let ( (firstlist (unsafe_get_field :delqu_first finishunit_delayedqueue))
-	 (lastlist (unsafe_get_field :delqu_last finishunit_delayedqueue))
+  (debug_msg finish_unit_delayed_queue "init_unitfinisher finish_unit_delayed_queue at start")
+  (let ( (firstlist (unsafe_get_field :delqu_first finish_unit_delayed_queue))
+	 (lastlist (unsafe_get_field :delqu_last finish_unit_delayed_queue))
 	 (revlastlist (make_list discr_list))
 	 (rescont (instance class_container))
 	 )
@@ -2953,7 +2982,7 @@ Keyword is :cstring.}#
      firstlist
      (lambda (firstproc)
        (let ( (prevres (unsafe_get_field :container_value rescont)) 
-	      (nextres (firstproc prevres finishunit_delayedqueue))
+	      (nextres (firstproc prevres finish_unit_delayed_queue))
 	      )
 	 (unsafe_put_fields rescont :container_value nextres)
 	 )))
@@ -2967,7 +2996,7 @@ Keyword is :cstring.}#
      revlastlist
      (lambda (lastproc)
        (let ( (prevres (unsafe_get_field :container_value rescont)) 
-	      (nextres (lastproc prevres finishunit_delayedqueue))
+	      (nextres (lastproc prevres finish_unit_delayed_queue))
 	      )
 	 (unsafe_put_fields rescont :container_value nextres)
 	 )))
@@ -2976,18 +3005,22 @@ Keyword is :cstring.}#
 
 
 (defun at_finish_unit_first (fun)
-  (let ( (firstlist (unsafe_get_field :delqu_first finishunit_delayedqueue))
+  :doc #{Use $AT_FINISH_UNIT_FIRST to register a function to be run at
+end of compilation unit in first place}#
+  (let ( (firstlist (unsafe_get_field :delqu_first finish_unit_delayed_queue))
 	 )
     (if (is_closure fun) (list_append firstlist fun)))
   )  
 
 (defun at_finish_unit_last (fun)
-  (let ( (lastlist (unsafe_get_field :delqu_last finishunit_delayedqueue))
+  :doc #{Use $AT_FINISH_UNIT_LAST to register a function to be run at
+end of compilation unit in last place}#
+  (let ( (lastlist (unsafe_get_field :delqu_last finish_unit_delayed_queue))
 	 )
     (if (is_closure fun) (list_append lastlist fun)))
   )
 
-
+(compile_warning "should add :doc below")
 ;;;;;;;;;;;;;;;;;;;;;;;; debug message function
 (defprimitive the_dbgcounter () :long "melt_dbgcounter")
 (defprimitive increment_dbgcounter () :void 
@@ -3965,7 +3998,7 @@ list.}#
 		  (return vless)
 		(return vgreat)
 		))
-	    ( (is_a x1 class_clonedsymbol)
+	    ( (is_a x1 class_cloned_symbol)
 	      (let ( (n1 (unsafe_get_field :named_name x1))
 		     (n2 (unsafe_get_field :named_name x2)) )
 		(cond ( (string< n1 n2)
@@ -4421,17 +4454,17 @@ list.}#
     ))
 (install_method class_keyword dbg_outputagain dbgoutagain_keyword_method)
 
-;;;; clonedsymbol output debug & again
-(defun dbgout_clonedsymbol_method (self dbgi :long depth)
+;;;; cloned_symbol output debug & again
+(defun dbgout_cloned_symbol_method (self dbgi :long depth)
   (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
-  (assert_msg "check self" (is_a self class_clonedsymbol))
+  (assert_msg "check self" (is_a self class_cloned_symbol))
   (if (<=i depth 0)
       (dbgout_namedobject_method self dbgi 0)
-    (dbgoutagain_clonedsymbol_method self dbgi depth)
+    (dbgoutagain_cloned_symbol_method self dbgi depth)
     ))
-(install_method class_clonedsymbol dbg_output dbgout_clonedsymbol_method)
+(install_method class_cloned_symbol dbg_output dbgout_cloned_symbol_method)
 
-(defun dbgoutagain_clonedsymbol_method (self dbgi :long depth)
+(defun dbgoutagain_cloned_symbol_method (self dbgi :long depth)
   (let ( (dis (discrim self)) 
 	 (out  (unsafe_get_field :dbgi_out dbgi))
 	 (ourank (unsafe_get_field :csym_urank self))
@@ -4450,7 +4483,7 @@ list.}#
 	  (add2out_longdec out oserial)
 	  ))
     ))
-(install_method class_clonedsymbol dbg_outputagain dbgoutagain_clonedsymbol_method)
+(install_method class_cloned_symbol dbg_outputagain dbgoutagain_cloned_symbol_method)
 
 
 ;;;; environment output debug
@@ -4821,7 +4854,7 @@ list.}#
  class_citerator_binding
  class_class
  class_class_binding
- class_clonedsymbol
+ class_cloned_symbol
  class_container
  class_cmatcher_binding
  class_cmatcher
@@ -4833,7 +4866,6 @@ list.}#
  class_exported_binding
  class_field
  class_field_binding
- class_delayedqueue
  class_fixed_binding
  class_formal_binding
  class_function_binding
@@ -5162,15 +5194,12 @@ list.}#
 
 ;; export the functions & matchers defined above
 (export_values
- add_new_keyword_token			
- add_new_symbol_token	
  at_exit_first
  at_exit_last
  at_finish_unit_first
  at_finish_unit_last
  at_start_unit_first
  at_start_unit_last
- boxval					
  clone_symbol
  closure_every
  compare_named_alpha
@@ -5190,8 +5219,6 @@ list.}#
  fresh_env				
  install_ctype_descr				
  install_method				
- intern_keyword				
- intern_symbol				
  list1					
  list2					
  list3	

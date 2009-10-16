@@ -104,26 +104,30 @@ WARMELT_SRCFILES= $(patsubst %.melt, $(melt_make_source_dir)/%.melt, $(WARMELT_F
 WARMELT_SRCRESTFILES= $(patsubst %.melt, $(melt_make_source_dir)/%.melt, $(WARMELT_RESTFILES))
 WARMELT_SRCARGLIST:=$(shell echo $(realpath $(WARMELT_SRCFILES))|sed 's: :,:g')
 WARMELT_BASE= $(basename $(WARMELT_FILES))
+WARMELT_REST= $(basename $(WARMELT_RESTFILES))
 WARMELT_BASELIST:=$(shell echo $(WARMELT_BASE)|sed 's: :,:g')
 
 WARMELT_BASE0= $(patsubst %, %-0, $(WARMELT_BASE))
 WARMELT_BASE0C= $(patsubst %, %-0.c, $(WARMELT_BASE))
 WARMELT_BASE0SO= $(patsubst %, %-0.so, $(WARMELT_BASE))
-WARMELT_BASE0DSO= $(patsubst %, %-0.d.so, $(WARMELT_BASE))
+## the file warmelt-first should never be C compiled in "dynamic"
+## mode, otherwise it cannot have private [non-exported] classes like
+## class_delayed_queue
+WARMELT_BASE0DSO= warmelt-first-0.so $(patsubst %, %-0.d.so, $(WARMELT_REST))
 WARMELT_BASE0ROW:=$(shell echo $(WARMELT_BASE0)|sed 's/ /:/g')
 WARMELT_BASE0DROW:=$(shell echo $(patsubst %, %-0.d, $(WARMELT_BASE))|sed 's/ /:/g')
 ##
 WARMELT_BASEH= $(patsubst %, %-h, $(WARMELT_BASE))
 WARMELT_BASEHSO= $(patsubst %, %-h.so, $(WARMELT_BASE))
-WARMELT_BASEHDSO= $(patsubst %, %-h.d.so, $(WARMELT_BASE))
+WARMELT_BASEHDSO=  warmelt-first-h.so $(patsubst %, %-h.d.so, $(WARMELT_REST))
 WARMELT_BASEHC= $(patsubst %, %-h.c, $(WARMELT_BASE))
 WARMELT_BASEHROW:=$(shell echo $(WARMELT_BASEH)|sed 's/ /:/g')
 WARMELT_BASEHDROW:=$(shell echo $(patsubst %, %-h.d, $(WARMELT_BASE))|sed 's/ /:/g')
 ##
 ##
 WARMELT_BASEH2= $(patsubst %, %-h2, $(WARMELT_BASE))
-WARMELT_BASEH2SO= $(patsubst %, %-h2.so, $(WARMELT_BASE))
-WARMELT_BASEH2DSO= $(patsubst %, %-h2.d.so, $(WARMELT_BASE))
+WARMELT_BASEH2SO= $(patsubst %, %-h2.so, $(WARMELT_REST))
+WARMELT_BASEH2DSO= warmelt-first-h2.so $(patsubst %, %-h2.d.so, $(WARMELT_BASE))
 WARMELT_BASEH2C= $(patsubst %, %-h2.c, $(WARMELT_BASE))
 WARMELT_BASEH2ROW:=$(shell echo $(WARMELT_BASEH2)|sed 's/ /:/g')
 ##
