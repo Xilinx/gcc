@@ -1,7 +1,302 @@
+2009-10-15  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR target/41702
+	* pa.md (casesi): Use sign extended index in call to
+	gen_casesi64p.
+	(casesi64p): Update pattern to reflect above.
+
+2009-10-15  Steve Ellcey  <sje@cup.hp.com>
+
+	PR rtl-optimization/41697
+	* sel-sched-ir.h (_eligible_successor_edge_p): Check successor count.
+
+2009-10-15  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	PR target/23983
+	* config/rs6000/predicates.md: Update copyright year.
+	* config/rs6000/altivec.md: Ditto.
+	
+	* config/rs6000/t-rs6000 (TM_H): Add rs6000-builtin.def.
+	(MD_INCLUDES): Add a2.md.
+	
+	* config/rs6000/rs6000.c (rs6000_builtin_decls): Change
+	RS6000_BUILTIN_COUNT to MAX_RS6000_BUILTINS.
+	(builtin_classify): New static vector to classify various builtins
+	to get the tree attributes correct.
+	(def_builtin): Set the attributes of builtins based on what the
+	builtin does (i.e. memory operation, floating point, saturation
+	need special attributes, others are pure functions).
+
+	* config/rs6000/rs6000.h (enum rs6000_btc): New enum to classify
+	the builtins.
+	(enum rs6000_builtins): Include rs6000-builtin.def to define the
+	builtins.  Change the end marker to MAX_RS6000_BUILTINS from
+	RS6000_BUILTIN_COUNT.
+	(rs6000_builtin_decls): Change RS6000_BUILTIN_COUNT to
+	MAX_RS6000_BUILTINS.
+
+	* config/rs6000/rs6000-builtin.def: New file that combines the
+	builtin enumeration name and attributes.
+
+2009-10-15  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/linux.h (ASM_SPEC): Add --32.
+
+2009-10-15  Jakub Jelinek  <jakub@redhat.com>
+
+	* dwarf2out.c (dwarf_tag_name): Handle DW_TAG_rvalue_reference_type
+	and DW_TAG_template_alias.
+	(dwarf_attr_name): Handle DW_AT_main_subprogram,
+	DW_AT_data_bit_offset, DW_AT_const_expr, DW_AT_enum_class,
+	DW_AT_linkage_name, DW_AT_GNU_guarded_by, DW_AT_GNU_pt_guarded_by,
+	DW_AT_GNU_guarded, DW_AT_GNU_pt_guarded, DW_AT_GNU_locks_excluded,
+	DW_AT_GNU_exclusive_locks_required, DW_AT_GNU_shared_locks_required
+	and DW_AT_GNU_odr_signature.
+	(dwarf_form_name): Handle DW_FORM_sec_offset, DW_FORM_exprloc,
+	DW_FORM_flag_present and DW_FORM_ref_sig8.
+	(output_signature): Only print name on the first byte.
+	(output_die): Likewise for dw_val_class_data8.
+
+2009-10-15  Alexander Monakov  <amonakov@ispras.ru>
+
+	* doc/invoke.texi: Clarify that most optimizations are not enabled
+	without -O.
+
+2009-10-15  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/41668
+	* gimple.c (compare_type_names_p): Handle anonymous names
+	differently based on new mode argument.
+	(gimple_types_compatible_p): For structs also compare the tags.
+	(iterative_hash_type_name): Rename to ...
+	(iterative_hash_name): ... this.  Hash all names.
+	(iterative_hash_gimple_type): Fix hashing the struct tag of
+	pointer targets.  Hash field decl names.
+
+2009-10-15  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/41669
+	* gimple.c (gimple_get_alias_set): Avoid recursing on
+	invalid type topology.
+
+2009-10-15  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	* config/spu/spu.c (get_branch_target): Use extract_asm_operands.
+
+2009-10-15  Richard Guenther  <rguenther@suse.de>
+
+	* tree.c (free_lang_data_in_decl): Free DECL_FCONTEXT.
+
+2009-10-15  Jakub Jelinek  <jakub@redhat.com>
+
+	* config/rs6000/option-defaults.h (OPTION_DEFAULT_SPECS): Don't
+	add --with-tune{,-32,-64} configured default for -mtune if explicit
+	-mcpu is used.
+
+2009-10-14  Daniel Gutson  <dgutson@codesourcery.com>
+
+	* config/arm/neon.md (neon_vshll_n<mode>): Checking Bounds
+	fixed.
+
+2009-10-14  DJ Delorie  <dj@redhat.com>
+	
+	* config/h8300/h8300.c (F): New.
+	(Fpa): New.
+	(h8300_emit_stack_adjustment): Call them.
+	(push): Likewise.
+	(h8300_push_pop): Likewise.
+	(h8300_expand_prologue): Likewise.
+	* config/h8300/h8300.h (DWARF2_DEBUGGING_INFO): Define.
+	(MUST_USE_SJLJ_EXCEPTIONS): Define.
+	(INCOMING_RETURN_ADDR_RTX): Define.
+	(INCOMING_FRAME_SP_OFFSET): Define.
+	(DWARF_CIE_DATA_ALIGNMENT): Define.
+
+2009-10-14  Jakub Jelinek  <jakub@redhat.com>
+
+	* stor-layout.c (place_field): Don't emit -Wpadded warnings for
+	fields in builtin structs.
+	(finalize_record_size): Likewise.
+
+2009-10-14  Richard Guenther  <rguenther@suse.de>
+
+	* gimple.c (gtc_ob): New global.
+	(struct type_pair_d): Replace pointers with type UIDs.
+	(type_pair_hash): Adjust.
+	(type_pair_eq): Likewise.
+	(lookup_type_pair): Likewise.  Allocate from an obstack.
+	(gimple_force_type_merge): Adjust.
+	(gimple_types_compatible_p): Likewise.
+	(free_gimple_type_tables): Free the obstack.
+
+2009-10-14  Jakub Jelinek  <jakub@redhat.com>
+
+	* tree-parloops.c (separate_decls_in_region_debug_bind): Drop debug
+	stmts setting DEBUG_EXPR_DECLs.
+
+	* cfgexpand.c (expand_debug_expr): Ignore zero-length bitfields.
+	Don't crash if mode1 is VOIDmode.
+
+2009-09-26  Vladimir Makarov  <vmakarov@redhat.com>
+
+	* params.def (PARAM_IRA_LOOP_RESERVED_REGS): New.
+	* params.h (IRA_LOOP_RESERVED_REGS): New
+	* tree-pass.h (pass_subregs_of_mode_init,
+	pass_subregs_of_mode_finish): Remove.
+	* passes.c (pass_subregs_of_mode_init,
+	pass_subregs_of_mode_finish): Remove.
+	(pass_reginfo_init): Move before loop optimizations.
+	* config/i386/i386.h (STACK_REG_COVER_CLASS): Define.
+	* common.opt (fira-loop-pressure): New.
+	* toplev.h (flag_ira_loop_pressure): New.
+	* rtl.h (init_subregs_of_mode, finish_subregs_of_mode): New
+	externals.
+	* reginfo.c (init_subregs_of_mode, finish_subregs_of_mode):
+	Make external and void type functions.
+	(gate_subregs_of_mode_init, pass_subregs_of_mode_init,
+	pass_subregs_of_mode_finish): Remove.
+	* ira-costs.c (init_costs): Call init_subregs_of_mode.
+	* regmove.c: Include ira.h.
+	(regmove_optimize): Call ira_set_pseudo_classes after IRA based
+	register pressure calculation in loops.
+	* loop-invariant.c: Include REGS_H and ira.h.
+	(struct loop_data): New members max_reg_pressure, regs_ref, and
+	regs_live.
+	(struct invariant): New member orig_regno.
+	(curr_loop): New variable.
+	(find_exits): Initialize regs_ref and regs_live.
+	(create_new_invariant): Initialize orig_regno.
+	(get_cover_class_and_nregs): New.
+	(get_inv_cost): Make aregs_needed an array.  Use regs_needed as an
+	array.  Add code for flag_ira_loop_pressure.
+	(gain_for_invariant): Make new_regs an array.  Add code for
+	flag_ira_loop_pressure.
+	(best_gain_for_invariant): Ditto.
+	(set_move_mark): New parameter gain.  Use it for debugging output.
+	(find_invariants_to_move): Make regs_needed and new_regs an array.
+	Add code for flag_ira_loop_pressure.
+	(move_invariant_reg): Set up orig_regno.
+	(move_invariants): Set up reg classes for pseudos for
+	flag_ira_loop_pressure.
+	(free_loop_data): Clear regs_ref and regs_live.
+	(curr_regs_live, curr_reg_pressure, regs_set, n_regs_set,
+	get_regno_cover_class, change_pressure, mark_regno_live,
+	mark_regno_death, mark_reg_store, mark_reg_clobber,
+	mark_reg_death, mark_ref_regs, calculate_loop_reg_pressure): New.
+	(move_loop_invariants): Calculate pressure.  Initialize curr_loop.
+	* ira.c (ira): Call ira_set_pseudo_classes after IRA based
+	register pressure calculation in loops if new regs were added.
+	Call finish_subregs_of_mode.
+	* opts.c (decode_options): Set up flag_ira_loop_pressure.
+	* Makefile.in (loop-invariant.o): Add ira.h.
+	(regmove.o): Ditto.
+	* doc/invoke.texi (-fira-loop-pressure, ira-loop-reserved-regs):
+	Describe.
+	* doc/tm.texi (STACK_REG_COVER_CLASS): Describe.
+	
+2009-10-14  Richard Guenther  <rguenther@suse.de>
+
+	* lto-symtab.c (lto_symtab_compatible): Fold in ...
+	(lto_symtab_merge): ... here.  Rewrite both to take the
+	prevailing and a to-be-merged entry and to queue diagnostics
+	properly.
+	(lto_symtab_resolve_replaceable_p): New predicate for
+	symbol resolution.
+	(lto_symtab_resolve_can_prevail_p): Likewise.
+	(lto_symtab_resolve_symbols): Rewrite.  Fold in code that
+	handles merging commons by choosing the largest decl.  Fold
+	in code that gives ODR errors.
+	(lto_symtab_merge_decls_2): Simplify a lot.  Emit queued
+	diagnostics here.
+	(lto_symtab_merge_decls_1): Re-structure.  Deal with the
+	case of no prevailing decl here.  Diagnose mismatches
+	in object types here.  Drop all but the prevailing decls.
+	(lto_symtab_prevailing_decl): Return the single prevailing decl.
+	* lto-streamer-in.c (lto_input_tree_ref): Deal with
+	VIEW_CONVERT_EXPRs in decl slots.  Unshare the tree in this case.
+
+2009-10-14  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/41521
+	* lto-streamer-in.c (input_bb): Replace debug stmts with
+	nops instead of dropping them.
+
+2009-10-14  Nick Clifton  <nickc@redhat.com>
+
+	* gcc/doc/extended.texi: Replace the dash character with
+	@minus{} in situations where it is being used as a minus
+	symbol.
+	* gcc/doc/tm.texi: Likewise.
+	* gcc/doc/md.texi: Likewise.
+
+2009-10-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR preprocessor/41543
+	* input.h (BUILTINS_LOCATION): Change to 1 from 2.
+	Assert BUILTINS_LOCATION < RESERVED_LOCATION_COUNT.
+	* tree.c: Include intl.h.
+	(expand_location): Handle BUILTINS_LOCATION.
+	* Makefile.in (tree.o): Depend on intl.h.
+
+	PR debug/41695
+	* dwarf2out.c (dwarf2out_var_location): Always clear
+	last_postcall_label when changing last_label.
+
+2009-10-14  Pascal Obry  <obry@adacore.com>
+
+	* gcc.c (DEFAULT_SWITCH_CURTAILS_COMPILATION): Add -E.
+	(process_command): Handle -E as done with -c and -S.  Do not add
+	the target executable suffix to the output file when -E is used.
+	(main): Adjust error message accordingly.
+
+2009-10-14  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/41343
+	PR debug/41447
+	PR debug/41264
+	PR debug/41338
+	* tree.c (tree_node_structure_for_code): DEBUG_EXPR_DECL uses
+	decl with rtl.
+	(tree_code_size): Likewise.
+
+2009-10-13  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* builtins.c (fold_builtin_1): Support complex "arc" functions.
+	* real.h (HAVE_mpc_arc): Define.
+
+2009-10-14  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* config/sh/sh.c (TARGET_BUILTIN_DECL): Define.
+	(struct builtin_description): Add fndecl field.
+	(bdesc): Remove const qualifier.  Update initializer.
+	(sh_media_init_builtins): Remove const qualifier for d.  Record
+	the result of add_builtin_function to the fndecl field.
+	(sh_builtin_decl): New.
+	(sh_media_builtin_decl): New.
+
+2009-10-14  Hans-Peter Nilsson  <hp@axis.com>
+
+	PR target/38948
+	* config/cris/cris.h (SECONDARY_RELOAD_CLASS): Handle reload
+	requests between special registers.
+
+2009-10-13  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* dwarf2out.c (mem_loc_descriptor): Accept UNGT as well.
+
+2009-10-13  Richard Henderson  <rth@redhat.com>
+
+	PR tree-optimization/41377
+	* tree-eh.c (unsplit_eh): Propagate degenerate PHIs.
+	(cleanup_empty_eh_merge_phis): New change_region parameter;
+	pass it on to redirect_eh_edge_1.  Update callers.
+	(cleanup_empty_eh_unsplit): Don't require an existing EH label
+	at the destination block.
 
 2009-10-13  Basile Starynkevitch  <basile@starynkevitch.net>
-    * passes.c (register_pass): Replaced gcc_unreachable by
-    fatal_error on failure. Mentions plugins in comments & messages.
+
+	* passes.c (register_pass): Replaced gcc_unreachable by
+	fatal_error on failure. Mentions plugins in comments & messages.
 
 2009-10-13  Jakub Jelinek  <jakub@redhat.com>
 

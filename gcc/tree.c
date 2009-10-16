@@ -59,6 +59,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "timevar.h"
 #include "except.h"
 #include "debug.h"
+#include "intl.h"
 
 /* Tree code classes.  */
 
@@ -287,6 +288,8 @@ tree_node_structure_for_code (enum tree_code code)
 	    return TS_LABEL_DECL;
 	  case RESULT_DECL:
 	    return TS_RESULT_DECL;
+	  case DEBUG_EXPR_DECL:
+	    return TS_DECL_WRTL;
 	  case CONST_DECL:
 	    return TS_CONST_DECL;
 	  case TYPE_DECL:
@@ -670,6 +673,8 @@ tree_code_size (enum tree_code code)
 	    return sizeof (struct tree_type_decl);
 	  case FUNCTION_DECL:
 	    return sizeof (struct tree_function_decl);
+	  case DEBUG_EXPR_DECL:
+	    return sizeof (struct tree_decl_with_rtl);
 	  default:
 	    return sizeof (struct tree_decl_non_common);
 	  }
@@ -3948,9 +3953,9 @@ expanded_location
 expand_location (source_location loc)
 {
   expanded_location xloc;
-  if (loc == 0)
+  if (loc <= BUILTINS_LOCATION)
     {
-      xloc.file = NULL;
+      xloc.file = loc == UNKNOWN_LOCATION ? NULL : _("<built-in>");
       xloc.line = 0;
       xloc.column = 0;
       xloc.sysp = 0;
@@ -4397,6 +4402,10 @@ free_lang_data_in_decl (tree decl)
 	  && DECL_FIELD_OFFSET (decl)
 	  && TREE_CODE (DECL_FIELD_OFFSET (decl)) != INTEGER_CST)
 	DECL_FIELD_OFFSET (decl) = NULL_TREE;
+
+      /* DECL_FCONTEXT is only used for debug info generation.  */
+      if (TREE_CODE (decl) == FIELD_DECL)
+	DECL_FCONTEXT (decl) = NULL_TREE;
     }
   else if (TREE_CODE (decl) == FUNCTION_DECL)
     {

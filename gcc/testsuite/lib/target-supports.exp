@@ -2984,6 +2984,28 @@ proc add_options_for_ieee { flags } {
     return $flags
 }
 
+# Add to FLAGS the flags needed to enable functions to bind locally
+# when using pic/PIC passes in the testsuite.
+
+proc add_options_for_bind_pic_locally { flags } {
+    if {[check_no_compiler_messages using_pic2 assembly {
+        #if __PIC__ != 2
+        #error FOO
+        #endif
+    }]} {
+	return "$flags -fPIE"
+    }
+    if {[check_no_compiler_messages using_pic1 assembly {
+        #if __PIC__ != 1
+        #error FOO
+        #endif
+    }]} {
+	return "$flags -fpie"
+    }
+
+    return $flags
+}
+
 # Return 1 if the target provides a full C99 runtime.
 
 proc check_effective_target_c99_runtime { } {
@@ -3122,6 +3144,29 @@ proc check_effective_target_mpc_pow { } {
 	int main ()
 	{
 	  if (__builtin_cpow(1,1) != 1)
+	    link_error();
+	}
+    }]
+}
+
+# Return 1 if the MPC library with "arc" functions is integrated with GCC, 0 otherwise.
+
+proc check_effective_target_mpc_arc { } {
+    return [check_no_compiler_messages mpc_arc executable {
+	extern void link_error(void);
+	int main ()
+	{
+	  if (__builtin_cacos(1) != 0)
+	    link_error();
+	  if (__builtin_casin(0) != 0)
+	    link_error();
+	  if (__builtin_catan(0) != 0)
+	    link_error();
+	  if (__builtin_cacosh(1) != 0)
+	    link_error();
+	  if (__builtin_casinh(0) != 0)
+	    link_error();
+	  if (__builtin_catanh(0) != 0)
 	    link_error();
 	}
     }]

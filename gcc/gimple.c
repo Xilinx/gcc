@@ -46,6 +46,7 @@ static struct pointer_map_t *type_hash_cache;
 
 /* Global type comparison cache.  */
 static htab_t gtc_visited;
+static struct obstack gtc_ob;
 
 /* All the tuples have their operand vector (if present) at the very bottom
    of the structure.  Therefore, the offset required to find the
@@ -3025,8 +3026,8 @@ static hashval_t gimple_type_hash (const void *);
    infinite recursion due to self-referential types.  */
 struct type_pair_d
 {
-  tree t1;
-  tree t2;
+  unsigned int uid1;
+  unsigned int uid2;
   int same_p;
 };
 typedef struct type_pair_d *type_pair_t;
@@ -3037,8 +3038,8 @@ static hashval_t
 type_pair_hash (const void *p)
 {
   const struct type_pair_d *pair = (const struct type_pair_d *) p;
-  hashval_t val1 = iterative_hash_hashval_t (htab_hash_pointer (pair->t1), 0);
-  hashval_t val2 = iterative_hash_hashval_t (htab_hash_pointer (pair->t2), 0);
+  hashval_t val1 = pair->uid1;
+  hashval_t val2 = pair->uid2;
   return (iterative_hash_hashval_t (val2, val1)
 	  ^ iterative_hash_hashval_t (val1, val2));
 }
@@ -3050,34 +3051,37 @@ type_pair_eq (const void *p1, const void *p2)
 {
   const struct type_pair_d *pair1 = (const struct type_pair_d *) p1;
   const struct type_pair_d *pair2 = (const struct type_pair_d *) p2;
-  return ((pair1->t1 == pair2->t1 && pair1->t2 == pair2->t2)
-	  || (pair1->t1 == pair2->t2 && pair1->t2 == pair2->t1));
+  return ((pair1->uid1 == pair2->uid1 && pair1->uid2 == pair2->uid2)
+	  || (pair1->uid1 == pair2->uid2 && pair1->uid2 == pair2->uid1));
 }
 
 /* Lookup the pair of types T1 and T2 in *VISITED_P.  Insert a new
    entry if none existed.  */
 
 static type_pair_t
-lookup_type_pair (tree t1, tree t2, htab_t *visited_p)
+lookup_type_pair (tree t1, tree t2, htab_t *visited_p, struct obstack *ob_p)
 {
   struct type_pair_d pair;
   type_pair_t p;
   void **slot;
 
   if (*visited_p == NULL)
-    *visited_p = htab_create (251, type_pair_hash, type_pair_eq, free);
+    {
+      *visited_p = htab_create (251, type_pair_hash, type_pair_eq, NULL);
+      gcc_obstack_init (ob_p);
+    }
 
-  pair.t1 = t1;
-  pair.t2 = t2;
+  pair.uid1 = TYPE_UID (t1);
+  pair.uid2 = TYPE_UID (t2);
   slot = htab_find_slot (*visited_p, &pair, INSERT);
 
   if (*slot)
     p = *((type_pair_t *) slot);
   else
     {
-      p = XNEW (struct type_pair_d);
-      p->t1 = t1;
-      p->t2 = t2;
+      p = XOBNEW (ob_p, struct type_pair_d);
+      p->uid1 = TYPE_UID (t1);
+      p->uid2 = TYPE_UID (t2);
       p->same_p = -2;
       *slot = (void *) p;
     }
@@ -3110,38 +3114,43 @@ gimple_force_type_merge (tree t1, tree t2)
 
   /* Adjust cached comparison results for T1 and T2 to make sure
      they now compare compatible.  */
-  p = lookup_type_pair (t1, t2, &gtc_visited);
+  p = lookup_type_pair (t1, t2, &gtc_visited, &gtc_ob);
   p->same_p = 1;
 }
 
 
-/* Return true if both types have the same name.  */
+/* Return true if T1 and T2 have the same name.  If FOR_COMPLETION_P is
+   true then if any type has no name return false, otherwise return
+   true if both types have no names.  */
 
 static bool
-compare_type_names_p (tree t1, tree t2)
+compare_type_names_p (tree t1, tree t2, bool for_completion_p)
 {
   tree name1 = TYPE_NAME (t1);
   tree name2 = TYPE_NAME (t2);
 
-  /* Consider anonymous types all unique.  */
-  if (!name1 || !name2)
+  /* Consider anonymous types all unique for completion.  */
+  if (for_completion_p
+      && (!name1 || !name2))
     return false;
 
-  if (TREE_CODE (name1) == TYPE_DECL)
+  if (name1 && TREE_CODE (name1) == TYPE_DECL)
     {
       name1 = DECL_NAME (name1);
-      if (!name1)
+      if (for_completion_p
+	  && !name1)
 	return false;
     }
-  gcc_assert (TREE_CODE (name1) == IDENTIFIER_NODE);
+  gcc_assert (!name1 || TREE_CODE (name1) == IDENTIFIER_NODE);
 
-  if (TREE_CODE (name2) == TYPE_DECL)
+  if (name2 && TREE_CODE (name2) == TYPE_DECL)
     {
       name2 = DECL_NAME (name2);
-      if (!name2)
+      if (for_completion_p
+	  && !name2)
 	return false;
     }
-  gcc_assert (TREE_CODE (name2) == IDENTIFIER_NODE);
+  gcc_assert (!name2 || TREE_CODE (name2) == IDENTIFIER_NODE);
 
   /* Identifiers can be compared with pointer equality rather
      than a string comparison.  */
@@ -3220,7 +3229,7 @@ gimple_types_compatible_p (tree t1, tree t2)
 
   /* If we've visited this type pair before (in the case of aggregates
      with self-referential types), and we made a decision, return it.  */
-  p = lookup_type_pair (t1, t2, &gtc_visited);
+  p = lookup_type_pair (t1, t2, &gtc_visited, &gtc_ob);
   if (p->same_p == 0 || p->same_p == 1)
     {
       /* We have already decided whether T1 and T2 are the
@@ -3406,7 +3415,7 @@ gimple_types_compatible_p (tree t1, tree t2)
 	  if (TREE_CODE (TREE_TYPE (t1)) == TREE_CODE (TREE_TYPE (t2))
 	      && (!COMPLETE_TYPE_P (TREE_TYPE (t1))
 		  || !COMPLETE_TYPE_P (TREE_TYPE (t2)))
-	      && compare_type_names_p (TREE_TYPE (t1), TREE_TYPE (t2)))
+	      && compare_type_names_p (TREE_TYPE (t1), TREE_TYPE (t2), true))
 	    {
 	      /* If t2 is complete we want to choose it instead of t1.  */
 	      if (COMPLETE_TYPE_P (TREE_TYPE (t2)))
@@ -3459,10 +3468,14 @@ gimple_types_compatible_p (tree t1, tree t2)
     case UNION_TYPE:
     case QUAL_UNION_TYPE:
 	{
-	  /* For aggregate types, all the fields must be the same.  */
 	  tree f1, f2;
 
-	  /* Compare every field.  */
+	  /* The struct tags shall compare equal.  */
+	  if (!compare_type_names_p (TYPE_MAIN_VARIANT (t1),
+				     TYPE_MAIN_VARIANT (t2), false))
+	    goto different_types;
+
+	  /* For aggregate types, all the fields must be the same.  */
 	  for (f1 = TYPE_FIELDS (t1), f2 = TYPE_FIELDS (t2);
 	       f1 && f2;
 	       f1 = TREE_CHAIN (f1), f2 = TREE_CHAIN (f2))
@@ -3578,12 +3591,11 @@ visit (tree t, struct sccs *state, hashval_t v,
   return v;
 }
 
-/* Hash the name of TYPE with the previous hash value V and return it.  */
+/* Hash NAME with the previous hash value V and return it.  */
 
 static hashval_t
-iterative_hash_type_name (tree type, hashval_t v)
+iterative_hash_name (tree name, hashval_t v)
 {
-  tree name = TYPE_NAME (TYPE_MAIN_VARIANT (type));
   if (!name)
     return v;
   if (TREE_CODE (name) == TYPE_DECL)
@@ -3658,7 +3670,8 @@ iterative_hash_gimple_type (tree type, hashval_t val,
       if (AGGREGATE_TYPE_P (TREE_TYPE (type)))
 	{
 	  v = iterative_hash_hashval_t (TREE_CODE (TREE_TYPE (type)), v);
-	  v = iterative_hash_type_name (type, v);
+	  v = iterative_hash_name
+	      (TYPE_NAME (TYPE_MAIN_VARIANT (TREE_TYPE (type))), v);
 	}
       else
 	v = visit (TREE_TYPE (type), state, v,
@@ -3703,10 +3716,11 @@ iterative_hash_gimple_type (tree type, hashval_t val,
       unsigned nf;
       tree f;
 
-      v = iterative_hash_type_name (type, v);
+      v = iterative_hash_name (TYPE_NAME (TYPE_MAIN_VARIANT (type)), v);
 
       for (f = TYPE_FIELDS (type), nf = 0; f; f = TREE_CHAIN (f))
 	{
+	  v = iterative_hash_name (DECL_NAME (f), v);
 	  v = visit (TREE_TYPE (f), state, v,
 		     sccstack, sccstate, sccstate_obstack);
 	  nf++;
@@ -3917,6 +3931,7 @@ free_gimple_type_tables (void)
   if (gtc_visited)
     {
       htab_delete (gtc_visited);
+      obstack_free (&gtc_ob, NULL);
       gtc_visited = NULL;
     }
 }
@@ -4106,6 +4121,7 @@ gimple_signed_type (tree type)
 alias_set_type
 gimple_get_alias_set (tree t)
 {
+  static bool recursing_p;
   tree u;
 
   /* Permit type-punning when accessing a union, provided the access
@@ -4147,6 +4163,12 @@ gimple_get_alias_set (tree t)
     {
       tree t1;
 
+      /* ???  We can end up creating cycles with TYPE_MAIN_VARIANT
+	 and TYPE_CANONICAL.  Avoid recursing endlessly between
+	 this langhook and get_alias_set.  */
+      if (recursing_p)
+	return -1;
+
       /* Unfortunately, there is no canonical form of a pointer type.
 	 In particular, if we have `typedef int I', then `int *', and
 	 `I *' are different types.  So, we have to pick a canonical
@@ -4171,7 +4193,13 @@ gimple_get_alias_set (tree t)
 	 C++ committee.  */
       t1 = build_type_no_quals (t);
       if (t1 != t)
-	return get_alias_set (t1);
+	{
+	  alias_set_type set;
+	  recursing_p = true;
+	  set = get_alias_set (t1);
+	  recursing_p = false;
+	  return set;
+	}
     }
 
   return -1;
