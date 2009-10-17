@@ -596,7 +596,7 @@
 ;;; catchall for outputting any stuff
 (defun outpucod_catchall_root (anyr declbuf implbuf :long depth)
   (debug_msg anyr "outpucod_catchall_root anyr")
-  (displaydebugmsg anyr "outpucod_catchall_root anyr")
+  (display_debug_message anyr "outpucod_catchall_root anyr")
   (outcstring_err "* output_c_code unimplemented reciever class ")
   (let ( (discr (discrim anyr)) ) (outstr_err (unsafe_get_field :named_name discr)))
   (outnewline_err)

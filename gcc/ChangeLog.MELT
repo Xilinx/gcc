@@ -1,3 +1,9 @@
+2009-10-17  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.melt: more documentation. Renamed
+	displaydebugmsg as display_debug_message.
+	* melt/warmelt-genobj.melt: renamed displaydebugmsg as display_debug_message.
+	* melt/warmelt-outobj.melt: likewise.
+
 2009-10-16  Basile Starynkevitch  <basile@starynkevitch.net>
 	[the value importer takes the imported symbol name cstring as an
 	extra argument and also the module name as a string. Also renamed

@@ -1646,10 +1646,10 @@ make a $CURAT string.}#
     const char* $eachstrmap#_nam = NULL;
     $curat = NULL;
     $curva = NULL;
-    $eachstrmap#_str = ((meltmapstrings_ptr_t)strmap)->entab[$eachstrmap#_ix].e_at;
+    $eachstrmap#_str = ((struct meltmapstrings_st*)$strmap)->entab[$eachstrmap#_ix].e_at;
     if ($eachstrmap#_str == HTAB_DELETED_ENTRY) { $curat = NULL; continue; };
     if (!$eachstrmap#_str) continue;
-    $curva = ((meltmapstrings_ptr_t)strmap)->entab[$eachstrmap#_ix].e_va;
+    $curva = ((struct meltmapstrings_st*)$strmap)->entab[$eachstrmap#_ix].e_va;
     if (!$curva) continue; 
     if (melt_is_instance_of($curva, MELT_PREDEF (CLASS_NAMED)) 
 	&& ($curat = melt_object_nth_field ((melt_ptr_t) $curva, FNAMED_NAME)) != NULL		   
@@ -1660,6 +1660,8 @@ make a $CURAT string.}#
       $curat = NULL;
       $curat =  meltgc_new_stringdup((meltobject_ptr_t) MELT_PREDEF (DISCR_STRING), $eachstrmap#_str);
     }
+    $eachstrmap#_str = (const char*)0;
+    $eachstrmap#_nam = (const char*)0;
 }#
 ;;; after expansion
   #{ /* end $eachstrmap */
@@ -1854,7 +1856,7 @@ tail $TL or else null.}#
   :doc #{Make a mixed location value of given discriminant $DIS value $VAL
 number $NUM opaque location number $LOC.}#
   #{(meltgc_new_mixloc((meltobject_ptr_t)($dis), (melt_ptr_t)($val), 
-		       ($num), (location_t)($loc))}#)
+		       ($num), (location_t)($loc)))}#)
 
 
 
@@ -3030,15 +3032,11 @@ end of compilation unit in last place}#
 
 (compile_warning "should add :doc below")
 ;;;;;;;;;;;;;;;;;;;;;;;; debug message function
-(defprimitive the_dbgcounter () :long "melt_dbgcounter")
-(defprimitive increment_dbgcounter () :void 
-  #{(void) ++melt_dbgcounter;}#
-)
-
 
 ;; this is a rarely used function
-(defun displaydebugmsg (val :cstring msgstr :long count)
-  (let ( (:long dbgcounter (progn (increment_dbgcounter) (the_dbgcounter)))
+(defun display_debug_message (val :cstring msgstr :long count)
+  :doc #{Display in a debug-style the value $VAL with message raw string $MSGSTR and counter $COUNT. Rarely useful.}#
+  (let ( (:long dbgcounter 0)
 	 (sbuf (make_strbuf discr_strbuf)) 
 	 (occmap (make_mapobject discr_map_objects 50))
 	 (boxedmaxdepth (make_integerbox discr_integer 14))
@@ -3047,6 +3045,7 @@ end of compilation unit in last place}#
 			 :dbgi_occmap occmap
 			 :dbgi_maxdepth boxedmaxdepth))
 	 )
+    (code_chunk setdbgcounter #{$dbgcounter= ++melt_dbgcounter}#)
     (outnum_err "!*!#" dbgcounter "/")
     (outnum_err "" (-i (the_framedepth) 1) ":")
     (outcstring_err msgstr)
@@ -3058,9 +3057,10 @@ end of compilation unit in last place}#
 
 
 ;;;;
+;; this function is inside INITIAL_SYSTEM_DATA and is internally used by the debug_msg macro
 (defun debugmsg (val :cstring msgstr :long count)
   (if (need_dbg 0) 
-      (let ( (:long dbgcounter (progn (increment_dbgcounter) (the_dbgcounter)))
+      (let ( (:long dbgcounter 0)
 	     (sbuf (make_strbuf discr_strbuf)) 
 	     (occmap (make_mapobject discr_map_objects 53))
 	     (boxedmaxdepth (make_integerbox discr_integer 10)) ;;;; @@@ DEBUGDEPTH
@@ -3069,6 +3069,7 @@ end of compilation unit in last place}#
 			     :dbgi_occmap occmap
 			     :dbgi_maxdepth boxedmaxdepth))
 	     )
+	(code_chunk setdbgcounter #{$dbgcounter= ++melt_dbgcounter}#)
 	(outnum_dbg "!!!***###" dbgcounter "/")
 	(outnum_dbg "" (-i (the_framedepth) 1) ":")
 	(outcstring_dbg msgstr)
@@ -3080,6 +3081,9 @@ end of compilation unit in last place}#
 
 ;;;;;;;;;;;;;;;;;;;; initial system data 
 (definstance initial_system_data class_system_data
+  :doc #{The $INITIAL_SYSTEM_DATA is the unique instance of
+$CLASS_SYSTEM_DATA. Only for gurus. It normally should not be
+accessed or updated but is intenally useful to many MELT mechanisms.}#
   :predef INITIAL_SYSTEM_DATA
   :named_name '"INITIAL_SYSTEM_DATA"
   :sysdata_mode_dict  (make_mapstring discr_map_strings 40) ;stringmap for modes
@@ -3112,49 +3116,50 @@ end of compilation unit in last place}#
 
 ;;; iterate fully in map of objects 
 (defun mapobject_every (map f)
+  :doc #{For a given hash-map of objects $MAP and a function $F,
+apply $F to every attribute object and value in the map. Returns
+nil.}#
   (if (is_mapobject map)
       (if (is_closure f)
-	  (let ( (:long ix 0) )
-	    (forever maploop
-		     (if (>=i ix (mapobject_size map)) (exit maploop))
-		     (let ( (curat (mapobject_nth_attr map ix))
-			    (curval (mapobject_nth_val map ix)) )
-		       (if curat  (f curat curval))
-		       )
-		     (setq ix (+i ix 1))
-		     )))))
+	  (foreach_in_mapobject 
+	   (map)
+	   (curat  curval)
+	   (f curat curval))
+	)))
 
-;;; iterate & test over a map of objects - if the called f returns nil the
-;;; iteration is stopped and returns the "failing" attr
+;;; iterate & test over a map of objects - if the called f returns nil
+;;; (with perhaps a secondary value result) the iteration is stopped
+;;; and returns the "failing" attr, value, & f's secundary result
 (defun mapobject_iterate_test (map f)
+  :doc #{With a given object hash-map $MAP and function $F which
+  returns a boolean [=nil or not] test value and perhaps a secundary other value,
+  iterate on the map and apply $F to every attribute and value in the
+  $MAP. If $F returns a nil primary result, stop the iteration, and
+  return the failed attribute, associated value, and an eventual other
+  secundary results value returned by $F.}#
   (if (is_mapobject map)
       (if (is_closure f)
-	  (let ( (:long ix 0) )
-	    (forever maploop
-		     (if (>=i ix (mapobject_size map)) (exit maploop))
-		     (let ( (curat (mapobject_nth_attr map ix))
-			    (curval (mapobject_nth_val map ix)) )
-		       (if curat 
-			   (if (null (f curat curval))
-			       (return curat))
-			 ))
-		     (setq ix (+i ix 1))
-		     )))))
+	  (foreach_in_mapobject 
+	   (map)
+	   (curat curval)
+	   (multicall 
+	    (test other)
+	    (f curat curval)
+	    (if (null test)
+		(return curat curval other)))))))
+
 
 ;;; iterate fully in a map of strings
 (defun mapstring_every (map f)
+  :doc #{For a given hash-map of strings $MAP and a function $F,
+apply $F to every attribute object and [perhaps allocated] string value. Returns
+nil.}#
   (if (is_mapstring map)
       (if (is_closure f)
-	  (let ( (:long ix 0) )
-	    (forever maploop
-		     (if (>=i ix (mapstring_size map)) 
-			 (exit maploop))
-		     (let ( (curat (mapstring_nth_attrstr map discr_string ix))
-			    (curval (mapstring_nth_val map ix)) )
-		       (if curat (f curat curval))
-		       )
-		     (setq ix (+i ix 1))
-		     )))))
+	  (foreach_in_mapstring
+	   (map)
+	   (curat curval)
+	   (f curat curval)))))
 
 ;;; iterate & test over a map of strings - if the called f returns nil the
 ;;; iteration is stopped
@@ -4699,13 +4704,14 @@ list.}#
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; debug_msg support is done by calling this debug_msg_fun 
 (defun debug_msg_fun (val :cstring msgstr :long count :cstring filenam :long lineno)
-  (increment_dbgcounter) 
+  (code_chunk incrdbgcounter #{++melt_dbgcounter}#)
   (if (need_dbg 0) 
-      (let ( (:long dbgcounter (progn (the_dbgcounter)))
+      (let ( (:long dbgcounter 0)
 	     (out (get_field :sysdata_dumpfile initial_system_data)) 
 	     (occmap (make_mapobject discr_map_objects 50))
 	     (boxedmaxdepth (make_integerbox discr_integer 17)) ;;;; @@@ DEBUGDEPTH
 	     )
+	(code_chunk getdbgcounter #{$dbgcounter = melt_dbgcounter}#)
 	;; it may happen that OUT is null, e.g. because the dumpfile
 	;; is not yet initialized in initial_system_data...
 	(if (null out)
@@ -5220,7 +5226,7 @@ list.}#
  dbgoutagain_fields
  debug_msg_fun				
  debugmsg				
- displaydebugmsg			
+ display_debug_message			
  find_enclosing_env			
  find_env				
  find_env_debug
@@ -5279,4 +5285,6 @@ list.}#
 (let ( ( truekeyword :true) )
   (code_chunk storetruekeyword #{MELT_STORE_PREDEF(TRUE,$truekeyword)}#))
 
+;; we export displaydebugmsg because a previous version of warmelt-genobj-0 used it
+(export_synonym displaydebugmsg display_debug_message)
 ;; eof warmelt-first.melt

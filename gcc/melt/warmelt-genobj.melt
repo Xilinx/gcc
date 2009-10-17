@@ -570,7 +570,7 @@
 ;; called
 (defun compilobj_catchall_nrep (recv gcx)
   (debug_msg gcx "class_rep compile_obj gcx")
-  (displaydebugmsg recv "class_rep compile_obj recv")
+  (display_debug_message recv "class_rep compile_obj recv")
   (outcstring_err "* compilobj unimplemented reciever class ")
   (let ( (discr (discrim recv)) ) (outstr_err (unsafe_get_field :named_name discr)))
   (outnewline_err)
@@ -2464,7 +2464,7 @@
   (assert_msg "check bind" (is_a bind class_any_binding))
   (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (debug_msg bind "compilobj_any_binding bind")
-  (displaydebugmsg bind "class_bind compile_obj recv")
+  (display_debug_message bind "class_bind compile_obj recv")
   (outcstring_err "* compilobj unimplemented reciever binding class ")
   (let ( (discr (discrim bind)) ) (outstr_err (unsafe_get_field :named_name discr)))
   (outnewline_err)
