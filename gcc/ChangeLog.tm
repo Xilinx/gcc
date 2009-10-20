@@ -1,5 +1,12 @@
 2009-10-20  Richard Henderson  <rth@redhat.com>
 
+	* trans-mem.c (tm_memopt_init_sets): Use XOBNEW.
+	(tm_memopt_free_sets): Move call to bitmap_obstack_release...
+	(execute_tm_memopt): ... here.  Empty the hash table within
+	the loop; free the hash table after the loop.
+
+2009-10-20  Richard Henderson  <rth@redhat.com>
+
 	* tree-inline.c (remap_gimple_stmt): Restore GIMPLE_TM_ATOMIC
 	from before merge.
 

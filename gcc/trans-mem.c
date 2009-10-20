@@ -2133,9 +2133,7 @@ static struct tm_memopt_bitmaps *
 tm_memopt_init_sets (void)
 {
   struct tm_memopt_bitmaps *b
-    = (struct tm_memopt_bitmaps *) obstack_alloc (&tm_memopt_obstack.obstack,
-						  sizeof
-						  (struct tm_memopt_bitmaps));
+    = XOBNEW (&tm_memopt_obstack.obstack, struct tm_memopt_bitmaps);
   b->store_avail_in = BITMAP_ALLOC (&tm_memopt_obstack);
   b->store_avail_out = BITMAP_ALLOC (&tm_memopt_obstack);
   b->store_antic_in = BITMAP_ALLOC (&tm_memopt_obstack);
@@ -2156,7 +2154,6 @@ tm_memopt_free_sets (VEC (basic_block, heap) *blocks)
   size_t i;
   basic_block bb;
 
-  bitmap_obstack_release (&tm_memopt_obstack);
   for (i = 0; VEC_iterate (basic_block, blocks, i, bb); ++i)
     bb->aux = NULL;
 }
@@ -2187,33 +2184,37 @@ execute_tm_memopt (void)
   tm_memopt_value_numbers = htab_create (10, tm_memop_hash, tm_memop_eq, free);
 
   for (region = all_tm_regions; region; region = region->next)
-   {
-     /* All the TM stores/loads in the current region.  */
-     size_t i;
-     basic_block bb;
+    {
+      /* All the TM stores/loads in the current region.  */
+      size_t i;
+      basic_block bb;
 
-     bitmap_obstack_initialize (&tm_memopt_obstack);
+      bitmap_obstack_initialize (&tm_memopt_obstack);
 
-     /* Save all BBs for the current region.  */
-     bbs = get_tm_region_blocks (region);
-     /* Collect all the memory operations.  */
-     for (i = 0; VEC_iterate (basic_block, bbs, i, bb); ++i)
-       {
-	 bb->aux = tm_memopt_init_sets ();
-	 tm_memopt_accumulate_memops (bb);
-       }
-     /* Solve data flow equations and transform each block accordingly.  */
-     tm_memopt_clear_visited (bbs);
-     tm_memopt_compute_available (region, bbs);
-     tm_memopt_clear_visited (bbs);
-     tm_memopt_compute_antic (region, bbs);
-     tm_memopt_transform_blocks (bbs);
+      /* Save all BBs for the current region.  */
+      bbs = get_tm_region_blocks (region);
 
-     tm_memopt_free_sets (bbs);
-     VEC_free (basic_block, heap, bbs);
-     htab_delete (tm_memopt_value_numbers);
-   }
+      /* Collect all the memory operations.  */
+      for (i = 0; VEC_iterate (basic_block, bbs, i, bb); ++i)
+	{
+	  bb->aux = tm_memopt_init_sets ();
+	  tm_memopt_accumulate_memops (bb);
+	}
 
+      /* Solve data flow equations and transform each block accordingly.  */
+      tm_memopt_clear_visited (bbs);
+      tm_memopt_compute_available (region, bbs);
+      tm_memopt_clear_visited (bbs);
+      tm_memopt_compute_antic (region, bbs);
+      tm_memopt_transform_blocks (bbs);
+
+      tm_memopt_free_sets (bbs);
+      VEC_free (basic_block, heap, bbs);
+      bitmap_obstack_release (&tm_memopt_obstack);
+      htab_empty (tm_memopt_value_numbers);
+    }
+
+  htab_delete (tm_memopt_value_numbers);
   return 0;
 }
 
