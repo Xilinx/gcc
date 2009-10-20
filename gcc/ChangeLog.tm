@@ -1,5 +1,8 @@
 2009-10-20  Richard Henderson  <rth@redhat.com>
 
+	* tree-inline.c (remap_gimple_stmt): Restore GIMPLE_TM_ATOMIC
+	from before merge.
+
 	* gimple-pretty-print.c (dump_gimple_eh_else): Tidy.
 	* tree-cfg.c (verify_types_in_gimple_seq_2): Handle GIMPLE_EH_ELSE.
 	* tree-eh.c: Restore EH_ELSE from before merge.
