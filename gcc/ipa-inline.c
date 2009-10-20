@@ -1904,7 +1904,12 @@ inline_indirect_intraprocedural_analysis (struct cgraph_node *node)
 static void
 analyze_function (struct cgraph_node *node)
 {
-  push_cfun (DECL_STRUCT_FUNCTION (node->decl));
+  struct function *f = DECL_STRUCT_FUNCTION (node->decl);
+
+  if (f == NULL)
+    return;
+
+  push_cfun (f);
   current_function_decl = node->decl;
 
   compute_inline_parameters (node);

@@ -672,10 +672,12 @@ analyze_function (struct cgraph_node *fn)
   tree step;
 #endif
 
+  if (this_cfun == NULL)
+    return;
   if (dump_file)
     fprintf (dump_file, "\n local analysis of %s\n", cgraph_node_name (fn));
 
-  push_cfun (DECL_STRUCT_FUNCTION (decl));
+  push_cfun (this_cfun);
   current_function_decl = decl;
   
   init_function_info (fn);

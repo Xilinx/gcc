@@ -1,5 +1,10 @@
 2009-10-20  Richard Henderson  <rth@redhat.com>
 
+	* ipa-inline.c (analyze_function): Early return if no function body.
+	* ipa-reference.c (analyze_function): Likewise.
+
+2009-10-20  Richard Henderson  <rth@redhat.com>
+
 	* trans-mem.c (gate_tm_init): Set tm-clone entry_block to the
 	successor of ENTRY_BLOCK.
 	(get_tm_region_blocks): Allow for a null exit_blocks bitmap.
