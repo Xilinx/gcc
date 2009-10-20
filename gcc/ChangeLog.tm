@@ -1,5 +1,11 @@
 2009-10-20  Richard Henderson  <rth@redhat.com>
 
+	* gimple-pretty-print.c (dump_gimple_eh_else): Tidy.
+	* tree-cfg.c (verify_types_in_gimple_seq_2): Handle GIMPLE_EH_ELSE.
+	* tree-eh.c: Restore EH_ELSE from before merge.
+
+2009-10-20  Richard Henderson  <rth@redhat.com>
+
 	* ipa-inline.c (analyze_function): Early return if no function body.
 	* ipa-reference.c (analyze_function): Likewise.
 

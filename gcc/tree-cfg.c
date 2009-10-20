@@ -3854,6 +3854,11 @@ verify_types_in_gimple_seq_2 (gimple_seq stmts)
 	  err |= verify_types_in_gimple_seq_2 (gimple_eh_filter_failure (stmt));
 	  break;
 
+	case GIMPLE_EH_ELSE:
+	  err |= verify_types_in_gimple_seq_2 (gimple_eh_else_n_body (stmt));
+	  err |= verify_types_in_gimple_seq_2 (gimple_eh_else_e_body (stmt));
+	  break;
+
 	case GIMPLE_CATCH:
 	  err |= verify_types_in_gimple_seq_2 (gimple_catch_handler (stmt));
 	  break;

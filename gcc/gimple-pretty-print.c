@@ -855,7 +855,7 @@ dump_gimple_eh_else (pretty_printer *buffer, gimple gs, int spc, int flags)
                      gimple_eh_else_n_body (gs), gimple_eh_else_e_body (gs));
   else
     dump_gimple_fmt (buffer, spc, flags,
-                    "IF_NORMAL_EXIT%+{%S}%-ELSE_EH_EXIT%+{%S}",
+                    "<<<if_normal_exit>>>%+{%S}%-<<<else_eh_exit>>>%+{%S}",
                      gimple_eh_else_n_body (gs), gimple_eh_else_e_body (gs));
 }
 
