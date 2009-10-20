@@ -907,7 +907,7 @@ gate_tm_init (void)
       struct tm_region *region = (struct tm_region *)
 	obstack_alloc (&tm_obstack.obstack, sizeof (struct tm_region));
       memset (region, 0, sizeof (*region));
-      region->entry_block = ENTRY_BLOCK_PTR;
+      region->entry_block = single_succ (ENTRY_BLOCK_PTR);
 
       tm_region_init (region);
     }
@@ -1501,6 +1501,7 @@ execute_tm_edges (void)
 	/* Collect the set of blocks in this region.  Do this before
 	   splitting edges, so that we don't have to play with the
 	   dominator tree in the middle.  */
+	/* FIXME: Use get_tm_region_blocks.  */
 	bitmap_clear (blocks);
 	VEC_quick_push (basic_block, queue, region->entry_block);
 	do
@@ -1636,7 +1637,8 @@ get_tm_region_blocks (struct tm_region *region)
       basic_block son;
 
       bb = VEC_index (basic_block, bbs, i++);
-      if (!bitmap_bit_p (region->exit_blocks, bb->index))
+      if (region->exit_blocks == NULL
+	  || !bitmap_bit_p (region->exit_blocks, bb->index))
 	for (son = first_dom_son (CDI_DOMINATORS, bb);
 	     son;
 	     son = next_dom_son (CDI_DOMINATORS, son))
@@ -1911,11 +1913,13 @@ tm_memopt_compute_available (struct tm_region *region,
 	 seeded the AVAIL_OUT sets with them.  */
       changed  = bitmap_ior_into (STORE_AVAIL_OUT (bb), STORE_AVAIL_IN (bb));
       changed |= bitmap_ior_into (READ_AVAIL_OUT (bb), READ_AVAIL_IN (bb));
-      if (changed && !bitmap_bit_p (region->exit_blocks, bb->index))
+      if (changed
+	  && (region->exit_blocks == NULL
+	      || !bitmap_bit_p (region->exit_blocks, bb->index)))
 	/* If the out state of this block changed, then we need to add
 	   its successors to the worklist if they are not already in.  */
 	FOR_EACH_EDGE (e, ei, bb->succs)
-	  if (!AVAIL_IN_WORKLIST_P (e->dest))
+	  if (!AVAIL_IN_WORKLIST_P (e->dest) && e->dest != EXIT_BLOCK_PTR)
 	    {
 	      *qin++ = e->dest;
 	      AVAIL_IN_WORKLIST_P (e->dest) = true;
@@ -1969,7 +1973,8 @@ tm_memopt_compute_antic (struct tm_region *region,
       AVAIL_IN_WORKLIST_P (bb) = true;
       /* No need to insert exit blocks, since their ANTIC_IN is NULL,
 	 and their ANTIC_OUT has already been seeded in.  */
-      if (!bitmap_bit_p (region->exit_blocks, bb->index))
+      if (region->exit_blocks
+	  && !bitmap_bit_p (region->exit_blocks, bb->index))
 	{
 	  qlen++;
 	  *qin++ = bb;
@@ -1977,12 +1982,13 @@ tm_memopt_compute_antic (struct tm_region *region,
     }
 
   /* The exit blocks have been initialized with the local sets.  */
-  {
-    unsigned int i;
-    bitmap_iterator bi;
-    EXECUTE_IF_SET_IN_BITMAP (region->exit_blocks, 0, i, bi)
-      BB_VISITED_P (BASIC_BLOCK (i)) = true;
-  }
+  if (region->exit_blocks)
+    {
+      unsigned int i;
+      bitmap_iterator bi;
+      EXECUTE_IF_SET_IN_BITMAP (region->exit_blocks, 0, i, bi)
+	BB_VISITED_P (BASIC_BLOCK (i)) = true;
+    }
 
   qin = worklist;
   qend = &worklist[qlen];
