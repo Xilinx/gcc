@@ -9961,10 +9961,6 @@ fi
 
     ;;
 
-  elf*)
-  # if non-hosted, don't bother with dlopen
-    ;;
-
   *)
     echo "$as_me:$LINENO: checking for shl_load" >&5
 echo $ECHO_N "checking for shl_load... $ECHO_C" >&6
