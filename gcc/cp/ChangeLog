@@ -1,3 +1,24 @@
+2009-10-19  Jakub Jelinek  <jakub@redhat.com>
+
+	* parser.c (cp_lexer_print_token, cp_parser_is_string_literal,
+	cp_parser_string_literal, cp_parser_primary_expression): Likewise.
+	(cp_lexer_get_preprocessor_token): Use C_LEX_STRING_JOIN instead
+	of C_LEX_RAW_STRINGS.
+
+2009-10-15  Jason Merrill  <jason@redhat.com>
+
+	PR c++/38888
+	* error.c (dump_template_bindings): Wrap argument packs in {}.
+
+	PR c++/38798
+	* parser.c (CP_PARSER_FLAGS_NO_TYPE_DEFINITIONS): New.
+	(cp_parser_type_specifier): Don't try to parse a class-specifier
+	or enum-specifier in that case.
+	(cp_parser_trailing_type_id): New.
+	(cp_parser_late_return_type_opt): Call it.
+	(cp_parser_type_id_1): Add is_trailing_return parm.
+	(cp_parser_type_specifier_seq): Likewise.
+
 2009-10-14  Jason Merrill  <jason@redhat.com>
 
 	PR c++/39866

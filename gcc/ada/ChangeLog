@@ -1,3 +1,109 @@
+2009-10-21  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interfaces/decl.c (build_subst_list): Convert the expression of
+	the constraint to the type of the discriminant.
+
+2009-10-21  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interfaces/decl.c (gnat_to_gnu_entity): Do not create a new
+	TYPE_DECL when a type is padded if there is already one and reset
+	TYPE_STUB_DECL in this case.
+
+2009-10-21  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interfaces/utils.c (create_subprog_decl): Do not redefine
+	main_identifier_node.
+
+2009-10-17  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/utils.c (convert): When converting to a padded type
+	with an inner type of self-referential size, pad the expression before
+	doing the unchecked conversion.
+
+2009-10-17  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/utils2.c (build_binary_op) <ARRAY_RANGE_REF>: Make
+	sure the element type is consistent.
+
+2009-10-17  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/trans.c (addressable_p): Handle bitwise operations.
+
+2009-10-16  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/ada-tree.h (TYPE_FAT_POINTER_P): Swap with...
+	(TYPE_IS_FAT_POINTER_P): ...this.
+	(TYPE_THIN_POINTER_P): Rename into...
+	(TYPE_IS_THIN_POINTER_P): ...this.
+	(TYPE_FAT_OR_THIN_POINTER_P): Rename into...
+	(TYPE_IS_FAT_OR_THIN_POINTER_P): ...this.
+	(TYPE_IS_PADDING_P): Change definition, move old one to...
+	(TYPE_PADDING_P): ...this.
+	* gcc-interface/decl.c (gnat_to_gnu_entity): Adjust for above changes.
+	(get_unpadded_type): Likewise.
+	(gnat_to_gnu_component_type): Likewise.
+	(gnat_to_gnu_param): Likewise.
+	(relate_alias_sets): Likewise.
+	(make_packable_type): Likewise.
+	(maybe_pad_type): Likewise.
+	(gnat_to_gnu_field): Likewise.
+	(is_variable_size): Likewise.
+	(annotate_object): Likewise.
+	(validate_size): Likewise.
+	(set_rm_size): Likewise.
+	(make_type_from_size): Likewise.
+	(rm_size): Likewise.
+	* gcc-interface/misc.c (gnat_print_type): Likewise.
+	(gnat_get_alias_set): Likewise.
+	* gcc-interface/trans.c (Identifier_to_gnu): Likewise.
+	(Attribute_to_gnu): Likewise.
+	(call_to_gnu): Likewise.
+	(gnat_to_gnu): Likewise.
+	(add_decl_expr): Likewise.
+	(convert_with_check): Likewise.
+	(addressable_p): Likewise.
+	(maybe_implicit_deref): Likewise.
+	(protect_multiple_eval): Likewise.
+	(gnat_stabilize_reference_1): Likewise.
+	* gcc-interface/utils.c (gnat_pushdecl): Likewise.
+	(finish_record_type): Likewise.
+	(rest_of_record_type_compilation): Likewise.
+	(create_type_decl): Likewise.
+	(gnat_types_compatible_p): Likewise.
+	(build_template): Likewise.
+	(convert_vms_descriptor64): Likewise.
+	(convert_vms_descriptor32): Likewise.
+	(build_unc_object_type_from_ptr): Likewise.
+	(update_pointer_to): Likewise.
+	(convert_to_fat_pointer): Likewise.
+	(convert_to_fat_pointer): Likewise.
+	(convert): Likewise.
+	(remove_conversions): Likewise.
+	(maybe_unconstrained_array): Likewise.
+	(unchecked_convert): Likewise.
+	(handle_vector_type_attribute): Likewise.
+	* gcc-interface/utils2.c (build_binary_op): Likewise.
+	(build_unary_op): Likewise.
+	(build_allocator): Likewise.
+
+2009-10-16  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* exp_dbug.ads: Adjust type names in comments.
+	* gcc-interface/decl.c (maybe_pad_type): Remove NAME_TRAILER parameter,
+	add new IS_COMPONENT_TYPE parameter.  Adjust.  Remove dead code.
+	(gnat_to_gnu_entity): Adjust for above change.
+	(gnat_to_gnu_component_type): Likewise.
+	(gnat_to_gnu_field): Likewise.
+	* gcc-interface/trans.c (call_to_gnu): Likewise.  Do not unnecessarily
+	call max_size.
+	* gcc-interface/utils.c (finish_record_type): Remove obsolete code.
+	* gcc-interface/gigi.h (maybe_pad_type): Adjust prototype.
+
+2009-10-16  Joel Sherrill <joel.sherrill@oarcorp.com>
+
+	* s-osinte-rtems.ads: Add mutex type to pthread_mutexattr_t
+	* s-stchop-rtems.adb: Correct binding to rtems_stack_checker_is_blown.
+
 2009-10-13  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
 
 	* env.c [__alpha__ && __osf__] (AES_SOURCE): Define.

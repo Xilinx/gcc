@@ -1231,7 +1231,8 @@ build_ref_for_offset_1 (tree *res, tree type, HOST_WIDE_INT offset,
 	case UNION_TYPE:
 	case QUAL_UNION_TYPE:
 	case RECORD_TYPE:
-	  /* Some ADA records are half-unions, treat all of them the same.  */
+	  /* ??? Some records used to be half-unions in Ada so the code treats
+	     the 3 container types the same.  This has been fixed in Ada.  */
 	  for (fld = TYPE_FIELDS (type); fld; fld = TREE_CHAIN (fld))
 	    {
 	      HOST_WIDE_INT pos, size;
@@ -1242,7 +1243,10 @@ build_ref_for_offset_1 (tree *res, tree type, HOST_WIDE_INT offset,
 
 	      pos = int_bit_position (fld);
 	      gcc_assert (TREE_CODE (type) == RECORD_TYPE || pos == 0);
-	      size = tree_low_cst (DECL_SIZE (fld), 1);
+	      tr_size = DECL_SIZE (fld);
+	      if (!tr_size || !host_integerp (tr_size, 1))
+		continue;
+	      size = tree_low_cst (tr_size, 1);
 	      if (pos > offset || (pos + size) <= offset)
 		continue;
 

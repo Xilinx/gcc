@@ -1,3 +1,223 @@
+2009-10-21  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/discr22.adb: New test.
+
+2009-10-21  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/loop_optimization7.ad[sb]: New test.
+	* gnat.dg/loop_optimization7_pkg.ads: New helper.
+
+2009-10-21  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/41706
+	PR fortran/41766
+	* gfortran.dg/class_9.f03: Extended test case.
+	* gfortran.dg/select_type_7.f03: New test case.
+
+2009-10-20  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/lto/20091020-3_0.c: New testcase.
+
+2009-10-20  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/41761
+	* gcc.dg/lto/20091020-1_0.c: New testcase.
+	* gcc.dg/lto/20091020-1_1.c: Likewise.
+	* gcc.dg/lto/20091020-2_0.c: Likewise.
+	* gcc.dg/lto/20091020-2_1.c: Likewise.
+
+2009-10-20  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/41340
+	* gcc.dg/pr41340.c: New test.
+
+2009-10-20  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/discr21.ad[sb]: New test.
+	* gnat.dg/discr21_pkg.ads: New helper.
+
+2009-10-20  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/41706
+	* gfortran.dg/class_9 : New test.
+
+2009-10-19  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.dg/raw-string-1.c: New test.
+	* gcc.dg/raw-string-2.c: New test.
+	* gcc.dg/raw-string-3.c: New test.
+	* gcc.dg/raw-string-4.c: New test.
+	* gcc.dg/raw-string-5.c: New test.
+	* gcc.dg/raw-string-6.c: New test.
+	* gcc.dg/raw-string-7.c: New test.
+	* gcc.dg/utf8-1.c: New test.
+	* gcc.dg/utf8-2.c: New test.
+	* gcc.dg/utf-badconcat2.c: New test.
+	* gcc.dg/utf-dflt2.c: New test.
+	* gcc.dg/cpp/include6.c: New test.
+	* g++.dg/ext/raw-string-1.C: New test.
+	* g++.dg/ext/raw-string-2.C: New test.
+	* g++.dg/ext/raw-string-3.C: New test.
+	* g++.dg/ext/raw-string-4.C: New test.
+	* g++.dg/ext/raw-string-5.C: New test.
+	* g++.dg/ext/raw-string-6.C: New test.
+	* g++.dg/ext/raw-string-7.C: New test.
+	* g++.dg/ext/utf8-1.C: New test.
+	* g++.dg/ext/utf8-2.C: New test.
+	* g++.dg/ext/utf-badconcat2.C: New test.
+	* g++.dg/ext/utf-dflt2.C: New test.
+
+	* gcc.dg/cleanup-13.c: New test.
+
+2009-10-19  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/41586
+	* gfortran.dg/auto_dealloc_1.f90: New test case.
+
+2009-10-19  Jakub Jelinek  <jakub@redhat.com>
+
+	Port from redhat/gcc-4_4-branch:
+	2009-10-08  Jakub Jelinek  <jakub@redhat.com>
+	* gcc.dg/debug/vta-2.c: New test.
+
+	2009-09-30  Alexandre Oliva  <aoliva@redhat.com>
+	* gcc.dg/debug/vta-1.c: New.
+
+2009-10-19  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/noreturn2.ad[sb]: New test.
+
+2009-10-19  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/41755
+	* gfortran.dg/equiv_8.f90: New test.
+	* gfortran.dg/class_allocate_1.f03: Remove obsolete FIXME.
+
+2009-10-19  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.target/arm/neon-thumb2-move.c: New test.
+
+2009-10-19  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.dg/debug/vta-3.c: New test.
+
+2009-10-17  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/nested_proc.adb: Rename into...
+	* gnat.dg/nested_proc1.adb: ...this.
+	* gnat.dg/nested_proc2.adb: New test.
+
+2009-10-17  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/noreturn1.ad[sb]: New test.
+
+2009-10-17  Janus Weil  <janus@gcc.gnu.org>
+	    Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/41629
+	* gfortran.dg/class_6.f90: New test.
+
+	PR fortran/41608
+	PR fortran/41587
+	* gfortran.dg/class_7.f90: New test.
+
+	PR fortran/41618
+	* gfortran.dg/class_8.f90: New test.
+
+2009-10-17  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/lto/20091017-1_0.c: New testcase.
+	* gcc.dg/lto/20091017-1_1.c: Likewise.
+
+2009-10-17  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/unchecked_convert4.adb: Add missing rep clause.
+
+2009-10-17  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/aggr11.adb: New test.
+	* gnat.dg/aggr11_pkg.ads: New helper.
+
+2009-10-17  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/slice8.adb: New test.
+	* gnat.dg/slice8_pkg1.ads: New helper.
+	* gnat.dg/slice8_pkg2.ads: Likewise.
+	* gnat.dg/slice8_pkg3.ad[sb]: Likewise.
+
+2009-10-17  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/unchecked_convert4.adb: New test.
+
+2009-10-15  Jason Merrill  <jason@redhat.com>
+
+	PR c++/38798
+	* g++.dg/cpp0x/trailing5.C: New.
+
+2009-10-16  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/41719
+	* gfortran.dg/class_5.f03: New test case.
+	* gfortran.dg/typebound_operator_2.f03: Fixing invalid test case.
+	* gfortran.dg/typebound_operator_4.f03: Ditto.
+
+2009-10-16  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* g++.dg/ipa/iinline-1.C: Use dg-add-options bind_pic_locally.
+	* g++.dg/other/first-global.C: Likewise.
+	* g++.dg/parse/attr-externally-visible-1.C: Likewise.
+	* g++.dg/torture/pr40323.C: Likewise.
+	* g++.dg/tree-ssa/nothrow-1.C: Likewise.
+	* gcc.dg/inline-33.c: Likewise.
+	* gcc.dg/ipa/ipa-1.c: Likewise.
+	* gcc.dg/ipa/ipa-2.c: Likewise.
+	* gcc.dg/ipa/ipa-3.c: Likewise.
+	* gcc.dg/ipa/ipa-4.c: Likewise.
+	* gcc.dg/ipa/ipa-5.c: Likewise.
+	* gcc.dg/ipa/ipa-7.c: Likewise.
+	* gcc.dg/ipa/ipacost-2.c: Likewise.
+	* gcc.dg/tree-ssa/inline-3.c: Likewise.
+	* gcc.dg/tree-ssa/local-pure-const.c: Likewise.
+	* gfortran.dg/whole_file_5.f90: Likewise.
+	* gfortran.dg/whole_file_6.f90: Likewise.
+
+2009-10-16  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/41728
+	* gcc.c-torture/compile/pr41728.c: New testcase.
+
+2009-10-16  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/41598
+	* gcc.dg/lto/20091016-1_0.c: New testcase.
+	* gcc.dg/lto/20091016-1_1.c: Likewise.
+	* gcc.dg/lto/20091016-1_a.h: Likewise.
+
+2009-10-16  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/41715
+	* gfortran.dg/lto/20091015-1_0.f: New testcase.
+	* gfortran.dg/lto/20091015-1_1.f: Likewise.
+	* gfortran.dg/lto/20091015-1_2.f: Likewise.
+
+2009-10-16  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/41713
+	* gfortran.dg/lto/20091016-1_0.f90: New testcase.
+
+2009-10-15  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/41717
+	* gcc.dg/debug/pr41717.c: New test.
+
+2009-10-16  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/41648
+	* gfortran.dg/dynamic_dispatch_4.f03 : New test.
+
+	PR fortran/41656
+	* gfortran.dg/dynamic_dispatch_5.f03 : New test.
+
 2009-10-15  Michael Meissner  <meissner@linux.vnet.ibm.com>
 
 	PR target/23983
@@ -25,7 +245,7 @@
 
 2009-10-14  Daniel Gutson  <dgutson@codesourcery.com>
 
-        * gcc.target/arm/neon/vfp-shift-a2t2.c: New test case.
+	* gcc.target/arm/neon/vfp-shift-a2t2.c: New test case.
 
 2009-10-14  Jakub Jelinek  <jakub@redhat.com>
 

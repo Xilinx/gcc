@@ -3750,7 +3750,10 @@ gfc_match_equivalence (void)
       if (gfc_match_eos () == MATCH_YES)
 	break;
       if (gfc_match_char (',') != MATCH_YES)
-	goto syntax;
+	{
+	  gfc_error ("Expecting a comma in EQUIVALENCE at %C");
+	  goto cleanup;
+	}
     }
 
   return MATCH_YES;
@@ -4044,9 +4047,10 @@ select_type_set_tmp (gfc_typespec *ts)
 
   sprintf (name, "tmp$%s", ts->u.derived->name);
   gfc_get_sym_tree (name, gfc_current_ns, &tmp, false);
-  tmp->n.sym->ts = *ts;
-  tmp->n.sym->attr.referenced = 1;
-  tmp->n.sym->attr.pointer = 1;
+  gfc_add_type (tmp->n.sym, ts, NULL);
+  gfc_set_sym_referenced (tmp->n.sym);
+  gfc_add_pointer (&tmp->n.sym->attr, NULL);
+  gfc_add_flavor (&tmp->n.sym->attr, FL_VARIABLE, name, NULL);
 
   select_type_stack->tmp = tmp;
 }
@@ -4080,6 +4084,7 @@ gfc_match_select_type (void)
 	return MATCH_ERROR;
       expr1->symtree->n.sym->ts = expr2->ts;
       expr1->symtree->n.sym->attr.referenced = 1;
+      expr1->symtree->n.sym->attr.class_ok = 1;
     }
   else
     {

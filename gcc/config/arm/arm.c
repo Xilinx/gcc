@@ -133,7 +133,7 @@ static enum machine_mode arm_promote_function_mode (const_tree,
 						    const_tree, int);
 static bool arm_return_in_memory (const_tree, const_tree);
 static rtx arm_function_value (const_tree, const_tree, bool);
-static rtx arm_libcall_value (enum machine_mode, rtx);
+static rtx arm_libcall_value (enum machine_mode, const_rtx);
 
 static void arm_internal_label (FILE *, const char *, unsigned long);
 static void arm_output_mi_thunk (FILE *, tree, HOST_WIDE_INT, HOST_WIDE_INT,
@@ -1864,6 +1864,16 @@ arm_override_options (void)
         max_insns_skipped = 3;
     }
 
+  /* Hot/Cold partitioning is not currently supported, since we can't
+     handle literal pool placement in that case.  */
+  if (flag_reorder_blocks_and_partition)
+    {
+      inform (input_location,
+	      "-freorder-blocks-and-partition not supported on this architecture");
+      flag_reorder_blocks_and_partition = 0;
+      flag_reorder_blocks = 1;
+    }
+
   /* Ideally we would want to use CFI directives to generate
      debug info.  However this also creates the .eh_frame
      section, so disable them until GAS can handle
@@ -3264,7 +3274,7 @@ add_libcall (htab_t htab, rtx libcall)
 }
 
 static bool
-arm_libcall_uses_aapcs_base (rtx libcall)
+arm_libcall_uses_aapcs_base (const_rtx libcall)
 {
   static bool init_done = false;
   static htab_t libcall_htab;
@@ -3311,7 +3321,7 @@ arm_libcall_uses_aapcs_base (rtx libcall)
 }
 
 rtx
-arm_libcall_value (enum machine_mode mode, rtx libcall)
+arm_libcall_value (enum machine_mode mode, const_rtx libcall)
 {
   if (TARGET_AAPCS_BASED && arm_pcs_default != ARM_PCS_AAPCS
       && GET_MODE_CLASS (mode) == MODE_FLOAT)
@@ -12269,7 +12279,7 @@ output_move_neon (rtx *operands)
 	  {
 	    /* We're only using DImode here because it's a convenient size.  */
 	    ops[0] = gen_rtx_REG (DImode, REGNO (reg) + 2 * i);
-	    ops[1] = adjust_address (mem, SImode, 8 * i);
+	    ops[1] = adjust_address (mem, DImode, 8 * i);
 	    if (reg_overlap_mentioned_p (ops[0], mem))
 	      {
 		gcc_assert (overlap == -1);

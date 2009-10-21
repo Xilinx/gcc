@@ -2194,46 +2194,6 @@ round_udiv_adjust (enum machine_mode mode, rtx mod, rtx op1)
      const1_rtx, const0_rtx);
 }
 
-/* Wrap modeless constants in CONST:MODE.  */
-rtx
-wrap_constant (enum machine_mode mode, rtx x)
-{
-  if (GET_MODE (x) != VOIDmode)
-    return x;
-
-  if (CONST_INT_P (x)
-      || GET_CODE (x) == CONST_FIXED
-      || GET_CODE (x) == CONST_DOUBLE
-      || GET_CODE (x) == LABEL_REF)
-    {
-      gcc_assert (mode != VOIDmode);
-
-      x = gen_rtx_CONST (mode, x);
-    }
-
-  return x;
-}
-
-/* Remove CONST wrapper added by wrap_constant().  */
-rtx
-unwrap_constant (rtx x)
-{
-  rtx ret = x;
-
-  if (GET_CODE (x) != CONST)
-    return x;
-
-  x = XEXP (x, 0);
-
-  if (CONST_INT_P (x)
-      || GET_CODE (x) == CONST_FIXED
-      || GET_CODE (x) == CONST_DOUBLE
-      || GET_CODE (x) == LABEL_REF)
-    ret = x;
-
-  return ret;
-}
-
 /* Convert X to MODE, that must be Pmode or ptr_mode, without emitting
    any rtl.  */
 
@@ -2356,9 +2316,7 @@ expand_debug_expr (tree exp)
     case COMPLEX_CST:
       gcc_assert (COMPLEX_MODE_P (mode));
       op0 = expand_debug_expr (TREE_REALPART (exp));
-      op0 = wrap_constant (GET_MODE_INNER (mode), op0);
       op1 = expand_debug_expr (TREE_IMAGPART (exp));
-      op1 = wrap_constant (GET_MODE_INNER (mode), op1);
       return gen_rtx_CONCAT (mode, op0, op1);
 
     case DEBUG_EXPR_DECL:
@@ -2592,6 +2550,9 @@ expand_debug_expr (tree exp)
 
 	if (bitpos == 0 && mode == GET_MODE (op0))
 	  return op0;
+
+        if (bitpos < 0)
+          return NULL;
 
 	if ((bitpos % BITS_PER_UNIT) == 0
 	    && bitsize == GET_MODE_BITSIZE (mode1))
@@ -2868,6 +2829,46 @@ expand_debug_expr (tree exp)
       if (GET_MODE (op1) == VOIDmode)
 	op1 = gen_rtx_CONST (GET_MODE_INNER (mode), op1);
       return gen_rtx_CONCAT (mode, op0, op1);
+
+    case CONJ_EXPR:
+      if (GET_CODE (op0) == CONCAT)
+	return gen_rtx_CONCAT (mode, XEXP (op0, 0),
+			       gen_rtx_NEG (GET_MODE_INNER (mode),
+					    XEXP (op0, 1)));
+      else
+	{
+	  enum machine_mode imode = GET_MODE_INNER (mode);
+	  rtx re, im;
+
+	  if (MEM_P (op0))
+	    {
+	      re = adjust_address_nv (op0, imode, 0);
+	      im = adjust_address_nv (op0, imode, GET_MODE_SIZE (imode));
+	    }
+	  else
+	    {
+	      enum machine_mode ifmode = int_mode_for_mode (mode);
+	      enum machine_mode ihmode = int_mode_for_mode (imode);
+	      rtx halfsize;
+	      if (ifmode == BLKmode || ihmode == BLKmode)
+		return NULL;
+	      halfsize = GEN_INT (GET_MODE_BITSIZE (ihmode));
+	      re = op0;
+	      if (mode != ifmode)
+		re = gen_rtx_SUBREG (ifmode, re, 0);
+	      re = gen_rtx_ZERO_EXTRACT (ihmode, re, halfsize, const0_rtx);
+	      if (imode != ihmode)
+		re = gen_rtx_SUBREG (imode, re, 0);
+	      im = copy_rtx (op0);
+	      if (mode != ifmode)
+		im = gen_rtx_SUBREG (ifmode, im, 0);
+	      im = gen_rtx_ZERO_EXTRACT (ihmode, im, halfsize, halfsize);
+	      if (imode != ihmode)
+		im = gen_rtx_SUBREG (imode, im, 0);
+	    }
+	  im = gen_rtx_NEG (imode, im);
+	  return gen_rtx_CONCAT (mode, re, im);
+	}
 
     case ADDR_EXPR:
       op0 = expand_debug_expr (TREE_OPERAND (exp, 0));
