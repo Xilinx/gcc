@@ -738,22 +738,26 @@ struct GTY(()) gimple_statement_omp_atomic_store {
 /* GIMPLE_TM_ATOMIC.  */
 
 /* Bits to be stored in the GIMPLE_TM_ATOMIC subcode.  */
-#define GTMA_HAVE_ABORT			(1u << 0)
-#define GTMA_HAVE_LOAD			(1u << 1)
-#define GTMA_HAVE_STORE			(1u << 2)
-#define GTMA_HAVE_CALL_TM		(1u << 3)
-/* Atomic statement may enter serial irrevocable mode in its dynamic
-   scope.  */
-#define GTMA_MAY_ENTER_IRREVOCABLE	(1u << 4)
-/* Atomic statement is sure to enter irrevocable mode.
 
+/* The __transaction was declared [[outer]] or [[relaxed]].  */
+#define GTMA_IS_OUTER			(1u << 0)
+#define GTMA_IS_RELAXED			(1u << 1)
+#define GTMA_DECLARATION_MASK		(GTMA_IS_OUTER | GTMA_IS_RELAXED)
+
+/* The transaction is seen to not have an abort.  */
+#define GTMA_HAVE_ABORT			(1u << 2)
+/* The transaction is seen to have loads or stores.  */
+#define GTMA_HAVE_LOAD			(1u << 3)
+#define GTMA_HAVE_STORE			(1u << 4)
+/* The transaction MAY enter serial irrevocable mode in its dynamic scope.  */
+#define GTMA_MAY_ENTER_IRREVOCABLE	(1u << 5)
+/* The transaction WILL enter serial irrevocable mode.
    An irrevocable block post-dominates the entire transaction, such
    that all invocations of the transaction will go serial-irrevocable.
    In such case, we don't bother instrumenting the transaction, and
    tell the runtime that it should begin the transaction in
    serial-irrevocable mode.  */
-#define GTMA_DOES_GO_IRREVOCABLE	(1u << 5)
-#define GTMA_HAVE_UNCOMMITTED_THROW	(1u << 6)
+#define GTMA_DOES_GO_IRREVOCABLE	(1u << 6)
 
 struct GTY(()) gimple_statement_tm_atomic
 {

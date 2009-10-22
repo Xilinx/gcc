@@ -2037,7 +2037,11 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
       break;
 
     case TM_ATOMIC:
-      pp_string (buffer, "__tm_atomic");
+      pp_string (buffer, "__transaction");
+      if (TM_ATOMIC_OUTER (node))
+	pp_string (buffer, " [[outer]]");
+      else if (TM_ATOMIC_RELAXED (node))
+	pp_string (buffer, " [[relaxed]]");
       if (!(flags & TDF_SLIM) && TM_ATOMIC_BODY (node))
         {
           newline_and_indent (buffer, spc);

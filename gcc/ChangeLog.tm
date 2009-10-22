@@ -1,5 +1,15 @@
 2009-10-22  Richard Henderson  <rth@redhat.com>
 
+	* gimple-pretty-print.c (dump_gimple_tm_atomic_subcode): Merge into...
+	(dump_gimple_tm_atomic): ... here.  Dump OUTER and RELAXED bits.
+	* tree-pretty-print.c (dump_generic_node) [TM_ATOMIC]: Likewise.
+	* gimple.h (GTMA_IS_OUTER, GTMA_IS_RELAXED): New.
+	(GTMA_DECLARATION_MASK): New.
+	(GTMA_HAVE_CALL_TM, GTMA_HAVE_UNCOMMITTED_THROW): Remove.
+	* gimplify.c (gimplify_tm_atomic): Copy OUTER and RELAXED bits.
+
+2009-10-22  Richard Henderson  <rth@redhat.com>
+
 	* builtin-attrs.def (ATTR_TM_PURE): Use transaction_pure.
 	* c-common.c (c_common_reswords): Rename __tm_abort and __tm_atomic
 	to __transaction_cancel and __transaction respectively.

@@ -6310,6 +6310,7 @@ gimplify_tm_atomic (tree *expr_p, gimple_seq *pre_p)
   gimple g;
   gimple_seq body = NULL;
   struct gimplify_ctx gctx;
+  int subcode = 0;
 
   push_gimplify_context (&gctx);
 
@@ -6320,6 +6321,12 @@ gimplify_tm_atomic (tree *expr_p, gimple_seq *pre_p)
     pop_gimplify_context (NULL);
 
   g = gimple_build_tm_atomic (body, NULL);
+  if (TM_ATOMIC_OUTER (expr))
+    subcode = GTMA_IS_OUTER;
+  else if (TM_ATOMIC_RELAXED (expr))
+    subcode = GTMA_IS_RELAXED;
+  gimple_tm_atomic_set_subcode (g, subcode);
+
   gimplify_seq_add_stmt (pre_p, g);
   *expr_p = NULL_TREE;
 
