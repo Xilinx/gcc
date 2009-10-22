@@ -4560,11 +4560,12 @@ finish_omp_taskwait (void)
   finish_expr_stmt (stmt);
 }
 
-/* Begin a __tm_atomic statement.  If PCOMPOUND is non-null, this is for
-   a function-atomic block, and we should create an extra compound stmt.  */
+/* Begin a __transaction statement.  If PCOMPOUND is non-null, this is
+   for a function-transaction-block, and we should create an extra
+   compound stmt.  */
 
 tree
-begin_tm_atomic_stmt (location_t loc, tree *pcompound)
+begin_transaction_stmt (location_t loc, tree *pcompound)
 {
   tree r;
 
@@ -4577,20 +4578,23 @@ begin_tm_atomic_stmt (location_t loc, tree *pcompound)
   if (flag_tm)
     add_stmt (r);
   else
-    error_at (loc, "%<__tm_atomic%> without transactional memory "
+    error_at (loc, "%<__transaction%> without transactional memory "
 	      "support enabled");
 
   TM_ATOMIC_BODY (r) = push_stmt_list ();
   return r;
 }
 
-/* End a __tm_atomic statement.  If COMPOUND_STMT is non-null, this is
-   for a function-atomic block, and we should end the compound.  */
+/* End a __transaction statement.  If COMPOUND_STMT is non-null, this is
+   for a function-transaction-block, and we should end the compound.  */
 
 void
-finish_tm_atomic_stmt (tree stmt, tree compound_stmt)
+finish_transaction_stmt (tree stmt, tree compound_stmt, int flags)
 {
   TM_ATOMIC_BODY (stmt) = pop_stmt_list (TM_ATOMIC_BODY (stmt));
+  TM_ATOMIC_OUTER (stmt) = (flags & TM_STMT_ATTR_OUTER) != 0;
+  TM_ATOMIC_RELAXED (stmt) = (flags & TM_STMT_ATTR_RELAXED) != 0;
+
   if (compound_stmt)
     finish_compound_stmt (compound_stmt);
   finish_stmt ();

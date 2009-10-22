@@ -50,6 +50,7 @@
 #define AR_USERRETRY		0x0002
 #define AR_TMCONFLICT		0x0004
 #define AR_EXCEPTIONBLOCKABORT	0x0008
+#define AR_OUTERABORT		0x0010
 
 #define MODE_SERIALIRREVOCABLE	0x0001
 
@@ -169,7 +170,7 @@ is_tm_pure (tree x)
   tree attrs = get_attrs_for (x);
 
   if (attrs)
-    return lookup_attribute ("tm_pure", attrs) != NULL;
+    return lookup_attribute ("transaction_pure", attrs) != NULL;
   return false;
 }
 
@@ -181,7 +182,7 @@ is_tm_irrevocable (tree x)
   tree attrs = get_attrs_for (x);
 
   if (attrs)
-    return lookup_attribute ("tm_irrevocable", attrs) != NULL;
+    return lookup_attribute ("transaction_unsafe", attrs) != NULL;
 
   /* A call to the irrevocable builtin is by definition,
      irrevocable.  */
@@ -203,7 +204,7 @@ is_tm_safe (tree x)
   tree attrs = get_attrs_for (x);
 
   if (attrs)
-    return lookup_attribute ("tm_safe", attrs) != NULL;
+    return lookup_attribute ("transaction_safe", attrs) != NULL;
   return false;
 }
 
@@ -239,12 +240,23 @@ is_tm_callable (tree x)
 
   if (attrs)
     {
-      if (lookup_attribute ("tm_callable", attrs))
+      if (lookup_attribute ("transaction_callable", attrs))
 	return true;
 
       /* TM_SAFE is stricter than TM_CALLABLE.  */
-      return lookup_attribute ("tm_safe", attrs) != NULL;
+      return lookup_attribute ("transaction_safe", attrs) != NULL;
     }
+  return false;
+}
+
+/* Return true if X has been marked TRANSACTION_MAY_CANCEL_OUTER.  */
+
+bool
+is_tm_may_cancel_outer (tree x)
+{
+  tree attrs = get_attrs_for (x);
+  if (attrs)
+    return lookup_attribute ("transaction_may_cancel_outer", attrs) != NULL;
   return false;
 }
 
@@ -328,12 +340,14 @@ is_tm_abort (tree fndecl)
    while transforming the __tm_abort statement.  */
 
 tree
-build_tm_abort_call (location_t loc)
+build_tm_abort_call (location_t loc, bool is_outer)
 {
   tree x;
 
   x = build_call_expr (built_in_decls[BUILT_IN_TM_ABORT], 1,
-		       build_int_cst (integer_type_node, AR_USERABORT));
+		       build_int_cst (integer_type_node,
+				      AR_USERABORT
+				      | (is_outer ? AR_OUTERABORT : 0)));
   SET_EXPR_LOCATION (x, loc);
 
   return x;

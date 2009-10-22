@@ -4225,23 +4225,16 @@ set_one_vmethod_tm_attributes (tree type, tree fndecl)
   /* Intel STM Language Extension 3.0, Section 4.2 table 4:
      tm_pure must match exactly, otherwise no weakening of
      tm_safe > tm_callable > nothing.  */
+  /* ??? The tm_pure attribute didn't make the transition to the
+     multivendor language spec.  */
   if (have == TM_ATTR_PURE)
     {
-      if (found == TM_ATTR_UNKNOWN)
-	/* Allowed, with warning.  */
-	warning_at (DECL_SOURCE_LOCATION (fndecl), 0,
-		    "method declared %<tm_pure%> overriding "
-		    "%<tm_unknown%> method");
-      else if (found != TM_ATTR_PURE)
+      if (found != TM_ATTR_PURE)
 	{
 	  found &= -found;
 	  goto err_override;
 	}
     }
-  /* If no overriden function had an (interesting) attribute,
-     then nothing more to do.  */
-  else if (found == TM_ATTR_UNKNOWN)
-    ;
   /* If the overridden function is tm_pure, then FNDECL must be.  */
   else if (found == TM_ATTR_PURE && tm_attr)
     goto err_override;
@@ -4251,7 +4244,7 @@ set_one_vmethod_tm_attributes (tree type, tree fndecl)
       found &= ~TM_ATTR_PURE;
       found &= -found;
       error_at (DECL_SOURCE_LOCATION (fndecl),
-		"method overrides both %<tm_pure%> and %qE methods",
+		"method overrides both %<transaction_pure%> and %qE methods",
 		tm_mask_to_attr (found));
     }
   /* If FNDECL did not declare an attribute, then inherit the most

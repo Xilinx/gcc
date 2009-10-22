@@ -3,13 +3,11 @@
 
 /* Test that indirect calls set the irrevocable bit.  */
 
-void (indirect)(void);
-
-extern crap() __attribute__((tm_irrevocable));
+void (*indirect)(void);
 
 foo(){
-    __tm_atomic {
-      (indirect)();
+    __transaction [[relaxed]] {
+      (*indirect)();
     }
 }
 

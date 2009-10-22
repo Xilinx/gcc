@@ -9971,9 +9971,13 @@ c_finish_omp_clauses (tree clauses)
 /* Create a transaction node.  */
 
 tree
-c_finish_tm_atomic (location_t loc, tree block)
+c_finish_transaction (location_t loc, tree block, int flags)
 {
   tree stmt = build_stmt (loc, TM_ATOMIC, block);
+  if (flags & TM_STMT_ATTR_OUTER)
+    TM_ATOMIC_OUTER (stmt) = 1;
+  if (flags & TM_STMT_ATTR_RELAXED)
+    TM_ATOMIC_RELAXED (stmt) = 1;
   return add_stmt (stmt);
 }
 

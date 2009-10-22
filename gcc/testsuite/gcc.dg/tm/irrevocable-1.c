@@ -4,11 +4,11 @@
 int global;
 int george;
 
-extern crap() __attribute__((tm_irrevocable));
+extern crap() __attribute__((transaction_unsafe));
 
 foo()
 {
-	__tm_atomic {
+	__transaction [[relaxed]] {
 		global++;
 		crap();
 		george++;

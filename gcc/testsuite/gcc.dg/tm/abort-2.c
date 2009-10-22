@@ -4,8 +4,8 @@
 int g;
 void f(void)
 {
-  __tm_atomic {
+  __transaction {
     if (g == 0)
-      __tm_abort;
+      __transaction_cancel;
   }
 }

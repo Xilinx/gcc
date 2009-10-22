@@ -1,10 +1,10 @@
 // { dg-do compile }
 // { dg-options "-fgnu-tm" }
 
-#define TC	__attribute__((tm_callable))
-#define TU	__attribute__((tm_unknown))
-#define TP	__attribute__((tm_pure))
-#define TS	__attribute__((tm_safe))
+#define TC	__attribute__((transaction_callable))
+#define TU	__attribute__((transaction_unsafe))
+#define TP	__attribute__((transaction_pure))
+#define TS	__attribute__((transaction_safe))
 extern void f1(void) TC;
 extern void f2(void) TU;
 extern void f3(void) TP;

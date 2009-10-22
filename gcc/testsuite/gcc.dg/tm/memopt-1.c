@@ -2,13 +2,13 @@
 /* { dg-options "-fgnu-tm -O -fdump-tree-tmmemopt" } */
 
 long g, xxx, yyy;
-extern george() __attribute__((tm_callable));
+extern george() __attribute__((transaction_callable));
 extern ringo(long int);
 int i;
 
 f()
 {
-  __tm_atomic {
+  __transaction [[relaxed]] {
     g = 666;
     george();
     if (i == 9)

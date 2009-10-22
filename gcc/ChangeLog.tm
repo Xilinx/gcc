@@ -1,3 +1,55 @@
+2009-10-22  Richard Henderson  <rth@redhat.com>
+
+	* builtin-attrs.def (ATTR_TM_PURE): Use transaction_pure.
+	* c-common.c (c_common_reswords): Rename __tm_abort and __tm_atomic
+	to __transaction_cancel and __transaction respectively.
+	(c_common_attribute_table): s/tm_/transaction_/g.  Remove tm_unkown.
+	(parse_tm_stmt_attr): New.
+	* c-common.h (RID_TRANSACTION, RID_TRANSACTION_CANCEL): Rename from
+	RID_TM_ATOMIC, RID_TM_ABORT.
+	(TM_STMT_ATTR_OUTER, TM_STMT_ATTR_ATOMIC, TM_STMT_ATTR_RELAXED): New.
+	(parse_tm_stmt_attr): Declare.
+	* c-parser.c (struct c_parser): Rename in_tm_atomic to in_transaction;
+	widen to 4 bits.
+	(c_parser_attribute_any_word): Split out from c_parser_attributes.
+	(c_parser_statement_after_labels): Update for renames.
+	(c_parser_transaction_attributes): New.
+	(c_parser_transaction): Rename from c_parser_tm_atomic; parse the
+	attributes in the new syntax.
+	(c_parser_transaction_cancel): Similarly.
+	* c-tree.h: Update decls.
+	* c-typeck.c (c_finish_transaction): Rename from c_finish_tm_atomic;
+	add flags parameter to fill in OUTER and RELAXED bits.
+	* trans-mem.c (AR_OUTERABORT): New.
+	(is_tm_pure): Update attribute names.
+	(is_tm_irrevocable, is_tm_safe, is_tm_callable): Likewise.
+	(is_tm_may_cancel_outer): New.
+	(build_tm_abort_call): Add is_outer parameter.
+	* tree.h: Update decls.
+	(TM_ATOMIC_OUTER, TM_ATOMIC_RELAXED): New.
+
+	* cp/class.c (set_one_vmethod_tm_attributes): Remove TM_ATTR_UNKNOWN
+	tests.
+	* cp/cp-tree.h: Update decls.
+	* cp/except.c (do_get_exception_ptr): s/tm_/transaction_/.
+	* cp/parser.c (struct cp_parser): Rename in_tm_atomic to
+	in_transaction; widen from bool to uchar.
+	(cp_parser_statement): Update for renames.
+	(cp_parser_function_definition_after_declarator): Likewise.
+	(cp_parser_token_starts_function_definition_p): Likewise.
+	(cp_parser_txn_attribute_opt): New.
+	(cp_parser_transaction): Rename from cp_parser_tm_atomic; parse
+	the new attributes.
+	(cp_parser_function_transaction): Similarly.
+	(cp_parser_transaction_cancel): Similarly.
+	* cp/semantics.c (begin_transaction_stmt): Rename from
+	begin_tm_atomic_stmt.
+	(finish_transaction_stmt): Rename from finish_tm_atomic_stmt;
+	add flags parameter and fill in OUTER and RELAXED bits.
+
+	* testsuite/g++.dg/tm/*: Adjust for new syntax.
+	* testsuite/gcc.dg/tm/*: Likewise.
+
 2009-10-20  Richard Henderson  <rth@redhat.com>
 
 	* trans-mem.c (tm_memopt_init_sets): Use XOBNEW.

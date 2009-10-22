@@ -6,7 +6,7 @@ int g,i;
 
 f()
 {
-  __tm_atomic {
+  __transaction [[relaxed]] {
     for (i=0; i < 10; ++i)
       ringo(g);  
   }

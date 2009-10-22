@@ -183,7 +183,7 @@ do_get_exception_ptr (void)
       fn = declare_nothrow_library_fn (fn, ptr_type_node, ptr_type_node);
 
       if (flag_tm)
-	apply_tm_attr (fn, get_identifier ("tm_pure"));
+	apply_tm_attr (fn, get_identifier ("transaction_pure"));
     }
 
   return cp_build_function_call (fn, tree_cons (NULL_TREE, build_exc_ptr (),

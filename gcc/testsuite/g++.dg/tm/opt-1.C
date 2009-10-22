@@ -3,7 +3,7 @@
 
 struct S
 {
-  virtual void f() __attribute__((tm_safe));
+  virtual void f() __attribute__((transaction_safe));
 };
 
-void f(S *s) { __tm_atomic { s->f(); } }
+void f(S *s) { __transaction { s->f(); } }

@@ -3,9 +3,9 @@
 
 char c;
 
-f()
+void f(void)
 {
-  __tm_atomic {
+  __transaction {
     ++c;
   }
 }

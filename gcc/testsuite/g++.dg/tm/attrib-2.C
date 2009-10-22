@@ -1,14 +1,14 @@
 // { dg-do compile }
 // { dg-options "-fgnu-tm -fdump-tree-optimized-asmname" }
 
-struct __attribute__((tm_safe)) Tsafe
+struct __attribute__((transaction_safe)) Tsafe
 {
   void f();
 };
 
 void Tsafe::f() { }
 
-struct __attribute__((tm_callable)) Tcall
+struct __attribute__((transaction_callable)) Tcall
 {
   void f();
 };

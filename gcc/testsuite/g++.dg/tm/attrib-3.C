@@ -1,7 +1,7 @@
 // { dg-do compile }
 // { dg-options "-fgnu-tm -fdump-tree-optimized-asmname" }
 
-struct __attribute__((tm_safe)) A
+struct __attribute__((transaction_safe)) A
 {
 };
 

@@ -1,14 +1,14 @@
 /* { dg-do compile } */
 /* { dg-options "-fgnu-tm" } */
 
-void ts(void) __attribute__((tm_safe));
-void tp(void) __attribute__((tm_pure));
-void tc(void) __attribute__((tm_callable));
-void ti(void) __attribute__((tm_irrevocable));
+void ts(void) __attribute__((transaction_safe));
+void tp(void) __attribute__((transaction_pure));
+void tc(void) __attribute__((transaction_callable));
+void ti(void) __attribute__((transaction_unsafe));
 void tu(void);
 int fc(int) __attribute__((const));
 
-int __attribute__((tm_safe))
+int __attribute__((transaction_safe))
 foo(void)
 {
   int i;

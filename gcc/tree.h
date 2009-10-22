@@ -1693,8 +1693,10 @@ extern void protected_set_expr_location (tree, location_t);
 #define CALL_EXPR_ARGP(NODE) \
   (&(TREE_OPERAND (CALL_EXPR_CHECK (NODE), 0)) + 3)
 
-/* TM directives and accessors */
-#define TM_ATOMIC_BODY(NODE)         TREE_OPERAND (TM_ATOMIC_CHECK (NODE), 0)
+/* TM directives and accessors.  */
+#define TM_ATOMIC_BODY(NODE)	TREE_OPERAND (TM_ATOMIC_CHECK (NODE), 0)
+#define TM_ATOMIC_OUTER(NODE)	(TM_ATOMIC_CHECK (NODE)->base.static_flag)
+#define TM_ATOMIC_RELAXED(NODE)	(TM_ATOMIC_CHECK (NODE)->base.public_flag)
 
 /* OpenMP directive and clause accessors.  */
 
@@ -5330,11 +5332,12 @@ extern unsigned HOST_WIDE_INT highest_pow2_factor (const_tree);
 extern tree build_personality_function (const char *);
 
 /* In trans-mem.c.  */
-extern tree build_tm_abort_call (location_t);
+extern tree build_tm_abort_call (location_t, bool);
 extern bool is_tm_safe (tree);
 extern bool is_tm_pure (tree);
 extern bool is_tm_callable (tree);
 extern bool is_tm_irrevocable (tree);
+extern bool is_tm_may_cancel_outer (tree);
 extern void record_tm_replacement (tree, tree);
 
 /* In tree-inline.c.  */

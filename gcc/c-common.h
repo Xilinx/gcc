@@ -86,7 +86,7 @@ enum rid
   RID_CXX_COMPAT_WARN,
 
   /* GNU transactional memory extension */
-  RID_TM_ATOMIC, RID_TM_ABORT,
+  RID_TRANSACTION, RID_TRANSACTION_CANCEL,
 
   /* Too many ways of getting the name of a function as a string */
   RID_FUNCTION_NAME, RID_PRETTY_FUNCTION_NAME, RID_C99_FUNCTION_NAME,
@@ -942,6 +942,13 @@ extern tree build_function_call_vec (location_t, tree,
 extern tree resolve_overloaded_builtin (location_t, tree, VEC(tree,gc) *);
 
 extern tree finish_label_address_expr (tree, location_t);
+
+/* Mask used by tm_stmt_attr.  */
+#define TM_STMT_ATTR_OUTER	2
+#define TM_STMT_ATTR_ATOMIC	4
+#define TM_STMT_ATTR_RELAXED	8
+
+extern int parse_tm_stmt_attr (tree, int);
 
 /* Mask used by tm_attr_to_mask and tm_mask_to_attr.  Note that these
    are ordered specifically such that more restrictive attributes are

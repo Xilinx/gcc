@@ -1507,8 +1507,8 @@ typedef struct GTY(()) cp_parser {
      a local class.  */
   bool in_function_body;
 
-  /* TRUE if we're processing a __tm_atomic statement.  */
-  bool in_tm_atomic;
+  /* Nonzero if we're processing a __transaction statement.  */
+  unsigned char in_transaction;
 
   /* If non-NULL, then we are parsing a construct where new type
      definitions are not permitted.  The string stored here will be
@@ -1883,11 +1883,11 @@ static void cp_parser_label_declaration
 
 /* Transactional Memory Extensions */
 
-static tree cp_parser_tm_atomic
+static tree cp_parser_transaction
   (cp_parser *);
-static bool cp_parser_function_tm_atomic
+static bool cp_parser_function_transaction
   (cp_parser *);
-static tree cp_parser_tm_abort
+static tree cp_parser_transaction_cancel
   (cp_parser *);
 
 enum pragma_context { pragma_external, pragma_stmt, pragma_compound };
@@ -7565,11 +7565,11 @@ cp_parser_statement (cp_parser* parser, tree in_statement_expr,
 	  cp_parser_declaration_statement (parser);
 	  return;
 	  
-	case RID_TM_ATOMIC:
-	  statement = cp_parser_tm_atomic (parser);
+	case RID_TRANSACTION:
+	  statement = cp_parser_transaction (parser);
 	  break;
-	case RID_TM_ABORT:
-	  statement = cp_parser_tm_abort (parser);
+	case RID_TRANSACTION_CANCEL:
+	  statement = cp_parser_transaction_cancel (parser);
 	  break;
 
 	default:
@@ -18490,13 +18490,13 @@ cp_parser_function_definition_after_declarator (cp_parser* parser,
 
   start_lambda_scope (current_function_decl);
 
-  /* If the next token is `try' or `__tm_atomic', then we are looking at
-     either function-try-block or function-atomic-block.  Note that both
-     of these include the function-body.  */
-  if (cp_lexer_next_token_is_keyword (parser->lexer, RID_TRY))
+  /* If the next token is `try' or `__transaction', then we are looking at
+     either function-try-block or function-transaction-block.  Note that
+     both of these include the function-body.  */
+  if (cp_lexer_next_token_is_keyword (parser->lexer, RID_TRANSACTION))
+    ctor_initializer_p = cp_parser_function_transaction (parser);
+  else if (cp_lexer_next_token_is_keyword (parser->lexer, RID_TRY))
     ctor_initializer_p = cp_parser_function_try_block (parser);
-  else if (cp_lexer_next_token_is_keyword (parser->lexer, RID_TM_ATOMIC))
-    ctor_initializer_p = cp_parser_function_tm_atomic (parser);
   else
     ctor_initializer_p
       = cp_parser_ctor_initializer_opt_and_function_body (parser);
@@ -19600,8 +19600,8 @@ cp_parser_token_starts_function_definition_p (cp_token* token)
 	  || token->type == CPP_COLON
 	  /* A function-try-block begins with `try'.  */
 	  || token->keyword == RID_TRY
-	  /* A function-atomic-block begins with `__tm_atomic'.  */
-	  || token->keyword == RID_TM_ATOMIC
+	  /* A function-transaction-block begins with `__transaction'.  */
+	  || token->keyword == RID_TRANSACTION
 	  /* The named return value extension begins with `return'.  */
 	  || token->keyword == RID_RETURN);
 }
@@ -22788,104 +22788,202 @@ cp_parser_omp_construct (cp_parser *parser, cp_token *pragma_tok)
 
 /* Transactional Memory parsing routines.  */
 
-/* Parse a __tm_atomic statement.
+/* Parse a transaction attribute.
 
-   atomic-statement:
-     __tm_atomic statement
+   txn-attribute:
+	attribute
+	[ [ identifier ] ]
 
-   ??? This is only vaguely described in 2009-04-30 Intel talk at Brown.
-   Need to nail down exactly what the grammer is.  Perhaps with this optional
-   throw specification, we need to require braces around the statement to
-   avoid parsing ambiguities?  Defer for now.
+   ??? Simplify this when C++0x bracket attributes are
+   implemented properly.  */
 
-     __tm_atomic exception-specification [opt] compound-statement
+static tree
+cp_parser_txn_attribute_opt (cp_parser *parser) 
+{
+  cp_token *token;
+  tree attr_name, attr = NULL;
+
+  if (cp_lexer_next_token_is_keyword (parser->lexer, RID_ATTRIBUTE))
+    return cp_parser_attributes_opt (parser);
+
+  if (cp_lexer_next_token_is_not (parser->lexer, CPP_OPEN_SQUARE))
+    return NULL_TREE;
+  cp_lexer_consume_token (parser->lexer);
+  if (!cp_parser_require (parser, CPP_OPEN_SQUARE, "%<[%>"))
+    goto error1;
+
+  token = cp_lexer_peek_token (parser->lexer);
+  if (token->type == CPP_NAME || token->type == CPP_KEYWORD)
+    {
+      token = cp_lexer_consume_token (parser->lexer);
+
+      attr_name = (token->type == CPP_KEYWORD
+		   /* For keywords, use the canonical spelling,
+		      not the parsed identifier.  */
+		   ? ridpointers[(int) token->keyword]
+		   : token->u.value);
+      attr = build_tree_list (attr_name, NULL_TREE);
+    }
+  else
+    cp_parser_error (parser, "expected identifier");
+
+  cp_parser_require (parser, CPP_CLOSE_SQUARE, "%<]%>");
+ error1:
+  cp_parser_require (parser, CPP_CLOSE_SQUARE, "%<]%>");
+  return attr;
+}
+
+/* Parse a __transaction statement.
+
+   transaction-statement:
+     __transaction txn-attribute[opt] txn-exception-spec[opt]
+	compound-statement
+
+   ??? The exception specification is not yet implemented.
 */
 
 static tree
-cp_parser_tm_atomic (cp_parser *parser)
+cp_parser_transaction (cp_parser *parser)
 {
-  bool in_tm_atomic;
+  unsigned char old_in = parser->in_transaction;
+  unsigned char new_in = 1;
   cp_token *token;
-  tree stmt;
+  tree stmt, attrs;
 
-  token = cp_parser_require_keyword (parser, RID_TM_ATOMIC, "%<__tm_%>");
+  token = cp_parser_require_keyword (parser, RID_TRANSACTION,
+				     "%<__transaction%>");
   gcc_assert (token != NULL);
 
-  stmt = begin_tm_atomic_stmt (token->location, NULL);
-  
-  in_tm_atomic = parser->in_tm_atomic;
-  parser->in_tm_atomic = true;
-  cp_parser_implicitly_scoped_statement (parser, NULL);
-  parser->in_tm_atomic = in_tm_atomic;
+  attrs = cp_parser_txn_attribute_opt (parser);
+  if (attrs)
+    {
+      new_in |= parse_tm_stmt_attr (attrs, (TM_STMT_ATTR_OUTER
+					    | TM_STMT_ATTR_ATOMIC
+					    | TM_STMT_ATTR_RELAXED));
+      /* The [[ atomic ]] attribute is the same as no attribute.  */
+      new_in &= ~TM_STMT_ATTR_ATOMIC;
+    }
 
-  finish_tm_atomic_stmt (stmt, NULL_TREE);
+  /* Keep track if we're in the lexical scope of an outer transaction.  */
+  new_in |= (old_in & TM_STMT_ATTR_OUTER);
+
+  stmt = begin_transaction_stmt (token->location, NULL);
+
+  parser->in_transaction = new_in;
+  cp_parser_compound_statement (parser, NULL, false);
+  parser->in_transaction = old_in;
+
+  finish_transaction_stmt (stmt, NULL, new_in);
 
   return stmt;
 }
 
-/* Parse a function-atomic-block.
-   ??? This is only vaguely described in the Brown talk.  It is not mentioned
-   how this should interact with function-try-block.  For now we simply don't
-   allow both.
+/* Parse a function-transaction-block.
 
-   function-atomic-block:
-     __tm_atomic ctor-initializer [opt] function-body
+   function-transaction-block:
+     __transaction txn-attribute[opt] ctor-initializer[opt] function-body
+     __transaction txn-attribute[opt] function-try-block
 */
 
 static bool
-cp_parser_function_tm_atomic (cp_parser *parser)
+cp_parser_function_transaction (cp_parser *parser)
 {
-  tree compound_stmt, stmt;
+  unsigned char old_in = parser->in_transaction;
+  unsigned char new_in = 1;
+  tree compound_stmt, stmt, attrs;
   bool ctor_initializer_p;
   cp_token *token;
 
-  token = cp_parser_require_keyword (parser, RID_TM_ATOMIC, "%<__tm_atomic%>");
+  token = cp_parser_require_keyword (parser, RID_TRANSACTION,
+				     "%<__transaction%>");
   gcc_assert (token != NULL);
   
-  stmt = begin_tm_atomic_stmt (token->location, &compound_stmt);
+  attrs = cp_parser_txn_attribute_opt (parser);
+  if (attrs)
+    {
+      new_in |= parse_tm_stmt_attr (attrs, (TM_STMT_ATTR_OUTER
+					    | TM_STMT_ATTR_ATOMIC
+					    | TM_STMT_ATTR_RELAXED));
+      /* The [[ atomic ]] attribute is the same as no attribute.  */
+      new_in &= ~TM_STMT_ATTR_ATOMIC;
+    }
 
-  /* Parse the function-body.  */
-  ctor_initializer_p
-    = cp_parser_ctor_initializer_opt_and_function_body (parser);
+  stmt = begin_transaction_stmt (token->location, &compound_stmt);
 
-  finish_tm_atomic_stmt (stmt, compound_stmt);
+  parser->in_transaction = new_in;
+
+  if (cp_lexer_next_token_is_keyword (parser->lexer, RID_TRY))
+    ctor_initializer_p = cp_parser_function_try_block (parser);
+  else
+    ctor_initializer_p
+      = cp_parser_ctor_initializer_opt_and_function_body (parser);
+
+  parser->in_transaction = old_in;
+
+  finish_transaction_stmt (stmt, compound_stmt, new_in);
 
   return ctor_initializer_p;
 }
 
+/* Parse a __transaction_cancel statement.
 
-/* Parse a __tm_abort statement.
+   cancel-statement:
+     __transaction_cancel txn-attribute[opt] ;
+     __transaction_cancel txn-attribute[opt] throw-expression ;
 
-   atomic-statement:
-     __tm_abort
-
-   ??? This is only vaguely described in the Brown talk.  Perhaps I'm
-   not keeping up on my C++ 2k, but that [[id]] syntax shows up a lot.
-   Is that supposed to be some sort of standardized attribute?  At
-   present I'd actually prefer a __tm_abort_outer keyword...
-     __tm_abort [[tm_outer]]
-
-   ??? Also only vaguely described, though one can infer that it should
-   call _ITM_registerThrownObject on the object it passes to __cxa_throw.
-     __tm_abort throw-expression
-*/
+   ??? Cancel and throw is not yet implemented.  */
 
 static tree
-cp_parser_tm_abort (cp_parser *parser)
+cp_parser_transaction_cancel (cp_parser *parser)
 {
   cp_token *token;
-  tree stmt;
+  bool is_outer = false;
+  tree stmt, attrs;
 
-  token = cp_parser_require_keyword (parser, RID_TM_ABORT, "%<__tm_abort%>");
+  token = cp_parser_require_keyword (parser, RID_TRANSACTION_CANCEL,
+				     "%<__transaction_cancel%>");
   gcc_assert (token != NULL);
 
-  if (!parser->in_tm_atomic)
+  attrs = cp_parser_txn_attribute_opt (parser);
+  if (attrs)
+    is_outer = (parse_tm_stmt_attr (attrs, TM_STMT_ATTR_OUTER) != 0);
+
+  /* ??? Parse cancel-and-throw here.  */
+
+  cp_parser_require (parser, CPP_SEMICOLON, "%<;%>");
+
+  if (!flag_tm)
     {
-      error_at (token->location, "%<__tm_abort%> not within %<__tm_atomic%>");
+      error_at (token->location, "%<__transaction_cancel%> without "
+		"transactional memory support enabled");
+      return error_mark_node;
+    }
+  else if (parser->in_transaction & TM_STMT_ATTR_RELAXED)
+    {
+      error_at (token->location, "%<__transaction_cancel%> within a "
+		"relaxed %<__transaction%>");
+      return error_mark_node;
+    }
+  else if (is_outer)
+    {
+      if ((parser->in_transaction & TM_STMT_ATTR_OUTER) == 0
+	  && !is_tm_may_cancel_outer (current_function_decl))
+	{
+	  error_at (token->location, "outer %<__transaction_cancel%> not "
+		    "within outer %<__transaction%>");
+	  error_at (token->location,
+		    "  or a %<transaction_may_cancel_outer%> function");
+	  return error_mark_node;
+	}
+    }
+  else if (parser->in_transaction == 0)
+    {
+      error_at (token->location, "%<__transaction_cancel%> not within "
+		"%<__transaction%>");
       return error_mark_node;
     }
 
-  stmt = build_tm_abort_call (token->location);
+  stmt = build_tm_abort_call (token->location, is_outer);
   add_stmt (stmt);
   finish_stmt ();
 

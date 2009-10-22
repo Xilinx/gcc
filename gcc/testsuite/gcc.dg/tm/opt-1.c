@@ -1,8 +1,8 @@
 /* { dg-do compile } */
 /* { dg-options "-fgnu-tm -O" } */
 
-extern void usleep (int) __attribute__((tm_pure));
-extern int rand(void) __attribute__((pure, tm_pure));
+extern void usleep (int) __attribute__((transaction_pure));
+extern int rand(void) __attribute__((pure, transaction_pure));
 extern int printf (const char *, ...);
 extern void *malloc (__SIZE_TYPE__) __attribute__((malloc));
 extern void xyzzy (void * (*)(void *));
@@ -20,7 +20,7 @@ void *hello(void *arg)
   int tmp = p->id;
   int tmp3;
   printf ("Thread reads %d.\n", tmp);
-  __tm_atomic
+  __transaction
     {
       int tmp2 = gvar;
       usleep ((int) (10.0*rand()/(10+1.0))/100);

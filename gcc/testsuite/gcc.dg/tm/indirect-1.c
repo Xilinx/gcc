@@ -3,7 +3,7 @@
 
 void foo(void (*fn)(void))
 {
-  __tm_atomic {
+  __transaction [[relaxed]] {
     fn();
   }
 }

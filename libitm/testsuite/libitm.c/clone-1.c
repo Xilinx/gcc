@@ -1,4 +1,5 @@
-/* Verify that we can look up tm clone of tm_callable and tm_pure.  */
+/* Verify that we can look up tm clone of transaction_callable
+   and transaction_pure.  */
 
 #include <stdlib.h>
 
@@ -12,12 +13,12 @@ extern void *_ITM_getTMCloneSafe (void *) REGPARM;
 
 static int x;
 
-int __attribute__((tm_pure)) pure(int i)
+int __attribute__((transaction_pure)) pure(int i)
 {
   return i+2;
 }
 
-int __attribute__((tm_callable)) callable(void)
+int __attribute__((transaction_callable)) callable(void)
 {
   return ++x;
 }

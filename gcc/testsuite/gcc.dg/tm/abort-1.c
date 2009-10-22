@@ -2,6 +2,5 @@
 
 void f(void)
 {
-  __tm_abort;		/* { dg-error "not within" } */
-  /* { dg-error "without trans" "" { target *-*-* } 5 } */
+  __transaction_cancel;		/* { dg-error "without transactional" } */
 }

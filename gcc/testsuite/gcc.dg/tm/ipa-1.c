@@ -1,11 +1,11 @@
 /* { dg-do compile } */
 /* { dg-options "-fgnu-tm -fdump-tree-tmmark-asmname" } */
 
-void foo(void) __attribute__((tm_callable));
+void foo(void) __attribute__((transaction_safe));
 
 void bar(void)
 {
-  __tm_atomic {
+  __transaction {
     foo();
   }
 }

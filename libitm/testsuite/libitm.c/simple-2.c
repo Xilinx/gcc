@@ -7,7 +7,7 @@ static int x;
 
 static void *start (void *dummy __attribute__((unused)))
 {
-  __tm_atomic x++;
+  __transaction { x++; }
   return NULL;
 }
 

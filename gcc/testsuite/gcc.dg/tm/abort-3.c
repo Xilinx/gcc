@@ -2,7 +2,7 @@
 
 void f(void)
 {
-  __tm_atomic { /* { dg-error "__tm_atomic. without" } */
-    __tm_abort; /* { dg-error "__tm_abort. without" } */
+  __transaction {	   /* { dg-error "__transaction. without trans" } */
+    __transaction_cancel;  /* { dg-error "_cancel. without trans" } */
   }
 }

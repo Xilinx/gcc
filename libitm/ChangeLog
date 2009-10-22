@@ -1,3 +1,7 @@
+2009-10-22  Richard Henderson  <rth@redhat.com>
+
+	* testsuite/*: Update for new compiler syntax.
+
 2009-10-21  Richard Henderson  <rth@redhat.com>
 
 	* libitm.h (_ITM_abortReason): Add outerAbort.

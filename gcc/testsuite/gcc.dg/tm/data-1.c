@@ -24,7 +24,7 @@ static long double gld;
 
 void f(void)
 {
-  __tm_atomic {
+  __transaction {
     gc++;
     gsc++;
     guc++;

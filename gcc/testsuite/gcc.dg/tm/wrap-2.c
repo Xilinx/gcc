@@ -1,7 +1,7 @@
 /* { dg-do compile } */
 /* { dg-options "-fgnu-tm" } */
 
-#define W(X)	__attribute__((tm_wrap(X)))
+#define W(X)	__attribute__((transaction_wrap(X)))
 void f1(void);
 void f2(int);
 int i3;

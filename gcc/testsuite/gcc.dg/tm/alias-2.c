@@ -30,7 +30,7 @@ struct mystruct_type {
 ptrcast *someptr, **pp;
 ptrcast ui;
 
-void tootsie_roll () __attribute__((tm_wrap (candy)));
+void tootsie_roll () __attribute__((transaction_wrap (candy)));
 void tootsie_roll ()
 {
   ui = TM_LOAD  (&mystruct);

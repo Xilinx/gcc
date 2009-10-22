@@ -5,7 +5,7 @@ int foo(int *arr, int v)
 {
   int r = 0;
   int i;
-  __tm_atomic {
+  __transaction {
     for (i = 0; i < 10; ++i)
       if (arr[i] < 27)
 	r += arr[i] += v;

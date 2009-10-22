@@ -2,5 +2,5 @@
 
 void f(void)
 {
-  __tm_abort;		// { dg-error "not within" }
+  __transaction_cancel;		// { dg-error "without transactional memory" }
 }

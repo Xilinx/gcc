@@ -16,7 +16,7 @@ void f(void)
   struct S l;
   fill(&l);
 
-  __tm_atomic {
+  __transaction {
     g = l;
   }
 }

@@ -9,7 +9,7 @@ static int x;
 
 static void start (void)
 {
-  __tm_atomic x++;
+  __transaction { x++; }
 }
 
 int main()

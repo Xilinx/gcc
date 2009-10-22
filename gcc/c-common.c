@@ -618,8 +618,8 @@ const struct c_common_resword c_common_reswords[] =
   { "__signed",		RID_SIGNED,	0 },
   { "__signed__",	RID_SIGNED,	0 },
   { "__thread",		RID_THREAD,	0 },
-  { "__tm_abort",	RID_TM_ABORT,	0 },
-  { "__tm_atomic",	RID_TM_ATOMIC,	0 },
+  { "__transaction",	RID_TRANSACTION, 0 },
+  { "__transaction_cancel", RID_TRANSACTION_CANCEL, 0 },
   { "__typeof",		RID_TYPEOF,	0 },
   { "__typeof__",	RID_TYPEOF,	0 },
   { "__volatile",	RID_VOLATILE,	0 },
@@ -788,17 +788,17 @@ const struct attribute_spec c_common_attribute_table[] =
 			      handle_no_limit_stack_attribute },
   { "pure",                   0, 0, true,  false, false,
 			      handle_pure_attribute },
-  { "tm_callable",            0, 0, false, true,  false,
+  { "transaction_callable",   0, 0, false, true,  false,
                               handle_tm_attribute },
-  { "tm_irrevocable",         0, 0, false, true,  false,
+  { "transaction_unsafe",     0, 0, false, true,  false,
                               handle_tm_attribute },
-  { "tm_pure",                0, 0, false, true,  false,
+  { "transaction_safe",       0, 0, false, true,  false,
                               handle_tm_attribute },
-  { "tm_safe",                0, 0, false, true,  false,
+  /* ??? These two attributes didn't make the transition from the
+     Intel language document to the multi-vendor language document.  */
+  { "transaction_pure",       0, 0, false, true,  false,
                               handle_tm_attribute },
-  { "tm_unknown",             0, 0, false, true,  false,
-                              handle_tm_attribute },
-  { "tm_wrap",                1, 1, true,  false,  false,
+  { "transaction_wrap",       1, 1, true,  false,  false,
 			      handle_tm_wrap_attribute },
   /* For internal use (marking of builtins) only.  The name contains space
      to prevent its usage in source code.  */
@@ -7163,6 +7163,48 @@ handle_pure_attribute (tree *node, tree name, tree ARG_UNUSED (args),
   return NULL_TREE;
 }
 
+/* Digest an attribute list destined for a transactional memory statement.
+   ALLOWED is the set of attributes that are allowed for this statement;
+   return the attribute we parsed.  Multiple attributes are never allowed.  */
+
+int
+parse_tm_stmt_attr (tree attrs, int allowed)
+{
+  tree a_seen = NULL;
+  int m_seen = 0;
+
+  for ( ; attrs ; attrs = TREE_CHAIN (attrs))
+    {
+      tree a = TREE_PURPOSE (attrs);
+      int m = 0;
+
+      if (is_attribute_p ("outer", a))
+	m = TM_STMT_ATTR_OUTER;
+      else if (is_attribute_p ("atomic", a))
+	m = TM_STMT_ATTR_ATOMIC;
+      else if (is_attribute_p ("relaxed", a))
+	m = TM_STMT_ATTR_RELAXED;
+
+      if ((m & allowed) == 0)
+	{
+	  warning (OPT_Wattributes, "%qE attribute directive ignored", a);
+	  continue;
+	}
+
+      if (m_seen == 0)
+	{
+	  a_seen = a;
+	  m_seen = m;
+	}
+      else if (m_seen == m)
+	warning (OPT_Wattributes, "%qE attribute duplicated", a);
+      else
+	warning (OPT_Wattributes, "%qE attribute follows %qE", a, a_seen);
+    }
+
+  return m_seen;
+}
+
 /* Transform a TM attribute name into a maskable integer and back.
    Note that NULL (i.e. no attribute) is mapped to UNKNOWN, corresponding
    to how the lack of an attribute is treated.  */
@@ -7172,16 +7214,14 @@ tm_attr_to_mask (tree attr)
 {
   if (attr == NULL)
     return TM_ATTR_UNKNOWN;
-  if (is_attribute_p ("tm_safe", attr))
+  if (is_attribute_p ("transaction_safe", attr))
     return TM_ATTR_SAFE;
-  if (is_attribute_p ("tm_callable", attr))
+  if (is_attribute_p ("transaction_callable", attr))
     return TM_ATTR_CALLABLE;
-  if (is_attribute_p ("tm_pure", attr))
+  if (is_attribute_p ("transaction_pure", attr))
     return TM_ATTR_PURE;
-  if (is_attribute_p ("tm_irrevocable", attr))
+  if (is_attribute_p ("transaction_unsafe", attr))
     return TM_ATTR_IRREVOCABLE;
-  if (is_attribute_p ("tm_unknown", attr))
-    return TM_ATTR_UNKNOWN;
   return 0;
 }
 
@@ -7191,11 +7231,10 @@ tm_mask_to_attr (int mask)
   const char *str;
   switch (mask)
     {
-    case TM_ATTR_SAFE:		str = "tm_safe";	break;
-    case TM_ATTR_CALLABLE:	str = "tm_callable";	break;
-    case TM_ATTR_PURE:		str = "tm_pure";	break;
-    case TM_ATTR_IRREVOCABLE:	str = "tm_irrevocable";	break;
-    case TM_ATTR_UNKNOWN:	str = "tm_unknown";	break;
+    case TM_ATTR_SAFE:		str = "transaction_safe";	break;
+    case TM_ATTR_CALLABLE:	str = "transaction_callable";	break;
+    case TM_ATTR_PURE:		str = "transaction_pure";	break;
+    case TM_ATTR_IRREVOCABLE:	str = "transaction_unsafe";	break;
     default:
       gcc_unreachable ();
     }
@@ -7297,7 +7336,7 @@ handle_tm_wrap_attribute (tree *node, tree name, tree args,
     {
       tree wrap_id = TREE_VALUE (args);
       if (TREE_CODE (wrap_id) != IDENTIFIER_NODE)
-	error ("tm_wrap argument not an identifier");
+	error ("%qE argument not an identifier", name);
       else
 	{
 	  tree wrap_decl = lookup_name (wrap_id);

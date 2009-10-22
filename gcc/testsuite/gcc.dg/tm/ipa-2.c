@@ -5,7 +5,7 @@ void foo(void);
 
 void bar(void)
 {
-  __tm_atomic {
+  __transaction [[relaxed]] {
     foo();
   }
 }

@@ -3,7 +3,7 @@
 
 static int x;
 
-void __attribute__((tm_callable))
+void __attribute__((transaction_callable))
 foo(void)
 {
   x++;

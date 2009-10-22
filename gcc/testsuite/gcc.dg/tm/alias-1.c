@@ -30,7 +30,7 @@ ptrcast ui;
 
 void f(void)
 {
-  __tm_atomic {
+  __transaction {
     ui = TM_LOAD  (&mystruct);
     mystruct = (struct mystruct_type *) ui;
     ui = TM_LOAD  (&someptr);

@@ -9,7 +9,7 @@ int george;
 
 foo()
 {
-	__tm_atomic {
+	__transaction [[relaxed]] {
 		global++;
 		__builtin__ITM_changeTransactionMode ();
 		george++;
