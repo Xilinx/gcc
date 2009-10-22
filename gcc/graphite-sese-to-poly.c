@@ -2084,7 +2084,7 @@ build_scop_drs (scop_p scop)
 
   /* When debugging, enable the following code.  This cannot be used
      in production compilers.  */
-  if (1)
+  if (0)
     dump_alias_graphs (drs);
 
   VEC_free (data_reference_p, heap, drs);
