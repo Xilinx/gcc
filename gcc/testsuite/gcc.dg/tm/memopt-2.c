@@ -12,3 +12,4 @@ void f(void)
 
 /* { dg-final { scan-tree-dump-times "transforming.*RfWU1 \\(&c" 1 "tmmemopt" } } */
 /* { dg-final { scan-tree-dump-times "transforming.*WaWU1 \\(&c" 1 "tmmemopt" } } */
+/* { dg-final { cleanup-tree-dump "tmmemopt" } } */

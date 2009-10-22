@@ -18,3 +18,4 @@ foo()
 
 /* { dg-final { scan-tree-dump-times "doesGoIrrevocable" 1 "tmedge" } } */
 /* { dg-final { scan-tree-dump-times "hasNoIrrevocable" 0 "tmedge" } } */
+/* { dg-final { cleanup-tree-dump "tmedge" } } */

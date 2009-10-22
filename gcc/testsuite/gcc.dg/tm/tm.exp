@@ -28,7 +28,10 @@ if ![info exists DEFAULT_CFLAGS] then {
 # Initialize `dg'.
 dg-init
 
-# Main loop.
+# Run the tests that are shared with C++ testing.
+dg-runtest [lsort [glob -nocomplain $srcdir/c-c++-common/tm/*c]] \
+        "" $DEFAULT_CFLAGS
+# Run the C-only tests.
 dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/*.\[cS\]]] \
         "" $DEFAULT_CFLAGS
 

@@ -17,3 +17,4 @@ foo(){
 }
 
 /* { dg-final { scan-ipa-dump-times "GTMA_MAY_ENTER_IRREVOCABLE" 1 "tmipa" } } */
+/* { dg-final { cleanup-ipa-dump "tmipa" } } */
