@@ -64,7 +64,8 @@ typedef enum {
     userAbort = 1,
     userRetry = 2,
     TMConflict= 4,
-    exceptionBlockAbort = 8
+    exceptionBlockAbort = 8,
+    outerAbort = 16
 } _ITM_abortReason;
 
 /* Arguments to changeTransactionMode */
