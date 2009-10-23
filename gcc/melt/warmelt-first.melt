@@ -3451,10 +3451,10 @@ list of every element of the tuple transformed by $TRANSF.}#
 	(return lis)
 	)))
   
-(compile_warning "document below")
 ;;; full iterator on closures  
 ;;; the function is called with the component and its index
 (defun closure_every (clo f)
+  :doc #{Apply to every value inside closure $CLO the function $F}#
   (if (is_closure clo)
       (if (is_closure f)
 	  (let ( (:long ln (closure_size clo))
@@ -3467,6 +3467,7 @@ list of every element of the tuple transformed by $TRANSF.}#
 ;;; full iterator on routine  
 ;;; the function is called with the component and its index
 (defun routine_every (rou f)
+  :doc #{Apply to every value inside routine $ROU the function $F}#
   (if (is_routine rou)
       (if (is_closure f)
 	  (let ( (:long ln (routine_size rou))
@@ -3478,6 +3479,7 @@ list of every element of the tuple transformed by $TRANSF.}#
 
 ;; utility function to make a list of 1
 (defun list1 (v1)
+  :doc #{Make a list of one value $V1}#
   (let ( (lis (make_list discr_list))
 	 )
     (list_append lis v1)
@@ -3485,6 +3487,7 @@ list of every element of the tuple transformed by $TRANSF.}#
 
 ;; utility function to make a list of 2
 (defun list2 (v1 v2)
+  :doc #{Make a list of two values $V1 and $V2}#
   (let ( (lis (make_list discr_list))
 	 )
     (list_append lis v1)
@@ -3493,6 +3496,7 @@ list of every element of the tuple transformed by $TRANSF.}#
 
 ;; utility function to make a list of 3
 (defun list3 (v1 v2 v3)
+  :doc #{Make a list of 3 values $V1 $V2 $V3.}#
   (let ( (lis (make_list discr_list))
 	 )
     (list_append lis v1)
@@ -3502,6 +3506,7 @@ list of every element of the tuple transformed by $TRANSF.}#
 
 ;; utility function to make a list of 4
 (defun list4 (v1 v2 v3 v4)
+  :doc #{Make a list of 4 values $V1 $V2 $V3 $V4.}#
   (let ( (lis (make_list discr_list))
 	 )
     (list_append lis v1)
@@ -3512,6 +3517,7 @@ list of every element of the tuple transformed by $TRANSF.}#
 
 ;; utility function to make a list of 5
 (defun list5 (v1 v2 v3 v4 v5)
+  :doc #{Make a list of 5 values $V1 $V2 $V3 $V4 $V5.}#
   (let ( (lis (make_list discr_list))
 	 )
     (list_append lis v1)
@@ -3523,6 +3529,7 @@ list of every element of the tuple transformed by $TRANSF.}#
 
 ;; utility function to make a list of 6
 (defun list6 (v1 v2 v3 v4 v5 v6)
+  :doc #{Make a list of 6 values $V1 $V2 $V3 $V4 $V5 $V6.}#
   (let ( (lis (make_list discr_list))
 	 )
     (list_append lis v1)
@@ -3536,12 +3543,10 @@ list of every element of the tuple transformed by $TRANSF.}#
 
 ;;; installation of a method in a class or discriminant
 (defun install_method (cla sel fun)
-  (if 
-      (is_a cla class_discriminant)
-      (if 
-	  (is_a sel class_selector)
-	  (if 
-	      (is_closure fun)
+  :doc #{Install in class or discriminant $CLA for selector $SEL the function $FUN as method body.}#
+  (if (is_a cla class_discriminant)
+      (if (is_a sel class_selector)
+	  (if (is_closure fun)
 	      (let 
 		  ( (mapdict 
 		     (unsafe_get_field :disc_methodict cla)) )
@@ -3555,7 +3560,7 @@ list of every element of the tuple transformed by $TRANSF.}#
 
 
 
-
+(compile_warning "should document below, and perhaps give the signature of selectors")
 ;;; selector to output for debugging
 ;;; reciever: any object or value
 ;;; arguments: the debuginfo (instance of class_debug_information), the depth (long)

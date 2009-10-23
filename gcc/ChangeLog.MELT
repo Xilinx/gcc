@@ -1,4 +1,7 @@
 2009-10-23  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.melt: more documentation.
+
+2009-10-23  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-first.melt: more documentation. Removed
 	mapstringval_every mapstringval_iterate_test pairlist_every
 	pairlist_iterate_test and added foreach_in_multiple_backward.
