@@ -3030,7 +3030,6 @@ end of compilation unit in last place}#
     (if (is_closure fun) (list_append lastlist fun)))
   )
 
-(compile_warning "should add :doc below")
 ;;;;;;;;;;;;;;;;;;;;;;;; debug message function
 
 ;; this is a rarely used function
@@ -3164,64 +3163,23 @@ nil.}#
 ;;; iterate & test over a map of strings - if the called f returns nil the
 ;;; iteration is stopped
 (defun mapstring_iterate_test (map f)
+  :doc #{For a given hash-map of strings $MAP and a function $F, apply
+$F to every attribute object and string value. If it returns a null
+value, with an other secundary value, gives the failing attribute, its
+value, and the other.}#
   (if (is_mapstring map)
       (if (is_closure f)
-	  (let ( (:long ix 0) )
-	    (forever maploop
-		     (if (>=i ix (mapstring_size map)) 
-			 (exit maploop))
-		     (let ( (curat (mapstring_nth_attrstr map discr_string ix))
-			    (curval (mapstring_nth_val map ix)) )
-		       (if curat 
-			   (if (null (f curat curval))
-			       (return curat)
-			     )))
-		     (setq ix (+i ix 1))
-		     )))))
+	  (foreach_in_mapstring
+	   (map)
+	   (curat curval)
+	   (multicall 
+	    (test other)
+	    (f curat curval)
+	    (if (null test)
+		(return curat curval other)
+	   ))))))
 
-;;; iterate fully in a dictionnary ie on the value in a map of strings 
-(defun mapstringval_every (map f)
-  (if (is_mapstring map)
-      (if (is_closure f)
-	  (let ( (:long ix 0) )
-	    (forever maploop
-		     (if (>=i ix (mapstring_size map)) 
-			 (exit maploop))
-		     (let ( (curval (mapstring_nth_val map ix)) )
-		       (if curval  (f curval)))
-		     (setq ix (+i ix 1))
-		     )))))
-
-;;; iterate & test over a dictionnary ie on the value in a map of strings - if
-;;; the called f returns nil the iteration is stooped
-(defun mapstringval_iterate_test (map f)
-  (if (is_mapstring map)
-      (if (is_closure f)
-	  (let ( (:long ix 0) )
-	    (forever maploop
-		     (if (>=i ix (mapstring_size map)) (exit maploop))
-		     (let ( (curval (mapstring_nth_val map ix)) )
-		       (if curval 
-			   (if (null (f curval))
-			       (return curval)
-			     )))
-		     (setq ix (+i ix 1))
-		     )))))
-
-
-;;; full iterator on a list
-(defun list_every (lis f)
-  (if (is_list lis)
-      (if (is_closure f)
-	  (let ( (curpair (list_first lis)) )
-	    (forever lisloop
-		     (if (is_pair curpair)
-			 (let ( (curhead (pair_head curpair))
-				(curtail (pair_tail curpair))
-				)
-			   (f curhead)
-			   (setq curpair curtail))
-		       (exit lisloop)))))))
+;;;;;;;;;;;;;;;;
 
 
 ;;; citerator on lists
@@ -3233,53 +3191,55 @@ nil.}#
 the start formal $LIS. Local formals are $CURPAIR, bound to the
 current pair, and $CURCOMP, bound to the current component within the
 list.}#
-  (					;before expansion
-   "/* start " eachlist "*/\n"
-   "for (" curpair " = melt_list_first(" lis ");\n"
-   "melt_magic_discr(" curpair ") == OBMAG_PAIR;\n"
-   curpair " = melt_pair_tail(" curpair ")) {\n"
-   curcomp " = melt_pair_head(" curpair ");\n"
-   )
-  (					;after expansion
-   "} /* end " eachlist "*/\n"
-   )
+   #{/* start $eachlist */
+   for ($curpair = melt_list_first($lis);
+	melt_magic_discr($curpair) == OBMAG_PAIR;
+        $curpair = melt_pair_tail($curpair)) {
+	$curcomp = melt_pair_head($curpair); }#
+   #{ } /* end $eachlist */}#
 )
+
+;;; full iterator on a list
+(defun list_every (lis f)
+  :doc #{Given a list $LIS and a function $F, apply $F to every element of the list. Return nil.}#
+  (if (is_list lis)
+      (if (is_closure f)
+	  (foreach_in_list
+	   (lis)
+	   (curpair curcomp)
+	   (f curcomp)
+	   ))))
 
 ;;; iterator on a list, if the called f returns nil the iteration is stopped
 (defun list_iterate_test (lis f)
+  :doc #{Given a list $LIS and a function $F, apply $F to every
+  element and its pair in the list. If it returns nil with an other
+  secondary value, return the element and the other.}#
   (if (is_list lis)
       (if (is_closure f)
-	  (let ( (curpair (list_first lis)) )
-	    (forever lisloop
-		     (if (not (is_pair curpair)) (exit lisloop))
-		     (let ( (curelem (pair_head curpair)) )
-		       (if (null (f curelem)) (return curelem)))
-		     (setq curpair (pair_tail curpair)))))))
+	  (foreach_in_list
+	   (lis)
+	   (curpair curcomp)
+	   (multicall
+	    (test other)
+	    (f curcomp curpair)
+	    (if (null test) (return curcomp other))
+	    )))))
 
 ;; add to a destination list a source list
 (defun list_append2list (dlist slist)
+  :doc #{Add to the destination list $DLIST the source list $SLIST:
+add every element of the source list at end of the destination. Return
+the $DLIST.}#
   (if (not (is_list slist)) (return dlist))
   (if (not (is_list dlist)) (setq dlist (make_list discr_list)))
-  (list_every slist 
-	      (lambda (e) (list_append dlist e)))
-  dlist)
+  (foreach_in_list
+   (slist)
+   (curpair curcomp)
+   (list_append dlist curcomp))
+  (return dlist))
 
-;;; full iterator on a pairlist  if the called f returns nil the iteration is stopped
-(defun pairlist_every (pair f)
-  (if (is_closure f)
-      (forever pairloop
-	       (if (not (is_pair pair)) (exit pairloop))
-	       (f (pair_head pair)) 
-	       (setq pair (pair_tail pair)))))
 
-;;; tested iterator on a pairlist  if the called f returns nil the iteration is stopped
-(defun pairlist_iterate_test (pair f)
-  (if (is_closure f)
-      (forever pairloop
-	       (if (not (is_pair pair)) (exit pairloop))
-	       (let ( (curelem (pair_head pair)) )
-		 (if (null (f curelem)) (return curelem)))
-	       (setq pair (pair_tail pair)))))
 
 ;;; map on a list (list_map lis f) where lis is (e1 ... en) is ((f e1) .... (f en))
 (defun list_map (lis f)
@@ -3338,6 +3298,11 @@ list.}#
 
 ;;; translate a pairlist to a tuple - with each element transformed by a function f (default the identity)
 (defun pairlist_to_multiple (pair disc f)
+  :doc #{Make a multiple from a list of pairs: given a pair list
+starting with $PAIR and a multiple discriminant $DISC and an
+optional function $F [by default the identity], return a multiple of
+discriminant $DISC made of the result of applying $F to every head
+of pairs.}#
   (if (null disc) (setq disc discr_multiple))
   (let ( (:long ln 0) )
     (let ( (curpair pair) )
@@ -3359,32 +3324,71 @@ list.}#
       (return tup)
       )))
 
+
+;;;;;;;;;;;;;;;;
+;; citerator on tuple
+(defciterator foreach_in_multiple 
+  (tup)					;start formal
+  eachtup				;state
+  (comp :long ix)			;local formals
+  :doc #{Iterate in the given tuple $TUP for each component $COMP at index $IX}#
+  #{ /* start $eachtup: */
+   long  $eachtup#_ln = melt_multiple_length((melt_ptr_t)$tup);
+   long  $eachtup#_ix = 0;
+   for ($eachtup#_ix = 0;  
+	$eachtup#_ix <  $eachtup#_ln;  
+	$eachtup#_ix++) {
+   $comp = melt_multiple_nth((melt_ptr_t)($tup),  $eachtup#_ix);
+   $ix  =  $eachtup#_ix;
+   }#
+   #{ } /* end $eachtup */ }#
+)
+
+(defciterator foreach_in_multiple_backward
+  (tup)					;start formal
+  eachtupback				;state
+  (comp :long ix)			;local formals
+  :doc #{Iterate backwards from last to first in the given tuple $TUP
+  for each component $COMP at index $IX}#
+  #{ /* start $eachtupback: */
+   long  $eachtupback#_ln = melt_multiple_length((melt_ptr_t)$tup);
+   long  $eachtupback#_ix = 0;
+   for ($eachtupback#_ix = $eachtupback#_ln - 1;  
+	$eachtupback#_ix >= 0;  
+	$eachtupback#_ix--) {
+   $comp = melt_multiple_nth((melt_ptr_t)($tup),  $eachtupback#_ix);
+   $ix  =  $eachtupback#_ix;}#
+   #{ } /* end $eachtupback */ }#
+  )
+
 ;;; full iterator on tuple - 
 ;;; the function is called with the component and its index
 (defun multiple_every (tup f)
+  :doc #{Apply to every component of tuple $TUP and its index the given
+function $F. Return nil.}#
   (if (is_multiple tup)
       (if (is_closure f)
-	  (let ( (:long ln (multiple_length tup))
-		 (:long ix 0) )
-	    (forever tuploop
-		     (if (>=i ix ln) (exit tuploop))
-		     (f  (multiple_nth tup ix) ix)
-		     (setq ix (+i ix 1)))))))
+	  (foreach_in_multiple
+	   (tup)
+	   (comp :long ix)
+	   (f comp ix)))))
 
 ;; full iterator backward
 (defun multiple_backward_every (tup f)
+  :doc #{Apply to every component (from last to first) of tuple $TUP
+backwards, and its index the given function $F. Return nil.}#
   (if (is_multiple tup)
       (if (is_closure f)
-	  (let ( (:long ln (multiple_length tup))
-		 (:long ix (-i ln 1)) )
-	    (forever tuploop
-		     (if (<i ix 0) (exit tuploop))
-		     (f  (multiple_nth tup ix) ix)
-		     (setq ix (-i ix 1)))))))
+	  (foreach_in_multiple_backward
+	   (tup)
+	   (comp :long ix)
+	   (f comp ix)))))
 
 
 ;; iterator on two tuples
 (defun multiple_every_both (tup1 tup2 f)
+  :doc #{Given two tuples $TUP1 and $TUP2, apply function $F to every component of $TUP1 
+with component of $TUP2 and index. Stop when either end is reached. Return nil.}#
   (if (is_multiple tup1)
       (if (is_multiple tup2)
 	  (if (is_closure f)
@@ -3400,19 +3404,23 @@ list.}#
 ;;; iterator on tuple , if the called f returns nil the iteration is stopped
 ;;; the function is called with the component and its index
 (defun multiple_iterate_test (tup f)
+  :doc #{Given a multiple $TUP and a function $F, find the first
+component on which $F returns nil and some other value. Return the
+component, its index, and that other value.}#
   (if (is_multiple tup)
       (if (is_closure f)
-	  (let ( (:long ln (multiple_length tup))
-		 (:long ix 0) )
-	    (forever tuploop
-		     (if (>=i ix ln) (exit tuploop))
-		     (let ( (curcomp (multiple_nth tup ix)) )
-		       (if (null (f curcomp ix)) 
-			   (return curcomp)))
-		     (setq ix (+i ix 1)))))))
+	  (foreach_in_multiple
+	   (tup)
+	   (comp :long ix)
+	   (multicall 
+	    (test other)
+	    (f comp ix)
+	    (if (null test) (return comp ix other)))))))
 
 ;;; map on tuple -- with tup= (t0 t1 ... t_n-1) return ((f t0 0) (f t1 1) ... (f t_n-1 n-1)
 (defun multiple_map (tup f)
+  :doc #{Given a multiple $TUP and a function $F, make a multiple made
+of the application of $F to every component and its index.}#
   (if (is_multiple tup)
       (if (is_closure f)
 	  (let ( (:long ln (multiple_length tup))
@@ -3426,25 +3434,11 @@ list.}#
 		     (setq ix (+i ix 1)))
 	    ))))
 
-;; citerator on tuple
-(defciterator foreach_in_multiple 
-  (tup)					;start formal
-  eachtup				;state
-  (comp :long ix)			;local formals
-  (					;before expansion
-   "long " eachtup "_ln = melt_multiple_length((melt_ptr_t)" tup ");\n"
-   "int " eachtup "_ix = 0;\n"
-   "for ("  eachtup "_ix = 0; " eachtup "_ix < " eachtup "_ln; " 
-   eachtup "_ix ++) {\n"
-   comp " = melt_multiple_nth((melt_ptr_t)(" tup "), " eachtup "_ix);\n"
-   ix " = " eachtup "_ix;\n"
-   )
-  (					;after expansion
-   "} /* end " eachtup "*/"
-   )
-  )
 
 (defun multiple_to_list (tup disc transf)
+  :doc #{Given a multiple $TUP, a list discriminant $DISC [by default
+$DISCR_LIST], a function $TRANSF [by default the identity], make a
+list of every element of the tuple transformed by $TRANSF.}#
   (if (null disc) (setq disc discr_list))
   (if (is_multiple tup)
       (let ( (lis (make_list disc)) )
@@ -3457,6 +3451,7 @@ list.}#
 	(return lis)
 	)))
   
+(compile_warning "document below")
 ;;; full iterator on closures  
 ;;; the function is called with the component and its index
 (defun closure_every (clo f)
@@ -5249,8 +5244,6 @@ list.}#
  mapobject_sorted_attribute_tuple		
  mapstring_every			
  mapstring_iterate_test			
- mapstringval_every			
- mapstringval_iterate_test		
  multiple_backward_every		
  multiple_every				
  multiple_every_both				
@@ -5258,8 +5251,6 @@ list.}#
  multiple_map				
  multiple_to_list
  overwrite_env				
- pairlist_every				
- pairlist_iterate_test			
  pairlist_to_multiple	
  post_initialization
  put_env
@@ -5275,6 +5266,7 @@ list.}#
  foreach_in_mapobject
  foreach_in_mapstring
  foreach_in_multiple
+ foreach_in_multiple_backward
  foreach_long_upto
  integerbox_of 
  )
