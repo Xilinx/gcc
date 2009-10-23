@@ -1,4 +1,8 @@
 2009-10-23  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.melt: done documentation and cleanup. Removed
+	get_value.
+
+2009-10-23  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-first.melt: more documentation.
 
 2009-10-23  Basile Starynkevitch  <basile@starynkevitch.net>

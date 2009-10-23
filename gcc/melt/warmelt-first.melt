@@ -3560,11 +3560,12 @@ list of every element of the tuple transformed by $TRANSF.}#
 
 
 
-(compile_warning "should document below, and perhaps give the signature of selectors")
 ;;; selector to output for debugging
 ;;; reciever: any object or value
 ;;; arguments: the debuginfo (instance of class_debug_information), the depth (long)
 (defselector dbg_output class_selector
+  :formals (recv dbginfo :long depth)
+  :doc #{Selector for debug output. Output for debugging the $RECV into $DBGINFO (of $CLASS_DEBUG_INFORMATION) at given $DEPTH.}#
   )
 
 
@@ -3572,14 +3573,16 @@ list of every element of the tuple transformed by $TRANSF.}#
 ;;; reciever: any object (already output)
 ;;; arguments: the debuginfo (instance of class_debug_information), the depth (long)
 (defselector dbg_outputagain class_selector
-  )
+  :formals (recv dbginfo :long depth)
+  :doc #{Selector for debug output again, used to output a value
+  already encountered. Output again for debugging the $RECV into
+  $DBGINFO (of $CLASS_DEBUG_INFORMATION) at given $DEPTH.}# )
 
 
-;;; selector to get the value, e.g. in a binding
-(defselector get_value class_selector
-  )
 
 (defun dbg_outobject (obj dbgi :long depth)
+  :doc #{Output for debugging object $OBJ using debug information
+$DBGI at given $DEPTH}#
   (assert_msg "check dbgi" (is_a dbgi class_debug_information))
   (let ( (occmap (unsafe_get_field :dbgi_occmap dbgi)) )
     (if (is_mapobject occmap)
@@ -3598,6 +3601,8 @@ list of every element of the tuple transformed by $TRANSF.}#
   )
 
 (defun dbg_out (obj dbgi  :long depth) 
+  :doc #{Output for debugging value $OBJ using debug information
+$DBGI at given $DEPTH}#
   (assert_msg "check dbgi" (is_a dbgi class_debug_information))
   (checkcallstack_msg "start dbg_out")
   (let ( (out (unsafe_get_field :dbgi_out dbgi))
@@ -3622,6 +3627,8 @@ list of every element of the tuple transformed by $TRANSF.}#
 
 ;; utility to dump fields in an object from a given rank to a given rank
 (defun dbgout_fields (obj dbgi :long depth fromrank torank)
+  :doc #{Utility to output for debugging value in $OBJ using debug information
+$DBGI at given $DEPTH the fields from $FROMRANK to $TORANK}#
   (assert_msg "check dbgi" (is_a dbgi class_debug_information))
   (assert_msg "check obj" (is_object obj))
   (let ( (:long nbf (object_length obj)) 
@@ -3657,6 +3664,9 @@ list of every element of the tuple transformed by $TRANSF.}#
 
 ;; utility to dump again fields in an object from a given rank to a given rank
 (defun dbgoutagain_fields (obj dbgi :long depth fromrank torank)
+  :doc #{Utility to output again for debugging value in $OBJ using
+debug information $DBGI at given $DEPTH the fields from $FROMRANK to
+$TORANK}#
   (assert_msg "check dbgi" (is_a dbgi class_debug_information))
   (assert_msg "check obj" (is_object obj))
   (let ( (:long nbf (object_length obj)) 
@@ -4159,6 +4169,8 @@ list of every element of the tuple transformed by $TRANSF.}#
 
 ;; utility to give a "sorted" tuple of attributes in a mapobject
 (defun mapobject_sorted_attribute_tuple (mapo)
+  :doc #{Give the alphabetically sorted tuple of attributes in a 
+given object map $MAPO}#
   (let ( 
 	(:long mapcount (mapobject_count mapo)) 
 	(countbox (make_integerbox discr_integer 0))
@@ -4577,6 +4589,9 @@ list of every element of the tuple transformed by $TRANSF.}#
 
 ;; make a fresh environment 
 (defun fresh_env (parenv descr)		;usually descr is not given
+  :doc #{Make a fresh environment of parent $PARENV and optional
+description $DESCR. See also $CLASS_ENVIRONMENT and
+$CLASS_DESCRIBED_ENVIRONMENT.}#
   (if (or (null parenv) (is_a parenv class_environment))
       (if descr
 	  (instance class_described_environment
@@ -4589,12 +4604,14 @@ list of every element of the tuple transformed by $TRANSF.}#
 
 ;; the initial environment
 (definstance initial_environment class_described_environment
+  :doc #{The initial environment of $CLASS_DESCRIBED_ENVIRONMENT.}#
   :env_bind  (make_mapobject discr_map_objects 500)
   :denv_descr '"Initial Environment"
   )
 
 ;; find a binding inside an environment
 (defun find_env (env binder)
+  :doc #{Find a binding inside environement $ENV for binder symbol $BINDER}#
   (assert_msg "check arg env" (is_a env class_environment))
   (assert_msg "check arg binder" (is_object binder))
   (forever
@@ -4644,6 +4661,8 @@ list of every element of the tuple transformed by $TRANSF.}#
 
 ;; find a binding inside an environment and also returns the reversed list of enclosing procedures
 (defun find_enclosing_env (env binder)
+  :doc #{Find the binding in environment $ENV for given $BINDER symbol 
+and secondarily return the reversed list of enclosing procedures.}#
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check binder" (is_object binder))
   (let ( (proclist (make_list discr_list)) )
@@ -4661,6 +4680,8 @@ list of every element of the tuple transformed by $TRANSF.}#
 
 ;; put a binding at top of an environment
 (defun put_env (env binding)
+  :doc #{Put into environment $ENV the given $BINDING. 
+See also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
   (assert_msg "check binding is obj" (is_object binding))
   (assert_msg "check env is obj" (is_object env))
   (assert_msg "check env" (is_a env class_environment))
@@ -4682,8 +4703,11 @@ list of every element of the tuple transformed by $TRANSF.}#
     (mapobject_put bindmap binderv binding)
     ))
 
-;; overwrite a binding in the environment where it has been already bind
+;; overwrite a binding in the environment where it has been already bound
 (defun overwrite_env (env binding)
+  :doc #{Overwrite in environment $ENV or its ancestor the given
+$BINDING, in the environment where it has already been bound.  See
+also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check binding" (is_a binding class_any_binding))
   (let ( (binderv  (unsafe_get_field :binder binding)) )
@@ -4704,6 +4728,9 @@ list of every element of the tuple transformed by $TRANSF.}#
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; debug_msg support is done by calling this debug_msg_fun 
 (defun debug_msg_fun (val :cstring msgstr :long count :cstring filenam :long lineno)
+  :doc #{Internal function called by $DEBUG_MSG macro to output for
+debugging the value $VAL with message $MSGSTR, given $COUNT, at
+$FILENAM and $LINENO}#
   (code_chunk incrdbgcounter #{++melt_dbgcounter}#)
   (if (need_dbg 0) 
       (let ( (:long dbgcounter 0)
@@ -4796,13 +4823,11 @@ list of every element of the tuple transformed by $TRANSF.}#
 
 ;;;****************************************************************
 
-(debug_msg (current_module_environment_container) "cur.mod.env.cont before update")
 ;; before the update_current_module_environment_container below, most
 ;; constants for current_module_environment_container or
 ;; parent_module_environment are null because there is not enough
 ;; stuff yet to build them.
 (update_current_module_environment_container)
-(debug_msg (current_module_environment_container) "cur.mod.env.cont after update")
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -5199,8 +5224,7 @@ list of every element of the tuple transformed by $TRANSF.}#
  discr_strbuf                         
  discr_string                         
  discr_tree
- discr_verbatim_string                 
- get_value
+ discr_verbatim_string  
  initial_environment                  
  initial_system_data
  ) ;;;end export discriminants, instances, selectors
