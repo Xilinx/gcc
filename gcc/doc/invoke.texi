@@ -321,7 +321,7 @@ Objective-C and Objective-C++ Dialects}.
 -femit-struct-debug-baseonly -femit-struct-debug-reduced @gol
 -femit-struct-debug-detailed@r{[}=@var{spec-list}@r{]} @gol
 -p  -pg  -print-file-name=@var{library}  -print-libgcc-file-name @gol
--print-multi-directory  -print-multi-lib @gol
+-print-multi-directory  -print-multi-lib  -print-multi-os-directory @gol
 -print-prog-name=@var{program}  -print-search-dirs  -Q @gol
 -print-sysroot -print-sysroot-headers-suffix @gol
 -save-temps -save-temps=cwd -save-temps=obj -time@r{[}=@var{file}@r{]}}
@@ -5536,6 +5536,16 @@ that enable them.  The directory name is separated from the switches by
 @samp{-}, without spaces between multiple switches.  This is supposed to
 ease shell-processing.
 
+@item -print-multi-os-directory
+@opindex print-multi-os-directory
+Print the path to OS libraries for the selected
+multilib, relative to some @file{lib} subdirectory.  If OS libraries are
+present in the @file{lib} subdirectory and no multilibs are used, this is
+usually just @file{.}, if OS libraries are present in @file{lib@var{suffix}}
+sibling directories this prints e.g.@: @file{../lib64}, @file{../lib} or
+@file{../lib32}, or if OS libraries are present in @file{lib/@var{subdir}}
+subdirectories it prints e.g.@: @file{amd64}, @file{sparcv9} or @file{ev6}.
+
 @item -print-prog-name=@var{program}
 @opindex print-prog-name
 Like @option{-print-file-name}, but searches for a program such as @samp{cpp}.
@@ -5728,8 +5738,7 @@ invoking @option{-O2} on programs that use computed gotos.
 Optimize yet more.  @option{-O3} turns on all optimizations specified
 by @option{-O2} and also turns on the @option{-finline-functions},
 @option{-funswitch-loops}, @option{-fpredictive-commoning},
-@option{-fgcse-after-reload}, @option{-ftree-vectorize} and
-@option{-fira-loop-pressure} options.
+@option{-fgcse-after-reload} and @option{-ftree-vectorize} options.
 
 @item -O0
 @opindex O0
@@ -6230,9 +6239,10 @@ architectures with big regular register files.
 @opindex fira-loop-pressure
 Use IRA to evaluate register pressure in loops for decision to move
 loop invariants.  Usage of this option usually results in generation
-of faster and smaller code but can slow compiler down.
+of faster and smaller code on machines with big register files (>= 32
+registers) but it can slow compiler down.
 
-This option is enabled at level @option{-O3}.
+This option is enabled at level @option{-O3} for some targets.
 
 @item -fno-ira-share-save-slots
 @opindex fno-ira-share-save-slots

@@ -1631,7 +1631,8 @@ add_function_candidate (struct z_candidate **candidates,
 	      parmtype = build_pointer_type (parmtype);
 	    }
 
-	  if (ctype && i == 0 && DECL_COPY_CONSTRUCTOR_P (fn))
+	  if (ctype && i == 0 && DECL_COPY_CONSTRUCTOR_P (fn)
+	      && (len-skip == 1))
 	    {
 	      /* Hack: Direct-initialize copy parm (i.e. suppress
 		 LOOKUP_ONLYCONVERTING) to make explicit conversion ops
@@ -7619,7 +7620,7 @@ initialize_reference (tree type, tree expr, tree decl, tree *cleanup)
 	  && !TYPE_REF_IS_RVALUE (type)
 	  && !real_lvalue_p (expr))
 	error ("invalid initialization of non-const reference of "
-	       "type %qT from a temporary of type %qT",
+	       "type %qT from an rvalue of type %qT",
 	       type, TREE_TYPE (expr));
       else
 	error ("invalid initialization of reference of type "

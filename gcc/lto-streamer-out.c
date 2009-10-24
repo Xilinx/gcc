@@ -618,6 +618,7 @@ lto_output_location (struct output_block *ob, location_t loc)
   output_string (ob, ob->main_stream, xloc.file);
   output_sleb128 (ob, xloc.line);
   output_sleb128 (ob, xloc.column);
+  output_sleb128 (ob, xloc.sysp);
 
   ob->current_file = xloc.file;
   ob->current_line = xloc.line;
@@ -1762,7 +1763,7 @@ output_bb (struct output_block *ob, basic_block bb, struct function *fn)
 /* Create the header in the file using OB.  If the section type is for
    a function, set FN to the decl for that function.  */
 
-static void
+void
 produce_asm (struct output_block *ob, tree fn)
 {
   enum lto_section_type section_type = ob->section_type;

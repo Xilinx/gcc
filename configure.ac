@@ -1514,7 +1514,7 @@ pplinc=
 
 AC_ARG_WITH(ppl, [  --with-ppl=PATH         Specify prefix directory for the installed PPL package
                           Equivalent to --with-ppl-include=PATH/include
-                          plus --with-ppl-lib=PATH/lib],, with_ppl=no)
+                          plus --with-ppl-lib=PATH/lib],, with_ppl=yes)
 AC_ARG_WITH(ppl_include, [  --with-ppl-include=PATH Specify directory for installed PPL include files])
 AC_ARG_WITH(ppl_lib, [  --with-ppl-lib=PATH     Specify the directory for the installed PPL library])
 
@@ -1522,10 +1522,11 @@ case $with_ppl in
   no)
     ppllibs=
     ;;
+  yes)
+    ;;
   *)
     ppllibs="-L$with_ppl/lib -lppl_c -lppl -lgmpxx"
     pplinc="-I$with_ppl/include $pplinc"
-    LIBS="$ppllibs $LIBS"
     ;;
 esac
 if test "x$with_ppl_include" != x; then
@@ -1533,12 +1534,10 @@ if test "x$with_ppl_include" != x; then
 fi
 if test "x$with_ppl_lib" != x; then
   ppllibs="-L$with_ppl_lib -lppl_c -lppl -lgmpxx"
-  LIBS="$ppllibs $LIBS"
 fi
 if test "x$with_ppl$with_ppl_include$with_ppl_lib" = x && test -d ${srcdir}/ppl; then
   ppllibs='-L$$r/$(HOST_SUBDIR)/ppl/.libs -L$$r/$(HOST_SUBDIR)/ppl/_libs -lppl_c -lppl -lgmpxx '
   pplinc='-I$$r/$(HOST_SUBDIR)/ppl/include -I$$s/ppl/include '
-  LIBS="$ppllibs $LIBS"
 fi
 
 AC_ARG_ENABLE(ppl-version-check,
@@ -1546,7 +1545,7 @@ AC_ARG_ENABLE(ppl-version-check,
 ENABLE_PPL_CHECK=$enableval,
 ENABLE_PPL_CHECK=yes)
 
-if test "${ENABLE_PPL_CHECK}" = "yes"; then
+if test "x$with_ppl" != "xno" -a "${ENABLE_PPL_CHECK}" = "yes"; then
   saved_CFLAGS="$CFLAGS"
   CFLAGS="$CFLAGS $pplinc $gmpinc"
   AC_MSG_CHECKING([for version $ppl_major_version.$ppl_minor_version or better of PPL])
@@ -1555,7 +1554,7 @@ if test "${ENABLE_PPL_CHECK}" = "yes"; then
   choke me
   #endif
   if (ppl_io_asprint_Constraint((void*)0, (void*)0)) return 0;
-  ], [AC_MSG_RESULT([yes])], [AC_MSG_RESULT([no]); ppllibs= ; pplinc= ])
+  ], [AC_MSG_RESULT([yes])], [AC_MSG_RESULT([no]); ppllibs= ; pplinc= ; with_ppl=no ])
   CFLAGS="$saved_CFLAGS"
 fi
 
@@ -1570,19 +1569,24 @@ clooginc=" -DCLOOG_PPL_BACKEND "
 
 AC_ARG_WITH(cloog, [  --with-cloog=PATH       Specify prefix directory for the installed CLooG-PPL package
                           Equivalent to --with-cloog-include=PATH/include
-                          plus --with-cloog-lib=PATH/lib],, with_cloog=no)
+                          plus --with-cloog-lib=PATH/lib],, with_cloog=yes)
 AC_ARG_WITH(cloog_include, [  --with-cloog-include=PATH Specify directory for installed CLooG include files])
 AC_ARG_WITH(cloog_lib, [  --with-cloog-lib=PATH   Specify the directory for the installed CLooG library])
+
+if test "x$with_ppl" = "xno"; then
+  with_cloog=no
+fi
 
 case $with_cloog in 
   no)
     clooglibs=
     clooginc=
     ;;
+  yes)
+    ;;
   *)
     clooglibs="-L$with_cloog/lib -lcloog"
     clooginc="-I$with_cloog/include -DCLOOG_PPL_BACKEND "
-    LIBS="$clooglibs $LIBS"
     ;;
 esac
 if test "x$with_cloog_include" != x; then
@@ -1590,12 +1594,10 @@ if test "x$with_cloog_include" != x; then
 fi
 if test "x$with_cloog_lib" != x; then
   clooglibs="-L$with_cloog_lib -lcloog"
-  LIBS="$clooglibs $LIBS"
 fi
 if test "x$with_cloog$with_cloog_include$with_cloog_lib" = x && test -d ${srcdir}/cloog; then
   clooglibs='-L$$r/$(HOST_SUBDIR)/cloog/.libs -L$$r/$(HOST_SUBDIR)/cloog/_libs -lcloog '
   clooginc='-I$$r/$(HOST_SUBDIR)/cloog/include -I$$s/cloog/include -DCLOOG_PPL_BACKEND '
-  LIBS="$clooglibs $LIBS"
 fi
 
 AC_ARG_ENABLE(cloog-version-check,
@@ -1603,7 +1605,7 @@ AC_ARG_ENABLE(cloog-version-check,
 ENABLE_CLOOG_CHECK=$enableval,
 ENABLE_CLOOG_CHECK=yes)
 
-if test "${ENABLE_CLOOG_CHECK}" = "yes"; then
+if test "x$with_cloog" != "xno" -a "${ENABLE_CLOOG_CHECK}" = "yes"; then
   saved_CFLAGS="$CFLAGS"
   CFLAGS="$CFLAGS $clooginc $gmpinc $pplinc"
   AC_MSG_CHECKING([for correct version of CLooG])
@@ -1660,6 +1662,10 @@ if test x"$enable_lto" = x"yes" ; then
 
   AC_ARG_WITH(libelf_lib, [  --with-libelf-lib=PATH   Specify the directory for the installed libelf library])
 
+  saved_CFLAGS="$CFLAGS"
+  saved_CPPFLAGS="$CPPFLAGS"
+  saved_LIBS="$LIBS"
+
   case $with_libelf in 
     "")
       libelflibs="-lelf"
@@ -1687,10 +1693,6 @@ if test x"$enable_lto" = x"yes" ; then
     libelfinc='-I$$r/$(HOST_SUBDIR)/libelf/include -I$$s/libelf/include'
     LIBS="$libelflibs $LIBS"
   fi
-
-  saved_CFLAGS="$CFLAGS"
-  saved_CPPFLAGS="$CPPFLAGS"
-  saved_LIBS="$LIBS"
 
   CFLAGS="$CFLAGS $libelfinc"
   CPPFLAGS="$CPPFLAGS $libelfinc"

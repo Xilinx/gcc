@@ -1,3 +1,29 @@
+2009-10-23  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/40808
+	* mangle.c (write_template_args): Allow mangling of empty template
+	argument list. Updated function comments.
+
+2009-10-23  Jason Merrill  <jason@redhat.com>
+
+	* semantics.c (lambda_expr_this_capture): Use thisify_lambda_field.
+
+	* semantics.c (outer_lambda_capture_p): New fn.
+	(thisify_lambda_field): Factor out...
+	(add_default_capture): ...from here.
+	(finish_id_expression): Use them.
+
+	Core issue 899
+	* call.c (add_function_candidate): Only permit explicit conversion
+	ops if copy ctor was called with a single argument.
+
+	* call.c (initialize_reference): Tweak error message.
+
+2009-10-21  Jakub Jelinek  <jakub@redhat.com>
+
+	* mangle.c (finish_mangling_get_identifier): Use
+	obstack_base (mangle_obstack) instead of name_base.
+
 2009-10-19  Jakub Jelinek  <jakub@redhat.com>
 
 	* parser.c (cp_lexer_print_token, cp_parser_is_string_literal,

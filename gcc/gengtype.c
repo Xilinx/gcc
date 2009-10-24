@@ -1571,7 +1571,7 @@ open_base_files (void)
       "optabs.h", "libfuncs.h", "debug.h", "ggc.h", "cgraph.h",
       "tree-flow.h", "reload.h", "cpp-id-data.h", "tree-chrec.h",
       "cfglayout.h", "except.h", "output.h", "gimple.h", "cfgloop.h",
-      "target.h",
+      "target.h", "ipa-prop.h",
       /* Addition of melt-runtime.h should be the only change here
 	 w.r.t. ordinary (=trunk or gcc-4.5 ...) gengtype.c! */
       "melt-runtime.h",

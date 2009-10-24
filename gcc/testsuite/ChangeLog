@@ -1,3 +1,107 @@
+2009-10-24  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/specs/pack4.ads: New test.
+
+2009-10-24  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/null_pointer_deref1.adb: New test.
+	* gnat.dg/null_pointer_deref2.adb: Likewise.
+
+2009-10-24  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/41772
+	* gfortran.dg/transfer_intrinsic_3.f90.
+
+2009-10-24  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/opt4.adb: New test.
+
+2009-10-23  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/40033
+	* gcc.dg/noncompile/pr40033-1.c: New test.
+
+2009-10-23  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/40808
+	* g++.dg/abi/mangle34.C: New test
+
+2009-10-23  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/lambda/lambda-nested2.C: New.
+
+	Core issue 899
+	* g++.dg/cpp0x/explicit4.C: New.
+
+2009-10-23  Joseph Myers  <joseph@codesourcery.com>
+
+	* g++.dg/abi/rtti3.C, g++.dg/abi/thunk4.C: Skip for *-*-mingw* and
+	*-*-cygwin.
+	* g++.dg/cpp0x/lambda/lambda-mangle.C: Disable weak symbols tests
+	for *-*-mingw* and *-*-cygwin.
+	* g++.dg/opt/vt1.C: Skip for *-*-mingw* and *-*_cygwin.
+	* g++.dg/template/spec35.C: Disable weak symbol test for
+	*-*-mingw* and *-*-cygwin.
+
+	PR testsuite/31342
+	* gcc.target/i386/pic-1.c: Skip for *-*-mingw* and *-*-cygwin.
+
+2009-10-23  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/41800
+	* gfortran.dg/class_10.f03: New test.
+
+2009-10-22  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	PR target/41787
+	* gcc.target/powerpc/vsx-vrsave.c: New file.
+
+2009-10-23  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/41673
+	* gcc.dg/Wstrict-aliasing-bogus-vla-1.c: New test.
+
+2009-10-23  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/41778
+	* gcc.dg/tree-ssa/ssa-pre-26.c: New testcase.
+
+2009-10-22  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/41791
+	* g++.dg/lto/20091022-2_0.C: New testcase.
+
+2009-10-22  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/41730
+	* g++.dg/lto/20091022-1_0.C: New testcase.
+
+2009-10-22  Jan Hubicka  <jh@suse.cz>
+
+	* gcc.c-torture/compile/pr40556.c: New testcase.
+
+2009-10-22  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/41781
+	* gfortran.dg/goto_8.f90: New test case.
+
+2009-10-21  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/41497
+	* gcc.dg/tree-ssa/pr41497.c: New.
+
+2009-10-21  Steve Ellcey  <sje@cup.hp.com>
+
+	* g++.dg/tree-ssa/copyprop.C: Use include to define free().
+
+2009-10-21  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.dg/tls/pie-1.c: New test.
+
+2009-10-21  Jakub Jelinek  <jakub@redhat.com>
+
+	* g++.dg/abi/mangle33.C: New test.
+
 2009-10-21  Eric Botcazou  <ebotcazou@adacore.com>
 
 	* gnat.dg/discr22.adb: New test.
@@ -153,6 +257,11 @@
 
 	PR c++/38798
 	* g++.dg/cpp0x/trailing5.C: New.
+
+	* g++.dg/cpp0x/auto6.C: Rename to trailing1.C.
+	* g++.dg/cpp0x/auto8.C: Rename to trailing2.C.
+	* g++.dg/cpp0x/auto12.C: Rename to trailing3.C.
+	* g++.dg/cpp0x/auto13.C: Rename to trailing4.C.
 
 2009-10-16  Janus Weil  <janus@gcc.gnu.org>
 
