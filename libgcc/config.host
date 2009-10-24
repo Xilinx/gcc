@@ -110,6 +110,9 @@ m680[012]0-*-*)
 	;;
 m68k-*-*)
 	;;
+microblaze*-*-*)
+	cpu_type=microblaze
+	;;
 mips*-*-*)
 	cpu_type=mips
 	;;
@@ -432,6 +435,8 @@ m68k-*-rtems*)
 mcore-*-elf)
 	;;
 mcore-*-pe*)
+	;;
+microblaze-*-*)
 	;;
 mips-sgi-irix[56]*)
 	;;
