@@ -1626,7 +1626,7 @@
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
   (let ( (sloc (unsafe_get_field :loca_location recv)) 
-	 (srets (unsafe_get_field :sreturn_body recv))
+	 (srets (unsafe_get_field :sreturn_args recv))
 	 (:long nbrets (multiple_length srets))
 	 (csym (clone_symbol 'return_)) 
 	 ;; while the return effectively go out, it is preferable to give it a value type

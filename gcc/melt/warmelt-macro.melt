@@ -35,8 +35,12 @@
 ;;****************************************************************
 
 
+(compile_warning "maybe we need a common superclass for source with argument tuples?")
+
 ;;; source application 
 (defclass class_source_apply
+  :doc #{The internal $CLASS_SOURCE_APPLY is for function application abstract syntax. $SAPP_FUN is
+  the applied function, $SAPP_ARGS is the tuple of arguments.}#
   :super class_source
   :fields (sapp_fun			;the function to apply
 	   sapp_args			;the arguments tuple
@@ -45,6 +49,9 @@
 
 ;;; source message sending 
 (defclass class_source_msend
+  :doc #{The internal $CLASS_SOURCE_MSEND for message sending abstract
+  syntax. $MSEND_SELSYMB is the message selector symbol, $MSEND_RECV
+  is the reciever, $MSEND_ARGS is the tuple of arguments.}#
   :super class_source
   :fields ( 
 	   msend_selsymb		;the selector symbol
@@ -54,6 +61,9 @@
 
 ;;; source primitive call
 (defclass class_source_primitive
+  :doc #{The internal $CLASS_SOURCE_PRIMITIVE is for primitive
+invocation abstract syntax. $SPRIM_OPER is the primitive operation,
+$SPRIM_ARGS is the tuple of arguments.}#
   :super class_source
   :fields (sprim_oper			;the primitive operation
 	   sprim_args			;the arguments tuple
@@ -61,6 +71,10 @@
 
 ;;; source citerator invocation
 (defclass class_source_citeration
+  :doc #{The intenal $CLASS_SOURCE_CITERATION is for c-iteration
+  abstract syntax. $SCRITER_OPER is the c-iterator, $SCITER_ARGS is
+  the tuple of arguments, $SCITER_VARBIND is the tuple of formal local
+  bindings, and $SCITER_BODY is the tuple for the abstract body.}#
   :super class_source
   :fields (sciter_oper			;the citerator operation
 	   sciter_args			;the citerator input tuple
@@ -70,6 +84,9 @@
 
 ;;; source cmatcher expression
 (defclass class_source_cmatchexpr
+  :doc #{The internal $CLASS_SOURCE_CMATCHEXPR is for c-matcher
+expression abstract syntax. $SCMATX_CMATCHER is for the c-matcher,
+$SCMATX_ARGS is for arguments.}#
   :super class_source
   :fields (scmatx_cmatcher		;the cmatcher
 	   scmatx_args			;the arguments
@@ -77,6 +94,10 @@
 
 ;; source funmatcher expression
 (defclass class_source_funmatchexpr
+  :doc #{The internal $CLASS_SOURCE_FUNMATCHEXPR is for funmatcher
+expression abstract syntax. $SFMATX_FMATCHER is the funmatcher
+$SFMATX_FMATBIND is the funmatcher binding, $SFMATX_ARGS is the
+tuple of arguments.}#
   :super class_source
   :fields (sfmatx_fmatcher		;the funmatcher
 	   sfmatx_fmatbind		;the funmatcher binding
@@ -85,47 +106,64 @@
 
 ;;; source progn
 (defclass class_source_progn
+  :doc #{The internal $CLASS_SOURCE_PROGN is for $PROGN expression abstract syntax. 
+$SPROGN_BODY is the body tuple.}#
   :super class_source
   :fields (sprogn_body			;the body tuple
 	   ))
 
 ;;; source return
 (defclass class_source_return
+:doc #{The internal $CLASS_SOURCE_RETURN is for $RETURN expression
+abstract syntax. The tuple of returned stuff is $SRETURN_ARGS.}#
   :super class_source
-  :fields (sreturn_body			;the body tuple
+  :fields (sreturn_args			;the arg tuple
 	   ))
 
 ;;;; source setq
 (defclass class_source_setq
+  :doc #{The internal $CLASS_SOURCE_SETQ is for $SETQ expression
+abstract syntax. $SSTQ_VAR is the assigned variable, $SSTQ_EXPR is
+the expression.}#
   :super class_source
   :fields (sstq_var
 	   sstq_expr))
 
 ;;;; source comment
 (defclass class_source_comment
+  :doc #{The internal $CLASS_SOURCE_COMMENT is for $COMMENT abstract
+  syntax. $SCOMM_STR is the comment string.}#
   :super class_source
   :fields (scomm_str
 	   ))
 
 ;;;; source quote
 (defclass class_source_quote
+  :doc #{The internal $SCLASS_SOURCE_QUOTE is for $QUOTE abstract syntax. $SQUOTED is the quoted stuff.}#
   :super class_source
   :fields (squoted
 	   ))
 
 ;; source export 
 (defclass class_source_exportcommon
+  :doc #{The internal $CLASS_SOURCE_EXPORTCOMMON is the common
+super-class of abstract syntax of name-exporting directives. $SEXPORT_NAMES is the
+tuple of exported names.}#
   :super class_source
   :fields (sexport_names
 	   ))
+
 ;; export value
 (defclass class_source_export_values
+  :doc #{The internal $CLASS_SOURCE_EXPORT_VALUES is for the $EXPORT_VALUES directive.}#
   :super class_source_exportcommon
   :fields (
 	   ))
 
 ;; export classes
 (defclass class_source_export_class
+  :doc #{The internal $CLASS_SOURCE_EXPORT_CLASS is for abstract
+syntax of $EXPORT_CLASS directives.}#
   :super class_source_exportcommon
   :fields (
 	   ))
@@ -133,6 +171,10 @@
 ;; export one macro - (export_macro <macroname> <value>)
 ;; beware that the evaluation of the value is done near end of initial routine!
 (defclass class_source_export_macro
+  :doc #{The internal $CLASS_SOURCE_EXPORT_MACRO is for abstract syntax of
+$EXPORT_MACRO directives. $SEXPMAC_MNAME is the macro-name,
+$SEXPMAC_MVAL is the expanser value, and $SEXPMAC_DOC is the
+documentation.}#
   :super class_source
   :fields (sexpmac_mname
 	   sexpmac_mval
@@ -142,6 +184,9 @@
 ;; export one pattern - (export_patmacro <macroname> <patexpvalue> <macexpvalue>)
 ;; beware that the evaluation of the value is done near end of initial routine!
 (defclass class_source_export_patmacro
+  :doc #{The internal $CLASS_SOURCE_EXPORT_PATMACRO is for abstract
+syntax of $EXPORT_PATMACRO directive. $SEXPPAT_PVAL is the pattern
+expander.}#
   :super class_source_export_macro
   :fields (
 	   sexppat_pval			;value of patternexpander
@@ -162,30 +207,33 @@ documentation $SEXPSYN_DOC.}#
 
 ;;; superclass for all source definitions
 (defclass class_source_definition
+  :doc #{The internal common super-class for abstract syntax of all source definitions is
+  $CLASS_SOURCE_DEFINITION. The field $SDEF_NAME is the defined name. The field
+  $SDEF_DOC gives the optional documentation.}#  
   :super class_source
   :fields (sdef_name			;defined name
 	   sdef_doc			;documentation string or list
-	   )
-  :doc #{The common super-class for all source definitions is
-  $CLASS_SOURCE_DEFINITION. The field $SDEF_NAME is the defined name. The field
-  $SDEF_DOC gives the optional documentation.}#  )
+	   ))
 
 ;;; superclass for all definitions with formal arglist
 (defclass class_source_definition_formal
+  :doc #{The internal $CLASS_SOURCE_DEFINITION_FORMAL is the super-class of all definitions
+with a formal arguments binding tuple given in $SFORMAL_ARGS.}# 
   :super class_source_definition
   :fields (sformal_args			;formal arguments binding tuple
-	   )
-  :doc #{The $CLASS_SOURCE_DEFINITION_FORMAL is the super-class of all definitions
-with a formal arguments binding tuple given in $SFORMAL_ARGS.}# )
+	   ))
 
 ;;;; define a function
 (defclass class_source_defun
+  :doc #{The internal $CLASS_SOURCE_DEFUN is the abstract syntax of $DEFUN. $SFUN_BODY is the body tuple.}#
   :super class_source_definition_formal
   :fields (sfun_body			;body sequence
 	   ))
 
 ;;; define a primitive
 (defclass class_source_defprimitive
+  :doc #{The internal $CLASS_SOURCE_DEFPRIMITIVE is the abstact syntax of $DEFPRIMITIVE. 
+$SPRIM_TYPE is the result ctype, $SPRIM_EXPANSION is the tuple of its expansion.}#
   :super class_source_definition_formal
   :fields (sprim_type			;result type of primitive
 	   sprim_expansion		;primitive expansion
@@ -193,12 +241,16 @@ with a formal arguments binding tuple given in $SFORMAL_ARGS.}# )
 
 ;;; define a citerator
 (defclass class_source_defciterator
+  :doc #{The internal $CLASS_SOURCE_DEFCITERATOR is the abstact syntax of $DEFCITERATOR.
+$SCITERDEF_CITERATOR is the c-iterator.}#
   :super class_source_definition_formal		;the sformal_args is the start arguments
   :fields (sciterdef_citerator		;the citerator
 	   ))
 
 ;;; define a cmatcher
 (defclass class_source_defcmatcher
+  :doc #{The internal $CLASS_SOURCE_DEFCMATCHER is the abstract syntax
+of $DEFCMATCHER. $SCMATDEF_CMATCHER is the c-matcher.}#
   :super class_source_definition_formal
   :fields (;;loca_location is the location
 	   ;;sdef_name is the new cmatcher name
@@ -209,6 +261,11 @@ with a formal arguments binding tuple given in $SFORMAL_ARGS.}# )
 
 ;;; define a funmatcher
 (defclass class_source_defunmatcher
+  :doc #{The internal $CLASS_SOURCE_DEFUNMATCHER is the abstract
+syntax of $DEFUNMATCHER. $SFUMATDEF_INS is the input formals
+tuple. $SFUNMATDEF_OUTS is the output formals tuple. $SFUMATDEF_MATCHF
+is the matcher function expression. $SFUNMATDEF_APPLYF is the the
+applying function expression. $SFUMATDEF_DATA is some extra data.}#
   :super class_source_definition_formal
   :fields (;;loca_location is the location
 	   ;;sdef_name is the new cmatcher name
@@ -224,6 +281,8 @@ with a formal arguments binding tuple given in $SFORMAL_ARGS.}# )
 
 ;; define an object (common to instance, class, selector)
 (defclass class_source_defobjcommon
+  :doc #{The internal $CLASS_SOURCE_DEFOBJCOMMON is the common superclass for
+  object definitions. $SOBJ_PREDEF is the predefined rank if any.}#
   :super class_source_definition
   :fields (sobj_predef			;the predefined rank
 	   ))
@@ -232,6 +291,10 @@ with a formal arguments binding tuple given in $SFORMAL_ARGS.}# )
 ;;;; the class has been built (at compile time), but we need a
 ;;;; srcdefclass to actually generate code
 (defclass class_source_defclass
+  :doc #{The internal $CLASS_SOURCE_DEFCLASS is the $DEFCLASS
+abstract syntax. $SCLASS_CLABIND is the binding of the class,
+$SCLASS_SUPERBIND is the binding of the superclass, $SCLASS_FLDBIND is
+the sequence of own field bindings.}#
   :super class_source_defobjcommon
   :fields (sclass_clabind		;the binding of the class
 	   sclass_superbind		;binding of superclass (or nil if none)
@@ -241,6 +304,11 @@ with a formal arguments binding tuple given in $SFORMAL_ARGS.}# )
 
 ;; define an instance
 (defclass class_source_definstance
+  :doc #{The internal $CLASS_SOURCE_DEFINSTANCE is the $DEFINSTANCE
+abstract syntax. $SINST_CLASS the class of the defined instance,
+$SINST_CLABIND is its binding, $SINST_OBJNUM if for the object magic
+number, $SINST_FIELDS is the sequence of field assignments of
+$CLASS_SOURCE_FIELDASSIGN.}#
   :super class_source_defobjcommon
   :fields (sinst_class			;the class of the instance
 	   sinst_clabind		;the classbinding of the instance
@@ -250,6 +318,8 @@ with a formal arguments binding tuple given in $SFORMAL_ARGS.}# )
 
 ;; define a selector 
 (defclass class_source_defselector
+  :doc #{The internal $CLASS_SOURCE_DEFSELECTOR is the $DEFSELECTOR abstract syntax. $SDEFSEL_FORMALS
+is the formal argument bindings signature sequence, if any.}#
   :super class_source_definstance
   :fields (sdefsel_formals		;the formal arguments as signature
 	   )
@@ -257,6 +327,9 @@ with a formal arguments binding tuple given in $SFORMAL_ARGS.}# )
 
 ;; a field assignment
 (defclass class_source_fieldassign
+  :doc #{The internal $CLASS_SOURCE_FIELDASSIGN is the abstract syntax
+for field assigments inside e.g. $DEFINSANCE. $SFLA_FIELD is the
+field, $SFLA_EXPR is the expression.}#
   :super class_source
   :fields (sfla_field			;the field 
 	   sfla_expr			;the expression
@@ -265,6 +338,10 @@ with a formal arguments binding tuple given in $SFORMAL_ARGS.}# )
 
 ;; make an instance
 (defclass class_source_make_instance
+  :doc #{The internal $CLASS_SOURCE_MAKE_INSTANCE is the abstract
+syntax of $INSTANCE expressions.  $SMINS_CLASS is the class of the new
+object, $SMINS_CLABIND is the class binding, $SMINS_FIELDS is the
+sequence of $CLASS_SOURCE_FIELDASSIGN.}#
   :super class_source
   :fields (smins_class			;the class to be instantiated
 	   smins_clabind		;its (class|value) binding
@@ -273,6 +350,9 @@ with a formal arguments binding tuple given in $SFORMAL_ARGS.}# )
 
 ;;; source  get field
 (defclass class_source_get_field
+  :doc #{The internal $CLASS_SOURCE_GET_FIELD is the abstract syntax
+  of $GET_FIELD. $SUGET_OBJ is the object expression, $SUGET_FIELD is
+  the field keyword.}#
   :super class_source
   :fields (suget_obj	     ;the object expression
 	   suget_field	     ;the field keyword
@@ -281,6 +361,8 @@ with a formal arguments binding tuple given in $SFORMAL_ARGS.}# )
 
 ;;; source unsafe get field
 (defclass class_source_unsafe_get_field
+  :doc #{The internal $CLASS_SOURCE_UNSAFE_GET_FIELD is the abstract
+syntax of $UNSAFE_GET_FIELD. See $CLASS_SOURCE_GET_FIELD.}#
   :super class_source_get_field
   :fields (
 	   ))
@@ -289,6 +371,9 @@ with a formal arguments binding tuple given in $SFORMAL_ARGS.}# )
 
 ;; source put fields
 (defclass class_source_put_fields
+  :doc #{The internal $CLASS_SOURCE_UNSAFE_PUT_FIELDS is the abstract
+syntax of $PUT_FIELDS. $SUPUT_OBJ is the object expression,
+$SUPU_FIELDS is the sequence of $CLASS_SOURCE_FIELDASSIGN.}#
   :super class_source
   :fields (suput_obj	     ;the object expression
 	   suput_fields			;the sequence of field assignment
@@ -296,6 +381,8 @@ with a formal arguments binding tuple given in $SFORMAL_ARGS.}# )
 
 ;; source unsafe put fields
 (defclass class_source_unsafe_put_fields
+  :doc #{The internal $CLASS_SOURCE_UNSAFE_PUT_FIELDS is the abstract
+syntax of $UNSAFE_PUT_FIELDS. See $CLASS_SOURCE_PUT_FIELDS.}#
   :super class_source_put_fields
   :fields (
 	   ))
@@ -303,12 +390,18 @@ with a formal arguments binding tuple given in $SFORMAL_ARGS.}# )
 
 ;; a conditional (if, and, cond)
 (defclass class_source_if
+  :doc #{The internal $CLASS_SOURCE_IF is the abstract syntax of
+  conditionals like $IF $AND $COND. $SIF_TEST is the test, and
+  $SIF_THEN is the then part. See also $CLASS_SOURCE_IFELSE.}#
   :super class_source
   :fields (sif_test
 	   sif_then
 	   ))
 
 (defclass class_source_ifelse
+  :doc #{The internal $CLASS_SOURCE_IFELSE is the abstract syntax of
+conditionals with else part like some $IF $AND $COND. The $SIF_ELSE
+is the else part. See also $CLASS_SOURCE_IF.}#
   :super class_source_if
   :fields ( sif_else
 	    ))
@@ -317,6 +410,9 @@ with a formal arguments binding tuple given in $SFORMAL_ARGS.}# )
 ;;; since (OR a1 a2) is (IF a1 a1 a2) we need to normalize it to avoid evaluating twice a1
 ;;; so there is no normalized or... (only normalized if-s)
 (defclass class_source_or
+  :doc #{The internal $CLASS_SOURCE_OR is the abstract syntax of $OR
+conditionals. $SOR_DISCJ is the tuple of disjuncts. See also
+$CLASS_SOURCE_IF.}#
   :super class_source
   :fields (sor_disj			;tuple of disjuncts
 	   ))
@@ -324,6 +420,8 @@ with a formal arguments binding tuple given in $SFORMAL_ARGS.}# )
 
 ;; preprocessor conditional
 (defclass class_source_cppif
+  :doc #{The internal $CLASS_SOURCE_CPPIF is the abstract syntax of $CPPIF preprocessor conditionals. 
+$SIFP_COND is the preprocessor symbol. $SIFP_THEN is the then part. $SIFP_ELSE is the else part.}#
   :super class_source
   :fields (sifp_cond			;C preprocessor symbol or verbatim string to test
 	   sifp_then			;then clause
@@ -333,6 +431,10 @@ with a formal arguments binding tuple given in $SFORMAL_ARGS.}# )
 ;;;;;;;;;;;;;;;;
 ;; match 
 (defclass class_source_match
+  :doc #{The internal $CLASS_SOURCE_MATCH is the abtract syntax of
+$MATCH expressions.  $SMAT_MATCHEDX is the matched
+expression. $SMAT_CASES is the tuple of match-cases of
+$CLASS_SOURCE_CASEMATCH.}#
   :super class_source
   :fields (smat_matchedx		;matched expression
 	   smat_cases			;match case tuple
@@ -340,10 +442,13 @@ with a formal arguments binding tuple given in $SFORMAL_ARGS.}# )
 
 ;; match case
 (defclass class_source_casematch
+  :doc #{The internal $CLASS_SOURCE_CASEMATCH is the abstract syntax of match-cases. $SCAM_PATT is the pattern, $SCAM_BODY is the body tuple.}#
   :super class_source
   :fields (scam_patt			;pattern
 	   scam_body			;body
 	   ))
+
+(compile_warning "Should be documented below. the CLASS_SOURCE_CASEWHENMATCH is perhaps obsolete.")
 ;; match case with when
 (defclass class_source_casewhenmatch
   :super class_source_casematch
@@ -3875,7 +3980,7 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
 		   (lambda (e) (macroexpand_1 e env mexpander)))) )
     (instance class_source_return
 	      :loca_location loc
-	      :sreturn_body bodytup
+	      :sreturn_args bodytup
 	      )
     ))
 
