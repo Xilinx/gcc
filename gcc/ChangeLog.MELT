@@ -1,3 +1,21 @@
+2009-10-26  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-macro.melt: added class_source_argumented_operator.
+	The following classes have been refactored to inherit from it:
+	class_source_apply class_source_msend class_source_primitive
+	class_source_citeration class_source_cmatchexpr
+	class_source_funmatchexpr class_source_return, so they have their
+	field sapp_args msend_args sprim_args scmatx_args sfmatx_args
+	sreturn_args replaced by the sargop_args field.
+	* melt/warmelt-normal.melt: renamed fields likewise!
+
+	[regenerated several times, since we refactored classes!]
+	* melt/warmelt-macro-0.c: regenerated.
+	* melt/warmelt-outobj-0.c: regenerated.
+	* melt/warmelt-genobj-0.c: regenerated.
+	* melt/warmelt-normatch-0.c: regenerated.
+	* melt/warmelt-normal-0.c: regenerated.
+	* melt/warmelt-first-0.c: regenerated.
+
 2009-10-25  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-first.melt: added !=s primitive.
 	* melt/warmelt-macro.melt: added warning when a field is accessed

@@ -1088,7 +1088,7 @@
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
   (let ( (sloc (unsafe_get_field :loca_location recv)) 
 	 (soper (unsafe_get_field :sprim_oper recv))
-	 (sargs (unsafe_get_field :sprim_args recv)) 
+	 (sargs (unsafe_get_field :sargop_args recv)) 
 	 )
     (assert_msg "check soper" (is_a soper class_primitive))
     (multicall 
@@ -1268,7 +1268,7 @@
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
   (let ( (sloc (unsafe_get_field :loca_location recv)) 
 	 (scmat (unsafe_get_field :scmatx_cmatcher recv))
-	 (sargs (unsafe_get_field :scmatx_args recv)) 
+	 (sargs (unsafe_get_field :sargop_args recv)) 
 	 )
     (assert_msg "check scmat" (is_a scmat class_cmatcher))
     (multicall 
@@ -1401,7 +1401,7 @@
   (let ( (sloc (unsafe_get_field :loca_location recv)) 
 	 (sfmat (unsafe_get_field :sfmatx_fmatcher recv))
 	 (sfbind (unsafe_get_field :sfmatx_fmatbind recv))
-	 (sargs (unsafe_get_field :sfmatx_args recv)) 
+	 (sargs (unsafe_get_field :sargop_args recv)) 
 	 (nbind (make_list discr_list))
 	 )
     (assert_msg "check sfmat" (is_a sfmat class_funmatcher))
@@ -1472,7 +1472,7 @@
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
   (let ( (sloc (unsafe_get_field :loca_location recv)) 
 	 (sfun (unsafe_get_field :sapp_fun recv))
-	 (sargs (unsafe_get_field :sapp_args recv))
+	 (sargs (unsafe_get_field :sargop_args recv))
 	 (sfusymb (if (is_a sfun class_symbol) sfun '_fun_))
 	 )
     (multicall 
@@ -1518,7 +1518,7 @@
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
   (debug_msg msnd "normexp_msend msnd")
   (let ( (msrecv (unsafe_get_field :msend_recv msnd))
-	 (msargs (unsafe_get_field :msend_args msnd))
+	 (msargs (unsafe_get_field :sargop_args msnd))
 	 (selnam (unsafe_get_field :msend_selsymb msnd))
 	 (curproc (unsafe_get_field :nctx_curproc ncx))
 	 (sloc (unsafe_get_field :loca_location msnd))
@@ -1626,7 +1626,7 @@
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
   (let ( (sloc (unsafe_get_field :loca_location recv)) 
-	 (srets (unsafe_get_field :sreturn_args recv))
+	 (srets (unsafe_get_field :sargop_args recv))
 	 (:long nbrets (multiple_length srets))
 	 (csym (clone_symbol 'return_)) 
 	 ;; while the return effectively go out, it is preferable to give it a value type
@@ -3601,7 +3601,7 @@
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
   (let ( (sloc (unsafe_get_field :loca_location recv))
 	 (soper (unsafe_get_field :sciter_oper recv))
-	 (sargs (unsafe_get_field :sciter_args recv))
+	 (sargs (unsafe_get_field :sargop_args recv))
 	 (svbind (unsafe_get_field :sciter_varbind recv))
 	 (sbody (unsafe_get_field :sciter_body recv))
 	 (nbndtup (make_multiple discr_multiple (multiple_length svbind)))
@@ -5072,7 +5072,7 @@
 				      )
 			  :suget_field sysdata_cont_fresh_env
 			  )
-	       :sapp_args (make_tuple2 discr_multiple
+	       :sargop_args (make_tuple2 discr_multiple
 				       (instance class_source_parent_module_environment
 						 :loca_location psloc)
 				       modnam
