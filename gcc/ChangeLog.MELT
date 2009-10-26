@@ -1,5 +1,7 @@
 2009-10-26  Basile Starynkevitch  <basile@starynkevitch.net>
-	* melt/warmelt-macro.melt: added class_source_argumented_operator.
+	* melt/warmelt-macro.melt: parse_field_assignment warns when used
+	with a field synonym.
+	added class_source_argumented_operator.
 	The following classes have been refactored to inherit from it:
 	class_source_apply class_source_msend class_source_primitive
 	class_source_citeration class_source_cmatchexpr
