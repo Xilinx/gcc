@@ -1,4 +1,8 @@
 2009-10-25  Basile Starynkevitch  <basile@starynkevitch.net>
+	* doc/melt.texi: corrected stuff, adding more tutorial, much
+	more to write there...
+
+2009-10-25  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-macro.melt: adding documentation. Renamed sreturn_body as sreturn_args.
 	[regenerated, since we renamed a field!]
 	* melt/warmelt-macro-0.c: regenerated.

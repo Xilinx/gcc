@@ -21,7 +21,7 @@ A working knowledge of Scheme or Lisp is presupposed.
 See the @uref{http://gcc.gnu.org/wiki/MiddleEndLispTranslator,,MELT wiki page}
 
 @menu
-* MELT Prerequisites and Deficiencies::       Prerequisites and topics not yet covered in this MELT chapter.
+* MELT Prerequisites::       Prerequisites and topics not yet covered in this MELT chapter.
 * MELT overview::                             An overview of MELT.
 * Building the MELT branch::                  Configuration and building requirements and instructions for MELT.
 * MELT as a plugin::                          Building and using MELT as a plugin.
@@ -32,15 +32,45 @@ See the @uref{http://gcc.gnu.org/wiki/MiddleEndLispTranslator,,MELT wiki page}
 @end menu
 
 @c ----------------------------------------------------------------
-@c MELT Prerequisites and Deficiencies
+@c MELT Prerequisites 
 @c ----------------------------------------------------------------
 
-@node MELT Prerequisites and Deficiencies
-@section MELT Prerequisites and Deficiencies
+@node MELT Prerequisites
+@section MELT Prerequisites
 
-A working knowledge of Scheme or Lisp is presupposed.
+The reader is expected to have some working knowledge of some Lisp
+dialect (Common Lisp, Emacs Lisp, Guile, ...). The reader is also
+expected to be somehow familiar with the internal architecture of GCC
+(i.e. knowing what GCC @emph{gimple}-s and @emph{tree}-s are).
 
-This chapter is incomplete.
+MELT is different of other Lisps, because it is tightly suited to GCC
+internals. For that purpose, it has several peculiarities; MELT can:
+
+@itemize @bullet
+
+@item handle two kind of things.
+The MELT infrastructure can handle both MELT @emph{values} (closures,
+lists, objects, ...) and GCC @emph{stuff} (plain long integers,
+gimples, trees, ...), that it, datatypes appearing inside GCC. Both
+@emph{values} and @emph{stuff} are called MELT @emph{things}. Notice
+that @emph{stuff} is not handled polymorphically (due to a limitation
+of the GCC Garbage Collector).
+
+@item generate C code.
+MELT source code (either in @file{*.melt} files, or inside memory) is
+translated into C code suitable for GCC internals, in the style
+expected inside GCC. That generated C code is compiled into a MELT
+binary @emph{module}, which is dynamically loaded by the MELT
+infrastructure.
+
+@item provide linguistic devices.
+The MELT language has several @emph{linguistic devices} to generate C
+code suitable for GCC internals, in the style expected by GCC. So MELT
+code contains constructs to fit into GCC, and to define operators
+related to GCC coding style.
+
+@end itemize
+
 
 @c ----------------------------------------------------------------
 @c MELT Overview
@@ -55,18 +85,21 @@ is supposed that you use a powerful workstation (or laptop) with
 enough memory (at least 4Gigabytes of RAM is receommended on a 64 bits
 machine like x86-64), and that the MELT-enabled compilation will run a
 lot slower than a simple @code{gcc -O1} compilation (hopefully doing
-some useful stuff). Notice that a MELT compilation actually generates
-C code, compile it (using another GCC compilation process) to a
-dynamically loadable library, and load its into the MELT compilation
-process.
+some useful stuff). Notice that a MELT-enabled compilation usually
+generates C code, compile it (using another GCC compilation process)
+to a dynamically loadable library, and load its into the MELT-enabled
+GCC compilation process started by the user. In practice, the
+compilation of the generated C code (which is much bigger than the
+original MELT source) is the main bottleneck. Often, when using an
+existing MELT module, no C code has to be generated (it already
+exists).
 
 @c some sentences copied from the Wiki page. I (Basile) wrote all of them.
 
-The MELT branch contains several (related) stuff. Everything can be
-enabled or disabled at GCC configure time or at GCC run time:
+The MELT plugin or branch contains several (related) stuff. Everything
+can be enabled or disabled at GCC run time:
 
 @enumerate
-
 
 @item a Lisp dialect compiled into C code, with which one can code
 sophisticated or prototypical middle end passes.
@@ -104,12 +137,15 @@ library.
 containing all the useful GCC headers. This directory is only written by
 the installation procedure.
 
-@item a permanent generated C code directory which contains some essential files, in particular the C form of the MELT translated.
+@item a permanent generated C code directory 
+which contains some essential files, in particular the C form of the
+MELT translated.
  
 @end enumerate
 
-MELT can also be used as a plugin for GCC. It uses some of the plugin
-machinery, even inside the MELT branch.
+MELT can be used as a plugin for GCC (and can also be compiled as a
+separate GCC branch). It uses some of the plugin machinery, even
+inside the MELT branch.
 
 @c =======================================================================
 @node Building the MELT branch
@@ -140,9 +176,13 @@ MELT can be used as a plugin to a GCC trunk binary (i.e. future gcc
 4.5) build with plugin enabled.  You'll need both the source and build
 trees of your GCC to build MELT. 
 
-Detailed instructions about building and using MELT as a plugin are
-available at @uref{http://gcc.gnu.org/wiki/MELT%20tutorial,,MELT wiki
-tutorial page}.
+Detailed instructions about building MELT as a plugin are available at
+@uref{http://gcc.gnu.org/wiki/MELT%20tutorial,,MELT wiki tutorial
+page}. Of special importance is the installation of all headers
+required by MELT, i.e. included with @file{run-melt.h}. Also, a
+@file{*compile-melt-script*} shell script file should be installed to
+compile C files generated by MELT. both a default MELT source
+directory and default MELT module directory should be installed.
 
 @c =======================================================================
 @node Invoking MELT
@@ -152,17 +192,18 @@ tutorial page}.
 Without any MELT specific program flags, the MELT variant of gcc
 behave as the trunk. So to get or use MELT features, you need to pass
 some special flags. Most of these flags are starting with
-@code{-fmelt}. They for the middle-end of GCC so are common for
-every source language (ie @code{gcc}, @code{g++} @dots{} commands) and
+@code{-fmelt} for the MELT branch or with @code{-fplugin-melt-arg} for
+the plugin. They for the middle-end of GCC so are common for every
+source language (ie @code{gcc}, @code{g++} @dots{} commands) and
 target.
 
 MELT is usually invoked while compiling a (C, C++, @dots{}) source
-file but may occasionnally be invoked without compiling any source
-input to perform tasks which are not related to a particular GCC input
-source file. In practice, you should pass an empty C file to
-@code{gcc} for that purpose. In particular, the translation of a MELT
-file @code{foo.melt} into C code @code{foo.c} is done with a special
-invocation like @code{gcc -fmelt=translatefile -fmelt-arg=foo.melt
+file but may occasionnally be invoked with an empty C input to perform
+tasks which are not related to a particular GCC input source file. In
+practice, you should pass an empty C file to @code{gcc} for that
+purpose. In particular, the translation of a MELT file @code{foo.melt}
+into C code @code{foo.c} is done with a special invocation like
+@code{gcc -fmelt=translatefile -fmelt-arg=foo.melt
 -fmelt-secondarg=foo.c} (possibly with other options like some
 appropriate @code{-fmelt-init=}). It is possible but deprecated to
 invoke with @code{-fmelt=compilefile} instead of
@@ -170,12 +211,16 @@ invoke with @code{-fmelt=compilefile} instead of
 @emph{is not} a GCC front-end, like e.g. @code{g++} is a C++ front-end
 of GCC.
 
-The table below lists all MELT specific options, in alphabetical order.
+The table below lists all MELT specific options, in alphabetical
+order. We list both MELT branch options like @code{-fmelt-arg=} and
+MELT plugin option like @code{-fplugin-arg-melt-arg=}
 
 @table @gcctabopt
 @item -fmelt=
-@gccoptlist{-fmelt=}
+@gccoptlist{-fplugin-arg-melt-mode=}
 @opindex fmelt
+@opindex fplugin-arg-melt-mode
+
 This flag (called the MELT mode flag) is required for every MELT
 enabled compilation. If it is not given, no MELT specific processing
 is done.  If given, this gives the mode to be used before any
@@ -189,14 +234,15 @@ lisp source file @code{*.melt} into C code @code{*.c} is done this
 way.
 
 @item -fmelt-arg=
-@gccoptlist{-fmelt-arg=}
+@gccoptlist{-fplugin-arg-melt-arg=}
 @opindex fmelt-arg=
 This gives the first argument string to MELT. It is incompatible with
 the @code{-fmelt-arglist=} option.
 
 @item -fmelt-arglist=
-@gccoptlist{-fmelt-arglist=}
+@gccoptlist{-fplugin-arg-melt-arglist=}
 @opindex fmelt-arglist=
+@opindex fplugin-arg-melt-arglist=
 This gives the first argument list of strings to MELT. It is
 incompatible with the @code{-fmelt-arg=} option. The string program
 argument is split into a list of strings using the comma
@@ -207,8 +253,9 @@ string subargument containing a comma.
 
 
 @item -fmelt-compile-script=
-@gccoptlist{-fmelt-compile-script=}
+@gccoptlist{-fplugin-arg-melt-compile-script=}
 @opindex fmelt-compile-script=
+@opindex fplugin-arg-melt-compile-script=
 This sets the compile script (default is @code{melt-compile-script}
 somewhere inside GCC files) used to compile MELT generated C code into
 dynamically loaded stuff. The script is usually invoked by GCC with
@@ -220,43 +267,49 @@ initialization routine), so it is recommended to avoid compiling these
 generated files with @code{-O3}.
 
 @item -fmelt-debug
-@gccoptlist{-fmelt-debug}
+@gccoptlist{-fplugin-arg-melt-debug}
 @opindex fmelt-debug
+@opindex fplugin-arg-melt-debug
 This flag has no argument and asks for lot of debugging output. It is
-only useful to debug MELT and is unrelated to the @code{-g} flag
+only useful to debug MELT code and is unrelated to the @code{-g} flag
 asking GCC to output debug information.
 
 @item -fmelt-debugskip=
-@gccoptlist{-fmelt-debugskip=}
+@gccoptlist{-fplugin-arg-melt-debugskip=}
 @opindex fmelt-debugskip=
+@opindex fplugin-arg-melt-debugskip=
 This flag (only useful with @code{-fmelt-debug}) has an integer
 argument. When @code{-fmelt-debug} is given with
 @code{-fmelt-debugskip=1000} the first thousand debug messages are
 skipped, so are not printed.
 
 @item -fmelt-source-path=
-@gccoptlist{-fmelt-source-path=}
+@gccoptlist{-fplugin-arg-melt-source-path=}
 @opindex fmelt-source-path=
+@opindex fplugin-arg-melt-source-path=
 This flag sets the path (colon separated list of directories) for
 sources (i.e. @file{*.melt} and @file{*.c}). Otherwise use the
 @code{GCCMELT_SOURCE_PATH} environment variable.
 
 @item -fmelt-module-path=
-@gccoptlist{-fmelt-module-path=}
+@gccoptlist{-fplugin-arg-melt-module-path=}
 @opindex fmelt-module-path=
+@opindex fplugin-arg-melt-module-path=
 This flag sets the path (colon separated list of directories) for
 MELT binary modules (i.e. @file{*.so}). Otherwise use the
 @code{GCCMELT_MODULE_PATH} environment variable.
 
 @item -fmelt-gdbmstate=
-@gccoptlist{-fmelt-gdbmstate=}
+@gccoptlist{-fplugin-arg-melt-gdbmstate=}
 @opindex fmelt-gdbmstate=
+@opindex fplugin-arg-melt-gdbmstate=
 This flag sets the GDBM indexed file containing global state. It
 should always be specified when needed, because there is no default.
 
 @item -fmelt-init=
-@gccoptlist{-fmelt-init=}
+@gccoptlist{-fplugin-arg-melt-init=}
 @opindex fmelt-init=
+@opindex fplugin-arg-melt-init=
 This flag sets the initial MELT modules. They are separated by
 semi-colons or (on Unix only) colons. So @code{-fmelt-init=foo:bar}
 or @code{'-fmelt-init=foo;bar'} (quotes are useful for the shell
@@ -280,13 +333,14 @@ default value of this flag is
 @code{-fmelt-init=@@melt-default-modules}.
 
 @item -fmelt-tempdir=
-@gccoptlist{-fmelt-tempdir=}
+@gccoptlist{-fplugin-arg-melt-tempdir=}
 @opindex fmelt-tempdir=
+@opindex fplugin-arg-melt-melt-tempdir=
 @end table
 This flags sets the temporary MELT directory. If specified it is not
 cleaned. If it does not exist, it is mkdir-ed and cleaned. Avoid
 setting it to a non-empty directory which may contain files named like
-MELT modules.
+MELT modules (such as @file{warmelt-*.so} etc.).
 
 
 
@@ -296,6 +350,9 @@ MELT modules.
 @section Tutorial about MELT
 @cindex Tutorial about MELT
 
+@c should tell how to run the hello world MELT program
+
+@c should explain most MELT constructs
 
 As in all Lisps, parenthesis are important, so @code{a} and @code{(a)}
 do not mean the same thing. The first stuff after an opening
