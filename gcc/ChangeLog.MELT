@@ -1,4 +1,9 @@
 2009-10-25  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.melt: added !=s primitive.
+	* melt/warmelt-macro.melt: added warning when a field is accessed
+	by a synonym keyword.
+
+2009-10-25  Basile Starynkevitch  <basile@starynkevitch.net>
 	* doc/melt.texi: corrected stuff, adding more tutorial, much
 	more to write there...
 

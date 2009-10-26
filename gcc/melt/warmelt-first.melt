@@ -1281,6 +1281,9 @@ limited by a small length $PREFLEN.}#
 (defprimitive ==s (s1 s2) :long
   :doc #{Test that $S1 and $S2 are both string values and are equal.}#
   #{melt_string_same((melt_ptr_t)($s1), (melt_ptr_t)($s2))}#)
+(defprimitive !=s (s1 s2) :long
+  :doc #{Test that $S1 and $S2 are not both string equal values.}#
+  #{!melt_string_same((melt_ptr_t)($s1), (melt_ptr_t)($s2))}#)
 ;;; make a string
 (defprimitive make_string (dis str) :value
   :doc #{Make a new string of discriminant $DIS from string value $STR.}#
@@ -4960,6 +4963,7 @@ $FILENAM and $LINENO}#
  <i
  ==
  ==i
+ !=s
  ==s
  >=i
  >i

@@ -2461,8 +2461,17 @@ $LAMBDA macros. A function defined by $DEFUN has to be exported with $EXPORT_VAL
 		    ( (is_a fldbind class_value_binding)
 		      (let ( (vfld (unsafe_get_field :vbind_value fldbind)) )
 			(if (is_a vfld class_field)
-			    vfld)) )
-		    )) )
+			    (let ( (vfldnam  (unsafe_get_field :named_name vfld))
+				   (kwnam (unsafe_get_field :named_name fldkw)) 
+				   )
+			      (if (!=s vfldnam kwnam)
+				  (progn
+				    ;; this happen when a field is used by its synonym
+				    (warning_strv loc "obsolete use of synonym field" kwnam)
+				    (inform_strv loc "better use real field name" vfldnam)))
+			      vfld)) ))
+		    )) 
+	     )
 	(if (is_a fld class_field)
 	    (box_put fldbox fld)
 	  (error_strv loc "invalid field name in field assignment"_ 
