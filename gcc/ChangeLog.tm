@@ -1,3 +1,18 @@
+2009-10-27  Aldy Hernandez  <aldyh@redhat.com>
+
+	* trans-mem.c (requires_barrier): Handle thread local memory.
+	(lower_sequence_tm): Fix whitespace.
+	(examine_assign_tm): Pass 2nd argument to requires_barrier.
+	(expand_assign_tm): Same.
+	(expand_call_tm): Same.
+	(execute_tm_mark): Handle log.
+	(tm_log_add): New.
+	(tm_log_hash): New.
+	(tm_log_eq): New.
+	(tm_log_free): New.
+	(tm_log_init): New.
+	(tm_log_dump): New.
+
 2009-10-22  Richard Henderson  <rth@redhat.com>
 
 	* gimple-pretty-print.c (dump_gimple_tm_atomic_subcode): Merge into...

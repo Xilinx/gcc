@@ -522,6 +522,178 @@ struct gimple_opt_pass pass_diagnose_tm_blocks =
   }
 };
 
+/* Instead of instrumenting thread private memory, we save the
+   addresses in a log which we later use to save/restore the addresses
+   upon transaction start/restart.
+
+   The log is keyed by address, where each element contains individual
+   statements among different code paths that perform the store.
+
+   This log is later used to generate either plain save/restore of the
+   addresses upon transaction start/restart, or calls to the ITM_L*
+   logging functions.
+
+   So for something like:
+
+       struct large { int x[1000]; };
+       struct large lala = { 0 };
+       __tm_atomic {
+         lala.x[i] = 123;
+	 ...
+       }
+
+   We can either save/restore:
+
+       lala = { 0 };
+       trxn = _ITM_startTransaction ();
+       if (trxn & a_saveLiveVariables)
+         tmp_lala1 = lala.x[i];
+       else if (a & a_restoreLiveVariables)
+         lala.x[i] = tmp_lala1;
+
+   or use the logging functions:
+
+       lala = { 0 };
+       trxn = _ITM_startTransaction ();
+       _ITM_LU4 (&lala.x[i]);
+      
+   Obviously, if we use _ITM_L* to log, we prefer to call _ITM_L* as
+   far up the dominator tree to shadow all of the writes to a given
+   location (thus reducing the total number of logging calls), but not
+   so high as to be called on a path that does not perform a
+   write.  */
+
+/* One individual log entry.  We may have multiple statements for the
+   same location if neither dominate each other (on different
+   execution paths).  */
+typedef struct tm_log_entry
+{
+  /* Address to save.  */
+  tree addr;
+  /* Dominating statements the store occurs in.  */
+  gimple_vec stmts;
+} *tm_log_entry_t;
+
+/* The actual log.  */
+static htab_t tm_log;
+
+/* Htab support.  Return hash value for a `tm_log_entry'.  */
+static hashval_t
+tm_log_hash (const void *p)
+{
+  const struct tm_log_entry *log = (const struct tm_log_entry *) p;
+  return iterative_hash_expr (log->addr, 0);
+}
+
+/* Htab support.  Return true if two log entries are the same.  */
+static int
+tm_log_eq (const void *p1, const void *p2)
+{
+  const struct tm_log_entry *log1 = (const struct tm_log_entry *) p1;
+  const struct tm_log_entry *log2 = (const struct tm_log_entry *) p2;
+  return operand_equal_p (log1->addr, log2->addr, 0);
+}
+
+/* Htab support.  Free one tm_log_entry.  */
+static void
+tm_log_free (void *p)
+{
+  struct tm_log_entry *lp = (struct tm_log_entry *) p;
+  VEC_free (gimple, heap, lp->stmts);
+  free (lp);
+}
+
+/* Htab support.  Initialize log.  */
+static void
+tm_log_init (void)
+{
+  tm_log = htab_create (10, tm_log_hash, tm_log_eq, tm_log_free);
+}
+
+/* Given an address ADDR in STMT, find it in the memory log or add it,
+   making sure to keep only the addresses highest in the dominator
+   tree.
+
+   If we find the address in the log, make sure it's either the same
+   address, or an equivalent one that dominates ADDR.  Return it.
+
+   If we find the address, but neither ADDR dominates the found
+   address, nor the found one dominates ADDR, we're on different
+   execution paths.  Add it.  */
+static void
+tm_log_add (tree addr, gimple stmt)
+{
+  void **slot;
+  struct tm_log_entry l, *lp;
+
+  l.addr = addr;
+  slot = htab_find_slot (tm_log, &l, INSERT);
+  if (!*slot)
+    {
+      lp = XNEW (struct tm_log_entry);
+      lp->addr = addr;
+      lp->stmts = VEC_alloc (gimple, heap, 5);
+      VEC_quick_push (gimple, lp->stmts, stmt);
+      *slot = lp;
+    }
+  else
+    {
+      size_t i;
+      gimple oldstmt;
+
+      lp = (struct tm_log_entry *) *slot;
+      for (i = 0; VEC_iterate (gimple, lp->stmts, i, oldstmt); ++i)
+	{
+	  if (stmt == oldstmt)
+	    return;
+	  /* We already have a store to the same address, higher up the
+	     dominator tree.  Nothing to do.  */
+	  if (dominated_by_p (CDI_DOMINATORS,
+			      gimple_bb (stmt), gimple_bb (oldstmt)))
+	    return;
+	  /* We should be processing blocks in dominator tree order.  */
+	  gcc_assert (!dominated_by_p (CDI_DOMINATORS,
+				       gimple_bb (oldstmt), gimple_bb (stmt)));
+	}
+      /* Store is on a different code path.  */
+      VEC_safe_push (gimple, heap, lp->stmts, stmt);
+    }
+}
+
+/* Dump the local memory log.  */
+static void
+tm_log_dump (void)
+{
+  htab_iterator hi;
+  struct tm_log_entry *lp;
+  bool first = true;
+
+  if (!dump_file)
+    return;
+
+  FOR_EACH_HTAB_ELEMENT (tm_log, lp, tm_log_entry_t, hi)
+    {
+      size_t i;
+      gimple stmt;
+
+      if (first)
+	{
+	  fprintf (dump_file, "TM log\n------\n");
+	  first = false;
+	}
+      fprintf (dump_file, "Address: ");
+      print_generic_expr (dump_file, lp->addr, 0);
+      fprintf (dump_file, "\n");
+      for (i = 0; VEC_iterate (gimple, lp->stmts, i, stmt); ++i)
+	{
+	  fprintf (dump_file, "BB=%d\t", gimple_bb (stmt)->index);
+	  print_gimple_stmt (dump_file, stmt, 0, 0);
+	}
+    }
+  if (!first)
+    fprintf (dump_file, "--------------\n\n\n");
+}
+
 static tree lower_sequence_tm (gimple_stmt_iterator *, bool *,
 			       struct walk_stmt_info *);
 static tree lower_sequence_no_tm (gimple_stmt_iterator *, bool *,
@@ -531,8 +703,9 @@ static tree lower_sequence_no_tm (gimple_stmt_iterator *, bool *,
    or write barrier.  */
 
 static bool
-requires_barrier (tree x)
+requires_barrier (tree x, gimple stmt)
 {
+  tree orig = x;
   while (handled_component_p (x))
     x = TREE_OPERAND (x, 0);
 
@@ -559,11 +732,28 @@ requires_barrier (tree x)
     case VAR_DECL:
       if (is_global_var (x))
 	return !TREE_READONLY (x);
-      /* ??? For local memory that doesn't escape, we can either save the
-	 value at the beginning of the transaction and restore on restart,
-	 or call a tm function to dynamically save and restore on restart.
-	 We don't actually need a full barrier here.  */
-      return needs_to_live_in_memory (x);
+      if (/* FIXME: This condition should actually go below in the
+	     tm_log_add() call, however is_call_clobbered() depends on
+	     aliasing info which is not available during
+	     gimplification.  Since requires_barrier() gets called
+	     during lower_sequence_tm/gimplification, leave the call
+	     to needs_to_live_in_memory until we eliminate
+	     lower_sequence_tm altogether.  */
+	  needs_to_live_in_memory (x)
+	  /* X escapes.  */
+	  || is_call_clobbered (x))
+	return true;
+      else
+	{
+	  /* For local memory that doesn't escape (aka thread private
+	     memory), we can either save the value at the beginning of
+	     the transaction and restore on restart, or call a tm
+	     function to dynamically save and restore on restart
+	     (ITM_L*).  */
+	  if (stmt)
+	    tm_log_add (orig, stmt);
+	  return false;
+	}
 
     default:
       return false;
@@ -578,9 +768,9 @@ examine_assign_tm (unsigned *state, gimple_stmt_iterator *gsi)
 {
   gimple stmt = gsi_stmt (*gsi);
 
-  if (requires_barrier (gimple_assign_rhs1 (stmt)))
+  if (requires_barrier (gimple_assign_rhs1 (stmt), NULL))
     *state |= GTMA_HAVE_LOAD;
-  if (requires_barrier (gimple_assign_lhs (stmt)))
+  if (requires_barrier (gimple_assign_lhs (stmt), NULL))
     *state |= GTMA_HAVE_STORE;
 }
 
@@ -697,7 +887,7 @@ lower_sequence_tm (gimple_stmt_iterator *gsi, bool *handled_ops_p,
     case GIMPLE_ASSIGN:
       /* Only memory reads/writes need to be instrumented.  */
       if (gimple_assign_single_p (stmt))
-      examine_assign_tm (state, gsi);
+	examine_assign_tm (state, gsi);
       break;
 
     case GIMPLE_CALL:
@@ -1126,8 +1316,8 @@ expand_assign_tm (struct tm_region *region, gimple_stmt_iterator *gsi)
   gimple stmt = gsi_stmt (*gsi);
   tree lhs = gimple_assign_lhs (stmt);
   tree rhs = gimple_assign_rhs1 (stmt);
-  bool store_p = requires_barrier (lhs);
-  bool load_p = requires_barrier (rhs);
+  bool store_p = requires_barrier (lhs, stmt);
+  bool load_p = requires_barrier (rhs, NULL);
   gimple gcall;
 
   if (!load_p && !store_p)
@@ -1210,7 +1400,7 @@ expand_call_tm (struct tm_region *region,
       return true;
     }
 
-  if (lhs && requires_barrier (lhs))
+  if (lhs && requires_barrier (lhs, stmt))
     tm_atomic_subcode_ior (region, GTMA_HAVE_STORE);
 
   return is_tm_ending_fndecl (fn_decl);
@@ -1272,42 +1462,47 @@ execute_tm_mark (void)
   queue = VEC_alloc (basic_block, heap, 10);
 
   for (region = all_tm_regions; region ; region = region->next)
-    if (region->exit_blocks)
-      {
-	unsigned int subcode
-	  = gimple_tm_atomic_subcode (region->tm_atomic_stmt);
+    {
+      tm_log_init ();
+      if (region->exit_blocks)
+	{
+	  unsigned int subcode
+	    = gimple_tm_atomic_subcode (region->tm_atomic_stmt);
 
-	/* Collect a new SUBCODE set, now that optimizations are done...  */
-	gimple_tm_atomic_set_subcode (region->tm_atomic_stmt, 0);
-	/* ...but keep the GTMA_DOES_GO_IRREVOCABLE bit, since we can
-	   almost be sure never to insert anything during optimization that
-	   will cause certain irrevocability to be reversed.  */
-	if (subcode & GTMA_DOES_GO_IRREVOCABLE)
-	  gimple_tm_atomic_set_subcode (region->tm_atomic_stmt,
-					GTMA_DOES_GO_IRREVOCABLE |
-					GTMA_MAY_ENTER_IRREVOCABLE);
+	  /* Collect a new SUBCODE set, now that optimizations are done...  */
+	  gimple_tm_atomic_set_subcode (region->tm_atomic_stmt, 0);
+	  /* ...but keep the GTMA_DOES_GO_IRREVOCABLE bit, since we can
+	     almost be sure never to insert anything during optimization that
+	     will cause certain irrevocability to be reversed.  */
+	  if (subcode & GTMA_DOES_GO_IRREVOCABLE)
+	    gimple_tm_atomic_set_subcode (region->tm_atomic_stmt,
+					  GTMA_DOES_GO_IRREVOCABLE |
+					  GTMA_MAY_ENTER_IRREVOCABLE);
 
-	VEC_quick_push (basic_block, queue, region->entry_block);
-	do
-	  {
-	    bb = VEC_pop (basic_block, queue);
+	  VEC_quick_push (basic_block, queue, region->entry_block);
+	  do
+	    {
+	      bb = VEC_pop (basic_block, queue);
 
-	    if (expand_block_tm (region, bb))
-	      continue;
+	      if (expand_block_tm (region, bb))
+		continue;
 
-	    if (!bitmap_bit_p (region->exit_blocks, bb->index))
-	      for (bb = first_dom_son (CDI_DOMINATORS, bb);
-		   bb;
-		   bb = next_dom_son (CDI_DOMINATORS, bb))
-		VEC_safe_push (basic_block, heap, queue, bb);
-	  }
-	while (!VEC_empty (basic_block, queue));
-      }
-    else
-      {
-	FOR_EACH_BB (bb)
-	  expand_block_tm (region, bb);
-      }
+	      if (!bitmap_bit_p (region->exit_blocks, bb->index))
+		for (bb = first_dom_son (CDI_DOMINATORS, bb);
+		     bb;
+		     bb = next_dom_son (CDI_DOMINATORS, bb))
+		  VEC_safe_push (basic_block, heap, queue, bb);
+	    }
+	  while (!VEC_empty (basic_block, queue));
+	}
+      else
+	{
+	  FOR_EACH_BB (bb)
+	    expand_block_tm (region, bb);
+	}
+      tm_log_dump ();
+      htab_delete (tm_log);
+    }
 
   VEC_free (basic_block, heap, queue);
 
