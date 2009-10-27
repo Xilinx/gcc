@@ -452,7 +452,7 @@ $CLASS_SOURCE_CASEMATCH.}#
 	   scam_body			;body
 	   ))
 
-(compile_warning "Should be documented below. the CLASS_SOURCE_CASEWHENMATCH is perhaps obsolete.")
+(compile_warning "the CLASS_SOURCE_CASEWHENMATCH is perhaps obsolete.")
 ;; match case with when
 (defclass class_source_casewhenmatch
   :super class_source_casematch
@@ -461,7 +461,11 @@ $CLASS_SOURCE_CASEMATCH.}#
 ;;;;;;;;;;;;;;;;
 
 ;;; letbinding source
-(defclass class_source_letbinding
+(defclass class_source_let_binding
+  :doc #{The internal $CLASS_SOURCE_LET_BINDING is abstract sytax for
+  let binding in the source. The $SLETB_TYPE gives the type of the
+  binding, the $SLETB_BINDER gives the binder, and the $SLETB_EXPR
+  gives the bound expression.}#
   :super class_source
   :fields (sletb_type			;the type of the binding
 	   sletb_binder			;the binder (variable)
@@ -470,6 +474,10 @@ $CLASS_SOURCE_CASEMATCH.}#
 
 ;; let source
 (defclass class_source_let
+  :doc #{The internal $CLASS_SOURCE_LET is for abstract syntax of
+$LET. The $SLET_BINDINGS field is the tuple of bindings as instances
+of $CLASS_SOURCE_LET_BINDING and the $SLET_BODY field is the tuple of
+body.}#
   :super class_source
   :fields (slet_bindings		;the tuple of letbinding-s
 	   slet_body			;the body tuple 
@@ -477,6 +485,10 @@ $CLASS_SOURCE_CASEMATCH.}#
 
 ;; lambda
 (defclass class_source_lambda
+  :doc #{The internal $CLASS_SOURCE_LAMBDA is for abstract syntax of
+  $LAMBDA. The $SLAM_ARGBIND is the tuple of formals
+  $CLASS_FORMAL_BINDING and the $SLAM_BODY is the tuple of body
+  expressions.}#
   :super class_source 
   :fields (slam_argbind			;tuple of argument bindings
 	   slam_body			;tuple for body
@@ -485,6 +497,10 @@ $CLASS_SOURCE_CASEMATCH.}#
 
 ;; multicall
 (defclass class_source_multicall
+  :doc #{The internal $CLASS_SOURCE_MULTICALL is for abstract syntax
+of $MULTICALL. The tuple of formal bindings of result variables is
+$SMULC_RESBIND. The called abstract syntac is $SMULC_CALL, and the
+body is $SMULC_BODY.}#
   :super class_source
   :fields (smulc_resbind		;tuple of argument bindings for multiple results
 	   smulc_call			;called stuff
@@ -493,22 +509,30 @@ $CLASS_SOURCE_CASEMATCH.}#
 
 ;;; forever & exit share a common label
 (defclass class_source_labelled
+  :doc #{The internal $CLASS_SOURCE_LABELLED is the super-class of
+abstract syntax dealing with labels like $FOREVER and $EXIT. The
+field $SLABEL_BIND gives the label binding.}#
   :super class_source
   :fields (slabel_bind			;the label binding
 	   ))
 
 ;; forever
 (defclass class_source_forever
+  :doc #{The internal $CLASS_SOURCE_FOREVER is for abstract syntax of
+  $FOREVER loops. The field $SFRV_BODY is the body sequence.}#
   :super class_source_labelled
   :fields (sfrv_body			;tuple for body
 	   ))
 
 ;; exit
 (defclass class_source_exit
+  :doc #{The internal $CLASS_SOURCE_EXIT is for abstract syntax of
+$EXIT loops. The field $SEXI_BODY is the body sequence.}#
   :super class_source_labelled
   :fields ( sexi_body			;tuple for body
 	    ))
 
+(compile_warning "should document below.")
 ;; compile time warning
 (defclass class_source_compilewarning
   :super class_source
@@ -3817,7 +3841,7 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
 	 )
        ))
     (let ( (letb
-	    (instance class_source_letbinding
+	    (instance class_source_let_binding
 		      :loca_location loc
 		      :sletb_type ctyp
 		      :sletb_binder var
@@ -3854,7 +3878,7 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
     (multiple_every
      bindtup
      (lambda (slb)
-       (assert_msg "mexp.let. check slb" (is_a slb class_source_letbinding))
+       (assert_msg "mexp.let. check slb" (is_a slb class_source_let_binding))
        (let (
 	     (sx (unsafe_get_field :sletb_expr slb))
 	     (lb (instance class_let_binding
@@ -4680,7 +4704,7 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
  class_source_labelled
  class_source_lambda
  class_source_let
- class_source_letbinding
+ class_source_let_binding
  class_source_make_instance
  class_source_match
  class_source_msend
@@ -4726,19 +4750,7 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
  patternexpand_pairlist_as_tuple
  )			  ;end of functions for source representations
 
-;;; sapp_args used to be a field of class_source_apply
-;(export_synonym sapp_args sargop_args)
-;;; msend_args used to be a field of class_source_msend
-;(export_synonym msend_args sargop_args)
-;;; sprim_args used to be a field of class_source_primitive
-;(export_synonym sprim_args sargop_args)
-;;; sciter_args used to be a field of class_source_citeration
-;(export_synonym sciter_args sargop_args)
-;;; scmatx_args used to be a field of class_source_cmatchexpr
-;(export_synonym scmatx_args sargop_args)
-;;;; sfmatx_args used to be a field of class_source_funmatchexpr
-;(export_synonym sfmatx_args sargop_args)
-;;;; sreturn_args used to be a field of class_source_return
-;(export_synonym sreturn_args sargop_args)
 
+;;; class_source_letbinding is renamed class_source_let_binding
+(export_synonym class_source_letbinding class_source_let_binding)
 ;; eof warmelt-macro.melt

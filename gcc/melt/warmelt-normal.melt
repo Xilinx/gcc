@@ -2089,7 +2089,7 @@
     (multiple_every 
      sbindings
      (lambda (sb :long sbix)
-       (assert_msg "check sb" (is_a sb class_source_letbinding))
+       (assert_msg "check sb" (is_a sb class_source_let_binding))
        (let ( (sbloc (unsafe_get_field :loca_location sb))
 	      (sbtyp (unsafe_get_field :sletb_type sb))
 	      (sbinder (unsafe_get_field :sletb_binder sb))

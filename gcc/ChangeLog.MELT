@@ -1,3 +1,8 @@
+2009-10-27  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-macro.melt: documented more.
+	class_source_letbinding renamed as class_source_let_binding.
+	* melt/warmelt-normal.melt: same renaming.
+
 2009-10-26  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-macro.melt: parse_field_assignment warns when used
 	with a field synonym.
