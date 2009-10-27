@@ -110,8 +110,9 @@ typedef enum
   FMT_NONE, FMT_UNKNOWN, FMT_SIGNED_INT, FMT_ZERO, FMT_POSINT, FMT_PERIOD,
   FMT_COMMA, FMT_COLON, FMT_SLASH, FMT_DOLLAR, FMT_LPAREN,
   FMT_RPAREN, FMT_X, FMT_SIGN, FMT_BLANK, FMT_CHAR, FMT_P, FMT_IBOZ, FMT_F,
-  FMT_E, FMT_EXT, FMT_G, FMT_L, FMT_A, FMT_D, FMT_H, FMT_END, FMT_ERROR, FMT_DC,
-  FMT_DP, FMT_T, FMT_TR, FMT_TL, FMT_STAR
+  FMT_E, FMT_EN, FMT_ES, FMT_G, FMT_L, FMT_A, FMT_D, FMT_H, FMT_END,
+  FMT_ERROR, FMT_DC, FMT_DP, FMT_T, FMT_TR, FMT_TL, FMT_STAR, FMT_RC,
+  FMT_RD, FMT_RN, FMT_RP, FMT_RU, FMT_RZ
 }
 format_token;
 
@@ -121,7 +122,6 @@ format_token;
 static gfc_char_t *format_string;
 static int format_string_pos;
 static int format_length, use_last_char;
-static int starting_format_length;
 static char error_element;
 static locus format_locus;
 
@@ -417,8 +417,10 @@ format_lex (void)
 
     case 'E':
       c = next_char_not_space (&error);
-      if (c == 'N' || c == 'S')
-	token = FMT_EXT;
+      if (c == 'N' )
+	token = FMT_EN;
+      else if (c == 'S')
+        token = FMT_ES;
       else
 	{
 	  token = FMT_E;
@@ -466,6 +468,35 @@ format_lex (void)
 	}
       break;
 
+    case 'R':
+      c = next_char_not_space (&error);
+      switch (c)
+	{
+	case 'C':
+	  token = FMT_RC;
+	  break;
+	case 'D':
+	  token = FMT_RD;
+	  break;
+	case 'N':
+	  token = FMT_RN;
+	  break;
+	case 'P':
+	  token = FMT_RP;
+	  break;
+	case 'U':
+	  token = FMT_RU;
+	  break;
+	case 'Z':
+	  token = FMT_RZ;
+	  break;
+	default:
+	  token = FMT_UNKNOWN;
+	  unget_char ();
+	  break;
+	}
+      break;
+
     case '\0':
       token = FMT_END;
       break;
@@ -485,6 +516,26 @@ format_lex (void)
   return token;
 }
 
+
+static const char *
+token_to_string (format_token t)
+{
+  switch (t)
+    {
+      case FMT_D:
+	return "D";
+      case FMT_G:
+	return "G";
+      case FMT_E:
+	return "E";
+      case FMT_EN:
+	return "EN";
+      case FMT_ES:
+	return "ES";
+      default:
+        return "";
+    }
+}
 
 /* Check a format statement.  The format string, either from a FORMAT
    statement or a constant in an I/O statement has already been parsed
@@ -592,6 +643,8 @@ format_item_1:
 
     case FMT_X:
       /* X requires a prior number if we're being pedantic.  */
+      if (mode != MODE_FORMAT)
+	format_locus.nextc += format_string_pos;
       if (gfc_notify_std (GFC_STD_GNU, "Extension: X descriptor "
 			  "requires leading space count at %L", &format_locus)
 	  == FAILURE)
@@ -602,6 +655,12 @@ format_item_1:
     case FMT_BLANK:
     case FMT_DP:
     case FMT_DC:
+    case FMT_RC:
+    case FMT_RD:
+    case FMT_RN:
+    case FMT_RP:
+    case FMT_RU:
+    case FMT_RZ:
       goto between_desc;
 
     case FMT_CHAR:
@@ -634,7 +693,8 @@ format_item_1:
     case FMT_IBOZ:
     case FMT_F:
     case FMT_E:
-    case FMT_EXT:
+    case FMT_EN:
+    case FMT_ES:
     case FMT_G:
     case FMT_L:
     case FMT_A:
@@ -664,20 +724,35 @@ data_desc:
       break;
 
     case FMT_P:
-      if (pedantic)
+      /* No comma after P allowed only for F, E, EN, ES, D, or G.
+	 10.1.1 (1).  */
+      t = format_lex ();
+      if (t == FMT_ERROR)
+	goto fail;
+      if (gfc_option.allow_std < GFC_STD_F2003 && t != FMT_COMMA
+	  && t != FMT_F && t != FMT_E && t != FMT_EN && t != FMT_ES
+	  && t != FMT_D && t != FMT_G && t != FMT_RPAREN && t != FMT_SLASH)
 	{
-	  t = format_lex ();
-	  if (t == FMT_ERROR)
-	    goto fail;
+	  error = _("Comma required after P descriptor");
+	  goto syntax;
+	}
+      if (t != FMT_COMMA)
+	{
 	  if (t == FMT_POSINT)
 	    {
-	      error = _("Repeat count cannot follow P descriptor");
+	      t = format_lex ();
+	      if (t == FMT_ERROR)
+		goto fail;
+	    }
+          if (t != FMT_F && t != FMT_E && t != FMT_EN && t != FMT_ES && t != FMT_D
+	      && t != FMT_G && t != FMT_RPAREN && t != FMT_SLASH)
+	    {
+	      error = _("Comma required after P descriptor");
 	      goto syntax;
 	    }
-
-	  saved_token = t;
 	}
 
+      saved_token = t;
       goto optional_comma;
 
     case FMT_T:
@@ -737,7 +812,8 @@ data_desc:
     case FMT_D:
     case FMT_E:
     case FMT_G:
-    case FMT_EXT:
+    case FMT_EN:
+    case FMT_ES:
       u = format_lex ();
       if (t == FMT_G && u == FMT_ZERO)
 	{
@@ -771,20 +847,38 @@ data_desc:
 	  break;
 	}
 
+      if (u != FMT_POSINT)
+	{
+	  format_locus.nextc += format_string_pos;
+	  gfc_error_now ("Positive width required in format "
+			 "specifier %s at %L", token_to_string (t),
+			 &format_locus);
+	  saved_token = u;
+	  goto finished;
+	}
+
       u = format_lex ();
       if (u == FMT_ERROR)
 	goto fail;
       if (u != FMT_PERIOD)
 	{
 	  /* Warn if -std=legacy, otherwise error.  */
-	  if (mode != MODE_FORMAT)
-	    format_locus.nextc += format_string_pos;
+	  format_locus.nextc += format_string_pos;
 	  if (gfc_option.warn_std != 0)
-	    gfc_error_now ("Period required in format specifier at %L",
-			   &format_locus);
+	    {
+	      gfc_error_now ("Period required in format "
+			     "specifier %s at %L", token_to_string (t),
+			     &format_locus);
+	      saved_token = u;
+	      goto finished;
+	    }
 	  else
-	    gfc_warning ("Period required in format specifier at %L",
-			 &format_locus);
+	    gfc_warning ("Period required in format "
+			 "specifier %s at %L", token_to_string (t),
+			  &format_locus);
+	  /* If we go to finished, we need to unwind this
+	     before the next round.  */
+	  format_locus.nextc -= format_string_pos;
 	  saved_token = u;
 	  break;
 	}
@@ -844,13 +938,13 @@ data_desc:
       if (t != FMT_PERIOD)
 	{
 	  /* Warn if -std=legacy, otherwise error.  */
-	  if (mode != MODE_FORMAT)
-	    format_locus.nextc += format_string_pos;
 	  if (gfc_option.warn_std != 0)
 	    {
-	      error = _("Period required in format specifier at %L");
+	      error = _("Period required in format specifier");
 	      goto syntax;
 	    }
+	  if (mode != MODE_FORMAT)
+	    format_locus.nextc += format_string_pos;
 	  gfc_warning ("Period required in format specifier at %L",
 		       &format_locus);
 	  saved_token = t;
@@ -876,11 +970,20 @@ data_desc:
 	  gfc_warning ("The H format specifier at %L is"
 		       " a Fortran 95 deleted feature", &format_locus);
 	}
-      while (repeat >0)
-       {
-          next_char (1);
-          repeat -- ;
-       }
+
+      if (mode == MODE_STRING)
+	{
+	  format_string += value;
+	  format_length -= value;
+	}
+      else
+	{
+	  while (repeat >0)
+	   {
+	     next_char (1);
+	     repeat -- ;
+	   }
+	}
      break;
 
     case FMT_IBOZ:
@@ -951,10 +1054,14 @@ between_desc:
 
     default:
       if (mode != MODE_FORMAT)
-	format_locus.nextc += format_string_pos;
+	format_locus.nextc += format_string_pos - 1;
       if (gfc_notify_std (GFC_STD_GNU, "Extension: Missing comma at %L",
 	  &format_locus) == FAILURE)
 	return FAILURE;
+      /* If we do not actually return a failure, we need to unwind this
+         before the next round.  */
+      if (mode != MODE_FORMAT)
+	format_locus.nextc -= format_string_pos;
       goto format_item_1;
     }
 
@@ -1014,6 +1121,10 @@ extension_optional_comma:
       if (gfc_notify_std (GFC_STD_GNU, "Extension: Missing comma at %L",
 	  &format_locus) == FAILURE)
 	return FAILURE;
+      /* If we do not actually return a failure, we need to unwind this
+         before the next round.  */
+      if (mode != MODE_FORMAT)
+	format_locus.nextc -= format_string_pos;
       saved_token = t;
       break;
     }
@@ -1031,13 +1142,6 @@ fail:
   rv = FAILURE;
 
 finished:
-  /* check for extraneous characters at end of valid format string */
-  if ( starting_format_length > format_length )
-    {
-       format_locus.nextc += format_length + 1; /* point to the extra */
-       gfc_warning ("Extraneous characters in format at %L", &format_locus); 
-    }
-    
   return rv;
 }
 
@@ -1053,7 +1157,7 @@ check_format_string (gfc_expr *e, bool is_input)
 
   mode = MODE_STRING;
   format_string = e->value.character.string;
-  starting_format_length = e->value.character.length;
+
   /* More elaborate measures are needed to show where a problem is within a
      format string that has been calculated, but that's probably not worth the
      effort.  */
@@ -1858,8 +1962,8 @@ gfc_match_open (void)
   /* Checks on the ROUND specifier.  */
   if (open->round)
     {
-      /* When implemented, change the following to use gfc_notify_std F2003.  */
-      gfc_error ("Fortran F2003: ROUND= specifier at %C not implemented");
+      if (gfc_notify_std (GFC_STD_F2003, "Fortran F2003: ROUND= at %C "
+	  "not allowed in Fortran 95") == FAILURE)
       goto cleanup;
 
       if (open->round->expr_type == EXPR_CONSTANT)
@@ -3209,12 +3313,9 @@ if (condition) \
 
   if (dt->round)
     {
-      /* When implemented, change the following to use gfc_notify_std F2003.
       if (gfc_notify_std (GFC_STD_F2003, "Fortran 2003: ROUND= at %C "
 	  "not allowed in Fortran 95") == FAILURE)
-	return MATCH_ERROR;  */
-      gfc_error ("F2003 Feature: ROUND= specifier at %C not implemented");
-      return MATCH_ERROR;
+	return MATCH_ERROR;
 
       if (dt->round->expr_type == EXPR_CONSTANT)
 	{

@@ -670,7 +670,7 @@ extern enum insn_code sync_lock_release[NUM_MACHINE_MODES];
 
 /* Define functions given in optabs.c.  */
 
-extern rtx expand_widen_pattern_expr (tree exp, rtx op0, rtx op1, rtx wide_op,
+extern rtx expand_widen_pattern_expr (sepops ops, rtx op0, rtx op1, rtx wide_op,
                                       rtx target, int unsignedp);
 
 extern rtx expand_ternary_op (enum machine_mode mode, optab ternary_optab,
@@ -705,6 +705,9 @@ extern rtx expand_unop (enum machine_mode, optab, rtx, rtx, int);
 /* Expand the absolute value operation.  */
 extern rtx expand_abs_nojump (enum machine_mode, rtx, rtx, int);
 extern rtx expand_abs (enum machine_mode, rtx, rtx, int, int);
+
+/* Expand the one's complement absolute value operation.  */
+extern rtx expand_one_cmpl_abs_nojump (enum machine_mode, rtx, rtx);
 
 /* Expand the copysign operation.  */
 extern rtx expand_copysign (rtx, rtx, rtx);
@@ -772,10 +775,9 @@ extern bool expand_sfix_optab (rtx, rtx, convert_optab);
 bool expand_vec_cond_expr_p (tree, enum machine_mode);
 
 /* Generate code for VEC_COND_EXPR.  */
-extern rtx expand_vec_cond_expr (tree, rtx);
-
+extern rtx expand_vec_cond_expr (tree, tree, tree, tree, rtx);
 /* Generate code for VEC_LSHIFT_EXPR and VEC_RSHIFT_EXPR.  */
-extern rtx expand_vec_shift_expr (tree, rtx);
+extern rtx expand_vec_shift_expr (sepops, rtx);
 
 #define optab_handler(optab,mode) (&(optab)->handlers[(int) (mode)])
 #define convert_optab_handler(optab,mode,mode2) \

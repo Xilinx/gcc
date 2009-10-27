@@ -3941,17 +3941,9 @@ build_conditional_expr (location_t colon_loc, tree ifexp, bool ifexp_bcp,
 				     "conditional expression"));
 		    }
 		  if (!op1_maybe_const || TREE_CODE (op1) != INTEGER_CST)
-		    {
-		      op1 = build2 (C_MAYBE_CONST_EXPR, TREE_TYPE (op1),
-				    NULL, op1);
-		      C_MAYBE_CONST_EXPR_NON_CONST (op1) = !op1_maybe_const;
-		    }
+		    op1 = c_wrap_maybe_const (op1, !op1_maybe_const);
 		  if (!op2_maybe_const || TREE_CODE (op2) != INTEGER_CST)
-		    {
-		      op2 = build2 (C_MAYBE_CONST_EXPR, TREE_TYPE (op2),
-				    NULL, op2);
-		      C_MAYBE_CONST_EXPR_NON_CONST (op2) = !op2_maybe_const;
-		    }
+		    op2 = c_wrap_maybe_const (op2, !op2_maybe_const);
 		}
 	    }
 	}
@@ -4034,12 +4026,12 @@ build_conditional_expr (location_t colon_loc, tree ifexp, bool ifexp_bcp,
   /* Merge const and volatile flags of the incoming types.  */
   result_type
     = build_type_variant (result_type,
-			  TREE_READONLY (op1) || TREE_READONLY (op2),
-			  TREE_THIS_VOLATILE (op1) || TREE_THIS_VOLATILE (op2));
+			  TYPE_READONLY (type1) || TYPE_READONLY (type2),
+			  TYPE_VOLATILE (type1) || TYPE_VOLATILE (type2));
 
-  if (result_type != TREE_TYPE (op1))
+  if (result_type != type1)
     op1 = convert_and_check (result_type, op1);
-  if (result_type != TREE_TYPE (op2))
+  if (result_type != type2)
     op2 = convert_and_check (result_type, op2);
 
   if (ifexp_bcp && ifexp == truthvalue_true_node)
@@ -7941,7 +7933,7 @@ build_asm_stmt (tree cv_qualifier, tree args)
    are subtly different.  We use a ASM_EXPR node to represent this.  */
 tree
 build_asm_expr (location_t loc, tree string, tree outputs, tree inputs,
-		tree clobbers, bool simple)
+		tree clobbers, tree labels, bool simple)
 {
   tree tail;
   tree args;
@@ -7955,7 +7947,7 @@ build_asm_expr (location_t loc, tree string, tree outputs, tree inputs,
   noutputs = list_length (outputs);
   oconstraints = (const char **) alloca (noutputs * sizeof (const char *));
 
-  string = resolve_asm_operand_names (string, outputs, inputs);
+  string = resolve_asm_operand_names (string, outputs, inputs, labels);
 
   /* Remove output conversions that change the type but not the mode.  */
   for (i = 0, tail = outputs; tail; ++i, tail = TREE_CHAIN (tail))
@@ -8025,7 +8017,11 @@ build_asm_expr (location_t loc, tree string, tree outputs, tree inputs,
       TREE_VALUE (tail) = input;
     }
 
-  args = build_stmt (loc, ASM_EXPR, string, outputs, inputs, clobbers);
+  /* ASMs with labels cannot have outputs.  This should have been
+     enforced by the parser.  */
+  gcc_assert (outputs == NULL || labels == NULL);
+
+  args = build_stmt (loc, ASM_EXPR, string, outputs, inputs, clobbers, labels);
 
   /* asm statements without outputs, including simple ones, are treated
      as volatile.  */
@@ -8678,16 +8674,17 @@ c_finish_stmt_expr (location_t loc, tree body)
       goto continue_searching;
     }
 
+  if (last == error_mark_node)
+    return last;
+
   /* In the case that the BIND_EXPR is not necessary, return the
      expression out from inside it.  */
-  if (last == error_mark_node
-      || (last == BIND_EXPR_BODY (body)
-	  && BIND_EXPR_VARS (body) == NULL))
+  if (last == BIND_EXPR_BODY (body)
+      && BIND_EXPR_VARS (body) == NULL)
     {
       /* Even if this looks constant, do not allow it in a constant
 	 expression.  */
-      last = build2 (C_MAYBE_CONST_EXPR, TREE_TYPE (last), NULL_TREE, last);
-      C_MAYBE_CONST_EXPR_NON_CONST (last) = 1;
+      last = c_wrap_maybe_const (last, true);
       /* Do not warn if the return value of a statement expression is
 	 unused.  */
       TREE_NO_WARNING (last) = 1;
@@ -9482,6 +9479,7 @@ build_binary_op (location_t location, enum tree_code code,
 	    unsigned_arg = TYPE_UNSIGNED (TREE_TYPE (op0));
 
 	  if (TYPE_PRECISION (TREE_TYPE (arg0)) < TYPE_PRECISION (result_type)
+	      && tree_int_cst_sgn (op1) > 0
 	      /* We can shorten only if the shift count is less than the
 		 number of bits in the smaller type size.  */
 	      && compare_tree_int (op1, TYPE_PRECISION (TREE_TYPE (arg0))) < 0
@@ -9561,17 +9559,9 @@ build_binary_op (location_t location, enum tree_code code,
 	      if (!in_late_binary_op)
 		{
 		  if (!op0_maybe_const || TREE_CODE (op0) != INTEGER_CST)
-		    {
-		      op0 = build2 (C_MAYBE_CONST_EXPR, TREE_TYPE (op0),
-				    NULL, op0);
-		      C_MAYBE_CONST_EXPR_NON_CONST (op0) = !op0_maybe_const;
-		    }
+		    op0 = c_wrap_maybe_const (op0, !op0_maybe_const);
 		  if (!op1_maybe_const || TREE_CODE (op1) != INTEGER_CST)
-		    {
-		      op1 = build2 (C_MAYBE_CONST_EXPR, TREE_TYPE (op1),
-				    NULL, op1);
-		      C_MAYBE_CONST_EXPR_NON_CONST (op1) = !op1_maybe_const;
-		    }
+		    op1 = c_wrap_maybe_const (op1, !op1_maybe_const);
 		}
 	    }
 	}

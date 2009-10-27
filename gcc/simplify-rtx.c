@@ -202,6 +202,106 @@ avoid_constant_pool_reference (rtx x)
   return x;
 }
 
+/* Simplify a MEM based on its attributes.  This is the default
+   delegitimize_address target hook, and it's recommended that every
+   overrider call it.  */
+
+rtx
+delegitimize_mem_from_attrs (rtx x)
+{
+  if (MEM_P (x)
+      && MEM_EXPR (x)
+      && (!MEM_OFFSET (x)
+	  || GET_CODE (MEM_OFFSET (x)) == CONST_INT))
+    {
+      tree decl = MEM_EXPR (x);
+      enum machine_mode mode = GET_MODE (x);
+      HOST_WIDE_INT offset = 0;
+
+      switch (TREE_CODE (decl))
+	{
+	default:
+	  decl = NULL;
+	  break;
+
+	case VAR_DECL:
+	  break;
+
+	case ARRAY_REF:
+	case ARRAY_RANGE_REF:
+	case COMPONENT_REF:
+	case BIT_FIELD_REF:
+	case REALPART_EXPR:
+	case IMAGPART_EXPR:
+	case VIEW_CONVERT_EXPR:
+	  {
+	    HOST_WIDE_INT bitsize, bitpos;
+	    tree toffset;
+	    int unsignedp = 0, volatilep = 0;
+
+	    decl = get_inner_reference (decl, &bitsize, &bitpos, &toffset,
+					&mode, &unsignedp, &volatilep, false);
+	    if (bitsize != GET_MODE_BITSIZE (mode)
+		|| (bitpos % BITS_PER_UNIT)
+		|| (toffset && !host_integerp (toffset, 0)))
+	      decl = NULL;
+	    else
+	      {
+		offset += bitpos / BITS_PER_UNIT;
+		if (toffset)
+		  offset += TREE_INT_CST_LOW (toffset);
+	      }
+	    break;
+	  }
+	}
+
+      if (decl
+	  && mode == GET_MODE (x)
+	  && TREE_CODE (decl) == VAR_DECL
+	  && (TREE_STATIC (decl)
+	      || DECL_THREAD_LOCAL_P (decl))
+	  && DECL_RTL_SET_P (decl)
+	  && MEM_P (DECL_RTL (decl)))
+	{
+	  rtx newx;
+
+	  if (MEM_OFFSET (x))
+	    offset += INTVAL (MEM_OFFSET (x));
+
+	  newx = DECL_RTL (decl);
+
+	  if (MEM_P (newx))
+	    {
+	      rtx n = XEXP (newx, 0), o = XEXP (x, 0);
+
+	      /* Avoid creating a new MEM needlessly if we already had
+		 the same address.  We do if there's no OFFSET and the
+		 old address X is identical to NEWX, or if X is of the
+		 form (plus NEWX OFFSET), or the NEWX is of the form
+		 (plus Y (const_int Z)) and X is that with the offset
+		 added: (plus Y (const_int Z+OFFSET)).  */
+	      if (!((offset == 0
+		     || (GET_CODE (o) == PLUS
+			 && GET_CODE (XEXP (o, 1)) == CONST_INT
+			 && (offset == INTVAL (XEXP (o, 1))
+			     || (GET_CODE (n) == PLUS
+				 && GET_CODE (XEXP (n, 1)) == CONST_INT
+				 && (INTVAL (XEXP (n, 1)) + offset
+				     == INTVAL (XEXP (o, 1)))
+				 && (n = XEXP (n, 0))))
+			 && (o = XEXP (o, 0))))
+		    && rtx_equal_p (o, n)))
+		x = adjust_address_nv (newx, mode, offset);
+	    }
+	  else if (GET_MODE (x) == GET_MODE (newx)
+		   && offset == 0)
+	    x = newx;
+	}
+    }
+
+  return x;
+}
+
 /* Make a unary operation by first seeing if it folds and otherwise making
    the specified operation.  */
 
@@ -250,38 +350,50 @@ simplify_gen_relational (enum rtx_code code, enum machine_mode mode,
   return gen_rtx_fmt_ee (code, mode, op0, op1);
 }
 
-/* Replace all occurrences of OLD_RTX in X with NEW_RTX and try to simplify the
-   resulting RTX.  Return a new RTX which is as simplified as possible.  */
+/* Replace all occurrences of OLD_RTX in X with FN (X', DATA), where X'
+   is an expression in X that is equal to OLD_RTX.  Canonicalize and
+   simplify the result.
+
+   If FN is null, assume FN (X', DATA) == copy_rtx (DATA).  */
 
 rtx
-simplify_replace_rtx (rtx x, const_rtx old_rtx, rtx new_rtx)
+simplify_replace_fn_rtx (rtx x, const_rtx old_rtx,
+			 rtx (*fn) (rtx, void *), void *data)
 {
   enum rtx_code code = GET_CODE (x);
   enum machine_mode mode = GET_MODE (x);
   enum machine_mode op_mode;
-  rtx op0, op1, op2;
+  const char *fmt;
+  rtx op0, op1, op2, newx, op;
+  rtvec vec, newvec;
+  int i, j;
 
-  /* If X is OLD_RTX, return NEW_RTX.  Otherwise, if this is an expression, try
-     to build a new expression substituting recursively.  If we can't do
-     anything, return our input.  */
+  /* If X is OLD_RTX, return FN (X, DATA), with a null FN.  Otherwise,
+     if this is an expression, try to build a new expression, substituting
+     recursively.  If we can't do anything, return our input.  */
 
-  if (x == old_rtx)
-    return new_rtx;
+  if (rtx_equal_p (x, old_rtx))
+    {
+      if (fn)
+	return fn (x, data);
+      else
+	return copy_rtx ((rtx) data);
+    }
 
   switch (GET_RTX_CLASS (code))
     {
     case RTX_UNARY:
       op0 = XEXP (x, 0);
       op_mode = GET_MODE (op0);
-      op0 = simplify_replace_rtx (op0, old_rtx, new_rtx);
+      op0 = simplify_replace_fn_rtx (op0, old_rtx, fn, data);
       if (op0 == XEXP (x, 0))
 	return x;
       return simplify_gen_unary (code, mode, op0, op_mode);
 
     case RTX_BIN_ARITH:
     case RTX_COMM_ARITH:
-      op0 = simplify_replace_rtx (XEXP (x, 0), old_rtx, new_rtx);
-      op1 = simplify_replace_rtx (XEXP (x, 1), old_rtx, new_rtx);
+      op0 = simplify_replace_fn_rtx (XEXP (x, 0), old_rtx, fn, data);
+      op1 = simplify_replace_fn_rtx (XEXP (x, 1), old_rtx, fn, data);
       if (op0 == XEXP (x, 0) && op1 == XEXP (x, 1))
 	return x;
       return simplify_gen_binary (code, mode, op0, op1);
@@ -291,8 +403,8 @@ simplify_replace_rtx (rtx x, const_rtx old_rtx, rtx new_rtx)
       op0 = XEXP (x, 0);
       op1 = XEXP (x, 1);
       op_mode = GET_MODE (op0) != VOIDmode ? GET_MODE (op0) : GET_MODE (op1);
-      op0 = simplify_replace_rtx (op0, old_rtx, new_rtx);
-      op1 = simplify_replace_rtx (op1, old_rtx, new_rtx);
+      op0 = simplify_replace_fn_rtx (op0, old_rtx, fn, data);
+      op1 = simplify_replace_fn_rtx (op1, old_rtx, fn, data);
       if (op0 == XEXP (x, 0) && op1 == XEXP (x, 1))
 	return x;
       return simplify_gen_relational (code, mode, op_mode, op0, op1);
@@ -301,9 +413,9 @@ simplify_replace_rtx (rtx x, const_rtx old_rtx, rtx new_rtx)
     case RTX_BITFIELD_OPS:
       op0 = XEXP (x, 0);
       op_mode = GET_MODE (op0);
-      op0 = simplify_replace_rtx (op0, old_rtx, new_rtx);
-      op1 = simplify_replace_rtx (XEXP (x, 1), old_rtx, new_rtx);
-      op2 = simplify_replace_rtx (XEXP (x, 2), old_rtx, new_rtx);
+      op0 = simplify_replace_fn_rtx (op0, old_rtx, fn, data);
+      op1 = simplify_replace_fn_rtx (XEXP (x, 1), old_rtx, fn, data);
+      op2 = simplify_replace_fn_rtx (XEXP (x, 2), old_rtx, fn, data);
       if (op0 == XEXP (x, 0) && op1 == XEXP (x, 1) && op2 == XEXP (x, 2))
 	return x;
       if (op_mode == VOIDmode)
@@ -311,10 +423,9 @@ simplify_replace_rtx (rtx x, const_rtx old_rtx, rtx new_rtx)
       return simplify_gen_ternary (code, mode, op_mode, op0, op1, op2);
 
     case RTX_EXTRA:
-      /* The only case we try to handle is a SUBREG.  */
       if (code == SUBREG)
 	{
-	  op0 = simplify_replace_rtx (SUBREG_REG (x), old_rtx, new_rtx);
+	  op0 = simplify_replace_fn_rtx (SUBREG_REG (x), old_rtx, fn, data);
 	  if (op0 == SUBREG_REG (x))
 	    return x;
 	  op0 = simplify_gen_subreg (GET_MODE (x), op0,
@@ -327,15 +438,15 @@ simplify_replace_rtx (rtx x, const_rtx old_rtx, rtx new_rtx)
     case RTX_OBJ:
       if (code == MEM)
 	{
-	  op0 = simplify_replace_rtx (XEXP (x, 0), old_rtx, new_rtx);
+	  op0 = simplify_replace_fn_rtx (XEXP (x, 0), old_rtx, fn, data);
 	  if (op0 == XEXP (x, 0))
 	    return x;
 	  return replace_equiv_address_nv (x, op0);
 	}
       else if (code == LO_SUM)
 	{
-	  op0 = simplify_replace_rtx (XEXP (x, 0), old_rtx, new_rtx);
-	  op1 = simplify_replace_rtx (XEXP (x, 1), old_rtx, new_rtx);
+	  op0 = simplify_replace_fn_rtx (XEXP (x, 0), old_rtx, fn, data);
+	  op1 = simplify_replace_fn_rtx (XEXP (x, 1), old_rtx, fn, data);
 
 	  /* (lo_sum (high x) x) -> x  */
 	  if (GET_CODE (op0) == HIGH && rtx_equal_p (XEXP (op0, 0), op1))
@@ -345,17 +456,58 @@ simplify_replace_rtx (rtx x, const_rtx old_rtx, rtx new_rtx)
 	    return x;
 	  return gen_rtx_LO_SUM (mode, op0, op1);
 	}
-      else if (code == REG)
-	{
-	  if (rtx_equal_p (x, old_rtx))
-	    return new_rtx;
-	}
       break;
 
     default:
       break;
     }
-  return x;
+
+  newx = x;
+  fmt = GET_RTX_FORMAT (code);
+  for (i = 0; fmt[i]; i++)
+    switch (fmt[i])
+      {
+      case 'E':
+	vec = XVEC (x, i);
+	newvec = XVEC (newx, i);
+	for (j = 0; j < GET_NUM_ELEM (vec); j++)
+	  {
+	    op = simplify_replace_fn_rtx (RTVEC_ELT (vec, j),
+					  old_rtx, fn, data);
+	    if (op != RTVEC_ELT (vec, j))
+	      {
+		if (newvec == vec)
+		  {
+		    newvec = shallow_copy_rtvec (vec);
+		    if (x == newx)
+		      newx = shallow_copy_rtx (x);
+		    XVEC (newx, i) = newvec;
+		  }
+		RTVEC_ELT (newvec, j) = op;
+	      }
+	  }
+	break;
+
+      case 'e':
+	op = simplify_replace_fn_rtx (XEXP (x, i), old_rtx, fn, data);
+	if (op != XEXP (x, i))
+	  {
+	    if (x == newx)
+	      newx = shallow_copy_rtx (x);
+	    XEXP (newx, i) = op;
+	  }
+	break;
+      }
+  return newx;
+}
+
+/* Replace all occurrences of OLD_RTX in X with NEW_RTX and try to simplify the
+   resulting RTX.  Return a new RTX which is as simplified as possible.  */
+
+rtx
+simplify_replace_rtx (rtx x, const_rtx old_rtx, rtx new_rtx)
+{
+  return simplify_replace_fn_rtx (x, old_rtx, 0, new_rtx);
 }
 
 /* Try to simplify a unary operation CODE whose output mode is to be
@@ -366,9 +518,6 @@ simplify_unary_operation (enum rtx_code code, enum machine_mode mode,
 			  rtx op, enum machine_mode op_mode)
 {
   rtx trueop, tem;
-
-  if (GET_CODE (op) == CONST)
-    op = XEXP (op, 0);
 
   trueop = avoid_constant_pool_reference (op);
 
@@ -1150,6 +1299,7 @@ simplify_const_unary_operation (enum rtx_code code, enum machine_mode mode,
 	case US_TRUNCATE:
 	case SS_NEG:
 	case US_NEG:
+	case SS_ABS:
 	  return 0;
 
 	default:
@@ -5263,13 +5413,15 @@ simplify_subreg (enum machine_mode outermode, rtx op,
       && GET_MODE_BITSIZE (innermode) >= (2 * GET_MODE_BITSIZE (outermode))
       && CONST_INT_P (XEXP (op, 1))
       && (INTVAL (XEXP (op, 1)) & (GET_MODE_BITSIZE (outermode) - 1)) == 0
+      && INTVAL (XEXP (op, 1)) >= 0
       && INTVAL (XEXP (op, 1)) < GET_MODE_BITSIZE (innermode)      
       && byte == subreg_lowpart_offset (outermode, innermode))
     {
       int shifted_bytes = INTVAL (XEXP (op, 1)) / BITS_PER_UNIT;
       return simplify_gen_subreg (outermode, XEXP (op, 0), innermode,
 				  (WORDS_BIG_ENDIAN
-				   ? byte - shifted_bytes : byte + shifted_bytes));
+				   ? byte - shifted_bytes
+				   : byte + shifted_bytes));
     }
 
   return NULL_RTX;

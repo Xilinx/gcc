@@ -81,6 +81,9 @@ static bool m32c_strict_argument_naming (CUMULATIVE_ARGS *);
 static rtx m32c_struct_value_rtx (tree, int);
 static rtx m32c_subreg (enum machine_mode, rtx, enum machine_mode, int);
 static int need_to_save (int);
+static rtx m32c_function_value (const_tree, const_tree, bool);
+static rtx m32c_libcall_value (enum machine_mode, const_rtx);
+
 int current_function_special_page_vector (rtx);
 
 #define SYMBOL_FLAG_FUNCVEC_FUNCTION    (SYMBOL_FLAG_MACH_DEP << 0)
@@ -422,6 +425,9 @@ m32c_override_options (void)
     }
   else
     target_memregs = 16;
+
+  if (TARGET_A24)
+    flag_ivopts = 0;
 }
 
 /* Defining data structures for per-function information */
@@ -638,6 +644,8 @@ m32c_reg_class_from_constraint (char c ATTRIBUTE_UNUSED, const char *s)
     return R3_REGS;
   if (memcmp (s, "R02", 3) == 0)
     return R02_REGS;
+  if (memcmp (s, "R13", 3) == 0)
+    return R13_REGS;
   if (memcmp (s, "R03", 3) == 0)
     return R03_REGS;
   if (memcmp (s, "Rdi", 3) == 0)
@@ -1586,15 +1594,19 @@ m32c_valid_pointer_mode (enum machine_mode mode)
 
 /* How Scalar Function Values Are Returned */
 
-/* Implements LIBCALL_VALUE.  Most values are returned in $r0, or some
+/* Implements TARGET_LIBCALL_VALUE.  Most values are returned in $r0, or some
    combination of registers starting there (r2r0 for longs, r3r1r2r0
    for long long, r3r2r1r0 for doubles), except that that ABI
    currently doesn't work because it ends up using all available
    general registers and gcc often can't compile it.  So, instead, we
    return anything bigger than 16 bits in "mem0" (effectively, a
    memory location).  */
-rtx
-m32c_libcall_value (enum machine_mode mode)
+
+#undef TARGET_LIBCALL_VALUE
+#define TARGET_LIBCALL_VALUE m32c_libcall_value
+
+static rtx
+m32c_libcall_value (enum machine_mode mode, const_rtx fun ATTRIBUTE_UNUSED)
 {
   /* return reg or parallel */
 #if 0
@@ -1644,14 +1656,28 @@ m32c_libcall_value (enum machine_mode mode)
   return gen_rtx_REG (mode, R0_REGNO);
 }
 
-/* Implements FUNCTION_VALUE.  Functions and libcalls have the same
+/* Implements TARGET_FUNCTION_VALUE.  Functions and libcalls have the same
    conventions.  */
-rtx
-m32c_function_value (const_tree valtype, const_tree func ATTRIBUTE_UNUSED)
+
+#undef TARGET_FUNCTION_VALUE
+#define TARGET_FUNCTION_VALUE m32c_function_value
+
+static rtx
+m32c_function_value (const_tree valtype,
+		     const_tree fn_decl_or_type ATTRIBUTE_UNUSED,
+		     bool outgoing ATTRIBUTE_UNUSED)
 {
   /* return reg or parallel */
   const enum machine_mode mode = TYPE_MODE (valtype);
-  return m32c_libcall_value (mode);
+  return m32c_libcall_value (mode, NULL_RTX);
+}
+
+/* Implements FUNCTION_VALUE_REGNO_P.  */
+
+bool
+m32c_function_value_regno_p (const unsigned int regno)
+{
+  return (regno == R0_REGNO || regno == MEM0_REGNO);
 }
 
 /* How Large Values Are Returned */
@@ -1717,11 +1743,16 @@ m32c_trampoline_alignment (void)
   return 2;
 }
 
-/* Implements INITIALIZE_TRAMPOLINE.  */
-void
-m32c_initialize_trampoline (rtx tramp, rtx function, rtx chainval)
+/* Implements TARGET_TRAMPOLINE_INIT.  */
+
+#undef TARGET_TRAMPOLINE_INIT
+#define TARGET_TRAMPOLINE_INIT m32c_trampoline_init
+static void
+m32c_trampoline_init (rtx m_tramp, tree fndecl, rtx chainval)
 {
-#define A0(m,i) gen_rtx_MEM (m, plus_constant (tramp, i))
+  rtx function = XEXP (DECL_RTL (fndecl), 0);
+
+#define A0(m,i) adjust_address (m_tramp, m, i)
   if (TARGET_A16)
     {
       /* Note: we subtract a "word" because the moves want signed
@@ -4052,8 +4083,26 @@ m32c_emit_epilogue (void)
       if (!bank_switch_p (cfun->decl) && cfun->machine->intr_pushm)
 	emit_insn (gen_popm (GEN_INT (cfun->machine->intr_pushm)));
 
+      /* The FREIT (Fast REturn from InTerrupt) instruction should be
+         generated only for M32C/M32CM targets (generate the REIT
+         instruction otherwise).  */
       if (fast_interrupt_p (cfun->decl))
-	emit_jump_insn (gen_epilogue_freit ());
+        {
+          /* Check if fast_attribute is set for M32C or M32CM.  */
+          if (TARGET_A24)
+            {
+              emit_jump_insn (gen_epilogue_freit ());
+            }
+          /* If fast_interrupt attribute is set for an R8C or M16C
+             target ignore this attribute and generated REIT
+             instruction.  */
+          else
+	    {
+	      warning (OPT_Wattributes,
+		       "%<fast_interrupt%> attribute directive ignored");
+	      emit_jump_insn (gen_epilogue_reit_16 ());
+	    }
+        }
       else if (TARGET_A16)
 	emit_jump_insn (gen_epilogue_reit_16 ());
       else

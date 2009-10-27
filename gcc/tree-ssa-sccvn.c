@@ -576,8 +576,6 @@ copy_reference_ops_from_ref (tree ref, VEC(vn_reference_op_s, heap) **result)
 	case CONST_DECL:
 	case RESULT_DECL:
 	case SSA_NAME:
-	case EXC_PTR_EXPR:
-	case FILTER_EXPR:
 	  temp.op0 = ref;
 	  break;
 	case ADDR_EXPR:
@@ -688,8 +686,6 @@ ao_ref_init_from_vn_reference (ao_ref *ref,
 	case PARM_DECL:
 	case RESULT_DECL:
 	case SSA_NAME:
-	case FILTER_EXPR:
-	case EXC_PTR_EXPR:
 	  *op0_p = op->op0;
 	  break;
 
@@ -1120,7 +1116,7 @@ vn_reference_lookup_3 (ao_ref *ref, tree vuse, void *vr_)
       copy_reference_ops_from_ref (gimple_assign_lhs (def_stmt), &lhs);
       i = VEC_length (vn_reference_op_s, vr->operands) - 1;
       j = VEC_length (vn_reference_op_s, lhs) - 1;
-      while (j >= 0
+      while (j >= 0 && i >= 0
 	     && vn_reference_op_eq (VEC_index (vn_reference_op_s,
 					       vr->operands, i),
 				    VEC_index (vn_reference_op_s, lhs, j)))
@@ -1128,13 +1124,14 @@ vn_reference_lookup_3 (ao_ref *ref, tree vuse, void *vr_)
 	  i--;
 	  j--;
 	}
+
+      VEC_free (vn_reference_op_s, heap, lhs);
       /* i now points to the first additional op.
 	 ???  LHS may not be completely contained in VR, one or more
 	 VIEW_CONVERT_EXPRs could be in its way.  We could at least
 	 try handling outermost VIEW_CONVERT_EXPRs.  */
       if (j != -1)
 	return (void *)-1;
-      VEC_free (vn_reference_op_s, heap, lhs);
 
       /* Now re-write REF to be based on the rhs of the assignment.  */
       copy_reference_ops_from_ref (gimple_assign_rhs1 (def_stmt), &rhs);

@@ -77,6 +77,10 @@ extern tree default_builtin_vectorized_conversion (unsigned int, tree);
 extern tree default_builtin_reciprocal (unsigned int, bool, bool);
 
 extern bool default_builtin_vector_alignment_reachable (const_tree, bool);
+extern bool
+default_builtin_support_vector_misalignment (enum machine_mode mode,
+					     const_tree,
+					     int, bool); 
 
 /* These are here, and not in hooks.[ch], because not all users of
    hooks.h include tm.h, and thus we don't have CUMULATIVE_ARGS.  */
@@ -94,8 +98,10 @@ extern const char *hook_invalid_arg_for_unprototyped_fn
   (const_tree, const_tree, const_tree);
 extern bool hook_bool_const_rtx_commutative_p (const_rtx, int);
 extern rtx default_function_value (const_tree, const_tree, bool);
-extern rtx default_libcall_value (enum machine_mode, rtx);
+extern rtx default_libcall_value (enum machine_mode, const_rtx);
 extern rtx default_internal_arg_pointer (void);
+extern rtx default_static_chain (const_tree, bool);
+extern void default_trampoline_init (rtx, tree, rtx);
 extern enum reg_class default_branch_target_register_class (void);
 #ifdef IRA_COVER_CLASSES
 extern const enum reg_class *default_ira_cover_classes (void);

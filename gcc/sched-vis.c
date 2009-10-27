@@ -521,6 +521,10 @@ print_value (char *buf, const_rtx x, int verbose)
       cur = safe_concat (buf, cur, t);
       cur = safe_concat (buf, cur, "]");
       break;
+    case DEBUG_EXPR:
+      sprintf (t, "D#%i", DEBUG_TEMP_UID (DEBUG_EXPR_TREE_DECL (x)));
+      cur = safe_concat (buf, cur, t);
+      break;
     default:
       print_exp (t, x, verbose);
       cur = safe_concat (buf, cur, t);
@@ -555,6 +559,10 @@ print_pattern (char *buf, const_rtx x, int verbose)
     case USE:
       print_value (t1, XEXP (x, 0), verbose);
       sprintf (buf, "use %s", t1);
+      break;
+    case VAR_LOCATION:
+      print_value (t1, PAT_VAR_LOCATION_LOC (x), verbose);
+      sprintf (buf, "loc %s", t1);
       break;
     case COND_EXEC:
       if (GET_CODE (COND_EXEC_TEST (x)) == NE
@@ -658,6 +666,41 @@ print_insn (char *buf, const_rtx x, int verbose)
 #endif
 	sprintf (buf, " %4d %s", INSN_UID (x), t);
       break;
+
+    case DEBUG_INSN:
+      {
+	const char *name = "?";
+
+	if (DECL_P (INSN_VAR_LOCATION_DECL (insn)))
+	  {
+	    tree id = DECL_NAME (INSN_VAR_LOCATION_DECL (insn));
+	    char idbuf[32];
+	    if (id)
+	      name = IDENTIFIER_POINTER (id);
+	    else if (TREE_CODE (INSN_VAR_LOCATION_DECL (insn))
+		     == DEBUG_EXPR_DECL)
+	      {
+		sprintf (idbuf, "D#%i",
+			 DEBUG_TEMP_UID (INSN_VAR_LOCATION_DECL (insn)));
+		name = idbuf;
+	      }
+	    else
+	      {
+		sprintf (idbuf, "D.%i",
+			 DECL_UID (INSN_VAR_LOCATION_DECL (insn)));
+		name = idbuf;
+	      }
+	  }
+	if (VAR_LOC_UNKNOWN_P (INSN_VAR_LOCATION_LOC (insn)))
+	  sprintf (buf, " %4d: debug %s optimized away", INSN_UID (insn), name);
+	else
+	  {
+	    print_pattern (t, INSN_VAR_LOCATION_LOC (insn), verbose);
+	    sprintf (buf, " %4d: debug %s => %s", INSN_UID (insn), name, t);
+	  }
+      }
+      break;
+
     case JUMP_INSN:
       print_pattern (t, PATTERN (x), verbose);
 #ifdef INSN_SCHEDULING

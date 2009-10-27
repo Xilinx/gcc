@@ -32,7 +32,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "output.h"
 #include "tree-flow.h"
 
-static void duplicate_subloops (struct loop *, struct loop *);
 static void copy_loops_to (struct loop **, int,
 			   struct loop *);
 static void loop_redirect_edge (edge, basic_block);
@@ -599,7 +598,7 @@ create_empty_if_region_on_edge (edge entry_edge, tree condition)
    |   |           |               |         |
    |    -----------                |      ---V--- loop_body ---------------
    |                               |     | iv_after = iv_before + stride   |
-   |                               |     | if (iv_after <= upper_bound)     |
+   |                               |     | if (iv_before < upper_bound)    |
    |                               |      ---|--------------\--------------
    |                               |         |               \ exit_e
    |                               |         V                \
@@ -609,9 +608,9 @@ create_empty_if_region_on_edge (edge entry_edge, tree condition)
    |                                \ ___ /
 
    Creates an empty loop as shown above, the IV_BEFORE is the SSA_NAME
-   that is used before the increment of IV. IV_BEFORE should be used for 
+   that is used before the increment of IV. IV_BEFORE should be used for
    adding code to the body that uses the IV.  OUTER is the outer loop in
-   which the new loop should be inserted.  
+   which the new loop should be inserted.
 
    Both INITIAL_VALUE and UPPER_BOUND expressions are gimplified and
    inserted on the loop entry edge.  This implies that this function
@@ -619,7 +618,7 @@ create_empty_if_region_on_edge (edge entry_edge, tree condition)
    invariant.  */
 
 struct loop *
-create_empty_loop_on_edge (edge entry_edge, 
+create_empty_loop_on_edge (edge entry_edge,
 			   tree initial_value,
 			   tree stride, tree upper_bound,
 			   tree iv,
@@ -637,7 +636,7 @@ create_empty_loop_on_edge (edge entry_edge,
   tree exit_test;
   edge exit_e;
   int prob;
-  
+
   gcc_assert (entry_edge && initial_value && stride && upper_bound && iv);
 
   /* Create header, latch and wire up the loop.  */
@@ -696,7 +695,7 @@ create_empty_loop_on_edge (edge entry_edge,
 
   /* Insert loop exit condition.  */
   cond_expr = gimple_build_cond
-    (LE_EXPR, *iv_after, upper_bound, NULL_TREE, NULL_TREE);
+    (LT_EXPR, *iv_before, upper_bound, NULL_TREE, NULL_TREE);
 
   exit_test = gimple_cond_lhs (cond_expr);
   exit_test = force_gimple_operand_gsi (&gsi, exit_test, true, NULL,
@@ -886,7 +885,7 @@ duplicate_loop (struct loop *loop, struct loop *target)
 
 /* Copies structure of subloops of LOOP into TARGET loop, placing
    newly created loops into loop tree.  */
-static void
+void
 duplicate_subloops (struct loop *loop, struct loop *target)
 {
   struct loop *aloop, *cloop;

@@ -26,6 +26,49 @@
 #define BRT 1
 #define BRF 0
 
+/* CPU type.  */
+typedef enum bfin_cpu_type
+{
+  BFIN_CPU_UNKNOWN,
+  BFIN_CPU_BF512,
+  BFIN_CPU_BF514,
+  BFIN_CPU_BF516,
+  BFIN_CPU_BF518,
+  BFIN_CPU_BF522,
+  BFIN_CPU_BF523,
+  BFIN_CPU_BF524,
+  BFIN_CPU_BF525,
+  BFIN_CPU_BF526,
+  BFIN_CPU_BF527,
+  BFIN_CPU_BF531,
+  BFIN_CPU_BF532,
+  BFIN_CPU_BF533,
+  BFIN_CPU_BF534,
+  BFIN_CPU_BF536,
+  BFIN_CPU_BF537,
+  BFIN_CPU_BF538,
+  BFIN_CPU_BF539,
+  BFIN_CPU_BF542,
+  BFIN_CPU_BF542M,
+  BFIN_CPU_BF544,
+  BFIN_CPU_BF544M,
+  BFIN_CPU_BF547,
+  BFIN_CPU_BF547M,
+  BFIN_CPU_BF548,
+  BFIN_CPU_BF548M,
+  BFIN_CPU_BF549,
+  BFIN_CPU_BF549M,
+  BFIN_CPU_BF561
+} bfin_cpu_t;
+
+/* Value of -mcpu= */
+extern bfin_cpu_t bfin_cpu_type;
+
+/* Value of -msi-revision= */
+extern int bfin_si_revision;
+
+extern unsigned int bfin_workarounds;
+
 /* Print subsidiary information on the compiler version in use.  */
 #define TARGET_VERSION fprintf (stderr, " (BlackFin bfin)")
 
@@ -109,22 +152,32 @@ extern int target_flags;
 	case BFIN_CPU_BF539:			\
 	  builtin_define ("__ADSPBF539__");	\
 	  break;				\
+	case BFIN_CPU_BF542M:			\
+	  builtin_define ("__ADSPBF542M__");	\
 	case BFIN_CPU_BF542:			\
 	  builtin_define ("__ADSPBF542__");	\
 	  builtin_define ("__ADSPBF54x__");	\
 	  break;				\
+	case BFIN_CPU_BF544M:			\
+	  builtin_define ("__ADSPBF544M__");	\
 	case BFIN_CPU_BF544:			\
 	  builtin_define ("__ADSPBF544__");	\
 	  builtin_define ("__ADSPBF54x__");	\
 	  break;				\
-	case BFIN_CPU_BF548:			\
-	  builtin_define ("__ADSPBF548__");	\
-	  builtin_define ("__ADSPBF54x__");	\
-	  break;				\
+	case BFIN_CPU_BF547M:			\
+	  builtin_define ("__ADSPBF547M__");	\
 	case BFIN_CPU_BF547:			\
 	  builtin_define ("__ADSPBF547__");	\
 	  builtin_define ("__ADSPBF54x__");	\
 	  break;				\
+	case BFIN_CPU_BF548M:			\
+	  builtin_define ("__ADSPBF548M__");	\
+	case BFIN_CPU_BF548:			\
+	  builtin_define ("__ADSPBF548__");	\
+	  builtin_define ("__ADSPBF54x__");	\
+	  break;				\
+	case BFIN_CPU_BF549M:			\
+	  builtin_define ("__ADSPBF549M__");	\
 	case BFIN_CPU_BF549:			\
 	  builtin_define ("__ADSPBF549__");	\
 	  builtin_define ("__ADSPBF54x__");	\
@@ -333,30 +386,6 @@ extern const char *bfin_library_id_string;
    && (ALIGN) < BITS_PER_WORD ? BITS_PER_WORD : (ALIGN))    
 
 #define TRAMPOLINE_SIZE (TARGET_FDPIC ? 30 : 18)
-#define TRAMPOLINE_TEMPLATE(FILE)                                       \
-  if (TARGET_FDPIC)							\
-    {									\
-      fprintf(FILE, "\t.dd\t0x00000000\n"); /* 0 */			\
-      fprintf(FILE, "\t.dd\t0x00000000\n"); /* 0 */			\
-      fprintf(FILE, "\t.dd\t0x0000e109\n"); /* p1.l = fn low */		\
-      fprintf(FILE, "\t.dd\t0x0000e149\n"); /* p1.h = fn high */	\
-      fprintf(FILE, "\t.dd\t0x0000e10a\n"); /* p2.l = sc low */		\
-      fprintf(FILE, "\t.dd\t0x0000e14a\n"); /* p2.h = sc high */	\
-      fprintf(FILE, "\t.dw\t0xac4b\n"); /* p3 = [p1 + 4] */		\
-      fprintf(FILE, "\t.dw\t0x9149\n"); /* p1 = [p1] */			\
-      fprintf(FILE, "\t.dw\t0x0051\n"); /* jump (p1)*/			\
-    }									\
-  else									\
-    {									\
-      fprintf(FILE, "\t.dd\t0x0000e109\n"); /* p1.l = fn low */		\
-      fprintf(FILE, "\t.dd\t0x0000e149\n"); /* p1.h = fn high */	\
-      fprintf(FILE, "\t.dd\t0x0000e10a\n"); /* p2.l = sc low */		\
-      fprintf(FILE, "\t.dd\t0x0000e14a\n"); /* p2.h = sc high */	\
-      fprintf(FILE, "\t.dw\t0x0051\n"); /* jump (p1)*/			\
-    }
-
-#define INITIALIZE_TRAMPOLINE(TRAMP, FNADDR, CXT) \
-  initialize_trampoline (TRAMP, FNADDR, CXT)
 
 /* Definitions for register eliminations.
 
@@ -375,14 +404,6 @@ extern const char *bfin_library_id_string;
 {{ ARG_POINTER_REGNUM, STACK_POINTER_REGNUM},	\
  { ARG_POINTER_REGNUM, FRAME_POINTER_REGNUM},	\
  { FRAME_POINTER_REGNUM, STACK_POINTER_REGNUM}}	\
-
-/* Given FROM and TO register numbers, say whether this elimination is
-   allowed.  Frame pointer elimination is automatically handled.
-
-   All other eliminations are valid.  */
-
-#define CAN_ELIMINATE(FROM, TO) \
-  ((TO) == STACK_POINTER_REGNUM ? ! frame_pointer_needed : 1)
 
 /* Define the offset between two registers, one to be eliminated, and the other
    its replacement, at the start of a routine.  */
@@ -802,6 +823,7 @@ enum reg_class
 typedef enum {
   SUBROUTINE, INTERRUPT_HANDLER, EXCPT_HANDLER, NMI_HANDLER
 } e_funkind;
+#define FUNCTION_RETURN_REGISTERS { REG_RETS, REG_RETI, REG_RETX, REG_RETN }
 
 #define FUNCTION_ARG_REGISTERS { REG_R0, REG_R1, REG_R2, -1 }
 
@@ -1265,5 +1287,9 @@ extern struct rtx_def *bfin_cc_rtx, *bfin_rets_rtx;
 extern int splitting_for_sched, splitting_loops;
 
 #define PRINT_OPERAND_PUNCT_VALID_P(CHAR) ((CHAR) == '!')
+
+#ifndef TARGET_SUPPORTS_SYNC_CALLS
+#define TARGET_SUPPORTS_SYNC_CALLS 0
+#endif
 
 #endif /*  _BFIN_CONFIG */

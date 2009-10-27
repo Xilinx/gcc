@@ -1,6 +1,6 @@
 /* RTL utility routines.
    Copyright (C) 1987, 1988, 1991, 1994, 1997, 1998, 1999, 2000, 2001, 2002,
-   2003, 2004, 2005, 2006, 2007, 2008 Free Software Foundation, Inc.
+   2003, 2004, 2005, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -164,6 +164,20 @@ rtvec_alloc (int n)
   return rt;
 }
 
+/* Create a bitwise copy of VEC.  */
+
+rtvec
+shallow_copy_rtvec (rtvec vec)
+{
+  rtvec newvec;
+  int n;
+
+  n = GET_NUM_ELEM (vec);
+  newvec = rtvec_alloc (n);
+  memcpy (&newvec->elem[0], &vec->elem[0], sizeof (rtx) * n);
+  return newvec;
+}
+
 /* Return the number of bytes occupied by rtx value X.  */
 
 unsigned int
@@ -230,6 +244,8 @@ copy_rtx (rtx orig)
   switch (code)
     {
     case REG:
+    case DEBUG_EXPR:
+    case VALUE:
     case CONST_INT:
     case CONST_DOUBLE:
     case CONST_FIXED:
@@ -379,6 +395,8 @@ rtx_equal_p_cb (const_rtx x, const_rtx y, rtx_equal_p_callback_function cb)
     case SYMBOL_REF:
       return XSTR (x, 0) == XSTR (y, 0);
 
+    case DEBUG_EXPR:
+    case VALUE:
     case SCRATCH:
     case CONST_DOUBLE:
     case CONST_INT:
@@ -493,6 +511,8 @@ rtx_equal_p (const_rtx x, const_rtx y)
     case SYMBOL_REF:
       return XSTR (x, 0) == XSTR (y, 0);
 
+    case DEBUG_EXPR:
+    case VALUE:
     case SCRATCH:
     case CONST_DOUBLE:
     case CONST_INT:

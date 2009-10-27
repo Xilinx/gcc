@@ -113,11 +113,11 @@ C ObjC C++ ObjC++ Joined Separate
 -U<macro>	Undefine <macro>
 
 Wabi
-C ObjC C++ ObjC++ Var(warn_abi) Warning
+C ObjC C++ ObjC++ LTO Var(warn_abi) Warning
 Warn about things that will change when compiling with an ABI-compliant compiler
 
 Wpsabi
-C ObjC C++ ObjC++ Var(warn_psabi) Init(1) Undocumented
+C ObjC C++ ObjC++ LTO Var(warn_psabi) Init(1) Undocumented
 
 Waddress
 C ObjC C++ ObjC++ Var(warn_address) Warning
@@ -285,7 +285,7 @@ C ObjC C++ ObjC++ Warning
 Warn about PCH files that are found but not used
 
 Wjump-misses-init
-C Objc Var(warn_jump_misses_init) Init(-1) Warning
+C ObjC Var(warn_jump_misses_init) Init(-1) Warning
 Warn when a jump misses a variable initialization
 
 Wlogical-op
@@ -557,6 +557,10 @@ Reduce the size of object files
 fconstant-string-class=
 ObjC ObjC++ Joined
 -fconst-string-class=<name>	Use class <name> for constant strings
+
+fdeduce-init-list
+C++ ObjC++ Var(flag_deduce_init_list) Init(1)
+-fno-deduce-init-list	disable deduction of std::initializer_list for a template type parameter from a brace-enclosed initializer-list
 
 fdefault-inline
 C++ ObjC++

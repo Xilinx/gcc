@@ -1594,17 +1594,6 @@ typedef struct frv_stack {
   {FRAME_POINTER_REGNUM, STACK_POINTER_REGNUM}				\
 }
 
-/* A C expression that returns nonzero if the compiler is allowed to try to
-   replace register number FROM with register number TO.  This macro need only
-   be defined if `ELIMINABLE_REGS' is defined, and will usually be the constant
-   1, since most of the cases preventing register elimination are things that
-   the compiler already knows about.  */
-
-#define CAN_ELIMINATE(FROM, TO)						\
-  ((FROM) == ARG_POINTER_REGNUM && (TO) == STACK_POINTER_REGNUM		\
-   ? ! frame_pointer_needed						\
-   : 1)
-
 /* This macro is similar to `INITIAL_FRAME_POINTER_OFFSET'.  It specifies the
    initial difference between the specified pair of registers.  This macro must
    be defined if `ELIMINABLE_REGS' is defined.  */
@@ -1850,13 +1839,6 @@ typedef struct frv_stack {
    If you don't define this macro, the value of `BIGGEST_ALIGNMENT' is used for
    aligning trampolines.  */
 #define TRAMPOLINE_ALIGNMENT (TARGET_FDPIC ? 64 : 32)
-
-/* A C statement to initialize the variable parts of a trampoline.  ADDR is an
-   RTX for the address of the trampoline; FNADDR is an RTX for the address of
-   the nested function; STATIC_CHAIN is an RTX for the static chain value that
-   should be passed to the function when it is called.  */
-#define INITIALIZE_TRAMPOLINE(ADDR, FNADDR, STATIC_CHAIN) \
-  frv_initialize_trampoline (ADDR, FNADDR, STATIC_CHAIN)
 
 /* Define this macro if trampolines need a special subroutine to do their work.
    The macro should expand to a series of `asm' statements which will be

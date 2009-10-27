@@ -1846,21 +1846,6 @@ typedef struct
  { FRAME_POINTER_REGNUM,      ARM_HARD_FRAME_POINTER_REGNUM   },\
  { FRAME_POINTER_REGNUM,      THUMB_HARD_FRAME_POINTER_REGNUM }}
 
-/* Given FROM and TO register numbers, say whether this elimination is
-   allowed.  Frame pointer elimination is automatically handled.
-
-   All eliminations are permissible.  Note that ARG_POINTER_REGNUM and
-   HARD_FRAME_POINTER_REGNUM are in fact the same thing.  If we need a frame
-   pointer, we must eliminate FRAME_POINTER_REGNUM into
-   HARD_FRAME_POINTER_REGNUM and not into STACK_POINTER_REGNUM or
-   ARG_POINTER_REGNUM.  */
-#define CAN_ELIMINATE(FROM, TO)						\
-  (((TO) == FRAME_POINTER_REGNUM && (FROM) == ARG_POINTER_REGNUM) ? 0 :	\
-   ((TO) == STACK_POINTER_REGNUM && frame_pointer_needed) ? 0 :		\
-   ((TO) == ARM_HARD_FRAME_POINTER_REGNUM && TARGET_THUMB) ? 0 :	\
-   ((TO) == THUMB_HARD_FRAME_POINTER_REGNUM && TARGET_ARM) ? 0 :	\
-   1)
-
 /* Define the offset between two registers, one to be eliminated, and the
    other its replacement, at the start of a routine.  */
 #define INITIAL_ELIMINATION_OFFSET(FROM, TO, OFFSET)			\
@@ -1876,102 +1861,11 @@ typedef struct
    once for every function before code is generated.  */
 #define INIT_EXPANDERS  arm_init_expanders ()
 
-/* Output assembler code for a block containing the constant parts
-   of a trampoline, leaving space for the variable parts.
-
-   On the ARM, (if r8 is the static chain regnum, and remembering that
-   referencing pc adds an offset of 8) the trampoline looks like:
-	   ldr 		r8, [pc, #0]
-	   ldr		pc, [pc]
-	   .word	static chain value
-	   .word	function's address
-   XXX FIXME: When the trampoline returns, r8 will be clobbered.  */
-#define ARM_TRAMPOLINE_TEMPLATE(FILE)				\
-{								\
-  asm_fprintf (FILE, "\tldr\t%r, [%r, #0]\n",			\
-	       STATIC_CHAIN_REGNUM, PC_REGNUM);			\
-  asm_fprintf (FILE, "\tldr\t%r, [%r, #0]\n",			\
-	       PC_REGNUM, PC_REGNUM);				\
-  assemble_aligned_integer (UNITS_PER_WORD, const0_rtx);	\
-  assemble_aligned_integer (UNITS_PER_WORD, const0_rtx);	\
-}
-
-/* The Thumb-2 trampoline is similar to the arm implementation.
-   Unlike 16-bit Thumb, we enter the stub in thumb mode.  */
-#define THUMB2_TRAMPOLINE_TEMPLATE(FILE)			\
-{								\
-  asm_fprintf (FILE, "\tldr.w\t%r, [%r, #4]\n",			\
-	       STATIC_CHAIN_REGNUM, PC_REGNUM);			\
-  asm_fprintf (FILE, "\tldr.w\t%r, [%r, #4]\n",			\
-	       PC_REGNUM, PC_REGNUM);				\
-  assemble_aligned_integer (UNITS_PER_WORD, const0_rtx);	\
-  assemble_aligned_integer (UNITS_PER_WORD, const0_rtx);	\
-}
-
-#define THUMB1_TRAMPOLINE_TEMPLATE(FILE)	\
-{						\
-  ASM_OUTPUT_ALIGN(FILE, 2);			\
-  fprintf (FILE, "\t.code\t16\n");		\
-  fprintf (FILE, ".Ltrampoline_start:\n");	\
-  asm_fprintf (FILE, "\tpush\t{r0, r1}\n");	\
-  asm_fprintf (FILE, "\tldr\tr0, [%r, #8]\n",	\
-	       PC_REGNUM);			\
-  asm_fprintf (FILE, "\tmov\t%r, r0\n",		\
-	       STATIC_CHAIN_REGNUM);		\
-  asm_fprintf (FILE, "\tldr\tr0, [%r, #8]\n",	\
-	       PC_REGNUM);			\
-  asm_fprintf (FILE, "\tstr\tr0, [%r, #4]\n",	\
-	       SP_REGNUM);			\
-  asm_fprintf (FILE, "\tpop\t{r0, %r}\n",	\
-	       PC_REGNUM);			\
-  assemble_aligned_integer (UNITS_PER_WORD, const0_rtx);	\
-  assemble_aligned_integer (UNITS_PER_WORD, const0_rtx);	\
-}
-
-#define TRAMPOLINE_TEMPLATE(FILE)		\
-  if (TARGET_ARM)				\
-    ARM_TRAMPOLINE_TEMPLATE (FILE)		\
-  else if (TARGET_THUMB2)			\
-    THUMB2_TRAMPOLINE_TEMPLATE (FILE)		\
-  else						\
-    THUMB1_TRAMPOLINE_TEMPLATE (FILE)
-
-/* Thumb trampolines should be entered in thumb mode, so set the bottom bit
-   of the address.  */
-#define TRAMPOLINE_ADJUST_ADDRESS(ADDR) do				    \
-{									    \
-  if (TARGET_THUMB)							    \
-    (ADDR) = expand_simple_binop (Pmode, IOR, (ADDR), GEN_INT(1),	    \
-				  gen_reg_rtx (Pmode), 0, OPTAB_LIB_WIDEN); \
-} while(0)
-
 /* Length in units of the trampoline for entering a nested function.  */
 #define TRAMPOLINE_SIZE  (TARGET_32BIT ? 16 : 20)
 
 /* Alignment required for a trampoline in bits.  */
 #define TRAMPOLINE_ALIGNMENT  32
-
-
-/* Emit RTL insns to initialize the variable parts of a trampoline.
-   FNADDR is an RTX for the address of the function's pure code.
-   CXT is an RTX for the static chain value for the function.  */
-#ifndef INITIALIZE_TRAMPOLINE
-#define INITIALIZE_TRAMPOLINE(TRAMP, FNADDR, CXT)			\
-{									\
-  emit_move_insn (gen_rtx_MEM (SImode,					\
-			       plus_constant (TRAMP,			\
-					      TARGET_32BIT ? 8 : 12)),	\
-		  CXT);							\
-  emit_move_insn (gen_rtx_MEM (SImode,					\
-			       plus_constant (TRAMP,			\
-					      TARGET_32BIT ? 12 : 16)),	\
-		  FNADDR);						\
-  emit_library_call (gen_rtx_SYMBOL_REF (Pmode, "__clear_cache"),	\
-		     LCT_NORMAL, VOIDmode, 2, TRAMP, Pmode,		\
-		     plus_constant (TRAMP, TRAMPOLINE_SIZE), Pmode);	\
-}
-#endif
-
 
 /* Addressing modes, and classification of registers for them.  */
 #define HAVE_POST_INCREMENT   1
@@ -2383,6 +2277,7 @@ extern int making_const_table;
 
 /* The arm5 clz instruction returns 32.  */
 #define CLZ_DEFINED_VALUE_AT_ZERO(MODE, VALUE)  ((VALUE) = 32, 1)
+#define CTZ_DEFINED_VALUE_AT_ZERO(MODE, VALUE)  ((VALUE) = 32, 1)
 
 #undef  ASM_APP_OFF
 #define ASM_APP_OFF (TARGET_THUMB1 ? "\t.code\t16\n" : \

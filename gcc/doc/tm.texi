@@ -2349,6 +2349,11 @@ with it, as well as defining these macros.
 Define this if the machine has any stack-like registers.
 @end defmac
 
+@defmac STACK_REG_COVER_CLASS
+This is a cover class containing the stack registers.  Define this if
+the machine has any stack-like registers.
+@end defmac
+
 @defmac FIRST_STACK_REG
 The number of the first stack-like register.  This one is the top
 of the stack.
@@ -3524,7 +3529,7 @@ dynamically if their size exceeds @code{STACK_CHECK_MAX_VAR_SIZE} bytes.
 @defmac STACK_CHECK_BUILTIN
 A nonzero value if stack checking is done by the configuration files in a
 machine-dependent manner.  You should define this macro if stack checking
-is require by the ABI of your machine or if you would like to do stack
+is required by the ABI of your machine or if you would like to do stack
 checking in some more efficient way than the generic approach.  The default
 value of this macro is zero.
 @end defmac
@@ -3661,28 +3666,30 @@ not be defined.
 The static chain register need not be a fixed register.
 
 If the static chain is passed in memory, these macros should not be
-defined; instead, the next two macros should be defined.
+defined; instead, the @code{TARGET_STATIC_CHAIN} hook should be used.
 @end defmac
 
-@defmac STATIC_CHAIN
-@defmacx STATIC_CHAIN_INCOMING
-If the static chain is passed in memory, these macros provide rtx giving
-@code{mem} expressions that denote where they are stored.
-@code{STATIC_CHAIN} and @code{STATIC_CHAIN_INCOMING} give the locations
-as seen by the calling and called functions, respectively.  Often the former
-will be at an offset from the stack pointer and the latter at an offset from
-the frame pointer.
+@deftypefn {Target Hook} rtx TARGET_STATIC_CHAIN (const_tree @var{fndecl}, bool @var{incoming_p})
+This hook replaces the use of @code{STATIC_CHAIN_REGNUM} et al for
+targets that may use different static chain locations for different
+nested functions.  This may be required if the target has function
+attributes that affect the calling conventions of the function and
+those calling conventions use different static chain locations.
 
+The default version of this hook uses @code{STATIC_CHAIN_REGNUM} et al.
+
+If the static chain is passed in memory, this hook should be used to
+provide rtx giving @code{mem} expressions that denote where they are stored.
+Often the @code{mem} expression as seen by the caller will be at an offset
+from the stack pointer and the @code{mem} expression as seen by the callee
+will be at an offset from the frame pointer.
 @findex stack_pointer_rtx
 @findex frame_pointer_rtx
 @findex arg_pointer_rtx
 The variables @code{stack_pointer_rtx}, @code{frame_pointer_rtx}, and
-@code{arg_pointer_rtx} will have been initialized prior to the use of these
-macros and should be used to refer to those items.
-
-If the static chain is passed in a register, the two previous macros should
-be defined instead.
-@end defmac
+@code{arg_pointer_rtx} will have been initialized and should be used
+to refer to those items.
+@end deftypefn
 
 @defmac DWARF_FRAME_REGISTERS
 This macro specifies the maximum number of hard registers that can be
@@ -3781,7 +3788,7 @@ registers @code{regs_ever_live} and @code{call_used_regs}.
 
 If @code{ELIMINABLE_REGS} is defined, this macro will be not be used and
 need not be defined.  Otherwise, it must be defined even if
-@code{TARGET_FRAME_POINTER_REQUIRED} is always return true; in that
+@code{TARGET_FRAME_POINTER_REQUIRED} always returns true; in that
 case, you may set @var{depth-var} to anything.
 @end defmac
 
@@ -3812,16 +3819,16 @@ Note that the elimination of the argument pointer with the stack pointer is
 specified first since that is the preferred elimination.
 @end defmac
 
-@defmac CAN_ELIMINATE (@var{from-reg}, @var{to-reg})
-A C expression that returns @code{true} if the compiler is allowed to try
-to replace register number @var{from-reg} with register number
-@var{to-reg}.  This macro need only be defined if @code{ELIMINABLE_REGS}
+@deftypefn {Target Hook} bool TARGET_CAN_ELIMINATE (const int @var{from-reg}, const int @var{to-reg})
+This target hook should returns @code{true} if the compiler is allowed to
+try to replace register number @var{from-reg} with register number
+@var{to-reg}.  This target hook need only be defined if @code{ELIMINABLE_REGS}
 is defined, and will usually be @code{true}, since most of the cases
 preventing register elimination are things that the compiler already
 knows about.
 
-Default value is @code{true}.
-@end defmac
+Default return value is @code{true}.
+@end deftypefn
 
 @defmac INITIAL_ELIMINATION_OFFSET (@var{from-reg}, @var{to-reg}, @var{offset-var})
 This macro is similar to @code{INITIAL_FRAME_POINTER_OFFSET}.  It
@@ -4198,7 +4205,6 @@ on the stack.  The compiler knows how to track the amount of stack space
 used for arguments without any special help.
 @end defmac
 
-
 @defmac FUNCTION_ARG_OFFSET (@var{mode}, @var{type})
 If defined, a C expression that is the number of bytes to add to the
 offset of the argument passed in memory.  This is needed for the SPU,
@@ -4392,7 +4398,7 @@ compiled.
 @end defmac
 
 @deftypefn {Target Hook} rtx TARGET_LIBCALL_VALUE (enum machine_mode
-@var{mode}, rtx @var{fun})
+@var{mode}, const_rtx @var{fun})
 Define this hook if the back-end needs to know the name of the libcall
 function in order to determine where the result should be returned.  
 
@@ -5099,17 +5105,17 @@ proper offset from the start of the trampoline.  On a RISC machine, it
 may be necessary to take out pieces of the address and store them
 separately.
 
-@defmac TRAMPOLINE_TEMPLATE (@var{file})
-A C statement to output, on the stream @var{file}, assembler code for a
-block of data that contains the constant parts of a trampoline.  This
-code should not include a label---the label is taken care of
-automatically.
+@deftypefn {Target Hook} void TARGET_ASM_TRAMPOLINE_TEMPLATE (FILE *@var{f})
+This hook is called by @code{assemble_trampoline_template} to output,
+on the stream @var{f}, assembler code for a block of data that contains
+the constant parts of a trampoline.  This code should not include a
+label---the label is taken care of automatically.
 
-If you do not define this macro, it means no template is needed
-for the target.  Do not define this macro on systems where the block move
+If you do not define this hook, it means no template is needed
+for the target.  Do not define this hook on systems where the block move
 code to copy the trampoline into place would be larger than the code
 to generate it on the spot.
-@end defmac
+@end deftypefn
 
 @defmac TRAMPOLINE_SECTION
 Return the section into which the trampoline template is to be placed
@@ -5123,43 +5129,38 @@ A C expression for the size in bytes of the trampoline, as an integer.
 @defmac TRAMPOLINE_ALIGNMENT
 Alignment required for trampolines, in bits.
 
-If you don't define this macro, the value of @code{BIGGEST_ALIGNMENT}
+If you don't define this macro, the value of @code{FUNCTION_ALIGNMENT}
 is used for aligning trampolines.
 @end defmac
 
-@defmac INITIALIZE_TRAMPOLINE (@var{addr}, @var{fnaddr}, @var{static_chain})
-A C statement to initialize the variable parts of a trampoline.
-@var{addr} is an RTX for the address of the trampoline; @var{fnaddr} is
-an RTX for the address of the nested function; @var{static_chain} is an
+@deftypefn {Target Hook} void TARGET_TRAMPOLINE_INIT (rtx @var{m_tramp}, tree @var{fndecl}, rtx @var{static_chain})
+This hook is called to initialize a trampoline.
+@var{m_tramp} is an RTX for the memory block for the trampoline; @var{fndecl}
+is the @code{FUNCTION_DECL} for the nested function; @var{static_chain} is an
 RTX for the static chain value that should be passed to the function
 when it is called.
-@end defmac
 
-@defmac TRAMPOLINE_ADJUST_ADDRESS (@var{addr})
-A C statement that should perform any machine-specific adjustment in
-the address of the trampoline.  Its argument contains the address that
-was passed to @code{INITIALIZE_TRAMPOLINE}.  In case the address to be
-used for a function call should be different from the address in which
-the template was stored, the different address should be assigned to
-@var{addr}.  If this macro is not defined, @var{addr} will be used for
-function calls.
+If the target defines @code{TARGET_ASM_TRAMPOLINE_TEMPLATE}, then the
+first thing this hook should do is emit a block move into @var{m_tramp}
+from the memory block returned by @code{assemble_trampoline_template}.
+Note that the block move need only cover the constant parts of the 
+trampoline.  If the target isolates the variable parts of the trampoline
+to the end, not all @code{TRAMPOLINE_SIZE} bytes need be copied.
 
-@cindex @code{TARGET_ASM_FUNCTION_EPILOGUE} and trampolines
-@cindex @code{TARGET_ASM_FUNCTION_PROLOGUE} and trampolines
-If this macro is not defined, by default the trampoline is allocated as
-a stack slot.  This default is right for most machines.  The exceptions
-are machines where it is impossible to execute instructions in the stack
-area.  On such machines, you may have to implement a separate stack,
-using this macro in conjunction with @code{TARGET_ASM_FUNCTION_PROLOGUE}
-and @code{TARGET_ASM_FUNCTION_EPILOGUE}.
+If the target requires any other actions, such as flushing caches or
+enabling stack execution, these actions should be performed after 
+initializing the trampoline proper.
+@end deftypefn
 
-@var{fp} points to a data structure, a @code{struct function}, which
-describes the compilation status of the immediate containing function of
-the function which the trampoline is for.  The stack slot for the
-trampoline is in the stack frame of this containing function.  Other
-allocation strategies probably must do something analogous with this
-information.
-@end defmac
+@deftypefn {Target Hook} rtx TARGET_TRAMPOLINE_ADJUST_ADDRESS (rtx @var{addr})
+This hook should perform any machine-specific adjustment in
+the address of the trampoline.  Its argument contains the address of the
+memory block that was passed to @code{TARGET_TRAMPOLINE_INIT}.  In case
+the address to be used for a function call should be different from the
+address at which the template was stored, the different address should
+be returned; otherwise @var{addr} should be returned unchanged.
+If this hook is not defined, @var{addr} will be used for function calls.
+@end deftypefn
 
 Implementing trampolines is difficult on many machines because they have
 separate instruction and data caches.  Writing into a stack location
@@ -5192,7 +5193,7 @@ code located on the stack.  The macro should expand to a series of C
 file-scope constructs (e.g.@: functions) and provide a unique entry point
 named @code{__enable_execute_stack}.  The target is responsible for
 emitting calls to the entry point in the code, for example from the
-@code{INITIALIZE_TRAMPOLINE} macro.
+@code{TARGET_TRAMPOLINE_INIT} hook.
 @end defmac
 
 To use a standard subroutine, define the following macro.  In addition,
@@ -5368,9 +5369,10 @@ post-address side-effect generation involving a register displacement.
 
 @defmac CONSTANT_ADDRESS_P (@var{x})
 A C expression that is 1 if the RTX @var{x} is a constant which
-is a valid address.  On most machines, this can be defined as
-@code{CONSTANT_P (@var{x})}, but a few machines are more restrictive
-in which constant addresses are supported.
+is a valid address.  On most machines the default definition of
+@code{(CONSTANT_P (@var{x}) && GET_CODE (@var{x}) != CONST_DOUBLE)}
+is acceptable, but a few machines are more restrictive as to which
+constant addresses are supported. 
 @end defmac
 
 @defmac CONSTANT_P (@var{x})
@@ -5631,7 +5633,7 @@ should comply with the semantics expected by @code{REALIGN_LOAD}
 described above.
 If this hook is not defined, then @var{addr} will be used as
 the argument @var{OFF} to @code{REALIGN_LOAD}, in which case the low
-log2(@var{VS})-1 bits of @var{addr} will be considered.
+log2(@var{VS}) @minus{} 1 bits of @var{addr} will be considered.
 @end deftypefn
 
 @deftypefn {Target Hook} tree TARGET_VECTORIZE_BUILTIN_MUL_WIDEN_EVEN (tree @var{x})
@@ -5677,6 +5679,14 @@ variant of the builtin function with builtin function code @var{code} or
 @code{NULL_TREE} if such a function is not available.  The return type of
 the vectorized function shall be of vector type @var{vec_type_out} and the
 argument types should be @var{vec_type_in}.
+@end deftypefn
+
+@deftypefn {Target Hook} bool TARGET_SUPPORT_VECTOR_MISALIGNMENT (enum machine_mode @var{mode}, tree @var{type}, int @var{misalignment}, bool @var{is_packed})
+This hook should return true if the target supports misaligned vector
+store/load of a specific factor denoted in the @var{misalignment}
+parameter.  The vector store/load should be of machine mode @var{mode} and
+the elements in the vectors should be of type @var{type}.  @var{is_packed}
+parameter is true if the memory access is defined in a packed struct.
 @end deftypefn
 
 @node Anchored Addresses
@@ -6117,7 +6127,7 @@ this macro is defined, it should produce a nonzero value when
 @code{STRICT_ALIGNMENT} is nonzero.
 @end defmac
 
-@defmac MOVE_RATIO
+@defmac MOVE_RATIO (@var{speed})
 The threshold of number of scalar memory-to-memory move insns, @emph{below}
 which a sequence of insns should be generated instead of a
 string move insn or a library call.  Increasing the value will always
@@ -6126,6 +6136,9 @@ make code faster, but eventually incurs high cost in increased code size.
 Note that on machines where the corresponding move insn is a
 @code{define_expand} that emits a sequence of insns, this macro counts
 the number of such sequences.
+
+The parameter @var{speed} is true if the code is currently being
+optimized for speed rather than size.
 
 If you don't define this, a reasonable default is used.
 @end defmac
@@ -6142,11 +6155,14 @@ A C expression used by @code{move_by_pieces} to determine the largest unit
 a load or store used to copy memory is.  Defaults to @code{MOVE_MAX}.
 @end defmac
 
-@defmac CLEAR_RATIO
+@defmac CLEAR_RATIO (@var{speed})
 The threshold of number of scalar move insns, @emph{below} which a sequence
 of insns should be generated to clear memory instead of a string clear insn
 or a library call.  Increasing the value will always make code faster, but
 eventually incurs high cost in increased code size.
+
+The parameter @var{speed} is true if the code is currently being
+optimized for speed rather than size.
 
 If you don't define this, a reasonable default is used.
 @end defmac
@@ -6158,12 +6174,15 @@ will be used.  Defaults to 1 if @code{move_by_pieces_ninsns} returns less
 than @code{CLEAR_RATIO}.
 @end defmac
 
-@defmac SET_RATIO
+@defmac SET_RATIO (@var{speed})
 The threshold of number of scalar move insns, @emph{below} which a sequence
 of insns should be generated to set memory to a constant value, instead of
 a block set insn or a library call.  
 Increasing the value will always make code faster, but
 eventually incurs high cost in increased code size.
+
+The parameter @var{speed} is true if the code is currently being
+optimized for speed rather than size.
 
 If you don't define this, it defaults to the value of @code{MOVE_RATIO}.
 @end defmac
@@ -6179,7 +6198,7 @@ than @code{SET_RATIO}.
 
 @defmac STORE_BY_PIECES_P (@var{size}, @var{alignment})
 A C expression used to determine whether @code{store_by_pieces} will be
-used to set a chunk of memory to a constant string value, or whether some 
+used to set a chunk of memory to a constant string value, or whether some
 other mechanism will be used.  Used by @code{__builtin_strcpy} when
 called with a constant source string.
 Defaults to 1 if @code{move_by_pieces_ninsns} returns less
@@ -6245,7 +6264,7 @@ Define this macro if a non-short-circuit operation produced by
 @code{BRANCH_COST} is greater than or equal to the value 2.
 @end defmac
 
-@deftypefn {Target Hook} bool TARGET_RTX_COSTS (rtx @var{x}, int @var{code}, int @var{outer_code}, int *@var{total})
+@deftypefn {Target Hook} bool TARGET_RTX_COSTS (rtx @var{x}, int @var{code}, int @var{outer_code}, int *@var{total}, bool @var{speed})
 This target hook describes the relative costs of RTL expressions.
 
 The cost may depend on the precise form of the expression, which is
@@ -6264,15 +6283,15 @@ necessary.  Traditionally, the default costs are @code{COSTS_N_INSNS (5)}
 for multiplications, @code{COSTS_N_INSNS (7)} for division and modulus
 operations, and @code{COSTS_N_INSNS (1)} for all other operations.
 
-When optimizing for code size, i.e.@: when @code{optimize_size} is
-nonzero, this target hook should be used to estimate the relative
+When optimizing for code size, i.e.@: when @code{speed} is
+false, this target hook should be used to estimate the relative
 size cost of an expression, again relative to @code{COSTS_N_INSNS}.
 
 The hook returns true when all subexpressions of @var{x} have been
 processed, and false when @code{rtx_cost} should recurse.
 @end deftypefn
 
-@deftypefn {Target Hook} int TARGET_ADDRESS_COST (rtx @var{address})
+@deftypefn {Target Hook} int TARGET_ADDRESS_COST (rtx @var{address}, bool @var{speed})
 This hook computes the cost of an addressing mode that contains
 @var{address}.  If not defined, the cost is computed from
 the @var{address} expression and the @code{TARGET_RTX_COST} hook.
@@ -6374,7 +6393,7 @@ debug output to.  @var{verbose} is the verbose level provided by
 list of instructions that are ready to be scheduled.  @var{n_readyp} is
 a pointer to the number of elements in the ready list.  The scheduler
 reads the ready list in reverse order, starting with
-@var{ready}[@var{*n_readyp}-1] and going to @var{ready}[0].  @var{clock}
+@var{ready}[@var{*n_readyp} @minus{} 1] and going to @var{ready}[0].  @var{clock}
 is the timer tick of the scheduler.  You may modify the ready list and
 the number of ready insns.  The return value is the number of insns that
 can issue this cycle; normally this is just @code{issue_rate}.  See also
@@ -6605,7 +6624,7 @@ speculative dependencies and therefore can be scheduled speculatively.
 The hook is used to check if the pattern of @var{insn} has a speculative
 version and, in case of successful check, to generate that speculative
 pattern.  The hook should return 1, if the instruction has a speculative form,
-or -1, if it doesn't.  @var{request} describes the type of requested
+or @minus{}1, if it doesn't.  @var{request} describes the type of requested
 speculation.  If the return value equals 1 then @var{new_pat} is assigned
 the generated speculative pattern.
 @end deftypefn
@@ -9159,6 +9178,13 @@ A C statement to issue assembly directives that create a self-relative
 reference to the given @var{label}, using an integer of the given @var{size}.
 @end defmac
 
+@defmac ASM_OUTPUT_DWARF_TABLE_REF (@var{label})
+A C statement to issue assembly directives that create a reference to
+the DWARF table identifier @var{label} from the current section.  This
+is used on some systems to avoid garbage collecting a DWARF table which
+is referenced by a function.
+@end defmac
+
 @deftypefn {Target Hook} void TARGET_ASM_OUTPUT_DWARF_DTPREL (FILE *@var{FILE}, int @var{size}, rtx @var{x})
 If defined, this target hook is a function which outputs a DTP-relative
 reference to the given TLS symbol of the specified size.
@@ -9499,7 +9525,7 @@ attributes, or a copy of the list may be made if further changes are
 needed.
 @end deftypefn
 
-@deftypefn {Target Hook} bool TARGET_FUNCTION_ATTRIBUTE_INLINABLE_P (tree @var{fndecl})
+@deftypefn {Target Hook} bool TARGET_FUNCTION_ATTRIBUTE_INLINABLE_P (const_tree @var{fndecl})
 @cindex inlining
 This target hook returns @code{true} if it is ok to inline @var{fndecl}
 into the current function, despite its having target-specific
@@ -10520,6 +10546,16 @@ only language front ends that use those two functions will call
 @samp{TARGET_INIT_BUILTINS}.
 @end deftypefn
 
+@deftypefn {Target Hook} tree TARGET_BUILTIN_FUNCTION (unsigned @var{code}, bool @var{initialize_p})
+Define this hook if you have any machine-specific built-in functions
+that need to be defined.  It should be a function that returns the
+builtin function declaration for the builtin function code @var{code}.
+If there is no such builtin and it cannot be initialized at this time
+if @var{initialize_p} is true the function should return @code{NULL_TREE}.
+If @var{code} is out of range the function should return
+@code{error_mark_node}.
+@end deftypefn
+
 @deftypefn {Target Hook} rtx TARGET_EXPAND_BUILTIN (tree @var{exp}, rtx @var{target}, rtx @var{subtarget}, enum machine_mode @var{mode}, int @var{ignore})
 
 Expand a call to a machine specific built-in function that was set up by
@@ -10882,7 +10918,6 @@ cannot safely move arguments from the registers in which they are passed
 to the stack.  Therefore, this hook should return true in general, but
 false for naked functions.  The default implementation always returns true.
 @end deftypefn
-
 
 @deftypevr {Target Hook} {unsigned HOST_WIDE_INT} TARGET_CONST_ANCHOR
 On some architectures it can take multiple instructions to synthesize

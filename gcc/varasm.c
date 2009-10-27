@@ -1748,7 +1748,8 @@ assemble_start_function (tree decl, const char *fnname)
   ASM_OUTPUT_FUNCTION_PREFIX (asm_out_file, fnname);
 #endif
 
-  (*debug_hooks->begin_function) (decl);
+  if (!DECL_IGNORED_P (decl))
+    (*debug_hooks->begin_function) (decl);
 
   /* Make function name accessible from other files, if appropriate.  */
 
@@ -2080,7 +2081,7 @@ assemble_variable (tree decl, int top_level ATTRIBUTE_UNUSED,
 	     Without this, if the variable is placed in a
 	     section-anchored block, the template will only be marked
 	     when it's too late.  */
-	  record_references_in_initializer (to);
+	  record_references_in_initializer (to, false);
 	}
 
       decl = to;
@@ -2327,11 +2328,11 @@ assemble_external (tree decl ATTRIBUTE_UNUSED)
 	 for declarations that can be weak, it happens to be
 	 match.  */
       && !TREE_STATIC (decl)
-      && tree_find_value (weak_decls, decl) == NULL_TREE)
-      weak_decls = tree_cons (NULL, decl, weak_decls);
+      && value_member (decl, weak_decls) == NULL_TREE)
+    weak_decls = tree_cons (NULL, decl, weak_decls);
 
 #ifdef ASM_OUTPUT_EXTERNAL
-  if (tree_find_value (pending_assemble_externals, decl) == NULL_TREE)
+  if (value_member (decl, pending_assemble_externals) == NULL_TREE)
     pending_assemble_externals = tree_cons (NULL, decl,
 					    pending_assemble_externals);
 #endif
@@ -2505,7 +2506,6 @@ assemble_static_space (unsigned HOST_WIDE_INT size)
 
 static GTY(()) rtx initial_trampoline;
 
-#ifdef TRAMPOLINE_TEMPLATE
 rtx
 assemble_trampoline_template (void)
 {
@@ -2513,6 +2513,8 @@ assemble_trampoline_template (void)
   const char *name;
   int align;
   rtx symbol;
+
+  gcc_assert (targetm.asm_out.trampoline_template != NULL);
 
   if (initial_trampoline)
     return initial_trampoline;
@@ -2528,12 +2530,10 @@ assemble_trampoline_template (void)
   /* Write the assembler code to define one.  */
   align = floor_log2 (TRAMPOLINE_ALIGNMENT / BITS_PER_UNIT);
   if (align > 0)
-    {
-      ASM_OUTPUT_ALIGN (asm_out_file, align);
-    }
+    ASM_OUTPUT_ALIGN (asm_out_file, align);
 
   targetm.asm_out.internal_label (asm_out_file, "LTRAMP", 0);
-  TRAMPOLINE_TEMPLATE (asm_out_file);
+  targetm.asm_out.trampoline_template (asm_out_file);
 
   /* Record the rtl to refer to it.  */
   ASM_GENERATE_INTERNAL_LABEL (label, "LTRAMP", 0);
@@ -2541,12 +2541,12 @@ assemble_trampoline_template (void)
   symbol = gen_rtx_SYMBOL_REF (Pmode, name);
   SYMBOL_REF_FLAGS (symbol) = SYMBOL_FLAG_LOCAL;
 
-  initial_trampoline = gen_rtx_MEM (BLKmode, symbol);
+  initial_trampoline = gen_const_mem (BLKmode, symbol);
   set_mem_align (initial_trampoline, TRAMPOLINE_ALIGNMENT);
+  set_mem_size (initial_trampoline, GEN_INT (TRAMPOLINE_SIZE));
 
   return initial_trampoline;
 }
-#endif
 
 /* A and B are either alignments or offsets.  Return the minimum alignment
    that may be assumed after adding the two together.  */
@@ -4211,8 +4211,7 @@ initializer_constant_valid_p (tree value, tree endtype)
 	    /* Taking the address of a nested function involves a trampoline,
 	       unless we don't need or want one.  */
 	    if (TREE_CODE (op0) == FUNCTION_DECL
-		&& decl_function_context (op0)
-		&& !DECL_NO_STATIC_CHAIN (op0)
+		&& DECL_STATIC_CHAIN (op0)
 		&& !TREE_NO_TRAMPOLINE (value))
 	      return NULL_TREE;
 	    /* "&{...}" requires a temporary to hold the constructed
@@ -5368,20 +5367,7 @@ globalize_decl (tree decl)
   targetm.asm_out.globalize_decl_name (asm_out_file, decl);
 }
 
-/* We have to be able to tell cgraph about the needed-ness of the target
-   of an alias.  This requires that the decl have been defined.  Aliases
-   that precede their definition have to be queued for later processing.  */
-
-typedef struct GTY(()) alias_pair {
-  tree decl;
-  tree target;
-} alias_pair;
-
-/* Define gc'd vector type.  */
-DEF_VEC_O(alias_pair);
-DEF_VEC_ALLOC_O(alias_pair,gc);
-
-static GTY(()) VEC(alias_pair,gc) *alias_pairs;
+VEC(alias_pair,gc) *alias_pairs;
 
 /* Given an assembly name, find the decl it is associated with.  At the
    same time, mark it needed for cgraph.  */
@@ -5407,13 +5393,7 @@ find_decl_and_mark_needed (tree decl, tree target)
 
   if (fnode)
     {
-      /* We can't mark function nodes as used after cgraph global info
-	 is finished.  This wouldn't generally be necessary, but C++
-	 virtual table thunks are introduced late in the game and
-	 might seem like they need marking, although in fact they
-	 don't.  */
-      if (! cgraph_global_info_ready)
-	cgraph_mark_needed_node (fnode);
+      cgraph_mark_needed_node (fnode);
       return fnode->decl;
     }
   else if (vnode)
@@ -5525,6 +5505,39 @@ do_assemble_alias (tree decl, tree target)
 #endif
 }
 
+
+/* Remove the alias pairing for functions that are no longer in the call
+   graph.  */
+
+void
+remove_unreachable_alias_pairs (void)
+{
+  unsigned i;
+  alias_pair *p;
+
+  if (alias_pairs == NULL)
+    return;
+
+  for (i = 0; VEC_iterate (alias_pair, alias_pairs, i, p); )
+    {
+      if (!DECL_EXTERNAL (p->decl))
+	{
+	  struct cgraph_node *fnode = NULL;
+	  struct varpool_node *vnode = NULL;
+	  fnode = cgraph_node_for_asm (p->target);
+	  vnode = (fnode == NULL) ? varpool_node_for_asm (p->target) : NULL;
+	  if (fnode == NULL && vnode == NULL)
+	    {
+	      VEC_unordered_remove (alias_pair, alias_pairs, i);
+	      continue;
+	    }
+	}
+
+      i++;
+    }
+}
+
+
 /* First pass of completing pending aliases.  Make sure that cgraph knows
    which symbols will be required.  */
 
@@ -5546,6 +5559,11 @@ finish_aliases_1 (void)
 		   p->decl, p->target);
 	}
       else if (DECL_EXTERNAL (target_decl)
+ 	       /* We use local aliases for C++ thunks to force the tailcall
+ 		  to bind locally.  Of course this is a hack - to keep it
+ 		  working do the following (which is not strictly correct).  */
+ 	       && (! TREE_CODE (target_decl) == FUNCTION_DECL
+ 		   || ! DECL_VIRTUAL_P (target_decl))
 	       && ! lookup_attribute ("weakref", DECL_ATTRIBUTES (p->decl)))
 	error ("%q+D aliased to external symbol %qE",
 	       p->decl, p->target);
@@ -5978,8 +5996,13 @@ default_elf_asm_named_section (const char *name, unsigned int flags,
       if (flags & SECTION_ENTSIZE)
 	fprintf (asm_out_file, ",%d", flags & SECTION_ENTSIZE);
       if (HAVE_COMDAT_GROUP && (flags & SECTION_LINKONCE))
-	fprintf (asm_out_file, ",%s,comdat",
-		 IDENTIFIER_POINTER (DECL_COMDAT_GROUP (decl)));
+	{
+	  if (TREE_CODE (decl) == IDENTIFIER_NODE)
+	    fprintf (asm_out_file, ",%s,comdat", IDENTIFIER_POINTER (decl));
+	  else
+	    fprintf (asm_out_file, ",%s,comdat",
+		     IDENTIFIER_POINTER (DECL_COMDAT_GROUP (decl)));
+	}
     }
 
   putc ('\n', asm_out_file);
@@ -6396,8 +6419,8 @@ default_encode_section_info (tree decl, rtx rtl, int first ATTRIBUTE_UNUSED)
     flags |= SYMBOL_FLAG_FUNCTION;
   if (targetm.binds_local_p (decl))
     flags |= SYMBOL_FLAG_LOCAL;
-  if (targetm.have_tls && TREE_CODE (decl) == VAR_DECL
-      && DECL_THREAD_LOCAL_P (decl))
+  if (TREE_CODE (decl) == VAR_DECL && DECL_THREAD_LOCAL_P (decl)
+      && DECL_TLS_MODEL (decl) != TLS_MODEL_EMULATED)
     flags |= DECL_TLS_MODEL (decl) << SYMBOL_FLAG_TLS_SHIFT;
   else if (targetm.in_small_data_p (decl))
     flags |= SYMBOL_FLAG_SMALL;

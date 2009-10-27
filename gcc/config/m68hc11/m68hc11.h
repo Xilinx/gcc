@@ -1,6 +1,6 @@
 /* Definitions of target machine for GNU compiler.
    Motorola 68HC11 and 68HC12.
-   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008
+   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Stephane Carrez (stcarrez@nerim.fr)
 
@@ -883,17 +883,6 @@ extern enum reg_class m68hc11_tmp_regs_class;
  {FRAME_POINTER_REGNUM, STACK_POINTER_REGNUM},		\
  {FRAME_POINTER_REGNUM, HARD_FRAME_POINTER_REGNUM}}
 
-/* Given FROM and TO register numbers, say whether this elimination is allowed.
-   Frame pointer elimination is automatically handled.
-
-   All other eliminations are valid.  */
-
-#define CAN_ELIMINATE(FROM, TO)					\
- ((FROM) == ARG_POINTER_REGNUM && (TO) == STACK_POINTER_REGNUM	\
-  ? ! frame_pointer_needed					\
-  : 1)
-
-
 /* Define the offset between two registers, one to be eliminated, and the other
    its replacement, at the start of a routine.  */
 
@@ -1016,16 +1005,9 @@ typedef struct m68hc11_args
    for profiling a function entry.  */
 #define FUNCTION_PROFILER(FILE, LABELNO)		\
     fprintf (FILE, "\tldy\t.LP%d\n\tjsr mcount\n", (LABELNO))
+
 /* Length in units of the trampoline for entering a nested function.  */
 #define TRAMPOLINE_SIZE		(TARGET_M6811 ? 11 : 9)
-
-/* A C statement to initialize the variable parts of a trampoline.
-   ADDR is an RTX for the address of the trampoline; FNADDR is an
-   RTX for the address of the nested function; STATIC_CHAIN is an
-   RTX for the static chain value that should be passed to the
-   function when it is called.  */
-#define INITIALIZE_TRAMPOLINE(TRAMP, FNADDR, CXT) \
-  m68hc11_initialize_trampoline ((TRAMP), (FNADDR), (CXT))
 
 
 /* Addressing modes, and classification of registers for them.  */

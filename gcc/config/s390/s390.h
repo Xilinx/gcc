@@ -24,12 +24,6 @@ along with GCC; see the file COPYING3.  If not see
 #ifndef _S390_H
 #define _S390_H
 
-/* Override the __fixdfdi etc. routines when building libgcc2.
-   ??? This should be done in a cleaner way ...  */
-#if defined (IN_LIBGCC2) && !defined (__s390x__)
-#include <config/s390/fixdfdi.h>
-#endif
-
 /* Which processor to generate code or schedule for. The cpu attribute
    defines a list that mirrors this list, so changes to s390.md must be
    made at the same time.  */
@@ -646,9 +640,6 @@ extern const enum reg_class regclass_map[FIRST_PSEUDO_REGISTER];
  { RETURN_ADDRESS_POINTER_REGNUM, HARD_FRAME_POINTER_REGNUM },	\
  { BASE_REGNUM, BASE_REGNUM }}
 
-#define CAN_ELIMINATE(FROM, TO) \
-  s390_can_eliminate ((FROM), (TO))
-
 #define INITIAL_ELIMINATION_OFFSET(FROM, TO, OFFSET) \
   (OFFSET) = s390_initial_elimination_offset ((FROM), (TO))
 
@@ -715,14 +706,8 @@ CUMULATIVE_ARGS;
 
 /* Trampolines for nested functions.  */
 
-#define TRAMPOLINE_SIZE (TARGET_64BIT ? 32 : 16)
-
-#define INITIALIZE_TRAMPOLINE(ADDR, FNADDR, CXT)                       \
-   s390_initialize_trampoline ((ADDR), (FNADDR), (CXT))
-
-#define TRAMPOLINE_TEMPLATE(FILE)                                       \
-   s390_trampoline_template (FILE)
-
+#define TRAMPOLINE_SIZE		(TARGET_64BIT ? 32 : 16)
+#define TRAMPOLINE_ALIGNMENT	BITS_PER_WORD
 
 /* Addressing modes, and classification of registers for them.  */
 

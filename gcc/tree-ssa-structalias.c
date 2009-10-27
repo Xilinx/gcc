@@ -425,10 +425,6 @@ struct constraint
 static VEC(constraint_t,heap) *constraints;
 static alloc_pool constraint_pool;
 
-
-DEF_VEC_I(int);
-DEF_VEC_ALLOC_I(int, heap);
-
 /* The constraint graph is represented as an array of bitmaps
    containing successor nodes.  */
 
@@ -1286,10 +1282,6 @@ build_succ_graph (void)
 /* Changed variables on the last iteration.  */
 static unsigned int changed_count;
 static sbitmap changed;
-
-DEF_VEC_I(unsigned);
-DEF_VEC_ALLOC_I(unsigned,heap);
-
 
 /* Strongly Connected Component visitation info.  */
 
@@ -2833,7 +2825,7 @@ static void
 get_constraint_for_ptr_offset (tree ptr, tree offset,
 			       VEC (ce_s, heap) **results)
 {
-  struct constraint_expr *c;
+  struct constraint_expr c;
   unsigned int j, n;
   HOST_WIDE_INT rhsunitoffset, rhsoffset;
 
@@ -2871,14 +2863,14 @@ get_constraint_for_ptr_offset (tree ptr, tree offset,
   for (j = 0; j < n; j++)
     {
       varinfo_t curr;
-      c = VEC_index (ce_s, *results, j);
-      curr = get_varinfo (c->var);
+      c = *VEC_index (ce_s, *results, j);
+      curr = get_varinfo (c.var);
 
-      if (c->type == ADDRESSOF
+      if (c.type == ADDRESSOF
 	  /* If this varinfo represents a full variable just use it.  */
 	  && curr->is_full_var)
-	c->offset = 0;
-      else if (c->type == ADDRESSOF
+	c.offset = 0;
+      else if (c.type == ADDRESSOF
 	       /* If we do not know the offset add all subfields.  */
 	       && rhsoffset == UNKNOWN_OFFSET)
 	{
@@ -2889,13 +2881,13 @@ get_constraint_for_ptr_offset (tree ptr, tree offset,
 	      c2.var = temp->id;
 	      c2.type = ADDRESSOF;
 	      c2.offset = 0;
-	      if (c2.var != c->var)
+	      if (c2.var != c.var)
 		VEC_safe_push (ce_s, heap, *results, &c2);
 	      temp = temp->next;
 	    }
 	  while (temp);
 	}
-      else if (c->type == ADDRESSOF)
+      else if (c.type == ADDRESSOF)
 	{
 	  varinfo_t temp;
 	  unsigned HOST_WIDE_INT offset = curr->offset + rhsoffset;
@@ -2927,11 +2919,13 @@ get_constraint_for_ptr_offset (tree ptr, tree offset,
 	      c2.offset = 0;
 	      VEC_safe_push (ce_s, heap, *results, &c2);
 	    }
-	  c->var = temp->id;
-	  c->offset = 0;
+	  c.var = temp->id;
+	  c.offset = 0;
 	}
       else
-	c->offset = rhsoffset;
+	c.offset = rhsoffset;
+
+      VEC_replace (ce_s, *results, j, &c);
     }
 }
 
@@ -4548,13 +4542,13 @@ create_variable_info_for (tree decl, const char *name)
 	  newvi->fullsize = vi->fullsize;
 	  newvi->may_have_pointers = fo->may_have_pointers;
 	  insert_into_field_list (vi, newvi);
-	  if (newvi->is_global_var
-	      && (!flag_whole_program || !in_ipa_mode)
+	  if ((newvi->is_global_var || TREE_CODE (decl) == PARM_DECL)
 	      && newvi->may_have_pointers)
 	    {
 	       if (fo->only_restrict_pointers)
 		 make_constraint_from_restrict (newvi, "GLOBAL_RESTRICT");
-	       make_copy_constraint (newvi, nonlocal_id);
+	       if (newvi->is_global_var && !in_ipa_mode)
+		 make_copy_constraint (newvi, nonlocal_id);
 	    }
 
 	  stats.total_vars++;
@@ -4618,8 +4612,41 @@ intra_create_variable_infos (void)
       if (!could_have_pointers (t))
 	continue;
 
+      /* For restrict qualified pointers to objects passed by
+         reference build a real representative for the pointed-to object.  */
+      if (DECL_BY_REFERENCE (t)
+	  && POINTER_TYPE_P (TREE_TYPE (t))
+	  && TYPE_RESTRICT (TREE_TYPE (t)))
+	{
+	  struct constraint_expr lhsc, rhsc;
+	  varinfo_t vi;
+	  tree heapvar = heapvar_lookup (t, 0);
+	  if (heapvar == NULL_TREE)
+	    {
+	      var_ann_t ann;
+	      heapvar = create_tmp_var_raw (TREE_TYPE (TREE_TYPE (t)),
+					    "PARM_NOALIAS");
+	      DECL_EXTERNAL (heapvar) = 1;
+	      heapvar_insert (t, 0, heapvar);
+	      ann = get_var_ann (heapvar);
+	      ann->is_heapvar = 1;
+	    }
+	  if (gimple_referenced_vars (cfun))
+	    add_referenced_var (heapvar);
+	  lhsc.var = get_vi_for_tree (t)->id;
+	  lhsc.type = SCALAR;
+	  lhsc.offset = 0;
+	  rhsc.var = (vi = get_vi_for_tree (heapvar))->id;
+	  rhsc.type = ADDRESSOF;
+	  rhsc.offset = 0;
+	  process_constraint (new_constraint (lhsc, rhsc));
+	  vi->is_restrict_var = 1;
+	  continue;
+	}
+
       for (p = get_vi_for_tree (t); p; p = p->next)
-	make_constraint_from (p, nonlocal_id);
+	if (p->may_have_pointers)
+	  make_constraint_from (p, nonlocal_id);
       if (POINTER_TYPE_P (TREE_TYPE (t))
 	  && TYPE_RESTRICT (TREE_TYPE (t)))
 	make_constraint_from_restrict (get_vi_for_tree (t), "PARM_RESTRICT");

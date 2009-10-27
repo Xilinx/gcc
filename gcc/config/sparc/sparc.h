@@ -1369,12 +1369,6 @@ extern char leaf_reg_remap[];
   {{ FRAME_POINTER_REGNUM, STACK_POINTER_REGNUM}, \
    { FRAME_POINTER_REGNUM, HARD_FRAME_POINTER_REGNUM} }
 
-/* The way this is structured, we can't eliminate SFP in favor of SP
-   if the frame pointer is required: we want to use the SFP->HFP elimination
-   in that case.  But the test in update_eliminables doesn't know we are
-   assuming below that we only do the former elimination.  */
-#define CAN_ELIMINATE(FROM, TO) sparc_can_eliminate((FROM), (TO))
-
 /* We always pretend that this is a leaf function because if it's not,
    there's no point in trying to eliminate the frame pointer.  If it
    is a leaf function, we guessed right!  */
@@ -1618,16 +1612,6 @@ do {									\
 #define TRAMPOLINE_SIZE (TARGET_ARCH64 ? 32 : 16)
 
 #define TRAMPOLINE_ALIGNMENT 128 /* 16 bytes */
-
-/* Emit RTL insns to initialize the variable parts of a trampoline.
-   FNADDR is an RTX for the address of the function's pure code.
-   CXT is an RTX for the static chain value for the function.  */
-
-#define INITIALIZE_TRAMPOLINE(TRAMP, FNADDR, CXT) \
-    if (TARGET_ARCH64)						\
-      sparc64_initialize_trampoline (TRAMP, FNADDR, CXT);	\
-    else							\
-      sparc_initialize_trampoline (TRAMP, FNADDR, CXT)
 
 /* Generate RTL to flush the register windows so as to make arbitrary frames
    available.  */

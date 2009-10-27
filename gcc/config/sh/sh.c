@@ -177,7 +177,7 @@ static rtx find_barrier (int, rtx, rtx);
 static int noncall_uses_reg (rtx, rtx, rtx *);
 static rtx gen_block_redirect (rtx, int, int);
 static void sh_reorg (void);
-static void output_stack_adjust (int, rtx, int, HARD_REG_SET *);
+static void output_stack_adjust (int, rtx, int, HARD_REG_SET *, bool);
 static rtx frame_insn (rtx);
 static rtx push (int);
 static void pop (int);
@@ -222,7 +222,9 @@ static bool sh_optimize_target_register_callee_saved (bool);
 static bool sh_ms_bitfield_layout_p (const_tree);
 
 static void sh_init_builtins (void);
+static tree sh_builtin_decl (unsigned, bool);
 static void sh_media_init_builtins (void);
+static tree sh_media_builtin_decl (unsigned, bool);
 static rtx sh_expand_builtin (tree, rtx, rtx, enum machine_mode, int);
 static void sh_output_mi_thunk (FILE *, tree, HOST_WIDE_INT, HOST_WIDE_INT, tree);
 static void sh_file_start (void);
@@ -272,6 +274,8 @@ static bool sh_scalar_mode_supported_p (enum machine_mode);
 static int sh_dwarf_calling_convention (const_tree);
 static void sh_encode_section_info (tree, rtx, int);
 static int sh2a_function_vector_p (tree);
+static void sh_trampoline_init (rtx, tree, rtx);
+static rtx sh_trampoline_adjust_address (rtx);
 
 static const struct attribute_spec sh_attribute_table[] =
 {
@@ -414,6 +418,8 @@ static const struct attribute_spec sh_attribute_table[] =
 
 #undef TARGET_INIT_BUILTINS
 #define TARGET_INIT_BUILTINS sh_init_builtins
+#undef TARGET_BUILTIN_DECL
+#define TARGET_BUILTIN_DECL sh_builtin_decl
 #undef TARGET_EXPAND_BUILTIN
 #define TARGET_EXPAND_BUILTIN sh_expand_builtin
 
@@ -501,7 +507,7 @@ static const struct attribute_spec sh_attribute_table[] =
 #undef  TARGET_STRIP_NAME_ENCODING
 #define TARGET_STRIP_NAME_ENCODING	sh_symbian_strip_name_encoding
 #undef  TARGET_CXX_IMPORT_EXPORT_CLASS
-#define TARGET_CXX_IMPORT_EXPORT_CLASS  symbian_import_export_class
+#define TARGET_CXX_IMPORT_EXPORT_CLASS  sh_symbian_import_export_class
 
 #endif /* SYMBIAN */
 
@@ -510,6 +516,11 @@ static const struct attribute_spec sh_attribute_table[] =
 
 #undef TARGET_LEGITIMATE_ADDRESS_P
 #define TARGET_LEGITIMATE_ADDRESS_P	sh_legitimate_address_p
+
+#undef TARGET_TRAMPOLINE_INIT
+#define TARGET_TRAMPOLINE_INIT		sh_trampoline_init
+#undef TARGET_TRAMPOLINE_ADJUST_ADDRESS
+#define TARGET_TRAMPOLINE_ADJUST_ADDRESS sh_trampoline_adjust_address
 
 /* Machine-specific symbol_ref flags.  */
 #define SYMBOL_FLAG_FUNCVEC_FUNCTION    (SYMBOL_FLAG_MACH_DEP << 0)
@@ -5841,9 +5852,10 @@ split_branches (rtx first)
 
 	    next = next_active_insn (insn);
 
-	    if ((JUMP_P (next)
-		 || ((next = next_active_insn (next))
-		     && JUMP_P (next)))
+	    if (next
+		&& (JUMP_P (next)
+		    || ((next = next_active_insn (next))
+			&& JUMP_P (next)))
 		&& GET_CODE (PATTERN (next)) == SET
 		&& recog_memoized (next) == CODE_FOR_jump_compact
 		&& ((INSN_ADDRESSES
@@ -6036,9 +6048,9 @@ output_jump_label_table (void)
 
 static void
 output_stack_adjust (int size, rtx reg, int epilogue_p,
-		     HARD_REG_SET *live_regs_mask)
+		     HARD_REG_SET *live_regs_mask, bool frame_p)
 {
-  rtx (*emit_fn) (rtx) = epilogue_p ? &emit_insn : &frame_insn;
+  rtx (*emit_fn) (rtx) = frame_p ? &frame_insn : &emit_insn;
   if (size)
     {
       HOST_WIDE_INT align = STACK_BOUNDARY / BITS_PER_UNIT;
@@ -6700,9 +6712,10 @@ sh_expand_prologue (void)
       && (NPARM_REGS(SImode)
 	  > crtl->args.info.arg_count[(int) SH_ARG_INT]))
     pretend_args = 0;
+  /* Dwarf2 module doesn't expect frame related insns here.  */
   output_stack_adjust (-pretend_args
 		       - crtl->args.info.stack_regs * 8,
-		       stack_pointer_rtx, 0, NULL);
+		       stack_pointer_rtx, 0, NULL, false);
 
   if (TARGET_SHCOMPACT && flag_pic && crtl->args.info.call_cookie)
     /* We're going to use the PIC register to load the address of the
@@ -6833,7 +6846,7 @@ sh_expand_prologue (void)
       offset_base = d + d_rounding;
 
       output_stack_adjust (-(save_size + d_rounding), stack_pointer_rtx,
-			   0, NULL);
+			   0, NULL, true);
 
       sh5_schedule_saves (&live_regs_mask, &schedule, offset_base);
       tmp_pnt = schedule.temps;
@@ -7008,7 +7021,7 @@ sh_expand_prologue (void)
   target_flags = save_flags;
 
   output_stack_adjust (-rounded_frame_size (d) + d_rounding,
-		       stack_pointer_rtx, 0, NULL);
+		       stack_pointer_rtx, 0, NULL, true);
 
   if (frame_pointer_needed)
     frame_insn (GEN_MOV (hard_frame_pointer_rtx, stack_pointer_rtx));
@@ -7073,7 +7086,7 @@ sh_expand_epilogue (bool sibcall_p)
 	 See PR/18032 and PR/40313.  */
       emit_insn (gen_blockage ());
       output_stack_adjust (frame_size, hard_frame_pointer_rtx, e,
-			   &live_regs_mask);
+			   &live_regs_mask, false);
 
       /* We must avoid moving the stack pointer adjustment past code
 	 which reads from the local frame, else an interrupt could
@@ -7089,7 +7102,8 @@ sh_expand_epilogue (bool sibcall_p)
 	 occur after the SP adjustment and clobber data in the local
 	 frame.  */
       emit_insn (gen_blockage ());
-      output_stack_adjust (frame_size, stack_pointer_rtx, e, &live_regs_mask);
+      output_stack_adjust (frame_size, stack_pointer_rtx, e,
+			   &live_regs_mask, false);
     }
 
   if (SHMEDIA_REGS_STACK_ADJUST ())
@@ -7276,7 +7290,7 @@ sh_expand_epilogue (bool sibcall_p)
   output_stack_adjust (crtl->args.pretend_args_size
 		       + save_size + d_rounding
 		       + crtl->args.info.stack_regs * 8,
-		       stack_pointer_rtx, e, NULL);
+		       stack_pointer_rtx, e, NULL, false);
 
   if (crtl->calls_eh_return)
     emit_insn (GEN_ADD3 (stack_pointer_rtx, stack_pointer_rtx,
@@ -9417,6 +9431,7 @@ nonpic_symbol_mentioned_p (rtx x)
 	  || XINT (x, 1) == UNSPEC_GOTPLT
 	  || XINT (x, 1) == UNSPEC_GOTTPOFF
 	  || XINT (x, 1) == UNSPEC_DTPOFF
+	  || XINT (x, 1) == UNSPEC_TPOFF
 	  || XINT (x, 1) == UNSPEC_PLT
 	  || XINT (x, 1) == UNSPEC_SYMOFF
 	  || XINT (x, 1) == UNSPEC_PCREL_SYMOFF))
@@ -10324,10 +10339,11 @@ sh_ms_bitfield_layout_p (const_tree record_type ATTRIBUTE_UNUSED)
    FNADDR is an RTX for the address of the function's pure code.
    CXT is an RTX for the static chain value for the function.  */
 
-void
-sh_initialize_trampoline (rtx tramp, rtx fnaddr, rtx cxt)
+static void
+sh_trampoline_init (rtx tramp_mem, tree fndecl, rtx cxt)
 {
-  rtx tramp_mem = gen_frame_mem (BLKmode, tramp);
+  rtx fnaddr = XEXP (DECL_RTL (fndecl), 0);
+  rtx tramp = force_reg (Pmode, XEXP (tramp_mem, 0));
 
   if (TARGET_SHMEDIA64)
     {
@@ -10418,7 +10434,6 @@ sh_initialize_trampoline (rtx tramp, rtx fnaddr, rtx cxt)
       rtx ptabs = force_reg (DImode, GEN_INT (0x6bf10600));
       rtx blink = force_reg (DImode, GEN_INT (0x4401fff0));
 
-      tramp = force_reg (Pmode, tramp);
       fnaddr = force_reg (SImode, fnaddr);
       cxt = force_reg (SImode, cxt);
       emit_insn (gen_mshflo_w_x (gen_rtx_SUBREG (V4HImode, quad0, 0),
@@ -10474,6 +10489,17 @@ sh_initialize_trampoline (rtx tramp, rtx fnaddr, rtx cxt)
     }
 }
 
+/* On SH5, trampolines are SHmedia code, so add 1 to the address.  */
+
+static rtx
+sh_trampoline_adjust_address (rtx tramp)
+{
+  if (TARGET_SHMEDIA)
+    tramp = expand_simple_binop (Pmode, PLUS, tramp, const1_rtx,
+				 gen_reg_rtx (Pmode), 0, OPTAB_LIB_WIDEN);
+  return tramp;
+}
+
 /* FIXME: This is overly conservative.  A SHcompact function that
    receives arguments ``by reference'' will have them stored in its
    own stack frame, so it must not pass pointers or references to
@@ -10499,6 +10525,7 @@ struct builtin_description
   const enum insn_code icode;
   const char *const name;
   int signature;
+  tree fndecl;
 };
 
 /* describe number and signedness of arguments; arg[0] == result
@@ -10565,99 +10592,99 @@ static const char signature_args[][4] =
 /* mshalds, mshard, mshards, mshlld, mshlrd: shift count is unsigned int.  */
 /* mshards_q: returns signed short.  */
 /* nsb: takes long long arg, returns unsigned char.  */
-static const struct builtin_description bdesc[] =
+static struct builtin_description bdesc[] =
 {
-  { CODE_FOR_absv2si2,	"__builtin_absv2si2", SH_BLTIN_V2SI2 },
-  { CODE_FOR_absv4hi2,	"__builtin_absv4hi2", SH_BLTIN_V4HI2 },
-  { CODE_FOR_addv2si3,	"__builtin_addv2si3", SH_BLTIN_V2SI3 },
-  { CODE_FOR_addv4hi3,	"__builtin_addv4hi3", SH_BLTIN_V4HI3 },
-  { CODE_FOR_ssaddv2si3,"__builtin_ssaddv2si3", SH_BLTIN_V2SI3 },
-  { CODE_FOR_usaddv8qi3,"__builtin_usaddv8qi3", SH_BLTIN_V8QI3 },
-  { CODE_FOR_ssaddv4hi3,"__builtin_ssaddv4hi3", SH_BLTIN_V4HI3 },
-  { CODE_FOR_alloco_i,	"__builtin_sh_media_ALLOCO", SH_BLTIN_PV },
-  { CODE_FOR_negcmpeqv8qi,"__builtin_sh_media_MCMPEQ_B", SH_BLTIN_V8QI3 },
-  { CODE_FOR_negcmpeqv2si,"__builtin_sh_media_MCMPEQ_L", SH_BLTIN_V2SI3 },
-  { CODE_FOR_negcmpeqv4hi,"__builtin_sh_media_MCMPEQ_W", SH_BLTIN_V4HI3 },
-  { CODE_FOR_negcmpgtuv8qi,"__builtin_sh_media_MCMPGT_UB", SH_BLTIN_V8QI3 },
-  { CODE_FOR_negcmpgtv2si,"__builtin_sh_media_MCMPGT_L", SH_BLTIN_V2SI3 },
-  { CODE_FOR_negcmpgtv4hi,"__builtin_sh_media_MCMPGT_W", SH_BLTIN_V4HI3 },
-  { CODE_FOR_mcmv,	"__builtin_sh_media_MCMV", SH_BLTIN_UUUU },
-  { CODE_FOR_mcnvs_lw,	"__builtin_sh_media_MCNVS_LW", SH_BLTIN_3 },
-  { CODE_FOR_mcnvs_wb,	"__builtin_sh_media_MCNVS_WB", SH_BLTIN_V4HI2V8QI },
-  { CODE_FOR_mcnvs_wub,	"__builtin_sh_media_MCNVS_WUB", SH_BLTIN_V4HI2V8QI },
-  { CODE_FOR_mextr1,	"__builtin_sh_media_MEXTR1", SH_BLTIN_V8QI3 },
-  { CODE_FOR_mextr2,	"__builtin_sh_media_MEXTR2", SH_BLTIN_V8QI3 },
-  { CODE_FOR_mextr3,	"__builtin_sh_media_MEXTR3", SH_BLTIN_V8QI3 },
-  { CODE_FOR_mextr4,	"__builtin_sh_media_MEXTR4", SH_BLTIN_V8QI3 },
-  { CODE_FOR_mextr5,	"__builtin_sh_media_MEXTR5", SH_BLTIN_V8QI3 },
-  { CODE_FOR_mextr6,	"__builtin_sh_media_MEXTR6", SH_BLTIN_V8QI3 },
-  { CODE_FOR_mextr7,	"__builtin_sh_media_MEXTR7", SH_BLTIN_V8QI3 },
-  { CODE_FOR_mmacfx_wl,	"__builtin_sh_media_MMACFX_WL", SH_BLTIN_MAC_HISI },
-  { CODE_FOR_mmacnfx_wl,"__builtin_sh_media_MMACNFX_WL", SH_BLTIN_MAC_HISI },
-  { CODE_FOR_mulv2si3,	"__builtin_mulv2si3", SH_BLTIN_V2SI3, },
-  { CODE_FOR_mulv4hi3,	"__builtin_mulv4hi3", SH_BLTIN_V4HI3 },
-  { CODE_FOR_mmulfx_l,	"__builtin_sh_media_MMULFX_L", SH_BLTIN_V2SI3 },
-  { CODE_FOR_mmulfx_w,	"__builtin_sh_media_MMULFX_W", SH_BLTIN_V4HI3 },
-  { CODE_FOR_mmulfxrp_w,"__builtin_sh_media_MMULFXRP_W", SH_BLTIN_V4HI3 },
-  { CODE_FOR_mmulhi_wl,	"__builtin_sh_media_MMULHI_WL", SH_BLTIN_V4HI2V2SI },
-  { CODE_FOR_mmullo_wl,	"__builtin_sh_media_MMULLO_WL", SH_BLTIN_V4HI2V2SI },
-  { CODE_FOR_mmulsum_wq,"__builtin_sh_media_MMULSUM_WQ", SH_BLTIN_XXUU },
-  { CODE_FOR_mperm_w,	"__builtin_sh_media_MPERM_W", SH_BLTIN_SH_HI },
-  { CODE_FOR_msad_ubq,	"__builtin_sh_media_MSAD_UBQ", SH_BLTIN_XXUU },
-  { CODE_FOR_mshalds_l,	"__builtin_sh_media_MSHALDS_L", SH_BLTIN_SH_SI },
-  { CODE_FOR_mshalds_w,	"__builtin_sh_media_MSHALDS_W", SH_BLTIN_SH_HI },
-  { CODE_FOR_ashrv2si3,	"__builtin_ashrv2si3", SH_BLTIN_SH_SI },
-  { CODE_FOR_ashrv4hi3,	"__builtin_ashrv4hi3", SH_BLTIN_SH_HI },
-  { CODE_FOR_mshards_q,	"__builtin_sh_media_MSHARDS_Q", SH_BLTIN_SUS },
-  { CODE_FOR_mshfhi_b,	"__builtin_sh_media_MSHFHI_B", SH_BLTIN_V8QI3 },
-  { CODE_FOR_mshfhi_l,	"__builtin_sh_media_MSHFHI_L", SH_BLTIN_V2SI3 },
-  { CODE_FOR_mshfhi_w,	"__builtin_sh_media_MSHFHI_W", SH_BLTIN_V4HI3 },
-  { CODE_FOR_mshflo_b,	"__builtin_sh_media_MSHFLO_B", SH_BLTIN_V8QI3 },
-  { CODE_FOR_mshflo_l,	"__builtin_sh_media_MSHFLO_L", SH_BLTIN_V2SI3 },
-  { CODE_FOR_mshflo_w,	"__builtin_sh_media_MSHFLO_W", SH_BLTIN_V4HI3 },
-  { CODE_FOR_ashlv2si3,	"__builtin_ashlv2si3", SH_BLTIN_SH_SI },
-  { CODE_FOR_ashlv4hi3,	"__builtin_ashlv4hi3", SH_BLTIN_SH_HI },
-  { CODE_FOR_lshrv2si3,	"__builtin_lshrv2si3", SH_BLTIN_SH_SI },
-  { CODE_FOR_lshrv4hi3,	"__builtin_lshrv4hi3", SH_BLTIN_SH_HI },
-  { CODE_FOR_subv2si3,	"__builtin_subv2si3", SH_BLTIN_V2SI3 },
-  { CODE_FOR_subv4hi3,	"__builtin_subv4hi3", SH_BLTIN_V4HI3 },
-  { CODE_FOR_sssubv2si3,"__builtin_sssubv2si3", SH_BLTIN_V2SI3 },
-  { CODE_FOR_ussubv8qi3,"__builtin_ussubv8qi3", SH_BLTIN_V8QI3 },
-  { CODE_FOR_sssubv4hi3,"__builtin_sssubv4hi3", SH_BLTIN_V4HI3 },
-  { CODE_FOR_fcosa_s,	"__builtin_sh_media_FCOSA_S", SH_BLTIN_SISF },
-  { CODE_FOR_fsina_s,	"__builtin_sh_media_FSINA_S", SH_BLTIN_SISF },
-  { CODE_FOR_fipr,	"__builtin_sh_media_FIPR_S", SH_BLTIN_3 },
-  { CODE_FOR_ftrv,	"__builtin_sh_media_FTRV_S", SH_BLTIN_3 },
-  { CODE_FOR_mac_media,	"__builtin_sh_media_FMAC_S", SH_BLTIN_3 },
-  { CODE_FOR_sqrtdf2,	"__builtin_sh_media_FSQRT_D", SH_BLTIN_2 },
-  { CODE_FOR_sqrtsf2,	"__builtin_sh_media_FSQRT_S", SH_BLTIN_2 },
-  { CODE_FOR_fsrra_s,	"__builtin_sh_media_FSRRA_S", SH_BLTIN_2 },
-  { CODE_FOR_ldhi_l,	"__builtin_sh_media_LDHI_L", SH_BLTIN_LDUA_L },
-  { CODE_FOR_ldhi_q,	"__builtin_sh_media_LDHI_Q", SH_BLTIN_LDUA_Q },
-  { CODE_FOR_ldlo_l,	"__builtin_sh_media_LDLO_L", SH_BLTIN_LDUA_L },
-  { CODE_FOR_ldlo_q,	"__builtin_sh_media_LDLO_Q", SH_BLTIN_LDUA_Q },
-  { CODE_FOR_sthi_l,	"__builtin_sh_media_STHI_L", SH_BLTIN_STUA_L },
-  { CODE_FOR_sthi_q,	"__builtin_sh_media_STHI_Q", SH_BLTIN_STUA_Q },
-  { CODE_FOR_stlo_l,	"__builtin_sh_media_STLO_L", SH_BLTIN_STUA_L },
-  { CODE_FOR_stlo_q,	"__builtin_sh_media_STLO_Q", SH_BLTIN_STUA_Q },
-  { CODE_FOR_ldhi_l64,	"__builtin_sh_media_LDHI_L", SH_BLTIN_LDUA_L64 },
-  { CODE_FOR_ldhi_q64,	"__builtin_sh_media_LDHI_Q", SH_BLTIN_LDUA_Q64 },
-  { CODE_FOR_ldlo_l64,	"__builtin_sh_media_LDLO_L", SH_BLTIN_LDUA_L64 },
-  { CODE_FOR_ldlo_q64,	"__builtin_sh_media_LDLO_Q", SH_BLTIN_LDUA_Q64 },
-  { CODE_FOR_sthi_l64,	"__builtin_sh_media_STHI_L", SH_BLTIN_STUA_L64 },
-  { CODE_FOR_sthi_q64,	"__builtin_sh_media_STHI_Q", SH_BLTIN_STUA_Q64 },
-  { CODE_FOR_stlo_l64,	"__builtin_sh_media_STLO_L", SH_BLTIN_STUA_L64 },
-  { CODE_FOR_stlo_q64,	"__builtin_sh_media_STLO_Q", SH_BLTIN_STUA_Q64 },
-  { CODE_FOR_nsb,	"__builtin_sh_media_NSB", SH_BLTIN_SU },
-  { CODE_FOR_byterev,	"__builtin_sh_media_BYTEREV", SH_BLTIN_2 },
-  { CODE_FOR_prefetch,	"__builtin_sh_media_PREFO", SH_BLTIN_PSSV },
+  { CODE_FOR_absv2si2,	"__builtin_absv2si2", SH_BLTIN_V2SI2, 0 },
+  { CODE_FOR_absv4hi2,	"__builtin_absv4hi2", SH_BLTIN_V4HI2, 0 },
+  { CODE_FOR_addv2si3,	"__builtin_addv2si3", SH_BLTIN_V2SI3, 0 },
+  { CODE_FOR_addv4hi3,	"__builtin_addv4hi3", SH_BLTIN_V4HI3, 0 },
+  { CODE_FOR_ssaddv2si3,"__builtin_ssaddv2si3", SH_BLTIN_V2SI3, 0 },
+  { CODE_FOR_usaddv8qi3,"__builtin_usaddv8qi3", SH_BLTIN_V8QI3, 0 },
+  { CODE_FOR_ssaddv4hi3,"__builtin_ssaddv4hi3", SH_BLTIN_V4HI3, 0 },
+  { CODE_FOR_alloco_i,	"__builtin_sh_media_ALLOCO", SH_BLTIN_PV, 0 },
+  { CODE_FOR_negcmpeqv8qi,"__builtin_sh_media_MCMPEQ_B", SH_BLTIN_V8QI3, 0 },
+  { CODE_FOR_negcmpeqv2si,"__builtin_sh_media_MCMPEQ_L", SH_BLTIN_V2SI3, 0 },
+  { CODE_FOR_negcmpeqv4hi,"__builtin_sh_media_MCMPEQ_W", SH_BLTIN_V4HI3, 0 },
+  { CODE_FOR_negcmpgtuv8qi,"__builtin_sh_media_MCMPGT_UB", SH_BLTIN_V8QI3, 0 },
+  { CODE_FOR_negcmpgtv2si,"__builtin_sh_media_MCMPGT_L", SH_BLTIN_V2SI3, 0 },
+  { CODE_FOR_negcmpgtv4hi,"__builtin_sh_media_MCMPGT_W", SH_BLTIN_V4HI3, 0 },
+  { CODE_FOR_mcmv,	"__builtin_sh_media_MCMV", SH_BLTIN_UUUU, 0 },
+  { CODE_FOR_mcnvs_lw,	"__builtin_sh_media_MCNVS_LW", SH_BLTIN_3, 0 },
+  { CODE_FOR_mcnvs_wb,	"__builtin_sh_media_MCNVS_WB", SH_BLTIN_V4HI2V8QI, 0 },
+  { CODE_FOR_mcnvs_wub,	"__builtin_sh_media_MCNVS_WUB", SH_BLTIN_V4HI2V8QI, 0 },
+  { CODE_FOR_mextr1,	"__builtin_sh_media_MEXTR1", SH_BLTIN_V8QI3, 0 },
+  { CODE_FOR_mextr2,	"__builtin_sh_media_MEXTR2", SH_BLTIN_V8QI3, 0 },
+  { CODE_FOR_mextr3,	"__builtin_sh_media_MEXTR3", SH_BLTIN_V8QI3, 0 },
+  { CODE_FOR_mextr4,	"__builtin_sh_media_MEXTR4", SH_BLTIN_V8QI3, 0 },
+  { CODE_FOR_mextr5,	"__builtin_sh_media_MEXTR5", SH_BLTIN_V8QI3, 0 },
+  { CODE_FOR_mextr6,	"__builtin_sh_media_MEXTR6", SH_BLTIN_V8QI3, 0 },
+  { CODE_FOR_mextr7,	"__builtin_sh_media_MEXTR7", SH_BLTIN_V8QI3, 0 },
+  { CODE_FOR_mmacfx_wl,	"__builtin_sh_media_MMACFX_WL", SH_BLTIN_MAC_HISI, 0 },
+  { CODE_FOR_mmacnfx_wl,"__builtin_sh_media_MMACNFX_WL", SH_BLTIN_MAC_HISI, 0 },
+  { CODE_FOR_mulv2si3,	"__builtin_mulv2si3", SH_BLTIN_V2SI3, 0 },
+  { CODE_FOR_mulv4hi3,	"__builtin_mulv4hi3", SH_BLTIN_V4HI3, 0 },
+  { CODE_FOR_mmulfx_l,	"__builtin_sh_media_MMULFX_L", SH_BLTIN_V2SI3, 0 },
+  { CODE_FOR_mmulfx_w,	"__builtin_sh_media_MMULFX_W", SH_BLTIN_V4HI3, 0 },
+  { CODE_FOR_mmulfxrp_w,"__builtin_sh_media_MMULFXRP_W", SH_BLTIN_V4HI3, 0 },
+  { CODE_FOR_mmulhi_wl,	"__builtin_sh_media_MMULHI_WL", SH_BLTIN_V4HI2V2SI, 0 },
+  { CODE_FOR_mmullo_wl,	"__builtin_sh_media_MMULLO_WL", SH_BLTIN_V4HI2V2SI, 0 },
+  { CODE_FOR_mmulsum_wq,"__builtin_sh_media_MMULSUM_WQ", SH_BLTIN_XXUU, 0 },
+  { CODE_FOR_mperm_w,	"__builtin_sh_media_MPERM_W", SH_BLTIN_SH_HI, 0 },
+  { CODE_FOR_msad_ubq,	"__builtin_sh_media_MSAD_UBQ", SH_BLTIN_XXUU, 0 },
+  { CODE_FOR_mshalds_l,	"__builtin_sh_media_MSHALDS_L", SH_BLTIN_SH_SI, 0 },
+  { CODE_FOR_mshalds_w,	"__builtin_sh_media_MSHALDS_W", SH_BLTIN_SH_HI, 0 },
+  { CODE_FOR_ashrv2si3,	"__builtin_ashrv2si3", SH_BLTIN_SH_SI, 0 },
+  { CODE_FOR_ashrv4hi3,	"__builtin_ashrv4hi3", SH_BLTIN_SH_HI, 0 },
+  { CODE_FOR_mshards_q,	"__builtin_sh_media_MSHARDS_Q", SH_BLTIN_SUS, 0 },
+  { CODE_FOR_mshfhi_b,	"__builtin_sh_media_MSHFHI_B", SH_BLTIN_V8QI3, 0 },
+  { CODE_FOR_mshfhi_l,	"__builtin_sh_media_MSHFHI_L", SH_BLTIN_V2SI3, 0 },
+  { CODE_FOR_mshfhi_w,	"__builtin_sh_media_MSHFHI_W", SH_BLTIN_V4HI3, 0 },
+  { CODE_FOR_mshflo_b,	"__builtin_sh_media_MSHFLO_B", SH_BLTIN_V8QI3, 0 },
+  { CODE_FOR_mshflo_l,	"__builtin_sh_media_MSHFLO_L", SH_BLTIN_V2SI3, 0 },
+  { CODE_FOR_mshflo_w,	"__builtin_sh_media_MSHFLO_W", SH_BLTIN_V4HI3, 0 },
+  { CODE_FOR_ashlv2si3,	"__builtin_ashlv2si3", SH_BLTIN_SH_SI, 0 },
+  { CODE_FOR_ashlv4hi3,	"__builtin_ashlv4hi3", SH_BLTIN_SH_HI, 0 },
+  { CODE_FOR_lshrv2si3,	"__builtin_lshrv2si3", SH_BLTIN_SH_SI, 0 },
+  { CODE_FOR_lshrv4hi3,	"__builtin_lshrv4hi3", SH_BLTIN_SH_HI, 0 },
+  { CODE_FOR_subv2si3,	"__builtin_subv2si3", SH_BLTIN_V2SI3, 0 },
+  { CODE_FOR_subv4hi3,	"__builtin_subv4hi3", SH_BLTIN_V4HI3, 0 },
+  { CODE_FOR_sssubv2si3,"__builtin_sssubv2si3", SH_BLTIN_V2SI3, 0 },
+  { CODE_FOR_ussubv8qi3,"__builtin_ussubv8qi3", SH_BLTIN_V8QI3, 0 },
+  { CODE_FOR_sssubv4hi3,"__builtin_sssubv4hi3", SH_BLTIN_V4HI3, 0 },
+  { CODE_FOR_fcosa_s,	"__builtin_sh_media_FCOSA_S", SH_BLTIN_SISF, 0 },
+  { CODE_FOR_fsina_s,	"__builtin_sh_media_FSINA_S", SH_BLTIN_SISF, 0 },
+  { CODE_FOR_fipr,	"__builtin_sh_media_FIPR_S", SH_BLTIN_3, 0 },
+  { CODE_FOR_ftrv,	"__builtin_sh_media_FTRV_S", SH_BLTIN_3, 0 },
+  { CODE_FOR_mac_media,	"__builtin_sh_media_FMAC_S", SH_BLTIN_3, 0 },
+  { CODE_FOR_sqrtdf2,	"__builtin_sh_media_FSQRT_D", SH_BLTIN_2, 0 },
+  { CODE_FOR_sqrtsf2,	"__builtin_sh_media_FSQRT_S", SH_BLTIN_2, 0 },
+  { CODE_FOR_fsrra_s,	"__builtin_sh_media_FSRRA_S", SH_BLTIN_2, 0 },
+  { CODE_FOR_ldhi_l,	"__builtin_sh_media_LDHI_L", SH_BLTIN_LDUA_L, 0 },
+  { CODE_FOR_ldhi_q,	"__builtin_sh_media_LDHI_Q", SH_BLTIN_LDUA_Q, 0 },
+  { CODE_FOR_ldlo_l,	"__builtin_sh_media_LDLO_L", SH_BLTIN_LDUA_L, 0 },
+  { CODE_FOR_ldlo_q,	"__builtin_sh_media_LDLO_Q", SH_BLTIN_LDUA_Q, 0 },
+  { CODE_FOR_sthi_l,	"__builtin_sh_media_STHI_L", SH_BLTIN_STUA_L, 0 },
+  { CODE_FOR_sthi_q,	"__builtin_sh_media_STHI_Q", SH_BLTIN_STUA_Q, 0 },
+  { CODE_FOR_stlo_l,	"__builtin_sh_media_STLO_L", SH_BLTIN_STUA_L, 0 },
+  { CODE_FOR_stlo_q,	"__builtin_sh_media_STLO_Q", SH_BLTIN_STUA_Q, 0 },
+  { CODE_FOR_ldhi_l64,	"__builtin_sh_media_LDHI_L", SH_BLTIN_LDUA_L64, 0 },
+  { CODE_FOR_ldhi_q64,	"__builtin_sh_media_LDHI_Q", SH_BLTIN_LDUA_Q64, 0 },
+  { CODE_FOR_ldlo_l64,	"__builtin_sh_media_LDLO_L", SH_BLTIN_LDUA_L64, 0 },
+  { CODE_FOR_ldlo_q64,	"__builtin_sh_media_LDLO_Q", SH_BLTIN_LDUA_Q64, 0 },
+  { CODE_FOR_sthi_l64,	"__builtin_sh_media_STHI_L", SH_BLTIN_STUA_L64, 0 },
+  { CODE_FOR_sthi_q64,	"__builtin_sh_media_STHI_Q", SH_BLTIN_STUA_Q64, 0 },
+  { CODE_FOR_stlo_l64,	"__builtin_sh_media_STLO_L", SH_BLTIN_STUA_L64, 0 },
+  { CODE_FOR_stlo_q64,	"__builtin_sh_media_STLO_Q", SH_BLTIN_STUA_Q64, 0 },
+  { CODE_FOR_nsb,	"__builtin_sh_media_NSB", SH_BLTIN_SU, 0 },
+  { CODE_FOR_byterev,	"__builtin_sh_media_BYTEREV", SH_BLTIN_2, 0 },
+  { CODE_FOR_prefetch,	"__builtin_sh_media_PREFO", SH_BLTIN_PSSV, 0 },
 };
 
 static void
 sh_media_init_builtins (void)
 {
   tree shared[SH_BLTIN_NUM_SHARED_SIGNATURES];
-  const struct builtin_description *d;
+  struct builtin_description *d;
 
   memset (shared, 0, sizeof shared);
   for (d = bdesc; d - bdesc < (int) ARRAY_SIZE (bdesc); d++)
@@ -10703,9 +10730,21 @@ sh_media_init_builtins (void)
 	  if (signature < SH_BLTIN_NUM_SHARED_SIGNATURES)
 	    shared[signature] = type;
 	}
-      add_builtin_function (d->name, type, d - bdesc, BUILT_IN_MD,
-			    NULL, NULL_TREE);
+      d->fndecl =
+	add_builtin_function (d->name, type, d - bdesc, BUILT_IN_MD,
+			      NULL, NULL_TREE);
     }
+}
+
+/* Returns the shmedia builtin decl for CODE.  */
+
+static tree
+sh_media_builtin_decl (unsigned code, bool initialize_p ATTRIBUTE_UNUSED)
+{        
+  if (code >= ARRAY_SIZE (bdesc))
+    return error_mark_node;
+          
+  return bdesc[code].fndecl;
 }
 
 /* Implements target hook vector_mode_supported_p.  */
@@ -10744,6 +10783,17 @@ sh_init_builtins (void)
 {
   if (TARGET_SHMEDIA)
     sh_media_init_builtins ();
+}
+
+/* Returns the sh builtin decl for CODE.  */
+
+static tree
+sh_builtin_decl (unsigned code, bool initialize_p ATTRIBUTE_UNUSED)
+{        
+  if (TARGET_SHMEDIA)
+    return sh_media_builtin_decl (code, initialize_p);
+          
+  return error_mark_node;
 }
 
 /* Expand an expression EXP that calls a built-in function,

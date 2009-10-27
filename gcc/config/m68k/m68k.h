@@ -1,6 +1,7 @@
 /* Definitions of target machine for GCC for Motorola 680x0/ColdFire.
    Copyright (C) 1987, 1988, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Free Software Foundation, Inc.
+   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -616,20 +617,6 @@ extern enum reg_class regno_reg_class[];
 #define FINALIZE_TRAMPOLINE(TRAMP)
 #endif
 
-/* We generate a two-instructions program at address TRAMP :
-	movea.l &CXT,%a0
-	jmp FNADDR  */
-#define INITIALIZE_TRAMPOLINE(TRAMP, FNADDR, CXT)			\
-{									\
-  emit_move_insn (gen_rtx_MEM (HImode, TRAMP),				\
-		  GEN_INT(0x207C + ((STATIC_CHAIN_REGNUM-8) << 9)));	\
-  emit_move_insn (gen_rtx_MEM (SImode, plus_constant (TRAMP, 2)), CXT); \
-  emit_move_insn (gen_rtx_MEM (HImode, plus_constant (TRAMP, 6)),	\
-		  GEN_INT(0x4EF9));					\
-  emit_move_insn (gen_rtx_MEM (SImode, plus_constant (TRAMP, 8)), FNADDR); \
-  FINALIZE_TRAMPOLINE(TRAMP);						\
-}
-
 /* This is the library routine that is used to transfer control from the
    trampoline to the actual nested function.  It is defined for backward
    compatibility, for linking with object code that used the old trampoline
@@ -662,9 +649,6 @@ __transfer_from_trampoline ()					\
 {{ ARG_POINTER_REGNUM, STACK_POINTER_REGNUM },		\
  { ARG_POINTER_REGNUM, FRAME_POINTER_REGNUM },		\
  { FRAME_POINTER_REGNUM, STACK_POINTER_REGNUM }}
-
-#define CAN_ELIMINATE(FROM, TO) \
-  ((TO) == STACK_POINTER_REGNUM ? ! frame_pointer_needed : 1)
 
 #define INITIAL_ELIMINATION_OFFSET(FROM, TO, OFFSET)			\
   (OFFSET) = m68k_initial_elimination_offset(FROM, TO)

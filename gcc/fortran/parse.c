@@ -289,7 +289,7 @@ decode_statement (void)
   gfc_undo_symbols ();
   gfc_current_locus = old_locus;
 
-  /* Check for the IF, DO, SELECT, WHERE and FORALL statements, which
+  /* Check for the IF, DO, SELECT, WHERE, FORALL and BLOCK statements, which
      might begin with a block label.  The match functions for these
      statements are unusual in that their keyword is not seen before
      the matcher is called.  */
@@ -309,8 +309,10 @@ decode_statement (void)
   gfc_undo_symbols ();
   gfc_current_locus = old_locus;
 
+  match (NULL, gfc_match_block, ST_BLOCK);
   match (NULL, gfc_match_do, ST_DO);
   match (NULL, gfc_match_select, ST_SELECT_CASE);
+  match (NULL, gfc_match_select_type, ST_SELECT_TYPE);
 
   /* General statement matching: Instead of testing every possible
      statement, we eliminate most possibilities by peeking at the
@@ -342,6 +344,7 @@ decode_statement (void)
       match ("case", gfc_match_case, ST_CASE);
       match ("common", gfc_match_common, ST_COMMON);
       match ("contains", gfc_match_eos, ST_CONTAINS);
+      match ("class", gfc_match_class_is, ST_CLASS_IS);
       break;
 
     case 'd':
@@ -431,6 +434,7 @@ decode_statement (void)
     case 't':
       match ("target", gfc_match_target, ST_ATTR_DECL);
       match ("type", gfc_match_derived_decl, ST_DERIVED_DECL);
+      match ("type is", gfc_match_type_is, ST_TYPE_IS);
       break;
 
     case 'u':
@@ -655,7 +659,7 @@ next_free (void)
 	  if (gfc_match_eos () == MATCH_YES)
 	    {
 	      gfc_warning_now ("Ignoring statement label in empty statement "
-			       "at %C");
+			       "at %L", &label_locus);
 	      gfc_free_st_label (gfc_statement_label);
 	      gfc_statement_label = NULL;
 	      return ST_NONE;
@@ -848,7 +852,10 @@ next_fixed (void)
 
 blank_line:
   if (digit_flag)
-    gfc_warning ("Ignoring statement label in empty statement at %C");
+    gfc_warning_now ("Ignoring statement label in empty statement at %L",
+		     &label_locus);
+    
+  gfc_current_locus.lb->truncated = 0;
   gfc_advance_line ();
   return ST_NONE;
 }
@@ -862,6 +869,7 @@ next_statement (void)
 {
   gfc_statement st;
   locus old_locus;
+
   gfc_new_block = NULL;
 
   gfc_current_ns->old_cl_list = gfc_current_ns->cl_list;
@@ -871,14 +879,7 @@ next_statement (void)
       gfc_buffer_error (1);
 
       if (gfc_at_eol ())
-	{
-	  if ((gfc_option.warn_line_truncation || gfc_current_form == FORM_FREE)
-	      && gfc_current_locus.lb
-	      && gfc_current_locus.lb->truncated)
-	    gfc_warning_now ("Line truncated at %C");
-
-	  gfc_advance_line ();
-	}
+	gfc_advance_line ();
 
       gfc_skip_comments ();
 
@@ -936,8 +937,10 @@ next_statement (void)
 
 /* Statements that mark other executable statements.  */
 
-#define case_exec_markers case ST_DO: case ST_FORALL_BLOCK: case ST_IF_BLOCK: \
-  case ST_WHERE_BLOCK: case ST_SELECT_CASE: case ST_OMP_PARALLEL: \
+#define case_exec_markers case ST_DO: case ST_FORALL_BLOCK: \
+  case ST_IF_BLOCK: case ST_BLOCK: \
+  case ST_WHERE_BLOCK: case ST_SELECT_CASE: case ST_SELECT_TYPE: \
+  case ST_OMP_PARALLEL: \
   case ST_OMP_PARALLEL_SECTIONS: case ST_OMP_SECTIONS: case ST_OMP_ORDERED: \
   case ST_OMP_CRITICAL: case ST_OMP_MASTER: case ST_OMP_SINGLE: \
   case ST_OMP_DO: case ST_OMP_PARALLEL_DO: case ST_OMP_ATOMIC: \
@@ -955,7 +958,8 @@ next_statement (void)
    are detected in gfc_match_end().  */
 
 #define case_end case ST_END_BLOCK_DATA: case ST_END_FUNCTION: \
-		 case ST_END_PROGRAM: case ST_END_SUBROUTINE
+		 case ST_END_PROGRAM: case ST_END_SUBROUTINE: \
+		 case ST_END_BLOCK
 
 
 /* Push a new state onto the stack.  */
@@ -1145,6 +1149,9 @@ gfc_ascii_statement (gfc_statement st)
     case ST_BACKSPACE:
       p = "BACKSPACE";
       break;
+    case ST_BLOCK:
+      p = "BLOCK";
+      break;
     case ST_BLOCK_DATA:
       p = "BLOCK DATA";
       break;
@@ -1192,6 +1199,9 @@ gfc_ascii_statement (gfc_statement st)
       break;
     case ST_ELSEWHERE:
       p = "ELSEWHERE";
+      break;
+    case ST_END_BLOCK:
+      p = "END BLOCK";
       break;
     case ST_END_BLOCK_DATA:
       p = "END BLOCK DATA";
@@ -1353,6 +1363,15 @@ gfc_ascii_statement (gfc_statement st)
       break;
     case ST_SELECT_CASE:
       p = "SELECT CASE";
+      break;
+    case ST_SELECT_TYPE:
+      p = "SELECT TYPE";
+      break;
+    case ST_TYPE_IS:
+      p = "TYPE IS";
+      break;
+    case ST_CLASS_IS:
+      p = "CLASS IS";
       break;
     case ST_SEQUENCE:
       p = "SEQUENCE";
@@ -2049,11 +2068,15 @@ endType:
     {
       /* Look for allocatable components.  */
       if (c->attr.allocatable
+	  || (c->ts.type == BT_CLASS
+	      && c->ts.u.derived->components->attr.allocatable)
 	  || (c->ts.type == BT_DERIVED && c->ts.u.derived->attr.alloc_comp))
 	sym->attr.alloc_comp = 1;
 
       /* Look for pointer components.  */
       if (c->attr.pointer
+	  || (c->ts.type == BT_CLASS
+	      && c->ts.u.derived->components->attr.pointer)
 	  || (c->ts.type == BT_DERIVED && c->ts.u.derived->attr.pointer_comp))
 	sym->attr.pointer_comp = 1;
 
@@ -2394,6 +2417,27 @@ parse_spec (gfc_statement st)
     }
 
 loop:
+
+  /* If we're inside a BLOCK construct, some statements are disallowed.
+     Check this here.  Attribute declaration statements like INTENT, OPTIONAL
+     or VALUE are also disallowed, but they don't have a particular ST_*
+     key so we have to check for them individually in their matcher routine.  */
+  if (gfc_current_state () == COMP_BLOCK)
+    switch (st)
+      {
+	case ST_IMPLICIT:
+	case ST_IMPLICIT_NONE:
+	case ST_NAMELIST:
+	case ST_COMMON:
+	case ST_EQUIVALENCE:
+	case ST_STATEMENT_FUNCTION:
+	  gfc_error ("%s statement is not allowed inside of BLOCK at %C",
+		     gfc_ascii_statement (st));
+	  break;
+
+	default:
+	  break;
+      }
   
   /* If we find a statement that can not be followed by an IMPLICIT statement
      (and thus we can expect to see none any further), type the function result
@@ -2847,6 +2891,93 @@ parse_select_block (void)
 }
 
 
+/* Pop the current selector from the SELECT TYPE stack.  */
+
+static void
+select_type_pop (void)
+{
+  gfc_select_type_stack *old = select_type_stack;
+  select_type_stack = old->prev;
+  gfc_free (old);
+}
+
+
+/* Parse a SELECT TYPE construct (F03:R821).  */
+
+static void
+parse_select_type_block (void)
+{
+  gfc_statement st;
+  gfc_code *cp;
+  gfc_state_data s;
+
+  accept_statement (ST_SELECT_TYPE);
+
+  cp = gfc_state_stack->tail;
+  push_state (&s, COMP_SELECT_TYPE, gfc_new_block);
+
+  /* Make sure that the next statement is a TYPE IS, CLASS IS, CLASS DEFAULT
+     or END SELECT.  */
+  for (;;)
+    {
+      st = next_statement ();
+      if (st == ST_NONE)
+	unexpected_eof ();
+      if (st == ST_END_SELECT)
+	/* Empty SELECT CASE is OK.  */
+	goto done;
+      if (st == ST_TYPE_IS || st == ST_CLASS_IS)
+	break;
+
+      gfc_error ("Expected TYPE IS, CLASS IS or END SELECT statement "
+		 "following SELECT TYPE at %C");
+
+      reject_statement ();
+    }
+
+  /* At this point, we're got a nonempty select block.  */
+  cp = new_level (cp);
+  *cp = new_st;
+
+  accept_statement (st);
+
+  do
+    {
+      st = parse_executable (ST_NONE);
+      switch (st)
+	{
+	case ST_NONE:
+	  unexpected_eof ();
+
+	case ST_TYPE_IS:
+	case ST_CLASS_IS:
+	  cp = new_level (gfc_state_stack->head);
+	  *cp = new_st;
+	  gfc_clear_new_st ();
+
+	  accept_statement (st);
+	  /* Fall through */
+
+	case ST_END_SELECT:
+	  break;
+
+	/* Can't have an executable statement because of
+	   parse_executable().  */
+	default:
+	  unexpected_statement (st);
+	  break;
+	}
+    }
+  while (st != ST_END_SELECT);
+
+done:
+  pop_state ();
+  accept_statement (st);
+  gfc_current_ns = gfc_current_ns->parent;
+  select_type_pop ();
+}
+
+
 /* Given a symbol, make sure it is not an iteration variable for a DO
    statement.  This subroutine is called when the symbol is seen in a
    context that causes it to become redefined.  If the symbol is an
@@ -2908,6 +3039,71 @@ check_do_closure (void)
       }
 
   return 0;
+}
+
+
+/* Parse a series of contained program units.  */
+
+static void parse_progunit (gfc_statement);
+
+
+/* Set up the local namespace for a BLOCK construct.  */
+
+gfc_namespace*
+gfc_build_block_ns (gfc_namespace *parent_ns)
+{
+  gfc_namespace* my_ns;
+
+  my_ns = gfc_get_namespace (parent_ns, 1);
+  my_ns->construct_entities = 1;
+
+  /* Give the BLOCK a symbol of flavor LABEL; this is later needed for correct
+     code generation (so it must not be NULL).
+     We set its recursive argument if our container procedure is recursive, so
+     that local variables are accordingly placed on the stack when it
+     will be necessary.  */
+  if (gfc_new_block)
+    my_ns->proc_name = gfc_new_block;
+  else
+    {
+      gfc_try t;
+
+      gfc_get_symbol ("block@", my_ns, &my_ns->proc_name);
+      t = gfc_add_flavor (&my_ns->proc_name->attr, FL_LABEL,
+			  my_ns->proc_name->name, NULL);
+      gcc_assert (t == SUCCESS);
+    }
+
+  if (parent_ns->proc_name)
+    my_ns->proc_name->attr.recursive = parent_ns->proc_name->attr.recursive;
+
+  return my_ns;
+}
+
+
+/* Parse a BLOCK construct.  */
+
+static void
+parse_block_construct (void)
+{
+  gfc_namespace* my_ns;
+  gfc_state_data s;
+
+  gfc_notify_std (GFC_STD_F2008, "Fortran 2008: BLOCK construct at %C");
+
+  my_ns = gfc_build_block_ns (gfc_current_ns);
+
+  new_st.op = EXEC_BLOCK;
+  new_st.ext.ns = my_ns;
+  accept_statement (ST_BLOCK);
+
+  push_state (&s, COMP_BLOCK, my_ns->proc_name);
+  gfc_current_ns = my_ns;
+
+  parse_progunit (ST_NONE);
+
+  gfc_current_ns = gfc_current_ns->parent;
+  pop_state ();
 }
 
 
@@ -3304,12 +3500,20 @@ parse_executable (gfc_statement st)
 	    return ST_IMPLIED_ENDDO;
 	  break;
 
+	case ST_BLOCK:
+	  parse_block_construct ();
+	  break;
+
 	case ST_IF_BLOCK:
 	  parse_if_block ();
 	  break;
 
 	case ST_SELECT_CASE:
 	  parse_select_block ();
+	  break;
+
+	case ST_SELECT_TYPE:
+	  parse_select_type_block();
 	  break;
 
 	case ST_DO:
@@ -3360,11 +3564,6 @@ parse_executable (gfc_statement st)
       st = next_statement ();
     }
 }
-
-
-/* Parse a series of contained program units.  */
-
-static void parse_progunit (gfc_statement);
 
 
 /* Fix the symbols for sibling functions.  These are incorrectly added to
@@ -3548,7 +3747,7 @@ parse_contained (int module)
 }
 
 
-/* Parse a PROGRAM, SUBROUTINE or FUNCTION unit.  */
+/* Parse a PROGRAM, SUBROUTINE, FUNCTION unit or BLOCK construct.  */
 
 static void
 parse_progunit (gfc_statement st)
@@ -3563,7 +3762,10 @@ parse_progunit (gfc_statement st)
       unexpected_eof ();
 
     case ST_CONTAINS:
-      goto contains;
+      /* This is not allowed within BLOCK!  */
+      if (gfc_current_state () != COMP_BLOCK)
+	goto contains;
+      break;
 
     case_end:
       accept_statement (st);
@@ -3587,7 +3789,10 @@ loop:
 	  unexpected_eof ();
 
 	case ST_CONTAINS:
-	  goto contains;
+	  /* This is not allowed within BLOCK!  */
+	  if (gfc_current_state () != COMP_BLOCK)
+	    goto contains;
+	  break;
 
 	case_end:
 	  accept_statement (st);

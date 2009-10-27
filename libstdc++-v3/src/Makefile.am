@@ -209,6 +209,8 @@ libstdc___la_DEPENDENCIES = \
 libstdc___la_LDFLAGS = \
 	-version-info $(libtool_VERSION) ${version_arg} -lm 
 
+libstdc___la_LINK = $(CXXLINK) $(libstdc___la_LDFLAGS)
+
 # Use special rules for the deprecated source files so that they find
 # deprecated include files.
 GLIBCXX_INCLUDE_DIR=$(glibcxx_builddir)/include
@@ -276,6 +278,11 @@ limits_c++0x.o: limits_c++0x.cc
 atomic.lo: atomic.cc
 	$(LTCXXCOMPILE) -std=gnu++0x -c $<
 atomic.o: atomic.cc
+	$(CXXCOMPILE) -std=gnu++0x -c $<
+
+fstream-inst.lo: fstream-inst.cc
+	$(LTCXXCOMPILE) -std=gnu++0x -c $<
+fstream-inst.o: fstream-inst.cc
 	$(CXXCOMPILE) -std=gnu++0x -c $<
 
 string-inst.lo: string-inst.cc

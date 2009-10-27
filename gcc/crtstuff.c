@@ -83,6 +83,15 @@ call_ ## FUNC (void)					\
     && !defined(OBJECT_FORMAT_FLAT) \
     && defined(HAVE_LD_EH_FRAME_HDR) \
     && !defined(inhibit_libc) && !defined(CRTSTUFFT_O) \
+    && defined(__FreeBSD__) && __FreeBSD__ >= 7
+#include <link.h>
+# define USE_PT_GNU_EH_FRAME
+#endif
+
+#if defined(OBJECT_FORMAT_ELF) \
+    && !defined(OBJECT_FORMAT_FLAT) \
+    && defined(HAVE_LD_EH_FRAME_HDR) \
+    && !defined(inhibit_libc) && !defined(CRTSTUFFT_O) \
     && defined(__GLIBC__) && __GLIBC__ >= 2
 #include <link.h>
 /* uClibc pretends to be glibc 2.2 and DT_CONFIG is defined in its link.h.
@@ -325,11 +334,18 @@ __do_global_dtors_aux (void)
 /* Stick a call to __do_global_dtors_aux into the .fini section.  */
 #ifdef FINI_SECTION_ASM_OP
 CRT_CALL_STATIC_FUNCTION (FINI_SECTION_ASM_OP, __do_global_dtors_aux)
-#else /* !defined(FINI_SECTION_ASM_OP) */
+#elif defined (FINI_ARRAY_SECTION_ASM_OP)
 static func_ptr __do_global_dtors_aux_fini_array_entry[]
   __attribute__ ((__unused__, section(".fini_array")))
   = { __do_global_dtors_aux };
-#endif /* !defined(FINI_SECTION_ASM_OP) */
+#else /* !FINI_SECTION_ASM_OP && !FINI_ARRAY_SECTION_ASM_OP */
+static void __attribute__((used))
+__do_global_dtors_aux_1 (void)
+{
+  atexit (__do_global_dtors_aux);
+}
+CRT_CALL_STATIC_FUNCTION (INIT_SECTION_ASM_OP, __do_global_dtors_aux_1)
+#endif
 
 #if defined(USE_EH_FRAME_REGISTRY) || defined(JCR_SECTION_NAME)
 /* Stick a call to __register_frame_info into the .init section.  For some

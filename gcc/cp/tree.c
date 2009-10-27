@@ -456,6 +456,22 @@ build_cplus_new (tree type, tree init)
   return rval;
 }
 
+/* Return a TARGET_EXPR which expresses the direct-initialization of one
+   array from another.  */
+
+tree
+build_array_copy (tree init)
+{
+  tree type = TREE_TYPE (init);
+  tree slot = build_local_temp (type);
+  init = build2 (VEC_INIT_EXPR, type, slot, init);
+  SET_EXPR_LOCATION (init, input_location);
+  init = build_target_expr (slot, init);
+  TARGET_EXPR_IMPLICIT_P (init) = 1;
+
+  return init;
+}
+
 /* Build a TARGET_EXPR using INIT to initialize a new temporary of the
    indicated TYPE.  */
 
@@ -623,7 +639,7 @@ build_cplus_array_type_1 (tree elt_type, tree index_type)
       else
 	{
 	  /* Build a new array type.  */
-	  t = make_node (ARRAY_TYPE);
+	  t = cxx_make_type (ARRAY_TYPE);
 	  TREE_TYPE (t) = elt_type;
 	  TYPE_DOMAIN (t) = index_type;
 
@@ -724,6 +740,17 @@ cp_build_reference_type (tree to_type, bool rval)
 
   return t;
 
+}
+
+/* Returns EXPR cast to rvalue reference type, like std::move.  */
+
+tree
+move (tree expr)
+{
+  tree type = TREE_TYPE (expr);
+  gcc_assert (TREE_CODE (type) != REFERENCE_TYPE);
+  type = cp_build_reference_type (type, /*rval*/true);
+  return build_static_cast (type, expr, tf_warning_or_error);
 }
 
 /* Used by the C++ front end to build qualified array types.  However,
@@ -915,7 +942,6 @@ cp_build_qualified_type_real (tree type,
       && (TYPE_LANG_SPECIFIC (TYPE_CANONICAL (result)) 
           == TYPE_LANG_SPECIFIC (TYPE_CANONICAL (type))))
     TYPE_LANG_SPECIFIC (TYPE_CANONICAL (result)) = NULL;
-      
 
   return result;
 }
@@ -1258,6 +1284,8 @@ build_qualified_name (tree type, tree scope, tree name, bool template_p)
     return error_mark_node;
   t = build2 (SCOPE_REF, type, scope, name);
   QUALIFIED_NAME_IS_TEMPLATE (t) = template_p;
+  if (type)
+    t = convert_from_reference (t);
   return t;
 }
 
@@ -1513,7 +1541,7 @@ verify_stmt_tree (tree t)
 
 /* Check if the type T depends on a type with no linkage and if so, return
    it.  If RELAXED_P then do not consider a class type declared within
-   a TREE_PUBLIC function to have no linkage.  */
+   a vague-linkage function to have no linkage.  */
 
 tree
 no_linkage_check (tree t, bool relaxed_p)
@@ -1527,22 +1555,46 @@ no_linkage_check (tree t, bool relaxed_p)
 
   switch (TREE_CODE (t))
     {
-      tree fn;
-
     case RECORD_TYPE:
       if (TYPE_PTRMEMFUNC_P (t))
 	goto ptrmem;
+      /* Lambda types that don't have mangling scope have no linkage.  We
+	 check CLASSTYPE_LAMBDA_EXPR here rather than LAMBDA_TYPE_P because
+	 when we get here from pushtag none of the lambda information is
+	 set up yet, so we want to assume that the lambda has linkage and
+	 fix it up later if not.  */
+      if (CLASSTYPE_LAMBDA_EXPR (t)
+	  && LAMBDA_TYPE_EXTRA_SCOPE (t) == NULL_TREE)
+	return t;
       /* Fall through.  */
     case UNION_TYPE:
       if (!CLASS_TYPE_P (t))
 	return NULL_TREE;
       /* Fall through.  */
     case ENUMERAL_TYPE:
-      if (TYPE_ANONYMOUS_P (t))
+      /* Only treat anonymous types as having no linkage if they're at
+	 namespace scope.  This doesn't have a core issue number yet.  */
+      if (TYPE_ANONYMOUS_P (t) && TYPE_NAMESPACE_SCOPE_P (t))
 	return t;
-      fn = decl_function_context (TYPE_MAIN_DECL (t));
-      if (fn && (!relaxed_p || !TREE_PUBLIC (fn)))
-	return t;
+
+      for (r = CP_TYPE_CONTEXT (t); ; )
+	{
+	  /* If we're a nested type of a !TREE_PUBLIC class, we might not
+	     have linkage, or we might just be in an anonymous namespace.
+	     If we're in a TREE_PUBLIC class, we have linkage.  */
+	  if (TYPE_P (r) && !TREE_PUBLIC (TYPE_NAME (r)))
+	    return no_linkage_check (TYPE_CONTEXT (t), relaxed_p);
+	  else if (TREE_CODE (r) == FUNCTION_DECL)
+	    {
+	      if (!relaxed_p || !vague_linkage_fn_p (r))
+		return t;
+	      else
+		r = CP_DECL_CONTEXT (r);
+	    }
+	  else
+	    break;
+	}
+
       return NULL_TREE;
 
     case ARRAY_TYPE:
@@ -2029,6 +2081,8 @@ cp_tree_equal (tree t1, tree t2)
     case TEMPLATE_PARM_INDEX:
       return (TEMPLATE_PARM_IDX (t1) == TEMPLATE_PARM_IDX (t2)
 	      && TEMPLATE_PARM_LEVEL (t1) == TEMPLATE_PARM_LEVEL (t2)
+	      && (TEMPLATE_PARM_PARAMETER_PACK (t1)
+		  == TEMPLATE_PARM_PARAMETER_PACK (t2))
 	      && same_type_p (TREE_TYPE (TEMPLATE_PARM_DECL (t1)),
 			      TREE_TYPE (TEMPLATE_PARM_DECL (t2))));
 
@@ -2296,10 +2350,10 @@ trivial_type_p (const_tree t)
   t = strip_array_types (CONST_CAST_TREE (t));
 
   if (CLASS_TYPE_P (t))
-    return !(TYPE_HAS_COMPLEX_DFLT (t)
-	     || TYPE_HAS_COMPLEX_INIT_REF (t)
-	     || TYPE_HAS_COMPLEX_ASSIGN_REF (t)
-	     || TYPE_HAS_NONTRIVIAL_DESTRUCTOR (t));
+    return (TYPE_HAS_TRIVIAL_DFLT (t)
+	    && TYPE_HAS_TRIVIAL_INIT_REF (t)
+	    && TYPE_HAS_TRIVIAL_ASSIGN_REF (t)
+	    && TYPE_HAS_TRIVIAL_DESTRUCTOR (t));
   else
     return scalarish_type_p (t);
 }
@@ -2732,6 +2786,8 @@ special_function_p (const_tree decl)
      DECL_LANG_SPECIFIC.  */
   if (DECL_COPY_CONSTRUCTOR_P (decl))
     return sfk_copy_constructor;
+  if (DECL_MOVE_CONSTRUCTOR_P (decl))
+    return sfk_move_constructor;
   if (DECL_CONSTRUCTOR_P (decl))
     return sfk_constructor;
   if (DECL_OVERLOADED_OPERATOR_P (decl) == NOP_EXPR)
@@ -3028,6 +3084,64 @@ cast_valid_in_integral_constant_expression_p (tree type)
   return (INTEGRAL_OR_ENUMERATION_TYPE_P (type)
 	  || dependent_type_p (type)
 	  || type == error_mark_node);
+}
+
+/* Return true if we need to fix linkage information of DECL.  */
+
+static bool
+cp_fix_function_decl_p (tree decl)
+{
+  /* Skip if DECL is not externally visible.  */
+  if (!TREE_PUBLIC (decl))
+    return false;
+
+  /* We need to fix DECL if it a appears to be exported but with no
+     function body.  Thunks do not have CFGs and we may need to
+     handle them specially later.   */
+  if (!gimple_has_body_p (decl)
+      && !DECL_THUNK_P (decl)
+      && !DECL_EXTERNAL (decl))
+    return true;
+
+  return false;
+}
+
+/* Clean the C++ specific parts of the tree T. */
+
+void
+cp_free_lang_data (tree t)
+{
+  if (TREE_CODE (t) == METHOD_TYPE
+      || TREE_CODE (t) == FUNCTION_TYPE)
+    {
+      /* Default args are not interesting anymore.  */
+      tree argtypes = TYPE_ARG_TYPES (t);
+      while (argtypes)
+        {
+	  TREE_PURPOSE (argtypes) = 0;
+	  argtypes = TREE_CHAIN (argtypes);
+	}
+    }
+  else if (TREE_CODE (t) == FUNCTION_DECL
+	   && cp_fix_function_decl_p (t))
+    {
+      /* If T is used in this translation unit at all,  the definition
+	 must exist somewhere else since we have decided to not emit it
+	 in this TU.  So make it an external reference.  */
+      DECL_EXTERNAL (t) = 1;
+      TREE_STATIC (t) = 0;
+    }
+  if (CP_AGGREGATE_TYPE_P (t)
+      && TYPE_NAME (t))
+    {
+      tree name = TYPE_NAME (t);
+      if (TREE_CODE (name) == TYPE_DECL)
+	name = DECL_NAME (name);
+      /* Drop anonymous names.  */
+      if (name != NULL_TREE
+	  && ANON_AGGRNAME_P (name))
+	TYPE_NAME (t) = NULL_TREE;
+    }
 }
 
 

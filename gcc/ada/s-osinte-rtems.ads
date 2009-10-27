@@ -296,8 +296,8 @@ package System.OS_Interface is
 
    function Get_Page_Size return size_t;
    function Get_Page_Size return Address;
-   --  returns the size of a page, or 0 if this is not relevant on this
-   --  target (which is the case for RTEMS)
+   pragma Import (C, Get_Page_Size, "getpagesize");
+   --  Returns the size of a page
 
    PROT_ON  : constant := 0;
    PROT_OFF : constant := 0;
@@ -625,6 +625,7 @@ private
       process_shared  : int;
       prio_ceiling    : int;
       protocol        : int;
+      mutex_type      : int;
       recursive       : int;
    end record;
    pragma Convention (C, pthread_mutexattr_t);

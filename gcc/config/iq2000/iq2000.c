@@ -1,5 +1,5 @@
 /* Subroutines used for code generation on Vitesse IQ2000 processors
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -165,6 +165,9 @@ static int  iq2000_arg_partial_bytes  (CUMULATIVE_ARGS *, enum machine_mode,
 				       tree, bool);
 static void iq2000_va_start	      (tree, rtx);
 static bool iq2000_legitimate_address_p (enum machine_mode, rtx, bool);
+static bool iq2000_can_eliminate      (const int, const int);
+static void iq2000_asm_trampoline_template (FILE *);
+static void iq2000_trampoline_init    (rtx, tree, rtx);
 
 #undef  TARGET_INIT_BUILTINS
 #define TARGET_INIT_BUILTINS 		iq2000_init_builtins
@@ -213,6 +216,14 @@ static bool iq2000_legitimate_address_p (enum machine_mode, rtx, bool);
 
 #undef TARGET_LEGITIMATE_ADDRESS_P
 #define TARGET_LEGITIMATE_ADDRESS_P	iq2000_legitimate_address_p
+
+#undef TARGET_CAN_ELIMINATE
+#define TARGET_CAN_ELIMINATE            iq2000_can_eliminate
+
+#undef  TARGET_ASM_TRAMPOLINE_TEMPLATE
+#define TARGET_ASM_TRAMPOLINE_TEMPLATE	iq2000_asm_trampoline_template
+#undef  TARGET_TRAMPOLINE_INIT
+#define TARGET_TRAMPOLINE_INIT		iq2000_trampoline_init
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 
@@ -1678,6 +1689,22 @@ compute_frame_size (HOST_WIDE_INT size)
   return total_size;
 }
 
+
+/* We can always eliminate to the frame pointer.  We can eliminate to the
+   stack pointer unless a frame pointer is needed.  */
+
+bool
+iq2000_can_eliminate (const int from, const int to)
+{
+  return (from == RETURN_ADDRESS_POINTER_REGNUM
+          && (! leaf_function_p ()
+              || (to == GP_REG_FIRST + 31 && leaf_function_p)))
+          || (from != RETURN_ADDRESS_POINTER_REGNUM
+              && (to == HARD_FRAME_POINTER_REGNUM
+                  || (to == STACK_POINTER_REGNUM
+                      && ! frame_pointer_needed)));
+}
+
 /* Implement INITIAL_ELIMINATION_OFFSET.  FROM is either the frame
    pointer, argument pointer, or return address pointer.  TO is either
    the stack pointer or hard frame pointer.  */
@@ -3388,6 +3415,49 @@ iq2000_rtx_costs (rtx x, int code, int outer_code ATTRIBUTE_UNUSED, int * total,
       return false;
     }
   return true;
+}
+
+/* Worker for TARGET_ASM_TRAMPOLINE_TEMPLATE.  */
+
+static void
+iq2000_asm_trampoline_template (FILE *f)
+{
+  fprintf (f, "\t.word\t0x03e00821\t\t# move   $1,$31\n");
+  fprintf (f, "\t.word\t0x04110001\t\t# bgezal $0,.+8\n");
+  fprintf (f, "\t.word\t0x00000000\t\t# nop\n");
+  if (Pmode == DImode)
+    {
+      fprintf (f, "\t.word\t0xdfe30014\t\t# ld     $3,20($31)\n");
+      fprintf (f, "\t.word\t0xdfe2001c\t\t# ld     $2,28($31)\n");
+    }
+  else
+    {
+      fprintf (f, "\t.word\t0x8fe30014\t\t# lw     $3,20($31)\n");
+      fprintf (f, "\t.word\t0x8fe20018\t\t# lw     $2,24($31)\n");
+    }
+  fprintf (f, "\t.word\t0x0060c821\t\t# move   $25,$3 (abicalls)\n");
+  fprintf (f, "\t.word\t0x00600008\t\t# jr     $3\n");
+  fprintf (f, "\t.word\t0x0020f821\t\t# move   $31,$1\n");
+  fprintf (f, "\t.word\t0x00000000\t\t# <function address>\n");
+  fprintf (f, "\t.word\t0x00000000\t\t# <static chain value>\n");
+}
+
+/* Worker for TARGET_TRAMPOLINE_INIT.  */
+
+static void
+iq2000_trampoline_init (rtx m_tramp, tree fndecl, rtx chain_value)
+{
+  rtx fnaddr = XEXP (DECL_RTL (fndecl), 0);
+  rtx mem;
+
+  emit_block_move (m_tramp, assemble_trampoline_template (),
+		   GEN_INT (TRAMPOLINE_CODE_SIZE), BLOCK_OP_NORMAL);
+
+  mem = adjust_address (m_tramp, Pmode, TRAMPOLINE_CODE_SIZE);
+  emit_move_insn (mem, fnaddr);
+  mem = adjust_address (m_tramp, Pmode,
+			TRAMPOLINE_CODE_SIZE + GET_MODE_SIZE (Pmode));
+  emit_move_insn (mem, chain_value);
 }
 
 #include "gt-iq2000.h"

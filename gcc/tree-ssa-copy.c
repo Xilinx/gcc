@@ -162,6 +162,7 @@ replace_exp_1 (use_operand_p op_p, tree val,
 {
 #if defined ENABLE_CHECKING
   tree op = USE_FROM_PTR (op_p);
+
   gcc_assert (!(for_propagation
 		&& TREE_CODE (op) == SSA_NAME
 		&& TREE_CODE (val) == SSA_NAME
@@ -846,7 +847,7 @@ fini_copy_prop (void)
 	duplicate_ssa_name_ptr_info (tmp[i].value, SSA_NAME_PTR_INFO (var));
     }
 
-  substitute_and_fold (tmp, false);
+  substitute_and_fold (tmp, NULL);
 
   free (cached_last_copy_of);
   free (copy_of);

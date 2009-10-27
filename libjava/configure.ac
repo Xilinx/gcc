@@ -1,5 +1,5 @@
 dnl # Process this with autoconf to create configure
-AC_PREREQ(2.59)
+AC_PREREQ(2.64)
 # Still use "libjava" here to placate dejagnu.
 AC_INIT([libjava], [version-unused],, [libjava])
 
@@ -55,15 +55,15 @@ AC_ARG_ENABLE(version-specific-runtime-libs,
     [version_specific_libs=no]
 )
 
-AC_ARG_ENABLE(plugin,
-  AS_HELP_STRING([--enable-plugin],
+AC_ARG_ENABLE(browser-plugin,
+  AS_HELP_STRING([--enable-browser-plugin],
                  [build gcjwebplugin web browser plugin]),
     [case "$enableval" in
-      yes) plugin_enabled=yes ;;
-      no)  plugin_enabled=no ;;
-      *)   AC_MSG_ERROR([Unknown argument to enable/disable plugin]);;
+      yes) browser_plugin_enabled=yes ;;
+      no)  browser_plugin_enabled=no ;;
+      *)   AC_MSG_ERROR([Unknown argument to enable/disable browser plugin]);;
      esac],
-    [plugin_enabled=no]
+    [browser_plugin_enabled=no]
 )
 
 AC_ARG_ENABLE(gconf-peer,
@@ -206,10 +206,14 @@ AC_EXEEXT
 #	libgcj_cflags    - host specific C compiler flags
 #	libgcj_cxxflags  - host specific C++ compiler flags
 #	libgcj_javaflags - host specific Java compiler flags
+#	libgcj_sublib_ltflags - host specific Libtool flags 
+#                          (only used when building sublibs)
+# and a number of others; see the list at the start of the file.
 
 libgcj_cflags=
 libgcj_cxxflags=
 libgcj_javaflags=
+libgcj_sublib_ltflags=
 
 . ${srcdir}/configure.host
 
@@ -222,11 +226,13 @@ fi
 LIBGCJ_CFLAGS="${libgcj_cflags}"
 LIBGCJ_CXXFLAGS="${libgcj_cxxflags}"
 LIBGCJ_JAVAFLAGS="${libgcj_javaflags}"
+LIBGCJ_SUBLIB_LTFLAGS="${libgcj_sublib_ltflags}"
 LIBGCJ_LD_SYMBOLIC="${libgcj_ld_symbolic}"
 LIBGCJ_LD_SYMBOLIC_FUNCTIONS="${libgcj_ld_symbolic_functions}"
 AC_SUBST(LIBGCJ_CFLAGS)
 AC_SUBST(LIBGCJ_CXXFLAGS)
 AC_SUBST(LIBGCJ_JAVAFLAGS)
+AC_SUBST(LIBGCJ_SUBLIB_LTFLAGS)
 AC_SUBST(LIBGCJ_LD_SYMBOLIC)
 AC_SUBST(LIBGCJ_LD_SYMBOLIC_FUNCTIONS)
 
@@ -236,6 +242,26 @@ if test "x${with_newlib}" = "x" || test "x${with_newlib}" = "xno"; then
 fi
 
 AC_CONFIG_HEADERS([include/config.h gcj/libgcj-config.h])
+
+# Possibly build libgcj as many sub-libraries.
+AC_ARG_ENABLE(libgcj-sublibs,
+  AS_HELP_STRING([--enable-libgcj-sublibs],
+                 [build libgcj as many sub-libraries]))
+
+if test -z "$enable_libgcj_sublibs"; then
+   enable_libgcj_sublibs=$enable_libgcj_sublibs_default
+fi
+AM_CONDITIONAL(BUILD_SUBLIBS, test "$enable_libgcj_sublibs" = yes)
+if test "$enable_libgcj_sublibs" = yes ; then
+  # In theory we could make do with only one override and simply
+  # tag "_bc" onto the end of it when we use it to generate the
+  # spec, but that's an ugly thing to do when there are multiple
+  # words in the string and you're relying on the ordering to
+  # append the correct one.
+  libgcj_spec_lgcj_override="-lgcj-noncore -lgcj"
+  libgcj_spec_lgcj_bc_override="-lgcj-noncore -lgcj_bc"
+fi
+
 
 # See if the user has requested runtime debugging.
 LIBGCJDEBUG="disable"
@@ -465,8 +491,10 @@ ac_configure_args="$ac_configure_args --disable-core-jni"
 dnl FIXME?
 ac_configure_args="$ac_configure_args --disable-examples"
 ac_configure_args="$ac_configure_args --with-glibj=build"
-if test "$plugin_enabled" != yes; then
+if test "$browser_plugin_enabled" != yes; then
   ac_configure_args="$ac_configure_args --disable-plugin"
+else
+  ac_configure_args="$ac_configure_args --enable-plugin"
 fi
 if test "$gconf_enabled" != yes; then
   ac_configure_args="$ac_configure_args --disable-gconf-peer"
@@ -897,6 +925,9 @@ arm*linux*eabi)
     LIBSTDCXXSPEC=-lstdc++
     LIBGCJTESTSPEC="-L`${PWDCMD-pwd}`/.libs -L`${PWDCMD-pwd}`/../libstdc++-v3/src/.libs -rpath `${PWDCMD-pwd}`/.libs:`${PWDCMD-pwd}`/../libstdc++-v3/src/.libs -lstdc++"
     ;;
+*-*-cygwin)
+    extra_ldflags_libjava=-liconv
+    ;;
 esac
 AC_SUBST(extra_ldflags_libjava)
 AC_SUBST(extra_gij_ldflags)
@@ -1075,9 +1106,17 @@ AC_CONFIG_LINKS(sysdep/locks.h:sysdep/$sysdeps_dir/locks.h)
 AC_CONFIG_LINKS(sysdep/backtrace.h:$fallback_backtrace_h)
 AC_CONFIG_LINKS(sysdep/descriptor.h:$descriptor_h)
 
-LIBGCJ_SPEC="%{s-bc-abi:} -lgcj"
+LIBGCJ_SPEC_LGCJ=-lgcj
+LIBGCJ_SPEC_LGCJ_BC=-lgcj_bc
+if test x"$libgcj_spec_lgcj_override" != x ; then
+  LIBGCJ_SPEC_LGCJ=$libgcj_spec_lgcj_override
+fi
+if test x"$libgcj_spec_lgcj_bc_override" != x ; then
+  LIBGCJ_SPEC_LGCJ_BC=$libgcj_spec_lgcj_bc_override
+fi
+LIBGCJ_SPEC="%{s-bc-abi:} $LIBGCJ_SPEC_LGCJ"
 if test "$use_libgcj_bc" = yes; then
-  LIBGCJ_SPEC="%{static|static-libgcj|!s-bc-abi:-lgcj;:-lgcj_bc}"
+  LIBGCJ_SPEC="%{static|static-libgcj|!s-bc-abi:$LIBGCJ_SPEC_LGCJ;:$LIBGCJ_SPEC_LGCJ_BC}"
   LIBGCJ_BC_SPEC="%{findirect-dispatch:-fPIC}"
 fi
 AC_SUBST(LIBGCJ_SPEC)

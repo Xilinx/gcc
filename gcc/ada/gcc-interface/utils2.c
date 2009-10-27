@@ -55,63 +55,6 @@ static tree compare_arrays (tree, tree, tree);
 static tree nonbinary_modular_operation (enum tree_code, tree, tree, tree);
 static tree build_simple_component_ref (tree, tree, tree, bool);
 
-/* Prepare expr to be an argument of a TRUTH_NOT_EXPR or other logical
-   operation.
-
-   This preparation consists of taking the ordinary representation of
-   an expression expr and producing a valid tree boolean expression
-   describing whether expr is nonzero. We could simply always do
-
-      build_binary_op (NE_EXPR, expr, integer_zero_node, 1),
-
-   but we optimize comparisons, &&, ||, and !.
-
-   The resulting type should always be the same as the input type.
-   This function is simpler than the corresponding C version since
-   the only possible operands will be things of Boolean type.  */
-
-tree
-gnat_truthvalue_conversion (tree expr)
-{
-  tree type = TREE_TYPE (expr);
-
-  switch (TREE_CODE (expr))
-    {
-    case EQ_EXPR:  case NE_EXPR: case LE_EXPR: case GE_EXPR:
-    case LT_EXPR:  case GT_EXPR:
-    case TRUTH_ANDIF_EXPR:
-    case TRUTH_ORIF_EXPR:
-    case TRUTH_AND_EXPR:
-    case TRUTH_OR_EXPR:
-    case TRUTH_XOR_EXPR:
-    case ERROR_MARK:
-      return expr;
-
-    case INTEGER_CST:
-      return (integer_zerop (expr)
-	      ? build_int_cst (type, 0)
-	      : build_int_cst (type, 1));
-
-    case REAL_CST:
-      return (real_zerop (expr)
-	      ? fold_convert (type, integer_zero_node)
-	      : fold_convert (type, integer_one_node));
-
-    case COND_EXPR:
-      /* Distribute the conversion into the arms of a COND_EXPR.  */
-      {
-	tree arg1 = gnat_truthvalue_conversion (TREE_OPERAND (expr, 1));
-	tree arg2 = gnat_truthvalue_conversion (TREE_OPERAND (expr, 2));
-	return fold_build3 (COND_EXPR, type, TREE_OPERAND (expr, 0),
-			    arg1, arg2);
-      }
-
-    default:
-      return build_binary_op (NE_EXPR, type, expr,
-			      fold_convert (type, integer_zero_node));
-    }
-}
-
 /* Return the base type of TYPE.  */
 
 tree
@@ -711,12 +654,9 @@ build_binary_op (enum tree_code op_code, tree result_type,
 	 can convert the constructor to the inner type, to avoid putting a
 	 VIEW_CONVERT_EXPR on the LHS.  But don't do so if we wouldn't have
 	 actually copied anything.  */
-      else if (TREE_CODE (left_type) == RECORD_TYPE
-	       && TYPE_IS_PADDING_P (left_type)
+      else if (TYPE_IS_PADDING_P (left_type)
 	       && TREE_CONSTANT (TYPE_SIZE (left_type))
 	       && ((TREE_CODE (right_operand) == COMPONENT_REF
-		    && TREE_CODE (TREE_TYPE (TREE_OPERAND (right_operand, 0)))
-		       == RECORD_TYPE
 		    && TYPE_IS_PADDING_P
 		       (TREE_TYPE (TREE_OPERAND (right_operand, 0)))
 		    && gnat_types_compatible_p
@@ -815,6 +755,12 @@ build_binary_op (enum tree_code op_code, tree result_type,
 	  left_type = TREE_TYPE (left_operand);
 	}
 
+      /* For a range, make sure the element type is consistent.  */
+      if (op_code == ARRAY_RANGE_REF
+	  && TREE_TYPE (operation_type) != TREE_TYPE (left_type))
+	operation_type = build_array_type (TREE_TYPE (left_type),
+					   TYPE_DOMAIN (operation_type));
+
       /* Then convert the right operand to its base type.  This will prevent
 	 unneeded sign conversions when sizetype is wider than integer.  */
       right_operand = convert (right_base_type, right_operand);
@@ -893,8 +839,8 @@ build_binary_op (enum tree_code op_code, tree result_type,
 	 convert both operands to that type.  */
       if (left_base_type != right_base_type)
 	{
-	  if (TYPE_FAT_POINTER_P (left_base_type)
-	      && TYPE_FAT_POINTER_P (right_base_type)
+	  if (TYPE_IS_FAT_POINTER_P (left_base_type)
+	      && TYPE_IS_FAT_POINTER_P (right_base_type)
 	      && TYPE_MAIN_VARIANT (left_base_type)
 		 == TYPE_MAIN_VARIANT (right_base_type))
 	    best_type = left_base_type;
@@ -929,7 +875,7 @@ build_binary_op (enum tree_code op_code, tree result_type,
 
       /* If we are comparing a fat pointer against zero, we need to
 	 just compare the data pointer.  */
-      else if (TYPE_FAT_POINTER_P (left_base_type)
+      else if (TYPE_IS_FAT_POINTER_P (left_base_type)
 	       && TREE_CODE (right_operand) == CONSTRUCTOR
 	       && integer_zerop (VEC_index (constructor_elt,
 					    CONSTRUCTOR_ELTS (right_operand),
@@ -969,15 +915,6 @@ build_binary_op (enum tree_code op_code, tree result_type,
       modulus = NULL_TREE;
       left_operand = convert (operation_type, left_operand);
       break;
-
-    case TRUTH_ANDIF_EXPR:
-    case TRUTH_ORIF_EXPR:
-    case TRUTH_AND_EXPR:
-    case TRUTH_OR_EXPR:
-    case TRUTH_XOR_EXPR:
-      left_operand = gnat_truthvalue_conversion (left_operand);
-      right_operand = gnat_truthvalue_conversion (right_operand);
-      goto common;
 
     case BIT_AND_EXPR:
     case BIT_IOR_EXPR:
@@ -1120,7 +1057,7 @@ build_unary_op (enum tree_code op_code, tree result_type, tree operand)
 
     case TRUTH_NOT_EXPR:
       gcc_assert (result_type == base_type);
-      result = invert_truthvalue (gnat_truthvalue_conversion (operand));
+      result = invert_truthvalue (operand);
       break;
 
     case ATTR_ADDR_EXPR:
@@ -1183,11 +1120,10 @@ build_unary_op (enum tree_code op_code, tree result_type, tree operand)
 	      /* If INNER is a padding type whose field has a self-referential
 		 size, convert to that inner type.  We know the offset is zero
 		 and we need to have that type visible.  */
-	      if (TREE_CODE (TREE_TYPE (inner)) == RECORD_TYPE
-		  && TYPE_IS_PADDING_P (TREE_TYPE (inner))
-		  && (CONTAINS_PLACEHOLDER_P
-		      (TYPE_SIZE (TREE_TYPE (TYPE_FIELDS
-					     (TREE_TYPE (inner)))))))
+	      if (TYPE_IS_PADDING_P (TREE_TYPE (inner))
+		  && CONTAINS_PLACEHOLDER_P
+		     (TYPE_SIZE (TREE_TYPE (TYPE_FIELDS
+					    (TREE_TYPE (inner))))))
 		inner = convert (TREE_TYPE (TYPE_FIELDS (TREE_TYPE (inner))),
 				 inner);
 
@@ -1220,13 +1156,11 @@ build_unary_op (enum tree_code op_code, tree result_type, tree operand)
 	  /* If this is just a constructor for a padded record, we can
 	     just take the address of the single field and convert it to
 	     a pointer to our type.  */
-	  if (TREE_CODE (type) == RECORD_TYPE && TYPE_IS_PADDING_P (type))
+	  if (TYPE_IS_PADDING_P (type))
 	    {
-	      result = (VEC_index (constructor_elt,
-				   CONSTRUCTOR_ELTS (operand),
-				   0)
-			->value);
-
+	      result = VEC_index (constructor_elt,
+				  CONSTRUCTOR_ELTS (operand),
+				  0)->value;
 	      result = convert (build_pointer_type (TREE_TYPE (operand)),
 				build_unary_op (ADDR_EXPR, NULL_TREE, result));
 	      break;
@@ -1268,8 +1202,7 @@ build_unary_op (enum tree_code op_code, tree result_type, tree operand)
 
 	  /* If we are taking the address of a padded record whose field is
 	     contains a template, take the address of the template.  */
-	  if (TREE_CODE (type) == RECORD_TYPE
-	      && TYPE_IS_PADDING_P (type)
+	  if (TYPE_IS_PADDING_P (type)
 	      && TREE_CODE (TREE_TYPE (TYPE_FIELDS (type))) == RECORD_TYPE
 	      && TYPE_CONTAINS_TEMPLATE_P (TREE_TYPE (TYPE_FIELDS (type))))
 	    {
@@ -1292,7 +1225,7 @@ build_unary_op (enum tree_code op_code, tree result_type, tree operand)
 	 make up an expression to do so.  This will never survive to
 	 the backend.  If TYPE is a thin pointer, first convert the
 	 operand to a fat pointer.  */
-      if (TYPE_THIN_POINTER_P (type)
+      if (TYPE_IS_THIN_POINTER_P (type)
 	  && TYPE_UNCONSTRAINED_ARRAY (TREE_TYPE (type)))
 	{
 	  operand
@@ -1301,7 +1234,7 @@ build_unary_op (enum tree_code op_code, tree result_type, tree operand)
 	  type = TREE_TYPE (operand);
 	}
 
-      if (TYPE_FAT_POINTER_P (type))
+      if (TYPE_IS_FAT_POINTER_P (type))
 	{
 	  result = build1 (UNCONSTRAINED_ARRAY_REF,
 			   TYPE_UNCONSTRAINED_ARRAY (type), operand);
@@ -1318,7 +1251,7 @@ build_unary_op (enum tree_code op_code, tree result_type, tree operand)
 	}
 
       side_effects
-	=  (!TYPE_FAT_POINTER_P (type) && TYPE_VOLATILE (TREE_TYPE (type)));
+	= (!TYPE_IS_FAT_POINTER_P (type) && TYPE_VOLATILE (TREE_TYPE (type)));
       break;
 
     case NEGATE_EXPR:
@@ -1972,7 +1905,8 @@ maybe_wrap_malloc (tree data_size, tree data_type, Node_Id gnat_node)
       tree storage_ptr_slot_addr
 	= build_binary_op (POINTER_PLUS_EXPR, ptr_void_type_node,
 			   convert (ptr_void_type_node, aligning_field_addr),
-			   size_int (-POINTER_SIZE/BITS_PER_UNIT));
+			   size_int (-(HOST_WIDE_INT) POINTER_SIZE
+				     / BITS_PER_UNIT));
 
       tree storage_ptr_slot
 	= build_unary_op (INDIRECT_REF, NULL_TREE,
@@ -2013,7 +1947,7 @@ maybe_wrap_free (tree data_ptr, tree data_type)
 	= build_binary_op
 	  (POINTER_PLUS_EXPR, ptr_void_type_node,
 	   convert (ptr_void_type_node, data_ptr),
-	   size_int (-POINTER_SIZE/BITS_PER_UNIT));
+	   size_int (-(HOST_WIDE_INT) POINTER_SIZE / BITS_PER_UNIT));
 
       /* FREE_PTR (void *) = *(void **)DATA_FRONT_PTR  */
       free_ptr
@@ -2092,7 +2026,7 @@ build_allocator (tree type, tree init, tree result_type, Entity_Id gnat_proc,
   /* If RESULT_TYPE is a fat or thin pointer, set SIZE to be the sum of the
      sizes of the object and its template.  Allocate the whole thing and
      fill in the parts that are known.  */
-  else if (TYPE_FAT_OR_THIN_POINTER_P (result_type))
+  else if (TYPE_IS_FAT_OR_THIN_POINTER_P (result_type))
     {
       tree storage_type
 	= build_unc_object_type_from_ptr (result_type, type,
@@ -2114,10 +2048,9 @@ build_allocator (tree type, tree init, tree result_type, Entity_Id gnat_proc,
 					  gnat_proc, gnat_pool, gnat_node);
       storage = convert (storage_ptr_type, protect_multiple_eval (storage));
 
-      if (TREE_CODE (type) == RECORD_TYPE && TYPE_IS_PADDING_P (type))
+      if (TYPE_IS_PADDING_P (type))
 	{
 	  type = TREE_TYPE (TYPE_FIELDS (type));
-
 	  if (init)
 	    init = convert (type, init);
 	}

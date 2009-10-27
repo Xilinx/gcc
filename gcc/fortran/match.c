@@ -29,6 +29,9 @@ along with GCC; see the file COPYING3.  If not see
 int gfc_matching_procptr_assignment = 0;
 bool gfc_matching_prefix = false;
 
+/* Stack of SELECT TYPE statements.  */
+gfc_select_type_stack *select_type_stack = NULL;
+
 /* For debugging and diagnostic purposes.  Return the textual representation
    of the intrinsic operator OP.  */
 const char *
@@ -1705,6 +1708,30 @@ gfc_free_iterator (gfc_iterator *iter, int flag)
 }
 
 
+/* Match a BLOCK statement.  */
+
+match
+gfc_match_block (void)
+{
+  match m;
+
+  if (gfc_match_label () == MATCH_ERROR)
+    return MATCH_ERROR;
+
+  if (gfc_match (" block") != MATCH_YES)
+    return MATCH_NO;
+
+  /* For this to be a correct BLOCK statement, the line must end now.  */
+  m = gfc_match_eos ();
+  if (m == MATCH_ERROR)
+    return MATCH_ERROR;
+  if (m == MATCH_NO)
+    return MATCH_NO;
+
+  return MATCH_YES;
+}
+
+
 /* Match a DO statement.  */
 
 match
@@ -2221,21 +2248,54 @@ gfc_free_alloc_list (gfc_alloc *p)
 }
 
 
-/* Match a Fortran 2003 intrinsic-type-spec.  This is a stripped
-   down version of gfc_match_type_spec() from decl.c.  It only includes
-   the intrinsic types from the Fortran 2003 standard.  Thus, neither
-   BYTE nor forms like REAL*4 are allowed.  Additionally, the implicit_flag
-   is not needed, so it was removed.  The handling of derived types has
-   been removed and no notion of the gfc_matching_function state
-   is needed.  In short, this functions matches only standard conforming
-   intrinsic-type-spec (R403).  */
+/* Match a Fortran 2003 derived-type-spec (F03:R455), which is just the name of
+   an accessible derived type.  */
 
 static match
-match_intrinsic_typespec (gfc_typespec *ts)
+match_derived_type_spec (gfc_typespec *ts)
+{
+  locus old_locus; 
+  gfc_symbol *derived;
+
+  old_locus = gfc_current_locus; 
+
+  if (gfc_match_symbol (&derived, 1) == MATCH_YES)
+    {
+      if (derived->attr.flavor == FL_DERIVED)
+	{
+	  ts->type = BT_DERIVED;
+	  ts->u.derived = derived;
+	  return MATCH_YES;
+	}
+      else
+	{
+	  /* Enforce F03:C476.  */
+	  gfc_error ("'%s' at %L is not an accessible derived type",
+		     derived->name, &gfc_current_locus);
+	  return MATCH_ERROR;
+	}
+    }
+
+  gfc_current_locus = old_locus; 
+  return MATCH_NO;
+}
+
+
+/* Match a Fortran 2003 type-spec (F03:R401).  This is similar to
+   gfc_match_decl_type_spec() from decl.c, with the following exceptions:
+   It only includes the intrinsic types from the Fortran 2003 standard
+   (thus, neither BYTE nor forms like REAL*4 are allowed). Additionally,
+   the implicit_flag is not needed, so it was removed.  Derived types are
+   identified by their name alone.  */
+
+static match
+match_type_spec (gfc_typespec *ts)
 {
   match m;
+  locus old_locus;
 
   gfc_clear_ts (ts);
+  old_locus = gfc_current_locus;
 
   if (gfc_match ("integer") == MATCH_YES)
     {
@@ -2278,7 +2338,27 @@ match_intrinsic_typespec (gfc_typespec *ts)
       goto kind_selector;
     }
 
-  /* If an intrinsic type is not matched, simply return MATCH_NO.  */ 
+  m = match_derived_type_spec (ts);
+  if (m == MATCH_YES)
+    {
+      old_locus = gfc_current_locus;
+      if (gfc_match (" :: ") != MATCH_YES)
+	return MATCH_ERROR;
+      gfc_current_locus = old_locus;
+      /* Enfore F03:C401.  */
+      if (ts->u.derived->attr.abstract)
+	{
+	  gfc_error ("Derived type '%s' at %L may not be ABSTRACT",
+		     ts->u.derived->name, &old_locus);
+	  return MATCH_ERROR;
+	}
+      return MATCH_YES;
+    }
+  else if (m == MATCH_ERROR && gfc_match (" :: ") == MATCH_YES)
+    return MATCH_ERROR;
+
+  /* If a type is not matched, simply return MATCH_NO.  */
+  gfc_current_locus = old_locus;
   return MATCH_NO;
 
 kind_selector:
@@ -2308,58 +2388,6 @@ char_selector:
 }
 
 
-/* Used in gfc_match_allocate to check that a allocation-object and
-   a source-expr are conformable.  This does not catch all possible 
-   cases; in particular a runtime checking is needed.  */
-
-static gfc_try
-conformable_arrays (gfc_expr *e1, gfc_expr *e2)
-{
-  /* First compare rank.  */
-  if (e2->ref && e1->rank != e2->ref->u.ar.as->rank)
-    {
-      gfc_error ("Source-expr at %L must be scalar or have the "
-		 "same rank as the allocate-object at %L",
-		 &e1->where, &e2->where);
-      return FAILURE;
-    }
-
-  if (e1->shape)
-    {
-      int i;
-      mpz_t s;
-
-      mpz_init (s);
-
-      for (i = 0; i < e1->rank; i++)
-	{
-	  if (e2->ref->u.ar.end[i])
-	    {
-	      mpz_set (s, e2->ref->u.ar.end[i]->value.integer);
-	      mpz_sub (s, s, e2->ref->u.ar.start[i]->value.integer);
-	      mpz_add_ui (s, s, 1);
-	    }
-	  else
-	    {
-	      mpz_set (s, e2->ref->u.ar.start[i]->value.integer);
-	    }
-
-	  if (mpz_cmp (e1->shape[i], s) != 0)
-	    {
-	      gfc_error ("Source-expr at %L and allocate-object at %L must "
-			 "have the same shape", &e1->where, &e2->where);
-	      mpz_clear (s);
-   	      return FAILURE;
-	    }
-	}
-
-      mpz_clear (s);
-    }
-
-  return SUCCESS;
-}
-
-
 /* Match an ALLOCATE statement.  */
 
 match
@@ -2368,6 +2396,7 @@ gfc_match_allocate (void)
   gfc_alloc *head, *tail;
   gfc_expr *stat, *errmsg, *tmp, *source;
   gfc_typespec ts;
+  gfc_symbol *sym;
   match m;
   locus old_locus;
   bool saw_stat, saw_errmsg, saw_source, b1, b2, b3;
@@ -2379,9 +2408,9 @@ gfc_match_allocate (void)
   if (gfc_match_char ('(') != MATCH_YES)
     goto syntax;
 
-  /* Match an optional intrinsic-type-spec.  */
+  /* Match an optional type-spec.  */
   old_locus = gfc_current_locus;
-  m = match_intrinsic_typespec (&ts);
+  m = match_type_spec (&ts);
   if (m == MATCH_ERROR)
     goto cleanup;
   else if (m == MATCH_NO)
@@ -2430,15 +2459,15 @@ gfc_match_allocate (void)
 	 constraints.  */
       if (ts.type != BT_UNKNOWN)
 	{
-	  /* Enforce C626.  */
-	  if (ts.type != tail->expr->ts.type)
+	  /* Enforce F03:C624.  */
+	  if (!gfc_type_compatible (&tail->expr->ts, &ts))
 	    {
 	      gfc_error ("Type of entity at %L is type incompatible with "
 			 "typespec", &tail->expr->where);
 	      goto cleanup;
 	    }
 
-	  /* Enforce C627.  */
+	  /* Enforce F03:C627.  */
 	  if (ts.kind != tail->expr->ts.kind)
 	    {
 	      gfc_error ("Kind type parameter for entity at %L differs from "
@@ -2452,19 +2481,20 @@ gfc_match_allocate (void)
 	tail->expr->ts.u.derived = gfc_use_derived (tail->expr->ts.u.derived);
 
       /* FIXME: disable the checking on derived types and arrays.  */
+      sym = tail->expr->symtree->n.sym;
       b1 = !(tail->expr->ref
 	   && (tail->expr->ref->type == REF_COMPONENT
 		|| tail->expr->ref->type == REF_ARRAY));
-      b2 = tail->expr->symtree->n.sym
-	   && !(tail->expr->symtree->n.sym->attr.allocatable
-		|| tail->expr->symtree->n.sym->attr.pointer
-		|| tail->expr->symtree->n.sym->attr.proc_pointer);
-      b3 = tail->expr->symtree->n.sym
-	   && tail->expr->symtree->n.sym->ns
-	   && tail->expr->symtree->n.sym->ns->proc_name
-	   && (tail->expr->symtree->n.sym->ns->proc_name->attr.allocatable
-		|| tail->expr->symtree->n.sym->ns->proc_name->attr.pointer
-		|| tail->expr->symtree->n.sym->ns->proc_name->attr.proc_pointer);
+      if (sym && sym->ts.type == BT_CLASS)
+	b2 = !(sym->ts.u.derived->components->attr.allocatable
+	       || sym->ts.u.derived->components->attr.pointer);
+      else
+	b2 = sym && !(sym->attr.allocatable || sym->attr.pointer
+		      || sym->attr.proc_pointer);
+      b3 = sym && sym->ns && sym->ns->proc_name
+	   && (sym->ns->proc_name->attr.allocatable
+		|| sym->ns->proc_name->attr.pointer
+		|| sym->ns->proc_name->attr.proc_pointer);
       if (b1 && b2 && !b3)
 	{
 	  gfc_error ("Allocate-object at %C is not a nonprocedure pointer "
@@ -2538,7 +2568,7 @@ alloc_opt_list:
 	      goto cleanup;
 	    }
 
-	  /* The next 3 conditionals check C631.  */
+	  /* The next 2 conditionals check C631.  */
 	  if (ts.type != BT_UNKNOWN)
 	    {
 	      gfc_error ("SOURCE tag at %L conflicts with the typespec at %L",
@@ -2552,28 +2582,6 @@ alloc_opt_list:
 			 "the allocation-list", &tmp->where);
 	      goto cleanup;
             }
-
-	  gfc_resolve_expr (tmp);
-
-	  if (head->expr->ts.type != tmp->ts.type)
-	    {
-	      gfc_error ("Type of entity at %L is type incompatible with "
-			 "source-expr at %L", &head->expr->where, &tmp->where);
-	      goto cleanup;
-	    }
-
-	  /* Check C633.  */
-	  if (tmp->ts.kind != head->expr->ts.kind)
-	    {
-	      gfc_error ("The allocate-object at %L and the source-expr at %L "
-			 "shall have the same kind type parameter",
-			 &head->expr->where, &tmp->where);
-	      goto cleanup;
-	    }
-
-	  /* Check C632 and restriction following Note 6.18.  */
-	  if (tmp->rank > 0 && conformable_arrays (tmp, head->expr) == FAILURE)
-	    goto cleanup;
 
 	  source = tmp;
 	  saw_source = true;
@@ -2596,7 +2604,8 @@ alloc_opt_list:
   new_st.expr1 = stat;
   new_st.expr2 = errmsg;
   new_st.expr3 = source;
-  new_st.ext.alloc_list = head;
+  new_st.ext.alloc.list = head;
+  new_st.ext.alloc.ts = ts;
 
   return MATCH_YES;
 
@@ -2693,8 +2702,9 @@ gfc_match_deallocate (void)
 {
   gfc_alloc *head, *tail;
   gfc_expr *stat, *errmsg, *tmp;
+  gfc_symbol *sym;
   match m;
-  bool saw_stat, saw_errmsg;
+  bool saw_stat, saw_errmsg, b1, b2;
 
   head = tail = NULL;
   stat = errmsg = tmp = NULL;
@@ -2722,20 +2732,25 @@ gfc_match_deallocate (void)
       if (gfc_check_do_variable (tail->expr->symtree))
 	goto cleanup;
 
-      if (gfc_pure (NULL) && gfc_impure_variable (tail->expr->symtree->n.sym))
+      sym = tail->expr->symtree->n.sym;
+
+      if (gfc_pure (NULL) && gfc_impure_variable (sym))
 	{
 	  gfc_error ("Illegal allocate-object at %C for a PURE procedure");
 	  goto cleanup;
 	}
 
       /* FIXME: disable the checking on derived types.  */
-      if (!(tail->expr->ref
+      b1 = !(tail->expr->ref
 	   && (tail->expr->ref->type == REF_COMPONENT
-	       || tail->expr->ref->type == REF_ARRAY)) 
-	  && tail->expr->symtree->n.sym
-	  && !(tail->expr->symtree->n.sym->attr.allocatable
-	       || tail->expr->symtree->n.sym->attr.pointer
-	       || tail->expr->symtree->n.sym->attr.proc_pointer))
+	       || tail->expr->ref->type == REF_ARRAY));
+      if (sym && sym->ts.type == BT_CLASS)
+	b2 = !(sym->ts.u.derived->components->attr.allocatable
+	       || sym->ts.u.derived->components->attr.pointer);
+      else
+	b2 = sym && !(sym->attr.allocatable || sym->attr.pointer
+		      || sym->attr.proc_pointer);
+      if (b1 && b2)
 	{
 	  gfc_error ("Allocate-object at %C is not a nonprocedure pointer "
 		     "or an allocatable variable");
@@ -2804,7 +2819,7 @@ dealloc_opt_list:
   new_st.op = EXEC_DEALLOCATE;
   new_st.expr1 = stat;
   new_st.expr2 = errmsg;
-  new_st.ext.alloc_list = head;
+  new_st.ext.alloc.list = head;
 
   return MATCH_YES;
 
@@ -2960,7 +2975,8 @@ gfc_match_call (void)
 
   /* If this is a variable of derived-type, it probably starts a type-bound
      procedure call.  */
-  if (sym->attr.flavor != FL_PROCEDURE && sym->ts.type == BT_DERIVED)
+  if (sym->attr.flavor != FL_PROCEDURE
+      && (sym->ts.type == BT_DERIVED || sym->ts.type == BT_CLASS))
     return match_typebound_call (st);
 
   /* If it does not seem to be callable (include functions so that the
@@ -3660,7 +3676,10 @@ gfc_match_equivalence (void)
       if (gfc_match_eos () == MATCH_YES)
 	break;
       if (gfc_match_char (',') != MATCH_YES)
-	goto syntax;
+	{
+	  gfc_error ("Expecting a comma in EQUIVALENCE at %C");
+	  goto cleanup;
+	}
     }
 
   return MATCH_YES;
@@ -3888,10 +3907,7 @@ match_case_eos (void)
   /* If the case construct doesn't have a case-construct-name, we
      should have matched the EOS.  */
   if (!gfc_current_block ())
-    {
-      gfc_error ("Expected the name of the SELECT CASE construct at %C");
-      return MATCH_ERROR;
-    }
+    return MATCH_NO;
 
   gfc_gobble_whitespace ();
 
@@ -3901,7 +3917,7 @@ match_case_eos (void)
 
   if (strcmp (name, gfc_current_block ()->name) != 0)
     {
-      gfc_error ("Expected case name of '%s' at %C",
+      gfc_error ("Expected block name '%s' of SELECT construct at %C",
 		 gfc_current_block ()->name);
       return MATCH_ERROR;
     }
@@ -3928,6 +3944,107 @@ gfc_match_select (void)
 
   new_st.op = EXEC_SELECT;
   new_st.expr1 = expr;
+
+  return MATCH_YES;
+}
+
+
+/* Push the current selector onto the SELECT TYPE stack.  */
+
+static void
+select_type_push (gfc_symbol *sel)
+{
+  gfc_select_type_stack *top = gfc_get_select_type_stack ();
+  top->selector = sel;
+  top->tmp = NULL;
+  top->prev = select_type_stack;
+
+  select_type_stack = top;
+}
+
+
+/* Set the temporary for the current SELECT TYPE selector.  */
+
+static void
+select_type_set_tmp (gfc_typespec *ts)
+{
+  char name[GFC_MAX_SYMBOL_LEN];
+  gfc_symtree *tmp;
+
+  sprintf (name, "tmp$%s", ts->u.derived->name);
+  gfc_get_sym_tree (name, gfc_current_ns, &tmp, false);
+  gfc_add_type (tmp->n.sym, ts, NULL);
+  gfc_set_sym_referenced (tmp->n.sym);
+  gfc_add_pointer (&tmp->n.sym->attr, NULL);
+  gfc_add_flavor (&tmp->n.sym->attr, FL_VARIABLE, name, NULL);
+
+  select_type_stack->tmp = tmp;
+}
+
+
+/* Match a SELECT TYPE statement.  */
+
+match
+gfc_match_select_type (void)
+{
+  gfc_expr *expr1, *expr2 = NULL;
+  match m;
+  char name[GFC_MAX_SYMBOL_LEN];
+
+  m = gfc_match_label ();
+  if (m == MATCH_ERROR)
+    return m;
+
+  m = gfc_match (" select type ( ");
+  if (m != MATCH_YES)
+    return m;
+
+  gfc_current_ns = gfc_build_block_ns (gfc_current_ns);
+
+  m = gfc_match (" %n => %e", name, &expr2);
+  if (m == MATCH_YES)
+    {
+      expr1 = gfc_get_expr();
+      expr1->expr_type = EXPR_VARIABLE;
+      if (gfc_get_sym_tree (name, NULL, &expr1->symtree, false))
+	return MATCH_ERROR;
+      expr1->symtree->n.sym->ts = expr2->ts;
+      expr1->symtree->n.sym->attr.referenced = 1;
+      expr1->symtree->n.sym->attr.class_ok = 1;
+    }
+  else
+    {
+      m = gfc_match (" %e ", &expr1);
+      if (m != MATCH_YES)
+	return m;
+    }
+
+  m = gfc_match (" )%t");
+  if (m != MATCH_YES)
+    return m;
+
+  /* Check for F03:C811.  */
+  if (!expr2 && (expr1->expr_type != EXPR_VARIABLE || expr1->ref != NULL))
+    {
+      gfc_error ("Selector in SELECT TYPE at %C is not a named variable; "
+		 "use associate-name=>");
+      return MATCH_ERROR;
+    }
+
+  /* Check for F03:C813.  */
+  if (expr1->ts.type != BT_CLASS && !(expr2 && expr2->ts.type == BT_CLASS))
+    {
+      gfc_error ("Selector shall be polymorphic in SELECT TYPE statement "
+		 "at %C");
+      return MATCH_ERROR;
+    }
+
+  new_st.op = EXEC_SELECT_TYPE;
+  new_st.expr1 = expr1;
+  new_st.expr2 = expr2;
+  new_st.ext.ns = gfc_current_ns;
+
+  select_type_push (expr1->symtree->n.sym);
 
   return MATCH_YES;
 }
@@ -3997,12 +4114,136 @@ gfc_match_case (void)
   return MATCH_YES;
 
 syntax:
-  gfc_error ("Syntax error in CASE-specification at %C");
+  gfc_error ("Syntax error in CASE specification at %C");
 
 cleanup:
   gfc_free_case_list (head);  /* new_st is cleaned up in parse.c.  */
   return MATCH_ERROR;
 }
+
+
+/* Match a TYPE IS statement.  */
+
+match
+gfc_match_type_is (void)
+{
+  gfc_case *c = NULL;
+  match m;
+
+  if (gfc_current_state () != COMP_SELECT_TYPE)
+    {
+      gfc_error ("Unexpected TYPE IS statement at %C");
+      return MATCH_ERROR;
+    }
+
+  if (gfc_match_char ('(') != MATCH_YES)
+    goto syntax;
+
+  c = gfc_get_case ();
+  c->where = gfc_current_locus;
+
+  /* TODO: Once unlimited polymorphism is implemented, we will need to call
+     match_type_spec here.  */
+  if (match_derived_type_spec (&c->ts) == MATCH_ERROR)
+    goto cleanup;
+
+  if (gfc_match_char (')') != MATCH_YES)
+    goto syntax;
+
+  m = match_case_eos ();
+  if (m == MATCH_NO)
+    goto syntax;
+  if (m == MATCH_ERROR)
+    goto cleanup;
+
+  new_st.op = EXEC_SELECT_TYPE;
+  new_st.ext.case_list = c;
+
+  /* Create temporary variable.  */
+  select_type_set_tmp (&c->ts);
+
+  return MATCH_YES;
+
+syntax:
+  gfc_error ("Syntax error in TYPE IS specification at %C");
+
+cleanup:
+  if (c != NULL)
+    gfc_free_case_list (c);  /* new_st is cleaned up in parse.c.  */
+  return MATCH_ERROR;
+}
+
+
+/* Match a CLASS IS or CLASS DEFAULT statement.  */
+
+match
+gfc_match_class_is (void)
+{
+  gfc_case *c = NULL;
+  match m;
+
+  if (gfc_current_state () != COMP_SELECT_TYPE)
+    return MATCH_NO;
+
+  if (gfc_match ("% default") == MATCH_YES)
+    {
+      m = match_case_eos ();
+      if (m == MATCH_NO)
+	goto syntax;
+      if (m == MATCH_ERROR)
+	goto cleanup;
+
+      new_st.op = EXEC_SELECT_TYPE;
+      c = gfc_get_case ();
+      c->where = gfc_current_locus;
+      c->ts.type = BT_UNKNOWN;
+      new_st.ext.case_list = c;
+      return MATCH_YES;
+    }
+
+  m = gfc_match ("% is");
+  if (m == MATCH_NO)
+    goto syntax;
+  if (m == MATCH_ERROR)
+    goto cleanup;
+
+  if (gfc_match_char ('(') != MATCH_YES)
+    goto syntax;
+
+  c = gfc_get_case ();
+  c->where = gfc_current_locus;
+
+  if (match_derived_type_spec (&c->ts) == MATCH_ERROR)
+    goto cleanup;
+
+  if (c->ts.type == BT_DERIVED)
+    c->ts.type = BT_CLASS;
+
+  if (gfc_match_char (')') != MATCH_YES)
+    goto syntax;
+
+  m = match_case_eos ();
+  if (m == MATCH_NO)
+    goto syntax;
+  if (m == MATCH_ERROR)
+    goto cleanup;
+
+  new_st.op = EXEC_SELECT_TYPE;
+  new_st.ext.case_list = c;
+
+  gfc_error_now ("CLASS IS specification at %C is not yet supported");
+
+  return MATCH_YES;
+
+syntax:
+  gfc_error ("Syntax error in CLASS IS specification at %C");
+
+cleanup:
+  if (c != NULL)
+    gfc_free_case_list (c);  /* new_st is cleaned up in parse.c.  */
+  return MATCH_ERROR;
+}
+
 
 /********************* WHERE subroutines ********************/
 

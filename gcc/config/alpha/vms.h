@@ -142,10 +142,6 @@ along with GCC; see the file COPYING3.  If not see
 #undef EPILOGUE_USES
 #define EPILOGUE_USES(REGNO)    ((REGNO) == 26 || (REGNO) == 29)
 
-#undef CAN_ELIMINATE
-#define CAN_ELIMINATE(FROM, TO)  \
-  (alpha_vms_can_eliminate ((FROM), (TO)))
-
 #undef INITIAL_ELIMINATION_OFFSET
 #define INITIAL_ELIMINATION_OFFSET(FROM, TO, OFFSET)			\
   ((OFFSET) = alpha_vms_initial_elimination_offset(FROM, TO))
@@ -229,26 +225,6 @@ typedef struct {int num_args; enum avms_arg_type atypes[6];} avms_arg_info;
 #define ASM_OUTPUT_ALIGNED_DECL_COMMON(FILE, DECL, NAME, SIZE, ALIGN) \
   vms_output_aligned_decl_common (FILE, DECL, NAME, SIZE, ALIGN)
 
-#undef TRAMPOLINE_TEMPLATE
-
-/* Length in units of the trampoline for entering a nested function.  */
-
-#undef TRAMPOLINE_SIZE
-#define TRAMPOLINE_SIZE    32
-
-/* The alignment of a trampoline, in bits.  */
-
-#undef TRAMPOLINE_ALIGNMENT
-#define TRAMPOLINE_ALIGNMENT  64
-
-/* Emit RTL insns to initialize the variable parts of a trampoline.
-   FNADDR is an RTX for the address of the function's pure code.
-   CXT is an RTX for the static chain value for the function.  */
-
-#undef INITIALIZE_TRAMPOLINE
-#define INITIALIZE_TRAMPOLINE(TRAMP, FNADDR, CXT) \
-  alpha_initialize_trampoline (TRAMP, FNADDR, CXT, 16, 24, -1)
-
 /* Control how constructors and destructors are emitted.  */
 #define TARGET_ASM_CONSTRUCTOR  vms_asm_out_constructor
 #define TARGET_ASM_DESTRUCTOR   vms_asm_out_destructor

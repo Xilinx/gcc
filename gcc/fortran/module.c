@@ -77,7 +77,7 @@ along with GCC; see the file COPYING3.  If not see
 
 /* Don't put any single quote (') in MOD_VERSION, 
    if yout want it to be recognized.  */
-#define MOD_VERSION "2"
+#define MOD_VERSION "3"
 
 
 /* Structure that describes a position within a module file.  */
@@ -1461,6 +1461,25 @@ mio_integer (int *ip)
 }
 
 
+/* Read or write a gfc_intrinsic_op value.  */
+
+static void
+mio_intrinsic_op (gfc_intrinsic_op* op)
+{
+  /* FIXME: Would be nicer to do this via the operators symbolic name.  */
+  if (iomode == IO_OUTPUT)
+    {
+      int converted = (int) *op;
+      write_atom (ATOM_INTEGER, &converted);
+    }
+  else
+    {
+      require_atom (ATOM_INTEGER);
+      *op = (gfc_intrinsic_op) atom_int;
+    }
+}
+
+
 /* Read or write a character pointer that points to a string on the heap.  */
 
 static const char *
@@ -1653,7 +1672,7 @@ typedef enum
   AB_CRAY_POINTER, AB_CRAY_POINTEE, AB_THREADPRIVATE, AB_ALLOC_COMP,
   AB_POINTER_COMP, AB_PRIVATE_COMP, AB_VALUE, AB_VOLATILE, AB_PROTECTED,
   AB_IS_BIND_C, AB_IS_C_INTEROP, AB_IS_ISO_C, AB_ABSTRACT, AB_ZERO_COMP,
-  AB_EXTENSION, AB_PROCEDURE, AB_PROC_POINTER
+  AB_EXTENSION, AB_IS_CLASS, AB_PROCEDURE, AB_PROC_POINTER
 }
 ab_attribute;
 
@@ -1694,6 +1713,7 @@ static const mstring attr_bits[] =
     minit ("PROTECTED", AB_PROTECTED),
     minit ("ABSTRACT", AB_ABSTRACT),
     minit ("EXTENSION", AB_EXTENSION),
+    minit ("IS_CLASS", AB_IS_CLASS),
     minit ("PROCEDURE", AB_PROCEDURE),
     minit ("PROC_POINTER", AB_PROC_POINTER),
     minit (NULL, -1)
@@ -1841,6 +1861,8 @@ mio_symbol_attribute (symbol_attribute *attr)
 	MIO_NAME (ab_attribute) (AB_ZERO_COMP, attr_bits);
       if (attr->extension)
 	MIO_NAME (ab_attribute) (AB_EXTENSION, attr_bits);
+      if (attr->is_class)
+	MIO_NAME (ab_attribute) (AB_IS_CLASS, attr_bits);
       if (attr->procedure)
 	MIO_NAME (ab_attribute) (AB_PROCEDURE, attr_bits);
       if (attr->proc_pointer)
@@ -1966,6 +1988,9 @@ mio_symbol_attribute (symbol_attribute *attr)
 	    case AB_EXTENSION:
 	      attr->extension = 1;
 	      break;
+	    case AB_IS_CLASS:
+	      attr->is_class = 1;
+	      break;
 	    case AB_PROCEDURE:
 	      attr->procedure = 1;
 	      break;
@@ -1985,6 +2010,7 @@ static const mstring bt_types[] = {
     minit ("LOGICAL", BT_LOGICAL),
     minit ("CHARACTER", BT_CHARACTER),
     minit ("DERIVED", BT_DERIVED),
+    minit ("CLASS", BT_CLASS),
     minit ("PROCEDURE", BT_PROCEDURE),
     minit ("UNKNOWN", BT_UNKNOWN),
     minit ("VOID", BT_VOID),
@@ -2035,7 +2061,7 @@ mio_typespec (gfc_typespec *ts)
 
   ts->type = MIO_NAME (bt) (ts->type, bt_types);
 
-  if (ts->type != BT_DERIVED)
+  if (ts->type != BT_DERIVED && ts->type != BT_CLASS)
     mio_integer (&ts->kind);
   else
     mio_symbol_ref (&ts->u.derived);
@@ -3324,6 +3350,7 @@ mio_typebound_proc (gfc_typebound_proc** proc)
   mio_rparen ();
 }
 
+/* Walker-callback function for this purpose.  */
 static void
 mio_typebound_symtree (gfc_symtree* st)
 {
@@ -3338,6 +3365,33 @@ mio_typebound_symtree (gfc_symtree* st)
   /* For IO_INPUT, the above is done in mio_f2k_derived.  */
 
   mio_typebound_proc (&st->n.tb);
+  mio_rparen ();
+}
+
+/* IO a full symtree (in all depth).  */
+static void
+mio_full_typebound_tree (gfc_symtree** root)
+{
+  mio_lparen ();
+
+  if (iomode == IO_OUTPUT)
+    gfc_traverse_symtree (*root, &mio_typebound_symtree);
+  else
+    {
+      while (peek_atom () == ATOM_LPAREN)
+	{
+	  gfc_symtree* st;
+
+	  mio_lparen (); 
+
+	  require_atom (ATOM_STRING);
+	  st = gfc_get_tbp_symtree (root, atom_string);
+	  gfc_free (atom_string);
+
+	  mio_typebound_symtree (st);
+	}
+    }
+
   mio_rparen ();
 }
 
@@ -3388,24 +3442,40 @@ mio_f2k_derived (gfc_namespace *f2k)
   mio_rparen ();
 
   /* Handle type-bound procedures.  */
+  mio_full_typebound_tree (&f2k->tb_sym_root);
+
+  /* Type-bound user operators.  */
+  mio_full_typebound_tree (&f2k->tb_uop_root);
+
+  /* Type-bound intrinsic operators.  */
   mio_lparen ();
   if (iomode == IO_OUTPUT)
-    gfc_traverse_symtree (f2k->tb_sym_root, &mio_typebound_symtree);
-  else
     {
-      while (peek_atom () == ATOM_LPAREN)
+      int op;
+      for (op = GFC_INTRINSIC_BEGIN; op != GFC_INTRINSIC_END; ++op)
 	{
-	  gfc_symtree* st;
+	  gfc_intrinsic_op realop;
 
-	  mio_lparen (); 
+	  if (op == INTRINSIC_USER || !f2k->tb_op[op])
+	    continue;
 
-	  require_atom (ATOM_STRING);
-	  st = gfc_get_tbp_symtree (&f2k->tb_sym_root, atom_string);
-	  gfc_free (atom_string);
-
-	  mio_typebound_symtree (st);
+	  mio_lparen ();
+	  realop = (gfc_intrinsic_op) op;
+	  mio_intrinsic_op (&realop);
+	  mio_typebound_proc (&f2k->tb_op[op]);
+	  mio_rparen ();
 	}
     }
+  else
+    while (peek_atom () != ATOM_RPAREN)
+      {
+	gfc_intrinsic_op op;
+
+	mio_lparen ();
+	mio_intrinsic_op (&op);
+	mio_typebound_proc (&f2k->tb_op[op]);
+	mio_rparen ();
+      }
   mio_rparen ();
 }
 
@@ -3503,7 +3573,10 @@ mio_symbol (gfc_symbol *sym)
     }
   
   mio_integer (&(sym->intmod_sym_id));
-  
+
+  if (sym->attr.flavor == FL_DERIVED)
+    mio_integer (&(sym->vindex));
+
   mio_rparen ();
 }
 
@@ -3899,6 +3972,72 @@ load_equiv (void)
 }
 
 
+/* This function loads the sym_root of f2k_derived with the extensions to
+   the derived type.  */
+static void
+load_derived_extensions (void)
+{
+  int symbol, nuse, j;
+  gfc_symbol *derived;
+  gfc_symbol *dt;
+  gfc_symtree *st;
+  pointer_info *info;
+  char name[GFC_MAX_SYMBOL_LEN + 1];
+  char module[GFC_MAX_SYMBOL_LEN + 1];
+  const char *p;
+
+  mio_lparen ();
+  while (peek_atom () != ATOM_RPAREN)
+    {
+      mio_lparen ();
+      mio_integer (&symbol);
+      info = get_integer (symbol);
+      derived = info->u.rsym.sym;
+
+      /* This one is not being loaded.  */
+      if (!info || !derived)
+	{
+	  while (peek_atom () != ATOM_RPAREN)
+	    skip_list ();
+	  continue;
+	}
+
+      gcc_assert (derived->attr.flavor == FL_DERIVED);
+      if (derived->f2k_derived == NULL)
+	derived->f2k_derived = gfc_get_namespace (NULL, 0);
+
+      while (peek_atom () != ATOM_RPAREN)
+	{
+	  mio_lparen ();
+	  mio_internal_string (name);
+	  mio_internal_string (module);
+
+          /* Only use one use name to find the symbol.  */
+	  nuse = number_use_names (name, false);
+	  j = 1;
+	  p = find_use_name_n (name, &j, false);
+	  if (p)
+	    {
+	      st = gfc_find_symtree (gfc_current_ns->sym_root, p);
+	      dt = st->n.sym;
+	      st = gfc_find_symtree (derived->f2k_derived->sym_root, name);
+	      if (st == NULL)
+		{
+		  /* Only use the real name in f2k_derived to ensure a single
+		    symtree.  */
+		  st = gfc_new_symtree (&derived->f2k_derived->sym_root, name);
+		  st->n.sym = dt;
+		  st->n.sym->refs++;
+		}
+	    }
+	  mio_rparen ();
+	}
+      mio_rparen ();
+    }
+  mio_rparen ();
+}
+
+
 /* Recursive function to traverse the pointer_info tree and load a
    needed symbol.  We return nonzero if we load a symbol and stop the
    traversal, because the act of loading can alter the tree.  */
@@ -4040,7 +4179,7 @@ check_for_ambiguous (gfc_symbol *st_sym, pointer_info *info)
 static void
 read_module (void)
 {
-  module_locus operator_interfaces, user_operators;
+  module_locus operator_interfaces, user_operators, extensions;
   const char *p;
   char name[GFC_MAX_SYMBOL_LEN + 1];
   int i;
@@ -4057,8 +4196,11 @@ read_module (void)
   skip_list ();
   skip_list ();
 
-  /* Skip commons and equivalences for now.  */
+  /* Skip commons, equivalences and derived type extensions for now.  */
   skip_list ();
+  skip_list ();
+
+  get_module_locus (&extensions);
   skip_list ();
 
   mio_lparen ();
@@ -4313,6 +4455,11 @@ read_module (void)
 
   gfc_check_interfaces (gfc_current_ns);
 
+  /* Now we should be in a position to fill f2k_derived with derived type
+     extensions, since everything has been loaded.  */
+  set_module_locus (&extensions);
+  load_derived_extensions ();
+
   /* Clean up symbol nodes that were never loaded, create references
      to hidden symbols.  */
 
@@ -4518,6 +4665,36 @@ write_equiv (void)
       num++;
       mio_rparen ();
     }
+}
+
+
+/* Write derived type extensions to the module.  */
+
+static void
+write_dt_extensions (gfc_symtree *st)
+{
+  mio_lparen ();
+  mio_pool_string (&st->n.sym->name);
+  if (st->n.sym->module != NULL)
+    mio_pool_string (&st->n.sym->module);
+  else
+    mio_internal_string (module_name);
+  mio_rparen ();
+}
+
+static void
+write_derived_extensions (gfc_symtree *st)
+{
+  if (!((st->n.sym->attr.flavor == FL_DERIVED)
+	  && (st->n.sym->f2k_derived != NULL)
+	  && (st->n.sym->f2k_derived->sym_root != NULL)))
+    return;
+
+  mio_lparen ();
+  mio_symbol_ref (&(st->n.sym));
+  gfc_traverse_symtree (st->n.sym->f2k_derived->sym_root,
+			write_dt_extensions);
+  mio_rparen ();
 }
 
 
@@ -4743,6 +4920,13 @@ write_module (void)
 
   mio_lparen ();
   write_equiv ();
+  mio_rparen ();
+  write_char ('\n');
+  write_char ('\n');
+
+  mio_lparen ();
+  gfc_traverse_symtree (gfc_current_ns->sym_root,
+			write_derived_extensions);
   mio_rparen ();
   write_char ('\n');
   write_char ('\n');

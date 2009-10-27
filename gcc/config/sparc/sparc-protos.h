@@ -50,7 +50,6 @@ extern int short_branch (int, int);
 extern void sparc_profile_hook (int);
 extern void sparc_override_options (void);
 extern void sparc_output_scratch_registers (FILE *);
-extern bool sparc_can_eliminate (const int, const int);
 
 #ifdef RTX_CODE
 extern enum machine_mode select_cc_mode (enum rtx_code, rtx, rtx);
@@ -62,9 +61,6 @@ extern void sparc_emit_fixunsdi (rtx [2], enum machine_mode);
 extern void emit_tfmode_binop (enum rtx_code, rtx *);
 extern void emit_tfmode_unop (enum rtx_code, rtx *);
 extern void emit_tfmode_cvt (enum rtx_code, rtx *);
-/* This function handles all v9 scc insns */
-extern void sparc_initialize_trampoline (rtx, rtx, rtx);
-extern void sparc64_initialize_trampoline (rtx, rtx, rtx);
 extern bool legitimate_constant_p (rtx);
 extern bool constant_address_p (rtx);
 extern bool legitimate_pic_operand_p (rtx);

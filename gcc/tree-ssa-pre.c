@@ -401,10 +401,6 @@ typedef struct bb_bitmap_sets
 #define BB_DEFERRED(BB) ((bb_value_sets_t) ((BB)->aux))->deferred
 
 
-/* Maximal set of values, used to initialize the ANTIC problem, which
-   is an intersection problem.  */
-static bitmap_set_t maximal_set;
-
 /* Basic block list in postorder.  */
 static int *postorder;
 
@@ -1072,9 +1068,7 @@ get_or_alloc_expr_for (tree t)
 {
   if (TREE_CODE (t) == SSA_NAME)
     return get_or_alloc_expr_for_name (t);
-  else if (is_gimple_min_invariant (t)
-	   || TREE_CODE (t) == EXC_PTR_EXPR
-	   || TREE_CODE (t) == FILTER_EXPR)
+  else if (is_gimple_min_invariant (t))
     return get_or_alloc_expr_for_constant (t);
   else
     {
@@ -1249,43 +1243,74 @@ do_unary:
 }
 
 /* Translate the VUSE backwards through phi nodes in PHIBLOCK, so that
-   it has the value it would have in BLOCK.  */
+   it has the value it would have in BLOCK.  Set *SAME_VALID to true
+   in case the new vuse doesn't change the value id of the OPERANDS.  */
 
 static tree
 translate_vuse_through_block (VEC (vn_reference_op_s, heap) *operands,
 			      alias_set_type set, tree type, tree vuse,
 			      basic_block phiblock,
-			      basic_block block)
+			      basic_block block, bool *same_valid)
 {
   gimple phi = SSA_NAME_DEF_STMT (vuse);
   ao_ref ref;
+  edge e = NULL;
+  bool use_oracle;
+
+  *same_valid = true;
 
   if (gimple_bb (phi) != phiblock)
     return vuse;
 
-  if (gimple_code (phi) == GIMPLE_PHI)
-    {
-      edge e = find_edge (block, phiblock);
-      return PHI_ARG_DEF (phi, e->dest_idx);
-    }
-
-  if (!ao_ref_init_from_vn_reference (&ref, set, type, operands))
-    return NULL_TREE;
+  use_oracle = ao_ref_init_from_vn_reference (&ref, set, type, operands);
 
   /* Use the alias-oracle to find either the PHI node in this block,
      the first VUSE used in this block that is equivalent to vuse or
      the first VUSE which definition in this block kills the value.  */
-  while (!stmt_may_clobber_ref_p_1 (phi, &ref))
+  if (gimple_code (phi) == GIMPLE_PHI)
+    e = find_edge (block, phiblock);
+  else if (use_oracle)
+    while (!stmt_may_clobber_ref_p_1 (phi, &ref))
+      {
+	vuse = gimple_vuse (phi);
+	phi = SSA_NAME_DEF_STMT (vuse);
+	if (gimple_bb (phi) != phiblock)
+	  return vuse;
+	if (gimple_code (phi) == GIMPLE_PHI)
+	  {
+	    e = find_edge (block, phiblock);
+	    break;
+	  }
+      }
+  else
+    return NULL_TREE;
+
+  if (e)
     {
-      vuse = gimple_vuse (phi);
-      phi = SSA_NAME_DEF_STMT (vuse);
-      if (gimple_bb (phi) != phiblock)
-	return vuse;
-      if (gimple_code (phi) == GIMPLE_PHI)
+      if (use_oracle)
 	{
-	  edge e = find_edge (block, phiblock);
-	  return PHI_ARG_DEF (phi, e->dest_idx);
+	  bitmap visited = NULL;
+	  /* Try to find a vuse that dominates this phi node by skipping
+	     non-clobbering statements.  */
+	  vuse = get_continuation_for_phi (phi, &ref, &visited);
+	  if (visited)
+	    BITMAP_FREE (visited);
 	}
+      else
+	vuse = NULL_TREE;
+      if (!vuse)
+	{
+	  /* If we didn't find any, the value ID can't stay the same,
+	     but return the translated vuse.  */
+	  *same_valid = false;
+	  vuse = PHI_ARG_DEF (phi, e->dest_idx);
+	}
+      /* ??? We would like to return vuse here as this is the canonical
+         upmost vdef that this reference is associated with.  But during
+	 insertion of the references into the hash tables we only ever
+	 directly insert with their direct gimple_vuse, hence returning
+	 something else would make us not find the other expression.  */
+      return PHI_ARG_DEF (phi, e->dest_idx);
     }
 
   return NULL_TREE;
@@ -1547,7 +1572,7 @@ phi_translate_1 (pre_expr expr, bitmap_set_t set1, bitmap_set_t set2,
 	tree vuse = ref->vuse;
 	tree newvuse = vuse;
 	VEC (vn_reference_op_s, heap) *newoperands = NULL;
-	bool changed = false;
+	bool changed = false, same_valid = true;
 	unsigned int i, j;
 	vn_reference_op_t operand;
 	vn_reference_t newref;
@@ -1653,16 +1678,16 @@ phi_translate_1 (pre_expr expr, bitmap_set_t set1, bitmap_set_t set2,
 	  {
 	    newvuse = translate_vuse_through_block (newoperands,
 						    ref->set, ref->type,
-						    vuse, phiblock, pred);
+						    vuse, phiblock, pred,
+						    &same_valid);
 	    if (newvuse == NULL_TREE)
 	      {
 		VEC_free (vn_reference_op_s, heap, newoperands);
 		return NULL;
 	      }
 	  }
-	changed |= newvuse != vuse;
 
-	if (changed)
+	if (changed || newvuse != vuse)
 	  {
 	    unsigned int new_val_id;
 	    pre_expr constant;
@@ -1696,9 +1721,15 @@ phi_translate_1 (pre_expr expr, bitmap_set_t set1, bitmap_set_t set2,
 	      }
 	    else
 	      {
-		new_val_id = get_next_value_id ();
-		VEC_safe_grow_cleared (bitmap_set_t, heap, value_expressions,
-				       get_max_value_id() + 1);
+		if (changed || !same_valid)
+		  {
+		    new_val_id = get_next_value_id ();
+		    VEC_safe_grow_cleared (bitmap_set_t, heap,
+					   value_expressions,
+					   get_max_value_id() + 1);
+		  }
+		else
+		  new_val_id = ref->value_id;
 		newref = vn_reference_insert_pieces (newvuse, ref->set,
 						     ref->type,
 						     newoperands,
@@ -2201,49 +2232,45 @@ compute_antic_aux (basic_block block, bool block_has_abnormal_pred_edge)
     {
       VEC(basic_block, heap) * worklist;
       size_t i;
-      basic_block bprime, first;
+      basic_block bprime, first = NULL;
 
       worklist = VEC_alloc (basic_block, heap, EDGE_COUNT (block->succs));
       FOR_EACH_EDGE (e, ei, block->succs)
-	VEC_quick_push (basic_block, worklist, e->dest);
-      first = VEC_index (basic_block, worklist, 0);
+	{
+	  if (!first
+	      && BB_VISITED (e->dest))
+	    first = e->dest;
+	  else if (BB_VISITED (e->dest))
+	    VEC_quick_push (basic_block, worklist, e->dest);
+	}
+
+      /* Of multiple successors we have to have visited one already.  */
+      if (!first)
+	{
+	  SET_BIT (changed_blocks, block->index);
+	  BB_VISITED (block) = 0;
+	  BB_DEFERRED (block) = 1;
+	  changed = true;
+	  VEC_free (basic_block, heap, worklist);
+	  goto maybe_dump_sets;
+	}
 
       if (phi_nodes (first))
-	{
-	  bitmap_set_t from = ANTIC_IN (first);
-
-	  if (!BB_VISITED (first))
-	    from = maximal_set;
-	  phi_translate_set (ANTIC_OUT, from, block, first);
-	}
+	phi_translate_set (ANTIC_OUT, ANTIC_IN (first), block, first);
       else
-	{
-	  if (!BB_VISITED (first))
-	    bitmap_set_copy (ANTIC_OUT, maximal_set);
-	  else
-	    bitmap_set_copy (ANTIC_OUT, ANTIC_IN (first));
-	}
+	bitmap_set_copy (ANTIC_OUT, ANTIC_IN (first));
 
-      for (i = 1; VEC_iterate (basic_block, worklist, i, bprime); i++)
+      for (i = 0; VEC_iterate (basic_block, worklist, i, bprime); i++)
 	{
 	  if (phi_nodes (bprime))
 	    {
 	      bitmap_set_t tmp = bitmap_set_new ();
-	      bitmap_set_t from = ANTIC_IN (bprime);
-
-	      if (!BB_VISITED (bprime))
-		from = maximal_set;
-	      phi_translate_set (tmp, from, block, bprime);
+	      phi_translate_set (tmp, ANTIC_IN (bprime), block, bprime);
 	      bitmap_set_and (ANTIC_OUT, tmp);
 	      bitmap_set_free (tmp);
 	    }
 	  else
-	    {
-	      if (!BB_VISITED (bprime))
-		bitmap_set_and (ANTIC_OUT, maximal_set);
-	      else
-		bitmap_set_and (ANTIC_OUT, ANTIC_IN (bprime));
-	    }
+	    bitmap_set_and (ANTIC_OUT, ANTIC_IN (bprime));
 	}
       VEC_free (basic_block, heap, worklist);
     }
@@ -2555,17 +2582,6 @@ can_value_number_call (gimple stmt)
   if (gimple_call_flags (stmt) & (ECF_PURE | ECF_CONST))
     return true;
   return false;
-}
-
-/* Return true if OP is an exception handler related operation, such as
-   FILTER_EXPR or EXC_PTR_EXPR.  */
-
-static bool
-is_exception_related (gimple stmt)
-{
-  return (is_gimple_assign (stmt)
-	  && (gimple_assign_rhs_code (stmt) == FILTER_EXPR
-	      || gimple_assign_rhs_code (stmt) == EXC_PTR_EXPR));
 }
 
 /* Return true if OP is a tree which we can perform PRE on.
@@ -3426,6 +3442,7 @@ do_regular_insertion (basic_block block, basic_block dom)
 	  pre_expr eprime = NULL;
 	  edge_iterator ei;
 	  pre_expr edoubleprime = NULL;
+	  bool do_insertion = false;
 
 	  val = get_expr_value_id (expr);
 	  if (bitmap_set_contains_value (PHI_GEN (block), val))
@@ -3477,6 +3494,10 @@ do_regular_insertion (basic_block block, basic_block dom)
 		{
 		  avail[bprime->index] = edoubleprime;
 		  by_some = true;
+		  /* We want to perform insertions to remove a redundancy on
+		     a path in the CFG we want to optimize for speed.  */
+		  if (optimize_edge_for_speed_p (pred))
+		    do_insertion = true;
 		  if (first_s == NULL)
 		    first_s = edoubleprime;
 		  else if (!pre_expr_eq (first_s, edoubleprime))
@@ -3487,7 +3508,8 @@ do_regular_insertion (basic_block block, basic_block dom)
 	     already existing along every predecessor, and
 	     it's defined by some predecessor, it is
 	     partially redundant.  */
-	  if (!cant_insert && !all_same && by_some && dbg_cnt (treepre_insert))
+	  if (!cant_insert && !all_same && by_some && do_insertion
+	      && dbg_cnt (treepre_insert))
 	    {
 	      if (insert_into_preds_of_block (block, get_expression_id (expr),
 					      avail))
@@ -3711,7 +3733,6 @@ add_to_exp_gen (basic_block block, tree op)
 	return;
       result = get_or_alloc_expr_for_name (op);
       bitmap_value_insert_into_set (EXP_GEN (block), result);
-      bitmap_value_insert_into_set (maximal_set, result);
     }
 }
 
@@ -3740,7 +3761,6 @@ make_values_for_phi (gimple phi, basic_block block)
 		{
 		  e = get_or_alloc_expr_for_name (arg);
 		  add_to_value (get_expr_value_id (e), e);
-		  bitmap_value_insert_into_set (maximal_set, e);
 		}
 	    }
 	}
@@ -3781,10 +3801,7 @@ compute_avail (void)
       e = get_or_alloc_expr_for_name (name);
       add_to_value (get_expr_value_id (e), e);
       if (!in_fre)
-	{
-	  bitmap_insert_into_set (TMP_GEN (ENTRY_BLOCK_PTR), e);
-	  bitmap_value_insert_into_set (maximal_set, e);
-	}
+	bitmap_insert_into_set (TMP_GEN (ENTRY_BLOCK_PTR), e);
       bitmap_value_insert_into_set (AVAIL_OUT (ENTRY_BLOCK_PTR), e);
     }
 
@@ -3888,11 +3905,7 @@ compute_avail (void)
 		get_or_alloc_expression_id (result);
 		add_to_value (get_expr_value_id (result), result);
 		if (!in_fre)
-		  {
-		    bitmap_value_insert_into_set (EXP_GEN (block),
-						  result);
-		    bitmap_value_insert_into_set (maximal_set, result);
-		  }
+		  bitmap_value_insert_into_set (EXP_GEN (block), result);
 		continue;
 	      }
 
@@ -3902,8 +3915,6 @@ compute_avail (void)
 		switch (TREE_CODE_CLASS (gimple_assign_rhs_code (stmt)))
 		  {
 		  case tcc_unary:
-		    if (is_exception_related (stmt))
-		      continue;
 		  case tcc_binary:
 		  case tcc_comparison:
 		    {
@@ -3940,7 +3951,7 @@ compute_avail (void)
 
 		      vn_reference_lookup (gimple_assign_rhs1 (stmt),
 					   gimple_vuse (stmt),
-					   false, &ref);
+					   true, &ref);
 		      if (!ref)
 			continue;
 
@@ -3974,10 +3985,7 @@ compute_avail (void)
 		get_or_alloc_expression_id (result);
 		add_to_value (get_expr_value_id (result), result);
 		if (!in_fre)
-		  {
-		    bitmap_value_insert_into_set (EXP_GEN (block), result);
-		    bitmap_value_insert_into_set (maximal_set, result);
-		  }
+		  bitmap_value_insert_into_set (EXP_GEN (block), result);
 
 		continue;
 	      }
@@ -4515,7 +4523,6 @@ init_pre (bool do_fre)
       TMP_GEN (bb) = bitmap_set_new ();
       AVAIL_OUT (bb) = bitmap_set_new ();
     }
-  maximal_set = in_fre ? NULL : bitmap_set_new ();
 
   need_eh_cleanup = BITMAP_ALLOC (NULL);
 }
@@ -4562,11 +4569,11 @@ fini_pre (bool do_fre)
    only wants to do full redundancy elimination.  */
 
 static unsigned int
-execute_pre (bool do_fre ATTRIBUTE_UNUSED)
+execute_pre (bool do_fre)
 {
   unsigned int todo = 0;
 
-  do_partial_partial = optimize > 2;
+  do_partial_partial = optimize > 2 && optimize_function_for_speed_p (cfun);
 
   /* This has to happen before SCCVN runs because
      loop_optimizer_init may create new phis, etc.  */
@@ -4601,8 +4608,6 @@ execute_pre (bool do_fre ATTRIBUTE_UNUSED)
 	  print_bitmap_set (dump_file, TMP_GEN (bb), "tmp_gen", bb->index);
 	  print_bitmap_set (dump_file, AVAIL_OUT (bb), "avail_out", bb->index);
 	}
-
-      print_bitmap_set (dump_file, maximal_set, "maximal", 0);
     }
 
   /* Insert can get quite slow on an incredibly large number of basic
@@ -4653,8 +4658,7 @@ do_pre (void)
 static bool
 gate_pre (void)
 {
-  /* PRE tends to generate bigger code.  */
-  return flag_tree_pre != 0 && optimize_function_for_speed_p (cfun);
+  return flag_tree_pre != 0;
 }
 
 struct gimple_opt_pass pass_pre =

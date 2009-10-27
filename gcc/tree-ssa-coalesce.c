@@ -884,6 +884,8 @@ build_ssa_conflict_graph (tree_live_info_p liveinfo)
                   && TREE_CODE (rhs1) == SSA_NAME)
 		live_track_clear_var (live, rhs1);
 	    }
+	  else if (is_gimple_debug (stmt))
+	    continue;
 
 	  FOR_EACH_SSA_TREE_OPERAND (var, stmt, iter, SSA_OP_DEF)
 	    live_track_process_def (live, var, graph);
@@ -1047,6 +1049,9 @@ create_outofssa_var_map (coalesce_list_p cl, bitmap used_in_copy)
       for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
         {
 	  stmt = gsi_stmt (gsi);
+
+	  if (is_gimple_debug (stmt))
+	    continue;
 
 	  /* Register USE and DEF operands in each statement.  */
 	  FOR_EACH_SSA_TREE_OPERAND (var, stmt, iter, (SSA_OP_DEF|SSA_OP_USE))
@@ -1372,7 +1377,10 @@ coalesce_ssa_name (void)
 	{
 	  tree a = ssa_name (i);
 
-	  if (a && SSA_NAME_VAR (a) && !DECL_ARTIFICIAL (SSA_NAME_VAR (a)))
+	  if (a
+	      && SSA_NAME_VAR (a)
+	      && !DECL_ARTIFICIAL (SSA_NAME_VAR (a))
+	      && (!has_zero_uses (a) || !SSA_NAME_IS_DEFAULT_DEF (a)))
 	    {
 	      tree *slot = (tree *) htab_find_slot (ssa_name_hash, a, INSERT);
 

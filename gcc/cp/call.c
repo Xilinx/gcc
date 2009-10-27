@@ -318,7 +318,7 @@ build_call_a (tree function, int n, tree *argarray)
       && TREE_CODE (TREE_OPERAND (function, 0)) == FUNCTION_DECL)
     {
       decl = TREE_OPERAND (function, 0);
-      if (!tree_used_ok (decl))
+      if (!TREE_USED (decl))
 	{
 	  /* We invoke build_call directly for several library
 	     functions.  These may have been declared normally if
@@ -1631,7 +1631,8 @@ add_function_candidate (struct z_candidate **candidates,
 	      parmtype = build_pointer_type (parmtype);
 	    }
 
-	  if (ctype && i == 0 && DECL_COPY_CONSTRUCTOR_P (fn))
+	  if (ctype && i == 0 && DECL_COPY_CONSTRUCTOR_P (fn)
+	      && (len-skip == 1))
 	    {
 	      /* Hack: Direct-initialize copy parm (i.e. suppress
 		 LOOKUP_ONLYCONVERTING) to make explicit conversion ops
@@ -1778,7 +1779,14 @@ build_builtin_candidate (struct z_candidate **candidates, tree fnname,
 
   num_convs =  args[2] ? 3 : (args[1] ? 2 : 1);
   convs = alloc_conversions (num_convs);
-  flags |= LOOKUP_ONLYCONVERTING;
+
+  /* TRUTH_*_EXPR do "contextual conversion to bool", which means explicit
+     conversion ops are allowed.  We handle that here by just checking for
+     boolean_type_node because other operators don't ask for it.  COND_EXPR
+     also does contextual conversion to bool for the first operand, but we
+     handle that in build_conditional_expr, and type1 here is operand 2.  */
+  if (type1 != boolean_type_node)
+    flags |= LOOKUP_ONLYCONVERTING;
 
   for (i = 0; i < 2; ++i)
     {
@@ -2711,6 +2719,8 @@ print_z_candidate (const char *msgstr, struct z_candidate *candidate)
     inform (input_location, "%s %T <conversion>", msgstr, candidate->fn);
   else if (candidate->viable == -1)
     inform (input_location, "%s %+#D <near match>", msgstr, candidate->fn);
+  else if (DECL_DELETED_FN (candidate->fn))
+    inform (input_location, "%s %+#D <deleted>", msgstr, candidate->fn);
   else
     inform (input_location, "%s %+#D", msgstr, candidate->fn);
 }
@@ -2721,6 +2731,23 @@ print_z_candidates (struct z_candidate *candidates)
   const char *str;
   struct z_candidate *cand1;
   struct z_candidate **cand2;
+
+  if (!candidates)
+    return;
+
+  /* Remove deleted candidates.  */
+  cand1 = candidates;
+  for (cand2 = &cand1; *cand2; )
+    {
+      if (TREE_CODE ((*cand2)->fn) == FUNCTION_DECL
+	  && DECL_DELETED_FN ((*cand2)->fn))
+	*cand2 = (*cand2)->next;
+      else
+	cand2 = &(*cand2)->next;
+    }
+  /* ...if there are any non-deleted ones.  */
+  if (cand1)
+    candidates = cand1;
 
   /* There may be duplicates in the set of candidates.  We put off
      checking this condition as long as possible, since we have no way
@@ -2743,9 +2770,6 @@ print_z_candidates (struct z_candidate *candidates)
 	    cand2 = &(*cand2)->next;
 	}
     }
-
-  if (!candidates)
-    return;
 
   str = _("candidates are:");
   print_z_candidate (str, candidates);
@@ -3593,7 +3617,8 @@ build_conditional_expr (tree arg1, tree arg2, tree arg3,
 
      The first expression is implicitly converted to bool (clause
      _conv_).  */
-  arg1 = perform_implicit_conversion (boolean_type_node, arg1, complain);
+  arg1 = perform_implicit_conversion_flags (boolean_type_node, arg1, complain,
+					    LOOKUP_NORMAL);
 
   /* If something has already gone wrong, just pass that fact up the
      tree.  */
@@ -3791,7 +3816,7 @@ build_conditional_expr (tree arg1, tree arg2, tree arg3,
       bool any_viable_p;
 
       /* Rearrange the arguments so that add_builtin_candidate only has
-	 to know about two args.  In build_builtin_candidates, the
+	 to know about two args.  In build_builtin_candidate, the
 	 arguments are unscrambled.  */
       args[0] = arg2;
       args[1] = arg3;
@@ -3837,8 +3862,10 @@ build_conditional_expr (tree arg1, tree arg2, tree arg3,
       arg1 = convert_like (conv, arg1, complain);
       conv = cand->convs[1];
       arg2 = convert_like (conv, arg2, complain);
+      arg2_type = TREE_TYPE (arg2);
       conv = cand->convs[2];
       arg3 = convert_like (conv, arg3, complain);
+      arg3_type = TREE_TYPE (arg3);
     }
 
   /* [expr.cond]
@@ -3857,7 +3884,7 @@ build_conditional_expr (tree arg1, tree arg2, tree arg3,
     arg2_type = TREE_TYPE (arg2);
 
   arg3 = force_rvalue (arg3);
-  if (!CLASS_TYPE_P (arg2_type))
+  if (!CLASS_TYPE_P (arg3_type))
     arg3_type = TREE_TYPE (arg3);
 
   if (arg2 == error_mark_node || arg3 == error_mark_node)
@@ -4157,14 +4184,8 @@ build_new_op (enum tree_code code, int flags, tree arg1, tree arg2, tree arg3,
   arg3 = prep_operand (arg3);
 
   if (code == COND_EXPR)
-    {
-      if (arg2 == NULL_TREE
-	  || TREE_CODE (TREE_TYPE (arg2)) == VOID_TYPE
-	  || TREE_CODE (TREE_TYPE (arg3)) == VOID_TYPE
-	  || (! IS_OVERLOAD_TYPE (TREE_TYPE (arg2))
-	      && ! IS_OVERLOAD_TYPE (TREE_TYPE (arg3))))
-	goto builtin;
-    }
+    /* Use build_conditional_expr instead.  */
+    gcc_unreachable ();
   else if (! IS_OVERLOAD_TYPE (TREE_TYPE (arg1))
 	   && (! arg2 || ! IS_OVERLOAD_TYPE (TREE_TYPE (arg2))))
     goto builtin;
@@ -4206,22 +4227,9 @@ build_new_op (enum tree_code code, int flags, tree arg1, tree arg2, tree arg3,
 			flags, &candidates);
     }
 
-  /* Rearrange the arguments for ?: so that add_builtin_candidate only has
-     to know about two args; a builtin candidate will always have a first
-     parameter of type bool.  We'll handle that in
-     build_builtin_candidate.  */
-  if (code == COND_EXPR)
-    {
-      args[0] = arg2;
-      args[1] = arg3;
-      args[2] = arg1;
-    }
-  else
-    {
-      args[0] = arg1;
-      args[1] = arg2;
-      args[2] = NULL_TREE;
-    }
+  args[0] = arg1;
+  args[1] = arg2;
+  args[2] = NULL_TREE;
 
   add_builtin_candidates (&candidates, code, code2, fnname, args, flags);
 
@@ -4462,9 +4470,6 @@ build_new_op (enum tree_code code, int flags, tree arg1, tree arg2, tree arg3,
 
     case ARRAY_REF:
       return build_array_ref (input_location, arg1, arg2);
-
-    case COND_EXPR:
-      return build_conditional_expr (arg1, arg2, arg3, complain);
 
     case MEMBER_REF:
       return build_m_component_ref (cp_build_indirect_ref (arg1, NULL, 
@@ -5116,7 +5121,8 @@ convert_arg_to_ellipsis (tree arg)
      promoted type before the call.  */
   if (TREE_CODE (TREE_TYPE (arg)) == REAL_TYPE
       && (TYPE_PRECISION (TREE_TYPE (arg))
-	  < TYPE_PRECISION (double_type_node)))
+	  < TYPE_PRECISION (double_type_node))
+      && !DECIMAL_FLOAT_MODE_P (TYPE_MODE (TREE_TYPE (arg))))
     arg = convert_to_real (double_type_node, arg);
   else if (INTEGRAL_OR_ENUMERATION_TYPE_P (TREE_TYPE (arg)))
     arg = perform_integral_promotions (arg);
@@ -5579,6 +5585,28 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
 	  && COMPLETE_TYPE_P (complete_type (type))
 	  && !TREE_ADDRESSABLE (type))
 	conv = conv->u.next;
+
+      /* Warn about initializer_list deduction that isn't currently in the
+	 working draft.  */
+      if (cxx_dialect > cxx98
+	  && flag_deduce_init_list
+	  && cand->template_decl
+	  && is_std_init_list (non_reference (type)))
+	{
+	  tree tmpl = TI_TEMPLATE (cand->template_decl);
+	  tree realparm = chain_index (j, DECL_ARGUMENTS (cand->fn));
+	  tree patparm = get_pattern_parm (realparm, tmpl);
+
+	  if (!is_std_init_list (non_reference (TREE_TYPE (patparm))))
+	    {
+	      pedwarn (input_location, 0, "deducing %qT as %qT",
+		       non_reference (TREE_TYPE (patparm)),
+		       non_reference (type));
+	      pedwarn (input_location, 0, "  in call to %q+D", cand->fn);
+	      pedwarn (input_location, 0,
+		       "  (you can disable this with -fno-deduce-init-list)");
+	    }
+	}
 
       val = convert_like_with_context
 	(conv, VEC_index (tree, args, arg_index), fn, i - is_method,
@@ -7592,7 +7620,7 @@ initialize_reference (tree type, tree expr, tree decl, tree *cleanup)
 	  && !TYPE_REF_IS_RVALUE (type)
 	  && !real_lvalue_p (expr))
 	error ("invalid initialization of non-const reference of "
-	       "type %qT from a temporary of type %qT",
+	       "type %qT from an rvalue of type %qT",
 	       type, TREE_TYPE (expr));
       else
 	error ("invalid initialization of reference of type "

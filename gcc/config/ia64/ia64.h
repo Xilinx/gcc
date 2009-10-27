@@ -1,6 +1,6 @@
 /* Definitions of target machine GNU compiler.  IA-64 version.
-   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
-   Free Software Foundation, Inc.
+   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
+   2009 Free Software Foundation, Inc.
    Contributed by James E. Wilson <wilson@cygnus.com> and
    		  David Mosberger <davidm@hpl.hp.com>.
 
@@ -1027,13 +1027,6 @@ enum reg_class
   {FRAME_POINTER_REGNUM, HARD_FRAME_POINTER_REGNUM},			\
 }
 
-/* A C expression that returns nonzero if the compiler is allowed to try to
-   replace register number FROM with register number TO.  The frame pointer
-   is automatically handled.  */
-
-#define CAN_ELIMINATE(FROM, TO) \
-  (TO == BR_REG (0) ? current_function_is_leaf : 1)
-
 /* This macro is similar to `INITIAL_FRAME_POINTER_OFFSET'.  It
    specifies the initial difference between the specified pair of
    registers.  This macro must be defined if `ELIMINABLE_REGS' is
@@ -1254,31 +1247,6 @@ do {									\
 #define STACK_SAVEAREA_MODE(LEVEL) \
   ((LEVEL) == SAVE_NONLOCAL ? OImode : Pmode)
 
-/* Output assembler code for a block containing the constant parts of
-   a trampoline, leaving space for the variable parts.
-
-   The trampoline should set the static chain pointer to value placed
-   into the trampoline and should branch to the specified routine.
-   To make the normal indirect-subroutine calling convention work,
-   the trampoline must look like a function descriptor; the first
-   word being the target address and the second being the target's
-   global pointer.
-
-   We abuse the concept of a global pointer by arranging for it
-   to point to the data we need to load.  The complete trampoline
-   has the following form:
-
-		+-------------------+ \
-	TRAMP:	| __ia64_trampoline | |
-		+-------------------+  > fake function descriptor
-		| TRAMP+16          | |
-		+-------------------+ /
-		| target descriptor |
-		+-------------------+
-		| static link	    |
-		+-------------------+
-*/
-
 /* A C expression for the size in bytes of the trampoline, as an integer.  */
 
 #define TRAMPOLINE_SIZE		32
@@ -1286,11 +1254,6 @@ do {									\
 /* Alignment required for trampolines, in bits.  */
 
 #define TRAMPOLINE_ALIGNMENT	64
-
-/* A C statement to initialize the variable parts of a trampoline.  */
-
-#define INITIALIZE_TRAMPOLINE(ADDR, FNADDR, STATIC_CHAIN) \
-  ia64_initialize_trampoline((ADDR), (FNADDR), (STATIC_CHAIN))
 
 /* Addressing Modes */
 

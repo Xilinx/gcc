@@ -549,15 +549,6 @@ enum reg_class
   {FRAME_POINTER_REGNUM, STACK_POINTER_REGNUM}	\
 }
 
-/* A C expression that returns nonzero if the compiler is allowed to try to
-   replace register number FROM with register number TO.  This macro
-   need only be defined if `ELIMINABLE_REGS' is defined, and will usually be
-   the constant 1, since most of the cases preventing register elimination are
-   things that the compiler already knows about.  */
-
-#define CAN_ELIMINATE(FROM, TO)						\
- ((TO) == FRAME_POINTER_REGNUM || ! frame_pointer_needed)
-
 /* This macro is similar to `INITIAL_FRAME_POINTER_OFFSET'.  It specifies the
    initial difference between the specified pair of registers.  This macro must
    be defined if `ELIMINABLE_REGS' is defined.  */
@@ -739,31 +730,6 @@ enum reg_class
 /*}}}*/ 
 /*{{{  Trampolines for Nested Functions.  */ 
 
-/* On the FR30, the trampoline is:
-
-   nop
-   ldi:32 STATIC, r12
-   nop
-   ldi:32 FUNCTION, r0
-   jmp    @r0
-
-   The no-ops are to guarantee that the static chain and final
-   target are 32 bit aligned within the trampoline.  That allows us to
-   initialize those locations with simple SImode stores.   The alternative
-   would be to use HImode stores.  */
-   
-/* A C statement to output, on the stream FILE, assembler code for a block of
-   data that contains the constant parts of a trampoline.  This code should not
-   include a label--the label is taken care of automatically.  */
-#define TRAMPOLINE_TEMPLATE(FILE)						\
-{										\
-  fprintf (FILE, "\tnop\n");							\
-  fprintf (FILE, "\tldi:32\t#0, %s\n", reg_names [STATIC_CHAIN_REGNUM]);	\
-  fprintf (FILE, "\tnop\n");							\
-  fprintf (FILE, "\tldi:32\t#0, %s\n", reg_names [COMPILER_SCRATCH_REGISTER]);	\
-  fprintf (FILE, "\tjmp\t@%s\n", reg_names [COMPILER_SCRATCH_REGISTER]);	\
-}
-
 /* A C expression for the size in bytes of the trampoline, as an integer.  */
 #define TRAMPOLINE_SIZE 18
 
@@ -771,17 +737,6 @@ enum reg_class
    make sure the location of the static chain & target function within
    the trampoline is also aligned on a 32bit boundary.  */
 #define TRAMPOLINE_ALIGNMENT 32
-
-/* A C statement to initialize the variable parts of a trampoline.  ADDR is an
-   RTX for the address of the trampoline; FNADDR is an RTX for the address of
-   the nested function; STATIC_CHAIN is an RTX for the static chain value that
-   should be passed to the function when it is called.  */
-#define INITIALIZE_TRAMPOLINE(ADDR, FNADDR, STATIC_CHAIN)			\
-do										\
-{										\
-  emit_move_insn (gen_rtx_MEM (SImode, plus_constant (ADDR, 4)), STATIC_CHAIN);\
-  emit_move_insn (gen_rtx_MEM (SImode, plus_constant (ADDR, 12)), FNADDR);	\
-} while (0);
 
 /*}}}*/ 
 /*{{{  Addressing Modes.  */ 

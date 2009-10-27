@@ -346,6 +346,7 @@ const struct gcc_debug_hooks dbx_debug_hooks =
 {
   dbxout_init,
   dbxout_finish,
+  debug_nothing_void,
   debug_nothing_int_charstar,
   debug_nothing_int_charstar,
   dbxout_start_source_file,
@@ -373,6 +374,9 @@ const struct gcc_debug_hooks dbx_debug_hooks =
   dbxout_handle_pch,		         /* handle_pch */
   debug_nothing_rtx,		         /* var_location */
   debug_nothing_void,                    /* switch_text_section */
+  debug_nothing_tree,		         /* direct_call */
+  debug_nothing_tree_int,		 /* virtual_call_token */
+  debug_nothing_uid,		         /* virtual_call */
   debug_nothing_tree_tree,		 /* set_name */
   0                                      /* start_end_main_source_file */
 };
@@ -383,6 +387,7 @@ const struct gcc_debug_hooks xcoff_debug_hooks =
 {
   dbxout_init,
   dbxout_finish,
+  debug_nothing_void,
   debug_nothing_int_charstar,
   debug_nothing_int_charstar,
   dbxout_start_source_file,
@@ -406,6 +411,9 @@ const struct gcc_debug_hooks xcoff_debug_hooks =
   dbxout_handle_pch,		         /* handle_pch */
   debug_nothing_rtx,		         /* var_location */
   debug_nothing_void,                    /* switch_text_section */
+  debug_nothing_tree,		         /* direct_call */
+  debug_nothing_tree_int,		 /* virtual_call_token */
+  debug_nothing_uid,		         /* virtual_call */
   debug_nothing_tree_tree,	         /* set_name */
   0                                      /* start_end_main_source_file */
 };
@@ -902,7 +910,7 @@ dbxout_finish_complex_stabs (tree sym, stab_code_type code,
 #if defined (DBX_DEBUGGING_INFO)
 
 static void
-dbxout_function_end (tree decl)
+dbxout_function_end (tree decl ATTRIBUTE_UNUSED)
 {
   char lscope_label_name[100];
 
@@ -921,8 +929,7 @@ dbxout_function_end (tree decl)
      named sections.  */
   if (!use_gnu_debug_info_extensions
       || NO_DBX_FUNCTION_END
-      || !targetm.have_named_sections
-      || DECL_IGNORED_P (decl))
+      || !targetm.have_named_sections)
     return;
 
   /* By convention, GCC will mark the end of a function with an N_FUN
@@ -3682,9 +3689,6 @@ static void
 dbxout_begin_function (tree decl)
 {
   int saved_tree_used1;
-
-  if (DECL_IGNORED_P (decl))
-    return;
 
   saved_tree_used1 = TREE_USED (decl);
   TREE_USED (decl) = 1;

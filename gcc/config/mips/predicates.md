@@ -119,6 +119,10 @@
   (and (match_code "reg")
        (match_test "REGNO (op) == LO_REGNUM")))
 
+(define_predicate "hilo_operand"
+  (and (match_code "reg")
+       (match_test "MD_REG_P (REGNO (op))")))
+
 (define_predicate "fcc_reload_operand"
   (and (match_code "reg,subreg")
        (match_test "ST_REG_P (true_regnum (op))")))
@@ -243,6 +247,14 @@
       return true;
     }
 })
+
+(define_predicate "cprestore_save_slot_operand"
+  (and (match_code "mem")
+       (match_test "mips_cprestore_address_p (XEXP (op, 0), false)")))
+
+(define_predicate "cprestore_load_slot_operand"
+  (and (match_code "mem")
+       (match_test "mips_cprestore_address_p (XEXP (op, 0), true)")))
 
 (define_predicate "consttable_operand"
   (match_test "CONSTANT_P (op)"))

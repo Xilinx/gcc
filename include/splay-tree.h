@@ -1,5 +1,6 @@
 /* A splay-tree datatype.  
-   Copyright 1998, 1999, 2000, 2002, 2007, 2009 Free Software Foundation, Inc.
+   Copyright 1998, 1999, 2000, 2002, 2005, 2007, 2009
+   Free Software Foundation, Inc.
    Contributed by Mark Mitchell (mark@markmitchell.com).
 
    This file is part of GCC.
@@ -40,7 +41,13 @@ extern "C" {
   typedef unsigned long int libi_uhostptr_t;
   typedef long int libi_shostptr_t;
 #else
+#ifdef __GNUC__
+  __extension__
+#endif
   typedef unsigned long long libi_uhostptr_t;
+#ifdef __GNUC__
+  __extension__
+#endif
   typedef long long libi_shostptr_t;
 #endif
 

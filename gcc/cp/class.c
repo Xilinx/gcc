@@ -624,7 +624,6 @@ build_vtbl_ref_1 (tree instance, tree idx)
   if (!vtbl)
     vtbl = build_vfield_ref (instance, basetype);
 
-
   aref = build_array_ref (input_location, vtbl, idx);
   TREE_CONSTANT (aref) |= TREE_CONSTANT (vtbl) && TREE_CONSTANT (idx);
 
@@ -2678,6 +2677,10 @@ add_implicitly_declared_members (tree t,
       CLASSTYPE_LAZY_COPY_CTOR (t) = 1;
     }
 
+  /* Currently only lambdas get a lazy move ctor.  */
+  if (LAMBDA_TYPE_P (t))
+    CLASSTYPE_LAZY_MOVE_CTOR (t) = 1;
+
   /* If there is no assignment operator, one will be created if and
      when it is needed.  For now, just record whether or not the type
      of the parameter to the assignment operator will be a const or
@@ -3840,7 +3843,7 @@ check_methods (tree t)
 	    VEC_safe_push (tree, gc, CLASSTYPE_PURE_VIRTUALS (t), x);
 	}
       /* All user-provided destructors are non-trivial.  */
-      if (DECL_DESTRUCTOR_P (x) && !DECL_DEFAULTED_FN (x))
+      if (DECL_DESTRUCTOR_P (x) && user_provided_p (x))
 	TYPE_HAS_NONTRIVIAL_DESTRUCTOR (t) = 1;
     }
 }
@@ -3881,8 +3884,6 @@ build_clone (tree fn, tree name)
   /* There's no pending inline data for this function.  */
   DECL_PENDING_INLINE_INFO (clone) = NULL;
   DECL_PENDING_INLINE_P (clone) = 0;
-  /* And it hasn't yet been deferred.  */
-  DECL_DEFERRED_FN (clone) = 0;
 
   /* The base-class destructor is not virtual.  */
   if (name == base_dtor_identifier)
@@ -4173,17 +4174,17 @@ type_has_user_nondefault_constructor (tree t)
 }
 
 /* Returns true iff FN is a user-provided function, i.e. user-declared
-   and not defaulted at its first declaration.  */
+   and not defaulted at its first declaration; or explicit, private,
+   protected, or non-const.  */
 
-static bool
+bool
 user_provided_p (tree fn)
 {
   if (TREE_CODE (fn) == TEMPLATE_DECL)
     return true;
   else
     return (!DECL_ARTIFICIAL (fn)
-	    && !(DECL_DEFAULTED_FN (fn)
-		 && DECL_INITIALIZED_IN_CLASS_P (fn)));
+	    && !DECL_DEFAULTED_IN_CLASS_P (fn));
 }
 
 /* Returns true iff class T has a user-provided constructor.  */
@@ -4235,31 +4236,6 @@ type_has_user_provided_default_constructor (tree t)
     }
 
   return false;
-}
-
-/* Returns true if FN can be explicitly defaulted.  */
-
-bool
-defaultable_fn_p (tree fn)
-{
-  if (DECL_CONSTRUCTOR_P (fn))
-    {
-      if (FUNCTION_FIRST_USER_PARMTYPE (fn) == void_list_node)
-	return true;
-      else if (copy_fn_p (fn) > 0
-	       && (TREE_CHAIN (FUNCTION_FIRST_USER_PARMTYPE (fn))
-		   == void_list_node))
-	return true;
-      else
-	return false;
-    }
-  else if (DECL_DESTRUCTOR_P (fn))
-    return true;
-  else if (DECL_ASSIGNMENT_OPERATOR_P (fn)
-	   && DECL_OVERLOADED_OPERATOR_P (fn) == NOP_EXPR)
-    return copy_fn_p (fn);
-  else
-    return false;
 }
 
 /* Remove all zero-width bit-fields from T.  */
@@ -4355,6 +4331,7 @@ check_bases_and_members (tree t)
   tree access_decls;
   bool saved_complex_asn_ref;
   bool saved_nontrivial_dtor;
+  tree fn;
 
   /* By default, we use const reference arguments and generate default
      constructors.  */
@@ -4451,6 +4428,45 @@ check_bases_and_members (tree t)
   add_implicitly_declared_members (t,
 				   cant_have_const_ctor,
 				   no_const_asn_ref);
+
+  /* Check defaulted declarations here so we have cant_have_const_ctor
+     and don't need to worry about clones.  */
+  for (fn = TYPE_METHODS (t); fn; fn = TREE_CHAIN (fn))
+    if (DECL_DEFAULTED_IN_CLASS_P (fn))
+      {
+	int copy = copy_fn_p (fn);
+	if (copy > 0)
+	  {
+	    bool imp_const_p
+	      = (DECL_CONSTRUCTOR_P (fn) ? !cant_have_const_ctor
+		 : !no_const_asn_ref);
+	    bool fn_const_p = (copy == 2);
+
+	    if (fn_const_p && !imp_const_p)
+	      /* If the function is defaulted outside the class, we just
+		 give the synthesis error.  */
+	      error ("%q+D declared to take const reference, but implicit "
+		     "declaration would take non-const", fn);
+	    else if (imp_const_p && !fn_const_p)
+	      error ("%q+D declared to take non-const reference cannot be "
+		     "defaulted in the class body", fn);
+	  }
+	defaulted_late_check (fn);
+      }
+
+  if (LAMBDA_TYPE_P (t))
+    {
+      /* "The closure type associated with a lambda-expression has a deleted
+	 default constructor and a deleted copy assignment operator."  */
+      TYPE_NEEDS_CONSTRUCTING (t) = 1;
+      TYPE_HAS_DEFAULT_CONSTRUCTOR (t) = 0;
+      CLASSTYPE_LAZY_DEFAULT_CTOR (t) = 0;
+      TYPE_HAS_ASSIGN_REF (t) = 0;
+      CLASSTYPE_LAZY_ASSIGNMENT_OP (t) = 0;
+
+      /* "This class type is not an aggregate."  */
+      CLASSTYPE_NON_AGGREGATE (t) = 1;
+    }
 
   /* Create the in-charge and not-in-charge variants of constructors
      and destructors.  */
@@ -5848,6 +5864,8 @@ currently_open_class (tree t)
   if (!CLASS_TYPE_P (t))
     return false;
 
+  t = TYPE_MAIN_VARIANT (t);
+
   /* We start looking from 1 because entry 0 is from global scope,
      and has no type.  */
   for (i = current_class_depth; i > 0; --i)
@@ -6601,7 +6619,8 @@ maybe_note_name_used_in_class (tree name, tree decl)
 
   /* If we're not defining a class, there's nothing to do.  */
   if (!(innermost_scope_kind() == sk_class
-	&& TYPE_BEING_DEFINED (current_class_type)))
+	&& TYPE_BEING_DEFINED (current_class_type)
+	&& !LAMBDA_TYPE_P (current_class_type)))
     return;
 
   /* If there's already a binding for this NAME, then we don't have

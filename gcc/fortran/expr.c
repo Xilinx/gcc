@@ -330,6 +330,36 @@ gfc_has_vector_index (gfc_expr *e)
 }
 
 
+/* Insert a reference to the component of the given name.
+   Only to be used with CLASS containers.  */
+
+void
+gfc_add_component_ref (gfc_expr *e, const char *name)
+{
+  gfc_ref **tail = &(e->ref);
+  gfc_ref *next = NULL;
+  gfc_symbol *derived = e->symtree->n.sym->ts.u.derived;
+  while (*tail != NULL)
+    {
+      if ((*tail)->type == REF_COMPONENT)
+	derived = (*tail)->u.c.component->ts.u.derived;
+      if ((*tail)->type == REF_ARRAY && (*tail)->next == NULL)
+	break;
+      tail = &((*tail)->next);
+    }
+  if (*tail != NULL && strcmp (name, "$data") == 0)
+    next = *tail;
+  (*tail) = gfc_get_ref();
+  (*tail)->next = next;
+  (*tail)->type = REF_COMPONENT;
+  (*tail)->u.c.sym = derived;
+  (*tail)->u.c.component = gfc_find_component (derived, name, true, true);
+  gcc_assert((*tail)->u.c.component);
+  if (!next)
+    e->ts = (*tail)->u.c.component->ts;
+}
+
+
 /* Copy a shape array.  */
 
 mpz_t *
@@ -481,6 +511,7 @@ gfc_copy_expr (gfc_expr *p)
 	case BT_HOLLERITH:
 	case BT_LOGICAL:
 	case BT_DERIVED:
+	case BT_CLASS:
 	  break;		/* Already done.  */
 
 	case BT_PROCEDURE:
@@ -3124,7 +3155,9 @@ gfc_check_pointer_assign (gfc_expr *lvalue, gfc_expr *rvalue)
       return FAILURE;
     }
 
-  if (!pointer && !proc_pointer)
+  if (!pointer && !proc_pointer
+	&& !(lvalue->ts.type == BT_CLASS
+		&& lvalue->ts.u.derived->components->attr.pointer))
     {
       gfc_error ("Pointer assignment to non-POINTER at %L", &lvalue->where);
       return FAILURE;
@@ -3149,6 +3182,10 @@ gfc_check_pointer_assign (gfc_expr *lvalue, gfc_expr *rvalue)
   if (proc_pointer)
     {
       char err[200];
+      gfc_symbol *s1,*s2;
+      gfc_component *comp;
+      const char *name;
+
       attr = gfc_expr_attr (rvalue);
       if (!((rvalue->expr_type == EXPR_NULL)
 	    || (rvalue->expr_type == EXPR_FUNCTION && attr.proc_pointer)
@@ -3208,22 +3245,35 @@ gfc_check_pointer_assign (gfc_expr *lvalue, gfc_expr *rvalue)
 	    }
 	}
 
-      /* TODO: Enable interface check for PPCs.  */
-      if (gfc_is_proc_ptr_comp (rvalue, NULL))
-	return SUCCESS;
-      if ((rvalue->expr_type == EXPR_VARIABLE
-	   && !gfc_compare_interfaces (lvalue->symtree->n.sym,
-				       rvalue->symtree->n.sym, 0, 1, err,
-				       sizeof(err)))
-	  || (rvalue->expr_type == EXPR_FUNCTION
-	      && !gfc_compare_interfaces (lvalue->symtree->n.sym,
-					  rvalue->symtree->n.sym->result, 0, 1,
-					  err, sizeof(err))))
+      if (gfc_is_proc_ptr_comp (lvalue, &comp))
+	s1 = comp->ts.interface;
+      else
+	s1 = lvalue->symtree->n.sym;
+
+      if (gfc_is_proc_ptr_comp (rvalue, &comp))
+	{
+	  s2 = comp->ts.interface;
+	  name = comp->name;
+	}
+      else if (rvalue->expr_type == EXPR_FUNCTION)
+	{
+	  s2 = rvalue->symtree->n.sym->result;
+	  name = rvalue->symtree->n.sym->result->name;
+	}
+      else
+	{
+	  s2 = rvalue->symtree->n.sym;
+	  name = rvalue->symtree->n.sym->name;
+	}
+
+      if (s1 && s2 && !gfc_compare_interfaces (s1, s2, name, 0, 1,
+					       err, sizeof(err)))
 	{
 	  gfc_error ("Interface mismatch in procedure pointer assignment "
 		     "at %L: %s", &rvalue->where, err);
 	  return FAILURE;
 	}
+
       return SUCCESS;
     }
 
@@ -3235,7 +3285,7 @@ gfc_check_pointer_assign (gfc_expr *lvalue, gfc_expr *rvalue)
       return FAILURE;
     }
 
-  if (lvalue->ts.kind != rvalue->ts.kind)
+  if (lvalue->ts.type != BT_CLASS && lvalue->ts.kind != rvalue->ts.kind)
     {
       gfc_error ("Different kind type parameters in pointer "
 		 "assignment at %L", &lvalue->where);
@@ -3315,7 +3365,10 @@ gfc_check_assign_symbol (gfc_symbol *sym, gfc_expr *rvalue)
   lvalue.symtree->n.sym = sym;
   lvalue.where = sym->declared_at;
 
-  if (sym->attr.pointer || sym->attr.proc_pointer)
+  if (sym->attr.pointer || sym->attr.proc_pointer
+      || (sym->ts.type == BT_CLASS 
+	  && sym->ts.u.derived->components->attr.pointer
+	  && rvalue->expr_type == EXPR_NULL))
     r = gfc_check_pointer_assign (&lvalue, rvalue);
   else
     r = gfc_check_assign (&lvalue, rvalue, 1);

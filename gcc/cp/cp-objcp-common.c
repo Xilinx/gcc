@@ -109,7 +109,7 @@ cp_expr_size (const_tree exp)
     }
   else
     /* Use the default code.  */
-    return lhd_expr_size (exp);
+    return tree_expr_size (exp);
 }
 
 /* Langhook for tree_size: determine size of our 'x' and 'c' nodes.  */
@@ -137,6 +137,8 @@ cp_tree_size (enum tree_code code)
 
     case TRAIT_EXPR:
       return sizeof (struct tree_trait_expr);
+
+    case LAMBDA_EXPR:           return sizeof (struct tree_lambda_expr);
 
     default:
       gcc_unreachable ();

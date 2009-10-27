@@ -1,6 +1,7 @@
 /* Prints out tree in human readable form - GCC
    Copyright (C) 1990, 1991, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Free Software Foundation, Inc.
+   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -66,7 +67,7 @@ dump_addr (FILE *file, const char *prefix, const void *addr)
   if (flag_dump_noaddr || flag_dump_unnumbered)
     fprintf (file, "%s#", prefix);
   else
-    fprintf (file, "%s%p", prefix, addr);
+    fprintf (file, "%s" HOST_PTR_PRINTF, prefix, addr);
 }
 
 /* Print a node in brief fashion, with just the code, address and name.  */
@@ -380,8 +381,8 @@ print_node (FILE *file, const char *prefix, tree node, int indent)
 	fputs (" autoinline", file);
       if (code == FUNCTION_DECL && DECL_BUILT_IN (node))
 	fputs (" built-in", file);
-      if (code == FUNCTION_DECL && DECL_NO_STATIC_CHAIN (node))
-	fputs (" no-static-chain", file);
+      if (code == FUNCTION_DECL && DECL_STATIC_CHAIN (node))
+	fputs (" static-chain", file);
 
       if (code == FIELD_DECL && DECL_PACKED (node))
 	fputs (" packed", file);
@@ -392,6 +393,8 @@ print_node (FILE *file, const char *prefix, tree node, int indent)
 
       if (code == LABEL_DECL && DECL_ERROR_ISSUED (node))
 	fputs (" error-issued", file);
+      if (code == LABEL_DECL && EH_LANDING_PAD_NR (node))
+	fprintf (file, " landing-pad:%d", EH_LANDING_PAD_NR (node));
 
       if (code == VAR_DECL && DECL_IN_TEXT_SECTION (node))
 	fputs (" in-text-section", file);
@@ -538,7 +541,7 @@ print_node (FILE *file, const char *prefix, tree node, int indent)
 	       && DECL_STRUCT_FUNCTION (node) != 0)
 	{
 	  indent_to (file, indent + 4);
-	  dump_addr (file, "saved-insns ", DECL_STRUCT_FUNCTION (node));
+	  dump_addr (file, "struct-function ", DECL_STRUCT_FUNCTION (node));
 	}
 
       if ((code == VAR_DECL || code == PARM_DECL)
