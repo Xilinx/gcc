@@ -1,3 +1,109 @@
+2009-10-26  Ben Elliston  <bje@au.ibm.com>
+	    Michael Meissner  <meissner@linux.vnet.ibm.com>
+	    Ulrich Weigand  <uweigand@de.ibm.com>
+
+	* gcc.target/spu/ea/ea.exp: New file.
+	* gcc.target/spu/ea/cache1.c: Likewise.
+	* gcc.target/spu/ea/cast1.c: Likewise.
+	* gcc.target/spu/ea/cast2.c: Likewise.
+	* gcc.target/spu/ea/compile1.c: Likewise.
+	* gcc.target/spu/ea/compile2.c: Likewise.
+	* gcc.target/spu/ea/cppdefine.c: Likewise.
+	* gcc.target/spu/ea/errors1.c: Likewise.
+	* gcc.target/spu/ea/errors2.c: Likewise.
+	* gcc.target/spu/ea/execute1.c: Likewise.
+	* gcc.target/spu/ea/execute2.c: Likewise.
+	* gcc.target/spu/ea/execute3.c: Likewise.
+	* gcc.target/spu/ea/ops1.c: Likewise.
+	* gcc.target/spu/ea/ops2.c: Likewise.
+	* gcc.target/spu/ea/options1.c: Likewise.
+	* gcc.target/spu/ea/test-sizes.c: Likewise.
+
+2009-10-26  Jakub Jelinek  <jakub@redhat.com>
+
+	PR bootstrap/41345
+	* gcc.dg/pr41345.c: New test.
+
+	PR debug/41828
+	* g++.dg/debug/dwarf2/anonname1.C: New test.
+
+2009-10-26  Jason Merrill  <jason@redhat.com>
+
+	PR c++/38796
+	* g++.dg/cpp0x/defaulted15.C: New.
+	* g++.dg/cpp0x/defaulted16.C: New.
+
+2009-10-26  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/41785
+	* gcc/testsuite/g++.dg/cpp0x/variadic96.C: New test.
+
+2009-10-26  Nick Clifton  <nickc@redhat.com>
+
+	* lib/target-supports.exp (check_profiling_available):
+	Profiling is not, currently, available for the RX port.
+	(check_effective_target_hard_float): Add support for RX
+	target.
+	* gcc.target/rx: New directory.
+	* gcc.target/rx/builtins.c: New test file.
+	* gcc.target/rx/interrupts.c: New test file.
+	* gcc.target/rx/rx-abi-function-tests.c: New test file.
+	* gcc.target/rx/zero-width-bitfield.c: New test file.
+	* gcc.target/rx/i272091.c: New test file.
+	* gcc.target/rx/packed-struct.c: New test file.
+	* gcc.target/rx/rx.exp: New file: Drives RX tests.
+	
+2009-10-26  Andrew Pinski  <pinskia@gcc.gnu.org>
+
+	* gcc.dg/lto/20091014-1_0.c: Replace -shared with -r -nostlib.
+	* gcc.dg/lto/20091016-1_0.c: Likewise.
+	* gcc.dg/lto/20090206-1_0.c: Likewise.
+	* gcc.dg/lto/20081120-1_0.c: Likewise.
+	* gcc.dg/lto/20081120-2_0.c: Likewise.
+	* gcc.dg/lto/20090116_0.c: Likewise.
+	* gcc.dg/lto/20081126_0.c: Likewise.
+	* gcc.dg/lto/20091013-1_0.c: Likewise.
+	* gcc.dg/lto/20081212-1_0.c: Likewise.
+	* gcc.dg/lto/20091015-1_0.c: Likewise.
+	* gcc.dg/lto/20090126-1_0.c: Likewise.
+	* gcc.dg/lto/20090126-2_0.c: Likewise.
+	* gcc.dg/lto/20091020-1_0.c: Likewise.
+	* gcc.dg/lto/20091020-2_0.c: Likewise.
+	* gcc.dg/lto/20081204-1_0.c: Likewise.
+	* gcc.dg/lto/20081204-2_0.c: Likewise.
+	* gcc.dg/lto/20081224_0.c: Likewise.
+	* gcc.dg/lto/20090219_0.c: Likewise.
+
+2009-10-26  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/41020
+	* g++.dg/lookup/extern-c-redecl2.C: New test.
+	* g++.dg/lookup/extern-c-redecl3.C: Likewise.
+	* g++.dg/lookup/extern-c-redecl4.C: Likewise.
+	* g++.dg/lookup/extern-c-redecl5.C: Likewise.
+
+2009-10-26  Michael Matz  <matz@suse.de>
+
+	PR tree-optimization/41783
+	* gcc.dg/pr41783.c: New test.
+	* gcc.dg/tree-ssa/ssa-pre-23.c: Adjust.
+	* gcc.dg/tree-ssa/ssa-pre-24.c: Don't xfail anymore.
+	* gcc.dg/tree-ssa/ssa-pre-27.c: New test.
+
+2009-10-26  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/41714
+	* gfortran.dg/class_allocate_4.f03: New test.
+
+2009-10-24  Adam Nemet  <anemet@caviumnetworks.com>
+
+	* gcc.target/mips/mult-1.c: New test.
+
+2009-10-24  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/41784
+	* gfortran.dg/extends_8.f03: New test.
+
 2009-10-24  Eric Botcazou  <ebotcazou@adacore.com>
 
 	* gnat.dg/specs/pack4.ads: New test.

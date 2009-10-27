@@ -831,6 +831,107 @@ default_builtin_support_vector_misalignment (enum machine_mode mode,
   return false;
 }
 
+/* Determine whether or not a pointer mode is valid. Assume defaults
+   of ptr_mode or Pmode - can be overridden.  */
+bool
+default_valid_pointer_mode (enum machine_mode mode)
+{
+  return (mode == ptr_mode || mode == Pmode);
+}
+
+/* Return the mode for a pointer to a given ADDRSPACE, defaulting to ptr_mode
+   for the generic address space only.  */
+
+enum machine_mode
+default_addr_space_pointer_mode (addr_space_t addrspace ATTRIBUTE_UNUSED)
+{
+  gcc_assert (ADDR_SPACE_GENERIC_P (addrspace));
+  return ptr_mode;
+}
+
+/* Return the mode for an address in a given ADDRSPACE, defaulting to Pmode
+   for the generic address space only.  */
+
+enum machine_mode
+default_addr_space_address_mode (addr_space_t addrspace ATTRIBUTE_UNUSED)
+{
+  gcc_assert (ADDR_SPACE_GENERIC_P (addrspace));
+  return Pmode;
+}
+
+/* Named address space version of valid_pointer_mode.  */
+
+bool
+default_addr_space_valid_pointer_mode (enum machine_mode mode, addr_space_t as)
+{
+  if (!ADDR_SPACE_GENERIC_P (as))
+    return (mode == targetm.addr_space.pointer_mode (as)
+	    || mode == targetm.addr_space.address_mode (as));
+
+  return targetm.valid_pointer_mode (mode);
+}
+
+/* Some places still assume that all pointer or address modes are the
+   standard Pmode and ptr_mode.  These optimizations become invalid if
+   the target actually supports multiple different modes.  For now,
+   we disable such optimizations on such targets, using this function.  */
+
+bool
+target_default_pointer_address_modes_p (void)
+{
+  if (targetm.addr_space.address_mode != default_addr_space_address_mode)
+    return false;
+  if (targetm.addr_space.pointer_mode != default_addr_space_pointer_mode)
+    return false;
+
+  return true;
+}
+
+/* Named address space version of legitimate_address_p.  */
+
+bool
+default_addr_space_legitimate_address_p (enum machine_mode mode, rtx mem,
+					 bool strict, addr_space_t as)
+{
+  if (!ADDR_SPACE_GENERIC_P (as))
+    gcc_unreachable ();
+
+  return targetm.legitimate_address_p (mode, mem, strict);
+}
+
+/* Named address space version of LEGITIMIZE_ADDRESS.  */
+
+rtx
+default_addr_space_legitimize_address (rtx x, rtx oldx,
+				       enum machine_mode mode, addr_space_t as)
+{
+  if (!ADDR_SPACE_GENERIC_P (as))
+    return x;
+
+  return targetm.legitimize_address (x, oldx, mode);
+}
+
+/* The default hook for determining if one named address space is a subset of
+   another and to return which address space to use as the common address
+   space.  */
+
+bool
+default_addr_space_subset_p (addr_space_t subset, addr_space_t superset)
+{
+  return (subset == superset);
+}
+
+/* The default hook for TARGET_ADDR_SPACE_CONVERT. This hook should never be
+   called for targets with only a generic address space.  */
+
+rtx
+default_addr_space_convert (rtx op ATTRIBUTE_UNUSED,
+			    tree from_type ATTRIBUTE_UNUSED,
+			    tree to_type ATTRIBUTE_UNUSED)
+{
+  gcc_unreachable ();
+}
+
 bool
 default_hard_regno_scratch_ok (unsigned int regno ATTRIBUTE_UNUSED)
 {

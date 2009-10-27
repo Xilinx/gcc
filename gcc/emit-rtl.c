@@ -59,6 +59,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-pass.h"
 #include "df.h"
 #include "params.h"
+#include "target.h"
 
 /* Commonly used modes.  */
 
@@ -193,7 +194,7 @@ static rtx lookup_const_fixed (rtx);
 static hashval_t mem_attrs_htab_hash (const void *);
 static int mem_attrs_htab_eq (const void *, const void *);
 static mem_attrs *get_mem_attrs (alias_set_type, tree, rtx, rtx, unsigned int,
-				 enum machine_mode);
+				 addr_space_t, enum machine_mode);
 static hashval_t reg_attrs_htab_hash (const void *);
 static int reg_attrs_htab_eq (const void *, const void *);
 static reg_attrs *get_reg_attrs (tree, int);
@@ -292,6 +293,7 @@ mem_attrs_htab_hash (const void *x)
   const mem_attrs *const p = (const mem_attrs *) x;
 
   return (p->alias ^ (p->align * 1000)
+	  ^ (p->addrspace * 4000)
 	  ^ ((p->offset ? INTVAL (p->offset) : 0) * 50000)
 	  ^ ((p->size ? INTVAL (p->size) : 0) * 2500000)
 	  ^ (size_t) iterative_hash_expr (p->expr, 0));
@@ -309,6 +311,7 @@ mem_attrs_htab_eq (const void *x, const void *y)
 
   return (p->alias == q->alias && p->offset == q->offset
 	  && p->size == q->size && p->align == q->align
+	  && p->addrspace == q->addrspace
 	  && (p->expr == q->expr
 	      || (p->expr != NULL_TREE && q->expr != NULL_TREE
 		  && operand_equal_p (p->expr, q->expr, 0))));
@@ -320,7 +323,7 @@ mem_attrs_htab_eq (const void *x, const void *y)
 
 static mem_attrs *
 get_mem_attrs (alias_set_type alias, tree expr, rtx offset, rtx size,
-	       unsigned int align, enum machine_mode mode)
+	       unsigned int align, addr_space_t addrspace, enum machine_mode mode)
 {
   mem_attrs attrs;
   void **slot;
@@ -328,7 +331,7 @@ get_mem_attrs (alias_set_type alias, tree expr, rtx offset, rtx size,
   /* If everything is the default, we can just return zero.
      This must match what the corresponding MEM_* macros return when the
      field is not present.  */
-  if (alias == 0 && expr == 0 && offset == 0
+  if (alias == 0 && expr == 0 && offset == 0 && addrspace == 0
       && (size == 0
 	  || (mode != BLKmode && GET_MODE_SIZE (mode) == INTVAL (size)))
       && (STRICT_ALIGNMENT && mode != BLKmode
@@ -340,6 +343,7 @@ get_mem_attrs (alias_set_type alias, tree expr, rtx offset, rtx size,
   attrs.offset = offset;
   attrs.size = size;
   attrs.align = align;
+  attrs.addrspace = addrspace;
 
   slot = htab_find_slot (mem_attrs_htab, &attrs, INSERT);
   if (*slot == 0)
@@ -1386,7 +1390,9 @@ operand_subword (rtx op, unsigned int offset, int validate_address, enum machine
 
       else if (reload_completed)
 	{
-	  if (! strict_memory_address_p (word_mode, XEXP (new_rtx, 0)))
+	  if (! strict_memory_address_addr_space_p (word_mode,
+						    XEXP (new_rtx, 0),
+						    MEM_ADDR_SPACE (op)))
 	    return 0;
 	}
       else
@@ -1795,7 +1801,8 @@ set_mem_attributes_minus_bitpos (rtx ref, tree t, int objectp,
 
   /* Now set the attributes we computed above.  */
   MEM_ATTRS (ref)
-    = get_mem_attrs (alias, expr, offset, size, align, GET_MODE (ref));
+    = get_mem_attrs (alias, expr, offset, size, align,
+		     TYPE_ADDR_SPACE (type), GET_MODE (ref));
 
   /* If this is already known to be a scalar or aggregate, we are done.  */
   if (MEM_IN_STRUCT_P (ref) || MEM_SCALAR_P (ref))
@@ -1827,7 +1834,17 @@ set_mem_alias_set (rtx mem, alias_set_type set)
 
   MEM_ATTRS (mem) = get_mem_attrs (set, MEM_EXPR (mem), MEM_OFFSET (mem),
 				   MEM_SIZE (mem), MEM_ALIGN (mem),
-				   GET_MODE (mem));
+				   MEM_ADDR_SPACE (mem), GET_MODE (mem));
+}
+
+/* Set the address space of MEM to ADDRSPACE (target-defined).  */
+
+void
+set_mem_addr_space (rtx mem, addr_space_t addrspace)
+{
+  MEM_ATTRS (mem) = get_mem_attrs (MEM_ALIAS_SET (mem), MEM_EXPR (mem),
+				   MEM_OFFSET (mem), MEM_SIZE (mem),
+				   MEM_ALIGN (mem), addrspace, GET_MODE (mem));
 }
 
 /* Set the alignment of MEM to ALIGN bits.  */
@@ -1837,7 +1854,7 @@ set_mem_align (rtx mem, unsigned int align)
 {
   MEM_ATTRS (mem) = get_mem_attrs (MEM_ALIAS_SET (mem), MEM_EXPR (mem),
 				   MEM_OFFSET (mem), MEM_SIZE (mem), align,
-				   GET_MODE (mem));
+				   MEM_ADDR_SPACE (mem), GET_MODE (mem));
 }
 
 /* Set the expr for MEM to EXPR.  */
@@ -1847,7 +1864,8 @@ set_mem_expr (rtx mem, tree expr)
 {
   MEM_ATTRS (mem)
     = get_mem_attrs (MEM_ALIAS_SET (mem), expr, MEM_OFFSET (mem),
-		     MEM_SIZE (mem), MEM_ALIGN (mem), GET_MODE (mem));
+		     MEM_SIZE (mem), MEM_ALIGN (mem),
+		     MEM_ADDR_SPACE (mem), GET_MODE (mem));
 }
 
 /* Set the offset of MEM to OFFSET.  */
@@ -1857,7 +1875,7 @@ set_mem_offset (rtx mem, rtx offset)
 {
   MEM_ATTRS (mem) = get_mem_attrs (MEM_ALIAS_SET (mem), MEM_EXPR (mem),
 				   offset, MEM_SIZE (mem), MEM_ALIGN (mem),
-				   GET_MODE (mem));
+				   MEM_ADDR_SPACE (mem), GET_MODE (mem));
 }
 
 /* Set the size of MEM to SIZE.  */
@@ -1867,7 +1885,7 @@ set_mem_size (rtx mem, rtx size)
 {
   MEM_ATTRS (mem) = get_mem_attrs (MEM_ALIAS_SET (mem), MEM_EXPR (mem),
 				   MEM_OFFSET (mem), size, MEM_ALIGN (mem),
-				   GET_MODE (mem));
+				   MEM_ADDR_SPACE (mem), GET_MODE (mem));
 }
 
 /* Return a memory reference like MEMREF, but with its mode changed to MODE
@@ -1879,23 +1897,25 @@ set_mem_size (rtx mem, rtx size)
 static rtx
 change_address_1 (rtx memref, enum machine_mode mode, rtx addr, int validate)
 {
+  addr_space_t as;
   rtx new_rtx;
 
   gcc_assert (MEM_P (memref));
+  as = MEM_ADDR_SPACE (memref);
   if (mode == VOIDmode)
     mode = GET_MODE (memref);
   if (addr == 0)
     addr = XEXP (memref, 0);
   if (mode == GET_MODE (memref) && addr == XEXP (memref, 0)
-      && (!validate || memory_address_p (mode, addr)))
+      && (!validate || memory_address_addr_space_p (mode, addr, as)))
     return memref;
 
   if (validate)
     {
       if (reload_in_progress || reload_completed)
-	gcc_assert (memory_address_p (mode, addr));
+	gcc_assert (memory_address_addr_space_p (mode, addr, as));
       else
-	addr = memory_address (mode, addr);
+	addr = memory_address_addr_space (mode, addr, as);
     }
 
   if (rtx_equal_p (addr, XEXP (memref, 0)) && mode == GET_MODE (memref))
@@ -1934,7 +1954,8 @@ change_address (rtx memref, enum machine_mode mode, rtx addr)
     }
 
   MEM_ATTRS (new_rtx)
-    = get_mem_attrs (MEM_ALIAS_SET (memref), 0, 0, size, align, mmode);
+    = get_mem_attrs (MEM_ALIAS_SET (memref), 0, 0, size, align,
+		     MEM_ADDR_SPACE (memref), mmode);
 
   return new_rtx;
 }
@@ -1954,11 +1975,13 @@ adjust_address_1 (rtx memref, enum machine_mode mode, HOST_WIDE_INT offset,
   rtx memoffset = MEM_OFFSET (memref);
   rtx size = 0;
   unsigned int memalign = MEM_ALIGN (memref);
+  addr_space_t as = MEM_ADDR_SPACE (memref);
+  enum machine_mode address_mode = targetm.addr_space.address_mode (as);
   int pbits;
 
   /* If there are no changes, just return the original memory reference.  */
   if (mode == GET_MODE (memref) && !offset
-      && (!validate || memory_address_p (mode, addr)))
+      && (!validate || memory_address_addr_space_p (mode, addr, as)))
     return memref;
 
   /* ??? Prefer to create garbage instead of creating shared rtl.
@@ -1968,7 +1991,7 @@ adjust_address_1 (rtx memref, enum machine_mode mode, HOST_WIDE_INT offset,
 
   /* Convert a possibly large offset to a signed value within the
      range of the target address space.  */
-  pbits = GET_MODE_BITSIZE (Pmode);
+  pbits = GET_MODE_BITSIZE (address_mode);
   if (HOST_BITS_PER_WIDE_INT > pbits)
     {
       int shift = HOST_BITS_PER_WIDE_INT - pbits;
@@ -1984,7 +2007,7 @@ adjust_address_1 (rtx memref, enum machine_mode mode, HOST_WIDE_INT offset,
 	  && offset >= 0
 	  && (unsigned HOST_WIDE_INT) offset
 	      < GET_MODE_ALIGNMENT (GET_MODE (memref)) / BITS_PER_UNIT)
-	addr = gen_rtx_LO_SUM (Pmode, XEXP (addr, 0),
+	addr = gen_rtx_LO_SUM (address_mode, XEXP (addr, 0),
 			       plus_constant (XEXP (addr, 1), offset));
       else
 	addr = plus_constant (addr, offset);
@@ -2017,7 +2040,8 @@ adjust_address_1 (rtx memref, enum machine_mode mode, HOST_WIDE_INT offset,
     size = plus_constant (MEM_SIZE (memref), -offset);
 
   MEM_ATTRS (new_rtx) = get_mem_attrs (MEM_ALIAS_SET (memref), MEM_EXPR (memref),
-				   memoffset, size, memalign, GET_MODE (new_rtx));
+				       memoffset, size, memalign, as,
+				       GET_MODE (new_rtx));
 
   /* At some point, we should validate that this offset is within the object,
      if all the appropriate values are known.  */
@@ -2045,8 +2069,10 @@ rtx
 offset_address (rtx memref, rtx offset, unsigned HOST_WIDE_INT pow2)
 {
   rtx new_rtx, addr = XEXP (memref, 0);
+  addr_space_t as = MEM_ADDR_SPACE (memref);
+  enum machine_mode address_mode = targetm.addr_space.address_mode (as);
 
-  new_rtx = simplify_gen_binary (PLUS, Pmode, addr, offset);
+  new_rtx = simplify_gen_binary (PLUS, address_mode, addr, offset);
 
   /* At this point we don't know _why_ the address is invalid.  It
      could have secondary memory references, multiplies or anything.
@@ -2055,12 +2081,12 @@ offset_address (rtx memref, rtx offset, unsigned HOST_WIDE_INT pow2)
      being able to recognize the magic around pic_offset_table_rtx.
      This stuff is fragile, and is yet another example of why it is
      bad to expose PIC machinery too early.  */
-  if (! memory_address_p (GET_MODE (memref), new_rtx)
+  if (! memory_address_addr_space_p (GET_MODE (memref), new_rtx, as)
       && GET_CODE (addr) == PLUS
       && XEXP (addr, 0) == pic_offset_table_rtx)
     {
       addr = force_reg (GET_MODE (addr), addr);
-      new_rtx = simplify_gen_binary (PLUS, Pmode, addr, offset);
+      new_rtx = simplify_gen_binary (PLUS, address_mode, addr, offset);
     }
 
   update_temp_slot_address (XEXP (memref, 0), new_rtx);
@@ -2075,7 +2101,7 @@ offset_address (rtx memref, rtx offset, unsigned HOST_WIDE_INT pow2)
   MEM_ATTRS (new_rtx)
     = get_mem_attrs (MEM_ALIAS_SET (memref), MEM_EXPR (memref), 0, 0,
 		     MIN (MEM_ALIGN (memref), pow2 * BITS_PER_UNIT),
-		     GET_MODE (new_rtx));
+		     as, GET_MODE (new_rtx));
   return new_rtx;
 }
 
@@ -2179,7 +2205,8 @@ widen_memory_access (rtx memref, enum machine_mode mode, HOST_WIDE_INT offset)
   /* ??? Maybe use get_alias_set on any remaining expression.  */
 
   MEM_ATTRS (new_rtx) = get_mem_attrs (0, expr, memoffset, GEN_INT (size),
-				   MEM_ALIGN (new_rtx), mode);
+				       MEM_ALIGN (new_rtx),
+				       MEM_ADDR_SPACE (new_rtx), mode);
 
   return new_rtx;
 }
@@ -2207,7 +2234,7 @@ get_spill_slot_decl (bool force_build_p)
   rd = gen_rtx_MEM (BLKmode, frame_pointer_rtx);
   MEM_NOTRAP_P (rd) = 1;
   MEM_ATTRS (rd) = get_mem_attrs (new_alias_set (), d, const0_rtx,
-				  NULL_RTX, 0, BLKmode);
+				  NULL_RTX, 0, ADDR_SPACE_GENERIC, BLKmode);
   SET_DECL_RTL (d, rd);
 
   return d;
@@ -2240,7 +2267,7 @@ set_mem_attrs_for_spill (rtx mem)
 
   MEM_ATTRS (mem) = get_mem_attrs (alias, expr, offset,
 				   MEM_SIZE (mem), MEM_ALIGN (mem),
-				   GET_MODE (mem));
+				   ADDR_SPACE_GENERIC, GET_MODE (mem));
   MEM_NOTRAP_P (mem) = 1;
 }
 
