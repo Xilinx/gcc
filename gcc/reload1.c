@@ -4003,7 +4003,8 @@ finish_spills (int global)
 	 indicate which hard regs can't be used, and call
 	 ira_reassign_pseudos.  */
       for (n = 0, i = FIRST_PSEUDO_REGISTER; i < (unsigned) max_regno; i++)
-	if (reg_old_renumber[i] != reg_renumber[i])
+	if ((reg_renumber[i] == -1 && REG_N_REFS(i) != 0)
+	    || reg_old_renumber[i] != reg_renumber[i])
 	  {
 	    if (reg_renumber[i] < 0)
 	      temp_pseudo_reg_arr[n++] = i;

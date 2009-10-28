@@ -1,3 +1,12 @@
+2009-10-22  Jeff Law <law@redhat.com>
+
+	* reload1.c (finish_spills): Also try to re-allocate pseudos
+	currently on the stack.
+
+	* ira-lives.c (process_single_reg_class_operands): Update the 
+	hard reg costs for all the hard registers desired by the single
+	reg class operand.
+
 2009-10-15  Jeff Law <law@redhat.com>
 
 	* ira-reload.c (ira_bad_reload_regno): New function.
