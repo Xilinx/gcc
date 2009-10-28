@@ -49,6 +49,7 @@ along with GCC; see the file COPYING3.  If not see
 static bitmap pseudos_to_localize;
 static bitmap regs_to_load;
 static bitmap regs_to_store;
+static bitmap no_uses_after_last_set;
 static int *pseudo_nuses;
 static int *pseudo_nsets;
 static rtx *reg_map;
@@ -150,7 +151,11 @@ identify_singleton_sets (rtx dest)
 
   /* If DEST isn't maked for spilling, then there is nothing to do.  */
   if (bitmap_bit_p (pseudos_to_localize, REGNO (dest)))
-    pseudo_nsets[REGNO (dest)]++;
+    {
+      if (pseudo_nuses[REGNO (dest)] == 0 && pseudo_nsets[REGNO (dest)] == 0)
+	bitmap_set_bit (no_uses_after_last_set, REGNO (dest));
+      pseudo_nsets[REGNO (dest)]++;
+    }
 }
 
 /* Collect (into REGS_TO_LOAD) USE if it is a pseudo marked for
@@ -284,7 +289,13 @@ rename_sets (rtx dest, rtx insn)
 }
 
 /* Store each pseudo set by the current insn (passed in DATA) that is
-   marked for localizing into memory after INSN.  */
+   marked for localizing into memory after INSN. 
+
+   Return 0 if INSN does not need rescanning.
+
+   Return 1 if INSN needs rescanning.
+
+   Return -1 if INSN should be deleted.  */
 
 static int
 emit_localizing_stores (rtx dest, rtx insn)
@@ -339,11 +350,11 @@ emit_localizing_stores (rtx dest, rtx insn)
 	  retval = 1;
 	}
       /* Similarly if this insn sets a pseudo we want to localize and
-	 there are no uses, then try to replace the pseudo with its
-	 equivalent memory location.  */
-      else if (nuses == 0
-	  && nsets == 1
-	  && validate_replace_rtx (dest, mem, insn))
+	 there are no uses after this set, then try to replace the pseudo
+	 with its equivalent memory location.  */
+      else if (bitmap_bit_p (no_uses_after_last_set, (REGNO (dest)))
+	       && nsets == 1
+	       && validate_replace_rtx (dest, mem, insn))
 	{
 	  df_clear_flags (DF_NO_INSN_RESCAN);
 	  retval = 1;
@@ -356,14 +367,19 @@ emit_localizing_stores (rtx dest, rtx insn)
           insns = get_insns();
           end_sequence ();
 
-          /* If the pseudo is being set from its equivalent memory location,
-             then we don't need to store it back.  */
+          /* If the pseudo is being set from its equivalent memory location
+	     and is unused from this point until the end of this block, then
+             we don't need to store the pseudo back to memory back, we
+	     actually want to delete INSN.  */
           if (NEXT_INSN (insns) == 0
               && single_set (insns)
               && single_set (insn)
               && rtx_equal_p (SET_SRC (single_set (insn)),
 			  SET_DEST (single_set (insns))))
-	    ;
+	    {
+	      if (bitmap_bit_p (no_uses_after_last_set, REGNO (dest)))
+		retval = -1;
+	    }
           else
 	    {
 	      rtx temp;
@@ -627,6 +643,7 @@ localize_pseudos (basic_block bb, bitmap pseudos_to_localize)
 
   regs_to_store = BITMAP_ALLOC (NULL);
   regs_to_load = BITMAP_ALLOC (NULL);
+  no_uses_after_last_set = BITMAP_ALLOC (NULL);
   pseudo_nuses = (int *) xmalloc (max_reg_num () * sizeof (int));
   memset (pseudo_nuses, 0, max_reg_num () * sizeof (int));
   pseudo_nsets = (int *) xmalloc (max_reg_num () * sizeof (int));
@@ -649,12 +666,11 @@ localize_pseudos (basic_block bb, bitmap pseudos_to_localize)
       if (!NONDEBUG_INSN_P (insn))
 	continue;
 
-      for (use_rec = DF_INSN_USES (insn); *use_rec; use_rec++)
-	identify_singleton_uses (DF_REF_REG (*use_rec));
-
       for (def_rec = DF_INSN_DEFS (insn); *def_rec; def_rec++)
 	identify_singleton_sets (DF_REF_REG (*def_rec));
 
+      for (use_rec = DF_INSN_USES (insn); *use_rec; use_rec++)
+	identify_singleton_uses (DF_REF_REG (*use_rec));
     }
 
   /* Next emit a store after the last assignment of each pseudo in
@@ -663,18 +679,25 @@ localize_pseudos (basic_block bb, bitmap pseudos_to_localize)
   FOR_BB_INSNS_REVERSE (bb, insn)
     {
       df_ref *def_rec, *use_rec;
-      int need_rescan;
+      int status;
 
       if (!NONDEBUG_INSN_P (insn))
 	continue;
 
-      need_rescan = 0;
+      status = 0;
       for (def_rec = DF_INSN_DEFS (insn); *def_rec; def_rec++)
-	need_rescan |= emit_localizing_stores (DF_REF_REG (*def_rec), insn);
+	status |= emit_localizing_stores (DF_REF_REG (*def_rec), insn);
+
+      /* A return status of -1 indicates INSN should be removed.  */
+      if (status == -1 && single_set (insn))
+	{
+	  set_insn_deleted (insn);
+	  continue;
+	}
 
       /* It is not safe to defer scanning any further as emit_localizing_stores
 	 can change uses and defs.  */
-      if (need_rescan)
+      if (status)
 	df_insn_rescan (insn);
 
       for (use_rec = DF_INSN_USES (insn); *use_rec; use_rec++)
@@ -814,6 +837,8 @@ localize_pseudos (basic_block bb, bitmap pseudos_to_localize)
   regs_to_store = NULL;
   BITMAP_FREE (regs_to_load);
   regs_to_load = NULL;
+  BITMAP_FREE (no_uses_after_last_set);
+  no_uses_after_last_set = NULL;
   free (pseudo_nuses);
   pseudo_nuses = NULL;
   free (pseudo_nsets);

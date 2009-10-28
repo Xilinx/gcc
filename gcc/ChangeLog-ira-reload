@@ -1,3 +1,14 @@
+2009-10-13  Jeff Law <law@redhat.com>
+
+	* ira-reload.c (no_uses_after_last_set): New bitmap.
+	(identify_singleton_sets): Set it appropriately.
+	(emit_localizing_stores): More aggressively replace a pseudo
+	with its equivalent memory location.  Indicate that INSN
+	should be deleted in certain cases.
+	(localize_pseudos): Allocate and free no_uses_after_last_set.
+	Fix SET/USE processing order for no_uses_after_last_set.
+	If emit_localizing_stores requests an insn be deleted, do it.
+
 2009-09-31  Jeff Law <law@redhat.com>
 
 	* ira-reload.c (emit_localizing_loads): Attempt to replace the
