@@ -46,8 +46,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "ira-int.h"
 
 
-/* ?!? should pass this into the note_uses/note_stores handlers rather than have
-   it as a file-scoped variable.  */
 static bitmap pseudos_to_localize;
 static bitmap regs_to_load;
 static bitmap regs_to_store;
@@ -123,18 +121,17 @@ assign_stack_slots (void)
 }
 
 
-/* Called by identify_singleton_uses.
-
-   Collect (into REGS_TO_LOAD) USE_P if it is a pseudo marked for
+/* Count uses of USE (into pseudo_nuses) if USE is a register marked for
    localization.  */
 
-static int
-identify_singleton_uses_1 (rtx *use_p, void *data ATTRIBUTE_UNUSED)
+static void
+identify_singleton_uses (rtx use)
 {
-  rtx use = *use_p;
+  if (GET_CODE (use) == SUBREG)
+    use = SUBREG_REG (use);
 
   if (GET_CODE (use) != REG)
-    return 0;
+    return;
 
   if (bitmap_bit_p (pseudos_to_localize, REGNO (use)))
     {
@@ -145,24 +142,17 @@ identify_singleton_uses_1 (rtx *use_p, void *data ATTRIBUTE_UNUSED)
       pseudo_nuses[REGNO (use)]++;
       
     }
-
-  return 0;
 }
 
-/* Wrapper for identify_singleton_uses.
-
-   Unfortunately note_uses does not look at subexpressions, so we have to
-   walk the rtx expression  */
+/* Count assignments to DEST (into pseudo_nsets) if DEST is a register marked
+   for localization.  */
 
 static void
-identify_singleton_uses (rtx *use_p, void *data ATTRIBUTE_UNUSED)
+identify_singleton_sets (rtx dest)
 {
-  for_each_rtx (use_p, identify_singleton_uses_1, data);
-}
+  if (GET_CODE (dest) == SUBREG)
+    dest = SUBREG_REG (dest);
 
-static void
-identify_singleton_sets (rtx dest, const_rtx set ATTRIBUTE_UNUSED, void *data ATTRIBUTE_UNUSED)
-{
   if (GET_CODE (dest) != REG)
     return;
 
@@ -171,47 +161,35 @@ identify_singleton_sets (rtx dest, const_rtx set ATTRIBUTE_UNUSED, void *data AT
     pseudo_nsets[REGNO (dest)]++;
 }
 
-/* Called by collect_loads.
-
-   Collect (into REGS_TO_LOAD) USE_P if it is a pseudo marked for
+/* Collect (into REGS_TO_LOAD) USE if it is a pseudo marked for
    localization.  */
 
-static int
-collect_loads_1 (rtx *use_p, void *data ATTRIBUTE_UNUSED)
+static void
+collect_loads (rtx use)
 {
-  rtx use = *use_p;
+  if (GET_CODE (use) == SUBREG)
+    use = SUBREG_REG (use);
 
   if (GET_CODE (use) != REG)
-    return 0;
+    return;
 
   if (bitmap_bit_p (pseudos_to_localize, REGNO (use)))
     bitmap_set_bit (regs_to_load, REGNO (use));
 
-  return 0;
+  return;
 }
 
-/* Wrapper for collect_loads_1.
-
-   Unfortunately note_uses does not look at subexpressions, so we have to
-   walk the rtx expression  */
-
-static void
-collect_loads (rtx *use_p, void *data ATTRIBUTE_UNUSED)
-{
-  for_each_rtx (use_p, collect_loads_1, data);
-}
-
-/* If USE_P refers to a pseudo marked in REGS_TO_LOAD, emit a load of
-   the pseudo before INSN (passed in DATA).  */
+/* If USE refers to a pseudo marked in REGS_TO_LOAD, emit a load of
+   the pseudo before INSN.  */
 
 static int
-emit_localizing_loads_1 (rtx *use_p, void *data)
+emit_localizing_loads (rtx use, rtx insn)
 {
-  rtx use = *use_p;
-  rtx insn = (rtx) data;
+  if (GET_CODE (use) == SUBREG)
+    use = SUBREG_REG (use);
 
   if (GET_CODE (use) != REG)
-    return 0;
+    return 0 ;
 
   if (bitmap_bit_p (pseudos_to_localize, REGNO (use)))
     {
@@ -242,57 +220,45 @@ emit_localizing_loads_1 (rtx *use_p, void *data)
 
       /* Replace the original pseudo with the new one.  */
       replace_rtx (insn, use, reg_map [REGNO (use)]);
-      df_insn_rescan (insn);
+      return 1;
     }
-
   return 0;
 }
 
-/* Wrapper for emit_localizing_loads_1.
-
-   Unfortunately note_uses does not look at subexpressions, so we have to
-   walk the rtx expression  */
-
-static void
-emit_localizing_loads (rtx *use_p, void *data ATTRIBUTE_UNUSED)
-{
-  for_each_rtx (use_p, emit_localizing_loads_1, data);
-}
-
-
-/* Examine an output for the current insn (passed in DATA).  If the output is 
-   marked for localizing, then we need to rename it to the new block-local
+/* DEST is an output for INSN (passed in DATA).  If the output is marked
+   for localizing, then we need to rename it to the new block-local
    pseudo.  This finishes the localization of unallocated globals.  */
 
-static void
-rename_sets (rtx dest, const_rtx set, void *data)
+static int
+rename_sets (rtx dest, rtx insn)
 {
-  rtx insn = (rtx)data;
+  rtx orig = dest;
+
+  if (GET_CODE (dest) == SUBREG)
+    dest = SUBREG_REG (dest);
 
   if (GET_CODE (dest) != REG)
-    return;
+    return 0;
 
   /* If DEST isn't maked for spilling, then there is nothing to do.  */
   if (! bitmap_bit_p (pseudos_to_localize, REGNO (dest)))
-    return;
+    return 0;
 
   /* A store can be viewed as a store followed by a load, so we can clear DEST
      from REGS_TO_LOAD, but not if this was a partial store.  */
-  if (GET_CODE (SET_DEST (set)) == STRICT_LOW_PART)
+  if (GET_CODE (orig) == STRICT_LOW_PART)
     {
-      rtx nonconst_set = CONST_CAST_RTX (SET_DEST (set));
-
       /* This must be treated as a USE too.
          ?!? Does this need to integrated with the use processing?  */
-      emit_localizing_loads_1 (&nonconst_set, insn);
+      emit_localizing_loads (dest, insn);
     }
-  else if (GET_CODE (SET_DEST (set)) == SUBREG
-	   && (GET_MODE_SIZE (GET_MODE (SET_DEST (set)))
-	       < GET_MODE_SIZE (GET_MODE (SUBREG_REG (SET_DEST (set))))))
+  else if (GET_CODE (orig) == SUBREG
+	   && (GET_MODE_SIZE (GET_MODE (orig)))
+	       < GET_MODE_SIZE (GET_MODE (dest)))
     {
       /* This must be treated as a USE too.
          ?!? Does this need to integrated with the use processing?  */
-      emit_localizing_loads_1 (&SUBREG_REG (SET_DEST (set)), insn);
+      emit_localizing_loads (dest, insn);
     }
 
   /* ?!? I'm not entirely sure this can still happen.  */
@@ -301,18 +267,21 @@ rename_sets (rtx dest, const_rtx set, void *data)
 
 
   replace_rtx (insn, dest, reg_map [REGNO (dest)]);
-  df_insn_rescan (insn);
+  return 1;
 }
 
 /* Store each pseudo set by the current insn (passed in DATA) that is
    marked for localizing into memory after INSN.  */
 
 static void
-emit_localizing_stores (rtx dest, const_rtx set, void *data ATTRIBUTE_UNUSED)
+emit_localizing_stores (rtx dest, rtx insn)
 {
-  rtx insn = (rtx)data;
   unsigned int regno;
   rtx insns;
+  rtx orig = dest;
+
+  if (GET_CODE (dest) == SUBREG)
+    dest = SUBREG_REG (dest);
 
   /* If the output isn't a register, then there's nothing to do.  */
   if (GET_CODE (dest) != REG)
@@ -362,11 +331,11 @@ emit_localizing_stores (rtx dest, const_rtx set, void *data ATTRIBUTE_UNUSED)
 
   /* A store can be viewed as a store followed by a load, so we can clear DEST
      from REGS_TO_LOAD, but not if this was a partial store.  */
-  if (GET_CODE (SET_DEST (set)) == STRICT_LOW_PART)
+  if (GET_CODE (orig) == STRICT_LOW_PART)
     bitmap_set_bit (regs_to_load, regno);
-  else if (GET_CODE (SET_DEST (set)) == SUBREG
-	   && (GET_MODE_SIZE (GET_MODE (SET_DEST (set)))
-		< GET_MODE_SIZE (GET_MODE (SUBREG_REG (SET_DEST (set))))))
+  else if (GET_CODE (orig) == SUBREG
+	   && (GET_MODE_SIZE (GET_MODE (orig))
+		< GET_MODE_SIZE (GET_MODE (dest))))
     bitmap_set_bit (regs_to_load, regno);
   else
     bitmap_clear_bit (regs_to_load, REGNO (dest));
@@ -628,11 +597,17 @@ localize_pseudos (basic_block bb, bitmap pseudos_to_localize)
      we can change both the use and set in a single insn to a MEM.  */
   FOR_BB_INSNS_REVERSE (bb, insn)
     {
-      if (NONDEBUG_INSN_P (insn))
-	{
-	  note_uses (&PATTERN (insn), identify_singleton_uses, (void *)insn);
-	  note_stores (PATTERN (insn), identify_singleton_sets, (void *)insn);
-	}
+      df_ref *def_rec, *use_rec;
+
+      if (!NONDEBUG_INSN_P (insn))
+	continue;
+
+      for (use_rec = DF_INSN_USES (insn); *use_rec; use_rec++)
+	identify_singleton_uses (DF_REF_REG (*use_rec));
+
+      for (def_rec = DF_INSN_DEFS (insn); *def_rec; def_rec++)
+	identify_singleton_sets (DF_REF_REG (*def_rec));
+
     }
 
   /* Next emit a store after the last assignment of each pseudo in
@@ -640,11 +615,16 @@ localize_pseudos (basic_block bb, bitmap pseudos_to_localize)
      we'll need to load as well.  */
   FOR_BB_INSNS_REVERSE (bb, insn)
     {
-      if (NONDEBUG_INSN_P (insn))
-	{
-          note_stores (PATTERN (insn), emit_localizing_stores, (void *)insn);
-          note_uses (&PATTERN (insn), collect_loads, (void *)insn);
-	}
+      df_ref *def_rec, *use_rec;
+
+      if (!NONDEBUG_INSN_P (insn))
+	continue;
+
+      for (def_rec = DF_INSN_DEFS (insn); *def_rec; def_rec++)
+	emit_localizing_stores (DF_REF_REG (*def_rec), insn);
+
+      for (use_rec = DF_INSN_USES (insn); *use_rec; use_rec++)
+	collect_loads (DF_REF_REG (*use_rec));
     }
 
   /* Now walk forward through the region emitting loads before
@@ -653,11 +633,22 @@ localize_pseudos (basic_block bb, bitmap pseudos_to_localize)
      spill register.  */
   FOR_BB_INSNS (bb, insn)
     {
-      if (NONDEBUG_INSN_P (insn))
-	{
-          note_uses (&PATTERN (insn), emit_localizing_loads, (void *)insn);
-          note_stores (PATTERN (insn), rename_sets, (void *)insn);
-	}
+      df_ref *def_rec, *use_rec;
+      int need_rescan;
+
+      if (!NONDEBUG_INSN_P (insn))
+	continue;
+
+      need_rescan = 0;
+      for (use_rec = DF_INSN_USES (insn); *use_rec; use_rec++)
+	need_rescan |= emit_localizing_loads (DF_REF_REG (*use_rec), insn);
+
+      for (def_rec = DF_INSN_DEFS (insn); *def_rec; def_rec++)
+	need_rescan |= rename_sets (DF_REF_REG (*def_rec), insn);
+
+      if (need_rescan)
+	df_insn_rescan (insn);
+
     }
 
   /* If we allocated new pseudos, then we need to expand various arrays and

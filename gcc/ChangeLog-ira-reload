@@ -1,3 +1,17 @@
+2009-09-25  Jeff Law <law@redhat.com>
+
+	* ira-reload.c (identify_singleton_uses): Twiddles for using DF rather
+	than note_stores/note_uses.
+	(identify_singleton_sets, collect_loads): Likewise.
+	(identify_singleton_uses_1): Remove.
+	(collect_loads_1, emit_localizing_loads_1): Likewise.
+	(emit_localizing_loads): Twiddles for using DF rather than
+	note_stores/note_uses.  Return whether or not rescanning is needed.
+	(rename_sets, emit_localizing_stores): Likewise.
+	(localize_pseudos): Iterate over DF structures rather than using
+	note_stores/note_uses.  Defer rescanning until we're finished with
+	the current insn.
+
 2009-09-24  Jeff Law <law@redhat.com>
 
 	* ira-reload.c (emit_localizing_loads_1): Incrementally update DF.
