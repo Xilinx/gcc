@@ -955,11 +955,11 @@ extern int parse_tm_stmt_attr (tree, int);
    at lower bit positions.  This fact is known by the C++ tm attribute
    inheritance code such that least bit extraction (mask & -mask) results
    in the most restrictive attribute.  */
-#define TM_ATTR_SAFE		1
-#define TM_ATTR_CALLABLE	2
-#define TM_ATTR_PURE		4
-#define TM_ATTR_IRREVOCABLE	8
-#define TM_ATTR_UNKNOWN		16
+#define TM_ATTR_SAFE			1
+#define TM_ATTR_CALLABLE		2
+#define TM_ATTR_PURE			4
+#define TM_ATTR_IRREVOCABLE		8
+#define TM_ATTR_MAY_CANCEL_OUTER	16
 
 extern int tm_attr_to_mask (tree);
 extern tree tm_mask_to_attr (int);

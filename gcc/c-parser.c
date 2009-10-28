@@ -8727,7 +8727,7 @@ static tree
 c_parser_transaction (c_parser *parser)
 {
   unsigned int old_in = parser->in_transaction;
-  unsigned int new_in = 1;
+  unsigned int this_in = 1, new_in;
   location_t loc = c_parser_peek_token (parser)->location;
   tree stmt, attrs;
 
@@ -8737,22 +8737,22 @@ c_parser_transaction (c_parser *parser)
   attrs = c_parser_transaction_attributes (parser);
   if (attrs)
     {
-      new_in |= parse_tm_stmt_attr (attrs, (TM_STMT_ATTR_OUTER
-					    | TM_STMT_ATTR_ATOMIC
-					    | TM_STMT_ATTR_RELAXED));
+      this_in |= parse_tm_stmt_attr (attrs, (TM_STMT_ATTR_OUTER
+					     | TM_STMT_ATTR_ATOMIC
+					     | TM_STMT_ATTR_RELAXED));
       /* The [[ atomic ]] attribute is the same as no attribute.  */
-      new_in &= ~TM_STMT_ATTR_ATOMIC;
+      this_in &= ~TM_STMT_ATTR_ATOMIC;
     }
 
   /* Keep track if we're in the lexical scope of an outer transaction.  */
-  new_in |= (old_in & TM_STMT_ATTR_OUTER);
+  new_in = this_in | (old_in & TM_STMT_ATTR_OUTER);
 
   parser->in_transaction = new_in;
   stmt = c_parser_compound_statement (parser);
   parser->in_transaction = old_in;
 
   if (flag_tm)
-    stmt = c_finish_transaction (loc, stmt, new_in);
+    stmt = c_finish_transaction (loc, stmt, this_in);
   else
     error_at (loc, "%<__transaction%> without "
 	      "transactional memory support enabled");

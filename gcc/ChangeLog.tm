@@ -1,3 +1,50 @@
+2009-10-28  Richard Henderson  <rth@redhat.com>
+
+	* c-common.c (c_common_attribute_table): Add
+	transaction_may_cancel_outer.
+	(tm_attr_to_mask, tm_mask_to_attr): Remove TM_ATTR_UNKNOWN; add
+	TM_ATTR_MAY_CANCEL_OUTER.
+	* c-common.h (TM_ATTR_UNKNOWN): Remove.
+	(TM_ATTR_MAY_CANCEL_OUTER): New.
+	* c-parser.c (c_parser_transaction): Don't pass the outer
+	TM_STMT_ATTR_OUTER attribute into c_finish_transaction.
+	* cp/parser.c (cp_parser_transaction): Similarly.
+	* gimple-pretty-print.c (dump_gimple_tm_atomic): Subtract
+	bits from subcode as we print them; print remaining mask at the end.
+	* gimple.c (walk_gimple_stmt): Separate out from OMP cases.
+	* trans-mem.c (get_attrs_for): Extract the type from any expression;
+	handle METHOD_TYPE properly.
+	(is_tm_pure, is_tm_irrevocable): Tidy.
+	(is_tm_safe): Include transaction_may_cancel_outer.
+	(is_tm_callable): Likewise.
+	(DIAG_TM_OUTER, DIAG_TM_SAFE, DIAG_TM_RELAXED): New.
+	(struct diagnose_tm): New.
+	(diagnose_tm_1): Rename from diagnose_tm_safe_1.  Handle
+	transaction_may_cancel_outer, relaxed and outer transactions.
+	(diagnose_tm_blocks): Walk all functions.  Set tm_may_enter_irr.
+	(pass_diagnose_tm_blocks): Use TV_TRANS_MEM.
+	(lower_tm_atomic): Preserve GTMA_DECLARATION_MASK.
+	(tm_atomic_subcode_ior): Tidy.
+	(expand_call_tm): Simplify call to is_tm_safe.
+	(execute_tm_mark): Preserve GTMA_DECLARATION_MASK.
+	(ipa_tm_scan_calls_tm_atomic): Don't set tm_may_enter_irr here.
+	(ipa_tm_scan_calls_clone): Likewise.
+	(ipa_tm_transform_clone): Likewise.
+	(ipa_tm_mayenterirr_function): New.
+	(ipa_tm_diagnose_tm_safe, ipa_tm_diagnose_tm_atomic): New.
+	(ipa_tm_transform_calls): Mark tm_may_enter_irr here.
+	(ipa_tm_execute): Queue even local tm_callable functions early.
+	Use ipa_tm_mayenterirr_function and propagate tm_may_enter_irr
+	around the cgraph.  Validate tm_safe and atomic regions.
+
+	* testsuite/c-c++-common/tm/safe-1.c: Add transaction_may_cancel_outer
+	tests; add indirect function call tests.
+	* testsuite/gcc.dg/tm/memopt-3.c: Mark test transaction_safe.
+	* testsuite/c-c++-common/tm/outer-1.c: New.
+	* testsuite/c-c++-common/tm/safe-2.c: New.
+	* testsuite/c-c++-common/tm/safe-3.c: New.
+	* testsuite/gcc.dg/tm/props-1.c: Rename from props.c.
+
 2009-10-27  Aldy Hernandez  <aldyh@redhat.com>
 
 	* trans-mem.c (requires_barrier): Handle thread local memory.

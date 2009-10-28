@@ -1702,7 +1702,6 @@ walk_gimple_stmt (gimple_stmt_iterator *gsi, walk_stmt_fn callback_stmt,
     case GIMPLE_OMP_TASK:
     case GIMPLE_OMP_SECTIONS:
     case GIMPLE_OMP_SINGLE:
-    case GIMPLE_TM_ATOMIC:
       ret = walk_gimple_seq (gimple_omp_body (stmt), callback_stmt,
 			     callback_op, wi);
       if (ret)
@@ -1712,6 +1711,13 @@ walk_gimple_stmt (gimple_stmt_iterator *gsi, walk_stmt_fn callback_stmt,
     case GIMPLE_WITH_CLEANUP_EXPR:
       ret = walk_gimple_seq (gimple_wce_cleanup (stmt), callback_stmt,
 			     callback_op, wi);
+      if (ret)
+	return wi->callback_result;
+      break;
+
+    case GIMPLE_TM_ATOMIC:
+      ret = walk_gimple_seq (gimple_tm_atomic_body (stmt),
+			     callback_stmt, callback_op, wi);
       if (ret)
 	return wi->callback_result;
       break;

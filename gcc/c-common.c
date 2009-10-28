@@ -794,6 +794,8 @@ const struct attribute_spec c_common_attribute_table[] =
                               handle_tm_attribute },
   { "transaction_safe",       0, 0, false, true,  false,
                               handle_tm_attribute },
+  { "transaction_may_cancel_outer", 0, 0, false, true, false,
+                              handle_tm_attribute },
   /* ??? These two attributes didn't make the transition from the
      Intel language document to the multi-vendor language document.  */
   { "transaction_pure",       0, 0, false, true,  false,
@@ -7213,7 +7215,7 @@ int
 tm_attr_to_mask (tree attr)
 {
   if (attr == NULL)
-    return TM_ATTR_UNKNOWN;
+    return 0;
   if (is_attribute_p ("transaction_safe", attr))
     return TM_ATTR_SAFE;
   if (is_attribute_p ("transaction_callable", attr))
@@ -7222,6 +7224,8 @@ tm_attr_to_mask (tree attr)
     return TM_ATTR_PURE;
   if (is_attribute_p ("transaction_unsafe", attr))
     return TM_ATTR_IRREVOCABLE;
+  if (is_attribute_p ("transaction_may_cancel_outer", attr))
+    return TM_ATTR_MAY_CANCEL_OUTER;
   return 0;
 }
 
@@ -7231,10 +7235,21 @@ tm_mask_to_attr (int mask)
   const char *str;
   switch (mask)
     {
-    case TM_ATTR_SAFE:		str = "transaction_safe";	break;
-    case TM_ATTR_CALLABLE:	str = "transaction_callable";	break;
-    case TM_ATTR_PURE:		str = "transaction_pure";	break;
-    case TM_ATTR_IRREVOCABLE:	str = "transaction_unsafe";	break;
+    case TM_ATTR_SAFE:
+      str = "transaction_safe";
+      break;
+    case TM_ATTR_CALLABLE:
+      str = "transaction_callable";
+      break;
+    case TM_ATTR_PURE:
+      str = "transaction_pure";
+      break;
+    case TM_ATTR_IRREVOCABLE:
+      str = "transaction_unsafe";
+      break;
+    case TM_ATTR_MAY_CANCEL_OUTER:
+      str = "transaction_may_cancel_outer";
+      break;
     default:
       gcc_unreachable ();
     }

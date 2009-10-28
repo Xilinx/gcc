@@ -35,6 +35,7 @@
 #include "output.h"
 #include "trans-mem.h"
 #include "ggc.h"
+#include "target.h"
 
 
 #define PROB_VERY_UNLIKELY	(REG_BR_PROB_BASE / 2000 - 1)
@@ -148,17 +149,23 @@ get_attrs_for (tree x)
       return TYPE_ATTRIBUTES (TREE_TYPE (x));
       break;
 
+    default:
+      if (TYPE_P (x))
+	return NULL;
+      x = TREE_TYPE (x);
+      if (TREE_CODE (x) != POINTER_TYPE)
+	return NULL;
+      /* FALLTHRU */
+
     case POINTER_TYPE:
       x = TREE_TYPE (x);
-      if (TREE_CODE (x) != FUNCTION_TYPE)
+      if (TREE_CODE (x) != FUNCTION_TYPE && TREE_CODE (x) != METHOD_TYPE)
 	return NULL;
       /* FALLTHRU */
 
     case FUNCTION_TYPE:
+    case METHOD_TYPE:
       return TYPE_ATTRIBUTES (x);
-
-    default:
-      return NULL;
     }
 }
 
@@ -168,7 +175,6 @@ bool
 is_tm_pure (tree x)
 {
   tree attrs = get_attrs_for (x);
-
   if (attrs)
     return lookup_attribute ("transaction_pure", attrs) != NULL;
   return false;
@@ -181,8 +187,8 @@ is_tm_irrevocable (tree x)
 {
   tree attrs = get_attrs_for (x);
 
-  if (attrs)
-    return lookup_attribute ("transaction_unsafe", attrs) != NULL;
+  if (attrs && lookup_attribute ("transaction_unsafe", attrs))
+    return true;
 
   /* A call to the irrevocable builtin is by definition,
      irrevocable.  */
@@ -204,7 +210,13 @@ is_tm_safe (tree x)
   tree attrs = get_attrs_for (x);
 
   if (attrs)
-    return lookup_attribute ("transaction_safe", attrs) != NULL;
+    {
+      if (lookup_attribute ("transaction_safe", attrs))
+	return true;
+      if (lookup_attribute ("transaction_may_cancel_outer", attrs))
+	return true;
+    }
+
   return false;
 }
 
@@ -237,14 +249,14 @@ bool
 is_tm_callable (tree x)
 {
   tree attrs = get_attrs_for (x);
-
   if (attrs)
     {
       if (lookup_attribute ("transaction_callable", attrs))
 	return true;
-
-      /* TM_SAFE is stricter than TM_CALLABLE.  */
-      return lookup_attribute ("transaction_safe", attrs) != NULL;
+      if (lookup_attribute ("transaction_safe", attrs))
+	return true;
+      if (lookup_attribute ("transaction_may_cancel_outer", attrs))
+	return true;
     }
   return false;
 }
@@ -431,12 +443,24 @@ find_tm_replacement_function (tree fndecl)
    Process exactly one statement.  WI->INFO is set to non-null when in
    the context of a tm_safe function, and null for a __tm_atomic block.  */
 
+#define DIAG_TM_OUTER		1
+#define DIAG_TM_SAFE		2
+#define DIAG_TM_RELAXED		4
+
+struct diagnose_tm
+{
+  unsigned int summary_flags : 8;
+  unsigned int block_flags : 8;
+  unsigned int func_flags : 8;
+  unsigned int saw_unsafe : 1;
+};
+
 static tree
-diagnose_tm_safe_1 (gimple_stmt_iterator *gsi, bool *handled_ops_p,
+diagnose_tm_1 (gimple_stmt_iterator *gsi, bool *handled_ops_p,
 		    struct walk_stmt_info *wi)
 {
   gimple stmt = gsi_stmt (*gsi);
-  tree fn;
+  struct diagnose_tm *d = (struct diagnose_tm *) wi->info;
 
   /* We're not interested in (normal) operands.  */
   *handled_ops_p = !gimple_has_substatements (stmt);
@@ -444,35 +468,136 @@ diagnose_tm_safe_1 (gimple_stmt_iterator *gsi, bool *handled_ops_p,
   switch (gimple_code (stmt))
     {
     case GIMPLE_CALL:
-      if (is_tm_pure_call (stmt))
-	break;
+      {
+	tree fn = gimple_call_fn (stmt);
 
-      fn = gimple_call_fn (stmt);
-      if (fn && is_tm_safe (TREE_TYPE (fn)))
-	break;
-      if (TREE_CODE (fn) == ADDR_EXPR
-	  && find_tm_replacement_function (TREE_OPERAND (fn, 0)))
-	break;
+	if ((d->summary_flags & DIAG_TM_OUTER) == 0
+	    && is_tm_may_cancel_outer (fn))
+	  error_at (gimple_location (stmt),
+		    "%<transaction_may_cancel_outer%> function call not within"
+		    " outer transaction or %<transaction_may_cancel_outer%>");
 
-      if (wi->info)
-	error_at (gimple_location (stmt),
-		  "unsafe function call in %<tm_safe%> function");
-      else
-	error_at (gimple_location (stmt),
-		  "unsafe function call in %<__tm_atomic%>");
+	if (d->summary_flags & DIAG_TM_SAFE)
+	  {
+	    bool is_safe;
+
+	    if (is_tm_safe (fn))
+	      is_safe = true;
+	    else if (is_tm_callable (fn) || is_tm_irrevocable (fn))
+	      {
+		/* A function explicitly marked transaction_callable as 
+		   opposed to transaction_safe is being defined to be
+		   unsafe as part of its ABI, regardless of its contents.  */
+		is_safe = false;
+	      }
+	    else if (TREE_CODE (fn) == ADDR_EXPR
+		     && TREE_CODE (TREE_OPERAND (fn, 0)) == FUNCTION_DECL)
+	      {
+		if (find_tm_replacement_function (TREE_OPERAND (fn, 0)))
+		  {
+		    /* ??? At present we've been considering replacements
+		       merely transaction_callable, and therefore might
+		       enter irrevocable.  The tm_wrap attribute has not
+		       yet made it into the new language spec.  */
+		    is_safe = false;
+		  }
+		else
+		  {
+		    /* ??? Diagnostics for unmarked direct calls moved into
+		       the IPA pass.  Section 3.2 of the spec details how
+		       functions not marked should be considered "implicitly
+		       safe" based on having examined the function body.  */
+		    is_safe = true;
+		  }
+	      }
+	    else
+	      {
+		/* An unmarked indirect call.  Consider it unsafe even
+		   though optimization may yet figure out how to inline.  */
+		is_safe = false;
+	      }
+
+	    if (!is_safe)
+	      {
+		if (d->block_flags & DIAG_TM_SAFE)
+		  error_at (gimple_location (stmt),
+			    "unsafe function call within atomic transaction");
+		else
+		  error_at (gimple_location (stmt),
+			    "unsafe function call within "
+			    "%<transaction_safe%> function");
+	      }
+	  }
+      }
       break;
 
     case GIMPLE_ASM:
-      /* ??? The Approved Method of indicating that an inline
-	 assembly statement is not relevant to the transaction
-	 is to wrap it in a __tm_waiver block.  This is not 
-	 yet implemented, so we can't check for it.  */
-      if (wi->info)
-        error_at (gimple_location (stmt),
-		  "asm not allowed in %<tm_safe%> function");
-      else
+      /* ??? We ought to come up with a way to add attributes to
+	 asm statements, and then add "transaction_safe" to it.
+	 Either that or get the language spec to resurrect __tm_waiver.  */
+      if (d->block_flags & DIAG_TM_SAFE)
 	error_at (gimple_location (stmt),
-		  "asm not allowed in %<__tm_atomic%>");
+		  "asm not allowed in atomic transaction");
+      else if (d->func_flags & DIAG_TM_SAFE)
+        error_at (gimple_location (stmt),
+		  "asm not allowed in %<transaction_safe%> function");
+      else
+	d->saw_unsafe = true;
+      break;
+
+    case GIMPLE_TM_ATOMIC:
+      {
+	unsigned char inner_flags = DIAG_TM_SAFE;
+
+	if (gimple_tm_atomic_subcode (stmt) & GTMA_IS_RELAXED)
+	  {
+	    if (d->block_flags & DIAG_TM_SAFE)
+	      error_at (gimple_location (stmt),
+			"relaxed transaction in atomic transaction");
+	    else if (d->func_flags & DIAG_TM_SAFE)
+	      error_at (gimple_location (stmt),
+			"relaxed transaction in %<transaction_safe%> function");
+	    else
+	      d->saw_unsafe = true;
+	    inner_flags = DIAG_TM_RELAXED;
+	  }
+	else if (gimple_tm_atomic_subcode (stmt) & GTMA_IS_OUTER)
+	  {
+	    if (d->block_flags)
+	      error_at (gimple_location (stmt),
+			"outer transaction in transaction");
+	    else if (d->func_flags & DIAG_TM_OUTER)
+	      error_at (gimple_location (stmt),
+			"outer transaction in "
+			"%<transaction_may_cancel_outer%> function");
+	    else if (d->func_flags & DIAG_TM_SAFE)
+	      error_at (gimple_location (stmt),
+			"outer transaction in %<transaction_safe%> function");
+	    else
+	      d->saw_unsafe = true;
+	    inner_flags |= DIAG_TM_OUTER;
+	  }
+
+	*handled_ops_p = true;
+	if (gimple_tm_atomic_body (stmt))
+	  {
+	    struct walk_stmt_info wi_inner;
+	    struct diagnose_tm d_inner;
+
+	    memset (&d_inner, 0, sizeof (d_inner));
+	    d_inner.func_flags = d->func_flags;
+	    d_inner.block_flags = d->block_flags | inner_flags;
+	    d_inner.summary_flags = d_inner.func_flags | d_inner.block_flags;
+
+	    memset (&wi_inner, 0, sizeof (wi_inner));
+	    wi_inner.info = &d_inner;
+
+	    walk_gimple_seq (gimple_tm_atomic_body (stmt),
+			     diagnose_tm_1, NULL, &wi_inner);
+
+	    d->saw_unsafe |= d_inner.saw_unsafe;
+	  }
+      }
       break;
 
     default:
@@ -486,19 +611,25 @@ static unsigned int
 diagnose_tm_blocks (void)
 {
   struct walk_stmt_info wi;
+  struct diagnose_tm d;
 
-  /* Only need to check tm_safe functions at the moment.  */
-  /* ??? A proposed Intel language spec change will have us
-     checking __tm_atomic block too, whereas a new __tm_critical
-     block will allow unsafe actions (but will not be abortable).
-     Waiting for the published document before doing any of that.  */
-  if (is_tm_safe (TREE_TYPE (current_function_decl)))
-    {
-      memset (&wi, 0, sizeof (wi));
-      wi.info = current_function_decl;
-      walk_gimple_seq (gimple_body (current_function_decl),
-		       diagnose_tm_safe_1, NULL, &wi);
-    }
+  memset (&d, 0, sizeof (d));
+  if (is_tm_may_cancel_outer (current_function_decl))
+    d.func_flags = DIAG_TM_OUTER | DIAG_TM_SAFE;
+  else if (is_tm_safe (current_function_decl))
+    d.func_flags = DIAG_TM_SAFE;
+  d.summary_flags = d.func_flags;
+
+  memset (&wi, 0, sizeof (wi));
+  wi.info = &d;
+
+  walk_gimple_seq (gimple_body (current_function_decl),
+		   diagnose_tm_1, NULL, &wi);
+
+  /* If we saw something other than a call that makes this function
+     unsafe, remember it so that the IPA pass only needs to scan calls.  */
+  if (d.saw_unsafe && !is_tm_safe (current_function_decl))
+    cgraph_local_info (current_function_decl)->tm_may_enter_irr = 1;
 
   return 0;
 }
@@ -513,7 +644,7 @@ struct gimple_opt_pass pass_diagnose_tm_blocks =
     NULL,				/* sub */
     NULL,				/* next */
     0,					/* static_pass_number */
-    TV_NONE,				/* tv_id */
+    TV_TRANS_MEM,			/* tv_id */
     PROP_gimple_any,			/* properties_required */
     0,					/* properties_provided */
     0,					/* properties_destroyed */
@@ -868,6 +999,7 @@ lower_tm_atomic (gimple_stmt_iterator *gsi, struct walk_stmt_info *wi)
     }
 
   /* Record the set of operations found for use later.  */
+  this_state |= gimple_tm_atomic_subcode (stmt) & GTMA_DECLARATION_MASK;
   gimple_tm_atomic_set_subcode (stmt, this_state);
 }
 
@@ -1156,9 +1288,11 @@ struct gimple_opt_pass pass_tm_init =
 static inline void
 tm_atomic_subcode_ior (struct tm_region *region, unsigned flags)
 {
-  if (region->tm_atomic_stmt)
-    gimple_tm_atomic_set_subcode (region->tm_atomic_stmt,
-      gimple_tm_atomic_subcode (region->tm_atomic_stmt) | flags);
+  if (region && region->tm_atomic_stmt)
+    {
+      flags |= gimple_tm_atomic_subcode (region->tm_atomic_stmt);
+      gimple_tm_atomic_set_subcode (region->tm_atomic_stmt, flags);
+    }
 }
 
 
@@ -1382,7 +1516,7 @@ expand_call_tm (struct tm_region *region,
 
       /* We are guaranteed never to go irrevocable on a safe or pure
 	 call, and the pure call was handled above.  */
-      if (fn && is_tm_safe (TREE_TYPE (fn)))
+      if (is_tm_safe (fn))
 	return false;
       else
 	tm_atomic_subcode_ior (region, GTMA_MAY_ENTER_IRREVOCABLE);
@@ -1470,14 +1604,12 @@ execute_tm_mark (void)
 	    = gimple_tm_atomic_subcode (region->tm_atomic_stmt);
 
 	  /* Collect a new SUBCODE set, now that optimizations are done...  */
-	  gimple_tm_atomic_set_subcode (region->tm_atomic_stmt, 0);
-	  /* ...but keep the GTMA_DOES_GO_IRREVOCABLE bit, since we can
-	     almost be sure never to insert anything during optimization that
-	     will cause certain irrevocability to be reversed.  */
 	  if (subcode & GTMA_DOES_GO_IRREVOCABLE)
-	    gimple_tm_atomic_set_subcode (region->tm_atomic_stmt,
-					  GTMA_DOES_GO_IRREVOCABLE |
-					  GTMA_MAY_ENTER_IRREVOCABLE);
+	    subcode &= (GTMA_DECLARATION_MASK | GTMA_DOES_GO_IRREVOCABLE
+			| GTMA_MAY_ENTER_IRREVOCABLE);
+	  else
+	    subcode &= GTMA_DECLARATION_MASK;
+	  gimple_tm_atomic_set_subcode (region->tm_atomic_stmt, subcode);
 
 	  VEC_quick_push (basic_block, queue, region->entry_block);
 	  do
@@ -2590,13 +2722,11 @@ ipa_tm_scan_calls_tm_atomic (struct cgraph_node *node,
 
 	if (is_tm_pure_call (e->call_stmt))
 	  continue;
-	if ((replacement = find_tm_replacement_function (e->callee->decl)))
-	  {
-	    struct cgraph_local_info *local = cgraph_local_info (replacement);
-	    local->tm_may_enter_irr = true;
-	    continue;
-	  }
-	
+
+	replacement = find_tm_replacement_function (e->callee->decl);
+	if (replacement)
+	  continue;
+
 	d = get_cg_data (e->callee);
 	d->tm_callers_normal++;
 	maybe_push_queue (e->callee, callees_p, &d->in_callee_queue);
@@ -2615,13 +2745,8 @@ ipa_tm_scan_calls_clone (struct cgraph_node *node,
   for (e = node->callees; e ; e = e->next_callee)
     {
       tree replacement = find_tm_replacement_function (e->callee->decl);
-
       if (replacement)
-	{
-	  struct cgraph_local_info *local = cgraph_local_info (replacement);
-	  local->tm_may_enter_irr = true;
-	  continue;
-	}
+	continue;
 
       if (!is_tm_pure_call (e->call_stmt))
 	{
@@ -2908,6 +3033,131 @@ ipa_tm_scan_irr_function (struct cgraph_node *node, bool for_clone)
   return ret;
 }
 
+/* Return true if, for the transactional clone of NODE, any call
+   may enter irrevocable mode.  */
+
+static bool
+ipa_tm_mayenterirr_function (struct cgraph_node *node)
+{
+  struct tm_ipa_cg_data *d = get_cg_data (node);
+  tree decl = node->decl;
+
+  /* Filter out all functions that are marked.  */
+  if (is_tm_safe (decl))
+    return false;
+  if (is_tm_pure (decl) || (flags_from_decl_or_type (decl) & ECF_CONST) != 0)
+    return false;
+  if (is_tm_irrevocable (decl))
+    return true;
+  if (is_tm_callable (decl))
+    return true;
+  if (find_tm_replacement_function (decl))
+    return true;
+
+  /* Handle some TM builtins.  */
+  if (DECL_BUILT_IN_CLASS (decl) == BUILT_IN_NORMAL
+      && (flags_from_decl_or_type (decl) & ECF_TM_OPS) != 0)
+    return false;
+
+  /* If we aren't seeing the final version of the function we don't
+     know what it will contain at runtime.  */
+  if (cgraph_function_body_availability (node) < AVAIL_AVAILABLE)
+    return true;
+
+  /* If the function must go irrevocable, then of course true.  */
+  if (d->is_irrevocable)
+    return true;
+
+  /* If there are any blocks marked irrevocable, then the function 
+     as a whole may enter irrevocable.  */
+  if (d->irrevocable_blocks_clone)
+    return true;
+
+  /* We may have previously marked this function as tm_may_enter_irr;
+     see pass_diagnose_tm_blocks.  */
+  if (node->local.tm_may_enter_irr)
+    return true;
+
+  /* What remains is unmarked local functions without items that force
+     the function to go irrevocable.  */
+  return false;
+}
+
+/* Diagnose calls from transaction_safe functions to unmarked 
+   functions that are determined to not be safe.  */
+
+static void
+ipa_tm_diagnose_tm_safe (struct cgraph_node *node)
+{
+  struct cgraph_edge *e;
+
+  for (e = node->callees; e ; e = e->next_callee)
+    if (!is_tm_callable (e->callee->decl)
+	&& e->callee->local.tm_may_enter_irr)
+      error_at (gimple_location (e->call_stmt),
+		"unsafe function call within %<transaction_safe%> function");
+}
+
+/* Diagnose call from atomic transactions to unmarked functions
+   that are determined to not be safe.  */
+
+static void
+ipa_tm_diagnose_tm_atomic (struct cgraph_node *node,
+			   struct tm_region *all_tm_regions)
+{
+  struct tm_region *r;
+
+  for (r = all_tm_regions; r ; r = r->next)
+    if (gimple_tm_atomic_subcode (r->tm_atomic_stmt) & GTMA_IS_RELAXED)
+      {
+	/* Atomic transactions can be nested inside relaxed.  */
+	if (r->inner)
+	  ipa_tm_diagnose_tm_atomic (node, r->inner);
+      }
+    else
+      {
+	VEC (basic_block, heap) *bbs = get_tm_region_blocks (r);
+	gimple_stmt_iterator gsi;
+	basic_block bb;
+	size_t i;
+
+	for (i = 0; VEC_iterate (basic_block, bbs, i, bb); ++i)
+	  for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
+	    {
+	      gimple stmt = gsi_stmt (gsi);
+	      tree fndecl;
+
+	      if (!is_gimple_call (stmt))
+		continue;
+	      fndecl = gimple_call_fndecl (stmt);
+
+	      /* Indirect function calls have been diagnosed already.  */
+	      if (!fndecl)
+		continue;
+
+	      /* Stop at the end of the transaction.  */
+	      if (is_tm_ending_fndecl (fndecl))
+		{
+		  if (bitmap_bit_p (r->exit_blocks, bb->index))
+		    break;
+		  continue;
+		}
+
+	      /* Marked functions have been diagnosed already.  */
+	      if (is_tm_pure_call (stmt))
+		continue;
+	      if (is_tm_callable (fndecl))
+		continue;
+
+	      if (cgraph_local_info (fndecl)->tm_may_enter_irr)
+		error_at (gimple_location (stmt),
+			  "unsafe function call within atomic transaction");
+	    }
+
+	VEC_free (basic_block, heap, bbs);
+      }
+}
+
 /* Invoke tm_region_init within the context of NODE.  */
 
 static struct tm_region *
@@ -3149,7 +3399,24 @@ ipa_tm_transform_calls (struct cgraph_node *node, struct tm_region *region,
       /* If there is a replacement, use it, otherwise use the clone.  */
       fndecl = find_tm_replacement_function (fndecl);
       if (fndecl)
-	new_node = cgraph_node (fndecl);
+	{
+	  new_node = cgraph_node (fndecl);
+
+	  /* ??? Mark all transaction_wrap functions tm_may_enter_irr.
+
+	     We can't do this earlier in record_tm_replacement because
+	     cgraph_remove_unreachable_nodes is called before we inject
+	     references to the node.  Further, we can't do this in some
+	     nice central place in ipa_tm_execute because we don't have
+	     the exact list of wrapper functions that would be used.
+	     Marking more wrappers than necessary results in the creation
+	     of unnecessary cgraph_nodes, which can cause some of the
+	     other IPA passes to crash.
+
+	     We do need to mark these nodes so that we get the proper
+	     result in expand_call_tm.  */
+	  new_node->local.tm_may_enter_irr = 1;
+	}
       else
 	{
 	  struct tm_ipa_cg_data *d = get_cg_data (e->callee);
@@ -3239,9 +3506,6 @@ ipa_tm_transform_clone (struct cgraph_node *node)
   push_cfun (DECL_STRUCT_FUNCTION (current_function_decl));
   calculate_dominance_info (CDI_DOMINATORS);
 
-  if (!is_tm_safe (TREE_TYPE (current_function_decl)))
-    node->local.tm_may_enter_irr = true;
-
   need_ssa_rename =
     ipa_tm_transform_calls (d->clone, NULL, single_succ (ENTRY_BLOCK_PTR),
 			    d->irrevocable_blocks_clone);
@@ -3272,17 +3536,14 @@ ipa_tm_execute (void)
 
   bitmap_obstack_initialize (&tm_obstack);
 
-  /* For all local public functions marked tm_callable, queue them.  */
+  /* For all local functions marked tm_callable, queue them.  */
   for (node = cgraph_nodes; node; node = node->next)
-    {
-      a = cgraph_function_body_availability (node);
-      if ((a == AVAIL_AVAILABLE || a == AVAIL_OVERWRITABLE)
-	  && is_tm_callable (node->decl))
-	{
-	  d = get_cg_data (node);
-	  maybe_push_queue (node, &tm_callees, &d->in_callee_queue);
-	}
-    }
+    if (is_tm_callable (node->decl)
+	&& cgraph_function_body_availability (node) >= AVAIL_OVERWRITABLE)
+      {
+	d = get_cg_data (node);
+	maybe_push_queue (node, &tm_callees, &d->in_callee_queue);
+      }
 
   /* For all local reachable functions...  */
   for (node = cgraph_nodes; node; node = node->next)
@@ -3325,22 +3586,9 @@ ipa_tm_execute (void)
       if (is_tm_irrevocable (node->decl)
 	  || (a >= AVAIL_OVERWRITABLE
 	      && !tree_versionable_function_p (node->decl)))
-	{
-	  ipa_tm_note_irrevocable (node, &worklist);
-	  continue;
-	}
-
-      if (a >= AVAIL_OVERWRITABLE)
-	{
-	  if (!d->is_irrevocable)
-	    ipa_tm_scan_calls_clone (node, &tm_callees);
-	}
-      else
-	{
-	  /* Non-local tm_callable may enter irrevocable mode.  */
-	  if (is_tm_callable (node->decl))
-	    node->local.tm_may_enter_irr = true;
-	}
+	ipa_tm_note_irrevocable (node, &worklist);
+      else if (a >= AVAIL_OVERWRITABLE && !d->is_irrevocable)
+	ipa_tm_scan_calls_clone (node, &tm_callees);
     }
 
   /* Iterate scans until no more work to be done.  Prefer not to use
@@ -3368,6 +3616,55 @@ ipa_tm_execute (void)
       if (d->in_callee_queue && ipa_tm_scan_irr_function (node, true))
 	ipa_tm_note_irrevocable (node, &worklist);
     }
+
+  /* For every function on the callee list, collect the tm_may_enter_irr
+     bit on the node.  */
+  VEC_truncate (cgraph_node_p, worklist, 0);
+  for (i = 0; i < VEC_length (cgraph_node_p, tm_callees); ++i)
+    {
+      node = VEC_index (cgraph_node_p, tm_callees, i);
+      if (ipa_tm_mayenterirr_function (node))
+	{
+	  d = get_cg_data (node);
+	  gcc_assert (d->in_worklist == false);
+	  maybe_push_queue (node, &worklist, &d->in_worklist);
+	}
+    }
+
+  /* Propagate the tm_may_enter_irr bit to callers until stable.  */
+  for (i = 0; i < VEC_length (cgraph_node_p, worklist); ++i)
+    {
+      struct cgraph_edge *e;
+
+      if (i > 256 && i == VEC_length (cgraph_node_p, worklist) / 8)
+	{
+	  VEC_block_remove (cgraph_node_p, worklist, 0, i);
+	  i = 0;
+	}
+
+      node = VEC_index (cgraph_node_p, worklist, i);
+      d = get_cg_data (node);
+      d->in_worklist = false;
+      node->local.tm_may_enter_irr = true;
+
+      for (e = node->callers; e ; e = e->next_caller)
+	if (!is_tm_safe (e->caller->decl)
+	    && !e->caller->local.tm_may_enter_irr)
+	  maybe_push_queue (e->caller, &worklist, &d->in_worklist);
+    }
+
+  /* Now validate all tm_safe functions, and all atomic regions in
+     other functions.  */
+  for (node = cgraph_nodes; node; node = node->next)
+    if (node->reachable && node->lowered
+	&& cgraph_function_body_availability (node) >= AVAIL_OVERWRITABLE)
+      {
+	d = get_cg_data (node);
+	if (is_tm_safe (node->decl))
+	  ipa_tm_diagnose_tm_safe (node);
+	else if (d->all_tm_regions)
+	  ipa_tm_diagnose_tm_atomic (node, d->all_tm_regions);
+      }
 
   /* Create clones.  Do those that are not irrevocable and have a
      positive call count.  Do those publicly visible functions that

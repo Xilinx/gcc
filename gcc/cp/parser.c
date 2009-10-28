@@ -22846,7 +22846,7 @@ static tree
 cp_parser_transaction (cp_parser *parser)
 {
   unsigned char old_in = parser->in_transaction;
-  unsigned char new_in = 1;
+  unsigned char this_in = 1, new_in;
   cp_token *token;
   tree stmt, attrs;
 
@@ -22857,15 +22857,15 @@ cp_parser_transaction (cp_parser *parser)
   attrs = cp_parser_txn_attribute_opt (parser);
   if (attrs)
     {
-      new_in |= parse_tm_stmt_attr (attrs, (TM_STMT_ATTR_OUTER
-					    | TM_STMT_ATTR_ATOMIC
-					    | TM_STMT_ATTR_RELAXED));
+      this_in |= parse_tm_stmt_attr (attrs, (TM_STMT_ATTR_OUTER
+					     | TM_STMT_ATTR_ATOMIC
+					     | TM_STMT_ATTR_RELAXED));
       /* The [[ atomic ]] attribute is the same as no attribute.  */
-      new_in &= ~TM_STMT_ATTR_ATOMIC;
+      this_in &= ~TM_STMT_ATTR_ATOMIC;
     }
 
   /* Keep track if we're in the lexical scope of an outer transaction.  */
-  new_in |= (old_in & TM_STMT_ATTR_OUTER);
+  new_in = this_in | (old_in & TM_STMT_ATTR_OUTER);
 
   stmt = begin_transaction_stmt (token->location, NULL);
 
@@ -22873,7 +22873,7 @@ cp_parser_transaction (cp_parser *parser)
   cp_parser_compound_statement (parser, NULL, false);
   parser->in_transaction = old_in;
 
-  finish_transaction_stmt (stmt, NULL, new_in);
+  finish_transaction_stmt (stmt, NULL, this_in);
 
   return stmt;
 }

@@ -1205,17 +1205,34 @@ dump_gimple_tm_atomic (pretty_printer *buffer, gimple gs, int spc, int flags)
 	    }
 	  if (subcode)
 	    {
-	      pp_string (buffer, " SUBCODE=[");
+	      pp_string (buffer, " SUBCODE=[ ");
 	      if (subcode & GTMA_HAVE_ABORT)
-		pp_string (buffer, "GTMA_HAVE_ABORT ");
+		{
+		  pp_string (buffer, "GTMA_HAVE_ABORT ");
+		  subcode &= ~GTMA_HAVE_ABORT;
+		}
 	      if (subcode & GTMA_HAVE_LOAD)
-		pp_string (buffer, "GTMA_HAVE_LOAD ");
+		{
+		  pp_string (buffer, "GTMA_HAVE_LOAD ");
+		  subcode &= ~GTMA_HAVE_LOAD;
+		}
 	      if (subcode & GTMA_HAVE_STORE)
-		pp_string (buffer, "GTMA_HAVE_STORE ");
+		{
+		  pp_string (buffer, "GTMA_HAVE_STORE ");
+		  subcode &= ~GTMA_HAVE_STORE;
+		}
 	      if (subcode & GTMA_MAY_ENTER_IRREVOCABLE)
-		pp_string (buffer, "GTMA_MAY_ENTER_IRREVOCABLE ");
+		{
+		  pp_string (buffer, "GTMA_MAY_ENTER_IRREVOCABLE ");
+		  subcode &= ~GTMA_MAY_ENTER_IRREVOCABLE;
+		}
 	      if (subcode & GTMA_DOES_GO_IRREVOCABLE)
-		pp_string (buffer, "GTMA_DOES_GO_IRREVOCABLE ");
+		{
+		  pp_string (buffer, "GTMA_DOES_GO_IRREVOCABLE ");
+		  subcode &= ~GTMA_DOES_GO_IRREVOCABLE;
+		}
+	      if (subcode)
+		pp_printf (buffer, "0x%x ", subcode);
 	      pp_string (buffer, "]");
 	    }
 	}
