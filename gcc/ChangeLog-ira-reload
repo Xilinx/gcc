@@ -1,5 +1,9 @@
 2009-09-18  Jeff Law <law@redhat.com>
 
+	* ira-build.c (remove_from_all_conflicts): New function.
+	(remove_allocno_conflicts): New function.
+	* ira-int.h (remove_from_all_conflicts): Declare.
+
 	2009-09-14  Vladimir Makarov <vmakarov@redhat.com>
 	* ira.c (ira_non_ordered_class_hard_regs): Define.
 	(setup_class_hard_regs): Initialize ira_non_ordered_class_hard_regs.
