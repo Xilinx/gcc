@@ -565,6 +565,53 @@ ira_allocate_allocno_conflicts (ira_allocno_t a, int num)
     allocate_allocno_conflict_bit_vec (a);
 }
 
+/* Remove A2 from the conflicts of A1.  */
+static void
+remove_allocno_conflicts (ira_allocno_t a1, ira_allocno_t a2)
+{
+  int num, i;
+
+  if (ALLOCNO_CONFLICT_VEC_P (a1))
+    {
+      ira_allocno_t *vec
+	= (ira_allocno_t *) ALLOCNO_CONFLICT_ALLOCNO_ARRAY (a1);
+      num = ALLOCNO_CONFLICT_ALLOCNOS_NUM (a1) + 2;
+
+      for (i = 0; i < num; i++)
+	if (vec[i] == a2)
+	  {
+	    num--;
+	    if (i != num - 2)
+	      vec[i] = vec[num - 2];
+	     vec[num - 2] = NULL;
+	     ALLOCNO_CONFLICT_ALLOCNOS_NUM (a1)--;
+	   }
+    }
+  else
+    {
+      int id = ALLOCNO_CONFLICT_ID (a2);
+      IRA_INT_TYPE *vec;
+
+      if (id < ALLOCNO_MIN (a1) || id > ALLOCNO_MAX (a1))
+	return;
+
+      vec = (IRA_INT_TYPE *) ALLOCNO_CONFLICT_ALLOCNO_ARRAY (a1);
+      CLEAR_ALLOCNO_SET_BIT (vec, id, ALLOCNO_MIN (a1), ALLOCNO_MAX (a1));
+    }
+}
+
+/* Remove A from all conflicts.  */
+void
+remove_from_all_conflicts (ira_allocno_t to_remove)
+{
+  ira_allocno_conflict_iterator aci;
+  ira_allocno_t a;
+
+  FOR_EACH_ALLOCNO_CONFLICT (to_remove, a, aci)
+    remove_allocno_conflicts (a, to_remove);
+}
+
+
 /* Add A2 to the conflicts of A1.  */
 static void
 add_to_allocno_conflicts (ira_allocno_t a1, ira_allocno_t a2)

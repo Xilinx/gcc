@@ -870,6 +870,7 @@ extern void ira_free_cost_vector (int *, enum reg_class);
 extern void ira_flattening (int, int);
 extern bool ira_build (bool);
 extern void ira_destroy (void);
+extern void remove_from_all_conflicts (ira_allocno_t to_remove);
 
 /* ira-costs.c */
 extern void ira_init_costs_once (void);
