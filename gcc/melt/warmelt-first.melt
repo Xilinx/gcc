@@ -527,6 +527,15 @@ $FMBIND_FUNMATCHER and its definition in $FMBIND_DEFUNMATCHER.}#)
   $LETBIND_TYPE, the expression is $LETNIND_EXPR, the source location
   if any is $LEBIND_LOC.}# )
 
+;; letrec binding
+(defclass class_letrec_binding
+  :doc #{The internal $CLASS_LETREC_BINDING is for internal letrec
+  bindings. See the $LETREC macro. The bound expression should be
+  recursively constructible (like $LAMBDA $TUPLE $LIST $INSTANCE
+  ...)}#
+  :super class_let_binding
+  :fields ())
+
 ;; normalized let binding
 (defclass class_normal_let_binding
   :super class_let_binding
@@ -4923,6 +4932,7 @@ $FILENAM and $LINENO}#
  class_keyword
  class_label_binding
  class_let_binding
+ class_letrec_binding
  class_located
  class_macro_binding
  class_melt_mode

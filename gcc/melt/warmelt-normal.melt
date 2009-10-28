@@ -3116,6 +3116,65 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
+(defun normexp_tuple (recv env ncx psloc)
+  (assert_msg "check tuple recv" (is_a recv class_source_tuple))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normalization_context))
+  (debug_msg recv "normexp_tuple recv")
+  (let ( (sloc (unsafe_get_field :loca_location recv))
+	 )
+    (compile_warning "normexp_tuple incomplete")
+    (error_plain sloc "unimplemented TUPLE normalization")
+    (assert_msg "@$@unimplemented TUPLE" ())
+    ))
+(install_method class_source_tuple normal_exp normexp_tuple)
+
+;;;;;;;;;;;;;;;;
+
+(defun normexp_tuple (recv env ncx psloc)
+  (assert_msg "check tuple recv" (is_a recv class_source_tuple))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normalization_context))
+  (debug_msg recv "normexp_tuple recv")
+  (let ( (sloc (unsafe_get_field :loca_location recv))
+	 )
+    (compile_warning "normexp_tuple incomplete")
+    (error_plain sloc "unimplemented TUPLE normalization")
+    (assert_msg "@$@unimplemented TUPLE" ())
+    ))
+(install_method class_source_tuple normal_exp normexp_tuple)
+
+;;;;;;;;;;;;;;;;
+
+(defun normexp_list (recv env ncx psloc)
+  (assert_msg "check list recv" (is_a recv class_source_list))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normalization_context))
+  (debug_msg recv "normexp_list recv")
+  (let ( (sloc (unsafe_get_field :loca_location recv))
+	 )
+    (compile_warning "normexp_list incomplete")
+    (error_plain sloc "unimplemented LIST normalization")
+    (assert_msg "@$@unimplemented LIST" ())
+    ))
+(install_method class_source_list normal_exp normexp_list)
+;;;;;;;;;;;;;;;;
+
+(defun normexp_letrec (recv env ncx psloc)
+  (assert_msg "check letrec recv" (is_a recv class_source_letrec))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normalization_context))
+  (debug_msg recv "normexp_letrec recv")
+  (let ( (sloc (unsafe_get_field :loca_location recv))
+	 )
+    (compile_warning "normexp_letrec incomplete")
+    (error_plain sloc "unimplemented LETREC normalization")
+    (assert_msg "@$@unimplemented LETREC" ())
+    ))
+(install_method class_source_letrec normal_exp normexp_letrec)
+
+;;;;;;;;;;;;;;;;
+
 ;;; create the normal predef (or fail with a msg) 
 (defun normal_predef (pred ncx sloc msg)
   (assert_msg "check pred" (is_object pred))

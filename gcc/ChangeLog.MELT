@@ -1,3 +1,13 @@
+2009-10-28  Basile Starynkevitch  <basile@starynkevitch.net>
+	[Begin adding letrec, tuple, list, constructs....]
+	* melt/warmelt-first.melt: added class_letrec_binding
+	* melt/warmelt-macro.melt: renamed class_sourcepattern* as
+	class_source_pattern. Added class_source_letrec_binding. Added
+	class_source_list & class_source_tuple. Macroexpansion of letrec
+	is still incomplete.
+	* melt/warmelt-normal.melt: added incomplete stub for
+	normalization of tuple list letrec.
+
 2009-10-27  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-macro.melt: documented more again. Renamed all
 	class_sourcepattern_* classes as class_source_pattern_* classes.

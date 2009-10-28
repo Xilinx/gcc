@@ -35,6 +35,11 @@
 ;;****************************************************************
 
 
+(defselector is_recursively_constructible class_selector
+  :doc #{The selector $IS_RECURSIVELY_CONSTRUCTIBLE tests if an expression can appear in $LETREC bindings.}#
+  :formals (recv)
+)
+  
 
 ;;; superclass for source with a sequence of argument subexpressions
 (defclass class_source_argumented_operator
@@ -105,6 +110,20 @@ tuple of arguments.}#
   :fields (sfmatx_fmatcher		;the funmatcher
 	   sfmatx_fmatbind		;the funmatcher binding
 ))
+
+;;; source tuple
+(defclass class_source_tuple
+  :doc #{The internal $CLASS_SOURCE_TUPLE is for $TUPLE expression
+ abstract syntax.  $SARGOP_ARGS is the tuple of arguments.}#
+  :super class_source_argumented_operator
+  :fields ())
+
+;;; source list
+(defclass class_source_list
+  :doc #{The internal $CLASS_SOURCE_LIST is for $LIST expression
+ abstract syntax.  $SARGOP_ARGS is the tuple of arguments.}#
+  :super class_source_argumented_operator
+  :fields ())
 
 ;;; source progn
 (defclass class_source_progn
@@ -452,10 +471,10 @@ $CLASS_SOURCE_CASEMATCH.}#
 
 ;;;;;;;;;;;;;;;;
 
-;;; letbinding source
+;;; letbinding source - not a binding, just abstract syntax for them
 (defclass class_source_let_binding
-  :doc #{The internal $CLASS_SOURCE_LET_BINDING is abstract sytax for
-  let binding in the source. The $SLETB_TYPE gives the type of the
+  :doc #{The internal $CLASS_SOURCE_LET_BINDING is abstract syntax for
+  $LET bindings in the source. The $SLETB_TYPE gives the type of the
   binding, the $SLETB_BINDER gives the binder, and the $SLETB_EXPR
   gives the bound expression.}#
   :super class_source
@@ -463,6 +482,11 @@ $CLASS_SOURCE_CASEMATCH.}#
 	   sletb_binder			;the binder (variable)
 	   sletb_expr			;the expression
 	   ))
+
+(defclass class_source_letrec_binding
+  :doc #{The internal $CLASS_SOURCE_LETREC_BINDING is abstract syntax for $LETREC bindings in the source.}#
+  :super class_source_let_binding
+  :fields ())
 
 ;; let source
 (defclass class_source_let
@@ -474,6 +498,13 @@ body.}#
   :fields (slet_bindings		;the tuple of letbinding-s
 	   slet_body			;the body tuple 
 	   ))
+
+(defclass class_source_letrec
+  :doc #{The internal $CLASS_SOURCE_LETREC is for abstract syntax of
+  $LETREC. The $SLET_BINDINGS are restricted to constructible
+  expressions bindings}#
+  :super class_source_let
+  :fields ())
 
 ;; lambda
 (defclass class_source_lambda
@@ -639,6 +670,29 @@ giving the constant.}#
   :super class_source_pattern
   :fields (spat_constx			;expression giving the constant
 	   ))
+;;; simple source pattern constant
+
+(defclass class_source_pattern_construct
+  :doc #{The internal $CLASS_SOURCE_PATTERN_CONSTRUCT is for
+constructive pattern abstract syntax. The field $CTPAT_SUBPA is for
+sub-patterns abstract syntax.}#
+  :super class_source_pattern
+  :fields (ctpat_subpa			;sub-patterns
+	   ))
+
+;; tuple patterns
+(defclass class_source_pattern_tuple
+  :doc #{The internal $CLASS_SOURCE_PATTERN_TUPLE is for $TUPLE
+pattern abstract syntax.}#
+  :super class_source_pattern_construct
+  :fields ())
+
+;; list patterns
+(defclass class_source_pattern_list
+  :doc #{The internal $CLASS_SOURCE_PATTERN_LIST is for $LIST
+pattern abstract syntax.}#
+  :super class_source_pattern_construct
+  :fields ())
 
 ;; simple source pattern for objects - with a sequence of fieldpatterns
 ;; matches an object whose class is spat_class or a subclass of it
@@ -1078,7 +1132,11 @@ $SPAC_OUTARGS are the output sub-patterns.}#
 
 
 ;;; class for pattern expansion context
-(defclass class_pattexpcontext
+(defclass class_pattern_expansion_context
+  :doc #{The internal $CLASS_PATTERN_EXPANSION_CONTEXT is for
+expansion of patterns. $PCTX_MEXPANDER is the macroexpander for
+expressions, $PCTX_PEXANDER is the pattern expander, $PCTX_VARMAP is
+the object-map for pattern variables.}#
   :super class_root
   :fields (pctx_mexpander      	;macroexpander
 	   pctx_pexpander      	;pattern expander
@@ -1098,7 +1156,7 @@ $SPAC_OUTARGS are the output sub-patterns.}#
 (defun patmacexpand_for_matcher (pairs matcher env psloc pctx)
   (assert_msg "check matcher" (is_a matcher class_any_matcher))
   (assert_msg "check env" (is_a env class_environment))
-  (assert_msg "check pctx" (is_a pctx class_pattexpcontext))
+  (assert_msg "check pctx" (is_a pctx class_pattern_expansion_context))
   (let ( (mins (unsafe_get_field :amatch_in matcher))
 	 (mouts (unsafe_get_field :amatch_out matcher))
 	 (mexpander (unsafe_get_field :pctx_mexpander pctx))
@@ -1136,7 +1194,7 @@ $SPAC_OUTARGS are the output sub-patterns.}#
 (defun patternexpand_expr (sexpr env pctx psloc)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
-  (assert_msg "check pctx" (is_a pctx class_pattexpcontext))
+  (assert_msg "check pctx" (is_a pctx class_pattern_expansion_context))
   (debug_msg sexpr "patternexpand_expr sexpr")
   (let ( (scont (unsafe_get_field :sexp_contents sexpr))
 	 (sloc (unsafe_get_field :loca_location sexpr))
@@ -1261,7 +1319,7 @@ $SPAC_OUTARGS are the output sub-patterns.}#
 ;; pattern expansion
 (defun patternexpand_1 (sexpr env pctx psloc)
   (assert_msg "check env" (is_a env class_environment))
-  (assert_msg "check pctx" (is_a pctx class_pattexpcontext))
+  (assert_msg "check pctx" (is_a pctx class_pattern_expansion_context))
   (cond
    ( (is_a sexpr class_sexpr)
      (let ( (scont (unsafe_get_field :sexp_contents sexpr))
@@ -1341,8 +1399,6 @@ $SPAC_OUTARGS are the output sub-patterns.}#
 ;; macroexpands to a tuple, that tuple is handled as several source
 ;; expressions... In particular, this allows a (load "filename")
 ;; macro.
-
-;; the new version
 (defun macroexpand_toplevel_list (slist env mexpander)
   ;; (messageval_dbg "macroexpand_toplevel_list Env" env)
   ;;  (debug_msg  env "macroexpand_toplevel_list env"(the_callcount)) 
@@ -2891,7 +2947,7 @@ $LAMBDA macros. A function defined by $DEFUN has to be exported with $EXPORT_VAL
   (debug_msg fkeyw "parse_field_pattern keyw")
   (assert_msg "check fkeyw" (is_a fkeyw class_keyword))
   (assert_msg "check env" (is_a env class_environment))
-  (assert_msg "check pctc" (is_a pctx class_pattexpcontext))
+  (assert_msg "check pctc" (is_a pctx class_pattern_expansion_context))
   (assert_msg "check cla" (is_a cla class_class))
   (let (
 	(clafields (unsafe_get_field :class_fields cla))
@@ -2932,7 +2988,7 @@ $LAMBDA macros. A function defined by $DEFUN has to be exported with $EXPORT_VAL
 (defun patexpand_instance (sexpr env pctx)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
-  (assert_msg "check pctx" (is_a pctx class_pattexpcontext))
+  (assert_msg "check pctx" (is_a pctx class_pattern_expansion_context))
   (debug_msg sexpr "patexpand_instance sexpr")
   (let (
 	(cont (unsafe_get_field :sexp_contents sexpr))
@@ -3013,7 +3069,7 @@ all the specified fields.}# )
 (defun patexpand_object (sexpr env pctx)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
-  (assert_msg "check pctx" (is_a pctx class_pattexpcontext))
+  (assert_msg "check pctx" (is_a pctx class_pattern_expansion_context))
   (debug_msg sexpr "patexpand_object sexpr")
   (let (
 	(cont (unsafe_get_field :sexp_contents sexpr))
@@ -3559,7 +3615,7 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
 (defun patexpand_as (sexpr env pctx)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
-  (assert_msg "check pctx" (is_a pctx class_pattexpcontext))
+  (assert_msg "check pctx" (is_a pctx class_pattern_expansion_context))
   (debug_msg sexpr "patexpand_as sexpr")
   (let (
 	(cont (unsafe_get_field :sexp_contents sexpr))
@@ -3609,7 +3665,7 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
 (defun patexpand_when (sexpr env pctx)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
-  (assert_msg "check pctx" (is_a pctx class_pattexpcontext))
+  (assert_msg "check pctx" (is_a pctx class_pattern_expansion_context))
   (debug_msg sexpr "patexpand_when sexpr")
   (let (
 	(cont (unsafe_get_field :sexp_contents sexpr))
@@ -3639,7 +3695,7 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
 (defun patexpand_and (sexpr env pctx)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
-  (assert_msg "check pctx" (is_a pctx class_pattexpcontext))
+  (assert_msg "check pctx" (is_a pctx class_pattern_expansion_context))
   (debug_msg sexpr "patexpand_and sexpr")
   (let (
 	(cont (unsafe_get_field :sexp_contents sexpr))
@@ -3689,7 +3745,7 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
 (defun patexpand_or (sexpr env pctx)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
-  (assert_msg "check pctx" (is_a pctx class_pattexpcontext))
+  (assert_msg "check pctx" (is_a pctx class_pattern_expansion_context))
   (debug_msg sexpr "patexpand_or sexpr")
   (let (
 	(cont (unsafe_get_field :sexp_contents sexpr))
@@ -3716,25 +3772,32 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
   (let (
 	(cont (unsafe_get_field :sexp_contents sexpr))
 	(loc  (unsafe_get_field :loca_location sexpr))
+	(xargtup (expand_restlist_as_tuple cont env mexpander))
+	(res (instance class_source_tuple
+	      :loca_location loc
+	      :sargop_args xargtup))
 	)
-    (error_plain loc "TUPLE macro not implemented")
-    (compile_warning "unimplemented mexpand_tuple")
-    (assert_msg "@$@ unimplemented mexpand_tuple" ())
+    (debug_msg res "mexpand_tuple result")
+    (return res)
     ))
 
 ;;;; the TUPLE pattern expander
 (defun patexpand_tuple (sexpr env pctx)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
-  (assert_msg "check pctx" (is_a pctx class_pattexpcontext))
-  (debug_msg sexpr "patexpand_or sexpr")
+  (assert_msg "check pctx" (is_a pctx class_pattern_expansion_context))
+  (debug_msg sexpr "patexpand_tuple sexpr")
   (let (
 	(cont (unsafe_get_field :sexp_contents sexpr))
 	(loc  (unsafe_get_field :loca_location sexpr))
+	(curpair (pair_tail (list_first cont)))
+	(argsp (patternexpand_pairlist_as_tuple curpair env pctx loc))
+	(res (instance class_source_pattern_tuple
+		       :loca_location loc
+		       :ctpat_subpa argsp))
 	)
-    (error_plain loc "TUPLE patmacro not implemented")
-    (compile_warning "unimplemented patexpand_tuple")
-    (assert_msg "@$@ unimplemented patexpand_tuple" ())
+    (debug_msg res "patexpand_tuple res")
+    (return res)
 ))
 (install_initial_patmacro 'tuple patexpand_tuple mexpand_tuple)
 (export_patmacro tuple patexpand_tuple mexpand_tuple)
@@ -3748,25 +3811,32 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
   (let (
 	(cont (unsafe_get_field :sexp_contents sexpr))
 	(loc  (unsafe_get_field :loca_location sexpr))
+	(xargtup (expand_restlist_as_tuple cont env mexpander))
+	(res  (instance class_source_list
+	      :loca_location loc
+	      :sargop_args xargtup))
 	)
-    (error_plain loc "LIST macro not implemented")
-    (compile_warning "unimplemented mexpand_list")
-    (assert_msg "@$@ unimplemented mexpand_list" ())
+    (debug_msg res "mexpand_list result")
+    (return res)
     ))
 
 ;;;; the LIST pattern expander
 (defun patexpand_list (sexpr env pctx)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
-  (assert_msg "check pctx" (is_a pctx class_pattexpcontext))
+  (assert_msg "check pctx" (is_a pctx class_pattern_expansion_context))
   (debug_msg sexpr "patexpand_or sexpr")
   (let (
 	(cont (unsafe_get_field :sexp_contents sexpr))
 	(loc  (unsafe_get_field :loca_location sexpr))
+	(curpair (pair_tail (list_first cont)))
+	(argsp (patternexpand_pairlist_as_tuple curpair env pctx loc))
+	(res (instance class_source_pattern_list
+		       :loca_location loc
+		       :ctpat_subpa argsp))
 	)
-    (error_plain loc "LIST patmacro not implemented")
-    (compile_warning "unimplemented patexpand_list")
-    (assert_msg "@$@ unimplemented patexpand_list" ())
+    (debug_msg res "patexpand_list res")
+    (return res)
 ))
 (install_initial_patmacro 'list patexpand_list mexpand_list)
 (export_patmacro list patexpand_list mexpand_list)
@@ -3810,7 +3880,7 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
 			 (curmatchloc (unsafe_get_field :loca_location curmatch)) 
 			 (curmatchpatx (pair_head (list_first curmatchcont)))
 			 (curmatchrestpairs (pair_tail (list_first curmatchcont))) 
-			 (curpatctx (instance class_pattexpcontext
+			 (curpatctx (instance class_pattern_expansion_context
 					      :pctx_mexpander mexpander
 					      :pctx_pexpander patternexpand_1
 					      :pctx_varmap (make_mapobject discr_map_objects 13)))
@@ -3978,6 +4048,147 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
       )))
 (install_initial_macro 'let mexpand_let)
 (export_macro let mexpand_let)
+
+
+;;;;;;;;;;;;;;;; install methods to detect recursively constructible
+;;;;;;;;;;;;;;;; expressions which can appear in letrec bindings.
+(defun yes_recursively_constructible (recv)
+  (debug_msg recv "yes_recursively_constructible recv")
+  (return recv))
+(install_method class_source_lambda is_recursively_constructible yes_recursively_constructible)
+(install_method class_source_make_instance is_recursively_constructible yes_recursively_constructible)
+(install_method class_source_tuple is_recursively_constructible yes_recursively_constructible)
+(install_method class_source_list is_recursively_constructible yes_recursively_constructible)
+
+
+
+
+;;;;;;;;;;;;;;;;
+;;; the LETREC expander itself
+(defun mexpand_letrec (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (debug_msg sexpr "mexpand_letrec sexpr")
+  (let (
+	(cont (unsafe_get_field :sexp_contents sexpr))
+	(loc  (unsafe_get_field :loca_location sexpr))
+	(secpair (pair_tail (list_first cont)))
+	(restpair (pair_tail secpair))
+	(bindexpr (pair_head secpair))
+	(newenv (fresh_env env))
+	(:long nbind 0)	       ;later set to the number of recbindings
+	(bindtup ())   ;later set to the tuple of environment bindings
+	(srcbindtup ())	;later set to the tuple of let rec source bindings
+	(vartup ())	;later set to the tuple of variables
+	(exprtup ()) ;later set to the tuple of bound expressions in bindings
+	(bodytup ())
+	)
+    ;; we are accepting the degenerate case (letrec () ....) 
+    (if bindexpr 
+	(if (is_a bindexpr class_sexpr) 
+	    (let ( (recbindtup 
+		    (pairlist_to_multiple 
+		     (list_first (unsafe_get_field :sexp_contents bindexpr))
+		     discr_multiple
+		     (lambda (bx) 
+		       (if (is_not_a bx class_sexpr)
+			   (error_plain loc "sexpr expected in LETREC binding"))
+		       bx)))
+		   (:long nbrecbind (multiple_length recbindtup)) 
+		   (recsexprtup (make_multiple discr_multiple nbrecbind))
+		   )
+	      (setq nbind nbrecbind)
+	      (setq bindtup (make_multiple discr_multiple nbind))
+	      (setq srcbindtup (make_multiple discr_multiple nbind))
+	      (setq vartup (make_multiple discr_multiple nbind))
+	      (setq exprtup (make_multiple discr_multiple nbind))
+	      ;; first loop to compute the tuple of variables and s-expressions
+	      (foreach_in_multiple
+	       (recbindtup)
+	       (curbindexpr :long bindix)
+	       (if (is_not_a curbindexpr class_sexpr)
+		   ;; error message already given
+		   (return))
+	       (let ( (curcont (get_field :sexp_contents curbindexpr))
+		      (curloc (get_field :loca_location curbindexpr))
+		      (curpair (list_first curcont))
+		      (curcomp (pair_head curpair))
+		      (cursymb ())
+		      (cursexpr ())
+		      )
+		 (cond ( (is_a curcomp class_keyword)
+			 (error_plain curloc "keyword invalid in LETREC binding")
+			 )
+		       ( (is_a curcomp class_symbol)
+			 (setq cursymb curcomp)
+			 )
+		       (:else 
+			(error_plain curloc "invalid LETREC binding - expecting (<symbol> <constructive-expr>)"))
+		       )
+		 (setq curpair (pair_tail curpair))
+		 (setq curcomp (pair_head curpair))
+		 (if (is_a curcomp class_sexpr)
+		     (if (is_a cursymb class_symbol)
+			 (progn
+			   (setq cursexpr curcomp)
+			   (multiple_put_nth recsexprtup bindix cursexpr)
+			   (multiple_put_nth vartup bindix cursymb)))
+		   ;; else curcomp is not a symbol
+		   (error_plain curloc "invalid LETREC binding - missing constructive expression"))
+		 (if (pair_tail curpair)
+		     (error_plain curloc "invalid LETREC binding - more than two components"))
+		 ))
+	      ;; second loop to fill the newenv with empty letrec bindings
+	      (let ( (envmap (get_field :env_bind newenv)) ;; to ensure no repeated variable in letrec
+		     )
+		(foreach_in_multiple
+		 (vartup)
+		 (curvar :long varix)
+		 (if (mapobject_get envmap curvar)
+		     (error_strv loc "repeated variable in LETREC binding"
+				 (get_field :named_name curvar)))
+;;; make the binding
+		 (let ( (curbind (instance class_letrec_binding
+					   :binder vartup
+					   :letbind_type ctype_value
+					   :letbind_expr () ;filled later
+					   )) 
+			)
+		   (put_env newenv curbind)
+		   (multiple_put_nth bindtup varix curbind)
+		   )))
+	      ;; third loop to expand the bound expressions which should be recursively constructible
+	      (foreach_in_multiple
+	       (recsexprtup)
+	       (cursexpr :long expix)
+	       (let ( 
+		     (curloc (or (get_field :loca_location cursexpr) loc))
+		     (curexp (macroexpand_1 cursexpr newenv mexpander))
+		     (curbind (multiple_nth bindtup expix))
+		     )
+		 (if (null (is_recursively_constructible curexp))
+		     (progn
+		       (error_plain curloc "invalid expression in LETREC binding [not recursively constructible]")
+		       (return)))
+		 (put_fields curbind :letbind_expr curexp)
+		 (multiple_put_nth exprtup expix curexp)
+		 ))
+	      )		;end let recbindtup when bindexpr is an s-expr
+	  (error_plain loc "missing letbinding-s in LETREC"_))
+      )
+    (setq bodytup (pairlist_to_multiple restpair discr_multiple 
+					(lambda (e) (macroexpand_1 e newenv mexpander))))
+    (compile_warning "should fill the srcbindtup")
+    (let ( (letr
+	    (instance class_source_letrec
+		      :loca_location loc
+		      :slet_bindings srcbindtup
+		      :slet_body bodytup)) )
+      (debug_msg letr "mexpand_letrec result")
+      (return letr)
+      )))
+(install_initial_macro 'letrec mexpand_letrec)
+(export_macro letrec mexpand_letrec)
 
 ;;;;;;;; for LAMBDA
 (defun mexpand_lambda (sexpr env mexpander)
@@ -4743,7 +4954,7 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
 ;;;;;;;;;;;;;;;;
 
 (export_class  ;classes for source representations, alphabetical order
- class_pattexpcontext
+ class_pattern_expansion_context
  class_source_apply
  class_source_argumented_operator
  class_source_citeration
@@ -4772,6 +4983,7 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
  class_source_export_values
  class_source_exportcommon
  class_source_fetch_predefined
+ class_source_field_pattern
  class_source_fieldassign
  class_source_forever
  class_source_funmatchexpr
@@ -4781,7 +4993,10 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
  class_source_labelled
  class_source_lambda
  class_source_let
+ class_source_letrec
+ class_source_letrec_binding
  class_source_let_binding
+ class_source_list
  class_source_make_instance
  class_source_match
  class_source_match_case
@@ -4789,6 +5004,18 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
  class_source_multicall
  class_source_or
  class_source_parent_module_environment
+ class_source_pattern
+ class_source_pattern_and
+ class_source_pattern_as
+ class_source_pattern_c_match
+ class_source_pattern_composite
+ class_source_pattern_constant
+ class_source_pattern_instance
+ class_source_pattern_joker_variable
+ class_source_pattern_matcher
+ class_source_pattern_object
+ class_source_pattern_or
+ class_source_pattern_variable
  class_source_primitive
  class_source_progn
  class_source_put_fields
@@ -4796,37 +5023,26 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
  class_source_return
  class_source_setq
  class_source_store_predefined
+ class_source_tuple
  class_source_unsafe_get_field
  class_source_unsafe_put_fields
  class_source_update_current_module_environment_container
- class_source_field_pattern
- class_source_pattern_and
- class_source_pattern
- class_source_pattern_matcher
- class_source_pattern_as
- class_source_pattern_c_match
- class_source_pattern_composite
- class_source_pattern_constant
- class_source_pattern_instance
- class_source_pattern_joker_variable
- class_source_pattern_object
- class_source_pattern_or
- class_source_pattern_variable
  )			       ;end classes for source representations
 
-(export_values			 ;functions for source representations
+(export_values			 ;values for source representations
  expand_apply
  expand_msend  
  expand_pairlist_as_tuple
  expand_primitive
  install_initial_macro
+ is_recursively_constructible
  lambda_arg_bindings
  macroexpand_1
  macroexpand_toplevel_list
  patternexpand_1
  patternexpand_expr
  patternexpand_pairlist_as_tuple
- )			  ;end of functions for source representations
+ )			  ;end of values for source representations
 
 
 ;;; class_source_letbinding is renamed class_source_let_binding
