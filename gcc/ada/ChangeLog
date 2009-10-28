@@ -1,3 +1,177 @@
+2009-10-28  Bob Duff  <duff@adacore.com>
+
+	* s-fileio.adb: Give more information in exception messages.
+
+2009-10-28  Robert Dewar  <dewar@adacore.com>
+
+	* gnat_ugn.texi: Document new -gnatyt requirement for space after right
+	paren if next token starts with digit or letter.
+	* styleg.adb (Check_Right_Paren): New rule for space after if next
+	character is a letter or digit.
+
+2009-10-28  Thomas Quinot  <quinot@adacore.com>
+
+	* s-crtl.ads (System.CRTL.strerror): New function.
+
+2009-10-28  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_type.adb: Add guard to recover some type errors.
+
+2009-10-28  Vincent Celier  <celier@adacore.com>
+
+	* prj-nmsc.adb (Add_To_Or_Remove_From_List): New name of procedure
+	Add_If_Not_In_List to account to the fact that a directory may be
+	removed from the list. Only remove directory if Removed is True.
+
+2009-10-28  Gary Dismukes  <dismukes@adacore.com>
+
+	* a-textio.ads, a-textio.ads: Put back function EOF_Char in private
+	part. Put back body of function EOF_Char.
+	* a-tienau.adb: Remove with of Interfaces.C_Streams and change EOF back
+	to EOF_Char.
+
+2009-10-28  Emmanuel Briot  <briot@adacore.com>
+
+	* prj-tree.adb (Free): Fix memory leak.
+
+2009-10-28  Thomas Quinot  <quinot@adacore.com>
+
+	* s-fileio.adb: Minor reformatting
+
+2009-10-28  Arnaud Charlet  <charlet@adacore.com>
+
+	* gcc-interface/Make-lang.in: Update dependencies.
+
+2009-10-28  Robert Dewar  <dewar@adacore.com>
+
+	* exp_attr.adb, exp_ch9.adb, prj-nmsc.adb, tbuild.adb, ali.adb,
+	types.ads: Minor reformatting
+
+2009-10-28  Tristan Gingold  <gingold@adacore.com>
+
+	* init.c: Fix __gnat_error_handler for Darwin10 (Snow Leopard)
+
+2009-10-28  Thomas Quinot  <quinot@adacore.com>
+
+	* exp_ch4.adb (Expand_N_Type_Conversion): Perform Integer promotion for
+	the operand of the unary minus and ABS operators.
+
+	* sem_type.adb (Covers): A concurrent type and its corresponding record
+	type are compatible.
+	* exp_attr.adb (Expand_N_Attribute_Reference): Do not rewrite a 'Access
+	attribute reference for the current instance of a protected type while
+	analyzing an access discriminant constraint in a component definition.
+	Such a reference is handled in the corresponding record's init proc,
+	while initializing the constrained component.
+	* exp_ch9.adb (Expand_N_Protected_Type_Declaration): When creating the
+	corresponding record type, propagate components'
+	Has_Per_Object_Constraint flag.
+	* exp_ch3.adb (Build_Init_Procedure.Build_Init_Statements):
+	For a concurrent type, set up concurrent aspects before initializing
+	components with a per object constrain, because they may be controlled,
+	and their initialization may call entries or protected subprograms of
+	the enclosing concurrent object.
+
+2009-10-28  Emmanuel Briot  <briot@adacore.com>
+
+	* prj-nmsc.adb (Add_If_Not_In_List): New subprogram, for better sharing
+	of code.
+	(Find_Source_Dirs): resolve links if Opt.Follow_Links_For_Dirs when
+	processing the directories specified explicitly in the project file.
+
+2009-10-28  Robert Dewar  <dewar@adacore.com>
+
+	* a-ztexio.adb, a-ztexio.ads, a-witeio.ads, a-witeio.adb,
+	a-textio.ads, a-textio.adb: Reorganize (moving specs from private part
+	to body).
+	(Initialize_Standard_Files): New procedure.
+	* a-tienau.adb: Minor change to make EOF directly visible
+	* a-tirsfi.ads, a-wrstfi.adb, a-wrstfi.ads, a-zrstfi.adb,
+	a-zrstfi.ads, a-tirsfi.adb: New unit, initial version.
+	* gnat_rm.texi: Add documentation for
+	Ada.[Wide_[Wide_]]Text_IO.Reset_Standard_Files.
+	* Makefile.rtl: Add entries for
+	Ada.[Wide_[Wide_]]Text_IO.Reset_Standard_Files
+
+2009-10-28  Thomas Quinot  <quinot@adacore.com>
+
+	* exp_ch9.ads: Minor reformatting
+	* sem_ch3.adb: Minor reformatting
+	* sem_aggr.adb: Minor reformatting.
+	* sem_attr.adb: Minor reformatting
+	* tbuild.adb, tbuild.ads, par-ch4.adb, exp_ch4.adb (Tbuild.New_Op_Node):
+	New subprogram.
+	Minor code reorganization/factoring.
+
+2009-10-27  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/decl.c (purpose_member_field): New static function.
+	(annotate_rep): Use it instead of purpose_member.
+
+2009-10-27  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* raise-gcc (db_region_for): Use _Unwind_GetIPInfo instead of
+	_Unwind_GetIP if HAVE_GETIPINFO is defined.
+	(db_action_for): Likewise.
+
+2009-10-27  Robert Dewar  <dewar@adacore.com>
+
+	* s-fileio.adb, s-fileio.ads, sem_util.adb, sem_warn.adb,
+	sem_warn.ads: Minor reformatting
+
+2009-10-27  Robert Dewar  <dewar@adacore.com>
+
+	* sem_warn.adb, sem_util.adb, sem_util.ads: Minor reformatting. Add
+	comments.
+
+2009-10-27  Robert Dewar  <dewar@adacore.com>
+
+	* s-os_lib.ads, s-os_lib.adb, prj-err.adb, makeutl.adb: Minor
+	reformatting.
+
+2009-10-27  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem.util.ads, sem_util.adb (Denotes_Same_Object,
+	Denotes_Same_Prefix): New functions to detect overlap between actuals
+	that are not by-copy in a call, when one of them is in-out.
+	* sem_warn.ads, sem_warn.adb (Warn_On_Overlapping_Actuals): New
+	procedure,  called on a subprogram call to warn when an in-out actual
+	that is not by-copy overlaps with another actual, thus leadind to
+	potentially dangerous aliasing in the body of the called subprogram.
+	Currently the warning is under control of the -gnatX switch.
+	* sem_res.adb (resolve_call): call Warn_On_Overlapping_Actuals.
+
+2009-10-27  Thomas Quinot  <quinot@adacore.com>
+
+	* sem_ch12.adb (Install_Formal_Packages): Do not omit installation of
+	visible entities when the formal package doesn't have a box.
+
+	* checks.adb: Minor reformatting.
+
+2009-10-27  Vincent Celier  <celier@adacore.com>
+
+	* prj-part.adb (Parse): Catch exception Types.Unrecoverable_Error and
+	set Project to Empty_Node.
+
+2009-10-27  Robert Dewar  <dewar@adacore.com>
+
+	* gnatbind.adb: Minor reformatting
+
+2009-10-27  Arnaud Charlet  <charlet@adacore.com>
+
+	* exp_aggr.adb: Fix comment.
+
+2009-10-27  Emmanuel Briot  <briot@adacore.com>
+
+	* prj-err.adb (Error_Msg): take into account continuation lines when
+	computing whether we have a warning.
+
+2009-10-27  Vasiliy Fofanov  <fofanov@adacore.com>
+
+	* make.adb, s-os_lib.adb, s-os_lib.ads (Create_Temp_Output_File): New
+	routine that is designed to create temp file descriptor specifically
+	for redirecting an output stream.
+
 2009-10-24  Eric Botcazou  <ebotcazou@adacore.com>
 
 	* gcc-interface/decl.c (gnat_to_gnu_entity) <E_Record_Type>: When

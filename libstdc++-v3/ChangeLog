@@ -1,3 +1,38 @@
+2009-10-28  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/stl_iterator_base_funcs.h: (next): Change
+	template parameter name consistently with the resolution
+	of DR 1011 ([Ready] in Santa Cruz).
+
+2009-10-28  Johannes Singler  <singler@kit.edu>
+
+	PR libstdc++/40852
+	* include/parallel/multiseq_selection.h 
+	(multiseq_partition, multiseq_selection):  Avoid intermediate 
+	values exceeding the integer type range for very large inputs.
+
+2009-10-26  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/chrono (duration<>::duration(const duration<>&)): Fix
+	per the straightforward resolution of DR 974.
+	* testsuite/20_util/duration/cons/dr974.cc: Add.
+
+2009-10-26  Jakub Jelinek  <jakub@redhat.com>
+
+	PR libstdc++/38923
+	* acinclude.m4 (GLIBCXX_CHECK_LINKER_FEATURES): Avoid using too many
+	*s.  Accept ld version without text in ()s.
+	* configure: Regenerated.
+
+2009-10-26  Jason Merrill  <jason@redhat.com>
+
+	Core issue 906
+	* include/std/future (~Future_result_base): Default outside class
+	body.
+	* include/std/system_error (error_category()): Likewise.
+	* libsupc++/nested_exception.h (nested_exception): Remove
+	exception specifications from defaulted methods.
+
 009-10-20  Paolo Carlini  <paolo.carlini@oracle.com>
 
         PR libstdc++/41773

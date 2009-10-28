@@ -146,6 +146,7 @@ typedef struct GTY(()) mem_attrs
   rtx size;			/* Size in bytes, as a CONST_INT.  */
   alias_set_type alias;		/* Memory alias set.  */
   unsigned int align;		/* Alignment of MEM in bits.  */
+  unsigned char addrspace;	/* Address space (0 for generic).  */
 } mem_attrs;
 
 /* Structure used to describe the attributes of a REG in similar way as
@@ -1122,7 +1123,7 @@ rhs_regno (const_rtx x)
 
 extern void init_rtlanal (void);
 extern int rtx_cost (rtx, enum rtx_code, bool);
-extern int address_cost (rtx, enum machine_mode, bool);
+extern int address_cost (rtx, enum machine_mode, addr_space_t, bool);
 extern unsigned int subreg_lsb (const_rtx);
 extern unsigned int subreg_lsb_1 (enum machine_mode, enum machine_mode,
 				  unsigned int);
@@ -1268,6 +1269,10 @@ do {						\
 /* For a MEM rtx, the offset from the start of MEM_EXPR, if known, as a
    RTX that is always a CONST_INT.  */
 #define MEM_OFFSET(RTX) (MEM_ATTRS (RTX) == 0 ? 0 : MEM_ATTRS (RTX)->offset)
+
+/* For a MEM rtx, the address space.  */
+#define MEM_ADDR_SPACE(RTX) (MEM_ATTRS (RTX) == 0 ? ADDR_SPACE_GENERIC \
+						  : MEM_ATTRS (RTX)->addrspace)
 
 /* For a MEM rtx, the size in bytes of the MEM, if known, as an RTX that
    is always a CONST_INT.  */
@@ -1608,7 +1613,10 @@ extern unsigned int subreg_highpart_offset (enum machine_mode,
 					    enum machine_mode);
 extern int byte_lowpart_offset (enum machine_mode, enum machine_mode);
 extern rtx make_safe_from (rtx, rtx);
-extern rtx convert_memory_address (enum machine_mode, rtx);
+extern rtx convert_memory_address_addr_space (enum machine_mode, rtx,
+					      addr_space_t);
+#define convert_memory_address(to_mode,x) \
+	convert_memory_address_addr_space ((to_mode), (x), ADDR_SPACE_GENERIC)
 extern rtx get_insns (void);
 extern const char *get_insn_name (int);
 extern rtx get_last_insn (void);

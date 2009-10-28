@@ -1,3 +1,45 @@
+2009-10-27  Jason Merrill  <jason@redhat.com>
+
+	Allow no-capture lambdas to convert to function pointer.
+	* semantics.c (maybe_add_lambda_conv_op): New.
+	* parser.c (cp_parser_lambda_expression): Call it.
+	(cp_parser_lambda_declarator_opt): Make op() static if
+	no captures.
+	* mangle.c (write_closure_type_name): Adjust.
+	* semantics.c (finish_this_expr): Adjust.
+	* decl.c (grok_op_properties): Allow it.
+	* call.c (build_user_type_conversion_1): Handle static conversion op.
+	(build_op_call): And op().
+
+2009-10-26  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/41828
+	* cp-lang.c (cxx_dwarf_name): Return NULL instead of
+	<anonymous ...> for anonymous aggregate names.
+
+2009-10-26  Jason Merrill  <jason@redhat.com>
+
+	PR c++/38796, Core issue 906
+	* cp-tree.h (DECL_DEFAULTED_OUTSIDE_CLASS_P): New.
+	(DECL_DEFAULTED_IN_CLASS_P): New.
+	* class.c (user_provided_p): Non-static.
+	(check_methods): Use it.
+	(check_bases_and_members): Check defaulted fns.
+	(defaultable_fn_p): Move and rename to...
+	* method.c (defaultable_fn_check): ...this.
+	(defaulted_late_check): New.
+	* pt.c (tsubst_decl): Call it.
+	* decl2.c (grokfield): Adjust.
+	* decl.c (cp_finish_decl): Adjust.
+	(grok_special_member_properties): Use user_provided_p.
+
+2009-10-26  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/41785
+	* pt.c (template_args_equal): Handle comparison of
+	an ARGUMENT_PACK_SELECT node with the arguments node it selects into.
+	* cp-tree.def: Fix a typo in the description of TYPE_PACK_EXPANSION.
+
 2009-10-26  Dodji Seketeli  <dodji@redhat.com>
 
 	PR c++/41020

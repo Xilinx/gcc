@@ -4159,9 +4159,12 @@ find_split_point (rtx *loc, rtx insn)
       if (GET_CODE (XEXP (x, 0)) == CONST
 	  || GET_CODE (XEXP (x, 0)) == SYMBOL_REF)
 	{
+	  enum machine_mode address_mode
+	    = targetm.addr_space.address_mode (MEM_ADDR_SPACE (x));
+
 	  SUBST (XEXP (x, 0),
-		 gen_rtx_LO_SUM (Pmode,
-				 gen_rtx_HIGH (Pmode, XEXP (x, 0)),
+		 gen_rtx_LO_SUM (address_mode,
+				 gen_rtx_HIGH (address_mode, XEXP (x, 0)),
 				 XEXP (x, 0)));
 	  return &XEXP (XEXP (x, 0), 0);
 	}
@@ -4174,7 +4177,8 @@ find_split_point (rtx *loc, rtx insn)
 	 it will not remain in the result.  */
       if (GET_CODE (XEXP (x, 0)) == PLUS
 	  && CONST_INT_P (XEXP (XEXP (x, 0), 1))
-	  && ! memory_address_p (GET_MODE (x), XEXP (x, 0)))
+	  && ! memory_address_addr_space_p (GET_MODE (x), XEXP (x, 0),
+					    MEM_ADDR_SPACE (x)))
 	{
 	  rtx reg = regno_reg_rtx[FIRST_PSEUDO_REGISTER];
 	  rtx seq = combine_split_insns (gen_rtx_SET (VOIDmode, reg,
@@ -4197,8 +4201,9 @@ find_split_point (rtx *loc, rtx insn)
 	      && NONJUMP_INSN_P (NEXT_INSN (seq))
 	      && GET_CODE (PATTERN (NEXT_INSN (seq))) == SET
 	      && SET_DEST (PATTERN (NEXT_INSN (seq))) == reg
-	      && memory_address_p (GET_MODE (x),
-				   SET_SRC (PATTERN (NEXT_INSN (seq)))))
+	      && memory_address_addr_space_p
+		   (GET_MODE (x), SET_SRC (PATTERN (NEXT_INSN (seq))),
+		    MEM_ADDR_SPACE (x)))
 	    {
 	      rtx src1 = SET_SRC (PATTERN (seq));
 	      rtx src2 = SET_SRC (PATTERN (NEXT_INSN (seq)));
@@ -4237,7 +4242,8 @@ find_split_point (rtx *loc, rtx insn)
       /* If we have a PLUS whose first operand is complex, try computing it
          separately by making a split there.  */
       if (GET_CODE (XEXP (x, 0)) == PLUS
-          && ! memory_address_p (GET_MODE (x), XEXP (x, 0))
+          && ! memory_address_addr_space_p (GET_MODE (x), XEXP (x, 0),
+					    MEM_ADDR_SPACE (x))
           && ! OBJECT_P (XEXP (XEXP (x, 0), 0))
           && ! (GET_CODE (XEXP (XEXP (x, 0), 0)) == SUBREG
                 && OBJECT_P (SUBREG_REG (XEXP (XEXP (x, 0), 0)))))
@@ -11461,6 +11467,22 @@ simplify_comparison (enum rtx_code code, rtx *pop0, rtx *pop1)
 	{
 	  int zero_extended;
 
+	  /* If this is a test for negative, we can make an explicit
+	     test of the sign bit.  Test this first so we can use
+	     a paradoxical subreg to extend OP0.  */
+
+	  if (op1 == const0_rtx && (code == LT || code == GE)
+	      && GET_MODE_BITSIZE (mode) <= HOST_BITS_PER_WIDE_INT)
+	    {
+	      op0 = simplify_gen_binary (AND, tmode,
+					 gen_lowpart (tmode, op0),
+					 GEN_INT ((HOST_WIDE_INT) 1
+						  << (GET_MODE_BITSIZE (mode)
+						      - 1)));
+	      code = (code == LT) ? NE : EQ;
+	      break;
+	    }
+
 	  /* If the only nonzero bits in OP0 and OP1 are those in the
 	     narrower mode and this is an equality or unsigned comparison,
 	     we can use the wider mode.  Similarly for sign-extended
@@ -11491,27 +11513,20 @@ simplify_comparison (enum rtx_code code, rtx *pop0, rtx *pop1)
 							XEXP (op0, 0)),
 					   gen_lowpart (tmode,
 							XEXP (op0, 1)));
-
-	      op0 = gen_lowpart (tmode, op0);
-	      if (zero_extended && CONST_INT_P (op1))
-		op1 = GEN_INT (INTVAL (op1) & GET_MODE_MASK (mode));
-	      op1 = gen_lowpart (tmode, op1);
-	      break;
-	    }
-
-	  /* If this is a test for negative, we can make an explicit
-	     test of the sign bit.  */
-
-	  if (op1 == const0_rtx && (code == LT || code == GE)
-	      && GET_MODE_BITSIZE (mode) <= HOST_BITS_PER_WIDE_INT)
-	    {
-	      op0 = simplify_gen_binary (AND, tmode,
-					 gen_lowpart (tmode, op0),
-					 GEN_INT ((HOST_WIDE_INT) 1
-						  << (GET_MODE_BITSIZE (mode)
-						      - 1)));
-	      code = (code == LT) ? NE : EQ;
-	      break;
+	      else
+		{
+		  if (zero_extended)
+		    {
+		      op0 = simplify_gen_unary (ZERO_EXTEND, tmode, op0, mode);
+		      op1 = simplify_gen_unary (ZERO_EXTEND, tmode, op1, mode);
+		    }
+		  else
+		    {
+		      op0 = simplify_gen_unary (SIGN_EXTEND, tmode, op0, mode);
+		      op1 = simplify_gen_unary (SIGN_EXTEND, tmode, op1, mode);
+		    }
+		  break;
+		}
 	    }
 	}
 

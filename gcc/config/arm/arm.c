@@ -138,6 +138,7 @@ static rtx arm_libcall_value (enum machine_mode, const_rtx);
 static void arm_internal_label (FILE *, const char *, unsigned long);
 static void arm_output_mi_thunk (FILE *, tree, HOST_WIDE_INT, HOST_WIDE_INT,
 				 tree);
+static bool arm_have_conditional_execution (void);
 static bool arm_rtx_costs_1 (rtx, enum rtx_code, int*, bool);
 static bool arm_size_rtx_costs (rtx, enum rtx_code, enum rtx_code, int *);
 static bool arm_slowmul_rtx_costs (rtx, enum rtx_code, enum rtx_code, int *, bool);
@@ -444,6 +445,9 @@ static const struct attribute_spec arm_attribute_table[] =
 #undef TARGET_HAVE_TLS
 #define TARGET_HAVE_TLS true
 #endif
+
+#undef TARGET_HAVE_CONDITIONAL_EXECUTION
+#define TARGET_HAVE_CONDITIONAL_EXECUTION arm_have_conditional_execution
 
 #undef TARGET_CANNOT_FORCE_CONST_MEM
 #define TARGET_CANNOT_FORCE_CONST_MEM arm_cannot_force_const_mem
@@ -6211,7 +6215,7 @@ thumb1_rtx_costs (rtx x, enum rtx_code code, enum rtx_code outer)
       else if ((outer == PLUS || outer == COMPARE)
 	       && INTVAL (x) < 256 && INTVAL (x) > -256)
 	return 0;
-      else if (outer == AND
+      else if ((outer == IOR || outer == XOR || outer == AND)
 	       && INTVAL (x) < 256 && INTVAL (x) >= -256)
 	return COSTS_N_INSNS (1);
       else if (outer == ASHIFT || outer == ASHIFTRT
@@ -21181,6 +21185,14 @@ arm_frame_pointer_required (void)
   return (cfun->has_nonlocal_label
           || SUBTARGET_FRAME_POINTER_REQUIRED
           || (TARGET_ARM && TARGET_APCS_FRAME && ! leaf_function_p ()));
+}
+
+/* Only thumb1 can't support conditional execution, so return true if
+   the target is not thumb1.  */
+static bool
+arm_have_conditional_execution (void)
+{
+  return !TARGET_THUMB1;
 }
 
 #include "gt-arm.h"

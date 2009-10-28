@@ -10794,7 +10794,7 @@ i386_output_dwarf_dtprel (FILE *file, int size, rtx x)
 static bool
 ix86_pic_register_p (rtx x)
 {
-  if (GET_CODE (x) == VALUE)
+  if (GET_CODE (x) == VALUE && CSELIB_VAL_PTR (x))
     return (pic_offset_table_rtx
 	    && rtx_equal_for_cselib_p (x, pic_offset_table_rtx));
   else
@@ -20042,6 +20042,9 @@ ix86_trampoline_init (rtx m_tramp, tree fndecl, rtx chain_value)
     }
 
 #ifdef ENABLE_EXECUTE_STACK
+#ifdef CHECK_EXECUTE_STACK_ENABLED
+  if (CHECK_EXECUTE_STACK_ENABLED)
+#endif
   emit_library_call (gen_rtx_SYMBOL_REF (Pmode, "__enable_execute_stack"),
 		     LCT_NORMAL, VOIDmode, 1, XEXP (m_tramp, 0), Pmode);
 #endif
