@@ -130,7 +130,7 @@ rtx *reg_equiv_mem;
 rtx *reg_equiv_alt_mem_list;
 
 /* Widest width in which each pseudo reg is referred to (via subreg).  */
-static unsigned int *reg_max_ref_width;
+unsigned int *reg_max_ref_width;
 
 /* Element N is the list of insns that initialized reg N from its equivalent
    constant or memory slot.  */
@@ -394,7 +394,6 @@ static void delete_caller_save_insns (void);
 static void spill_failure (rtx, enum reg_class);
 static void count_spilled_pseudo (int, int, int);
 static void delete_dead_insn (rtx);
-static void alter_reg (int, int, bool);
 static void set_label_offsets (rtx, rtx, int);
 static void check_eliminable_occurrences (rtx);
 static void elimination_effects (rtx, enum machine_mode);
@@ -761,125 +760,11 @@ reload (rtx first, int global)
       if (! call_used_regs[i] && ! fixed_regs[i] && ! LOCAL_REGNO (i))
 	df_set_regs_ever_live (i, true);
 
-  /* Find all the pseudo registers that didn't get hard regs
-     but do have known equivalent constants or memory slots.
-     These include parameters (known equivalent to parameter slots)
-     and cse'd or loop-moved constant memory addresses.
-
-     Record constant equivalents in reg_equiv_constant
-     so they will be substituted by find_reloads.
-     Record memory equivalents in reg_mem_equiv so they can
-     be substituted eventually by altering the REG-rtx's.  */
-
-  reg_equiv_constant = XCNEWVEC (rtx, max_regno);
-  reg_equiv_invariant = XCNEWVEC (rtx, max_regno);
-  reg_equiv_mem = XCNEWVEC (rtx, max_regno);
-  reg_equiv_alt_mem_list = XCNEWVEC (rtx, max_regno);
-  reg_equiv_address = XCNEWVEC (rtx, max_regno);
-  reg_max_ref_width = XCNEWVEC (unsigned int, max_regno);
   reg_old_renumber = XCNEWVEC (short, max_regno);
   memcpy (reg_old_renumber, reg_renumber, max_regno * sizeof (short));
   pseudo_forbidden_regs = XNEWVEC (HARD_REG_SET, max_regno);
   pseudo_previous_regs = XCNEWVEC (HARD_REG_SET, max_regno);
-
   CLEAR_HARD_REG_SET (bad_spill_regs_global);
-
-  /* Look for REG_EQUIV notes; record what each pseudo is equivalent
-     to.  Also find all paradoxical subregs and find largest such for
-     each pseudo.  */
-
-  num_eliminable_invariants = 0;
-  for (insn = first; insn; insn = NEXT_INSN (insn))
-    {
-      rtx set = single_set (insn);
-
-      /* We may introduce USEs that we want to remove at the end, so
-	 we'll mark them with QImode.  Make sure there are no
-	 previously-marked insns left by say regmove.  */
-      if (INSN_P (insn) && GET_CODE (PATTERN (insn)) == USE
-	  && GET_MODE (insn) != VOIDmode)
-	PUT_MODE (insn, VOIDmode);
-
-      if (NONDEBUG_INSN_P (insn))
-	scan_paradoxical_subregs (PATTERN (insn));
-
-      if (set != 0 && REG_P (SET_DEST (set)))
-	{
-	  rtx note = find_reg_note (insn, REG_EQUIV, NULL_RTX);
-	  rtx x;
-
-	  if (! note)
-	    continue;
-
-	  i = REGNO (SET_DEST (set));
-	  x = XEXP (note, 0);
-
-	  if (i <= LAST_VIRTUAL_REGISTER)
-	    continue;
-
-	  if (! function_invariant_p (x)
-	      || ! flag_pic
-	      /* A function invariant is often CONSTANT_P but may
-		 include a register.  We promise to only pass
-		 CONSTANT_P objects to LEGITIMATE_PIC_OPERAND_P.  */
-	      || (CONSTANT_P (x)
-		  && LEGITIMATE_PIC_OPERAND_P (x)))
-	    {
-	      /* It can happen that a REG_EQUIV note contains a MEM
-		 that is not a legitimate memory operand.  As later
-		 stages of reload assume that all addresses found
-		 in the reg_equiv_* arrays were originally legitimate,
-		 we ignore such REG_EQUIV notes.  */
-	      if (memory_operand (x, VOIDmode))
-		{
-		  /* Always unshare the equivalence, so we can
-		     substitute into this insn without touching the
-		       equivalence.  */
-		  reg_equiv_memory_loc[i] = copy_rtx (x);
-		}
-	      else if (function_invariant_p (x))
-		{
-		  if (GET_CODE (x) == PLUS)
-		    {
-		      /* This is PLUS of frame pointer and a constant,
-			 and might be shared.  Unshare it.  */
-		      reg_equiv_invariant[i] = copy_rtx (x);
-		      num_eliminable_invariants++;
-		    }
-		  else if (x == frame_pointer_rtx || x == arg_pointer_rtx)
-		    {
-		      reg_equiv_invariant[i] = x;
-		      num_eliminable_invariants++;
-		    }
-		  else if (LEGITIMATE_CONSTANT_P (x))
-		    reg_equiv_constant[i] = x;
-		  else
-		    {
-		      reg_equiv_memory_loc[i]
-			= force_const_mem (GET_MODE (SET_DEST (set)), x);
-		      if (! reg_equiv_memory_loc[i])
-			reg_equiv_init[i] = NULL_RTX;
-		    }
-		}
-	      else
-		{
-		  reg_equiv_init[i] = NULL_RTX;
-		  continue;
-		}
-	    }
-	  else
-	    reg_equiv_init[i] = NULL_RTX;
-	}
-    }
-
-  if (dump_file)
-    for (i = FIRST_PSEUDO_REGISTER; i < max_regno; i++)
-      if (reg_equiv_init[i])
-	{
-	  fprintf (dump_file, "init_insns for %u: ", i);
-	  print_inline_rtx (dump_file, reg_equiv_init[i], 20);
-	  fprintf (dump_file, "\n");
-	}
 
   init_elim_table ();
 
@@ -893,22 +778,12 @@ reload (rtx first, int global)
   offsets_known_at = XNEWVEC (char, num_labels);
   offsets_at = (HOST_WIDE_INT (*)[NUM_ELIMINABLE_REGS]) xmalloc (num_labels * NUM_ELIMINABLE_REGS * sizeof (HOST_WIDE_INT));
 
-  /* Alter each pseudo-reg rtx to contain its hard reg number.  Assign
-     stack slots to the pseudos that lack hard regs or equivalents.
-     Do not touch virtual registers.  */
-
-  temp_pseudo_reg_arr = XNEWVEC (int, max_regno - LAST_VIRTUAL_REGISTER - 1);
+  /* ira-reload may have created new pseudos which didn't get hard registers
+     or stack slots.  Assign them stack slots now.  Also alter each pseudo
+     to contain its hard reg number.  */
   for (n = 0, i = LAST_VIRTUAL_REGISTER + 1; i < max_regno; i++)
-    temp_pseudo_reg_arr[n++] = i;
-  
-  if (ira_conflicts_p)
-    /* Ask IRA to order pseudo-registers for better stack slot
-       sharing.  */
-    ira_sort_regnos_for_alter_reg (temp_pseudo_reg_arr, n, reg_max_ref_width);
-
-  for (i = 0; i < n; i++)
     alter_reg (temp_pseudo_reg_arr[i], -1, false);
-
+  
   /* If we have some registers we think can be eliminated, scan all insns to
      see if there is an insn that sets one of these registers to something
      other than itself plus a constant.  If so, the register cannot be
@@ -1449,6 +1324,130 @@ reload (rtx first, int global)
 
   return failure;
 }
+
+/* Find all the pseudo registers that didn't get hard regs
+   but do have known equivalent constants or memory slots.
+   These include parameters (known equivalent to parameter slots)
+   and cse'd or loop-moved constant memory addresses.
+
+   Record constant equivalents in reg_equiv_constant
+   so they will be substituted by find_reloads.
+   Record memory equivalents in reg_mem_equiv so they can
+   be substituted eventually by altering the REG-rtx's.  */
+
+void
+record_equivalences_for_reload (void)
+{
+  rtx insn, first;
+  int i;
+  int max_regno = max_reg_num ();
+
+  first = get_insns ();
+  reg_equiv_constant = XCNEWVEC (rtx, max_regno);
+  reg_equiv_invariant = XCNEWVEC (rtx, max_regno);
+  reg_equiv_mem = XCNEWVEC (rtx, max_regno);
+  reg_equiv_alt_mem_list = XCNEWVEC (rtx, max_regno);
+  reg_equiv_address = XCNEWVEC (rtx, max_regno);
+  reg_max_ref_width = XCNEWVEC (unsigned int, max_regno);
+
+  /* Look for REG_EQUIV notes; record what each pseudo is equivalent
+     to.  Also find all paradoxical subregs and find largest such for
+     each pseudo.  */
+
+  num_eliminable_invariants = 0;
+  for (insn = first; insn; insn = NEXT_INSN (insn))
+    {
+      rtx set = single_set (insn);
+
+      /* We may introduce USEs that we want to remove at the end, so
+	 we'll mark them with QImode.  Make sure there are no
+	 previously-marked insns left by say regmove.  */
+      if (INSN_P (insn) && GET_CODE (PATTERN (insn)) == USE
+	  && GET_MODE (insn) != VOIDmode)
+	PUT_MODE (insn, VOIDmode);
+
+      if (NONDEBUG_INSN_P (insn))
+	scan_paradoxical_subregs (PATTERN (insn));
+
+      if (set != 0 && REG_P (SET_DEST (set)))
+	{
+	  rtx note = find_reg_note (insn, REG_EQUIV, NULL_RTX);
+	  rtx x;
+
+	  if (! note)
+	    continue;
+
+	  i = REGNO (SET_DEST (set));
+	  x = XEXP (note, 0);
+
+	  if (i <= LAST_VIRTUAL_REGISTER)
+	    continue;
+
+	  if (! function_invariant_p (x)
+	      || ! flag_pic
+	      /* A function invariant is often CONSTANT_P but may
+		 include a register.  We promise to only pass
+		 CONSTANT_P objects to LEGITIMATE_PIC_OPERAND_P.  */
+	      || (CONSTANT_P (x)
+		  && LEGITIMATE_PIC_OPERAND_P (x)))
+	    {
+	      /* It can happen that a REG_EQUIV note contains a MEM
+		 that is not a legitimate memory operand.  As later
+		 stages of reload assume that all addresses found
+		 in the reg_equiv_* arrays were originally legitimate,
+		 we ignore such REG_EQUIV notes.  */
+	      if (memory_operand (x, VOIDmode))
+		{
+		  /* Always unshare the equivalence, so we can
+		     substitute into this insn without touching the
+		       equivalence.  */
+		  reg_equiv_memory_loc[i] = copy_rtx (x);
+		}
+	      else if (function_invariant_p (x))
+		{
+		  if (GET_CODE (x) == PLUS)
+		    {
+		      /* This is PLUS of frame pointer and a constant,
+			 and might be shared.  Unshare it.  */
+		      reg_equiv_invariant[i] = copy_rtx (x);
+		      num_eliminable_invariants++;
+		    }
+		  else if (x == frame_pointer_rtx || x == arg_pointer_rtx)
+		    {
+		      reg_equiv_invariant[i] = x;
+		      num_eliminable_invariants++;
+		    }
+		  else if (LEGITIMATE_CONSTANT_P (x))
+		    reg_equiv_constant[i] = x;
+		  else
+		    {
+		      reg_equiv_memory_loc[i]
+			= force_const_mem (GET_MODE (SET_DEST (set)), x);
+		      if (! reg_equiv_memory_loc[i])
+			reg_equiv_init[i] = NULL_RTX;
+		    }
+		}
+	      else
+		{
+		  reg_equiv_init[i] = NULL_RTX;
+		  continue;
+		}
+	    }
+	  else
+	    reg_equiv_init[i] = NULL_RTX;
+	}
+    }
+
+  if (dump_file)
+    for (i = FIRST_PSEUDO_REGISTER; i < max_regno; i++)
+      if (reg_equiv_init[i])
+	{
+	  fprintf (dump_file, "init_insns for %u: ", i);
+	  print_inline_rtx (dump_file, reg_equiv_init[i], 20);
+	  fprintf (dump_file, "\n");
+	}
+}
+
 
 /* Yet another special case.  Unfortunately, reg-stack forces people to
    write incorrect clobbers in asm statements.  These clobbers must not
@@ -2170,7 +2169,7 @@ delete_dead_insn (rtx insn)
    This is used so that all pseudos spilled from a given hard reg
    can share one stack slot.  */
 
-static void
+void
 alter_reg (int i, int from_reg, bool dont_share_p)
 {
   /* When outputting an inline function, this can happen

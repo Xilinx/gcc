@@ -3,6 +3,9 @@
 	* ira-reload.c (localize_pseudos): Add new argument to call to
 	setup_reg_classes.
 	(emit_localizing_stores): Remove unused variable.
+	* reload1.c (reload): Pass in the right peudo register number
+	to alter_reg.  Restore incorrectly removed initialization of
+	tmp_pseudo_reg_arr.
 
 	* NOTES: New file.
 

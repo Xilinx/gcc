@@ -161,6 +161,7 @@ extern rtx *reg_equiv_memory_loc;
 extern rtx *reg_equiv_address;
 extern rtx *reg_equiv_mem;
 extern rtx *reg_equiv_alt_mem_list;
+extern unsigned int *reg_max_ref_width;
 
 /* Element N is the list of insns that initialized reg N from its equivalent
    constant or memory slot.  */
@@ -373,3 +374,10 @@ extern void debug_reload (void);
 /* Compute the actual register we should reload to, in case we're
    reloading to/from a register that is wider than a word.  */
 extern rtx reload_adjust_reg_for_mode (rtx, enum machine_mode);
+
+/* Modify the home of a pseudo register.  */
+extern void alter_reg (int, int, bool);
+
+/* Record memory and constant equivalences for pseudos which did not get hard
+   registers.  */
+extern void record_equivalences_for_reload (void);
