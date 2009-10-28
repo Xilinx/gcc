@@ -1,3 +1,8 @@
+2009-09-31  Jeff Law <law@redhat.com>
+
+	* ira-reload.c (emit_localizing_loads): Attempt to replace the
+	pseudo with its equivalent memory when safe and profitable.
+
 2009-09-30  Jeff Law <law@redhat.com>
 
 	* ira-reload.c (uses_before_set): Remove bitmap.

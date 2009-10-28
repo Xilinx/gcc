@@ -195,19 +195,40 @@ emit_localizing_loads (rtx use, rtx insn)
 	{
 	  rtx insns, temp;
 	  rtx mem = copy_rtx (reg_equiv_memory_loc[REGNO (use)]);
+	  int nuses = pseudo_nuses[REGNO (use)];
+	  int nsets = pseudo_nsets[REGNO (use)];
+	  int occurrences = count_occurrences (PATTERN (insn), use, 0);
 
-	  start_sequence ();
-	  emit_move_insn (reg_map [REGNO (use)], mem);
-	  insns = get_insns();
-	  end_sequence ();
-	  emit_insn_before (insns, insn);
+	  /* validate_replace_rtx internally calls df_insn_rescan, which is
+	     unsafe as our caller is iterating over the existing DF info.  So
+	     we have to turn off insn rescanning temporarily.  */
+	  df_set_flags (DF_NO_INSN_RESCAN);
 
-	  /* Inform the DF framework about the new insns.  */
-	  for (temp = insns; temp != insn; temp = NEXT_INSN (insns))
-	    df_insn_rescan (temp);
+	  /* If this insn has all the uses of a pseudo we want to localize
+	     and the pseudo is never set, then try to replace the pseudo
+	     with its equivalent memory location.  */
+	  if (nsets == 0
+	      && (occurrences == nuses || nuses == 2)
+	      && validate_replace_rtx (use, mem, insn))
+	    {
+	      df_clear_flags (DF_NO_INSN_RESCAN);
+	    }
+	  else
+	    {
+	      df_clear_flags (DF_NO_INSN_RESCAN);
+	      start_sequence ();
+	      emit_move_insn (reg_map [REGNO (use)], mem);
+	      insns = get_insns();
+	      end_sequence ();
+	      emit_insn_before (insns, insn);
 
-	  /* Note it is no longer necessary to load this pseudo.  */
-	  bitmap_clear_bit (regs_to_load, REGNO (use));
+	      /* Inform the DF framework about the new insns.  */
+	      for (temp = insns; temp != insn; temp = NEXT_INSN (insns))
+	        df_insn_rescan (temp);
+
+	      /* Note it is no longer necessary to load this pseudo.  */
+	      bitmap_clear_bit (regs_to_load, REGNO (use));
+	    }
 	}
 
       /* Replace the original pseudo with the new one.  */
