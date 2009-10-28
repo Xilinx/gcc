@@ -1692,7 +1692,7 @@ static int *allocno_priorities;
 
 /* Set up priorities for N allocnos in array
    CONSIDERATION_ALLOCNOS.  */
-static void
+void
 setup_allocno_priorities (ira_allocno_t *consideration_allocnos, int n)
 {
   int i, length, nrefs, priority, max_priority, mult;

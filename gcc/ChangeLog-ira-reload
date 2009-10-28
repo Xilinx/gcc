@@ -1,3 +1,18 @@
+2009-09-21  Jeff Law <law@redhat.com>
+
+	* NOTES: New file.
+
+	* ira-color.c (setup_allocno_priorities): No longer static.
+	* ira-int.h (setup_allocno_priorities): Declare
+
+	* reload1.c (reg_max_ref_width): No longer static.
+	(alter_reg): Likewise.
+	(record_equivalences_for_reload): New function extracted from reload.
+	(reload): Don't sort registers prior to calling alter_reg anymore.
+	* reload.h (reg_max_ref_width): Declare.
+	(alter_reg): Likewise.
+	(record_equivalences_for_reload): Likewise.
+
 2009-09-18  Jeff Law <law@redhat.com>
 	
 	* ira.c (expand_reg_info): No longer static.

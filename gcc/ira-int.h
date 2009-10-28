@@ -901,6 +901,7 @@ extern void ira_reassign_conflict_allocnos (int);
 extern void ira_initiate_assign (void);
 extern void ira_finish_assign (void);
 extern void ira_color (void);
+extern void setup_allocno_priorities (ira_allocno_t *, int);
 
 /* ira-emit.c */
 extern void ira_emit (bool);
