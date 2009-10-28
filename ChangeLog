@@ -1,3 +1,30 @@
+2009-10-16  Nick Clifton  <nickc@redhat.com>
+
+	* MAINTAINERS: Add myself as a maintainer for the RX port.
+
+2009-10-26  Johannes Singler <singler@kit.edu>
+
+        * MAINTAINERS (Write After Approval): Update my e-mail address.
+
+2009-10-23  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* configure.ac (CLooG test): Use = with test.
+	* configure: Regenerate.
+
+2009-10-22  Richard Guenther  <rguenther@suse.de>
+
+	* configure.ac: Do not set LIBS for ppl/cloog checks.  Disable
+	cloog if the ppl version check failed.  Move flags saving
+	before setting in libelf check.
+	* configure: Regenerate.
+
+2009-10-21  Richard Guenther  <rguenther@suse.de>
+
+	* configure.ac: Adjust the ppl and cloog configure to work as
+	documented.  Disable cloog if ppl was disabled.  Omit the version
+	checks if they were disabled.
+	* configure: Re-generate.
+
 2009-10-13  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
 
 	* configure.ac: Add 'lto' to enable_languages, not

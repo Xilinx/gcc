@@ -967,8 +967,6 @@ extern bool is_gimple_call_addr (tree);
 extern tree get_call_expr_in (tree t);
 
 extern void recalculate_side_effects (tree);
-extern void gimple_force_type_merge (tree, tree);
-extern int gimple_types_compatible_p (tree, tree);
 extern tree gimple_register_type (tree);
 extern void print_gimple_types_stats (void);
 extern void free_gimple_type_tables (void);
@@ -993,7 +991,6 @@ extern tree create_tmp_var (tree, const char *);
 extern tree get_initialized_tmp_var (tree, gimple_seq *, gimple_seq *);
 extern tree get_formal_tmp_var (tree, gimple_seq *);
 extern void declare_vars (tree, gimple, bool);
-extern void tree_annotate_all_with_location (tree *, location_t);
 extern void annotate_all_with_location (gimple_seq, location_t);
 
 /* Validation of GIMPLE expressions.  Note that these predicates only check

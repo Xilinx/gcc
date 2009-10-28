@@ -953,6 +953,7 @@ init_optimization_passes (void)
       NEXT_PASS (pass_rtl_store_motion);
       NEXT_PASS (pass_cse_after_global_opts);
       NEXT_PASS (pass_rtl_ifcvt);
+      NEXT_PASS (pass_reginfo_init);
       /* Perform loop optimizations.  It might be better to do them a bit
 	 sooner, but we want the profile feedback to work more
 	 efficiently.  */
@@ -972,7 +973,6 @@ init_optimization_passes (void)
       NEXT_PASS (pass_cse2);
       NEXT_PASS (pass_rtl_dse1);
       NEXT_PASS (pass_rtl_fwprop_addr);
-      NEXT_PASS (pass_reginfo_init);
       NEXT_PASS (pass_inc_dec);
       NEXT_PASS (pass_initialize_regs);
       NEXT_PASS (pass_ud_rtl_dce);
@@ -988,10 +988,8 @@ init_optimization_passes (void)
       NEXT_PASS (pass_mode_switching);
       NEXT_PASS (pass_match_asm_constraints);
       NEXT_PASS (pass_sms);
-      NEXT_PASS (pass_subregs_of_mode_init);
       NEXT_PASS (pass_sched);
       NEXT_PASS (pass_ira);
-      NEXT_PASS (pass_subregs_of_mode_finish);
       NEXT_PASS (pass_postreload);
 	{
 	  struct opt_pass **p = &pass_postreload.pass.sub;
@@ -1630,7 +1628,8 @@ ipa_write_summaries_1 (cgraph_node_set set)
   struct lto_out_decl_state *state = lto_new_out_decl_state ();
   lto_push_out_decl_state (state);
 
-  ipa_write_summaries_2 (all_regular_ipa_passes, set, state);
+  if (!flag_wpa)
+    ipa_write_summaries_2 (all_regular_ipa_passes, set, state);
   ipa_write_summaries_2 (all_lto_gen_passes, set, state);
 
   gcc_assert (lto_get_out_decl_state () == state);
@@ -1724,7 +1723,8 @@ ipa_read_summaries_1 (struct opt_pass *pass)
 void
 ipa_read_summaries (void)
 {
-  ipa_read_summaries_1 (all_regular_ipa_passes);
+  if (!flag_ltrans)
+    ipa_read_summaries_1 (all_regular_ipa_passes);
   ipa_read_summaries_1 (all_lto_gen_passes);
 }
 

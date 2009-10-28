@@ -1,3 +1,44 @@
+2009-10-27  Dmitry Gorbachev  <d.g.gorbachev@gmail.com>
+
+	PR lto/41652
+	* configure.ac: Call AC_SYS_LARGEFILE before AC_OUTPUT.
+	* configure: Regenerate.
+
+2009-10-26  Richard Guenther  <rguenther@suse.de>
+
+	* configure.ac: Use AM_MAINTAINER_MODE.
+	* acinclude.m4: Remove.
+	* configure: Re-generate.
+	* Makefile.in: Likewise.
+	* aclocal.m4: Likewise.
+
+2009-10-19  Rafael Avila de Espindola  <espindola@google.com>
+    
+        PR40790
+        * configure: Regenerate.
+        * configure.ac: Add AC_TYPE_UINT64_T.
+
+2009-10-16  Rafael Avila de Espindola  <espindola@google.com>
+
+	* lto-plugin.c (message): New variable.
+	(check): New function.
+	(parse_table_entry, translate, write_resolution,add_output_files,
+	exec_lto_wrapper,claim_file_handler, onload): Use check instead of
+	assert.
+	(cleanup_handler): Use check instead of assert. Remove the arguments
+	file if it exists.
+
+2009-10-15  Rafael Avila de Espindola  <espindola@google.com>
+
+	* lto-plugin.c (resolution_file): New.
+	(free_1): Update comment.
+	(free_2): Free resolution_file.
+	(write_resolution): Write resolution to specified file. Use the
+	syms array from the symbol table.
+	(all_symbols_read_handler): Delay call to free_1 past call to
+	write_resolution.
+	(process_option): Add a -resolution option.
+
 2009-10-13  Richard Guenther  <rguenther@suse.de>
 
 	* Makefile.am (liblto_plugin_la_LIBADD): Link against the

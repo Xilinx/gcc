@@ -6434,6 +6434,10 @@ If the token preceding a left parenthesis ends with a letter or digit, then
 a space must separate the two tokens.
 
 @item
+if the token following a right parenthesis starts with a letter or digit, then
+a space must separate the two tokens.
+
+@item
 A right parenthesis must either be the first non-blank character on
 a line, or it must be preceded by a non-blank character.
 
@@ -6523,8 +6527,6 @@ built-in standard style check options are enabled.
 the exception of ORDERED_SUBPROGRAMS, UNNECESSARY_BLANK_LINES,
 XTRA_PARENS, and DOS_LINE_ENDINGS. In addition
 @end ifset
-
-
 
 The switch
 @ifclear vms
@@ -20659,7 +20661,7 @@ Invoking @command{gnatcheck} on the command line has the form:
 @smallexample
 $ gnatcheck @ovar{switches}  @{@var{filename}@}
       @r{[}^-files^/FILES^=@{@var{arg_list_filename}@}@r{]}
-      @r{[}-cargs @var{gcc_switches}@r{]} @r{[}-rules @var{rule_options}@r{]}
+      @r{[}-cargs @var{gcc_switches}@r{]} -rules @var{rule_options}
 @end smallexample
 
 @noindent
@@ -20785,18 +20787,9 @@ Quiet mode. All the diagnostics about rule violations are placed in the
 Short format of the report file (no version information, no list of applied
 rules, no list of checked sources is included)
 
-@cindex @option{^-s1^/COMPILER_STYLE^} (@command{gnatcheck})
-@item ^-s1^/COMPILER_STYLE^
-Include the compiler-style section in the report file
-
-@cindex @option{^-s2^/BY_RULES^} (@command{gnatcheck})
-@item ^-s2^/BY_RULES^
-Include the section containing diagnostics ordered by rules in the report file
-
-@cindex @option{^-s3^/BY_FILES_BY_RULES^} (@command{gnatcheck})
-@item ^-s3^/BY_FILES_BY_RULES^
-Include the section containing diagnostics ordered by files and then by rules
-in the report file
+@cindex @option{^--include-file=@var{file}^/INCLUDE_FILE=@var{file}^} (@command{gnatcheck})
+@item ^--include-file^/INCLUDE_FILE^
+Append the content of the specified text file to the report file
 
 @cindex @option{^-t^/TIME^} (@command{gnatcheck})
 @item ^-t^/TIME^
@@ -21226,7 +21219,9 @@ This rule has no parameters.
 @cindex @code{Anonymous_Subtypes} rule (for @command{gnatcheck})
 
 @noindent
-Flag all uses of anonymous subtypes. A use of an anonymous subtype is
+Flag all uses of anonymous subtypes (except cases when subtype indication
+is a part of a record component definition, and this subtype indication
+depends on a discriminant). A use of an anonymous subtype is
 any instance of a subtype indication with a constraint, other than one
 that occurs immediately within a subtype declaration. Any use of a range
 other than as a constraint used immediately within a subtype declaration

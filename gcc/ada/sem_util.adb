@@ -2137,6 +2137,181 @@ package body Sem_Util is
 
    end Denotes_Discriminant;
 
+   -------------------------
+   -- Denotes_Same_Object --
+   -------------------------
+
+   function Denotes_Same_Object (A1, A2 : Node_Id) return Boolean is
+   begin
+      --  If we have entity names, then must be same entity
+
+      if Is_Entity_Name (A1) then
+         if Is_Entity_Name (A2) then
+            return Entity (A1) = Entity (A2);
+         else
+            return False;
+         end if;
+
+      --  No match if not same node kind
+
+      elsif Nkind (A1) /= Nkind (A2) then
+         return False;
+
+      --  For selected components, must have same prefix and selector
+
+      elsif Nkind (A1) = N_Selected_Component then
+         return Denotes_Same_Object (Prefix (A1), Prefix (A2))
+           and then
+         Entity (Selector_Name (A1)) = Entity (Selector_Name (A2));
+
+      --  For explicit dereferences, prefixes must be same
+
+      elsif Nkind (A1) = N_Explicit_Dereference then
+         return Denotes_Same_Object (Prefix (A1), Prefix (A2));
+
+      --  For indexed components, prefixes and all subscripts must be the same
+
+      elsif Nkind (A1) = N_Indexed_Component then
+         if Denotes_Same_Object (Prefix (A1), Prefix (A2)) then
+            declare
+               Indx1 : Node_Id;
+               Indx2 : Node_Id;
+
+            begin
+               Indx1 := First (Expressions (A1));
+               Indx2 := First (Expressions (A2));
+               while Present (Indx1) loop
+
+                  --  Shouldn't we be checking that values are the same???
+
+                  if not Denotes_Same_Object (Indx1, Indx2) then
+                     return False;
+                  end if;
+
+                  Next (Indx1);
+                  Next (Indx2);
+               end loop;
+
+               return True;
+            end;
+         else
+            return False;
+         end if;
+
+      --  For slices, prefixes must match and bounds must match
+
+      elsif Nkind (A1) = N_Slice
+        and then Denotes_Same_Object (Prefix (A1), Prefix (A2))
+      then
+         declare
+            Lo1, Lo2, Hi1, Hi2 : Node_Id;
+
+         begin
+            Get_Index_Bounds (Etype (A1), Lo1, Hi1);
+            Get_Index_Bounds (Etype (A2), Lo2, Hi2);
+
+            --  Check whether bounds are statically identical. There is no
+            --  attempt to detect partial overlap of slices.
+
+            --  What about an array and a slice of an array???
+
+            return Denotes_Same_Object (Lo1, Lo2)
+              and then Denotes_Same_Object (Hi1, Hi2);
+         end;
+
+         --  Literals will appear as indices. Isn't this where we should check
+         --  Known_At_Compile_Time at least if we are generating warnings ???
+
+      elsif Nkind (A1) = N_Integer_Literal then
+         return Intval (A1) = Intval (A2);
+
+      else
+         return False;
+      end if;
+   end Denotes_Same_Object;
+
+   -------------------------
+   -- Denotes_Same_Prefix --
+   -------------------------
+
+   function Denotes_Same_Prefix (A1, A2 : Node_Id) return Boolean is
+
+   begin
+      if Is_Entity_Name (A1) then
+         if Nkind_In (A2, N_Selected_Component, N_Indexed_Component) then
+            return Denotes_Same_Object (A1, Prefix (A2))
+              or else Denotes_Same_Prefix (A1, Prefix (A2));
+         else
+            return False;
+         end if;
+
+      elsif Is_Entity_Name (A2) then
+         return Denotes_Same_Prefix (A2, A1);
+
+      elsif Nkind_In (A1, N_Selected_Component, N_Indexed_Component, N_Slice)
+              and then
+            Nkind_In (A2, N_Selected_Component, N_Indexed_Component, N_Slice)
+      then
+         declare
+            Root1, Root2 : Node_Id;
+            Depth1, Depth2 : Int := 0;
+
+         begin
+            Root1 := Prefix (A1);
+            while not Is_Entity_Name (Root1) loop
+               if not Nkind_In
+                 (Root1, N_Selected_Component, N_Indexed_Component)
+               then
+                  return False;
+               else
+                  Root1 := Prefix (Root1);
+               end if;
+
+               Depth1 := Depth1 + 1;
+            end loop;
+
+            Root2 := Prefix (A2);
+            while not Is_Entity_Name (Root2) loop
+               if not Nkind_In
+                 (Root2, N_Selected_Component, N_Indexed_Component)
+               then
+                  return False;
+               else
+                  Root2 := Prefix (Root2);
+               end if;
+
+               Depth2 := Depth2 + 1;
+            end loop;
+
+            --  If both have the same depth and they do not denote the same
+            --  object, they are disjoint and not warning is needed.
+
+            if Depth1 = Depth2 then
+               return False;
+
+            elsif Depth1 > Depth2 then
+               Root1 := Prefix (A1);
+               for I in 1 .. Depth1 - Depth2 - 1 loop
+                  Root1 := Prefix (Root1);
+               end loop;
+
+               return Denotes_Same_Object (Root1, A2);
+
+            else
+               Root2 := Prefix (A2);
+               for I in 1 .. Depth2 - Depth1 - 1 loop
+                  Root2 := Prefix (Root2);
+               end loop;
+
+               return Denotes_Same_Object (A1, Root2);
+            end if;
+         end;
+
+      else
+         return False;
+      end if;
+   end Denotes_Same_Prefix;
+
    ----------------------
    -- Denotes_Variable --
    ----------------------

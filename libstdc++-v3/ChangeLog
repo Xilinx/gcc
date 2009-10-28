@@ -1,3 +1,147 @@
+2009-10-28  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/stl_iterator_base_funcs.h: (next): Change
+	template parameter name consistently with the resolution
+	of DR 1011 ([Ready] in Santa Cruz).
+
+2009-10-28  Johannes Singler  <singler@kit.edu>
+
+	PR libstdc++/40852
+	* include/parallel/multiseq_selection.h 
+	(multiseq_partition, multiseq_selection):  Avoid intermediate 
+	values exceeding the integer type range for very large inputs.
+
+2009-10-26  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/chrono (duration<>::duration(const duration<>&)): Fix
+	per the straightforward resolution of DR 974.
+	* testsuite/20_util/duration/cons/dr974.cc: Add.
+
+2009-10-26  Jakub Jelinek  <jakub@redhat.com>
+
+	PR libstdc++/38923
+	* acinclude.m4 (GLIBCXX_CHECK_LINKER_FEATURES): Avoid using too many
+	*s.  Accept ld version without text in ()s.
+	* configure: Regenerated.
+
+2009-10-26  Jason Merrill  <jason@redhat.com>
+
+	Core issue 906
+	* include/std/future (~Future_result_base): Default outside class
+	body.
+	* include/std/system_error (error_category()): Likewise.
+	* libsupc++/nested_exception.h (nested_exception): Remove
+	exception specifications from defaulted methods.
+
+009-10-20  Paolo Carlini  <paolo.carlini@oracle.com>
+
+        PR libstdc++/41773
+        Revert:
+        2009-10-20  Paolo Carlini  <paolo.carlini@oracle.com>
+
+        * include/bits/basic_string.h (_S_construct(const _CharT*, size_type,
+        const _Alloc&)): New, declare.
+        (_S_construct(_CharT*, _CharT*, const _Alloc&),
+        _S_construct(const _CharT*, const _CharT*, const _Alloc&),
+        _S_construct(iterator, iterator, const _Alloc&),
+        _S_construct(const_iterator, const_iterator, const _Alloc&)): New,
+        forward to the latter.
+        * include/bits/basic_string.tcc (_S_construct(const _CharT*,
+        size_type, const _Alloc&)): Define.
+        (basic_string(const basic_string&, size_type, size_type),
+        basic_string(const basic_string&, size_type, size_type,
+        const _Alloc&), basic_string(const _CharT*, size_type,
+        const _Alloc&), basic_string(const _CharT*, const _Alloc&),
+        basic_string(initializer_list<>, const _Alloc&)): Call the latter.
+        * config/abi/pre/gnu.ver: Remove recently added exports.
+        * src/string-inst.cc: Remove instantiations.
+
+2009-10-20  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/41763
+	* include/bits/valarray_array.h (__valarray_default_construct,
+	__valarray_fill_construct, __valarray_copy_construct, __valarray_sum
+	__valarray_destroy_elements, __valarray_product): Do not qualify with
+	__restrict__ pointers accessing data also accessed by other pointers.
+
+2009-10-20  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/basic_string.h (_S_construct(const _CharT*, size_type,
+	const _Alloc&)): New, declare.
+	(_S_construct(_CharT*, _CharT*, const _Alloc&),
+	_S_construct(const _CharT*, const _CharT*, const _Alloc&),
+	_S_construct(iterator, iterator, const _Alloc&),
+	_S_construct(const_iterator, const_iterator, const _Alloc&)): New,
+	forward to the latter.
+	* include/bits/basic_string.tcc (_S_construct(const _CharT*,
+	size_type, const _Alloc&)): Define.
+	(basic_string(const basic_string&, size_type, size_type),
+	basic_string(const basic_string&, size_type, size_type,
+	const _Alloc&), basic_string(const _CharT*, size_type,
+	const _Alloc&), basic_string(const _CharT*, const _Alloc&),
+	basic_string(initializer_list<>, const _Alloc&)): Call the latter.
+	* config/abi/pre/gnu.ver: Remove recently added exports.
+	* src/string-inst.cc: Remove instantiations.
+
+2009-10-15  Phil Muldoon <pmuldoon@redhat.com>
+
+	* python/libstdcxx/v6/printers.py (StdTuplePrinter): New printer.
+	(build_libstdcxx_dictionary): Add StdTuplePrinter registration.
+
+2009-10-16  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/c_compatibility/stdatomic.h: Include cstdatomic if
+	__cplusplus.
+
+2009-10-15  Benjamin Kosnik  <bkoz@redhat.com>
+
+	PR libstdc++/40654
+	PR libstdc++/40826
+	* src/atomic.cc (atomic_flag_test_and_set_explicit): Add
+	static_cast from base to derived.
+	(atomic_flag_clear_explicit): Same.
+	* include/bits/atomic_2.h (__atomic2::atomic_flag): Public derivation.
+	Remove value type constructor.
+	* include/bits/atomic_0.h (__atomic0::atomic_flag): Same.
+	* include/std/future (_Future_state): Use ATOMIC_FLAG_INIT to
+	initialized the atomic_flag member.
+
+2009-10-14  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* doc/xml/authors.xml: Update.
+	* doc/xml/manual/intro.xml: Move test section...
+	* doc/xml/manual/appendix_porting.xml: ...here.
+	* doc/xml/manual/diagnostics.xml: Edit.
+	* doc/xml/manual/using.xml: Break out exception section.
+	* doc/xml/manual/using_exceptions.xml: New.
+	* doc/html: Regenerate.
+
+2009-10-14  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* config/abi/pre/gnu.ver: Export the _S_construct<> helpers.
+
+2009-10-14  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/basic_string.h (operator+=(initializer_list<>),
+	append(initializer_list<>)): Forward to the append overload taking
+	a const CharT* pointer and a size, thus avoiding instantiating
+	unnecessarily in the built library the overload taking a pair of
+	iterators.
+	(operator=(initializer_list<>), assign(initializer_list<>)): Likewise
+	for assign.
+	(insert(iterator, initializer_list<>): Likewise for insert.
+
+2009-10-14  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/c++config: Do not disable extern templates for string
+	in plain parallel-mode and in profile-mode; add comment explaining
+	_GLIBCXX_EXTERN_TEMPLATE == -1.
+	* testsuite/ext/profile/mutex_extensions.cc: Adjust dg-error line.
+
+2009-10-14  Jason Merrill  <jason@redhat.com>
+
+	* testsuite/20_util/unique_ptr/assign/assign_neg.cc: Adjust expected.
+
 2009-10-13  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	* include/parallel/for_each_selectors.h: Minor uglification and

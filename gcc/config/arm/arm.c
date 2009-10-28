@@ -133,11 +133,12 @@ static enum machine_mode arm_promote_function_mode (const_tree,
 						    const_tree, int);
 static bool arm_return_in_memory (const_tree, const_tree);
 static rtx arm_function_value (const_tree, const_tree, bool);
-static rtx arm_libcall_value (enum machine_mode, rtx);
+static rtx arm_libcall_value (enum machine_mode, const_rtx);
 
 static void arm_internal_label (FILE *, const char *, unsigned long);
 static void arm_output_mi_thunk (FILE *, tree, HOST_WIDE_INT, HOST_WIDE_INT,
 				 tree);
+static bool arm_have_conditional_execution (void);
 static bool arm_rtx_costs_1 (rtx, enum rtx_code, int*, bool);
 static bool arm_size_rtx_costs (rtx, enum rtx_code, enum rtx_code, int *);
 static bool arm_slowmul_rtx_costs (rtx, enum rtx_code, enum rtx_code, int *, bool);
@@ -444,6 +445,9 @@ static const struct attribute_spec arm_attribute_table[] =
 #undef TARGET_HAVE_TLS
 #define TARGET_HAVE_TLS true
 #endif
+
+#undef TARGET_HAVE_CONDITIONAL_EXECUTION
+#define TARGET_HAVE_CONDITIONAL_EXECUTION arm_have_conditional_execution
 
 #undef TARGET_CANNOT_FORCE_CONST_MEM
 #define TARGET_CANNOT_FORCE_CONST_MEM arm_cannot_force_const_mem
@@ -1864,6 +1868,16 @@ arm_override_options (void)
         max_insns_skipped = 3;
     }
 
+  /* Hot/Cold partitioning is not currently supported, since we can't
+     handle literal pool placement in that case.  */
+  if (flag_reorder_blocks_and_partition)
+    {
+      inform (input_location,
+	      "-freorder-blocks-and-partition not supported on this architecture");
+      flag_reorder_blocks_and_partition = 0;
+      flag_reorder_blocks = 1;
+    }
+
   /* Ideally we would want to use CFI directives to generate
      debug info.  However this also creates the .eh_frame
      section, so disable them until GAS can handle
@@ -3264,7 +3278,7 @@ add_libcall (htab_t htab, rtx libcall)
 }
 
 static bool
-arm_libcall_uses_aapcs_base (rtx libcall)
+arm_libcall_uses_aapcs_base (const_rtx libcall)
 {
   static bool init_done = false;
   static htab_t libcall_htab;
@@ -3311,7 +3325,7 @@ arm_libcall_uses_aapcs_base (rtx libcall)
 }
 
 rtx
-arm_libcall_value (enum machine_mode mode, rtx libcall)
+arm_libcall_value (enum machine_mode mode, const_rtx libcall)
 {
   if (TARGET_AAPCS_BASED && arm_pcs_default != ARM_PCS_AAPCS
       && GET_MODE_CLASS (mode) == MODE_FLOAT)
@@ -6201,7 +6215,7 @@ thumb1_rtx_costs (rtx x, enum rtx_code code, enum rtx_code outer)
       else if ((outer == PLUS || outer == COMPARE)
 	       && INTVAL (x) < 256 && INTVAL (x) > -256)
 	return 0;
-      else if (outer == AND
+      else if ((outer == IOR || outer == XOR || outer == AND)
 	       && INTVAL (x) < 256 && INTVAL (x) >= -256)
 	return COSTS_N_INSNS (1);
       else if (outer == ASHIFT || outer == ASHIFTRT
@@ -12269,7 +12283,7 @@ output_move_neon (rtx *operands)
 	  {
 	    /* We're only using DImode here because it's a convenient size.  */
 	    ops[0] = gen_rtx_REG (DImode, REGNO (reg) + 2 * i);
-	    ops[1] = adjust_address (mem, SImode, 8 * i);
+	    ops[1] = adjust_address (mem, DImode, 8 * i);
 	    if (reg_overlap_mentioned_p (ops[0], mem))
 	      {
 		gcc_assert (overlap == -1);
@@ -21171,6 +21185,14 @@ arm_frame_pointer_required (void)
   return (cfun->has_nonlocal_label
           || SUBTARGET_FRAME_POINTER_REQUIRED
           || (TARGET_ARM && TARGET_APCS_FRAME && ! leaf_function_p ()));
+}
+
+/* Only thumb1 can't support conditional execution, so return true if
+   the target is not thumb1.  */
+static bool
+arm_have_conditional_execution (void)
+{
+  return !TARGET_THUMB1;
 }
 
 #include "gt-arm.h"

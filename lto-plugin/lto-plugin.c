@@ -82,6 +82,7 @@ static ld_plugin_get_symbols get_symbols;
 static ld_plugin_register_cleanup register_cleanup;
 static ld_plugin_add_input_file add_input_file;
 static ld_plugin_add_input_library add_input_library;
+static ld_plugin_message message;
 
 static struct plugin_file_info *claimed_files = NULL;
 static unsigned int num_claimed_files = 0;
@@ -97,6 +98,24 @@ static unsigned int num_pass_through_items;
 
 static bool debug;
 static bool nop;
+static char *resolution_file = NULL;
+
+static void
+check (bool gate, enum ld_plugin_level level, const char *text)
+{
+  if (gate)
+    return;
+
+  if (message)
+    message (level, text);
+  else
+    {
+      /* If there is no nicer way to inform the user, fallback to stderr. */
+      fprintf (stderr, "%s\n", text);
+      if (level == LDPL_FATAL)
+	abort ();
+    }
+}
 
 /* Parse an entry of the IL symbol table. The data to be parsed is pointed
    by P and the result is written in ENTRY. The slot number is stored in SLOT.
@@ -141,12 +160,12 @@ parse_table_entry (char *p, struct ld_plugin_symbol *entry, uint32_t *slot)
     entry->comdat_key = strdup (entry->comdat_key);
 
   t = *p;
-  assert (t <= 4);
+  check (t <= 4, LDPL_FATAL, "invalid symbol kind found");
   entry->def = translate_kind[t];
   p++;
 
   t = *p;
-  assert (t <= 3);
+  check (t <= 3, LDPL_FATAL, "invalid symbol visibility found");
   entry->visibility = translate_visibility[t];
   p++;
 
@@ -217,9 +236,9 @@ translate (Elf_Data *symtab, struct plugin_symtab *out)
     {
       n++;
       syms = realloc (syms, n * sizeof (struct ld_plugin_symbol));
-      assert (syms);
+      check (syms, LDPL_FATAL, "could not allocate memory");
       slots = realloc (slots, n * sizeof (uint32_t));
-      assert (slots);
+      check (slots, LDPL_FATAL, "could not allocate memory");
       data = parse_table_entry (data, &syms[n - 1], &slots[n - 1]);
     }
 
@@ -228,7 +247,8 @@ translate (Elf_Data *symtab, struct plugin_symtab *out)
   out->slots = slots;
 }
 
-/* Free all memory that is no longer needed at the beginning of all_symbols_read. */
+/* Free all memory that is no longer needed after writing the symbol
+   resolution. */
 
 static void
 free_1 (void)
@@ -275,6 +295,12 @@ free_2 (void)
 
   free (temp_obj_dir_name);
   temp_obj_dir_name = NULL;
+
+  if (resolution_file)
+    {
+      free (resolution_file);
+      resolution_file = NULL;
+    }
 }
 
 /*  Writes the relocations to disk. */
@@ -284,12 +310,12 @@ write_resolution (void)
 {
   unsigned int i;
   FILE *f;
-  /* FIXME: Disabled for now since we are not using the resolution file. */
-  return;
 
+  if (!resolution_file)
+    return;
 
-  /* FIXME: This should be a temporary file. */
-  f = fopen ("resolution", "w");
+  f = fopen (resolution_file, "w");
+  check (f, LDPL_FATAL, "could not open file");
 
   fprintf (f, "%d\n", num_claimed_files);
 
@@ -297,8 +323,7 @@ write_resolution (void)
     {
       struct plugin_file_info *info = &claimed_files[i];
       struct plugin_symtab *symtab = &info->symtab;
-      struct ld_plugin_symbol *syms = calloc (symtab->nsyms,
-					      sizeof (struct ld_plugin_symbol));
+      struct ld_plugin_symbol *syms = symtab->syms;
       unsigned j;
 
       assert (syms);
@@ -312,7 +337,6 @@ write_resolution (void)
 	  unsigned int resolution = syms[j].resolution;
 	  fprintf (f, "%d %s\n", slot, lto_resolution_str[resolution]);
 	}
-      free (syms);
     }
   fclose (f);
 }
@@ -323,7 +347,7 @@ write_resolution (void)
 static void
 add_output_files (FILE *f)
 {
-  char fname[1000]; /* FIXME: Is this big enough? */
+  char fname[1000]; /* FIXME: Remove this restriction. */
 
   for (;;)
     {
@@ -333,7 +357,7 @@ add_output_files (FILE *f)
 	break;
 
       len = strlen (s);
-      assert (s[len - 1] == '\n');
+      check (s[len - 1] == '\n', LDPL_FATAL, "file name too long");
       s[len - 1] = '\0';
 
       num_output_files++;
@@ -361,16 +385,16 @@ exec_lto_wrapper (char *argv[])
 
   /* Write argv to a file to avoid a command line that is too long. */
   t = asprintf (&at_args, "@%s/arguments", temp_obj_dir_name);
-  assert (t >= 0);
+  check (t >= 0, LDPL_FATAL, "asprintf failed");
 
   args_name = at_args + 1;
   args = fopen (args_name, "w");
-  assert (args);
+  check (args, LDPL_FATAL, "could not open arguments file");
 
   t = writeargv (&argv[1], args);
-  assert (t == 0);
+  check (t == 0, LDPL_FATAL, "could not write arguments");
   t = fclose (args);
-  assert (t == 0);
+  check (t == 0, LDPL_FATAL, "could not close arguments file");
 
   new_argv[0] = argv[0];
   new_argv[1] = at_args;
@@ -386,25 +410,26 @@ exec_lto_wrapper (char *argv[])
 
 
   pex = pex_init (PEX_USE_PIPES, "lto-wrapper", NULL);
-  assert (pex != NULL);
+  check (pex != NULL, LDPL_FATAL, "could not pex_init lto-wrapper");
 
   errmsg = pex_run (pex, 0, new_argv[0], new_argv, NULL, NULL, &t);
-  assert (errmsg == NULL);
-  assert (t == 0);
+  check (errmsg == NULL, LDPL_FATAL, "could not run lto-wrapper");
+  check (t == 0, LDPL_FATAL, "could not run lto-wrapper");
 
   wrapper_output = pex_read_output (pex, 0);
-  assert (wrapper_output);
+  check (wrapper_output, LDPL_FATAL, "could not read lto-wrapper output");
 
   add_output_files (wrapper_output);
 
   t = pex_get_status (pex, 1, &status);
-  assert (t == 1);
-  assert (WIFEXITED (status) && WEXITSTATUS (status) == 0);
+  check (t == 1, LDPL_FATAL, "could not get lto-wrapper exit status");
+  check (WIFEXITED (status) && WEXITSTATUS (status) == 0, LDPL_FATAL,
+         "lto-wrapper failed");
 
   pex_free (pex);
 
   t = unlink (args_name);
-  assert (t == 0);
+  check (t == 0, LDPL_FATAL, "could not unlink arguments file");
   free (at_args);
 }
 
@@ -434,8 +459,6 @@ all_symbols_read_handler (void)
   if (num_claimed_files == 0)
     return LDPS_OK;
 
-  free_1 ();
-
   if (nop)
     {
       use_original_files ();
@@ -447,6 +470,8 @@ all_symbols_read_handler (void)
   assert (lto_wrapper_argv);
 
   write_resolution ();
+
+  free_1 ();
 
   for (i = 0; i < lto_wrapper_num_args; i++)
     *lto_arg_ptr++ = lto_wrapper_argv[i];
@@ -487,8 +512,12 @@ all_symbols_read_handler (void)
 static enum ld_plugin_status
 cleanup_handler (void)
 {
+  /* Note: we cannot use LDPL_FATAL in here as that would produce
+     an infinite loop. */
   int t;
   unsigned i;
+  char *arguments;
+  struct stat buf;
 
   for (i = 0; i < num_claimed_files; i++)
     {
@@ -496,11 +525,23 @@ cleanup_handler (void)
       if (info->temp)
 	{
 	  t = unlink (info->name);
-	  assert (t == 0);
+	  check (t == 0, LDPL_ERROR, "could not unlink temporary file");
 	}
     }
+
+  /* If we are being called from an error handler, it is possible
+     that the arguments file is still exists. */
+  t = asprintf (&arguments, "%s/arguments", temp_obj_dir_name);
+  check (t >= 0, LDPL_ERROR, "asprintf failed");
+  if (stat(arguments, &buf) == 0)
+    {
+      t = unlink (arguments);
+      check (t == 0, LDPL_ERROR, "could not unlink arguments file");
+    }
+  free (arguments);
+
   t = rmdir (temp_obj_dir_name);
-  assert (t == 0);
+  check (t == 0, LDPL_ERROR, "could not remove temporary directory");
 
   free_2 ();
   return LDPS_OK;
@@ -529,13 +570,13 @@ claim_file_handler (const struct ld_plugin_input_file *file, int *claimed)
       char *objname;
       int t = asprintf (&objname, "%s/obj%d.o",
 			temp_obj_dir_name, objnum);
-      assert (t >= 0);
+      check (t >= 0, LDPL_FATAL, "asprintf failed");
       objnum++;
 
       fd = open (objname, O_RDWR | O_CREAT, 0666);
-      assert (fd > 0);
+      check (fd > 0, LDPL_FATAL, "could not open/create temporary file");
       offset = lseek (file->fd, file->offset, SEEK_SET);
-      assert (offset == file->offset);
+      check (offset == file->offset, LDPL_FATAL, "could not seek");
       while (size > 0)
 	{
 	  ssize_t r, written;
@@ -543,7 +584,7 @@ claim_file_handler (const struct ld_plugin_input_file *file, int *claimed)
 	  off_t s = sizeof (buf) < size ? sizeof (buf) : size;
 	  r = read (file->fd, buf, s);
 	  written = write (fd, buf, r);
-	  assert (written = r);
+	  check (written == r, LDPL_FATAL, "could not write to temporary file");
 	  size -= r;
 	}
       lto_file.name = objname;
@@ -573,7 +614,7 @@ claim_file_handler (const struct ld_plugin_input_file *file, int *claimed)
 
   status = add_symbols (file->handle, lto_file.symtab.nsyms,
 			lto_file.symtab.syms);
-  assert (status == LDPS_OK);
+  check (status == LDPS_OK, LDPL_FATAL, "could not add symbols");
 
   *claimed = 1;
   num_claimed_files++;
@@ -588,7 +629,7 @@ claim_file_handler (const struct ld_plugin_input_file *file, int *claimed)
   if (file->offset != 0)
     {
       int t = unlink (lto_file.name);
-      assert (t == 0);
+      check (t == 0, LDPL_FATAL, "could not unlink file");
     }
   free (lto_file.name);
 
@@ -608,6 +649,10 @@ process_option (const char *option)
     debug = 1;
   else if (strcmp (option, "-nop") == 0)
     nop = 1;
+  else if (!strncmp (option, "-resolution=", strlen("-resolution=")))
+    {
+      resolution_file = strdup (option + strlen("-resolution="));
+    }
   else if (!strncmp (option, "-pass-through=", strlen("-pass-through=")))
     {
       num_pass_through_items++;
@@ -636,13 +681,16 @@ onload (struct ld_plugin_tv *tv)
   char *t;
 
   unsigned version = elf_version (EV_CURRENT);
-  assert (version != EV_NONE);
+  check (version != EV_NONE, LDPL_FATAL, "invalid ELF version");
 
   p = tv;
   while (p->tv_tag)
     {
       switch (p->tv_tag)
 	{
+        case LDPT_MESSAGE:
+          message = p->tv_u.tv_message;
+          break;
 	case LDPT_REGISTER_CLAIM_FILE_HOOK:
 	  register_claim_file = p->tv_u.tv_register_claim_file;
 	  break;
@@ -673,22 +721,25 @@ onload (struct ld_plugin_tv *tv)
       p++;
     }
 
-  assert (register_claim_file);
-  assert (add_symbols);
+  check (register_claim_file, LDPL_FATAL, "register_claim_file not found");
+  check (add_symbols, LDPL_FATAL, "add_symbols not found");
   status = register_claim_file (claim_file_handler);
-  assert (status == LDPS_OK);
+  check (status == LDPS_OK, LDPL_FATAL,
+	 "could not register the claim_file callback");
 
   if (register_cleanup)
     {
       status = register_cleanup (cleanup_handler);
-      assert (status == LDPS_OK);
+      check (status == LDPS_OK, LDPL_FATAL,
+	     "could not register the cleanup callback");
     }
 
   if (register_all_symbols_read)
     {
-      assert (get_symbols);
+      check (get_symbols, LDPL_FATAL, "get_symbols not found");
       status = register_all_symbols_read (all_symbols_read_handler);
-      assert (status == LDPS_OK);
+      check (status == LDPS_OK, LDPL_FATAL,
+	     "could not register the all_symbols_read callback");
     }
 
   temp_obj_dir_name = strdup ("tmp_objectsXXXXXX");

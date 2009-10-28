@@ -1138,8 +1138,8 @@ vect_enhance_data_refs_alignment (loop_vec_info loop_vinfo)
   /* While cost model enhancements are expected in the future, the high level
      view of the code at this time is as follows:
 
-     A) If there is an unsupported misaligned access then see if peeling
-        to align this access can make all data references satisfy
+     A) If there is a misaligned access then see if peeling to align
+        this access can make all data references satisfy
         vect_supportable_dr_alignment.  If so, update data structures
         as needed and return true.
 
@@ -1184,7 +1184,7 @@ vect_enhance_data_refs_alignment (loop_vec_info loop_vinfo)
           && DR_GROUP_FIRST_DR (stmt_info) != stmt)
         continue;
 
-      if (!supportable_dr_alignment)
+      if (!aligned_access_p (dr))
         {
 	  do_peeling = vector_alignment_reachable_p (dr);
 	  if (do_peeling)
@@ -2376,7 +2376,9 @@ vect_create_data_ref_ptr (gimple stmt, struct loop *at_loop,
   if (!alias_sets_conflict_p (get_deref_alias_set (vect_ptr),
 			      get_alias_set (DR_REF (dr))))
     {
-      vect_ptr_type = build_pointer_type_for_mode (vectype, ptr_mode, true);
+      vect_ptr_type
+	= build_pointer_type_for_mode (vectype,
+				       TYPE_MODE (vect_ptr_type), true);
       vect_ptr = vect_get_new_vect_var (vect_ptr_type, vect_pointer_var,
 					get_name (base_name));
     }
@@ -2392,7 +2394,8 @@ vect_create_data_ref_ptr (gimple stmt, struct loop *at_loop,
 				      get_alias_set (lhs)))
 	    {
 	      vect_ptr_type
-		= build_pointer_type_for_mode (vectype, ptr_mode, true);
+		= build_pointer_type_for_mode (vectype,
+					       TYPE_MODE (vect_ptr_type), true);
 	      vect_ptr
 		= vect_get_new_vect_var (vect_ptr_type, vect_pointer_var,
 					 get_name (base_name));

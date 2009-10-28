@@ -1193,7 +1193,6 @@ lto_execute_ltrans (char *const *files)
 
 
 typedef struct {
-  struct pointer_set_t *free_list;
   struct pointer_set_t *seen;
 } lto_fixup_data_t;
 
@@ -1528,8 +1527,6 @@ lto_fixup_tree (tree *tp, int *walk_subtrees, void *data)
 		lto_mark_nothrow_fndecl (prevailing);
 	    }
 
-	  pointer_set_insert (fixup_data->free_list, t);
-
 	   /* Also replace t with prevailing defintion.  We don't want to
 	      insert the other defintion in the seen set as we want to
 	      replace all instances of it.  */
@@ -1638,20 +1635,6 @@ lto_fixup_state_aux (void **slot, void *aux)
   return 1;
 }
 
-/* A callback to pointer_set_traverse. Frees the tree pointed by p. Removes
-   from it from the UID -> DECL mapping. */
-
-static bool
-free_decl (const void *p, void *data ATTRIBUTE_UNUSED)
-{
-  const_tree ct = (const_tree) p;
-  tree t = CONST_CAST_TREE (ct);
-
-  lto_symtab_clear_resolution (t);
-
-  return true;
-}
-
 /* Fix the decls from all FILES. Replaces each decl with the corresponding
    prevailing one.  */
 
@@ -1660,11 +1643,9 @@ lto_fixup_decls (struct lto_file_decl_data **files)
 {
   unsigned int i;
   tree decl;
-  struct pointer_set_t *free_list = pointer_set_create ();
   struct pointer_set_t *seen = pointer_set_create ();
   lto_fixup_data_t data;
 
-  data.free_list = free_list;
   data.seen = seen;
   for (i = 0; files[i]; i++)
     {
@@ -1683,8 +1664,6 @@ lto_fixup_decls (struct lto_file_decl_data **files)
 	VEC_replace (tree, lto_global_var_decls, i, decl);
     }
 
-  pointer_set_traverse (free_list, free_decl, NULL);
-  pointer_set_destroy (free_list);
   pointer_set_destroy (seen);
 }
 
@@ -1823,11 +1802,18 @@ read_cgraph_and_symbols (unsigned nfiles, const char **fnames)
   /* Read the callgraph.  */
   input_cgraph ();
 
+  /* Merge global decls.  */
+  lto_symtab_merge_decls ();
+
+  /* Fixup all decls and types and free the type hash tables.  */
+  lto_fixup_decls (all_file_decl_data);
+  free_gimple_type_tables ();
+
   /* Read the IPA summary data.  */
   ipa_read_summaries ();
 
-  /* Merge global decls.  */
-  lto_symtab_merge_decls ();
+  /* Finally merge the cgraph according to the decl merging decisions.  */
+  lto_symtab_merge_cgraph_nodes ();
 
   /* Mark cgraph nodes needed in the merged cgraph
      This normally happens in whole-program pass, but for
@@ -1843,12 +1829,6 @@ read_cgraph_and_symbols (unsigned nfiles, const char **fnames)
         cgraph_mark_needed_node (node);
 
   timevar_push (TV_IPA_LTO_DECL_IO);
-
-  /* Fixup all decls and types.  */
-  lto_fixup_decls (all_file_decl_data);
-
-  /* Free the type hash tables.  */
-  free_gimple_type_tables ();
 
   /* FIXME lto. This loop needs to be changed to use the pass manager to
      call the ipa passes directly.  */

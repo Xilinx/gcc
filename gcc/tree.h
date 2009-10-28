@@ -392,7 +392,12 @@ struct GTY(()) tree_base {
   unsigned packed_flag : 1;
   unsigned user_align : 1;
 
-  unsigned spare : 21;
+  unsigned spare : 13;
+
+  /* This field is only used with type nodes; the only reason it is present
+     in tree_base instead of tree_type is to save space.  The size of the
+     field must be large enough to hold addr_space_t values.  */
+  unsigned address_space : 8;
 
   union tree_ann_d *ann;
 };
@@ -2174,6 +2179,9 @@ extern enum machine_mode vector_type_mode (const_tree);
    the term.  */
 #define TYPE_RESTRICT(NODE) (TYPE_CHECK (NODE)->type.restrict_flag)
 
+/* The address space the type is in.  */
+#define TYPE_ADDR_SPACE(NODE) (TYPE_CHECK (NODE)->base.address_space)
+
 /* There is a TYPE_QUAL value for each type qualifier.  They can be
    combined by bitwise-or to form the complete set of qualifiers for a
    type.  */
@@ -2183,8 +2191,27 @@ extern enum machine_mode vector_type_mode (const_tree);
 #define TYPE_QUAL_VOLATILE 0x2
 #define TYPE_QUAL_RESTRICT 0x4
 
+/* Encode/decode the named memory support as part of the qualifier.  If more
+   than 8 qualifiers are added, these macros need to be adjusted.  */
+#define ENCODE_QUAL_ADDR_SPACE(NUM) ((NUM & 0xFF) << 8)
+#define DECODE_QUAL_ADDR_SPACE(X) (((X) >> 8) & 0xFF)
+
+/* Return all qualifiers except for the address space qualifiers.  */
+#define CLEAR_QUAL_ADDR_SPACE(X) ((X) & ~0xFF00)
+
+/* Only keep the address space out of the qualifiers and discard the other
+   qualifiers.  */
+#define KEEP_QUAL_ADDR_SPACE(X) ((X) & 0xFF00)
+
 /* The set of type qualifiers for this type.  */
 #define TYPE_QUALS(NODE)					\
+  ((TYPE_READONLY (NODE) * TYPE_QUAL_CONST)			\
+   | (TYPE_VOLATILE (NODE) * TYPE_QUAL_VOLATILE)		\
+   | (TYPE_RESTRICT (NODE) * TYPE_QUAL_RESTRICT)		\
+   | (ENCODE_QUAL_ADDR_SPACE (TYPE_ADDR_SPACE (NODE))))
+
+/* The same as TYPE_QUALS without the address space qualifications.  */
+#define TYPE_QUALS_NO_ADDR_SPACE(NODE)				\
   ((TYPE_READONLY (NODE) * TYPE_QUAL_CONST)			\
    | (TYPE_VOLATILE (NODE) * TYPE_QUAL_VOLATILE)		\
    | (TYPE_RESTRICT (NODE) * TYPE_QUAL_RESTRICT))
@@ -4708,6 +4735,7 @@ extern const char *get_name (tree);
 extern bool stdarg_p (tree);
 extern bool prototype_p (tree);
 extern bool auto_var_in_fn_p (const_tree, const_tree);
+extern unsigned int int_or_pointer_precision (const_tree);
 extern tree build_low_bits_mask (tree, unsigned);
 extern tree tree_strip_nop_conversions (tree);
 extern tree tree_strip_sign_nop_conversions (tree);

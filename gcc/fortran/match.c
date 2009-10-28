@@ -2388,58 +2388,6 @@ char_selector:
 }
 
 
-/* Used in gfc_match_allocate to check that a allocation-object and
-   a source-expr are conformable.  This does not catch all possible 
-   cases; in particular a runtime checking is needed.  */
-
-static gfc_try
-conformable_arrays (gfc_expr *e1, gfc_expr *e2)
-{
-  /* First compare rank.  */
-  if (e2->ref && e1->rank != e2->ref->u.ar.as->rank)
-    {
-      gfc_error ("Source-expr at %L must be scalar or have the "
-		 "same rank as the allocate-object at %L",
-		 &e1->where, &e2->where);
-      return FAILURE;
-    }
-
-  if (e1->shape)
-    {
-      int i;
-      mpz_t s;
-
-      mpz_init (s);
-
-      for (i = 0; i < e1->rank; i++)
-	{
-	  if (e2->ref->u.ar.end[i])
-	    {
-	      mpz_set (s, e2->ref->u.ar.end[i]->value.integer);
-	      mpz_sub (s, s, e2->ref->u.ar.start[i]->value.integer);
-	      mpz_add_ui (s, s, 1);
-	    }
-	  else
-	    {
-	      mpz_set (s, e2->ref->u.ar.start[i]->value.integer);
-	    }
-
-	  if (mpz_cmp (e1->shape[i], s) != 0)
-	    {
-	      gfc_error ("Source-expr at %L and allocate-object at %L must "
-			 "have the same shape", &e1->where, &e2->where);
-	      mpz_clear (s);
-   	      return FAILURE;
-	    }
-	}
-
-      mpz_clear (s);
-    }
-
-  return SUCCESS;
-}
-
-
 /* Match an ALLOCATE statement.  */
 
 match
@@ -2620,7 +2568,7 @@ alloc_opt_list:
 	      goto cleanup;
 	    }
 
-	  /* The next 3 conditionals check C631.  */
+	  /* The next 2 conditionals check C631.  */
 	  if (ts.type != BT_UNKNOWN)
 	    {
 	      gfc_error ("SOURCE tag at %L conflicts with the typespec at %L",
@@ -2634,28 +2582,6 @@ alloc_opt_list:
 			 "the allocation-list", &tmp->where);
 	      goto cleanup;
             }
-
-	  gfc_resolve_expr (tmp);
-
-	  if (!gfc_type_compatible (&head->expr->ts, &tmp->ts))
-	    {
-	      gfc_error ("Type of entity at %L is type incompatible with "
-			 "source-expr at %L", &head->expr->where, &tmp->where);
-	      goto cleanup;
-	    }
-
-	  /* Check C633.  */
-	  if (tmp->ts.kind != head->expr->ts.kind)
-	    {
-	      gfc_error ("The allocate-object at %L and the source-expr at %L "
-			 "shall have the same kind type parameter",
-			 &head->expr->where, &tmp->where);
-	      goto cleanup;
-	    }
-
-	  /* Check C632 and restriction following Note 6.18.  */
-	  if (tmp->rank > 0 && conformable_arrays (tmp, head->expr) == FAILURE)
-	    goto cleanup;
 
 	  source = tmp;
 	  saw_source = true;
@@ -3750,7 +3676,10 @@ gfc_match_equivalence (void)
       if (gfc_match_eos () == MATCH_YES)
 	break;
       if (gfc_match_char (',') != MATCH_YES)
-	goto syntax;
+	{
+	  gfc_error ("Expecting a comma in EQUIVALENCE at %C");
+	  goto cleanup;
+	}
     }
 
   return MATCH_YES;
@@ -4044,9 +3973,10 @@ select_type_set_tmp (gfc_typespec *ts)
 
   sprintf (name, "tmp$%s", ts->u.derived->name);
   gfc_get_sym_tree (name, gfc_current_ns, &tmp, false);
-  tmp->n.sym->ts = *ts;
-  tmp->n.sym->attr.referenced = 1;
-  tmp->n.sym->attr.pointer = 1;
+  gfc_add_type (tmp->n.sym, ts, NULL);
+  gfc_set_sym_referenced (tmp->n.sym);
+  gfc_add_pointer (&tmp->n.sym->attr, NULL);
+  gfc_add_flavor (&tmp->n.sym->attr, FL_VARIABLE, name, NULL);
 
   select_type_stack->tmp = tmp;
 }
@@ -4080,6 +4010,7 @@ gfc_match_select_type (void)
 	return MATCH_ERROR;
       expr1->symtree->n.sym->ts = expr2->ts;
       expr1->symtree->n.sym->attr.referenced = 1;
+      expr1->symtree->n.sym->attr.class_ok = 1;
     }
   else
     {

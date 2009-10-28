@@ -385,6 +385,22 @@ print_rtx (const_rtx in_rtx)
 	      fprintf(outfile, " %s:%i", insn_file (in_rtx), insn_line (in_rtx));
 #endif
 	  }
+	else if (i == 6 && GET_CODE (in_rtx) == ASM_OPERANDS)
+	  {
+#ifndef GENERATOR_FILE
+	    fprintf (outfile, " %s:%i",
+		     locator_file (ASM_OPERANDS_SOURCE_LOCATION (in_rtx)),
+		     locator_line (ASM_OPERANDS_SOURCE_LOCATION (in_rtx)));
+#endif
+	  }
+	else if (i == 1 && GET_CODE (in_rtx) == ASM_INPUT)
+	  {
+#ifndef GENERATOR_FILE
+	    fprintf (outfile, " %s:%i",
+		     locator_file (ASM_INPUT_SOURCE_LOCATION (in_rtx)),
+		     locator_line (ASM_INPUT_SOURCE_LOCATION (in_rtx)));
+#endif
+	  }
 	else if (i == 6 && NOTE_P (in_rtx))
 	  {
 	    /* This field is only used for NOTE_INSN_DELETED_LABEL, and
@@ -545,6 +561,9 @@ print_rtx (const_rtx in_rtx)
 
       if (MEM_ALIGN (in_rtx) != 1)
 	fprintf (outfile, " A%u", MEM_ALIGN (in_rtx));
+
+      if (!ADDR_SPACE_GENERIC_P (MEM_ADDR_SPACE (in_rtx)))
+	fprintf (outfile, " AS%u", MEM_ADDR_SPACE (in_rtx));
 
       fputc (']', outfile);
       break;

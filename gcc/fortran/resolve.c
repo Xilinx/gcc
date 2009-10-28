@@ -5161,8 +5161,6 @@ check_class_members (gfc_symbol *derived)
 		= gfc_get_class_esym_list();
       list_e->value.function.class_esym->next = etmp;
       list_e->value.function.class_esym->derived = derived;
-      list_e->value.function.class_esym->class_object
-		= class_object;
       list_e->value.function.class_esym->esym
 		= e->value.function.esym;
     }
@@ -5206,19 +5204,120 @@ resolve_class_esym (gfc_expr *e)
 }
 
 
+/* Generate an expression for the vindex, given the reference to
+   the class of the final expression (class_ref), the base of the
+   full reference list (new_ref), the declared type and the class
+   object (st).  */
+static gfc_expr*
+vindex_expr (gfc_ref *class_ref, gfc_ref *new_ref,
+	     gfc_symbol *declared, gfc_symtree *st)
+{
+  gfc_expr *vindex;
+  gfc_ref *ref;
+
+  /* Build an expression for the correct vindex; ie. that of the last
+     CLASS reference.  */
+  ref = gfc_get_ref();
+  ref->type = REF_COMPONENT;
+  ref->u.c.component = declared->components->next;
+  ref->u.c.sym = declared;
+  ref->next = NULL;
+  if (class_ref)
+    {
+      class_ref->next = ref;
+    }
+  else
+    {
+      gfc_free_ref_list (new_ref);
+      new_ref = ref;
+    }
+  vindex = gfc_get_expr ();
+  vindex->expr_type = EXPR_VARIABLE;
+  vindex->symtree = st;
+  vindex->symtree->n.sym->refs++;
+  vindex->ts = ref->u.c.component->ts;
+  vindex->ref = new_ref;
+
+  return vindex;
+}
+
+
+/* Get the ultimate declared type from an expression.  In addition,
+   return the last class/derived type reference and the copy of the
+   reference list.  */
+static gfc_symbol*
+get_declared_from_expr (gfc_ref **class_ref, gfc_ref **new_ref,
+			gfc_expr *e)
+{
+  gfc_symbol *declared;
+  gfc_ref *ref;
+
+  declared = NULL;
+  *class_ref = NULL;
+  *new_ref = gfc_copy_ref (e->ref);
+  for (ref = *new_ref; ref; ref = ref->next)
+    {
+      if (ref->type != REF_COMPONENT)
+	continue;
+
+      if (ref->u.c.component->ts.type == BT_CLASS
+	    || ref->u.c.component->ts.type == BT_DERIVED)
+	{
+	  declared = ref->u.c.component->ts.u.derived;
+	  *class_ref = ref;
+	}
+    }
+
+  if (declared == NULL)
+    declared = e->symtree->n.sym->ts.u.derived;
+
+  return declared;
+}
+
+
+/* Resolve the argument expressions so that any arguments expressions
+   that include class methods are resolved before the current call.
+   This is necessary because of the static variables used in CLASS
+   method resolution.  */
+static void
+resolve_arg_exprs (gfc_actual_arglist *arg)
+{ 
+  /* Resolve the actual arglist expressions.  */
+  for (; arg; arg = arg->next)
+    {
+      if (arg->expr)
+	gfc_resolve_expr (arg->expr);
+    }
+}
+
+
 /* Resolve a CLASS typebound function, or 'method'.  */
 static gfc_try
 resolve_class_compcall (gfc_expr* e)
 {
-  gfc_symbol *derived;
+  gfc_symbol *derived, *declared;
+  gfc_ref *new_ref;
+  gfc_ref *class_ref;
+  gfc_symtree *st;
 
-  class_object = e->symtree->n.sym;
+  st = e->symtree;
+  class_object = st->n.sym;
 
-  /* Get the CLASS type.  */
-  derived = e->symtree->n.sym->ts.u.derived;
+  /* Get the CLASS declared type.  */
+  declared = get_declared_from_expr (&class_ref, &new_ref, e);
+
+  /* Weed out cases of the ultimate component being a derived type.  */
+  if (class_ref && class_ref->u.c.component->ts.type == BT_DERIVED)
+    {
+      gfc_free_ref_list (new_ref);
+      return resolve_compcall (e, true);
+    }
+
+  /* Resolve the argument expressions,  */
+  resolve_arg_exprs (e->value.function.actual); 
 
   /* Get the data component, which is of the declared type.  */
-  derived = derived->components->ts.u.derived;
+  derived = declared->components->ts.u.derived;
 
   /* Resolve the function call for each member of the class.  */
   class_try = SUCCESS;
@@ -5238,6 +5337,12 @@ resolve_class_compcall (gfc_expr* e)
 
   resolve_class_esym (e);
 
+  /* More than one typebound procedure so transmit an expression for
+     the vindex as the selector.  */
+  if (e->value.function.class_esym != NULL)
+    e->value.function.class_esym->vindex
+		= vindex_expr (class_ref, new_ref, declared, st);
+
   return class_try;
 }
 
@@ -5245,15 +5350,29 @@ resolve_class_compcall (gfc_expr* e)
 static gfc_try
 resolve_class_typebound_call (gfc_code *code)
 {
-  gfc_symbol *derived;
+  gfc_symbol *derived, *declared;
+  gfc_ref *new_ref;
+  gfc_ref *class_ref;
+  gfc_symtree *st;
 
-  class_object = code->expr1->symtree->n.sym;
+  st = code->expr1->symtree;
+  class_object = st->n.sym;
 
-  /* Get the CLASS type.  */
-  derived = code->expr1->symtree->n.sym->ts.u.derived;
+  /* Get the CLASS declared type.  */
+  declared = get_declared_from_expr (&class_ref, &new_ref, code->expr1);
+
+  /* Weed out cases of the ultimate component being a derived type.  */
+  if (class_ref && class_ref->u.c.component->ts.type == BT_DERIVED)
+    {
+      gfc_free_ref_list (new_ref);
+      return resolve_typebound_call (code);
+    } 
+
+  /* Resolve the argument expressions,  */
+  resolve_arg_exprs (code->expr1->value.compcall.actual); 
 
   /* Get the data component, which is of the declared type.  */
-  derived = derived->components->ts.u.derived;
+  derived = declared->components->ts.u.derived;
 
   class_try = SUCCESS;
   fcn_flag = false;
@@ -5272,6 +5391,12 @@ resolve_class_typebound_call (gfc_code *code)
   gfc_free_expr (list_e);
 
   resolve_class_esym (code->expr1);
+
+  /* More than one typebound procedure so transmit an expression for
+     the vindex as the selector.  */
+  if (code->expr1->value.function.class_esym != NULL)
+    code->expr1->value.function.class_esym->vindex
+		= vindex_expr (class_ref, new_ref, declared, st);
 
   return class_try;
 }
@@ -5833,6 +5958,58 @@ gfc_expr_to_initialize (gfc_expr *e)
 }
 
 
+/* Used in resolve_allocate_expr to check that a allocation-object and
+   a source-expr are conformable.  This does not catch all possible 
+   cases; in particular a runtime checking is needed.  */
+
+static gfc_try
+conformable_arrays (gfc_expr *e1, gfc_expr *e2)
+{
+  /* First compare rank.  */
+  if (e2->ref && e1->rank != e2->ref->u.ar.as->rank)
+    {
+      gfc_error ("Source-expr at %L must be scalar or have the "
+		 "same rank as the allocate-object at %L",
+		 &e1->where, &e2->where);
+      return FAILURE;
+    }
+
+  if (e1->shape)
+    {
+      int i;
+      mpz_t s;
+
+      mpz_init (s);
+
+      for (i = 0; i < e1->rank; i++)
+	{
+	  if (e2->ref->u.ar.end[i])
+	    {
+	      mpz_set (s, e2->ref->u.ar.end[i]->value.integer);
+	      mpz_sub (s, s, e2->ref->u.ar.start[i]->value.integer);
+	      mpz_add_ui (s, s, 1);
+	    }
+	  else
+	    {
+	      mpz_set (s, e2->ref->u.ar.start[i]->value.integer);
+	    }
+
+	  if (mpz_cmp (e1->shape[i], s) != 0)
+	    {
+	      gfc_error ("Source-expr at %L and allocate-object at %L must "
+			 "have the same shape", &e1->where, &e2->where);
+	      mpz_clear (s);
+   	      return FAILURE;
+	    }
+	}
+
+      mpz_clear (s);
+    }
+
+  return SUCCESS;
+}
+
+
 /* Resolve the expression in an ALLOCATE statement, doing the additional
    checks to see whether the expression is OK or not.  The expression must
    have a trailing array reference that gives the size of the array.  */
@@ -5932,7 +6109,32 @@ resolve_allocate_expr (gfc_expr *e, gfc_code *code)
       return FAILURE;
     }
 
-  if (is_abstract && !code->expr3 && code->ext.alloc.ts.type == BT_UNKNOWN)
+  /* Some checks for the SOURCE tag.  */
+  if (code->expr3)
+    {
+      /* Check F03:C631.  */
+      if (!gfc_type_compatible (&e->ts, &code->expr3->ts))
+	{
+	  gfc_error ("Type of entity at %L is type incompatible with "
+		      "source-expr at %L", &e->where, &code->expr3->where);
+	  return FAILURE;
+	}
+
+      /* Check F03:C632 and restriction following Note 6.18.  */
+      if (code->expr3->rank > 0
+	  && conformable_arrays (code->expr3, e) == FAILURE)
+	return FAILURE;
+
+      /* Check F03:C633.  */
+      if (code->expr3->ts.kind != e->ts.kind)
+	{
+	  gfc_error ("The allocate-object at %L and the source-expr at %L "
+		      "shall have the same kind type parameter",
+		      &e->where, &code->expr3->where);
+	  return FAILURE;
+	}
+    }
+  else if (is_abstract&& code->ext.alloc.ts.type == BT_UNKNOWN)
     {
       gcc_assert (e->ts.type == BT_CLASS);
       gfc_error ("Allocating %s of ABSTRACT base type at %L requires a "
@@ -7526,6 +7728,14 @@ resolve_ordinary_assign (gfc_code *code, gfc_namespace *ns)
 	}
     }
 
+  /* F03:7.4.1.2.  */
+  if (lhs->ts.type == BT_CLASS)
+    {
+      gfc_error ("Variable must not be polymorphic in assignment at %L",
+		 &lhs->where);
+      return false;
+    }
+
   gfc_check_assign (lhs, rhs, 1);
   return false;
 }
@@ -7599,6 +7809,10 @@ resolve_code (gfc_code *code, gfc_namespace *ns)
       forall_flag = forall_save;
 
       if (gfc_resolve_expr (code->expr2) == FAILURE)
+	t = FAILURE;
+
+      if (code->op == EXEC_ALLOCATE
+	  && gfc_resolve_expr (code->expr3) == FAILURE)
 	t = FAILURE;
 
       switch (code->op)
@@ -8530,9 +8744,8 @@ resolve_fl_variable_derived (gfc_symbol *sym, int no_init_flag)
 	}
 
       /* C509.  */
-      if (!(sym->attr.dummy || sym->attr.allocatable || sym->attr.pointer
-	      || sym->ts.u.derived->components->attr.allocatable
-	      || sym->ts.u.derived->components->attr.pointer))
+      /* Assume that use associated symbols were checked in the module ns.  */ 
+      if (!sym->attr.class_ok && !sym->attr.use_assoc)
 	{
 	  gfc_error ("CLASS variable '%s' at %L must be dummy, allocatable "
 		     "or pointer", sym->name, &sym->declared_at);
@@ -11921,7 +12134,11 @@ resolve_codes (gfc_namespace *ns)
     resolve_codes (n);
 
   gfc_current_ns = ns;
-  cs_base = NULL;
+
+  /* Don't clear 'cs_base' if this is the namespace of a BLOCK construct.  */
+  if (!(ns->proc_name && ns->proc_name->attr.flavor == FL_LABEL))
+    cs_base = NULL;
+
   /* Set to an out of range value.  */
   current_entry_id = -1;
 
