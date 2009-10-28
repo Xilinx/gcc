@@ -1,5 +1,9 @@
 2009-09-21  Jeff Law <law@redhat.com>
 
+	* ira-reload.c (localize_pseudos): Add new argument to call to
+	setup_reg_classes.
+	(emit_localizing_stores): Remove unused variable.
+
 	* NOTES: New file.
 
 	* ira-reload.c: New file.
