@@ -1,4 +1,14 @@
 2009-10-28  Basile Starynkevitch  <basile@starynkevitch.net>
+	* testsuite/melt/tletrec.melt: added new file.
+	* melt/warmelt-macro.melt: mexpand_letrec done...
+	* melt/warmelt-normal.melt: added class_normal_constructor_binding
+	class_normal_constructed_tuple_binding
+	class_normal_constructed_pair_binding
+	class_normal_constructed_list_binding
+	class_normal_constructed_lambda_binding
+	class_normal_constructed_instance_binding .... should add more for
+	letrec...
+2009-10-28  Basile Starynkevitch  <basile@starynkevitch.net>
 	[Begin adding letrec, tuple, list, constructs....]
 	* melt/warmelt-first.melt: added class_letrec_binding
 	* melt/warmelt-macro.melt: renamed class_sourcepattern* as

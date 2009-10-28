@@ -4106,6 +4106,7 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
 	      (foreach_in_multiple
 	       (recbindtup)
 	       (curbindexpr :long bindix)
+	       (debug_msg curbindexpr "mexpand_letrec firstloop curbindexpr")
 	       (if (is_not_a curbindexpr class_sexpr)
 		   ;; error message already given
 		   (return))
@@ -4138,18 +4139,22 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
 		 (if (pair_tail curpair)
 		     (error_plain curloc "invalid LETREC binding - more than two components"))
 		 ))
+	      (debug_msg recsexprtup "mexpand_letrec recsexprtup after firstloop")
+	      (debug_msg vartup "mexpand_letrec vartup after firstloop")
+;;;
 	      ;; second loop to fill the newenv with empty letrec bindings
 	      (let ( (envmap (get_field :env_bind newenv)) ;; to ensure no repeated variable in letrec
 		     )
 		(foreach_in_multiple
 		 (vartup)
 		 (curvar :long varix)
+		 (debug_msg curvar "mexpand_letrec second loop curvar")
 		 (if (mapobject_get envmap curvar)
 		     (error_strv loc "repeated variable in LETREC binding"
 				 (get_field :named_name curvar)))
 ;;; make the binding
 		 (let ( (curbind (instance class_letrec_binding
-					   :binder vartup
+					   :binder curvar
 					   :letbind_type ctype_value
 					   :letbind_expr () ;filled later
 					   )) 
@@ -4157,6 +4162,8 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
 		   (put_env newenv curbind)
 		   (multiple_put_nth bindtup varix curbind)
 		   )))
+	      (debug_msg bindtup "mexpand_letrec bindtup after secondloop")
+;;;
 	      ;; third loop to expand the bound expressions which should be recursively constructible
 	      (foreach_in_multiple
 	       (recsexprtup)
@@ -4172,13 +4179,23 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
 		       (return)))
 		 (put_fields curbind :letbind_expr curexp)
 		 (multiple_put_nth exprtup expix curexp)
-		 ))
+		 (let ( (sbind
+			 (instance class_source_letrec_binding
+				   :loca_location (or (get_field :loca_location curexp) loc)
+				   :sletb_type ctype_value
+				   :sletb_binder (multiple_nth vartup expix)
+				   :sletb_expr curexp
+				   )
+			 ) )
+		   (multiple_put_nth srcbindtup expix sbind)
+		   )))
+	      (debug_msg exprtup "mexpand_letrec exprtup after thirdloop")
 	      )		;end let recbindtup when bindexpr is an s-expr
 	  (error_plain loc "missing letbinding-s in LETREC"_))
       )
+    (debug_msg srcbindtup "mexpand_letrec srcbindtup")
     (setq bodytup (pairlist_to_multiple restpair discr_multiple 
 					(lambda (e) (macroexpand_1 e newenv mexpander))))
-    (compile_warning "should fill the srcbindtup")
     (let ( (letr
 	    (instance class_source_letrec
 		      :loca_location loc

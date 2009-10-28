@@ -236,6 +236,52 @@
 	   ;;;; see file warmelt-normatch.melt
 ))
 
+;;;;;;;;;;;;;;;;
+(defclass class_normal_constructor_binding
+  :doc #{The internal $CLASS_NORMAL_CONSTRUCTOR_BINDING is the common
+super-class of constructor bindings in LETREC... Field $NCONSB_LOC
+gives the optional location, and field $NCONSB_DISCR gives the normalized discriminant.}#
+  :super class_any_binding
+  :fields (nconsb_loc nconsb_discr)
+)
+
+(defclass class_normal_constructed_tuple_binding
+  :doc #{The internal $CLASS_NORMAL_CONSTRUCTED_TUPLE_BINDING is the
+class of tuple constructor bindings. Field $NTUPB_COMP gives the tuple
+of initial normalized components.}#
+  :super class_normal_constructor_binding
+  :fields (ntupb_comp))
+
+(defclass class_normal_constructed_pair_binding
+  :doc #{The internal $CLASS_NORMAL_CONSTRUCTED_PAIR_BINDING is the
+  class of pair constructor bindings. Field $NPAIRB_HEAD gives the
+  normalized head, and $NPAIRB_TAIL gives the normalized tail.}#
+  :super class_normal_constructor_binding
+  :fields (npairb_head npairb_tail))
+
+(defclass class_normal_constructed_list_binding
+  :doc #{The internal $CLASS_NORMAL_CONSTRUCTED_LIST_BINDING is the
+class of list constructor bindings. Field $NLISTB_FIRST gives the
+initial normalized first pair, and field $NLISTB_LAST gives the last
+one.}#
+  :super  class_normal_constructor_binding
+  :fields (nlistb_first nlistb_last))
+
+(compile_warning "think about class_normal_constructed_lambda_binding")
+(defclass class_normal_constructed_lambda_binding
+  :doc #{The internal $CLASS_NORMAL_CONSTRUCTED_LAMBDA_BINDING is the
+class of lambda constructor bindings. Field $NLAMBDAB_ ....}#
+  :super  class_normal_constructor_binding
+  :fields (nlambdab_))
+
+(defclass class_normal_constructed_instance_binding
+  :doc #{The internal $CLASS_NORMAL_CONSTRUCTED_INSTANCE_BINDING is
+the class of instance constructor bindings. Field $NINSTB_SLOTS is the
+tuple of the normalized slots.}#
+  :super  class_normal_constructor_binding
+  :fields (ninstb_slots))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; procedures
 (defclass class_nrep_anyproc
   :super class_nrep
@@ -463,6 +509,12 @@
 
 ;;; export all the normalized representations classes
 (export_class ;; normal representations classes in alphabetical order
+ class_normal_constructor_binding
+ class_normal_constructed_tuple_binding
+ class_normal_constructed_pair_binding
+ class_normal_constructed_list_binding
+ class_normal_constructed_lambda_binding
+ class_normal_constructed_instance_binding
  class_nrep
  class_nrep_anyproc
  class_nrep_apply
@@ -3122,29 +3174,23 @@
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
   (debug_msg recv "normexp_tuple recv")
   (let ( (sloc (unsafe_get_field :loca_location recv))
+	 (sargs (unsafe_get_field :sargop_args recv))
 	 )
-    (compile_warning "normexp_tuple incomplete")
-    (error_plain sloc "unimplemented TUPLE normalization")
-    (assert_msg "@$@unimplemented TUPLE" ())
-    ))
+    (multicall
+     (nargs nbindings)
+     (normalize_tuple sargs env ncx sloc)
+     (debug_msg nargs "normexp_tuple nargs")
+     (debug_msg nbindings "normexp_tuple nbindings")
+     ;; insght: normalize (tuple x1 x2) exactly as 
+     ;; as an anonymous letrec
+     (compile_warning "normexp_tuple incomplete")
+     (error_plain sloc "unimplemented TUPLE normalization")
+     (assert_msg "@$@unimplemented TUPLE" ())
+     )))
 (install_method class_source_tuple normal_exp normexp_tuple)
 
 ;;;;;;;;;;;;;;;;
 
-(defun normexp_tuple (recv env ncx psloc)
-  (assert_msg "check tuple recv" (is_a recv class_source_tuple))
-  (assert_msg "check env" (is_a env class_environment))
-  (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (debug_msg recv "normexp_tuple recv")
-  (let ( (sloc (unsafe_get_field :loca_location recv))
-	 )
-    (compile_warning "normexp_tuple incomplete")
-    (error_plain sloc "unimplemented TUPLE normalization")
-    (assert_msg "@$@unimplemented TUPLE" ())
-    ))
-(install_method class_source_tuple normal_exp normexp_tuple)
-
-;;;;;;;;;;;;;;;;
 
 (defun normexp_list (recv env ncx psloc)
   (assert_msg "check list recv" (is_a recv class_source_list))
@@ -3152,6 +3198,7 @@
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
   (debug_msg recv "normexp_list recv")
   (let ( (sloc (unsafe_get_field :loca_location recv))
+	 (sargs (unsafe_get_field :sargop_args recv))
 	 )
     (compile_warning "normexp_list incomplete")
     (error_plain sloc "unimplemented LIST normalization")
