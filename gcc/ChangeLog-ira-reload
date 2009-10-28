@@ -1,3 +1,8 @@
+2009-10-28  Jeff Law <law@redhat.com>
+
+	* ira-reload.c (ira_reload): Clear REG_N_REFS and REG_N_SETS for
+	localized pseudos.
+
 2009-10-22  Jeff Law <law@redhat.com>
 
 	* reload1.c (finish_spills): Also try to re-allocate pseudos

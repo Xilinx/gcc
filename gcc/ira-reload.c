@@ -885,7 +885,11 @@ ira_reload (void)
 	 after localizing in all blocks rather than in each block.  */
       EXECUTE_IF_SET_IN_BITMAP (pseudos_to_localize,
 				FIRST_PSEUDO_REGISTER, i, bi)
-	remove_from_all_conflicts (ira_regno_allocno_map[i]);
+	{
+	  remove_from_all_conflicts (ira_regno_allocno_map[i]);
+	  SET_REG_N_REFS (i, 0);
+	  SET_REG_N_SETS (i, 0);
+	}
 
       /* We may have allocated additional pseudos during spilling, so update
          max_regno.  ?!? Updating max_regno should really occur when we
