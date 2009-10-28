@@ -2800,6 +2800,40 @@ check_allocno_creation (void)
 }
 #endif
 
+static void
+update_conflict_hard_reg_costs (void)
+{
+  ira_allocno_t a;
+  ira_allocno_iterator ai;
+  int i, index, min;
+
+  FOR_EACH_ALLOCNO (a, ai)
+    {
+      enum reg_class cover_class = ALLOCNO_COVER_CLASS (a);
+      enum reg_class pref = reg_preferred_class (ALLOCNO_REGNO (a));
+
+      if (reg_class_size[pref] != 1)
+	continue;
+      index = (ira_class_hard_reg_index[cover_class]
+	       [ira_class_hard_regs[pref][0]]);
+      if (index < 0)
+	continue;
+      if (ALLOCNO_CONFLICT_HARD_REG_COSTS (a) == NULL)
+	continue;
+      min = INT_MAX;
+      for (i = ira_class_hard_regs_num[cover_class] - 1; i >= 0; i--)
+	if (ALLOCNO_HARD_REG_COSTS (a)[i] > ALLOCNO_COVER_CLASS_COST (a)
+	    && min > ALLOCNO_HARD_REG_COSTS (a)[i])
+	  min = ALLOCNO_HARD_REG_COSTS (a)[i];
+      if (min == INT_MAX)
+	continue;
+      ira_allocate_and_set_costs (&ALLOCNO_CONFLICT_HARD_REG_COSTS (a),
+				  cover_class, 0);
+      ALLOCNO_CONFLICT_HARD_REG_COSTS (a)[index]
+	-= min - ALLOCNO_COVER_CLASS_COST (a);
+    }
+}
+
 /* Create a internal representation (IR) for IRA (allocnos, copies,
    loop tree nodes).  If LOOPS_P is FALSE the nodes corresponding to
    the loops (except the root which corresponds the all function) and
@@ -2839,6 +2873,7 @@ ira_build (bool loops_p)
   sort_conflict_id_allocno_map ();
   setup_min_max_conflict_allocno_ids ();
   ira_build_conflicts ();
+  update_conflict_hard_reg_costs ();
   if (! ira_conflicts_p)
     {
       ira_allocno_t a;

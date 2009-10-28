@@ -1,5 +1,9 @@
 2009-10-28  Jeff Law <law@redhat.com>
 
+	2009-10-22  Vladimir Makarov <vmakarov@redhat.com>
+	* ira-build.c (update_conflict_hard_reg_costs): New.
+	(ira_build): Call update_conflict_hard_reg_costs.
+
 	* ira-reload.c (ira_reload): Clear REG_N_REFS and REG_N_SETS for
 	localized pseudos.
 
