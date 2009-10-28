@@ -1,4 +1,7 @@
 2009-09-18  Jeff Law <law@redhat.com>
+	
+	* ira.c (expand_reg_info): No longer static.
+	* ira-int.h (expand_reg_info): Declare.
 
 	* ira-build.c (remove_from_all_conflicts): New function.
 	(remove_allocno_conflicts): New function.

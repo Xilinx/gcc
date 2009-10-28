@@ -1853,7 +1853,7 @@ setup_preferred_alternate_classes_for_new_pseudos (int start)
 
 /* Regional allocation can create new pseudo-registers.  This function
    expands some arrays for pseudo-registers.  */
-static void
+void
 expand_reg_info (int old_size)
 {
   int i;

@@ -813,6 +813,7 @@ extern void ira_print_disposition (FILE *);
 extern void ira_debug_disposition (void);
 extern void ira_debug_class_cover (void);
 extern void ira_init_register_move_cost (enum machine_mode);
+extern void expand_reg_info (int);
 
 /* The length of the two following arrays.  */
 extern int ira_reg_equiv_len;
