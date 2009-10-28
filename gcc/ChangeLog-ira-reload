@@ -1,3 +1,14 @@
+2009-09-30  Jeff Law <law@redhat.com>
+
+	* ira-reload.c (uses_before_set): Remove bitmap.
+	(identify_singleton_uses): Corresponding changes.
+	(localize_pseudos): Likewise.
+
+	* ira-reload.c (emit_localizing_stores): Return whether or not the
+	current insn needs to be rescanned by DF analyzer.
+	Attempt to replace the pseudo with its equivalent memory.
+	(localize_pseudos): Rescan as needed after emit_localizing_stores.
+
 2009-09-25  Jeff Law <law@redhat.com>
 
 	* ira-reload.c (identify_singleton_uses): Twiddles for using DF rather

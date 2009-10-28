@@ -49,7 +49,6 @@ along with GCC; see the file COPYING3.  If not see
 static bitmap pseudos_to_localize;
 static bitmap regs_to_load;
 static bitmap regs_to_store;
-static bitmap uses_before_set;
 static int *pseudo_nuses;
 static int *pseudo_nsets;
 static rtx *reg_map;
@@ -134,14 +133,7 @@ identify_singleton_uses (rtx use)
     return;
 
   if (bitmap_bit_p (pseudos_to_localize, REGNO (use)))
-    {
-      /* If we have seen a set of this pseudo, then note that there
-         are uses prior to the set.  */
-      if (pseudo_nsets[REGNO (use)])
-	bitmap_set_bit (uses_before_set, REGNO (use));
-      pseudo_nuses[REGNO (use)]++;
-      
-    }
+    pseudo_nuses[REGNO (use)]++;
 }
 
 /* Count assignments to DEST (into pseudo_nsets) if DEST is a register marked
@@ -273,10 +265,11 @@ rename_sets (rtx dest, rtx insn)
 /* Store each pseudo set by the current insn (passed in DATA) that is
    marked for localizing into memory after INSN.  */
 
-static void
+static int
 emit_localizing_stores (rtx dest, rtx insn)
 {
   unsigned int regno;
+  int retval = 0;
   rtx insns;
   rtx orig = dest;
 
@@ -285,19 +278,23 @@ emit_localizing_stores (rtx dest, rtx insn)
 
   /* If the output isn't a register, then there's nothing to do.  */
   if (GET_CODE (dest) != REG)
-    return;
+    return retval;
 
   regno = REGNO (dest);
 
   /* If the register isn't marked for localization, then there's nothing
      to do.  */
   if (! bitmap_bit_p (pseudos_to_localize, regno))
-    return;
+    return retval;
 
   /* DEST is marked for spilling, if we have not emitted a spill store yet for
      DEST, then do so now.  Note we do not change INSN at this time.  */
   if (bitmap_bit_p (regs_to_store, regno))
     {
+      int nuses = pseudo_nuses[REGNO (dest)];
+      int nsets = pseudo_nsets[REGNO (dest)];
+      int occurrences = count_occurrences (PATTERN (insn), dest, 0);
+
       /* We must copy the memory location to avoid incorrect RTL sharing.  */
       rtx mem = copy_rtx (reg_equiv_memory_loc[regno]);
 
@@ -305,27 +302,56 @@ emit_localizing_stores (rtx dest, rtx insn)
          store it again.  */
       bitmap_clear_bit (regs_to_store, regno);
 
-      start_sequence ();
-      emit_move_insn (mem, dest);
-      insns = get_insns();
-      end_sequence ();
-
-      /* If the pseudo is being set from its equivalent memory location,
-         then we don't need to store it back.  */
-      if (NEXT_INSN (insns) == 0
-          && single_set (insns)
-          && single_set (insn)
-          && rtx_equal_p (SET_SRC (single_set (insn)),
-			  SET_DEST (single_set (insns))))
-	;
+      /* validate_replace_rtx internally calls df_insn_rescan, which is
+	 unsafe as our caller is iterating over the existing DF info.  So
+	 we have to turn off insn rescanning temporarily.  */
+      df_set_flags (DF_NO_INSN_RESCAN);
+      /* If this insn both uses and sets a pseudo we want to localize and
+	 contains all the uses and sets, then try to replace the pseudo
+	 with its equivalent memory location.  */
+      if (nuses
+	  && nsets == 1
+	  && occurrences == nuses
+	  && validate_replace_rtx (dest, mem, insn))
+	{
+	  df_clear_flags (DF_NO_INSN_RESCAN);
+	  retval = 1;
+	}
+      /* Similarly if this insn sets a pseudo we want to localize and
+	 there are no uses, then try to replace the pseudo with its
+	 equivalent memory location.  */
+      else if (nuses == 0
+	  && nsets == 1
+	  && validate_replace_rtx (dest, mem, insn))
+	{
+	  df_clear_flags (DF_NO_INSN_RESCAN);
+	  retval = 1;
+	}
       else
 	{
-	  rtx temp;
-	  /* Inform the DF framework about the new insns.  */
-	  for (temp = insns; temp; temp = NEXT_INSN (temp))
-	    df_insn_rescan (temp);
+	  df_clear_flags (DF_NO_INSN_RESCAN);
+          start_sequence ();
+          emit_move_insn (mem, dest);
+          insns = get_insns();
+          end_sequence ();
 
-	  emit_insn_after_noloc (insns, insn, NULL);
+          /* If the pseudo is being set from its equivalent memory location,
+             then we don't need to store it back.  */
+          if (NEXT_INSN (insns) == 0
+              && single_set (insns)
+              && single_set (insn)
+              && rtx_equal_p (SET_SRC (single_set (insn)),
+			  SET_DEST (single_set (insns))))
+	    ;
+          else
+	    {
+	      rtx temp;
+	      /* Inform the DF framework about the new insns.  */
+	      for (temp = insns; temp; temp = NEXT_INSN (temp))
+	        df_insn_rescan (temp);
+
+	      emit_insn_after_noloc (insns, insn, NULL);
+	    }
 	}
     }
 
@@ -339,6 +365,7 @@ emit_localizing_stores (rtx dest, rtx insn)
     bitmap_set_bit (regs_to_load, regno);
   else
     bitmap_clear_bit (regs_to_load, REGNO (dest));
+  return retval;
 }
 
 static void
@@ -579,7 +606,6 @@ localize_pseudos (basic_block bb, bitmap pseudos_to_localize)
 
   regs_to_store = BITMAP_ALLOC (NULL);
   regs_to_load = BITMAP_ALLOC (NULL);
-  uses_before_set = BITMAP_ALLOC (NULL);
   pseudo_nuses = (int *) xmalloc (max_reg_num () * sizeof (int));
   memset (pseudo_nuses, 0, max_reg_num () * sizeof (int));
   pseudo_nsets = (int *) xmalloc (max_reg_num () * sizeof (int));
@@ -616,12 +642,19 @@ localize_pseudos (basic_block bb, bitmap pseudos_to_localize)
   FOR_BB_INSNS_REVERSE (bb, insn)
     {
       df_ref *def_rec, *use_rec;
+      int need_rescan;
 
       if (!NONDEBUG_INSN_P (insn))
 	continue;
 
+      need_rescan = 0;
       for (def_rec = DF_INSN_DEFS (insn); *def_rec; def_rec++)
-	emit_localizing_stores (DF_REF_REG (*def_rec), insn);
+	need_rescan |= emit_localizing_stores (DF_REF_REG (*def_rec), insn);
+
+      /* It is not safe to defer scanning any further as emit_localizing_stores
+	 can change uses and defs.  */
+      if (need_rescan)
+	df_insn_rescan (insn);
 
       for (use_rec = DF_INSN_USES (insn); *use_rec; use_rec++)
 	collect_loads (DF_REF_REG (*use_rec));
@@ -760,8 +793,6 @@ localize_pseudos (basic_block bb, bitmap pseudos_to_localize)
   regs_to_store = NULL;
   BITMAP_FREE (regs_to_load);
   regs_to_load = NULL;
-  BITMAP_FREE (uses_before_set);
-  uses_before_set = NULL;
   free (pseudo_nuses);
   pseudo_nuses = NULL;
   free (pseudo_nsets);
