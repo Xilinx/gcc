@@ -1268,18 +1268,16 @@ duplicate_array (void *src, size_t n)
   return p;
 }
 
-/* Like duplicate_array byt in GGC memory.  */
-
-static void *
-duplicate_ggc_array (void *src, size_t n)
+static struct ipa_jump_func *
+duplicate_ipa_jump_func_array (const struct ipa_jump_func * src, size_t n)
 {
-  void *p;
+  struct ipa_jump_func *p;
 
   if (!src)
     return NULL;
 
-  p = ggc_alloc (n);
-  memcpy (p, src, n);
+  p = ggc_alloc_vec_ipa_jump_func(n);
+  memcpy (p, src, n * sizeof (struct ipa_jump_func));
   return p;
 }
 
@@ -1299,9 +1297,8 @@ ipa_edge_duplication_hook (struct cgraph_edge *src, struct cgraph_edge *dst,
 
   arg_count = ipa_get_cs_argument_count (old_args);
   ipa_set_cs_argument_count (new_args, arg_count);
-  new_args->jump_functions = (struct ipa_jump_func *)
-    duplicate_ggc_array (old_args->jump_functions,
-		         sizeof (struct ipa_jump_func) * arg_count);
+  new_args->jump_functions =
+    duplicate_ipa_jump_func_array (old_args->jump_functions, arg_count);
 }
 
 /* Hook that is called by cgraph.c when a node is duplicated.  */

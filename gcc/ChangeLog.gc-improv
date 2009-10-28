@@ -1,3 +1,13 @@
+2009-10-28  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* ipa-prop.c (duplicate_ggc_array): Rename to
+	duplicate_ipa_jump_func_array.  Use typed GC allocation.
+	* lto-streamer-in.c (unpack_ts_real_cst_value_fields): Use typed
+	GC allocation.
+	* ipa.c (cgraph_node_set_new): Likewise.
+	(cgraph_node_set_add): Likewise.
+	* function.c (types_used_by_var_decl_insert): Likewise.
+
 2009-08-23  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
 
 	* ggc.h (ggc_alloc_stat): Rename to ggc_internal_alloc_stat.
