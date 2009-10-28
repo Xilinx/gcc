@@ -199,6 +199,23 @@ print_iteration_domains (FILE *file, scop_p scop)
     print_iteration_domain (file, pbb);
 }
 
+/* Prints to FILE the current permutation vector of PBB.  */
+
+void
+print_permutation (FILE *file, poly_bb_p pbb)
+{
+  int i;
+  pbb_permutation_elt_p pelt_iter;
+
+  for (i = 0; VEC_iterate (pbb_permutation_elt_p, PBB_PERMUTATION (pbb),
+			   i, pelt_iter); i++)
+    {
+      fprintf (file, "d:%d s:%d", pelt_iter->time_dimension,
+	       pelt_iter->strided_p);
+      value_print (file, " stride: %s\n", pelt_iter->stride);
+    }
+}
+
 /* Prints to STDERR the scattering function of PBB.  */
 
 void
@@ -231,6 +248,13 @@ debug_iteration_domains (scop_p scop)
   print_iteration_domains (stderr, scop);
 }
 
+/* Prints to STDERR the current permutation vector of PBB.  */
+
+void
+debug_permutation (poly_bb_p pbb)
+{
+  print_permutation (stderr, pbb);
+}
 
 /* Write to file_name.graphite the transforms for SCOP.  */
 
@@ -395,6 +419,7 @@ new_poly_bb (scop_p scop, void *black_box, bool reduction)
   PBB_DRS (pbb) = VEC_alloc (poly_dr_p, heap, 3);
   PBB_IS_REDUCTION (pbb) = reduction;
   PBB_PDR_DUPLICATES_REMOVED (pbb) = false;
+  PBB_PERMUTATION (pbb) = VEC_alloc (pbb_permutation_elt_p, heap, 8);
   VEC_safe_push (poly_bb_p, heap, SCOP_BBS (scop), pbb);
 }
 
@@ -405,6 +430,7 @@ free_poly_bb (poly_bb_p pbb)
 {
   int i;
   poly_dr_p pdr;
+  pbb_permutation_elt_p pelt_iter;
 
   ppl_delete_Pointset_Powerset_C_Polyhedron (PBB_DOMAIN (pbb));
 
@@ -422,6 +448,14 @@ free_poly_bb (poly_bb_p pbb)
       free_poly_dr (pdr);
 
   VEC_free (poly_dr_p, heap, PBB_DRS (pbb));
+
+  if (PBB_PERMUTATION (pbb))
+    for (i = 0; VEC_iterate (pbb_permutation_elt_p, PBB_PERMUTATION (pbb),
+			     i, pelt_iter); i++)
+      pbb_permutation_elt_free (pelt_iter);
+
+  VEC_free (pbb_permutation_elt_p, heap, PBB_PERMUTATION (pbb));
+
   XDELETE (pbb);
 }
 

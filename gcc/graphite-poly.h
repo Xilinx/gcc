@@ -259,6 +259,48 @@ same_pdr_p (poly_dr_p pdr1, poly_dr_p pdr2)
     && PDR_BASE_OBJECT_SET (pdr1) == PDR_BASE_OBJECT_SET (pdr2);
 }
 
+typedef struct pbb_permutation_elt *pbb_permutation_elt_p;
+DEF_VEC_P(pbb_permutation_elt_p);
+DEF_VEC_ALLOC_P (pbb_permutation_elt_p, heap);
+
+/* Helper structure for representing the scattering function
+   permutations for a PBB.  */
+struct pbb_permutation_elt {
+  /* Stride accross this dimension.  */
+  Value stride;
+
+  /* True when the dimension represents a strided loop.  */
+  bool strided_p;
+
+  /* Scattering time dimension corresponding to this element.  */
+  int time_dimension;
+};
+
+#define PBB_PERMUTATION_ELT_STRIDE(PPE) ((PPE)->stride)
+#define PBB_PERMUTATION_ELT_STRIDED_P(PPE) ((PPE)->strided_p)
+#define PBB_PERMUTATION_ELT_TIME_DIMENSION(PPE) ((PPE)->time_dimension)
+
+/* Returns an empty permutation element.  */
+
+static inline pbb_permutation_elt_p
+new_pbb_permutation_elt (void)
+{
+  pbb_permutation_elt_p ppe = XNEW (struct pbb_permutation_elt);
+  value_init (ppe->stride);
+  value_set_si (ppe->stride, 0);
+  ppe->strided_p = false;
+  return ppe;
+}
+
+/* Frees the permutation element PPE.  */
+
+static inline void
+pbb_permutation_elt_free (pbb_permutation_elt_p ppe)
+{
+  value_clear (ppe->stride);
+  free (ppe);
+}
+
 typedef struct poly_scattering *poly_scattering_p;
 
 struct poly_scattering
@@ -320,6 +362,10 @@ struct poly_bb
 
   /* True when this PBB contains only a reduction statement.  */
   bool is_reduction;
+
+  /* Stores a temporary loop permutation together with costs.
+     This is used during the search for an optimal permutation.  */
+  VEC (pbb_permutation_elt_p, heap) *permutation;
 };
 
 #define PBB_BLACK_BOX(PBB) ((gimple_bb_p) PBB->black_box)
@@ -335,6 +381,7 @@ struct poly_bb
 #define PBB_NB_SCATTERING_TRANSFORM(PBB) (PBB->transformed->nb_scattering)
 #define PBB_PDR_DUPLICATES_REMOVED(PBB) (PBB->pdr_duplicates_removed)
 #define PBB_IS_REDUCTION(PBB) (PBB->is_reduction)
+#define PBB_PERMUTATION(PBB) (PBB->permutation)
 
 extern void new_poly_bb (scop_p, void *, bool);
 extern void free_poly_bb (poly_bb_p);
@@ -889,6 +936,8 @@ extern int scop_max_loop_depth (scop_p);
 extern int unify_scattering_dimensions (scop_p);
 extern bool apply_poly_transforms (scop_p);
 extern bool graphite_legal_transform (scop_p);
+extern void print_permutation (FILE *, poly_bb_p);
+extern void debug_permutation (poly_bb_p);
 
 /* Set the region of SCOP to REGION.  */
 
