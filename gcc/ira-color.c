@@ -63,7 +63,7 @@ static bool allocno_coalesced_p;
 static bitmap processed_coalesced_allocno_bitmap;
 
 /* All allocnos sorted according their priorities.  */
-static ira_allocno_t *sorted_allocnos;
+ira_allocno_t *sorted_allocnos;
 
 /* Vec representing the stack of allocnos used during coloring.  */
 static VEC(ira_allocno_t,heap) *allocno_stack_vec;

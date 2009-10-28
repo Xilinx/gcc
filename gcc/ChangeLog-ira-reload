@@ -2,6 +2,13 @@
 
 	* NOTES: New file.
 
+	* ira-reload.c: New file.
+	* ira-int.h (reload_reload): Declare.
+	* ira-color.c (sorted_allocnos): No longer static.
+	* ira.c (ira): Call ira_reload.
+	* Makefile.in (OBJS-common): Add ira-reload.o
+	(ira-reload.o): Add dependencies
+
 	* ira-color.c (setup_allocno_priorities): No longer static.
 	* ira-int.h (setup_allocno_priorities): Declare
 

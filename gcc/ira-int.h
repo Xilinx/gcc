@@ -906,6 +906,8 @@ extern void setup_allocno_priorities (ira_allocno_t *, int);
 /* ira-emit.c */
 extern void ira_emit (bool);
 
+/* ira-reload.c */
+extern void ira_reload (void);
 
 
 /* Return cost of moving value of MODE from register of class FROM to

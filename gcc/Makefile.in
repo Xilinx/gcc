@@ -1211,6 +1211,7 @@ OBJS-common = \
 	intl.o \
 	ira.o \
 	ira-build.o \
+	ira-reload.o \
 	ira-costs.o \
 	ira-conflicts.o \
 	ira-color.o \
@@ -3189,6 +3190,12 @@ ira.o: ira.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
    $(BITMAP_H) hard-reg-set.h $(BASIC_BLOCK_H) \
    $(EXPR_H) $(RECOG_H) $(PARAMS_H) $(TIMEVAR_H) $(TREE_PASS_H) output.h \
    $(EXCEPT_H) reload.h errors.h $(INTEGRATE_H) $(DF_H) $(GGC_H) $(IRA_INT_H)
+ira-reload.o: ira-reload.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
+   $(TARGET_H) $(TM_H) $(RTL_H) $(RECOG_H) \
+   $(REGS_H) hard-reg-set.h $(FLAGS_H) $(OBSTACK_H) \
+   $(EXPR_H) $(BASIC_BLOCK_H) $(TOPLEV_H) $(TM_P_H) \
+   $(DF_H) $(IRA_INT_H)  $(PARAMS_H) $(TIMEVAR_H) $(INTEGRATE_H) \
+   $(TREE_PASS_H) output.h
 regmove.o : regmove.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(RTL_H) \
    insn-config.h $(TIMEVAR_H) $(TREE_PASS_H) $(DF_H)\
    $(RECOG_H) output.h $(REGS_H) hard-reg-set.h $(FLAGS_H) $(FUNCTION_H) \
