@@ -1,5 +1,9 @@
 2009-10-28  Richard Henderson  <rth@redhat.com>
 
+	* contrib/gcc_update: Add libitm to touch data.
+
+2009-10-28  Richard Henderson  <rth@redhat.com>
+
 	* Merge from mainline rev 153678.
 
 2009-10-14  Richard Henderson  <rth@redhat.com>
