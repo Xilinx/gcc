@@ -1,5 +1,9 @@
 2009-09-18  Jeff Law <law@redhat.com>
 
+	2009-09-14  Vladimir Makarov <vmakarov@redhat.com>
+	* ira-costs.c (ira_tune_allocno_costs_and_cover_classes): Increase
+	cost of unaligned hard regs when allocating multi-reg pseudos.
+
 	* regstat.c (regstat_reallocate_ri): New function.
 	* regs.h (regstat_reallocate_ri): Declare
 
