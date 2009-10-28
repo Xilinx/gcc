@@ -8,6 +8,7 @@
 	class_normal_constructed_lambda_binding
 	class_normal_constructed_instance_binding .... should add more for
 	letrec...
+
 2009-10-28  Basile Starynkevitch  <basile@starynkevitch.net>
 	[Begin adding letrec, tuple, list, constructs....]
 	* melt/warmelt-first.melt: added class_letrec_binding
