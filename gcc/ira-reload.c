@@ -223,7 +223,7 @@ emit_localizing_loads_1 (rtx *use_p, void *data)
       /* If this pseudo still needs a load, emit it.  */
       if (bitmap_bit_p (regs_to_load, REGNO (use)))
 	{
-	  rtx insns;
+	  rtx insns, temp;
 	  rtx mem = copy_rtx (reg_equiv_memory_loc[REGNO (use)]);
 
 	  start_sequence ();
@@ -232,12 +232,17 @@ emit_localizing_loads_1 (rtx *use_p, void *data)
 	  end_sequence ();
 	  emit_insn_before (insns, insn);
 
+	  /* Inform the DF framework about the new insns.  */
+	  for (temp = insns; temp != insn; temp = NEXT_INSN (insns))
+	    df_insn_rescan (temp);
+
 	  /* Note it is no longer necessary to load this pseudo.  */
 	  bitmap_clear_bit (regs_to_load, REGNO (use));
 	}
 
       /* Replace the original pseudo with the new one.  */
       replace_rtx (insn, use, reg_map [REGNO (use)]);
+      df_insn_rescan (insn);
     }
 
   return 0;
@@ -296,6 +301,7 @@ rename_sets (rtx dest, const_rtx set, void *data)
 
 
   replace_rtx (insn, dest, reg_map [REGNO (dest)]);
+  df_insn_rescan (insn);
 }
 
 /* Store each pseudo set by the current insn (passed in DATA) that is
@@ -344,7 +350,14 @@ emit_localizing_stores (rtx dest, const_rtx set, void *data ATTRIBUTE_UNUSED)
 			  SET_DEST (single_set (insns))))
 	;
       else
-	emit_insn_after_noloc (insns, insn, NULL);
+	{
+	  rtx temp;
+	  /* Inform the DF framework about the new insns.  */
+	  for (temp = insns; temp; temp = NEXT_INSN (temp))
+	    df_insn_rescan (temp);
+
+	  emit_insn_after_noloc (insns, insn, NULL);
+	}
     }
 
   /* A store can be viewed as a store followed by a load, so we can clear DEST
@@ -388,12 +401,6 @@ create_new_allocno_for_spilling (int nreg, int oreg)
 
   /* Copy various fields from the original allocno to the new one.  */
   from = ira_regno_allocno_map [oreg];
-  COPY_HARD_REG_SET (ALLOCNO_CONFLICT_HARD_REGS (to), ALLOCNO_CONFLICT_HARD_REGS (from));
-  COPY_HARD_REG_SET (ALLOCNO_TOTAL_CONFLICT_HARD_REGS (to), ALLOCNO_TOTAL_CONFLICT_HARD_REGS (from));
-#if 0
-  IOR_HARD_REG_SET (ALLOCNO_CONFLICT_HARD_REGS (to),
-		    ALLOCNO_CONFLICT_HARD_REGS (from));
-#endif
 #ifdef STACK_REGS
   ALLOCNO_NO_STACK_REG_P (to) = ALLOCNO_NO_STACK_REG_P (from);
   ALLOCNO_TOTAL_NO_STACK_REG_P (to) = ALLOCNO_TOTAL_NO_STACK_REG_P (from);
@@ -401,10 +408,6 @@ create_new_allocno_for_spilling (int nreg, int oreg)
   ALLOCNO_NREFS (to) = ALLOCNO_NREFS (from);
   ALLOCNO_FREQ (to) = ALLOCNO_FREQ (from);
   ALLOCNO_CALL_FREQ (to) = ALLOCNO_CALL_FREQ (from);
-#if 0
-  IOR_HARD_REG_SET (ALLOCNO_TOTAL_CONFLICT_HARD_REGS (to),
-		    ALLOCNO_TOTAL_CONFLICT_HARD_REGS (from));
-#endif
   ALLOCNO_CALLS_CROSSED_NUM (to) = ALLOCNO_CALLS_CROSSED_NUM (from);
   ALLOCNO_EXCESS_PRESSURE_POINTS_NUM (to)
     = ALLOCNO_EXCESS_PRESSURE_POINTS_NUM (from);
@@ -422,6 +425,9 @@ create_new_allocno_for_spilling (int nreg, int oreg)
 				     ALLOCNO_CONFLICT_HARD_REG_COSTS (from));
 #endif
 
+  /* We recompute these fields after we have localized an entire block.  */
+  CLEAR_HARD_REG_SET (ALLOCNO_CONFLICT_HARD_REGS (to));
+  CLEAR_HARD_REG_SET (ALLOCNO_TOTAL_CONFLICT_HARD_REGS (to));
 
   /* Count the number of conflicts on the original allocno.  We use that count
      as an estimate for the number of conflicts in the new allocno.  The new
@@ -461,93 +467,92 @@ static bitmap live;
 static void
 maybe_add_conflict (int reg1, int reg2, int limit)
 {
-  /* If either reg is a hard register, then ignore this conflict as hard register
-     conflicts are preserved when we localize pseudos.
-
-     ?!? We might change this in the future.  It's unclear if hard register conflicts
-     are a significant hindrance to allocation after localization.  */
   if (reg1 < FIRST_PSEUDO_REGISTER
-      || reg2 < FIRST_PSEUDO_REGISTER)
+      && reg2 < FIRST_PSEUDO_REGISTER)
     return;
 
-  /* If neither register was created by localization, then ignore this conflict.  */
+  /* If neither register was created by localization, then ignore this
+     conflict.  */
   if (reg1 < limit && reg2 < limit)
     return;
 
-  /* If the registers are in different cover classes, then ignore this conflict.  */
+  if (reg1 < FIRST_PSEUDO_REGISTER)
+    {
+      ira_allocno_t a = ira_regno_allocno_map[reg2];
+      SET_HARD_REG_BIT (ALLOCNO_TOTAL_CONFLICT_HARD_REGS (a), reg1);
+      SET_HARD_REG_BIT (ALLOCNO_CONFLICT_HARD_REGS (a), reg1);
+      return;
+    }
+
+  if (reg2 < FIRST_PSEUDO_REGISTER)
+    {
+      ira_allocno_t a = ira_regno_allocno_map[reg1];
+      SET_HARD_REG_BIT (ALLOCNO_TOTAL_CONFLICT_HARD_REGS (a), reg2);
+      SET_HARD_REG_BIT (ALLOCNO_CONFLICT_HARD_REGS (a), reg2);
+      return;
+    }
+
+  /* If the registers are in different cover classes, then ignore this
+     conflict.  */
   if (ira_class_translate[reg_preferred_class (reg1)]
       != ira_class_translate[reg_preferred_class (reg2)])
     return;
 
-  ira_add_allocno_conflict (ira_regno_allocno_map[reg1], ira_regno_allocno_map[reg2]);
+  ira_add_allocno_conflict (ira_regno_allocno_map[reg1],
+			    ira_regno_allocno_map[reg2]);
 }
 
 static void
-add_conflict (rtx dest, const_rtx set ATTRIBUTE_UNUSED, void *data)
+mark_conflicts (rtx reg, unsigned int limit)
 {
   bitmap_iterator bi;
   unsigned int i;
   unsigned int j, nregs;
   unsigned int non_killing_store = 0;
-  unsigned int limit;
 
-  limit = *(unsigned int *) data;
-
-  dest = SET_DEST (set);
-
-  if (GET_CODE (dest) == SUBREG
-      && GET_CODE (SUBREG_REG (dest)) == REG)
+  if (GET_CODE (reg) == SUBREG
+      && GET_CODE (SUBREG_REG (reg)) == REG)
     {
-      if (GET_MODE_SIZE (GET_MODE (dest))
-	  < GET_MODE_SIZE (GET_MODE (SUBREG_REG (dest))))
+      if (GET_MODE_SIZE (GET_MODE (reg))
+	  < GET_MODE_SIZE (GET_MODE (SUBREG_REG (reg))))
 	non_killing_store = 1;
 
-      dest = SUBREG_REG (dest);
+      reg = SUBREG_REG (reg);
     }
 
-  if (GET_CODE (dest) != REG)
+  if (GET_CODE (reg) != REG)
     return;
 
-  if (REGNO (dest) >= FIRST_PSEUDO_REGISTER)
+  if (REGNO (reg) >= FIRST_PSEUDO_REGISTER)
     nregs = 1;
   else
-    nregs = HARD_REGNO_NREGS (REGNO (dest), GET_MODE (dest));
+    nregs = HARD_REGNO_NREGS (REGNO (reg), GET_MODE (reg));
 
   for (j = 0; j < nregs; j++)
     {
       if (!non_killing_store)
 	{
-	  bitmap_clear_bit (live, REGNO (dest) + j);
+	  bitmap_clear_bit (live, REGNO (reg) + j);
 	}
       EXECUTE_IF_SET_IN_BITMAP (live, 0, i, bi)
-	maybe_add_conflict (i, REGNO (dest) + j, limit);
+	maybe_add_conflict (i, REGNO (reg) + j, limit);
     }
 }
 
-static int
-live_use_1 (rtx *use_p, void *data ATTRIBUTE_UNUSED)
+static void
+mark_live (rtx reg)
 {
-  rtx use = *use_p;
-  unsigned int i, nregs;
+  int i, nregs;
 
-  if (GET_CODE (use) != REG)
-    return 0;
-
-  if (REGNO (use) >= FIRST_PSEUDO_REGISTER)
+  if (GET_CODE (reg) == SUBREG)
+    reg = SUBREG_REG (reg);
+  if (REGNO (reg) > FIRST_PSEUDO_REGISTER)
     nregs = 1;
   else
-    nregs = HARD_REGNO_NREGS (REGNO (use), GET_MODE (use));
+    nregs = HARD_REGNO_NREGS (REGNO (reg), GET_MODE (reg));
 
   for (i = 0; i < nregs; i++)
-    bitmap_set_bit (live, REGNO (use) + i);
-  return 0;
-}
-
-
-static void
-live_use (rtx *use_p, void *data)
-{
-  for_each_rtx (use_p, live_use_1, data);
+    bitmap_set_bit (live, REGNO (reg));
 }
 
 static void
@@ -565,32 +570,21 @@ build_conflicts_for_new_allocnos (basic_block bb,
 
   FOR_BB_INSNS_REVERSE (bb, insn)
     {
-      basic_block new_bb = BLOCK_FOR_INSN (insn);
+      df_ref *def_rec, *use_rec;
+      int call_p;
 
-      /* If we walked into a new block, then some pseudos might have become
-	 live.  */
-      if (bb != new_bb)
-	{
-	  bitmap temp = BITMAP_ALLOC (NULL);
-	  bitmap_and_compl (temp, DF_LIVE_OUT (new_bb), pseudos_to_localize);
-	  bitmap_ior_into (live, temp);
-	  free (temp);
-	  bb = new_bb;
-	}
+      if (!NONDEBUG_INSN_P (insn))
+	continue;
 
-      if (NONDEBUG_INSN_P (insn))
-	{
-	  note_stores (PATTERN (insn), add_conflict, &orig_max_reg_num);
-	  note_uses (&PATTERN (insn), live_use, NULL);
-	  if (CALL_P (insn))
-	    {
-	      rtx link;
-	      for (link = CALL_INSN_FUNCTION_USAGE (insn);
-		   link != NULL_RTX;
-		   link = XEXP (link, 1))
-		note_uses (&XEXP (link, 0), live_use, NULL);
-	    }
-	}
+      call_p = CALL_P (insn);
+      /* Mark conflicts for any values defined in this insn.  */
+      for (def_rec = DF_INSN_DEFS (insn); *def_rec; def_rec++)
+	if (!call_p || !DF_REF_FLAGS_IS_SET (*def_rec, DF_REF_MAY_CLOBBER))
+	  mark_conflicts (DF_REF_REG (*def_rec), orig_max_reg_num);
+
+      /* Mark each used value as live.  */
+      for (use_rec = DF_INSN_USES (insn); *use_rec; use_rec++)
+	mark_live (DF_REF_REG (*use_rec));
     }
 
   BITMAP_FREE (live);

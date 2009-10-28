@@ -1,6 +1,18 @@
+2009-09-24  Jeff Law <law@redhat.com>
+
+	* ira-reload.c (emit_localizing_loads_1): Incrementally update DF.
+	(emit_localizing_stores): Likewise.
+	(create_new_allocno_for_spilling): Clear the hard register conflicts
+	for the new allocno.
+	(maybe_add_conflict): Handle hard register conflicts.
+	(mark_conflicts): Renamed from mark_conflict.   Simplify slightly.
+	(mark_uses): New.
+	(live_uses, live_uses_1): Remove.
+	(build_conflicts_for_new_allocnos): Simplify and use DF.
+
 2009-09-22  Jeff Law <law@redhat.com>
 
-	* ira-reload.c (build-conflicts_for_new_allocnos): Ignore debug
+	* ira-reload.c (build_conflicts_for_new_allocnos): Ignore debug
 	insns.
 	(localize_pseudos): Likewise.
 
