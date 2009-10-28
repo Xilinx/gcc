@@ -778,11 +778,15 @@ reload (rtx first, int global)
   offsets_known_at = XNEWVEC (char, num_labels);
   offsets_at = (HOST_WIDE_INT (*)[NUM_ELIMINABLE_REGS]) xmalloc (num_labels * NUM_ELIMINABLE_REGS * sizeof (HOST_WIDE_INT));
 
+  /* Other hunks of code still use this array.  Ugh.  */
+  temp_pseudo_reg_arr = XNEWVEC (int, max_regno - LAST_VIRTUAL_REGISTER - 1);
+
   /* ira-reload may have created new pseudos which didn't get hard registers
      or stack slots.  Assign them stack slots now.  Also alter each pseudo
      to contain its hard reg number.  */
+
   for (n = 0, i = LAST_VIRTUAL_REGISTER + 1; i < max_regno; i++)
-    alter_reg (temp_pseudo_reg_arr[i], -1, false);
+    alter_reg (i, -1, false);
   
   /* If we have some registers we think can be eliminated, scan all insns to
      see if there is an insn that sets one of these registers to something
