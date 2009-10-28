@@ -1,3 +1,9 @@
+2009-09-22  Jeff Law <law@redhat.com>
+
+	* ira-reload.c (build-conflicts_for_new_allocnos): Ignore debug
+	insns.
+	(localize_pseudos): Likewise.
+
 2009-09-21  Jeff Law <law@redhat.com>
 
 	* ira-reload.c (localize_pseudos): Add new argument to call to

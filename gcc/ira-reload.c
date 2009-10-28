@@ -578,7 +578,7 @@ build_conflicts_for_new_allocnos (basic_block bb,
 	  bb = new_bb;
 	}
 
-      if (INSN_P (insn))
+      if (NONDEBUG_INSN_P (insn))
 	{
 	  note_stores (PATTERN (insn), add_conflict, &orig_max_reg_num);
 	  note_uses (&PATTERN (insn), live_use, NULL);
@@ -634,7 +634,7 @@ localize_pseudos (basic_block bb, bitmap pseudos_to_localize)
      we can change both the use and set in a single insn to a MEM.  */
   FOR_BB_INSNS_REVERSE (bb, insn)
     {
-      if (INSN_P (insn))
+      if (NONDEBUG_INSN_P (insn))
 	{
 	  note_uses (&PATTERN (insn), identify_singleton_uses, (void *)insn);
 	  note_stores (PATTERN (insn), identify_singleton_sets, (void *)insn);
@@ -646,7 +646,7 @@ localize_pseudos (basic_block bb, bitmap pseudos_to_localize)
      we'll need to load as well.  */
   FOR_BB_INSNS_REVERSE (bb, insn)
     {
-      if (INSN_P (insn))
+      if (NONDEBUG_INSN_P (insn))
 	{
           note_stores (PATTERN (insn), emit_localizing_stores, (void *)insn);
           note_uses (&PATTERN (insn), collect_loads, (void *)insn);
@@ -659,7 +659,7 @@ localize_pseudos (basic_block bb, bitmap pseudos_to_localize)
      spill register.  */
   FOR_BB_INSNS (bb, insn)
     {
-      if (INSN_P (insn))
+      if (NONDEBUG_INSN_P (insn))
 	{
           note_uses (&PATTERN (insn), emit_localizing_loads, (void *)insn);
           note_stores (PATTERN (insn), rename_sets, (void *)insn);
