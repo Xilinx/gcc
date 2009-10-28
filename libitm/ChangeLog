@@ -1,5 +1,14 @@
 2009-10-22  Richard Henderson  <rth@redhat.com>
 
+	* Makefile.am (CCAS, CCASFLAGS, LTCCASCOMPILE): Remove.
+	(AM_CCASFLAGS): New.
+	* configure.ac: Add AM_PROG_AS.  Use m4_rename_force for
+	saving/restoring _AC_ARG_VAR_PRECIOUS.
+	* Makefile.in, aclocal.m4, config.h.in, configure,
+	testsuite/Makefile.in: Rebuild with automake 1.11; autoconf 2.64.
+
+2009-10-22  Richard Henderson  <rth@redhat.com>
+
 	* testsuite/*: Update for new compiler syntax.
 
 2009-10-21  Richard Henderson  <rth@redhat.com>

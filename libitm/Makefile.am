@@ -16,12 +16,8 @@ vpath % $(strip $(search_path))
 
 AM_CPPFLAGS = $(addprefix -I, $(search_path))
 AM_CFLAGS = $(XCFLAGS)
+AM_CCASFLAGS = $(XCFLAGS)
 AM_LDFLAGS = $(XLDFLAGS) $(SECTION_LDFLAGS) $(OPT_LDFLAGS)
-
-CCAS = $(CC)
-CCASFLAGS = $(CFLAGS)
-LTCCASCOMPILE = $(LIBTOOL) --mode=compile --tag=CC $(CCAS) \
-	$(AM_CCASFLAGS) $(CCASFLAGS)
 
 toolexeclib_LTLIBRARIES = libitm.la
 nodist_toolexeclib_HEADERS = libitm.spec
