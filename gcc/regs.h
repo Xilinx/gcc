@@ -105,6 +105,7 @@ extern void regstat_free_ri (void);
 extern bitmap regstat_get_setjmp_crosses (void);
 extern void regstat_compute_calls_crossed (void);
 extern void regstat_free_calls_crossed (void);
+extern void regstat_reallocate_ri (unsigned int);
 
 
 /* Register information indexed by register number.  This structure is

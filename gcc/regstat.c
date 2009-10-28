@@ -337,6 +337,16 @@ regstat_bb_compute_ri (unsigned int bb_index,
   bitmap_clear (local_live);
 }
 
+/* Reallocate the register info structure, ensuring the new entries are
+   properly cleared.  */
+void
+regstat_reallocate_ri (unsigned int max_regno)
+{
+  reg_info_p = XRESIZEVEC (struct reg_info_t, reg_info_p, max_regno);
+  memset (&reg_info_p[reg_info_p_size], 0,
+	  (max_regno - reg_info_p_size) * sizeof (struct reg_info_t));
+  reg_info_p_size = max_regno;
+}
 
 /* Compute register info: lifetime, bb, and number of defs and uses.  */
 void

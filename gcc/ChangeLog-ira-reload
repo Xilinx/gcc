@@ -1,0 +1,10 @@
+2009-09-18  Jeff Law <law@redhat.com>
+
+	* regstat.c (regstat_reallocate_ri): New function.
+	* regs.h (regstat_reallocate_ri): Declare
+
+	* ira-conflicts.c (print_allocno_conflicts): New function to print
+	conflicts for a single allocno.
+	(print_conflicts): Use print_allocno_conflicts.
+
+
