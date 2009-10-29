@@ -843,16 +843,6 @@ tuple of the normalized slots.}#
 	 ))
      )))
 
-(export_values
- create_normcontext
- normal_exp
- get_ctype
- normalize_tuple
- wrap_normal_letseq
- wrap_normal_let1
- check_ctype_nargs
- compile_obj
- )
 
 
 ;; for symbols which are imported from a previous environment (this
@@ -3225,13 +3215,86 @@ tuple of the normalized slots.}#
 (install_method class_source_list normal_exp normexp_list)
 ;;;;;;;;;;;;;;;;
 
+(defselector prepare_constructor_binding class_selector
+  :doc #{The $PREPARE_CONSTRUCTOR_BINDING selector applied to: an
+  constructible expression $RECV, a symbol $SYMB, a normalization
+  context $NCX, a source location $SLOC gives a half-filled instance
+  of a sub-class of $CLASS_NORMAL_CONSTRUCTOR_BINDING.}#
+  :formals (recv symb ncx sloc)
+)
+(defun badmeth_prepare_constructor_binding (recv symb ncx sloc)
+  (debug_msg recv "bad_prepare_constructor_binding recv")
+  (debug_msg symb "bad_prepare_constructor_binding symb")
+  (error_strv sloc "invalid constructor binding" (get_field :named_name symb))
+  (error_strv sloc "reciever unprepared to constructor binding" 
+	      (get_field :named_name (discrim recv)))
+  (assert_msg "@$@bad_prepare_constructor_binding" ())
+)
+(install_method discr_any_receiver prepare_constructor_binding badmeth_prepare_constructor_binding)
+
+(defun prepcons_lambda (recv symb ncx sloc)
+  (debug_msg recv "prepcons_lambda recv")
+  (debug_msg symb "prepcons_lambda symb")
+  (assert_msg "check recv" (is_a recv class_source_lambda))
+  (let  ( (conslam (instance class_normal_constructed_lambda_binding
+			     :binder symb
+			     :nconsb_loc sloc
+			     :nconsb_discr (normal_predef discr_closure ncx sloc "discr_closure")
+			     ))
+	  )
+    (debug_msg conslam "prepcons_lambda gives conslam")
+    (return conslam)
+))
+(install_method class_source_lambda prepare_constructor_binding prepcons_lambda)
+
+;;;;
+
+(defun prepcons_tuple (recv symb ncx sloc)
+  (debug_msg recv "prepcons_tuple recv")
+  (debug_msg symb "prepcons_tuple symb")
+  (assert_msg "check recv" (is_a recv class_source_tuple))
+  (let  ( (constup (instance class_normal_constructed_tuple_binding
+			     :binder symb
+			     :nconsb_loc sloc
+			     :nconsb_discr (normal_predef discr_multiple ncx sloc "discr_multiple")
+			     ))
+	  )
+    (debug_msg constup "prepcons_tuple gives constup")
+    (return constup)
+))
+(install_method class_source_tuple prepare_constructor_binding prepcons_tuple)
+
+
 (defun normexp_letrec (recv env ncx psloc)
   (assert_msg "check letrec recv" (is_a recv class_source_letrec))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
   (debug_msg recv "normexp_letrec recv")
   (let ( (sloc (unsafe_get_field :loca_location recv))
+	 (sbinds (unsafe_get_field :slet_bindings recv))
+	 (sbody (unsafe_get_field :slet_body recv))
+	 (:long nbbind (multiple_length sbinds))
+	 (nbindtup (make_multiple discr_multiple nbbind))
 	 )
+    (foreach_in_multiple
+     (sbinds)
+     (cursbind :long sbix)
+     (debug_msg cursbind "normexp_letrec cursbind")
+     (assert_msg "check cursbind" (is_a cursbind class_source_letrec_binding))
+     (let ( (locb (or (unsafe_get_field :loca_location cursbind) sloc psloc))
+	    (cursymb (unsafe_get_field :sletb_binder cursbind))
+	    (curexpr (unsafe_get_field :sletb_expr cursbind))
+	    )
+       (debug_msg curexpr "normexp_letrec curexpr")
+       (debug_msg cursymb "normexp_letrec cursymb")
+       (assert_msg "check curexpr" (is_a curexpr class_source))
+       (assert_msg "check cursymb" (is_a cursymb class_symbol))
+       (let ( (curconsbind (prepare_constructor_binding curexpr cursymb ncx locb))
+	      )
+	 (debug_msg curconsbind "normexp_letrec curconsbind")
+	 )
+       )
+     )
     (compile_warning "normexp_letrec incomplete")
     (error_plain sloc "unimplemented LETREC normalization")
     (assert_msg "@$@unimplemented LETREC" ())
@@ -5323,6 +5386,17 @@ tuple of the normalized slots.}#
        ))))
 (install_method class_source_store_predefined normal_exp normexp_store_predefined)
 
+(export_values
+ check_ctype_nargs
+ compile_obj
+ create_normcontext
+ get_ctype
+ normal_exp
+ normalize_tuple
+ prepare_constructor_binding
+ wrap_normal_let1
+ wrap_normal_letseq
+ )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; eof warmelt-normal.melt

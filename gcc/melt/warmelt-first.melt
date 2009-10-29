@@ -41,9 +41,10 @@
 ;; root class
 (defclass class_root 
   :predef CLASS_ROOT
-  :doc #{The $CLASS_ROOT is the topmost root of all classes. Every class
-should be some indirect subclass of $CLASS_ROOT. And $CLASS_ROOT
-should be the only class without superclass.}# )
+  :doc #{The $CLASS_ROOT is the topmost root of all classes. Every
+class should be some indirect subclass of $CLASS_ROOT. And $CLASS_ROOT
+should be the only class without superclass. Actually its super
+discriminant is $DISCR_ANY_RECEIVER.}# )
 
 ;; class of everything with a property table
 (defclass class_proped 
@@ -2004,6 +2005,7 @@ $DISCR_NAME_STRING and $DISCR_VERBATIM_STRING.}#
   )
 
 (unsafe_put_fields discr_string :disc_super discr_any_receiver)
+(unsafe_put_fields class_root :disc_super discr_any_receiver)
 
 ;;; the discriminant for null reciever (used for sending to nil)
 (definstance discr_null_receiver class_discriminant
