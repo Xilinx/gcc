@@ -1768,10 +1768,10 @@ expand_call_stmt (gimple stmt)
   for (i = 0; i < gimple_call_num_args (stmt); i++)
     CALL_EXPR_ARG (exp, i) = gimple_call_arg (stmt, i);
 
-  if (!(gimple_call_flags (stmt) & (ECF_CONST | ECF_PURE)))
+  if (gimple_has_side_effects (stmt))
     TREE_SIDE_EFFECTS (exp) = 1;
 
-  if (gimple_call_flags (stmt) & ECF_NOTHROW)
+  if (gimple_call_nothrow_p (stmt))
     TREE_NOTHROW (exp) = 1;
 
   CALL_EXPR_TAILCALL (exp) = gimple_call_tail_p (stmt);
@@ -2194,46 +2194,6 @@ round_udiv_adjust (enum machine_mode mode, rtx mod, rtx op1)
      const1_rtx, const0_rtx);
 }
 
-/* Wrap modeless constants in CONST:MODE.  */
-rtx
-wrap_constant (enum machine_mode mode, rtx x)
-{
-  if (GET_MODE (x) != VOIDmode)
-    return x;
-
-  if (CONST_INT_P (x)
-      || GET_CODE (x) == CONST_FIXED
-      || GET_CODE (x) == CONST_DOUBLE
-      || GET_CODE (x) == LABEL_REF)
-    {
-      gcc_assert (mode != VOIDmode);
-
-      x = gen_rtx_CONST (mode, x);
-    }
-
-  return x;
-}
-
-/* Remove CONST wrapper added by wrap_constant().  */
-rtx
-unwrap_constant (rtx x)
-{
-  rtx ret = x;
-
-  if (GET_CODE (x) != CONST)
-    return x;
-
-  x = XEXP (x, 0);
-
-  if (CONST_INT_P (x)
-      || GET_CODE (x) == CONST_FIXED
-      || GET_CODE (x) == CONST_DOUBLE
-      || GET_CODE (x) == LABEL_REF)
-    ret = x;
-
-  return ret;
-}
-
 /* Convert X to MODE, that must be Pmode or ptr_mode, without emitting
    any rtl.  */
 
@@ -2275,6 +2235,9 @@ expand_debug_expr (tree exp)
   rtx op0 = NULL_RTX, op1 = NULL_RTX, op2 = NULL_RTX;
   enum machine_mode mode = TYPE_MODE (TREE_TYPE (exp));
   int unsignedp = TYPE_UNSIGNED (TREE_TYPE (exp));
+  addr_space_t as;
+  enum machine_mode address_mode;
+  enum machine_mode pointer_mode;
 
   switch (TREE_CODE_CLASS (TREE_CODE (exp)))
     {
@@ -2337,6 +2300,9 @@ expand_debug_expr (tree exp)
     case STRING_CST:
       if (!lookup_constant_def (exp))
 	{
+	  if (strlen (TREE_STRING_POINTER (exp)) + 1
+	      != (size_t) TREE_STRING_LENGTH (exp))
+	    return NULL_RTX;
 	  op0 = gen_rtx_CONST_STRING (Pmode, TREE_STRING_POINTER (exp));
 	  op0 = gen_rtx_MEM (BLKmode, op0);
 	  set_mem_attributes (op0, exp, 0);
@@ -2353,10 +2319,20 @@ expand_debug_expr (tree exp)
     case COMPLEX_CST:
       gcc_assert (COMPLEX_MODE_P (mode));
       op0 = expand_debug_expr (TREE_REALPART (exp));
-      op0 = wrap_constant (GET_MODE_INNER (mode), op0);
       op1 = expand_debug_expr (TREE_IMAGPART (exp));
-      op1 = wrap_constant (GET_MODE_INNER (mode), op1);
       return gen_rtx_CONCAT (mode, op0, op1);
+
+    case DEBUG_EXPR_DECL:
+      op0 = DECL_RTL_IF_SET (exp);
+
+      if (op0)
+	return op0;
+
+      op0 = gen_rtx_DEBUG_EXPR (mode);
+      DEBUG_EXPR_TREE_DECL (op0) = exp;
+      SET_DECL_RTL (exp, op0);
+
+      return op0;
 
     case VAR_DECL:
     case PARM_DECL:
@@ -2368,9 +2344,23 @@ expand_debug_expr (tree exp)
 
       /* This decl was probably optimized away.  */
       if (!op0)
-	return NULL;
+	{
+	  if (TREE_CODE (exp) != VAR_DECL
+	      || DECL_EXTERNAL (exp)
+	      || !TREE_STATIC (exp)
+	      || !DECL_NAME (exp)
+	      || DECL_HARD_REGISTER (exp))
+	    return NULL;
 
-      op0 = copy_rtx (op0);
+	  op0 = DECL_RTL (exp);
+ 	  SET_DECL_RTL (exp, NULL);
+	  if (!MEM_P (op0)
+	      || GET_CODE (XEXP (op0, 0)) != SYMBOL_REF
+	      || SYMBOL_REF_DECL (XEXP (op0, 0)) != exp)
+	    return NULL;
+	}
+      else
+	op0 = copy_rtx (op0);
 
       if (GET_MODE (op0) == BLKmode)
 	{
@@ -2441,20 +2431,29 @@ expand_debug_expr (tree exp)
       if (!op0)
 	return NULL;
 
-      gcc_assert (GET_MODE (op0) == Pmode
-		  || GET_MODE (op0) == ptr_mode
+      if (POINTER_TYPE_P (TREE_TYPE (exp)))
+	as = TYPE_ADDR_SPACE (TREE_TYPE (TREE_TYPE (exp)));
+      else
+	as = ADDR_SPACE_GENERIC;
+
+      address_mode = targetm.addr_space.address_mode (as);
+      pointer_mode = targetm.addr_space.pointer_mode (as);
+
+      gcc_assert (GET_MODE (op0) == address_mode
+		  || GET_MODE (op0) == pointer_mode
 		  || GET_CODE (op0) == CONST_INT
 		  || GET_CODE (op0) == CONST_DOUBLE);
 
       if (TREE_CODE (exp) == ALIGN_INDIRECT_REF)
 	{
 	  int align = TYPE_ALIGN_UNIT (TREE_TYPE (exp));
-	  op0 = gen_rtx_AND (Pmode, op0, GEN_INT (-align));
+	  op0 = gen_rtx_AND (address_mode, op0, GEN_INT (-align));
 	}
 
       op0 = gen_rtx_MEM (mode, op0);
 
       set_mem_attributes (op0, exp, 0);
+      set_mem_addr_space (op0, as);
 
       return op0;
 
@@ -2468,14 +2467,19 @@ expand_debug_expr (tree exp)
       if (!op0)
 	return NULL;
 
-      gcc_assert (GET_MODE (op0) == Pmode
-		  || GET_MODE (op0) == ptr_mode
+      as = TYPE_ADDR_SPACE (TREE_TYPE (exp));
+      address_mode = targetm.addr_space.address_mode (as);
+      pointer_mode = targetm.addr_space.pointer_mode (as);
+
+      gcc_assert (GET_MODE (op0) == address_mode
+		  || GET_MODE (op0) == pointer_mode
 		  || GET_CODE (op0) == CONST_INT
 		  || GET_CODE (op0) == CONST_DOUBLE);
 
       op0 = gen_rtx_MEM (mode, op0);
 
       set_mem_attributes (op0, exp, 0);
+      set_mem_addr_space (op0, as);
 
       return op0;
 
@@ -2494,6 +2498,9 @@ expand_debug_expr (tree exp)
 	tree tem = get_inner_reference (exp, &bitsize, &bitpos, &offset,
 					&mode1, &unsignedp, &volatilep, false);
 	rtx orig_op0;
+
+	if (bitsize == 0)
+	  return NULL;
 
 	orig_op0 = op0 = expand_debug_expr (tem);
 
@@ -2532,6 +2539,9 @@ expand_debug_expr (tree exp)
 
 	if (MEM_P (op0))
 	  {
+	    if (mode1 == VOIDmode)
+	      /* Bitfield.  */
+	      mode1 = smallest_mode_for_size (bitsize, MODE_INT);
 	    if (bitpos >= BITS_PER_UNIT)
 	      {
 		op0 = adjust_address_nv (op0, mode1, bitpos / BITS_PER_UNIT);
@@ -2539,7 +2549,8 @@ expand_debug_expr (tree exp)
 	      }
 	    else if (bitpos < 0)
 	      {
-		int units = (-bitpos + BITS_PER_UNIT - 1) / BITS_PER_UNIT;
+		HOST_WIDE_INT units
+		  = (-bitpos + BITS_PER_UNIT - 1) / BITS_PER_UNIT;
 		op0 = adjust_address_nv (op0, mode1, units);
 		bitpos += units * BITS_PER_UNIT;
 	      }
@@ -2556,6 +2567,9 @@ expand_debug_expr (tree exp)
 
 	if (bitpos == 0 && mode == GET_MODE (op0))
 	  return op0;
+
+        if (bitpos < 0)
+          return NULL;
 
 	if ((bitpos % BITS_PER_UNIT) == 0
 	    && bitsize == GET_MODE_BITSIZE (mode1))
@@ -2832,6 +2846,46 @@ expand_debug_expr (tree exp)
       if (GET_MODE (op1) == VOIDmode)
 	op1 = gen_rtx_CONST (GET_MODE_INNER (mode), op1);
       return gen_rtx_CONCAT (mode, op0, op1);
+
+    case CONJ_EXPR:
+      if (GET_CODE (op0) == CONCAT)
+	return gen_rtx_CONCAT (mode, XEXP (op0, 0),
+			       gen_rtx_NEG (GET_MODE_INNER (mode),
+					    XEXP (op0, 1)));
+      else
+	{
+	  enum machine_mode imode = GET_MODE_INNER (mode);
+	  rtx re, im;
+
+	  if (MEM_P (op0))
+	    {
+	      re = adjust_address_nv (op0, imode, 0);
+	      im = adjust_address_nv (op0, imode, GET_MODE_SIZE (imode));
+	    }
+	  else
+	    {
+	      enum machine_mode ifmode = int_mode_for_mode (mode);
+	      enum machine_mode ihmode = int_mode_for_mode (imode);
+	      rtx halfsize;
+	      if (ifmode == BLKmode || ihmode == BLKmode)
+		return NULL;
+	      halfsize = GEN_INT (GET_MODE_BITSIZE (ihmode));
+	      re = op0;
+	      if (mode != ifmode)
+		re = gen_rtx_SUBREG (ifmode, re, 0);
+	      re = gen_rtx_ZERO_EXTRACT (ihmode, re, halfsize, const0_rtx);
+	      if (imode != ihmode)
+		re = gen_rtx_SUBREG (imode, re, 0);
+	      im = copy_rtx (op0);
+	      if (mode != ifmode)
+		im = gen_rtx_SUBREG (ifmode, im, 0);
+	      im = gen_rtx_ZERO_EXTRACT (ihmode, im, halfsize, halfsize);
+	      if (imode != ihmode)
+		im = gen_rtx_SUBREG (imode, im, 0);
+	    }
+	  im = gen_rtx_NEG (imode, im);
+	  return gen_rtx_CONCAT (mode, re, im);
+	}
 
     case ADDR_EXPR:
       op0 = expand_debug_expr (TREE_OPERAND (exp, 0));

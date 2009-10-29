@@ -2068,11 +2068,15 @@ endType:
     {
       /* Look for allocatable components.  */
       if (c->attr.allocatable
+	  || (c->ts.type == BT_CLASS
+	      && c->ts.u.derived->components->attr.allocatable)
 	  || (c->ts.type == BT_DERIVED && c->ts.u.derived->attr.alloc_comp))
 	sym->attr.alloc_comp = 1;
 
       /* Look for pointer components.  */
       if (c->attr.pointer
+	  || (c->ts.type == BT_CLASS
+	      && c->ts.u.derived->components->attr.pointer)
 	  || (c->ts.type == BT_DERIVED && c->ts.u.derived->attr.pointer_comp))
 	sym->attr.pointer_comp = 1;
 
@@ -2887,6 +2891,17 @@ parse_select_block (void)
 }
 
 
+/* Pop the current selector from the SELECT TYPE stack.  */
+
+static void
+select_type_pop (void)
+{
+  gfc_select_type_stack *old = select_type_stack;
+  select_type_stack = old->prev;
+  gfc_free (old);
+}
+
+
 /* Parse a SELECT TYPE construct (F03:R821).  */
 
 static void
@@ -2909,12 +2924,8 @@ parse_select_type_block (void)
       if (st == ST_NONE)
 	unexpected_eof ();
       if (st == ST_END_SELECT)
-	{
-	  /* Empty SELECT CASE is OK.  */
-	  accept_statement (st);
-	  pop_state ();
-	  return;
-	}
+	/* Empty SELECT CASE is OK.  */
+	goto done;
       if (st == ST_TYPE_IS || st == ST_CLASS_IS)
 	break;
 
@@ -2959,8 +2970,11 @@ parse_select_type_block (void)
     }
   while (st != ST_END_SELECT);
 
+done:
   pop_state ();
   accept_statement (st);
+  gfc_current_ns = gfc_current_ns->parent;
+  select_type_pop ();
 }
 
 
@@ -3033,18 +3047,13 @@ check_do_closure (void)
 static void parse_progunit (gfc_statement);
 
 
-/* Parse a BLOCK construct.  */
+/* Set up the local namespace for a BLOCK construct.  */
 
-static void
-parse_block_construct (void)
+gfc_namespace*
+gfc_build_block_ns (gfc_namespace *parent_ns)
 {
-  gfc_namespace* parent_ns;
   gfc_namespace* my_ns;
-  gfc_state_data s;
 
-  gfc_notify_std (GFC_STD_F2008, "Fortran 2008: BLOCK construct at %C");
-
-  parent_ns = gfc_current_ns;
   my_ns = gfc_get_namespace (parent_ns, 1);
   my_ns->construct_entities = 1;
 
@@ -3064,7 +3073,25 @@ parse_block_construct (void)
 			  my_ns->proc_name->name, NULL);
       gcc_assert (t == SUCCESS);
     }
-  my_ns->proc_name->attr.recursive = parent_ns->proc_name->attr.recursive;
+
+  if (parent_ns->proc_name)
+    my_ns->proc_name->attr.recursive = parent_ns->proc_name->attr.recursive;
+
+  return my_ns;
+}
+
+
+/* Parse a BLOCK construct.  */
+
+static void
+parse_block_construct (void)
+{
+  gfc_namespace* my_ns;
+  gfc_state_data s;
+
+  gfc_notify_std (GFC_STD_F2008, "Fortran 2008: BLOCK construct at %C");
+
+  my_ns = gfc_build_block_ns (gfc_current_ns);
 
   new_st.op = EXEC_BLOCK;
   new_st.ext.ns = my_ns;
@@ -3075,7 +3102,7 @@ parse_block_construct (void)
 
   parse_progunit (ST_NONE);
 
-  gfc_current_ns = parent_ns;
+  gfc_current_ns = gfc_current_ns->parent;
   pop_state ();
 }
 

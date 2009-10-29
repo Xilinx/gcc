@@ -133,11 +133,12 @@ static enum machine_mode arm_promote_function_mode (const_tree,
 						    const_tree, int);
 static bool arm_return_in_memory (const_tree, const_tree);
 static rtx arm_function_value (const_tree, const_tree, bool);
-static rtx arm_libcall_value (enum machine_mode, rtx);
+static rtx arm_libcall_value (enum machine_mode, const_rtx);
 
 static void arm_internal_label (FILE *, const char *, unsigned long);
 static void arm_output_mi_thunk (FILE *, tree, HOST_WIDE_INT, HOST_WIDE_INT,
 				 tree);
+static bool arm_have_conditional_execution (void);
 static bool arm_rtx_costs_1 (rtx, enum rtx_code, int*, bool);
 static bool arm_size_rtx_costs (rtx, enum rtx_code, enum rtx_code, int *);
 static bool arm_slowmul_rtx_costs (rtx, enum rtx_code, enum rtx_code, int *, bool);
@@ -444,6 +445,9 @@ static const struct attribute_spec arm_attribute_table[] =
 #undef TARGET_HAVE_TLS
 #define TARGET_HAVE_TLS true
 #endif
+
+#undef TARGET_HAVE_CONDITIONAL_EXECUTION
+#define TARGET_HAVE_CONDITIONAL_EXECUTION arm_have_conditional_execution
 
 #undef TARGET_CANNOT_FORCE_CONST_MEM
 #define TARGET_CANNOT_FORCE_CONST_MEM arm_cannot_force_const_mem
@@ -1298,13 +1302,6 @@ arm_override_options (void)
   enum processor_type target_arch_cpu = arm_none;
   enum processor_type selected_cpu = arm_none;
 
-  /* Ideally we would want to use CFI directives to generate
-     debug info.  However this also creates the .eh_frame
-     section, so disable them until GAS can handle
-     this properly.  See PR40521. */
-  if (TARGET_AAPCS_BASED)
-    flag_dwarf2_cfi_asm = 0;
-
   /* Set up the flags based on the cpu/architecture selected by the user.  */
   for (i = ARRAY_SIZE (arm_select); i--;)
     {
@@ -1871,6 +1868,23 @@ arm_override_options (void)
         max_insns_skipped = 3;
     }
 
+  /* Hot/Cold partitioning is not currently supported, since we can't
+     handle literal pool placement in that case.  */
+  if (flag_reorder_blocks_and_partition)
+    {
+      inform (input_location,
+	      "-freorder-blocks-and-partition not supported on this architecture");
+      flag_reorder_blocks_and_partition = 0;
+      flag_reorder_blocks = 1;
+    }
+
+  /* Ideally we would want to use CFI directives to generate
+     debug info.  However this also creates the .eh_frame
+     section, so disable them until GAS can handle
+     this properly.  See PR40521. */
+  if (TARGET_AAPCS_BASED)
+    flag_dwarf2_cfi_asm = 0;
+
   /* Register global variables with the garbage collector.  */
   arm_add_gc_roots ();
 }
@@ -2393,20 +2407,24 @@ arm_split_constant (enum rtx_code code, enum machine_mode mode, rtx insn,
 			   1);
 }
 
-/* Return the number of ARM instructions required to synthesize the given
-   constant.  */
+/* Return the number of instructions required to synthesize the given
+   constant, if we start emitting them from bit-position I.  */
 static int
 count_insns_for_constant (HOST_WIDE_INT remainder, int i)
 {
   HOST_WIDE_INT temp1;
+  int step_size = TARGET_ARM ? 2 : 1;
   int num_insns = 0;
+
+  gcc_assert (TARGET_ARM || i == 0);
+
   do
     {
       int end;
 
       if (i <= 0)
 	i += 32;
-      if (remainder & (3 << (i - 2)))
+      if (remainder & (((1 << step_size) - 1) << (i - step_size)))
 	{
 	  end = i - 8;
 	  if (end < 0)
@@ -2415,11 +2433,75 @@ count_insns_for_constant (HOST_WIDE_INT remainder, int i)
 				    | ((i < end) ? (0xff >> (32 - end)) : 0));
 	  remainder &= ~temp1;
 	  num_insns++;
-	  i -= 6;
+	  i -= 8 - step_size;
 	}
-      i -= 2;
+      i -= step_size;
     } while (remainder);
   return num_insns;
+}
+
+static int
+find_best_start (unsigned HOST_WIDE_INT remainder)
+{
+  int best_consecutive_zeros = 0;
+  int i;
+  int best_start = 0;
+
+  /* If we aren't targetting ARM, the best place to start is always at
+     the bottom.  */
+  if (! TARGET_ARM)
+    return 0;
+
+  for (i = 0; i < 32; i += 2)
+    {
+      int consecutive_zeros = 0;
+
+      if (!(remainder & (3 << i)))
+	{
+	  while ((i < 32) && !(remainder & (3 << i)))
+	    {
+	      consecutive_zeros += 2;
+	      i += 2;
+	    }
+	  if (consecutive_zeros > best_consecutive_zeros)
+	    {
+	      best_consecutive_zeros = consecutive_zeros;
+	      best_start = i - consecutive_zeros;
+	    }
+	  i -= 2;
+	}
+    }
+
+  /* So long as it won't require any more insns to do so, it's
+     desirable to emit a small constant (in bits 0...9) in the last
+     insn.  This way there is more chance that it can be combined with
+     a later addressing insn to form a pre-indexed load or store
+     operation.  Consider:
+
+	   *((volatile int *)0xe0000100) = 1;
+	   *((volatile int *)0xe0000110) = 2;
+
+     We want this to wind up as:
+
+	    mov rA, #0xe0000000
+	    mov rB, #1
+	    str rB, [rA, #0x100]
+	    mov rB, #2
+	    str rB, [rA, #0x110]
+
+     rather than having to synthesize both large constants from scratch.
+
+     Therefore, we calculate how many insns would be required to emit
+     the constant starting from `best_start', and also starting from
+     zero (i.e. with bit 31 first to be output).  If `best_start' doesn't
+     yield a shorter sequence, we may as well use zero.  */
+  if (best_start != 0
+      && ((((unsigned HOST_WIDE_INT) 1) << best_start) < remainder)
+      && (count_insns_for_constant (remainder, 0) <=
+	  count_insns_for_constant (remainder, best_start)))
+    best_start = 0;
+
+  return best_start;
 }
 
 /* Emit an instruction with the indicated PATTERN.  If COND is
@@ -2445,6 +2527,7 @@ arm_gen_constant (enum rtx_code code, enum machine_mode mode, rtx cond,
 {
   int can_invert = 0;
   int can_negate = 0;
+  int final_invert = 0;
   int can_negate_initial = 0;
   int can_shift = 0;
   int i;
@@ -2456,6 +2539,7 @@ arm_gen_constant (enum rtx_code code, enum machine_mode mode, rtx cond,
   int insns = 0;
   unsigned HOST_WIDE_INT temp1, temp2;
   unsigned HOST_WIDE_INT remainder = val & 0xffffffff;
+  int step_size = TARGET_ARM ? 2 : 1;
 
   /* Find out which operations are safe for a given CODE.  Also do a quick
      check for degenerate cases; these can occur when DImode operations
@@ -2529,14 +2613,15 @@ arm_gen_constant (enum rtx_code code, enum machine_mode mode, rtx cond,
 	  return 1;
 	}
 
-      /* We don't know how to handle other cases yet.  */
-      gcc_assert (remainder == 0xffffffff);
-
-      if (generate)
-	emit_constant_insn (cond,
-			    gen_rtx_SET (VOIDmode, target,
-					 gen_rtx_NOT (mode, source)));
-      return 1;
+      if (remainder == 0xffffffff)
+	{
+	  if (generate)
+	    emit_constant_insn (cond,
+				gen_rtx_SET (VOIDmode, target,
+					     gen_rtx_NOT (mode, source)));
+	  return 1;
+	}
+      break;
 
     case MINUS:
       /* We treat MINUS as (val - source), since (source - val) is always
@@ -2987,9 +3072,25 @@ arm_gen_constant (enum rtx_code code, enum machine_mode mode, rtx cond,
 
   if ((code == AND)
       || (code != IOR && can_invert && num_bits_set > 16))
-    remainder = (~remainder) & 0xffffffff;
+    remainder ^= 0xffffffff;
   else if (code == PLUS && num_bits_set > 16)
     remainder = (-remainder) & 0xffffffff;
+
+  /* For XOR, if more than half the bits are set and there's a sequence
+     of more than 8 consecutive ones in the pattern then we can XOR by the
+     inverted constant and then invert the final result; this may save an
+     instruction and might also lead to the final mvn being merged with
+     some other operation.  */
+  else if (code == XOR && num_bits_set > 16
+	   && (count_insns_for_constant (remainder ^ 0xffffffff,
+					 find_best_start
+					 (remainder ^ 0xffffffff))
+	       < count_insns_for_constant (remainder,
+					   find_best_start (remainder))))
+    {
+      remainder ^= 0xffffffff;
+      final_invert = 1;
+    }
   else
     {
       can_invert = 0;
@@ -3008,63 +3109,8 @@ arm_gen_constant (enum rtx_code code, enum machine_mode mode, rtx cond,
   /* ??? Use thumb2 replicated constants when the high and low halfwords are
      the same.  */
   {
-    int best_start = 0;
-    if (!TARGET_THUMB2)
-      {
-	int best_consecutive_zeros = 0;
-
-	for (i = 0; i < 32; i += 2)
-	  {
-	    int consecutive_zeros = 0;
-
-	    if (!(remainder & (3 << i)))
-	      {
-		while ((i < 32) && !(remainder & (3 << i)))
-		  {
-		    consecutive_zeros += 2;
-		    i += 2;
-		  }
-		if (consecutive_zeros > best_consecutive_zeros)
-		  {
-		    best_consecutive_zeros = consecutive_zeros;
-		    best_start = i - consecutive_zeros;
-		  }
-		i -= 2;
-	      }
-	  }
-
-	/* So long as it won't require any more insns to do so, it's
-	   desirable to emit a small constant (in bits 0...9) in the last
-	   insn.  This way there is more chance that it can be combined with
-	   a later addressing insn to form a pre-indexed load or store
-	   operation.  Consider:
-
-		   *((volatile int *)0xe0000100) = 1;
-		   *((volatile int *)0xe0000110) = 2;
-
-	   We want this to wind up as:
-
-		    mov rA, #0xe0000000
-		    mov rB, #1
-		    str rB, [rA, #0x100]
-		    mov rB, #2
-		    str rB, [rA, #0x110]
-
-	   rather than having to synthesize both large constants from scratch.
-
-	   Therefore, we calculate how many insns would be required to emit
-	   the constant starting from `best_start', and also starting from
-	   zero (i.e. with bit 31 first to be output).  If `best_start' doesn't
-	   yield a shorter sequence, we may as well use zero.  */
-	if (best_start != 0
-	    && ((((unsigned HOST_WIDE_INT) 1) << best_start) < remainder)
-	    && (count_insns_for_constant (remainder, 0) <=
-		count_insns_for_constant (remainder, best_start)))
-	  best_start = 0;
-      }
-
     /* Now start emitting the insns.  */
-    i = best_start;
+    i = find_best_start (remainder);
     do
       {
 	int end;
@@ -3092,7 +3138,7 @@ arm_gen_constant (enum rtx_code code, enum machine_mode mode, rtx cond,
 		  }
 		else
 		  {
-		    if (remainder && subtargets)
+		    if ((final_invert || remainder) && subtargets)
 		      new_src = gen_reg_rtx (mode);
 		    else
 		      new_src = target;
@@ -3127,20 +3173,22 @@ arm_gen_constant (enum rtx_code code, enum machine_mode mode, rtx cond,
 	      code = PLUS;
 
 	    insns++;
-	    if (TARGET_ARM)
-	      i -= 6;
-	    else
-	      i -= 7;
+	    i -= 8 - step_size;
 	  }
 	/* Arm allows rotates by a multiple of two. Thumb-2 allows arbitrary
 	   shifts.  */
-	if (TARGET_ARM)
-	  i -= 2;
-	else
-	  i--;
+	i -= step_size;
       }
     while (remainder);
   }
+
+  if (final_invert)
+    {
+      if (generate)
+	emit_constant_insn (cond, gen_rtx_SET (VOIDmode, target,
+					       gen_rtx_NOT (mode, source)));
+      insns++;
+    }
 
   return insns;
 }
@@ -3264,7 +3312,7 @@ add_libcall (htab_t htab, rtx libcall)
 }
 
 static bool
-arm_libcall_uses_aapcs_base (rtx libcall)
+arm_libcall_uses_aapcs_base (const_rtx libcall)
 {
   static bool init_done = false;
   static htab_t libcall_htab;
@@ -3311,7 +3359,7 @@ arm_libcall_uses_aapcs_base (rtx libcall)
 }
 
 rtx
-arm_libcall_value (enum machine_mode mode, rtx libcall)
+arm_libcall_value (enum machine_mode mode, const_rtx libcall)
 {
   if (TARGET_AAPCS_BASED && arm_pcs_default != ARM_PCS_AAPCS
       && GET_MODE_CLASS (mode) == MODE_FLOAT)
@@ -6201,7 +6249,7 @@ thumb1_rtx_costs (rtx x, enum rtx_code code, enum rtx_code outer)
       else if ((outer == PLUS || outer == COMPARE)
 	       && INTVAL (x) < 256 && INTVAL (x) > -256)
 	return 0;
-      else if (outer == AND
+      else if ((outer == IOR || outer == XOR || outer == AND)
 	       && INTVAL (x) < 256 && INTVAL (x) >= -256)
 	return COSTS_N_INSNS (1);
       else if (outer == ASHIFT || outer == ASHIFTRT
@@ -12269,7 +12317,7 @@ output_move_neon (rtx *operands)
 	  {
 	    /* We're only using DImode here because it's a convenient size.  */
 	    ops[0] = gen_rtx_REG (DImode, REGNO (reg) + 2 * i);
-	    ops[1] = adjust_address (mem, SImode, 8 * i);
+	    ops[1] = adjust_address (mem, DImode, 8 * i);
 	    if (reg_overlap_mentioned_p (ops[0], mem))
 	      {
 		gcc_assert (overlap == -1);
@@ -21171,6 +21219,14 @@ arm_frame_pointer_required (void)
   return (cfun->has_nonlocal_label
           || SUBTARGET_FRAME_POINTER_REQUIRED
           || (TARGET_ARM && TARGET_APCS_FRAME && ! leaf_function_p ()));
+}
+
+/* Only thumb1 can't support conditional execution, so return true if
+   the target is not thumb1.  */
+static bool
+arm_have_conditional_execution (void)
+{
+  return !TARGET_THUMB1;
 }
 
 #include "gt-arm.h"

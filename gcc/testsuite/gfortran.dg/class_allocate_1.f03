@@ -20,6 +20,7 @@
  end type
 
  class(t1),pointer :: cp, cp2
+ type(t2),pointer :: cp3
  type(t3) :: x
  integer :: i
 
@@ -67,7 +68,9 @@
 
  i = 0
  allocate(t2 :: cp2)
- allocate(cp, source = cp2)  ! { dg-warning "not supported yet" }
+ allocate(cp, source = cp2)
+ allocate(t2 :: cp3)
+ allocate(cp, source=cp3)
  select type (cp)
  type is (t1)
    i = 1

@@ -44,6 +44,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "debug.h"
 #include "plugin.h"
 #include "except.h"
+#include "lto-streamer.h"
 
 /* Value of the -G xx switch, and whether it was passed or not.  */
 unsigned HOST_WIDE_INT g_switch_value;
@@ -432,6 +433,17 @@ complain_wrong_lang (const char *text, const struct cl_option *option,
 {
   char *ok_langs, *bad_lang;
 
+  /* The LTO front end inherits all the options from the first front
+     end that was used.  However, not all the original front end
+     options make sense in LTO.
+     
+     A real solution would be to filter this in collect2, but collect2
+     does not have access to all the option attributes to know what to
+     filter.  So, in lto1 we silently accept inherited flags and do
+     nothing about it.  */
+  if (lang_mask & CL_LTO)
+    return;
+
   ok_langs = write_langs (option->flags);
   bad_lang = write_langs (lang_mask);
 
@@ -598,44 +610,31 @@ handle_option (const char **argv, unsigned int lang_mask)
     }
 
   if (option->flag_var)
-    switch (option->var_type)
-      {
-      case CLVC_BOOLEAN:
-	*(int *) option->flag_var = value;
-	break;
-
-      case CLVC_EQUAL:
-	*(int *) option->flag_var = (value
-				     ? option->var_value
-				     : !option->var_value);
-	break;
-
-      case CLVC_BIT_CLEAR:
-      case CLVC_BIT_SET:
-	if ((value != 0) == (option->var_type == CLVC_BIT_SET))
-	  *(int *) option->flag_var |= option->var_value;
-	else
-	  *(int *) option->flag_var &= ~option->var_value;
-	if (option->flag_var == &target_flags)
-	  target_flags_explicit |= option->var_value;
-	break;
-
-      case CLVC_STRING:
-	*(const char **) option->flag_var = arg;
-	break;
-      }
+    set_option (option, value, arg);
 
   if (option->flags & lang_mask)
-    if (lang_hooks.handle_option (opt_index, arg, value) == 0)
-      result = 0;
+    {
+      if (lang_hooks.handle_option (opt_index, arg, value) == 0)
+	result = 0;
+      else
+	lto_register_user_option (opt_index, arg, value, lang_mask);
+    }
 
   if (result && (option->flags & CL_COMMON))
-    if (common_handle_option (opt_index, arg, value, lang_mask) == 0)
-      result = 0;
+    {
+      if (common_handle_option (opt_index, arg, value, lang_mask) == 0)
+	result = 0;
+      else
+	lto_register_user_option (opt_index, arg, value, CL_COMMON);
+    }
 
   if (result && (option->flags & CL_TARGET))
-    if (!targetm.handle_option (opt_index, arg, value))
-      result = 0;
+    {
+      if (!targetm.handle_option (opt_index, arg, value))
+	result = 0;
+      else
+	lto_register_user_option (opt_index, arg, value, CL_TARGET);
+    }
 
  done:
   if (dup)
@@ -898,6 +897,7 @@ decode_options (unsigned int argc, const char **argv)
   flag_tree_pre = opt2;
   flag_tree_switch_conversion = 1;
   flag_ipa_cp = opt2;
+  flag_ipa_sra = opt2;
 
   /* Track fields in field-sensitive alias analysis.  */
   set_param_value ("max-fields-for-field-sensitive",
@@ -957,6 +957,9 @@ decode_options (unsigned int argc, const char **argv)
       /* Some targets have ABI-specified unwind tables.  */
       flag_unwind_tables = targetm.unwind_tables_default;
     }
+
+  /* Clear any options currently held for LTO.  */
+  lto_clear_user_options ();
 
 #ifdef OPTIMIZATION_OPTIONS
   /* Allow default optimizations to be specified on a per-machine basis.  */
@@ -2099,6 +2102,10 @@ common_handle_option (size_t scode, const char *arg, int value,
       /* These are no-ops, preserved for backward compatibility.  */
       break;
 
+    case OPT_fuse_linker_plugin:
+      /* No-op. Used by the driver and passed to us because it starts with f.*/
+      break;
+
     default:
       /* If the flag was handled in a standard way, assume the lack of
 	 processing here is intentional.  */
@@ -2319,6 +2326,42 @@ get_option_state (int option, struct cl_option_state *state)
       break;
     }
   return true;
+}
+
+/* Set *OPTION according to VALUE and ARG.  */
+
+void
+set_option (const struct cl_option *option, int value, const char *arg)
+{
+  if (!option->flag_var)
+    return;
+
+  switch (option->var_type)
+    {
+    case CLVC_BOOLEAN:
+	*(int *) option->flag_var = value;
+	break;
+
+    case CLVC_EQUAL:
+	*(int *) option->flag_var = (value
+				     ? option->var_value
+				     : !option->var_value);
+	break;
+
+    case CLVC_BIT_CLEAR:
+    case CLVC_BIT_SET:
+	if ((value != 0) == (option->var_type == CLVC_BIT_SET))
+	  *(int *) option->flag_var |= option->var_value;
+	else
+	  *(int *) option->flag_var &= ~option->var_value;
+	if (option->flag_var == &target_flags)
+	  target_flags_explicit |= option->var_value;
+	break;
+
+    case CLVC_STRING:
+	*(const char **) option->flag_var = arg;
+	break;
+    }
 }
 
 /* Enable a warning option as an error.  This is used by -Werror= and

@@ -135,7 +135,7 @@ static tree gnat_to_gnu_param (Entity_Id, Mechanism_Type, Entity_Id, bool,
 			       bool *);
 static tree gnat_to_gnu_field (Entity_Id, tree, int, bool, bool);
 static bool same_discriminant_p (Entity_Id, Entity_Id);
-static bool array_type_has_nonaliased_component (Entity_Id, tree);
+static bool array_type_has_nonaliased_component (tree, Entity_Id);
 static bool compile_time_known_address_p (Node_Id);
 static bool cannot_be_superflat_p (Node_Id);
 static void components_to_record (tree, Node_Id, tree, int, bool, tree *,
@@ -633,7 +633,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	    else
 	      gnu_type
 		= maybe_pad_type (gnu_type, NULL_TREE, align, gnat_entity,
-				  "PAD", false, definition, true);
+				  false, false, definition, true);
 	  }
 
 	/* If we are defining the object, see if it has a Size value and
@@ -676,8 +676,6 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 		       despite having a nominal type with self-referential
 		       size, we can get the size directly from it.  */
 		    if (TREE_CODE (gnu_expr) == COMPONENT_REF
-			&& TREE_CODE (TREE_TYPE (TREE_OPERAND (gnu_expr, 0)))
-			   == RECORD_TYPE
 			&& TYPE_IS_PADDING_P
 			   (TREE_TYPE (TREE_OPERAND (gnu_expr, 0)))
 			&& TREE_CODE (TREE_OPERAND (gnu_expr, 0)) == VAR_DECL
@@ -838,7 +836,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	gnu_object_size = gnu_size ? gnu_size : TYPE_SIZE (gnu_type);
 	if (gnu_size || align > 0)
 	  gnu_type = maybe_pad_type (gnu_type, gnu_size, align, gnat_entity,
-				     "PAD", false, definition,
+				     false, false, definition,
 				     gnu_size ? true : false);
 
 	/* If this is a renaming, avoid as much as possible to create a new
@@ -852,8 +850,6 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	    /* If the renamed object had padding, strip off the reference
 	       to the inner object and reset our type.  */
 	    if ((TREE_CODE (gnu_expr) == COMPONENT_REF
-		 && TREE_CODE (TREE_TYPE (TREE_OPERAND (gnu_expr, 0)))
-		    == RECORD_TYPE
 		 && TYPE_IS_PADDING_P (TREE_TYPE (TREE_OPERAND (gnu_expr, 0))))
 		/* Strip useless conversions around the object.  */
 		|| (TREE_CODE (gnu_expr) == NOP_EXPR
@@ -1017,16 +1013,15 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	    && !gnu_expr
 	    && TREE_CODE (gnu_type) == RECORD_TYPE
 	    && (TYPE_CONTAINS_TEMPLATE_P (gnu_type)
-	        /* Beware that padding might have been introduced
-		   via maybe_pad_type above.  */
-		|| (TYPE_IS_PADDING_P (gnu_type)
+	        /* Beware that padding might have been introduced above.  */
+		|| (TYPE_PADDING_P (gnu_type)
 		    && TREE_CODE (TREE_TYPE (TYPE_FIELDS (gnu_type)))
 		       == RECORD_TYPE
 		    && TYPE_CONTAINS_TEMPLATE_P
 		       (TREE_TYPE (TYPE_FIELDS (gnu_type))))))
 	  {
 	    tree template_field
-	      = TYPE_IS_PADDING_P (gnu_type)
+	      = TYPE_PADDING_P (gnu_type)
 		? TYPE_FIELDS (TREE_TYPE (TYPE_FIELDS (gnu_type)))
 		: TYPE_FIELDS (gnu_type);
 
@@ -1050,17 +1045,16 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	if (gnu_expr
 	    && TREE_CODE (gnu_type) != UNCONSTRAINED_ARRAY_TYPE
 	    && !CONTAINS_PLACEHOLDER_P (TYPE_SIZE (gnu_type))
-	    && !(TREE_CODE (gnu_type) == RECORD_TYPE
-		 && TYPE_IS_PADDING_P (gnu_type)
-		 && (CONTAINS_PLACEHOLDER_P
-		     (TYPE_SIZE (TREE_TYPE (TYPE_FIELDS (gnu_type)))))))
+	    && !(TYPE_IS_PADDING_P (gnu_type)
+		 && CONTAINS_PLACEHOLDER_P
+		    (TYPE_SIZE (TREE_TYPE (TYPE_FIELDS (gnu_type))))))
 	  gnu_expr = convert (gnu_type, gnu_expr);
 
 	/* If this is a pointer and it does not have an initializing
 	   expression, initialize it to NULL, unless the object is
 	   imported.  */
 	if (definition
-	    && (POINTER_TYPE_P (gnu_type) || TYPE_FAT_POINTER_P (gnu_type))
+	    && (POINTER_TYPE_P (gnu_type) || TYPE_IS_FAT_POINTER_P (gnu_type))
 	    && !Is_Imported (gnat_entity) && !gnu_expr)
 	  gnu_expr = integer_zero_node;
 
@@ -1279,10 +1273,9 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	if (gnu_expr
 	    && TREE_CODE (gnu_type) != UNCONSTRAINED_ARRAY_TYPE
 	    && !CONTAINS_PLACEHOLDER_P (TYPE_SIZE (gnu_type))
-	    && !(TREE_CODE (gnu_type) == RECORD_TYPE
-		 && TYPE_IS_PADDING_P (gnu_type)
-		 && (CONTAINS_PLACEHOLDER_P
-		     (TYPE_SIZE (TREE_TYPE (TYPE_FIELDS (gnu_type)))))))
+	    && !(TYPE_IS_PADDING_P (gnu_type)
+		 && CONTAINS_PLACEHOLDER_P
+		    (TYPE_SIZE (TREE_TYPE (TYPE_FIELDS (gnu_type))))))
 	  gnu_expr = convert (gnu_type, gnu_expr);
 
 	/* If this name is external or there was a name specified, use it,
@@ -1304,8 +1297,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	    && gnu_expr && TREE_CONSTANT (gnu_expr)
 	    && AGGREGATE_TYPE_P (gnu_type)
 	    && host_integerp (TYPE_SIZE_UNIT (gnu_type), 1)
-	    && !(TREE_CODE (gnu_type) == RECORD_TYPE
-		 && TYPE_IS_PADDING_P (gnu_type)
+	    && !(TYPE_IS_PADDING_P (gnu_type)
 		 && !host_integerp (TYPE_SIZE_UNIT
 				    (TREE_TYPE (TYPE_FIELDS (gnu_type))), 1)))
 	  static_p = true;
@@ -1687,7 +1679,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 					 gnu_field_type, gnu_type, 1, 0, 0, 0);
 
 	  finish_record_type (gnu_type, gnu_field, 0, false);
-	  TYPE_IS_PADDING_P (gnu_type) = 1;
+	  TYPE_PADDING_P (gnu_type) = 1;
 
 	  relate_alias_sets (gnu_type, gnu_field_type, ALIAS_SET_COPY);
 	}
@@ -1835,7 +1827,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	/* Do not finalize this record type since the types of its fields
 	   are still incomplete at this point.  */
 	finish_record_type (gnu_fat_type, tem, 0, true);
-	TYPE_IS_FAT_POINTER_P (gnu_fat_type) = 1;
+	TYPE_FAT_POINTER_P (gnu_fat_type) = 1;
 
 	/* Build a reference to the template from a PLACEHOLDER_EXPR that
 	   is the fat pointer.  This will be used to access the individual
@@ -1971,7 +1963,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	  {
 	    tem = build_array_type (tem, gnu_index_types[index]);
 	    TYPE_MULTI_ARRAY_P (tem) = (index > 0);
-	    if (array_type_has_nonaliased_component (gnat_entity, tem))
+	    if (array_type_has_nonaliased_component (tem, gnat_entity))
 	      TYPE_NONALIASED_COMPONENT (tem) = 1;
 	  }
 
@@ -2320,7 +2312,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	    {
 	      gnu_type = build_array_type (gnu_type, gnu_index_types[index]);
 	      TYPE_MULTI_ARRAY_P (gnu_type) = (index > 0);
-	      if (array_type_has_nonaliased_component (gnat_entity, gnu_type))
+	      if (array_type_has_nonaliased_component (gnu_type, gnat_entity))
 		TYPE_NONALIASED_COMPONENT (gnu_type) = 1;
 	    }
 
@@ -2477,7 +2469,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	      gnu_inner = gnu_type;
 	      while (TREE_CODE (gnu_inner) == RECORD_TYPE
 		     && (TYPE_JUSTIFIED_MODULAR_P (gnu_inner)
-			 || TYPE_IS_PADDING_P (gnu_inner)))
+			 || TYPE_PADDING_P (gnu_inner)))
 		gnu_inner = TREE_TYPE (TYPE_FIELDS (gnu_inner));
 
 	      /* We need to attach the index type to the type we just made so
@@ -2571,7 +2563,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	gnu_type
 	  = build_array_type (gnat_to_gnu_type (Component_Type (gnat_entity)),
 			      gnu_index_type);
-	if (array_type_has_nonaliased_component (gnat_entity, gnu_type))
+	if (array_type_has_nonaliased_component (gnu_type, gnat_entity))
 	  TYPE_NONALIASED_COMPONENT (gnu_type) = 1;
 	relate_alias_sets (gnu_type, gnu_string_type, ALIAS_SET_COPY);
       }
@@ -2737,15 +2729,16 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 		   Present (gnat_field);
 		   gnat_field = Next_Stored_Discriminant (gnat_field))
 		if (Present (Corresponding_Discriminant (gnat_field)))
-		  save_gnu_tree
-		    (gnat_field,
-		     build3 (COMPONENT_REF,
-			     get_unpadded_type (Etype (gnat_field)),
-			     gnu_get_parent,
-			     gnat_to_gnu_field_decl (Corresponding_Discriminant
-						     (gnat_field)),
-			     NULL_TREE),
-		     true);
+		  {
+		    tree gnu_field
+		      = gnat_to_gnu_field_decl (Corresponding_Discriminant
+						(gnat_field));
+		    save_gnu_tree
+		      (gnat_field,
+		       build3 (COMPONENT_REF, TREE_TYPE (gnu_field),
+			       gnu_get_parent, gnu_field, NULL_TREE),
+		       true);
+		  }
 
 	    /* Then we build the parent subtype.  If it has discriminants but
 	       the type itself has unknown discriminants, this means that it
@@ -2986,8 +2979,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	      copy_and_substitute_in_size (gnu_type, gnu_base_type,
 					   gnu_subst_list);
 
-	      if (TREE_CODE (gnu_base_type) == RECORD_TYPE
-		  && TYPE_IS_PADDING_P (gnu_base_type))
+	      if (TYPE_IS_PADDING_P (gnu_base_type))
 		gnu_unpad_base_type = TREE_TYPE (TYPE_FIELDS (gnu_base_type));
 	      else
 		gnu_unpad_base_type = gnu_base_type;
@@ -3097,7 +3089,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 		      {
 			gnu_size = DECL_SIZE (gnu_old_field);
 			if (TREE_CODE (gnu_field_type) == RECORD_TYPE
-			    && !TYPE_IS_FAT_POINTER_P (gnu_field_type)
+			    && !TYPE_FAT_POINTER_P (gnu_field_type)
 			    && host_integerp (TYPE_SIZE (gnu_field_type), 1))
 			  gnu_field_type
 			    = make_packable_type (gnu_field_type, true);
@@ -3212,13 +3204,14 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	      /* Fill in locations of fields.  */
 	      annotate_rep (gnat_entity, gnu_type);
 
-	      /* We've built a new type, make an XVS type to show what this
-		 is a subtype of.  Some debuggers require the XVS type to be
-		 output first, so do it in that order.  */
+	      /* If debugging information is being written for the type, write
+		 a record that shows what we are a subtype of and also make a
+		 variable that indicates our size, if still variable.  */
 	      if (debug_info_p)
 		{
 		  tree gnu_subtype_marker = make_node (RECORD_TYPE);
 		  tree gnu_unpad_base_name = TYPE_NAME (gnu_unpad_base_type);
+		  tree gnu_size_unit = TYPE_SIZE_UNIT (gnu_type);
 
 		  if (TREE_CODE (gnu_unpad_base_name) == TYPE_DECL)
 		    gnu_unpad_base_name = DECL_NAME (gnu_unpad_base_name);
@@ -3236,6 +3229,13 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 
 		  add_parallel_type (TYPE_STUB_DECL (gnu_type),
 				     gnu_subtype_marker);
+
+		  if (definition
+		      && TREE_CODE (gnu_size_unit) != INTEGER_CST
+		      && !CONTAINS_PLACEHOLDER_P (gnu_size_unit))
+		    create_var_decl (create_concat_name (gnat_entity, "XVZ"),
+				     NULL_TREE, sizetype, gnu_size_unit, false,
+				     false, false, false, NULL, gnat_entity);
 		}
 
 	      /* Now we can finalize it.  */
@@ -3457,7 +3457,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 		/* Make sure we can place this into a register.  */
 		TYPE_ALIGN (gnu_type)
 		  = MIN (BIGGEST_ALIGNMENT, 2 * POINTER_SIZE);
-		TYPE_IS_FAT_POINTER_P (gnu_type) = 1;
+		TYPE_FAT_POINTER_P (gnu_type) = 1;
 
 		/* Do not finalize this record type since the types of
 		   its fields are incomplete.  */
@@ -3591,11 +3591,11 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	if ((! in_main_unit || is_from_limited_with) && made_dummy)
 	  {
 	    tree gnu_old_type
-	      = TYPE_FAT_POINTER_P (gnu_type)
+	      = TYPE_IS_FAT_POINTER_P (gnu_type)
 		? TYPE_UNCONSTRAINED_ARRAY (gnu_type) : TREE_TYPE (gnu_type);
 
 	    if (esize == POINTER_SIZE
-		&& (got_fat_p || TYPE_FAT_POINTER_P (gnu_type)))
+		&& (got_fat_p || TYPE_IS_FAT_POINTER_P (gnu_type)))
 	      gnu_type
 		= build_pointer_type
 		  (TYPE_OBJECT_RECORD_TYPE
@@ -3907,8 +3907,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	/* If the type is a padded type and the underlying type would not
 	   be passed by reference or this function has a foreign convention,
 	   return the underlying type.  */
-	else if (TREE_CODE (gnu_return_type) == RECORD_TYPE
-		 && TYPE_IS_PADDING_P (gnu_return_type)
+	else if (TYPE_IS_PADDING_P (gnu_return_type)
 		 && (!default_pass_by_ref (TREE_TYPE
 					   (TYPE_FIELDS (gnu_return_type)))
 		     || Has_Foreign_Convention (gnat_entity)))
@@ -4046,7 +4045,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 		   between two calls, so they can't be CSE'ed.  The latter
 		   case also handles by-ref parameters.  */
 		if (POINTER_TYPE_P (gnu_param_type)
-		    || TYPE_FAT_POINTER_P (gnu_param_type))
+		    || TYPE_IS_FAT_POINTER_P (gnu_param_type))
 		  const_flag = false;
 	      }
 
@@ -4409,7 +4408,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	      else if ((TREE_CODE (gnu_type) == RECORD_TYPE
 			|| TREE_CODE (gnu_type) == UNION_TYPE
 			|| TREE_CODE (gnu_type) == QUAL_UNION_TYPE)
-		       && !TYPE_IS_FAT_POINTER_P (gnu_type))
+		       && !TYPE_FAT_POINTER_P (gnu_type))
 		size = rm_size (gnu_type);
 	      else
 	        size = TYPE_SIZE (gnu_type);
@@ -4438,10 +4437,9 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	 us when we make the new TYPE_DECL below.  */
       if (gnu_size || align > 0)
 	gnu_type = maybe_pad_type (gnu_type, gnu_size, align, gnat_entity,
-				   "PAD", true, definition, false);
+				   false, !gnu_decl, definition, false);
 
-      if (TREE_CODE (gnu_type) == RECORD_TYPE
-	  && TYPE_IS_PADDING_P (gnu_type))
+      if (TYPE_IS_PADDING_P (gnu_type))
 	{
 	  gnu_entity_name = TYPE_NAME (gnu_type);
 	  if (TREE_CODE (gnu_entity_name) == TYPE_DECL)
@@ -4558,7 +4556,10 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 				     !Comes_From_Source (gnat_entity),
 				     debug_info_p, gnat_entity);
       else
-	TREE_TYPE (gnu_decl) = gnu_type;
+	{
+	  TREE_TYPE (gnu_decl) = gnu_type;
+	  TYPE_STUB_DECL (gnu_type) = gnu_decl;
+	}
     }
 
   if (is_type && !TYPE_IS_DUMMY_P (TREE_TYPE (gnu_decl)))
@@ -4601,11 +4602,38 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 		   superset      superset
 		R ----------> D ----------> T
 
+	 However, for composite types, conversions between derived types are
+	 translated into VIEW_CONVERT_EXPRs so a sequence like:
+
+	    type Comp1 is new Comp;
+	    type Comp2 is new Comp;
+	    procedure Proc (C : Comp1);
+
+	    C : Comp2;
+	    Proc (Comp1 (C));
+
+	 is translated into:
+
+	    C : Comp2;
+	    Proc ((Comp1 &) &VIEW_CONVERT_EXPR <Comp1> (C));
+
+	 and gimplified into:
+
+	    C : Comp2;
+	    Comp1 *C.0;
+	    C.0 = (Comp1 *) &C;
+	    Proc (C.0);
+
+	 i.e. generates code involving type punning.  Therefore, Comp1 needs
+	 to conflict with Comp2 and an alias set copy is required.
+
 	 The language rules ensure the parent type is already frozen here.  */
       if (Is_Derived_Type (gnat_entity))
 	{
 	  tree gnu_parent_type = gnat_to_gnu_type (Etype (gnat_entity));
-	  relate_alias_sets (gnu_type, gnu_parent_type, ALIAS_SET_SUPERSET);
+	  relate_alias_sets (gnu_type, gnu_parent_type,
+			     Is_Composite_Type (gnat_entity)
+			     ? ALIAS_SET_COPY : ALIAS_SET_SUPERSET);
 	}
 
       /* Back-annotate the Alignment of the type if not already in the
@@ -4697,8 +4725,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
       tree gnu_low_bound, gnu_high_bound;
 
       /* If this is a padded type, we need to use the underlying type.  */
-      if (TREE_CODE (gnu_scalar_type) == RECORD_TYPE
-	  && TYPE_IS_PADDING_P (gnu_scalar_type))
+      if (TYPE_IS_PADDING_P (gnu_scalar_type))
 	gnu_scalar_type = TREE_TYPE (TYPE_FIELDS (gnu_scalar_type));
 
       /* If this is a floating point type and we haven't set a floating
@@ -4844,7 +4871,7 @@ get_unpadded_type (Entity_Id gnat_entity)
 {
   tree type = gnat_to_gnu_type (gnat_entity);
 
-  if (TREE_CODE (type) == RECORD_TYPE && TYPE_IS_PADDING_P (type))
+  if (TYPE_IS_PADDING_P (type))
     type = TREE_TYPE (TYPE_FIELDS (type));
 
   return type;
@@ -4977,7 +5004,7 @@ gnat_to_gnu_component_type (Entity_Id gnat_array, bool definition,
       && !Has_Aliased_Components (gnat_array)
       && !Strict_Alignment (Component_Type (gnat_array))
       && TREE_CODE (gnu_type) == RECORD_TYPE
-      && !TYPE_IS_FAT_POINTER_P (gnu_type)
+      && !TYPE_FAT_POINTER_P (gnu_type)
       && host_integerp (TYPE_SIZE (gnu_type), 1))
     gnu_type = make_packable_type (gnu_type, false);
 
@@ -4989,6 +5016,17 @@ gnat_to_gnu_component_type (Entity_Id gnat_array, bool definition,
     = validate_size (Component_Size (gnat_array), gnu_type, gnat_array,
 		     Is_Bit_Packed_Array (gnat_array) ? TYPE_DECL : VAR_DECL,
 		     true, Has_Component_Size_Clause (gnat_array));
+
+  /* If the array has aliased components and the component size can be zero,
+     force at least unit size to ensure that the components have distinct
+     addresses.  */
+  if (!gnu_comp_size
+      && Has_Aliased_Components (gnat_array)
+      && (integer_zerop (TYPE_SIZE (gnu_type))
+	  || (TREE_CODE (gnu_type) == ARRAY_TYPE
+	      && !TREE_CONSTANT (TYPE_SIZE (gnu_type)))))
+    gnu_comp_size
+      = size_binop (MAX_EXPR, TYPE_SIZE (gnu_type), bitsize_unit_node);
 
   /* If the component type is a RECORD_TYPE that has a self-referential size,
      then use the maximum size for the component size.  */
@@ -5018,7 +5056,7 @@ gnat_to_gnu_component_type (Entity_Id gnat_array, bool definition,
 	orig_type = gnu_type;
 
       gnu_type = maybe_pad_type (gnu_type, gnu_comp_size, 0, gnat_array,
-				 "C_PAD", false, definition, true);
+				 true, false, definition, true);
 
       /* If a padding record was made, declare it now since it will never be
 	 declared otherwise.  This is necessary to ensure that its subtrees
@@ -5070,8 +5108,7 @@ gnat_to_gnu_param (Entity_Id gnat_param, Mechanism_Type mech,
 
   /* If this is either a foreign function or if the underlying type won't
      be passed by reference, strip off possible padding type.  */
-  if (TREE_CODE (gnu_param_type) == RECORD_TYPE
-      && TYPE_IS_PADDING_P (gnu_param_type))
+  if (TYPE_IS_PADDING_P (gnu_param_type))
     {
       tree unpadded_type = TREE_TYPE (TYPE_FIELDS (gnu_param_type));
 
@@ -5143,7 +5180,7 @@ gnat_to_gnu_param (Entity_Id gnat_param, Mechanism_Type mech,
     }
 
   /* Fat pointers are passed as thin pointers for foreign conventions.  */
-  else if (foreign && TYPE_FAT_POINTER_P (gnu_param_type))
+  else if (foreign && TYPE_IS_FAT_POINTER_P (gnu_param_type))
     gnu_param_type
       = make_type_from_size (gnu_param_type, size_int (POINTER_SIZE), 0);
 
@@ -5244,21 +5281,38 @@ same_discriminant_p (Entity_Id discr1, Entity_Id discr2)
     Original_Record_Component (discr1) == Original_Record_Component (discr2);
 }
 
-/* Return true if the array type specified by GNAT_TYPE and GNU_TYPE has
-   a non-aliased component in the back-end sense.  */
+/* Return true if the array type GNU_TYPE, which represents a dimension of
+   GNAT_TYPE, has a non-aliased component in the back-end sense.  */
 
 static bool
-array_type_has_nonaliased_component (Entity_Id gnat_type, tree gnu_type)
+array_type_has_nonaliased_component (tree gnu_type, Entity_Id gnat_type)
 {
-  /* If the type below this is a multi-array type, then
-     this does not have aliased components.  */
+  /* If the array type is not the innermost dimension of the GNAT type,
+     then it has a non-aliased component.  */
   if (TREE_CODE (TREE_TYPE (gnu_type)) == ARRAY_TYPE
       && TYPE_MULTI_ARRAY_P (TREE_TYPE (gnu_type)))
     return true;
 
+  /* If the array type has an aliased component in the front-end sense,
+     then it also has an aliased component in the back-end sense.  */
   if (Has_Aliased_Components (gnat_type))
     return false;
 
+  /* If this is a derived type, then it has a non-aliased component if
+     and only if its parent type also has one.  */
+  if (Is_Derived_Type (gnat_type))
+    {
+      tree gnu_parent_type = gnat_to_gnu_type (Etype (gnat_type));
+      int index;
+      if (TREE_CODE (gnu_parent_type) == UNCONSTRAINED_ARRAY_TYPE)
+	gnu_parent_type
+	  = TREE_TYPE (TREE_TYPE (TYPE_FIELDS (TREE_TYPE (gnu_parent_type))));
+      for (index = Number_Dimensions (gnat_type) - 1; index > 0; index--)
+	gnu_parent_type = TREE_TYPE (gnu_parent_type);
+      return TYPE_NONALIASED_COMPONENT (gnu_parent_type);
+    }
+
+  /* Otherwise, rely exclusively on properties of the element type.  */
   return type_for_nonaliased_component_p (TREE_TYPE (gnu_type));
 }
 
@@ -5444,7 +5498,7 @@ relate_alias_sets (tree gnu_new_type, tree gnu_old_type, enum alias_set_op op)
      see the inner types.  */
   while (TREE_CODE (gnu_old_type) == RECORD_TYPE
 	 && (TYPE_JUSTIFIED_MODULAR_P (gnu_old_type)
-	     || TYPE_IS_PADDING_P (gnu_old_type)))
+	     || TYPE_PADDING_P (gnu_old_type)))
     gnu_old_type = TREE_TYPE (TYPE_FIELDS (gnu_old_type));
 
   /* Unconstrained array types are deemed incomplete and would thus be given
@@ -5910,7 +5964,7 @@ make_packable_type (tree type, bool in_record)
   TYPE_JUSTIFIED_MODULAR_P (new_type) = TYPE_JUSTIFIED_MODULAR_P (type);
   TYPE_CONTAINS_TEMPLATE_P (new_type) = TYPE_CONTAINS_TEMPLATE_P (type);
   if (TREE_CODE (type) == RECORD_TYPE)
-    TYPE_IS_PADDING_P (new_type) = TYPE_IS_PADDING_P (type);
+    TYPE_PADDING_P (new_type) = TYPE_PADDING_P (type);
 
   /* If we are in a record and have a small size, set the alignment to
      try for an integral mode.  Otherwise set it to try for a smaller
@@ -5953,7 +6007,7 @@ make_packable_type (tree type, bool in_record)
       if ((TREE_CODE (new_field_type) == RECORD_TYPE
 	   || TREE_CODE (new_field_type) == UNION_TYPE
 	   || TREE_CODE (new_field_type) == QUAL_UNION_TYPE)
-	  && !TYPE_IS_FAT_POINTER_P (new_field_type)
+	  && !TYPE_FAT_POINTER_P (new_field_type)
 	  && host_integerp (TYPE_SIZE (new_field_type), 1))
 	new_field_type = make_packable_type (new_field_type, true);
 
@@ -5965,7 +6019,7 @@ make_packable_type (tree type, bool in_record)
 	  && (TREE_CODE (new_field_type) == RECORD_TYPE
 	      || TREE_CODE (new_field_type) == UNION_TYPE
 	      || TREE_CODE (new_field_type) == QUAL_UNION_TYPE)
-	  && !TYPE_IS_FAT_POINTER_P (new_field_type)
+	  && !TYPE_FAT_POINTER_P (new_field_type)
 	  && !TYPE_CONTAINS_TEMPLATE_P (new_field_type)
 	  && TYPE_ADA_SIZE (new_field_type))
 	new_size = TYPE_ADA_SIZE (new_field_type);
@@ -5994,8 +6048,7 @@ make_packable_type (tree type, bool in_record)
 
   /* If this is a padding record, we never want to make the size smaller
      than what was specified.  For QUAL_UNION_TYPE, also copy the size.  */
-  if ((TREE_CODE (type) == RECORD_TYPE && TYPE_IS_PADDING_P (type))
-      || TREE_CODE (type) == QUAL_UNION_TYPE)
+  if (TYPE_IS_PADDING_P (type) || TREE_CODE (type) == QUAL_UNION_TYPE)
     {
       TYPE_SIZE (new_type) = TYPE_SIZE (type);
       TYPE_SIZE_UNIT (new_type) = TYPE_SIZE_UNIT (type);
@@ -6027,25 +6080,20 @@ make_packable_type (tree type, bool in_record)
 
 /* Ensure that TYPE has SIZE and ALIGN.  Make and return a new padded type
    if needed.  We have already verified that SIZE and TYPE are large enough.
-
-   GNAT_ENTITY and NAME_TRAILER are used to name the resulting record and
-   to issue a warning.
-
-   IS_USER_TYPE is true if we must complete the original type.
-
-   DEFINITION is true if this type is being defined.
-
-   SAME_RM_SIZE is true if the RM size of the resulting type is to be set
-   to SIZE too; otherwise, it's set to the RM size of the original type.  */
+   GNAT_ENTITY is used to name the resulting record and to issue a warning.
+   IS_COMPONENT_TYPE is true if this is being done for the component type
+   of an array.  IS_USER_TYPE is true if we must complete the original type.
+   DEFINITION is true if this type is being defined.  SAME_RM_SIZE is true
+   if the RM size of the resulting type is to be set to SIZE too; otherwise,
+   it's set to the RM size of the original type.  */
 
 tree
 maybe_pad_type (tree type, tree size, unsigned int align,
-		Entity_Id gnat_entity, const char *name_trailer,
+		Entity_Id gnat_entity, bool is_component_type,
 		bool is_user_type, bool definition, bool same_rm_size)
 {
   tree orig_rm_size = same_rm_size ? NULL_TREE : rm_size (type);
   tree orig_size = TYPE_SIZE (type);
-  unsigned int orig_align = align;
   tree record, field;
 
   /* If TYPE is a padded type, see if it agrees with any size and alignment
@@ -6053,7 +6101,7 @@ maybe_pad_type (tree type, tree size, unsigned int align,
      off the padding, since we will either be returning the inner type
      or repadding it.  If no size or alignment is specified, use that of
      the original padded type.  */
-  if (TREE_CODE (type) == RECORD_TYPE && TYPE_IS_PADDING_P (type))
+  if (TYPE_IS_PADDING_P (type))
     {
       if ((!size
 	   || operand_equal_p (round_up (size,
@@ -6102,18 +6150,15 @@ maybe_pad_type (tree type, tree size, unsigned int align,
      generate incorrect debugging information.  So make a new record
      type and name.  */
   record = make_node (RECORD_TYPE);
-  TYPE_IS_PADDING_P (record) = 1;
+  TYPE_PADDING_P (record) = 1;
 
   if (Present (gnat_entity))
-    TYPE_NAME (record) = create_concat_name (gnat_entity, name_trailer);
+    TYPE_NAME (record) = create_concat_name (gnat_entity, "PAD");
 
   TYPE_VOLATILE (record)
     = Present (gnat_entity) && Treat_As_Volatile (gnat_entity);
 
   TYPE_ALIGN (record) = align;
-  if (orig_align)
-    TYPE_USER_ALIGN (record) = align;
-
   TYPE_SIZE (record) = size ? size : orig_size;
   TYPE_SIZE_UNIT (record)
     = convert (sizetype,
@@ -6190,7 +6235,7 @@ maybe_pad_type (tree type, tree size, unsigned int align,
 
       add_parallel_type (TYPE_STUB_DECL (record), marker);
 
-      if (size && TREE_CODE (size) != INTEGER_CST && definition)
+      if (definition && size && TREE_CODE (size) != INTEGER_CST)
 	create_var_decl (concat_name (name, "XVZ"), NULL_TREE, sizetype,
 			 TYPE_SIZE_UNIT (record), false, false, false,
 			 false, NULL, gnat_entity);
@@ -6210,6 +6255,7 @@ maybe_pad_type (tree type, tree size, unsigned int align,
 
   if (Present (gnat_entity)
       && size
+      && TREE_CODE (size) != MAX_EXPR
       && !operand_equal_p (size, orig_size, 0)
       && !(TREE_CODE (size) == INTEGER_CST
 	   && TREE_CODE (orig_size) == INTEGER_CST
@@ -6236,7 +6282,7 @@ maybe_pad_type (tree type, tree size, unsigned int align,
 	    post_error_ne_tree ("{^ }bits of & unused?",
 				gnat_error_node, gnat_entity,
 				size_diffop (size, orig_size));
-	  else if (name_trailer[0] == 'C')
+	  else if (is_component_type)
 	    post_error_ne_tree ("component of& padded{ by ^ bits}?",
 				gnat_entity, gnat_entity,
 				size_diffop (size, orig_size));
@@ -6427,7 +6473,7 @@ gnat_to_gnu_field (Entity_Id gnat_field, tree gnu_record_type, int packed,
      from a component clause.  */
 
   if (TREE_CODE (gnu_field_type) == RECORD_TYPE
-      && !TYPE_IS_FAT_POINTER_P (gnu_field_type)
+      && !TYPE_FAT_POINTER_P (gnu_field_type)
       && host_integerp (TYPE_SIZE (gnu_field_type), 1)
       && (packed == 1
 	  || (gnu_size
@@ -6614,7 +6660,7 @@ gnat_to_gnu_field (Entity_Id gnat_field, tree gnu_record_type, int packed,
 
       orig_field_type = gnu_field_type;
       gnu_field_type = maybe_pad_type (gnu_field_type, gnu_size, 0, gnat_field,
-				       "PAD", false, definition, true);
+				       false, false, definition, true);
 
       /* If a padding record was made, declare it now since it will never be
 	 declared otherwise.  This is necessary to ensure that its subtrees
@@ -6657,8 +6703,7 @@ is_variable_size (tree type)
   if (!TREE_CONSTANT (TYPE_SIZE (type)))
     return true;
 
-  if (TREE_CODE (type) == RECORD_TYPE
-      && TYPE_IS_PADDING_P (type)
+  if (TYPE_IS_PADDING_P (type)
       && !TREE_CONSTANT (DECL_SIZE (TYPE_FIELDS (type))))
     return true;
 
@@ -7207,7 +7252,7 @@ annotate_object (Entity_Id gnat_entity, tree gnu_type, tree size, bool by_ref)
 {
   if (by_ref)
     {
-      if (TYPE_FAT_POINTER_P (gnu_type))
+      if (TYPE_IS_FAT_POINTER_P (gnu_type))
 	gnu_type = TYPE_UNCONSTRAINED_ARRAY (gnu_type);
       else
 	gnu_type = TREE_TYPE (gnu_type);
@@ -7228,6 +7273,23 @@ annotate_object (Entity_Id gnat_entity, tree gnu_type, tree size, bool by_ref)
   if (Unknown_Alignment (gnat_entity))
     Set_Alignment (gnat_entity,
 		   UI_From_Int (TYPE_ALIGN (gnu_type) / BITS_PER_UNIT));
+}
+
+/* Return first element of field list whose TREE_PURPOSE is ELEM or whose
+   DECL_ORIGINAL_FIELD of TREE_PURPOSE is ELEM.  Return NULL_TREE if there
+   is no such element in the list.  */
+
+static tree
+purpose_member_field (const_tree elem, tree list)
+{
+  while (list)
+    {
+      tree field = TREE_PURPOSE (list);
+      if (elem == field || elem == DECL_ORIGINAL_FIELD (field))
+	return list;
+      list = TREE_CHAIN (list);
+    }
+  return NULL_TREE;
 }
 
 /* Given GNAT_ENTITY, a record type, and GNU_TYPE, its corresponding GCC type,
@@ -7253,11 +7315,12 @@ annotate_rep (Entity_Id gnat_entity, tree gnu_type)
 	|| (Ekind (gnat_field) == E_Discriminant
 	    && !Is_Unchecked_Union (Scope (gnat_field))))
       {
-	tree parent_offset, t;
-
-	t = purpose_member (gnat_to_gnu_field_decl (gnat_field), gnu_list);
+	tree t = purpose_member_field (gnat_to_gnu_field_decl (gnat_field),
+				       gnu_list);
 	if (t)
 	  {
+	    tree parent_offset;
+
 	    if (type_annotate_only && Is_Tagged_Type (gnat_entity))
 	      {
 		/* In this mode the tag and parent components are not
@@ -7374,12 +7437,16 @@ build_subst_list (Entity_Id gnat_subtype, Entity_Id gnat_type, bool definition)
        gnat_value = Next_Elmt (gnat_value))
     /* Ignore access discriminants.  */
     if (!Is_Access_Type (Etype (Node (gnat_value))))
-      gnu_list = tree_cons (gnat_to_gnu_field_decl (gnat_discrim),
-			    elaborate_expression
-			    (Node (gnat_value), gnat_subtype,
-			     get_entity_name (gnat_discrim), definition,
-			     true, false),
-			    gnu_list);
+      {
+	tree gnu_field = gnat_to_gnu_field_decl (gnat_discrim);
+	gnu_list = tree_cons (gnu_field,
+			      convert (TREE_TYPE (gnu_field),
+				       elaborate_expression
+				       (Node (gnat_value), gnat_subtype,
+					get_entity_name (gnat_discrim),
+					definition, true, false)),
+			      gnu_list);
+      }
 
   return gnu_list;
 }
@@ -7522,7 +7589,7 @@ validate_size (Uint uint_size, tree gnu_type, Entity_Id gnat_object,
 
   /* If this is an access type or a fat pointer, the minimum size is that given
      by the smallest integral mode that's valid for pointers.  */
-  if ((TREE_CODE (gnu_type) == POINTER_TYPE) || TYPE_FAT_POINTER_P (gnu_type))
+  if (TREE_CODE (gnu_type) == POINTER_TYPE || TYPE_IS_FAT_POINTER_P (gnu_type))
     {
       enum machine_mode p_mode;
 
@@ -7616,8 +7683,7 @@ set_rm_size (Uint uint_size, tree gnu_type, Entity_Id gnat_entity)
       || (AGGREGATE_TYPE_P (gnu_type)
 	  && !(TREE_CODE (gnu_type) == ARRAY_TYPE
 	       && TYPE_PACKED_ARRAY_TYPE_P (gnu_type))
-	  && !(TREE_CODE (gnu_type) == RECORD_TYPE
-	       && TYPE_IS_PADDING_P (gnu_type)
+	  && !(TYPE_IS_PADDING_P (gnu_type)
 	       && TREE_CODE (TREE_TYPE (TYPE_FIELDS (gnu_type))) == ARRAY_TYPE
 	       && TYPE_PACKED_ARRAY_TYPE_P (TREE_TYPE (TYPE_FIELDS (gnu_type))))
 	  && tree_int_cst_lt (size, old_size)))
@@ -7640,7 +7706,7 @@ set_rm_size (Uint uint_size, tree gnu_type, Entity_Id gnat_entity)
   else if ((TREE_CODE (gnu_type) == RECORD_TYPE
 	    || TREE_CODE (gnu_type) == UNION_TYPE
 	    || TREE_CODE (gnu_type) == QUAL_UNION_TYPE)
-	   && !TYPE_IS_FAT_POINTER_P (gnu_type))
+	   && !TYPE_FAT_POINTER_P (gnu_type))
     SET_TYPE_ADA_SIZE (gnu_type, size);
 }
 
@@ -7707,7 +7773,7 @@ make_type_from_size (tree type, tree size_tree, bool for_biased)
     case RECORD_TYPE:
       /* Do something if this is a fat pointer, in which case we
 	 may need to return the thin pointer.  */
-      if (TYPE_IS_FAT_POINTER_P (type) && size < POINTER_SIZE * 2)
+      if (TYPE_FAT_POINTER_P (type) && size < POINTER_SIZE * 2)
 	{
 	  enum machine_mode p_mode = mode_for_size (size, MODE_INT, 0);
 	  if (!targetm.valid_pointer_mode (p_mode))
@@ -7722,7 +7788,7 @@ make_type_from_size (tree type, tree size_tree, bool for_biased)
     case POINTER_TYPE:
       /* Only do something if this is a thin pointer, in which case we
 	 may need to return the fat pointer.  */
-      if (TYPE_THIN_POINTER_P (type) && size >= POINTER_SIZE * 2)
+      if (TYPE_IS_THIN_POINTER_P (type) && size >= POINTER_SIZE * 2)
 	return
 	  build_pointer_type (TYPE_UNCONSTRAINED_ARRAY (TREE_TYPE (type)));
       break;
@@ -7856,6 +7922,11 @@ check_ok_for_atomic (tree object, Entity_Id gnat_entity, bool comp_p)
      OBJECT is either a type or a decl.  */
   if (TYPE_P (object))
     {
+      /* If this is an anonymous base type, nothing to check.  Error will be
+	 reported on the source type.  */
+      if (!Comes_From_Source (gnat_entity))
+	return;
+
       mode = TYPE_MODE (object);
       align = TYPE_ALIGN (object);
       size = TYPE_SIZE (object);
@@ -8368,7 +8439,7 @@ rm_size (tree gnu_type)
   if ((TREE_CODE (gnu_type) == RECORD_TYPE
        || TREE_CODE (gnu_type) == UNION_TYPE
        || TREE_CODE (gnu_type) == QUAL_UNION_TYPE)
-      && !TYPE_IS_FAT_POINTER_P (gnu_type)
+      && !TYPE_FAT_POINTER_P (gnu_type)
       && TYPE_ADA_SIZE (gnu_type))
     return TYPE_ADA_SIZE (gnu_type);
 

@@ -126,6 +126,30 @@ enum rid
   RID_AT_INTERFACE,
   RID_AT_IMPLEMENTATION,
 
+  /* Named address support, mapping the keyword to a particular named address
+     number.  Named address space 0 is reserved for the generic address.  If
+     there are more than 254 named addresses, the addr_space_t type will need
+     to be grown from an unsigned char to unsigned short.  */
+  RID_ADDR_SPACE_0,		/* generic address */
+  RID_ADDR_SPACE_1,
+  RID_ADDR_SPACE_2,
+  RID_ADDR_SPACE_3,
+  RID_ADDR_SPACE_4,
+  RID_ADDR_SPACE_5,
+  RID_ADDR_SPACE_6,
+  RID_ADDR_SPACE_7,
+  RID_ADDR_SPACE_8,
+  RID_ADDR_SPACE_9,
+  RID_ADDR_SPACE_10,
+  RID_ADDR_SPACE_11,
+  RID_ADDR_SPACE_12,
+  RID_ADDR_SPACE_13,
+  RID_ADDR_SPACE_14,
+  RID_ADDR_SPACE_15,
+
+  RID_FIRST_ADDR_SPACE = RID_ADDR_SPACE_0,
+  RID_LAST_ADDR_SPACE = RID_ADDR_SPACE_15,
+
   RID_MAX,
 
   RID_FIRST_MODIFIER = RID_STATIC,
@@ -262,6 +286,10 @@ struct c_common_resword
 #define D_OBJC		0x080	/* In Objective C and neither C nor C++.  */
 #define D_CXX_OBJC	0x100	/* In Objective C, and C++, but not C.  */
 #define D_CXXWARN	0x200	/* In C warn with -Wcxx-compat.  */
+
+/* Macro for backends to define named address keywords.  */
+#define ADDR_SPACE_KEYWORD(STRING, VALUE) \
+  { STRING, RID_FIRST_ADDR_SPACE + (VALUE), D_CONLY | D_EXT }
 
 /* The reserved keyword table.  */
 extern const struct c_common_resword c_common_reswords[];
@@ -760,6 +788,7 @@ extern const struct attribute_spec c_common_format_attribute_table[];
 
 extern tree (*make_fname_decl) (location_t, tree, int);
 
+extern const char *c_addr_space_name (addr_space_t as);
 extern tree identifier_global_value (tree);
 extern void record_builtin_type (enum rid, const char *, tree);
 extern tree build_void_list_node (void);
@@ -792,6 +821,7 @@ extern tree c_build_bitfield_integer_type (unsigned HOST_WIDE_INT, int);
 extern bool decl_with_nonnull_addr_p (const_tree);
 extern tree c_fully_fold (tree, bool, bool *);
 extern tree decl_constant_value_for_optimization (tree);
+extern tree c_wrap_maybe_const (tree, bool);
 extern tree c_save_expr (tree);
 extern tree c_common_truthvalue_conversion (location_t, tree);
 extern void c_apply_type_quals_to_decl (int, tree);
@@ -838,8 +868,6 @@ extern tree c_build_qualified_type (tree, int);
 /* Build tree nodes and builtin functions common to both C and C++ language
    frontends.  */
 extern void c_common_nodes_and_builtins (void);
-
-extern void set_builtin_user_assembler_name (tree decl, const char *asmspec);
 
 extern void disable_builtin_function (const char *);
 

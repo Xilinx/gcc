@@ -1284,6 +1284,8 @@ build_qualified_name (tree type, tree scope, tree name, bool template_p)
     return error_mark_node;
   t = build2 (SCOPE_REF, type, scope, name);
   QUALIFIED_NAME_IS_TEMPLATE (t) = template_p;
+  if (type)
+    t = convert_from_reference (t);
   return t;
 }
 
@@ -1556,46 +1558,41 @@ no_linkage_check (tree t, bool relaxed_p)
     case RECORD_TYPE:
       if (TYPE_PTRMEMFUNC_P (t))
 	goto ptrmem;
+      /* Lambda types that don't have mangling scope have no linkage.  We
+	 check CLASSTYPE_LAMBDA_EXPR here rather than LAMBDA_TYPE_P because
+	 when we get here from pushtag none of the lambda information is
+	 set up yet, so we want to assume that the lambda has linkage and
+	 fix it up later if not.  */
+      if (CLASSTYPE_LAMBDA_EXPR (t)
+	  && LAMBDA_TYPE_EXTRA_SCOPE (t) == NULL_TREE)
+	return t;
       /* Fall through.  */
     case UNION_TYPE:
       if (!CLASS_TYPE_P (t))
 	return NULL_TREE;
-
-      /* Check template type-arguments.  I think that types with no linkage
-         can't occur in non-type arguments, though that might change with
-         constexpr.  */
-      r = CLASSTYPE_TEMPLATE_INFO (t);
-      if (r)
-	{
-	  tree args = INNERMOST_TEMPLATE_ARGS (TI_ARGS (r));
-	  int i;
-
-	  for (i = TREE_VEC_LENGTH (args); i-- > 0; )
-	    {
-	      tree elt = TREE_VEC_ELT (args, i);
-	      if (TYPE_P (elt)
-		  && (r = no_linkage_check (elt, relaxed_p), r))
-		return r;
-	    }
-	}
       /* Fall through.  */
     case ENUMERAL_TYPE:
       /* Only treat anonymous types as having no linkage if they're at
 	 namespace scope.  This doesn't have a core issue number yet.  */
       if (TYPE_ANONYMOUS_P (t) && TYPE_NAMESPACE_SCOPE_P (t))
 	return t;
-      if (no_linkage_lambda_type_p (t))
-	return t;
 
-      r = CP_TYPE_CONTEXT (t);
-      if (TYPE_P (r))
-	return no_linkage_check (TYPE_CONTEXT (t), relaxed_p);
-      else if (TREE_CODE (r) == FUNCTION_DECL)
+      for (r = CP_TYPE_CONTEXT (t); ; )
 	{
-	  if (!relaxed_p || !TREE_PUBLIC (r) || !vague_linkage_fn_p (r))
-	    return t;
+	  /* If we're a nested type of a !TREE_PUBLIC class, we might not
+	     have linkage, or we might just be in an anonymous namespace.
+	     If we're in a TREE_PUBLIC class, we have linkage.  */
+	  if (TYPE_P (r) && !TREE_PUBLIC (TYPE_NAME (r)))
+	    return no_linkage_check (TYPE_CONTEXT (t), relaxed_p);
+	  else if (TREE_CODE (r) == FUNCTION_DECL)
+	    {
+	      if (!relaxed_p || !vague_linkage_fn_p (r))
+		return t;
+	      else
+		r = CP_DECL_CONTEXT (r);
+	    }
 	  else
-	    return no_linkage_check (CP_DECL_CONTEXT (r), relaxed_p);
+	    break;
 	}
 
       return NULL_TREE;
@@ -2084,6 +2081,8 @@ cp_tree_equal (tree t1, tree t2)
     case TEMPLATE_PARM_INDEX:
       return (TEMPLATE_PARM_IDX (t1) == TEMPLATE_PARM_IDX (t2)
 	      && TEMPLATE_PARM_LEVEL (t1) == TEMPLATE_PARM_LEVEL (t2)
+	      && (TEMPLATE_PARM_PARAMETER_PACK (t1)
+		  == TEMPLATE_PARM_PARAMETER_PACK (t2))
 	      && same_type_p (TREE_TYPE (TEMPLATE_PARM_DECL (t1)),
 			      TREE_TYPE (TEMPLATE_PARM_DECL (t2))));
 
@@ -3131,6 +3130,17 @@ cp_free_lang_data (tree t)
 	 in this TU.  So make it an external reference.  */
       DECL_EXTERNAL (t) = 1;
       TREE_STATIC (t) = 0;
+    }
+  if (CP_AGGREGATE_TYPE_P (t)
+      && TYPE_NAME (t))
+    {
+      tree name = TYPE_NAME (t);
+      if (TREE_CODE (name) == TYPE_DECL)
+	name = DECL_NAME (name);
+      /* Drop anonymous names.  */
+      if (name != NULL_TREE
+	  && ANON_AGGRNAME_P (name))
+	TYPE_NAME (t) = NULL_TREE;
     }
 }
 

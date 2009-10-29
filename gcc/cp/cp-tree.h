@@ -97,6 +97,7 @@ framework extensions, you must include this file before toplev.h, not after.
       STATEMENT_LIST_TRY_BLOCK (in STATEMENT_LIST)
       TYPENAME_IS_RESOLVING_P (in TYPE_NAME_TYPE)
       LAMBDA_EXPR_DEDUCE_RETURN_TYPE_P (in LAMBDA_EXPR)
+      TARGET_EXPR_DIRECT_INIT_P (in TARGET_EXPR)
    3: (TREE_REFERENCE_EXPR) (in NON_LVALUE_EXPR) (commented-out).
       ICS_BAD_FLAG (in _CONV)
       FN_TRY_BLOCK_P (in TRY_BLOCK)
@@ -112,8 +113,6 @@ framework extensions, you must include this file before toplev.h, not after.
    6: IDENTIFIER_REPO_CHOSEN (in IDENTIFIER_NODE)
       DECL_CONSTRUCTION_VTABLE_P (in VAR_DECL)
       TYPE_MARKED_P (in _TYPE)
-   7: DECL_DEAD_FOR_LOCAL (in VAR_DECL)
-   8: DECL_DECLARED_CONSTEXPR_P (in VAR_DECL, FUNCTION_DECL)
 
    Usage of TYPE_LANG_FLAG_?:
    0: TYPE_DEPENDENT_P
@@ -147,6 +146,8 @@ framework extensions, you must include this file before toplev.h, not after.
       DECL_FIELD_IS_BASE (in FIELD_DECL)
    7: DECL_DEAD_FOR_LOCAL (in VAR_DECL).
       DECL_THUNK_P (in a member FUNCTION_DECL)
+      DECL_NORMAL_CAPTURE_P (in FIELD_DECL)
+   8: DECL_DECLARED_CONSTEXPR_P (in VAR_DECL, FUNCTION_DECL)
 
    Usage of language-independent fields in a language-dependent manner:
 
@@ -2249,6 +2250,9 @@ struct GTY(()) lang_decl {
   (DECL_CONTEXT (NODE) \
    && TREE_CODE (DECL_CONTEXT (NODE)) == FUNCTION_DECL)
 
+#define TYPE_FUNCTION_SCOPE_P(NODE) \
+  (TYPE_CONTEXT (NODE) && TREE_CODE (TYPE_CONTEXT (NODE)) == FUNCTION_DECL)
+
 /* 1 iff VAR_DECL node NODE is a type-info decl.  This flag is set for
    both the primary typeinfo object and the associated NTBS name.  */
 #define DECL_TINFO_P(NODE) TREE_LANG_FLAG_4 (VAR_DECL_CHECK (NODE))
@@ -2811,9 +2815,17 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
 #define DECL_DELETED_FN(DECL) \
   (DECL_LANG_SPECIFIC (FUNCTION_DECL_CHECK (DECL))->u.base.threadprivate_or_deleted_p)
 
-/* Nonzero if DECL was declared with '= default'.  */
+/* Nonzero if DECL was declared with '= default' (maybe implicitly).  */
 #define DECL_DEFAULTED_FN(DECL) \
   (LANG_DECL_FN_CHECK (DECL)->defaulted_p)
+
+/* Nonzero if DECL is explicitly defaulted in the class body.  */
+#define DECL_DEFAULTED_IN_CLASS_P(DECL)					\
+  (DECL_DEFAULTED_FN (DECL) && DECL_INITIALIZED_IN_CLASS_P (DECL))
+/* Nonzero if DECL was defaulted outside the class body.  */
+#define DECL_DEFAULTED_OUTSIDE_CLASS_P(DECL)				\
+  (DECL_DEFAULTED_FN (DECL)						\
+   && !(DECL_ARTIFICIAL (DECL) || DECL_INITIALIZED_IN_CLASS_P (DECL)))
 
 /* Record whether a typedef for type `int' was actually `signed int'.  */
 #define C_TYPEDEF_EXPLICITLY_SIGNED(EXP) DECL_LANG_FLAG_1 (EXP)
@@ -3195,6 +3207,12 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
    of the parent object, as opposed to a member field.  */
 #define DECL_FIELD_IS_BASE(NODE) \
   DECL_LANG_FLAG_6 (FIELD_DECL_CHECK (NODE))
+
+/* Nonzero for FIELD_DECL node means that this field is a simple (no
+   explicit initializer) lambda capture field, making it invisible to
+   name lookup in unevaluated contexts.  */
+#define DECL_NORMAL_CAPTURE_P(NODE) \
+  DECL_LANG_FLAG_7 (FIELD_DECL_CHECK (NODE))
 
 /* Nonzero if TYPE is an anonymous union or struct type.  We have to use a
    flag for this because "A union for which objects or pointers are
@@ -3629,6 +3647,16 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
    temporary.  */
 #define TARGET_EXPR_LIST_INIT_P(NODE) \
   TREE_LANG_FLAG_1 (TARGET_EXPR_CHECK (NODE))
+
+/* True if this TARGET_EXPR expresses direct-initialization of an object
+   to be named later.  */
+#define TARGET_EXPR_DIRECT_INIT_P(NODE) \
+  TREE_LANG_FLAG_2 (TARGET_EXPR_CHECK (NODE))
+
+/* True if EXPR expresses direct-initialization of a TYPE.  */
+#define DIRECT_INIT_EXPR_P(TYPE,EXPR)					\
+  (TREE_CODE (EXPR) == TARGET_EXPR && TREE_LANG_FLAG_2 (EXPR)		\
+   && same_type_ignoring_top_level_qualifiers_p (TYPE, TREE_TYPE (EXPR)))
 
 /* An enumeration of the kind of tags that C++ accepts.  */
 enum tag_types {
@@ -4463,9 +4491,11 @@ extern void check_for_override			(tree, tree);
 extern void push_class_stack			(void);
 extern void pop_class_stack			(void);
 extern bool type_has_user_nondefault_constructor (tree);
+extern bool user_provided_p			(tree);
 extern bool type_has_user_provided_constructor  (tree);
 extern bool type_has_user_provided_default_constructor (tree);
-extern bool defaultable_fn_p			(tree);
+extern void defaulted_late_check		(tree);
+extern bool defaultable_fn_check		(tree);
 extern void fixup_type_variants			(tree);
 extern tree* decl_cloned_function_p		(const_tree, bool);
 extern void clone_function_decl			(tree, int);
@@ -4825,7 +4855,9 @@ bool template_template_parameter_p		(const_tree);
 extern tree get_primary_template_innermost_parameters	(const_tree);
 extern tree get_template_innermost_arguments	(const_tree);
 extern tree get_template_argument_pack_elems	(const_tree);
-extern tree get_function_template_decl (const_tree);
+extern tree get_function_template_decl		(const_tree);
+extern tree resolve_nondeduced_context		(tree);
+
 /* in repo.c */
 extern void init_repo				(void);
 extern int repo_emit_p				(tree);
@@ -5038,9 +5070,10 @@ extern tree lambda_capture_field_type		(tree);
 extern tree lambda_return_type			(tree);
 extern tree lambda_function			(tree);
 extern void apply_lambda_return_type            (tree, tree);
-extern tree add_capture                         (tree, tree, tree, bool);
+extern tree add_capture                         (tree, tree, tree, bool, bool);
 extern tree add_default_capture                 (tree, tree, tree);
 extern tree lambda_expr_this_capture            (tree);
+extern void maybe_add_lambda_conv_op            (tree);
 
 /* in tree.c */
 void cp_free_lang_data 				(tree t);
@@ -5302,9 +5335,6 @@ extern tree cxx_omp_clause_assign_op		(tree, tree, tree);
 extern tree cxx_omp_clause_dtor			(tree, tree);
 extern void cxx_omp_finish_clause		(tree);
 extern bool cxx_omp_privatize_by_reference	(const_tree);
-
-/* in parser.c */
-extern bool no_linkage_lambda_type_p		(tree);
 
 /* -- end of C++ */
 

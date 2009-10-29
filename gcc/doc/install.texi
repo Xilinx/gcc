@@ -356,6 +356,15 @@ Alternatively, if an MPC source distribution is found in a
 subdirectory of your GCC sources named @file{mpc}, it will be built
 together with GCC@.
 
+@item libelf version 0.8.12 (or later)
+
+Necessary to build link-time optimization (LTO) support.  It can be
+downloaded from @uref{http://www.mr511.de/software/libelf-0.8.12.tar.gz},
+though it is commonly available in several systems.
+
+The @option{--with-libelf} configure option should be used if libelf is
+not installed in your default library search patch.
+
 @end table
 
 @heading Tools/packages necessary for modifying GCC
@@ -1337,8 +1346,10 @@ powerpc-linux for powerpc64-linux, only generates 32-bit code.  This
 option enables the 32-bit target to be a bi-arch compiler, which is
 useful when you want a bi-arch compiler that defaults to 32-bit, and
 you are building a bi-arch or multi-arch binutils in a combined tree.
-Currently, this option only affects sparc-linux, powerpc-linux and
-x86-linux.
+On mips-linux, this will build a tri-arch compiler (ABI o32/n32/64),
+defaulted to o32.
+Currently, this option only affects sparc-linux, powerpc-linux, x86-linux
+and mips-linux.
 
 @item --enable-secureplt
 This option enables @option{-msecure-plt} by default for powerpc-linux.
@@ -1873,6 +1884,9 @@ not specified, then the Python modules are installed in $(prefix)/share/python.
 @item --enable-aot-compile-rpm
 Adds aot-compile-rpm to the list of installed scripts.
 
+@item --enable-browser-plugin
+Build the gcjwebplugin web browser plugin.
+
 @table @code
 @item ansi
 Use the single-byte @code{char} and the Win32 A functions natively,
@@ -1893,6 +1907,30 @@ Use the @code{WCHAR} and Win32 W functions natively.  Does @emph{not}
 add @code{-lunicows} to @file{libgcj.spec}.  The built executables will
 only run on Microsoft Windows NT and above.
 @end table
+
+@item --enable-lto
+Enable support for link-time optimization (LTO).  This is enabled by
+default if a working libelf implementation is found (see
+@option{--with-libelf}).
+
+@item --with-libelf=@var{pathname}
+@itemx --with-libelf-include=@var{pathname}
+@itemx --with-libelf-lib=@var{pathname}
+If you do not have libelf installed in a standard location and you
+want to enable support for link-time optimization (LTO), you can
+explicitly specify the directory where libelf is installed
+(@samp{--with-libelf=@var{libelfinstalldir}}).  The
+@option{--with-libelf=@var{libelfinstalldir}} option is shorthand for
+@option{--with-libelf-include=@var{libelfinstalldir}/include}
+@option{--with-libelf-lib=@var{libelfinstalldir}/lib}.
+
+@item --enable-gold
+Enable support for using @command{gold} as the linker.  If gold support is
+enabled together with @option{--enable-lto}, an additional directory
+@file{lto-plugin} will be built.  The code in this directory is a
+plugin for gold that allows the link-time optimizer to extract object
+files with LTO information out of library archives.  See
+@option{-flto} and @option{-fwhopr} for details.
 @end table
 
 @subsubheading AWT-Specific Options
@@ -2656,7 +2694,7 @@ incomplete or out of date.  Send a note to
 @email{gcc@@gcc.gnu.org} detailing how the information should be changed.
 
 If you find a bug, please report it following the
-@uref{../bugs.html,,bug reporting guidelines}.
+@uref{../bugs/,,bug reporting guidelines}.
 
 If you want to print the GCC manuals, do @samp{cd @var{objdir}; make
 dvi}.  You will need to have @command{texi2dvi} (version at least 4.7)
@@ -3962,6 +4000,14 @@ the PSIM simulator.
 @end html
 @heading @anchor{powerpcle-x-eabi}powerpcle-*-eabi
 Embedded PowerPC system in little endian mode.
+
+@html
+<hr />
+@end html
+@heading @anchor{rx-x-elf}rx-*-elf
+The Renesas RX processor.  See
+@uref{http://eu.renesas.com/fmwk.jsp?cnt=rx600_series_landing.jsp&fp=/products/mpumcu/rx_family/rx600_series}
+for more information about this processor.
 
 @html
 <hr />

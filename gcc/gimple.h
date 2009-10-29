@@ -855,6 +855,8 @@ bool gimple_assign_rhs_could_trap_p (gimple);
 void gimple_regimplify_operands (gimple, gimple_stmt_iterator *);
 bool empty_body_p (gimple_seq);
 unsigned get_gimple_rhs_num_ops (enum tree_code);
+#define gimple_alloc(c, n) gimple_alloc_stat (c, n MEM_STAT_INFO)
+gimple gimple_alloc_stat (enum gimple_code, unsigned MEM_STAT_DECL);
 const char *gimple_decl_printable_name (tree, int);
 tree gimple_fold_obj_type_ref (tree, tree);
 
@@ -913,6 +915,12 @@ extern bool is_gimple_call_addr (tree);
 extern tree get_call_expr_in (tree t);
 
 extern void recalculate_side_effects (tree);
+extern tree gimple_register_type (tree);
+extern void print_gimple_types_stats (void);
+extern void free_gimple_type_tables (void);
+extern tree gimple_unsigned_type (tree);
+extern tree gimple_signed_type (tree);
+extern alias_set_type gimple_get_alias_set (tree);
 extern void count_uses_and_derefs (tree, gimple, unsigned *, unsigned *,
 				   unsigned *);
 extern bool walk_stmt_load_store_addr_ops (gimple, void *,
@@ -931,7 +939,6 @@ extern tree create_tmp_var (tree, const char *);
 extern tree get_initialized_tmp_var (tree, gimple_seq *, gimple_seq *);
 extern tree get_formal_tmp_var (tree, gimple_seq *);
 extern void declare_vars (tree, gimple, bool);
-extern void tree_annotate_all_with_location (tree *, location_t);
 extern void annotate_all_with_location (gimple_seq, location_t);
 
 /* Validation of GIMPLE expressions.  Note that these predicates only check
@@ -2911,6 +2918,16 @@ gimple_eh_must_not_throw_fndecl (gimple gs)
   GIMPLE_CHECK (gs, GIMPLE_EH_MUST_NOT_THROW);
   return gs->gimple_eh_mnt.fndecl;
 }
+
+/* Set the function decl to be called by GS to DECL.  */
+
+static inline void
+gimple_eh_must_not_throw_set_fndecl (gimple gs, tree decl)
+{
+  GIMPLE_CHECK (gs, GIMPLE_EH_MUST_NOT_THROW);
+  gs->gimple_eh_mnt.fndecl = decl;
+}
+
 
 /* GIMPLE_TRY accessors. */
 

@@ -1,3 +1,360 @@
+2009-10-29  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/decl.c (array_type_has_nonaliased_component): Swap
+	parameters and rewrite comments.  For a derived type, return the
+	setting of its parent type.
+	(gnat_to_gnu_entity): Do an alias set copy for derived types if they
+	are composite.  Adjust calls to above function.
+
+2009-10-29  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/trans.c (Attribute_to_gnu) <Attr_Object_Size>: Do not
+	return the RM size for padded types.
+
+2009-10-28  Robert Dewar  <dewar@adacore.com>
+
+	* sem_type.adb: Minor reformatting
+
+2009-10-28  Arnaud Charlet  <charlet@adacore.com>
+
+	* exp_ch9.adb (Build_Task_Proc_Specification): Generate a different
+	suffix for task type bodies.
+
+2009-10-28  Ed Schonberg  <schonberg@adacore.com>
+
+	* exp_aggr.adb (Convert_Aggr_In_Allocator): Do not look for a
+	finalization list if the designated type requires no control actions,
+	to prevent a useless semantic dependence on ada.tags.
+
+2009-10-28  Bob Duff  <duff@adacore.com>
+
+	* s-fileio.adb: Give more information in exception messages.
+
+2009-10-28  Robert Dewar  <dewar@adacore.com>
+
+	* gnat_ugn.texi: Document new -gnatyt requirement for space after right
+	paren if next token starts with digit or letter.
+	* styleg.adb (Check_Right_Paren): New rule for space after if next
+	character is a letter or digit.
+
+2009-10-28  Thomas Quinot  <quinot@adacore.com>
+
+	* s-crtl.ads (System.CRTL.strerror): New function.
+
+2009-10-28  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_type.adb: Add guard to recover some type errors.
+
+2009-10-28  Vincent Celier  <celier@adacore.com>
+
+	* prj-nmsc.adb (Add_To_Or_Remove_From_List): New name of procedure
+	Add_If_Not_In_List to account to the fact that a directory may be
+	removed from the list. Only remove directory if Removed is True.
+
+2009-10-28  Gary Dismukes  <dismukes@adacore.com>
+
+	* a-textio.ads, a-textio.ads: Put back function EOF_Char in private
+	part. Put back body of function EOF_Char.
+	* a-tienau.adb: Remove with of Interfaces.C_Streams and change EOF back
+	to EOF_Char.
+
+2009-10-28  Emmanuel Briot  <briot@adacore.com>
+
+	* prj-tree.adb (Free): Fix memory leak.
+
+2009-10-28  Thomas Quinot  <quinot@adacore.com>
+
+	* s-fileio.adb: Minor reformatting
+
+2009-10-28  Arnaud Charlet  <charlet@adacore.com>
+
+	* gcc-interface/Make-lang.in: Update dependencies.
+
+2009-10-28  Robert Dewar  <dewar@adacore.com>
+
+	* exp_attr.adb, exp_ch9.adb, prj-nmsc.adb, tbuild.adb, ali.adb,
+	types.ads: Minor reformatting
+
+2009-10-28  Tristan Gingold  <gingold@adacore.com>
+
+	* init.c: Fix __gnat_error_handler for Darwin10 (Snow Leopard)
+
+2009-10-28  Thomas Quinot  <quinot@adacore.com>
+
+	* exp_ch4.adb (Expand_N_Type_Conversion): Perform Integer promotion for
+	the operand of the unary minus and ABS operators.
+
+	* sem_type.adb (Covers): A concurrent type and its corresponding record
+	type are compatible.
+	* exp_attr.adb (Expand_N_Attribute_Reference): Do not rewrite a 'Access
+	attribute reference for the current instance of a protected type while
+	analyzing an access discriminant constraint in a component definition.
+	Such a reference is handled in the corresponding record's init proc,
+	while initializing the constrained component.
+	* exp_ch9.adb (Expand_N_Protected_Type_Declaration): When creating the
+	corresponding record type, propagate components'
+	Has_Per_Object_Constraint flag.
+	* exp_ch3.adb (Build_Init_Procedure.Build_Init_Statements):
+	For a concurrent type, set up concurrent aspects before initializing
+	components with a per object constrain, because they may be controlled,
+	and their initialization may call entries or protected subprograms of
+	the enclosing concurrent object.
+
+2009-10-28  Emmanuel Briot  <briot@adacore.com>
+
+	* prj-nmsc.adb (Add_If_Not_In_List): New subprogram, for better sharing
+	of code.
+	(Find_Source_Dirs): resolve links if Opt.Follow_Links_For_Dirs when
+	processing the directories specified explicitly in the project file.
+
+2009-10-28  Robert Dewar  <dewar@adacore.com>
+
+	* a-ztexio.adb, a-ztexio.ads, a-witeio.ads, a-witeio.adb,
+	a-textio.ads, a-textio.adb: Reorganize (moving specs from private part
+	to body).
+	(Initialize_Standard_Files): New procedure.
+	* a-tienau.adb: Minor change to make EOF directly visible
+	* a-tirsfi.ads, a-wrstfi.adb, a-wrstfi.ads, a-zrstfi.adb,
+	a-zrstfi.ads, a-tirsfi.adb: New unit, initial version.
+	* gnat_rm.texi: Add documentation for
+	Ada.[Wide_[Wide_]]Text_IO.Reset_Standard_Files.
+	* Makefile.rtl: Add entries for
+	Ada.[Wide_[Wide_]]Text_IO.Reset_Standard_Files
+
+2009-10-28  Thomas Quinot  <quinot@adacore.com>
+
+	* exp_ch9.ads: Minor reformatting
+	* sem_ch3.adb: Minor reformatting
+	* sem_aggr.adb: Minor reformatting.
+	* sem_attr.adb: Minor reformatting
+	* tbuild.adb, tbuild.ads, par-ch4.adb, exp_ch4.adb (Tbuild.New_Op_Node):
+	New subprogram.
+	Minor code reorganization/factoring.
+
+2009-10-27  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/decl.c (purpose_member_field): New static function.
+	(annotate_rep): Use it instead of purpose_member.
+
+2009-10-27  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* raise-gcc (db_region_for): Use _Unwind_GetIPInfo instead of
+	_Unwind_GetIP if HAVE_GETIPINFO is defined.
+	(db_action_for): Likewise.
+
+2009-10-27  Robert Dewar  <dewar@adacore.com>
+
+	* s-fileio.adb, s-fileio.ads, sem_util.adb, sem_warn.adb,
+	sem_warn.ads: Minor reformatting
+
+2009-10-27  Robert Dewar  <dewar@adacore.com>
+
+	* sem_warn.adb, sem_util.adb, sem_util.ads: Minor reformatting. Add
+	comments.
+
+2009-10-27  Robert Dewar  <dewar@adacore.com>
+
+	* s-os_lib.ads, s-os_lib.adb, prj-err.adb, makeutl.adb: Minor
+	reformatting.
+
+2009-10-27  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem.util.ads, sem_util.adb (Denotes_Same_Object,
+	Denotes_Same_Prefix): New functions to detect overlap between actuals
+	that are not by-copy in a call, when one of them is in-out.
+	* sem_warn.ads, sem_warn.adb (Warn_On_Overlapping_Actuals): New
+	procedure,  called on a subprogram call to warn when an in-out actual
+	that is not by-copy overlaps with another actual, thus leadind to
+	potentially dangerous aliasing in the body of the called subprogram.
+	Currently the warning is under control of the -gnatX switch.
+	* sem_res.adb (resolve_call): call Warn_On_Overlapping_Actuals.
+
+2009-10-27  Thomas Quinot  <quinot@adacore.com>
+
+	* sem_ch12.adb (Install_Formal_Packages): Do not omit installation of
+	visible entities when the formal package doesn't have a box.
+
+	* checks.adb: Minor reformatting.
+
+2009-10-27  Vincent Celier  <celier@adacore.com>
+
+	* prj-part.adb (Parse): Catch exception Types.Unrecoverable_Error and
+	set Project to Empty_Node.
+
+2009-10-27  Robert Dewar  <dewar@adacore.com>
+
+	* gnatbind.adb: Minor reformatting
+
+2009-10-27  Arnaud Charlet  <charlet@adacore.com>
+
+	* exp_aggr.adb: Fix comment.
+
+2009-10-27  Emmanuel Briot  <briot@adacore.com>
+
+	* prj-err.adb (Error_Msg): take into account continuation lines when
+	computing whether we have a warning.
+
+2009-10-27  Vasiliy Fofanov  <fofanov@adacore.com>
+
+	* make.adb, s-os_lib.adb, s-os_lib.ads (Create_Temp_Output_File): New
+	routine that is designed to create temp file descriptor specifically
+	for redirecting an output stream.
+
+2009-10-24  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/decl.c (gnat_to_gnu_entity) <E_Record_Type>: When
+	processing the parent type, build the COMPONENT_REF for a discriminant
+	with the proper type.
+
+2009-10-24  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* init.c (__gnat_adjust_context_for_raise): Mention _Unwind_GetIPInfo.
+	* gcc-interface/Makefile.in (GNATLIBCFLAGS_FOR_C): Add HAVE_GETIPINFO.
+	Pass GNATLIBCFLAGS_FOR_C to recursive invocations.
+
+2009-10-21  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interfaces/decl.c (build_subst_list): Convert the expression of
+	the constraint to the type of the discriminant.
+
+2009-10-21  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interfaces/decl.c (gnat_to_gnu_entity): Do not create a new
+	TYPE_DECL when a type is padded if there is already one and reset
+	TYPE_STUB_DECL in this case.
+
+2009-10-21  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interfaces/utils.c (create_subprog_decl): Do not redefine
+	main_identifier_node.
+
+2009-10-17  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/utils.c (convert): When converting to a padded type
+	with an inner type of self-referential size, pad the expression before
+	doing the unchecked conversion.
+
+2009-10-17  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/utils2.c (build_binary_op) <ARRAY_RANGE_REF>: Make
+	sure the element type is consistent.
+
+2009-10-17  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/trans.c (addressable_p): Handle bitwise operations.
+
+2009-10-16  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/ada-tree.h (TYPE_FAT_POINTER_P): Swap with...
+	(TYPE_IS_FAT_POINTER_P): ...this.
+	(TYPE_THIN_POINTER_P): Rename into...
+	(TYPE_IS_THIN_POINTER_P): ...this.
+	(TYPE_FAT_OR_THIN_POINTER_P): Rename into...
+	(TYPE_IS_FAT_OR_THIN_POINTER_P): ...this.
+	(TYPE_IS_PADDING_P): Change definition, move old one to...
+	(TYPE_PADDING_P): ...this.
+	* gcc-interface/decl.c (gnat_to_gnu_entity): Adjust for above changes.
+	(get_unpadded_type): Likewise.
+	(gnat_to_gnu_component_type): Likewise.
+	(gnat_to_gnu_param): Likewise.
+	(relate_alias_sets): Likewise.
+	(make_packable_type): Likewise.
+	(maybe_pad_type): Likewise.
+	(gnat_to_gnu_field): Likewise.
+	(is_variable_size): Likewise.
+	(annotate_object): Likewise.
+	(validate_size): Likewise.
+	(set_rm_size): Likewise.
+	(make_type_from_size): Likewise.
+	(rm_size): Likewise.
+	* gcc-interface/misc.c (gnat_print_type): Likewise.
+	(gnat_get_alias_set): Likewise.
+	* gcc-interface/trans.c (Identifier_to_gnu): Likewise.
+	(Attribute_to_gnu): Likewise.
+	(call_to_gnu): Likewise.
+	(gnat_to_gnu): Likewise.
+	(add_decl_expr): Likewise.
+	(convert_with_check): Likewise.
+	(addressable_p): Likewise.
+	(maybe_implicit_deref): Likewise.
+	(protect_multiple_eval): Likewise.
+	(gnat_stabilize_reference_1): Likewise.
+	* gcc-interface/utils.c (gnat_pushdecl): Likewise.
+	(finish_record_type): Likewise.
+	(rest_of_record_type_compilation): Likewise.
+	(create_type_decl): Likewise.
+	(gnat_types_compatible_p): Likewise.
+	(build_template): Likewise.
+	(convert_vms_descriptor64): Likewise.
+	(convert_vms_descriptor32): Likewise.
+	(build_unc_object_type_from_ptr): Likewise.
+	(update_pointer_to): Likewise.
+	(convert_to_fat_pointer): Likewise.
+	(convert_to_fat_pointer): Likewise.
+	(convert): Likewise.
+	(remove_conversions): Likewise.
+	(maybe_unconstrained_array): Likewise.
+	(unchecked_convert): Likewise.
+	(handle_vector_type_attribute): Likewise.
+	* gcc-interface/utils2.c (build_binary_op): Likewise.
+	(build_unary_op): Likewise.
+	(build_allocator): Likewise.
+
+2009-10-16  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* exp_dbug.ads: Adjust type names in comments.
+	* gcc-interface/decl.c (maybe_pad_type): Remove NAME_TRAILER parameter,
+	add new IS_COMPONENT_TYPE parameter.  Adjust.  Remove dead code.
+	(gnat_to_gnu_entity): Adjust for above change.
+	(gnat_to_gnu_component_type): Likewise.
+	(gnat_to_gnu_field): Likewise.
+	* gcc-interface/trans.c (call_to_gnu): Likewise.  Do not unnecessarily
+	call max_size.
+	* gcc-interface/utils.c (finish_record_type): Remove obsolete code.
+	* gcc-interface/gigi.h (maybe_pad_type): Adjust prototype.
+
+2009-10-16  Joel Sherrill <joel.sherrill@oarcorp.com>
+
+	* s-osinte-rtems.ads: Add mutex type to pthread_mutexattr_t
+	* s-stchop-rtems.adb: Correct binding to rtems_stack_checker_is_blown.
+
+2009-10-13  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* env.c [__alpha__ && __osf__] (AES_SOURCE): Define.
+
+2009-10-10  Samuel Tardieu  <sam@rfc1149.net>
+
+	* sem_eval.adb: Give a more precise error message.
+
+2009-10-06  Samuel Tardieu  <sam@rfc1149.net>
+
+	PR ada/41383
+	* a-rttiev.adb (Time_Of_Event): Return Time_First for unset event.
+
+2009-10-06  Samuel Tardieu  <sam@rfc1149.net>
+
+	PR ada/38333
+	* sem_prag.adb (Process_Import_Or_Interface): Forbid an abstract
+	subprogram to be completed with a "pragma Import".
+
+2009-10-02  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/decl.c (gnat_to_gnu_entity) <E_Record_Subtype>:
+	Generate an XVZ variable alongside the XVS type if the size is
+	not constant.
+	(maybe_pad_type): Minor tweak.
+
+2009-10-02  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/decl.c (check_ok_for_atomic): Do nothing if the type
+	doesn't come from source.
+
+2009-10-02  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/decl.c (gnat_to_gnu_component_type): Force at least
+	unit size for the component size of an array with aliased components.
+	(maybe_pad_type): Do not warn for MAX_EXPR.
+
 2009-09-29  Eric Botcazou  <ebotcazou@adacore.com>
 
 	* gcc-interface/decl.c (gnat_to_gnu_entity) <E_Array_Type>: Factor out

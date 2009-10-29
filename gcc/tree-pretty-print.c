@@ -183,6 +183,8 @@ dump_decl_name (pretty_printer *buffer, tree node, int flags)
     {
       if (TREE_CODE (node) == LABEL_DECL && LABEL_DECL_UID (node) != -1)
         pp_printf (buffer, "L.%d", (int) LABEL_DECL_UID (node));
+      else if (TREE_CODE (node) == DEBUG_EXPR_DECL)
+	pp_printf (buffer, "D#%i", DEBUG_TEMP_UID (node));
       else
 	{
 	  char c = TREE_CODE (node) == CONST_DECL ? 'C' : 'D';
@@ -655,6 +657,13 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
 	else if (quals & TYPE_QUAL_RESTRICT)
 	  pp_string (buffer, "restrict ");
 
+	if (!ADDR_SPACE_GENERIC_P (TYPE_ADDR_SPACE (node)))
+	  {
+	    pp_string (buffer, "<address-space-");
+	    pp_decimal_int (buffer, TYPE_ADDR_SPACE (node));
+	    pp_string (buffer, "> ");
+	  }
+
 	tclass = TREE_CODE_CLASS (TREE_CODE (node));
 
 	if (tclass == tcc_declaration)
@@ -752,6 +761,13 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
 	    pp_string (buffer, " volatile");
 	  if (quals & TYPE_QUAL_RESTRICT)
 	    pp_string (buffer, " restrict");
+
+	  if (!ADDR_SPACE_GENERIC_P (TYPE_ADDR_SPACE (node)))
+	    {
+	      pp_string (buffer, " <address-space-");
+	      pp_decimal_int (buffer, TYPE_ADDR_SPACE (node));
+	      pp_string (buffer, ">");
+	    }
 
 	  if (TYPE_REF_CAN_ALIAS_ALL (node))
 	    pp_string (buffer, " {ref-all}");
@@ -1051,6 +1067,7 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
     case VAR_DECL:
     case PARM_DECL:
     case FIELD_DECL:
+    case DEBUG_EXPR_DECL:
     case NAMESPACE_DECL:
       dump_decl_name (buffer, node, flags);
       break;
@@ -1547,6 +1564,7 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
       NIY;
       break;
 
+    case ADDR_SPACE_CONVERT_EXPR:
     case FIXED_CONVERT_EXPR:
     case FIX_TRUNC_EXPR:
     case FLOAT_EXPR:

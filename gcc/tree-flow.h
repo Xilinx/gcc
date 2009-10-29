@@ -540,6 +540,7 @@ extern basic_block move_sese_region_to_fn (struct function *, basic_block,
 				           basic_block, tree);
 void remove_edge_and_dominated_blocks (edge);
 void mark_virtual_ops_in_bb (basic_block);
+bool tree_node_can_be_shared (tree);
 
 /* In tree-cfgcleanup.c  */
 extern bitmap cfgcleanup_altered_bbs;
@@ -636,10 +637,8 @@ typedef bool (*walk_use_def_chains_fn) (tree, gimple, void *);
 
 extern void walk_use_def_chains (tree, walk_use_def_chains_fn, void *, bool);
 
-void propagate_defs_into_debug_stmts (gimple, basic_block,
-				      const gimple_stmt_iterator *);
-void propagate_var_def_into_debug_stmts (tree, basic_block,
-					 const gimple_stmt_iterator *);
+void insert_debug_temps_for_defs (gimple_stmt_iterator *);
+void insert_debug_temp_for_var_def (gimple_stmt_iterator *, tree);
 void release_defs_bitset (bitmap toremove);
 
 /* In tree-into-ssa.c  */
@@ -891,7 +890,8 @@ extern void tree_check_data_deps (void);
 /* In tree-ssa-loop-ivopts.c  */
 bool expr_invariant_in_loop_p (struct loop *, tree);
 bool stmt_invariant_in_loop_p (struct loop *, gimple);
-bool multiplier_allowed_in_address_p (HOST_WIDE_INT, enum machine_mode);
+bool multiplier_allowed_in_address_p (HOST_WIDE_INT, enum machine_mode,
+				      addr_space_t);
 unsigned multiply_by_cost (HOST_WIDE_INT, enum machine_mode, bool);
 
 /* In tree-ssa-threadupdate.c.  */
@@ -922,7 +922,7 @@ struct mem_address
 struct affine_tree_combination;
 tree create_mem_ref (gimple_stmt_iterator *, tree, 
 		     struct affine_tree_combination *, bool);
-rtx addr_for_mem_ref (struct mem_address *, bool);
+rtx addr_for_mem_ref (struct mem_address *, addr_space_t, bool);
 void get_address_description (tree, struct mem_address *);
 tree maybe_fold_tmr (tree);
 

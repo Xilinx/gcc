@@ -500,7 +500,7 @@ check_and_make_def_conflict (int alt, int def, enum reg_class def_cl)
   for (use = 0; use < recog_data.n_operands; use++)
     {
       if (use == def || recog_data.operand_type[use] == OP_OUT)
-	return;
+	continue;
       
       if (recog_op_alt[use][alt].anything_ok)
 	use_cl = ALL_REGS;
@@ -513,7 +513,7 @@ check_and_make_def_conflict (int alt, int def, enum reg_class def_cl)
       if ((use_match = recog_op_alt[use][alt].matches) >= 0)
 	{
 	  if (use_match == def)
-	    return;
+	    continue;
 	  
 	  if (recog_op_alt[use_match][alt].anything_ok)
 	    use_cl = ALL_REGS;
@@ -841,6 +841,7 @@ process_single_reg_class_operands (bool in_p, int freq)
 		  [ira_class_hard_regs[cl][0]]) >= 0
 	      && reg_class_size[cl] <= (unsigned) CLASS_MAX_NREGS (cl, mode))
 	    {
+	      int i, size;
 	      cost
 		= (freq
 		   * (in_p
@@ -848,10 +849,12 @@ process_single_reg_class_operands (bool in_p, int freq)
 		      : ira_get_register_move_cost (mode, cl, cover_class)));
 	      ira_allocate_and_set_costs
 		(&ALLOCNO_CONFLICT_HARD_REG_COSTS (operand_a), cover_class, 0);
-	      ALLOCNO_CONFLICT_HARD_REG_COSTS (operand_a)
-		[ira_class_hard_reg_index
-		 [cover_class][ira_class_hard_regs[cl][0]]]
-		-= cost;
+	      size = ira_reg_class_nregs[cover_class][mode];
+	      for (i = 0; i < size; i++)
+	        ALLOCNO_CONFLICT_HARD_REG_COSTS (operand_a)
+		  [ira_class_hard_reg_index
+		   [cover_class][ira_class_hard_regs[cl][i]]]
+		  -= cost;
 	    }
 	}
 

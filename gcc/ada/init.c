@@ -2114,6 +2114,7 @@ __gnat_install_handler(void)
 #elif defined(__APPLE__)
 
 #include <signal.h>
+#include <sys/syscall.h>
 #include <mach/mach_vm.h>
 #include <mach/mach_init.h>
 #include <mach/vm_statistics.h>
@@ -2123,9 +2124,9 @@ char __gnat_alternate_stack[32 * 1024]; /* 1 * MINSIGSTKSZ */
 
 static void __gnat_error_handler (int sig, siginfo_t * si, void * uc);
 
-/* Defined in xnu unix_signal.c  */
+/* Defined in xnu unix_signal.c.
+   Tell the kernel to re-use alt stack when delivering a signal.  */
 #define	UC_RESET_ALT_STACK	0x80000000
-extern int sigreturn (void *uc, int flavour);
 
 /* Return true if ADDR is within a stack guard area.  */
 static int
@@ -2173,8 +2174,9 @@ __gnat_error_handler (int sig, siginfo_t * si, void * uc ATTRIBUTE_UNUSED)
 	  msg = "erroneous memory access";
 	}
       /* Reset the use of alt stack, so that the alt stack will be used
-	 for the next signal delivery.  */
-      sigreturn (NULL, UC_RESET_ALT_STACK);
+	 for the next signal delivery.
+         The stack can't be used in case of stack checking.  */
+      syscall (SYS_sigreturn, NULL, UC_RESET_ALT_STACK);
       break;
 
     case SIGFPE:
@@ -2301,8 +2303,10 @@ __gnat_adjust_context_for_raise (int signo ATTRIBUTE_UNUSED,
 {
   /* We used to compensate here for the raised from call vs raised from signal
      exception discrepancy with the GCC ZCX scheme, but this now can be dealt
-     with generically in the unwinder (see GCC PR other/26208).  Only the VMS
-     ports still do the compensation described in the few lines below.
+     with generically in the unwinder (see GCC PR other/26208).  This however
+     requires the use of the _Unwind_GetIPInfo routine in raise-gcc.c, which
+     is predicated on the definition of HAVE_GETIPINFO at compile time.  Only
+     the VMS ports still do the compensation described in the few lines below.
 
      *** Call vs signal exception discrepancy with GCC ZCX scheme ***
 

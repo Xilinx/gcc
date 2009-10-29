@@ -1613,6 +1613,7 @@ decay_conversion (tree exp)
   if (type == error_mark_node)
     return error_mark_node;
 
+  exp = resolve_nondeduced_context (exp);
   if (type_unknown_p (exp))
     {
       cxx_incomplete_type_error (exp, TREE_TYPE (exp));
@@ -5598,12 +5599,17 @@ build_reinterpret_cast_1 (tree type, tree expr, bool c_cast_p,
 		 intype, type);
 
       expr = cp_build_unary_op (ADDR_EXPR, expr, 0, complain);
+
+      if (warn_strict_aliasing > 2)
+	strict_aliasing_warning (TREE_TYPE (expr), type, expr);
+
       if (expr != error_mark_node)
 	expr = build_reinterpret_cast_1
 	  (build_pointer_type (TREE_TYPE (type)), expr, c_cast_p,
 	   valid_p, complain);
       if (expr != error_mark_node)
-	expr = cp_build_indirect_ref (expr, 0, complain);
+	/* cp_build_indirect_ref isn't right for rvalue refs.  */
+	expr = convert_from_reference (fold_convert (type, expr));
       return expr;
     }
 
@@ -6892,6 +6898,11 @@ convert_for_initialization (tree exp, tree type, tree rhs, int flags,
   rhstype = non_reference (rhstype);
 
   type = complete_type (type);
+
+  if (DIRECT_INIT_EXPR_P (type, rhs))
+    /* Don't try to do copy-initialization if we already have
+       direct-initialization.  */
+    return rhs;
 
   if (MAYBE_CLASS_TYPE_P (type))
     return ocp_convert (type, rhs, CONV_IMPLICIT|CONV_FORCE_TEMP, flags);

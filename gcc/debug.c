@@ -27,6 +27,7 @@ const struct gcc_debug_hooks do_nothing_debug_hooks =
 {
   debug_nothing_charstar,
   debug_nothing_charstar,
+  debug_nothing_void,
   debug_nothing_int_charstar,
   debug_nothing_int_charstar,
   debug_nothing_int_charstar,
@@ -50,6 +51,10 @@ const struct gcc_debug_hooks do_nothing_debug_hooks =
   debug_nothing_int,		         /* handle_pch */
   debug_nothing_rtx,		         /* var_location */
   debug_nothing_void,                    /* switch_text_section */
+  debug_nothing_tree,		         /* direct_call */
+  debug_nothing_tree_int,	         /* virtual_call_token */
+  debug_nothing_rtx_rtx,	         /* copy_call_info */
+  debug_nothing_uid,		         /* virtual_call */
   debug_nothing_tree_tree,		 /* set_name */
   0                                      /* start_end_main_source_file */
 };
@@ -93,6 +98,12 @@ debug_nothing_rtx (rtx insn ATTRIBUTE_UNUSED)
 }
 
 void
+debug_nothing_rtx_rtx (rtx insn ATTRIBUTE_UNUSED,
+		       rtx new_insn ATTRIBUTE_UNUSED)
+{
+}
+
+void
 debug_nothing_charstar (const char *main_filename ATTRIBUTE_UNUSED)
 {
 }
@@ -125,5 +136,10 @@ debug_nothing_int_int (unsigned int line ATTRIBUTE_UNUSED,
 void
 debug_nothing_tree_int (tree decl ATTRIBUTE_UNUSED,
 			int local ATTRIBUTE_UNUSED)
+{
+}
+
+void
+debug_nothing_uid (int uid ATTRIBUTE_UNUSED)
 {
 }

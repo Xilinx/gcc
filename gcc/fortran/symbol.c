@@ -2030,9 +2030,16 @@ gfc_st_label *
 gfc_get_st_label (int labelno)
 {
   gfc_st_label *lp;
+  gfc_namespace *ns;
+
+  /* Find the namespace of the scoping unit:
+     If we're in a BLOCK construct, jump to the parent namespace.  */
+  ns = gfc_current_ns;
+  while (ns->proc_name && ns->proc_name->attr.flavor == FL_LABEL)
+    ns = ns->parent;
 
   /* First see if the label is already in this namespace.  */
-  lp = gfc_current_ns->st_labels;
+  lp = ns->st_labels;
   while (lp)
     {
       if (lp->value == labelno)
@@ -2050,7 +2057,7 @@ gfc_get_st_label (int labelno)
   lp->defined = ST_LABEL_UNKNOWN;
   lp->referenced = ST_LABEL_UNKNOWN;
 
-  gfc_insert_bbt (&gfc_current_ns->st_labels, lp, compare_st_labels);
+  gfc_insert_bbt (&ns->st_labels, lp, compare_st_labels);
 
   return lp;
 }
@@ -2461,6 +2468,19 @@ ambiguous_symbol (const char *name, gfc_symtree *st)
 }
 
 
+/* If we're in a SELECT TYPE block, check if the variable 'st' matches any
+   selector on the stack. If yes, replace it by the corresponding temporary.  */
+
+static void
+select_type_insert_tmp (gfc_symtree **st)
+{
+  gfc_select_type_stack *stack = select_type_stack;
+  for (; stack; stack = stack->prev)
+    if ((*st)->n.sym == stack->selector)
+      *st = stack->tmp;
+}
+
+
 /* Search for a symtree starting in the current namespace, resorting to
    any parent namespaces if requested by a nonzero parent_flag.
    Returns nonzero if the name is ambiguous.  */
@@ -2479,6 +2499,8 @@ gfc_find_sym_tree (const char *name, gfc_namespace *ns, int parent_flag,
       st = gfc_find_symtree (ns->sym_root, name);
       if (st != NULL)
 	{
+	  select_type_insert_tmp (&st);
+
 	  *result = st;
 	  /* Ambiguous generic interfaces are permitted, as long
 	     as the specific interfaces are different.  */
@@ -2645,12 +2667,6 @@ gfc_get_ha_sym_tree (const char *name, gfc_symtree **result)
 
   i = gfc_find_sym_tree (name, gfc_current_ns, 0, &st);
 
-  /* Special case: If we're in a SELECT TYPE block,
-     replace the selector variable by a temporary.  */
-  if (gfc_current_state () == COMP_SELECT_TYPE
-      && st && st->n.sym == type_selector)
-    st = select_type_tmp;
-
   if (st != NULL)
     {
       save_symbol_data (st->n.sym);
@@ -2732,7 +2748,7 @@ gfc_undo_symbols (void)
       if (p->gfc_new)
 	{
 	  /* Symbol was new.  */
-	  if (p->attr.in_common && p->common_block->head)
+	  if (p->attr.in_common && p->common_block && p->common_block->head)
 	    {
 	      /* If the symbol was added to any common block, it
 		 needs to be removed to stop the resolver looking
@@ -4579,9 +4595,12 @@ gfc_type_compatible (gfc_typespec *ts1, gfc_typespec *ts2)
   if ((ts1->type == BT_DERIVED || ts1->type == BT_CLASS)
       && (ts2->type == BT_DERIVED || ts2->type == BT_CLASS))
     {
-      if (ts1->type == BT_CLASS)
+      if (ts1->type == BT_CLASS && ts2->type == BT_DERIVED)
 	return gfc_type_is_extension_of (ts1->u.derived->components->ts.u.derived,
 					 ts2->u.derived);
+      else if (ts1->type == BT_CLASS && ts2->type == BT_CLASS)
+	return gfc_type_is_extension_of (ts1->u.derived->components->ts.u.derived,
+					 ts2->u.derived->components->ts.u.derived);
       else if (ts2->type != BT_CLASS)
 	return gfc_compare_derived_types (ts1->u.derived, ts2->u.derived);
       else
