@@ -1,3 +1,8 @@
+2009-10-29  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normal.melt: added normalize_lambda internal
+	function to help sharing code between normexp_lambda and
+	normalization of lambda-s in letrecs
+
 2009-10-28  Basile Starynkevitch  <basile@starynkevitch.net>
 	* testsuite/melt/tletrec.melt: added new file.
 	* melt/warmelt-macro.melt: mexpand_letrec done...

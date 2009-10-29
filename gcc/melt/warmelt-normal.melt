@@ -270,9 +270,10 @@ one.}#
 (compile_warning "think about class_normal_constructed_lambda_binding")
 (defclass class_normal_constructed_lambda_binding
   :doc #{The internal $CLASS_NORMAL_CONSTRUCTED_LAMBDA_BINDING is the
-class of lambda constructor bindings. Field $NLAMBDAB_ ....}#
+class of lambda constructor bindings. Field $NLAMBDAB_NLAMBDA gives
+the normalized lambda.}#
   :super  class_normal_constructor_binding
-  :fields (nlambdab_))
+  :fields (nlambdab_nlambda))
 
 (defclass class_normal_constructed_instance_binding
   :doc #{The internal $CLASS_NORMAL_CONSTRUCTED_INSTANCE_BINDING is
@@ -2946,15 +2947,17 @@ tuple of the normalized slots.}#
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; normalize a LAMBDA
-(defun normexp_lambda (recv env ncx psloc)
+
+;;; an internal routine useful for lambda inside letrec ... to share
+;;; code between normexp_lambda and handling of lambda-s inside letrec
+(defun normalize_lambda (recv env ncx psloc)
   (assert_msg "check lambda recv" (is_a recv class_source_lambda))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (debug_msg recv "normexp_lambda recv")
+  (debug_msg recv "normalize_lambda recv")
   (let ( (sloc (unsafe_get_field :loca_location recv))
 	 (sargs (unsafe_get_field :slam_argbind recv))
 	 (sbody (unsafe_get_field :slam_body recv))
-	 (savedcachemap (unsafe_get_field :nctx_symbcachemap ncx))
 	 (csym (clone_symbol 'lambda_))
 	 (clocc (instance class_nrep_locsymocc
 			  :nrep_loc sloc
@@ -2962,6 +2965,7 @@ tuple of the normalized slots.}#
 			  :nocc_symb csym)) 
 	 (newenv (fresh_env env))
 	 (oldproc (unsafe_get_field :nctx_curproc ncx))
+	 (savedcachemap (unsafe_get_field :nctx_symbcachemap ncx))
 	 (closedblist (make_list discr_list))
 	 (nproc (instance class_nrep_routproc
 			  :nrep_loc sloc
@@ -3023,34 +3027,48 @@ tuple of the normalized slots.}#
 	    (list_to_multiple closedblist
 			      discr_multiple
 			      (lambda (bnd)
-				(assert_msg "normexp_lambda check bnd" (is_a bnd class_any_binding))
+				(assert_msg "normalize_lambda check bnd" (is_a bnd class_any_binding))
 				(let ( (sy (unsafe_get_field :binder bnd)) 
 				       ;; since sy is a symbol, its normalized form does not add any binding
 				       ;; we normalize it in the *old* environment, not the new one
 				       (nsy (normal_exp sy env ncx sloc))
 				       )
 				  nsy))))
-	   (nlambda (instance class_nrep_lambda 
-			      :nrep_loc sloc
-			      :nlambda_proc nproc
-			      :nlambda_constrout (if insideflag krout ndatarout)
-			      :nlambda_closedv clovtup
-			      ))
-	   (cbind (instance class_normal_let_binding
-			    :letbind_loc sloc
-			    :binder csym
-			    :letbind_type ctype_value
-			    :letbind_expr nlambda))
-	   (nbindlist (make_list discr_list))
+	   (constrout  (if insideflag krout ndatarout))
 	   )
-       (unsafe_put_fields clocc :nocc_bind cbind)
-       (list_append nbindlist cbind)
-       (if insideflag
-	   (list_append (unsafe_get_field :nrpro_const oldproc) ndatarout))
-       (debug_msg clocc "normexp_lambda return clocc")
-       (debug_msg nbindlist "normexp_lambda return nbindlist")
-       (return clocc nbindlist)
+       (return nproc csym clocc constrout clovtup sloc oldproc ndatarout insideflag)
        ))))
+
+(defun normexp_lambda (recv env ncx psloc)
+  (assert_msg "check lambda recv" (is_a recv class_source_lambda))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normalization_context))
+  (debug_msg recv "normexp_lambda recv")
+  (multicall 
+   (nproc csym clocc constrout clovtup sloc oldproc ndatarout :long insideflag)
+   (normalize_lambda recv env ncx psloc)
+   (let (
+	 (nlambda (instance class_nrep_lambda 
+			    :nrep_loc sloc
+			    :nlambda_proc nproc
+			    :nlambda_constrout constrout
+			    :nlambda_closedv clovtup
+			    ))
+	 (cbind (instance class_normal_let_binding
+			  :letbind_loc sloc
+			  :binder csym
+			  :letbind_type ctype_value
+			  :letbind_expr nlambda))
+	 (nbindlist (make_list discr_list))
+	 )
+     (unsafe_put_fields clocc :nocc_bind cbind)
+     (list_append nbindlist cbind)
+     (if insideflag
+	 (list_append (unsafe_get_field :nrpro_const oldproc) ndatarout))
+     (debug_msg clocc "normexp_lambda return clocc")
+     (debug_msg nbindlist "normexp_lambda return nbindlist")
+     (return clocc nbindlist)
+     )))
 (install_method class_source_lambda normal_exp normexp_lambda)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
