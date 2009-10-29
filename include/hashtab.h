@@ -157,6 +157,12 @@ extern htab_t	htab_create_alloc_ex (size_t, htab_hash,
                                       void *, htab_alloc_with_arg,
                                       htab_free_with_arg);
 
+extern htab_t  htab_create_alloc_with_separate_allocators(size_t, htab_hash,
+							  htab_eq, htab_del,
+							  htab_alloc,
+							  htab_alloc,
+							  htab_free);
+
 /* Backward-compatibility functions.  */
 extern htab_t htab_create (size_t, htab_hash, htab_eq, htab_del);
 extern htab_t htab_try_create (size_t, htab_hash, htab_eq, htab_del);

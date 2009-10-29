@@ -2799,13 +2799,9 @@ scev_initialize (void)
   loop_iterator li;
   struct loop *loop;
 
-  scalar_evolution_info = htab_create_alloc (100,
-					     hash_scev_info,
-					     eq_scev_info,
-					     del_scev_info,
-					     ggc_calloc,
-					     ggc_free);
-  
+  scalar_evolution_info = htab_create_ggc (100, hash_scev_info, eq_scev_info,
+					   del_scev_info);
+
   initialize_scalar_evolutions_analyzer ();
 
   FOR_EACH_LOOP (li, loop, 0)

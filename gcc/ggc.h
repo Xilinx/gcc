@@ -225,7 +225,6 @@ extern void *ggc_internal_cleared_alloc_stat (size_t MEM_STAT_DECL);
 /* Resize a block.  */
 extern void *ggc_realloc_stat (void *, size_t MEM_STAT_DECL);
 #define ggc_realloc(s,z) ggc_realloc_stat (s,z MEM_STAT_INFO)
-extern void *ggc_calloc (size_t, size_t);
 /* Free a block.  To be used when known for certain it's not reachable.  */
 extern void ggc_free (void *);
  
@@ -243,9 +242,9 @@ extern void dump_ggc_loc_statistics (bool);
 #define GGC_RESIZEVAR(T, P, N)  ((T *) ggc_realloc_stat ((P),	\
 					      (N) MEM_STAT_INFO))
 
-#define ggc_internal_vec_alloc(S, C) (ggc_internal_alloc ((C) * S))
+#define ggc_internal_vec_alloc(S, C) (ggc_internal_alloc ((C) * (S)))
 #define ggc_internal_cleared_vec_alloc(S, C)	\
-  (ggc_internal_cleared_alloc ((C) * S))
+  (ggc_internal_cleared_alloc ((C) * (S)))
 
 #define ggc_alloc_atomic(S)  (ggc_internal_alloc (S))
 #define ggc_alloc_cleared_atomic(S) (ggc_internal_cleared_alloc (S))
@@ -255,8 +254,15 @@ extern void dump_ggc_loc_statistics (bool);
 				 sizeof (struct rtvec_def) + ((NELT) - 1), \
 				 &rtl_zone))
 
+extern void * ggc_cleared_alloc_htab_ignore_args (size_t, size_t);
+
+extern void * ggc_cleared_alloc_ptr_array_two_args (size_t, size_t);
+
 #define htab_create_ggc(SIZE, HASH, EQ, DEL) \
-  htab_create_alloc (SIZE, HASH, EQ, DEL, ggc_calloc, ggc_free)
+  htab_create_alloc_with_separate_allocators (SIZE, HASH, EQ, DEL,	\
+					      ggc_cleared_alloc_htab_ignore_args, \
+					      ggc_cleared_alloc_ptr_array_two_args, \
+					      ggc_free)
 
 #define splay_tree_new_ggc(COMPARE, ALLOC_TREE, ALLOC_NODE)		      \
   splay_tree_new_with_separate_allocators (COMPARE, NULL, NULL,	&ALLOC_TREE,  \

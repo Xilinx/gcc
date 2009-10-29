@@ -1,3 +1,14 @@
+2009-10-29  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* java-tree.h (java_treetreehash_create): Remove ggc argument.
+	* except.c (prepare_eh_table_type): Update
+	jave_treetreehash_create invocation.
+	* class.c (add_method_1): Update java_treetreehash_create
+	invocation.
+	(java_treetree_hash_new): Use typed GC allocation
+	(java_treetreehash_create): Remove gc argument, use GC allocation
+	only.
+
 2009-08-23  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
 
 	* java-tree.h (MAYBE_CREATE_VAR_LANG_DECL_SPECIFIC): Pass

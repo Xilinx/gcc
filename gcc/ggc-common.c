@@ -247,9 +247,20 @@ ggc_realloc_stat (void *x, size_t size MEM_STAT_DECL)
 }
 
 void *
-ggc_calloc (size_t s1, size_t s2)
+ggc_cleared_alloc_htab_ignore_args (size_t c ATTRIBUTE_UNUSED,
+				    size_t n ATTRIBUTE_UNUSED)
 {
-  return ggc_internal_cleared_alloc (s1 * s2);
+  gcc_assert (c * n == sizeof (struct htab));
+  return ggc_alloc_cleared_htab ();
+}
+
+/* TODO: once we actually use type information in GGC, create a new tag
+   gt_gcc_ptr_array and use it for pointer arrays.  */
+void *
+ggc_cleared_alloc_ptr_array_two_args (size_t c, size_t n)
+{
+  gcc_assert (sizeof (PTR *) == n);
+  return ggc_internal_cleared_vec_alloc (sizeof (PTR *), c);
 }
 
 /* These are for splay_tree_new_ggc.  */

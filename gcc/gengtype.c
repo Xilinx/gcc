@@ -3771,7 +3771,7 @@ write_typed_typedef_alloc_def (const pair_p p,
 			       enum alloc_zone zone)
 {
   bool two_args = (quantity == vector) && (zone == specific_zone);
-  
+
   oprintf (header_file, "#define ggc_alloc_%s%s", allocator_type, p->name);
   oprintf (header_file, "(%s%s%s) ", (quantity == vector) ? "n" : "",
 	   (two_args ? ", " : ""), (zone == specific_zone) ? "z" : "");
@@ -3790,7 +3790,7 @@ write_typed_alloc_defns (const type_p structures, const pair_p typedefs)
   type_p s;
   pair_p p;
 
-  oprintf (header_file, "\n/* Allocators for known structs and unions.  */\n");
+  oprintf (header_file, "\n/* Allocators for known structs and unions.  */\n\n");
   for (s = structures; s; s = s->next)
     {
       if (!USED_BY_TYPED_GC (s))

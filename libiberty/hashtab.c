@@ -291,30 +291,8 @@ htab_t
 htab_create_alloc (size_t size, htab_hash hash_f, htab_eq eq_f,
                    htab_del del_f, htab_alloc alloc_f, htab_free free_f)
 {
-  htab_t result;
-  unsigned int size_prime_index;
-
-  size_prime_index = higher_prime_index (size);
-  size = prime_tab[size_prime_index].prime;
-
-  result = (htab_t) (*alloc_f) (1, sizeof (struct htab));
-  if (result == NULL)
-    return NULL;
-  result->entries = (PTR *) (*alloc_f) (size, sizeof (PTR));
-  if (result->entries == NULL)
-    {
-      if (free_f != NULL)
-	(*free_f) (result);
-      return NULL;
-    }
-  result->size = size;
-  result->size_prime_index = size_prime_index;
-  result->hash_f = hash_f;
-  result->eq_f = eq_f;
-  result->del_f = del_f;
-  result->alloc_f = alloc_f;
-  result->free_f = free_f;
-  return result;
+  return htab_create_alloc_with_separate_allocators (size, hash_f, eq_f, del_f,
+						     alloc_f, alloc_f, free_f);
 }
 
 /* As above, but use the variants of alloc_f and free_f which accept
@@ -352,6 +330,40 @@ htab_create_alloc_ex (size_t size, htab_hash hash_f, htab_eq eq_f,
   result->free_with_arg_f = free_f;
   return result;
 }
+
+htab_t
+htab_create_alloc_with_separate_allocators (size_t size, htab_hash hash_f,
+					    htab_eq eq_f, htab_del del_f,
+					    htab_alloc alloc_tab_f,
+					    htab_alloc alloc_f,
+					    htab_free free_f)
+{
+  htab_t result;
+  unsigned int size_prime_index;
+
+  size_prime_index = higher_prime_index (size);
+  size = prime_tab[size_prime_index].prime;
+
+  result = (htab_t) (*alloc_tab_f) (1, sizeof (struct htab));
+  if (result == NULL)
+    return NULL;
+  result->entries = (PTR *) (*alloc_f) (size, sizeof (PTR));
+  if (result->entries == NULL)
+    {
+      if (free_f != NULL)
+	(*free_f) (result);
+      return NULL;
+    }
+  result->size = size;
+  result->size_prime_index = size_prime_index;
+  result->hash_f = hash_f;
+  result->eq_f = eq_f;
+  result->del_f = del_f;
+  result->alloc_f = alloc_f;
+  result->free_f = free_f;
+  return result;
+}
+
 
 /* Update the function pointers and allocation parameter in the htab_t.  */
 

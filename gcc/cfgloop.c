@@ -1075,11 +1075,9 @@ record_loop_exits (void)
   loops_state_set (LOOPS_HAVE_RECORDED_EXITS);
 
   gcc_assert (current_loops->exits == NULL);
-  current_loops->exits = htab_create_alloc (2 * number_of_loops (),
-					    loop_exit_hash,
-					    loop_exit_eq,
-					    loop_exit_free,
-					    ggc_calloc, ggc_free);
+  current_loops->exits = htab_create_ggc (2 * number_of_loops (),
+					  loop_exit_hash, loop_exit_eq,
+					  loop_exit_free);
 
   FOR_EACH_BB (bb)
     {

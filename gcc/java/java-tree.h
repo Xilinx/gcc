@@ -851,7 +851,7 @@ typedef struct GTY(()) type_assertion {
 
 extern tree java_treetreehash_find (htab_t, tree);
 extern tree * java_treetreehash_new (htab_t, tree);
-extern htab_t java_treetreehash_create (size_t size, int ggc);
+extern htab_t java_treetreehash_create (size_t size);
 
 /* DECL_LANG_SPECIFIC for VAR_DECL, PARM_DECL and sometimes FIELD_DECL
    (access methods on outer class fields) and final fields. */
