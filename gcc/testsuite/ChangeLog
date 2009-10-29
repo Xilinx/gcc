@@ -1,3 +1,31 @@
+2009-10-29  David Daney  <ddaney@caviumnetworks.com>
+
+	* gcc.target/mips/mips.exp (mips_option_groups): Add
+	mcount-ra-address.
+	* gcc.target/mips/mmcount-ra-address-1.c: New test.
+	* gcc.target/mips/mmcount-ra-address-2.c: New test.
+	* gcc.target/mips/mmcount-ra-address-3.c: New test.
+
+2009-10-29  Michael Matz  <matz@suse.de>
+
+	* gcc.target/i386/sse-recip.c: Use fabsf instead of != .
+	* gcc.target/i386/sse-recip-vec.c: Ditto.
+	* gcc.target/i386/brokensqrt.c: New test.
+
+2009-10-29  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/41777
+	gfortran.dg/associated_target_3.f90: New testcase.
+
+2009-10-29  Rafael Avila de Espindola  <espindola@google.com>
+
+	* gfortran.dg/lto/pr41764_0.f: New.
+
+2009-10-29  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/41775
+	* testsuite/g++.dg/torture/pr41775.C: New testcase.
+
 2009-10-28  Jason Merrill  <jason@redhat.com>
 
 	* g++.dg/cpp0x/inline-ns1.C: New.
