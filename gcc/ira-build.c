@@ -2818,7 +2818,8 @@ update_conflict_hard_reg_costs (void)
 	       [ira_class_hard_regs[pref][0]]);
       if (index < 0)
 	continue;
-      if (ALLOCNO_CONFLICT_HARD_REG_COSTS (a) == NULL)
+      if (ALLOCNO_CONFLICT_HARD_REG_COSTS (a) == NULL
+	  || ALLOCNO_HARD_REG_COSTS (a) == NULL)
 	continue;
       min = INT_MAX;
       for (i = ira_class_hard_regs_num[cover_class] - 1; i >= 0; i--)
