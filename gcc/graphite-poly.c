@@ -325,6 +325,7 @@ apply_poly_transforms (scop_p scop)
   if (flag_graphite_write)
     graphite_write_transforms (scop);
 
+  lst_update_scattering (SCOP_TRANSFORMED_SCHEDULE (scop));
   return transform_done;
 }
 
