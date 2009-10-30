@@ -663,7 +663,7 @@ package Opt is
    --  still valid if they point to a file which is outside of the project),
    --  and that no directory has a name which is a valid source name.
 
-   Follow_Links_For_Dirs : Boolean := True;
+   Follow_Links_For_Dirs : Boolean := False;
    --  PROJECT MANAGER
    --  Set to True if directories can be links in this project, and therefore
    --  additional system calls must be performed to ensure that we always see
@@ -1360,6 +1360,11 @@ package Opt is
    --  GNAT
    --  Set to True to generate warnings on use of any feature in Annex or if a
    --  subprogram is called for which a pragma Obsolescent applies.
+
+   Warn_On_Overlap : Boolean := False;
+   --  GNAT
+   --  Set to True to generate warnings when a writable actual which is not
+   --  a by-copy type overlaps with another actual in a subprogram call.
 
    Warn_On_Questionable_Missing_Parens : Boolean := True;
    --  GNAT

@@ -1,3 +1,35 @@
+2009-10-30  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/specs/pack5.ads: New test.
+
+2009-10-30  Andrew Jenner  <andrew@codesourcery.com>
+
+	* lib/target-supports.exp: Handle powerpc-*-elf.
+
+2009-10-30  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/40838
+	* gcc.target/i386/incoming-6.c: New.
+	* gcc.target/i386/incoming-7.c: Likewise.
+	* gcc.target/i386/incoming-8.c: Likewise.
+	* gcc.target/i386/incoming-9.c: Likewise.
+	* gcc.target/i386/incoming-10.c: Likewise.
+	* gcc.target/i386/incoming-11.c: Likewise.
+	* gcc.target/i386/incoming-12.c: Likewise.
+	* gcc.target/i386/incoming-13.c: Likewise.
+	* gcc.target/i386/incoming-14.c: Likewise.
+	* gcc.target/i386/incoming-15.c: Likewise.
+	* gcc.target/i386/pr37843-4.c: Likewise.
+
+2009-10-30  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/41863
+	* g++.dg/template/sizeof12.C: New test.
+
+2009-10-29  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/pack14.adb: New test.
+
 2009-10-29  David Daney  <ddaney@caviumnetworks.com>
 
 	* gcc.target/mips/mips.exp (mips_option_groups): Add

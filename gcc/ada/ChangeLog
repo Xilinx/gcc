@@ -1,3 +1,143 @@
+2009-10-30  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/utils.c (MAX_FIXED_MODE_SIZE): Delete.
+	(create_field_decl): Update description.  In a packed record, round
+	the size up to a byte boundary only if the field's type has BLKmode.
+	* gcc-interface/gigi.h (create_field_decl): Update description.
+
+2009-10-30  Emmanuel Briot  <briot@adacore.com>
+
+	* make.adb (Start_Compile_If_Possible): Compute location of resulting
+	ALI file in this procedure instead of after the compilation itself,
+	since the current directory might have changed in between when using
+	-j<n>.
+
+	* osint.ads: Addded missing alignment clause.
+
+	* adaint.c, adaint.h, osint.adb (__gnat_reset_attributes,
+	__gnat_size_of_file_attributes): Rename reset_attributes and
+	size_of_file_attributes.
+
+2009-10-30  Javier Miranda  <miranda@adacore.com>
+
+	* sem_scil.adb (Adjust_SCIL_Node): Add missing management of sequences
+	of statements when searching for SCIL nodes.
+
+2009-10-30  Tristan Gingold  <gingold@adacore.com>
+
+	* gnatlink.adb, link.c: By default use shared libgcc on darwin.
+
+2009-10-30  Emmanuel Briot  <briot@adacore.com>
+
+	* make.adb, osint.adb (Add_Lib_Search_Dir): Do not add if dir is
+	already in the list.
+	This saves system calls when looking for ALI files
+	(Scan_Make_Args): The parameter to gnatmake's -D is now converted to an
+	absolute PATH (so that the above improvement properly occurs if both
+	-D<dir> and -aO<dir> are specified).
+
+2009-10-30  Thomas Quinot  <quinot@adacore.com>
+
+	* a-direct.adb: Minor reformatting
+
+2009-10-30  Emmanuel Briot  <briot@adacore.com>
+
+	* make.adb, adaint.c, adaint.h, osint.adb, osint.ads, bcheck.adb
+	(*_attr): new subprograms.
+	(File_Length, File_Time_Stamp, Is_Writable_File): new subprograms
+	(Read_Library_Info_From_Full, Full_Library_Info_Name,
+	Full_Source_Name): Now benefit from a previous cache of the file
+	attributes, to further save on system calls.
+	(Smart_Find_File): now also cache the file attributes. This makes the
+	package File_Stamp_Hash_Table useless, and it was removed.
+	(Compile_Sources): create subprograms for the various steps of the main
+	loop, for readibility and to avoid sharing variables between the
+	various steps.
+
+2009-10-30  Emmanuel Briot  <briot@adacore.com>
+
+	* make.adb, osint.adb, osint.ads (Library_File_Stamp): Removed, since
+	unused.
+	(Read_Library_Info_From_Full): New subprogram.
+
+2009-10-30  Robert Dewar  <dewar@adacore.com>
+
+	* a-tideio.adb: Minor reformatting
+	* a-wtdeio.adb, a-ztdeio.adb: Update comments, code clean up.
+
+	* a-reatim.adb, a-tideau.adb, a-ngelfu.adb, a-ztdeau.adb, a-ngrear.adb,
+	a-wtedit.adb, a-ststio.adb, a-ztedit.adb: Minor code reorganization
+	(use conditional expressions).
+
+2009-10-30  Ed Schonberg  <schonberg@adacore.com>
+
+	* gnat_ugn.texi: Additional info on gnatw.i and gnatw.I
+
+	* sem_case.adb: Improved error message.
+
+2009-10-30  Emmanuel Briot  <briot@adacore.com>
+
+	* a-direct.adb, gnatcmd.adb, gnatname.adb, makeutl.adb, opt.ads,
+	osint.adb, prj-ext.adb, switch-m.adb (Follow_Links_For_Dirs): Now
+	defaults to False, and controlled by -eL.
+	* a-direct.adb: Add comments.
+	* osint.adb (File_Stamp): Avoid unneeded duplicate system call
+
+2009-10-30  Robert Dewar  <dewar@adacore.com>
+
+	* sem_res.adb (Resolve_Type_Conversion): Avoid false positive when
+	converting non-static subtype to "identical" static subtype.
+
+2009-10-30  Ed Schonberg  <schonberg@adacore.com>
+
+	* usage.adb: Add -gnatw.i switch.
+
+2009-10-30  Vincent Celier  <celier@adacore.com>
+
+	* xsnamest.adb: Update comments with regards to the template files
+	snames.*.tmpl
+
+2009-10-30  Bob Duff  <duff@adacore.com>
+
+	* s-fileio.adb (Errno_Message): Suppress VMS-specific warning.
+
+2009-10-30  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_case.adb (Check_Choices): Add explanatory message when there are
+	missing alternatives when the required range of alternatives is given
+	by the base type of the case expression or discriminant in a variant
+	part.
+
+	* opt.ads: New flag Warn_On_Overlap, to enable warnings on potentially
+	dangerous overlap between actuals in a call, activated by -gnatw.i
+	* sem_warn.adb (Set_Dot_Warning_Switch): set flag.
+	(Warn_On_Overlapping_Actuals): use new flag.
+
+	* gnat_ugn.texi: Document -gnatw.i, warning on overlapping actuals
+
+2009-10-30  Robert Dewar  <dewar@adacore.com>
+
+	* exp_aggr.adb, exp_ch9.adb: Minor reformatting
+
+2009-10-29  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/decl.c (make_type_from_size) <INTEGER_TYPE>: Do not
+	create integer types with precision 0.
+
+2009-10-29  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR ada/41870
+	* gcc-interface/decl.c (array_type_has_nonaliased_component): Swap
+	parameters and rewrite comments.  For a derived type, return the
+	setting of its parent type.
+	(gnat_to_gnu_entity): Do an alias set copy for derived types if they
+	are composite.  Adjust calls to above function.
+
+2009-10-29  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/trans.c (Attribute_to_gnu) <Attr_Object_Size>: Do not
+	return the RM size for padded types.
+
 2009-10-28  Robert Dewar  <dewar@adacore.com>
 
 	* sem_type.adb: Minor reformatting
