@@ -33,6 +33,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "varray.h"
 #include "flags.h"
 #include "ggc.h"
+#include "ggc-internal.h"
 #include "timevar.h"
 #include "params.h"
 #include "bitmap.h"
@@ -1723,31 +1724,6 @@ new_ggc_zone_1 (struct alloc_zone *new_zone, const char * name)
   new_zone->name = name;
   new_zone->next_zone = G.zones->next_zone;
   G.zones->next_zone = new_zone;
-}
-
-struct alloc_zone *
-new_ggc_zone (const char * name)
-{
-  struct alloc_zone *new_zone = XCNEW (struct alloc_zone);
-  new_ggc_zone_1 (new_zone, name);
-  return new_zone;
-}
-
-/* Destroy a GGC zone.  */
-void
-destroy_ggc_zone (struct alloc_zone * dead_zone)
-{
-  struct alloc_zone *z;
-
-  for (z = G.zones; z && z->next_zone != dead_zone; z = z->next_zone)
-    /* Just find that zone.  */
-    continue;
-
-  /* We should have found the zone in the list.  Anything else is fatal.  */
-  gcc_assert (z);
-
-  /* z is dead, baby. z is dead.  */
-  z->dead = true;
 }
 
 /* Free all empty pages and objects within a page for a given zone  */

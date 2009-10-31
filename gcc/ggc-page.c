@@ -28,6 +28,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "toplev.h"
 #include "flags.h"
 #include "ggc.h"
+#include "ggc-internal.h"
 #include "timevar.h"
 #include "params.h"
 #include "tree-flow.h"
@@ -1597,20 +1598,6 @@ init_ggc (void)
   G.by_depth_max = INITIAL_PTE_COUNT;
   G.by_depth = XNEWVEC (page_entry *, G.by_depth_max);
   G.save_in_use = XNEWVEC (unsigned long *, G.by_depth_max);
-}
-
-/* Start a new GGC zone.  */
-
-struct alloc_zone *
-new_ggc_zone (const char *name ATTRIBUTE_UNUSED)
-{
-  return NULL;
-}
-
-/* Destroy a GGC zone.  */
-void
-destroy_ggc_zone (struct alloc_zone *zone ATTRIBUTE_UNUSED)
-{
 }
 
 /* Merge the SAVE_IN_USE_P and IN_USE_P arrays in P so that IN_USE_P

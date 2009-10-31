@@ -26,6 +26,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "hashtab.h"
 #include "ggc.h"
+#include "ggc-internal.h"
 #include "toplev.h"
 #include "params.h"
 #include "hosthooks.h"
@@ -69,7 +70,6 @@ static int compare_ptr_data (const void *, const void *);
 static void relocate_ptrs (void *, void *);
 static void write_pch_globals (const struct ggc_root_tab * const *tab,
 			       struct traversal_state *state);
-static double ggc_rlimit_bound (double);
 
 /* Maintain global roots that are preserved during GC.  */
 
@@ -746,6 +746,8 @@ mmap_gt_pch_use_address (void *base, size_t size, int fd, size_t offset)
 }
 #endif /* HAVE_MMAP_FILE */
 
+#if !defined ENABLE_GC_CHECKING && !defined ENABLE_GC_ALWAYS_COLLECT
+
 /* Modify the bound based on rlimits.  */
 static double
 ggc_rlimit_bound (double limit)
@@ -780,7 +782,7 @@ ggc_rlimit_bound (double limit)
 }
 
 /* Heuristic to set a default for GGC_MIN_EXPAND.  */
-int
+static int
 ggc_min_expand_heuristic (void)
 {
   double min_expand = physmem_total();
@@ -799,7 +801,7 @@ ggc_min_expand_heuristic (void)
 }
 
 /* Heuristic to set a default for GGC_MIN_HEAPSIZE.  */
-int
+static int
 ggc_min_heapsize_heuristic (void)
 {
   double phys_kbytes = physmem_total();
@@ -836,6 +838,7 @@ ggc_min_heapsize_heuristic (void)
 
   return phys_kbytes;
 }
+#endif
 
 void
 init_ggc_heuristics (void)
