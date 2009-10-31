@@ -173,7 +173,7 @@ extern void dump_ggc_loc_statistics (bool);
 /* Type-safe, C++-friendly allocators.  */
 #define GGC_NEW(T)		((T *) ggc_internal_alloc (sizeof (T)))
 
-#define GGC_CNEW(T)		((T *) ggc_internal_alloc_cleared (sizeof (T)))
+#define GGC_CNEW(T)		((T *) ggc_internal_cleared_alloc (sizeof (T)))
 
 #define GGC_RESIZEVEC(T, P, N)  ((T *) ggc_realloc_stat ((P),	\
 					      (N) * sizeof (T) MEM_STAT_INFO))
