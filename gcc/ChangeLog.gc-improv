@@ -1,3 +1,19 @@
+2009-11-01  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* tree-ssa-structalias.c (heapvar_for_stmt): Remove GTY marker.
+	(heapvar_map_obstack): New variable.
+	(struct heapvar_map): Remove GTY marker.
+	(heapvar_insert): Use obstack allocation.
+	(get_constraint_for_1): Remove duplicated prototype.
+	(heapvar_htab_alloc): New function.
+	(init_alias_heapvars): Initialize heapvar_map_obstack.  Use it for
+	heapvar_for_stmt element allocation.
+	(delete_alias_heapvars): Free heapvar_map_obstack.
+	(gt-tree-ssa-structalias.h): Remove include.
+	* Makefile.in (tree-ssa-structalias.o): Remove
+	gt-tree-ssa-structalias.h dependency.
+	(GTFILES): Remove gt-tree-ssa-structalias.h
+
 2009-10-31  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
 
 	* ggc.h (GGC_CNEW): Fix typo.

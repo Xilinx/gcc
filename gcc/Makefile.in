@@ -2268,7 +2268,7 @@ tree-ssa-structalias.o: tree-ssa-structalias.c \
    $(DIAGNOSTIC_H) $(TOPLEV_H) $(TREE_H) $(TREE_FLOW_H) $(TREE_INLINE_H) varray.h \
    $(GIMPLE_H) $(HASHTAB_H) $(FUNCTION_H) $(CGRAPH_H) \
    $(TREE_PASS_H) $(TIMEVAR_H) alloc-pool.h $(SPLAY_TREE_H) $(PARAMS_H) \
-   gt-tree-ssa-structalias.h $(CGRAPH_H) $(ALIAS_H) pointer-set.h
+   $(CGRAPH_H) $(ALIAS_H) pointer-set.h
 tree-ssa.o : tree-ssa.c $(TREE_FLOW_H) $(CONFIG_H) $(SYSTEM_H) \
    $(RTL_H) $(TREE_H) $(TM_P_H) $(EXPR_H) output.h $(DIAGNOSTIC_H) \
    $(TOPLEV_H) $(FUNCTION_H) $(TIMEVAR_H) $(TM_H) coretypes.h \
@@ -3584,7 +3584,6 @@ GTFILES = $(CPP_ID_DATA_H) $(srcdir)/input.h $(srcdir)/coretypes.h \
   $(srcdir)/tree-ssa-propagate.c \
   $(srcdir)/tree-phinodes.c \
   $(srcdir)/ipa-reference.c \
-  $(srcdir)/tree-ssa-structalias.c \
   $(srcdir)/lto-symtab.c \
   $(srcdir)/tree-ssa-alias.h \
   $(srcdir)/ipa-prop.h \
@@ -4526,7 +4525,7 @@ install-collect2: collect2 installdirs
 # Install lto-wrapper.
 install-lto-wrapper: lto-wrapper$(exeext)
 	$(INSTALL_PROGRAM) lto-wrapper$(exeext) $(DESTDIR)$(libexecsubdir)/lto-wrapper$(exeext)
-	
+
 # Cancel installation by deleting the installed files.
 uninstall: lang.uninstall
 	-rm -rf $(DESTDIR)$(libsubdir)
