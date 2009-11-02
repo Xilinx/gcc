@@ -5204,41 +5204,35 @@ resolve_class_esym (gfc_expr *e)
 }
 
 
-/* Generate an expression for the vindex, given the reference to
+/* Generate an expression for the hash value, given the reference to
    the class of the final expression (class_ref), the base of the
    full reference list (new_ref), the declared type and the class
    object (st).  */
 static gfc_expr*
-vindex_expr (gfc_ref *class_ref, gfc_ref *new_ref,
-	     gfc_symbol *declared, gfc_symtree *st)
+hash_value_expr (gfc_ref *class_ref, gfc_ref *new_ref, gfc_symtree *st)
 {
-  gfc_expr *vindex;
-  gfc_ref *ref;
+  gfc_expr *hash_value;
 
-  /* Build an expression for the correct vindex; ie. that of the last
+  /* Build an expression for the correct hash_value; ie. that of the last
      CLASS reference.  */
-  ref = gfc_get_ref();
-  ref->type = REF_COMPONENT;
-  ref->u.c.component = declared->components->next;
-  ref->u.c.sym = declared;
-  ref->next = NULL;
   if (class_ref)
     {
-      class_ref->next = ref;
+      class_ref->next = NULL;
     }
   else
     {
       gfc_free_ref_list (new_ref);
-      new_ref = ref;
+      new_ref = NULL;
     }
-  vindex = gfc_get_expr ();
-  vindex->expr_type = EXPR_VARIABLE;
-  vindex->symtree = st;
-  vindex->symtree->n.sym->refs++;
-  vindex->ts = ref->u.c.component->ts;
-  vindex->ref = new_ref;
+  hash_value = gfc_get_expr ();
+  hash_value->expr_type = EXPR_VARIABLE;
+  hash_value->symtree = st;
+  hash_value->symtree->n.sym->refs++;
+  hash_value->ref = new_ref;
+  gfc_add_component_ref (hash_value, "$vptr");
+  gfc_add_component_ref (hash_value, "$hash");
 
-  return vindex;
+  return hash_value;
 }
 
 
@@ -5338,10 +5332,10 @@ resolve_class_compcall (gfc_expr* e)
   resolve_class_esym (e);
 
   /* More than one typebound procedure so transmit an expression for
-     the vindex as the selector.  */
+     the hash_value as the selector.  */
   if (e->value.function.class_esym != NULL)
-    e->value.function.class_esym->vindex
-		= vindex_expr (class_ref, new_ref, declared, st);
+    e->value.function.class_esym->hash_value
+		= hash_value_expr (class_ref, new_ref, st);
 
   return class_try;
 }
@@ -5393,10 +5387,10 @@ resolve_class_typebound_call (gfc_code *code)
   resolve_class_esym (code->expr1);
 
   /* More than one typebound procedure so transmit an expression for
-     the vindex as the selector.  */
+     the hash_value as the selector.  */
   if (code->expr1->value.function.class_esym != NULL)
-    code->expr1->value.function.class_esym->vindex
-		= vindex_expr (class_ref, new_ref, declared, st);
+    code->expr1->value.function.class_esym->hash_value
+		= hash_value_expr (class_ref, new_ref, st);
 
   return class_try;
 }
@@ -6930,14 +6924,15 @@ resolve_select_type (gfc_code *code)
 
   /* Transform to EXEC_SELECT.  */
   code->op = EXEC_SELECT;
-  gfc_add_component_ref (code->expr1, "$vindex");
+  gfc_add_component_ref (code->expr1, "$vptr");
+  gfc_add_component_ref (code->expr1, "$hash");
 
   /* Loop over TYPE IS / CLASS IS cases.  */
   for (body = code->block; body; body = body->block)
     {
       c = body->ext.case_list;
       if (c->ts.type == BT_DERIVED)
-	c->low = c->high = gfc_int_expr (c->ts.u.derived->vindex);
+	c->low = c->high = gfc_int_expr (c->ts.u.derived->hash_value);
       else if (c->ts.type == BT_CLASS)
 	/* Currently IS CLASS blocks are simply ignored.
 	   TODO: Implement IS CLASS.  */

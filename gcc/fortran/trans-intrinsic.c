@@ -4721,14 +4721,20 @@ gfc_conv_same_type_as (gfc_se *se, gfc_expr *expr)
   b = expr->value.function.actual->next->expr;
 
   if (a->ts.type == BT_CLASS)
-    gfc_add_component_ref (a, "$vindex");
+    {
+      gfc_add_component_ref (a, "$vptr");
+      gfc_add_component_ref (a, "$hash");
+    }
   else if (a->ts.type == BT_DERIVED)
-    a = gfc_int_expr (a->ts.u.derived->vindex);
+    a = gfc_int_expr (a->ts.u.derived->hash_value);
 
   if (b->ts.type == BT_CLASS)
-    gfc_add_component_ref (b, "$vindex");
+    {
+      gfc_add_component_ref (b, "$vptr");
+      gfc_add_component_ref (b, "$hash");
+    }
   else if (b->ts.type == BT_DERIVED)
-    b = gfc_int_expr (b->ts.u.derived->vindex);
+    b = gfc_int_expr (b->ts.u.derived->hash_value);
 
   gfc_conv_expr (&se1, a);
   gfc_conv_expr (&se2, b);

@@ -3575,7 +3575,7 @@ mio_symbol (gfc_symbol *sym)
   mio_integer (&(sym->intmod_sym_id));
 
   if (sym->attr.flavor == FL_DERIVED)
-    mio_integer (&(sym->vindex));
+    mio_integer (&(sym->hash_value));
 
   mio_rparen ();
 }
