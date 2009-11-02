@@ -1,5 +1,24 @@
 2009-11-02  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
 
+	* sese.h: Include obstack.h.
+	(create_if_region_on_edge): Remove prototype.
+	(move_sese_in_condition): New parameter of type struct obstack *.
+	* graphite-clast-to-gimple.c: Include obstack.h
+	(gloog): New local variable graphite_obstack.  Initialize obstack,
+	pass it to move_sese_in_condition, free.
+	* sese.c (create_if_region_on_edge): Make static. New parameter
+	graphite_obstack.  Use obstack allocation.
+	(move_sese_in_condition): New parameter graphite_obstack.  Pass it
+	to create_if_region_on_edge.
+	* Makefile.in (SESE_H): New.
+	(sese.o, graphite.o): Replace sese.h $(SESE_H) in dependencies.
+	(graphite-poly.o, graphite-scop-detection.o): Likewise.
+	(graphite-sese-to-poly.o): Likewise.
+	(graphite-clast-to-gimple.o): Likewise.  Add $(OBSTACK_H) to
+	dependencies.
+
+2009-11-02  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
 	* tree-ssa-structalias.c: (heapvar_for_stmt): Set GTY param_is
 	argument to struct heapvar_map.
 	(heapvar_insert): Use typed GC allocation.

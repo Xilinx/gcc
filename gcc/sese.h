@@ -22,6 +22,8 @@ along with GCC; see the file COPYING3.  If not see
 #ifndef GCC_SESE_H
 #define GCC_SESE_H
 
+#include "obstack.h"
+
 /* A Single Entry, Single Exit region is a part of the CFG delimited
    by two edges.  */
 typedef struct sese_s
@@ -306,8 +308,7 @@ typedef struct ifsese_s {
 } *ifsese;
 
 extern void if_region_set_false_region (ifsese, sese);
-extern ifsese create_if_region_on_edge (edge, tree);
-extern ifsese move_sese_in_condition (sese);
+extern ifsese move_sese_in_condition (sese, struct obstack *);
 extern edge get_true_edge_from_guard_bb (basic_block);
 extern edge get_false_edge_from_guard_bb (basic_block);
 

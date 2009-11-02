@@ -23,6 +23,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "tm.h"
 #include "ggc.h"
+#include "obstack.h"
 #include "tree.h"
 #include "rtl.h"
 #include "basic-block.h"
@@ -1158,6 +1159,7 @@ gloog (scop_p scop, htab_t bb_pbb_mapping)
   VEC (tree, heap) *newivs = VEC_alloc (tree, heap, 10);
   loop_p context_loop;
   sese region = SCOP_REGION (scop);
+  struct obstack graphite_obstack;
   ifsese if_region = NULL;
   htab_t rename_map, newivs_index;
   cloog_prog_clast pc;
@@ -1177,7 +1179,8 @@ gloog (scop_p scop, htab_t bb_pbb_mapping)
   recompute_all_dominators ();
   graphite_verify ();
 
-  if_region = move_sese_in_condition (region);
+  gcc_obstack_init (&graphite_obstack);
+  if_region = move_sese_in_condition (region, &graphite_obstack);
   sese_insert_phis_for_liveouts (region,
 				 if_region->region->exit->src,
 				 if_region->false_region->exit,
@@ -1205,6 +1208,7 @@ gloog (scop_p scop, htab_t bb_pbb_mapping)
   recompute_all_dominators ();
   graphite_verify ();
 
+  obstack_free (&graphite_obstack, NULL);
   htab_delete (rename_map);
   htab_delete (newivs_index);
   VEC_free (tree, heap, newivs);
