@@ -160,7 +160,8 @@
   TODO: We could handle unions, but to be honest, it's probably not
   worth the pain or slowdown.  */
 
-static htab_t heapvar_for_stmt;
+static GTY ((if_marked ("tree_map_marked_p"), param_is (struct tree_map)))
+htab_t heapvar_for_stmt;
 
 static bool use_field_sensitive = true;
 static int in_ipa_mode = 0;
@@ -289,9 +290,7 @@ enum { nothing_id = 0, anything_id = 1, readonly_id = 2,
        escaped_id = 3, nonlocal_id = 4, callused_id = 5,
        storedanything_id = 6, integer_id = 7 };
 
-static struct obstack heapvar_map_obstack;
-
-struct heapvar_map {
+struct GTY(()) heapvar_map {
   struct tree_map map;
   unsigned HOST_WIDE_INT offset;
 };
@@ -336,8 +335,7 @@ heapvar_insert (tree from, unsigned HOST_WIDE_INT offset, tree to)
   struct heapvar_map *h;
   void **loc;
 
-  h = (struct heapvar_map *)obstack_alloc (&heapvar_map_obstack,
-					   sizeof (struct heapvar_map));
+  h = GGC_NEW (struct heapvar_map);
   h->map.base.from = from;
   h->offset = offset;
   h->map.hash = heapvar_map_hash (h);
@@ -3089,6 +3087,8 @@ do_deref (VEC (ce_s, heap) **constraints)
     }
 }
 
+static void get_constraint_for_1 (tree, VEC (ce_s, heap) **, bool);
+
 /* Given a tree T, return the constraint expression for taking the
    address of it.  */
 
@@ -5379,26 +5379,14 @@ remove_preds_and_fake_succs (constraint_graph_t graph)
   bitmap_obstack_release (&predbitmap_obstack);
 }
 
-static void *
-heapvar_htab_alloc (size_t c, size_t n)
-{
-  void * result = obstack_alloc (&heapvar_map_obstack, c * n);
-  memset (result, 0, c * n);
-  return result;
-}
-
 /* Initialize the heapvar for statement mapping.  */
 
 static void
 init_alias_heapvars (void)
 {
   if (!heapvar_for_stmt)
-    {
-      obstack_init (&heapvar_map_obstack);
-      heapvar_for_stmt = htab_create_alloc (11, tree_map_hash, heapvar_map_eq,
-					    NULL, heapvar_htab_alloc,
-					    NULL);
-    }
+    heapvar_for_stmt = htab_create_ggc (11, tree_map_hash, heapvar_map_eq,
+					NULL);
 }
 
 /* Delete the heapvar for statement mapping.  */
@@ -5407,10 +5395,7 @@ void
 delete_alias_heapvars (void)
 {
   if (heapvar_for_stmt)
-    {
-      htab_delete (heapvar_for_stmt);
-      obstack_free (&heapvar_map_obstack, NULL);
-    }
+    htab_delete (heapvar_for_stmt);
   heapvar_for_stmt = NULL;
 }
 
@@ -5789,3 +5774,6 @@ struct simple_ipa_opt_pass pass_ipa_pta =
   TODO_update_ssa                       /* todo_flags_finish */
  }
 };
+
+
+#include "gt-tree-ssa-structalias.h"
