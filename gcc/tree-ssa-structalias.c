@@ -160,7 +160,7 @@
   TODO: We could handle unions, but to be honest, it's probably not
   worth the pain or slowdown.  */
 
-static GTY ((if_marked ("tree_map_marked_p"), param_is (struct tree_map)))
+static GTY ((if_marked ("tree_map_marked_p"), param_is (struct heapvar_map)))
 htab_t heapvar_for_stmt;
 
 static bool use_field_sensitive = true;
@@ -335,7 +335,7 @@ heapvar_insert (tree from, unsigned HOST_WIDE_INT offset, tree to)
   struct heapvar_map *h;
   void **loc;
 
-  h = GGC_NEW (struct heapvar_map);
+  h = ggc_alloc_heapvar_map ();
   h->map.base.from = from;
   h->offset = offset;
   h->map.hash = heapvar_map_hash (h);
@@ -3086,8 +3086,6 @@ do_deref (VEC (ce_s, heap) **constraints)
 	gcc_unreachable ();
     }
 }
-
-static void get_constraint_for_1 (tree, VEC (ce_s, heap) **, bool);
 
 /* Given a tree T, return the constraint expression for taking the
    address of it.  */
