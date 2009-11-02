@@ -1,11 +1,143 @@
+2009-11-02  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	PR tree-optimization/41857
+	* tree-flow.h (rewrite_use_address): Add BASE_HINT argument.
+	* tree-ssa-loop-ivopts.c (rewrite_use_address): Pass base hint
+	to create_mem_ref.
+	* tree-ssa-address.c (move_hint_to_base): New function.
+	(most_expensive_mult_to_index): Add TYPE argument.  Use mode and
+	address space associated with TYPE.
+	(addr_to_parts): Add TYPE and BASE_HINT arguments.  Pass TYPE to
+	most_expensive_mult_to_index.  Call move_hint_to_base.
+	(create_mem_ref): Add BASE_HINT argument.  Pass BASE_HINT and
+	TYPE to addr_to_parts.
+
+2009-11-02  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/41750
+	* tree-sra.c (analyze_modified_params): Loop over all
+	representatives of components of a parameter.
+
+2009-11-02  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/41841
+	* ipa-struct-reorg.c (build_data_structure): Don't attempt to look at
+	local variables of not yet materialized clones.
+
+	PR debug/41893
+	* cfgexpand.c (expand_debug_expr): Don't attempt to create DECL_RTL
+	for a VOIDmode variable.
+
+	PR c++/41774
+	* c-pragma.c (visstack): Change into vector of ints rather than
+	enum symbol_visibility.
+	(push_visibility): Add kind argument, push default_visibility together
+	with kind.
+	(pop_visibility): Add kind argument, return true if successful, fail
+	if visibility stack is empty or if stack top is of different kind.
+	(handle_pragma_visibility): Don't check length of visstack, instead
+	call pop_visibility and issue diagnostics if it failed.  Pass 0
+	as last argument to push_visibility and pop_visibility.
+	* c-pragma.h (push_visibility): Add kind argument.
+	(pop_visibility): Likewise.  Return bool instead of void.
+
+2009-11-01  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* tree.def (TARGET_MEM_REF): Update comment.
+	* alias.c (get_alias_set): Retrieve the original memory reference for
+	a TARGET_MEM_REF before proceeding.
+
+2009-10-31  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/frv/frv.c (frv_function_value, frv_libcall_value,
+	frv_function_value_regno_p): New functions.
+	(TARGET_FUNCTION_VALUE, TARGET_LIBCALL_VALUE): Declare.
+	* config/frv/frv.h: (FUNCTION_VALUE, LIBCALL_VALUE): Remove.
+	(FUNCTION_VALUE_REGNO_P): Redefine, use frv_function_value_regno_p.
+	* config/frv/frv-protos.h (frv_function_value_regno_p): Declare.
+
+2009-10-31  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/mn10300/mn10300.c (mn10300_function_value): Make static, add
+	new 'outgoing' argument.
+	(mn10300_libcall_value, mn10300_function_value_regno_p): New
+	functions.
+	(TARGET_FUNCTION_VALUE, TARGET_LIBCALL_VALUE): Declare.
+	* config/mn10300/mn10300.h: (FUNCTION_VALUE, FUNCTION_OUTGOING_VALUE,
+	LIBCALL_VALUE): Remove.
+	(FUNCTION_VALUE_REGNO_P): Redefine, use mn10300_function_value_regno_p.
+	* config/mn10300/mn10300-protos.h (mn10300_function_value): Remove.
+	(mh10300_function_value_regno_p): Declare.
+
+2009-10-31  Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
+
+        * config/arm/cortex-a9.md: New - integer pipeline description.
+
+2009-10-31  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* tree-ssa-sccvn.c (vn_reference_lookup_3): Bail out instead of
+	aborting if the sizes of the two references don't match.
+
+2009-10-31  Toon Moene  <toon@moene.org>
+
+	* ipa-inline.c (cgraph_decide_inlining):
+	Include reason for not inlining called-once functions in dump file.
+
+2009-10-30  Daniel Gutson  <dgutson@codesourcery.com>
+
+	* config/arm/linux-eabi.h (LINK_SPEC): BE8_LINK_SPEC added.
+	* config/arm/bpapi.h (BE8_LINK_SPEC): New define.
+	(LINK_SPEC): BE_LINK_SPEC added.
+
+2009-10-30  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/41858
+	* lto-streamer.h (struct lto_file_decl_data): Remove fd member.
+
+2009-10-30  Nathan Sidwell  <nathan@codesourcery.com>
+
+	* target-def.h (TARGET_ASM_TTYPE): Correct typo of TARGET_ARM_TTYPE.
+	* config/arm/unwind-arm.c (__gnu_Unwind_Backtrace): Remove unused
+	label.
+
+2009-10-30  Martin Jambor  <mjambor@suse.cz>
+
+	* tree-sra.c (build_ref_for_offset_1): Remove a comment.
+
+2009-10-30  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/40838
+	* cfgexpand.c (expand_stack_alignment): Call update_stack_boundary
+	first.  Move assert on stack_alignment_estimated just before
+	setting stack_realign_needed.
+	(gimple_expand_cfg): Initialize stack_alignment_estimated to 0.
+	Don't call update_stack_boundary.
+
+	* config/i386/i386.c (ix86_minimum_incoming_stack_boundary): New.
+	(verride_options): Don't check ix86_force_align_arg_pointer here.
+	(ix86_function_ok_for_sibcall): Use it.
+	(ix86_update_stack_boundary): Likewise.
+
+	* config/i386/i386.h (STACK_REALIGN_DEFAULT): Update comments.
+
+2009-10-30  Richard Earnshaw  <rearnsha@arm.com>
+
+	* arm.md (QHSI): New mode iterator.
+	(movqi): If generating for thumb, then truncate any immediate to
+	8 bits.
+	* thumb2.md (thumb2_movsi_shortim and peephole2 generator): Replace
+	with...
+	(thumb2_mov<mode>_shortim and peephole2 generator): ... iterator based
+	version.
+
 2009-10-29  Cary Coutant  <ccoutant@google.com>
 
 	PR debug/41700
 	* dwarf2out.c (dwarf2_debug_hooks): Add entries for new hook (two
 	locations in the source).
-        (store_vcall_insn): New function.
-        (lookup_vcall_insn): New function.
-        (dwarf2out_virtual_call_token): Use store_vcall_insn.
+	(store_vcall_insn): New function.
+	(lookup_vcall_insn): New function.
+	(dwarf2out_virtual_call_token): Use store_vcall_insn.
 	(dwarf2out_copy_call_info): New function.
 	(dwarf2out_virtual_call): Use lookup_vcall_insn.
 	* emit-rtl.c (try_split): Call copy_call_info debug hook.

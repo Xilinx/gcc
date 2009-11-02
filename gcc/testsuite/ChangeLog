@@ -1,3 +1,115 @@
+2009-11-02  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/other/linkage2.C: Move to...
+	* g++.dg/cpp0x/linkage2.C: ..here.
+	* g++.dg/abi/mangle32.C: Add -std=c++0x.
+	* g++.dg/cpp0x/nolinkage1.C: Likewise.
+	* g++.dg/debug/dwarf2/anonname1.C: Likewise.
+	* g++.dg/ext/anon-struct4.C: Revert earlier change.
+	* g++.dg/lookup/anon2.C: Likewise.
+	* g++.dg/other/anon3.C: Likewise.
+	* g++.dg/template/arg2.C: Likewise.
+	* g++.dg/template/local4.C: Likewise.
+	* g++.old-deja/g++.law/operators32.C: Likewise.
+	* g++.old-deja/g++.other/linkage2.C: Likewise.
+	* g++.old-deja/g++.pt/enum6.C: Likewise.
+	* g++.old-deja/g++.other/anon9.C: Likewise.
+	* g++.old-deja/g++.other/linkage1.C: Likewise.
+
+2009-11-02  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	PR tree-optimization/41857
+	* gcc.target/spu/ea/pr41857.c: New file.
+
+2009-11-02  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/41750
+	* gcc.c-torture/execute/pr41750.c: New test.
+
+2009-11-02  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/41841
+	* gcc.dg/pr41841.c: New test.
+
+	PR debug/41893
+	* gcc.dg/debug/pr41893-1.c: New test.
+	* gcc.dg/debug/pr41893-2.c: New file.
+
+	PR c++/41774
+	* g++.dg/ext/visibility/namespace3.C: New test.
+
+2009-11-01  Jason Merrill  <jason@redhat.com>
+
+	* gcc.dg/tree-ssa/restrict-1.c: Move to c-c++-common.
+	* gcc.dg/tree-ssa/restrict-2.c: Move to c-c++-common.
+	* gcc.dg/tree-ssa/restrict-4.c: Move to c-c++-common.
+
+2009-11-01  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/opt5.adb: New test.
+
+2009-11-01  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/41872
+	* gfortran.dg/allocatable_scalar_4.f90: New test.
+
+2009-11-01  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/41850
+	* gfortran.dg/intent_out_6.f90: New testcase.
+
+2009-10-31  Richard Guenther  <rguenther@suse.de>
+
+	* g++.dg/tree-ssa/restrict1.C: New.
+
+2009-10-31  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/rtti/typeid9.C: New.
+
+	PR c++/41754
+	* g++.dg/cpp0x/initlist25.C: New.
+
+2009-10-31  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/specs/rep_clause4.ads: New test.
+
+2009-10-30  Andy Hutchinson  <hutchinsonandy@gcc.gnu.org>
+
+	PR target/41885
+	* gcc.target/avr/torture/pr41885.c: New test.
+
+2009-10-30  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/specs/pack5.ads: New test.
+
+2009-10-30  Andrew Jenner  <andrew@codesourcery.com>
+
+	* lib/target-supports.exp: Handle powerpc-*-elf.
+
+2009-10-30  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/40838
+	* gcc.target/i386/incoming-6.c: New.
+	* gcc.target/i386/incoming-7.c: Likewise.
+	* gcc.target/i386/incoming-8.c: Likewise.
+	* gcc.target/i386/incoming-9.c: Likewise.
+	* gcc.target/i386/incoming-10.c: Likewise.
+	* gcc.target/i386/incoming-11.c: Likewise.
+	* gcc.target/i386/incoming-12.c: Likewise.
+	* gcc.target/i386/incoming-13.c: Likewise.
+	* gcc.target/i386/incoming-14.c: Likewise.
+	* gcc.target/i386/incoming-15.c: Likewise.
+	* gcc.target/i386/pr37843-4.c: Likewise.
+
+2009-10-30  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/41863
+	* g++.dg/template/sizeof12.C: New test.
+
+2009-10-29  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/pack14.adb: New test.
+
 2009-10-29  David Daney  <ddaney@caviumnetworks.com>
 
 	* gcc.target/mips/mips.exp (mips_option_groups): Add

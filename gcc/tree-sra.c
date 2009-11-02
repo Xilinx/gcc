@@ -1231,8 +1231,6 @@ build_ref_for_offset_1 (tree *res, tree type, HOST_WIDE_INT offset,
 	case UNION_TYPE:
 	case QUAL_UNION_TYPE:
 	case RECORD_TYPE:
-	  /* ??? Some records used to be half-unions in Ada so the code treats
-	     the 3 container types the same.  This has been fixed in Ada.  */
 	  for (fld = TYPE_FIELDS (type); fld; fld = TREE_CHAIN (fld))
 	    {
 	      HOST_WIDE_INT pos, size;
@@ -2820,33 +2818,39 @@ analyze_modified_params (VEC (access_p, heap) *representatives)
 
   for (i = 0; i < func_param_count; i++)
     {
-      struct access *repr = VEC_index (access_p, representatives, i);
-      VEC (access_p, heap) *access_vec;
-      int j, access_count;
-      tree parm;
+      struct access *repr;
 
-      if (!repr || no_accesses_p (repr))
-	continue;
-      parm = repr->base;
-      if (!POINTER_TYPE_P (TREE_TYPE (parm))
-	  || repr->grp_maybe_modified)
-	continue;
-
-      access_vec = get_base_access_vector (parm);
-      access_count = VEC_length (access_p, access_vec);
-      for (j = 0; j < access_count; j++)
+      for (repr = VEC_index (access_p, representatives, i);
+	   repr;
+	   repr = repr->next_grp)
 	{
-	  struct access *access;
-	  ao_ref ar;
+	  VEC (access_p, heap) *access_vec;
+	  int j, access_count;
+	  tree parm;
 
-	  /* All accesses are read ones, otherwise grp_maybe_modified would be
-	     trivially set.  */
-	  access = VEC_index (access_p, access_vec, j);
-	  ao_ref_init (&ar, access->expr);
-	  walk_aliased_vdefs (&ar, gimple_vuse (access->stmt),
-			      mark_maybe_modified, repr, NULL);
-	  if (repr->grp_maybe_modified)
-	    break;
+	  if (no_accesses_p (repr))
+	    continue;
+	  parm = repr->base;
+	  if (!POINTER_TYPE_P (TREE_TYPE (parm))
+	      || repr->grp_maybe_modified)
+	    continue;
+
+	  access_vec = get_base_access_vector (parm);
+	  access_count = VEC_length (access_p, access_vec);
+	  for (j = 0; j < access_count; j++)
+	    {
+	      struct access *access;
+	      ao_ref ar;
+
+	      /* All accesses are read ones, otherwise grp_maybe_modified would
+		 be trivially set.  */
+	      access = VEC_index (access_p, access_vec, j);
+	      ao_ref_init (&ar, access->expr);
+	      walk_aliased_vdefs (&ar, gimple_vuse (access->stmt),
+				  mark_maybe_modified, repr, NULL);
+	      if (repr->grp_maybe_modified)
+		break;
+	    }
 	}
     }
 }
