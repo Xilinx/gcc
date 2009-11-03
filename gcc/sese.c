@@ -1297,6 +1297,9 @@ if_region_set_false_region (ifsese if_region, sese region)
   recompute_all_dominators ();
 
   SESE_EXIT (region) = false_edge;
+
+  if (if_region->false_region)
+    free (if_region->false_region);
   if_region->false_region = region;
 
   if (slot)
@@ -1322,10 +1325,10 @@ create_if_region_on_edge (edge entry, tree condition)
 {
   edge e;
   edge_iterator ei;
-  sese sese_region = GGC_NEW (struct sese_s);
-  sese true_region = GGC_NEW (struct sese_s);
-  sese false_region = GGC_NEW (struct sese_s);
-  ifsese if_region = GGC_NEW (struct ifsese_s);
+  sese sese_region = XNEW (struct sese_s);
+  sese true_region = XNEW (struct sese_s);
+  sese false_region = XNEW (struct sese_s);
+  ifsese if_region = XNEW (struct ifsese_s);
   edge exit = create_empty_if_region_on_edge (entry, condition);
 
   if_region->region = sese_region;
@@ -1362,7 +1365,7 @@ ifsese
 move_sese_in_condition (sese region)
 {
   basic_block pred_block = split_edge (SESE_ENTRY (region));
-  ifsese if_region = NULL;
+  ifsese if_region;
 
   SESE_ENTRY (region) = single_succ_edge (pred_block);
   if_region = create_if_region_on_edge (single_pred_edge (pred_block), integer_one_node);
