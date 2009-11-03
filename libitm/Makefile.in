@@ -36,6 +36,7 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
+@ARCH_X86_TRUE@am__append_1 = x86_sse.c x86_avx.c
 subdir = .
 DIST_COMMON = $(am__configure_deps) $(srcdir)/../config.guess \
 	$(srcdir)/../config.sub $(srcdir)/../depcomp \
@@ -91,11 +92,17 @@ am__installdirs = "$(DESTDIR)$(toolexeclibdir)" \
 	"$(DESTDIR)$(toolexeclibdir)"
 LTLIBRARIES = $(toolexeclib_LTLIBRARIES)
 libitm_la_LIBADD =
+am__libitm_la_SOURCES_DIST = aatree.c alloc.c alloc_c.c alloc_cpp.c \
+	barrier.c beginend.c clone.c copymask.c eh_cpp.c local.c \
+	memcpy.c memset.c page.c query.c retry.c rwlock.c serial.c \
+	useraction.c sjlj.S futex.c method-readonly.c method-wbetl.c \
+	x86_sse.c x86_avx.c
+@ARCH_X86_TRUE@am__objects_1 = x86_sse.lo x86_avx.lo
 am_libitm_la_OBJECTS = aatree.lo alloc.lo alloc_c.lo alloc_cpp.lo \
 	barrier.lo beginend.lo clone.lo copymask.lo eh_cpp.lo local.lo \
 	memcpy.lo memset.lo page.lo query.lo retry.lo rwlock.lo \
 	serial.lo useraction.lo sjlj.lo futex.lo method-readonly.lo \
-	method-wbetl.lo
+	method-wbetl.lo $(am__objects_1)
 libitm_la_OBJECTS = $(am_libitm_la_OBJECTS)
 libitm_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
@@ -119,7 +126,7 @@ LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
 SOURCES = $(libitm_la_SOURCES)
-DIST_SOURCES = $(libitm_la_SOURCES)
+DIST_SOURCES = $(am__libitm_la_SOURCES_DIST)
 MULTISRCTOP = 
 MULTIBUILDTOP = 
 MULTIDIRS = 
@@ -331,12 +338,11 @@ libitm_version_info = -version-info $(libtool_VERSION)
 libitm_la_LDFLAGS = $(libitm_version_info) $(libitm_version_script) \
         -no-undefined
 
-libitm_la_SOURCES = \
-	aatree.c alloc.c alloc_c.c alloc_cpp.c barrier.c beginend.c	\
-	clone.c copymask.c eh_cpp.c local.c memcpy.c memset.c page.c	\
-	query.c retry.c rwlock.c serial.c useraction.c sjlj.S futex.c	\
-	method-readonly.c method-wbetl.c
-
+libitm_la_SOURCES = aatree.c alloc.c alloc_c.c alloc_cpp.c barrier.c \
+	beginend.c clone.c copymask.c eh_cpp.c local.c memcpy.c \
+	memset.c page.c query.c retry.c rwlock.c serial.c useraction.c \
+	sjlj.S futex.c method-readonly.c method-wbetl.c \
+	$(am__append_1)
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
 
@@ -457,6 +463,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/serial.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sjlj.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/useraction.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/x86_avx.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/x86_sse.Plo@am__quote@
 
 .S.o:
 @am__fastdepCCAS_TRUE@	$(CPPASCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -993,6 +1001,8 @@ uninstall-am: uninstall-nodist_toolexeclibHEADERS \
 
 
 vpath % $(strip $(search_path))
+@ARCH_X86_TRUE@x86_sse.lo : AM_CFLAGS += -msse
+@ARCH_X86_TRUE@x86_avx.lo : AM_CFLAGS += -mavx
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

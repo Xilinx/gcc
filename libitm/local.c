@@ -54,12 +54,6 @@ GTM_commit_local (void)
     }
 }
 
-static void
-rollback_local (gtm_local_undo *undo)
-{
-  memcpy (undo->addr, undo->saved, undo->len);
-}
-
 void
 GTM_rollback_local (void)
 {
@@ -71,21 +65,22 @@ GTM_rollback_local (void)
     {
       for (i = n; i-- > 0; )
 	{
-	  rollback_local (local_undo[i]);
-	  free (local_undo[i]);
+	  gtm_local_undo *u = local_undo[i];
+	  memcpy (u->addr, u->saved, u->len);
+	  free (u);
 	}
       tx->n_local_undo = 0;
     }
 }
 
-void *
-GTM_alloc_local (void *addr, size_t len)
+void ITM_REGPARM
+GTM_LB (const void *ptr, size_t len)
 {
   gtm_transaction *tx = gtm_tx();
   gtm_local_undo *undo;
 
   undo = malloc (sizeof (struct gtm_local_undo) + len);
-  undo->addr = addr;
+  undo->addr = (void *) ptr;
   undo->len = len;
 
   if (tx->local_undo == NULL)
@@ -101,24 +96,15 @@ GTM_alloc_local (void *addr, size_t len)
     }
   tx->local_undo[tx->n_local_undo++] = undo;
 
-  return undo->saved;
+  memcpy (undo->saved, ptr, len);
 }
 
-void ITM_REGPARM
-_ITM_LB (const void *ptr, size_t len)
-{
-  memcpy (GTM_alloc_local ((void *)ptr, len), ptr, len);
-}
+void _ITM_LB (const void *ptr, size_t len) ITM_REGPARM
+	__attribute__((alias("GTM_LB")));
 
 #define ITM_LOG_DEF(T) \
-void ITM_REGPARM _ITM_L##T (const _ITM_TYPE_##T *ptr)			\
-{									\
-  void *loc = GTM_alloc_local ((void *)ptr, sizeof(_ITM_TYPE_##T));	\
-  if (__alignof (*ptr) <= offsetof (gtm_local_undo, saved))		\
-    *(_ITM_TYPE_##T *)loc = *ptr;					\
-  else									\
-    memcpy (loc, ptr, sizeof (*ptr));					\
-}
+void ITM_REGPARM _ITM_L##T (const _ITM_TYPE_##T *ptr) \
+{ GTM_LB (ptr, sizeof (*ptr)); }
 
 ITM_LOG_DEF(U1)
 ITM_LOG_DEF(U2)

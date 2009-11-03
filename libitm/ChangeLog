@@ -1,5 +1,18 @@
 2009-11-03  Richard Henderson  <rth@redhat.com>
 
+	* config/x86/x86_sse.c, config/x86/x86_avx.c: New files.
+	* Makefile.am (libitm_la_SOURCES): Add them.
+	* configure.ac (ARCH_X86): New conditional.
+	* Makefile.in, configure: Rebuild.
+	* configure.tgt: Set up ARCH; do cflags setup at the same time.
+	Move futex setup into "other system configury" case.
+	* local.c (rollback_local): Merge into ...
+	(GTM_rollback_local): ... here.
+	(GTM_LB): Rename from GTM_alloc_local; do the memcpy here.
+	(_ITM_LB): Define as an alias to GTM_LB.
+
+2009-11-03  Richard Henderson  <rth@redhat.com>
+
 	* method-readonly.c: New file.
 	* Makefile.am (libitm_la_SOURCES): Add it.
 	* Makefile.in: Rebuild.

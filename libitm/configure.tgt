@@ -26,63 +26,42 @@ if test $gcc_cv_have_tls = yes ; then
   esac
 fi
 
-# Since we require POSIX threads, assume a POSIX system by default.
-config_path="posix"
+# Map the target cpu to an ARCH sub-directory.  At the same time,
+# work out any special compilation flags as necessary.
+case "${target_cpu}" in
+  alpha*)	ARCH=alpha ;;
+  ia64*)	ARCH=ia64 ;;
+  mips*)	ARCH=mips ;;
+  powerpc*)	ARCH=powerpc ;;
+  s390*)	ARCH=s390 ;;
 
-# Check for futex enabled all at once.
-if test $enable_linux_futex = yes; then
-  case "${target}" in
-
-    alpha*-*-linux*)
-	config_path="linux/alpha linux alpha posix"
-	;;
-
-    ia64*-*-linux*)
-	config_path="linux/ia64 linux ia64 posix"
-	;;
-
-    mips*-*-linux*)
-	config_path="linux/mips linux mips posix"
-	;;
-
-    powerpc*-*-linux*)
-	config_path="linux/powerpc linux powerpc posix"
-	;;
-
-    s390*-*-linux*)
-	config_path="linux/s390 linux s390 posix"
-	;;
-
-    # Note that bare i386 is not included here.  We need cmpxchg.
-    i[456]86-*-linux*)
-	config_path="linux/x86 linux x86 posix"
+  i[456]86)
 	case " ${CC} ${CFLAGS} " in
 	  *" -m64 "*)
 	    ;;
 	  *)
 	    if test -z "$with_arch"; then
 	      XCFLAGS="${XCFLAGS} -march=i486 -mtune=${target_cpu}"
+	      XCFLAGS="${XCFLAGS} -fomit-frame-pointer"
 	    fi
 	esac
+	ARCH=x86
 	;;
 
-    # Similar jiggery-pokery for x86_64 multilibs, except here we
-    # can't rely on the --with-arch configure option, since that
-    # applies to the 64-bit side.
-    x86_64-*-linux*)
-	config_path="linux/x86 linux x86 posix"
+  x86_64)
 	case " ${CC} ${CFLAGS} " in
 	  *" -m32 "*)
 	    XCFLAGS="${XCFLAGS} -march=i486 -mtune=i686"
+	    XCFLAGS="${XCFLAGS} -fomit-frame-pointer"
 	    ;;
 	esac
+	ARCH=x86
 	;;
 
-    # Note that sparcv7 and sparcv8 is not included here.  We need cas.
-    sparcv9-*-linux* | sparc64-*-linux*)
+  sparcv9 | sparc64)
+	# Note that sparcv7 and sparcv8 is not included here.  We need cas.
 	echo "int i;" > conftestx.c
 	if ${CC} ${CFLAGS} -c -o conftestx.o conftestx.c > /dev/null 2>&1; then
-	  config_path="linux/sparc linux sparc posix"
 	  case "`/usr/bin/file conftestx.o`" in
 	    *32-bit*)
 	      case " ${CC} ${CFLAGS}" in
@@ -96,12 +75,24 @@ if test $enable_linux_futex = yes; then
 	  esac
 	fi
 	rm -f conftestx.c conftestx.o
+	ARCH=sparc
 	;;
-  esac
-fi
+
+  *)
+	ARCH="${target_cpu}"
+	;;
+esac
+  
+# Since we require POSIX threads, assume a POSIX system by default.
+config_path="$ARCH posix"
 
 # Other system configury
 case "${target}" in
+  *-*-linux*)
+	if test $enable_linux_futex = yes; then
+	  config_path="linux/$ARCH linux $config_path"
+	fi
+	;;
 
   *-*-hpux11*)
 	# HPUX v11.x requires -lrt to resolve sem_init in libgomp.la
@@ -109,19 +100,15 @@ case "${target}" in
 	;;
 
   *-*-mingw32*)
-	config_path="mingw32 posix"
+	config_path="$ARCH mingw32 posix"
 	;;
 
   *-*-solaris2.[56]*)
-	config_path="posix95 posix"
+	config_path="$ARCH posix95 posix"
 	XLDFLAGS="${XLDFLAGS} -lposix4"
 	;;
 
   *-*-darwin*)
-	config_path="bsd posix"
+	config_path="$ARCH bsd posix"
 	;;
-
-  *)
-	;;
-
 esac

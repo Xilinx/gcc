@@ -416,7 +416,7 @@ extern uint32_t GTM_longjmp (const gtm_jmpbuf *, uint32_t, uint32_t)
 
 extern void GTM_commit_local (void);
 extern void GTM_rollback_local (void);
-extern void *GTM_alloc_local (void *, size_t);
+extern void GTM_LB (const void *, size_t) ITM_REGPARM;
 
 extern void GTM_serialmode (bool, bool);
 extern void GTM_decide_retry_strategy (gtm_restart_reason);

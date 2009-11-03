@@ -244,5 +244,7 @@ else
 fi
 AC_SUBST(link_itm)
 
+AM_CONDITIONAL([ARCH_X86], [test "$ARCH" = x86])
+
 AC_CONFIG_FILES(Makefile testsuite/Makefile libitm.spec)
 AC_OUTPUT

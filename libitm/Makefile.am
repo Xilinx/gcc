@@ -36,3 +36,9 @@ libitm_la_SOURCES = \
 	clone.c copymask.c eh_cpp.c local.c memcpy.c memset.c page.c	\
 	query.c retry.c rwlock.c serial.c useraction.c sjlj.S futex.c	\
 	method-readonly.c method-wbetl.c
+
+if ARCH_X86
+libitm_la_SOURCES += x86_sse.c x86_avx.c
+x86_sse.lo : AM_CFLAGS += -msse
+x86_avx.lo : AM_CFLAGS += -mavx
+endif
