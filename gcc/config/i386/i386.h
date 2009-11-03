@@ -400,6 +400,7 @@ enum ix86_arch_indices {
   X86_ARCH_CMPXCHG8B,
   X86_ARCH_XADD,
   X86_ARCH_BSWAP,
+  X86_ARCH_CALL_ESP,
 
   X86_ARCH_LAST
 };
@@ -411,6 +412,7 @@ extern unsigned char ix86_arch_features[X86_ARCH_LAST];
 #define TARGET_CMPXCHG8B	ix86_arch_features[X86_ARCH_CMPXCHG8B]
 #define TARGET_XADD		ix86_arch_features[X86_ARCH_XADD]
 #define TARGET_BSWAP		ix86_arch_features[X86_ARCH_BSWAP]
+#define TARGET_CALL_ESP		ix86_arch_features[X86_ARCH_CALL_ESP]
 
 #define TARGET_FISTTP		(TARGET_SSE3 && TARGET_80387)
 
@@ -706,9 +708,7 @@ enum target_cpu_default
    generate an alternate prologue and epilogue that realigns the
    runtime stack if nessary.  This supports mixing codes that keep a
    4-byte aligned stack, as specified by i386 psABI, with codes that
-   need a 16-byte aligned stack, as required by SSE instructions.  If
-   STACK_REALIGN_DEFAULT is 1 and PREFERRED_STACK_BOUNDARY_DEFAULT is
-   128, stacks for all functions may be realigned.  */
+   need a 16-byte aligned stack, as required by SSE instructions.  */
 #define STACK_REALIGN_DEFAULT 0
 
 /* Boundary (in *bits*) on which the incoming stack is aligned.  */

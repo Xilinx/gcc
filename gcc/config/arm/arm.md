@@ -392,6 +392,9 @@
 ; registers.
 (define_mode_iterator ANY64 [DI DF V8QI V4HI V2SI V2SF])
 
+;; The integer modes up to word size
+(define_mode_iterator QHSI [QI HI SI])
+
 ;;---------------------------------------------------------------------------
 ;; Predicates
 
@@ -5848,6 +5851,11 @@
 	{
 	  rtx reg = gen_reg_rtx (SImode);
 
+	  /* For thumb we want an unsigned immediate, then we are more likely 
+	     to be able to use a movs insn.  */
+	  if (TARGET_THUMB)
+	    operands[1] = GEN_INT (INTVAL (operands[1]) & 255);
+
 	  emit_insn (gen_movsi (reg, operands[1]));
 	  operands[1] = gen_lowpart (QImode, reg);
 	}
@@ -8068,15 +8076,13 @@
       if (!thumb1_cmp_operand (op3, SImode))
         op3 = force_reg (SImode, op3);
       scratch = gen_reg_rtx (SImode);
-      emit_insn (gen_cstoresi_nltu_thumb1 (scratch, operands[2], op3));
-      emit_insn (gen_negsi2 (operands[0], scratch));
+      emit_insn (gen_cstoresi_ltu_thumb1 (operands[0], operands[2], op3));
       break;
 
     case GTU:
       op3 = force_reg (SImode, operands[3]);
       scratch = gen_reg_rtx (SImode);
-      emit_insn (gen_cstoresi_nltu_thumb1 (scratch, op3, operands[2]));
-      emit_insn (gen_negsi2 (operands[0], scratch));
+      emit_insn (gen_cstoresi_ltu_thumb1 (operands[0], op3, operands[2]));
       break;
 
     /* No good sequences for GT, LT.  */
@@ -8160,12 +8166,27 @@
   [(set_attr "length" "4")]
 )
 
+;; Used as part of the expansion of thumb ltu and gtu sequences
 (define_insn "cstoresi_nltu_thumb1"
   [(set (match_operand:SI 0 "s_register_operand" "=l,l")
         (neg:SI (ltu:SI (match_operand:SI 1 "s_register_operand" "l,*h")
 			(match_operand:SI 2 "thumb1_cmp_operand" "lI*h,*r"))))]
   "TARGET_THUMB1"
   "cmp\\t%1, %2\;sbc\\t%0, %0, %0"
+  [(set_attr "length" "4")]
+)
+
+(define_insn_and_split "cstoresi_ltu_thumb1"
+  [(set (match_operand:SI 0 "s_register_operand" "=l,l")
+        (ltu:SI (match_operand:SI 1 "s_register_operand" "l,*h")
+		(match_operand:SI 2 "thumb1_cmp_operand" "lI*h,*r")))]
+  "TARGET_THUMB1"
+  "#"
+  "TARGET_THUMB1"
+  [(set (match_dup 3)
+	(neg:SI (ltu:SI (match_dup 1) (match_dup 2))))
+   (set (match_dup 0) (neg:SI (match_dup 3)))]
+  "operands[3] = gen_reg_rtx (SImode);"
   [(set_attr "length" "4")]
 )
 

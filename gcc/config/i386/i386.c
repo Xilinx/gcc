@@ -1553,6 +1553,11 @@ static unsigned int initial_ix86_arch_features[X86_ARCH_LAST] = {
 
   /* X86_ARCH_BSWAP: Byteswap was added for 80486.  */
   ~m_386,
+
+  /* X86_ARCH_CALL_ESP: P6 processors will jump to the address after
+     the decrement (so they will execute return address as code).  See
+     Pentium Pro errata 70, Pentium 2 errata A33, Pentium 3 errata E17.  */
+  ~(m_386 | m_486 | m_PENT | m_PPRO),
 };
 
 static const unsigned int x86_accumulate_outgoing_args
@@ -1905,6 +1910,7 @@ static bool ix86_valid_target_attribute_p (tree, tree, tree, int);
 static bool ix86_valid_target_attribute_inner_p (tree, char *[]);
 static bool ix86_can_inline_p (tree, tree);
 static void ix86_set_current_function (tree);
+static unsigned int ix86_minimum_incoming_stack_boundary (bool);
 
 static enum calling_abi ix86_function_abi (const_tree);
 
@@ -3239,12 +3245,10 @@ override_options (bool main_args_p)
   if (ix86_force_align_arg_pointer == -1)
     ix86_force_align_arg_pointer = STACK_REALIGN_DEFAULT;
 
+  ix86_default_incoming_stack_boundary = PREFERRED_STACK_BOUNDARY;
+
   /* Validate -mincoming-stack-boundary= value or default it to
      MIN_STACK_BOUNDARY/PREFERRED_STACK_BOUNDARY.  */
-  if (ix86_force_align_arg_pointer)
-    ix86_default_incoming_stack_boundary = MIN_STACK_BOUNDARY;
-  else
-    ix86_default_incoming_stack_boundary = PREFERRED_STACK_BOUNDARY;
   ix86_incoming_stack_boundary = ix86_default_incoming_stack_boundary;
   if (ix86_incoming_stack_boundary_string)
     {
@@ -4277,7 +4281,8 @@ ix86_function_ok_for_sibcall (tree decl, tree exp)
 
   /* If we need to align the outgoing stack, then sibcalling would
      unalign the stack, which may break the called function.  */
-  if (ix86_incoming_stack_boundary < PREFERRED_STACK_BOUNDARY)
+  if (ix86_minimum_incoming_stack_boundary (true)
+      < PREFERRED_STACK_BOUNDARY)
     return false;
 
   if (decl)
@@ -8196,37 +8201,58 @@ find_drap_reg (void)
     }
 }
 
+/* Return minimum incoming stack alignment.  */
+
+static unsigned int
+ix86_minimum_incoming_stack_boundary (bool sibcall)
+{
+  unsigned int incoming_stack_boundary;
+
+  /* Prefer the one specified at command line. */
+  if (ix86_user_incoming_stack_boundary)
+    incoming_stack_boundary = ix86_user_incoming_stack_boundary;
+  /* In 32bit, use MIN_STACK_BOUNDARY for incoming stack boundary
+     if -mstackrealign is used, it isn't used for sibcall check and 
+     estimated stack alignment is 128bit.  */
+  else if (!sibcall
+	   && !TARGET_64BIT
+	   && ix86_force_align_arg_pointer
+	   && crtl->stack_alignment_estimated == 128)
+    incoming_stack_boundary = MIN_STACK_BOUNDARY;
+  else
+    incoming_stack_boundary = ix86_default_incoming_stack_boundary;
+
+  /* Incoming stack alignment can be changed on individual functions
+     via force_align_arg_pointer attribute.  We use the smallest
+     incoming stack boundary.  */
+  if (incoming_stack_boundary > MIN_STACK_BOUNDARY
+      && lookup_attribute (ix86_force_align_arg_pointer_string,
+			   TYPE_ATTRIBUTES (TREE_TYPE (current_function_decl))))
+    incoming_stack_boundary = MIN_STACK_BOUNDARY;
+
+  /* The incoming stack frame has to be aligned at least at
+     parm_stack_boundary.  */
+  if (incoming_stack_boundary < crtl->parm_stack_boundary)
+    incoming_stack_boundary = crtl->parm_stack_boundary;
+
+  /* Stack at entrance of main is aligned by runtime.  We use the
+     smallest incoming stack boundary. */
+  if (incoming_stack_boundary > MAIN_STACK_BOUNDARY
+      && DECL_NAME (current_function_decl)
+      && MAIN_NAME_P (DECL_NAME (current_function_decl))
+      && DECL_FILE_SCOPE_P (current_function_decl))
+    incoming_stack_boundary = MAIN_STACK_BOUNDARY;
+
+  return incoming_stack_boundary;
+}
+
 /* Update incoming stack boundary and estimated stack alignment.  */
 
 static void
 ix86_update_stack_boundary (void)
 {
-  /* Prefer the one specified at command line. */
-  ix86_incoming_stack_boundary 
-    = (ix86_user_incoming_stack_boundary
-       ? ix86_user_incoming_stack_boundary
-       : ix86_default_incoming_stack_boundary);
-
-  /* Incoming stack alignment can be changed on individual functions
-     via force_align_arg_pointer attribute.  We use the smallest
-     incoming stack boundary.  */
-  if (ix86_incoming_stack_boundary > MIN_STACK_BOUNDARY
-      && lookup_attribute (ix86_force_align_arg_pointer_string,
-			   TYPE_ATTRIBUTES (TREE_TYPE (current_function_decl))))
-    ix86_incoming_stack_boundary = MIN_STACK_BOUNDARY;
-
-  /* The incoming stack frame has to be aligned at least at
-     parm_stack_boundary.  */
-  if (ix86_incoming_stack_boundary < crtl->parm_stack_boundary)
-    ix86_incoming_stack_boundary = crtl->parm_stack_boundary;
-
-  /* Stack at entrance of main is aligned by runtime.  We use the
-     smallest incoming stack boundary. */
-  if (ix86_incoming_stack_boundary > MAIN_STACK_BOUNDARY
-      && DECL_NAME (current_function_decl)
-      && MAIN_NAME_P (DECL_NAME (current_function_decl))
-      && DECL_FILE_SCOPE_P (current_function_decl))
-    ix86_incoming_stack_boundary = MAIN_STACK_BOUNDARY;
+  ix86_incoming_stack_boundary
+    = ix86_minimum_incoming_stack_boundary (false);
 
   /* x86_64 vararg needs 16byte stack alignment for register save
      area.  */
@@ -28626,18 +28652,18 @@ void ix86_emit_swdivsf (rtx res, rtx a, rtx b, enum machine_mode mode)
   emit_insn (gen_rtx_SET (VOIDmode, x0,
 			  gen_rtx_UNSPEC (mode, gen_rtvec (1, b),
 					  UNSPEC_RCP)));
-  /* e0 = x0 * b */
+  /* e0 = x0 * a */
   emit_insn (gen_rtx_SET (VOIDmode, e0,
-			  gen_rtx_MULT (mode, x0, b)));
-  /* e1 = 2. - e0 */
+			  gen_rtx_MULT (mode, x0, a)));
+  /* e1 = x0 * b */
   emit_insn (gen_rtx_SET (VOIDmode, e1,
-			  gen_rtx_MINUS (mode, two, e0)));
-  /* x1 = x0 * e1 */
+			  gen_rtx_MULT (mode, x0, b)));
+  /* x1 = 2. - e1 */
   emit_insn (gen_rtx_SET (VOIDmode, x1,
-			  gen_rtx_MULT (mode, x0, e1)));
-  /* res = a * x1 */
+			  gen_rtx_MINUS (mode, two, e1)));
+  /* res = e0 * x1 */
   emit_insn (gen_rtx_SET (VOIDmode, res,
-			  gen_rtx_MULT (mode, a, x1)));
+			  gen_rtx_MULT (mode, e0, x1)));
 }
 
 /* Output code to perform a Newton-Rhapson approximation of a

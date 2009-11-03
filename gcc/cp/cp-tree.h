@@ -4429,7 +4429,7 @@ extern tree type_passed_as			(tree);
 extern tree convert_for_arg_passing		(tree, tree);
 extern bool is_properly_derived_from		(tree, tree);
 extern tree set_up_extended_ref_temp		(tree, tree, tree *, tree *);
-extern tree initialize_reference		(tree, tree, tree, tree *);
+extern tree initialize_reference		(tree, tree, tree, tree *, tsubst_flags_t);
 extern tree make_temporary_var_for_ref_to_temp	(tree, tree);
 extern tree strip_top_quals			(tree);
 extern bool reference_related_p			(tree, tree);
@@ -4517,7 +4517,6 @@ extern tree type_promotes_to			(tree);
 extern tree perform_qualification_conversions	(tree, tree);
 
 /* in name-lookup.c */
-extern tree get_anonymous_namespace_name	(void);
 extern tree pushdecl				(tree);
 extern tree pushdecl_maybe_friend		(tree, bool);
 extern void maybe_push_cleanup_level		(tree);
@@ -5147,6 +5146,7 @@ extern tree move				(tree);
 extern tree cp_build_qualified_type_real	(tree, int, tsubst_flags_t);
 #define cp_build_qualified_type(TYPE, QUALS) \
   cp_build_qualified_type_real ((TYPE), (QUALS), tf_warning_or_error)
+extern tree cv_unqualified			(tree);
 extern special_function_kind special_function_p (const_tree);
 extern int count_trees				(tree);
 extern int char_type_p				(tree);
@@ -5299,7 +5299,7 @@ extern tree merge_exception_specifiers		(tree, tree);
 /* in mangle.c */
 extern void init_mangle				(void);
 extern void mangle_decl				(tree);
-extern const char *mangle_type_string_for_rtti	(tree);
+extern const char *mangle_type_string		(tree);
 extern tree mangle_typeinfo_for_type		(tree);
 extern tree mangle_typeinfo_string_for_type	(tree);
 extern tree mangle_vtbl_for_type		(tree);

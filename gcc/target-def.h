@@ -84,7 +84,7 @@
 #define TARGET_ASM_INTERNAL_LABEL default_internal_label
 #endif
 
-#ifndef TARGET_ARM_TTYPE
+#ifndef TARGET_ASM_TTYPE
 #define TARGET_ASM_TTYPE hook_bool_rtx_false
 #endif
 
@@ -409,6 +409,8 @@
   }
 
 #define TARGET_DEFAULT_TARGET_FLAGS 0
+
+#define TARGET_OVERRIDE_OPTIONS_AFTER_CHANGE hook_void_void
 
 #define TARGET_HANDLE_OPTION hook_bool_size_t_constcharptr_int_true
 #define TARGET_HELP NULL
@@ -905,6 +907,7 @@
   TARGET_SCHED,					\
   TARGET_VECTORIZE,				\
   TARGET_DEFAULT_TARGET_FLAGS,			\
+  TARGET_OVERRIDE_OPTIONS_AFTER_CHANGE,		\
   TARGET_HANDLE_OPTION,				\
   TARGET_HELP,					\
   TARGET_EH_RETURN_FILTER_MODE,			\

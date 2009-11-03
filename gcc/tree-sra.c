@@ -1231,8 +1231,6 @@ build_ref_for_offset_1 (tree *res, tree type, HOST_WIDE_INT offset,
 	case UNION_TYPE:
 	case QUAL_UNION_TYPE:
 	case RECORD_TYPE:
-	  /* ??? Some records used to be half-unions in Ada so the code treats
-	     the 3 container types the same.  This has been fixed in Ada.  */
 	  for (fld = TYPE_FIELDS (type); fld; fld = TREE_CHAIN (fld))
 	    {
 	      HOST_WIDE_INT pos, size;
@@ -1304,7 +1302,8 @@ build_ref_for_offset_1 (tree *res, tree type, HOST_WIDE_INT offset,
 /* Construct an expression that would reference a part of aggregate *EXPR of
    type TYPE at the given OFFSET of the type EXP_TYPE.  If EXPR is NULL, the
    function only determines whether it can build such a reference without
-   actually doing it.
+   actually doing it, otherwise, the tree it points to is unshared first and
+   then used as a base for furhter sub-references.
 
    FIXME: Eventually this should be replaced with
    maybe_fold_offset_to_reference() from tree-ssa-ccp.c but that requires a
@@ -1316,6 +1315,9 @@ build_ref_for_offset (tree *expr, tree type, HOST_WIDE_INT offset,
 		      tree exp_type, bool allow_ptr)
 {
   location_t loc = expr ? EXPR_LOCATION (*expr) : UNKNOWN_LOCATION;
+
+  if (expr)
+    *expr = unshare_expr (*expr);
 
   if (allow_ptr && POINTER_TYPE_P (type))
     {
@@ -1759,7 +1761,7 @@ create_artificial_child_access (struct access *parent, struct access *model,
    access but LACC is not, change the type of the latter, if possible.  */
 
 static bool
-propagate_subacesses_accross_link (struct access *lacc, struct access *racc)
+propagate_subaccesses_across_link (struct access *lacc, struct access *racc)
 {
   struct access *rchild;
   HOST_WIDE_INT norm_delta = lacc->offset - racc->offset;
@@ -1800,7 +1802,7 @@ propagate_subacesses_accross_link (struct access *lacc, struct access *racc)
 	      rchild->grp_hint = 1;
 	      new_acc->grp_hint |= new_acc->grp_read;
 	      if (rchild->first_child)
-		ret |= propagate_subacesses_accross_link (new_acc, rchild);
+		ret |= propagate_subaccesses_across_link (new_acc, rchild);
 	    }
 	  continue;
 	}
@@ -1818,7 +1820,7 @@ propagate_subacesses_accross_link (struct access *lacc, struct access *racc)
 	{
 	  ret = true;
 	  if (racc->first_child)
-	    propagate_subacesses_accross_link (new_acc, rchild);
+	    propagate_subaccesses_across_link (new_acc, rchild);
 	}
     }
 
@@ -1844,7 +1846,7 @@ propagate_all_subaccesses (void)
 	  if (!bitmap_bit_p (candidate_bitmap, DECL_UID (lacc->base)))
 	    continue;
 	  lacc = lacc->group_representative;
-	  if (propagate_subacesses_accross_link (lacc, racc)
+	  if (propagate_subaccesses_across_link (lacc, racc)
 	      && lacc->first_link)
 	    add_access_to_work_queue (lacc);
 	}
@@ -1960,7 +1962,7 @@ generate_subtree_copies (struct access *access, tree agg,
 {
   do
     {
-      tree expr = unshare_expr (agg);
+      tree expr = agg;
 
       if (chunk_size && access->offset >= start_offset + chunk_size)
 	return;
@@ -2235,7 +2237,7 @@ load_assign_lhs_subreplacements (struct access *lacc, struct access *top_racc,
 		rhs = unshare_expr (lacc->expr);
 	      else
 		{
-		  rhs = unshare_expr (top_racc->base);
+		  rhs = top_racc->base;
 		  repl_found = build_ref_for_offset (&rhs,
 						     TREE_TYPE (top_racc->base),
 						     offset, lacc->type, false);
@@ -2372,7 +2374,7 @@ sra_modify_assign (gimple *stmt, gimple_stmt_iterator *gsi,
 	  if (AGGREGATE_TYPE_P (TREE_TYPE (lhs))
 	      && !access_has_children_p (lacc))
 	    {
-	      tree expr = unshare_expr (lhs);
+	      tree expr = lhs;
 	      if (build_ref_for_offset (&expr, TREE_TYPE (lhs), 0,
 					TREE_TYPE (rhs), false))
 		{
@@ -2383,7 +2385,7 @@ sra_modify_assign (gimple *stmt, gimple_stmt_iterator *gsi,
 	  else if (AGGREGATE_TYPE_P (TREE_TYPE (rhs))
 		   && !access_has_children_p (racc))
 	    {
-	      tree expr = unshare_expr (rhs);
+	      tree expr = rhs;
 	      if (build_ref_for_offset (&expr, TREE_TYPE (rhs), 0,
 					TREE_TYPE (lhs), false))
 		rhs = expr;
@@ -2816,33 +2818,39 @@ analyze_modified_params (VEC (access_p, heap) *representatives)
 
   for (i = 0; i < func_param_count; i++)
     {
-      struct access *repr = VEC_index (access_p, representatives, i);
-      VEC (access_p, heap) *access_vec;
-      int j, access_count;
-      tree parm;
+      struct access *repr;
 
-      if (!repr || no_accesses_p (repr))
-	continue;
-      parm = repr->base;
-      if (!POINTER_TYPE_P (TREE_TYPE (parm))
-	  || repr->grp_maybe_modified)
-	continue;
-
-      access_vec = get_base_access_vector (parm);
-      access_count = VEC_length (access_p, access_vec);
-      for (j = 0; j < access_count; j++)
+      for (repr = VEC_index (access_p, representatives, i);
+	   repr;
+	   repr = repr->next_grp)
 	{
-	  struct access *access;
-	  ao_ref ar;
+	  VEC (access_p, heap) *access_vec;
+	  int j, access_count;
+	  tree parm;
 
-	  /* All accesses are read ones, otherwise grp_maybe_modified would be
-	     trivially set.  */
-	  access = VEC_index (access_p, access_vec, j);
-	  ao_ref_init (&ar, access->expr);
-	  walk_aliased_vdefs (&ar, gimple_vuse (access->stmt),
-			      mark_maybe_modified, repr, NULL);
-	  if (repr->grp_maybe_modified)
-	    break;
+	  if (no_accesses_p (repr))
+	    continue;
+	  parm = repr->base;
+	  if (!POINTER_TYPE_P (TREE_TYPE (parm))
+	      || repr->grp_maybe_modified)
+	    continue;
+
+	  access_vec = get_base_access_vector (parm);
+	  access_count = VEC_length (access_p, access_vec);
+	  for (j = 0; j < access_count; j++)
+	    {
+	      struct access *access;
+	      ao_ref ar;
+
+	      /* All accesses are read ones, otherwise grp_maybe_modified would
+		 be trivially set.  */
+	      access = VEC_index (access_p, access_vec, j);
+	      ao_ref_init (&ar, access->expr);
+	      walk_aliased_vdefs (&ar, gimple_vuse (access->stmt),
+				  mark_maybe_modified, repr, NULL);
+	      if (repr->grp_maybe_modified)
+		break;
+	    }
 	}
     }
 }

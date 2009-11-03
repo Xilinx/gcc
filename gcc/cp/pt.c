@@ -1501,7 +1501,8 @@ iterative_hash_template_arg (tree arg, hashval_t val)
       }
 
     case PARM_DECL:
-      val = iterative_hash_object (DECL_PARM_INDEX (arg), val);
+      if (!DECL_ARTIFICIAL (arg))
+	val = iterative_hash_object (DECL_PARM_INDEX (arg), val);
       return iterative_hash_template_arg (TREE_TYPE (arg), val);
 
     case TARGET_EXPR:
@@ -1640,13 +1641,20 @@ void
 print_candidates (tree fns)
 {
   tree fn;
+  tree f;
 
   const char *str = "candidates are:";
 
-  for (fn = fns; fn != NULL_TREE; fn = TREE_CHAIN (fn))
+  if (is_overloaded_fn (fns))
     {
-      tree f;
-
+      for (f = fns; f; f = OVL_NEXT (f))
+	{
+	  error ("%s %+#D", str, OVL_CURRENT (f));
+	  str = "               ";
+	}
+    }
+  else for (fn = fns; fn != NULL_TREE; fn = TREE_CHAIN (fn))
+    {
       for (f = TREE_VALUE (fn); f; f = OVL_NEXT (f))
 	error ("%s %+#D", str, OVL_CURRENT (f));
       str = "               ";
@@ -4678,6 +4686,22 @@ convert_nontype_argument_function (tree type, tree expr)
   return fn;
 }
 
+/* Subroutine of convert_nontype_argument.
+   Check if EXPR of type TYPE is a valid pointer-to-member constant.
+   Emit an error otherwise.  */
+
+static bool
+check_valid_ptrmem_cst_expr (tree type, tree expr)
+{
+  STRIP_NOPS (expr);
+  if (expr && (null_ptr_cst_p (expr) || TREE_CODE (expr) == PTRMEM_CST))
+    return true;
+  error ("%qE is not a valid template argument for type %qT",
+	 expr, type);
+  error ("it must be a pointer-to-member of the form `&X::Y'");
+  return false;
+}
+
 /* Attempt to convert the non-type template parameter EXPR to the
    indicated TYPE.  If the conversion is successful, return the
    converted value.  If the conversion is unsuccessful, return
@@ -4977,6 +5001,11 @@ convert_nontype_argument (tree type, tree expr)
       if (expr == error_mark_node)
 	return error_mark_node;
 
+      /* [temp.arg.nontype] bullet 1 says the pointer to member
+         expression must be a pointer-to-member constant.  */
+      if (!check_valid_ptrmem_cst_expr (type, expr))
+	return error_mark_node;
+
       /* There is no way to disable standard conversions in
 	 resolve_address_of_overloaded_function (called by
 	 instantiate_type). It is possible that the call succeeded by
@@ -5003,6 +5032,11 @@ convert_nontype_argument (tree type, tree expr)
      qualification conversions (_conv.qual_) are applied.  */
   else if (TYPE_PTRMEM_P (type))
     {
+      /* [temp.arg.nontype] bullet 1 says the pointer to member
+         expression must be a pointer-to-member constant.  */
+      if (!check_valid_ptrmem_cst_expr (type, expr))
+	return error_mark_node;
+
       expr = perform_qualification_conversions (type, expr);
       if (expr == error_mark_node)
 	return expr;
@@ -12471,7 +12505,7 @@ tsubst_copy_and_build (tree t,
 }
 
 /* Verify that the instantiated ARGS are valid. For type arguments,
-   make sure that the type is not variably modified. For non-type arguments,
+   make sure that the type's linkage is ok. For non-type arguments,
    make sure they are constants if they are integral or enumerations.
    Emit an error under control of COMPLAIN, and return TRUE on error.  */
 
@@ -12492,7 +12526,33 @@ check_instantiated_arg (tree tmpl, tree t, tsubst_flags_t complain)
     }
   else if (TYPE_P (t))
     {
-      if (variably_modified_type_p (t, NULL_TREE))
+      /* [basic.link]: A name with no linkage (notably, the name
+	 of a class or enumeration declared in a local scope)
+	 shall not be used to declare an entity with linkage.
+	 This implies that names with no linkage cannot be used as
+	 template arguments
+
+	 DR 757 relaxes this restriction for C++0x.  */
+      tree nt = (cxx_dialect > cxx98 ? NULL_TREE
+		 : no_linkage_check (t, /*relaxed_p=*/false));
+
+      if (nt)
+	{
+	  /* DR 488 makes use of a type with no linkage cause
+	     type deduction to fail.  */
+	  if (complain & tf_error)
+	    {
+	      if (TYPE_ANONYMOUS_P (nt))
+		error ("%qT is/uses anonymous type", t);
+	      else
+		error ("template argument for %qD uses local type %qT",
+		       tmpl, t);
+	    }
+	  return true;
+	}
+      /* In order to avoid all sorts of complications, we do not
+	 allow variably-modified types as template arguments.  */
+      else if (variably_modified_type_p (t, NULL_TREE))
 	{
 	  if (complain & tf_error)
 	    error ("%qT is a variably modified type", t);
@@ -17736,10 +17796,7 @@ make_args_non_dependent (VEC(tree,gc) *args)
 tree
 make_auto (void)
 {
-  tree au;
-
-  /* ??? Is it worth caching this for multiple autos at the same level?  */
-  au = cxx_make_type (TEMPLATE_TYPE_PARM);
+  tree au = cxx_make_type (TEMPLATE_TYPE_PARM);
   TYPE_NAME (au) = build_decl (BUILTINS_LOCATION,
 			       TYPE_DECL, get_identifier ("auto"), au);
   TYPE_STUB_DECL (au) = TYPE_NAME (au);
@@ -17816,6 +17873,19 @@ do_auto_deduction (tree type, tree init, tree auto_node)
       error ("unable to deduce %qT from %qE", type, init);
       return error_mark_node;
     }
+
+  /* If the list of declarators contains more than one declarator, the type
+     of each declared variable is determined as described above. If the
+     type deduced for the template parameter U is not the same in each
+     deduction, the program is ill-formed.  */
+  if (TREE_TYPE (auto_node)
+      && !same_type_p (TREE_TYPE (auto_node), TREE_VEC_ELT (targs, 0)))
+    {
+      error ("inconsistent deduction for %qT: %qT and then %qT",
+	     auto_node, TREE_TYPE (auto_node), TREE_VEC_ELT (targs, 0));
+      return error_mark_node;
+    }
+  TREE_TYPE (auto_node) = TREE_VEC_ELT (targs, 0);
 
   if (processing_template_decl)
     targs = add_to_template_args (current_template_args (), targs);
