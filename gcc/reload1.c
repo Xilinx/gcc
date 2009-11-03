@@ -1000,8 +1000,9 @@ reload (rtx first, int global)
 	    rtx x = eliminate_regs (reg_equiv_memory_loc[i], VOIDmode,
 				    NULL_RTX);
 
-	    if (strict_memory_address_p (GET_MODE (regno_reg_rtx[i]),
-					 XEXP (x, 0)))
+	    if (strict_memory_address_addr_space_p
+		  (GET_MODE (regno_reg_rtx[i]), XEXP (x, 0),
+		   MEM_ADDR_SPACE (x)))
 	      reg_equiv_mem[i] = x, reg_equiv_address[i] = 0;
 	    else if (CONSTANT_P (XEXP (x, 0))
 		     || (REG_P (XEXP (x, 0))
@@ -2657,7 +2658,7 @@ eliminate_regs_1 (rtx x, enum machine_mode mem_mode, rtx insn,
 		     && reg_equiv_constant[REGNO (new0)] != 0)
 	      new0 = reg_equiv_constant[REGNO (new0)];
 
-	    new_rtx = form_sum (new0, new1);
+	    new_rtx = form_sum (GET_MODE (x), new0, new1);
 
 	    /* As above, if we are not inside a MEM we do not want to
 	       turn a PLUS into something else.  We might try to do so here

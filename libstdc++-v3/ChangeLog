@@ -1,3 +1,128 @@
+2009-10-31  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/chrono (struct __common_rep_type): New.
+	(duration_cast(const duration<>&),
+	duration<>::duration(const _Rep2&),
+	duration<>::duration(const duration<>&),
+	operator*(const duration<>&, const _Rep2&),
+	operator*(const _Rep1&, const duration<>&),
+	operator/(const duration<>&, const _Rep2&),
+	time_point_cast(const time_point<>&)): Implement resolution of
+	DR 1177 ([Ready] in Santa Cruz), change to not participate to
+	overload resolution if the constraints are not met. 
+	* testsuite/20_util/duration/cons/1_neg.cc: Adjust dg-errors.
+	* testsuite/20_util/duration/cons/dr974.cc: Likewise.
+	* testsuite/20_util/duration/requirements/typedefs_neg1.cc: Adjust
+	dg-error line numbers.
+	* testsuite/20_util/duration/requirements/typedefs_neg2.cc: Likewise.
+	* testsuite/20_util/duration/requirements/typedefs_neg3.cc: Likewise.
+
+2009-10-31  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* doc/xml/manual/intro.xml: Refer to our bugs page instead of
+	Bugzilla directly.
+
+2009-10-30  Jerry Quinn  <jlquinn@optonline.net>
+
+	* libsupc++/tinfo.cc (operator=(const type_info&)): Reapply 153734.
+	* libsupc++/typeinfo (type_info::name()): Likewise.
+	* libsupc++/tinfo2.cc (before):  Likewise.
+
+2009-10-30  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/random.h: Fix typo in static_assert text.
+
+2009-10-30  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/41759
+	* include/bits/random.h: Tweak a bit the text of some static_asserts.
+
+2009-10-30  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/type_traits (__is_convertible_simple): Remove.
+	(__is_convertible_helper): Adjust.
+	* testsuite/20_util/make_signed/requirements/typedefs_neg.cc: Adjust
+	dg-error line numbers.
+	* testsuite/20_util/make_unsigned/requirements/typedefs_neg.cc:
+	Likewise.
+
+2009-10-30  Jerry Quinn  <jlquinn@optonline.net>
+
+	* libsupc++/tinfo.cc (operator=(const type_info&)): Revert 153734.
+	* libsupc++/typeinfo (type_info::name()): Likewise.
+	* libsupc++/tinfo2.cc (before):  Likewise.
+
+2009-10-28  Jerry Quinn  <jlquinn@optonline.net>
+
+	* libsupc++/tinfo.cc (operator=(const type_info&)): Compare by
+	pointer if name begins with '*'.
+	* libsupc++/typeinfo (type_info::name()): Likewise.
+	* libsupc++/tinfo2.cc (before):  Likewise.
+
+2009-10-29  Paolo Carlini  <paolo.carlini@oracle.com>
+  	    Douglas Gregor  <doug.gregor@gmail.com>
+
+	PR libstdc++/40925 (again)
+	* include/bits/stl_pair.h (pair<_T1, _T2>::pair(_U1&&, const _T2&),
+	pair<_T1, _T2>::pair(const _T1&, _U2&&)): Add, to deal correctly
+	with move-only types in the presence of "null pointers".
+	* testsuite/20_util/pair/40925.cc: Extend.
+
+2009-10-29  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/type_traits (__is_int_or_cref): Remove.
+	(__is_convertible_helper): Fix per C++0x and simplify (the hack to
+	suppress warnings isn't necessary anymore).
+	* testsuite/20_util/is_convertible/requirements/typedefs.cc: New.
+	* testsuite/20_util/is_convertible/requirements/
+	explicit_instantiation.cc: Likewise.
+	* testsuite/20_util/is_convertible/value.cc: Likewise.
+	* testsuite/20_util/make_signed/requirements/typedefs_neg.cc: Adjust
+	dg-error line numbers.
+	* testsuite/20_util/make_unsigned/requirements/typedefs_neg.cc:
+	Likewise.
+
+2009-10-29  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/20_util/pair/40925.cc: Minor comment fix.
+
+2009-10-29  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/40925
+	* include/bits/stl_pair.h (pair<_T1, _T2>::pair(_U1&&, _U2&&)):
+	Use enable_if to remove it from the overload set when either _U1
+	is not convertible to _T1 or _U2 is not convertible to _T2.
+	(pair<>::pair(_U1&&, _Arg0&&, _Args&&...)): Remove.
+
+2009-10-29  Douglas Gregor  <doug.gregor@gmail.com>
+
+	PR libstdc++/40925
+	* testsuite/20_util/pair/40925.cc: Add.
+
+2009-10-29  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/decimal/decimal: Minor formatting and uglification fixes.
+	* include/decimal/decimal.h: Likewise.
+
+2009-10-28  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/stl_iterator_base_funcs.h: (next): Change
+	template parameter name consistently with the resolution
+	of DR 1011 ([Ready] in Santa Cruz).
+
+2009-10-28  Johannes Singler  <singler@kit.edu>
+
+	PR libstdc++/40852
+	* include/parallel/multiseq_selection.h 
+	(multiseq_partition, multiseq_selection):  Avoid intermediate 
+	values exceeding the integer type range for very large inputs.
+
+2009-10-26  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/chrono (duration<>::duration(const duration<>&)): Fix
+	per the straightforward resolution of DR 974.
+	* testsuite/20_util/duration/cons/dr974.cc: Add.
+
 2009-10-26  Jakub Jelinek  <jakub@redhat.com>
 
 	PR libstdc++/38923

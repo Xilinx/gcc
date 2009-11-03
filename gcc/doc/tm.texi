@@ -55,6 +55,7 @@ through the macros defined in the @file{.h} file.
 * MIPS Coprocessors::   MIPS coprocessor support and how to customize it.
 * PCH Target::          Validity checking for precompiled headers.
 * C++ ABI::             Controlling C++ ABI changes.
+* Named Address Spaces:: Adding support for named address spaces
 * Misc::                Everything else.
 @end menu
 
@@ -813,7 +814,21 @@ parsed.
 
 Don't use this macro to turn on various extra optimizations for
 @option{-O}.  That is what @code{OPTIMIZATION_OPTIONS} is for.
+
+If you need to do something whenever the optimization level is
+changed via the optimize attribute or pragma, see
+@code{TARGET_OVERRIDE_OPTIONS_AFTER_CHANGE}
 @end defmac
+
+@deftypefn {Target Hook} void TARGET_OVERRIDE_OPTIONS_AFTER_CHANGE (void)
+This target function is similar to the macro @code{OVERRIDE_OPTIONS}
+but is called when the optimize level is changed via an attribute or
+pragma or when it is reset at the end of the code affected by the
+attribute or pragma.  It is not called at the beginning of compilation
+when @code{OVERRIDE_OPTIONS} is called so if you want to perform these
+actions then, you should have @code{OVERRIDE_OPTIONS} call
+@code{TARGET_OVERRIDE_OPTIONS_AFTER_CHANGE}.
+@end deftypefn
 
 @defmac C_COMMON_OVERRIDE_OPTIONS
 This is similar to @code{OVERRIDE_OPTIONS} but is only used in the C
@@ -9825,6 +9840,105 @@ defined.  Use this hook to make adjustments to the class (eg, tweak
 visibility or perform any other required target modifications).
 @end deftypefn
 
+@node Named Address Spaces
+@section Adding support for named address spaces
+@cindex named address spaces
+
+The draft technical report of the ISO/IEC JTC1 S22 WG14 N1275
+standards committee, @cite{Programming Languages - C - Extensions to
+support embedded processors}, specifies a syntax for embedded
+processors to specify alternate address spaces.  You can configure a
+GCC port to support section 5.1 of the draft report to add support for
+address spaces other than the default address space.  These address
+spaces are new keywords that are similar to the @code{volatile} and
+@code{const} type attributes.
+
+Pointers to named address spaces can a a different size than
+pointers to the generic address space.
+
+For example, the SPU port uses the @code{__ea} address space to refer
+to memory in the host processor, rather than memory local to the SPU
+processor.  Access to memory in the @code{__ea} address space involves
+issuing DMA operations to move data between the host processor and the
+local processor memory address space.  Pointers in the @code{__ea}
+address space are either 32 bits or 64 bits based on the
+@option{-mea32} or @option{-mea64} switches (native SPU pointers are
+always 32 bits).
+
+Internally, address spaces are represented as a small integer in the
+range 0 to 15 with address space 0 being reserved for the generic
+address space.
+
+@defmac TARGET_ADDR_SPACE_KEYWORDS
+A list of @code{ADDR_SPACE_KEYWORD} macros to define each named
+address keyword.  The @code{ADDR_SPACE_KEYWORD} macro takes two
+arguments, the keyword string and the number of the named address
+space.  For example, the SPU port uses the following to declare
+@code{__ea} as the keyword for named address space #1:
+@smallexample
+#define ADDR_SPACE_EA 1
+#define TARGET_ADDR_SPACE_KEYWORDS ADDR_SPACE_KEYWORD ("__ea", ADDR_SPACE_EA)
+@end smallexample
+@end defmac
+
+@deftypefn {Target Hook} {enum machine_mode} TARGET_ADDR_SPACE_POINTER_MODE (addr_space_t @var{address_space})
+Define this to return the machine mode to use for pointers to
+@var{address_space} if the target supports named address spaces.
+The default version of this hook returns @code{ptr_mode} for the
+generic address space only.
+@end deftypefn
+
+@deftypefn {Target Hook} {enum machine_mode} TARGET_ADDR_SPACE_ADDRESS_MODE (addr_space_t @var{address_space})
+Define this to return the machine mode to use for addresses in
+@var{address_space} if the target supports named address spaces.
+The default version of this hook returns @code{Pmode} for the
+generic address space only.
+@end deftypefn
+
+@deftypefn {Target Hook} bool TARGET_ADDR_SPACE_VALID_POINTER_MODE (enum machine_mode @var{mode}, addr_space_t @var{as})
+Define this to return nonzero if the port can handle pointers
+with machine mode @var{mode} to address space @var{as}.  This target
+hook is the same as the @code{TARGET_VALID_POINTER_MODE} target hook,
+except that it includes explicit named address space support.  The default
+version of this hook returns true for the modes returned by either the
+@code{TARGET_ADDR_SPACE_POINTER_MODE} or @code{TARGET_ADDR_SPACE_ADDRESS_MODE}
+target hooks for the given address space.
+@end deftypefn
+
+@deftypefn {Target Hook} {bool} TARGET_ADDR_SPACE_LEGITIMATE_ADDRESS_P (enum machine_mode @var{mode}, rtx @var{exp}, bool @var{strict}, addr_space_t @var{as})
+Define this to return true if @var{exp} is a valid address for mode
+@var{mode} in the named address space @var{as}.  The @var{strict}
+parameter says whether strict addressing is in effect after reload has
+finished.  This target hook is the same as the
+@code{TARGET_LEGITIMATE_ADDRESS_P} target hook, except that it includes
+explicit named address space support.
+@end deftypefn
+
+@deftypefn {Target Hook} {rtx} TARGET_ADDR_SPACE_LEGITIMIZE_ADDRESS (rtx @var{x}, rtx @var{oldx}, enum machine_mode @var{mode}, addr_space_t @var{as})
+Define this to modify an invalid address @var{x} to be a valid address
+with mode @var{mode} in the named address space @var{as}.  This target
+hook is the same as the @code{TARGET_LEGITIMIZE_ADDRESS} target hook,
+except that it includes explicit named address space support.
+@end deftypefn
+
+@deftypefn {Target Hook} {bool} TARGET_ADDR_SPACE_SUBSET_P (addr_space_t @var{superset}, addr_space_t @var{subset})
+Define this to return whether the @var{subset} named address space is
+contained within the @var{superset} named address space.  Pointers to
+a named address space that is a subset of another named address space
+will be converted automatically without a cast if used together in
+arithmetic operations.  Pointers to a superset address space can be
+converted to pointers to a subset address space via explict casts.
+@end deftypefn
+
+@deftypefn {Target Hook} {rtx} TARGET_ADDR_SPACE_CONVERT (rtx @var{op}, tree @var{from_type}, tree @var{to_type})
+Define this to convert the pointer expression represented by the RTL
+@var{op} with type @var{from_type} that points to a named address
+space to a new pointer expression with type @var{to_type} that points
+to a different named address space.  When this hook it called, it is
+guaranteed that one of the two address spaces is a subset of the other,
+as determined by the @code{TARGET_ADDR_SPACE_SUBSET_P} target hook.
+@end deftypefn
+
 @node Misc
 @section Miscellaneous Parameters
 @cindex parameters, miscellaneous
@@ -10740,6 +10854,12 @@ epilogues have already been generated.  Note, even if you only return
 true when @var{after_prologue_epilogue_gen} is false, you still are likely
 to have to make special provisions in @code{INITIAL_ELIMINATION_OFFSET}
 to reserve space for caller-saved target registers.
+@end deftypefn
+
+@deftypefn {Target Hook} bool TARGET_HAVE_CONDITIONAL_EXECUTION (void)
+This target hook returns true if the target supports conditional execution.
+This target hook is required only when the target has several different
+modes and they have different conditional execution capability, such as ARM.
 @end deftypefn
 
 @defmac POWI_MAX_MULTS

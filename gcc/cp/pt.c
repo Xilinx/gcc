@@ -1501,7 +1501,8 @@ iterative_hash_template_arg (tree arg, hashval_t val)
       }
 
     case PARM_DECL:
-      val = iterative_hash_object (DECL_PARM_INDEX (arg), val);
+      if (!DECL_ARTIFICIAL (arg))
+	val = iterative_hash_object (DECL_PARM_INDEX (arg), val);
       return iterative_hash_template_arg (TREE_TYPE (arg), val);
 
     case TARGET_EXPR:
@@ -1640,13 +1641,20 @@ void
 print_candidates (tree fns)
 {
   tree fn;
+  tree f;
 
   const char *str = "candidates are:";
 
-  for (fn = fns; fn != NULL_TREE; fn = TREE_CHAIN (fn))
+  if (is_overloaded_fn (fns))
     {
-      tree f;
-
+      for (f = fns; f; f = OVL_NEXT (f))
+	{
+	  error ("%s %+#D", str, OVL_CURRENT (f));
+	  str = "               ";
+	}
+    }
+  else for (fn = fns; fn != NULL_TREE; fn = TREE_CHAIN (fn))
+    {
       for (f = TREE_VALUE (fn); f; f = OVL_NEXT (f))
 	error ("%s %+#D", str, OVL_CURRENT (f));
       str = "               ";
@@ -12471,7 +12479,7 @@ tsubst_copy_and_build (tree t,
 }
 
 /* Verify that the instantiated ARGS are valid. For type arguments,
-   make sure that the type is not variably modified. For non-type arguments,
+   make sure that the type's linkage is ok. For non-type arguments,
    make sure they are constants if they are integral or enumerations.
    Emit an error under control of COMPLAIN, and return TRUE on error.  */
 
@@ -12492,7 +12500,33 @@ check_instantiated_arg (tree tmpl, tree t, tsubst_flags_t complain)
     }
   else if (TYPE_P (t))
     {
-      if (variably_modified_type_p (t, NULL_TREE))
+      /* [basic.link]: A name with no linkage (notably, the name
+	 of a class or enumeration declared in a local scope)
+	 shall not be used to declare an entity with linkage.
+	 This implies that names with no linkage cannot be used as
+	 template arguments
+
+	 DR 757 relaxes this restriction for C++0x.  */
+      tree nt = (cxx_dialect > cxx98 ? NULL_TREE
+		 : no_linkage_check (t, /*relaxed_p=*/false));
+
+      if (nt)
+	{
+	  /* DR 488 makes use of a type with no linkage cause
+	     type deduction to fail.  */
+	  if (complain & tf_error)
+	    {
+	      if (TYPE_ANONYMOUS_P (nt))
+		error ("%qT is/uses anonymous type", t);
+	      else
+		error ("template argument for %qD uses local type %qT",
+		       tmpl, t);
+	    }
+	  return true;
+	}
+      /* In order to avoid all sorts of complications, we do not
+	 allow variably-modified types as template arguments.  */
+      else if (variably_modified_type_p (t, NULL_TREE))
 	{
 	  if (complain & tf_error)
 	    error ("%qT is a variably modified type", t);

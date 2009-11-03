@@ -258,15 +258,21 @@ find_field_in_struct_1 (tree str_type, tree field)
 {
   tree str_field;
 
+  if (!DECL_NAME (field))
+    return NULL;
+
   for (str_field = TYPE_FIELDS (str_type); str_field; 
        str_field = TREE_CHAIN (str_field))
     {
-      const char * str_field_name;
-      const char * field_name;
+      const char *str_field_name;
+      const char *field_name;
+
+      if (!DECL_NAME (str_field))
+	continue;
 
       str_field_name = IDENTIFIER_POINTER (DECL_NAME (str_field));
       field_name = IDENTIFIER_POINTER (DECL_NAME (field));
-      
+
       gcc_assert (str_field_name);
       gcc_assert (field_name);
 
@@ -274,7 +280,7 @@ find_field_in_struct_1 (tree str_type, tree field)
 	{
 	  /* Check field types.  */	  
 	  if (is_equal_types (TREE_TYPE (str_field), TREE_TYPE (field)))
-	      return str_field;
+	    return str_field;
 	}
     }
 
@@ -3373,6 +3379,14 @@ build_data_structure (VEC (tree, heap) **unsuitable_types)
 	       var = TREE_CHAIN (var))
 	      if (is_candidate (var, &type, unsuitable_types))
 		add_structure (type);
+
+	  if (fn == NULL)
+	    {
+	      /* Skip cones that haven't been materialized yet.  */
+	      gcc_assert (c_node->clone_of
+			  && c_node->clone_of->decl != c_node->decl);
+	      continue;
+	    }
 
 	  /* Check function local variables.  */
 	  for (var_list = fn->local_decls; var_list; 
