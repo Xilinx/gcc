@@ -119,9 +119,13 @@ struct GTY(()) splay_tree_s {
   /* The deallocate-value function.  NULL if no cleanup is necessary.  */
   splay_tree_delete_value_fn delete_value;
 
-  /* Allocate/free functions, and a data pointer to pass to them.  */
-  splay_tree_allocate_fn allocate;
+  /* Node allocate function.  Takes allocate_data as a parameter. */
+  splay_tree_allocate_fn allocate_node;
+
+  /* Free function for nodes and trees.  Takes allocate_data as a parameter.  */
   splay_tree_deallocate_fn deallocate;
+
+  /* Parameter for allocate/free functions.  */
   void * GTY((skip)) allocate_data;
 };
 
