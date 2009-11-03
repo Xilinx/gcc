@@ -33,8 +33,8 @@
 
 #include "futex_bits.h"
 
-extern void futex_wait (int *addr, int val) REGPARM;
-extern void futex_wake (int *addr, int count) REGPARM;
+extern void futex_wait (int *addr, int val);
+extern void futex_wake (int *addr, int count);
 
 #ifdef HAVE_ATTRIBUTE_VISIBILITY
 # pragma GCC visibility pop

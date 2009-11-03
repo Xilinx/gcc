@@ -22,14 +22,23 @@
    see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
    <http://www.gnu.org/licenses/>.  */
 
-#include "libitm.h"
+#include "libitm_i.h"
 
 
-void REGPARM
+/* This is extra data attached to each node of an AA tree.  */
+typedef struct gtm_alloc_action
+{
+  void (*free_fn)(void *);
+  size_t size;
+  bool allocated;
+} gtm_alloc_action;
+
+
+void
 GTM_record_allocation (void *ptr, size_t size, void (*free_fn)(void *))
 {
-  struct gtm_transaction *tx = gtm_tx ();
-  struct gtm_alloc_action *a;
+  gtm_transaction *tx = gtm_tx ();
+  gtm_alloc_action *a;
   uintptr_t iptr = (uintptr_t) ptr;
 
   a = aa_find (tx->alloc_actions, iptr);
@@ -41,11 +50,11 @@ GTM_record_allocation (void *ptr, size_t size, void (*free_fn)(void *))
   a->allocated = true;
 }
 
-void REGPARM
+void
 GTM_forget_allocation (void *ptr, void (*free_fn)(void *))
 {
-  struct gtm_transaction *tx = gtm_tx ();
-  struct gtm_alloc_action *a;
+  gtm_transaction *tx = gtm_tx ();
+  gtm_alloc_action *a;
   uintptr_t iptr = (uintptr_t) ptr;
 
   a = aa_find (tx->alloc_actions, iptr);
@@ -57,11 +66,11 @@ GTM_forget_allocation (void *ptr, void (*free_fn)(void *))
   a->allocated = false;
 }
 
-size_t REGPARM
+size_t
 GTM_get_allocation_size (void *ptr)
 {
-  struct gtm_transaction *tx = gtm_tx ();
-  struct gtm_alloc_action *a;
+  gtm_transaction *tx = gtm_tx ();
+  gtm_alloc_action *a;
   uintptr_t iptr = (uintptr_t) ptr;
 
   a = aa_find (tx->alloc_actions, iptr);
@@ -72,14 +81,14 @@ static void
 commit_allocations_1 (aa_key key, void *node_data, void *cb_data)
 {
   void *ptr = (void *)key;
-  struct gtm_alloc_action *a = node_data;
+  gtm_alloc_action *a = node_data;
   uintptr_t revert_p = (uintptr_t) cb_data;
 
   if (a->allocated == revert_p)
     a->free_fn (ptr);
 }
 
-void REGPARM
+void
 GTM_commit_allocations (bool revert_p)
 {
   aa_traverse (gtm_tx()->alloc_actions, commit_allocations_1,

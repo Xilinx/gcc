@@ -22,24 +22,24 @@
    see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
    <http://www.gnu.org/licenses/>.  */
 
-#include "libitm.h"
+#include "libitm_i.h"
 
 
-int REGPARM
+int ITM_REGPARM
 _ITM_versionCompatible (int version)
 {
   return version == _ITM_VERSION_NO;
 }
 
 
-const char * REGPARM
+const char * ITM_REGPARM
 _ITM_libraryVersion (void)
 {
   return "GNU libitm " _ITM_VERSION;
 }
 
 
-_ITM_howExecuting REGPARM
+_ITM_howExecuting ITM_REGPARM
 _ITM_inTransaction (void)
 {
   struct gtm_transaction *tx = gtm_tx();
@@ -54,7 +54,7 @@ _ITM_inTransaction (void)
 }
 
 
-_ITM_transactionId_t REGPARM
+_ITM_transactionId_t ITM_REGPARM
 _ITM_getTransactionId (void)
 {
   struct gtm_transaction *tx = gtm_tx();
@@ -62,7 +62,7 @@ _ITM_getTransactionId (void)
 }
 
 
-int REGPARM
+int ITM_REGPARM
 _ITM_getThreadnum (void)
 {
   static int global_num;
@@ -79,7 +79,7 @@ _ITM_getThreadnum (void)
 }
 
 
-void REGPARM NORETURN
+void ITM_REGPARM ITM_NORETURN
 _ITM_error (const _ITM_srcLocation * loc UNUSED, int errorCode UNUSED)
 {
   abort ();

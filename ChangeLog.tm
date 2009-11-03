@@ -1,3 +1,7 @@
+2009-11-03  Richard Henderson  <rth@redhat.com>
+
+	* config/mmap.m4: New file.
+
 2009-10-28  Richard Henderson  <rth@redhat.com>
 
 	* contrib/gcc_update: Add libitm to touch data.

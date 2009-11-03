@@ -25,7 +25,8 @@
 /* Implements an AA tree (http://en.wikipedia.org/wiki/AA_tree) with an
    integer key, and data attached to the node via flexible array member.  */
 
-#include "libitm.h"
+#include "libitm_i.h"
+
 
 typedef unsigned int aa_level;
 

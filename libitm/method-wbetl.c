@@ -22,16 +22,16 @@
    see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
    <http://www.gnu.org/licenses/>.  */
 
-#include "libitm.h"
-#include <endian.h>
+#include "libitm_i.h"
 
 
-typedef unsigned long word;
+typedef gtm_word gtm_version;
+typedef gtm_word gtm_stmlock;
 
 typedef struct r_entry
 {
-  word version;
-  volatile word *lock;
+  gtm_version version;
+  volatile gtm_stmlock *lock;
 } r_entry_t;
 
 typedef struct r_set
@@ -43,11 +43,11 @@ typedef struct r_set
 
 typedef struct w_entry
 {
-  volatile word *addr;
-  word value;
-  word version;
-  volatile word *lock;
   struct w_entry *next;
+  uintptr_t addr;
+  volatile gtm_stmlock *lock;
+  gtm_cacheline *value;
+  gtm_version version;
 } w_entry_t;
 
 typedef struct w_set
@@ -60,43 +60,56 @@ typedef struct w_set
 
 struct gtm_method
 {
-  word start;
-  word end;
+  gtm_version start;
+  gtm_version end;
+
   r_set_t r_set;
   w_set_t w_set;
+
+  gtm_cacheline_page *cache_page;
+  int n_cache_page;
 };
 
+/* ??? The locks stuff needs to be moved to common code.  */
 #define OWNED_MASK			0x01
-#define VERSION_MAX			(~(word)0 >> 1)
+#define VERSION_MAX			(~(gtm_version)0 >> 1)
 
 #define LOCK_GET_OWNED(LOCK)		((LOCK) & OWNED_MASK)
 
-#define LOCK_SET_ADDR(A)		((A) | OWNED_MASK)
-#define LOCK_GET_ADDR(LOCK)		((LOCK) & ~(word)OWNED_MASK)
+#define LOCK_SET_ADDR(A) \
+	((gtm_stmlock)(uintptr_t)(A) | OWNED_MASK)
+#define LOCK_GET_ADDR(LOCK) \
+	((w_entry_t *) ((LOCK) & ~(gtm_stmlock)OWNED_MASK))
 #define LOCK_GET_TIMESTAMP(LOCK)	((LOCK) >> 1)
 #define LOCK_SET_TIMESTAMP(T)		((T) << 1)
 #define LOCK_ARRAY_SIZE			(1ul << 20)
 #define LOCK_MASK			(LOCK_ARRAY_SIZE - 1)
-#define LOCK_SHIFT			((sizeof(word) == 4) ? 2 : 3)
-#define LOCK_IDX(A)		(((word)(A) >> LOCK_SHIFT) & LOCK_MASK)
+#define LOCK_IDX(A) \
+	(((uintptr_t)(A) / CACHELINE_SIZE) & LOCK_MASK)
 #define GET_LOCK(A)			(locks + LOCK_IDX(A))
 
-static volatile word locks[LOCK_ARRAY_SIZE];
+static volatile gtm_stmlock locks[LOCK_ARRAY_SIZE];
 
 #define CLOCK				(gclock)
-static volatile word gclock;
+static volatile gtm_version gclock;
 
 #define GET_CLOCK			__sync_add_and_fetch(&CLOCK, 0)
 #define FETCH_AND_INC_CLOCK		__sync_add_and_fetch(&CLOCK, 1)
 
 #define RW_SET_SIZE			4096
 
-
+/* Check if W is one of our write locks.  */
+static inline bool
+wbetl_local_w_entry_p (struct gtm_method *m, w_entry_t *w)
+{
+  return (m->w_set.entries <= w
+	  && w < m->w_set.entries + m->w_set.nb_entries);
+}
 
 /* Check if stripe has been read previously.  */
 
 static inline r_entry_t *
-wbetl_has_read(struct gtm_method *m, volatile word *lock)
+wbetl_has_read (struct gtm_method *m, volatile gtm_word *lock)
 {
   r_entry_t *r;
   int i;
@@ -112,11 +125,11 @@ wbetl_has_read(struct gtm_method *m, volatile word *lock)
 /* Validate read set, i.e. check if all read addresses are still valid now.  */
 
 static bool
-wbetl_validate(struct gtm_method *m)
+wbetl_validate (struct gtm_method *m)
 {
   r_entry_t *r;
   int i;
-  word l;
+  gtm_word l;
 
   __sync_synchronize ();
 
@@ -124,17 +137,16 @@ wbetl_validate(struct gtm_method *m)
   for (i = m->r_set.nb_entries; i > 0; i--, r++)
     {
       l = *r->lock;
-      if (LOCK_GET_OWNED(l))
+      if (LOCK_GET_OWNED (l))
 	{
-	  w_entry_t *w = (w_entry_t *)LOCK_GET_ADDR(l);
+	  w_entry_t *w = LOCK_GET_ADDR (l);
 
-	  if (!(m->w_set.entries <= w
-		&& w < m->w_set.entries + m->w_set.nb_entries))
+	  if (!wbetl_local_w_entry_p (m, w))
 	    return false;
 	}
       else
 	{
-	  if (LOCK_GET_TIMESTAMP(l) != r->version)
+	  if (LOCK_GET_TIMESTAMP (l) != r->version)
 	    return false;
 	}
     }
@@ -145,9 +157,9 @@ wbetl_validate(struct gtm_method *m)
 /* Extend the snapshot range.  */
 
 static bool
-wbetl_extend(struct gtm_method *m)
+wbetl_extend (struct gtm_method *m)
 {
-  word now = GET_CLOCK;
+  gtm_word now = GET_CLOCK;
 
   if (wbetl_validate (m))
     {
@@ -157,46 +169,34 @@ wbetl_extend(struct gtm_method *m)
   return false;
 }
 
-/* Store a word-sized value.  */
+/* Acquire a write lock on ADDR.  */
 
-static word *
-wbetl_write(word *addr)
+static gtm_cacheline *
+wbetl_write_lock (uintptr_t addr)
 {
-  volatile word *lock;
-  word l, version;
-  w_entry_t *w;
-  w_entry_t *prev = NULL;
+  volatile gtm_stmlock *lock;
+  gtm_stmlock l, l2;
+  gtm_version version;
+  w_entry_t *w, *prev = NULL;
   struct gtm_method *m;
 
-#if 0
-  /* R/O hint should be provided by compiler, and if false we should die.  */
-  if (m->ro) {
-    *m->ro_hint = 0;
-    GTM_restart_transaction (RESTART_VALIDATE_WRITE);
-  }
-#endif
-
   m = gtm_tx()->m;
-  lock = GET_LOCK(addr);
-
- restart:
-  /* Try to acquire lock.  */
+  lock = GET_LOCK (addr);
   l = *lock;
-  __sync_synchronize ();
 
-  if (LOCK_GET_OWNED(l))
+ restart_no_load:
+  if (LOCK_GET_OWNED (l))
     {
-      w = (w_entry_t *)LOCK_GET_ADDR(l);
+      w = LOCK_GET_ADDR (l);
 
       /* Did we previously write the same address?  */
-      if (m->w_set.entries <= w
-	  && w < m->w_set.entries + m->w_set.nb_entries)
+      if (wbetl_local_w_entry_p (m, w))
 	{
 	  prev = w;
 	  while (1)
 	    {
 	      if (addr == prev->addr)
-		return &prev->value;
+		return prev->value;
 	      if (prev->next == NULL)
 		break;
 	      prev = prev->next;
@@ -223,12 +223,12 @@ wbetl_write(word *addr)
     }
   else
     {
-      version = LOCK_GET_TIMESTAMP(l);
+      version = LOCK_GET_TIMESTAMP (l);
 
       /* We might have read an older version previously.  */
       if (version > m->end)
 	{
-	  if (wbetl_has_read(m, lock) != NULL)
+	  if (wbetl_has_read (m, lock) != NULL)
 	    GTM_restart_transaction (RESTART_VALIDATE_WRITE);
 	}
 
@@ -242,55 +242,74 @@ wbetl_write(word *addr)
 
       /* Acquire the lock.  */
       w = &m->w_set.entries[m->w_set.nb_entries];
-      if (!__sync_bool_compare_and_swap (lock, l, LOCK_SET_ADDR((word)w)))
-	goto restart;
+      l2 = LOCK_SET_ADDR (w);
+      l = __sync_val_compare_and_swap (lock, l, l2);
+      if (l != l2)
+	goto restart_no_load;
     }
 
  do_write:
+  m->w_set.nb_entries++;
   w->addr = addr;
   w->lock = lock;
-  w->value = *addr;
   w->version = version;
   w->next = NULL;
   if (prev != NULL)
     prev->next = w;
-  m->w_set.nb_entries++;
 
-  return &w->value;
+  {
+    gtm_cacheline_page *page = m->cache_page;
+    unsigned index = m->n_cache_page;
+    gtm_cacheline *line;
+
+    if (page == NULL || index == CACHELINES_PER_PAGE)
+      {
+        gtm_cacheline_page *npage = GTM_page_alloc ();
+	npage->prev = page;
+	m->cache_page = page = npage;
+	m->n_cache_page = 1;
+	index = 0;
+      }
+    else
+      m->n_cache_page = index + 1;
+
+    w->value = line = &page->lines[index];
+    page->masks[index] = 0;
+    gtm_cacheline_copy (line, (const gtm_cacheline *) addr);
+
+    return line;
+  }
 }
 
-/* Load a word sized value.  */
+/* Acquire a read lock on ADDR.  */
 
-static word *
-wbetl_load(word *addr)
+static gtm_cacheline *
+wbetl_read_lock (uintptr_t addr, bool after_read)
 {
-  volatile word *lock;
-  word l, l2, value, version;
-  r_entry_t *r;
+  volatile gtm_stmlock *lock;
+  gtm_stmlock l, l2;
+  gtm_version version;
   w_entry_t *w;
   struct gtm_method *m;
 
   m = gtm_tx()->m;
-  lock = GET_LOCK(addr);
-
+  lock = GET_LOCK (addr);
   l = *lock;
-  __sync_synchronize ();
 
  restart_no_load:
-  if (LOCK_GET_OWNED(l))
+  if (LOCK_GET_OWNED (l))
     {
-      w = (w_entry_t *)LOCK_GET_ADDR(l);
+      w = LOCK_GET_ADDR (l);
 
       /* Did we previously write the same address?  */
-      if (m->w_set.entries <= w
-	  && w < m->w_set.entries + m->w_set.nb_entries)
+      if (wbetl_local_w_entry_p (m, w))
 	{
 	  while (1)
 	    {
 	      if (addr == w->addr)
-		return &w->value;
+		return w->value;
 	      if (w->next == NULL)
-		return addr;
+		return (gtm_cacheline *) addr;
 	      w = w->next;
 	    }
 	}
@@ -298,37 +317,31 @@ wbetl_load(word *addr)
       GTM_restart_transaction (RESTART_LOCKED_READ);
     }
 
-  /* Not locked.  */
-  value = *addr;
-  __sync_synchronize ();
-  l2 = *lock;
-  __sync_synchronize ();
-  if (l != l2)
-    {
-      l = l2;
-      goto restart_no_load;
-    }
-
-  version = LOCK_GET_TIMESTAMP(l);
+  version = LOCK_GET_TIMESTAMP (l);
 
   /* If version is no longer valid, re-validate the read set.  */
   if (version > m->end)
     {
-      if (/* m->ro || */ !wbetl_extend (m))
+      if (!wbetl_extend (m))
 	GTM_restart_transaction (RESTART_VALIDATE_READ);
 
       /* Verify that the version has not yet been overwritten.  The read
 	 value has not yet bee added to read set and may not have been
 	 checked during the extend.  */
-      l = *lock;
       __sync_synchronize ();
+      l2 = *lock;
       if (l != l2)
-	goto restart_no_load;
+	{
+	  l = l2;
+	  goto restart_no_load;
+	}
     }
 
-  /* Add the address and version to the read set.  */
-  if (/* !m->ro */ true)
+  if (!after_read)
     {
+      r_entry_t *r;
+
+      /* Add the address and version to the read set.  */
       if (m->r_set.nb_entries == m->r_set.size)
 	{
 	  m->r_set.size *= 2;
@@ -343,7 +356,62 @@ wbetl_load(word *addr)
       r->lock = lock;
     }
 
-  return addr;
+  return (gtm_cacheline *) addr;
+}
+
+static gtm_cacheline *
+wbetl_after_write_lock (uintptr_t addr)
+{
+  volatile gtm_stmlock *lock;
+  gtm_stmlock l;
+  w_entry_t *w;
+  struct gtm_method *m;
+
+  m = gtm_tx()->m;
+  lock = GET_LOCK (addr);
+
+  l = *lock;
+  assert (LOCK_GET_OWNED (l));
+
+  w = LOCK_GET_ADDR (l);
+  assert (wbetl_local_w_entry_p (m, w));
+
+  while (1)
+    {
+      if (addr == w->addr)
+	return w->value;
+      w = w->next;
+    }
+}
+
+static gtm_cacheline *
+wbetl_R (uintptr_t addr)
+{
+  return wbetl_read_lock (addr, false);
+}
+
+static gtm_cacheline *
+wbetl_RaR (uintptr_t addr)
+{
+  return wbetl_read_lock (addr, true);
+}
+
+static gtm_cacheline_mask_pair
+wbetl_W (uintptr_t addr)
+{
+  gtm_cacheline_mask_pair pair;
+  pair.line = wbetl_write_lock (addr);
+  pair.mask = gtm_mask_for_line (pair.line);
+  return pair;
+}
+
+static gtm_cacheline_mask_pair
+wbetl_WaW (uintptr_t addr)
+{
+  gtm_cacheline_mask_pair pair;
+  pair.line = wbetl_after_write_lock (addr);
+  pair.mask = gtm_mask_for_line (pair.line);
+  return pair;
 }
 
 /* Commit the transaction.  */
@@ -353,7 +421,7 @@ wbetl_trycommit (void)
 {
   struct gtm_method *m = gtm_tx()->m;
   w_entry_t *w;
-  word t;
+  gtm_word t;
   int i;
 
   if (m->w_set.nb_entries > 0)
@@ -364,22 +432,24 @@ wbetl_trycommit (void)
 	abort ();
 
       /* Validate only if a concurrent transaction has started since.  */
-      if (m->start != t - 1 && !wbetl_validate(m))
+      if (m->start != t - 1 && !wbetl_validate (m))
 	return false;
 
       /* Install new versions, drop locks and set new timestamp.  */
       w = m->w_set.entries;
       for (i = m->w_set.nb_entries; i > 0; i--, w++)
-	{
-	  *w->addr = w->value;
+	gtm_cacheline_copy_mask ((gtm_cacheline *) w->addr,
+				 w->value, *gtm_mask_for_line (w->value));
 
-	  /* Drop lock only for last covered address in write set.  */
-	  if (w->next == NULL)
-	    {
-	      __sync_synchronize ();
-	     *w->lock = LOCK_SET_TIMESTAMP(t);
-	    }
-	}
+      /* Only emit barrier after all cachelines are copied.  */
+      gtm_ccm_write_barrier ();
+
+      w = m->w_set.entries;
+      for (i = m->w_set.nb_entries; i > 0; i--, w++)
+	if (w->next == NULL)
+	  *w->lock = LOCK_SET_TIMESTAMP (t);
+
+      __sync_synchronize ();
     }
 
   return true;
@@ -395,18 +465,13 @@ wbetl_rollback (void)
   /* Drop locks.  */
   w = m->w_set.entries;
   for (i = m->w_set.nb_entries; i > 0; i--, w++)
-    {
-      if (i == 1)
-	{
-	  *w->lock = LOCK_SET_TIMESTAMP(w->version);
-	  __sync_synchronize ();
-	}
-      else if (w->next == NULL)
-	*w->lock = LOCK_SET_TIMESTAMP(w->version);
-    }
+    if (w->next == NULL)
+      *w->lock = LOCK_SET_TIMESTAMP (w->version);
+
+  __sync_synchronize ();
 }
 
-static void REGPARM
+static void
 wbetl_init (bool first)
 {
   struct gtm_method *m;
@@ -421,14 +486,34 @@ wbetl_init (bool first)
     }
   else
     {
+      gtm_cacheline_page *page;
+
       m = gtm_tx()->m;
       m->r_set.nb_entries = 0;
+
       m->w_set.nb_entries = 0;
       if (m->w_set.reallocate)
 	{
 	  m->w_set.reallocate = 0;
 	  m->w_set.entries = realloc (m->w_set.entries,
 				      m->w_set.size * sizeof(w_entry_t));
+	}
+
+      page = m->cache_page;
+      if (page)
+	{
+	  /* Release all but one of the pages of cachelines.  */
+	  gtm_cacheline_page *prev = page->prev;
+	  if (prev)
+	    {
+	      gtm_cacheline_page *tail;
+	      for (tail = prev; tail->prev; tail = tail->prev)
+		continue;
+	      page->prev = NULL;
+	      GTM_page_release (prev, tail);
+	    }
+	  /* Start the next cacheline allocation from the beginning.  */
+	  m->n_cache_page = 0;
 	}
     }
 
@@ -439,212 +524,30 @@ static void
 wbetl_fini (void)
 {
   struct gtm_method *m = gtm_tx()->m;
+  gtm_cacheline_page *page, *tail;
+
+  page = m->cache_page;
+  if (page)
+    {
+      for (tail = page; tail->prev; tail = tail->prev)
+	continue;
+      GTM_page_release (page, tail);
+    }
 
   free (m->r_set.entries);
   free (m->w_set.entries);
   free (m);
 }
 
-static _ITM_TYPE_U1 REGPARM wbetl_RU1 (const _ITM_TYPE_U1 *ptr);
-static void REGPARM wbetl_WU1 (_ITM_TYPE_U1 *ptr, _ITM_TYPE_U1 val);
-
-struct unaligned_word { word w; } __attribute__((__packed__)); 
-
-static void REGPARM
-wbetl_memcpyRtWn(void *w, const void *r, size_t n)
-{
-  uint8_t *w8 = (uint8_t *)w;
-  uint8_t *r8 = (uint8_t *)r;
-  size_t i;
-
-  i = (uintptr_t)r & (sizeof(word) - 1);
-  if (i != 0)
-    for (i = sizeof(word) - i; i > 0 && n > 0; i--, n--, w8++, r8++)
-      *w8 = wbetl_RU1 (r8);
-
-  if (n >= sizeof(word))
-    {
-      struct unaligned_word *wu = (struct unaligned_word *) w8;
-      word *ra = (word *)r8;
-
-      for (; n >= sizeof (word); n -= sizeof(word), wu++, ra++)
-	wu->w = *wbetl_load (ra);
-
-      w8 = (uint8_t *)wu;
-      r8 = (uint8_t *)ra;
-    }
-
-  for (; n > 0; n--, w8++, r8++)
-    *w8 = wbetl_RU1 (r8);
-}
-
-static void REGPARM
-wbetl_memcpyRnWt(void *w, const void *r, size_t n)
-{
-  uint8_t *w8 = (uint8_t *)w;
-  uint8_t *r8 = (uint8_t *)r;
-  size_t i;
-
-  i = (uintptr_t)w & (sizeof(word) - 1);
-  if (i != 0)
-    for (i = sizeof(word) - i; i > 0 && n > 0; i--, n--, w8++, r8++)
-      wbetl_WU1 (w8, *r8);
-
-  if (n >= sizeof(word))
-    {
-      word *wa = (word *)w8;
-      struct unaligned_word *ru = (struct unaligned_word *) r8;
-
-      for (; n >= sizeof (word); n -= sizeof(word), wa++, ru++)
-	*wbetl_write (wa) = ru->w;
-
-      w8 = (uint8_t *)wa;
-      r8 = (uint8_t *)ru;
-    }
-
-  for (; n > 0; n--, w8++, r8++)
-    wbetl_WU1 (w8, *r8);
-}
-
-static void REGPARM
-wbetl_memcpyRtWt(void *w, const void *r, size_t n)
-{
-  uint8_t *w8 = (uint8_t *)w;
-  uint8_t *r8 = (uint8_t *)r;
-
-  /* ??? We can really do better than this.  */
-  for (; n > 0; n--, w8++, r8++)
-    wbetl_WU1 (w8, wbetl_RU1 (r8));
-}
-
-#define wbetl_memcpyRtaRWn	wbetl_memcpyRtWn
-#define wbetl_memcpyRtaWWn	wbetl_memcpyRtWn
-#define wbetl_memcpyRnWtaR	wbetl_memcpyRnWt
-#define wbetl_memcpyRnWtaW	wbetl_memcpyRnWt
-#define wbetl_memcpyRtWtaR	wbetl_memcpyRtWt
-#define wbetl_memcpyRtWtaW	wbetl_memcpyRtWt
-#define wbetl_memcpyRtaRWt	wbetl_memcpyRtWt
-#define wbetl_memcpyRtaRWtaR	wbetl_memcpyRtWt
-#define wbetl_memcpyRtaRWtaW	wbetl_memcpyRtWt
-#define wbetl_memcpyRtaWWt	wbetl_memcpyRtWt
-#define wbetl_memcpyRtaWWtaR	wbetl_memcpyRtWt
-#define wbetl_memcpyRtaWWtaW	wbetl_memcpyRtWt
-
-static void REGPARM
-wbetl_memmove (void *w, const void *r, size_t n)
-{
-  uint8_t *w8 = (uint8_t *)w;
-  uint8_t *r8 = (uint8_t *)r;
-
-  /* ??? We can really do better than this.  */
-  if (w8 < r8)
-    for (; n > 0; n--, w8++, r8++)
-      wbetl_WU1 (w8, wbetl_RU1 (r8));
-  else
-    while (n-- > 0)
-      wbetl_WU1 (w8 + n, wbetl_RU1 (r8 + n));
-}
-
-static void REGPARM
-wbetl_memset (void *w, int val, size_t n)
-{
-  uint8_t *w8 = (uint8_t *)w;
-  size_t i;
-
-  i = (uintptr_t)w & (sizeof(word) - 1);
-  if (i != 0)
-    for (i = sizeof(word) - i; i > 0 && n > 0; i--, n--, w8++)
-      wbetl_WU1 (w8, val);
-
-  if (n >= sizeof(word))
-    {
-      union { word w; char c[sizeof(word)]; } c;
-      word *wa = (word *)w8;
-      word valw;
-
-      memset (&c, val, sizeof(word));
-      valw = c.w;
-
-      for (; n >= sizeof (word); n -= sizeof(word), wa++)
-	*wbetl_write (wa) = valw;
-
-      w8 = (uint8_t *)wa;
-    }
-
-  for (; n > 0; n--, w8++)
-    wbetl_WU1 (w8, val);
-}
-
-#define S(X)	sizeof(word) < sizeof (X) ? 1 : sizeof(word) / sizeof (X)
-
-#define _ITM_READ(T)							\
-static _ITM_TYPE_##T REGPARM _ITM_TYPE_ATTR(T)				\
-wbetl_R##T (const _ITM_TYPE_##T *addr)					\
-{									\
-  void *addr1;								\
-  if (sizeof(*addr) == sizeof(word))					\
-    {									\
-      addr1 = wbetl_load((word *)addr);					\
-      return *(_ITM_TYPE_##T *)addr1;					\
-    }									\
-  else if (sizeof(*addr) <= sizeof(word))				\
-    {									\
-      word ofs;								\
-      addr1 = wbetl_load ((word *)((uintptr_t)addr & -sizeof(word)));	\
-      ofs = (uintptr_t)addr & (sizeof(word) - 1);			\
-      return *(_ITM_TYPE_##T *)(addr1 + ofs);				\
-    }									\
-  else									\
-    {									\
-      _ITM_TYPE_##T t;							\
-      wbetl_memcpyRtWn (&t, addr, sizeof (*addr));			\
-      return t;								\
-    }									\
-}
-
-#define _ITM_WRITE(T)							\
-static void REGPARM _ITM_TYPE_ATTR(T)					\
-wbetl_W##T (_ITM_TYPE_##T *addr, _ITM_TYPE_##T val)			\
-{									\
-  void *addr1;								\
-  if (sizeof(val) == sizeof(word))					\
-    *(_ITM_TYPE_##T *)wbetl_write ((word *)addr) = val;			\
-  else if (sizeof(val) <= sizeof(word))					\
-    {									\
-      word ofs;								\
-      addr1 = wbetl_write ((word *)((uintptr_t)addr & -sizeof(word)));	\
-      ofs = (uintptr_t)addr & (sizeof(word) - 1);			\
-      *(_ITM_TYPE_##T *)(addr1 + ofs) = val;				\
-    }									\
-  else									\
-    wbetl_memcpyRnWt (addr, &val, sizeof(val));				\
-}
-
-_ITM_ALL_TYPES (_ITM_READ)
-_ITM_ALL_TYPES (_ITM_WRITE)
-
-#undef _ITM_READ
-#undef _ITM_WRITE
-
-
 const struct gtm_dispatch wbetl_dispatch = {
-#define _ITM_READ(R, T)		.R##T = wbetl_R##T,
-#define _ITM_WRITE(W, T)	.W##T = wbetl_W##T,
-  _ITM_ALL_TYPES (_ITM_ALL_READS)
-  _ITM_ALL_TYPES (_ITM_ALL_WRITES)
-#undef _ITM_READ
-#undef _ITM_WRITE
+  .R = wbetl_R,
+  .RaR = wbetl_RaR,
+  .RaW = wbetl_after_write_lock,
+  .RfW = wbetl_write_lock,
 
-#define _ITM_MCPY_RW(FN, R, W)	.FN##R##W = wbetl_##FN##R##W,
-  _ITM_MCPY(memcpy)
-#undef _ITM_MCPY_RW
-#define _ITM_MCPY_RW(FN, R, W)	.FN##R##W = wbetl_##FN,
-  _ITM_MCPY(memmove)
-#undef _ITM_MCPY_RW
-
-#define _ITM_MSET_W(FN, W)	.FN##W = wbetl_##FN,
-  _ITM_MSET(memset)
-#undef _ITM_MSET_W
+  .W = wbetl_W,
+  .WaR = wbetl_W,
+  .WaW = wbetl_WaW,
 
   .trycommit = wbetl_trycommit,
   .rollback = wbetl_rollback,

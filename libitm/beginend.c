@@ -22,24 +22,24 @@
    see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
    <http://www.gnu.org/licenses/>.  */
 
-#include "libitm.h"
+#include "libitm_i.h"
 
 
-__thread struct gtm_thread _gtm_thr;
+__thread gtm_thread _gtm_thr;
 gtm_rwlock gtm_serial_lock;
 
 /* ??? Move elsewhere when we figure out library initialization.  */
-unsigned long long gtm_spin_count_var = 1000;
+uint64_t gtm_spin_count_var = 1000;
 
 static _ITM_transactionId_t global_tid;
 
 /* Allocate a transaction structure.  Reuse an old one if possible.  */
 
-static struct gtm_transaction *
+static gtm_transaction *
 alloc_tx (void)
 {
-  struct gtm_transaction *tx;
-  struct gtm_thread *thr = gtm_thr ();
+  gtm_transaction *tx;
+  gtm_thread *thr = gtm_thr ();
 
   if (thr->free_tx_count == 0)
     tx = malloc (sizeof (*tx));
@@ -59,9 +59,9 @@ alloc_tx (void)
    the requirement that this queue be per-thread.  */
 
 static void
-free_tx (struct gtm_transaction *tx)
+free_tx (gtm_transaction *tx)
 {
-  struct gtm_thread *thr = gtm_thr ();
+  gtm_thread *thr = gtm_thr ();
   unsigned idx = (thr->free_tx_idx + thr->free_tx_count) % MAX_FREE_TX;
 
   if (thr->free_tx_count == MAX_FREE_TX)
@@ -76,11 +76,11 @@ free_tx (struct gtm_transaction *tx)
 }
 
 
-uint32_t REGPARM
-GTM_begin_transaction (uint32_t prop, const struct gtm_jmpbuf *jb)
+uint32_t
+GTM_begin_transaction (uint32_t prop, const gtm_jmpbuf *jb)
 {
-  struct gtm_transaction *tx;
-  const struct gtm_dispatch *disp;
+  gtm_transaction *tx;
+  const gtm_dispatch *disp;
 
   setup_gtm_thr ();
 
@@ -117,7 +117,7 @@ GTM_begin_transaction (uint32_t prop, const struct gtm_jmpbuf *jb)
 static void
 GTM_rollback_transaction (void)
 {
-  struct gtm_transaction *tx;
+  gtm_transaction *tx;
 
   gtm_disp()->rollback ();
   GTM_rollback_local ();
@@ -135,7 +135,7 @@ GTM_rollback_transaction (void)
     }
 }
 
-void REGPARM
+void ITM_REGPARM
 _ITM_rollbackTransaction (void)
 {
   assert ((gtm_tx()->prop & pr_hasNoAbort) == 0);
@@ -145,10 +145,10 @@ _ITM_rollbackTransaction (void)
   gtm_tx()->state |= STATE_ABORTING;
 }
 
-void REGPARM
+void ITM_REGPARM
 _ITM_abortTransaction (_ITM_abortReason reason)
 {
-  struct gtm_transaction *tx = gtm_tx();
+  gtm_transaction *tx = gtm_tx();
 
   assert (reason == userAbort);
   assert ((tx->prop & pr_hasNoAbort) == 0);
@@ -188,7 +188,7 @@ GTM_trycommit_transaction (void)
 static bool
 GTM_trycommit_and_finalize_transaction (void)
 {
-  struct gtm_transaction *tx = gtm_tx();
+  gtm_transaction *tx = gtm_tx();
 
   if ((tx->state & STATE_ABORTING) || GTM_trycommit_transaction ())
     {
@@ -200,17 +200,17 @@ GTM_trycommit_and_finalize_transaction (void)
   return false;
 }
 
-bool REGPARM
+bool ITM_REGPARM
 _ITM_tryCommitTransaction (void)
 {
   assert ((gtm_tx()->state & STATE_ABORTING) == 0);
   return GTM_trycommit_transaction ();
 }
 
-void REGPARM NORETURN
-GTM_restart_transaction (enum restart_reason r)
+void ITM_NORETURN
+GTM_restart_transaction (gtm_restart_reason r)
 {
-  struct gtm_transaction *tx = gtm_tx();
+  gtm_transaction *tx = gtm_tx();
   uint32_t actions;
 
   GTM_rollback_transaction ();
@@ -223,14 +223,14 @@ GTM_restart_transaction (enum restart_reason r)
   GTM_longjmp (&tx->jb, actions, tx->prop);
 }
 
-void REGPARM
+void ITM_REGPARM
 _ITM_commitTransaction(void)
 {
   if (!GTM_trycommit_and_finalize_transaction ())
     GTM_restart_transaction (RESTART_VALIDATE_COMMIT);
 }
 
-void REGPARM
+void ITM_REGPARM
 _ITM_commitTransactionEH(void *exc_ptr)
 {
   if (!GTM_trycommit_and_finalize_transaction ())

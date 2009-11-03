@@ -22,75 +22,58 @@
    see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
    <http://www.gnu.org/licenses/>.  */
 
-#include "libitm.h"
+#include "libitm_i.h"
 
 
-#define SERIAL(T) \
-static _ITM_TYPE_##T REGPARM _ITM_TYPE_ATTR(T)				\
-serial_R##T(const _ITM_TYPE_##T *ptr)					\
-{									\
-  return *ptr;								\
-}									\
-static void REGPARM _ITM_TYPE_ATTR(T)					\
-serial_W##T(_ITM_TYPE_##T *ptr, _ITM_TYPE_##T val)			\
-{									\
-  *ptr = val;								\
-}
+static gtm_cacheline_mask gtm_cacheline_mask_sink;
 
-_ITM_ALL_TYPES (SERIAL)
-
-#undef SERIAL
-
-static void REGPARM serial_memcpy (void *dst, const void *src, size_t len)
+gtm_cacheline *
+GTM_null_read_lock (uintptr_t ptr)
 {
-  memcpy (dst, src, len);
+  return (gtm_cacheline *) ptr;
 }
 
-static void REGPARM serial_memmove (void *dst, const void *src, size_t len)
+gtm_cacheline_mask_pair
+GTM_null_write_lock (uintptr_t ptr)
 {
-  memmove (dst, src, len);
+  gtm_cacheline_mask_pair pair;
+  pair.line = (gtm_cacheline *) ptr;
+  pair.mask = &gtm_cacheline_mask_sink;
+  return pair;
 }
 
-static void REGPARM serial_memset (void *dst, int src, size_t len)
-{
-  memset (dst, src, len);
-}
-
-static bool serial_trycommit (void)
+static bool
+serial_trycommit (void)
 {
   return true;
 }
 
-static void serial_rollback (void)
+static void
+serial_rollback (void)
 {
   abort ();
 }
 
-static void REGPARM serial_init (bool first UNUSED)
+static void
+serial_init (bool first UNUSED)
 {
 }
 
-static void serial_fini (void)
+static void
+serial_fini (void)
 {
 }
 
 const static struct gtm_dispatch serial_dispatch = 
 {
-#define _ITM_READ(R, T)		.R##T = serial_R##T,
-#define _ITM_WRITE(W, T)	.W##T = serial_W##T,
-  _ITM_ALL_TYPES (_ITM_ALL_READS)
-  _ITM_ALL_TYPES (_ITM_ALL_WRITES)
-#undef _ITM_READ
-#undef _ITM_WRITE
+  .R = GTM_null_read_lock,
+  .RaR = GTM_null_read_lock,
+  .RaW = GTM_null_read_lock,
+  .RfW = GTM_null_read_lock,
 
-#define _ITM_MCPY_RW(FN, R, W)	.FN##R##W = serial_##FN,
-  _ITM_MCPY(memcpy)
-  _ITM_MCPY(memmove)
-#undef _ITM_MCPY_RW
-
-#define _ITM_MSET_W(FN, W)	.FN##W = serial_##FN,
-  _ITM_MSET(memset)
-#undef _ITM_MSET_W
+  .W = GTM_null_write_lock,
+  .WaR = GTM_null_write_lock,
+  .WaW = GTM_null_write_lock,
 
   .trycommit = serial_trycommit,
   .rollback = serial_rollback,
@@ -101,7 +84,7 @@ const static struct gtm_dispatch serial_dispatch =
 
 /* Put the transaction into serial mode.  */
 
-void REGPARM
+void
 GTM_serialmode (bool initial, bool irrevokable)
 {
   struct gtm_transaction *tx = gtm_tx();
@@ -135,7 +118,7 @@ GTM_serialmode (bool initial, bool irrevokable)
 }
 
 
-void REGPARM
+void ITM_REGPARM
 _ITM_changeTransactionMode (_ITM_transactionState state)
 {
   assert (state == modeSerialIrrevocable);

@@ -22,7 +22,7 @@
    see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
    <http://www.gnu.org/licenses/>.  */
 
-#include "libitm.h"
+#include "libitm_i.h"
 
 
 /* Wrap: malloc (size_t sz)  */
@@ -79,7 +79,11 @@ _ITM_realloc (void *ptr, size_t sz)
       r = malloc (sz);
       if (r)
 	{
-	  gtm_disp()->memcpyRtWt (r, ptr, (sz < osz ? sz : osz));
+	  /* ??? We don't really need to get locks, since we know this
+	     memory is local to the transaction.  However, if the STM
+	     method is write-back, we have to be careful to use memory
+	     from the cache if locks were taken.  */
+	  _ITM_memcpyRnWt (r, ptr, (sz < osz ? sz : osz));
 	  GTM_record_allocation (r, sz, free);
 	  GTM_forget_allocation (ptr, free);
 	}

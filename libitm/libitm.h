@@ -28,36 +28,21 @@
 #ifndef LIBITM_H
 #define LIBITM_H 1
 
-#include "config.h"
-
-#include <assert.h>
-#include <stdint.h>
+#include <stddef.h>
 #include <stdbool.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unwind.h>
+#include <stdint.h>
 
-#include "target.h"
 
-#ifndef REGPARM
-# define REGPARM
+#ifdef __i386__
+# define ITM_REGPARM	__attribute__((regparm(2)))
+#else
+# define ITM_REGPARM
 #endif
 
-#define NORETURN	__attribute__((noreturn))
-#define UNUSED		__attribute__((unused))
-
-#ifndef _ITM_ALL_TARGET_TYPES
-# define _ITM_ALL_TARGET_TYPES(M)
-#endif
-
-#ifndef _ITM_TYPE_ATTR
-# define _ITM_TYPE_ATTR(T)
-#endif
+#define ITM_NORETURN	__attribute__((noreturn))
 
 /* The following are externally visible definitions and functions, though
    only very few of these should be called by user code.  */
-/* ??? Move declarations usable by user code to another header; figure out
-   how to unobtrusively define REGPARM there.  */
 
 /* Values used as arguments to abort. */
 typedef enum {
@@ -132,29 +117,46 @@ typedef void (* _ITM_userCommitFunction) (void *);
 #define _ITM_VERSION "0.90 (Feb 29 2008)"
 #define _ITM_VERSION_NO 90
 
-extern int _ITM_versionCompatible (int) REGPARM;
-extern const char * _ITM_libraryVersion (void) REGPARM;
+extern int _ITM_versionCompatible (int) ITM_REGPARM;
+extern const char * _ITM_libraryVersion (void) ITM_REGPARM;
 
-void _ITM_error(const _ITM_srcLocation *, int errorCode) REGPARM NORETURN;
+void _ITM_error(const _ITM_srcLocation *, int errorCode)
+  ITM_REGPARM ITM_NORETURN;
  
-extern _ITM_howExecuting _ITM_inTransaction(void) REGPARM;
+extern _ITM_howExecuting _ITM_inTransaction(void) ITM_REGPARM;
 
 typedef uint64_t _ITM_transactionId_t;	/* Transaction identifier */
 #define _ITM_noTransactionId 1		/* Id for non-transactional code. */
 
-extern _ITM_transactionId_t _ITM_getTransactionId(void) REGPARM;
+extern _ITM_transactionId_t _ITM_getTransactionId(void) ITM_REGPARM;
 
-extern uint32_t _ITM_beginTransaction(uint32_t, ...) REGPARM;
+extern uint32_t _ITM_beginTransaction(uint32_t, ...) ITM_REGPARM;
 
-extern void _ITM_abortTransaction(_ITM_abortReason) REGPARM NORETURN;
-extern void _ITM_rollbackTransaction (void) REGPARM;
+extern void _ITM_abortTransaction(_ITM_abortReason) ITM_REGPARM ITM_NORETURN;
+extern void _ITM_rollbackTransaction (void) ITM_REGPARM;
 
-extern void _ITM_commitTransaction (void) REGPARM;
-extern bool _ITM_tryCommitTransaction(void) REGPARM;
+extern void _ITM_commitTransaction (void) ITM_REGPARM;
+extern bool _ITM_tryCommitTransaction(void) ITM_REGPARM;
 
-extern void _ITM_registerThrownObject (const void *, size_t) REGPARM;
+extern void _ITM_registerThrownObject (const void *, size_t) ITM_REGPARM;
 
-extern void _ITM_changeTransactionMode (_ITM_transactionState) REGPARM;
+extern void _ITM_changeTransactionMode (_ITM_transactionState) ITM_REGPARM;
+
+extern void _ITM_addUserCommitAction(_ITM_userCommitFunction,
+				     _ITM_transactionId_t, void *) ITM_REGPARM;
+
+extern void _ITM_addUserUndoAction(_ITM_userUndoFunction, void *) ITM_REGPARM;
+
+extern int _ITM_getThreadnum(void) ITM_REGPARM;
+
+extern void _ITM_dropReferences (const void *, size_t) ITM_REGPARM;
+
+extern void *_ITM_getTMCloneOrIrrevokable (void *) ITM_REGPARM;
+extern void *_ITM_getTMCloneSafe (void *) ITM_REGPARM;
+
+extern void _ITM_registerTMCloneTable (void *, size_t);
+extern void _ITM_deregisterTMCloneTable (void *);
+
 
 /* The following typedefs exist to make the macro expansions below work
    properly.  They are not part of any API.  */
@@ -169,268 +171,97 @@ typedef float _Complex _ITM_TYPE_CF;
 typedef double _Complex _ITM_TYPE_CD;
 typedef long double _Complex _ITM_TYPE_CE;
 
-#define _ITM_READ(R, T) \
-  extern _ITM_TYPE_##T _ITM_##R##T (const _ITM_TYPE_##T *) REGPARM;
-#define _ITM_WRITE(W, T) \
-  extern void _ITM_##W##T (_ITM_TYPE_##T *, _ITM_TYPE_##T) REGPARM;
+#define ITM_BARRIERS(T) \
+  extern _ITM_TYPE_##T _ITM_R##T(const _ITM_TYPE_##T *) ITM_REGPARM;	\
+  extern _ITM_TYPE_##T _ITM_RaR##T(const _ITM_TYPE_##T *) ITM_REGPARM;	\
+  extern _ITM_TYPE_##T _ITM_RaW##T(const _ITM_TYPE_##T *) ITM_REGPARM;	\
+  extern _ITM_TYPE_##T _ITM_RfW##T(const _ITM_TYPE_##T *) ITM_REGPARM;	\
+  extern void _ITM_W##T (_ITM_TYPE_##T *, _ITM_TYPE_##T) ITM_REGPARM;	\
+  extern void _ITM_WaR##T (_ITM_TYPE_##T *, _ITM_TYPE_##T) ITM_REGPARM;	\
+  extern void _ITM_WaW##T (_ITM_TYPE_##T *, _ITM_TYPE_##T) ITM_REGPARM;
 
-#define _ITM_ALL_READS(T) \
-  _ITM_READ(R, T) _ITM_READ(RaR, T) _ITM_READ(RaW, T) _ITM_READ(RfW, T)
-#define _ITM_ALL_WRITES(T) \
-  _ITM_WRITE(W, T) _ITM_WRITE(WaR, T) _ITM_WRITE(WaW, T)
+ITM_BARRIERS(U1)
+ITM_BARRIERS(U2)
+ITM_BARRIERS(U4)
+ITM_BARRIERS(U8)
+ITM_BARRIERS(F)
+ITM_BARRIERS(D)
+ITM_BARRIERS(E)
+ITM_BARRIERS(CF)
+ITM_BARRIERS(CD)
+ITM_BARRIERS(CE)
 
-#define _ITM_ALL_TYPES(M) \
-  M(U1) M(U2) M(U4) M(U8) M(F) M(D) M(E) \
-  M(CF) M(CD) M(CE) _ITM_ALL_TARGET_TYPES(M)
+#define ITM_LOG(T) \
+  extern void _ITM_L##T (const _ITM_TYPE_##T *) ITM_REGPARM;
 
-_ITM_ALL_TYPES(_ITM_ALL_READS)
-_ITM_ALL_TYPES(_ITM_ALL_WRITES)
+ITM_LOG(U1)
+ITM_LOG(U2)
+ITM_LOG(U4)
+ITM_LOG(U8)
+ITM_LOG(F)
+ITM_LOG(D)
+ITM_LOG(E)
+ITM_LOG(CF)
+ITM_LOG(CD)
+ITM_LOG(CE)
 
-#define _ITM_LOG(T) \
-  extern void _ITM_L##T (const _ITM_TYPE_##T *) REGPARM;
+#if defined(__i386__) || defined(__x86_64__)
+# ifdef __MMX__
+  typedef int _ITM_TYPE_M64 __attribute__((vector_size(8), may_alias));
+  ITM_BARRIERS(M64)
+  ITM_LOG(M64)
+# endif
+# ifdef __SSE__
+  typedef float _ITM_TYPE_M128 __attribute__((vector_size(16), may_alias));
+  ITM_BARRIERS(M128)
+  ITM_LOG(M128)
+# endif
+# ifdef __AVX__
+  typedef float _ITM_TYPE_M256 __attribute__((vector_size(32), may_alias));
+  ITM_BARRIERS(M256)
+  ITM_LOG(M256)
+# endif
+#endif /* i386 */
 
-_ITM_ALL_TYPES(_ITM_LOG)
+#undef ITM_BARRIERS
+#undef ITM_LOG
 
-#undef _ITM_READ
-#undef _ITM_WRITE
+extern void _ITM_LB (const void *, size_t) ITM_REGPARM;
 
-#define _ITM_MCPY_RW(FN, R, W) \
-  extern void _ITM_##FN##R##W (void *, const void *, size_t) REGPARM;
-#define _ITM_MCPY_Wt(FN, R) \
-  _ITM_MCPY_RW(FN,R,Wt) _ITM_MCPY_RW(FN,R,WtaR) _ITM_MCPY_RW(FN,R,WtaW)
-#define _ITM_MCPY(FN) \
-  _ITM_MCPY_Wt(FN, Rn) \
-  _ITM_MCPY_Wt(FN, Rt) \
-  _ITM_MCPY_Wt(FN, RtaR) \
-  _ITM_MCPY_Wt(FN, RtaW) \
-  _ITM_MCPY_RW(FN, Rt, Wn) \
-  _ITM_MCPY_RW(FN, RtaR, Wn) \
-  _ITM_MCPY_RW(FN, RtaW, Wn)
+extern void _ITM_memcpyRnWt(void *, const void *, size_t) ITM_REGPARM;
+extern void _ITM_memcpyRnWtaR(void *, const void *, size_t) ITM_REGPARM;
+extern void _ITM_memcpyRnWtaW(void *, const void *, size_t) ITM_REGPARM;
+extern void _ITM_memcpyRtWn(void *, const void *, size_t) ITM_REGPARM;
+extern void _ITM_memcpyRtWt(void *, const void *, size_t) ITM_REGPARM;
+extern void _ITM_memcpyRtWtaR(void *, const void *, size_t) ITM_REGPARM;
+extern void _ITM_memcpyRtWtaW(void *, const void *, size_t) ITM_REGPARM;
+extern void _ITM_memcpyRtaRWn(void *, const void *, size_t) ITM_REGPARM;
+extern void _ITM_memcpyRtaRWt(void *, const void *, size_t) ITM_REGPARM;
+extern void _ITM_memcpyRtaRWtaR(void *, const void *, size_t) ITM_REGPARM;
+extern void _ITM_memcpyRtaRWtaW(void *, const void *, size_t) ITM_REGPARM;
+extern void _ITM_memcpyRtaWWn(void *, const void *, size_t) ITM_REGPARM;
+extern void _ITM_memcpyRtaWWt(void *, const void *, size_t) ITM_REGPARM;
+extern void _ITM_memcpyRtaWWtaR(void *, const void *, size_t) ITM_REGPARM;
+extern void _ITM_memcpyRtaWWtaW(void *, const void *, size_t) ITM_REGPARM;
 
-_ITM_MCPY(memcpy)
-_ITM_MCPY(memmove)
+extern void _ITM_memmoveRnWt(void *, const void *, size_t) ITM_REGPARM;
+extern void _ITM_memmoveRnWtaR(void *, const void *, size_t) ITM_REGPARM;
+extern void _ITM_memmoveRnWtaW(void *, const void *, size_t) ITM_REGPARM;
+extern void _ITM_memmoveRtWn(void *, const void *, size_t) ITM_REGPARM;
+extern void _ITM_memmoveRtWt(void *, const void *, size_t) ITM_REGPARM;
+extern void _ITM_memmoveRtWtaR(void *, const void *, size_t) ITM_REGPARM;
+extern void _ITM_memmoveRtWtaW(void *, const void *, size_t) ITM_REGPARM;
+extern void _ITM_memmoveRtaRWn(void *, const void *, size_t) ITM_REGPARM;
+extern void _ITM_memmoveRtaRWt(void *, const void *, size_t) ITM_REGPARM;
+extern void _ITM_memmoveRtaRWtaR(void *, const void *, size_t) ITM_REGPARM;
+extern void _ITM_memmoveRtaRWtaW(void *, const void *, size_t) ITM_REGPARM;
+extern void _ITM_memmoveRtaWWn(void *, const void *, size_t) ITM_REGPARM;
+extern void _ITM_memmoveRtaWWt(void *, const void *, size_t) ITM_REGPARM;
+extern void _ITM_memmoveRtaWWtaR(void *, const void *, size_t) ITM_REGPARM;
+extern void _ITM_memmoveRtaWWtaW(void *, const void *, size_t) ITM_REGPARM;
 
-#undef _ITM_MCPY_RW
-
-#define _ITM_MSET_W(FN, W) \
-  extern void _ITM_##FN##W (void * target, int src, size_t count) REGPARM;
-#define _ITM_MSET(FN) \
-  _ITM_MSET_W(FN, W) _ITM_MSET_W(FN, WaR) _ITM_MSET_W(FN, WaW)
-
-_ITM_MSET (memset)
-
-#undef _ITM_MSET_W
-
-extern void _ITM_LB (const void *, size_t) REGPARM;
-
-extern void _ITM_addUserCommitAction(_ITM_userCommitFunction,
-				     _ITM_transactionId_t, void *) REGPARM;
-
-extern void _ITM_addUserUndoAction(_ITM_userUndoFunction, void *) REGPARM;
-
-extern int _ITM_getThreadnum(void) REGPARM;
-
-extern void _ITM_dropReferences (const void *, size_t) REGPARM;
-
-extern void *_ITM_getTMCloneOrIrrevokable (void *) REGPARM;
-extern void *_ITM_getTMCloneSafe (void *) REGPARM;
-
-extern void _ITM_registerTMCloneTable (void *, size_t);
-extern void _ITM_deregisterTMCloneTable (void *);
-
-
-/* The following are internal implementation functions and definitions.
-   To distinguish them from those defined by the Intel ABI, they all
-   begin with GTM/gtm.  */
-
-#ifdef HAVE_ATTRIBUTE_VISIBILITY
-# pragma GCC visibility push(hidden)
-#endif
-
-#include "rwlock.h"
-#include "aatree.h"
-
-
-/* ??? We're talking about storing some of this data in glibc tls slots
-   begining at 10, and making this part of the ABI on Linux.  Think about
-   how to declare such things.  */
-   
-struct gtm_dispatch
-{
-#define _ITM_READ(R, T) \
-  _ITM_TYPE_##T (*R##T)(const _ITM_TYPE_##T *) REGPARM;
-#define _ITM_WRITE(W, T) \
-  void (*W##T)(_ITM_TYPE_##T *, _ITM_TYPE_##T) REGPARM;
-  _ITM_ALL_TYPES (_ITM_ALL_READS)
-  _ITM_ALL_TYPES (_ITM_ALL_WRITES)
-#undef _ITM_READ
-#undef _ITM_WRITE
-
-#define _ITM_MCPY_RW(FN, R, W) \
-  void (* FN##R##W)(void *, const void *, size_t) REGPARM;
-  _ITM_MCPY(memcpy)
-  _ITM_MCPY(memmove)
-#undef _ITM_MCPY_RW
-
-#define _ITM_MSET_W(FN, W) \
-  void (*FN##W) (void *, int, size_t) REGPARM;
-  _ITM_MSET(memset)
-#undef _ITM_MSET_W
-
-  bool (*trycommit) (void);
-  void (*rollback) (void);
-  void (*init) (bool) REGPARM;
-  void (*fini) (void);
-};
-
-struct gtm_local_undo
-{
-  void *addr;
-  size_t len;
-  char saved[];
-};
-
-struct gtm_user_action
-{
-  struct gtm_user_action *next;
-  _ITM_userCommitFunction fn;
-  void *arg;
-};
-
-/* This is extra data attached to each node of an AA tree.  */
-struct gtm_alloc_action
-{
-  void (*free_fn)(void *);
-  size_t size;
-  bool allocated;
-};
-
-struct gtm_method;
-
-#define STATE_READONLY		0x0001
-#define STATE_SERIAL		0x0002
-#define STATE_IRREVOKABLE	0x0004
-#define STATE_ABORTING		0x0008
-
-enum restart_reason
-{
-  RESTART_REALLOCATE,
-  RESTART_LOCKED_READ,
-  RESTART_LOCKED_WRITE,
-  RESTART_VALIDATE_READ,
-  RESTART_VALIDATE_WRITE,
-  RESTART_VALIDATE_COMMIT,
-  NUM_RESTARTS
-};
-
-struct gtm_transaction
-{
-  struct gtm_jmpbuf jb;
-
-  struct gtm_local_undo **local_undo;
-  size_t n_local_undo;
-  size_t size_local_undo;
-
-  struct gtm_user_action *commit_actions;
-  struct gtm_user_action *undo_actions;
-  aa_tree alloc_actions;
-
-  struct gtm_method *m;
-  struct gtm_transaction *prev;
-
-  _ITM_transactionId_t id;
-  uint32_t prop;
-  uint32_t nesting;
-  uint32_t state;
-
-  uint32_t cxa_catch_count;
-  void *cxa_unthrown;
-  void *eh_in_flight;
-
-  uint32_t restarts[NUM_RESTARTS + 1];
-};
-
-#define MAX_FREE_TX	8
-
-struct gtm_thread
-{
-#ifndef HAVE_ARCH_GTM_THREAD_TX
-  struct gtm_transaction *tx;
-#endif
-#ifndef HAVE_ARCH_GTM_THREAD_DISP
-  const struct gtm_dispatch *disp;
-#endif
-
-  struct gtm_transaction *free_tx[MAX_FREE_TX];
-  unsigned free_tx_idx, free_tx_count;
-
-  int thread_num;
-};
-
-/* Don't access this variable directly; use the functions below.  */
-extern __thread struct gtm_thread _gtm_thr;
-
-#include "target_tls.h"
-
-#ifndef HAVE_ARCH_GTM_THREAD
-static inline void setup_gtm_thr(void) { }
-static inline struct gtm_thread *gtm_thr(void) { return &_gtm_thr; }
-#endif
-
-#ifndef HAVE_ARCH_GTM_THREAD_TX
-static inline struct gtm_transaction * gtm_tx(void)
-{
-  return gtm_thr()->tx;
-}
-
-static inline void set_gtm_tx(struct gtm_transaction *x)
-{
-  gtm_thr()->tx = x;
-}
-#endif
-
-#ifndef HAVE_ARCH_GTM_THREAD_DISP
-static inline const struct gtm_dispatch *gtm_disp(void)
-{
-  return gtm_thr()->disp;
-}
-
-static inline void set_gtm_disp(const struct gtm_dispatch *x)
-{
-  gtm_thr()->disp = x;
-}
-#endif
-
-extern gtm_rwlock gtm_serial_lock;
-extern unsigned long long gtm_spin_count_var;
-
-extern uint32_t GTM_begin_transaction(uint32_t, const struct gtm_jmpbuf *)
-	REGPARM;
-
-extern uint32_t GTM_longjmp (const struct gtm_jmpbuf *, uint32_t, uint32_t)
-	REGPARM NORETURN;
-
-extern void GTM_commit_local (void);
-extern void GTM_rollback_local (void);
-
-extern void GTM_serialmode (bool, bool) REGPARM;
-extern void GTM_decide_retry_strategy (enum restart_reason) REGPARM;
-extern void GTM_restart_transaction (enum restart_reason) NORETURN REGPARM;
-
-extern void GTM_run_actions (struct gtm_user_action **) REGPARM;
-extern void GTM_free_actions (struct gtm_user_action **) REGPARM;
-
-extern void GTM_record_allocation (void *, size_t, void (*)(void *)) REGPARM;
-extern void GTM_forget_allocation (void *, void (*)(void *)) REGPARM;
-extern size_t GTM_get_allocation_size (void *) REGPARM;
-extern void GTM_commit_allocations (bool) REGPARM;
-
-extern void GTM_revert_cpp_exceptions (void);
-
-extern const struct gtm_dispatch wbetl_dispatch;
-
-#ifdef HAVE_ATTRIBUTE_VISIBILITY
-# pragma GCC visibility pop
-#endif
+extern void _ITM_memsetW(void *, int, size_t) ITM_REGPARM;
+extern void _ITM_memsetWaR(void *, int, size_t) ITM_REGPARM;
+extern void _ITM_memsetWaW(void *, int, size_t) ITM_REGPARM;
 
 #endif /* LIBITM_H */

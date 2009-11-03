@@ -2,14 +2,7 @@
    and transaction_pure.  */
 
 #include <stdlib.h>
-
-#ifdef __i386__
-#define REGPARM  __attribute__((regparm(2)))
-#else
-#define REGPARM
-#endif
-
-extern void *_ITM_getTMCloneSafe (void *) REGPARM;
+#include <libitm.h>
 
 static int x;
 

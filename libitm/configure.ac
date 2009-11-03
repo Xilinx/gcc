@@ -113,11 +113,6 @@ AC_SUBST(CFLAGS)
 # in both places for now and restore CFLAGS at the end of config.
 save_CFLAGS="$CFLAGS"
 
-# Add -Wall -Werror if we are using GCC.
-if test "x$GCC" = "xyes"; then
-  XCFLAGS="$XCFLAGS -Wall -Werror"
-fi
-
 # Find other programs we need.
 AC_CHECK_TOOL(AR, ar)
 AC_CHECK_TOOL(RANLIB, ranlib, ranlib-not-found-in-path-error)
@@ -155,7 +150,7 @@ AC_SUBST(libtool_VERSION)
 AC_STDC_HEADERS
 AC_HEADER_TIME
 ACX_HEADER_STRING
-AC_CHECK_HEADERS(unistd.h semaphore.h sys/loadavg.h sys/time.h sys/time.h)
+AC_CHECK_HEADERS(unistd.h semaphore.h sys/time.h malloc.h)
 
 GCC_HEADER_STDINT(gstdint.h)
 
@@ -180,7 +175,7 @@ AC_LINK_IFELSE(
    [AC_MSG_ERROR([Pthreads are required to build libitm])])])
 
 # Check for functions needed.
-AC_CHECK_FUNCS(getloadavg clock_gettime strtoull)
+AC_CHECK_FUNCS(strtoull memalign posix_memalign)
 
 # Check for broken semaphore implementation on darwin.
 # sem_init returns: sem_init error: Function not implemented.
@@ -215,7 +210,14 @@ CFLAGS="$save_CFLAGS $XCFLAGS"
 # had a chance to set XCFLAGS.
 LIBITM_CHECK_SYNC_BUILTINS
 
-XCFLAGS="$XCFLAGS$XPCFLAGS"
+GCC_AC_FUNC_MMAP_BLACKLIST
+
+# Add -Wall -Werror if we are using GCC.
+if test "x$GCC" = "xyes"; then
+  XCFLAGS="$XCFLAGS -Wall -Werror"
+fi
+
+XCFLAGS="$XCFLAGS $XPCFLAGS"
 
 AC_SUBST(config_path)
 AC_SUBST(XCFLAGS)

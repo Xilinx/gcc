@@ -24,7 +24,7 @@
 
 /* Provide access to the futex system call.  */
 
-#include "libitm.h"
+#include "libitm_i.h"
 #include "futex.h"
 #include <errno.h>
 
@@ -38,7 +38,7 @@ static long int gtm_futex_wait = FUTEX_WAIT | FUTEX_PRIVATE_FLAG;
 static long int gtm_futex_wake = FUTEX_WAKE | FUTEX_PRIVATE_FLAG;
 
 
-void REGPARM
+void
 futex_wait (int *addr, int val)
 {
   unsigned long long i, count = gtm_spin_count_var;
@@ -60,7 +60,7 @@ futex_wait (int *addr, int val)
 }
 
 
-void REGPARM
+void
 futex_wake (int *addr, int count)
 {
   long res = sys_futex0 (addr, gtm_futex_wake, count);

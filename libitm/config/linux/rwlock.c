@@ -23,7 +23,7 @@
    <http://www.gnu.org/licenses/>.  */
 
 #include <limits.h>
-#include "libitm.h"
+#include "libitm_i.h"
 #include "futex.h"
 
 
@@ -33,7 +33,7 @@
 /* Lock the summary bit on LOCK.  Return the contents of the summary word
    (without the summary lock bit included).  */
 
-static int REGPARM
+static int
 rwlock_lock_summary (gtm_rwlock *lock)
 {
   int o;
@@ -54,7 +54,7 @@ rwlock_lock_summary (gtm_rwlock *lock)
 
 /* Acquire a RW lock for reading.  */
 
-void REGPARM
+void
 gtm_rwlock_read_lock (gtm_rwlock *lock)
 {
   int o, n;
@@ -86,7 +86,7 @@ gtm_rwlock_read_lock (gtm_rwlock *lock)
 
 /* Acquire a RW lock for writing.  */
 
-void REGPARM
+void
 gtm_rwlock_write_lock (gtm_rwlock *lock)
 {
   int o, n;
@@ -131,7 +131,7 @@ gtm_rwlock_write_lock (gtm_rwlock *lock)
    Do this without possibility of another writer incoming.  Return false
    if this attempt fails.  */
 
-bool REGPARM
+bool
 gtm_rwlock_write_upgrade (gtm_rwlock *lock)
 {
   int o, n;
@@ -181,7 +181,7 @@ gtm_rwlock_write_upgrade (gtm_rwlock *lock)
 
 /* Release a RW lock from reading.  */
 
-void REGPARM
+void
 gtm_rwlock_read_unlock (gtm_rwlock *lock)
 {
   int o;
@@ -224,7 +224,7 @@ gtm_rwlock_read_unlock (gtm_rwlock *lock)
 
 /* Release a RW lock from writing.  */
 
-void REGPARM
+void
 gtm_rwlock_write_unlock (gtm_rwlock *lock)
 {
   int o;

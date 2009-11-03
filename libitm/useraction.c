@@ -22,13 +22,21 @@
    see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
    <http://www.gnu.org/licenses/>.  */
 
-#include "libitm.h"
+#include "libitm_i.h"
 
 
-void REGPARM
-GTM_run_actions (struct gtm_user_action **list)
+typedef struct gtm_user_action
 {
-  struct gtm_user_action *a = *list;
+  struct gtm_user_action *next;
+  _ITM_userCommitFunction fn;
+  void *arg;
+} gtm_user_action;
+
+
+void
+GTM_run_actions (gtm_user_action **list)
+{
+  gtm_user_action *a = *list;
 
   if (a == NULL)
     return;
@@ -36,7 +44,7 @@ GTM_run_actions (struct gtm_user_action **list)
 
   do
     {
-      struct gtm_user_action *n = a->next;
+      gtm_user_action *n = a->next;
       a->fn (a->arg);
       free (a);
       a = n;
@@ -45,10 +53,10 @@ GTM_run_actions (struct gtm_user_action **list)
 }
 
 
-void REGPARM
-GTM_free_actions (struct gtm_user_action **list)
+void
+GTM_free_actions (gtm_user_action **list)
 {
-  struct gtm_user_action *a = *list;
+  gtm_user_action *a = *list;
 
   if (a == NULL)
     return;
@@ -56,7 +64,7 @@ GTM_free_actions (struct gtm_user_action **list)
 
   do
     {
-      struct gtm_user_action *n = a->next;
+      gtm_user_action *n = a->next;
       free (a);
       a = n;
     }
@@ -64,12 +72,12 @@ GTM_free_actions (struct gtm_user_action **list)
 }
 
 
-void REGPARM
+void ITM_REGPARM
 _ITM_addUserCommitAction(_ITM_userCommitFunction fn,
 			 _ITM_transactionId_t tid, void *arg)
 {
-  struct gtm_transaction *tx;
-  struct gtm_user_action *a;
+  gtm_transaction *tx;
+  gtm_user_action *a;
 
   for (tx = gtm_tx(); tx->id != tid; tx = tx->prev)
     continue;
@@ -82,11 +90,11 @@ _ITM_addUserCommitAction(_ITM_userCommitFunction fn,
 }
 
 
-void REGPARM
+void ITM_REGPARM
 _ITM_addUserUndoAction(_ITM_userUndoFunction fn, void * arg)
 {
-  struct gtm_transaction *tx = gtm_tx();
-  struct gtm_user_action *a;
+  gtm_transaction *tx = gtm_tx();
+  gtm_user_action *a;
 
   a = malloc (sizeof (*a));
   a->next = tx->undo_actions;

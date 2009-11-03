@@ -1,3 +1,47 @@
+2009-11-03  Richard Henderson  <rth@redhat.com>
+
+	* dispatch.c: Remove file.
+	* useraction.c (struct gtm_user_action): Move from libitm.h.
+	* serial.c (GTM_null_read_lock, GTM_null_write_lock): New.
+	(serial_memset, serial_memmove, serial_memcpy): Remove.
+	(serial_W*, serial_R*): Remove.
+	(serial_dispatch): Update to match.
+	* configure.ac: Move Werror down below configure checks.  Don't
+	check for sys/loadavg.h, do check for malloc.h.  Don't check for
+	getloadavg and clock_gettime; do check for memalign, posix_memalign.
+	Use GCC_AC_FUNC_MMAP_BLACKLIST
+	* libitm.h: Split out all internal items to...
+	* libitm_i.h: ... here.  New file.
+	* copymask.c: New file.
+	* local.c (struct gtm_local_undo): Move from libitm.h.
+	(GTM_alloc_local): Rename from alloc_local; export.
+	* memcpy.c: New file.
+	* alloc_c.c (_ITM_realloc): Use _ITM_memcpyRnWt directly.
+	* config/posix/page.c: New file.
+	* config/posix/target_tls.h: Remove file.
+	* barrier.c: New file.
+	* Makefile.am (libitm_la_SOURCES): Add barrier.c, memcpy.c,
+	copymask.c, page.c.
+	* alloc.c (struct gtm_alloc_action): Move from libitm.h.
+	* method-wbetl.c: Rewrite for new cacheline methods.
+	* Makefile.in, configure, testsuite/Makefile.in, config.h.in: Rebuild.
+
+	* config/alpha/sjlj.S: Fix typo.
+	* config/alpha/target_i.h: Copy functions from alpha/target.h.
+	* config/alpha/copymask.c: New file.
+	* config/alpha/target.h (CACHELINE_SIZE): New.
+	(STRICT_ALIGNMENT, PAGE_SIZE, FIXED_PAGE_SIZE): New.
+
+	* config/x86/target_i.h: Copy functions from x86/target.h.
+	* config/x86/copymask.c: New file.
+	* config/x86/target.h (_ITM_ALL_TARGET_TYPES): Remove.
+	(CACHELINE_SIZE, STRICT_ALIGNMENT): New.
+	(PAGE_SIZE, FIXED_PAGE_SIZE): New.
+	* config/x86/target_tls.h: Move contents to target_i.h.
+
+	* testsuite/libitm.c/clone-1.c: Include libitm.h.
+	* testsuite/libitm.c/memcpy-1.c: New.
+
 2009-10-22  Richard Henderson  <rth@redhat.com>
 
 	* Makefile.am (CCAS, CCASFLAGS, LTCCASCOMPILE): Remove.

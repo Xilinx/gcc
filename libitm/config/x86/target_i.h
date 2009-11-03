@@ -22,6 +22,83 @@
    see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
    <http://www.gnu.org/licenses/>.  */
 
+static inline void
+cpu_relax (void)
+{
+  __asm volatile ("rep; nop" : : : "memory");
+}
+
+static inline void
+atomic_read_barrier (void)
+{
+  /* x86 is a strong memory ordering machine.  */
+}
+
+static inline void
+atomic_write_barrier (void)
+{
+  /* x86 is a strong memory ordering machine.  */
+}
+
+
+/* Copy a cacheline with the widest available vector type.  */
+#if defined(__SSE__) || defined(__AVX__)
+# define HAVE_ARCH_GTM_CACHELINE_COPY 1
+static inline void
+gtm_cacheline_copy (gtm_cacheline * __restrict d,
+		    const gtm_cacheline * __restrict s)
+{
+#ifdef __AVX__
+# define CP	m256
+# define TYPE	__m256
+#else
+# define CP	m128
+# define TYPE	__m128
+#endif
+
+  TYPE w, x, y, z;
+
+  /* ??? Wouldn't it be nice to have a pragma to tell the compiler
+     to completely unroll a given loop?  */
+  switch (CACHELINE_SIZE / sizeof(s->CP[0]))
+    {
+    case 1:
+      d->CP[0] = s->CP[0];
+      break;
+    case 2:
+      x = s->CP[0];
+      y = s->CP[1];
+      d->CP[0] = x;
+      d->CP[1] = y;
+      break;
+    case 4:
+      w = s->CP[0];
+      x = s->CP[1];
+      y = s->CP[2];
+      z = s->CP[3];
+      d->CP[0] = w;
+      d->CP[1] = x;
+      d->CP[2] = y;
+      d->CP[3] = z;
+      break;
+    default:
+      __builtin_trap ();
+    }
+}
+#endif
+
+#if !ALLOW_UNMASKED_STORES && defined(__SSE2__)
+# define HAVE_ARCH_GTM_CCM_WRITE_BARRIER 1
+/* A write barrier to emit after (a series of) gtm_copy_cacheline_mask.
+   Since we'll be emitting non-temporal stores, the normal strong ordering
+   of the machine doesn't apply and we have to emit an SFENCE.  */
+static inline void
+gtm_ccm_write_barrier (void)
+{
+  _mm_sfence ();
+}
+#endif
+
 #if defined(__GLIBC_PREREQ) && __GLIBC_PREREQ(2, 10)
 /* Use slots in the TCB head rather than __thread lookups.
    GLIBC has reserved words 10 through 15 for TM.  */

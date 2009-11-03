@@ -22,7 +22,7 @@
    see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
    <http://www.gnu.org/licenses/>.  */
 
-#include "libitm.h"
+#include "libitm_i.h"
 
 /* Everything from libstdc++ is weak, to avoid requiring that library
    to be linked into plain C applications using libitm.so.  */

@@ -31,7 +31,8 @@ libitm_version_info = -version-info $(libtool_VERSION)
 libitm_la_LDFLAGS = $(libitm_version_info) $(libitm_version_script) \
         -no-undefined
 
-libitm_la_SOURCES = beginend.c clone.c dispatch.c local.c query.c retry.c \
-	rwlock.c serial.c sjlj.S useraction.c futex.c \
-	aatree.c alloc.c alloc_c.c alloc_cpp.c eh_cpp.c \
+libitm_la_SOURCES = \
+	aatree.c alloc.c alloc_c.c alloc_cpp.c barrier.c beginend.c	\
+	clone.c eh_cpp.c local.c memcpy.c query.c retry.c rwlock.c	\
+	serial.c useraction.c sjlj.S futex.c copymask.c page.c		\
 	method-wbetl.c

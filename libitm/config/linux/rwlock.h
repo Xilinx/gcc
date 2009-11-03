@@ -41,10 +41,10 @@ typedef struct {
   int w_writers;
 } gtm_rwlock;
 
-extern void REGPARM gtm_rwlock_read_lock (gtm_rwlock *);
-extern void REGPARM gtm_rwlock_write_lock (gtm_rwlock *);
-extern bool REGPARM gtm_rwlock_write_upgrade (gtm_rwlock *);
-extern void REGPARM gtm_rwlock_read_unlock (gtm_rwlock *);
-extern void REGPARM gtm_rwlock_write_unlock (gtm_rwlock *);
+extern void gtm_rwlock_read_lock (gtm_rwlock *);
+extern void gtm_rwlock_write_lock (gtm_rwlock *);
+extern bool gtm_rwlock_write_upgrade (gtm_rwlock *);
+extern void gtm_rwlock_read_unlock (gtm_rwlock *);
+extern void gtm_rwlock_write_unlock (gtm_rwlock *);
 
 #endif /* GTM_RWLOCK_H */

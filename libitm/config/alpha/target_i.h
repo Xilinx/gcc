@@ -1,4 +1,4 @@
-/* Copyright (C) 2008, 2009 Free Software Foundation, Inc.
+/* Copyright (C) 2009 Free Software Foundation, Inc.
    Contributed by Richard Henderson <rth@redhat.com>.
 
    This file is part of the GNU Transactional Memory Library (libitm).
@@ -22,46 +22,15 @@
    see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
    <http://www.gnu.org/licenses/>.  */
 
-#include "libitm.h"
 
-
-#define _ITM_READ(R, T) \
-_ITM_TYPE_##T REGPARM _ITM_TYPE_ATTR(T)					\
-_ITM_##R##T(const _ITM_TYPE_##T *ptr)					\
-{									\
-  return gtm_disp()->R##T (ptr);					\
+static inline void
+cpu_relax (void)
+{
+  __asm volatile ("" : : : "memory");
 }
 
-#define _ITM_WRITE(W, T) \
-void REGPARM _ITM_TYPE_ATTR(T)						\
-_ITM_##W##T(_ITM_TYPE_##T *ptr, _ITM_TYPE_##T val)			\
-{									\
-  gtm_disp()->W##T (ptr, val);						\
+static inline void
+atomic_write_barrier (void)
+{
+  __asm volatile ("wmb" : : : "memory");
 }
-
-_ITM_ALL_TYPES (_ITM_ALL_READS)
-_ITM_ALL_TYPES (_ITM_ALL_WRITES)
-
-#undef _ITM_READ
-#undef _ITM_WRITE
-
-#define _ITM_MCPY_RW(FN, R, W) \
-void REGPARM _ITM_##FN##R##W (void *dst, const void *src, size_t len)	\
-{									\
-  gtm_disp()->FN##R##W (dst, src, len);					\
-}
-
-_ITM_MCPY(memcpy)
-_ITM_MCPY(memmove)
-
-#undef _ITM_MCPY_RW
-
-#define _ITM_MSET_W(FN, W) \
-void REGPARM _ITM_##FN##W (void *dst, int src, size_t len)		\
-{									\
-  gtm_disp()->FN##W (dst, src, len);					\
-}
-
-_ITM_MSET(memset)
-
-#undef _ITM_MSET_W

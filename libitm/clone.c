@@ -22,7 +22,8 @@
    see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
    <http://www.gnu.org/licenses/>.  */
 
-#include "libitm.h"
+#include "libitm_i.h"
+
 
 static gtm_rwlock table_lock;
 
@@ -40,7 +41,7 @@ struct clone_table
 
 static struct clone_table *all_tables;
 
-static void * REGPARM
+static void *
 GTM_find_clone (void *ptr)
 {
   struct clone_table *table;
@@ -83,7 +84,7 @@ GTM_find_clone (void *ptr)
 }
 
 
-void * REGPARM
+void * ITM_REGPARM
 _ITM_getTMCloneOrIrrevokable (void *ptr)
 {
   void *ret = GTM_find_clone (ptr);
@@ -94,7 +95,7 @@ _ITM_getTMCloneOrIrrevokable (void *ptr)
   return ptr;
 }
 
-void * REGPARM
+void * ITM_REGPARM
 _ITM_getTMCloneSafe (void *ptr)
 {
   void *ret = GTM_find_clone (ptr);

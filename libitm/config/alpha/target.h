@@ -22,22 +22,23 @@
    see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
    <http://www.gnu.org/licenses/>.  */
 
-struct gtm_jmpbuf
+typedef struct gtm_jmpbuf
 {
   unsigned long pc;
   unsigned long s[7];
   unsigned long cfa;
   unsigned long f[8];
-};
+} gtm_jmpbuf;
 
-static inline void
-cpu_relax (void)
-{
-  __asm volatile ("" : : : "memory");
-}
+/* The "cacheline" as defined by the STM need not be the same as the
+   cacheline defined by the processor.  It ought to be big enough for
+   any of the basic types to be stored (aligned) in one line.  It ought
+   to be small enough for efficient manipulation of the modification mask.  */
+#define CACHELINE_SIZE 64
 
-static inline void
-atomic_write_barrier (void)
-{
-  __asm volatile ("wmb" : : : "memory");
-}
+/* Alpha requires strict alignment for the basic types.  */
+#define STRICT_ALIGNMENT 1
+
+/* Alpha generally uses a fixed page size of 8K.  */
+#define PAGE_SIZE	8192
+#define FIXED_PAGE_SIZE	1

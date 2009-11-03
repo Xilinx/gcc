@@ -68,7 +68,7 @@ _ITM_beginTransaction:
 #endif
 
 	ldq	$26, 0($30)
-	addq	$30, FRAME $30
+	addq	$30, FRAME, $30
 	ret
 .end _ITM_beginTransaction
 

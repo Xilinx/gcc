@@ -22,20 +22,20 @@
    see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
    <http://www.gnu.org/licenses/>.  */
 
-#include "libitm.h"
+#include "libitm_i.h"
 
 
-void REGPARM
-GTM_decide_retry_strategy (enum restart_reason r)
+void
+GTM_decide_retry_strategy (gtm_restart_reason r)
 {
   struct gtm_transaction *tx = gtm_tx();
 
-  tx->restarts[r + 1]++;
-  tx->restarts[0]++;
+  tx->restart_reason[r]++;
+  tx->restart_total++;
 
   if (tx->state & STATE_SERIAL)
     ;
-  else if (tx->restarts[0] > 100)
+  else if (tx->restart_total > 100)
     GTM_serialmode (false, false);
   else
     gtm_disp()->init (false);

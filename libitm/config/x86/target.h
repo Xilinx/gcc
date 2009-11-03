@@ -22,81 +22,49 @@
    see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
    <http://www.gnu.org/licenses/>.  */
 
-#ifdef __LP64__
-
-struct gtm_jmpbuf
+#ifdef __x86_64__
+/* ??? This doesn't work for Win64.  */
+typedef struct gtm_jmpbuf
 {
   unsigned long cfa;
-  unsigned long i[7];
-};
-
+  unsigned long rip;
+  unsigned long rbx;
+  unsigned long rbp;
+  unsigned long r12;
+  unsigned long r13;
+  unsigned long r14;
+  unsigned long r15;
+} gtm_jmpbuf;
 #else
-
-struct gtm_jmpbuf
+typedef struct gtm_jmpbuf
 {
   unsigned long cfa;
-  unsigned long i[5];
-};
-
-#define REGPARM		__attribute__((regparm(2)))
-
+  unsigned long ebx;
+  unsigned long esi;
+  unsigned long edi;
+  unsigned long ebp;
+  unsigned long eip;
+} gtm_jmpbuf;
 #endif
 
-/* ??? The 32-bit compiler still crashes on this.  */
-#ifdef __LP64__
-
-/* Define platform-specific additions to the library type list.  */
-typedef int _ITM_TYPE_M64
-  __attribute__ ((__vector_size__ (8), __may_alias__));
-typedef float _ITM_TYPE_M128
-  __attribute__ ((__vector_size__ (16), __may_alias__));
-typedef float _ITM_TYPE_M256
-  __attribute__ ((__vector_size__ (32), __may_alias__));
-
-#define _ITM_ALL_TARGET_TYPES(M)	M(M64) M(M128) M(M256)
-
-#define _ITM_ATTR_U1
-#define _ITM_ATTR_U2
-#define _ITM_ATTR_U4
-#define _ITM_ATTR_U8
-#define _ITM_ATTR_F
-#define _ITM_ATTR_D
-#define _ITM_ATTR_E
-#define _ITM_ATTR_CF
-#define _ITM_ATTR_CD
-#define _ITM_ATTR_CE
-#ifdef __MMX__
-# define _ITM_ATTR_M64
+/* The "cacheline" as defined by the STM need not be the same as the
+   cacheline defined by the processor.  It ought to be big enough for
+   any of the basic types to be stored (aligned) in one line.  It ought
+   to be small enough for efficient manipulation of the modification
+   mask.  The cacheline copy routines assume that if SSE is present
+   that we can use it, which implies a minimum cacheline size of 16.  */
+#ifdef __x86_64__
+# define CACHELINE_SIZE 64
 #else
-# define _ITM_ATTR_M64		__attribute__((target("mmx")))
-#endif
-#ifdef __SSE__
-# define _ITM_ATTR_M128
-#else
-# define _ITM_ATTR_M128		__attribute__((target("sse")))
-#endif
-#ifdef __AVX__
-# define _ITM_ATTR_M256
-#else
-# define _ITM_ATTR_M256		__attribute__((target("avx")))
+# define CACHELINE_SIZE 32
 #endif
 
-#define _ITM_TYPE_ATTR(T)	_ITM_ATTR_##T
+/* x86 doesn't require strict alignment for the basic types.  */
+#define STRICT_ALIGNMENT 0
 
-#endif
+/* x86 uses a fixed page size of 4K.  */
+#define PAGE_SIZE       4096
+#define FIXED_PAGE_SIZE 1
 
-static inline void
-cpu_relax (void)
-{
-  __asm volatile ("rep; nop" : : : "memory");
-}
-
-static inline void
-atomic_write_barrier (void)
-{
-#if defined(__SSE__) || defined(__3dNOW_A__)
-  __builtin_ia32_sfence ();
-#else
-  __sync_synchronize ();
-#endif
-}
+/* We'll be using some of the cpu builtins, and their associated types.  */
+#include <x86intrin.h>

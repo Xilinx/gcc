@@ -22,14 +22,22 @@
    see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
    <http://www.gnu.org/licenses/>.  */
 
-#include "libitm.h"
+#include "libitm_i.h"
+
+
+typedef struct gtm_local_undo
+{
+  void *addr;
+  size_t len;
+  char saved[];
+} gtm_local_undo;
 
 
 void
 GTM_commit_local (void)
 {
-  struct gtm_transaction *tx = gtm_tx();
-  struct gtm_local_undo **local_undo = tx->local_undo;
+  gtm_transaction *tx = gtm_tx();
+  gtm_local_undo **local_undo = tx->local_undo;
   size_t i, n = tx->n_local_undo;
 
   if (n > 0)
@@ -47,7 +55,7 @@ GTM_commit_local (void)
 }
 
 static void
-rollback_local (struct gtm_local_undo *undo)
+rollback_local (gtm_local_undo *undo)
 {
   memcpy (undo->addr, undo->saved, undo->len);
 }
@@ -55,8 +63,8 @@ rollback_local (struct gtm_local_undo *undo)
 void
 GTM_rollback_local (void)
 {
-  struct gtm_transaction *tx = gtm_tx();
-  struct gtm_local_undo **local_undo = tx->local_undo;
+  gtm_transaction *tx = gtm_tx();
+  gtm_local_undo **local_undo = tx->local_undo;
   size_t i, n = tx->n_local_undo;
 
   if (n > 0)
@@ -70,11 +78,11 @@ GTM_rollback_local (void)
     }
 }
 
-static void *
-alloc_local (void *addr, size_t len)
+void *
+GTM_alloc_local (void *addr, size_t len)
 {
-  struct gtm_transaction *tx = gtm_tx();
-  struct gtm_local_undo *undo;
+  gtm_transaction *tx = gtm_tx();
+  gtm_local_undo *undo;
 
   undo = malloc (sizeof (struct gtm_local_undo) + len);
   undo->addr = addr;
@@ -96,16 +104,29 @@ alloc_local (void *addr, size_t len)
   return undo->saved;
 }
 
-#define _ITM_LOG_DEF(T)							\
-void REGPARM _ITM_TYPE_ATTR(T) _ITM_L##T (const _ITM_TYPE_##T *ptr)	\
-{									\
-  *(_ITM_TYPE_##T *)alloc_local((void *)ptr, sizeof(_ITM_TYPE_##T)) = *ptr; \
-}
-
-_ITM_ALL_TYPES(_ITM_LOG_DEF)
-
-void REGPARM
+void ITM_REGPARM
 _ITM_LB (const void *ptr, size_t len)
 {
-  memcpy(alloc_local ((void *)ptr, len), ptr, len);
+  memcpy (GTM_alloc_local ((void *)ptr, len), ptr, len);
 }
+
+#define ITM_LOG_DEF(T) \
+void ITM_REGPARM _ITM_L##T (const _ITM_TYPE_##T *ptr)			\
+{									\
+  void *loc = GTM_alloc_local ((void *)ptr, sizeof(_ITM_TYPE_##T));	\
+  if (__alignof (*ptr) <= offsetof (gtm_local_undo, saved))		\
+    *(_ITM_TYPE_##T *)loc = *ptr;					\
+  else									\
+    memcpy (loc, ptr, sizeof (*ptr));					\
+}
+
+ITM_LOG_DEF(U1)
+ITM_LOG_DEF(U2)
+ITM_LOG_DEF(U4)
+ITM_LOG_DEF(U8)
+ITM_LOG_DEF(F)
+ITM_LOG_DEF(D)
+ITM_LOG_DEF(E)
+ITM_LOG_DEF(CF)
+ITM_LOG_DEF(CD)
+ITM_LOG_DEF(CE)
