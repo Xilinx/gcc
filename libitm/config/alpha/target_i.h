@@ -30,6 +30,12 @@ cpu_relax (void)
 }
 
 static inline void
+atomic_read_barrier (void)
+{
+  __sync_synchronize ();
+}
+
+static inline void
 atomic_write_barrier (void)
 {
   __asm volatile ("wmb" : : : "memory");
