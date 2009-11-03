@@ -1,5 +1,28 @@
 2009-11-03  Richard Henderson  <rth@redhat.com>
 
+	* method-readonly.c: New file.
+	* Makefile.am (libitm_la_SOURCES): Add it.
+	* Makefile.in: Rebuild.
+	* beginend.c (gtm_stmlock_array, gtm_clock): New.
+	(GTM_begin_transaction): Use dispatch_readonly for read-only txn.
+	* libitm_i.h (gtm_stmlock, gtm_version): Move from method-wbetl.c.
+	(GTM_VERSION_MAX, GTM_VERSION_INVALID, gtm_stmlock_owned_p,
+	gtm_stmlock_set_owned, gtm_stmlock_get_addr,
+	gtm_stmlock_get_version, gtm_stmlock_set_version, LOCK_ARRAY_SIZE,
+	gtm_stmlock_array, gtm_get_stmlock, gtm_clock, RESTART_NOT_READONLY,
+	gtm_get_clock, gtm_inc_clock): New.
+	* method-wbetl.c (gtm_version, gtm_stmlock, OWNED_MASK, VERSION_MAX,
+	LOCK_GET_OWNED, LOCK_SET_ADDR, LOCK_GET_ADDR, LOCK_GET_TIMESTAMP,
+	LOCK_SET_TIMESTAMP, LOCK_ARRAY_SIZE, LOCK_MASK, LOCK_IDX, GET_LOCK,
+	locks, gclock, CLOCK, GET_CLOCK, FETCH_AND_INC_CLOCK): Remove and
+	replace uses with new libitm_i.h symbols.
+	(dispatch_wbetl): Rename from wbetl_dispatch.
+	* retry.c (GTM_decide_retry_strategy): If RESTART_NOT_READONLY, move
+	away from dispatch_readonly; abort if the beginTransaction call
+	asserted that the transaction was readonly.
+
+2009-11-03  Richard Henderson  <rth@redhat.com>
+
 	* memset.c: New file.
 	* Makefile.am (libitm_la_SOURCES): Add it.
 	* Makefile.in: Rebuild.

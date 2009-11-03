@@ -148,6 +148,73 @@ typedef struct gtm_cacheline_mask_pair
 
 typedef gtm_cacheline_mask_pair (*gtm_write_lock_fn)(uintptr_t cacheline);
 
+/* A versioned write lock on a cacheline.  This must be wide enough to 
+   store a pointer, and preferably wide enough to avoid overflowing the
+   version counter.  Thus we use a "word", which should be 64-bits on
+   64-bit systems even when their pointer size is forced smaller.  */
+typedef gtm_word gtm_stmlock;
+
+/* This has to be the same size as gtm_stmlock, we just use this name
+   for documentation purposes.  */
+typedef gtm_word gtm_version;
+
+/* The maximum value a version number can have.  This is a consequence
+   of having the low bit of gtm_stmlock reserved for the owned bit.  */
+#define GTM_VERSION_MAX		(~(gtm_version)0 >> 1)
+
+/* A value that may be used to indicate "uninitialized" for a version.  */
+#define GTM_VERSION_INVALID	(~(gtm_version)0)
+
+/* This bit is set when the write lock is held.  When set, the balance of
+   the bits in the lock is a pointer that references STM backend specific
+   data; it is up to the STM backend to determine if this thread holds the
+   lock.  If this bit is clear, the balance of the bits are the last 
+   version number committed to the cacheline.  */
+static inline bool
+gtm_stmlock_owned_p (gtm_stmlock lock)
+{
+  return lock & 1;
+}
+
+static inline gtm_stmlock
+gtm_stmlock_set_owned (void *data)
+{
+  return (gtm_stmlock)(uintptr_t)data | 1;
+}
+
+static inline void *
+gtm_stmlock_get_addr (gtm_stmlock lock)
+{
+  return (void *)((uintptr_t)lock & ~(uintptr_t)1);
+}
+
+static inline gtm_version
+gtm_stmlock_get_version (gtm_stmlock lock)
+{
+  return lock >> 1;
+}
+
+static inline gtm_stmlock
+gtm_stmlock_set_version (gtm_version ver)
+{
+  return ver << 1;
+}
+
+/* We use a fixed set of locks for all memory, hashed into the
+   following table.  */
+#define LOCK_ARRAY_SIZE  (1024 * 1024)
+extern gtm_stmlock gtm_stmlock_array[LOCK_ARRAY_SIZE];
+
+static inline gtm_stmlock *
+gtm_get_stmlock (uintptr_t addr)
+{
+  size_t idx = (addr / CACHELINE_SIZE) % LOCK_ARRAY_SIZE;
+  return gtm_stmlock_array + idx;
+}
+
+/* The current global version number.  */
+extern gtm_version gtm_clock;
+
 /* A dispatch table parameterizes the implementation of the STM.  */
 typedef struct gtm_dispatch
 {
@@ -164,6 +231,8 @@ typedef struct gtm_dispatch
   void (*rollback) (void);
   void (*init) (bool);
   void (*fini) (void);
+
+  bool write_through;
 } gtm_dispatch;
 
 
@@ -184,6 +253,7 @@ typedef enum gtm_restart_reason
   RESTART_VALIDATE_READ,
   RESTART_VALIDATE_WRITE,
   RESTART_VALIDATE_COMMIT,
+  RESTART_NOT_READONLY,
   NUM_RESTARTS
 } gtm_restart_reason;
 
@@ -368,7 +438,32 @@ extern void GTM_page_release (gtm_cacheline_page *, gtm_cacheline_page *);
 extern gtm_cacheline *GTM_null_read_lock (uintptr_t);
 extern gtm_cacheline_mask_pair GTM_null_write_lock (uintptr_t);
 
-extern const gtm_dispatch wbetl_dispatch;
+static inline gtm_version
+gtm_get_clock (void)
+{
+  gtm_version r;
+
+  __sync_synchronize ();
+  r = gtm_clock;
+  atomic_read_barrier ();
+
+  return r;
+}
+
+static inline gtm_version
+gtm_inc_clock (void)
+{
+  gtm_version r = __sync_add_and_fetch (&gtm_clock, 1);
+
+  /* ??? Ought to handle wraparound for 32-bit.  */
+  if (sizeof(r) < 8 && r > GTM_VERSION_MAX)
+    abort ();
+
+  return r;
+}
+
+extern const gtm_dispatch dispatch_wbetl;
+extern const gtm_dispatch dispatch_readonly;
 
 #ifdef HAVE_ATTRIBUTE_VISIBILITY
 # pragma GCC visibility pop

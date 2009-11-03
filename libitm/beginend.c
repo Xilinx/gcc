@@ -28,6 +28,9 @@
 __thread gtm_thread _gtm_thr;
 gtm_rwlock gtm_serial_lock;
 
+gtm_stmlock gtm_stmlock_array[LOCK_ARRAY_SIZE];
+gtm_version gtm_clock;
+
 /* ??? Move elsewhere when we figure out library initialization.  */
 uint64_t gtm_spin_count_var = 1000;
 
@@ -105,7 +108,10 @@ GTM_begin_transaction (uint32_t prop, const gtm_jmpbuf *jb)
 
   /* ??? Probably want some environment variable to choose the default
      STM implementation once we have more than one implemented.  */
-  disp = &wbetl_dispatch;
+  if (prop & pr_readOnly)
+    disp = &dispatch_readonly;
+  else
+    disp = &dispatch_wbetl;
   set_gtm_disp (disp);
   disp->init (true);
 

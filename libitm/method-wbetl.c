@@ -25,9 +25,6 @@
 #include "libitm_i.h"
 
 
-typedef gtm_word gtm_version;
-typedef gtm_word gtm_stmlock;
-
 typedef struct r_entry
 {
   gtm_version version;
@@ -70,32 +67,6 @@ struct gtm_method
   int n_cache_page;
 };
 
-/* ??? The locks stuff needs to be moved to common code.  */
-#define OWNED_MASK			0x01
-#define VERSION_MAX			(~(gtm_version)0 >> 1)
-
-#define LOCK_GET_OWNED(LOCK)		((LOCK) & OWNED_MASK)
-
-#define LOCK_SET_ADDR(A) \
-	((gtm_stmlock)(uintptr_t)(A) | OWNED_MASK)
-#define LOCK_GET_ADDR(LOCK) \
-	((w_entry_t *) ((LOCK) & ~(gtm_stmlock)OWNED_MASK))
-#define LOCK_GET_TIMESTAMP(LOCK)	((LOCK) >> 1)
-#define LOCK_SET_TIMESTAMP(T)		((T) << 1)
-#define LOCK_ARRAY_SIZE			(1ul << 20)
-#define LOCK_MASK			(LOCK_ARRAY_SIZE - 1)
-#define LOCK_IDX(A) \
-	(((uintptr_t)(A) / CACHELINE_SIZE) & LOCK_MASK)
-#define GET_LOCK(A)			(locks + LOCK_IDX(A))
-
-static volatile gtm_stmlock locks[LOCK_ARRAY_SIZE];
-
-#define CLOCK				(gclock)
-static volatile gtm_version gclock;
-
-#define GET_CLOCK			__sync_add_and_fetch(&CLOCK, 0)
-#define FETCH_AND_INC_CLOCK		__sync_add_and_fetch(&CLOCK, 1)
-
 #define RW_SET_SIZE			4096
 
 /* Check if W is one of our write locks.  */
@@ -137,16 +108,16 @@ wbetl_validate (struct gtm_method *m)
   for (i = m->r_set.nb_entries; i > 0; i--, r++)
     {
       l = *r->lock;
-      if (LOCK_GET_OWNED (l))
+      if (gtm_stmlock_owned_p (l))
 	{
-	  w_entry_t *w = LOCK_GET_ADDR (l);
+	  w_entry_t *w = gtm_stmlock_get_addr (l);
 
 	  if (!wbetl_local_w_entry_p (m, w))
 	    return false;
 	}
       else
 	{
-	  if (LOCK_GET_TIMESTAMP (l) != r->version)
+	  if (gtm_stmlock_get_version (l) != r->version)
 	    return false;
 	}
     }
@@ -159,7 +130,7 @@ wbetl_validate (struct gtm_method *m)
 static bool
 wbetl_extend (struct gtm_method *m)
 {
-  gtm_word now = GET_CLOCK;
+  gtm_word now = gtm_get_clock ();
 
   if (wbetl_validate (m))
     {
@@ -181,13 +152,13 @@ wbetl_write_lock (uintptr_t addr)
   struct gtm_method *m;
 
   m = gtm_tx()->m;
-  lock = GET_LOCK (addr);
+  lock = gtm_get_stmlock (addr);
   l = *lock;
 
  restart_no_load:
-  if (LOCK_GET_OWNED (l))
+  if (gtm_stmlock_owned_p (l))
     {
-      w = LOCK_GET_ADDR (l);
+      w = gtm_stmlock_get_addr (l);
 
       /* Did we previously write the same address?  */
       if (wbetl_local_w_entry_p (m, w))
@@ -223,7 +194,7 @@ wbetl_write_lock (uintptr_t addr)
     }
   else
     {
-      version = LOCK_GET_TIMESTAMP (l);
+      version = gtm_stmlock_get_version (l);
 
       /* We might have read an older version previously.  */
       if (version > m->end)
@@ -242,7 +213,7 @@ wbetl_write_lock (uintptr_t addr)
 
       /* Acquire the lock.  */
       w = &m->w_set.entries[m->w_set.nb_entries];
-      l2 = LOCK_SET_ADDR (w);
+      l2 = gtm_stmlock_set_owned (w);
       l = __sync_val_compare_and_swap (lock, l, l2);
       if (l != l2)
 	goto restart_no_load;
@@ -293,13 +264,13 @@ wbetl_read_lock (uintptr_t addr, bool after_read)
   struct gtm_method *m;
 
   m = gtm_tx()->m;
-  lock = GET_LOCK (addr);
+  lock = gtm_get_stmlock (addr);
   l = *lock;
 
  restart_no_load:
-  if (LOCK_GET_OWNED (l))
+  if (gtm_stmlock_owned_p (l))
     {
-      w = LOCK_GET_ADDR (l);
+      w = gtm_stmlock_get_addr (l);
 
       /* Did we previously write the same address?  */
       if (wbetl_local_w_entry_p (m, w))
@@ -317,7 +288,7 @@ wbetl_read_lock (uintptr_t addr, bool after_read)
       GTM_restart_transaction (RESTART_LOCKED_READ);
     }
 
-  version = LOCK_GET_TIMESTAMP (l);
+  version = gtm_stmlock_get_version (l);
 
   /* If version is no longer valid, re-validate the read set.  */
   if (version > m->end)
@@ -368,12 +339,12 @@ wbetl_after_write_lock (uintptr_t addr)
   struct gtm_method *m;
 
   m = gtm_tx()->m;
-  lock = GET_LOCK (addr);
+  lock = gtm_get_stmlock (addr);
 
   l = *lock;
-  assert (LOCK_GET_OWNED (l));
+  assert (gtm_stmlock_owned_p (l));
 
-  w = LOCK_GET_ADDR (l);
+  w = gtm_stmlock_get_addr (l);
   assert (wbetl_local_w_entry_p (m, w));
 
   while (1)
@@ -427,9 +398,7 @@ wbetl_trycommit (void)
   if (m->w_set.nb_entries > 0)
     {
       /* Get commit timestamp.  */
-      t = FETCH_AND_INC_CLOCK;
-      if (t >= VERSION_MAX)
-	abort ();
+      t = gtm_inc_clock ();
 
       /* Validate only if a concurrent transaction has started since.  */
       if (m->start != t - 1 && !wbetl_validate (m))
@@ -447,7 +416,7 @@ wbetl_trycommit (void)
       w = m->w_set.entries;
       for (i = m->w_set.nb_entries; i > 0; i--, w++)
 	if (w->next == NULL)
-	  *w->lock = LOCK_SET_TIMESTAMP (t);
+	  *w->lock = gtm_stmlock_set_version (t);
 
       __sync_synchronize ();
     }
@@ -466,7 +435,7 @@ wbetl_rollback (void)
   w = m->w_set.entries;
   for (i = m->w_set.nb_entries; i > 0; i--, w++)
     if (w->next == NULL)
-      *w->lock = LOCK_SET_TIMESTAMP (w->version);
+      *w->lock = gtm_stmlock_set_version (w->version);
 
   __sync_synchronize ();
 }
@@ -517,7 +486,7 @@ wbetl_init (bool first)
 	}
     }
 
-  m->start = m->end = GET_CLOCK;
+  m->start = m->end = gtm_get_clock ();
 }
 
 static void
@@ -539,7 +508,7 @@ wbetl_fini (void)
   free (m);
 }
 
-const struct gtm_dispatch wbetl_dispatch = {
+const struct gtm_dispatch dispatch_wbetl = {
   .R = wbetl_R,
   .RaR = wbetl_RaR,
   .RaW = wbetl_after_write_lock,
@@ -552,5 +521,7 @@ const struct gtm_dispatch wbetl_dispatch = {
   .trycommit = wbetl_trycommit,
   .rollback = wbetl_rollback,
   .init = wbetl_init,
-  .fini = wbetl_fini
+  .fini = wbetl_fini,
+
+  .write_through = false
 };

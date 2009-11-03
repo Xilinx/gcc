@@ -29,10 +29,23 @@ void
 GTM_decide_retry_strategy (gtm_restart_reason r)
 {
   struct gtm_transaction *tx = gtm_tx();
+  const struct gtm_dispatch *disp;
 
   tx->restart_reason[r]++;
   tx->restart_total++;
 
+  if (r == RESTART_NOT_READONLY)
+    {
+      assert ((tx->prop & pr_readOnly) == 0);
+      disp = gtm_disp ();
+      if (disp == &dispatch_readonly)
+	{
+	  disp->fini ();
+	  disp = &dispatch_wbetl;
+	  disp->init (true);
+	  return;
+	}
+    }
   if (tx->state & STATE_SERIAL)
     ;
   else if (tx->restart_total > 100)
