@@ -1,3 +1,110 @@
+2009-11-03  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/41900
+	* config/i386/i386.h (ix86_arch_indices) <X86_ARCH_CALL_ESP>: New.
+	(TARGET_CALL_ESP): New define.
+	* config/i386/i386.c (initial_ix86_tune_features): Initialize
+	X86_ARCH_CALL_ESP.
+	* config/i386/i386.md 
+	(*call_pop_1_esp, *call_1_esp, *call_value_pop_1_esp,
+	*call_value_1_esp): Rename from *call_pop_1, *call_1,
+	*call_value_pop_1 and *call_value_1.  Depend on TARGET_CALL_ESP.
+	(*call_pop_1, *call_1, *call_value_pop_1, *call_value_1):
+	New patterns, use "lsm" as operand 1 constraint.
+	* config/i386/predicates.md (call_insn_operand): Depend on 
+	index_register_operand for !TARGET_CALL_ESP to avoid %esp register.
+
+2009-11-02  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	PR tree-optimization/41857
+	* tree-flow.h (rewrite_use_address): Add BASE_HINT argument.
+	* tree-ssa-loop-ivopts.c (rewrite_use_address): Pass base hint
+	to create_mem_ref.
+	* tree-ssa-address.c (move_hint_to_base): New function.
+	(most_expensive_mult_to_index): Add TYPE argument.  Use mode and
+	address space associated with TYPE.
+	(addr_to_parts): Add TYPE and BASE_HINT arguments.  Pass TYPE to
+	most_expensive_mult_to_index.  Call move_hint_to_base.
+	(create_mem_ref): Add BASE_HINT argument.  Pass BASE_HINT and
+	TYPE to addr_to_parts.
+
+2009-11-02  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/41750
+	* tree-sra.c (analyze_modified_params): Loop over all
+	representatives of components of a parameter.
+
+2009-11-02  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/41841
+	* ipa-struct-reorg.c (build_data_structure): Don't attempt to look at
+	local variables of not yet materialized clones.
+
+	PR debug/41893
+	* cfgexpand.c (expand_debug_expr): Don't attempt to create DECL_RTL
+	for a VOIDmode variable.
+
+	PR c++/41774
+	* c-pragma.c (visstack): Change into vector of ints rather than
+	enum symbol_visibility.
+	(push_visibility): Add kind argument, push default_visibility together
+	with kind.
+	(pop_visibility): Add kind argument, return true if successful, fail
+	if visibility stack is empty or if stack top is of different kind.
+	(handle_pragma_visibility): Don't check length of visstack, instead
+	call pop_visibility and issue diagnostics if it failed.  Pass 0
+	as last argument to push_visibility and pop_visibility.
+	* c-pragma.h (push_visibility): Add kind argument.
+	(pop_visibility): Likewise.  Return bool instead of void.
+
+2009-11-01  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* tree.def (TARGET_MEM_REF): Update comment.
+	* alias.c (get_alias_set): Retrieve the original memory reference for
+	a TARGET_MEM_REF before proceeding.
+
+2009-10-31  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/frv/frv.c (frv_function_value, frv_libcall_value,
+	frv_function_value_regno_p): New functions.
+	(TARGET_FUNCTION_VALUE, TARGET_LIBCALL_VALUE): Declare.
+	* config/frv/frv.h: (FUNCTION_VALUE, LIBCALL_VALUE): Remove.
+	(FUNCTION_VALUE_REGNO_P): Redefine, use frv_function_value_regno_p.
+	* config/frv/frv-protos.h (frv_function_value_regno_p): Declare.
+
+2009-10-31  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/mn10300/mn10300.c (mn10300_function_value): Make static, add
+	new 'outgoing' argument.
+	(mn10300_libcall_value, mn10300_function_value_regno_p): New
+	functions.
+	(TARGET_FUNCTION_VALUE, TARGET_LIBCALL_VALUE): Declare.
+	* config/mn10300/mn10300.h: (FUNCTION_VALUE, FUNCTION_OUTGOING_VALUE,
+	LIBCALL_VALUE): Remove.
+	(FUNCTION_VALUE_REGNO_P): Redefine, use mn10300_function_value_regno_p.
+	* config/mn10300/mn10300-protos.h (mn10300_function_value): Remove.
+	(mh10300_function_value_regno_p): Declare.
+
+2009-10-31  Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
+
+        * config/arm/cortex-a9.md: New - integer pipeline description.
+
+2009-10-31  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* tree-ssa-sccvn.c (vn_reference_lookup_3): Bail out instead of
+	aborting if the sizes of the two references don't match.
+
+2009-10-31  Toon Moene  <toon@moene.org>
+
+	* ipa-inline.c (cgraph_decide_inlining):
+	Include reason for not inlining called-once functions in dump file.
+
+2009-10-30  Daniel Gutson  <dgutson@codesourcery.com>
+
+	* config/arm/linux-eabi.h (LINK_SPEC): BE8_LINK_SPEC added.
+	* config/arm/bpapi.h (BE8_LINK_SPEC): New define.
+	(LINK_SPEC): BE_LINK_SPEC added.
+
 2009-10-30  Richard Guenther  <rguenther@suse.de>
 
 	PR lto/41858
@@ -133,7 +240,7 @@
 2009-10-28  Rafael Avila de Espindola  <espindola@google.com>
 
 	* doc/invoke.texi: Rename -use-linker-plugin -fuse-linker-plugin.
-	
+
 2009-10-28  Rafael Avila de Espindola  <espindola@google.com>
 
 	* dbxout.c (dbxout_common_check): Accept non public trees.
