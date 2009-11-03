@@ -92,9 +92,9 @@ am__installdirs = "$(DESTDIR)$(toolexeclibdir)" \
 LTLIBRARIES = $(toolexeclib_LTLIBRARIES)
 libitm_la_LIBADD =
 am_libitm_la_OBJECTS = aatree.lo alloc.lo alloc_c.lo alloc_cpp.lo \
-	barrier.lo beginend.lo clone.lo eh_cpp.lo local.lo memcpy.lo \
-	query.lo retry.lo rwlock.lo serial.lo useraction.lo sjlj.lo \
-	futex.lo copymask.lo page.lo method-wbetl.lo
+	barrier.lo beginend.lo clone.lo copymask.lo eh_cpp.lo local.lo \
+	memcpy.lo memset.lo page.lo query.lo retry.lo rwlock.lo \
+	serial.lo useraction.lo sjlj.lo futex.lo method-wbetl.lo
 libitm_la_OBJECTS = $(am_libitm_la_OBJECTS)
 libitm_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
@@ -332,8 +332,8 @@ libitm_la_LDFLAGS = $(libitm_version_info) $(libitm_version_script) \
 
 libitm_la_SOURCES = \
 	aatree.c alloc.c alloc_c.c alloc_cpp.c barrier.c beginend.c	\
-	clone.c eh_cpp.c local.c memcpy.c query.c retry.c rwlock.c	\
-	serial.c useraction.c sjlj.S futex.c copymask.c page.c		\
+	clone.c copymask.c eh_cpp.c local.c memcpy.c memset.c page.c	\
+	query.c retry.c rwlock.c serial.c useraction.c sjlj.S futex.c	\
 	method-wbetl.c
 
 all: config.h
@@ -446,6 +446,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/futex.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/local.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/memcpy.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/memset.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/method-wbetl.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/page.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/query.Plo@am__quote@

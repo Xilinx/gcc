@@ -33,6 +33,6 @@ libitm_la_LDFLAGS = $(libitm_version_info) $(libitm_version_script) \
 
 libitm_la_SOURCES = \
 	aatree.c alloc.c alloc_c.c alloc_cpp.c barrier.c beginend.c	\
-	clone.c eh_cpp.c local.c memcpy.c query.c retry.c rwlock.c	\
-	serial.c useraction.c sjlj.S futex.c copymask.c page.c		\
+	clone.c copymask.c eh_cpp.c local.c memcpy.c memset.c page.c	\
+	query.c retry.c rwlock.c serial.c useraction.c sjlj.S futex.c	\
 	method-wbetl.c

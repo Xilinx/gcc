@@ -6,10 +6,13 @@
 #include <sys/mman.h>
 #include <libitm.h>
 
-/* Use a non-transactional destination so that we can get away with
-   testing the results inside the transaction and not have to worry
-   about a possible write-back cache.  */
-#define MEMCPY	_ITM_memcpyRtWn
+#define BEG_TRANSACTION \
+  _ITM_beginTransaction (pr_instrumentedCode | pr_hasNoAbort \
+			 | pr_hasNoIrrevocable)
+#define END_TRANSACTION \
+  _ITM_commitTransaction ()
+
+#define MEMCPY	_ITM_memcpyRtWt
 
 static unsigned char *buf1, *buf2;
 static size_t bufsize, page_size;
@@ -38,7 +41,9 @@ do_test (size_t align1, size_t align2, size_t len)
   for (i = 0, j = 1; i < len; i++, j += 23)
     s1[i] = (j == c1 ? j + 1 : j);
 
+  BEG_TRANSACTION;
   MEMCPY (s2, s1, len);
+  END_TRANSACTION;
 
   if (memcmp (s1, s2, len) != 0)
     {
@@ -92,9 +97,6 @@ int main()
   if (mprotect (buf2 + bufsize, page_size, PROT_NONE))
     return 1;
 
-  _ITM_beginTransaction (pr_instrumentedCode | pr_hasNoAbort
-			 | pr_hasNoIrrevocable);
-
   for (i = 0; i < 18; ++i)
     {
       size_t len = 1 << i;
@@ -132,8 +134,6 @@ int main()
       do_test (0, i, 16 * i);
       do_test (i, i, 16 * i);
     }
-
-  _ITM_commitTransaction ();
 
   return fail;
 }
