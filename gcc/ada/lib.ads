@@ -6,25 +6,23 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -344,6 +342,10 @@ package Lib is
    --      that the default priority is to be used (and is also used for
    --      entries that do not correspond to possible main programs).
 
+   --    OA_Setting
+   --      This is a character field containing L if Optimize_Alignment mode
+   --      was set locally, and O/T/S for Off/Time/Space default if not.
+
    --    Serial_Number
    --      This field holds a serial number used by New_Internal_Name to
    --      generate unique temporary numbers on a unit by unit basis. The
@@ -385,6 +387,7 @@ package Lib is
    function Loading          (U : Unit_Number_Type) return Boolean;
    function Main_Priority    (U : Unit_Number_Type) return Int;
    function Munit_Index      (U : Unit_Number_Type) return Nat;
+   function OA_Setting       (U : Unit_Number_Type) return Character;
    function Source_Index     (U : Unit_Number_Type) return Source_File_Index;
    function Unit_File_Name   (U : Unit_Number_Type) return File_Name_Type;
    function Unit_Name        (U : Unit_Number_Type) return Unit_Name_Type;
@@ -401,6 +404,7 @@ package Lib is
    procedure Set_Ident_String     (U : Unit_Number_Type; N : Node_Id);
    procedure Set_Loading          (U : Unit_Number_Type; B : Boolean := True);
    procedure Set_Main_Priority    (U : Unit_Number_Type; P : Int);
+   procedure Set_OA_Setting       (U : Unit_Number_Type; C : Character);
    procedure Set_Unit_Name        (U : Unit_Number_Type; N : Unit_Name_Type);
    --  Set value of named field for given units table entry. Note that we
    --  do not have an entry for each possible field, since some of the fields
@@ -636,6 +640,7 @@ private
    pragma Inline (Loading);
    pragma Inline (Main_Priority);
    pragma Inline (Munit_Index);
+   pragma Inline (OA_Setting);
    pragma Inline (Set_Cunit);
    pragma Inline (Set_Cunit_Entity);
    pragma Inline (Set_Fatal_Error);
@@ -643,6 +648,7 @@ private
    pragma Inline (Set_Has_RACW);
    pragma Inline (Set_Loading);
    pragma Inline (Set_Main_Priority);
+   pragma Inline (Set_OA_Setting);
    pragma Inline (Set_Unit_Name);
    pragma Inline (Source_Index);
    pragma Inline (Unit_File_Name);
@@ -668,6 +674,7 @@ private
       Is_Compiler_Unit : Boolean;
       Dynamic_Elab     : Boolean;
       Loading          : Boolean;
+      OA_Setting       : Character;
    end record;
 
    --  The following representation clause ensures that the above record
@@ -692,11 +699,12 @@ private
       Generate_Code    at 53 range 0 ..  7;
       Has_RACW         at 54 range 0 ..  7;
       Dynamic_Elab     at 55 range 0 ..  7;
-      Is_Compiler_Unit at 56 range 0 .. 31;
-      Loading          at 60 range 0 .. 31;
+      Is_Compiler_Unit at 56 range 0 ..  7;
+      OA_Setting       at 57 range 0 ..  7;
+      Loading          at 58 range 0 .. 15;
    end record;
 
-   for Unit_Record'Size use 64 * 8;
+   for Unit_Record'Size use 60 * 8;
    --  This ensures that we did not leave out any fields
 
    package Units is new Table.Table (

@@ -6,25 +6,23 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -78,8 +76,11 @@ package body Snames is
      "_local_final_list#" &
      "_master#" &
      "_object#" &
+     "_postconditions#" &
      "_priority#" &
      "_process_atsd#" &
+     "_relative_deadline#" &
+     "_result#" &
      "_secondary_stack#" &
      "_service#" &
      "_size#" &
@@ -101,9 +102,6 @@ package body Snames is
      "finalize#" &
      "next#" &
      "prev#" &
-     "_typecode#" &
-     "_from_any#" &
-     "_to_any#" &
      "allocate#" &
      "deallocate#" &
      "dereference#" &
@@ -145,7 +143,6 @@ package body Snames is
      "_call#" &
      "rci_name#" &
      "receiver#" &
-     "result#" &
      "rpc#" &
      "subp_id#" &
      "operation#" &
@@ -180,8 +177,10 @@ package body Snames is
      "ada_05#" &
      "ada_2005#" &
      "assertion_policy#" &
+     "assume_no_invalid_values#" &
      "c_pass_by_copy#" &
      "check_name#" &
+     "check_policy#" &
      "compile_time_error#" &
      "compile_time_warning#" &
      "compiler_unit#" &
@@ -206,8 +205,9 @@ package body Snames is
      "no_run_time#" &
      "no_strict_aliasing#" &
      "normalize_scalars#" &
-     "polling#" &
+     "optimize_alignment#" &
      "persistent_bss#" &
+     "polling#" &
      "priority_specific_dispatching#" &
      "profile#" &
      "profile_warnings#" &
@@ -238,6 +238,7 @@ package body Snames is
      "atomic#" &
      "atomic_components#" &
      "attach_handler#" &
+     "check#" &
      "cil_constructor#" &
      "comment#" &
      "common_object#" &
@@ -298,6 +299,8 @@ package body Snames is
      "pack#" &
      "page#" &
      "passive#" &
+     "postcondition#" &
+     "precondition#" &
      "preelaborable_initialization#" &
      "preelaborate#" &
      "preelaborate_05#" &
@@ -305,6 +308,7 @@ package body Snames is
      "pure#" &
      "pure_05#" &
      "pure_function#" &
+     "relative_deadline#" &
      "remote_call_interface#" &
      "remote_types#" &
      "share_generic#" &
@@ -350,10 +354,10 @@ package body Snames is
      "dll#" &
      "win32#" &
      "as_is#" &
+     "assertion#" &
      "attribute_name#" &
      "body_file_name#" &
      "boolean_entry_barriers#" &
-     "check#" &
      "casing#" &
      "code#" &
      "component#" &
@@ -406,6 +410,7 @@ package body Snames is
      "secondary_stack_size#" &
      "section#" &
      "semaphore#" &
+     "short_descriptor#" &
      "simple_barriers#" &
      "spec_file_name#" &
      "state#" &
@@ -457,6 +462,7 @@ package body Snames is
      "emax#" &
      "enabled#" &
      "enum_rep#" &
+     "enum_val#" &
      "epsilon#" &
      "exponent#" &
      "external_tag#" &
@@ -467,9 +473,11 @@ package body Snames is
      "fore#" &
      "has_access_values#" &
      "has_discriminants#" &
+     "has_tagged_values#" &
      "identity#" &
      "img#" &
      "integer_value#" &
+     "invalid_value#" &
      "large#" &
      "last#" &
      "last_bit#" &
@@ -495,6 +503,7 @@ package body Snames is
      "modulus#" &
      "null_parameter#" &
      "object_size#" &
+     "old#" &
      "partition_id#" &
      "passed_by_reference#" &
      "pool_address#" &
@@ -503,6 +512,7 @@ package body Snames is
      "priority#" &
      "range#" &
      "range_length#" &
+     "result#" &
      "round#" &
      "safe_emax#" &
      "safe_first#" &
@@ -543,6 +553,7 @@ package body Snames is
      "copy_sign#" &
      "floor#" &
      "fraction#" &
+     "from_any#" &
      "image#" &
      "input#" &
      "machine#" &
@@ -553,7 +564,9 @@ package body Snames is
      "remainder#" &
      "rounding#" &
      "succ#" &
+     "to_any#" &
      "truncation#" &
+     "typecode#" &
      "value#" &
      "wide_image#" &
      "wide_wide_image#" &
@@ -574,6 +587,7 @@ package body Snames is
      "priority_queuing#" &
      "edf_across_priorities#" &
      "fifo_within_priorities#" &
+     "non_preemptive_within_priorities#" &
      "round_robin_within_priorities#" &
      "access_check#" &
      "accessibility_check#" &
@@ -677,7 +691,9 @@ package body Snames is
      "tagged#" &
      "raise_exception#" &
      "ada_roots#" &
+     "aggregate#" &
      "archive_builder#" &
+     "archive_builder_append_option#" &
      "archive_indexer#" &
      "archive_suffix#" &
      "binder#" &
@@ -693,6 +709,7 @@ package body Snames is
      "config_file_unique#" &
      "config_spec_file_name#" &
      "config_spec_file_name_pattern#" &
+     "configuration#" &
      "cross_reference#" &
      "default_language#" &
      "default_switches#" &
@@ -702,12 +719,14 @@ package body Snames is
      "driver#" &
      "excluded_source_dirs#" &
      "excluded_source_files#" &
+     "excluded_source_list_file#" &
      "exec_dir#" &
      "executable#" &
      "executable_suffix#" &
      "extends#" &
      "externally_built#" &
      "finder#" &
+     "global_compilation_switches#" &
      "global_configuration_pragmas#" &
      "global_config_file#" &
      "gnatls#" &
@@ -718,9 +737,11 @@ package body Snames is
      "include_switches#" &
      "include_path#" &
      "include_path_file#" &
+     "inherit_source_path#" &
      "language_kind#" &
      "language_processing#" &
      "languages#" &
+     "library#" &
      "library_ali_dir#" &
      "library_auto_init#" &
      "library_auto_init_supported#" &
@@ -747,14 +768,18 @@ package body Snames is
      "local_config_file#" &
      "local_configuration_pragmas#" &
      "locally_removed_files#" &
+     "map_file_option#" &
      "mapping_file_switches#" &
      "mapping_spec_suffix#" &
      "mapping_body_suffix#" &
      "metrics#" &
      "naming#" &
+     "object_generated#" &
+     "objects_linked#" &
      "objects_path#" &
      "objects_path_file#" &
      "object_dir#" &
+     "path_syntax#" &
      "pic_option#" &
      "pretty_printer#" &
      "prefix#" &
@@ -778,6 +803,8 @@ package body Snames is
      "stack#" &
      "switches#" &
      "symbolic_link_supported#" &
+     "sync#" &
+     "synchronize#" &
      "toolchain_description#" &
      "toolchain_version#" &
      "runtime_library_dir#" &
@@ -937,6 +964,8 @@ package body Snames is
          return Pragma_Interface;
       elsif N = Name_Priority then
          return Pragma_Priority;
+      elsif N = Name_Relative_Deadline then
+         return Pragma_Relative_Deadline;
       elsif N = Name_Storage_Size then
          return Pragma_Storage_Size;
       elsif N = Name_Storage_Unit then
@@ -1126,6 +1155,7 @@ package body Snames is
         or else N = Name_AST_Entry
         or else N = Name_Fast_Math
         or else N = Name_Interface
+        or else N = Name_Relative_Deadline
         or else N = Name_Priority
         or else N = Name_Storage_Size
         or else N = Name_Storage_Unit;

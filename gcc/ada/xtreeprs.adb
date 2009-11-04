@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -59,9 +59,6 @@ procedure XTreeprs is
    Err : exception;
    --  Raised on fatal error
 
-   pragma Warnings (Off);
-   --  Following variables are assigned by * operator
-
    A         : VString := Nul;
    Ffield    : VString := Nul;
    Field     : VString := Nul;
@@ -77,8 +74,6 @@ procedure XTreeprs is
    Syn       : VString := Nul;
    Synonym   : VString := Nul;
    Term      : VString := Nul;
-
-   pragma Warnings (On);
 
    subtype Sfile is Ada.Streams.Stream_IO.File_Type;
 

@@ -7,7 +7,7 @@
 --                                 B o d y                                  --
 --                                                                          --
 --               Copyright (C) 1986 by University of Toronto.               --
---                      Copyright (C) 1999-2007, AdaCore                    --
+--                      Copyright (C) 1999-2008, AdaCore                    --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -34,6 +34,6 @@
 
 --  This package does not require a body, since it is a package renaming. We
 --  provide a dummy file containing a No_Body pragma so that previous versions
---  of the body (which did exist) will not intefere.
+--  of the body (which did exist) will not interfere.
 
 pragma No_Body;

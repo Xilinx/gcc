@@ -1,5 +1,5 @@
 ;; Predicate definitions for DEC Alpha.
-;; Copyright (C) 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+;; Copyright (C) 2004, 2005, 2006, 2007, 2008 Free Software Foundation, Inc.
 ;;
 ;; This file is part of GCC.
 ;;
@@ -268,7 +268,7 @@
   tree op_decl, cfun_sec, op_sec;
 
   /* If profiling is implemented via linker tricks, we can't jump
-     to the nogp alternate entry point.  Note that current_function_profile
+     to the nogp alternate entry point.  Note that crtl->profile
      would not be correct, since that doesn't indicate if the target
      function uses profiling.  */
   /* ??? TARGET_PROFILING_NEEDS_GP isn't really the right test,

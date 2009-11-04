@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -51,6 +51,7 @@ with Sem_Ch8;  use Sem_Ch8;
 with Sem_Ch10; use Sem_Ch10;
 with Sem_Ch12; use Sem_Ch12;
 with Sem_Disp; use Sem_Disp;
+with Sem_Prag; use Sem_Prag;
 with Sem_Util; use Sem_Util;
 with Sem_Warn; use Sem_Warn;
 with Snames;   use Snames;
@@ -98,12 +99,6 @@ package body Sem_Ch7 is
    --  is used within a nested scope. In that case the itype reference is
    --  created at the beginning of the corresponding package body and inserted
    --  before other body declarations.
-
-   procedure Inspect_Deferred_Constant_Completion (Decls : List_Id);
-   --  Examines the deferred constants in the private part of the package
-   --  specification, or in a package body. Emits the error message
-   --  "constant declaration requires initialization expression" if not
-   --  completed by an Import pragma.
 
    procedure Install_Package_Entity (Id : Entity_Id);
    --  Supporting procedure for Install_{Visible,Private}_Declarations.
@@ -757,6 +752,12 @@ package body Sem_Ch7 is
       --  private_with_clauses, and remove them at the end of the nested
       --  package.
 
+      procedure Analyze_PPCs (Decls : List_Id);
+      --  Given a list of declarations, go through looking for subprogram
+      --  specs, and for each one found, analyze any pre/postconditions that
+      --  are chained to the spec. This is the implementation of the late
+      --  visibility analysis for preconditions and postconditions in specs.
+
       procedure Clear_Constants (Id : Entity_Id; FE : Entity_Id);
       --  Clears constant indications (Never_Set_In_Source, Constant_Value,
       --  and Is_True_Constant) on all variables that are entities of Id,
@@ -784,6 +785,33 @@ package body Sem_Ch7 is
       --  This has to be done at the point of entering the instance package's
       --  private part rather than being done in Sem_Ch12.Install_Parent
       --  (which is where the parents' visible declarations are installed).
+
+      ------------------
+      -- Analyze_PPCs --
+      ------------------
+
+      procedure Analyze_PPCs (Decls : List_Id) is
+         Decl : Node_Id;
+         Spec : Node_Id;
+         Sent : Entity_Id;
+         Prag : Node_Id;
+
+      begin
+         Decl := First (Decls);
+         while Present (Decl) loop
+            if Nkind (Original_Node (Decl)) = N_Subprogram_Declaration then
+               Spec := Specification (Original_Node (Decl));
+               Sent := Defining_Unit_Name (Spec);
+               Prag := Spec_PPC_List (Sent);
+               while Present (Prag) loop
+                  Analyze_PPC_In_Decl_Part (Prag, Sent);
+                  Prag := Next_Pragma (Prag);
+               end loop;
+            end if;
+
+            Next (Decl);
+         end loop;
+      end Analyze_PPCs;
 
       ---------------------
       -- Clear_Constants --
@@ -819,10 +847,7 @@ package body Sem_Ch7 is
                   Set_Is_Known_Non_Null (E, False);
                end if;
 
-            elsif Ekind (E) = E_Package
-                    or else
-                  Ekind (E) = E_Generic_Package
-            then
+            elsif Is_Package_Or_Generic_Package (E) then
                Clear_Constants (E, First_Entity (E));
                Clear_Constants (E, First_Private_Entity (E));
             end if;
@@ -937,6 +962,7 @@ package body Sem_Ch7 is
 
       begin
          Inst_Par := Inst_Id;
+
          Gen_Par :=
            Generic_Parent (Specification (Unit_Declaration_Node (Inst_Par)));
          while Present (Gen_Par) and then Is_Child_Unit (Gen_Par) loop
@@ -963,11 +989,18 @@ package body Sem_Ch7 is
                --  happens when a generic child is instantiated, and the
                --  instance is a child of the parent instance.
 
-               --  Installing the use clauses of the parent instance twice is
-               --  both unnecessary and wrong, because it would cause the
-               --  clauses to be chained to themselves in the use clauses list
-               --  of the scope stack entry. That in turn would cause
-               --  End_Use_Clauses to get into an endless look upon scope exit.
+               --  Installing the use clauses of the parent instance twice
+               --  is both unnecessary and wrong, because it would cause the
+               --  clauses to be chained to themselves in the use clauses
+               --  list of the scope stack entry. That in turn would cause
+               --  an endless loop from End_Use_Clauses upon scope exit.
+
+               --  The parent is now fully visible. It may be a hidden open
+               --  scope if we are currently compiling some child instance
+               --  declared within it, but while the current instance is being
+               --  compiled the parent is immediately visible. In particular
+               --  its entities must remain visible if a stack save/restore
+               --  takes place through a call to Rtsfind.
 
                if Present (Gen_Par) then
                   if not In_Private_Part (Inst_Par) then
@@ -975,6 +1008,7 @@ package body Sem_Ch7 is
                      Set_Use (Private_Declarations
                                 (Specification
                                    (Unit_Declaration_Node (Inst_Par))));
+                     Set_Is_Hidden_Open_Scope (Inst_Par, False);
                   end if;
 
                --  If we've reached the end of the generic instance parents,
@@ -1008,6 +1042,7 @@ package body Sem_Ch7 is
    begin
       if Present (Vis_Decls) then
          Analyze_Declarations (Vis_Decls);
+         Analyze_PPCs (Vis_Decls);
       end if;
 
       --  Verify that incomplete types have received full declarations
@@ -1107,8 +1142,7 @@ package body Sem_Ch7 is
          declare
             Comp_Unit : constant Entity_Id := Cunit_Entity (Current_Sem_Unit);
          begin
-            if (Ekind (Comp_Unit) = E_Package
-                 or else Ekind (Comp_Unit) = E_Generic_Package)
+            if Is_Package_Or_Generic_Package (Comp_Unit)
               and then not In_Private_Part (Comp_Unit)
               and then not In_Instance
             then
@@ -1143,6 +1177,7 @@ package body Sem_Ch7 is
          end if;
 
          Analyze_Declarations (Priv_Decls);
+         Analyze_PPCs (Priv_Decls);
 
          --  Check the private declarations for incomplete deferred constants
 
@@ -1269,8 +1304,7 @@ package body Sem_Ch7 is
       Set_Is_Pure         (Id, PF);
       Init_Size_Align     (Id);
 
-      if (Ekind (Current_Scope) /= E_Package
-          and then Ekind (Current_Scope) /= E_Generic_Package)
+      if not Is_Package_Or_Generic_Package (Current_Scope)
         or else In_Private_Part (Current_Scope)
       then
          Error_Msg_N ("invalid context for private declaration", N);
@@ -1336,13 +1370,17 @@ package body Sem_Ch7 is
          Formal : Entity_Id;
 
       begin
-         if Etype (S) = T then
+         --  If the full view is a scalar type, the type is the anonymous
+         --  base type, but the operation mentions the first subtype, so
+         --  check the signature against the base type.
+
+         if Base_Type (Etype (S)) = Base_Type (T) then
             return True;
 
          else
             Formal := First_Formal (S);
             while Present (Formal) loop
-               if Etype (Formal) = T then
+               if Base_Type (Etype (Formal)) = Base_Type (T) then
                   return True;
                end if;
 
@@ -1418,6 +1456,7 @@ package body Sem_Ch7 is
                            Replace_Elmt (Op_Elmt, New_Op);
                            Remove_Elmt  (Op_List, Op_Elmt_2);
                            Set_Is_Overriding_Operation (New_Op);
+                           Set_Overridden_Operation (New_Op, Parent_Subp);
 
                            --  We don't need to inherit its dispatching slot.
                            --  Set_All_DT_Position has previously ensured that
@@ -1554,41 +1593,6 @@ package body Sem_Ch7 is
       Set_Homonym     (Full_Id, H2);
    end Exchange_Declarations;
 
-   ------------------------------------------
-   -- Inspect_Deferred_Constant_Completion --
-   ------------------------------------------
-
-   procedure Inspect_Deferred_Constant_Completion (Decls : List_Id) is
-      Decl   : Node_Id;
-
-   begin
-      Decl := First (Decls);
-      while Present (Decl) loop
-
-         --  Deferred constant signature
-
-         if Nkind (Decl) = N_Object_Declaration
-           and then Constant_Present (Decl)
-           and then No (Expression (Decl))
-
-            --  No need to check internally generated constants
-
-           and then Comes_From_Source (Decl)
-
-            --  The constant is not completed. A full object declaration
-            --  or a pragma Import complete a deferred constant.
-
-           and then not Has_Completion (Defining_Identifier (Decl))
-         then
-            Error_Msg_N
-              ("constant declaration requires initialization expression",
-              Defining_Identifier (Decl));
-         end if;
-
-         Decl := Next (Decl);
-      end loop;
-   end Inspect_Deferred_Constant_Completion;
-
    ----------------------------
    -- Install_Package_Entity --
    ----------------------------
@@ -1655,11 +1659,18 @@ package body Sem_Ch7 is
                --  when the parent type is defined in the parent unit. At this
                --  point the current type is not private either, and we have to
                --  install the underlying full view, which is now visible.
+               --  Save the current full view as well, so that all views can
+               --  be restored on exit. It may seem that after compiling the
+               --  child body there are not environments to restore, but the
+               --  back-end expects those links to be valid, and freeze nodes
+               --  depend on them.
 
                if No (Full_View (Full))
                  and then Present (Underlying_Full_View (Full))
                then
                   Set_Full_View (Id, Underlying_Full_View (Full));
+                  Set_Underlying_Full_View (Id, Full);
+
                   Set_Underlying_Full_View (Full, Empty);
                   Set_Is_Frozen (Full_View (Id));
                end if;
@@ -2104,7 +2115,7 @@ package body Sem_Ch7 is
          then
             if not Has_Private_Declaration (Etype (Id)) then
 
-               --  We assume that the user did not not intend a deferred
+               --  We assume that the user did not intend a deferred
                --  constant declaration, and the expression is just missing.
 
                Error_Msg_N
@@ -2144,7 +2155,8 @@ package body Sem_Ch7 is
       end if;
 
       --  Make private entities invisible and exchange full and private
-      --  declarations for private types.
+      --  declarations for private types. Id is now the first private
+      --  entity in the package.
 
       while Present (Id) loop
          if Debug_Flag_E then
@@ -2230,6 +2242,22 @@ package body Sem_Ch7 is
             --  Now restore the type itself to its private view
 
             Exchange_Declarations (Id);
+
+            --  If we have installed an underlying full view for a type
+            --  derived from a private type in a child unit, restore the
+            --  proper views of private and full view. See corresponding
+            --  code in Install_Private_Declarations.
+            --  After the exchange, Full denotes the private type in the
+            --  visible part of the package.
+
+            if Is_Private_Base_Type (Full)
+              and then Present (Full_View (Full))
+              and then Present (Underlying_Full_View (Full))
+              and then In_Package_Body (Current_Scope)
+            then
+               Set_Full_View (Full, Underlying_Full_View (Full));
+               Set_Underlying_Full_View (Full, Empty);
+            end if;
 
          elsif Ekind (Id) = E_Incomplete_Type
            and then No (Full_View (Id))

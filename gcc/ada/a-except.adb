@@ -6,25 +6,23 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -39,7 +37,7 @@
 --  builds may be done with bootstrap compilers that cannot handle these
 --  additions. The full version of Ada.Exceptions can be found in the files
 --  a-except-2005.ads/adb, and is used for all other builds where full Ada
---  2005 functionality is required. in particular, it is used for building
+--  2005 functionality is required. In particular, it is used for building
 --  run times on all targets.
 
 pragma Warnings (Off);
@@ -353,7 +351,7 @@ package body Ada.Exceptions is
    --  is deferred before the reraise operation.
 
    --  Save_Occurrence variations: As the management of the private data
-   --  attached to occurrences is delicate, wether or not pointers to such
+   --  attached to occurrences is delicate, whether or not pointers to such
    --  data has to be copied in various situations is better made explicit.
    --  The following procedures provide an internal interface to help making
    --  this explicit.
@@ -377,11 +375,11 @@ package body Ada.Exceptions is
    -- Run-Time Check Routines --
    -----------------------------
 
-   --  These routines are called from the runtime to raise a specific
-   --  exception with a reason message attached. The parameters are
-   --  the file name and line number in each case. The names are keyed
-   --  to the codes defined in Types.ads and a-types.h (for example,
-   --  the name Rcheck_05 refers to the Reason whose Pos code is 5).
+   --  These routines raise a specific exception with a reason message
+   --  attached. The parameters are the file name and line number in each
+   --  case. The names are keyed to the codes defined in types.ads and
+   --  a-types.h (for example, the name Rcheck_05 refers to the Reason
+   --  RT_Exception_Code'Val (5)).
 
    procedure Rcheck_00 (File : System.Address; Line : Integer);
    procedure Rcheck_01 (File : System.Address; Line : Integer);
@@ -807,16 +805,20 @@ package body Ada.Exceptions is
      (E       : Exception_Id;
       Message : String := "")
    is
+      EF : Exception_Id := E;
+
    begin
-      if E /= null then
-         Exception_Data.Set_Exception_Msg (E, Message);
-         Abort_Defer.all;
-         Raise_Current_Excep (E);
+      --  Raise CE if E = Null_ID (AI-446)
+
+      if E = null then
+         EF := Constraint_Error'Identity;
       end if;
 
-      --  Note: if E is null then just return (Ada 95 semantics)
+      --  Go ahead and raise appropriate exception
 
-      return;
+      Exception_Data.Set_Exception_Msg (EF, Message);
+      Abort_Defer.all;
+      Raise_Current_Excep (EF);
    end Raise_Exception;
 
    ----------------------------

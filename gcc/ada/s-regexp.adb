@@ -2,11 +2,11 @@
 --                                                                          --
 --                         GNAT COMPILER COMPONENTS                         --
 --                                                                          --
---                          G N A T . R E G E X P                           --
+--                        S Y S T E M . R E G E X P                         --
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---                     Copyright (C) 1999-2007, AdaCore                     --
+--                     Copyright (C) 1999-2008, AdaCore                     --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -32,7 +32,7 @@
 ------------------------------------------------------------------------------
 
 with Ada.Unchecked_Deallocation;
-with Ada.Exceptions;
+--  with Ada.Exceptions;
 
 with System.Case_Util;
 
@@ -140,7 +140,7 @@ package body System.Regexp is
          Num_States  : out State_Index;
          Start_State : out State_Index;
          End_State   : out State_Index);
-      --  Creates the first version of the regexp (this is a non determinist
+      --  Creates the first version of the regexp (this is a non deterministic
       --  finite state machine, which is unadapted for a fast pattern
       --  matching algorithm). We use a recursive algorithm to process the
       --  parenthesis sub-expressions.
@@ -177,9 +177,7 @@ package body System.Regexp is
       --  add a third pass to reduce the number of states in the machine, with
       --  no speed improvement...
 
-      procedure Raise_Exception
-        (M     : String;
-         Index : Integer);
+      procedure Raise_Exception (M : String; Index : Integer);
       pragma No_Return (Raise_Exception);
       --  Raise an exception, indicating an error at character Index in S
 
@@ -1139,7 +1137,7 @@ package body System.Regexp is
             end loop;
          end Closure;
 
-      --  Start of procesing for Create_Secondary_Table
+      --  Start of processing for Create_Secondary_Table
 
       begin
          --  Create a new state
@@ -1223,13 +1221,9 @@ package body System.Regexp is
       -- Raise_Exception --
       ---------------------
 
-      procedure Raise_Exception
-        (M     : String;
-         Index : Integer)
-      is
+      procedure Raise_Exception (M : String; Index : Integer) is
       begin
-         Ada.Exceptions.Raise_Exception
-           (Error_In_Regexp'Identity, M & " at offset " & Index'Img);
+         raise Error_In_Regexp with M & " at offset " & Index'Img;
       end Raise_Exception;
 
    --  Start of processing for Compile

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 2004-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 2004-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- This specification is derived from the Ada Reference Manual for use with --
 -- GNAT. The copyright notice above, and the license provisions that follow --
@@ -14,21 +14,19 @@
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- This unit was originally developed by Matthew J Heaney.                  --
 ------------------------------------------------------------------------------
@@ -81,7 +79,7 @@ package Ada.Containers.Hashed_Maps is
    procedure Reserve_Capacity (Container : in out Map; Capacity : Count_Type);
    --  Adjusts the current capacity, by allocating a new buckets array. If the
    --  requested capacity is less than the current capacity, then the capacity
-   --  is contracted (to a value not less than the curent length). If the
+   --  is contracted (to a value not less than the current length). If the
    --  requested capacity is greater than the current capacity, then the
    --  capacity is expanded (to a value not less than what is requested). In
    --  either case, the nodes are rehashed from the old buckets array onto the
@@ -199,7 +197,7 @@ package Ada.Containers.Hashed_Maps is
    procedure Delete (Container : in out Map; Key : Key_Type);
    --  Searches for Key in the map (which involves calling both Hash and
    --  Equivalent_Keys). If the search fails, then the operation raises
-   --  Constraint_Eror. Otherwise it removes the node from the map and then
+   --  Constraint_Error. Otherwise it removes the node from the map and then
    --  deallocates it. (This is the deletion analog of non-conditional
    --  Insert. It is intended for use when you want to assert that the item is
    --  already in the map.)

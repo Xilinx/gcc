@@ -1,5 +1,5 @@
 /* { dg-do run } */
-/* { dg-options "-O2 -fdump-tree-salias-vops" } */
+/* { dg-options "-O2 -fdump-tree-alias-vops" } */
 
 const static int a;
 
@@ -25,7 +25,7 @@ int main()
   return 0;
 }
 
-/* { dg-final { scan-tree-dump "q_. = { a b }" "salias" } } */
-/* { dg-final { scan-tree-dump "q_., name memory tag: NMT.., is dereferenced, points-to vars: { a b }" "salias" } } */
-/* { dg-final { scan-tree-dump "# VUSE <a_.\\\(D\\\), b_.>" "salias" } } */
-/* { dg-final { cleanup-tree-dump "salias" } } */
+/* { dg-final { scan-tree-dump "q_. = { a b }" "alias" } } */
+/* { dg-final { scan-tree-dump "q_., name memory tag: NMT..., is dereferenced, points-to vars: { a b }" "alias" } } */
+/* { dg-final { scan-tree-dump "# VUSE <a_.\\\(D\\\), b_.>" "alias" } } */
+/* { dg-final { cleanup-tree-dump "alias" } } */

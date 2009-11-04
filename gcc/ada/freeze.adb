@@ -6,18 +6,18 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License along  --
+-- with this program; see file COPYING3.  If not see                        --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -29,7 +29,9 @@ with Debug;    use Debug;
 with Einfo;    use Einfo;
 with Elists;   use Elists;
 with Errout;   use Errout;
+with Exp_Ch3;  use Exp_Ch3;
 with Exp_Ch7;  use Exp_Ch7;
+with Exp_Disp; use Exp_Disp;
 with Exp_Pakd; use Exp_Pakd;
 with Exp_Util; use Exp_Util;
 with Exp_Tss;  use Exp_Tss;
@@ -132,6 +134,10 @@ package body Freeze is
    --  the designated type. Otherwise freezing the access type does not freeze
    --  the designated type.
 
+   procedure Generate_Prim_Op_References (Typ : Entity_Id);
+   --  For a tagged type, generate implicit references to its primitive
+   --  operations, for source navigation.
+
    procedure Process_Default_Expressions
      (E     : Entity_Id;
       After : in out Node_Id);
@@ -155,14 +161,8 @@ package body Freeze is
    --  setting of Debug_Info_Needed for the entity. This flag is set if
    --  the entity comes from source, or if we are in Debug_Generated_Code
    --  mode or if the -gnatdV debug flag is set. However, it never sets
-   --  the flag if Debug_Info_Off is set.
-
-   procedure Set_Debug_Info_Needed (T : Entity_Id);
-   --  Sets the Debug_Info_Needed flag on entity T if not already set, and
-   --  also on any entities that are needed by T (for an object, the type
-   --  of the object is needed, and for a type, the subsidiary types are
-   --  needed -- see body for details). Never has any effect on T if the
-   --  Debug_Info_Off flag is set.
+   --  the flag if Debug_Info_Off is set. This procedure also ensures that
+   --  subsidiary entities have the flag set as required.
 
    procedure Undelay_Type (T : Entity_Id);
    --  T is a type of a component that we know to be an Itype.
@@ -337,7 +337,7 @@ package body Freeze is
          begin
 
             --  The controlling formal may be an access parameter, or the
-            --  actual may be an access value, so ajust accordingly.
+            --  actual may be an access value, so adjust accordingly.
 
             if Is_Access_Type (Pref_Type)
               and then not Is_Access_Type (Form_Type)
@@ -518,7 +518,7 @@ package body Freeze is
          --  the address expression must be a constant.
 
          if (No (Expression (Decl))
-              and then not Controlled_Type (Typ)
+              and then not Needs_Finalization (Typ)
               and then
                 (not Has_Non_Null_Base_Init_Proc (Typ)
                   or else Is_Imported (E)))
@@ -547,7 +547,7 @@ package body Freeze is
          end if;
 
          if not Error_Posted (Expr)
-           and then not Controlled_Type (Typ)
+           and then not Needs_Finalization (Typ)
          then
             Warn_Overlay (Expr, Typ, Name (Addr));
          end if;
@@ -623,16 +623,28 @@ package body Freeze is
          if Size_Known_At_Compile_Time (T) then
             return True;
 
+         --  Always True for scalar types. This is true even for generic formal
+         --  scalar types. We used to return False in the latter case, but the
+         --  size is known at compile time, even in the template, we just do
+         --  not know the exact size but that's not the point of this routine.
+
          elsif Is_Scalar_Type (T)
            or else Is_Task_Type (T)
          then
-            return not Is_Generic_Type (T);
+            return True;
+
+         --  Array types
 
          elsif Is_Array_Type (T) then
+
+            --  String literals always have known size, and we can set it
+
             if Ekind (T) = E_String_Literal_Subtype then
                Set_Small_Size (T, Component_Size (T)
                                * String_Literal_Length (T));
                return True;
+
+            --  Unconstrained types never have known at compile time size
 
             elsif not Is_Constrained (T) then
                return False;
@@ -642,6 +654,8 @@ package body Freeze is
 
             elsif Error_Posted (T) then
                return False;
+
+            --  Otherwise if component size unknown, then array size unknown
 
             elsif not Size_Known (Component_Type (T)) then
                return False;
@@ -691,8 +705,12 @@ package body Freeze is
                return True;
             end;
 
+         --  Access types always have known at compile time sizes
+
          elsif Is_Access_Type (T) then
             return True;
+
+         --  For non-generic private types, go to underlying type if present
 
          elsif Is_Private_Type (T)
            and then not Is_Generic_Type (T)
@@ -706,6 +724,8 @@ package body Freeze is
             else
                return Size_Known (Underlying_Type (T));
             end if;
+
+         --  Record types
 
          elsif Is_Record_Type (T) then
 
@@ -797,7 +817,7 @@ package body Freeze is
                   --  discriminant.
 
                   --  This is because gigi computes the size by doing a
-                  --  substituation of the appropriate discriminant value in
+                  --  substitution of the appropriate discriminant value in
                   --  the size expression for the base type, and gigi is not
                   --  clever enough to evaluate the resulting expression (which
                   --  involves a call to rep_to_pos) at compile time.
@@ -912,6 +932,8 @@ package body Freeze is
                return True;
             end;
 
+         --  All other cases, size not known at compile time
+
          else
             return False;
          end if;
@@ -956,12 +978,13 @@ package body Freeze is
 
    procedure Check_Debug_Info_Needed (T : Entity_Id) is
    begin
-      if Needs_Debug_Info (T) or else Debug_Info_Off (T) then
+      if Debug_Info_Off (T) then
          return;
 
       elsif Comes_From_Source (T)
         or else Debug_Generated_Code
         or else Debug_Flag_VV
+        or else Needs_Debug_Info (T)
       then
          Set_Debug_Info_Needed (T);
       end if;
@@ -1105,8 +1128,8 @@ package body Freeze is
          New_N :=
            Make_Object_Declaration (Loc,
              Defining_Identifier => Temp,
-             Object_definition => New_Occurrence_Of (Typ, Loc),
-             Expression => Relocate_Node (E));
+             Object_Definition   => New_Occurrence_Of (Typ, Loc),
+             Expression          => Relocate_Node (E));
          Insert_Before (Parent (E), New_N);
          Analyze (New_N);
 
@@ -1303,7 +1326,7 @@ package body Freeze is
       --  We also add finalization chains to access types whose designated
       --  types are controlled. This is normally done when freezing the type,
       --  but this misses recursive type definitions where the later members
-      --  of the recursion introduce controlled components (e.g. 5624-001).
+      --  of the recursion introduce controlled components.
 
       --  Loop through entities
 
@@ -1358,7 +1381,7 @@ package body Freeze is
          elsif Is_Access_Type (E)
            and then Comes_From_Source (E)
            and then Ekind (Directly_Designated_Type (E)) = E_Incomplete_Type
-           and then Controlled_Type (Designated_Type (E))
+           and then Needs_Finalization (Designated_Type (E))
            and then No (Associated_Final_Chain (E))
          then
             Build_Final_List (Parent (E), E);
@@ -1772,18 +1795,21 @@ package body Freeze is
                                     & "(component is little-endian)?", CLC);
                               end if;
 
-                              --  Do not allow non-contiguous field
+                           --  Do not allow non-contiguous field
 
                            else
                               Error_Msg_N
-                                ("attempt to specify non-contiguous field"
-                                 & " not permitted", CLC);
+                                ("attempt to specify non-contiguous field "
+                                 & "not permitted", CLC);
                               Error_Msg_N
-                                ("\(caused by non-standard Bit_Order "
-                                 & "specified)", CLC);
+                                ("\caused by non-standard Bit_Order "
+                                 & "specified", CLC);
+                              Error_Msg_N
+                                ("\consider possibility of using "
+                                 & "Ada 2005 mode here", CLC);
                            end if;
 
-                           --  Case where field fits in one storage unit
+                        --  Case where field fits in one storage unit
 
                         else
                            --  Give warning if suspicious component clause
@@ -1856,7 +1882,7 @@ package body Freeze is
             then
                declare
                   Will_Be_Frozen : Boolean := False;
-                  S : Entity_Id := Scope (Rec);
+                  S              : Entity_Id;
 
                begin
                   --  We have a pretty bad kludge here. Suppose Rec is subtype
@@ -1874,6 +1900,7 @@ package body Freeze is
                   --  do, then mark that Comp'Base will actually be frozen. If
                   --  so, we merely undelay it.
 
+                  S := Scope (Rec);
                   while Present (S) loop
                      if Is_Subprogram (S) then
                         Will_Be_Frozen := True;
@@ -1994,14 +2021,31 @@ package body Freeze is
             end if;
          end if;
 
+         --  Set OK_To_Reorder_Components depending on debug flags
+
+         if Rec = Base_Type (Rec)
+           and then Convention (Rec) = Convention_Ada
+         then
+            if (Has_Discriminants (Rec) and then Debug_Flag_Dot_V)
+                  or else
+               (not Has_Discriminants (Rec) and then Debug_Flag_Dot_R)
+            then
+               Set_OK_To_Reorder_Components (Rec);
+            end if;
+         end if;
+
          --  Check for useless pragma Pack when all components placed. We only
          --  do this check for record types, not subtypes, since a subtype may
          --  have all its components placed, and it still makes perfectly good
-         --  sense to pack other subtypes or the parent type.
+         --  sense to pack other subtypes or the parent type. We do not give
+         --  this warning if Optimize_Alignment is set to Space, since the
+         --  pragma Pack does have an effect in this case (it always resets
+         --  the alignment to one).
 
          if Ekind (Rec) = E_Record_Type
            and then Is_Packed (Rec)
            and then not Unplaced_Component
+           and then Optimize_Alignment /= 'S'
          then
             --  Reset packed status. Probably not necessary, but we do it so
             --  that there is no chance of the back end doing something strange
@@ -2093,16 +2137,19 @@ package body Freeze is
 
          --  Generate warning for applying C or C++ convention to a record
          --  with discriminants. This is suppressed for the unchecked union
-         --  case, since the whole point in this case is interface C.
+         --  case, since the whole point in this case is interface C. We also
+         --  do not generate this within instantiations, since we will have
+         --  generated a message on the template.
 
          if Has_Discriminants (E)
            and then not Is_Unchecked_Union (E)
-           and then not Warnings_Off (E)
-           and then not Warnings_Off (Base_Type (E))
            and then (Convention (E) = Convention_C
                        or else
                      Convention (E) = Convention_CPP)
            and then Comes_From_Source (E)
+           and then not In_Instance
+           and then not Has_Warnings_Off (E)
+           and then not Has_Warnings_Off (Base_Type (E))
          then
             declare
                Cprag : constant Node_Id := Get_Rep_Pragma (E, Name_Convention);
@@ -2330,16 +2377,18 @@ package body Freeze is
                      end if;
 
                      --  Check suspicious parameter for C function. These tests
-                     --  apply only to exported/imported suboprograms.
+                     --  apply only to exported/imported subprograms.
 
                      if Warn_On_Export_Import
+                       and then Comes_From_Source (E)
                        and then (Convention (E) = Convention_C
                                    or else
                                  Convention (E) = Convention_CPP)
-                       and then not Warnings_Off (E)
-                       and then not Warnings_Off (F_Type)
-                       and then not Warnings_Off (Formal)
                        and then (Is_Imported (E) or else Is_Exported (E))
+                       and then Convention (E) /= Convention (Formal)
+                       and then not Has_Warnings_Off (E)
+                       and then not Has_Warnings_Off (F_Type)
+                       and then not Has_Warnings_Off (Formal)
                      then
                         Error_Msg_Qual_Level := 1;
 
@@ -2356,6 +2405,8 @@ package body Freeze is
 
                         elsif Root_Type (F_Type) = Standard_Boolean
                           and then Convention (F_Type) = Convention_Ada
+                          and then not Has_Warnings_Off (F_Type)
+                          and then not Has_Size_Clause (F_Type)
                         then
                            Error_Msg_N
                              ("?& is an 8-bit Ada Boolean, "
@@ -2482,14 +2533,14 @@ package body Freeze is
                        and then (Convention (E) = Convention_C
                                    or else
                                  Convention (E) = Convention_CPP)
-                       and then not Warnings_Off (E)
-                       and then not Warnings_Off (R_Type)
                        and then (Is_Imported (E) or else Is_Exported (E))
                      then
                         --  Check suspicious return of fat C pointer
 
                         if Is_Access_Type (R_Type)
                           and then Esize (R_Type) > Ttypes.System_Address_Size
+                          and then not Has_Warnings_Off (E)
+                          and then not Has_Warnings_Off (R_Type)
                         then
                            Error_Msg_N
                              ("?return type of& does not "
@@ -2499,6 +2550,9 @@ package body Freeze is
 
                         elsif Root_Type (R_Type) = Standard_Boolean
                           and then Convention (R_Type) = Convention_Ada
+                          and then not Has_Warnings_Off (E)
+                          and then not Has_Warnings_Off (R_Type)
+                          and then not Has_Size_Clause (R_Type)
                         then
                            Error_Msg_N
                              ("?return type of & is an 8-bit "
@@ -2512,6 +2566,8 @@ package body Freeze is
                                              Is_Tagged_Type
                                                (Designated_Type (R_Type))))
                           and then Convention (E) = Convention_C
+                          and then not Has_Warnings_Off (E)
+                          and then not Has_Warnings_Off (R_Type)
                         then
                            Error_Msg_N
                              ("?return type of & does not "
@@ -2521,6 +2577,8 @@ package body Freeze is
 
                         elsif Ekind (R_Type) = E_Access_Subprogram_Type
                           and then not Has_Foreign_Convention (R_Type)
+                          and then not Has_Warnings_Off (E)
+                          and then not Has_Warnings_Off (R_Type)
                         then
                            Error_Msg_N
                              ("?& should return a foreign "
@@ -2537,16 +2595,22 @@ package body Freeze is
                        and then not Is_Imported (E)
                        and then Has_Foreign_Convention (E)
                        and then Warn_On_Export_Import
+                       and then not Has_Warnings_Off (E)
+                       and then not Has_Warnings_Off (Etype (E))
                      then
                         Error_Msg_N
                           ("?foreign convention function& should not " &
-                           "return unconstrained array", E);
+                           "return unconstrained array!", E);
 
                      --  Ada 2005 (AI-326): Check wrong use of tagged
                      --  incomplete type
-                     --
+
                      --    type T is tagged;
                      --    function F (X : Boolean) return T; -- ERROR
+
+                     --  The type must be declared in the current scope for the
+                     --  use to be legal, and the full view must be available
+                     --  when the construct that mentions it is frozen.
 
                      elsif Ekind (Etype (E)) = E_Incomplete_Type
                        and then Is_Tagged_Type (Etype (E))
@@ -2555,7 +2619,7 @@ package body Freeze is
                      then
                         Error_Msg_N
                           ("(Ada 2005): invalid use of tagged incomplete type",
-                           E);
+                            E);
                      end if;
                   end if;
                end;
@@ -2582,10 +2646,29 @@ package body Freeze is
          --  Here for other than a subprogram or type
 
          else
+            --  For a generic package, freeze types within, so that proper
+            --  cross-reference information is generated for tagged types.
+            --  This is the only freeze processing needed for generic packages.
+
+            if Ekind (E) = E_Generic_Package then
+               declare
+                  T : Entity_Id;
+
+               begin
+                  T := First_Entity (E);
+                  while Present (T) loop
+                     if Is_Type (T) then
+                        Generate_Prim_Op_References (T);
+                     end if;
+
+                     Next_Entity (T);
+                  end loop;
+               end;
+
             --  If entity has a type, and it is not a generic unit, then
             --  freeze it first (RM 13.14(10)).
 
-            if Present (Etype (E))
+            elsif Present (Etype (E))
               and then Ekind (E) /= E_Generic_Function
             then
                Freeze_And_Append (Etype (E), Loc, Result);
@@ -2602,9 +2685,38 @@ package body Freeze is
 
                Validate_Object_Declaration (Declaration_Node (E));
 
-               --  If there is an address clause, check it is valid
+               --  If there is an address clause, check that it is valid
 
                Check_Address_Clause (E);
+
+               --  If the object needs any kind of default initialization, an
+               --  error must be issued if No_Default_Initialization applies.
+               --  The check doesn't apply to imported objects, which are not
+               --  ever default initialized, and is why the check is deferred
+               --  until freezing, at which point we know if Import applies.
+               --  Deferred constants are also exempted from this test because
+               --  their completion is explicit, or through an import pragma.
+
+               if Ekind (E) = E_Constant
+                 and then Present (Full_View (E))
+               then
+                  null;
+
+               elsif Comes_From_Source (E)
+                 and then not Is_Imported (E)
+                 and then not Has_Init_Expression (Declaration_Node (E))
+                 and then
+                   ((Has_Non_Null_Base_Init_Proc (Etype (E))
+                      and then not No_Initialization (Declaration_Node (E))
+                      and then not Is_Value_Type (Etype (E))
+                      and then not Suppress_Init_Proc (Etype (E)))
+                    or else
+                      (Needs_Simple_Initialization (Etype (E))
+                        and then not Is_Internal (E)))
+               then
+                  Check_Restriction
+                    (No_Default_Initialization, Declaration_Node (E));
+               end if;
 
                --  For imported objects, set Is_Public unless there is also an
                --  address clause, which means that there is no external symbol
@@ -2889,7 +3001,7 @@ package body Freeze is
                   --  processing is only done for base types, since all the
                   --  representation aspects involved are type-related. This
                   --  is not just an optimization, if we start processing the
-                  --  subtypes, they intefere with the settings on the base
+                  --  subtypes, they interfere with the settings on the base
                   --  type (this is because Is_Packed has a slightly different
                   --  meaning before and after freezing).
 
@@ -3196,7 +3308,7 @@ package body Freeze is
             Freeze_Record_Type (E);
 
          --  For a concurrent type, freeze corresponding record type. This
-         --  does not correpond to any specific rule in the RM, but the
+         --  does not correspond to any specific rule in the RM, but the
          --  record type is essentially part of the concurrent type.
          --  Freeze as well all local entities. This includes record types
          --  created for entry parameter blocks, and whatever local entities
@@ -3490,9 +3602,23 @@ package body Freeze is
 
             if Is_Pure_Unit_Access_Type (E)
               and then (Ada_Version < Ada_05
-                        or else not No_Pool_Assigned (E))
+                         or else not No_Pool_Assigned (E))
             then
                Error_Msg_N ("named access type not allowed in pure unit", E);
+
+               if Ada_Version >= Ada_05 then
+                  Error_Msg_N
+                    ("\would be legal if Storage_Size of 0 given?", E);
+
+               elsif No_Pool_Assigned (E) then
+                  Error_Msg_N
+                    ("\would be legal in Ada 2005?", E);
+
+               else
+                  Error_Msg_N
+                    ("\would be legal in Ada 2005 if "
+                     & "Storage_Size of 0 given?", E);
+               end if;
             end if;
          end if;
 
@@ -3532,66 +3658,9 @@ package body Freeze is
             end if;
          end if;
 
-         --  Generate primitive operation references for a tagged type
+         --  Generate references to primitive operations for a tagged type
 
-         if Is_Tagged_Type (E)
-           and then not Is_Class_Wide_Type (E)
-         then
-            declare
-               Prim_List : Elist_Id;
-               Prim      : Elmt_Id;
-               Ent       : Entity_Id;
-               Aux_E     : Entity_Id;
-
-            begin
-               --  Handle subtypes
-
-               if Ekind (E) = E_Protected_Subtype
-                 or else Ekind (E) = E_Task_Subtype
-               then
-                  Aux_E := Etype (E);
-               else
-                  Aux_E := E;
-               end if;
-
-               --  Ada 2005 (AI-345): In case of concurrent type generate
-               --  reference to the wrapper that allow us to dispatch calls
-               --  through their implemented abstract interface types.
-
-               --  The check for Present here is to protect against previously
-               --  reported critical errors.
-
-               if Is_Concurrent_Type (Aux_E)
-                 and then Present (Corresponding_Record_Type (Aux_E))
-               then
-                  Prim_List := Primitive_Operations
-                                (Corresponding_Record_Type (Aux_E));
-               else
-                  Prim_List := Primitive_Operations (Aux_E);
-               end if;
-
-               --  Loop to generate references for primitive operations
-
-               if Present (Prim_List) then
-                  Prim := First_Elmt (Prim_List);
-                  while Present (Prim) loop
-
-                     --  If the operation is derived, get the original for
-                     --  cross-reference purposes (it is the original for
-                     --  which we want the xref, and for which the comes
-                     --  from source test needs to be performed).
-
-                     Ent := Node (Prim);
-                     while Present (Alias (Ent)) loop
-                        Ent := Alias (Ent);
-                     end loop;
-
-                     Generate_Reference (E, Ent, 'p', Set_Ref => False);
-                     Next_Elmt (Prim);
-                  end loop;
-               end if;
-            end;
-         end if;
+         Generate_Prim_Op_References (E);
 
          --  Now that all types from which E may depend are frozen, see if the
          --  size is known at compile time, if it must be unsigned, or if
@@ -3610,7 +3679,7 @@ package body Freeze is
          if Has_Size_Clause (E)
            and then not Size_Known_At_Compile_Time (E)
          then
-            --  Supress this message if errors posted on E, even if we are
+            --  Suppress this message if errors posted on E, even if we are
             --  in all errors mode, since this is often a junk message
 
             if not Error_Posted (E) then
@@ -3766,12 +3835,36 @@ package body Freeze is
 
    procedure Freeze_Enumeration_Type (Typ : Entity_Id) is
    begin
+      --  By default, if no size clause is present, an enumeration type with
+      --  Convention C is assumed to interface to a C enum, and has integer
+      --  size. This applies to types. For subtypes, verify that its base
+      --  type has no size clause either.
+
       if Has_Foreign_Convention (Typ)
         and then not Has_Size_Clause (Typ)
+        and then not Has_Size_Clause (Base_Type (Typ))
         and then Esize (Typ) < Standard_Integer_Size
       then
          Init_Esize (Typ, Standard_Integer_Size);
+
       else
+         --  If the enumeration type interfaces to C, and it has a size clause
+         --  that specifies less than int size, it warrants a warning. The
+         --  user may intend the C type to be an enum or a char, so this is
+         --  not by itself an error that the Ada compiler can detect, but it
+         --  it is a worth a heads-up. For Boolean and Character types we
+         --  assume that the programmer has the proper C type in mind.
+
+         if Convention (Typ) = Convention_C
+           and then Has_Size_Clause (Typ)
+           and then Esize (Typ) /= Esize (Standard_Integer)
+           and then not Is_Boolean_Type (Typ)
+           and then not Is_Character_Type (Typ)
+         then
+            Error_Msg_N
+              ("C enum types have the size of a C int?", Size_Clause (Typ));
+         end if;
+
          Adjust_Esize_For_Alignment (Typ);
       end if;
    end Freeze_Enumeration_Type;
@@ -3781,12 +3874,12 @@ package body Freeze is
    -----------------------
 
    procedure Freeze_Expression (N : Node_Id) is
-      In_Def_Exp : constant Boolean := In_Default_Expression;
-      Typ        : Entity_Id;
-      Nam        : Entity_Id;
-      Desig_Typ  : Entity_Id;
-      P          : Node_Id;
-      Parent_P   : Node_Id;
+      In_Spec_Exp : constant Boolean := In_Spec_Expression;
+      Typ         : Entity_Id;
+      Nam         : Entity_Id;
+      Desig_Typ   : Entity_Id;
+      P           : Node_Id;
+      Parent_P    : Node_Id;
 
       Freeze_Outside : Boolean := False;
       --  This flag is set true if the entity must be frozen outside the
@@ -3857,7 +3950,7 @@ package body Freeze is
       --  make sure that we actually have a real expression (if we have
       --  a subtype indication, we can't test Is_Static_Expression!)
 
-      if In_Def_Exp
+      if In_Spec_Exp
         and then Nkind (N) in N_Subexpr
         and then not Is_Static_Expression (N)
       then
@@ -3989,7 +4082,7 @@ package body Freeze is
 
                --  For either of these cases, we skip the freezing
 
-               if not In_Default_Expression
+               if not In_Spec_Expression
                  and then Nkind (N) = N_Identifier
                  and then (Present (Entity (N)))
                then
@@ -4021,7 +4114,7 @@ package body Freeze is
                  and then Is_Enumeration_Type (Etype (N))
                then
                   --  If enumeration literal appears directly as the choice,
-                  --  do not freeze (this is the normal non-overloade case)
+                  --  do not freeze (this is the normal non-overloaded case)
 
                   if Nkind (Parent (N)) = N_Component_Association
                     and then First (Choices (Parent (N))) = N
@@ -4176,11 +4269,11 @@ package body Freeze is
       --  static type, and the freeze scope needs to be the outer scope, not
       --  the scope of the subprogram with the default parameter.
 
-      --  For default expressions in generic units, the Move_Freeze_Nodes
-      --  mechanism (see sem_ch12.adb) takes care of placing them at the proper
-      --  place, after the generic unit.
+      --  For default expressions and other spec expressions in generic units,
+      --  the Move_Freeze_Nodes mechanism (see sem_ch12.adb) takes care of
+      --  placing them at the proper place, after the generic unit.
 
-      if (In_Def_Exp and not Inside_A_Generic)
+      if (In_Spec_Exp and not Inside_A_Generic)
         or else Freeze_Outside
         or else (Is_Type (Current_Scope)
                   and then (not Is_Concurrent_Type (Current_Scope)
@@ -4228,15 +4321,15 @@ package body Freeze is
       end if;
 
       --  Now we have the right place to do the freezing. First, a special
-      --  adjustment, if we are in default expression analysis mode, these
-      --  freeze actions must not be thrown away (normally all inserted actions
-      --  are thrown away in this mode. However, the freeze actions are from
-      --  static expressions and one of the important reasons we are doing this
+      --  adjustment, if we are in spec-expression analysis mode, these freeze
+      --  actions must not be thrown away (normally all inserted actions are
+      --  thrown away in this mode. However, the freeze actions are from static
+      --  expressions and one of the important reasons we are doing this
       --  special analysis is to get these freeze actions. Therefore we turn
-      --  off the In_Default_Expression mode to propagate these freeze actions.
+      --  off the In_Spec_Expression mode to propagate these freeze actions.
       --  This also means they get properly analyzed and expanded.
 
-      In_Default_Expression := False;
+      In_Spec_Expression := False;
 
       --  Freeze the designated type of an allocator (RM 13.14(13))
 
@@ -4257,7 +4350,9 @@ package body Freeze is
          Freeze_Before (P, Nam);
       end if;
 
-      In_Default_Expression := In_Def_Exp;
+      --  Restore In_Spec_Expression flag
+
+      In_Spec_Expression := In_Spec_Exp;
    end Freeze_Expression;
 
    -----------------------------
@@ -4384,7 +4479,7 @@ package body Freeze is
             --  case of both bounds negative, because the sign will be dealt
             --  with anyway. Furthermore we can't just go making such a bound
             --  symmetrical, since in a twos-complement system, there is an
-            --  extra negative value which could not be accomodated on the
+            --  extra negative value which could not be accommodated on the
             --  positive side.
 
             if Typ = Btyp
@@ -5054,6 +5149,19 @@ package body Freeze is
          Error_Msg_N
            ("pragma Inline_Always not allowed for dispatching subprograms", E);
       end if;
+
+      --  Because of the implicit representation of inherited predefined
+      --  operators in the front-end, the overriding status of the operation
+      --  may be affected when a full view of a type is analyzed, and this is
+      --  not captured by the analysis of the corresponding type declaration.
+      --  Therefore the correctness of a not-overriding indicator must be
+      --  rechecked when the subprogram is frozen.
+
+      if Nkind (E) = N_Defining_Operator_Symbol
+        and then not Error_Posted (Parent (E))
+      then
+         Check_Overriding_Indicator (E, Empty, Is_Primitive (E));
+      end if;
    end Freeze_Subprogram;
 
    ----------------------
@@ -5095,6 +5203,72 @@ package body Freeze is
            or else Present (Full_View (Base_Type (T)));
       end if;
    end Is_Fully_Defined;
+
+   ---------------------------------
+   -- Generate_Prim_Op_References --
+   ---------------------------------
+
+   procedure Generate_Prim_Op_References (Typ : Entity_Id) is
+      Base_T    : Entity_Id;
+      Prim      : Elmt_Id;
+      Prim_List : Elist_Id;
+      Ent       : Entity_Id;
+
+   begin
+      --  Handle subtypes of synchronized types
+
+      if Ekind (Typ) = E_Protected_Subtype
+        or else Ekind (Typ) = E_Task_Subtype
+      then
+         Base_T := Etype (Typ);
+      else
+         Base_T := Typ;
+      end if;
+
+      --  References to primitive operations are only relevant for tagged types
+
+      if not Is_Tagged_Type (Base_T)
+           or else Is_Class_Wide_Type (Base_T)
+      then
+         return;
+      end if;
+
+      --  Ada 2005 (AI-345): For synchronized types generate reference
+      --  to the wrapper that allow us to dispatch calls through their
+      --  implemented abstract interface types.
+
+      --  The check for Present here is to protect against previously
+      --  reported critical errors.
+
+      if Is_Concurrent_Type (Base_T)
+        and then Present (Corresponding_Record_Type (Base_T))
+      then
+         Prim_List := Primitive_Operations
+                       (Corresponding_Record_Type (Base_T));
+      else
+         Prim_List := Primitive_Operations (Base_T);
+      end if;
+
+      if No (Prim_List) then
+         return;
+      end if;
+
+      Prim := First_Elmt (Prim_List);
+      while Present (Prim) loop
+
+         --  If the operation is derived, get the original for cross-reference
+         --  reference purposes (it is the original for which we want the xref
+         --  and for which the comes_from_source test must be performed).
+
+         Ent := Node (Prim);
+         while Present (Alias (Ent)) loop
+            Ent := Alias (Ent);
+         end loop;
+
+         Generate_Reference (Typ, Ent, 'p', Set_Ref => False);
+         Next_Elmt (Prim);
+      end loop;
+   end Generate_Prim_Op_References;
 
    ---------------------------------
    -- Process_Default_Expressions --
@@ -5233,7 +5407,6 @@ package body Freeze is
 
          Next_Formal (Formal);
       end loop;
-
    end Process_Default_Expressions;
 
    ----------------------------------------
@@ -5265,65 +5438,6 @@ package body Freeze is
                   (Scope_Stack.Last).Component_Alignment_Default);
       end if;
    end Set_Component_Alignment_If_Not_Set;
-
-   ---------------------------
-   -- Set_Debug_Info_Needed --
-   ---------------------------
-
-   procedure Set_Debug_Info_Needed (T : Entity_Id) is
-   begin
-      if No (T)
-        or else Needs_Debug_Info (T)
-        or else Debug_Info_Off (T)
-      then
-         return;
-      else
-         Set_Needs_Debug_Info (T);
-      end if;
-
-      if Is_Object (T) then
-         Set_Debug_Info_Needed (Etype (T));
-
-      elsif Is_Type (T) then
-         Set_Debug_Info_Needed (Etype (T));
-
-         if Is_Record_Type (T) then
-            declare
-               Ent : Entity_Id := First_Entity (T);
-            begin
-               while Present (Ent) loop
-                  Set_Debug_Info_Needed (Ent);
-                  Next_Entity (Ent);
-               end loop;
-            end;
-
-         elsif Is_Array_Type (T) then
-            Set_Debug_Info_Needed (Component_Type (T));
-
-            declare
-               Indx : Node_Id := First_Index (T);
-            begin
-               while Present (Indx) loop
-                  Set_Debug_Info_Needed (Etype (Indx));
-                  Indx := Next_Index (Indx);
-               end loop;
-            end;
-
-            if Is_Packed (T) then
-               Set_Debug_Info_Needed (Packed_Array_Type (T));
-            end if;
-
-         elsif Is_Access_Type (T) then
-            Set_Debug_Info_Needed (Directly_Designated_Type (T));
-
-         elsif Is_Private_Type (T) then
-            Set_Debug_Info_Needed (Full_View (T));
-
-         elsif Is_Protected_Type (T) then
-            Set_Debug_Info_Needed (Corresponding_Record_Type (T));
-         end if;
-      end if;
-   end Set_Debug_Info_Needed;
 
    ------------------
    -- Undelay_Type --
@@ -5439,7 +5553,7 @@ package body Freeze is
 
          if Present (Decl)
            and then Nkind (Decl) = N_Pragma
-           and then Chars (Decl) = Name_Import
+           and then Pragma_Name (Decl) = Name_Import
          then
             return;
          end if;

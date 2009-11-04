@@ -1,4 +1,4 @@
-/* Copyright (C) 2006, 2007 Free Software Foundation, Inc.
+/* Copyright (C) 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
 
    This file is free software; you can redistribute it and/or modify it under
    the terms of the GNU General Public License as published by the Free
@@ -50,7 +50,7 @@
 #include "assert.h"
 #include "c-common.h"
 #include "machmode.h"
-#include "tree-gimple.h"
+#include "gimple.h"
 #include "tm-constrs.h"
 #include "ddg.h"
 #include "sbitmap.h"
@@ -187,15 +187,15 @@ static unsigned char spu_pass_by_reference (CUMULATIVE_ARGS *cum, enum machine_m
 					    const_tree type, unsigned char named);
 static tree spu_build_builtin_va_list (void);
 static void spu_va_start (tree, rtx);
-static tree spu_gimplify_va_arg_expr (tree valist, tree type, tree * pre_p,
-				      tree * post_p);
+static tree spu_gimplify_va_arg_expr (tree valist, tree type,
+				      gimple_seq * pre_p, gimple_seq * post_p);
 static int regno_aligned_for_load (int regno);
 static int store_with_one_insn_p (rtx mem);
 static int mem_is_padded_component_ref (rtx x);
 static bool spu_assemble_integer (rtx x, unsigned int size, int aligned_p);
 static void spu_asm_globalize_label (FILE * file, const char *name);
 static unsigned char spu_rtx_costs (rtx x, int code, int outer_code,
-				    int *total);
+				    int *total, bool speed);
 static unsigned char spu_function_ok_for_sibcall (tree decl, tree exp);
 static void spu_init_libfuncs (void);
 static bool spu_return_in_memory (const_tree type, const_tree fntype);
@@ -206,6 +206,7 @@ static tree spu_builtin_mul_widen_odd (tree);
 static tree spu_builtin_mask_for_load (void);
 static int spu_builtin_vectorization_cost (bool);
 static bool spu_vector_alignment_reachable (const_tree, bool);
+static tree spu_builtin_vec_perm (tree, tree *);
 static int spu_sms_res_mii (struct ddg *g);
 static void asm_file_start (void);
 static unsigned int spu_section_type_flags (tree, const char *, int);
@@ -288,7 +289,7 @@ spu_libgcc_shift_count_mode (void);
 #define TARGET_RTX_COSTS spu_rtx_costs
 
 #undef TARGET_ADDRESS_COST
-#define TARGET_ADDRESS_COST hook_int_rtx_0
+#define TARGET_ADDRESS_COST hook_int_rtx_bool_0
 
 #undef TARGET_SCHED_ISSUE_RATE
 #define TARGET_SCHED_ISSUE_RATE spu_sched_issue_rate
@@ -377,6 +378,9 @@ const struct attribute_spec spu_attribute_table[];
 
 #undef TARGET_VECTOR_ALIGNMENT_REACHABLE
 #define TARGET_VECTOR_ALIGNMENT_REACHABLE spu_vector_alignment_reachable
+
+#undef TARGET_VECTORIZE_BUILTIN_VEC_PERM
+#define TARGET_VECTORIZE_BUILTIN_VEC_PERM spu_builtin_vec_perm
 
 #undef TARGET_LIBGCC_CMP_RETURN_MODE
 #define TARGET_LIBGCC_CMP_RETURN_MODE spu_libgcc_cmp_return_mode
@@ -770,7 +774,7 @@ spu_expand_block_move (rtx ops[])
   int i;
   if (GET_CODE (ops[2]) != CONST_INT
       || GET_CODE (ops[3]) != CONST_INT
-      || INTVAL (ops[2]) > (HOST_WIDE_INT) (MOVE_RATIO * 8))
+      || INTVAL (ops[2]) > (HOST_WIDE_INT) (MOVE_RATIO (optimize_insn_for_speed_p ()) * 8))
     return 0;
 
   bytes = INTVAL (ops[2]);
@@ -1717,7 +1721,7 @@ spu_split_immediate (rtx * ops)
 	    {
 	      rtx pic_reg = get_pic_reg ();
 	      emit_insn (gen_addsi3 (ops[0], ops[0], pic_reg));
-	      current_function_uses_pic_offset_table = 1;
+	      crtl->uses_pic_offset_table = 1;
 	    }
 	  return flag_pic || c == IC_IL2s;
 	}
@@ -1743,7 +1747,7 @@ need_to_save_reg (int regno, int saving)
     return 1;
   if (flag_pic
       && regno == PIC_OFFSET_TABLE_REGNUM
-      && (!saving || current_function_uses_pic_offset_table)
+      && (!saving || crtl->uses_pic_offset_table)
       && (!saving
 	  || !current_function_is_leaf || df_regs_ever_live_p (LAST_ARG_REGNUM)))
     return 1;
@@ -1811,8 +1815,8 @@ direct_return (void)
       if (cfun->static_chain_decl == 0
 	  && (spu_saved_regs_size ()
 	      + get_frame_size ()
-	      + current_function_outgoing_args_size
-	      + current_function_pretend_args_size == 0)
+	      + crtl->outgoing_args_size
+	      + crtl->args.pretend_args_size == 0)
 	  && current_function_is_leaf)
 	return 1;
     }
@@ -1823,30 +1827,30 @@ direct_return (void)
    The stack frame looks like this:
          +-------------+
          |  incoming   | 
-      AP |    args     | 
-         +-------------+
+         |    args     | 
+   AP -> +-------------+
          | $lr save    |
          +-------------+
  prev SP | back chain  | 
          +-------------+
          |  var args   | 
-         |  reg save   | current_function_pretend_args_size bytes
+         |  reg save   | crtl->args.pretend_args_size bytes
          +-------------+
          |    ...      | 
          | saved regs  | spu_saved_regs_size() bytes
-         +-------------+
+   FP -> +-------------+
          |    ...      | 
-      FP |   vars      | get_frame_size()  bytes
-         +-------------+
+         |   vars      | get_frame_size()  bytes
+  HFP -> +-------------+
          |    ...      | 
          |  outgoing   | 
-         |    args     | current_function_outgoing_args_size bytes
+         |    args     | crtl->outgoing_args_size bytes
          +-------------+
          | $lr of next |
          |   frame     | 
          +-------------+
-      SP | back chain  | 
-         +-------------+
+         | back chain  | 
+   SP -> +-------------+
 
 */
 void
@@ -1864,7 +1868,7 @@ spu_expand_prologue (void)
   emit_note (NOTE_INSN_DELETED);
 
   if (flag_pic && optimize == 0)
-    current_function_uses_pic_offset_table = 1;
+    crtl->uses_pic_offset_table = 1;
 
   if (spu_naked_function_p (current_function_decl))
     return;
@@ -1874,11 +1878,11 @@ spu_expand_prologue (void)
 
   saved_regs_size = spu_saved_regs_size ();
   total_size = size + saved_regs_size
-    + current_function_outgoing_args_size
-    + current_function_pretend_args_size;
+    + crtl->outgoing_args_size
+    + crtl->args.pretend_args_size;
 
   if (!current_function_is_leaf
-      || current_function_calls_alloca || total_size > 0)
+      || cfun->calls_alloca || total_size > 0)
     total_size += STACK_POINTER_OFFSET;
 
   /* Save this first because code after this might use the link
@@ -1891,7 +1895,7 @@ spu_expand_prologue (void)
 
   if (total_size > 0)
     {
-      offset = -current_function_pretend_args_size;
+      offset = -crtl->args.pretend_args_size;
       for (regno = 0; regno < FIRST_PSEUDO_REGISTER; ++regno)
 	if (need_to_save_reg (regno, 1))
 	  {
@@ -1901,7 +1905,7 @@ spu_expand_prologue (void)
 	  }
     }
 
-  if (flag_pic && current_function_uses_pic_offset_table)
+  if (flag_pic && crtl->uses_pic_offset_table)
     {
       rtx pic_reg = get_pic_reg ();
       insn = emit_insn (gen_load_pic_offset (pic_reg, scratch_reg_0));
@@ -1965,7 +1969,7 @@ spu_expand_prologue (void)
 	{
 	  rtx fp_reg = gen_rtx_REG (Pmode, HARD_FRAME_POINTER_REGNUM);
 	  HOST_WIDE_INT fp_offset = STACK_POINTER_OFFSET
-	    + current_function_outgoing_args_size;
+	    + crtl->outgoing_args_size;
 	  /* Set the new frame_pointer */
 	  insn = frame_emit_add_imm (fp_reg, sp_reg, fp_offset, scratch_reg_0);
 	  RTX_FRAME_RELATED_P (insn) = 1;
@@ -1999,16 +2003,16 @@ spu_expand_epilogue (bool sibcall_p)
 
   saved_regs_size = spu_saved_regs_size ();
   total_size = size + saved_regs_size
-    + current_function_outgoing_args_size
-    + current_function_pretend_args_size;
+    + crtl->outgoing_args_size
+    + crtl->args.pretend_args_size;
 
   if (!current_function_is_leaf
-      || current_function_calls_alloca || total_size > 0)
+      || cfun->calls_alloca || total_size > 0)
     total_size += STACK_POINTER_OFFSET;
 
   if (total_size > 0)
     {
-      if (current_function_calls_alloca)
+      if (cfun->calls_alloca)
 	frame_emit_load (STACK_POINTER_REGNUM, sp_reg, 0);
       else
 	frame_emit_add_imm (sp_reg, sp_reg, total_size, scratch_reg_0);
@@ -2016,7 +2020,7 @@ spu_expand_epilogue (bool sibcall_p)
 
       if (saved_regs_size > 0)
 	{
-	  offset = -current_function_pretend_args_size;
+	  offset = -crtl->args.pretend_args_size;
 	  for (regno = 0; regno < FIRST_PSEUDO_REGISTER; ++regno)
 	    if (need_to_save_reg (regno, 1))
 	      {
@@ -2031,8 +2035,7 @@ spu_expand_epilogue (bool sibcall_p)
 
   if (!sibcall_p)
     {
-      emit_insn (gen_rtx_USE
-		 (VOIDmode, gen_rtx_REG (SImode, LINK_REGISTER_REGNUM)));
+      emit_use (gen_rtx_REG (SImode, LINK_REGISTER_REGNUM));
       jump = emit_jump_insn (gen__return ());
       emit_barrier_after (jump);
     }
@@ -3732,19 +3735,20 @@ spu_initial_elimination_offset (int from, int to)
 {
   int saved_regs_size = spu_saved_regs_size ();
   int sp_offset = 0;
-  if (!current_function_is_leaf || current_function_outgoing_args_size
+  if (!current_function_is_leaf || crtl->outgoing_args_size
       || get_frame_size () || saved_regs_size)
     sp_offset = STACK_POINTER_OFFSET;
   if (from == FRAME_POINTER_REGNUM && to == STACK_POINTER_REGNUM)
-    return (sp_offset + current_function_outgoing_args_size);
+    return get_frame_size () + crtl->outgoing_args_size + sp_offset;
   else if (from == FRAME_POINTER_REGNUM && to == HARD_FRAME_POINTER_REGNUM)
-    return 0;
+    return get_frame_size ();
   else if (from == ARG_POINTER_REGNUM && to == STACK_POINTER_REGNUM)
-    return sp_offset + current_function_outgoing_args_size
+    return sp_offset + crtl->outgoing_args_size
       + get_frame_size () + saved_regs_size + STACK_POINTER_OFFSET;
   else if (from == ARG_POINTER_REGNUM && to == HARD_FRAME_POINTER_REGNUM)
     return get_frame_size () + saved_regs_size + sp_offset;
-  return 0;
+  else
+    gcc_unreachable ();
 }
 
 rtx
@@ -3898,10 +3902,10 @@ spu_build_builtin_va_list (void)
    The following global variables are used to initialize
    the va_list structure:
 
-     current_function_args_info;
+     crtl->args.info;
        the CUMULATIVE_ARGS for this function
 
-     current_function_arg_offset_rtx:
+     crtl->args.arg_offset_rtx:
        holds the offset of the first anonymous stack argument
        (relative to the virtual arg pointer).  */
 
@@ -3922,19 +3926,19 @@ spu_va_start (tree valist, rtx nextarg)
 
   /* Find the __args area.  */
   t = make_tree (TREE_TYPE (args), nextarg);
-  if (current_function_pretend_args_size > 0)
+  if (crtl->args.pretend_args_size > 0)
     t = build2 (POINTER_PLUS_EXPR, TREE_TYPE (args), t,
 		size_int (-STACK_POINTER_OFFSET));
-  t = build2 (GIMPLE_MODIFY_STMT, TREE_TYPE (args), args, t);
+  t = build2 (MODIFY_EXPR, TREE_TYPE (args), args, t);
   TREE_SIDE_EFFECTS (t) = 1;
   expand_expr (t, const0_rtx, VOIDmode, EXPAND_NORMAL);
 
   /* Find the __skip area.  */
   t = make_tree (TREE_TYPE (skip), virtual_incoming_args_rtx);
   t = build2 (POINTER_PLUS_EXPR, TREE_TYPE (skip), t,
-	      size_int (current_function_pretend_args_size
+	      size_int (crtl->args.pretend_args_size
 			 - STACK_POINTER_OFFSET));
-  t = build2 (GIMPLE_MODIFY_STMT, TREE_TYPE (skip), skip, t);
+  t = build2 (MODIFY_EXPR, TREE_TYPE (skip), skip, t);
   TREE_SIDE_EFFECTS (t) = 1;
   expand_expr (t, const0_rtx, VOIDmode, EXPAND_NORMAL);
 }
@@ -3957,8 +3961,8 @@ spu_va_start (tree valist, rtx nextarg)
     ret = *(TYPE *)addr;
  */
 static tree
-spu_gimplify_va_arg_expr (tree valist, tree type, tree * pre_p,
-			  tree * post_p ATTRIBUTE_UNUSED)
+spu_gimplify_va_arg_expr (tree valist, tree type, gimple_seq * pre_p,
+			  gimple_seq * post_p ATTRIBUTE_UNUSED)
 {
   tree f_args, f_skip;
   tree args, skip;
@@ -3990,22 +3994,21 @@ spu_gimplify_va_arg_expr (tree valist, tree type, tree * pre_p,
   /* build conditional expression to calculate addr. The expression
      will be gimplified later. */
   paddedsize = size_int (rsize);
-  tmp = build2 (POINTER_PLUS_EXPR, ptr_type_node, args, paddedsize);
+  tmp = build2 (POINTER_PLUS_EXPR, ptr_type_node, unshare_expr (args), paddedsize);
   tmp = build2 (TRUTH_AND_EXPR, boolean_type_node,
-		build2 (GT_EXPR, boolean_type_node, tmp, skip),
-		build2 (LE_EXPR, boolean_type_node, args, skip));
+		build2 (GT_EXPR, boolean_type_node, tmp, unshare_expr (skip)),
+		build2 (LE_EXPR, boolean_type_node, unshare_expr (args),
+		unshare_expr (skip)));
 
   tmp = build3 (COND_EXPR, ptr_type_node, tmp,
-		build2 (POINTER_PLUS_EXPR, ptr_type_node, skip,
-			size_int (32)), args);
+		build2 (POINTER_PLUS_EXPR, ptr_type_node, unshare_expr (skip),
+			size_int (32)), unshare_expr (args));
 
-  tmp = build2 (GIMPLE_MODIFY_STMT, ptr_type_node, addr, tmp);
-  gimplify_and_add (tmp, pre_p);
+  gimplify_assign (addr, tmp, pre_p);
 
   /* update VALIST.__args */
   tmp = build2 (POINTER_PLUS_EXPR, ptr_type_node, addr, paddedsize);
-  tmp = build2 (GIMPLE_MODIFY_STMT, TREE_TYPE (args), args, tmp);
-  gimplify_and_add (tmp, pre_p);
+  gimplify_assign (unshare_expr (args), tmp, pre_p);
 
   addr = fold_convert (build_pointer_type (type), addr);
 
@@ -4175,17 +4178,16 @@ spu_expand_mov (rtx * ops, enum machine_mode mode)
   if (GET_CODE (ops[1]) == SUBREG && !valid_subreg (ops[1]))
     {
       rtx from = SUBREG_REG (ops[1]);
-      enum machine_mode imode = GET_MODE (from);
+      enum machine_mode imode = int_mode_for_mode (GET_MODE (from));
 
       gcc_assert (GET_MODE_CLASS (mode) == MODE_INT
 		  && GET_MODE_CLASS (imode) == MODE_INT
 		  && subreg_lowpart_p (ops[1]));
 
       if (GET_MODE_SIZE (imode) < 4)
-	{
-	  from = gen_rtx_SUBREG (SImode, from, 0);
-	  imode = SImode;
-	}
+	imode = SImode;
+      if (imode != GET_MODE (from))
+	from = gen_rtx_SUBREG (imode, from, 0);
 
       if (GET_MODE_SIZE (mode) < GET_MODE_SIZE (imode))
 	{
@@ -4787,9 +4789,8 @@ array_to_constant (enum machine_mode mode, unsigned char arr[16])
     }
   if (mode == DFmode)
     {
-      val = (arr[0] << 24) | (arr[1] << 16) | (arr[2] << 8) | arr[3];
-      val <<= 32;
-      val |= (arr[4] << 24) | (arr[5] << 16) | (arr[6] << 8) | arr[7];
+      for (i = 0, val = 0; i < 8; i++)
+	val = (val << 8) | arr[i];
       return hwint_to_const_double (DFmode, val);
     }
 
@@ -4880,7 +4881,8 @@ spu_asm_globalize_label (FILE * file, const char *name)
 }
 
 static bool
-spu_rtx_costs (rtx x, int code, int outer_code ATTRIBUTE_UNUSED, int *total)
+spu_rtx_costs (rtx x, int code, int outer_code ATTRIBUTE_UNUSED, int *total,
+	       bool speed ATTRIBUTE_UNUSED)
 {
   enum machine_mode mode = GET_MODE (x);
   int cost = COSTS_N_INSNS (2);
@@ -5209,10 +5211,9 @@ spu_init_builtins (void)
       if (d->name == 0)
 	continue;
 
-      /* find last parm */
+      /* Find last parm.  */
       for (parm = 1; d->parm[parm] != SPU_BTI_END_OF_PARAMS; parm++)
-	{
-	}
+	;
 
       p = void_list_node;
       while (parm > 1)
@@ -5226,6 +5227,9 @@ spu_init_builtins (void)
 			      NULL, NULL_TREE);
       if (d->fcode == SPU_MASK_FOR_LOAD)
 	TREE_READONLY (d->fndecl) = 1;	
+
+      /* These builtins don't throw.  */
+      TREE_NOTHROW (d->fndecl) = 1;
     }
 }
 
@@ -5479,7 +5483,7 @@ spu_initialize_trampoline (rtx tramp, rtx fnaddr, rtx cxt)
       insnc = force_reg (V4SImode, array_to_constant (V4SImode, insna));
 
       emit_insn (gen_shufb (shuf, fnaddr, cxt, shufc));
-      emit_insn (gen_rotlv4si3 (rotl, shuf, spu_const (V4SImode, 7)));
+      emit_insn (gen_vrotlv4si3 (rotl, shuf, spu_const (V4SImode, 7)));
       emit_insn (gen_movv4si (mask, spu_const (V4SImode, 0xffff << 7)));
       emit_insn (gen_selb (insn, insnc, rotl, mask));
 
@@ -5951,7 +5955,7 @@ spu_check_builtin_parm (struct spu_builtin_description *d, rtx op, int p)
 }
 
 
-static void
+static int
 expand_builtin_args (struct spu_builtin_description *d, tree exp,
 		     rtx target, rtx ops[])
 {
@@ -5963,13 +5967,18 @@ expand_builtin_args (struct spu_builtin_description *d, tree exp,
   if (d->parm[0] != SPU_BTI_VOID)
     ops[i++] = target;
 
-  for (a = 0; i < insn_data[icode].n_operands; i++, a++)
+  for (a = 0; d->parm[a+1] != SPU_BTI_END_OF_PARAMS; i++, a++)
     {
       tree arg = CALL_EXPR_ARG (exp, a);
       if (arg == 0)
 	abort ();
       ops[i] = expand_expr (arg, NULL_RTX, VOIDmode, 0);
     }
+
+  /* The insn pattern may have additional operands (SCRATCH).
+     Return the number of actual non-SCRATCH operands.  */
+  gcc_assert (i <= insn_data[icode].n_operands);
+  return i;
 }
 
 static rtx
@@ -5981,10 +5990,11 @@ spu_expand_builtin_1 (struct spu_builtin_description *d,
   enum insn_code icode = d->icode;
   enum machine_mode mode, tmode;
   int i, p;
+  int n_operands;
   tree return_type;
 
   /* Set up ops[] with values from arglist. */
-  expand_builtin_args (d, exp, target, ops);
+  n_operands = expand_builtin_args (d, exp, target, ops);
 
   /* Handle the target operand which must be operand 0. */
   i = 0;
@@ -6042,7 +6052,7 @@ spu_expand_builtin_1 (struct spu_builtin_description *d,
     return 0;
 
   /* Handle the rest of the operands. */
-  for (p = 1; i < insn_data[icode].n_operands; i++, p++)
+  for (p = 1; i < n_operands; i++, p++)
     {
       if (insn_data[d->icode].operand[i].mode != VOIDmode)
 	mode = insn_data[d->icode].operand[i].mode;
@@ -6082,7 +6092,7 @@ spu_expand_builtin_1 (struct spu_builtin_description *d,
 	ops[i] = spu_force_reg (mode, ops[i]);
     }
 
-  switch (insn_data[icode].n_operands)
+  switch (n_operands)
     {
     case 0:
       pat = GEN_FCN (icode) (0);
@@ -6224,6 +6234,60 @@ spu_vector_alignment_reachable (const_tree type ATTRIBUTE_UNUSED, bool is_packed
 
   /* All other types are naturally aligned.  */
   return true;
+}
+
+/* Implement targetm.vectorize.builtin_vec_perm.  */
+tree
+spu_builtin_vec_perm (tree type, tree *mask_element_type)
+{
+  struct spu_builtin_description *d;
+
+  *mask_element_type = unsigned_char_type_node;
+
+  switch (TYPE_MODE (type))
+    {
+    case V16QImode:
+      if (TYPE_UNSIGNED (type))
+        d = &spu_builtins[SPU_SHUFFLE_0];
+      else
+        d = &spu_builtins[SPU_SHUFFLE_1];
+      break;
+
+    case V8HImode:
+      if (TYPE_UNSIGNED (type))
+        d = &spu_builtins[SPU_SHUFFLE_2];
+      else
+        d = &spu_builtins[SPU_SHUFFLE_3];
+      break;
+
+    case V4SImode:
+      if (TYPE_UNSIGNED (type))
+        d = &spu_builtins[SPU_SHUFFLE_4];
+      else
+        d = &spu_builtins[SPU_SHUFFLE_5];
+      break;
+
+    case V2DImode:
+      if (TYPE_UNSIGNED (type))
+        d = &spu_builtins[SPU_SHUFFLE_6];
+      else
+        d = &spu_builtins[SPU_SHUFFLE_7];
+      break;
+
+    case V4SFmode:
+      d = &spu_builtins[SPU_SHUFFLE_8];
+      break;
+
+    case V2DFmode:
+      d = &spu_builtins[SPU_SHUFFLE_9];
+      break;
+
+    default:
+      return NULL_TREE;
+    }
+
+  gcc_assert (d);
+  return d->fndecl;
 }
 
 /* Count the total number of instructions in each pipe and return the

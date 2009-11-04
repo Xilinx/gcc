@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -47,18 +47,12 @@ procedure XSnames is
    InH  : File_Type;
    OutH : File_Type;
 
-   pragma Warnings (Off);
-   --  Variables below are modifed by * operator
-
    A, B  : VString := Nul;
    Line  : VString := Nul;
    Name  : VString := Nul;
    Name1 : VString := Nul;
-   Oname : VString := Nul;
    Oval  : VString := Nul;
    Restl : VString := Nul;
-
-   pragma Warnings (On);
 
    Tdigs : constant Pattern := Any (Decimal_Digit_Set) &
                                Any (Decimal_Digit_Set) &
@@ -170,7 +164,6 @@ begin
    Create (OutH, Out_File, "snames.nh");
 
    Anchored_Mode := True;
-   Oname := Nul;
    Val := 0;
 
    loop

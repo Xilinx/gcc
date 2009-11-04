@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---                     Copyright (C) 1995-2005, AdaCore                     --
+--                     Copyright (C) 1995-2008, AdaCore                     --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -130,7 +130,7 @@ package GNAT.Dynamic_HTables is
       function Get_Next (T : Instance) return Elmt_Ptr;
       --  Returns a non-specified element that has not been returned by the
       --  same function since the last call to Get_First or Null_Ptr if
-      --  there is no such element or Get_First has bever been called. If
+      --  there is no such element or Get_First has never been called. If
       --  there is no call to 'Set' in between Get_Next calls, all the
       --  elements of the Htable will be traversed.
 

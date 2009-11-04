@@ -1,5 +1,5 @@
 /* Simulate storage of variables into target memory.
-   Copyright (C) 2007
+   Copyright (C) 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Paul Thomas and Brooks Moses
 
@@ -73,9 +73,10 @@ size_logical (int kind)
 
 
 static size_t
-size_character (int length)
+size_character (int length, int kind)
 {
-  return length;
+  int i = gfc_validate_kind (BT_CHARACTER, kind, false);
+  return length * gfc_character_kinds[i].bit_size / 8;
 }
 
 
@@ -101,15 +102,15 @@ gfc_target_expr_size (gfc_expr *e)
       return size_logical (e->ts.kind);
     case BT_CHARACTER:
       if (e->expr_type == EXPR_SUBSTRING && e->ref)
-	{
-	  int start, end;
- 
-	  gfc_extract_int (e->ref->u.ss.start, &start);
-	  gfc_extract_int (e->ref->u.ss.end, &end);
-	  return size_character (MAX(end - start + 1, 0));
-	}
+        {
+          int start, end;
+
+          gfc_extract_int (e->ref->u.ss.start, &start);
+          gfc_extract_int (e->ref->u.ss.end, &end);
+          return size_character (MAX(end - start + 1, 0), e->ts.kind);
+        }
       else
-	return size_character (e->value.character.length);
+        return size_character (e->value.character.length, e->ts.kind);
     case BT_HOLLERITH:
       return e->representation.length;
     case BT_DERIVED:
@@ -182,12 +183,20 @@ encode_logical (int kind, int logical, unsigned char *buffer, size_t buffer_size
 }
 
 
-static int
-encode_character (int length, char *string, unsigned char *buffer,
-		  size_t buffer_size)
+int
+gfc_encode_character (int kind, int length, const gfc_char_t *string,
+		      unsigned char *buffer, size_t buffer_size)
 {
-  gcc_assert (buffer_size >= size_character (length));
-  memcpy (buffer, string, length);
+  size_t elsize = size_character (1, kind);
+  tree type = gfc_get_char_type (kind);
+  int i;
+
+  gcc_assert (buffer_size >= size_character (length, kind));
+
+  for (i = 0; i < length; i++)
+    native_encode_expr (build_int_cst (type, string[i]), &buffer[i*elsize],
+			elsize);
+
   return length;
 }
 
@@ -264,9 +273,10 @@ gfc_target_encode_expr (gfc_expr *source, unsigned char *buffer,
 			     buffer_size);
     case BT_CHARACTER:
       if (source->expr_type == EXPR_CONSTANT || source->ref == NULL)
-	return encode_character (source->value.character.length,
-			         source->value.character.string, buffer,
-			         buffer_size);
+	return gfc_encode_character (source->ts.kind,
+				     source->value.character.length,
+				     source->value.character.string,
+				     buffer, buffer_size);
       else
 	{
 	  int start, end;
@@ -274,10 +284,11 @@ gfc_target_encode_expr (gfc_expr *source, unsigned char *buffer,
 	  gcc_assert (source->expr_type == EXPR_SUBSTRING);
 	  gfc_extract_int (source->ref->u.ss.start, &start);
 	  gfc_extract_int (source->ref->u.ss.end, &end);
-	  return encode_character (MAX(end - start + 1, 0),
-				   &source->value.character.string[start-1],
-				   buffer, buffer_size);
+	  return gfc_encode_character (source->ts.kind, MAX(end - start + 1, 0),
+				       &source->value.character.string[start-1],
+				       buffer, buffer_size);
 	}
+
     case BT_DERIVED:
       return encode_derived (source, buffer, buffer_size);
     default:
@@ -380,18 +391,43 @@ gfc_interpret_logical (int kind, unsigned char *buffer, size_t buffer_size,
 
 
 int
-gfc_interpret_character (unsigned char *buffer, size_t buffer_size, gfc_expr *result)
+gfc_interpret_character (unsigned char *buffer, size_t buffer_size,
+			 gfc_expr *result)
 {
+  int i;
+
   if (result->ts.cl && result->ts.cl->length)
     result->value.character.length =
-      (int)mpz_get_ui (result->ts.cl->length->value.integer);
+      (int) mpz_get_ui (result->ts.cl->length->value.integer);
 
-  gcc_assert (buffer_size >= size_character (result->value.character.length));
+  gcc_assert (buffer_size >= size_character (result->value.character.length,
+					     result->ts.kind));
   result->value.character.string =
-    gfc_getmem (result->value.character.length + 1);
-  memcpy (result->value.character.string, buffer,
-	  result->value.character.length);
-  result->value.character.string [result->value.character.length] = '\0';
+    gfc_get_wide_string (result->value.character.length + 1);
+
+  if (result->ts.kind == gfc_default_character_kind)
+    for (i = 0; i < result->value.character.length; i++)
+      result->value.character.string[i] = (gfc_char_t) buffer[i];
+  else
+    {
+      mpz_t integer;
+      unsigned bytes = size_character (1, result->ts.kind);
+      mpz_init (integer);
+      gcc_assert (bytes <= sizeof (unsigned long));
+
+      for (i = 0; i < result->value.character.length; i++)
+	{
+	  gfc_conv_tree_to_mpz (integer,
+	    native_interpret_expr (gfc_get_char_type (result->ts.kind),
+				   &buffer[bytes*i], buffer_size-bytes*i));
+	  result->value.character.string[i]
+	    = (gfc_char_t) mpz_get_ui (integer);
+	}
+
+      mpz_clear (integer);
+    }
+
+  result->value.character.string[result->value.character.length] = '\0';
 
   return result->value.character.length;
 }
@@ -510,11 +546,13 @@ gfc_target_interpret_expr (unsigned char *buffer, size_t buffer_size,
     }
 
   if (result->ts.type == BT_CHARACTER)
-    result->representation.string = result->value.character.string;
+    result->representation.string
+      = gfc_widechar_to_char (result->value.character.string,
+			      result->value.character.length);
   else
     {
       result->representation.string =
-        gfc_getmem (result->representation.length + 1);
+        (char *) gfc_getmem (result->representation.length + 1);
       memcpy (result->representation.string, buffer,
 	      result->representation.length);
       result->representation.string[result->representation.length] = '\0';

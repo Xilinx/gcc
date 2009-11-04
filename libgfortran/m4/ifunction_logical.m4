@@ -106,10 +106,11 @@ name`'rtype_qual`_'atype_code (rtype * const restrict retarray,
     {
       if (rank != GFC_DESCRIPTOR_RANK (retarray))
 	runtime_error ("rank of return array incorrect in"
-		       " u_name intrinsic: is %d, should be %d",
-		       GFC_DESCRIPTOR_RANK (retarray), rank);
+		       " u_name intrinsic: is %ld, should be %ld",
+		       (long int) GFC_DESCRIPTOR_RANK (retarray),
+		       (long int) rank);
 
-      if (compile_options.bounds_check)
+      if (unlikely (compile_options.bounds_check))
 	{
 	  for (n=0; n < rank; n++)
 	    {
@@ -120,7 +121,7 @@ name`'rtype_qual`_'atype_code (rtype * const restrict retarray,
 	      if (extent[n] != ret_extent)
 		runtime_error ("Incorrect extent in return value of"
 			       " u_name intrinsic in dimension %d:"
-			       " is %ld, should be %ld", n + 1,
+			       " is %ld, should be %ld", (int) n + 1,
 			       (long int) ret_extent, (long int) extent[n]);
 	    }
 	}

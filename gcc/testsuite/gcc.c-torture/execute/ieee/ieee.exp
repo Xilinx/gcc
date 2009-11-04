@@ -1,6 +1,6 @@
 #
 # Expect driver script for GCC Regression Tests
-#   Copyright (C) 1993, 1996, 2001, 2005, 2007 Free Software Foundation
+#   Copyright (C) 1993, 1996, 2001, 2005, 2007, 2008 Free Software Foundation
 #
 # This file is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@
 # Load support procs.
 load_lib gcc-dg.exp
 load_lib torture-options.exp
+load_lib c-torture.exp
 
 # These tests come from Torbjorn Granlund's (tege@cygnus.com)
 # C torture test suite, and other contributors.

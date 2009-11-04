@@ -1,16 +1,9 @@
-// Contributed by Dodji Seketeli <dodji@redhat.com>
-// Origin: PR c++/37142
-// { dg-do compile }
+// PR c++/36404
 
-template<typename T, const T a, template <typename U, U u> class W> struct A {};
-
-template<typename T, const T t> struct B {};
-
-int
-main ()
+struct A
 {
-  A<long, 0, B> a;
-  return 0;
-}
+  A(int);
+  template<int> enum { e }; // { dg-error "template|expected" }
+}; // { dg-error "expected" }
 
-
+A a(A::e);

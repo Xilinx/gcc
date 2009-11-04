@@ -6,7 +6,7 @@
  *                                                                          *
  *                          C Implementation File                           *
  *                                                                          *
- *                     Copyright (C) 2000-2007, AdaCore                     *
+ *                     Copyright (C) 2000-2008, AdaCore                     *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
@@ -147,7 +147,7 @@ extern void (*Unlock_Task) (void);
      of a call instruction), which is what we want in the output array, and
      the associated return address, which is what we retrieve from the stack.
 
-   o STOP_FRAME, to decide wether we reached the top of the call chain, and
+   o STOP_FRAME, to decide whether we reached the top of the call chain, and
      thus if the process shall stop.
 
 	   :
@@ -229,9 +229,10 @@ struct layout
 
 #define BASE_SKIP 1
 
-/*---------------------------- PPC VxWorks------------------------------*/
+/*-------------------- PPC ELF (GNU/Linux & VxWorks) ---------------------*/
 
-#elif defined (_ARCH_PPC) && defined (__vxworks)
+#elif (defined (_ARCH_PPC) && defined (__vxworks)) ||  \
+  (defined (linux) && defined (__powerpc__))
 
 #define USE_GENERIC_UNWINDER
 

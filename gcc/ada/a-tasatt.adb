@@ -7,7 +7,7 @@
 --                                 B o d y                                  --
 --                                                                          --
 --             Copyright (C) 1991-1994, Florida State University            --
---                     Copyright (C) 1995-2007, AdaCore                     --
+--                     Copyright (C) 1995-2008, AdaCore                     --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -222,39 +222,13 @@
 --  instantiated from within a local context.
 
 with System.Error_Reporting;
---  Used for Shutdown;
-
 with System.Storage_Elements;
---  Used for Integer_Address
-
 with System.Task_Primitives.Operations;
---  Used for Write_Lock
---           Unlock
---           Lock/Unlock_RTS
-
 with System.Tasking;
---  Used for Access_Address
---           Task_Id
---           Direct_Index_Vector
---           Direct_Index
-
 with System.Tasking.Initialization;
---  Used for Defer_Abort
---           Undefer_Abort
---           Initialize_Attributes_Link
---           Finalize_Attributes_Link
-
 with System.Tasking.Task_Attributes;
---  Used for Access_Node
---           Access_Dummy_Wrapper
---           Deallocator
---           Instance
---           Node
---           Access_Instance
 
 with Ada.Exceptions;
---  Used for Raise_Exception
-
 with Ada.Unchecked_Conversion;
 with Ada.Unchecked_Deallocation;
 
@@ -745,7 +719,7 @@ begin
                In_Use := In_Use or Two_To_J;
                Local.Index := J;
 
-               --  This unchecked conversions can give a warning when the the
+               --  This unchecked conversions can give a warning when the
                --  alignment is incorrect, but it will not be used in such a
                --  case anyway, so the warning can be safely ignored.
 

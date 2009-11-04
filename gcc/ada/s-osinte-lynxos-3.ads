@@ -7,7 +7,7 @@
 --                                  S p e c                                 --
 --                                                                          --
 --             Copyright (C) 1991-1994, Florida State University            --
---          Copyright (C) 1995-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1995-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -35,13 +35,14 @@
 --  This is a LynxOS (Native) version of this package
 
 --  This package encapsulates all direct interfaces to OS services
---  that are needed by children of System.
+--  that are needed by the tasking run-time (libgnarl).
 
 --  PLEASE DO NOT add any with-clauses to this package or remove the pragma
 --  Preelaborate. This package is designed to be a bottom-level (leaf) package.
 
-with Interfaces.C;
 with Ada.Unchecked_Conversion;
+
+with Interfaces.C;
 
 package System.OS_Interface is
    pragma Preelaborate;
@@ -174,7 +175,7 @@ package System.OS_Interface is
    ----------
 
    Time_Slice_Supported : constant Boolean := True;
-   --  Indicates wether time slicing is supported
+   --  Indicates whether time slicing is supported
 
    type timespec is private;
 
@@ -266,8 +267,11 @@ package System.OS_Interface is
    -- Stack --
    -----------
 
+   Alternate_Stack_Size : constant := 0;
+   --  No alternate signal stack is used on this platform
+
    Stack_Base_Available : constant Boolean := False;
-   --  Indicates wether the stack base is available on this target
+   --  Indicates whether the stack base is available on this target
 
    function Get_Stack_Base (thread : pthread_t) return Address;
    pragma Inline (Get_Stack_Base);
@@ -379,7 +383,7 @@ package System.OS_Interface is
       mutex   : access pthread_mutex_t;
       reltime : access timespec) return int;
    pragma Inline (pthread_cond_timedwait);
-   --  LynxOS has a nonstandard pthrad_cond_timedwait
+   --  LynxOS has a nonstandard pthread_cond_timedwait
 
    Relative_Timed_Wait : constant Boolean := True;
    --  pthread_cond_timedwait requires a relative delay time

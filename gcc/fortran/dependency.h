@@ -1,5 +1,5 @@
 /* Header for dependency analysis
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Paul Brook
 
@@ -33,7 +33,7 @@ gfc_dep_check;
 /*********************** Functions prototypes **************************/
 
 bool gfc_ref_needs_temporary_p (gfc_ref *);
-bool gfc_full_array_ref_p (gfc_ref *);
+bool gfc_full_array_ref_p (gfc_ref *, bool *);
 gfc_expr *gfc_get_noncopying_intrinsic_argument (gfc_expr *);
 int gfc_check_fncall_dependency (gfc_expr *, sym_intent, gfc_symbol *,
 				 gfc_actual_arglist *, gfc_dep_check);

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -63,9 +63,6 @@ procedure XEinfo is
 
    Err : exception;
 
-   pragma Warnings (Off);
-   --  These seem not to be referenced, but they are (by * operator)
-
    A         : VString := Nul;
    B         : VString := Nul;
    C         : VString := Nul;
@@ -87,8 +84,6 @@ procedure XEinfo is
    OldS      : VString := Nul;
    Rtn       : VString := Nul;
    Term      : VString := Nul;
-
-   pragma Warnings (On);
 
    InB : File_Type;
    --  Used to read initial header from body
@@ -385,7 +380,7 @@ begin
 
    while Match (Line, Get_FN) loop
 
-      --  Non-inlined funcion
+      --  Non-inlined function
 
       if not Present (Inlined, FN) then
          Put_Line (Ofile, "");
@@ -444,7 +439,7 @@ begin
             Line := Getlin;
             exit when not Match (Line, Get_Asrt);
 
-            --  Pragma asser found, get its continuation lines
+            --  Pragma assert found, get its continuation lines
 
             loop
                exit when Match (Line, Semicoln);
@@ -457,7 +452,7 @@ begin
          Match (Line, Get_Cmnt, M);
          Replace (M, A);
 
-         --  Get continuations of return statemnt
+         --  Get continuations of return statement
 
          while not Match (Line, Semicoln) loop
             Nextlin := Getlin;

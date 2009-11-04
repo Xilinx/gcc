@@ -38,6 +38,8 @@ exception statement from your version. */
 
 package javax.swing;
 
+import gnu.java.lang.CPStringBuilder;
+
 import java.awt.AWTEvent;
 import java.awt.BorderLayout;
 import java.awt.Component;
@@ -258,7 +260,7 @@ public class JFrame extends Frame
   {
     // If we're adding in the initialization stage use super.add.
     // Otherwise pass the add onto the content pane.
-    if (isRootPaneCheckingEnabled())
+    if (isRootPaneCheckingEnabled() && comp != rootPane)
       getContentPane().add(comp,constraints,index);
     else
       super.addImpl(comp, constraints, index);
@@ -341,7 +343,7 @@ public class JFrame extends Frame
    */
   protected String paramString()
   {
-    StringBuffer sb = new StringBuffer(super.paramString());
+    CPStringBuilder sb = new CPStringBuilder(super.paramString());
     sb.append(",defaultCloseOperation=");
     sb.append(SwingUtilities.convertWindowConstantToString(
         getDefaultCloseOperation()));

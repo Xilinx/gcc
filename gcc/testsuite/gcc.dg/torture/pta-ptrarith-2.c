@@ -1,5 +1,5 @@
 /* { dg-do run } */
-/* { dg-options "-fdump-tree-salias" } */
+/* { dg-options "-fdump-tree-alias" } */
 /* { dg-skip-if "" { *-*-* } { "-O0" } { "" } } */
 
 struct Foo {
@@ -32,5 +32,5 @@ int main()
 
 /* In theory = { i } is the correct solution.  But it's not easy to scan
    for that reliably, so just use what we create now.  */
-/* { dg-final { scan-tree-dump "= { i j }" "salias" } } */
-/* { dg-final { cleanup-tree-dump "salias" } } */
+/* { dg-final { scan-tree-dump "= { i j }" "alias" } } */
+/* { dg-final { cleanup-tree-dump "alias" } } */

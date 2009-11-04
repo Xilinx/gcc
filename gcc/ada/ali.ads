@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -122,82 +122,78 @@ package ALI is
       --  Id of last Sdep table entry for this file
 
       Main_Program : Main_Program_Type;
-      --  Indicator of whether first unit can be used as main program.
-      --  Not set if 'M' appears in Ignore_Lines.
+      --  Indicator of whether first unit can be used as main program. Not set
+      --  if 'M' appears in Ignore_Lines.
 
       Main_Priority : Int;
-      --  Indicates priority value if Main_Program field indicates that
-      --  this can be a main program. A value of -1 (No_Main_Priority)
-      --  indicates that no parameter was found, or no M line was present.
-      --  Not set if 'M' appears in Ignore_Lines.
+      --  Indicates priority value if Main_Program field indicates that this
+      --  can be a main program. A value of -1 (No_Main_Priority) indicates
+      --  that no parameter was found, or no M line was present. Not set if
+      --  'M' appears in Ignore_Lines.
 
       Time_Slice_Value : Int;
       --  Indicates value of time slice parameter from T=xxx on main program
-      --  line. A value of -1 indicates that no T=xxx parameter was found,
-      --  or no M line was present.
-      --  Not set if 'M' appears in Ignore_Lines.
+      --  line. A value of -1 indicates that no T=xxx parameter was found, or
+      --  no M line was present. Not set if 'M' appears in Ignore_Lines.
 
       WC_Encoding : Character;
       --  Wide character encoding if main procedure. Otherwise not relevant.
       --  Not set if 'M' appears in Ignore_Lines.
 
       Locking_Policy : Character;
-      --  Indicates locking policy for units in this file. Space means
-      --  tasking was not used, or that no Locking_Policy pragma was
-      --  present or that this is a language defined unit. Otherwise set
-      --  to first character (upper case) of policy name.
-      --  Not set if 'P' appears in Ignore_Lines.
+      --  Indicates locking policy for units in this file. Space means tasking
+      --  was not used, or that no Locking_Policy pragma was present or that
+      --  this is a language defined unit. Otherwise set to first character
+      --  (upper case) of policy name. Not set if 'P' appears in Ignore_Lines.
 
       Queuing_Policy : Character;
-      --  Indicates queuing policy for units in this file. Space means
-      --  tasking was not used, or that no Queuing_Policy pragma was
-      --  present or that this is a language defined unit. Otherwise set
-      --  to first character (upper case) of policy name.
-      --  Not set if 'P' appears in Ignore_Lines.
+      --  Indicates queuing policy for units in this file. Space means tasking
+      --  was not used, or that no Queuing_Policy pragma was present or that
+      --  this is a language defined unit. Otherwise set to first character
+      --  (upper case) of policy name. Not set if 'P' appears in Ignore_Lines.
 
       Task_Dispatching_Policy : Character;
-      --  Indicates task dispatching policy for units in this file. Space
-      --  means tasking was not used, or that no Task_Dispatching_Policy
-      --  pragma was present or that this is a language defined unit.
-      --  Otherwise set to first character (upper case) of policy name.
-      --  Not set if 'P' appears in Ignore_Lines.
+      --  Indicates task dispatching policy for units in this file. Space means
+      --  tasking was not used, or that no Task_Dispatching_Policy pragma was
+      --  present or that this is a language defined unit. Otherwise set to
+      --  first character (upper case) of policy name. Not set if 'P' appears
+      --  in Ignore_Lines.
 
       Compile_Errors : Boolean;
-      --  Set to True if compile errors for unit. Note that No_Object
-      --  will always be set as well in this case.
-      --  Not set if 'P' appears in Ignore_Lines.
+      --  Set to True if compile errors for unit. Note that No_Object will
+      --  always be set as well in this case. Not set if 'P' appears in
+      --  Ignore_Lines.
 
       Float_Format : Character;
-      --  Set to float format (set to I if no float-format given).
-      --  Not set if 'P' appears in Ignore_Lines.
+      --  Set to float format (set to I if no float-format given). Not set if
+      --  'P' appears in Ignore_Lines.
 
       No_Object : Boolean;
-      --  Set to True if no object file generated.
-      --  Not set if 'P' appears in Ignore_Lines.
+      --  Set to True if no object file generated. Not set if 'P' appears in
+      --  Ignore_Lines.
 
       Normalize_Scalars : Boolean;
-      --  Set to True if file was compiled with Normalize_Scalars.
-      --  Not set if 'P' appears in Ignore_Lines.
+      --  Set to True if file was compiled with Normalize_Scalars. Not set if
+      --  'P' appears in Ignore_Lines.
 
       Unit_Exception_Table : Boolean;
-      --  Set to True if unit exception table pointer generated.
-      --  Not set if 'P' appears in Ignore_Lines.
+      --  Set to True if unit exception table pointer generated. Not set if 'P'
+      --  appears in Ignore_Lines.
 
       Zero_Cost_Exceptions : Boolean;
-      --  Set to True if file was compiled with zero cost exceptions.
-      --  Not set if 'P' appears in Ignore_Lines.
+      --  Set to True if file was compiled with zero cost exceptions. Not set
+      --  if 'P' appears in Ignore_Lines.
 
       Restrictions : Restrictions_Info;
       --  Restrictions information reconstructed from R lines
 
       First_Interrupt_State : Interrupt_State_Id;
       Last_Interrupt_State  : Interrupt_State_Id'Base;
-      --  These point to the first and last entries in the interrupt
-      --  state table for this unit. If there are no entries, then
-      --  Last_Interrupt_State = First_Interrupt_State - 1 (that's
-      --  why the 'Base reference is there, it can be one less than
-      --  the lower bound of the subtype).
-      --  Not set if 'I' appears in Ignore_Lines
+      --  These point to the first and last entries in the interrupt state
+      --  table for this unit. If no entries, then Last_Interrupt_State =
+      --  First_Interrupt_State - 1 (that's why the 'Base reference is there,
+      --  it can be one less than the lower bound of the subtype). Not set if
+      --  'I' appears in Ignore_Lines
 
       First_Specific_Dispatching : Priority_Specific_Dispatching_Id;
       Last_Specific_Dispatching  : Priority_Specific_Dispatching_Id'Base;
@@ -357,6 +353,9 @@ package ALI is
       --  for the body right after the call for the spec, or at least as close
       --  together as possible.
 
+      Optimize_Alignment : Character;
+      --  Optimize_Alignment setting. Set to L/S/T/O for OL/OS/OT/OO present
+
    end record;
 
    package Units is new Table.Table (
@@ -445,7 +444,7 @@ package ALI is
 
    Float_Format_Specified : Character := ' ';
    --  Set to blank by Initialize_ALI. Set to appropriate float format
-   --  character (V or I, see Opt.Float_Format) if an an ali file that
+   --  character (V or I, see Opt.Float_Format) if an ali file that
    --  is read contains an F line setting the floating point format.
 
    Initialize_Scalars_Used : Boolean := False;
@@ -538,6 +537,8 @@ package ALI is
       SAL_Interface : Boolean := False;
       --  True if the Unit is an Interface of a Stand-Alone Library
 
+      Limited_With : Boolean := False;
+      --  True if unit is named in a limited_with_clause
    end record;
 
    package Withs is new Table.Table (
@@ -668,8 +669,8 @@ package ALI is
    -- Sdep (Source Dependency) Table --
    ------------------------------------
 
-   --  Each source dependency (D line) in an ALI file generates an
-   --  entry in the Sdep table.
+   --  Each source dependency (D line) in an ALI file generates an entry in the
+   --  Sdep table.
 
    --  Note: there will be no entries in this table if 'D' lines are ignored
 
@@ -677,9 +678,9 @@ package ALI is
    --  Special value indicating no Sdep table entry
 
    First_Sdep_Entry : Sdep_Id := No_Sdep_Id + 1;
-   --  Id of first Sdep entry for current ali file. This is initialized to
-   --  the first Sdep entry in the table, and then incremented appropriately
-   --  as successive ALI files are scanned.
+   --  Id of first Sdep entry for current ali file. This is initialized to the
+   --  first Sdep entry in the table, and then incremented appropriately as
+   --  successive ALI files are scanned.
 
    type Sdep_Record is record
 
@@ -687,24 +688,23 @@ package ALI is
       --  Name of source file
 
       Stamp : Time_Stamp_Type;
-      --  Time stamp value. Note that this will be all zero characters
-      --  for the dummy entries for missing or non-dependent files.
+      --  Time stamp value. Note that this will be all zero characters for the
+      --  dummy entries for missing or non-dependent files.
 
       Checksum : Word;
-      --  Checksum value. Note that this will be all zero characters
-      --  for the dummy entries for missing or non-dependent files
+      --  Checksum value. Note that this will be all zero characters for the
+      --  dummy entries for missing or non-dependent files
 
       Dummy_Entry : Boolean;
-      --  Set True for dummy entries that correspond to missing files
-      --  or files where no dependency relationship exists.
+      --  Set True for dummy entries that correspond to missing files or files
+      --  where no dependency relationship exists.
 
       Subunit_Name : Name_Id;
       --  Name_Id for subunit name if present, else No_Name
 
       Rfile : File_Name_Type;
-      --  Reference file name. Same as Sfile unless a Source_Reference
-      --  pragma was used, in which case it reflects the name used in
-      --  the pragma.
+      --  Reference file name. Same as Sfile unless a Source_Reference pragma
+      --  was used, in which case it reflects the name used in the pragma.
 
       Start_Line : Nat;
       --  Starting line number in file. Always 1, unless a Source_Reference
@@ -725,8 +725,8 @@ package ALI is
    -- Use of Name Table Info --
    ----------------------------
 
-   --  All unit names and file names are entered into the Names table. The
-   --  Info fields of these entries are used as follows:
+   --  All unit names and file names are entered into the Names table. The Info
+   --  fields of these entries are used as follows:
 
    --    Unit name           Info field has Unit_Id of unit table entry
    --    ALI file name       Info field has ALI_Id of ALI table entry
@@ -736,8 +736,8 @@ package ALI is
    -- Cross-Reference Data --
    --------------------------
 
-   --  The following table records cross-reference sections, there is one
-   --  entry for each X header line in the ALI file for an xref section.
+   --  The following table records cross-reference sections, there is one entry
+   --  for each X header line in the ALI file for an xref section.
 
    --  Note: there will be no entries in this table if 'X' lines are ignored
 
@@ -844,12 +844,12 @@ package ALI is
 
       Oref_File_Num : Sdep_Id;
       --  This field is set to No_Sdep_Id if the entity doesn't override any
-      --  other entity, or to the dependency reference for the overriden
+      --  other entity, or to the dependency reference for the overridden
       --  entity.
 
       Oref_Line : Nat;
       Oref_Col  : Nat;
-      --  These two fields are set to the line and column of the overriden
+      --  These two fields are set to the line and column of the overridden
       --  entity.
 
       First_Xref : Nat;
@@ -959,7 +959,7 @@ package ALI is
    --    Ignore_Lines requests that Scan_ALI ignore any lines that start
    --    with any given key character. The default value of X causes all
    --    Xref lines to be ignored. The corresponding data in the ALI
-   --    tables will not be filled in in this case. It is not possible
+   --    tables will not be filled in this case. It is not possible
    --    to ignore U (unit) lines, they are always read.
    --
    --    Read_Lines requests that Scan_ALI process only lines that start

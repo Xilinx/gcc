@@ -5,6 +5,6 @@
 !
 program bug
   implicit none
-  integer(1) :: a(2) = (/ Z'FF', Z'FF' /) ! { dg-error "Arithmetic overflow" }
-  print*, a
+   integer(1) :: a(2) = (/ Z'FF', Z'FF' /) ! { dg-error "Arithmetic overflow" }
+   print*, a
 end program bug

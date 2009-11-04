@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---                     Copyright (C) 1995-2007, AdaCore                     --
+--                     Copyright (C) 1995-2008, AdaCore                     --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -293,7 +293,7 @@ package body System.OS_Lib is
       --  Internal exception raised to signal error in copy
 
       function Build_Path (Dir : String; File : String) return String;
-      --  Returns pathname Dir catenated with File adding the directory
+      --  Returns pathname Dir concatenated with File adding the directory
       --  separator only if needed.
 
       procedure Copy (From, To : File_Descriptor);
@@ -452,16 +452,22 @@ package body System.OS_Lib is
 
       begin
          From := Open_Read (Name, Binary);
-         To   := Create_File (To_Name, Binary);
+
+         --  Do not clobber destination file if source file could not be opened
+
+         if From /= Invalid_FD then
+            To := Create_File (To_Name, Binary);
+         end if;
+
          Copy (From, To);
 
          --  Copy attributes
 
          C_From (1 .. Name'Length) := Name;
-         C_From (C_From'Last) := ASCII.Nul;
+         C_From (C_From'Last) := ASCII.NUL;
 
          C_To (1 .. To_Name'Length) := To_Name;
-         C_To (C_To'Last) := ASCII.Nul;
+         C_To (C_To'Last) := ASCII.NUL;
 
          case Preserve is
 
@@ -545,10 +551,14 @@ package body System.OS_Lib is
             if Is_Regular_File (Pathname) then
 
                --  Append mode and destination file exists, append data at the
-               --  end of Pathname.
+               --  end of Pathname. But if we fail to open source file, do not
+               --  touch destination file at all.
 
                From := Open_Read (Name, Binary);
-               To   := Open_Read_Write (Pathname, Binary);
+               if From /= Invalid_FD then
+                  To := Open_Read_Write (Pathname, Binary);
+               end if;
+
                Lseek (To, 0, Seek_End);
 
                Copy (From, To);
@@ -579,14 +589,12 @@ package body System.OS_Lib is
       Mode     : Copy_Mode := Copy;
       Preserve : Attribute := Time_Stamps)
    is
-      Ada_Name : String_Access :=
-                   To_Path_String_Access
-                     (Name, C_String_Length (Name));
-
+      Ada_Name     : String_Access :=
+                       To_Path_String_Access
+                         (Name, C_String_Length (Name));
       Ada_Pathname : String_Access :=
                        To_Path_String_Access
                          (Pathname, C_String_Length (Pathname));
-
    begin
       Copy_File (Ada_Name.all, Ada_Pathname.all, Success, Mode, Preserve);
       Free (Ada_Name);
@@ -611,6 +619,7 @@ package body System.OS_Lib is
          declare
             C_Source : String (1 .. Source'Length + 1);
             C_Dest   : String (1 .. Dest'Length + 1);
+
          begin
             C_Source (1 .. Source'Length) := Source;
             C_Source (C_Source'Last)      := ASCII.NUL;
@@ -637,10 +646,9 @@ package body System.OS_Lib is
       Ada_Source : String_Access :=
                      To_Path_String_Access
                        (Source, C_String_Length (Source));
-
-      Ada_Dest : String_Access :=
-                   To_Path_String_Access
-                     (Dest, C_String_Length (Dest));
+      Ada_Dest   : String_Access :=
+                     To_Path_String_Access
+                       (Dest, C_String_Length (Dest));
    begin
       Copy_Time_Stamps (Ada_Source.all, Ada_Dest.all, Success);
       Free (Ada_Source);
@@ -782,9 +790,9 @@ package body System.OS_Lib is
 
                      --  If it is not a digit, then there are no available
                      --  temp file names. Return Invalid_FD. There is almost
-                     --  no that this code will be ever be executed, since
-                     --  it would mean that there are one million temp files
-                     --  in the same directory!
+                     --  no chance that this code will be ever be executed,
+                     --  since it would mean that there are one million temp
+                     --  files in the same directory!
 
                      SSL.Unlock_Task.all;
                      FD := Invalid_FD;
@@ -862,7 +870,7 @@ package body System.OS_Lib is
    ---------------------
 
    function File_Time_Stamp (FD : File_Descriptor) return OS_Time is
-      function File_Time (FD    : File_Descriptor) return OS_Time;
+      function File_Time (FD : File_Descriptor) return OS_Time;
       pragma Import (C, File_Time, "__gnat_file_time_fd");
    begin
       return File_Time (FD);
@@ -1306,6 +1314,25 @@ package body System.OS_Lib is
       return Is_Readable_File (F_Name'Address);
    end Is_Readable_File;
 
+   ------------------------
+   -- Is_Executable_File --
+   ------------------------
+
+   function Is_Executable_File (Name : C_File_Name) return Boolean is
+      function Is_Executable_File (Name : Address) return Integer;
+      pragma Import (C, Is_Executable_File, "__gnat_is_executable_file");
+   begin
+      return Is_Executable_File (Name) /= 0;
+   end Is_Executable_File;
+
+   function Is_Executable_File (Name : String) return Boolean is
+      F_Name : String (1 .. Name'Length + 1);
+   begin
+      F_Name (1 .. Name'Length) := Name;
+      F_Name (F_Name'Last)      := ASCII.NUL;
+      return Is_Executable_File (F_Name'Address);
+   end Is_Executable_File;
+
    ---------------------
    -- Is_Regular_File --
    ---------------------
@@ -1436,6 +1463,7 @@ package body System.OS_Lib is
 
       if Path_Len = 0 then
          return null;
+
       else
          Result := To_Path_String_Access (Path_Addr, Path_Len);
          Free (Path_Addr);
@@ -1622,10 +1650,10 @@ package body System.OS_Lib is
 
                --  If null terminated string, put the quote before
 
-               if Res (J) = ASCII.Nul then
+               if Res (J) = ASCII.NUL then
                   Res (J) := '"';
                   J := J + 1;
-                  Res (J) := ASCII.Nul;
+                  Res (J) := ASCII.NUL;
 
                --  If argument is terminated by '\', then double it. Otherwise
                --  the ending quote will be taken as-is. This is quite strange
@@ -1833,7 +1861,7 @@ package body System.OS_Lib is
 
       --  First, convert VMS file spec to Unix file spec.
       --  If Name is not in VMS syntax, then this is equivalent
-      --  to put Name at the begining of Path_Buffer.
+      --  to put Name at the beginning of Path_Buffer.
 
       VMS_Conversion : begin
          The_Name (1 .. Name'Length) := Name;
@@ -1896,7 +1924,7 @@ package body System.OS_Lib is
         and then Path_Buffer (2) /= Directory_Separator
       then
          declare
-            Cur_Dir : String := Get_Directory ("");
+            Cur_Dir : constant String := Get_Directory ("");
             --  Get the current directory to get the drive letter
 
          begin
@@ -1908,6 +1936,26 @@ package body System.OS_Lib is
                  Cur_Dir (Cur_Dir'First .. Cur_Dir'First + 1);
                End_Path := End_Path + 2;
             end if;
+         end;
+      end if;
+
+      --  On Windows, remove all double-quotes that are possibly part of the
+      --  path but can cause problems with other methods.
+
+      if On_Windows then
+         declare
+            Index : Natural;
+
+         begin
+            Index := Path_Buffer'First;
+            for Current in Path_Buffer'First .. End_Path loop
+               if Path_Buffer (Current) /= '"' then
+                  Path_Buffer (Index) := Path_Buffer (Current);
+                  Index := Index + 1;
+               end if;
+            end loop;
+
+            End_Path := Index - 1;
          end;
       end if;
 
@@ -2251,19 +2299,47 @@ package body System.OS_Lib is
       C_Set_Executable (C_Name (C_Name'First)'Address);
    end Set_Executable;
 
-   --------------------
-   -- Set_Read_Only --
-   --------------------
+   ----------------------
+   -- Set_Non_Readable --
+   ----------------------
 
-   procedure Set_Read_Only (Name : String) is
-      procedure C_Set_Read_Only (Name : C_File_Name);
-      pragma Import (C, C_Set_Read_Only, "__gnat_set_readonly");
+   procedure Set_Non_Readable (Name : String) is
+      procedure C_Set_Non_Readable (Name : C_File_Name);
+      pragma Import (C, C_Set_Non_Readable, "__gnat_set_non_readable");
       C_Name : aliased String (Name'First .. Name'Last + 1);
    begin
       C_Name (Name'Range)  := Name;
       C_Name (C_Name'Last) := ASCII.NUL;
-      C_Set_Read_Only (C_Name (C_Name'First)'Address);
-   end Set_Read_Only;
+      C_Set_Non_Readable (C_Name (C_Name'First)'Address);
+   end Set_Non_Readable;
+
+   ----------------------
+   -- Set_Non_Writable --
+   ----------------------
+
+   procedure Set_Non_Writable (Name : String) is
+      procedure C_Set_Non_Writable (Name : C_File_Name);
+      pragma Import (C, C_Set_Non_Writable, "__gnat_set_non_writable");
+      C_Name : aliased String (Name'First .. Name'Last + 1);
+   begin
+      C_Name (Name'Range)  := Name;
+      C_Name (C_Name'Last) := ASCII.NUL;
+      C_Set_Non_Writable (C_Name (C_Name'First)'Address);
+   end Set_Non_Writable;
+
+   ------------------
+   -- Set_Readable --
+   ------------------
+
+   procedure Set_Readable (Name : String) is
+      procedure C_Set_Readable (Name : C_File_Name);
+      pragma Import (C, C_Set_Readable, "__gnat_set_readable");
+      C_Name : aliased String (Name'First .. Name'Last + 1);
+   begin
+      C_Name (Name'Range)  := Name;
+      C_Name (C_Name'Last) := ASCII.NUL;
+      C_Set_Readable (C_Name (C_Name'First)'Address);
+   end Set_Readable;
 
    --------------------
    -- Set_Writable --
@@ -2368,12 +2444,12 @@ package body System.OS_Lib is
    end Spawn;
 
    procedure Spawn
-     (Program_Name  : String;
-      Args          : Argument_List;
-      Output_File   : String;
-      Success       : out Boolean;
-      Return_Code   : out Integer;
-      Err_To_Out    : Boolean := True)
+     (Program_Name : String;
+      Args         : Argument_List;
+      Output_File  : String;
+      Success      : out Boolean;
+      Return_Code  : out Integer;
+      Err_To_Out   : Boolean := True)
    is
       FD : File_Descriptor;
 
@@ -2419,16 +2495,16 @@ package body System.OS_Lib is
          type Chars is array (Positive range <>) of aliased Character;
          type Char_Ptr is access constant Character;
 
-         Command_Len : constant Positive := Program_Name'Length + 1
-                                              + Args_Length (Args);
+         Command_Len  : constant Positive := Program_Name'Length + 1
+                                               + Args_Length (Args);
          Command_Last : Natural := 0;
-         Command : aliased Chars (1 .. Command_Len);
+         Command      : aliased Chars (1 .. Command_Len);
          --  Command contains all characters of the Program_Name and Args, all
-         --  terminated by ASCII.NUL characters
+         --  terminated by ASCII.NUL characters.
 
-         Arg_List_Len : constant Positive := Args'Length + 2;
+         Arg_List_Len  : constant Positive := Args'Length + 2;
          Arg_List_Last : Natural := 0;
-         Arg_List : aliased array (1 .. Arg_List_Len) of Char_Ptr;
+         Arg_List      : aliased array (1 .. Arg_List_Len) of Char_Ptr;
          --  List with pointers to NUL-terminated strings of the Program_Name
          --  and the Args and terminated with a null pointer. We rely on the
          --  default initialization for the last null pointer.
@@ -2522,9 +2598,8 @@ package body System.OS_Lib is
       subtype Path_String is String (1 .. Path_Len);
       type    Path_String_Access is access Path_String;
 
-      function Address_To_Access is new
-        Ada.Unchecked_Conversion (Source => Address,
-                              Target => Path_String_Access);
+      function Address_To_Access is new Ada.Unchecked_Conversion
+        (Source => Address, Target => Path_String_Access);
 
       Path_Access : constant Path_String_Access :=
                       Address_To_Access (Path_Addr);

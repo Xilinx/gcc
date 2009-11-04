@@ -2,6 +2,7 @@
 /* { dg-options "-std=gnu99 -O" } */
 
 /* DFP TR 24732 == WG14 / N1176, N1312 */
+/* Based on a test from Fred Tydeman.  */
 
 extern void abort (void);
 int failures = 0;

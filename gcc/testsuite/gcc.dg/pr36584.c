@@ -1,5 +1,5 @@
 /* { dg-do run } */
-/* { dg-options "-O2" } */
+/* { dg-options "-O2 -lm" } */
 /* { dg-options "-O2 -msse2 -mfpmath=sse" { target { { i?86-*-* x86_64-*-* } && ilp32 } } } */
 
 

@@ -142,7 +142,6 @@ extern struct rtx_def *microblaze_load_reg4;
 
 extern const char *asm_file_name;
 extern char call_used_regs[];
-extern int current_function_calls_alloca;
 extern char *language_string;
 extern int may_call_alloca;
 extern int target_flags;
@@ -602,7 +601,7 @@ extern char microblaze_hard_regno_mode_ok[][FIRST_PSEUDO_REGISTER];
 #define FRAME_POINTER_REGNUM 		FRP_REG_NUM
 #define HARD_FRAME_POINTER_REGNUM       \
         (GP_REG_FIRST + MB_ABI_FRAME_POINTER_REGNUM)
-#define FRAME_POINTER_REQUIRED 		current_function_calls_alloca
+#define FRAME_POINTER_REQUIRED 		cfun->calls_alloca
 #define ARG_POINTER_REGNUM		AP_REG_NUM
 #define RETURN_ADDRESS_POINTER_REGNUM	RAP_REG_NUM
 #define STATIC_CHAIN_REGNUM             \
@@ -827,8 +826,7 @@ actually contain (16 bits signed integers).
 
 /* Changed the starting frame offset to including the new link stuff */
 #define STARTING_FRAME_OFFSET						\
-  (current_function_outgoing_args_size					\
-   +  (FIRST_PARM_OFFSET(FNDECL)))
+  (crtl->outgoing_args_size + FIRST_PARM_OFFSET(FNDECL))
 
 /* The return address for the current frame is in r31 if this is a leaf
    function.  Otherwise, it is on the stack.  It is at a variable offset
@@ -906,7 +904,7 @@ extern struct microblaze_frame_info current_frame_info;
 
 #define REG_PARM_STACK_SPACE(FNDECL)  (MAX_ARGS_IN_REGISTERS * UNITS_PER_WORD)
 
-#define OUTGOING_REG_PARM_STACK_SPACE       1
+#define OUTGOING_REG_PARM_STACK_SPACE(FNTYPE) 1
 
 #define STACK_BOUNDARY                      32
 
@@ -1135,7 +1133,7 @@ it needs to handle cases where the source is a general or another
 condition code register.  */
 #define AVOID_CCMODE_COPIES
 
-#define BRANCH_COST   2
+#define BRANCH_COST(speed_p, predictable_p)   2
 
 #define ADJUST_COST(INSN,LINK,DEP_INSN,COST)				\
   if (REG_NOTE_KIND (LINK) != 0)					\

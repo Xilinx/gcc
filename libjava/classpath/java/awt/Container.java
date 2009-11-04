@@ -39,6 +39,8 @@ exception statement from your version. */
 
 package java.awt;
 
+import gnu.java.lang.CPStringBuilder;
+
 import java.awt.event.ContainerEvent;
 import java.awt.event.ContainerListener;
 import java.awt.event.HierarchyEvent;
@@ -1322,10 +1324,10 @@ public class Container extends Component
         while (true)
           {
             if (comp == null)
-              return false;
-            if (comp == this)
-              return true;
+	      return false;
             comp = comp.getParent();
+            if (comp == this)
+	      return true;
           }
       }
   }
@@ -1341,7 +1343,7 @@ public class Container extends Component
     if (layoutMgr == null)
       return super.paramString();
 
-    StringBuffer sb = new StringBuffer();
+    CPStringBuilder sb = new CPStringBuilder();
     sb.append(super.paramString());
     sb.append(",layout=");
     sb.append(layoutMgr.getClass().getName());

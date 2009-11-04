@@ -1,5 +1,5 @@
 /* { dg-do compile } */
-/* { dg-options "-O3 -fipa-cp -fdump-ipa-cp -fno-early-inlining"  } */
+/* { dg-options "-O3 -fipa-cp -fipa-cp-clone -fdump-ipa-cp -fno-early-inlining"  } */
 /* { dg-skip-if "PR 25442" { "*-*-*" } { "-fpic" "-fPIC" } { "" } } */
 
 /* Float & short constants.  */
@@ -23,5 +23,6 @@ int main ()
 
 
 /* { dg-final { scan-ipa-dump-times "versioned function" 2 "cp"  } } */
-/* { dg-final { scan-ipa-dump-times "replacing param with const" 2 "cp"  } } */
+/* { dg-final { scan-ipa-dump "replacing param c with const 3" "cp"  } } */
+/* { dg-final { scan-ipa-dump "replacing param a with const 7" "cp"  } } */
 /* { dg-final { cleanup-ipa-dump "cp" } } */

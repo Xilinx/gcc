@@ -7,7 +7,7 @@
 --                                  S p e c                                 --
 --                                                                          --
 --             Copyright (C) 1991-1994, Florida State University            --
---                     Copyright (C) 1995-2005, AdaCore                     --
+--                     Copyright (C) 1995-2008, AdaCore                     --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -37,13 +37,10 @@
 --  Note: this file can only be used for POSIX compliant systems
 
 pragma Polling (Off);
---  Turn off polling, we do not want ATC polling to take place during
---  tasking operations. It causes infinite loops and other problems.
+--  Turn off polling, we do not want ATC polling to take place during tasking
+--  operations. It causes infinite loops and other problems.
 
 with System.OS_Interface;
---  used for pthread_mutex_t
---           pthread_cond_t
---           pthread_t
 
 package System.Task_Primitives is
    pragma Preelaborate;
@@ -67,6 +64,18 @@ package System.Task_Primitives is
    --  Any information that the GNULLI needs maintained on a per-task basis.
    --  A component of this type is guaranteed to be included in the
    --  Ada_Task_Control_Block.
+
+   subtype Task_Address is System.Address;
+   --  In some versions of Task_Primitives, notably for VMS, Task_Address is
+   --  the short version of address defined in System.Aux_DEC. To avoid
+   --  dragging Aux_DEC into tasking packages a tasking specific subtype is
+   --  defined here.
+
+   Task_Address_Size : constant := Standard'Address_Size;
+   --  The size of Task_Address
+
+   Alternate_Stack_Size : constant := System.OS_Interface.Alternate_Stack_Size;
+   --  Import value from System.OS_Interface
 
 private
 

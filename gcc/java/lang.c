@@ -1,6 +1,6 @@
 /* Java(TM) language-specific utility routines.
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
-   2005, 2006, 2007 Free Software Foundation, Inc.
+   2005, 2006, 2007, 2008 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -53,7 +53,7 @@ static bool java_post_options (const char **);
 
 static int java_handle_option (size_t scode, const char *arg, int value);
 static void put_decl_string (const char *, int);
-static void put_decl_node (tree);
+static void put_decl_node (tree, int);
 static void java_print_error_function (diagnostic_context *, const char *,
 				       diagnostic_info *);
 static int merge_init_test_initialization (void * *, void *);
@@ -61,51 +61,12 @@ static int inline_init_test_initialization (void * *, void *);
 static bool java_dump_tree (void *, tree);
 static void dump_compound_expr (dump_info_p, tree);
 static bool java_decl_ok_for_sibcall (const_tree);
-static tree java_get_callee_fndecl (const_tree);
-static void java_clear_binding_stack (void);
 
 static enum classify_record java_classify_record (tree type);
 
 #ifndef TARGET_OBJECT_SUFFIX
 # define TARGET_OBJECT_SUFFIX ".o"
 #endif
-
-/* Table indexed by tree code giving a string containing a character
-   classifying the tree code.  Possibilities are
-   t, d, s, c, r, <, 1 and 2.  See java/java-tree.def for details.  */
-
-#define DEFTREECODE(SYM, NAME, TYPE, LENGTH) TYPE,
-
-const enum tree_code_class tree_code_type[] = {
-#include "tree.def"
-  tcc_exceptional,
-#include "java-tree.def"
-};
-#undef DEFTREECODE
-
-/* Table indexed by tree code giving number of expression
-   operands beyond the fixed part of the node structure.
-   Not used for types or decls.  */
-
-#define DEFTREECODE(SYM, NAME, TYPE, LENGTH) LENGTH,
-
-const unsigned char tree_code_length[] = {
-#include "tree.def"
-  0,
-#include "java-tree.def"
-};
-#undef DEFTREECODE
-
-/* Names of tree components.
-   Used for printing out the tree and error messages.  */
-#define DEFTREECODE(SYM, NAME, TYPE, LEN) NAME,
-
-const char *const tree_code_name[] = {
-#include "tree.def"
-  "@@dummy",
-#include "java-tree.def"
-};
-#undef DEFTREECODE
 
 /* Table of machine-independent attributes.  */
 const struct attribute_spec java_attribute_table[] =
@@ -194,12 +155,6 @@ struct language_function GTY(())
 #undef LANG_HOOKS_DECL_OK_FOR_SIBCALL
 #define LANG_HOOKS_DECL_OK_FOR_SIBCALL java_decl_ok_for_sibcall
 
-#undef LANG_HOOKS_GET_CALLEE_FNDECL
-#define LANG_HOOKS_GET_CALLEE_FNDECL java_get_callee_fndecl
-
-#undef LANG_HOOKS_CLEAR_BINDING_STACK
-#define LANG_HOOKS_CLEAR_BINDING_STACK java_clear_binding_stack
-
 #undef LANG_HOOKS_SET_DECL_ASSEMBLER_NAME
 #define LANG_HOOKS_SET_DECL_ASSEMBLER_NAME java_mangle_decl
 
@@ -262,7 +217,7 @@ java_handle_option (size_t scode, const char *arg, int value)
       flag_wall = value;
       /* When -Wall given, enable -Wunused.  We do this because the C
 	 compiler does it, and people expect it.  */
-      set_Wunused (value);
+      warn_unused = value;
       break;
 
     case OPT_fenable_assertions_:
@@ -393,17 +348,20 @@ put_decl_string (const char *str, int len)
       else
 	{
 	  decl_buflen *= 2;
-	  decl_buf = xrealloc (decl_buf, decl_buflen);
+	  decl_buf = XRESIZEVAR (char, decl_buf, decl_buflen);
 	}
     }
   strcpy (decl_buf + decl_bufpos, str);
   decl_bufpos += len;
 }
 
-/* Append to decl_buf a printable name for NODE. */
+/* Append to decl_buf a printable name for NODE.
+   Depending on VERBOSITY, more information about NODE
+   is printed. Read the comments of decl_printable_name in
+   langhooks.h for more.  */
 
 static void
-put_decl_node (tree node)
+put_decl_node (tree node, int verbosity)
 {
   int was_pointer = 0;
   if (TREE_CODE (node) == POINTER_TYPE)
@@ -415,17 +373,32 @@ put_decl_node (tree node)
     {
       if (TREE_CODE (node) == FUNCTION_DECL)
 	{
+	  if (verbosity == 0 && DECL_NAME (node))
+	  /* We have been instructed to just print the bare name
+	     of the function.  */
+	    {
+	      put_decl_node (DECL_NAME (node), 0);
+	      return;
+	    }
+
 	  /* We want to print the type the DECL belongs to. We don't do
 	     that when we handle constructors. */
 	  if (! DECL_CONSTRUCTOR_P (node)
-	      && ! DECL_ARTIFICIAL (node) && DECL_CONTEXT (node))
+	      && ! DECL_ARTIFICIAL (node) && DECL_CONTEXT (node)
+              /* We want to print qualified DECL names only
+                 if verbosity is higher than 1.  */
+              && verbosity >= 1)
 	    {
-	      put_decl_node (TYPE_NAME (DECL_CONTEXT (node)));
+	      put_decl_node (TYPE_NAME (DECL_CONTEXT (node)),
+                               verbosity);
 	      put_decl_string (".", 1);
 	    }
 	  if (! DECL_CONSTRUCTOR_P (node))
-	    put_decl_node (DECL_NAME (node));
-	  if (TREE_TYPE (node) != NULL_TREE)
+	    put_decl_node (DECL_NAME (node), verbosity);
+	  if (TREE_TYPE (node) != NULL_TREE
+              /* We want to print function parameters only if verbosity
+                 is higher than 2.  */
+              && verbosity >= 2)
 	    {
 	      int i = 0;
 	      tree args = TYPE_ARG_TYPES (TREE_TYPE (node));
@@ -436,19 +409,22 @@ put_decl_node (tree node)
 		{
 		  if (i > 0)
 		    put_decl_string (",", 1);
-		  put_decl_node (TREE_VALUE (args));
+		  put_decl_node (TREE_VALUE (args), verbosity);
 		}
 	      put_decl_string (")", 1);
 	    }
 	}
       else
-	put_decl_node (DECL_NAME (node));
+	put_decl_node (DECL_NAME (node), verbosity);
     }
   else if (TYPE_P (node) && TYPE_NAME (node) != NULL_TREE)
     {
-      if (TREE_CODE (node) == RECORD_TYPE && TYPE_ARRAY_P (node))
+      if (TREE_CODE (node) == RECORD_TYPE && TYPE_ARRAY_P (node)
+          /* Print detailed array information only if verbosity is higher
+            than 2.  */
+          && verbosity >= 2)
 	{
-	  put_decl_node (TYPE_ARRAY_ELEMENT (node));
+	  put_decl_node (TYPE_ARRAY_ELEMENT (node), verbosity);
 	  put_decl_string("[]", 2);
 	}
       else if (node == promoted_byte_type_node)
@@ -462,7 +438,7 @@ put_decl_node (tree node)
       else if (node == void_type_node && was_pointer)
 	put_decl_string ("null", 4);
       else
-	put_decl_node (TYPE_NAME (node));
+	put_decl_node (TYPE_NAME (node), verbosity);
     }
   else if (TREE_CODE (node) == IDENTIFIER_NODE)
     put_decl_string (IDENTIFIER_POINTER (node), IDENTIFIER_LENGTH (node));
@@ -479,10 +455,7 @@ const char *
 lang_printable_name (tree decl, int v)
 {
   decl_bufpos = 0;
-  if (v == 0 && TREE_CODE (decl) == FUNCTION_DECL)
-    put_decl_node (DECL_NAME (decl));
-  else
-    put_decl_node (decl);
+  put_decl_node (decl, v);
   put_decl_string ("", 1);
   return decl_buf;
 }
@@ -562,10 +535,6 @@ java_init_options (unsigned int argc ATTRIBUTE_UNUSED,
   /* Java requires left-to-right evaluation of subexpressions.  */
   flag_evaluation_order = 1;
 
-  /* Unit at a time is disabled for Java because it is considered
-     too expensive.  */
-  no_unit_at_a_time_default = 1;
-
   jcf_path_init ();
 
   return CL_Java;
@@ -576,12 +545,6 @@ static bool
 java_post_options (const char **pfilename)
 {
   const char *filename = *pfilename;
-
-  /* Use tree inlining.  */
-  if (!flag_no_inline)
-    flag_no_inline = 1;
-  if (flag_inline_functions)
-    flag_inline_trees = 2;
 
   /* An absolute requirement: if we're not using indirect dispatch, we
      must always verify everything.  */
@@ -655,10 +618,8 @@ java_post_options (const char **pfilename)
 	    }
 	}
     }
-#ifdef USE_MAPPED_LOCATION
   linemap_add (line_table, LC_ENTER, false, filename, 0);
   linemap_add (line_table, LC_RENAME, false, "<built-in>", 0);
-#endif
 
   /* Initialize the compiler back end.  */
   return false;
@@ -898,65 +859,7 @@ static bool
 java_decl_ok_for_sibcall (const_tree decl)
 {
   return (decl != NULL && DECL_CONTEXT (decl) == output_class
-	  && DECL_INLINE (decl));
-}
-
-/* Given a call_expr, try to figure out what its target might be.  In
-   the case of an indirection via the atable, search for the decl.  If
-   the decl is external, we return NULL.  If we don't, the optimizer
-   will replace the indirection with a direct call, which undoes the
-   purpose of the atable indirection.  */
-static tree
-java_get_callee_fndecl (const_tree call_expr)
-{
-  tree method, table, element, atable_methods;
-
-  HOST_WIDE_INT index;
-
-  /* FIXME: This is disabled because we end up passing calls through
-     the PLT, and we do NOT want to do that.  */
-  return NULL;
-
-  if (TREE_CODE (call_expr) != CALL_EXPR)
-    return NULL;
-  method = CALL_EXPR_FN (call_expr);
-  STRIP_NOPS (method);
-  if (TREE_CODE (method) != ARRAY_REF)
-    return NULL;
-  table = TREE_OPERAND (method, 0);
-  if (! DECL_LANG_SPECIFIC(table)
-      || !DECL_OWNER (table)
-      || TYPE_ATABLE_DECL (DECL_OWNER (table)) != table)
-    return NULL;
-
-  atable_methods = TYPE_ATABLE_METHODS (DECL_OWNER (table));
-  index = TREE_INT_CST_LOW (TREE_OPERAND (method, 1));
-
-  /* FIXME: Replace this for loop with a hash table lookup.  */
-  for (element = atable_methods; element; element = TREE_CHAIN (element))
-    {
-      if (index == 1)
-	{
-	  tree purpose = TREE_PURPOSE (element);
-	  if (TREE_CODE (purpose) == FUNCTION_DECL
-	      && ! DECL_EXTERNAL (purpose))
-	    return purpose;
-	  else
-	    return NULL;
-	}
-      --index;
-    }
-
-  return NULL;
-}
-
-
-/* Clear the binding stack.  */
-static void
-java_clear_binding_stack (void)
-{
-  while (!global_bindings_p ())
-    poplevel (0, 0, 0);
+          && !DECL_UNINLINABLE (decl));
 }
 
 static enum classify_record

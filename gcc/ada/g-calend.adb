@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---                     Copyright (C) 1999-2007, AdaCore                     --
+--                     Copyright (C) 1999-2008, AdaCore                     --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -307,7 +307,7 @@ package body GNAT.Calendar is
       pragma Unreferenced (Hour, Minute, Second, Sub_Second);
 
       function Is_Leap (Year : Year_Number) return Boolean;
-      --  Return True if Year denotes a leap year. Leap centential years are
+      --  Return True if Year denotes a leap year. Leap centennial years are
       --  properly handled.
 
       function Jan_1_Day_Of_Week

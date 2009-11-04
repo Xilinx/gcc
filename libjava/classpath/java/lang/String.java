@@ -40,6 +40,7 @@ exception statement from your version. */
 package java.lang;
 
 import gnu.java.lang.CharData;
+import gnu.java.lang.CPStringBuilder;
 
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
@@ -336,8 +337,58 @@ public final class String
    * @throws Error if the decoding fails
    * @since 1.1
    */
-  public String(byte[] data, int offset, int count, String encoding)
+  public String(byte[] data, int offset, int count, final String encoding)
     throws UnsupportedEncodingException
+  {
+    this(data, offset, count, stringToCharset(encoding));
+  }
+
+  /**
+   * Wrapper method to convert exceptions resulting from
+   * the selection of a {@link java.nio.charset.Charset} based on
+   * a String.
+   *
+   * @throws UnsupportedEncodingException if encoding is not found
+   */
+  private static final Charset stringToCharset(final String encoding)
+    throws UnsupportedEncodingException
+  {
+    try
+      {
+	return Charset.forName(encoding);
+      }
+    catch(IllegalCharsetNameException e)
+      {
+	throw new UnsupportedEncodingException("Encoding: "+encoding+
+					       " not found.");
+      }
+    catch(UnsupportedCharsetException e)
+      {
+	throw new UnsupportedEncodingException("Encoding: "+encoding+
+					       " not found.");
+      }    
+  }
+
+  /**
+   * Creates a new String using the portion of the byte array starting at the
+   * offset and ending at offset + count. Uses the specified encoding type
+   * to decode the byte array, so the resulting string may be longer or
+   * shorter than the byte array. For more decoding control, use
+   * {@link java.nio.charset.CharsetDecoder}, and for valid character sets,
+   * see {@link java.nio.charset.Charset}. Malformed input and unmappable
+   * character sequences are replaced with the default replacement string
+   * provided by the {@link java.nio.charset.Charset}.
+   *
+   * @param data byte array to copy
+   * @param offset the offset to start at
+   * @param count the number of bytes in the array to use
+   * @param encoding the encoding to use
+   * @throws NullPointerException if data or encoding is null
+   * @throws IndexOutOfBoundsException if offset or count is incorrect
+   *         (while unspecified, this is a StringIndexOutOfBoundsException)
+   * @since 1.6
+   */
+  public String(byte[] data, int offset, int count, Charset encoding)
   {
     if (offset < 0)
       throw new StringIndexOutOfBoundsException("offset: " + offset);
@@ -349,7 +400,7 @@ public final class String
 						+ (offset + count));
     try 
       {
-        CharsetDecoder csd = Charset.forName(encoding).newDecoder();
+        CharsetDecoder csd = encoding.newDecoder();
 	csd.onMalformedInput(CodingErrorAction.REPLACE);
 	csd.onUnmappableCharacter(CodingErrorAction.REPLACE);
 	CharBuffer cbuf = csd.decode(ByteBuffer.wrap(data, offset, count));
@@ -365,16 +416,12 @@ public final class String
 	    this.offset = 0;
 	    this.count = value.length;
 	  }
-      } catch(CharacterCodingException e){
-	  throw new UnsupportedEncodingException("Encoding: "+encoding+
-						 " not found.");	  
-      } catch(IllegalCharsetNameException e){
-	  throw new UnsupportedEncodingException("Encoding: "+encoding+
-						 " not found.");
-      } catch(UnsupportedCharsetException e){
-	  throw new UnsupportedEncodingException("Encoding: "+encoding+
-						 " not found.");
-      }    
+      } 
+    catch(CharacterCodingException e)
+      {
+	// This shouldn't ever happen.
+	throw (InternalError) new InternalError().initCause(e);
+      }	  
   }
 
   /**
@@ -396,6 +443,26 @@ public final class String
    */
   public String(byte[] data, String encoding)
     throws UnsupportedEncodingException
+  {
+    this(data, 0, data.length, encoding);
+  }
+
+  /**
+   * Creates a new String using the byte array. Uses the specified encoding
+   * type to decode the byte array, so the resulting string may be longer or
+   * shorter than the byte array. For more decoding control, use
+   * {@link java.nio.charset.CharsetDecoder}, and for valid character sets,
+   * see {@link java.nio.charset.Charset}. Malformed input and unmappable
+   * character sequences are replaced with the default replacement string
+   * provided by the {@link java.nio.charset.Charset}.
+   *
+   * @param data byte array to copy
+   * @param encoding the name of the encoding to use
+   * @throws NullPointerException if data or encoding is null
+   * @see #String(byte[], int, int, java.nio.Charset)
+   * @since 1.6
+   */
+  public String(byte[] data, Charset encoding)
   {
     this(data, 0, data.length, encoding);
   }
@@ -725,11 +792,30 @@ public final class String
    * @throws UnsupportedEncodingException if encoding is not supported
    * @since 1.1
    */
-  public byte[] getBytes(String enc) throws UnsupportedEncodingException
+  public byte[] getBytes(final String enc)
+    throws UnsupportedEncodingException
+  {
+    return getBytes(stringToCharset(enc));
+  }
+
+  /**
+   * Converts the Unicode characters in this String to a byte array. Uses the
+   * specified encoding method, so the result may be longer or shorter than
+   * the String. For more encoding control, use
+   * {@link java.nio.charset.CharsetEncoder}, and for valid character sets,
+   * see {@link java.nio.charset.Charset}. Unsupported characters get
+   * replaced by the {@link java.nio.charset.Charset}'s default replacement.
+   *
+   * @param enc encoding name
+   * @return the resulting byte array
+   * @throws NullPointerException if enc is null
+   * @since 1.6
+   */
+  public byte[] getBytes(Charset enc)
   {
     try 
       {
-	CharsetEncoder cse = Charset.forName(enc).newEncoder();
+	CharsetEncoder cse = enc.newEncoder();
 	cse.onMalformedInput(CodingErrorAction.REPLACE);
 	cse.onUnmappableCharacter(CodingErrorAction.REPLACE);
 	ByteBuffer bbuf = cse.encode(CharBuffer.wrap(value, offset, count));
@@ -740,16 +826,6 @@ public final class String
 	byte[] bytes = new byte[bbuf.remaining()];
 	bbuf.get(bytes);
 	return bytes;
-      } 
-    catch(IllegalCharsetNameException e)
-      {
-	throw new UnsupportedEncodingException("Encoding: " + enc
-					       + " not found.");
-      } 
-    catch(UnsupportedCharsetException e)
-      {
-	throw new UnsupportedEncodingException("Encoding: " + enc
-					       + " not found.");
       } 
     catch(CharacterCodingException e)
       {
@@ -1303,13 +1379,13 @@ public final class String
         break;
     if (i < 0)
       return this;
-    char[] newStr = (char[]) value.clone();
-    newStr[x] = newChar;
+    char[] newStr = toCharArray();
+    newStr[x - offset] = newChar;
     while (--i >= 0)
       if (value[++x] == oldChar)
-        newStr[x] = newChar;
+        newStr[x - offset] = newChar;
     // Package constructor avoids an array copy.
-    return new String(newStr, offset, count, true);
+    return new String(newStr, 0, count, true);
   }
 
   /**
@@ -1431,6 +1507,47 @@ public final class String
   }
 
   /**
+   * Convert string to lower case for a Turkish locale that requires special
+   * handling of '\u0049'
+   */
+  private String toLowerCaseTurkish()
+  {
+    // First, see if the current string is already lower case.
+    int i = count;
+    int x = offset - 1;
+    while (--i >= 0)
+      {
+        char ch = value[++x];
+        if ((ch == '\u0049') || ch != Character.toLowerCase(ch))
+          break;
+      }
+    if (i < 0)
+      return this;
+
+    // Now we perform the conversion. Fortunately, there are no multi-character
+    // lowercase expansions in Unicode 3.0.0.
+    char[] newStr = new char[count];
+    VMSystem.arraycopy(value, offset, newStr, 0, x - offset);
+    do
+      {
+        char ch = value[x];
+        // Hardcoded special case.
+        if (ch != '\u0049')
+          {
+            newStr[x - offset] = Character.toLowerCase(ch);
+          }
+        else
+          {
+            newStr[x - offset] = '\u0131';
+          }
+        x++;
+      }
+    while (--i >= 0);
+    // Package constructor avoids an array copy.
+    return new String(newStr, 0, count, true);
+  }
+
+  /**
    * Lowercases this String according to a particular locale. This uses
    * Unicode's special case mappings, as applied to the given Locale, so the
    * resulting string may be a different length.
@@ -1444,32 +1561,40 @@ public final class String
   public String toLowerCase(Locale loc)
   {
     // First, see if the current string is already lower case.
-    boolean turkish = "tr".equals(loc.getLanguage());
-    int i = count;
-    int x = offset - 1;
-    while (--i >= 0)
-      {
-        char ch = value[++x];
-        if ((turkish && ch == '\u0049')
-            || ch != Character.toLowerCase(ch))
-          break;
-      }
-    if (i < 0)
-      return this;
 
-    // Now we perform the conversion. Fortunately, there are no multi-character
-    // lowercase expansions in Unicode 3.0.0.
-    char[] newStr = (char[]) value.clone();
-    do
+    // Is loc turkish? String equality test is ok as Locale.language is interned
+    if ("tr" == loc.getLanguage())
       {
-        char ch = value[x];
-        // Hardcoded special case.
-        newStr[x++] = (turkish && ch == '\u0049') ? '\u0131'
-          : Character.toLowerCase(ch);
+        return toLowerCaseTurkish();
       }
-    while (--i >= 0);
-    // Package constructor avoids an array copy.
-    return new String(newStr, offset, count, true);
+    else
+      {
+        int i = count;
+        int x = offset - 1;
+        while (--i >= 0)
+          {
+            char ch = value[++x];
+            if (ch != Character.toLowerCase(ch))
+              break;
+          }
+        if (i < 0)
+          return this;
+
+        // Now we perform the conversion. Fortunately, there are no
+        // multi-character lowercase expansions in Unicode 3.0.0.
+        char[] newStr = new char[count];
+        VMSystem.arraycopy(value, offset, newStr, 0, x - offset);
+        do
+          {
+            char ch = value[x];
+            // Hardcoded special case.
+            newStr[x - offset] = Character.toLowerCase(ch);
+            x++;
+          }
+        while (--i >= 0);
+        // Package constructor avoids an array copy.
+        return new String(newStr, 0, count, true);
+     }
   }
 
   /**
@@ -1487,21 +1612,12 @@ public final class String
   }
 
   /**
-   * Uppercases this String according to a particular locale. This uses
-   * Unicode's special case mappings, as applied to the given Locale, so the
-   * resulting string may be a different length.
-   *
-   * @param loc locale to use
-   * @return new uppercased String, or this if no characters were uppercased
-   * @throws NullPointerException if loc is null
-   * @see #toLowerCase(Locale)
-   * @since 1.1
+   * Uppercase this string for a Turkish locale
    */
-  public String toUpperCase(Locale loc)
+  private String toUpperCaseTurkish()
   {
     // First, see how many characters we have to grow by, as well as if the
     // current string is already upper case.
-    boolean turkish = "tr".equals(loc.getLanguage());
     int expand = 0;
     boolean unchanged = true;
     int i = count;
@@ -1511,7 +1627,7 @@ public final class String
         char ch = value[--x];
         expand += upperCaseExpansion(ch);
         unchanged = (unchanged && expand == 0
-                     && ! (turkish && ch == '\u0069')
+                     && ch != '\u0069'
                      && ch == Character.toUpperCase(ch));
       }
     if (unchanged)
@@ -1521,16 +1637,24 @@ public final class String
     i = count;
     if (expand == 0)
       {
-        char[] newStr = (char[]) value.clone();
+        char[] newStr = new char[count];
+        VMSystem.arraycopy(value, offset, newStr, 0, count - (x - offset));
         while (--i >= 0)
           {
             char ch = value[x];
             // Hardcoded special case.
-            newStr[x++] = (turkish && ch == '\u0069') ? '\u0130'
-              : Character.toUpperCase(ch);
+            if (ch != '\u0069')
+              {
+                newStr[x - offset] = Character.toUpperCase(ch);
+              }
+            else
+              {
+                newStr[x - offset] = '\u0130';
+              }
+            x++;
           }
         // Package constructor avoids an array copy.
-        return new String(newStr, offset, count, true);
+        return new String(newStr, 0, count, true);
       }
 
     // Expansion is necessary.
@@ -1540,7 +1664,7 @@ public final class String
       {
         char ch = value[x++];
         // Hardcoded special case.
-        if (turkish && ch == '\u0069')
+        if (ch == '\u0069')
           {
             newStr[j++] = '\u0130';
             continue;
@@ -1559,6 +1683,79 @@ public final class String
     return new String(newStr, 0, newStr.length, true);
   }
 
+  /**
+   * Uppercases this String according to a particular locale. This uses
+   * Unicode's special case mappings, as applied to the given Locale, so the
+   * resulting string may be a different length.
+   *
+   * @param loc locale to use
+   * @return new uppercased String, or this if no characters were uppercased
+   * @throws NullPointerException if loc is null
+   * @see #toLowerCase(Locale)
+   * @since 1.1
+   */
+  public String toUpperCase(Locale loc)
+  {
+    // First, see how many characters we have to grow by, as well as if the
+    // current string is already upper case.
+
+    // Is loc turkish? String equality test is ok as Locale.language is interned
+    if ("tr" == loc.getLanguage())
+      {
+        return toUpperCaseTurkish();
+      }
+    else
+      {
+        int expand = 0;
+        boolean unchanged = true;
+        int i = count;
+        int x = i + offset;
+        while (--i >= 0)
+          {
+            char ch = value[--x];
+            expand += upperCaseExpansion(ch);
+            unchanged = (unchanged && expand == 0
+                         && ch == Character.toUpperCase(ch));
+          }
+        if (unchanged)
+          return this;
+
+        // Now we perform the conversion.
+        i = count;
+        if (expand == 0)
+          {
+            char[] newStr = new char[count];
+            VMSystem.arraycopy(value, offset, newStr, 0, count - (x - offset));
+            while (--i >= 0)
+              {
+                char ch = value[x];
+                newStr[x - offset] = Character.toUpperCase(ch);
+                x++;
+              }
+            // Package constructor avoids an array copy.
+            return new String(newStr, 0, count, true);
+          }
+
+        // Expansion is necessary.
+        char[] newStr = new char[count + expand];
+        int j = 0;
+        while (--i >= 0)
+          {
+            char ch = value[x++];
+            expand = upperCaseExpansion(ch);
+            if (expand > 0)
+              {
+                int index = upperCaseIndex(ch);
+                while (expand-- >= 0)
+                  newStr[j++] = upperExpand[index++];
+              }
+            else
+              newStr[j++] = Character.toUpperCase(ch);
+          }
+        // Package constructor avoids an array copy.
+        return new String(newStr, 0, newStr.length, true);
+      }
+  }
   /**
    * Uppercases this String. This uses Unicode's special case mappings, as
    * applied to the platform's default Locale, so the resulting string may
@@ -1617,9 +1814,6 @@ public final class String
    */
   public char[] toCharArray()
   {
-    if (count == value.length)
-      return (char[]) value.clone();
-
     char[] copy = new char[count];
     VMSystem.arraycopy(value, offset, copy, 0, count);
     return copy;
@@ -1954,7 +2148,7 @@ public final class String
     int replaceLength = replacement.length();
     
     int startPos = this.indexOf(targetString);
-    StringBuilder result = new StringBuilder(this);    
+    CPStringBuilder result = new CPStringBuilder(this);    
     while (startPos != -1)
       {
         // Replace the target with the replacement

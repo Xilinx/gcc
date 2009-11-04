@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---                     Copyright (C) 2001-2007, AdaCore                     --
+--                     Copyright (C) 2001-2008, AdaCore                     --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -82,7 +82,7 @@ package body Signalling_Fds is
 
          --  Create a listening socket
 
-         L_Sock := C_Socket (Constants.AF_INET, Constants.SOCK_STREAM, 0);
+         L_Sock := C_Socket (SOSC.AF_INET, SOSC.SOCK_STREAM, 0);
 
          if L_Sock = Failure then
             goto Fail;
@@ -90,15 +90,14 @@ package body Signalling_Fds is
 
          --  Bind the socket to an available port on localhost
 
-         Len := Sin'Size / 8;
-         Set_Length (Sin'Unchecked_Access, Len);
-         Sin.Sin_Family    := Constants.AF_INET;
+         Set_Family (Sin.Sin_Family, Family_Inet);
          Sin.Sin_Addr.S_B1 := 127;
          Sin.Sin_Addr.S_B2 := 0;
          Sin.Sin_Addr.S_B3 := 0;
          Sin.Sin_Addr.S_B4 := 1;
          Sin.Sin_Port      := 0;
 
+         Len := C.int (Lengths (Family_Inet));
          Res := C_Bind (L_Sock, Sin'Address, Len);
 
          if Res = Failure then
@@ -123,7 +122,7 @@ package body Signalling_Fds is
 
          --  Create read end (client) socket
 
-         R_Sock := C_Socket (Constants.AF_INET, Constants.SOCK_STREAM, 0);
+         R_Sock := C_Socket (SOSC.AF_INET, SOSC.SOCK_STREAM, 0);
 
          if R_Sock = Failure then
             goto Fail;
@@ -135,7 +134,7 @@ package body Signalling_Fds is
 
          exit when Res /= Failure;
 
-         if Socket_Errno /= Constants.EADDRINUSE then
+         if Socket_Errno /= SOSC.EADDRINUSE then
             goto Fail;
          end if;
 
@@ -143,7 +142,7 @@ package body Signalling_Fds is
          --  marked "in use", even though it has been closed (perhaps by some
          --  other process that has already exited). This causes the above
          --  C_Connect to fail with EADDRINUSE. In this case, we close the
-         --  ports, and loop back to try again. This mysterious windows
+         --  ports, and loop back to try again. This mysterious Windows
          --  behavior is documented. See, for example:
          --    http://msdn2.microsoft.com/en-us/library/ms737625.aspx
          --  In an experiment with 2000 calls, 21 required exactly one retry, 7
@@ -153,7 +152,7 @@ package body Signalling_Fds is
 
          pragma Assert (Res = Failure
                           and then
-                        Socket_Errno = Constants.EADDRINUSE);
+                        Socket_Errno = SOSC.EADDRINUSE);
          pragma Warnings (Off); -- useless assignment to "Res"
          Res := C_Close (W_Sock);
          pragma Warnings (On);
@@ -162,7 +161,7 @@ package body Signalling_Fds is
          R_Sock := Failure;
       end loop;
 
-      --  Since the call to connect(2) has suceeded and the backlog limit on
+      --  Since the call to connect(2) has succeeded and the backlog limit on
       --  the listening socket is 1, we know that there is now exactly one
       --  pending connection on L_Sock, which is the one from R_Sock.
 
@@ -186,7 +185,7 @@ package body Signalling_Fds is
 
       Fds.all := (Read_End => R_Sock, Write_End => W_Sock);
 
-      return Success;
+      return Thin_Common.Success;
 
    <<Fail>>
       declare
@@ -218,7 +217,7 @@ package body Signalling_Fds is
    function Read (Rsig : C.int) return C.int is
       Buf : aliased Character;
    begin
-      return C_Recv (Rsig, Buf'Address, 1, Constants.MSG_Forced_Flags);
+      return C_Recv (Rsig, Buf'Address, 1, SOSC.MSG_Forced_Flags);
    end Read;
 
    -----------
@@ -228,7 +227,7 @@ package body Signalling_Fds is
    function Write (Wsig : C.int) return C.int is
       Buf : aliased Character := ASCII.NUL;
    begin
-      return C_Send (Wsig, Buf'Address, 1, Constants.MSG_Forced_Flags);
+      return C_Send (Wsig, Buf'Address, 1, SOSC.MSG_Forced_Flags);
    end Write;
 
 end Signalling_Fds;

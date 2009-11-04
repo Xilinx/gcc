@@ -6,25 +6,23 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -562,9 +560,9 @@ package body Atree is
    -- Local Subprograms --
    -----------------------
 
-   procedure Fix_Parents (Old_Node, New_Node : Node_Id);
-   --  Fixup parent pointers for the syntactic children of New_Node after
-   --  a copy, setting them to New_Node when they pointed to Old_Node.
+   procedure Fix_Parents (Ref_Node, Fix_Node : Node_Id);
+   --  Fixup parent pointers for the syntactic children of Fix_Node after
+   --  a copy, setting them to Fix_Node when they pointed to Ref_Node.
 
    function Allocate_Initialize_Node
      (Src            : Node_Id;
@@ -988,18 +986,18 @@ package body Atree is
    -- Fix_Parents --
    -----------------
 
-   procedure Fix_Parents (Old_Node, New_Node : Node_Id) is
+   procedure Fix_Parents (Ref_Node, Fix_Node : Node_Id) is
 
-      procedure Fix_Parent (Field : Union_Id; Old_Node, New_Node : Node_Id);
-      --  Fixup one parent pointer. Field is checked to see if it
-      --  points to a node, list, or element list that has a parent that
-      --  points to Old_Node. If so, the parent is reset to point to New_Node.
+      procedure Fix_Parent (Field : Union_Id);
+      --  Fixup one parent pointer. Field is checked to see if it points to
+      --  a node, list, or element list that has a parent that points to
+      --  Ref_Node. If so, the parent is reset to point to Fix_Node.
 
       ----------------
       -- Fix_Parent --
       ----------------
 
-      procedure Fix_Parent (Field : Union_Id; Old_Node, New_Node : Node_Id) is
+      procedure Fix_Parent (Field : Union_Id) is
       begin
          --  Fix parent of node that is referenced by Field. Note that we must
          --  exclude the case where the node is a member of a list, because in
@@ -1008,28 +1006,28 @@ package body Atree is
          if Field in Node_Range
            and then Present (Node_Id (Field))
            and then not Nodes.Table (Node_Id (Field)).In_List
-           and then Parent (Node_Id (Field)) = Old_Node
+           and then Parent (Node_Id (Field)) = Ref_Node
          then
-            Set_Parent (Node_Id (Field), New_Node);
+            Set_Parent (Node_Id (Field), Fix_Node);
 
          --  Fix parent of list that is referenced by Field
 
          elsif Field in List_Range
            and then Present (List_Id (Field))
-           and then Parent (List_Id (Field)) = Old_Node
+           and then Parent (List_Id (Field)) = Ref_Node
          then
-            Set_Parent (List_Id (Field), New_Node);
+            Set_Parent (List_Id (Field), Fix_Node);
          end if;
       end Fix_Parent;
 
    --  Start of processing for Fix_Parents
 
    begin
-      Fix_Parent (Field1 (New_Node), Old_Node, New_Node);
-      Fix_Parent (Field2 (New_Node), Old_Node, New_Node);
-      Fix_Parent (Field3 (New_Node), Old_Node, New_Node);
-      Fix_Parent (Field4 (New_Node), Old_Node, New_Node);
-      Fix_Parent (Field5 (New_Node), Old_Node, New_Node);
+      Fix_Parent (Field1 (Fix_Node));
+      Fix_Parent (Field2 (Fix_Node));
+      Fix_Parent (Field3 (Fix_Node));
+      Fix_Parent (Field4 (Fix_Node));
+      Fix_Parent (Field5 (Fix_Node));
    end Fix_Parents;
 
    -----------------------------------
@@ -2404,7 +2402,7 @@ package body Atree is
       end if;
 
       New_Node := New_Copy (Source);
-      Fix_Parents (Source, New_Node);
+      Fix_Parents (Ref_Node => Source, Fix_Node => New_Node);
 
       --  We now set the parent of the new node to be the same as the
       --  parent of the source. Almost always this parent will be
@@ -2448,7 +2446,7 @@ package body Atree is
 
       --  Fix parents of substituted node, since it has changed identity
 
-      Fix_Parents (New_Node, Old_Node);
+      Fix_Parents (Ref_Node => New_Node, Fix_Node => Old_Node);
 
       --  Since we are doing a replace, we assume that the original node
       --  is intended to become the new replaced node. The call would be
@@ -2511,7 +2509,7 @@ package body Atree is
          Set_Must_Not_Freeze (Old_Node, Old_Must_Not_Freeze);
       end if;
 
-      Fix_Parents (New_Node, Old_Node);
+      Fix_Parents (Ref_Node => New_Node, Fix_Node => Old_Node);
    end Rewrite;
 
    ------------------
@@ -2738,12 +2736,13 @@ package body Atree is
 
       if Field2 (Cur_Node) not in Node_Range then
          return Traverse_Field (Cur_Node, Field2 (Cur_Node), 2);
-      elsif Is_Syntactic_Field (Nkind (Cur_Node), 2) and then
-        Field2 (Cur_Node) /= Empty_List_Or_Node
+
+      elsif Is_Syntactic_Field (Nkind (Cur_Node), 2)
+        and then Field2 (Cur_Node) /= Empty_List_Or_Node
       then
-         --  Here is the tail recursion step, we reset Cur_Node and jump
-         --  back to the start of the procedure, which has the same
-         --  semantic effect as a call.
+         --  Here is the tail recursion step, we reset Cur_Node and jump back
+         --  to the start of the procedure, which has the same semantic effect
+         --  as a call.
 
          Cur_Node := Node_Id (Field2 (Cur_Node));
          goto Tail_Recurse;
@@ -7336,7 +7335,7 @@ package body Atree is
          pragma Assert (N <= Nodes.Last);
 
          if Val > Error then
-            Set_Parent (Val, N);
+            Set_Parent (N => Val, Val => N);
          end if;
 
          Set_Node1 (N, Val);
@@ -7347,7 +7346,7 @@ package body Atree is
          pragma Assert (N <= Nodes.Last);
 
          if Val > Error then
-            Set_Parent (Val, N);
+            Set_Parent (N => Val, Val => N);
          end if;
 
          Set_Node2 (N, Val);
@@ -7358,7 +7357,7 @@ package body Atree is
          pragma Assert (N <= Nodes.Last);
 
          if Val > Error then
-            Set_Parent (Val, N);
+            Set_Parent (N => Val, Val => N);
          end if;
 
          Set_Node3 (N, Val);
@@ -7369,7 +7368,7 @@ package body Atree is
          pragma Assert (N <= Nodes.Last);
 
          if Val > Error then
-            Set_Parent (Val, N);
+            Set_Parent (N => Val, Val => N);
          end if;
 
          Set_Node4 (N, Val);
@@ -7380,7 +7379,7 @@ package body Atree is
          pragma Assert (N <= Nodes.Last);
 
          if Val > Error then
-            Set_Parent (Val, N);
+            Set_Parent (N => Val, Val => N);
          end if;
 
          Set_Node5 (N, Val);

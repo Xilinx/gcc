@@ -43,7 +43,6 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.IOException;
-import java.io.Reader;
 import java.util.Iterator;
 import java.util.Properties;
 import javax.xml.namespace.NamespaceContext;
@@ -117,7 +116,7 @@ public abstract class XMLEventFactory
           {
             try
               {
-                Class t = (loader != null) ? loader.loadClass(className) :
+                Class<?> t = (loader != null) ? loader.loadClass(className) :
                   Class.forName(className);
                 return (XMLEventFactory) t.newInstance();
               }
@@ -218,6 +217,7 @@ public abstract class XMLEventFactory
   /**
    * Create a start-element event.
    */
+  @SuppressWarnings("unchecked")
   public abstract StartElement createStartElement(QName name,
                                                   Iterator attributes,
                                                   Iterator namespaces);
@@ -232,6 +232,7 @@ public abstract class XMLEventFactory
   /**
    * Create a start-element event.
    */
+  @SuppressWarnings("unchecked")
   public abstract StartElement createStartElement(String prefix,
                                                   String namespaceUri,
                                                   String localName,
@@ -241,6 +242,7 @@ public abstract class XMLEventFactory
   /**
    * Create a start-element event.
    */
+  @SuppressWarnings("unchecked")
   public abstract StartElement createStartElement(String prefix,
                                                   String namespaceUri,
                                                   String localName,
@@ -251,6 +253,7 @@ public abstract class XMLEventFactory
   /**
    * Create an end-element event.
    */
+  @SuppressWarnings("unchecked")
   public abstract EndElement createEndElement(QName name,
                                               Iterator namespaces);
 
@@ -264,6 +267,7 @@ public abstract class XMLEventFactory
   /**
    * Create an end-element event.
    */
+  @SuppressWarnings("unchecked")
   public abstract EndElement createEndElement(String prefix,
                                               String namespaceUri,
                                               String localName,

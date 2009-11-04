@@ -23,6 +23,8 @@ extern "Java"
 class java::text::DateFormatSymbols : public ::java::lang::Object
 {
 
+  static JArray< ::java::lang::String * > * getStringArray(::java::util::ResourceBundle *, ::java::lang::String *);
+  JArray< JArray< ::java::lang::String * > * > * getZoneStrings(::java::util::ResourceBundle *, ::java::util::Locale *);
   JArray< ::java::lang::String * > * formatsForKey(::java::util::ResourceBundle *, ::java::lang::String *);
 public:
   DateFormatSymbols(::java::util::Locale *);
@@ -63,6 +65,7 @@ public: // actually package-private
   JArray< ::java::lang::String * > * shortWeekdays;
   JArray< ::java::lang::String * > * weekdays;
 private:
+  static ::java::util::Properties * properties;
   JArray< JArray< ::java::lang::String * > * > * runtimeZoneStrings;
   JArray< JArray< ::java::lang::String * > * > * zoneStrings;
   static const jlong serialVersionUID = -5987973545549424702LL;

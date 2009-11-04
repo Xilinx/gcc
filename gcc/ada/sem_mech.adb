@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1996-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1996-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -69,7 +69,7 @@ package body Sem_Mech is
            ("mechanism for & has already been set", Mech_Name, Ent);
       end if;
 
-      --  MECHANISM_NAME ::= value | reference | descriptor
+      --  MECHANISM_NAME ::= value | reference | descriptor | short_descriptor
 
       if Nkind (Mech_Name) = N_Identifier then
          if Chars (Mech_Name) = Name_Value then
@@ -85,6 +85,11 @@ package body Sem_Mech is
             Set_Mechanism_With_Checks (Ent, By_Descriptor, Mech_Name);
             return;
 
+         elsif Chars (Mech_Name) = Name_Short_Descriptor then
+            Check_VMS (Mech_Name);
+            Set_Mechanism_With_Checks (Ent, By_Short_Descriptor, Mech_Name);
+            return;
+
          elsif Chars (Mech_Name) = Name_Copy then
             Error_Msg_N
               ("bad mechanism name, Value assumed", Mech_Name);
@@ -95,7 +100,8 @@ package body Sem_Mech is
             return;
          end if;
 
-      --  MECHANISM_NAME ::= descriptor (CLASS_NAME)
+      --  MECHANISM_NAME ::= descriptor (CLASS_NAME) |
+      --                     short_descriptor (CLASS_NAME)
       --  CLASS_NAME     ::= ubs | ubsb | uba | s | sb | a | nca
 
       --  Note: this form is parsed as an indexed component
@@ -104,14 +110,16 @@ package body Sem_Mech is
          Class := First (Expressions (Mech_Name));
 
          if Nkind (Prefix (Mech_Name)) /= N_Identifier
-           or else Chars (Prefix (Mech_Name)) /= Name_Descriptor
+           or else not (Chars (Prefix (Mech_Name)) = Name_Descriptor or else
+                        Chars (Prefix (Mech_Name)) = Name_Short_Descriptor)
            or else Present (Next (Class))
          then
             Bad_Mechanism;
             return;
          end if;
 
-      --  MECHANISM_NAME ::= descriptor (Class => CLASS_NAME)
+      --  MECHANISM_NAME ::= descriptor (Class => CLASS_NAME) |
+      --                     short_descriptor (Class => CLASS_NAME)
       --  CLASS_NAME     ::= ubs | ubsb | uba | s | sb | a | nca
 
       --  Note: this form is parsed as a function call
@@ -121,7 +129,8 @@ package body Sem_Mech is
          Param := First (Parameter_Associations (Mech_Name));
 
          if Nkind (Name (Mech_Name)) /= N_Identifier
-           or else Chars (Name (Mech_Name)) /= Name_Descriptor
+           or else not (Chars (Name (Mech_Name)) = Name_Descriptor or else
+                        Chars (Name (Mech_Name)) = Name_Short_Descriptor)
            or else Present (Next (Param))
            or else No (Selector_Name (Param))
            or else Chars (Selector_Name (Param)) /= Name_Class
@@ -145,26 +154,75 @@ package body Sem_Mech is
          Bad_Class;
          return;
 
-      elsif Chars (Class) = Name_UBS then
+      elsif Chars (Name (Mech_Name)) = Name_Descriptor
+        and then Chars (Class) = Name_UBS
+      then
          Set_Mechanism_With_Checks (Ent, By_Descriptor_UBS,  Mech_Name);
 
-      elsif Chars (Class) = Name_UBSB then
+      elsif Chars (Name (Mech_Name)) = Name_Descriptor
+        and then Chars (Class) = Name_UBSB
+      then
          Set_Mechanism_With_Checks (Ent, By_Descriptor_UBSB, Mech_Name);
 
-      elsif Chars (Class) = Name_UBA then
+      elsif Chars (Name (Mech_Name)) = Name_Descriptor
+        and then Chars (Class) = Name_UBA
+      then
          Set_Mechanism_With_Checks (Ent, By_Descriptor_UBA,  Mech_Name);
 
-      elsif Chars (Class) = Name_S then
+      elsif Chars (Name (Mech_Name)) = Name_Descriptor
+        and then Chars (Class) = Name_S
+      then
          Set_Mechanism_With_Checks (Ent, By_Descriptor_S,    Mech_Name);
 
-      elsif Chars (Class) = Name_SB then
+      elsif Chars (Name (Mech_Name)) = Name_Descriptor
+        and then Chars (Class) = Name_SB
+      then
          Set_Mechanism_With_Checks (Ent, By_Descriptor_SB,   Mech_Name);
 
-      elsif Chars (Class) = Name_A then
+      elsif Chars (Name (Mech_Name)) = Name_Descriptor
+        and then Chars (Class) = Name_A
+      then
          Set_Mechanism_With_Checks (Ent, By_Descriptor_A,    Mech_Name);
 
-      elsif Chars (Class) = Name_NCA then
+      elsif Chars (Name (Mech_Name)) = Name_Descriptor
+        and then Chars (Class) = Name_NCA
+      then
          Set_Mechanism_With_Checks (Ent, By_Descriptor_NCA,  Mech_Name);
+
+      elsif Chars (Name (Mech_Name)) = Name_Short_Descriptor
+        and then Chars (Class) = Name_UBS
+      then
+         Set_Mechanism_With_Checks (Ent, By_Short_Descriptor_UBS,  Mech_Name);
+
+      elsif Chars (Name (Mech_Name)) = Name_Short_Descriptor
+        and then Chars (Class) = Name_UBSB
+      then
+         Set_Mechanism_With_Checks (Ent, By_Short_Descriptor_UBSB, Mech_Name);
+
+      elsif Chars (Name (Mech_Name)) = Name_Short_Descriptor
+        and then Chars (Class) = Name_UBA
+      then
+         Set_Mechanism_With_Checks (Ent, By_Short_Descriptor_UBA,  Mech_Name);
+
+      elsif Chars (Name (Mech_Name)) = Name_Short_Descriptor
+        and then Chars (Class) = Name_S
+      then
+         Set_Mechanism_With_Checks (Ent, By_Short_Descriptor_S,    Mech_Name);
+
+      elsif Chars (Name (Mech_Name)) = Name_Short_Descriptor
+        and then Chars (Class) = Name_SB
+      then
+         Set_Mechanism_With_Checks (Ent, By_Short_Descriptor_SB,   Mech_Name);
+
+      elsif Chars (Name (Mech_Name)) = Name_Short_Descriptor
+        and then Chars (Class) = Name_A
+      then
+         Set_Mechanism_With_Checks (Ent, By_Short_Descriptor_A,    Mech_Name);
+
+      elsif Chars (Name (Mech_Name)) = Name_Short_Descriptor
+        and then Chars (Class) = Name_NCA
+      then
+         Set_Mechanism_With_Checks (Ent, By_Short_Descriptor_NCA,  Mech_Name);
 
       else
          Bad_Class;
@@ -183,7 +241,7 @@ package body Sem_Mech is
    is
    begin
       --  Right now we only do some checks for functions returning arguments
-      --  by desctiptor. Probably mode checks need to be added here ???
+      --  by descriptor. Probably mode checks need to be added here ???
 
       if Mech in Descriptor_Codes and then not Is_Formal (Ent) then
          if Is_Record_Type (Etype (Ent)) then
@@ -207,7 +265,7 @@ package body Sem_Mech is
 
    begin
       --  Skip this processing if inside a generic template. Not only is
-      --  it uneccessary (since neither extra formals nor mechanisms are
+      --  it unnecessary (since neither extra formals nor mechanisms are
       --  relevant for the template itself), but at least at the moment,
       --  procedures get frozen early inside a template so attempting to
       --  look at the formal types does not work too well if they are
@@ -241,7 +299,7 @@ package body Sem_Mech is
                ---------
 
                --  Note: all RM defined conventions are treated the same
-               --  from the point of view of parameter passing mechanims
+               --  from the point of view of parameter passing mechanism
 
                when Convention_Ada       |
                     Convention_Intrinsic |

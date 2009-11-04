@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -292,11 +292,15 @@ package body Scn is
                Upper_Half_Encoding := True;
 
             when UTF16_LE | UTF16_BE =>
+               Set_Standard_Error;
                Write_Line ("UTF-16 encoding format not recognized");
+               Set_Standard_Output;
                raise Unrecoverable_Error;
 
             when UTF32_LE | UTF32_BE =>
+               Set_Standard_Error;
                Write_Line ("UTF-32 encoding format not recognized");
+               Set_Standard_Output;
                raise Unrecoverable_Error;
 
             when Unknown =>
@@ -325,7 +329,7 @@ package body Scn is
          Scan;
       end if;
 
-      --  Clear flags for reserved words used as indentifiers
+      --  Clear flags for reserved words used as identifiers
 
       for J in Token_Type loop
          Used_As_Identifier (J) := False;

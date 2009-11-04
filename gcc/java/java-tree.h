@@ -1,7 +1,7 @@
 /* Definitions for parsing and type checking for the GNU compiler for
    the Java(TM) language.
    Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
-   2005, 2006, 2007 Free Software Foundation, Inc.
+   2005, 2006, 2007, 2008 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -29,15 +29,6 @@ The Free Software Foundation is independent of Sun Microsystems, Inc.  */
 #define GCC_JAVA_TREE_H
 
 #include "hashtab.h"
-
-/* Java language-specific tree codes.  */
-#define DEFTREECODE(SYM, NAME, TYPE, LENGTH) SYM,
-enum java_tree_code {
-  __DUMMY = LAST_AND_UNUSED_TREE_CODE,
-#include "java-tree.def"
-  LAST_JAVA_TREE_CODE
-};
-#undef DEFTREECODE
 
 struct JCF;
 
@@ -658,7 +649,7 @@ struct lang_identifier GTY(())
 /* The resulting tree type.  */
 union lang_tree_node 
   GTY((desc ("TREE_CODE (&%h.generic) == IDENTIFIER_NODE"),
-       chain_next ("(union lang_tree_node *)GENERIC_NEXT (&%h.generic)")))
+       chain_next ("(union lang_tree_node *)TREE_CHAIN (&%h.generic)")))
 
 {
   union tree_node GTY ((tag ("0"), 
@@ -769,8 +760,7 @@ union lang_tree_node
 #define MAYBE_CREATE_VAR_LANG_DECL_SPECIFIC(T)			\
   if (DECL_LANG_SPECIFIC (T) == NULL)				\
     {								\
-      DECL_LANG_SPECIFIC ((T))					\
-	= ggc_alloc_cleared (sizeof (struct lang_decl));	\
+      DECL_LANG_SPECIFIC ((T)) = GGC_CNEW (struct lang_decl);	\
       DECL_LANG_SPECIFIC (T)->desc = LANG_DECL_VAR;		\
     }
 
@@ -793,8 +783,6 @@ struct lang_decl_func GTY(())
   int max_locals;
   int max_stack;
   int arg_slot_count;
-  /* A temporary lie for the sake of ggc.  Actually, last_line is
-     only a source_location if USE_MAPPED_LOCATION.  FIXME.  */
   source_location last_line;	/* End line number for a function decl */
   tree throws_list;		/* Exception specified by `throws' */
 
@@ -902,7 +890,7 @@ struct lang_decl GTY(())
 #define MAYBE_CREATE_TYPE_TYPE_LANG_SPECIFIC(T) \
   if (TYPE_LANG_SPECIFIC ((T)) == NULL)		\
      TYPE_LANG_SPECIFIC ((T))			\
-     = ggc_alloc_cleared (sizeof (struct lang_type));
+     = GGC_CNEW (struct lang_type);
 
 #define TYPE_DUMMY(T)		(TYPE_LANG_SPECIFIC(T)->dummy_class)
 
@@ -1053,7 +1041,6 @@ extern int global_bindings_p (void);
 extern tree getdecls (void);
 extern void pushlevel (int);
 extern tree poplevel (int,int, int);
-extern void insert_block (tree);
 extern tree pushdecl (tree);
 extern void java_init_decl_processing (void);
 extern void java_dup_lang_specific_decl (tree);
@@ -1568,7 +1555,7 @@ enum
 #undef DEBUG_JAVA_BINDING_LEVELS
 
 extern void java_genericize (tree);
-extern int java_gimplify_expr (tree *, tree *, tree *);
+extern int java_gimplify_expr (tree *, gimple_seq *, gimple_seq *);
 
 extern FILE *finput;
 

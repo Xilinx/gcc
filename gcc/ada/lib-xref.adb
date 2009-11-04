@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1998-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1998-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -235,6 +235,11 @@ package body Lib.Xref is
       --
       --   Out param   Same as above cases, but OUT parameter
 
+      function OK_To_Set_Referenced return Boolean;
+      --  Returns True if the Referenced flag can be set. There are a few
+      --  exceptions where we do not want to set this flag, see body for
+      --  details of these exceptional cases.
+
       ---------------
       -- Is_On_LHS --
       ---------------
@@ -304,11 +309,42 @@ package body Lib.Xref is
                return False;
             end if;
          end loop;
-
-         --  Parent (N) is assignment statement, check whether N is its name
-
-         return Name (Parent (N)) = N;
       end Is_On_LHS;
+
+      ---------------------------
+      -- OK_To_Set_Referenced --
+      ---------------------------
+
+      function OK_To_Set_Referenced return Boolean is
+         P : Node_Id;
+
+      begin
+         --  A reference from a pragma Unreferenced or pragma Unmodified or
+         --  pragma Warnings does not cause the Referenced flag to be set.
+         --  This avoids silly warnings about things being referenced and
+         --  not assigned when the only reference is from the pragma.
+
+         if Nkind (N) = N_Identifier then
+            P := Parent (N);
+
+            if Nkind (P) = N_Pragma_Argument_Association then
+               P := Parent (P);
+
+               if Nkind (P) = N_Pragma then
+                  if Pragma_Name (P) = Name_Warnings
+                       or else
+                     Pragma_Name (P) = Name_Unmodified
+                       or else
+                     Pragma_Name (P) = Name_Unreferenced
+                  then
+                     return False;
+                  end if;
+               end if;
+            end if;
+         end if;
+
+         return True;
+      end OK_To_Set_Referenced;
 
    --  Start of processing for Generate_Reference
 
@@ -527,9 +563,9 @@ package body Lib.Xref is
                   Set_Referenced_As_LHS (E, False);
                end if;
 
-               --  Any other occurrence counts as referencing the entity
+            --  Any other occurrence counts as referencing the entity
 
-            else
+            elsif OK_To_Set_Referenced then
                Set_Referenced (E);
 
                --  If variable, this is an OK reference after an assignment
@@ -824,7 +860,7 @@ package body Lib.Xref is
       --  set to Empty, and Left/Right are set to space.
 
       procedure Output_Import_Export_Info (Ent : Entity_Id);
-      --  Ouput language and external name information for an interfaced
+      --  Output language and external name information for an interfaced
       --  entity, using the format <language, external_name>,
 
       ------------------------
@@ -1114,16 +1150,14 @@ package body Lib.Xref is
                New_Entry (Tref);
 
                if Is_Record_Type (Ent)
-                 and then Present (Abstract_Interfaces (Ent))
+                 and then Present (Interfaces (Ent))
                then
                   --  Add an entry for each one of the given interfaces
                   --  implemented by type Ent.
 
                   declare
-                     Elmt : Elmt_Id;
-
+                     Elmt : Elmt_Id := First_Elmt (Interfaces (Ent));
                   begin
-                     Elmt := First_Elmt (Abstract_Interfaces (Ent));
                      while Present (Elmt) loop
                         New_Entry (Node (Elmt));
                         Next_Elmt (Elmt);
@@ -1539,14 +1573,34 @@ package body Lib.Xref is
                --------------------------
 
                procedure Output_Overridden_Op (Old_E : Entity_Id) is
+                  Op : Entity_Id;
+
                begin
-                  if Present (Old_E)
-                    and then Sloc (Old_E) /= Standard_Location
+                  --  The overridden operation has an implicit declaration
+                  --  at the point of derivation. What we want to display
+                  --  is the original operation, which has the actual body
+                  --  (or abstract declaration) that is being overridden.
+                  --  The overridden operation is not always set, e.g. when
+                  --  it is a predefined operator.
+
+                  if No (Old_E) then
+                     return;
+
+                  elsif Present (Alias (Old_E)) then
+                     Op := Alias (Old_E);
+
+                  else
+                     Op := Old_E;
+                  end if;
+
+                  if Present (Op)
+                    and then Sloc (Op) /= Standard_Location
                   then
                      declare
-                        Loc      : constant Source_Ptr := Sloc (Old_E);
+                        Loc      : constant Source_Ptr := Sloc (Op);
                         Par_Unit : constant Unit_Number_Type :=
                                      Get_Source_Unit (Loc);
+
                      begin
                         Write_Info_Char ('<');
 
@@ -1780,7 +1834,11 @@ package body Lib.Xref is
                            Par : Node_Id;
 
                         begin
-                           if Ekind (Scope (E)) /= E_Generic_Package then
+                           --  The Present check here is an error defense
+
+                           if Present (Scope (E))
+                             and then Ekind (Scope (E)) /= E_Generic_Package
+                           then
                               return False;
                            end if;
 
@@ -1976,13 +2034,11 @@ package body Lib.Xref is
                      --  Additional information for types with progenitors
 
                      if Is_Record_Type (XE.Ent)
-                       and then Present (Abstract_Interfaces (XE.Ent))
+                       and then Present (Interfaces (XE.Ent))
                      then
                         declare
-                           Elmt : Elmt_Id;
-
+                           Elmt : Elmt_Id := First_Elmt (Interfaces (XE.Ent));
                         begin
-                           Elmt := First_Elmt (Abstract_Interfaces (XE.Ent));
                            while Present (Elmt) loop
                               Check_Type_Reference (Node (Elmt), True);
                               Next_Elmt (Elmt);

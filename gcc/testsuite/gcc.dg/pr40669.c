@@ -24,4 +24,3 @@ test (int d, int t, double *x, double *y, double *z, int n,
     }
   return result;
 }
-

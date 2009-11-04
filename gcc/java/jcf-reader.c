@@ -2,7 +2,7 @@
    It is not stand-alone:  It depends on tons of macros, and the
    intent is you #include this file after you've defined the macros.
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2005, 2006,
-   2007 Free Software Foundation, Inc.
+   2007, 2008 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -330,8 +330,8 @@ jcf_parse_constant_pool (JCF* jcf)
 {
   int i, n;
   JPOOL_SIZE (jcf) = (JCF_FILL (jcf, 2), JCF_readu2 (jcf));
-  jcf->cpool.tags = ggc_alloc (JPOOL_SIZE (jcf));
-  jcf->cpool.data = ggc_alloc (sizeof (jword) * JPOOL_SIZE (jcf));
+  jcf->cpool.tags = GGC_NEWVAR (uint8, JPOOL_SIZE (jcf));
+  jcf->cpool.data = GGC_NEWVAR (union cpool_entry, sizeof (jword) * JPOOL_SIZE (jcf));
   jcf->cpool.tags[0] = 0;
 #ifdef HANDLE_START_CONSTANT_POOL
   HANDLE_START_CONSTANT_POOL (JPOOL_SIZE (jcf));

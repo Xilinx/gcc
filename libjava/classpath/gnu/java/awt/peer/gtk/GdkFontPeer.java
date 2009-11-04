@@ -38,11 +38,14 @@ exception statement from your version. */
 
 package gnu.java.awt.peer.gtk;
 
+import gnu.classpath.Configuration;
 import gnu.classpath.Pointer;
 
 import gnu.java.awt.ClasspathToolkit;
 import gnu.java.awt.peer.ClasspathFontPeer;
 import gnu.java.awt.font.opentype.NameDecoder;
+
+import gnu.java.lang.CPStringBuilder;
 
 import java.awt.Font;
 import java.awt.FontMetrics;
@@ -166,7 +169,10 @@ public class GdkFontPeer extends ClasspathFontPeer
 
   static 
   {
-    System.loadLibrary("gtkpeer");
+    if (true) // GCJ LOCAL
+      {
+        System.loadLibrary("gtkpeer");
+      }
 
     initStaticState ();
 
@@ -207,7 +213,7 @@ public class GdkFontPeer extends ClasspathFontPeer
 
   private String buildString(CharacterIterator iter)
   {
-    StringBuffer sb = new StringBuffer();
+    CPStringBuilder sb = new CPStringBuilder();
     for(char c = iter.first(); c != CharacterIterator.DONE; c = iter.next()) 
       sb.append(c);
     return sb.toString();
@@ -215,7 +221,7 @@ public class GdkFontPeer extends ClasspathFontPeer
 
   private String buildString(CharacterIterator iter, int begin, int limit)
   {
-    StringBuffer sb = new StringBuffer();
+    CPStringBuilder sb = new CPStringBuilder();
     int i = 0;
     for(char c = iter.first(); c != CharacterIterator.DONE; c = iter.next(), i++) 
       {

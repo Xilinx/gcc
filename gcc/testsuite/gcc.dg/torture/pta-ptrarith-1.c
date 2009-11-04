@@ -1,4 +1,6 @@
 /* { dg-do run } */
+/* { dg-options "-fdump-tree-alias" } */
+/* { dg-skip-if "" { *-*-* } { "-O0" } { "" } } */
 
 struct Foo {
   int *p;
@@ -27,3 +29,5 @@ int main()
   return 0;
 }
 
+/* { dg-final { scan-tree-dump "ESCAPED = { ESCAPED NONLOCAL f .* i }" "alias" } } */
+/* { dg-final { cleanup-tree-dump "alias" } } */

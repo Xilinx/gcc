@@ -6,25 +6,23 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -100,7 +98,7 @@ package body System.Finalization_Implementation is
       --  Subtract the offset to the pointer
 
       procedure Reverse_Adjust (P : Finalizable_Ptr);
-      --  Ajust the components in the reverse order in which they are stored
+      --  Adjust the components in the reverse order in which they are stored
       --  on the finalization list. (Adjust and Finalization are not done in
       --  the same order)
 
@@ -139,7 +137,7 @@ package body System.Finalization_Implementation is
 
       First_Comp := Object.F;
       Object.F := null;               --  nothing adjusted yet.
-      Ptr_Adjust (First_Comp);        --  set addresss of first component.
+      Ptr_Adjust (First_Comp);        --  set address of first component.
       Reverse_Adjust (First_Comp);
 
       --  Then Adjust the controller itself
@@ -412,7 +410,7 @@ package body System.Finalization_Implementation is
       --  At this stage, we know that the controller is part of the
       --  ancestor corresponding to the tag "The_Tag" and that its parent
       --  is variable sized. We assume that the _controller is the first
-      --  compoment right after the parent.
+      --  component right after the parent.
 
       --  ??? note that it may not be true if there are new discriminants
 

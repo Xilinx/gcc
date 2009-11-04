@@ -2,30 +2,27 @@
 --                                                                          --
 --                         GNAT LIBRARY COMPONENTS                          --
 --                                                                          --
---        A D A . C O N T A I N E R S . R E D _ B L A C K _ T R E E S .     --
---                          G E N E R I C _ K E Y S                         --
+--                ADA.CONTAINERS.RED_BLACK_TREES.GENERIC_KEYS               --
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2004-2006, Free Software Foundation, Inc.         --
+--          Copyright (C) 2004-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- This unit was originally developed by Matthew J Heaney.                  --
 ------------------------------------------------------------------------------
@@ -185,7 +182,7 @@ package body Ada.Containers.Red_Black_Trees.Generic_Keys is
       --  is not a search and the only comparisons that occur are with
       --  the hint and its neighbor.
 
-      --  If Position is null, this is intepreted to mean that Key is
+      --  If Position is null, this is interpreted to mean that Key is
       --  large relative to the nodes in the tree. If the tree is empty,
       --  or Key is greater than the last node in the tree, then we're
       --  done; otherwise the hint was "wrong" and we must search.
@@ -206,7 +203,7 @@ package body Ada.Containers.Red_Black_Trees.Generic_Keys is
       pragma Assert (Tree.Length > 0);
 
       --  A hint can either name the node that immediately follows Key,
-      --  or immediately precedes Key. We first test whether Key is is
+      --  or immediately precedes Key. We first test whether Key is
       --  less than the hint, and if so we compare Key to the node that
       --  precedes the hint. If Key is both less than the hint and
       --  greater than the hint's preceding neighbor, then we're done;
@@ -507,7 +504,7 @@ package body Ada.Containers.Red_Black_Trees.Generic_Keys is
       --  equivalent node. That wouldn't break any container invariants,
       --  but our rule above says that new nodes always get inserted
       --  after equivalent nodes. So here we test whether Key is both
-      --  less than the hint and and equal to or greater than the hint's
+      --  less than the hint and equal to or greater than the hint's
       --  previous neighbor, and if so insert it before the hint.
 
       if Is_Less_Key_Node (Key, Hint) then

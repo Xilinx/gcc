@@ -1,3 +1,15 @@
+2009-11-03  Michael Eager  <eager@eagercon.com>
+
+	* Merge changes between gcc-4.4.1 and gcc.4.4.2.
+
+2009-11-03  Michael Eager  <eager@eagercon.com>
+
+	* Merge changes between gcc-4.4.0 and gcc.4.4.1.
+
+2009-10-28  Michael Eager  <eager@eagercon.com>
+
+	* Merge changes between gcc-4.3.4 and gcc.4.4.0.
+
 2009-10-13  Michael Eager  <eager@eagercon.com>
 
 	* Merge changes between gcc-4.3.3 and gcc.4.3.4.

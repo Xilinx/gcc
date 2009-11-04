@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -35,6 +35,7 @@ with Exp_Dist; use Exp_Dist;
 with Exp_Util; use Exp_Util;
 with Expander; use Expander;
 with Freeze;   use Freeze;
+with Itypes;   use Itypes;
 with Lib;      use Lib;
 with Lib.Xref; use Lib.Xref;
 with Nlists;   use Nlists;
@@ -249,7 +250,7 @@ package body Sem_Attr is
       procedure Check_Enum_Image;
       --  If the prefix type is an enumeration type, set all its literals
       --  as referenced, since the image function could possibly end up
-      --  referencing any of the literals indirectly.
+      --  referencing any of the literals indirectly. Same for Enum_Val.
 
       procedure Check_Fixed_Point_Type;
       --  Verify that prefix of attribute N is a fixed type
@@ -274,8 +275,8 @@ package body Sem_Attr is
       --  two attribute expressions are present
 
       procedure Legal_Formal_Attribute;
-      --  Common processing for attributes Definite, Has_Access_Values,
-      --  and Has_Discriminants
+      --  Common processing for attributes Definite and Has_Discriminants.
+      --  Checks that prefix is generic indefinite formal type.
 
       procedure Check_Integer_Type;
       --  Verify that prefix of attribute N is an integer type
@@ -285,6 +286,10 @@ package body Sem_Attr is
 
       procedure Check_Modular_Integer_Type;
       --  Verify that prefix of attribute N is a modular integer type
+
+      procedure Check_Not_CPP_Type;
+      --  Check that P (the prefix of the attribute) is not an CPP type
+      --  for which no Ada predefined primitive is available.
 
       procedure Check_Not_Incomplete_Type;
       --  Check that P (the prefix of the attribute) is not an incomplete
@@ -309,6 +314,9 @@ package body Sem_Attr is
       --  Validity checking for stream attribute. Nam is the TSS name of the
       --  corresponding possible defined attribute function (e.g. for the
       --  Read attribute, Nam will be TSS_Stream_Read).
+
+      procedure Check_PolyORB_Attribute;
+      --  Validity checking for PolyORB/DSA attribute
 
       procedure Check_Task_Prefix;
       --  Verify that prefix of attribute N is a task or task type
@@ -370,9 +378,9 @@ package body Sem_Attr is
          --  type that is constructed is returned as the result.
 
          procedure Build_Access_Subprogram_Type (P : Node_Id);
-         --  Build an access to subprogram whose designated type is
-         --  the type of the prefix. If prefix is overloaded, so it the
-         --  node itself. The result is stored in Acc_Type.
+         --  Build an access to subprogram whose designated type is the type of
+         --  the prefix. If prefix is overloaded, so is the node itself. The
+         --  result is stored in Acc_Type.
 
          function OK_Self_Reference return Boolean;
          --  An access reference whose prefix is a type can legally appear
@@ -391,7 +399,6 @@ package body Sem_Attr is
                       (E_Access_Attribute_Type, Current_Scope, Loc, 'A');
          begin
             Set_Etype                     (Typ, Typ);
-            Init_Size_Align               (Typ);
             Set_Is_Itype                  (Typ);
             Set_Associated_Node_For_Itype (Typ, N);
             Set_Directly_Designated_Type  (Typ, DT);
@@ -447,18 +454,41 @@ package body Sem_Attr is
             --  subprogram itself as the designated type. Type-checking in
             --  this case compares the signatures of the designated types.
 
+            --  Note: This fragment of the tree is temporarily malformed
+            --  because the correct tree requires an E_Subprogram_Type entity
+            --  as the designated type. In most cases this designated type is
+            --  later overridden by the semantics with the type imposed by the
+            --  context during the resolution phase. In the specific case of
+            --  the expression Address!(Prim'Unrestricted_Access), used to
+            --  initialize slots of dispatch tables, this work will be done by
+            --  the expander (see Exp_Aggr).
+
+            --  The reason to temporarily add this kind of node to the tree
+            --  instead of a proper E_Subprogram_Type itype, is the following:
+            --  in case of errors found in the source file we report better
+            --  error messages. For example, instead of generating the
+            --  following error:
+
+            --      "expected access to subprogram with profile
+            --       defined at line X"
+
+            --  we currently generate:
+
+            --      "expected access to function Z defined at line X"
+
             Set_Etype (N, Any_Type);
 
             if not Is_Overloaded (P) then
                Check_Local_Access (Entity (P));
 
                if not Is_Intrinsic_Subprogram (Entity (P)) then
-                  Acc_Type :=
-                    New_Internal_Entity
-                      (Get_Kind (Entity (P)), Current_Scope, Loc, 'A');
+                  Acc_Type := Create_Itype (Get_Kind (Entity (P)), N);
+                  Set_Is_Public (Acc_Type, False);
                   Set_Etype (Acc_Type, Acc_Type);
+                  Set_Convention (Acc_Type, Convention (Entity (P)));
                   Set_Directly_Designated_Type (Acc_Type, Entity (P));
                   Set_Etype (N, Acc_Type);
+                  Freeze_Before (N, Acc_Type);
                end if;
 
             else
@@ -467,12 +497,13 @@ package body Sem_Attr is
                   Check_Local_Access (It.Nam);
 
                   if not Is_Intrinsic_Subprogram (It.Nam) then
-                     Acc_Type :=
-                       New_Internal_Entity
-                         (Get_Kind (It.Nam), Current_Scope, Loc, 'A');
+                     Acc_Type := Create_Itype (Get_Kind (It.Nam), N);
+                     Set_Is_Public (Acc_Type, False);
                      Set_Etype (Acc_Type, Acc_Type);
+                     Set_Convention (Acc_Type, Convention (It.Nam));
                      Set_Directly_Designated_Type (Acc_Type, It.Nam);
                      Add_One_Interp (N, Acc_Type, Acc_Type);
+                     Freeze_Before (N, Acc_Type);
                   end if;
 
                   Get_Next_Interp (Index, It);
@@ -502,9 +533,7 @@ package body Sem_Attr is
                (Nkind (Par) = N_Component_Association
                  or else Nkind (Par) in N_Subexpr)
             loop
-               if Nkind (Par) = N_Aggregate
-                 or else Nkind (Par) = N_Extension_Aggregate
-               then
+               if Nkind_In (Par, N_Aggregate, N_Extension_Aggregate) then
                   if Etype (Par) = Typ then
                      Set_Has_Self_Reference (Par);
                      return True;
@@ -552,7 +581,25 @@ package body Sem_Attr is
             --  could modify local variables to be passed out of scope
 
             if Aname = Name_Unrestricted_Access then
-               Kill_Current_Values;
+
+               --  Do not kill values on nodes initializing dispatch tables
+               --  slots. The construct Prim_Ptr!(Prim'Unrestricted_Access)
+               --  is currently generated by the expander only for this
+               --  purpose. Done to keep the quality of warnings currently
+               --  generated by the compiler (otherwise any declaration of
+               --  a tagged type cleans constant indications from its scope).
+
+               if Nkind (Parent (N)) = N_Unchecked_Type_Conversion
+                 and then (Etype (Parent (N)) = RTE (RE_Prim_Ptr)
+                             or else
+                           Etype (Parent (N)) = RTE (RE_Size_Ptr))
+                 and then Is_Dispatching_Operation
+                            (Directly_Designated_Type (Etype (N)))
+               then
+                  null;
+               else
+                  Kill_Current_Values;
+               end if;
             end if;
 
             return;
@@ -619,17 +666,16 @@ package body Sem_Attr is
                        ("current instance prefix must be a direct name", P);
                   end if;
 
-                  --  If a current instance attribute appears within a
-                  --  a component constraint it must appear alone; other
-                  --  contexts (default expressions, within a task body)
-                  --  are not subject to this restriction.
+                  --  If a current instance attribute appears in a component
+                  --  constraint it must appear alone; other contexts (spec-
+                  --  expressions, within a task body) are not subject to this
+                  --  restriction.
 
-                  if not In_Default_Expression
+                  if not In_Spec_Expression
                     and then not Has_Completion (Scop)
-                    and then
-                      Nkind (Parent (N)) /= N_Discriminant_Association
-                    and then
-                      Nkind (Parent (N)) /= N_Index_Or_Discriminant_Constraint
+                    and then not
+                      Nkind_In (Parent (N), N_Discriminant_Association,
+                                            N_Index_Or_Discriminant_Constraint)
                   then
                      Error_Msg_N
                        ("current instance attribute must appear alone", N);
@@ -665,6 +711,12 @@ package body Sem_Attr is
                elsif Ada_Version >= Ada_05
                  and then OK_Self_Reference
                then
+                  null;
+
+               --  OK if reference to the current instance of a protected
+               --  object.
+
+               elsif Is_Protected_Self_Reference (P) then
                   null;
 
                --  Otherwise we have an error case
@@ -726,8 +778,8 @@ package body Sem_Attr is
                   Kill_Current_Values (Ent);
                   exit;
 
-               elsif Nkind (PP) = N_Selected_Component
-                 or else Nkind (PP) = N_Indexed_Component
+               elsif Nkind_In (PP, N_Selected_Component,
+                                   N_Indexed_Component)
                then
                   PP := Prefix (PP);
 
@@ -1225,6 +1277,21 @@ package body Sem_Attr is
          end if;
       end Check_Modular_Integer_Type;
 
+      ------------------------
+      -- Check_Not_CPP_Type --
+      ------------------------
+
+      procedure Check_Not_CPP_Type is
+      begin
+         if Is_Tagged_Type (Etype (P))
+           and then Convention (Etype (P)) = Convention_CPP
+           and then Is_CPP_Class (Root_Type (Etype (P)))
+         then
+            Error_Attr_P
+              ("invalid use of % attribute with 'C'P'P tagged type");
+         end if;
+      end Check_Not_CPP_Type;
+
       -------------------------------
       -- Check_Not_Incomplete_Type --
       -------------------------------
@@ -1285,7 +1352,7 @@ package body Sem_Attr is
 
          if not Is_Entity_Name (P)
            or else not Is_Type (Entity (P))
-           or else In_Default_Expression
+           or else In_Spec_Expression
          then
             return;
          else
@@ -1321,6 +1388,23 @@ package body Sem_Attr is
             Error_Attr_P ("prefix of % attribute must be object");
          end if;
       end Check_Object_Reference;
+
+      ----------------------------
+      -- Check_PolyORB_Attribute --
+      ----------------------------
+
+      procedure Check_PolyORB_Attribute is
+      begin
+         Validate_Non_Static_Attribute_Function_Call;
+
+         Check_Type;
+         Check_Not_CPP_Type;
+
+         if Get_PCS_Name /= Name_PolyORB_DSA then
+            Error_Attr
+              ("attribute% requires the 'Poly'O'R'B 'P'C'S", N);
+         end if;
+      end Check_PolyORB_Attribute;
 
       ------------------------
       -- Check_Program_Unit --
@@ -1402,6 +1486,14 @@ package body Sem_Attr is
          Etyp : Entity_Id;
          Btyp : Entity_Id;
 
+         In_Shared_Var_Procs : Boolean;
+         --  True when compiling the body of System.Shared_Storage.
+         --  Shared_Var_Procs. For this runtime package (always compiled in
+         --  GNAT mode), we allow stream attributes references for limited
+         --  types for the case where shared passive objects are implemented
+         --  using stream attributes, which is the default in GNAT's persistent
+         --  storage implementation.
+
       begin
          Validate_Non_Static_Attribute_Function_Call;
 
@@ -1414,8 +1506,8 @@ package body Sem_Attr is
             null;
 
          elsif Is_List_Member (N)
-           and then Nkind (Parent (N)) /= N_Procedure_Call_Statement
-           and then Nkind (Parent (N)) /= N_Aggregate
+           and then not Nkind_In (Parent (N), N_Procedure_Call_Statement,
+                                              N_Aggregate)
          then
             null;
 
@@ -1435,7 +1527,19 @@ package body Sem_Attr is
          --  in Ada 2005 mode), or a pragma Stream_Convert applies to Btyp
          --  (with no visibility restriction).
 
-         if Comes_From_Source (N)
+         declare
+            Gen_Body : constant Node_Id := Enclosing_Generic_Body (N);
+         begin
+            if Present (Gen_Body) then
+               In_Shared_Var_Procs :=
+                 Is_RTE (Corresponding_Spec (Gen_Body), RE_Shared_Var_Procs);
+            else
+               In_Shared_Var_Procs := False;
+            end if;
+         end;
+
+         if (Comes_From_Source (N)
+              and then not (In_Shared_Var_Procs or In_Instance))
            and then not Stream_Attribute_Available (P_Type, Nam)
            and then not Has_Rep_Pragma (Btyp, Name_Stream_Convert)
          then
@@ -1493,6 +1597,8 @@ package body Sem_Attr is
 
             Resolve (E2, P_Type);
          end if;
+
+         Check_Not_CPP_Type;
       end Check_Stream_Attribute;
 
       -----------------------
@@ -1542,6 +1648,11 @@ package body Sem_Attr is
            or else not Is_Type (Entity (P))
          then
             Error_Attr_P ("prefix of % attribute must be a type");
+
+         elsif Is_Protected_Self_Reference (P) then
+            Error_Attr_P
+              ("prefix of % attribute denotes current instance " &
+                 "(RM 9.4(21/2))");
 
          elsif Ekind (Entity (P)) = E_Incomplete_Type
             and then Present (Full_View (Entity (P)))
@@ -1818,6 +1929,7 @@ package body Sem_Attr is
         and then Aname /= Name_Address
         and then Aname /= Name_Code_Address
         and then Aname /= Name_Count
+        and then Aname /= Name_Result
         and then Aname /= Name_Unchecked_Access
       then
          Error_Attr ("ambiguous prefix for % attribute", P);
@@ -1827,6 +1939,7 @@ package body Sem_Attr is
         and then Aname /= Name_Access
         and then Aname /= Name_Address
         and then Aname /= Name_Code_Address
+        and then Aname /= Name_Result
         and then Aname /= Name_Unchecked_Access
       then
          --  Ada 2005 (AI-345): Since protected and task types have primitive
@@ -1907,7 +2020,13 @@ package body Sem_Attr is
          --  An Address attribute created by expansion is legal even when it
          --  applies to other entity-denoting expressions.
 
-         if Is_Entity_Name (P) then
+         if Is_Protected_Self_Reference (P) then
+            --  An Address attribute on a protected object self reference
+            --  is legal.
+
+            null;
+
+         elsif Is_Entity_Name (P) then
             declare
                Ent : constant Entity_Id := Entity (P);
 
@@ -2017,6 +2136,7 @@ package body Sem_Attr is
 
          Check_E0;
          Check_Not_Incomplete_Type;
+         Check_Not_CPP_Type;
          Set_Etype (N, Universal_Integer);
 
       ---------------
@@ -2044,7 +2164,7 @@ package body Sem_Attr is
             end if;
          end if;
 
-         Note_Possible_Modification (E2);
+         Note_Possible_Modification (E2, Sure => True);
          Set_Etype (N, RTE (RE_Asm_Output_Operand));
 
       ---------------
@@ -2071,10 +2191,18 @@ package body Sem_Attr is
          --  is set True for the entry family case). In the True case,
          --  makes sure that Is_AST_Entry is set on the entry.
 
+         -------------------
+         -- Bad_AST_Entry --
+         -------------------
+
          procedure Bad_AST_Entry is
          begin
             Error_Attr_P ("prefix for % attribute must be task entry");
          end Bad_AST_Entry;
+
+         --------------
+         -- OK_Entry --
+         --------------
 
          function OK_Entry (E : Entity_Id) return Boolean is
             Result : Boolean;
@@ -2145,9 +2273,7 @@ package body Sem_Attr is
          --  or of a variable of the enclosing task type.
 
          else
-            if Nkind (Pref) = N_Identifier
-              or else Nkind (Pref) = N_Expanded_Name
-            then
+            if Nkind_In (Pref, N_Identifier, N_Expanded_Name) then
                Ent := Entity (Pref);
 
                if not OK_Entry (Ent)
@@ -2191,7 +2317,7 @@ package body Sem_Attr is
            and then Warn_On_Redundant_Constructs
          then
                Error_Msg_NE
-                 ("?redudant attribute, & is its own base type", N, Typ);
+                 ("?redundant attribute, & is its own base type", N, Typ);
          end if;
 
          Set_Etype (N, Base_Type (Entity (P)));
@@ -2297,9 +2423,7 @@ package body Sem_Attr is
       begin
          Check_E0;
 
-         if Nkind (P) = N_Identifier
-           or else Nkind (P) = N_Expanded_Name
-         then
+         if Nkind_In (P, N_Identifier, N_Expanded_Name) then
             Ent := Entity (P);
 
             if not Is_Entry (Ent) then
@@ -2500,9 +2624,7 @@ package body Sem_Attr is
       begin
          Check_E0;
 
-         if Nkind (P) = N_Identifier
-           or else Nkind (P) = N_Expanded_Name
-         then
+         if Nkind_In (P, N_Identifier, N_Expanded_Name) then
             Ent := Entity (P);
 
             if Ekind (Ent) /= E_Entry then
@@ -2623,7 +2745,6 @@ package body Sem_Attr is
       when Attribute_Default_Bit_Order => Default_Bit_Order :
       begin
          Check_Standard_Prefix;
-         Check_E0;
 
          if Bytes_Big_Endian then
             Rewrite (N,
@@ -2733,7 +2854,6 @@ package body Sem_Attr is
 
          if Nkind (P) /= N_Identifier then
             Error_Msg_N ("identifier expected (check name)", P);
-
          elsif Get_Check_Id (Chars (P)) = No_Check_Id then
             Error_Msg_N ("& is not a recognized check name", P);
          end if;
@@ -2765,6 +2885,38 @@ package body Sem_Attr is
 
          Set_Etype (N, Universal_Integer);
       end Enum_Rep;
+
+      --------------
+      -- Enum_Val --
+      --------------
+
+      when Attribute_Enum_Val => Enum_Val : begin
+         Check_E1;
+         Check_Type;
+
+         if not Is_Enumeration_Type (P_Type) then
+            Error_Attr_P ("prefix of % attribute must be enumeration type");
+         end if;
+
+         --  If the enumeration type has a standard representation, the effect
+         --  is the same as 'Val, so rewrite the attribute as a 'Val.
+
+         if not Has_Non_Standard_Rep (P_Base_Type) then
+            Rewrite (N,
+              Make_Attribute_Reference (Loc,
+                Prefix         => Relocate_Node (Prefix (N)),
+                Attribute_Name => Name_Val,
+                Expressions    => New_List (Relocate_Node (E1))));
+            Analyze_And_Resolve (N, P_Base_Type);
+
+         --  Non-standard representation case (enumeration with holes)
+
+         else
+            Check_Enum_Image;
+            Resolve (E1, Any_Integer);
+            Set_Etype (N, P_Base_Type);
+         end if;
+      end Enum_Val;
 
       -------------
       -- Epsilon --
@@ -2802,7 +2954,6 @@ package body Sem_Attr is
       ---------------
 
       when Attribute_Fast_Math =>
-         Check_E0;
          Check_Standard_Prefix;
 
          if Opt.Fast_Math then
@@ -2862,11 +3013,29 @@ package body Sem_Attr is
          Set_Etype (N, P_Base_Type);
          Resolve (E1, P_Base_Type);
 
+      --------------
+      -- From_Any --
+      --------------
+
+      when Attribute_From_Any =>
+         Check_E1;
+         Check_PolyORB_Attribute;
+         Set_Etype (N, P_Base_Type);
+
       -----------------------
       -- Has_Access_Values --
       -----------------------
 
       when Attribute_Has_Access_Values =>
+         Check_Type;
+         Check_E0;
+         Set_Etype (N, Standard_Boolean);
+
+      -----------------------
+      -- Has_Tagged_Values --
+      -----------------------
+
+      when Attribute_Has_Tagged_Values =>
          Check_Type;
          Check_E0;
          Set_Etype (N, Standard_Boolean);
@@ -2987,6 +3156,16 @@ package body Sem_Attr is
          end if;
 
          Set_Etype (N, P_Base_Type);
+
+      -------------------
+      -- Invalid_Value --
+      -------------------
+
+      when Attribute_Invalid_Value =>
+         Check_E0;
+         Check_Scalar_Type;
+         Set_Etype (N, P_Base_Type);
+         Invalid_Value_Used := True;
 
       -----------
       -- Large --
@@ -3320,9 +3499,8 @@ package body Sem_Attr is
 
          --  Case of attribute used as actual for subprogram (positional)
 
-         elsif (Nkind (Parnt) = N_Procedure_Call_Statement
-                 or else
-                Nkind (Parnt) = N_Function_Call)
+         elsif Nkind_In (Parnt, N_Procedure_Call_Statement,
+                                N_Function_Call)
             and then Is_Entity_Name (Name (Parnt))
          then
             Must_Be_Imported (Entity (Name (Parnt)));
@@ -3330,9 +3508,8 @@ package body Sem_Attr is
          --  Case of attribute used as actual for subprogram (named)
 
          elsif Nkind (Parnt) = N_Parameter_Association
-           and then (Nkind (GParnt) = N_Procedure_Call_Statement
-                       or else
-                     Nkind (GParnt) = N_Function_Call)
+           and then Nkind_In (GParnt, N_Procedure_Call_Statement,
+                                      N_Function_Call)
            and then Is_Entity_Name (Name (GParnt))
          then
             Must_Be_Imported (Entity (Name (GParnt)));
@@ -3343,7 +3520,6 @@ package body Sem_Attr is
             Bad_Null_Parameter
               ("Null_Parameter must be actual or default parameter");
          end if;
-
       end Null_Parameter;
 
       -----------------
@@ -3355,6 +3531,91 @@ package body Sem_Attr is
          Check_Type;
          Check_Not_Incomplete_Type;
          Set_Etype (N, Universal_Integer);
+
+      ---------
+      -- Old --
+      ---------
+
+      when Attribute_Old =>
+         Check_E0;
+         Set_Etype (N, P_Type);
+
+         if No (Current_Subprogram) then
+            Error_Attr ("attribute % can only appear within subprogram", N);
+         end if;
+
+         if Is_Limited_Type (P_Type) then
+            Error_Attr ("attribute % cannot apply to limited objects", P);
+         end if;
+
+         if Is_Entity_Name (P)
+           and then Is_Constant_Object (Entity (P))
+         then
+            Error_Msg_N
+              ("?attribute Old applied to constant has no effect", P);
+         end if;
+
+         --  Check that the expression does not refer to local entities
+
+         Check_Local : declare
+            Subp : Entity_Id := Current_Subprogram;
+
+            function Process (N : Node_Id) return Traverse_Result;
+            --  Check that N does not contain references to local variables
+            --  or other local entities of Subp.
+
+            -------------
+            -- Process --
+            -------------
+
+            function Process (N : Node_Id) return Traverse_Result is
+            begin
+               if Is_Entity_Name (N)
+                 and then not Is_Formal (Entity (N))
+                 and then Enclosing_Subprogram (Entity (N)) = Subp
+               then
+                  Error_Msg_Node_1 := Entity (N);
+                  Error_Attr
+                    ("attribute % cannot refer to local variable&", N);
+               end if;
+
+               return OK;
+            end Process;
+
+            procedure Check_No_Local is new Traverse_Proc;
+
+         --  Start of processing for Check_Local
+
+         begin
+            Check_No_Local (P);
+
+            if In_Parameter_Specification (P) then
+
+               --  We have additional restrictions on using 'Old in parameter
+               --  specifications.
+
+               if Present (Enclosing_Subprogram (Current_Subprogram)) then
+
+                  --  Check that there is no reference to the enclosing
+                  --  subprogram local variables. Otherwise, we might end
+                  --  up being called from the enclosing subprogram and thus
+                  --  using 'Old on a local variable which is not defined
+                  --  at entry time.
+
+                  Subp := Enclosing_Subprogram (Current_Subprogram);
+                  Check_No_Local (P);
+
+               else
+                  --  We must prevent default expression of library-level
+                  --  subprogram from using 'Old, as the subprogram may be
+                  --  used in elaboration code for which there is no enclosing
+                  --  subprogram.
+
+                  Error_Attr
+                    ("attribute % can only appear within subprogram", N);
+               end if;
+            end if;
+         end Check_Local;
 
       ------------
       -- Output --
@@ -3370,7 +3631,8 @@ package body Sem_Attr is
       -- Partition_ID --
       ------------------
 
-      when Attribute_Partition_ID =>
+      when Attribute_Partition_ID => Partition_Id :
+      begin
          Check_E0;
 
          if P_Type /= Any_Type then
@@ -3378,9 +3640,8 @@ package body Sem_Attr is
                Error_Attr_P
                  ("prefix of % attribute must be library-level entity");
 
-            --  The defining entity of prefix should not be declared inside
-            --  a Pure unit. RM E.1(8).
-            --  The Is_Pure flag has been set during declaration.
+            --  The defining entity of prefix should not be declared inside a
+            --  Pure unit. RM E.1(8). Is_Pure was set during declaration.
 
             elsif Is_Entity_Name (P)
               and then Is_Pure (Entity (P))
@@ -3391,6 +3652,7 @@ package body Sem_Attr is
          end if;
 
          Set_Etype (N, Universal_Integer);
+      end Partition_Id;
 
       -------------------------
       -- Passed_By_Reference --
@@ -3517,11 +3779,115 @@ package body Sem_Attr is
               ("(Ada 83) % attribute not allowed for scalar type", P);
          end if;
 
+      ------------
+      -- Result --
+      ------------
+
+      when Attribute_Result => Result : declare
+         CS : Entity_Id := Current_Scope;
+         PS : Entity_Id := Scope (CS);
+
+      begin
+         --  If the enclosing subprogram is always inlined, the enclosing
+         --  postcondition will not be propagated to the expanded call.
+
+         if Has_Pragma_Inline_Always (PS)
+           and then Warn_On_Redundant_Constructs
+         then
+            Error_Msg_N
+              ("postconditions on inlined functions not enforced?", N);
+         end if;
+
+         --  If we are in the scope of a function and in Spec_Expression mode,
+         --  this is likely the prescan of the postcondition pragma, and we
+         --  just set the proper type. If there is an error it will be caught
+         --  when the real Analyze call is done.
+
+         if Ekind (CS) = E_Function
+           and then In_Spec_Expression
+         then
+            --  Check OK prefix
+
+            if Chars (CS) /= Chars (P) then
+               Error_Msg_NE
+                 ("incorrect prefix for % attribute, expected &", P, CS);
+               Error_Attr;
+            end if;
+
+            Set_Etype (N, Etype (CS));
+
+            --  If several functions with that name are visible,
+            --  the intended one is the current scope.
+
+            if Is_Overloaded (P) then
+               Set_Entity (P, CS);
+               Set_Is_Overloaded (P, False);
+            end if;
+
+         --  Body case, where we must be inside a generated _Postcondition
+         --  procedure, and the prefix must be on the scope stack,  or else
+         --  the attribute use is definitely misplaced. The condition itself
+         --  may have generated transient scopes, and is not necessarily the
+         --  current one.
+
+         else
+            while Present (CS)
+              and then CS /= Standard_Standard
+            loop
+               if Chars (CS) = Name_uPostconditions then
+                  exit;
+               else
+                  CS := Scope (CS);
+               end if;
+            end loop;
+
+            PS := Scope (CS);
+
+            if Chars (CS) = Name_uPostconditions
+              and then Ekind (PS) = E_Function
+            then
+               --  Check OK prefix
+
+               if Nkind_In (P, N_Identifier, N_Operator_Symbol)
+                 and then Chars (P) = Chars (PS)
+               then
+                  null;
+
+               --  Within an instance, the prefix designates the local renaming
+               --  of the original generic.
+
+               elsif Is_Entity_Name (P)
+                 and then Ekind (Entity (P)) = E_Function
+                 and then Present (Alias (Entity (P)))
+                 and then Chars (Alias (Entity (P))) = Chars (PS)
+               then
+                  null;
+
+               else
+                  Error_Msg_NE
+                    ("incorrect prefix for % attribute, expected &", P, PS);
+                  Error_Attr;
+               end if;
+
+               Rewrite (N,
+                 Make_Identifier (Sloc (N),
+                   Chars => Name_uResult));
+               Analyze_And_Resolve (N, Etype (PS));
+
+            else
+               Error_Attr
+                 ("% attribute can only appear" &
+                   "  in function Postcondition pragma", P);
+            end if;
+         end if;
+      end Result;
+
       ------------------
       -- Range_Length --
       ------------------
 
       when Attribute_Range_Length =>
+         Check_E0;
          Check_Discrete_Type;
          Set_Etype (N, Universal_Integer);
 
@@ -3534,7 +3900,7 @@ package body Sem_Attr is
          Check_Stream_Attribute (TSS_Stream_Read);
          Set_Etype (N, Standard_Void_Type);
          Resolve (N, Standard_Void_Type);
-         Note_Possible_Modification (E2);
+         Note_Possible_Modification (E2, Sure => True);
 
       ---------------
       -- Remainder --
@@ -3654,7 +4020,8 @@ package body Sem_Attr is
       -- Size --
       ----------
 
-      when Attribute_Size | Attribute_VADS_Size =>
+      when Attribute_Size | Attribute_VADS_Size => Size :
+      begin
          Check_E0;
 
          --  If prefix is parameterless function call, rewrite and resolve
@@ -3692,7 +4059,9 @@ package body Sem_Attr is
          end if;
 
          Check_Not_Incomplete_Type;
+         Check_Not_CPP_Type;
          Set_Etype (N, Universal_Integer);
+      end Size;
 
       -----------
       -- Small --
@@ -3707,10 +4076,11 @@ package body Sem_Attr is
       -- Storage_Pool --
       ------------------
 
-      when Attribute_Storage_Pool =>
-         if Is_Access_Type (P_Type) then
-            Check_E0;
+      when Attribute_Storage_Pool => Storage_Pool :
+      begin
+         Check_E0;
 
+         if Is_Access_Type (P_Type) then
             if Ekind (P_Type) = E_Access_Subprogram_Type then
                Error_Attr_P
                  ("cannot use % attribute for access-to-subprogram type");
@@ -3735,14 +4105,17 @@ package body Sem_Attr is
          else
             Error_Attr_P ("prefix of % attribute must be access type");
          end if;
+      end Storage_Pool;
 
       ------------------
       -- Storage_Size --
       ------------------
 
-      when Attribute_Storage_Size =>
+      when Attribute_Storage_Size => Storage_Size :
+      begin
+         Check_E0;
+
          if Is_Task_Type (P_Type) then
-            Check_E0;
             Set_Etype (N, Universal_Integer);
 
          elsif Is_Access_Type (P_Type) then
@@ -3754,7 +4127,6 @@ package body Sem_Attr is
             if Is_Entity_Name (P)
               and then Is_Type (Entity (P))
             then
-               Check_E0;
                Check_Type;
                Set_Etype (N, Universal_Integer);
 
@@ -3768,7 +4140,6 @@ package body Sem_Attr is
             --  of an access value designating a task.
 
             else
-               Check_E0;
                Check_Task_Prefix;
                Set_Etype (N, Universal_Integer);
             end if;
@@ -3776,6 +4147,7 @@ package body Sem_Attr is
          else
             Error_Attr_P ("prefix of % attribute must be access or task type");
          end if;
+      end Storage_Size;
 
       ------------------
       -- Storage_Unit --
@@ -3845,7 +4217,8 @@ package body Sem_Attr is
       -- Tag --
       ---------
 
-      when Attribute_Tag =>
+      when Attribute_Tag => Tag :
+      begin
          Check_E0;
          Check_Dereference;
 
@@ -3875,6 +4248,7 @@ package body Sem_Attr is
          --  Set appropriate type
 
          Set_Etype (N, RTE (RE_Tag));
+      end Tag;
 
       -----------------
       -- Target_Name --
@@ -3886,7 +4260,6 @@ package body Sem_Attr is
 
       begin
          Check_Standard_Prefix;
-         Check_E0;
 
          TL := TN'Last;
 
@@ -3927,6 +4300,15 @@ package body Sem_Attr is
          Analyze_And_Resolve (E1, Any_Integer);
          Set_Etype (N, RTE (RE_Address));
 
+      ------------
+      -- To_Any --
+      ------------
+
+      when Attribute_To_Any =>
+         Check_E1;
+         Check_PolyORB_Attribute;
+         Set_Etype (N, RTE (RE_Any));
+
       ----------------
       -- Truncation --
       ----------------
@@ -3945,6 +4327,15 @@ package body Sem_Attr is
          Check_Type;
          Check_Not_Incomplete_Type;
          Set_Etype (N, RTE (RE_Type_Class));
+
+      ------------
+      -- To_Any --
+      ------------
+
+      when Attribute_TypeCode =>
+         Check_E0;
+         Check_PolyORB_Attribute;
+         Set_Etype (N, RTE (RE_TypeCode));
 
       -----------------
       -- UET_Address --
@@ -4022,9 +4413,7 @@ package body Sem_Attr is
                   Negative := False;
                end if;
 
-               if Nkind (Expr) /= N_Integer_Literal
-                 and then Nkind (Expr) /= N_Real_Literal
-               then
+               if not Nkind_In (Expr, N_Integer_Literal, N_Real_Literal) then
                   Error_Attr
                     ("named number for % attribute must be simple literal", N);
                end if;
@@ -4957,6 +5346,7 @@ package body Sem_Attr is
          --  subtype then get the type from the initial value. If the value has
          --  been expanded into assignments, there is no expression and the
          --  attribute reference remains dynamic.
+
          --  We could do better here and retrieve the type ???
 
          if Ekind (P_Entity) = E_Constant
@@ -4972,13 +5362,15 @@ package body Sem_Attr is
       --  Definite must be folded if the prefix is not a generic type,
       --  that is to say if we are within an instantiation. Same processing
       --  applies to the GNAT attributes Has_Discriminants, Type_Class,
-      --  and Unconstrained_Array.
+      --  Has_Tagged_Value, and Unconstrained_Array.
 
       elsif (Id = Attribute_Definite
                or else
              Id = Attribute_Has_Access_Values
                or else
              Id = Attribute_Has_Discriminants
+               or else
+             Id = Attribute_Has_Tagged_Values
                or else
              Id = Attribute_Type_Class
                or else
@@ -4987,12 +5379,11 @@ package body Sem_Attr is
       then
          P_Type := P_Entity;
 
-      --  We can fold 'Size applied to a type if the size is known
-      --  (as happens for a size from an attribute definition clause).
-      --  At this stage, this can happen only for types (e.g. record
-      --  types) for which the size is always non-static. We exclude
-      --  generic types from consideration (since they have bogus
-      --  sizes set within templates).
+      --  We can fold 'Size applied to a type if the size is known (as happens
+      --  for a size from an attribute definition clause). At this stage, this
+      --  can happen only for types (e.g. record types) for which the size is
+      --  always non-static. We exclude generic types from consideration (since
+      --  they have bogus sizes set within templates).
 
       elsif Id = Attribute_Size
         and then Is_Type (P_Entity)
@@ -5083,9 +5474,9 @@ package body Sem_Attr is
       --  since we can't do anything with unconstrained arrays. In addition,
       --  only the First, Last and Length attributes are possibly static.
 
-      --  Definite, Has_Access_Values, Has_Discriminants, Type_Class, and
-      --  Unconstrained_Array are again exceptions, because they apply as
-      --  well to unconstrained types.
+      --  Definite, Has_Access_Values, Has_Discriminants, Has_Tagged_Values,
+      --  Type_Class, and Unconstrained_Array are again exceptions, because
+      --  they apply as well to unconstrained types.
 
       --  In addition Component_Size is an exception since it is possibly
       --  foldable, even though it is never static, and it does apply to
@@ -5097,6 +5488,8 @@ package body Sem_Attr is
             Id = Attribute_Has_Access_Values
               or else
             Id = Attribute_Has_Discriminants
+              or else
+            Id = Attribute_Has_Tagged_Values
               or else
             Id = Attribute_Type_Class
               or else
@@ -5347,7 +5740,7 @@ package body Sem_Attr is
       -----------------
 
       --  Constrained is never folded for now, there may be cases that
-      --  could be handled at compile time. to be looked at later.
+      --  could be handled at compile time. To be looked at later.
 
       when Attribute_Constrained =>
          null;
@@ -5429,6 +5822,36 @@ package body Sem_Attr is
          else
             Fold_Uint (N, Expr_Value (E1), Static);
          end if;
+
+      --------------
+      -- Enum_Val --
+      --------------
+
+      when Attribute_Enum_Val => Enum_Val : declare
+         Lit : Node_Id;
+
+      begin
+         --  We have something like Enum_Type'Enum_Val (23), so search for a
+         --  corresponding value in the list of Enum_Rep values for the type.
+
+         Lit := First_Literal (P_Base_Type);
+         loop
+            if Enumeration_Rep (Lit) = Expr_Value (E1) then
+               Fold_Uint (N, Enumeration_Pos (Lit), Static);
+               exit;
+            end if;
+
+            Next_Literal (Lit);
+
+            if No (Lit) then
+               Apply_Compile_Time_Constraint_Error
+                 (N, "no representation value matches",
+                  CE_Range_Check_Failed,
+                  Warn => not Static);
+               exit;
+            end if;
+         end loop;
+      end Enum_Val;
 
       -------------
       -- Epsilon --
@@ -5517,6 +5940,15 @@ package body Sem_Attr is
            Boolean_Literals (Has_Discriminants (P_Entity)), Loc));
          Analyze_And_Resolve (N, Standard_Boolean);
 
+      -----------------------
+      -- Has_Tagged_Values --
+      -----------------------
+
+      when Attribute_Has_Tagged_Values =>
+         Rewrite (N, New_Occurrence_Of
+           (Boolean_Literals (Has_Tagged_Component (P_Root_Type)), Loc));
+         Analyze_And_Resolve (N, Standard_Boolean);
+
       --------------
       -- Identity --
       --------------
@@ -5568,7 +6000,19 @@ package body Sem_Attr is
       -- Integer_Value --
       -------------------
 
+      --  We never try to fold Integer_Value (though perhaps we could???)
+
       when Attribute_Integer_Value =>
+         null;
+
+      -------------------
+      -- Invalid_Value --
+      -------------------
+
+      --  Invalid_Value is a scalar attribute that is never static, because
+      --  the value is by design out of range.
+
+      when Attribute_Invalid_Value =>
          null;
 
       -----------
@@ -6407,7 +6851,7 @@ package body Sem_Attr is
 
       when Attribute_Small =>
 
-         --  The floating-point case is present only for Ada 83 compatability.
+         --  The floating-point case is present only for Ada 83 compatibility.
          --  Note that strictly this is an illegal addition, since we are
          --  extending an Ada 95 defined attribute, but we anticipate an
          --  ARG ruling that will permit this.
@@ -6533,7 +6977,7 @@ package body Sem_Attr is
          --  We treat protected types like task types. It would make more
          --  sense to have another enumeration value, but after all the
          --  whole point of this feature is to be exactly DEC compatible,
-         --  and changing the type Type_Clas would not meet this requirement.
+         --  and changing the type Type_Class would not meet this requirement.
 
          elsif Is_Protected_Type (Typ) then
             Id := RE_Type_Class_Task;
@@ -6738,10 +7182,8 @@ package body Sem_Attr is
             else
                declare
                   R  : constant Entity_Id := Root_Type (P_Type);
-                  Lo : constant Uint :=
-                         Expr_Value (Type_Low_Bound (P_Type));
-                  Hi : constant Uint :=
-                         Expr_Value (Type_High_Bound (P_Type));
+                  Lo : constant Uint := Expr_Value (Type_Low_Bound (P_Type));
+                  Hi : constant Uint := Expr_Value (Type_High_Bound (P_Type));
                   W  : Nat;
                   Wt : Nat;
                   T  : Uint;
@@ -6757,10 +7199,7 @@ package body Sem_Attr is
                   --  Width for types derived from Standard.Character
                   --  and Standard.Wide_[Wide_]Character.
 
-                  elsif R = Standard_Character
-                     or else R = Standard_Wide_Character
-                     or else R = Standard_Wide_Wide_Character
-                  then
+                  elsif Is_Standard_Character_Type (P_Type) then
                      W := 0;
 
                      --  Set W larger if needed
@@ -6894,6 +7333,13 @@ package body Sem_Attr is
          end if;
       end Width;
 
+      --  The following attributes denote function that cannot be folded
+
+      when Attribute_From_Any |
+           Attribute_To_Any   |
+           Attribute_TypeCode =>
+         null;
+
       --  The following attributes can never be folded, and furthermore we
       --  should not even have entered the case statement for any of these.
       --  Note that in some cases, the values have already been folded as
@@ -6924,12 +7370,14 @@ package body Sem_Attr is
            Attribute_Input                    |
            Attribute_Last_Bit                 |
            Attribute_Maximum_Alignment        |
+           Attribute_Old                      |
            Attribute_Output                   |
            Attribute_Partition_ID             |
            Attribute_Pool_Address             |
            Attribute_Position                 |
            Attribute_Priority                 |
            Attribute_Read                     |
+           Attribute_Result                   |
            Attribute_Storage_Pool             |
            Attribute_Storage_Size             |
            Attribute_Storage_Unit             |
@@ -6961,10 +7409,10 @@ package body Sem_Attr is
       --  An exception is the GNAT attribute Constrained_Array which is
       --  defined to be a static attribute in all cases.
 
-      if Nkind (N) = N_Integer_Literal
-        or else Nkind (N) = N_Real_Literal
-        or else Nkind (N) = N_Character_Literal
-        or else Nkind (N) = N_String_Literal
+      if Nkind_In (N, N_Integer_Literal,
+                      N_Real_Literal,
+                      N_Character_Literal,
+                      N_String_Literal)
         or else (Is_Entity_Name (N)
                   and then Ekind (Entity (N)) = E_Enumeration_Literal)
       then
@@ -7060,9 +7508,8 @@ package body Sem_Attr is
 
             if Is_Record_Type (Current_Scope)
               and then
-                (Nkind (Parent (N)) = N_Discriminant_Association
-                   or else
-                 Nkind (Parent (N)) = N_Index_Or_Discriminant_Constraint)
+                Nkind_In (Parent (N), N_Discriminant_Association,
+                                      N_Index_Or_Discriminant_Constraint)
             then
                Indic := Parent (Parent (N));
                while Present (Indic)
@@ -7122,9 +7569,23 @@ package body Sem_Attr is
             | Attribute_Unchecked_Access
             | Attribute_Unrestricted_Access =>
 
-         Access_Attribute : begin
+         Access_Attribute :
+         begin
             if Is_Variable (P) then
-               Note_Possible_Modification (P);
+               Note_Possible_Modification (P, Sure => False);
+            end if;
+
+            --  The following comes from a query by Adam Beneschan, concerning
+            --  improper use of universal_access in equality tests involving
+            --  anonymous access types. Another good reason for 'Ref, but
+            --  for now disable the test, which breaks several filed tests.
+
+            if Ekind (Typ) = E_Anonymous_Access_Type
+              and then Nkind_In (Parent (N), N_Op_Eq, N_Op_Ne)
+              and then False
+            then
+               Error_Msg_N ("need unique type to resolve 'Access", N);
+               Error_Msg_N ("\qualify attribute with some access type", N);
             end if;
 
             if Is_Entity_Name (P) then
@@ -7154,7 +7615,10 @@ package body Sem_Attr is
                --    If it is an object, complete its resolution.
 
                elsif Is_Overloadable (Entity (P)) then
-                  if not In_Default_Expression then
+
+                  --  Avoid insertion of freeze actions in spec expression mode
+
+                  if not In_Spec_Expression then
                      Insert_Actions (N, Freeze_Entity (Entity (P), Loc));
                   end if;
 
@@ -7255,7 +7719,7 @@ package body Sem_Attr is
                   --  that generic unit. This includes any such attribute that
                   --  occurs within the body of a generic unit that is a child
                   --  of the generic unit where the subprogram is declared.
-                  --  The rule also prohibits applying the attibute when the
+                  --  The rule also prohibits applying the attribute when the
                   --  access type is a generic formal access type (since the
                   --  level of the actual type is not known). This restriction
                   --  does not apply when the attribute type is an anonymous
@@ -7712,7 +8176,7 @@ package body Sem_Attr is
             --  it may be modified via this address, so note modification.
 
             if Is_Variable (P) then
-               Note_Possible_Modification (P);
+               Note_Possible_Modification (P, Sure => False);
             end if;
 
             if Nkind (P) in N_Subexpr
@@ -7751,6 +8215,70 @@ package body Sem_Attr is
 
             if Is_Entity_Name (P) then
                Set_Address_Taken (Entity (P));
+            end if;
+
+            if Nkind (P) = N_Slice then
+
+               --  Arr (X .. Y)'address is identical to Arr (X)'address,
+               --  even if the array is packed and the slice itself is not
+               --  addressable. Transform the prefix into an indexed component.
+
+               --  Note that the transformation is safe only if we know that
+               --  the slice is non-null. That is because a null slice can have
+               --  an out of bounds index value.
+
+               --  Right now, gigi blows up if given 'Address on a slice as a
+               --  result of some incorrect freeze nodes generated by the front
+               --  end, and this covers up that bug in one case, but the bug is
+               --  likely still there in the cases not handled by this code ???
+
+               --  It's not clear what 'Address *should* return for a null
+               --  slice with out of bounds indexes, this might be worth an ARG
+               --  discussion ???
+
+               --  One approach would be to do a length check unconditionally,
+               --  and then do the transformation below unconditionally, but
+               --  analyze with checks off, avoiding the problem of the out of
+               --  bounds index. This approach would interpret the address of
+               --  an out of bounds null slice as being the address where the
+               --  array element would be if there was one, which is probably
+               --  as reasonable an interpretation as any ???
+
+               declare
+                  Loc : constant Source_Ptr := Sloc (P);
+                  D   : constant Node_Id := Discrete_Range (P);
+                  Lo  : Node_Id;
+
+               begin
+                  if Is_Entity_Name (D)
+                    and then
+                      Not_Null_Range
+                        (Type_Low_Bound (Entity (D)),
+                         Type_High_Bound (Entity (D)))
+                  then
+                     Lo :=
+                       Make_Attribute_Reference (Loc,
+                          Prefix => (New_Occurrence_Of (Entity (D), Loc)),
+                          Attribute_Name => Name_First);
+
+                  elsif Nkind (D) = N_Range
+                    and then Not_Null_Range (Low_Bound (D), High_Bound (D))
+                  then
+                     Lo := Low_Bound (D);
+
+                  else
+                     Lo := Empty;
+                  end if;
+
+                  if Present (Lo) then
+                     Rewrite (P,
+                        Make_Indexed_Component (Loc,
+                           Prefix =>  Relocate_Node (Prefix (P)),
+                           Expressions => New_List (Lo)));
+
+                     Analyze_And_Resolve (P);
+                  end if;
+               end;
             end if;
          end Address_Attribute;
 
@@ -7879,35 +8407,6 @@ package body Sem_Attr is
                LB   : Node_Id;
                HB   : Node_Id;
 
-               function Check_Discriminated_Prival
-                 (N    : Node_Id)
-                  return Node_Id;
-               --  The range of a private component constrained by a
-               --  discriminant is rewritten to make the discriminant
-               --  explicit. This solves some complex visibility problems
-               --  related to the use of privals.
-
-               --------------------------------
-               -- Check_Discriminated_Prival --
-               --------------------------------
-
-               function Check_Discriminated_Prival
-                 (N    : Node_Id)
-                  return Node_Id
-               is
-               begin
-                  if Is_Entity_Name (N)
-                    and then Ekind (Entity (N)) = E_In_Parameter
-                    and then not Within_Init_Proc
-                  then
-                     return Make_Identifier (Sloc (N), Chars (Entity (N)));
-                  else
-                     return Duplicate_Subexpr (N);
-                  end if;
-               end Check_Discriminated_Prival;
-
-            --  Start of processing for Range_Attribute
-
             begin
                if not Is_Entity_Name (P)
                  or else not Is_Type (Entity (P))
@@ -7915,39 +8414,18 @@ package body Sem_Attr is
                   Resolve (P);
                end if;
 
-               --  Check whether prefix is (renaming of) private component
-               --  of protected type.
+               HB :=
+                 Make_Attribute_Reference (Loc,
+                   Prefix         =>
+                     Duplicate_Subexpr (P, Name_Req => True),
+                   Attribute_Name => Name_Last,
+                   Expressions    => Expressions (N));
 
-               if Is_Entity_Name (P)
-                 and then Comes_From_Source (N)
-                 and then Is_Array_Type (Etype (P))
-                 and then Number_Dimensions (Etype (P)) = 1
-                 and then (Ekind (Scope (Entity (P))) = E_Protected_Type
-                            or else
-                           Ekind (Scope (Scope (Entity (P)))) =
-                                                        E_Protected_Type)
-               then
-                  LB :=
-                    Check_Discriminated_Prival
-                      (Type_Low_Bound (Etype (First_Index (Etype (P)))));
-
-                  HB :=
-                    Check_Discriminated_Prival
-                      (Type_High_Bound (Etype (First_Index (Etype (P)))));
-
-               else
-                  HB :=
-                    Make_Attribute_Reference (Loc,
-                      Prefix         => Duplicate_Subexpr (P),
-                      Attribute_Name => Name_Last,
-                      Expressions    => Expressions (N));
-
-                  LB :=
-                    Make_Attribute_Reference (Loc,
-                      Prefix         => P,
-                      Attribute_Name => Name_First,
-                      Expressions    => Expressions (N));
-               end if;
+               LB :=
+                 Make_Attribute_Reference (Loc,
+                   Prefix         => P,
+                   Attribute_Name => Name_First,
+                   Expressions    => Expressions (N));
 
                --  If the original was marked as Must_Not_Freeze (see code
                --  in Sem_Ch3.Make_Index), then make sure the rewriting
@@ -7982,6 +8460,17 @@ package body Sem_Attr is
 
                return;
             end Range_Attribute;
+
+         ------------
+         -- Result --
+         ------------
+
+         --  We will only come here during the prescan of a spec expression
+         --  containing a Result attribute. In that case the proper Etype has
+         --  already been set, and nothing more needs to be done here.
+
+         when Attribute_Result =>
+            null;
 
          -----------------
          -- UET_Address --

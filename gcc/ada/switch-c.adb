@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2001-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 2001-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -212,6 +212,12 @@ package body Switch.C is
                Ptr := Ptr + 1;
                Brief_Output := True;
 
+            --  Processing for B switch
+
+            when 'B' =>
+               Ptr := Ptr + 1;
+               Assume_No_Invalid_Values := True;
+
             --  Processing for c switch
 
             when 'c' =>
@@ -375,6 +381,16 @@ package body Switch.C is
                      Ptr := Ptr + 1;
                      Full_Path_Name_For_Brief_Errors := True;
                      return;
+
+                  --  -gnateG (save preprocessor output)
+
+                  when 'G' =>
+                     if Ptr < Max then
+                        Bad_Switch (Switch_Chars);
+                     end if;
+
+                     Generate_Processed_File := True;
+                     Ptr := Ptr + 1;
 
                   --  -gnateI (index of unit in multi-unit source)
 
@@ -665,12 +681,18 @@ package body Switch.C is
                Ptr := Ptr + 1;
                Try_Semantics := True;
 
-            --  Processing for q switch
+            --  Processing for Q switch
 
             when 'Q' =>
                Ptr := Ptr + 1;
                Force_ALI_Tree_File := True;
                Try_Semantics := True;
+
+               --  Processing for r switch
+
+            when 'r' =>
+               Ptr := Ptr + 1;
+               Treat_Restrictions_As_Warnings := True;
 
             --  Processing for R switch
 

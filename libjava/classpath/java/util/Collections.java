@@ -39,6 +39,8 @@ exception statement from your version. */
 
 package java.util;
 
+import gnu.java.lang.CPStringBuilder;
+
 import java.io.Serializable;
 
 /**
@@ -1135,7 +1137,7 @@ public class Collections
      */
     public String toString()
     {
-      StringBuffer r = new StringBuffer("{");
+      CPStringBuilder r = new CPStringBuilder("{");
       for (int i = n - 1; --i > 0; )
         r.append(element).append(", ");
       r.append(element).append("}");
@@ -6167,7 +6169,7 @@ public class Collections
      * correct type.
      *
      * @param index the index at which to place the new element.
-     * @param c the collections of objects to add.
+     * @param coll the collections of objects to add.
      * @throws ClassCastException if the type of any element in c is not a
      *                            valid type for the underlying collection.
      */
@@ -6870,7 +6872,7 @@ public class Collections
      * Adds all pairs within the supplied map to the underlying map,
      * provided they are all have the correct key and value types.
      *
-     * @param m the map, the entries of which should be added
+     * @param map the map, the entries of which should be added
      *          to the underlying map.
      * @throws ClassCastException if the type of a key or value is
      *                            not a valid type for the underlying map.    

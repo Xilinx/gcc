@@ -1,4 +1,4 @@
-! { dg-do run }
+! { dg-do run { xfail spu-*-*  } }
 ! Test XFAILed on Darwin because the system's printf() lacks
 ! proper support for denormals.
 !
@@ -12,14 +12,12 @@ program main
   use test_default_format
 
   if (test (1.0_4, 0) /= 0) call abort
-  if (test (0.0_4, 0) /= 0) call abort
   if (test (tiny(0.0_4), 1) /= 0) call abort
   if (test (-tiny(0.0_4), -1) /= 0) call abort
   if (test (huge(0.0_4), -1) /= 0) call abort
   if (test (-huge(0.0_4), 1) /= 0) call abort
 
   if (test (1.0_8, 0) /= 0) call abort
-  if (test (0.0_8, 0) /= 0) call abort
   if (test (tiny(0.0_8), 1) /= 0) call abort
   if (test (-tiny(0.0_8), -1) /= 0) call abort
   if (test (huge(0.0_8), -1) /= 0) call abort

@@ -17,7 +17,7 @@ name`'rtype_qual`_'atype_code (rtype * const restrict retarray,
   index_type sstride[GFC_MAX_DIMENSIONS];
   index_type dstride;
   const atype_name *base;
-  rtype_name *dest;
+  rtype_name * restrict dest;
   index_type rank;
   index_type n;
 
@@ -36,7 +36,7 @@ name`'rtype_qual`_'atype_code (rtype * const restrict retarray,
     }
   else
     {
-      if (compile_options.bounds_check)
+      if (unlikely (compile_options.bounds_check))
 	{
 	  int ret_rank;
 	  index_type ret_extent;
@@ -152,7 +152,7 @@ void
     }
   else
     {
-      if (compile_options.bounds_check)
+      if (unlikely (compile_options.bounds_check))
 	{
 	  int ret_rank, mask_rank;
 	  index_type ret_extent;
@@ -311,7 +311,7 @@ void
     }
   else
     {
-      if (compile_options.bounds_check)
+      if (unlikely (compile_options.bounds_check))
 	{
 	  int ret_rank;
 	  index_type ret_extent;

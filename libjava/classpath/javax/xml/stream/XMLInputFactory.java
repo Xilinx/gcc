@@ -44,7 +44,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.IOException;
 import java.io.Reader;
-import java.io.Writer;
 import java.util.Properties;
 import javax.xml.stream.util.XMLEventAllocator;
 import javax.xml.transform.Source;
@@ -230,7 +229,7 @@ public abstract class XMLInputFactory
           {
             try
               {
-                Class t = (loader != null) ? loader.loadClass(className) :
+                Class<?> t = (loader != null) ? loader.loadClass(className) :
                   Class.forName(className);
                 return (XMLInputFactory) t.newInstance();
               }

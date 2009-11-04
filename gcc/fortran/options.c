@@ -1,5 +1,5 @@
 /* Parse and display command line options.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -31,50 +31,58 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-inline.h"
 #include "gfortran.h"
 #include "target.h"
+#include "cpp.h"
 
 gfc_option_t gfc_option;
 
 
 /* Set flags that control warnings and errors for different
-   Fortran standards to their default values.  */
+   Fortran standards to their default values.  Keep in sync with
+   libgfortran/runtime/compile_options.c (init_compile_options).  */
 
 static void
 set_default_std_flags (void)
 {
   gfc_option.allow_std = GFC_STD_F95_OBS | GFC_STD_F95_DEL
-    | GFC_STD_F2003 | GFC_STD_F95 | GFC_STD_F77 | GFC_STD_GNU
-    | GFC_STD_LEGACY;
+    | GFC_STD_F2003 | GFC_STD_F2008 | GFC_STD_F95 | GFC_STD_F77
+    | GFC_STD_GNU | GFC_STD_LEGACY;
   gfc_option.warn_std = GFC_STD_F95_DEL | GFC_STD_LEGACY;
 }
 
-/* Get ready for options handling.  */
+
+/* Get ready for options handling. Keep in sync with
+   libgfortran/runtime/compile_options.c (init_compile_options). */
 
 unsigned int
-gfc_init_options (unsigned int argc ATTRIBUTE_UNUSED,
-		  const char **argv ATTRIBUTE_UNUSED)
+gfc_init_options (unsigned int argc, const char **argv)
 {
   gfc_source_file = NULL;
   gfc_option.module_dir = NULL;
   gfc_option.source_form = FORM_UNKNOWN;
   gfc_option.fixed_line_length = 72;
   gfc_option.free_line_length = 132;
-  gfc_option.max_continue_fixed = 19;
-  gfc_option.max_continue_free = 39;
+  gfc_option.max_continue_fixed = 255;
+  gfc_option.max_continue_free = 255;
   gfc_option.max_identifier_length = GFC_MAX_SYMBOL_LEN;
   gfc_option.max_subrecord_length = 0;
+  gfc_option.flag_max_array_constructor = 65535;
   gfc_option.convert = GFC_CONVERT_NATIVE;
   gfc_option.record_marker = 0;
-  gfc_option.verbose = 0;
+  gfc_option.dump_parse_tree = 0;
 
   gfc_option.warn_aliasing = 0;
   gfc_option.warn_ampersand = 0;
   gfc_option.warn_character_truncation = 0;
+  gfc_option.warn_array_temp = 0;
   gfc_option.warn_conversion = 0;
   gfc_option.warn_implicit_interface = 0;
   gfc_option.warn_line_truncation = 0;
   gfc_option.warn_surprising = 0;
   gfc_option.warn_tabs = 1;
   gfc_option.warn_underflow = 1;
+  gfc_option.warn_intrinsic_shadow = 0;
+  gfc_option.warn_intrinsics_std = 0;
+  gfc_option.warn_align_commons = 1;
   gfc_option.max_errors = 25;
 
   gfc_option.flag_all_intrinsics = 0;
@@ -98,6 +106,7 @@ gfc_init_options (unsigned int argc ATTRIBUTE_UNUSED,
   gfc_option.flag_backslash = 0;
   gfc_option.flag_module_private = 0;
   gfc_option.flag_backtrace = 0;
+  gfc_option.flag_check_array_temporaries = 0;
   gfc_option.flag_allow_leading_underscore = 0;
   gfc_option.flag_dump_core = 0;
   gfc_option.flag_external_blas = 0;
@@ -113,6 +122,7 @@ gfc_init_options (unsigned int argc ATTRIBUTE_UNUSED,
   gfc_option.flag_init_logical = GFC_INIT_LOGICAL_OFF;
   gfc_option.flag_init_character = GFC_INIT_CHARACTER_OFF;
   gfc_option.flag_init_character_value = (char)0;
+  gfc_option.flag_align_commons = 1;
   
   gfc_option.fpe = 0;
 
@@ -123,10 +133,11 @@ gfc_init_options (unsigned int argc ATTRIBUTE_UNUSED,
 
   set_default_std_flags ();
 
-  gfc_option.warn_nonstd_intrinsics = 0;
-
   /* -fshort-enums can be default on some targets.  */
   gfc_option.fshort_enums = targetm.default_short_enums ();
+
+  /* Initialize cpp-related options.  */
+  gfc_cpp_init_options(argc, argv);
 
   return CL_Fortran;
 }
@@ -153,6 +164,9 @@ form_from_filename (const char *filename)
     ,
     {
     ".f03", FORM_FREE}
+    ,
+    {
+    ".f08", FORM_FREE}
     ,
     {
     ".f", FORM_FIXED}
@@ -248,13 +262,13 @@ gfc_post_options (const char **pfilename)
 
   if (i != 0)
     {
-      source_path = alloca (i + 1);
+      source_path = (char *) alloca (i + 1);
       memcpy (source_path, canon_source_file, i);
       source_path[i] = 0;
-      gfc_add_include_path (source_path, true);
+      gfc_add_include_path (source_path, true, true);
     }
   else
-    gfc_add_include_path (".", true);
+    gfc_add_include_path (".", true, true);
 
   if (canon_source_file != gfc_source_file)
     gfc_free (CONST_CAST (char *, canon_source_file));
@@ -285,14 +299,6 @@ gfc_post_options (const char **pfilename)
       else if (gfc_option.flag_d_lines == 1)
 	gfc_warning_now ("'-fd-lines-as-code' has no effect in free form");
     }
-
-  flag_inline_trees = 1;
-
-  /* Use tree inlining.  */
-  if (!flag_no_inline)
-    flag_no_inline = 1;
-  if (flag_inline_functions)
-    flag_inline_trees = 2;
 
   /* If -pedantic, warn about the use of GNU extensions.  */
   if (pedantic && (gfc_option.allow_std & GFC_STD_GNU) != 0)
@@ -348,9 +354,15 @@ gfc_post_options (const char **pfilename)
       gfc_option.warn_tabs = 0;
     }
 
-  if (gfc_option.flag_all_intrinsics)
-    gfc_option.warn_nonstd_intrinsics = 0;
+  gfc_cpp_post_options ();
 
+/* FIXME: return gfc_cpp_preprocess_only ();
+
+   The return value of this function indicates whether the
+   backend needs to be initialized. On -E, we don't need
+   the backend. However, if we return 'true' here, an
+   ICE occurs. Initializing the backend doesn't hurt much,
+   hence, for now we can live with it as is.  */
   return false;
 }
 
@@ -363,13 +375,14 @@ set_Wall (int setting)
   gfc_option.warn_aliasing = setting;
   gfc_option.warn_ampersand = setting;
   gfc_option.warn_line_truncation = setting;
-  gfc_option.warn_nonstd_intrinsics = setting;
   gfc_option.warn_surprising = setting;
   gfc_option.warn_tabs = !setting;
   gfc_option.warn_underflow = setting;
+  gfc_option.warn_intrinsic_shadow = setting;
+  gfc_option.warn_intrinsics_std = setting;
   gfc_option.warn_character_truncation = setting;
 
-  set_Wunused (setting);
+  warn_unused = setting;
   warn_return_type = setting;
   warn_switch = setting;
 
@@ -388,22 +401,13 @@ gfc_handle_module_path_options (const char *arg)
 {
 
   if (gfc_option.module_dir != NULL)
-    {
-      gfc_status ("gfortran: Only one -M option allowed\n");
-      exit (3);
-    }
-
-  if (arg == NULL)
-    {
-      gfc_status ("gfortran: Directory required after -M\n");
-      exit (3);
-    }
+    gfc_fatal_error ("gfortran: Only one -J option allowed");
 
   gfc_option.module_dir = (char *) gfc_getmem (strlen (arg) + 2);
   strcpy (gfc_option.module_dir, arg);
   strcat (gfc_option.module_dir, "/");
 
-  gfc_add_include_path (gfc_option.module_dir, true);
+  gfc_add_include_path (gfc_option.module_dir, true, false);
 }
 
 
@@ -458,6 +462,9 @@ gfc_handle_option (size_t scode, const char *arg, int value)
   if (code == N_OPTS)
     return 1;
 
+  if (gfc_cpp_handle_option (scode, arg, value) == 1)
+    return 1;
+
   switch (code)
     {
     default:
@@ -476,6 +483,10 @@ gfc_handle_option (size_t scode, const char *arg, int value)
       gfc_option.warn_ampersand = value;
       break;
 
+    case OPT_Warray_temporaries:
+      gfc_option.warn_array_temp = value;
+      break;
+
     case OPT_Wcharacter_truncation:
       gfc_option.warn_character_truncation = value;
       break;
@@ -492,6 +503,10 @@ gfc_handle_option (size_t scode, const char *arg, int value)
       gfc_option.warn_line_truncation = value;
       break;
 
+    case OPT_Wreturn_type:
+      warn_return_type = value;
+      break;
+
     case OPT_Wsurprising:
       gfc_option.warn_surprising = value;
       break;
@@ -502,6 +517,14 @@ gfc_handle_option (size_t scode, const char *arg, int value)
 
     case OPT_Wunderflow:
       gfc_option.warn_underflow = value;
+      break;
+
+    case OPT_Wintrinsic_shadow:
+      gfc_option.warn_intrinsic_shadow = value;
+      break;
+
+    case OPT_Walign_commons:
+      gfc_option.warn_align_commons = value;
       break;
 
     case OPT_fall_intrinsics:
@@ -522,6 +545,10 @@ gfc_handle_option (size_t scode, const char *arg, int value)
       
     case OPT_fbacktrace:
       gfc_option.flag_backtrace = value;
+      break;
+      
+    case OPT_fcheck_array_temporaries:
+      gfc_option.flag_check_array_temporaries = value;
       break;
       
     case OPT_fdump_core:
@@ -557,7 +584,7 @@ gfc_handle_option (size_t scode, const char *arg, int value)
       break;
 
     case OPT_fdump_parse_tree:
-      gfc_option.verbose = value;
+      gfc_option.dump_parse_tree = value;
       break;
 
     case OPT_ffixed_form:
@@ -612,8 +639,12 @@ gfc_handle_option (size_t scode, const char *arg, int value)
       break;
 
     case OPT_fintrinsic_modules_path:
-      gfc_add_include_path (arg, false);
+      gfc_add_include_path (arg, false, false);
       gfc_add_intrinsic_modules_path (arg);
+      break;
+
+    case OPT_fmax_array_constructor_:
+      gfc_option.flag_max_array_constructor = value > 65535 ? value : 65535;
       break;
 
     case OPT_fmax_errors_:
@@ -694,7 +725,7 @@ gfc_handle_option (size_t scode, const char *arg, int value)
       else
 	gfc_fatal_error ("Unrecognized option to -finit-real: %s",
 			 arg);
-      break;      
+      break;
 
     case OPT_finit_integer_:
       gfc_option.flag_init_integer = GFC_INIT_INTEGER_ON;
@@ -713,18 +744,17 @@ gfc_handle_option (size_t scode, const char *arg, int value)
       break;
 
     case OPT_I:
-      gfc_add_include_path (arg, true);
+      gfc_add_include_path (arg, true, false);
       break;
 
     case OPT_J:
-    case OPT_M:
       gfc_handle_module_path_options (arg);
       break;
-    
+
     case OPT_fsign_zero:
       gfc_option.flag_sign_zero = value;
       break;
-    
+
     case OPT_ffpe_trap_:
       gfc_handle_fpe_trap_option (arg);
       break;
@@ -732,6 +762,8 @@ gfc_handle_option (size_t scode, const char *arg, int value)
     case OPT_std_f95:
       gfc_option.allow_std = GFC_STD_F95_OBS | GFC_STD_F95 | GFC_STD_F77;
       gfc_option.warn_std = GFC_STD_F95_OBS;
+      gfc_option.max_continue_fixed = 19;
+      gfc_option.max_continue_free = 39;
       gfc_option.max_identifier_length = 31;
       gfc_option.warn_ampersand = 1;
       gfc_option.warn_tabs = 0;
@@ -741,8 +773,15 @@ gfc_handle_option (size_t scode, const char *arg, int value)
       gfc_option.allow_std = GFC_STD_F95_OBS | GFC_STD_F77 
 	| GFC_STD_F2003 | GFC_STD_F95;
       gfc_option.warn_std = GFC_STD_F95_OBS;
-      gfc_option.max_continue_fixed = 255;
-      gfc_option.max_continue_free = 255;
+      gfc_option.max_identifier_length = 63;
+      gfc_option.warn_ampersand = 1;
+      gfc_option.warn_tabs = 0;
+      break;
+
+    case OPT_std_f2008:
+      gfc_option.allow_std = GFC_STD_F95_OBS | GFC_STD_F77 
+	| GFC_STD_F2003 | GFC_STD_F95 | GFC_STD_F2008;
+      gfc_option.warn_std = GFC_STD_F95_OBS;
       gfc_option.max_identifier_length = 63;
       gfc_option.warn_ampersand = 1;
       gfc_option.warn_tabs = 0;
@@ -757,8 +796,8 @@ gfc_handle_option (size_t scode, const char *arg, int value)
       gfc_option.warn_std = 0;
       break;
 
-    case OPT_Wnonstd_intrinsics:
-      gfc_option.warn_nonstd_intrinsics = value;
+    case OPT_Wintrinsics_std:
+      gfc_option.warn_intrinsics_std = value;
       break;
 
     case OPT_fshort_enums:
@@ -799,6 +838,10 @@ gfc_handle_option (size_t scode, const char *arg, int value)
 
     case OPT_frecursive:
       gfc_option.flag_recursive = 1;
+      break;
+
+    case OPT_falign_commons:
+      gfc_option.flag_align_commons = value;
       break;
     }
 

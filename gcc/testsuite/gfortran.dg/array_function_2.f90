@@ -28,5 +28,3 @@ contains
   end function tmp_PConv
 
 end program bounds_issue
-
-! { dg-final { cleanup-modules "bounds_issue" } }

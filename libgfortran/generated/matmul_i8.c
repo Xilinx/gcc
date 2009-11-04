@@ -1,5 +1,5 @@
 /* Implementation of the MATMUL intrinsic
-   Copyright 2002, 2005, 2006, 2007 Free Software Foundation, Inc.
+   Copyright 2002, 2005, 2006, 2007, 2009 Free Software Foundation, Inc.
    Contributed by Paul Brook <paul@nowt.org>
 
 This file is part of the GNU Fortran 95 runtime library (libgfortran).
@@ -7,26 +7,21 @@ This file is part of the GNU Fortran 95 runtime library (libgfortran).
 Libgfortran is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public
 License as published by the Free Software Foundation; either
-version 2 of the License, or (at your option) any later version.
-
-In addition to the permissions in the GNU General Public License, the
-Free Software Foundation gives you unlimited permission to link the
-compiled version of this file into combinations with other programs,
-and to distribute those combinations without any restriction coming
-from the use of this file.  (The General Public License restrictions
-do apply in other respects; for example, they cover modification of
-the file, and distribution when not linked into a combine
-executable.)
+version 3 of the License, or (at your option) any later version.
 
 Libgfortran is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public
-License along with libgfortran; see the file COPYING.  If not,
-write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+Under Section 7 of GPL version 3, you are granted additional
+permissions described in the GCC Runtime Library Exception, version
+3.1, as published by the Free Software Foundation.
+
+You should have received a copy of the GNU General Public License and
+a copy of the GCC Runtime Library Exception along with this program;
+see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+<http://www.gnu.org/licenses/>.  */
 
 #include "libgfortran.h"
 #include <stdlib.h>
@@ -135,6 +130,47 @@ matmul_i8 (gfc_array_i8 * const restrict retarray,
 	= internal_malloc_size (sizeof (GFC_INTEGER_8) * size0 ((array_t *) retarray));
       retarray->offset = 0;
     }
+    else if (unlikely (compile_options.bounds_check))
+      {
+	index_type ret_extent, arg_extent;
+
+	if (GFC_DESCRIPTOR_RANK (a) == 1)
+	  {
+	    arg_extent = b->dim[1].ubound + 1 - b->dim[1].lbound;
+	    ret_extent = retarray->dim[0].ubound + 1 - retarray->dim[0].lbound;
+	    if (arg_extent != ret_extent)
+	      runtime_error ("Incorrect extent in return array in"
+			     " MATMUL intrinsic: is %ld, should be %ld",
+			     (long int) ret_extent, (long int) arg_extent);
+	  }
+	else if (GFC_DESCRIPTOR_RANK (b) == 1)
+	  {
+	    arg_extent = a->dim[0].ubound + 1 - a->dim[0].lbound;
+	    ret_extent = retarray->dim[0].ubound + 1 - retarray->dim[0].lbound;
+	    if (arg_extent != ret_extent)
+	      runtime_error ("Incorrect extent in return array in"
+			     " MATMUL intrinsic: is %ld, should be %ld",
+			     (long int) ret_extent, (long int) arg_extent);	    
+	  }
+	else
+	  {
+	    arg_extent = a->dim[0].ubound + 1 - a->dim[0].lbound;
+	    ret_extent = retarray->dim[0].ubound + 1 - retarray->dim[0].lbound;
+	    if (arg_extent != ret_extent)
+	      runtime_error ("Incorrect extent in return array in"
+			     " MATMUL intrinsic for dimension 1:"
+			     " is %ld, should be %ld",
+			     (long int) ret_extent, (long int) arg_extent);
+
+	    arg_extent = b->dim[1].ubound + 1 - b->dim[1].lbound;
+	    ret_extent = retarray->dim[1].ubound + 1 - retarray->dim[1].lbound;
+	    if (arg_extent != ret_extent)
+	      runtime_error ("Incorrect extent in return array in"
+			     " MATMUL intrinsic for dimension 2:"
+			     " is %ld, should be %ld",
+			     (long int) ret_extent, (long int) arg_extent);
+	  }
+      }
 
 
   if (GFC_DESCRIPTOR_RANK (retarray) == 1)
@@ -170,7 +206,10 @@ matmul_i8 (gfc_array_i8 * const restrict retarray,
     }
 
   if (count != b->dim[0].ubound + 1 - b->dim[0].lbound)
-    runtime_error ("dimension of array B incorrect in MATMUL intrinsic");
+    {
+      if (count > 0 || b->dim[0].ubound + 1 - b->dim[0].lbound > 0)
+	runtime_error ("dimension of array B incorrect in MATMUL intrinsic");
+    }
 
   if (GFC_DESCRIPTOR_RANK (b) == 1)
     {

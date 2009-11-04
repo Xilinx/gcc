@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---                       Copyright (C) 2007, AdaCore                        --
+--                     Copyright (C) 2007-2008, AdaCore                     --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -391,7 +391,7 @@ package body GNAT.Decode_String is
             end if;
          end UTF8;
 
-      --  Non-UTF-8 cass
+      --  Non-UTF-8 case
 
       else
          declare
@@ -502,7 +502,7 @@ package body GNAT.Decode_String is
             end if;
          end UTF8;
 
-      --  Non-UTF-8 cass
+      --  Non-UTF-8 case
 
       else
          declare
@@ -923,7 +923,7 @@ package body GNAT.Decode_String is
             end loop;
 
          exception
-             when Constraint_Error =>
+            when Constraint_Error =>
                Bad;
          end Non_UTF8_Brackets;
       end if;

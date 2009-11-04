@@ -1,5 +1,5 @@
 `/* Implementation of the CSHIFT intrinsic
-   Copyright 2003, 2007 Free Software Foundation, Inc.
+   Copyright 2003, 2007, 2009 Free Software Foundation, Inc.
    Contributed by Feng Wang <wf_cs@yahoo.com>
 
 This file is part of the GNU Fortran 95 runtime library (libgfortran).
@@ -7,26 +7,21 @@ This file is part of the GNU Fortran 95 runtime library (libgfortran).
 Libgfortran is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public
 License as published by the Free Software Foundation; either
-version 2 of the License, or (at your option) any later version.
-
-In addition to the permissions in the GNU General Public License, the
-Free Software Foundation gives you unlimited permission to link the
-compiled version of this file into combinations with other programs,
-and to distribute those combinations without any restriction coming
-from the use of this file.  (The General Public License restrictions
-do apply in other respects; for example, they cover modification of
-the file, and distribution when not linked into a combine
-executable.)
+version 3 of the License, or (at your option) any later version.
 
 Ligbfortran is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public
-License along with libgfortran; see the file COPYING.  If not,
-write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+Under Section 7 of GPL version 3, you are granted additional
+permissions described in the GCC Runtime Library Exception, version
+3.1, as published by the Free Software Foundation.
+
+You should have received a copy of the GNU General Public License and
+a copy of the GCC Runtime Library Exception along with this program;
+see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+<http://www.gnu.org/licenses/>.  */
 
 #include "libgfortran.h"
 #include <stdlib.h>
@@ -68,6 +63,7 @@ cshift1 (gfc_array_char * const restrict ret,
   index_type n;
   int which;
   'atype_name` sh;
+  index_type arraysize;
 
   if (pwhich)
     which = *pwhich - 1;
@@ -77,11 +73,13 @@ cshift1 (gfc_array_char * const restrict ret,
   if (which < 0 || (which + 1) > GFC_DESCRIPTOR_RANK (array))
     runtime_error ("Argument ''`DIM''` is out of range in call to ''`CSHIFT''`");
 
+  arraysize = size0 ((array_t *)array);
+
   if (ret->data == NULL)
     {
       int i;
 
-      ret->data = internal_malloc_size (size * size0 ((array_t *)array));
+      ret->data = internal_malloc_size (size * arraysize);
       ret->offset = 0;
       ret->dtype = array->dtype;
       for (i = 0; i < GFC_DESCRIPTOR_RANK (array); i++)
@@ -95,6 +93,9 @@ cshift1 (gfc_array_char * const restrict ret,
             ret->dim[i].stride = (ret->dim[i-1].ubound + 1) * ret->dim[i-1].stride;
         }
     }
+
+  if (arraysize == 0)
+    return;
 
   extent[0] = 1;
   count[0] = 0;
@@ -213,6 +214,7 @@ cshift1_'atype_kind` (gfc_array_char * const restrict ret,
   cshift1 (ret, array, h, pwhich, GFC_DESCRIPTOR_SIZE (array));
 }
 
+
 void cshift1_'atype_kind`_char (gfc_array_char * const restrict ret, 
 	GFC_INTEGER_4,
 	const gfc_array_char * const restrict array,
@@ -230,6 +232,26 @@ cshift1_'atype_kind`_char (gfc_array_char * const restrict ret,
 	GFC_INTEGER_4 array_length)
 {
   cshift1 (ret, array, h, pwhich, array_length);
+}
+
+
+void cshift1_'atype_kind`_char4 (gfc_array_char * const restrict ret, 
+	GFC_INTEGER_4,
+	const gfc_array_char * const restrict array,
+	const 'atype` * const restrict h, 
+	const 'atype_name` * const restrict pwhich,
+	GFC_INTEGER_4);
+export_proto(cshift1_'atype_kind`_char4);
+
+void
+cshift1_'atype_kind`_char4 (gfc_array_char * const restrict ret,
+	GFC_INTEGER_4 ret_length __attribute__((unused)),
+	const gfc_array_char * const restrict array,
+	const 'atype` * const restrict h, 
+	const 'atype_name` * const restrict pwhich,
+	GFC_INTEGER_4 array_length)
+{
+  cshift1 (ret, array, h, pwhich, array_length * sizeof (gfc_char4_t));
 }
 
 #endif'

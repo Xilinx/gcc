@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -31,6 +31,7 @@ with Exp_Disp; use Exp_Disp;
 with Exp_Ch7;  use Exp_Ch7;
 with Exp_Tss;  use Exp_Tss;
 with Errout;   use Errout;
+with Lib.Xref; use Lib.Xref;
 with Namet;    use Namet;
 with Nlists;   use Nlists;
 with Nmake;    use Nmake;
@@ -617,6 +618,19 @@ package body Sem_Disp is
          Tagged_Type := Corresponding_Record_Type (Tagged_Type);
       end if;
 
+      --  (AI-345): The task body procedure is not a primitive of the tagged
+      --  type
+
+      if Present (Tagged_Type)
+        and then Is_Concurrent_Record_Type (Tagged_Type)
+        and then Present (Corresponding_Concurrent_Type (Tagged_Type))
+        and then Is_Task_Type (Corresponding_Concurrent_Type (Tagged_Type))
+        and then Subp = Get_Task_Body_Procedure
+                          (Corresponding_Concurrent_Type (Tagged_Type))
+      then
+         return;
+      end if;
+
       --  If Subp is derived from a dispatching operation then it should
       --  always be treated as dispatching. In this case various checks
       --  below will be bypassed. Makes sure that late declarations for
@@ -641,7 +655,10 @@ package body Sem_Disp is
          begin
             E := First_Entity (Subp);
             while Present (E) loop
-               if Is_Access_Type (Etype (E)) then
+
+               --  For an access parameter, check designated type.
+
+               if Ekind (Etype (E)) = E_Anonymous_Access_Type then
                   Typ := Designated_Type (Etype (E));
                else
                   Typ := Etype (E);
@@ -787,6 +804,9 @@ package body Sem_Disp is
                      --  if the subprogram is already frozen, we must update
                      --  its dispatching information explicitly here. The
                      --  information is taken from the overridden subprogram.
+                     --  We must also generate a cross-reference entry because
+                     --  references to other primitives were already created
+                     --  when type was frozen.
 
                      Body_Is_Last_Primitive := True;
 
@@ -816,6 +836,8 @@ package body Sem_Disp is
                                 Prim    => Subp,
                                 Ins_Nod => Subp_Body);
                            end if;
+
+                           Generate_Reference (Tagged_Type, Subp, 'p', False);
                         end if;
                      end if;
                   end if;
@@ -861,6 +883,10 @@ package body Sem_Disp is
       --  Now it should be a correct primitive operation, put it in the list
 
       if Present (Old_Subp) then
+
+         --  If the type has interfaces we complete this check after we
+         --  set attribute Is_Dispatching_Operation
+
          Check_Subtype_Conformant (Subp, Old_Subp);
 
          if (Chars (Subp) = Name_Initialize
@@ -893,7 +919,7 @@ package body Sem_Disp is
                      Prim := Node (Elmt);
 
                      if Present (Alias (Prim))
-                       and then Present (Abstract_Interface_Alias (Prim))
+                       and then Present (Interface_Alias (Prim))
                        and then Alias (Prim) = Subp
                      then
                         Register_Primitive (Sloc (Prim),
@@ -923,6 +949,78 @@ package body Sem_Disp is
       end if;
 
       Set_Is_Dispatching_Operation (Subp, True);
+
+      --  Ada 2005 (AI-251): If the type implements interfaces we must check
+      --  subtype conformance against all the interfaces covered by this
+      --  primitive.
+
+      if Present (Old_Subp)
+        and then Has_Interfaces (Tagged_Type)
+      then
+         declare
+            Ifaces_List     : Elist_Id;
+            Iface_Elmt      : Elmt_Id;
+            Iface_Prim_Elmt : Elmt_Id;
+            Iface_Prim      : Entity_Id;
+            Ret_Typ         : Entity_Id;
+
+         begin
+            Collect_Interfaces (Tagged_Type, Ifaces_List);
+
+            Iface_Elmt := First_Elmt (Ifaces_List);
+            while Present (Iface_Elmt) loop
+               if not Is_Ancestor (Node (Iface_Elmt), Tagged_Type) then
+                  Iface_Prim_Elmt :=
+                    First_Elmt (Primitive_Operations (Node (Iface_Elmt)));
+                  while Present (Iface_Prim_Elmt) loop
+                     Iface_Prim := Node (Iface_Prim_Elmt);
+
+                     if Is_Interface_Conformant
+                          (Tagged_Type, Iface_Prim, Subp)
+                     then
+                        --  Handle procedures, functions whose return type
+                        --  matches, or functions not returning interfaces
+
+                        if Ekind (Subp) = E_Procedure
+                          or else Etype (Iface_Prim) = Etype (Subp)
+                          or else not Is_Interface (Etype (Iface_Prim))
+                        then
+                           Check_Subtype_Conformant
+                             (New_Id  => Subp,
+                              Old_Id  => Iface_Prim,
+                              Err_Loc => Subp,
+                              Skip_Controlling_Formals => True);
+
+                        --  Handle functions returning interfaces
+
+                        elsif Implements_Interface
+                                (Etype (Subp), Etype (Iface_Prim))
+                        then
+                           --  Temporarily force both entities to return the
+                           --  same type. Required because Subtype_Conformant
+                           --  does not handle this case.
+
+                           Ret_Typ := Etype (Iface_Prim);
+                           Set_Etype (Iface_Prim, Etype (Subp));
+
+                           Check_Subtype_Conformant
+                             (New_Id  => Subp,
+                              Old_Id  => Iface_Prim,
+                              Err_Loc => Subp,
+                              Skip_Controlling_Formals => True);
+
+                           Set_Etype (Iface_Prim, Ret_Typ);
+                        end if;
+                     end if;
+
+                     Next_Elmt (Iface_Prim_Elmt);
+                  end loop;
+               end if;
+
+               Next_Elmt (Iface_Elmt);
+            end loop;
+         end;
+      end if;
 
       if not Body_Is_Last_Primitive then
          Set_DT_Position (Subp, No_Uint);
@@ -1074,7 +1172,13 @@ package body Sem_Disp is
          if Derives_From (Node (Op1)) then
 
             if No (Prev) then
-               Prepend_Elmt (Subp, New_Prim);
+
+               --  Avoid adding it to the list of primitives if already there!
+
+               if Node (Op2) /= Subp then
+                  Prepend_Elmt (Subp, New_Prim);
+               end if;
+
             else
                Insert_Elmt_After (Subp, Prev);
             end if;
@@ -1293,6 +1397,38 @@ package body Sem_Disp is
       return Empty;
    end Find_Dispatching_Type;
 
+   ---------------------------------------
+   -- Find_Primitive_Covering_Interface --
+   ---------------------------------------
+
+   function Find_Primitive_Covering_Interface
+     (Tagged_Type : Entity_Id;
+      Iface_Prim  : Entity_Id) return Entity_Id
+   is
+      E : Entity_Id;
+
+   begin
+      pragma Assert (Is_Interface (Find_Dispatching_Type (Iface_Prim))
+        or else (Present (Alias (Iface_Prim))
+                   and then
+                     Is_Interface
+                       (Find_Dispatching_Type (Ultimate_Alias (Iface_Prim)))));
+
+      E := Current_Entity (Iface_Prim);
+      while Present (E) loop
+         if Is_Subprogram (E)
+           and then Is_Dispatching_Operation (E)
+           and then Is_Interface_Conformant (Tagged_Type, Iface_Prim, E)
+         then
+            return E;
+         end if;
+
+         E := Homonym (E);
+      end loop;
+
+      return Empty;
+   end Find_Primitive_Covering_Interface;
+
    ---------------------------
    -- Is_Dynamically_Tagged --
    ---------------------------
@@ -1416,7 +1552,7 @@ package body Sem_Disp is
       Replace_Elmt (Elmt, New_Op);
 
       if Ada_Version >= Ada_05
-        and then Has_Abstract_Interfaces (Tagged_Type)
+        and then Has_Interfaces (Tagged_Type)
       then
          --  Ada 2005 (AI-251): Update the attribute alias of all the aliased
          --  entities of the overridden primitive to reference New_Op, and also
@@ -1424,6 +1560,8 @@ package body Sem_Disp is
          --  that the new operation is subtype conformant with the interface
          --  operations that it implements (for operations inherited from the
          --  parent itself, this check is made when building the derived type).
+
+         --  Note: This code is only executed in case of late overriding
 
          Elmt := First_Elmt (Primitive_Operations (Tagged_Type));
          while Present (Elmt) loop
@@ -1436,14 +1574,14 @@ package body Sem_Disp is
             --  reading attributes in entities that are not yet fully decorated
 
             elsif Is_Subprogram (Prim)
-              and then Present (Abstract_Interface_Alias (Prim))
+              and then Present (Interface_Alias (Prim))
               and then Alias (Prim) = Prev_Op
               and then Present (Etype (New_Op))
             then
                Set_Alias (Prim, New_Op);
                Check_Subtype_Conformant (New_Op, Prim);
-               Set_Is_Abstract_Subprogram
-                 (Prim, Is_Abstract_Subprogram (New_Op));
+               Set_Is_Abstract_Subprogram (Prim,
+                 Is_Abstract_Subprogram (New_Op));
 
                --  Ensure that this entity will be expanded to fill the
                --  corresponding entry in its dispatch table.
@@ -1540,6 +1678,14 @@ package body Sem_Disp is
 
       if VM_Target = No_VM then
          Expand_Dispatching_Call (Call_Node);
+
+      --  Expansion of a dispatching call results in an indirect call, which in
+      --  turn causes current values to be killed (see Resolve_Call), so on VM
+      --  targets we do the call here to ensure consistent warnings between VM
+      --  and non-VM targets.
+
+      else
+         Kill_Current_Values;
       end if;
    end Propagate_Tag;
 

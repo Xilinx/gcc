@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---                     Copyright (C) 2002-2006, AdaCore                     --
+--                     Copyright (C) 2002-2008, AdaCore                     --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -36,7 +36,7 @@
 --
 --          http://www.ietf.org/rfc/rfc1321.txt
 --
---  The implementation is derived from the RSA Data Secutity, Inc. MD5
+--  The implementation is derived from the RSA Data Security, Inc. MD5
 --  Message-Digest Algorithm, as described in RFC 1321.
 
 with Ada.Streams;

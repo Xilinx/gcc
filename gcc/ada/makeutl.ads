@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 2004-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 2004-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -103,6 +103,10 @@ package Makeutl is
       procedure Add_Main (Name : String);
       --  Add one main to the table
 
+      procedure Set_Location (Location : Source_Ptr);
+      --  Set the location of the last main added. By default, the location is
+      --  No_Location.
+
       procedure Delete;
       --  Empty the table
 
@@ -112,6 +116,12 @@ package Makeutl is
       function Next_Main return String;
       --  Increase the index and return the next main.
       --  If table is exhausted, return an empty string.
+
+      function Get_Location return Source_Ptr;
+      --  Get the location of the current main
+
+      procedure Update_Main (Name : String);
+      --  Update the file name of the current main
 
       function Number_Of_Mains return Natural;
       --  Returns the number of mains added with Add_Main since the last call
@@ -129,6 +139,9 @@ package Makeutl is
    --  Parent. This subprogram is only called when using project files.
    --  For gnatbind switches, Including_L_Switch is False, because the
    --  argument of the -L switch is not a path.
+
+   function Path_Or_File_Name (Path : Path_Name_Type) return String;
+   --  Returns a file name if -df is used, otherwise return a path name
 
    ----------------------
    -- Marking Routines --

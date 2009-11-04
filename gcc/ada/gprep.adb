@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2002-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 2002-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -444,7 +444,7 @@ package body GPrep is
 
       Symbol := Index_Of (Data.Symbol);
 
-      --  If symbol does not alrady exist, create a new entry in the mapping
+      --  If symbol does not already exist, create a new entry in the mapping
       --  table.
 
       if Symbol = No_Symbol then
@@ -474,6 +474,9 @@ package body GPrep is
 
       procedure Process_One_File is
          Infile : Source_File_Index;
+
+         Modified : Boolean;
+         pragma Warnings (Off, Modified);
 
       begin
          --  Create the output file (fails if this does not work)
@@ -515,7 +518,7 @@ package body GPrep is
 
          --  Preprocess the input file
 
-         Prep.Preprocess;
+         Prep.Preprocess (Modified);
 
          --  In verbose mode, if there is no error, report it
 
@@ -778,7 +781,7 @@ package body GPrep is
             elsif Deffile_Name = No_Name then
                Deffile_Name := Name_Find;
             else
-               Fail ("too many arguments specifed");
+               Fail ("too many arguments specified");
             end if;
          end;
       end loop;

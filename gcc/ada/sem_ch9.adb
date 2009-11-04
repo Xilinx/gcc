@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -570,9 +570,9 @@ package body Sem_Ch9 is
          --  expression is only evaluated if the guard is open.
 
          if Nkind (Delay_Statement (N)) = N_Delay_Relative_Statement then
-            Pre_Analyze_And_Resolve (Expr, Standard_Duration);
+            Preanalyze_And_Resolve (Expr, Standard_Duration);
          else
-            Pre_Analyze_And_Resolve (Expr);
+            Preanalyze_And_Resolve (Expr);
          end if;
 
          Typ := First_Subtype (Etype (Expr));
@@ -646,8 +646,8 @@ package body Sem_Ch9 is
       Stats      : constant Node_Id   := Handled_Statement_Sequence (N);
       Formals    : constant Node_Id   := Entry_Body_Formal_Part (N);
       P_Type     : constant Entity_Id := Current_Scope;
-      Entry_Name : Entity_Id;
       E          : Entity_Id;
+      Entry_Name : Entity_Id;
 
    begin
       Tasking_Used := True;
@@ -765,7 +765,6 @@ package body Sem_Ch9 is
       Exp_Ch9.Expand_Entry_Barrier (N, Entry_Name);
       Push_Scope (Entry_Name);
 
-      Exp_Ch9.Expand_Entry_Body_Declarations (N);
       Install_Declarations (Entry_Name);
       Set_Actual_Subtypes (N, Current_Scope);
 
@@ -783,8 +782,20 @@ package body Sem_Ch9 is
       Set_Entry_Parameters_Type
         (Id, Entry_Parameters_Type (Entry_Name));
 
+      --  Add a declaration for the Protection object, renaming declarations
+      --  for the discriminals and privals and finally a declaration for the
+      --  entry family index (if applicable).
+
+      if Expander_Active
+        and then Is_Protected_Type (P_Type)
+      then
+         Install_Private_Data_Declarations
+           (Sloc (N), Entry_Name, P_Type, N, Decls);
+      end if;
+
       if Present (Decls) then
          Analyze_Declarations (Decls);
+         Inspect_Deferred_Constant_Completion (Decls);
       end if;
 
       if Present (Stats) then
@@ -907,7 +918,7 @@ package body Sem_Ch9 is
       if Nkind (Call) = N_Attribute_Reference then
 
          --  Possibly a stream attribute, but definitely illegal. Other
-         --  illegalitles, such as procedure calls, are diagnosed after
+         --  illegalities, such as procedure calls, are diagnosed after
          --  resolution.
 
          Error_Msg_N ("entry call alternative requires an entry call", Call);
@@ -926,40 +937,40 @@ package body Sem_Ch9 is
    -------------------------------
 
    procedure Analyze_Entry_Declaration (N : Node_Id) is
-      Formals : constant List_Id   := Parameter_Specifications (N);
-      Id      : constant Entity_Id := Defining_Identifier (N);
       D_Sdef  : constant Node_Id   := Discrete_Subtype_Definition (N);
+      Def_Id  : constant Entity_Id := Defining_Identifier (N);
+      Formals : constant List_Id   := Parameter_Specifications (N);
 
    begin
-      Generate_Definition (Id);
+      Generate_Definition (Def_Id);
       Tasking_Used := True;
 
       if No (D_Sdef) then
-         Set_Ekind (Id, E_Entry);
+         Set_Ekind (Def_Id, E_Entry);
       else
-         Enter_Name (Id);
-         Set_Ekind (Id, E_Entry_Family);
+         Enter_Name (Def_Id);
+         Set_Ekind (Def_Id, E_Entry_Family);
          Analyze (D_Sdef);
-         Make_Index (D_Sdef, N, Id);
+         Make_Index (D_Sdef, N, Def_Id);
       end if;
 
-      Set_Etype          (Id, Standard_Void_Type);
-      Set_Convention     (Id, Convention_Entry);
-      Set_Accept_Address (Id, New_Elmt_List);
+      Set_Etype          (Def_Id, Standard_Void_Type);
+      Set_Convention     (Def_Id, Convention_Entry);
+      Set_Accept_Address (Def_Id, New_Elmt_List);
 
       if Present (Formals) then
-         Set_Scope (Id, Current_Scope);
-         Push_Scope (Id);
+         Set_Scope (Def_Id, Current_Scope);
+         Push_Scope (Def_Id);
          Process_Formals (Formals, N);
-         Create_Extra_Formals (Id);
+         Create_Extra_Formals (Def_Id);
          End_Scope;
       end if;
 
-      if Ekind (Id) = E_Entry then
-         New_Overloaded_Entity (Id);
+      if Ekind (Def_Id) = E_Entry then
+         New_Overloaded_Entity (Def_Id);
       end if;
 
-      Generate_Reference_To_Formals (Id);
+      Generate_Reference_To_Formals (Def_Id);
    end Analyze_Entry_Declaration;
 
    ---------------------------------------
@@ -973,7 +984,7 @@ package body Sem_Ch9 is
    --  order to make it available to the barrier, we create an additional
    --  scope, as for a loop, whose only declaration is the index name. This
    --  loop is not attached to the tree and does not appear as an entity local
-   --  to the protected type, so its existence need only be knwown to routines
+   --  to the protected type, so its existence need only be known to routines
    --  that process entry families.
 
    procedure Analyze_Entry_Index_Specification (N : Node_Id) is
@@ -1061,7 +1072,7 @@ package body Sem_Ch9 is
       Set_Has_Completion (Spec_Id);
       Install_Declarations (Spec_Id);
 
-      Exp_Ch9.Expand_Protected_Body_Declarations (N, Spec_Id);
+      Expand_Protected_Body_Declarations (N, Spec_Id);
 
       Last_E := Last_Entity (Spec_Id);
 
@@ -1092,6 +1103,55 @@ package body Sem_Ch9 is
    procedure Analyze_Protected_Definition (N : Node_Id) is
       E : Entity_Id;
       L : Entity_Id;
+
+      procedure Undelay_Itypes (T : Entity_Id);
+      --  Itypes created for the private components of a protected type
+      --  do not receive freeze nodes, because there is no scope in which
+      --  they can be elaborated, and they can depend on discriminants of
+      --  the enclosed protected type. Given that the components can be
+      --  composite types with inner components, we traverse recursively
+      --  the private components of the protected type, and indicate that
+      --  all itypes within are frozen. This ensures that no freeze nodes
+      --  will be generated for them.
+      --
+      --  On the other hand, components of the corresponding record are
+      --  frozen (or receive itype references) as for other records.
+
+      --------------------
+      -- Undelay_Itypes --
+      --------------------
+
+      procedure Undelay_Itypes (T : Entity_Id) is
+         Comp : Entity_Id;
+
+      begin
+         if Is_Protected_Type (T) then
+            Comp := First_Private_Entity (T);
+         elsif Is_Record_Type (T) then
+            Comp := First_Entity (T);
+         else
+            return;
+         end if;
+
+         while Present (Comp) loop
+            if Is_Type (Comp)
+              and then Is_Itype (Comp)
+            then
+               Set_Has_Delayed_Freeze (Comp, False);
+               Set_Is_Frozen (Comp);
+
+               if Is_Record_Type (Comp)
+                 or else Is_Protected_Type (Comp)
+               then
+                  Undelay_Itypes (Comp);
+               end if;
+            end if;
+
+            Next_Entity (Comp);
+         end loop;
+      end Undelay_Itypes;
+
+   --  Start of processing for Analyze_Protected_Definition
 
    begin
       Tasking_Used := True;
@@ -1127,6 +1187,8 @@ package body Sem_Ch9 is
          Next_Entity (E);
       end loop;
 
+      Undelay_Itypes (Current_Scope);
+
       Check_Max_Entries (N, Max_Protected_Entries);
       Process_End_Label (N, 'e', Current_Scope);
    end Analyze_Protected_Definition;
@@ -1151,7 +1213,10 @@ package body Sem_Ch9 is
 
       T := Find_Type_Name (N);
 
-      if Ekind (T) = E_Incomplete_Type then
+      --  In the case of an incomplete type, use the full view, unless it's not
+      --  present (as can occur for an incomplete view from a limited with).
+
+      if Ekind (T) = E_Incomplete_Type and then Present (Full_View (T)) then
          T := Full_View (T);
          Set_Completion_Referenced (T);
       end if;
@@ -1776,6 +1841,7 @@ package body Sem_Ch9 is
 
    procedure Analyze_Task_Body (N : Node_Id) is
       Body_Id : constant Entity_Id := Defining_Identifier (N);
+      Decls   : constant List_Id   := Declarations (N);
       HSS     : constant Node_Id   := Handled_Statement_Sequence (N);
       Last_E  : Entity_Id;
 
@@ -1842,7 +1908,8 @@ package body Sem_Ch9 is
       Install_Declarations (Spec_Id);
       Last_E := Last_Entity (Spec_Id);
 
-      Analyze_Declarations (Declarations (N));
+      Analyze_Declarations (Decls);
+      Inspect_Deferred_Constant_Completion (Decls);
 
       --  For visibility purposes, all entities in the body are private. Set
       --  First_Private_Entity accordingly, if there was no private part in the
@@ -1946,7 +2013,10 @@ package body Sem_Ch9 is
       T := Find_Type_Name (N);
       Generate_Definition (T);
 
-      if Ekind (T) = E_Incomplete_Type then
+      --  In the case of an incomplete type, use the full view, unless it's not
+      --  present (as can occur for an incomplete view from a limited with).
+
+      if Ekind (T) = E_Incomplete_Type and then Present (Full_View (T)) then
          T := Full_View (T);
          Set_Completion_Referenced (T);
       end if;
@@ -2107,7 +2177,7 @@ package body Sem_Ch9 is
              ("triggering statement must be delay or entry call", Trigger);
 
          --  Ada 2005 (AI-345): If a procedure_call_statement is used for a
-         --  procedure_or_entry_call, the procedure_name or pro- cedure_prefix
+         --  procedure_or_entry_call, the procedure_name or procedure_prefix
          --  of the procedure_call_statement shall denote an entry renamed by a
          --  procedure, or (a view of) a primitive subprogram of a limited
          --  interface whose first parameter is a controlling parameter.
@@ -2347,16 +2417,16 @@ package body Sem_Ch9 is
 
             if Present (Interface_List (N))
               or else (Is_Tagged_Type (Priv_T)
-                         and then Has_Abstract_Interfaces
-                                    (Priv_T, Use_Full_View => False))
+                         and then Has_Interfaces
+                                   (Priv_T, Use_Full_View => False))
             then
                if Is_Tagged_Type (Priv_T) then
-                  Collect_Abstract_Interfaces
+                  Collect_Interfaces
                     (Priv_T, Priv_T_Ifaces, Use_Full_View => False);
                end if;
 
                if Is_Tagged_Type (T) then
-                  Collect_Abstract_Interfaces (T, Full_T_Ifaces);
+                  Collect_Interfaces (T, Full_T_Ifaces);
                end if;
 
                Iface := Find_Hidden_Interface (Priv_T_Ifaces, Full_T_Ifaces);

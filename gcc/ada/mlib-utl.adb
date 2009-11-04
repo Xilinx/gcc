@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---                     Copyright (C) 2002-2007, AdaCore                     --
+--                     Copyright (C) 2002-2008, AdaCore                     --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -34,6 +34,10 @@ with Interfaces.C.Strings; use Interfaces.C.Strings;
 with System;
 
 package body MLib.Utl is
+
+   Adalib_Path : String_Access := null;
+   --  Path of the GNAT adalib directory, specified in procedure
+   --  Specify_Adalib_Dir. Used in function Lib_Directory.
 
    Gcc_Name : String_Access;
    --  Default value of the "gcc" executable used in procedure Gcc
@@ -136,7 +140,7 @@ package body MLib.Utl is
 
    begin
       if Ar_Exec = null then
-         Ar_Name := Osint.Program_Name (Archive_Builder);
+         Ar_Name := Osint.Program_Name (Archive_Builder, "gnatmake");
          Ar_Exec := Locate_Exec_On_Path (Ar_Name.all);
 
          if Ar_Exec = null then
@@ -177,7 +181,7 @@ package body MLib.Utl is
 
          --  ranlib
 
-         Ranlib_Name := Osint.Program_Name (Archive_Indexer);
+         Ranlib_Name := Osint.Program_Name (Archive_Indexer, "gnatmake");
 
          if Ranlib_Name'Length > 0 then
             Ranlib_Exec := Locate_Exec_On_Path (Ranlib_Name.all);
@@ -299,7 +303,7 @@ package body MLib.Utl is
    -----------------
 
    procedure Delete_File (Filename : String) is
-      File    : constant String := Filename & ASCII.Nul;
+      File    : constant String := Filename & ASCII.NUL;
       Success : Boolean;
 
    begin
@@ -408,7 +412,7 @@ package body MLib.Utl is
       if Driver_Name = No_Name then
          if Gcc_Exec = null then
             if Gcc_Name = null then
-               Gcc_Name :=  Osint.Program_Name ("gcc");
+               Gcc_Name := Osint.Program_Name ("gcc", "gnatmake");
             end if;
 
             Gcc_Exec := Locate_Exec_On_Path (Gcc_Name.all);
@@ -597,6 +601,13 @@ package body MLib.Utl is
       Libgnat : constant String := Tgt.Libgnat;
 
    begin
+      --  If procedure Specify_Adalib_Dir has been called, used the specified
+      --  value.
+
+      if Adalib_Path /= null then
+         return Adalib_Path.all;
+      end if;
+
       Name_Len := Libgnat'Length;
       Name_Buffer (1 .. Name_Len) := Libgnat;
       Get_Name_String (Osint.Find_File (Name_Enter, Osint.Library));
@@ -605,5 +616,18 @@ package body MLib.Utl is
 
       return Name_Buffer (1 .. Name_Len - Libgnat'Length);
    end Lib_Directory;
+
+   ------------------------
+   -- Specify_Adalib_Dir --
+   ------------------------
+
+   procedure Specify_Adalib_Dir (Path : String) is
+   begin
+      if Path'Length = 0 then
+         Adalib_Path := null;
+      else
+         Adalib_Path := new String'(Path);
+      end if;
+   end Specify_Adalib_Dir;
 
 end MLib.Utl;

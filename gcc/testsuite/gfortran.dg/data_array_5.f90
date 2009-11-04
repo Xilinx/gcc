@@ -9,6 +9,6 @@ program chkdata
   integer, parameter :: myint(3) = [1, 2, 3]
   integer :: c(2)
   character(4) :: i(2)
-  data c / mychar(1), mychar(3) / ! { dg-error "Incompatible types in assignment" }
-  data i / myint(3), myint(2) /   ! { dg-error "Incompatible types in assignment" }
+  data c / mychar(1), mychar(3) / ! { dg-error "Incompatible types in DATA" }
+  data i / myint(3), myint(2) /   ! { dg-error "Incompatible types in DATA" }
 end program chkdata

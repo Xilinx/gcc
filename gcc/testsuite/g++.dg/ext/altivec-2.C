@@ -6,16 +6,13 @@
    arguments.  */
 
 #include <altivec.h>
-#include "altivec_check.h"
 
 int main (int argc, const char * argv[])
 {
-  int i;
+  int i = 0;
   const float cf = 1.0;
   vector float v;
   const vector float cv = (vector float){1.0, 2.0, 3.0, 4.0};
-
-  altivec_check ();
 
   vec_dst(&cv, i, 0);
   v = vec_ld(0, &cv);	

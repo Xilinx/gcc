@@ -40,6 +40,8 @@ package gnu.CORBA.CDR;
 
 import gnu.CORBA.Minor;
 
+import gnu.java.lang.CPStringBuilder;
+
 import org.omg.CORBA.LocalObject;
 import org.omg.CORBA.MARSHAL;
 
@@ -167,7 +169,7 @@ public class gnuRuntime
    * @param a_id a repository Id, if only one Id was specified in the stream.
    * @param a_ids a repository Ids, if the multiple Ids were specified in te
    * stream.
-   * @param a_codabase a codebase, if it was specified in the stream.
+   * @param a_codebase a codebase, if it was specified in the stream.
    */
   public gnuRuntime(String a_codebase, Object a_target)
   {
@@ -318,7 +320,7 @@ public class gnuRuntime
    */
   public String dump()
   {
-    StringBuffer b = new StringBuffer(" Stream content: \n");
+    CPStringBuilder b = new CPStringBuilder(" Stream content: \n");
 
     // Sort by position.
     TreeSet t = new TreeSet(positions.keySet());

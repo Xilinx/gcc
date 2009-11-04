@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -206,6 +206,18 @@ package body Ch3 is
       Ident_Node := Token_Node;
       Scan; -- past the reserved identifier
 
+      --  If we already have a defining identifier, clean it out and make
+      --  a new clean identifier. This situation arises in some error cases
+      --  and we need to fix it.
+
+      if Nkind (Ident_Node) = N_Defining_Identifier then
+         Ident_Node :=
+           Make_Identifier (Sloc (Ident_Node),
+             Chars => Chars (Ident_Node));
+      end if;
+
+      --  Change identifier to defining identifier if not in error
+
       if Ident_Node /= Error then
          Change_Identifier_To_Defining_Identifier (Ident_Node);
       end if;
@@ -290,20 +302,12 @@ package body Ch3 is
          Scan; -- past TYPE
          Ident_Node := P_Defining_Identifier (C_Is);
 
-      --  Otherwise this is an error case, and we may already have converted
-      --  the current token to a defining identifier, so don't do it again!
+      --  Otherwise this is an error case
 
       else
          T_Type;
-
-         if Token = Tok_Identifier
-           and then Nkind (Token_Node) = N_Defining_Identifier
-         then
-            Ident_Node := Token_Node;
-            Scan; -- past defining identifier
-         else
-            Ident_Node := P_Defining_Identifier (C_Is);
-         end if;
+         Type_Token_Location := Type_Loc;
+         Ident_Node := P_Defining_Identifier (C_Is);
       end if;
 
       Discr_Sloc := Token_Ptr;
@@ -412,7 +416,7 @@ package body Ch3 is
          Scan; -- past ALIASED
       end if;
 
-      --  The following procesing deals with either a private type declaration
+      --  The following processing deals with either a private type declaration
       --  or a full type declaration. In the private type case, we build the
       --  N_Private_Type_Declaration node, setting its Tagged_Present and
       --  Limited_Present flags, on encountering the Private keyword, and
@@ -767,6 +771,10 @@ package body Ch3 is
                   --  Interface
 
                   else
+                     if Token /= Tok_Interface then
+                        Error_Msg_SC ("NEW or INTERFACE expected");
+                     end if;
+
                      Typedef_Node :=
                        P_Interface_Type_Definition (Abstract_Present);
                      Abstract_Present := True;
@@ -1316,7 +1324,7 @@ package body Ch3 is
             Check_Misspelling_Of (Tok_Renames);
 
             if Token = Tok_Renames then
-               Error_Msg_SP ("extra "":"" ignored");
+               Error_Msg_SP ("|extra "":"" ignored");
                Scan; -- past RENAMES
                return True;
             else
@@ -1352,7 +1360,6 @@ package body Ch3 is
       --  If we have a comma, then scan out the list of identifiers
 
       elsif Token = Tok_Comma then
-
          while Comma_Present loop
             Num_Idents := Num_Idents + 1;
             Idents (Num_Idents) := P_Defining_Identifier (C_Comma_Colon);
@@ -2070,7 +2077,7 @@ package body Ch3 is
          return Range_Node;
 
       --  Case of subtype mark (optionally qualified simple name or an
-      --  attribute whose prefix is an optionally qualifed simple name)
+      --  attribute whose prefix is an optionally qualified simple name)
 
       elsif Expr_Form = EF_Simple_Name
         or else Nkind (Expr_Node) = N_Attribute_Reference
@@ -2290,7 +2297,7 @@ package body Ch3 is
       --  Handle decimal fixed-point defn with DIGITS/DELTA in wrong order
 
       if Token = Tok_Delta then
-         Error_Msg_SC ("DELTA must come before DIGITS");
+         Error_Msg_SC ("|DELTA must come before DIGITS");
          Def_Node := New_Node (N_Decimal_Fixed_Point_Definition, Digits_Loc);
          Scan; -- past DELTA
          Set_Delta_Expression (Def_Node, P_Expression_No_Right_Paren);
@@ -2883,7 +2890,7 @@ package body Ch3 is
    end P_Known_Discriminant_Part_Opt;
 
    -------------------------------------
-   -- 3.7  DIscriminant Specification --
+   -- 3.7  Discriminant Specification --
    -------------------------------------
 
    --  Parsed by P_Known_Discriminant_Part_Opt (3.7)
@@ -3542,7 +3549,7 @@ package body Ch3 is
          else
             begin
                Expr_Node := P_Expression_Or_Range_Attribute;
-               Check_No_Right_Paren;
+               Ignore (Tok_Right_Paren);
 
                if Token = Tok_Colon
                  and then Nkind (Expr_Node) = N_Identifier
@@ -3657,7 +3664,7 @@ package body Ch3 is
 
       --  Ada 2005 (AI-251): In case of not-synchronized interfaces that have
       --  a list of interfaces we build a derived_type_definition node. This
-      --  simplifies the semantic analysis (and hence further mainteinance)
+      --  simplifies the semantic analysis (and hence further maintenance)
 
       else
          if Token /= Tok_And then
@@ -3927,8 +3934,7 @@ package body Ch3 is
          if Token = Tok_All then
             if Ada_Version < Ada_05 then
                Error_Msg_SP
-                 ("access-all in this context is an Ada 2005 extension");
-               Error_Msg_SP ("\unit should be compiled with -gnat05 switch");
+                 ("ALL is not permitted for anonymous access types");
             end if;
 
             Scan; -- past ALL
@@ -4176,7 +4182,7 @@ package body Ch3 is
                   --  Otherwise we saved the semicolon position, so complain
 
                   else
-                     Error_Msg (""";"" should be IS", SIS_Semicolon_Sloc);
+                     Error_Msg ("|"";"" should be IS", SIS_Semicolon_Sloc);
                   end if;
 
                   --  The next job is to fix up any declarations that occurred

@@ -1,6 +1,6 @@
 /* Program to generate "main" a Java(TM) class containing a main method.
    Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006,
-   2007 Free Software Foundation, Inc.
+   2007, 2008 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -177,5 +177,5 @@ do_mangle_classname (const char *string)
   append_gpp_mangled_name (&ptr [-count], count);
   obstack_grow (mangle_obstack, "6class$E", strlen ("6class$E"));
   obstack_1grow (mangle_obstack, '\0');
-  return obstack_finish (mangle_obstack);
+  return XOBFINISH (mangle_obstack, char *);
 }

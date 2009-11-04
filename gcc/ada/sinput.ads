@@ -6,25 +6,23 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -60,7 +58,7 @@
 --  reasonable to include this case for consistency. In addition, we recognize
 --  any of these sequences in any of the operating systems, for better
 --  behavior in treating foreign files (e.g. a Unix file with LF terminators
---  transferred to a DOS system). Finally, wide character codes in cagtegories
+--  transferred to a DOS system). Finally, wide character codes in categories
 --  Separator, Line and Separator, Paragraph are considered to be physical
 --  line terminators.
 
@@ -162,7 +160,7 @@ package Sinput is
 
    --  Note: fields marked read-only are set by Sinput or one of its child
    --  packages when a source file table entry is created, and cannot be
-   --  subsqently modified, or alternatively are set only by very special
+   --  subsequently modified, or alternatively are set only by very special
    --  circumstances, documented in the comments.
 
    --  File_Name : File_Name_Type (read-only)
@@ -236,7 +234,7 @@ package Sinput is
    --    later on in this spec for a description of the checksum algorithm.
 
    --  Last_Source_Line : Physical_Line_Number;
-   --    Physical line number of last source line. Whlie a file is being
+   --    Physical line number of last source line. While a file is being
    --    read, this refers to the last line scanned. Once a file has been
    --    completely scanned, it is the number of the last line in the file,
    --    and hence also gives the number of source lines in the file.
@@ -465,13 +463,13 @@ package Sinput is
    --  that there definitely is a previous line in the source buffer.
 
    procedure Build_Location_String (Loc : Source_Ptr);
-   --  This function builds a string literal of the form "name:line",
-   --  where name is the file name corresponding to Loc, and line is
-   --  the line number. In the event that instantiations are involved,
-   --  additional suffixes of the same form are appended after the
-   --  separating string " instantiated at ". The returned string is
-   --  stored in Name_Buffer, terminated by ASCII.Nul, with Name_Length
-   --  indicating the length not including the terminating Nul.
+   --  This function builds a string literal of the form "name:line", where
+   --  name is the file name corresponding to Loc, and line is the line number.
+   --  In the event that instantiations are involved, additional suffixes of
+   --  the same form are appended after the separating string " instantiated at
+   --  ". The returned string is appended to the Name_Buffer, terminated by
+   --  ASCII.NUL, with Name_Length indicating the length not including the
+   --  terminating Nul.
 
    function Get_Column_Number (P : Source_Ptr) return Column_Number;
    --  The ones-origin column number of the specified Source_Ptr value is
@@ -517,7 +515,7 @@ package Sinput is
 
    function Num_Source_Lines (S : Source_File_Index) return Nat;
    --  Returns the number of source lines (this is equivalent to reading
-   --  the value of Last_Source_Line, but returns Nat rathern than a
+   --  the value of Last_Source_Line, but returns Nat rather than a
    --  physical line number.
 
    procedure Register_Source_Ref_Pragma
@@ -565,12 +563,12 @@ package Sinput is
    procedure Skip_Line_Terminators
      (P        : in out Source_Ptr;
       Physical : out Boolean);
-   --  On entry, P points to a line terminator that has been encountered,
-   --  which is one of FF,LF,VT,CR or a wide character sequence whose value is
-   --  in category Separator,Line or Separator,Paragraph. The purpose of this
-   --  P points just past the character that was scanned. The purpose of this
-   --  routine is to distinguish physical and logical line endings. A physical
-   --  line ending is one of:
+   --  On entry, P points to a line terminator that has been encountered, which
+   --  is one of FF,LF,VT,CR or a wide character sequence whose value is in
+   --  category Separator,Line or Separator,Paragraph. P points just past the
+   --  character that was scanned. The purpose of this routine is to
+   --  distinguish physical and logical line endings. A physical line ending is
+   --  one of:
    --
    --     CR on its own (MAC System 7)
    --     LF on its own (Unix and unix-like systems)
@@ -703,7 +701,7 @@ private
       Sloc_Adjust : Source_Ptr;
       --  A value to be added to Sloc values for this file to reference the
       --  corresponding lines table. This is zero for the non-instantiation
-      --  case, and set so that the adition references the ultimate template
+      --  case, and set so that the addition references the ultimate template
       --  for the instantiation case. See Sinput-L for further details.
 
       Lines_Table : Lines_Table_Ptr;

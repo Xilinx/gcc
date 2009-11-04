@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -78,7 +78,7 @@ package Sem_Ch6 is
      (New_Id  : Entity_Id;
       Old_Id  : Entity_Id;
       Err_Loc : Node_Id := Empty);
-   --  Check that two callable entitites (subprograms, entries, literals)
+   --  Check that two callable entities (subprograms, entries, literals)
    --  are fully conformant, post error message if not (RM 6.3.1(17)) with
    --  the flag being placed on the Err_Loc node if it is specified, and
    --  on the appropriate component of the New_Id construct if not. Note:
@@ -92,7 +92,7 @@ package Sem_Ch6 is
       Old_Id   : Entity_Id;
       Err_Loc  : Node_Id := Empty;
       Get_Inst : Boolean := False);
-   --  Check that two callable entitites (subprograms, entries, literals)
+   --  Check that two callable entities (subprograms, entries, literals)
    --  are mode conformant, post error message if not (RM 6.3.1(15)) with
    --  the flag being placed on the Err_Loc node if it is specified, and
    --  on the appropriate component of the New_Id construct if not. The
@@ -100,11 +100,22 @@ package Sem_Ch6 is
    --  formal access-to-subprogram type, indicating that mapping of types
    --  is needed.
 
+   procedure Check_Overriding_Indicator
+     (Subp            : Entity_Id;
+      Overridden_Subp : Entity_Id;
+      Is_Primitive    : Boolean);
+   --  Verify the consistency of an overriding_indicator given for subprogram
+   --  declaration, body, renaming, or instantiation.  Overridden_Subp is set
+   --  if the scope where we are introducing the subprogram contains a
+   --  type-conformant subprogram that becomes hidden by the new subprogram.
+   --  Is_Primitive indicates whether the subprogram is primitive.
+
    procedure Check_Subtype_Conformant
-     (New_Id  : Entity_Id;
-      Old_Id  : Entity_Id;
-      Err_Loc : Node_Id := Empty);
-   --  Check that two callable entitites (subprograms, entries, literals)
+     (New_Id                   : Entity_Id;
+      Old_Id                   : Entity_Id;
+      Err_Loc                  : Node_Id := Empty;
+      Skip_Controlling_Formals : Boolean := False);
+   --  Check that two callable entities (subprograms, entries, literals)
    --  are subtype conformant, post error message if not (RM 6.3.1(16))
    --  the flag being placed on the Err_Loc node if it is specified, and
    --  on the appropriate component of the New_Id construct if not.
@@ -113,7 +124,7 @@ package Sem_Ch6 is
      (New_Id  : Entity_Id;
       Old_Id  : Entity_Id;
       Err_Loc : Node_Id := Empty);
-   --  Check that two callable entitites (subprograms, entries, literals)
+   --  Check that two callable entities (subprograms, entries, literals)
    --  are type conformant, post error message if not (RM 6.3.1(14)) with
    --  the flag being placed on the Err_Loc node if it is specified, and
    --  on the appropriate component of the New_Id construct if not.
@@ -125,8 +136,8 @@ package Sem_Ch6 is
       Get_Inst : Boolean := False) return Boolean;
    --  Check that the types of two formal parameters are conforming. In most
    --  cases this is just a name comparison, but within an instance it involves
-   --  generic actual types, and in the presence of anonymous access types
-   --  it must examine the designated types.
+   --  generic actual types, and in the presence of anonymous access types it
+   --  must examine the designated types.
 
    procedure Create_Extra_Formals (E : Entity_Id);
    --  For each parameter of a subprogram or entry that requires an additional
@@ -136,7 +147,9 @@ package Sem_Ch6 is
    --  the end of Subp's parameter list (with each subsequent extra formal
    --  being attached to the preceding extra formal).
 
-   function Find_Corresponding_Spec (N : Node_Id) return Entity_Id;
+   function Find_Corresponding_Spec
+     (N          : Node_Id;
+      Post_Error : Boolean := True) return Entity_Id;
    --  Use the subprogram specification in the body to retrieve the previous
    --  subprogram declaration, if any.
 
@@ -146,17 +159,30 @@ package Sem_Ch6 is
 
    function Fully_Conformant_Expressions
      (Given_E1 : Node_Id;
-      Given_E2 : Node_Id)
-      return     Boolean;
+      Given_E2 : Node_Id) return Boolean;
    --  Determines if two (non-empty) expressions are fully conformant
    --  as defined by (RM 6.3.1(18-21))
 
    function Fully_Conformant_Discrete_Subtypes
       (Given_S1 : Node_Id;
-       Given_S2 : Node_Id)
-       return Boolean;
+       Given_S2 : Node_Id) return Boolean;
    --  Determines if two subtype definitions are fully conformant. Used
    --  for entry family conformance checks (RM 6.3.1 (24)).
+
+   procedure Install_Formals (Id : Entity_Id);
+   --  On entry to a subprogram body, make the formals visible. Note that
+   --  simply placing the subprogram on the scope stack is not sufficient:
+   --  the formals must become the current entities for their names. This
+   --  procedure is also used to get visibility to the formals when analyzing
+   --  preconditions and postconditions appearing in the spec.
+
+   function Is_Interface_Conformant
+     (Tagged_Type : Entity_Id;
+      Iface_Prim  : Entity_Id;
+      Prim        : Entity_Id) return Boolean;
+   --  Returns true if both primitives have a matching name and they are also
+   --  type conformant. Special management is done for functions returning
+   --  interfaces.
 
    function Mode_Conformant (New_Id, Old_Id : Entity_Id) return Boolean;
    --  Determine whether two callable entities (subprograms, entries,
@@ -197,7 +223,10 @@ package Sem_Ch6 is
    procedure Set_Formal_Mode (Formal_Id : Entity_Id);
    --  Set proper Ekind to reflect formal mode (in, out, in out)
 
-   function Subtype_Conformant (New_Id, Old_Id : Entity_Id) return Boolean;
+   function Subtype_Conformant
+     (New_Id                   : Entity_Id;
+      Old_Id                   : Entity_Id;
+      Skip_Controlling_Formals : Boolean := False) return Boolean;
    --  Determine whether two callable entities (subprograms, entries,
    --  literals) are subtype conformant (RM6.3.1(16)).
 

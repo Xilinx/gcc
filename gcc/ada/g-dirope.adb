@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---                     Copyright (C) 1998-2007, AdaCore                     --
+--                     Copyright (C) 1998-2008, AdaCore                     --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -45,10 +45,6 @@ with GNAT.OS_Lib;
 package body GNAT.Directory_Operations is
 
    use Ada;
-
-   type Dir_Type_Value is new System.Address;
-   --  This is the low-level address directory structure as returned by the C
-   --  opendir routine.
 
    Filename_Max : constant Integer := 1024;
    --  1024 is the value of FILENAME_MAX in stdio.h
@@ -419,7 +415,7 @@ package body GNAT.Directory_Operations is
 
             E := K;
 
-            --  Check that first chartacter is a letter
+            --  Check that first character is a letter
 
             if Characters.Handling.Is_Letter (Path (E)) then
                E := E + 1;

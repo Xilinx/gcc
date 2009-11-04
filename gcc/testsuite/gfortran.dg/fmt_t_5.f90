@@ -1,4 +1,4 @@
-! { dg-do run }
+! { dg-do run { target fd_truncate } }
 ! PR32678 GFortan works incorrectly when writing with FORMAT Tx
 ! Before patch, NULLs were inserted in output.
 ! Test case from reporter enhanced to detect this problem.
@@ -12,7 +12,7 @@
       read(10, pos=1) output(1:21)
       if (output(1:21).ne."ab                  x") call abort
       read(10) c
-      if (c.ne.achar(10)) call abort
+      if ((c.ne.achar(10)) .and. (c.ne.achar(13))) call abort
       close (10, status="delete")
  10   format (a2,t1,a1,t2,a1,t20,' x')
       end

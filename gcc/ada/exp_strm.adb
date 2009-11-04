@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -373,7 +373,7 @@ package body Exp_Strm is
       --  array may be user-defined, and be frozen after the type for which
       --  we are generating the stream subprogram. In that case, freeze the
       --  stream attribute of the component type, whose declaration could not
-      --  generate any additional freezing actions in any case. See 5509-003.
+      --  generate any additional freezing actions in any case.
 
       if Nam = Name_Read then
          RW := TSS (Base_Type (Ctyp), TSS_Stream_Read);
@@ -521,7 +521,7 @@ package body Exp_Strm is
 
          elsif P_Size <= Standard_Long_Float_Size
            and then (Standard_Long_Float_Size /= Standard_Long_Long_Float_Size
-                       or else Rt_Type = Standard_Float)
+                       or else Rt_Type = Standard_Long_Float)
          then
             Lib_RE := RE_I_LF;
 
@@ -735,7 +735,7 @@ package body Exp_Strm is
 
          elsif P_Size <= Standard_Long_Float_Size
            and then (Standard_Long_Float_Size /= Standard_Long_Long_Float_Size
-                      or else Rt_Type = Standard_Float)
+                      or else Rt_Type = Standard_Long_Float)
          then
             Lib_RE := RE_W_LF;
 
@@ -1092,13 +1092,14 @@ package body Exp_Strm is
       Decl : out Node_Id;
       Fnam : out Entity_Id)
    is
-      Cn     : Name_Id;
-      J      : Pos;
-      Decls  : List_Id;
-      Constr : List_Id;
-      Stms   : List_Id;
-      Discr  : Entity_Id;
-      Odef   : Node_Id;
+      Cn       : Name_Id;
+      J        : Pos;
+      Decls    : List_Id;
+      Constr   : List_Id;
+      Obj_Decl : Node_Id;
+      Stms     : List_Id;
+      Discr    : Entity_Id;
+      Odef     : Node_Id;
 
    begin
       Decls  := New_List;
@@ -1112,12 +1113,22 @@ package body Exp_Strm is
          while Present (Discr) loop
             Cn := New_External_Name ('C', J);
 
-            Append_To (Decls,
+            Decl :=
               Make_Object_Declaration (Loc,
                 Defining_Identifier => Make_Defining_Identifier (Loc, Cn),
                 Object_Definition =>
-                 New_Occurrence_Of (Etype (Discr), Loc)));
+                  New_Occurrence_Of (Etype (Discr), Loc));
 
+            --  If this is an access discriminant, do not perform default
+            --  initialization. The discriminant is about to get its value
+            --  from Read, and if the type is null excluding we do not want
+            --  spurious warnings on an initial null value.
+
+            if Is_Access_Type (Etype (Discr)) then
+               Set_No_Initialization (Decl);
+            end if;
+
+            Append_To (Decls, Decl);
             Append_To (Decls,
               Make_Attribute_Reference (Loc,
                 Prefix => New_Occurrence_Of (Etype (Discr), Loc),
@@ -1152,14 +1163,23 @@ package body Exp_Strm is
 
       --  Perhaps we should just generate an extended return in all cases???
 
+      Obj_Decl :=
+        Make_Object_Declaration (Loc,
+          Defining_Identifier => Make_Defining_Identifier (Loc, Name_V),
+          Object_Definition => Odef);
+
+      --  If the type is an access type, do not perform default initialization.
+      --  The object is about to get its value from Read, and if the type is
+      --  null excluding we do not want spurious warnings on an initial null.
+
+      if Is_Access_Type (Typ) then
+         Set_No_Initialization (Obj_Decl);
+      end if;
+
       if Ada_Version >= Ada_05 then
          Stms := New_List (
            Make_Extended_Return_Statement (Loc,
-             Return_Object_Declarations =>
-               New_List (Make_Object_Declaration (Loc,
-                           Defining_Identifier =>
-                             Make_Defining_Identifier (Loc, Name_V),
-                           Object_Definition => Odef)),
+             Return_Object_Declarations => New_List (Obj_Decl),
              Handled_Statement_Sequence =>
                Make_Handled_Sequence_Of_Statements (Loc,
                  New_List (Make_Attribute_Reference (Loc,
@@ -1170,10 +1190,7 @@ package body Exp_Strm is
                                Make_Identifier (Loc, Name_V)))))));
 
       else
-         Append_To (Decls,
-           Make_Object_Declaration (Loc,
-             Defining_Identifier => Make_Defining_Identifier (Loc, Name_V),
-             Object_Definition => Odef));
+         Append_To (Decls, Obj_Decl);
 
          Stms := New_List (
             Make_Attribute_Reference (Loc,

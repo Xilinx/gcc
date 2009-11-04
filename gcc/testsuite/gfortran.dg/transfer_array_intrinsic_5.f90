@@ -16,9 +16,9 @@ contains
     real x
     integer bar(size (transfer (x, [1])))     ! { dg-error "cannot appear" }
  end function
-  function foobar()
+  function foobar()                           ! { dg-error "no IMPLICIT" }
     implicit none
-    integer foobar(size (transfer (x, [1])))  ! { dg-error "cannot appear" }
+    integer foobar(size (transfer (x, [1])))  ! { dg-error "used before" }
     real x
  end function
 end program

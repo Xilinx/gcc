@@ -123,7 +123,7 @@ public:
   template <class U>
   friend bool fooy(U u);
 
-  template <class T161>
+  template <class T161> // { dg-error "declaration of 'class T161'" }
   friend bool foo(T161 u)
     {
       Xseven<T161, 5, int> obj;

@@ -7,7 +7,7 @@ template<class... Types>
 void
 f(Types...)
 {
-  enum {e = sizeof(Types)}; // { dg-error "parameter packs not expanded with|note" }
+  enum {e = sizeof(Types)}; // { dg-error "parameter packs not expanded with '...'" }
   enum {e1 = sizeof...(Types)};
 }
 
@@ -16,3 +16,5 @@ main()
 {
     f(0);
 }
+
+// { dg-message "note" "Types" { target *-*-* } 10 }

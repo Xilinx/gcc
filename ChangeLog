@@ -1,3 +1,15 @@
+2009-11-03  Michael Eager <eager@eagercon.com>
+
+	* Merge changes between gcc-4.4.1 and gcc-4.4.2.
+
+2009-11-03  Michael Eager <eager@eagercon.com>
+
+	* Merge changes between gcc-4.4.0 and gcc-4.4.1.
+
+2009-10-28  Michael Eager <eager@eagercon.com>
+
+	* Merge changes between gcc-4.3.4 and gcc-4.4.0.
+
 2009-10-13  Michael Eager <eager@eagercon.com>
 
 	* Merge changes between gcc-4.3.3 and gcc-4.3.4.
@@ -1743,7 +1755,7 @@
 	of libf2c.
 	* configure, Makefile.in: Regenerate.
 
-2004-05-13  Tobias Schl���¼ter  <tobi@gcc.gnu.org>
+2004-05-13  Tobias Schlüter  <tobi@gcc.gnu.org>
 
 	* MAINTAINERS (Write After Approval): Add myself.
 
@@ -5658,7 +5670,7 @@ Thu Apr  6 16:15:14 2000  Philippe De Muyter  <phdm@macqel.be>
 	* MAINTAINERS: Added myself.
 
 2000-04-05  Benjamin Kosnik  <bkoz@cygnus.com>
-	    Martin v. Loewis  <martin@loewis.home.cs.tu-berlin.de>
+	    Martin v. Löwis  <martin@loewis.home.cs.tu-berlin.de>
 
 	* configure.in (enable_libstdcxx_v3): Add.
 	(target_libs): Add bits here to switch between libstdc++-v2 and

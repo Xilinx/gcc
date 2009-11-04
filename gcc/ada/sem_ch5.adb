@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -118,31 +118,40 @@ package body Sem_Ch5 is
          --  Some special bad cases of entity names
 
          elsif Is_Entity_Name (N) then
-            if Ekind (Entity (N)) = E_In_Parameter then
-               Error_Msg_N
-                 ("assignment to IN mode parameter not allowed", N);
+            declare
+               Ent : constant Entity_Id := Entity (N);
 
-            --  Private declarations in a protected object are turned into
-            --  constants when compiling a protected function.
+            begin
+               if Ekind (Ent) = E_In_Parameter then
+                  Error_Msg_N
+                    ("assignment to IN mode parameter not allowed", N);
 
-            elsif Present (Scope (Entity (N)))
-              and then Is_Protected_Type (Scope (Entity (N)))
-              and then
-                (Ekind (Current_Scope) = E_Function
-                  or else
-                 Ekind (Enclosing_Dynamic_Scope (Current_Scope)) = E_Function)
-            then
-               Error_Msg_N
-                 ("protected function cannot modify protected object", N);
+               --  Renamings of protected private components are turned into
+               --  constants when compiling a protected function. In the case
+               --  of single protected types, the private component appears
+               --  directly.
 
-            elsif Ekind (Entity (N)) = E_Loop_Parameter then
-               Error_Msg_N
-                 ("assignment to loop parameter not allowed", N);
+               elsif (Is_Prival (Ent)
+                        and then
+                          (Ekind (Current_Scope) = E_Function
+                             or else Ekind (Enclosing_Dynamic_Scope (
+                                       Current_Scope)) = E_Function))
+                   or else
+                     (Ekind (Ent) = E_Component
+                        and then Is_Protected_Type (Scope (Ent)))
+               then
+                  Error_Msg_N
+                    ("protected function cannot modify protected object", N);
 
-            else
-               Error_Msg_N
-                 ("left hand side of assignment must be a variable", N);
-            end if;
+               elsif Ekind (Ent) = E_Loop_Parameter then
+                  Error_Msg_N
+                    ("assignment to loop parameter not allowed", N);
+
+               else
+                  Error_Msg_N
+                    ("left hand side of assignment must be a variable", N);
+               end if;
+            end;
 
          --  For indexed components or selected components, test prefix
 
@@ -430,6 +439,15 @@ package body Sem_Ch5 is
            ("left hand of assignment must not be limited type", Lhs);
          Explain_Limited_Type (T1, Lhs);
          return;
+
+      --  Enforce RM 3.9.3 (8): left-hand side cannot be abstract
+
+      elsif Is_Interface (T1)
+        and then not Is_Class_Wide_Type (T1)
+      then
+         Error_Msg_N
+           ("target of assignment operation may not be abstract", Lhs);
+         return;
       end if;
 
       --  Resolution may have updated the subtype, in case the left-hand
@@ -469,6 +487,7 @@ package body Sem_Ch5 is
       --  This is the point at which we check for an unset reference
 
       Check_Unset_Reference (Rhs);
+      Check_Unprotected_Access (Lhs, Rhs);
 
       --  Remaining steps are skipped if Rhs was syntactically in error
 
@@ -560,15 +579,21 @@ package body Sem_Ch5 is
          end if;
       end if;
 
-      --  Ada 2005 (AI-230 and AI-385): When the lhs type is an anonymous
-      --  access type, apply an implicit conversion of the rhs to that type
-      --  to force appropriate static and run-time accessibility checks.
+      --  Ada 2005 (AI-385): When the lhs type is an anonymous access type,
+      --  apply an implicit conversion of the rhs to that type to force
+      --  appropriate static and run-time accessibility checks. This applies
+      --  as well to anonymous access-to-subprogram types that are component
+      --  subtypes or formal parameters.
 
       if Ada_Version >= Ada_05
-        and then Ekind (T1) = E_Anonymous_Access_Type
+        and then Is_Access_Type (T1)
       then
-         Rewrite (Rhs, Convert_To (T1, Relocate_Node (Rhs)));
-         Analyze_And_Resolve (Rhs, T1);
+         if Is_Local_Anonymous_Access (T1)
+           or else Ekind (T2) = E_Anonymous_Access_Subprogram_Type
+         then
+            Rewrite (Rhs, Convert_To (T1, Relocate_Node (Rhs)));
+            Analyze_And_Resolve (Rhs, T1);
+         end if;
       end if;
 
       --  Ada 2005 (AI-231): Assignment to not null variable
@@ -588,7 +613,7 @@ package body Sem_Ch5 is
             --  We still mark this as a possible modification, that's necessary
             --  to reset Is_True_Constant, and desirable for xref purposes.
 
-            Note_Possible_Modification (Lhs);
+            Note_Possible_Modification (Lhs, Sure => True);
             return;
 
          --  If we know the right hand side is non-null, then we convert to the
@@ -635,7 +660,7 @@ package body Sem_Ch5 is
       --  Note: modifications of the Lhs may only be recorded after
       --  checks have been applied.
 
-      Note_Possible_Modification (Lhs);
+      Note_Possible_Modification (Lhs, Sure => True);
 
       --  ??? a real accessibility check is needed when ???
 
@@ -799,7 +824,7 @@ package body Sem_Ch5 is
 
       begin
          --  Initialize unblocked exit count for statements of begin block
-         --  plus one for each excption handler that is present.
+         --  plus one for each exception handler that is present.
 
          Unblocked_Exit_Count := 1;
 
@@ -851,6 +876,7 @@ package body Sem_Ch5 is
          if Present (Decls) then
             Analyze_Declarations (Decls);
             Check_Completion;
+            Inspect_Deferred_Constant_Completion (Decls);
          end if;
 
          Analyze (HSS);
@@ -911,7 +937,7 @@ package body Sem_Ch5 is
 
       procedure Non_Static_Choice_Error (Choice : Node_Id);
       --  Error routine invoked by the generic instantiation below when
-      --  the case statment has a non static choice.
+      --  the case statement has a non static choice.
 
       procedure Process_Statements (Alternative : Node_Id);
       --  Analyzes all the statements associated to a case alternative.
@@ -1439,10 +1465,7 @@ package body Sem_Ch5 is
          function One_Bound
            (Original_Bound : Node_Id;
             Analyzed_Bound : Node_Id) return Node_Id;
-         --  Create one declaration followed by one assignment statement
-         --  to capture the value of bound. We create a separate assignment
-         --  in order to force the creation of a block in case the bound
-         --  contains a call that uses the secondary stack.
+         --  Capture value of bound and return captured value
 
          ---------------
          -- One_Bound --
@@ -1473,14 +1496,52 @@ package body Sem_Ch5 is
             then
                Analyze_And_Resolve (Original_Bound, Typ);
                return Original_Bound;
-
-            else
-               Analyze_And_Resolve (Original_Bound, Typ);
             end if;
+
+            --  Here we need to capture the value
+
+            Analyze_And_Resolve (Original_Bound, Typ);
 
             Id :=
               Make_Defining_Identifier (Loc,
                 Chars => New_Internal_Name ('S'));
+
+            --  Normally, the best approach is simply to generate a constant
+            --  declaration that captures the bound. However, there is a nasty
+            --  case where this is wrong. If the bound is complex, and has a
+            --  possible use of the secondary stack, we need to generate a
+            --  separate assignment statement to ensure the creation of a block
+            --  which will release the secondary stack.
+
+            --  We prefer the constant declaration, since it leaves us with a
+            --  proper trace of the value, useful in optimizations that get rid
+            --  of junk range checks.
+
+            --  Probably we want something like the Side_Effect_Free routine
+            --  in Exp_Util, but for now, we just optimize the cases of 'Last
+            --  and 'First applied to an entity, since these are the important
+            --  cases for range check optimizations.
+
+            if Nkind (Original_Bound) = N_Attribute_Reference
+              and then (Attribute_Name (Original_Bound) = Name_First
+                          or else
+                        Attribute_Name (Original_Bound) = Name_Last)
+              and then Is_Entity_Name (Prefix (Original_Bound))
+            then
+               Decl :=
+                 Make_Object_Declaration (Loc,
+                   Defining_Identifier => Id,
+                   Constant_Present    => True,
+                   Object_Definition   => New_Occurrence_Of (Typ, Loc),
+                   Expression          => Relocate_Node (Original_Bound));
+
+               Insert_Before (Parent (N), Decl);
+               Analyze (Decl);
+               Rewrite (Original_Bound, New_Occurrence_Of (Id, Loc));
+               return Expression (Decl);
+            end if;
+
+            --  Here we make a declaration with a separate assignment statement
 
             Decl :=
               Make_Object_Declaration (Loc,
@@ -1901,20 +1962,36 @@ package body Sem_Ch5 is
 
          Analyze (Id);
          Ent := Entity (Id);
-         Generate_Reference  (Ent, Loop_Statement, ' ');
-         Generate_Definition (Ent);
 
-         --  If we found a label, mark its type. If not, ignore it, since it
-         --  means we have a conflicting declaration, which would already have
-         --  been diagnosed at declaration time. Set Label_Construct of the
-         --  implicit label declaration, which is not created by the parser
-         --  for generic units.
+         --  Guard against serious error (typically, a scope mismatch when
+         --  semantic analysis is requested) by creating loop entity to
+         --  continue analysis.
 
-         if Ekind (Ent) = E_Label then
-            Set_Ekind (Ent, E_Loop);
+         if No (Ent) then
+            if Total_Errors_Detected /= 0 then
+               Ent :=
+                 New_Internal_Entity
+                   (E_Loop, Current_Scope, Sloc (Loop_Statement), 'L');
+            else
+               raise Program_Error;
+            end if;
 
-            if Nkind (Parent (Ent)) = N_Implicit_Label_Declaration then
-               Set_Label_Construct (Parent (Ent), Loop_Statement);
+         else
+            Generate_Reference  (Ent, Loop_Statement, ' ');
+            Generate_Definition (Ent);
+
+            --  If we found a label, mark its type. If not, ignore it, since it
+            --  means we have a conflicting declaration, which would already
+            --  have been diagnosed at declaration time. Set Label_Construct
+            --  of the implicit label declaration, which is not created by the
+            --  parser for generic units.
+
+            if Ekind (Ent) = E_Label then
+               Set_Ekind (Ent, E_Loop);
+
+               if Nkind (Parent (Ent)) = N_Implicit_Label_Declaration then
+                  Set_Label_Construct (Parent (Ent), Loop_Statement);
+               end if;
             end if;
          end if;
 
@@ -1928,10 +2005,10 @@ package body Sem_Ch5 is
          Set_Parent (Ent, Loop_Statement);
       end if;
 
-      --  Kill current values on entry to loop, since statements in body
-      --  of loop may have been executed before the loop is entered.
-      --  Similarly we kill values after the loop, since we do not know
-      --  that the body of the loop was executed.
+      --  Kill current values on entry to loop, since statements in body of
+      --  loop may have been executed before the loop is entered. Similarly we
+      --  kill values after the loop, since we do not know that the body of the
+      --  loop was executed.
 
       Kill_Current_Values;
       Push_Scope (Ent);
@@ -1941,6 +2018,13 @@ package body Sem_Ch5 is
       End_Scope;
       Kill_Current_Values;
       Check_Infinite_Loop_Warning (N);
+
+      --  Code after loop is unreachable if the loop has no WHILE or FOR
+      --  and contains no EXIT statements within the body of the loop.
+
+      if No (Iter) and then not Has_Exit (Ent) then
+         Check_Unreachable_Code (N);
+      end if;
    end Analyze_Loop_Statement;
 
    ----------------------------

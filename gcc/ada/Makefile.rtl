@@ -1,5 +1,5 @@
 # Makefile.rtl for GNU Ada Compiler (GNAT).
-#   Copyright (C) 2003-2007, Free Software Foundation, Inc.
+#   Copyright (C) 2003-2008, Free Software Foundation, Inc.
 
 #This file is part of GCC.
 
@@ -46,6 +46,7 @@ GNATRTL_TASKING_OBJS= \
   s-inmaop$(objext) \
   s-interr$(objext) \
   s-intman$(objext) \
+  s-oscons$(objext) \
   s-osinte$(objext) \
   s-proinf$(objext) \
   s-solita$(objext) \
@@ -79,6 +80,7 @@ GNATRTL_NONTASKING_OBJS= \
   a-calari$(objext) \
   a-caldel$(objext) \
   a-calend$(objext) \
+  a-calcon$(objext) \
   a-calfor$(objext) \
   a-catizo$(objext) \
   a-cdlili$(objext) \
@@ -360,12 +362,9 @@ GNATRTL_NONTASKING_OBJS= \
   g-rannum$(objext) \
   g-regexp$(objext) \
   g-regpat$(objext) \
+  g-sercom$(objext) \
   g-sestin$(objext) \
   g-sha1$(objext) \
-  g-soccon$(objext) \
-  g-socket$(objext) \
-  g-socthi$(objext) \
-  g-soliop$(objext) \
   g-souinf$(objext) \
   g-speche$(objext) \
   g-spchge$(objext) \
@@ -376,9 +375,9 @@ GNATRTL_NONTASKING_OBJS= \
   g-sptavs$(objext) \
   g-string$(objext) \
   g-strspl$(objext) \
-  g-sttsne$(objext) \
   g-table$(objext) \
   g-tasloc$(objext) \
+  g-timsta$(objext) \
   g-traceb$(objext) \
   g-utf_32$(objext) \
   g-u3spch$(objext) \
@@ -557,6 +556,7 @@ GNATRTL_NONTASKING_OBJS= \
   s-stopoo$(objext) \
   s-stratt$(objext) \
   s-strops$(objext) \
+  s-ststop$(objext) \
   s-soflin$(objext) \
   s-memory$(objext) \
   s-memcop$(objext) \
@@ -603,4 +603,5 @@ GNATRTL_NONTASKING_OBJS= \
   text_io$(objext) \
   unchconv$(objext) \
   unchdeal$(objext) \
+  $(GNATRTL_SOCKETS_OBJS) \
   $(EXTRA_GNATRTL_NONTASKING_OBJS)

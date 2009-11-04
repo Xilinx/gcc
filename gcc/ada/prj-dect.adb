@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2001-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 2001-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -25,7 +25,8 @@
 
 with Err_Vars; use Err_Vars;
 
-with GNAT.Case_Util; use GNAT.Case_Util;
+with GNAT.Case_Util;        use GNAT.Case_Util;
+with GNAT.Spelling_Checker; use GNAT.Spelling_Checker;
 
 with Opt;         use Opt;
 with Prj.Attr;    use Prj.Attr;
@@ -36,7 +37,11 @@ with Prj.Tree;    use Prj.Tree;
 with Snames;
 with Uintp;       use Uintp;
 
+with GNAT.Strings;
+
 package body Prj.Dect is
+
+   use GNAT;
 
    type Zone is (In_Project, In_Package, In_Case_Construction);
    --  Used to indicate if we are parsing a package (In_Package),
@@ -70,7 +75,7 @@ package body Prj.Dect is
       Current_Package   : Project_Node_Id;
       Packages_To_Check : String_List_Access);
    --  Parse declarative items. Depending on In_Zone, some declarative
-   --  items may be forbiden.
+   --  items may be forbidden.
 
    procedure Parse_Package_Declaration
      (In_Tree             : Project_Node_Tree_Ref;
@@ -179,7 +184,7 @@ package body Prj.Dect is
          --  an unknown package.
 
          if Current_Attribute = Empty_Attribute then
-            if Current_Package /= Empty_Node
+            if Present (Current_Package)
               and then Expression_Kind_Of (Current_Package, In_Tree) = Ignored
             then
                Pkg_Id := Package_Id_Of (Current_Package, In_Tree);
@@ -189,7 +194,7 @@ package body Prj.Dect is
                --  If not a valid attribute name, issue an error if inside
                --  a package that need to be checked.
 
-               Ignore := Current_Package /= Empty_Node and then
+               Ignore := Present (Current_Package) and then
                           Packages_To_Check /= All_Packages;
 
                if Ignore then
@@ -218,8 +223,9 @@ package body Prj.Dect is
 
          else
             if Is_Read_Only (Current_Attribute) then
+               Error_Msg_Name_1 := Token_Name;
                Error_Msg
-                 ("read-only attribute cannot be given a value",
+                 ("read-only attribute %% cannot be given a value",
                   Token_Ptr);
             end if;
 
@@ -236,7 +242,7 @@ package body Prj.Dect is
 
       --  Change obsolete names of attributes to the new names
 
-      if Current_Package /= Empty_Node
+      if Present (Current_Package)
         and then Expression_Kind_Of (Current_Package, In_Tree) /= Ignored
       then
          case Name_Of (Attribute, In_Tree) is
@@ -279,20 +285,33 @@ package body Prj.Dect is
          end if;
 
          Scan (In_Tree); --  past the left parenthesis
-         Expect (Tok_String_Literal, "literal string");
 
-         if Token = Tok_String_Literal then
-            Get_Name_String (Token_Name);
+         if Others_Allowed_For (Current_Attribute)
+           and then Token = Tok_Others
+         then
+            Set_Associative_Array_Index_Of
+              (Attribute, In_Tree, All_Other_Names);
+            Scan (In_Tree); --  past others
 
-            if Case_Insensitive (Attribute, In_Tree) then
-               To_Lower (Name_Buffer (1 .. Name_Len));
+         else
+            if Others_Allowed_For (Current_Attribute) then
+               Expect (Tok_String_Literal, "literal string or others");
+            else
+               Expect (Tok_String_Literal, "literal string");
             end if;
 
-            Set_Associative_Array_Index_Of (Attribute, In_Tree, Name_Find);
-            Scan (In_Tree); --  past the literal string index
+            if Token = Tok_String_Literal then
+               Get_Name_String (Token_Name);
 
-            if Token = Tok_At then
-               case Attribute_Kind_Of (Current_Attribute) is
+               if Case_Insensitive (Attribute, In_Tree) then
+                  To_Lower (Name_Buffer (1 .. Name_Len));
+               end if;
+
+               Set_Associative_Array_Index_Of (Attribute, In_Tree, Name_Find);
+               Scan (In_Tree); --  past the literal string index
+
+               if Token = Tok_At then
+                  case Attribute_Kind_Of (Current_Attribute) is
                   when Optional_Index_Associative_Array |
                        Optional_Index_Case_Insensitive_Associative_Array =>
                      Scan (In_Tree);
@@ -324,7 +343,8 @@ package body Prj.Dect is
                      if Token = Tok_Integer_Literal then
                         Scan (In_Tree);
                      end if;
-               end case;
+                  end case;
+               end if;
             end if;
          end if;
 
@@ -398,7 +418,7 @@ package body Prj.Dect is
                   The_Project := Imported_Or_Extended_Project_Of
                                    (Current_Project, In_Tree, Token_Name);
 
-                  if The_Project = Empty_Node then
+                  if No (The_Project) then
                      Error_Msg ("unknown project", Location);
                      Scan (In_Tree); --  past the project name
 
@@ -409,7 +429,7 @@ package body Prj.Dect is
                      --  If this is inside a package, a dot followed by the
                      --  name of the package must followed the project name.
 
-                     if Current_Package /= Empty_Node then
+                     if Present (Current_Package) then
                         Expect (Tok_Dot, "`.`");
 
                         if Token /= Tok_Dot then
@@ -440,7 +460,7 @@ package body Prj.Dect is
 
                               --  Look for the package node
 
-                              while The_Package /= Empty_Node
+                              while Present (The_Package)
                                 and then
                                 Name_Of (The_Package, In_Tree) /= Token_Name
                               loop
@@ -452,7 +472,7 @@ package body Prj.Dect is
                               --  If the package cannot be found in the
                               --  project, issue an error.
 
-                              if The_Package = Empty_Node then
+                              if No (The_Package) then
                                  The_Project := Empty_Node;
                                  Error_Msg_Name_2 := Project_Name;
                                  Error_Msg_Name_1 := Token_Name;
@@ -468,7 +488,7 @@ package body Prj.Dect is
                   end if;
                end if;
 
-               if The_Project /= Empty_Node then
+               if Present (The_Project) then
 
                   --  Looking for '<same attribute name>
 
@@ -498,7 +518,7 @@ package body Prj.Dect is
                   end if;
                end if;
 
-               if The_Project = Empty_Node then
+               if No (The_Project) then
 
                   --  If there were any problem, set the attribute id to null,
                   --  so that the node will not be recorded.
@@ -541,7 +561,7 @@ package body Prj.Dect is
                --  for the attribute, issue an error.
 
                if Current_Attribute /= Empty_Attribute
-                 and then Expression /= Empty_Node
+                 and then Present (Expression)
                  and then Variable_Kind_Of (Current_Attribute) /=
                  Expression_Kind_Of (Expression, In_Tree)
                then
@@ -634,10 +654,10 @@ package body Prj.Dect is
          end if;
       end if;
 
-      if Case_Variable /= Empty_Node then
+      if Present (Case_Variable) then
          String_Type := String_Type_Of (Case_Variable, In_Tree);
 
-         if String_Type = Empty_Node then
+         if No (String_Type) then
             Error_Msg ("variable """ &
                        Get_Name_String (Name_Of (Case_Variable, In_Tree)) &
                        """ is not typed",
@@ -808,15 +828,15 @@ package body Prj.Dect is
                      The_Variable : Project_Node_Id := Empty_Node;
 
                   begin
-                     if Current_Package /= Empty_Node then
+                     if Present (Current_Package) then
                         The_Variable :=
                           First_Variable_Of (Current_Package, In_Tree);
-                     elsif Current_Project /= Empty_Node then
+                     elsif Present (Current_Project) then
                         The_Variable :=
                           First_Variable_Of (Current_Project, In_Tree);
                      end if;
 
-                     while The_Variable /= Empty_Node
+                     while Present (The_Variable)
                        and then Name_Of (The_Variable, In_Tree) /=
                                 Token_Name
                      loop
@@ -826,7 +846,7 @@ package body Prj.Dect is
                      --  It is an error to declare a variable in a case
                      --  construction for the first time.
 
-                     if The_Variable = Empty_Node then
+                     if No (The_Variable) then
                         Error_Msg
                           ("a variable cannot be declared " &
                            "for the first time here",
@@ -911,7 +931,7 @@ package body Prj.Dect is
             when others =>
                exit;
 
-               --  We are leaving Parse_Declarative_Items positionned
+               --  We are leaving Parse_Declarative_Items positioned
                --  at the first token after the list of declarative items.
                --  It could be "end" (for a project, a package declaration or
                --  a case construction) or "when" (for a case construction)
@@ -923,8 +943,8 @@ package body Prj.Dect is
          --  Insert an N_Declarative_Item in the tree, but only if
          --  Current_Declaration is not an empty node.
 
-         if Current_Declaration /= Empty_Node then
-            if Current_Declarative_Item = Empty_Node then
+         if Present (Current_Declaration) then
+            if No (Current_Declarative_Item) then
                Current_Declarative_Item :=
                  Default_Project_Node
                    (Of_Kind => N_Declarative_Item, In_Tree => In_Tree);
@@ -983,11 +1003,44 @@ package body Prj.Dect is
 
          if Current_Package = Empty_Package then
             if not Quiet_Output then
-               Error_Msg ("?""" &
-                          Get_Name_String
-                            (Name_Of (Package_Declaration, In_Tree)) &
-                          """ is not a known package name",
-                          Token_Ptr);
+               declare
+                  List  : constant Strings.String_List := Package_Name_List;
+                  Index : Natural;
+                  Name  : constant String := Get_Name_String (Token_Name);
+
+               begin
+                  --  Check for possible misspelling of a known package name
+
+                  Index := 0;
+                  loop
+                     if Index >= List'Last then
+                        Index := 0;
+                        exit;
+                     end if;
+
+                     Index := Index + 1;
+                     exit when
+                       GNAT.Spelling_Checker.Is_Bad_Spelling_Of
+                         (Name, List (Index).all);
+                  end loop;
+
+                  --  Issue warning(s) in verbose mode or when a possible
+                  --  misspelling has been found.
+
+                  if Verbose_Mode or else Index /= 0 then
+                     Error_Msg ("?""" &
+                                Get_Name_String
+                                 (Name_Of (Package_Declaration, In_Tree)) &
+                                """ is not a known package name",
+                                Token_Ptr);
+                  end if;
+
+                  if Index /= 0 then
+                     Error_Msg ("\?possible misspelling of """ &
+                                List (Index).all & """",
+                                Token_Ptr);
+                  end if;
+               end;
             end if;
 
             --  Set the package declaration to "ignored" so that it is not
@@ -1018,13 +1071,13 @@ package body Prj.Dect is
                         First_Package_Of (Current_Project, In_Tree);
 
          begin
-            while Current /= Empty_Node
+            while Present (Current)
               and then Name_Of (Current, In_Tree) /= Token_Name
             loop
                Current := Next_Package_In_Project (Current, In_Tree);
             end loop;
 
-            if Current /= Empty_Node then
+            if Present (Current) then
                Error_Msg
                  ("package """ &
                   Get_Name_String (Name_Of (Package_Declaration, In_Tree)) &
@@ -1072,22 +1125,22 @@ package body Prj.Dect is
                                     (Current_Project, In_Tree),
                                    In_Tree);
             begin
-               while Clause /= Empty_Node loop
+               while Present (Clause) loop
                   --  Only non limited imported projects may be used in a
                   --  renames declaration.
 
                   The_Project :=
                     Non_Limited_Project_Node_Of (Clause, In_Tree);
-                  exit when The_Project /= Empty_Node
+                  exit when Present (The_Project)
                     and then Name_Of (The_Project, In_Tree) = Project_Name;
                   Clause := Next_With_Clause_Of (Clause, In_Tree);
                end loop;
 
-               if Clause = Empty_Node then
+               if No (Clause) then
                   --  As we have not found the project in the imports, we check
                   --  if it's the name of an eventual extended project.
 
-                  if Extended /= Empty_Node
+                  if Present (Extended)
                     and then Name_Of (Extended, In_Tree) = Project_Name
                   then
                      Set_Project_Of_Renamed_Package_Of
@@ -1114,8 +1167,8 @@ package body Prj.Dect is
                   if Name_Of (Package_Declaration, In_Tree) /= Token_Name then
                      Error_Msg ("not the same package name", Token_Ptr);
                   elsif
-                    Project_Of_Renamed_Package_Of
-                      (Package_Declaration, In_Tree) /= Empty_Node
+                    Present (Project_Of_Renamed_Package_Of
+                               (Package_Declaration, In_Tree))
                   then
                      declare
                         Current : Project_Node_Id :=
@@ -1125,14 +1178,14 @@ package body Prj.Dect is
                                        In_Tree);
 
                      begin
-                        while Current /= Empty_Node
+                        while Present (Current)
                           and then Name_Of (Current, In_Tree) /= Token_Name
                         loop
                            Current :=
                              Next_Package_In_Project (Current, In_Tree);
                         end loop;
 
-                        if Current = Empty_Node then
+                        if No (Current) then
                            Error_Msg
                              ("""" &
                               Get_Name_String (Token_Name) &
@@ -1234,27 +1287,27 @@ package body Prj.Dect is
          Set_Name_Of (String_Type, In_Tree, To => Token_Name);
 
          Current := First_String_Type_Of (Current_Project, In_Tree);
-         while Current /= Empty_Node
+         while Present (Current)
            and then
            Name_Of (Current, In_Tree) /= Token_Name
          loop
             Current := Next_String_Type (Current, In_Tree);
          end loop;
 
-         if Current /= Empty_Node then
+         if Present (Current) then
             Error_Msg ("duplicate string type name """ &
                        Get_Name_String (Token_Name) &
                        """",
                        Token_Ptr);
          else
             Current := First_Variable_Of (Current_Project, In_Tree);
-            while Current /= Empty_Node
+            while Present (Current)
               and then Name_Of (Current, In_Tree) /= Token_Name
             loop
                Current := Next_Variable (Current, In_Tree);
             end loop;
 
-            if Current /= Empty_Node then
+            if Present (Current) then
                Error_Msg ("""" &
                           Get_Name_String (Token_Name) &
                           """ is already a variable name", Token_Ptr);
@@ -1361,8 +1414,8 @@ package body Prj.Dect is
 
             if OK then
                declare
-                  Current : Project_Node_Id :=
-                              First_String_Type_Of (Current_Project, In_Tree);
+                  Proj    : Project_Node_Id := Current_Project;
+                  Current : Project_Node_Id := Empty_Node;
 
                begin
                   if Project_String_Type_Name /= No_Name then
@@ -1376,7 +1429,7 @@ package body Prj.Dect is
 
                      begin
                         if The_Project_Name_And_Node =
-                          Tree_Private_Part.No_Project_Name_And_Node
+                             Tree_Private_Part.No_Project_Name_And_Node
                         then
                            Error_Msg ("unknown project """ &
                                       Get_Name_String
@@ -1388,22 +1441,45 @@ package body Prj.Dect is
                            Current :=
                              First_String_Type_Of
                                (The_Project_Name_And_Node.Node, In_Tree);
+                           while
+                             Present (Current)
+                             and then
+                               Name_Of (Current, In_Tree) /= String_Type_Name
+                           loop
+                              Current := Next_String_Type (Current, In_Tree);
+                           end loop;
                         end if;
                      end;
+
+                  else
+                     --  Look for a string type with the correct name in this
+                     --  project or in any of its ancestors.
+
+                     loop
+                        Current :=
+                          First_String_Type_Of (Proj, In_Tree);
+                        while
+                          Present (Current)
+                          and then
+                            Name_Of (Current, In_Tree) /= String_Type_Name
+                        loop
+                           Current := Next_String_Type (Current, In_Tree);
+                        end loop;
+
+                        exit when Present (Current);
+
+                        Proj := Parent_Project_Of (Proj, In_Tree);
+                        exit when No (Proj);
+                     end loop;
                   end if;
 
-                  while Current /= Empty_Node
-                    and then Name_Of (Current, In_Tree) /= String_Type_Name
-                  loop
-                     Current := Next_String_Type (Current, In_Tree);
-                  end loop;
-
-                  if Current = Empty_Node then
+                  if No (Current) then
                      Error_Msg ("unknown string type """ &
                                 Get_Name_String (String_Type_Name) &
                                 """",
                                 Type_Location);
                      OK := False;
+
                   else
                      Set_String_Type_Of
                        (Variable, In_Tree, To => Current);
@@ -1433,7 +1509,7 @@ package body Prj.Dect is
          Optional_Index  => False);
       Set_Expression_Of (Variable, In_Tree, To => Expression);
 
-      if Expression /= Empty_Node then
+      if Present (Expression) then
          --  A typed string must have a single string value, not a list
 
          if Kind_Of (Variable, In_Tree) = N_Typed_Variable_Declaration
@@ -1453,27 +1529,27 @@ package body Prj.Dect is
             The_Variable : Project_Node_Id := Empty_Node;
 
          begin
-            if Current_Package /= Empty_Node then
+            if Present (Current_Package) then
                The_Variable := First_Variable_Of (Current_Package, In_Tree);
-            elsif Current_Project /= Empty_Node then
-               The_Variable :=  First_Variable_Of (Current_Project, In_Tree);
+            elsif Present (Current_Project) then
+               The_Variable := First_Variable_Of (Current_Project, In_Tree);
             end if;
 
-            while The_Variable /= Empty_Node
+            while Present (The_Variable)
               and then Name_Of (The_Variable, In_Tree) /= Variable_Name
             loop
                The_Variable := Next_Variable (The_Variable, In_Tree);
             end loop;
 
-            if The_Variable = Empty_Node then
-               if Current_Package /= Empty_Node then
+            if No (The_Variable) then
+               if Present (Current_Package) then
                   Set_Next_Variable
                     (Variable, In_Tree,
                      To => First_Variable_Of (Current_Package, In_Tree));
                   Set_First_Variable_Of
                     (Current_Package, In_Tree, To => Variable);
 
-               elsif Current_Project /= Empty_Node then
+               elsif Present (Current_Project) then
                   Set_Next_Variable
                     (Variable, In_Tree,
                      To => First_Variable_Of (Current_Project, In_Tree));
@@ -1483,8 +1559,8 @@ package body Prj.Dect is
 
             else
                if Expression_Kind_Of (Variable, In_Tree) /= Undefined then
-                  if
-                    Expression_Kind_Of (The_Variable, In_Tree) = Undefined
+                  if Expression_Kind_Of (The_Variable, In_Tree) =
+                                                            Undefined
                   then
                      Set_Expression_Kind_Of
                        (The_Variable, In_Tree,
@@ -1505,7 +1581,6 @@ package body Prj.Dect is
             end if;
          end;
       end if;
-
    end Parse_Variable_Declaration;
 
 end Prj.Dect;

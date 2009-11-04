@@ -1,5 +1,5 @@
 ;; Constraint definitions for ARM and Thumb
-;; Copyright (C) 2006, 2007 Free Software Foundation, Inc.
+;; Copyright (C) 2006, 2007, 2008 Free Software Foundation, Inc.
 ;; Contributed by ARM Ltd.
 
 ;; This file is part of GCC.
@@ -20,8 +20,8 @@
 
 ;; The following register constraints have been used:
 ;; - in ARM/Thumb-2 state: f, t, v, w, x, y, z
-;; - in Thumb state: h, k, b
-;; - in both states: l, c
+;; - in Thumb state: h, b
+;; - in both states: l, c, k
 ;; In ARM state, 'l' is an alias for 'r'
 
 ;; The following normal constraints have been used:
@@ -46,7 +46,7 @@
  "The Cirrus Maverick co-processor registers.")
 
 (define_register_constraint "w"
-  "TARGET_32BIT ? (TARGET_VFP3 ? VFP_REGS : VFP_LO_REGS) : NO_REGS"
+  "TARGET_32BIT ? (TARGET_VFPD32 ? VFP_REGS : VFP_LO_REGS) : NO_REGS"
  "The VFP registers @code{d0}-@code{d15}, or @code{d0}-@code{d31} for VFPv3.")
 
 (define_register_constraint "x" "TARGET_32BIT ? VFP_D0_D7_REGS : NO_REGS"
@@ -65,9 +65,8 @@
 (define_register_constraint "h" "TARGET_THUMB ? HI_REGS : NO_REGS"
  "In Thumb state the core registers @code{r8}-@code{r15}.")
 
-(define_register_constraint "k" "TARGET_THUMB ? STACK_REG : NO_REGS"
- "@internal
-  Thumb only.  The stack register.")
+(define_register_constraint "k" "STACK_REG"
+ "@internal The stack register.")
 
 (define_register_constraint "b" "TARGET_THUMB ? BASE_REGS : NO_REGS"
  "@internal

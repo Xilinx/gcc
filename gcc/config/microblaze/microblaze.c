@@ -2554,9 +2554,9 @@ compute_frame_size (HOST_WIDE_INT size)	/* # of var. bytes allocated */
   gp_reg_size = 0;
   mask = 0;
   var_size = size;
-  args_size = current_function_outgoing_args_size;
+  args_size = crtl->outgoing_args_size;
 
-  if ((args_size == 0) && current_function_calls_alloca)
+  if ((args_size == 0) && cfun->calls_alloca)
     args_size = NUM_OF_ARGS * UNITS_PER_WORD;
 
   total_size = var_size + args_size;
@@ -2772,7 +2772,7 @@ microblaze_function_prologue (FILE * file, int size ATTRIBUTE_UNUSED)
 			  STACK_POINTER_REGNUM]), fsiz,
 	       reg_names[MB_ABI_SUB_RETURN_ADDR_REGNUM + GP_REG_FIRST],
 	       current_frame_info.var_size, current_frame_info.num_gp,
-	       current_function_outgoing_args_size);
+	       crtl->outgoing_args_size);
       fprintf (file, "\t.mask\t0x%08lx\n", current_frame_info.mask);
     }
 }
@@ -2811,7 +2811,7 @@ microblaze_expand_prologue (void)
 
   /* If struct value address is treated as the first argument, make it so.  */
   if (aggregate_value_p (DECL_RESULT (fndecl), fntype)
-      && !current_function_returns_pcc_struct)
+      && !cfun->returns_pcc_struct)
     {
       tree type = build_pointer_type (fntype);
       tree function_result_decl = build_decl (PARM_DECL, NULL_TREE, type);

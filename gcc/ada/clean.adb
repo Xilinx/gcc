@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2003-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 2003-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -346,7 +346,7 @@ package body Clean is
       --  The name of the archive dependency file for this project
 
       Obj_Dir : constant String :=
-                  Get_Name_String (Data.Display_Object_Dir);
+                  Get_Name_String (Data.Object_Directory.Display_Name);
 
    begin
       Change_Dir (Obj_Dir);
@@ -551,10 +551,10 @@ package body Clean is
       Unit        : Unit_Data;
 
    begin
-      if Data.Library and then Data.Library_Src_Dir /= No_Path then
+      if Data.Library and then Data.Library_Src_Dir /= No_Path_Information then
          declare
             Directory : constant String :=
-                          Get_Name_String (Data.Display_Library_Src_Dir);
+                          Get_Name_String (Data.Library_Src_Dir.Display_Name);
 
          begin
             Change_Dir (Directory);
@@ -663,10 +663,11 @@ package body Clean is
 
          declare
             Lib_Directory     : constant String :=
-                                  Get_Name_String (Data.Display_Library_Dir);
+                                  Get_Name_String
+                                    (Data.Library_Dir.Display_Name);
             Lib_ALI_Directory : constant String :=
                                   Get_Name_String
-                                    (Data.Display_Library_ALI_Dir);
+                                    (Data.Library_ALI_Dir.Display_Name);
 
          begin
             Canonical_Case_File_Name (Archive_Name);
@@ -825,9 +826,6 @@ package body Clean is
       Index2      : Int;
       Lib_File    : File_Name_Type;
 
-      Source_Id   : Other_Source_Id;
-      Source      : Other_Source;
-
       Global_Archive : Boolean := False;
 
    begin
@@ -863,10 +861,11 @@ package body Clean is
          Processed_Projects.Increment_Last;
          Processed_Projects.Table (Processed_Projects.Last) := Project;
 
-         if Data.Object_Directory /= No_Path then
+         if Data.Object_Directory /= No_Path_Information then
             declare
                Obj_Dir : constant String :=
-                           Get_Name_String (Data.Display_Object_Dir);
+                           Get_Name_String
+                             (Data.Object_Directory.Display_Name);
 
             begin
                Change_Dir (Obj_Dir);
@@ -879,7 +878,7 @@ package body Clean is
                --  Source_Dirs or Source_Files is specified as an empty list,
                --  so always look for Ada units in extending projects.
 
-               if Data.Langs (Ada_Language_Index)
+               if Data.Ada_Sources_Present
                  or else Data.Extends /= No_Project
                then
                   for Unit in Unit_Table.First ..
@@ -1042,40 +1041,6 @@ package body Clean is
                   end if;
                end if;
 
-               if Data.Other_Sources_Present then
-
-                  --  There is non-Ada code: delete the object files and
-                  --  the dependency files if they exist.
-
-                  Source_Id := Data.First_Other_Source;
-                  while Source_Id /= No_Other_Source loop
-                     Source :=
-                       Project_Tree.Other_Sources.Table (Source_Id);
-
-                     if Is_Regular_File
-                       (Get_Name_String (Source.Object_Name))
-                     then
-                        Delete (Obj_Dir, Get_Name_String (Source.Object_Name));
-                     end if;
-
-                     if
-                       Is_Regular_File (Get_Name_String (Source.Dep_Name))
-                     then
-                        Delete (Obj_Dir, Get_Name_String (Source.Dep_Name));
-                     end if;
-
-                     Source_Id := Source.Next;
-                  end loop;
-
-                  --  If it is a library with only non Ada sources, delete
-                  --  the fake archive and the dependency file, if they exist.
-
-                  if Data.Library
-                    and then not Data.Langs (Ada_Language_Index)
-                  then
-                     Clean_Archive (Project, Global => False);
-                  end if;
-               end if;
             end;
          end if;
 
@@ -1089,16 +1054,16 @@ package body Clean is
             if not Compile_Only then
                Clean_Library_Directory (Project);
 
-               if Data.Library_Src_Dir /= No_Path then
+               if Data.Library_Src_Dir /= No_Path_Information then
                   Clean_Interface_Copy_Directory (Project);
                end if;
             end if;
 
             if Data.Standalone_Library and then
-              Data.Object_Directory /= No_Path
+              Data.Object_Directory /= No_Path_Information
             then
                Delete_Binder_Generated_Files
-                 (Get_Name_String (Data.Display_Object_Dir),
+                 (Get_Name_String (Data.Object_Directory.Display_Name),
                   File_Name_Type (Data.Library_Name));
             end if;
          end if;
@@ -1156,10 +1121,12 @@ package body Clean is
 
          --  The executables are deleted only if switch -c is not specified
 
-      if Project = Main_Project and then Data.Exec_Directory /= No_Path then
+      if Project = Main_Project
+        and then Data.Exec_Directory /= No_Path_Information
+      then
          declare
             Exec_Dir : constant String :=
-                         Get_Name_String (Data.Display_Exec_Dir);
+                         Get_Name_String (Data.Exec_Directory.Display_Name);
 
          begin
             Change_Dir (Exec_Dir);
@@ -1193,9 +1160,9 @@ package body Clean is
                   end;
                end if;
 
-               if Data.Object_Directory /= No_Path then
+               if Data.Object_Directory /= No_Path_Information then
                   Delete_Binder_Generated_Files
-                    (Get_Name_String (Data.Display_Object_Dir),
+                    (Get_Name_String (Data.Object_Directory.Display_Name),
                      Strip_Suffix (Main_Source_File));
                end if;
             end loop;
@@ -1669,6 +1636,18 @@ package body Clean is
                   end if;
 
                   case Arg (2) is
+                     when '-' =>
+                        if Arg'Length > Subdirs_Option'Length and then
+                          Arg (1 .. Subdirs_Option'Length) = Subdirs_Option
+                        then
+                           Subdirs :=
+                             new String'
+                               (Arg (Subdirs_Option'Length + 1 .. Arg'Last));
+
+                        else
+                           Bad_Argument;
+                        end if;
+
                      when 'a' =>
                         if Arg'Length < 4 then
                            Bad_Argument;
@@ -1723,6 +1702,14 @@ package body Clean is
                                  Add_Lib_Search_Dir (Dir);
                               end if;
                            end;
+                        end if;
+
+                     when 'e' =>
+                        if Arg = "-eL" then
+                           Follow_Links_For_Files := True;
+
+                        else
+                           Bad_Argument;
                         end if;
 
                      when 'f' =>
@@ -1954,8 +1941,13 @@ package body Clean is
          Put_Line ("  names may be omitted if -P<project> is specified");
          New_Line;
 
+         Put_Line ("  --subdirs=dir real obj/lib/exec dirs are subdirs");
+         New_Line;
+
          Put_Line ("  -c       Only delete compiler generated files");
          Put_Line ("  -D dir   Specify dir as the object library");
+         Put_Line ("  -eL      Follow symbolic links when processing " &
+                   "project files");
          Put_Line ("  -f       Force deletions of unwritable files");
          Put_Line ("  -F       Full project path name " &
                    "in brief error messages");

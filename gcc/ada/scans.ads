@@ -6,25 +6,23 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -45,7 +43,7 @@ package Scans is
 
    --  The following type is used to identify token types returned by Scan.
    --  The class column in this table indicates the token classes which
-   --  apply to the token, as defined by subsquent subtype declarations.
+   --  apply to the token, as defined by subsequent subtype declarations.
 
    --  Note: Namet.Is_Keyword_Name depends on the fact that the first entry in
    --  this type declaration is *not* for a reserved word. For details on why
@@ -65,7 +63,7 @@ package Scans is
 
       Tok_Operator_Symbol, -- op symbol    Name, Literal, Lit_Or_Name, Desig
 
-      Tok_Identifier,      -- identifer    Name, Lit_Or_Name, Desig
+      Tok_Identifier,      -- identifier   Name, Lit_Or_Name, Desig
 
       Tok_Double_Asterisk, -- **
 
@@ -206,7 +204,7 @@ package Scans is
       Tok_End_Of_Line,
       --  Represents an end of line. Not used during normal compilation scans
       --  where end of line is ignored. Active for preprocessor scanning and
-      --  also when scanning project files (where it is neede because of ???)
+      --  also when scanning project files (where it is needed because of ???)
 
       Tok_Special,
       --  Used only in preprocessor scanning (to represent one of the
@@ -338,8 +336,7 @@ package Scans is
    --  Flag array used to test for reserved word
 
    procedure Initialize_Ada_Keywords;
-   --  Set up Token_Type values in Names table entries for Ada reserved
-   --  words.
+   --  Set up Token_Type values in Names table entries for Ada reserved words
 
    --------------------------
    -- Scan State Variables --

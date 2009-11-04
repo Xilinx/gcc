@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -26,12 +26,16 @@
 --  This package contains utility routines used for the generation of the
 --  stubs relevant to the distribution annex.
 
-with Namet; use Namet;
-with Types; use Types;
+with Namet;  use Namet;
+with Snames; use Snames;
+with Types;  use Types;
 
 package Exp_Dist is
 
-   PCS_Version_Number : constant := 1;
+   PCS_Version_Number : constant array (PCS_Names) of Int :=
+                          (Name_No_DSA      => 1,
+                           Name_GARLIC_DSA  => 1,
+                           Name_PolyORB_DSA => 2);
    --  PCS interface version. This is used to check for consistency between the
    --  compiler used to generate distribution stubs and the PCS implementation.
    --  It must be incremented whenever a change is made to the generated code
@@ -53,7 +57,7 @@ package Exp_Dist is
       Insertion_Node  : Node_Id;
       Body_Decls      : List_Id);
    --  Add primitive for the stub type, and the RPC receiver. The declarations
-   --  are inserted after insertion_Node, while the bodies are appened at the
+   --  are inserted after Insertion_Node, while the bodies are appended at the
    --  end of Decls.
 
    procedure Remote_Types_Tagged_Full_View_Encountered
@@ -124,5 +128,38 @@ package Exp_Dist is
    --  subprogram call, or the return value of a function in the context of
    --  a remote call) satisfies the requirements for being transportable
    --  across partitions, raising Program_Error if it does not.
+
+   ----------------------------------------------------------------
+   -- Functions for expansion of PolyORB/DSA specific attributes --
+   ----------------------------------------------------------------
+
+   function Build_From_Any_Call
+     (Typ   : Entity_Id;
+      N     : Node_Id;
+      Decls : List_Id) return Node_Id;
+   --  Build call to From_Any attribute function of type Typ with expression
+   --  N as actual parameter. Decls is the declarations list for an appropriate
+   --  enclosing scope of the point where the call will be inserted; if the
+   --  From_Any attribute for Typ needs to be generated at this point, its
+   --  declaration is appended to Decls.
+
+   function Build_To_Any_Call
+     (N     : Node_Id;
+      Decls : List_Id) return Node_Id;
+   --  Build call to To_Any attribute function with expression as actual
+   --  parameter. Decls is the declarations list for an appropriate
+   --  enclosing scope of the point where the call will be inserted; if
+   --  the To_Any attribute for Typ needs to be generated at this point,
+   --  its declaration is appended to Decls.
+
+   function Build_TypeCode_Call
+     (Loc   : Source_Ptr;
+      Typ   : Entity_Id;
+      Decls : List_Id) return Node_Id;
+   --  Build call to TypeCode attribute function for Typ. Decls is the
+   --  declarations list for an appropriate enclosing scope of the point
+   --  where the call will be inserted; if the To_Any attribute for Typ
+   --  needs to be generated at this point, its declaration is appended
+   --  to Decls.
 
 end Exp_Dist;

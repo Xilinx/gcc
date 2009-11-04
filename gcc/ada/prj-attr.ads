@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 2001-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 2001-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -30,7 +30,14 @@
 
 with Table;
 
+with GNAT.Strings;
+
 package Prj.Attr is
+
+   function Package_Name_List return GNAT.Strings.String_List;
+   --  Returns the list of valid package names, including those added by
+   --  procedures Register_New_Package below. The String_Access components of
+   --  the returned String_List should never be freed.
 
    procedure Initialize;
    --  Initialize the predefined project level attributes and the predefined
@@ -47,6 +54,7 @@ package Prj.Attr is
    --  Characteristics of an attribute. Optional_Index indicates that there
    --  may be an optional index in the index of the associative array, as in
    --     for Switches ("files.ada" at 2) use ...
+   --  Above character literals should be documented ???
 
    subtype Defined_Attribute_Kind is Attribute_Kind
      range Single .. Optional_Index_Case_Insensitive_Associative_Array;
@@ -161,6 +169,9 @@ package Prj.Attr is
    --  Returns Empty_Attribute if After is either Empty_Attribute or is the
    --  last of the list.
 
+   function Others_Allowed_For (Attribute : Attribute_Node_Id) return Boolean;
+   --  True iff the index for an associative array attributes may be others
+
    --------------
    -- Packages --
    --------------
@@ -274,6 +285,7 @@ private
       Optional_Index : Boolean;
       Attr_Kind      : Attribute_Kind;
       Read_Only      : Boolean;
+      Others_Allowed : Boolean;
       Next           : Attr_Node_Id;
    end record;
    --  Data for an attribute

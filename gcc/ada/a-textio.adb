@@ -6,25 +6,23 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -148,7 +146,7 @@ package body Ada.Text_IO is
 
    procedure Close (File : in out File_Type) is
    begin
-      FIO.Close (AP (File));
+      FIO.Close (AP (File)'Unrestricted_Access);
    end Close;
 
    ---------
@@ -247,7 +245,7 @@ package body Ada.Text_IO is
 
    procedure Delete (File : in out File_Type) is
    begin
-      FIO.Delete (AP (File));
+      FIO.Delete (AP (File)'Unrestricted_Access);
    end Delete;
 
    -----------------
@@ -858,8 +856,8 @@ package body Ada.Text_IO is
       Result := WC_In (C, File.WC_Method);
 
       if Wide_Character'Pos (Result) > 16#FF# then
-         raise Constraint_Error
-           with "invalid wide character in Text_'I'O input";
+         raise Constraint_Error with
+           "invalid wide character in Text_'I'O input";
       else
          return Character'Val (Wide_Character'Pos (Result));
       end if;
@@ -901,8 +899,8 @@ package body Ada.Text_IO is
       Result := WC_In (C, File.WC_Method);
 
       if Wide_Character'Pos (Result) > 16#FF# then
-         raise Constraint_Error
-           with "invalid wide character in Text_'I'O input";
+         raise Constraint_Error with
+           "invalid wide character in Text_'I'O input";
       else
          return Character'Val (Wide_Character'Pos (Result));
       end if;
@@ -1037,7 +1035,7 @@ package body Ada.Text_IO is
          Item := ASCII.NUL;
 
       --  If we are before an upper half character just return it (this can
-      --  happen if there are two calls to Look_Ahead in a row.
+      --  happen if there are two calls to Look_Ahead in a row).
 
       elsif File.Before_Upper_Half_Character then
          End_Of_Line := False;
@@ -1585,7 +1583,7 @@ package body Ada.Text_IO is
       end if;
 
       Terminate_Line (File);
-      FIO.Reset (AP (File), To_FCB (Mode));
+      FIO.Reset (AP (File)'Unrestricted_Access, To_FCB (Mode));
       File.Page := 1;
       File.Line := 1;
       File.Col  := 1;
@@ -1598,7 +1596,7 @@ package body Ada.Text_IO is
    procedure Reset (File : in out File_Type) is
    begin
       Terminate_Line (File);
-      FIO.Reset (AP (File));
+      FIO.Reset (AP (File)'Unrestricted_Access);
       File.Page := 1;
       File.Line := 1;
       File.Col  := 1;
@@ -1856,7 +1854,7 @@ package body Ada.Text_IO is
       if Start = 0 then
          File.WC_Method := WCEM_Brackets;
 
-      elsif Start /= 0 then
+      else
          if Stop = Start then
             for J in WC_Encoding_Letters'Range loop
                if File.Form (Start) = WC_Encoding_Letters (J) then
@@ -2212,9 +2210,9 @@ package body Ada.Text_IO is
    --  null character in the runtime, here the null characters are added just
    --  to have a correct filename length.
 
-   Err_Name : aliased String := "*stderr" & ASCII.Nul;
-   In_Name  : aliased String := "*stdin" & ASCII.Nul;
-   Out_Name : aliased String := "*stdout" & ASCII.Nul;
+   Err_Name : aliased String := "*stderr" & ASCII.NUL;
+   In_Name  : aliased String := "*stdin" & ASCII.NUL;
+   Out_Name : aliased String := "*stdout" & ASCII.NUL;
 
 begin
    -------------------------------
@@ -2253,7 +2251,7 @@ begin
    Standard_In.Is_Text_File       := True;
    Standard_In.Access_Method      := 'T';
    Standard_In.Self               := Standard_In;
-   Standard_In.WC_Method         := Default_WCEM;
+   Standard_In.WC_Method          := Default_WCEM;
 
    Standard_Out.Stream            := stdout;
    Standard_Out.Name              := Out_Name'Access;

@@ -17,7 +17,7 @@ struct s{
   struct t d;   /* aligned (offset 2NB) */
   struct t e;   /* unaligned (offset 2N+4N+4 B) */
 };
- 
+
 int main1 ()
 {  
   int i;

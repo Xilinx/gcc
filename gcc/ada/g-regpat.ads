@@ -7,7 +7,7 @@
 --                                 S p e c                                  --
 --                                                                          --
 --               Copyright (C) 1986 by University of Toronto.               --
---                     Copyright (C) 1996-2007, AdaCore                     --
+--                     Copyright (C) 1996-2008, AdaCore                     --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -46,7 +46,7 @@
 -- Summary of Pattern Matching Packages in GNAT Hierarchy --
 ------------------------------------------------------------
 
---  There are three related packages that perform pattern maching functions.
+--  There are three related packages that perform pattern matching functions.
 --  the following is an outline of these packages, to help you determine
 --  which is best for your needs.
 

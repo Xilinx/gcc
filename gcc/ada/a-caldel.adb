@@ -7,7 +7,7 @@
 --                                  B o d y                                 --
 --                                                                          --
 --             Copyright (C) 1991-1994, Florida State University            --
---                     Copyright (C) 1995-2006, AdaCore                     --
+--                     Copyright (C) 1995-2008, AdaCore                     --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -33,17 +33,9 @@
 ------------------------------------------------------------------------------
 
 with System.OS_Primitives;
---  Used for Delay_Modes
---           Max_Sensible_Delay
-
 with System.Soft_Links;
---  Used for Timed_Delay
-
 with System.Traces;
---  Used for Send_Trace_Info
-
 with System.Parameters;
---  used for Runtime_Traces
 
 package body Ada.Calendar.Delays is
 
@@ -54,7 +46,7 @@ package body Ada.Calendar.Delays is
 
    use System.Traces;
 
-   --  Earlier, System.Time_Opeations was used to implement the following
+   --  Earlier, System.Time_Operations was used to implement the following
    --  operations. The idea was to avoid sucking in the tasking packages. This
    --  did not work. Logically, we can't have it both ways. There is no way to
    --  implement time delays that will have correct task semantics without
@@ -124,15 +116,13 @@ package body Ada.Calendar.Delays is
       --  target independent operation in Ada.Calendar is used to perform
       --  this conversion.
 
-      return Delays_Operations.To_Duration (T);
+      return Delay_Operations.To_Duration (T);
    end To_Duration;
 
 begin
    --  Set up the Timed_Delay soft link to the non tasking version if it has
-   --  not been already set.
-
-   --  If tasking is present, Timed_Delay has already set this soft link, or
-   --  this will be overriden during the elaboration of
+   --  not been already set. If tasking is present, Timed_Delay has already set
+   --  this soft link, or this will be overridden during the elaboration of
    --  System.Tasking.Initialization
 
    if SSL.Timed_Delay = null then

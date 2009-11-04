@@ -6,25 +6,23 @@
 --                                                                          --
 --                                  S p e c                                 --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
--- sion. GNARL is distributed in the hope that it will be useful, but WITH- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
+-- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNARL; see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNARL was developed by the GNARL team at Florida State University.       --
 -- Extensive contributions were provided by Ada Core Technologies, Inc.     --
@@ -37,25 +35,13 @@
 --  Any changes to this interface may require corresponding compiler changes.
 
 with Ada.Exceptions;
---  Used for Exception_Id
---           Exception_Occurrence
+with Ada.Unchecked_Conversion;
 
 with System.Parameters;
---  used for Size_Type
-
 with System.Task_Info;
---  used for Task_Info_Type
-
 with System.Soft_Links;
---  used for TSD
-
 with System.Task_Primitives;
---  used for Private_Data
-
 with System.Stack_Usage;
---  used for Stack_Analyzer
-
-with Ada.Unchecked_Conversion;
 
 package System.Tasking is
    pragma Preelaborate;
@@ -72,7 +58,7 @@ package System.Tasking is
    --  Never undefer abort while holding a lock
 
    --  Overlapping critical sections must be properly nested, and locks must
-   --  be released in LIFO order. e.g., the following is not allowed:
+   --  be released in LIFO order. E.g., the following is not allowed:
 
    --         Lock (X);
    --         ...
@@ -118,6 +104,7 @@ package System.Tasking is
    type Ada_Task_Control_Block;
 
    type Task_Id is access all Ada_Task_Control_Block;
+   for Task_Id'Size use System.Task_Primitives.Task_Address_Size;
 
    Null_Task : constant Task_Id;
 
@@ -129,9 +116,11 @@ package System.Tasking is
    --  from the run-time system.
 
    function To_Task_Id is
-     new Ada.Unchecked_Conversion (System.Address, Task_Id);
+     new Ada.Unchecked_Conversion
+       (System.Task_Primitives.Task_Address, Task_Id);
    function To_Address is
-     new Ada.Unchecked_Conversion (Task_Id, System.Address);
+     new Ada.Unchecked_Conversion
+       (Task_Id, System.Task_Primitives.Task_Address);
 
    -----------------------
    -- Enumeration types --
@@ -246,6 +235,19 @@ package System.Tasking is
    type Task_Entry_Queue_Array is
      array (Task_Entry_Index range <>) of Entry_Queue;
 
+   --  A data structure which contains the string names of entries and entry
+   --  family members.
+
+   type String_Access is access all String;
+
+   type Entry_Names_Array is
+     array (Entry_Index range <>) of String_Access;
+
+   type Entry_Names_Array_Access is access all Entry_Names_Array;
+
+   procedure Free_Entry_Names_Array (Obj : in out Entry_Names_Array);
+   --  Deallocate all string names contained in an entry names array
+
    ----------------------------------
    -- Entry_Call_Record definition --
    ----------------------------------
@@ -352,7 +354,7 @@ package System.Tasking is
    --    Abnormal means that the task terminates because it is being aborted
 
    --    handled_Exception means that the task terminates because of exception
-   --    raised by by the execution of its task_body.
+   --    raised by the execution of its task_body.
 
    type Termination_Handler is access protected procedure
      (Cause : Cause_Of_Termination;
@@ -450,19 +452,17 @@ package System.Tasking is
       --  and rendezvous.
       --
       --  Ada 95 notes: In Ada 95, this field will be transferred to the
-      --  Priority field of an Entry_Calls component when an entry call
-      --  is initiated. The Priority of the Entry_Calls component will not
-      --  change for the duration of the call. The accepting task can
-      --  use it to boost its own priority without fear of its changing in
-      --  the meantime.
+      --  Priority field of an Entry_Calls component when an entry call is
+      --  initiated. The Priority of the Entry_Calls component will not change
+      --  for the duration of the call. The accepting task can use it to boost
+      --  its own priority without fear of its changing in the meantime.
       --
-      --  This can safely be used in the priority ordering
-      --  of entry queues. Once a call is queued, its priority does not
-      --  change.
+      --  This can safely be used in the priority ordering of entry queues.
+      --  Once a call is queued, its priority does not change.
       --
-      --  Since an entry call cannot be made while executing
-      --  a protected action, the priority of a task will never reflect a
-      --  priority ceiling change at the point of an entry call.
+      --  Since an entry call cannot be made while executing a protected
+      --  action, the priority of a task will never reflect a priority ceiling
+      --  change at the point of an entry call.
       --
       --  Protection: Only written by Self, and only accessed when Acceptor
       --  accepts an entry or when Created activates, at which points Self is
@@ -476,8 +476,8 @@ package System.Tasking is
       --  can be read/written from protected interrupt handlers.
 
       Task_Image : String (1 .. System.Parameters.Max_Task_Image_Length);
-      --  Hold a string that provides a readable id for task,
-      --  built from the variable of which it is a value or component.
+      --  Hold a string that provides a readable id for task, built from the
+      --  variable of which it is a value or component.
 
       Task_Image_Len : Natural;
       --  Actual length of Task_Image
@@ -498,11 +498,16 @@ package System.Tasking is
 
       Task_Arg : System.Address;
       --  The argument to task procedure. Provide a handle for discriminant
-      --  information
+      --  information.
       --
       --  Protection: Part of the synchronization between Self and Activator.
       --  Activator writes it, once, before Self starts executing. Thereafter,
       --  Self only reads it.
+
+      Task_Alternate_Stack : System.Address;
+      --  The address of the alternate signal stack for this task, if any
+      --
+      --  Protection: Only accessed by Self
 
       Task_Entry_Point : Task_Procedure_Access;
       --  Information needed to call the procedure containing the code for
@@ -609,10 +614,9 @@ package System.Tasking is
    -- Restricted_Ada_Task_Control_Block --
    ---------------------------------------
 
-   --  This type should only be used by the restricted GNARLI and by
-   --  restricted GNULL implementations to allocate an ATCB (see
-   --  System.Task_Primitives.Operations.New_ATCB) that will take
-   --  significantly less memory.
+   --  This type should only be used by the restricted GNARLI and by restricted
+   --  GNULL implementations to allocate an ATCB (see System.Task_Primitives.
+   --  Operations.New_ATCB) that will take significantly less memory.
 
    --  Note that the restricted GNARLI should only access fields that are
    --  present in the Restricted_Ada_Task_Control_Block structure.
@@ -813,7 +817,8 @@ package System.Tasking is
    ------------------------------------
 
    type Access_Address is access all System.Address;
-   --  Comment on what this is used for ???
+   --  Anonymous pointer used to implement task attributes (see s-tataat.adb
+   --  and a-tasatt.adb)
 
    pragma No_Strict_Aliasing (Access_Address);
    --  This type is used in contexts where aliasing may be an issue (see
@@ -857,6 +862,11 @@ package System.Tasking is
       --  Protection: The elements of this array are on entry call queues
       --  associated with protected objects or task entries, and are protected
       --  by the protected object lock or Acceptor.L, respectively.
+
+      Entry_Names : Entry_Names_Array_Access := null;
+      --  An array of string names which denotes entry [family member] names.
+      --  The structure is indexed by task entry index and contains Entry_Num
+      --  components.
 
       New_Base_Priority : System.Any_Priority;
       --  New value for Base_Priority (for dynamic priorities package)

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -63,10 +63,10 @@ package body Osint is
    --  that are used to locate the actual file and for the purpose of message
    --  construction. These names need not be accessible by Name_Find, and can
    --  be therefore created by using routine Name_Enter. The files in question
-   --  are file names with a prefix directory (ie the files not in the current
-   --  directory). File names without a prefix directory are entered with
-   --  Name_Find because special values might be attached to the various Info
-   --  fields of the corresponding name table entry.
+   --  are file names with a prefix directory (i.e., the files not in the
+   --  current directory). File names without a prefix directory are entered
+   --  with Name_Find because special values might be attached to the various
+   --  Info fields of the corresponding name table entry.
 
    -----------------------
    -- Local Subprograms --
@@ -124,7 +124,7 @@ package body Osint is
    Look_In_Primary_Directory_For_Current_Main : Boolean := False;
    --  When this variable is True, Find_File only looks in Primary_Directory
    --  for the Current_Main file. This variable is always set to True for the
-   --  compiler. It is also True for gnatmake, when the soucr name given on
+   --  compiler. It is also True for gnatmake, when the source name given on
    --  the command line has directory information.
 
    Current_Full_Source_Name  : File_Name_Type  := No_File;
@@ -177,7 +177,7 @@ package body Osint is
    --  The file hash table is provided to free the programmer from any
    --  efficiency concern when retrieving full file names or time stamps of
    --  source files. If the programmer calls Source_File_Data (Cache => True)
-   --  he is guaranteed that the price to retrieve the full name (ie with
+   --  he is guaranteed that the price to retrieve the full name (i.e. with
    --  directory info) or time stamp of the file will be payed only once, the
    --  first time the full name is actually searched (or the first time the
    --  time stamp is actually retrieved). This is achieved by employing a hash
@@ -250,7 +250,11 @@ package body Osint is
       --
       --  HKEY_LOCAL_MACHINE\SOFTWARE\Ada Core Technologies\
       --                             GNAT\Standard Libraries
-      --  Return an empty string on other systems
+      --  Return an empty string on other systems.
+      --
+      --  Note that this is an undocumented legacy feature, and that it
+      --  works only when using the default runtime library (i.e. no --RTS=
+      --  command line switch).
 
       --------------------
       -- Add_Search_Dir --
@@ -803,7 +807,7 @@ package body Osint is
    function Executable_Prefix return String_Ptr is
 
       function Get_Install_Dir (Exec : String) return String_Ptr;
-      --  S is the executable name preceeded by the absolute or relative
+      --  S is the executable name preceded by the absolute or relative
       --  path, e.g. "c:\usr\bin\gcc.exe" or "..\bin\gcc".
 
       ---------------------
@@ -1870,42 +1874,77 @@ package body Osint is
    -- Program_Name --
    ------------------
 
-   function Program_Name (Nam : String) return String_Access is
-      Res : String_Access;
+   function Program_Name (Nam : String; Prog : String) return String_Access is
+      End_Of_Prefix   : Natural := 0;
+      Start_Of_Prefix : Positive := 1;
+      Start_Of_Suffix : Positive;
 
    begin
+      --  GNAAMP tool names require special treatment
+
+      if AAMP_On_Target then
+
+         --  The name "gcc" is mapped to "gnaamp" (the compiler driver)
+
+         if Nam = "gcc" then
+            return new String'("gnaamp");
+
+         --  Tool names starting with "gnat" are mapped by substituting the
+         --  string "gnaamp" for "gnat" (for example, "gnatpp" => "gnaamppp").
+
+         elsif Nam'Length >= 4
+           and then Nam (Nam'First .. Nam'First + 3) = "gnat"
+         then
+            return new String'("gnaamp" & Nam (Nam'First + 4 .. Nam'Last));
+
+         --  No other mapping rules, so we continue and handle any other forms
+         --  of tool names the same as on other targets.
+
+         else
+            null;
+         end if;
+      end if;
+
       --  Get the name of the current program being executed
 
       Find_Program_Name;
 
+      Start_Of_Suffix := Name_Len + 1;
+
       --  Find the target prefix if any, for the cross compilation case.
-      --  For instance in "alpha-dec-vxworks-gcc" the target prefix is
-      --  "alpha-dec-vxworks-"
+      --  For instance in "powerpc-elf-gcc" the target prefix is
+      --  "powerpc-elf-"
+      --  Ditto for suffix, e.g. in "gcc-4.1", the suffix is "-4.1"
 
-      while Name_Len > 0  loop
-
-         --  All done if we find the last hyphen
-
-         if Name_Buffer (Name_Len) = '-' then
-            exit;
-
-         --  If directory separator found, we don't want to look further
-         --  since in this case, no prefix has been found.
-
-         elsif Is_Directory_Separator (Name_Buffer (Name_Len)) then
-            Name_Len := 0;
+      for J in reverse 1 .. Name_Len loop
+         if Name_Buffer (J) = '/'
+           or else Name_Buffer (J) = Directory_Separator
+           or else Name_Buffer (J) = ':'
+         then
+            Start_Of_Prefix := J + 1;
             exit;
          end if;
-
-         Name_Len := Name_Len - 1;
       end loop;
+
+      --  Find End_Of_Prefix
+
+      for J in Start_Of_Prefix .. Name_Len - Prog'Length + 1 loop
+         if Name_Buffer (J .. J + Prog'Length - 1) = Prog then
+            End_Of_Prefix := J - 1;
+            exit;
+         end if;
+      end loop;
+
+      if End_Of_Prefix > 1 then
+         Start_Of_Suffix := End_Of_Prefix + Prog'Length + 1;
+      end if;
 
       --  Create the new program name
 
-      Res := new String (1 .. Name_Len + Nam'Length);
-      Res.all (1 .. Name_Len) := Name_Buffer (1 .. Name_Len);
-      Res.all (Name_Len + 1 .. Name_Len + Nam'Length) := Nam;
-      return Res;
+      return new String'
+        (Name_Buffer (Start_Of_Prefix .. End_Of_Prefix)
+         & Nam
+         & Name_Buffer (Start_Of_Suffix .. Name_Len));
    end Program_Name;
 
    ------------------------------
@@ -1976,18 +2015,29 @@ package body Osint is
          Curr := Curr + Actual_Len;
       end loop;
 
-      --  Process the file, translating line and file ending
-      --  control characters to a path separator character.
+      --  Process the file, dealing with path separators
 
       Prev_Was_Separator := True;
       Nb_Relative_Dir := 0;
       for J in 1 .. Len loop
-         if S (J) in ASCII.NUL .. ASCII.US or else S (J) = ' ' then
+
+         --  Treat any control character as a path separator. Note that we do
+         --  not treat space as a path separator (we used to treat space as a
+         --  path separator in an earlier version). That way space can appear
+         --  as a legitimate character in a path name.
+
+         --  Why do we treat all control characters as path separators???
+
+         if S (J) in ASCII.NUL .. ASCII.US then
             S (J) := Path_Separator;
          end if;
 
+         --  Test for explicit path separator (or control char as above)
+
          if S (J) = Path_Separator then
             Prev_Was_Separator := True;
+
+         --  If not path separator, register use of relative directory
 
          else
             if Prev_Was_Separator and then Is_Relative (S.all, J) then
@@ -2556,7 +2606,7 @@ package body Osint is
          Canonical_File_Len  : Integer;
 
       begin
-         --  Retrieve the expanded directoy names and build the list
+         --  Retrieve the expanded directory names and build the list
 
          for J in 1 .. Num_Files loop
             Canonical_File_Addr := To_Canonical_File_List_Next;

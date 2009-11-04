@@ -1,5 +1,5 @@
 /* Common block and equivalence list handling
-   Copyright (C) 2000, 2003, 2004, 2005, 2006, 2007
+   Copyright (C) 2000, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Canqun Yang <canqun@nudt.edu.cn>
 
@@ -321,10 +321,10 @@ build_field (segment_info *h, tree union_type, record_layout_info rli)
   /* If this field is volatile, mark it.  */
   if (h->sym->attr.volatile_)
     {
-      tree new;
+      tree new_type;
       TREE_THIS_VOLATILE (field) = 1;
-      new = build_qualified_type (TREE_TYPE (field), TYPE_QUAL_VOLATILE);
-      TREE_TYPE (field) = new;
+      new_type = build_qualified_type (TREE_TYPE (field), TYPE_QUAL_VOLATILE);
+      TREE_TYPE (field) = new_type;
     }
 
   h->field = field;
@@ -416,6 +416,7 @@ build_common_decl (gfc_common_head *com, tree union_type, bool is_init)
       SET_DECL_ASSEMBLER_NAME (decl, gfc_sym_mangled_common_id (com));
       TREE_PUBLIC (decl) = 1;
       TREE_STATIC (decl) = 1;
+      DECL_IGNORED_P (decl) = 1;
       if (!com->is_bind_c)
 	DECL_ALIGN (decl) = BIGGEST_ALIGNMENT;
       else
@@ -547,7 +548,6 @@ get_init_field (segment_info *head, tree union_type, tree *field_init,
 
   init = build_constructor (TREE_TYPE (field), v);
   TREE_CONSTANT (init) = 1;
-  TREE_INVARIANT (init) = 1;
 
   *field_init = init;
 
@@ -657,7 +657,6 @@ create_common (gfc_common_head *com, segment_info *head, bool saw_equiv)
       gcc_assert (!VEC_empty (constructor_elt, v));
       ctor = build_constructor (union_type, v);
       TREE_CONSTANT (ctor) = 1;
-      TREE_INVARIANT (ctor) = 1;
       TREE_STATIC (ctor) = 1;
       DECL_INITIAL (decl) = ctor;
 
@@ -682,19 +681,25 @@ create_common (gfc_common_head *com, segment_info *head, bool saw_equiv)
       TREE_PUBLIC (var_decl) = TREE_PUBLIC (decl);
       TREE_STATIC (var_decl) = TREE_STATIC (decl);
       TREE_USED (var_decl) = TREE_USED (decl);
+      if (s->sym->attr.use_assoc)
+	DECL_IGNORED_P (var_decl) = 1;
       if (s->sym->attr.target)
 	TREE_ADDRESSABLE (var_decl) = 1;
       /* This is a fake variable just for debugging purposes.  */
       TREE_ASM_WRITTEN (var_decl) = 1;
-
-      if (com)
+      
+      /* To preserve identifier names in COMMON, chain to procedure
+         scope unless at top level in a module definition.  */
+      if (com
+          && s->sym->ns->proc_name
+          && s->sym->ns->proc_name->attr.flavor == FL_MODULE)
 	var_decl = pushdecl_top_level (var_decl);
       else
 	gfc_add_decl_to_function (var_decl);
 
       SET_DECL_VALUE_EXPR (var_decl,
-			   build3 (COMPONENT_REF, TREE_TYPE (s->field),
-				   decl, s->field, NULL_TREE));
+			   fold_build3 (COMPONENT_REF, TREE_TYPE (s->field),
+					decl, s->field, NULL_TREE));
       DECL_HAS_VALUE_EXPR_P (var_decl) = 1;
       GFC_DECL_COMMON_OR_EQUIV (var_decl) = 1;
 
@@ -953,7 +958,7 @@ find_equivalence (segment_info *n)
    segment list multiple times to include indirect equivalences.  Since
    a new segment_info can inserted at the beginning of the segment list,
    depending on its offset, we have to force a final pass through the
-   loop by demanding that completion sees a pass with no matches; ie.
+   loop by demanding that completion sees a pass with no matches; i.e.,
    all symbols with equiv_built set and no new equivalences found.  */
 
 static void
@@ -1054,7 +1059,9 @@ translate_common (gfc_common_head *common, gfc_symbol *var_list)
   bool saw_equiv;
 
   common_segment = NULL;
+  offset = 0;
   current_offset = 0;
+  align = 1;
   max_align = 1;
   saw_equiv = false;
 
@@ -1095,16 +1102,27 @@ translate_common (gfc_common_head *common, gfc_symbol *var_list)
 		       "extension to COMMON '%s' at %L", sym->name,
 		       common->name, &common->where);
 
-	  offset = align_segment (&align);
+	  if (gfc_option.flag_align_commons)
+	    offset = align_segment (&align);
 
 	  if (offset & (max_align - 1))
 	    {
 	      /* The required offset conflicts with previous alignment
 		 requirements.  Insert padding immediately before this
 		 segment.  */
-	      gfc_warning ("Padding of %d bytes required before '%s' in "
-			   "COMMON '%s' at %L", (int)offset, s->sym->name,
-			   common->name, &common->where);
+	      if (gfc_option.warn_align_commons)
+		{
+		  if (strcmp (common->name, BLANK_COMMON_NAME))
+		    gfc_warning ("Padding of %d bytes required before '%s' in "
+				 "COMMON '%s' at %L; reorder elements or use "
+				 "-fno-align-commons", (int)offset,
+				 s->sym->name, common->name, &common->where);
+		  else
+		    gfc_warning ("Padding of %d bytes required before '%s' in "
+				 "COMMON at %L; reorder elements or use "
+				 "-fno-align-commons", (int)offset,
+				 s->sym->name, &common->where);
+		}
 	    }
 	  else
 	    {
@@ -1133,10 +1151,16 @@ translate_common (gfc_common_head *common, gfc_symbol *var_list)
       return;
     }
 
-  if (common_segment->offset != 0)
+  if (common_segment->offset != 0 && gfc_option.warn_align_commons)
     {
-      gfc_warning ("COMMON '%s' at %L requires %d bytes of padding at start",
-		   common->name, &common->where, (int)common_segment->offset);
+      if (strcmp (common->name, BLANK_COMMON_NAME))
+	gfc_warning ("COMMON '%s' at %L requires %d bytes of padding at start; "
+		     "reorder elements or use -fno-align-commons",
+		     common->name, &common->where, (int)common_segment->offset);
+      else
+	gfc_warning ("COMMON at %L requires %d bytes of padding at start; "
+		     "reorder elements or use -fno-align-commons",
+		     &common->where, (int)common_segment->offset);
     }
 
   create_common (common, common_segment, saw_equiv);
@@ -1220,14 +1244,7 @@ gfc_trans_common (gfc_namespace *ns)
   if (ns->blank_common.head != NULL)
     {
       c = gfc_get_common_head ();
-
-      /* We've lost the real location, so use the location of the
-	 enclosing procedure.  */
-      if (ns->proc_name != NULL)
-	c->where = ns->proc_name->declared_at;
-      else
-	c->where = ns->blank_common.head->common_head->where;
-
+      c->where = ns->blank_common.head->common_head->where;
       strcpy (c->name, BLANK_COMMON_NAME);
       translate_common (c, ns->blank_common.head);
     }

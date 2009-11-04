@@ -1,8 +1,8 @@
 // { dg-do assemble  }
 struct A
 {
-  A();
-  A(A&);			// { dg-error "" } referenced below
+  A();				// { dg-message "" } candidate
+  A(A&);			// { dg-message "candidates" } referenced below
 };
 
 int
@@ -10,7 +10,8 @@ main ()
 {
   try
     {
-      throw A();		// { dg-error "" } can't copy
+      throw A();		// { dg-error "no matching" "match" } can't copy
+// { dg-error "thrown expression" "expr" { target *-*-* } 13 }
     }
   catch (...) { }
 }

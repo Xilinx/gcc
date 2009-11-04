@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -84,8 +84,8 @@ package Exp_Ch4 is
    --  Lhs, Rhs are the record expressions to be compared, these
    --  expressions need not to be analyzed but have to be side-effect free.
    --  Bodies is a list on which to attach bodies of local functions that
-   --  are created in the process. This is the responsability of the caller
-   --  to insert those bodies at the right place. Nod provdies the Sloc
+   --  are created in the process. This is the responsibility of the caller
+   --  to insert those bodies at the right place. Nod provides the Sloc
    --  value for generated code.
 
 end Exp_Ch4;

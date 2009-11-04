@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -47,7 +47,7 @@ package body Ch10 is
      (Cunit      : Node_Id;
       Loc        : Source_Ptr;
       SR_Present : Boolean);
-   --  This procedure is used to generate a line of output for the a unit in
+   --  This procedure is used to generate a line of output for a unit in
    --  the source program. Cunit is the node for the compilation unit, and
    --  Loc is the source location for the start of the unit in the source
    --  file (which is not necessarily the Sloc of the Cunit node). This
@@ -115,10 +115,10 @@ package body Ch10 is
       P                  : Node_Id;
       SR_Present         : Boolean;
 
-      Cunit_Error_Flag   : Boolean := False;
+      Cunit_Error_Flag : Boolean := False;
       --  This flag is set True if we have to scan for a compilation unit
       --  token. It is used to ensure clean termination in such cases by
-      --  not insisting on being at the end of file, and, in the sytax only
+      --  not insisting on being at the end of file, and, in the syntax only
       --  case by not scanning for additional compilation units.
 
       Cunit_Location : Source_Ptr;
@@ -140,8 +140,8 @@ package body Ch10 is
 
       Config_Pragmas := No_List;
 
-      --  If we have an initial Source_Reference pragma, then remember
-      --  the fact to generate an NR parameter in the output line.
+      --  If we have an initial Source_Reference pragma, then remember the fact
+      --  to generate an NR parameter in the output line.
 
       SR_Present := False;
 
@@ -150,7 +150,7 @@ package body Ch10 is
          Item := P_Pragma;
 
          if Item = Error
-           or else Chars (Item) /= Name_Source_Reference
+           or else Pragma_Name (Item) /= Name_Source_Reference
          then
             Restore_Scan_State (Scan_State);
 
@@ -180,7 +180,7 @@ package body Ch10 is
          Item := P_Pragma;
 
          if Item = Error
-           or else not Is_Configuration_Pragma_Name (Chars (Item))
+           or else not Is_Configuration_Pragma_Name (Pragma_Name (Item))
          then
             Restore_Scan_State (Scan_State);
             exit;
@@ -331,7 +331,7 @@ package body Ch10 is
 
          --  A common error is to omit the body keyword after package. We can
          --  often diagnose this early on (before getting loads of errors from
-         --  contained subprogram bodies), by knowing that that the file we
+         --  contained subprogram bodies), by knowing that the file we
          --  are compiling has a name that requires a body to be found.
 
          Save_Scan_State (Scan_State);
@@ -664,7 +664,7 @@ package body Ch10 is
       if Token /= Tok_EOF then
 
          --  If we already had to scan for a compilation unit, then don't
-         --  give any further error message, since it just sems to make
+         --  give any further error message, since it just seems to make
          --  things worse, and we already gave a serious error message.
 
          if Cunit_Error_Flag then
@@ -898,7 +898,7 @@ package body Ch10 is
                First_Flag := True;
 
                --  Loop through names in one with clause, generating a separate
-               --  N_With_Clause node for each nam encountered.
+               --  N_With_Clause node for each name encountered.
 
                loop
                   With_Node := New_Node (N_With_Clause, Token_Ptr);
@@ -1024,10 +1024,7 @@ package body Ch10 is
       Set_Name (Subunit_Node, P_Qualified_Simple_Name);
       U_Right_Paren;
 
-      if Token = Tok_Semicolon then
-         Error_Msg_SC ("unexpected semicolon ignored");
-         Scan;
-      end if;
+      Ignore (Tok_Semicolon);
 
       if Token = Tok_Function or else Token = Tok_Procedure then
          Body_Node := P_Subprogram (Pf_Pbod);

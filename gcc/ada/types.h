@@ -6,7 +6,7 @@
  *                                                                          *
  *                              C Header File                               *
  *                                                                          *
- *          Copyright (C) 1992-2007, Free Software Foundation, Inc.         *
+ *          Copyright (C) 1992-2008, Free Software Foundation, Inc.         *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
@@ -328,6 +328,15 @@ typedef Int Mechanism_Type;
 #define By_Descriptor_A    (-9)
 #define By_Descriptor_NCA  (-10)
 #define By_Descriptor_Last (-10)
+#define By_Short_Descriptor      (-11)
+#define By_Short_Descriptor_UBS  (-12)
+#define By_Short_Descriptor_UBSB (-13)
+#define By_Short_Descriptor_UBA  (-14)
+#define By_Short_Descriptor_S    (-15)
+#define By_Short_Descriptor_SB   (-16)
+#define By_Short_Descriptor_A    (-17)
+#define By_Short_Descriptor_NCA  (-18)
+#define By_Short_Descriptor_Last (-18)
 
 /* Internal to Gigi.  */
 #define By_Copy_Return     (-128)
@@ -341,7 +350,7 @@ typedef Int Mechanism_Type;
 #define CE_Index_Check_Failed               5
 #define CE_Invalid_Data                     6
 #define CE_Length_Check_Failed              7
-#define CE_Null_Exception_Id                9
+#define CE_Null_Exception_Id                8
 #define CE_Null_Not_Allowed                 9
 #define CE_Overflow_Check_Failed           10
 #define CE_Partition_Check_Failed          11

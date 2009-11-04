@@ -39,6 +39,8 @@ exception statement from your version. */
 
 package java.util;
 
+import gnu.java.lang.CPStringBuilder;
+
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -485,6 +487,28 @@ public abstract class Calendar
   }
 
   /**
+   * The set of properties for obtaining the minimum number of days in 
+   * the first week.
+   */
+  private static transient final Properties properties;
+
+  /**
+   * Reads in the properties.
+   */
+  static
+  {
+    properties = new Properties();
+    try 
+      {
+        properties.load(Calendar.class.getResourceAsStream("weeks.properties"));
+      }
+    catch (IOException exception)
+      {
+        System.out.println("Failed to load weeks resource: " + exception);
+      }
+  }
+
+  /**
    * Constructs a new Calendar with the default time zone and the default
    * locale.
    */
@@ -505,9 +529,13 @@ public abstract class Calendar
     lenient = true;
     String[] days = { "", "sun", "mon", "tue", "wed", "thu", "fri", "sat" };
 
-    ResourceBundle rb = getBundle(locale);
-    String min = (String) rb.getObject("minNumberOfDaysInFirstWeek");
-    String first = (String) rb.getObject("firstDayOfWeek");
+    String country = locale.getCountry();
+    String min = properties.getProperty("minDays." + country);
+    if (min == null)
+      min = properties.getProperty("minDays.DEFAULT");
+    String first = properties.getProperty("firstDay." + country);
+    if (first == null)
+      first = properties.getProperty("firstDay.DEFAULT");
     try
       {
 	if (min != null)
@@ -572,7 +600,7 @@ public abstract class Calendar
    * Cache of locale->calendar-class mappings. This avoids having to do a ResourceBundle
    * lookup for every getInstance call.
    */
-  private static HashMap<Locale,Class> cache = new HashMap<Locale,Class>();
+  private static final HashMap<Locale,Class> cache = new HashMap<Locale,Class>();
 
   /** Preset argument types for calendar-class constructor lookup.  */
   private static Class[] ctorArgTypes = new Class[]
@@ -1266,7 +1294,7 @@ public abstract class Calendar
 
   /**
    * Compares the time of two calendar instances.
-   * @param calendar the calendar to which the time should be compared.
+   * @param cal the calendar to which the time should be compared.
    * @return 0 if the two calendars are set to the same time, 
    * less than 0 if the time of this calendar is before that of 
    * <code>cal</code>, or more than 0 if the time of this calendar is after
@@ -1328,8 +1356,8 @@ public abstract class Calendar
    */
   public String toString()
   {
-    StringBuffer sb = new StringBuffer();
-    sb.append(getClass().getName()).append('[');
+    CPStringBuilder sb = new CPStringBuilder(getClass().getName());
+    sb.append('[');
     sb.append("time=");
     if (isTimeSet)
       sb.append(time);

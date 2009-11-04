@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -32,9 +32,7 @@ with Stringt; use Stringt;
 separate (Par)
 package body Ch4 is
 
-   ---------------
-   -- Local map --
-   ---------------
+   --  Attributes that cannot have arguments
 
    Is_Parameterless_Attribute : constant Attribute_Class_Array :=
      (Attribute_Body_Version => True,
@@ -50,6 +48,14 @@ package body Ch4 is
    --  the attribute should not be analyzed as the beginning of a parameters
    --  list because it may denote a slice operation (X'Img (1 .. 2)) or
    --  a type conversion (X'Class (Y)).
+
+   --  Note that this map designates the minimum set of attributes where a
+   --  construct in parentheses that is not an argument can appear right
+   --  after the attribute. For attributes like 'Size, we do not put them
+   --  in the map. If someone writes X'Size (3), that's illegal in any case,
+   --  but we get a better error message by parsing the (3) as an illegal
+   --  argument to the attribute, rather than some meaningless junk that
+   --  follows the attribute.
 
    -----------------------
    -- Local Subprograms --
@@ -405,7 +411,7 @@ package body Ch4 is
             begin
                if Token_Is_At_Start_Of_Line then
                   Restore_Scan_State (Scan_State); -- to apostrophe
-                  Error_Msg_SC ("""''"" should be "";""");
+                  Error_Msg_SC ("|""''"" should be "";""");
                   Token := Tok_Semicolon;
                   return True;
                else
@@ -501,11 +507,12 @@ package body Ch4 is
             Set_Prefix (Name_Node, Prefix_Node);
             Set_Attribute_Name (Name_Node, Attr_Name);
 
-            --  Scan attribute arguments/designator
+            --  Scan attribute arguments/designator. We skip this if we know
+            --  that the attribute cannot have an argument.
 
             if Token = Tok_Left_Paren
-                 and then
-               not Is_Parameterless_Attribute (Get_Attribute_Id (Attr_Name))
+              and then not
+                Is_Parameterless_Attribute (Get_Attribute_Id (Attr_Name))
             then
                Set_Expressions (Name_Node, New_List);
                Scan; -- past left paren
@@ -1136,9 +1143,9 @@ package body Ch4 is
       end if;
    end P_Aggregate;
 
-   -------------------------------------------------
-   -- 4.3  Aggregate or Parenthesized Expresssion --
-   -------------------------------------------------
+   ------------------------------------------------
+   -- 4.3  Aggregate or Parenthesized Expression --
+   ------------------------------------------------
 
    --  This procedure parses out either an aggregate or a parenthesized
    --  expression (these two constructs are closely related, since a
@@ -1599,7 +1606,7 @@ package body Ch4 is
    function P_Expression_No_Right_Paren return Node_Id is
       Expr : constant Node_Id := P_Expression;
    begin
-      Check_No_Right_Paren;
+      Ignore (Tok_Right_Paren);
       return Expr;
    end P_Expression_No_Right_Paren;
 
@@ -1891,7 +1898,7 @@ package body Ch4 is
             Node1 := P_Term;
          end if;
 
-         --  In the following, we special-case a sequence of concatentations of
+         --  In the following, we special-case a sequence of concatenations of
          --  string literals, such as "aaa" & "bbb" & ... & "ccc", with nothing
          --  else mixed in. For such a sequence, we return a tree representing
          --  "" & "aaabbb...ccc" (a single concatenation). This is done only if
@@ -2332,7 +2339,7 @@ package body Ch4 is
                   return P_Identifier;
 
                elsif Prev_Token = Tok_Comma then
-                  Error_Msg_SP ("extra "","" ignored");
+                  Error_Msg_SP ("|extra "","" ignored");
                   raise Error_Resync;
 
                else
@@ -2430,7 +2437,7 @@ package body Ch4 is
 
    begin
       if Token = Tok_Box then
-         Error_Msg_SC ("""'<'>"" should be ""/=""");
+         Error_Msg_SC ("|""'<'>"" should be ""/=""");
       end if;
 
       Op_Kind := Relop_Node (Token);

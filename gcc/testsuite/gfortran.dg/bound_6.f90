@@ -3,17 +3,26 @@
 ! for some arrays with negative strides.
 !
 ! Contributed by Dick Hendrickson  <dick.hendrickson@gmail.com>
-! and Clive Page <clivegpage@googlemail.com>
+!                Clive Page        <clivegpage@googlemail.com>
+!            and Mikael Morin      <mikael.morin@tele2.fr>
 !
 program try_je0031
   integer ida(4)
   real dda(5,5,5,5,5)
   integer, parameter :: nx = 4, ny = 3
+  interface
+    SUBROUTINE PR38852(IDA,DDA,nf2,nf5,mf2)
+      INTEGER IDA(4)
+      REAL DDA(5,5,5,5,5)
+      TARGET DDA
+    END SUBROUTINE
+  end interface
   integer :: array1(nx,ny), array2(nx,ny) 
   data array2 / 1,2,3,4, 10,20,30,40, 100,200,300,400 /
   array1 = array2
   call PR38852(IDA,DDA,2,5,-2)
   call PR39006(array1, array2(:,ny:1:-1))
+  call mikael         ! http://gcc.gnu.org/ml/fortran/2009-01/msg00342.html
 contains
   subroutine PR39006(array1, array2)
     integer, intent(in) :: array1(:,:), array2(:,:)
@@ -46,3 +55,17 @@ SUBROUTINE PR38852(IDA,DDA,nf2,nf5,mf2)
   IDA = LBOUND(DLA)
   if (any(ida /= 1)) call abort
 END SUBROUTINE
+
+subroutine mikael
+  implicit none
+  call test (1,  3, 3)
+  call test (2,  3, 3)
+  call test (2, -1, 0)
+  call test (1, -1, 0)
+contains
+  subroutine test (a, b, expect)
+    integer :: a, b, expect
+    integer :: c(a:b)
+    if (ubound (c, 1) .ne. expect) call abort
+  end subroutine test
+end subroutine

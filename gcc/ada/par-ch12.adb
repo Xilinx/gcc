@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -830,7 +830,7 @@ package body Ch12 is
    --    [abstract] [limited | synchronized]
    --         new SUBTYPE_MARK [[and INTERFACE_LIST] with private]
 
-   --  The caller has checked the initial token(s) is/are NEW, ASTRACT NEW,
+   --  The caller has checked the initial token(s) is/are NEW, ABSTRACT NEW,
    --  or LIMITED NEW, ABSTRACT LIMITED NEW, SYNCHRONIZED NEW or ABSTRACT
    --  SYNCHRONIZED NEW.
 

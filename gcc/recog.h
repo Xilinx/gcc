@@ -50,7 +50,8 @@ struct operand_alternative
 
   /* Nonzero if '&' was found in the constraint string.  */
   unsigned int earlyclobber:1;
-  /* Nonzero if 'm' was found in the constraint string.  */
+  /* Nonzero if TARGET_MEM_CONSTRAINT was found in the constraint
+     string.  */
   unsigned int memory_ok:1;
   /* Nonzero if 'o' was found in the constraint string.  */
   unsigned int offmem_ok:1;
@@ -86,6 +87,8 @@ extern int constrain_operands_cached (int);
 extern int memory_address_p (enum machine_mode, rtx);
 extern int strict_memory_address_p (enum machine_mode, rtx);
 extern int validate_replace_rtx (rtx, rtx, rtx);
+extern int validate_replace_rtx_part (rtx, rtx, rtx *, rtx);
+extern int validate_replace_rtx_part_nosimplify (rtx, rtx, rtx *, rtx);
 extern void validate_replace_rtx_group (rtx, rtx, rtx);
 extern void validate_replace_src_group (rtx, rtx, rtx);
 extern bool validate_simplify_insn (rtx insn);
@@ -141,6 +144,19 @@ recog_memoized (rtx insn)
   return INSN_CODE (insn);
 }
 #endif
+
+/* Skip chars until the next ',' or the end of the string.  This is
+   useful to skip alternatives in a constraint string.  */
+static inline const char *
+skip_alternative (const char *p)
+{
+  const char *r = p;
+  while (*r != '\0' && *r != ',')
+    r++;
+  if (*r == ',')
+    r++;
+  return r;
+}
 
 /* Nonzero means volatile operands are recognized.  */
 extern int volatile_ok;
@@ -200,6 +216,12 @@ struct recog_data
 
   /* The number of alternatives in the constraints for the insn.  */
   char n_alternatives;
+
+  /* Specifies whether an insn alternative is enabled using the
+     `enabled' attribute in the insn pattern definition.  For back
+     ends not using the `enabled' attribute the array fields are
+     always set to `true' in expand_insn.  */
+  bool alternative_enabled_p [MAX_RECOG_ALTERNATIVES];
 
   /* In case we are caching, hold insn data was generated for.  */
   rtx insn;

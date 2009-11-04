@@ -1,10 +1,53 @@
-2009-08-04  Release Manager
+2009-10-15  Release Manager
 
-	* GCC 4.3.4 released.
+	* GCC 4.4.2 released.
 
-2009-01-24  Release Manager
+2009-09-23  Matthias Klose  <doko@ubuntu.com>
 
-	* GCC 4.3.3 released.
+	PR libffi/40242, PR libffi/41443
+	* src/arm/sysv.S (__ARM_ARCH__): Define for processors
+	__ARM_ARCH_6T2__, __ARM_ARCH_6M__, __ARM_ARCH_7__,
+	__ARM_ARCH_7A__, __ARM_ARCH_7R__, __ARM_ARCH_7M__.
+	Change the conditionals to __SOFTFP__ || __ARM_EABI__
+	for -mfloat-abi=softfp to work.
+
+2009-07-22  Release Manager
+
+	* GCC 4.4.1 released.
+
+2009-04-21  Release Manager
+
+	* GCC 4.4.0 released.
+
+2009-04-09  Jakub Jelinek  <jakub@redhat.com>
+
+	* testsuite/lib/libffi-dg.exp: Change copyright header to refer to
+	version 3 of the GNU General Public License and to point readers
+	at the COPYING3 file and the FSF's license web page.
+	* testsuite/libffi.call/call.exp: Likewise.
+	* testsuite/libffi.special/special.exp: Likewise.
+
+2009-03-01  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure: Regenerate.
+
+2008-12-18  Rainer Orth  <ro@TechFak.Uni-Bielefeld.DE>
+
+	PR libffi/26048
+	* configure.ac (HAVE_AS_X86_PCREL): New test.
+	* configure: Regenerate.
+	* fficonfig.h.in: Regenerate.
+	* src/x86/sysv.S [!FFI_NO_RAW_API]: Precalculate
+	RAW_CLOSURE_CIF_OFFSET, RAW_CLOSURE_FUN_OFFSET,
+	RAW_CLOSURE_USER_DATA_OFFSET for the Solaris 10/x86 assembler.
+	(.eh_frame): Only use SYMBOL-. iff HAVE_AS_X86_PCREL.
+	* src/x86/unix64.S (.Lstore_table): Move to .text section.
+	(.Lload_table): Likewise.
+	(.eh_frame): Only use SYMBOL-. iff HAVE_AS_X86_PCREL.
+
+2008-12-18  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure: Regenerate.
 
 2008-11-21  Eric Botcazou  <ebotcazou@adacore.com>
 
@@ -13,7 +56,15 @@
 	* src/sparc/v8.S (ffi_call_v8): Likewise.
 	(ffi_closure_v8): Likewise.
 
-2008-09-10  Andreas Tobler  <a.tobler@schweiz.org>
+2008-09-26  Peter O'Gorman  <pogma@thewrittenword.com>
+            Steve Ellcey  <sje@cup.hp.com>
+
+	* configure: Regenerate for new libtool.
+	* Makefile.in: Ditto.
+	* include/Makefile.in: Ditto.
+	* aclocal.m4: Ditto.
+
+2008-08-25  Andreas Tobler  <a.tobler@schweiz.org>
 
 	* src/powerpc/ffitarget.h (ffi_abi): Add FFI_LINUX and
 	FFI_LINUX_SOFT_FLOAT to the POWERPC_FREEBSD enum.
@@ -26,17 +77,64 @@
 	FFI_SYSV_TYPE_SMALL_STRUCT. Comment.
 	Adjust copyright notice.
 
-2008-08-27  Release Manager
+2008-07-16  Kaz Kojima  <kkojima@gcc.gnu.org>
 
-	* GCC 4.3.2 released.
+	* src/sh/ffi.c (ffi_prep_closure_loc): Turn INSN into an unsigned
+	int.
 
-2008-06-06  Release Manager
+2008-06-17  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
 
-	* GCC 4.3.1 released.
+	* configure: Regenerate.
+	* include/Makefile.in: Regenerate.
+	* testsuite/Makefile.in: Regenerate.
 
-2008-03-05  Release Manager
+2008-06-07  Joseph Myers  <joseph@codesourcery.com>
 
-	* GCC 4.3.0 released.
+	* configure.ac (parisc*-*-linux*, powerpc-*-sysv*,
+	powerpc-*-beos*): Remove.
+	* configure: Regenerate.
+
+2008-05-09  Julian Brown  <julian@codesourcery.com>
+
+	* Makefile.am (LTLDFLAGS): New.
+	(libffi_la_LDFLAGS): Use above.
+	* Makefile.in: Regenerate.
+
+2008-04-18  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR bootstrap/35457
+	* aclocal.m4: Regenerate.
+	* configure: Regenerate.
+
+2008-03-26  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* src/sh/sysv.S: Add .note.GNU-stack on Linux.
+	* src/sh64/sysv.S: Likewise.
+
+2008-03-26  Daniel Jacobowitz  <dan@debian.org>
+
+	* src/arm/sysv.S: Fix ARM comment marker.
+
+2008-03-26  Jakub Jelinek  <jakub@redhat.com>
+
+	* src/alpha/osf.S: Add .note.GNU-stack on Linux.
+	* src/s390/sysv.S: Likewise.
+	* src/powerpc/ppc_closure.S: Likewise.
+	* src/powerpc/sysv.S: Likewise.
+	* src/x86/unix64.S: Likewise.
+	* src/x86/sysv.S: Likewise.
+	* src/sparc/v8.S: Likewise.
+	* src/sparc/v9.S: Likewise.
+	* src/m68k/sysv.S: Likewise.
+	* src/arm/sysv.S: Likewise.
+
+2008-03-16  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* aclocal.m4: Regenerate.
+	* configure: Likewise.
+	* Makefile.in: Likewise.
+	* include/Makefile.in: Likewise.
+	* testsuite/Makefile.in: Likewise.
 
 2008-02-12  Bjoern Koenig  <bkoenig@alpha-tierchen.de>
 	    Andreas Tobler  <a.tobler@schweiz.org>

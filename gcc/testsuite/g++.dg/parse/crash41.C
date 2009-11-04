@@ -1,9 +1,8 @@
-// Created by: Dodji Seketeli <dseketel@redhat.com>
-// { dg-do compile }
-// { dg-options "-O2 -fprofile-arcs" }
-// Origin: PR C++/36767
+// PR c++/35327
 
-struct A { A (); ~A (); };
-A a[2];
+struct A
+{
+  A(int)(); // { dg-error "declared" }
+};
 
-
+template<int> void foo(bool b, A a) { b ? a : 0; } // { dg-error "no match" }

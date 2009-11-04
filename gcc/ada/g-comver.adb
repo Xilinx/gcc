@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---                     Copyright (C) 2002-2005, AdaCore                     --
+--                     Copyright (C) 2002-2005,2008 AdaCore                 --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -37,7 +37,7 @@
 
 package body GNAT.Compiler_Version is
 
-   Ver_Len_Max : constant := 32;
+   Ver_Len_Max : constant := 64;
    --  This is logically a reference to Gnatvsn.Ver_Len_Max but we cannot
    --  import this directly since run-time units cannot WITH compiler units.
 
@@ -53,15 +53,18 @@ package body GNAT.Compiler_Version is
 
    function Version return String is
    begin
-      --  Search for terminating right paren
+      --  Search for terminating right paren or NUL ending the string
 
       for J in Ver_Prefix'Length + 1 .. GNAT_Version'Last loop
          if GNAT_Version (J) = ')' then
             return GNAT_Version (Ver_Prefix'Length + 1 .. J);
          end if;
+         if GNAT_Version (J) = Character'Val (0) then
+            return GNAT_Version (Ver_Prefix'Length + 1 .. J - 1);
+         end if;
       end loop;
 
-      --  This should not happen (no right paren found)
+      --  This should not happen (no right paren or NUL found)
 
       return GNAT_Version;
    end Version;

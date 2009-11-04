@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---                     Copyright (C) 1997-2007, AdaCore                     --
+--                     Copyright (C) 1997-2008, AdaCore                     --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -77,7 +77,7 @@ package Memroot is
    --  Create an allocation root from the frames that compose it
 
    function Frames_Of   (B  : Root_Id) return Frame_Array;
-   --  Retreives the Frames of the root's backtrace
+   --  Retrieves the Frames of the root's backtrace
 
    procedure Print_BT (B  : Root_Id; Short : Boolean := False);
    --  Prints on standard out the backtrace associated with the root B

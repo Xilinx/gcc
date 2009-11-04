@@ -1,5 +1,5 @@
 /* Dependency analysis
-   Copyright (C) 2000, 2001, 2002, 2005, 2006, 2007
+   Copyright (C) 2000, 2001, 2002, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Paul Brook <paul@nowt.org>
 
@@ -37,7 +37,7 @@ typedef enum
 {
   GFC_DEP_ERROR,
   GFC_DEP_EQUAL,	/* Identical Ranges.  */
-  GFC_DEP_FORWARD,	/* eg. a(1:3), a(2:4).  */
+  GFC_DEP_FORWARD,	/* e.g., a(1:3), a(2:4).  */
   GFC_DEP_OVERLAP,	/* May overlap in some other way.  */
   GFC_DEP_NODEP		/* Distinct ranges.  */
 }
@@ -76,15 +76,15 @@ gfc_dep_compare_expr (gfc_expr *e1, gfc_expr *e2)
   int i;
 
   if (e1->expr_type == EXPR_OP
-      && (e1->value.op.operator == INTRINSIC_UPLUS
-	  || e1->value.op.operator == INTRINSIC_PARENTHESES))
+      && (e1->value.op.op == INTRINSIC_UPLUS
+	  || e1->value.op.op == INTRINSIC_PARENTHESES))
     return gfc_dep_compare_expr (e1->value.op.op1, e2);
   if (e2->expr_type == EXPR_OP
-      && (e2->value.op.operator == INTRINSIC_UPLUS
-	  || e2->value.op.operator == INTRINSIC_PARENTHESES))
+      && (e2->value.op.op == INTRINSIC_UPLUS
+	  || e2->value.op.op == INTRINSIC_PARENTHESES))
     return gfc_dep_compare_expr (e1, e2->value.op.op1);
 
-  if (e1->expr_type == EXPR_OP && e1->value.op.operator == INTRINSIC_PLUS)
+  if (e1->expr_type == EXPR_OP && e1->value.op.op == INTRINSIC_PLUS)
     {
       /* Compare X+C vs. X.  */
       if (e1->value.op.op2->expr_type == EXPR_CONSTANT
@@ -93,7 +93,7 @@ gfc_dep_compare_expr (gfc_expr *e1, gfc_expr *e2)
 	return mpz_sgn (e1->value.op.op2->value.integer);
 
       /* Compare P+Q vs. R+S.  */
-      if (e2->expr_type == EXPR_OP && e2->value.op.operator == INTRINSIC_PLUS)
+      if (e2->expr_type == EXPR_OP && e2->value.op.op == INTRINSIC_PLUS)
 	{
 	  int l, r;
 
@@ -126,7 +126,7 @@ gfc_dep_compare_expr (gfc_expr *e1, gfc_expr *e2)
     }
 
   /* Compare X vs. X+C.  */
-  if (e2->expr_type == EXPR_OP && e2->value.op.operator == INTRINSIC_PLUS)
+  if (e2->expr_type == EXPR_OP && e2->value.op.op == INTRINSIC_PLUS)
     {
       if (e2->value.op.op2->expr_type == EXPR_CONSTANT
 	  && e2->value.op.op2->ts.type == BT_INTEGER
@@ -135,7 +135,7 @@ gfc_dep_compare_expr (gfc_expr *e1, gfc_expr *e2)
     }
 
   /* Compare X-C vs. X.  */
-  if (e1->expr_type == EXPR_OP && e1->value.op.operator == INTRINSIC_MINUS)
+  if (e1->expr_type == EXPR_OP && e1->value.op.op == INTRINSIC_MINUS)
     {
       if (e1->value.op.op2->expr_type == EXPR_CONSTANT
 	  && e1->value.op.op2->ts.type == BT_INTEGER
@@ -143,7 +143,7 @@ gfc_dep_compare_expr (gfc_expr *e1, gfc_expr *e2)
 	return -mpz_sgn (e1->value.op.op2->value.integer);
 
       /* Compare P-Q vs. R-S.  */
-      if (e2->expr_type == EXPR_OP && e2->value.op.operator == INTRINSIC_MINUS)
+      if (e2->expr_type == EXPR_OP && e2->value.op.op == INTRINSIC_MINUS)
 	{
 	  int l, r;
 
@@ -163,7 +163,7 @@ gfc_dep_compare_expr (gfc_expr *e1, gfc_expr *e2)
     }
 
   /* Compare X vs. X-C.  */
-  if (e2->expr_type == EXPR_OP && e2->value.op.operator == INTRINSIC_MINUS)
+  if (e2->expr_type == EXPR_OP && e2->value.op.op == INTRINSIC_MINUS)
     {
       if (e2->value.op.op2->expr_type == EXPR_CONSTANT
 	  && e2->value.op.op2->ts.type == BT_INTEGER
@@ -196,7 +196,7 @@ gfc_dep_compare_expr (gfc_expr *e1, gfc_expr *e2)
 
     case EXPR_OP:
       /* Intrinsic operators are the same if their operands are the same.  */
-      if (e1->value.op.operator != e2->value.op.operator)
+      if (e1->value.op.op != e2->value.op.op)
 	return -2;
       if (e1->value.op.op2 == 0)
 	{
@@ -422,18 +422,22 @@ gfc_ref_needs_temporary_p (gfc_ref *ref)
 }
 
 
-static int
+int
 gfc_is_data_pointer (gfc_expr *e)
 {
   gfc_ref *ref;
 
-  if (e->expr_type != EXPR_VARIABLE)
+  if (e->expr_type != EXPR_VARIABLE && e->expr_type != EXPR_FUNCTION)
     return 0;
+
+  /* No subreference if it is a function  */
+  gcc_assert (e->expr_type == EXPR_VARIABLE || !e->ref);
 
   if (e->symtree->n.sym->attr.pointer)
     return 1;
+
   for (ref = e->ref; ref; ref = ref->next)
-    if (ref->type == REF_COMPONENT && ref->u.c.component->pointer)
+    if (ref->type == REF_COMPONENT && ref->u.c.component->attr.pointer)
       return 1;
 
   return 0;
@@ -603,7 +607,7 @@ gfc_check_fncall_dependency (gfc_expr *other, sym_intent intent,
 
 
 /* Return 1 if e1 and e2 are equivalenced arrays, either
-   directly or indirectly; ie. equivalence (a,b) for a and b
+   directly or indirectly; i.e., equivalence (a,b) for a and b
    or equivalence (a,c),(b,c).  This function uses the equiv_
    lists, generated in trans-common(add_equivalences), that are
    guaranteed to pick up indirect equivalences.  We explicitly
@@ -1182,17 +1186,28 @@ gfc_check_element_vs_element (gfc_ref *lref, gfc_ref *rref, int n)
 
 
 /* Determine if an array ref, usually an array section specifies the
-   entire array.  */
+   entire array.  In addition, if the second, pointer argument is
+   provided, the function will return true if the reference is
+   contiguous; eg. (:, 1) gives true but (1,:) gives false.  */
 
 bool
-gfc_full_array_ref_p (gfc_ref *ref)
+gfc_full_array_ref_p (gfc_ref *ref, bool *contiguous)
 {
   int i;
+  bool lbound_OK = true;
+  bool ubound_OK = true;
+
+  if (contiguous)
+    *contiguous = false;
 
   if (ref->type != REF_ARRAY)
     return false;
   if (ref->u.ar.type == AR_FULL)
-    return true;
+    {
+      if (contiguous)
+	*contiguous = true;
+      return true;
+    }
   if (ref->u.ar.type != AR_SECTION)
     return false;
   if (ref->next)
@@ -1205,6 +1220,10 @@ gfc_full_array_ref_p (gfc_ref *ref)
 	 the correct element.  */
       if (ref->u.ar.dimen_type[i] == DIMEN_ELEMENT)
 	{
+	  /* This is a contiguous reference.  */
+	  if (contiguous)
+	    *contiguous = (i + 1 == ref->u.ar.dimen);
+
 	  if (!ref->u.ar.as
 	      || !ref->u.ar.as->lower[i]
 	      || !ref->u.ar.as->upper[i]
@@ -1224,16 +1243,23 @@ gfc_full_array_ref_p (gfc_ref *ref)
 	      || !ref->u.ar.as->lower[i]
 	      || gfc_dep_compare_expr (ref->u.ar.start[i],
 				       ref->u.ar.as->lower[i])))
-	return false;
+	lbound_OK = false;
       /* Check the upper bound.  */
       if (ref->u.ar.end[i]
 	  && (!ref->u.ar.as
 	      || !ref->u.ar.as->upper[i]
 	      || gfc_dep_compare_expr (ref->u.ar.end[i],
 				       ref->u.ar.as->upper[i])))
-	return false;
+	ubound_OK = false;
       /* Check the stride.  */
       if (ref->u.ar.stride[i] && !gfc_expr_is_one (ref->u.ar.stride[i], 0))
+	return false;
+
+      /* This is a contiguous reference.  */
+      if (contiguous)
+	*contiguous = (i + 1 == ref->u.ar.dimen);
+
+      if (!lbound_OK || !ubound_OK)
 	return false;
     }
   return true;
@@ -1259,7 +1285,7 @@ gfc_dep_resolver (gfc_ref *lref, gfc_ref *rref)
   while (lref && rref)
     {
       /* We're resolving from the same base symbol, so both refs should be
-	 the same type.  We traverse the reference chain intil we find ranges
+	 the same type.  We traverse the reference chain until we find ranges
 	 that are not equal.  */
       gcc_assert (lref->type == rref->type);
       switch (lref->type)
@@ -1280,11 +1306,11 @@ gfc_dep_resolver (gfc_ref *lref, gfc_ref *rref)
 	  if (lref->u.ar.dimen != rref->u.ar.dimen)
 	    {
 	      if (lref->u.ar.type == AR_FULL)
-		fin_dep = gfc_full_array_ref_p (rref) ? GFC_DEP_EQUAL
-						      : GFC_DEP_OVERLAP;
+		fin_dep = gfc_full_array_ref_p (rref, NULL) ? GFC_DEP_EQUAL
+							    : GFC_DEP_OVERLAP;
 	      else if (rref->u.ar.type == AR_FULL)
-		fin_dep = gfc_full_array_ref_p (lref) ? GFC_DEP_EQUAL
-						      : GFC_DEP_OVERLAP;
+		fin_dep = gfc_full_array_ref_p (lref, NULL) ? GFC_DEP_EQUAL
+							    : GFC_DEP_OVERLAP;
 	      else
 		return 1;
 	      break;

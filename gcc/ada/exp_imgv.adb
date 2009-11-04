@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2001-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 2001-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -556,7 +556,7 @@ package body Exp_Imgv is
    --    Enum'Val (Value_Enumeration_NN (typS, typI'Address, Num, X))
 
    --  where typS and typI and the Lit_Strings and Lit_Indexes entities
-   --  from T's root type entitym and Num is Enum'Pos (Enum'Last). The
+   --  from T's root type entity, and Num is Enum'Pos (Enum'Last). The
    --  Value_Enumeration_NN function will search the tables looking for
    --  X and return the position number in the table if found which is
    --  used to provide the result of 'Value (using Enum'Val). If the

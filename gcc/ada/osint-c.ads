@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 2001-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 2001-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -128,7 +128,7 @@ package Osint.C is
 
    procedure Close_Output_Library_Info;
    --  Closes the file created by Create_Output_Library_Info, flushing any
-   --  buffers etc from writes by Write_Library_Info.
+   --  buffers etc. from writes by Write_Library_Info.
 
    procedure Read_Library_Info
      (Name : out File_Name_Type;

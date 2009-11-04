@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -154,7 +154,7 @@ package body Ch9 is
             Scan; -- past semicolon
 
             if Token = Tok_Entry then
-               Error_Msg_SP (""";"" should be IS");
+               Error_Msg_SP ("|"";"" should be IS");
                Set_Task_Definition (Task_Node, P_Task_Definition);
             else
                Pop_Scope_Stack; -- Remove unused entry
@@ -371,6 +371,7 @@ package body Ch9 is
       Name_Node      : Node_Id;
       Protected_Node : Node_Id;
       Protected_Sloc : Source_Ptr;
+      Scan_State     : Saved_Scan_State;
 
    begin
       Push_Scope_Stack;
@@ -439,6 +440,35 @@ package body Ch9 is
             Scope.Table (Scope.Last).Labl := Name_Node;
          end if;
 
+         --  Check for semicolon not followed by IS, this is something like
+
+         --    protected type r;
+
+         --  where we want
+
+         --    protected type r IS END;
+
+         if Token = Tok_Semicolon then
+            Save_Scan_State (Scan_State); -- at semicolon
+            Scan; -- past semicolon
+
+            if Token /= Tok_Is then
+               Restore_Scan_State (Scan_State);
+               Error_Msg_SC ("missing IS");
+               Set_Protected_Definition (Protected_Node,
+                 Make_Protected_Definition (Token_Ptr,
+                   Visible_Declarations => Empty_List,
+                   End_Label           => Empty));
+
+               SIS_Entry_Active := False;
+               End_Statements (Protected_Definition (Protected_Node));
+               Scan; -- past semicolon
+               return Protected_Node;
+            end if;
+
+            Error_Msg_SP ("|extra ""("" ignored");
+         end if;
+
          T_Is;
 
          --  Ada 2005 (AI-345)
@@ -447,7 +477,7 @@ package body Ch9 is
             Scan; --  past NEW
 
             if Ada_Version < Ada_05 then
-               Error_Msg_SP ("task interface is an Ada 2005 extension");
+               Error_Msg_SP ("protected interface is an Ada 2005 extension");
                Error_Msg_SP ("\unit must be compiled with -gnat05 switch");
             end if;
 
@@ -466,11 +496,6 @@ package body Ch9 is
             end if;
 
             Scan; -- past WITH
-
-            if Token = Tok_Private then
-               Error_Msg_SP
-                 ("PRIVATE not allowed in protected type declaration");
-            end if;
          end if;
 
          Set_Protected_Definition (Protected_Node, P_Protected_Definition);
@@ -531,8 +556,8 @@ package body Ch9 is
          Append (Item_Node, Visible_Declarations (Def_Node));
       end loop;
 
-      --  Deal with PRIVATE part (including graceful handling
-      --  of multiple PRIVATE parts).
+      --  Deal with PRIVATE part (including graceful handling of multiple
+      --  PRIVATE parts).
 
       Private_Loop : while Token = Tok_Private loop
          if No (Private_Declarations (Def_Node)) then
@@ -817,7 +842,8 @@ package body Ch9 is
                Restore_Scan_State (Scan_State); -- to Id
                Set_Parameter_Specifications (Decl_Node, P_Formal_Part);
 
-            --  Else if Id wi no comma or colon, must be discrete subtype defn
+            --  Else if Id without comma or colon, must be discrete subtype
+            --  defn
 
             else
                Restore_Scan_State (Scan_State); -- to Id
@@ -1081,7 +1107,7 @@ package body Ch9 is
          Bnode := P_Expression_No_Right_Paren;
 
          if Token = Tok_Colon_Equal then
-            Error_Msg_SC (""":="" should be ""=""");
+            Error_Msg_SC ("|"":="" should be ""=""");
             Scan;
             Bnode := P_Expression_No_Right_Paren;
          end if;
@@ -1328,7 +1354,7 @@ package body Ch9 is
             Ecall_Node := P_Name;
 
             --  ??  The following two clauses exactly parallel code in ch5
-            --      and should be commoned sometime
+            --      and should be combined sometime
 
             if Nkind (Ecall_Node) = N_Indexed_Component then
                declare
@@ -1447,7 +1473,7 @@ package body Ch9 is
 
          End_Statements;
 
-      --  Here we have a selective accept or an an asynchronous select (first
+      --  Here we have a selective accept or an asynchronous select (first
       --  token after SELECT is other than a designator token).
 
       else
@@ -1638,7 +1664,7 @@ package body Ch9 is
 
       --  Note: the reason that we accept THEN ABORT as a terminator for
       --  the sequence of statements is for error recovery which allows
-      --  for misuse of an accept statement as a triggering statememt.
+      --  for misuse of an accept statement as a triggering statement.
 
       Set_Statements
         (Accept_Alt_Node, P_Sequence_Of_Statements (SS_Eltm_Ortm_Tatm));
@@ -1666,7 +1692,7 @@ package body Ch9 is
 
       --  Note: the reason that we accept THEN ABORT as a terminator for
       --  the sequence of statements is for error recovery which allows
-      --  for misuse of an accept statement as a triggering statememt.
+      --  for misuse of an accept statement as a triggering statement.
 
       Set_Statements
         (Delay_Alt_Node, P_Sequence_Of_Statements (SS_Eltm_Ortm_Tatm));

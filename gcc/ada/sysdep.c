@@ -6,24 +6,23 @@
  *                                                                          *
  *                          C Implementation File                           *
  *                                                                          *
- *         Copyright (C) 1992-2007, Free Software Foundation, Inc.          *
+ *            Copyright (C) 1992-2009 Free Software Foundation, Inc.        *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
- * ware  Foundation;  either version 2,  or (at your option) any later ver- *
+ * ware  Foundation;  either version 3,  or (at your option) any later ver- *
  * sion.  GNAT is distributed in the hope that it will be useful, but WITH- *
  * OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY *
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License *
- * for  more details.  You should have  received  a copy of the GNU General *
- * Public License  distributed with GNAT;  see file COPYING.  If not, write *
- * to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, *
- * Boston, MA 02110-1301, USA.                                              *
+ * or FITNESS FOR A PARTICULAR PURPOSE.                                     *
  *                                                                          *
- * As a  special  exception,  if you  link  this file  with other  files to *
- * produce an executable,  this file does not by itself cause the resulting *
- * executable to be covered by the GNU General Public License. This except- *
- * ion does not  however invalidate  any other reasons  why the  executable *
- * file might be covered by the  GNU Public License.                        *
+ * As a special exception under Section 7 of GPL version 3, you are granted *
+ * additional permissions described in the GCC Runtime Library Exception,   *
+ * version 3.1, as published by the Free Software Foundation.               *
+ *                                                                          *
+ * You should have received a copy of the GNU General Public License and    *
+ * a copy of the GCC Runtime Library Exception along with this program;     *
+ * see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    *
+ * <http://www.gnu.org/licenses/>.                                          *
  *                                                                          *
  * GNAT was originally developed  by the GNAT team at  New York University. *
  * Extensive contributions were provided by Ada Core Technologies Inc.      *
@@ -35,9 +34,14 @@
 
 #ifdef __vxworks
 #include "ioLib.h"
+#include "dosFsLib.h"
+#ifndef __RTP__
+# include "nfsLib.h"
+#endif
 #include "selectLib.h"
 #include "vxWorks.h"
 #endif
+
 #ifdef IN_RTS
 #define POSIX
 #include "tconfig.h"
@@ -53,6 +57,7 @@
 #endif
 
 #include <time.h>
+#include <errno.h>
 
 #if defined (sun) && defined (__SVR4) && !defined (__vxworks)
 /* The declaration is present in <time.h> but conditionalized
@@ -342,7 +347,8 @@ __gnat_ttyname (int filedes)
   || (defined (__osf__) && ! defined (__alpha_vxworks)) || defined (WINNT) \
   || defined (__MACHTEN__) || defined (__hpux__) || defined (_AIX) \
   || (defined (__svr4__) && defined (i386)) || defined (__Lynx__) \
-  || defined (__CYGWIN__) || defined (__FreeBSD__) || defined (__OpenBSD__)
+  || defined (__CYGWIN__) || defined (__FreeBSD__) || defined (__OpenBSD__) \
+  || defined (__GLIBC__)
 
 #ifdef __MINGW32__
 #if OLD_MINGW
@@ -399,7 +405,8 @@ getc_immediate_common (FILE *stream,
     || (defined (__osf__) && ! defined (__alpha_vxworks)) \
     || defined (__CYGWIN32__) || defined (__MACHTEN__) || defined (__hpux__) \
     || defined (_AIX) || (defined (__svr4__) && defined (i386)) \
-    || defined (__Lynx__) || defined (__FreeBSD__) || defined (__OpenBSD__)
+    || defined (__Lynx__) || defined (__FreeBSD__) || defined (__OpenBSD__) \
+    || defined (__GLIBC__)
   char c;
   int nread;
   int good_one = 0;
@@ -418,7 +425,8 @@ getc_immediate_common (FILE *stream,
 #if defined(linux) || defined (sun) || defined (sgi) || defined (__EMX__) \
     || defined (__osf__) || defined (__MACHTEN__) || defined (__hpux__) \
     || defined (_AIX) || (defined (__svr4__) && defined (i386)) \
-    || defined (__Lynx__) || defined (__FreeBSD__) || defined (__OpenBSD__)
+    || defined (__Lynx__) || defined (__FreeBSD__) || defined (__OpenBSD__) \
+    || defined (__GLIBC__)
       eof_ch = termios_rec.c_cc[VEOF];
 
       /* If waiting (i.e. Get_Immediate (Char)), set MIN = 1 and wait for
@@ -708,7 +716,7 @@ get_gmtoff (void)
 
 long __gnat_invalid_tzoff = 259273;
 
-/* Definition of __gnat_locatime_r used by a-calend.adb */
+/* Definition of __gnat_localtime_r used by a-calend.adb */
 
 #if defined (__EMX__) || defined (__MINGW32__)
 
@@ -845,7 +853,7 @@ __gnat_localtime_tzoff (const time_t *timer, struct tm *tp, long *off)
 /* Darwin, Free BSD, Linux, Tru64, where there exists a component tm_gmtoff
    in struct tm */
 #elif defined (__APPLE__) || defined (__FreeBSD__) || defined (linux) ||\
-     (defined (__alpha__) && defined (__osf__))
+     (defined (__alpha__) && defined (__osf__)) || defined (__GLIBC__)
   *off = tp->tm_gmtoff;
 
 /* All other platforms: Treat all time values in GMT */
@@ -890,3 +898,23 @@ __gnat_get_task_options (void)
 }
 
 #endif
+
+int
+__gnat_is_file_not_found_error (int errno_val) {
+   switch (errno_val) {
+      case ENOENT:
+#ifdef __vxworks
+      /* In the case of VxWorks, we also have to take into account various
+       * filesystem-specific variants of this error.
+       */
+      case S_dosFsLib_FILE_NOT_FOUND:
+#ifndef __RTP__
+      case S_nfsLib_NFSERR_NOENT:
+#endif
+#endif
+         return 1;
+
+      default:
+         return 0;
+   }
+}

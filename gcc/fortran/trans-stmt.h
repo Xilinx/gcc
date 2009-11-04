@@ -1,5 +1,6 @@
 /* Header for statement translation functions
-   Copyright (C) 2002, 2003, 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2002, 2003, 2006, 2007, 2008
+   Free Software Foundation, Inc.
    Contributed by Paul Brook
 
 This file is part of GCC.
@@ -38,7 +39,7 @@ tree gfc_trans_goto (gfc_code *);
 tree gfc_trans_entry (gfc_code *);
 tree gfc_trans_pause (gfc_code *);
 tree gfc_trans_stop (gfc_code *);
-tree gfc_trans_call (gfc_code *, bool);
+tree gfc_trans_call (gfc_code *, bool, tree, tree, bool);
 tree gfc_trans_return (gfc_code *);
 tree gfc_trans_if (gfc_code *);
 tree gfc_trans_arithmetic_if (gfc_code *);
@@ -68,3 +69,4 @@ tree gfc_trans_flush (gfc_code *);
 
 tree gfc_trans_transfer (gfc_code *);
 tree gfc_trans_dt_end (gfc_code *);
+tree gfc_trans_wait (gfc_code *);

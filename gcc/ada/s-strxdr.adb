@@ -6,25 +6,23 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---         Copyright (C) 1996-2006, Free Software Foundation, Inc.          --
+--         Copyright (C) 1996-2009, Free Software Foundation, Inc.          --
 --                                                                          --
 -- GARLIC is free software;  you can redistribute it and/or modify it under --
--- terms of the  GNU General Public License  as published by the Free Soft- --
--- ware Foundation;  either version 2,  or (at your option)  any later ver- --
--- sion.  GARLIC is distributed  in the hope that  it will be  useful,  but --
--- WITHOUT ANY WARRANTY;  without even the implied warranty of MERCHANTABI- --
--- LITY or  FITNESS FOR A PARTICULAR PURPOSE.  See the  GNU General Public  --
--- License  for more details.  You should have received  a copy of the GNU  --
--- General Public License  distributed with GARLIC;  see file COPYING.  If  --
--- not,  write to the Free Software Foundation,  51 Franklin Street, Fifth  --
--- Floor, Boston, MA 02110-1301, USA.                                       --
+-- terms of the  GNU General Public License as published  by the Free Soft- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
+-- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
+-- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -33,7 +31,7 @@
 
 --  This file is an alternate version of s-stratt.adb based on the XDR
 --  standard. It is especially useful for exchanging streams between two
---  different systems with different basic type representations and endianess.
+--  different systems with different basic type representations and endianness.
 
 with Ada.IO_Exceptions;
 with Ada.Streams;              use Ada.Streams;
@@ -47,11 +45,11 @@ package body System.Stream_Attributes is
    use UST;
 
    Data_Error : exception renames Ada.IO_Exceptions.End_Error;
-   --  Exception raised if insufficient data read (End_Error is
-   --  mandated by AI95-00132).
+   --  Exception raised if insufficient data read (End_Error is mandated by
+   --  AI95-00132).
 
    SU : constant := System.Storage_Unit;
-   --  XXXXX pragma Assert (SU = 8);
+   --  The code in this body assumes that SU = 8
 
    BB : constant := 2 ** SU;           --  Byte base
    BL : constant := 2 ** SU - 1;       --  Byte last
@@ -74,8 +72,8 @@ package body System.Stream_Attributes is
          F_Size       : Integer; --  Fraction bit size
          E_Last       : Integer; --  Max exponent value
          F_Mask       : SE;      --  Mask to apply on first fraction byte
-         E_Bytes      : SEO;     --  N. of exponent bytes completly used
-         F_Bytes      : SEO;     --  N. of fraction bytes completly used
+         E_Bytes      : SEO;     --  N. of exponent bytes completely used
+         F_Bytes      : SEO;     --  N. of fraction bytes completely used
          F_Bits       : Integer; --  N. of bits used on first fraction word
       end record;
 
@@ -127,7 +125,7 @@ package body System.Stream_Attributes is
    --  in the range [-2147483648,2147483647]. The integer is represented
    --  in two's complement notation. The most and least significant bytes
    --  are 0 and 3, respectively. Integers are declared as follows:
-   --
+
    --        (MSB)                   (LSB)
    --      +-------+-------+-------+-------+
    --      |byte 0 |byte 1 |byte 2 |byte 3 |
@@ -175,7 +173,7 @@ package body System.Stream_Attributes is
    --  integer in the range [0,4294967295]. It is represented by an unsigned
    --  binary number whose most and least significant bytes are 0 and 3,
    --  respectively. An unsigned integer is declared as follows:
-   --
+
    --        (MSB)                   (LSB)
    --      +-------+-------+-------+-------+
    --      |byte 0 |byte 1 |byte 2 |byte 3 |
@@ -222,10 +220,10 @@ package body System.Stream_Attributes is
    --  or 4 bytes). The encoding used is the IEEE standard for normalized
    --  single-precision floating-point numbers.
 
-   --  The standard defines the encoding for the double-precision
-   --  floating-point data type "double" (64 bits or 8 bytes). The
-   --  encoding used is the IEEE standard for normalized double-precision
-   --  floating-point numbers.
+   --  The standard defines the encoding used for the double-precision
+   --  floating-point data type "double" (64 bits or 8 bytes). The encoding
+   --  used is the IEEE standard for normalized double-precision floating-point
+   --  numbers.
 
    SF_L  : constant := 4;   --  Single precision
    F_L   : constant := 4;   --  Single precision
@@ -267,6 +265,12 @@ package body System.Stream_Attributes is
    subtype XDR_S_WC is SEA (1 .. WC_L);
    type XDR_WC is mod BB ** WC_L;
 
+   --  Consider Wide_Wide_Character as an enumeration type
+
+   WWC_L : constant := 8;
+   subtype XDR_S_WWC is SEA (1 .. WWC_L);
+   type XDR_WWC is mod BB ** WWC_L;
+
    --  Optimization: if we already have the correct Bit_Order, then some
    --  computations can be avoided since the source and the target will be
    --  identical anyway. They will be replaced by direct unchecked
@@ -274,6 +278,15 @@ package body System.Stream_Attributes is
 
    Optimize_Integers : constant Boolean :=
      Default_Bit_Order = High_Order_First;
+
+   -----------------
+   -- Block_IO_OK --
+   -----------------
+
+   function Block_IO_OK return Boolean is
+   begin
+      return False;
+   end Block_IO_OK;
 
    ----------
    -- I_AD --
@@ -303,6 +316,7 @@ package body System.Stream_Attributes is
 
       if L /= S'Last then
          raise Data_Error;
+
       else
          for N in S'Range loop
             U := U * BB + XDR_TM (S (N));
@@ -338,8 +352,8 @@ package body System.Stream_Attributes is
 
       if L /= S'Last then
          raise Data_Error;
-      else
 
+      else
          --  Use Ada requirements on Character representation clause
 
          return Character'Val (S (1));
@@ -694,10 +708,11 @@ package body System.Stream_Attributes is
 
       if L /= S'Last then
          raise Data_Error;
+
       elsif Optimize_Integers then
          return XDR_S_LLI_To_Long_Long_Integer (S);
-      else
 
+      else
          --  Compute using machine unsigned for computing
          --  rather than long_long_unsigned.
 
@@ -737,10 +752,11 @@ package body System.Stream_Attributes is
 
       if L /= S'Last then
          raise Data_Error;
+
       elsif Optimize_Integers then
          return XDR_S_LLU_To_Long_Long_Unsigned (S);
-      else
 
+      else
          --  Compute using machine unsigned
          --  rather than long_long_unsigned.
 
@@ -774,10 +790,11 @@ package body System.Stream_Attributes is
 
       if L /= S'Last then
          raise Data_Error;
+
       elsif Optimize_Integers then
          return Long_Unsigned (XDR_S_LU_To_Long_Long_Unsigned (S));
-      else
 
+      else
          --  Compute using machine unsigned
          --  rather than long_unsigned.
 
@@ -924,8 +941,10 @@ package body System.Stream_Attributes is
 
       if L /= S'Last then
          raise Data_Error;
+
       elsif Optimize_Integers then
          return XDR_S_SSI_To_Short_Short_Integer (S);
+
       else
          U := XDR_SSU (S (1));
 
@@ -953,9 +972,9 @@ package body System.Stream_Attributes is
 
       if L /= S'Last then
          raise Data_Error;
+
       else
          U := XDR_SSU (S (1));
-
          return Short_Short_Unsigned (U);
       end if;
    end I_SSU;
@@ -974,8 +993,10 @@ package body System.Stream_Attributes is
 
       if L /= S'Last then
          raise Data_Error;
+
       elsif Optimize_Integers then
          return XDR_S_SU_To_Short_Unsigned (S);
+
       else
          for N in S'Range loop
             U := U * BB + XDR_SU (S (N));
@@ -1026,6 +1047,7 @@ package body System.Stream_Attributes is
 
       if L /= S'Last then
          raise Data_Error;
+
       else
          for N in S'Range loop
             U := U * BB + XDR_WC (S (N));
@@ -1036,6 +1058,32 @@ package body System.Stream_Attributes is
          return Wide_Character'Val (U);
       end if;
    end I_WC;
+
+   -----------
+   -- I_WWC --
+   -----------
+
+   function I_WWC (Stream : not null access RST) return Wide_Wide_Character is
+      S : XDR_S_WWC;
+      L : SEO;
+      U : XDR_WWC := 0;
+
+   begin
+      Ada.Streams.Read (Stream.all, S, L);
+
+      if L /= S'Last then
+         raise Data_Error;
+
+      else
+         for N in S'Range loop
+            U := U * BB + XDR_WWC (S (N));
+         end loop;
+
+         --  Use Ada requirements on Wide_Wide_Character representation clause
+
+         return Wide_Wide_Character'Val (U);
+      end if;
+   end I_WWC;
 
    ----------
    -- W_AD --
@@ -1111,7 +1159,6 @@ package body System.Stream_Attributes is
       pragma Assert (C_L = 1);
 
    begin
-
       --  Use Ada requirements on Character representation clause
 
       S (1) := SE (Character'Pos (Item));
@@ -1212,8 +1259,8 @@ package body System.Stream_Attributes is
    begin
       if Optimize_Integers then
          S := Integer_To_XDR_S_I (Item);
-      else
 
+      else
          --  Test sign and apply two complement notation
 
          if Item < 0 then
@@ -1329,8 +1376,8 @@ package body System.Stream_Attributes is
    begin
       if Optimize_Integers then
          S := Long_Long_Integer_To_XDR_S_LI (Long_Long_Integer (Item));
-      else
 
+      else
          --  Test sign and apply two complement notation
 
          if Item < 0 then
@@ -1462,8 +1509,9 @@ package body System.Stream_Attributes is
    -- W_LLI --
    -----------
 
-   procedure W_LLI (Stream : not null access RST;
-                    Item   : Long_Long_Integer)
+   procedure W_LLI
+     (Stream : not null access RST;
+      Item   : Long_Long_Integer)
    is
       S : XDR_S_LLI;
       U : Unsigned;
@@ -1472,8 +1520,8 @@ package body System.Stream_Attributes is
    begin
       if Optimize_Integers then
          S := Long_Long_Integer_To_XDR_S_LLI (Item);
-      else
 
+      else
          --  Test sign and apply two complement notation
 
          if Item < 0 then
@@ -1510,8 +1558,10 @@ package body System.Stream_Attributes is
    -- W_LLU --
    -----------
 
-   procedure W_LLU (Stream : not null access RST;
-                    Item   : Long_Long_Unsigned) is
+   procedure W_LLU
+     (Stream : not null access RST;
+      Item   : Long_Long_Unsigned)
+   is
       S : XDR_S_LLU;
       U : Unsigned;
       X : Long_Long_Unsigned := Item;
@@ -1519,6 +1569,7 @@ package body System.Stream_Attributes is
    begin
       if Optimize_Integers then
          S := Long_Long_Unsigned_To_XDR_S_LLU (Item);
+
       else
          --  Compute using machine unsigned
          --  rather than long_long_unsigned.
@@ -1556,6 +1607,7 @@ package body System.Stream_Attributes is
    begin
       if Optimize_Integers then
          S := Long_Long_Unsigned_To_XDR_S_LU (Long_Long_Unsigned (Item));
+
       else
          --  Compute using machine unsigned
          --  rather than long_unsigned.
@@ -1673,8 +1725,8 @@ package body System.Stream_Attributes is
    begin
       if Optimize_Integers then
          S := Short_Integer_To_XDR_S_SI (Item);
-      else
 
+      else
          --  Test sign and apply two complement's notation
 
          if Item < 0 then
@@ -1710,8 +1762,8 @@ package body System.Stream_Attributes is
    begin
       if Optimize_Integers then
          S := Short_Short_Integer_To_XDR_S_SSI (Item);
-      else
 
+      else
          --  Test sign and apply two complement's notation
 
          if Item < 0 then
@@ -1739,7 +1791,6 @@ package body System.Stream_Attributes is
 
    begin
       S (1) := SE (U);
-
       Ada.Streams.Write (Stream.all, S);
    end W_SSU;
 
@@ -1754,6 +1805,7 @@ package body System.Stream_Attributes is
    begin
       if Optimize_Integers then
          S := Short_Unsigned_To_XDR_S_SU (Item);
+
       else
          for N in reverse S'Range loop
             S (N) := SE (U mod BB);
@@ -1779,6 +1831,7 @@ package body System.Stream_Attributes is
    begin
       if Optimize_Integers then
          S := Unsigned_To_XDR_S_U (Item);
+
       else
          for N in reverse S'Range loop
             S (N) := SE (U mod BB);
@@ -1802,7 +1855,6 @@ package body System.Stream_Attributes is
       U : XDR_WC;
 
    begin
-
       --  Use Ada requirements on Wide_Character representation clause
 
       U := XDR_WC (Wide_Character'Pos (Item));
@@ -1818,5 +1870,32 @@ package body System.Stream_Attributes is
          raise Data_Error;
       end if;
    end W_WC;
+
+   -----------
+   -- W_WWC --
+   -----------
+
+   procedure W_WWC
+     (Stream : not null access RST; Item : Wide_Wide_Character)
+   is
+      S : XDR_S_WWC;
+      U : XDR_WWC;
+
+   begin
+      --  Use Ada requirements on Wide_Wide_Character representation clause
+
+      U := XDR_WWC (Wide_Wide_Character'Pos (Item));
+
+      for N in reverse S'Range loop
+         S (N) := SE (U mod BB);
+         U := U / BB;
+      end loop;
+
+      Ada.Streams.Write (Stream.all, S);
+
+      if U /= 0 then
+         raise Data_Error;
+      end if;
+   end W_WWC;
 
 end System.Stream_Attributes;

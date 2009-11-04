@@ -1,7 +1,7 @@
 \input texinfo  @c -*-texinfo-*-
 @c %**start of header
 @setfilename gfortran.info
-@set copyrights-gfortran 1999-2007
+@set copyrights-gfortran 1999-2008
 
 @include gcc-common.texi
 
@@ -80,11 +80,10 @@
 Copyright @copyright{} @value{copyrights-gfortran} Free Software Foundation, Inc.
 
 Permission is granted to copy, distribute and/or modify this document
-under the terms of the GNU Free Documentation License, Version 1.1 or
+under the terms of the GNU Free Documentation License, Version 1.2 or
 any later version published by the Free Software Foundation; with the
-Invariant Sections being ``GNU General Public License'' and ``Funding
-Free Software'', the Front-Cover
-texts being (a) (see below), and with the Back-Cover Texts being (b)
+Invariant Sections being ``Funding Free Software'', the Front-Cover
+Texts being (a) (see below), and with the Back-Cover Texts being (b)
 (see below).  A copy of the license is included in the section entitled
 ``GNU Free Documentation License''.
 
@@ -181,7 +180,8 @@ Part I: Invoking GNU Fortran
 * Runtime::              Influencing runtime behavior with environment variables.
 
 Part II: Language Reference
-* Fortran 2003 status::  Fortran 2003 features supported by GNU Fortran.
+* Fortran 2003 and 2008 status::  Fortran 2003 and 2008 features supported by GNU Fortran.
+* Compiler Characteristics::      KIND type parameters supported.
 * Extensions::           Language extensions implemented by GNU Fortran.
 * Intrinsic Procedures:: Intrinsic procedures supported by GNU Fortran.
 * Intrinsic Modules::    Intrinsic modules supported by GNU Fortran.
@@ -190,7 +190,7 @@ Part II: Language Reference
 * Copying::              GNU General Public License says
                          how you can copy and share GNU Fortran.
 * GNU Free Documentation License::
-		         How you can copy and share this manual.
+                         How you can copy and share this manual.
 * Funding::              How to help assure continued work for free software.
 * Option Index::         Index of command line options
 * Keyword Index::        Index of concepts
@@ -229,7 +229,7 @@ or alternative to, the unix @command{f95} command;
 * Preprocessing and conditional compilation:: The Fortran preprocessor
 * GNU Fortran and G77::  Why we chose to start from scratch.
 * Project Status::       Status of GNU Fortran, roadmap, proposed extensions.
-* Standards::	         Standards supported by GNU Fortran.
+* Standards::            Standards supported by GNU Fortran.
 @end menu
 
 
@@ -251,7 +251,7 @@ it will do everything you expect from any decent compiler:
 @item
 Read a user's program,
 stored in a file and containing instructions written
-in Fortran 77, Fortran 90, Fortran 95 or Fortran 2003.
+in Fortran 77, Fortran 90, Fortran 95, Fortran 2003 or Fortran 2008.
 This file contains @dfn{source code}.
 
 @item
@@ -264,14 +264,13 @@ code designed to be efficiently translated and processed
 by a machine such as your computer.
 Humans usually aren't as good writing machine code
 as they are at writing Fortran (or C++, Ada, or Java),
-because is easy to make tiny mistakes writing machine code.
+because it is easy to make tiny mistakes writing machine code.
 
 @item
 Provide the user with information about the reasons why
 the compiler is unable to create a binary from the source code.
 Usually this will be the case if the source code is flawed.
-When writing Fortran, it is easy to make big mistakes.
-The Fortran 90 requires that the compiler can point out
+The Fortran 90 standard requires that the compiler can point out
 mistakes to the user.
 An incorrect usage of the language causes an @dfn{error message}.
 
@@ -369,17 +368,19 @@ Fortran) for each file in the source code, and then calls the assembler
 and linker as appropriate to produce the compiled output. In a copy of
 GCC which has been compiled with Fortran language support enabled,
 @command{gcc} will recognize files with @file{.f}, @file{.for}, @file{.ftn},
-@file{.f90}, @file{.f95}, and @file{.f03} extensions as Fortran source code,
-and compile it accordingly. A @command{gfortran} driver program is also
-provided, which is identical to @command{gcc} except that it automatically
-links the Fortran runtime libraries into the compiled program.
+@file{.f90}, @file{.f95}, @file{.f03} and @file{.f08} extensions as
+Fortran source code, and compile it accordingly. A @command{gfortran}
+driver program is also provided, which is identical to @command{gcc}
+except that it automatically links the Fortran runtime libraries into the
+compiled program.
 
 Source files with @file{.f}, @file{.for}, @file{.fpp}, @file{.ftn}, @file{.F},
 @file{.FOR}, @file{.FPP}, and @file{.FTN} extensions are treated as fixed form.
-Source files with @file{.f90}, @file{.f95}, @file{.f03}, @file{.F90}, 
-@file{.F95}, and @file{.F03} extensions are treated as free form.  The
-capitalized versions of either form are run through preprocessing. Source files
-with the lower case @file{.fpp} extension are also run through preprocessing.
+Source files with @file{.f90}, @file{.f95}, @file{.f03}, @file{.f08},
+@file{.F90}, @file{.F95}, @file{.F03} and @file{.F08} extensions are
+treated as free form.  The capitalized versions of either form are run
+through preprocessing. Source files with the lower case @file{.fpp}
+extension are also run through preprocessing.
 
 This manual specifically documents the Fortran front end, which handles
 the programming language's syntax and semantics.  The aspects of GCC
@@ -400,19 +401,24 @@ Fortran compiler.
 @cindex FPP
 @cindex Conditional compilation
 @cindex Preprocessing
+@cindex preprocessor, include file handling
 
 Many Fortran compilers including GNU Fortran allow passing the source code
 through a C preprocessor (CPP; sometimes also called the Fortran preprocessor,
 FPP) to allow for conditional compilation. In the case of GNU Fortran,
 this is the GNU C Preprocessor in the traditional mode. On systems with
 case-preserving file names, the preprocessor is automatically invoked if the
-file extension is @code{.F}, @code{.FOR}, @code{.FTN}, @code{.F90},
-@code{.F95} or @code{.F03}; otherwise use for fixed-format code the option
-@code{-x f77-cpp-input} and for free-format code @code{-x f95-cpp-input}.
-Invocation of the preprocessor can be suppressed using @code{-x f77} or
-@code{-x f95}.
+filename extension is @code{.F}, @code{.FOR}, @code{.FTN}, @code{.fpp},
+@code{.FPP}, @code{.F90}, @code{.F95}, @code{.F03} or @code{.F08}. To manually
+invoke the preprocessor on any file, use @option{-cpp}, to disable
+preprocessing on files where the preprocessor is run automatically, use
+@option{-nocpp}.
 
-If the GNU Fortran invoked the preprocessor, @code{__GFORTRAN__}
+If a preprocessed file includes another file with the Fortran @code{INCLUDE}
+statement, the included file is not preprocessed. To preprocess included
+files, use the equivalent preprocessor statement @code{#include}.
+
+If GNU Fortran invokes the preprocessor, @code{__GFORTRAN__}
 is defined and @code{__GNUC__}, @code{__GNUC_MINOR__} and
 @code{__GNUC_PATCHLEVEL__} can be used to determine the version of the
 compiler. See @ref{Top,,Overview,cpp,The C Preprocessor} for details.
@@ -468,10 +474,10 @@ The GNU Fortran compiler is able to compile nearly all
 standard-compliant Fortran 95, Fortran 90, and Fortran 77 programs,
 including a number of standard and non-standard extensions, and can be
 used on real-world programs.  In particular, the supported extensions
-include OpenMP, Cray-style pointers, and several Fortran 2003 features
-such as enumeration, stream I/O, and some of the enhancements to
-allocatable array support from TR 15581.  However, it is still under
-development and has a few remaining rough edges.
+include OpenMP, Cray-style pointers, and several Fortran 2003 and Fortran
+2008 features such as enumeration, stream I/O, and some of the
+enhancements to allocatable array support from TR 15581.  However, it is
+still under development and has a few remaining rough edges.
 
 At present, the GNU Fortran compiler passes the
 @uref{http://www.fortran-2000.com/ArnaudRecipes/fcvs21_f95.html, 
@@ -516,9 +522,18 @@ the ISO/IEC TR-15581 enhancements to allocatable arrays, and
 the @uref{http://www.openmp.org/drupal/mp-documents/spec25.pdf,
 OpenMP Application Program Interface v2.5} specification.
 
-In the future, the GNU Fortran compiler may also support other standard 
-variants of and extensions to the Fortran language.  These include
-ISO/IEC 1539-1:2004 (Fortran 2003).
+In the future, the GNU Fortran compiler will also support ISO/IEC
+1539-1:2004 (Fortran 2003) and future Fortran standards. Partial support
+of that standard is already provided; the current status of Fortran 2003
+support is reported in the @ref{Fortran 2003 status} section of the
+documentation.
+
+The next version of the Fortran standard after Fortran 2003 is currently
+being developed and the GNU Fortran compiler supports some of its new
+features. This support is based on the latest draft of the standard
+(available from @url{http://www.nag.co.uk/sc22wg5/}) and no guarantee of
+future compatibility is made, as the final standard might differ from the
+draft. For more information, see the @ref{Fortran 2008 status} section.
 
 
 @c =====================================================================
@@ -616,7 +631,7 @@ This is the default.
 @section @env{GFORTRAN_UNBUFFERED_PRECONNECTED}---Don't buffer I/O on preconnected units
 
 The environment variable named @env{GFORTRAN_UNBUFFERED_PRECONNECTED} controls
-whether I/O on a preconnected unit (i.e STDOUT or STDERR) is unbuffered.  If 
+whether I/O on a preconnected unit (i.e.@: STDOUT or STDERR) is unbuffered.  If 
 the first letter is @samp{y}, @samp{Y} or @samp{1}, I/O is unbuffered. This
 will slow down small sequential reads and writes.  If the first letter
 is @samp{n}, @samp{N} or @samp{0}, I/O is buffered.  This is the default.
@@ -682,7 +697,7 @@ the modes are the same as for the @code{CONVERT} specifier:
 @item @code{NATIVE} Use the native format.  This is the default.
 @item @code{SWAP} Swap between little- and big-endian.
 @item @code{LITTLE_ENDIAN} Use the little-endian format
-        for unformatted files.
+for unformatted files.
 @item @code{BIG_ENDIAN} Use the big-endian format for unformatted files.
 @end itemize
 A missing mode for an exception is taken to mean @code{BIG_ENDIAN}.
@@ -758,11 +773,19 @@ was used.
 @end tex
 
 @c ---------------------------------------------------------------------
-@c Fortran 2003 Status
+@c Fortran 2003 and 2008 Status
 @c ---------------------------------------------------------------------
 
+@node Fortran 2003 and 2008 status
+@chapter Fortran 2003 and 2008 Status
+
+@menu
+* Fortran 2003 status::
+* Fortran 2008 status::
+@end menu
+
 @node Fortran 2003 status
-@chapter Fortran 2003 Status
+@section Fortran 2003 status
 
 Although GNU Fortran focuses on implementing the Fortran 95
 standard for the time being, a few Fortran 2003 features are currently
@@ -867,6 +890,81 @@ BOZ as argument of INT, REAL, DBLE and CMPLX.
 @end itemize
 
 
+@node Fortran 2008 status
+@section Fortran 2008 status
+
+The next version of the Fortran standard after Fortran 2003 is currently
+being worked on by the Working Group 5 of Sub-Committee 22 of the Joint
+Technical Committee 1 of the International Organization for
+Standardization (ISO) and the International Electrotechnical Commission
+(IEC). This group is known at @uref{http://www.nag.co.uk/sc22wg5/, WG5}.
+The next revision of the Fortran standard is informally referred to as
+Fortran 2008, reflecting its planned release year. The GNU Fortran
+compiler has support for some of the new features in Fortran 2008. This
+support is based on the latest draft, available from
+@url{http://www.nag.co.uk/sc22wg5/}. However, as the final standard may
+differ from the drafts, no guarantee of backward compatibility can be
+made and you should only use it for experimental purposes.
+
+
+@c ---------------------------------------------------------------------
+@c Compiler Characteristics
+@c ---------------------------------------------------------------------
+
+@node Compiler Characteristics
+@chapter Compiler Characteristics
+
+@c TODO: Formulate this introduction a little more generally once
+@c there is more here than KIND type parameters.
+
+This chapter describes certain characteristics of the GNU Fortran compiler,
+namely the KIND type parameter values supported.
+
+@menu
+* KIND Type Parameters::
+@end menu
+
+
+@node KIND Type Parameters
+@section KIND Type Parameters
+@cindex kind
+
+The @code{KIND} type parameters supported by GNU Fortran for the primitive
+data types are:
+
+@table @code
+
+@item INTEGER
+1, 2, 4, 8*, 16*, default: 4 (1)
+
+@item LOGICAL
+1, 2, 4, 8*, 16*, default: 4 (1)
+
+@item REAL
+4, 8, 10**, 16**, default: 4 (2)
+
+@item COMPLEX
+4, 8, 10**, 16**, default: 4 (2)
+
+@item CHARACTER
+1, 4, default: 1
+
+@end table
+
+@noindent
+* = not available on all systems @*
+** = not available on all systems; additionally 10 and 16 are never
+available at the same time @*
+(1) Unless -fdefault-integer-8 is used @*
+(2) Unless -fdefault-real-8 is used
+
+@noindent
+The @code{KIND} value matches the storage size in bytes, except for
+@code{COMPLEX} where the storage size is twice as much (or both real and
+imaginary part are a real value of the given size).  It is recommended to use
+the @code{SELECT_*_KIND} intrinsics instead of the concrete values.
+
+
 @c ---------------------------------------------------------------------
 @c Extensions
 @c ---------------------------------------------------------------------
@@ -903,8 +1001,9 @@ by any standard, and those that are supported by GNU Fortran
 purely for backward compatibility with legacy compilers.  By default,
 @option{-std=gnu} allows the compiler to accept both types of
 extensions, but to warn about the use of the latter.  Specifying
-either @option{-std=f95} or @option{-std=f2003} disables both types
-of extensions, and @option{-std=legacy} allows both without warning.
+either @option{-std=f95}, @option{-std=f2003} or @option{-std=f2008}
+disables both types of extensions, and @option{-std=legacy} allows both
+without warning.
 
 @menu
 * Old-style kind specifications::
@@ -946,8 +1045,14 @@ equivalent to the standard-conforming declaration
       TYPESPEC(k) x,y,z
 @end smallexample
 @noindent
-where @code{k} is equal to @code{size} for most types, but is equal to
-@code{size/2} for the @code{COMPLEX} type.
+where @code{k} is the kind parameter suitable for the intended precision.  As
+kind parameters are implementation-dependent, use the @code{KIND},
+@code{SELECTED_INT_KIND} and @code{SELECTED_REAL_KIND} intrinsics to retrieve
+the correct value, for instance @code{REAL*8 x} can be replaced by:
+@smallexample
+INTEGER, PARAMETER :: dbl = KIND(1.0d0)
+REAL(KIND=dbl) :: x
+@end smallexample
 
 @node Old-style variable initialization
 @subsection Old-style variable initialization
@@ -1379,9 +1484,9 @@ Valid values for @code{CONVERT} are:
 @item @code{CONVERT='NATIVE'} Use the native format.  This is the default.
 @item @code{CONVERT='SWAP'} Swap between little- and big-endian.
 @item @code{CONVERT='LITTLE_ENDIAN'} Use the little-endian representation
-        for unformatted files.
+for unformatted files.
 @item @code{CONVERT='BIG_ENDIAN'} Use the big-endian representation for
-        unformatted files.
+unformatted files.
 @end itemize
 
 Using the option could look like this:
@@ -1457,7 +1562,7 @@ END SUBROUTINE A1
 Please note:
 @itemize
 @item
-@option{-fopenmp} implies @option{-frecursive}, i.e. all local arrays
+@option{-fopenmp} implies @option{-frecursive}, i.e., all local arrays
 will be allocated on the stack. When porting existing code to OpenMP,
 this may lead to surprising results, especially to segmentation faults
 if the stacksize is limited.
@@ -1521,9 +1626,9 @@ worth a look.
 The long history of the Fortran language, its wide use and broad
 userbase, the large number of different compiler vendors and the lack of
 some features crucial to users in the first standards have lead to the
-existence of an important number of extensions to the language. While
+existence of a number of important extensions to the language.  While
 some of the most useful or popular extensions are supported by the GNU
-Fortran compiler, not all existing extensions are supported. This section
+Fortran compiler, not all existing extensions are supported.  This section
 aims at listing these extensions and offering advice on how best make
 code that uses them running with the GNU Fortran compiler.
 
@@ -1577,7 +1682,7 @@ store_catalog(7).id = 7831
 store_catalog(7).description = "milk bottle"
 store_catalog(7).price = 1.2
 
-! We can also manipulates the whole structure
+! We can also manipulate the whole structure
 store_catalog(12) = pear
 print *, store_catalog(12)
 @end example

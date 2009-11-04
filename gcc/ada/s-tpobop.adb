@@ -2,38 +2,35 @@
 --                                                                          --
 --                 GNAT RUN-TIME LIBRARY (GNARL) COMPONENTS                 --
 --                                                                          --
---     S Y S T E M . T A S K I N G . P R O T E C T E D _ O B J E C T S .    --
---                             O P E R A T I O N S                          --
+--               SYSTEM.TASKING.PROTECTED_OBJECTS.OPERATIONS                --
 --                                                                          --
 --                                  B o d y                                 --
 --                                                                          --
---         Copyright (C) 1998-2007, Free Software Foundation, Inc.          --
+--         Copyright (C) 1998-2009, Free Software Foundation, Inc.          --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
--- sion. GNARL is distributed in the hope that it will be useful, but WITH- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
+-- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNARL; see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNARL was developed by the GNARL team at Florida State University.       --
 -- Extensive contributions were provided by Ada Core Technologies, Inc.     --
 --                                                                          --
 ------------------------------------------------------------------------------
 
---  This package contains all the extended primitives related to
---  Protected_Objects with entries.
+--  This package contains all extended primitives related to Protected_Objects
+--  with entries.
 
 --  The handling of protected objects with no entries is done in
 --  System.Tasking.Protected_Objects, the simple routines for protected
@@ -46,51 +43,18 @@
 --  Note: the compiler generates direct calls to this interface, via Rtsfind.
 
 with System.Task_Primitives.Operations;
---  used for Initialize_Lock
---           Write_Lock
---           Unlock
---           Get_Priority
---           Wakeup
-
 with System.Tasking.Entry_Calls;
---  used for Wait_For_Completion
---           Wait_Until_Abortable
---           Wait_For_Completion_With_Timeout
+with System.Tasking.Queuing;
+with System.Tasking.Rendezvous;
+with System.Tasking.Utilities;
+with System.Tasking.Debug;
+with System.Parameters;
+with System.Traces.Tasking;
+with System.Restrictions;
 
 with System.Tasking.Initialization;
---  Used for Defer_Abort,
---           Undefer_Abort,
---           Change_Base_Priority
-
 pragma Elaborate_All (System.Tasking.Initialization);
---  This insures that tasking is initialized if any protected objects are
---  created.
-
-with System.Tasking.Queuing;
---  used for Enqueue
---           Broadcast_Program_Error
---           Select_Protected_Entry_Call
---           Onqueue
---           Count_Waiting
-
-with System.Tasking.Rendezvous;
---  used for Task_Do_Or_Queue
-
-with System.Tasking.Utilities;
---  used for Exit_One_ATC_Level
-
-with System.Tasking.Debug;
---  used for Trace
-
-with System.Parameters;
---  used for Single_Lock
---           Runtime_Traces
-
-with System.Traces.Tasking;
---  used for Send_Trace_Info
-
-with System.Restrictions;
---  used for Run_Time_Restrictions
+--  Insures that tasking is initialized if any protected objects are created
 
 package body System.Tasking.Protected_Objects.Operations is
 
@@ -540,7 +504,7 @@ package body System.Tasking.Protected_Objects.Operations is
    --  See also Cancel_Protected_Entry_Call for code expansion of asynchronous
    --  entry call.
 
-   --  The initial part of this procedure does not need to lock the the calling
+   --  The initial part of this procedure does not need to lock the calling
    --  task's ATCB, up to the point where the call record first may be queued
    --  (PO_Do_Or_Queue), since before that no other task will have access to
    --  the record.
@@ -554,7 +518,7 @@ package body System.Tasking.Protected_Objects.Operations is
    --  There are some heuristics here, just to save time for frequently
    --  occurring cases. For example, we check Initially_Abortable to try to
    --  avoid calling the procedure Wait_Until_Abortable, since the normal case
-   --  for async.  entry calls is to be queued abortably.
+   --  for async. entry calls is to be queued abortably.
 
    --  Another heuristic uses the Block.Enqueued to try to avoid calling
    --  Cancel_Protected_Entry_Call if the call can be served immediately.
@@ -580,8 +544,7 @@ package body System.Tasking.Protected_Objects.Operations is
       end if;
 
       if Self_ID.ATC_Nesting_Level = ATC_Level'Last then
-         Raise_Exception
-           (Storage_Error'Identity, "not enough ATC nesting levels");
+         raise Storage_Error with "not enough ATC nesting levels";
       end if;
 
       --  If pragma Detect_Blocking is active then Program_Error must be
@@ -591,8 +554,7 @@ package body System.Tasking.Protected_Objects.Operations is
       if Detect_Blocking
         and then Self_ID.Common.Protected_Action_Nesting > 0
       then
-         Ada.Exceptions.Raise_Exception
-           (Program_Error'Identity, "potentially blocking operation");
+         raise Program_Error with "potentially blocking operation";
       end if;
 
       --  Self_ID.Deferral_Level should be 0, except when called from Finalize,
@@ -981,8 +943,7 @@ package body System.Tasking.Protected_Objects.Operations is
 
    begin
       if Self_Id.ATC_Nesting_Level = ATC_Level'Last then
-         Raise_Exception (Storage_Error'Identity,
-           "not enough ATC nesting levels");
+         raise Storage_Error with "not enough ATC nesting levels";
       end if;
 
       --  If pragma Detect_Blocking is active then Program_Error must be
@@ -992,8 +953,7 @@ package body System.Tasking.Protected_Objects.Operations is
       if Detect_Blocking
         and then Self_Id.Common.Protected_Action_Nesting > 0
       then
-         Ada.Exceptions.Raise_Exception
-           (Program_Error'Identity, "potentially blocking operation");
+         raise Program_Error with "potentially blocking operation";
       end if;
 
       if Runtime_Traces then

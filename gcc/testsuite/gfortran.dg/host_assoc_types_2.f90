@@ -1,5 +1,5 @@
 ! { dg-do compile }
-! Tests the fix for PR35945, the host association of overloaded_type_s
+! Tests the fix for PR33945, the host association of overloaded_type_s
 ! would be incorrectly blocked by the use associated overloaded_type.
 !
 ! Contributed by Jonathan Hogg  <J.Hogg@rl.ac.uk>

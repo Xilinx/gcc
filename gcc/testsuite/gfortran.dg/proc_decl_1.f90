@@ -40,8 +40,6 @@ program prog
   procedure(dcos) :: my1
   procedure(amax0) :: my2  ! { dg-error "not allowed in PROCEDURE statement" }
 
-  procedure(),pointer:: ptr  ! { dg-error "not yet implemented" }
-
   type t
     procedure(),pointer:: p  ! { dg-error "not yet implemented" }
   end type
@@ -53,15 +51,20 @@ program prog
   procedure(f) :: q  ! { dg-error "may not be a statement function" }
   procedure(oo) :: p  ! { dg-error "must be explicit" }
 
+  procedure ( ) :: r 
+  procedure ( up ) :: s  ! { dg-error "must be explicit" }
+
+  call s
+
 contains
 
-  subroutine foo(a,c)
+  subroutine foo(a,c)  ! { dg-error "PROCEDURE attribute conflicts with INTENT attribute" }
     abstract interface
       subroutine b() bind(C)
       end subroutine b
     end interface
     procedure(b), bind(c,name="hjj") :: a  ! { dg-error "may not have BIND.C. attribute with NAME" }
-    procedure(c),intent(in):: c  ! { dg-error "PROCEDURE attribute conflicts with INTENT attribute" }
+    procedure(b),intent(in):: c
   end subroutine foo 
 
 end program
