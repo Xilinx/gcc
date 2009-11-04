@@ -1,4 +1,8 @@
 2009-11-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	[still implementing letrec...]
+	* melt/warmelt-normal.melt: more for letrec ...
+
+2009-11-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	[renamed make_instance as instance everywhere...  still
 	implementing letrec..]
 	* melt/warmelt-macro.melt: renamed class_source_make_instance as
