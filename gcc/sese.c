@@ -1276,6 +1276,9 @@ if_region_set_false_region (ifsese if_region, sese region)
   recompute_all_dominators ();
 
   SESE_EXIT (region) = false_edge;
+
+  if (if_region->false_region)
+    free (if_region->false_region);
   if_region->false_region = region;
 
   if (slot)
@@ -1297,19 +1300,14 @@ if_region_set_false_region (ifsese if_region, sese region)
 /* Creates an IFSESE with CONDITION on edge ENTRY.  */
 
 static ifsese
-create_if_region_on_edge (edge entry, tree condition,
-			  struct obstack * graphite_obstack)
+create_if_region_on_edge (edge entry, tree condition)
 {
   edge e;
   edge_iterator ei;
-  sese sese_region = (sese) obstack_alloc (graphite_obstack,
-					   sizeof (struct sese_s));
-  sese true_region = (sese) obstack_alloc (graphite_obstack,
-					   sizeof (struct sese_s));
-  sese false_region = (sese) obstack_alloc (graphite_obstack,
-					    sizeof (struct sese_s));
-  ifsese if_region = (ifsese) obstack_alloc (graphite_obstack,
-					     sizeof (struct ifsese_s));
+  sese sese_region = XNEW (struct sese_s);
+  sese true_region = XNEW (struct sese_s);
+  sese false_region = XNEW (struct sese_s);
+  ifsese if_region = XNEW (struct ifsese_s);
   edge exit = create_empty_if_region_on_edge (entry, condition);
 
   if_region->region = sese_region;
@@ -1343,14 +1341,13 @@ create_if_region_on_edge (edge entry, tree condition,
 */
 
 ifsese
-move_sese_in_condition (sese region, struct obstack * graphite_obstack)
+move_sese_in_condition (sese region)
 {
   basic_block pred_block = split_edge (SESE_ENTRY (region));
-  ifsese if_region = NULL;
+  ifsese if_region;
 
   SESE_ENTRY (region) = single_succ_edge (pred_block);
-  if_region = create_if_region_on_edge (single_pred_edge (pred_block),
-					integer_one_node, graphite_obstack);
+  if_region = create_if_region_on_edge (single_pred_edge (pred_block), integer_one_node);
   if_region_set_false_region (if_region, region);
 
   return if_region;
