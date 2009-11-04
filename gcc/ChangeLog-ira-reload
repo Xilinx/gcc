@@ -1,3 +1,11 @@
+2009-11-04  Jeff Law <law@redhat.com>
+
+	* ira-color.c (ira_reassign_pseudos): Only try to reassign
+	conflicting pseudos if requested by caller.
+	* ira.h (ira_reassign_pseudos): Update prototype.
+	* reload1.c (finish_spills): Update call to ira_reassign_pseudos.
+	* ira-reload.c (ira_reload): Likewise.
+
 2009-10-29  Jeff Law <law@redhat.com>
 
 	* ira-build.c (update_conflict_hard_reg_costs): Do not

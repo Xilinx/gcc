@@ -2855,7 +2855,9 @@ bool
 ira_reassign_pseudos (int *spilled_pseudo_regs, int num,
 		      HARD_REG_SET bad_spill_regs,
 		      HARD_REG_SET *pseudo_forbidden_regs,
-		      HARD_REG_SET *pseudo_previous_regs,  bitmap spilled)
+		      HARD_REG_SET *pseudo_previous_regs,
+		      bitmap spilled,
+		      bool reassign_conflict_pseudos)
 {
   int i, m, n, regno;
   bool changed_p;
@@ -2901,6 +2903,10 @@ ira_reassign_pseudos (int *spilled_pseudo_regs, int num,
 	fprintf (ira_dump_file, " %d", spilled_pseudo_regs[i]);
       fprintf (ira_dump_file, "\n");
     }
+
+  if (!reassign_conflict_pseudos)
+    return changed_p;
+
   /* Try to assign hard registers to pseudos conflicting with ones
      from SPILLED_PSEUDO_REGS.  */
   for (i = n = 0; i < m; i++)

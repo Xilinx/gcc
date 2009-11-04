@@ -82,7 +82,7 @@ extern void ira_sort_regnos_for_alter_reg (int *, int, unsigned int *);
 extern void ira_mark_allocation_change (int);
 extern void ira_mark_memory_move_deletion (int, int);
 extern bool ira_reassign_pseudos (int *, int, HARD_REG_SET, HARD_REG_SET *,
-				  HARD_REG_SET *, bitmap);
+				  HARD_REG_SET *, bitmap, bool);
 extern rtx ira_reuse_stack_slot (int, unsigned int, unsigned int);
 extern void ira_mark_new_stack_slot (rtx, int, unsigned int);
 extern bool ira_better_spill_reload_regno_p (int *, int *, rtx, rtx, rtx);

@@ -920,7 +920,7 @@ ira_reload (void)
 	      x[n++] = i;
 	  }
 
-	ira_reassign_pseudos (x, n, bad_spill_regs, p, p, &z);
+	ira_reassign_pseudos (x, n, bad_spill_regs, p, p, &z, false);
 
         if (internal_flag_ira_verbose > 0 && ira_dump_file != NULL)
 	  fprintf (ira_dump_file, "Done reassigning after localization\n");

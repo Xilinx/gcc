@@ -4015,7 +4015,7 @@ finish_spills (int global)
       if (ira_reassign_pseudos (temp_pseudo_reg_arr, n,
 				bad_spill_regs_global,
 				pseudo_forbidden_regs, pseudo_previous_regs,
-				&spilled_pseudos))
+				&spilled_pseudos, true))
 	something_changed = 1;
     }
   /* Fix up the register information in the insn chain.
