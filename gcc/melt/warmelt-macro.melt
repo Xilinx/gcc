@@ -357,8 +357,8 @@ field, $SFLA_EXPR is the expression.}#
 
 
 ;; make an instance
-(defclass class_source_make_instance
-  :doc #{The internal $CLASS_SOURCE_MAKE_INSTANCE is the abstract
+(defclass class_source_instance
+  :doc #{The internal $CLASS_SOURCE_INSTANCE is the abstract
 syntax of $INSTANCE expressions.  $SMINS_CLASS is the class of the new
 object, $SMINS_CLABIND is the class binding, $SMINS_FIELDS is the
 sequence of $CLASS_SOURCE_FIELDASSIGN.}#
@@ -2894,14 +2894,14 @@ $LAMBDA macros. A function defined by $DEFUN has to be exported with $EXPORT_VAL
 	       (setq curpair (pair_tail curpair))
 	       )
       (let ( ( fastup (list_to_multiple fldlist discr_multiple)) )
-	(instance class_source_make_instance
+	(instance class_source_instance
 		  :loca_location loc
 		  :smins_class cla
 		  :smins_clabind clabind
 		  :smins_fields fastup)
 	))))
-(install_initial_macro 'make_instance mexpand_instance)
-(export_macro make_instance mexpand_instance)
+(install_initial_macro 'instance mexpand_instance)
+(export_macro instance mexpand_instance)
 
 
 
@@ -4056,7 +4056,7 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
   (debug_msg recv "yes_recursively_constructible recv")
   (return recv))
 (install_method class_source_lambda is_recursively_constructible yes_recursively_constructible)
-(install_method class_source_make_instance is_recursively_constructible yes_recursively_constructible)
+(install_method class_source_instance is_recursively_constructible yes_recursively_constructible)
 (install_method class_source_tuple is_recursively_constructible yes_recursively_constructible)
 (install_method class_source_list is_recursively_constructible yes_recursively_constructible)
 
@@ -5007,14 +5007,14 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
  class_source_get_field
  class_source_if
  class_source_ifelse
+ class_source_instance
  class_source_labelled
  class_source_lambda
  class_source_let
+ class_source_let_binding
  class_source_letrec
  class_source_letrec_binding
- class_source_let_binding
  class_source_list
- class_source_make_instance
  class_source_match
  class_source_match_case
  class_source_msend
@@ -5066,6 +5066,8 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
 (export_synonym class_source_letbinding class_source_let_binding)
 ;;; class_source_casematch is renamed class_source_match_case
 (export_synonym class_source_casematch class_source_match_case)
+;;; class_source_make_instance is renamed class_source_instance
+(export_synonym class_source_make_instance class_source_instance)
 ;;; class_sourcepattern_any renamed as class_source_pattern
 (export_synonym class_sourcepattern_any class_source_pattern)
 ;;; class_sourcepattern_anymatch renamed as class_source_pattern_matcher

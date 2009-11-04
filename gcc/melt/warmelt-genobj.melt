@@ -2978,7 +2978,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_nrep_makeinst (nmki gcx)
   (assert_msg "check gcx" (is_a gcx class_c_generation_context))
-  (assert_msg "check nmki" (is_a nmki class_nrep_make_instance))
+  (assert_msg "check nmki" (is_a nmki class_nrep_instance))
   (debug_msg nmki "compilobj_nrep_makeinst nmki")
   ;; (debug_msg gcx "compilobj_nrep_makeinst gcx")
   (let ( (nloc (unsafe_get_field :nrep_loc nmki))
@@ -3030,7 +3030,7 @@
       oblock
       ))
   )
-(install_method class_nrep_make_instance compile_obj compilobj_nrep_makeinst)
+(install_method class_nrep_instance compile_obj compilobj_nrep_makeinst)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; compile a procedure should not be called

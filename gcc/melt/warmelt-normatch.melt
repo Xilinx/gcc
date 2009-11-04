@@ -1552,7 +1552,7 @@
 	      (assert_msg "check curtester not success" 
 			  (not (is_a curtester class_normtester_success)))
 ;;; add the newsuctester as the last then of the curtester
-	      (let ( (curtestcont (make_instance class_container
+	      (let ( (curtestcont (instance class_container
 						 :container_value curtester)) )
 		(debug_msg curtestcont "normexp_match initial curtestcont")
 		(set_newtester_lastthen newsuctester curtestcont)

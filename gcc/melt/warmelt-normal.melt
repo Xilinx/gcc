@@ -201,7 +201,7 @@
 	   ))
 
 ;; normalized make instance
-(defclass class_nrep_make_instance
+(defclass class_nrep_instance
   :super class_nrep_expr
   :fields (nmins_class			;the instanciated class
 	   nmins_cladata		;its data
@@ -263,9 +263,9 @@ of initial normalized components.}#
   :doc #{The internal $CLASS_NORMAL_CONSTRUCTED_LIST_BINDING is the
 class of list constructor bindings. Field $NLISTB_FIRST gives the
 initial normalized first pair, and field $NLISTB_LAST gives the last
-one.}#
+one. Field $NLISTB_PAIRSB gives the tuple of constructed pair bindings}#
   :super  class_normal_constructor_binding
-  :fields (nlistb_first nlistb_last))
+  :fields (nlistb_first nlistb_last nlistb_pairsb))
 
 (compile_warning "think about class_normal_constructed_lambda_binding")
 (defclass class_normal_constructed_lambda_binding
@@ -547,7 +547,7 @@ tuple of the normalized slots.}#
  class_nrep_lambda
  class_nrep_let
  class_nrep_locsymocc
- class_nrep_make_instance
+ class_nrep_instance
  class_nrep_msend
  class_nrep_multacc
  class_nrep_multiapply
@@ -574,6 +574,8 @@ tuple of the normalized slots.}#
  class_nrep_update_current_module_environment_container
  )					;end of export normal classes
 
+
+(export_synonym class_nrep_make_instance class_nrep_instance)
 
 
 ;;;;;;; primitive for extra warnings
@@ -2549,12 +2551,12 @@ tuple of the normalized slots.}#
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;; normalize a make_instance
-(defun normexp_make_instance (recv env ncx psloc)
-  (assert_msg "check make_instance recv" (is_a recv class_source_make_instance))
+;;;;;; normalize a instance
+(defun normexp_instance (recv env ncx psloc)
+  (assert_msg "check instance recv" (is_a recv class_source_instance))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (debug_msg recv "normexp_make_instance recv" )
+  (debug_msg recv "normexp_instance recv" )
   (let ( (sloc (unsafe_get_field :loca_location recv))
 	 (sclass (unsafe_get_field :smins_class recv))
 	 (sclabind (unsafe_get_field :smins_clabind recv))
@@ -2566,7 +2568,7 @@ tuple of the normalized slots.}#
 	 )
     (if (not (is_a cladata class_nrep))
 	(progn
-	  (error_strv sloc "invalid class in make_instance" (unsafe_get_field :named_name sclass))
+	  (error_strv sloc "invalid class in (INSTANCE ..)" (unsafe_get_field :named_name sclass))
 	  (return ())))
     (let ( (nfields 
 	    (multiple_map 
@@ -2588,7 +2590,7 @@ tuple of the normalized slots.}#
 			    :nfla_val nexp)
 		  )))))
 	   (nmkins 
-	    (instance class_nrep_make_instance
+	    (instance class_nrep_instance
 		      :nrep_loc sloc
 		      :nmins_class sclass
 		      :nmins_cladata cladata
@@ -2606,14 +2608,14 @@ tuple of the normalized slots.}#
 			    :nocc_bind cbind))
 	   )
       (list_append bindlist cbind)
-      (debug_msg clocc "normexp_make_instance result clocc")
-      (debug_msg bindlist "normexp_make_instance result bindlist")
+      (debug_msg clocc "normexp_instance result clocc")
+      (debug_msg bindlist "normexp_instance result bindlist")
       (return clocc bindlist)
       )
     )
   )
-(install_method class_source_make_instance normal_exp normexp_make_instance)
-(install_method class_source_make_instance get_ctype 
+(install_method class_source_instance normal_exp normexp_instance)
+(install_method class_source_instance get_ctype 
 		(lambda (recv env) ctype_value))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -3253,17 +3255,91 @@ tuple of the normalized slots.}#
   (debug_msg recv "prepcons_tuple recv")
   (debug_msg symb "prepcons_tuple symb")
   (assert_msg "check recv" (is_a recv class_source_tuple))
-  (let  ( (constup (instance class_normal_constructed_tuple_binding
+  (let  ( 
+	 (loc (get_field :loca_location recv))
+	 (tuparg (get_field :sargop_args recv))
+	 (:long nbtuparg (multiple_length tuparg))
+	 (ntup (make_multiple discr_multiple nbtuparg))
+	 (constup (instance class_normal_constructed_tuple_binding
 			     :binder symb
-			     :nconsb_loc sloc
+			     :nconsb_loc (or loc sloc)
 			     :nconsb_discr (normal_predef discr_multiple ncx sloc "discr_multiple")
+			     :ntupb_comp ntup
 			     ))
 	  )
     (debug_msg constup "prepcons_tuple gives constup")
     (return constup)
 ))
 (install_method class_source_tuple prepare_constructor_binding prepcons_tuple)
+;;;;
 
+(defun prepcons_list (recv symb ncx sloc)
+  (debug_msg recv "prepcons_list recv")
+  (debug_msg symb "prepcons_list symb")
+  (assert_msg "check recv" (is_a recv class_source_list))
+  (let  ( 
+	 (reslist (make_list discr_list))
+	 (loc (get_field :loca_location recv))
+	 (listarg (get_field :sargop_args recv))
+	 (:long nblistarg (multiple_length listarg))
+	 (pairsb (make_multiple discr_multiple nblistarg))
+	 (conslist (instance class_normal_constructed_list_binding
+			     :binder symb
+			     :nconsb_loc (or loc sloc)
+			     :nconsb_discr (normal_predef discr_list ncx sloc "discr_list")
+			     :nlistb_first () 
+			     :nlistb_last ()
+			     :nlistb_pairsb pairsb
+			     ))
+	  )
+    (foreach_in_multiple 
+     (listarg)
+     (curarg :long curix)
+     (debug_msg curarg "prepcons_list curarg")
+     (let ( (pairsymb (clone_symbol (if (is_a curarg class_named) curarg '_pairoflist)))
+	    (conspair (instance class_normal_constructed_pair_binding
+				:binder pairsymb
+				:nconsb_loc (or (get_field :loca_location curarg) loc sloc)
+				:nconsb_discr (normal_predef discr_pair ncx sloc "discr_pair")
+				:npairb_head ()
+				:npairb_tail ()
+				))
+	    )
+       (multiple_put_nth pairsb curix conspair)
+       (list_append reslist conspair)
+     ))
+    (list_append reslist conslist)
+    (debug_msg reslist "prepcons_list gives reslist")
+    (return reslist)
+))
+(install_method class_source_list prepare_constructor_binding prepcons_list)
+
+
+(defun prepcons_instance (recv symb ncx sloc)
+  (debug_msg recv "prepcons_instance recv")
+  (debug_msg symb "prepcons_instance symb")
+  (assert_msg "check recv" (is_a recv class_source_instance))
+  (let  ( 
+	 (loc (get_field :loca_location recv))
+	 (cla (get_field :smins_class recv))
+	 (clabind (get_field :smins_clabind recv))
+	 (sclasym (if (is_a clabind class_any_binding) (unsafe_get_field :binder clabind)))
+	 (:long nbclafld (multiple_length (get_field :class_fields cla)))
+	 (tupslot (make_multiple discr_multiple nbclafld))
+	 (consinst (instance class_normal_constructed_instance_binding
+				:binder symb
+				:nconsb_loc (or loc sloc)
+				:nconsb_discr (compile_warning "don't forget to set the discr later...")
+				:ninstb_slots tupslot
+				))
+	 )
+    (assert_msg "prepcons_instance check class" (is_a cla class_class))
+    (debug_msg consinst "prepcons_instance gives consinst")
+    (assert_msg "@$@unimplemented prepcons_instance" ())
+    (return consinst)
+    )
+  )
+(install_method class_source_instance prepare_constructor_binding prepcons_instance)
 
 (defun normexp_letrec (recv env ncx psloc)
   (assert_msg "check letrec recv" (is_a recv class_source_letrec))
@@ -3274,7 +3350,7 @@ tuple of the normalized slots.}#
 	 (sbinds (unsafe_get_field :slet_bindings recv))
 	 (sbody (unsafe_get_field :slet_body recv))
 	 (:long nbbind (multiple_length sbinds))
-	 (nbindtup (make_multiple discr_multiple nbbind))
+	 (consbindlist (make_list discr_list))
 	 )
     (foreach_in_multiple
      (sbinds)
@@ -3292,9 +3368,29 @@ tuple of the normalized slots.}#
        (let ( (curconsbind (prepare_constructor_binding curexpr cursymb ncx locb))
 	      )
 	 (debug_msg curconsbind "normexp_letrec curconsbind")
+	 (cond ( (is_a curconsbind class_normal_constructor_binding)
+		 (list_append consbindlist curconsbind))
+	       ( (is_multiple curconsbind)
+		 (foreach_in_multiple 
+		  (curconsbind)
+		  (subconsbind :long subix)
+		  (assert_msg "normexp_letrec check subconsbind" 
+			      (is_a subconsbind class_normal_constructor_binding))
+		  (list_append consbindlist subconsbind)))
+	       ( (is_list curconsbind)
+		 (foreach_in_list
+		  (curconsbind)
+		  (subconspair subconsbind)
+		  (assert_msg "normexp_letrec check subconsbind" 
+			      (is_a subconsbind class_normal_constructor_binding))
+		  (list_append consbindlist subconsbind)))
+	       (:else
+		(assert_msg "normexp_letrec bad curconsbind" ())
+		))
 	 )
        )
      )
+    (debug_msg consbindlist "normexp_letrec consbindlist")
     (compile_warning "normexp_letrec incomplete")
     (error_plain sloc "unimplemented LETREC normalization")
     (assert_msg "@$@unimplemented LETREC" ())

@@ -1,3 +1,16 @@
+2009-11-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	[renamed make_instance as instance everywhere...  still
+	implementing letrec..]
+	* melt/warmelt-macro.melt: renamed class_source_make_instance as
+	class_source_instance
+	* melt/warmelt-normal.melt: renamed class_nrep_make_instance as
+	class_nrep_instance; added various prepcons_* functions for
+	prepare_constructor_binding; still working on letrec...
+	* melt/warmelt-normatch.melt: using instance instead of
+	make_instance.
+	* melt/warmelt-genobj.melt: using class_nrep_instance instead of
+	class_nrep_make_instance...
+
 2009-10-29  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-first.melt: added discr_any_receiver as disc_super
 	of class_root.
