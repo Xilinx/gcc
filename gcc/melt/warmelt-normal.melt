@@ -3357,6 +3357,7 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
 	 (symbexprmap (make_mapobject discr_map_objects maplen))
 	 (symbindmap (make_mapobject discr_map_objects maplen))
 	 )
+    ;;; first preparation loop
     (foreach_in_multiple
      (sbinds)
      (cursbind :long sbix)
@@ -3403,18 +3404,23 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
        )
      )
     (debug_msg consbindlist "normexp_letrec consbindlist")
-    ;; make an environment where each constructive binding is set
+    ;;
+    ;; second loop to ake an environment where each constructive
+    ;; binding is set
     (foreach_in_list
      (consbindlist)
      (curpair curcbind)
+     (debug_msg curcbind "normexp_letrec curcbind")
      (assert_msg "check curcbind" (is_a curcbind class_normal_constructor_binding))
      (let ( (curbdiscr (unsafe_get_field :nconsb_discr curcbind)) 
 	    (curbinder (unsafe_get_field :binder curcbind))
 	    )
        (if (null curbdiscr)
-	   (let ( (clabind (get_field :ninstb_clabind curbdiscr))
+	   (let ( (clabind (get_field :ninstb_clabind curcbind))
 		  (clasym (get_field :binder clabind))
 		  )
+	     (debug_msg clabind "normexp_letrec clabind")
+	     (debug_msg clasym "normexp_letrec clasym")
 	     ;; the only case when this happens is for instance constructors...
 	     (assert_msg "check curcbind for instance" (is_a curcbind class_normal_constructed_instance_binding))
 	     (let ( ;; we normalize the class symbol in the parent environment, not the new one! 
@@ -3428,7 +3434,28 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
      (put_env newenv curcbind)
      (compile_warning "normexp_letrec should normalize the expression using symbexprmap & curbinder...")
      )
-    (compile_warning "normexp_letrec incomplete")
+    ;;; third loop to normalize the bindings content
+    (foreach_in_multiple
+     (sbinds)
+     (cursbind :long sbix)
+     (debug_msg cursbind "normexp_letrec thirdloop cursbind")
+     (assert_msg "check cursbind" (is_a cursbind class_source_letrec_binding))
+     (let ( (locb (or (unsafe_get_field :loca_location cursbind) sloc psloc))
+	    (cursymb (unsafe_get_field :sletb_binder cursbind))
+	    (curexpr (unsafe_get_field :sletb_expr cursbind))
+	    (curbind (mapobject_get symbindmap cursymb))
+	    (cursexpr (mapobject_get symbexprmap cursymb))
+	    )
+       (debug_msg curexpr "normexp_letrec thirdloop curexpr")
+       (debug_msg cursymb "normexp_letrec thirdloop cursymb")
+       (debug_msg curbind "normexp_letrec thirdloop curbind")
+       (debug_msg cursexpr "normexp_letrec thirdloop cursexpr")
+       (assert_msg "check curxpr same cursexpr" (== curexpr cursexpr))
+       )
+     )
+    ;; perhaps we need a normal_letrec selector...?
+    ;; to send to curbind cursymb curexpr ncx ....???
+    (compile_warning "normexp_letrec incomplete - perhaps need a normal_letrec selector?")
     (error_plain sloc "unimplemented LETREC normalization")
     (assert_msg "@$@unimplemented LETREC" ())
     ))
