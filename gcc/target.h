@@ -68,6 +68,12 @@ typedef int (* print_switch_fn_type) (print_switch_type, const char *);
 /* An example implementation for ELF targets.  Defined in varasm.c  */
 extern int elf_record_gcc_switches (print_switch_type type, const char *);
 
+/* Some places still assume that all pointer or address modes are the
+   standard Pmode and ptr_mode.  These optimizations become invalid if
+   the target actually supports multiple different modes.  For now,
+   we disable such optimizations on such targets, using this function.  */
+extern bool target_default_pointer_address_modes_p (void);
+
 struct stdarg_info;
 struct spec_info_def;
 
@@ -253,6 +259,9 @@ struct gcc_target
 
     /* Some target machines need to postscan each insn after it is output.  */
     void (*final_postscan_insn) (FILE *, rtx, rtx *, int);
+
+    /* Emit the trampoline template.  This hook may be NULL.  */
+    void (*trampoline_template) (FILE *);
   } asm_out;
 
   /* Functions relating to instruction scheduling.  */
@@ -559,6 +568,12 @@ struct gcc_target
   /* Set up target-specific built-in functions.  */
   void (* init_builtins) (void);
 
+  /* Initialize (if INITIALIZE_P is true) and return the target-specific
+     built-in function decl for CODE.
+     Return NULL if that is not possible.  Return error_mark_node if CODE
+     is outside of the range of valid target builtin function codes.  */
+  tree (* builtin_decl) (unsigned code, bool initialize_p);
+
   /* Expand a target-specific builtin.  */
   rtx (* expand_builtin) (tree exp, rtx target, rtx subtarget,
 			  enum machine_mode mode, int ignore);
@@ -605,6 +620,9 @@ struct gcc_target
      function.  AFTER_PE_GEN is true if prologues and epilogues have
      already been generated.  */
   bool (* branch_target_register_callee_saved) (bool after_pe_gen);
+
+  /* Return true if the target supports conditional execution.  */
+  bool (* have_conditional_execution) (void);
 
   /* True if the constant X cannot be placed in the constant pool.  */
   bool (* cannot_force_const_mem) (rtx);
@@ -684,6 +702,36 @@ struct gcc_target
 
   /* True if MODE is valid for a pointer in __attribute__((mode("MODE"))).  */
   bool (* valid_pointer_mode) (enum machine_mode mode);
+
+  /* Support for named address spaces.  */
+  struct addr_space {
+    /* MODE to use for a pointer into another address space.  */
+    enum machine_mode (* pointer_mode) (addr_space_t);
+
+    /* MODE to use for an address in another address space.  */
+    enum machine_mode (* address_mode) (addr_space_t);
+
+    /* True if MODE is valid for a pointer in __attribute__((mode("MODE")))
+       in another address space.  */
+    bool (* valid_pointer_mode) (enum machine_mode, addr_space_t);
+
+    /* True if an address is a valid memory address to a given named address
+       space for a given mode.  */
+    bool (* legitimate_address_p) (enum machine_mode, rtx, bool, addr_space_t);
+
+    /* Return an updated address to convert an invalid pointer to a named
+       address space to a valid one.  If NULL_RTX is returned use machine
+       independent methods to make the address valid.  */
+    rtx (* legitimize_address) (rtx, rtx, enum machine_mode, addr_space_t);
+
+    /* True if one named address space is a subset of another named address. */
+    bool (* subset_p) (addr_space_t, addr_space_t);
+
+    /* Function to convert an rtl expression from one address space to
+       another.  */
+    rtx (* convert) (rtx, tree, tree);
+
+  } addr_space;
 
   /* True if MODE is valid for the target.  By "valid", we mean able to
      be manipulated in non-trivial ways.  In particular, this means all
@@ -899,7 +947,7 @@ struct gcc_target
 
     /* Return the rtx for the result of a libcall of mode MODE,
        calling the function FN_NAME.  */
-    rtx (*libcall_value) (enum machine_mode, rtx);
+    rtx (*libcall_value) (enum machine_mode, const_rtx);
 
     /* Return an rtx for the argument pointer incoming to the
        current function.  */
@@ -915,7 +963,17 @@ struct gcc_target
     /* Return true if all function parameters should be spilled to the
        stack.  */
     bool (*allocate_stack_slots_for_args) (void);
-    
+
+    /* Return an rtx for the static chain for FNDECL.  If INCOMING_P is true,
+       then it should be for the callee; otherwise for the caller.  */
+    rtx (*static_chain) (const_tree fndecl, bool incoming_p);
+
+    /* Fill in the trampoline at MEM with a call to FNDECL and a 
+       static chain value of CHAIN.  */
+    void (*trampoline_init) (rtx mem, tree fndecl, rtx chain);
+
+    /* Adjust the address of the trampoline in a target-specific way.  */
+    rtx (*trampoline_adjust_address) (rtx addr);
   } calls;
 
   /* Return the diagnostic message string if conversion from FROMTYPE

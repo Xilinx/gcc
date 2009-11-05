@@ -1838,6 +1838,23 @@ make_anon_name (void)
   return get_identifier (buf);
 }
 
+/* This code is practically identical to that for creating
+   anonymous names, but is just used for lambdas instead.  This is necessary
+   because anonymous names are recognized and cannot be passed to template
+   functions.  */
+/* FIXME is this still necessary? */
+
+static GTY(()) int lambda_cnt = 0;
+
+tree
+make_lambda_name (void)
+{
+  char buf[32];
+
+  sprintf (buf, LAMBDANAME_FORMAT, lambda_cnt++);
+  return get_identifier (buf);
+}
+
 /* Return (from the stack of) the BINDING, if any, established at SCOPE.  */
 
 static inline cxx_binding *
@@ -2641,6 +2658,11 @@ pushdecl_class_level (tree x)
   tree name;
   bool is_valid = true;
 
+  /* Do nothing if we're adding to an outer lambda closure type,
+     outer_binding will add it later if it's needed.  */
+  if (current_class_type != class_binding_level->this_entity)
+    return true;
+
   timevar_push (TV_NAME_LOOKUP);
   /* Get the name of X.  */
   if (TREE_CODE (x) == OVERLOAD)
@@ -2755,6 +2777,9 @@ push_class_level_binding (tree name, tree x)
 
   /* Check for invalid member names.  */
   gcc_assert (TYPE_BEING_DEFINED (current_class_type));
+  /* Check that we're pushing into the right binding level.  */
+  gcc_assert (current_class_type == class_binding_level->this_entity);
+
   /* We could have been passed a tree list if this is an ambiguous
      declaration. If so, pull the declaration out because
      check_template_shadow will not handle a TREE_LIST.  */
@@ -3735,6 +3760,10 @@ qualify_lookup (tree val, int flags)
       && (TREE_CODE (val) == TYPE_DECL || TREE_CODE (val) == TEMPLATE_DECL))
     return true;
   if (flags & (LOOKUP_PREFER_NAMESPACES | LOOKUP_PREFER_TYPES))
+    return false;
+  /* In unevaluated context, look past normal capture fields.  */
+  if (cp_unevaluated_operand && TREE_CODE (val) == FIELD_DECL
+      && DECL_NORMAL_CAPTURE_P (val))
     return false;
   return true;
 }
@@ -5115,7 +5144,8 @@ pushtag (tree name, tree type, tag_scope scope)
 	{
 	  tree cs = current_scope ();
 
-	  if (scope == ts_current)
+	  if (scope == ts_current
+	      || (cs && TREE_CODE (cs) == FUNCTION_DECL))
 	    context = cs;
 	  else if (cs != NULL_TREE && TYPE_P (cs))
 	    /* When declaring a friend class of a local class, we want

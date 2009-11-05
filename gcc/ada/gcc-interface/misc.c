@@ -521,8 +521,13 @@ gnat_print_type (FILE *file, tree node, int indent)
       print_node (file,"actual bounds", TYPE_ACTUAL_BOUNDS (node), indent + 4);
       break;
 
+    case VECTOR_TYPE:
+      print_node (file,"representative array",
+		  TYPE_REPRESENTATIVE_ARRAY (node), indent + 4);
+      break;
+
     case RECORD_TYPE:
-      if (TYPE_IS_FAT_POINTER_P (node) || TYPE_CONTAINS_TEMPLATE_P (node))
+      if (TYPE_FAT_POINTER_P (node) || TYPE_CONTAINS_TEMPLATE_P (node))
 	print_node (file, "unconstrained array",
 		    TYPE_UNCONSTRAINED_ARRAY (node), indent + 4);
       else
@@ -595,8 +600,7 @@ static alias_set_type
 gnat_get_alias_set (tree type)
 {
   /* If this is a padding type, use the type of the first field.  */
-  if (TREE_CODE (type) == RECORD_TYPE
-      && TYPE_IS_PADDING_P (type))
+  if (TYPE_IS_PADDING_P (type))
     return get_alias_set (TREE_TYPE (TYPE_FIELDS (type)));
 
   /* If the type is an unconstrained array, use the type of the

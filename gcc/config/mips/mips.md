@@ -75,10 +75,14 @@
    (UNSPEC_EHB			52)
    (UNSPEC_RDPGPR		53)
    (UNSPEC_COP0			54)
+   ;; Used in a call expression in place of args_size.  It's present for PIC
+   ;; indirect calls where it contains args_size and the function symbol.
+   (UNSPEC_CALL_ATTR		55)
    
    (UNSPEC_ADDRESS_FIRST	100)
 
    (TLS_GET_TP_REGNUM		3)
+   (RETURN_ADDR_REGNUM		31)
    (CPRESTORE_SLOT_REGNUM	76)
    (GOT_VERSION_REGNUM		79)
 
@@ -1875,7 +1879,7 @@
    (set_attr "mode" "SI")
    (set_attr "length" "12")])
 
-(define_insn_and_split "<u>mulsidi3_64bit"
+(define_insn "<u>mulsidi3_64bit"
   [(set (match_operand:DI 0 "register_operand" "=d")
 	(mult:DI (any_extend:DI (match_operand:SI 1 "register_operand" "d"))
 		 (any_extend:DI (match_operand:SI 2 "register_operand" "d"))))
@@ -1883,37 +1887,67 @@
    (clobber (match_scratch:DI 4 "=d"))]
   "TARGET_64BIT && !TARGET_FIX_R4000"
   "#"
-  "&& reload_completed"
+  [(set_attr "type" "imul")
+   (set_attr "mode" "SI")
+   (set (attr "length")
+	(if_then_else (ne (symbol_ref "ISA_HAS_EXT_INS") (const_int 0))
+		      (const_int 16)
+		      (const_int 28)))])
+
+(define_split
+  [(set (match_operand:DI 0 "d_operand")
+	(mult:DI (any_extend:DI (match_operand:SI 1 "d_operand"))
+		 (any_extend:DI (match_operand:SI 2 "d_operand"))))
+   (clobber (match_operand:TI 3 "hilo_operand"))
+   (clobber (match_operand:DI 4 "d_operand"))]
+  "TARGET_64BIT && !TARGET_FIX_R4000 && ISA_HAS_EXT_INS && reload_completed"
   [(set (match_dup 3)
 	(unspec:TI [(mult:DI (any_extend:DI (match_dup 1))
 			     (any_extend:DI (match_dup 2)))]
 		   UNSPEC_SET_HILO))
 
-   ;; OP4 <- LO, OP0 <- HI
-   (set (match_dup 4) (match_dup 5))
-   (set (match_dup 0) (unspec:DI [(match_dup 3)] UNSPEC_MFHI))
+   ;; OP0 <- LO, OP4 <- HI
+   (set (match_dup 0) (match_dup 5))
+   (set (match_dup 4) (unspec:DI [(match_dup 3)] UNSPEC_MFHI))
+
+   (set (zero_extract:DI (match_dup 0) (const_int 32) (const_int 32))
+	(match_dup 4))]
+  { operands[5] = gen_rtx_REG (DImode, LO_REGNUM); })
+
+(define_split
+  [(set (match_operand:DI 0 "d_operand")
+	(mult:DI (any_extend:DI (match_operand:SI 1 "d_operand"))
+		 (any_extend:DI (match_operand:SI 2 "d_operand"))))
+   (clobber (match_operand:TI 3 "hilo_operand"))
+   (clobber (match_operand:DI 4 "d_operand"))]
+  "TARGET_64BIT && !TARGET_FIX_R4000 && !ISA_HAS_EXT_INS && reload_completed"
+  [(set (match_dup 3)
+	(unspec:TI [(mult:DI (any_extend:DI (match_dup 1))
+			     (any_extend:DI (match_dup 2)))]
+		   UNSPEC_SET_HILO))
+
+   ;; OP0 <- LO, OP4 <- HI
+   (set (match_dup 0) (match_dup 5))
+   (set (match_dup 4) (unspec:DI [(match_dup 3)] UNSPEC_MFHI))
 
    ;; Zero-extend OP4.
-   (set (match_dup 4)
-	(ashift:DI (match_dup 4)
+   (set (match_dup 0)
+	(ashift:DI (match_dup 0)
 		   (const_int 32)))
-   (set (match_dup 4)
-	(lshiftrt:DI (match_dup 4)
+   (set (match_dup 0)
+	(lshiftrt:DI (match_dup 0)
 		     (const_int 32)))
 
    ;; Shift OP0 into place.
-   (set (match_dup 0)
-	(ashift:DI (match_dup 0)
+   (set (match_dup 4)
+	(ashift:DI (match_dup 4)
 		   (const_int 32)))
 
    ;; OR the two halves together
    (set (match_dup 0)
 	(ior:DI (match_dup 0)
 		(match_dup 4)))]
-  { operands[5] = gen_rtx_REG (DImode, LO_REGNUM); }
-  [(set_attr "type" "imul")
-   (set_attr "mode" "SI")
-   (set_attr "length" "24")])
+  { operands[5] = gen_rtx_REG (DImode, LO_REGNUM); })
 
 (define_insn "<u>mulsidi3_64bit_hilo"
   [(set (match_operand:TI 0 "register_operand" "=x")
@@ -4008,7 +4042,7 @@
 
 (define_insn "*mov<mode>_ra"
   [(set (match_operand:GPR 0 "stack_operand" "=m")
-	(reg:GPR 31))]
+	(reg:GPR RETURN_ADDR_REGNUM))]
   "TARGET_MIPS16"
   "<store>\t$31,%0"
   [(set_attr "move_type" "store")
@@ -4935,7 +4969,7 @@
 
 (define_insn "clear_hazard_<mode>"
   [(unspec_volatile [(const_int 0)] UNSPEC_CLEAR_HAZARD)
-   (clobber (reg:P 31))]
+   (clobber (reg:P RETURN_ADDR_REGNUM))]
   "ISA_HAS_SYNCI"
 {
   return "%(%<bal\t1f\n"
@@ -5981,12 +6015,6 @@
 ;;	The register is therefore not a valid register_operand
 ;;	and cannot be moved to or from other registers.
 
-;; Convenience expander that generates the rhs of a load_call<mode> insn.
-(define_expand "unspec_call<mode>"
-  [(unspec:P [(match_operand:P 0)
-	      (match_operand:P 1)
-	      (reg:SI GOT_VERSION_REGNUM)] UNSPEC_LOAD_CALL)])
-
 (define_insn "load_call<mode>"
   [(set (match_operand:P 0 "register_operand" "=d")
 	(unspec:P [(match_operand:P 1 "register_operand" "d")
@@ -6040,7 +6068,7 @@
   [(call (mem:SI (match_operand 0 "call_insn_operand" "j,S"))
 	 (match_operand 1 "" ""))]
   "TARGET_SIBCALLS && SIBLING_CALL_P (insn)"
-  { return MIPS_CALL ("j", operands, 0); }
+  { return MIPS_CALL ("j", operands, 0, 1); }
   [(set_attr "type" "call")])
 
 (define_expand "sibcall_value"
@@ -6060,7 +6088,7 @@
         (call (mem:SI (match_operand 1 "call_insn_operand" "j,S"))
               (match_operand 2 "" "")))]
   "TARGET_SIBCALLS && SIBLING_CALL_P (insn)"
-  { return MIPS_CALL ("j", operands, 1); }
+  { return MIPS_CALL ("j", operands, 1, 2); }
   [(set_attr "type" "call")])
 
 (define_insn "sibcall_value_multiple_internal"
@@ -6071,7 +6099,7 @@
 	(call (mem:SI (match_dup 1))
 	      (match_dup 2)))]
   "TARGET_SIBCALLS && SIBLING_CALL_P (insn)"
-  { return MIPS_CALL ("j", operands, 1); }
+  { return MIPS_CALL ("j", operands, 1, 2); }
   [(set_attr "type" "call")])
 
 (define_expand "call"
@@ -6126,9 +6154,9 @@
 (define_insn_and_split "call_internal"
   [(call (mem:SI (match_operand 0 "call_insn_operand" "c,S"))
 	 (match_operand 1 "" ""))
-   (clobber (reg:SI 31))]
+   (clobber (reg:SI RETURN_ADDR_REGNUM))]
   ""
-  { return TARGET_SPLIT_CALLS ? "#" : MIPS_CALL ("jal", operands, 0); }
+  { return TARGET_SPLIT_CALLS ? "#" : MIPS_CALL ("jal", operands, 0, 1); }
   "reload_completed && TARGET_SPLIT_CALLS && (operands[2] = insn)"
   [(const_int 0)]
 {
@@ -6140,10 +6168,10 @@
 (define_insn "call_split"
   [(call (mem:SI (match_operand 0 "call_insn_operand" "cS"))
 	 (match_operand 1 "" ""))
-   (clobber (reg:SI 31))
+   (clobber (reg:SI RETURN_ADDR_REGNUM))
    (clobber (reg:SI 28))]
   "TARGET_SPLIT_CALLS"
-  { return MIPS_CALL ("jal", operands, 0); }
+  { return MIPS_CALL ("jal", operands, 0, 1); }
   [(set_attr "type" "call")])
 
 ;; A pattern for calls that must be made directly.  It is used for
@@ -6154,9 +6182,9 @@
   [(call (mem:SI (match_operand 0 "const_call_insn_operand"))
 	 (match_operand 1))
    (const_int 1)
-   (clobber (reg:SI 31))]
+   (clobber (reg:SI RETURN_ADDR_REGNUM))]
   ""
-  { return TARGET_SPLIT_CALLS ? "#" : MIPS_CALL ("jal", operands, 0); }
+  { return TARGET_SPLIT_CALLS ? "#" : MIPS_CALL ("jal", operands, 0, -1); }
   "reload_completed && TARGET_SPLIT_CALLS && (operands[2] = insn)"
   [(const_int 0)]
 {
@@ -6170,10 +6198,10 @@
   [(call (mem:SI (match_operand 0 "const_call_insn_operand"))
 	 (match_operand 1))
    (const_int 1)
-   (clobber (reg:SI 31))
+   (clobber (reg:SI RETURN_ADDR_REGNUM))
    (clobber (reg:SI 28))]
   "TARGET_SPLIT_CALLS"
-  { return MIPS_CALL ("jal", operands, 0); }
+  { return MIPS_CALL ("jal", operands, 0, -1); }
   [(set_attr "type" "call")])
 
 (define_expand "call_value"
@@ -6193,9 +6221,9 @@
   [(set (match_operand 0 "register_operand" "")
         (call (mem:SI (match_operand 1 "call_insn_operand" "c,S"))
               (match_operand 2 "" "")))
-   (clobber (reg:SI 31))]
+   (clobber (reg:SI RETURN_ADDR_REGNUM))]
   ""
-  { return TARGET_SPLIT_CALLS ? "#" : MIPS_CALL ("jal", operands, 1); }
+  { return TARGET_SPLIT_CALLS ? "#" : MIPS_CALL ("jal", operands, 1, 2); }
   "reload_completed && TARGET_SPLIT_CALLS && (operands[3] = insn)"
   [(const_int 0)]
 {
@@ -6210,10 +6238,10 @@
   [(set (match_operand 0 "register_operand" "")
         (call (mem:SI (match_operand 1 "call_insn_operand" "cS"))
               (match_operand 2 "" "")))
-   (clobber (reg:SI 31))
+   (clobber (reg:SI RETURN_ADDR_REGNUM))
    (clobber (reg:SI 28))]
   "TARGET_SPLIT_CALLS"
-  { return MIPS_CALL ("jal", operands, 1); }
+  { return MIPS_CALL ("jal", operands, 1, 2); }
   [(set_attr "type" "call")])
 
 ;; See call_internal_direct.
@@ -6222,9 +6250,9 @@
         (call (mem:SI (match_operand 1 "const_call_insn_operand"))
               (match_operand 2)))
    (const_int 1)
-   (clobber (reg:SI 31))]
+   (clobber (reg:SI RETURN_ADDR_REGNUM))]
   ""
-  { return TARGET_SPLIT_CALLS ? "#" : MIPS_CALL ("jal", operands, 1); }
+  { return TARGET_SPLIT_CALLS ? "#" : MIPS_CALL ("jal", operands, 1, -1); }
   "reload_completed && TARGET_SPLIT_CALLS && (operands[3] = insn)"
   [(const_int 0)]
 {
@@ -6240,10 +6268,10 @@
         (call (mem:SI (match_operand 1 "const_call_insn_operand"))
               (match_operand 2)))
    (const_int 1)
-   (clobber (reg:SI 31))
+   (clobber (reg:SI RETURN_ADDR_REGNUM))
    (clobber (reg:SI 28))]
   "TARGET_SPLIT_CALLS"
-  { return MIPS_CALL ("jal", operands, 1); }
+  { return MIPS_CALL ("jal", operands, 1, -1); }
   [(set_attr "type" "call")])
 
 ;; See comment for call_internal.
@@ -6254,9 +6282,9 @@
    (set (match_operand 3 "register_operand" "")
 	(call (mem:SI (match_dup 1))
 	      (match_dup 2)))
-   (clobber (reg:SI 31))]
+   (clobber (reg:SI RETURN_ADDR_REGNUM))]
   ""
-  { return TARGET_SPLIT_CALLS ? "#" : MIPS_CALL ("jal", operands, 1); }
+  { return TARGET_SPLIT_CALLS ? "#" : MIPS_CALL ("jal", operands, 1, 2); }
   "reload_completed && TARGET_SPLIT_CALLS && (operands[4] = insn)"
   [(const_int 0)]
 {
@@ -6274,10 +6302,10 @@
    (set (match_operand 3 "register_operand" "")
 	(call (mem:SI (match_dup 1))
 	      (match_dup 2)))
-   (clobber (reg:SI 31))
+   (clobber (reg:SI RETURN_ADDR_REGNUM))
    (clobber (reg:SI 28))]
   "TARGET_SPLIT_CALLS"
-  { return MIPS_CALL ("jal", operands, 1); }
+  { return MIPS_CALL ("jal", operands, 1, 2); }
   [(set_attr "type" "call")])
 
 ;; Call subroutine returning any type.

@@ -44,6 +44,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "timevar.h"
 #include "tree-pass.h"
 #include "df.h"
+#include "ira.h"
 
 static int optimize_reg_copy_1 (rtx, rtx, rtx);
 static void optimize_reg_copy_2 (rtx, rtx, rtx);
@@ -184,7 +185,9 @@ try_auto_increment (rtx insn, rtx inc_insn, rtx inc_insn_set, rtx reg,
 		   &SET_SRC (inc_insn_set),
 		   XEXP (SET_SRC (inc_insn_set), 0), 1);
 	      validate_change (insn, &XEXP (use, 0),
-			       gen_rtx_fmt_e (inc_code, Pmode, reg), 1);
+			       gen_rtx_fmt_e (inc_code,
+					      GET_MODE (XEXP (use, 0)), reg),
+			       1);
 	      if (apply_change_group ())
 		{
 		  /* If there is a REG_DEAD note on this insn, we must
@@ -1117,23 +1120,28 @@ regmove_backward_pass (void)
 		      break;
 		    }
 
-		  /* We can't make this change if SRC is read or
+		  /* We can't make this change if DST is mentioned at
+		     all in P, since we are going to change its value.
+		     We can't make this change if SRC is read or
 		     partially written in P, since we are going to
-		     eliminate SRC. We can't make this change 
-		     if DST is mentioned at all in P,
-		     since we are going to change its value.  */
-		  if (reg_overlap_mentioned_p (src, PATTERN (p)))
-		    {
-		      if (DEBUG_INSN_P (p))
-			validate_replace_rtx_group (dst, src, insn);
-		      else
-			break;
-		    }
+		     eliminate SRC.  However, if it's a debug insn, we
+		     can't refrain from making the change, for this
+		     would cause codegen differences, so instead we
+		     invalidate debug expressions that reference DST,
+		     and adjust references to SRC in them so that they
+		     become references to DST.  */
 		  if (reg_mentioned_p (dst, PATTERN (p)))
 		    {
 		      if (DEBUG_INSN_P (p))
 			validate_change (p, &INSN_VAR_LOCATION_LOC (p),
 					 gen_rtx_UNKNOWN_VAR_LOC (), 1);
+		      else
+			break;
+		    }
+		  if (reg_overlap_mentioned_p (src, PATTERN (p)))
+		    {
+		      if (DEBUG_INSN_P (p))
+			validate_replace_rtx_group (src, dst, p);
 		      else
 			break;
 		    }
@@ -1221,6 +1229,9 @@ regmove_optimize (void)
   df_note_add_problem ();
   df_analyze ();
 
+  if (flag_ira_loop_pressure)
+    ira_set_pseudo_classes (dump_file);
+
   regstat_init_n_sets_and_refs ();
   regstat_compute_ri ();
 
@@ -1243,6 +1254,8 @@ regmove_optimize (void)
     }
   regstat_free_n_sets_and_refs ();
   regstat_free_ri ();
+  if (flag_ira_loop_pressure)
+    free_reg_info ();
   return 0;
 }
 

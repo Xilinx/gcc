@@ -1,6 +1,12 @@
 # This harness is for tests that should be run at all optimisation levels.
 
 load_lib gcc-dg.exp
+load_lib gcc-gdb-test.exp
+
+# Disable on darwin until radr://7264615 is resolved.
+if { [istarget *-*-darwin*] } {
+  return
+}
 
 proc check_guality {args} {
     set result [eval check_compile guality_check executable $args "-g -O0"]
@@ -17,6 +23,16 @@ proc check_guality {args} {
 
 dg-init
 
+global GDB
+if ![info exists ::env(GUALITY_GDB_NAME)] {
+    if [info exists GDB] {
+	set guality_gdb_name "$GDB"
+    } else {
+	set guality_gdb_name "[transform gdb]"
+    }
+    setenv GUALITY_GDB_NAME "$guality_gdb_name"
+}
+
 if {[check_guality "
   #include \"$srcdir/$subdir/guality.h\"
   volatile long int varl = 6;
@@ -28,4 +44,9 @@ if {[check_guality "
 "]} {
   gcc-dg-runtest [lsort [glob $srcdir/$subdir/*.c]] ""
 }
+
+if [info exists guality_gdb_name] {
+    unsetenv GUALITY_GDB_NAME
+}
+
 dg-finish

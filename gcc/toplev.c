@@ -198,6 +198,17 @@ int optimize = 0;
 
 int optimize_size = 0;
 
+/* True if this is the lto front end.  This is used to disable
+   gimple generation and lowering passes that are normally run on the
+   output of a front end.  These passes must be bypassed for lto since
+   they have already been done before the gimple was written.  */ 
+
+bool in_lto_p = false;
+
+/* Nonzero if we should write GIMPLE bytecode for link-time optimization.  */
+
+int flag_generate_lto;
+
 /* The FUNCTION_DECL for the function currently being compiled,
    or 0 if between functions.  */
 tree current_function_decl;
@@ -1099,6 +1110,14 @@ compile_file (void)
   /* Flush any pending external directives.  */
   process_pending_assemble_externals ();
 
+  /* Emit LTO marker if LTO info has been previously emitted.  This is
+     used by collect2 to determine whether an object file contains IL.
+     We used to emit an undefined reference here, but this produces
+     link errors if an object file with IL is stored into a shared
+     library without invoking lto1.  */
+  if (flag_generate_lto)
+    fprintf (asm_out_file,"\t.comm\tgnu_lto_v1,1,1\n");
+
   /* Attach a special .ident directive to the end of the file to identify
      the version of GCC which compiled this code.  The format of the .ident
      string is patterned after the ones produced by native SVR4 compilers.  */
@@ -1922,6 +1941,11 @@ process_options (void)
 	}
     }
 
+  /* Unless over-ridden for the target, assume that all DWARF levels
+     may be emitted, if DWARF2_DEBUG is selected.  */
+  if (dwarf_strict < 0) 
+    dwarf_strict = 0;
+
   /* A lot of code assumes write_symbols == NO_DEBUG if the debugging
      level is 0.  */
   if (debug_info_level == DINFO_LEVEL_NONE)
@@ -2351,6 +2375,8 @@ finalize (void)
 	fatal_error ("error writing to %s: %m", asm_file_name);
       if (fclose (asm_out_file) != 0)
 	fatal_error ("error closing %s: %m", asm_file_name);
+      if (flag_wpa)
+	unlink_if_ordinary (asm_file_name);
     }
 
   statistics_fini ();

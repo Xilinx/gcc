@@ -233,6 +233,7 @@ extern void mips_expand_conditional_trap (rtx);
 extern bool mips_use_pic_fn_addr_reg_p (const_rtx);
 extern rtx mips_expand_call (enum mips_call_type, rtx, rtx, rtx, rtx, bool);
 extern void mips_split_call (rtx, rtx);
+extern bool mips_get_pic_call_symbol (rtx *, int);
 extern void mips_expand_fcc_reload (rtx, rtx, rtx);
 extern void mips_set_return_address (rtx, rtx);
 extern bool mips_expand_block_move (rtx, rtx, rtx);
@@ -342,5 +343,6 @@ extern void mips_expand_vector_init (rtx, rtx);
 extern bool mips_eh_uses (unsigned int);
 extern bool mips_epilogue_uses (unsigned int);
 extern void mips_final_prescan_insn (rtx, rtx *, int);
+extern int mips_trampoline_code_size (void);
 
 #endif /* ! GCC_MIPS_PROTOS_H */

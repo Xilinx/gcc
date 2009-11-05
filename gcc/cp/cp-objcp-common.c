@@ -140,6 +140,8 @@ cp_tree_size (enum tree_code code)
     case TRAIT_EXPR:
       return sizeof (struct tree_trait_expr);
 
+    case LAMBDA_EXPR:           return sizeof (struct tree_lambda_expr);
+
     default:
       gcc_unreachable ();
     }
@@ -627,8 +629,8 @@ cp_save_built_in_decl_post_parsing (void)
   for (i = 0; VEC_iterate (saved_builtin,
                            saved_builtins, i, bi); ++i)
     {
-      if (DECL_ARTIFICIAL (bi->decl)
-	  || TREE_CODE (bi->decl) != FUNCTION_DECL
+      if (TREE_CODE (bi->decl) != FUNCTION_DECL
+          || DECL_ARTIFICIAL (bi->decl)
 	  || DECL_BUILT_IN (bi->decl))
 	continue;
       /* Remember the defining module.  */

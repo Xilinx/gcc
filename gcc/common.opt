@@ -518,6 +518,10 @@ femit-class-debug-always
 Common Report Var(flag_emit_class_debug_always) Init(0)
 Do not suppress C++ class debug information.
 
+fenable-icf-debug
+Common Report Var(flag_enable_icf_debug)
+Generate debug information to support Identical Code Folding (ICF)
+
 fexceptions
 Common Report Var(flag_exceptions) Optimization
 Enable exception handling
@@ -729,6 +733,11 @@ fira-coalesce
 Common Report Var(flag_ira_coalesce) Init(0)
 Do optimistic coalescing.
 
+fira-loop-pressure
+Common Report Var(flag_ira_loop_pressure)
+Use IRA based register pressure calculation
+in RTL loop optimizations.
+
 fira-share-save-slots
 Common Report Var(flag_ira_share_save_slots) Init(1)
 Share slots for saving different hard registers.
@@ -764,6 +773,19 @@ Give external symbols a leading underscore
 floop-optimize
 Common
 Does nothing.  Preserved for backward compatibility.
+
+flto
+Common Var(flag_lto)
+Enable link-time optimization.
+
+; The initial value of -1 comes from Z_DEFAULT_COMPRESSION in zlib.h.
+flto-compression-level=
+Common Joined UInteger Var(flag_lto_compression_level) Init(-1)
+-flto-compression-level=<number> Use zlib compression level <number> for IL
+
+flto-report
+Common Report Var(flag_lto_report) Init(0) Optimization
+Report various link-time optimization statistics
 
 fmath-errno
 Common Report Var(flag_errno_math) Init(1) Optimization
@@ -1452,6 +1474,10 @@ fweb
 Common Report Var(flag_web) Init(2) Optimization
 Construct webs and split unrelated uses of single variable
 
+fwhopr
+Common Var(flag_whopr)
+Enable partitioned link-time optimization.
+
 ftree-builtin-call-dce
 Common Report Var(flag_tree_builtin_call_dce) Init(0) Optimization
 Enable conditional dead code elimination for builtin calls
@@ -1491,6 +1517,14 @@ Generate debug information in STABS format
 gstabs+
 Common JoinedOrMissing Negative(gvms)
 Generate debug information in extended STABS format
+
+gno-strict-dwarf
+Common RejectNegative Var(dwarf_strict,0) Init(-1)
+Emit DWARF additions beyond selected version
+
+gstrict-dwarf
+Common Report RejectNegative Var(dwarf_strict,1) VarExists
+Don't emit DWARF additions beyond selected version
 
 gtoggle
 Common Report Var(flag_gtoggle)

@@ -230,6 +230,14 @@ enum mips_code_readable_setting {
    && !TARGET_ABSOLUTE_ABICALLS			\
    && !(mips_abi == ABI_64 && TARGET_IRIX))
 
+/* True if the output must have a writable .eh_frame.
+   See ASM_PREFERRED_EH_DATA_FORMAT for details.  */
+#ifdef HAVE_LD_PERSONALITY_RELAXATION
+#define TARGET_WRITABLE_EH_FRAME 0
+#else
+#define TARGET_WRITABLE_EH_FRAME (flag_pic && TARGET_SHARED)
+#endif
+
 /* Generate mips16 code */
 #define TARGET_MIPS16		((target_flags & MASK_MIPS16) != 0)
 /* Generate mips16e code. Default 16bit ASE for mips32* and mips64* */
@@ -1303,10 +1311,10 @@ enum mips_code_readable_setting {
 #define DWARF_FRAME_REGNUM(REGNO) mips_dwarf_regno[REGNO]
 
 /* The DWARF 2 CFA column which tracks the return address.  */
-#define DWARF_FRAME_RETURN_COLUMN (GP_REG_FIRST + 31)
+#define DWARF_FRAME_RETURN_COLUMN RETURN_ADDR_REGNUM
 
 /* Before the prologue, RA lives in r31.  */
-#define INCOMING_RETURN_ADDR_RTX  gen_rtx_REG (VOIDmode, GP_REG_FIRST + 31)
+#define INCOMING_RETURN_ADDR_RTX gen_rtx_REG (VOIDmode, RETURN_ADDR_REGNUM)
 
 /* Describe how we implement __builtin_eh_return.  */
 #define EH_RETURN_DATA_REGNO(N) \
@@ -2378,7 +2386,7 @@ typedef struct mips_args {
     }									\
   mips_push_asm_switch (&mips_noat);					\
   fprintf (FILE, "\tmove\t%s,%s\t\t# save current return address\n",	\
-	   reg_names[GP_REG_FIRST + 1], reg_names[GP_REG_FIRST + 31]);	\
+	   reg_names[AT_REGNUM], reg_names[RETURN_ADDR_REGNUM]);	\
   /* _mcount treats $2 as the static chain register.  */		\
   if (cfun->static_chain_decl != NULL)					\
     fprintf (FILE, "\tmove\t%s,%s\n", reg_names[2],			\
@@ -2425,55 +2433,17 @@ typedef struct mips_args {
 #define EXIT_IGNORE_STACK 1
 
 
-/* A C statement to output, on the stream FILE, assembler code for a
-   block of data that contains the constant parts of a trampoline.
-   This code should not include a label--the label is taken care of
-   automatically.  */
+/* Trampolines are a block of code followed by two pointers.  */
 
-#define TRAMPOLINE_TEMPLATE(STREAM)					\
-{									\
-  if (ptr_mode == DImode)						\
-    fprintf (STREAM, "\t.word\t0x03e0082d\t\t# dmove   $1,$31\n");	\
-  else									\
-    fprintf (STREAM, "\t.word\t0x03e00821\t\t# move   $1,$31\n");	\
-  fprintf (STREAM, "\t.word\t0x04110001\t\t# bgezal $0,.+8\n");		\
-  fprintf (STREAM, "\t.word\t0x00000000\t\t# nop\n");			\
-  if (ptr_mode == DImode)						\
-    {									\
-      fprintf (STREAM, "\t.word\t0xdff90014\t\t# ld     $25,20($31)\n"); \
-      fprintf (STREAM, "\t.word\t0xdfef001c\t\t# ld     $15,28($31)\n"); \
-    }									\
-  else									\
-    {									\
-      fprintf (STREAM, "\t.word\t0x8ff90010\t\t# lw     $25,16($31)\n"); \
-      fprintf (STREAM, "\t.word\t0x8fef0014\t\t# lw     $15,20($31)\n"); \
-    }									\
-  fprintf (STREAM, "\t.word\t0x03200008\t\t# jr     $25\n");		\
-  if (ptr_mode == DImode)						\
-    {									\
-      fprintf (STREAM, "\t.word\t0x0020f82d\t\t# dmove   $31,$1\n");	\
-      fprintf (STREAM, "\t.word\t0x00000000\t\t# <padding>\n");		\
-      fprintf (STREAM, "\t.dword\t0x00000000\t\t# <function address>\n"); \
-      fprintf (STREAM, "\t.dword\t0x00000000\t\t# <static chain value>\n"); \
-    }									\
-  else									\
-    {									\
-      fprintf (STREAM, "\t.word\t0x0020f821\t\t# move   $31,$1\n");	\
-      fprintf (STREAM, "\t.word\t0x00000000\t\t# <function address>\n"); \
-      fprintf (STREAM, "\t.word\t0x00000000\t\t# <static chain value>\n"); \
-    }									\
-}
+#define TRAMPOLINE_SIZE \
+  (mips_trampoline_code_size () + GET_MODE_SIZE (ptr_mode) * 2)
 
-/* A C expression for the size in bytes of the trampoline, as an
-   integer.  */
+/* Forcing a 64-bit alignment for 32-bit targets allows us to load two
+   pointers from a single LUI base.  */
 
-#define TRAMPOLINE_SIZE (ptr_mode == DImode ? 48 : 36)
+#define TRAMPOLINE_ALIGNMENT 64
 
-/* Alignment required for trampolines, in bits.  */
-
-#define TRAMPOLINE_ALIGNMENT GET_MODE_BITSIZE (ptr_mode)
-
-/* INITIALIZE_TRAMPOLINE calls this library function to flush
+/* mips_trampoline_init calls this library function to flush
    program and data caches.  */
 
 #ifndef CACHE_FLUSH_FUNC
@@ -2487,25 +2457,6 @@ typedef struct mips_args {
 		     LCT_NORMAL, VOIDmode, 3, ADDR, Pmode, SIZE, Pmode,	\
 		     GEN_INT (3), TYPE_MODE (integer_type_node))
 
-/* A C statement to initialize the variable parts of a trampoline.
-   ADDR is an RTX for the address of the trampoline; FNADDR is an
-   RTX for the address of the nested function; STATIC_CHAIN is an
-   RTX for the static chain value that should be passed to the
-   function when it is called.  */
-
-#define INITIALIZE_TRAMPOLINE(ADDR, FUNC, CHAIN)			    \
-{									    \
-  rtx func_addr, chain_addr, end_addr;                                      \
-									    \
-  func_addr = plus_constant (ADDR, ptr_mode == DImode ? 32 : 28);	    \
-  chain_addr = plus_constant (func_addr, GET_MODE_SIZE (ptr_mode));	    \
-  mips_emit_move (gen_rtx_MEM (ptr_mode, func_addr), FUNC);		    \
-  mips_emit_move (gen_rtx_MEM (ptr_mode, chain_addr), CHAIN);		    \
-  end_addr = gen_reg_rtx (Pmode);					    \
-  emit_insn (gen_add3_insn (end_addr, copy_rtx (ADDR),			    \
-                            GEN_INT (TRAMPOLINE_SIZE)));		    \
-  emit_insn (gen_clear_cache (copy_rtx (ADDR), end_addr));		    \
-}
 
 /* Addressing modes, and classification of registers for them.  */
 
@@ -2686,20 +2637,27 @@ typedef struct mips_args {
    : INSN)
 
 /* Return the asm template for a call.  INSN is the instruction's mnemonic
-   ("j" or "jal"), OPERANDS are its operands, and OPNO is the operand number
-   of the target.
+   ("j" or "jal"), OPERANDS are its operands, TARGET_OPNO is the operand
+   number of the target.  SIZE_OPNO is the operand number of the argument size
+   operand that can optionally hold the call attributes.  If SIZE_OPNO is not
+   -1 and the call is indirect, use the function symbol from the call
+   attributes to attach a R_MIPS_JALR relocation to the call.
 
    When generating GOT code without explicit relocation operators,
    all calls should use assembly macros.  Otherwise, all indirect
    calls should use "jr" or "jalr"; we will arrange to restore $gp
    afterwards if necessary.  Finally, we can only generate direct
    calls for -mabicalls by temporarily switching to non-PIC mode.  */
-#define MIPS_CALL(INSN, OPERANDS, OPNO)				\
+#define MIPS_CALL(INSN, OPERANDS, TARGET_OPNO, SIZE_OPNO)	\
   (TARGET_USE_GOT && !TARGET_EXPLICIT_RELOCS			\
-   ? "%*" INSN "\t%" #OPNO "%/"					\
-   : REG_P (OPERANDS[OPNO])					\
-   ? "%*" INSN "r\t%" #OPNO "%/"				\
-   : MIPS_ABSOLUTE_JUMP ("%*" INSN "\t%" #OPNO "%/"))
+   ? "%*" INSN "\t%" #TARGET_OPNO "%/"				\
+   : (REG_P (OPERANDS[TARGET_OPNO])				\
+      && mips_get_pic_call_symbol (OPERANDS, SIZE_OPNO))	\
+   ? ("%*.reloc\t1f,R_MIPS_JALR,%" #SIZE_OPNO "\n"		\
+      "1:\t" INSN "r\t%" #TARGET_OPNO "%/")			\
+   : REG_P (OPERANDS[TARGET_OPNO])				\
+   ? "%*" INSN "r\t%" #TARGET_OPNO "%/"				\
+   : MIPS_ABSOLUTE_JUMP ("%*" INSN "\t%" #TARGET_OPNO "%/"))
 
 /* Control the assembler format that we output.  */
 
@@ -3175,3 +3133,30 @@ extern enum mips_code_readable_setting mips_code_readable;
 /* This is necessary to avoid a warning about comparing different enum
    types.  */
 #define mips_tune_attr ((enum attr_cpu) mips_tune)
+
+/* As on most targets, we want the .eh_frame section to be read-only where
+   possible.  And as on most targets, this means two things:
+
+     (a) Non-locally-binding pointers must have an indirect encoding,
+	 so that the addresses in the .eh_frame section itself become
+	 locally-binding.
+
+     (b) A shared library's .eh_frame section must encode locally-binding
+	 pointers in a relative (relocation-free) form.
+
+   However, MIPS has traditionally not allowed directives like:
+
+	.long	x-.
+
+   in cases where "x" is in a different section, or is not defined in the
+   same assembly file.  We are therefore unable to emit the PC-relative
+   form required by (b) at assembly time.
+
+   Fortunately, the linker is able to convert absolute addresses into
+   PC-relative addresses on our behalf.  Unfortunately, only certain
+   versions of the linker know how to do this for indirect pointers,
+   and for personality data.  We must fall back on using writable
+   .eh_frame sections for shared libraries if the linker does not
+   support this feature.  */
+#define ASM_PREFERRED_EH_DATA_FORMAT(CODE,GLOBAL) \
+  (((GLOBAL) ? DW_EH_PE_indirect : 0) | DW_EH_PE_absptr)

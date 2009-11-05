@@ -133,6 +133,7 @@ enum plugin_event
   PLUGIN_GGC_MARKING,		/* Extend the GGC marking. */
   PLUGIN_GGC_END,		/* Called at end of GGC. */
   PLUGIN_REGISTER_GGC_ROOTS,	/* Register an extra GGC root table. */
+  PLUGIN_REGISTER_GGC_CACHES,	/* Register an extra GGC cache table. */
   PLUGIN_ATTRIBUTES,            /* Called during attribute registration */
   PLUGIN_START_UNIT,            /* Called before processing a translation unit.  */
   PLUGIN_EVENT_LAST             /* Dummy event used for indexing callback
@@ -151,8 +152,8 @@ the arguments:
 @item @code{void *user_data}: Pointer to plugin-specific data.
 @end itemize
 
-For the PLUGIN_PASS_MANAGER_SETUP, PLUGIN_INFO, and
-PLUGIN_REGISTER_GGC_ROOTS pseudo-events the @code{callback} should be
+For the PLUGIN_PASS_MANAGER_SETUP, PLUGIN_INFO, PLUGIN_REGISTER_GGC_ROOTS
+and PLUGIN_REGISTER_GGC_CACHES pseudo-events the @code{callback} should be
 null, and the @code{user_data} is specific.
 
 @section Interacting with the pass manager
@@ -164,7 +165,7 @@ such as CFG or an IPA pass) and optimization plugins.
 Basic support for inserting new passes or replacing existing passes is
 provided. A plugin registers a new pass with GCC by calling
 @code{register_callback} with the @code{PLUGIN_PASS_MANAGER_SETUP}
-event and a pointer to a @code{struct plugin_pass} object defined as follows
+event and a pointer to a @code{struct register_pass_info} object defined as follows
 
 @smallexample
 enum pass_positioning_ops
@@ -174,7 +175,7 @@ enum pass_positioning_ops
   PASS_POS_REPLACE        // Replace the reference pass.
 @};
 
-struct plugin_pass
+struct register_pass_info
 @{
   struct opt_pass *pass;            /* New pass provided by the plugin.  */
   const char *reference_pass_name;  /* Name of the reference pass for hooking
@@ -191,7 +192,7 @@ int
 plugin_init (struct plugin_name_args *plugin_info,
              struct plugin_gcc_version *version)
 @{
-  struct plugin_pass pass_info;
+  struct register_pass_info pass_info;
 
   ...
 
@@ -222,16 +223,19 @@ for the @code{PLUGIN_GGC_MARKING} event. Such callbacks can call the
 (and conversely, these routines should usually not be used in plugins
 outside of the @code{PLUGIN_GGC_MARKING} event).  
 
-Some plugins may need to add extra GGC root tables, e.g. to handle
-their own @code{GTY}-ed data. This can be done with the
-@code{PLUGIN_REGISTER_GGC_ROOTS} pseudo-event with a null callback and
-the extra root table as @code{user_data}.  Running the @code{gengtype
--p @var{source-dir} @var{file-list} @var{plugin*.c} ...} utility
-generates this extra root table.
+Some plugins may need to add extra GGC root tables, e.g. to handle their own
+@code{GTY}-ed data. This can be done with the @code{PLUGIN_REGISTER_GGC_ROOTS}
+pseudo-event with a null callback and the extra root table (of type @code{struct
+ggc_root_tab*}) as @code{user_data}.  Plugins that want to use the
+@code{if_marked} hash table option can add the extra GGC cache tables generated
+by @code{gengtype} using the @code{PLUGIN_REGISTER_GGC_CACHES} pseudo-event with
+a null callback and the extra cache table (of type @code{struct ggc_cache_tab*})
+as @code{user_data}.  Running the @code{gengtype -p @var{source-dir}
+@var{file-list} @var{plugin*.c} ...} utility generates these extra root tables.
 
 You should understand the details of memory management inside GCC
-before using @code{PLUGIN_GGC_MARKING} or
-@code{PLUGIN_REGISTER_GGC_ROOTS}.
+before using @code{PLUGIN_GGC_MARKING}, @code{PLUGIN_REGISTER_GGC_ROOTS}
+or @code{PLUGIN_REGISTER_GGC_CACHES}.
 
 
 @section Giving information about a plugin

@@ -265,6 +265,11 @@ ao_ref_from_mem (ao_ref *ref, const_rtx mem)
   if (!expr)
     return false;
 
+  /* If MEM_OFFSET or MEM_SIZE are NULL punt.  */
+  if (!MEM_OFFSET (mem)
+      || !MEM_SIZE (mem))
+    return false;
+
   ao_ref_init (ref, expr);
 
   /* Get the base of the reference and see if we have to reject or
@@ -302,33 +307,32 @@ ao_ref_from_mem (ao_ref *ref, const_rtx mem)
 
   ref->ref_alias_set = MEM_ALIAS_SET (mem);
 
-  /* For NULL MEM_OFFSET the MEM_EXPR may have been stripped arbitrarily
-     without recording offset or extent adjustments properly.  */
-  if (MEM_OFFSET (mem) == NULL_RTX)
-    {
-      ref->offset = 0;
-      ref->max_size = -1;
-    }
-  else
-    {
-      ref->offset += INTVAL (MEM_OFFSET (mem)) * BITS_PER_UNIT;
-    }
+  /* If the base decl is a parameter we can have negative MEM_OFFSET in
+     case of promoted subregs on bigendian targets.  Trust the MEM_EXPR
+     here.  */
+  if (INTVAL (MEM_OFFSET (mem)) < 0
+      && ((INTVAL (MEM_SIZE (mem)) + INTVAL (MEM_OFFSET (mem)))
+	  * BITS_PER_UNIT) == ref->size)
+    return true;
 
-  /* NULL MEM_SIZE should not really happen with a non-NULL MEM_EXPR,
-     but just play safe here.  The size may have been adjusted together
-     with the offset, so we need to take it if it is set and not rely
-     on MEM_EXPR here (which has the size determining parts potentially
-     stripped anyway).  We lose precision for max_size which is only
-     available from the remaining MEM_EXPR.  */
-  if (MEM_SIZE (mem) == NULL_RTX)
-    {
-      ref->size = -1;
-      ref->max_size = -1;
-    }
-  else
-    {
-      ref->size = INTVAL (MEM_SIZE (mem)) * BITS_PER_UNIT;
-    }
+  ref->offset += INTVAL (MEM_OFFSET (mem)) * BITS_PER_UNIT;
+  ref->size = INTVAL (MEM_SIZE (mem)) * BITS_PER_UNIT;
+
+  /* The MEM may extend into adjacent fields, so adjust max_size if
+     necessary.  */
+  if (ref->max_size != -1
+      && ref->size > ref->max_size)
+    ref->max_size = ref->size;
+
+  /* If MEM_OFFSET and MEM_SIZE get us outside of the base object of
+     the MEM_EXPR punt.  This happens for STRICT_ALIGNMENT targets a lot.  */
+  if (MEM_EXPR (mem) != get_spill_slot_decl (false)
+      && (ref->offset < 0
+	  || (DECL_P (ref->base)
+	      && (!host_integerp (DECL_SIZE (ref->base), 1)
+		  || (TREE_INT_CST_LOW (DECL_SIZE ((ref->base)))
+		      < (unsigned HOST_WIDE_INT)(ref->offset + ref->size))))))
+    return false;
 
   return true;
 }
@@ -687,7 +691,14 @@ get_alias_set (tree t)
      requires structural comparisons to identify compatible types
      use alias set zero.  */
   if (TYPE_STRUCTURAL_EQUALITY_P (t))
-    return 0;
+    {
+      /* Allow the language to specify another alias set for this
+	 type.  */
+      set = lang_hooks.get_alias_set (t);
+      if (set != -1)
+	return set;
+      return 0;
+    }
   t = TYPE_CANONICAL (t);
   /* Canonical types shouldn't form a tree nor should the canonical
      type require structural equality checks.  */
@@ -1049,6 +1060,11 @@ find_base_value (rtx src)
       return 0;
 
     case TRUNCATE:
+      /* As we do not know which address space the pointer is refering to, we can
+	 handle this only if the target does not support different pointer or
+	 address modes depending on the address space.  */
+      if (!target_default_pointer_address_modes_p ())
+	break;
       if (GET_MODE_SIZE (GET_MODE (src)) < GET_MODE_SIZE (Pmode))
 	break;
       /* Fall through.  */
@@ -1063,6 +1079,12 @@ find_base_value (rtx src)
 
     case ZERO_EXTEND:
     case SIGN_EXTEND:	/* used for NT/Alpha pointers */
+      /* As we do not know which address space the pointer is refering to, we can
+	 handle this only if the target does not support different pointer or
+	 address modes depending on the address space.  */
+      if (!target_default_pointer_address_modes_p ())
+	break;
+
       {
 	rtx temp = find_base_value (XEXP (src, 0));
 
@@ -1455,6 +1477,11 @@ find_base_term (rtx x)
       return REG_BASE_VALUE (x);
 
     case TRUNCATE:
+      /* As we do not know which address space the pointer is refering to, we can
+	 handle this only if the target does not support different pointer or
+	 address modes depending on the address space.  */
+      if (!target_default_pointer_address_modes_p ())
+	return 0;
       if (GET_MODE_SIZE (GET_MODE (x)) < GET_MODE_SIZE (Pmode))
 	return 0;
       /* Fall through.  */
@@ -1469,6 +1496,12 @@ find_base_term (rtx x)
 
     case ZERO_EXTEND:
     case SIGN_EXTEND:	/* Used for Alpha/NT pointers */
+      /* As we do not know which address space the pointer is refering to, we can
+	 handle this only if the target does not support different pointer or
+	 address modes depending on the address space.  */
+      if (!target_default_pointer_address_modes_p ())
+	return 0;
+
       {
 	rtx temp = find_base_term (XEXP (x, 0));
 
@@ -2177,6 +2210,13 @@ nonoverlapping_memrefs_p (const_rtx x, const_rtx y)
       && ! rtx_equal_p (rtlx, rtly))
     return 1;
 
+  /* If we have MEMs refering to different address spaces (which can
+     potentially overlap), we cannot easily tell from the addresses
+     whether the references overlap.  */
+  if (MEM_P (rtlx) && MEM_P (rtly)
+      && MEM_ADDR_SPACE (rtlx) != MEM_ADDR_SPACE (rtly))
+    return 0;
+
   /* Get the base and offsets of both decls.  If either is a register, we
      know both are and are the same, so use that as the base.  The only
      we can avoid overlap is if we can deduce that they are nonoverlapping
@@ -2268,6 +2308,12 @@ true_dependence (const_rtx mem, enum machine_mode mem_mode, const_rtx x,
   if (nonoverlapping_memrefs_p (mem, x))
     return 0;
 
+  /* If we have MEMs refering to different address spaces (which can
+     potentially overlap), we cannot easily tell from the addresses
+     whether the references overlap.  */
+  if (MEM_ADDR_SPACE (mem) != MEM_ADDR_SPACE (x))
+    return 1;
+
   if (mem_mode == VOIDmode)
     mem_mode = GET_MODE (mem);
 
@@ -2345,6 +2391,12 @@ canon_true_dependence (const_rtx mem, enum machine_mode mem_mode, rtx mem_addr,
   if (nonoverlapping_memrefs_p (x, mem))
     return 0;
 
+  /* If we have MEMs refering to different address spaces (which can
+     potentially overlap), we cannot easily tell from the addresses
+     whether the references overlap.  */
+  if (MEM_ADDR_SPACE (mem) != MEM_ADDR_SPACE (x))
+    return 1;
+
   if (! x_addr)
     x_addr = get_addr (XEXP (x, 0));
 
@@ -2404,6 +2456,12 @@ write_dependence_p (const_rtx mem, const_rtx x, int writep)
 
   if (nonoverlapping_memrefs_p (x, mem))
     return 0;
+
+  /* If we have MEMs refering to different address spaces (which can
+     potentially overlap), we cannot easily tell from the addresses
+     whether the references overlap.  */
+  if (MEM_ADDR_SPACE (mem) != MEM_ADDR_SPACE (x))
+    return 1;
 
   x_addr = get_addr (XEXP (x, 0));
   mem_addr = get_addr (XEXP (mem, 0));

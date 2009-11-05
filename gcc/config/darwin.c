@@ -1692,6 +1692,22 @@ darwin_kextabi_p (void) {
 void
 darwin_override_options (void)
 {
+  /* Don't emit DWARF3/4 unless specifically selected.  This is a 
+     workaround for tool bugs.  */
+  if (dwarf_strict < 0) 
+    dwarf_strict = 1;
+
+  /* Disable -freorder-blocks-and-partition for darwin_emit_unwind_label.  */
+  if (flag_reorder_blocks_and_partition 
+      && (targetm.asm_out.unwind_label == darwin_emit_unwind_label))
+    {
+      inform (input_location,
+              "-freorder-blocks-and-partition does not work with exceptions "
+              "on this architecture");
+      flag_reorder_blocks_and_partition = 0;
+      flag_reorder_blocks = 1;
+    }
+
   if (flag_mkernel || flag_apple_kext)
     {
       /* -mkernel implies -fapple-kext for C++ */

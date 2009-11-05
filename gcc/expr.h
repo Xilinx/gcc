@@ -618,7 +618,7 @@ extern HOST_WIDE_INT int_expr_size (tree);
    in its original home.  This becomes invalid if any more code is emitted.  */
 extern rtx hard_function_value (const_tree, const_tree, const_tree, int);
 
-extern rtx prepare_call_address (rtx, rtx, rtx *, int, int);
+extern rtx prepare_call_address (tree, rtx, rtx, rtx *, int, int);
 
 extern bool shift_return_value (enum machine_mode, bool, rtx);
 
@@ -650,9 +650,15 @@ extern rtx force_label_rtx (tree);
    The constant terms are added and stored via a second arg.  */
 extern rtx eliminate_constant_term (rtx, rtx *);
 
-/* Convert arg to a valid memory address for specified machine mode,
-   by emitting insns to perform arithmetic if nec.  */
-extern rtx memory_address (enum machine_mode, rtx);
+/* Convert arg to a valid memory address for specified machine mode that points
+   to a specific named address space, by emitting insns to perform arithmetic
+   if necessary.  */
+extern rtx memory_address_addr_space (enum machine_mode, rtx, addr_space_t);
+
+/* Like memory_address_addr_space, except assume the memory address points to
+   the generic named address space.  */
+#define memory_address(MODE,RTX) \
+	memory_address_addr_space ((MODE), (RTX), ADDR_SPACE_GENERIC)
 
 /* Return a memory reference like MEMREF, but with its mode changed
    to MODE and its address changed to ADDR.

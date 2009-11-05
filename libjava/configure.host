@@ -18,11 +18,15 @@
 #   libgcj_cflags	Special CFLAGS to use when building
 #   libgcj_cxxflags	Special CXXFLAGS to use when building
 #   libgcj_javaflags	Special JAVAFLAGS to use when building
+#   libgcj_sublib_ltflags  Special Libtool flags to use when building.
 #   libgcj_interpreter  If the bytecode interpreter supports this platform.
 #   enable_java_net_default  If java.net native code should be enabled by
 #                            default.
 #   enable_hash_synchronization_default  If hash synchronization should be
 #                                        enabled by default.
+#   enable_libgcj_sublibs_default  Whether to build libgcj as a bunch of
+#                                  separate shared libraries or in one 
+#                                  monolithic one.
 #   sysdeps_dir		Directory containing system-dependent headers
 #   slow_pthread_self   The synchronization code should try to avoid 
 #			pthread_self calls by caching thread IDs in a hashtable
@@ -38,9 +42,11 @@ libgcj_flags=
 libgcj_cflags=
 libgcj_cxxflags=
 libgcj_javaflags=
+libgcj_sublib_ltflags=
 libgcj_interpreter=
 enable_java_net_default=yes
 enable_hash_synchronization_default=no
+enable_libgcj_sublibs_default=no
 sysdeps_dir=generic
 slow_pthread_self=
 can_unwind_signal=no
@@ -341,6 +347,9 @@ case "${host}" in
 	fallback_backtrace_h=sysdep/i386/backtrace.h  
 	# We need a frame pointer on Windows, so override BACKTRACESPEC
   	BACKTRACESPEC=
+	# Win32 DLLs are limited to 64k exported symbols each.
+	enable_libgcj_sublibs_default=yes
+	libgcj_sublib_ltflags='-no-undefined -bindir $(bindir)'
   ;;
 esac
 

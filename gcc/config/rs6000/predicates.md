@@ -1,5 +1,5 @@
 ;; Predicate definitions for POWER and PowerPC.
-;; Copyright (C) 2005, 2006, 2007, 2008 Free Software Foundation, Inc.
+;; Copyright (C) 2005, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
 ;;
 ;; This file is part of GCC.
 ;;
@@ -447,10 +447,6 @@
       && GET_CODE (XEXP (op, 1)) == CONST_INT
       && INTVAL (XEXP (op, 1)) == -16)
     op = XEXP (op, 0);
-
-  else if (VECTOR_MEM_VSX_P (mode)
-	   && GET_CODE (op) == PRE_MODIFY)
-    op = XEXP (op, 1);
 
   return indexed_or_indirect_address (op, mode);
 })

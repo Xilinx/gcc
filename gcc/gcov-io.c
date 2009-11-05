@@ -46,12 +46,13 @@ static inline gcov_unsigned_t from_file (gcov_unsigned_t value)
 
 /* Open a gcov file. NAME is the name of the file to open and MODE
    indicates whether a new file should be created, or an existing file
-   opened for modification. If MODE is >= 0 an existing file will be
-   opened, if possible, and if MODE is <= 0, a new file will be
-   created. Use MODE=0 to attempt to reopen an existing file and then
-   fall back on creating a new one.  Return zero on failure, >0 on
-   opening an existing file and <0 on creating a new one.
-   MODE > 0 is read-only mode.  */
+   opened. If MODE is >= 0 an existing file will be opened, if
+   possible, and if MODE is <= 0, a new file will be created. Use
+   MODE=0 to attempt to reopen an existing file and then fall back on
+   creating a new one.  If MODE < 0, the file will be opened in
+   read-only mode.  Otherwise it will be opened for modification.
+   Return zero on failure, >0 on opening an existing file and <0 on
+   creating a new one.  */
 
 GCOV_LINKAGE int
 #if IN_LIBGCOV

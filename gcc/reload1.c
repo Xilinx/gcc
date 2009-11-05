@@ -1000,8 +1000,9 @@ reload (rtx first, int global)
 	    rtx x = eliminate_regs (reg_equiv_memory_loc[i], VOIDmode,
 				    NULL_RTX);
 
-	    if (strict_memory_address_p (GET_MODE (regno_reg_rtx[i]),
-					 XEXP (x, 0)))
+	    if (strict_memory_address_addr_space_p
+		  (GET_MODE (regno_reg_rtx[i]), XEXP (x, 0),
+		   MEM_ADDR_SPACE (x)))
 	      reg_equiv_mem[i] = x, reg_equiv_address[i] = 0;
 	    else if (CONSTANT_P (XEXP (x, 0))
 		     || (REG_P (XEXP (x, 0))
@@ -1241,39 +1242,43 @@ reload (rtx first, int global)
 	{
 	  rtx reg = regno_reg_rtx[i];
 	  rtx equiv = 0;
-	  df_ref use;
+	  df_ref use, next;
 
 	  if (reg_equiv_constant[i])
 	    equiv = reg_equiv_constant[i];
 	  else if (reg_equiv_invariant[i])
 	    equiv = reg_equiv_invariant[i];
 	  else if (reg && MEM_P (reg))
-	    {
-	      equiv = targetm.delegitimize_address (reg);
-	      if (equiv == reg)
-		equiv = 0;
-	    }
+	    equiv = targetm.delegitimize_address (reg);
 	  else if (reg && REG_P (reg) && (int)REGNO (reg) != i)
 	    equiv = reg;
 
-	  if (equiv)
-	    for (use = DF_REG_USE_CHAIN (i); use;
-		 use = DF_REF_NEXT_REG (use))
-	      if (DEBUG_INSN_P (DF_REF_INSN (use)))
-		{
-		  rtx *loc = DF_REF_LOC (use);
-		  rtx x = *loc;
+	  if (equiv == reg)
+	    continue;
 
-		  if (x == reg)
-		    *loc = copy_rtx (equiv);
-		  else if (GET_CODE (x) == SUBREG
-			   && SUBREG_REG (x) == reg)
-		    *loc = simplify_gen_subreg (GET_MODE (x), equiv,
-						GET_MODE (reg),
-						SUBREG_BYTE (x));
+	  for (use = DF_REG_USE_CHAIN (i); use; use = next)
+	    {
+	      insn = DF_REF_INSN (use);
+
+	      /* Make sure the next ref is for a different instruction,
+		 so that we're not affected by the rescan.  */
+	      next = DF_REF_NEXT_REG (use);
+	      while (next && DF_REF_INSN (next) == insn)
+		next = DF_REF_NEXT_REG (next);
+
+	      if (DEBUG_INSN_P (insn))
+		{
+		  if (!equiv)
+		    {
+		      INSN_VAR_LOCATION_LOC (insn) = gen_rtx_UNKNOWN_VAR_LOC ();
+		      df_insn_rescan_debug_internal (insn);
+		    }
 		  else
-		    gcc_unreachable ();
+		    INSN_VAR_LOCATION_LOC (insn)
+		      = simplify_replace_rtx (INSN_VAR_LOCATION_LOC (insn),
+					      reg, equiv);
 		}
+	    }
 	}
     }
 
@@ -2653,7 +2658,7 @@ eliminate_regs_1 (rtx x, enum machine_mode mem_mode, rtx insn,
 		     && reg_equiv_constant[REGNO (new0)] != 0)
 	      new0 = reg_equiv_constant[REGNO (new0)];
 
-	    new_rtx = form_sum (new0, new1);
+	    new_rtx = form_sum (GET_MODE (x), new0, new1);
 
 	    /* As above, if we are not inside a MEM we do not want to
 	       turn a PLUS into something else.  We might try to do so here

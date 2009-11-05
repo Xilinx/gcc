@@ -111,6 +111,8 @@ print_node_brief (FILE *file, const char *prefix, const_tree node, int indent)
 	    fprintf (file, " %s",
 		     IDENTIFIER_POINTER (DECL_NAME (TYPE_NAME (node))));
 	}
+      if (!ADDR_SPACE_GENERIC_P (TYPE_ADDR_SPACE (node)))
+	fprintf (file, " address-space-%d", TYPE_ADDR_SPACE (node));
     }
   if (TREE_CODE (node) == IDENTIFIER_NODE)
     fprintf (file, " %s", IDENTIFIER_POINTER (node));
@@ -300,6 +302,9 @@ print_node (FILE *file, const char *prefix, tree node, int indent)
   else if (TYPE_P (node) && TYPE_SIZES_GIMPLIFIED (node))
     fputs (" sizes-gimplified", file);
 
+  if (TYPE_P (node) && !ADDR_SPACE_GENERIC_P (TYPE_ADDR_SPACE (node)))
+    fprintf (file, " address-space-%d", TYPE_ADDR_SPACE (node));
+
   if (TREE_ADDRESSABLE (node))
     fputs (" addressable", file);
   if (TREE_THIS_VOLATILE (node))
@@ -381,8 +386,8 @@ print_node (FILE *file, const char *prefix, tree node, int indent)
 	fputs (" autoinline", file);
       if (code == FUNCTION_DECL && DECL_BUILT_IN (node))
 	fputs (" built-in", file);
-      if (code == FUNCTION_DECL && DECL_NO_STATIC_CHAIN (node))
-	fputs (" no-static-chain", file);
+      if (code == FUNCTION_DECL && DECL_STATIC_CHAIN (node))
+	fputs (" static-chain", file);
 
       if (code == FIELD_DECL && DECL_PACKED (node))
 	fputs (" packed", file);
@@ -541,7 +546,7 @@ print_node (FILE *file, const char *prefix, tree node, int indent)
 	       && DECL_STRUCT_FUNCTION (node) != 0)
 	{
 	  indent_to (file, indent + 4);
-	  dump_addr (file, "saved-insns ", DECL_STRUCT_FUNCTION (node));
+	  dump_addr (file, "struct-function ", DECL_STRUCT_FUNCTION (node));
 	}
 
       if ((code == VAR_DECL || code == PARM_DECL)

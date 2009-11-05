@@ -825,6 +825,8 @@ expand_asm_operands (tree string, tree outputs, tree inputs,
 	{
 	  op = assign_temp (type, 0, 0, 1);
 	  op = validize_mem (op);
+	  if (!MEM_P (op) && TREE_CODE (TREE_VALUE (tail)) == SSA_NAME)
+	    set_reg_attrs_for_decl_rtl (SSA_NAME_VAR (TREE_VALUE (tail)), op);
 	  TREE_VALUE (tail) = make_tree (type, op);
 	}
       output_rtx[i] = op;
@@ -1797,13 +1799,17 @@ expand_return (tree retval)
 static void
 expand_nl_goto_receiver (void)
 {
+  rtx chain;
+
   /* Clobber the FP when we get here, so we have to make sure it's
      marked as used by this function.  */
   emit_use (hard_frame_pointer_rtx);
 
   /* Mark the static chain as clobbered here so life information
      doesn't get messed up for it.  */
-  emit_clobber (static_chain_rtx);
+  chain = targetm.calls.static_chain (current_function_decl, true);
+  if (chain && REG_P (chain))
+    emit_clobber (chain);
 
 #ifdef HAVE_nonlocal_goto
   if (! HAVE_nonlocal_goto)
