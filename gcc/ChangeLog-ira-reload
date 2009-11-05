@@ -1,5 +1,10 @@
 2009-11-05  Jeff Law <law@redhat.com>
 
+	* ira-color.c (ira_reassign_pseudos): Collect all pseudos for
+	reassignment rather than doing them in two passes.
+	* reload1.c (finish_spills): Remove Oct 22, 2009 change as it's
+	no longer needed.
+
 	* ira-reload.c (create_new_allocno_for_spilling): Copy the
 	UPDATED_MEMORY_COST and HARD_REG_COSTS from the old to the
 	new allocno.
