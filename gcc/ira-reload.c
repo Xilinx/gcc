@@ -449,10 +449,11 @@ create_new_allocno_for_spilling (int nreg, int oreg)
   ALLOCNO_COVER_CLASS (to) = ALLOCNO_COVER_CLASS (from);
   ALLOCNO_COVER_CLASS_COST (to) = ALLOCNO_COVER_CLASS_COST (from);
   ALLOCNO_MEMORY_COST (to) = ALLOCNO_MEMORY_COST (from);
+  ALLOCNO_UPDATED_MEMORY_COST (to) = ALLOCNO_UPDATED_MEMORY_COST (from);
+  ira_allocate_and_copy_costs (&ALLOCNO_HARD_REG_COSTS (to),
+			       ALLOCNO_COVER_CLASS (to),
+			       ALLOCNO_HARD_REG_COSTS (from));
 #if 0
-  ira_allocate_and_accumulate_costs (&ALLOCNO_HARD_REG_COSTS (to),
-				     ALLOCNO_COVER_CLASS (to),
-				     ALLOCNO_HARD_REG_COSTS (from));
   ira_allocate_and_accumulate_costs (&ALLOCNO_CONFLICT_HARD_REG_COSTS (to),
 				     ALLOCNO_COVER_CLASS (to),
 				     ALLOCNO_CONFLICT_HARD_REG_COSTS (from));
