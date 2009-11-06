@@ -1,4 +1,7 @@
 2009-11-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-cc-script.proto: ttypo added k flag to getopt...
+
+2009-11-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	[adding normal_letrec_constructive for letrec...]
 	* melt/warmelt-normal.melt: began coding normletrec_lambda.
 	* melt-cc-script.proto: added -k flag to keep the temporary files.

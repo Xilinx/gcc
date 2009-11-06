@@ -44,7 +44,7 @@ fi
 ## -k to keep the temporary files
 xtra_cflags=""
 keep_temporary_files=""
-while getopts "D:I:U:F:C:O:gxvnd" flag ; do
+while getopts "D:I:U:F:C:O:gxvndk" flag ; do
     : the $flag 
     case "$flag" in
 	D) xtra_cflags="$xtra_cflags -D$OPTARG";;
