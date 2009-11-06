@@ -4686,6 +4686,22 @@ convert_nontype_argument_function (tree type, tree expr)
   return fn;
 }
 
+/* Subroutine of convert_nontype_argument.
+   Check if EXPR of type TYPE is a valid pointer-to-member constant.
+   Emit an error otherwise.  */
+
+static bool
+check_valid_ptrmem_cst_expr (tree type, tree expr)
+{
+  STRIP_NOPS (expr);
+  if (expr && (null_ptr_cst_p (expr) || TREE_CODE (expr) == PTRMEM_CST))
+    return true;
+  error ("%qE is not a valid template argument for type %qT",
+	 expr, type);
+  error ("it must be a pointer-to-member of the form `&X::Y'");
+  return false;
+}
+
 /* Attempt to convert the non-type template parameter EXPR to the
    indicated TYPE.  If the conversion is successful, return the
    converted value.  If the conversion is unsuccessful, return
@@ -4985,6 +5001,11 @@ convert_nontype_argument (tree type, tree expr)
       if (expr == error_mark_node)
 	return error_mark_node;
 
+      /* [temp.arg.nontype] bullet 1 says the pointer to member
+         expression must be a pointer-to-member constant.  */
+      if (!check_valid_ptrmem_cst_expr (type, expr))
+	return error_mark_node;
+
       /* There is no way to disable standard conversions in
 	 resolve_address_of_overloaded_function (called by
 	 instantiate_type). It is possible that the call succeeded by
@@ -5011,6 +5032,11 @@ convert_nontype_argument (tree type, tree expr)
      qualification conversions (_conv.qual_) are applied.  */
   else if (TYPE_PTRMEM_P (type))
     {
+      /* [temp.arg.nontype] bullet 1 says the pointer to member
+         expression must be a pointer-to-member constant.  */
+      if (!check_valid_ptrmem_cst_expr (type, expr))
+	return error_mark_node;
+
       expr = perform_qualification_conversions (type, expr);
       if (expr == error_mark_node)
 	return expr;
@@ -7326,13 +7352,14 @@ instantiate_class_template (tree type)
   tree typedecl;
   tree pbinfo;
   tree base_list;
+  unsigned int saved_maximum_field_alignment;
 
   if (type == error_mark_node)
     return error_mark_node;
 
   if (TYPE_BEING_DEFINED (type)
       || COMPLETE_TYPE_P (type)
-      || dependent_type_p (type))
+      || uses_template_parms (type))
     return type;
 
   /* Figure out which template is being instantiated.  */
@@ -7386,6 +7413,9 @@ instantiate_class_template (tree type)
   push_deferring_access_checks (dk_no_deferred);
 
   push_to_top_level ();
+  /* Use #pragma pack from the template context.  */
+  saved_maximum_field_alignment = maximum_field_alignment;
+  maximum_field_alignment = TYPE_PRECISION (pattern);
 
   SET_CLASSTYPE_INTERFACE_UNKNOWN (type);
 
@@ -7801,6 +7831,7 @@ instantiate_class_template (tree type)
   perform_typedefs_access_check (pattern, args);
   perform_deferred_access_checks ();
   pop_nested_class ();
+  maximum_field_alignment = saved_maximum_field_alignment;
   pop_from_top_level ();
   pop_deferring_access_checks ();
   pop_tinst_level ();
@@ -14828,6 +14859,35 @@ mark_decl_instantiated (tree result, int extern_p)
   DECL_INTERFACE_KNOWN (result) = 1;
 }
 
+/* Subroutine of more_specialized_fn: check whether TARGS is missing any
+   important template arguments.  If any are missing, we check whether
+   they're important by using error_mark_node for substituting into any
+   args that were used for partial ordering (the ones between ARGS and END)
+   and seeing if it bubbles up.  */
+
+static bool
+check_undeduced_parms (tree targs, tree args, tree end)
+{
+  bool found = false;
+  int i;
+  for (i = TREE_VEC_LENGTH (targs) - 1; i >= 0; --i)
+    if (TREE_VEC_ELT (targs, i) == NULL_TREE)
+      {
+	found = true;
+	TREE_VEC_ELT (targs, i) = error_mark_node;
+      }
+  if (found)
+    {
+      for (; args != end; args = TREE_CHAIN (args))
+	{
+	  tree substed = tsubst (TREE_VALUE (args), targs, tf_none, NULL_TREE);
+	  if (substed == error_mark_node)
+	    return true;
+	}
+    }
+  return false;
+}
+
 /* Given two function templates PAT1 and PAT2, return:
 
    1 if PAT1 is more specialized than PAT2 as described in [temp.func.order].
@@ -14851,8 +14911,12 @@ mark_decl_instantiated (tree result, int extern_p)
    neither is more cv-qualified, they both are equal).  Unlike regular
    deduction, after all the arguments have been deduced in this way,
    we do *not* verify the deduced template argument values can be
-   substituted into non-deduced contexts, nor do we have to verify
-   that all template arguments have been deduced.  */
+   substituted into non-deduced contexts.
+
+   The logic can be a bit confusing here, because we look at deduce1 and
+   targs1 to see if pat2 is at least as specialized, and vice versa; if we
+   can find template arguments for pat1 to make arg1 look like arg2, that
+   means that arg2 is at least as specialized as arg1.  */
 
 int
 more_specialized_fn (tree pat1, tree pat2, int len)
@@ -14865,8 +14929,9 @@ more_specialized_fn (tree pat1, tree pat2, int len)
   tree tparms2 = DECL_INNERMOST_TEMPLATE_PARMS (pat2);
   tree args1 = TYPE_ARG_TYPES (TREE_TYPE (decl1));
   tree args2 = TYPE_ARG_TYPES (TREE_TYPE (decl2));
-  int better1 = 0;
-  int better2 = 0;
+  tree origs1, origs2;
+  bool lose1 = false;
+  bool lose2 = false;
 
   /* Remove the this parameter from non-static member functions.  If
      one is a non-static member function and the other is not a static
@@ -14904,6 +14969,9 @@ more_specialized_fn (tree pat1, tree pat2, int len)
     }
 
   processing_template_decl++;
+
+  origs1 = args1;
+  origs2 = args2;
 
   while (len--
 	 /* Stop when an ellipsis is seen.  */
@@ -15039,28 +15107,37 @@ more_specialized_fn (tree pat1, tree pat2, int len)
           deduce2 = !unify (tparms2, targs2, arg2, arg1, UNIFY_ALLOW_NONE);
         }
 
+      /* If we couldn't deduce arguments for tparms1 to make arg1 match
+	 arg2, then arg2 is not as specialized as arg1.  */
       if (!deduce1)
-	better2 = -1;
+	lose2 = true;
       if (!deduce2)
-	better1 = -1;
-      if (better1 < 0 && better2 < 0)
+	lose1 = true;
+
+      /* "If, for a given type, deduction succeeds in both directions
+	 (i.e., the types are identical after the transformations above)
+	 and if the type from the argument template is more cv-qualified
+	 than the type from the parameter template (as described above)
+	 that type is considered to be more specialized than the other. If
+	 neither type is more cv-qualified than the other then neither type
+	 is more specialized than the other."
+
+         We check same_type_p explicitly because deduction can also succeed
+         in both directions when there is a nondeduced context.  */
+      if (deduce1 && deduce2
+	  && quals1 != quals2 && quals1 >= 0 && quals2 >= 0
+	  && same_type_p (arg1, arg2))
+	{
+	  if ((quals1 & quals2) == quals2)
+	    lose2 = true;
+	  if ((quals1 & quals2) == quals1)
+	    lose1 = true;
+	}
+
+      if (lose1 && lose2)
 	/* We've failed to deduce something in either direction.
 	   These must be unordered.  */
 	break;
-
-      if (deduce1 && deduce2 && quals1 >= 0 && quals2 >= 0)
-	{
-	  /* Deduces in both directions, see if quals can
-	     disambiguate.  Pretend the worse one failed to deduce. */
-	  if ((quals1 & quals2) == quals2)
-	    deduce1 = 0;
-	  if ((quals1 & quals2) == quals1)
-	    deduce2 = 0;
-	}
-      if (deduce1 && !deduce2 && !better2)
-	better2 = 1;
-      if (deduce2 && !deduce1 && !better1)
-	better1 = 1;
 
       if (TREE_CODE (arg1) == TYPE_PACK_EXPANSION
           || TREE_CODE (arg2) == TYPE_PACK_EXPANSION)
@@ -15072,22 +15149,38 @@ more_specialized_fn (tree pat1, tree pat2, int len)
       args2 = TREE_CHAIN (args2);
     }
 
+  /* "In most cases, all template parameters must have values in order for
+     deduction to succeed, but for partial ordering purposes a template
+     parameter may remain without a value provided it is not used in the
+     types being used for partial ordering."
+
+     Thus, if we are missing any of the targs1 we need to substitute into
+     origs1, then pat2 is not as specialized as pat1.  This can happen when
+     there is a nondeduced context.  */
+  if (!lose2 && check_undeduced_parms (targs1, origs1, args1))
+    lose2 = true;
+  if (!lose1 && check_undeduced_parms (targs2, origs2, args2))
+    lose1 = true;
+
   processing_template_decl--;
 
   /* All things being equal, if the next argument is a pack expansion
      for one function but not for the other, prefer the
-     non-variadic function.  */
-  if ((better1 > 0) - (better2 > 0) == 0
+     non-variadic function.  FIXME this is bogus; see c++/41958.  */
+  if (lose1 == lose2
       && args1 && TREE_VALUE (args1)
       && args2 && TREE_VALUE (args2))
     {
-      if (TREE_CODE (TREE_VALUE (args1)) == TYPE_PACK_EXPANSION)
-        return TREE_CODE (TREE_VALUE (args2)) == TYPE_PACK_EXPANSION ? 0 : -1;
-      else if (TREE_CODE (TREE_VALUE (args2)) == TYPE_PACK_EXPANSION)
-        return 1;
+      lose1 = TREE_CODE (TREE_VALUE (args1)) == TYPE_PACK_EXPANSION;
+      lose2 = TREE_CODE (TREE_VALUE (args2)) == TYPE_PACK_EXPANSION;
     }
 
-  return (better1 > 0) - (better2 > 0);
+  if (lose1 == lose2)
+    return 0;
+  else if (!lose1)
+    return 1;
+  else
+    return -1;
 }
 
 /* Determine which of two partial specializations is more specialized.
@@ -17770,10 +17863,7 @@ make_args_non_dependent (VEC(tree,gc) *args)
 tree
 make_auto (void)
 {
-  tree au;
-
-  /* ??? Is it worth caching this for multiple autos at the same level?  */
-  au = cxx_make_type (TEMPLATE_TYPE_PARM);
+  tree au = cxx_make_type (TEMPLATE_TYPE_PARM);
   TYPE_NAME (au) = build_decl (BUILTINS_LOCATION,
 			       TYPE_DECL, get_identifier ("auto"), au);
   TYPE_STUB_DECL (au) = TYPE_NAME (au);
@@ -17850,6 +17940,19 @@ do_auto_deduction (tree type, tree init, tree auto_node)
       error ("unable to deduce %qT from %qE", type, init);
       return error_mark_node;
     }
+
+  /* If the list of declarators contains more than one declarator, the type
+     of each declared variable is determined as described above. If the
+     type deduced for the template parameter U is not the same in each
+     deduction, the program is ill-formed.  */
+  if (TREE_TYPE (auto_node)
+      && !same_type_p (TREE_TYPE (auto_node), TREE_VEC_ELT (targs, 0)))
+    {
+      error ("inconsistent deduction for %qT: %qT and then %qT",
+	     auto_node, TREE_TYPE (auto_node), TREE_VEC_ELT (targs, 0));
+      return error_mark_node;
+    }
+  TREE_TYPE (auto_node) = TREE_VEC_ELT (targs, 0);
 
   if (processing_template_decl)
     targs = add_to_template_args (current_template_args (), targs);

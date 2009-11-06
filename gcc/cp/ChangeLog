@@ -1,3 +1,78 @@
+2009-11-06  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/41967
+	* parser.c (cp_parser_omp_for_loop): After diagnosing not perfectly
+	nested loop and parsing statements, don't cp_parser_require }, instead
+	exit the loop if next token is CPP_EOF.
+
+2009-11-05  Jason Merrill  <jason@redhat.com>
+
+	PR c++/34180
+	* method.c (do_build_copy_constructor): Don't drop cv-quals from
+	the field type.
+
+	PR c++/7046
+	* class.c (finish_struct): Store maximum_field_alignment in
+	TYPE_PRECISION.
+	* pt.c (instantiate_class_template): Set maximum_field_alignment.
+
+	PR c++/34870
+	* name-lookup.c (arg_assoc_class): Call complete_type.
+	* pt.c (instantiate_class_template): Call uses_template_parms
+	instead of dependent_type_p.
+
+	PR c++/41703
+	* pt.c (check_undeduced_parms): New subroutine of...
+	(more_specialized_fn): ...here.  Undeduced template parms can make
+	a template less specialized than another.
+
+2009-11-04  Jason Merrill  <jason@redhat.com>
+
+	PR c++/39413
+	* search.c (lookup_base): Don't complete_type (base).
+
+	PR c++/35067
+	* method.c (use_thunk): Check DECL_WEAK as well as
+	DECL_ONE_ONLY.
+
+	PR c++/17365, DR 218
+	* name-lookup.c (add_function): Ignore non-functions.
+
+2009-11-03  Jason Merrill  <jason@redhat.com>
+
+	PR c++/36959
+	* decl2.c (cxx_callgraph_analyze_expr): Don't reference a function
+	just because a static variable in it is needed unless -frepo.
+
+	PR c++/41876
+	* parser.c (cp_parser_type_specifier_seq): Rename is_condition to
+	is_declaration.
+	(cp_parser_exception_declaration): Pass true.
+	(cp_parser_omp_for_loop): Likewise.
+
+	PR c++/41927
+	* typeck.c (build_x_binary_op): Don't do warn_parentheses
+	if we're in a SFINAE context.
+
+	PR c++/41815
+	* call.c (build_call_a): Strip cv-quals from rvalue result.
+
+	PR c++/40944
+	* call.c (initialize_reference): Add complain parm.
+	* typeck.c (convert_for_initialization): Pass it.
+	* decl.c (grok_reference_init): Likewise.
+	* cp-tree.h: Declare it.
+
+	PR c++/40687
+	* pt.c (do_auto_deduction): Diagnose inconsistent deduction.
+
+2009-11-02  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/37093
+	* pt.c (check_valid_ptrmem_cst_expr): New function.
+	(convert_nontype_argument): Use it to output an error for
+	illegal pointer to member expressions used as template arguments.
+
 2009-11-02  Jason Merrill  <jason@redhat.com>
 
 	Restrict DR 757 change to C++0x mode.

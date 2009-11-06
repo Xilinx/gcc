@@ -3245,6 +3245,7 @@ build_x_binary_op (enum tree_code code, tree arg1, enum tree_code arg1_code,
      misinterpret.  But don't warn about obj << x + y, since that is a
      common idiom for I/O.  */
   if (warn_parentheses
+      && (complain & tf_warning)
       && !processing_template_decl
       && !error_operand_p (arg1)
       && !error_operand_p (arg2)
@@ -6879,7 +6880,7 @@ convert_for_initialization (tree exp, tree type, tree rhs, int flags,
       if (fndecl)
 	savew = warningcount, savee = errorcount;
       rhs = initialize_reference (type, rhs, /*decl=*/NULL_TREE,
-				  /*cleanup=*/NULL);
+				  /*cleanup=*/NULL, complain);
       if (fndecl)
 	{
 	  if (warningcount > savew)

@@ -1,3 +1,615 @@
+2009-11-06  Michael Matz  <matz@suse.de>
+
+	PR middle-end/41963
+	* tree-ssa-math-opts.c (execute_cse_reciprocals): Check all uses
+	of a potential reciprocal to really be reciprocals.
+
+2009-11-06  Jakub Jelinek  <jakub@redhat.com>
+
+	* config/i386/x86intrin.h: Include fma4intrin.h, xopintrin.h and
+	lwpintrin.h after immintrin.h.
+	* config/i386/fma4intrin.h (__v8sf, __v4df, __m256, __m256d): Remove
+	typedefs.
+
+	PR middle-end/41935
+	* c-common.c (fold_offsetof_1) <case ARRAY_REF>: Don't crash for VLAs
+	or non-constant index, allow index one past the last element and
+	allow exceeding array bound in arrays that might be used as flexible
+	array members.
+
+2009-11-05  Richard Henderson  <rth@redhat.com>
+
+	* config/i386/ia32intrin.h: Protect CRC32 builtins with __SSE4_2__.
+
+2009-11-05  Paul Brook  <paul@codesourcery.com>
+
+	* config/arm/arm.c (arm_fp_model, arm_fpu_arch, arm_fpu_tune): Remove.
+	(arm_fpu_desc): New.
+	(all_fpus): Add FPU details.
+	(fp_model_for_fpu): Remove.
+	(arm_override_options): Set and use arm_fpu_desc and arm_fpu_attr.
+	(arm_output_epilogue, arm_save_coproc_regs): Use TARGET_FPA_EMU2.
+	(arm_file_start): Use arm_fpu_desc.
+	* config/arm/arm.h (TARGET_FPA, TARGET_MAVERICK, TARGET_VFP,
+	TARGET_VFPD32, TARGET_VFP3, TARGET_NEON_FP16, TARGET_NEON): Use
+	arm_fpu_desc.
+	(TARGET_FPA_EMU2): Define.
+	(arm_fp_model, fputype, arm_fpu_tune): Remove.
+	(vfp_reg_type, arm_fpu_desc): New.
+	* config/arm/arm.md (attr fpu): Simplify.
+	* config/arm/fpa.md (movxf_fpa): Use TARGET_FPA_EMU2.
+	* config/arm/linux-elf.h (FPUTYPE_DEFAULT): Use string value.
+	* config/arm/bpabi.h (FPUTYPE_DEFAULT): Use string value.
+	* config/arm/netbsd-elf.h (FPUTYPE_DEFAULT): Use string value.
+	* config/arm/vxworks.h (FPUTYPE_DEFAULT): Use string value.
+
+2009-11-05  Michael Matz  <matz@suse.de>
+
+	* config/i386/i386.c (ix86_builtin_reciprocal): Remove dependency
+	on TARGET_RECIP.
+	* doc/invoke.texi (-mrecip): Clarify that we don't need -mrecip
+	for 1/sqrtf.
+
+2009-11-04  Jason Merrill  <jason@redhat.com>
+
+	PR c++/36912
+	* varasm.c (initializer_constant_valid_p): A PLUS_EXPR
+	or MINUS_EXPR of REAL_TYPE is not a valid constant initializer.
+	(output_constant): Avoid crash after error.
+
+2009-11-05  Martin Jambor  <mjambor@suse.cz>
+
+	* tree-sra.c (struct access): Changed comment of next_sibling field.
+	(analyze_modified_params): Loop over accesses of a group rather than
+	over all with the ame base, pass a common bitmap to
+	walk_aliased_vdefs.
+	(unmodified_by_ref_scalar_representative): Build link lists of
+	accesses of a group.
+	(splice_param_accesses): Likewise.
+
+2009-11-04  Kenneth Zadeck  <zadeck@naturalbridge.com>
+
+	* df-scan.c (df-uses-record): Add case zero_extract of mem.
+	
+2009-11-04  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR target/10127
+	PR ada/20548
+	* config/i386/i386.md (probe_stack): New expander.
+	(logical operation peepholes): Do not split stack checking probes.
+
+2009-11-04  Harsha Jagasia  <harsha.jagasia@amd.com>
+	    Dwarakanath Rajagopal  <dwarak.rajagopal@amd.com>
+
+	* doc/invoke.texi (-mlwp): Add documentation.
+	* doc/extend.texi (x86 intrinsics): Add LWP intrinsics.
+	* config.gcc (i[34567]86-*-*): Include lwpintrin.h.
+	(x86_64-*-*): Ditto.
+	* config/i386/lwpintrin.h: New file, provide x86 compiler
+	intrinisics for LWP.
+	* config/i386/cpuid.h (bit_LWP): Define LWP bit.
+	* config/i386/x86intrin.h: Add LWP check and lwpintrin.h.
+	* config/i386/i386-c.c (ix86_target_macros_internal): Check
+	ISA_FLAG for LWP. 
+	* config/i386/i386.h (TARGET_LWP): New macro for LWP.
+	* config/i386/i386.opt (-mlwp): New switch for LWP support.
+	* config/i386/i386.c (OPTION_MASK_ISA_LWP_SET): New.
+	(OPTION_MASK_ISA_LWP_UNSET): New.	
+	(ix86_handle_option): Handle -mlwp.
+	(isa_opts): Handle -mlwp.
+	(enum pta_flags): Add PTA_LWP.
+	(override_options): Add LWP support.
+	(IX86_BUILTIN_LLWPCB16): New for LWP intrinsic.
+	(IX86_BUILTIN_LLWPCB32): Ditto.
+	(IX86_BUILTIN_LLWPCB64): Ditto.
+	(IX86_BUILTIN_SLWPCB16): Ditto.
+	(IX86_BUILTIN_SLWPCB32): Ditto.
+	(IX86_BUILTIN_SLWPCB64): Ditto.
+	(IX86_BUILTIN_LWPVAL16): Ditto.
+	(IX86_BUILTIN_LWPVAL32): Ditto.
+	(IX86_BUILTIN_LWPVAL64): Ditto.
+	(IX86_BUILTIN_LWPINS16): Ditto.
+	(IX86_BUILTIN_LWPINS32): Ditto.
+	(IX86_BUILTIN_LWPINS64): Ditto.
+	(enum  ix86_special_builtin_type): Add LWP intrinsic support.
+	(builtin_description): Ditto.
+	(ix86_init_mmx_sse_builtins): Ditto.
+	(ix86_expand_special_args_builtin): Ditto.
+	* config/i386/i386.md (UNSPEC_LLWP_INTRINSIC): Add new UNSPEC for 
+	LWP support.
+	(UNSPEC_SLWP_INTRINSIC): Ditto.
+	(UNSPECV_LWPVAL_INTRINSIC): Ditto.
+	(UNSPECV_LWPINS_INTRINSIC): Ditto.
+	(lwp_llwpcbhi1): New lwp pattern.
+	(lwp_llwpcbsi1): Ditto.
+	(lwp_llwpcbdi1): Ditto.
+	(lwp_slwpcbhi1): Ditto.
+	(lwp_slwpcbsi1): Ditto.
+	(lwp_slwpcbdi1): Ditto.
+	(lwp_lwpvalhi3): Ditto.
+	(lwp_lwpvalsi3): Ditto.
+	(lwp_lwpvaldi3): Ditto.
+	(lwp_lwpinshi3): Ditto.
+	(lwp_lwpinssi3): Ditto.
+	(lwp_lwpinsdi3): Ditto.
+	
+2009-11-04  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+            Trevor Smigiel <Trevor_Smigiel@playstation.sony.com>
+
+	PR rtl-opt/41833
+	* simplify-rtx.c (simplify_binary_operation_1): Simplify vec_select of
+	a vec_duplicate.
+
+2009-11-04  Richard Guenther  <rguenther@suse.de>
+            Rafael Avila de Espindola  <espindola@google.com>
+ 
+	* gcc.c (process_command): Handle arguments name@offset.
+
+2009-11-04  Harsha Jagasia  <harsha.jagasia@amd.com>
+	    Dwarakanath Rajagopal  <dwarak.rajagopal@amd.com>
+	
+	* config.gcc (i[34567]86-*-*): Include xopintrin.h.
+	(x86_64-*-*): Ditto.
+	* config/i386/xopintrin.h: New file, provide common x86 compiler
+	intrinisics for XOP.
+	* config/i386/cpuid.h (bit_XOP): Define XOP bit.
+	* config/i386/x86intrin.h: Add XOP check and xopintrin.h.
+	* config/i386/i386-c.c(ix86_target_macros_internal): Check
+	ISA_FLAG for XOP. 
+	* config/i386/i386.h(TARGET_XOP): New macro for XOP.
+	* config/i386/i386.opt (-mxop): New switch for XOP support.
+	* config/i386/i386.md (UNSPEC_XOP_UNSIGNED_CMP)
+	(UNSPEC_XOP_TRUEFALSE)
+	(UNSPEC_XOP_PERMUTE)
+	(UNSPEC_FRCZ): Add new UNSPEC for XOP support.
+	(PPERM_*): New constants for vpperm instruction.
+	(xop_pcmov_<mode>): Add XOP conditional mov instructions.
+	* config/i386/i386.c (OPTION_MASK_ISA_XOP_SET): New.
+	(OPTION_MASK_ISA_XOP_UNSET): New.	
+	(OPTION_MASK_ISA_XOP_UNSET): Change definition to
+	depend on XOP.
+	(ix86_handle_option): Handle -mxop.
+	(isa_opts): Handle -mxop.
+	(enum pta_flags): Add PTA_XOP.
+	(override_options): Add XOP support.
+	(print_operand): Add code for XOP compare instructions.
+	(ix86_expand_sse_movcc): Extend for XOP conditional move instruction.
+	(ix86_expand_int_vcond): Extend for XOP compare instruction.
+
+	(IX86_BUILTIN_VPCMOV): New for XOP intrinsic.
+	(IX86_BUILTIN_VPCMOV_V2DI): Ditto.
+	(IX86_BUILTIN_VPCMOV_V4SI): Ditto.
+	(IX86_BUILTIN_VPCMOV_V8HI): Ditto.
+	(IX86_BUILTIN_VPCMOV_V16QI): Ditto.
+	(IX86_BUILTIN_VPCMOV_V4SF): Ditto.
+	(IX86_BUILTIN_VPCMOV_V2DF): Ditto.
+
+	(IX86_BUILTIN_VPCMOV256): Ditto.
+	(IX86_BUILTIN_VPCMOV_V4DI256): Ditto.
+	(IX86_BUILTIN_VPCMOV_V8SI256): Ditto.
+	(IX86_BUILTIN_VPCMOV_V16HI256): Ditto.
+	(IX86_BUILTIN_VPCMOV_V32QI256): Ditto.
+	(IX86_BUILTIN_VPCMOV_V8SF256): Ditto.
+	(IX86_BUILTIN_VPCMOV_V4DF256): Ditto.
+
+	(IX86_BUILTIN_VPPERM): Ditto.
+
+	(IX86_BUILTIN_VPMACSSWW): Ditto.
+	(IX86_BUILTIN_VPMACSWW): Ditto.
+	(IX86_BUILTIN_VPMACSSWD): Ditto.
+	(IX86_BUILTIN_VPMACSWD): Ditto.
+	(IX86_BUILTIN_VPMACSSDD): Ditto.
+	(IX86_BUILTIN_VPMACSDD): Ditto.
+	(IX86_BUILTIN_VPMACSSDQL): Ditto.
+	(IX86_BUILTIN_VPMACSSDQH): Ditto.
+	(IX86_BUILTIN_VPMACSDQL): Ditto.
+	(IX86_BUILTIN_VPMACSDQH): Ditto.
+	(IX86_BUILTIN_VPMADCSSWD): Ditto.
+	(IX86_BUILTIN_VPMADCSWD): Ditto.
+
+	(IX86_BUILTIN_VPHADDBW): Ditto.
+	(IX86_BUILTIN_VPHADDBD): Ditto.
+	(IX86_BUILTIN_VPHADDBQ): Ditto.
+	(IX86_BUILTIN_VPHADDWD): Ditto.
+	(IX86_BUILTIN_VPHADDWQ): Ditto.
+	(IX86_BUILTIN_VPHADDDQ): Ditto.
+	(IX86_BUILTIN_VPHADDUBW): Ditto.
+	(IX86_BUILTIN_VPHADDUBD): Ditto.
+	(IX86_BUILTIN_VPHADDUBQ): Ditto.
+	(IX86_BUILTIN_VPHADDUWD): Ditto.
+	(IX86_BUILTIN_VPHADDUWQ): Ditto.
+	(IX86_BUILTIN_VPHADDUDQ): Ditto.
+	(IX86_BUILTIN_VPHSUBBW): Ditto.
+	(IX86_BUILTIN_VPHSUBWD): Ditto.
+	(IX86_BUILTIN_VPHSUBDQ): Ditto.
+
+	(IX86_BUILTIN_VPROTB): Ditto.
+	(IX86_BUILTIN_VPROTW): Ditto.
+	(IX86_BUILTIN_VPROTD): Ditto.
+	(IX86_BUILTIN_VPROTQ): Ditto.
+	(IX86_BUILTIN_VPROTB_IMM): Ditto.
+	(IX86_BUILTIN_VPROTW_IMM): Ditto.
+	(IX86_BUILTIN_VPROTD_IMM): Ditto.
+	(IX86_BUILTIN_VPROTQ_IMM): Ditto.
+
+	(IX86_BUILTIN_VPSHLB): Ditto.
+	(IX86_BUILTIN_VPSHLW): Ditto.
+	(IX86_BUILTIN_VPSHLD): Ditto.
+	(IX86_BUILTIN_VPSHLQ): Ditto.
+	(IX86_BUILTIN_VPSHAB): Ditto.
+	(IX86_BUILTIN_VPSHAW): Ditto.
+	(IX86_BUILTIN_VPSHAD): Ditto.
+	(IX86_BUILTIN_VPSHAQ): Ditto.
+
+	(IX86_BUILTIN_VFRCZSS): Ditto.
+	(IX86_BUILTIN_VFRCZSD): Ditto.
+	(IX86_BUILTIN_VFRCZPS): Ditto.
+	(IX86_BUILTIN_VFRCZPD): Ditto.
+	(IX86_BUILTIN_VFRCZPS256): Ditto.
+	(IX86_BUILTIN_VFRCZPD256): Ditto.
+
+	(IX86_BUILTIN_VPCOMEQUB): Ditto.
+	(IX86_BUILTIN_VPCOMNEUB): Ditto.
+	(IX86_BUILTIN_VPCOMLTUB): Ditto.
+	(IX86_BUILTIN_VPCOMLEUB): Ditto.
+	(IX86_BUILTIN_VPCOMGTUB): Ditto.
+	(IX86_BUILTIN_VPCOMGEUB): Ditto.
+	(IX86_BUILTIN_VPCOMFALSEUB): Ditto.
+	(IX86_BUILTIN_VPCOMTRUEUB): Ditto.
+
+	(IX86_BUILTIN_VPCOMEQUW): Ditto.
+	(IX86_BUILTIN_VPCOMNEUW): Ditto.
+	(IX86_BUILTIN_VPCOMLTUW): Ditto.
+	(IX86_BUILTIN_VPCOMLEUW): Ditto.
+	(IX86_BUILTIN_VPCOMGTUW): Ditto.
+	(IX86_BUILTIN_VPCOMGEUW): Ditto.
+	(IX86_BUILTIN_VPCOMFALSEUW): Ditto.
+	(IX86_BUILTIN_VPCOMTRUEUW): Ditto.
+
+	(IX86_BUILTIN_VPCOMEQUD): Ditto.
+	(IX86_BUILTIN_VPCOMNEUD): Ditto.
+	(IX86_BUILTIN_VPCOMLTUD): Ditto.
+	(IX86_BUILTIN_VPCOMLEUD): Ditto.
+	(IX86_BUILTIN_VPCOMGTUD): Ditto.
+	(IX86_BUILTIN_VPCOMGEUD): Ditto.
+	(IX86_BUILTIN_VPCOMFALSEUD): Ditto.
+	(IX86_BUILTIN_VPCOMTRUEUD): Ditto.
+
+	(IX86_BUILTIN_VPCOMEQUQ): Ditto.
+	(IX86_BUILTIN_VPCOMNEUQ): Ditto.
+	(IX86_BUILTIN_VPCOMLTUQ): Ditto.
+	(IX86_BUILTIN_VPCOMLEUQ): Ditto.
+	(IX86_BUILTIN_VPCOMGTUQ): Ditto.
+	(IX86_BUILTIN_VPCOMGEUQ): Ditto.
+	(IX86_BUILTIN_VPCOMFALSEUQ): Ditto.
+	(IX86_BUILTIN_VPCOMTRUEUQ): Ditto.
+
+	(IX86_BUILTIN_VPCOMEQB): Ditto.
+	(IX86_BUILTIN_VPCOMNEB): Ditto.
+	(IX86_BUILTIN_VPCOMLTB): Ditto.
+	(IX86_BUILTIN_VPCOMLEB): Ditto.
+	(IX86_BUILTIN_VPCOMGTB): Ditto.
+	(IX86_BUILTIN_VPCOMGEB): Ditto.
+	(IX86_BUILTIN_VPCOMFALSEB): Ditto.
+	(IX86_BUILTIN_VPCOMTRUEB): Ditto.
+
+	(IX86_BUILTIN_VPCOMEQW): Ditto.
+	(IX86_BUILTIN_VPCOMNEW): Ditto.
+	(IX86_BUILTIN_VPCOMLTW): Ditto.
+	(IX86_BUILTIN_VPCOMLEW): Ditto.
+	(IX86_BUILTIN_VPCOMGTW): Ditto.
+	(IX86_BUILTIN_VPCOMGEW): Ditto.
+	(IX86_BUILTIN_VPCOMFALSEW): Ditto.
+	(IX86_BUILTIN_VPCOMTRUEW): Ditto.
+
+	(IX86_BUILTIN_VPCOMEQD): Ditto.
+	(IX86_BUILTIN_VPCOMNED): Ditto.
+	(IX86_BUILTIN_VPCOMLTD): Ditto.
+	(IX86_BUILTIN_VPCOMLED): Ditto.
+	(IX86_BUILTIN_VPCOMGTD): Ditto.
+	(IX86_BUILTIN_VPCOMGED): Ditto.
+	(IX86_BUILTIN_VPCOMFALSED): Ditto.
+	(IX86_BUILTIN_VPCOMTRUED): Ditto.
+
+	(IX86_BUILTIN_VPCOMEQQ): Ditto.
+	(IX86_BUILTIN_VPCOMNEQ): Ditto.
+	(IX86_BUILTIN_VPCOMLTQ): Ditto.
+	(IX86_BUILTIN_VPCOMLEQ): Ditto.
+	(IX86_BUILTIN_VPCOMGTQ): Ditto.
+	(IX86_BUILTIN_VPCOMGEQ): Ditto.
+	(IX86_BUILTIN_VPCOMFALSEQ): Ditto.
+	(IX86_BUILTIN_VPCOMTRUEQ): Ditto.
+
+	(enum multi_arg_type): New enum for describing the various XOP
+	intrinsic argument types.
+	(bdesc_multi_arg): New table for XOP intrinsics.
+	(ix86_init_mmx_sse_builtins): Add XOP intrinsic support.
+	(ix86_expand_multi_arg_builtin): New function for creating XOP
+	intrinsics.
+
+	* config/i386/sse.md (sserotatemax): New mode attribute for XOP.
+	(xop_pmacsww): Ditto.
+	(xop_pmacssww): Ditto.
+	(xop_pmacsdd): Ditto.
+	(xop_pmacssdd): Ditto.
+	(xop_pmacssdql): Ditto.
+	(xop_pmacssdqh): Ditto.
+	(xop_pmacsdql): Ditto.
+	(xop_pmacsdql_mem): Ditto.
+	(xop_mulv2div2di3_low): Ditto.
+	(xop_pmacsdqh): Ditto.
+	(xop_pmacsdqh_mem): Ditto.
+	(xop_mulv2div2di3_high): Ditto.
+	(xop_pmacsswd): Ditto.
+	(xop_pmacswd): Ditto.
+	(xop_pmadcsswd): Ditto.
+	(xop_pmadcswd): Ditto.
+	(xop_pcmov_<mode>): Ditto.
+	(xop_pcmov_<mode>)256: Ditto.
+	(xop_phaddbw): Ditto.
+	(xop_phaddbd): Ditto.
+	(xop_phaddbq): Ditto.
+	(xop_phaddwd): Ditto.
+	(xop_phaddwq): Ditto.
+	(xop_phadddq): Ditto.
+	(xop_phaddubw): Ditto.
+	(xop_phaddubd): Ditto.
+	(xop_phaddubq): Ditto.
+	(xop_phadduwd): Ditto.
+	(xop_phadduwq): Ditto.
+	(xop_phaddudq): Ditto.
+	(xop_phsubbw): Ditto.
+	(xop_phsubwd): Ditto.
+	(xop_phsubdq): Ditto.
+	(xop_pperm): Ditto.
+	(rotl<mode>3): Ditto.
+	(rotr<mode>3): Ditto.
+	(xop_rotl<mode>3): Ditto.
+	(xop_rotr<mode>3): Ditto.
+	(vrotr<mode>3): Ditto.
+	(vrotl<mode>3): Ditto.
+	(xop_vrotl<mode>3): Ditto.
+	(vlshr<mode>3): Ditto.
+	(vashr<mode>3): Ditto.
+	(vashl<mode>3
+	(xop_ashl<mode>3): Ditto.
+	(xop_lshl<mode>3): Ditto.
+	(ashlv16qi3): Ditto.
+	(lshlv16qi3): Ditto.
+	(ashrv16qi3): Ditto.
+	(ashrv2di3): Ditto.
+	(xop_frcz<mode>2): Ditto.
+	(xop_vmfrcz<mode>2): Ditto.
+	(xop_frcz<mode>2256): Ditto.	
+	(xop_maskcmp<mode>3): Ditto.
+	(xop_maskcmp_uns<mode>3): Ditto.
+	(xop_maskcmp_uns2<mode>3): Ditto.
+	(xop_pcom_tf<mode>3): Ditto.
+
+	* doc/invoke.texi (-mxop): Add documentation.
+	* doc/extend.texi (x86 intrinsics): Add XOP intrinsics.
+	
+2009-11-03  Mark Mitchell  <mark@codesourcery.com>
+
+	PR driver/11810
+	* gcc.c (SWITCHES_NEED_SPACES): Define to "o".
+	* config/alpha/osf.h (SWITCHES_NEED_SPACES): Remove here.
+	* config/mips/iris.h (SWITCHES_NEED_SPACES): Remove here.
+
+2009-11-04  Richard Earnshaw  <rearnsha@arm.com>
+
+	PR target/40835
+	* arm.md (peephole2 patterns for move and compare): New.
+
+2009-11-04  Nick Clifton  <nickc@redhat.com>
+
+	* defaults.h (CONSTANT_ADDRESS_P): Provide a default definition.
+	Make sure that it does not allow CONST_DOUBLEs.
+	* doc/tm.texi (CONSTANT_ADDRESS_P): Update description.
+	* config/avr/avr.h (CONSTANT_ADDRESS_P): Delete.
+	* config/bfin/bfin.h (CONSTANT_ADDRESS_P): Delete.
+	* config/cris/cris.h (CONSTANT_ADDRESS_P): Delete.
+	* config/fr30/fr30.h (CONSTANT_ADDRESS_P): Delete.
+	* config/frv/frv.h (CONSTANT_ADDRESS_P): Delete.
+	* config/m32c/m32c.h (CONSTANT_ADDRESS_P): Delete.
+	* config/m68hc11/m68hc11.h (CONSTANT_ADDRESS_P): Delete.
+	* config/mep/mep.h (CONSTANT_ADDRESS_P): Delete.
+	* config/mn10300/mn10300.h (CONSTANT_ADDRESS_P): Delete.
+	* config/moxie/moxie.h (CONSTANT_ADDRESS_P): Delete.
+	* config/pdp11/pdp11.h (CONSTANT_ADDRESS_P): Delete.
+	* config/picochip/picochip.h (CONSTANT_ADDRESS_P): Delete.
+	* config/score/score.h (CONSTANT_ADDRESS_P): Delete.
+	* config/stormy16/stormy16.h (CONSTANT_ADDRESS_P): Delete.
+
+2009-11-04  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/41919
+	* tree-vrp.c (test_for_singularity): Properly compare values.
+
+2009-11-04  Revital Eres  <eres@il.ibm.com>
+
+	* tree-vect-data-refs.c (vect_enhance_data_refs_alignment):
+	Consider peeling for alignment only for stores and remove
+	redundant assignment.
+
+2009-11-04  Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	PR target/41302
+	* config/m68k/m68k.c (m68k_reg_present_p): New static function.
+	(m68k_ok_for_sibcall_p): Handle different result return locations.
+
+2009-11-04  Richard Guenther  <rguenther@suse.de>
+
+	* c-opts.c (c_common_post_options): Move LTO option processing
+	code ...
+	* opts.c (decode_options): ... here.
+
+2009-11-04  Jakub Jelinek  <jakub@redhat.com>
+
+	* c-common.c (fold_offsetof_1): Use %wd instead of
+	HOST_WIDE_INT_PRINT_DEC.
+
+2009-11-04  Maciej W. Rozycki  <macro@linux-mips.org>
+
+	* config/vax/linux.h (TARGET_OS_CPP_BUILTINS): Don't define
+	__pic__ or __PIC__.
+
+2009-11-04  Maciej W. Rozycki  <macro@linux-mips.org>
+
+	* config.gcc (vax-*-linux*): Keep the original contents of
+	tmake_file while adding vax/t-linux.
+
+2009-11-03  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR target/10127
+	PR ada/20548
+	* expr.h (STACK_CHECK_PROBE_INTERVAL): Delete.
+	(STACK_CHECK_PROBE_INTERVAL_EXP): New macro.
+	(STACK_CHECK_MOVING_SP): Likewise.
+	* system.h (STACK_CHECK_PROBE_INTERVAL): Poison it.
+	* doc/tm.texi (Stack Checking): Delete STACK_CHECK_PROBE_INTERVAL.
+	Document STACK_CHECK_PROBE_INTERVAL_EXP and STACK_CHECK_MOVING_SP.
+	* doc/md.texi (Standard Pattern Names): Tweak entry of CHECK_STACK.
+	Document PROBE_STACK.
+	* explow.c (anti_adjust_stack_and_probe): New function.
+	(allocate_dynamic_stack_space): Do not directly allocate space if
+	STACK_CHECK_MOVING_SP, instead invoke above function.
+	(emit_stack_probe): Handle probe_stack insn.
+	(PROBE_INTERVAL): New macro.
+	(STACK_GROW_OPTAB): Likewise.
+	(STACK_GROW_OFF): Likewise.
+	(probe_stack_range): Use Pmode and memory_address consistently.  Fix
+	loop condition in the small constant case.  Rewrite in the general
+	case to be immune to wraparounds.  Make sure the address of probes
+	is valid.  Try to use [base + disp] addressing mode if possible.
+	* ira.c (setup_eliminable_regset): Set frame_pointer_needed if stack
+	checking is enabled and STACK_CHECK_MOVING_SP.
+	* rtlanal.c (may_trap_p_1) <MEM>: If stack checking is enabled,
+	return 1 for volatile references to the stack pointer.
+	* tree.c (build_common_builtin_nodes): Do not set ECF_NOTHROW on
+	__builtin_alloca if stack checking is enabled.
+	* unwind-dw2.c (uw_identify_context): Take into account whether the
+	context is that of a signal frame or not.
+	* config/i386/linux.h (STACK_CHECK_MOVING_SP): Define to 1.
+	* config/i386/linux64.h (STACK_CHECK_MOVING_SP): Likewise.
+
+2009-11-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/41917
+	* rtlanal.c (num_sign_bit_copies1) <case UMOD>: If sign bit of second
+	operand isn't known to be 0, return 1.
+
+2009-11-03  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/mips/mips.md: Fix typos.
+
+2009-11-03  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* doc/invoke.texi: Fix typo.
+
+2009-11-03  Paul Brook  <paul@codesourcery.com>
+
+	* config/arm/neon.ml (vectype): Add T_floatSF.
+	(string_of_vectype): Ditto.
+	* config/arm/neon-gen.ml (signed_ctype): Add T_floatSF.
+	(deftypes): Use float for float32_t.
+	* config/arm/arm_neon.h: Regenerate.
+
+2009-11-03  Nick Clifton  <nickc@redhat.com>
+	    Kevin Buettner  <kevinb@redhat.com>
+
+	* config/rx/predicates.md (rx_store_multiple_vector): Reverse
+	order of expected registers.
+	(rx_load_multiple_vector): Likewise.
+	(rx_rtsd_vector): Likewise.
+	* config/rx/rx.c (rx_cpu_type): New variable.
+	(rx_print_operand): Fix bug printing 64-bit constant values.
+	(rx_emit_stack_pushm): Reverse order of pushed registers.
+	(gen_rx_store_vector): Likewise.
+	(is_fast_interrupt_func): Only accept "fast_interrupt" as the
+	attribute name.
+	(is_exception_func): Rename to is_interrupt_func and only accept
+	"interrupt" as the attribute name.
+	(rx_get_stack_layout): Use new function name.
+	(rx_func_attr_inlinable): Likewise.
+	(rx_attribute_table): Remove "exception".
+	(rx_expand_prologue): If necessary push the accumulator register
+	in the prologue of interrupt functions.
+	(rx_expand_epilogue): If necessary pop the accumulator.
+	(rx_builtins): Add RX_BUILTIN_MVTIPL.
+	(rx_expand_builtin_stz): Remove.
+	(rx_expand_builtin_mvtipl): New function.
+	(rx_init_builtins): Handle RX_BUILTIN_MVTIPL.
+	(rx_expand_builtin): Likewise.
+	(rx_enable_fpu): New variable.
+	(rx_handle_option): Handle -fpu, -nofpu, -mcpu and -patch.
+	* config/rx/rx.h (TARGET_CPU_CPP_BUILTINS): Assert machine based
+	on rx_cpu_type.  Define __RX_FPU_INSNS__ if FPU insns are allowed.
+	(enum rx_cpu_types): Define.
+	(ASM_SPEC): Pass -m32bit-doubles on to assembler.
+	(INCOMING_FRAME_SP_OFFSET): Define.
+	(ARG_POINTER_CFA_OFFSET): Define.
+	(FRAME_POINTER_CFA_OFFSET): Define.
+	(OVERRIDE_OPTIONS): Enable fast math if RX FPU insns are enabled.
+	(ALLOW_RX_FPU_INSNS): Define.
+	* config/rx/rx.md: Test ALLOW_RX_FPU_INSNS instead of
+	fast_math_flags_set_p.
+	(UNSPEC_BUILTIN_MVTIPL): Define.
+	(revl): Rename to bswapsi2.
+	(bswaphi2): New pattern.
+	(mvtachi): Mark as volatile because it uses a register unknown to GCC.
+	(mvtaclo): Likewise.
+	(racw): Likewise.
+	(mvtc): Remove clobber of cc0.
+	(mvtcp): Delete.
+	(opecp): Delete.
+	* config/rx/rx.opt (mieee): Remove.
+	(fpu): Add.
+	(nofpu): Add.
+	(mcpu=): Add.
+	(patch=): Add.
+	(msave-acc-in-interrupts): Add.
+	* config/rx/t-rx (MULTILIB_OPTIONS): Change default to 64bit doubles.
+	(MULTILIB_DIRS): Likewise.
+	(MULTILIB_MATCHES): Treat -fpu as an alias for -m32bit-doubles.
+	* doc/extend.texi: Remove description of "exception" function
+	attribute.
+	* doc/invoke.texi: Document -fpu, -nofpu, -mcpu=, -patch= and
+	-msave-acc-in-interrupts options.
+
+2009-11-03  Richard Guenther  <rguenther@suse.de>
+
+	* c-common.c (fold_offsetof_1): Use HOST_WIDE_INT_PRINT_DEC.
+
+2009-11-03  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/38699
+	* c-common.c (fold_offsetof_1): Issue errors when the member designator
+	of the offsetof expression is not legitimate.
+
+2009-11-03  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (*call_value_1_rex64_ms_sysv): Use register
+	names instead of numerical constants.
+	(sse_prologue_save): Ditto.
+	(*sse_prologue_save_insn): Ditto.
+
+2009-11-03  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/41900
+	* config/i386/i386.h (ix86_arch_indices) <X86_ARCH_CALL_ESP>: New.
+	(TARGET_CALL_ESP): New define.
+	* config/i386/i386.c (initial_ix86_tune_features): Initialize
+	X86_ARCH_CALL_ESP.
+	* config/i386/i386.md (*call_pop_1_esp, *call_1_esp,
+	*call_value_pop_1_esp, *call_value_1_esp): Rename from *call_pop_1,
+	*call_1, *call_value_pop_1 and *call_value_1.  Depend on
+	TARGET_CALL_ESP.
+	(*call_pop_1, *call_1, *call_value_pop_1, *call_value_1):
+	New patterns, use "lsm" as operand 1 constraint.
+	* config/i386/predicates.md (call_insn_operand): Depend on
+	index_register_operand for !TARGET_CALL_ESP to avoid %esp register.
+
 2009-11-02  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
 
 	PR tree-optimization/41857
@@ -60,8 +672,7 @@
 
 	* config/mn10300/mn10300.c (mn10300_function_value): Make static, add
 	new 'outgoing' argument.
-	(mn10300_libcall_value, mn10300_function_value_regno_p): New
-	functions.
+	(mn10300_libcall_value, mn10300_function_value_regno_p): New functions.
 	(TARGET_FUNCTION_VALUE, TARGET_LIBCALL_VALUE): Declare.
 	* config/mn10300/mn10300.h: (FUNCTION_VALUE, FUNCTION_OUTGOING_VALUE,
 	LIBCALL_VALUE): Remove.
@@ -170,7 +781,7 @@
 	PR target/38018
 	* doc/tm.texi (OVERRIDE_OPTIONS): Update.
 	(TARGET_OVERRIDE_OPTIONS_AFTER_CHANGE): New.
-	* optc-gen.awk (cl_target_option_restore): Include call to 
+	* optc-gen.awk (cl_target_option_restore): Include call to
 	targetm.override_options_after_change.
 	* target-def.h (TARGET_OVERRIDE_OPTIONS_AFTER_CHANGE): New.
 	* target.h (override_options_after_change): New.
@@ -194,7 +805,7 @@
 2009-10-29  Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
 
 	* config/arm/arm.c (find_best_start): Fix type of remainder to be
-	unsigned .
+	unsigned.
 
 2009-10-29  Martin Jambor  <mjambor@suse.cz>
 
@@ -224,7 +835,7 @@
 2009-10-28  Rafael Avila de Espindola  <espindola@google.com>
 
 	* doc/invoke.texi: Rename -use-linker-plugin -fuse-linker-plugin.
-	
+
 2009-10-28  Rafael Avila de Espindola  <espindola@google.com>
 
 	* dbxout.c (dbxout_common_check): Accept non public trees.

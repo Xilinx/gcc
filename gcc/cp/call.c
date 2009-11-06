@@ -313,6 +313,9 @@ build_call_a (tree function, int n, tree *argarray)
   gcc_assert (TREE_CODE (fntype) == FUNCTION_TYPE
 	      || TREE_CODE (fntype) == METHOD_TYPE);
   result_type = TREE_TYPE (fntype);
+  /* An rvalue has no cv-qualifiers.  */
+  if (SCALAR_TYPE_P (result_type) || VOID_TYPE_P (result_type))
+    result_type = cv_unqualified (result_type);
 
   if (TREE_CODE (function) == ADDR_EXPR
       && TREE_CODE (TREE_OPERAND (function, 0)) == FUNCTION_DECL)
@@ -7617,7 +7620,8 @@ set_up_extended_ref_temp (tree decl, tree expr, tree *cleanup, tree *initp)
    Return the converted expression.  */
 
 tree
-initialize_reference (tree type, tree expr, tree decl, tree *cleanup)
+initialize_reference (tree type, tree expr, tree decl, tree *cleanup,
+		      tsubst_flags_t complain)
 {
   conversion *conv;
   void *p;
@@ -7632,16 +7636,19 @@ initialize_reference (tree type, tree expr, tree decl, tree *cleanup)
 			    LOOKUP_NORMAL);
   if (!conv || conv->bad_p)
     {
-      if (!(TYPE_QUALS (TREE_TYPE (type)) & TYPE_QUAL_CONST)
-	  && !TYPE_REF_IS_RVALUE (type)
-	  && !real_lvalue_p (expr))
-	error ("invalid initialization of non-const reference of "
-	       "type %qT from an rvalue of type %qT",
-	       type, TREE_TYPE (expr));
-      else
-	error ("invalid initialization of reference of type "
-	       "%qT from expression of type %qT", type,
-	       TREE_TYPE (expr));
+      if (complain & tf_error)
+	{
+	  if (!(TYPE_QUALS (TREE_TYPE (type)) & TYPE_QUAL_CONST)
+	      && !TYPE_REF_IS_RVALUE (type)
+	      && !real_lvalue_p (expr))
+	    error ("invalid initialization of non-const reference of "
+		   "type %qT from an rvalue of type %qT",
+		   type, TREE_TYPE (expr));
+	  else
+	    error ("invalid initialization of reference of type "
+		   "%qT from expression of type %qT", type,
+		   TREE_TYPE (expr));
+	}
       return error_mark_node;
     }
 
