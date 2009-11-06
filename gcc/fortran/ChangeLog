@@ -1,3 +1,43 @@
+2009-11-05  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	PR fortran/41918
+	* fortran/trans-decl.c: Silence intent(out) warning for derived type
+	dummy arguments with default initialization.
+
+2009-11-05  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/41556
+	* interface.c (matching_typebound_op,gfc_extend_assign): Handle CLASS
+	variables.
+
+2009-11-05  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/41556
+	PR fortran/41873
+	* resolve.c (resolve_function,resolve_call): Prevent abstract interfaces
+	from being called, but allow deferred type-bound procedures with
+	abstract interface.
+
+2009-11-04  Tobias Burnus <burnus@gcc.gnu.org>
+	    Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/41556
+	PR fortran/41937
+	* interface.c (gfc_check_operator_interface): Handle CLASS arguments.
+	* resolve.c (resolve_allocate_expr): Handle allocatable components of
+	CLASS variables.
+
+2009-11-04  Richard Guenther  <rguenther@suse.de>
+
+	* options.c (gfc_post_options): Rely on common code processing
+	LTO options.  Only enable -fwhole-file here.
+
+2009-11-03  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/41907
+	* trans-expr.c (gfc_conv_procedure_call): Fix presence check
+	for optional arguments.
+
 2009-11-01  Tobias Burnus  <burnus@net-b.de>
 
 	PR fortran/41872

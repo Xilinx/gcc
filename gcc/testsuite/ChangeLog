@@ -1,3 +1,251 @@
+2009-11-06  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* g++.dg/plugin/pragma_plugin-test-1.C: new testcase for
+	PLUGIN_PRAGMAS.
+	* g++.dg/plugin/pragma_plugin.c: new test plugin for
+	PLUGIN_PRAGMAS.
+	* g++.dg/plugin/plugin.exp (plugin_test_list): Add pragma_plugin.c and
+	pragma_plugin-test-1.C.
+
+2009-11-06  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR c++/41536
+	* g++.dg/ext/always_inline-5.C: New test.
+
+2009-11-06  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/41967
+	* g++.dg/gomp/pr41967.C: New test.
+
+2009-11-06  Michael Matz  <matz@suse.de>
+
+	PR middle-end/41963
+	* gcc.dg/pr41963.c: New test.
+
+2009-11-06  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/41935
+	* gcc.dg/pr41935.c: New test.
+	* c-c++-common/pr41935.c: New test.
+	* c-c++-common/builtin-offsetof.c (f0): Allow index one past the last
+	element.
+	* gcc.c-torture/execute/pr41935.c: New test.
+
+2009-11-05  Jason Merrill  <jason@redhat.com>
+
+	PR c++/34180
+	* g++.dg/init/synth2.C: New.
+
+	PR c++/7046
+	* g++.dg/abi/pragma-pack1.C: New.
+
+	PR c++/34870
+	* g++.dg/lookup/koenig7.C: New.
+
+	PR c++/41703
+	* g++.dg/template/partial6.C: New.
+
+2009-11-05  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/41556
+	* gfortran.dg/class_12.f03: New test.
+
+2009-11-05  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.target/i386/i386.exp (check_effective_target_xop): Fix typo
+	in builtin's name.
+
+2009-11-04  Jason Merrill  <jason@redhat.com>
+
+	PR c++/36912
+	* g++.dg/init/static-init2.C: New.
+
+2009-11-05  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/41556
+	PR fortran/41873
+	* gfortran.dg/interface_abstract_4.f90: New test.
+
+2009-11-05  Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	* gcc.target/m68k/pr41302.c: Fix target triplet.
+
+2009-11-04  Jason Merrill  <jason@redhat.com>
+
+	PR c++/39413
+	* g++.dg/template/overload11.C: New.
+	* g++.dg/template/nested3.C: Adjust.
+
+2009-11-04  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR ada/20548
+	* ada/acats/norun.lst: Remove the stack checking tests.
+	* ada/acats/run_acats: Limit the stack to 8MB.
+
+2009-11-04  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/41556
+	PR fortran/41937
+	* gfortran.dg/class_11.f03: New test.
+
+2009-11-04  Jason Merrill  <jason@redhat.com>
+
+	PR c++/35067
+	* g++.dg/abi/thunk5.C: New.
+
+2009-11-04  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR rtl-opt/41833
+	* gcc.target/powerpc/altivec-33.c: New testcase.
+
+2009-11-04  Jason Merrill  <jason@redhat.com>
+
+	PR c++/17365, DR 218
+	* g++.dg/lookup/koenig6.C: New.
+	* g++.dg/lookup/koenig5.C: Adjust.
+	* g++.dg/template/crash56.C: Adjust.
+	* g++.old-deja/g++.ns/koenig5.C: Adjust.
+
+2009-11-04  Harsha Jagasia  <harsha.jagasia@amd.com>
+	    Dwarakanath Rajagopal  <dwarak.rajagopal@amd.com>
+
+	* gcc.target/i386/xop-check.h: New file.
+	* gcc.target/i386/xop-hadduX.c: Ditto.
+	* gcc.target/i386/xop-haddX.c: Ditto.
+	* gcc.target/i386/xop-hsubX.c: Ditto.
+	* gcc.target/i386/xop-imul32widen-vector.c: Ditto.
+	* gcc.target/i386/xop-imul32widen-vector.c: Ditto.
+	* gcc.target/i386/xop-pcmov2.c: Ditto.
+	* gcc.target/i386/xop-pcmov.c: Ditto.
+	* gcc.target/i386/xop-rotate1-vector.c: Ditto.
+	* gcc.target/i386/xop-rotate2-vector.c: Ditto.
+	* gcc.target/i386/xop-rotate3-vector.c: Ditto.
+	* gcc.target/i386/xop-shift1-vector.c: Ditto.
+	* gcc.target/i386/xop-shift2-vector.c: Ditto.
+	* gcc.target/i386/xop-shift3-vector.c: Ditto.
+	* gcc.target/i386/i386.exp:  Add check_effective_target_xop.
+	* gcc.target/i386/sse-12.c: Update with new compile options to 
+	activate and check xopintrin.h intrinsic file.
+	* gcc.target/i386/sse-13.c: Ditto.
+	* gcc.target/i386/sse-14.c: Ditto.
+	* gcc.target/i386/sse-22.c: Ditto.
+	* gcc.target/i386/sse-23.c: Ditto.
+	* g++.dg/other/i386-2.C: Ditto.
+	* g++.dg/other/i386-3.C: Ditto.
+	* g++.dg/other/i386-5.C: Ditto.
+	* g++.dg/other/i386-6.C: Ditto.
+	
+2009-11-04  Wei Guozhi  <carrot@google.com>
+
+	PR target/40835
+	* gcc.target/arm/pr40835: New testcase.
+
+2009-11-04  Revital Eres  <eres@il.ibm.com>
+
+	* gcc.target/powerpc/vsx-vectorize-3.c: Adjust tetcase following
+	change in decision of peeling for alignment.
+	* gcc.target/powerpc/vsx-vectorize-5.c: Likewise.
+	* gcc.dg/vect/vect-50.c: Likewise.
+	* gcc.dg/vect/vect-42.c: Likewise.
+	* gcc.dg/vect/costmodel/i386/costmodel-fast-math-vect-pr29925.c:
+	Likewise.
+	* gcc.dg/vect/costmodel/x86_64/costmodel-fast-math-vect-pr29925.c:
+	Likewise.
+	* gcc.dg/vect/vect-multitypes-6.c: Likewise.
+	* gcc.dg/vect/vect-60.c: Likewise.
+	* gcc.dg/vect/vect-52.c: Likewise.
+	* gcc.dg/vect/vect-44.c: Likewise.
+	* gcc.dg/vect/vect-27.c: Likewise.
+	* gcc.dg/vect/vect-29.c: Likewise.
+	* gcc.dg/vect/vect-72.c: Likewise.
+	* gcc.dg/vect/vect-56.c: Likewise.
+	* gcc.dg/vect/vect-48.c: Likewise.
+	* gcc.dg/vect/vect-multitypes-3.c: Likewise.
+	* gfortran.dg/vect/vect-2.f90: Likewise.
+	* gfortran.dg/vect/vect-5.f90: Likewise.
+
+2009-11-04  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/41919
+	* gcc.c-torture/execute/pr41919.c: New testcase.
+
+2009-11-04  Carlos O'Donell  <carlos@codesourcery.com>
+
+	PR target/41302
+	* gcc.target/m68k/pr41302.c: New test.
+
+2009-11-03  Jason Merrill  <jason@redhat.com>
+
+	PR c++/36959
+	* g++.dg/opt/inline16.C: New.
+
+2009-11-03  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/stack_check.adb1: New test.
+	* gnat.dg/stack_check.adb2: Likewise.
+
+2009-11-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/41917
+	* gcc.c-torture/execute/pr41917.c: New test.
+
+2009-11-03  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.target/i386/pr41900.c: Make test compile only.  Scan assembler
+	dump to not include "call *%esp".
+
+2009-11-03  Jason Merrill  <jason@redhat.com>
+
+	PR c++/39786
+	* g++.dg/lookup/using22.C: New.
+
+	PR c++/41876
+	* g++.dg/parse/eh-decl.C: New.
+
+	PR c++/41927
+	* g++.dg/template/sfinae16.C: New.
+
+	PR c++/41815
+	* g++.dg/cpp0x/rv-return.C: New.
+	* g++.dg/cpp0x/deduce.C: Adjust.
+
+	PR c++/40944
+	* g++.dg/template/sfinae15.C: New.
+
+	PR c++/40687
+	* g++.dg/cpp0x/auto3.C: Remove xfail.
+
+2009-11-03  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/41907
+	* gfortran.dg/missing_optional_dummy_6.f90: New test.
+
+2009-11-03  Nick Clifton  <nickc@redhat.com>
+
+	* gcc.target/rx/builtins.c: Remove redundant tests.
+	Add test of MVTIPL instruction.
+	* gcc.target/rx/interrupts.c: Use fast_interrupt and interrupt
+	function attributes.  Add -msave-acc-in-interrupts option to the
+	command line.
+
+2009-11-03  Andrew Stubbs  <ams@codesourcery.com>
+	    Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	* g++.dg/torture/pr36191.C: Don't run with -fomit-frame-pointer on
+	sh, m68k and fido.
+
+2009-11-03  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/38699
+	* c-c++-common/dfp/builtin-offsetof.c: Moved to ...
+	* c-c++-common/builtin-offsetof.c: ... here.
+
+2009-11-03  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/38699
+	* c-c++-common/dfp/builtin-offsetof.c: New test.
+	* g++.dg/other/offsetof6.C: Likewise.
+
 2009-11-03  Uros Bizjak  <ubizjak@gmail.com>
 
 	PR target/41900
@@ -1400,18 +1648,15 @@
 	* gcc.c-torture/execute/builtins/builtins.exp: Likewise.
 	* gcc.c-torture/execute/ieee/ieee.exp: Likewise.
 	* gcc.c-torture/unsorted/unsorted.exp: Likewise.
-	* gcc.target/i386/math-torture/math-torture.exp:
-	Likewise.
+	* gcc.target/i386/math-torture/math-torture.exp: Likewise.
 	* gcc.dg/lto/lto.exp: New.
 	* gfortran.dg/lto/lto.exp: New.
 	* lib/target-supports.exp (check_effective_target_lto): New.
-	* lib/c-torture.exp: Load target-supports.exp.
-	Define LTO_TORTURE_OPTIONS if check_effective_target_lto
-	returns nonzero.
+	* lib/c-torture.exp: Load target-supports.exp.  Define
+	LTO_TORTURE_OPTIONS if check_effective_target_lto returns nonzero.
 	* lib/gcc-dg.exp: Likewise.
 	* lib/lto.exp: New.
-	* lib/torture-options.exp: Add support for a third
-	argument.
+	* lib/torture-options.exp: Add support for a third argument.
 
 2009-10-03  Uros Bizjak  <ubizjak@gmail.com>
 

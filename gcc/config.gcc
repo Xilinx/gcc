@@ -287,8 +287,8 @@ i[34567]86-*-*)
 	extra_headers="cpuid.h mmintrin.h mm3dnow.h xmmintrin.h emmintrin.h
 		       pmmintrin.h tmmintrin.h ammintrin.h smmintrin.h
 		       nmmintrin.h bmmintrin.h fma4intrin.h wmmintrin.h
-		       immintrin.h x86intrin.h avxintrin.h
-		       ia32intrin.h cross-stdarg.h"
+		       immintrin.h x86intrin.h avxintrin.h xopintrin.h
+		       ia32intrin.h cross-stdarg.h lwpintrin.h"
 	;;
 x86_64-*-*)
 	cpu_type=i386
@@ -297,8 +297,8 @@ x86_64-*-*)
 	extra_headers="cpuid.h mmintrin.h mm3dnow.h xmmintrin.h emmintrin.h
 		       pmmintrin.h tmmintrin.h ammintrin.h smmintrin.h
 		       nmmintrin.h bmmintrin.h fma4intrin.h wmmintrin.h
-		       immintrin.h x86intrin.h avxintrin.h 
-		       ia32intrin.h cross-stdarg.h"
+		       immintrin.h x86intrin.h avxintrin.h xopintrin.h
+		       ia32intrin.h cross-stdarg.h lwpintrin.h"
 	need_64bit_hwint=yes
 	;;
 ia64-*-*)
@@ -2503,7 +2503,7 @@ v850-*-*)
 	;;
 vax-*-linux*)
 	tm_file="${tm_file} dbxelf.h elfos.h svr4.h linux.h vax/elf.h vax/linux.h"
-	tmake_file=vax/t-linux
+	tmake_file="${tmake_file} vax/t-linux"
 	;;
 vax-*-netbsdelf*)
 	tm_file="${tm_file} elfos.h netbsd.h netbsd-elf.h vax/elf.h vax/netbsd-elf.h"

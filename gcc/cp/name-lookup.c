@@ -4565,26 +4565,15 @@ add_function (struct arg_lookup *k, tree fn)
      total number of functions being compared, which should usually be the
      case.  */
 
-  /* We must find only functions, or exactly one non-function.  */
-  if (!k->functions)
+  if (!is_overloaded_fn (fn))
+    /* All names except those of (possibly overloaded) functions and
+       function templates are ignored.  */;
+  else if (!k->functions)
     k->functions = fn;
   else if (fn == k->functions)
     ;
-  else if (is_overloaded_fn (k->functions) && is_overloaded_fn (fn))
-    k->functions = build_overload (fn, k->functions);
   else
-    {
-      tree f1 = OVL_CURRENT (k->functions);
-      tree f2 = fn;
-      if (is_overloaded_fn (f1))
-	{
-	  fn = f1; f1 = f2; f2 = fn;
-	}
-      error ("%q+D is not a function,", f1);
-      error ("  conflict with %q+D", f2);
-      error ("  in call to %qD", k->name);
-      return true;
-    }
+    k->functions = build_overload (fn, k->functions);
 
   return false;
 }
@@ -4790,6 +4779,8 @@ arg_assoc_class (struct arg_lookup *k, tree type)
   context = decl_namespace_context (type);
   if (arg_assoc_namespace (k, context))
     return true;
+
+  complete_type (type);
 
   if (TYPE_BINFO (type))
     {
