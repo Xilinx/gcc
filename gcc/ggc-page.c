@@ -336,6 +336,14 @@ typedef struct page_table_chain
 
 #endif
 
+#ifdef ENABLE_GC_ALWAYS_COLLECT
+struct free_object
+{
+    void *object;
+    struct free_object *next;
+};
+#endif
+
 /* The rest of the global variables.  */
 static struct globals
 {
@@ -422,11 +430,7 @@ static struct globals
 #ifdef ENABLE_GC_ALWAYS_COLLECT
   /* List of free objects to be verified as actually free on the
      next collection.  */
-  struct free_object
-  {
-    void *object;
-    struct free_object *next;
-  } *free_object_list;
+  struct free_object *free_object_list;
 #endif
 
 #ifdef GATHER_STATISTICS

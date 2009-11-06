@@ -1,3 +1,7 @@
+2009-11-06  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* ggc-page.c (struct free_object): move out from struct globals.
+
 2009-11-04  Sebastian Pop  <sebastian.pop@amd.com>
 	    Laurynas Biveinis  <laurynas.biveinis@gmail.com>
 
