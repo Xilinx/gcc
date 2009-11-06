@@ -3225,16 +3225,38 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
   of a sub-class of $CLASS_NORMAL_CONSTRUCTOR_BINDING.}#
   :formals (recv symb ncx sloc)
 )
+
 (defun badmeth_prepare_constructor_binding (recv symb ncx sloc)
   (debug_msg recv "bad_prepare_constructor_binding recv")
   (debug_msg symb "bad_prepare_constructor_binding symb")
   (error_strv sloc "invalid constructor binding" (get_field :named_name symb))
   (error_strv sloc "reciever unprepared to constructor binding" 
 	      (get_field :named_name (discrim recv)))
-  (assert_msg "@$@bad_prepare_constructor_binding" ())
+  (assert_msg "@$@badmeth_prepare_constructor_binding" ())
 )
 (install_method discr_any_receiver prepare_constructor_binding badmeth_prepare_constructor_binding)
 
+
+;;;;;;;;;;;;;;;;
+(defselector normal_letrec_constructive class_selector
+  :doc #{The $NORMAL_LETREC selector applied to: a constructive
+  expression $CEXPR for reciever, a symbol $SYMB, a normal
+  constructive binding $CBIND, an environment $ENV, a normal context
+  $NCX, a location $SLOC}#
+  :formals (cexpr symb cbind env ncx sloc))
+
+(defun badmeth_normal_letrec_constructive (cexpr symb cbind env ncx sloc)
+  (debug_msg cexpr "badmeth_normal_letrec_constructive cexpr")
+  (debug_msg symb "badmeth_normal_letrec_constructive symb")
+  (debug_msg cbind "badmeth_normal_letrec_constructive cbind")
+  (error_strv sloc "invalid letrec constructive symbol" (get_field :named_name symb))
+  (error_strv sloc "reciever unprepared to normal_letrec_constructive" 
+	      (get_field :named_name (discrim cexpr)))
+  (assert_msg "@$@badmeth_normal_letrec_constructive" ())
+)
+(install_method discr_any_receiver normal_letrec_constructive badmeth_normal_letrec_constructive)
+
+;;;;;;;;;;;;;;;;
 (defun prepcons_lambda (recv symb ncx sloc)
   (debug_msg recv "prepcons_lambda recv")
   (debug_msg symb "prepcons_lambda symb")
@@ -3251,6 +3273,18 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
 (install_method class_source_lambda prepare_constructor_binding prepcons_lambda)
 
 ;;;;
+
+
+(defun normletrec_lambda  (cexpr symb cbind env ncx sloc)
+  (debug_msg cexpr "normletrec_lambda cexpr")
+  (debug_msg symb "normletrec_lambda symb")
+  (debug_msg cbind "normletrec_lambda cbind")
+  (compile_warning "unimplemented normletrec_lambda")
+  (assert_msg "@$@unimplemented normletrec_lambda" ())
+)
+(install_method class_source_lambda normal_letrec_constructive normletrec_lambda)
+
+;;;;;;;;;;;;;;;;
 
 (defun prepcons_tuple (recv symb ncx sloc)
   (debug_msg recv "prepcons_tuple recv")
@@ -3273,6 +3307,17 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
 ))
 (install_method class_source_tuple prepare_constructor_binding prepcons_tuple)
 ;;;;
+
+(defun normletrec_tuple  (cexpr symb cbind env ncx sloc)
+  (debug_msg cexpr "normletrec_tuple cexpr")
+  (debug_msg symb "normletrec_tuple symb")
+  (debug_msg cbind "normletrec_tuple cbind")
+  (compile_warning "unimplemented normletrec_tuple")
+  (assert_msg "@$@unimplemented normletrec_tuple" ())
+)
+(install_method class_source_tuple normal_letrec_constructive normletrec_tuple)
+
+;;;;;;;;;;;;;;;;
 
 (defun prepcons_list (recv symb ncx sloc)
   (debug_msg recv "prepcons_list recv")
@@ -3314,8 +3359,19 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
     (return reslist)
 ))
 (install_method class_source_list prepare_constructor_binding prepcons_list)
+;;;;
+
+(defun normletrec_list  (cexpr symb cbind env ncx sloc)
+  (debug_msg cexpr "normletrec_list cexpr")
+  (debug_msg symb "normletrec_list symb")
+  (debug_msg cbind "normletrec_list cbind")
+  (compile_warning "unimplemented normletrec_list")
+  (assert_msg "@$@unimplemented normletrec_list" ())
+)
+(install_method class_source_list normal_letrec_constructive normletrec_list)
 
 
+;;;;;;;;;;;;;;;;
 (defun prepcons_instance (recv symb ncx sloc)
   (debug_msg recv "prepcons_instance recv")
   (debug_msg symb "prepcons_instance symb")
@@ -3341,7 +3397,18 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
     )
   )
 (install_method class_source_instance prepare_constructor_binding prepcons_instance)
+;;;;
 
+(defun normletrec_instance  (cexpr symb cbind env ncx sloc)
+  (debug_msg cexpr "normletrec_instance cexpr")
+  (debug_msg symb "normletrec_instance symb")
+  (debug_msg cbind "normletrec_instance cbind")
+  (compile_warning "unimplemented normletrec_instance")
+  (assert_msg "@$@unimplemented normletrec_instance" ())
+)
+(install_method class_source_instance normal_letrec_constructive normletrec_instance)
+
+;;;;;;;;;;;;;;;;
 (defun normexp_letrec (recv env ncx psloc)
   (assert_msg "check letrec recv" (is_a recv class_source_letrec))
   (assert_msg "check env" (is_a env class_environment))
@@ -3451,6 +3518,8 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
        (debug_msg curbind "normexp_letrec thirdloop curbind")
        (debug_msg cursexpr "normexp_letrec thirdloop cursexpr")
        (assert_msg "check curxpr same cursexpr" (== curexpr cursexpr))
+       (normal_letrec_constructive curexpr cursymb curbind newenv ncx sloc)
+       (debug_msg curexpr "normexp_letrec thirdloop done curexpr")
        )
      )
     ;; perhaps we need a normal_letrec selector...?
@@ -5552,6 +5621,7 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
  create_normcontext
  get_ctype
  normal_exp
+ normal_letrec_constructive
  normalize_tuple
  prepare_constructor_binding
  wrap_normal_let1

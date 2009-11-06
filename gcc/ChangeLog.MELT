@@ -1,3 +1,7 @@
+2009-11-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	[adding normal_letrec_constructive for letrec...]
+	* melt/warmelt-normal.melt: adding normal_letrec_constructive.
+
 2009-11-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	[still implementing letrec...]
 	* melt/warmelt-normal.melt: more for letrec ...
