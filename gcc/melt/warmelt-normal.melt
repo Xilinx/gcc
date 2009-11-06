@@ -3275,10 +3275,18 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
 ;;;;
 
 
-(defun normletrec_lambda  (cexpr symb cbind env ncx sloc)
+(defun normletrec_lambda  (cexpr symb cbind env ncx psloc)
   (debug_msg cexpr "normletrec_lambda cexpr")
   (debug_msg symb "normletrec_lambda symb")
   (debug_msg cbind "normletrec_lambda cbind")
+  (multicall
+   (nproc csym clocc constrout clovtup sloc oldproc ndatarout :long insideflag)
+   (normalize_lambda cexpr env ncx psloc)
+   (debug_msg csym "normletrec_lambda after normalize_lambda csym")
+   (debug_msg clocc "normletrec_lambda after normalize_lambda clocc")
+   (debug_msg constrout "normletrec_lambda after normalize_lambda constrout")
+   (debug_msg clovtup  "normletrec_lambda after normalize_lambda clovtup")
+   )
   (compile_warning "unimplemented normletrec_lambda")
   (assert_msg "@$@unimplemented normletrec_lambda" ())
 )

@@ -41,7 +41,9 @@ fi
 ## for commodity, we pass -D -U -I -O* -g to gcc, and -F to set the cflags,
 ## -C to set the compiler, and -x & -v for debugging and -n to omit
 ## line info, -d for dynamic object structures
+## -k to keep the temporary files
 xtra_cflags=""
+keep_temporary_files=""
 while getopts "D:I:U:F:C:O:gxvnd" flag ; do
     : the $flag 
     case "$flag" in
@@ -56,6 +58,7 @@ while getopts "D:I:U:F:C:O:gxvnd" flag ; do
 	d) xtra_cflags="$xtra_cflags -DMELTGCC_DYNAMIC_OBJSTRUCT";;
 	x) set -x;;
 	v) set -v;;
+	k) keep_temporary_files=true;;
 	*) echo unrecognized flag $flag;;
     esac
 done
@@ -66,7 +69,7 @@ dynstuff=$2
 
 
 ## if not given, try to guess the dynstuff from the csource
-if [ -z $dynstuff ]; then
+if [ -z "$dynstuff" ]; then
     dynstuff=`basename $csource .c`.so
 fi
 
@@ -99,7 +102,11 @@ rm -f $datf $dobf
 # generate the temporary timestamp & md5s file
 md5src=`md5sum $csource`     
 
-trap "rm -f $datf $dobf" EXIT
+if [ -z "$keep_temporary_files" ]; then
+    trap "rm -f $datf $dobf" EXIT
+else
+    echo $0 keeping temporary files $datf $dobf >&2
+fi
 
 date "+const char melt_compiled_timestamp[]=\"%c $csource\";" > $datf
 echo "const char melt_md5[]=\"$md5src\";" >> $datf

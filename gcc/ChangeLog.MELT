@@ -1,5 +1,16 @@
 2009-11-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	[adding normal_letrec_constructive for letrec...]
+	* melt/warmelt-normal.melt: began coding normletrec_lambda.
+	* melt-cc-script.proto: added -k flag to keep the temporary files.
+	{regenerated files}
+	* melt/warmelt-macro-0.c: regenerated.
+	* melt/warmelt-outobj-0.c: regenerated.
+	* melt/warmelt-genobj-0.c: regenerated.
+	* melt/warmelt-normatch-0.c: regenerated.
+	* melt/warmelt-normal-0.c: regenerated.
+	* melt/warmelt-first-0.c: regenerated.
+
+2009-11-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normal.melt: adding normal_letrec_constructive.
 
 2009-11-05  Basile Starynkevitch  <basile@starynkevitch.net>
