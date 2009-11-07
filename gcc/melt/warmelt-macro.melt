@@ -4251,9 +4251,18 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
       (setq curpair (pair_tail curpair))
       (let ( (curcallexp (pair_head curpair)) )
 	(if (not (is_a curcallexp class_sexpr))
-	    (error_plain loc "missing called expression in multicall"_))
+	    (error_plain loc "missing called expression in MULTICALL"_))
 	(setq curpair (pair_tail curpair))
 	(let ( (curcall (macroexpand_1 curcallexp env mexpander)) )
+	  ;; check the called subexpression
+	  (cond 
+	   ((or (is_a curcall class_source_apply)
+		(is_a curcall class_source_msend)) 
+	    ())
+	   (:else 
+	    (debug_msg curcall "mexpand_multicall bad curcall")
+	    (error_plain loc "called expression in MULTICALL is invalid, expecting application or send")
+	    (return)))
 	  (multiple_every restup 
 			  (lambda (lb) (put_env newenv lb)
 			    ))

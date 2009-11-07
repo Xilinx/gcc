@@ -1,4 +1,10 @@
 2009-11-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normal.melt: misplaced compile_warning in a
+	multicall in normletrec_lambda.
+	* melt/warmelt-macro.melt: added check for called s-expr in
+	mexpand_multicall.
+
+2009-11-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normal.melt:
 	normalize_lambda has both old & new environments as arguments.
 	normexp_symbol should handle letrec constructed bindings.

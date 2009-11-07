@@ -3089,6 +3089,7 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
 	 (sbody (unsafe_get_field :smulc_body recv))
 	 (newenv (fresh_env env))
 	 )
+    (debug_msg scall "normexp_multicall scall")
     (multicall
      (ncall ncallbindings)
      (normal_exp scall env ncx sloc)
@@ -3295,8 +3296,8 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
   (multicall
    (nproc csym clocc constrout clovtup sloc oldproc ndatarout :long insideflag)
    ;; for letrec the old and new environments is the same!
-  (compile_warning "normletrec_lambda are we sure old & new env are same.?")
    (normalize_lambda cexpr env env ncx psloc)
+   (compile_warning "normletrec_lambda are we sure old & new env are same.?")
    (debug_msg csym "normletrec_lambda after normalize_lambda csym")
    (debug_msg clocc "normletrec_lambda after normalize_lambda clocc")
    (debug_msg constrout "normletrec_lambda after normalize_lambda constrout")
