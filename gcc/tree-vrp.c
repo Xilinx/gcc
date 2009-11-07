@@ -6748,13 +6748,9 @@ test_for_singularity (enum tree_code cond_code, tree op0,
      value range information we have for op0.  */
   if (min && max)
     {
-      if (compare_values (vr->min, min) == -1)
-	min = min;
-      else
+      if (compare_values (vr->min, min) == 1)
 	min = vr->min;
-      if (compare_values (vr->max, max) == 1)
-	max = max;
-      else
+      if (compare_values (vr->max, max) == -1)
 	max = vr->max;
 
       /* If the new min/max values have converged to a single value,
@@ -7237,7 +7233,7 @@ vrp_finalize (void)
     }
 
   /* We may have ended with ranges that have exactly one value.  Those
-     values can be substituted as any other copy/const propagated
+     values can be substituted as any other const propagated
      value using substitute_and_fold.  */
   single_val_range = XCNEWVEC (prop_value_t, num_ssa_names);
 
@@ -7245,7 +7241,8 @@ vrp_finalize (void)
   for (i = 0; i < num_ssa_names; i++)
     if (vr_value[i]
 	&& vr_value[i]->type == VR_RANGE
-	&& vr_value[i]->min == vr_value[i]->max)
+	&& vr_value[i]->min == vr_value[i]->max
+	&& is_gimple_min_invariant (vr_value[i]->min))
       {
 	single_val_range[i].value = vr_value[i]->min;
 	do_value_subst_p = true;

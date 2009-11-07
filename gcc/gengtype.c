@@ -141,10 +141,11 @@ static void oprintf (outf_p o, const char *S, ...)
 static outf_p output_files;
 
 /* The plugin input files and their number; in that case only
-   corresponding gt-<plugin>.h are generated in the current
-   directory.  */
+   a single file is produced.  */
 static char** plugin_files;
 static size_t nb_plugin_files;
+/* the generated plugin output name & file */
+static outf_p plugin_output;
 
 /* The output header file that is included into pretty much every
    source file.  */
@@ -1116,6 +1117,8 @@ adjust_field_rtx_def (type_p t, options_p ARG_UNUSED (opt))
 		t = scalar_tp, subname = "rt_int";
 	      else if (i == VALUE && aindex == 0)
 		t = scalar_tp, subname = "rt_int";
+	      else if (i == DEBUG_EXPR && aindex == 0)
+		t = tree_tp, subname = "rt_tree";
 	      else if (i == REG && aindex == 1)
 		t = scalar_tp, subname = "rt_int";
 	      else if (i == REG && aindex == 2)
@@ -1568,7 +1571,7 @@ open_base_files (void)
       "optabs.h", "libfuncs.h", "debug.h", "ggc.h", "cgraph.h",
       "tree-flow.h", "reload.h", "cpp-id-data.h", "tree-chrec.h",
       "cfglayout.h", "except.h", "output.h", "gimple.h", "cfgloop.h",
-      "target.h", NULL
+      "target.h", "ipa-prop.h", NULL
     };
     const char *const *ifp;
     outf_p gtype_desc_c;
@@ -1714,15 +1717,14 @@ get_output_file_with_visibility (const char *input_file)
 
   /* In plugin mode, return NULL unless the input_file is one of the
      plugin_files.  */
-  if (plugin_files && nb_plugin_files > 0) 
-    { 
-      int ix= -1;
+  if (plugin_files)
+    {
       size_t i;
-      for (i = 0; i < nb_plugin_files && ix < 0; i++)
-      if (strcmp (input_file, plugin_files[i]) == 0) 
-	ix = i;
-      if (ix < 0) 
-	return NULL;
+      for (i = 0; i < nb_plugin_files; i++)
+	if (strcmp (input_file, plugin_files[i]) == 0)
+	  return plugin_output;
+
+      return NULL;
     }
 
   /* Determine the output file name.  */
@@ -1906,10 +1908,10 @@ static void finish_root_table (struct flist *flp, const char *pfx,
 			       const char *tname, const char *lastname,
 			       const char *name);
 static void write_root (outf_p , pair_p, type_p, const char *, int,
-			struct fileloc *, const char *);
+			struct fileloc *, const char *, bool);
 static void write_array (outf_p f, pair_p v,
 			 const struct write_types_data *wtd);
-static void write_roots (pair_p);
+static void write_roots (pair_p, bool);
 
 /* Parameters for walk_type.  */
 
@@ -2718,6 +2720,9 @@ write_types (outf_p output_header, type_p structures, type_p param_structs,
   type_p s;
 
   oprintf (output_header, "\n/* %s*/\n", wtd->comment);
+  /* We first emit the macros and the declarations. Functions' code is
+     emitted afterwards.  This is needed in plugin mode.  */
+  oprintf (output_header, "/* macros and declarations */\n");
   for (s = structures; s; s = s->next)
     if (s->gc_used == GC_POINTED_TO
 	|| s->gc_used == GC_MAYBE_POINTED_TO)
@@ -2766,21 +2771,11 @@ write_types (outf_p output_header, type_p structures, type_p param_structs,
 		     s->u.s.tag);
 	    continue;
 	  }
-
-	if (s->kind == TYPE_LANG_STRUCT)
-	  {
-	    type_p ss;
-	    for (ss = s->u.s.lang_struct; ss; ss = ss->next)
-	      write_func_for_structure (s, ss, NULL, wtd);
-	  }
-	else
-	  write_func_for_structure (s, s, NULL, wtd);
       }
 
   for (s = param_structs; s; s = s->next)
     if (s->gc_used == GC_POINTED_TO)
       {
-	type_p * param = s->u.param_struct.param;
 	type_p stru = s->u.param_struct.stru;
 
 	/* Declare the marker procedure.  */
@@ -2794,7 +2789,41 @@ write_types (outf_p output_header, type_p structures, type_p param_structs,
 		     s->u.s.tag);
 	    continue;
 	  }
+      }
+  
+  /* At last we emit the functions code.  */ 
+  oprintf (output_header, "\n/* functions code */\n");
+  for (s = structures; s; s = s->next)
+    if (s->gc_used == GC_POINTED_TO
+	|| s->gc_used == GC_MAYBE_POINTED_TO)
+      {
+	options_p opt;
 
+	if (s->gc_used == GC_MAYBE_POINTED_TO
+	    && s->u.s.line.file == NULL)
+	  continue;
+	for (opt = s->u.s.opt; opt; opt = opt->next)
+	  if (strcmp (opt->name, "ptr_alias") == 0)
+	    break;
+	if (opt)
+	  continue;
+	
+	if (s->kind == TYPE_LANG_STRUCT)
+	  {
+	    type_p ss;
+	    for (ss = s->u.s.lang_struct; ss; ss = ss->next)
+	      write_func_for_structure (s, ss, NULL, wtd);
+	  }
+	else
+	  write_func_for_structure (s, s, NULL, wtd);
+      }
+  for (s = param_structs; s; s = s->next)
+    if (s->gc_used == GC_POINTED_TO)
+      {
+	type_p *param = s->u.param_struct.param;
+	type_p stru = s->u.param_struct.stru;
+	if (stru->u.s.line.file == NULL)
+	  continue;
 	if (stru->kind == TYPE_LANG_STRUCT)
 	  {
 	    type_p ss;
@@ -3130,7 +3159,7 @@ finish_root_table (struct flist *flp, const char *pfx, const char *lastname,
 
 static void
 write_root (outf_p f, pair_p v, type_p type, const char *name, int has_length,
-	    struct fileloc *line, const char *if_marked)
+	    struct fileloc *line, const char *if_marked, bool emit_pch)
 {
   switch (type->kind)
     {
@@ -3186,7 +3215,7 @@ write_root (outf_p f, pair_p v, type_p type, const char *name, int has_length,
 		    newname = xasprintf ("%s.%s.%s",
 					 name, fld->name, validf->name);
 		    write_root (f, v, validf->type, newname, 0, line,
-				if_marked);
+				if_marked, emit_pch);
 		    free (newname);
 		  }
 	      }
@@ -3198,7 +3227,8 @@ write_root (outf_p f, pair_p v, type_p type, const char *name, int has_length,
 	      {
 		char *newname;
 		newname = xasprintf ("%s.%s", name, fld->name);
-		write_root (f, v, fld->type, newname, 0, line, if_marked);
+		write_root (f, v, fld->type, newname, 0, line, if_marked,
+			    emit_pch);
 		free (newname);
 	      }
 	  }
@@ -3209,7 +3239,8 @@ write_root (outf_p f, pair_p v, type_p type, const char *name, int has_length,
       {
 	char *newname;
 	newname = xasprintf ("%s[0]", name);
-	write_root (f, v, type->u.a.p, newname, has_length, line, if_marked);
+	write_root (f, v, type->u.a.p, newname, has_length, line, if_marked,
+		    emit_pch);
 	free (newname);
       }
       break;
@@ -3238,20 +3269,31 @@ write_root (outf_p f, pair_p v, type_p type, const char *name, int has_length,
 	if (! has_length && UNION_OR_STRUCT_P (tp))
 	  {
 	    oprintf (f, "    &gt_ggc_mx_%s,\n", tp->u.s.tag);
-	    oprintf (f, "    &gt_pch_nx_%s", tp->u.s.tag);
+	    if (emit_pch)
+	      oprintf (f, "    &gt_pch_nx_%s", tp->u.s.tag);
+	    else
+	      oprintf (f, "    NULL");
 	  }
 	else if (! has_length && tp->kind == TYPE_PARAM_STRUCT)
 	  {
 	    oprintf (f, "    &gt_ggc_m_");
 	    output_mangled_typename (f, tp);
-	    oprintf (f, ",\n    &gt_pch_n_");
-	    output_mangled_typename (f, tp);
+	    if (emit_pch)
+	      {
+		oprintf (f, ",\n    &gt_pch_n_");
+		output_mangled_typename (f, tp);
+	      }
+	    else
+	      oprintf (f, ",\n    NULL");
 	  }
 	else if (has_length
 		 && (tp->kind == TYPE_POINTER || UNION_OR_STRUCT_P (tp)))
 	  {
 	    oprintf (f, "    &gt_ggc_ma_%s,\n", name);
-	    oprintf (f, "    &gt_pch_na_%s", name);
+	    if (emit_pch)
+	      oprintf (f, "    &gt_pch_na_%s", name);
+	    else
+	      oprintf (f, "    NULL");
 	  }
 	else
 	  {
@@ -3340,7 +3382,7 @@ write_array (outf_p f, pair_p v, const struct write_types_data *wtd)
 /* Output a table describing the locations and types of VARIABLES.  */
 
 static void
-write_roots (pair_p variables)
+write_roots (pair_p variables, bool emit_pch)
 {
   pair_p v;
   struct flist *flp = NULL;
@@ -3428,7 +3470,7 @@ write_roots (pair_p variables)
 	  oprintf (f, "[] = {\n");
 	}
 
-      write_root (f, v, v->type, v->name, length_p, &v->line, NULL);
+      write_root (f, v, v->type, v->name, length_p, &v->line, NULL, emit_pch);
     }
 
   finish_root_table (flp, "ggc_r", "LAST_GGC_ROOT_TAB", "ggc_root_tab",
@@ -3507,11 +3549,14 @@ write_roots (pair_p variables)
 	}
 
       write_root (f, v, v->type->u.p->u.param_struct.param[0],
-		     v->name, length_p, &v->line, if_marked);
+		  v->name, length_p, &v->line, if_marked, emit_pch);
     }
 
   finish_root_table (flp, "ggc_rc", "LAST_GGC_CACHE_TAB", "ggc_cache_tab",
 		     "gt_ggc_cache_rtab");
+
+  if (!emit_pch)
+    return;
 
   for (v = variables; v; v = v->next)
     {
@@ -3542,7 +3587,7 @@ write_roots (pair_p variables)
 	  oprintf (f, "[] = {\n");
 	}
 
-      write_root (f, v, v->type, v->name, length_p, &v->line, NULL);
+      write_root (f, v, v->type, v->name, length_p, &v->line, NULL, emit_pch);
     }
 
   finish_root_table (flp, "pch_rc", "LAST_GGC_ROOT_TAB", "ggc_root_tab",
@@ -3651,20 +3696,24 @@ main (int argc, char **argv)
   size_t i;
   static struct fileloc pos = { this_file, 0 };
   char* inputlist = 0;
+  outf_p output_header;
+  char* plugin_output_filename = NULL;
   /* fatal uses this */
   progname = "gengtype";
 
-  if (argc >= 5 && !strcmp (argv[1], "-p")) 
+  if (argc >= 6 && !strcmp (argv[1], "-P"))
     {
-      srcdir = argv[2];
-      inputlist = argv[3];
-      nb_plugin_files = argc-4;
+      plugin_output_filename = argv[2];
+      plugin_output = create_file ("GCC", plugin_output_filename);
+      srcdir = argv[3];
+      inputlist = argv[4];
+      nb_plugin_files = argc - 5;
       plugin_files = XCNEWVEC (char *, nb_plugin_files);
       for (i = 0; i < nb_plugin_files; i++)
       {
         /* Place an all zero lang_bitmap before the plugin file
 	   name.  */
-        char *name = argv[i + 4];
+        char *name = argv[i + 5];
         int len = strlen(name) + 1 + sizeof (lang_bitmap);
         plugin_files[i] = XCNEWVEC (char, len) + sizeof (lang_bitmap);
         strcpy (plugin_files[i], name);
@@ -3676,7 +3725,8 @@ main (int argc, char **argv)
       inputlist = argv[2];
     } 
   else
-    fatal ("usage: gengtype [-p] srcdir input-list [file1 file2 ... fileN]");
+    fatal ("usage: gengtype [-P pluginout.h] srcdir input-list "
+           "[file1 file2 ... fileN]");
 
   srcdir_len = strlen (srcdir);
 
@@ -3712,10 +3762,14 @@ main (int argc, char **argv)
 
   open_base_files ();
   write_enum_defn (structures, param_structs);
-  write_types (header_file, structures, param_structs, &ggc_wtd);
-  write_types (header_file, structures, param_structs, &pch_wtd);
-  write_local (header_file, structures, param_structs);
-  write_roots (variables);
+  output_header = plugin_output ? plugin_output : header_file;
+  write_types (output_header, structures, param_structs, &ggc_wtd);
+  if (plugin_files == NULL)
+    {
+      write_types (header_file, structures, param_structs, &pch_wtd);
+      write_local (header_file, structures, param_structs);
+    }
+  write_roots (variables, plugin_files == NULL);
   write_rtx_next ();
   close_output_files ();
 

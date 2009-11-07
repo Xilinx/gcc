@@ -1632,6 +1632,7 @@ copy_bb (copy_body_data *id, basic_block bb, int frequency_scale,
 		  edge = cgraph_edge (id->src_node, orig_stmt);
 		  if (edge)
 		    edge = cgraph_clone_edge (edge, id->dst_node, stmt,
+					      gimple_uid (stmt),
 					      REG_BR_PROB_BASE, 1,
 					      edge->frequency, true);
 		  break;
@@ -3082,6 +3083,7 @@ estimate_operator_cost (enum tree_code code, eni_weights *weights,
     case MINUS_EXPR:
     case MULT_EXPR:
 
+    case ADDR_SPACE_CONVERT_EXPR:
     case FIXED_CONVERT_EXPR:
     case FIX_TRUNC_EXPR:
 
@@ -3345,7 +3347,7 @@ estimate_num_insns (gimple stmt, eni_weights *weights)
       return 0;
 
     case GIMPLE_ASM:
-      return 1;
+      return asm_str_count (gimple_asm_string (stmt));
 
     case GIMPLE_RESX:
       /* This is either going to be an external function call with one
@@ -3873,7 +3875,48 @@ fold_marked_statements (int first, struct pointer_set_t *statements)
 	      gimple old_stmt = gsi_stmt (gsi);
 	      tree old_decl = is_gimple_call (old_stmt) ? gimple_call_fndecl (old_stmt) : 0;
 
-	      if (fold_stmt (&gsi))
+	      if (old_decl && DECL_BUILT_IN (old_decl))
+		{
+		  /* Folding builtins can create multiple instructions,
+		     we need to look at all of them.  */
+		  gimple_stmt_iterator i2 = gsi;
+		  gsi_prev (&i2);
+		  if (fold_stmt (&gsi))
+		    {
+		      gimple new_stmt;
+		      if (gsi_end_p (i2))
+			i2 = gsi_start_bb (BASIC_BLOCK (first));
+		      else
+			gsi_next (&i2);
+		      while (1)
+			{
+			  new_stmt = gsi_stmt (i2);
+			  update_stmt (new_stmt);
+			  cgraph_update_edges_for_call_stmt (old_stmt, old_decl,
+							     new_stmt);
+
+			  if (new_stmt == gsi_stmt (gsi))
+			    {
+			      /* It is okay to check only for the very last
+				 of these statements.  If it is a throwing
+				 statement nothing will change.  If it isn't
+				 this can remove EH edges.  If that weren't
+				 correct then because some intermediate stmts
+				 throw, but not the last one.  That would mean
+				 we'd have to split the block, which we can't
+				 here and we'd loose anyway.  And as builtins
+				 probably never throw, this all
+				 is mood anyway.  */
+			      if (maybe_clean_or_replace_eh_stmt (old_stmt,
+								  new_stmt))
+				gimple_purge_dead_eh_edges (BASIC_BLOCK (first));
+			      break;
+			    }
+			  gsi_next (&i2);
+			}
+		    }
+		}
+	      else if (fold_stmt (&gsi))
 		{
 		  /* Re-read the statement from GSI as fold_stmt() may
 		     have changed it.  */
@@ -3882,7 +3925,8 @@ fold_marked_statements (int first, struct pointer_set_t *statements)
 
 		  if (is_gimple_call (old_stmt)
 		      || is_gimple_call (new_stmt))
-		    cgraph_update_edges_for_call_stmt (old_stmt, old_decl, new_stmt);
+		    cgraph_update_edges_for_call_stmt (old_stmt, old_decl,
+						       new_stmt);
 
 		  if (maybe_clean_or_replace_eh_stmt (old_stmt, new_stmt))
 		    gimple_purge_dead_eh_edges (BASIC_BLOCK (first));
@@ -5077,13 +5121,16 @@ tree_can_inline_p (struct cgraph_edge *e)
     {
       e->inline_failed = CIF_TARGET_OPTION_MISMATCH;
       gimple_call_set_cannot_inline (e->call_stmt, true);
+      e->call_stmt_cannot_inline_p = true;
       return false;
     }
 
-  if (!gimple_check_call_args (e->call_stmt))
+  if (e->call_stmt
+      && !gimple_check_call_args (e->call_stmt))
     {
       e->inline_failed = CIF_MISMATCHED_ARGUMENTS;
       gimple_call_set_cannot_inline (e->call_stmt, true);
+      e->call_stmt_cannot_inline_p = true;
       return false;
     }
 

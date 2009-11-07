@@ -346,6 +346,7 @@ const struct gcc_debug_hooks dbx_debug_hooks =
 {
   dbxout_init,
   dbxout_finish,
+  debug_nothing_void,
   debug_nothing_int_charstar,
   debug_nothing_int_charstar,
   dbxout_start_source_file,
@@ -373,6 +374,10 @@ const struct gcc_debug_hooks dbx_debug_hooks =
   dbxout_handle_pch,		         /* handle_pch */
   debug_nothing_rtx,		         /* var_location */
   debug_nothing_void,                    /* switch_text_section */
+  debug_nothing_tree,		         /* direct_call */
+  debug_nothing_tree_int,		 /* virtual_call_token */
+  debug_nothing_rtx_rtx,	         /* copy_call_info */
+  debug_nothing_uid,		         /* virtual_call */
   debug_nothing_tree_tree,		 /* set_name */
   0                                      /* start_end_main_source_file */
 };
@@ -383,6 +388,7 @@ const struct gcc_debug_hooks xcoff_debug_hooks =
 {
   dbxout_init,
   dbxout_finish,
+  debug_nothing_void,
   debug_nothing_int_charstar,
   debug_nothing_int_charstar,
   dbxout_start_source_file,
@@ -406,6 +412,10 @@ const struct gcc_debug_hooks xcoff_debug_hooks =
   dbxout_handle_pch,		         /* handle_pch */
   debug_nothing_rtx,		         /* var_location */
   debug_nothing_void,                    /* switch_text_section */
+  debug_nothing_tree,		         /* direct_call */
+  debug_nothing_tree_int,		 /* virtual_call_token */
+  debug_nothing_rtx_rtx,	         /* copy_call_info */
+  debug_nothing_uid,		         /* virtual_call */
   debug_nothing_tree_tree,	         /* set_name */
   0                                      /* start_end_main_source_file */
 };
@@ -3181,7 +3191,7 @@ dbxout_common_check (tree decl, int *value)
   rtx sym_addr;
   const char *name = NULL;
   
-  /* If the decl isn't a VAR_DECL, or if it isn't public or static, or if
+  /* If the decl isn't a VAR_DECL, or if it isn't static, or if
      it does not have a value (the offset into the common area), or if it
      is thread local (as opposed to global) then it isn't common, and shouldn't
      be handled as such.
@@ -3190,7 +3200,6 @@ dbxout_common_check (tree decl, int *value)
      for thread-local symbols.  Can be handled via same mechanism as used
      in dwarf2out.c.  */
   if (TREE_CODE (decl) != VAR_DECL
-      || !TREE_PUBLIC(decl)
       || !TREE_STATIC(decl)
       || !DECL_HAS_VALUE_EXPR_P(decl)
       || DECL_THREAD_LOCAL_P (decl)

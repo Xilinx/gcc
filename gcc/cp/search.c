@@ -214,9 +214,12 @@ lookup_base (tree t, tree base, base_access access, base_kind *kind_ptr)
       t_binfo = TYPE_BINFO (t);
     }
 
-  base = complete_type (TYPE_MAIN_VARIANT (base));
+  base = TYPE_MAIN_VARIANT (base);
 
-  if (t_binfo)
+  /* If BASE is incomplete, it can't be a base of T--and instantiating it
+     might cause an error.  */
+  if (t_binfo && CLASS_TYPE_P (base)
+      && (COMPLETE_TYPE_P (base) || TYPE_BEING_DEFINED (base)))
     {
       struct lookup_base_data_s data;
 
@@ -1380,6 +1383,8 @@ lookup_fnfields_1 (tree type, tree name)
 	    lazily_declare_fn (sfk_constructor, type);
 	  if (CLASSTYPE_LAZY_COPY_CTOR (type))
 	    lazily_declare_fn (sfk_copy_constructor, type);
+	  if (CLASSTYPE_LAZY_MOVE_CTOR (type))
+	    lazily_declare_fn (sfk_move_constructor, type);
 	}
       else if (name == ansi_assopname(NOP_EXPR)
 	       && CLASSTYPE_LAZY_ASSIGNMENT_OP (type))

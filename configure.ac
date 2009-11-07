@@ -260,6 +260,13 @@ if test x$with_gnu_as = xno ; then
   noconfigdirs="$noconfigdirs gas"
 fi
 
+use_included_zlib=
+# Make sure we don't let ZLIB be added if we didn't want it.
+if test x$with_system_zlib = xyes ; then
+  use_included_zlib=no
+  noconfigdirs="$noconfigdirs zlib"
+fi
+
 # some tools are so dependent upon X11 that if we're not building with X, 
 # it's not even worth trying to configure, much less build, that tool.
 
@@ -734,14 +741,16 @@ case "${target}" in
     # if the --with-newlib option has been given, because otherwise
     # 'target-newlib' will appear in skipdirs.
     ;;
-  i[[3456789]]86-*-mingw32*)
+  i[[3456789]]86-w64-mingw*)
+    noconfigdirs="$noconfigdirs expect target-libgloss target-newlib ${libgcj}"
+    ;;
+  i[[3456789]]86-*-mingw*)
     target_configdirs="$target_configdirs target-winsup"
     noconfigdirs="$noconfigdirs expect target-libgloss target-newlib ${libgcj}"
-    ;;    
+    ;;
   x86_64-*-mingw*)
-    target_configdirs="$target_configdirs target-winsup"
     noconfigdirs="$noconfigdirs expect target-libgloss target-newlib ${libgcj}"
-    ;;    
+    ;;
   *-*-cygwin*)
     target_configdirs="$target_configdirs target-libtermcap target-winsup"
     noconfigdirs="$noconfigdirs target-gperf target-libgloss"
@@ -751,7 +760,7 @@ case "${target}" in
     elif test -d "$srcdir/newlib"; then
       echo "Warning: winsup/cygwin is missing so newlib can't be built."
     fi
-    ;;    
+    ;;
   i[[3456789]]86-moss-msdos | i[[3456789]]86-*-moss* | \
   i[[3456789]]86-*-uwin* | i[[3456789]]86-*-interix* )
     ;;
@@ -1358,7 +1367,7 @@ if test -d ${srcdir}/gcc && test "x$have_gmp" = xno; then
     CFLAGS="$CFLAGS $mpcinc"
     AC_MSG_CHECKING([for the correct version of mpc.h])
     AC_TRY_COMPILE([#include <mpc.h>],[
-    #if MPC_VERSION < MPC_VERSION_NUM (0,6,0)
+    #if MPC_VERSION < MPC_VERSION_NUM (0,7,0)
     choke me
     #endif
     ], [AC_MSG_RESULT([yes]); have_mpc=maybe],
@@ -1404,6 +1413,7 @@ if test -d ${srcdir}/gcc && test "x$have_gmp" = xno; then
     mpc_proj (n, n, MPC_RNDNN);
     mpc_neg (n, n, MPC_RNDNN);
     mpc_sqr (n, n, MPC_RNDNN);
+    mpc_pow (n, n, n, MPC_RNDNN);
     mpc_clear (n);
     ], [AC_MSG_RESULT([yes]); have_mpc=yes],
        [AC_MSG_RESULT([no]); have_mpc=no; mpclibs= ; mpcinc= ])
@@ -1506,7 +1516,7 @@ pplinc=
 
 AC_ARG_WITH(ppl, [  --with-ppl=PATH         Specify prefix directory for the installed PPL package
                           Equivalent to --with-ppl-include=PATH/include
-                          plus --with-ppl-lib=PATH/lib],, with_ppl=no)
+                          plus --with-ppl-lib=PATH/lib],, with_ppl=yes)
 AC_ARG_WITH(ppl_include, [  --with-ppl-include=PATH Specify directory for installed PPL include files])
 AC_ARG_WITH(ppl_lib, [  --with-ppl-lib=PATH     Specify the directory for the installed PPL library])
 
@@ -1514,10 +1524,11 @@ case $with_ppl in
   no)
     ppllibs=
     ;;
+  yes)
+    ;;
   *)
     ppllibs="-L$with_ppl/lib -lppl_c -lppl -lgmpxx"
     pplinc="-I$with_ppl/include $pplinc"
-    LIBS="$ppllibs $LIBS"
     ;;
 esac
 if test "x$with_ppl_include" != x; then
@@ -1525,12 +1536,10 @@ if test "x$with_ppl_include" != x; then
 fi
 if test "x$with_ppl_lib" != x; then
   ppllibs="-L$with_ppl_lib -lppl_c -lppl -lgmpxx"
-  LIBS="$ppllibs $LIBS"
 fi
 if test "x$with_ppl$with_ppl_include$with_ppl_lib" = x && test -d ${srcdir}/ppl; then
   ppllibs='-L$$r/$(HOST_SUBDIR)/ppl/.libs -L$$r/$(HOST_SUBDIR)/ppl/_libs -lppl_c -lppl -lgmpxx '
   pplinc='-I$$r/$(HOST_SUBDIR)/ppl/include -I$$s/ppl/include '
-  LIBS="$ppllibs $LIBS"
 fi
 
 AC_ARG_ENABLE(ppl-version-check,
@@ -1538,7 +1547,7 @@ AC_ARG_ENABLE(ppl-version-check,
 ENABLE_PPL_CHECK=$enableval,
 ENABLE_PPL_CHECK=yes)
 
-if test "${ENABLE_PPL_CHECK}" = "yes"; then
+if test "x$with_ppl" != "xno" -a "${ENABLE_PPL_CHECK}" = "yes"; then
   saved_CFLAGS="$CFLAGS"
   CFLAGS="$CFLAGS $pplinc $gmpinc"
   AC_MSG_CHECKING([for version $ppl_major_version.$ppl_minor_version of PPL])
@@ -1546,7 +1555,7 @@ if test "${ENABLE_PPL_CHECK}" = "yes"; then
   #if PPL_VERSION_MAJOR != $ppl_major_version || PPL_VERSION_MINOR != $ppl_minor_version
   choke me
   #endif
-  ], [AC_MSG_RESULT([yes])], [AC_MSG_RESULT([no]); ppllibs= ; pplinc= ])
+  ], [AC_MSG_RESULT([yes])], [AC_MSG_RESULT([no]); ppllibs= ; pplinc= ; with_ppl=no ])
   CFLAGS="$saved_CFLAGS"
 fi
 
@@ -1561,19 +1570,24 @@ clooginc=" -DCLOOG_PPL_BACKEND "
 
 AC_ARG_WITH(cloog, [  --with-cloog=PATH       Specify prefix directory for the installed CLooG-PPL package
                           Equivalent to --with-cloog-include=PATH/include
-                          plus --with-cloog-lib=PATH/lib],, with_cloog=no)
+                          plus --with-cloog-lib=PATH/lib],, with_cloog=yes)
 AC_ARG_WITH(cloog_include, [  --with-cloog-include=PATH Specify directory for installed CLooG include files])
 AC_ARG_WITH(cloog_lib, [  --with-cloog-lib=PATH   Specify the directory for the installed CLooG library])
+
+if test "x$with_ppl" = "xno"; then
+  with_cloog=no
+fi
 
 case $with_cloog in 
   no)
     clooglibs=
     clooginc=
     ;;
+  yes)
+    ;;
   *)
     clooglibs="-L$with_cloog/lib -lcloog"
     clooginc="-I$with_cloog/include -DCLOOG_PPL_BACKEND "
-    LIBS="$clooglibs $LIBS"
     ;;
 esac
 if test "x$with_cloog_include" != x; then
@@ -1581,12 +1595,10 @@ if test "x$with_cloog_include" != x; then
 fi
 if test "x$with_cloog_lib" != x; then
   clooglibs="-L$with_cloog_lib -lcloog"
-  LIBS="$clooglibs $LIBS"
 fi
 if test "x$with_cloog$with_cloog_include$with_cloog_lib" = x && test -d ${srcdir}/cloog; then
   clooglibs='-L$$r/$(HOST_SUBDIR)/cloog/.libs -L$$r/$(HOST_SUBDIR)/cloog/_libs -lcloog '
   clooginc='-I$$r/$(HOST_SUBDIR)/cloog/include -I$$s/cloog/include -DCLOOG_PPL_BACKEND '
-  LIBS="$clooglibs $LIBS"
 fi
 
 AC_ARG_ENABLE(cloog-version-check,
@@ -1594,7 +1606,7 @@ AC_ARG_ENABLE(cloog-version-check,
 ENABLE_CLOOG_CHECK=$enableval,
 ENABLE_CLOOG_CHECK=yes)
 
-if test "${ENABLE_CLOOG_CHECK}" = "yes"; then
+if test "x$with_cloog" != "xno" -a "${ENABLE_CLOOG_CHECK}" = "yes"; then
   saved_CFLAGS="$CFLAGS"
   CFLAGS="$CFLAGS $clooginc $gmpinc $pplinc"
   AC_MSG_CHECKING([for correct version of CLooG])
@@ -1609,6 +1621,127 @@ fi
 # Flags needed for CLOOG
 AC_SUBST(clooglibs)
 AC_SUBST(clooginc)
+
+# Check for LTO support.
+AC_ARG_ENABLE(lto,
+[  --enable-lto            enable link time optimization support],
+enable_lto=$enableval,
+enable_lto=yes; default_enable_lto=yes)
+
+if test x"$enable_lto" = x"yes" ; then
+  # Make sure that libelf.h and gelf.h are available.
+  AC_ARG_WITH(libelf, [  --with-libelf=PATH       Specify prefix directory for the installed libelf package
+                          Equivalent to --with-libelf-include=PATH/include
+                          plus --with-libelf-lib=PATH/lib])
+
+  AC_ARG_WITH(libelf_include, [  --with-libelf-include=PATH Specify directory for installed libelf include files])
+
+  AC_ARG_WITH(libelf_lib, [  --with-libelf-lib=PATH   Specify the directory for the installed libelf library])
+
+  saved_CFLAGS="$CFLAGS"
+  saved_CPPFLAGS="$CPPFLAGS"
+  saved_LIBS="$LIBS"
+
+  case $with_libelf in 
+    "")
+      libelflibs="-lelf"
+      libelfinc="-I/usr/include/libelf"
+      ;;
+    *)
+      libelflibs="-L$with_libelf/lib -lelf"
+      libelfinc="-I$with_libelf/include -I$with_libelf/include/libelf"
+      LIBS="$libelflibs $LIBS"
+      ;;
+  esac
+
+  if test "x$with_libelf_include" != x; then
+    libelfinc="-I$with_libelf_include"
+  fi
+
+  if test "x$with_libelf_lib" != x; then
+    libelflibs="-L$with_libelf_lib -lelf"
+    LIBS="$libelflibs $LIBS"
+  fi
+
+  if test "x$with_libelf$with_libelf_include$with_libelf_lib" = x \
+     && test -d ${srcdir}/libelf; then
+    libelflibs='-L$$r/$(HOST_SUBDIR)/libelf/.libs -L$$r/$(HOST_SUBDIR)/libelf/_libs -lelf '
+    libelfinc='-I$$r/$(HOST_SUBDIR)/libelf/include -I$$s/libelf/include'
+    LIBS="$libelflibs $LIBS"
+  fi
+
+  CFLAGS="$CFLAGS $libelfinc"
+  CPPFLAGS="$CPPFLAGS $libelfinc"
+  LIBS="$LIBS $libelflibs"
+
+  AC_CHECK_HEADERS(libelf.h, [have_libelf_h=yes])
+  AC_CHECK_HEADERS(gelf.h, [have_gelf_h=yes])
+
+  AC_CHECK_HEADERS(libelf/libelf.h, [have_libelf_libelf_h=yes])
+  AC_CHECK_HEADERS(libelf/gelf.h, [have_libelf_gelf_h=yes])
+
+  # If we couldn't find libelf.h and the user forced it, emit an error.
+  if test x"$have_libelf_h" != x"yes" \
+     && test x"$have_libelf_libelf_h" != x"yes" ; then
+    if test x"$default_enable_lto" != x"yes" ; then
+      AC_MSG_ERROR([LTO support requires libelf.h or libelf/libelf.h.])
+    else
+      enable_lto=no
+      libelflibs=
+      libelfinc=
+    fi
+  fi
+
+  # If we couldn't find gelf.h and the user forced it, emit an error.
+  if test x"$have_gelf_h" != x"yes" \
+     && test x"$have_libelf_gelf_h" != x"yes" ; then
+    if test x"$default_enable_lto" != x"yes" ; then
+      AC_MSG_ERROR([LTO support requires gelf.h or libelf/gelf.h.])
+    else
+      enable_lto=no
+      libelflibs=
+      libelfinc=
+    fi
+  fi
+
+  # Check that the detected libelf has the functions we need.  We cannot
+  # rely on just detecting the headers since they do not include 
+  # versioning information.  Add functions, if needed.
+  if test x"$enable_lto" = x"yes" ; then
+    AC_MSG_CHECKING([for the correct version of libelf])
+    AC_TRY_LINK(
+      [#include <libelf.h>],[
+      elf_errmsg (0);
+      elf_getscn (0, 0);
+      elf_nextscn (0, 0);
+      elf_strptr (0, 0, 0);
+      elf_getident (0, 0);
+      elf_getshdrstrndx (0, 0);
+      elf_begin (0, 0, 0);
+      elf_ndxscn (0);
+      elf_end (0);
+      ],
+      [AC_MSG_RESULT([yes]);],
+      [AC_MSG_RESULT([no]); enable_lto=no; libelflibs= ; libelfinc= ]
+    )
+
+    # If we couldn't enable LTO and the user forced it, emit an error.
+    if test x"$enable_lto" = x"no" \
+       && test x"$default_enable_lto" != x"yes" ; then
+      AC_MSG_ERROR([To enable LTO, GCC requires libelf v0.8.12+.
+Try the --with-libelf, --with-libelf-include and --with-libelf-lib options
+to specify its location.])
+    fi
+  fi
+
+  CFLAGS="$saved_CFLAGS"
+  CPPFLAGS="$saved_CPPFLAGS"
+  LIBS="$saved_LIBS"
+
+  # Flags needed for libelf.
+  AC_SUBST(libelflibs)
+  AC_SUBST(libelfinc)
+fi
 
 
 # By default, C is the only stage 1 language.
@@ -1678,6 +1811,21 @@ if test -d ${srcdir}/gcc; then
   done
 
   new_enable_languages=,c,
+
+  # If LTO is enabled, add the LTO front end.
+  extra_host_libiberty_configure_flags=
+  if test "$enable_lto" = "yes" ; then
+    case ,${enable_languages}, in
+      *,lto,*) ;;
+      *) enable_languages="${enable_languages},lto" ;;
+    esac
+    if test "${ENABLE_GOLD}" = "yes" ; then
+      configdirs="$configdirs lto-plugin"
+      extra_host_libiberty_configure_flags=--enable-shared
+    fi
+  fi
+  AC_SUBST(extra_host_libiberty_configure_flags)
+
   missing_languages=`echo ",$enable_languages," | sed -e s/,all,/,/ -e s/,c,/,/ `
   potential_languages=,c,
 
@@ -2087,7 +2235,7 @@ if test x"${with_libs}" != x && test x"${with_libs}" != xno ; then
   fi
 fi
 
-# Set with_gnu_as and with_gnu_ld as appropriate.
+# Set with_gnu_as, with_gnu_ld, and with_system_zlib as appropriate.
 #
 # This is done by determining whether or not the appropriate directory
 # is available, and by checking whether or not specific configurations
@@ -2098,7 +2246,9 @@ fi
 #
 # If the default for a toolchain is to use GNU as and ld, and you don't 
 # want to do that, then you should use the --without-gnu-as and
-# --without-gnu-ld options for the configure script.
+# --without-gnu-ld options for the configure script.  Similarly, if
+# the default is to use the included zlib and you don't want to do that,
+# you should use the --with-system-zlib option for the configure script.
 
 if test x${use_gnu_as} = x &&
    echo " ${configdirs} " | grep " gas " > /dev/null 2>&1 ; then
@@ -2110,6 +2260,14 @@ if test x${use_gnu_ld} = x &&
    echo " ${configdirs} " | egrep " (go)?ld " > /dev/null 2>&1 ; then
   with_gnu_ld=yes
   extra_host_args="$extra_host_args --with-gnu-ld"
+fi
+
+if test x${use_included_zlib} = x &&
+   echo " ${configdirs} " | grep " zlib " > /dev/null 2>&1 ; then
+  :
+else
+  with_system_zlib=yes
+  extra_host_args="$extra_host_args --with-system-zlib"
 fi
 
 # If using newlib, add --with-newlib to the extra_host_args so that gcc/configure
@@ -2801,8 +2959,9 @@ case " $target_configdirs " in
   case " $target_configargs " in
   *" --with-newlib "*)
    case "$target" in
-   *-cygwin*)
-     FLAGS_FOR_TARGET=$FLAGS_FOR_TARGET' -L$$r/$(TARGET_SUBDIR)/winsup -L$$r/$(TARGET_SUBDIR)/winsup/cygwin -L$$r/$(TARGET_SUBDIR)/winsup/w32api/lib -isystem $$s/winsup/include -isystem $$s/winsup/cygwin/include -isystem $$s/winsup/w32api/include' ;;
+    *-cygwin*)
+      FLAGS_FOR_TARGET=$FLAGS_FOR_TARGET' -L$$r/$(TARGET_SUBDIR)/winsup -L$$r/$(TARGET_SUBDIR)/winsup/cygwin -L$$r/$(TARGET_SUBDIR)/winsup/w32api/lib -isystem $$s/winsup/include -isystem $$s/winsup/cygwin/include -isystem $$s/winsup/w32api/include'
+      ;;
    esac
 
    # If we're not building GCC, don't discard standard headers.
@@ -2858,10 +3017,17 @@ case " $target_configdirs " in
   esac
   ;;
 esac
+
 case "$target" in
-*-mingw*)
-  # Can't be handled as Cygwin above since Mingw does not use newlib.
-  FLAGS_FOR_TARGET=$FLAGS_FOR_TARGET' -L$$r/$(TARGET_SUBDIR)/winsup/mingw -L$$r/$(TARGET_SUBDIR)/winsup/w32api/lib -isystem $$s/winsup/mingw/include -isystem $$s/winsup/w32api/include' ;;
+  x86_64-*mingw* | *-w64-mingw*)
+  # MinGW-w64 does not use newlib, nor does it use winsup. It may,
+  # however, use a symlink named 'mingw' in ${prefix} .
+    FLAGS_FOR_TARGET=$FLAGS_FOR_TARGET' -L${prefix}/${target}/lib -L${prefix}/mingw/lib -isystem ${prefix}/${target}/include -isystem ${prefix}/mingw/include'
+    ;;
+  *-mingw*)
+  # MinGW can't be handled as Cygwin above since it does not use newlib.
+    FLAGS_FOR_TARGET=$FLAGS_FOR_TARGET' -L$$r/$(TARGET_SUBDIR)/winsup/mingw -L$$r/$(TARGET_SUBDIR)/winsup/w32api/lib -isystem $$s/winsup/mingw/include -isystem $$s/winsup/w32api/include'
+    ;;
 esac
 
 # Allow the user to override the flags for

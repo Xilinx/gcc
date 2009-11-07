@@ -2991,6 +2991,7 @@ package body Sem_Warn is
             Warn_On_Non_Local_Exception         := True;
             Warn_On_Object_Renames_Function     := True;
             Warn_On_Obsolescent_Feature         := True;
+            Warn_On_Overlap                     := True;
             Warn_On_Questionable_Missing_Parens := True;
             Warn_On_Redundant_Constructs        := True;
             Warn_On_Unchecked_Conversion        := True;
@@ -3000,6 +3001,12 @@ package body Sem_Warn is
 
          when 'g' =>
             Set_GNAT_Mode_Warnings;
+
+         when 'i' =>
+            Warn_On_Overlap                     := True;
+
+         when 'I' =>
+            Warn_On_Overlap                     := False;
 
          when 'm' =>
             Warn_On_Suspicious_Modulus_Value    := True;
@@ -3139,6 +3146,7 @@ package body Sem_Warn is
             Warn_On_No_Value_Assigned           := False;
             Warn_On_Non_Local_Exception         := False;
             Warn_On_Obsolescent_Feature         := False;
+            Warn_On_Overlap                     := False;
             Warn_On_All_Unread_Out_Parameters   := False;
             Warn_On_Parameter_Order             := False;
             Warn_On_Questionable_Missing_Parens := False;
@@ -3534,6 +3542,136 @@ package body Sem_Warn is
         (Warn_On_Modified_Unread and then Is_Only_Out_Parameter (E))
            or else Warn_On_All_Unread_Out_Parameters;
    end Warn_On_Modified_As_Out_Parameter;
+
+   ---------------------------------
+   -- Warn_On_Overlapping_Actuals --
+   ---------------------------------
+
+   procedure Warn_On_Overlapping_Actuals (Subp : Entity_Id; N : Node_Id) is
+      Act1, Act2   : Node_Id;
+      Form1, Form2 : Entity_Id;
+
+   begin
+      if not Warn_On_Overlap then
+         return;
+      end if;
+
+      --  Exclude calls rewritten as enumeration literals
+
+      if not Nkind_In (N, N_Function_Call, N_Procedure_Call_Statement) then
+         return;
+      end if;
+
+      --  Exclude calls to library subprograms. Container operations specify
+      --  safe behavior when source and target coincide.
+
+      if Is_Predefined_File_Name
+           (Unit_File_Name (Get_Source_Unit (Sloc (Subp))))
+      then
+         return;
+      end if;
+
+      Form1 := First_Formal (Subp);
+      Act1  := First_Actual (N);
+      while Present (Form1) and then Present (Act1) loop
+         if Ekind (Form1) = E_In_Out_Parameter then
+            Form2 := First_Formal (Subp);
+            Act2  := First_Actual (N);
+            while Present (Form2) and then Present (Act2) loop
+               if Form1 /= Form2
+                 and then Ekind (Form2) /= E_Out_Parameter
+                 and then
+                   (Denotes_Same_Object (Act1, Act2)
+                      or else
+                    Denotes_Same_Prefix (Act1, Act2))
+               then
+                  --  Exclude generic types and guard against previous errors.
+
+                  if Error_Posted (N)
+                    or else No (Etype (Act1))
+                    or else No (Etype (Act2))
+                  then
+                     null;
+
+                  elsif Is_Generic_Type (Etype (Act1))
+                          or else
+                        Is_Generic_Type (Etype (Act2))
+                  then
+                     null;
+
+                     --  If the actual is a function call in prefix notation,
+                     --  there is no real overlap.
+
+                  elsif Nkind (Act2) = N_Function_Call then
+                     null;
+
+                  --  If either type is elementary the aliasing is harmless.
+
+                  elsif Is_Elementary_Type (Underlying_Type (Etype (Form1)))
+                          or else
+                        Is_Elementary_Type (Underlying_Type (Etype (Form2)))
+                  then
+                     null;
+
+                  else
+                     declare
+                        Act  : Node_Id;
+                        Form : Entity_Id;
+
+                     begin
+                        --  Find matching actual
+
+                        Act  := First_Actual (N);
+                        Form := First_Formal (Subp);
+                        while Act /= Act2 loop
+                           Next_Formal (Form);
+                           Next_Actual (Act);
+                        end loop;
+
+                        --  If the call was written in prefix notation, and
+                        --  thus its prefix before rewriting was a selected
+                        --  component, count only visible actuals in the call.
+
+                        if Is_Entity_Name (First_Actual (N))
+                          and then Nkind (Original_Node (N)) = Nkind (N)
+                          and then Nkind (Name (Original_Node (N))) =
+                                                         N_Selected_Component
+                          and then
+                            Is_Entity_Name (Prefix (Name (Original_Node (N))))
+                          and then
+                            Entity (Prefix (Name (Original_Node (N)))) =
+                              Entity (First_Actual (N))
+                        then
+                           if Act1 = First_Actual (N) then
+                              Error_Msg_FE
+                                ("`IN OUT` prefix overlaps with actual for&?",
+                                 Act1, Form);
+                           else
+                              Error_Msg_FE
+                                ("writable actual overlaps with actual for&?",
+                                 Act1, Form);
+                           end if;
+
+                        else
+                           Error_Msg_FE
+                             ("writable actual overlaps with actual for&?",
+                              Act1, Form);
+                        end if;
+                     end;
+                  end if;
+
+                  return;
+               end if;
+
+               Next_Formal (Form2);
+               Next_Actual (Act2);
+            end loop;
+         end if;
+
+         Next_Formal (Form1);
+         Next_Actual (Act1);
+      end loop;
+   end Warn_On_Overlapping_Actuals;
 
    ------------------------------
    -- Warn_On_Suspicious_Index --

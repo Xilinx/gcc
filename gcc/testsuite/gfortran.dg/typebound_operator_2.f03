@@ -1,6 +1,4 @@
 ! { dg-do compile }
-! { dg-options "-w" }
-! FIXME: Remove -w once CLASS is fully supported.
 
 ! Type-bound procedures
 ! Checks for correct errors with invalid OPERATOR/ASSIGNMENT usage.
@@ -52,7 +50,6 @@ CONTAINS
   LOGICAL FUNCTION func (me, b) ! { dg-error "must be a SUBROUTINE" }
     CLASS(t), INTENT(OUT) :: me
     CLASS(t), INTENT(IN) :: b
-    me = t ()
     func = .TRUE.
   END FUNCTION func
 

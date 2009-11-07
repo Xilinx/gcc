@@ -1161,6 +1161,10 @@ structural_comptypes (tree t1, tree t2, int strict)
     case DECLTYPE_TYPE:
       if (DECLTYPE_TYPE_ID_EXPR_OR_MEMBER_ACCESS_P (t1)
           != DECLTYPE_TYPE_ID_EXPR_OR_MEMBER_ACCESS_P (t2)
+	  || (DECLTYPE_FOR_LAMBDA_CAPTURE (t1)
+	      != DECLTYPE_FOR_LAMBDA_CAPTURE (t2))
+	  || (DECLTYPE_FOR_LAMBDA_RETURN (t1)
+	      != DECLTYPE_FOR_LAMBDA_RETURN (t2))
           || !cp_tree_equal (DECLTYPE_TYPE_EXPR (t1), 
                              DECLTYPE_TYPE_EXPR (t2)))
         return false;
@@ -1609,6 +1613,7 @@ decay_conversion (tree exp)
   if (type == error_mark_node)
     return error_mark_node;
 
+  exp = resolve_nondeduced_context (exp);
   if (type_unknown_p (exp))
     {
       cxx_incomplete_type_error (exp, TREE_TYPE (exp));
@@ -1686,7 +1691,7 @@ decay_conversion (tree exp)
      Non-class rvalues always have cv-unqualified types.  */
   type = TREE_TYPE (exp);
   if (!CLASS_TYPE_P (type) && cp_type_quals (type))
-    exp = build_nop (TYPE_MAIN_VARIANT (type), exp);
+    exp = build_nop (cv_unqualified (type), exp);
 
   return exp;
 }
@@ -3240,6 +3245,7 @@ build_x_binary_op (enum tree_code code, tree arg1, enum tree_code arg1_code,
      misinterpret.  But don't warn about obj << x + y, since that is a
      common idiom for I/O.  */
   if (warn_parentheses
+      && (complain & tf_warning)
       && !processing_template_decl
       && !error_operand_p (arg1)
       && !error_operand_p (arg2)
@@ -5594,12 +5600,17 @@ build_reinterpret_cast_1 (tree type, tree expr, bool c_cast_p,
 		 intype, type);
 
       expr = cp_build_unary_op (ADDR_EXPR, expr, 0, complain);
+
+      if (warn_strict_aliasing > 2)
+	strict_aliasing_warning (TREE_TYPE (expr), type, expr);
+
       if (expr != error_mark_node)
 	expr = build_reinterpret_cast_1
 	  (build_pointer_type (TREE_TYPE (type)), expr, c_cast_p,
 	   valid_p, complain);
       if (expr != error_mark_node)
-	expr = cp_build_indirect_ref (expr, 0, complain);
+	/* cp_build_indirect_ref isn't right for rvalue refs.  */
+	expr = convert_from_reference (fold_convert (type, expr));
       return expr;
     }
 
@@ -6869,7 +6880,7 @@ convert_for_initialization (tree exp, tree type, tree rhs, int flags,
       if (fndecl)
 	savew = warningcount, savee = errorcount;
       rhs = initialize_reference (type, rhs, /*decl=*/NULL_TREE,
-				  /*cleanup=*/NULL);
+				  /*cleanup=*/NULL, complain);
       if (fndecl)
 	{
 	  if (warningcount > savew)
@@ -6888,6 +6899,11 @@ convert_for_initialization (tree exp, tree type, tree rhs, int flags,
   rhstype = non_reference (rhstype);
 
   type = complete_type (type);
+
+  if (DIRECT_INIT_EXPR_P (type, rhs))
+    /* Don't try to do copy-initialization if we already have
+       direct-initialization.  */
+    return rhs;
 
   if (MAYBE_CLASS_TYPE_P (type))
     return ocp_convert (type, rhs, CONV_IMPLICIT|CONV_FORCE_TEMP, flags);
@@ -6999,6 +7015,31 @@ check_return_expr (tree retval, bool *no_warning)
 	/* You can't return a value from a constructor.  */
 	error ("returning a value from a constructor");
       return NULL_TREE;
+    }
+
+  /* As an extension, deduce lambda return type from a return statement
+     anywhere in the body.  */
+  if (retval && LAMBDA_FUNCTION_P (current_function_decl))
+    {
+      tree lambda = CLASSTYPE_LAMBDA_EXPR (current_class_type);
+      if (LAMBDA_EXPR_DEDUCE_RETURN_TYPE_P (lambda))
+	{
+	  tree type = lambda_return_type (retval);
+	  tree oldtype = LAMBDA_EXPR_RETURN_TYPE (lambda);
+
+	  if (VOID_TYPE_P (type))
+	    { /* Nothing.  */ }
+	  else if (oldtype == NULL_TREE)
+	    {
+	      pedwarn (input_location, OPT_pedantic, "lambda return type "
+		       "can only be deduced when the return statement is "
+		       "the only statement in the function body");
+	      apply_lambda_return_type (lambda, type);
+	    }
+	  else if (!same_type_p (type, oldtype))
+	    error ("inconsistent types %qT and %qT deduced for "
+		   "lambda return type", type, oldtype);
+	}
     }
 
   if (processing_template_decl)

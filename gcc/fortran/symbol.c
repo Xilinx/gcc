@@ -2030,9 +2030,16 @@ gfc_st_label *
 gfc_get_st_label (int labelno)
 {
   gfc_st_label *lp;
+  gfc_namespace *ns;
+
+  /* Find the namespace of the scoping unit:
+     If we're in a BLOCK construct, jump to the parent namespace.  */
+  ns = gfc_current_ns;
+  while (ns->proc_name && ns->proc_name->attr.flavor == FL_LABEL)
+    ns = ns->parent;
 
   /* First see if the label is already in this namespace.  */
-  lp = gfc_current_ns->st_labels;
+  lp = ns->st_labels;
   while (lp)
     {
       if (lp->value == labelno)
@@ -2050,7 +2057,7 @@ gfc_get_st_label (int labelno)
   lp->defined = ST_LABEL_UNKNOWN;
   lp->referenced = ST_LABEL_UNKNOWN;
 
-  gfc_insert_bbt (&gfc_current_ns->st_labels, lp, compare_st_labels);
+  gfc_insert_bbt (&ns->st_labels, lp, compare_st_labels);
 
   return lp;
 }
@@ -2461,6 +2468,19 @@ ambiguous_symbol (const char *name, gfc_symtree *st)
 }
 
 
+/* If we're in a SELECT TYPE block, check if the variable 'st' matches any
+   selector on the stack. If yes, replace it by the corresponding temporary.  */
+
+static void
+select_type_insert_tmp (gfc_symtree **st)
+{
+  gfc_select_type_stack *stack = select_type_stack;
+  for (; stack; stack = stack->prev)
+    if ((*st)->n.sym == stack->selector)
+      *st = stack->tmp;
+}
+
+
 /* Search for a symtree starting in the current namespace, resorting to
    any parent namespaces if requested by a nonzero parent_flag.
    Returns nonzero if the name is ambiguous.  */
@@ -2479,6 +2499,8 @@ gfc_find_sym_tree (const char *name, gfc_namespace *ns, int parent_flag,
       st = gfc_find_symtree (ns->sym_root, name);
       if (st != NULL)
 	{
+	  select_type_insert_tmp (&st);
+
 	  *result = st;
 	  /* Ambiguous generic interfaces are permitted, as long
 	     as the specific interfaces are different.  */
@@ -2644,6 +2666,7 @@ gfc_get_ha_sym_tree (const char *name, gfc_symtree **result)
   int i;
 
   i = gfc_find_sym_tree (name, gfc_current_ns, 0, &st);
+
   if (st != NULL)
     {
       save_symbol_data (st->n.sym);
@@ -2725,7 +2748,7 @@ gfc_undo_symbols (void)
       if (p->gfc_new)
 	{
 	  /* Symbol was new.  */
-	  if (p->attr.in_common && p->common_block->head)
+	  if (p->attr.in_common && p->common_block && p->common_block->head)
 	    {
 	      /* If the symbol was added to any common block, it
 		 needs to be removed to stop the resolver looking
@@ -4534,6 +4557,34 @@ gfc_get_derived_super_type (gfc_symbol* derived)
 }
 
 
+/* Get the ultimate super-type of a given derived type.  */
+
+gfc_symbol*
+gfc_get_ultimate_derived_super_type (gfc_symbol* derived)
+{
+  if (!derived->attr.extension)
+    return NULL;
+
+  derived = gfc_get_derived_super_type (derived);
+
+  if (derived->attr.extension)
+    return gfc_get_ultimate_derived_super_type (derived);
+  else
+    return derived;
+}
+
+
+/* Check if a derived type t2 is an extension of (or equal to) a type t1.  */
+
+bool
+gfc_type_is_extension_of (gfc_symbol *t1, gfc_symbol *t2)
+{
+  while (!gfc_compare_derived_types (t1, t2) && t2->attr.extension)
+    t2 = gfc_get_derived_super_type (t2);
+  return gfc_compare_derived_types (t1, t2);
+}
+
+
 /* Check if two typespecs are type compatible (F03:5.1.1.2):
    If ts1 is nonpolymorphic, ts2 must be the same type.
    If ts1 is polymorphic (CLASS), ts2 must be an extension of ts1.  */
@@ -4541,19 +4592,19 @@ gfc_get_derived_super_type (gfc_symbol* derived)
 bool
 gfc_type_compatible (gfc_typespec *ts1, gfc_typespec *ts2)
 {
-  if (ts1->type == BT_DERIVED && ts2->type == BT_DERIVED)
+  if ((ts1->type == BT_DERIVED || ts1->type == BT_CLASS)
+      && (ts2->type == BT_DERIVED || ts2->type == BT_CLASS))
     {
-      gfc_symbol *t0, *t;
-      if (ts1->is_class)
-	{
-	  t0 = ts1->u.derived;
-	  t = ts2->u.derived;
-	  while (t0 != t && t->attr.extension)
-	    t = gfc_get_derived_super_type (t);
-	  return (t0 == t);
-	}
+      if (ts1->type == BT_CLASS && ts2->type == BT_DERIVED)
+	return gfc_type_is_extension_of (ts1->u.derived->components->ts.u.derived,
+					 ts2->u.derived);
+      else if (ts1->type == BT_CLASS && ts2->type == BT_CLASS)
+	return gfc_type_is_extension_of (ts1->u.derived->components->ts.u.derived,
+					 ts2->u.derived->components->ts.u.derived);
+      else if (ts2->type != BT_CLASS)
+	return gfc_compare_derived_types (ts1->u.derived, ts2->u.derived);
       else
-	return (ts1->u.derived == ts2->u.derived);
+	return 0;
     }
   else
     return (ts1->type == ts2->type);

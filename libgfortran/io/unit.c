@@ -24,6 +24,9 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 <http://www.gnu.org/licenses/>.  */
 
 #include "io.h"
+#include "fbuf.h"
+#include "format.h"
+#include "unix.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -441,6 +444,7 @@ get_internal_unit (st_parameter_dt *dtp)
   iunit->flags.decimal = DECIMAL_POINT;
   iunit->flags.encoding = ENCODING_DEFAULT;
   iunit->flags.async = ASYNC_NO;
+  iunit->flags.round = ROUND_COMPATIBLE;
 
   /* Initialize the data transfer parameters.  */
 
@@ -531,6 +535,7 @@ init_units (void)
       u->flags.decimal = DECIMAL_POINT;
       u->flags.encoding = ENCODING_DEFAULT;
       u->flags.async = ASYNC_NO;
+      u->flags.round = ROUND_COMPATIBLE;
      
       u->recl = options.default_recl;
       u->endfile = NO_ENDFILE;
@@ -560,6 +565,7 @@ init_units (void)
       u->flags.decimal = DECIMAL_POINT;
       u->flags.encoding = ENCODING_DEFAULT;
       u->flags.async = ASYNC_NO;
+      u->flags.round = ROUND_COMPATIBLE;
 
       u->recl = options.default_recl;
       u->endfile = AT_ENDFILE;
@@ -589,6 +595,7 @@ init_units (void)
       u->flags.decimal = DECIMAL_POINT;
       u->flags.encoding = ENCODING_DEFAULT;
       u->flags.async = ASYNC_NO;
+      u->flags.round = ROUND_COMPATIBLE;
 
       u->recl = options.default_recl;
       u->endfile = AT_ENDFILE;

@@ -47,9 +47,6 @@
 #include "vecprim.h"
 #include "dbgcnt.h"
 
-#ifndef HAVE_conditional_execution
-#define HAVE_conditional_execution 0
-#endif
 #ifndef HAVE_conditional_move
 #define HAVE_conditional_move 0
 #endif
@@ -1329,11 +1326,15 @@ noce_try_cmove_arith (struct noce_if_info *if_info)
   /* ??? FIXME: Magic number 5.  */
   if (cse_not_expected
       && MEM_P (a) && MEM_P (b)
+      && MEM_ADDR_SPACE (a) == MEM_ADDR_SPACE (b)
       && if_info->branch_cost >= 5)
     {
+      enum machine_mode address_mode
+	= targetm.addr_space.address_mode (MEM_ADDR_SPACE (a));
+
       a = XEXP (a, 0);
       b = XEXP (b, 0);
-      x = gen_reg_rtx (Pmode);
+      x = gen_reg_rtx (address_mode);
       is_mem = 1;
     }
 
@@ -1481,6 +1482,9 @@ noce_try_cmove_arith (struct noce_if_info *if_info)
 	set_mem_alias_set (tmp, MEM_ALIAS_SET (if_info->a));
       set_mem_align (tmp,
 		     MIN (MEM_ALIGN (if_info->a), MEM_ALIGN (if_info->b)));
+
+      gcc_assert (MEM_ADDR_SPACE (if_info->a) == MEM_ADDR_SPACE (if_info->b));
+      set_mem_addr_space (tmp, MEM_ADDR_SPACE (if_info->a));
 
       noce_emit_move_insn (if_info->x, tmp);
     }
@@ -1744,13 +1748,16 @@ noce_try_minmax (struct noce_if_info *if_info)
   return TRUE;
 }
 
-/* Convert "if (a < 0) x = -a; else x = a;" to "x = abs(a);", etc.  */
+/* Convert "if (a < 0) x = -a; else x = a;" to "x = abs(a);",
+   "if (a < 0) x = ~a; else x = a;" to "x = one_cmpl_abs(a);",
+   etc.  */
 
 static int
 noce_try_abs (struct noce_if_info *if_info)
 {
   rtx cond, earliest, target, seq, a, b, c;
   int negate;
+  bool one_cmpl = false;
 
   /* Reject modes with signed zeros.  */
   if (HONOR_SIGNED_ZEROS (GET_MODE (if_info->x)))
@@ -1767,6 +1774,17 @@ noce_try_abs (struct noce_if_info *if_info)
     {
       c = a; a = b; b = c;
       negate = 1;
+    }
+  else if (GET_CODE (a) == NOT && rtx_equal_p (XEXP (a, 0), b))
+    {
+      negate = 0;
+      one_cmpl = true;
+    }
+  else if (GET_CODE (b) == NOT && rtx_equal_p (XEXP (b, 0), a))
+    {
+      c = a; a = b; b = c;
+      negate = 1;
+      one_cmpl = true;
     }
   else
     return FALSE;
@@ -1839,13 +1857,23 @@ noce_try_abs (struct noce_if_info *if_info)
     }
 
   start_sequence ();
-
-  target = expand_abs_nojump (GET_MODE (if_info->x), b, if_info->x, 1);
+  if (one_cmpl)
+    target = expand_one_cmpl_abs_nojump (GET_MODE (if_info->x), b,
+                                         if_info->x);
+  else
+    target = expand_abs_nojump (GET_MODE (if_info->x), b, if_info->x, 1);
 
   /* ??? It's a quandary whether cmove would be better here, especially
      for integers.  Perhaps combine will clean things up.  */
   if (target && negate)
-    target = expand_simple_unop (GET_MODE (target), NEG, target, if_info->x, 0);
+    {
+      if (one_cmpl)
+        target = expand_simple_unop (GET_MODE (target), NOT, target,
+                                     if_info->x, 0);
+      else
+        target = expand_simple_unop (GET_MODE (target), NEG, target,
+                                     if_info->x, 0);
+    }
 
   if (! target)
     {
@@ -2395,7 +2423,7 @@ noce_process_if_block (struct noce_if_info *if_info)
   if (HAVE_conditional_move
       && noce_try_cmove (if_info))
     goto success;
-  if (! HAVE_conditional_execution)
+  if (! targetm.have_conditional_execution ())
     {
       if (noce_try_store_flag_constants (if_info))
 	goto success;
@@ -3039,7 +3067,7 @@ find_if_header (basic_block test_bb, int pass)
       && noce_find_if_block (test_bb, then_edge, else_edge, pass))
     goto success;
 
-  if (HAVE_conditional_execution && reload_completed
+  if (targetm.have_conditional_execution () && reload_completed
       && cond_exec_find_if_block (&ce_info))
     goto success;
 
@@ -3049,7 +3077,7 @@ find_if_header (basic_block test_bb, int pass)
     goto success;
 
   if (dom_info_state (CDI_POST_DOMINATORS) >= DOM_NO_FAST_QUERY
-      && (! HAVE_conditional_execution || reload_completed))
+      && (! targetm.have_conditional_execution () || reload_completed))
     {
       if (find_if_case_1 (test_bb, then_edge, else_edge))
 	goto success;
@@ -3156,7 +3184,7 @@ cond_exec_find_if_block (struct ce_if_block * ce_info)
 
   /* We only ever should get here after reload,
      and only if we have conditional execution.  */
-  gcc_assert (HAVE_conditional_execution && reload_completed);
+  gcc_assert (targetm.have_conditional_execution () && reload_completed);
 
   /* Discover if any fall through predecessors of the current test basic block
      were && tests (which jump to the else block) or || tests (which jump to
@@ -3834,7 +3862,7 @@ dead_or_predicable (basic_block test_bb, basic_block merge_bb,
   /* Disable handling dead code by conditional execution if the machine needs
      to do anything funny with the tests, etc.  */
 #ifndef IFCVT_MODIFY_TESTS
-  if (HAVE_conditional_execution)
+  if (targetm.have_conditional_execution ())
     {
       /* In the conditional execution case, we have things easy.  We know
 	 the condition is reversible.  We don't have to check life info

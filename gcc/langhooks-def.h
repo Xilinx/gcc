@@ -62,7 +62,7 @@ extern bool lhd_decl_ok_for_sibcall (const_tree);
 extern size_t lhd_tree_size (enum tree_code);
 extern HOST_WIDE_INT lhd_to_target_charset (HOST_WIDE_INT);
 extern tree lhd_expr_to_decl (tree, bool *, bool *);
-extern tree lhd_builtin_function (tree decl);
+extern tree lhd_builtin_function (tree);
 
 /* Declarations of default tree inlining hooks.  */
 extern void lhd_initialize_diagnostics (struct diagnostic_context *);
@@ -110,6 +110,7 @@ extern void lhd_omp_firstprivatize_type_sizes (struct gimplify_omp_ctx *,
 #define LANG_HOOKS_INIT_TS		lhd_do_nothing
 #define LANG_HOOKS_EH_PERSONALITY	lhd_gcc_personality
 #define LANG_HOOKS_EH_RUNTIME_TYPE	lhd_pass_through_t
+#define LANG_HOOKS_EH_USE_CXA_END_CLEANUP	false
 
 /* Attribute hooks.  */
 #define LANG_HOOKS_ATTRIBUTE_TABLE		NULL
@@ -235,6 +236,21 @@ extern tree lhd_make_node (enum tree_code);
   LANG_HOOKS_OMP_FINISH_CLAUSE \
 }
 
+/* LTO hooks.  */
+extern void lhd_begin_section (const char *);
+extern void lhd_append_data (const void *, size_t, void *);
+extern void lhd_end_section (void);
+
+#define LANG_HOOKS_BEGIN_SECTION lhd_begin_section
+#define LANG_HOOKS_APPEND_DATA lhd_append_data
+#define LANG_HOOKS_END_SECTION lhd_end_section
+
+#define LANG_HOOKS_LTO { \
+  LANG_HOOKS_BEGIN_SECTION, \
+  LANG_HOOKS_APPEND_DATA, \
+  LANG_HOOKS_END_SECTION \
+}
+
 /* The whole thing.  The structure is defined in langhooks.h.  */
 #define LANG_HOOKS_INITIALIZER { \
   LANG_HOOKS_NAME, \
@@ -272,6 +288,7 @@ extern tree lhd_make_node (enum tree_code);
   LANG_HOOKS_TREE_DUMP_INITIALIZER, \
   LANG_HOOKS_DECLS, \
   LANG_HOOKS_FOR_TYPES_INITIALIZER, \
+  LANG_HOOKS_LTO, \
   LANG_HOOKS_GET_INNERMOST_GENERIC_PARMS, \
   LANG_HOOKS_GET_INNERMOST_GENERIC_ARGS, \
   LANG_HOOKS_FUNCTION_PARAMETER_PACK_P, \
@@ -283,6 +300,7 @@ extern tree lhd_make_node (enum tree_code);
   LANG_HOOKS_EXPR_TO_DECL, \
   LANG_HOOKS_EH_PERSONALITY, \
   LANG_HOOKS_EH_RUNTIME_TYPE, \
+  LANG_HOOKS_EH_USE_CXA_END_CLEANUP, \
 }
 
 #endif /* GCC_LANG_HOOKS_DEF_H */

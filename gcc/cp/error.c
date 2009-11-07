@@ -311,7 +311,13 @@ dump_template_bindings (tree parms, tree args, VEC(tree,gc)* typenames)
 	  pp_equal (cxx_pp);
 	  pp_cxx_whitespace (cxx_pp);
 	  if (arg)
-	    dump_template_argument (arg, TFF_PLAIN_IDENTIFIER);
+	    {
+	      if (ARGUMENT_PACK_P (arg))
+		pp_cxx_left_brace (cxx_pp);
+	      dump_template_argument (arg, TFF_PLAIN_IDENTIFIER);
+	      if (ARGUMENT_PACK_P (arg))
+		pp_cxx_right_brace (cxx_pp);
+	    }
 	  else
 	    pp_string (cxx_pp, M_("<missing>"));
 
@@ -460,8 +466,11 @@ dump_type (tree t, int flags)
       break;
 
     case UNBOUND_CLASS_TEMPLATE:
-      dump_type (TYPE_CONTEXT (t), flags);
-      pp_cxx_colon_colon (cxx_pp);
+      if (! (flags & TFF_UNQUALIFIED_NAME))
+	{
+	  dump_type (TYPE_CONTEXT (t), flags);
+	  pp_cxx_colon_colon (cxx_pp);
+	}
       pp_cxx_ws_string (cxx_pp, "template");
       dump_type (DECL_NAME (TYPE_NAME (t)), flags);
       break;
@@ -596,6 +605,15 @@ dump_aggr_type (tree t, int flags)
 	pp_string (cxx_pp, M_("<anonymous>"));
       else
 	pp_printf (pp_base (cxx_pp), M_("<anonymous %s>"), variety);
+    }
+  else if (LAMBDANAME_P (name))
+    {
+      /* A lambda's "type" is essentially its signature.  */
+      pp_string (cxx_pp, M_("<lambda"));
+      if (lambda_function (t))
+	dump_parameters (FUNCTION_FIRST_USER_PARMTYPE (lambda_function (t)),
+			 flags);
+      pp_character(cxx_pp, '>');
     }
   else
     pp_cxx_tree_identifier (cxx_pp, name);
@@ -932,7 +950,9 @@ dump_decl (tree t, int flags)
       break;
 
     case SCOPE_REF:
-      pp_expression (cxx_pp, t);
+      dump_type (TREE_OPERAND (t, 0), flags);
+      pp_string (cxx_pp, "::");
+      dump_decl (TREE_OPERAND (t, 1), flags|TFF_UNQUALIFIED_NAME);
       break;
 
     case ARRAY_REF:
@@ -1224,6 +1244,14 @@ dump_function_decl (tree t, int flags)
   tree exceptions;
   VEC(tree,gc) *typenames = NULL;
 
+  if (LAMBDA_FUNCTION_P (t))
+    {
+      /* A lambda's signature is essentially its "type", so defer.  */
+      gcc_assert (LAMBDA_TYPE_P (DECL_CONTEXT (t)));
+      dump_type (DECL_CONTEXT (t), flags);
+      return;
+    }
+
   flags &= ~TFF_UNQUALIFIED_NAME;
   if (TREE_CODE (t) == TEMPLATE_DECL)
     t = DECL_TEMPLATE_RESULT (t);
@@ -1401,7 +1429,12 @@ dump_function_name (tree t, int flags)
   /* Don't let the user see __comp_ctor et al.  */
   if (DECL_CONSTRUCTOR_P (t)
       || DECL_DESTRUCTOR_P (t))
-    name = constructor_name (DECL_CONTEXT (t));
+    {
+      if (LAMBDA_TYPE_P (DECL_CONTEXT (t)))
+	name = get_identifier ("<lambda>");
+      else
+	name = constructor_name (DECL_CONTEXT (t));
+    }
 
   if (DECL_DESTRUCTOR_P (t))
     {
@@ -2191,6 +2224,9 @@ dump_expr (tree t, int flags)
       break;
 
     case SCOPE_REF:
+      dump_decl (t, flags);
+      break;
+
     case EXPR_PACK_EXPANSION:
     case TYPEID_EXPR:
     case MEMBER_REF:
@@ -2676,6 +2712,8 @@ function_category (tree fn)
 	return _("In constructor %qs");
       else if (DECL_DESTRUCTOR_P (fn))
 	return _("In destructor %qs");
+      else if (LAMBDA_FUNCTION_P (fn))
+	return _("In lambda function");
       else
 	return _("In member function %qs");
     }

@@ -46,16 +46,12 @@
 #include <tmmintrin.h>
 #endif
 
-#ifdef __SSE4a__
+#ifdef __SSE4A__
 #include <ammintrin.h>
 #endif
 
 #if defined (__SSE4_2__) || defined (__SSE4_1__)
 #include <smmintrin.h>
-#endif
-
-#ifdef __SSE5__
-#include <bmmintrin.h>
 #endif
 
 #if defined (__AES__) || defined (__PCLMUL__)
@@ -67,6 +63,18 @@
 
 #ifdef __3dNOW__
 #include <mm3dnow.h>
+#endif
+
+#ifdef __FMA4__
+#include <fma4intrin.h>
+#endif
+
+#ifdef __XOP__
+#include <xopintrin.h>
+#endif
+
+#ifdef __LWP__
+#include <lwpintrin.h>
 #endif
 
 #endif /* _X86INTRIN_H_INCLUDED */

@@ -2252,6 +2252,11 @@ may_trap_p_1 (const_rtx x, unsigned flags)
 
       /* Memory ref can trap unless it's a static var or a stack slot.  */
     case MEM:
+      /* Recognize specific pattern of stack checking probes.  */
+      if (flag_stack_check
+	  && MEM_VOLATILE_P (x)
+	  && XEXP (x, 0) == stack_pointer_rtx)
+	return 1;
       if (/* MEM_NOTRAP_P only relates to the actual position of the memory
 	     reference; moving it out of context such as when moving code
 	     when optimizing, might cause its address to become invalid.  */
@@ -3603,13 +3608,13 @@ rtx_cost (rtx x, enum rtx_code outer_code ATTRIBUTE_UNUSED, bool speed)
    be returned.  */
 
 int
-address_cost (rtx x, enum machine_mode mode, bool speed)
+address_cost (rtx x, enum machine_mode mode, addr_space_t as, bool speed)
 {
   /* We may be asked for cost of various unusual addresses, such as operands
      of push instruction.  It is not worthwhile to complicate writing
      of the target hook by such cases.  */
 
-  if (!memory_address_p (mode, x))
+  if (!memory_address_addr_space_p (mode, x, as))
     return 1000;
 
   return targetm.address_cost (x, speed);
@@ -3748,7 +3753,11 @@ nonzero_bits1 (const_rtx x, enum machine_mode mode, const_rtx known_x,
 #if defined(POINTERS_EXTEND_UNSIGNED) && !defined(HAVE_ptr_extend)
       /* If pointers extend unsigned and this is a pointer in Pmode, say that
 	 all the bits above ptr_mode are known to be zero.  */
-      if (POINTERS_EXTEND_UNSIGNED && GET_MODE (x) == Pmode
+      /* As we do not know which address space the pointer is refering to,
+	 we can do this only if the target does not support different pointer
+	 or address modes depending on the address space.  */
+      if (target_default_pointer_address_modes_p ()
+	  && POINTERS_EXTEND_UNSIGNED && GET_MODE (x) == Pmode
 	  && REG_POINTER (x))
 	nonzero &= GET_MODE_MASK (ptr_mode);
 #endif
@@ -3985,7 +3994,11 @@ nonzero_bits1 (const_rtx x, enum machine_mode mode, const_rtx known_x,
 	/* If pointers extend unsigned and this is an addition or subtraction
 	   to a pointer in Pmode, all the bits above ptr_mode are known to be
 	   zero.  */
-	if (POINTERS_EXTEND_UNSIGNED > 0 && GET_MODE (x) == Pmode
+	/* As we do not know which address space the pointer is refering to,
+	   we can do this only if the target does not support different pointer
+	   or address modes depending on the address space.  */
+	if (target_default_pointer_address_modes_p ()
+	    && POINTERS_EXTEND_UNSIGNED > 0 && GET_MODE (x) == Pmode
 	    && (code == PLUS || code == MINUS)
 	    && REG_P (XEXP (x, 0)) && REG_POINTER (XEXP (x, 0)))
 	  nonzero &= GET_MODE_MASK (ptr_mode);
@@ -4259,8 +4272,12 @@ num_sign_bit_copies1 (const_rtx x, enum machine_mode mode, const_rtx known_x,
 #if defined(POINTERS_EXTEND_UNSIGNED) && !defined(HAVE_ptr_extend)
       /* If pointers extend signed and this is a pointer in Pmode, say that
 	 all the bits above ptr_mode are known to be sign bit copies.  */
-      if (! POINTERS_EXTEND_UNSIGNED && GET_MODE (x) == Pmode && mode == Pmode
-	  && REG_POINTER (x))
+      /* As we do not know which address space the pointer is refering to,
+	 we can do this only if the target does not support different pointer
+	 or address modes depending on the address space.  */
+      if (target_default_pointer_address_modes_p ()
+	  && ! POINTERS_EXTEND_UNSIGNED && GET_MODE (x) == Pmode
+	  && mode == Pmode && REG_POINTER (x))
 	return GET_MODE_BITSIZE (Pmode) - GET_MODE_BITSIZE (ptr_mode) + 1;
 #endif
 
@@ -4456,7 +4473,11 @@ num_sign_bit_copies1 (const_rtx x, enum machine_mode mode, const_rtx known_x,
       /* If pointers extend signed and this is an addition or subtraction
 	 to a pointer in Pmode, all the bits above ptr_mode are known to be
 	 sign bit copies.  */
-      if (! POINTERS_EXTEND_UNSIGNED && GET_MODE (x) == Pmode
+      /* As we do not know which address space the pointer is refering to,
+	 we can do this only if the target does not support different pointer
+	 or address modes depending on the address space.  */
+      if (target_default_pointer_address_modes_p ()
+	  && ! POINTERS_EXTEND_UNSIGNED && GET_MODE (x) == Pmode
 	  && (code == PLUS || code == MINUS)
 	  && REG_P (XEXP (x, 0)) && REG_POINTER (XEXP (x, 0)))
 	result = MAX ((int) (GET_MODE_BITSIZE (Pmode)
@@ -4501,8 +4522,16 @@ num_sign_bit_copies1 (const_rtx x, enum machine_mode mode, const_rtx known_x,
 					   known_x, known_mode, known_ret);
 
     case UMOD:
-      /* The result must be <= the second operand.  */
-      return cached_num_sign_bit_copies (XEXP (x, 1), mode,
+      /* The result must be <= the second operand.  If the second operand
+	 has (or just might have) the high bit set, we know nothing about
+	 the number of sign bit copies.  */
+      if (bitwidth > HOST_BITS_PER_WIDE_INT)
+	return 1;
+      else if ((nonzero_bits (XEXP (x, 1), mode)
+		& ((HOST_WIDE_INT) 1 << (bitwidth - 1))) != 0)
+	return 1;
+      else
+	return cached_num_sign_bit_copies (XEXP (x, 1), mode,
 					   known_x, known_mode, known_ret);
 
     case DIV:

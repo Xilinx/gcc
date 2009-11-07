@@ -661,6 +661,14 @@ INPUT                  = @srcdir@/doc/doxygen/doxygroups.cc \
                          include/debug/unordered_map \
                          include/debug/unordered_set \
                          include/debug/vector \
+                         include/profile/bitset \
+                         include/profile/deque \
+                         include/profile/list \
+                         include/profile/map \
+                         include/profile/set \
+                         include/profile/unordered_map \
+                         include/profile/unordered_set \
+                         include/profile/vector \
                          include/ext/algorithm \
                          include/ext/functional \
                          include/ext/iterator \
@@ -701,20 +709,21 @@ INPUT                  = @srcdir@/doc/doxygen/doxygroups.cc \
                          include/tr1_impl/cwctype \
                          include/tr1_impl/functional \
                          include/tr1_impl/hashtable \
-                         include/tr1_impl/random \
                          include/tr1_impl/regex \
                          include/tr1_impl/type_traits \
                          include/tr1_impl/unordered_map \
                          include/tr1_impl/unordered_set \
                          include/tr1_impl/utility \
                          include/tr1_impl \
+                         include/decimal/decimal \
                          include/ \
                          include/@host_alias@/bits \
                          include/backward \
                          include/bits \
-                         include/bits/shared_ptr.h \
                          include/debug \
                          include/parallel \
+                         include/profile \
+                         include/profile/impl \
                          include/ext \
                          include/ext/pb_ds \
                          include/ext/pb_ds/detail 

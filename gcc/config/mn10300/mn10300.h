@@ -564,25 +564,7 @@ struct cum_arg {int nbytes; };
 #define FUNCTION_ARG(CUM, MODE, TYPE, NAMED) \
   function_arg (&CUM, MODE, TYPE, NAMED)
 
-/* Define how to find the value returned by a function.
-   VALTYPE is the data type of the value (as a tree).
-   If the precise function being called is known, FUNC is its FUNCTION_DECL;
-   otherwise, FUNC is 0.  */
-
-#define FUNCTION_VALUE(VALTYPE, FUNC) \
-  mn10300_function_value (VALTYPE, FUNC, 0)
-#define FUNCTION_OUTGOING_VALUE(VALTYPE, FUNC) \
-  mn10300_function_value (VALTYPE, FUNC, 1)
-
-/* Define how to find the value returned by a library function
-   assuming the value has mode MODE.  */
-
-#define LIBCALL_VALUE(MODE) gen_rtx_REG (MODE, FIRST_DATA_REGNUM)
-
-/* 1 if N is a possible register number for a function value.  */
-
-#define FUNCTION_VALUE_REGNO_P(N) \
-  ((N) == FIRST_DATA_REGNUM || (N) == FIRST_ADDRESS_REGNUM)
+#define FUNCTION_VALUE_REGNO_P(N)  mn10300_function_value_regno_p (N)
 
 #define DEFAULT_PCC_STRUCT_RETURN 0
 
@@ -618,10 +600,6 @@ struct cum_arg {int nbytes; };
    ? gen_rtx_MEM (Pmode, arg_pointer_rtx) \
    : (rtx) 0)
 
-/* 1 if X is an rtx for a constant that is a valid address.  */
-
-#define CONSTANT_ADDRESS_P(X)   CONSTANT_P (X)
-
 /* Maximum number of registers that can appear in a valid memory address.  */
 
 #define MAX_REGS_PER_ADDRESS 2
@@ -759,6 +737,9 @@ struct cum_arg {int nbytes; };
 
 #define ASM_APP_OFF "#NO_APP\n"
 
+#undef  USER_LABEL_PREFIX
+#define USER_LABEL_PREFIX "_"
+
 /* This says how to output the assembler to define a global
    uninitialized but not common symbol.
    Try to use asm_output_bss to implement this macro.  */
@@ -774,7 +755,7 @@ struct cum_arg {int nbytes; };
 
 #undef ASM_OUTPUT_LABELREF
 #define ASM_OUTPUT_LABELREF(FILE, NAME) \
-  fprintf (FILE, "_%s", (*targetm.strip_name_encoding) (NAME))
+  asm_fprintf (FILE, "%U%s", (*targetm.strip_name_encoding) (NAME))
 
 #define ASM_PN_FORMAT "%s___%lu"
 

@@ -160,7 +160,7 @@
 ; Floating Point Unit.  If we only have floating point emulation, then there
 ; is no point in scheduling the floating point insns.  (Well, for best
 ; performance we should try and group them together).
-(define_attr "fpu" "none,fpa,fpe2,fpe3,maverick,vfp,vfpv3d16,vfpv3,neon,neon_fp16"
+(define_attr "fpu" "none,fpa,fpe2,fpe3,maverick,vfp"
   (const (symbol_ref "arm_fpu_attr")))
 
 ; LENGTH of an instruction (in bytes)
@@ -391,6 +391,9 @@
 ; some splits that are the same for all modes when operating on ARM 
 ; registers.
 (define_mode_iterator ANY64 [DI DF V8QI V4HI V2SI V2SF])
+
+;; The integer modes up to word size
+(define_mode_iterator QHSI [QI HI SI])
 
 ;;---------------------------------------------------------------------------
 ;; Predicates
@@ -1914,7 +1917,16 @@
   else /* TARGET_THUMB1 */
     {
       if (GET_CODE (operands[2]) != CONST_INT)
-        operands[2] = force_reg (SImode, operands[2]);
+        {
+          rtx tmp = force_reg (SImode, operands[2]);
+	  if (rtx_equal_p (operands[0], operands[1]))
+	    operands[2] = tmp;
+	  else
+	    {
+              operands[2] = operands[1];
+              operands[1] = tmp;
+	    }
+        }
       else
         {
           int i;
@@ -2623,7 +2635,16 @@
           DONE;
 	}
       else /* TARGET_THUMB1 */
-	operands [2] = force_reg (SImode, operands [2]);
+        {
+          rtx tmp = force_reg (SImode, operands[2]);
+	  if (rtx_equal_p (operands[0], operands[1]))
+	    operands[2] = tmp;
+	  else
+	    {
+              operands[2] = operands[1];
+              operands[1] = tmp;
+	    }
+        }
     }
   "
 )
@@ -2731,12 +2752,29 @@
 (define_expand "xorsi3"
   [(set (match_operand:SI         0 "s_register_operand" "")
 	(xor:SI (match_operand:SI 1 "s_register_operand" "")
-		(match_operand:SI 2 "arm_rhs_operand"  "")))]
+		(match_operand:SI 2 "reg_or_int_operand" "")))]
   "TARGET_EITHER"
-  "if (TARGET_THUMB1)
-     if (GET_CODE (operands[2]) == CONST_INT)
-       operands[2] = force_reg (SImode, operands[2]);
-  "
+  "if (GET_CODE (operands[2]) == CONST_INT)
+    {
+      if (TARGET_32BIT)
+        {
+          arm_split_constant (XOR, SImode, NULL_RTX,
+	                      INTVAL (operands[2]), operands[0], operands[1],
+			      optimize && can_create_pseudo_p ());
+          DONE;
+	}
+      else /* TARGET_THUMB1 */
+        {
+          rtx tmp = force_reg (SImode, operands[2]);
+	  if (rtx_equal_p (operands[0], operands[1]))
+	    operands[2] = tmp;
+	  else
+	    {
+              operands[2] = operands[1];
+              operands[1] = tmp;
+	    }
+        }
+    }"
 )
 
 (define_insn "*arm_xorsi3"
@@ -5813,6 +5851,11 @@
 	{
 	  rtx reg = gen_reg_rtx (SImode);
 
+	  /* For thumb we want an unsigned immediate, then we are more likely 
+	     to be able to use a movs insn.  */
+	  if (TARGET_THUMB)
+	    operands[1] = GEN_INT (INTVAL (operands[1]) & 255);
+
 	  emit_insn (gen_movsi (reg, operands[1]));
 	  operands[1] = gen_lowpart (QImode, reg);
 	}
@@ -6727,6 +6770,7 @@
 		(const_int 6)
 		(const_int 8))))]
 )
+
 (define_insn "*movsi_cbranchsi4"
   [(set (pc)
 	(if_then_else
@@ -6788,6 +6832,45 @@
 		(le (minus (match_dup 2) (pc)) (const_int 2048)))
 	   (const_int 8)
 	   (const_int 10)))))]
+)
+
+(define_peephole2
+  [(set (match_operand:SI 0 "low_register_operand" "")
+	(match_operand:SI 1 "low_register_operand" ""))
+   (set (pc)
+	(if_then_else (match_operator 2 "arm_comparison_operator"
+		       [(match_dup 1) (const_int 0)])
+		      (label_ref (match_operand 3 "" ""))
+		      (pc)))]
+  "TARGET_THUMB1"
+  [(parallel
+    [(set (pc)
+	(if_then_else (match_op_dup 2 [(match_dup 1) (const_int 0)])
+		      (label_ref (match_dup 3))
+		      (pc)))
+     (set (match_dup 0) (match_dup 1))])]
+  ""
+)
+
+;; Sigh!  This variant shouldn't be needed, but combine often fails to
+;; merge cases like this because the op1 is a hard register in
+;; CLASS_LIKELY_SPILLED_P.
+(define_peephole2
+  [(set (match_operand:SI 0 "low_register_operand" "")
+	(match_operand:SI 1 "low_register_operand" ""))
+   (set (pc)
+	(if_then_else (match_operator 2 "arm_comparison_operator"
+		       [(match_dup 0) (const_int 0)])
+		      (label_ref (match_operand 3 "" ""))
+		      (pc)))]
+  "TARGET_THUMB1"
+  [(parallel
+    [(set (pc)
+	(if_then_else (match_op_dup 2 [(match_dup 1) (const_int 0)])
+		      (label_ref (match_dup 3))
+		      (pc)))
+     (set (match_dup 0) (match_dup 1))])]
+  ""
 )
 
 (define_insn "*negated_cbranchsi4"
@@ -8033,15 +8116,13 @@
       if (!thumb1_cmp_operand (op3, SImode))
         op3 = force_reg (SImode, op3);
       scratch = gen_reg_rtx (SImode);
-      emit_insn (gen_cstoresi_nltu_thumb1 (scratch, operands[2], op3));
-      emit_insn (gen_negsi2 (operands[0], scratch));
+      emit_insn (gen_cstoresi_ltu_thumb1 (operands[0], operands[2], op3));
       break;
 
     case GTU:
       op3 = force_reg (SImode, operands[3]);
       scratch = gen_reg_rtx (SImode);
-      emit_insn (gen_cstoresi_nltu_thumb1 (scratch, op3, operands[2]));
-      emit_insn (gen_negsi2 (operands[0], scratch));
+      emit_insn (gen_cstoresi_ltu_thumb1 (operands[0], op3, operands[2]));
       break;
 
     /* No good sequences for GT, LT.  */
@@ -8125,12 +8206,27 @@
   [(set_attr "length" "4")]
 )
 
+;; Used as part of the expansion of thumb ltu and gtu sequences
 (define_insn "cstoresi_nltu_thumb1"
   [(set (match_operand:SI 0 "s_register_operand" "=l,l")
         (neg:SI (ltu:SI (match_operand:SI 1 "s_register_operand" "l,*h")
 			(match_operand:SI 2 "thumb1_cmp_operand" "lI*h,*r"))))]
   "TARGET_THUMB1"
   "cmp\\t%1, %2\;sbc\\t%0, %0, %0"
+  [(set_attr "length" "4")]
+)
+
+(define_insn_and_split "cstoresi_ltu_thumb1"
+  [(set (match_operand:SI 0 "s_register_operand" "=l,l")
+        (ltu:SI (match_operand:SI 1 "s_register_operand" "l,*h")
+		(match_operand:SI 2 "thumb1_cmp_operand" "lI*h,*r")))]
+  "TARGET_THUMB1"
+  "#"
+  "TARGET_THUMB1"
+  [(set (match_dup 3)
+	(neg:SI (ltu:SI (match_dup 1) (match_dup 2))))
+   (set (match_dup 0) (neg:SI (match_dup 3)))]
+  "operands[3] = gen_reg_rtx (SImode);"
   [(set_attr "length" "4")]
 )
 

@@ -585,6 +585,7 @@ rtx_equal_for_cselib_p (rtx x, rtx y)
     {
     case CONST_DOUBLE:
     case CONST_FIXED:
+    case DEBUG_EXPR:
       return 0;
 
     case LABEL_REF:
@@ -661,6 +662,19 @@ rtx_equal_for_cselib_p (rtx x, rtx y)
   return 1;
 }
 
+/* We need to pass down the mode of constants through the hash table
+   functions.  For that purpose, wrap them in a CONST of the appropriate
+   mode.  */
+static rtx
+wrap_constant (enum machine_mode mode, rtx x)
+{
+  if (!CONST_INT_P (x) && GET_CODE (x) != CONST_FIXED
+      && (GET_CODE (x) != CONST_DOUBLE || GET_MODE (x) != VOIDmode))
+    return x;
+  gcc_assert (mode != VOIDmode);
+  return gen_rtx_CONST (mode, x);
+}
+
 /* Hash an rtx.  Return 0 if we couldn't hash the rtx.
    For registers and memory locations, we look up their cselib_val structure
    and return its VALUE element.
@@ -702,6 +716,11 @@ cselib_hash_rtx (rtx x, int create)
 	return 0;
 
       return e->value;
+
+    case DEBUG_EXPR:
+      hash += ((unsigned) DEBUG_EXPR << 7)
+	      + DEBUG_TEMP_UID (DEBUG_EXPR_TREE_DECL (x));
+      return hash ? hash : (unsigned int) DEBUG_EXPR;
 
     case CONST_INT:
       hash += ((unsigned) CONST_INT << 7) + INTVAL (x);
@@ -1213,6 +1232,13 @@ cselib_expand_value_rtx_1 (rtx orig, struct expand_value_data *evd,
 	result = expand_loc (CSELIB_VAL_PTR (orig)->locs, evd, max_depth);
 	return result;
       }
+
+    case DEBUG_EXPR:
+      if (evd->callback)
+	return evd->callback (orig, evd->regs_active, max_depth,
+			      evd->callback_arg);
+      return orig;
+
     default:
       break;
     }
@@ -1327,21 +1353,9 @@ cselib_expand_value_rtx_1 (rtx orig, struct expand_value_data *evd,
     default:
       break;
     }
-  if (scopy == NULL_RTX)
-    {
-      XEXP (copy, 0)
-	= gen_rtx_CONST (GET_MODE (XEXP (orig, 0)), XEXP (copy, 0));
-      if (dump_file && (dump_flags & TDF_DETAILS))
-	fprintf (dump_file, "  wrapping const_int result in const to preserve mode %s\n",
-		 GET_MODE_NAME (GET_MODE (XEXP (copy, 0))));
-    }
   scopy = simplify_rtx (copy);
   if (scopy)
-    {
-      if (GET_MODE (copy) != GET_MODE (scopy))
-	scopy = wrap_constant (GET_MODE (copy), scopy);
-      return scopy;
-    }
+    return scopy;
   return copy;
 }
 
@@ -1408,30 +1422,31 @@ cselib_subst_to_values (rtx x)
 	{
 	  rtx t = cselib_subst_to_values (XEXP (x, i));
 
-	  if (t != XEXP (x, i) && x == copy)
-	    copy = shallow_copy_rtx (x);
-
-	  XEXP (copy, i) = t;
+	  if (t != XEXP (x, i))
+	    {
+	      if (x == copy)
+		copy = shallow_copy_rtx (x);
+	      XEXP (copy, i) = t;
+	    }
 	}
       else if (fmt[i] == 'E')
 	{
-	  int j, k;
+	  int j;
 
 	  for (j = 0; j < XVECLEN (x, i); j++)
 	    {
 	      rtx t = cselib_subst_to_values (XVECEXP (x, i, j));
 
-	      if (t != XVECEXP (x, i, j) && XVEC (x, i) == XVEC (copy, i))
+	      if (t != XVECEXP (x, i, j))
 		{
-		  if (x == copy)
-		    copy = shallow_copy_rtx (x);
-
-		  XVEC (copy, i) = rtvec_alloc (XVECLEN (x, i));
-		  for (k = 0; k < j; k++)
-		    XVECEXP (copy, i, k) = XVECEXP (x, i, k);
+		  if (XVEC (x, i) == XVEC (copy, i))
+		    {
+		      if (x == copy)
+			copy = shallow_copy_rtx (x);
+		      XVEC (copy, i) = shallow_copy_rtvec (XVEC (x, i));
+		    }
+		  XVECEXP (copy, i, j) = t;
 		}
-
-	      XVECEXP (copy, i, j) = t;
 	    }
 	}
     }
@@ -1875,7 +1890,13 @@ cselib_record_sets (rtx insn)
 	    src = gen_rtx_IF_THEN_ELSE (GET_MODE (dest), cond, src, dest);
 	  sets[i].src_elt = cselib_lookup (src, GET_MODE (dest), 1);
 	  if (MEM_P (dest))
-	    sets[i].dest_addr_elt = cselib_lookup (XEXP (dest, 0), Pmode, 1);
+	    {
+	      enum machine_mode address_mode
+		= targetm.addr_space.address_mode (MEM_ADDR_SPACE (dest));
+
+	      sets[i].dest_addr_elt = cselib_lookup (XEXP (dest, 0),
+						     address_mode, 1);
+	    }
 	  else
 	    sets[i].dest_addr_elt = 0;
 	}

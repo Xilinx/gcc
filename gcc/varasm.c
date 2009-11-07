@@ -1172,11 +1172,17 @@ align_variable (tree decl, bool dont_output_data)
 static section *
 get_variable_section (tree decl, bool prefer_noswitch_p)
 {
+  addr_space_t as = ADDR_SPACE_GENERIC;
   int reloc;
 
-  /* If the decl has been given an explicit section name, then it
-     isn't common, and shouldn't be handled as such.  */
-  if (DECL_COMMON (decl) && DECL_SECTION_NAME (decl) == NULL)
+  if (TREE_TYPE (decl) != error_mark_node)
+    as = TYPE_ADDR_SPACE (TREE_TYPE (decl));
+
+  /* If the decl has been given an explicit section name, or it resides
+     in a non-generic address space, then it isn't common, and shouldn't
+     be handled as such.  */
+  if (DECL_COMMON (decl) && DECL_SECTION_NAME (decl) == NULL
+      && ADDR_SPACE_GENERIC_P (as))
     {
       if (DECL_THREAD_LOCAL_P (decl))
 	return tls_comm_section;
@@ -1200,7 +1206,8 @@ get_variable_section (tree decl, bool prefer_noswitch_p)
   if (IN_NAMED_SECTION (decl))
     return get_named_section (decl, NULL, reloc);
 
-  if (!DECL_THREAD_LOCAL_P (decl)
+  if (ADDR_SPACE_GENERIC_P (as)
+      && !DECL_THREAD_LOCAL_P (decl)
       && !(prefer_noswitch_p && targetm.have_switchable_bss_sections)
       && bss_initializer_p (decl))
     {
@@ -1444,7 +1451,15 @@ make_decl_rtl (tree decl)
   if (use_object_blocks_p () && use_blocks_for_decl_p (decl))
     x = create_block_symbol (name, get_block_for_decl (decl), -1);
   else
-    x = gen_rtx_SYMBOL_REF (Pmode, name);
+    {
+      enum machine_mode address_mode = Pmode;
+      if (TREE_TYPE (decl) != error_mark_node)
+	{
+	  addr_space_t as = TYPE_ADDR_SPACE (TREE_TYPE (decl));
+	  address_mode = targetm.addr_space.address_mode (as);
+	}
+      x = gen_rtx_SYMBOL_REF (address_mode, name);
+    }
   SYMBOL_REF_WEAK (x) = DECL_WEAK (decl);
   SET_SYMBOL_REF_DECL (x, decl);
 
@@ -2089,7 +2104,7 @@ assemble_variable (tree decl, int top_level ATTRIBUTE_UNUSED,
 	     Without this, if the variable is placed in a
 	     section-anchored block, the template will only be marked
 	     when it's too late.  */
-	  record_references_in_initializer (to);
+	  record_references_in_initializer (to, false);
 	}
 
       decl = to;
@@ -4314,8 +4329,13 @@ initializer_constant_valid_p (tree value, tree endtype)
 
     case POINTER_PLUS_EXPR:
     case PLUS_EXPR:
+      /* Any valid floating-point constants will have been folded by now;
+	 with -frounding-math we hit this with addition of two constants.  */
+      if (TREE_CODE (endtype) == REAL_TYPE)
+	return NULL_TREE;
       if (! INTEGRAL_TYPE_P (endtype)
-	  || TYPE_PRECISION (endtype) >= POINTER_SIZE)
+	  || TYPE_PRECISION (endtype)
+	     >= int_or_pointer_precision (TREE_TYPE (value)))
 	{
 	  tree valid0 = initializer_constant_valid_p (TREE_OPERAND (value, 0),
 						      endtype);
@@ -4336,8 +4356,11 @@ initializer_constant_valid_p (tree value, tree endtype)
       break;
 
     case MINUS_EXPR:
+      if (TREE_CODE (endtype) == REAL_TYPE)
+	return NULL_TREE;
       if (! INTEGRAL_TYPE_P (endtype)
-	  || TYPE_PRECISION (endtype) >= POINTER_SIZE)
+	  || TYPE_PRECISION (endtype)
+	     >= int_or_pointer_precision (TREE_TYPE (value)))
 	{
 	  tree valid0 = initializer_constant_valid_p (TREE_OPERAND (value, 0),
 						      endtype);
@@ -4458,7 +4481,9 @@ output_constant (tree exp, unsigned HOST_WIDE_INT size, unsigned int align)
      resolving it.  */
   if (TREE_CODE (exp) == NOP_EXPR
       && POINTER_TYPE_P (TREE_TYPE (exp))
-      && targetm.valid_pointer_mode (TYPE_MODE (TREE_TYPE (exp))))
+      && targetm.addr_space.valid_pointer_mode
+	   (TYPE_MODE (TREE_TYPE (exp)),
+	    TYPE_ADDR_SPACE (TREE_TYPE (TREE_TYPE (exp)))))
     {
       tree saved_type = TREE_TYPE (exp);
 
@@ -4466,7 +4491,9 @@ output_constant (tree exp, unsigned HOST_WIDE_INT size, unsigned int align)
 	 pointer modes.  */
       while (TREE_CODE (exp) == NOP_EXPR
 	     && POINTER_TYPE_P (TREE_TYPE (exp))
-	     && targetm.valid_pointer_mode (TYPE_MODE (TREE_TYPE (exp))))
+	     && targetm.addr_space.valid_pointer_mode
+		  (TYPE_MODE (TREE_TYPE (exp)),
+		   TYPE_ADDR_SPACE (TREE_TYPE (TREE_TYPE (exp)))))
 	exp = TREE_OPERAND (exp, 0);
 
       /* If what we're left with is the address of something, we can
@@ -4546,8 +4573,8 @@ output_constant (tree exp, unsigned HOST_WIDE_INT size, unsigned int align)
     case REAL_TYPE:
       if (TREE_CODE (exp) != REAL_CST)
 	error ("initializer for floating value is not a floating constant");
-
-      assemble_real (TREE_REAL_CST (exp), TYPE_MODE (TREE_TYPE (exp)), align);
+      else
+	assemble_real (TREE_REAL_CST (exp), TYPE_MODE (TREE_TYPE (exp)), align);
       break;
 
     case COMPLEX_TYPE:
@@ -6004,8 +6031,13 @@ default_elf_asm_named_section (const char *name, unsigned int flags,
       if (flags & SECTION_ENTSIZE)
 	fprintf (asm_out_file, ",%d", flags & SECTION_ENTSIZE);
       if (HAVE_COMDAT_GROUP && (flags & SECTION_LINKONCE))
-	fprintf (asm_out_file, ",%s,comdat",
-		 IDENTIFIER_POINTER (DECL_COMDAT_GROUP (decl)));
+	{
+	  if (TREE_CODE (decl) == IDENTIFIER_NODE)
+	    fprintf (asm_out_file, ",%s,comdat", IDENTIFIER_POINTER (decl));
+	  else
+	    fprintf (asm_out_file, ",%s,comdat",
+		     IDENTIFIER_POINTER (DECL_COMDAT_GROUP (decl)));
+	}
     }
 
   putc ('\n', asm_out_file);
@@ -6557,14 +6589,6 @@ default_binds_local_p_1 (const_tree exp, int shlib)
   return local_p;
 }
 
-/* Determine whether or not a pointer mode is valid. Assume defaults
-   of ptr_mode or Pmode - can be overridden.  */
-bool
-default_valid_pointer_mode (enum machine_mode mode)
-{
-  return (mode == ptr_mode || mode == Pmode);
-}
-
 /* Default function to output code that will globalize a label.  A
    target must define GLOBAL_ASM_OP or provide its own function to
    globalize a label.  */
@@ -6651,7 +6675,7 @@ file_end_indicate_exec_stack (void)
    was compiled with -fsplit-stack.  This is used to let the linker
    detect calls between split-stack code and non-split-stack code, so
    that it can modify the split-stack code to allocate a sufficiently
-   large stack.  We make the section executable if there are any
+   large stack.  We emit another special section if there are any
    functions in this file which have the no_split_stack attribute, to
    prevent the linker from warning about being unable to convert the
    functions if they call non-split-stack code.  */

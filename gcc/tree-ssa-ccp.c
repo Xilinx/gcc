@@ -1424,8 +1424,8 @@ evaluate_stmt (gimple stmt)
       else if (code == GIMPLE_SWITCH)
         simplified = gimple_switch_index (stmt);
       else
-        /* These cannot satisfy is_gimple_min_invariant without folding.  */
-        gcc_assert (code == GIMPLE_CALL || code == GIMPLE_COND);
+	/* These cannot satisfy is_gimple_min_invariant without folding.  */
+	gcc_assert (code == GIMPLE_CALL || code == GIMPLE_COND);
     }
 
   is_constant = simplified && is_gimple_min_invariant (simplified);
@@ -2895,6 +2895,7 @@ fold_gimple_cond (gimple stmt)
   return false;
 }
 
+static void gimplify_and_update_call_from_tree (gimple_stmt_iterator *, tree);
 
 /* Attempt to fold a call statement referenced by the statement iterator GSI.
    The statement may be replaced by another statement, e.g., if the call
@@ -2915,7 +2916,11 @@ fold_gimple_call (gimple_stmt_iterator *gsi)
       tree result = ccp_fold_builtin (stmt);
 
       if (result)
-        return update_call_from_tree (gsi, result);
+	{
+          if (!update_call_from_tree (gsi, result))
+	    gimplify_and_update_call_from_tree (gsi, result);
+	  return true;
+	}
     }
   else
     {
@@ -3089,9 +3094,8 @@ fold_stmt_inplace (gimple stmt)
 static tree
 optimize_stack_restore (gimple_stmt_iterator i)
 {
-  tree callee, rhs;
-  gimple stmt, stack_save;
-  gimple_stmt_iterator stack_save_gsi;
+  tree callee;
+  gimple stmt;
 
   basic_block bb = gsi_bb (i);
   gimple call = gsi_stmt (i);
@@ -3115,32 +3119,49 @@ optimize_stack_restore (gimple_stmt_iterator i)
 	return NULL_TREE;
 
       if (DECL_FUNCTION_CODE (callee) == BUILT_IN_STACK_RESTORE)
-	break;
+	goto second_stack_restore;
     }
 
-  if (gsi_end_p (i)
-      && (! single_succ_p (bb)
-	  || single_succ_edge (bb)->dest != EXIT_BLOCK_PTR))
+  if (!gsi_end_p (i))
     return NULL_TREE;
 
-  stack_save = SSA_NAME_DEF_STMT (gimple_call_arg (call, 0));
-  if (gimple_code (stack_save) != GIMPLE_CALL
-      || gimple_call_lhs (stack_save) != gimple_call_arg (call, 0)
-      || stmt_could_throw_p (stack_save)
-      || !has_single_use (gimple_call_arg (call, 0)))
-    return NULL_TREE;
+  /* Allow one successor of the exit block, or zero successors.  */
+  switch (EDGE_COUNT (bb->succs))
+    {
+    case 0:
+      break;
+    case 1:
+      if (single_succ_edge (bb)->dest != EXIT_BLOCK_PTR)
+	return NULL_TREE;
+      break;
+    default:
+      return NULL_TREE;
+    }
+ second_stack_restore:
 
-  callee = gimple_call_fndecl (stack_save);
-  if (!callee
-      || DECL_BUILT_IN_CLASS (callee) != BUILT_IN_NORMAL
-      || DECL_FUNCTION_CODE (callee) != BUILT_IN_STACK_SAVE
-      || gimple_call_num_args (stack_save) != 0)
-    return NULL_TREE;
+  /* If there's exactly one use, then zap the call to __builtin_stack_save.
+     If there are multiple uses, then the last one should remove the call.
+     In any case, whether the call to __builtin_stack_save can be removed
+     or not is irrelevant to removing the call to __builtin_stack_restore.  */
+  if (has_single_use (gimple_call_arg (call, 0)))
+    {
+      gimple stack_save = SSA_NAME_DEF_STMT (gimple_call_arg (call, 0));
+      if (is_gimple_call (stack_save))
+	{
+	  callee = gimple_call_fndecl (stack_save);
+	  if (callee
+	      && DECL_BUILT_IN_CLASS (callee) == BUILT_IN_NORMAL
+	      && DECL_FUNCTION_CODE (callee) == BUILT_IN_STACK_SAVE)
+	    {
+	      gimple_stmt_iterator stack_save_gsi;
+	      tree rhs;
 
-  stack_save_gsi = gsi_for_stmt (stack_save);
-  rhs = build_int_cst (TREE_TYPE (gimple_call_arg (call, 0)), 0);
-  if (!update_call_from_tree (&stack_save_gsi, rhs))
-    return NULL_TREE;
+	      stack_save_gsi = gsi_for_stmt (stack_save);
+	      rhs = build_int_cst (TREE_TYPE (gimple_call_arg (call, 0)), 0);
+	      update_call_from_tree (&stack_save_gsi, rhs);
+	    }
+	}
+    }
 
   /* No effect, so the statement will be deleted.  */
   return integer_zero_node;

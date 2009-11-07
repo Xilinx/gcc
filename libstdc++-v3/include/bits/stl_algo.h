@@ -1647,53 +1647,64 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       typedef typename iterator_traits<_RandomAccessIterator>::value_type
 	_ValueType;
 
-      const _Distance __n = __last   - __first;
-      const _Distance __k = __middle - __first;
-      const _Distance __l = __n - __k;
+      _Distance __n = __last   - __first;
+      _Distance __k = __middle - __first;
 
-      if (__k == __l)
+      if (__k == __n - __k)
 	{
 	  std::swap_ranges(__first, __middle, __middle);
 	  return;
 	}
 
-      const _Distance __d = std::__gcd(__n, __k);
+      _RandomAccessIterator __p = __first;
 
-      for (_Distance __i = 0; __i < __d; __i++)
+      for (;;)
 	{
-	  _ValueType __tmp = _GLIBCXX_MOVE(*__first);
-	  _RandomAccessIterator __p = __first;
-
-	  if (__k < __l)
+	  if (__k < __n - __k)
 	    {
-	      for (_Distance __j = 0; __j < __l / __d; __j++)
+	      if (__is_pod(_ValueType) && __k == 1)
 		{
-		  if (__p > __first + __l)
-		    {
-		      *__p = _GLIBCXX_MOVE(*(__p - __l));
-		      __p -= __l;
-		    }
-
-		  *__p = _GLIBCXX_MOVE(*(__p + __k));
-		  __p += __k;
+		  _ValueType __t = _GLIBCXX_MOVE(*__p);
+		  _GLIBCXX_MOVE3(__p + 1, __p + __n, __p);
+		  *(__p + __n - 1) = _GLIBCXX_MOVE(__t);
+		  return;
 		}
+	      _RandomAccessIterator __q = __p + __k;
+	      for (_Distance __i = 0; __i < __n - __k; ++ __i)
+		{
+		  std::iter_swap(__p, __q);
+		  ++__p;
+		  ++__q;
+		}
+	      __n %= __k;
+	      if (__n == 0)
+		return;
+	      std::swap(__n, __k);
+	      __k = __n - __k;
 	    }
 	  else
 	    {
-	      for (_Distance __j = 0; __j < __k / __d - 1; __j ++)
+	      __k = __n - __k;
+	      if (__is_pod(_ValueType) && __k == 1)
 		{
-		  if (__p < __last - __k)
-		    {
-		      *__p = _GLIBCXX_MOVE(*(__p + __k));
-		      __p += __k;
-		    }
-		  *__p = _GLIBCXX_MOVE(*(__p - __l));
-		  __p -= __l;
+		  _ValueType __t = _GLIBCXX_MOVE(*(__p + __n - 1));
+		  _GLIBCXX_MOVE_BACKWARD3(__p, __p + __n - 1, __p + __n);
+		  *__p = _GLIBCXX_MOVE(__t);
+		  return;
 		}
+	      _RandomAccessIterator __q = __p + __n;
+	      __p = __q - __k;
+	      for (_Distance __i = 0; __i < __n - __k; ++ __i)
+		{
+		  --__p;
+		  --__q;
+		  std::iter_swap(__p, __q);
+		}
+	      __n %= __k;
+	      if (__n == 0)
+		return;
+	      std::swap(__n, __k);
 	    }
-
-	  *__p = _GLIBCXX_MOVE(__tmp);
-	  ++__first;
 	}
     }
 
@@ -1862,15 +1873,15 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	  for (; __first != __last; ++__first)
 	    if (__pred(*__first))
 	      {
-		*__result1 = *__first;
+		*__result1 = _GLIBCXX_MOVE(*__first);
 		++__result1;
 	      }
 	    else
 	      {
-		*__result2 = *__first;
+		*__result2 = _GLIBCXX_MOVE(*__first);
 		++__result2;
 	      }
-	  std::copy(__buffer, __result2, __result1);
+	  _GLIBCXX_MOVE3(__buffer, __result2, __result1);
 	  return __result1;
 	}
       else
@@ -2926,15 +2937,15 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       _BidirectionalIterator2 __buffer_end;
       if (__len1 > __len2 && __len2 <= __buffer_size)
 	{
-	  __buffer_end = std::copy(__middle, __last, __buffer);
-	  std::copy_backward(__first, __middle, __last);
-	  return std::copy(__buffer, __buffer_end, __first);
+	  __buffer_end = _GLIBCXX_MOVE3(__middle, __last, __buffer);
+	  _GLIBCXX_MOVE_BACKWARD3(__first, __middle, __last);
+	  return _GLIBCXX_MOVE3(__buffer, __buffer_end, __first);
 	}
       else if (__len1 <= __buffer_size)
 	{
-	  __buffer_end = std::copy(__first, __middle, __buffer);
-	  std::copy(__middle, __last, __first);
-	  return std::copy_backward(__buffer, __buffer_end, __last);
+	  __buffer_end = _GLIBCXX_MOVE3(__first, __middle, __buffer);
+	  _GLIBCXX_MOVE3(__middle, __last, __first);
+	  return _GLIBCXX_MOVE_BACKWARD3(__buffer, __buffer_end, __last);
 	}
       else
 	{
@@ -2956,15 +2967,21 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     {
       if (__len1 <= __len2 && __len1 <= __buffer_size)
 	{
-	  _Pointer __buffer_end = std::copy(__first, __middle, __buffer);
-	  _GLIBCXX_STD_P::merge(__buffer, __buffer_end, __middle, __last, 
+	  _Pointer __buffer_end = _GLIBCXX_MOVE3(__first, __middle, __buffer);
+	  _GLIBCXX_STD_P::merge(_GLIBCXX_MAKE_MOVE_ITERATOR(__buffer),
+				_GLIBCXX_MAKE_MOVE_ITERATOR(__buffer_end),
+				_GLIBCXX_MAKE_MOVE_ITERATOR(__middle),
+				_GLIBCXX_MAKE_MOVE_ITERATOR(__last),
 				__first);
 	}
       else if (__len2 <= __buffer_size)
 	{
-	  _Pointer __buffer_end = std::copy(__middle, __last, __buffer);
-	  std::__merge_backward(__first, __middle, __buffer,
-				__buffer_end, __last);
+	  _Pointer __buffer_end = _GLIBCXX_MOVE3(__middle, __last, __buffer);
+	  std::__merge_backward(_GLIBCXX_MAKE_MOVE_ITERATOR(__first),
+				_GLIBCXX_MAKE_MOVE_ITERATOR(__middle),
+				_GLIBCXX_MAKE_MOVE_ITERATOR(__buffer),
+				_GLIBCXX_MAKE_MOVE_ITERATOR(__buffer_end),
+				__last);
 	}
       else
 	{
@@ -3013,15 +3030,21 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     {
       if (__len1 <= __len2 && __len1 <= __buffer_size)
 	{
-	  _Pointer __buffer_end = std::copy(__first, __middle, __buffer);
-	  _GLIBCXX_STD_P::merge(__buffer, __buffer_end, __middle, __last,
+	  _Pointer __buffer_end = _GLIBCXX_MOVE3(__first, __middle, __buffer);
+	  _GLIBCXX_STD_P::merge(_GLIBCXX_MAKE_MOVE_ITERATOR(__buffer),
+				_GLIBCXX_MAKE_MOVE_ITERATOR(__buffer_end),
+				_GLIBCXX_MAKE_MOVE_ITERATOR(__middle),
+				_GLIBCXX_MAKE_MOVE_ITERATOR(__last),
 				__first, __comp);
 	}
       else if (__len2 <= __buffer_size)
 	{
-	  _Pointer __buffer_end = std::copy(__middle, __last, __buffer);
-	  std::__merge_backward(__first, __middle, __buffer, __buffer_end,
-				__last, __comp);
+	  _Pointer __buffer_end = _GLIBCXX_MOVE3(__middle, __last, __buffer);
+	  std::__merge_backward(_GLIBCXX_MAKE_MOVE_ITERATOR(__first),
+				_GLIBCXX_MAKE_MOVE_ITERATOR(__middle),
+				_GLIBCXX_MAKE_MOVE_ITERATOR(__buffer),
+				_GLIBCXX_MAKE_MOVE_ITERATOR(__buffer_end),
+				__last,__comp);
 	}
       else
 	{
@@ -3270,16 +3293,22 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
       while (__last - __first >= __two_step)
 	{
-	  __result = _GLIBCXX_STD_P::merge(__first, __first + __step_size,
-					   __first + __step_size,
-					   __first + __two_step,
-					   __result);
+	  __result = _GLIBCXX_STD_P::merge(
+			_GLIBCXX_MAKE_MOVE_ITERATOR(__first),
+			_GLIBCXX_MAKE_MOVE_ITERATOR(__first + __step_size),
+			_GLIBCXX_MAKE_MOVE_ITERATOR(__first + __step_size),
+			_GLIBCXX_MAKE_MOVE_ITERATOR(__first + __two_step),
+			__result);
 	  __first += __two_step;
 	}
 
       __step_size = std::min(_Distance(__last - __first), __step_size);
-      _GLIBCXX_STD_P::merge(__first, __first + __step_size, 
-			    __first + __step_size, __last,
+      _GLIBCXX_STD_P::merge(_GLIBCXX_MAKE_MOVE_ITERATOR(__first),
+			    _GLIBCXX_MAKE_MOVE_ITERATOR(__first +
+							__step_size),
+			    _GLIBCXX_MAKE_MOVE_ITERATOR(__first +
+							__step_size),
+			    _GLIBCXX_MAKE_MOVE_ITERATOR(__last),
 			    __result);
     }
 
@@ -3295,16 +3324,23 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
       while (__last - __first >= __two_step)
 	{
-	  __result = _GLIBCXX_STD_P::merge(__first, __first + __step_size,
-				__first + __step_size, __first + __two_step,
-				__result,
-				__comp);
+	  __result = _GLIBCXX_STD_P::merge(
+			_GLIBCXX_MAKE_MOVE_ITERATOR(__first),
+			_GLIBCXX_MAKE_MOVE_ITERATOR(__first + __step_size),
+			_GLIBCXX_MAKE_MOVE_ITERATOR(__first + __step_size),
+			_GLIBCXX_MAKE_MOVE_ITERATOR(__first + __two_step),
+			__result, __comp);
 	  __first += __two_step;
 	}
       __step_size = std::min(_Distance(__last - __first), __step_size);
 
-      _GLIBCXX_STD_P::merge(__first, __first + __step_size,
-			    __first + __step_size, __last, __result, __comp);
+      _GLIBCXX_STD_P::merge(_GLIBCXX_MAKE_MOVE_ITERATOR(__first),
+			    _GLIBCXX_MAKE_MOVE_ITERATOR(__first +
+							__step_size),
+			    _GLIBCXX_MAKE_MOVE_ITERATOR(__first +
+							__step_size),
+			    _GLIBCXX_MAKE_MOVE_ITERATOR(__last),
+			    __result, __comp);
     }
 
   template<typename _RandomAccessIterator, typename _Distance>

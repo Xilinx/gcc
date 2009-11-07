@@ -28,7 +28,10 @@ main ()
 #if !defined __SSE4A__
   abort ();
 #endif
-#if defined __SSE5__
+#if defined __AVX__
+  abort ();
+#endif
+#if defined __FMA4__
   abort ();
 #endif
   return 0;
