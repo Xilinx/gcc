@@ -4745,21 +4745,6 @@ gfc_conv_same_type_as (gfc_se *se, gfc_expr *expr)
 }
 
 
-/* Generate code for the EXTENDS_TYPE_OF intrinsic.  */
-
-static void
-gfc_conv_extends_type_of (gfc_se *se, gfc_expr *expr)
-{
-  gfc_expr *e;
-  /* TODO: Implement EXTENDS_TYPE_OF.  */
-  gfc_error ("Intrinsic EXTENDS_TYPE_OF at %L not yet implemented",
-	     &expr->where);
-  /* Just return 'false' for now.  */
-  e = gfc_logical_expr (false, &expr->where);
-  gfc_conv_expr (se, e);
-}
-
-
 /* Generate code for SELECTED_CHAR_KIND (NAME) intrinsic function.  */
 
 static void
@@ -5172,10 +5157,6 @@ gfc_conv_intrinsic_function (gfc_se * se, gfc_expr * expr)
       gfc_conv_same_type_as (se, expr);
       break;
 
-    case GFC_ISYM_EXTENDS_TYPE_OF:
-      gfc_conv_extends_type_of (se, expr);
-      break;
-
     case GFC_ISYM_ABS:
       gfc_conv_intrinsic_abs (se, expr);
       break;
@@ -5553,6 +5534,7 @@ gfc_conv_intrinsic_function (gfc_se * se, gfc_expr * expr)
     case GFC_ISYM_CHMOD:
     case GFC_ISYM_DTIME:
     case GFC_ISYM_ETIME:
+    case GFC_ISYM_EXTENDS_TYPE_OF:
     case GFC_ISYM_FGET:
     case GFC_ISYM_FGETC:
     case GFC_ISYM_FNUM:

@@ -1,3 +1,14 @@
+2009-11-07  Janus Weil  <janus@gcc.gnu.org>
+
+	* intrinsic.h (gfc_resolve_extends_type_of): Add prototype.
+	* intrinsic.c (add_functions): Use 'gfc_resolve_extends_type_of'.
+	* iresolve.c (gfc_resolve_extends_type_of): New function, which
+	replaces the call to EXTENDS_TYPE_OF by the library function
+	'is_extension_of' and modifies the arguments.
+	* trans-intrinsic.c (gfc_conv_extends_type_of): Removed.
+	(gfc_conv_intrinsic_function): FOR EXTENDS_TYPE_OF, don't call
+	gfc_conv_extends_type_of but gfc_conv_intrinsic_funcall.
+
 2009-11-02  Paul Thomas  <pault@gcc.gnu.org>
 	    Janus Weil  <janus@gcc.gnu.org>
 

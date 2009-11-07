@@ -1,3 +1,8 @@
+2009-11-07  Janus Weil  <janusw@gcc.gnu.org>
+
+	* gfortran.dg/extends_type_of_1.f03: New test.
+	* gfortran.dg/same_type_as_1.f03: Extended.
+
 2009-11-02  Paul Thomas  <pault@gcc.gnu.org>
 
 	* gfortran.dg/class_4c.f03: Add dg-additional-sources.
