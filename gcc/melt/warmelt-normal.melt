@@ -861,6 +861,7 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
    (bind procs)
    (find_enclosing_env env recv)
    (debug_msg bind "normexp_symbol bind")
+   (debug_msg procs "normexp_symbol procs")
    (assert_msg "normexp_symbol check recv" (is_a recv class_symbol))
    (if (null bind)
        (progn
@@ -921,8 +922,7 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
 		fxocc
 		)
 	    ;; otherwise symbol is the direct value
-	    (let ( 
-		  )
+	    (progn
 	      ;; cache the result
 	      (mapobject_put sycmap recv bvar)
 	      (debug_msg bvar "normexp_symbol value bvar")
@@ -932,6 +932,8 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
       ;; the procs is a non-empty list, so the symbol is closed
       ( (and (is_list procs)
 	     (is_pair (list_first procs)))
+	(debug_msg procs "normexp_symbol closed procs")
+	(debug_msg bind "normexp_symbol closed bind")
 	;; check that a closed symbol is always a value
 	(let ( (bty
 		(cond ( (is_a bind class_formal_binding)
@@ -1036,6 +1038,13 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
 	  ;; cache the result & return it
 	  (mapobject_put sycmap recv fixdat)
 	  fixdat)
+	)
+      ;; handle letrec constructed bindings...
+      ( (is_a bind class_normal_constructor_binding)
+	(debug_msg bind "normexp_symbol constructed bind")
+	(debug_msg procs "normexp_symbol constructed procs")
+	(compile_warning "@$@normexp_symbol unimplemented constructed binding")
+	(assert_msg "@$@normexp_symbol unimplemented constructed binding" ())
 	)
       ;; all other cases are constants, probably unusual, so we warn
       (:else 
@@ -2943,9 +2952,10 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
 
 ;;; an internal routine useful for lambda inside letrec ... to share
 ;;; code between normexp_lambda and handling of lambda-s inside letrec
-(defun normalize_lambda (recv env ncx psloc)
+(defun normalize_lambda (recv env newenv ncx psloc)
   (assert_msg "check lambda recv" (is_a recv class_source_lambda))
   (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check newenv" (is_a newenv class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
   (debug_msg recv "normalize_lambda recv")
   (let ( (sloc (unsafe_get_field :loca_location recv))
@@ -2956,7 +2966,6 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
 			  :nrep_loc sloc
 			  :nocc_ctyp ctype_value
 			  :nocc_symb csym)) 
-	 (newenv (fresh_env env))
 	 (oldproc (unsafe_get_field :nctx_curproc ncx))
 	 (savedcachemap (unsafe_get_field :nctx_symbcachemap ncx))
 	 (closedblist (make_list discr_list))
@@ -3032,36 +3041,40 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
        (return nproc csym clocc constrout clovtup sloc oldproc ndatarout insideflag)
        ))))
 
+;;;;
 (defun normexp_lambda (recv env ncx psloc)
   (assert_msg "check lambda recv" (is_a recv class_source_lambda))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
   (debug_msg recv "normexp_lambda recv")
-  (multicall 
-   (nproc csym clocc constrout clovtup sloc oldproc ndatarout :long insideflag)
-   (normalize_lambda recv env ncx psloc)
-   (let (
-	 (nlambda (instance class_nrep_lambda 
-			    :nrep_loc sloc
-			    :nlambda_proc nproc
-			    :nlambda_constrout constrout
-			    :nlambda_closedv clovtup
-			    ))
-	 (cbind (instance class_normal_let_binding
-			  :letbind_loc sloc
-			  :binder csym
-			  :letbind_type ctype_value
-			  :letbind_expr nlambda))
-	 (nbindlist (make_list discr_list))
-	 )
-     (unsafe_put_fields clocc :nocc_bind cbind)
-     (list_append nbindlist cbind)
-     (if insideflag
-	 (list_append (unsafe_get_field :nrpro_const oldproc) ndatarout))
-     (debug_msg clocc "normexp_lambda return clocc")
-     (debug_msg nbindlist "normexp_lambda return nbindlist")
-     (return clocc nbindlist)
-     )))
+  (let (
+	(newenv (fresh_env env))
+	)
+    (multicall 
+     (nproc csym clocc constrout clovtup sloc oldproc ndatarout :long insideflag)
+     (normalize_lambda recv env newenv ncx psloc)
+     (let (
+	   (nlambda (instance class_nrep_lambda 
+			      :nrep_loc sloc
+			      :nlambda_proc nproc
+			      :nlambda_constrout constrout
+			      :nlambda_closedv clovtup
+			      ))
+	   (cbind (instance class_normal_let_binding
+			    :letbind_loc sloc
+			    :binder csym
+			    :letbind_type ctype_value
+			    :letbind_expr nlambda))
+	   (nbindlist (make_list discr_list))
+	   )
+       (unsafe_put_fields clocc :nocc_bind cbind)
+       (list_append nbindlist cbind)
+       (if insideflag
+	   (list_append (unsafe_get_field :nrpro_const oldproc) ndatarout))
+       (debug_msg clocc "normexp_lambda return clocc")
+       (debug_msg nbindlist "normexp_lambda return nbindlist")
+       (return clocc nbindlist)
+       ))))
 (install_method class_source_lambda normal_exp normexp_lambda)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -3281,11 +3294,15 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
   (debug_msg cbind "normletrec_lambda cbind")
   (multicall
    (nproc csym clocc constrout clovtup sloc oldproc ndatarout :long insideflag)
-   (normalize_lambda cexpr env ncx psloc)
+   ;; for letrec the old and new environments is the same!
+  (compile_warning "normletrec_lambda are we sure old & new env are same.?")
+   (normalize_lambda cexpr env env ncx psloc)
    (debug_msg csym "normletrec_lambda after normalize_lambda csym")
    (debug_msg clocc "normletrec_lambda after normalize_lambda clocc")
    (debug_msg constrout "normletrec_lambda after normalize_lambda constrout")
    (debug_msg clovtup  "normletrec_lambda after normalize_lambda clovtup")
+   (debug_msg oldproc  "normletrec_lambda after normalize_lambda oldproc")
+   (debug_msg ndatarout  "normletrec_lambda after normalize_lambda ndatarout")
    )
   (compile_warning "unimplemented normletrec_lambda")
   (assert_msg "@$@unimplemented normletrec_lambda" ())

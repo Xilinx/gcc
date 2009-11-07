@@ -1,3 +1,10 @@
+2009-11-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normal.melt:
+	normalize_lambda has both old & new environments as arguments.
+	normexp_symbol should handle letrec constructed bindings.
+	normletrec_lambda does not work.
+	* testsuite/melt/tletrec.melt: added u as a closed var.
+
 2009-11-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-cc-script.proto: ttypo added k flag to getopt...
 
