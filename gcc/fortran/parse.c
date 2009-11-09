@@ -2068,11 +2068,15 @@ endType:
     {
       /* Look for allocatable components.  */
       if (c->attr.allocatable
+	  || (c->ts.type == BT_CLASS
+	      && c->ts.u.derived->components->attr.allocatable)
 	  || (c->ts.type == BT_DERIVED && c->ts.u.derived->attr.alloc_comp))
 	sym->attr.alloc_comp = 1;
 
       /* Look for pointer components.  */
       if (c->attr.pointer
+	  || (c->ts.type == BT_CLASS
+	      && c->ts.u.derived->components->attr.pointer)
 	  || (c->ts.type == BT_DERIVED && c->ts.u.derived->attr.pointer_comp))
 	sym->attr.pointer_comp = 1;
 
@@ -3069,7 +3073,9 @@ gfc_build_block_ns (gfc_namespace *parent_ns)
 			  my_ns->proc_name->name, NULL);
       gcc_assert (t == SUCCESS);
     }
-  my_ns->proc_name->attr.recursive = parent_ns->proc_name->attr.recursive;
+
+  if (parent_ns->proc_name)
+    my_ns->proc_name->attr.recursive = parent_ns->proc_name->attr.recursive;
 
   return my_ns;
 }

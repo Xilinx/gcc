@@ -672,6 +672,7 @@ typedef struct
   unsigned is_bind_c:1;		/* say if is bound to C.  */
   unsigned extension:1;		/* extends a derived type.  */
   unsigned is_class:1;		/* is a CLASS container.  */
+  unsigned class_ok:1;		/* is a CLASS object with correct attributes.  */
 
   /* These flags are both in the typespec and attribute.  The attribute
      list is what gets read from/written to a module file.  The typespec
@@ -1598,7 +1599,7 @@ typedef struct gfc_class_esym_list
 {
   gfc_symbol *derived;
   gfc_symbol *esym;
-  gfc_symbol *class_object;
+  struct gfc_expr *vindex;
   struct gfc_class_esym_list *next;
 }
 gfc_class_esym_list;

@@ -946,6 +946,16 @@ cp_build_qualified_type_real (tree type,
   return result;
 }
 
+/* Return TYPE with const and volatile removed.  */
+
+tree
+cv_unqualified (tree type)
+{
+  int quals = TYPE_QUALS (type);
+  quals &= ~(TYPE_QUAL_CONST|TYPE_QUAL_VOLATILE);
+  return cp_build_qualified_type (type, quals);
+}
+
 /* Builds a qualified variant of T that is not a typedef variant.
    E.g. consider the following declarations:
      typedef const int ConstInt;
@@ -1040,6 +1050,10 @@ strip_typedefs (tree t)
 	else
 	    result = build_function_type (type,
 					  arg_types);
+
+	if (TYPE_RAISES_EXCEPTIONS (t))
+	  result = build_exception_variant (result,
+					    TYPE_RAISES_EXCEPTIONS (t));
       }
       break;
     default:
@@ -1048,6 +1062,8 @@ strip_typedefs (tree t)
 
   if (!result)
       result = TYPE_MAIN_VARIANT (t);
+  if (TYPE_ATTRIBUTES (t))
+    result = cp_build_type_attribute_variant (result, TYPE_ATTRIBUTES (t));
   return cp_build_qualified_type (result, cp_type_quals (t));
 }
 
@@ -2081,6 +2097,8 @@ cp_tree_equal (tree t1, tree t2)
     case TEMPLATE_PARM_INDEX:
       return (TEMPLATE_PARM_IDX (t1) == TEMPLATE_PARM_IDX (t2)
 	      && TEMPLATE_PARM_LEVEL (t1) == TEMPLATE_PARM_LEVEL (t2)
+	      && (TEMPLATE_PARM_PARAMETER_PACK (t1)
+		  == TEMPLATE_PARM_PARAMETER_PACK (t2))
 	      && same_type_p (TREE_TYPE (TEMPLATE_PARM_DECL (t1)),
 			      TREE_TYPE (TEMPLATE_PARM_DECL (t2))));
 
@@ -2597,7 +2615,8 @@ cp_build_type_attribute_variant (tree type, tree attributes)
   tree new_type;
 
   new_type = build_type_attribute_variant (type, attributes);
-  if (TREE_CODE (new_type) == FUNCTION_TYPE
+  if ((TREE_CODE (new_type) == FUNCTION_TYPE
+       || TREE_CODE (new_type) == METHOD_TYPE)
       && (TYPE_RAISES_EXCEPTIONS (new_type)
 	  != TYPE_RAISES_EXCEPTIONS (type)))
     new_type = build_exception_variant (new_type,

@@ -256,6 +256,7 @@ enum lto_section_type
   LTO_section_function_body,
   LTO_section_static_initializer,
   LTO_section_cgraph,
+  LTO_section_jump_functions,
   LTO_section_ipa_pure_const,
   LTO_section_ipa_reference,
   LTO_section_symtab,
@@ -554,10 +555,6 @@ struct lto_file_decl_data
   /* Nonzero if this file should be recompiled with LTRANS.  */
   unsigned needs_ltrans_p : 1;
 
-  /* If the file is open, this is the fd of the mapped section.  This
-     is -1 if the file has not yet been opened.  */
-  int fd;
-
   /* Hash table maps lto-related section names to location in file.  */
   htab_t section_hash_table;
 
@@ -827,6 +824,7 @@ extern struct output_block *create_output_block (enum lto_section_type);
 extern void destroy_output_block (struct output_block *);
 extern void lto_output_tree (struct output_block *, tree, bool);
 extern void lto_output_bitpack (struct lto_output_stream *, struct bitpack_d *);
+extern void produce_asm (struct output_block *ob, tree fn);
 
 
 /* In lto-cgraph.c  */
@@ -843,9 +841,9 @@ void input_cgraph (void);
 extern void lto_symtab_register_decl (tree, ld_plugin_symbol_resolution_t,
 				      struct lto_file_decl_data *);
 extern void lto_symtab_merge_decls (void);
+extern void lto_symtab_merge_cgraph_nodes (void);
 extern tree lto_symtab_prevailing_decl (tree decl);
 extern enum ld_plugin_symbol_resolution lto_symtab_get_resolution (tree decl);
-extern void lto_symtab_clear_resolution (tree decl);
 
 
 /* In lto-opts.c.  */

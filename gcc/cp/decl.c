@@ -949,7 +949,7 @@ decls_match (tree newdecl, tree olddecl)
 #ifdef NO_IMPLICIT_EXTERN_C
       /* A new declaration doesn't match a built-in one unless it
 	 is also extern "C".  */
-      if (DECL_BUILT_IN (olddecl)
+      if (DECL_IS_BUILTIN (olddecl)
 	  && DECL_EXTERN_C_P (olddecl) && !DECL_EXTERN_C_P (newdecl))
 	return 0;
 #endif
@@ -4423,7 +4423,7 @@ grok_reference_init (tree decl, tree type, tree init, tree *cleanup)
      DECL_INITIAL for local references (instead assigning to them
      explicitly); we need to allow the temporary to be initialized
      first.  */
-  tmp = initialize_reference (type, init, decl, cleanup);
+  tmp = initialize_reference (type, init, decl, cleanup, tf_warning_or_error);
 
   if (tmp == error_mark_node)
     return NULL_TREE;
@@ -5636,17 +5636,10 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
 	}
       else if (init == ridpointers[(int)RID_DEFAULT])
 	{
-	  if (!defaultable_fn_p (decl))
-	    {
-	      error ("%qD cannot be defaulted", decl);
-	      DECL_INITIAL (decl) = NULL_TREE;
-	    }
+	  if (defaultable_fn_check (decl))
+	    DECL_DEFAULTED_FN (decl) = 1;
 	  else
-	    {
-	      DECL_DEFAULTED_FN (decl) = 1;
-	      FOR_EACH_CLONE (clone, decl)
-		DECL_DEFAULTED_FN (clone) = 1;
-	    }
+	    DECL_INITIAL (decl) = NULL_TREE;
 	}
     }
     
@@ -6808,6 +6801,36 @@ grokfndecl (tree ctype,
 		|| decl_function_context (TYPE_MAIN_DECL (ctype))))
     publicp = 0;
 
+  if (publicp && cxx_dialect == cxx98)
+    {
+      /* [basic.link]: A name with no linkage (notably, the name of a class
+	 or enumeration declared in a local scope) shall not be used to
+	 declare an entity with linkage.
+
+	 DR 757 relaxes this restriction for C++0x.  */
+      t = no_linkage_check (TREE_TYPE (decl),
+			    /*relaxed_p=*/false);
+      if (t)
+	{
+	  if (TYPE_ANONYMOUS_P (t))
+	    {
+	      if (DECL_EXTERN_C_P (decl))
+		/* Allow this; it's pretty common in C.  */;
+	      else
+		{
+		  permerror (input_location, "non-local function %q#D uses anonymous type",
+			      decl);
+		  if (DECL_ORIGINAL_TYPE (TYPE_NAME (t)))
+		    permerror (input_location, "%q+#D does not refer to the unqualified "
+			       "type, so it is not used for linkage",
+			       TYPE_NAME (t));
+		}
+	    }
+	  else
+	    permerror (input_location, "non-local function %q#D uses local type %qT", decl, t);
+	}
+    }
+
   TREE_PUBLIC (decl) = publicp;
   if (! publicp)
     {
@@ -7047,15 +7070,48 @@ grokvardecl (tree type,
   if (declspecs->specs[(int)ds_thread])
     DECL_TLS_MODEL (decl) = decl_default_tls_model (decl);
 
+  /* If the type of the decl has no linkage, make sure that we'll
+     notice that in mark_used.  */
+  if (cxx_dialect > cxx98
+      && decl_linkage (decl) != lk_none
+      && DECL_LANG_SPECIFIC (decl) == NULL
+      && !DECL_EXTERN_C_P (decl)
+      && no_linkage_check (TREE_TYPE (decl), /*relaxed_p=*/false))
+    retrofit_lang_decl (decl);
+
   if (TREE_PUBLIC (decl))
     {
-      /* If the type of the decl has no linkage, make sure that we'll
-	 notice that in mark_used.  */
-      if (DECL_LANG_SPECIFIC (decl) == NULL
-	  && TREE_PUBLIC (decl)
-	  && !DECL_EXTERN_C_P (decl)
-	  && no_linkage_check (TREE_TYPE (decl), /*relaxed_p=*/false))
-	retrofit_lang_decl (decl);
+      /* [basic.link]: A name with no linkage (notably, the name of a class
+	 or enumeration declared in a local scope) shall not be used to
+	 declare an entity with linkage.
+
+	 DR 757 relaxes this restriction for C++0x.  */
+      tree t = (cxx_dialect > cxx98 ? NULL_TREE
+		: no_linkage_check (TREE_TYPE (decl), /*relaxed_p=*/false));
+      if (t)
+	{
+	  if (TYPE_ANONYMOUS_P (t))
+	    {
+	      if (DECL_EXTERN_C_P (decl))
+		/* Allow this; it's pretty common in C.  */
+		;
+	      else
+		{
+		  /* DRs 132, 319 and 389 seem to indicate types with
+		     no linkage can only be used to declare extern "C"
+		     entities.  Since it's not always an error in the
+		     ISO C++ 90 Standard, we only issue a warning.  */
+		  warning (0, "non-local variable %q#D uses anonymous type",
+			   decl);
+		  if (DECL_ORIGINAL_TYPE (TYPE_NAME (t)))
+		    warning (0, "%q+#D does not refer to the unqualified "
+			     "type, so it is not used for linkage",
+			     TYPE_NAME (t));
+		}
+	    }
+	  else
+	    warning (0, "non-local variable %q#D uses local type %qT", decl, t);
+	}
     }
   else
     DECL_INTERFACE_KNOWN (decl) = 1;
@@ -7147,16 +7203,9 @@ build_ptrmem_type (tree class_type, tree member_type)
 {
   if (TREE_CODE (member_type) == METHOD_TYPE)
     {
-      tree arg_types;
-
-      arg_types = TYPE_ARG_TYPES (member_type);
-      class_type = (cp_build_qualified_type
-		    (class_type,
-		     cp_type_quals (TREE_TYPE (TREE_VALUE (arg_types)))));
-      member_type
-	= build_method_type_directly (class_type,
-				      TREE_TYPE (member_type),
-				      TREE_CHAIN (arg_types));
+      tree arg_types = TYPE_ARG_TYPES (member_type);
+      cp_cv_quals quals = cp_type_quals (TREE_TYPE (TREE_VALUE (arg_types)));
+      member_type = build_memfn_type (member_type, class_type, quals);
       return build_ptrmemfunc_type (build_pointer_type (member_type));
     }
   else
@@ -9899,9 +9948,9 @@ grokparms (tree parmlist, tree *parms)
    0  if D is not a copy constructor or copy assignment
       operator.
    1  if D is a copy constructor or copy assignment operator whose
-      first parameter is a reference to const qualified T.
-   2  if D is a copy constructor or copy assignment operator whose
       first parameter is a reference to non-const qualified T.
+   2  if D is a copy constructor or copy assignment operator whose
+      first parameter is a reference to const qualified T.
 
    This function can be used as a predicate. Positive values indicate
    a copy constructor and nonzero values indicate a copy assignment
@@ -10010,10 +10059,6 @@ move_fn_p (const_tree d)
 
 /* Remember any special properties of member function DECL.  */
 
-#define DECL_DEFAULTED_IN_CLASS_P(DECL)					\
- (DECL_DEFAULTED_FN (DECL)						\
-  && (DECL_ARTIFICIAL (DECL) || DECL_INITIALIZED_IN_CLASS_P (DECL)))
-
 void
 grok_special_member_properties (tree decl)
 {
@@ -10040,7 +10085,7 @@ grok_special_member_properties (tree decl)
 	     are no other parameters or else all other parameters have
 	     default arguments.  */
 	  TYPE_HAS_INIT_REF (class_type) = 1;
-	  if (!DECL_DEFAULTED_IN_CLASS_P (decl))
+	  if (user_provided_p (decl))
 	    TYPE_HAS_COMPLEX_INIT_REF (class_type) = 1;
 	  if (ctor > 1)
 	    TYPE_HAS_CONST_INIT_REF (class_type) = 1;
@@ -10048,8 +10093,7 @@ grok_special_member_properties (tree decl)
       else if (sufficient_parms_p (FUNCTION_FIRST_USER_PARMTYPE (decl)))
 	{
 	  TYPE_HAS_DEFAULT_CONSTRUCTOR (class_type) = 1;
-	  if (TREE_CODE (decl) == TEMPLATE_DECL
-	      || !DECL_DEFAULTED_IN_CLASS_P (decl))
+	  if (user_provided_p (decl))
 	    TYPE_HAS_COMPLEX_DFLT (class_type) = 1;
 	}
       else if (is_list_ctor (decl))
@@ -10068,7 +10112,7 @@ grok_special_member_properties (tree decl)
       if (assop)
 	{
 	  TYPE_HAS_ASSIGN_REF (class_type) = 1;
-	  if (!DECL_DEFAULTED_IN_CLASS_P (decl))
+	  if (user_provided_p (decl))
 	    TYPE_HAS_COMPLEX_ASSIGN_REF (class_type) = 1;
 	  if (assop != 1)
 	    TYPE_HAS_CONST_ASSIGN_REF (class_type) = 1;
@@ -10254,8 +10298,13 @@ grok_op_properties (tree decl, bool complain)
 	      || operator_code == ARRAY_REF
 	      || operator_code == NOP_EXPR)
 	    {
-	      error ("%qD must be a nonstatic member function", decl);
-	      return false;
+	      if (class_type && LAMBDA_TYPE_P (class_type))
+		/* Lambdas can have static op() and conv ops.  */;
+	      else
+		{
+		  error ("%qD must be a nonstatic member function", decl);
+		  return false;
+		}
 	    }
 	  else
 	    {
@@ -11528,7 +11577,7 @@ lookup_enumerator (tree enumtype, tree name)
 }
 
 
-/* We're defining DECL.  Make sure that it's type is OK.  Return TRUE
+/* We're defining DECL.  Make sure that its type is OK.  Return TRUE
    if its type is changed to void.  */
 
 static bool
@@ -11563,9 +11612,12 @@ check_function_type (tree decl, tree current_function_parms)
 					     TREE_CHAIN (args));
       else
 	fntype = build_function_type (void_type_node, args);
-      TREE_TYPE (decl)
+      fntype
 	= build_exception_variant (fntype,
 				   TYPE_RAISES_EXCEPTIONS (TREE_TYPE (decl)));
+      fntype = (cp_build_type_attribute_variant
+		(fntype, TYPE_ATTRIBUTES (TREE_TYPE (decl))));
+      TREE_TYPE (decl) = fntype;
       return true;
     }
   else

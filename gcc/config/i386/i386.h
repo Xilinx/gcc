@@ -55,6 +55,8 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #define TARGET_FMA	OPTION_ISA_FMA
 #define TARGET_SSE4A	OPTION_ISA_SSE4A
 #define TARGET_FMA4	OPTION_ISA_FMA4
+#define TARGET_XOP	OPTION_ISA_XOP
+#define TARGET_LWP	OPTION_ISA_LWP
 #define TARGET_ROUND	OPTION_ISA_ROUND
 #define TARGET_ABM	OPTION_ISA_ABM
 #define TARGET_POPCNT	OPTION_ISA_POPCNT
@@ -400,6 +402,7 @@ enum ix86_arch_indices {
   X86_ARCH_CMPXCHG8B,
   X86_ARCH_XADD,
   X86_ARCH_BSWAP,
+  X86_ARCH_CALL_ESP,
 
   X86_ARCH_LAST
 };
@@ -411,6 +414,7 @@ extern unsigned char ix86_arch_features[X86_ARCH_LAST];
 #define TARGET_CMPXCHG8B	ix86_arch_features[X86_ARCH_CMPXCHG8B]
 #define TARGET_XADD		ix86_arch_features[X86_ARCH_XADD]
 #define TARGET_BSWAP		ix86_arch_features[X86_ARCH_BSWAP]
+#define TARGET_CALL_ESP		ix86_arch_features[X86_ARCH_CALL_ESP]
 
 #define TARGET_FISTTP		(TARGET_SSE3 && TARGET_80387)
 
@@ -706,9 +710,7 @@ enum target_cpu_default
    generate an alternate prologue and epilogue that realigns the
    runtime stack if nessary.  This supports mixing codes that keep a
    4-byte aligned stack, as specified by i386 psABI, with codes that
-   need a 16-byte aligned stack, as required by SSE instructions.  If
-   STACK_REALIGN_DEFAULT is 1 and PREFERRED_STACK_BOUNDARY_DEFAULT is
-   128, stacks for all functions may be realigned.  */
+   need a 16-byte aligned stack, as required by SSE instructions.  */
 #define STACK_REALIGN_DEFAULT 0
 
 /* Boundary (in *bits*) on which the incoming stack is aligned.  */
@@ -872,6 +874,9 @@ enum target_cpu_default
   (((MODE) == SFmode && (!TARGET_SSE || !TARGET_SSE_MATH))	\
    || ((MODE) == DFmode && (!TARGET_SSE2 || !TARGET_SSE_MATH))  \
    || (MODE) == XFmode)
+
+/* Cover class containing the stack registers.  */
+#define STACK_REG_COVER_CLASS FLOAT_REGS
 
 /* Number of actual hardware registers.
    The hardware registers are assigned numbers for the compiler

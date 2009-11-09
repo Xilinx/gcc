@@ -146,6 +146,7 @@ typedef struct GTY(()) mem_attrs
   rtx size;			/* Size in bytes, as a CONST_INT.  */
   alias_set_type alias;		/* Memory alias set.  */
   unsigned int align;		/* Alignment of MEM in bits.  */
+  unsigned char addrspace;	/* Address space (0 for generic).  */
 } mem_attrs;
 
 /* Structure used to describe the attributes of a REG in similar way as
@@ -762,7 +763,7 @@ extern void rtl_check_failed_flag (const char *, const_rtx, const char *,
 #define INSN_LOCATOR(INSN) XINT (INSN, 4)
 /* LOCATION of an RTX if relevant.  */
 #define RTL_LOCATION(X) (INSN_P (X) ? \
-			 locator_location (INSN_LOCATOR (x)) \
+			 locator_location (INSN_LOCATOR (X)) \
 			 : UNKNOWN_LOCATION)
 /* LOCATION of current INSN.  */
 #define CURR_INSN_LOCATION (locator_location (curr_insn_locator ()))
@@ -1122,7 +1123,7 @@ rhs_regno (const_rtx x)
 
 extern void init_rtlanal (void);
 extern int rtx_cost (rtx, enum rtx_code, bool);
-extern int address_cost (rtx, enum machine_mode, bool);
+extern int address_cost (rtx, enum machine_mode, addr_space_t, bool);
 extern unsigned int subreg_lsb (const_rtx);
 extern unsigned int subreg_lsb_1 (enum machine_mode, enum machine_mode,
 				  unsigned int);
@@ -1268,6 +1269,10 @@ do {						\
 /* For a MEM rtx, the offset from the start of MEM_EXPR, if known, as a
    RTX that is always a CONST_INT.  */
 #define MEM_OFFSET(RTX) (MEM_ATTRS (RTX) == 0 ? 0 : MEM_ATTRS (RTX)->offset)
+
+/* For a MEM rtx, the address space.  */
+#define MEM_ADDR_SPACE(RTX) (MEM_ATTRS (RTX) == 0 ? ADDR_SPACE_GENERIC \
+						  : MEM_ATTRS (RTX)->addrspace)
 
 /* For a MEM rtx, the size in bytes of the MEM, if known, as an RTX that
    is always a CONST_INT.  */
@@ -1568,6 +1573,7 @@ extern rtx rtx_alloc_stat (RTX_CODE MEM_STAT_DECL);
 #define rtx_alloc(c) rtx_alloc_stat (c MEM_STAT_INFO)
 
 extern rtvec rtvec_alloc (int);
+extern rtvec shallow_copy_rtvec (rtvec);
 extern bool shared_const_p (const_rtx);
 extern rtx copy_rtx (rtx);
 extern void dump_rtx_statistics (void);
@@ -1607,7 +1613,10 @@ extern unsigned int subreg_highpart_offset (enum machine_mode,
 					    enum machine_mode);
 extern int byte_lowpart_offset (enum machine_mode, enum machine_mode);
 extern rtx make_safe_from (rtx, rtx);
-extern rtx convert_memory_address (enum machine_mode, rtx);
+extern rtx convert_memory_address_addr_space (enum machine_mode, rtx,
+					      addr_space_t);
+#define convert_memory_address(to_mode,x) \
+	convert_memory_address_addr_space ((to_mode), (x), ADDR_SPACE_GENERIC)
 extern rtx get_insns (void);
 extern const char *get_insn_name (int);
 extern rtx get_last_insn (void);
@@ -1768,6 +1777,8 @@ extern rtx simplify_subreg (enum machine_mode, rtx, enum machine_mode,
 			    unsigned int);
 extern rtx simplify_gen_subreg (enum machine_mode, rtx, enum machine_mode,
 				unsigned int);
+extern rtx simplify_replace_fn_rtx (rtx, const_rtx,
+				    rtx (*fn) (rtx, void *), void *);
 extern rtx simplify_replace_rtx (rtx, const_rtx, rtx);
 extern rtx simplify_rtx (const_rtx);
 extern rtx avoid_constant_pool_reference (rtx);
@@ -1930,6 +1941,8 @@ extern void init_move_cost (enum machine_mode);
 extern bool resize_reg_info (void);
 /* Free up register info memory.  */
 extern void free_reg_info (void);
+extern void init_subregs_of_mode (void);
+extern void finish_subregs_of_mode (void);
 
 /* recog.c */
 extern rtx extract_asm_operands (rtx);
@@ -2407,8 +2420,6 @@ extern void invert_br_probabilities (rtx);
 extern bool expensive_function_p (int);
 /* In cfgexpand.c */
 extern void add_reg_br_prob_note (rtx last, int probability);
-extern rtx wrap_constant (enum machine_mode, rtx);
-extern rtx unwrap_constant (rtx);
 
 /* In var-tracking.c */
 extern unsigned int variable_tracking_main (void);

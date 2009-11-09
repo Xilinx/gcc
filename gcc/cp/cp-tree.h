@@ -2815,9 +2815,17 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
 #define DECL_DELETED_FN(DECL) \
   (DECL_LANG_SPECIFIC (FUNCTION_DECL_CHECK (DECL))->u.base.threadprivate_or_deleted_p)
 
-/* Nonzero if DECL was declared with '= default'.  */
+/* Nonzero if DECL was declared with '= default' (maybe implicitly).  */
 #define DECL_DEFAULTED_FN(DECL) \
   (LANG_DECL_FN_CHECK (DECL)->defaulted_p)
+
+/* Nonzero if DECL is explicitly defaulted in the class body.  */
+#define DECL_DEFAULTED_IN_CLASS_P(DECL)					\
+  (DECL_DEFAULTED_FN (DECL) && DECL_INITIALIZED_IN_CLASS_P (DECL))
+/* Nonzero if DECL was defaulted outside the class body.  */
+#define DECL_DEFAULTED_OUTSIDE_CLASS_P(DECL)				\
+  (DECL_DEFAULTED_FN (DECL)						\
+   && !(DECL_ARTIFICIAL (DECL) || DECL_INITIALIZED_IN_CLASS_P (DECL)))
 
 /* Record whether a typedef for type `int' was actually `signed int'.  */
 #define C_TYPEDEF_EXPLICITLY_SIGNED(EXP) DECL_LANG_FLAG_1 (EXP)
@@ -4265,6 +4273,8 @@ typedef struct cp_decl_specifier_seq {
   BOOL_BITFIELD conflicting_specifiers_p : 1;
   /* True iff at least one decl-specifier was found.  */
   BOOL_BITFIELD any_specifiers_p : 1;
+  /* True iff at least one type-specifier was found.  */
+  BOOL_BITFIELD any_type_specifiers_p : 1;
   /* True iff "int" was explicitly provided.  */
   BOOL_BITFIELD explicit_int_p : 1;
   /* True iff "char" was explicitly provided.  */
@@ -4427,7 +4437,7 @@ extern tree type_passed_as			(tree);
 extern tree convert_for_arg_passing		(tree, tree);
 extern bool is_properly_derived_from		(tree, tree);
 extern tree set_up_extended_ref_temp		(tree, tree, tree *, tree *);
-extern tree initialize_reference		(tree, tree, tree, tree *);
+extern tree initialize_reference		(tree, tree, tree, tree *, tsubst_flags_t);
 extern tree make_temporary_var_for_ref_to_temp	(tree, tree);
 extern tree strip_top_quals			(tree);
 extern bool reference_related_p			(tree, tree);
@@ -4489,9 +4499,11 @@ extern void check_for_override			(tree, tree);
 extern void push_class_stack			(void);
 extern void pop_class_stack			(void);
 extern bool type_has_user_nondefault_constructor (tree);
+extern bool user_provided_p			(tree);
 extern bool type_has_user_provided_constructor  (tree);
 extern bool type_has_user_provided_default_constructor (tree);
-extern bool defaultable_fn_p			(tree);
+extern void defaulted_late_check		(tree);
+extern bool defaultable_fn_check		(tree);
 extern void fixup_type_variants			(tree);
 extern tree* decl_cloned_function_p		(const_tree, bool);
 extern void clone_function_decl			(tree, int);
@@ -4513,7 +4525,6 @@ extern tree type_promotes_to			(tree);
 extern tree perform_qualification_conversions	(tree, tree);
 
 /* in name-lookup.c */
-extern tree get_anonymous_namespace_name	(void);
 extern tree pushdecl				(tree);
 extern tree pushdecl_maybe_friend		(tree, bool);
 extern void maybe_push_cleanup_level		(tree);
@@ -5069,6 +5080,7 @@ extern void apply_lambda_return_type            (tree, tree);
 extern tree add_capture                         (tree, tree, tree, bool, bool);
 extern tree add_default_capture                 (tree, tree, tree);
 extern tree lambda_expr_this_capture            (tree);
+extern void maybe_add_lambda_conv_op            (tree);
 
 /* in tree.c */
 void cp_free_lang_data 				(tree t);
@@ -5142,6 +5154,7 @@ extern tree move				(tree);
 extern tree cp_build_qualified_type_real	(tree, int, tsubst_flags_t);
 #define cp_build_qualified_type(TYPE, QUALS) \
   cp_build_qualified_type_real ((TYPE), (QUALS), tf_warning_or_error)
+extern tree cv_unqualified			(tree);
 extern special_function_kind special_function_p (const_tree);
 extern int count_trees				(tree);
 extern int char_type_p				(tree);
@@ -5294,7 +5307,7 @@ extern tree merge_exception_specifiers		(tree, tree);
 /* in mangle.c */
 extern void init_mangle				(void);
 extern void mangle_decl				(tree);
-extern const char *mangle_type_string_for_rtti	(tree);
+extern const char *mangle_type_string		(tree);
 extern tree mangle_typeinfo_for_type		(tree);
 extern tree mangle_typeinfo_string_for_type	(tree);
 extern tree mangle_vtbl_for_type		(tree);

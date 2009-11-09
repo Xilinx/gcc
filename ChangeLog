@@ -1,3 +1,51 @@
+2009-11-06  Ozkan Sezer  <sezeroz@gmail.com>
+
+	* configure.ac (FLAGS_FOR_TARGET):  Add -L and -isystem
+	paths for *-w64-mingw* and x86_64-*mingw*.
+	* configure: Regenerated.
+
+2009-11-05  Joern Rennecke <amylaar@spamcop.net>
+
+	* MAINTAINERS (Write After Approval): Add entry for my INRIA work.
+
+2009-11-02  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* MAINTAINERS: Add Jonathan Wakely under Various Maintainers, move
+	Phil Edwards to Write-After Approval.
+
+2009-10-30  Kai Tietz  <kai.tietz@onevision.com>
+
+	* configure.ac: Disable target-winsup & co for
+	x86_64-*-mingw* and *-w64-mingw* targets.
+	* configure: Regenerated.
+
+2009-10-16  Nick Clifton  <nickc@redhat.com>
+
+	* MAINTAINERS: Add myself as a maintainer for the RX port.
+
+2009-10-26  Johannes Singler <singler@kit.edu>
+
+        * MAINTAINERS (Write After Approval): Update my e-mail address.
+
+2009-10-23  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* configure.ac (CLooG test): Use = with test.
+	* configure: Regenerate.
+
+2009-10-22  Richard Guenther  <rguenther@suse.de>
+
+	* configure.ac: Do not set LIBS for ppl/cloog checks.  Disable
+	cloog if the ppl version check failed.  Move flags saving
+	before setting in libelf check.
+	* configure: Regenerate.
+
+2009-10-21  Richard Guenther  <rguenther@suse.de>
+
+	* configure.ac: Adjust the ppl and cloog configure to work as
+	documented.  Disable cloog if ppl was disabled.  Omit the version
+	checks if they were disabled.
+	* configure: Re-generate.
+
 2009-10-13  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
 
 	* configure.ac: Add 'lto' to enable_languages, not

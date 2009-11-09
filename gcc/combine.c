@@ -2264,68 +2264,33 @@ cleanup_auto_inc_dec (rtx src, bool after, enum machine_mode mem_mode)
 
   return x;
 }
-#endif
 
 /* Auxiliary data structure for propagate_for_debug_stmt.  */
 
 struct rtx_subst_pair
 {
-  rtx from, to;
-  bool changed;
-#ifdef AUTO_INC_DEC
+  rtx to;
   bool adjusted;
   bool after;
-#endif
 };
 
-/* Clean up any auto-updates in PAIR->to the first time it is called
-   for a PAIR.  PAIR->adjusted is used to tell whether we've cleaned
-   up before.  */
+/* DATA points to an rtx_subst_pair.  Return the value that should be
+   substituted.  */
 
-static void
-auto_adjust_pair (struct rtx_subst_pair *pair ATTRIBUTE_UNUSED)
+static rtx
+propagate_for_debug_subst (rtx from ATTRIBUTE_UNUSED, void *data)
 {
-#ifdef AUTO_INC_DEC
+  struct rtx_subst_pair *pair = (struct rtx_subst_pair *)data;
+
   if (!pair->adjusted)
     {
       pair->adjusted = true;
       pair->to = cleanup_auto_inc_dec (pair->to, pair->after, VOIDmode);
+      return pair->to;
     }
+  return copy_rtx (pair->to);
+}
 #endif
-}
-
-/* If *LOC is the same as FROM in the struct rtx_subst_pair passed as
-   DATA, replace it with a copy of TO.  Handle SUBREGs of *LOC as
-   well.  */
-
-static int
-propagate_for_debug_subst (rtx *loc, void *data)
-{
-  struct rtx_subst_pair *pair = (struct rtx_subst_pair *)data;
-  rtx from = pair->from, to = pair->to;
-  rtx x = *loc, s = x;
-
-  if (rtx_equal_p (x, from)
-      || (GET_CODE (x) == SUBREG && rtx_equal_p ((s = SUBREG_REG (x)), from)))
-    {
-      auto_adjust_pair (pair);
-      if (pair->to != to)
-	to = pair->to;
-      else
-	to = copy_rtx (to);
-      if (s != x)
-	{
-	  gcc_assert (GET_CODE (x) == SUBREG && SUBREG_REG (x) == s);
-	  to = simplify_gen_subreg (GET_MODE (x), to,
-				    GET_MODE (from), SUBREG_BYTE (x));
-	}
-      *loc = wrap_constant (GET_MODE (x), to);
-      pair->changed = true;
-      return -1;
-    }
-
-  return 0;
-}
 
 /* Replace occurrences of DEST with SRC in DEBUG_INSNs between INSN
    and LAST.  If MOVE holds, debug insns must also be moved past
@@ -2334,14 +2299,11 @@ propagate_for_debug_subst (rtx *loc, void *data)
 static void
 propagate_for_debug (rtx insn, rtx last, rtx dest, rtx src, bool move)
 {
-  struct rtx_subst_pair p;
-  rtx next, move_pos = move ? last : NULL_RTX;
-
-  p.from = dest;
-  p.to = src;
-  p.changed = false;
+  rtx next, move_pos = move ? last : NULL_RTX, loc;
 
 #ifdef AUTO_INC_DEC
+  struct rtx_subst_pair p;
+  p.to = src;
   p.adjusted = false;
   p.after = move;
 #endif
@@ -2353,11 +2315,15 @@ propagate_for_debug (rtx insn, rtx last, rtx dest, rtx src, bool move)
       next = NEXT_INSN (insn);
       if (DEBUG_INSN_P (insn))
 	{
-	  for_each_rtx (&INSN_VAR_LOCATION_LOC (insn),
-			propagate_for_debug_subst, &p);
-	  if (!p.changed)
+#ifdef AUTO_INC_DEC
+	  loc = simplify_replace_fn_rtx (INSN_VAR_LOCATION_LOC (insn),
+					 dest, propagate_for_debug_subst, &p);
+#else
+	  loc = simplify_replace_rtx (INSN_VAR_LOCATION_LOC (insn), dest, src);
+#endif
+	  if (loc == INSN_VAR_LOCATION_LOC (insn))
 	    continue;
-	  p.changed = false;
+	  INSN_VAR_LOCATION_LOC (insn) = loc;
 	  if (move_pos)
 	    {
 	      remove_insn (insn);
@@ -4193,9 +4159,12 @@ find_split_point (rtx *loc, rtx insn)
       if (GET_CODE (XEXP (x, 0)) == CONST
 	  || GET_CODE (XEXP (x, 0)) == SYMBOL_REF)
 	{
+	  enum machine_mode address_mode
+	    = targetm.addr_space.address_mode (MEM_ADDR_SPACE (x));
+
 	  SUBST (XEXP (x, 0),
-		 gen_rtx_LO_SUM (Pmode,
-				 gen_rtx_HIGH (Pmode, XEXP (x, 0)),
+		 gen_rtx_LO_SUM (address_mode,
+				 gen_rtx_HIGH (address_mode, XEXP (x, 0)),
 				 XEXP (x, 0)));
 	  return &XEXP (XEXP (x, 0), 0);
 	}
@@ -4208,7 +4177,8 @@ find_split_point (rtx *loc, rtx insn)
 	 it will not remain in the result.  */
       if (GET_CODE (XEXP (x, 0)) == PLUS
 	  && CONST_INT_P (XEXP (XEXP (x, 0), 1))
-	  && ! memory_address_p (GET_MODE (x), XEXP (x, 0)))
+	  && ! memory_address_addr_space_p (GET_MODE (x), XEXP (x, 0),
+					    MEM_ADDR_SPACE (x)))
 	{
 	  rtx reg = regno_reg_rtx[FIRST_PSEUDO_REGISTER];
 	  rtx seq = combine_split_insns (gen_rtx_SET (VOIDmode, reg,
@@ -4231,8 +4201,9 @@ find_split_point (rtx *loc, rtx insn)
 	      && NONJUMP_INSN_P (NEXT_INSN (seq))
 	      && GET_CODE (PATTERN (NEXT_INSN (seq))) == SET
 	      && SET_DEST (PATTERN (NEXT_INSN (seq))) == reg
-	      && memory_address_p (GET_MODE (x),
-				   SET_SRC (PATTERN (NEXT_INSN (seq)))))
+	      && memory_address_addr_space_p
+		   (GET_MODE (x), SET_SRC (PATTERN (NEXT_INSN (seq))),
+		    MEM_ADDR_SPACE (x)))
 	    {
 	      rtx src1 = SET_SRC (PATTERN (seq));
 	      rtx src2 = SET_SRC (PATTERN (NEXT_INSN (seq)));
@@ -4271,7 +4242,8 @@ find_split_point (rtx *loc, rtx insn)
       /* If we have a PLUS whose first operand is complex, try computing it
          separately by making a split there.  */
       if (GET_CODE (XEXP (x, 0)) == PLUS
-          && ! memory_address_p (GET_MODE (x), XEXP (x, 0))
+          && ! memory_address_addr_space_p (GET_MODE (x), XEXP (x, 0),
+					    MEM_ADDR_SPACE (x))
           && ! OBJECT_P (XEXP (XEXP (x, 0), 0))
           && ! (GET_CODE (XEXP (XEXP (x, 0), 0)) == SUBREG
                 && OBJECT_P (SUBREG_REG (XEXP (XEXP (x, 0), 0)))))
@@ -11495,6 +11467,22 @@ simplify_comparison (enum rtx_code code, rtx *pop0, rtx *pop1)
 	{
 	  int zero_extended;
 
+	  /* If this is a test for negative, we can make an explicit
+	     test of the sign bit.  Test this first so we can use
+	     a paradoxical subreg to extend OP0.  */
+
+	  if (op1 == const0_rtx && (code == LT || code == GE)
+	      && GET_MODE_BITSIZE (mode) <= HOST_BITS_PER_WIDE_INT)
+	    {
+	      op0 = simplify_gen_binary (AND, tmode,
+					 gen_lowpart (tmode, op0),
+					 GEN_INT ((HOST_WIDE_INT) 1
+						  << (GET_MODE_BITSIZE (mode)
+						      - 1)));
+	      code = (code == LT) ? NE : EQ;
+	      break;
+	    }
+
 	  /* If the only nonzero bits in OP0 and OP1 are those in the
 	     narrower mode and this is an equality or unsigned comparison,
 	     we can use the wider mode.  Similarly for sign-extended
@@ -11525,27 +11513,20 @@ simplify_comparison (enum rtx_code code, rtx *pop0, rtx *pop1)
 							XEXP (op0, 0)),
 					   gen_lowpart (tmode,
 							XEXP (op0, 1)));
-
-	      op0 = gen_lowpart (tmode, op0);
-	      if (zero_extended && CONST_INT_P (op1))
-		op1 = GEN_INT (INTVAL (op1) & GET_MODE_MASK (mode));
-	      op1 = gen_lowpart (tmode, op1);
-	      break;
-	    }
-
-	  /* If this is a test for negative, we can make an explicit
-	     test of the sign bit.  */
-
-	  if (op1 == const0_rtx && (code == LT || code == GE)
-	      && GET_MODE_BITSIZE (mode) <= HOST_BITS_PER_WIDE_INT)
-	    {
-	      op0 = simplify_gen_binary (AND, tmode,
-					 gen_lowpart (tmode, op0),
-					 GEN_INT ((HOST_WIDE_INT) 1
-						  << (GET_MODE_BITSIZE (mode)
-						      - 1)));
-	      code = (code == LT) ? NE : EQ;
-	      break;
+	      else
+		{
+		  if (zero_extended)
+		    {
+		      op0 = simplify_gen_unary (ZERO_EXTEND, tmode, op0, mode);
+		      op1 = simplify_gen_unary (ZERO_EXTEND, tmode, op1, mode);
+		    }
+		  else
+		    {
+		      op0 = simplify_gen_unary (SIGN_EXTEND, tmode, op0, mode);
+		      op1 = simplify_gen_unary (SIGN_EXTEND, tmode, op1, mode);
+		    }
+		  break;
+		}
 	    }
 	}
 

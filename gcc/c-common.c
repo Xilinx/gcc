@@ -711,6 +711,11 @@ const struct c_common_resword c_common_reswords[] =
   { "inout",		RID_INOUT,		D_OBJC },
   { "oneway",		RID_ONEWAY,		D_OBJC },
   { "out",		RID_OUT,		D_OBJC },
+
+#ifdef TARGET_ADDR_SPACE_KEYWORDS
+  /* Any address space keywords recognized by the target.  */
+  TARGET_ADDR_SPACE_KEYWORDS,
+#endif
 };
 
 const unsigned int num_c_common_reswords =
@@ -842,6 +847,19 @@ const struct attribute_spec c_common_format_attribute_table[] =
 			      handle_format_arg_attribute },
   { NULL,                     0, 0, false, false, false, NULL }
 };
+
+/* Return identifier for address space AS.  */
+const char *
+c_addr_space_name (addr_space_t as)
+{
+  unsigned int i;
+
+  for (i = 0; i < num_c_common_reswords; i++)
+    if (c_common_reswords[i].rid == RID_FIRST_ADDR_SPACE + as)
+      return c_common_reswords[i].word;
+
+  gcc_unreachable ();
+}
 
 /* Push current bindings for the function name VAR_DECLS.  */
 
@@ -4186,6 +4204,15 @@ c_common_get_alias_set (tree t)
   tree u;
   PTR *slot;
 
+  /* For VLAs, use the alias set of the element type rather than the
+     default of alias set 0 for types compared structurally.  */
+  if (TYPE_P (t) && TYPE_STRUCTURAL_EQUALITY_P (t))
+    {
+      if (TREE_CODE (t) == ARRAY_TYPE)
+	return get_alias_set (TREE_TYPE (t));
+      return -1;
+    }
+
   /* Permit type-punning when accessing a union, provided the access
      is directly through the union.  For example, this code does not
      permit taking the address of a union member and then storing
@@ -6453,9 +6480,10 @@ handle_mode_attribute (tree *node, tree name, tree args,
 
       if (POINTER_TYPE_P (type))
 	{
+	  addr_space_t as = TYPE_ADDR_SPACE (TREE_TYPE (type));
 	  tree (*fn)(tree, enum machine_mode, bool);
 
-	  if (!targetm.valid_pointer_mode (mode))
+	  if (!targetm.addr_space.valid_pointer_mode (mode, as))
 	    {
 	      error ("invalid pointer mode %qs", p);
 	      return NULL_TREE;
@@ -7826,6 +7854,8 @@ parse_optimize_options (tree args, bool attr_p)
   /* Now parse the options.  */
   decode_options (opt_argc, opt_argv);
 
+  targetm.override_options_after_change();
+
   /* Don't allow changing -fstrict-aliasing.  */
   flag_strict_aliasing = saved_flag_strict_aliasing;
 
@@ -8210,7 +8240,8 @@ c_parse_error (const char *gmsgid, enum cpp_ttype token_type,
   else if (token_type == CPP_STRING 
 	   || token_type == CPP_WSTRING 
 	   || token_type == CPP_STRING16
-	   || token_type == CPP_STRING32)
+	   || token_type == CPP_STRING32
+	   || token_type == CPP_UTF8STRING)
     message = catenate_messages (gmsgid, " before string constant");
   else if (token_type == CPP_NUMBER)
     message = catenate_messages (gmsgid, " before numeric constant");
@@ -8354,15 +8385,14 @@ fold_offsetof_1 (tree expr, tree stop_ref)
       error ("cannot apply %<offsetof%> when %<operator[]%> is overloaded");
       return error_mark_node;
 
-    case INTEGER_CST:
-      gcc_assert (integer_zerop (expr));
-      return size_zero_node;
-
     case NOP_EXPR:
     case INDIRECT_REF:
-      base = fold_offsetof_1 (TREE_OPERAND (expr, 0), stop_ref);
-      gcc_assert (base == error_mark_node || base == size_zero_node);
-      return base;
+      if (!integer_zerop (TREE_OPERAND (expr, 0)))
+	{
+	  error ("cannot apply %<offsetof%> to a non constant address");
+	  return error_mark_node;
+	}
+      return size_zero_node;
 
     case COMPONENT_REF:
       base = fold_offsetof_1 (TREE_OPERAND (expr, 0), stop_ref);
@@ -8395,6 +8425,48 @@ fold_offsetof_1 (tree expr, tree stop_ref)
 	}
       t = convert (sizetype, t);
       off = size_binop (MULT_EXPR, TYPE_SIZE_UNIT (TREE_TYPE (expr)), t);
+
+      /* Check if the offset goes beyond the upper bound of the array.  */
+      if (code == PLUS_EXPR && TREE_CODE (t) == INTEGER_CST)
+	{
+	  tree upbound = array_ref_up_bound (expr);
+	  if (upbound != NULL_TREE
+	      && TREE_CODE (upbound) == INTEGER_CST
+	      && !tree_int_cst_equal (upbound,
+				      TYPE_MAX_VALUE (TREE_TYPE (upbound))))
+	    {
+	      upbound = size_binop (PLUS_EXPR, upbound,
+				    build_int_cst (TREE_TYPE (upbound), 1));
+	      if (tree_int_cst_lt (upbound, t))
+		{
+		  tree v;
+
+		  for (v = TREE_OPERAND (expr, 0);
+		       TREE_CODE (v) == COMPONENT_REF;
+		       v = TREE_OPERAND (v, 0))
+		    if (TREE_CODE (TREE_TYPE (TREE_OPERAND (v, 0)))
+			== RECORD_TYPE)
+		      {
+			tree fld_chain = TREE_CHAIN (TREE_OPERAND (v, 1));
+			for (; fld_chain; fld_chain = TREE_CHAIN (fld_chain))
+			  if (TREE_CODE (fld_chain) == FIELD_DECL)
+			    break;
+
+			if (fld_chain)
+			  break;
+		      }
+		  /* Don't warn if the array might be considered a poor
+		     man's flexible array member with a very permissive
+		     definition thereof.  */
+		  if (TREE_CODE (v) == ARRAY_REF
+		      || TREE_CODE (v) == COMPONENT_REF)
+		    warning (OPT_Warray_bounds,
+			     "index %E denotes an offset "
+			     "greater than size of %qT",
+			     t, TREE_TYPE (TREE_OPERAND (expr, 0)));
+		}
+	    }
+	}
       break;
 
     case COMPOUND_EXPR:
@@ -8530,7 +8602,7 @@ complete_array_type (tree *ptype, tree initial_value, bool do_default)
   if (quals == 0)
     unqual_elt = elt;
   else
-    unqual_elt = c_build_qualified_type (elt, TYPE_UNQUALIFIED);
+    unqual_elt = c_build_qualified_type (elt, KEEP_QUAL_ADDR_SPACE (quals));
 
   /* Using build_distinct_type_copy and modifying things afterward instead
      of using build_array_type to create a new type preserves all of the

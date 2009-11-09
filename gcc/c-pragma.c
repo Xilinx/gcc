@@ -37,6 +37,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "target.h"
 #include "diagnostic.h"
 #include "opts.h"
+#include "plugin.h"
 
 #define GCC_BAD(gmsgid) \
   do { warning (OPT_Wpragmas, gmsgid); return; } while (0)
@@ -723,19 +724,20 @@ maybe_apply_renaming_pragma (tree decl, tree asmname)
 #ifdef HANDLE_PRAGMA_VISIBILITY
 static void handle_pragma_visibility (cpp_reader *);
 
-typedef enum symbol_visibility visibility;
-DEF_VEC_I (visibility);
-DEF_VEC_ALLOC_I (visibility, heap);
-static VEC (visibility, heap) *visstack;
+static VEC (int, heap) *visstack;
 
 /* Push the visibility indicated by STR onto the top of the #pragma
-   visibility stack.  */
+   visibility stack.  KIND is 0 for #pragma GCC visibility, 1 for
+   C++ namespace with visibility attribute and 2 for C++ builtin
+   ABI namespace.  push_visibility/pop_visibility calls must have
+   matching KIND, it is not allowed to push visibility using one
+   KIND and pop using a different one.  */
 
 void
-push_visibility (const char *str)
+push_visibility (const char *str, int kind)
 {
-  VEC_safe_push (visibility, heap, visstack,
-		 default_visibility);
+  VEC_safe_push (int, heap, visstack,
+		 ((int) default_visibility) | (kind << 8));
   if (!strcmp (str, "default"))
     default_visibility = VISIBILITY_DEFAULT;
   else if (!strcmp (str, "internal"))
@@ -749,14 +751,21 @@ push_visibility (const char *str)
   visibility_options.inpragma = 1;
 }
 
-/* Pop a level of the #pragma visibility stack.  */
+/* Pop a level of the #pragma visibility stack.  Return true if
+   successful.  */
 
-void
-pop_visibility (void)
+bool
+pop_visibility (int kind)
 {
-  default_visibility = VEC_pop (visibility, visstack);
+  if (!VEC_length (int, visstack))
+    return false;
+  if ((VEC_last (int, visstack) >> 8) != kind)
+    return false;
+  default_visibility
+    = (enum symbol_visibility) (VEC_pop (int, visstack) & 0xff);
   visibility_options.inpragma
-    = VEC_length (visibility, visstack) != 0;
+    = VEC_length (int, visstack) != 0;
+  return true;
 }
 
 /* Sets the default visibility for symbols to something other than that
@@ -785,10 +794,8 @@ handle_pragma_visibility (cpp_reader *dummy ATTRIBUTE_UNUSED)
     {
       if (pop == action)
 	{
-	  if (!VEC_length (visibility, visstack))
+	  if (! pop_visibility (0))
 	    GCC_BAD ("no matching push for %<#pragma GCC visibility pop%>");
-	  else
-	    pop_visibility ();
 	}
       else
 	{
@@ -798,7 +805,7 @@ handle_pragma_visibility (cpp_reader *dummy ATTRIBUTE_UNUSED)
 	  if (token != CPP_NAME)
 	    GCC_BAD ("malformed #pragma GCC visibility push");
 	  else
-	    push_visibility (IDENTIFIER_POINTER (x));
+	    push_visibility (IDENTIFIER_POINTER (x), 0);
 	  if (pragma_lex (&x) != CPP_CLOSE_PAREN)
 	    GCC_BAD ("missing %<(%> after %<#pragma GCC visibility push%> - ignored");
 	}
@@ -1444,6 +1451,9 @@ init_pragma (void)
 #ifdef REGISTER_TARGET_PRAGMAS
   REGISTER_TARGET_PRAGMAS ();
 #endif
+
+  /* Allow plugins to register their own pragmas. */
+  invoke_plugin_callbacks (PLUGIN_PRAGMAS, NULL);
 }
 
 #include "gt-c-pragma.h"

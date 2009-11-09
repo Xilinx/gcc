@@ -313,6 +313,9 @@ build_call_a (tree function, int n, tree *argarray)
   gcc_assert (TREE_CODE (fntype) == FUNCTION_TYPE
 	      || TREE_CODE (fntype) == METHOD_TYPE);
   result_type = TREE_TYPE (fntype);
+  /* An rvalue has no cv-qualifiers.  */
+  if (SCALAR_TYPE_P (result_type) || VOID_TYPE_P (result_type))
+    result_type = cv_unqualified (result_type);
 
   if (TREE_CODE (function) == ADDR_EXPR
       && TREE_CODE (TREE_OPERAND (function, 0)) == FUNCTION_DECL)
@@ -898,10 +901,7 @@ standard_conversion (tree to, tree from, tree expr, bool c_cast_p,
 	  || cp_type_quals (fbase) != cp_type_quals (tbase))
 	return NULL;
 
-      from = cp_build_qualified_type (tbase, cp_type_quals (fbase));
-      from = build_method_type_directly (from,
-					 TREE_TYPE (fromfn),
-					 TREE_CHAIN (TYPE_ARG_TYPES (fromfn)));
+      from = build_memfn_type (fromfn, tbase, cp_type_quals (tbase));
       from = build_ptrmemfunc_type (build_pointer_type (from));
       conv = build_conv (ck_pmem, from, conv);
       conv->base_p = true;
@@ -1636,7 +1636,8 @@ add_function_candidate (struct z_candidate **candidates,
 	      parmtype = build_pointer_type (parmtype);
 	    }
 
-	  if (ctype && i == 0 && DECL_COPY_CONSTRUCTOR_P (fn))
+	  if (ctype && i == 0 && DECL_COPY_CONSTRUCTOR_P (fn)
+	      && (len-skip == 1))
 	    {
 	      /* Hack: Direct-initialize copy parm (i.e. suppress
 		 LOOKUP_ONLYCONVERTING) to make explicit conversion ops
@@ -2723,6 +2724,8 @@ print_z_candidate (const char *msgstr, struct z_candidate *candidate)
     inform (input_location, "%s %T <conversion>", msgstr, candidate->fn);
   else if (candidate->viable == -1)
     inform (input_location, "%s %+#D <near match>", msgstr, candidate->fn);
+  else if (DECL_DELETED_FN (candidate->fn))
+    inform (input_location, "%s %+#D <deleted>", msgstr, candidate->fn);
   else
     inform (input_location, "%s %+#D", msgstr, candidate->fn);
 }
@@ -2733,6 +2736,23 @@ print_z_candidates (struct z_candidate *candidates)
   const char *str;
   struct z_candidate *cand1;
   struct z_candidate **cand2;
+
+  if (!candidates)
+    return;
+
+  /* Remove deleted candidates.  */
+  cand1 = candidates;
+  for (cand2 = &cand1; *cand2; )
+    {
+      if (TREE_CODE ((*cand2)->fn) == FUNCTION_DECL
+	  && DECL_DELETED_FN ((*cand2)->fn))
+	*cand2 = (*cand2)->next;
+      else
+	cand2 = &(*cand2)->next;
+    }
+  /* ...if there are any non-deleted ones.  */
+  if (cand1)
+    candidates = cand1;
 
   /* There may be duplicates in the set of candidates.  We put off
      checking this condition as long as possible, since we have no way
@@ -2755,9 +2775,6 @@ print_z_candidates (struct z_candidate *candidates)
 	    cand2 = &(*cand2)->next;
 	}
     }
-
-  if (!candidates)
-    return;
 
   str = _("candidates are:");
   print_z_candidate (str, candidates);
@@ -2941,10 +2958,15 @@ build_user_type_conversion_1 (tree totype, tree expr, int flags)
       for (fns = TREE_VALUE (conv_fns); fns; fns = OVL_NEXT (fns))
 	{
 	  tree fn = OVL_CURRENT (fns);
+	  tree first = first_arg;
 
 	  if (DECL_NONCONVERTING_P (fn)
 	      && (flags & LOOKUP_ONLYCONVERTING))
 	    continue;
+
+	  /* Lambdas have a static conversion op.  */
+	  if (DECL_STATIC_FUNCTION_P (fn))
+	    first = NULL_TREE;
 
 	  /* [over.match.funcs] For conversion functions, the function
 	     is considered to be a member of the class of the implicit
@@ -2956,14 +2978,14 @@ build_user_type_conversion_1 (tree totype, tree expr, int flags)
 	  if (TREE_CODE (fn) == TEMPLATE_DECL)
 	    cand = add_template_candidate (&candidates, fn, fromtype,
 					   NULL_TREE,
-					   first_arg, NULL, totype,
+					   first, NULL, totype,
 					   TYPE_BINFO (fromtype),
 					   conversion_path,
 					   flags,
 					   DEDUCE_CONV);
 	  else
 	    cand = add_function_candidate (&candidates, fn, fromtype,
-					   first_arg, NULL,
+					   first, NULL,
 					   TYPE_BINFO (fromtype),
 					   conversion_path,
 					   flags);
@@ -3370,20 +3392,30 @@ build_op_call (tree obj, VEC(tree,gc) **args, tsubst_flags_t complain)
       for (fns = BASELINK_FUNCTIONS (fns); fns; fns = OVL_NEXT (fns))
 	{
 	  tree fn = OVL_CURRENT (fns);
+
+	  tree lfirst = first_mem_arg;
+	  if (DECL_STATIC_FUNCTION_P (fn))
+	    lfirst = NULL_TREE;
+
 	  if (TREE_CODE (fn) == TEMPLATE_DECL)
 	    add_template_candidate (&candidates, fn, base, NULL_TREE,
-				    first_mem_arg, *args, NULL_TREE,
+				    lfirst, *args, NULL_TREE,
 				    TYPE_BINFO (type),
 				    TYPE_BINFO (type),
 				    LOOKUP_NORMAL, DEDUCE_CALL);
 	  else
 	    add_function_candidate
-	      (&candidates, fn, base, first_mem_arg, *args, TYPE_BINFO (type),
+	      (&candidates, fn, base, lfirst, *args, TYPE_BINFO (type),
 	       TYPE_BINFO (type), LOOKUP_NORMAL);
 	}
     }
 
-  convs = lookup_conversions (type);
+  /* Rather than mess with handling static conversion ops here, just don't
+     look at conversions in lambdas.  */
+  if (LAMBDA_TYPE_P (type))
+    convs = NULL_TREE;
+  else
+    convs = lookup_conversions (type);
 
   for (; convs; convs = TREE_CHAIN (convs))
     {
@@ -6590,8 +6622,9 @@ compare_ics (conversion *ics1, conversion *ics2)
       /* We couldn't make up our minds; try to figure it out below.  */
     }
 
-  if (ics1->ellipsis_p)
-    /* Both conversions are ellipsis conversions.  */
+  if (ics1->ellipsis_p || ics1->kind == ck_list)
+    /* Both conversions are ellipsis conversions or both are building a
+       std::initializer_list.  */
     return 0;
 
   /* User-defined  conversion sequence U1 is a better conversion sequence
@@ -7589,7 +7622,8 @@ set_up_extended_ref_temp (tree decl, tree expr, tree *cleanup, tree *initp)
    Return the converted expression.  */
 
 tree
-initialize_reference (tree type, tree expr, tree decl, tree *cleanup)
+initialize_reference (tree type, tree expr, tree decl, tree *cleanup,
+		      tsubst_flags_t complain)
 {
   conversion *conv;
   void *p;
@@ -7604,16 +7638,19 @@ initialize_reference (tree type, tree expr, tree decl, tree *cleanup)
 			    LOOKUP_NORMAL);
   if (!conv || conv->bad_p)
     {
-      if (!(TYPE_QUALS (TREE_TYPE (type)) & TYPE_QUAL_CONST)
-	  && !TYPE_REF_IS_RVALUE (type)
-	  && !real_lvalue_p (expr))
-	error ("invalid initialization of non-const reference of "
-	       "type %qT from a temporary of type %qT",
-	       type, TREE_TYPE (expr));
-      else
-	error ("invalid initialization of reference of type "
-	       "%qT from expression of type %qT", type,
-	       TREE_TYPE (expr));
+      if (complain & tf_error)
+	{
+	  if (!(TYPE_QUALS (TREE_TYPE (type)) & TYPE_QUAL_CONST)
+	      && !TYPE_REF_IS_RVALUE (type)
+	      && !real_lvalue_p (expr))
+	    error ("invalid initialization of non-const reference of "
+		   "type %qT from an rvalue of type %qT",
+		   type, TREE_TYPE (expr));
+	  else
+	    error ("invalid initialization of reference of type "
+		   "%qT from expression of type %qT", type,
+		   TREE_TYPE (expr));
+	}
       return error_mark_node;
     }
 

@@ -334,7 +334,6 @@ lto_file_read (lto_file *file, FILE *resolution_file)
 
   file_data = XCNEW (struct lto_file_decl_data);
   file_data->file_name = file->filename;
-  file_data->fd = -1;
   file_data->section_hash_table = lto_elf_build_section_table (file);
   file_data->renaming_hash_table = lto_create_renaming_table ();
 
@@ -363,17 +362,33 @@ lto_read_section_data (struct lto_file_decl_data *file_data,
 		       intptr_t offset, size_t len)
 {
   char *result;
+  static int fd = -1;
+  static char *fd_name;
 #if LTO_MMAP_IO
   intptr_t computed_len;
   intptr_t computed_offset;
   intptr_t diff;
 #endif
 
-  if (file_data->fd == -1)
-    file_data->fd = open (file_data->file_name, O_RDONLY);
-
-  if (file_data->fd == -1)
-    return NULL;
+  /* Keep a single-entry file-descriptor cache.  The last file we
+     touched will get closed at exit.
+     ???  Eventually we want to add a more sophisticated larger cache
+     or rather fix function body streaming to not stream them in
+     practically random order.  */
+  if (fd != -1
+      && strcmp (fd_name, file_data->file_name) != 0)
+    {
+      free (fd_name);
+      close (fd);
+      fd = -1;
+    }
+  if (fd == -1)
+    {
+      fd_name = xstrdup (file_data->file_name);
+      fd = open (file_data->file_name, O_RDONLY);
+      if (fd == -1)
+	return NULL;
+    }
 
 #if LTO_MMAP_IO
   if (!page_mask)
@@ -387,26 +402,17 @@ lto_read_section_data (struct lto_file_decl_data *file_data,
   computed_len = len + diff;
 
   result = (char *) mmap (NULL, computed_len, PROT_READ, MAP_PRIVATE,
-			  file_data->fd, computed_offset);
+			  fd, computed_offset);
   if (result == MAP_FAILED)
-    {
-      close (file_data->fd);
-      return NULL;
-    }
+    return NULL;
 
   return result + diff;
 #else
   result = (char *) xmalloc (len);
-  if (result == NULL)
-    {
-      close (file_data->fd);
-      return NULL;
-    }
-  if (lseek (file_data->fd, offset, SEEK_SET) != offset
-      || read (file_data->fd, result, len) != (ssize_t) len)
+  if (lseek (fd, offset, SEEK_SET) != offset
+      || read (fd, result, len) != (ssize_t) len)
     {
       free (result);
-      close (file_data->fd);
       return NULL;
     }
 
@@ -449,7 +455,7 @@ get_section_data (struct lto_file_decl_data *file_data,
    starts at OFFSET and has LEN bytes.  */
 
 static void
-free_section_data (struct lto_file_decl_data *file_data,
+free_section_data (struct lto_file_decl_data *file_data ATTRIBUTE_UNUSED,
 		   enum lto_section_type section_type ATTRIBUTE_UNUSED,
 		   const char *name ATTRIBUTE_UNUSED,
 		   const char *offset, size_t len ATTRIBUTE_UNUSED)
@@ -459,9 +465,6 @@ free_section_data (struct lto_file_decl_data *file_data,
   intptr_t computed_offset;
   intptr_t diff;
 #endif
-
-  if (file_data->fd == -1)
-    return;
 
 #if LTO_MMAP_IO
   computed_offset = ((intptr_t) offset) & page_mask;
@@ -1193,7 +1196,6 @@ lto_execute_ltrans (char *const *files)
 
 
 typedef struct {
-  struct pointer_set_t *free_list;
   struct pointer_set_t *seen;
 } lto_fixup_data_t;
 
@@ -1528,8 +1530,6 @@ lto_fixup_tree (tree *tp, int *walk_subtrees, void *data)
 		lto_mark_nothrow_fndecl (prevailing);
 	    }
 
-	  pointer_set_insert (fixup_data->free_list, t);
-
 	   /* Also replace t with prevailing defintion.  We don't want to
 	      insert the other defintion in the seen set as we want to
 	      replace all instances of it.  */
@@ -1638,20 +1638,6 @@ lto_fixup_state_aux (void **slot, void *aux)
   return 1;
 }
 
-/* A callback to pointer_set_traverse. Frees the tree pointed by p. Removes
-   from it from the UID -> DECL mapping. */
-
-static bool
-free_decl (const void *p, void *data ATTRIBUTE_UNUSED)
-{
-  const_tree ct = (const_tree) p;
-  tree t = CONST_CAST_TREE (ct);
-
-  lto_symtab_clear_resolution (t);
-
-  return true;
-}
-
 /* Fix the decls from all FILES. Replaces each decl with the corresponding
    prevailing one.  */
 
@@ -1660,11 +1646,9 @@ lto_fixup_decls (struct lto_file_decl_data **files)
 {
   unsigned int i;
   tree decl;
-  struct pointer_set_t *free_list = pointer_set_create ();
   struct pointer_set_t *seen = pointer_set_create ();
   lto_fixup_data_t data;
 
-  data.free_list = free_list;
   data.seen = seen;
   for (i = 0; files[i]; i++)
     {
@@ -1683,8 +1667,6 @@ lto_fixup_decls (struct lto_file_decl_data **files)
 	VEC_replace (tree, lto_global_var_decls, i, decl);
     }
 
-  pointer_set_traverse (free_list, free_decl, NULL);
-  pointer_set_destroy (free_list);
   pointer_set_destroy (seen);
 }
 
@@ -1733,15 +1715,12 @@ lto_read_all_file_options (void)
 
       file_data = XCNEW (struct lto_file_decl_data);
       file_data->file_name = file->filename;
-      file_data->fd = -1;
       file_data->section_hash_table = lto_elf_build_section_table (file);
 
       lto_read_file_options (file_data);
 
       lto_elf_file_close (file);
       htab_delete (file_data->section_hash_table);
-      if (file_data->fd != -1)
-	close (file_data->fd);
       free (file_data);
     }
 
@@ -1823,11 +1802,18 @@ read_cgraph_and_symbols (unsigned nfiles, const char **fnames)
   /* Read the callgraph.  */
   input_cgraph ();
 
+  /* Merge global decls.  */
+  lto_symtab_merge_decls ();
+
+  /* Fixup all decls and types and free the type hash tables.  */
+  lto_fixup_decls (all_file_decl_data);
+  free_gimple_type_tables ();
+
   /* Read the IPA summary data.  */
   ipa_read_summaries ();
 
-  /* Merge global decls.  */
-  lto_symtab_merge_decls ();
+  /* Finally merge the cgraph according to the decl merging decisions.  */
+  lto_symtab_merge_cgraph_nodes ();
 
   /* Mark cgraph nodes needed in the merged cgraph
      This normally happens in whole-program pass, but for
@@ -1843,12 +1829,6 @@ read_cgraph_and_symbols (unsigned nfiles, const char **fnames)
         cgraph_mark_needed_node (node);
 
   timevar_push (TV_IPA_LTO_DECL_IO);
-
-  /* Fixup all decls and types.  */
-  lto_fixup_decls (all_file_decl_data);
-
-  /* Free the type hash tables.  */
-  free_gimple_type_tables ();
 
   /* FIXME lto. This loop needs to be changed to use the pass manager to
      call the ipa passes directly.  */

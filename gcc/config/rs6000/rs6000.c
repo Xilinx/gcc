@@ -130,6 +130,8 @@ typedef struct GTY(()) machine_function
      64-bits wide and is allocated early enough so that the offset
      does not overflow the 16-bit load/store offset field.  */
   rtx sdmode_stack_slot;
+  /* True if any VSX or ALTIVEC vector type was used.  */
+  bool vsx_or_altivec_used_p;
 } machine_function;
 
 /* Target cpu type */
@@ -836,6 +838,21 @@ struct processor_costs ppca2_cost = {
 };
 
 
+/* Table that classifies rs6000 builtin functions (pure, const, etc.).  */
+#undef RS6000_BUILTIN
+#undef RS6000_BUILTIN_EQUATE
+#define RS6000_BUILTIN(NAME, TYPE) TYPE,
+#define RS6000_BUILTIN_EQUATE(NAME, VALUE)
+
+static const enum rs6000_btc builtin_classify[(int)RS6000_BUILTIN_COUNT] =
+{
+#include "rs6000-builtin.def"
+};
+
+#undef RS6000_BUILTIN
+#undef RS6000_BUILTIN_EQUATE
+
+
 static bool rs6000_function_ok_for_sibcall (tree, tree);
 static const char *rs6000_invalid_within_doloop (const_rtx);
 static bool rs6000_legitimate_address_p (enum machine_mode, rtx, bool);
@@ -898,7 +915,7 @@ static void rs6000_elf_encode_section_info (tree, rtx, int)
      ATTRIBUTE_UNUSED;
 #endif
 static bool rs6000_use_blocks_for_constant_p (enum machine_mode, const_rtx);
-static void rs6000_alloc_sdmode_stack_slot (void);
+static void rs6000_expand_to_rtl_hook (void);
 static void rs6000_instantiate_decls (void);
 #if TARGET_XCOFF
 static void rs6000_xcoff_asm_output_anchor (rtx);
@@ -1490,7 +1507,7 @@ static const struct attribute_spec rs6000_attribute_table[] =
 #define TARGET_BUILTIN_RECIPROCAL rs6000_builtin_reciprocal
 
 #undef TARGET_EXPAND_TO_RTL_HOOK
-#define TARGET_EXPAND_TO_RTL_HOOK rs6000_alloc_sdmode_stack_slot
+#define TARGET_EXPAND_TO_RTL_HOOK rs6000_expand_to_rtl_hook
 
 #undef TARGET_INSTANTIATE_DECLS
 #define TARGET_INSTANTIATE_DECLS rs6000_instantiate_decls
@@ -2265,6 +2282,13 @@ rs6000_override_options (const char *default_cpu)
 		     | MASK_DLMZB | MASK_CMPB | MASK_MFPGPR | MASK_DFP
 		     | MASK_POPCNTD | MASK_VSX | MASK_ISEL | MASK_NO_UPDATE)
   };
+
+  /* Numerous experiment shows that IRA based loop pressure
+     calculation works better for RTL loop invariant motion on targets
+     with enough (>= 32) registers.  It is an expensive optimization.
+     So it is on only for peak performance.  */
+  if (optimize >= 3)
+    flag_ira_loop_pressure = 1;
 
   /* Set the pointer size.  */
   if (TARGET_64BIT)
@@ -8494,13 +8518,54 @@ def_builtin (int mask, const char *name, tree type, int code)
 {
   if ((mask & target_flags) || TARGET_PAIRED_FLOAT)
     {
+      tree t;
       if (rs6000_builtin_decls[code])
 	fatal_error ("internal error: builtin function to %s already processed.",
 		     name);
 
-      rs6000_builtin_decls[code] =
+      rs6000_builtin_decls[code] = t =
         add_builtin_function (name, type, code, BUILT_IN_MD,
 			      NULL, NULL_TREE);
+
+      gcc_assert (code >= 0 && code < (int)RS6000_BUILTIN_COUNT);
+      switch (builtin_classify[code])
+	{
+	default:
+	  gcc_unreachable ();
+
+	  /* assume builtin can do anything.  */
+	case RS6000_BTC_MISC:
+	  break;
+
+	  /* const function, function only depends on the inputs.  */
+	case RS6000_BTC_CONST:
+	  TREE_READONLY (t) = 1;
+	  TREE_NOTHROW (t) = 1;
+	  break;
+
+	  /* pure function, function can read global memory.  */
+	case RS6000_BTC_PURE:
+	  DECL_PURE_P (t) = 1;
+	  TREE_NOTHROW (t) = 1;
+	  break;
+
+	  /* Function is a math function.  If rounding mode is on, then treat
+	     the function as not reading global memory, but it can have
+	     arbitrary side effects.  If it is off, then assume the function is
+	     a const function.  This mimics the ATTR_MATHFN_FPROUNDING
+	     attribute in builtin-attribute.def that is used for the math
+	     functions. */
+	case RS6000_BTC_FP_PURE:
+	  TREE_NOTHROW (t) = 1;
+	  if (flag_rounding_math)
+	    {
+	      DECL_PURE_P (t) = 1;
+	      DECL_IS_NOVOPS (t) = 1;
+	    }
+	  else
+	    TREE_READONLY (t) = 1;
+	  break;
+	}
     }
 }
 
@@ -13127,6 +13192,38 @@ rs6000_check_sdmode (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
   return NULL_TREE;
 }
 
+static tree
+rs6000_check_vector_mode (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
+{
+  /* Don't walk into types.  */
+  if (*tp == NULL_TREE || *tp == error_mark_node || TYPE_P (*tp))
+    {
+      *walk_subtrees = 0;
+      return NULL_TREE;
+    }
+
+  switch (TREE_CODE (*tp))
+    {
+    case VAR_DECL:
+    case PARM_DECL:
+    case FIELD_DECL:
+    case RESULT_DECL:
+    case SSA_NAME:
+    case REAL_CST:
+    case INDIRECT_REF:
+    case ALIGN_INDIRECT_REF:
+    case MISALIGNED_INDIRECT_REF:
+    case VIEW_CONVERT_EXPR:
+      if (VECTOR_MODE_P (TYPE_MODE (TREE_TYPE (*tp))))
+	return *tp;
+      break;
+    default:
+      break;
+    }
+
+  return NULL_TREE;
+}
+
 enum reload_reg_type {
   GPR_REGISTER_TYPE,
   VECTOR_REGISTER_TYPE,
@@ -13567,11 +13664,17 @@ rs6000_ira_cover_classes (void)
   return (TARGET_VSX) ? cover_vsx : cover_pre_vsx;
 }
 
-/* Allocate a 64-bit stack slot to be used for copying SDmode
-   values through if this function has any SDmode references.  */
+/* Scan the trees looking for certain types.
+
+   Allocate a 64-bit stack slot to be used for copying SDmode values through if
+   this function has any SDmode references.
+
+   If VSX, note whether any vector operation was done so we can set VRSAVE to
+   non-zero, even if we just use the floating point registers to tell the
+   kernel to save the vector registers.  */
 
 static void
-rs6000_alloc_sdmode_stack_slot (void)
+rs6000_expand_to_rtl_hook (void)
 {
   tree t;
   basic_block bb;
@@ -13579,6 +13682,24 @@ rs6000_alloc_sdmode_stack_slot (void)
 
   gcc_assert (cfun->machine->sdmode_stack_slot == NULL_RTX);
 
+  /* Check for vectors.  */
+  if (TARGET_VSX)
+    {
+      FOR_EACH_BB (bb)
+	for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
+	  {
+	    if (walk_gimple_op (gsi_stmt (gsi), rs6000_check_vector_mode,
+				NULL))
+	      {
+		cfun->machine->vsx_or_altivec_used_p = true;
+		goto found_vector;
+	      }
+	  }
+    found_vector:
+      ;
+    }
+
+  /* Check for SDmode being used.  */
   FOR_EACH_BB (bb)
     for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
       {
@@ -16719,6 +16840,15 @@ compute_vrsave_mask (void)
   for (i = FIRST_ALTIVEC_REGNO; i <= LAST_ALTIVEC_REGNO; ++i)
     if (df_regs_ever_live_p (i))
       mask |= ALTIVEC_REG_BIT (i);
+
+  /* If VSX is used, we might have used a traditional floating point register
+     in a vector mode without using any altivec registers.  However the VRSAVE
+     register does not have room to indicate the floating point registers.
+     Modern kernels only look to see if the value is non-zero to determine if
+     they need to save the vector registers, so we just set an arbitrary
+     value if any vector type was used.  */
+  if (mask == 0 && TARGET_VSX && cfun->machine->vsx_or_altivec_used_p)
+    mask = 0xFFF;
 
   if (mask == 0)
     return mask;

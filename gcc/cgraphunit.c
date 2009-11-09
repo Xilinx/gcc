@@ -1392,15 +1392,16 @@ ipa_passes (void)
       set_cfun (NULL);
       current_function_decl = NULL;
       cgraph_process_new_functions ();
-    }
 
-  execute_ipa_summary_passes ((struct ipa_opt_pass_d *) all_regular_ipa_passes);
+      execute_ipa_summary_passes ((struct ipa_opt_pass_d *) all_regular_ipa_passes);
+    }
   execute_ipa_summary_passes ((struct ipa_opt_pass_d *) all_lto_gen_passes);
 
   if (!in_lto_p)
     ipa_write_summaries ();
 
-  execute_ipa_pass_list (all_regular_ipa_passes);
+  if (!flag_ltrans)
+    execute_ipa_pass_list (all_regular_ipa_passes);
 
   bitmap_obstack_release (NULL);
 }
@@ -1438,7 +1439,10 @@ cgraph_optimize (void)
 
   /* Do nothing else if any IPA pass found errors.  */
   if (errorcount || sorrycount)
-    return;
+    {
+      timevar_pop (TV_CGRAPHOPT);
+      return;
+    }
 
   /* This pass remove bodies of extern inline functions we never inlined.
      Do this later so other IPA passes see what is really going on.  */
@@ -1458,6 +1462,7 @@ cgraph_optimize (void)
   timevar_pop (TV_CGRAPHOPT);
 
   /* Output everything.  */
+  (*debug_hooks->assembly_start) ();
   if (!quiet_flag)
     fprintf (stderr, "Assembling functions:\n");
 #ifdef ENABLE_CHECKING

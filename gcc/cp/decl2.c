@@ -114,20 +114,27 @@ tree
 build_memfn_type (tree fntype, tree ctype, cp_cv_quals quals)
 {
   tree raises;
+  tree attrs;
   int type_quals;
 
   if (fntype == error_mark_node || ctype == error_mark_node)
     return error_mark_node;
 
+  gcc_assert (TREE_CODE (fntype) == FUNCTION_TYPE
+	      || TREE_CODE (fntype) == METHOD_TYPE);
+
   type_quals = quals & ~TYPE_QUAL_RESTRICT;
   ctype = cp_build_qualified_type (ctype, type_quals);
+  raises = TYPE_RAISES_EXCEPTIONS (fntype);
+  attrs = TYPE_ATTRIBUTES (fntype);
   fntype = build_method_type_directly (ctype, TREE_TYPE (fntype),
 				       (TREE_CODE (fntype) == METHOD_TYPE
 					? TREE_CHAIN (TYPE_ARG_TYPES (fntype))
 					: TYPE_ARG_TYPES (fntype)));
-  raises = TYPE_RAISES_EXCEPTIONS (fntype);
   if (raises)
     fntype = build_exception_variant (fntype, raises);
+  if (attrs)
+    fntype = cp_build_type_attribute_variant (fntype, attrs);
 
   return fntype;
 }
@@ -237,6 +244,9 @@ maybe_retrofit_in_chrg (tree fn)
   if (TYPE_RAISES_EXCEPTIONS (TREE_TYPE (fn)))
     fntype = build_exception_variant (fntype,
 				      TYPE_RAISES_EXCEPTIONS (TREE_TYPE (fn)));
+  if (TYPE_ATTRIBUTES (TREE_TYPE (fn)))
+    fntype = (cp_build_type_attribute_variant
+	      (fntype, TYPE_ATTRIBUTES (TREE_TYPE (fn))));
   TREE_TYPE (fn) = fntype;
 
   /* Now we've got the in-charge parameter.  */
@@ -779,7 +789,7 @@ grokfield (const cp_declarator *declarator,
 
   if (TREE_CODE (value) == TYPE_DECL && init)
     {
-      error ("typedef %qD is initialized (use __typeof__ instead)", value);
+      error ("typedef %qD is initialized (use decltype instead)", value);
       init = NULL_TREE;
     }
 
@@ -862,9 +872,7 @@ grokfield (const cp_declarator *declarator,
 	    }
 	  else if (init == ridpointers[(int)RID_DEFAULT])
 	    {
-	      if (!defaultable_fn_p (value))
-		error ("%qD cannot be defaulted", value);
-	      else
+	      if (defaultable_fn_check (value))
 		{
 		  DECL_DEFAULTED_FN (value) = 1;
 		  DECL_INITIALIZED_IN_CLASS_P (value) = 1;
@@ -1221,6 +1229,8 @@ cp_reconstruct_complex_type (tree type, tree bottom)
   else
     return bottom;
 
+  if (TYPE_ATTRIBUTES (type))
+    outer = cp_build_type_attribute_variant (outer, TYPE_ATTRIBUTES (type));
   return cp_build_qualified_type (outer, TYPE_QUALS (type));
 }
 
@@ -3312,6 +3322,7 @@ cxx_callgraph_analyze_expr (tree *tp, int *walk_subtrees ATTRIBUTE_UNUSED)
 	    mark_decl_referenced (vtbl);
 	}
       else if (DECL_CONTEXT (t)
+	       && flag_use_repository
 	       && TREE_CODE (DECL_CONTEXT (t)) == FUNCTION_DECL)
 	/* If we need a static variable in a function, then we
 	   need the containing function.  */
@@ -3992,7 +4003,8 @@ mark_used (tree decl)
    o the variable or function has extern "C" linkage (7.5 [dcl.link]), or
    o the variable or function is not used (3.2 [basic.def.odr]) or is
    defined in the same translation unit.  */
-  if (decl_linkage (decl) != lk_none
+  if (cxx_dialect > cxx98
+      && decl_linkage (decl) != lk_none
       && !DECL_EXTERN_C_P (decl)
       && !DECL_ARTIFICIAL (decl)
       && !decl_defined_p (decl)

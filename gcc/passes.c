@@ -314,7 +314,7 @@ struct rtl_opt_pass pass_postreload =
 {
  {
   RTL_PASS,
-  NULL,                                 /* name */
+  "*all-postreload",                        /* name */
   gate_postreload,                      /* gate */
   NULL,                                 /* execute */
   NULL,                                 /* sub */
@@ -374,7 +374,7 @@ void
 register_one_dump_file (struct opt_pass *pass)
 {
   char *dot_name, *flag_name, *glob_name;
-  const char *prefix;
+  const char *name, *prefix;
   char num[10];
   int flags, id;
 
@@ -384,7 +384,14 @@ register_one_dump_file (struct opt_pass *pass)
     sprintf (num, "%d", ((int) pass->static_pass_number < 0
 			 ? 1 : pass->static_pass_number));
 
-  dot_name = concat (".", pass->name, num, NULL);
+  /* The name is both used to identify the pass for the purposes of plugins,
+     and to specify dump file name and option.
+     The latter two might want something short which is not quite unique; for
+     that reason, we may have a disambiguating prefix, followed by a space
+     to mark the start of the following dump file name / option string.  */
+  name = strchr (pass->name, ' ');
+  name = name ? name + 1 : pass->name;
+  dot_name = concat (".", name, num, NULL);
   if (pass->type == SIMPLE_IPA_PASS || pass->type == IPA_PASS)
     prefix = "ipa-", flags = TDF_IPA;
   else if (pass->type == GIMPLE_PASS)
@@ -392,8 +399,8 @@ register_one_dump_file (struct opt_pass *pass)
   else
     prefix = "rtl-", flags = TDF_RTL;
 
-  flag_name = concat (prefix, pass->name, num, NULL);
-  glob_name = concat (prefix, pass->name, NULL);
+  flag_name = concat (prefix, name, num, NULL);
+  glob_name = concat (prefix, name, NULL);
   id = dump_register (dot_name, flag_name, glob_name, flags);
   set_pass_for_id (id, pass);
 }
@@ -461,7 +468,7 @@ make_pass_instance (struct opt_pass *pass, bool track_duplicates)
          and so it should rename the dump file.  The first instance will
          be -1, and be number of duplicates = -static_pass_number - 1.
          Subsequent instances will be > 0 and just the duplicate number.  */
-      if (pass->name || track_duplicates)
+      if ((pass->name && pass->name[0] != '*') || track_duplicates)
         {
           pass->static_pass_number -= 1;
           new_pass->static_pass_number = -pass->static_pass_number;
@@ -482,6 +489,9 @@ make_pass_instance (struct opt_pass *pass, bool track_duplicates)
 static struct opt_pass **
 next_pass_1 (struct opt_pass **list, struct opt_pass *pass)
 {
+  /* Every pass should have a name so that plugins can refer to them.  */
+  gcc_assert (pass->name != NULL);
+
   *list = make_pass_instance (pass, false);
   
   return &(*list)->next;
@@ -880,7 +890,6 @@ init_optimization_passes (void)
 	  NEXT_PASS (pass_tree_loop_done);
 	}
       NEXT_PASS (pass_cse_reciprocals);
-      NEXT_PASS (pass_convert_to_rsqrt);
       NEXT_PASS (pass_reassoc);
       NEXT_PASS (pass_vrp);
       NEXT_PASS (pass_dominator);
@@ -943,6 +952,7 @@ init_optimization_passes (void)
       NEXT_PASS (pass_rtl_store_motion);
       NEXT_PASS (pass_cse_after_global_opts);
       NEXT_PASS (pass_rtl_ifcvt);
+      NEXT_PASS (pass_reginfo_init);
       /* Perform loop optimizations.  It might be better to do them a bit
 	 sooner, but we want the profile feedback to work more
 	 efficiently.  */
@@ -962,7 +972,6 @@ init_optimization_passes (void)
       NEXT_PASS (pass_cse2);
       NEXT_PASS (pass_rtl_dse1);
       NEXT_PASS (pass_rtl_fwprop_addr);
-      NEXT_PASS (pass_reginfo_init);
       NEXT_PASS (pass_inc_dec);
       NEXT_PASS (pass_initialize_regs);
       NEXT_PASS (pass_ud_rtl_dce);
@@ -978,10 +987,8 @@ init_optimization_passes (void)
       NEXT_PASS (pass_mode_switching);
       NEXT_PASS (pass_match_asm_constraints);
       NEXT_PASS (pass_sms);
-      NEXT_PASS (pass_subregs_of_mode_init);
       NEXT_PASS (pass_sched);
       NEXT_PASS (pass_ira);
-      NEXT_PASS (pass_subregs_of_mode_finish);
       NEXT_PASS (pass_postreload);
 	{
 	  struct opt_pass **p = &pass_postreload.pass.sub;
@@ -1620,7 +1627,8 @@ ipa_write_summaries_1 (cgraph_node_set set)
   struct lto_out_decl_state *state = lto_new_out_decl_state ();
   lto_push_out_decl_state (state);
 
-  ipa_write_summaries_2 (all_regular_ipa_passes, set, state);
+  if (!flag_wpa)
+    ipa_write_summaries_2 (all_regular_ipa_passes, set, state);
   ipa_write_summaries_2 (all_lto_gen_passes, set, state);
 
   gcc_assert (lto_get_out_decl_state () == state);
@@ -1714,7 +1722,8 @@ ipa_read_summaries_1 (struct opt_pass *pass)
 void
 ipa_read_summaries (void)
 {
-  ipa_read_summaries_1 (all_regular_ipa_passes);
+  if (!flag_ltrans)
+    ipa_read_summaries_1 (all_regular_ipa_passes);
   ipa_read_summaries_1 (all_lto_gen_passes);
 }
 
