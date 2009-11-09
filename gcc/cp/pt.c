@@ -10015,13 +10015,8 @@ tsubst (tree t, tree args, tsubst_flags_t complain, tree in_decl)
 	  {
 	    /* The type of the implicit object parameter gets its
 	       cv-qualifiers from the FUNCTION_TYPE. */
-	    tree method_type;
-	    tree this_type = cp_build_qualified_type (TYPE_MAIN_VARIANT (r),
-						      cp_type_quals (type));
 	    tree memptr;
-	    method_type = build_method_type_directly (this_type,
-						      TREE_TYPE (type),
-						      TYPE_ARG_TYPES (type));
+	    tree method_type = build_memfn_type (type, r, cp_type_quals (type));
 	    memptr = build_ptrmemfunc_type (build_pointer_type (method_type));
 	    return cp_build_qualified_type_real (memptr, cp_type_quals (t),
 						 complain);
@@ -10225,10 +10220,17 @@ tsubst (tree t, tree args, tsubst_flags_t complain, tree in_decl)
       {
 	tree type;
 
-	type = finish_typeof (tsubst_expr 
-			      (TYPEOF_TYPE_EXPR (t), args,
-			       complain, in_decl,
-			       /*integral_constant_expression_p=*/false));
+	++cp_unevaluated_operand;
+	++c_inhibit_evaluation_warnings;
+
+	type = tsubst_expr (TYPEOF_TYPE_EXPR (t), args,
+			    complain, in_decl,
+			    /*integral_constant_expression_p=*/false);
+
+	--cp_unevaluated_operand;
+	--c_inhibit_evaluation_warnings;
+
+	type = finish_typeof (type);
 	return cp_build_qualified_type_real (type,
 					     cp_type_quals (t)
 					     | cp_type_quals (type),

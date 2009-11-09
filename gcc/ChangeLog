@@ -1,3 +1,162 @@
+2009-11-09  Paul Brook  <paul@codesourcery.com>
+	Daniel Jacobowitz  <dan@codesourcery.com>
+	Sandra Loosemore  <sandra@codesourcery.com>
+
+	* doc/extend.texi (Half-Precision): Update wording to reflect
+	that there are now multiple -mfpu options that enable fp16
+	hardware support.
+	* doc/invoke.texi: Update list of ARM -mfpu= options.
+	* config.gcc: Update ARM --with-fpu option list.
+	* config/arm/arm.c (all_fpus): Add vfpv3-fp16, vfpv3-d16-fp16,
+	vfpv3xd and vfpv3xd-fp16.
+	(use_vfp_abi): New function.
+	(aapcs_vfp_is_call_or_return_candidate): Avoid double precision regs
+	when undesirable.
+	(aapcs_vfp_is_return_candidate, aapcs_vfp_is_call_candidate,
+	aapcs_vfp_allocate_return_reg): Use use_vfp_abi.
+        (arm_rtx_costs_1, arm_size_rtx_costs, arm_fastmul_rtx_costs,
+        arm_9e_rtx_costs): Only expect double-precision operations if the FPU
+        provides them.
+	(coproc_secondary_reload_class): Reload HFmode via GENERAL_REGS if no
+	NEON.
+	(arm_print_operand): Handle 'p' modifier.
+	(arm_hard_regno_mode_ok): : Allow HFmode in VFP registers if
+	TARGET_FP16.
+	* config/arm/arm.h (TARGET_VFP_SINGLE, TARGET_VFP_DOUBLE): Define.
+	(TARGET_FP16): Define.
+	* config/arm/vfp.md: Disable double-precision patterns if the FPU
+	does not provide them.
+	(arm_movdi_vfp, thumb2_movdi_vfp): Use fcpys to move
+	double-precision values on a single-precision FPU.
+        (movdf_vfp, thumb2_movdf_vfp): Likewise.  Use "Dy" for
+        double-precision constants.
+	(movhf_vfp_neon): New pattern (was movhf_vfp).
+	(movhf_vfp): Remove NEON instructions.
+	* config/arm/constraints.md: Add new "Dy" constraint for
+	double-precision constants.  Update description of "Dv".
+	* config/arm/arm.md: Disable double-precision patterns if the FPU
+	does not provide them
+
+2009-11-09  Jakub Jelinek  <jakub@redhat.com>
+
+	* config/i386/i386.c (print_operand) <case 'D'>: Fix formatting.
+	(print_operand) <case 'Y'>: Likewise.  Fix a pasto in operand lossage
+	diagnostics.
+
+2009-11-08  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* collect2.c (main): Search PLUGIN_LD for plugin linker.
+
+	* configure.ac (--with-plugin-ld): New.  Default to ld.
+	* configure: Regenerated.
+	* config.in: Likewise.
+
+	* exec-tool.in (ORIGINAL_PLUGIN_LD_FOR_TARGET): New.
+	(collect-ld): Use ORIGINAL_PLUGIN_LD_FOR_TARGET for -plugin.
+
+2009-11-08  Jonathan Gray <jsg@openbsd.org>
+
+	* config/openbsd-stdint.h: Change to reflect what
+	c_common_nodes_and_builtins expects.
+
+2009-11-08  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* builtins.c (apply_args_reg_offset): Remove commented out delaration.
+
+2009-11-08  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/41985
+	* config/i386/i386.c (get_some_local_dynamic_name): Don't assert
+	function contains at least one local dynamic name.
+	(print_operand) <case '&'>: Instead output operand lossage diagnostics
+	here if that happens.
+
+2009-11-08  Zbigniew Chamski  <zbigniew.chamski@gmail.com>
+	    Joern Rennecke  <amylaar@spamcop.net>
+
+	* cfgrtl.c (pass_free_cfg): Add pass name.
+	* cgraphbuild.c (pass_build_cgraph_edges): Likewise.
+	(pass_rebuild_cgraph_edges, pass_remove_cgraph_callee_edges): Likewise.
+	* dce.c (pass_ud_rtl_dce, pass_fast_rtl_dce): Change pass name.
+	* df-core.c (pass_df_initialize_no_opt): Likewise.
+	* except.c (pass_rtl_eh): Likewise.
+	* function.c (pass_init_function, pass_leaf_regs): Likewise.
+	* gcse.c (pass_rtl_pre): Change pass name.
+	* passes.c (pass_postreload): Add pass name.
+	(make_pass_instance): Don't use duplicate-tracking logic for
+	names starting with '*'.
+	(next_pass_1): Assert that pass has a name.
+	(register_one_dump_file): If there is an space in the name,
+	skip past it.
+	* predict.c (pass_strip_predict_hints): Add pass name.
+	* reg-stack.c (pass_stack_regs): Likewise.
+	* stack-ptr-mod.c (pass_stack_ptr_mod): Likewise.
+	* tree-cfg.c (pass_warn_function_return,
+	pass_warn_function_noreturn): Add pass name.
+	* tree-dfa.c (pass_referenced_vars): Likewise.
+	* tree-optimize.c (pass_cleanup_cfg_post_optimizing):
+	Fix whitespace before comment.
+	(pass_fixup_cfg): Add pass name, fix whitespace before comment.
+	(pass_init_datastructures): Add pass name.
+	* tree-ssa-loop.c (pass_record_bounds): Likewise.
+	* tree-ssa.c (pass_early_warn_uninitialized,
+	pass_late_warn_uninitialized): Likewise.
+	* tree.c (pass_ipa_free_lang_data): Likewise.
+	* doc/passes.texi (pass manager): Document how to disambiguate
+	pass names.
+
+2009-11-08  Paolo Bonzini  <bonzini@gnu.org>
+
+	* df-problems.c: Fix documentation for forward simulation of LR.
+	(df_simulate_one_insn_forwards): Use df_simulate_find_defs.
+	(df_simulate_finalize_forwards): Remove.
+	* df.h (df_simulate_finalize_forwards): Remove.
+
+2009-11-08  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-structalias.c (build_succ_graph): Properly make
+	variables escape if they are stored to anything.
+
+2009-11-08  Richard Guenther  <rguenther@suse.de>
+
+	PR rtl-optimization/41928
+	* loop-invariant.c (free_loop_data): If we didn't allocate
+	loop data do not try to free it.
+
+2009-11-07  Jason Merrill  <jason@redhat.com>
+
+	* tree.c (reconstruct_complex_type): Preserve attributes.
+
+2009-11-07  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-structalias.c (build_succ_graph): Feed stores
+	to anything only to variables that can take pointers.
+	(get_constraint_for_ssa_var): Properly exclude full
+	variables from expanding.
+	(first_vi_for_offset): Avoid overflow in arithmetic.
+	(first_or_preceding_vi_for_offset): Likewise.
+	(count_num_arguments): Fix implementation.
+	(gate_ipa_pta): Do not run when not optimizing.
+
+2009-11-07  David Binderman <dcb314@hotmail.com>
+
+	* builtins.c (apply_args_size, expand_builtin_mathfn, expand_powi,
+	expand_builtin_expect, maybe_emit_sprintf_chk_warning): Remove some
+	set but not used variables.
+	(apply_args_reg_offset): Comment out as unused.
+	* calls.c (flags_from_decl_or_type): Likewise.
+	* genautomata.c (check_regexp_units_distribution): Likewise.
+
+2009-11-07  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/sse.md (xop_pmacsww, xop_pmacssww, xop_pmacsdd,
+	xop_pmacssdd, xop_pmacssdql, xop_pmacssdqh, xop_pmacsdql,
+	*xop_pmacsdql_mem, xop_pmacsdqh, *xop_pmacsdqh_mem, xop_pmacsswd,
+	xop_pmacswd, xop_pmadcsswd, xop_pmadcswd, xop_pcmov_<mode>,
+	xop_pcmov_<mode>256, xop_pperm, xop_pperm_pack_v2di_v4si,
+	xop_pperm_pack_v4si_v8hi, xop_pperm_pack_v8hi_v16qi): Compress
+	operand alternatives.
+
 2009-11-06  Michael Matz  <matz@suse.de>
 
 	PR middle-end/41963
@@ -166,8 +325,7 @@
 	(xop_pcmov_<mode>): Add XOP conditional mov instructions.
 	* config/i386/i386.c (OPTION_MASK_ISA_XOP_SET): New.
 	(OPTION_MASK_ISA_XOP_UNSET): New.	
-	(OPTION_MASK_ISA_XOP_UNSET): Change definition to
-	depend on XOP.
+	(OPTION_MASK_ISA_XOP_UNSET): Change definition to depend on XOP.
 	(ix86_handle_option): Handle -mxop.
 	(isa_opts): Handle -mxop.
 	(enum pta_flags): Add PTA_XOP.
@@ -584,8 +742,8 @@
 2009-11-03  Dodji Seketeli  <dodji@redhat.com>
 
 	PR c++/38699
-	* c-common.c (fold_offsetof_1): Issue errors when the member designator
-	of the offsetof expression is not legitimate.
+	* c-common.c (fold_offsetof_1): Issue errors when the member
+	designator of the offsetof expression is not legitimate.
 
 2009-11-03  Uros Bizjak  <ubizjak@gmail.com>
 
