@@ -1,3 +1,7 @@
+2009-11-09  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normal.melt: still working on letrec...
+	* testsuite/melt/tletrec.melt: added a simplistic case first.
+
 2009-11-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normal.melt: misplaced compile_warning in a
 	multicall in normletrec_lambda.

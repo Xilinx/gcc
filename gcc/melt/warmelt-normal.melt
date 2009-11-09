@@ -860,8 +860,8 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
   (multicall
    (bind procs)
    (find_enclosing_env env recv)
-   (debug_msg bind "normexp_symbol bind")
-   (debug_msg procs "normexp_symbol procs")
+   (debug_msg bind "normexp_symbol after find_enclosing_env bind")
+   (debug_msg procs "normexp_symbol after find_enclosing_env procs")
    (assert_msg "normexp_symbol check recv" (is_a recv class_symbol))
    (if (null bind)
        (progn
@@ -2904,6 +2904,7 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
        (assert_msg "check fbi" (is_a fbi class_formal_binding))
        (put_env newenv fbi)))
     (unsafe_put_fields newenv :env_proc nproc)
+    (debug_msg newenv "normexp_defun updated :env_proc of of newenv")
     ;; add nproc into ncx
     (list_append (unsafe_get_field :nctx_proclist ncx) nproc)
     (multicall
@@ -2998,6 +2999,7 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
        (assert_msg "check fbi" (is_a fbi class_formal_binding))
        (put_env newenv fbi)))
     (unsafe_put_fields newenv :env_proc nproc)
+    (debug_msg newenv "normalize_lambda updated :env_proc of newenv")
     ;; add nproc into ncx
     (list_append (unsafe_get_field :nctx_proclist ncx) nproc)
     (multicall
@@ -3053,6 +3055,7 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
     (multicall 
      (nproc csym clocc constrout clovtup sloc oldproc ndatarout :long insideflag)
      (normalize_lambda recv env newenv ncx psloc)
+     (debug_msg nproc "normexp_lambda after normalize_lambda nproc")
      (let (
 	   (nlambda (instance class_nrep_lambda 
 			      :nrep_loc sloc
@@ -3293,21 +3296,24 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
   (debug_msg cexpr "normletrec_lambda cexpr")
   (debug_msg symb "normletrec_lambda symb")
   (debug_msg cbind "normletrec_lambda cbind")
-  (multicall
-   (nproc csym clocc constrout clovtup sloc oldproc ndatarout :long insideflag)
-   ;; for letrec the old and new environments is the same!
-   (normalize_lambda cexpr env env ncx psloc)
-   (compile_warning "normletrec_lambda are we sure old & new env are same.?")
-   (debug_msg csym "normletrec_lambda after normalize_lambda csym")
-   (debug_msg clocc "normletrec_lambda after normalize_lambda clocc")
-   (debug_msg constrout "normletrec_lambda after normalize_lambda constrout")
-   (debug_msg clovtup  "normletrec_lambda after normalize_lambda clovtup")
-   (debug_msg oldproc  "normletrec_lambda after normalize_lambda oldproc")
-   (debug_msg ndatarout  "normletrec_lambda after normalize_lambda ndatarout")
-   )
-  (compile_warning "unimplemented normletrec_lambda")
-  (assert_msg "@$@unimplemented normletrec_lambda" ())
-)
+  (debug_msg env "normletrec_lambda env")
+  (let ( (newenv (fresh_env env))
+	 )
+    (debug_msg newenv "normletrec_lambda newenv")
+    (assert_msg "check newenv" (is_a newenv class_environment))
+    (multicall
+     (nproc csym clocc constrout clovtup sloc oldproc ndatarout :long insideflag)
+     (normalize_lambda cexpr env newenv ncx psloc)
+     (debug_msg csym "normletrec_lambda after normalize_lambda csym")
+     (debug_msg clocc "normletrec_lambda after normalize_lambda clocc")
+     (debug_msg constrout "normletrec_lambda after normalize_lambda constrout")
+     (debug_msg clovtup  "normletrec_lambda after normalize_lambda clovtup")
+     (debug_msg oldproc  "normletrec_lambda after normalize_lambda oldproc")
+     (debug_msg ndatarout  "normletrec_lambda after normalize_lambda ndatarout")
+     )
+    (compile_warning "unimplemented normletrec_lambda, maybe store the newenv in the cbind")
+    (assert_msg "@$@unimplemented normletrec_lambda" ())
+    ))
 (install_method class_source_lambda normal_letrec_constructive normletrec_lambda)
 
 ;;;;;;;;;;;;;;;;
@@ -3498,7 +3504,7 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
      )
     (debug_msg consbindlist "normexp_letrec consbindlist")
     ;;
-    ;; second loop to ake an environment where each constructive
+    ;; second loop to make an environment where each constructive
     ;; binding is set
     (foreach_in_list
      (consbindlist)
