@@ -58,7 +58,9 @@ const char *plugin_event_name[] =
   "PLUGIN_GGC_END",
   "PLUGIN_REGISTER_GGC_ROOTS",
   "PLUGIN_REGISTER_GGC_CACHES",
-  "PLUGIN_START_UNIT", 
+  "PLUGIN_ATTRIBUTES",
+  "PLUGIN_START_UNIT",
+  "PLUGIN_PRAGMAS",
   "PLUGIN_EVENT_LAST"
 };
 
@@ -325,6 +327,7 @@ register_callback (const char *plugin_name,
       case PLUGIN_GGC_MARKING:
       case PLUGIN_GGC_END:
       case PLUGIN_ATTRIBUTES:
+      case PLUGIN_PRAGMAS:
       case PLUGIN_FINISH:
         {
           struct callback_info *new_callback;
@@ -344,7 +347,7 @@ register_callback (const char *plugin_name,
         break;
       case PLUGIN_EVENT_LAST:
       default:
-        error ("Unkown callback event registered by plugin %s",
+        error ("Unknown callback event registered by plugin %s",
                plugin_name);
     }
 }
@@ -368,6 +371,7 @@ invoke_plugin_callbacks (enum plugin_event event, void *gcc_data)
       case PLUGIN_FINISH_UNIT:
       case PLUGIN_CXX_CP_PRE_GENERICIZE:
       case PLUGIN_ATTRIBUTES:
+      case PLUGIN_PRAGMAS:
       case PLUGIN_FINISH:
       case PLUGIN_GGC_START:
       case PLUGIN_GGC_MARKING:
@@ -408,7 +412,7 @@ try_init_one_plugin (struct plugin_name_args *plugin)
 {
   void *dl_handle;
   plugin_init_func plugin_init;
-  char *err;
+  const char *err;
   PTR_UNION_TYPE (plugin_init_func) plugin_init_union;
 
   /* We use RTLD_NOW to accelerate binding and detect any mismatch

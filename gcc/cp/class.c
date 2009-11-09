@@ -2677,7 +2677,8 @@ add_implicitly_declared_members (tree t,
       CLASSTYPE_LAZY_COPY_CTOR (t) = 1;
     }
 
-  /* Currently only lambdas get a lazy move ctor.  */
+  /* Currently only lambdas get a lazy move ctor, but N2987 adds them for
+     other classes.  */
   if (LAMBDA_TYPE_P (t))
     CLASSTYPE_LAZY_MOVE_CTOR (t) = 1;
 
@@ -3843,7 +3844,7 @@ check_methods (tree t)
 	    VEC_safe_push (tree, gc, CLASSTYPE_PURE_VIRTUALS (t), x);
 	}
       /* All user-provided destructors are non-trivial.  */
-      if (DECL_DESTRUCTOR_P (x) && !DECL_DEFAULTED_FN (x))
+      if (DECL_DESTRUCTOR_P (x) && user_provided_p (x))
 	TYPE_HAS_NONTRIVIAL_DESTRUCTOR (t) = 1;
     }
 }
@@ -4103,6 +4104,7 @@ adjust_clone_args (tree decl)
 	      /* A default parameter has been added. Adjust the
 		 clone's parameters.  */
 	      tree exceptions = TYPE_RAISES_EXCEPTIONS (TREE_TYPE (clone));
+	      tree attrs = TYPE_ATTRIBUTES (TREE_TYPE (clone));
 	      tree basetype = TYPE_METHOD_BASETYPE (TREE_TYPE (clone));
 	      tree type;
 
@@ -4120,6 +4122,8 @@ adjust_clone_args (tree decl)
 						 clone_parms);
 	      if (exceptions)
 		type = build_exception_variant (type, exceptions);
+	      if (attrs)
+		type = cp_build_type_attribute_variant (type, attrs);
 	      TREE_TYPE (clone) = type;
 
 	      clone_parms = NULL_TREE;
@@ -4174,17 +4178,17 @@ type_has_user_nondefault_constructor (tree t)
 }
 
 /* Returns true iff FN is a user-provided function, i.e. user-declared
-   and not defaulted at its first declaration.  */
+   and not defaulted at its first declaration; or explicit, private,
+   protected, or non-const.  */
 
-static bool
+bool
 user_provided_p (tree fn)
 {
   if (TREE_CODE (fn) == TEMPLATE_DECL)
     return true;
   else
     return (!DECL_ARTIFICIAL (fn)
-	    && !(DECL_DEFAULTED_FN (fn)
-		 && DECL_INITIALIZED_IN_CLASS_P (fn)));
+	    && !DECL_DEFAULTED_IN_CLASS_P (fn));
 }
 
 /* Returns true iff class T has a user-provided constructor.  */
@@ -4236,31 +4240,6 @@ type_has_user_provided_default_constructor (tree t)
     }
 
   return false;
-}
-
-/* Returns true if FN can be explicitly defaulted.  */
-
-bool
-defaultable_fn_p (tree fn)
-{
-  if (DECL_CONSTRUCTOR_P (fn))
-    {
-      if (FUNCTION_FIRST_USER_PARMTYPE (fn) == void_list_node)
-	return true;
-      else if (copy_fn_p (fn) > 0
-	       && (TREE_CHAIN (FUNCTION_FIRST_USER_PARMTYPE (fn))
-		   == void_list_node))
-	return true;
-      else
-	return false;
-    }
-  else if (DECL_DESTRUCTOR_P (fn))
-    return true;
-  else if (DECL_ASSIGNMENT_OPERATOR_P (fn)
-	   && DECL_OVERLOADED_OPERATOR_P (fn) == NOP_EXPR)
-    return copy_fn_p (fn);
-  else
-    return false;
 }
 
 /* Remove all zero-width bit-fields from T.  */
@@ -4356,6 +4335,7 @@ check_bases_and_members (tree t)
   tree access_decls;
   bool saved_complex_asn_ref;
   bool saved_nontrivial_dtor;
+  tree fn;
 
   /* By default, we use const reference arguments and generate default
      constructors.  */
@@ -4452,6 +4432,31 @@ check_bases_and_members (tree t)
   add_implicitly_declared_members (t,
 				   cant_have_const_ctor,
 				   no_const_asn_ref);
+
+  /* Check defaulted declarations here so we have cant_have_const_ctor
+     and don't need to worry about clones.  */
+  for (fn = TYPE_METHODS (t); fn; fn = TREE_CHAIN (fn))
+    if (DECL_DEFAULTED_IN_CLASS_P (fn))
+      {
+	int copy = copy_fn_p (fn);
+	if (copy > 0)
+	  {
+	    bool imp_const_p
+	      = (DECL_CONSTRUCTOR_P (fn) ? !cant_have_const_ctor
+		 : !no_const_asn_ref);
+	    bool fn_const_p = (copy == 2);
+
+	    if (fn_const_p && !imp_const_p)
+	      /* If the function is defaulted outside the class, we just
+		 give the synthesis error.  */
+	      error ("%q+D declared to take const reference, but implicit "
+		     "declaration would take non-const", fn);
+	    else if (imp_const_p && !fn_const_p)
+	      error ("%q+D declared to take non-const reference cannot be "
+		     "defaulted in the class body", fn);
+	  }
+	defaulted_late_check (fn);
+      }
 
   if (LAMBDA_TYPE_P (t))
     {
@@ -5514,6 +5519,9 @@ finish_struct (tree t, tree attributes)
 	if (DECL_PURE_VIRTUAL_P (x))
 	  VEC_safe_push (tree, gc, CLASSTYPE_PURE_VIRTUALS (t), x);
       complete_vars (t);
+
+      /* Remember current #pragma pack value.  */
+      TYPE_PRECISION (t) = maximum_field_alignment;
     }
   else
     finish_struct_1 (t);

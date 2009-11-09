@@ -82,6 +82,7 @@ picochip port		Daniel Towner		dant@picochip.com
 rs6000 port		Geoff Keating		geoffk@geoffk.org
 rs6000 port		David Edelsohn		edelsohn@gnu.org
 rs6000 vector extns	Aldy Hernandez		aldyh@redhat.com
+rx port	      		Nick Clifton		nickc@redhat.com
 s390 port		Hartmut Penner		hpenner@de.ibm.com
 s390 port		Ulrich Weigand		uweigand@de.ibm.com
 s390 port		Andreas Krebbel		Andreas.Krebbel@de.ibm.com
@@ -170,9 +171,9 @@ dwarf debugging code	Jason Merrill		jason@redhat.com
 c++ runtime libs	Paolo Carlini		paolo.carlini@oracle.com
 c++ runtime libs	Gabriel Dos Reis	gdr@integrable-solutions.net
 c++ runtime libs	Ulrich Drepper		drepper@redhat.com
-c++ runtime libs	Phil Edwards		pme@gcc.gnu.org
 c++ runtime libs	Benjamin Kosnik		bkoz@redhat.com
 c++ runtime libs	Loren J. Rittle		ljrittle@acm.org
+c++ runtime libs	Jonathan Wakely		redi@gcc.gnu.org
 *synthetic multiply	Torbjorn Granlund	tege@swox.com
 *c-torture		Torbjorn Granlund	tege@swox.com
 fixincludes		Bruce Korb		bkorb@gnu.org
@@ -263,11 +264,16 @@ Fortran			Janus Weil		janus@gcc.gnu.org
 Graphite		Daniel Berlin		dberlin@dberlin.org
 Graphite 		Tobias Grosser		grosser@fim.uni-passau.de
 Graphite		Sebastian Pop		sebastian.pop@amd.com
-Plug-in			Rafael Espíndola	rafael.espindola@gmail.com
+Plugin			Rafael Espíndola	espindola@google.com
 register allocation	Peter Bergner		bergner@vnet.ibm.com
 register allocation	Vladimir Makarov	vmakarov@redhat.com
 register allocation	Kenneth Zadeck		zadeck@naturalbridge.com
 register allocation	Seongbae Park		seongbae.park@gmail.com
+LTO			Diego Novillo		dnovillo@google.com
+LTO			Richard Guenther	rguenther@suse.de
+LTO			Rafael Espíndola	espindola@google.com
+LTO plugin		Rafael Espíndola	espindola@google.com
+LTO plugin		Cary Coutant		ccoutant@google.com
 
 Note that while reviewers can approve changes to parts of the compiler
 that they maintain, they still need approval for their own patches
@@ -318,6 +324,7 @@ Bud Davis					jmdavis@link.com
 Chris Demetriou					cgd@google.com
 Benoit Dupont de Dinechin			benoit.dupont-de-dinechin@st.com
 Michael Eager					eager@eagercon.com
+Phil Edwards					pme@gcc.gnu.org
 Mohan Embar					gnustuff@thisiscool.com
 Revital Eres					eres@il.ibm.com
 Marc Espie					espie@cvs.openbsd.org
@@ -410,6 +417,7 @@ Alexander Monakov				amonakov@ispras.ru
 Catherine Moore					clm@codesourcery.com
 James A. Morrison				phython@gcc.gnu.org
 Dirk Mueller					dmueller@suse.de
+Phil Muldoon					pmuldoon@redhat.com
 Adam Nemet					anemet@caviumnetworks.com
 Thomas Neumann					tneumann@users.sourceforge.net
 Dan Nicolaescu					dann@ics.uci.edu
@@ -430,6 +438,7 @@ Dwarakanath Rajagopal				dwarak.rajagopal@amd.com
 Ramana Radhakrishnan				ramana.r@gmail.com
 Rolf Rasmussen					rolfwr@gcc.gnu.org
 Volker Reichelt					v.reichelt@netcologne.de
+Joern Rennecke					amylaar@spamcop.net
 Bernhard Reutner-Fischer			rep.dot.nop@gmail.com
 Tom Rix						trix@redhat.com
 Craig Rodrigues					rodrigc@gcc.gnu.org
@@ -445,9 +454,10 @@ Svein Seldal					svein@dev.seldal.com
 Thiemo Seufer					ths@networkno.de
 Mark Shinwell					shinwell@codesourcery.com
 Ghassan Shobaki					ghassan.shobaki@amd.com
-Johannes Singler				singler@ira.uka.de
+Johannes Singler				singler@kit.edu
 Franz Sirl					franz.sirl-kernel@lauterbach.com
 Jan Sjodin					jan.sjodin@amd.com
+Edward Smith-Rowland				3dw4rd@verizon.net
 Michael Sokolov					msokolov@ivan.Harhan.ORG
 Richard Stallman				rms@gnu.org
 Basile Starynkevitch				basile@starynkevitch.net
@@ -463,7 +473,6 @@ Caroline Tice					ctice@apple.com
 David Ung					davidu@mips.com
 Neil Vachharajani				nvachhar@gmail.com
 Kris Van Hees					kris.van.hees@oracle.com
-Jonathan Wakely					redi@gcc.gnu.org
 Feng Wang					fengwang@nudt.edu.cn
 Stephen M. Webb					stephen.webb@bregmasoft.com
 John Wehle					john@feith.com

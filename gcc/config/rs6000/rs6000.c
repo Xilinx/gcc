@@ -130,6 +130,8 @@ typedef struct GTY(()) machine_function
      64-bits wide and is allocated early enough so that the offset
      does not overflow the 16-bit load/store offset field.  */
   rtx sdmode_stack_slot;
+  /* True if any VSX or ALTIVEC vector type was used.  */
+  bool vsx_or_altivec_used_p;
 } machine_function;
 
 /* Target cpu type */
@@ -511,6 +513,25 @@ struct processor_costs ppc440_cost = {
   1,			/* streams */
 };
 
+/* Instruction costs on PPC476 processors.  */
+static const
+struct processor_costs ppc476_cost = {
+  COSTS_N_INSNS (4),    /* mulsi */
+  COSTS_N_INSNS (4),    /* mulsi_const */
+  COSTS_N_INSNS (4),    /* mulsi_const9 */
+  COSTS_N_INSNS (4),    /* muldi */
+  COSTS_N_INSNS (11),   /* divsi */
+  COSTS_N_INSNS (11),   /* divdi */
+  COSTS_N_INSNS (6),    /* fp */
+  COSTS_N_INSNS (6),    /* dmul */
+  COSTS_N_INSNS (19),   /* sdiv */
+  COSTS_N_INSNS (33),   /* ddiv */
+  32,			/* l1 cache line size */
+  32,			/* l1 cache */
+  512,			/* l2 cache */
+  1,			/* streams */
+};
+
 /* Instruction costs on PPC601 processors.  */
 static const
 struct processor_costs ppc601_cost = {
@@ -797,6 +818,40 @@ struct processor_costs power7_cost = {
   12,			/* prefetch streams */
 };
 
+/* Instruction costs on POWER A2 processors.  */
+static const
+struct processor_costs ppca2_cost = {
+  COSTS_N_INSNS (16),    /* mulsi */
+  COSTS_N_INSNS (16),    /* mulsi_const */
+  COSTS_N_INSNS (16),    /* mulsi_const9 */
+  COSTS_N_INSNS (16),   /* muldi */
+  COSTS_N_INSNS (22),   /* divsi */
+  COSTS_N_INSNS (28),   /* divdi */
+  COSTS_N_INSNS (3),    /* fp */
+  COSTS_N_INSNS (3),    /* dmul */
+  COSTS_N_INSNS (59),   /* sdiv */
+  COSTS_N_INSNS (72),   /* ddiv */
+  64,
+  16,			/* l1 cache */
+  2048,			/* l2 cache */
+  16,			/* prefetch streams */
+};
+
+
+/* Table that classifies rs6000 builtin functions (pure, const, etc.).  */
+#undef RS6000_BUILTIN
+#undef RS6000_BUILTIN_EQUATE
+#define RS6000_BUILTIN(NAME, TYPE) TYPE,
+#define RS6000_BUILTIN_EQUATE(NAME, VALUE)
+
+static const enum rs6000_btc builtin_classify[(int)RS6000_BUILTIN_COUNT] =
+{
+#include "rs6000-builtin.def"
+};
+
+#undef RS6000_BUILTIN
+#undef RS6000_BUILTIN_EQUATE
+
 
 static bool rs6000_function_ok_for_sibcall (tree, tree);
 static const char *rs6000_invalid_within_doloop (const_rtx);
@@ -860,7 +915,7 @@ static void rs6000_elf_encode_section_info (tree, rtx, int)
      ATTRIBUTE_UNUSED;
 #endif
 static bool rs6000_use_blocks_for_constant_p (enum machine_mode, const_rtx);
-static void rs6000_alloc_sdmode_stack_slot (void);
+static void rs6000_expand_to_rtl_hook (void);
 static void rs6000_instantiate_decls (void);
 #if TARGET_XCOFF
 static void rs6000_xcoff_asm_output_anchor (rtx);
@@ -928,6 +983,8 @@ static bool rs6000_builtin_support_vector_misalignment (enum
 static void def_builtin (int, const char *, tree, int);
 static bool rs6000_vector_alignment_reachable (const_tree, bool);
 static void rs6000_init_builtins (void);
+static tree rs6000_builtin_decl (unsigned, bool);
+
 static rtx rs6000_expand_unop_builtin (enum insn_code, tree, rtx);
 static rtx rs6000_expand_binop_builtin (enum insn_code, tree, rtx);
 static rtx rs6000_expand_ternop_builtin (enum insn_code, tree, rtx);
@@ -984,7 +1041,6 @@ static void rs6000_init_dwarf_reg_sizes_extra (tree);
 static rtx rs6000_legitimize_address (rtx, rtx, enum machine_mode);
 static rtx rs6000_debug_legitimize_address (rtx, rtx, enum machine_mode);
 static rtx rs6000_legitimize_tls_address (rtx, enum tls_model);
-static rtx rs6000_delegitimize_address (rtx);
 static void rs6000_output_dwarf_dtprel (FILE *, int, rtx) ATTRIBUTE_UNUSED;
 static rtx rs6000_tls_get_addr (void);
 static rtx rs6000_got_sym (void);
@@ -1314,6 +1370,8 @@ static const struct attribute_spec rs6000_attribute_table[] =
 
 #undef TARGET_INIT_BUILTINS
 #define TARGET_INIT_BUILTINS rs6000_init_builtins
+#undef TARGET_BUILTIN_DECL
+#define TARGET_BUILTIN_DECL rs6000_builtin_decl
 
 #undef TARGET_EXPAND_BUILTIN
 #define TARGET_EXPAND_BUILTIN rs6000_expand_builtin
@@ -1445,14 +1503,11 @@ static const struct attribute_spec rs6000_attribute_table[] =
 #undef TARGET_USE_BLOCKS_FOR_CONSTANT_P
 #define TARGET_USE_BLOCKS_FOR_CONSTANT_P rs6000_use_blocks_for_constant_p
 
-#undef TARGET_DELEGITIMIZE_ADDRESS
-#define TARGET_DELEGITIMIZE_ADDRESS rs6000_delegitimize_address
-
 #undef TARGET_BUILTIN_RECIPROCAL
 #define TARGET_BUILTIN_RECIPROCAL rs6000_builtin_reciprocal
 
 #undef TARGET_EXPAND_TO_RTL_HOOK
-#define TARGET_EXPAND_TO_RTL_HOOK rs6000_alloc_sdmode_stack_slot
+#define TARGET_EXPAND_TO_RTL_HOOK rs6000_expand_to_rtl_hook
 
 #undef TARGET_INSTANTIATE_DECLS
 #define TARGET_INSTANTIATE_DECLS rs6000_instantiate_decls
@@ -2125,6 +2180,12 @@ rs6000_override_options (const char *default_cpu)
 	  POWERPC_BASE_MASK | MASK_SOFT_FLOAT | MASK_MULHW | MASK_DLMZB},
 	 {"464fp", PROCESSOR_PPC440,
 	  POWERPC_BASE_MASK | MASK_MULHW | MASK_DLMZB},
+ 	 {"476", PROCESSOR_PPC476,
+	  POWERPC_BASE_MASK | MASK_SOFT_FLOAT | MASK_PPC_GFXOPT | MASK_MFCRF
+	  | MASK_POPCNTB | MASK_FPRND | MASK_CMPB | MASK_MULHW | MASK_DLMZB},
+ 	 {"476fp", PROCESSOR_PPC476,
+	  POWERPC_BASE_MASK | MASK_PPC_GFXOPT | MASK_MFCRF | MASK_POPCNTB
+	  | MASK_FPRND | MASK_CMPB | MASK_MULHW | MASK_DLMZB},
 	 {"505", PROCESSOR_MPCCORE, POWERPC_BASE_MASK},
 	 {"601", PROCESSOR_PPC601,
 	  MASK_POWER | POWERPC_BASE_MASK | MASK_MULTIPLE | MASK_STRING},
@@ -2149,6 +2210,9 @@ rs6000_override_options (const char *default_cpu)
 	 /* 8548 has a dummy entry for now.  */
 	 {"8548", PROCESSOR_PPC8540, POWERPC_BASE_MASK | MASK_STRICT_ALIGN
 	  | MASK_ISEL},
+ 	 {"a2", PROCESSOR_PPCA2,
+ 	  POWERPC_BASE_MASK | MASK_PPC_GFXOPT | MASK_POWERPC64 | MASK_POPCNTB
+ 	  | MASK_CMPB | MASK_NO_UPDATE },
 	 {"e300c2", PROCESSOR_PPCE300C2, POWERPC_BASE_MASK | MASK_SOFT_FLOAT},
 	 {"e300c3", PROCESSOR_PPCE300C3, POWERPC_BASE_MASK},
 	 {"e500mc", PROCESSOR_PPCE500MC, POWERPC_BASE_MASK | MASK_PPC_GFXOPT
@@ -2216,8 +2280,15 @@ rs6000_override_options (const char *default_cpu)
 		     | MASK_PPC_GFXOPT | MASK_POWERPC64 | MASK_ALTIVEC
 		     | MASK_MFCRF | MASK_POPCNTB | MASK_FPRND | MASK_MULHW
 		     | MASK_DLMZB | MASK_CMPB | MASK_MFPGPR | MASK_DFP
-		     | MASK_POPCNTD | MASK_VSX | MASK_ISEL)
+		     | MASK_POPCNTD | MASK_VSX | MASK_ISEL | MASK_NO_UPDATE)
   };
+
+  /* Numerous experiment shows that IRA based loop pressure
+     calculation works better for RTL loop invariant motion on targets
+     with enough (>= 32) registers.  It is an expensive optimization.
+     So it is on only for peak performance.  */
+  if (optimize >= 3)
+    flag_ira_loop_pressure = 1;
 
   /* Set the pointer size.  */
   if (TARGET_64BIT)
@@ -2495,6 +2566,7 @@ rs6000_override_options (const char *default_cpu)
 			&& rs6000_cpu != PROCESSOR_POWER5
 			&& rs6000_cpu != PROCESSOR_POWER6
 			&& rs6000_cpu != PROCESSOR_POWER7
+			&& rs6000_cpu != PROCESSOR_PPCA2
 			&& rs6000_cpu != PROCESSOR_CELL);
   rs6000_sched_groups = (rs6000_cpu == PROCESSOR_POWER4
 			 || rs6000_cpu == PROCESSOR_POWER5
@@ -2650,6 +2722,10 @@ rs6000_override_options (const char *default_cpu)
 	rs6000_cost = &ppc440_cost;
 	break;
 
+      case PROCESSOR_PPC476:
+	rs6000_cost = &ppc476_cost;
+	break;
+
       case PROCESSOR_PPC601:
 	rs6000_cost = &ppc601_cost;
 	break;
@@ -2711,6 +2787,10 @@ rs6000_override_options (const char *default_cpu)
 
       case PROCESSOR_POWER7:
 	rs6000_cost = &power7_cost;
+	break;
+
+      case PROCESSOR_PPCA2:
+	rs6000_cost = &ppca2_cost;
 	break;
 
       default:
@@ -5126,33 +5206,6 @@ rs6000_debug_legitimize_address (rtx x, rtx oldx, enum machine_mode mode)
     emit_insn (insns);
 
   return ret;
-}
-
-/* If ORIG_X is a constant pool reference, return its known value,
-   otherwise ORIG_X.  */
-
-static rtx
-rs6000_delegitimize_address (rtx x)
-{
-  rtx orig_x = delegitimize_mem_from_attrs (x);
-
-  x = orig_x;
-
-  if (!MEM_P (x))
-    return orig_x;
-
-  x = XEXP (x, 0);
-
-  if (legitimate_constant_pool_address_p (x)
-      && GET_CODE (XEXP (x, 1)) == CONST
-      && GET_CODE (XEXP (XEXP (x, 1), 0)) == MINUS
-      && GET_CODE (XEXP (XEXP (XEXP (x, 1), 0), 0)) == SYMBOL_REF
-      && constant_pool_expr_p (XEXP (XEXP (XEXP (x, 1), 0), 0))
-      && GET_CODE (XEXP (XEXP (XEXP (x, 1), 0), 1)) == SYMBOL_REF
-      && toc_relative_expr_p (XEXP (XEXP (XEXP (x, 1), 0), 1)))
-    return get_pool_constant (XEXP (XEXP (XEXP (x, 1), 0), 0));
-
-  return orig_x;
 }
 
 /* This is called from dwarf2out.c via TARGET_ASM_OUTPUT_DWARF_DTPREL.
@@ -8465,13 +8518,54 @@ def_builtin (int mask, const char *name, tree type, int code)
 {
   if ((mask & target_flags) || TARGET_PAIRED_FLOAT)
     {
+      tree t;
       if (rs6000_builtin_decls[code])
 	fatal_error ("internal error: builtin function to %s already processed.",
 		     name);
 
-      rs6000_builtin_decls[code] =
+      rs6000_builtin_decls[code] = t =
         add_builtin_function (name, type, code, BUILT_IN_MD,
 			      NULL, NULL_TREE);
+
+      gcc_assert (code >= 0 && code < (int)RS6000_BUILTIN_COUNT);
+      switch (builtin_classify[code])
+	{
+	default:
+	  gcc_unreachable ();
+
+	  /* assume builtin can do anything.  */
+	case RS6000_BTC_MISC:
+	  break;
+
+	  /* const function, function only depends on the inputs.  */
+	case RS6000_BTC_CONST:
+	  TREE_READONLY (t) = 1;
+	  TREE_NOTHROW (t) = 1;
+	  break;
+
+	  /* pure function, function can read global memory.  */
+	case RS6000_BTC_PURE:
+	  DECL_PURE_P (t) = 1;
+	  TREE_NOTHROW (t) = 1;
+	  break;
+
+	  /* Function is a math function.  If rounding mode is on, then treat
+	     the function as not reading global memory, but it can have
+	     arbitrary side effects.  If it is off, then assume the function is
+	     a const function.  This mimics the ATTR_MATHFN_FPROUNDING
+	     attribute in builtin-attribute.def that is used for the math
+	     functions. */
+	case RS6000_BTC_FP_PURE:
+	  TREE_NOTHROW (t) = 1;
+	  if (flag_rounding_math)
+	    {
+	      DECL_PURE_P (t) = 1;
+	      DECL_IS_NOVOPS (t) = 1;
+	    }
+	  else
+	    TREE_READONLY (t) = 1;
+	  break;
+	}
     }
 }
 
@@ -11148,6 +11242,17 @@ rs6000_init_builtins (void)
 #endif
 }
 
+/* Returns the rs6000 builtin decl for CODE.  */
+
+static tree
+rs6000_builtin_decl (unsigned code, bool initialize_p ATTRIBUTE_UNUSED)
+{
+  if (code >= RS6000_BUILTIN_COUNT)
+    return error_mark_node;
+
+  return rs6000_builtin_decls[code];
+}
+
 /* Search through a set of builtins and enable the mask bits.
    DESC is an array of builtins.
    SIZE is the total number of builtins.
@@ -13087,6 +13192,38 @@ rs6000_check_sdmode (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
   return NULL_TREE;
 }
 
+static tree
+rs6000_check_vector_mode (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
+{
+  /* Don't walk into types.  */
+  if (*tp == NULL_TREE || *tp == error_mark_node || TYPE_P (*tp))
+    {
+      *walk_subtrees = 0;
+      return NULL_TREE;
+    }
+
+  switch (TREE_CODE (*tp))
+    {
+    case VAR_DECL:
+    case PARM_DECL:
+    case FIELD_DECL:
+    case RESULT_DECL:
+    case SSA_NAME:
+    case REAL_CST:
+    case INDIRECT_REF:
+    case ALIGN_INDIRECT_REF:
+    case MISALIGNED_INDIRECT_REF:
+    case VIEW_CONVERT_EXPR:
+      if (VECTOR_MODE_P (TYPE_MODE (TREE_TYPE (*tp))))
+	return *tp;
+      break;
+    default:
+      break;
+    }
+
+  return NULL_TREE;
+}
+
 enum reload_reg_type {
   GPR_REGISTER_TYPE,
   VECTOR_REGISTER_TYPE,
@@ -13527,11 +13664,17 @@ rs6000_ira_cover_classes (void)
   return (TARGET_VSX) ? cover_vsx : cover_pre_vsx;
 }
 
-/* Allocate a 64-bit stack slot to be used for copying SDmode
-   values through if this function has any SDmode references.  */
+/* Scan the trees looking for certain types.
+
+   Allocate a 64-bit stack slot to be used for copying SDmode values through if
+   this function has any SDmode references.
+
+   If VSX, note whether any vector operation was done so we can set VRSAVE to
+   non-zero, even if we just use the floating point registers to tell the
+   kernel to save the vector registers.  */
 
 static void
-rs6000_alloc_sdmode_stack_slot (void)
+rs6000_expand_to_rtl_hook (void)
 {
   tree t;
   basic_block bb;
@@ -13539,6 +13682,24 @@ rs6000_alloc_sdmode_stack_slot (void)
 
   gcc_assert (cfun->machine->sdmode_stack_slot == NULL_RTX);
 
+  /* Check for vectors.  */
+  if (TARGET_VSX)
+    {
+      FOR_EACH_BB (bb)
+	for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
+	  {
+	    if (walk_gimple_op (gsi_stmt (gsi), rs6000_check_vector_mode,
+				NULL))
+	      {
+		cfun->machine->vsx_or_altivec_used_p = true;
+		goto found_vector;
+	      }
+	  }
+    found_vector:
+      ;
+    }
+
+  /* Check for SDmode being used.  */
   FOR_EACH_BB (bb)
     for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
       {
@@ -16679,6 +16840,15 @@ compute_vrsave_mask (void)
   for (i = FIRST_ALTIVEC_REGNO; i <= LAST_ALTIVEC_REGNO; ++i)
     if (df_regs_ever_live_p (i))
       mask |= ALTIVEC_REG_BIT (i);
+
+  /* If VSX is used, we might have used a traditional floating point register
+     in a vector mode without using any altivec registers.  However the VRSAVE
+     register does not have room to indicate the floating point registers.
+     Modern kernels only look to see if the value is non-zero to determine if
+     they need to save the vector registers, so we just set an arbitrary
+     value if any vector type was used.  */
+  if (mask == 0 && TARGET_VSX && cfun->machine->vsx_or_altivec_used_p)
+    mask = 0xFFF;
 
   if (mask == 0)
     return mask;
@@ -20052,8 +20222,10 @@ rs6000_output_function_epilogue (FILE *file,
 	 use language_string.
 	 C is 0.  Fortran is 1.  Pascal is 2.  Ada is 3.  C++ is 9.
 	 Java is 13.  Objective-C is 14.  Objective-C++ isn't assigned
-	 a number, so for now use 9.  */
-      if (! strcmp (language_string, "GNU C"))
+	 a number, so for now use 9.  LTO isn't assigned a number either,
+	 so for now use 0.  */
+      if (! strcmp (language_string, "GNU C")
+	  || ! strcmp (language_string, "GNU GIMPLE"))
 	i = 0;
       else if (! strcmp (language_string, "GNU F77")
 	       || ! strcmp (language_string, "GNU Fortran"))
@@ -21782,6 +21954,7 @@ rs6000_issue_rate (void)
   case CPU_PPCE500MC:
     return 2;
   case CPU_RIOS2:
+  case CPU_PPC476:
   case CPU_PPC604:
   case CPU_PPC604E:
   case CPU_PPC620:

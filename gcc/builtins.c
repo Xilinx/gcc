@@ -230,6 +230,8 @@ static tree do_mpfr_bessel_n (tree, tree, tree,
 static tree do_mpfr_remquo (tree, tree, tree);
 static tree do_mpfr_lgamma_r (tree, tree, tree);
 
+/* Return true if NAME starts with __builtin_ or __sync_.  */
+
 bool
 is_builtin_name (const char *name)
 {
@@ -239,6 +241,16 @@ is_builtin_name (const char *name)
     return true;
   return false;
 }
+
+
+/* Return true if DECL is a function symbol representing a built-in.  */
+
+bool
+is_builtin_fn (tree decl)
+{
+  return TREE_CODE (decl) == FUNCTION_DECL && DECL_BUILT_IN (decl);
+}
+
 
 /* Return true if NODE should be considered for inline expansion regardless
    of the optimization level.  This means whenever a function is invoked with
@@ -5644,7 +5656,8 @@ get_builtin_sync_mem (tree loc, enum machine_mode mode)
 {
   rtx addr, mem;
 
-  addr = expand_expr (loc, NULL_RTX, Pmode, EXPAND_SUM);
+  addr = expand_expr (loc, NULL_RTX, ptr_mode, EXPAND_SUM);
+  addr = convert_memory_address (Pmode, addr);
 
   /* Note that we explicitly do not want any alias information for this
      memory, so that we kill all other live memories.  Otherwise we don't
@@ -7182,7 +7195,7 @@ fold_builtin_cabs (location_t loc, tree arg, tree type, tree fndecl)
 {
   tree res;
 
-  if (TREE_CODE (TREE_TYPE (arg)) != COMPLEX_TYPE
+  if (!validate_arg (arg, COMPLEX_TYPE)
       || TREE_CODE (TREE_TYPE (TREE_TYPE (arg))) != REAL_TYPE)
     return NULL_TREE;
 
@@ -7571,7 +7584,7 @@ fold_builtin_cexp (location_t loc, tree arg0, tree type)
 #endif
 
   if (!validate_arg (arg0, COMPLEX_TYPE)
-      && TREE_CODE (TREE_TYPE (TREE_TYPE (arg0))) == REAL_TYPE)
+      || TREE_CODE (TREE_TYPE (TREE_TYPE (arg0))) != REAL_TYPE)
     return NULL_TREE;
 
 #ifdef HAVE_mpc
@@ -9226,9 +9239,9 @@ fold_builtin_isascii (location_t loc, tree arg)
   else
     {
       /* Transform isascii(c) -> ((c & ~0x7f) == 0).  */
-      arg = build2 (BIT_AND_EXPR, integer_type_node, arg,
-		    build_int_cst (NULL_TREE,
-				   ~ (unsigned HOST_WIDE_INT) 0x7f));
+      arg = fold_build2 (BIT_AND_EXPR, integer_type_node, arg,
+			 build_int_cst (NULL_TREE,
+					~ (unsigned HOST_WIDE_INT) 0x7f));
       return fold_build2_loc (loc, EQ_EXPR, integer_type_node,
 			  arg, integer_zero_node);
     }
@@ -9266,8 +9279,8 @@ fold_builtin_isdigit (location_t loc, tree arg)
 	return NULL_TREE;
 
       arg = fold_convert_loc (loc, unsigned_type_node, arg);
-      arg = build2 (MINUS_EXPR, unsigned_type_node, arg,
-		    build_int_cst (unsigned_type_node, target_digit0));
+      arg = fold_build2 (MINUS_EXPR, unsigned_type_node, arg,
+			 build_int_cst (unsigned_type_node, target_digit0));
       return fold_build2_loc (loc, LE_EXPR, integer_type_node, arg,
 			  build_int_cst (unsigned_type_node, 9));
     }
@@ -10005,7 +10018,8 @@ fold_builtin_1 (location_t loc, tree fndecl, tree arg0, bool ignore)
     break;
 
     CASE_FLT_FN (BUILT_IN_CIMAG):
-      if (validate_arg (arg0, COMPLEX_TYPE))
+      if (validate_arg (arg0, COMPLEX_TYPE)
+	  && TREE_CODE (TREE_TYPE (TREE_TYPE (arg0))) == REAL_TYPE)
 	return non_lvalue_loc (loc, fold_build1_loc (loc, IMAGPART_EXPR, type, arg0));
     break;
 
@@ -10051,7 +10065,45 @@ fold_builtin_1 (location_t loc, tree fndecl, tree arg0, bool ignore)
 	  && TREE_CODE (TREE_TYPE (TREE_TYPE (arg0))) == REAL_TYPE) 
 	return do_mpc_arg1 (arg0, type, mpc_sqrt);
     break;
-#endif
+    
+#ifdef HAVE_mpc_arc
+    CASE_FLT_FN (BUILT_IN_CASIN):
+      if (validate_arg (arg0, COMPLEX_TYPE)
+	  && TREE_CODE (TREE_TYPE (TREE_TYPE (arg0))) == REAL_TYPE) 
+	return do_mpc_arg1 (arg0, type, mpc_asin);
+    break;
+    
+    CASE_FLT_FN (BUILT_IN_CACOS):
+      if (validate_arg (arg0, COMPLEX_TYPE)
+	  && TREE_CODE (TREE_TYPE (TREE_TYPE (arg0))) == REAL_TYPE) 
+	return do_mpc_arg1 (arg0, type, mpc_acos);
+    break;
+    
+    CASE_FLT_FN (BUILT_IN_CATAN):
+      if (validate_arg (arg0, COMPLEX_TYPE)
+	  && TREE_CODE (TREE_TYPE (TREE_TYPE (arg0))) == REAL_TYPE) 
+	return do_mpc_arg1 (arg0, type, mpc_atan);
+    break;
+    
+    CASE_FLT_FN (BUILT_IN_CASINH):
+      if (validate_arg (arg0, COMPLEX_TYPE)
+	  && TREE_CODE (TREE_TYPE (TREE_TYPE (arg0))) == REAL_TYPE) 
+	return do_mpc_arg1 (arg0, type, mpc_asinh);
+    break;
+    
+    CASE_FLT_FN (BUILT_IN_CACOSH):
+      if (validate_arg (arg0, COMPLEX_TYPE)
+	  && TREE_CODE (TREE_TYPE (TREE_TYPE (arg0))) == REAL_TYPE) 
+	return do_mpc_arg1 (arg0, type, mpc_acosh);
+    break;
+    
+    CASE_FLT_FN (BUILT_IN_CATANH):
+      if (validate_arg (arg0, COMPLEX_TYPE)
+	  && TREE_CODE (TREE_TYPE (TREE_TYPE (arg0))) == REAL_TYPE) 
+	return do_mpc_arg1 (arg0, type, mpc_atanh);
+    break;
+#endif /* HAVE_mpc_arc */
+#endif /* HAVE_mpc */
     
     CASE_FLT_FN (BUILT_IN_CABS):
       return fold_builtin_cabs (loc, arg0, type, fndecl);
@@ -13855,4 +13907,42 @@ fold_call_stmt (gimple stmt, bool ignore)
 	}
     }
   return NULL_TREE;
+}
+
+/* Look up the function in built_in_decls that corresponds to DECL
+   and set ASMSPEC as its user assembler name.  DECL must be a
+   function decl that declares a builtin.  */
+
+void
+set_builtin_user_assembler_name (tree decl, const char *asmspec)
+{
+  tree builtin;
+  gcc_assert (TREE_CODE (decl) == FUNCTION_DECL
+	      && DECL_BUILT_IN_CLASS (decl) == BUILT_IN_NORMAL
+	      && asmspec != 0);
+
+  builtin = built_in_decls [DECL_FUNCTION_CODE (decl)];
+  set_user_assembler_name (builtin, asmspec);
+  switch (DECL_FUNCTION_CODE (decl))
+    {
+    case BUILT_IN_MEMCPY:
+      init_block_move_fn (asmspec);
+      memcpy_libfunc = set_user_assembler_libfunc ("memcpy", asmspec);
+      break;
+    case BUILT_IN_MEMSET:
+      init_block_clear_fn (asmspec);
+      memset_libfunc = set_user_assembler_libfunc ("memset", asmspec);
+      break;
+    case BUILT_IN_MEMMOVE:
+      memmove_libfunc = set_user_assembler_libfunc ("memmove", asmspec);
+      break;
+    case BUILT_IN_MEMCMP:
+      memcmp_libfunc = set_user_assembler_libfunc ("memcmp", asmspec);
+      break;
+    case BUILT_IN_ABORT:
+      abort_libfunc = set_user_assembler_libfunc ("abort", asmspec);
+      break;
+    default:
+      break;
+    }
 }

@@ -9003,6 +9003,7 @@ s390_encode_section_info (tree decl, rtx rtl, int first)
       && GET_CODE (XEXP (rtl, 0)) == SYMBOL_REF
       && TREE_CONSTANT_POOL_ADDRESS_P (XEXP (rtl, 0))
       && (MEM_ALIGN (rtl) == 0
+	  || GET_MODE_BITSIZE (GET_MODE (rtl)) == 0
 	  || MEM_ALIGN (rtl) < GET_MODE_BITSIZE (GET_MODE (rtl))))
     SYMBOL_REF_FLAGS (XEXP (rtl, 0)) |= SYMBOL_FLAG_NOT_NATURALLY_ALIGNED;
 }
@@ -9863,9 +9864,12 @@ s390_z10_optimize_cmp (rtx insn)
   if (!REG_P (*op0) || !REG_P (*op1))
     return false;
 
+  if (GET_MODE_CLASS (GET_MODE (*op0)) != MODE_INT)
+    return false;
+
   /* Swap the COMPARE arguments and its mask if there is a
      conflicting access in the previous insn.  */
-  prev_insn = PREV_INSN (insn);
+  prev_insn = prev_active_insn (insn);
   if (prev_insn != NULL_RTX && INSN_P (prev_insn)
       && reg_referenced_p (*op1, PATTERN (prev_insn)))
     s390_swap_cmp (cond, op0, op1, insn);
@@ -9876,7 +9880,7 @@ s390_z10_optimize_cmp (rtx insn)
      the operands, or if swapping them would cause a conflict
      with the previous insn, issue a NOP after the COMPARE in
      order to separate the two instuctions.  */
-  next_insn = NEXT_INSN (insn);
+  next_insn = next_active_insn (insn);
   if (next_insn != NULL_RTX && INSN_P (next_insn)
       && s390_non_addr_reg_read_p (*op1, next_insn))
     {

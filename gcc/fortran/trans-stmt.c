@@ -159,31 +159,15 @@ gfc_trans_goto (gfc_code * code)
 
   assigned_goto = GFC_DECL_ASSIGN_ADDR (se.expr);
 
-  code = code->block;
-  if (code == NULL)
-    {
-      target = fold_build1 (GOTO_EXPR, void_type_node, assigned_goto);
-      gfc_add_expr_to_block (&se.pre, target);
-      return gfc_finish_block (&se.pre);
-    }
+  /* We're going to ignore a label list.  It does not really change the
+     statement's semantics (because it is just a further restriction on
+     what's legal code); before, we were comparing label addresses here, but
+     that's a very fragile business and may break with optimization.  So
+     just ignore it.  */
 
-  /* Check the label list.  */
-  do
-    {
-      target = gfc_get_label_decl (code->label1);
-      tmp = gfc_build_addr_expr (pvoid_type_node, target);
-      tmp = fold_build2 (EQ_EXPR, boolean_type_node, tmp, assigned_goto);
-      tmp = build3_v (COND_EXPR, tmp,
-		      fold_build1 (GOTO_EXPR, void_type_node, target),
-		      build_empty_stmt (input_location));
-      gfc_add_expr_to_block (&se.pre, tmp);
-      code = code->block;
-    }
-  while (code != NULL);
-  gfc_trans_runtime_check (true, false, boolean_true_node, &se.pre, &loc,
-			   "Assigned label is not in the list");
-
-  return gfc_finish_block (&se.pre); 
+  target = fold_build1 (GOTO_EXPR, void_type_node, assigned_goto);
+  gfc_add_expr_to_block (&se.pre, target);
+  return gfc_finish_block (&se.pre);
 }
 
 
@@ -3992,19 +3976,20 @@ tree
 gfc_trans_allocate (gfc_code * code)
 {
   gfc_alloc *al;
-  gfc_expr *expr, *init_e, *rhs;
+  gfc_expr *expr, *init_e;
   gfc_se se;
   tree tmp;
   tree parm;
   tree stat;
   tree pstat;
   tree error_label;
+  tree memsz;
   stmtblock_t block;
 
   if (!code->ext.alloc.list)
     return NULL_TREE;
 
-  pstat = stat = error_label = tmp = NULL_TREE;
+  pstat = stat = error_label = tmp = memsz = NULL_TREE;
 
   gfc_start_block (&block);
 
@@ -4022,7 +4007,10 @@ gfc_trans_allocate (gfc_code * code)
 
   for (al = code->ext.alloc.list; al != NULL; al = al->next)
     {
-      expr = al->expr;
+      expr = gfc_copy_expr (al->expr);
+
+      if (expr->ts.type == BT_CLASS)
+	gfc_add_component_ref (expr, "$data");
 
       gfc_init_se (&se, NULL);
       gfc_start_block (&se.pre);
@@ -4038,25 +4026,26 @@ gfc_trans_allocate (gfc_code * code)
 	  /* Determine allocate size.  */
 	  if (code->expr3 && code->expr3->ts.type == BT_CLASS)
 	    {
-	      gfc_typespec *ts;
-	      /* TODO: Size must be determined at run time, since it must equal
-		 the size of the dynamic type of SOURCE, not the declared type.  */
-	      gfc_warning ("Dynamic size allocation at %L not supported yet, "
-			   "using size of declared type", &code->loc);
-	      ts = &code->expr3->ts.u.derived->components->ts;
-	      tmp = TYPE_SIZE_UNIT (gfc_typenode_for_spec (ts));
+	      gfc_expr *sz;
+	      gfc_se se_sz;
+	      sz = gfc_copy_expr (code->expr3);
+	      gfc_add_component_ref (sz, "$size");
+	      gfc_init_se (&se_sz, NULL);
+	      gfc_conv_expr (&se_sz, sz);
+	      gfc_free_expr (sz);
+	      memsz = se_sz.expr;
 	    }
 	  else if (code->expr3 && code->expr3->ts.type != BT_CLASS)
-	    tmp = TYPE_SIZE_UNIT (gfc_typenode_for_spec (&code->expr3->ts));
+	    memsz = TYPE_SIZE_UNIT (gfc_typenode_for_spec (&code->expr3->ts));
 	  else if (code->ext.alloc.ts.type != BT_UNKNOWN)
-	    tmp = TYPE_SIZE_UNIT (gfc_typenode_for_spec (&code->ext.alloc.ts));
+	    memsz = TYPE_SIZE_UNIT (gfc_typenode_for_spec (&code->ext.alloc.ts));
 	  else
-	    tmp = TYPE_SIZE_UNIT (TREE_TYPE (TREE_TYPE (se.expr)));
+	    memsz = TYPE_SIZE_UNIT (TREE_TYPE (TREE_TYPE (se.expr)));
 
-	  if (expr->ts.type == BT_CHARACTER && tmp == NULL_TREE)
-	    tmp = se.string_length;
+	  if (expr->ts.type == BT_CHARACTER && memsz == NULL_TREE)
+	    memsz = se.string_length;
 
-	  tmp = gfc_allocate_with_status (&se.pre, tmp, pstat);
+	  tmp = gfc_allocate_with_status (&se.pre, memsz, pstat);
 	  tmp = fold_build2 (MODIFY_EXPR, void_type_node, se.expr,
 			     fold_convert (TREE_TYPE (se.expr), tmp));
 	  gfc_add_expr_to_block (&se.pre, tmp);
@@ -4086,17 +4075,91 @@ gfc_trans_allocate (gfc_code * code)
       /* Initialization via SOURCE block.  */
       if (code->expr3)
 	{
-	  rhs = gfc_copy_expr (code->expr3);
-	  if (rhs->ts.type == BT_CLASS)
-	    gfc_add_component_ref (rhs, "$data");
-	  tmp = gfc_trans_assignment (gfc_expr_to_initialize (expr), rhs, false);
+	  gfc_expr *rhs = gfc_copy_expr (code->expr3);
+	  if (al->expr->ts.type == BT_CLASS)
+	    {
+	      gfc_se dst,src;
+	      if (rhs->ts.type == BT_CLASS)
+		gfc_add_component_ref (rhs, "$data");
+	      gfc_init_se (&dst, NULL);
+	      gfc_init_se (&src, NULL);
+	      gfc_conv_expr (&dst, expr);
+	      gfc_conv_expr (&src, rhs);
+	      gfc_add_block_to_block (&block, &src.pre);
+	      tmp = gfc_build_memcpy_call (dst.expr, src.expr, memsz);
+	    }
+	  else
+	    tmp = gfc_trans_assignment (gfc_expr_to_initialize (expr),
+					rhs, false);
+	  gfc_free_expr (rhs);
+	  gfc_add_expr_to_block (&block, tmp);
+	}
+      /* Default initializer for CLASS variables.  */
+      else if (al->expr->ts.type == BT_CLASS
+	       && code->ext.alloc.ts.type == BT_DERIVED
+	       && (init_e = gfc_default_initializer (&code->ext.alloc.ts)))
+	{
+	  gfc_se dst,src;
+	  gfc_init_se (&dst, NULL);
+	  gfc_init_se (&src, NULL);
+	  gfc_conv_expr (&dst, expr);
+	  gfc_conv_expr (&src, init_e);
+	  gfc_add_block_to_block (&block, &src.pre);
+	  tmp = gfc_build_memcpy_call (dst.expr, src.expr, memsz);
 	  gfc_add_expr_to_block (&block, tmp);
 	}
       /* Add default initializer for those derived types that need them.  */
-      else if (expr->ts.type == BT_DERIVED && (init_e = gfc_default_initializer (&expr->ts)))
+      else if (expr->ts.type == BT_DERIVED
+	       && (init_e = gfc_default_initializer (&expr->ts)))
 	{
-	  tmp = gfc_trans_assignment (gfc_expr_to_initialize (expr), init_e, true);
+	  tmp = gfc_trans_assignment (gfc_expr_to_initialize (expr),
+				      init_e, true);
 	  gfc_add_expr_to_block (&block, tmp);
+	}
+
+      /* Allocation of CLASS entities.  */
+      gfc_free_expr (expr);
+      expr = al->expr;
+      if (expr->ts.type == BT_CLASS)
+	{
+	  gfc_expr *lhs,*rhs;
+	  gfc_se lse;
+	  /* Initialize VINDEX for CLASS objects.  */
+	  lhs = gfc_expr_to_initialize (expr);
+	  gfc_add_component_ref (lhs, "$vindex");
+	  if (code->expr3 && code->expr3->ts.type == BT_CLASS)
+	    {
+	      /* vindex must be determined at run time.  */
+	      rhs = gfc_copy_expr (code->expr3);
+	      gfc_add_component_ref (rhs, "$vindex");
+	    }
+	  else
+	    {
+	      /* vindex is fixed at compile time.  */
+	      int vindex;
+	      if (code->expr3)
+		vindex = code->expr3->ts.u.derived->vindex;
+	      else if (code->ext.alloc.ts.type == BT_DERIVED)
+		vindex = code->ext.alloc.ts.u.derived->vindex;
+	      else if (expr->ts.type == BT_CLASS)
+		vindex = expr->ts.u.derived->components->ts.u.derived->vindex;
+	      else
+		vindex = expr->ts.u.derived->vindex;
+	      rhs = gfc_int_expr (vindex);
+	    }
+	  tmp = gfc_trans_assignment (lhs, rhs, false);
+	  gfc_free_expr (lhs);
+	  gfc_free_expr (rhs);
+	  gfc_add_expr_to_block (&block, tmp);
+
+	  /* Initialize SIZE for CLASS objects.  */
+	  lhs = gfc_expr_to_initialize (expr);
+	  gfc_add_component_ref (lhs, "$size");
+	  gfc_init_se (&lse, NULL);
+	  gfc_conv_expr (&lse, lhs);
+	  gfc_add_modify (&block, lse.expr,
+			  fold_convert (TREE_TYPE (lse.expr), memsz));
+	  gfc_free_expr (lhs);
 	}
 
     }

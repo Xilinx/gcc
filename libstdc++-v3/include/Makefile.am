@@ -121,6 +121,7 @@ bits_headers = \
 	${bits_srcdir}/stream_iterator.h \
 	${bits_srcdir}/streambuf_iterator.h \
 	${bits_srcdir}/shared_ptr.h \
+	${bits_srcdir}/shared_ptr_base.h \
 	${bits_srcdir}/slice_array.h \
 	${bits_srcdir}/sstream.tcc \
 	${bits_srcdir}/stl_algo.h \
@@ -618,6 +619,11 @@ tr1_impl_headers = \
 	${tr1_impl_srcdir}/unordered_set \
 	${tr1_impl_srcdir}/utility
 
+decimal_srcdir = ${glibcxx_srcdir}/include/decimal
+decimal_builddir = ./decimal
+decimal_headers = \
+	${decimal_srcdir}/decimal \
+	${decimal_srcdir}/decimal.h
 
 # This is the common subset of C++ files that all three "C" header models use.
 c_base_srcdir = $(C_INCLUDE_DIR)
@@ -896,8 +902,8 @@ endif
 allstamped = \
 	stamp-std stamp-bits stamp-c_base stamp-c_base_extra \
 	stamp-c_compatibility  stamp-backward stamp-ext stamp-pb \
-	stamp-tr1 stamp-tr1-impl stamp-debug stamp-parallel stamp-host \
-    stamp-profile stamp-profile-impl
+	stamp-tr1 stamp-tr1-impl stamp-decimal stamp-debug \
+	stamp-parallel stamp-profile stamp-profile-impl stamp-host 
 
 # List of all files that are created by explicit building, editing, or
 # catenation.
@@ -1010,6 +1016,11 @@ stamp-tr1-impl: ${tr1_impl_headers}
 	@-mkdir -p ${tr1_impl_builddir}
 	@-cd ${tr1_impl_builddir} && $(LN_S) $? . 2>/dev/null
 	@$(STAMP) stamp-tr1-impl
+
+stamp-decimal: ${decimal_headers}
+	@-mkdir -p ${decimal_builddir}
+	@-cd ${decimal_builddir} && $(LN_S) $? . 2>/dev/null
+	@$(STAMP) stamp-decimal
 
 stamp-debug: ${debug_headers}
 	@-mkdir -p ${debug_builddir}
@@ -1239,6 +1250,9 @@ install-headers:
 	$(mkinstalldirs) $(DESTDIR)${gxx_include_dir}/${tr1_impl_builddir}
 	for file in ${tr1_impl_headers}; do \
 	  $(INSTALL_DATA) $${file} $(DESTDIR)${gxx_include_dir}/${tr1_impl_builddir}; done
+	$(mkinstalldirs) $(DESTDIR)${gxx_include_dir}/${decimal_builddir}
+	for file in ${decimal_headers}; do \
+	  $(INSTALL_DATA) $${file} $(DESTDIR)${gxx_include_dir}/${decimal_builddir}; done
 	$(mkinstalldirs) $(DESTDIR)${gxx_include_dir}/${c_base_builddir}
 	for file in ${c_base_headers}; do \
 	  $(INSTALL_DATA) $${file} $(DESTDIR)${gxx_include_dir}/${c_base_builddir}; done
@@ -1283,9 +1297,10 @@ clean-local:
 # directory. (This is more of an example of how this kind of rule can
 # be made.)
 .PRECIOUS: $(std_headers) $(c_base_headers) $(tr1_headers) $(tr1_impl_headers)
-	   $(ext_headers)
+	   $(decimal_headers) $(ext_headers)
 $(std_headers): ; @:
 $(c_base_headers): ; @:
 $(tr1_headers): ; @:
 $(tr1_impl_headers): ; @:
+$(decimal_headers): ; @:
 $(ext_headers): ; @:

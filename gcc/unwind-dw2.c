@@ -789,22 +789,22 @@ execute_stack_op (const unsigned char *op_ptr, const unsigned char *op_end,
 		result = second ^ first;
 		break;
 	      case DW_OP_le:
-		result = (_Unwind_Sword) first <= (_Unwind_Sword) second;
+		result = (_Unwind_Sword) second <= (_Unwind_Sword) first;
 		break;
 	      case DW_OP_ge:
-		result = (_Unwind_Sword) first >= (_Unwind_Sword) second;
+		result = (_Unwind_Sword) second >= (_Unwind_Sword) first;
 		break;
 	      case DW_OP_eq:
-		result = (_Unwind_Sword) first == (_Unwind_Sword) second;
+		result = (_Unwind_Sword) second == (_Unwind_Sword) first;
 		break;
 	      case DW_OP_lt:
-		result = (_Unwind_Sword) first < (_Unwind_Sword) second;
+		result = (_Unwind_Sword) second < (_Unwind_Sword) first;
 		break;
 	      case DW_OP_gt:
-		result = (_Unwind_Sword) first > (_Unwind_Sword) second;
+		result = (_Unwind_Sword) second > (_Unwind_Sword) first;
 		break;
 	      case DW_OP_ne:
-		result = (_Unwind_Sword) first != (_Unwind_Sword) second;
+		result = (_Unwind_Sword) second != (_Unwind_Sword) first;
 		break;
 
 	      default:
@@ -1559,7 +1559,13 @@ uw_install_context_1 (struct _Unwind_Context *current,
 static inline _Unwind_Ptr
 uw_identify_context (struct _Unwind_Context *context)
 {
-  return _Unwind_GetCFA (context);
+  /* The CFA is not sufficient to disambiguate the context of a function
+     interrupted by a signal before establishing its frame and the context
+     of the signal itself.  */
+  if (STACK_GROWS_DOWNWARD)
+    return _Unwind_GetCFA (context) - _Unwind_IsSignalFrame (context);
+  else
+    return _Unwind_GetCFA (context) + _Unwind_IsSignalFrame (context);
 }
 
 

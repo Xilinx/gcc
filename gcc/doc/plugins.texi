@@ -136,6 +136,7 @@ enum plugin_event
   PLUGIN_REGISTER_GGC_CACHES,	/* Register an extra GGC cache table. */
   PLUGIN_ATTRIBUTES,            /* Called during attribute registration */
   PLUGIN_START_UNIT,            /* Called before processing a translation unit.  */
+  PLUGIN_PRAGMAS,	        /* Called during pragma registration. */
   PLUGIN_EVENT_LAST             /* Dummy event used for indexing callback
                                    array.  */
 @};
@@ -156,6 +157,11 @@ For the PLUGIN_PASS_MANAGER_SETUP, PLUGIN_INFO, PLUGIN_REGISTER_GGC_ROOTS
 and PLUGIN_REGISTER_GGC_CACHES pseudo-events the @code{callback} should be
 null, and the @code{user_data} is specific.
 
+When the PLUGIN_PRAGMAS event is triggered (with a null
+pointer as data from GCC), plugins may register their own pragmas
+using functions like @code{c_register_pragma} or
+@code{c_register_pragma_with_expansion}.
+
 @section Interacting with the pass manager
 
 There needs to be a way to add/reorder/remove passes dynamically. This
@@ -165,7 +171,7 @@ such as CFG or an IPA pass) and optimization plugins.
 Basic support for inserting new passes or replacing existing passes is
 provided. A plugin registers a new pass with GCC by calling
 @code{register_callback} with the @code{PLUGIN_PASS_MANAGER_SETUP}
-event and a pointer to a @code{struct plugin_pass} object defined as follows
+event and a pointer to a @code{struct register_pass_info} object defined as follows
 
 @smallexample
 enum pass_positioning_ops
@@ -175,7 +181,7 @@ enum pass_positioning_ops
   PASS_POS_REPLACE        // Replace the reference pass.
 @};
 
-struct plugin_pass
+struct register_pass_info
 @{
   struct opt_pass *pass;            /* New pass provided by the plugin.  */
   const char *reference_pass_name;  /* Name of the reference pass for hooking
@@ -192,7 +198,7 @@ int
 plugin_init (struct plugin_name_args *plugin_info,
              struct plugin_gcc_version *version)
 @{
-  struct plugin_pass pass_info;
+  struct register_pass_info pass_info;
 
   ...
 

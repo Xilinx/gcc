@@ -105,10 +105,6 @@ typedef struct GTY(()) globals {
 
 static GTY (()) globals G;
 
-/* Whether or not to pretend that a static function is in an anonymous
-   namespace.  */
-static bool fake_anon_scope;
-
 /* The obstack on which we build mangled names.  */
 static struct obstack *mangle_obstack;
 
@@ -217,6 +213,7 @@ static void write_discriminator (const int);
 static void write_local_name (tree, const tree, const tree);
 static void dump_substitution_candidates (void);
 static tree mangle_decl_string (const tree);
+static int local_class_index (tree);
 
 /* Control functions.  */
 
@@ -733,20 +730,6 @@ write_encoding (const tree decl)
     }
 }
 
-/* Since we now use strcmp to compare typeinfos on all targets because of
-   the RTLD_LOCAL problem, we need to munge the typeinfo name used for
-   local classes of static functions to fix g++.dg/abi/local1.C.  We do
-   that by pretending that the function is in an anonymous namespace.  */
-
-static bool
-needs_fake_anon (const_tree decl)
-{
-  /* Pretend there's an anonymous namespace right around a static
-     function if we're mangling for RTTI.  */
-  return (fake_anon_scope && !TREE_PUBLIC (decl)
-	  && TREE_CODE (decl) == FUNCTION_DECL);
-}
-
 /* Lambdas can have a bit more context for mangling, specifically VAR_DECL
    or PARM_DECL context, which doesn't belong in DECL_CONTEXT.  */
 
@@ -790,18 +773,13 @@ write_name (tree decl, const int ignore_local_scope)
 
   context = decl_mangling_context (decl);
 
-  gcc_assert (context != NULL_TREE);
-
-  /* If we need a fake anonymous namespace, force the nested name path.  */
-  if (needs_fake_anon (decl) && context == global_namespace)
-    context = error_mark_node;
-
   /* A decl in :: or ::std scope is treated specially.  The former is
      mangled using <unscoped-name> or <unscoped-template-name>, the
      latter with a special substitution.  Also, a name that is
      directly in a local function scope is also mangled with
      <unscoped-name> rather than a full <nested-name>.  */
-  if (context == global_namespace
+  if (context == NULL
+      || context == global_namespace
       || DECL_NAMESPACE_STD_P (context)
       || (ignore_local_scope && TREE_CODE (context) == FUNCTION_DECL))
     {
@@ -819,9 +797,6 @@ write_name (tree decl, const int ignore_local_scope)
     }
   else
     {
-      if (context == error_mark_node)
-	context = global_namespace;
-
       /* Handle local names, unless we asked not to (that is, invoked
 	 under <local-name>, to handle only the part of the name under
 	 the local scope).  */
@@ -834,10 +809,10 @@ write_name (tree decl, const int ignore_local_scope)
 	     directly in that function's scope, either decl or one of
 	     its enclosing scopes.  */
 	  tree local_entity = decl;
-	  while (context != global_namespace)
+	  while (context != NULL && context != global_namespace)
 	    {
 	      /* Make sure we're always dealing with decls.  */
-	      if (TYPE_P (context))
+	      if (context != NULL && TYPE_P (context))
 		context = TYPE_NAME (context);
 	      /* Is this a function?  */
 	      if (TREE_CODE (context) == FUNCTION_DECL
@@ -882,6 +857,7 @@ write_unscoped_name (const tree decl)
       /* If not, it should be either in the global namespace, or directly
 	 in a local function scope.  */
       gcc_assert (context == global_namespace
+		  || context != NULL
 		  || TREE_CODE (context) == FUNCTION_DECL);
 
       write_unqualified_name (decl);
@@ -953,9 +929,6 @@ write_nested_name (const tree decl)
     {
       /* No, just use <prefix>  */
       write_prefix (DECL_CONTEXT (decl));
-      if (needs_fake_anon (decl))
-	/* Pretend this static function is in an anonymous namespace.  */
-	write_source_name (get_anonymous_namespace_name ());
       write_unqualified_name (decl);
     }
   write_char ('E');
@@ -1204,8 +1177,7 @@ write_unqualified_name (const tree decl)
       tree type = TREE_TYPE (decl);
 
       if (TREE_CODE (decl) == TYPE_DECL
-          && TYPE_ANONYMOUS_P (type)
-          && !ANON_UNION_TYPE_P (type))
+          && TYPE_ANONYMOUS_P (type))
         write_unnamed_type_name (type);
       else if (TREE_CODE (decl) == TYPE_DECL
                && LAMBDA_TYPE_P (type))
@@ -1252,14 +1224,48 @@ write_compact_number (int num)
   write_char ('_');
 }
 
+/* Return how many unnamed types precede TYPE in its enclosing class.  */
+
+static int
+nested_anon_class_index (tree type)
+{
+  int index = 0;
+  tree member = TYPE_FIELDS (TYPE_CONTEXT (type));
+  for (; member; member = TREE_CHAIN (member))
+    if (DECL_IMPLICIT_TYPEDEF_P (member))
+      {
+	tree memtype = TREE_TYPE (member);
+	if (memtype == type)
+	  return index;
+	else if (TYPE_ANONYMOUS_P (memtype))
+	  ++index;
+      }
+
+  gcc_unreachable ();
+}
+
+/* <unnamed-type-name> ::= Ut [ <nonnegative number> ] _ */
+
 static void
 write_unnamed_type_name (const tree type __attribute__ ((__unused__)))
 {
+  int discriminator;
   MANGLE_TRACE_TREE ("unnamed-type-name", type);
 
+  if (TYPE_FUNCTION_SCOPE_P (type))
+    discriminator = local_class_index (type);
+  else if (TYPE_CLASS_SCOPE_P (type))
+    discriminator = nested_anon_class_index (type);
+  else
+    {
+      gcc_assert (no_linkage_check (type, /*relaxed_p=*/true));
+      /* Just use the old mangling at namespace scope.  */
+      write_source_name (TYPE_IDENTIFIER (type));
+      return;
+    }
+
   write_string ("Ut");
-  /* TODO: Implement discriminators for unnamed-types.  */
-  write_char ('_');
+  write_compact_number (discriminator);
 }
 
 /* <closure-type-name> ::= Ul <lambda-sig> E [ <nonnegative number> ] _
@@ -1275,7 +1281,7 @@ write_closure_type_name (const tree type)
   MANGLE_TRACE_TREE ("closure-type-name", type);
 
   write_string ("Ul");
-  write_method_parms (parms, /*method_p=*/1, fn);
+  write_method_parms (parms, DECL_NONSTATIC_MEMBER_FUNCTION_P (fn), fn);
   write_char ('E');
   write_compact_number (LAMBDA_EXPR_DISCRIMINATOR (lambda));
 }
@@ -1539,6 +1545,29 @@ write_special_name_destructor (const tree dtor)
     }
 }
 
+/* Scan the vector of local classes and return how many others with the
+   same name (or same no name) and context precede ENTITY.  */
+
+static int
+local_class_index (tree entity)
+{
+  int ix, discriminator = 0;
+  tree name = (TYPE_ANONYMOUS_P (entity) ? NULL_TREE
+	       : TYPE_IDENTIFIER (entity));
+  tree ctx = TYPE_CONTEXT (entity);
+  for (ix = 0; ; ix++)
+    {
+      tree type = VEC_index (tree, local_classes, ix);
+      if (type == entity)
+	return discriminator;
+      if (TYPE_CONTEXT (type) == ctx
+	  && (name ? TYPE_IDENTIFIER (type) == name
+	      : TYPE_ANONYMOUS_P (type)))
+	++discriminator;
+    }
+  gcc_unreachable ();
+}
+
 /* Return the discriminator for ENTITY appearing inside
    FUNCTION.  The discriminator is the lexical ordinal of VAR among
    entities with the same name in the same FUNCTION.  */
@@ -1546,15 +1575,17 @@ write_special_name_destructor (const tree dtor)
 static int
 discriminator_for_local_entity (tree entity)
 {
-  /* Assume this is the only local entity with this name.  */
-  int discriminator = 0;
-
-  if (DECL_DISCRIMINATOR_P (entity) && DECL_LANG_SPECIFIC (entity))
-    discriminator = DECL_DISCRIMINATOR (entity);
+  if (DECL_DISCRIMINATOR_P (entity))
+    {
+      if (DECL_LANG_SPECIFIC (entity))
+	return DECL_DISCRIMINATOR (entity);
+      else
+	/* The first entity with a particular name doesn't get
+	   DECL_LANG_SPECIFIC/DECL_DISCRIMINATOR.  */
+	return 0;
+    }
   else if (TREE_CODE (entity) == TYPE_DECL)
     {
-      int ix;
-
       /* Scan the list of local classes.  */
       entity = TREE_TYPE (entity);
 
@@ -1562,18 +1593,10 @@ discriminator_for_local_entity (tree entity)
       if (LAMBDA_TYPE_P (entity) || TYPE_ANONYMOUS_P (entity))
 	return 0;
 
-      for (ix = 0; ; ix++)
-	{
-	  tree type = VEC_index (tree, local_classes, ix);
-	  if (type == entity)
-	    break;
-	  if (TYPE_IDENTIFIER (type) == TYPE_IDENTIFIER (entity)
-	      && TYPE_CONTEXT (type) == TYPE_CONTEXT (entity))
-	    ++discriminator;
-	}
+      return local_class_index (entity);
     }
-
-  return discriminator;
+  else
+    gcc_unreachable ();
 }
 
 /* Return the discriminator for STRING, a string literal used inside
@@ -2233,21 +2256,22 @@ write_class_enum_type (const tree type)
 /* Non-terminal <template-args>.  ARGS is a TREE_VEC of template
    arguments.
 
-     <template-args> ::= I <template-arg>+ E  */
+     <template-args> ::= I <template-arg>* E  */
 
 static void
 write_template_args (tree args)
 {
   int i;
-  int length = TREE_VEC_LENGTH (args);
+  int length = 0;
 
   MANGLE_TRACE_TREE ("template-args", args);
 
   write_char ('I');
 
-  gcc_assert (length > 0);
+  if (args)
+    length = TREE_VEC_LENGTH (args);
 
-  if (TREE_CODE (TREE_VEC_ELT (args, 0)) == TREE_VEC)
+  if (args && TREE_CODE (TREE_VEC_ELT (args, 0)) == TREE_VEC)
     {
       /* We have nested template args.  We want the innermost template
 	 argument list.  */
@@ -2907,7 +2931,7 @@ finish_mangling_get_identifier (const bool warn)
   finish_mangling_internal (warn);
   /* Don't obstack_finish here, and the next start_mangling will
      remove the identifier.  */
-  return get_identifier ((const char *) name_base);
+  return get_identifier ((const char *) obstack_base (mangle_obstack));
 }
 
 /* Initialize data structures for mangling.  */
@@ -2960,18 +2984,15 @@ mangle_decl (const tree decl)
   SET_DECL_ASSEMBLER_NAME (decl, id);
 }
 
-/* Generate the mangled representation of TYPE for the typeinfo name.  */
+/* Generate the mangled representation of TYPE.  */
 
 const char *
-mangle_type_string_for_rtti (const tree type)
+mangle_type_string (const tree type)
 {
   const char *result;
 
   start_mangling (type);
-  /* Mangle in a fake anonymous namespace if necessary.  */
-  fake_anon_scope = true;
   write_type (type);
-  fake_anon_scope = false;
   result = finish_mangling (/*warn=*/false);
   if (DEBUG_MANGLE)
     fprintf (stderr, "mangle_type_string = '%s'\n\n", result);

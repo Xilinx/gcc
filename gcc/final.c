@@ -204,10 +204,8 @@ rtx final_sequence;
 static int dialect_number;
 #endif
 
-#ifdef HAVE_conditional_execution
 /* Nonnull if the insn currently being emitted was a COND_EXEC pattern.  */
 rtx current_insn_predicate;
-#endif
 
 #ifdef HAVE_ATTR_length
 static int asm_insn_count (rtx);
@@ -1399,13 +1397,23 @@ static int
 asm_insn_count (rtx body)
 {
   const char *templ;
-  int count = 1;
 
   if (GET_CODE (body) == ASM_INPUT)
     templ = XSTR (body, 0);
   else
     templ = decode_asm_operands (body, NULL, NULL, NULL, NULL, NULL);
 
+  return asm_str_count (templ);
+}
+#endif
+
+/* Return the number of machine instructions likely to be generated for the
+   inline-asm template. */
+int
+asm_str_count (const char *templ)
+{
+  int count = 1;
+  
   if (!*templ)
     return 0;
 
@@ -1416,7 +1424,6 @@ asm_insn_count (rtx body)
 
   return count;
 }
-#endif
 
 /* ??? This is probably the wrong place for these.  */
 /* Structure recording the mapping from source file and directory
@@ -2093,10 +2100,9 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 	const char *templ;
 	bool is_stmt;
 
-#ifdef HAVE_conditional_execution
 	/* Reset this early so it is correct for ASM statements.  */
 	current_insn_predicate = NULL_RTX;
-#endif
+
 	/* An INSN, JUMP_INSN or CALL_INSN.
 	   First check for special kinds that recog doesn't recognize.  */
 
@@ -2581,10 +2587,9 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 	FINAL_PRESCAN_INSN (insn, recog_data.operand, recog_data.n_operands);
 #endif
 
-#ifdef HAVE_conditional_execution
-	if (GET_CODE (PATTERN (insn)) == COND_EXEC)
+	if (targetm.have_conditional_execution ()
+	    && GET_CODE (PATTERN (insn)) == COND_EXEC)
 	  current_insn_predicate = COND_EXEC_TEST (PATTERN (insn));
-#endif
 
 #ifdef HAVE_cc0
 	cc_prev_status = cc_status;
@@ -2674,6 +2679,26 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 
 	/* Output assembler code from the template.  */
 	output_asm_insn (templ, recog_data.operand);
+
+	/* Record point-of-call information for ICF debugging.  */
+	if (flag_enable_icf_debug && CALL_P (insn))
+	  {
+	    rtx x = call_from_call_insn (insn);
+	    x = XEXP (x, 0);
+	    if (x && MEM_P (x))
+	      {
+	        if (GET_CODE (XEXP (x, 0)) == SYMBOL_REF)
+	          {
+		    tree t;
+		    x = XEXP (x, 0);
+		    t = SYMBOL_REF_DECL (x);
+		    if (t)
+		      (*debug_hooks->direct_call) (t);
+	          }
+	        else
+	          (*debug_hooks->virtual_call) (INSN_UID (insn));
+	      }
+	  }
 
 	/* Some target machines need to postscan each insn after
 	   it is output.  */
