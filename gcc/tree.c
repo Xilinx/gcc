@@ -4988,7 +4988,7 @@ struct simple_ipa_opt_pass pass_ipa_free_lang_data =
 {
  {
   SIMPLE_IPA_PASS,
-  NULL,					/* name */
+  "*free_lang_data",			/* name */
   NULL,					/* gate */
   free_lang_data,			/* execute */
   NULL,					/* sub */
@@ -9009,7 +9009,8 @@ build_common_builtin_nodes (void)
       tmp = tree_cons (NULL_TREE, size_type_node, void_list_node);
       ftype = build_function_type (ptr_type_node, tmp);
       local_define_builtin ("__builtin_alloca", ftype, BUILT_IN_ALLOCA,
-			    "alloca", ECF_NOTHROW | ECF_MALLOC);
+			    "alloca",
+			    ECF_MALLOC | (flag_stack_check ? 0 : ECF_NOTHROW));
     }
 
   tmp = tree_cons (NULL_TREE, ptr_type_node, void_list_node);
@@ -9213,7 +9214,8 @@ reconstruct_complex_type (tree type, tree bottom)
   else
     return bottom;
 
-  return build_qualified_type (outer, TYPE_QUALS (type));
+  return build_type_attribute_qual_variant (outer, TYPE_ATTRIBUTES (type),
+					    TYPE_QUALS (type));
 }
 
 /* Returns a vector tree node given a mode (integer, vector, or BLKmode) and

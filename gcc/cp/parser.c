@@ -2400,6 +2400,11 @@ cp_parser_diagnose_invalid_type_name (cp_parser *parser,
       if (TREE_CODE (parser->scope) == NAMESPACE_DECL)
 	error_at (location, "%qE in namespace %qE does not name a type",
 		  id, parser->scope);
+      else if (TYPE_P (parser->scope)
+	       && dependent_scope_p (parser->scope))
+	error_at (location, "need %<typename%> before %<%T::%E%> because "
+		  "%qT is a dependent scope",
+		  parser->scope, id, parser->scope);
       else if (TYPE_P (parser->scope))
 	error_at (location, "%qE in class %qT does not name a type",
 		  id, parser->scope);
@@ -2432,12 +2437,9 @@ cp_parser_parse_and_diagnose_invalid_type_name (cp_parser *parser)
 				/*template_p=*/NULL,
 				/*declarator_p=*/true,
 				/*optional_p=*/false);
-  /* After the id-expression, there should be a plain identifier,
-     otherwise this is not a simple variable declaration. Also, if
-     the scope is dependent, we cannot do much.  */
-  if (!cp_lexer_next_token_is (parser->lexer, CPP_NAME)
-      || (parser->scope && TYPE_P (parser->scope)
-	  && dependent_type_p (parser->scope))
+  /* If the next token is a (, this is a function with no explicit return
+     type, i.e. constructor, destructor or conversion op.  */
+  if (cp_lexer_next_token_is (parser->lexer, CPP_OPEN_PAREN)
       || TREE_CODE (id) == TYPE_DECL)
     {
       cp_parser_abort_tentative_parse (parser);
@@ -2449,9 +2451,11 @@ cp_parser_parse_and_diagnose_invalid_type_name (cp_parser *parser)
   /* Emit a diagnostic for the invalid type.  */
   cp_parser_diagnose_invalid_type_name (parser, parser->scope,
 					id, token->location);
-  /* Skip to the end of the declaration; there's no point in
-     trying to process it.  */
-  cp_parser_skip_to_end_of_block_or_statement (parser);
+  /* If we aren't in the middle of a declarator (i.e. in a
+     parameter-declaration-clause), skip to the end of the declaration;
+     there's no point in trying to process it.  */
+  if (!parser->in_declarator_p)
+    cp_parser_skip_to_end_of_block_or_statement (parser);
   return true;
 }
 
@@ -7760,11 +7764,20 @@ static tree
 cp_parser_expression_statement (cp_parser* parser, tree in_statement_expr)
 {
   tree statement = NULL_TREE;
+  cp_token *token = cp_lexer_peek_token (parser->lexer);
 
   /* If the next token is a ';', then there is no expression
      statement.  */
   if (cp_lexer_next_token_is_not (parser->lexer, CPP_SEMICOLON))
     statement = cp_parser_expression (parser, /*cast_p=*/false, NULL);
+
+  /* Give a helpful message for "A<T>::type t;"  */
+  if (cp_lexer_next_token_is_not (parser->lexer, CPP_SEMICOLON)
+      && !cp_parser_uncommitted_to_tentative_parse_p (parser)
+      && TREE_CODE (statement) == SCOPE_REF)
+    error_at (token->location, "need %<typename%> before %qE because "
+	      "%qT is a dependent scope",
+	      statement, TREE_OPERAND (statement, 0));
 
   /* Consume the final `;'.  */
   cp_parser_consume_semicolon_at_end_of_statement (parser);
@@ -8835,7 +8848,7 @@ cp_parser_simple_declaration (cp_parser* parser,
        T t;
 
      where "T" should name a type -- but does not.  */
-  if (!decl_specifiers.type
+  if (!decl_specifiers.any_type_specifiers_p
       && cp_parser_parse_and_diagnose_invalid_type_name (parser))
     {
       /* If parsing tentatively, we should commit; we really are
@@ -9200,6 +9213,8 @@ cp_parser_decl_specifier_seq (cp_parser* parser,
 	    {
 	      constructor_possible_p = false;
 	      found_decl_spec = true;
+	      if (!is_cv_qualifier)
+		decl_specs->any_type_specifiers_p = true;
 	    }
 	}
 
@@ -14962,6 +14977,11 @@ cp_parser_parameter_declaration (cp_parser *parser,
 				CP_PARSER_FLAGS_NONE,
 				&decl_specifiers,
 				&declares_class_or_enum);
+
+  /* Complain about missing 'typename' or other invalid type names.  */
+  if (!decl_specifiers.any_type_specifiers_p)
+    cp_parser_parse_and_diagnose_invalid_type_name (parser);
+
   /* If an error occurred, there's no reason to attempt to parse the
      rest of the declaration.  */
   if (cp_parser_error_occurred (parser))
@@ -16512,7 +16532,7 @@ cp_parser_member_declaration (cp_parser* parser)
   prefix_attributes = decl_specifiers.attributes;
   decl_specifiers.attributes = NULL_TREE;
   /* Check for an invalid type-name.  */
-  if (!decl_specifiers.type
+  if (!decl_specifiers.any_type_specifiers_p
       && cp_parser_parse_and_diagnose_invalid_type_name (parser))
     return;
   /* If there is no declarator, then the decl-specifier-seq should
@@ -18197,9 +18217,13 @@ cp_parser_check_template_parameters (cp_parser* parser,
        template <class T> void S<T>::R<T>::f ();  */
   if (parser->num_template_parameter_lists < num_templates)
     {
-      if (declarator)
+      if (declarator && !current_function_decl)
 	error_at (location, "specializing member %<%T::%E%> "
 		  "requires %<template<>%> syntax", 
+		  declarator->u.id.qualifying_scope,
+		  declarator->u.id.unqualified_name);
+      else if (declarator)
+	error_at (location, "invalid declaration of %<%T::%E%>",
 		  declarator->u.id.qualifying_scope,
 		  declarator->u.id.unqualified_name);
       else 
@@ -18760,6 +18784,11 @@ cp_parser_single_declaration (cp_parser* parser,
 	  cp_parser_perform_template_parameter_access_checks (checks);
 	}
     }
+
+  /* Complain about missing 'typename' or other invalid type names.  */
+  if (!decl_specifiers.any_type_specifiers_p)
+    cp_parser_parse_and_diagnose_invalid_type_name (parser);
+
   /* If it's not a template class, try for a template function.  If
      the next token is a `;', then this declaration does not declare
      anything.  But, if there were errors in the decl-specifiers, then
@@ -22424,7 +22453,8 @@ cp_parser_omp_for_loop (cp_parser *parser, tree clauses, tree *par_clauses)
 	    }
 	  collapse_err = true;
 	  cp_parser_statement_seq_opt (parser, NULL);
-	  cp_parser_require (parser, CPP_CLOSE_BRACE, "%<}%>");
+	  if (cp_lexer_next_token_is (parser->lexer, CPP_EOF))
+	    break;
 	}
     }
 

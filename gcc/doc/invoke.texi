@@ -594,7 +594,7 @@ Objective-C and Objective-C++ Dialects}.
 -mcld -mcx16 -msahf -mmovbe -mcrc32 -mrecip @gol
 -mmmx  -msse  -msse2 -msse3 -mssse3 -msse4.1 -msse4.2 -msse4 -mavx @gol
 -maes -mpclmul @gol
--msse4a -m3dnow -mpopcnt -mabm -mfma4 @gol
+-msse4a -m3dnow -mpopcnt -mabm -mfma4 -mxop -mlwp @gol
 -mthreads  -mno-align-stringops  -minline-all-stringops @gol
 -minline-stringops-dynamically -mstringop-strategy=@var{alg} @gol
 -mpush-args  -maccumulate-outgoing-args  -m128bit-long-double @gol
@@ -9788,10 +9788,12 @@ of the @option{-mcpu=} option.  Permissible names are: @samp{armv2},
 @opindex mfp
 This specifies what floating point hardware (or hardware emulation) is
 available on the target.  Permissible names are: @samp{fpa}, @samp{fpe2},
-@samp{fpe3}, @samp{maverick}, @samp{vfp}, @samp{vfpv3}, @samp{vfpv3-d16},
-@samp{neon}, and @samp{neon-fp16}.  @option{-mfp} and @option{-mfpe}
-are synonyms for @option{-mfpu}=@samp{fpe}@var{number}, for compatibility
-with older versions of GCC@.
+@samp{fpe3}, @samp{maverick}, @samp{vfp}, @samp{vfpv3}, @samp{vfpv3-fp16},
+@samp{vfpv3-d16}, @samp{vfpv3-d16-fp16}, @samp{vfpv3xd}, @samp{vfpv3xd-fp16},
+@samp{neon}, and @samp{neon-fp16}.
+@option{-mfp} and @option{-mfpe} are synonyms for
+@option{-mfpu}=@samp{fpe}@var{number}, for compatibility with older versions
+of GCC@.
 
 If @option{-msoft-float} is specified this specifies the format of
 floating point values.
@@ -12005,6 +12007,10 @@ preferred alignment to @option{-mpreferred-stack-boundary=2}.
 @itemx -mno-sse4a
 @itemx -mfma4
 @itemx -mno-fma4
+@itemx -mxop
+@itemx -mno-xop
+@itemx -mlwp
+@itemx -mno-lwp
 @itemx -m3dnow
 @itemx -mno-3dnow
 @itemx -mpopcnt
@@ -12018,8 +12024,8 @@ preferred alignment to @option{-mpreferred-stack-boundary=2}.
 @opindex m3dnow
 @opindex mno-3dnow
 These switches enable or disable the use of instructions in the MMX,
-SSE, SSE2, SSE3, SSSE3, SSE4.1, AVX, AES, PCLMUL, SSE4A, FMA4, ABM or
-3DNow!@: extended instruction sets.
+SSE, SSE2, SSE3, SSSE3, SSE4.1, AVX, AES, PCLMUL, SSE4A, FMA4, XOP,
+LWP, ABM or 3DNow!@: extended instruction sets.
 These extensions are also available as built-in functions: see
 @ref{X86 Built-in Functions}, for details of the functions enabled and
 disabled by these switches.
@@ -12091,6 +12097,10 @@ together with @option{-finite-math-only} and @option{-fno-trapping-math}.
 Note that while the throughput of the sequence is higher than the throughput
 of the non-reciprocal instruction, the precision of the sequence can be
 decreased by up to 2 ulp (i.e. the inverse of 1.0 equals 0.99999994).
+
+Note that GCC implements 1.0f/sqrtf(x) in terms of RSQRTSS (or RSQRTPS)
+already with @option{-ffast-math} (or the above option combination), and
+doesn't need @option{-mrecip}.
 
 @item -mveclibabi=@var{type}
 @opindex mveclibabi

@@ -1,4 +1,102 @@
+2009-11-07  Jason Merrill  <jason@redhat.com>
+
+	PR c++/37920
+	* pt.c (tsubst) [TYPEOF_TYPE]: Set cp_unevaluated_operand.
+
+	PR c++/18451
+	PR c++/40738
+	* cp-tree.h (cp_decl_specifier_seq): Add any_type_specifiers_p.
+	* parser.c (cp_parser_single_declaration): Call
+	cp_parser_parse_and_diagnose_invalid_type_name here, too.
+	(cp_parser_parameter_declaration): And here.
+	(cp_parser_parse_and_diagnose_invalid_type_name): Be
+	less picky about declarator form.  Don't skip to
+	the end of the block if	we're in a declarator.
+	(cp_parser_decl_specifier_seq): Set any_type_specifiers_p.
+	(cp_parser_simple_declaration): Check it.
+	(cp_parser_member_declaration): Likewise.
+	(cp_parser_diagnose_invalid_type_name): Tweak error message.
+	(cp_parser_expression_statement): Likewise.
+	* decl2.c (grokfield): Mention decltype instead of typeof.
+
+2009-11-06  Jason Merrill  <jason@redhat.com>
+
+	PR c++/15946
+	* parser.c (cp_parser_check_template_parameters): Don't talk about
+	specialization at function scope.
+	(cp_parser_diagnose_invalid_type_name): Handle dependent scope.
+	(cp_parser_parse_and_diagnose_invalid_type_name): Likewise.
+	(cp_parser_expression_statement): Suggest typename.
+	* error.c (dump_decl) [SCOPE_REF]: Print the type here.
+	(dump_expr) [SCOPE_REF]: Call it.
+	(dump_type) [UNBOUND_CLASS_TEMPLATE]: Check TFF_UNQUALIFIED_NAME.
+	* cxx-pretty-print.c (pp_cxx_unqualified_id): Print class template
+	args.
+
+	PR c++/9381
+	* decl2.c (build_memfn_type): Preserve attributes.
+	(cp_reconstruct_complex_type): Likewise.
+	(maybe_retrofit_in_chrg): Likewise.
+	* class.c (adjust_clone_args): Likewise.
+	* call.c (standard_conversion): Use build_memfn_type.
+	* pt.c (tsubst): Likewise.
+	* decl.c (build_ptrmem_type): Likewise
+	(check_function_type): Preserve attributes.
+	* tree.c (cp_build_type_attribute_variant): Propagate exception
+	specs on METHOD_TYPE, too.
+	(strip_typedefs): Preserve exception specs and attributes.
+
+2009-11-06  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR c++/41536
+	* optimize.c (maybe_clone_body): Copy DECL_ATTRIBUTES and
+	DECL_DISREGARD_INLINE_LIMITS also.
+
+2009-11-06  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/41967
+	* parser.c (cp_parser_omp_for_loop): After diagnosing not perfectly
+	nested loop and parsing statements, don't cp_parser_require }, instead
+	exit the loop if next token is CPP_EOF.
+
+2009-11-05  Jason Merrill  <jason@redhat.com>
+
+	PR c++/34180
+	* method.c (do_build_copy_constructor): Don't drop cv-quals from
+	the field type.
+
+	PR c++/7046
+	* class.c (finish_struct): Store maximum_field_alignment in
+	TYPE_PRECISION.
+	* pt.c (instantiate_class_template): Set maximum_field_alignment.
+
+	PR c++/34870
+	* name-lookup.c (arg_assoc_class): Call complete_type.
+	* pt.c (instantiate_class_template): Call uses_template_parms
+	instead of dependent_type_p.
+
+	PR c++/41703
+	* pt.c (check_undeduced_parms): New subroutine of...
+	(more_specialized_fn): ...here.  Undeduced template parms can make
+	a template less specialized than another.
+
+2009-11-04  Jason Merrill  <jason@redhat.com>
+
+	PR c++/39413
+	* search.c (lookup_base): Don't complete_type (base).
+
+	PR c++/35067
+	* method.c (use_thunk): Check DECL_WEAK as well as
+	DECL_ONE_ONLY.
+
+	PR c++/17365, DR 218
+	* name-lookup.c (add_function): Ignore non-functions.
+
 2009-11-03  Jason Merrill  <jason@redhat.com>
+
+	PR c++/36959
+	* decl2.c (cxx_callgraph_analyze_expr): Don't reference a function
+	just because a static variable in it is needed unless -frepo.
 
 	PR c++/41876
 	* parser.c (cp_parser_type_specifier_seq): Rename is_condition to
