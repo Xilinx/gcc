@@ -964,9 +964,8 @@ ira_bad_reload_regno_1 (int regno, rtx x)
   /* If the pseudo prefers REGNO explicitly, then do not consider
      REGNO a bad spill choice.  */
   pref = reg_preferred_class (x_regno);
-  if (reg_class_size[pref] == 1
-      && TEST_HARD_REG_BIT (reg_class_contents[pref], regno))
-    return 0;
+  if (reg_class_size[pref] == 1)
+    return !TEST_HARD_REG_BIT (reg_class_contents[pref], regno);
 
   /* If the pseudo conflicts with REGNO, then we consider REGNO a
      poor choice for a reload regno.  */
