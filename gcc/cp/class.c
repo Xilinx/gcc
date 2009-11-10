@@ -2677,7 +2677,8 @@ add_implicitly_declared_members (tree t,
       CLASSTYPE_LAZY_COPY_CTOR (t) = 1;
     }
 
-  /* Currently only lambdas get a lazy move ctor.  */
+  /* Currently only lambdas get a lazy move ctor, but N2987 adds them for
+     other classes.  */
   if (LAMBDA_TYPE_P (t))
     CLASSTYPE_LAZY_MOVE_CTOR (t) = 1;
 
@@ -4103,6 +4104,7 @@ adjust_clone_args (tree decl)
 	      /* A default parameter has been added. Adjust the
 		 clone's parameters.  */
 	      tree exceptions = TYPE_RAISES_EXCEPTIONS (TREE_TYPE (clone));
+	      tree attrs = TYPE_ATTRIBUTES (TREE_TYPE (clone));
 	      tree basetype = TYPE_METHOD_BASETYPE (TREE_TYPE (clone));
 	      tree type;
 
@@ -4120,6 +4122,8 @@ adjust_clone_args (tree decl)
 						 clone_parms);
 	      if (exceptions)
 		type = build_exception_variant (type, exceptions);
+	      if (attrs)
+		type = cp_build_type_attribute_variant (type, attrs);
 	      TREE_TYPE (clone) = type;
 
 	      clone_parms = NULL_TREE;
@@ -5515,6 +5519,9 @@ finish_struct (tree t, tree attributes)
 	if (DECL_PURE_VIRTUAL_P (x))
 	  VEC_safe_push (tree, gc, CLASSTYPE_PURE_VIRTUALS (t), x);
       complete_vars (t);
+
+      /* Remember current #pragma pack value.  */
+      TYPE_PRECISION (t) = maximum_field_alignment;
     }
   else
     finish_struct_1 (t);

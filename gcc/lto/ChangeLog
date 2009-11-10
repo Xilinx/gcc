@@ -1,3 +1,18 @@
+2009-11-04  Richard Guenther  <rguenther@suse.de>
+            Rafael Avila de Espindola  <espindola@google.com>
+
+	* lto-elf.c (lto_elf_build_section_table): Add the base offset.
+	(lto_elf_file_open): Handle offsets in arguments name@offest.
+
+2009-10-30  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/41858
+	* lto.c (lto_file_read): Do not set file_data->fd.
+	(lto_read_section_data): Use a single-entry file-descriptor cache.
+	Do not check the result of xmalloc.
+	(free_section_data): Do not use file_data->fd.
+	(lto_read_all_file_options): Likewise.
+
 2009-10-22  Richard Guenther  <rguenther@suse.de>
 
 	* lto.c (lto_fixup_jump_functions): Remove.

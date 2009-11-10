@@ -1233,6 +1233,7 @@ cgraph_decide_inlining (void)
 	      && !DECL_EXTERNAL (node->decl)
 	      && !DECL_COMDAT (node->decl))
 	    {
+	      cgraph_inline_failed_t reason;
 	      old_size = overall_size;
 	      if (dump_file)
 		{
@@ -1246,7 +1247,7 @@ cgraph_decide_inlining (void)
 		}
 
 	      if (cgraph_check_inline_limits (node->callers->caller, node,
-					      NULL, false))
+					      &reason, false))
 		{
 		  cgraph_mark_inline (node->callers);
 		  if (dump_file)
@@ -1261,7 +1262,8 @@ cgraph_decide_inlining (void)
 		{
 		  if (dump_file)
 		    fprintf (dump_file,
-			     " Inline limit reached, not inlined.\n");
+			     " Not inlining: %s.\n",
+                             cgraph_inline_failed_string (reason));
 		}
 	    }
 	}
@@ -2018,6 +2020,7 @@ struct ipa_opt_pass_d pass_ipa_inline =
  inline_write_summary,			/* write_summary */
  inline_read_summary,			/* read_summary */
  NULL,					/* function_read_summary */
+ NULL,					/* stmt_fixup */
  0,					/* TODOs */
  inline_transform,			/* function_transform */
  NULL,					/* variable_transform */

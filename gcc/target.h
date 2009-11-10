@@ -500,6 +500,11 @@ struct gcc_target
   /* The initial value of target_flags.  */
   int default_target_flags;
 
+  /* Allow target specific overriding of option settings after options have
+     been changed by an attribute or pragma or when it is reset at the
+     end of the code affected by an attribute or pragma.  */
+  void (* override_options_after_change) (void);
+
   /* Handle target switch CODE (an OPT_* value).  ARG is the argument
      passed to the switch; it is NULL if no argument was.  VALUE is the
      value of ARG if CODE specifies a UInteger option, otherwise it is
@@ -620,6 +625,9 @@ struct gcc_target
      function.  AFTER_PE_GEN is true if prologues and epilogues have
      already been generated.  */
   bool (* branch_target_register_callee_saved) (bool after_pe_gen);
+
+  /* Return true if the target supports conditional execution.  */
+  bool (* have_conditional_execution) (void);
 
   /* True if the constant X cannot be placed in the constant pool.  */
   bool (* cannot_force_const_mem) (rtx);

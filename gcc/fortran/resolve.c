@@ -1117,6 +1117,9 @@ is_illegal_recursion (gfc_symbol* sym, gfc_namespace* context)
   gfc_symbol* context_proc;
   gfc_namespace* real_context;
 
+  if (sym->attr.flavor == FL_PROGRAM)
+    return false;
+
   gcc_assert (sym->attr.flavor == FL_PROCEDURE);
 
   /* If we've got an ENTRY, find real procedure.  */
@@ -2526,7 +2529,9 @@ resolve_function (gfc_expr *expr)
       return FAILURE;
     }
 
-  if (sym && sym->attr.abstract)
+  /* If this ia a deferred TBP with an abstract interface (which may
+     of course be referenced), expr->value.function.name will be set.  */
+  if (sym && sym->attr.abstract && !expr->value.function.name)
     {
       gfc_error ("ABSTRACT INTERFACE '%s' must not be referenced at %L",
 		 sym->name, &expr->where);
@@ -3136,6 +3141,15 @@ resolve_call (gfc_code *c)
 	    c->symtree = st;
 	  csym = c->symtree->n.sym;
 	}
+    }
+
+  /* If this ia a deferred TBP with an abstract interface
+     (which may of course be referenced), c->expr1 will be set.  */
+  if (csym && csym->attr.abstract && !c->expr1)
+    {
+      gfc_error ("ABSTRACT INTERFACE '%s' must not be referenced at %L",
+		 csym->name, &c->loc);
+      return FAILURE;
     }
 
   /* Subroutines without the RECURSIVE attribution are not allowed to
@@ -6198,7 +6212,7 @@ check_symbols:
 	  sym = a->expr->symtree->n.sym;
 
 	  /* TODO - check derived type components.  */
-	  if (sym->ts.type == BT_DERIVED)
+	  if (sym->ts.type == BT_DERIVED || sym->ts.type == BT_CLASS)
 	    continue;
 
 	  if ((ar->start[i] != NULL
@@ -8630,7 +8644,8 @@ apply_default_init_local (gfc_symbol *sym)
 
   /* For saved variables, we don't want to add an initializer at 
      function entry, so we just add a static initializer.  */
-  if (sym->attr.save || sym->ns->save_all)
+  if (sym->attr.save || sym->ns->save_all 
+      || gfc_option.flag_max_stack_var_size == 0)
     {
       /* Don't clobber an existing initializer!  */
       gcc_assert (sym->value == NULL);
@@ -9468,8 +9483,8 @@ check_typebound_override (gfc_symtree* proc, gfc_symtree* old)
       if (proc_pass_arg != argpos && old_pass_arg != argpos
 	  && !gfc_compare_types (&proc_formal->sym->ts, &old_formal->sym->ts))
 	{
-	  gfc_error ("Types mismatch for dummy argument '%s' of '%s' %L in"
-		     " in respect to the overridden procedure",
+	  gfc_error ("Types mismatch for dummy argument '%s' of '%s' %L "
+		     "in respect to the overridden procedure",
 		     proc_formal->sym->name, proc->name, &where);
 	  return FAILURE;
 	}

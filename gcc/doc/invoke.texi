@@ -392,7 +392,7 @@ Objective-C and Objective-C++ Dialects}.
 -funit-at-a-time -funroll-all-loops -funroll-loops @gol
 -funsafe-loop-optimizations -funsafe-math-optimizations -funswitch-loops @gol
 -fvariable-expansion-in-unroller -fvect-cost-model -fvpt -fweb @gol
--fwhole-program -fwhopr -fwpa -use-linker-plugin @gol
+-fwhole-program -fwhopr -fwpa -fuse-linker-plugin @gol
 --param @var{name}=@var{value}
 -O  -O0  -O1  -O2  -O3  -Os}
 
@@ -595,7 +595,7 @@ Objective-C and Objective-C++ Dialects}.
 -mcld -mcx16 -msahf -mmovbe -mcrc32 -mrecip @gol
 -mmmx  -msse  -msse2 -msse3 -mssse3 -msse4.1 -msse4.2 -msse4 -mavx @gol
 -maes -mpclmul @gol
--msse4a -m3dnow -mpopcnt -mabm -mfma4 @gol
+-msse4a -m3dnow -mpopcnt -mabm -mfma4 -mxop -mlwp @gol
 -mthreads  -mno-align-stringops  -minline-all-stringops @gol
 -minline-stringops-dynamically -mstringop-strategy=@var{alg} @gol
 -mpush-args  -maccumulate-outgoing-args  -m128bit-long-double @gol
@@ -710,7 +710,7 @@ Objective-C and Objective-C++ Dialects}.
 -mbranch-cost=@var{num}  -mbranch-likely  -mno-branch-likely @gol
 -mfp-exceptions -mno-fp-exceptions @gol
 -mvr4130-align -mno-vr4130-align -msynci -mno-synci @gol
--mrelax-pic-calls -mno-relax-pic-calls}
+-mrelax-pic-calls -mno-relax-pic-calls -mmcount-ra-address}
 
 @emph{MMIX Options}
 @gccoptlist{-mlibfuncs  -mno-libfuncs  -mepsilon  -mno-epsilon  -mabi=gnu @gol
@@ -785,14 +785,16 @@ See RS/6000 and PowerPC Options.
 -msdata=@var{opt}  -mvxworks  -G @var{num}  -pthread}
 
 @emph{RX Options}
-@gccoptlist{-m64bit-doubles  -m32bit-doubles  -mieee  -mno-ieee@gol
+@gccoptlist{-m64bit-doubles  -m32bit-doubles  -fpu  -nofpu@gol
+-mcpu= -patch=@gol
 -mbig-endian-data -mlittle-endian-data @gol
 -msmall-data @gol
 -msim  -mno-sim@gol
 -mas100-syntax -mno-as100-syntax@gol
 -mrelax@gol
 -mmax-constant-size=@gol
--mint-register=}
+-mint-register=@gol
+-msave-acc-in-interrupts}
 
 @emph{S/390 and zSeries Options}
 @gccoptlist{-mtune=@var{cpu-type}  -march=@var{cpu-type} @gol
@@ -878,7 +880,8 @@ See i386 and x86-64 Options.
 
 @emph{i386 and x86-64 Windows Options}
 @gccoptlist{-mconsole -mcygwin -mno-cygwin -mdll
--mnop-fun-dllimport -mthread -municode -mwin32 -mwindows}
+-mnop-fun-dllimport -mthread -municode -mwin32 -mwindows
+-fno-set-stack-executable}
 
 @emph{Xstormy16 Options}
 @gccoptlist{-msim}
@@ -7284,11 +7287,11 @@ If object files containing GIMPLE bytecode are stored in a library
 archive, say @file{libfoo.a}, it is possible to extract and use them
 in an LTO link if you are using @command{gold} as the linker (which,
 in turn requires GCC to be configured with @option{--enable-gold}).
-To enable this feature, use the flag @option{-use-linker-plugin} at
+To enable this feature, use the flag @option{-fuse-linker-plugin} at
 link-time:
 
 @smallexample
-gcc -o myprog -O2 -flto -use-linker-plugin a.o b.o -lfoo
+gcc -o myprog -O2 -flto -fuse-linker-plugin a.o b.o -lfoo
 @end smallexample
 
 With the linker plugin enabled, @command{gold} will extract the needed
@@ -7296,7 +7299,7 @@ GIMPLE files from @file{libfoo.a} and pass them on to the running GCC
 to make them part of the aggregated GIMPLE image to be optimized.
 
 If you are not using @command{gold} and/or do not specify
-@option{-use-linker-plugin} then the objects inside @file{libfoo.a}
+@option{-fuse-linker-plugin} then the objects inside @file{libfoo.a}
 will be extracted and linked as usual, but they will not participate
 in the LTO optimization process.
 
@@ -7381,7 +7384,7 @@ files in LTO mode (via @option{-fwhopr} or @option{-flto}).
 
 Disabled by default.
 
-@item -use-linker-plugin
+@item -fuse-linker-plugin
 Enables the extraction of objects with GIMPLE bytecode information
 from library archives.  This option relies on features available only
 in @command{gold}, so to use this you must configure GCC with
@@ -9796,10 +9799,12 @@ of the @option{-mcpu=} option.  Permissible names are: @samp{armv2},
 @opindex mfp
 This specifies what floating point hardware (or hardware emulation) is
 available on the target.  Permissible names are: @samp{fpa}, @samp{fpe2},
-@samp{fpe3}, @samp{maverick}, @samp{vfp}, @samp{vfpv3}, @samp{vfpv3-d16},
-@samp{neon}, and @samp{neon-fp16}.  @option{-mfp} and @option{-mfpe}
-are synonyms for @option{-mfpu}=@samp{fpe}@var{number}, for compatibility
-with older versions of GCC@.
+@samp{fpe3}, @samp{maverick}, @samp{vfp}, @samp{vfpv3}, @samp{vfpv3-fp16},
+@samp{vfpv3-d16}, @samp{vfpv3-d16-fp16}, @samp{vfpv3xd}, @samp{vfpv3xd-fp16},
+@samp{neon}, and @samp{neon-fp16}.
+@option{-mfp} and @option{-mfpe} are synonyms for
+@option{-mfpu}=@samp{fpe}@var{number}, for compatibility with older versions
+of GCC@.
 
 If @option{-msoft-float} is specified this specifies the format of
 floating point values.
@@ -12013,6 +12018,10 @@ preferred alignment to @option{-mpreferred-stack-boundary=2}.
 @itemx -mno-sse4a
 @itemx -mfma4
 @itemx -mno-fma4
+@itemx -mxop
+@itemx -mno-xop
+@itemx -mlwp
+@itemx -mno-lwp
 @itemx -m3dnow
 @itemx -mno-3dnow
 @itemx -mpopcnt
@@ -12026,8 +12035,8 @@ preferred alignment to @option{-mpreferred-stack-boundary=2}.
 @opindex m3dnow
 @opindex mno-3dnow
 These switches enable or disable the use of instructions in the MMX,
-SSE, SSE2, SSE3, SSSE3, SSE4.1, AVX, AES, PCLMUL, SSE4A, FMA4, ABM or
-3DNow!@: extended instruction sets.
+SSE, SSE2, SSE3, SSSE3, SSE4.1, AVX, AES, PCLMUL, SSE4A, FMA4, XOP,
+LWP, ABM or 3DNow!@: extended instruction sets.
 These extensions are also available as built-in functions: see
 @ref{X86 Built-in Functions}, for details of the functions enabled and
 disabled by these switches.
@@ -12099,6 +12108,10 @@ together with @option{-finite-math-only} and @option{-fno-trapping-math}.
 Note that while the throughput of the sequence is higher than the throughput
 of the non-reciprocal instruction, the precision of the sequence can be
 decreased by up to 2 ulp (i.e. the inverse of 1.0 equals 0.99999994).
+
+Note that GCC implements 1.0f/sqrtf(x) in terms of RSQRTSS (or RSQRTPS)
+already with @option{-ffast-math} (or the above option combination), and
+doesn't need @option{-mrecip}.
 
 @item -mveclibabi=@var{type}
 @opindex mveclibabi
@@ -14218,6 +14231,27 @@ an assembler and a linker that supports the @code{.reloc} assembly
 directive and @code{-mexplicit-relocs} is in effect.  With
 @code{-mno-explicit-relocs}, this optimization can be performed by the
 assembler and the linker alone without help from the compiler.
+
+@item -mmcount-ra-address
+@itemx -mno-mcount-ra-address
+@opindex mmcount-ra-address
+@opindex mno-mcount-ra-address
+Emit (do not emit) code that allows @code{_mcount} to modify the
+calling function's return address.  When enabled, this option extends
+the usual @code{_mcount} interface with a new @var{ra-address}
+parameter, which has type @code{intptr_t *} and is passed in register
+@code{$12}.  @code{_mcount} can then modify the return address by
+doing both of the following:
+@itemize
+@item
+Returning the new address in register @code{$31}.
+@item
+Storing the new address in @code{*@var{ra-address}},
+if @var{ra-address} is nonnull.
+@end itemize
+
+The default is @option{-mno-mcount-ra-address}.
+
 @end table
 
 @node MMIX Options
@@ -15397,15 +15431,36 @@ These @option{-m} options are defined for RX implementations:
 @table @gcctabopt
 @item -m64bit-doubles
 @itemx -m32bit-doubles
+@itemx -fpu
+@itemx -nofpu
 @opindex m64bit-doubles
 @opindex m32bit-doubles
+@opindex fpu
+@opindex nofpu
 Make the @code{double} data type be 64-bits (@option{-m64bit-doubles})
 or 32-bits (@option{-m32bit-doubles}) in size.  The default is
-@option{-m32bit-doubles}.  @emph{Note} the RX's hardware floating
+@option{-m64bit-doubles}.  @emph{Note} the RX's hardware floating
 point instructions are only used for 32-bit floating point values, and
 then only if @option{-ffast-math} has been specified on the command
 line.  This is because the RX FPU instructions do not properly support
 denormal (or sub-normal) values.
+
+The options @option{-fpu} and @option{-nofpu} have been provided at
+the request of Rensas for compatibility with their toolchain.  The
+@option{-mfpu} option enables the use of RX FPU instructions by
+selecting 32-bit doubles and enabling unsafe math optimizations.  The
+@option{-mnofpu} option disables the use of RX FPU instructions, even
+if @option{-m32bit-doubles} is active and unsafe math optimizations
+have been enabled.
+
+@item -mcpu=@var{name}
+@itemx -patch=@var{name}
+@opindex -mcpu
+@opindex -patch
+Selects the type of RX CPU to be targeted.  Currently on two types are
+supported, the generic @var{RX600} and the specific @var{RX610}.  The
+only difference between them is that the @var{RX610} does not support
+the @code{MVTIPL} instruction.
 
 @item -mbig-endian-data
 @itemx -mlittle-endian-data
@@ -15482,6 +15537,15 @@ of fast interrupt handlers.  A value of 2 reserves @code{r13} and
 @code{r12}.  A value of 3 reserves @code{r13}, @code{r12} and
 @code{r11}, and a value of 4 reserves @code{r13} through @code{r10}.
 A value of 0, the default, does not reserve any registers.
+
+@item -msave-acc-in-interrupts
+@opindex msave-acc-in-interrupts
+Specifies that interrupt handler functions should preserve the
+accumulator register.  This is only necessary if normal code might use
+the accumulator register, for example because it performs 64-bit
+multiplications.  The default is to ignore the accumulator as this
+makes the interrupt handlers faster.
+
 @end table
 
 @emph{Note:} The generic GCC command line @option{-ffixed-@var{reg}}
@@ -16714,6 +16778,14 @@ This option is available for Cygwin and MinGW targets.  It
 specifies that a GUI application is to be generated by
 instructing the linker to set the PE header subsystem type
 appropriately.
+
+@item -fno-set-stack-executable
+@opindex fno-set-stack-executable
+This option is available for MinGW targets. It specifies that
+the executable flag for stack used by nested functions isn't
+set. This is necessary for binaries running in kernel mode of
+Windows, as there the user32 API, which is used to set executable
+privileges, isn't available.
 
 @item -mpe-aligned-commons
 @opindex mpe-aligned-commons

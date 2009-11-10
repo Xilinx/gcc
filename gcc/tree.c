@@ -4171,11 +4171,6 @@ free_lang_data_in_type (tree type)
 {
   gcc_assert (TYPE_P (type));
 
-  /* Fill in the alias-set.  We need to at least track zeroness here
-     for correctness.  */
-  if (lang_hooks.get_alias_set (type) == 0)
-    TYPE_ALIAS_SET (type) = 0;
-
   /* Give the FE a chance to remove its own data first.  */
   lang_hooks.free_lang_data (type);
 
@@ -4924,6 +4919,20 @@ free_lang_data_in_cgraph (void)
 static unsigned
 free_lang_data (void)
 {
+  unsigned i;
+
+  /* Allocate and assign alias sets to the standard integer types
+     while the slots are still in the way the frontends generated them.  */
+  for (i = 0; i < itk_none; ++i)
+    if (integer_types[i])
+      TYPE_ALIAS_SET (integer_types[i]) = get_alias_set (integer_types[i]);
+
+  /* FIXME.  Remove after save_debug_info is working.  */
+  if (!(flag_generate_lto
+	|| (!in_lto_p
+	    && !flag_gtoggle && debug_info_level <= DINFO_LEVEL_TERSE)))
+    return 0;
+
   /* Traverse the IL resetting language specific information for
      operands, expressions, etc.  */
   free_lang_data_in_cgraph ();
@@ -4951,9 +4960,9 @@ free_lang_data (void)
   else
     signed_char_type_node = char_type_node;
 
-  /* Reset some langhooks.  */
+  /* Reset some langhooks.  Do not reset types_compatible_p, it may
+     still be used indirectly via the get_alias_set langhook.  */
   lang_hooks.callgraph.analyze_expr = NULL;
-  lang_hooks.types_compatible_p = NULL;
   lang_hooks.dwarf_name = lhd_dwarf_name;
   lang_hooks.decl_printable_name = gimple_decl_printable_name;
   lang_hooks.set_decl_assembler_name = lhd_set_decl_assembler_name;
@@ -4975,24 +4984,12 @@ free_lang_data (void)
 }
 
 
-/* Gate function for free_lang_data.  */
-
-static bool
-gate_free_lang_data (void)
-{
-  /* FIXME.  Remove after save_debug_info is working.  */
-  return (flag_generate_lto
-	  || (!in_lto_p
-	      && !flag_gtoggle && debug_info_level <= DINFO_LEVEL_TERSE));
-}
-
-
 struct simple_ipa_opt_pass pass_ipa_free_lang_data = 
 {
  {
   SIMPLE_IPA_PASS,
-  NULL,					/* name */
-  gate_free_lang_data,			/* gate */
+  "*free_lang_data",			/* name */
+  NULL,					/* gate */
   free_lang_data,			/* execute */
   NULL,					/* sub */
   NULL,					/* next */
@@ -9012,7 +9009,8 @@ build_common_builtin_nodes (void)
       tmp = tree_cons (NULL_TREE, size_type_node, void_list_node);
       ftype = build_function_type (ptr_type_node, tmp);
       local_define_builtin ("__builtin_alloca", ftype, BUILT_IN_ALLOCA,
-			    "alloca", ECF_NOTHROW | ECF_MALLOC);
+			    "alloca",
+			    ECF_MALLOC | (flag_stack_check ? 0 : ECF_NOTHROW));
     }
 
   tmp = tree_cons (NULL_TREE, ptr_type_node, void_list_node);
@@ -9216,7 +9214,8 @@ reconstruct_complex_type (tree type, tree bottom)
   else
     return bottom;
 
-  return build_qualified_type (outer, TYPE_QUALS (type));
+  return build_type_attribute_qual_variant (outer, TYPE_ATTRIBUTES (type),
+					    TYPE_QUALS (type));
 }
 
 /* Returns a vector tree node given a mode (integer, vector, or BLKmode) and

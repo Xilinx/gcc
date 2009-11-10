@@ -1131,6 +1131,28 @@ decode_options (unsigned int argc, const char **argv)
         PARAM_VALUE (PARAM_STACK_FRAME_GROWTH) = 40;
     }
 
+  if (flag_lto || flag_whopr)
+    {
+#ifdef ENABLE_LTO
+      flag_generate_lto = 1;
+
+      /* When generating IL, do not operate in whole-program mode.
+	 Otherwise, symbols will be privatized too early, causing link
+	 errors later.  */
+      flag_whole_program = 0;
+
+      /* FIXME lto.  Disable var-tracking until debug information
+	 is properly handled in free_lang_data.  */
+      flag_var_tracking = 0;
+#else
+      error ("LTO support has not been enabled in this configuration");
+#endif
+    }
+
+  /* Reconcile -flto and -fwhopr.  Set additional flags as appropriate and
+     check option consistency.  */
+  if (flag_lto && flag_whopr)
+    error ("-flto and -fwhopr are mutually exclusive");
 }
 
 #define LEFT_COLUMN	27
@@ -2124,6 +2146,10 @@ common_handle_option (size_t scode, const char *arg, int value,
     case OPT_ftree_salias:
     case OPT_ftree_store_ccp:
       /* These are no-ops, preserved for backward compatibility.  */
+      break;
+
+    case OPT_fuse_linker_plugin:
+      /* No-op. Used by the driver and passed to us because it starts with f.*/
       break;
 
     default:

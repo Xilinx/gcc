@@ -814,7 +814,21 @@ parsed.
 
 Don't use this macro to turn on various extra optimizations for
 @option{-O}.  That is what @code{OPTIMIZATION_OPTIONS} is for.
+
+If you need to do something whenever the optimization level is
+changed via the optimize attribute or pragma, see
+@code{TARGET_OVERRIDE_OPTIONS_AFTER_CHANGE}
 @end defmac
+
+@deftypefn {Target Hook} void TARGET_OVERRIDE_OPTIONS_AFTER_CHANGE (void)
+This target function is similar to the macro @code{OVERRIDE_OPTIONS}
+but is called when the optimize level is changed via an attribute or
+pragma or when it is reset at the end of the code affected by the
+attribute or pragma.  It is not called at the beginning of compilation
+when @code{OVERRIDE_OPTIONS} is called so if you want to perform these
+actions then, you should have @code{OVERRIDE_OPTIONS} call
+@code{TARGET_OVERRIDE_OPTIONS_AFTER_CHANGE}.
+@end deftypefn
 
 @defmac C_COMMON_OVERRIDE_OPTIONS
 This is similar to @code{OVERRIDE_OPTIONS} but is only used in the C
@@ -3542,17 +3556,27 @@ like to do static stack checking in some more efficient way than the generic
 approach.  The default value of this macro is zero.
 @end defmac
 
-@defmac STACK_CHECK_PROBE_INTERVAL
-An integer representing the interval at which GCC must generate stack
-probe instructions.  You will normally define this macro to be no larger
-than the size of the ``guard pages'' at the end of a stack area.  The
-default value of 4096 is suitable for most systems.
+@defmac STACK_CHECK_PROBE_INTERVAL_EXP
+An integer specifying the interval at which GCC must generate stack probe
+instructions, defined as 2 raised to this integer.  You will normally
+define this macro so that the interval be no larger than the size of
+the ``guard pages'' at the end of a stack area.  The default value
+of 12 (4096-byte interval) is suitable for most systems.
 @end defmac
 
 @defmac STACK_CHECK_PROBE_LOAD
 An integer which is nonzero if GCC should perform the stack probe
 as a load instruction and zero if GCC should use a store instruction.
 The default is zero, which is the most efficient choice on most systems.
+@end defmac
+
+@defmac STACK_CHECK_MOVING_SP
+An integer which is nonzero if GCC should move the stack pointer page by page
+when doing probes.  This can be necessary on systems where the stack pointer
+contains the bottom address of the memory area accessible to the executing
+thread at any point in time.  In this situation an alternate signal stack
+is required in order to be able to recover from a stack overflow.  The
+default value of this macro is zero.
 @end defmac
 
 @defmac STACK_CHECK_PROTECT
@@ -10840,6 +10864,12 @@ epilogues have already been generated.  Note, even if you only return
 true when @var{after_prologue_epilogue_gen} is false, you still are likely
 to have to make special provisions in @code{INITIAL_ELIMINATION_OFFSET}
 to reserve space for caller-saved target registers.
+@end deftypefn
+
+@deftypefn {Target Hook} bool TARGET_HAVE_CONDITIONAL_EXECUTION (void)
+This target hook returns true if the target supports conditional execution.
+This target hook is required only when the target has several different
+modes and they have different conditional execution capability, such as ARM.
 @end deftypefn
 
 @defmac POWI_MAX_MULTS

@@ -378,7 +378,7 @@ use_thunk (tree thunk_fndecl, bool emit_p)
   DECL_VISIBILITY (thunk_fndecl) = DECL_VISIBILITY (function);
   DECL_VISIBILITY_SPECIFIED (thunk_fndecl)
     = DECL_VISIBILITY_SPECIFIED (function);
-  if (DECL_ONE_ONLY (function))
+  if (DECL_ONE_ONLY (function) || DECL_WEAK (function))
     make_decl_one_only (thunk_fndecl, cxx_comdat_group (thunk_fndecl));
 
   if (flag_syntax_only)
@@ -622,6 +622,7 @@ do_build_copy_constructor (tree fndecl)
 
 	      if (DECL_MUTABLE_P (field))
 		quals &= ~TYPE_QUAL_CONST;
+	      quals |= TYPE_QUALS (expr_type);
 	      expr_type = cp_build_qualified_type (expr_type, quals);
 	    }
 

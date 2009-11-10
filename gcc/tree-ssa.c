@@ -1201,11 +1201,6 @@ useless_type_conversion_p (tree outer_type, tree inner_type)
 	 record type or a pointer to an unprototyped function,
 	 then the conversion is not necessary.  */
       if (VOID_TYPE_P (TREE_TYPE (outer_type))
-	  || (AGGREGATE_TYPE_P (TREE_TYPE (outer_type))
-	      && TREE_CODE (TREE_TYPE (outer_type)) != ARRAY_TYPE
-	      && (TREE_CODE (TREE_TYPE (outer_type))
-		  == TREE_CODE (TREE_TYPE (inner_type)))
-	      && !COMPLETE_TYPE_P (TREE_TYPE (outer_type)))
 	  || ((TREE_CODE (TREE_TYPE (outer_type)) == FUNCTION_TYPE
 	       || TREE_CODE (TREE_TYPE (outer_type)) == METHOD_TYPE)
 	      && (TREE_CODE (TREE_TYPE (outer_type))
@@ -1861,7 +1856,7 @@ struct gimple_opt_pass pass_early_warn_uninitialized =
 {
  {
   GIMPLE_PASS,
-  NULL,					/* name */
+  "*early_warn_uninitialized",		/* name */
   gate_warn_uninitialized,		/* gate */
   execute_early_warn_uninitialized,	/* execute */
   NULL,					/* sub */
@@ -1880,7 +1875,7 @@ struct gimple_opt_pass pass_late_warn_uninitialized =
 {
  {
   GIMPLE_PASS,
-  NULL,					/* name */
+  "*late_warn_uninitialized",		/* name */
   gate_warn_uninitialized,		/* gate */
   execute_late_warn_uninitialized,	/* execute */
   NULL,					/* sub */

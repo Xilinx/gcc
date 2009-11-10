@@ -135,7 +135,7 @@ static tree gnat_to_gnu_param (Entity_Id, Mechanism_Type, Entity_Id, bool,
 			       bool *);
 static tree gnat_to_gnu_field (Entity_Id, tree, int, bool, bool);
 static bool same_discriminant_p (Entity_Id, Entity_Id);
-static bool array_type_has_nonaliased_component (Entity_Id, tree);
+static bool array_type_has_nonaliased_component (tree, Entity_Id);
 static bool compile_time_known_address_p (Node_Id);
 static bool cannot_be_superflat_p (Node_Id);
 static void components_to_record (tree, Node_Id, tree, int, bool, tree *,
@@ -1963,7 +1963,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	  {
 	    tem = build_array_type (tem, gnu_index_types[index]);
 	    TYPE_MULTI_ARRAY_P (tem) = (index > 0);
-	    if (array_type_has_nonaliased_component (gnat_entity, tem))
+	    if (array_type_has_nonaliased_component (tem, gnat_entity))
 	      TYPE_NONALIASED_COMPONENT (tem) = 1;
 	  }
 
@@ -2312,7 +2312,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	    {
 	      gnu_type = build_array_type (gnu_type, gnu_index_types[index]);
 	      TYPE_MULTI_ARRAY_P (gnu_type) = (index > 0);
-	      if (array_type_has_nonaliased_component (gnat_entity, gnu_type))
+	      if (array_type_has_nonaliased_component (gnu_type, gnat_entity))
 		TYPE_NONALIASED_COMPONENT (gnu_type) = 1;
 	    }
 
@@ -2563,7 +2563,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	gnu_type
 	  = build_array_type (gnat_to_gnu_type (Component_Type (gnat_entity)),
 			      gnu_index_type);
-	if (array_type_has_nonaliased_component (gnat_entity, gnu_type))
+	if (array_type_has_nonaliased_component (gnu_type, gnat_entity))
 	  TYPE_NONALIASED_COMPONENT (gnu_type) = 1;
 	relate_alias_sets (gnu_type, gnu_string_type, ALIAS_SET_COPY);
       }
@@ -4602,11 +4602,38 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 		   superset      superset
 		R ----------> D ----------> T
 
+	 However, for composite types, conversions between derived types are
+	 translated into VIEW_CONVERT_EXPRs so a sequence like:
+
+	    type Comp1 is new Comp;
+	    type Comp2 is new Comp;
+	    procedure Proc (C : Comp1);
+
+	    C : Comp2;
+	    Proc (Comp1 (C));
+
+	 is translated into:
+
+	    C : Comp2;
+	    Proc ((Comp1 &) &VIEW_CONVERT_EXPR <Comp1> (C));
+
+	 and gimplified into:
+
+	    C : Comp2;
+	    Comp1 *C.0;
+	    C.0 = (Comp1 *) &C;
+	    Proc (C.0);
+
+	 i.e. generates code involving type punning.  Therefore, Comp1 needs
+	 to conflict with Comp2 and an alias set copy is required.
+
 	 The language rules ensure the parent type is already frozen here.  */
       if (Is_Derived_Type (gnat_entity))
 	{
 	  tree gnu_parent_type = gnat_to_gnu_type (Etype (gnat_entity));
-	  relate_alias_sets (gnu_type, gnu_parent_type, ALIAS_SET_SUPERSET);
+	  relate_alias_sets (gnu_type, gnu_parent_type,
+			     Is_Composite_Type (gnat_entity)
+			     ? ALIAS_SET_COPY : ALIAS_SET_SUPERSET);
 	}
 
       /* Back-annotate the Alignment of the type if not already in the
@@ -5254,21 +5281,38 @@ same_discriminant_p (Entity_Id discr1, Entity_Id discr2)
     Original_Record_Component (discr1) == Original_Record_Component (discr2);
 }
 
-/* Return true if the array type specified by GNAT_TYPE and GNU_TYPE has
-   a non-aliased component in the back-end sense.  */
+/* Return true if the array type GNU_TYPE, which represents a dimension of
+   GNAT_TYPE, has a non-aliased component in the back-end sense.  */
 
 static bool
-array_type_has_nonaliased_component (Entity_Id gnat_type, tree gnu_type)
+array_type_has_nonaliased_component (tree gnu_type, Entity_Id gnat_type)
 {
-  /* If the type below this is a multi-array type, then
-     this does not have aliased components.  */
+  /* If the array type is not the innermost dimension of the GNAT type,
+     then it has a non-aliased component.  */
   if (TREE_CODE (TREE_TYPE (gnu_type)) == ARRAY_TYPE
       && TYPE_MULTI_ARRAY_P (TREE_TYPE (gnu_type)))
     return true;
 
+  /* If the array type has an aliased component in the front-end sense,
+     then it also has an aliased component in the back-end sense.  */
   if (Has_Aliased_Components (gnat_type))
     return false;
 
+  /* If this is a derived type, then it has a non-aliased component if
+     and only if its parent type also has one.  */
+  if (Is_Derived_Type (gnat_type))
+    {
+      tree gnu_parent_type = gnat_to_gnu_type (Etype (gnat_type));
+      int index;
+      if (TREE_CODE (gnu_parent_type) == UNCONSTRAINED_ARRAY_TYPE)
+	gnu_parent_type
+	  = TREE_TYPE (TREE_TYPE (TYPE_FIELDS (TREE_TYPE (gnu_parent_type))));
+      for (index = Number_Dimensions (gnat_type) - 1; index > 0; index--)
+	gnu_parent_type = TREE_TYPE (gnu_parent_type);
+      return TYPE_NONALIASED_COMPONENT (gnu_parent_type);
+    }
+
+  /* Otherwise, rely exclusively on properties of the element type.  */
   return type_for_nonaliased_component_p (TREE_TYPE (gnu_type));
 }
 
@@ -6008,6 +6052,7 @@ make_packable_type (tree type, bool in_record)
     {
       TYPE_SIZE (new_type) = TYPE_SIZE (type);
       TYPE_SIZE_UNIT (new_type) = TYPE_SIZE_UNIT (type);
+      new_size = size;
     }
   else
     {
@@ -6405,67 +6450,44 @@ gnat_to_gnu_field (Entity_Id gnat_field, tree gnu_record_type, int packed,
   else
     gnu_size = NULL_TREE;
 
-  /* If we have a specified size that's smaller than that of the field type,
-     or a position is specified, and the field type is a record, see if we can
-     get either an integral mode form of the type or a smaller form.  If we
-     can, show a size was specified for the field if there wasn't one already,
-     so we know to make this a bitfield and avoid making things wider.
+  /* If we have a specified size that is smaller than that of the field's type,
+     or a position is specified, and the field's type is a record that doesn't
+     require strict alignment, see if we can get either an integral mode form
+     of the type or a smaller form.  If we can, show a size was specified for
+     the field if there wasn't one already, so we know to make this a bitfield
+     and avoid making things wider.
 
-     Doing this is first useful if the record is packed because we may then
-     place the field at a non-byte-aligned position and so achieve tighter
-     packing.
+     Changing to an integral mode form is useful when the record is packed as
+     we can then place the field at a non-byte-aligned position and so achieve
+     tighter packing.  This is in addition required if the field shares a byte
+     with another field and the front-end lets the back-end handle the access
+     to the field, because GCC cannot handle non-byte-aligned BLKmode fields.
 
-     This is in addition *required* if the field shares a byte with another
-     field and the front-end lets the back-end handle the references, because
-     GCC does not handle BLKmode bitfields properly.
+     Changing to a smaller form is required if the specified size is smaller
+     than that of the field's type and the type contains sub-fields that are
+     padded, in order to avoid generating accesses to these sub-fields that
+     are wider than the field.
 
      We avoid the transformation if it is not required or potentially useful,
      as it might entail an increase of the field's alignment and have ripple
      effects on the outer record type.  A typical case is a field known to be
-     byte aligned and not to share a byte with another field.
-
-     Besides, we don't even look the possibility of a transformation in cases
-     known to be in error already, for instance when an invalid size results
-     from a component clause.  */
-
-  if (TREE_CODE (gnu_field_type) == RECORD_TYPE
+     byte-aligned and not to share a byte with another field.  */
+  if (!needs_strict_alignment
+      && TREE_CODE (gnu_field_type) == RECORD_TYPE
       && !TYPE_FAT_POINTER_P (gnu_field_type)
       && host_integerp (TYPE_SIZE (gnu_field_type), 1)
       && (packed == 1
 	  || (gnu_size
 	      && (tree_int_cst_lt (gnu_size, TYPE_SIZE (gnu_field_type))
-		  || Present (Component_Clause (gnat_field))))))
+		  || (Present (Component_Clause (gnat_field))
+		      && !(UI_To_Int (Component_Bit_Offset (gnat_field))
+			   % BITS_PER_UNIT == 0
+			   && value_factor_p (gnu_size, BITS_PER_UNIT)))))))
     {
-      /* See what the alternate type and size would be.  */
       tree gnu_packable_type = make_packable_type (gnu_field_type, true);
-
-      bool has_byte_aligned_clause
-	= Present (Component_Clause (gnat_field))
-	  && (UI_To_Int (Component_Bit_Offset (gnat_field))
-	      % BITS_PER_UNIT == 0);
-
-      /* Compute whether we should avoid the substitution.  */
-      bool reject
-	/* There is no point substituting if there is no change...  */
-	= (gnu_packable_type == gnu_field_type)
-	 /* ... nor when the field is known to be byte aligned and not to
-	    share a byte with another field.  */
-	  || (has_byte_aligned_clause
-	      && value_factor_p (gnu_size, BITS_PER_UNIT))
-	 /* The size of an aliased field must be an exact multiple of the
-	    type's alignment, which the substitution might increase.  Reject
-	    substitutions that would so invalidate a component clause when the
-	    specified position is byte aligned, as the change would have no
-	    real benefit from the packing standpoint anyway.  */
-	  || (Is_Aliased (gnat_field)
-	      && has_byte_aligned_clause
-	      && !value_factor_p (gnu_size, TYPE_ALIGN (gnu_packable_type)));
-
-      /* Substitute unless told otherwise.  */
-      if (!reject)
+      if (gnu_packable_type != gnu_field_type)
 	{
 	  gnu_field_type = gnu_packable_type;
-
 	  if (!gnu_size)
 	    gnu_size = rm_size (gnu_field_type);
 	}
@@ -7231,6 +7253,23 @@ annotate_object (Entity_Id gnat_entity, tree gnu_type, tree size, bool by_ref)
 		   UI_From_Int (TYPE_ALIGN (gnu_type) / BITS_PER_UNIT));
 }
 
+/* Return first element of field list whose TREE_PURPOSE is ELEM or whose
+   DECL_ORIGINAL_FIELD of TREE_PURPOSE is ELEM.  Return NULL_TREE if there
+   is no such element in the list.  */
+
+static tree
+purpose_member_field (const_tree elem, tree list)
+{
+  while (list)
+    {
+      tree field = TREE_PURPOSE (list);
+      if (elem == field || elem == DECL_ORIGINAL_FIELD (field))
+	return list;
+      list = TREE_CHAIN (list);
+    }
+  return NULL_TREE;
+}
+
 /* Given GNAT_ENTITY, a record type, and GNU_TYPE, its corresponding GCC type,
    set Component_Bit_Offset and Esize of the components to the position and
    size used by Gigi.  */
@@ -7254,11 +7293,12 @@ annotate_rep (Entity_Id gnat_entity, tree gnu_type)
 	|| (Ekind (gnat_field) == E_Discriminant
 	    && !Is_Unchecked_Union (Scope (gnat_field))))
       {
-	tree parent_offset, t;
-
-	t = purpose_member (gnat_to_gnu_field_decl (gnat_field), gnu_list);
+	tree t = purpose_member_field (gnat_to_gnu_field_decl (gnat_field),
+				       gnu_list);
 	if (t)
 	  {
+	    tree parent_offset;
+
 	    if (type_annotate_only && Is_Tagged_Type (gnat_entity))
 	      {
 		/* In this mode the tag and parent components are not
@@ -7674,6 +7714,10 @@ make_type_from_size (tree type, tree size_tree, bool for_biased)
     case BOOLEAN_TYPE:
       biased_p = (TREE_CODE (type) == INTEGER_TYPE
 		  && TYPE_BIASED_REPRESENTATION_P (type));
+
+      /* Integer types with precision 0 are forbidden.  */
+      if (size == 0)
+	size = 1;
 
       /* Only do something if the type is not a packed array type and
 	 doesn't already have the proper size.  */

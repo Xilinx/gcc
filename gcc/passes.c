@@ -314,7 +314,7 @@ struct rtl_opt_pass pass_postreload =
 {
  {
   RTL_PASS,
-  NULL,                                 /* name */
+  "*all-postreload",                        /* name */
   gate_postreload,                      /* gate */
   NULL,                                 /* execute */
   NULL,                                 /* sub */
@@ -374,7 +374,7 @@ void
 register_one_dump_file (struct opt_pass *pass)
 {
   char *dot_name, *flag_name, *glob_name;
-  const char *prefix;
+  const char *name, *prefix;
   char num[10];
   int flags, id;
 
@@ -384,7 +384,14 @@ register_one_dump_file (struct opt_pass *pass)
     sprintf (num, "%d", ((int) pass->static_pass_number < 0
 			 ? 1 : pass->static_pass_number));
 
-  dot_name = concat (".", pass->name, num, NULL);
+  /* The name is both used to identify the pass for the purposes of plugins,
+     and to specify dump file name and option.
+     The latter two might want something short which is not quite unique; for
+     that reason, we may have a disambiguating prefix, followed by a space
+     to mark the start of the following dump file name / option string.  */
+  name = strchr (pass->name, ' ');
+  name = name ? name + 1 : pass->name;
+  dot_name = concat (".", name, num, NULL);
   if (pass->type == SIMPLE_IPA_PASS || pass->type == IPA_PASS)
     prefix = "ipa-", flags = TDF_IPA;
   else if (pass->type == GIMPLE_PASS)
@@ -392,8 +399,8 @@ register_one_dump_file (struct opt_pass *pass)
   else
     prefix = "rtl-", flags = TDF_RTL;
 
-  flag_name = concat (prefix, pass->name, num, NULL);
-  glob_name = concat (prefix, pass->name, NULL);
+  flag_name = concat (prefix, name, num, NULL);
+  glob_name = concat (prefix, name, NULL);
   id = dump_register (dot_name, flag_name, glob_name, flags);
   set_pass_for_id (id, pass);
 }
@@ -461,7 +468,7 @@ make_pass_instance (struct opt_pass *pass, bool track_duplicates)
          and so it should rename the dump file.  The first instance will
          be -1, and be number of duplicates = -static_pass_number - 1.
          Subsequent instances will be > 0 and just the duplicate number.  */
-      if (pass->name || track_duplicates)
+      if ((pass->name && pass->name[0] != '*') || track_duplicates)
         {
           pass->static_pass_number -= 1;
           new_pass->static_pass_number = -pass->static_pass_number;
@@ -482,6 +489,9 @@ make_pass_instance (struct opt_pass *pass, bool track_duplicates)
 static struct opt_pass **
 next_pass_1 (struct opt_pass **list, struct opt_pass *pass)
 {
+  /* Every pass should have a name so that plugins can refer to them.  */
+  gcc_assert (pass->name != NULL);
+
   *list = make_pass_instance (pass, false);
   
   return &(*list)->next;
@@ -880,7 +890,6 @@ init_optimization_passes (void)
 	  NEXT_PASS (pass_tree_loop_done);
 	}
       NEXT_PASS (pass_cse_reciprocals);
-      NEXT_PASS (pass_convert_to_rsqrt);
       NEXT_PASS (pass_reassoc);
       NEXT_PASS (pass_vrp);
       NEXT_PASS (pass_dominator);
@@ -1749,6 +1758,50 @@ execute_ipa_pass_list (struct opt_pass *pass)
     }
   while (pass);
 }
+
+/* Execute stmt fixup hooks of all passes in PASS for NODE and STMTS.  */
+
+static void
+execute_ipa_stmt_fixups (struct opt_pass *pass,
+			  struct cgraph_node *node, gimple *stmts)
+{
+  while (pass)
+    {
+      /* Execute all of the IPA_PASSes in the list.  */
+      if (pass->type == IPA_PASS
+	  && (!pass->gate || pass->gate ()))
+	{
+	  struct ipa_opt_pass_d *ipa_pass = (struct ipa_opt_pass_d *) pass;
+
+	  if (ipa_pass->stmt_fixup)
+	    {
+	      pass_init_dump_file (pass);
+	      /* If a timevar is present, start it.  */
+	      if (pass->tv_id)
+		timevar_push (pass->tv_id);
+
+	      ipa_pass->stmt_fixup (node, stmts);
+
+	      /* Stop timevar.  */
+	      if (pass->tv_id)
+		timevar_pop (pass->tv_id);
+	      pass_fini_dump_file (pass);
+	    }
+	  if (pass->sub)
+	    execute_ipa_stmt_fixups (pass->sub, node, stmts);
+	}
+      pass = pass->next;
+    }
+}
+
+/* Execute stmt fixup hooks of all IPA passes for NODE and STMTS.  */
+
+void
+execute_all_ipa_stmt_fixups (struct cgraph_node *node, gimple *stmts)
+{
+  execute_ipa_stmt_fixups (all_regular_ipa_passes, node, stmts);
+}
+
 
 extern void debug_properties (unsigned int);
 extern void dump_properties (FILE *, unsigned int);

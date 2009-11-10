@@ -84,7 +84,7 @@
 #define TARGET_ASM_INTERNAL_LABEL default_internal_label
 #endif
 
-#ifndef TARGET_ARM_TTYPE
+#ifndef TARGET_ASM_TTYPE
 #define TARGET_ASM_TTYPE hook_bool_rtx_false
 #endif
 
@@ -410,6 +410,8 @@
 
 #define TARGET_DEFAULT_TARGET_FLAGS 0
 
+#define TARGET_OVERRIDE_OPTIONS_AFTER_CHANGE hook_void_void
+
 #define TARGET_HANDLE_OPTION hook_bool_size_t_constcharptr_int_true
 #define TARGET_HELP NULL
 
@@ -552,6 +554,7 @@
 #define TARGET_BRANCH_TARGET_REGISTER_CLASS \
   default_branch_target_register_class
 #define TARGET_BRANCH_TARGET_REGISTER_CALLEE_SAVED hook_bool_bool_false
+#define TARGET_HAVE_CONDITIONAL_EXECUTION default_have_conditional_execution
 #define TARGET_CANNOT_FORCE_CONST_MEM hook_bool_rtx_false
 #define TARGET_CANNOT_COPY_INSN_P NULL
 #define TARGET_COMMUTATIVE_P hook_bool_const_rtx_commutative_p
@@ -922,6 +925,7 @@
   TARGET_SCHED,					\
   TARGET_VECTORIZE,				\
   TARGET_DEFAULT_TARGET_FLAGS,			\
+  TARGET_OVERRIDE_OPTIONS_AFTER_CHANGE,		\
   TARGET_HANDLE_OPTION,				\
   TARGET_HELP,					\
   TARGET_EH_RETURN_FILTER_MODE,			\
@@ -952,6 +956,7 @@
   TARGET_CANNOT_MODIFY_JUMPS_P,			\
   TARGET_BRANCH_TARGET_REGISTER_CLASS,		\
   TARGET_BRANCH_TARGET_REGISTER_CALLEE_SAVED,	\
+  TARGET_HAVE_CONDITIONAL_EXECUTION,		\
   TARGET_CANNOT_FORCE_CONST_MEM,		\
   TARGET_CANNOT_COPY_INSN_P,			\
   TARGET_COMMUTATIVE_P,				\
