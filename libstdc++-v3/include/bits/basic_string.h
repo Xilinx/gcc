@@ -1,13 +1,13 @@
 // Components for manipulating sequences of characters -*- C++ -*-
 
 // Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
-// 2006, 2007, 2008
+// 2006, 2007, 2008, 2009
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -15,19 +15,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
-// You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
 
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
 
 /** @file basic_string.h
  *  This is an internal header file, included by other library headers.
@@ -53,8 +48,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
    *  @class basic_string basic_string.h <string>
    *  @brief  Managing sequences of characters and character-like objects.
    *
-   *  @ingroup Containers
-   *  @ingroup Sequences
+   *  @ingroup sequences
    *
    *  Meets the requirements of a <a href="tables.html#65">container</a>, a
    *  <a href="tables.html#66">reversible container</a>, and a
@@ -203,12 +197,17 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
 	void
 	_M_set_length_and_sharable(size_type __n)
-	{ 
-	  this->_M_set_sharable();  // One reference.
-	  this->_M_length = __n;
-	  traits_type::assign(this->_M_refdata()[__n], _S_terminal);
-	  // grrr. (per 21.3.4)
-	  // You cannot leave those LWG people alone for a second.
+	{
+#ifndef _GLIBCXX_FULLY_DYNAMIC_STRING
+	  if (__builtin_expect(this != &_S_empty_rep(), false))
+#endif
+	    {
+	      this->_M_set_sharable();  // One reference.
+	      this->_M_length = __n;
+	      traits_type::assign(this->_M_refdata()[__n], _S_terminal);
+	      // grrr. (per 21.3.4)
+	      // You cannot leave those LWG people alone for a second.
+	    }
 	}
 
 	_CharT*
@@ -459,7 +458,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        *  @param  n  Number of characters to copy.
        *  @param  a  Allocator to use (default is default allocator).
        *
-       *  NB: @a s must have at least @a n characters, '\0' has no special
+       *  NB: @a s must have at least @a n characters, '\\0' has no special
        *  meaning.
        */
       basic_string(const _CharT* __s, size_type __n,
@@ -541,7 +540,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       basic_string&
       operator=(initializer_list<_CharT> __l)
       {
-	this->assign (__l.begin(), __l.end());
+	this->assign(__l.begin(), __l.size());
 	return *this;
       }
 #endif // __GXX_EXPERIMENTAL_CXX0X__
@@ -620,6 +619,42 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       const_reverse_iterator
       rend() const
       { return const_reverse_iterator(this->begin()); }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      /**
+       *  Returns a read-only (constant) iterator that points to the first
+       *  character in the %string.
+       */
+      const_iterator
+      cbegin() const
+      { return const_iterator(this->_M_data()); }
+
+      /**
+       *  Returns a read-only (constant) iterator that points one past the
+       *  last character in the %string.
+       */
+      const_iterator
+      cend() const
+      { return const_iterator(this->_M_data() + this->size()); }
+
+      /**
+       *  Returns a read-only (constant) reverse iterator that points
+       *  to the last character in the %string.  Iteration is done in
+       *  reverse element order.
+       */
+      const_reverse_iterator
+      crbegin() const
+      { return const_reverse_iterator(this->end()); }
+
+      /**
+       *  Returns a read-only (constant) reverse iterator that points
+       *  to one before the first character in the %string.  Iteration
+       *  is done in reverse element order.
+       */
+      const_reverse_iterator
+      crend() const
+      { return const_reverse_iterator(this->begin()); }
+#endif
 
     public:
       // Capacity:
@@ -825,7 +860,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        */
       basic_string&
       operator+=(initializer_list<_CharT> __l)
-      { return this->append(__l.begin(), __l.end()); }
+      { return this->append(__l.begin(), __l.size()); }
 #endif // __GXX_EXPERIMENTAL_CXX0X__
 
       /**
@@ -891,7 +926,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        */
       basic_string&
       append(initializer_list<_CharT> __l)
-      { return this->append(__l.begin(), __l.end()); }
+      { return this->append(__l.begin(), __l.size()); }
 #endif // __GXX_EXPERIMENTAL_CXX0X__
 
       /**
@@ -1010,7 +1045,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        */
       basic_string&
       assign(initializer_list<_CharT> __l)
-      { return this->assign(__l.begin(), __l.end()); }
+      { return this->assign(__l.begin(), __l.size()); }
 #endif // __GXX_EXPERIMENTAL_CXX0X__
 
       /**
@@ -1054,7 +1089,10 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        */
       void
       insert(iterator __p, initializer_list<_CharT> __l)
-      { this->insert(__p, __l.begin(), __l.end()); }
+      {
+	_GLIBCXX_DEBUG_PEDASSERT(__p >= _M_ibegin() && __p <= _M_iend());
+	this->insert(__p - _M_ibegin(), __l.begin(), __l.size());
+      }
 #endif // __GXX_EXPERIMENTAL_CXX0X__
 
       /**
@@ -1232,16 +1270,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        *  The value of the string doesn't change if an error is thrown.
       */
       iterator
-      erase(iterator __first, iterator __last)
-      {
-	_GLIBCXX_DEBUG_PEDASSERT(__first >= _M_ibegin() && __first <= __last
-				 && __last <= _M_iend());
-        const size_type __pos = __first - _M_ibegin();
-	_M_mutate(__pos, __last - __first, size_type(0));
-	_M_rep()->_M_set_leaked();
-	return iterator(_M_data() + __pos);
-      }
-
+      erase(iterator __first, iterator __last);
+ 
       /**
        *  @brief  Replace characters with value from another string.
        *  @param pos  Index of first character to replace.
@@ -2141,7 +2171,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        *  result of the comparison is nonzero returns it, otherwise the shorter
        *  one is ordered first.
        *
-       *  NB: s must have at least n2 characters, '\0' has no special
+       *  NB: s must have at least n2 characters, '\\0' has no special
        *  meaning.
       */
       int

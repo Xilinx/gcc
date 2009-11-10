@@ -1,5 +1,5 @@
 /* Implementation of the STAT and FSTAT intrinsics.
-   Copyright (C) 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2006, 2007, 2009 Free Software Foundation, Inc.
    Contributed by Steven G. Kargl <kargls@comcast.net>.
 
 This file is part of the GNU Fortran 95 runtime library (libgfortran).
@@ -7,26 +7,21 @@ This file is part of the GNU Fortran 95 runtime library (libgfortran).
 Libgfortran is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public
 License as published by the Free Software Foundation; either
-version 2 of the License, or (at your option) any later version.
-
-In addition to the permissions in the GNU General Public License, the
-Free Software Foundation gives you unlimited permission to link the
-compiled version of this file into combinations with other programs,
-and to distribute those combinations without any restriction coming
-from the use of this file.  (The General Public License restrictions
-do apply in other respects; for example, they cover modification of
-the file, and distribution when not linked into a combine
-executable.)
+version 3 of the License, or (at your option) any later version.
 
 Libgfortran is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public
-License along with libgfortran; see the file COPYING.  If not,
-write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+Under Section 7 of GPL version 3, you are granted additional
+permissions described in the GCC Runtime Library Exception, version
+3.1, as published by the Free Software Foundation.
+
+You should have received a copy of the GNU General Public License and
+a copy of the GCC Runtime Library Exception along with this program;
+see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+<http://www.gnu.org/licenses/>.  */
 
 #include "libgfortran.h"
 
@@ -71,7 +66,7 @@ stat_i4_sub_0 (char *name, gfc_array_i4 *sarray, GFC_INTEGER_4 *status,
     runtime_error ("Array rank of SARRAY is not 1.");
 
   /* If the array is too small, abort.  */
-  if (sarray->dim[0].ubound + 1 - sarray->dim[0].lbound < 13)
+  if (GFC_DESCRIPTOR_EXTENT(sarray,0) < 13)
     runtime_error ("Array size of SARRAY is too small.");
 
   /* Trim trailing spaces from name.  */
@@ -93,55 +88,57 @@ stat_i4_sub_0 (char *name, gfc_array_i4 *sarray, GFC_INTEGER_4 *status,
 
   if (val == 0)
     {
+      index_type stride = GFC_DESCRIPTOR_STRIDE(sarray,0);
+
       /* Device ID  */
-      sarray->data[0 * sarray->dim[0].stride] = sb.st_dev;
+      sarray->data[0 * stride] = sb.st_dev;
 
       /* Inode number  */
-      sarray->data[1 * sarray->dim[0].stride] = sb.st_ino;
+      sarray->data[1 * stride] = sb.st_ino;
 
       /* File mode  */
-      sarray->data[2 * sarray->dim[0].stride] = sb.st_mode;
+      sarray->data[2 * stride] = sb.st_mode;
 
       /* Number of (hard) links  */
-      sarray->data[3 * sarray->dim[0].stride] = sb.st_nlink;
+      sarray->data[3 * stride] = sb.st_nlink;
 
       /* Owner's uid  */
-      sarray->data[4 * sarray->dim[0].stride] = sb.st_uid;
+      sarray->data[4 * stride] = sb.st_uid;
 
       /* Owner's gid  */
-      sarray->data[5 * sarray->dim[0].stride] = sb.st_gid;
+      sarray->data[5 * stride] = sb.st_gid;
 
       /* ID of device containing directory entry for file (0 if not available) */
 #if HAVE_STRUCT_STAT_ST_RDEV
-      sarray->data[6 * sarray->dim[0].stride] = sb.st_rdev;
+      sarray->data[6 * stride] = sb.st_rdev;
 #else
-      sarray->data[6 * sarray->dim[0].stride] = 0;
+      sarray->data[6 * stride] = 0;
 #endif
 
       /* File size (bytes)  */
-      sarray->data[7 * sarray->dim[0].stride] = sb.st_size;
+      sarray->data[7 * stride] = sb.st_size;
 
       /* Last access time  */
-      sarray->data[8 * sarray->dim[0].stride] = sb.st_atime;
+      sarray->data[8 * stride] = sb.st_atime;
 
       /* Last modification time  */
-      sarray->data[9 * sarray->dim[0].stride] = sb.st_mtime;
+      sarray->data[9 * stride] = sb.st_mtime;
 
       /* Last file status change time  */
-      sarray->data[10 * sarray->dim[0].stride] = sb.st_ctime;
+      sarray->data[10 * stride] = sb.st_ctime;
 
       /* Preferred I/O block size (-1 if not available)  */
 #if HAVE_STRUCT_STAT_ST_BLKSIZE
-      sarray->data[11 * sarray->dim[0].stride] = sb.st_blksize;
+      sarray->data[11 * stride] = sb.st_blksize;
 #else
-      sarray->data[11 * sarray->dim[0].stride] = -1;
+      sarray->data[11 * stride] = -1;
 #endif
 
       /* Number of blocks allocated (-1 if not available)  */
 #if HAVE_STRUCT_STAT_ST_BLOCKS
-      sarray->data[12 * sarray->dim[0].stride] = sb.st_blocks;
+      sarray->data[12 * stride] = sb.st_blocks;
 #else
-      sarray->data[12 * sarray->dim[0].stride] = -1;
+      sarray->data[12 * stride] = -1;
 #endif
     }
 
@@ -190,7 +187,7 @@ stat_i8_sub_0 (char *name, gfc_array_i8 *sarray, GFC_INTEGER_8 *status,
     runtime_error ("Array rank of SARRAY is not 1.");
 
   /* If the array is too small, abort.  */
-  if (sarray->dim[0].ubound + 1 - sarray->dim[0].lbound < 13)
+  if (GFC_DESCRIPTOR_EXTENT(sarray,0) < 13)
     runtime_error ("Array size of SARRAY is too small.");
 
   /* Trim trailing spaces from name.  */
@@ -212,55 +209,57 @@ stat_i8_sub_0 (char *name, gfc_array_i8 *sarray, GFC_INTEGER_8 *status,
 
   if (val == 0)
     {
+      index_type stride = GFC_DESCRIPTOR_STRIDE(sarray,0);
+
       /* Device ID  */
       sarray->data[0] = sb.st_dev;
 
       /* Inode number  */
-      sarray->data[sarray->dim[0].stride] = sb.st_ino;
+      sarray->data[stride] = sb.st_ino;
 
       /* File mode  */
-      sarray->data[2 * sarray->dim[0].stride] = sb.st_mode;
+      sarray->data[2 * stride] = sb.st_mode;
 
       /* Number of (hard) links  */
-      sarray->data[3 * sarray->dim[0].stride] = sb.st_nlink;
+      sarray->data[3 * stride] = sb.st_nlink;
 
       /* Owner's uid  */
-      sarray->data[4 * sarray->dim[0].stride] = sb.st_uid;
+      sarray->data[4 * stride] = sb.st_uid;
 
       /* Owner's gid  */
-      sarray->data[5 * sarray->dim[0].stride] = sb.st_gid;
+      sarray->data[5 * stride] = sb.st_gid;
 
       /* ID of device containing directory entry for file (0 if not available) */
 #if HAVE_STRUCT_STAT_ST_RDEV
-      sarray->data[6 * sarray->dim[0].stride] = sb.st_rdev;
+      sarray->data[6 * stride] = sb.st_rdev;
 #else
-      sarray->data[6 * sarray->dim[0].stride] = 0;
+      sarray->data[6 * stride] = 0;
 #endif
 
       /* File size (bytes)  */
-      sarray->data[7 * sarray->dim[0].stride] = sb.st_size;
+      sarray->data[7 * stride] = sb.st_size;
 
       /* Last access time  */
-      sarray->data[8 * sarray->dim[0].stride] = sb.st_atime;
+      sarray->data[8 * stride] = sb.st_atime;
 
       /* Last modification time  */
-      sarray->data[9 * sarray->dim[0].stride] = sb.st_mtime;
+      sarray->data[9 * stride] = sb.st_mtime;
 
       /* Last file status change time  */
-      sarray->data[10 * sarray->dim[0].stride] = sb.st_ctime;
+      sarray->data[10 * stride] = sb.st_ctime;
 
       /* Preferred I/O block size (-1 if not available)  */
 #if HAVE_STRUCT_STAT_ST_BLKSIZE
-      sarray->data[11 * sarray->dim[0].stride] = sb.st_blksize;
+      sarray->data[11 * stride] = sb.st_blksize;
 #else
-      sarray->data[11 * sarray->dim[0].stride] = -1;
+      sarray->data[11 * stride] = -1;
 #endif
 
       /* Number of blocks allocated (-1 if not available)  */
 #if HAVE_STRUCT_STAT_ST_BLOCKS
-      sarray->data[12 * sarray->dim[0].stride] = sb.st_blocks;
+      sarray->data[12 * stride] = sb.st_blocks;
 #else
-      sarray->data[12 * sarray->dim[0].stride] = -1;
+      sarray->data[12 * stride] = -1;
 #endif
     }
 
@@ -381,7 +380,7 @@ fstat_i4_sub (GFC_INTEGER_4 *unit, gfc_array_i4 *sarray, GFC_INTEGER_4 *status)
     runtime_error ("Array rank of SARRAY is not 1.");
 
   /* If the array is too small, abort.  */
-  if (sarray->dim[0].ubound + 1 - sarray->dim[0].lbound < 13)
+  if (GFC_DESCRIPTOR_EXTENT(sarray,0) < 13)
     runtime_error ("Array size of SARRAY is too small.");
 
   /* Convert Fortran unit number to C file descriptor.  */
@@ -391,55 +390,57 @@ fstat_i4_sub (GFC_INTEGER_4 *unit, gfc_array_i4 *sarray, GFC_INTEGER_4 *status)
 
   if (val == 0)
     {
+      index_type stride = GFC_DESCRIPTOR_STRIDE(sarray,0);
+
       /* Device ID  */
-      sarray->data[0 * sarray->dim[0].stride] = sb.st_dev;
+      sarray->data[0 * stride] = sb.st_dev;
 
       /* Inode number  */
-      sarray->data[1 * sarray->dim[0].stride] = sb.st_ino;
+      sarray->data[1 * stride] = sb.st_ino;
 
       /* File mode  */
-      sarray->data[2 * sarray->dim[0].stride] = sb.st_mode;
+      sarray->data[2 * stride] = sb.st_mode;
 
       /* Number of (hard) links  */
-      sarray->data[3 * sarray->dim[0].stride] = sb.st_nlink;
+      sarray->data[3 * stride] = sb.st_nlink;
 
       /* Owner's uid  */
-      sarray->data[4 * sarray->dim[0].stride] = sb.st_uid;
+      sarray->data[4 * stride] = sb.st_uid;
 
       /* Owner's gid  */
-      sarray->data[5 * sarray->dim[0].stride] = sb.st_gid;
+      sarray->data[5 * stride] = sb.st_gid;
 
       /* ID of device containing directory entry for file (0 if not available) */
 #if HAVE_STRUCT_STAT_ST_RDEV
-      sarray->data[6 * sarray->dim[0].stride] = sb.st_rdev;
+      sarray->data[6 * stride] = sb.st_rdev;
 #else
-      sarray->data[6 * sarray->dim[0].stride] = 0;
+      sarray->data[6 * stride] = 0;
 #endif
 
       /* File size (bytes)  */
-      sarray->data[7 * sarray->dim[0].stride] = sb.st_size;
+      sarray->data[7 * stride] = sb.st_size;
 
       /* Last access time  */
-      sarray->data[8 * sarray->dim[0].stride] = sb.st_atime;
+      sarray->data[8 * stride] = sb.st_atime;
 
       /* Last modification time  */
-      sarray->data[9 * sarray->dim[0].stride] = sb.st_mtime;
+      sarray->data[9 * stride] = sb.st_mtime;
 
       /* Last file status change time  */
-      sarray->data[10 * sarray->dim[0].stride] = sb.st_ctime;
+      sarray->data[10 * stride] = sb.st_ctime;
 
       /* Preferred I/O block size (-1 if not available)  */
 #if HAVE_STRUCT_STAT_ST_BLKSIZE
-      sarray->data[11 * sarray->dim[0].stride] = sb.st_blksize;
+      sarray->data[11 * stride] = sb.st_blksize;
 #else
-      sarray->data[11 * sarray->dim[0].stride] = -1;
+      sarray->data[11 * stride] = -1;
 #endif
 
       /* Number of blocks allocated (-1 if not available)  */
 #if HAVE_STRUCT_STAT_ST_BLOCKS
-      sarray->data[12 * sarray->dim[0].stride] = sb.st_blocks;
+      sarray->data[12 * stride] = sb.st_blocks;
 #else
-      sarray->data[12 * sarray->dim[0].stride] = -1;
+      sarray->data[12 * stride] = -1;
 #endif
     }
 
@@ -462,7 +463,7 @@ fstat_i8_sub (GFC_INTEGER_8 *unit, gfc_array_i8 *sarray, GFC_INTEGER_8 *status)
     runtime_error ("Array rank of SARRAY is not 1.");
 
   /* If the array is too small, abort.  */
-  if (sarray->dim[0].ubound + 1 - sarray->dim[0].lbound < 13)
+  if (GFC_DESCRIPTOR_EXTENT(sarray,0) < 13)
     runtime_error ("Array size of SARRAY is too small.");
 
   /* Convert Fortran unit number to C file descriptor.  */
@@ -472,55 +473,57 @@ fstat_i8_sub (GFC_INTEGER_8 *unit, gfc_array_i8 *sarray, GFC_INTEGER_8 *status)
 
   if (val == 0)
     {
+      index_type stride = GFC_DESCRIPTOR_STRIDE(sarray,0);
+
       /* Device ID  */
       sarray->data[0] = sb.st_dev;
 
       /* Inode number  */
-      sarray->data[sarray->dim[0].stride] = sb.st_ino;
+      sarray->data[stride] = sb.st_ino;
 
       /* File mode  */
-      sarray->data[2 * sarray->dim[0].stride] = sb.st_mode;
+      sarray->data[2 * stride] = sb.st_mode;
 
       /* Number of (hard) links  */
-      sarray->data[3 * sarray->dim[0].stride] = sb.st_nlink;
+      sarray->data[3 * stride] = sb.st_nlink;
 
       /* Owner's uid  */
-      sarray->data[4 * sarray->dim[0].stride] = sb.st_uid;
+      sarray->data[4 * stride] = sb.st_uid;
 
       /* Owner's gid  */
-      sarray->data[5 * sarray->dim[0].stride] = sb.st_gid;
+      sarray->data[5 * stride] = sb.st_gid;
 
       /* ID of device containing directory entry for file (0 if not available) */
 #if HAVE_STRUCT_STAT_ST_RDEV
-      sarray->data[6 * sarray->dim[0].stride] = sb.st_rdev;
+      sarray->data[6 * stride] = sb.st_rdev;
 #else
-      sarray->data[6 * sarray->dim[0].stride] = 0;
+      sarray->data[6 * stride] = 0;
 #endif
 
       /* File size (bytes)  */
-      sarray->data[7 * sarray->dim[0].stride] = sb.st_size;
+      sarray->data[7 * stride] = sb.st_size;
 
       /* Last access time  */
-      sarray->data[8 * sarray->dim[0].stride] = sb.st_atime;
+      sarray->data[8 * stride] = sb.st_atime;
 
       /* Last modification time  */
-      sarray->data[9 * sarray->dim[0].stride] = sb.st_mtime;
+      sarray->data[9 * stride] = sb.st_mtime;
 
       /* Last file status change time  */
-      sarray->data[10 * sarray->dim[0].stride] = sb.st_ctime;
+      sarray->data[10 * stride] = sb.st_ctime;
 
       /* Preferred I/O block size (-1 if not available)  */
 #if HAVE_STRUCT_STAT_ST_BLKSIZE
-      sarray->data[11 * sarray->dim[0].stride] = sb.st_blksize;
+      sarray->data[11 * stride] = sb.st_blksize;
 #else
-      sarray->data[11 * sarray->dim[0].stride] = -1;
+      sarray->data[11 * stride] = -1;
 #endif
 
       /* Number of blocks allocated (-1 if not available)  */
 #if HAVE_STRUCT_STAT_ST_BLOCKS
-      sarray->data[12 * sarray->dim[0].stride] = sb.st_blocks;
+      sarray->data[12 * stride] = sb.st_blocks;
 #else
-      sarray->data[12 * sarray->dim[0].stride] = -1;
+      sarray->data[12 * stride] = -1;
 #endif
     }
 

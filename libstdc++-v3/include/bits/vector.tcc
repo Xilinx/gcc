@@ -1,12 +1,12 @@
 // Vector implementation (out of line) -*- C++ -*-
 
-// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -14,19 +14,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
-// You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
 
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
 
 /*
  *
@@ -326,7 +321,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
 	  const size_type __elems_before = __position - begin();
 	  pointer __new_start(this->_M_allocate(__len));
 	  pointer __new_finish(__new_start);
-	  try
+	  __try
 	    {
 	      // The order of the three operations is dictated by the C++0x
 	      // case, where the moves could alter a new element belonging
@@ -352,7 +347,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
 					    __new_finish,
 					    _M_get_Tp_allocator());
 	    }
-	  catch(...)
+          __catch(...)
 	    {
 	      if (!__new_finish)
 		this->_M_impl.destroy(__new_start + __elems_before);
@@ -418,7 +413,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
 	      const size_type __elems_before = __position - begin();
 	      pointer __new_start(this->_M_allocate(__len));
 	      pointer __new_finish(__new_start);
-	      try
+	      __try
 		{
 		  // See _M_insert_aux above.
 		  std::__uninitialized_fill_n_a(__new_start + __elems_before,
@@ -439,7 +434,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
 						__new_finish,
 						_M_get_Tp_allocator());
 		}
-	      catch(...)
+	      __catch(...)
 		{
 		  if (!__new_finish)
 		    std::_Destroy(__new_start + __elems_before,
@@ -525,7 +520,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
 		  _M_check_len(__n, "vector::_M_range_insert");
 		pointer __new_start(this->_M_allocate(__len));
 		pointer __new_finish(__new_start);
-		try
+		__try
 		  {
 		    __new_finish =
 		      std::__uninitialized_move_a(this->_M_impl._M_start,
@@ -542,7 +537,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
 						  __new_finish,
 						  _M_get_Tp_allocator());
 		  }
-		catch(...)
+		__catch(...)
 		  {
 		    std::_Destroy(__new_start, __new_finish,
 				  _M_get_Tp_allocator());

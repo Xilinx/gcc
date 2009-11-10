@@ -1,12 +1,12 @@
 // Wrapper for underlying C-language localization -*- C++ -*-
 
-// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -14,19 +14,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
-// You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
 
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
 
 //
 // ISO C++ 14882: 22.8  Standard locale categories.
@@ -138,10 +133,10 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       {
 	// This named locale is not supported by the underlying OS.
 	__throw_runtime_error(__N("locale::facet::_S_create_c_locale "
-			      "name not valid"));
+				  "name not valid"));
       }
   }
-  
+
   void
   locale::facet::_S_destroy_c_locale(__c_locale& __cloc)
   {
@@ -152,6 +147,27 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   __c_locale
   locale::facet::_S_clone_c_locale(__c_locale& __cloc)
   { return __duplocale(__cloc); }
+
+  __c_locale
+  locale::facet::_S_lc_ctype_c_locale(__c_locale __cloc, const char* __s)
+  {
+    __c_locale __dup = __duplocale(__cloc);
+    if (__dup == __c_locale(0))
+      __throw_runtime_error(__N("locale::facet::_S_lc_ctype_c_locale "
+				"duplocale error"));
+#if __GLIBC__ > 2 || (__GLIBC__ == 2 && __GLIBC_MINOR__ > 2)
+    __c_locale __changed = __newlocale(LC_CTYPE_MASK, __s, __dup);
+#else
+    __c_locale __changed = __newlocale(1 << LC_CTYPE, __s, __dup);
+#endif
+    if (__changed == __c_locale(0))
+      {
+	__freelocale(__dup);
+	__throw_runtime_error(__N("locale::facet::_S_lc_ctype_c_locale "
+				  "newlocale error"));
+      }
+    return __changed;
+  }
 
 _GLIBCXX_END_NAMESPACE
 

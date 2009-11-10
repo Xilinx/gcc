@@ -6,7 +6,7 @@
 //
 // GCC is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2, or (at your option)
+// the Free Software Foundation; either version 3, or (at your option)
 // any later version.
 //
 // GCC is distributed in the hope that it will be useful,
@@ -14,19 +14,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
-// You should have received a copy of the GNU General Public License
-// along with GCC; see the file COPYING.  If not, write to
-// the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-// Boston, MA 02110-1301, USA.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
 
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
 
 // This is derived from the C++ ABI for IA-64.  Where we diverge
 // for cross-architecture compatibility are noted with "@@@".
@@ -153,8 +148,8 @@ struct __cxa_eh_globals
 // either of the following functions.  The "fast" version assumes at least
 // one prior call of __cxa_get_globals has been made from the current
 // thread, so no initialization is necessary.
-extern "C" __cxa_eh_globals *__cxa_get_globals () throw();
-extern "C" __cxa_eh_globals *__cxa_get_globals_fast () throw();
+extern "C" __cxa_eh_globals *__cxa_get_globals () throw() __attribute__ ((__const__));
+extern "C" __cxa_eh_globals *__cxa_get_globals_fast () throw() __attribute__ ((__const__));
 
 // Allocate memory for the primary exception plus the thrown object.
 extern "C" void *__cxa_allocate_exception(std::size_t thrown_size) throw();
@@ -177,14 +172,14 @@ extern "C" void __cxa_throw (void *thrown_exception,
      __attribute__((noreturn));
 
 // Used to implement exception handlers.
-extern "C" void *__cxa_get_exception_ptr (void *) throw();
+extern "C" void *__cxa_get_exception_ptr (void *) throw() __attribute__ ((__pure__));
 extern "C" void *__cxa_begin_catch (void *) throw();
 extern "C" void __cxa_end_catch ();
 extern "C" void __cxa_rethrow () __attribute__((noreturn));
 
 // These facilitate code generation for recurring situations.
-extern "C" void __cxa_bad_cast ();
-extern "C" void __cxa_bad_typeid ();
+extern "C" void __cxa_bad_cast () __attribute__((__noreturn__));
+extern "C" void __cxa_bad_typeid () __attribute__((__noreturn__));
 
 // @@@ These are not directly specified by the IA-64 C++ ABI.
 
@@ -192,7 +187,7 @@ extern "C" void __cxa_bad_typeid ();
 // throws, and if bad_exception needs to be thrown.  Called from the
 // compiler.
 extern "C" void __cxa_call_unexpected (void *) __attribute__((noreturn));
-extern "C" void __cxa_call_terminate (void*) __attribute__((noreturn));
+extern "C" void __cxa_call_terminate (_Unwind_Exception*) throw () __attribute__((noreturn));
 
 #ifdef __ARM_EABI_UNWINDER__
 // Arm EABI specified routines.
@@ -209,7 +204,7 @@ extern "C" void __cxa_end_cleanup (void);
 
 // Invokes given handler, dying appropriately if the user handler was
 // so inconsiderate as to return.
-extern void __terminate(std::terminate_handler) __attribute__((noreturn));
+extern void __terminate(std::terminate_handler) throw () __attribute__((__noreturn__));
 extern void __unexpected(std::unexpected_handler) __attribute__((noreturn));
 
 // The current installed user handlers.

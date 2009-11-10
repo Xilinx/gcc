@@ -1,6 +1,6 @@
 /* Target definitions for GNU compiler for PowerPC running System V.4
    Copyright (C) 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003,
-   2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+   2004, 2005, 2006, 2007, 2008, 2009  Free Software Foundation, Inc.
    Contributed by Cygnus Support.
 
    This file is part of GCC.
@@ -15,8 +15,13 @@
    or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
    License for more details.
 
-   You should have received a copy of the GNU General Public License
-   along with GCC; see the file COPYING3.  If not see
+   Under Section 7 of GPL version 3, you are granted additional
+   permissions described in the GCC Runtime Library Exception, version
+   3.1, as published by the Free Software Foundation.
+
+   You should have received a copy of the GNU General Public License and
+   a copy of the GCC Runtime Library Exception along with this program;
+   see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
    <http://www.gnu.org/licenses/>.  */
 
 /* Header files should be C++ aware in general.  */
@@ -54,6 +59,7 @@ extern enum rs6000_sdata_type rs6000_sdata;
 
 #define	TARGET_BITFIELD_TYPE	(! TARGET_NO_BITFIELD_TYPE)
 #define	TARGET_BIG_ENDIAN	(! TARGET_LITTLE_ENDIAN)
+#define	TARGET_PROTOTYPE	target_prototype
 #define	TARGET_NO_PROTOTYPE	(! TARGET_PROTOTYPE)
 #define	TARGET_NO_TOC		(! TARGET_TOC)
 #define	TARGET_NO_EABI		(! TARGET_EABI)
@@ -119,9 +125,9 @@ do {									\
   else if (!strcmp (rs6000_abi_name, "i960-old"))			\
     {									\
       rs6000_current_abi = ABI_V4;					\
-      target_flags |= (MASK_LITTLE_ENDIAN | MASK_EABI			\
-		       | MASK_NO_BITFIELD_WORD);			\
+      target_flags |= (MASK_LITTLE_ENDIAN | MASK_EABI);			\
       target_flags &= ~MASK_STRICT_ALIGN;				\
+      TARGET_NO_BITFIELD_WORD = 1;					\
     }									\
   else									\
     {									\
@@ -266,27 +272,25 @@ do {									\
 #endif
 
 /* Define cutoff for using external functions to save floating point.
-   Currently on 64-bit V.4, always use inline stores.  When optimizing
-   for size on 32-bit targets, use external functions when
-   profitable.  */
-#define FP_SAVE_INLINE(FIRST_REG) (optimize_size && !TARGET_64BIT	\
+   When optimizing for size, use external functions when profitable.  */
+#define FP_SAVE_INLINE(FIRST_REG) (optimize_size			\
 				   ? ((FIRST_REG) == 62			\
 				      || (FIRST_REG) == 63)		\
 				   : (FIRST_REG) < 64)
 /* And similarly for general purpose registers.  */
 #define GP_SAVE_INLINE(FIRST_REG) ((FIRST_REG) < 32	\
-				   && (TARGET_64BIT || !optimize_size))
+				   && !optimize_size)
 
 /* Put jump tables in read-only memory, rather than in .text.  */
 #define JUMP_TABLES_IN_TEXT_SECTION 0
 
 /* Prefix and suffix to use to saving floating point.  */
 #define	SAVE_FP_PREFIX "_savefpr_"
-#define SAVE_FP_SUFFIX (TARGET_64BIT ? "_l" : "")
+#define SAVE_FP_SUFFIX ""
 
 /* Prefix and suffix to use to restoring floating point.  */
 #define	RESTORE_FP_PREFIX "_restfpr_"
-#define RESTORE_FP_SUFFIX (TARGET_64BIT ? "_l" : "")
+#define RESTORE_FP_SUFFIX ""
 
 /* Type used for ptrdiff_t, as a string used in a declaration.  */
 #define PTRDIFF_TYPE "int"
@@ -381,8 +385,8 @@ do {									\
    containing one of them.  If -mfp-in-toc (the default), we also do
    this for floating-point constants.  We actually can only do this
    if the FP formats of the target and host machines are the same, but
-   we can't check that since not every file that uses
-   GO_IF_LEGITIMATE_ADDRESS_P includes real.h.
+   we can't check that since not every file that uses these target macros
+   includes real.h.
 
    Unlike AIX, we don't key off of -mminimal-toc, but instead do not
    allow floating point constants in the TOC if -mrelocatable.  */
@@ -588,7 +592,7 @@ extern int fixuplabelno;
 %{,assembler|,assembler-with-cpp: %{mregnames} %{mno-regnames}}" \
 SVR4_ASM_SPEC \
 "%{mrelocatable} %{mrelocatable-lib} %{fpic|fpie|fPIC|fPIE:-K PIC} \
-%{memb|msdata|msdata=eabi: -memb} \
+%{memb|msdata=eabi: -memb} \
 %{mlittle|mlittle-endian:-mlittle; \
   mbig|mbig-endian      :-mbig;    \
   mcall-aixdesc |		   \

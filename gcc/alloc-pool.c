@@ -1,6 +1,6 @@
 /* Functions to support a pool of allocatable objects.
-   Copyright (C) 1987, 1997, 1998, 1999, 2000, 2001, 2003, 2004, 2005, 2006, 2007
-   Free Software Foundation, Inc.
+   Copyright (C) 1987, 1997, 1998, 1999, 2000, 2001, 2003, 2004, 2005, 2006,
+   2007, 2008  Free Software Foundation, Inc.
    Contributed by Daniel Berlin <dan@cgsoftware.com>
 
 This file is part of GCC.
@@ -41,10 +41,10 @@ typedef struct allocation_object_def
 
       /* Because we want any type of data to be well aligned after the ID,
 	 the following elements are here.  They are never accessed so
-	 the allocated object may be even smaller than this structure.  */
+	 the allocated object may be even smaller than this structure.
+	 We do not care about alignment for floating-point types.  */
       char *align_p;
       HOST_WIDEST_INT align_i;
-      long double align_ld;
     } u;
 } allocation_object;
 
@@ -116,7 +116,7 @@ alloc_pool_descriptor (const char *name)
   slot = (struct alloc_pool_descriptor **)
     htab_find_slot_with_hash (alloc_pool_hash, name,
 			      htab_hash_pointer (name),
-			      1);
+			      INSERT);
   if (*slot)
     return *slot;
   *slot = XCNEW (struct alloc_pool_descriptor);

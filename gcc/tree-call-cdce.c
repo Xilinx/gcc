@@ -779,7 +779,7 @@ shrink_wrap_one_built_in_call (gimple bi_call)
   gcc_assert (cond_expr && gimple_code (cond_expr) == GIMPLE_COND);
 
   /* Now the label.  */
-  bi_call_label_decl = create_artificial_label ();
+  bi_call_label_decl = create_artificial_label (gimple_location (bi_call));
   bi_call_label = gimple_build_label (bi_call_label_decl);
   gsi_insert_before (&bi_call_bsi, bi_call_label, GSI_SAME_STMT);
 
@@ -906,6 +906,9 @@ tree_call_cdce (void)
     {
       free_dominance_info (CDI_DOMINATORS);
       free_dominance_info (CDI_POST_DOMINATORS);
+      /* As we introduced new control-flow we need to insert PHI-nodes
+         for the call-clobbers of the remaining call.  */
+      mark_sym_for_renaming (gimple_vop (cfun));
       return (TODO_update_ssa | TODO_cleanup_cfg | TODO_ggc_collect 
               | TODO_remove_unused_locals);
     }

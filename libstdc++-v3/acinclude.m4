@@ -49,7 +49,7 @@ AC_DEFUN([GLIBCXX_CONFIGURE], [
   # Keep these sync'd with the list in Makefile.am.  The first provides an
   # expandable list at autoconf time; the second provides an expandable list
   # (i.e., shell variable) at configure time.
-  m4_define([glibcxx_SUBDIRS],[include libsupc++ src doc po testsuite])
+  m4_define([glibcxx_SUBDIRS],[include libsupc++ python src doc po testsuite])
   SUBDIRS='glibcxx_SUBDIRS'
 
   # These need to be absolute paths, yet at the same time need to
@@ -78,35 +78,6 @@ AC_DEFUN([GLIBCXX_CONFIGURE], [
   AC_ARG_WITH([newlib],
     AC_HELP_STRING([--with-newlib],
                    [assume newlib as a system C library]))
-
-  # We're almost certainly being configured before anything else which uses
-  # C++, so all of our AC_PROG_* discoveries will be cached.  It's vital that
-  # we not cache the value of CXX that we "discover" here, because it's set
-  # to something unique for us and libjava.  Other target libraries need to
-  # find CXX for themselves.  We yank the rug out from under the normal AC_*
-  # process by sneakily renaming the cache variable.  This also lets us debug
-  # the value of "our" CXX in postmortems.
-  #
-  # We must also force CXX to /not/ be a precious variable, otherwise the
-  # wrong (non-multilib-adjusted) value will be used in multilibs.  This
-  # little trick also affects CPPFLAGS, CXXFLAGS, and LDFLAGS.  And as a side
-  # effect, CXXFLAGS is no longer automagically subst'd, so we have to do
-  # that ourselves.  Un-preciousing AC_PROG_CC also affects CC and CFLAGS.
-  #
-  # -fno-builtin must be present here so that a non-conflicting form of
-  # std::exit can be guessed by AC_PROG_CXX, and used in later tests.
-
-  m4_define([ac_cv_prog_CXX],[glibcxx_cv_prog_CXX])
-  m4_rename([_AC_ARG_VAR_PRECIOUS],[glibcxx_PRECIOUS])
-  m4_define([_AC_ARG_VAR_PRECIOUS],[])
-  save_CXXFLAGS="$CXXFLAGS"
-  CXXFLAGS="$CXXFLAGS -fno-builtin"
-  AC_PROG_CC
-  AC_PROG_CXX
-  CXXFLAGS="$save_CXXFLAGS"
-  m4_rename([glibcxx_PRECIOUS],[_AC_ARG_VAR_PRECIOUS])
-  AC_SUBST(CFLAGS)
-  AC_SUBST(CXXFLAGS)
 
   # Will set LN_S to either 'ln -s', 'ln', or 'cp -p' (if linking isn't
   # available).  Uncomment the next line to force a particular method.
@@ -238,8 +209,8 @@ AC_DEFUN([GLIBCXX_CHECK_LINKER_FEATURES], [
     if $LD --version 2>/dev/null | grep 'GNU gold' >/dev/null 2>&1; then
       glibcxx_ld_is_gold=yes
     fi
-    ldver=`$LD --version 2>/dev/null | head -1 | \
-           sed -e 's/GNU \(go\)\{0,1\}ld \(version \)\{0,1\}\(([^)]*) \)\{0,1\}\([0-9.][0-9.]*\).*/\4/'`
+    ldver=`$LD --version 2>/dev/null |
+	   sed -e 's/GNU gold /GNU ld /;s/GNU ld version /GNU ld /;s/GNU ld ([^)]*) /GNU ld /;s/GNU ld \([0-9.][0-9.]*\).*/\1/; q'`
     changequote([,])
     glibcxx_gnu_ld_version=`echo $ldver | \
            $AWK -F. '{ if (NF<3) [$]3=0; print ([$]1*100+[$]2)*100+[$]3 }'`
@@ -638,7 +609,7 @@ AC_DEFUN([GLIBCXX_CONFIGURE_TESTSUITE], [
   fi
   
   # Export file names for ABI checking.
-  baseline_dir="$glibcxx_srcdir/config/abi/post/${abi_baseline_pair}\$(MULTISUBDIR)"
+  baseline_dir="$glibcxx_srcdir/config/abi/post/${abi_baseline_pair}"
   AC_SUBST(baseline_dir)
 ])
 
@@ -2249,6 +2220,44 @@ AC_DEFUN([GLIBCXX_ENABLE_LONG_LONG], [
   AC_MSG_RESULT([$enable_long_long])
 ])
 
+
+dnl
+dnl Check for decimal floating point.
+dnl See:
+dnl http://gcc.gnu.org/onlinedocs/gcc/Decimal-Float.html#Decimal-Float
+dnl
+dnl This checks to see if the host supports decimal floating point types.
+dnl
+dnl Defines:
+dnl  _GLIBCXX_USE_DECIMAL_FLOAT
+dnl
+AC_DEFUN([GLIBCXX_ENABLE_DECIMAL_FLOAT], [
+
+  # Fake what AC_TRY_COMPILE does, without linking as this is
+  # unnecessary for this test.
+
+    cat > conftest.$ac_ext << EOF
+[#]line __oline__ "configure"
+int main()
+{
+  _Decimal32 d1;
+  _Decimal64 d2;
+  _Decimal128 d3;
+  return 0;
+}
+EOF
+
+    AC_MSG_CHECKING([for ISO/IEC TR 24733 ])
+    if AC_TRY_EVAL(ac_compile); then
+      AC_DEFINE(_GLIBCXX_USE_DECIMAL_FLOAT, 1,
+      [Define if ISO/IEC TR 24733 decimal floating point types are supported on this host.])
+      enable_dfp=yes
+    else
+      enable_dfp=no
+    fi
+    AC_MSG_RESULT($enable_dfp)
+    rm -f conftest*
+])
 
 dnl
 dnl Check for template specializations for the 'wchar_t' type.

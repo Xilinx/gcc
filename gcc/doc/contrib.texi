@@ -1,5 +1,5 @@
 @c Copyright (C) 1988,1989,1992,1993,1994,1995,1996,1997,1998,1999,2000,
-@c 2001,2002,2003,2004,2005,2006,2007 Free Software Foundation, Inc.
+@c 2001,2002,2003,2004,2005,2006,2007,2008,2009 Free Software Foundation, Inc.
 @c This is part of the GCC manual.
 @c For copying conditions, see the file gcc.texi.
 
@@ -156,6 +156,10 @@ Glenn Chambers for help with the GCJ FAQ@.
 John-Marc Chandonia for various libgcj patches.
 
 @item
+Denis Chertykov for contributing and maintaining the AVR port, the first GCC port
+for an 8-bit architecture.
+
+@item
 Scott Christley for his Objective-C contributions.
 
 @item
@@ -169,8 +173,8 @@ The @uref{http://www.gnu.org/software/classpath/,,GNU Classpath project}
 for all of their merged runtime code.
 
 @item
-Nick Clifton for arm, mcore, fr30, v850, m32r work, @option{--help}, and
-other random hacking.
+Nick Clifton for arm, mcore, fr30, v850, m32r, rx work,
+@option{--help}, and other random hacking.
 
 @item
 Michael Cook for libstdc++ cleanup patches to reduce warnings.
@@ -211,7 +215,7 @@ Mo DeJong for GCJ and libgcj bug fixes.
 
 @item
 DJ Delorie for the DJGPP port, build and libiberty maintenance,
-various bug fixes, and the M32C port.
+various bug fixes, and the M32C and MeP ports.
 
 @item
 Arnaud Desitter for helping to debug GNU Fortran.
@@ -312,7 +316,8 @@ support, improved leaf function register allocation, and his direction
 via the steering committee.
 
 @item
-Anthony Green for his @option{-Os} contributions and Java front end work.
+Anthony Green for his @option{-Os} contributions, the moxie port, and
+Java front end work.
 
 @item
 Stu Grossman for gdb hacking, allowing GCJ developers to debug Java code.

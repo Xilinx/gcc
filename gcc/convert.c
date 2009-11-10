@@ -1,6 +1,6 @@
 /* Utility routines for data type conversion for GCC.
    Copyright (C) 1987, 1988, 1991, 1992, 1993, 1994, 1995, 1997, 1998,
-   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -34,7 +34,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "langhooks.h"
 #include "real.h"
 #include "fixed-value.h"
-#include "target.h"
 
 /* Convert EXPR to some pointer or reference type TYPE.
    EXPR must be pointer, reference, integer, enumeral, or literal zero;
@@ -43,11 +42,7 @@ along with GCC; see the file COPYING3.  If not see
 tree
 convert_to_pointer (tree type, tree expr)
 {
-  addr_space_t to_as = TYPE_ADDR_SPACE (TREE_TYPE (type));
-  addr_space_t from_as;
-  enum tree_code tcode;
-  int pointer_size;
-
+  location_t loc = EXPR_LOCATION (expr);
   if (TREE_TYPE (expr) == type)
     return expr;
 
@@ -59,50 +54,36 @@ convert_to_pointer (tree type, tree expr)
     {
     case POINTER_TYPE:
     case REFERENCE_TYPE:
-      /* If the pointers point to different address spaces, see if we can do the
-	 convert, and if we can do the convert, whether the conversion is a NOP
-	 or not.  */
-      tcode = NOP_EXPR;
-      from_as = TYPE_ADDR_SPACE (TREE_TYPE (TREE_TYPE (expr)));
-      if (to_as != from_as)
-	{
-	  if (! targetm.addr_space.can_convert_p (from_as, to_as))
-	    {
-	      if (!from_as)
-		error ("cannot convert generic address space pointers to "
-		       "%s address space pointers",
-		       targetm.addr_space.name (to_as));
-	      else if (!to_as)
-		error ("cannot convert %s address space pointers to "
-		       "generic address space pointers",
-		       targetm.addr_space.name (from_as));
-	      else
-		error ("cannot convert %s address space pointers to "
-		       "%s address space pointers",
-		       targetm.addr_space.name (from_as),
-		       targetm.addr_space.name (to_as));
+      {
+        /* If the pointers point to different address spaces, conversion needs
+	   to be done via a ADDR_SPACE_CONVERT_EXPR instead of a NOP_EXPR.  */
+	addr_space_t to_as = TYPE_ADDR_SPACE (TREE_TYPE (type));
+	addr_space_t from_as = TYPE_ADDR_SPACE (TREE_TYPE (TREE_TYPE (expr)));
 
-	      return convert_to_pointer (type, integer_zero_node);
-	    }
-
-	  if (! targetm.addr_space.nop_convert_p (from_as, to_as))
-	    tcode = CONVERT_EXPR;
-	}
-      return fold_build1 (tcode, type, expr);
+	if (to_as == from_as)
+	  return fold_build1_loc (loc, NOP_EXPR, type, expr);
+	else
+	  return fold_build1_loc (loc, ADDR_SPACE_CONVERT_EXPR, type, expr);
+      }
 
     case INTEGER_TYPE:
     case ENUMERAL_TYPE:
     case BOOLEAN_TYPE:
-      /* Figure out the native pointer size, depending on the address space.  */
-      pointer_size = (!to_as
-		      ? POINTER_SIZE
-		      : GET_MODE_BITSIZE (targetm.addr_space.pointer_mode (to_as))); 
+      {
+	/* If the input precision differs from the target pointer type
+	   precision, first convert the input expression to an integer type of
+	   the target precision.  Some targets, e.g. VMS, need several pointer
+	   sizes to coexist so the latter isn't necessarily POINTER_SIZE.  */
+	unsigned int pprec = TYPE_PRECISION (type);
+	unsigned int eprec = TYPE_PRECISION (TREE_TYPE (expr));
 
-      if (TYPE_PRECISION (TREE_TYPE (expr)) != pointer_size)
-	expr = fold_build1 (NOP_EXPR, lang_hooks.types.type_for_size (pointer_size, 0), expr);
+ 	if (eprec != pprec)
+	  expr = fold_build1_loc (loc, NOP_EXPR,
+			      lang_hooks.types.type_for_size (pprec, 0),
+			      expr);
+      }
 
-      return fold_build1 (CONVERT_EXPR, type, expr);
-
+      return fold_build1_loc (loc, CONVERT_EXPR, type, expr);
 
     default:
       error ("cannot convert to a pointer type");
@@ -178,40 +159,45 @@ convert_to_real (tree type, tree expr)
       switch (fcode)
         {
 #define CASE_MATHFN(FN) case BUILT_IN_##FN: case BUILT_IN_##FN##L:
-	  CASE_MATHFN (ACOS)
-	  CASE_MATHFN (ACOSH)
-	  CASE_MATHFN (ASIN)
-	  CASE_MATHFN (ASINH)
-	  CASE_MATHFN (ATAN)
-	  CASE_MATHFN (ATANH)
-	  CASE_MATHFN (CBRT)
-	  CASE_MATHFN (COS)
 	  CASE_MATHFN (COSH)
-	  CASE_MATHFN (ERF)
-	  CASE_MATHFN (ERFC)
 	  CASE_MATHFN (EXP)
 	  CASE_MATHFN (EXP10)
 	  CASE_MATHFN (EXP2)
-	  CASE_MATHFN (EXPM1)
-	  CASE_MATHFN (FABS)
+ 	  CASE_MATHFN (EXPM1)
 	  CASE_MATHFN (GAMMA)
 	  CASE_MATHFN (J0)
 	  CASE_MATHFN (J1)
 	  CASE_MATHFN (LGAMMA)
-	  CASE_MATHFN (LOG)
-	  CASE_MATHFN (LOG10)
-	  CASE_MATHFN (LOG1P)
-	  CASE_MATHFN (LOG2)
-	  CASE_MATHFN (LOGB)
 	  CASE_MATHFN (POW10)
-	  CASE_MATHFN (SIN)
 	  CASE_MATHFN (SINH)
-	  CASE_MATHFN (SQRT)
-	  CASE_MATHFN (TAN)
-	  CASE_MATHFN (TANH)
 	  CASE_MATHFN (TGAMMA)
 	  CASE_MATHFN (Y0)
 	  CASE_MATHFN (Y1)
+	    /* The above functions may set errno differently with float
+	       input or output so this transformation is not safe with
+	       -fmath-errno.  */
+	    if (flag_errno_math)
+	      break;
+	  CASE_MATHFN (ACOS)
+	  CASE_MATHFN (ACOSH)
+	  CASE_MATHFN (ASIN)
+ 	  CASE_MATHFN (ASINH)
+ 	  CASE_MATHFN (ATAN)
+	  CASE_MATHFN (ATANH)
+ 	  CASE_MATHFN (CBRT)
+ 	  CASE_MATHFN (COS)
+ 	  CASE_MATHFN (ERF)
+ 	  CASE_MATHFN (ERFC)
+ 	  CASE_MATHFN (FABS)
+	  CASE_MATHFN (LOG)
+	  CASE_MATHFN (LOG10)
+	  CASE_MATHFN (LOG2)
+ 	  CASE_MATHFN (LOG1P)
+ 	  CASE_MATHFN (LOGB)
+ 	  CASE_MATHFN (SIN)
+	  CASE_MATHFN (SQRT)
+ 	  CASE_MATHFN (TAN)
+ 	  CASE_MATHFN (TANH)
 #undef CASE_MATHFN
 	    {
 	      tree arg0 = strip_float_extensions (CALL_EXPR_ARG (expr, 0));
@@ -360,7 +346,8 @@ convert_to_real (tree type, tree expr)
 		      && (flag_unsafe_math_optimizations
 			  || (TYPE_PRECISION (newtype) == TYPE_PRECISION (type)
 			      && real_can_shorten_arithmetic (TYPE_MODE (itype),
-							      TYPE_MODE (type)))))
+							      TYPE_MODE (type))
+			      && !excess_precision_type (newtype))))
 		    {
 		      expr = build2 (TREE_CODE (expr), newtype,
 				     fold (convert_to_real (newtype, arg0)),
@@ -515,38 +502,58 @@ convert_to_integer (tree type, tree expr)
 	}
     }
 
+  /* Convert (int)logb(d) -> ilogb(d).  */
+  if (optimize
+      && flag_unsafe_math_optimizations
+      && !flag_trapping_math && !flag_errno_math && flag_finite_math_only
+      && integer_type_node
+      && (outprec > TYPE_PRECISION (integer_type_node)
+	  || (outprec == TYPE_PRECISION (integer_type_node)
+	      && !TYPE_UNSIGNED (type))))
+    {
+      tree s_expr = strip_float_extensions (expr);
+      tree s_intype = TREE_TYPE (s_expr);
+      const enum built_in_function fcode = builtin_mathfn_code (s_expr);
+      tree fn = 0;
+       
+      switch (fcode)
+	{
+	CASE_FLT_FN (BUILT_IN_LOGB):
+	  fn = mathfn_built_in (s_intype, BUILT_IN_ILOGB);
+	  break;
+
+	default:
+	  break;
+	}
+
+      if (fn)
+        {
+	  tree newexpr = build_call_expr (fn, 1, CALL_EXPR_ARG (s_expr, 0));
+	  return convert_to_integer (type, newexpr);
+	}
+    }
+
   switch (TREE_CODE (intype))
     {
     case POINTER_TYPE:
     case REFERENCE_TYPE:
-      {
- 	int pointer_size;
-	addr_space_t as;
+      if (integer_zerop (expr))
+	return build_int_cst (type, 0);
 
- 	if (integer_zerop (expr))
- 	  return build_int_cst (type, 0);
-
- 	/* Convert to an unsigned integer of the correct width first,
- 	   and from there widen/truncate to the required type.  */
-	as = TYPE_ADDR_SPACE (TREE_TYPE (intype));
-	if (!as)
-	  pointer_size = POINTER_SIZE;
-
-	else
-	  {
-	    enum machine_mode mode = targetm.addr_space.pointer_mode (as);
-	    pointer_size = GET_MODE_BITSIZE (mode);
-	  }
-
- 	expr = fold_build1 (CONVERT_EXPR,
- 			    lang_hooks.types.type_for_size (pointer_size, 0),
- 			    expr);
- 	return fold_build1 (NOP_EXPR, type, expr);
-      }
+      /* Convert to an unsigned integer of the correct width first, and from
+	 there widen/truncate to the required type.  Some targets support the
+	 coexistence of multiple valid pointer sizes, so fetch the one we need
+	 from the type.  */
+      expr = fold_build1 (CONVERT_EXPR,
+			  lang_hooks.types.type_for_size
+			    (TYPE_PRECISION (intype), 0),
+			  expr);
+      return fold_convert (type, expr);
 
     case INTEGER_TYPE:
     case ENUMERAL_TYPE:
     case BOOLEAN_TYPE:
+    case OFFSET_TYPE:
       /* If this is a logical operation, which just returns 0 or 1, we can
 	 change the type of the expression.  */
 
@@ -788,10 +795,16 @@ convert_to_integer (tree type, tree expr)
 
 	case COND_EXPR:
 	  /* It is sometimes worthwhile to push the narrowing down through
-	     the conditional and never loses.  */
+	     the conditional and never loses.  A COND_EXPR may have a throw
+	     as one operand, which then has void type.  Just leave void
+	     operands as they are.  */
 	  return fold_build3 (COND_EXPR, type, TREE_OPERAND (expr, 0),
-			      convert (type, TREE_OPERAND (expr, 1)),
-			      convert (type, TREE_OPERAND (expr, 2)));
+			      VOID_TYPE_P (TREE_TYPE (TREE_OPERAND (expr, 1)))
+			      ? TREE_OPERAND (expr, 1)
+			      : convert (type, TREE_OPERAND (expr, 1)),
+			      VOID_TYPE_P (TREE_TYPE (TREE_OPERAND (expr, 2)))
+			      ? TREE_OPERAND (expr, 2)
+			      : convert (type, TREE_OPERAND (expr, 2)));
 
 	default:
 	  break;

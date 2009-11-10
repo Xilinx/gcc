@@ -1,5 +1,6 @@
 /* Lower vector operations to scalar operations.
-   Copyright (C) 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
    
@@ -481,8 +482,10 @@ expand_vector_operations_1 (gimple_stmt_iterator *gsi)
       tree vector_compute_type
         = type_for_widest_vector_mode (TYPE_MODE (TREE_TYPE (type)), op,
 				       TYPE_SATURATING (TREE_TYPE (type)));
-      if (vector_compute_type != NULL_TREE)
-        compute_type = vector_compute_type;
+      if (vector_compute_type != NULL_TREE
+	  && (TYPE_VECTOR_SUBPARTS (vector_compute_type)
+	      < TYPE_VECTOR_SUBPARTS (compute_type)))
+	compute_type = vector_compute_type;
     }
 
   /* If we are breaking a BLKmode vector into smaller pieces,
@@ -555,7 +558,7 @@ struct gimple_opt_pass pass_lower_vector =
   NULL,					/* sub */
   NULL,					/* next */
   0,					/* static_pass_number */
-  0,					/* tv_id */
+  TV_NONE,				/* tv_id */
   PROP_cfg,				/* properties_required */
   0,					/* properties_provided */
   0,					/* properties_destroyed */
@@ -575,7 +578,7 @@ struct gimple_opt_pass pass_lower_vector_ssa =
   NULL,					/* sub */
   NULL,					/* next */
   0,					/* static_pass_number */
-  0,					/* tv_id */
+  TV_NONE,				/* tv_id */
   PROP_cfg,				/* properties_required */
   0,					/* properties_provided */
   0,					/* properties_destroyed */

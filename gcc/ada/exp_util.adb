@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -41,7 +41,9 @@ with Opt;      use Opt;
 with Restrict; use Restrict;
 with Rident;   use Rident;
 with Sem;      use Sem;
+with Sem_Aux;  use Sem_Aux;
 with Sem_Ch8;  use Sem_Ch8;
+with Sem_SCIL; use Sem_SCIL;
 with Sem_Eval; use Sem_Eval;
 with Sem_Res;  use Sem_Res;
 with Sem_Type; use Sem_Type;
@@ -133,6 +135,12 @@ package body Exp_Util is
    --        Literal_Type'Val
    --          (Literal_Type'Pos (Low_Bound (Literal_Type))
    --             + (Length (Literal_Typ) -1))
+
+   function Make_Non_Empty_Check
+     (Loc : Source_Ptr;
+      N   : Node_Id) return Node_Id;
+   --  Produce a boolean expression checking that the unidimensional array
+   --  node N is not empty.
 
    function New_Class_Wide_Subtype
      (CW_Typ : Entity_Id;
@@ -248,9 +256,8 @@ package body Exp_Util is
             --  to reset its type, since Standard.Boolean is just fine, and
             --  such operations always do Adjust_Condition on their operands.
 
-            elsif KP in N_Op_Boolean
-              or else KP = N_And_Then
-              or else KP = N_Or_Else
+            elsif     KP in N_Op_Boolean
+              or else KP in N_Short_Circuit
               or else KP = N_Op_Not
             then
                return;
@@ -907,6 +914,8 @@ package body Exp_Util is
    ----------------------------------
 
    function Component_May_Be_Bit_Aligned (Comp : Entity_Id) return Boolean is
+      UT : constant Entity_Id := Underlying_Type (Etype (Comp));
+
    begin
       --  If no component clause, then everything is fine, since the back end
       --  never bit-misaligns by default, even if there is a pragma Packed for
@@ -918,18 +927,18 @@ package body Exp_Util is
 
       --  It is only array and record types that cause trouble
 
-      if not Is_Record_Type (Etype (Comp))
-        and then not Is_Array_Type (Etype (Comp))
+      if not Is_Record_Type (UT)
+        and then not Is_Array_Type (UT)
       then
          return False;
 
-      --  If we know that we have a small (64 bits or less) record
-      --  or bit-packed array, then everything is fine, since the
-      --  back end can handle these cases correctly.
+      --  If we know that we have a small (64 bits or less) record or small
+      --  bit-packed array, then everything is fine, since the back end can
+      --  handle these cases correctly.
 
       elsif Esize (Comp) <= 64
-        and then (Is_Record_Type (Etype (Comp))
-                   or else Is_Bit_Packed_Array (Etype (Comp)))
+        and then (Is_Record_Type (UT)
+                   or else Is_Bit_Packed_Array (UT))
       then
          return False;
 
@@ -1311,27 +1320,53 @@ package body Exp_Util is
 
          Rewrite (Subtype_Indic, New_Reference_To (T, Loc));
 
-      --  nothing needs to be done for private types with unknown discriminants
-      --  if the underlying type is not an unconstrained composite type.
+      --  Nothing needs to be done for private types with unknown discriminants
+      --  if the underlying type is not an unconstrained composite type or it
+      --  is an unchecked union.
 
       elsif Is_Private_Type (Unc_Type)
         and then Has_Unknown_Discriminants (Unc_Type)
         and then (not Is_Composite_Type (Underlying_Type (Unc_Type))
-                    or else Is_Constrained (Underlying_Type (Unc_Type)))
+                   or else Is_Constrained (Underlying_Type (Unc_Type))
+                   or else Is_Unchecked_Union (Underlying_Type (Unc_Type)))
       then
          null;
 
-      --  Nothing to be done for derived types with unknown discriminants if
-      --  the parent type also has unknown discriminants.
+      --  Case of derived type with unknown discriminants where the parent type
+      --  also has unknown discriminants.
 
       elsif Is_Record_Type (Unc_Type)
         and then not Is_Class_Wide_Type (Unc_Type)
         and then Has_Unknown_Discriminants (Unc_Type)
         and then Has_Unknown_Discriminants (Underlying_Type (Unc_Type))
       then
+         --  Nothing to be done if no underlying record view available
+
+         if No (Underlying_Record_View (Unc_Type)) then
+            null;
+
+         --  Otherwise use the Underlying_Record_View to create the proper
+         --  constrained subtype for an object of a derived type with unknown
+         --  discriminants.
+
+         else
+            Remove_Side_Effects (Exp);
+            Rewrite (Subtype_Indic,
+              Make_Subtype_From_Expr (Exp, Underlying_Record_View (Unc_Type)));
+         end if;
+
+      --  Renamings of class-wide interface types require no equivalent
+      --  constrained type declarations because we only need to reference
+      --  the tag component associated with the interface.
+
+      elsif Present (N)
+        and then Nkind (N) = N_Object_Renaming_Declaration
+        and then Is_Interface (Unc_Type)
+      then
+         pragma Assert (Is_Class_Wide_Type (Unc_Type));
          null;
 
-      --  In Ada95, Nothing to be done if the type of the expression is
+      --  In Ada95, nothing to be done if the type of the expression is
       --  limited, because in this case the expression cannot be copied,
       --  and its use can only be by reference.
 
@@ -1352,16 +1387,6 @@ package body Exp_Util is
       then
          null;
 
-      --  For limited interfaces, nothing to be done
-
-      --  This branch may be redundant once the limited interface issue is
-      --  sorted out???
-
-      elsif Is_Interface (Exp_Typ)
-        and then Is_Limited_Interface (Exp_Typ)
-      then
-         null;
-
       --  For limited objects initialized with build in place function calls,
       --  nothing to be done; otherwise we prematurely introduce an N_Reference
       --  node in the expression initializing the object, which breaks the
@@ -1377,6 +1402,74 @@ package body Exp_Util is
            Make_Subtype_From_Expr (Exp, Unc_Type));
       end if;
    end Expand_Subtype_From_Expr;
+
+   --------------------
+   -- Find_Init_Call --
+   --------------------
+
+   function Find_Init_Call
+     (Var        : Entity_Id;
+      Rep_Clause : Node_Id) return Node_Id
+   is
+      Typ : constant Entity_Id := Etype (Var);
+
+      Init_Proc : Entity_Id;
+      --  Initialization procedure for Typ
+
+      function Find_Init_Call_In_List (From : Node_Id) return Node_Id;
+      --  Look for init call for Var starting at From and scanning the
+      --  enclosing list until Rep_Clause or the end of the list is reached.
+
+      ----------------------------
+      -- Find_Init_Call_In_List --
+      ----------------------------
+
+      function Find_Init_Call_In_List (From : Node_Id) return Node_Id is
+         Init_Call : Node_Id;
+      begin
+         Init_Call := From;
+
+         while Present (Init_Call) and then Init_Call /= Rep_Clause loop
+            if Nkind (Init_Call) = N_Procedure_Call_Statement
+                 and then Is_Entity_Name (Name (Init_Call))
+                 and then Entity (Name (Init_Call)) = Init_Proc
+            then
+               return Init_Call;
+            end if;
+            Next (Init_Call);
+         end loop;
+
+         return Empty;
+      end Find_Init_Call_In_List;
+
+      Init_Call : Node_Id;
+
+   --  Start of processing for Find_Init_Call
+
+   begin
+      if not Has_Non_Null_Base_Init_Proc (Typ) then
+         --  No init proc for the type, so obviously no call to be found
+
+         return Empty;
+      end if;
+
+      Init_Proc := Base_Init_Proc (Typ);
+
+      --  First scan the list containing the declaration of Var
+
+      Init_Call := Find_Init_Call_In_List (From => Next (Parent (Var)));
+
+      --  If not found, also look on Var's freeze actions list, if any, since
+      --  the init call may have been moved there (case of an address clause
+      --  applying to Var).
+
+      if No (Init_Call) and then Present (Freeze_Node (Var)) then
+         Init_Call := Find_Init_Call_In_List
+                        (First (Actions (Freeze_Node (Var))));
+      end if;
+
+      return Init_Call;
+   end Find_Init_Call;
 
    ------------------------
    -- Find_Interface_ADT --
@@ -1459,15 +1552,10 @@ package body Exp_Util is
          AI      : Node_Id;
 
       begin
-         --  Check if the interface is an immediate ancestor of the type and
-         --  therefore shares the main tag.
+         --  This routine does not handle the case in which the interface is an
+         --  ancestor of Typ. That case is handled by the enclosing subprogram.
 
-         if Typ = Iface then
-            pragma Assert (Etype (First_Tag_Component (Typ)) = RTE (RE_Tag));
-            AI_Tag := First_Tag_Component (Typ);
-            Found  := True;
-            return;
-         end if;
+         pragma Assert (Typ /= Iface);
 
          --  Climb to the root type handling private types
 
@@ -1512,28 +1600,24 @@ package body Exp_Util is
    begin
       pragma Assert (Is_Interface (Iface));
 
-      --  Handle private types
-
-      if Has_Private_Declaration (Typ)
-        and then Present (Full_View (Typ))
-      then
-         Typ := Full_View (Typ);
-      end if;
-
       --  Handle access types
 
       if Is_Access_Type (Typ) then
          Typ := Directly_Designated_Type (Typ);
       end if;
 
-      --  Handle task and protected types implementing interfaces
-
-      if Is_Concurrent_Type (Typ) then
-         Typ := Corresponding_Record_Type (Typ);
-      end if;
+      --  Handle class-wide types
 
       if Is_Class_Wide_Type (Typ) then
-         Typ := Etype (Typ);
+         Typ := Root_Type (Typ);
+      end if;
+
+      --  Handle private types
+
+      if Has_Private_Declaration (Typ)
+        and then Present (Full_View (Typ))
+      then
+         Typ := Full_View (Typ);
       end if;
 
       --  Handle entities from the limited view
@@ -1543,9 +1627,26 @@ package body Exp_Util is
          Typ := Non_Limited_View (Typ);
       end if;
 
-      Find_Tag (Typ);
-      pragma Assert (Found);
-      return AI_Tag;
+      --  Handle task and protected types implementing interfaces
+
+      if Is_Concurrent_Type (Typ) then
+         Typ := Corresponding_Record_Type (Typ);
+      end if;
+
+      --  If the interface is an ancestor of the type, then it shared the
+      --  primary dispatch table.
+
+      if Is_Ancestor (Iface, Typ) then
+         pragma Assert (Etype (First_Tag_Component (Typ)) = RTE (RE_Tag));
+         return First_Tag_Component (Typ);
+
+      --  Otherwise we need to search for its associated tag component
+
+      else
+         Find_Tag (Typ);
+         pragma Assert (Found);
+         return AI_Tag;
+      end if;
    end Find_Interface_Tag;
 
    ------------------
@@ -2215,7 +2316,7 @@ package body Exp_Util is
             --  Nothing special needs to be done for the left operand since
             --  in that case the actions are executed unconditionally.
 
-            when N_And_Then | N_Or_Else =>
+            when N_Short_Circuit =>
                if N = Right_Opnd (P) then
 
                   --  We are now going to either append the actions to the
@@ -2657,6 +2758,10 @@ package body Exp_Util is
                N_Real_Range_Specification               |
                N_Record_Definition                      |
                N_Reference                              |
+               N_SCIL_Dispatch_Table_Object_Init        |
+               N_SCIL_Dispatch_Table_Tag_Init           |
+               N_SCIL_Dispatching_Call                  |
+               N_SCIL_Tag_Init                          |
                N_Selected_Component                     |
                N_Signed_Integer_Type_Definition         |
                N_Single_Protected_Declaration           |
@@ -2841,6 +2946,43 @@ package body Exp_Util is
 
       return True;
    end Is_All_Null_Statements;
+
+   ---------------------------------
+   -- Is_Fully_Repped_Tagged_Type --
+   ---------------------------------
+
+   function Is_Fully_Repped_Tagged_Type (T : Entity_Id) return Boolean is
+      U    : constant Entity_Id := Underlying_Type (T);
+      Comp : Entity_Id;
+
+   begin
+      if No (U) or else not Is_Tagged_Type (U) then
+         return False;
+      elsif Has_Discriminants (U) then
+         return False;
+      elsif not Has_Specified_Layout (U) then
+         return False;
+      end if;
+
+      --  Here we have a tagged type, see if it has any unlayed out fields
+      --  other than a possible tag and parent fields. If so, we return False.
+
+      Comp := First_Component (U);
+      while Present (Comp) loop
+         if not Is_Tag (Comp)
+           and then Chars (Comp) /= Name_uParent
+           and then No (Component_Clause (Comp))
+         then
+            return False;
+         else
+            Next_Component (Comp);
+         end if;
+      end loop;
+
+      --  All components are layed out
+
+      return True;
+   end Is_Fully_Repped_Tagged_Type;
 
    ----------------------------------
    -- Is_Library_Level_Tagged_Type --
@@ -3206,16 +3348,11 @@ package body Exp_Util is
    function Is_Renamed_Object (N : Node_Id) return Boolean is
       Pnod : constant Node_Id   := Parent (N);
       Kind : constant Node_Kind := Nkind (Pnod);
-
    begin
       if Kind = N_Object_Renaming_Declaration then
          return True;
-
-      elsif Kind = N_Indexed_Component
-        or else Kind = N_Selected_Component
-      then
+      elsif Nkind_In (Kind, N_Indexed_Component, N_Selected_Component) then
          return Is_Renamed_Object (Pnod);
-
       else
          return False;
       end if;
@@ -3526,8 +3663,8 @@ package body Exp_Util is
    -- Make_CW_Equivalent_Type --
    -----------------------------
 
-   --  Create a record type used as an equivalent of any member
-   --  of the class which takes its size from exp.
+   --  Create a record type used as an equivalent of any member of the class
+   --  which takes its size from exp.
 
    --  Generate the following code:
 
@@ -3574,6 +3711,7 @@ package body Exp_Util is
       Range_Type := Make_Defining_Identifier (Loc, New_Internal_Name ('G'));
 
       if not Is_Interface (Root_Typ) then
+
          --  subtype rg__xx is
          --    Storage_Offset range 1 .. (Expr'size - typ'size) / Storage_Unit
 
@@ -3741,6 +3879,25 @@ package body Exp_Util is
              High_Bound => Hi);
    end Make_Literal_Range;
 
+   --------------------------
+   -- Make_Non_Empty_Check --
+   --------------------------
+
+   function Make_Non_Empty_Check
+     (Loc : Source_Ptr;
+      N   : Node_Id) return Node_Id
+   is
+   begin
+      return
+        Make_Op_Ne (Loc,
+          Left_Opnd =>
+            Make_Attribute_Reference (Loc,
+              Attribute_Name => Name_Length,
+              Prefix => Duplicate_Subexpr_No_Checks (N, Name_Req => True)),
+          Right_Opnd =>
+            Make_Integer_Literal (Loc, 0));
+   end Make_Non_Empty_Check;
+
    ----------------------------
    -- Make_Subtype_From_Expr --
    ----------------------------
@@ -3841,7 +3998,7 @@ package body Exp_Util is
             --  initialization itself (and doesn't need or want the
             --  additional intermediate type to handle the assignment).
 
-            if Expander_Active and then VM_Target = No_VM then
+            if Expander_Active and then Tagged_Type_Expansion then
                EQ_Typ := Make_CW_Equivalent_Type (Unc_Typ, E);
             end if;
 
@@ -4286,12 +4443,10 @@ package body Exp_Util is
             --  are side effect free. For this purpose binary operators
             --  include membership tests and short circuit forms
 
-            when N_Binary_Op       |
-                 N_Membership_Test |
-                 N_And_Then        |
-                 N_Or_Else         =>
+            when N_Binary_Op | N_Membership_Test | N_Short_Circuit =>
                return Side_Effect_Free (Left_Opnd  (N))
-                 and then Side_Effect_Free (Right_Opnd (N));
+                        and then
+                      Side_Effect_Free (Right_Opnd (N));
 
             --  An explicit dereference is side effect free only if it is
             --  a side effect free prefixed reference.
@@ -4475,7 +4630,7 @@ package body Exp_Util is
                    or else Nkind (Exp) in N_Op
                    or else (not Name_Req and then Is_Volatile_Reference (Exp)))
       then
-         Def_Id := Make_Defining_Identifier (Loc, New_Internal_Name ('R'));
+         Def_Id := Make_Temporary (Loc, 'R', Exp);
          Set_Etype (Def_Id, Exp_Type);
          Res := New_Reference_To (Def_Id, Loc);
 
@@ -4486,6 +4641,15 @@ package body Exp_Util is
              Constant_Present    => True,
              Expression          => Relocate_Node (Exp));
 
+         --  Check if the previous node relocation requires readjustment of
+         --  some SCIL Dispatching node.
+
+         if Generate_SCIL
+           and then Nkind (Exp) = N_Function_Call
+         then
+            Adjust_SCIL_Node (Exp, Expression (E));
+         end if;
+
          Set_Assignment_OK (E);
          Insert_Action (Exp, E);
 
@@ -4493,8 +4657,7 @@ package body Exp_Util is
       --  the pointer, and then do an explicit dereference on the result.
 
       elsif Nkind (Exp) = N_Explicit_Dereference then
-         Def_Id :=
-           Make_Defining_Identifier (Loc, New_Internal_Name ('R'));
+         Def_Id := Make_Temporary (Loc, 'R', Exp);
          Res :=
            Make_Explicit_Dereference (Loc, New_Reference_To (Def_Id, Loc));
 
@@ -4538,7 +4701,7 @@ package body Exp_Util is
             --  Use a renaming to capture the expression, rather than create
             --  a controlled temporary.
 
-            Def_Id := Make_Defining_Identifier (Loc, New_Internal_Name ('R'));
+            Def_Id := Make_Temporary (Loc, 'R', Exp);
             Res := New_Reference_To (Def_Id, Loc);
 
             Insert_Action (Exp,
@@ -4548,7 +4711,7 @@ package body Exp_Util is
                 Name                => Relocate_Node (Exp)));
 
          else
-            Def_Id := Make_Defining_Identifier (Loc, New_Internal_Name ('R'));
+            Def_Id := Make_Temporary (Loc, 'R', Exp);
             Set_Etype (Def_Id, Exp_Type);
             Res := New_Reference_To (Def_Id, Loc);
 
@@ -4571,7 +4734,7 @@ package body Exp_Util is
         and then Nkind (Exp) /= N_Function_Call
         and then (Name_Req or else not Is_Volatile_Reference (Exp))
       then
-         Def_Id := Make_Defining_Identifier (Loc, New_Internal_Name ('R'));
+         Def_Id := Make_Temporary (Loc, 'R', Exp);
 
          if Nkind (Exp) = N_Selected_Component
            and then Nkind (Prefix (Exp)) = N_Function_Call
@@ -4602,7 +4765,6 @@ package body Exp_Util is
                 Defining_Identifier => Def_Id,
                 Subtype_Mark        => New_Reference_To (Exp_Type, Loc),
                 Name                => Relocate_Node (Exp)));
-
          end if;
 
          --  If this is a packed reference, or a selected component with a
@@ -4625,21 +4787,21 @@ package body Exp_Util is
       --  Otherwise we generate a reference to the value
 
       else
-         --  Special processing for function calls that return a task. We need
-         --  to build a declaration that will enable build-in-place expansion
-         --  of the call.
+         --  Special processing for function calls that return a limited type.
+         --  We need to build a declaration that will enable build-in-place
+         --  expansion of the call. This is not done if the context is already
+         --  an object declaration, to prevent infinite recursion.
 
          --  This is relevant only in Ada 2005 mode. In Ada 95 programs we have
          --  to accommodate functions returning limited objects by reference.
 
          if Nkind (Exp) = N_Function_Call
-           and then Is_Task_Type (Etype (Exp))
+           and then Is_Inherently_Limited_Type (Etype (Exp))
+           and then Nkind (Parent (Exp)) /= N_Object_Declaration
            and then Ada_Version >= Ada_05
          then
             declare
-               Obj  : constant Entity_Id :=
-                        Make_Defining_Identifier (Loc,
-                          Chars => New_Internal_Name ('F'));
+               Obj  : constant Entity_Id := Make_Temporary (Loc, 'F', Exp);
                Decl : Node_Id;
 
             begin
@@ -4648,6 +4810,16 @@ package body Exp_Util is
                    Defining_Identifier => Obj,
                    Object_Definition   => New_Occurrence_Of (Exp_Type, Loc),
                    Expression          => Relocate_Node (Exp));
+
+               --  Check if the previous node relocation requires readjustment
+               --  of some SCIL Dispatching node.
+
+               if Generate_SCIL
+                 and then Nkind (Exp) = N_Function_Call
+               then
+                  Adjust_SCIL_Node (Exp, Expression (Decl));
+               end if;
+
                Insert_Action (Exp, Decl);
                Set_Etype (Obj, Exp_Type);
                Rewrite (Exp, New_Occurrence_Of (Obj, Loc));
@@ -4669,7 +4841,7 @@ package body Exp_Util is
          E := Exp;
          Insert_Action (Exp, Ptr_Typ_Decl);
 
-         Def_Id := Make_Defining_Identifier (Loc, New_Internal_Name ('R'));
+         Def_Id := Make_Temporary (Loc, 'R', Exp);
          Set_Etype (Def_Id, Exp_Type);
 
          Res :=
@@ -4707,6 +4879,15 @@ package body Exp_Util is
              Defining_Identifier => Def_Id,
              Object_Definition   => New_Reference_To (Ref_Type, Loc),
              Expression          => New_Exp));
+
+         --  Check if the previous node relocation requires readjustment
+         --  of some SCIL Dispatching node.
+
+         if Generate_SCIL
+           and then Nkind (Exp) = N_Function_Call
+         then
+            Adjust_SCIL_Node (Exp, Prefix (New_Exp));
+         end if;
       end if;
 
       --  Preserve the Assignment_OK flag in all copies, since at least
@@ -4840,6 +5021,14 @@ package body Exp_Util is
         and then not Has_Discriminants (Ityp)
         and then No (First_Rep_Item (Base_Type (Ityp)))
       then
+         return True;
+
+      --  If the expression has an access type (object or subprogram) we
+      --  assume that the conversion is safe, because the size of the target
+      --  is safe, even if it is a record (which might be treated as having
+      --  unknown size at this point).
+
+      elsif Is_Access_Type (Ityp) then
          return True;
 
       --  If the size of output type is known at compile time, there is
@@ -5107,6 +5296,10 @@ package body Exp_Util is
    --  that constraint error is raised. The reason is that the NOT is bound
    --  to cause CE in this case, and we will not otherwise catch it.
 
+   --  No such check is required for AND and OR, since for both these cases
+   --  False op False = False, and True op True = True. For the XOR case,
+   --  see Silly_Boolean_Array_Xor_Test.
+
    --  Believe it or not, this was reported as a bug. Note that nearly
    --  always, the test will evaluate statically to False, so the code will
    --  be statically removed, and no extra overhead caused.
@@ -5116,19 +5309,34 @@ package body Exp_Util is
       CT  : constant Entity_Id  := Component_Type (T);
 
    begin
+      --  The check we install is
+
+      --    constraint_error when
+      --      component_type'first = component_type'last
+      --        and then array_type'Length /= 0)
+
+      --  We need the last guard because we don't want to raise CE for empty
+      --  arrays since no out of range values result. (Empty arrays with a
+      --  component type of True .. True -- very useful -- even the ACATS
+      --  does not test that marginal case!)
+
       Insert_Action (N,
         Make_Raise_Constraint_Error (Loc,
           Condition =>
-            Make_Op_Eq (Loc,
+            Make_And_Then (Loc,
               Left_Opnd =>
-                Make_Attribute_Reference (Loc,
-                  Prefix         => New_Occurrence_Of (CT, Loc),
-                  Attribute_Name => Name_First),
+                Make_Op_Eq (Loc,
+                  Left_Opnd =>
+                    Make_Attribute_Reference (Loc,
+                      Prefix         => New_Occurrence_Of (CT, Loc),
+                      Attribute_Name => Name_First),
 
-              Right_Opnd =>
-                Make_Attribute_Reference (Loc,
-                  Prefix         => New_Occurrence_Of (CT, Loc),
-                  Attribute_Name => Name_Last)),
+                  Right_Opnd =>
+                    Make_Attribute_Reference (Loc,
+                      Prefix         => New_Occurrence_Of (CT, Loc),
+                      Attribute_Name => Name_Last)),
+
+              Right_Opnd => Make_Non_Empty_Check (Loc, Right_Opnd (N))),
           Reason => CE_Range_Check_Failed));
    end Silly_Boolean_Array_Not_Test;
 
@@ -5139,42 +5347,49 @@ package body Exp_Util is
    --  This procedure implements an odd and silly test. We explicitly check
    --  for the XOR case where the component type is True .. True, since this
    --  will raise constraint error. A special check is required since CE
-   --  will not be required otherwise (cf Expand_Packed_Not).
+   --  will not be generated otherwise (cf Expand_Packed_Not).
 
    --  No such check is required for AND and OR, since for both these cases
-   --  False op False = False, and True op True = True.
+   --  False op False = False, and True op True = True, and no check is
+   --  required for the case of False .. False, since False xor False = False.
+   --  See also Silly_Boolean_Array_Not_Test
 
    procedure Silly_Boolean_Array_Xor_Test (N : Node_Id; T : Entity_Id) is
       Loc : constant Source_Ptr := Sloc (N);
       CT  : constant Entity_Id  := Component_Type (T);
-      BT  : constant Entity_Id  := Base_Type (CT);
 
    begin
+      --  The check we install is
+
+      --    constraint_error when
+      --      Boolean (component_type'First)
+      --        and then Boolean (component_type'Last)
+      --        and then array_type'Length /= 0)
+
+      --  We need the last guard because we don't want to raise CE for empty
+      --  arrays since no out of range values result (Empty arrays with a
+      --  component type of True .. True -- very useful -- even the ACATS
+      --  does not test that marginal case!).
+
       Insert_Action (N,
         Make_Raise_Constraint_Error (Loc,
           Condition =>
-            Make_Op_And (Loc,
+            Make_And_Then (Loc,
               Left_Opnd =>
-                Make_Op_Eq (Loc,
+                Make_And_Then (Loc,
                   Left_Opnd =>
-                    Make_Attribute_Reference (Loc,
-                      Prefix         => New_Occurrence_Of (CT, Loc),
-                      Attribute_Name => Name_First),
+                    Convert_To (Standard_Boolean,
+                      Make_Attribute_Reference (Loc,
+                        Prefix         => New_Occurrence_Of (CT, Loc),
+                        Attribute_Name => Name_First)),
 
                   Right_Opnd =>
-                    Convert_To (BT,
-                      New_Occurrence_Of (Standard_True, Loc))),
+                    Convert_To (Standard_Boolean,
+                      Make_Attribute_Reference (Loc,
+                        Prefix         => New_Occurrence_Of (CT, Loc),
+                        Attribute_Name => Name_Last))),
 
-              Right_Opnd =>
-                Make_Op_Eq (Loc,
-                  Left_Opnd =>
-                    Make_Attribute_Reference (Loc,
-                      Prefix         => New_Occurrence_Of (CT, Loc),
-                      Attribute_Name => Name_Last),
-
-                  Right_Opnd =>
-                    Convert_To (BT,
-                      New_Occurrence_Of (Standard_True, Loc)))),
+              Right_Opnd => Make_Non_Empty_Check (Loc, Right_Opnd (N))),
           Reason => CE_Range_Check_Failed));
    end Silly_Boolean_Array_Xor_Test;
 

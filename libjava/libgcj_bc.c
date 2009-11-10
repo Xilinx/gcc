@@ -1,6 +1,6 @@
 /* libgcj_bc.c  */
 
-/* Copyright (C) 2006 Free Software Foundation
+/* Copyright (C) 2006, 2009 Free Software Foundation
 
    This file is part of libgcj.
 
@@ -89,7 +89,6 @@ void _Jv_AttachCurrentThreadAsDaemon () {}
 void _Jv_CreateJavaVM () {}
 void _Jv_DetachCurrentThread () {}
 void _Jv_Free () {}
-void _Jv_GetStringChars () {}
 void _Jv_GetStringUTFLength () {}
 void _Jv_GetStringUTFRegion () {}
 void _Jv_Malloc () {}
@@ -113,3 +112,14 @@ DECLARE_PRIM_TYPE(char)
 DECLARE_PRIM_TYPE(float)
 DECLARE_PRIM_TYPE(double)
 DECLARE_PRIM_TYPE(void)
+
+
+/* Force executable to export __data_start et al.  */
+
+#pragma weak __data_start
+extern int __data_start[];
+#pragma weak data_start
+extern int data_start[];
+#pragma weak _end
+extern int _end[];
+static void *dummy[] __attribute__((used)) = {__data_start, data_start, _end};

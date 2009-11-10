@@ -1,4 +1,4 @@
-/* Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008
+/* Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
    Namelist output contributed by Paul Thomas
@@ -8,27 +8,22 @@ This file is part of the GNU Fortran 95 runtime library (libgfortran).
 
 Libgfortran is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
-
-In addition to the permissions in the GNU General Public License, the
-Free Software Foundation gives you unlimited permission to link the
-compiled version of this file into combinations with other programs,
-and to distribute those combinations without any restriction coming
-from the use of this file.  (The General Public License restrictions
-do apply in other respects; for example, they cover modification of
-the file, and distribution when not linked into a combine
-executable.)
 
 Libgfortran is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License
-along with Libgfortran; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+Under Section 7 of GPL version 3, you are granted additional
+permissions described in the GCC Runtime Library Exception, version
+3.1, as published by the Free Software Foundation.
+
+You should have received a copy of the GNU General Public License and
+a copy of the GCC Runtime Library Exception along with this program;
+see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+<http://www.gnu.org/licenses/>.  */
 
 #include "io.h"
 #include <assert.h>
@@ -113,7 +108,7 @@ write_utf8_char4 (st_parameter_dt *dtp, gfc_char4_t *source,
   gfc_char4_t c;
   static const uchar masks[6] =  { 0x00, 0xC0, 0xE0, 0xF0, 0xF8, 0xFC };
   static const uchar limits[6] = { 0x80, 0xE0, 0xF0, 0xF8, 0xFC, 0xFE };
-  size_t nbytes;
+  int nbytes;
   uchar buf[6], d, *q; 
 
   /* Take care of preceding blanks.  */
@@ -298,7 +293,7 @@ write_a_char4 (st_parameter_dt *dtp, const fnode *f, const char *source, int len
      Standard sections 10.6.3 and 9.9 for further information.  */
   if (is_stream_io (dtp))
     {
-      const char crlf[] = "\r\n";
+      const gfc_char4_t crlf[] = {0x000d,0x000a};
       int i, bytes;
       gfc_char4_t *qq;
       bytes = 0;
@@ -602,7 +597,7 @@ write_decimal (st_parameter_dt *dtp, const fnode *f, const char *source,
     n = -n;
   nsign = sign == S_NONE ? 0 : 1;
   
-  /* conv calls gfc_itoa which sets the negative sign needed
+  /* conv calls itoa which sets the negative sign needed
      by write_integer. The sign '+' or '-' is set below based on sign
      calculated above, so we just point past the sign in the string
      before proceeding to avoid double signs in corner cases.
@@ -712,6 +707,48 @@ btoa (GFC_UINTEGER_LARGEST n, char *buffer, size_t len)
 }
 
 
+/* gfc_itoa()-- Integer to decimal conversion.
+   The itoa function is a widespread non-standard extension to standard
+   C, often declared in <stdlib.h>.  Even though the itoa defined here
+   is a static function we take care not to conflict with any prior
+   non-static declaration.  Hence the 'gfc_' prefix, which is normally
+   reserved for functions with external linkage.  */
+
+static const char *
+gfc_itoa (GFC_INTEGER_LARGEST n, char *buffer, size_t len)
+{
+  int negative;
+  char *p;
+  GFC_UINTEGER_LARGEST t;
+
+  assert (len >= GFC_ITOA_BUF_SIZE);
+
+  if (n == 0)
+    return "0";
+
+  negative = 0;
+  t = n;
+  if (n < 0)
+    {
+      negative = 1;
+      t = -n; /*must use unsigned to protect from overflow*/
+    }
+
+  p = buffer + GFC_ITOA_BUF_SIZE - 1;
+  *p = '\0';
+
+  while (t != 0)
+    {
+      *--p = '0' + (t % 10);
+      t /= 10;
+    }
+
+  if (negative)
+    *--p = '-';
+  return p;
+}
+
+
 void
 write_i (st_parameter_dt *dtp, const fnode *f, const char *p, int len)
 {
@@ -735,7 +772,7 @@ write_o (st_parameter_dt *dtp, const fnode *f, const char *p, int len)
 void
 write_z (st_parameter_dt *dtp, const fnode *f, const char *p, int len)
 {
-  write_int (dtp, f, p, len, xtoa);
+  write_int (dtp, f, p, len, gfc_xtoa);
 }
 
 
@@ -784,8 +821,7 @@ write_x (st_parameter_dt *dtp, int len, int nspaces)
   p = write_block (dtp, len);
   if (p == NULL)
     return;
-
-  if (nspaces > 0)
+  if (nspaces > 0 && len - nspaces >= 0)
     memset (&p[len - nspaces], ' ', nspaces);
 }
 
@@ -1173,7 +1209,7 @@ namelist_write_newline (st_parameter_dt *dtp)
 	  /* Now seek to this record */
 	  record = record * dtp->u.p.current_unit->recl;
 
-	  if (sseek (dtp->u.p.current_unit->s, record) == FAILURE)
+	  if (sseek (dtp->u.p.current_unit->s, record, SEEK_SET) < 0)
 	    {
 	      generate_error (&dtp->common, LIBERROR_INTERNAL_UNIT, NULL);
 	      return;
@@ -1194,13 +1230,13 @@ nml_write_obj (st_parameter_dt *dtp, namelist_info * obj, index_type offset,
   int rep_ctr;
   int num;
   int nml_carry;
-  index_type len;
+  int len;
   index_type obj_size;
   index_type nelem;
-  index_type dim_i;
-  index_type clen;
+  size_t dim_i;
+  size_t clen;
   index_type elem_ctr;
-  index_type obj_name_len;
+  size_t obj_name_len;
   void * p ;
   char cup;
   char * obj_name;
@@ -1230,14 +1266,16 @@ nml_write_obj (st_parameter_dt *dtp, namelist_info * obj, index_type offset,
       len = 0;
       if (base)
 	{
-	  len =strlen (base->var_name);
-	  for (dim_i = 0; dim_i < (index_type) strlen (base_name); dim_i++)
+	  len = strlen (base->var_name);
+	  base_name_len = strlen (base_name);
+	  for (dim_i = 0; dim_i < base_name_len; dim_i++)
             {
 	      cup = toupper (base_name[dim_i]);
 	      write_character (dtp, &cup, 1, 1);
             }
 	}
-      for (dim_i =len; dim_i < (index_type) strlen (obj->var_name); dim_i++)
+      clen = strlen (obj->var_name);
+      for (dim_i = len; dim_i < clen; dim_i++)
 	{
 	  cup = toupper (obj->var_name[dim_i]);
 	  write_character (dtp, &cup, 1, 1);
@@ -1276,10 +1314,10 @@ nml_write_obj (st_parameter_dt *dtp, namelist_info * obj, index_type offset,
   /* Set the index vector and count the number of elements.  */
 
   nelem = 1;
-  for (dim_i=0; dim_i < obj->var_rank; dim_i++)
+  for (dim_i = 0; dim_i < (size_t) obj->var_rank; dim_i++)
     {
-      obj->ls[dim_i].idx = obj->dim[dim_i].lbound;
-      nelem = nelem * (obj->dim[dim_i].ubound + 1 - obj->dim[dim_i].lbound);
+      obj->ls[dim_i].idx = GFC_DESCRIPTOR_LBOUND(obj, dim_i);
+      nelem = nelem * GFC_DESCRIPTOR_EXTENT (obj, dim_i);
     }
 
   /* Main loop to output the data held in the object.  */
@@ -1379,7 +1417,7 @@ nml_write_obj (st_parameter_dt *dtp, namelist_info * obj, index_type offset,
 	      /* Append the qualifier.  */
 
 	      tot_len = base_name_len + clen;
-	      for (dim_i = 0; dim_i < obj->var_rank; dim_i++)
+	      for (dim_i = 0; dim_i < (size_t) obj->var_rank; dim_i++)
 		{
 		  if (!dim_i)
 		    {
@@ -1388,7 +1426,7 @@ nml_write_obj (st_parameter_dt *dtp, namelist_info * obj, index_type offset,
 		    }
 		  sprintf (ext_name + tot_len, "%d", (int) obj->ls[dim_i].idx);
 		  tot_len += strlen (ext_name + tot_len);
-		  ext_name[tot_len] = (dim_i == obj->var_rank - 1) ? ')' : ',';
+		  ext_name[tot_len] = ((int) dim_i == obj->var_rank - 1) ? ')' : ',';
 		  tot_len++;
 		}
 
@@ -1442,13 +1480,13 @@ nml_write_obj (st_parameter_dt *dtp, namelist_info * obj, index_type offset,
 obj_loop:
 
     nml_carry = 1;
-    for (dim_i = 0; nml_carry && (dim_i < obj->var_rank); dim_i++)
+    for (dim_i = 0; nml_carry && (dim_i < (size_t) obj->var_rank); dim_i++)
       {
 	obj->ls[dim_i].idx += nml_carry ;
 	nml_carry = 0;
-	if (obj->ls[dim_i].idx  > (ssize_t)obj->dim[dim_i].ubound)
+ 	if (obj->ls[dim_i].idx  > (ssize_t) GFC_DESCRIPTOR_UBOUND(obj,dim_i))
 	  {
-	    obj->ls[dim_i].idx = obj->dim[dim_i].lbound;
+ 	    obj->ls[dim_i].idx = GFC_DESCRIPTOR_LBOUND(obj,dim_i);
 	    nml_carry = 1;
 	  }
        }

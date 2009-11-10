@@ -1,12 +1,12 @@
 // -*- C++ -*- header.
 
-// Copyright (C) 2008
+// Copyright (C) 2008, 2009
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -14,19 +14,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
-// You should have received a copy of the GNU General Public License
-// along with this library; see the file COPYING.  If not, write to
-// the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-// Boston, MA 02110-1301, USA.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
 
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
 
 /** @file bits/atomic_0.h
  *  This is an internal header file, included by other library headers.
@@ -87,14 +82,15 @@ namespace __atomic0
     __r; })
 
   /// atomic_flag
-  struct atomic_flag : private __atomic_flag_base
+  struct atomic_flag : public __atomic_flag_base
   {
     atomic_flag() = default;
     ~atomic_flag() = default;
     atomic_flag(const atomic_flag&) = delete;
     atomic_flag& operator=(const atomic_flag&) = delete;
 
-    atomic_flag(bool __i) { _M_i = __i; } // XXX deleted copy ctor != agg
+    // Conversion to ATOMIC_FLAG_INIT.
+    atomic_flag(bool __i): __atomic_flag_base({ __i }) { }
 
     bool
     test_and_set(memory_order __m = memory_order_seq_cst) volatile;
@@ -124,17 +120,17 @@ namespace __atomic0
     void
     store(void* __v, memory_order __m = memory_order_seq_cst) volatile
     {
-      __glibcxx_assert(__m == memory_order_acquire);
-      __glibcxx_assert(__m == memory_order_acq_rel);
-      __glibcxx_assert(__m == memory_order_consume);
+      __glibcxx_assert(__m != memory_order_acquire);
+      __glibcxx_assert(__m != memory_order_acq_rel);
+      __glibcxx_assert(__m != memory_order_consume);
       _ATOMIC_STORE_(this, __v, __m);
     }
 
     void*
     load(memory_order __m = memory_order_seq_cst) const volatile
     {
-      __glibcxx_assert(__m == memory_order_release);
-      __glibcxx_assert(__m == memory_order_acq_rel);
+      __glibcxx_assert(__m != memory_order_release);
+      __glibcxx_assert(__m != memory_order_acq_rel);
       return _ATOMIC_LOAD_(this, __m);
     }
 
@@ -146,8 +142,8 @@ namespace __atomic0
     compare_exchange_weak(void*& __v1, void* __v2, memory_order __m1,
 			  memory_order __m2) volatile
     {
-      __glibcxx_assert(__m2 == memory_order_release);
-      __glibcxx_assert(__m2 == memory_order_acq_rel);
+      __glibcxx_assert(__m2 != memory_order_release);
+      __glibcxx_assert(__m2 != memory_order_acq_rel);
       __glibcxx_assert(__m2 <= __m1);
       return _ATOMIC_CMPEXCHNG_(this, &__v1, __v2, __m1);
     }
@@ -164,8 +160,8 @@ namespace __atomic0
     compare_exchange_strong(void*& __v1, void* __v2, memory_order __m1,
 			    memory_order __m2) volatile
     {
-      __glibcxx_assert(__m2 == memory_order_release);
-      __glibcxx_assert(__m2 == memory_order_acq_rel);
+      __glibcxx_assert(__m2 != memory_order_release);
+      __glibcxx_assert(__m2 != memory_order_acq_rel);
       __glibcxx_assert(__m2 <= __m1);
       return _ATOMIC_CMPEXCHNG_(this, &__v1, __v2, __m1);
     }
@@ -315,17 +311,17 @@ namespace __atomic0
       store(__integral_type __i,
 	    memory_order __m = memory_order_seq_cst) volatile
       {
-	__glibcxx_assert(__m == memory_order_acquire);
-	__glibcxx_assert(__m == memory_order_acq_rel);
-	__glibcxx_assert(__m == memory_order_consume);
+	__glibcxx_assert(__m != memory_order_acquire);
+	__glibcxx_assert(__m != memory_order_acq_rel);
+	__glibcxx_assert(__m != memory_order_consume);
 	_ATOMIC_STORE_(this, __i, __m);
       }
 
       __integral_type
       load(memory_order __m = memory_order_seq_cst) const volatile
       {
-	__glibcxx_assert(__m == memory_order_release);
-	__glibcxx_assert(__m == memory_order_acq_rel);
+	__glibcxx_assert(__m != memory_order_release);
+	__glibcxx_assert(__m != memory_order_acq_rel);
 	return _ATOMIC_LOAD_(this, __m);
       }
 
@@ -338,8 +334,8 @@ namespace __atomic0
       compare_exchange_weak(__integral_type& __i1, __integral_type __i2,
 			    memory_order __m1, memory_order __m2) volatile
       {
-	__glibcxx_assert(__m2 == memory_order_release);
-	__glibcxx_assert(__m2 == memory_order_acq_rel);
+	__glibcxx_assert(__m2 != memory_order_release);
+	__glibcxx_assert(__m2 != memory_order_acq_rel);
 	__glibcxx_assert(__m2 <= __m1);
 	return _ATOMIC_CMPEXCHNG_(this, &__i1, __i2, __m1);
       }
@@ -356,8 +352,8 @@ namespace __atomic0
       compare_exchange_strong(__integral_type& __i1, __integral_type __i2,
 			      memory_order __m1, memory_order __m2) volatile
       {
-	__glibcxx_assert(__m2 == memory_order_release);
-	__glibcxx_assert(__m2 == memory_order_acq_rel);
+	__glibcxx_assert(__m2 != memory_order_release);
+	__glibcxx_assert(__m2 != memory_order_acq_rel);
 	__glibcxx_assert(__m2 <= __m1);
 	return _ATOMIC_CMPEXCHNG_(this, &__i1, __i2, __m1);
       }

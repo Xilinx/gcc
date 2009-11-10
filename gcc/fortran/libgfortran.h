@@ -1,5 +1,5 @@
 /* Header file to the Fortran front-end and runtime library
-   Copyright (C) 2007, 2008 Free Software Foundation, Inc.
+   Copyright (C) 2007, 2008, 2009 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -19,7 +19,9 @@ along with GCC; see the file COPYING3.  If not see
 
 
 /* Flags to specify which standard/extension contains a feature.
-   Note that no features were obsoleted nor deleted in F2003.  */
+   Note that no features were obsoleted nor deleted in F2003.
+   Please remember to keep those definitions in sync with
+   gfortran.texi.  */
 #define GFC_STD_F2008	(1<<7)	/* New in F2008.  */
 #define GFC_STD_LEGACY	(1<<6)	/* Backward compatibility.  */
 #define GFC_STD_GNU	(1<<5)	/* GNU Fortran extension.  */
@@ -38,6 +40,17 @@ along with GCC; see the file COPYING3.  If not see
 #define GFC_FPE_OVERFLOW   (1<<3)
 #define GFC_FPE_UNDERFLOW  (1<<4)
 #define GFC_FPE_PRECISION  (1<<5)
+
+
+/* Bitmasks for the various runtime checks that can be enabled.  */
+#define GFC_RTCHECK_BOUNDS      (1<<0)
+#define GFC_RTCHECK_ARRAY_TEMPS (1<<1)
+#define GFC_RTCHECK_RECURSION   (1<<2)
+#define GFC_RTCHECK_DO          (1<<3)
+#define GFC_RTCHECK_POINTER     (1<<4)
+#define GFC_RTCHECK_ALL        (GFC_RTCHECK_BOUNDS | GFC_RTCHECK_ARRAY_TEMPS \
+				| GFC_RTCHECK_RECURSION | GFC_RTCHECK_DO \
+				| GFC_RTCHECK_POINTER)
 
 
 /* Possible values for the CONVERT I/O specifier.  */
@@ -97,7 +110,7 @@ libgfortran_error_codes;
 #define GFC_DTYPE_TYPE_MASK 0x38
 #define GFC_DTYPE_SIZE_SHIFT 6
 
-enum
+typedef enum
 {
   GFC_DTYPE_UNKNOWN = 0,
   GFC_DTYPE_INTEGER,
@@ -107,5 +120,6 @@ enum
   GFC_DTYPE_COMPLEX,
   GFC_DTYPE_DERIVED,
   GFC_DTYPE_CHARACTER
-};
+}
+dtype;
 

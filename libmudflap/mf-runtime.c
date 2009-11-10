@@ -1,5 +1,5 @@
 /* Mudflap: narrow-pointer bounds-checking by tree rewriting.
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2008
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Frank Ch. Eigler <fche@redhat.com>
    and Graydon Hoare <graydon@redhat.com>
@@ -10,27 +10,22 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
-
-In addition to the permissions in the GNU General Public License, the
-Free Software Foundation gives you unlimited permission to link the
-compiled version of this file into combinations with other programs,
-and to distribute those combinations without any restriction coming
-from the use of this file.  (The General Public License restrictions
-do apply in other respects; for example, they cover modification of
-the file, and distribution when not linked into a combine
-executable.)
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
 WARRANTY; without even the implied warranty of MERCHANTABILITY or
 FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
-You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+Under Section 7 of GPL version 3, you are granted additional
+permissions described in the GCC Runtime Library Exception, version
+3.1, as published by the Free Software Foundation.
+
+You should have received a copy of the GNU General Public License and
+a copy of the GCC Runtime Library Exception along with this program;
+see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 
@@ -308,6 +303,14 @@ __mf_set_default_options ()
 #ifdef LIBMUDFLAPTH
   __mf_opts.thread_stack = 0;
 #endif
+
+  /* PR41443: Beware that the above flags will be applied to
+     setuid/setgid binaries, and cannot be overriden with
+     $MUDFLAP_OPTIONS.  So the defaults must be non-exploitable. 
+
+     Should we consider making the default violation_mode something
+     harsher than viol_nop?  OTOH, glibc's MALLOC_CHECK_ is disabled
+     by default for these same programs. */
 }
 
 static struct mudoption
@@ -445,9 +448,9 @@ __mf_usage ()
 
   fprintf (stderr,
            "This is a %s%sGCC \"mudflap\" memory-checked binary.\n"
-           "Mudflap is Copyright (C) 2002-2008 Free Software Foundation, Inc.\n"
+           "Mudflap is Copyright (C) 2002-2009 Free Software Foundation, Inc.\n"
            "\n"
-           "The mudflap code can be controlled by an environment variable:\n"
+           "Unless setuid, a program's mudflap options be set by an environment variable:\n"
            "\n"
            "$ export MUDFLAP_OPTIONS='<options>'\n"
            "$ <mudflapped_program>\n"
@@ -700,6 +703,12 @@ __mf_init ()
   if (LIKELY (__mf_starting_p == 0))
     return;
 
+#if defined(__FreeBSD__) && defined(LIBMUDFLAPTH)
+  pthread_self();
+  LOCKTH ();
+  UNLOCKTH ();
+#endif /* Prime mutex which calls calloc upon first lock to avoid deadlock. */
+
   /* This initial bootstrap phase requires that __mf_starting_p = 1. */
 #ifdef PIC
   __mf_resolve_dynamics ();
@@ -710,7 +719,8 @@ __mf_init ()
 
   __mf_set_default_options ();
 
-  ov = getenv ("MUDFLAP_OPTIONS");
+  if (getuid () == geteuid () && getgid () == getegid ()) /* PR41433, not setuid */
+    ov = getenv ("MUDFLAP_OPTIONS");
   if (ov)
     {
       int rc = __mfu_set_options (ov);

@@ -1,5 +1,6 @@
 /* Callgraph handling code.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008
+   Free Software Foundation, Inc.
    Contributed by Jan Hubicka
 
 This file is part of GCC.
@@ -34,6 +35,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "output.h"
 #include "gimple.h"
 #include "tree-flow.h"
+#include "flags.h"
 
 /*  This file contains basic routines manipulating variable pool.
 
@@ -163,6 +165,14 @@ dump_varpool (FILE *f)
     dump_varpool_node (f, node);
 }
 
+/* Dump the variable pool to stderr.  */
+
+void
+debug_varpool (void)
+{
+  dump_varpool (stderr);
+}
+
 /* Given an assembler name, lookup node.  */
 struct varpool_node *
 varpool_node_for_asm (tree asmname)
@@ -236,7 +246,11 @@ decide_is_variable_needed (struct varpool_node *node, tree decl)
 
   /* Externally visible variables must be output.  The exception is
      COMDAT variables that must be output only when they are needed.  */
-  if (TREE_PUBLIC (decl) && !flag_whole_program && !DECL_COMDAT (decl)
+  if (TREE_PUBLIC (decl)
+      && !flag_whole_program
+      && !flag_lto
+      && !flag_whopr
+      && !DECL_COMDAT (decl)
       && !DECL_EXTERNAL (decl))
     return true;
 
@@ -269,6 +283,17 @@ void
 varpool_finalize_decl (tree decl)
 {
   struct varpool_node *node = varpool_node (decl);
+
+  /* FIXME: We don't really stream varpool datastructure and instead rebuild it
+     by varpool_finalize_decl.  This is not quite correct since this way we can't
+     attach any info to varpool.  Eventually we will want to stream varpool nodes
+     and the flags.
+
+     For the moment just prevent analysis of varpool nodes to happen again, so
+     we will re-try to compute "address_taken" flag of varpool that breaks
+     in presence of clones.  */
+  if (in_lto_p)
+    node->analyzed = true;
 
   /* The first declaration of a variable that comes through this function
      decides whether it is global (in C, has external linkage)
@@ -324,17 +349,24 @@ varpool_analyze_pending_decls (void)
   while (varpool_first_unanalyzed_node)
     {
       tree decl = varpool_first_unanalyzed_node->decl;
+      bool analyzed = varpool_first_unanalyzed_node->analyzed;
 
       varpool_first_unanalyzed_node->analyzed = true;
 
       varpool_first_unanalyzed_node = varpool_first_unanalyzed_node->next_needed;
 
-      /* Compute the alignment early so function body expanders are
-	 already informed about increased alignment.  */
-      align_variable (decl, 0);
-
+      /* When reading back varpool at LTO time, we re-construct the queue in order
+         to have "needed" list right by inserting all needed nodes into varpool.
+	 We however don't want to re-analyze already analyzed nodes.  */
+      if (!analyzed)
+	{
+	  gcc_assert (!in_lto_p);
+          /* Compute the alignment early so function body expanders are
+	     already informed about increased alignment.  */
+          align_variable (decl, 0);
+	}
       if (DECL_INITIAL (decl))
-	record_references_in_initializer (decl);
+	record_references_in_initializer (decl, analyzed);
       changed = true;
     }
   timevar_pop (TV_CGRAPH);
@@ -453,29 +485,6 @@ varpool_empty_needed_queue (void)
   /* varpool_nodes_queue is now empty, clear the pointer to the last element
      in the queue.  */
   varpool_last_needed_node = NULL;
-}
-
-/* Output all variables enqueued to be assembled.  */
-void
-varpool_output_debug_info (void)
-{
-  timevar_push (TV_SYMOUT);
-  if (errorcount == 0 && sorrycount == 0)
-    while (varpool_assembled_nodes_queue)
-      {
-	struct varpool_node *node = varpool_assembled_nodes_queue;
-
-	/* Local static variables are never seen by check_global_declarations
-	   so we need to output debug info by hand.  */
-	if (DECL_CONTEXT (node->decl)
-	    && (TREE_CODE (DECL_CONTEXT (node->decl)) == BLOCK
-		|| TREE_CODE (DECL_CONTEXT (node->decl)) == FUNCTION_DECL)
-	    && errorcount == 0 && sorrycount == 0)
-	     (*debug_hooks->global_decl) (node->decl);
-	varpool_assembled_nodes_queue = node->next_needed;
-	node->next_needed = 0;
-      }
-  timevar_pop (TV_SYMOUT);
 }
 
 /* Create a new global variable of type TYPE.  */

@@ -6,18 +6,18 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License along  --
+-- with this program; see file COPYING3.  If not see                        --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -175,12 +175,17 @@ package Freeze is
    --  do not allow a size clause if the size would not otherwise be known at
    --  compile time in any case.
 
-   procedure Expand_Atomic_Aggregate (E : Entity_Id; Typ : Entity_Id);
+   function  Is_Atomic_Aggregate
+     (E   : Entity_Id;
+      Typ : Entity_Id) return Boolean;
+
    --  If an atomic object is initialized with an aggregate or is assigned
    --  an aggregate, we have to prevent a piecemeal access or assignment
    --  to the object, even if the aggregate is to be expanded. We create
    --  a temporary for the aggregate, and assign the temporary instead,
-   --  so that the back end can generate an atomic move for it.
+   --  so that the back end can generate an atomic move for it. This is
+   --  only done in the context of an object declaration or an assignment.
+   --  Function is a noop and returns false in other contexts.
 
    function Freeze_Entity (E : Entity_Id; Loc : Source_Ptr) return List_Id;
    --  Freeze an entity, and return Freeze nodes, to be inserted at the

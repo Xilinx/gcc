@@ -6,25 +6,23 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -141,7 +139,7 @@ package body Ada.Calendar is
    --  The above flag controls the usage of leap seconds in all Ada.Calendar
    --  routines.
 
-   Leap_Seconds_Count : constant Natural := 23;
+   Leap_Seconds_Count : constant Natural := 24;
 
    ---------------------
    -- Local Constants --
@@ -150,6 +148,7 @@ package body Ada.Calendar is
    Ada_Min_Year          : constant Year_Number := Year_Number'First;
    Secs_In_Four_Years    : constant := (3 * 365 + 366) * Secs_In_Day;
    Secs_In_Non_Leap_Year : constant := 365 * Secs_In_Day;
+   Nanos_In_Four_Years   : constant := Secs_In_Four_Years * Nano;
 
    --  Lower and upper bound of Ada time. The zero (0) value of type Time is
    --  positioned at year 2150. Note that the lower and upper bound account
@@ -178,6 +177,10 @@ package body Ada.Calendar is
 
    Unix_Min : constant Time_Rep :=
                 Ada_Low + Time_Rep (17 * 366 + 52 * 365) * Nanos_In_Day;
+
+   Epoch_Offset : constant Time_Rep := (136 * 365 + 44 * 366) * Nanos_In_Day;
+   --  The difference between 2150-1-1 UTC and 1970-1-1 UTC expressed in
+   --  nanoseconds. Note that year 2100 is non-leap.
 
    Cumulative_Days_Before_Month :
      constant array (Month_Number) of Natural :=
@@ -209,7 +212,8 @@ package body Ada.Calendar is
       -4859827181000000000,
       -4812566380000000000,
       -4765132779000000000,
-      -4544207978000000000);
+      -4544207978000000000,
+      -4449513577000000000);
 
    ---------
    -- "+" --
@@ -767,11 +771,6 @@ package body Ada.Calendar is
 
    package body Conversion_Operations is
 
-      Epoch_Offset : constant Time_Rep :=
-                       (136 * 365 + 44 * 366) * Nanos_In_Day;
-      --  The difference between 2150-1-1 UTC and 1970-1-1 UTC expressed in
-      --  nanoseconds. Note that year 2100 is non-leap.
-
       -----------------
       -- To_Ada_Time --
       -----------------
@@ -941,11 +940,7 @@ package body Ada.Calendar is
 
          --  Step 3: Handle leap second occurrences
 
-         if Leap_Sec then
-            tm_sec := 60;
-         else
-            tm_sec := Second;
-         end if;
+         tm_sec := (if Leap_Sec then 60 else Second);
       end To_Struct_Tm;
 
       ------------------
@@ -974,6 +969,15 @@ package body Ada.Calendar is
       -----------------
 
       function To_Duration (Date : Time) return Duration is
+         pragma Unsuppress (Overflow_Check);
+
+         Safe_Ada_High : constant Time_Rep := Ada_High - Epoch_Offset;
+         --  This value represents a "safe" end of time. In order to perform a
+         --  proper conversion to Unix duration, we will have to shift origins
+         --  at one point. For very distant dates, this means an overflow check
+         --  failure. To prevent this, the function returns the "safe" end of
+         --  time (roughly 2219) which is still distant enough.
+
          Elapsed_Leaps : Natural;
          Next_Leap_N   : Time_Rep;
          Res_N         : Time_Rep;
@@ -981,8 +985,8 @@ package body Ada.Calendar is
       begin
          Res_N := Time_Rep (Date);
 
-         --  If the target supports leap seconds, remove any leap seconds
-         --  elapsed up to the input date.
+         --  Step 1: If the target supports leap seconds, remove any leap
+         --  seconds elapsed up to the input date.
 
          if Leap_Support then
             Cumulative_Leap_Seconds
@@ -1002,10 +1006,14 @@ package body Ada.Calendar is
 
          Res_N := Res_N - Time_Rep (Elapsed_Leaps) * Nano;
 
-         --  Perform a shift in origins, note that enforcing type Time on
-         --  both operands will invoke Ada.Calendar."-".
+         --  Step 2: Perform a shift in origins to obtain a Unix equivalent of
+         --  the input. Guard against very large delay values such as the end
+         --  of time since the computation will overflow.
 
-         return Time (Res_N) - Time (Unix_Min);
+         Res_N := (if Res_N > Safe_Ada_High then Safe_Ada_High
+                                            else Res_N + Epoch_Offset);
+
+         return Time_Rep_To_Duration (Res_N);
       end To_Duration;
 
    end Delay_Operations;
@@ -1304,7 +1312,9 @@ package body Ada.Calendar is
          --  the input date.
 
          Count := (Year - Year_Number'First) / 4;
-         Res_N := Res_N + Time_Rep (Count) * Secs_In_Four_Years * Nano;
+         for Four_Year_Segments in 1 .. Count loop
+            Res_N := Res_N + Nanos_In_Four_Years;
+         end loop;
 
          --  Note that non-leap centennial years are automatically considered
          --  leap in the operation above. An adjustment of several days is
@@ -1347,8 +1357,8 @@ package body Ada.Calendar is
             Res_N := Res_N + Duration_To_Time_Rep (Day_Secs);
 
          else
-            Res_N := Res_N +
-              Time_Rep (Hour * 3_600 + Minute * 60 + Second) * Nano;
+            Res_N :=
+              Res_N + Time_Rep (Hour * 3_600 + Minute * 60 + Second) * Nano;
 
             if Sub_Sec = 1.0 then
                Res_N := Res_N + Time_Rep (1) * Nano;
@@ -1458,39 +1468,17 @@ package body Ada.Calendar is
 
       Nanos_In_56_Years : constant := (14 * 366 + 42 * 365) * Nanos_In_Day;
 
-      --  Base C types. There is no point dragging in Interfaces.C just for
-      --  these four types.
-
-      type char_Pointer is access Character;
-      subtype int is Integer;
       subtype long is Long_Integer;
       type long_Pointer is access all long;
 
-      --  The Ada equivalent of struct tm and type time_t
-
-      type tm is record
-         tm_sec    : int;           --  seconds after the minute (0 .. 60)
-         tm_min    : int;           --  minutes after the hour (0 .. 59)
-         tm_hour   : int;           --  hours since midnight (0 .. 24)
-         tm_mday   : int;           --  day of the month (1 .. 31)
-         tm_mon    : int;           --  months since January (0 .. 11)
-         tm_year   : int;           --  years since 1900
-         tm_wday   : int;           --  days since Sunday (0 .. 6)
-         tm_yday   : int;           --  days since January 1 (0 .. 365)
-         tm_isdst  : int;           --  Daylight Savings Time flag (-1 .. 1)
-         tm_gmtoff : long;          --  offset from UTC in seconds
-         tm_zone   : char_Pointer;  --  timezone abbreviation
-      end record;
-
-      type tm_Pointer is access all tm;
-
-      subtype time_t is long;
+      type time_t is
+        range -(2 ** (Standard'Address_Size - Integer'(1))) ..
+              +(2 ** (Standard'Address_Size - Integer'(1)) - 1);
       type time_t_Pointer is access all time_t;
 
       procedure localtime_tzoff
-       (C   : time_t_Pointer;
-        res : tm_Pointer;
-        off : long_Pointer);
+       (timer : time_t_Pointer;
+        off   : long_Pointer);
       pragma Import (C, localtime_tzoff, "__gnat_localtime_tzoff");
       --  This is a lightweight wrapper around the system library function
       --  localtime_r. Parameter 'off' captures the UTC offset which is either
@@ -1502,11 +1490,10 @@ package body Ada.Calendar is
       ---------------------
 
       function UTC_Time_Offset (Date : Time) return Long_Integer is
-         Adj_Cent : Integer := 0;
+         Adj_Cent : Integer;
          Date_N   : Time_Rep;
          Offset   : aliased long;
          Secs_T   : aliased time_t;
-         Secs_TM  : aliased tm;
 
       begin
          Date_N := Time_Rep (Date);
@@ -1515,18 +1502,11 @@ package body Ada.Calendar is
          --  saving and so on. Non-leap centennial years violate this rule by
          --  one day and as a consequence, special adjustment is needed.
 
-         if Date_N > T_2100_2_28 then
-            if Date_N > T_2200_2_28 then
-               if Date_N > T_2300_2_28 then
-                  Adj_Cent := 3;
-               else
-                  Adj_Cent := 2;
-               end if;
-
-            else
-               Adj_Cent := 1;
-            end if;
-         end if;
+         Adj_Cent :=
+           (if    Date_N <= T_2100_2_28 then 0
+            elsif Date_N <= T_2200_2_28 then 1
+            elsif Date_N <= T_2300_2_28 then 2
+            else                             3);
 
          if Adj_Cent > 0 then
             Date_N := Date_N - Time_Rep (Adj_Cent) * Nanos_In_Day;
@@ -1552,7 +1532,6 @@ package body Ada.Calendar is
 
          localtime_tzoff
            (Secs_T'Unchecked_Access,
-            Secs_TM'Unchecked_Access,
             Offset'Unchecked_Access);
 
          return Offset;

@@ -1,4 +1,4 @@
-/* Copyright (C) 2002, 2003, 2004, 2005, 2007, 2008
+/* Copyright (C) 2002, 2003, 2004, 2005, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
    Namelist input contributed by Paul Thomas
@@ -8,31 +8,27 @@ This file is part of the GNU Fortran 95 runtime library (libgfortran).
 
 Libgfortran is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
-
-In addition to the permissions in the GNU General Public License, the
-Free Software Foundation gives you unlimited permission to link the
-compiled version of this file into combinations with other programs,
-and to distribute those combinations without any restriction coming
-from the use of this file.  (The General Public License restrictions
-do apply in other respects; for example, they cover modification of
-the file, and distribution when not linked into a combine
-executable.)
 
 Libgfortran is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License
-along with Libgfortran; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+Under Section 7 of GPL version 3, you are granted additional
+permissions described in the GCC Runtime Library Exception, version
+3.1, as published by the Free Software Foundation.
+
+You should have received a copy of the GNU General Public License and
+a copy of the GCC Runtime Library Exception along with this program;
+see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+<http://www.gnu.org/licenses/>.  */
 
 
 #include "io.h"
 #include <string.h>
+#include <stdlib.h>
 #include <ctype.h>
 
 
@@ -79,9 +75,8 @@ push_char (st_parameter_dt *dtp, char c)
 
   if (dtp->u.p.saved_string == NULL)
     {
-      if (dtp->u.p.scratch == NULL)
-	dtp->u.p.scratch = get_mem (SCRATCH_SIZE);
-      dtp->u.p.saved_string = dtp->u.p.scratch;
+      dtp->u.p.saved_string = get_mem (SCRATCH_SIZE);
+      // memset below should be commented out.
       memset (dtp->u.p.saved_string, 0, SCRATCH_SIZE);
       dtp->u.p.saved_length = SCRATCH_SIZE;
       dtp->u.p.saved_used = 0;
@@ -90,15 +85,15 @@ push_char (st_parameter_dt *dtp, char c)
   if (dtp->u.p.saved_used >= dtp->u.p.saved_length)
     {
       dtp->u.p.saved_length = 2 * dtp->u.p.saved_length;
-      new = get_mem (2 * dtp->u.p.saved_length);
-
-      memset (new, 0, 2 * dtp->u.p.saved_length);
-
-      memcpy (new, dtp->u.p.saved_string, dtp->u.p.saved_used);
-      if (dtp->u.p.saved_string != dtp->u.p.scratch)
-	free_mem (dtp->u.p.saved_string);
-
+      new = realloc (dtp->u.p.saved_string, dtp->u.p.saved_length);
+      if (new == NULL)
+	generate_error (&dtp->common, LIBERROR_OS, NULL);
       dtp->u.p.saved_string = new;
+      
+      // Also this should not be necessary.
+      memset (new + dtp->u.p.saved_used, 0, 
+	      dtp->u.p.saved_length - dtp->u.p.saved_used);
+
     }
 
   dtp->u.p.saved_string[dtp->u.p.saved_used++] = c;
@@ -113,8 +108,7 @@ free_saved (st_parameter_dt *dtp)
   if (dtp->u.p.saved_string == NULL)
     return;
 
-  if (dtp->u.p.saved_string != dtp->u.p.scratch)
-    free_mem (dtp->u.p.saved_string);
+  free_mem (dtp->u.p.saved_string);
 
   dtp->u.p.saved_string = NULL;
   dtp->u.p.saved_used = 0;
@@ -140,9 +134,10 @@ free_line (st_parameter_dt *dtp)
 static char
 next_char (st_parameter_dt *dtp)
 {
-  size_t length;
+  ssize_t length;
   gfc_offset record;
   char c;
+  int cc;
 
   if (dtp->u.p.last_char != '\0')
     {
@@ -194,7 +189,7 @@ next_char (st_parameter_dt *dtp)
 	    }
 
 	  record *= dtp->u.p.current_unit->recl;
-	  if (sseek (dtp->u.p.current_unit->s, record) == FAILURE)
+	  if (sseek (dtp->u.p.current_unit->s, record, SEEK_SET) < 0)
 	    longjmp (*dtp->u.p.eof_jump, 1);
 
 	  dtp->u.p.current_unit->bytes_left = dtp->u.p.current_unit->recl;
@@ -204,19 +199,15 @@ next_char (st_parameter_dt *dtp)
 
   /* Get the next character and handle end-of-record conditions.  */
 
-  length = 1;
-
-  if (sread (dtp->u.p.current_unit->s, &c, &length) != 0)
-    {
-	generate_error (&dtp->common, LIBERROR_OS, NULL);
-	return '\0';
-    }
-  
-  if (is_stream_io (dtp) && length == 1)
-    dtp->u.p.current_unit->strm_pos++;
-
   if (is_internal_unit (dtp))
     {
+      length = sread (dtp->u.p.current_unit->s, &c, 1);
+      if (length < 0)
+	{
+	  generate_error (&dtp->common, LIBERROR_OS, NULL);
+	  return '\0';
+	}
+  
       if (is_array_io (dtp))
 	{
 	  /* Check whether we hit EOF.  */ 
@@ -240,13 +231,20 @@ next_char (st_parameter_dt *dtp)
     }
   else
     {
-      if (length == 0)
+      cc = fbuf_getc (dtp->u.p.current_unit);
+
+      if (cc == EOF)
 	{
 	  if (dtp->u.p.current_unit->endfile == AT_ENDFILE)
 	    longjmp (*dtp->u.p.eof_jump, 1);
 	  dtp->u.p.current_unit->endfile = AT_ENDFILE;
 	  c = '\n';
 	}
+      else
+	c = (char) cc;
+      if (is_stream_io (dtp) && cc != EOF)
+	dtp->u.p.current_unit->strm_pos++;
+
     }
 done:
   dtp->u.p.at_eol = (c == '\n' || c == '\r');
@@ -289,10 +287,10 @@ static void
 eat_line (st_parameter_dt *dtp)
 {
   char c;
-  if (!is_internal_unit (dtp))
-    do
-      c = next_char (dtp);
-    while (c != '\n');
+
+  do
+    c = next_char (dtp);
+  while (c != '\n');
 }
 
 
@@ -1221,7 +1219,7 @@ parse_real (st_parameter_dt *dtp, void *buffer, int length)
    what it is right away.  */
 
 static void
-read_complex (st_parameter_dt *dtp, int kind, size_t size)
+read_complex (st_parameter_dt *dtp, void * dest, int kind, size_t size)
 {
   char message[100];
   char c;
@@ -1245,7 +1243,7 @@ read_complex (st_parameter_dt *dtp, int kind, size_t size)
     }
 
   eat_spaces (dtp);
-  if (parse_real (dtp, dtp->u.p.value, kind))
+  if (parse_real (dtp, dest, kind))
     return;
 
 eol_1:
@@ -1268,7 +1266,7 @@ eol_2:
   else
     unget_char (dtp, c);
 
-  if (parse_real (dtp, dtp->u.p.value + size / 2, kind))
+  if (parse_real (dtp, dest + size / 2, kind))
     return;
 
   eat_spaces (dtp);
@@ -1302,7 +1300,7 @@ eol_2:
 /* Parse a real number with a possible repeat count.  */
 
 static void
-read_real (st_parameter_dt *dtp, int length)
+read_real (st_parameter_dt *dtp, void * dest, int length)
 {
   char c, message[100];
   int seen_dp;
@@ -1515,7 +1513,7 @@ read_real (st_parameter_dt *dtp, int length)
   unget_char (dtp, c);
   eat_separator (dtp);
   push_char (dtp, '\0');
-  if (convert_real (dtp, dtp->u.p.value, dtp->u.p.saved_string, length))
+  if (convert_real (dtp, dest, dtp->u.p.saved_string, length))
     return;
 
   free_saved (dtp);
@@ -1689,6 +1687,11 @@ list_formatted_read_scalar (st_parameter_dt *dtp, volatile bt type, void *p,
   if (setjmp (eof_jump))
     {
       generate_error (&dtp->common, LIBERROR_END, NULL);
+      if (!is_internal_unit (dtp))
+	{
+	  dtp->u.p.current_unit->endfile = AFTER_ENDFILE;
+	  dtp->u.p.current_unit->current_record = 0;
+	}
       goto cleanup;
     }
 
@@ -1698,7 +1701,7 @@ list_formatted_read_scalar (st_parameter_dt *dtp, volatile bt type, void *p,
       dtp->u.p.input_complete = 0;
       dtp->u.p.repeat_count = 1;
       dtp->u.p.at_eol = 0;
-
+      
       c = eat_spaces (dtp);
       if (is_separator (c))
 	{
@@ -1720,15 +1723,18 @@ list_formatted_read_scalar (st_parameter_dt *dtp, volatile bt type, void *p,
     }
   else
     {
-      if (dtp->u.p.input_complete)
-	goto cleanup;
-
       if (dtp->u.p.repeat_count > 0)
 	{
 	  if (check_type (dtp, type, kind))
 	    return;
 	  goto set_value;
 	}
+	
+      if (dtp->u.p.input_complete)
+	goto cleanup;
+
+      if (dtp->u.p.input_complete)
+	goto cleanup;
 
       if (dtp->u.p.at_eol)
 	finish_separator (dtp);
@@ -1756,10 +1762,16 @@ list_formatted_read_scalar (st_parameter_dt *dtp, volatile bt type, void *p,
       read_character (dtp, kind);
       break;
     case BT_REAL:
-      read_real (dtp, kind);
+      read_real (dtp, p, kind);
+      /* Copy value back to temporary if needed.  */
+      if (dtp->u.p.repeat_count > 0)
+	memcpy (dtp->u.p.value, p, kind);
       break;
     case BT_COMPLEX:
-      read_complex (dtp, kind, size);
+      read_complex (dtp, p, kind, size);
+      /* Copy value back to temporary if needed.  */
+      if (dtp->u.p.repeat_count > 0)
+	memcpy (dtp->u.p.value, p, size);
       break;
     default:
       internal_error (&dtp->common, "Bad type for list read");
@@ -1775,8 +1787,12 @@ list_formatted_read_scalar (st_parameter_dt *dtp, volatile bt type, void *p,
   switch (dtp->u.p.saved_type)
     {
     case BT_COMPLEX:
-    case BT_INTEGER:
     case BT_REAL:
+      if (dtp->u.p.repeat_count > 0)
+	memcpy (p, dtp->u.p.value, size);
+      break;
+
+    case BT_INTEGER:
     case BT_LOGICAL:
       memcpy (p, dtp->u.p.value, size);
       break;
@@ -1852,6 +1868,8 @@ finish_list_read (st_parameter_dt *dtp)
   char c;
 
   free_saved (dtp);
+
+  fbuf_flush (dtp->u.p.current_unit, dtp->u.p.mode);
 
   if (dtp->u.p.at_eol)
     {
@@ -2075,10 +2093,10 @@ nml_parse_qualifier (st_parameter_dt *dtp, descriptor_dimension *ad,
 	}
 
       /* Check the values of the triplet indices.  */
-      if ((ls[dim].start > (ssize_t)ad[dim].ubound)
-	  || (ls[dim].start < (ssize_t)ad[dim].lbound)
-	  || (ls[dim].end > (ssize_t)ad[dim].ubound)
-	  || (ls[dim].end < (ssize_t)ad[dim].lbound))
+      if ((ls[dim].start > (ssize_t) GFC_DIMENSION_UBOUND(ad[dim]))
+	   || (ls[dim].start < (ssize_t) GFC_DIMENSION_LBOUND(ad[dim]))
+	   || (ls[dim].end > (ssize_t) GFC_DIMENSION_UBOUND(ad[dim]))
+	   || (ls[dim].end < (ssize_t) GFC_DIMENSION_LBOUND(ad[dim])))
 	{
 	  if (is_char)
 	    sprintf (parse_err_msg, "Substring out of range");
@@ -2142,8 +2160,8 @@ nml_touch_nodes (namelist_info * nl)
 	  for (dim=0; dim < nl->var_rank; dim++)
 	    {
 	      nl->ls[dim].step = 1;
-	      nl->ls[dim].end = nl->dim[dim].ubound;
-	      nl->ls[dim].start = nl->dim[dim].lbound;
+	      nl->ls[dim].end = GFC_DESCRIPTOR_UBOUND(nl,dim);
+	      nl->ls[dim].start = GFC_DESCRIPTOR_LBOUND(nl,dim);
 	      nl->ls[dim].idx = nl->ls[dim].start;
 	    }
 	}
@@ -2261,8 +2279,8 @@ nml_query (st_parameter_dt *dtp, char c)
 
       /* Flush the stream to force immediate output.  */
 
-      fbuf_flush (dtp->u.p.current_unit, 1);
-      flush (dtp->u.p.current_unit->s);
+      fbuf_flush (dtp->u.p.current_unit, WRITING);
+      sflush (dtp->u.p.current_unit->s);
       unlock_unit (dtp->u.p.current_unit);
     }
 
@@ -2297,7 +2315,7 @@ nml_read_obj (st_parameter_dt *dtp, namelist_info * nl, index_type offset,
   int dim;
   index_type dlen;
   index_type m;
-  index_type obj_name_len;
+  size_t obj_name_len;
   void * pdata;
 
   /* This object not touched in name parsing.  */
@@ -2338,8 +2356,9 @@ nml_read_obj (st_parameter_dt *dtp, namelist_info * nl, index_type offset,
 
       pdata = (void*)(nl->mem_pos + offset);
       for (dim = 0; dim < nl->var_rank; dim++)
-	pdata = (void*)(pdata + (nl->ls[dim].idx - nl->dim[dim].lbound) *
-		 nl->dim[dim].stride * nl->size);
+	pdata = (void*)(pdata + (nl->ls[dim].idx
+				 - GFC_DESCRIPTOR_LBOUND(nl,dim))
+			* GFC_DESCRIPTOR_STRIDE(nl,dim) * nl->size);
 
       /* Reset the error flag and try to read next value, if
 	 dtp->u.p.repeat_count=0  */
@@ -2355,10 +2374,10 @@ nml_read_obj (st_parameter_dt *dtp, namelist_info * nl, index_type offset,
 	  if (dtp->u.p.input_complete)
 	    return SUCCESS;
 
-	  /* GFC_TYPE_UNKNOWN through for nulls and is detected
-	     after the switch block.  */
+	  /* BT_NULL (equivalent to GFC_DTYPE_UNKNOWN) falls through
+	     for nulls and is detected at default: of switch block.  */
 
-	  dtp->u.p.saved_type = GFC_DTYPE_UNKNOWN;
+	  dtp->u.p.saved_type = BT_NULL;
 	  free_saved (dtp);
 
           switch (nl->type)
@@ -2376,12 +2395,17 @@ nml_read_obj (st_parameter_dt *dtp, namelist_info * nl, index_type offset,
               break;
 
 	  case GFC_DTYPE_REAL:
-	      read_real (dtp, len);
-              break;
+	    /* Need to copy data back from the real location to the temp in order
+	       to handle nml reads into arrays.  */
+	    read_real (dtp, pdata, len);
+	    memcpy (dtp->u.p.value, pdata, dlen);
+	    break;
 
 	  case GFC_DTYPE_COMPLEX:
-              read_complex (dtp, len, dlen);
-              break;
+	    /* Same as for REAL, copy back to temp.  */
+	    read_complex (dtp, pdata, len, dlen);
+	    memcpy (dtp->u.p.value, pdata, dlen);
+	    break;
 
 	  case GFC_DTYPE_DERIVED:
 	    obj_name_len = strlen (nl->var_name) + 1;
@@ -2443,7 +2467,7 @@ nml_read_obj (st_parameter_dt *dtp, namelist_info * nl, index_type offset,
 	  return SUCCESS;
 	}
 
-      if (dtp->u.p.saved_type == GFC_DTYPE_UNKNOWN)
+      if (dtp->u.p.saved_type == BT_NULL)
 	{
 	  dtp->u.p.expanded_read = 0;
 	  goto incr_idx;
@@ -2656,8 +2680,8 @@ get_name:
   for (dim=0; dim < nl->var_rank; dim++)
     {
       nl->ls[dim].step = 1;
-      nl->ls[dim].end = nl->dim[dim].ubound;
-      nl->ls[dim].start = nl->dim[dim].lbound;
+      nl->ls[dim].end = GFC_DESCRIPTOR_UBOUND(nl,dim);
+      nl->ls[dim].start = GFC_DESCRIPTOR_LBOUND(nl,dim);
       nl->ls[dim].idx = nl->ls[dim].start;
     }
 
@@ -2749,7 +2773,7 @@ get_name:
 
   if (nl->type == GFC_DTYPE_DERIVED)
     nml_touch_nodes (nl);
-  if (component_flag && nl->var_rank > 0)
+  if (component_flag && nl->var_rank > 0 && nl->next)
     nl = first_nl;
 
   /* Make sure no extraneous qualifiers are there.  */
@@ -2903,7 +2927,7 @@ find_nml_name:
 	  st_printf ("%s\n", nml_err_msg);
 	  if (u != NULL)
 	    {
-	      flush (u->s);
+	      sflush (u->s);
 	      unlock_unit (u);
 	    }
         }

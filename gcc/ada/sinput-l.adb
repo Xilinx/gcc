@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -364,9 +364,15 @@ package body Sinput.L is
                procedure Wchar (C : Character);
                --  Writes character or ? for control character
 
+               -----------
+               -- Wchar --
+               -----------
+
                procedure Wchar (C : Character) is
                begin
-                  if C < ' ' or C in ASCII.DEL .. Character'Val (16#9F#) then
+                  if C < ' '
+                    or else C in ASCII.DEL .. Character'Val (16#9F#)
+                  then
                      Write_Char ('?');
                   else
                      Write_Char (C);
@@ -453,6 +459,12 @@ package body Sinput.L is
          --  Preprocess the source if it needs to be preprocessed
 
          if Preprocessing_Needed then
+
+            --  Temporarily set the Source_File_Index_Table entries for the
+            --  source, to avoid crash when reporting an error.
+
+            Set_Source_File_Index_Table (X);
+
             if Opt.List_Preprocessing_Symbols then
                Get_Name_String (N);
 
@@ -494,9 +506,9 @@ package body Sinput.L is
 
                Prep_Buffer_Last := 0;
 
-               --  Initialize the preprocessor
+               --  Initialize the preprocessor hooks
 
-               Prep.Initialize
+               Prep.Setup_Hooks
                  (Error_Msg         => Errout.Error_Msg'Access,
                   Scan              => Scn.Scanner.Scan'Access,
                   Set_Ignore_Errors => Errout.Set_Ignore_Errors'Access,
@@ -518,7 +530,12 @@ package body Sinput.L is
                Save_Style_Check := Opt.Style_Check;
                Opt.Style_Check := False;
 
+               --  Make sure that there will be no check of pragma Restrictions
+               --  for obsolescent features while preprocessing the source.
+
+               Scn.Set_Obsolescent_Check (False);
                Preprocess (Modified);
+               Scn.Set_Obsolescent_Check (True);
 
                --  Reset the scanner to its standard behavior, and restore the
                --  Style_Checks flag.

@@ -1,31 +1,26 @@
 /* String intrinsics helper functions.
-   Copyright 2002, 2005, 2007, 2008 Free Software Foundation, Inc.
+   Copyright 2002, 2005, 2007, 2008, 2009 Free Software Foundation, Inc.
 
 This file is part of the GNU Fortran runtime library (libgfortran).
 
 Libgfortran is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public
 License as published by the Free Software Foundation; either
-version 2 of the License, or (at your option) any later version.
-
-In addition to the permissions in the GNU General Public License, the
-Free Software Foundation gives you unlimited permission to link the
-compiled version of this file into combinations with other programs,
-and to distribute those combinations without any restriction coming
-from the use of this file.  (The General Public License restrictions
-do apply in other respects; for example, they cover modification of
-the file, and distribution when not linked into a combine
-executable.)
+version 3 of the License, or (at your option) any later version.
 
 Libgfortran is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public
-License along with libgfortran; see the file COPYING.  If not,
-write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+Under Section 7 of GPL version 3, you are granted additional
+permissions described in the GCC Runtime Library Exception, version
+3.1, as published by the Free Software Foundation.
+
+You should have received a copy of the GNU General Public License and
+a copy of the GCC Runtime Library Exception along with this program;
+see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+<http://www.gnu.org/licenses/>.  */
 
 
 /* Rename the functions.  */
@@ -165,15 +160,7 @@ void
 string_trim (gfc_charlen_type *len, CHARTYPE **dest, gfc_charlen_type slen,
 	     const CHARTYPE *src)
 {
-  gfc_charlen_type i;
-
-  /* Determine length of result string.  */
-  for (i = slen - 1; i >= 0; i--)
-    {
-      if (src[i] != ' ')
-        break;
-    }
-  *len = i + 1;
+  *len = string_len_trim (slen, src);
 
   if (*len == 0)
     *dest = &zero_length_string;
@@ -193,13 +180,61 @@ string_trim (gfc_charlen_type *len, CHARTYPE **dest, gfc_charlen_type slen,
 gfc_charlen_type
 string_len_trim (gfc_charlen_type len, const CHARTYPE *s)
 {
+  const gfc_charlen_type long_len = (gfc_charlen_type) sizeof (unsigned long);
   gfc_charlen_type i;
 
-  for (i = len - 1; i >= 0; i--)
+  i = len - 1;
+
+  /* If we've got the standard (KIND=1) character type, we scan the string in
+     long word chunks to speed it up (until a long word is hit that does not
+     consist of ' 's).  */
+  if (sizeof (CHARTYPE) == 1 && i >= long_len)
     {
-      if (s[i] != ' ')
-        break;
+      int starting;
+      unsigned long blank_longword;
+
+      /* Handle the first characters until we're aligned on a long word
+	 boundary.  Actually, s + i + 1 must be properly aligned, because
+	 s + i will be the last byte of a long word read.  */
+      starting = ((unsigned long)
+#ifdef __INTPTR_TYPE__
+		  (__INTPTR_TYPE__)
+#endif
+		  (s + i + 1)) % long_len;
+      i -= starting;
+      for (; starting > 0; --starting)
+	if (s[i + starting] != ' ')
+	  return i + starting + 1;
+
+      /* Handle the others in a batch until first non-blank long word is
+	 found.  Here again, s + i is the last byte of the current chunk,
+	 to it starts at s + i - sizeof (long) + 1.  */
+
+#if __SIZEOF_LONG__ == 4
+      blank_longword = 0x20202020L;
+#elif __SIZEOF_LONG__ == 8
+      blank_longword = 0x2020202020202020L;
+#else
+      #error Invalid size of long!
+#endif
+
+      while (i >= long_len)
+	{
+	  i -= long_len;
+	  if (*((unsigned long*) (s + i + 1)) != blank_longword)
+	    {
+	      i += long_len;
+	      break;
+	    }
+	}
+
+      /* Now continue for the last characters with naive approach below.  */
+      assert (i >= 0);
     }
+
+  /* Simply look for the first non-blank character.  */
+  while (i >= 0 && s[i] == ' ')
+    --i;
   return i + 1;
 }
 

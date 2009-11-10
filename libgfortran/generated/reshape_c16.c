@@ -1,5 +1,5 @@
-/* Implementation of the RESHAPE
-   Copyright 2002, 2006, 2007 Free Software Foundation, Inc.
+/* Implementation of the RESHAPE intrinsic
+   Copyright 2002, 2006, 2007, 2009 Free Software Foundation, Inc.
    Contributed by Paul Brook <paul@nowt.org>
 
 This file is part of the GNU Fortran 95 runtime library (libgfortran).
@@ -7,26 +7,21 @@ This file is part of the GNU Fortran 95 runtime library (libgfortran).
 Libgfortran is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public
 License as published by the Free Software Foundation; either
-version 2 of the License, or (at your option) any later version.
-
-In addition to the permissions in the GNU General Public License, the
-Free Software Foundation gives you unlimited permission to link the
-compiled version of this file into combinations with other programs,
-and to distribute those combinations without any restriction coming
-from the use of this file.  (The General Public License restrictions
-do apply in other respects; for example, they cover modification of
-the file, and distribution when not linked into a combine
-executable.)
+version 3 of the License, or (at your option) any later version.
 
 Libgfortran is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public
-License along with libgfortran; see the file COPYING.  If not,
-write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+Under Section 7 of GPL version 3, you are granted additional
+permissions described in the GCC Runtime Library Exception, version
+3.1, as published by the Free Software Foundation.
+
+You should have received a copy of the GNU General Public License and
+a copy of the GCC Runtime Library Exception along with this program;
+see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+<http://www.gnu.org/licenses/>.  */
 
 #include "libgfortran.h"
 #include <stdlib.h>
@@ -84,7 +79,7 @@ reshape_c16 (gfc_array_c16 * const restrict ret,
   int sempty, pempty, shape_empty;
   index_type shape_data[GFC_MAX_DIMENSIONS];
 
-  rdim = shape->dim[0].ubound - shape->dim[0].lbound + 1;
+  rdim = GFC_DESCRIPTOR_EXTENT(shape,0);
   if (rdim != GFC_DESCRIPTOR_RANK(ret))
     runtime_error("rank of return array incorrect in RESHAPE intrinsic");
 
@@ -92,7 +87,7 @@ reshape_c16 (gfc_array_c16 * const restrict ret,
 
   for (n = 0; n < rdim; n++)
     {
-      shape_data[n] = shape->data[n * shape->dim[0].stride];
+      shape_data[n] = shape->data[n * GFC_DESCRIPTOR_STRIDE(shape,0)];
       if (shape_data[n] <= 0)
       {
         shape_data[n] = 0;
@@ -105,10 +100,10 @@ reshape_c16 (gfc_array_c16 * const restrict ret,
       rs = 1;
       for (n = 0; n < rdim; n++)
 	{
-	  ret->dim[n].lbound = 0;
 	  rex = shape_data[n];
-	  ret->dim[n].ubound =  rex - 1;
-	  ret->dim[n].stride = rs;
+
+	  GFC_DIMENSION_SET(ret->dim[n], 0, rex - 1, rs);
+
 	  rs *= rex;
 	}
       ret->offset = 0;
@@ -127,8 +122,8 @@ reshape_c16 (gfc_array_c16 * const restrict ret,
       for (n = 0; n < pdim; n++)
         {
           pcount[n] = 0;
-          pstride[n] = pad->dim[n].stride;
-          pextent[n] = pad->dim[n].ubound + 1 - pad->dim[n].lbound;
+          pstride[n] = GFC_DESCRIPTOR_STRIDE(pad,n);
+          pextent[n] = GFC_DESCRIPTOR_EXTENT(pad,n);
           if (pextent[n] <= 0)
 	    {
 	      pempty = 1;
@@ -158,7 +153,7 @@ reshape_c16 (gfc_array_c16 * const restrict ret,
       for (n = 0; n < rdim; n++)
 	{
 	  rs *= shape_data[n];
-	  ret_extent = ret->dim[n].ubound + 1 - ret->dim[n].lbound;
+	  ret_extent = GFC_DESCRIPTOR_EXTENT(ret,n);
 	  if (ret_extent != shape_data[n])
 	    runtime_error("Incorrect extent in return value of RESHAPE"
 			  " intrinsic in dimension %ld: is %ld,"
@@ -171,7 +166,7 @@ reshape_c16 (gfc_array_c16 * const restrict ret,
       for (n = 0; n < sdim; n++)
 	{
 	  index_type se;
-	  se = source->dim[n].ubound + 1 - source->dim[0].lbound;
+	  se = GFC_DESCRIPTOR_EXTENT(source,n);
 	  source_extent *= se > 0 ? se : 0;
 	}
 
@@ -190,7 +185,7 @@ reshape_c16 (gfc_array_c16 * const restrict ret,
 
 	  for (n = 0; n < rdim; n++)
 	    {
-	      v = order->data[n * order->dim[0].stride] - 1;
+	      v = order->data[n * GFC_DESCRIPTOR_STRIDE(order,0)] - 1;
 
 	      if (v < 0 || v >= rdim)
 		runtime_error("Value %ld out of range in ORDER argument"
@@ -209,13 +204,13 @@ reshape_c16 (gfc_array_c16 * const restrict ret,
   for (n = 0; n < rdim; n++)
     {
       if (order)
-        dim = order->data[n * order->dim[0].stride] - 1;
+        dim = order->data[n * GFC_DESCRIPTOR_STRIDE(order,0)] - 1;
       else
         dim = n;
 
       rcount[n] = 0;
-      rstride[n] = ret->dim[dim].stride;
-      rextent[n] = ret->dim[dim].ubound + 1 - ret->dim[dim].lbound;
+      rstride[n] = GFC_DESCRIPTOR_STRIDE(ret,dim);
+      rextent[n] = GFC_DESCRIPTOR_EXTENT(ret,dim);
       if (rextent[n] < 0)
         rextent[n] = 0;
 
@@ -236,8 +231,8 @@ reshape_c16 (gfc_array_c16 * const restrict ret,
   for (n = 0; n < sdim; n++)
     {
       scount[n] = 0;
-      sstride[n] = source->dim[n].stride;
-      sextent[n] = source->dim[n].ubound + 1 - source->dim[n].lbound;
+      sstride[n] = GFC_DESCRIPTOR_STRIDE(source,n);
+      sextent[n] = GFC_DESCRIPTOR_EXTENT(source,n);
       if (sextent[n] <= 0)
 	{
 	  sempty = 1;

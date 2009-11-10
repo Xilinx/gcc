@@ -159,7 +159,7 @@ typedef struct temp_expr_table_d
 {
   var_map map;
   bitmap *partition_dependencies;	/* Partitions expr is dependent on.  */
-  gimple *replaceable_expressions;	/* Replacement expression table.  */
+  bitmap replaceable_expressions;	/* Replacement expression table.  */
   bitmap *expr_decl_uids;		/* Base uids of exprs.  */
   bitmap *kill_list;			/* Expr's killed by a partition.  */
   int virtual_partition;		/* Pseudo partition for virtual ops.  */
@@ -216,16 +216,16 @@ new_temp_expr_table (var_map map)
 /* Free TER table T.  If there are valid replacements, return the expression 
    vector.  */
 
-static gimple *
+static bitmap
 free_temp_expr_table (temp_expr_table_p t)
 {
-  gimple *ret = NULL;
+  bitmap ret = NULL;
 
 #ifdef ENABLE_CHECKING
   unsigned x;
   for (x = 0; x <= num_var_partitions (t->map); x++)
     gcc_assert (!t->kill_list[x]);
-  for (x = 0; x < num_ssa_names + 1; x++)
+  for (x = 0; x < num_ssa_names; x++)
     {
       gcc_assert (t->expr_decl_uids[x] == NULL);
       gcc_assert (t->partition_dependencies[x] == NULL);
@@ -255,7 +255,7 @@ version_to_be_replaced_p (temp_expr_table_p tab, int version)
 {
   if (!tab->replaceable_expressions)
     return false;
-  return tab->replaceable_expressions[version] != NULL;
+  return bitmap_bit_p (tab->replaceable_expressions, version);
 }
 
 
@@ -412,7 +412,7 @@ is_replaceable_p (gimple stmt)
     return false;
 
   /* There must be no VDEFs.  */
-  if (!(ZERO_SSA_OPERANDS (stmt, SSA_OP_VDEF)))
+  if (gimple_vdef (stmt))
     return false;
 
   /* Without alias info we can't move around loads.  */
@@ -504,7 +504,7 @@ process_replaceable (temp_expr_table_p tab, gimple stmt)
   tab->expr_decl_uids[version] = def_vars;
 
   /* If there are VUSES, add a dependence on virtual defs.  */
-  if (!ZERO_SSA_OPERANDS (stmt, SSA_OP_VUSE))
+  if (gimple_vuse (stmt))
     {
       make_dependent_on_partition (tab, version, VIRTUAL_PARTITION (tab));
       add_to_partition_kill_list (tab, VIRTUAL_PARTITION (tab), version);
@@ -562,8 +562,8 @@ mark_replaceable (temp_expr_table_p tab, tree var, bool more_replacing)
 
   /* Set the replaceable expression.  */
   if (!tab->replaceable_expressions)
-    tab->replaceable_expressions = XCNEWVEC (gimple, num_ssa_names + 1);
-  tab->replaceable_expressions[version] = SSA_NAME_DEF_STMT (var);
+    tab->replaceable_expressions = BITMAP_ALLOC (NULL);
+  bitmap_set_bit (tab->replaceable_expressions, version);
 }
 
 
@@ -584,6 +584,9 @@ find_replaceable_in_bb (temp_expr_table_p tab, basic_block bb)
   for (bsi = gsi_start_bb (bb); !gsi_end_p (bsi); gsi_next (&bsi))
     {
       stmt = gsi_stmt (bsi);
+
+      if (is_gimple_debug (stmt))
+	continue;
 
       stmt_replaceable = is_replaceable_p (stmt);
 
@@ -639,7 +642,7 @@ find_replaceable_in_bb (temp_expr_table_p tab, basic_block bb)
 
       /* A V_{MAY,MUST}_DEF kills any expression using a virtual operand,
 	 including the current stmt.  */
-      if (!ZERO_SSA_OPERANDS (stmt, SSA_OP_VIRTUAL_DEFS))
+      if (gimple_vdef (stmt))
         kill_virtual_exprs (tab);
     }
 }
@@ -653,12 +656,12 @@ find_replaceable_in_bb (temp_expr_table_p tab, basic_block bb)
    NULL is returned by the function, otherwise an expression vector indexed
    by SSA_NAME version numbers.  */
 
-extern gimple *
+extern bitmap
 find_replaceable_exprs (var_map map)
 {
   basic_block bb;
   temp_expr_table_p table;
-  gimple *ret;
+  bitmap ret;
 
   table = new_temp_expr_table (map);
   FOR_EACH_BB (bb)
@@ -676,19 +679,19 @@ find_replaceable_exprs (var_map map)
 /* Dump TER expression table EXPR to file F.  */
 
 void
-dump_replaceable_exprs (FILE *f, gimple *expr)
+dump_replaceable_exprs (FILE *f, bitmap expr)
 {
   tree var;
   unsigned x;
 
   fprintf (f, "\nReplacing Expressions\n");
   for (x = 0; x < num_ssa_names; x++)
-    if (expr[x])
+    if (bitmap_bit_p (expr, x))
       {
 	var = ssa_name (x);
 	print_generic_expr (f, var, TDF_SLIM);
 	fprintf (f, " replace with --> ");
-	print_gimple_stmt (f, expr[x], 0, TDF_SLIM);
+	print_gimple_stmt (f, SSA_NAME_DEF_STMT (var), 0, TDF_SLIM);
 	fprintf (f, "\n");
       }
   fprintf (f, "\n");

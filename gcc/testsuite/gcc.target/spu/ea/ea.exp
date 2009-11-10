@@ -1,15 +1,15 @@
-#   Copyright (C) 2008 Free Software Foundation, Inc.
+#   Copyright (C) 2008, 2009 Free Software Foundation, Inc.
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with GCC; see the file COPYING3.  If not see
 # <http://www.gnu.org/licenses/>.
@@ -24,54 +24,31 @@ if { ![istarget spu-*-*] } then {
 # Load support procs.
 load_lib gcc-dg.exp
 
-# Return 1 if -mea64 target library functions are available
-proc check_effective_target_ea64 { } {
-    return [check_no_compiler_messages ea64 executable {
-	#include <stdlib.h>
-	#include <string.h>
-	#include <spu_cache.h>
-
-	__ea void *ptr;
-	__ea void *__malloc_ea64 (unsigned long long);
-
+# Return 1 if target __ea library functions are available
+proc check_effective_target_ealib { } {
+    return [check_no_compiler_messages ealib executable {
+	#include <ea.h>
 	int main (void)
 	{
-	    ptr = __malloc_ea64 (1024LL);
+	    __ea void *ptr = malloc_ea (1024);
 	    return 0;
 	}
-    } "-O2 -mea64" ]
-}
-
-# Return 1 if -mea32 target library functions are available
-proc check_effective_target_ea32 { } {
-    return [check_no_compiler_messages ea32 executable {
-	#include <stdlib.h>
-	#include <string.h>
-	#include <spu_cache.h>
-
-	__ea void *ptr;
-	__ea void *__malloc_ea32 (unsigned long);
-
-	int main (void)
-	{
-	    ptr = __malloc_ea32 (1024L);
-	    return 0;
-	}
-    } "-O2 -mea32" ]
+    }]
 }
 
 # If a testcase doesn't have special options, use these.
-global DEFAULT_CFLAGS
-if ![info exists DEFAULT_CFLAGS] then {
-    set DEFAULT_CFLAGS "-std=gnu89 -pedantic-errors -O2"
-}
+# We do not use the global DEFAULT_CFLAGS as all test cases
+# in this directory use the __ea address space qualifier
+# extension and thus will not compile with -ansi.
+set DEFAULT_EA_CFLAGS "-std=gnu99 -pedantic-errors -O2"
 
 # Initialize `dg'.
 dg-init
 
-# Main loop.
-dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/*.\[cS\]]] \
-        "" $DEFAULT_CFLAGS
+# Run all tests in both -mea32 and -mea64 mode.
+set tests [lsort [glob -nocomplain $srcdir/$subdir/*.\[cS\]]]
+dg-runtest $tests "-mea32" $DEFAULT_EA_CFLAGS
+dg-runtest $tests "-mea64" $DEFAULT_EA_CFLAGS
 
 # All done.
 dg-finish

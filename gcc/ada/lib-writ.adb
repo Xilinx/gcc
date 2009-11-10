@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -38,6 +38,7 @@ with Opt;      use Opt;
 with Osint;    use Osint;
 with Osint.C;  use Osint.C;
 with Par;
+with Par_SCO;  use Par_SCO;
 with Restrict; use Restrict;
 with Rident;   use Rident;
 with Scn;      use Scn;
@@ -196,6 +197,10 @@ package body Lib.Writ is
 
       Num_Sdep : Nat := 0;
       --  Number of active entries in Sdep_Table
+
+      flag_compare_debug : Int;
+      pragma Import (C, flag_compare_debug);
+      --  Import from toplev.c
 
       -----------------------
       -- Local Subprograms --
@@ -800,7 +805,9 @@ package body Lib.Writ is
       --  We never write an ALI file if the original operating mode was
       --  syntax-only (-gnats switch used in compiler invocation line)
 
-      if Original_Operating_Mode = Check_Syntax then
+      if Original_Operating_Mode = Check_Syntax
+        or flag_compare_debug /= 0
+      then
          return;
       end if;
 
@@ -1223,7 +1230,19 @@ package body Lib.Writ is
          end loop;
       end;
 
+      --  Output cross-references
+
       Output_References;
+
+      --  Output SCO information if present
+
+      if Generate_SCO then
+         SCO_Output;
+      end if;
+
+      --  Output final blank line and we are done. This final blank line is
+      --  probably junk, but we don't feel like making an incompatible change!
+
       Write_Info_Terminate;
       Close_Output_Library_Info;
    end Write_ALI;

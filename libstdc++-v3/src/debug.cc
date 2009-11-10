@@ -1,12 +1,12 @@
 // Debugging mode support code -*- C++ -*-
 
-// Copyright (C) 2003, 2004, 2005, 2006, 2007, 2009
+// Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -14,19 +14,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
-// You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
 
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
 
 #include <debug/debug.h>
 #include <debug/safe_sequence.h>
@@ -190,7 +185,7 @@ namespace __gnu_debug
 
   __gnu_cxx::__mutex&
   _Safe_sequence_base::
-  _M_get_mutex()
+  _M_get_mutex() throw ()
   { return get_safe_base_mutex(); }
 
   void
@@ -203,7 +198,7 @@ namespace __gnu_debug
   
   void
   _Safe_iterator_base::
-  _M_attach_single(_Safe_sequence_base* __seq, bool __constant)
+  _M_attach_single(_Safe_sequence_base* __seq, bool __constant) throw ()
   {
     _M_detach_single();
     
@@ -240,7 +235,7 @@ namespace __gnu_debug
 
   void
   _Safe_iterator_base::
-  _M_detach_single()
+  _M_detach_single() throw ()
   {
     if (_M_sequence)
       {
@@ -264,12 +259,12 @@ namespace __gnu_debug
 
   bool
   _Safe_iterator_base::
-  _M_singular() const
+  _M_singular() const throw ()
   { return !_M_sequence || _M_version != _M_sequence->_M_version; }
     
   bool
   _Safe_iterator_base::
-  _M_can_compare(const _Safe_iterator_base& __x) const
+  _M_can_compare(const _Safe_iterator_base& __x) const throw ()
   {
     return (!_M_singular() 
 	    && !__x._M_singular() && _M_sequence == __x._M_sequence);
@@ -277,7 +272,7 @@ namespace __gnu_debug
 
   __gnu_cxx::__mutex&
   _Safe_iterator_base::
-  _M_get_mutex()
+  _M_get_mutex() throw ()
   { return get_safe_base_mutex(); }
 
   void
@@ -303,9 +298,12 @@ namespace __gnu_debug
 	  }
 	else if (strcmp(__name, "type") == 0)
 	  {
-	    assert(_M_variant._M_iterator._M_type);
-	    // TBD: demangle!
-	    __formatter->_M_print_word(_M_variant._M_iterator._M_type->name());
+	    if (!_M_variant._M_iterator._M_type)
+	      __formatter->_M_print_word("<unknown type>");
+	    else
+	      // TBD: demangle!
+	      __formatter->_M_print_word(_M_variant._M_iterator.
+					 _M_type->name());
 	  }
 	else if (strcmp(__name, "constness") == 0)
 	  {
@@ -315,7 +313,9 @@ namespace __gnu_debug
 		"constant",
 		"mutable"
 	      };
-	    __formatter->_M_print_word(__constness_names[_M_variant._M_iterator._M_constness]);
+	    __formatter->_M_print_word(__constness_names[_M_variant.
+							 _M_iterator.
+							 _M_constness]);
 	  }
 	else if (strcmp(__name, "state") == 0)
 	  {
@@ -327,7 +327,8 @@ namespace __gnu_debug
 		"dereferenceable",
 		"past-the-end"
 	      };
-	    __formatter->_M_print_word(__state_names[_M_variant._M_iterator._M_state]);
+	    __formatter->_M_print_word(__state_names[_M_variant.
+						     _M_iterator._M_state]);
 	  }
 	else if (strcmp(__name, "sequence") == 0)
 	  {
@@ -338,9 +339,12 @@ namespace __gnu_debug
 	  }
 	else if (strcmp(__name, "seq_type") == 0)
 	  {
-	    // TBD: demangle!
-	    assert(_M_variant._M_iterator._M_seq_type);
-	    __formatter->_M_print_word(_M_variant._M_iterator._M_seq_type->name());
+	    if (!_M_variant._M_iterator._M_seq_type)
+	      __formatter->_M_print_word("<unknown seq_type>");
+	    else
+	      // TBD: demangle!
+	      __formatter->_M_print_word(_M_variant._M_iterator.
+					 _M_seq_type->name());
 	  }
 	else
 	  assert(false);
@@ -361,9 +365,12 @@ namespace __gnu_debug
 	  }
 	else if (strcmp(__name, "type") == 0)
 	  {
-	    // TBD: demangle!
-	    assert(_M_variant._M_sequence._M_type);
-	    __formatter->_M_print_word(_M_variant._M_sequence._M_type->name());
+	    if (!_M_variant._M_sequence._M_type)
+	      __formatter->_M_print_word("<unknown type>");
+	    else
+	      // TBD: demangle!
+	      __formatter->_M_print_word(_M_variant._M_sequence.
+					 _M_type->name());
 	  }
 	else
 	  assert(false);
@@ -476,7 +483,7 @@ namespace __gnu_debug
   }
 
   const _Error_formatter&
-  _Error_formatter::_M_message(_Debug_msg_id __id) const
+  _Error_formatter::_M_message(_Debug_msg_id __id) const throw ()
   { return this->_M_message(_S_debug_messages[__id]); }
   
   void
@@ -536,7 +543,7 @@ namespace __gnu_debug
     void
     _Error_formatter::_M_format_word(char* __buf, 
 				     int __n __attribute__ ((__unused__)), 
-				     const char* __fmt, _Tp __s) const
+				     const char* __fmt, _Tp __s) const throw ()
     {
 #ifdef _GLIBCXX_USE_C99
       std::snprintf(__buf, __n, __fmt, __s);
@@ -679,7 +686,7 @@ namespace __gnu_debug
   }
 
   void
-  _Error_formatter::_M_get_max_length() const
+  _Error_formatter::_M_get_max_length() const throw ()
   {
     const char* __nptr = std::getenv("GLIBCXX_DEBUG_MESSAGE_LENGTH");
     if (__nptr)

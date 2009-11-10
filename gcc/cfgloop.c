@@ -1,5 +1,5 @@
 /* Natural loop discovery code for GNU compiler.
-   Copyright (C) 2000, 2001, 2003, 2004, 2005, 2006, 2007
+   Copyright (C) 2000, 2001, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -338,6 +338,7 @@ alloc_loop (void)
 
   loop->exits = GGC_CNEW (struct loop_exit);
   loop->exits->next = loop->exits->prev = loop->exits;
+  loop->can_be_parallel = false;
 
   return loop;
 }

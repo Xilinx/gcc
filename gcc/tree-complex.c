@@ -1,5 +1,6 @@
 /* Lower complex number operations to scalar operations.
-   Copyright (C) 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
    
@@ -37,13 +38,17 @@ along with GCC; see the file COPYING3.  If not see
    out whether a complex number is degenerate in some way, having only real
    or only complex parts.  */
 
-typedef enum
+enum
 {
   UNINITIALIZED = 0,
   ONLY_REAL = 1,
   ONLY_IMAG = 2,
   VARYING = 3
-} complex_lattice_t;
+};
+
+/* The type complex_lattice_t holds combinations of the above
+   constants.  */
+typedef int complex_lattice_t;
 
 #define PAIR(a, b)  ((a) << 2 | (b))
 
@@ -94,7 +99,10 @@ some_nonzerop (tree t)
 {
   int zerop = false;
 
-  if (TREE_CODE (t) == REAL_CST)
+  /* Operations with real or imaginary part of a complex number zero
+     cannot be treated the same as operations with a real or imaginary
+     operand if we care about the signs of zeros in the result.  */
+  if (TREE_CODE (t) == REAL_CST && !flag_signed_zeros)
     zerop = REAL_VALUES_IDENTICAL (TREE_REAL_CST (t), dconst0);
   else if (TREE_CODE (t) == FIXED_CST)
     zerop = fixed_zerop (t);
@@ -596,6 +604,7 @@ extract_component (gimple_stmt_iterator *gsi, tree t, bool imagpart_p,
     case INDIRECT_REF:
     case COMPONENT_REF:
     case ARRAY_REF:
+    case VIEW_CONVERT_EXPR:
       {
 	tree inner_type = TREE_TYPE (TREE_TYPE (t));
 
@@ -745,23 +754,6 @@ update_phi_components (basic_block bb)
     }
 }
 
-/* Mark each virtual op in STMT for ssa update.  */
-
-static void
-update_all_vops (gimple stmt)
-{
-  ssa_op_iter iter;
-  tree sym;
-
-  FOR_EACH_SSA_TREE_OPERAND (sym, stmt, iter, SSA_OP_ALL_VIRTUALS)
-    {
-      if (TREE_CODE (sym) == SSA_NAME)
-	sym = SSA_NAME_VAR (sym);
-      mark_sym_for_renaming (sym);
-    }
-}
-
-
 /* Expand a complex move to scalars.  */
 
 static void
@@ -817,7 +809,6 @@ expand_complex_move (gimple_stmt_iterator *gsi, tree type)
 	}
       else
 	{
-	  update_all_vops (stmt);
 	  if (gimple_assign_rhs_code (stmt) != COMPLEX_EXPR)
 	    {
 	      r = extract_component (gsi, rhs, 0, true);
@@ -860,7 +851,6 @@ expand_complex_move (gimple_stmt_iterator *gsi, tree type)
 	  gimple_return_set_retval (stmt, lhs);
 	}
 
-      update_all_vops (stmt);
       update_stmt (stmt);
     }
 }
@@ -963,9 +953,11 @@ expand_complex_libcall (gimple_stmt_iterator *gsi, tree ar, tree ai,
   gcc_assert (GET_MODE_CLASS (mode) == MODE_COMPLEX_FLOAT);
 
   if (code == MULT_EXPR)
-    bcode = BUILT_IN_COMPLEX_MUL_MIN + mode - MIN_MODE_COMPLEX_FLOAT;
+    bcode = ((enum built_in_function)
+	     (BUILT_IN_COMPLEX_MUL_MIN + mode - MIN_MODE_COMPLEX_FLOAT));
   else if (code == RDIV_EXPR)
-    bcode = BUILT_IN_COMPLEX_DIV_MIN + mode - MIN_MODE_COMPLEX_FLOAT;
+    bcode = ((enum built_in_function)
+	     (BUILT_IN_COMPLEX_DIV_MIN + mode - MIN_MODE_COMPLEX_FLOAT));
   else
     gcc_unreachable ();
   fn = built_in_decls[bcode];
@@ -1073,7 +1065,9 @@ expand_complex_multiplication (gimple_stmt_iterator *gsi, tree inner_type,
   update_complex_assignment (gsi, rr, ri);
 }
 
-/* Expand complex division to scalars, straightforward algorithm.
+/* Keep this algorithm in sync with fold-const.c:const_binop().
+   
+   Expand complex division to scalars, straightforward algorithm.
 	a / b = ((ar*br + ai*bi)/t) + i((ai*br - ar*bi)/t)
 	    t = br*br + bi*bi
 */
@@ -1102,7 +1096,9 @@ expand_complex_div_straight (gimple_stmt_iterator *gsi, tree inner_type,
   update_complex_assignment (gsi, rr, ri);
 }
 
-/* Expand complex division to scalars, modified algorithm to minimize
+/* Keep this algorithm in sync with fold-const.c:const_binop().
+
+   Expand complex division to scalars, modified algorithm to minimize
    overflow with wide input ranges.  */
 
 static void
@@ -1117,7 +1113,8 @@ expand_complex_div_wide (gimple_stmt_iterator *gsi, tree inner_type,
   /* Examine |br| < |bi|, and branch.  */
   t1 = gimplify_build1 (gsi, ABS_EXPR, inner_type, br);
   t2 = gimplify_build1 (gsi, ABS_EXPR, inner_type, bi);
-  compare = fold_build2 (LT_EXPR, boolean_type_node, t1, t2);
+  compare = fold_build2_loc (gimple_location (gsi_stmt (*gsi)),
+			 LT_EXPR, boolean_type_node, t1, t2);
   STRIP_NOPS (compare);
 
   bb_cond = bb_true = bb_false = bb_join = NULL;
@@ -1138,7 +1135,8 @@ expand_complex_div_wide (gimple_stmt_iterator *gsi, tree inner_type,
 
       gsi_insert_before (gsi, stmt, GSI_SAME_STMT);
 
-      cond = fold_build2 (EQ_EXPR, boolean_type_node, tmp, boolean_true_node);
+      cond = fold_build2_loc (gimple_location (stmt),
+			  EQ_EXPR, boolean_type_node, tmp, boolean_true_node);
       stmt = gimple_build_cond_from_tree (cond, NULL_TREE, NULL_TREE);
       gsi_insert_before (gsi, stmt, GSI_SAME_STMT);
 
@@ -1624,7 +1622,7 @@ struct gimple_opt_pass pass_lower_complex =
   NULL,					/* sub */
   NULL,					/* next */
   0,					/* static_pass_number */
-  0,					/* tv_id */
+  TV_NONE,				/* tv_id */
   PROP_ssa,				/* properties_required */
   0,					/* properties_provided */
   0,                       		/* properties_destroyed */
@@ -1675,7 +1673,7 @@ struct gimple_opt_pass pass_lower_complex_O0 =
   NULL,					/* sub */
   NULL,					/* next */
   0,					/* static_pass_number */
-  0,					/* tv_id */
+  TV_NONE,				/* tv_id */
   PROP_cfg,				/* properties_required */
   0,					/* properties_provided */
   0,					/* properties_destroyed */

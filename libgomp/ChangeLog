@@ -1,6 +1,252 @@
+2009-10-26  Jakub Jelinek  <jakub@redhat.com>
+
+	* acinclude.m4 (LIBGOMP_CHECK_LINKER_FEATURES): Avoid using too many
+	*s.  Accept ld version without text in ()s.
+	* configure: Regenerated.
+
+2009-10-17  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	PR libgomp/41418
+	* configure.ac: Set FC to "no" if $GFORTRAN starts with "no"
+	or a hyphen (happens with fortran language disabled).
+	* configure: Regenerate.
+
+2009-09-30  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* acinclude.m4 (LIBGOMP_CHECK_LINKER_FEATURES): Avoid 'head',
+	use sed script portable to Solaris /bin/sed for extracting ld
+	version.
+	* configure: Regenerate.
+
+2009-09-17  Alexander Monakov  <amonakov@ispras.ru>
+
+	* testsuite/libgomp.graphite/bounds.c: New test.
+
+2009-09-11  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* Makefile.am (libgomp_la_LINK): New.
+	* Makefile.in: Regenerate.
+
+2009-08-24  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure.ac (AC_PREREQ): Bump to 2.64.
+
+2009-08-22  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* Makefile.am (install-html, install-pdf): Remove.
+	* Makefile.in: Regenerate.
+
+	* Makefile.in: Regenerate.
+	* aclocal.m4: Regenerate.
+	* config.h.in: Regenerate.
+	* configure: Regenerate.
+	* testsuite/Makefile.in: Regenerate.
+
+2009-08-22  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* Makefile.am (LINK): Add $(AM_LIBTOOLFLAGS) and $(LIBTOOLFLAGS).
+	* Makefile.in: Regenerate.
+
+2009-08-20  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	* Makefile.am (libgomp_la_LDFLAGS): Add -bindir flag.
+	* Makefile.in: Regenerate.
+
+2009-08-19  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/41102
+	omp_lib.h.in: Fix -std=f95 errors.
+
+
+2009-08-14  David Edelsohn  <edelsohn@gnu.org>
+
+	* testsuite/libgomp.graphite: Move from gcc.dg/graphite.
+	* testsuite/libgomp.graphite/graphite_autopar.exp: Delete.
+	* testsuite/libgomp.graphite/graphite.exp: New.
+
+2009-08-05  Andreas Tobler  <a.tobler@schweiz.org>
+
+	* testsuite/libgomp.fortran/fortran.exp: Add flags in case of shared
+	only build.
+
+2009-08-04  David Daney  <ddaney@caviumnetworks.com>
+
+	* config/linux/mutex.h (gomp_mutex_unlock): Add comment about
+	needed memory barrier semantics.
+	* config/linux/mips/mutex.h: New file.
+
+2009-07-30  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure.ac (_AC_ARG_VAR_PRECIOUS): Use m4_rename_force.
+
+2009-07-16  Joseph Myers  <joseph@codesourcery.com>
+
+	* configure: Regenerate.
+
+2009-07-11  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	PR testsuite/40699
+	PR testsuite/40707
+	PR testsuite/40709
+	* testsuite/lib/libgomp.exp: Revert 2009-07-02 and 2009-06-30 commits.
+	* testsuite/libgomp.c/c.exp, testsuite/libgomp.c++/c++.exp,
+	testsuite/libgomp.fortran/fortran.exp: Revert 2009-06-30 commits.
+
+2009-07-02  Richard Sandiford  <r.sandiford@uk.ibm.com>
+
+	* testsuite/lib/libgomp.exp (libgomp_init): Use the ALWAYS_CFLAGS
+	options when choosing a multilib.
+
+2009-06-30  Richard Sandiford  <r.sandiford@uk.ibm.com>
+
+	* testsuite/lib/libgomp.exp (libgomp_init): Don't add "." to
+	ld_library_path.  Use add_path.  Add just find_libgcc_s to
+	ld_library_path, not every libgcc multilib directory.
+	* testsuite/libgomp.c/c.exp (ld_library_path): Don't call
+	gcc-set-multilib-library-path; rely on $always_ld_library_path instead.
+	* testsuite/libgomp.c++/c++.exp (ld_library_path): Likewise.
+	Use add_path.
+	* testsuite/libgomp.fortran/fortran.exp (ld_library_path): Likewise.
+
+2009-06-09  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* Makefile.am (LTLDFLAGS): Define.
+	(LINK): Define.
+	* Makefile.in: Regenerate.
+
+2009-05-27  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR fortran/39718
+	* testsuite/libgomp.fortran/fortran.exp: Don't link with
+	libgfortranbegin, check existence of libgfortran.a instead of
+	libgfortranbegin.a.
+
+2009-05-20  Jakub Jelinek  <jakub@redhat.com>
+
+	PR libgomp/40174
+	* team.c (gomp_thread_start): Destroy thr->release semaphore.
+	(gomp_free_pool_helper): Likewise.
+
+2009-04-20  Vasilis Liaskovitis  <vliaskov@gmail.com>
+	    Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/35423
+	* testsuite/libgomp.fortran/workshare2.f90: New test.
+
+2009-04-09  Nick Clifton  <nickc@redhat.com>
+
+	* iter.c: Change copyright header to refer to version 3 of the
+	GNU General Public License with version 3.1 of the GCC Runtime
+	Library Exception and to point readers at the COPYING3 and
+	COPYING3.RUNTIME files and the FSF's license web page.
+	* alloc.c: Likewise.
+	* barrier.c: Likewise.
+	* config/bsd/proc.c: Likewise.
+	* config/linux/affinity.c: Likewise.
+	* config/linux/alpha/futex.h: Likewise.
+	* config/linux/bar.c: Likewise.
+	* config/linux/bar.h: Likewise.
+	* config/linux/ia64/futex.h: Likewise.
+	* config/linux/ia64/mutex.h: Likewise.
+	* config/linux/lock.c: Likewise.
+	* config/linux/mips/futex.h: Likewise.
+	* config/linux/mutex.c: Likewise.
+	* config/linux/mutex.h: Likewise.
+	* config/linux/powerpc/futex.h: Likewise.
+	* config/linux/proc.c: Likewise.
+	* config/linux/ptrlock.c: Likewise.
+	* config/linux/ptrlock.h: Likewise.
+	* config/linux/s390/futex.h: Likewise.
+	* config/linux/sem.c: Likewise.
+	* config/linux/sem.h: Likewise.
+	* config/linux/sparc/futex.h: Likewise.
+	* config/linux/wait.h: Likewise.
+	* config/linux/x86/futex.h: Likewise.
+	* config/mingw32/proc.c: Likewise.
+	* config/mingw32/time.c: Likewise.
+	* config/posix/affinity.c: Likewise.
+	* config/posix/bar.c: Likewise.
+	* config/posix/bar.h: Likewise.
+	* config/posix/lock.c: Likewise.
+	* config/posix/mutex.h: Likewise.
+	* config/posix/proc.c: Likewise.
+	* config/posix/ptrlock.h: Likewise.
+	* config/posix/sem.c: Likewise.
+	* config/posix/sem.h: Likewise.
+	* config/posix/time.c: Likewise.
+	* config/posix95/lock.c: Likewise.
+	* critical.c: Likewise.
+	* env.c: Likewise.
+	* error.c: Likewise.
+	* fortran.c: Likewise.
+	* iter_ull.c: Likewise.
+	* libgomp.h: Likewise.
+	* libgomp_f.h.in: Likewise.
+	* libgomp_g.h: Likewise.
+	* loop.c: Likewise.
+	* loop_ull.c: Likewise.
+	* omp.h.in: Likewise.
+	* omp_lib.f90.in: Likewise.
+	* omp_lib.h.in: Likewise.
+	* ordered.c: Likewise.
+	* parallel.c: Likewise.
+	* sections.c: Likewise.
+	* single.c: Likewise.
+	* task.c: Likewise.
+	* team.c: Likewise.
+	* work.c: Likewise.
+
+2009-04-09  Jakub Jelinek  <jakub@redhat.com>
+
+	* testsuite/config/default.exp: Change copyright header to refer to
+	version 3 of the GNU General Public License and to point readers
+	at the COPYING3 file and the FSF's license web page.
+
+2009-04-08  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/39573
+	* libgomp.c++/pr39573.C: New test.
+
+2009-04-01  Jakub Jelinek  <jakub@redhat.com>
+
+	PR other/39591
+	* testsuite/libgomp.c/pr39591-1.c: New test.
+	* testsuite/libgomp.c/pr39591-2.c: New test.
+	* testsuite/libgomp.c/pr39591-3.c: New test.
+
+2009-03-25  Uros Bizjak  <ubizjak@gmail.com>
+
+	* testsuite/libgomp.c/atomic-5.c: Cleanup cpuid usage.
+	* testsuite/libgomp.c/atomic-6.c: Ditto.
+
+2009-03-23  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/39495
+	* testsuite/libgomp.c/loop-12.c: New test.
+	* testsuite/libgomp.c/loop-11.c: New test.
+	* testsuite/libgomp.c++/loop-11.C: New test.
+	* testsuite/libgomp.c++/loop-12.C: New test.
+	* testsuite/libgomp.c++/for-8.C: New test.
+
+2009-03-01  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure: Regenerate.
+
+2009-02-11  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/39154
+	* testsuite/libgomp.c/pr39154.c: New test.
+
+2009-01-30  Ian Lance Taylor  <iant@google.com>
+
+	* acinclude.m4 (LIBCOMP_CHECK_LINKER_FEATURES): Set
+	libgomp_ld_is_gold.  Get gold version number.
+	(LIBGOMP_ENABLE_SYMVERS): Gold always support symbol versioning.
+	* configure: Rebuild.
+
 2009-01-19  Iain Sandoe  <iain.sandoe@sandoe-acoustics.co.uk>
 
-        * testsuite/lib/libgomp.exp: Add -B option for targets that
+	* testsuite/lib/libgomp.exp: Add -B option for targets that
 	use libgfortran.a%s in their specs.
 
 2009-01-07  Jakub Jelinek  <jakub@redhat.com>
@@ -95,7 +341,7 @@
 
 2008-08-21  Nathan Froyd  <froydnj@codesourcery.com>
 
-	* testsuite/libgomp.exp (libgomp_init): Only set things that
+	* testsuite/lib/libgomp.exp (libgomp_init): Only set things that
 	depend on blddir if blddir exists.
 	(libgomp_target_compile): Likewise.
 	* testsuite/libgomp.c++/c++.exp: Likewise.

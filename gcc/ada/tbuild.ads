@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -175,6 +175,15 @@ package Tbuild is
    --  A convenient form of Make_String_Literal, where the string value
    --  is given as a normal string instead of a String_Id value.
 
+   function Make_Temporary
+     (Loc          : Source_Ptr;
+      Id           : Character;
+      Related_Node : Node_Id := Empty) return Node_Id;
+   --  Create a defining identifier to capture the value of an expression
+   --  or aggregate, and link it to the expression that it replaces, in
+   --  order to provide better CodePeer reports. The defining identifier
+   --  name is obtained by Make_Internal_Name (Id).
+
    function Make_Unsuppress_Block
      (Loc   : Source_Ptr;
       Check : Name_Id;
@@ -256,12 +265,11 @@ package Tbuild is
    function New_Occurrence_Of
      (Def_Id : Entity_Id;
       Loc    : Source_Ptr) return Node_Id;
-   --  New_Occurrence_Of creates an N_Identifier node which is an
-   --  occurrence of the defining identifier which is passed as its
-   --  argument. The Entity and Etype of the result are set from
-   --  the given defining identifier as follows: Entity is simply
-   --  a copy of Def_Id. Etype is a copy of Def_Id for types, and
-   --  a copy of the Etype of Def_Id for other entities.
+   --  New_Occurrence_Of creates an N_Identifier node which is an occurrence
+   --  of the defining identifier which is passed as its argument. The Entity
+   --  and Etype of the result are set from the given defining identifier as
+   --  follows: Entity is simply a copy of Def_Id. Etype is a copy of Def_Id
+   --  for types, and a copy of the Etype of Def_Id for other entities.
 
    function New_Reference_To
      (Def_Id : Entity_Id;

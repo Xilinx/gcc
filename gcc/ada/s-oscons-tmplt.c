@@ -7,30 +7,31 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 2000-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 2000-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
 --                                                                          --
 ------------------------------------------------------------------------------
+
+pragma Style_Checks ("M32766");
+--  Allow long lines
 
 */
 
@@ -57,7 +58,7 @@
  **  s-oscons-tmpl.s.
  **
  **  The default one assumes that the template can be compiled by the newly-
- **  build cross compiler. It uses markup produced in the (pseudo-)assembly
+ **  built cross compiler. It uses markup produced in the (pseudo-)assembly
  **  listing:
  **
  **     xgcc -DTARGET=\"$target\" -C -E s-oscons-tmplt.c > s-oscons-tmplt.i
@@ -75,11 +76,19 @@
  **  $ DEFINE/USER SYS$OUTPUT s-oscons-tmplt.s
  **  $ RUN s-oscons-tmplt
  **  $ RUN xoscons
- **
  **/
 
-#ifndef TARGET
-# error Please define TARGET
+#if defined (__linux__) && !defined (_XOPEN_SOURCE)
+/** For Linux _XOPEN_SOURCE must be defined, otherwise IOV_MAX is not defined
+ **/
+#define _XOPEN_SOURCE 500
+
+#elif defined (__mips) && defined (__sgi)
+/** For IRIX _XOPEN5 must be defined and _XOPEN_IOV_MAX must be used as IOV_MAX,
+ ** otherwise IOV_MAX is not defined.
+ **/
+#define _XOPEN5
+#define IOV_MAX _XOPEN_IOV_MAX
 #endif
 
 #include <stdlib.h>
@@ -92,7 +101,37 @@
 # define HAVE_TERMIOS
 #endif
 
+#if defined (__vxworks)
+
+/**
+ ** For VxWorks, always include vxWorks.h (gsocket.h provides it only for
+ ** the case of runtime libraries that support sockets).
+ **/
+
+# include <vxWorks.h>
+#endif
+
 #include "gsocket.h"
+
+#ifdef DUMMY
+
+# if defined (TARGET)
+#   error TARGET may not be defined when generating the dummy version
+# else
+#   define TARGET "batch runtime compilation (dummy values)"
+# endif
+
+# if !(defined (HAVE_SOCKETS) && defined (HAVE_TERMIOS))
+#   error Features missing on platform
+# endif
+
+# define NATIVE
+
+#endif
+
+#ifndef TARGET
+# error Please define TARGET
+#endif
 
 #ifndef HAVE_SOCKETS
 # include <errno.h>
@@ -102,10 +141,22 @@
 # include <termios.h>
 #endif
 
+#ifdef __APPLE__
+# include <_types.h>
+#endif
+
 #ifdef NATIVE
 #include <stdio.h>
+
+#ifdef DUMMY
+int counter = 0;
+# define _VAL(x) counter++
+#else
+# define _VAL(x) x
+#endif
+
 #define CND(name,comment) \
-  printf ("\n->CND:$%d:" #name ":$%d:" comment, __LINE__, ((int) name));
+  printf ("\n->CND:$%d:" #name ":$%d:" comment, __LINE__, ((int) _VAL (name)));
 
 #define CNS(name,comment) \
   printf ("\n->CNS:$%d:" #name ":" name ":" comment, __LINE__);
@@ -131,6 +182,9 @@
 /* Freeform text */
 
 #endif
+
+#define STR(x) STR1(x)
+#define STR1(x) #x
 
 #ifdef __MINGW32__
 unsigned int _CRT_fmode = _O_BINARY;
@@ -173,6 +227,25 @@ package System.OS_Constants is
  **  General constants (all platforms)
  **/
 
+/*
+
+   -----------------------------
+   -- Platform identification --
+   -----------------------------
+
+*/
+TXT("   Target_Name : constant String := " STR(TARGET) ";")
+/*
+   type Target_OS_Type is (Windows, VMS, Other_OS);
+*/
+#if defined (__MINGW32__)
+# define TARGET_OS "Windows"
+#elif defined (__VMS)
+# define TARGET_OS "VMS"
+#else
+# define TARGET_OS "Other_OS"
+#endif
+TXT("   Target_OS : constant Target_OS_Type := " TARGET_OS ";")
 /*
 
    -------------------
@@ -446,6 +519,11 @@ CND(ENOTSOCK, "Operation on non socket")
 #endif
 CND(EOPNOTSUPP, "Operation not supported")
 
+#ifndef EPIPE
+# define EPIPE -1
+#endif
+CND(EPIPE, "Broken pipe")
+
 #ifndef EPFNOSUPPORT
 # define EPFNOSUPPORT -1
 #endif
@@ -460,6 +538,11 @@ CND(EPROTONOSUPPORT, "Unknown protocol")
 # define EPROTOTYPE -1
 #endif
 CND(EPROTOTYPE, "Unknown protocol type")
+
+#ifndef ERANGE
+# define ERANGE -1
+#endif
+CND(ERANGE, "Result too large")
 
 #ifndef ESHUTDOWN
 # define ESHUTDOWN -1
@@ -837,6 +920,15 @@ CND(AF_INET, "IPv4 address family")
 # undef AF_INET6
 #endif
 
+/**
+ ** Tru64 UNIX V4.0F defines AF_INET6 without IPv6 support, specificially
+ ** without struct sockaddr_in6.  We use _SS_MAXSIZE (used for the definition
+ ** of struct sockaddr_storage on Tru64 UNIX V5.1) to detect this.
+ **/
+#if defined(__osf__) && !defined(_SS_MAXSIZE)
+# undef AF_INET6
+#endif
+
 #ifndef AF_INET6
 # define AF_INET6 -1
 #else
@@ -1133,6 +1225,19 @@ TXT("   subtype H_Length_T   is Interfaces.C." h_length_t ";")
 
 /*
 
+   --  Fields of struct msghdr
+*/
+
+#if defined (__sun__) || defined (__hpux__)
+# define msg_iovlen_t "int"
+#else
+# define msg_iovlen_t "size_t"
+#endif
+
+TXT("   subtype Msg_Iovlen_T is Interfaces.C." msg_iovlen_t ";")
+
+/*
+
    ----------------------------------------
    -- Properties of supported interfaces --
    ----------------------------------------
@@ -1149,15 +1254,25 @@ CND(Has_Sockaddr_Len,  "Sockaddr has sa_len field")
 TXT("   Thread_Blocking_IO  : constant Boolean := True;")
 /*
    --  Set False for contexts where socket i/o are process blocking
+
 */
+
+#ifdef HAVE_INET_PTON
+# define Inet_Pton_Linkname "inet_pton"
+#else
+# define Inet_Pton_Linkname "__gnat_inet_pton"
+#endif
+TXT("   Inet_Pton_Linkname  : constant String := \"" Inet_Pton_Linkname "\";")
 
 #endif /* HAVE_SOCKETS */
 
 /**
  **  System-specific constants follow
+ **  Each section should be activated if compiling for the corresponding
+ **  platform *or* generating the dummy version for runtime test compilation.
  **/
 
-#ifdef __vxworks
+#if defined (__vxworks) || defined (DUMMY)
 
 /*
 
@@ -1174,7 +1289,7 @@ CND(ERROR, "VxWorks generic error")
 
 #endif
 
-#ifdef __MINGW32__
+#if defined (__MINGW32__) || defined (DUMMY)
 /*
 
    ------------------------------
@@ -1194,6 +1309,46 @@ CND(WSAEDISCON,         "Disconnected")
 
 #ifdef NATIVE
    putchar ('\n');
+#endif
+
+#if defined (__APPLE__) || defined (DUMMY)
+/*
+
+   -------------------------------
+   -- Darwin-specific constants --
+   -------------------------------
+
+   --  These constants may be used only within the Darwin version of the GNAT
+   --  runtime library.
+*/
+
+#define PTHREAD_SIZE __PTHREAD_SIZE__
+CND(PTHREAD_SIZE, "Pad in pthread_t")
+
+#define PTHREAD_ATTR_SIZE __PTHREAD_ATTR_SIZE__
+CND(PTHREAD_ATTR_SIZE, "Pad in pthread_attr_t")
+
+#define PTHREAD_MUTEXATTR_SIZE __PTHREAD_MUTEXATTR_SIZE__
+CND(PTHREAD_MUTEXATTR_SIZE, "Pad in pthread_mutexattr_t")
+
+#define PTHREAD_MUTEX_SIZE __PTHREAD_MUTEX_SIZE__
+CND(PTHREAD_MUTEX_SIZE, "Pad in pthread_mutex_t")
+
+#define PTHREAD_CONDATTR_SIZE __PTHREAD_CONDATTR_SIZE__
+CND(PTHREAD_CONDATTR_SIZE, "Pad in pthread_condattr_t")
+
+#define PTHREAD_COND_SIZE __PTHREAD_COND_SIZE__
+CND(PTHREAD_COND_SIZE, "Pad in pthread_cond_t")
+
+#define PTHREAD_RWLOCKATTR_SIZE __PTHREAD_RWLOCKATTR_SIZE__
+CND(PTHREAD_RWLOCKATTR_SIZE, "Pad in pthread_rwlockattr_t")
+
+#define PTHREAD_RWLOCK_SIZE __PTHREAD_RWLOCK_SIZE__
+CND(PTHREAD_RWLOCK_SIZE, "Pad in pthread_rwlock_t")
+
+#define PTHREAD_ONCE_SIZE __PTHREAD_ONCE_SIZE__
+CND(PTHREAD_ONCE_SIZE, "Pad in pthread_once_t")
+
 #endif
 
 /*

@@ -6,24 +6,23 @@
  *                                                                          *
  *                              C Header File                               *
  *                                                                          *
- *          Copyright (C) 1992-2008, Free Software Foundation, Inc.         *
+ *          Copyright (C) 1992-2009, Free Software Foundation, Inc.         *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
- * ware  Foundation;  either version 2,  or (at your option) any later ver- *
+ * ware  Foundation;  either version 3,  or (at your option) any later ver- *
  * sion.  GNAT is distributed in the hope that it will be useful, but WITH- *
  * OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY *
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License *
- * for  more details.  You should have  received  a copy of the GNU General *
- * Public License  distributed with GNAT;  see file COPYING.  If not, write *
- * to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, *
- * Boston, MA 02110-1301, USA.                                              *
+ * or FITNESS FOR A PARTICULAR PURPOSE.                                     *
  *                                                                          *
- * As a  special  exception,  if you  link  this file  with other  files to *
- * produce an executable,  this file does not by itself cause the resulting *
- * executable to be covered by the GNU General Public License. This except- *
- * ion does not  however invalidate  any other reasons  why the  executable *
- * file might be covered by the  GNU Public License.                        *
+ * As a special exception under Section 7 of GPL version 3, you are granted *
+ * additional permissions described in the GCC Runtime Library Exception,   *
+ * version 3.1, as published by the Free Software Foundation.               *
+ *                                                                          *
+ * You should have received a copy of the GNU General Public License and    *
+ * a copy of the GCC Runtime Library Exception along with this program;     *
+ * see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    *
+ * <http://www.gnu.org/licenses/>.                                          *
  *                                                                          *
  * GNAT was originally developed  by the GNAT team at  New York University. *
  * Extensive contributions were provided by Ada Core Technologies Inc.      *
@@ -40,10 +39,34 @@
 #include <dirent.h>
 
 /*  Constants used for the form parameter encoding values  */
-#define Encoding_UTF8 0
-#define Encoding_8bits 1
+#define Encoding_UTF8 0         /* UTF-8 */
+#define Encoding_8bits 1        /* Standard 8bits, CP_ACP on Windows. */
+#define Encoding_Unspecified 2  /* Based on GNAT_CODE_PAGE env variable. */
 
-typedef long OS_Time; /* Type corresponding to GNAT.OS_Lib.OS_Time */
+/* Large file support. It is unclear what portable mechanism we can use to
+   determine at compile time what support the system offers for large files.
+   For now we just list the platforms we have manually tested. */
+
+#if defined (__GLIBC__) || defined (sun)  || defined (__sgi)
+#define GNAT_FOPEN fopen64
+#define GNAT_STAT stat64
+#define GNAT_FSTAT fstat64
+#define GNAT_LSTAT lstat64
+#define GNAT_STRUCT_STAT struct stat64
+#else
+#define GNAT_FOPEN fopen
+#define GNAT_STAT stat
+#define GNAT_FSTAT fstat
+#define GNAT_LSTAT lstat
+#define GNAT_STRUCT_STAT struct stat
+#endif
+
+/* Type corresponding to GNAT.OS_Lib.OS_Time */
+#if defined (_WIN64)
+typedef long long OS_Time;
+#else
+typedef long OS_Time;
+#endif
 
 extern int    __gnat_max_path_len;
 extern OS_Time __gnat_current_time		   (void);
@@ -70,7 +93,12 @@ extern int    __gnat_open_new                      (char *, int);
 extern int    __gnat_open_new_temp		   (char *, int);
 extern int    __gnat_mkdir			   (char *);
 extern int    __gnat_stat			   (char *,
-						    struct stat *);
+						    GNAT_STRUCT_STAT *);
+extern int    __gnat_unlink                        (char *);
+extern int    __gnat_rename                        (char *, char *);
+extern int    __gnat_chdir                         (char *);
+extern int    __gnat_rmdir                         (char *);
+
 extern FILE  *__gnat_fopen			   (char *, char *, int);
 extern FILE  *__gnat_freopen			   (char *, char *, FILE *,
 				                    int);
@@ -171,9 +199,15 @@ extern int    __gnat_dup2			   (int, int);
 
 extern void   __gnat_os_filename                   (char *, char *, char *,
 						    int *, char *, int *);
+#if defined (linux)
+extern void   *__gnat_lwp_self			   (void);
+#endif
 
-#if defined (__MINGW32__) && !defined (RTX)
-extern void   __gnat_plist_init                    (void);
+#if defined (_WIN32)
+/* Interface to delete a handle from internally maintained list of child
+   process handles on Windows */
+extern void
+__gnat_win32_remove_handle (HANDLE h, int pid);
 #endif
 
 #ifdef IN_RTS

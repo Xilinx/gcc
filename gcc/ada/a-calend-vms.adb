@@ -6,25 +6,23 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -128,7 +126,7 @@ package body Ada.Calendar is
    --  The above flag controls the usage of leap seconds in all Ada.Calendar
    --  routines.
 
-   Leap_Seconds_Count : constant Natural := 23;
+   Leap_Seconds_Count : constant Natural := 24;
 
    ---------------------
    -- Local Constants --
@@ -178,7 +176,8 @@ package body Ada.Calendar is
       43271712190000000,
       43744320200000000,
       44218656210000000,
-      46427904220000000);
+      46427904220000000,
+      47374848230000000);
 
    ---------
    -- "+" --
@@ -922,11 +921,7 @@ package body Ada.Calendar is
 
          --  Step 3: Handle leap second occurrences
 
-         if Leap_Sec then
-            tm_sec := 60;
-         else
-            tm_sec := Second;
-         end if;
+         tm_sec := (if Leap_Sec then 60 else Second);
       end To_Struct_Tm;
 
       ------------------
@@ -1196,11 +1191,10 @@ package body Ada.Calendar is
             else
                --  Sub second extraction
 
-               if Day_Secs > 0.0 then
-                  Int_Day_Secs := Integer (Day_Secs - 0.5);
-               else
-                  Int_Day_Secs := Integer (Day_Secs);
-               end if;
+               Int_Day_Secs :=
+                 (if Day_Secs > 0.0
+                  then Integer (Day_Secs - 0.5)
+                  else Integer (Day_Secs));
 
                H  := Int_Day_Secs / 3_600;
                Mi := (Int_Day_Secs / 60) mod 60;

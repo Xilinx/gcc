@@ -1,11 +1,11 @@
 // Move, forward and identity for C++0x + swap -*- C++ -*-
 
-// Copyright (C) 2007, 2008 Free Software Foundation, Inc.
+// Copyright (C) 2007, 2008, 2009 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -13,19 +13,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
-// You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
 
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
 
 /** @file move.h
  *  This is an internal header file, included by other library headers.
@@ -44,36 +39,64 @@
 
 _GLIBCXX_BEGIN_NAMESPACE(std)
 
-  // 20.2.2, forward/move
+  /// identity
   template<typename _Tp>
     struct identity
     {
       typedef _Tp type;
     };
 
+  /// forward (as per N2835)
+  /// Forward lvalues as rvalues.
   template<typename _Tp>
-    inline _Tp&&
+    inline typename enable_if<!is_lvalue_reference<_Tp>::value, _Tp&&>::type
+    forward(typename std::identity<_Tp>::type& __t)
+    { return static_cast<_Tp&&>(__t); }
+
+  /// Forward rvalues as rvalues.
+  template<typename _Tp>
+    inline typename enable_if<!is_lvalue_reference<_Tp>::value, _Tp&&>::type
     forward(typename std::identity<_Tp>::type&& __t)
+    { return static_cast<_Tp&&>(__t); }
+
+  // Forward lvalues as lvalues.
+  template<typename _Tp>
+    inline typename enable_if<is_lvalue_reference<_Tp>::value, _Tp>::type
+    forward(typename std::identity<_Tp>::type __t)
     { return __t; }
 
+  // Prevent forwarding rvalues as const lvalues.
+  template<typename _Tp>
+    inline typename enable_if<is_lvalue_reference<_Tp>::value, _Tp>::type
+    forward(typename std::remove_reference<_Tp>::type&& __t) = delete;
+
+  /**
+   *  @brief Move a value.
+   *  @ingroup mutating_algorithms
+   *  @param  __t  A thing of arbitrary type.
+   *  @return Same, moved.
+  */
   template<typename _Tp>
     inline typename std::remove_reference<_Tp>::type&&
     move(_Tp&& __t)
-    { return __t; }
+    { return static_cast<typename std::remove_reference<_Tp>::type&&>(__t); }
 
 _GLIBCXX_END_NAMESPACE
 
 #define _GLIBCXX_MOVE(_Tp) std::move(_Tp)
+#define _GLIBCXX_FORWARD(_Tp, __val) std::forward<_Tp>(__val)
 #else
 #define _GLIBCXX_MOVE(_Tp) (_Tp)
+#define _GLIBCXX_FORWARD(_Tp, __val) (__val)
 #endif
 
 _GLIBCXX_BEGIN_NAMESPACE(std)
 
   /**
    *  @brief Swaps two values.
-   *  @param  a  A thing of arbitrary type.
-   *  @param  b  Another thing of arbitrary type.
+   *  @ingroup mutating_algorithms
+   *  @param  __a  A thing of arbitrary type.
+   *  @param  __b  Another thing of arbitrary type.
    *  @return   Nothing.
   */
   template<typename _Tp>

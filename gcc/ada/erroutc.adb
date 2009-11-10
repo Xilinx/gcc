@@ -6,18 +6,18 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License along  --
+-- with this program; see file COPYING3.  If not see                        --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -115,7 +115,7 @@ package body Erroutc is
 
             --  Adjust error message count
 
-            if Errors.Table (D).Warn or Errors.Table (D).Style then
+            if Errors.Table (D).Warn or else Errors.Table (D).Style then
                Warnings_Detected := Warnings_Detected - 1;
 
             else
@@ -561,7 +561,7 @@ package body Erroutc is
            and then Errors.Table (E).Sptr > From
            and then Errors.Table (E).Sptr < To
          then
-            if Errors.Table (E).Warn or Errors.Table (E).Style then
+            if Errors.Table (E).Warn or else Errors.Table (E).Style then
                Warnings_Detected := Warnings_Detected - 1;
 
             else
@@ -926,8 +926,7 @@ package body Erroutc is
       Name_Len := 0;
 
       while J <= Text'Last and then Text (J) in 'A' .. 'Z' loop
-         Name_Len := Name_Len + 1;
-         Name_Buffer (Name_Len) := Text (J);
+         Add_Char_To_Name_Buffer (Text (J));
          J := J + 1;
       end loop;
 
@@ -1340,6 +1339,10 @@ package body Erroutc is
 
    function Warnings_Suppressed (Loc : Source_Ptr) return Boolean is
    begin
+      if Warning_Mode = Suppress then
+         return True;
+      end if;
+
       --  Loop through table of ON/OFF warnings
 
       for J in Warnings.First .. Warnings.Last loop

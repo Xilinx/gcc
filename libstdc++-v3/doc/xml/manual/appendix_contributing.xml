@@ -17,7 +17,13 @@
   </keywordset>
 </appendixinfo>
 
-<title>Contributing</title>
+<title>
+  Contributing
+  <indexterm>
+    <primary>Appendix</primary>
+    <secondary>Contributing</secondary>
+  </indexterm>
+</title>
 
 <para> 
   The GNU C++ Library follows an open development model. Active
@@ -29,7 +35,7 @@
 <sect1 id="contrib.list" xreflabel="Contributor Checklist">
   <title>Contributor Checklist</title>
 
-  <sect2 id="list.reading" xreflabel="list.reading">
+  <sect2 id="list.reading">
     <title>Reading</title>
 
     <itemizedlist>
@@ -46,7 +52,7 @@
 	  organization is ANSI and their web-site is right
 	  <ulink url="http://www.ansi.org">here.</ulink> 
 	  (And if you've already registered with them, clicking this link will take you to directly to the place where you can 
-	  <ulink url="http://webstore.ansi.org/ansidocstore/product.asp?sku=ISO%2FIEC+14882%3A2003">buy the standard on-line.)</ulink>
+	  <ulink url="http://webstore.ansi.org/RecordDetail.aspx?sku=ISO/IEC%2014882:2003">buy the standard on-line.)</ulink>
 	</para>
       </listitem>
 
@@ -63,7 +69,7 @@
 	  The newsgroup dedicated to standardization issues is
 	  comp.std.c++: this FAQ for this group is quite useful and
 	  can be
-	  found <ulink url="http://www.jamesd.demon.co.uk/csc/faq.html">
+	  found <ulink url="http://www.comeaucomputing.com/csc/faq.html">
 	  here </ulink>.
       </para>
       </listitem>
@@ -71,7 +77,7 @@
       <listitem>
 	<para> 
 	  Peruse
-	  the <ulink url="http://www.gnu.org/prep/standards_toc.html">GNU
+	  the <ulink url="http://www.gnu.org/prep/standards">GNU
 	  Coding Standards</ulink>, and chuckle when you hit the part
 	  about <quote>Using Languages Other Than C</quote>.
 	</para>
@@ -95,7 +101,7 @@
     </itemizedlist>
 
   </sect2>
-  <sect2 id="list.copyright" xreflabel="list.copyright">
+  <sect2 id="list.copyright">
     <title>Assignment</title>
     <para>
       Small changes can be accepted without a copyright assignment form on
@@ -137,7 +143,7 @@
     </para>
   </sect2>
 
-  <sect2 id="list.getting" xreflabel="list.getting">
+  <sect2 id="list.getting">
     <title>Getting Sources</title>
     <para>
       <ulink url="http://gcc.gnu.org/svnwrite.html">Getting write access
@@ -145,7 +151,7 @@
     </para>
   </sect2>
 
-  <sect2 id="list.patches" xreflabel="list.patches">
+  <sect2 id="list.patches">
     <title>Submitting Patches</title>
 
     <para>
@@ -210,6 +216,7 @@
 </sect1>
 
 <sect1 id="contrib.organization" xreflabel="Source Organization">
+  <?dbhtml filename="source_organization.html"?>
   <title>Directory Layout and Source Conventions</title>
   
   <para>
@@ -307,10 +314,11 @@ indicate a place that may require attention for multi-thread safety.
 </sect1>
 
 <sect1 id="contrib.coding_style" xreflabel="Coding Style">
+  <?dbhtml filename="source_code_style.html"?>
   <title>Coding Style</title>
   <para>
   </para>
-  <sect2 id="coding_style.bad_identifiers" xreflabel="coding_style.bad">
+  <sect2 id="coding_style.bad_identifiers">
     <title>Bad Identifiers</title>
     <para>
       Identifiers that conflict and should be avoided.
@@ -505,7 +513,7 @@ indicate a place that may require attention for multi-thread safety.
     </literallayout>
   </sect2>
 
-  <sect2 id="coding_style.example" xreflabel="coding_style.example">
+  <sect2 id="coding_style.example">
     <title>By Example</title>
     <literallayout>
       This library is written to appropriate C++ coding standards. As such,
@@ -905,10 +913,11 @@ indicate a place that may require attention for multi-thread safety.
 </sect1>  
 
 <sect1 id="contrib.doc_style" xreflabel="Documentation Style">
+  <?dbhtml filename="documentation_style.html"?>
   <title>Documentation Style</title>
-  <sect2 id="doc_style.doxygen" xreflabel="doc_style.doxygen">
+  <sect2 id="doc_style.doxygen">
     <title>Doxygen</title>
-    <sect3 id="doxygen.prereq" xreflabel="doxygen.prereq">
+    <sect3 id="doxygen.prereq">
       <title>Prerequisites</title>
       <para>
 	Prerequisite tools are Bash 2.x,
@@ -922,28 +931,28 @@ indicate a place that may require attention for multi-thread safety.
       <para>
 	To generate the pretty pictures and hierarchy
 	graphs, the
-	<ulink url="http://www.research.att.com/sw/tools/graphviz/download.html">Graphviz</ulink>
+	<ulink url="http://www.graphviz.org">Graphviz</ulink>
 	package will need to be installed. 
       </para>
     </sect3>
 
-    <sect3 id="doxygen.rules" xreflabel="doxygen.rules">
+    <sect3 id="doxygen.rules">
       <title>Generating the Doxygen Files</title>
       <para>
-	The Makefile rules
+	The following Makefile rules run Doxygen to generate HTML
+	docs, XML docs, and the man pages.
       </para>
+
+      <para>
       <screen><userinput>make doc-html-doxygen</userinput></screen>
-      <para>
-	and 
       </para>
+
+      <para>
       <screen><userinput>make doc-xml-doxygen</userinput></screen>
-      <para>
-	and 
       </para>
-      <screen><userinput>make doc-man-doxygen</userinput></screen>
+
       <para>
-	in the libstdc++ build directory generate the HTML docs, the
-	XML docs, and the man pages.
+      <screen><userinput>make doc-man-doxygen</userinput></screen>
       </para>
 
       <para>
@@ -963,7 +972,7 @@ indicate a place that may require attention for multi-thread safety.
 
     </sect3>
 
-    <sect3 id="doxygen.markup" xreflabel="doxygen.markup">
+    <sect3 id="doxygen.markup">
       <title>Markup</title>
 
       <para>
@@ -1046,10 +1055,10 @@ indicate a place that may require attention for multi-thread safety.
 
   </sect2>
 
-  <sect2 id="doc_style.docbook" xreflabel="doc_style.docbook">
+  <sect2 id="doc_style.docbook">
     <title>Docbook</title>
 
-    <sect3 id="docbook.prereq" xreflabel="docbook.prereq">
+    <sect3 id="docbook.prereq">
       <title>Prerequisites</title>
       <para>
 	Editing the DocBook sources requires an XML editor. Many
@@ -1073,8 +1082,11 @@ indicate a place that may require attention for multi-thread safety.
       <para>
 	Access to the DocBook stylesheets and DTD is required. The
 	stylesheets are usually packaged by vendor, in something
-	like <filename>docbook-style-xsl</filename>. The installation
-	directory for this package corresponds to
+	like <filename>docbook-style-xsl</filename>. To exactly match
+	generated output, please use a version of the stylesheets
+	equivalent
+	to <filename>docbook-style-xsl-1.74.0-5</filename>. The
+	installation directory for this package corresponds to
 	the <literal>XSL_STYLE_DIR</literal>
 	in <filename>doc/Makefile.am</filename> and defaults
 	to <filename class="directory">/usr/share/sgml/docbook/xsl-stylesheets</filename>.
@@ -1090,7 +1102,7 @@ indicate a place that may require attention for multi-thread safety.
 	For validating the XML document, you'll need
 	something like <command>xmllint</command> and access to the
 	DocBook DTD. These are provided
-	by a vendor package like <filename>lixml2</filename>.
+	by a vendor package like <filename>libxml2</filename>.
       </para>
 
       <para>
@@ -1117,35 +1129,35 @@ xmllint --noout --valid <filename>xml/index.xml</filename>
 	</screen>
     </sect3>
 
-    <sect3 id="docbook.rules" xreflabel="docbook.rules">
+    <sect3 id="docbook.rules">
       <title>Generating the DocBook Files</title>
 
       <para>
-	The Makefile rules
+	The following Makefile rules generate (in order): an HTML
+	version of all the documentation, a PDF version of the same, a
+	single XML document, and the result of validating the entire XML
+	document.
       </para>
-      <screen><userinput>make doc-html</userinput></screen>
-      <para>
-	and 
-      </para>
-      <screen><userinput>make doc-pdf</userinput></screen>
-      <para>
-	and 
-      </para>
-      <screen><userinput>make doc-xml-single</userinput></screen>
-      <para>
-	and 
-      </para>
-      <screen><userinput>make doc-xml-validate</userinput></screen>
 
       <para>
-	in the libstdc++ build directory result respectively in the
-	following: the generation of an HTML version of all the
-	documentation, a PDF version of the same, a single XML
-	document, and the results of validating the XML document.
+      <screen><userinput>make doc-html</userinput></screen>
       </para>
+
+      <para>
+      <screen><userinput>make doc-pdf</userinput></screen>
+      </para>
+
+      <para>
+      <screen><userinput>make doc-xml-single</userinput></screen>
+      </para>
+
+      <para>
+      <screen><userinput>make doc-xml-validate</userinput></screen>
+      </para>
+
     </sect3>
 
-    <sect3 id="docbook.examples" xreflabel="docbook.examples">
+    <sect3 id="docbook.examples">
       <title>File Organization and Basics</title>
 
     <literallayout>
@@ -1211,76 +1223,170 @@ xmllint --noout --valid <filename>xml/index.xml</filename>
     </literallayout>
     </sect3>
 
-    <sect3 id="docbook.markup" xreflabel="docbook.markup">
+    <sect3 id="docbook.markup">
       <title>Markup By Example</title>
 
-    <literallayout>
-      HTML to XML rough equivalents
+<para>
+Complete details on Docbook markup can be found in the DocBook Element
+Reference, <ulink url="http://www.docbook.org/tdg/en/html/part2.html">online</ulink>. An
+incomplete reference for HTML to Docbook conversion is detailed in the
+table below.
+</para>
 
-      &lt;p&gt;			&lt;para&gt;
+<table frame='all'>
+<title>HTML to Docbook XML markup comparison</title>
+<tgroup cols='2' align='left' colsep='1' rowsep='1'>
+<colspec colname='c1'></colspec>
+<colspec colname='c2'></colspec>
 
-      &lt;pre&gt;			&lt;computeroutput&gt;
-      &lt;pre&gt;			&lt;programlisting&gt;
-      &lt;pre&gt;			&lt;literallayout&gt;
+  <thead>
+    <row>
+      <entry>HTML</entry>
+      <entry>XML</entry>
+    </row>
+  </thead>
 
-      &lt;ul&gt;			&lt;itemizedlist&gt;
-      &lt;ol&gt;			&lt;orderedlist&gt;
-      &lt;il&gt;			&lt;listitem&gt;
+  <tbody>
+    <row>
+      <entry>&lt;p&gt;</entry>
+      <entry>&lt;para&gt;</entry>
+    </row>
+    <row>
+      <entry>&lt;pre&gt;</entry>
+      <entry>&lt;computeroutput&gt;, &lt;programlisting&gt;, 
+	&lt;literallayout&gt;</entry>
+    </row>
+    <row>
+      <entry>&lt;ul&gt;</entry>
+      <entry>&lt;itemizedlist&gt;</entry>
+    </row>
+    <row>
+      <entry>&lt;ol&gt;</entry>
+      <entry>&lt;orderedlist&gt;</entry>
+    </row>
+    <row>
+      <entry>&lt;il&gt;</entry>
+      <entry>&lt;listitem&gt;</entry>
+    </row>
+    <row>
+      <entry>&lt;dl&gt;</entry>
+      <entry>&lt;variablelist&gt;</entry>
+    </row>
+    <row>
+      <entry>&lt;dt&gt;</entry>
+      <entry>&lt;term&gt;</entry>
+    </row>
+    <row>
+      <entry>&lt;dd&gt;</entry>
+      <entry>&lt;listitem&gt;</entry>
+    </row>
 
-      &lt;dl&gt;			&lt;variablelist&gt;
+    <row>
+      <entry>&lt;a href=""&gt;</entry>
+      <entry>&lt;ulink url=""&gt;</entry>
+    </row>
+    <row>
+      <entry>&lt;code&gt;</entry>
+      <entry>&lt;literal&gt;, &lt;programlisting&gt;</entry>
+    </row>
+    <row>
+      <entry>&lt;strong&gt;</entry>
+      <entry>&lt;emphasis&gt;</entry>
+    </row>
+    <row>
+      <entry>&lt;em&gt;</entry>
+      <entry>&lt;emphasis&gt;</entry>
+    </row>
+    <row>
+      <entry>&quot;</entry>
+      <entry>&lt;quote&gt;</entry>
+    </row>
+   </tbody>
+</tgroup>
+</table>
 
-      &lt;varlistentry&gt;
-      &lt;dt&gt; 			  &lt;term&gt;
-      &lt;/dt&gt;			  &lt;/term&gt;
-      &lt;dd&gt;  			  &lt;listitem&gt;
-      &lt;/dt&gt;			  &lt;/listitem&gt;
-      &lt;/varlistentry&gt;
+<para>
+  And examples of detailed markup for which there are no real HTML
+  equivalents are listed in the table below.
+</para>
 
-      &lt;a href			&lt;ulink url
-      &lt;code&gt;			&lt;literal&gt;
-      &lt;code&gt;			&lt;programlisting&gt;
+<table frame='all'>
+<title>Docbook XML Element Use</title>
+<tgroup cols='2' align='left' colsep='1' rowsep='1'>
+<colspec colname='c1'></colspec>
+<colspec colname='c2'></colspec>
 
-      &lt;strong&gt;		&lt;emphasis&gt;
-      &lt;em&gt;			&lt;emphasis&gt;
-      &quot;			&lt;quote&gt;
+  <thead>
+    <row>
+      <entry>Element</entry>
+      <entry>Use</entry>
+    </row>
+  </thead>
 
-      ctype.h			&lt;filename class="headerfile"&gt;&lt;/filename&gt;
+  <tbody>
+    <row>
+      <entry>&lt;structname&gt;</entry>
+      <entry>&lt;structname&gt;char_traits&lt;/structname&gt;</entry>
+    </row>
+    <row>
+      <entry>&lt;classname&gt;</entry>
+      <entry>&lt;classname&gt;string&lt;/classname&gt;</entry>
+    </row>
+    <row>
+      <entry>&lt;function&gt;</entry>
+      <entry>
+	<para>&lt;function&gt;clear()&lt;/function&gt;</para>
+	<para>&lt;function&gt;fs.clear()&lt;/function&gt;</para>
+      </entry>
+    </row>
+    <row>
+      <entry>&lt;type&gt;</entry>
+      <entry>&lt;type&gt;long long&lt;/type&gt;</entry>
+    </row>
+    <row>
+      <entry>&lt;varname&gt;</entry>
+      <entry>&lt;varname&gt;fs&lt;/varname&gt;</entry>
+    </row>
+    <row>
+      <entry>&lt;literal&gt;</entry>
+      <entry>
+	<para>&lt;literal&gt;-Weffc++&lt;/literal&gt;</para>
+	<para>&lt;literal&gt;rel_ops&lt;/literal&gt;</para>
+      </entry>
+    </row>
+    <row>
+      <entry>&lt;constant&gt;</entry>
+      <entry>
+	<para>&lt;constant&gt;_GNU_SOURCE&lt;/constant&gt;</para>
+	<para>&lt;constant&gt;3.0&lt;/constant&gt;</para>
+      </entry>
+    </row>
+    <row>
+      <entry>&lt;command&gt;</entry>
+      <entry>&lt;command&gt;g++&lt;/command&gt;</entry>
+    </row>
+    <row>
+      <entry>&lt;errortext&gt;</entry>
+      <entry>&lt;errortext&gt;In instantiation of&lt;/errortext&gt;</entry>
+    </row>
+    <row>
+      <entry>&lt;filename&gt;</entry>
+      <entry>
+	<para>&lt;filename class="headerfile"&gt;ctype.h&lt;/filename&gt;</para>
+	<para>&lt;filename class="directory"&gt;/home/gcc/build&lt;/filename&gt;</para>
+      </entry>
+    </row>
+   </tbody>
+</tgroup>
+</table>
 
-      
-      build_dir   		&lt;filename class="directory"&gt;path_to_build_dir&lt;/filename&gt;
-
-      Finer gradations of &lt;code&gt;
-
-      &lt;classname&gt;		&lt;classname&gt;string&lt;/classname&gt;
-      &lt;classname&gt;vector&lt;&gt;&lt;/classname&gt;			
-      &lt;function&gt;fs.clear()&lt;/function&gt;
-
-      &lt;structname&gt;
-
-      &lt;function&gt;		&lt;function&gt;clear()&lt;/function&gt;
-
-      &lt;type&gt;			&lt;type&gt;long long&lt;/type&gt;
-
-      &lt;varname&gt;		&lt;varname&gt;fs&lt;/varname&gt;
-
-      &lt;literal&gt;		&lt;literal&gt;-Weffc++&lt;/literal&gt; 
-      &lt;literal&gt;rel_ops&lt;/literal&gt;
-
-      &lt;constant&gt;		&lt;constant&gt;_GNU_SOURCE&lt;/constant&gt;
-      &lt;constant&gt;3.0&lt;/constant&gt;
-
-      &lt;filename&gt;
-
-      &lt;command&gt;		&lt;command&gt;g++&lt;/command&gt;
-
-      &lt;errortext&gt;		&lt;errortext&gt;foo Concept &lt;/errortext&gt;
-</literallayout>
     </sect3>
   </sect2>
 
 </sect1>  
 
 <sect1 id="contrib.design_notes" xreflabel="Design Notes">
+  <?dbhtml filename="source_design_notes.html"?>
   <title>Design Notes</title>
   <para>
   </para>
@@ -1602,7 +1708,7 @@ xmllint --noout --valid <filename>xml/index.xml</filename>
     Anyone participating in implementation of the library should obtain
     a copy of the standard, ISO 14882.  People in the U.S. can obtain an
     electronic copy for US$18 from ANSI's web site. Those from other
-    countries should visit http://www.iso.ch/ to find out the location
+    countries should visit http://www.iso.org/ to find out the location
     of their country's representation in ISO, in order to know who can
     sell them a copy.
 

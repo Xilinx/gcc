@@ -1,3 +1,740 @@
+2009-10-26  Ulrich Weigand  <uweigand@de.ibm.com>
+
+	Merge up to mainline revision 153570.
+
+	The branch was merged to mainline.  Branch is closed.
+
+2009-10-26  Ulrich Weigand  <uweigand@de.ibm.com>
+
+	Merge up to mainline revision 153557.
+
+	* explow.c (promote_mode): Fix typo.
+	* varasm.c (initializer_constant_valid_p): Use int_or_pointer_precision
+	instead of TYPE_PRECISION.
+
+2009-10-23  Ulrich Weigand  <uweigand@de.ibm.com>
+
+	Merge up to mainline revision 153493.
+
+2009-10-06  Ulrich Weigand  <uweigand@de.ibm.com>
+
+	* config/spu/spu.opt (-maddress-space-conversion): Use Mask
+	instead of InverseMask.  Remove RejectNegative.
+	(-mno-address-space-conversion): Remove.
+	(-mno-atomic-updates): Remove.
+	* config/spu/spu.h (TARGET_DEFAULT): Add MASK_ADDRESS_SPACE_CONVERSION.
+	* config/spu/spu.c (spu_addr_space_subset_p): Test for
+	!MASK_ADDRESS_SPACE_CONVERSION instead of
+	TARGET_NO_ADDRESS_SPACE_CONVERSION.
+
+2009-10-05  Ulrich Weigand  <uweigand@de.ibm.com>
+
+	Merge up to mainline revision 152437.
+
+	* alias.c (find_base_value): Fix typo.
+	* cfgexpand.c (expand_debug_expr): Use appropriate pointer mode
+	instead of ptr_mode.
+
+2009-09-24  Ulrich Weigand  <uweigand@de.ibm.com>
+
+	* target-def.h (TARGET_DEFAULT_ADDRESS_POINTER_MODES_P): Remove.
+	* targhooks.c (target_default_pointer_address_modes_p): New function.
+	* target.h (target_default_pointer_address_modes_p): Add prototype.
+
+	* alias.c (find_base_value): Use target_default_pointer_address_modes_p
+	instead of TARGET_DEFAULT_ADDRESS_POINTER_MODES_P.
+	(find_base_term): Likewise.
+	* rtlanal.c (nonzero_bits1): Likewise.
+	(num_sign_bit_copies1): Likewise.
+	* simplify-rtx.c: (simplify_unary_operation_1): Likewise.
+
+	* alias.c: Do not include "targhooks.h".
+	* rtlanal.c: Likewise.
+	* simplify-rtx.c: Likewise.
+	* Makefile.in (alias.o): Update dependencies.
+	(rtlanal.o): Likewise.
+	(simplify-rtx.o): Likewise.
+
+2009-09-24  Ulrich Weigand  <uweigand@de.ibm.com>
+
+	* targhooks.c (default_addr_space_address_mode): Fix typo.
+
+2009-09-21  Ulrich Weigand  <uweigand@de.ibm.com>
+
+	* target-def.h (TARGET_DEFAULT_ADDRESS_POINTER_MODES_P): New macro.
+
+	* alias.c: (find_base_value): Use TARGET_DEFAULT_ADDRESS_POINTER_MODES_P
+	to guard pointer size optimizations.
+	(find_base_term): Likewise.
+	* rtlanal.c: (nonzero_bits1): Likewise.
+	(num_sign_bit_copies1): Likewise.
+	* simplify-rtx.c: (simplify_unary_operation_1): Likewise.
+
+	* alias.c: Include "target-def.h" instead of "targhooks.h".
+	* rtlanal.c: Likewise.
+	* simplify-rtx.c: Likewise.
+	* Makefile.in (alias.o): Update dependencies.
+	(rtlanal.o): Likewise.
+	(simplify-rtx.o): Likewise.
+
+2009-09-21  Ulrich Weigand  <uweigand@de.ibm.com>
+
+	* tree.h (struct tree_type): Remove address_space field.
+	(struct tree_base): Add address_space bitfield.  Reduce size of "spare".
+	(TYPE_ADDR_SPACE): Update.
+
+2009-09-18  Ulrich Weigand  <uweigand@de.ibm.com>
+
+	* coretypes.h (ADDR_SPACE_GENERIC): Define.
+	(ADDR_SPACE_GENERIC_P): Define.
+	* config/spu/spu.h (ADDR_SPACE_GENERIC): Do not define.
+
+	Update to use ADDR_SPACE_GENERIC and ADDR_SPACE_GENERIC_P instead of
+	assuming the generic address space is represented by value 0:
+	* targhook.c (default_addr_space_pointer_mode): Update.
+	(default_addr_space_address_mode): Update.
+	(default_addr_space_valid_pointer_mode): Update.
+	(default_addr_space_legitimate_address_p): Update.
+	(default_addr_space_legitimize_address): Update.
+	* tree-pretty-print.c (dump_generic_node): Update.
+	* tree.c (build_pointer_type): Update.
+	(build_reference_type): Update.
+	* tree.h (TYPE_ADDR_SPACE): Update.
+	* reload.c (strict_memory_address_addr_space_p): Update.
+	(find_reloads_address): Update.
+	* dwarf2out.c (modified_type_die): Update.
+	* expr.c (emit_block_move_hints): Update.
+	(clear_storage_hints): Update.
+	(expand_assignment): Update.
+	(expand_expr_addr_expr): Update.
+	* expr.h (memory_address): Update.
+	* recog.c (memory_address_addr_space_p): Update.
+	* recog.h (memory_address_p): Update.
+	(strict_memory_address_p): Update.
+	(offsettable_address_p): Update.
+	* tree-ssa-address.c (most_expensive_mult_to_index): Update.
+	* dse.c (canon_address): Update.
+	* c-decl.c (diagnose_mismatched_decls): Update.
+	(grokdeclarator): Update.
+	(build_null_declspecs): Update.
+	(declspecs_add_addrspace): Update.
+	* c-pretty-print.c (pp_c_type_qualifier_list): Update.
+	* print-rtl.c (print_rtx): Update.
+	* c-typeck.c (build_c_cast): Update.
+	(build_binary_op): Update.
+	* emit-rtl.c (get_spill_slot_decl): Update.
+	(set_mem_attrs_for_spill): Update.
+	* cfgexpand.c (expand_debug_expr): Update.
+	* loop-invariant.c (create_new_invariant): Update.
+	* print-tree.c (print_node_brief): Update.
+	(print_node): Update.
+	* varasm.c (get_variable_section): Update.
+	* rtl.h (MEM_ADDR_SPACE): Update.
+	(convert_memory_address): Update.
+	* c-parser.c (c_parser_postfix_expression_after_paren_type): Update.
+
+	* tree-ssa.c (useless_type_conversion_p): Add back check to avoid
+	losing casts between pointers to different address spaces.
+
+	* target.h (struct gcc_target): Fix comment typo.
+
+2009-09-17  Ulrich Weigand  <uweigand@de.ibm.com>
+
+	* c-decl.c (grokdeclarator): Remove dead code.
+
+2009-09-15  Ulrich Weigand  <uweigand@de.ibm.com>
+
+	* c-decl.c (grokdeclarator): Fix typo.  Correct error message for
+	address space qualifiers specified for unnamed parameters or
+	structure fields.
+
+2009-09-14  Ulrich Weigand  <uweigand@de.ibm.com>
+
+	Merge up to mainline revision 151687.
+
+	* expr.c (expand_expr_real_2): Expand ADDR_SPACE_CONVERT_EXPR here ...
+	(expand_expr_real_1): ... instead of here.
+
+	* cfgexpand.c (expand_debug_expr): Support named address spaces.
+	* var-tracking.c (replace_expr_with_values): Likewise.
+	(count_uses): Likewise.
+	(add_uses): Likewise.
+	(add_stores): Likewise.
+
+	* convert.c: Do not include "target.h".
+	(convert_to_integer): Revert local change.
+	* Makefile.in (convert.o): Remove $(TARGET_H) dependency.
+
+2009-08-26  Ulrich Weigand  <uweigand@de.ibm.com>
+
+	* c-decl.c (grokdeclarator): Remove incorrect check and
+	error message.
+
+2009-08-21  Ulrich Weigand  <uweigand@de.ibm.com>
+
+	* tree.def (ADDR_SPACE_CONVERT_EXPR): New tree code.
+	* expr.c (expand_expr_real_1): Expand ADDR_SPACE_CONVERT_EXPR.
+	Do not handle address space conversions under CONVERT_EXPR.
+	* convert.c (convert_to_pointer): Generate ADDR_SPACE_CONVERT_EXPR
+	to handle conversions between different address spaces.
+	* fold-const.c (fold_convert_loc): Likewise.
+	(fold_unary_loc): Handle ADDR_SPACE_CONVERT_EXPR.
+	* tree-pretty-print.c (dump_generic_node): Likewise.
+	* gimple-pretty-print.c (dump_unary_rhs): Likewise.
+	* tree-cfg.c (verify_gimple_assign_unary): Likewise.
+	* tree-inline.c (estimate_operator_cost): Likewise.
+
+	* tree.h (MIXED_ADDR_SPACE_POINTER_TYPES_P): Remove.
+	* fold-const.c (operand_equal_p): Inline it.
+	* tree.c (tree_nop_conversion): Revert local change.
+	* fold-const.c (fold_convert_const): Likewise.
+	(fold_unary_loc): Likewise.
+	* tree-ssa-ccp.c (ccp_fold): Likewise.
+	(fold_gimple_assign): Likewise.
+	* dojump.c (do_jump): Likewise.
+	* tree-ssa-ifcombine.c (get_name_for_bit_test): Likewise.
+	(recognize_single_bit_test): Likewise.
+	* c-typeck.c (pointer_diff): Likewise.
+	* gimplify.c (gimplify_conversion): Likewise.
+	* varasm.c (narrowing_initializer_constant_valid_p): Likewise.
+	(initializer_constant_valid_p): Likewise.
+	* tree-ssa.c (useless_type_conversion_p): Likewise.
+	* builtins.c (get_memory_rtx): Likewise.
+
+2009-08-20  Ulrich Weigand  <uweigand@de.ibm.com>
+
+	* doc/tm.texi (TARGET_ADDR_SPACE_CONVERT): Update documentation.
+	* expr.c (expand_expr_real_1): When converting pointers between
+	different address spaces, only call target if spaces overlap.
+	* config/spu/spu.c (spu_addr_space_convert): Only handle overlapping
+	address spaces.
+
+	* c-typeck.c (handle_warn_cast_qual): Update comment.
+
+2009-08-19  Ulrich Weigand  <uweigand@de.ibm.com>
+
+	* doc/tm.texi (Named Address Spaces): Update documentation.
+	* doc/invoke.texi (-mea64/-mea32): Reword.
+	(-mcache-size=): Reword.
+	(-matomic-updates/-mno-atomic-updates): Reword.
+
+	* targhooks.c (default_addr_space_convert): Fix whitespace.
+	* auto-inc-dec.c (try_merge): Likewise.
+	* dse.c (replace_inc_dec): Likewise.
+	* c-decl.c (grokdeclarator): Likewise.
+	* explow.c (convert_memory_address_addr_space): Likewise.
+	* tree-ssa-loop-ivopts.c (multiplier_allowed_in_address_p): Likewise.
+	(get_address_cost): Fix merge issue.
+	* tree-ssa-address.c (addr_for_mem_ref): Revert local change.
+	* c-typeck.c (build_binary_op): Fix warning.
+	* ifcvt.c (noce_try_cmove_arith): Handle named address spaces.
+
+	* tree.h (MIXED_ADDR_SPACE_POINTER_TYPES_P): New macro.
+	* tree.c (tree_nop_conversion): Use MIXED_ADDR_SPACE_POINTER_TYPES_P.
+	* fold-const.c (fold_convert_const): Likewise.
+	(operand_equal_p): Likewise).
+	(fold_unary_loc): Likewise.
+	* dojump.c (do_jump): Likewise.
+	* tree-ssa-ifcombine (get_name_for_bit_test): Likewise.
+	(recognize_single_bit_test): Likewise.
+	* varasm.c (narrowing_initializer_constant_valid_p): Likewise.
+	* tree-ssa.c (useless_type_conversion_p): Likewise.
+	* tree-ssa-ccp.c (ccp_fold): Handle named address spaces.
+	(fold_gimple_assign): Likewise.
+	* gimplify.c (gimplify_conversion): Likewise.
+
+	* expr.h (change_address_addr_space): Remove prototype.
+	* emit-rtl.c (change_address_1): Remove address space argument.
+	(change_address_addr_space): Remove.
+	(adjust_address_1): Remove local change.
+	(adjust_automodify_address_1): Likewise.
+	(offset_address): Likewise.
+	(replace_equiv_address): Likewise.
+
+	* rtlanal.c: Include "targhooks.h".
+	* simplify-rtx.c: Likewise.
+	* Makefile.in (rtlanal.o, simplify-rtx.o): Update dependencies.
+
+	* config/spu/spu-cache.h: Update to GPLv3.  Fix namespace violation.
+	* config/spu/cachemgr.c: Update to GPLv3.  Fix formatting.
+	(GET_TAG): Do not define variable in macro.
+	(addr): Use typedef instead of macro.
+	(si_from_eavoid): Remove.
+	(GET_ENTRY): Avoid warning due to si_to_ptr use.
+	(__cache_evict_entry): Update.
+	(__cache_evict): Update.
+	(__cache_miss): Update.
+	(__cache_fetch_dirty): Update.  Avoid warning due to si_to_ptr use.
+	(__cache_flush_stub): Remove.
+	(__cache_flush): Mark as destructor.
+	* config/spu/cache.S: Update to GPLv3.  Fix formatting.
+	* config/spu/spu.opt: Add -mno-atomic-updates.
+	* config/spu/spu.c (expand_ea_mem): Create new MEM RTX instead
+	of calling change_address_addr_space.  Set alignment.
+
+2009-08-17  Ulrich Weigand  <uweigand@de.ibm.com>
+
+	* doc/tm.texi (TARGET_ADDR_SPACE_VALID_POINTER_MODE): Document
+	new target hook.
+	* target.h (struct gcc_target): Add addr_space.valid_pointer_mode.
+	* target-def.h (TARGET_ADDR_SPACE_VALID_POINTER_MODE): Define.
+	(TARGET_ADDR_SPACE_HOOKS): Update.
+	* targhooks.c (default_addr_space_valid_pointer_mode): New function.
+	* targhooks.h (default_addr_space_valid_pointer_mode): Add prototype.
+	* config/spu/spu.c (spu_valid_pointer_mode): Remove.
+	(TARGET_VALID_POINTER_MODE): Do not define.
+
+	* tree-flow.h (multiplier_allowed_in_address_p): Add address space
+	argument.
+	(addr_for_mem_ref): Likewise.
+	* tree-ssa-address.h: Include "target.h".
+	(templates): Replace by ...
+	(mem_addr_template_list): ... this new vector.
+	(TEMPL_IDX): Handle address space numbers.
+	(gen_addr_rtx): Add address mode argument.
+	(addr_for_mem_ref): Add address space argument.  Handle named
+	address spaces.
+	(valid_mem_ref_p): Likewise.
+	(create_mem_ref_raw): Handle named address spaces.
+	(most_expensive_mult_to_index): Update call to
+	multiplier_allowed_in_address_p.
+	* tree-ssa-loop-ivopts.c (produce_memory_decl_rtl): Handle named
+	address spaces.
+	(computation_cost): Likewise.
+	(get_computation_cost_at): Likewise.
+	(multiplier_allowed_in_address_p): Add address space argument.
+	Handle named address spaces.
+	(get_address_cost): Likewise.
+
+	* reload.h (form_sum): Add MODE argument.
+	* reload.c (maybe_memory_address_p): Rename to ...
+	(maybe_memory_address_addr_space_p): ... this.  Handle named
+	address spaces.
+	(strict_memory_address_p): Rename to ...
+	(strict_memory_address_addr_space_p): ... this.  Handle named
+	address spaces.
+	(get_secondary_mem): Handle named address spaces.
+	(find_reloads): Likewise.
+	(find_reloads_toplev): Likewise.
+	(find_reloads_address): Likewise.
+	(find_reloads_subreg_address): Likewise.
+	(find_reloads_address_1): Do not refer to Pmode.
+	(form_sum): Add MODE argument.  Use it instead of referring to Pmode.
+	Update recursive calls.
+	(subst_indexed_address): Update calls to form_sum.
+	* reload1.c (reload): Handle named address spaces.
+	(eliminate_regs_1): Update call to form_sum.
+
+	* rtl.h (address_cost): Add address space argument.
+	(convert_memory_address): Implement as macro.
+	(convert_memory_address_addr_space): Add prototype.
+
+	* rtlanal.c (address_cost): Add address space argument.  Handle named
+	address spaces.
+	(nonzero_bits1): Guard pointer size optimizations.
+	(num_sign_bit_copies1): Likewise.
+	* alias.c: Include "targhooks.h".
+	(find_base_value): Guard pointer size optimizations.
+	(find_base_term): Likewise.
+	* simplify-rtx.c (simplify_unary_operation_1): Guard
+	pointer size optimizations.
+	* loop-invariant.c (create_new_invariant): Update call to
+	address_cost.
+
+	* explow.c (convert_memory_address): Rename to ...
+	(convert_memory_address_addr_space): ... this.  Add address space
+	argument.  Handle named address spaces.  Update recursive calls.
+	(memory_address_addr_space): Use convert_memory_address_addr_space.
+
+	* expr.c (move_by_pieces): Handle named address spaces.
+	(emit_block_move_hints): Likewise.
+	(emit_block_move_via_loop): Likewise.
+	(store_by_pieces): Likewise.
+	(store_by_pieces_1): Likewise.
+	(clear_storage_hints): Likewise.
+	(expand_assignment): Likewise.
+	(store_expr): Likewise.
+	(store_constructor): Likewise.
+	(expand_expr_addr_expr_1): Add address space argument.
+	Handle named address spaces.  Update recursive calls.
+	(expand_expr_addr_expr): Update call.
+	(expand_expr_real_1): Handle TARGET_MEM_REF in named
+	address spaces.
+
+	* recog.c (verify_changes): Handle named address spaces.
+	(general_operand): Likewise.
+	(memory_address_p): Inline into ...
+	(memory_address_addr_space_p): ... this function.
+	(offsettable_memref_p): Handle named address spaces.
+	(offsettable_nonstrict_memref_p): Likewise.
+	(offsettable_address_p): Rename to ...
+	(offsettable_address_addr_space_p): ... this.  Add address space
+	argument.  Handle named address spaces.
+	(constrain_operands): Handle named address spaces.
+	* recog.h (memory_address_p): Implement as macro.
+	(strict_memory_address_p): Likewise.
+	(offsettable_address_p): Likewise.
+	(offsettable_address_addr_space_p): Add prototype.
+
+	* auto-inc-dec.c (find_inc): Revert local change.
+
+	* rtlhooks.c (gen_lowpart_if_possible): Handle named address spaces.
+
+	* fwprop.c (should_replace_address): Add address space argument.
+	Handle named address spaces.
+	(propagate_rtx_1): Update call.
+
+	* ifcvt.c (noce_try_cmove_arith): Handle named address spaces.
+
+	* sched-deps.c: Include "target.h".
+	(sched_analyze_1): Handle named address spaces.
+	(sched_analyze_2): Likewise.
+
+	* sel-sched-dump.c: Include "target.h".
+	(debug_mem_addr_value): Handle named address spaces.
+
+	* dse.c (replace_inc_dec): Do not refer to Pmode.
+	(canon_address): Handle named address spaces.
+
+	* regmove.c (try_auto_increment): Do not refer to Pmode.
+
+	* regcprop.c (kill_autoinc_value): Do not refer to Pmode.
+
+	* tree-vect-data-refs.c (vect_create_data_ref_ptr): Do not
+	refer to ptr_mode.
+
+	* expmed.c (make_tree): Handle named address spaces.
+
+	* emit-rtl.c (operand_subword): Handle named address spaces.
+
+	* cselib.c (cselib_record_sets): Handle named address spaces.
+
+	* combine.c (find_split_point): Handle named address spaces.
+
+	* c-common.c (handle_mode_attribute): Handle named address spaces.
+
+	* varasm.c (initializer_constant_valid_p): Do not refer to
+	POINTER_SIZE.
+	(output_constant): Handle named address spaces.
+
+	* Makefile.in (tree-ssa-address.o): Add dependency on $(TARGET_H).
+	(sched-deps.o): Likewise.
+	(alias.o): Add dependency on targhooks.h.
+
+2009-08-14  Ulrich Weigand  <uweigand@de.ibm.com>
+
+	* doc/tm.texi (Named Address Spaces): Refer to N1275 instead of N1169.
+	(TARGET_ADDR_SPACE_MINUS_TYPE): Remove documentation.
+	(TARGET_ADDR_SPACE_NAME): Likewise.
+	(TARGET_ADDR_SPACE_CAN_CONVERT_P): Likewise.
+	(TARGET_ADDR_SPACE_SECTION_NAME): Likewise.
+	(TARGET_ADDR_SPACE_STATIC_INIT_OK_P): Likewise.
+	(TARGET_ADDR_SPACE_SUBSET_P): Update documentation.
+	(TARGET_ADDR_SPACE_CONVERT): Likewise.
+	(TARGET_ADDR_SPACE_ADDRESS_MODE): Add documentation.
+	* doc/invoke.texi (-mea-to-generic-conversion): Remove.
+	(-mno-ea-to-generic-conversion): Likewise.
+	Minor formatting / wording changes.
+
+	* target.h (struct gcc_target): Remove addr_space.minus_type,
+	addr_space.name, addr_space.can_convert_p, addr_space.section_name,
+	and addr_space.static_init_ok_p.  Add addr_space.address_mode.
+	* target-def.h (TARGET_ADDR_SPACE_MINUS_TYPE): Remove.
+	(TARGET_ADDR_SPACE_NAME): Likewise.
+	(TARGET_ADDR_SPACE_CAN_CONVERT_P): Likewise.
+	(TARGET_ADDR_SPACE_SECTION_NAME): Likewise.
+	(TARGET_ADDR_SPACE_STATIC_INIT_OK_P): Likewise.
+	(TARGET_ADDR_SPACE_ADDRESS_MODE): New macro.
+	(TARGET_ADDR_SPACE_HOOKS): Update.
+	* targhooks.c (default_addr_space_minus_type): Remove.
+	(default_addr_space_name): Likewise.
+	(default_addr_space_can_convert_p): Likewise.
+	(default_addr_space_section_name): Likewise.
+	(default_addr_space_static_init_ok_p): Likewise.
+	(default_addr_space_address_mode): New function.
+	(default_addr_space_legitimize_address): Call non-address-space
+	variant of target hook when appropriate.
+	* targhooks.h (default_addr_space_minus_type): Remove.
+	(default_addr_space_name): Remove.
+	(default_addr_space_can_convert_p): Remove.
+	(default_addr_space_section_name): Remove.
+	(default_addr_space_static_init_ok_p): Remove.
+	(default_addr_space_address_mode): Add prototype.
+	* output.h (default_valid_pointer_mode): Remove duplicate prototype.
+	(default_addr_space_pointer_mode): Likewise.
+
+	* tree-pretty-print.c: Do not include "target.h" or "target-def.h".
+	(dump_generic_node): Do not call targetm.addr_space.name.
+	* tree.c (check_qualified_type): Revert local change.
+	(build_pointer_type): Simplify.
+	(build_reference_type): Likewise.
+	(int_or_pointer_precision): Likewise.
+	(tree_nop_conversion): Preserve conversions between pointers
+	to different address spaces
+	* builtins.c (get_memory_rtx): Preserve conversions between pointers
+	to different address spaces.
+	* fold-const.c: Do not include "target.h".
+	(fold_convert_const): Preserve conversions between pointers
+	to different address spaces.
+	(fold_unary_loc): Likewise.
+	* convert.c (convert_to_pointer): Do not issue error messages; do not
+	call targetm.addr_space.can_convert_p.  Fix merge errors.
+	(convert_to_integer): Simplify.  Fix merge errors.
+	* tree-ssa.c (useless_type_conversion_p_1): Fix merge error.
+	* cp/typeck.c (cp_type_quals): Revert local change.
+	* langhooks.c (lhd_tree_dump_dump_tree): Likewise.
+
+	* rtl.c (rtx_equal_p_cb): MEMs refering to different address
+	spaces are not equivalent.
+	(rtx_equal_p): Likewise.
+	* reload.c (operands_match_p): Likewise.
+	* cse.c (exp_equiv_p): Likewise.
+	* jump.c (rtx_renumbered_equal_p): Likewise.
+	* alias.c (nonoverlapping_memrefs_p): MEMs refering to different
+	address spaces may alias.
+	(true_dependence): Likewise.
+	(canon_true_dependence): Likewise.
+	(write_dependence_p): Likewise.
+
+	* emit-rtl.c (set_mem_attributes_minus_bitpos): Fix formatting.
+	(set_mem_alias_set): Likewise.
+	(set_mem_addr_space): Likewise.
+	(set_mem_align): Likewise.
+	(set_mem_expr): Likewise.
+	(set_mem_offset): Likewise.
+	(set_mem_size): Likewise.
+	(widen_memory_access): Likewise.
+	(adjust_address_1): Use targetm.addr_space.address_mode.
+	(offset_address): Likewise.
+	* stor-layout.c (internal_reference_types): Use
+	targetm.addr_space.address_mode.
+	(reference_types_internal): Update comment.
+	* expr.c (expand_assignment): Handle MISALIGNED_INDIRECT_REF to
+	non-generic address spaces.  Do not use memmove libcall with
+	non-generic address spaces.
+	(expand_expr_addr_expr): Use targetm.addr_space.address_mode.
+	(expand_expr_real_1): Likewise.
+	* explow.c (memory_address_addr_space): Revert local change.
+	Use targetm.addr_space.address_mode.
+	(validize_mem): Simplify.
+	(promote_mode): Use targetm.addr_space.address_mode.
+	* varasm.c (get_variable_section): Variables in non-generic
+	address spaces cannot be common.
+	(make_decl_rtl): Use targetm.addr_space.address_mode.
+	(narrowing_initializer_constant_valid_p): Preserve conversions
+	between pointers to different address spaces.
+	(initializer_constant_valid_p): Likewise.
+
+	* c-common.c (c_addr_space_name): New function.
+	* c-common.h (c_addr_space_name): Add prototype.
+	* c-decl.c: Do not include "targhooks.h".
+	(diagnose_mismatched_decls): Call c_addr_space_name instead of
+	targetm.addr_space.name.
+	(grokdeclarator): Likewise.
+	(declspecs_add_addrspace): Likewise.
+	(start_decl): Do not call targetm.addr_space.section_name.
+	* c-pretty-print.c: Do not include "targhooks.h".
+	(pp_c_type_qualifier_list): Call c_addr_space_name instead of
+	targetm.addr_space.name.
+	* c-typeck.c (addr_space_superset): Remove prototype.  Simplify.
+	(digest_init_addr_space_ok_p): Remove function.
+	(digest_init): Revert local changes.
+	(store_init_value): Likewise.
+	(output_init_element): Likewise.
+	(null_pointer_constant_p): Likewise.
+	(comptypes_internal): Likewise.
+	(common_pointer_type): Simplify.
+	(comp_target_types): Likewise.
+	(pointer_diff): Do not use targetm.addr_space.minus_type.  Convert
+	pointers to common address space before converting to integer type.
+	Use intermediate integer type that is large enough.
+	(build_conditional_expr): Simplify.  Clarify null pointer handling.
+	(build_binary_op): Likewise.
+	(build_c_cast): Do not use targetm.addr_space.can_convert_p.  Emit
+	warnings instead of errors.
+	(convert_for_assignment): Correctly handle asymmetry.  Update
+	error messages.
+
+	* Makefile.in (c-decl.o): Update dependencies.
+	(c-pretty-print.o): Likewise.
+	(convert.o): Likewise.
+	(tree-pretty-print.o): Likewise.
+	(fold-const.o): Likewise.
+
+	* config/spu/spu.opt (mea-to-generic-conversion): Remove.
+	(mno-ea-to-generic-conversion): Likewise.
+	Some documentation updates.
+	* config/spu/t-spu-elf: Remove commented-out macros.
+	* config/spu/spu.c (spu_no_relocation): Remove.
+	(spu_addr_space_minus_type): Likewise.
+	(spu_addr_space_name): Likewise.
+	(spu_addr_space_can_convert_p): Likewise.
+	(spu_addr_space_section_name): Likewise.
+	(spu_addr_space_static_init_ok_p): Likewise.
+	(spu_addr_space_address_mode): New function.
+	(spu_select_section): Likewise.
+	(spu_unique_section): Likewise.
+	(TARGET_ADDR_SPACE_MINUS_TYPE): Do not override.
+	(TARGET_ADDR_SPACE_NAME): Likewise.
+	(TARGET_ADDR_SPACE_CAN_CONVERT_P): Likewise.
+	(TARGET_ADDR_SPACE_SECTION_NAME): Likewise.
+	(TARGET_ADDR_SPACE_STATIC_INIT_OK_P): Likewise.
+	(TARGET_ADDR_SPACE_ADDRESS_MODE): Override.
+	(TARGET_ASM_SELECT_SECTION): Likewise.
+	(TARGET_ASM_UNIQUE_SECTION): Likewise.
+	(spu_addr_space_subset_p): Update comment.
+	(spu_addr_space_convert): Inline conversion routines from spu.md.
+	Correctly handle null pointer conversions.
+	Handle TARGET_NO_ADDRESS_SPACE_CONVERSION.
+	* config/spu/spu.h (PTRDIFF_TYPE): Revert local change.
+	(SIZE_TYPE): Likewise.
+	(TEXT_SECTION_ASM_OP): Likewise.
+	(DATA_SECTION_ASM_OP): Likewise.
+	(ASM_OUTPUT_SYMBOL_REF): Do not call strip_array_types.
+	* config/spu/spu.md ("to_ea"): Remove.
+	("from_ea"): Likewise.
+
+2009-07-28  Ulrich Weigand  <uweigand@de.ibm.com>
+
+	Merge up to mainline revision 150048.
+
+2009-05-22  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* doc/tm.texi (Named Address Spaces): Update named address space
+	documentation.
+
+2009-05-20  Michael Meissner  <meissner@linux.vnet.ibm.com>
+	    Ulrich Weigand  <uweigand@de.ibm.com>
+
+	Merge up to mainline, branch id 147741.
+
+	* targhooks.c (default_addr_space_nop_convert_p): Delete, no
+	longer used.
+	(default_addr_space_subset_p): Update for change to calling
+	signuatures.
+	(default_addr_space_can_convert_p): Ditto.
+	(default_addr_space_convert): Ditto.
+
+	* targhooks.h (default_addr_space_nop_convert_p): Delete, no
+	longer used.
+	(default_addr_space_subset_p): Update for change to calling
+	signuatures.
+	(default_addr_space_can_convert_p): Ditto.
+	(default_addr_space_convert): Ditto.
+
+	* target.h (struct addr_space): Delete the nop_convert_p hook.
+	Change the subset_p hook to remove the third argument, and make
+	the hook a pure subset test.  Change the convert and can_convert_p
+	hooks to take tree types instead of named address spaces for more
+	flexibility.  Reorder elements so the convert and can_convert_p
+	hooks are next to each other.
+
+	* c-typeck.c (addr_space_superset): New static function to
+	determine if one named address space is a subset of another, and
+	if so, which named address space is the superset.
+	(qualify_type): Change to use addr_space_superset.
+	(common_pointer_type): Ditto.
+	(comp_target_types): Ditto.
+	(build_conditional_expr): Ditto.
+	(build_binary_op): Ditto.
+	(build_c_cast): Change to pass tree types to determine if we can
+	convert between two pointers to different named addresses.
+
+	* target-def.h (TARGET_ADDR_SPACE_NOP_CONVERT_P): Delete, no
+	longer used.
+	(TARGET_ADDR_SPACE_HOOKS): Delete nop_convert_p field.  Reorder
+	initializers to match changes in target.h.
+
+	* config/spu/spu.c (toplevel): Move declarations of named address
+	space target hook functions where the other functions are
+	declared.
+	(spu_addr_space_nop_convert_p): Delete, no longer used.
+	(TARGET_ADDR_SPACE_NOP_CONVERT_P): Ditto.
+	(spu_addr_space_subset_p): Change to make the target hook return
+	only if the first named address space is a subset of the second.
+	(spu_addr_space_can_convert_p): Change to take tree types instead
+	of named address spaces for more flexibility.
+	(spu_addr_space_convert): Ditto.
+
+	* config/spu/spu.h (ADDR_SPACE_BAD): Delete.
+
+	* convert.c (convert_to_pointer): Delete the support for named
+	address space conversion being a NOP.  Change convert target hook
+	calling signature.
+
+2009-05-19  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	Merge to mainline, subversion revision 147681.
+
+	* c-decl.c (grokdeclarator): Merge to mainline, fixup named
+	address space errors.
+
+	* config/spu/spu.h (PTRDIFF_TYPE): Define.
+	(SIZE_TYPE): Ditto.
+
+	* config/spu/spu.c (spu_legitimate_address_space_p): Make static,
+	remove named address space support from the generic version.
+	(spu_legitimize_address_space): Ditto.
+	(spu_addr_space_legitimate_address_p): Named address space version
+	of spu_addr_space_legitimate_address_p.
+	(spu_addr_space_legitimize_address): Named address space version
+	of spu_addr_space_legitimze_address.
+	(TARGET_ADDR_SPACE_LEGITIMATE_ADDRESS_P): Define hook.
+	(TARGET_ADDR_SPACE_LEGITIMIZE_ADDRESS): Ditto.
+	(spu_addr_space_memory_address_p): Delete, no longer used.
+	(spu_addr_space_strict_memory_address_p): Ditto.
+	(TARGET_ADDR_SPACE_MEMORY_ADDRESS_P): Ditto.
+	(TARGET_ADDR_SPACE_STRICT_MEMORY_ADDRESS_P): Ditto.
+
+	* config/spu/spu-protos.h (spu_legitimate_address): Delete
+	declaration.
+	(spu_legitimize_address): Ditto.
+
+	* c-typeck.c (digest_init): Merge to mainline.
+	(build_c_cast): Ditto.
+	(store_init_value): Ditto.
+
+	* explow.c (memory_address_addr_space): Rewrite address space
+	legitimate_address_p hook similar to the non address space
+	version.
+
+	* expr.c (expand_expr_real_1): Merge to mainline.
+
+	* Makefile.in (tree-pretty-print.o): Merge to mainline.
+	(auto-inc-dec.o): Ditto.
+
+	* recog.c (memory_address_addr_space_p): Rename hook.
+
+	* target-def.h (TARGET_ADDR_SPACE_MEMORY_ADDRESS_P): Delete.
+	(TARGET_ADDR_SPACE_STRICT_MEMORY_ADDRESS_P): Ditto.
+	(TARGET_ADDR_SPACE_LEGITIMATE_ADDRESS_P): Combine strict,
+	non-strict named address space versions into one hook.
+	(TARGET_ADDR_SPACE_HOOKS): Ditto.
+
+	* target.h (addr_space structure): Combine strict, non-strict
+	legitimate address hooks.
+
+	* targethooks.c (default_addr_space_memory_address_p): Delete.
+	(default_addr_space_strict_memory_address_p): Ditto.
+	(default_addr_space_legitimate_address_p): Combine strict,
+	non-strict legitimate address hooks.
+	(default_addr_space_legitimize_address): Return the address, not
+	NULL_RTX.
+
+	* targethooks.h (default_addr_space_memory_address_p): Delete.
+	(default_addr_space_strict_memory_address_p): Ditto.
+	(default_addr_space_legitimate_address_p): Combine strict,
+	non-strict legitimate address hooks.
+
+	* tree.h (build_low_bits_mask): Merge to mainline.
+
+	* tree-ssa.c (useless_type_conversion_p_1): Merge to mainline.
+
+2009-04-03  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* c-decl.c (grokdeclarator): Undo clearing the named address space
+	qualifiers when checking whether a function has type qualifiers.
+
 2009-03-31  Ulrich Weigand  <uweigand@de.ibm.com>
 
 	* config/spu/spu-elf.h (DRIVER_SELF_SPECS): Remove.
@@ -1133,13 +1870,11 @@
 2008-04-17  Ben Elliston  <bje@au.ibm.com>
 
 	* config/spu/spu.c: Various bug fixes.
-	* testsuite/gcc.target/spu/cache.c: New test.
 
 2008-03-15  Ben Elliston  <bje@au.ibm.com>
 
-	* gcc/c-parser.c: Diagnose address space qualified compound
+	* c-parser.c: Diagnose address space qualified compound
 	literals in function bodies.
-	* gcc/testsuite/gcc.dg/ea/errors.c: Add a test case.
 
 2007-11-09  Ben Elliston  <bje@au.ibm.com>
 

@@ -1,34 +1,29 @@
 /* Specialized bits of code needed to support construction and
    destruction of file-scope objects in C++ code.
-   Copyright (C) 1991, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 1991, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001
+   2002, 2003, 2004, 2005, 2006, 2007, 2009 Free Software Foundation, Inc.
    Contributed by Ron Guilmette (rfg@monkeys.com).
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
-
-In addition to the permissions in the GNU General Public License, the
-Free Software Foundation gives you unlimited permission to link the
-compiled version of this file into combinations with other programs,
-and to distribute those combinations without any restriction coming
-from the use of this file.  (The General Public License restrictions
-do apply in other respects; for example, they cover modification of
-the file, and distribution when not linked into a combine
-executable.)
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
 WARRANTY; without even the implied warranty of MERCHANTABILITY or
 FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
-You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+Under Section 7 of GPL version 3, you are granted additional
+permissions described in the GCC Runtime Library Exception, version
+3.1, as published by the Free Software Foundation.
+
+You should have received a copy of the GNU General Public License and
+a copy of the GCC Runtime Library Exception along with this program;
+see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+<http://www.gnu.org/licenses/>.  */
 
 /* This file is a bit like libgcc2.c in that it is compiled
    multiple times and yields multiple .o files.
@@ -58,11 +53,9 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
    identified the set of defines that need to go into auto-target.h,
    this will have to do.  */
 #include "auto-host.h"
-#undef gid_t
 #undef pid_t
 #undef rlim_t
 #undef ssize_t
-#undef uid_t
 #undef vfork
 #include "tconfig.h"
 #include "tsystem.h"
@@ -84,6 +77,15 @@ call_ ## FUNC (void)					\
   FORCE_CODE_SECTION_ALIGN				\
   asm (TEXT_SECTION_ASM_OP);				\
 }
+#endif
+
+#if defined(OBJECT_FORMAT_ELF) \
+    && !defined(OBJECT_FORMAT_FLAT) \
+    && defined(HAVE_LD_EH_FRAME_HDR) \
+    && !defined(inhibit_libc) && !defined(CRTSTUFFT_O) \
+    && defined(__FreeBSD__) && __FreeBSD__ >= 7
+#include <link.h>
+# define USE_PT_GNU_EH_FRAME
 #endif
 
 #if defined(OBJECT_FORMAT_ELF) \
@@ -332,11 +334,18 @@ __do_global_dtors_aux (void)
 /* Stick a call to __do_global_dtors_aux into the .fini section.  */
 #ifdef FINI_SECTION_ASM_OP
 CRT_CALL_STATIC_FUNCTION (FINI_SECTION_ASM_OP, __do_global_dtors_aux)
-#else /* !defined(FINI_SECTION_ASM_OP) */
+#elif defined (FINI_ARRAY_SECTION_ASM_OP)
 static func_ptr __do_global_dtors_aux_fini_array_entry[]
   __attribute__ ((__unused__, section(".fini_array")))
   = { __do_global_dtors_aux };
-#endif /* !defined(FINI_SECTION_ASM_OP) */
+#else /* !FINI_SECTION_ASM_OP && !FINI_ARRAY_SECTION_ASM_OP */
+static void __attribute__((used))
+__do_global_dtors_aux_1 (void)
+{
+  atexit (__do_global_dtors_aux);
+}
+CRT_CALL_STATIC_FUNCTION (INIT_SECTION_ASM_OP, __do_global_dtors_aux_1)
+#endif
 
 #if defined(USE_EH_FRAME_REGISTRY) || defined(JCR_SECTION_NAME)
 /* Stick a call to __register_frame_info into the .init section.  For some

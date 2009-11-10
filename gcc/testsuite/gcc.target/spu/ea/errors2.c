@@ -1,87 +1,107 @@
-/* Invalid conversions of __ea pointers to local pointers.  */
+/* Copyright (C) 2009 Free Software Foundation, Inc.
+
+   This file is free software; you can redistribute it and/or modify it under
+   the terms of the GNU General Public License as published by the Free
+   Software Foundation; either version 3 of the License, or (at your option)
+   any later version.
+
+   This file is distributed in the hope that it will be useful, but WITHOUT
+   ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+   FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+   for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this file; see the file COPYING3.  If not see
+   <http://www.gnu.org/licenses/>.  */
+
+/* Invalid __ea declarations.  */
+
 /* { dg-do compile } */
-/* { dg-options "-O2 -std=gnu99 -pedantic-errors -mno-ea-to-generic-conversion" } */
 
-/* This is the same code as compile2.c but it should generate errors.  If you
-   modify this file, you should modify errors2.c as well.  */
-#ifndef TYPE
-#define TYPE void
-#endif
+__ea char ea_str[] = "abc";
+char lm_str[] = "abc";
 
-typedef __ea TYPE *ea_ptr_t;
-typedef      TYPE *lm_ptr_t;
+__ea char *lm_ea_ptr1 = "abc";				/* { dg-error "initializer element is not computable at load time" } */
+__ea char *lm_ea_ptr2 = (__ea char *)"abc";		/* { dg-error "initializer element is not constant" } */
+__ea char *lm_ea_ptr3 = ea_str;
+__ea char *lm_ea_ptr4 = (__ea char *)ea_str;
+__ea char *lm_ea_ptr5 = lm_str;				/* { dg-error "initializer element is not computable at load time" } */
+__ea char *lm_ea_ptr6 = (__ea char *)lm_str;		/* { dg-error "initializer element is not constant" } */
 
-extern ea_ptr_t ea_ptr;
-extern lm_ptr_t lm_ptr;
+__ea char * __ea ea_ea_ptr1 = ea_str;
+__ea char * __ea ea_ea_ptr2 = (__ea char *)ea_str;
 
-extern void arg_ea (ea_ptr_t);
-extern void arg_lm (lm_ptr_t);
+char * __ea ea_lm_ptr1 = lm_str;
+char * __ea ea_lm_ptr2 = (char *)lm_str;
 
-#ifdef NO_CAST
-#define EA_CAST(ARG) (ARG)
-#define LM_CAST(ARG) (ARG)
+struct foo {
+  int first;
+  __ea char *ptr;
+  int last;
+};
 
-#else
-#define EA_CAST(ARG) ((ea_ptr_t)(ARG))
-#define LM_CAST(ARG) ((lm_ptr_t)(ARG))
-#endif
+__ea struct foo ea_struct1 = {
+  10,
+  (__ea char *)0,
+  11,
+};
 
-void ea_to_ea_arg (void)
-{
-  arg_ea (ea_ptr);
-}
+__ea struct foo ea_struct2 = {
+  20,
+  0,
+  21,
+};
 
-void ea_to_lm_arg (void)
-{
-  arg_lm (LM_CAST (ea_ptr));	/* { dg-error "cast to generic address space pointer from __ea address space pointer" } */
-}
+struct foo ea_struct3 = {
+  30,
+  ea_str,
+  31,
+};
 
-void lm_to_ea_arg (void)
-{
-  arg_ea (EA_CAST (lm_ptr));
-}
+struct foo ea_struct4 = {
+  40,
+  (__ea char *)lm_str,	/* { dg-error "(initializer element is not constant)|(near initialization)" "" } */
+  41,
+};
 
-void lm_to_lm_arg (void)
-{
-  arg_lm (lm_ptr);
-}
+struct bar {
+  int first;
+  char *ptr;
+  int last;
+};
 
-ea_ptr_t ea_to_ea_ret (void)
-{
-  return ea_ptr;
-}
+__ea struct bar ea_struct5 = {
+  50,
+  0,
+  51,
+};
 
-lm_ptr_t ea_to_lm_ret (void)
-{
-  return LM_CAST (ea_ptr);	/* { dg-error "cast to generic address space pointer from __ea address space pointer" } */
-}
+__ea struct bar ea_struct6 = {
+  60,
+  (char *)0,
+  61,
+};
 
-ea_ptr_t lm_to_ea_ret (void)
-{
-  return EA_CAST (lm_ptr);
-}
+__ea struct bar ea_struct7 = {
+  70,
+  lm_str,
+  71,
+};
 
-lm_ptr_t lm_to_lm_ret (void)
-{
-  return lm_ptr;
-}
+struct bar lm_struct8 = {
+  80,
+  0,
+  81,
+};
 
-void ea_to_ea_store (ea_ptr_t ptr)
-{
-  ea_ptr = ptr;
-}
+struct bar lm_struct9 = {
+  90,
+  (char *)0,
+  91,
+};
 
-void ea_to_lm_store (ea_ptr_t ptr)
-{
-  lm_ptr = LM_CAST (ptr);	/* { dg-error "cast to generic address space pointer from __ea address space pointer" } */
-}
-
-void lm_to_ea_store (lm_ptr_t ptr)
-{
-  ea_ptr = EA_CAST (ptr);
-}
-
-void lm_to_lm_store (lm_ptr_t ptr)
-{
-  lm_ptr = ptr;
-}
+struct bar lm_struct10 = {
+  100,
+  lm_str,
+  101,
+};

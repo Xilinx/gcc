@@ -1,12 +1,12 @@
 // Algorithm implementation -*- C++ -*-
 
-// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -14,19 +14,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
-// You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
 
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
 
 /*
  *
@@ -139,6 +134,56 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	return __c;
       else
 	return __b;
+    }
+
+  /// Swaps the median value of *__a, *__b and *__c to *__a
+  template<typename _Iterator>
+    void
+    __move_median_first(_Iterator __a, _Iterator __b, _Iterator __c)
+    {
+      // concept requirements
+      __glibcxx_function_requires(_LessThanComparableConcept<
+	    typename iterator_traits<_Iterator>::value_type>)
+
+      if (*__a < *__b)
+	{
+	  if (*__b < *__c)
+	    std::iter_swap(__a, __b);
+	  else if (*__a < *__c)
+	    std::iter_swap(__a, __c);
+	}
+      else if (*__a < *__c)
+	return;
+      else if (*__b < *__c)
+	std::iter_swap(__a, __c);
+      else
+	std::iter_swap(__a, __b);
+    }
+
+  /// Swaps the median value of *__a, *__b and *__c under __comp to *__a
+  template<typename _Iterator, typename _Compare>
+    void
+    __move_median_first(_Iterator __a, _Iterator __b, _Iterator __c,
+			_Compare __comp)
+    {
+      // concept requirements
+      __glibcxx_function_requires(_BinaryFunctionConcept<_Compare, bool,
+	    typename iterator_traits<_Iterator>::value_type,
+	    typename iterator_traits<_Iterator>::value_type>)
+
+      if (__comp(*__a, *__b))
+	{
+	  if (__comp(*__b, *__c))
+	    std::iter_swap(__a, __b);
+	  else if (__comp(*__a, *__c))
+	    std::iter_swap(__a, __c);
+	}
+      else if (__comp(*__a, *__c))
+	return;
+      else if (__comp(*__b, *__c))
+	std::iter_swap(__a, __c);
+      else
+	std::iter_swap(__a, __b);
     }
 
   // for_each
@@ -640,6 +685,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   /**
    *  @brief  Find last matching subsequence in a sequence.
+   *  @ingroup non_mutating_algorithms
    *  @param  first1  Start of range to search.
    *  @param  last1   End of range to search.
    *  @param  first2  Start of sequence to match.
@@ -683,6 +729,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   /**
    *  @brief  Find last matching subsequence in a sequence using a predicate.
+   *  @ingroup non_mutating_algorithms
    *  @param  first1  Start of range to search.
    *  @param  last1   End of range to search.
    *  @param  first2  Start of sequence to match.
@@ -733,6 +780,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   /**
    *  @brief  Checks that a predicate is true for all the elements
    *          of a sequence.
+   *  @ingroup non_mutating_algorithms
    *  @param  first   An input iterator.
    *  @param  last    An input iterator.
    *  @param  pred    A predicate.
@@ -749,6 +797,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   /**
    *  @brief  Checks that a predicate is false for all the elements
    *          of a sequence.
+   *  @ingroup non_mutating_algorithms
    *  @param  first   An input iterator.
    *  @param  last    An input iterator.
    *  @param  pred    A predicate.
@@ -765,6 +814,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   /**
    *  @brief  Checks that a predicate is false for at least an element
    *          of a sequence.
+   *  @ingroup non_mutating_algorithms
    *  @param  first   An input iterator.
    *  @param  last    An input iterator.
    *  @param  pred    A predicate.
@@ -781,6 +831,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   /**
    *  @brief  Find the first element in a sequence for which a
    *          predicate is false.
+   *  @ingroup non_mutating_algorithms
    *  @param  first  An input iterator.
    *  @param  last   An input iterator.
    *  @param  pred   A predicate.
@@ -803,6 +854,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   /**
    *  @brief  Checks whether the sequence is partitioned.
+   *  @ingroup mutating_algorithms
    *  @param  first  An input iterator.
    *  @param  last   An input iterator.
    *  @param  pred   A predicate.
@@ -821,6 +873,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   /**
    *  @brief  Find the partition point of a partitioned range.
+   *  @ingroup mutating_algorithms
    *  @param  first   An iterator.
    *  @param  last    Another iterator.
    *  @param  pred    A predicate.
@@ -868,6 +921,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   /**
    *  @brief Copy a sequence, removing elements of a given value.
+   *  @ingroup mutating_algorithms
    *  @param  first   An input iterator.
    *  @param  last    An input iterator.
    *  @param  result  An output iterator.
@@ -903,6 +957,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   /**
    *  @brief Copy a sequence, removing elements for which a predicate is true.
+   *  @ingroup mutating_algorithms
    *  @param  first   An input iterator.
    *  @param  last    An input iterator.
    *  @param  result  An output iterator.
@@ -941,6 +996,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
   /**
    *  @brief Copy the elements of a sequence for which a predicate is true.
+   *  @ingroup mutating_algorithms
    *  @param  first   An input iterator.
    *  @param  last    An input iterator.
    *  @param  result  An output iterator.
@@ -1000,6 +1056,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   /**
    *  @brief Copies the range [first,first+n) into [result,result+n).
+   *  @ingroup mutating_algorithms
    *  @param  first  An input iterator.
    *  @param  n      The number of elements to copy.
    *  @param  result An output iterator.
@@ -1026,6 +1083,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   /**
    *  @brief Copy the elements of a sequence to separate output sequences
    *         depending on the truth value of a predicate.
+   *  @ingroup mutating_algorithms
    *  @param  first   An input iterator.
    *  @param  last    An input iterator.
    *  @param  out_true   An output iterator.
@@ -1072,6 +1130,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   /**
    *  @brief Remove elements from a sequence.
+   *  @ingroup mutating_algorithms
    *  @param  first  An input iterator.
    *  @param  last   An input iterator.
    *  @param  value  The value to be removed.
@@ -1114,6 +1173,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   /**
    *  @brief Remove elements from a sequence using a predicate.
+   *  @ingroup mutating_algorithms
    *  @param  first  A forward iterator.
    *  @param  last   A forward iterator.
    *  @param  pred   A predicate.
@@ -1156,6 +1216,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   /**
    *  @brief Remove consecutive duplicate values from a sequence.
+   *  @ingroup mutating_algorithms
    *  @param  first  A forward iterator.
    *  @param  last   A forward iterator.
    *  @return  An iterator designating the end of the resulting sequence.
@@ -1194,6 +1255,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   /**
    *  @brief Remove consecutive values from a sequence using a predicate.
+   *  @ingroup mutating_algorithms
    *  @param  first        A forward iterator.
    *  @param  last         A forward iterator.
    *  @param  binary_pred  A binary predicate.
@@ -1424,6 +1486,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   /**
    *  @brief Reverse a sequence.
+   *  @ingroup mutating_algorithms
    *  @param  first  A bidirectional iterator.
    *  @param  last   A bidirectional iterator.
    *  @return   reverse() returns no value.
@@ -1446,6 +1509,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   /**
    *  @brief Copy a sequence, reversing its elements.
+   *  @ingroup mutating_algorithms
    *  @param  first   A bidirectional iterator.
    *  @param  last    A bidirectional iterator.
    *  @param  result  An output iterator.
@@ -1635,6 +1699,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   /**
    *  @brief Rotate the elements of a sequence.
+   *  @ingroup mutating_algorithms
    *  @param  first   A forward iterator.
    *  @param  middle  A forward iterator.
    *  @param  last    A forward iterator.
@@ -1669,6 +1734,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   /**
    *  @brief Copy a sequence, rotating its elements.
+   *  @ingroup mutating_algorithms
    *  @param  first   A forward iterator.
    *  @param  middle  A forward iterator.
    *  @param  last    A forward iterator.
@@ -1796,15 +1862,15 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	  for (; __first != __last; ++__first)
 	    if (__pred(*__first))
 	      {
-		*__result1 = *__first;
+		*__result1 = _GLIBCXX_MOVE(*__first);
 		++__result1;
 	      }
 	    else
 	      {
-		*__result2 = *__first;
+		*__result2 = _GLIBCXX_MOVE(*__first);
 		++__result2;
 	      }
-	  std::copy(__buffer, __result2, __result1);
+	  _GLIBCXX_MOVE3(__buffer, __result2, __result1);
 	  return __result1;
 	}
       else
@@ -1828,6 +1894,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   /**
    *  @brief Move elements for which a predicate is true to the beginning
    *         of a sequence, preserving relative ordering.
+   *  @ingroup mutating_algorithms
    *  @param  first   A forward iterator.
    *  @param  last    A forward iterator.
    *  @param  pred    A predicate functor.
@@ -1907,6 +1974,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   /**
    *  @brief Copy the smallest elements of a sequence.
+   *  @ingroup sorting_algorithms
    *  @param  first   An iterator.
    *  @param  last    Another iterator.
    *  @param  result_first   A random-access iterator.
@@ -1971,6 +2039,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   /**
    *  @brief Copy the smallest elements of a sequence using a predicate for
    *         comparison.
+   *  @ingroup sorting_algorithms
    *  @param  first   An input iterator.
    *  @param  last    Another input iterator.
    *  @param  result_first   A random-access iterator.
@@ -2039,36 +2108,40 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     }
 
   /// This is a helper function for the sort routine.
-  template<typename _RandomAccessIterator, typename _Tp>
+  template<typename _RandomAccessIterator>
     void
-    __unguarded_linear_insert(_RandomAccessIterator __last, _Tp __val)
+    __unguarded_linear_insert(_RandomAccessIterator __last)
     {
+      typename iterator_traits<_RandomAccessIterator>::value_type
+	__val = _GLIBCXX_MOVE(*__last);
       _RandomAccessIterator __next = __last;
       --__next;
       while (__val < *__next)
 	{
-	  *__last = *__next;
+	  *__last = _GLIBCXX_MOVE(*__next);
 	  __last = __next;
 	  --__next;
 	}
-      *__last = __val;
+      *__last = _GLIBCXX_MOVE(__val);
     }
 
   /// This is a helper function for the sort routine.
-  template<typename _RandomAccessIterator, typename _Tp, typename _Compare>
+  template<typename _RandomAccessIterator, typename _Compare>
     void
-    __unguarded_linear_insert(_RandomAccessIterator __last, _Tp __val,
+    __unguarded_linear_insert(_RandomAccessIterator __last,
 			      _Compare __comp)
     {
+      typename iterator_traits<_RandomAccessIterator>::value_type
+	__val = _GLIBCXX_MOVE(*__last);
       _RandomAccessIterator __next = __last;
       --__next;
       while (__comp(__val, *__next))
 	{
-	  *__last = *__next;
+	  *__last = _GLIBCXX_MOVE(*__next);
 	  __last = __next;
 	  --__next;
 	}
-      *__last = __val;
+      *__last = _GLIBCXX_MOVE(__val);
     }
 
   /// This is a helper function for the sort routine.
@@ -2082,15 +2155,15 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
       for (_RandomAccessIterator __i = __first + 1; __i != __last; ++__i)
 	{
-	  typename iterator_traits<_RandomAccessIterator>::value_type
-	    __val = *__i;
-	  if (__val < *__first)
+	  if (*__i < *__first)
 	    {
-	      std::copy_backward(__first, __i, __i + 1);
-	      *__first = __val;
+	      typename iterator_traits<_RandomAccessIterator>::value_type
+		__val = _GLIBCXX_MOVE(*__i);
+	      _GLIBCXX_MOVE_BACKWARD3(__first, __i, __i + 1);
+	      *__first = _GLIBCXX_MOVE(__val);
 	    }
 	  else
-	    std::__unguarded_linear_insert(__i, __val);
+	    std::__unguarded_linear_insert(__i);
 	}
     }
 
@@ -2104,15 +2177,15 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
       for (_RandomAccessIterator __i = __first + 1; __i != __last; ++__i)
 	{
-	  typename iterator_traits<_RandomAccessIterator>::value_type
-	    __val = *__i;
-	  if (__comp(__val, *__first))
+	  if (__comp(*__i, *__first))
 	    {
-	      std::copy_backward(__first, __i, __i + 1);
-	      *__first = __val;
+	      typename iterator_traits<_RandomAccessIterator>::value_type
+		__val = _GLIBCXX_MOVE(*__i);
+	      _GLIBCXX_MOVE_BACKWARD3(__first, __i, __i + 1);
+	      *__first = _GLIBCXX_MOVE(__val);
 	    }
 	  else
-	    std::__unguarded_linear_insert(__i, __val, __comp);
+	    std::__unguarded_linear_insert(__i, __comp);
 	}
     }
 
@@ -2126,7 +2199,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	_ValueType;
 
       for (_RandomAccessIterator __i = __first; __i != __last; ++__i)
-	std::__unguarded_linear_insert(__i, _ValueType(*__i));
+	std::__unguarded_linear_insert(__i);
     }
 
   /// This is a helper function for the sort routine.
@@ -2139,7 +2212,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	_ValueType;
 
       for (_RandomAccessIterator __i = __first; __i != __last; ++__i)
-	std::__unguarded_linear_insert(__i, _ValueType(*__i), __comp);
+	std::__unguarded_linear_insert(__i, __comp);
     }
 
   /**
@@ -2183,7 +2256,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   template<typename _RandomAccessIterator, typename _Tp>
     _RandomAccessIterator
     __unguarded_partition(_RandomAccessIterator __first,
-			  _RandomAccessIterator __last, _Tp __pivot)
+			  _RandomAccessIterator __last, const _Tp& __pivot)
     {
       while (true)
 	{
@@ -2204,7 +2277,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     _RandomAccessIterator
     __unguarded_partition(_RandomAccessIterator __first,
 			  _RandomAccessIterator __last,
-			  _Tp __pivot, _Compare __comp)
+			  const _Tp& __pivot, _Compare __comp)
     {
       while (true)
 	{
@@ -2220,6 +2293,29 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	}
     }
 
+  /// This is a helper function...
+  template<typename _RandomAccessIterator>
+    inline _RandomAccessIterator
+    __unguarded_partition_pivot(_RandomAccessIterator __first,
+				_RandomAccessIterator __last)
+    {
+      _RandomAccessIterator __mid = __first + (__last - __first) / 2;
+      std::__move_median_first(__first, __mid, (__last - 1));
+      return std::__unguarded_partition(__first + 1, __last, *__first);
+    }
+
+
+  /// This is a helper function...
+  template<typename _RandomAccessIterator, typename _Compare>
+    inline _RandomAccessIterator
+    __unguarded_partition_pivot(_RandomAccessIterator __first,
+				_RandomAccessIterator __last, _Compare __comp)
+    {
+      _RandomAccessIterator __mid = __first + (__last - __first) / 2;
+      std::__move_median_first(__first, __mid, (__last - 1), __comp);
+      return std::__unguarded_partition(__first + 1, __last, *__first, __comp);
+    }
+
   /// This is a helper function for the sort routine.
   template<typename _RandomAccessIterator, typename _Size>
     void
@@ -2227,9 +2323,6 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 		     _RandomAccessIterator __last,
 		     _Size __depth_limit)
     {
-      typedef typename iterator_traits<_RandomAccessIterator>::value_type
-	_ValueType;
-
       while (__last - __first > int(_S_threshold))
 	{
 	  if (__depth_limit == 0)
@@ -2239,14 +2332,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	    }
 	  --__depth_limit;
 	  _RandomAccessIterator __cut =
-	    std::__unguarded_partition(__first, __last,
-				       _ValueType(std::__median(*__first,
-								*(__first
-								  + (__last
-								     - __first)
-								  / 2),
-								*(__last
-								  - 1))));
+	    std::__unguarded_partition_pivot(__first, __last);
 	  std::__introsort_loop(__cut, __last, __depth_limit);
 	  __last = __cut;
 	}
@@ -2259,9 +2345,6 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 		     _RandomAccessIterator __last,
 		     _Size __depth_limit, _Compare __comp)
     {
-      typedef typename iterator_traits<_RandomAccessIterator>::value_type
-	_ValueType;
-
       while (__last - __first > int(_S_threshold))
 	{
 	  if (__depth_limit == 0)
@@ -2271,15 +2354,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	    }
 	  --__depth_limit;
 	  _RandomAccessIterator __cut =
-	    std::__unguarded_partition(__first, __last,
-				       _ValueType(std::__median(*__first,
-								*(__first
-								  + (__last
-								     - __first)
-								  / 2),
-								*(__last - 1),
-								__comp)),
-				       __comp);
+	    std::__unguarded_partition_pivot(__first, __last, __comp);
 	  std::__introsort_loop(__cut, __last, __depth_limit, __comp);
 	  __last = __cut;
 	}
@@ -2330,14 +2405,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	    }
 	  --__depth_limit;
 	  _RandomAccessIterator __cut =
-	    std::__unguarded_partition(__first, __last,
-				       _ValueType(std::__median(*__first,
-								*(__first
-								  + (__last
-								     - __first)
-								  / 2),
-								*(__last
-								  - 1))));
+	    std::__unguarded_partition_pivot(__first, __last);
 	  if (__cut <= __nth)
 	    __first = __cut;
 	  else
@@ -2366,15 +2434,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	    }
 	  --__depth_limit;
 	  _RandomAccessIterator __cut =
-	    std::__unguarded_partition(__first, __last,
-				       _ValueType(std::__median(*__first,
-								*(__first
-								  + (__last
-								     - __first)
-								  / 2),
-								*(__last - 1),
-								__comp)),
-				       __comp);
+	    std::__unguarded_partition_pivot(__first, __last, __comp);
 	  if (__cut <= __nth)
 	    __first = __cut;
 	  else
@@ -2394,7 +2454,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
    *  @return         An iterator pointing to the first element "not less
    *                  than" @a val, or end() if every element is less than 
    *                  @a val.
-   *  @ingroup binarysearch
+   *  @ingroup binary_search_algorithms
   */
   template<typename _ForwardIterator, typename _Tp>
     _ForwardIterator
@@ -2435,13 +2495,14 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   /**
    *  @brief Finds the first position in which @a val could be inserted
    *         without changing the ordering.
+   *  @ingroup binary_search_algorithms
    *  @param  first   An iterator.
    *  @param  last    Another iterator.
    *  @param  val     The search term.
    *  @param  comp    A functor to use for comparisons.
    *  @return  An iterator pointing to the first element "not less than" @a val,
    *           or end() if every element is less than @a val.
-   *  @ingroup binarysearch
+   *  @ingroup binary_search_algorithms
    *
    *  The comparison function should have the same effects on ordering as
    *  the function used for the initial sort.
@@ -2487,12 +2548,13 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   /**
    *  @brief Finds the last position in which @a val could be inserted
    *         without changing the ordering.
+   *  @ingroup binary_search_algorithms
    *  @param  first   An iterator.
    *  @param  last    Another iterator.
    *  @param  val     The search term.
    *  @return  An iterator pointing to the first element greater than @a val,
    *           or end() if no elements are greater than @a val.
-   *  @ingroup binarysearch
+   *  @ingroup binary_search_algorithms
   */
   template<typename _ForwardIterator, typename _Tp>
     _ForwardIterator
@@ -2533,13 +2595,14 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   /**
    *  @brief Finds the last position in which @a val could be inserted
    *         without changing the ordering.
+   *  @ingroup binary_search_algorithms
    *  @param  first   An iterator.
    *  @param  last    Another iterator.
    *  @param  val     The search term.
    *  @param  comp    A functor to use for comparisons.
    *  @return  An iterator pointing to the first element greater than @a val,
    *           or end() if no elements are greater than @a val.
-   *  @ingroup binarysearch
+   *  @ingroup binary_search_algorithms
    *
    *  The comparison function should have the same effects on ordering as
    *  the function used for the initial sort.
@@ -2585,11 +2648,12 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   /**
    *  @brief Finds the largest subrange in which @a val could be inserted
    *         at any place in it without changing the ordering.
+   *  @ingroup binary_search_algorithms
    *  @param  first   An iterator.
    *  @param  last    Another iterator.
    *  @param  val     The search term.
    *  @return  An pair of iterators defining the subrange.
-   *  @ingroup binarysearch
+   *  @ingroup binary_search_algorithms
    *
    *  This is equivalent to
    *  @code
@@ -2651,7 +2715,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
    *  @param  val     The search term.
    *  @param  comp    A functor to use for comparisons.
    *  @return  An pair of iterators defining the subrange.
-   *  @ingroup binarysearch
+   *  @ingroup binary_search_algorithms
    *
    *  This is equivalent to
    *  @code
@@ -2712,11 +2776,11 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   /**
    *  @brief Determines whether an element exists in a range.
+   *  @ingroup binary_search_algorithms
    *  @param  first   An iterator.
    *  @param  last    Another iterator.
    *  @param  val     The search term.
    *  @return  True if @a val (or its equivalent) is in [@a first,@a last ].
-   *  @ingroup binarysearch
    *
    *  Note that this does not actually return an iterator to @a val.  For
    *  that, use std::find or a container's specialized find member functions.
@@ -2741,12 +2805,12 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   /**
    *  @brief Determines whether an element exists in a range.
+   *  @ingroup binary_search_algorithms
    *  @param  first   An iterator.
    *  @param  last    Another iterator.
    *  @param  val     The search term.
    *  @param  comp    A functor to use for comparisons.
    *  @return  True if @a val (or its equivalent) is in [@a first,@a last ].
-   *  @ingroup binarysearch
    *
    *  Note that this does not actually return an iterator to @a val.  For
    *  that, use std::find or a container's specialized find member functions.
@@ -2862,15 +2926,15 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       _BidirectionalIterator2 __buffer_end;
       if (__len1 > __len2 && __len2 <= __buffer_size)
 	{
-	  __buffer_end = std::copy(__middle, __last, __buffer);
-	  std::copy_backward(__first, __middle, __last);
-	  return std::copy(__buffer, __buffer_end, __first);
+	  __buffer_end = _GLIBCXX_MOVE3(__middle, __last, __buffer);
+	  _GLIBCXX_MOVE_BACKWARD3(__first, __middle, __last);
+	  return _GLIBCXX_MOVE3(__buffer, __buffer_end, __first);
 	}
       else if (__len1 <= __buffer_size)
 	{
-	  __buffer_end = std::copy(__first, __middle, __buffer);
-	  std::copy(__middle, __last, __first);
-	  return std::copy_backward(__buffer, __buffer_end, __last);
+	  __buffer_end = _GLIBCXX_MOVE3(__first, __middle, __buffer);
+	  _GLIBCXX_MOVE3(__middle, __last, __first);
+	  return _GLIBCXX_MOVE_BACKWARD3(__buffer, __buffer_end, __last);
 	}
       else
 	{
@@ -2892,15 +2956,21 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     {
       if (__len1 <= __len2 && __len1 <= __buffer_size)
 	{
-	  _Pointer __buffer_end = std::copy(__first, __middle, __buffer);
-	  _GLIBCXX_STD_P::merge(__buffer, __buffer_end, __middle, __last, 
+	  _Pointer __buffer_end = _GLIBCXX_MOVE3(__first, __middle, __buffer);
+	  _GLIBCXX_STD_P::merge(_GLIBCXX_MAKE_MOVE_ITERATOR(__buffer),
+				_GLIBCXX_MAKE_MOVE_ITERATOR(__buffer_end),
+				_GLIBCXX_MAKE_MOVE_ITERATOR(__middle),
+				_GLIBCXX_MAKE_MOVE_ITERATOR(__last),
 				__first);
 	}
       else if (__len2 <= __buffer_size)
 	{
-	  _Pointer __buffer_end = std::copy(__middle, __last, __buffer);
-	  std::__merge_backward(__first, __middle, __buffer,
-				__buffer_end, __last);
+	  _Pointer __buffer_end = _GLIBCXX_MOVE3(__middle, __last, __buffer);
+	  std::__merge_backward(_GLIBCXX_MAKE_MOVE_ITERATOR(__first),
+				_GLIBCXX_MAKE_MOVE_ITERATOR(__middle),
+				_GLIBCXX_MAKE_MOVE_ITERATOR(__buffer),
+				_GLIBCXX_MAKE_MOVE_ITERATOR(__buffer_end),
+				__last);
 	}
       else
 	{
@@ -2949,15 +3019,21 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     {
       if (__len1 <= __len2 && __len1 <= __buffer_size)
 	{
-	  _Pointer __buffer_end = std::copy(__first, __middle, __buffer);
-	  _GLIBCXX_STD_P::merge(__buffer, __buffer_end, __middle, __last,
+	  _Pointer __buffer_end = _GLIBCXX_MOVE3(__first, __middle, __buffer);
+	  _GLIBCXX_STD_P::merge(_GLIBCXX_MAKE_MOVE_ITERATOR(__buffer),
+				_GLIBCXX_MAKE_MOVE_ITERATOR(__buffer_end),
+				_GLIBCXX_MAKE_MOVE_ITERATOR(__middle),
+				_GLIBCXX_MAKE_MOVE_ITERATOR(__last),
 				__first, __comp);
 	}
       else if (__len2 <= __buffer_size)
 	{
-	  _Pointer __buffer_end = std::copy(__middle, __last, __buffer);
-	  std::__merge_backward(__first, __middle, __buffer, __buffer_end,
-				__last, __comp);
+	  _Pointer __buffer_end = _GLIBCXX_MOVE3(__middle, __last, __buffer);
+	  std::__merge_backward(_GLIBCXX_MAKE_MOVE_ITERATOR(__first),
+				_GLIBCXX_MAKE_MOVE_ITERATOR(__middle),
+				_GLIBCXX_MAKE_MOVE_ITERATOR(__buffer),
+				_GLIBCXX_MAKE_MOVE_ITERATOR(__buffer_end),
+				__last,__comp);
 	}
       else
 	{
@@ -3086,6 +3162,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   /**
    *  @brief Merges two sorted ranges in place.
+   *  @ingroup sorting_algorithms
    *  @param  first   An iterator.
    *  @param  middle  Another iterator.
    *  @param  last    Another iterator.
@@ -3136,6 +3213,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   /**
    *  @brief Merges two sorted ranges in place.
+   *  @ingroup sorting_algorithms
    *  @param  first   An iterator.
    *  @param  middle  Another iterator.
    *  @param  last    Another iterator.
@@ -3204,16 +3282,22 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
       while (__last - __first >= __two_step)
 	{
-	  __result = _GLIBCXX_STD_P::merge(__first, __first + __step_size,
-					   __first + __step_size,
-					   __first + __two_step,
-					   __result);
+	  __result = _GLIBCXX_STD_P::merge(
+			_GLIBCXX_MAKE_MOVE_ITERATOR(__first),
+			_GLIBCXX_MAKE_MOVE_ITERATOR(__first + __step_size),
+			_GLIBCXX_MAKE_MOVE_ITERATOR(__first + __step_size),
+			_GLIBCXX_MAKE_MOVE_ITERATOR(__first + __two_step),
+			__result);
 	  __first += __two_step;
 	}
 
       __step_size = std::min(_Distance(__last - __first), __step_size);
-      _GLIBCXX_STD_P::merge(__first, __first + __step_size, 
-			    __first + __step_size, __last,
+      _GLIBCXX_STD_P::merge(_GLIBCXX_MAKE_MOVE_ITERATOR(__first),
+			    _GLIBCXX_MAKE_MOVE_ITERATOR(__first +
+							__step_size),
+			    _GLIBCXX_MAKE_MOVE_ITERATOR(__first +
+							__step_size),
+			    _GLIBCXX_MAKE_MOVE_ITERATOR(__last),
 			    __result);
     }
 
@@ -3229,16 +3313,23 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
       while (__last - __first >= __two_step)
 	{
-	  __result = _GLIBCXX_STD_P::merge(__first, __first + __step_size,
-				__first + __step_size, __first + __two_step,
-				__result,
-				__comp);
+	  __result = _GLIBCXX_STD_P::merge(
+			_GLIBCXX_MAKE_MOVE_ITERATOR(__first),
+			_GLIBCXX_MAKE_MOVE_ITERATOR(__first + __step_size),
+			_GLIBCXX_MAKE_MOVE_ITERATOR(__first + __step_size),
+			_GLIBCXX_MAKE_MOVE_ITERATOR(__first + __two_step),
+			__result, __comp);
 	  __first += __two_step;
 	}
       __step_size = std::min(_Distance(__last - __first), __step_size);
 
-      _GLIBCXX_STD_P::merge(__first, __first + __step_size,
-			    __first + __step_size, __last, __result, __comp);
+      _GLIBCXX_STD_P::merge(_GLIBCXX_MAKE_MOVE_ITERATOR(__first),
+			    _GLIBCXX_MAKE_MOVE_ITERATOR(__first +
+							__step_size),
+			    _GLIBCXX_MAKE_MOVE_ITERATOR(__first +
+							__step_size),
+			    _GLIBCXX_MAKE_MOVE_ITERATOR(__last),
+			    __result, __comp);
     }
 
   template<typename _RandomAccessIterator, typename _Distance>
@@ -3432,7 +3523,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
    *  @param  last2   End of sequence.
    *  @return  True if each element in [first2,last2) is contained in order
    *  within [first1,last1).  False otherwise.
-   *  @ingroup setoperations
+   *  @ingroup set_algorithms
    *
    *  This operation expects both [first1,last1) and [first2,last2) to be
    *  sorted.  Searches for the presence of each element in [first2,last2)
@@ -3472,6 +3563,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   /**
    *  @brief Determines whether all elements of a sequence exists in a range
    *  using comparison.
+   *  @ingroup set_algorithms
    *  @param  first1  Start of search range.
    *  @param  last1   End of search range.
    *  @param  first2  Start of sequence
@@ -3479,7 +3571,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
    *  @param  comp    Comparison function to use.
    *  @return  True if each element in [first2,last2) is contained in order
    *  within [first1,last1) according to comp.  False otherwise.
-   *  @ingroup setoperations
+   *  @ingroup set_algorithms
    *
    *  This operation expects both [first1,last1) and [first2,last2) to be
    *  sorted.  Searches for the presence of each element in [first2,last2)
@@ -3533,6 +3625,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   /**
    *  @brief  Permute range into the next "dictionary" ordering.
+   *  @ingroup sorting_algorithms
    *  @param  first  Start of range.
    *  @param  last   End of range.
    *  @return  False if wrapped to first permutation, true otherwise.
@@ -3587,6 +3680,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   /**
    *  @brief  Permute range into the next "dictionary" ordering using
    *          comparison functor.
+   *  @ingroup sorting_algorithms
    *  @param  first  Start of range.
    *  @param  last   End of range.
    *  @param  comp   A comparison functor.
@@ -3643,6 +3737,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   /**
    *  @brief  Permute range into the previous "dictionary" ordering.
+   *  @ingroup sorting_algorithms
    *  @param  first  Start of range.
    *  @param  last   End of range.
    *  @return  False if wrapped to last permutation, true otherwise.
@@ -3698,6 +3793,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   /**
    *  @brief  Permute range into the previous "dictionary" ordering using
    *          comparison functor.
+   *  @ingroup sorting_algorithms
    *  @param  first  Start of range.
    *  @param  last   End of range.
    *  @param  comp   A comparison functor.
@@ -3794,6 +3890,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   /**
    *  @brief Copy a sequence, replacing each value for which a predicate
    *         returns true with another value.
+   *  @ingroup mutating_algorithms
    *  @param  first      An input iterator.
    *  @param  last       An input iterator.
    *  @param  result     An output iterator.
@@ -3831,6 +3928,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
   /**
    *  @brief  Determines whether the elements of a sequence are sorted.
+   *  @ingroup sorting_algorithms
    *  @param  first   An iterator.
    *  @param  last    Another iterator.
    *  @return  True if the elements are sorted, false otherwise.
@@ -3843,6 +3941,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   /**
    *  @brief  Determines whether the elements of a sequence are sorted
    *          according to a comparison functor.
+   *  @ingroup sorting_algorithms
    *  @param  first   An iterator.
    *  @param  last    Another iterator.
    *  @param  comp    A comparison functor.
@@ -3856,6 +3955,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   /**
    *  @brief  Determines the end of a sorted sequence.
+   *  @ingroup sorting_algorithms
    *  @param  first   An iterator.
    *  @param  last    Another iterator.
    *  @return  An iterator pointing to the last iterator i in [first, last)
@@ -3883,6 +3983,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   /**
    *  @brief  Determines the end of a sorted sequence using comparison functor.
+   *  @ingroup sorting_algorithms
    *  @param  first   An iterator.
    *  @param  last    Another iterator.
    *  @param  comp    A comparison functor.
@@ -3913,6 +4014,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   /**
    *  @brief  Determines min and max at once as an ordered pair.
+   *  @ingroup sorting_algorithms
    *  @param  a  A thing of arbitrary type.
    *  @param  b  Another thing of arbitrary type.
    *  @return  A pair(b, a) if b is smaller than a, pair(a, b) otherwise.
@@ -3930,9 +4032,10 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   /**
    *  @brief  Determines min and max at once as an ordered pair.
+   *  @ingroup sorting_algorithms
    *  @param  a  A thing of arbitrary type.
    *  @param  b  Another thing of arbitrary type.
-   *  @param  comp  A @link s20_3_3_comparisons comparison functor@endlink.
+   *  @param  comp  A @link comparison_functor comparison functor@endlink.
    *  @return  A pair(b, a) if b is smaller than a, pair(a, b) otherwise.
   */
   template<typename _Tp, typename _Compare>
@@ -3946,6 +4049,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   /**
    *  @brief  Return a pair of iterators pointing to the minimum and maximum
    *          elements in a range.
+   *  @ingroup sorting_algorithms
    *  @param  first  Start of range.
    *  @param  last   End of range.
    *  @return  make_pair(m, M), where m is the first iterator i in 
@@ -4020,6 +4124,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   /**
    *  @brief  Return a pair of iterators pointing to the minimum and maximum
    *          elements in a range.
+   *  @ingroup sorting_algorithms
    *  @param  first  Start of range.
    *  @param  last   End of range.
    *  @param  comp   Comparison functor.
@@ -4140,6 +4245,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
 
   /**
    *  @brief Apply a function to every element of a sequence.
+   *  @ingroup non_mutating_algorithms
    *  @param  first  An input iterator.
    *  @param  last   An input iterator.
    *  @param  f      A unary function object.
@@ -4163,6 +4269,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
 
   /**
    *  @brief Find the first occurrence of a value in a sequence.
+   *  @ingroup non_mutating_algorithms
    *  @param  first  An input iterator.
    *  @param  last   An input iterator.
    *  @param  val    The value to find.
@@ -4186,6 +4293,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
   /**
    *  @brief Find the first element in a sequence for which a
    *         predicate is true.
+   *  @ingroup non_mutating_algorithms
    *  @param  first  An input iterator.
    *  @param  last   An input iterator.
    *  @param  pred   A predicate.
@@ -4208,6 +4316,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
 
   /**
    *  @brief  Find element from a set in a sequence.
+   *  @ingroup non_mutating_algorithms
    *  @param  first1  Start of range to search.
    *  @param  last1   End of range to search.
    *  @param  first2  Start of match candidates.
@@ -4243,6 +4352,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
 
   /**
    *  @brief  Find element from a set in a sequence using a predicate.
+   *  @ingroup non_mutating_algorithms
    *  @param  first1  Start of range to search.
    *  @param  last1   End of range to search.
    *  @param  first2  Start of match candidates.
@@ -4283,6 +4393,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
 
   /**
    *  @brief Find two adjacent values in a sequence that are equal.
+   *  @ingroup non_mutating_algorithms
    *  @param  first  A forward iterator.
    *  @param  last   A forward iterator.
    *  @return   The first iterator @c i such that @c i and @c i+1 are both
@@ -4312,6 +4423,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
 
   /**
    *  @brief Find two adjacent values in a sequence using a predicate.
+   *  @ingroup non_mutating_algorithms
    *  @param  first         A forward iterator.
    *  @param  last          A forward iterator.
    *  @param  binary_pred   A binary predicate.
@@ -4345,6 +4457,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
 
   /**
    *  @brief Count the number of copies of a value in a sequence.
+   *  @ingroup non_mutating_algorithms
    *  @param  first  An input iterator.
    *  @param  last   An input iterator.
    *  @param  value  The value to be counted.
@@ -4369,6 +4482,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
 
   /**
    *  @brief Count the elements of a sequence for which a predicate is true.
+   *  @ingroup non_mutating_algorithms
    *  @param  first  An input iterator.
    *  @param  last   An input iterator.
    *  @param  pred   A predicate.
@@ -4393,6 +4507,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
 
   /**
    *  @brief Search a sequence for a matching sub-sequence.
+   *  @ingroup non_mutating_algorithms
    *  @param  first1  A forward iterator.
    *  @param  last1   A forward iterator.
    *  @param  first2  A forward iterator.
@@ -4466,6 +4581,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
 
   /**
    *  @brief Search a sequence for a matching sub-sequence using a predicate.
+   *  @ingroup non_mutating_algorithms
    *  @param  first1     A forward iterator.
    *  @param  last1      A forward iterator.
    *  @param  first2     A forward iterator.
@@ -4546,6 +4662,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
 
   /**
    *  @brief Search a sequence for a number of consecutive values.
+   *  @ingroup non_mutating_algorithms
    *  @param  first  A forward iterator.
    *  @param  last   A forward iterator.
    *  @param  count  The number of consecutive values.
@@ -4580,6 +4697,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
   /**
    *  @brief Search a sequence for a number of consecutive values using a
    *         predicate.
+   *  @ingroup non_mutating_algorithms
    *  @param  first        A forward iterator.
    *  @param  last         A forward iterator.
    *  @param  count        The number of consecutive values.
@@ -4620,6 +4738,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
 
   /**
    *  @brief Perform an operation on a sequence.
+   *  @ingroup mutating_algorithms
    *  @param  first     An input iterator.
    *  @param  last      An input iterator.
    *  @param  result    An output iterator.
@@ -4653,6 +4772,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
 
   /**
    *  @brief Perform an operation on corresponding elements of two sequences.
+   *  @ingroup mutating_algorithms
    *  @param  first1     An input iterator.
    *  @param  last1      An input iterator.
    *  @param  first2     An input iterator.
@@ -4691,6 +4811,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
   /**
    *  @brief Replace each occurrence of one value in a sequence with another
    *         value.
+   *  @ingroup mutating_algorithms
    *  @param  first      A forward iterator.
    *  @param  last       A forward iterator.
    *  @param  old_value  The value to be replaced.
@@ -4722,6 +4843,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
   /**
    *  @brief Replace each value in a sequence for which a predicate returns
    *         true with another value.
+   *  @ingroup mutating_algorithms
    *  @param  first      A forward iterator.
    *  @param  last       A forward iterator.
    *  @param  pred       A predicate.
@@ -4753,6 +4875,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
   /**
    *  @brief Assign the result of a function object to each value in a
    *         sequence.
+   *  @ingroup mutating_algorithms
    *  @param  first  A forward iterator.
    *  @param  last   A forward iterator.
    *  @param  gen    A function object taking no arguments and returning
@@ -4780,6 +4903,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
   /**
    *  @brief Assign the result of a function object to each value in a
    *         sequence.
+   *  @ingroup mutating_algorithms
    *  @param  first  A forward iterator.
    *  @param  n      The length of the sequence.
    *  @param  gen    A function object taking no arguments and returning
@@ -4806,6 +4930,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
 
   /**
    *  @brief Copy a sequence, removing consecutive duplicate values.
+   *  @ingroup mutating_algorithms
    *  @param  first   An input iterator.
    *  @param  last    An input iterator.
    *  @param  result  An output iterator.
@@ -4846,6 +4971,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
 
   /**
    *  @brief Copy a sequence, removing consecutive values using a predicate.
+   *  @ingroup mutating_algorithms
    *  @param  first        An input iterator.
    *  @param  last         An input iterator.
    *  @param  result       An output iterator.
@@ -4885,6 +5011,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
 
   /**
    *  @brief Randomly shuffle the elements of a sequence.
+   *  @ingroup mutating_algorithms
    *  @param  first   A forward iterator.
    *  @param  last    A forward iterator.
    *  @return  Nothing.
@@ -4910,6 +5037,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
   /**
    *  @brief Shuffle the elements of a sequence using a random number
    *         generator.
+   *  @ingroup mutating_algorithms
    *  @param  first   A forward iterator.
    *  @param  last    A forward iterator.
    *  @param  rand    The RNG functor or function.
@@ -4940,6 +5068,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
   /**
    *  @brief Move elements for which a predicate is true to the beginning
    *         of a sequence.
+   *  @ingroup mutating_algorithms
    *  @param  first   A forward iterator.
    *  @param  last    A forward iterator.
    *  @param  pred    A predicate functor.
@@ -4971,6 +5100,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
 
   /**
    *  @brief Sort the smallest elements of a sequence.
+   *  @ingroup sorting_algorithms
    *  @param  first   An iterator.
    *  @param  middle  Another iterator.
    *  @param  last    Another iterator.
@@ -5007,6 +5137,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
   /**
    *  @brief Sort the smallest elements of a sequence using a predicate
    *         for comparison.
+   *  @ingroup sorting_algorithms
    *  @param  first   An iterator.
    *  @param  middle  Another iterator.
    *  @param  last    Another iterator.
@@ -5046,6 +5177,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
 
   /**
    *  @brief Sort a sequence just enough to find a particular position.
+   *  @ingroup sorting_algorithms
    *  @param  first   An iterator.
    *  @param  nth     Another iterator.
    *  @param  last    Another iterator.
@@ -5084,6 +5216,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
   /**
    *  @brief Sort a sequence just enough to find a particular position
    *         using a predicate for comparison.
+   *  @ingroup sorting_algorithms
    *  @param  first   An iterator.
    *  @param  nth     Another iterator.
    *  @param  last    Another iterator.
@@ -5123,6 +5256,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
 
   /**
    *  @brief Sort the elements of a sequence.
+   *  @ingroup sorting_algorithms
    *  @param  first   An iterator.
    *  @param  last    Another iterator.
    *  @return  Nothing.
@@ -5157,6 +5291,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
 
   /**
    *  @brief Sort the elements of a sequence using a predicate for comparison.
+   *  @ingroup sorting_algorithms
    *  @param  first   An iterator.
    *  @param  last    Another iterator.
    *  @param  comp    A comparison functor.
@@ -5194,6 +5329,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
 
   /**
    *  @brief Merges two sorted ranges.
+   *  @ingroup sorting_algorithms
    *  @param  first1  An iterator.
    *  @param  first2  Another iterator.
    *  @param  last1   Another iterator.
@@ -5252,6 +5388,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
 
   /**
    *  @brief Merges two sorted ranges.
+   *  @ingroup sorting_algorithms
    *  @param  first1  An iterator.
    *  @param  first2  Another iterator.
    *  @param  last1   Another iterator.
@@ -5317,6 +5454,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
   /**
    *  @brief Sort the elements of a sequence, preserving the relative order
    *         of equivalent elements.
+   *  @ingroup sorting_algorithms
    *  @param  first   An iterator.
    *  @param  last    Another iterator.
    *  @return  Nothing.
@@ -5357,6 +5495,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
   /**
    *  @brief Sort the elements of a sequence using a predicate for comparison,
    *         preserving the relative order of equivalent elements.
+   *  @ingroup sorting_algorithms
    *  @param  first   An iterator.
    *  @param  last    Another iterator.
    *  @param  comp    A comparison functor.
@@ -5401,12 +5540,13 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
 
   /**
    *  @brief Return the union of two sorted ranges.
+   *  @ingroup set_algorithms
    *  @param  first1  Start of first range.
    *  @param  last1   End of first range.
    *  @param  first2  Start of second range.
    *  @param  last2   End of second range.
    *  @return  End of the output range.
-   *  @ingroup setoperations
+   *  @ingroup set_algorithms
    *
    *  This operation iterates over both ranges, copying elements present in
    *  each range in order to the output range.  Iterators increment for each
@@ -5466,13 +5606,14 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
 
   /**
    *  @brief Return the union of two sorted ranges using a comparison functor.
+   *  @ingroup set_algorithms
    *  @param  first1  Start of first range.
    *  @param  last1   End of first range.
    *  @param  first2  Start of second range.
    *  @param  last2   End of second range.
    *  @param  comp    The comparison functor.
    *  @return  End of the output range.
-   *  @ingroup setoperations
+   *  @ingroup set_algorithms
    *
    *  This operation iterates over both ranges, copying elements present in
    *  each range in order to the output range.  Iterators increment for each
@@ -5534,12 +5675,13 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
 
   /**
    *  @brief Return the intersection of two sorted ranges.
+   *  @ingroup set_algorithms
    *  @param  first1  Start of first range.
    *  @param  last1   End of first range.
    *  @param  first2  Start of second range.
    *  @param  last2   End of second range.
    *  @return  End of the output range.
-   *  @ingroup setoperations
+   *  @ingroup set_algorithms
    *
    *  This operation iterates over both ranges, copying elements present in
    *  both ranges in order to the output range.  Iterators increment for each
@@ -5588,13 +5730,14 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
   /**
    *  @brief Return the intersection of two sorted ranges using comparison
    *  functor.
+   *  @ingroup set_algorithms
    *  @param  first1  Start of first range.
    *  @param  last1   End of first range.
    *  @param  first2  Start of second range.
    *  @param  last2   End of second range.
    *  @param  comp    The comparison functor.
    *  @return  End of the output range.
-   *  @ingroup setoperations
+   *  @ingroup set_algorithms
    *
    *  This operation iterates over both ranges, copying elements present in
    *  both ranges in order to the output range.  Iterators increment for each
@@ -5645,12 +5788,13 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
 
   /**
    *  @brief Return the difference of two sorted ranges.
+   *  @ingroup set_algorithms
    *  @param  first1  Start of first range.
    *  @param  last1   End of first range.
    *  @param  first2  Start of second range.
    *  @param  last2   End of second range.
    *  @return  End of the output range.
-   *  @ingroup setoperations
+   *  @ingroup set_algorithms
    *
    *  This operation iterates over both ranges, copying elements present in
    *  the first range but not the second in order to the output range.
@@ -5703,13 +5847,14 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
   /**
    *  @brief  Return the difference of two sorted ranges using comparison
    *  functor.
+   *  @ingroup set_algorithms
    *  @param  first1  Start of first range.
    *  @param  last1   End of first range.
    *  @param  first2  Start of second range.
    *  @param  last2   End of second range.
    *  @param  comp    The comparison functor.
    *  @return  End of the output range.
-   *  @ingroup setoperations
+   *  @ingroup set_algorithms
    *
    *  This operation iterates over both ranges, copying elements present in
    *  the first range but not the second in order to the output range.
@@ -5764,12 +5909,13 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
 
   /**
    *  @brief  Return the symmetric difference of two sorted ranges.
+   *  @ingroup set_algorithms
    *  @param  first1  Start of first range.
    *  @param  last1   End of first range.
    *  @param  first2  Start of second range.
    *  @param  last2   End of second range.
    *  @return  End of the output range.
-   *  @ingroup setoperations
+   *  @ingroup set_algorithms
    *
    *  This operation iterates over both ranges, copying elements present in
    *  one range but not the other in order to the output range.  Iterators
@@ -5827,13 +5973,14 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
   /**
    *  @brief  Return the symmetric difference of two sorted ranges using
    *  comparison functor.
+   *  @ingroup set_algorithms
    *  @param  first1  Start of first range.
    *  @param  last1   End of first range.
    *  @param  first2  Start of second range.
    *  @param  last2   End of second range.
    *  @param  comp    The comparison functor.
    *  @return  End of the output range.
-   *  @ingroup setoperations
+   *  @ingroup set_algorithms
    *
    *  This operation iterates over both ranges, copying elements present in
    *  one range but not the other in order to the output range.  Iterators
@@ -5895,6 +6042,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
 
   /**
    *  @brief  Return the minimum element in a range.
+   *  @ingroup sorting_algorithms
    *  @param  first  Start of range.
    *  @param  last   End of range.
    *  @return  Iterator referencing the first instance of the smallest value.
@@ -5920,6 +6068,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
 
   /**
    *  @brief  Return the minimum element in a range using comparison functor.
+   *  @ingroup sorting_algorithms
    *  @param  first  Start of range.
    *  @param  last   End of range.
    *  @param  comp   Comparison functor.
@@ -5949,6 +6098,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
 
   /**
    *  @brief  Return the maximum element in a range.
+   *  @ingroup sorting_algorithms
    *  @param  first  Start of range.
    *  @param  last   End of range.
    *  @return  Iterator referencing the first instance of the largest value.
@@ -5974,6 +6124,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
 
   /**
    *  @brief  Return the maximum element in a range using comparison functor.
+   *  @ingroup sorting_algorithms
    *  @param  first  Start of range.
    *  @param  last   End of range.
    *  @param  comp   Comparison functor.

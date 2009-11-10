@@ -57,7 +57,7 @@
 			 [(match_operand:SI 2 "s_register_operand" "r")
 			  (match_operand:SI 3 "const_int_operand" "M")]))
 		(match_operand:SI 1 "s_register_operand" "r")))]
-  "TARGET_ARM"
+  "TARGET_THUMB2"
   "bic%?\\t%0, %1, %2%S4"
   [(set_attr "predicable" "yes")
    (set_attr "shift" "2")
@@ -225,7 +225,7 @@
 
 (define_insn "*thumb2_movsi_insn"
   [(set (match_operand:SI 0 "nonimmediate_operand" "=rk,r,r,r,rk,m")
-	(match_operand:SI 1 "general_operand"	   "rk ,I,K,N,mi,rk"))]
+	(match_operand:SI 1 "general_operand"	   "rk ,I,K,j,mi,rk"))]
   "TARGET_THUMB2 && ! TARGET_IWMMXT
    && !(TARGET_HARD_FLOAT && TARGET_VFP)
    && (   register_operand (operands[0], SImode)
@@ -849,30 +849,44 @@
 
 ;; Zero and sign extension instructions.
 
-(define_insn "*thumb2_zero_extendsidi2"
+(define_insn_and_split "*thumb2_zero_extendsidi2"
   [(set (match_operand:DI 0 "s_register_operand" "=r")
         (zero_extend:DI (match_operand:SI 1 "s_register_operand" "r")))]
   "TARGET_THUMB2"
-  "*
-    /* ??? Output both instructions unconditionally, otherwise the conditional
-       execution insn counter gets confused.
-    if (REGNO (operands[1])
-        != REGNO (operands[0]) + (WORDS_BIG_ENDIAN ? 1 : 0)) */
-      output_asm_insn (\"mov%?\\t%Q0, %1\", operands);
-    return \"mov%?\\t%R0, #0\";
+  "mov%?\\t%Q0, %1\;mov%?\\t%R0, #0"
+  "&& reload_completed"
+  [(set (match_dup 0) (match_dup 1))]
+  "
+  {
+    rtx lo_part = gen_lowpart (SImode, operands[0]);
+    if (!REG_P (lo_part) || REGNO (lo_part) != REGNO (operands[1]))
+      emit_move_insn (lo_part, operands[1]);
+    operands[0] = gen_highpart (SImode, operands[0]);
+    operands[1] = const0_rtx;
+  }
   "
   [(set_attr "length" "8")
    (set_attr "ce_count" "2")
    (set_attr "predicable" "yes")]
 )
 
-(define_insn "*thumb2_zero_extendqidi2"
+(define_insn_and_split "*thumb2_zero_extendhidi2"
   [(set (match_operand:DI                 0 "s_register_operand"  "=r,r")
-	(zero_extend:DI (match_operand:QI 1 "nonimmediate_operand" "r,m")))]
+	(zero_extend:DI (match_operand:HI 1 "nonimmediate_operand" "r,m")))]
   "TARGET_THUMB2"
   "@
-   and%?\\t%Q0, %1, #255\;mov%?\\t%R0, #0
-   ldr%(b%)\\t%Q0, %1\;mov%?\\t%R0, #0"
+   uxth%?\\t%Q0, %1\;mov%?\\t%R0, #0
+   ldr%(h%)\\t%Q0, %1\;mov%?\\t%R0, #0"
+  "&& reload_completed"
+  [(set (match_dup 0) (zero_extend:SI (match_dup 1)))
+   (set (match_dup 2) (match_dup 3))]
+  "
+  {
+    operands[2] = gen_highpart (SImode, operands[0]);
+    operands[0] = gen_lowpart (SImode, operands[0]);
+    operands[3] = const0_rtx;
+  }
+  "
   [(set_attr "length" "8")
    (set_attr "ce_count" "2")
    (set_attr "predicable" "yes")
@@ -881,22 +895,97 @@
    (set_attr "neg_pool_range" "*,250")]
 )
 
-(define_insn "*thumb2_extendsidi2"
+(define_insn_and_split "*thumb2_zero_extendqidi2"
+  [(set (match_operand:DI                 0 "s_register_operand"  "=r,r")
+	(zero_extend:DI (match_operand:QI 1 "nonimmediate_operand" "r,m")))]
+  "TARGET_THUMB2"
+  "@
+   uxtb%?\\t%Q0, %1\;mov%?\\t%R0, #0
+   ldr%(b%)\\t%Q0, %1\;mov%?\\t%R0, #0"
+  "&& reload_completed"
+  [(set (match_dup 0) (zero_extend:SI (match_dup 1)))
+   (set (match_dup 2) (match_dup 3))]
+  "
+  {
+    operands[2] = gen_highpart (SImode, operands[0]);
+    operands[0] = gen_lowpart (SImode, operands[0]);
+    operands[3] = const0_rtx;
+  }
+  "
+  [(set_attr "length" "8")
+   (set_attr "ce_count" "2")
+   (set_attr "predicable" "yes")
+   (set_attr "type" "*,load_byte")
+   (set_attr "pool_range" "*,4092")
+   (set_attr "neg_pool_range" "*,250")]
+)
+
+(define_insn_and_split "*thumb2_extendsidi2"
   [(set (match_operand:DI 0 "s_register_operand" "=r")
         (sign_extend:DI (match_operand:SI 1 "s_register_operand" "r")))]
   "TARGET_THUMB2"
-  "*
-    /* ??? Output both instructions unconditionally, otherwise the conditional
-       execution insn counter gets confused.
-    if (REGNO (operands[1])
-        != REGNO (operands[0]) + (WORDS_BIG_ENDIAN ? 1 : 0)) */
-      output_asm_insn (\"mov%?\\t%Q0, %1\", operands);
-    return \"asr%?\\t%R0, %Q0, #31\";
-  "
+  "mov%?\\t%Q0, %1\;asr?\\t%R0, %1, #31"
+  "&& reload_completed"
+  [(set (match_dup 0) (ashiftrt:SI (match_dup 1) (const_int 31)))]
+  {
+    rtx lo_part = gen_lowpart (SImode, operands[0]);
+
+    if (!REG_P (lo_part) || REGNO (lo_part) != REGNO (operands[1]))
+      emit_move_insn (lo_part, operands[1]);
+    operands[0] = gen_highpart (SImode, operands[0]);
+  }
   [(set_attr "length" "8")
    (set_attr "ce_count" "2")
    (set_attr "shift" "1")
    (set_attr "predicable" "yes")]
+)
+
+(define_insn_and_split "*thumb2_extendhidi2"
+  [(set (match_operand:DI                 0 "s_register_operand"  "=r,r")
+	(sign_extend:DI (match_operand:HI 1 "nonimmediate_operand" "r,m")))]
+  "TARGET_THUMB2"
+  "@
+   sxth%?\\t%Q0, %1\;asr%?\\t%R0, %Q0, #31
+   ldrsh%?\\t%Q0, %1\;asr%?\\t%R0, %Q0, #31"
+  "&& reload_completed"
+  [(set (match_dup 0) (sign_extend:SI (match_dup 1)))
+   (set (match_dup 2) (ashiftrt:SI (match_dup 0) (const_int 31)))]
+  "
+  {
+    operands[2] = gen_highpart (SImode, operands[0]);
+    operands[0] = gen_lowpart (SImode, operands[0]);
+  }
+  "
+  [(set_attr "length" "8")
+   (set_attr "ce_count" "2")
+   (set_attr "predicable" "yes")
+   (set_attr "type" "*,load_byte")
+   (set_attr "pool_range" "*,4092")
+   (set_attr "neg_pool_range" "*,250")]
+)
+
+(define_insn_and_split "*thumb2_extendqidi2"
+  [(set (match_operand:DI                 0 "s_register_operand"  "=r,r")
+	(sign_extend:DI (match_operand:QI 1 "nonimmediate_operand" "r,m")))]
+  "TARGET_THUMB2"
+  "@
+   sxtb%?\\t%Q0, %1\;asr%?\\t%R0, %Q0, #31
+   ldrsb%?\\t%Q0, %1\;asr%?\\t%R0, %Q0, #31"
+  "&& reload_completed"
+  [(set (match_dup 0) (sign_extend:SI (match_dup 1)))
+   (set (match_dup 2) (ashiftrt:SI (match_dup 0) (const_int 31)))]
+  "
+  {
+    operands[2] = gen_highpart (SImode, operands[0]);
+    operands[0] = gen_lowpart (SImode, operands[0]);
+  }
+  "
+  [(set_attr "length" "8")
+   (set_attr "ce_count" "2")
+   (set_attr "predicable" "yes")
+   (set_attr "type" "*,load_byte")
+   (set_attr "pool_range" "*,4092")
+   (set_attr "neg_pool_range" "*,250")]
 )
 
 ;; All supported Thumb2 implementations are armv6, so only that case is
@@ -1162,6 +1251,71 @@
    (set_attr "length" "2")]
 )
 
+;; 16-bit encodings of "muls" and "mul<c>".  We only use these when
+;; optimizing for size since "muls" is slow on all known
+;; implementations and since "mul<c>" will be generated by
+;; "*arm_mulsi3_v6" anyhow.  The assembler will use a 16-bit encoding
+;; for "mul<c>" whenever possible anyhow.
+(define_peephole2
+  [(set (match_operand:SI 0 "low_register_operand" "")
+        (mult:SI (match_operand:SI 1 "low_register_operand" "")
+                 (match_dup 0)))]
+  "TARGET_THUMB2 && optimize_size && peep2_regno_dead_p (0, CC_REGNUM)"
+  [(parallel
+    [(set (match_dup 0)
+           (mult:SI (match_dup 0) (match_dup 1)))
+     (clobber (reg:CC CC_REGNUM))])]
+  ""
+)
+
+(define_peephole2
+  [(set (match_operand:SI 0 "low_register_operand" "")
+        (mult:SI (match_dup 0)
+	         (match_operand:SI 1 "low_register_operand" "")))]
+  "TARGET_THUMB2 && optimize_size && peep2_regno_dead_p (0, CC_REGNUM)"
+  [(parallel
+    [(set (match_dup 0)
+           (mult:SI (match_dup 0) (match_dup 1)))
+     (clobber (reg:CC CC_REGNUM))])]
+  ""
+)
+
+(define_insn "*thumb2_mulsi_short"
+  [(set (match_operand:SI 0 "low_register_operand" "=l")
+        (mult:SI (match_operand:SI 1 "low_register_operand" "%0")
+                 (match_operand:SI 2 "low_register_operand" "l")))
+   (clobber (reg:CC CC_REGNUM))]
+  "TARGET_THUMB2 && optimize_size && reload_completed"
+  "mul%!\\t%0, %2, %0"
+  [(set_attr "predicable" "yes")
+   (set_attr "length" "2")
+   (set_attr "insn" "muls")])
+
+(define_insn "*thumb2_mulsi_short_compare0"
+  [(set (reg:CC_NOOV CC_REGNUM)
+        (compare:CC_NOOV
+         (mult:SI (match_operand:SI 1 "register_operand" "%0")
+	          (match_operand:SI 2 "register_operand" "l"))
+         (const_int 0)))
+   (set (match_operand:SI 0 "register_operand" "=l")
+	(mult:SI (match_dup 1) (match_dup 2)))]
+  "TARGET_THUMB2 && optimize_size"
+  "muls\\t%0, %2, %0"
+  [(set_attr "length" "2")
+   (set_attr "insn" "muls")])
+
+(define_insn "*thumb2_mulsi_short_compare0_scratch"
+  [(set (reg:CC_NOOV CC_REGNUM)
+        (compare:CC_NOOV
+         (mult:SI (match_operand:SI 1 "register_operand" "%0")
+	          (match_operand:SI 2 "register_operand" "l"))
+         (const_int 0)))
+   (clobber (match_scratch:SI 0 "=r"))]
+  "TARGET_THUMB2 && optimize_size"
+  "muls\\t%0, %2, %0"
+  [(set_attr "length" "2")
+   (set_attr "insn" "muls")])
+
 (define_insn "*thumb2_cbz"
   [(set (pc) (if_then_else
 	      (eq (match_operand:SI 0 "s_register_operand" "l,?r")
@@ -1171,7 +1325,7 @@
    (clobber (reg:CC CC_REGNUM))]
   "TARGET_THUMB2"
   "*
-  if (get_attr_length (insn) == 2 && which_alternative == 0)
+  if (get_attr_length (insn) == 2)
     return \"cbz\\t%0, %l1\";
   else
     return \"cmp\\t%0, #0\;beq\\t%l1\";
@@ -1179,7 +1333,8 @@
   [(set (attr "length") 
         (if_then_else
 	    (and (ge (minus (match_dup 1) (pc)) (const_int 2))
-	         (le (minus (match_dup 1) (pc)) (const_int 128)))
+	         (le (minus (match_dup 1) (pc)) (const_int 128))
+	         (eq (symbol_ref ("which_alternative")) (const_int 0)))
 	    (const_int 2)
 	    (const_int 8)))]
 )
@@ -1193,7 +1348,7 @@
    (clobber (reg:CC CC_REGNUM))]
   "TARGET_THUMB2"
   "*
-  if (get_attr_length (insn) == 2 && which_alternative == 0)
+  if (get_attr_length (insn) == 2)
     return \"cbnz\\t%0, %l1\";
   else
     return \"cmp\\t%0, #0\;bne\\t%l1\";
@@ -1201,7 +1356,8 @@
   [(set (attr "length") 
         (if_then_else
 	    (and (ge (minus (match_dup 1) (pc)) (const_int 2))
-	         (le (minus (match_dup 1) (pc)) (const_int 128)))
+	         (le (minus (match_dup 1) (pc)) (const_int 128))
+	         (eq (symbol_ref ("which_alternative")) (const_int 0)))
 	    (const_int 2)
 	    (const_int 8)))]
 )
@@ -1252,3 +1408,47 @@
    (set_attr "length" "2")]
 )
 
+(define_insn "orsi_notsi_si"
+  [(set (match_operand:SI 0 "s_register_operand" "=r")
+	(ior:SI (not:SI (match_operand:SI 2 "s_register_operand" "r"))
+		(match_operand:SI 1 "s_register_operand" "r")))]
+  "TARGET_THUMB2"
+  "orn%?\\t%0, %1, %2"
+  [(set_attr "predicable" "yes")]
+)
+
+(define_insn "*thumb_orsi_not_shiftsi_si"
+  [(set (match_operand:SI 0 "s_register_operand" "=r")
+	(ior:SI (not:SI (match_operator:SI 4 "shift_operator"
+			 [(match_operand:SI 2 "s_register_operand" "r")
+			  (match_operand:SI 3 "const_int_operand" "M")]))
+		(match_operand:SI 1 "s_register_operand" "r")))]
+  "TARGET_THUMB2"
+  "orn%?\\t%0, %1, %2%S4"
+  [(set_attr "predicable" "yes")
+   (set_attr "shift" "2")
+   (set_attr "type" "alu_shift")]
+)
+
+(define_insn_and_split "*thumb2_iorsi3"
+  [(set (match_operand:SI         0 "s_register_operand" "=r,r,r")
+	(ior:SI (match_operand:SI 1 "s_register_operand" "r,r,r")
+		(match_operand:SI 2 "reg_or_int_operand" "rI,K,?n")))]
+  "TARGET_THUMB2"
+  "@
+   orr%?\\t%0, %1, %2
+   orn%?\\t%0, %1, #%B2
+   #"
+  "TARGET_THUMB2
+   && GET_CODE (operands[2]) == CONST_INT
+   && !(const_ok_for_arm (INTVAL (operands[2]))
+	|| const_ok_for_arm (~INTVAL (operands[2])))"
+  [(clobber (const_int 0))]
+  "
+  arm_split_constant  (IOR, SImode, curr_insn, 
+	               INTVAL (operands[2]), operands[0], operands[1], 0);
+  DONE;
+  "
+  [(set_attr "length" "4,4,16")
+   (set_attr "predicable" "yes")]
+)

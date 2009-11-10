@@ -1,5 +1,5 @@
 /* Analysis Utilities for Loop Vectorization.
-   Copyright (C) 2006, 2007, 2008 Free Software Foundation, Inc.
+   Copyright (C) 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
    Contributed by Dorit Nuzman <dorit@il.ibm.com>
 
 This file is part of GCC.
@@ -24,13 +24,11 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm.h"
 #include "ggc.h"
 #include "tree.h"
-
 #include "target.h"
 #include "basic-block.h"
 #include "diagnostic.h"
 #include "tree-flow.h"
 #include "tree-dump.h"
-#include "timevar.h"
 #include "cfgloop.h"
 #include "expr.h"
 #include "optabs.h"
@@ -80,11 +78,11 @@ widened_name_p (tree name, gimple use_stmt, tree *half_type, gimple *def_stmt)
   stmt_vinfo = vinfo_for_stmt (use_stmt);
   loop_vinfo = STMT_VINFO_LOOP_VINFO (stmt_vinfo);
 
-  if (!vect_is_simple_use (name, loop_vinfo, def_stmt, &def, &dt))
+  if (!vect_is_simple_use (name, loop_vinfo, NULL, def_stmt, &def, &dt))
     return false;
 
-  if (dt != vect_loop_def
-      && dt != vect_invariant_def && dt != vect_constant_def)
+  if (dt != vect_internal_def
+      && dt != vect_external_def && dt != vect_constant_def)
     return false;
 
   if (! *def_stmt)
@@ -104,7 +102,8 @@ widened_name_p (tree name, gimple use_stmt, tree *half_type, gimple *def_stmt)
       || (TYPE_PRECISION (type) < (TYPE_PRECISION (*half_type) * 2)))
     return false;
 
-  if (!vect_is_simple_use (oprnd0, loop_vinfo, &dummy_gimple, &dummy, &dt))
+  if (!vect_is_simple_use (oprnd0, loop_vinfo, NULL, &dummy_gimple, &dummy, 
+                           &dt))
     return false;
 
   return true;
@@ -234,8 +233,8 @@ vect_recog_dot_prod_pattern (gimple last_stmt, tree *type_in, tree *type_out)
         return NULL;
       oprnd0 = gimple_assign_rhs1 (last_stmt);
       oprnd1 = gimple_assign_rhs2 (last_stmt);
-      if (TYPE_MAIN_VARIANT (TREE_TYPE (oprnd0)) != TYPE_MAIN_VARIANT (type)
-          || TYPE_MAIN_VARIANT (TREE_TYPE (oprnd1)) != TYPE_MAIN_VARIANT (type))
+      if (!types_compatible_p (TREE_TYPE (oprnd0), type)
+	  || !types_compatible_p (TREE_TYPE (oprnd1), type))
         return NULL;
       stmt = last_stmt;
 
@@ -261,7 +260,7 @@ vect_recog_dot_prod_pattern (gimple last_stmt, tree *type_in, tree *type_out)
     return NULL; 
   stmt_vinfo = vinfo_for_stmt (stmt);
   gcc_assert (stmt_vinfo);
-  if (STMT_VINFO_DEF_TYPE (stmt_vinfo) != vect_loop_def)
+  if (STMT_VINFO_DEF_TYPE (stmt_vinfo) != vect_internal_def)
     return NULL;
   if (gimple_assign_rhs_code (stmt) != MULT_EXPR)
     return NULL;
@@ -274,7 +273,7 @@ vect_recog_dot_prod_pattern (gimple last_stmt, tree *type_in, tree *type_out)
         return NULL;
       stmt_vinfo = vinfo_for_stmt (stmt);
       gcc_assert (stmt_vinfo);
-      gcc_assert (STMT_VINFO_DEF_TYPE (stmt_vinfo) == vect_loop_def);
+      gcc_assert (STMT_VINFO_DEF_TYPE (stmt_vinfo) == vect_internal_def);
       oprnd00 = gimple_assign_rhs1 (stmt);
       oprnd01 = gimple_assign_rhs2 (stmt);
     }
@@ -286,10 +285,8 @@ vect_recog_dot_prod_pattern (gimple last_stmt, tree *type_in, tree *type_out)
 
       oprnd0 = gimple_assign_rhs1 (stmt);
       oprnd1 = gimple_assign_rhs2 (stmt);
-      if (TYPE_MAIN_VARIANT (TREE_TYPE (oprnd0)) 
-				!= TYPE_MAIN_VARIANT (prod_type)
-          || TYPE_MAIN_VARIANT (TREE_TYPE (oprnd1)) 
-				!= TYPE_MAIN_VARIANT (prod_type))
+      if (!types_compatible_p (TREE_TYPE (oprnd0), prod_type)
+          || !types_compatible_p (TREE_TYPE (oprnd1), prod_type))
         return NULL;
       if (!widened_name_p (oprnd0, stmt, &half_type0, &def_stmt))
         return NULL;
@@ -297,7 +294,7 @@ vect_recog_dot_prod_pattern (gimple last_stmt, tree *type_in, tree *type_out)
       if (!widened_name_p (oprnd1, stmt, &half_type1, &def_stmt))
         return NULL;
       oprnd01 = gimple_assign_rhs1 (def_stmt);
-      if (TYPE_MAIN_VARIANT (half_type0) != TYPE_MAIN_VARIANT (half_type1))
+      if (!types_compatible_p (half_type0, half_type1))
         return NULL;
       if (TYPE_PRECISION (prod_type) != TYPE_PRECISION (half_type0) * 2)
 	return NULL;
@@ -320,12 +317,7 @@ vect_recog_dot_prod_pattern (gimple last_stmt, tree *type_in, tree *type_out)
 
   /* We don't allow changing the order of the computation in the inner-loop
      when doing outer-loop vectorization.  */
-  if (nested_in_vect_loop_p (loop, last_stmt))
-    {
-      if (vect_print_dump_info (REPORT_DETAILS))
-        fprintf (vect_dump, "vect_recog_dot_prod_pattern: not allowed.");
-      return NULL;
-    }
+  gcc_assert (!nested_in_vect_loop_p (loop, last_stmt));
 
   return pattern_stmt;
 }
@@ -390,8 +382,8 @@ vect_recog_widen_mult_pattern (gimple last_stmt,
 
   oprnd0 = gimple_assign_rhs1 (last_stmt);
   oprnd1 = gimple_assign_rhs2 (last_stmt);
-  if (TYPE_MAIN_VARIANT (TREE_TYPE (oprnd0)) != TYPE_MAIN_VARIANT (type)
-      || TYPE_MAIN_VARIANT (TREE_TYPE (oprnd1)) != TYPE_MAIN_VARIANT (type))
+  if (!types_compatible_p (TREE_TYPE (oprnd0), type)
+      || !types_compatible_p (TREE_TYPE (oprnd1), type))
     return NULL;
 
   /* Check argument 0 */
@@ -404,7 +396,7 @@ vect_recog_widen_mult_pattern (gimple last_stmt,
     return NULL;
   oprnd1 = gimple_assign_rhs1 (def_stmt1);
 
-  if (TYPE_MAIN_VARIANT (half_type0) != TYPE_MAIN_VARIANT (half_type1))
+  if (!types_compatible_p (half_type0, half_type1))
     return NULL;
 
   /* Pattern detected.  */
@@ -608,8 +600,8 @@ vect_recog_widen_sum_pattern (gimple last_stmt, tree *type_in, tree *type_out)
 
   oprnd0 = gimple_assign_rhs1 (last_stmt);
   oprnd1 = gimple_assign_rhs2 (last_stmt);
-  if (TYPE_MAIN_VARIANT (TREE_TYPE (oprnd0)) != TYPE_MAIN_VARIANT (type)
-      || TYPE_MAIN_VARIANT (TREE_TYPE (oprnd1)) != TYPE_MAIN_VARIANT (type))
+  if (!types_compatible_p (TREE_TYPE (oprnd0), type)
+      || !types_compatible_p (TREE_TYPE (oprnd1), type))
     return NULL;
 
   /* So far so good. Since last_stmt was detected as a (summation) reduction,
@@ -639,12 +631,7 @@ vect_recog_widen_sum_pattern (gimple last_stmt, tree *type_in, tree *type_out)
 
   /* We don't allow changing the order of the computation in the inner-loop
      when doing outer-loop vectorization.  */
-  if (nested_in_vect_loop_p (loop, last_stmt))
-    {
-      if (vect_print_dump_info (REPORT_DETAILS))
-        fprintf (vect_dump, "vect_recog_widen_sum_pattern: not allowed.");
-      return NULL;
-    }
+  gcc_assert (!nested_in_vect_loop_p (loop, last_stmt));
 
   return pattern_stmt;
 }
@@ -697,7 +684,7 @@ vect_pattern_recog_1 (
     }
   else
     {
-      enum tree_code vec_mode;
+      enum machine_mode vec_mode;
       enum insn_code icode;
       optab optab;
 
@@ -736,7 +723,7 @@ vect_pattern_recog_1 (
   /* Mark the stmts that are involved in the pattern. */
   gsi_insert_before (&si, pattern_stmt, GSI_SAME_STMT);
   set_vinfo_for_stmt (pattern_stmt,
-		      new_stmt_vec_info (pattern_stmt, loop_vinfo));
+		      new_stmt_vec_info (pattern_stmt, loop_vinfo, NULL));
   pattern_stmt_info = vinfo_for_stmt (pattern_stmt);
   
   STMT_VINFO_RELATED_STMT (pattern_stmt_info) = stmt;

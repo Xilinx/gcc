@@ -6,25 +6,23 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1999-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1999-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -94,8 +92,9 @@ package body GNAT.Command_Line is
       Index_In_Switches : out Integer;
       Switch_Length     : out Integer;
       Param             : out Switch_Parameter_Type);
-   --  return the Longest switch from Switches that matches at least
-   --  partially Arg. Index_In_Switches is set to 0 if none matches
+   --  Return the Longest switch from Switches that at least partially
+   --  partially Arg. Index_In_Switches is set to 0 if none matches.
+   --  What are other parameters??? in particular Param is not always set???
 
    procedure Unchecked_Free is new Ada.Unchecked_Deallocation
      (Argument_List, Argument_List_Access);
@@ -114,10 +113,10 @@ package body GNAT.Command_Line is
    --  the beginning, else it is appended.
 
    function Can_Have_Parameter (S : String) return Boolean;
-   --  True if S can have a parameter.
+   --  True if S can have a parameter
 
    function Require_Parameter (S : String) return Boolean;
-   --  True if S requires a parameter.
+   --  True if S requires a parameter
 
    function Actual_Switch (S : String) return String;
    --  Remove any possible trailing '!', ':', '?' and '='
@@ -263,24 +262,27 @@ package body GNAT.Command_Line is
                     (It.Levels (Current).Dir, It.Dir_Name (1 .. NL));
                end if;
             end if;
-
-         --  If not a directory, check the relative path against the pattern
-
-         else
-            declare
-               Name : String :=
-                        It.Dir_Name (It.Start .. It.Levels (Current).Name_Last)
-                          & S (1 .. Last);
-            begin
-               Canonical_Case_File_Name (Name);
-
-               --  If it matches return the relative path
-
-               if GNAT.Regexp.Match (Name, Iterator.Regexp) then
-                  return Name;
-               end if;
-            end;
          end if;
+
+         --  Check the relative path against the pattern
+
+         --  Note that we try to match also against directory names, since
+         --  clients of this function may expect to retrieve directories.
+
+         declare
+            Name : String :=
+                     It.Dir_Name (It.Start .. It.Levels (Current).Name_Last)
+                       & S (1 .. Last);
+
+         begin
+            Canonical_Case_File_Name (Name);
+
+            --  If it matches return the relative path
+
+            if GNAT.Regexp.Match (Name, Iterator.Regexp) then
+               return Name;
+            end if;
+         end;
       end loop;
    end Expansion;
 
@@ -849,8 +851,9 @@ package body GNAT.Command_Line is
 
       if Command_Line = null then
          Parser := new Opt_Parser_Data (CL.Argument_Count);
-         Initialize_Option_Scan
-           (Switch_Char              => Switch_Char,
+         Internal_Initialize_Option_Scan
+           (Parser                   => Parser,
+            Switch_Char              => Switch_Char,
             Stop_At_First_Non_Switch => Stop_At_First_Non_Switch,
             Section_Delimiters       => Section_Delimiters);
       else
@@ -888,6 +891,7 @@ package body GNAT.Command_Line is
       Parser.In_Expansion     := False;
       Parser.Switch_Character := Switch_Char;
       Parser.Stop_At_First    := Stop_At_First_Non_Switch;
+      Parser.Section          := (others => 1);
 
       --  If we are using sections, we have to preprocess the command line
       --  to delimit them. A section can be repeated, so we just give each
@@ -1275,7 +1279,7 @@ package body GNAT.Command_Line is
 
                         if Separator (Parser) = ASCII.NUL then
                            Add_Switch
-                             (Cmd, Sw & Parameter (Parser), "");
+                             (Cmd, Sw & Parameter (Parser), "", ASCII.NUL);
                         else
                            Add_Switch
                              (Cmd, Sw, Parameter (Parser), Separator (Parser));
@@ -1404,7 +1408,7 @@ package body GNAT.Command_Line is
       function Group_Analysis
         (Prefix : String;
          Group  : String) return Boolean;
-      --  Perform the analysis of a group of switches.
+      --  Perform the analysis of a group of switches
 
       --------------------
       -- Group_Analysis --
@@ -1507,22 +1511,43 @@ package body GNAT.Command_Line is
       end Group_Analysis;
 
    begin
-      --  Are we adding a switch that can in fact be expanded through aliases ?
-      --  If yes, we add separately each of its expansion.
+      --  First determine if the switch corresponds to one belonging to the
+      --  configuration. If so, run callback and exit.
+
+      if Cmd.Config /= null and then Cmd.Config.Switches /= null then
+         for S in Cmd.Config.Switches'Range loop
+            declare
+               Config_Switch : String renames Cmd.Config.Switches (S).all;
+            begin
+               if Actual_Switch (Config_Switch) = Switch
+                    and then
+                  ((Can_Have_Parameter (Config_Switch)
+                      and then Parameter /= "")
+                   or else
+                   (not Require_Parameter (Config_Switch)
+                       and then Parameter = ""))
+               then
+                  Callback (Switch, Parameter);
+                  return;
+               end if;
+            end;
+         end loop;
+      end if;
+
+      --  If adding a switch that can in fact be expanded through aliases,
+      --  add separately each of its expansions.
 
       --  This takes care of expansions like "-T" -> "-gnatwrs", where the
       --  alias and its expansion do not have the same prefix. Given the order
       --  in which we do things here, the expansion of the alias will itself
-      --  be checked for a common prefix and further split into simple switches
+      --  be checked for a common prefix and split into simple switches.
 
       if Unalias
         and then Cmd.Config /= null
         and then Cmd.Config.Aliases /= null
       then
          for A in Cmd.Config.Aliases'Range loop
-            if Cmd.Config.Aliases (A).all = Switch
-              and then Parameter = ""
-            then
+            if Cmd.Config.Aliases (A).all = Switch and then Parameter = "" then
                For_Each_Simple_Switch
                  (Cmd, Cmd.Config.Expansions (A).all, "");
                return;
@@ -1530,18 +1555,17 @@ package body GNAT.Command_Line is
          end loop;
       end if;
 
-      --  Are we adding a switch grouping several switches ? If yes, add each
-      --  of the simple switches instead.
+      --  If adding a switch grouping several switches, add each of the simple
+      --  switches instead.
 
-      if Cmd.Config /= null
-        and then Cmd.Config.Prefixes /= null
-      then
+      if Cmd.Config /= null and then Cmd.Config.Prefixes /= null then
          for P in Cmd.Config.Prefixes'Range loop
             if Switch'Length > Cmd.Config.Prefixes (P)'Length + 1
               and then Looking_At
                 (Switch, Switch'First, Cmd.Config.Prefixes (P).all)
             then
                --  Alias expansion will be done recursively
+
                if Cmd.Config.Switches = null then
                   for S in Switch'First + Cmd.Config.Prefixes (P)'Length
                             .. Switch'Last
@@ -1558,8 +1582,9 @@ package body GNAT.Command_Line is
                     (Switch'First + Cmd.Config.Prefixes (P)'Length
                       .. Switch'Last))
                then
-                  --  Recursive calls already done on each switch of the
-                  --  group. Let's return to not call Callback.
+                  --  Recursive calls already done on each switch of the group:
+                  --  Return without executing Callback.
+
                   return;
                end if;
             end if;
@@ -2426,6 +2451,8 @@ package body GNAT.Command_Line is
          Free (Config.Aliases);
          Free (Config.Expansions);
          Free (Config.Prefixes);
+         Free (Config.Sections);
+         Free (Config.Switches);
          Unchecked_Free (Config);
       end if;
    end Free;

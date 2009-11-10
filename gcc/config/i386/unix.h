@@ -1,5 +1,5 @@
 /* Definitions for Unix assembler syntax for the Intel 80386.
-   Copyright (C) 1988, 1994, 1999, 2000, 2001, 2002, 2007
+   Copyright (C) 1988, 1994, 1999, 2000, 2001, 2002, 2007, 2009
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -14,8 +14,13 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING3.  If not see
+Under Section 7 of GPL version 3, you are granted additional
+permissions described in the GCC Runtime Library Exception, version
+3.1, as published by the Free Software Foundation.
+
+You should have received a copy of the GNU General Public License and
+a copy of the GCC Runtime Library Exception along with this program;
+see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 <http://www.gnu.org/licenses/>.  */
 
 /* This file defines the aspects of assembler syntax
@@ -30,9 +35,14 @@ along with GCC; see the file COPYING3.  If not see
 
 /* Define the syntax of pseudo-ops, labels and comments.  */
 
-/* String containing the assembler's comment-starter.  */
+/* String containing the assembler's comment-starter.
+   Note the trailing space is necessary in case the character
+   that immediately follows the comment is '*'.  If this happens
+   and the space is not there the assembler will interpret this
+   as the start of a C-like slash-star comment and complain when
+   there is no terminator.  */
 
-#define ASM_COMMENT_START "/"
+#define ASM_COMMENT_START "/ "
 
 /* Output to assembler file text saying following lines
    may contain character constants, extra white space, comments, etc.  */

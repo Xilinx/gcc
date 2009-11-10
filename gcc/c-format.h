@@ -1,6 +1,6 @@
 /* Check calls to formatted I/O functions (-Wformat).
    Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2007 Free Software Foundation, Inc.
+   2001, 2002, 2003, 2004, 2007, 2008 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -96,6 +96,10 @@ typedef struct
   const char *double_name;
   enum format_lengths double_index;
   enum format_std_version double_std;
+
+  /* If this flag is set, just scalar width identity is checked, and
+     not the type identity itself.  */
+  int scalar_identity_flag;
 } format_length_info;
 
 

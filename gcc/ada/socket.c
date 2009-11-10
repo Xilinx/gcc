@@ -6,24 +6,23 @@
  *                                                                          *
  *                          C Implementation File                           *
  *                                                                          *
- *          Copyright (C) 2003-2008, Free Software Foundation, Inc.         *
+ *          Copyright (C) 2003-2009, Free Software Foundation, Inc.         *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
- * ware  Foundation;  either version 2,  or (at your option) any later ver- *
+ * ware  Foundation;  either version 3,  or (at your option) any later ver- *
  * sion.  GNAT is distributed in the hope that it will be useful, but WITH- *
  * OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY *
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License *
- * for  more details.  You should have  received  a copy of the GNU General *
- * Public License  distributed with GNAT;  see file COPYING.  If not, write *
- * to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, *
- * Boston, MA 02110-1301, USA.                                              *
+ * or FITNESS FOR A PARTICULAR PURPOSE.                                     *
  *                                                                          *
- * As a  special  exception,  if you  link  this file  with other  files to *
- * produce an executable,  this file does not by itself cause the resulting *
- * executable to be covered by the GNU General Public License. This except- *
- * ion does not  however invalidate  any other reasons  why the  executable *
- * file might be covered by the  GNU Public License.                        *
+ * As a special exception under Section 7 of GPL version 3, you are granted *
+ * additional permissions described in the GCC Runtime Library Exception,   *
+ * version 3.1, as published by the Free Software Foundation.               *
+ *                                                                          *
+ * You should have received a copy of the GNU General Public License and    *
+ * a copy of the GCC Runtime Library Exception along with this program;     *
+ * see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    *
+ * <http://www.gnu.org/licenses/>.                                          *
  *                                                                          *
  * GNAT was originally developed  by the GNAT team at  New York University. *
  * Extensive contributions were provided by Ada Core Technologies Inc.      *
@@ -33,6 +32,15 @@
 /*  This file provides a portable binding to the sockets API                */
 
 #include "gsocket.h"
+#ifdef VMS
+/*
+ * For VMS, gsocket.h can't include sockets-related DEC C header files
+ * when building the runtime (because these files are in DEC C archives,
+ * not accessable to GCC). So, we generate a separate header file along
+ * with s-oscons.ads and include it here.
+ */
+# include "s-oscons.h"
+#endif
 
 #if defined(HAVE_SOCKETS)
 
@@ -57,14 +65,18 @@ extern int  __gnat_create_signalling_fds (int *fds);
 extern int  __gnat_read_signalling_fd (int rsig);
 extern int  __gnat_write_signalling_fd (int wsig);
 extern void  __gnat_close_signalling_fd (int sig);
-extern void __gnat_free_socket_set (fd_set *);
 extern void __gnat_last_socket_in_set (fd_set *, int *);
 extern void __gnat_get_socket_from_set (fd_set *, int *, int *);
 extern void __gnat_insert_socket_in_set (fd_set *, int);
 extern int __gnat_is_socket_in_set (fd_set *, int);
 extern fd_set *__gnat_new_socket_set (fd_set *);
 extern void __gnat_remove_socket_from_set (fd_set *, int);
+extern void __gnat_reset_socket_set (fd_set *);
 extern int  __gnat_get_h_errno (void);
+extern int  __gnat_socket_ioctl (int, int, int *);
+#if defined (__vxworks) || defined (_WIN32)
+extern int  __gnat_inet_pton (int, const char *, void *);
+#endif
 
 /* Disable the sending of SIGPIPE for writes on a broken stream */
 
@@ -266,14 +278,6 @@ __gnat_safe_getservbyport (int port, const char *proto,
 }
 #endif
 
-/* Free socket set. */
-
-void
-__gnat_free_socket_set (fd_set *set)
-{
-  __gnat_free (set);
-}
-
 /* Find the largest socket in the socket set SET. This is needed for
    `select'.  LAST is the maximum value for the largest socket. This hint is
    used to avoid scanning very large socket sets.  On return, LAST is the
@@ -334,34 +338,19 @@ __gnat_is_socket_in_set (fd_set *set, int socket)
   return FD_ISSET (socket, set);
 }
 
-/* Allocate a new socket set and set it as empty.  */
-
-fd_set *
-__gnat_new_socket_set (fd_set *set)
-{
-  fd_set *new;
-
-#ifdef VMS
-extern void *__gnat_malloc32 (__SIZE_TYPE__);
-  new = (fd_set *) __gnat_malloc32 (sizeof (fd_set));
-#else
-  new = (fd_set *) __gnat_malloc (sizeof (fd_set));
-#endif
-
-  if (set)
-    memcpy (new, set, sizeof (fd_set));
-  else
-    FD_ZERO (new);
-
-  return new;
-}
-
 /* Remove SOCKET from the socket set SET. */
 
 void
 __gnat_remove_socket_from_set (fd_set *set, int socket)
 {
   FD_CLR (socket, set);
+}
+
+/* Reset SET */
+void
+__gnat_reset_socket_set (fd_set *set)
+{
+  FD_ZERO (set);
 }
 
 /* Get the value of the last host error */
@@ -375,22 +364,25 @@ __gnat_get_h_errno (void) {
     case 0:
       return 0;
 
-    case S_resolvLib_HOST_NOT_FOUND:
+#ifdef S_hostLib_HOST_NOT_FOUND
+    case S_hostLib_HOST_NOT_FOUND:
+#endif
     case S_hostLib_UNKNOWN_HOST:
       return HOST_NOT_FOUND;
 
-    case S_resolvLib_TRY_AGAIN:
+#ifdef S_hostLib_TRY_AGAIN
+    case S_hostLib_TRY_AGAIN:
       return TRY_AGAIN;
+#endif
 
-    case S_resolvLib_NO_RECOVERY:
-    case S_resolvLib_BUFFER_2_SMALL:
-    case S_resolvLib_INVALID_PARAMETER:
-    case S_resolvLib_INVALID_ADDRESS:
+#ifdef S_hostLib_NO_RECOVERY
+    case S_hostLib_NO_RECOVERY:
+#endif
+#ifdef S_hostLib_NETDB_INTERNAL
+    case S_hostLib_NETDB_INTERNAL:
+#endif
     case S_hostLib_INVALID_PARAMETER:
       return NO_RECOVERY;
-
-    case S_resolvLib_NO_DATA:
-      return NO_DATA;
 
     default:
       return -1;
@@ -418,6 +410,84 @@ __gnat_get_h_errno (void) {
 #endif
 }
 
+/* Wrapper for ioctl(2), which is a variadic function */
+
+int
+__gnat_socket_ioctl (int fd, int req, int *arg) {
+#if defined (_WIN32)
+  return ioctlsocket (fd, req, arg);
 #else
-#warning Sockets are not supported on this platform
+  return ioctl (fd, req, arg);
+#endif
+}
+
+#ifndef HAVE_INET_PTON
+
+#ifdef VMS
+# define in_addr_t int
+# define inet_addr decc$inet_addr
+#endif
+
+int
+__gnat_inet_pton (int af, const char *src, void *dst) {
+  switch (af) {
+#if defined (_WIN32) && defined (AF_INET6)
+    case AF_INET6:
+#endif
+    case AF_INET:
+      break;
+    default:
+      errno = EAFNOSUPPORT;
+      return -1;
+  }
+
+#if defined (__vxworks)
+  return (inet_aton (src, dst) == OK);
+
+#elif defined (_WIN32)
+  struct sockaddr_storage ss;
+  int sslen = sizeof ss;
+  int rc;
+
+  ss.ss_family = af;
+  rc = WSAStringToAddressA (src, af, NULL, (struct sockaddr *)&ss, &sslen);
+  if (rc == 0) {
+    switch (af) {
+      case AF_INET:
+        *(struct in_addr *)dst = ((struct sockaddr_in *)&ss)->sin_addr;
+        break;
+#ifdef AF_INET6
+      case AF_INET6:
+        *(struct in6_addr *)dst = ((struct sockaddr_in6 *)&ss)->sin6_addr;
+        break;
+#endif
+    }
+  }
+  return (rc == 0);
+
+#elif defined (__hpux__) || defined (VMS)
+  in_addr_t addr;
+  int rc = -1;
+
+  if (src == NULL || dst == NULL) {
+    errno = EINVAL;
+
+  } else if (!strcmp (src, "255.255.255.255")) {
+    addr = 0xffffffff;
+    rc = 1;
+
+  } else {
+    addr = inet_addr (src);
+    rc = (addr != 0xffffffff);
+  }
+  if (rc == 1) {
+    *(in_addr_t *)dst = addr;
+  }
+  return rc;
+#endif
+}
+#endif
+
+#else
+# warning Sockets are not supported on this platform
 #endif /* defined(HAVE_SOCKETS) */

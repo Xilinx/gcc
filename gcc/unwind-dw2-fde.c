@@ -1,33 +1,28 @@
 /* Subroutines needed for unwinding stack frames for exception handling.  */
-/* Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2008
-   Free Software Foundation, Inc.
+/* Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2008,
+   2009  Free Software Foundation, Inc.
    Contributed by Jason Merrill <jason@cygnus.com>.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
-
-In addition to the permissions in the GNU General Public License, the
-Free Software Foundation gives you unlimited permission to link the
-compiled version of this file into combinations with other programs,
-and to distribute those combinations without any restriction coming
-from the use of this file.  (The General Public License restrictions
-do apply in other respects; for example, they cover modification of
-the file, and distribution when not linked into a combine
-executable.)
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
 WARRANTY; without even the implied warranty of MERCHANTABILITY or
 FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
-You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+Under Section 7 of GPL version 3, you are granted additional
+permissions described in the GCC Runtime Library Exception, version
+3.1, as published by the Free Software Foundation.
+
+You should have received a copy of the GNU General Public License and
+a copy of the GCC Runtime Library Exception along with this program;
+see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+<http://www.gnu.org/licenses/>.  */
 
 #ifndef _Unwind_Find_FDE
 #include "tconfig.h"
@@ -323,8 +318,9 @@ static int
 fde_unencoded_compare (struct object *ob __attribute__((unused)),
 		       const fde *x, const fde *y)
 {
-  const _Unwind_Ptr x_ptr = *(const _Unwind_Ptr *) x->pc_begin;
-  const _Unwind_Ptr y_ptr = *(const _Unwind_Ptr *) y->pc_begin;
+  _Unwind_Ptr x_ptr, y_ptr;
+  memcpy (&x_ptr, x->pc_begin, sizeof (_Unwind_Ptr));
+  memcpy (&y_ptr, y->pc_begin, sizeof (_Unwind_Ptr));
 
   if (x_ptr > y_ptr)
     return 1;
@@ -634,7 +630,7 @@ classify_object_over_fdes (struct object *ob, const fde *this_fde)
 	 be representable.  Assume 0 in the representable bits is NULL.  */
       mask = size_of_encoded_value (encoding);
       if (mask < sizeof (void *))
-	mask = (1L << (mask << 3)) - 1;
+	mask = (((_Unwind_Ptr) 1) << (mask << 3)) - 1;
       else
 	mask = -1;
 
@@ -679,7 +675,9 @@ add_fdes (struct object *ob, struct fde_accumulator *accu, const fde *this_fde)
 
       if (encoding == DW_EH_PE_absptr)
 	{
-	  if (*(const _Unwind_Ptr *) this_fde->pc_begin == 0)
+	  _Unwind_Ptr ptr;
+	  memcpy (&ptr, this_fde->pc_begin, sizeof (_Unwind_Ptr));
+	  if (ptr == 0)
 	    continue;
 	}
       else
@@ -695,7 +693,7 @@ add_fdes (struct object *ob, struct fde_accumulator *accu, const fde *this_fde)
 	     be representable.  Assume 0 in the representable bits is NULL.  */
 	  mask = size_of_encoded_value (encoding);
 	  if (mask < sizeof (void *))
-	    mask = (1L << (mask << 3)) - 1;
+	    mask = (((_Unwind_Ptr) 1) << (mask << 3)) - 1;
 	  else
 	    mask = -1;
 
@@ -797,8 +795,9 @@ linear_search_fdes (struct object *ob, const fde *this_fde, void *pc)
 
       if (encoding == DW_EH_PE_absptr)
 	{
-	  pc_begin = ((const _Unwind_Ptr *) this_fde->pc_begin)[0];
-	  pc_range = ((const _Unwind_Ptr *) this_fde->pc_begin)[1];
+	  const _Unwind_Ptr *pc_array = (const _Unwind_Ptr *) this_fde->pc_begin;
+	  pc_begin = pc_array[0];
+	  pc_range = pc_array[1];
 	  if (pc_begin == 0)
 	    continue;
 	}
@@ -817,7 +816,7 @@ linear_search_fdes (struct object *ob, const fde *this_fde, void *pc)
 	     be representable.  Assume 0 in the representable bits is NULL.  */
 	  mask = size_of_encoded_value (encoding);
 	  if (mask < sizeof (void *))
-	    mask = (1L << (mask << 3)) - 1;
+	    mask = (((_Unwind_Ptr) 1) << (mask << 3)) - 1;
 	  else
 	    mask = -1;
 
@@ -845,8 +844,10 @@ binary_search_unencoded_fdes (struct object *ob, void *pc)
     {
       size_t i = (lo + hi) / 2;
       const fde *const f = vec->array[i];
-      const void *pc_begin = ((const void *const*) f->pc_begin)[0];
-      const uaddr pc_range = ((const uaddr *) f->pc_begin)[1];
+      void *pc_begin;
+      uaddr pc_range;
+      memcpy (&pc_begin, (const void * const *) f->pc_begin, sizeof (void *));
+      memcpy (&pc_range, (const uaddr *) f->pc_begin + 1, sizeof (uaddr));
 
       if (pc < pc_begin)
 	hi = i;

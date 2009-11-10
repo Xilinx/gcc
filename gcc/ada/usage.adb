@@ -6,7 +6,7 @@
 --                                                                          --
 --                                B o d y                                   --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -91,14 +91,17 @@ begin
 
    Write_Eol;
 
-   --  Common GCC switches not available in JGNAT/MGNAT
+   --  Common GCC switches not available for JVM, .NET, and AAMP targets
 
-   if VM_Target = No_VM then
+   if VM_Target = No_VM and then not AAMP_On_Target then
       Write_Switch_Char ("fstack-check ", "");
       Write_Line ("Generate stack checking code");
 
       Write_Switch_Char ("fno-inline   ", "");
       Write_Line ("Inhibit all inlining (makes executable smaller)");
+
+      Write_Switch_Char ("fpreserve-control-flow ", "");
+      Write_Line ("Preserve control flow for coverage analysis");
    end if;
 
    --  Common switches available to both GCC and JGNAT
@@ -147,6 +150,11 @@ begin
    Write_Switch_Char ("c");
    Write_Line ("Check syntax and semantics only (no code generation)");
 
+   --  Line for -gnatC switch
+
+   Write_Switch_Char ("C");
+   Write_Line ("Generate CodePeer information (no code generation)");
+
    --  Line for -gnatd switch
 
    Write_Switch_Char ("d?");
@@ -155,7 +163,9 @@ begin
    --  Line for -gnatD switch
 
    Write_Switch_Char ("D");
-   Write_Line ("Debug expanded generated code rather than source code");
+   Write_Line ("Debug expanded generated code (max line length = 72)");
+   Write_Switch_Char ("Dnn");
+   Write_Line ("Debug expanded generated code (max line length = nn)");
 
    --  Line for -gnatec switch
 
@@ -192,6 +202,11 @@ begin
    Write_Switch_Char ("ep=?");
    Write_Line ("Specify preprocessing data file, e.g. -gnatep=prep.data");
 
+   --  Line for -gnateS switch
+
+   Write_Switch_Char ("eS");
+   Write_Line ("Generate SCO (Source Coverage Obligation) information");
+
    --  Line for -gnatE switch
 
    Write_Switch_Char ("E");
@@ -212,10 +227,12 @@ begin
    Write_Switch_Char ("g");
    Write_Line ("GNAT implementation mode (used for compiling GNAT units)");
 
-   --  Line for -gnatG switch
+   --  Lines for -gnatG switch
 
    Write_Switch_Char ("G");
-   Write_Line ("Output generated expanded code in source form");
+   Write_Line ("Output generated expanded code (max line length = 72)");
+   Write_Switch_Char ("Gnn");
+   Write_Line ("Output generated expanded code (max line length = nn)");
 
    --  Line for -gnath switch
 
@@ -257,7 +274,7 @@ begin
    --  Line for -gnatm switch
 
    Write_Switch_Char ("mnn");
-   Write_Line ("Limit number of detected errors to nn (1-999999)");
+   Write_Line ("Limit number of detected errors/warnings to nn (1-999999)");
 
    --  Line for -gnatn switch
 
@@ -421,6 +438,8 @@ begin
                                                   "but not read");
    Write_Line ("        M*   turn off warnings for variable assigned " &
                                                   "but not read");
+   Write_Line ("        .m*  turn on warnings for suspicious modulus value");
+   Write_Line ("        .M   turn off warnings for suspicious modulus value");
    Write_Line ("        n*   normal warning mode (cancels -gnatws/-gnatwe)");
    Write_Line ("        o*   turn on warnings for address clause overlay");
    Write_Line ("        O    turn off warnings for address clause overlay");
@@ -505,6 +524,7 @@ begin
    Write_Line ("        a    check attribute casing");
    Write_Line ("        A    check array attribute indexes");
    Write_Line ("        b    check no blanks at end of lines");
+   Write_Line ("        B    check no use of AND/OR for boolean expressions");
    Write_Line ("        c    check comment format");
    Write_Line ("        d    check no DOS line terminators");
    Write_Line ("        e    check end/exit labels present");
@@ -521,6 +541,7 @@ begin
    Write_Line ("        Mnn  check line length <= nn characters");
    Write_Line ("        N    turn off all checks");
    Write_Line ("        o    check subprogram bodies in alphabetical order");
+   Write_Line ("        O    check overriding indicators");
    Write_Line ("        p    check pragma casing");
    Write_Line ("        r    check casing for identifier references");
    Write_Line ("        s    check separate subprogram specs present");

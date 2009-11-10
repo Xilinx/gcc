@@ -6,18 +6,18 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License along  --
+-- with this program; see file COPYING3.  If not see                        --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -27,6 +27,7 @@
 with Atree;    use Atree;
 with Debug;    use Debug;
 with Debug_A;  use Debug_A;
+with Elists;   use Elists;
 with Errout;   use Errout;
 with Expander; use Expander;
 with Fname;    use Fname;
@@ -34,6 +35,7 @@ with HLO;      use HLO;
 with Lib;      use Lib;
 with Lib.Load; use Lib.Load;
 with Nlists;   use Nlists;
+with Output;   use Output;
 with Sem_Attr; use Sem_Attr;
 with Sem_Ch2;  use Sem_Ch2;
 with Sem_Ch3;  use Sem_Ch3;
@@ -52,6 +54,7 @@ with Sem_Util; use Sem_Util;
 with Sinfo;    use Sinfo;
 with Stand;    use Stand;
 with Uintp;    use Uintp;
+with Uname;    use Uname;
 
 with Unchecked_Deallocation;
 
@@ -60,10 +63,42 @@ pragma Warnings (Off, Sem_Util);
 
 package body Sem is
 
+   Debug_Unit_Walk : Boolean renames Debug_Flag_Dot_WW;
+   --  Controls debugging printouts for Walk_Library_Items
+
    Outer_Generic_Scope : Entity_Id := Empty;
    --  Global reference to the outer scope that is generic. In a non
    --  generic context, it is empty. At the moment, it is only used
    --  for avoiding freezing of external references in generics.
+
+   Comp_Unit_List : Elist_Id := No_Elist;
+   --  Used by Walk_Library_Items. This is a list of N_Compilation_Unit nodes
+   --  processed by Semantics, in an appropriate order. Initialized to
+   --  No_Elist, because it's too early to call New_Elmt_List; we will set it
+   --  to New_Elmt_List on first use.
+
+   generic
+      with procedure Action (Withed_Unit : Node_Id);
+   procedure Walk_Withs_Immediate (CU : Node_Id; Include_Limited : Boolean);
+   --  Walk all the with clauses of CU, and call Action for the with'ed
+   --  unit. Ignore limited withs, unless Include_Limited is True.
+   --  CU must be an N_Compilation_Unit.
+
+   generic
+      with procedure Action (Withed_Unit : Node_Id);
+   procedure Walk_Withs (CU : Node_Id; Include_Limited : Boolean);
+   --  Same as Walk_Withs_Immediate, but also include with clauses on subunits
+   --  of this unit, since they count as dependences on their parent library
+   --  item. CU must be an N_Compilation_Unit whose Unit is not an N_Subunit.
+
+   procedure Write_Unit_Info
+     (Unit_Num : Unit_Number_Type;
+      Item     : Node_Id;
+      Prefix   : String := "";
+      Withs    : Boolean := False);
+   --  Print out debugging information about the unit. Prefix precedes the rest
+   --  of the printout. If Withs is True, we print out units with'ed by this
+   --  unit (not counting limited withs).
 
    -------------
    -- Analyze --
@@ -208,7 +243,7 @@ package body Sem is
             Analyze_Free_Statement (N);
 
          when N_Freeze_Entity =>
-            null;  -- no semantic processing required
+            Analyze_Freeze_Entity (N);
 
          when N_Full_Type_Declaration =>
             Analyze_Type_Declaration (N);
@@ -566,6 +601,18 @@ package body Sem is
          --  case there is nothing to be done to analyze such nodes.
 
          when N_Push_Pop_xxx_Label =>
+            null;
+
+         --  SCIL nodes don't need analysis because they are decorated when
+         --  they are built. They are added to the tree by Insert_Actions and
+         --  the call to analyze them is generated when the full list is
+         --  analyzed.
+
+         when
+           N_SCIL_Dispatch_Table_Object_Init        |
+           N_SCIL_Dispatch_Table_Tag_Init           |
+           N_SCIL_Dispatching_Call                  |
+           N_SCIL_Tag_Init                          =>
             null;
 
          --  For the remaining node types, we generate compiler abort, because
@@ -1332,9 +1379,23 @@ package body Sem is
          Restore_Scope_Stack;
       end Do_Analyze;
 
+      Already_Analyzed : constant Boolean := Analyzed (Comp_Unit);
+
    --  Start of processing for Semantics
 
    begin
+      if Debug_Unit_Walk then
+         if Already_Analyzed then
+            Write_Str ("(done)");
+         end if;
+
+         Write_Unit_Info
+           (Get_Cunit_Unit_Number (Comp_Unit),
+            Unit (Comp_Unit),
+            Prefix => "--> ");
+         Indent;
+      end if;
+
       Compiler_State   := Analyzing;
       Current_Sem_Unit := Get_Cunit_Unit_Number (Comp_Unit);
 
@@ -1347,11 +1408,11 @@ package body Sem is
       --  Cleaner might be to do the kludge at the point of excluding the
       --  pragma (do not exclude for renamings ???)
 
-      GNAT_Mode :=
-        GNAT_Mode
-          or else Is_Predefined_File_Name
-                    (Unit_File_Name (Current_Sem_Unit),
-                     Renamings_Included => False);
+      if Is_Predefined_File_Name
+           (Unit_File_Name (Current_Sem_Unit), Renamings_Included => False)
+      then
+         GNAT_Mode := True;
+      end if;
 
       if Generic_Main then
          Expander_Mode_Save_And_Set (False);
@@ -1384,7 +1445,36 @@ package body Sem is
             New_Nodes_OK := 0;
          end if;
 
+         --  Do analysis, and then append the compilation unit onto the
+         --  Comp_Unit_List, if appropriate. This is done after analysis, so
+         --  if this unit depends on some others, they have already been
+         --  appended. We ignore bodies, except for the main unit itself. We
+         --  have also to guard against ill-formed subunits that have an
+         --  improper context.
+
          Do_Analyze;
+
+         if Present (Comp_Unit)
+           and then Nkind (Unit (Comp_Unit)) in N_Proper_Body
+           and then not In_Extended_Main_Source_Unit (Comp_Unit)
+         then
+            null;
+
+         else
+            --  Initialize if first time
+
+            if No (Comp_Unit_List) then
+               Comp_Unit_List := New_Elmt_List;
+            end if;
+
+            Append_Elmt (Comp_Unit, Comp_Unit_List);
+
+            if Debug_Unit_Walk then
+               Write_Str ("Appending ");
+               Write_Unit_Info
+                 (Get_Cunit_Unit_Number (Comp_Unit), Unit (Comp_Unit));
+            end if;
+         end if;
       end if;
 
       --  Save indication of dynamic elaboration checks for ALI file
@@ -1404,5 +1494,598 @@ package body Sem is
 
       Restore_Opt_Config_Switches (Save_Config_Switches);
       Expander_Mode_Restore;
+
+      if Debug_Unit_Walk then
+         Outdent;
+
+         if Already_Analyzed then
+            Write_Str ("(done)");
+         end if;
+
+         Write_Unit_Info
+           (Get_Cunit_Unit_Number (Comp_Unit),
+            Unit (Comp_Unit),
+            Prefix => "<-- ");
+      end if;
    end Semantics;
+
+   ------------------------
+   -- Walk_Library_Items --
+   ------------------------
+
+   procedure Walk_Library_Items is
+      type Unit_Number_Set is array (Main_Unit .. Last_Unit) of Boolean;
+      pragma Pack (Unit_Number_Set);
+      Seen, Done : Unit_Number_Set := (others => False);
+      --  Seen (X) is True after we have seen unit X in the walk. This is used
+      --  to prevent processing the same unit more than once. Done (X) is True
+      --  after we have fully processed X, and is used only for debugging
+      --  printouts and assertions.
+
+      Do_Main : Boolean := False;
+      --  Flag to delay processing the main body until after all other units.
+      --  This is needed because the spec of the main unit may appear in the
+      --  context of some other unit. We do not want this to force processing
+      --  of the main body before all other units have been processed.
+
+      procedure Do_Action (CU : Node_Id; Item : Node_Id);
+      --  Calls Action, with some validity checks
+
+      procedure Do_Unit_And_Dependents (CU : Node_Id; Item : Node_Id);
+      --  Calls Do_Action, first on the units with'ed by this one, then on
+      --  this unit. If it's an instance body, do the spec first. If it is
+      --  an instance spec, do the body last.
+
+      ---------------
+      -- Do_Action --
+      ---------------
+
+      procedure Do_Action (CU : Node_Id; Item : Node_Id) is
+      begin
+         --  This calls Action at the end. All the preceding code is just
+         --  assertions and debugging output.
+
+         pragma Assert (No (CU) or else Nkind (CU) = N_Compilation_Unit);
+
+         case Nkind (Item) is
+            when N_Generic_Subprogram_Declaration        |
+                 N_Generic_Package_Declaration           |
+                 N_Package_Declaration                   |
+                 N_Subprogram_Declaration                |
+                 N_Subprogram_Renaming_Declaration       |
+                 N_Package_Renaming_Declaration          |
+                 N_Generic_Function_Renaming_Declaration |
+                 N_Generic_Package_Renaming_Declaration  |
+                 N_Generic_Procedure_Renaming_Declaration =>
+
+               --  Specs are OK
+
+               null;
+
+            when N_Package_Body  =>
+
+               --  Package bodies are processed immediately after the
+               --  corresponding spec.
+
+               null;
+
+            when  N_Subprogram_Body =>
+
+               --  A subprogram body must be the main unit
+
+               pragma Assert (Acts_As_Spec (CU)
+                               or else CU = Cunit (Main_Unit));
+               null;
+
+            --  All other cases cannot happen
+
+            when N_Function_Instantiation  |
+                 N_Procedure_Instantiation |
+                 N_Package_Instantiation   =>
+               pragma Assert (False, "instantiation");
+               null;
+
+            when N_Subunit =>
+               pragma Assert (False, "subunit");
+               null;
+
+            when others =>
+               pragma Assert (False);
+               null;
+         end case;
+
+         if Present (CU) then
+            pragma Assert (Item /= Stand.Standard_Package_Node);
+            pragma Assert (Item = Unit (CU));
+
+            declare
+               Unit_Num : constant Unit_Number_Type :=
+                            Get_Cunit_Unit_Number (CU);
+
+               procedure Assert_Done (Withed_Unit : Node_Id);
+               --  Assert Withed_Unit is already Done, unless it's a body. It
+               --  might seem strange for a with_clause to refer to a body, but
+               --  this happens in the case of a generic instantiation, which
+               --  gets transformed into the instance body (and the instance
+               --  spec is also created). With clauses pointing to the
+               --  instantiation end up pointing to the instance body.
+
+               -----------------
+               -- Assert_Done --
+               -----------------
+
+               procedure Assert_Done (Withed_Unit : Node_Id) is
+               begin
+                  if not Done (Get_Cunit_Unit_Number (Withed_Unit)) then
+                     if not Nkind_In
+                              (Unit (Withed_Unit),
+                                 N_Generic_Package_Declaration,
+                                 N_Package_Body,
+                                 N_Subprogram_Body)
+                     then
+                        Write_Unit_Name
+                          (Unit_Name (Get_Cunit_Unit_Number (Withed_Unit)));
+                        Write_Str (" not yet walked!");
+
+                        if Get_Cunit_Unit_Number (Withed_Unit) = Unit_Num then
+                           Write_Str (" (self-ref)");
+                        end if;
+
+                        Write_Eol;
+
+                        pragma Assert (False);
+                     end if;
+                  end if;
+               end Assert_Done;
+
+               procedure Assert_Withed_Units_Done is
+                 new Walk_Withs (Assert_Done);
+
+            begin
+               if Debug_Unit_Walk then
+                  Write_Unit_Info (Unit_Num, Item, Withs => True);
+               end if;
+
+               --  Main unit should come last (except in the case where we
+               --  skipped System_Aux_Id, in which case we missed the things it
+               --  depends on).
+
+               pragma Assert
+                 (not Done (Main_Unit) or else Present (System_Aux_Id));
+
+               --  We shouldn't do the same thing twice
+
+               pragma Assert (not Done (Unit_Num));
+
+               --  Everything we depend upon should already be done
+
+               pragma Debug
+                 (Assert_Withed_Units_Done (CU, Include_Limited => False));
+            end;
+
+         else
+            --  Must be Standard, which has no entry in the units table
+
+            pragma Assert (Item = Stand.Standard_Package_Node);
+
+            if Debug_Unit_Walk then
+               Write_Line ("Standard");
+            end if;
+         end if;
+
+         Action (Item);
+      end Do_Action;
+
+      ----------------------------
+      -- Do_Unit_And_Dependents --
+      ----------------------------
+
+      procedure Do_Unit_And_Dependents (CU : Node_Id; Item : Node_Id) is
+         Unit_Num : constant Unit_Number_Type :=
+                      Get_Cunit_Unit_Number (CU);
+
+         procedure Do_Withed_Unit (Withed_Unit : Node_Id);
+         --  Pass the buck to Do_Unit_And_Dependents
+
+         --------------------
+         -- Do_Withed_Unit --
+         --------------------
+
+         procedure Do_Withed_Unit (Withed_Unit : Node_Id) is
+            Save_Do_Main : constant Boolean := Do_Main;
+
+         begin
+            --  Do not process the main unit if coming from a with_clause,
+            --  as would happen with a parent body that has a child spec
+            --  in its context.
+
+            Do_Main := False;
+            Do_Unit_And_Dependents (Withed_Unit, Unit (Withed_Unit));
+            Do_Main := Save_Do_Main;
+         end Do_Withed_Unit;
+
+         procedure Do_Withed_Units is new Walk_Withs (Do_Withed_Unit);
+
+      --  Start of processing for Do_Unit_And_Dependents
+
+      begin
+         if not Seen (Unit_Num) then
+
+            --  Process the with clauses
+
+            Do_Withed_Units (CU, Include_Limited => False);
+
+            --  Process the unit if it is a spec. If it is the main unit,
+            --  process it only if we have done all other units.
+
+            if not Nkind_In (Item, N_Package_Body, N_Subprogram_Body)
+              or else Acts_As_Spec (CU)
+            then
+               if CU = Cunit (Main_Unit) and then not Do_Main then
+                  Seen (Unit_Num) := False;
+
+               else
+                  Seen (Unit_Num) := True;
+                  Do_Action (CU, Item);
+                  Done (Unit_Num) := True;
+               end if;
+            end if;
+         end if;
+
+         --  Process bodies. The spec, if present, has been processed already.
+         --  A body appears if it is the main, or the body of a spec that is
+         --  in the context of the main unit, and that is instantiated, or else
+         --  contains a generic that is instantiated, or a subprogram that is
+         --  or a subprogram that is inlined in the main unit.
+
+         --  We exclude bodies that may appear in a circular dependency list,
+         --  where spec A depends on spec B and body of B depends on spec A.
+         --  This is not an elaboration issue, but body B must be excluded
+         --  from the processing.
+
+         declare
+            Body_Unit :  Node_Id := Empty;
+            Body_Num  : Unit_Number_Type;
+
+            function Circular_Dependence (B : Node_Id) return Boolean;
+            --  Check whether this body depends on a spec that is pending,
+            --  that is to say has been seen but not processed yet.
+
+            -------------------------
+            -- Circular_Dependence --
+            -------------------------
+
+            function Circular_Dependence (B : Node_Id) return Boolean is
+               Item : Node_Id;
+               UN   : Unit_Number_Type;
+
+            begin
+               Item := First (Context_Items (B));
+               while Present (Item) loop
+                  if Nkind (Item) = N_With_Clause then
+                     UN := Get_Cunit_Unit_Number (Library_Unit (Item));
+
+                     if Seen (UN)
+                       and then not Done (UN)
+                     then
+                        return True;
+                     end if;
+                  end if;
+
+                  Next (Item);
+               end loop;
+
+               return False;
+            end Circular_Dependence;
+
+         begin
+            if Nkind (Item) = N_Package_Declaration then
+               Body_Unit := Library_Unit (CU);
+
+            elsif Nkind_In (Item, N_Package_Body, N_Subprogram_Body) then
+               Body_Unit := CU;
+            end if;
+
+            if Present (Body_Unit)
+
+              --  Since specs and bodies are not done at the same time,
+              --  guard against listing a body more than once. Bodies are
+              --  only processed when the main unit is being processed,
+              --  after all other units in the list. The DEC extension
+              --  to System is excluded because of circularities.
+
+              and then not Seen (Get_Cunit_Unit_Number (Body_Unit))
+              and then
+                (No (System_Aux_Id)
+                   or else Unit_Num /= Get_Source_Unit (System_Aux_Id))
+              and then not Circular_Dependence (Body_Unit)
+              and then Do_Main
+            then
+               Body_Num := Get_Cunit_Unit_Number (Body_Unit);
+               Seen (Body_Num) := True;
+               Do_Action (Body_Unit, Unit (Body_Unit));
+               Done (Body_Num) := True;
+            end if;
+         end;
+      end Do_Unit_And_Dependents;
+
+      --  Local Declarations
+
+      Cur : Elmt_Id;
+
+   --  Start of processing for Walk_Library_Items
+
+   begin
+      if Debug_Unit_Walk then
+         Write_Line ("Walk_Library_Items:");
+         Indent;
+      end if;
+
+      --  Do Standard first, then walk the Comp_Unit_List
+
+      Do_Action (Empty, Standard_Package_Node);
+
+      --  First place the context of all instance bodies on the corresponding
+      --  spec, because it may be needed to analyze the code at the place of
+      --  the instantiation.
+
+      Cur := First_Elmt (Comp_Unit_List);
+      while Present (Cur) loop
+         declare
+            CU : constant Node_Id := Node (Cur);
+            N  : constant Node_Id := Unit (CU);
+
+         begin
+            if Nkind (N) = N_Package_Body
+              and then Is_Generic_Instance (Defining_Entity (N))
+            then
+               Append_List
+                 (Context_Items (CU), Context_Items (Library_Unit (CU)));
+            end if;
+
+            Next_Elmt (Cur);
+         end;
+      end loop;
+
+      --  Now traverse compilation units in order
+
+      Cur := First_Elmt (Comp_Unit_List);
+      while Present (Cur) loop
+         declare
+            CU : constant Node_Id := Node (Cur);
+            N  : constant Node_Id := Unit (CU);
+
+         begin
+            pragma Assert (Nkind (CU) = N_Compilation_Unit);
+
+            case Nkind (N) is
+
+               --  If it's a body, ignore it. Bodies appear in the list only
+               --  because of inlining/instantiations, and they are processed
+               --  immediately after the corresponding specs. The main unit is
+               --  processed separately after all other units.
+
+               when N_Package_Body | N_Subprogram_Body =>
+                  null;
+
+               --  It's a spec, so just do it
+
+               when others =>
+                  Do_Unit_And_Dependents (CU, N);
+            end case;
+         end;
+
+         Next_Elmt (Cur);
+      end loop;
+
+      if not Done (Main_Unit) then
+         Do_Main := True;
+
+         declare
+            Main_CU : constant Node_Id := Cunit (Main_Unit);
+
+         begin
+            --  If the main unit is an instantiation, the body appears before
+            --  the instance spec, which is added later to the unit list. Do
+            --  the spec if present, body will follow.
+
+            if Nkind (Original_Node (Unit (Main_CU)))
+                 in N_Generic_Instantiation
+              and then Present (Library_Unit (Main_CU))
+            then
+               Do_Unit_And_Dependents
+                 (Library_Unit (Main_CU), Unit (Library_Unit (Main_CU)));
+            else
+               Do_Unit_And_Dependents (Main_CU, Unit (Main_CU));
+            end if;
+         end;
+      end if;
+
+      if Debug_Unit_Walk then
+         if Done /= (Done'Range => True) then
+            Write_Eol;
+            Write_Line ("Ignored units:");
+
+            Indent;
+
+            for Unit_Num in Done'Range loop
+               if not Done (Unit_Num) then
+                  Write_Unit_Info
+                    (Unit_Num, Unit (Cunit (Unit_Num)), Withs => True);
+               end if;
+            end loop;
+
+            Outdent;
+         end if;
+      end if;
+
+      pragma Assert (Done (Main_Unit));
+
+      if Debug_Unit_Walk then
+         Outdent;
+         Write_Line ("end Walk_Library_Items.");
+      end if;
+   end Walk_Library_Items;
+
+   ----------------
+   -- Walk_Withs --
+   ----------------
+
+   procedure Walk_Withs (CU : Node_Id; Include_Limited : Boolean) is
+      pragma Assert (Nkind (CU) = N_Compilation_Unit);
+      pragma Assert (Nkind (Unit (CU)) /= N_Subunit);
+
+      procedure Walk_Immediate is new Walk_Withs_Immediate (Action);
+
+   begin
+      --  First walk the withs immediately on the library item
+
+      Walk_Immediate (CU, Include_Limited);
+
+      --  For a body, we must also check for any subunits which belong to it
+      --  and which have context clauses of their own, since these with'ed
+      --  units are part of its own dependencies.
+
+      if Nkind (Unit (CU)) in N_Unit_Body then
+         for S in Main_Unit .. Last_Unit loop
+
+            --  We are only interested in subunits. For preproc. data and def.
+            --  files, Cunit is Empty, so we need to test that first.
+
+            if Cunit (S) /= Empty
+              and then Nkind (Unit (Cunit (S))) = N_Subunit
+            then
+               declare
+                  Pnode : Node_Id;
+
+               begin
+                  Pnode := Library_Unit (Cunit (S));
+
+                  --  In -gnatc mode, the errors in the subunits will not have
+                  --  been recorded, but the analysis of the subunit may have
+                  --  failed, so just quit.
+
+                  if No (Pnode) then
+                     exit;
+                  end if;
+
+                  --  Find ultimate parent of the subunit
+
+                  while Nkind (Unit (Pnode)) = N_Subunit loop
+                     Pnode := Library_Unit (Pnode);
+                  end loop;
+
+                  --  See if it belongs to current unit, and if so, include its
+                  --  with_clauses. Do not process main unit prematurely.
+
+                  if Pnode = CU and then CU /= Cunit (Main_Unit) then
+                     Walk_Immediate (Cunit (S), Include_Limited);
+                  end if;
+               end;
+            end if;
+         end loop;
+      end if;
+   end Walk_Withs;
+
+   --------------------------
+   -- Walk_Withs_Immediate --
+   --------------------------
+
+   procedure Walk_Withs_Immediate (CU : Node_Id; Include_Limited : Boolean) is
+      pragma Assert (Nkind (CU) = N_Compilation_Unit);
+
+      Context_Item : Node_Id;
+
+   begin
+      Context_Item := First (Context_Items (CU));
+      while Present (Context_Item) loop
+         if Nkind (Context_Item) = N_With_Clause
+           and then (Include_Limited
+                     or else not Limited_Present (Context_Item))
+         then
+            Action (Library_Unit (Context_Item));
+         end if;
+
+         Context_Item := Next (Context_Item);
+      end loop;
+   end Walk_Withs_Immediate;
+
+   ---------------------
+   -- Write_Unit_Info --
+   ---------------------
+
+   procedure Write_Unit_Info
+     (Unit_Num : Unit_Number_Type;
+      Item     : Node_Id;
+      Prefix   : String := "";
+      Withs    : Boolean := False)
+   is
+   begin
+      Write_Str (Prefix);
+      Write_Unit_Name (Unit_Name (Unit_Num));
+      Write_Str (", unit ");
+      Write_Int (Int (Unit_Num));
+      Write_Str (", ");
+      Write_Int (Int (Item));
+      Write_Str ("=");
+      Write_Str (Node_Kind'Image (Nkind (Item)));
+
+      if Item /= Original_Node (Item) then
+         Write_Str (", orig = ");
+         Write_Int (Int (Original_Node (Item)));
+         Write_Str ("=");
+         Write_Str (Node_Kind'Image (Nkind (Original_Node (Item))));
+      end if;
+
+      Write_Eol;
+
+      --  Skip the rest if we're not supposed to print the withs
+
+      if not Withs then
+         return;
+      end if;
+
+      declare
+         Context_Item : Node_Id;
+
+      begin
+         Context_Item := First (Context_Items (Cunit (Unit_Num)));
+         while Present (Context_Item)
+           and then (Nkind (Context_Item) /= N_With_Clause
+                      or else Limited_Present (Context_Item))
+         loop
+            Context_Item := Next (Context_Item);
+         end loop;
+
+         if Present (Context_Item) then
+            Indent;
+            Write_Line ("withs:");
+            Indent;
+
+            while Present (Context_Item) loop
+               if Nkind (Context_Item) = N_With_Clause
+                 and then not Limited_Present (Context_Item)
+               then
+                  pragma Assert (Present (Library_Unit (Context_Item)));
+                  Write_Unit_Name
+                    (Unit_Name
+                       (Get_Cunit_Unit_Number (Library_Unit (Context_Item))));
+
+                  if Implicit_With (Context_Item) then
+                     Write_Str (" -- implicit");
+                  end if;
+
+                  Write_Eol;
+               end if;
+
+               Context_Item := Next (Context_Item);
+            end loop;
+
+            Outdent;
+            Write_Line ("end withs");
+            Outdent;
+         end if;
+      end;
+   end Write_Unit_Info;
+
 end Sem;

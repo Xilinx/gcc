@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -35,6 +35,7 @@ with Exp_Dist; use Exp_Dist;
 with Exp_Util; use Exp_Util;
 with Expander; use Expander;
 with Freeze;   use Freeze;
+with Gnatvsn;  use Gnatvsn;
 with Itypes;   use Itypes;
 with Lib;      use Lib;
 with Lib.Xref; use Lib.Xref;
@@ -46,10 +47,13 @@ with Rident;   use Rident;
 with Rtsfind;  use Rtsfind;
 with Sdefault; use Sdefault;
 with Sem;      use Sem;
+with Sem_Aux;  use Sem_Aux;
 with Sem_Cat;  use Sem_Cat;
 with Sem_Ch6;  use Sem_Ch6;
 with Sem_Ch8;  use Sem_Ch8;
+with Sem_Ch10; use Sem_Ch10;
 with Sem_Dist; use Sem_Dist;
+with Sem_Elim; use Sem_Elim;
 with Sem_Eval; use Sem_Eval;
 with Sem_Res;  use Sem_Res;
 with Sem_Type; use Sem_Type;
@@ -230,7 +234,7 @@ package body Sem_Attr is
 
       procedure Check_Dereference;
       --  If the prefix of attribute is an object of an access type, then
-      --  introduce an explicit deference, and adjust P_Type accordingly.
+      --  introduce an explicit dereference, and adjust P_Type accordingly.
 
       procedure Check_Discrete_Type;
       --  Verify that prefix of attribute N is a discrete type
@@ -418,7 +422,8 @@ package body Sem_Attr is
             --  an access, we set a flag to kill all tracked values on any call
             --  because this access value may be passed around, and any called
             --  code might use it to access a local procedure which clobbers a
-            --  tracked value.
+            --  tracked value. If the scope is a loop or block, indicate that
+            --  value tracking is disabled for the enclosing subprogram.
 
             function Get_Kind (E : Entity_Id) return Entity_Kind;
             --  Distinguish between access to regular/protected subprograms
@@ -431,6 +436,8 @@ package body Sem_Attr is
             begin
                if not Is_Library_Level_Entity (E) then
                   Set_Suppress_Value_Tracking_On_Call (Current_Scope);
+                  Set_Suppress_Value_Tracking_On_Call
+                    (Nearest_Dynamic_Scope (Current_Scope));
                end if;
             end Check_Local_Access;
 
@@ -571,6 +578,10 @@ package body Sem_Attr is
             if Aname = Name_Unchecked_Access then
                Error_Attr ("attribute% cannot be applied to a subprogram", P);
             end if;
+
+            --  Issue an error if the prefix denotes an eliminated subprogram
+
+            Check_For_Eliminated_Subprogram (P, Entity (P));
 
             --  Build the appropriate subprogram type
 
@@ -713,8 +724,7 @@ package body Sem_Attr is
                then
                   null;
 
-               --  OK if reference to the current instance of a protected
-               --  object.
+               --  OK if reference to current instance of a protected object
 
                elsif Is_Protected_Self_Reference (P) then
                   null;
@@ -1060,7 +1070,13 @@ package body Sem_Attr is
             --  the designated type of the access type, since the type of
             --  the referenced array is this type (see AI95-00106).
 
-            Freeze_Before (N, Designated_Type (P_Type));
+            --  As done elsewhere, freezing must not happen when pre-analyzing
+            --  a pre- or postcondition or a default value for an object or
+            --  for a formal parameter.
+
+            if not In_Spec_Expression then
+               Freeze_Before (N, Designated_Type (P_Type));
+            end if;
 
             Rewrite (P,
               Make_Explicit_Dereference (Sloc (P),
@@ -1330,15 +1346,32 @@ package body Sem_Attr is
                E := Prefix (E);
             end loop;
 
-            if From_With_Type (Etype (E)) then
+            Typ := Etype (E);
+
+            if From_With_Type (Typ) then
                Error_Attr_P
                  ("prefix of % attribute cannot be an incomplete type");
 
             else
-               if Is_Access_Type (Etype (E)) then
-                  Typ := Directly_Designated_Type (Etype (E));
-               else
-                  Typ := Etype (E);
+               if Is_Access_Type (Typ) then
+                  Typ := Directly_Designated_Type (Typ);
+               end if;
+
+               if Is_Class_Wide_Type (Typ) then
+                  Typ := Root_Type (Typ);
+               end if;
+
+               --  A legal use of a shadow entity occurs only when the unit
+               --  where the non-limited view resides is imported via a regular
+               --  with clause in the current body. Such references to shadow
+               --  entities may occur in subprogram formals.
+
+               if Is_Incomplete_Type (Typ)
+                 and then From_With_Type (Typ)
+                 and then Present (Non_Limited_View (Typ))
+                 and then Is_Legal_Shadow_Entity_In_Body (Typ)
+               then
+                  Typ := Non_Limited_View (Typ);
                end if;
 
                if Ekind (Typ) = E_Incomplete_Type
@@ -1555,7 +1588,19 @@ package body Sem_Attr is
             end if;
          end if;
 
-         --  Check for violation of restriction No_Stream_Attributes
+         --  Check restriction violations
+
+         --  First check the No_Streams restriction, which prohibits the use
+         --  of explicit stream attributes in the source program. We do not
+         --  prevent the occurrence of stream attributes in generated code,
+         --  for instance those generated implicitly for dispatching purposes.
+
+         if Comes_From_Source (N) then
+            Check_Restriction (No_Streams, P);
+         end if;
+
+         --  Check special case of Exception_Id and Exception_Occurrence which
+         --  are not allowed for restriction No_Exception_Regstriation.
 
          if Is_RTE (P_Type, RE_Exception_Id)
               or else
@@ -1651,8 +1696,8 @@ package body Sem_Attr is
 
          elsif Is_Protected_Self_Reference (P) then
             Error_Attr_P
-              ("prefix of % attribute denotes current instance " &
-                 "(RM 9.4(21/2))");
+              ("prefix of % attribute denotes current instance "
+               & "(RM 9.4(21/2))");
 
          elsif Ekind (Entity (P)) = E_Incomplete_Type
             and then Present (Full_View (Entity (P)))
@@ -2021,8 +2066,8 @@ package body Sem_Attr is
          --  applies to other entity-denoting expressions.
 
          if Is_Protected_Self_Reference (P) then
-            --  An Address attribute on a protected object self reference
-            --  is legal.
+
+            --  Address attribute on a protected object self reference is legal
 
             null;
 
@@ -2047,6 +2092,28 @@ package body Sem_Attr is
                      Error_Attr_P
                        ("prefix of % attribute cannot be Inline_Always" &
                         " subprogram");
+
+                  --  It is illegal to apply 'Address to an intrinsic
+                  --  subprogram. This is now formalized in AI05-0095.
+                  --  In an instance, an attempt to obtain 'Address of an
+                  --  intrinsic subprogram (e.g the renaming of a predefined
+                  --  operator that is an actual) raises Program_Error.
+
+                  elsif Convention (Ent) = Convention_Intrinsic then
+                     if In_Instance then
+                        Rewrite (N,
+                          Make_Raise_Program_Error (Loc,
+                            Reason => PE_Address_Of_Intrinsic));
+
+                     else
+                        Error_Msg_N
+                         ("cannot take Address of intrinsic subprogram", N);
+                     end if;
+
+                  --  Issue an error if prefix denotes an eliminated subprogram
+
+                  else
+                     Check_For_Eliminated_Subprogram (P, Ent);
                   end if;
 
                elsif Is_Object (Ent)
@@ -2487,9 +2554,24 @@ package body Sem_Attr is
          then
             Error_Attr ("invalid prefix for % attribute", P);
             Set_Address_Taken (Entity (P));
+
+         --  Issue an error if the prefix denotes an eliminated subprogram
+
+         else
+            Check_For_Eliminated_Subprogram (P, Entity (P));
          end if;
 
          Set_Etype (N, RTE (RE_Address));
+
+      ----------------------
+      -- Compiler_Version --
+      ----------------------
+
+      when Attribute_Compiler_Version =>
+         Check_E0;
+         Check_Standard_Prefix;
+         Rewrite (N, Make_String_Literal (Loc, "GNAT " & Gnat_Version_String));
+         Analyze_And_Resolve (N, Standard_String);
 
       --------------------
       -- Component_Size --
@@ -3825,7 +3907,7 @@ package body Sem_Attr is
             end if;
 
          --  Body case, where we must be inside a generated _Postcondition
-         --  procedure, and the prefix must be on the scope stack,  or else
+         --  procedure, and the prefix must be on the scope stack, or else
          --  the attribute use is definitely misplaced. The condition itself
          --  may have generated transient scopes, and is not necessarily the
          --  current one.
@@ -4328,9 +4410,9 @@ package body Sem_Attr is
          Check_Not_Incomplete_Type;
          Set_Etype (N, RTE (RE_Type_Class));
 
-      ------------
-      -- To_Any --
-      ------------
+      --------------
+      -- TypeCode --
+      --------------
 
       when Attribute_TypeCode =>
          Check_E0;
@@ -4840,7 +4922,7 @@ package body Sem_Attr is
 
          --  Check that result is in bounds of the type if it is static
 
-         if Is_In_Range (N, T) then
+         if Is_In_Range (N, T, Assume_Valid => False) then
             null;
 
          elsif Is_Out_Of_Range (N, T) then
@@ -5258,7 +5340,7 @@ package body Sem_Attr is
                if Present (AS) and then Is_Constrained (AS) then
                   P_Entity := AS;
 
-               --  If we have an unconstrained type, cannot fold
+               --  If we have an unconstrained type we cannot fold
 
                else
                   Check_Expressions;
@@ -5518,6 +5600,10 @@ package body Sem_Attr is
          --  Again we compute the variable Static for easy reference later
          --  (note that no array attributes are static in Ada 83).
 
+         --  We also need to set Static properly for subsequent legality checks
+         --  which might otherwise accept non-static constants in contexts
+         --  where they are not legal.
+
          Static := Ada_Version >= Ada_95
                      and then Statically_Denotes_Entity (P);
 
@@ -5526,6 +5612,16 @@ package body Sem_Attr is
 
          begin
             N := First_Index (P_Type);
+
+            --  The expression is static if the array type is constrained
+            --  by given bounds, and not by an initial expression. Constant
+            --  strings are static in any case.
+
+            if Root_Type (P_Type) /= Standard_String then
+               Static :=
+                 Static and then not Is_Constr_Subt_For_U_Nominal (P_Type);
+            end if;
+
             while Present (N) loop
                Static := Static and then Is_Static_Subtype (Etype (N));
 
@@ -6095,12 +6191,11 @@ package body Sem_Attr is
          Ind : Node_Id;
 
       begin
-         --  In the case of a generic index type, the bounds may
-         --  appear static but the computation is not meaningful,
-         --  and may generate a spurious warning.
+         --  In the case of a generic index type, the bounds may appear static
+         --  but the computation is not meaningful in this case, and may
+         --  generate a spurious warning.
 
          Ind := First_Index (P_Type);
-
          while Present (Ind) loop
             if Is_Generic_Type (Etype (Ind)) then
                return;
@@ -6111,6 +6206,8 @@ package body Sem_Attr is
 
          Set_Bounds;
 
+         --  For two compile time values, we can compute length
+
          if Compile_Time_Known_Value (Lo_Bound)
            and then Compile_Time_Known_Value (Hi_Bound)
          then
@@ -6118,6 +6215,33 @@ package body Sem_Attr is
               UI_Max (0, 1 + (Expr_Value (Hi_Bound) - Expr_Value (Lo_Bound))),
               True);
          end if;
+
+         --  One more case is where Hi_Bound and Lo_Bound are compile-time
+         --  comparable, and we can figure out the difference between them.
+
+         declare
+            Diff : aliased Uint;
+
+         begin
+            case
+              Compile_Time_Compare
+                (Lo_Bound, Hi_Bound, Diff'Access, Assume_Valid => False)
+            is
+               when EQ =>
+                  Fold_Uint (N, Uint_1, False);
+
+               when GT =>
+                  Fold_Uint (N, Uint_0, False);
+
+               when LT =>
+                  if Diff /= No_Uint then
+                     Fold_Uint (N, Diff + 1, False);
+                  end if;
+
+               when others =>
+                  null;
+            end case;
+         end;
       end Length;
 
       -------------
@@ -6609,6 +6733,8 @@ package body Sem_Attr is
       when Attribute_Range_Length =>
          Set_Bounds;
 
+         --  Can fold if both bounds are compile time known
+
          if Compile_Time_Known_Value (Hi_Bound)
            and then Compile_Time_Known_Value (Lo_Bound)
          then
@@ -6617,6 +6743,33 @@ package body Sem_Attr is
                 (0, Expr_Value (Hi_Bound) - Expr_Value (Lo_Bound) + 1),
                  Static);
          end if;
+
+         --  One more case is where Hi_Bound and Lo_Bound are compile-time
+         --  comparable, and we can figure out the difference between them.
+
+         declare
+            Diff : aliased Uint;
+
+         begin
+            case
+              Compile_Time_Compare
+                (Lo_Bound, Hi_Bound, Diff'Access, Assume_Valid => False)
+            is
+               when EQ =>
+                  Fold_Uint (N, Uint_1, False);
+
+               when GT =>
+                  Fold_Uint (N, Uint_0, False);
+
+               when LT =>
+                  if Diff /= No_Uint then
+                     Fold_Uint (N, Diff + 1, False);
+                  end if;
+
+               when others =>
+                  null;
+            end case;
+         end;
 
       ---------------
       -- Remainder --
@@ -7358,6 +7511,7 @@ package body Sem_Attr is
            Attribute_Caller                   |
            Attribute_Class                    |
            Attribute_Code_Address             |
+           Attribute_Compiler_Version         |
            Attribute_Count                    |
            Attribute_Default_Bit_Order        |
            Attribute_Elaborated               |
@@ -7698,16 +7852,16 @@ package body Sem_Attr is
                   --  Check the static accessibility rule of 3.10.2(32).
                   --  This rule also applies within the private part of an
                   --  instantiation. This rule does not apply to anonymous
-                  --  access-to-subprogram types (Ada 2005).
+                  --  access-to-subprogram types in access parameters.
 
                   elsif Attr_Id = Attribute_Access
                     and then not In_Instance_Body
+                    and then
+                      (Ekind (Btyp) = E_Access_Subprogram_Type
+                        or else Is_Local_Anonymous_Access (Btyp))
+
                     and then Subprogram_Access_Level (Entity (P)) >
                                Type_Access_Level (Btyp)
-                    and then Ekind (Btyp) /=
-                               E_Anonymous_Access_Subprogram_Type
-                    and then Ekind (Btyp) /=
-                               E_Anonymous_Access_Protected_Subprogram_Type
                   then
                      Error_Msg_F
                        ("subprogram must not be deeper than access type", P);

@@ -1,11 +1,11 @@
-/* Copyright (C) 2001, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+/* Copyright (C) 2001, 2002, 2003, 2004, 2005, 2009 Free Software Foundation, Inc.
    Contributed by Jakub Jelinek <jakub@redhat.com>.
 
    This file is part of GCC.
 
    GCC is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2, or (at your option)
+   the Free Software Foundation; either version 3, or (at your option)
    any later version.
 
    GCC is distributed in the hope that it will be useful,
@@ -13,17 +13,14 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
    GNU General Public License for more details.
 
-   You should have received a copy of the GNU General Public License
-   along with GCC; see the file COPYING.  If not, write to
-   the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-   Boston, MA 02110-1301, USA.  */
+   Under Section 7 of GPL version 3, you are granted additional
+   permissions described in the GCC Runtime Library Exception, version
+   3.1, as published by the Free Software Foundation.
 
-/* As a special exception, if you link this library with other files,
-   some of which are compiled with GCC, to produce an executable,
-   this library does not by itself cause the resulting executable
-   to be covered by the GNU General Public License.
-   This exception does not however invalidate any other reasons why
-   the executable file might be covered by the GNU General Public License.  */
+   You should have received a copy of the GNU General Public License and
+   a copy of the GCC Runtime Library Exception along with this program;
+   see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+   <http://www.gnu.org/licenses/>.  */
 
 /* Locate the FDE entry for a given address, using PT_GNU_EH_FRAME ELF
    segment and dl_iterate_phdr to avoid register/deregister calls at
@@ -51,6 +48,16 @@
 #if !defined(inhibit_libc) && defined(HAVE_LD_EH_FRAME_HDR) \
     && (__GLIBC__ > 2 || (__GLIBC__ == 2 && __GLIBC_MINOR__ > 2) \
 	|| (__GLIBC__ == 2 && __GLIBC_MINOR__ == 2 && defined(DT_CONFIG)))
+# define USE_PT_GNU_EH_FRAME
+#endif
+
+#if !defined(inhibit_libc) && defined(HAVE_LD_EH_FRAME_HDR) \
+    && defined(__FreeBSD__) && __FreeBSD__ >= 7
+# define ElfW __ElfN
+# define USE_PT_GNU_EH_FRAME
+#endif
+
+#if defined(USE_PT_GNU_EH_FRAME)
 
 #ifndef __RELOC_POINTER
 # define __RELOC_POINTER(ptr, base) ((ptr) + (base))
@@ -138,7 +145,8 @@ _Unwind_IteratePhdrCallback (struct dl_phdr_info *info, size_t size, void *ptr)
   const struct unw_eh_frame_hdr *hdr;
   _Unwind_Ptr eh_frame;
   struct object ob;
-  
+  _Unwind_Ptr pc_low = 0, pc_high = 0;
+
   struct ext_dl_phdr_info
     {
       ElfW(Addr) dlpi_addr;
@@ -229,8 +237,6 @@ _Unwind_IteratePhdrCallback (struct dl_phdr_info *info, size_t size, void *ptr)
 	     + sizeof (info->dlpi_phnum))
     return -1;
  
-  _Unwind_Ptr pc_low = 0, pc_high = 0;
-
   /* See if PC falls into one of the loaded segments.  Find the eh_frame
      segment at the same time.  */
   for (n = info->dlpi_phnum; --n >= 0; phdr++)

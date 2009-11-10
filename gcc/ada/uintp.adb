@@ -6,25 +6,23 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -131,7 +129,7 @@ package body Uintp is
    --  This procedure puts the value of UI into the vector in canonical
    --  multiple precision format. The parameter should be of the correct size
    --  as determined by a previous call to N_Digits (UI). The first digit of
-   --  Vec contains the sign, all other digits are always non- negative. Note
+   --  Vec contains the sign, all other digits are always non-negative. Note
    --  that the input may be directly represented, and in this case Vec will
    --  contain the corresponding one or two digit value. The low bound of Vec
    --  is always 1.
@@ -761,7 +759,7 @@ package body Uintp is
 
    function Sum_Digits (Left : Uint; Sign : Int) return Int is
    begin
-      pragma Assert (Sign = Int_1 or Sign = Int (-1));
+      pragma Assert (Sign = Int_1 or else Sign = Int (-1));
 
       --  First try simple case;
 
@@ -860,7 +858,7 @@ package body Uintp is
    begin
       --  First try simple case;
 
-      pragma Assert (Sign = Int_1 or Sign = Int (-1));
+      pragma Assert (Sign = Int_1 or else Sign = Int (-1));
 
       if Direct (Left) then
          return Direct_Val (Left);

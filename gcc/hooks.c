@@ -1,5 +1,6 @@
 /* General-purpose hooks.
-   Copyright (C) 2002, 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2002, 2003, 2004, 2005, 2007, 2008, 2009
+   Free Software Foundation, Inc.
 
    This program is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by the
@@ -48,18 +49,18 @@ hook_bool_void_true (void)
   return true;
 }
 
-/* Generic hook that takes no arguments and returns NO_REGS.  */
-int
-hook_int_void_no_regs (void)
-{
-  return NO_REGS;
-}
-
 /* Generic hook that takes (bool) and returns false.  */
 bool
 hook_bool_bool_false (bool a ATTRIBUTE_UNUSED)
 {
   return false;
+}
+
+/* Generic hook that takes const int, const int) and returns true.  */
+bool hook_bool_const_int_const_int_true (const int a ATTRIBUTE_UNUSED,
+                                         const int b ATTRIBUTE_UNUSED)
+{
+  return true;
 }
 
 /* Generic hook that takes (enum machine_mode) and returns false.  */
@@ -331,6 +332,13 @@ const char *
 hook_constcharptr_int_const_tree_const_tree_null (int i ATTRIBUTE_UNUSED,
 						  const_tree t0 ATTRIBUTE_UNUSED,
 						  const_tree t1 ATTRIBUTE_UNUSED)
+{
+  return NULL;
+}
+
+/* Generic hook that takes a const_tree and returns NULL_TREE.  */
+tree
+hook_tree_const_tree_null (const_tree t ATTRIBUTE_UNUSED)
 {
   return NULL;
 }

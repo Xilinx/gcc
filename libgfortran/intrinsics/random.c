@@ -1,5 +1,5 @@
 /* Implementation of the RANDOM intrinsics
-   Copyright 2002, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+   Copyright 2002, 2004, 2005, 2006, 2007, 2009 Free Software Foundation, Inc.
    Contributed by Lars Segerlund <seger@linuxmail.org>
    and Steve Kargl.
 
@@ -8,26 +8,21 @@ This file is part of the GNU Fortran 95 runtime library (libgfortran).
 Libgfortran is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public
 License as published by the Free Software Foundation; either
-version 2 of the License, or (at your option) any later version.
-
-In addition to the permissions in the GNU General Public License, the
-Free Software Foundation gives you unlimited permission to link the
-compiled version of this file into combinations with other programs,
-and to distribute those combinations without any restriction coming
-from the use of this file.  (The General Public License restrictions
-do apply in other respects; for example, they cover modification of
-the file, and distribution when not linked into a combine
-executable.)
+version 3 of the License, or (at your option) any later version.
 
 Ligbfortran is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public
-License along with libgfortran; see the file COPYING.  If not,
-write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+Under Section 7 of GPL version 3, you are granted additional
+permissions described in the GCC Runtime Library Exception, version
+3.1, as published by the Free Software Foundation.
+
+You should have received a copy of the GNU General Public License and
+a copy of the GCC Runtime Library Exception along with this program;
+see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+<http://www.gnu.org/licenses/>.  */
 
 #include "libgfortran.h"
 #include <gthr.h>
@@ -379,8 +374,8 @@ arandom_r4 (gfc_array_r4 *x)
   for (n = 0; n < dim; n++)
     {
       count[n] = 0;
-      stride[n] = x->dim[n].stride;
-      extent[n] = x->dim[n].ubound + 1 - x->dim[n].lbound;
+      stride[n] = GFC_DESCRIPTOR_STRIDE(x,n);
+      extent[n] = GFC_DESCRIPTOR_EXTENT(x,n);
       if (extent[n] <= 0)
         return;
     }
@@ -446,8 +441,8 @@ arandom_r8 (gfc_array_r8 *x)
   for (n = 0; n < dim; n++)
     {
       count[n] = 0;
-      stride[n] = x->dim[n].stride;
-      extent[n] = x->dim[n].ubound + 1 - x->dim[n].lbound;
+      stride[n] = GFC_DESCRIPTOR_STRIDE(x,n);
+      extent[n] = GFC_DESCRIPTOR_EXTENT(x,n);
       if (extent[n] <= 0)
         return;
     }
@@ -516,8 +511,8 @@ arandom_r10 (gfc_array_r10 *x)
   for (n = 0; n < dim; n++)
     {
       count[n] = 0;
-      stride[n] = x->dim[n].stride;
-      extent[n] = x->dim[n].ubound + 1 - x->dim[n].lbound;
+      stride[n] = GFC_DESCRIPTOR_STRIDE(x,n);
+      extent[n] = GFC_DESCRIPTOR_EXTENT(x,n);
       if (extent[n] <= 0)
         return;
     }
@@ -588,8 +583,8 @@ arandom_r16 (gfc_array_r16 *x)
   for (n = 0; n < dim; n++)
     {
       count[n] = 0;
-      stride[n] = x->dim[n].stride;
-      extent[n] = x->dim[n].ubound + 1 - x->dim[n].lbound;
+      stride[n] = GFC_DESCRIPTOR_STRIDE(x,n);
+      extent[n] = GFC_DESCRIPTOR_EXTENT(x,n);
       if (extent[n] <= 0)
         return;
     }
@@ -695,13 +690,13 @@ random_seed_i4 (GFC_INTEGER_4 *size, gfc_array_i4 *put, gfc_array_i4 *get)
         runtime_error ("Array rank of PUT is not 1.");
 
       /* If the array is too small, abort.  */
-      if (((put->dim[0].ubound + 1 - put->dim[0].lbound)) < kiss_size)
+      if (GFC_DESCRIPTOR_EXTENT(put,0) < kiss_size)
         runtime_error ("Array size of PUT is too small.");
 
       /*  We copy the seed given by the user.  */
       for (i = 0; i < kiss_size; i++)
 	memcpy (seed + i * sizeof(GFC_UINTEGER_4),
-		&(put->data[(kiss_size - 1 - i) * put->dim[0].stride]),
+		&(put->data[(kiss_size - 1 - i) * GFC_DESCRIPTOR_STRIDE(put,0)]),
 		sizeof(GFC_UINTEGER_4));
 
       /* We put it after scrambling the bytes, to paper around users who
@@ -717,7 +712,7 @@ random_seed_i4 (GFC_INTEGER_4 *size, gfc_array_i4 *put, gfc_array_i4 *get)
 	runtime_error ("Array rank of GET is not 1.");
 
       /* If the array is too small, abort.  */
-      if (((get->dim[0].ubound + 1 - get->dim[0].lbound)) < kiss_size)
+      if (GFC_DESCRIPTOR_EXTENT(get,0) < kiss_size)
 	runtime_error ("Array size of GET is too small.");
 
       /* Unscramble the seed.  */
@@ -725,7 +720,7 @@ random_seed_i4 (GFC_INTEGER_4 *size, gfc_array_i4 *put, gfc_array_i4 *get)
 
       /*  Then copy it back to the user variable.  */
       for (i = 0; i < kiss_size; i++)
-       memcpy (&(get->data[(kiss_size - 1 - i) * get->dim[0].stride]),
+	memcpy (&(get->data[(kiss_size - 1 - i) * GFC_DESCRIPTOR_STRIDE(get,0)]),
                seed + i * sizeof(GFC_UINTEGER_4),
                sizeof(GFC_UINTEGER_4));
     }
@@ -762,12 +757,12 @@ random_seed_i8 (GFC_INTEGER_8 *size, gfc_array_i8 *put, gfc_array_i8 *get)
         runtime_error ("Array rank of PUT is not 1.");
 
       /* If the array is too small, abort.  */
-      if (((put->dim[0].ubound + 1 - put->dim[0].lbound)) < kiss_size / 2)
+      if (GFC_DESCRIPTOR_EXTENT(put,0) < kiss_size / 2)
         runtime_error ("Array size of PUT is too small.");
 
       /*  This code now should do correct strides.  */
       for (i = 0; i < kiss_size / 2; i++)
-	memcpy (&kiss_seed[2*i], &(put->data[i * put->dim[0].stride]),
+	memcpy (&kiss_seed[2*i], &(put->data[i * GFC_DESCRIPTOR_STRIDE(put,0)]),
 		sizeof (GFC_UINTEGER_8));
     }
 
@@ -779,12 +774,12 @@ random_seed_i8 (GFC_INTEGER_8 *size, gfc_array_i8 *put, gfc_array_i8 *get)
 	runtime_error ("Array rank of GET is not 1.");
 
       /* If the array is too small, abort.  */
-      if (((get->dim[0].ubound + 1 - get->dim[0].lbound)) < kiss_size / 2)
+      if (GFC_DESCRIPTOR_EXTENT(get,0) < kiss_size / 2)
 	runtime_error ("Array size of GET is too small.");
 
       /*  This code now should do correct strides.  */
       for (i = 0; i < kiss_size / 2; i++)
-	memcpy (&(get->data[i * get->dim[0].stride]), &kiss_seed[2*i],
+	memcpy (&(get->data[i * GFC_DESCRIPTOR_STRIDE(get,0)]), &kiss_seed[2*i],
 		sizeof (GFC_UINTEGER_8));
     }
 

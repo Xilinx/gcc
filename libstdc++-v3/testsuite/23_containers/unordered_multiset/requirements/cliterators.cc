@@ -2,12 +2,12 @@
 
 // 2008-06-11  Paolo Carlini  <paolo.carlini@oracle.com>
 
-// Copyright (C) 2008 Free Software Foundation, Inc.
+// Copyright (C) 2008, 2009 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -16,38 +16,17 @@
 // GNU General Public License for more details.
 
 // You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 59 Temple Place - Suite 330, Boston, MA 02111-1307,
-// USA.
-
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// with this library; see the file COPYING3.  If not see
+// <http://www.gnu.org/licenses/>.
 
 #include <unordered_set>
-#include <testsuite_hooks.h>
-
-// DR 691.
-void test01()
-{
-  bool test __attribute__((unused)) = true;
-
-  typedef std::unordered_multiset<int> ums_type;
-  ums_type ums;
-  ums.insert(1);
-  VERIFY( ums.cbegin(0) == ums.begin(0) );
-  VERIFY( ums.cend(0) == ums.end(0) );
-  const ums_type::size_type bn = ums.bucket(1);
-  VERIFY( ums.cbegin(bn) != ums.cend(bn) );
-}
+#include <testsuite_containers.h>
 
 int main()
 {
-  test01();
+  typedef std::unordered_multiset<int> 		test_type;
+  typedef typename test_type::value_type	value_type;
+  value_type v(1);
+  __gnu_test::forward_members_unordered<test_type> test(v);
   return 0;
 }

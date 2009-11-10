@@ -1,30 +1,26 @@
 /* DWARF2 EH unwinding support for Linux/m68k.
-   Copyright (C) 2006 Free Software Foundation, Inc.
+   Copyright (C) 2006, 2009 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
-
-In addition to the permissions in the GNU General Public License, the
-Free Software Foundation gives you unlimited permission to link the
-compiled version of this file with other programs, and to distribute
-those programs without any restriction coming from the use of this
-file.  (The General Public License restrictions do apply in other
-respects; for example, they cover modification of the file, and
-distribution when not linked into another program.)
 
 GCC is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+Under Section 7 of GPL version 3, you are granted additional
+permissions described in the GCC Runtime Library Exception, version
+3.1, as published by the Free Software Foundation.
+
+You should have received a copy of the GNU General Public License and
+a copy of the GCC Runtime Library Exception along with this program;
+see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+<http://www.gnu.org/licenses/>.  */
 
 /* Do code reading to identify a signal frame, and set the frame
    state data appropriately.  See unwind-dw2.c for the structs.
@@ -81,9 +77,15 @@ m68k_fallback_frame_state (struct _Unwind_Context *context,
       fs->regs.reg[9].how = REG_SAVED_OFFSET;
       fs->regs.reg[9].loc.offset = (long) &sc->sc_a1 - cfa;
 
+#ifdef __uClinux__
+      fs->regs.reg[13].how = REG_SAVED_OFFSET;
+      fs->regs.reg[13].loc.offset = (long) &sc->sc_a5 - cfa;
+#endif
+
       fs->regs.reg[24].how = REG_SAVED_OFFSET;
       fs->regs.reg[24].loc.offset = (long) &sc->sc_pc - cfa;
 
+#ifndef __uClinux__
       if (*(int *) sc->sc_fpstate)
 	{
 	  int *fpregs = (int *) sc->sc_fpregs;
@@ -93,6 +95,9 @@ m68k_fallback_frame_state (struct _Unwind_Context *context,
 	  fs->regs.reg[17].how = REG_SAVED_OFFSET;
 	  fs->regs.reg[17].loc.offset = (long) &fpregs[M68K_FP_SIZE/4] - cfa;
 	}
+#elif defined __mcffpu__
+# error Implement this when uClinux kernel is ported to an FPU architecture
+#endif
     }
 #ifdef __mcoldfire__
   /* move.l #__NR_rt_sigreturn,%d0; trap #0 */

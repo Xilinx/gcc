@@ -1,7 +1,7 @@
 /* Operating system specific defines to be used when targeting GCC for
    hosting on Windows32, using a Unix style C library and tools.
    Copyright (C) 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003,
-   2007 Free Software Foundation, Inc.
+   2007, 2008, 2009 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -91,7 +91,7 @@ along with GCC; see the file COPYING3.  If not see
   %{shared: %{mdll: %eshared and mdll are not compatible}} \
   %{shared: --shared} %{mdll:--dll} \
   %{static:-Bstatic} %{!static:-Bdynamic} \
-  %{shared|mdll: -e \
+  %{shared|mdll: --enable-auto-image-base -e \
     %{mno-cygwin:_DllMainCRTStartup@12} \
     %{!mno-cygwin:__cygwin_dll_entry@12}}\
   %{!mno-cygwin:--dll-search-prefix=cyg}"
@@ -259,3 +259,15 @@ while (0)
    and the -pthread flag is not recognized.  */
 #undef GOMP_SELF_SPECS
 #define GOMP_SELF_SPECS ""
+
+/* This matches SHLIB_SONAME and SHLIB_SOVERSION in t-cygwin. */
+#if DWARF2_UNWIND_INFO
+#define LIBGCC_EH_EXTN ""
+#else
+#define LIBGCC_EH_EXTN "-sjlj"
+#endif
+#define LIBGCC_SONAME "cyggcc_s" LIBGCC_EH_EXTN "-1.dll"
+
+/* We should find a way to not have to update this manually.  */
+#define LIBGCJ_SONAME "cyggcj" /*LIBGCC_EH_EXTN*/ "-11.dll"
+

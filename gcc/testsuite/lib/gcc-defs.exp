@@ -14,6 +14,8 @@
 # along with GCC; see the file COPYING3.  If not see
 # <http://www.gnu.org/licenses/>.
 
+load_lib target-libpath.exp
+
 load_lib wrapper.exp
 
 #
@@ -48,6 +50,11 @@ proc ${tool}_check_compile {testcase option objname gcc_output} {
     }
 
     set gcc_output [prune_warnings $gcc_output]
+
+    if { [info proc ${tool}-dg-prune] != "" } {
+	global target_triplet
+	set gcc_output [${tool}-dg-prune $target_triplet $gcc_output]
+    }
 
     set unsupported_message [${tool}_check_unsupported_p $gcc_output]
     if { $unsupported_message != "" } {
@@ -148,6 +155,10 @@ proc ${tool}_exit { } {
 
 proc ${tool}_check_unsupported_p { output } {
     if [regexp "(^|\n)\[^\n\]*: region \[^\n\]* is full" $output] {
+	return "memory full"
+    }
+    if {[istarget spu-*-*] && \
+            [string match "*exceeds local store*" $output]} {
 	return "memory full"
     }
     return ""

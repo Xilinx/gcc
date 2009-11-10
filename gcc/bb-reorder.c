@@ -1216,6 +1216,7 @@ get_uncond_jump_length (void)
   return length;
 }
 
+
 /* This structure holds callback functions which are used when
    partitioning blocks into sections.  */
 struct partition_callbacks 
@@ -1933,7 +1934,7 @@ fix_up_fall_thru_edges (void)
 
 		      fall_thru_label = block_label (fall_thru->dest);
 
-		      if (old_jump && fall_thru_label)
+		      if (old_jump && JUMP_P (old_jump) && fall_thru_label)
 			invert_worked = invert_jump (old_jump,
 						     fall_thru_label,0);
 		      if (invert_worked)
@@ -2657,14 +2658,6 @@ partition_basic_blocks (struct partition_callbacks *callbacks)
 static void
 partition_hot_cold_init (void)
 {
-  basic_block cur_bb;
-
-  cfg_layout_initialize (0);
-
-  FOR_EACH_BB (cur_bb)
-    if (cur_bb->index >= NUM_FIXED_BLOCKS
-	&& cur_bb->next_bb->index >= NUM_FIXED_BLOCKS)
-    cur_bb->aux = cur_bb->next_bb;
 }
 
 /* This is a callback function to finalize the basic-blocks partitioning
@@ -2673,7 +2666,6 @@ partition_hot_cold_init (void)
 static void
 partition_hot_cold_finalize (void)
 {
-  cfg_layout_finalize ();
 }
 
 /* This function is the main 'entrance' for the optimization that
@@ -3216,7 +3208,7 @@ struct rtl_opt_pass pass_partition_blocks_hot_cold =
   NULL,                                          /* next */
   0,                                             /* static_pass_number */
   TV_REORDER_BLOCKS,                             /* tv_id */
-  0,                                             /* properties_required */
+  PROP_cfglayout,                                /* properties_required */
   0,                                             /* properties_provided */
   0,                                             /* properties_destroyed */
   0,                                             /* todo_flags_start */

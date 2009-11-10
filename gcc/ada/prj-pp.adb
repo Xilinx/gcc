@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2001-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 2001-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -74,8 +74,7 @@ package body Prj.PP is
       W_Eol                              : Write_Eol_Ap  := null;
       W_Str                              : Write_Str_Ap  := null;
       Backward_Compatibility             : Boolean;
-      Id                                 : Prj.Project_Id := Prj.No_Project;
-      Id_Tree                            : Prj.Project_Tree_Ref := null)
+      Id                                 : Prj.Project_Id := Prj.No_Project)
    is
       procedure Print (Node : Project_Node_Id; Indent : Natural);
       --  A recursive procedure that traverses a project file tree and outputs
@@ -339,7 +338,7 @@ package body Prj.PP is
                   Write_String ("project ");
 
                   if Id /= Prj.No_Project then
-                     Output_Name (Id_Tree.Projects.Table (Id).Display_Name);
+                     Output_Name (Id.Display_Name);
                   else
                      Output_Name (Name_Of (Node, In_Tree));
                   end if;
@@ -372,7 +371,7 @@ package body Prj.PP is
                   Write_String ("end ");
 
                   if Id /= Prj.No_Project then
-                     Output_Name (Id_Tree.Projects.Table (Id).Display_Name);
+                     Output_Name (Id.Display_Name);
                   else
                      Output_Name (Name_Of (Node, In_Tree));
                   end if;
@@ -518,7 +517,7 @@ package body Prj.PP is
                   Output_String (String_Value_Of (Node, In_Tree));
 
                   if Source_Index_Of (Node, In_Tree) /= 0 then
-                     Write_String (" at ");
+                     Write_String (" at");
                      Write_String (Source_Index_Of (Node, In_Tree)'Img);
                   end if;
 
@@ -533,12 +532,6 @@ package body Prj.PP is
                      Write_String (" (");
                      Output_String
                        (Associative_Array_Index_Of (Node, In_Tree));
-
-                     if Source_Index_Of (Node, In_Tree) /= 0 then
-                        Write_String (" at ");
-                        Write_String (Source_Index_Of (Node, In_Tree)'Img);
-                     end if;
-
                      Write_String (")");
                   end if;
 
@@ -579,6 +572,11 @@ package body Prj.PP is
 
                      Write_String ("'");
                      Output_Attribute_Name (Name_Of (Node, In_Tree));
+                  end if;
+
+                  if Source_Index_Of (Node, In_Tree) /= 0 then
+                     Write_String (" at");
+                     Write_String (Source_Index_Of (Node, In_Tree)'Img);
                   end if;
 
                   Write_String (";");

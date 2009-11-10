@@ -1,4 +1,4 @@
-# Copyright (C) 2005, 2007 Free Software Foundation, Inc.
+# Copyright (C) 2005, 2007, 2008, 2009 Free Software Foundation, Inc.
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -29,9 +29,9 @@ if { (![istarget x86_64-*-*] && ![istarget i?86-*-*])
 
 torture-init
 set-torture-options $C_TORTURE_OPTIONS
-set additional_flags "-W -Wall"
+set additional_flags "-W -Wall -Wno-abi"
 
-foreach src [lsort [find $srcdir/$subdir test_*.c]] {
+foreach src [lsort [glob -nocomplain $srcdir/$subdir/test_*.c]] {
     if {[runtest_file_p $runtests $src]} {
 	if { ([istarget *-*-darwin*]) } then {
 	    c-torture-execute [list $src \

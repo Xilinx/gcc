@@ -1,6 +1,6 @@
 /* Specific flags and argument handling of the Fortran front-end.
    Copyright (C) 1997, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006,
-   2007, 2008
+   2007, 2008, 2009
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -56,10 +56,6 @@ along with GCC; see the file COPYING3.  If not see
 
 #ifndef MATH_LIBRARY
 #define MATH_LIBRARY "-lm"
-#endif
-
-#ifndef FORTRAN_INIT
-#define FORTRAN_INIT "-lgfortranbegin"
 #endif
 
 #ifndef FORTRAN_LIBRARY
@@ -190,8 +186,6 @@ lookup_option (Option *xopt, int *xskip, const char **xarg, const char *text)
 	opt = OPTION_syntax_only;
       else if (!strcmp (text, "-static-libgfortran"))
 	opt = OPTION_static_libgfortran;
-      else if (!strcmp (text, "-dumpversion"))
-	opt = OPTION_version;
       else if (!strcmp (text, "-fversion"))	/* Really --version!! */
 	opt = OPTION_version;
       else if (!strcmp (text, "-Xlinker") || !strcmp (text, "-specs"))
@@ -277,10 +271,6 @@ lang_specific_driver (int *in_argc, const char *const **in_argv,
      1 => last arg was -l<library>
      2 => last two args were -l<library> -lm.  */
   int saw_library = 0;
-
-  /* 0 => initial/reset state
-     1 => FORTRAN_INIT linked in */
-  int use_init = 0;
 
   /* By default, we throw on the math library if we have one.  */
   int need_math = (MATH_LIBRARY[0] != '\0');
@@ -379,7 +369,7 @@ lang_specific_driver (int *in_argc, const char *const **in_argv,
 
 	case OPTION_version:
 	  printf ("GNU Fortran %s%s\n", pkgversion_string, version_string);
-	  printf ("Copyright %s 2008 Free Software Foundation, Inc.\n\n",
+	  printf ("Copyright %s 2009 Free Software Foundation, Inc.\n\n",
 		  _("(C)"));
 	  printf (_("GNU Fortran comes with NO WARRANTY, to the extent permitted by law.\n\
 You may redistribute copies of GNU Fortran\n\
@@ -505,12 +495,6 @@ For more information about these matters, see the file named COPYING\n\n"));
 		saw_library = 2;	/* -l<library> -lm.  */
 	      else
 		{
-		  if (0 == use_init)
-		    {
-		      append_arg (FORTRAN_INIT);
-		      use_init = 1;
-		    }
-
 		  ADD_ARG_LIBGFORTRAN (FORTRAN_LIBRARY);
 		}
 	    }
@@ -540,11 +524,6 @@ For more information about these matters, see the file named COPYING\n\n"));
       switch (saw_library)
 	{
 	case 0:
-	  if (0 == use_init)
-	    {
-	      append_arg (FORTRAN_INIT);
-	      use_init = 1;
-	    }
 	  ADD_ARG_LIBGFORTRAN (library);
 	  /* Fall through.  */
 

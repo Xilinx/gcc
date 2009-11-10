@@ -6,25 +6,23 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -347,36 +345,43 @@ package Scans is
    --  Note: these variables can only be referenced during the parsing of a
    --  file. Reference to any of them from Sem or the expander is wrong.
 
-   Scan_Ptr : Source_Ptr;
+   --  These variables are initialized as required by Scn.Initialize_Scanner,
+   --  and should not be referenced before such a call. However, there are
+   --  situations in which these variables are saved and restored, and this
+   --  may happen before the first Initialize_Scanner call, resulting in the
+   --  assignment of invalid values. To avoid this, and allow building with
+   --  the -gnatVa switch, we initialize some variables to known valid values.
+
+   Scan_Ptr : Source_Ptr := No_Location; -- init for -gnatVa
    --  Current scan pointer location. After a call to Scan, this points
    --  just past the end of the token just scanned.
 
-   Token : Token_Type;
+   Token : Token_Type := No_Token; -- init for -gnatVa
    --  Type of current token
 
-   Token_Ptr : Source_Ptr;
+   Token_Ptr : Source_Ptr := No_Location; -- init for -gnatVa
    --  Pointer to first character of current token
 
-   Current_Line_Start : Source_Ptr;
+   Current_Line_Start : Source_Ptr := No_Location; -- init for -gnatVa
    --  Pointer to first character of line containing current token
 
-   Start_Column : Column_Number;
+   Start_Column : Column_Number := No_Column_Number; -- init for -gnatVa
    --  Starting column number (zero origin) of the first non-blank character
    --  on the line containing the current token. This is used for error
    --  recovery circuits which depend on looking at the column line up.
 
-   Type_Token_Location : Source_Ptr;
+   Type_Token_Location : Source_Ptr := No_Location; -- init for -gnatVa
    --  Within a type declaration, gives the location of the TYPE keyword that
    --  opened the type declaration. Used in checking the end column of a record
    --  declaration, which can line up either with the TYPE keyword, or with the
    --  start of the line containing the RECORD keyword.
 
-   Checksum : Word;
+   Checksum : Word := 0; -- init for -gnatVa
    --  Used to accumulate a CRC representing the tokens in the source
    --  file being compiled. This CRC includes only program tokens, and
    --  excludes comments.
 
-   First_Non_Blank_Location : Source_Ptr;
+   First_Non_Blank_Location : Source_Ptr := No_Location; -- init for -gnatVa
    --  Location of first non-blank character on the line containing the
    --  current token (i.e. the location of the character whose column number
    --  is stored in Start_Column).
@@ -438,6 +443,11 @@ package Scans is
    --
    --  Is it really right for this to be a Name rather than a String, what
    --  about the case of Wide_Wide_Characters???
+
+   Inside_Conditional_Expression : Nat := 0;
+   --  This is a counter that is set non-zero while scanning out a conditional
+   --  expression (incremented on entry, decremented on exit). It is used to
+   --  disconnect format checks that normally apply to keywords THEN, ELSE etc.
 
    --------------------------------------------------------
    -- Procedures for Saving and Restoring the Scan State --

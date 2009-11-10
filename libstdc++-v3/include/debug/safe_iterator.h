@@ -1,12 +1,12 @@
 // Safe iterator implementation  -*- C++ -*-
 
-// Copyright (C) 2003, 2004, 2005, 2006
+// Copyright (C) 2003, 2004, 2005, 2006, 2009
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -14,19 +14,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
-// You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
 
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
 
 /** @file debug/safe_iterator.h
  *  This file is a GNU debug extension to the Standard C++ Library.
@@ -120,12 +115,14 @@ namespace __gnu_debug
 
       /**
        * @brief Copy construction.
-       * @pre @p x is not singular
        */
       _Safe_iterator(const _Safe_iterator& __x)
       : _Safe_iterator_base(__x, _M_constant()), _M_current(__x._M_current)
       {
-	_GLIBCXX_DEBUG_VERIFY(!__x._M_singular(),
+	// _GLIBCXX_RESOLVE_LIB_DEFECTS
+	// DR 408. Is vector<reverse_iterator<char*> > forbidden?
+	_GLIBCXX_DEBUG_VERIFY(!__x._M_singular()
+			      || __x._M_current == _Iterator(),
 			      _M_message(__msg_init_copy_singular)
 			      ._M_iterator(*this, "this")
 			      ._M_iterator(__x, "other"));
@@ -134,8 +131,6 @@ namespace __gnu_debug
       /**
        *  @brief Converting constructor from a mutable iterator to a
        *  constant iterator.
-       *
-       *  @pre @p x is not singular
       */
       template<typename _MutableIterator>
         _Safe_iterator(
@@ -145,7 +140,10 @@ namespace __gnu_debug
                    _Sequence>::__type>& __x)
 	: _Safe_iterator_base(__x, _M_constant()), _M_current(__x.base())
         {
-	  _GLIBCXX_DEBUG_VERIFY(!__x._M_singular(),
+	  // _GLIBCXX_RESOLVE_LIB_DEFECTS
+	  // DR 408. Is vector<reverse_iterator<char*> > forbidden?
+	  _GLIBCXX_DEBUG_VERIFY(!__x._M_singular()
+				|| __x.base() == _Iterator(),
 				_M_message(__msg_init_const_singular)
 				._M_iterator(*this, "this")
 				._M_iterator(__x, "other"));
@@ -153,12 +151,14 @@ namespace __gnu_debug
 
       /**
        * @brief Copy assignment.
-       * @pre @p x is not singular
        */
       _Safe_iterator&
       operator=(const _Safe_iterator& __x)
       {
-	_GLIBCXX_DEBUG_VERIFY(!__x._M_singular(),
+	// _GLIBCXX_RESOLVE_LIB_DEFECTS
+	// DR 408. Is vector<reverse_iterator<char*> > forbidden?
+	_GLIBCXX_DEBUG_VERIFY(!__x._M_singular()
+			      || __x._M_current == _Iterator(),
 			      _M_message(__msg_copy_singular)
 			      ._M_iterator(*this, "this")
 			      ._M_iterator(__x, "other"));
@@ -174,7 +174,6 @@ namespace __gnu_debug
       reference
       operator*() const
       {
-
 	_GLIBCXX_DEBUG_VERIFY(this->_M_dereferenceable(),
 			      _M_message(__msg_bad_deref)
 			      ._M_iterator(*this, "this"));

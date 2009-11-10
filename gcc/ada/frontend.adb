@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -42,13 +42,17 @@ with Nlists;   use Nlists;
 with Opt;      use Opt;
 with Osint;
 with Par;
+with Prep;
 with Prepcomp;
-with Rtsfind;
+with Restrict; use Restrict;
+with Rident;   use Rident;
+with Rtsfind;  use Rtsfind;
 with Sprint;
 with Scn;      use Scn;
 with Sem;      use Sem;
 with Sem_Aux;
 with Sem_Ch8;  use Sem_Ch8;
+with Sem_SCIL;
 with Sem_Elab; use Sem_Elab;
 with Sem_Prag; use Sem_Prag;
 with Sem_Warn; use Sem_Warn;
@@ -64,12 +68,12 @@ procedure Frontend is
    --  Gather configuration pragmas
 
 begin
-   --  Carry out package initializations. These are initializations which
-   --  might logically be performed at elaboration time, were it not for
-   --  the fact that we may be doing things more than once in the big loop
-   --  over files. Like elaboration, the order in which these calls are
-   --  made is in some cases important. For example, Lib cannot be
-   --  initialized until Namet, since it uses names table entries.
+   --  Carry out package initializations. These are initializations which might
+   --  logically be performed at elaboration time, were it not for the fact
+   --  that we may be doing things more than once in the big loop over files.
+   --  Like elaboration, the order in which these calls are made is in some
+   --  cases important. For example, Lib cannot be initialized before Namet,
+   --  since it uses names table entries.
 
    Rtsfind.Initialize;
    Atree.Initialize;
@@ -82,6 +86,7 @@ begin
    Fname.UF.Initialize;
    Checks.Initialize;
    Sem_Warn.Initialize;
+   Prep.Initialize;
 
    --  Create package Standard
 
@@ -169,8 +174,8 @@ begin
 
             if Source_Config_File = No_Source_File then
                Osint.Fail
-                 ("cannot find configuration pragmas file ",
-                  Config_File_Names (Index).all);
+                 ("cannot find configuration pragmas file "
+                  & Config_File_Names (Index).all);
             end if;
 
             Initialize_Scanner (No_Unit, Source_Config_File);
@@ -275,6 +280,17 @@ begin
       end;
    end if;
 
+   --  If we have restriction No_Exception_Propagation, and we did not have an
+   --  explicit switch turning off Warn_On_Non_Local_Exception, then turn on
+   --  this warning by default if we have encountered an exception handler.
+
+   if Restriction_Active (No_Exception_Propagation)
+     and then not No_Warn_On_Non_Local_Exception
+     and then Exception_Handler_Encountered
+   then
+      Warn_On_Non_Local_Exception := True;
+   end if;
+
    --  Now on to the semantics. Skip if in syntax only mode
 
    if Operating_Mode /= Check_Syntax then
@@ -293,7 +309,7 @@ begin
          --  incorporate subunits at a lower level.
 
          if Operating_Mode = Generate_Code
-            and then Nkind (Unit (Cunit (Main_Unit))) = N_Subunit
+           and then Nkind (Unit (Cunit (Main_Unit))) = N_Subunit
          then
             Operating_Mode := Check_Semantics;
          end if;
@@ -306,8 +322,8 @@ begin
          --  Cleanup processing after completing main analysis
 
          if Operating_Mode = Generate_Code
-            or else (Operating_Mode = Check_Semantics
-                      and then ASIS_Mode)
+           or else (Operating_Mode = Check_Semantics
+                     and then ASIS_Mode)
          then
             Instantiate_Bodies;
          end if;
@@ -335,7 +351,7 @@ begin
 
          --  Output waiting warning messages
 
-         Sem_Warn.Output_Non_Modifed_In_Out_Warnings;
+         Sem_Warn.Output_Non_Modified_In_Out_Warnings;
          Sem_Warn.Output_Unreferenced_Messages;
          Sem_Warn.Check_Unused_Withs;
          Sem_Warn.Output_Unused_Warnings_Off_Warnings;
@@ -349,6 +365,14 @@ begin
 
    if VM_Target = No_VM then
       Exp_Dbug.Qualify_All_Entity_Names;
+   end if;
+
+   --  SCIL backend requirement. Check that SCIL nodes associated with
+   --  dispatching calls reference subprogram calls.
+
+   if Generate_SCIL then
+      pragma Debug (Sem_SCIL.Check_SCIL_Nodes (Cunit (Main_Unit)));
+      null;
    end if;
 
    --  Dump the source now. Note that we do this as soon as the analysis

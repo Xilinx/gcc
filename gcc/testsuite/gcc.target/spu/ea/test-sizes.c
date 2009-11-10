@@ -1,8 +1,26 @@
-/* { dg-do run { target spu-*-* } } */
-/* { dg-options "-std=gnu99 -mea64" } */
+/* Copyright (C) 2009 Free Software Foundation, Inc.
 
-#ifndef __EA64__
-#error "-mea64 must be used"
+   This file is free software; you can redistribute it and/or modify it under
+   the terms of the GNU General Public License as published by the Free
+   Software Foundation; either version 3 of the License, or (at your option)
+   any later version.
+
+   This file is distributed in the hope that it will be useful, but WITHOUT
+   ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+   FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+   for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this file; see the file COPYING3.  If not see
+   <http://www.gnu.org/licenses/>.  */
+
+/* { dg-do run } */
+
+#ifdef __EA32__
+#define EA_PTRSIZE 4
+#endif
+#ifdef __EA64__
+#define EA_PTRSIZE 8
 #endif
 
 #if !defined(LEVEL1) && !defined(LEVEL2) && !defined(LEVEL3)
@@ -247,7 +265,7 @@ main ()
 #if USE_LOCAL_VAR
   TEST_SIZE ( lm_ptr, 4);
   TEST_SIZE (*lm_ptr, 1);
-  TEST_SIZE ( ea_ptr, 8);
+  TEST_SIZE ( ea_ptr, EA_PTRSIZE);
   TEST_SIZE (*ea_ptr, 1);
   PRINT1 ("\n");
 #endif
@@ -255,7 +273,7 @@ main ()
 #if USE_EA_VAR
   TEST_SIZE ( lm_ptr_ea, 4);
   TEST_SIZE (*lm_ptr_ea, 1);
-  TEST_SIZE ( ea_ptr_ea, 8);
+  TEST_SIZE ( ea_ptr_ea, EA_PTRSIZE);
   TEST_SIZE (*ea_ptr_ea, 1);
   PRINT1 ("\n");
 #endif
@@ -269,17 +287,17 @@ main ()
   PRINT1 ("\n");
 
   TEST_SIZE (  lm_ea_ptr, 4);
-  TEST_SIZE ( *lm_ea_ptr, 8);
+  TEST_SIZE ( *lm_ea_ptr, EA_PTRSIZE);
   TEST_SIZE (**lm_ea_ptr, 1);
   PRINT1 ("\n");
 
-  TEST_SIZE (  ea_lm_ptr, 8);
+  TEST_SIZE (  ea_lm_ptr, EA_PTRSIZE);
   TEST_SIZE ( *ea_lm_ptr, 4);
   TEST_SIZE (**ea_lm_ptr, 1);
   PRINT1 ("\n");
 
-  TEST_SIZE (  ea_ea_ptr, 8);
-  TEST_SIZE ( *ea_ea_ptr, 8);
+  TEST_SIZE (  ea_ea_ptr, EA_PTRSIZE);
+  TEST_SIZE ( *ea_ea_ptr, EA_PTRSIZE);
   TEST_SIZE (**ea_ea_ptr, 1);
   PRINT1 ("\n");
 #endif
@@ -291,17 +309,17 @@ main ()
   PRINT1 ("\n");
 
   TEST_SIZE (  lm_ea_ptr_ea, 4);
-  TEST_SIZE ( *lm_ea_ptr_ea, 8);
+  TEST_SIZE ( *lm_ea_ptr_ea, EA_PTRSIZE);
   TEST_SIZE (**lm_ea_ptr_ea, 1);
   PRINT1 ("\n");
 
-  TEST_SIZE (  ea_lm_ptr_ea, 8);
+  TEST_SIZE (  ea_lm_ptr_ea, EA_PTRSIZE);
   TEST_SIZE ( *ea_lm_ptr_ea, 4);
   TEST_SIZE (**ea_lm_ptr_ea, 1);
   PRINT1 ("\n");
 
-  TEST_SIZE (  ea_ea_ptr_ea, 8);
-  TEST_SIZE ( *ea_ea_ptr_ea, 8);
+  TEST_SIZE (  ea_ea_ptr_ea, EA_PTRSIZE);
+  TEST_SIZE ( *ea_ea_ptr_ea, EA_PTRSIZE);
   TEST_SIZE (**ea_ea_ptr_ea, 1);
   PRINT1 ("\n");
 #endif
@@ -317,43 +335,43 @@ main ()
 
   TEST_SIZE (   lm_lm_ea_ptr, 4);
   TEST_SIZE (  *lm_lm_ea_ptr, 4);
-  TEST_SIZE ( **lm_lm_ea_ptr, 8);
+  TEST_SIZE ( **lm_lm_ea_ptr, EA_PTRSIZE);
   TEST_SIZE (***lm_lm_ea_ptr, 1);
   PRINT1 ("\n");
 
   TEST_SIZE (   lm_ea_lm_ptr, 4);
-  TEST_SIZE (  *lm_ea_lm_ptr, 8);
+  TEST_SIZE (  *lm_ea_lm_ptr, EA_PTRSIZE);
   TEST_SIZE ( **lm_ea_lm_ptr, 4);
   TEST_SIZE (***lm_ea_lm_ptr, 1);
   PRINT1 ("\n");
 
   TEST_SIZE (   lm_ea_ea_ptr, 4);
-  TEST_SIZE (  *lm_ea_ea_ptr, 8);
-  TEST_SIZE ( **lm_ea_ea_ptr, 8);
+  TEST_SIZE (  *lm_ea_ea_ptr, EA_PTRSIZE);
+  TEST_SIZE ( **lm_ea_ea_ptr, EA_PTRSIZE);
   TEST_SIZE (***lm_ea_ea_ptr, 1);
   PRINT1 ("\n");
 
-  TEST_SIZE (   ea_lm_lm_ptr, 8);
+  TEST_SIZE (   ea_lm_lm_ptr, EA_PTRSIZE);
   TEST_SIZE (  *ea_lm_lm_ptr, 4);
   TEST_SIZE ( **ea_lm_lm_ptr, 4);
   TEST_SIZE (***ea_lm_lm_ptr, 1);
   PRINT1 ("\n");
 
-  TEST_SIZE (   ea_lm_ea_ptr, 8);
+  TEST_SIZE (   ea_lm_ea_ptr, EA_PTRSIZE);
   TEST_SIZE (  *ea_lm_ea_ptr, 4);
-  TEST_SIZE ( **ea_lm_ea_ptr, 8);
+  TEST_SIZE ( **ea_lm_ea_ptr, EA_PTRSIZE);
   TEST_SIZE (***ea_lm_ea_ptr, 1);
   PRINT1 ("\n");
 
-  TEST_SIZE (   ea_ea_lm_ptr, 8);
-  TEST_SIZE (  *ea_ea_lm_ptr, 8);
+  TEST_SIZE (   ea_ea_lm_ptr, EA_PTRSIZE);
+  TEST_SIZE (  *ea_ea_lm_ptr, EA_PTRSIZE);
   TEST_SIZE ( **ea_ea_lm_ptr, 4);
   TEST_SIZE (***ea_ea_lm_ptr, 1);
   PRINT1 ("\n");
 
-  TEST_SIZE (   ea_ea_ea_ptr, 8);
-  TEST_SIZE (  *ea_ea_ea_ptr, 8);
-  TEST_SIZE ( **ea_ea_ea_ptr, 8);
+  TEST_SIZE (   ea_ea_ea_ptr, EA_PTRSIZE);
+  TEST_SIZE (  *ea_ea_ea_ptr, EA_PTRSIZE);
+  TEST_SIZE ( **ea_ea_ea_ptr, EA_PTRSIZE);
   TEST_SIZE (***ea_ea_ea_ptr, 1);
   PRINT1 ("\n");
 #endif
@@ -367,43 +385,43 @@ main ()
 
   TEST_SIZE (   lm_lm_ea_ptr_ea, 4);
   TEST_SIZE (  *lm_lm_ea_ptr_ea, 4);
-  TEST_SIZE ( **lm_lm_ea_ptr_ea, 8);
+  TEST_SIZE ( **lm_lm_ea_ptr_ea, EA_PTRSIZE);
   TEST_SIZE (***lm_lm_ea_ptr_ea, 1);
   PRINT1 ("\n");
 
   TEST_SIZE (   lm_ea_lm_ptr_ea, 4);
-  TEST_SIZE (  *lm_ea_lm_ptr_ea, 8);
+  TEST_SIZE (  *lm_ea_lm_ptr_ea, EA_PTRSIZE);
   TEST_SIZE ( **lm_ea_lm_ptr_ea, 4);
   TEST_SIZE (***lm_ea_lm_ptr_ea, 1);
   PRINT1 ("\n");
 
   TEST_SIZE (   lm_ea_ea_ptr_ea, 4);
-  TEST_SIZE (  *lm_ea_ea_ptr_ea, 8);
-  TEST_SIZE ( **lm_ea_ea_ptr_ea, 8);
+  TEST_SIZE (  *lm_ea_ea_ptr_ea, EA_PTRSIZE);
+  TEST_SIZE ( **lm_ea_ea_ptr_ea, EA_PTRSIZE);
   TEST_SIZE (***lm_ea_ea_ptr_ea, 1);
   PRINT1 ("\n");
 
-  TEST_SIZE (   ea_lm_lm_ptr_ea, 8);
+  TEST_SIZE (   ea_lm_lm_ptr_ea, EA_PTRSIZE);
   TEST_SIZE (  *ea_lm_lm_ptr_ea, 4);
   TEST_SIZE ( **ea_lm_lm_ptr_ea, 4);
   TEST_SIZE (***ea_lm_lm_ptr_ea, 1);
   PRINT1 ("\n");
 
-  TEST_SIZE (   ea_lm_ea_ptr_ea, 8);
+  TEST_SIZE (   ea_lm_ea_ptr_ea, EA_PTRSIZE);
   TEST_SIZE (  *ea_lm_ea_ptr_ea, 4);
-  TEST_SIZE ( **ea_lm_ea_ptr_ea, 8);
+  TEST_SIZE ( **ea_lm_ea_ptr_ea, EA_PTRSIZE);
   TEST_SIZE (***ea_lm_ea_ptr_ea, 1);
   PRINT1 ("\n");
 
-  TEST_SIZE (   ea_ea_lm_ptr_ea, 8);
-  TEST_SIZE (  *ea_ea_lm_ptr_ea, 8);
+  TEST_SIZE (   ea_ea_lm_ptr_ea, EA_PTRSIZE);
+  TEST_SIZE (  *ea_ea_lm_ptr_ea, EA_PTRSIZE);
   TEST_SIZE ( **ea_ea_lm_ptr_ea, 4);
   TEST_SIZE (***ea_ea_lm_ptr_ea, 1);
   PRINT1 ("\n");
 
-  TEST_SIZE (   ea_ea_ea_ptr_ea, 8);
-  TEST_SIZE (  *ea_ea_ea_ptr_ea, 8);
-  TEST_SIZE ( **ea_ea_ea_ptr_ea, 8);
+  TEST_SIZE (   ea_ea_ea_ptr_ea, EA_PTRSIZE);
+  TEST_SIZE (  *ea_ea_ea_ptr_ea, EA_PTRSIZE);
+  TEST_SIZE ( **ea_ea_ea_ptr_ea, EA_PTRSIZE);
   TEST_SIZE (***ea_ea_ea_ptr_ea, 1);
   PRINT1 ("\n");
 #endif
@@ -415,7 +433,7 @@ main ()
 #if USE_LOCAL_VAR
   TEST_SIZE ( lm_cptr, 4);
   TEST_SIZE (*lm_cptr, 1);
-  TEST_SIZE ( ea_cptr, 8);
+  TEST_SIZE ( ea_cptr, EA_PTRSIZE);
   TEST_SIZE (*ea_cptr, 1);
   PRINT1 ("\n");
 #endif
@@ -423,7 +441,7 @@ main ()
 #if USE_EA_VAR
   TEST_SIZE ( lm_cptr_ea, 4);
   TEST_SIZE (*lm_cptr_ea, 1);
-  TEST_SIZE ( ea_cptr_ea, 8);
+  TEST_SIZE ( ea_cptr_ea, EA_PTRSIZE);
   TEST_SIZE (*ea_cptr_ea, 1);
   PRINT1 ("\n");
 #endif
@@ -437,17 +455,17 @@ main ()
   PRINT1 ("\n");
 
   TEST_SIZE (  lm_ea_cptr, 4);
-  TEST_SIZE ( *lm_ea_cptr, 8);
+  TEST_SIZE ( *lm_ea_cptr, EA_PTRSIZE);
   TEST_SIZE (**lm_ea_cptr, 1);
   PRINT1 ("\n");
 
-  TEST_SIZE (  ea_lm_cptr, 8);
+  TEST_SIZE (  ea_lm_cptr, EA_PTRSIZE);
   TEST_SIZE ( *ea_lm_cptr, 4);
   TEST_SIZE (**ea_lm_cptr, 1);
   PRINT1 ("\n");
 
-  TEST_SIZE (  ea_ea_cptr, 8);
-  TEST_SIZE ( *ea_ea_cptr, 8);
+  TEST_SIZE (  ea_ea_cptr, EA_PTRSIZE);
+  TEST_SIZE ( *ea_ea_cptr, EA_PTRSIZE);
   TEST_SIZE (**ea_ea_cptr, 1);
   PRINT1 ("\n");
 #endif
@@ -459,17 +477,17 @@ main ()
   PRINT1 ("\n");
 
   TEST_SIZE (  lm_ea_cptr_ea, 4);
-  TEST_SIZE ( *lm_ea_cptr_ea, 8);
+  TEST_SIZE ( *lm_ea_cptr_ea, EA_PTRSIZE);
   TEST_SIZE (**lm_ea_cptr_ea, 1);
   PRINT1 ("\n");
 
-  TEST_SIZE (  ea_lm_cptr_ea, 8);
+  TEST_SIZE (  ea_lm_cptr_ea, EA_PTRSIZE);
   TEST_SIZE ( *ea_lm_cptr_ea, 4);
   TEST_SIZE (**ea_lm_cptr_ea, 1);
   PRINT1 ("\n");
 
-  TEST_SIZE (  ea_ea_cptr_ea, 8);
-  TEST_SIZE ( *ea_ea_cptr_ea, 8);
+  TEST_SIZE (  ea_ea_cptr_ea, EA_PTRSIZE);
+  TEST_SIZE ( *ea_ea_cptr_ea, EA_PTRSIZE);
   TEST_SIZE (**ea_ea_cptr_ea, 1);
   PRINT1 ("\n");
 #endif
@@ -485,43 +503,43 @@ main ()
 
   TEST_SIZE (   lm_lm_ea_cptr, 4);
   TEST_SIZE (  *lm_lm_ea_cptr, 4);
-  TEST_SIZE ( **lm_lm_ea_cptr, 8);
+  TEST_SIZE ( **lm_lm_ea_cptr, EA_PTRSIZE);
   TEST_SIZE (***lm_lm_ea_cptr, 1);
   PRINT1 ("\n");
 
   TEST_SIZE (   lm_ea_lm_cptr, 4);
-  TEST_SIZE (  *lm_ea_lm_cptr, 8);
+  TEST_SIZE (  *lm_ea_lm_cptr, EA_PTRSIZE);
   TEST_SIZE ( **lm_ea_lm_cptr, 4);
   TEST_SIZE (***lm_ea_lm_cptr, 1);
   PRINT1 ("\n");
 
   TEST_SIZE (   lm_ea_ea_cptr, 4);
-  TEST_SIZE (  *lm_ea_ea_cptr, 8);
-  TEST_SIZE ( **lm_ea_ea_cptr, 8);
+  TEST_SIZE (  *lm_ea_ea_cptr, EA_PTRSIZE);
+  TEST_SIZE ( **lm_ea_ea_cptr, EA_PTRSIZE);
   TEST_SIZE (***lm_ea_ea_cptr, 1);
   PRINT1 ("\n");
 
-  TEST_SIZE (   ea_lm_lm_cptr, 8);
+  TEST_SIZE (   ea_lm_lm_cptr, EA_PTRSIZE);
   TEST_SIZE (  *ea_lm_lm_cptr, 4);
   TEST_SIZE ( **ea_lm_lm_cptr, 4);
   TEST_SIZE (***ea_lm_lm_cptr, 1);
   PRINT1 ("\n");
 
-  TEST_SIZE (   ea_lm_ea_cptr, 8);
+  TEST_SIZE (   ea_lm_ea_cptr, EA_PTRSIZE);
   TEST_SIZE (  *ea_lm_ea_cptr, 4);
-  TEST_SIZE ( **ea_lm_ea_cptr, 8);
+  TEST_SIZE ( **ea_lm_ea_cptr, EA_PTRSIZE);
   TEST_SIZE (***ea_lm_ea_cptr, 1);
   PRINT1 ("\n");
 
-  TEST_SIZE (   ea_ea_lm_cptr, 8);
-  TEST_SIZE (  *ea_ea_lm_cptr, 8);
+  TEST_SIZE (   ea_ea_lm_cptr, EA_PTRSIZE);
+  TEST_SIZE (  *ea_ea_lm_cptr, EA_PTRSIZE);
   TEST_SIZE ( **ea_ea_lm_cptr, 4);
   TEST_SIZE (***ea_ea_lm_cptr, 1);
   PRINT1 ("\n");
 
-  TEST_SIZE (   ea_ea_ea_cptr, 8);
-  TEST_SIZE (  *ea_ea_ea_cptr, 8);
-  TEST_SIZE ( **ea_ea_ea_cptr, 8);
+  TEST_SIZE (   ea_ea_ea_cptr, EA_PTRSIZE);
+  TEST_SIZE (  *ea_ea_ea_cptr, EA_PTRSIZE);
+  TEST_SIZE ( **ea_ea_ea_cptr, EA_PTRSIZE);
   TEST_SIZE (***ea_ea_ea_cptr, 1);
   PRINT1 ("\n");
 #endif
@@ -535,43 +553,43 @@ main ()
 
   TEST_SIZE (   lm_lm_ea_cptr_ea, 4);
   TEST_SIZE (  *lm_lm_ea_cptr_ea, 4);
-  TEST_SIZE ( **lm_lm_ea_cptr_ea, 8);
+  TEST_SIZE ( **lm_lm_ea_cptr_ea, EA_PTRSIZE);
   TEST_SIZE (***lm_lm_ea_cptr_ea, 1);
   PRINT1 ("\n");
 
   TEST_SIZE (   lm_ea_lm_cptr_ea, 4);
-  TEST_SIZE (  *lm_ea_lm_cptr_ea, 8);
+  TEST_SIZE (  *lm_ea_lm_cptr_ea, EA_PTRSIZE);
   TEST_SIZE ( **lm_ea_lm_cptr_ea, 4);
   TEST_SIZE (***lm_ea_lm_cptr_ea, 1);
   PRINT1 ("\n");
 
   TEST_SIZE (   lm_ea_ea_cptr_ea, 4);
-  TEST_SIZE (  *lm_ea_ea_cptr_ea, 8);
-  TEST_SIZE ( **lm_ea_ea_cptr_ea, 8);
+  TEST_SIZE (  *lm_ea_ea_cptr_ea, EA_PTRSIZE);
+  TEST_SIZE ( **lm_ea_ea_cptr_ea, EA_PTRSIZE);
   TEST_SIZE (***lm_ea_ea_cptr_ea, 1);
   PRINT1 ("\n");
 
-  TEST_SIZE (   ea_lm_lm_cptr_ea, 8);
+  TEST_SIZE (   ea_lm_lm_cptr_ea, EA_PTRSIZE);
   TEST_SIZE (  *ea_lm_lm_cptr_ea, 4);
   TEST_SIZE ( **ea_lm_lm_cptr_ea, 4);
   TEST_SIZE (***ea_lm_lm_cptr_ea, 1);
   PRINT1 ("\n");
 
-  TEST_SIZE (   ea_lm_ea_cptr_ea, 8);
+  TEST_SIZE (   ea_lm_ea_cptr_ea, EA_PTRSIZE);
   TEST_SIZE (  *ea_lm_ea_cptr_ea, 4);
-  TEST_SIZE ( **ea_lm_ea_cptr_ea, 8);
+  TEST_SIZE ( **ea_lm_ea_cptr_ea, EA_PTRSIZE);
   TEST_SIZE (***ea_lm_ea_cptr_ea, 1);
   PRINT1 ("\n");
 
-  TEST_SIZE (   ea_ea_lm_cptr_ea, 8);
-  TEST_SIZE (  *ea_ea_lm_cptr_ea, 8);
+  TEST_SIZE (   ea_ea_lm_cptr_ea, EA_PTRSIZE);
+  TEST_SIZE (  *ea_ea_lm_cptr_ea, EA_PTRSIZE);
   TEST_SIZE ( **ea_ea_lm_cptr_ea, 4);
   TEST_SIZE (***ea_ea_lm_cptr_ea, 1);
   PRINT1 ("\n");
 
-  TEST_SIZE (   ea_ea_ea_cptr_ea, 8);
-  TEST_SIZE (  *ea_ea_ea_cptr_ea, 8);
-  TEST_SIZE ( **ea_ea_ea_cptr_ea, 8);
+  TEST_SIZE (   ea_ea_ea_cptr_ea, EA_PTRSIZE);
+  TEST_SIZE (  *ea_ea_ea_cptr_ea, EA_PTRSIZE);
+  TEST_SIZE ( **ea_ea_ea_cptr_ea, EA_PTRSIZE);
   TEST_SIZE (***ea_ea_ea_cptr_ea, 1);
   PRINT1 ("\n");
 #endif

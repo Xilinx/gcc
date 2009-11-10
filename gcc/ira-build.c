@@ -1,5 +1,5 @@
 /* Building internal representation for IRA.
-   Copyright (C) 2006, 2007, 2008
+   Copyright (C) 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Vladimir Makarov <vmakarov@redhat.com>.
 
@@ -468,7 +468,7 @@ ira_create_allocno (int regno, bool cap_p, ira_loop_tree_node_t loop_tree_node)
   ALLOCNO_CONFLICT_HARD_REG_COSTS (a) = NULL;
   ALLOCNO_UPDATED_HARD_REG_COSTS (a) = NULL;
   ALLOCNO_UPDATED_CONFLICT_HARD_REG_COSTS (a) = NULL;
-  ALLOCNO_LEFT_CONFLICTS_NUM (a) = -1;
+  ALLOCNO_LEFT_CONFLICTS_SIZE (a) = -1;
   ALLOCNO_COVER_CLASS (a) = NO_REGS;
   ALLOCNO_UPDATED_COVER_CLASS_COST (a) = 0;
   ALLOCNO_COVER_CLASS_COST (a) = 0;
@@ -1491,7 +1491,7 @@ create_bb_allocnos (ira_loop_tree_node_t bb_node)
   curr_bb = bb = bb_node->bb;
   ira_assert (bb != NULL);
   FOR_BB_INSNS_REVERSE (bb, insn)
-    if (INSN_P (insn))
+    if (NONDEBUG_INSN_P (insn))
       create_insn_allocnos (PATTERN (insn), false);
   /* It might be a allocno living through from one subloop to
      another.  */
@@ -2394,7 +2394,8 @@ static ira_allocno_t *regno_top_level_allocno_map;
 static bool
 copy_info_to_removed_store_destinations (int regno)
 {
-  ira_allocno_t a, parent_a;
+  ira_allocno_t a;
+  ira_allocno_t parent_a = NULL;
   ira_loop_tree_node_t parent;
   allocno_live_range_t r;
   bool merged_p;

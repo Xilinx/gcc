@@ -1,8 +1,5 @@
 ! { dg-do compile }
 
-! FIXME: Remove -w after polymorphic entities are supported.
-! { dg-options "-w" }
-
 ! Type-bound procedures
 ! Check for recognition/errors with more complicated references and some
 ! error-handling in general.
@@ -24,7 +21,7 @@ CONTAINS
 
   SUBROUTINE proc (me)
     IMPLICIT NONE
-    TYPE(t), INTENT(INOUT) :: me
+    CLASS(t), INTENT(INOUT) :: me
   END SUBROUTINE proc
 
   INTEGER FUNCTION func ()

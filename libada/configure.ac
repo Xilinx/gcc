@@ -1,9 +1,9 @@
 # Configure script for libada.
-#   Copyright 2003, 2004 Free Software Foundation, Inc.
+#   Copyright 2003, 2004, 2009 Free Software Foundation, Inc.
 #
 # This file is free software; you can redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
+# the Free Software Foundation; either version 3 of the License, or
 # (at your option) any later version.
 #
 # This program is distributed in the hope that it will be useful, but
@@ -12,14 +12,16 @@
 # General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+# along with this program; see the file COPYING3.  If not see
+# <http://www.gnu.org/licenses/>.
 
 sinclude(../config/acx.m4)
+sinclude(../config/multi.m4)
 sinclude(../config/override.m4)
+sinclude(../config/unwind_ipinfo.m4)
 
 AC_INIT
-AC_PREREQ([2.59])
+AC_PREREQ([2.64])
 
 AC_CONFIG_SRCDIR([Makefile.in])
 
@@ -27,6 +29,7 @@ AC_CONFIG_SRCDIR([Makefile.in])
 AC_CANONICAL_BUILD
 AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
+target_alias=${target_alias-$host_alias}
 
 # Determine the noncanonical target name, for directory use.
 ACX_NONCANONICAL_TARGET
@@ -48,9 +51,6 @@ AC_ARG_ENABLE([maintainer-mode],
    maintainer_mode=${enableval}],
   [MAINT='#'])
 AC_SUBST([MAINT])dnl
-
-AC_CANONICAL_SYSTEM
-target_alias=${target_alias-$host_alias}
 
 AM_ENABLE_MULTILIB(, ..)
 # Calculate toolexeclibdir
@@ -93,7 +93,7 @@ AC_SUBST(toolexeclibdir)
 m4_rename([_AC_ARG_VAR_PRECIOUS],[real_PRECIOUS])
 m4_define([_AC_ARG_VAR_PRECIOUS],[])
 AC_PROG_CC
-m4_rename([real_PRECIOUS],[_AC_ARG_VAR_PRECIOUS])
+m4_rename_force([real_PRECIOUS],[_AC_ARG_VAR_PRECIOUS])
 
 AC_SUBST(CFLAGS)
 
@@ -118,7 +118,8 @@ esac
 ], [enable_shared=yes])
 AC_SUBST([enable_shared])
 
-# Need to pass this down for now :-P
+# These must be passed down, or are needed by gcc/libgcc.mvars
+AC_PROG_AWK
 AC_PROG_LN_S
 
 # Determine what to build for 'gnatlib'
@@ -131,7 +132,14 @@ else
 fi
 AC_SUBST([default_gnatlib_target])
 
-AC_PROG_CC
+# Check for _Unwind_GetIPInfo
+GCC_CHECK_UNWIND_GETIPINFO
+have_getipinfo=
+if test x$have_unwind_getipinfo = xyes; then
+  have_getipinfo=-DHAVE_GETIPINFO
+fi
+AC_SUBST(have_getipinfo)
+
 warn_cflags=
 if test "x$GCC" = "xyes"; then
   warn_cflags='$(GCC_WARN_CFLAGS)'

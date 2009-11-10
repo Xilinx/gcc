@@ -1,86 +1,43 @@
+/* Copyright (C) 2009 Free Software Foundation, Inc.
+
+   This file is free software; you can redistribute it and/or modify it under
+   the terms of the GNU General Public License as published by the Free
+   Software Foundation; either version 3 of the License, or (at your option)
+   any later version.
+
+   This file is distributed in the hope that it will be useful, but WITHOUT
+   ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+   FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+   for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this file; see the file COPYING3.  If not see
+   <http://www.gnu.org/licenses/>.  */
+
+/* Make sure __ea structure references work.  */
+
 /* { dg-do compile } */
-/* { dg-options "-O2 -std=gnu99 -pedantic-errors -mea-to-generic-conversion" } */
 
-/* This is the same code as errors2.c but it should compile cleanly.  If you
-   modify this file, you should modify errors2.c as well.  */
-#ifndef TYPE
-#define TYPE void
-#endif
+typedef unsigned long int uintptr_t;
 
-typedef __ea TYPE *ea_ptr_t;
-typedef      TYPE *lm_ptr_t;
-
-extern ea_ptr_t ea_ptr;
-extern lm_ptr_t lm_ptr;
-
-extern void arg_ea (ea_ptr_t);
-extern void arg_lm (lm_ptr_t);
-
-#ifdef NO_CAST
-#define EA_CAST(ARG) (ARG)
-#define LM_CAST(ARG) (ARG)
-
-#else
-#define EA_CAST(ARG) ((ea_ptr_t)(ARG))
-#define LM_CAST(ARG) ((lm_ptr_t)(ARG))
-#endif
-
-void ea_to_ea_arg (void)
+struct tostruct
 {
-  arg_ea (ea_ptr);
-}
+  uintptr_t selfpc;
+  long count;
+  unsigned short link;
+};
 
-void ea_to_lm_arg (void)
-{
-  arg_lm (LM_CAST (ea_ptr));
-}
+/* froms are indexing tos */
+static __ea unsigned short *froms;
+static __ea struct tostruct *tos = 0;
 
-void lm_to_ea_arg (void)
+void
+foo (uintptr_t frompc, uintptr_t selfpc)
 {
-  arg_ea (EA_CAST (lm_ptr));
-}
+  __ea unsigned short *frompcindex;
 
-void lm_to_lm_arg (void)
-{
-  arg_lm (lm_ptr);
-}
+  frompcindex = &froms[(frompc) / (4 * sizeof (*froms))];
+  *frompcindex = tos[0].link;
 
-ea_ptr_t ea_to_ea_ret (void)
-{
-  return ea_ptr;
-}
-
-lm_ptr_t ea_to_lm_ret (void)
-{
-  return LM_CAST (ea_ptr);
-}
-
-ea_ptr_t lm_to_ea_ret (void)
-{
-  return EA_CAST (lm_ptr);
-}
-
-lm_ptr_t lm_to_lm_ret (void)
-{
-  return lm_ptr;
-}
-
-void ea_to_ea_store (ea_ptr_t ptr)
-{
-  ea_ptr = ptr;
-}
-
-void ea_to_lm_store (ea_ptr_t ptr)
-{
-  lm_ptr = LM_CAST (ptr);
-}
-
-void lm_to_ea_store (lm_ptr_t ptr)
-{
-  ea_ptr = EA_CAST (ptr);
-}
-
-void lm_to_lm_store (lm_ptr_t ptr)
-{
-  lm_ptr = ptr;
+  return;
 }

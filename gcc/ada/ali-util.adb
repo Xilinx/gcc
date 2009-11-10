@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -139,7 +139,7 @@ package body ALI.Util is
       Full_Name := Find_File (Fname, Osint.Source);
 
       --  If we cannot find the file, then return an impossible checksum,
-      --  impossible becaues checksums have the high order bit zero, so
+      --  impossible because checksums have the high order bit zero, so
       --  that checksums do not match.
 
       if Full_Name = No_File then
@@ -490,9 +490,9 @@ package body ALI.Util is
             if not Source.Table (Src).Source_Found
               or else Sdep.Table (D).Stamp /= Source.Table (Src).Stamp
             then
-               --  If -t debug flag set, output time stamp found/expected
+               --  If -dt debug flag set, output time stamp found/expected
 
-               if Source.Table (Src).Source_Found and Debug_Flag_T then
+               if Source.Table (Src).Source_Found and then Debug_Flag_T then
                   Write_Str ("Source: """);
                   Get_Name_String (Sdep.Table (D).Sfile);
                   Write_Str (Name_Buffer (1 .. Name_Len));

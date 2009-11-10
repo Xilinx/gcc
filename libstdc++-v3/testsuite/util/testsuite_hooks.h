@@ -1,13 +1,13 @@
 // -*- C++ -*-
 // Utility subroutines for the C++ library testsuite. 
 //
-// Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+// Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 //
 // This library is distributed in the hope that it will be useful,
@@ -16,18 +16,9 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// with this library; see the file COPYING3.  If not see
+// <http://www.gnu.org/licenses/>.
 //
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
 
 // This file provides the following:
 //
@@ -43,8 +34,8 @@
 //   limit in megabytes (a floating-point number).  If _GLIBCXX_RES_LIMITS is
 //   not #defined before including this header, then no limiting is attempted.
 //
-// 3)  counter
-//   This is a POD with a static data member, gnu_counting_struct::count,
+// 3)  object_counter
+//   This is a POD with a static data member, object_counter::count,
 //   which starts at zero, increments on instance construction, and decrements
 //   on instance destruction.  "assert_count(n)" can be called to VERIFY()
 //   that the count equals N.
@@ -144,19 +135,19 @@ namespace __gnu_test
   run_tests_wrapped_env(const char*, const char*, const func_callback&);
 
   // Counting.
-  struct counter
+  struct object_counter
   {
-    // Specifically and glaringly-obviously marked 'signed' so that when
-    // COUNT mistakenly goes negative, we can track the patterns of
-    // deletions more easily.
+    // Specifically and glaringly-obviously marked 'signed' so that
+    // when COUNT mistakenly goes negative, we can track the patterns
+    // of deletions more easily.
     typedef  signed int     size_type;
     static size_type   count;
-    counter() { ++count; }
-    counter (const counter&) { ++count; }
-    ~counter() { --count; }
+    object_counter() { ++count; }
+    object_counter (const object_counter&) { ++count; }
+    ~object_counter() { --count; }
   };
   
-#define assert_count(n)   VERIFY(__gnu_test::counter::count == n)
+#define assert_count(n)   VERIFY(__gnu_test::object_counter::count == n)
   
   // A (static) class for counting copy constructors and possibly throwing an
   // exception on a desired count.
@@ -309,6 +300,10 @@ namespace __gnu_test
   inline bool
   operator==(const copy_tracker& lhs, const copy_tracker& rhs)
   { return lhs.id() == rhs.id(); }
+
+  inline bool
+  operator<(const copy_tracker& lhs, const copy_tracker& rhs)
+  { return lhs.id() < rhs.id(); }
 
   // Class for checking required type conversions, implicit and
   // explicit for given library data structures. 

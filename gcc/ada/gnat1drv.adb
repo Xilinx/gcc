@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -45,10 +45,12 @@ with Nlists;
 with Opt;      use Opt;
 with Osint;    use Osint;
 with Output;   use Output;
+with Par_SCO;
 with Prepcomp;
 with Repinfo;  use Repinfo;
 with Restrict;
 with Rtsfind;
+with SCOs;
 with Sem;
 with Sem_Ch8;
 with Sem_Ch12;
@@ -61,6 +63,7 @@ with Sinput.L; use Sinput.L;
 with Snames;
 with Sprint;   use Sprint;
 with Stringt;
+with Stylesw;  use Stylesw;
 with Targparm; use Targparm;
 with Tree_Gen;
 with Treepr;   use Treepr;
@@ -70,6 +73,7 @@ with Uintp;    use Uintp;
 with Uname;    use Uname;
 with Urealp;
 with Usage;
+with Validsw;  use Validsw;
 
 with System.Assertions;
 
@@ -83,12 +87,239 @@ procedure Gnat1drv is
    Back_End_Mode : Back_End.Back_End_Mode_Type;
    --  Record back end mode
 
+   procedure Adjust_Global_Switches;
+   --  There are various interactions between front end switch settings,
+   --  including debug switch settings and target dependent parameters.
+   --  This procedure takes care of properly handling these interactions.
+   --  We do it after scanning out all the switches, so that we are not
+   --  depending on the order in which switches appear.
+
    procedure Check_Bad_Body;
    --  Called to check if the unit we are compiling has a bad body
 
    procedure Check_Rep_Info;
    --  Called when we are not generating code, to check if -gnatR was requested
    --  and if so, explain that we will not be honoring the request.
+
+   procedure Check_Library_Items;
+   --  For debugging -- checks the behavior of Walk_Library_Items
+   pragma Warnings (Off, Check_Library_Items);
+   --  In case the call below is commented out
+
+   ----------------------------
+   -- Adjust_Global_Switches --
+   ----------------------------
+
+   procedure Adjust_Global_Switches is
+   begin
+      --  Debug flag -gnatd.I is a synonym for Generate_SCIL and requires code
+      --  generation.
+
+      if Debug_Flag_Dot_II
+        and then Operating_Mode = Generate_Code
+      then
+         Generate_SCIL := True;
+      end if;
+
+      --  Set ASIS mode if -gnatt and -gnatc are set
+
+      if Operating_Mode = Check_Semantics and then Tree_Output then
+         ASIS_Mode := True;
+
+         --  Turn off inlining in ASIS mode, since ASIS cannot handle the extra
+         --  information in the trees caused by inlining being active.
+
+         --  More specifically, the tree seems to be malformed from the ASIS
+         --  point of view if -gnatc and -gnatn appear together???
+
+         Inline_Active := False;
+
+         --  Turn off SCIL generation in ASIS mode, since SCIL requires front-
+         --  end expansion.
+
+         Generate_SCIL := False;
+      end if;
+
+      --  SCIL mode needs to disable front-end inlining since the generated
+      --  trees (in particular order and consistency between specs compiled
+      --  as part of a main unit or as part of a with-clause) are causing
+      --  troubles.
+
+      if Generate_SCIL then
+         Front_End_Inlining := False;
+      end if;
+
+      --  Tune settings for optimal SCIL generation in CodePeer_Mode
+
+      if CodePeer_Mode then
+
+         --  Turn off inlining, confuses CodePeer output and gains nothing
+
+         Front_End_Inlining := False;
+         Inline_Active      := False;
+
+         --  Turn off ASIS mode: incompatible with front-end expansion.
+
+         ASIS_Mode := False;
+
+         --  Suppress overflow, division by zero and access checks since they
+         --  are handled implicitly by CodePeer.
+
+         --  Turn off dynamic elaboration checks: generates inconsistencies in
+         --  trees between specs compiled as part of a main unit or as part of
+         --  a with-clause.
+
+         --  Turn off alignment checks: these cannot be proved statically by
+         --  CodePeer and generate false positives.
+
+         --  Enable all other language checks
+
+         Suppress_Options :=
+           (Access_Check      => True,
+            Alignment_Check   => True,
+            Division_Check    => True,
+            Elaboration_Check => True,
+            Overflow_Check    => True,
+            others            => False);
+         Enable_Overflow_Checks := False;
+         Dynamic_Elaboration_Checks := False;
+
+         --  Kill debug of generated code, since it messes up sloc values
+
+         Debug_Generated_Code := False;
+
+         --  Turn cross-referencing on in case it was disabled (by e.g. -gnatD)
+         --  Do we really need to spend time generating xref in CodePeer
+         --  mode??? Consider setting Xref_Active to False.
+
+         Xref_Active := True;
+
+         --  Polling mode forced off, since it generates confusing junk
+
+         Polling_Required := False;
+
+         --  Set operating mode to Generate_Code to benefit from full
+         --  front-end expansion (e.g. generics).
+
+         Operating_Mode := Generate_Code;
+
+         --  We need SCIL generation of course
+
+         Generate_SCIL := True;
+
+         --  Enable assertions and debug pragmas, since they give CodePeer
+         --  valuable extra information.
+
+         Assertions_Enabled     := True;
+         Debug_Pragmas_Enabled  := True;
+
+         --  Suppress compiler warnings, since what we are interested in here
+         --  is what CodePeer can find out. Also disable all simple value
+         --  propagation. This is an optimization which is valuable for code
+         --  optimization, and also for generation of compiler warnings, but
+         --  these are being turned off anyway, and CodePeer understands
+         --  things more clearly if references are not optimized in this way.
+
+         Warning_Mode  := Suppress;
+         Debug_Flag_MM := True;
+
+         --  Set normal RM validity checking, and checking of IN OUT parameters
+         --  (this might give CodePeer more useful checks to analyze, to be
+         --  confirmed???). All other validity checking is turned off, since
+         --  this can generate very complex trees that only confuse CodePeer
+         --  and do not bring enough useful info.
+
+         Reset_Validity_Check_Options;
+         Validity_Check_Default       := True;
+         Validity_Check_In_Out_Params := True;
+         Validity_Check_In_Params     := True;
+
+         --  Turn off style check options since we are not interested in any
+         --  front-end warnings when we are getting CodePeer output.
+
+         Reset_Style_Check_Options;
+      end if;
+
+      --  Set Configurable_Run_Time mode if system.ads flag set
+
+      if Targparm.Configurable_Run_Time_On_Target or Debug_Flag_YY then
+         Configurable_Run_Time_Mode := True;
+      end if;
+
+      --  Set -gnatR3m mode if debug flag A set
+
+      if Debug_Flag_AA then
+         Back_Annotate_Rep_Info := True;
+         List_Representation_Info := 1;
+         List_Representation_Info_Mechanisms := True;
+      end if;
+
+      --  Force Target_Strict_Alignment true if debug flag -gnatd.a is set
+
+      if Debug_Flag_Dot_A then
+         Ttypes.Target_Strict_Alignment := True;
+      end if;
+
+      --  Disable static allocation of dispatch tables if -gnatd.t or if layout
+      --  is enabled. The front end's layout phase currently treats types that
+      --  have discriminant-dependent arrays as not being static even when a
+      --  discriminant constraint on the type is static, and this leads to
+      --  problems with subtypes of type Ada.Tags.Dispatch_Table_Wrapper. ???
+
+      if Debug_Flag_Dot_T or else Frontend_Layout_On_Target then
+         Static_Dispatch_Tables := False;
+      end if;
+
+      --  Flip endian mode if -gnatd8 set
+
+      if Debug_Flag_8 then
+         Ttypes.Bytes_Big_Endian := not Ttypes.Bytes_Big_Endian;
+      end if;
+
+      --  Deal with forcing OpenVMS switches True if debug flag M is set, but
+      --  record the setting of Targparm.Open_VMS_On_Target in True_VMS_Target
+      --  before doing this, so we know if we are in real OpenVMS or not!
+
+      Opt.True_VMS_Target := Targparm.OpenVMS_On_Target;
+
+      if Debug_Flag_M then
+         Targparm.OpenVMS_On_Target := True;
+         Hostparm.OpenVMS := True;
+      end if;
+
+      --  Activate front end layout if debug flag -gnatdF is set
+
+      if Debug_Flag_FF then
+         Targparm.Frontend_Layout_On_Target := True;
+      end if;
+
+      --  Set and check exception mechnism
+
+      if Targparm.ZCX_By_Default_On_Target then
+         if Targparm.GCC_ZCX_Support_On_Target then
+            Exception_Mechanism := Back_End_Exceptions;
+         else
+            Osint.Fail ("Zero Cost Exceptions not supported on this target");
+         end if;
+      end if;
+
+      --  Set proper status for overflow checks. We turn on overflow checks
+      --  if -gnatp was not specified, and either -gnato is set or the back
+      --  end takes care of overflow checks. Otherwise we suppress overflow
+      --  checks by default (since front end checks are expensive).
+
+      if not Opt.Suppress_Checks
+        and then (Opt.Enable_Overflow_Checks
+                    or else
+                      (Targparm.Backend_Divide_Checks_On_Target
+                        and
+                       Targparm.Backend_Overflow_Checks_On_Target))
+      then
+         Suppress_Options (Overflow_Check) := False;
+      else
+         Suppress_Options (Overflow_Check) := True;
+      end if;
+   end Adjust_Global_Switches;
 
    --------------------
    -- Check_Bad_Body --
@@ -232,6 +463,35 @@ procedure Gnat1drv is
       end if;
    end Check_Bad_Body;
 
+   -------------------------
+   -- Check_Library_Items --
+   -------------------------
+
+   --  Walk_Library_Items has plenty of assertions, so all we need to do is
+   --  call it, just for these assertions, not actually doing anything else.
+
+   procedure Check_Library_Items is
+
+      procedure Action (Item : Node_Id);
+      --  Action passed to Walk_Library_Items to do nothing
+
+      ------------
+      -- Action --
+      ------------
+
+      procedure Action (Item : Node_Id) is
+      begin
+         null;
+      end Action;
+
+      procedure Walk is new Sem.Walk_Library_Items (Action);
+
+   --  Start of processing for Check_Library_Items
+
+   begin
+      Walk;
+   end Check_Library_Items;
+
    --------------------
    -- Check_Rep_Info --
    --------------------
@@ -260,6 +520,9 @@ begin
    --  nested blocks, so that the outer one handles unrecoverable error.
 
    begin
+      --  Initialize all packages. For the most part, these initialization
+      --  calls can be made in any order. Exceptions are as follows:
+
       --  Lib.Initialize need to be called before Scan_Compiler_Arguments,
       --  because it initializes a table filled by Scan_Compiler_Arguments.
 
@@ -278,9 +541,11 @@ begin
       Urealp.Initialize;
       Errout.Initialize;
       Namet.Initialize;
+      SCOs.Initialize;
       Snames.Initialize;
       Stringt.Initialize;
       Inline.Initialize;
+      Par_SCO.Initialize;
       Sem_Ch8.Initialize;
       Sem_Ch12.Initialize;
       Sem_Ch13.Initialize;
@@ -325,29 +590,7 @@ begin
          Restrict.Restrictions := Targparm.Restrictions_On_Target;
       end;
 
-      --  Set Configurable_Run_Time mode if system.ads flag set
-
-      if Targparm.Configurable_Run_Time_On_Target or Debug_Flag_YY then
-         Configurable_Run_Time_Mode := True;
-      end if;
-
-      --  Set -gnatR3m mode if debug flag A set
-
-      if Debug_Flag_AA then
-         Back_Annotate_Rep_Info := True;
-         List_Representation_Info := 1;
-         List_Representation_Info_Mechanisms := True;
-      end if;
-
-      --  Disable static allocation of dispatch tables if -gnatd.t or if layout
-      --  is enabled. The front end's layout phase currently treats types that
-      --  have discriminant-dependent arrays as not being static even when a
-      --  discriminant constraint on the type is static, and this leads to
-      --  problems with subtypes of type Ada.Tags.Dispatch_Table_Wrapper. ???
-
-      if Debug_Flag_Dot_T or else Frontend_Layout_On_Target then
-         Static_Dispatch_Tables := False;
-      end if;
+      Adjust_Global_Switches;
 
       --  Output copyright notice if full list mode unless we have a list
       --  file, in which case we defer this so that it is output in the file
@@ -363,56 +606,6 @@ begin
                     Current_Year &
                     ", Free Software Foundation, Inc.");
          Write_Eol;
-      end if;
-
-      --  Before we do anything else, adjust certain global values for
-      --  debug switches which modify their normal natural settings.
-
-      if Debug_Flag_8 then
-         Ttypes.Bytes_Big_Endian := not Ttypes.Bytes_Big_Endian;
-      end if;
-
-      --  Deal with forcing OpenVMS switches Ture if debug flag M is set, but
-      --  record the setting of Targparm.Open_VMS_On_Target in True_VMS_Target
-      --  before doing this.
-
-      Opt.True_VMS_Target := Targparm.OpenVMS_On_Target;
-
-      if Debug_Flag_M then
-         Targparm.OpenVMS_On_Target := True;
-         Hostparm.OpenVMS := True;
-      end if;
-
-      if Debug_Flag_FF then
-         Targparm.Frontend_Layout_On_Target := True;
-      end if;
-
-      --  We take the default exception mechanism into account
-
-      if Targparm.ZCX_By_Default_On_Target then
-         if Targparm.GCC_ZCX_Support_On_Target then
-            Exception_Mechanism := Back_End_Exceptions;
-         else
-            Osint.Fail
-              ("Zero Cost Exceptions not supported on this target");
-         end if;
-      end if;
-
-      --  Set proper status for overflow checks. We turn on overflow checks
-      --  if -gnatp was not specified, and either -gnato is set or the back
-      --  end takes care of overflow checks. Otherwise we suppress overflow
-      --  checks by default (since front end checks are expensive).
-
-      if not Opt.Suppress_Checks
-        and then (Opt.Enable_Overflow_Checks
-                    or else
-                      (Targparm.Backend_Divide_Checks_On_Target
-                        and
-                       Targparm.Backend_Overflow_Checks_On_Target))
-      then
-         Suppress_Options (Overflow_Check) := False;
-      else
-         Suppress_Options (Overflow_Check) := True;
       end if;
 
       --  Check we do not have more than one source file, this happens only in
@@ -471,14 +664,21 @@ begin
 
       Set_Generate_Code (Main_Unit);
 
-      --  If we have a corresponding spec, then we need object
-      --  code for the spec unit as well
+      --  If we have a corresponding spec, and it comes from source
+      --  or it is not a generated spec for a child subprogram body,
+      --  then we need object code for the spec unit as well.
 
       if Nkind (Unit (Main_Unit_Node)) in N_Unit_Body
         and then not Acts_As_Spec (Main_Unit_Node)
       then
-         Set_Generate_Code
-           (Get_Cunit_Unit_Number (Library_Unit (Main_Unit_Node)));
+         if Nkind (Unit (Main_Unit_Node)) = N_Subprogram_Body
+           and then not Comes_From_Source (Library_Unit (Main_Unit_Node))
+         then
+            null;
+         else
+            Set_Generate_Code
+              (Get_Cunit_Unit_Number (Library_Unit (Main_Unit_Node)));
+         end if;
       end if;
 
       --  Case of no code required to be generated, exit indicating no error
@@ -564,6 +764,11 @@ begin
       elsif Main_Kind in N_Generic_Renaming_Declaration then
          Back_End_Mode := Generate_Object;
 
+      --  It's not an error to generate SCIL for e.g. a spec which has a body
+
+      elsif CodePeer_Mode then
+         Back_End_Mode := Generate_Object;
+
       --  In all other cases (specs which have bodies, generics, and bodies
       --  where subunits are missing), we cannot generate code and we generate
       --  a warning message. Note that generic instantiations are gone at this
@@ -573,9 +778,9 @@ begin
          Back_End_Mode := Skip;
       end if;
 
-      --  At this stage Call_Back_End is set to indicate if the backend should
-      --  be called to generate code. If it is not set, then code generation
-      --  has been turned off, even though code was requested by the original
+      --  At this stage Back_End_Mode is set to indicate if the backend should
+      --  be called to generate code. If it is Skip, then code generation has
+      --  been turned off, even though code was requested by the original
       --  command. This is not an error from the user point of view, but it is
       --  an error from the point of view of the gcc driver, so we must exit
       --  with an error status.
@@ -660,7 +865,7 @@ begin
       --  a VM, since representations are largely symbolic there.
 
       if Back_End_Mode = Declarations_Only
-        and then (not Back_Annotate_Rep_Info
+        and then (not (Back_Annotate_Rep_Info or Generate_SCIL)
                    or else Main_Kind = N_Subunit
                    or else Targparm.Frontend_Layout_On_Target
                    or else Targparm.VM_Target /= No_VM)
@@ -700,6 +905,14 @@ begin
       Sinput.Lock;
       Namet.Lock;
       Stringt.Lock;
+
+      --  ???Check_Library_Items under control of a debug flag, because it
+      --  currently does not work if the -gnatn switch (back end inlining) is
+      --  used.
+
+      if Debug_Flag_Dot_WW then
+         Check_Library_Items;
+      end if;
 
       --  Here we call the back end to generate the output code
 

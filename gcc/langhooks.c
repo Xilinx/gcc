@@ -1,5 +1,5 @@
 /* Default language-specific hooks.
-   Copyright 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Alexandre Oliva  <aoliva@redhat.com>
 
@@ -37,6 +37,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "langhooks-def.h"
 #include "ggc.h"
 #include "diagnostic.h"
+#include "cgraph.h"
+#include "output.h"
 
 /* Do nothing; in many cases the default hook.  */
 
@@ -50,6 +52,13 @@ lhd_do_nothing (void)
 void
 lhd_do_nothing_t (tree ARG_UNUSED (t))
 {
+}
+
+/* Pass through (tree).  */
+tree
+lhd_pass_through_t (tree t)
+{
+  return t;
 }
 
 /* Do nothing (int).  */
@@ -105,6 +114,9 @@ lhd_return_null_const_tree (const_tree ARG_UNUSED (t))
 bool
 lhd_post_options (const char ** ARG_UNUSED (pfilename))
 {
+  /* Excess precision other than "fast" requires front-end
+     support.  */
+  flag_excess_precision_cmdline = EXCESS_PRECISION_FAST;
   return false;
 }
 
@@ -115,14 +127,6 @@ lhd_print_tree_nothing (FILE * ARG_UNUSED (file),
 			tree ARG_UNUSED (node),
 			int ARG_UNUSED (indent))
 {
-}
-
-/* Called from staticp.  */
-
-tree
-lhd_staticp (tree ARG_UNUSED (exp))
-{
-  return NULL;
 }
 
 /* Called from check_global_declarations.  */
@@ -216,17 +220,6 @@ lhd_get_alias_set (tree ARG_UNUSED (t))
   return -1;
 }
 
-/* This is the default expand_expr function.  */
-
-rtx
-lhd_expand_expr (tree ARG_UNUSED (t), rtx ARG_UNUSED (r),
-		 enum machine_mode ARG_UNUSED (mm),
-		 int ARG_UNUSED (em),
-		 rtx * ARG_UNUSED (a))
-{
-  gcc_unreachable ();
-}
-
 /* This is the default decl_printable_name function.  */
 
 const char *
@@ -272,20 +265,7 @@ lhd_tree_dump_dump_tree (void *di ATTRIBUTE_UNUSED, tree t ATTRIBUTE_UNUSED)
 int
 lhd_tree_dump_type_quals (const_tree t)
 {
-  return TYPE_QUALS (CONST_CAST_TREE (t));
-}
-
-/* lang_hooks.expr_size: Determine the size of the value of an expression T
-   in a language-specific way.  Returns a tree for the size in bytes.  */
-
-tree
-lhd_expr_size (const_tree exp)
-{
-  if (DECL_P (exp)
-      && DECL_SIZE_UNIT (exp) != 0)
-    return DECL_SIZE_UNIT (exp);
-  else
-    return size_in_bytes (TREE_TYPE (exp));
+  return TYPE_QUALS (t);
 }
 
 /* lang_hooks.gimplify_expr re-writes *EXPR_P into GIMPLE form.  */
@@ -316,28 +296,25 @@ lhd_decl_ok_for_sibcall (const_tree decl ATTRIBUTE_UNUSED)
   return true;
 }
 
-/* Return the COMDAT group into which DECL should be placed.  */
-
-const char *
-lhd_comdat_group (tree decl)
-{
-  return IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl));
-}
-
 /* lang_hooks.decls.final_write_globals: perform final processing on
    global variables.  */
 void
 write_global_declarations (void)
 {
+  tree globals, decl, *vec;
+  int len, i;
+
+  /* This lang hook is dual-purposed, and also finalizes the
+     compilation unit.  */
+  cgraph_finalize_compilation_unit ();
+
   /* Really define vars that have had only a tentative definition.
      Really output inline functions that must actually be callable
      and have not been output so far.  */
 
-  tree globals = lang_hooks.decls.getdecls ();
-  int len = list_length (globals);
-  tree *vec = XNEWVEC (tree, len);
-  int i;
-  tree decl;
+  globals = lang_hooks.decls.getdecls ();
+  len = list_length (globals);
+  vec = XNEWVEC (tree, len);
 
   /* Process the decls in reverse order--earliest first.
      Put them into VEC from back to front, then take out from front.  */
@@ -396,11 +373,11 @@ lhd_print_error_function (diagnostic_context *context, const char *file,
 	  if (TREE_CODE (TREE_TYPE (fndecl)) == METHOD_TYPE)
 	    pp_printf
 	      (context->printer, _("In member function %qs"),
-	       lang_hooks.decl_printable_name (fndecl, 2));
+	       identifier_to_locale (lang_hooks.decl_printable_name (fndecl, 2)));
 	  else
 	    pp_printf
 	      (context->printer, _("In function %qs"),
-	       lang_hooks.decl_printable_name (fndecl, 2));
+	       identifier_to_locale (lang_hooks.decl_printable_name (fndecl, 2)));
 
 	  while (abstract_origin)
 	    {
@@ -437,7 +414,7 @@ lhd_print_error_function (diagnostic_context *context, const char *file,
 		  while (block && TREE_CODE (block) == BLOCK)
 		    block = BLOCK_SUPERCONTEXT (block);
 
-		  if (TREE_CODE (block) == FUNCTION_DECL)
+		  if (block && TREE_CODE (block) == FUNCTION_DECL)
 		    fndecl = block;
 		  abstract_origin = NULL;
 		}
@@ -448,21 +425,21 @@ lhd_print_error_function (diagnostic_context *context, const char *file,
 		  pp_newline (context->printer);
 		  if (s.file != NULL)
 		    {
-		      if (flag_show_column && s.column != 0)
+		      if (flag_show_column)
 			pp_printf (context->printer,
 				   _("    inlined from %qs at %s:%d:%d"),
-				   lang_hooks.decl_printable_name (fndecl, 2),
+				   identifier_to_locale (lang_hooks.decl_printable_name (fndecl, 2)),
 				   s.file, s.line, s.column);
 		      else
 			pp_printf (context->printer,
 				   _("    inlined from %qs at %s:%d"),
-				   lang_hooks.decl_printable_name (fndecl, 2),
+				   identifier_to_locale (lang_hooks.decl_printable_name (fndecl, 2)),
 				   s.file, s.line);
 
 		    }
 		  else
 		    pp_printf (context->printer, _("    inlined from %qs"),
-			       lang_hooks.decl_printable_name (fndecl, 2));
+			       identifier_to_locale (lang_hooks.decl_printable_name (fndecl, 2)));
 		}
 	    }
 	  pp_character (context->printer, ':');
@@ -540,15 +517,16 @@ add_builtin_function_common (const char *name,
 			     tree (*hook) (tree))
 {
   tree   id = get_identifier (name);
-  tree decl = build_decl (FUNCTION_DECL, id, type);
+  tree decl = build_decl (BUILTINS_LOCATION, FUNCTION_DECL, id, type);
 
   TREE_PUBLIC (decl)         = 1;
   DECL_EXTERNAL (decl)       = 1;
   DECL_BUILT_IN_CLASS (decl) = cl;
 
-  DECL_FUNCTION_CODE (decl)  = -1;
-  gcc_assert (DECL_FUNCTION_CODE (decl) >= function_code);
-  DECL_FUNCTION_CODE (decl)  = function_code;
+  DECL_FUNCTION_CODE (decl)  = (enum built_in_function) function_code;
+
+  /* DECL_FUNCTION_CODE is a bitfield; verify that the value fits.  */
+  gcc_assert (DECL_FUNCTION_CODE (decl) == function_code);
 
   if (library_name)
     {
@@ -606,4 +584,55 @@ lhd_builtin_function (tree decl)
 {
   lang_hooks.decls.pushdecl (decl);
   return decl;
+}
+
+/* LTO hooks.  */
+
+/* Used to save and restore any previously active section.  */
+static section *saved_section;
+
+
+/* Begin a new LTO output section named NAME.  This default implementation
+   saves the old section and emits assembly code to switch to the new
+   section.  */
+
+void
+lhd_begin_section (const char *name)
+{
+  section *section;
+
+  /* Save the old section so we can restore it in lto_end_asm_section.  */
+  gcc_assert (!saved_section);
+  saved_section = in_section;
+
+  /* Create a new section and switch to it.  */
+  section = get_section (name, SECTION_DEBUG, NULL);
+  switch_to_section (section);
+}
+
+
+/* Write DATA of length LEN to the current LTO output section.  This default
+   implementation just calls assemble_string and frees BLOCK.  */
+
+void
+lhd_append_data (const void *data, size_t len, void *block)
+{
+  if (data)
+    assemble_string ((const char *)data, len);
+  free (block);
+}
+
+
+/* Finish the current LTO output section.  This default implementation emits
+   assembly code to switch to any section previously saved by
+   lhd_begin_section.  */
+
+void
+lhd_end_section (void)
+{
+  if (saved_section)
+    {
+      switch_to_section (saved_section);
+      saved_section = NULL;
+    }
 }

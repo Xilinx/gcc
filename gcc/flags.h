@@ -1,6 +1,6 @@
 /* Compilation switch flag definitions for GCC.
    Copyright (C) 1987, 1988, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2002,
-   2003, 2004, 2005, 2006, 2007
+   2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -111,10 +111,16 @@ extern int optimize;
 
 extern int optimize_size;
 
-/* Do print extra warnings (such as for uninitialized variables).
-   -W/-Wextra.  */
+/* True if this is the LTO front end (lto1).  This is used to disable
+   gimple generation and lowering passes that are normally run on the
+   output of a front end.  These passes must be bypassed for lto since
+   they have already been done before the gimple was written.  */ 
 
-extern bool extra_warnings;
+extern bool in_lto_p;
+
+/* Nonzero if we should write GIMPLE bytecode for link-time optimization.  */
+
+extern int flag_generate_lto;
 
 /* Used to set the level of -Wstrict-aliasing, when no level is specified.  
    The external way to set the default level is to use
@@ -227,6 +233,21 @@ extern enum ira_region flag_ira_region;
 
 extern unsigned int flag_ira_verbose;
 
+/* The options for excess precision.  */
+enum excess_precision
+{
+  EXCESS_PRECISION_DEFAULT,
+  EXCESS_PRECISION_FAST,
+  EXCESS_PRECISION_STANDARD
+};
+
+/* The excess precision specified on the command line, or defaulted by
+   the front end.  */
+extern enum excess_precision flag_excess_precision_cmdline;
+
+/* The excess precision currently in effect.  */
+extern enum excess_precision flag_excess_precision;
+
 
 /* Other basic status info about current function.  */
 
@@ -239,6 +260,9 @@ extern bool g_switch_set;
 
 /* Same for selective scheduling.  */
 extern bool sel_sched_switch_set;
+
+/* Whether to run the warn_unused_result attribute pass.  */
+extern bool flag_warn_unused_result;
 
 /* Values of the -falign-* flags: how much to align labels in code. 
    0 means `use default', 1 means `don't align'.  
@@ -309,13 +333,6 @@ extern enum stack_check_type flag_stack_check;
 /* Return whether the function should be excluded from
    instrumentation.  */
 extern bool flag_instrument_functions_exclude_p (tree fndecl);
-
-/* Emit warning if the function call is disallowed under
-   -Wdisallowed-function-list=...  */
-extern void warn_if_disallowed_function_p (const_tree fncall);
-
-/* True, if the -Wdisallowed-function-list=... option has been specified.  */
-extern bool warn_disallowed_functions;
 
 /* True if the given mode has a NaN representation and the treatment of
    NaN operands is important.  Certain optimizations, such as folding

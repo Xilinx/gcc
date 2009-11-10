@@ -1,12 +1,12 @@
 // RB tree implementation -*- C++ -*-
 
-// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -14,19 +14,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
-// You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
 
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
 
 /*
  *
@@ -142,17 +137,17 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 #endif
     };
 
-  _Rb_tree_node_base*
-  _Rb_tree_increment(_Rb_tree_node_base* __x);
+  _GLIBCXX_PURE _Rb_tree_node_base*
+  _Rb_tree_increment(_Rb_tree_node_base* __x) throw ();
 
-  const _Rb_tree_node_base*
-  _Rb_tree_increment(const _Rb_tree_node_base* __x);
+  _GLIBCXX_PURE const _Rb_tree_node_base*
+  _Rb_tree_increment(const _Rb_tree_node_base* __x) throw ();
 
-  _Rb_tree_node_base*
-  _Rb_tree_decrement(_Rb_tree_node_base* __x);
+  _GLIBCXX_PURE _Rb_tree_node_base*
+  _Rb_tree_decrement(_Rb_tree_node_base* __x) throw ();
 
-  const _Rb_tree_node_base*
-  _Rb_tree_decrement(const _Rb_tree_node_base* __x);
+  _GLIBCXX_PURE const _Rb_tree_node_base*
+  _Rb_tree_decrement(const _Rb_tree_node_base* __x) throw ();
 
   template<typename _Tp>
     struct _Rb_tree_iterator
@@ -315,11 +310,11 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   _Rb_tree_insert_and_rebalance(const bool __insert_left,
                                 _Rb_tree_node_base* __x,
                                 _Rb_tree_node_base* __p,
-                                _Rb_tree_node_base& __header);
+                                _Rb_tree_node_base& __header) throw ();
 
   _Rb_tree_node_base*
   _Rb_tree_rebalance_for_erase(_Rb_tree_node_base* const __z,
-			       _Rb_tree_node_base& __header);
+			       _Rb_tree_node_base& __header) throw ();
 
 
   template<typename _Key, typename _Val, typename _KeyOfValue,
@@ -372,9 +367,9 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       _M_create_node(const value_type& __x)
       {
 	_Link_type __tmp = _M_get_node();
-	try
+	__try
 	  { get_allocator().construct(&__tmp->_M_value_field, __x); }
-	catch(...)
+	__catch(...)
 	  {
 	    _M_put_node(__tmp);
 	    __throw_exception_again;
@@ -394,12 +389,12 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
         _M_create_node(_Args&&... __args)
 	{
 	  _Link_type __tmp = _M_get_node();
-	  try
+	  __try
 	    {
 	      _M_get_Node_allocator().construct(__tmp,
 					     std::forward<_Args>(__args)...);
 	    }
-	  catch(...)
+	  __catch(...)
 	    {
 	      _M_put_node(__tmp);
 	      __throw_exception_again;
@@ -680,11 +675,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       { return _M_get_Node_allocator().max_size(); }
 
       void
-#ifdef __GXX_EXPERIMENTAL_CXX0X__
-      swap(_Rb_tree&& __t);
-#else
       swap(_Rb_tree& __t);      
-#endif
 
       // Insert/erase.
       pair<iterator, bool>
@@ -707,21 +698,43 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
         void
         _M_insert_equal(_InputIterator __first, _InputIterator __last);
 
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      // _GLIBCXX_RESOLVE_LIB_DEFECTS
+      // DR 130. Associative erase should return an iterator.
+      iterator
+      erase(iterator __position);
+
+      // _GLIBCXX_RESOLVE_LIB_DEFECTS
+      // DR 130. Associative erase should return an iterator.
+      const_iterator
+      erase(const_iterator __position);
+#else
       void
       erase(iterator __position);
 
       void
       erase(const_iterator __position);
-
+#endif
       size_type
       erase(const key_type& __x);
 
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      // _GLIBCXX_RESOLVE_LIB_DEFECTS
+      // DR 130. Associative erase should return an iterator.
+      iterator
+      erase(iterator __first, iterator __last);
+
+      // _GLIBCXX_RESOLVE_LIB_DEFECTS
+      // DR 130. Associative erase should return an iterator.
+      const_iterator
+      erase(const_iterator __first, const_iterator __last);
+#else
       void
       erase(iterator __first, iterator __last);
 
       void
       erase(const_iterator __first, const_iterator __last);
-
+#endif
       void
       erase(const key_type* __first, const key_type* __last);
 
@@ -937,7 +950,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       _Link_type __top = _M_clone_node(__x);
       __top->_M_parent = __p;
 
-      try
+      __try
 	{
 	  if (__x->_M_right)
 	    __top->_M_right = _M_copy(_S_right(__x), __top);
@@ -955,7 +968,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	      __x = _S_left(__x);
 	    }
 	}
-      catch(...)
+      __catch(...)
 	{
 	  _M_erase(__top);
 	  __throw_exception_again;
@@ -1109,11 +1122,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
            typename _Compare, typename _Alloc>
     void
     _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::
-#ifdef __GXX_EXPERIMENTAL_CXX0X__
-    swap(_Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>&& __t)
-#else
     swap(_Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>& __t)
-#endif
     {
       if (_M_root() == 0)
 	{
@@ -1340,6 +1349,45 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	  _M_insert_equal_(end(), *__first);
       }
 
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+  // _GLIBCXX_RESOLVE_LIB_DEFECTS
+  // DR 130. Associative erase should return an iterator.
+  template<typename _Key, typename _Val, typename _KeyOfValue,
+           typename _Compare, typename _Alloc>
+    inline typename _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::iterator
+    _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::
+    erase(iterator __position)
+    {
+      iterator __result = __position;
+      ++__result;
+      _Link_type __y =
+	static_cast<_Link_type>(_Rb_tree_rebalance_for_erase
+				(__position._M_node,
+				 this->_M_impl._M_header));
+      _M_destroy_node(__y);
+      --_M_impl._M_node_count;
+      return __result;
+    }
+
+  // _GLIBCXX_RESOLVE_LIB_DEFECTS
+  // DR 130. Associative erase should return an iterator.
+  template<typename _Key, typename _Val, typename _KeyOfValue,
+           typename _Compare, typename _Alloc>
+    inline typename _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::const_iterator
+    _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::
+    erase(const_iterator __position)
+    {
+      const_iterator __result = __position;
+      ++__result;
+      _Link_type __y =
+	static_cast<_Link_type>(_Rb_tree_rebalance_for_erase
+				(const_cast<_Base_ptr>(__position._M_node),
+				 this->_M_impl._M_header));
+      _M_destroy_node(__y);
+      --_M_impl._M_node_count;
+      return __result;
+    }
+#else
   template<typename _Key, typename _Val, typename _KeyOfValue,
            typename _Compare, typename _Alloc>
     inline void
@@ -1367,6 +1415,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       _M_destroy_node(__y);
       --_M_impl._M_node_count;
     }
+#endif
 
   template<typename _Key, typename _Val, typename _KeyOfValue,
            typename _Compare, typename _Alloc>
@@ -1380,6 +1429,49 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       return __old_size - size();
     }
 
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+  // _GLIBCXX_RESOLVE_LIB_DEFECTS
+  // DR 130. Associative erase should return an iterator.
+  template<typename _Key, typename _Val, typename _KeyOfValue,
+           typename _Compare, typename _Alloc>
+    typename _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::iterator
+    _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::
+    erase(iterator __first, iterator __last)
+    {
+      if (__first == begin() && __last == end())
+        {
+	  clear();
+	  return end();
+        }
+      else
+        {
+	  while (__first != __last)
+	    erase(__first++);
+	  return __last;
+        }
+    }
+
+  // _GLIBCXX_RESOLVE_LIB_DEFECTS
+  // DR 130. Associative erase should return an iterator.
+  template<typename _Key, typename _Val, typename _KeyOfValue,
+           typename _Compare, typename _Alloc>
+    typename _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::const_iterator
+    _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::
+    erase(const_iterator __first, const_iterator __last)
+    {
+      if (__first == begin() && __last == end())
+        {
+	  clear();
+	  return end();
+        }
+      else
+        {
+	  while (__first != __last)
+	    erase(__first++);
+	  return __last;
+        }
+    }
+#else
   template<typename _Key, typename _Val, typename _KeyOfValue,
            typename _Compare, typename _Alloc>
     void
@@ -1405,6 +1497,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	while (__first != __last)
 	  erase(__first++);
     }
+#endif
 
   template<typename _Key, typename _Val, typename _KeyOfValue,
            typename _Compare, typename _Alloc>
@@ -1453,9 +1546,9 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       return __n;
     }
 
-  unsigned int
+  _GLIBCXX_PURE unsigned int
   _Rb_tree_black_count(const _Rb_tree_node_base* __node,
-                       const _Rb_tree_node_base* __root);
+                       const _Rb_tree_node_base* __root) throw ();
 
   template<typename _Key, typename _Val, typename _KeyOfValue,
            typename _Compare, typename _Alloc>

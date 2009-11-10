@@ -1,4 +1,4 @@
-/* { dg-require-effective-target vect_int } */
+/* { dg-require-effective-target vect_float } */
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -13,10 +13,10 @@ extern void abort(void);
 __attribute__ ((noinline)) 
 int main1 ()
 {  
-  float A[N] __attribute__ ((__aligned__(16)));
-  float B[N] __attribute__ ((__aligned__(16)));
-  float C[N] __attribute__ ((__aligned__(16)));
-  float D[N] __attribute__ ((__aligned__(16)));
+  float A[N] __attribute__ ((__aligned__(__BIGGEST_ALIGNMENT__)));
+  float B[N] __attribute__ ((__aligned__(__BIGGEST_ALIGNMENT__)));
+  float C[N] __attribute__ ((__aligned__(__BIGGEST_ALIGNMENT__)));
+  float D[N] __attribute__ ((__aligned__(__BIGGEST_ALIGNMENT__)));
   float E[4] = {0,1,2,480};
   float s;
 

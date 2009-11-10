@@ -1,5 +1,5 @@
 /* Default initializers for a generic GCC target.
-   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
    This program is free software; you can redistribute it and/or modify it
@@ -236,12 +236,18 @@
 #define TARGET_ASM_OUTPUT_DWARF_DTPREL NULL
 #endif
 
+#ifndef TARGET_ASM_FINAL_POSTSCAN_INSN
+#define TARGET_ASM_FINAL_POSTSCAN_INSN NULL
+#endif
+
 #ifndef TARGET_ASM_RECORD_GCC_SWITCHES
 #define TARGET_ASM_RECORD_GCC_SWITCHES NULL
 #endif
 #ifndef TARGET_ASM_RECORD_GCC_SWITCHES_SECTION
 #define TARGET_ASM_RECORD_GCC_SWITCHES_SECTION ".GCC.command.line"
 #endif
+
+#define TARGET_ASM_TRAMPOLINE_TEMPLATE NULL
 
 #define TARGET_ASM_ALIGNED_INT_OP				\
 		       {TARGET_ASM_ALIGNED_HI_OP,		\
@@ -291,7 +297,9 @@
 			TARGET_ASM_RECORD_GCC_SWITCHES,		\
 			TARGET_ASM_RECORD_GCC_SWITCHES_SECTION,	\
 			TARGET_ASM_OUTPUT_ANCHOR,		\
-			TARGET_ASM_OUTPUT_DWARF_DTPREL}
+			TARGET_ASM_OUTPUT_DWARF_DTPREL,		\
+			TARGET_ASM_FINAL_POSTSCAN_INSN,		\
+			TARGET_ASM_TRAMPOLINE_TEMPLATE }
 
 /* Scheduler hooks.  All of these default to null pointers, which
    haifa-sched.c looks for and handles.  */
@@ -383,6 +391,9 @@
 #define TARGET_VECTOR_ALIGNMENT_REACHABLE \
   default_builtin_vector_alignment_reachable
 #define TARGET_VECTORIZE_BUILTIN_VEC_PERM 0
+#define TARGET_SUPPORT_VECTOR_MISALIGNMENT \
+  default_builtin_support_vector_misalignment 
+   
 
 #define TARGET_VECTORIZE                                                \
   {									\
@@ -393,7 +404,8 @@
     TARGET_VECTORIZE_BUILTIN_MUL_WIDEN_ODD,				\
     TARGET_VECTORIZE_BUILTIN_VECTORIZATION_COST,			\
     TARGET_VECTOR_ALIGNMENT_REACHABLE,                                  \
-    TARGET_VECTORIZE_BUILTIN_VEC_PERM                                   \
+    TARGET_VECTORIZE_BUILTIN_VEC_PERM,					\
+    TARGET_SUPPORT_VECTOR_MISALIGNMENT				\
   }
 
 #define TARGET_DEFAULT_TARGET_FLAGS 0
@@ -418,12 +430,14 @@
 
 /* In cse.c.  */
 #define TARGET_ADDRESS_COST default_address_cost
+#define TARGET_CONST_ANCHOR 0
 
 /* In builtins.c.  */
 #define TARGET_INIT_BUILTINS hook_void_void
 #define TARGET_EXPAND_BUILTIN default_expand_builtin
 #define TARGET_RESOLVE_OVERLOADED_BUILTIN NULL
 #define TARGET_FOLD_BUILTIN hook_tree_tree_tree_bool_null
+#define TARGET_BUILTIN_DECL NULL
 
 /* In tree-ssa-math-opts.c  */
 #define TARGET_BUILTIN_RECIPROCAL default_builtin_reciprocal
@@ -479,34 +493,23 @@
 #define TARGET_ADDR_SPACE_POINTER_MODE default_addr_space_pointer_mode
 #endif
 
-#ifndef TARGET_ADDR_SPACE_MINUS_TYPE
-#define TARGET_ADDR_SPACE_MINUS_TYPE default_addr_space_minus_type
+#ifndef TARGET_ADDR_SPACE_ADDRESS_MODE
+#define TARGET_ADDR_SPACE_ADDRESS_MODE default_addr_space_address_mode
 #endif
 
-#ifndef TARGET_ADDR_SPACE_NAME
-#define TARGET_ADDR_SPACE_NAME default_addr_space_name
+#ifndef TARGET_ADDR_SPACE_VALID_POINTER_MODE
+#define TARGET_ADDR_SPACE_VALID_POINTER_MODE \
+	default_addr_space_valid_pointer_mode
 #endif
 
-#ifndef TARGET_ADDR_SPACE_MEMORY_ADDRESS_P
-#define TARGET_ADDR_SPACE_MEMORY_ADDRESS_P default_addr_space_memory_address_p
-#endif
-
-#ifndef TARGET_ADDR_SPACE_STRICT_MEMORY_ADDRESS_P
-#define TARGET_ADDR_SPACE_STRICT_MEMORY_ADDRESS_P \
-  default_addr_space_strict_memory_address_p
+#ifndef TARGET_ADDR_SPACE_LEGITIMATE_ADDRESS_P
+#define TARGET_ADDR_SPACE_LEGITIMATE_ADDRESS_P \
+  default_addr_space_legitimate_address_p
 #endif
 
 #ifndef TARGET_ADDR_SPACE_LEGITIMIZE_ADDRESS
 #define TARGET_ADDR_SPACE_LEGITIMIZE_ADDRESS \
   default_addr_space_legitimize_address
-#endif
-
-#ifndef TARGET_ADDR_SPACE_CAN_CONVERT_P
-#define TARGET_ADDR_SPACE_CAN_CONVERT_P default_addr_space_can_convert_p
-#endif
-
-#ifndef TARGET_ADDR_SPACE_NOP_CONVERT_P
-#define TARGET_ADDR_SPACE_NOP_CONVERT_P default_addr_space_nop_convert_p
 #endif
 
 #ifndef TARGET_ADDR_SPACE_SUBSET_P
@@ -517,28 +520,15 @@
 #define TARGET_ADDR_SPACE_CONVERT default_addr_space_convert
 #endif
 
-#ifndef TARGET_ADDR_SPACE_SECTION_NAME
-#define TARGET_ADDR_SPACE_SECTION_NAME default_addr_space_section_name
-#endif
-
-#ifndef TARGET_ADDR_SPACE_STATIC_INIT_OK_P
-#define TARGET_ADDR_SPACE_STATIC_INIT_OK_P default_addr_space_static_init_ok_p
-#endif
-
 #define TARGET_ADDR_SPACE_HOOKS			\
   {						\
     TARGET_ADDR_SPACE_POINTER_MODE,		\
-    TARGET_ADDR_SPACE_MINUS_TYPE,		\
-    TARGET_ADDR_SPACE_NAME,			\
-    TARGET_ADDR_SPACE_MEMORY_ADDRESS_P,		\
-    TARGET_ADDR_SPACE_STRICT_MEMORY_ADDRESS_P,	\
+    TARGET_ADDR_SPACE_ADDRESS_MODE,		\
+    TARGET_ADDR_SPACE_VALID_POINTER_MODE,	\
+    TARGET_ADDR_SPACE_LEGITIMATE_ADDRESS_P,	\
     TARGET_ADDR_SPACE_LEGITIMIZE_ADDRESS,	\
-    TARGET_ADDR_SPACE_CAN_CONVERT_P,		\
-    TARGET_ADDR_SPACE_NOP_CONVERT_P,		\
     TARGET_ADDR_SPACE_SUBSET_P,			\
     TARGET_ADDR_SPACE_CONVERT,			\
-    TARGET_ADDR_SPACE_SECTION_NAME,		\
-    TARGET_ADDR_SPACE_STATIC_INIT_OK_P,		\
   }
 
 #ifndef TARGET_SCALAR_MODE_SUPPORTED_P
@@ -557,18 +547,17 @@
 #define TARGET_VECTOR_MODE_SUPPORTED_P hook_bool_mode_false
 #endif
 
-#ifndef TARGET_VECTOR_OPAQUE_P
-#define TARGET_VECTOR_OPAQUE_P hook_bool_const_tree_false
-#endif
-
 /* In hooks.c.  */
 #define TARGET_CANNOT_MODIFY_JUMPS_P hook_bool_void_false
-#define TARGET_BRANCH_TARGET_REGISTER_CLASS hook_int_void_no_regs
+#define TARGET_BRANCH_TARGET_REGISTER_CLASS \
+  default_branch_target_register_class
 #define TARGET_BRANCH_TARGET_REGISTER_CALLEE_SAVED hook_bool_bool_false
 #define TARGET_CANNOT_FORCE_CONST_MEM hook_bool_rtx_false
 #define TARGET_CANNOT_COPY_INSN_P NULL
 #define TARGET_COMMUTATIVE_P hook_bool_const_rtx_commutative_p
-#define TARGET_DELEGITIMIZE_ADDRESS hook_rtx_rtx_identity
+#define TARGET_LEGITIMIZE_ADDRESS default_legitimize_address
+#define TARGET_DELEGITIMIZE_ADDRESS delegitimize_mem_from_attrs
+#define TARGET_LEGITIMATE_ADDRESS_P default_legitimate_address_p
 #define TARGET_USE_BLOCKS_FOR_CONSTANT_P hook_bool_mode_const_rtx_false
 #define TARGET_MIN_ANCHOR_OFFSET 0
 #define TARGET_MAX_ANCHOR_OFFSET 0
@@ -616,6 +605,10 @@
 #define TARGET_INVALID_CONVERSION hook_constcharptr_const_tree_const_tree_null
 #define TARGET_INVALID_UNARY_OP hook_constcharptr_int_const_tree_null
 #define TARGET_INVALID_BINARY_OP hook_constcharptr_int_const_tree_const_tree_null
+#define TARGET_INVALID_PARAMETER_TYPE hook_constcharptr_const_tree_null
+#define TARGET_INVALID_RETURN_TYPE hook_constcharptr_const_tree_null
+#define TARGET_PROMOTED_TYPE hook_tree_const_tree_null
+#define TARGET_CONVERT_TO_TYPE hook_tree_tree_tree_null
 
 #define TARGET_FIXED_CONDITION_CODE_REGS hook_bool_uintp_uintp_false
 
@@ -649,8 +642,7 @@
 
 #define TARGET_ARM_EABI_UNWINDER false
 
-#define TARGET_PROMOTE_FUNCTION_ARGS hook_bool_const_tree_false
-#define TARGET_PROMOTE_FUNCTION_RETURN hook_bool_const_tree_false
+#define TARGET_PROMOTE_FUNCTION_MODE default_promote_function_mode
 #define TARGET_PROMOTE_PROTOTYPES hook_bool_const_tree_false
 
 #define TARGET_STRUCT_VALUE_RTX hook_rtx_tree_int_null
@@ -674,14 +666,17 @@
 #define TARGET_ARG_PARTIAL_BYTES hook_int_CUMULATIVE_ARGS_mode_tree_bool_0
 
 #define TARGET_FUNCTION_VALUE default_function_value
+#define TARGET_LIBCALL_VALUE default_libcall_value
 #define TARGET_INTERNAL_ARG_POINTER default_internal_arg_pointer
 #define TARGET_UPDATE_STACK_BOUNDARY NULL
 #define TARGET_GET_DRAP_RTX NULL
 #define TARGET_ALLOCATE_STACK_SLOTS_FOR_ARGS hook_bool_void_true
+#define TARGET_STATIC_CHAIN default_static_chain
+#define TARGET_TRAMPOLINE_INIT default_trampoline_init
+#define TARGET_TRAMPOLINE_ADJUST_ADDRESS NULL
 
 #define TARGET_CALLS {						\
-   TARGET_PROMOTE_FUNCTION_ARGS,				\
-   TARGET_PROMOTE_FUNCTION_RETURN,				\
+   TARGET_PROMOTE_FUNCTION_MODE,				\
    TARGET_PROMOTE_PROTOTYPES,					\
    TARGET_STRUCT_VALUE_RTX,					\
    TARGET_RETURN_IN_MEMORY,					\
@@ -697,18 +692,18 @@
    TARGET_ARG_PARTIAL_BYTES,					\
    TARGET_INVALID_ARG_FOR_UNPROTOTYPED_FN,			\
    TARGET_FUNCTION_VALUE,					\
+   TARGET_LIBCALL_VALUE,					\
    TARGET_INTERNAL_ARG_POINTER,					\
    TARGET_UPDATE_STACK_BOUNDARY,				\
    TARGET_GET_DRAP_RTX,						\
-   TARGET_ALLOCATE_STACK_SLOTS_FOR_ARGS				\
+   TARGET_ALLOCATE_STACK_SLOTS_FOR_ARGS,			\
+   TARGET_STATIC_CHAIN,						\
+   TARGET_TRAMPOLINE_INIT,					\
+   TARGET_TRAMPOLINE_ADJUST_ADDRESS				\
    }
 
 #ifndef TARGET_UNWIND_TABLES_DEFAULT
 #define TARGET_UNWIND_TABLES_DEFAULT false
-#endif
-
-#ifndef TARGET_HANDLE_PRAGMA_REDEFINE_EXTNAME
-#define TARGET_HANDLE_PRAGMA_REDEFINE_EXTNAME 0
 #endif
 
 #ifndef TARGET_HANDLE_PRAGMA_EXTERN_PREFIX
@@ -735,6 +730,18 @@
 
 #ifndef TARGET_HARD_REGNO_SCRATCH_OK
 #define TARGET_HARD_REGNO_SCRATCH_OK default_hard_regno_scratch_ok
+#endif
+
+#ifndef TARGET_CASE_VALUES_THRESHOLD
+#define TARGET_CASE_VALUES_THRESHOLD default_case_values_threshold
+#endif
+
+#ifndef TARGET_FRAME_POINTER_REQUIRED
+#define TARGET_FRAME_POINTER_REQUIRED hook_bool_void_false
+#endif
+
+#ifndef TARGET_CAN_ELIMINATE
+#define TARGET_CAN_ELIMINATE hook_bool_const_int_const_int_true
 #endif
 
 /* C specific.  */
@@ -894,8 +901,8 @@
 #define TARGET_OPTION_PRAGMA_PARSE default_target_option_pragma_parse
 #endif
 
-#ifndef TARGET_OPTION_CAN_INLINE_P
-#define TARGET_OPTION_CAN_INLINE_P default_target_option_can_inline_p
+#ifndef TARGET_CAN_INLINE_P
+#define TARGET_CAN_INLINE_P default_target_can_inline_p
 #endif
 
 #define TARGET_OPTION_HOOKS			\
@@ -905,7 +912,7 @@
     TARGET_OPTION_RESTORE,			\
     TARGET_OPTION_PRINT,			\
     TARGET_OPTION_PRAGMA_PARSE,			\
-    TARGET_OPTION_CAN_INLINE_P,			\
+    TARGET_CAN_INLINE_P,			\
   }
 
 /* The whole shebang.  */
@@ -934,6 +941,7 @@
   TARGET_ALIGN_ANON_BITFIELD,			\
   TARGET_NARROW_VOLATILE_BITFIELD,		\
   TARGET_INIT_BUILTINS,				\
+  TARGET_BUILTIN_DECL,				\
   TARGET_EXPAND_BUILTIN,			\
   TARGET_RESOLVE_OVERLOADED_BUILTIN,		\
   TARGET_FOLD_BUILTIN,				\
@@ -947,7 +955,9 @@
   TARGET_CANNOT_FORCE_CONST_MEM,		\
   TARGET_CANNOT_COPY_INSN_P,			\
   TARGET_COMMUTATIVE_P,				\
+  TARGET_LEGITIMIZE_ADDRESS,			\
   TARGET_DELEGITIMIZE_ADDRESS,			\
+  TARGET_LEGITIMATE_ADDRESS_P,			\
   TARGET_USE_BLOCKS_FOR_CONSTANT_P,		\
   TARGET_MIN_ANCHOR_OFFSET,			\
   TARGET_MAX_ANCHOR_OFFSET,			\
@@ -966,7 +976,6 @@
   TARGET_ADDR_SPACE_HOOKS,			\
   TARGET_SCALAR_MODE_SUPPORTED_P,		\
   TARGET_VECTOR_MODE_SUPPORTED_P,               \
-  TARGET_VECTOR_OPAQUE_P,			\
   TARGET_RTX_COSTS,				\
   TARGET_ADDRESS_COST,				\
   TARGET_ALLOCATE_INITIAL_VALUE,		\
@@ -995,15 +1004,23 @@
   TARGET_STACK_PROTECT_FAIL,			\
   TARGET_INVALID_WITHIN_DOLOOP,			\
   TARGET_VALID_DLLIMPORT_ATTRIBUTE_P,		\
+  TARGET_CONST_ANCHOR,				\
   TARGET_CALLS,					\
   TARGET_INVALID_CONVERSION,			\
   TARGET_INVALID_UNARY_OP,			\
   TARGET_INVALID_BINARY_OP,			\
+  TARGET_INVALID_PARAMETER_TYPE,		\
+  TARGET_INVALID_RETURN_TYPE,			\
+  TARGET_PROMOTED_TYPE,				\
+  TARGET_CONVERT_TO_TYPE,			\
   TARGET_IRA_COVER_CLASSES,			\
   TARGET_SECONDARY_RELOAD,			\
   TARGET_EXPAND_TO_RTL_HOOK,			\
   TARGET_INSTANTIATE_DECLS,			\
   TARGET_HARD_REGNO_SCRATCH_OK,			\
+  TARGET_CASE_VALUES_THRESHOLD,			\
+  TARGET_FRAME_POINTER_REQUIRED,		\
+  TARGET_CAN_ELIMINATE,				\
   TARGET_C,					\
   TARGET_CXX,					\
   TARGET_EMUTLS,				\
@@ -1018,7 +1035,6 @@
   TARGET_TERMINATE_DW2_EH_FRAME_INFO,		\
   TARGET_ASM_FILE_START_APP_OFF,		\
   TARGET_ASM_FILE_START_FILE_DIRECTIVE,		\
-  TARGET_HANDLE_PRAGMA_REDEFINE_EXTNAME,	\
   TARGET_HANDLE_PRAGMA_EXTERN_PREFIX,		\
   TARGET_RELAXED_ORDERING,			\
   TARGET_ARM_EABI_UNWINDER			\

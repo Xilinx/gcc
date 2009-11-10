@@ -1,5 +1,5 @@
 /* Tree-dumping functionality for intermediate representation.
-   Copyright (C) 1999, 2000, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 1999, 2000, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Written by Mark Mitchell <mark@codesourcery.com>
 
@@ -510,10 +510,10 @@ dequeue_and_dump (dump_info_p di)
     case CONST_DECL:
       dump_child ("cnst", DECL_INITIAL (t));
       break;
-      
-    case SYMBOL_MEMORY_TAG:
-    case NAME_MEMORY_TAG:
-      break;
+
+    case DEBUG_EXPR_DECL:
+      dump_int (di, "-uid", DEBUG_TEMP_UID (t));
+      /* Fall through.  */
 
     case VAR_DECL:
     case PARM_DECL:
@@ -807,6 +807,7 @@ struct dump_option_value_info
 static const struct dump_option_value_info dump_options[] =
 {
   {"address", TDF_ADDRESS},
+  {"asmname", TDF_ASMNAME},
   {"slim", TDF_SLIM},
   {"raw", TDF_RAW},
   {"graph", TDF_GRAPH},
@@ -819,6 +820,7 @@ static const struct dump_option_value_info dump_options[] =
   {"stmtaddr", TDF_STMTADDR},
   {"memsyms", TDF_MEMSYMS},
   {"verbose", TDF_VERBOSE},
+  {"eh", TDF_EH},
   {"all", ~(TDF_RAW | TDF_SLIM | TDF_LINENO | TDF_TREE | TDF_RTL | TDF_IPA 
 	    | TDF_STMTADDR | TDF_GRAPH | TDF_DIAGNOSTIC | TDF_VERBOSE
 	    | TDF_RHS_ONLY)},
@@ -859,11 +861,11 @@ dump_register (const char *suffix, const char *swtch, const char *glob,
 /* Return the dump_file_info for the given phase.  */
 
 struct dump_file_info *
-get_dump_file_info (enum tree_dump_index phase)
+get_dump_file_info (int phase)
 {
   if (phase < TDI_end)
     return &dump_files[phase];
-  else if (phase - TDI_end >= extra_dump_files_in_use)
+  else if ((size_t) (phase - TDI_end) >= extra_dump_files_in_use)
     return NULL;
   else
     return extra_dump_files + (phase - TDI_end);
@@ -874,7 +876,7 @@ get_dump_file_info (enum tree_dump_index phase)
    If the dump is not enabled, returns NULL.  */
 
 char *
-get_dump_file_name (enum tree_dump_index phase)
+get_dump_file_name (int phase)
 {
   char dump_id[10];
   struct dump_file_info *dfi;
@@ -911,7 +913,7 @@ get_dump_file_name (enum tree_dump_index phase)
    Multiple calls will reopen and append to the dump file.  */
 
 FILE *
-dump_begin (enum tree_dump_index phase, int *flag_ptr)
+dump_begin (int phase, int *flag_ptr)
 {
   char *name;
   struct dump_file_info *dfi;
@@ -939,7 +941,7 @@ dump_begin (enum tree_dump_index phase, int *flag_ptr)
    TDI_tree_all, return nonzero if any dump is enabled.  */
 
 int
-dump_enabled_p (enum tree_dump_index phase)
+dump_enabled_p (int phase)
 {
   if (phase == TDI_tree_all)
     {
@@ -962,7 +964,7 @@ dump_enabled_p (enum tree_dump_index phase)
 /* Returns nonzero if tree dump PHASE has been initialized.  */
 
 int
-dump_initialized_p (enum tree_dump_index phase)
+dump_initialized_p (int phase)
 {
   struct dump_file_info *dfi = get_dump_file_info (phase);
   return dfi->state > 0;
@@ -971,7 +973,7 @@ dump_initialized_p (enum tree_dump_index phase)
 /* Returns the switch name of PHASE.  */
 
 const char *
-dump_flag_name (enum tree_dump_index phase)
+dump_flag_name (int phase)
 {
   struct dump_file_info *dfi = get_dump_file_info (phase);
   return dfi->swtch;
@@ -981,7 +983,7 @@ dump_flag_name (enum tree_dump_index phase)
    dump_begin.  */
 
 void
-dump_end (enum tree_dump_index phase ATTRIBUTE_UNUSED, FILE *stream)
+dump_end (int phase ATTRIBUTE_UNUSED, FILE *stream)
 {
   fclose (stream);
 }
@@ -1102,7 +1104,7 @@ dump_switch_p (const char *arg)
 /* Dump FUNCTION_DECL FN as tree dump PHASE.  */
 
 void
-dump_function (enum tree_dump_index phase, tree fn)
+dump_function (int phase, tree fn)
 {
   FILE *stream;
   int flags;
@@ -1120,5 +1122,3 @@ enable_rtl_dump_file (void)
 {
   return dump_enable_all (TDF_RTL | TDF_DETAILS | TDF_BLOCKS) > 0;
 }
-
-

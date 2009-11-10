@@ -1,31 +1,26 @@
 /* ieee754-df.S double-precision floating point support for ARM
 
-   Copyright (C) 2003, 2004, 2005, 2007, 2008  Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2007, 2008, 2009  Free Software Foundation, Inc.
    Contributed by Nicolas Pitre (nico@cam.org)
 
    This file is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by the
-   Free Software Foundation; either version 2, or (at your option) any
+   Free Software Foundation; either version 3, or (at your option) any
    later version.
-
-   In addition to the permissions in the GNU General Public License, the
-   Free Software Foundation gives you unlimited permission to link the
-   compiled version of this file into combinations with other programs,
-   and to distribute those combinations without any restriction coming
-   from the use of this file.  (The General Public License restrictions
-   do apply in other respects; for example, they cover modification of
-   the file, and distribution when not linked into a combine
-   executable.)
 
    This file is distributed in the hope that it will be useful, but
    WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    General Public License for more details.
 
-   You should have received a copy of the GNU General Public License
-   along with this program; see the file COPYING.  If not, write to
-   the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-   Boston, MA 02110-1301, USA.  */
+   Under Section 7 of GPL version 3, you are granted additional
+   permissions described in the GCC Runtime Library Exception, version
+   3.1, as published by the Free Software Foundation.
+
+   You should have received a copy of the GNU General Public License and
+   a copy of the GCC Runtime Library Exception along with this program;
+   see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+   <http://www.gnu.org/licenses/>.  */
 
 /*
  * Notes: 
@@ -1122,7 +1117,7 @@ ARM_FUNC_ALIAS nedf2 cmpdf2
 ARM_FUNC_ALIAS eqdf2 cmpdf2
 	mov	ip, #1			@ how should we specify unordered here?
 
-1:	str	ip, [sp, #-4]
+1:	str	ip, [sp, #-4]!
 
 	@ Trap any INF/NAN first.
 	mov	ip, xh, lsl #1
@@ -1134,7 +1129,8 @@ ARM_FUNC_ALIAS eqdf2 cmpdf2
 
 	@ Test for equality.
 	@ Note that 0.0 is equal to -0.0.
-2:	orrs	ip, xl, xh, lsl #1	@ if x == 0.0 or -0.0
+2:	add	sp, sp, #4
+	orrs	ip, xl, xh, lsl #1	@ if x == 0.0 or -0.0
 	do_it	eq, e
 	COND(orr,s,eq)	ip, yl, yh, lsl #1	@ and y == 0.0 or -0.0
 	teqne	xh, yh			@ or xh == yh
@@ -1173,7 +1169,7 @@ ARM_FUNC_ALIAS eqdf2 cmpdf2
 	bne	2b
 	orrs	ip, yl, yh, lsl #12
 	beq	2b			@ y is not NAN
-5:	ldr	r0, [sp, #-4]		@ unordered return code
+5:	ldr	r0, [sp], #4		@ unordered return code
 	RET
 
 	FUNC_END gedf2

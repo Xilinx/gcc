@@ -1,12 +1,12 @@
 // -*- C++ -*-
 // typelist for the C++ library testsuite. 
 //
-// Copyright (C) 2005, 2006, 2007, 2008 Free Software Foundation, Inc.
+// Copyright (C) 2005, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 //
 // This library is distributed in the hope that it will be useful,
@@ -15,18 +15,9 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// with this library; see the file COPYING3.  If not see
+// <http://www.gnu.org/licenses/>.
 //
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
 
 #ifndef _TESTSUITE_COMMON_TYPES_H
 #define _TESTSUITE_COMMON_TYPES_H 1
@@ -396,8 +387,8 @@ namespace __gnu_test
     void
     bitwise_operators()
     {
-      _Tp a; 
-      _Tp b;
+      _Tp a = _Tp();
+      _Tp b = _Tp();
       a | b;
       a & b;
       a ^ b;
@@ -408,8 +399,8 @@ namespace __gnu_test
     void
     bitwise_assignment_operators()
     {
-      _Tp a; 
-      _Tp b;
+      _Tp a = _Tp();
+      _Tp b = _Tp();
       a |= b; // set
       a &= ~b; // clear
       a ^= b;
@@ -435,7 +426,11 @@ namespace __gnu_test
 	{
 	  void __constraint()
 	  {
-	    bitwise_assignment_operators<_Tp>();
+	    _Tp a;
+	    _Tp b;
+	    a |= b; // set
+	    a &= ~b; // clear
+	    a ^= b;
 	  }
 	};
 
@@ -446,6 +441,29 @@ namespace __gnu_test
 
   // Generator to test standard layout
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
+  struct has_trivial_cons_dtor
+  {
+    template<typename _Tp>
+      void 
+      operator()()
+      {
+	struct _Concept
+	{
+	  void __constraint()
+	  {
+	    typedef std::has_trivial_default_constructor<_Tp> ctor_p;
+	    static_assert(ctor_p::value, "default constructor not trivial");
+
+	    typedef std::has_trivial_destructor<_Tp> dtor_p;
+	    static_assert(dtor_p::value, "destructor not trivial");
+	  }
+	};
+
+	void (_Concept::*__x)() __attribute__((unused))
+	  = &_Concept::__constraint;
+      }
+  };
+
   struct standard_layout
   {
     template<typename _Tp>
@@ -456,15 +474,8 @@ namespace __gnu_test
 	{
 	  void __constraint()
 	  {
-	    // libstdc++/37907
-	    // typedef std::is_standard_layout<_Tp> standard_layout_p;
-	    // static_assert(standard_layout_p::value, "not standard_layout");
-	    
-	    typedef std::has_trivial_default_constructor<_Tp> ctor_p;
-	    static_assert(ctor_p::value, "default ctor not trivial");
-
-	    typedef std::has_trivial_destructor<_Tp> dtor_p;
-	    static_assert(dtor_p::value, "dtor not trivial");
+	    typedef std::is_standard_layout<_Tp> standard_layout_p;
+	    static_assert(standard_layout_p::value, "not standard_layout");
 	  }
 	};
 

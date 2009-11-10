@@ -1,5 +1,5 @@
 /* Integrated Register Allocator.  Changing code and generating moves.
-   Copyright (C) 2006, 2007, 2008
+   Copyright (C) 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Vladimir Makarov <vmakarov@redhat.com>.
 
@@ -812,7 +812,8 @@ emit_move_list (move_t list, int freq)
 	}
       else
 	{
-	  cost = ira_register_move_cost[mode][cover_class][cover_class] * freq;
+	  cost = (ira_get_register_move_cost (mode, cover_class, cover_class)
+		  * freq);
 	  ira_shuffle_cost += cost;
 	}
       ira_overall_cost += cost;

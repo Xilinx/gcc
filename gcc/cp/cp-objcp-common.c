@@ -1,5 +1,5 @@
 /* Some code common to C++ and ObjC++ front ends.
-   Copyright (C) 2004, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2007, 2008, 2009 Free Software Foundation, Inc.
    Contributed by Ziemowit Laski  <zlaski@apple.com>
 
 This file is part of GCC.
@@ -101,7 +101,7 @@ cp_expr_size (const_tree exp)
 	     constructed, this is a valid transformation.  */
 	  || CP_AGGREGATE_TYPE_P (type))
 	/* This would be wrong for a type with virtual bases.  */
-	return (is_empty_class (type)
+	return (is_really_empty_class (type)
 		? size_zero_node
 		: CLASSTYPE_SIZE_UNIT (type));
       else
@@ -109,7 +109,7 @@ cp_expr_size (const_tree exp)
     }
   else
     /* Use the default code.  */
-    return lhd_expr_size (exp);
+    return tree_expr_size (exp);
 }
 
 /* Langhook for tree_size: determine size of our 'x' and 'c' nodes.  */
@@ -137,6 +137,8 @@ cp_tree_size (enum tree_code code)
 
     case TRAIT_EXPR:
       return sizeof (struct tree_trait_expr);
+
+    case LAMBDA_EXPR:           return sizeof (struct tree_lambda_expr);
 
     default:
       gcc_unreachable ();
@@ -188,19 +190,14 @@ cxx_types_compatible_p (tree x, tree y)
   return same_type_ignoring_top_level_qualifiers_p (x, y);
 }
 
-tree
-cxx_staticp (tree arg)
-{
-  switch (TREE_CODE (arg))
-    {
-    case BASELINK:
-      return staticp (BASELINK_FUNCTIONS (arg));
+/* Return true if DECL is explicit member function.  */
 
-    default:
-      break;
-    }
-  
-  return NULL_TREE;
+bool
+cp_function_decl_explicit_p (tree decl)
+{
+  return (decl
+	  && FUNCTION_FIRST_USER_PARMTYPE (decl) != void_list_node
+	  && DECL_NONCONVERTING_P (decl));
 }
 
 /* Stubs to keep c-opts.c happy.  */

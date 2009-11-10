@@ -42,21 +42,14 @@ gfc_getmem (size_t n)
 }
 
 
-/* gfortran.h defines free to something that triggers a syntax error,
-   but we need free() here.  */
-
-#define temp free
-#undef free
-
 void
 gfc_free (void *p)
 {
+  /* The parentheses around free are needed in order to call not
+     the redefined free of gfortran.h.  */
   if (p != NULL)
-    free (p);
+    (free) (p);
 }
-
-#define free temp
-#undef temp
 
 
 /* Get terminal width.  */
@@ -74,9 +67,9 @@ void
 gfc_clear_ts (gfc_typespec *ts)
 {
   ts->type = BT_UNKNOWN;
-  ts->derived = NULL;
+  ts->u.derived = NULL;
   ts->kind = 0;
-  ts->cl = NULL;
+  ts->u.cl = NULL;
   ts->interface = NULL;
   /* flag that says if the type is C interoperable */
   ts->is_c_interop = 0;
@@ -137,6 +130,9 @@ gfc_basic_typename (bt type)
     case BT_DERIVED:
       p = "DERIVED";
       break;
+    case BT_CLASS:
+      p = "CLASS";
+      break;
     case BT_PROCEDURE:
       p = "PROCEDURE";
       break;
@@ -190,7 +186,11 @@ gfc_typename (gfc_typespec *ts)
       sprintf (buffer, "HOLLERITH");
       break;
     case BT_DERIVED:
-      sprintf (buffer, "TYPE(%s)", ts->derived->name);
+      sprintf (buffer, "TYPE(%s)", ts->u.derived->name);
+      break;
+    case BT_CLASS:
+      sprintf (buffer, "CLASS(%s)",
+	       ts->u.derived->components->ts.u.derived->name);
       break;
     case BT_PROCEDURE:
       strcpy (buffer, "PROCEDURE");

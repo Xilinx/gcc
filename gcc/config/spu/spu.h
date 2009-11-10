@@ -1,4 +1,4 @@
-/* Copyright (C) 2006, 2007 Free Software Foundation, Inc.
+/* Copyright (C) 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
 
    This file is free software; you can redistribute it and/or modify it under
    the terms of the GNU General Public License as published by the Free
@@ -51,7 +51,7 @@ extern GTY(()) int spu_tune;
 /* Default target_flags if no switches specified.  */
 #ifndef TARGET_DEFAULT
 #define TARGET_DEFAULT (MASK_ERROR_RELOC | MASK_SAFE_DMA | MASK_BRANCH_HINTS \
-			| MASK_SAFE_HINTS)
+			| MASK_SAFE_HINTS | MASK_ADDRESS_SPACE_CONVERSION)
 #endif
 
 
@@ -141,6 +141,8 @@ extern GTY(()) int spu_tune;
 #define LONG_DOUBLE_TYPE_SIZE 64
 
 #define DEFAULT_SIGNED_CHAR 0
+
+#define STDINT_LONG32 0
 
 
 /* Register Basics */
@@ -312,15 +314,11 @@ targetm.resolve_overloaded_builtin = spu_resolve_overloaded_builtin;	\
 
 /* Elimination */
 
-#define FRAME_POINTER_REQUIRED 0
-
 #define ELIMINABLE_REGS  \
   {{ARG_POINTER_REGNUM,	 STACK_POINTER_REGNUM},				\
   {ARG_POINTER_REGNUM,	 HARD_FRAME_POINTER_REGNUM},			\
   {FRAME_POINTER_REGNUM, STACK_POINTER_REGNUM},				\
   {FRAME_POINTER_REGNUM, HARD_FRAME_POINTER_REGNUM}}
-
-#define CAN_ELIMINATE(FROM,TO) 1 
 
 #define INITIAL_ELIMINATION_OFFSET(FROM, TO, OFFSET) \
   ((OFFSET) = spu_initial_elimination_offset((FROM),(TO)))
@@ -405,40 +403,12 @@ targetm.resolve_overloaded_builtin = spu_resolve_overloaded_builtin;	\
 #define TRAMPOLINE_SIZE (TARGET_LARGE_MEM ? 20 : 16)
 
 #define TRAMPOLINE_ALIGNMENT 128
-
-#define INITIALIZE_TRAMPOLINE(TRAMP,FNADDR,CXT) \
-	  spu_initialize_trampoline(TRAMP,FNADDR,CXT)
-
 
 /* Addressing Modes */
 
 #define CONSTANT_ADDRESS_P(X)   spu_constant_address_p(X)
 
 #define MAX_REGS_PER_ADDRESS 2
-
-#ifdef REG_OK_STRICT
-# define REG_OK_STRICT_FLAG 1
-#else
-# define REG_OK_STRICT_FLAG 0
-#endif
-
-#define GO_IF_LEGITIMATE_ADDRESS(MODE, X, ADDR)			\
-    { if (spu_legitimate_address (MODE, X, REG_OK_STRICT_FLAG,	\
-				  ADDR_SPACE_GENERIC))		\
-	goto ADDR;						\
-    }
-
-#define LEGITIMIZE_ADDRESS(X,OLDX,MODE,WIN)			\
-  {  rtx result = spu_legitimize_address (X, OLDX, MODE,	\
-					  ADDR_SPACE_GENERIC);	\
-     if (result != NULL_RTX)					\
-       {							\
-	 (X) = result;						\
-	 goto WIN;						\
-       }							\
-  }
-
-#define GO_IF_MODE_DEPENDENT_ADDRESS(ADDR,LABEL)
 
 #define LEGITIMATE_CONSTANT_P(X) spu_legitimate_constant_p(X)
 
@@ -456,9 +426,9 @@ targetm.resolve_overloaded_builtin = spu_resolve_overloaded_builtin;	\
 
 /* Sections */
 
-#define TEXT_SECTION_ASM_OP "\t.text"
+#define TEXT_SECTION_ASM_OP ".text"
 
-#define DATA_SECTION_ASM_OP "\t.data"
+#define DATA_SECTION_ASM_OP ".data"
 
 #define JUMP_TABLES_IN_TEXT_SECTION 1
 
@@ -500,14 +470,14 @@ targetm.resolve_overloaded_builtin = spu_resolve_overloaded_builtin;	\
   asm_fprintf (FILE, "%U%s", default_strip_name_encoding (NAME))
 
 #define ASM_OUTPUT_SYMBOL_REF(FILE, X) \
-  do									\
-    {									\
-      tree decl;							\
-      assemble_name (FILE, XSTR (X, 0));				\
-      if ((decl = SYMBOL_REF_DECL (X)) != 0				\
-	  && TREE_CODE (decl) == VAR_DECL				\
-	  && TYPE_ADDR_SPACE (strip_array_types (TREE_TYPE (decl))))	\
-	fputs ("@ppu", FILE);					\
+  do							\
+    {							\
+      tree decl;					\
+      assemble_name (FILE, XSTR ((X), 0));		\
+      if ((decl = SYMBOL_REF_DECL ((X))) != 0		\
+	  && TREE_CODE (decl) == VAR_DECL		\
+	  && TYPE_ADDR_SPACE (TREE_TYPE (decl)))	\
+	fputs ("@ppu", FILE);				\
     } while (0)
 
 
@@ -638,18 +608,44 @@ targetm.resolve_overloaded_builtin = spu_resolve_overloaded_builtin;	\
       }                                                                   \
   } while (0)
 
-/* These are set by the cmp patterns and used while expanding
-   conditional branches. */
-extern GTY(()) rtx spu_compare_op0;
-extern GTY(()) rtx spu_compare_op1;
 
 #define HAS_LONG_COND_BRANCH 1
 #define HAS_LONG_UNCOND_BRANCH 1
 
-/* Address spaces */
-#define ADDR_SPACE_GENERIC	0
-#define ADDR_SPACE_EA		1
-#define ADDR_SPACE_BAD		255
+
+/* Address spaces.  */
+#define ADDR_SPACE_EA	1
 
 /* Named address space keywords.  */
-#define TARGET_ADDR_SPACE_KEYWORDS  ADDR_SPACE_KEYWORD("__ea", ADDR_SPACE_EA)
+#define TARGET_ADDR_SPACE_KEYWORDS ADDR_SPACE_KEYWORD ("__ea", ADDR_SPACE_EA)
+
+
+/* Builtins.  */
+
+enum spu_builtin_type
+{
+  B_INSN,
+  B_JUMP,
+  B_BISLED,
+  B_CALL,
+  B_HINT,
+  B_OVERLOAD,
+  B_INTERNAL
+};
+
+struct GTY(()) spu_builtin_description
+{
+  int fcode;
+  int icode;
+  const char *name;
+  enum spu_builtin_type type;
+
+  /* The first element of parm is always the return type.  The rest
+     are a zero terminated list of parameters.  */
+  int parm[5];
+
+  tree fndecl;
+};
+
+extern struct spu_builtin_description spu_builtins[];
+

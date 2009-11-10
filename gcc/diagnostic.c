@@ -1,6 +1,6 @@
 /* Language-independent diagnostic subroutines for the GNU Compiler Collection
-   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
-   Free Software Foundation, Inc.
+   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
+   2009 Free Software Foundation, Inc.
    Contributed by Gabriel Dos Reis <gdr@codesourcery.com>
 
 This file is part of GCC.
@@ -40,17 +40,13 @@ along with GCC; see the file COPYING3.  If not see
 #include "langhooks.h"
 #include "langhooks-def.h"
 #include "opts.h"
+#include "plugin.h"
 
 #define pedantic_warning_kind() (flag_pedantic_errors ? DK_ERROR : DK_WARNING)
 #define permissive_error_kind() (flag_permissive ? DK_WARNING : DK_ERROR)
 
 /* Prototypes.  */
 static char *build_message_string (const char *, ...) ATTRIBUTE_PRINTF_1;
-
-static void default_diagnostic_starter (diagnostic_context *,
-					diagnostic_info *);
-static void default_diagnostic_finalizer (diagnostic_context *,
-					  diagnostic_info *);
 
 static void error_recursion (diagnostic_context *) ATTRIBUTE_NORETURN;
 
@@ -126,6 +122,7 @@ diagnostic_set_info_translated (diagnostic_info *diagnostic, const char *msg,
   diagnostic->message.args_ptr = args;
   diagnostic->message.format_spec = msg;
   diagnostic->location = location;
+  diagnostic->override_column = 0;
   diagnostic->kind = kind;
   diagnostic->option_index = 0;
 }
@@ -153,12 +150,14 @@ diagnostic_build_prefix (diagnostic_info *diagnostic)
   };
   const char *text = _(diagnostic_kind_text[diagnostic->kind]);
   expanded_location s = expand_location (diagnostic->location);
+  if (diagnostic->override_column)
+    s.column = diagnostic->override_column;
   gcc_assert (diagnostic->kind < DK_LAST_DIAGNOSTIC_KIND);
 
   return
     (s.file == NULL
      ? build_message_string ("%s: %s", progname, text)
-     : flag_show_column && s.column != 0
+     : flag_show_column
      ? build_message_string ("%s:%d:%d: %s", s.file, s.line, s.column, text)
      : build_message_string ("%s:%d: %s", s.file, s.line, text));
 }
@@ -240,9 +239,15 @@ diagnostic_report_current_module (diagnostic_context *context)
       if (! MAIN_FILE_P (map))
 	{
 	  map = INCLUDED_FROM (line_table, map);
-	  pp_verbatim (context->printer,
-		       "In file included from %s:%d",
-		       map->to_file, LAST_SOURCE_LINE (map));
+	  if (flag_show_column)
+	    pp_verbatim (context->printer,
+			 "In file included from %s:%d:%d",
+			 map->to_file,
+			 LAST_SOURCE_LINE (map), LAST_SOURCE_COLUMN (map));
+	  else
+	    pp_verbatim (context->printer,
+			 "In file included from %s:%d",
+			 map->to_file, LAST_SOURCE_LINE (map));
 	  while (! MAIN_FILE_P (map))
 	    {
 	      map = INCLUDED_FROM (line_table, map);
@@ -256,7 +261,7 @@ diagnostic_report_current_module (diagnostic_context *context)
     }
 }
 
-static void
+void
 default_diagnostic_starter (diagnostic_context *context,
 			    diagnostic_info *diagnostic)
 {
@@ -264,7 +269,7 @@ default_diagnostic_starter (diagnostic_context *context,
   pp_set_prefix (context->printer, diagnostic_build_prefix (diagnostic));
 }
 
-static void
+void
 default_diagnostic_finalizer (diagnostic_context *context,
 			      diagnostic_info *diagnostic ATTRIBUTE_UNUSED)
 {
@@ -310,6 +315,9 @@ diagnostic_report_diagnostic (diagnostic_context *context,
      get reclassified to something else.  */
   if ((diagnostic->kind == DK_WARNING || diagnostic->kind == DK_PEDWARN)
       && !diagnostic_report_warnings_p (location))
+    return false;
+
+  if (diagnostic->kind == DK_NOTE && flag_compare_debug)
     return false;
 
   if (diagnostic->kind == DK_PEDWARN) 
@@ -367,6 +375,14 @@ diagnostic_report_diagnostic (diagnostic_context *context,
     }
 
   context->lock++;
+
+  if (diagnostic->kind == DK_ICE && plugins_active_p ())
+    {
+      fnotice (stderr, "*** WARNING *** there are active plugins, do not report"
+	       " this as a bug unless you can reproduce it without enabling"
+	       " any plugins.\n");
+      dump_active_plugins (stderr);
+    }
 
   if (diagnostic->kind == DK_ICE) 
     {

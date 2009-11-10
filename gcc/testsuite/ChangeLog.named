@@ -1,3 +1,72 @@
+2008-09-25  Ulrich Weigand  <uweigand@de.ibm.com>
+
+	* gcc.target/spu/ea/ea.exp: Fix comment typo.
+
+2008-09-17  Ulrich Weigand  <uweigand@de.ibm.com>
+
+	* gcc.target/spu/ea/errors1.c: Add tests for __ea qualifiers added
+	implicitly via typedef.
+
+2008-09-15  Ulrich Weigand  <uweigand@de.ibm.com>
+
+	* gcc.target/spu/ea/errors1.c: Add tests for incorrect qualifiers
+	for unnamed parameters and structure fields.
+
+2008-08-19  Ulrich Weigand  <uweigand@de.ibm.com>
+
+	* gcc.target/spu/ea/ea.exp: Update copyright years.  Fix whitespace.
+
+2008-08-14  Ulrich Weigand  <uweigand@de.ibm.com>
+
+	* gcc.target/spu/ea/ea.exp (check_effective_target_ea64): Remove, ...
+	(check_effective_target_ea32): Remove, ...
+	(check_effective_target_ealib): ... and replace by this procedure.
+	Run all tests in both -mea32 and -mea64 mode.
+	Do not use global DEFAULT_CFLAGS.
+	* gcc.target/spu/ea/cache32.c: Remove, ...
+	* gcc.target/spu/ea/cache64.c: Remove, ...
+	* gcc.target/spu/ea/cache-common.h: Remove, ...
+	* gcc.target/spu/ea/cache1.c: ... and replace by this file.
+	* gcc.target/spu/ea/cppdefine32.c: Remove, ...
+	* gcc.target/spu/ea/cppdefine64.c: Remove, ...
+	* gcc.target/spu/ea/cppdefine.c: ... and replace by this file.
+	* gcc.target/spu/ea/test-sizes.c: Support both -mea32 and -mea64.
+	* gcc.target/spu/ea/errors.c: Rename to ...
+	* gcc.target/spu/ea/errors1.c: ... this.
+	* gcc.target/spu/ea/errors2.c: Remove.
+	* gcc.target/spu/ea/errors3.c: Remove.
+	* gcc.target/spu/ea/errors4.c: Rename to ...
+	* gcc.target/spu/ea/errors2.c: ... this.
+	* gcc.target/spu/ea/compile.c: Rename to ...
+	* gcc.target/spu/ea/compile1.c: ... this.
+	* gcc.target/spu/ea/compile2.c: Remove.
+	* gcc.target/spu/ea/compile3.c: Remove.
+	* gcc.target/spu/ea/compile4.c: Rename to ...
+	* gcc.target/spu/ea/compile2.c: ... this.
+	* gcc.target/spu/ea/execute1-m64.c: Remove.
+	* gcc.target/spu/ea/execute2-m64.c: Remove.
+	* gcc.target/spu/ea/execute3-m64.c: Remove.
+	* gcc.target/spu/ea/cast2.c: New test.
+	* gcc.target/spu/ea/ops1.c: New test.
+	* gcc.target/spu/ea/ops2.c: New test.
+
+2009-05-20  Michael Meissner  <meissner@linux.vnet.ibm.com>
+	    Ulrich Weigand  <uweigand@de.ibm.com>
+
+	* gcc.target/ea/errors.c (f1): Delete __ea on function test.
+	(func3): Delete __ea on function test, rename func4 to be func3.
+
+	* gcc.target/ea/execute1.c: Remove dg-xfail-run-if, since this
+	test now runs successfully.
+
+	* gcc.target/ea/execute1-m64.c: Change to compile only since the
+	test doesn't work using the elfspe simulator.
+
+2009-05-19  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* gcc.target/spu/ea/cache-common.h (__cache_tag_array_size): Avoid
+	warning about taking address of void, declare as char [].
+
 2009-03-31  Ulrich Weigand  <uweigand@de.ibm.com>
 
 	* gcc.dg/ea/cppdefine32.c: Support -mea32 / -mea64 testsuite runs.
@@ -172,6 +241,14 @@
 2008-08-01  Ben Elliston  <bje@au.ibm.com>
 
 	* gcc.target/spu/ea/ea.exp: Guard against non-SPU targets.
+
+2008-04-17  Ben Elliston  <bje@au.ibm.com>
+
+	* gcc.target/spu/cache.c: New test.
+
+2008-03-15  Ben Elliston  <bje@au.ibm.com>
+
+	* gcc.target/spu/ea/errors.c: Add a test case.
 
 2007-11-09  Ben Elliston  <bje@au.ibm.com>
 

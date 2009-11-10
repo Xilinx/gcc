@@ -1,5 +1,5 @@
 /* Target Definitions for R8C/M16C/M32C
-   Copyright (C) 2005, 2007
+   Copyright (C) 2005, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Red Hat.
 
@@ -48,12 +48,12 @@
    thing when no CPU is specified, which defaults to R8C.  */
 #undef  LIB_SPEC
 #define LIB_SPEC "-( -lc %{msim*:-lsim}%{!msim*:-lnosys} -) \
-%{msim*:%{!T*: %{mcpu=m32cm:-Tsim24.ld}%{mcpu=m32c:-Tsim24.ld} \
-	%{!mcpu=m32cm:%{!mcpu=m32c:-Tsim16.ld}}}} \
-%{!T*:%{!msim*: %{mcpu=m16c:-Tm16c.ld} \
-		%{mcpu=m32cm:-Tm32cm.ld} \
-		%{mcpu=m32c:-Tm32c.ld} \
-		%{!mcpu=m16c:%{!mcpu=m32cm:%{!mcpu=m32c:-Tr8c.ld}}}}} \
+%{msim*:%{!T*: %{mcpu=m32cm:%Tsim24.ld}%{mcpu=m32c:%Tsim24.ld} \
+	%{!mcpu=m32cm:%{!mcpu=m32c:%Tsim16.ld}}}} \
+%{!T*:%{!msim*: %{mcpu=m16c:%Tm16c.ld} \
+		%{mcpu=m32cm:%Tm32cm.ld} \
+		%{mcpu=m32c:%Tm32c.ld} \
+		%{!mcpu=m16c:%{!mcpu=m32cm:%{!mcpu=m32c:%Tr8c.ld}}}}} \
 "
 
 /* Run-time Target Specification */
@@ -100,7 +100,7 @@ extern int target_memregs;
 
 /* Defining data structures for per-function information */
 
-typedef struct machine_function GTY (())
+typedef struct GTY (()) machine_function
 {
   /* How much we adjust the stack when returning from an exception
      handler.  */
@@ -143,6 +143,17 @@ machine_function;
 #define UNITS_PER_WORD 2
 #define POINTER_SIZE (TARGET_A16 ? 16 : 32)
 #define POINTERS_EXTEND_UNSIGNED 1
+/* We have a problem with libgcc2.  It only defines two versions of
+   each function, one for "int" and one for "long long".  Ie it assumes
+   that "sizeof (int) == sizeof (long)".  For the M32C this is not true
+   and we need a third set of functions.  We explicitly define
+   LIBGCC2_UNITS_PER_WORD here so that it is clear that we are expecting
+   to get the SI and DI versions from the libgcc2.c sources, and we
+   provide our own set of HI functions in m32c-lib2.c, which is why this
+   definition is surrounded by #ifndef..#endif.  */
+#ifndef LIBGCC2_UNITS_PER_WORD
+#define LIBGCC2_UNITS_PER_WORD 4
+#endif
 
 /* These match the alignment enforced by the two types of stack operations.  */
 #define PARM_BOUNDARY (TARGET_A16 ? 8 : 16)
@@ -153,6 +164,11 @@ machine_function;
    desired.  */
 #define FUNCTION_BOUNDARY 8
 #define BIGGEST_ALIGNMENT 8
+
+/* Since we have a maximum structure alignment of 8 there
+   is no need to enforce any alignment of bitfield types.  */
+#undef  PCC_BITFIELD_TYPE_MATTERS
+#define PCC_BITFIELD_TYPE_MATTERS 0
 
 #define STRICT_ALIGNMENT 0
 #define SLOW_BYTE_ACCESS 1
@@ -172,6 +188,9 @@ machine_function;
 
 #undef PTRDIFF_TYPE
 #define PTRDIFF_TYPE (TARGET_A16 ? "int" : "long int")
+
+#undef UINTPTR_TYPE
+#define UINTPTR_TYPE (TARGET_A16 ? "unsigned int" : "long unsigned int")
 
 /* REGISTER USAGE */
 
@@ -258,6 +277,7 @@ machine_function;
   { 0x00000002 }, /* R2  - r2 */\
   { 0x00000008 }, /* R3  - r3 */\
   { 0x00000003 }, /* R02 - r0r2 */\
+  { 0x0000000c }, /* R13 - r1r3 */\
   { 0x00000005 }, /* HL  - r0 r1 */\
   { 0x00000005 }, /* QI  - r0 r1 */\
   { 0x0000000a }, /* R23 - r2 r3 */\
@@ -297,6 +317,7 @@ enum reg_class
   R2_REGS,
   R3_REGS,
   R02_REGS,
+  R13_REGS,
   HL_REGS,
   QI_REGS,
   R23_REGS,
@@ -338,6 +359,7 @@ enum reg_class
 "R2_REGS", \
 "R3_REGS", \
 "R02_REGS", \
+"R13_REGS", \
 "HL_REGS", \
 "QI_REGS", \
 "R23_REGS", \
@@ -469,17 +491,11 @@ enum reg_class
 
 /* Eliminating Frame Pointer and Arg Pointer */
 
-/* If the frame pointer isn't used, we detect it manually.  But the
-   stack pointer doesn't have as flexible addressing as the frame
-   pointer, so we always assume we have it.  */
-#define FRAME_POINTER_REQUIRED 1
-
 #define ELIMINABLE_REGS \
   {{AP_REGNO, SP_REGNO}, \
    {AP_REGNO, FB_REGNO}, \
    {FB_REGNO, SP_REGNO}}
 
-#define CAN_ELIMINATE(FROM,TO) 1
 #define INITIAL_ELIMINATION_OFFSET(FROM,TO,VAR) \
 	(VAR) = m32c_initial_elimination_offset(FROM,TO)
 
@@ -517,10 +533,7 @@ typedef struct m32c_cumulative_args
 
 /* How Scalar Function Values Are Returned */
 
-#define FUNCTION_VALUE(VT,F) m32c_function_value (VT, F)
-#define LIBCALL_VALUE(MODE) m32c_libcall_value (MODE)
-
-#define FUNCTION_VALUE_REGNO_P(r) ((r) == R0_REGNO || (r) == MEM0_REGNO)
+#define FUNCTION_VALUE_REGNO_P(r) m32c_function_value_regno_p (r)
 
 /* How Large Values Are Returned */
 
@@ -542,7 +555,6 @@ typedef struct m32c_cumulative_args
 
 #define TRAMPOLINE_SIZE m32c_trampoline_size ()
 #define TRAMPOLINE_ALIGNMENT m32c_trampoline_alignment ()
-#define INITIALIZE_TRAMPOLINE(a,fn,sc) m32c_initialize_trampoline (a, fn, sc)
 
 /* Addressing Modes */
 
@@ -559,24 +571,14 @@ typedef struct m32c_cumulative_args
 #define REG_OK_STRICT_V 0
 #endif
 
-#define GO_IF_LEGITIMATE_ADDRESS(MODE,X,LABEL) \
-	if (m32c_legitimate_address_p (MODE, X, REG_OK_STRICT_V)) \
-	  goto LABEL;
-
 #define REG_OK_FOR_BASE_P(X) m32c_reg_ok_for_base_p (X, REG_OK_STRICT_V)
 #define REG_OK_FOR_INDEX_P(X) 0
 
 /* #define FIND_BASE_TERM(X) when we do unspecs for symrefs */
 
-#define LEGITIMIZE_ADDRESS(X,OLDX,MODE,WIN) \
-	if (m32c_legitimize_address(&(X),OLDX,MODE)) \
-	  goto WIN;
-
 #define LEGITIMIZE_RELOAD_ADDRESS(X,MODE,OPNUM,TYPE,IND_LEVELS,WIN) \
 	if (m32c_legitimize_reload_address(&(X),MODE,OPNUM,TYPE,IND_LEVELS)) \
 	  goto WIN;
-
-#define GO_IF_MODE_DEPENDENT_ADDRESS(ADDR,LABEL)
 
 #define LEGITIMATE_CONSTANT_P(X) m32c_legitimate_constant_p (X)
 

@@ -2142,7 +2142,7 @@ can_put_in_inner_loop (struct loop *inner, gimple stmt)
   use_operand_p use_p;
   
   gcc_assert (is_gimple_assign (stmt));
-  if (!ZERO_SSA_OPERANDS (stmt, SSA_OP_ALL_VIRTUALS)
+  if (gimple_vuse (stmt)
       || !stmt_invariant_in_loop_p (inner, stmt))
     return false;
   
@@ -2167,7 +2167,7 @@ can_put_after_inner_loop (struct loop *loop, gimple stmt)
   imm_use_iterator imm_iter;
   use_operand_p use_p;
 
-  if (!ZERO_SSA_OPERANDS (stmt, SSA_OP_ALL_VIRTUALS))
+  if (gimple_vuse (stmt))
     return false;
   
   FOR_EACH_IMM_USE_FAST (use_p, imm_iter, gimple_assign_lhs (stmt))
@@ -2343,6 +2343,10 @@ can_convert_to_perfect_nest (struct loop *loop)
   return false;
 }
 
+
+DEF_VEC_I(source_location);
+DEF_VEC_ALLOC_I(source_location,heap);
+
 /* Transform the loop nest into a perfect nest, if possible.
    LOOP is the loop nest to transform into a perfect nest
    LBOUNDS are the lower bounds for the loops to transform
@@ -2400,6 +2404,7 @@ perfect_nestify (struct loop *loop,
   gimple stmt;
   tree oldivvar, ivvar, ivvarinced;
   VEC(tree,heap) *phis = NULL;
+  VEC(source_location,heap) *locations = NULL;
   htab_t replacements = NULL;
 
   /* Create the new loop.  */
@@ -2412,8 +2417,11 @@ perfect_nestify (struct loop *loop,
     {
       phi = gsi_stmt (bsi);
       VEC_reserve (tree, heap, phis, 2);
+      VEC_reserve (source_location, heap, locations, 1);
       VEC_quick_push (tree, phis, PHI_RESULT (phi));
       VEC_quick_push (tree, phis, PHI_ARG_DEF (phi, 0));
+      VEC_quick_push (source_location, locations, 
+		      gimple_phi_arg_location (phi, 0));
     }
   e = redirect_edge_and_branch (single_succ_edge (preheaderbb), headerbb);
 
@@ -2426,10 +2434,12 @@ perfect_nestify (struct loop *loop,
     {
       tree def;
       tree phiname;
+      source_location locus;
       def = VEC_pop (tree, phis);
       phiname = VEC_pop (tree, phis);      
+      locus = VEC_pop (source_location, locations);
       phi = create_phi_node (phiname, preheaderbb);
-      add_phi_arg (phi, def, single_pred_edge (preheaderbb));
+      add_phi_arg (phi, def, single_pred_edge (preheaderbb), locus);
     }
   flush_pending_stmts (e);
   VEC_free (tree, heap, phis);
@@ -2472,7 +2482,8 @@ perfect_nestify (struct loop *loop,
      it to one just in case.  */
 
   exit_condition = get_loop_exit_condition (newloop);
-  uboundvar = create_tmp_var (integer_type_node, "uboundvar");
+  uboundvar = create_tmp_var (TREE_TYPE (VEC_index (tree, ubounds, 0)),
+			      "uboundvar");
   add_referenced_var (uboundvar);
   stmt = gimple_build_assign (uboundvar, VEC_index (tree, ubounds, 0));
   uboundvar = make_ssa_name (uboundvar, stmt);
@@ -2535,8 +2546,6 @@ perfect_nestify (struct loop *loop,
 		 incremented when we do.  */
 	      for (bsi = gsi_start_bb (bbs[i]); !gsi_end_p (bsi);)
 		{ 
-		  ssa_op_iter i;
-		  tree n;
 		  gimple stmt = gsi_stmt (bsi);
 		  
 		  if (stmt == exit_condition
@@ -2552,12 +2561,12 @@ perfect_nestify (struct loop *loop,
 		     VEC_index (tree, lbounds, 0), replacements, &firstbsi);
 
 		  gsi_move_before (&bsi, &tobsi);
-		  
+
 		  /* If the statement has any virtual operands, they may
 		     need to be rewired because the original loop may
 		     still reference them.  */
-		  FOR_EACH_SSA_TREE_OPERAND (n, stmt, i, SSA_OP_ALL_VIRTUALS)
-		    mark_sym_for_renaming (SSA_NAME_VAR (n));
+		  if (gimple_vuse (stmt))
+		    mark_sym_for_renaming (gimple_vop (cfun));
 		}
 	    }
 	  

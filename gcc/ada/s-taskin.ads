@@ -6,25 +6,23 @@
 --                                                                          --
 --                                  S p e c                                 --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
--- sion. GNARL is distributed in the hope that it will be useful, but WITH- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
+-- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNARL; see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNARL was developed by the GNARL team at Florida State University.       --
 -- Extensive contributions were provided by Ada Core Technologies, Inc.     --
@@ -130,17 +128,18 @@ package System.Tasking is
 
    type Task_States is
      (Unactivated,
-      --  Task has been created but has not been activated.
+      --  TCB initialized but not task has not been created.
       --  It cannot be executing.
+
+--    Activating,
+--    --  ??? Temporarily at end of list for GDB compatibility
+--    --  Task has been created and is being made Runnable.
 
       --  Active states
       --  For all states from here down, the task has been activated.
       --  For all states from here down, except for Terminated, the task
       --  may be executing.
       --  Activator = null iff it has not yet completed activating.
-
-      --  For all states from here down,
-      --  the task has been activated, and may be executing.
 
       Runnable,
       --  Task is not blocked for any reason known to Ada.
@@ -156,7 +155,11 @@ package System.Tasking is
       --  Task is waiting for created tasks to complete activation
 
       Acceptor_Sleep,
-      --  Task is waiting on an accept or selective wait statement
+      --  Task is waiting on an accept or select with terminate
+
+--    Acceptor_Delay_Sleep,
+--    --  ??? Temporarily at end of list for GDB compatibility
+--    --  Task is waiting on an selective wait statement
 
       Entry_Caller_Sleep,
       --  Task is waiting on an entry call
@@ -192,9 +195,15 @@ package System.Tasking is
       Asynchronous_Hold,
       --  The task has been held by Asynchronous_Task_Control.Hold_Task
 
-      Interrupt_Server_Blocked_On_Event_Flag
+      Interrupt_Server_Blocked_On_Event_Flag,
       --  The task has been blocked on a system call waiting for a
       --  completion event/signal to occur.
+
+      Activating,
+      --  Task has been created and is being made Runnable
+
+      Acceptor_Delay_Sleep
+      --  Task is waiting on an selective wait statement
      );
 
    type Call_Modes is
@@ -390,6 +399,15 @@ package System.Tasking is
    --  either the system default or the size specified by a pragma. This
    --  is in general a non-static value that can depend on discriminants
    --  of the task.
+
+   type Bit_Array is array (Integer range <>) of Boolean;
+   pragma Pack (Bit_Array);
+
+   subtype Debug_Event_Array is Bit_Array (1 .. 16);
+
+   Global_Task_Debug_Event_Set : Boolean := False;
+   --  Set True when running under debugger control and a task debug
+   --  event signal has been requested.
 
    ----------------------------------------------
    -- Ada_Task_Control_Block (ATCB) definition --
@@ -610,6 +628,10 @@ package System.Tasking is
       --  any of its dependent tasks.
       --
       --  Protection: Self.L
+
+      Debug_Events : Debug_Event_Array;
+      --  Word length array of per task debug events, of which 11 kinds are
+      --  currently defined in System.Tasking.Debugging package.
    end record;
 
    ---------------------------------------

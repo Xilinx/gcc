@@ -115,7 +115,6 @@ copy_rename_partition_coalesce (var_map map, tree var1, tree var2, FILE *debug)
   int p1, p2, p3;
   tree root1, root2;
   tree rep1, rep2;
-  var_ann_t ann1, ann2, ann3;
   bool ign1, ign2, abnorm;
 
   gcc_assert (TREE_CODE (var1) == SSA_NAME);
@@ -143,9 +142,6 @@ copy_rename_partition_coalesce (var_map map, tree var1, tree var2, FILE *debug)
   rep2 = partition_to_var (map, p2);
   root1 = SSA_NAME_VAR (rep1);
   root2 = SSA_NAME_VAR (rep2);
-
-  ann1 = var_ann (root1);
-  ann2 = var_ann (root2);
 
   if (p1 == p2)
     {
@@ -207,16 +203,6 @@ copy_rename_partition_coalesce (var_map map, tree var1, tree var2, FILE *debug)
 	}
     }
 
-  /* Don't coalesce if there are two different memory tags.  */
-  if (ann1->symbol_mem_tag
-      && ann2->symbol_mem_tag
-      && ann1->symbol_mem_tag != ann2->symbol_mem_tag)
-    {
-      if (debug)
-	fprintf (debug, " : 2 memory tags. No coalesce.\n");
-      return false;
-    }
-
   /* If both values have default defs, we can't coalesce.  If only one has a 
      tag, make sure that variable is the new root partition.  */
   if (gimple_default_def (cfun, root1))
@@ -247,21 +233,6 @@ copy_rename_partition_coalesce (var_map map, tree var1, tree var2, FILE *debug)
       return false;
     }
 
-  /* Don't coalesce if the aliasing sets of the types are different.  */
-  if (POINTER_TYPE_P (TREE_TYPE (root1))
-      && POINTER_TYPE_P (TREE_TYPE (root2))
-      && ((get_alias_set (TREE_TYPE (TREE_TYPE (root1)))
-	   != get_alias_set (TREE_TYPE (TREE_TYPE (root2))))
-	  || ((DECL_P (root1) && !MTAG_P (root1))
-	      && (DECL_P (root2) && !MTAG_P (root2))
-	      && DECL_NO_TBAA_P (root1) != DECL_NO_TBAA_P (root2))))
-    {
-      if (debug)
-	fprintf (debug, " : 2 different aliasing sets. No coalesce.\n");
-      return false;
-    }
-
-
   /* Merge the two partitions.  */
   p3 = partition_union (map->var_partition, p1, p2);
 
@@ -271,13 +242,6 @@ copy_rename_partition_coalesce (var_map map, tree var1, tree var2, FILE *debug)
     replace_ssa_name_symbol (partition_to_var (map, p3), root2);
   else if (!ign1)
     replace_ssa_name_symbol (partition_to_var (map, p3), root1);
-
-  /* Update the various flag widgitry of the current base representative.  */
-  ann3 = var_ann (SSA_NAME_VAR (partition_to_var (map, p3)));
-  if (ann1->symbol_mem_tag)
-    ann3->symbol_mem_tag = ann1->symbol_mem_tag;
-  else
-    ann3->symbol_mem_tag = ann2->symbol_mem_tag;
 
   if (debug)
     {
@@ -313,7 +277,7 @@ rename_ssa_copies (void)
   else
     debug = NULL;
 
-  map = init_var_map (num_ssa_names + 1);
+  map = init_var_map (num_ssa_names);
 
   FOR_EACH_BB (bb)
     {
@@ -361,12 +325,12 @@ rename_ssa_copies (void)
   /* Now one more pass to make all elements of a partition share the same
      root variable.  */
   
-  for (x = 1; x <= num_ssa_names; x++)
+  for (x = 1; x < num_ssa_names; x++)
     {
       part_var = partition_to_var (map, x);
       if (!part_var)
         continue;
-      var = map->partition_to_var[x];
+      var = ssa_name (x);
       if (debug)
         {
 	  if (SSA_NAME_VAR (var) != SSA_NAME_VAR (part_var))

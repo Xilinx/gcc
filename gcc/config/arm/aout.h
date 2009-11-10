@@ -1,5 +1,5 @@
 /* Definitions of target machine for GNU compiler, for ARM with a.out
-   Copyright (C) 1995, 1996, 1997, 1998, 1999, 2000, 2004, 2007
+   Copyright (C) 1995, 1996, 1997, 1998, 1999, 2000, 2004, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Richard Earnshaw (rearnsha@armltd.co.uk).
    
@@ -243,7 +243,30 @@
       if (TARGET_ARM)							\
 	asm_fprintf (STREAM, "\tb\t%LL%d\n", VALUE);			\
       else if (TARGET_THUMB1)						\
-	asm_fprintf (STREAM, "\t.word\t%LL%d-%LL%d\n", VALUE, REL);	\
+	{								\
+	  if (flag_pic || optimize_size)				\
+	    {								\
+	      switch (GET_MODE(body))					\
+		{							\
+		case QImode:						\
+		  asm_fprintf (STREAM, "\t.byte\t(%LL%d-%LL%d)/2\n",	\
+			       VALUE, REL);				\
+		  break;						\
+		case HImode: /* TBH */					\
+		  asm_fprintf (STREAM, "\t.2byte\t(%LL%d-%LL%d)/2\n",	\
+			       VALUE, REL);				\
+		  break;						\
+		case SImode:						\
+		  asm_fprintf (STREAM, "\t.word\t%LL%d-%LL%d\n",	\
+			       VALUE, REL);				\
+		  break;						\
+		default:						\
+		  gcc_unreachable();					\
+		}							\
+	    }								\
+	  else								\
+	    asm_fprintf (STREAM, "\t.word\t%LL%d+1\n", VALUE);		\
+	}								\
       else /* Thumb-2 */						\
 	{								\
 	  switch (GET_MODE(body))					\

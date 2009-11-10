@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---                     Copyright (C) 1995-2008, AdaCore                     --
+--                     Copyright (C) 1995-2009, AdaCore                     --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -31,9 +31,7 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-pragma Warnings (Off);
 pragma Compiler_Unit;
-pragma Warnings (On);
 
 with System.Case_Util;
 with System.CRTL;
@@ -846,12 +844,8 @@ package body System.OS_Lib is
 
    procedure Delete_File (Name : Address; Success : out Boolean) is
       R : Integer;
-
-      function unlink (A : Address) return Integer;
-      pragma Import (C, unlink, "unlink");
-
    begin
-      R := unlink (Name);
+      R := System.CRTL.unlink (Name);
       Success := (R = 0);
    end Delete_File;
 
@@ -1806,20 +1800,32 @@ package body System.OS_Lib is
       -------------------
 
       function Get_Directory (Dir : String) return String is
+         Result : String (1 .. Dir'Length + 1);
+         Length : constant Natural := Dir'Length;
+
       begin
          --  Directory given, add directory separator if needed
 
-         if Dir'Length > 0 then
-            if Dir (Dir'Last) = Directory_Separator then
-               return Dir;
+         if Length > 0 then
+            Result (1 .. Length) := Dir;
+
+            --  On Windows, change all '/' to '\'
+
+            if On_Windows then
+               for J in 1 .. Length loop
+                  if Result (J) = '/' then
+                     Result (J) := Directory_Separator;
+                  end if;
+               end loop;
+            end if;
+
+            --  Add directory separator, if needed
+
+            if Result (Length) = Directory_Separator then
+               return Result (1 .. Length);
             else
-               declare
-                  Result : String (1 .. Dir'Length + 1);
-               begin
-                  Result (1 .. Dir'Length) := Dir;
-                  Result (Result'Length) := Directory_Separator;
-                  return Result;
-               end;
+               Result (Result'Length) := Directory_Separator;
+               return Result;
             end if;
 
          --  Directory name not given, get current directory
@@ -1839,8 +1845,9 @@ package body System.OS_Lib is
 
                --  By default, the drive letter on Windows is in upper case
 
-               if On_Windows and then Path_Len >= 2 and then
-                 Buffer (2) = ':'
+               if On_Windows
+                 and then Path_Len >= 2
+                 and then Buffer (2) = ':'
                then
                   System.Case_Util.To_Upper (Buffer (1 .. 1));
                end if;
@@ -1912,31 +1919,41 @@ package body System.OS_Lib is
       --  it may have multiple equivalences and if resolved we will only
       --  get the first one.
 
-      --  On Windows, if we have an absolute path starting with a directory
-      --  separator, we need to have the drive letter appended in front.
+      if On_Windows then
 
-      --  On Windows, Get_Current_Dir will return a suitable directory
-      --  name (path starting with a drive letter on Windows). So we take this
-      --  drive letter and prepend it to the current path.
+         --  On Windows, if we have an absolute path starting with a directory
+         --  separator, we need to have the drive letter appended in front.
 
-      if On_Windows
-        and then Path_Buffer (1) = Directory_Separator
-        and then Path_Buffer (2) /= Directory_Separator
-      then
-         declare
-            Cur_Dir : constant String := Get_Directory ("");
-            --  Get the current directory to get the drive letter
+         --  On Windows, Get_Current_Dir will return a suitable directory name
+         --  (path starting with a drive letter on Windows). So we take this
+         --  drive letter and prepend it to the current path.
 
-         begin
-            if Cur_Dir'Length > 2
-              and then Cur_Dir (Cur_Dir'First + 1) = ':'
-            then
-               Path_Buffer (3 .. End_Path + 2) := Path_Buffer (1 .. End_Path);
-               Path_Buffer (1 .. 2) :=
-                 Cur_Dir (Cur_Dir'First .. Cur_Dir'First + 1);
-               End_Path := End_Path + 2;
-            end if;
-         end;
+         if Path_Buffer (1) = Directory_Separator
+           and then Path_Buffer (2) /= Directory_Separator
+         then
+            declare
+               Cur_Dir : constant String := Get_Directory ("");
+               --  Get the current directory to get the drive letter
+
+            begin
+               if Cur_Dir'Length > 2
+                 and then Cur_Dir (Cur_Dir'First + 1) = ':'
+               then
+                  Path_Buffer (3 .. End_Path + 2) :=
+                    Path_Buffer (1 .. End_Path);
+                  Path_Buffer (1 .. 2) :=
+                    Cur_Dir (Cur_Dir'First .. Cur_Dir'First + 1);
+                  End_Path := End_Path + 2;
+               end if;
+            end;
+
+         --  We have a drive letter, ensure it is upper-case
+
+         elsif Path_Buffer (1) in 'a' .. 'z'
+           and then Path_Buffer (2) = ':'
+         then
+            System.Case_Util.To_Upper (Path_Buffer (1 .. 1));
+         end if;
       end if;
 
       --  On Windows, remove all double-quotes that are possibly part of the
@@ -2246,7 +2263,7 @@ package body System.OS_Lib is
       Success  : out Boolean)
    is
       function rename (From, To : Address) return Integer;
-      pragma Import (C, rename, "rename");
+      pragma Import (C, rename, "__gnat_rename");
       R : Integer;
    begin
       R := rename (Old_Name, New_Name);

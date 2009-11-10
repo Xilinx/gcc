@@ -57,7 +57,7 @@
 
    Both of these requirements are easily satisfied.  The largest target
    significand is 113 bits; we store at least 160.  The smallest
-   denormal number fits in 17 exponent bits; we store 27.
+   denormal number fits in 17 exponent bits; we store 26.
 
    Note that the decimal string conversion routines are sensitive to
    rounding errors.  Since the raw arithmetic routines do not themselves
@@ -110,6 +110,9 @@ static int do_compare (const REAL_VALUE_TYPE *, const REAL_VALUE_TYPE *, int);
 static void do_fix_trunc (REAL_VALUE_TYPE *, const REAL_VALUE_TYPE *);
 
 static unsigned long rtd_divmod (REAL_VALUE_TYPE *, REAL_VALUE_TYPE *);
+static void decimal_from_integer (REAL_VALUE_TYPE *);
+static void decimal_integer_string (char *, const REAL_VALUE_TYPE *,
+				    size_t);
 
 static const REAL_VALUE_TYPE * ten_to_ptwo (int);
 static const REAL_VALUE_TYPE * ten_to_mptwo (int);
@@ -905,15 +908,23 @@ do_compare (const REAL_VALUE_TYPE *a, const REAL_VALUE_TYPE *b,
       /* Sign of zero doesn't matter for compares.  */
       return 0;
 
+    case CLASS2 (rvc_normal, rvc_zero):
+      /* Decimal float zero is special and uses rvc_normal, not rvc_zero.  */
+      if (a->decimal)
+	return decimal_do_compare (a, b, nan_result);
+      /* Fall through.  */
     case CLASS2 (rvc_inf, rvc_zero):
     case CLASS2 (rvc_inf, rvc_normal):
-    case CLASS2 (rvc_normal, rvc_zero):
       return (a->sign ? -1 : 1);
 
     case CLASS2 (rvc_inf, rvc_inf):
       return -a->sign - -b->sign;
 
     case CLASS2 (rvc_zero, rvc_normal):
+      /* Decimal float zero is special and uses rvc_normal, not rvc_zero.  */
+      if (b->decimal)
+	return decimal_do_compare (a, b, nan_result);
+      /* Fall through.  */
     case CLASS2 (rvc_zero, rvc_inf):
     case CLASS2 (rvc_normal, rvc_inf):
       return (b->sign ? 1 : -1);
@@ -989,10 +1000,10 @@ bool
 real_arithmetic (REAL_VALUE_TYPE *r, int icode, const REAL_VALUE_TYPE *op0,
 		 const REAL_VALUE_TYPE *op1)
 {
-  enum tree_code code = icode;
+  enum tree_code code = (enum tree_code) icode;
 
   if (op0->decimal || (op1 && op1->decimal))
-    return decimal_real_arithmetic (r, icode, op0, op1);
+    return decimal_real_arithmetic (r, code, op0, op1);
 
   switch (code)
     {
@@ -1061,7 +1072,7 @@ bool
 real_compare (int icode, const REAL_VALUE_TYPE *op0,
 	      const REAL_VALUE_TYPE *op1)
 {
-  enum tree_code code = icode;
+  enum tree_code code = (enum tree_code) icode;
 
   switch (code)
     {
@@ -2160,8 +2171,68 @@ real_from_integer (REAL_VALUE_TYPE *r, enum machine_mode mode,
       normalize (r);
     }
 
-  if (mode != VOIDmode)
+  if (DECIMAL_FLOAT_MODE_P (mode))
+    decimal_from_integer (r);
+  else if (mode != VOIDmode)
     real_convert (r, mode, r);
+}
+
+/* Render R, an integral value, as a floating point constant with no
+   specified exponent.  */
+
+static void
+decimal_integer_string (char *str, const REAL_VALUE_TYPE *r_orig,
+			size_t buf_size)
+{
+  int dec_exp, digit, digits;
+  REAL_VALUE_TYPE r, pten;
+  char *p;
+  bool sign;
+
+  r = *r_orig;
+
+  if (r.cl == rvc_zero)
+    {
+      strcpy (str, "0.");
+      return;
+    }
+
+  sign = r.sign;
+  r.sign = 0;
+
+  dec_exp = REAL_EXP (&r) * M_LOG10_2;
+  digits = dec_exp + 1;
+  gcc_assert ((digits + 2) < (int)buf_size);
+
+  pten = *real_digit (1);
+  times_pten (&pten, dec_exp);
+
+  p = str;
+  if (sign)
+    *p++ = '-';
+
+  digit = rtd_divmod (&r, &pten);
+  gcc_assert (digit >= 0 && digit <= 9);
+  *p++ = digit + '0';
+  while (--digits > 0)
+    {
+      times_pten (&r, 1);
+      digit = rtd_divmod (&r, &pten);
+      *p++ = digit + '0';
+    }
+  *p++ = '.';
+  *p++ = '\0';
+}
+
+/* Convert a real with an integral value to decimal float.  */
+
+static void
+decimal_from_integer (REAL_VALUE_TYPE *r)
+{
+  char str[256];
+
+  decimal_integer_string (str, r, sizeof (str) - 1);
+  decimal_real_from_string (r, str);
 }
 
 /* Returns 10**2**N.  */
@@ -4502,6 +4573,167 @@ const struct real_format decimal_quad_format =
     true, 
     true, 
     true,
+    false
+  };
+
+/* Encode half-precision floats.  This routine is used both for the IEEE
+   ARM alternative encodings.  */
+static void
+encode_ieee_half (const struct real_format *fmt, long *buf,
+		  const REAL_VALUE_TYPE *r)
+{
+  unsigned long image, sig, exp;
+  unsigned long sign = r->sign;
+  bool denormal = (r->sig[SIGSZ-1] & SIG_MSB) == 0;
+
+  image = sign << 15;
+  sig = (r->sig[SIGSZ-1] >> (HOST_BITS_PER_LONG - 11)) & 0x3ff;
+
+  switch (r->cl)
+    {
+    case rvc_zero:
+      break;
+
+    case rvc_inf:
+      if (fmt->has_inf)
+	image |= 31 << 10;
+      else
+	image |= 0x7fff;
+      break;
+
+    case rvc_nan:
+      if (fmt->has_nans)
+	{
+	  if (r->canonical)
+	    sig = (fmt->canonical_nan_lsbs_set ? (1 << 9) - 1 : 0);
+	  if (r->signalling == fmt->qnan_msb_set)
+	    sig &= ~(1 << 9);
+	  else
+	    sig |= 1 << 9;
+	  if (sig == 0)
+	    sig = 1 << 8;
+
+	  image |= 31 << 10;
+	  image |= sig;
+	}
+      else
+	image |= 0x3ff;
+      break;
+
+    case rvc_normal:
+      /* Recall that IEEE numbers are interpreted as 1.F x 2**exp,
+	 whereas the intermediate representation is 0.F x 2**exp.
+	 Which means we're off by one.  */
+      if (denormal)
+	exp = 0;
+      else
+	exp = REAL_EXP (r) + 15 - 1;
+      image |= exp << 10;
+      image |= sig;
+      break;
+
+    default:
+      gcc_unreachable ();
+    }
+
+  buf[0] = image;
+}
+
+/* Decode half-precision floats.  This routine is used both for the IEEE
+   ARM alternative encodings.  */
+static void
+decode_ieee_half (const struct real_format *fmt, REAL_VALUE_TYPE *r,
+		  const long *buf)
+{
+  unsigned long image = buf[0] & 0xffff;
+  bool sign = (image >> 15) & 1;
+  int exp = (image >> 10) & 0x1f;
+
+  memset (r, 0, sizeof (*r));
+  image <<= HOST_BITS_PER_LONG - 11;
+  image &= ~SIG_MSB;
+
+  if (exp == 0)
+    {
+      if (image && fmt->has_denorm)
+	{
+	  r->cl = rvc_normal;
+	  r->sign = sign;
+	  SET_REAL_EXP (r, -14);
+	  r->sig[SIGSZ-1] = image << 1;
+	  normalize (r);
+	}
+      else if (fmt->has_signed_zero)
+	r->sign = sign;
+    }
+  else if (exp == 31 && (fmt->has_nans || fmt->has_inf))
+    {
+      if (image)
+	{
+	  r->cl = rvc_nan;
+	  r->sign = sign;
+	  r->signalling = (((image >> (HOST_BITS_PER_LONG - 2)) & 1)
+			   ^ fmt->qnan_msb_set);
+	  r->sig[SIGSZ-1] = image;
+	}
+      else
+	{
+	  r->cl = rvc_inf;
+	  r->sign = sign;
+	}
+    }
+  else
+    {
+      r->cl = rvc_normal;
+      r->sign = sign;
+      SET_REAL_EXP (r, exp - 15 + 1);
+      r->sig[SIGSZ-1] = image | SIG_MSB;
+    }
+}
+
+/* Half-precision format, as specified in IEEE 754R.  */
+const struct real_format ieee_half_format =
+  {
+    encode_ieee_half,
+    decode_ieee_half,
+    2,
+    11,
+    11,
+    -13,
+    16,
+    15,
+    15,
+    false,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    false
+  };
+
+/* ARM's alternative half-precision format, similar to IEEE but with
+   no reserved exponent value for NaNs and infinities; rather, it just
+   extends the range of exponents by one.  */
+const struct real_format arm_half_format =
+  {
+    encode_ieee_half,
+    decode_ieee_half,
+    2,
+    11,
+    11,
+    -13,
+    17,
+    15,
+    15,
+    false,
+    true,
+    false,
+    false,
+    true,
+    true,
+    false,
     false
   };
 

@@ -1,11 +1,11 @@
 // RB tree utilities implementation -*- C++ -*-
 
-// Copyright (C) 2003, 2005 Free Software Foundation, Inc.
+// Copyright (C) 2003, 2005, 2009 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -13,19 +13,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
-// You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
 
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
 
 /*
  *
@@ -60,7 +55,7 @@
 _GLIBCXX_BEGIN_NAMESPACE(std)
 
   _Rb_tree_node_base*
-  _Rb_tree_increment(_Rb_tree_node_base* __x)
+  _Rb_tree_increment(_Rb_tree_node_base* __x) throw ()
   {
     if (__x->_M_right != 0) 
       {
@@ -83,13 +78,13 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   }
 
   const _Rb_tree_node_base*
-  _Rb_tree_increment(const _Rb_tree_node_base* __x)
+  _Rb_tree_increment(const _Rb_tree_node_base* __x) throw ()
   {
     return _Rb_tree_increment(const_cast<_Rb_tree_node_base*>(__x));
   }
 
   _Rb_tree_node_base*
-  _Rb_tree_decrement(_Rb_tree_node_base* __x)
+  _Rb_tree_decrement(_Rb_tree_node_base* __x) throw ()
   {
     if (__x->_M_color == _S_red 
         && __x->_M_parent->_M_parent == __x)
@@ -115,14 +110,14 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   }
 
   const _Rb_tree_node_base*
-  _Rb_tree_decrement(const _Rb_tree_node_base* __x)
+  _Rb_tree_decrement(const _Rb_tree_node_base* __x) throw ()
   {
     return _Rb_tree_decrement(const_cast<_Rb_tree_node_base*>(__x));
   }
 
-  void 
-  _Rb_tree_rotate_left(_Rb_tree_node_base* const __x, 
-		       _Rb_tree_node_base*& __root)
+  static void 
+  local_Rb_tree_rotate_left(_Rb_tree_node_base* const __x, 
+		             _Rb_tree_node_base*& __root)
   {
     _Rb_tree_node_base* const __y = __x->_M_right;
 
@@ -141,9 +136,19 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     __x->_M_parent = __y;
   }
 
+  /* Static keyword was missing on _Rb_tree_rotate_left.
+     Export the symbol for backward compatibility until
+     next ABI change.  */
   void 
-  _Rb_tree_rotate_right(_Rb_tree_node_base* const __x, 
-			_Rb_tree_node_base*& __root)
+  _Rb_tree_rotate_left(_Rb_tree_node_base* const __x, 
+		       _Rb_tree_node_base*& __root)
+  {
+    local_Rb_tree_rotate_left (__x, __root);
+  }
+
+  static void 
+  local_Rb_tree_rotate_right(_Rb_tree_node_base* const __x, 
+			     _Rb_tree_node_base*& __root)
   {
     _Rb_tree_node_base* const __y = __x->_M_left;
 
@@ -162,11 +167,21 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     __x->_M_parent = __y;
   }
 
+  /* Static keyword was missing on _Rb_tree_rotate_right
+     Export the symbol for backward compatibility until
+     next ABI change.  */
+  void 
+  _Rb_tree_rotate_right(_Rb_tree_node_base* const __x, 
+			_Rb_tree_node_base*& __root)
+  {
+    local_Rb_tree_rotate_right (__x, __root);
+  }
+
   void 
   _Rb_tree_insert_and_rebalance(const bool          __insert_left,
                                 _Rb_tree_node_base* __x,
                                 _Rb_tree_node_base* __p,
-                                _Rb_tree_node_base& __header)
+                                _Rb_tree_node_base& __header) throw ()
   {
     _Rb_tree_node_base *& __root = __header._M_parent;
 
@@ -220,11 +235,11 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 		if (__x == __x->_M_parent->_M_right) 
 		  {
 		    __x = __x->_M_parent;
-		    _Rb_tree_rotate_left(__x, __root);
+		    local_Rb_tree_rotate_left(__x, __root);
 		  }
 		__x->_M_parent->_M_color = _S_black;
 		__xpp->_M_color = _S_red;
-		_Rb_tree_rotate_right(__xpp, __root);
+		local_Rb_tree_rotate_right(__xpp, __root);
 	      }
 	  }
 	else 
@@ -242,11 +257,11 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 		if (__x == __x->_M_parent->_M_left) 
 		  {
 		    __x = __x->_M_parent;
-		    _Rb_tree_rotate_right(__x, __root);
+		    local_Rb_tree_rotate_right(__x, __root);
 		  }
 		__x->_M_parent->_M_color = _S_black;
 		__xpp->_M_color = _S_red;
-		_Rb_tree_rotate_left(__xpp, __root);
+		local_Rb_tree_rotate_left(__xpp, __root);
 	      }
 	  }
       }
@@ -255,7 +270,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   _Rb_tree_node_base*
   _Rb_tree_rebalance_for_erase(_Rb_tree_node_base* const __z, 
-			       _Rb_tree_node_base& __header)
+			       _Rb_tree_node_base& __header) throw ()
   {
     _Rb_tree_node_base *& __root = __header._M_parent;
     _Rb_tree_node_base *& __leftmost = __header._M_left;
@@ -342,7 +357,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 		{
 		  __w->_M_color = _S_black;
 		  __x_parent->_M_color = _S_red;
-		  _Rb_tree_rotate_left(__x_parent, __root);
+		  local_Rb_tree_rotate_left(__x_parent, __root);
 		  __w = __x_parent->_M_right;
 		}
 	      if ((__w->_M_left == 0 || 
@@ -361,14 +376,14 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 		    {
 		      __w->_M_left->_M_color = _S_black;
 		      __w->_M_color = _S_red;
-		      _Rb_tree_rotate_right(__w, __root);
+		      local_Rb_tree_rotate_right(__w, __root);
 		      __w = __x_parent->_M_right;
 		    }
 		  __w->_M_color = __x_parent->_M_color;
 		  __x_parent->_M_color = _S_black;
 		  if (__w->_M_right) 
 		    __w->_M_right->_M_color = _S_black;
-		  _Rb_tree_rotate_left(__x_parent, __root);
+		  local_Rb_tree_rotate_left(__x_parent, __root);
 		  break;
 		}
 	    } 
@@ -380,7 +395,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 		{
 		  __w->_M_color = _S_black;
 		  __x_parent->_M_color = _S_red;
-		  _Rb_tree_rotate_right(__x_parent, __root);
+		  local_Rb_tree_rotate_right(__x_parent, __root);
 		  __w = __x_parent->_M_left;
 		}
 	      if ((__w->_M_right == 0 || 
@@ -398,14 +413,14 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 		    {
 		      __w->_M_right->_M_color = _S_black;
 		      __w->_M_color = _S_red;
-		      _Rb_tree_rotate_left(__w, __root);
+		      local_Rb_tree_rotate_left(__w, __root);
 		      __w = __x_parent->_M_left;
 		    }
 		  __w->_M_color = __x_parent->_M_color;
 		  __x_parent->_M_color = _S_black;
 		  if (__w->_M_left) 
 		    __w->_M_left->_M_color = _S_black;
-		  _Rb_tree_rotate_right(__x_parent, __root);
+		  local_Rb_tree_rotate_right(__x_parent, __root);
 		  break;
 		}
 	    }
@@ -416,7 +431,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   unsigned int
   _Rb_tree_black_count(const _Rb_tree_node_base* __node,
-                       const _Rb_tree_node_base* __root)
+                       const _Rb_tree_node_base* __root) throw ()
   {
     if (__node == 0)
       return 0;

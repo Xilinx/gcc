@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -264,7 +264,6 @@ begin
 
    if Present (Pragma_Argument_Associations (Pragma_Node)) then
       Arg_Node := Arg1;
-
       while Arg_Node /= Empty loop
          Arg_Count := Arg_Count + 1;
 
@@ -819,7 +818,7 @@ begin
            and then Num_SRef_Pragmas (Current_Source_File) = 0
            and then Operating_Mode /= Check_Syntax
          then
-            Error_Msg
+            Error_Msg -- CODEFIX
               ("first % pragma must be first line of file", Pragma_Sloc);
             raise Error_Resync;
          end if;
@@ -1187,6 +1186,7 @@ begin
            Pragma_Task_Info                     |
            Pragma_Task_Name                     |
            Pragma_Task_Storage                  |
+           Pragma_Thread_Local_Storage          |
            Pragma_Time_Slice                    |
            Pragma_Title                         |
            Pragma_Unchecked_Union               |

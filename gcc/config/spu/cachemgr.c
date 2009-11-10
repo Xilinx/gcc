@@ -1,30 +1,25 @@
-/* Copyright (C) 2008  Free Software Foundation, Inc.
+/* Copyright (C) 2008, 2009 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
-
-In addition to the permissions in the GNU General Public License, the
-Free Software Foundation gives you unlimited permission to link the
-compiled version of this file into combinations with other programs,
-and to distribute those combinations without any restriction coming
-from the use of this file.  (The General Public License restrictions
-do apply in other respects; for example, they cover modification of
-the file, and distribution when not linked into a combine
-executable.)
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
 WARRANTY; without even the implied warranty of MERCHANTABILITY or
 FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
-You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+Under Section 7 of GPL version 3, you are granted additional
+permissions described in the GCC Runtime Library Exception, version
+3.1, as published by the Free Software Foundation.
+
+You should have received a copy of the GNU General Public License and
+a copy of the GCC Runtime Library Exception along with this program;
+see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+<http://www.gnu.org/licenses/>.  */
 
 #include <spu_mfcio.h>
 #include <spu_internals.h>
@@ -40,8 +35,8 @@ extern char __cache_tag_array_size;
 #define WAYS 4
 #define SET_MASK ((int) &__cache_tag_array_size - LINE_SIZE)
 
-#define CACHE_LINES ((int) &__cache_tag_array_size / \
-  sizeof (struct __cache_tag_array) * WAYS)
+#define CACHE_LINES ((int) &__cache_tag_array_size /		\
+		     sizeof (struct __cache_tag_array) * WAYS)
 
 struct __cache_tag_array
 {
@@ -56,70 +51,66 @@ extern struct __cache_tag_array __cache_tag_array[];
 extern char __cache[];
 
 /* In order to make the code seem a little cleaner, and to avoid having
-   64/32 bit ifdefs all over the place, we macro.  */
-
-/* It may seem poor taste to define variables within a macro, but
-   it's C99 compliant.  */
+   64/32 bit ifdefs all over the place, we use macros.  */
 
 #ifdef __EA64__
-#define CHECK_TAG(_entry, _way, _tag) ((_entry->tag_lo[_way] == \
-  (_tag & 0xFFFFFFFF))&&(_entry->tag_hi[_way] == (_tag >> 32)))
+typedef unsigned long long addr;
 
-#define GET_TAG(_entry, _way) unsigned long long tag = _entry->tag_hi[_way]; \
-  tag = tag << 32;                                                           \
-  tag |= (_entry->tag_lo[_way]);
+#define CHECK_TAG(_entry, _way, _tag)			\
+  ((_entry)->tag_lo[(_way)] == ((_tag) & 0xFFFFFFFF)	\
+   && (_entry)->tag_hi[(_way)] == ((_tag) >> 32))
 
-#define SET_TAG(_entry, _way, _tag)             \
-  _entry->tag_lo[_way] = (_tag & 0xFFFFFFFF);   \
-  _entry->tag_hi[_way] = (_tag >> 32);
+#define GET_TAG(_entry, _way) \
+  ((unsigned long long)(_entry)->tag_hi[(_way)] << 32	\
+   | (unsigned long long)(_entry)->tag_lo[(_way)])
 
-#define addr unsigned long long
-#define si_from_eavoid(_x) si_from_ullong (eavoid_to_eanum(_x))
+#define SET_TAG(_entry, _way, _tag)			\
+  (_entry)->tag_lo[(_way)] = (_tag) & 0xFFFFFFFF;	\
+  (_entry)->tag_hi[(_way)] = (_tag) >> 32
+
 #else /*__EA32__*/
-#define CHECK_TAG(_entry, _way, _tag) (_entry->tag_lo[_way] == _tag)
+typedef unsigned long addr;
 
-#define GET_TAG(_entry, _way) unsigned long tag = _entry->tag_lo[_way]
+#define CHECK_TAG(_entry, _way, _tag)			\
+  ((_entry)->tag_lo[(_way)] == (_tag))
 
-#define SET_TAG(_entry, _way, _tag)     \
-  _entry->tag_lo[_way] = _tag;
+#define GET_TAG(_entry, _way)				\
+  ((_entry)->tag_lo[(_way)])
 
-#define addr unsigned long
-#define si_from_eavoid(_x) si_from_uint (eavoid_to_eanum(_x))
+#define SET_TAG(_entry, _way, _tag)			\
+  (_entry)->tag_lo[(_way)] = (_tag)
+
 #endif
 
 /* In GET_ENTRY, we cast away the high 32 bits,
    as the tag is only in the low 32.  */
 
-#define GET_ENTRY(_addr) ((struct __cache_tag_array *)                  \
-        si_to_ptr(si_a                                                  \
-                   (si_and(si_from_uint((unsigned int) (addr) _addr),   \
-                           si_from_uint(SET_MASK)),                     \
-                    si_from_uint((unsigned int) __cache_tag_array))));
+#define GET_ENTRY(_addr)						   \
+  ((struct __cache_tag_array *)						   \
+   si_to_uint (si_a (si_and (si_from_uint ((unsigned int) (addr) (_addr)), \
+			     si_from_uint (SET_MASK)),			   \
+	       si_from_uint ((unsigned int) __cache_tag_array))))
 
-#define GET_CACHE_LINE(_addr, _way)  ((void *) (__cache +       \
-  (_addr & SET_MASK) * WAYS) + (_way * LINE_SIZE));
+#define GET_CACHE_LINE(_addr, _way) \
+  ((void *) (__cache + ((_addr) & SET_MASK) * WAYS) + ((_way) * LINE_SIZE));
 
-#define eavoid_to_eanum(_ea) ((addr) _ea)
-
-#define CHECK_DIRTY(_vec) (si_to_uint (si_orx ((qword) _vec)))
-#define SET_EMPTY(_entry, _way) (_entry->tag_lo[_way] = 1)
-#define CHECK_EMPTY(_entry, _way) (_entry->tag_lo[_way] == 1)
+#define CHECK_DIRTY(_vec) (si_to_uint (si_orx ((qword) (_vec))))
+#define SET_EMPTY(_entry, _way) ((_entry)->tag_lo[(_way)] = 1)
+#define CHECK_EMPTY(_entry, _way) ((_entry)->tag_lo[(_way)] == 1)
 
 #define LS_FLAG 0x80000000
-#define SET_IS_LS(_entry, _way) (_entry->reserved[_way] |= LS_FLAG)
-#define CHECK_IS_LS(_entry, _way) (_entry->reserved[_way] & LS_FLAG)
-#define GET_LRU(_entry, _way) (_entry->reserved[_way] & ~(LS_FLAG))
+#define SET_IS_LS(_entry, _way) ((_entry)->reserved[(_way)] |= LS_FLAG)
+#define CHECK_IS_LS(_entry, _way) ((_entry)->reserved[(_way)] & LS_FLAG)
+#define GET_LRU(_entry, _way) ((_entry)->reserved[(_way)] & ~LS_FLAG)
 
-static void __cache_flush_stub (void) __attribute__ ((destructor));
 static int dma_tag = 32;
 
 static void
 __cache_evict_entry (struct __cache_tag_array *entry, int way)
 {
+  addr tag = GET_TAG (entry, way);
 
-  GET_TAG (entry, way);
-
-  if ((CHECK_DIRTY (entry->dirty_bits[way])) && (!CHECK_IS_LS (entry, way)))
+  if (CHECK_DIRTY (entry->dirty_bits[way]) && !CHECK_IS_LS (entry, way))
     {
 #ifdef NONATOMIC
       /* Non-atomic writes.  */
@@ -215,20 +206,16 @@ __cache_evict_entry (struct __cache_tag_array *entry, int way)
 void
 __cache_evict (__ea void *ea)
 {
-  addr tag = (eavoid_to_eanum (ea) & ~(TAG_MASK));
+  addr tag = (addr) ea & ~TAG_MASK;
   struct __cache_tag_array *entry = GET_ENTRY (ea);
   int i = 0;
 
   /* Cycles through all the possible ways an address could be at
-     and evicts the way if found */
+     and evicts the way if found.  */
 
   for (i = 0; i < WAYS; i++)
-    {
-      if (CHECK_TAG (entry, i, tag))
-	{
-	  __cache_evict_entry (entry, i);
-	}
-    }
+    if (CHECK_TAG (entry, i, tag))
+      __cache_evict_entry (entry, i);
 }
 
 static void *
@@ -266,7 +253,7 @@ static void
 __cache_miss (__ea void *ea, struct __cache_tag_array *entry, int way)
 {
 
-  addr tag = (eavoid_to_eanum (ea) & ~(TAG_MASK));
+  addr tag = (addr) ea & ~TAG_MASK;
   unsigned int lru = 0;
   int i = 0;
   int idx = 0;
@@ -298,13 +285,13 @@ __cache_miss (__ea void *ea, struct __cache_tag_array *entry, int way)
   /* Because the LS is not 256k aligned, we can't do a nice and mask
      here to compare, so we must check the whole range.  */
 
-  if ((eavoid_to_eanum (ea) >= (addr) __ea_local_store) &&
-      (eavoid_to_eanum (ea) < (addr) (__ea_local_store + 0x40000)))
+  if ((addr) ea >= (addr) __ea_local_store
+      && (addr) ea < (addr) (__ea_local_store + 0x40000))
     {
       SET_IS_LS (entry, way);
       entry->base[way] =
-	(void *) ((unsigned int) (eavoid_to_eanum (ea) -
-				  (addr) __ea_local_store) & ~(0x7f));
+	(void *) ((unsigned int) ((addr) ea -
+				  (addr) __ea_local_store) & ~0x7f);
     }
   else
     {
@@ -335,18 +322,18 @@ __cache_fetch_dirty (__ea void *ea, int n_bytes_dirty)
   tag_lo =
     si_to_uint (si_andc
 		(si_shufb
-		 (si_from_eavoid (ea), si_from_uint (0),
+		 (si_from_uint ((addr) ea), si_from_uint (0),
 		  si_from_uint (0x00010203)), si_from_uint (TAG_MASK)));
 #else
   tag_lo =
     si_to_uint (si_andc
 		(si_shufb
-		 (si_from_eavoid (ea), si_from_uint (0),
+		 (si_from_ullong ((addr) ea), si_from_uint (0),
 		  si_from_uint (0x04050607)), si_from_uint (TAG_MASK)));
 
   tag_hi =
     si_to_uint (si_shufb
-		(si_from_eavoid (ea), si_from_uint (0),
+		(si_from_ullong ((addr) ea), si_from_uint (0),
 		 si_from_uint (0x00010203)));
 #endif
 
@@ -359,7 +346,7 @@ missreturn:
   etag_lo = si_lqd (si_from_ptr (entry), 0);
   equal = si_ceq (etag_lo, si_from_uint (tag_lo));
 #ifdef __EA64__
-  /* And the high tag too  */
+  /* And the high tag too.  */
   etag_hi = si_lqd (si_from_ptr (entry), 16);
   equal = si_and (equal, (si_ceq (etag_hi, si_from_uint (tag_hi))));
 #endif
@@ -387,11 +374,11 @@ missreturn:
       /* Rotate it around to the correct offset.  */
       bit_mask =
 	si_rotqby (bit_mask,
-		   si_from_uint (-1 * (eavoid_to_eanum (ea) & TAG_MASK) / 8));
+		   si_from_uint (-1 * ((addr) ea & TAG_MASK) / 8));
 
       bit_mask =
 	si_rotqbi (bit_mask,
-		   si_from_uint (-1 * (eavoid_to_eanum (ea) & TAG_MASK) % 8));
+		   si_from_uint (-1 * ((addr) ea & TAG_MASK) % 8));
 
       /* Update the dirty bits.  */
       si_stqx (si_or (si_lqx (si_from_ptr (entry), way), bit_mask),
@@ -399,7 +386,7 @@ missreturn:
     };
 
   /* We've definitely found the right entry, set LRU (reserved) to 0
-     maintaining the LS flag (MSB). */
+     maintaining the LS flag (MSB).  */
 
   si_stqd (si_andc
 	   (si_lqd (si_from_ptr (entry), 48),
@@ -407,10 +394,10 @@ missreturn:
 	   si_from_ptr (entry), 48);
 
   return (void *)
-    si_to_ptr (si_a
-	       (si_orx
-		(si_and (si_lqd (si_from_ptr (entry), 32), equal)),
-		si_from_uint (((unsigned int) (addr) ea) & TAG_MASK)));
+    si_to_uint (si_a
+		(si_orx
+		 (si_and (si_lqd (si_from_ptr (entry), 32), equal)),
+		 si_from_uint (((unsigned int) (addr) ea) & TAG_MASK)));
 
 misshandler:
   equal = si_ceqi (etag_lo, 1);
@@ -430,30 +417,22 @@ __cache_touch (__ea void *ea __attribute__ ((unused)))
   /* NO-OP for now.  */
 }
 
-static void
-__cache_flush_stub (void)
-{
-  __cache_flush ();
-}
-
+void __cache_flush (void) __attribute__ ((destructor));
 void
 __cache_flush (void)
 {
   struct __cache_tag_array *entry = __cache_tag_array;
-  unsigned int i = 0;
-  int j = 0;
+  unsigned int i;
+  int j;
 
   /* Cycle through each cache entry and evict all used ways.  */
 
-  for (i = 0; i < (CACHE_LINES / WAYS); i++)
+  for (i = 0; i < CACHE_LINES / WAYS; i++)
     {
       for (j = 0; j < WAYS; j++)
-	{
-	  if (!CHECK_EMPTY (entry, j))
-	    {
-	      __cache_evict_entry (entry, j);
-	    }
-	}
+	if (!CHECK_EMPTY (entry, j))
+	  __cache_evict_entry (entry, j);
+
       entry++;
     }
 }

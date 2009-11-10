@@ -1,5 +1,5 @@
 /* IRA conflict builder.
-   Copyright (C) 2006, 2007, 2008
+   Copyright (C) 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Vladimir Makarov <vmakarov@redhat.com>.
 
@@ -248,12 +248,10 @@ get_dup_num (int op_num, bool use_commut_op_p)
 	    break;
 
 	  case 'p':
-	    GO_IF_LEGITIMATE_ADDRESS (VOIDmode, op, win_p);
+	    if (address_operand (op, VOIDmode))
+	      return -1;
 	    break;
-	    
-	  win_p:
-	    return -1;
-	  
+
 	  case 'g':
 	    return -1;
 	    
@@ -411,9 +409,9 @@ process_regs_for_copy (rtx reg1, rtx reg2, bool constraint_p,
     /* Can not be tied.  It is not in the cover class.  */
     return false;
   if (HARD_REGISTER_P (reg1))
-    cost = ira_register_move_cost[mode][cover_class][rclass] * freq;
+    cost = ira_get_register_move_cost (mode, cover_class, rclass) * freq;
   else
-    cost = ira_register_move_cost[mode][rclass][cover_class] * freq;
+    cost = ira_get_register_move_cost (mode, rclass, cover_class) * freq;
   for (;;)
     {
       ira_allocate_and_set_costs
@@ -491,7 +489,7 @@ add_insn_allocno_copies (rtx insn)
 				? operand : SUBREG_REG (operand)) != NULL_RTX)
 	    {
 	      str = recog_data.constraints[i];
-	      while (*str == ' ' && *str == '\t')
+	      while (*str == ' ' || *str == '\t')
 		str++;
 	      bound_p = false;
 	      for (j = 0, commut_p = false; j < 2; j++, commut_p = true)
@@ -524,7 +522,7 @@ add_copies (ira_loop_tree_node_t loop_tree_node)
   if (bb == NULL)
     return;
   FOR_BB_INSNS (bb, insn)
-    if (INSN_P (insn))
+    if (NONDEBUG_INSN_P (insn))
       add_insn_allocno_copies (insn);
 }
 
@@ -664,7 +662,7 @@ print_hard_reg_set (FILE *file, const char *title, HARD_REG_SET set)
 {
   int i, start;
 
-  fprintf (file, title);
+  fputs (title, file);
   for (start = -1, i = 0; i < FIRST_PSEUDO_REGISTER; i++)
     {
       if (TEST_HARD_REG_BIT (set, i))
@@ -684,7 +682,7 @@ print_hard_reg_set (FILE *file, const char *title, HARD_REG_SET set)
 	  start = -1;
 	}
     }
-  fprintf (file, "\n");
+  putc ('\n', file);
 }
 
 /* Print information about allocno or only regno (if REG_P) conflicts
@@ -711,9 +709,9 @@ print_conflicts (FILE *file, bool reg_p)
 	    fprintf (file, "b%d", bb->index);
 	  else
 	    fprintf (file, "l%d", ALLOCNO_LOOP_TREE_NODE (a)->loop->num);
-	  fprintf (file, ")");
+	  putc (')', file);
 	}
-      fprintf (file, " conflicts:");
+      fputs (" conflicts:", file);
       if (ALLOCNO_CONFLICT_ALLOCNO_ARRAY (a) != NULL)
 	FOR_EACH_ALLOCNO_CONFLICT (a, conflict_a, aci)
 	  {
@@ -745,7 +743,7 @@ print_conflicts (FILE *file, bool reg_p)
       print_hard_reg_set (file, ";;     conflict hard regs:",
 			  conflicting_hard_regs);
     }
-  fprintf (file, "\n");
+  putc ('\n', file);
 }
 
 /* Print information about allocno or only regno (if REG_P) conflicts
@@ -800,29 +798,33 @@ ira_build_conflicts (void)
     }
   FOR_EACH_ALLOCNO (a, ai)
     {
-      if (ALLOCNO_CALLS_CROSSED_NUM (a) == 0)
-	continue;
-      if (! flag_caller_saves)
+      reg_attrs *attrs;
+      tree decl;
+
+      if ((! flag_caller_saves && ALLOCNO_CALLS_CROSSED_NUM (a) != 0)
+	  /* For debugging purposes don't put user defined variables in
+	     callee-clobbered registers.  */
+	  || (optimize == 0
+	      && (attrs = REG_ATTRS (regno_reg_rtx [ALLOCNO_REGNO (a)])) != NULL
+	      && (decl = attrs->decl) != NULL
+	      && VAR_OR_FUNCTION_DECL_P (decl)
+	      && ! DECL_ARTIFICIAL (decl)))
 	{
 	  IOR_HARD_REG_SET (ALLOCNO_TOTAL_CONFLICT_HARD_REGS (a),
 			    call_used_reg_set);
-	  if (ALLOCNO_CALLS_CROSSED_NUM (a) != 0)
-	    IOR_HARD_REG_SET (ALLOCNO_CONFLICT_HARD_REGS (a),
-			      call_used_reg_set);
+	  IOR_HARD_REG_SET (ALLOCNO_CONFLICT_HARD_REGS (a),
+			    call_used_reg_set);
 	}
-      else
+      else if (ALLOCNO_CALLS_CROSSED_NUM (a) != 0)
 	{
 	  IOR_HARD_REG_SET (ALLOCNO_TOTAL_CONFLICT_HARD_REGS (a),
 			    no_caller_save_reg_set);
 	  IOR_HARD_REG_SET (ALLOCNO_TOTAL_CONFLICT_HARD_REGS (a),
 			    temp_hard_reg_set);
-	  if (ALLOCNO_CALLS_CROSSED_NUM (a) != 0)
-	    {
-	      IOR_HARD_REG_SET (ALLOCNO_CONFLICT_HARD_REGS (a),
-				no_caller_save_reg_set);
-	      IOR_HARD_REG_SET (ALLOCNO_CONFLICT_HARD_REGS (a),
-				temp_hard_reg_set);
-	    }
+	  IOR_HARD_REG_SET (ALLOCNO_CONFLICT_HARD_REGS (a),
+			    no_caller_save_reg_set);
+	  IOR_HARD_REG_SET (ALLOCNO_CONFLICT_HARD_REGS (a),
+			    temp_hard_reg_set);
 	}
     }
   if (optimize && ira_conflicts_p

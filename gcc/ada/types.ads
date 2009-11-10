@@ -6,25 +6,23 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -194,12 +192,12 @@ package Types is
    subtype Source_Buffer is Text_Buffer;
    --  Type used to store text of a source file . The buffer for the main
    --  source (the source specified on the command line) has a lower bound
-   --  starting at zero. Subsequent subsidiary sources have lower bounds which
-   --  are one greater than the previous upper bound.
+   --  starting at zero. Subsequent subsidiary sources have lower bounds
+   --  which are one greater than the previous upper bound.
 
    subtype Big_Source_Buffer is Text_Buffer (0 .. Text_Ptr'Last);
-   --  This is a virtual type used as the designated type of the access
-   --  type Source_Buffer_Ptr, see Osint.Read_Source_File for details.
+   --  This is a virtual type used as the designated type of the access type
+   --  Source_Buffer_Ptr, see Osint.Read_Source_File for details.
 
    type Source_Buffer_Ptr is access all Big_Source_Buffer;
    for Source_Buffer_Ptr'Storage_Size use 0;
@@ -212,19 +210,19 @@ package Types is
 
    subtype Source_Ptr is Text_Ptr;
    --  Type used to represent a source location, which is a subscript of a
-   --  character in the source buffer. As noted above, different source
-   --  buffers have different ranges, so it is possible to tell from a
-   --  Source_Ptr value which source it refers to. Note that negative numbers
-   --  are allowed to accommodate the following special values.
+   --  character in the source buffer. As noted above, different source buffers
+   --  have different ranges, so it is possible to tell from a Source_Ptr value
+   --  which source it refers to. Note that negative numbers are allowed to
+   --  accommodate the following special values.
 
    No_Location : constant Source_Ptr := -1;
-   --  Value used to indicate no source position set in a node. A test for
-   --  a Source_Ptr value being > No_Location is the approved way to test
-   --  for a standard value that does not include No_Location or any of the
-   --  following special definitions. One important use of No_Location is to
-   --  label generated nodes that we don't want the debugger to see in normal
-   --  mode (very often we conditionalize so that we set No_Location in normal
-   --  mode and the corresponding source line in -gnatD mode).
+   --  Value used to indicate no source position set in a node. A test for a
+   --  Source_Ptr value being > No_Location is the approved way to test for a
+   --  standard value that does not include No_Location or any of the following
+   --  special definitions. One important use of No_Location is to label
+   --  generated nodes that we don't want the debugger to see in normal mode
+   --  (very often we conditionalize so that we set No_Location in normal mode
+   --  and the corresponding source line in -gnatD mode).
 
    Standard_Location : constant Source_Ptr := -2;
    --  Used for all nodes in the representation of package Standard other than
@@ -236,8 +234,8 @@ package Types is
    --  Used for all nodes in the presentation of package Standard.ASCII
 
    System_Location : constant Source_Ptr := -4;
-   --  Used to identify locations of pragmas scanned by Targparm, where we
-   --  know the location is in System, but we don't know exactly what line.
+   --  Used to identify locations of pragmas scanned by Targparm, where we know
+   --  the location is in System, but we don't know exactly what line.
 
    First_Source_Ptr : constant Source_Ptr := 0;
    --  Starting source pointer index value for first source program
@@ -386,10 +384,10 @@ package Types is
    --  Type used to identify nodes in the tree
 
    subtype Entity_Id is Node_Id;
-   --  A synonym for node types, used in the entity package to refer to
-   --  nodes that are entities (i.e. nodes with an Nkind of N_Defining_xxx)
-   --  All such nodes are extended nodes and these are the only extended
-   --  nodes, so that in practice entity and extended nodes are synonymous.
+   --  A synonym for node types, used in the entity package to refer to nodes
+   --  that are entities (i.e. nodes with an Nkind of N_Defining_xxx) All such
+   --  nodes are extended nodes and these are the only extended nodes, so that
+   --  in practice entity and extended nodes are synonymous.
 
    subtype Node_Or_Entity_Id is Node_Id;
    --  A synonym for node types, used in cases where a given value may be used
@@ -452,8 +450,8 @@ package Types is
    ------------------------------
 
    --  Element list Id values are used to identify element lists stored in the
-   --  tree (see package Tree for further details). They are formed by adding a
-   --  bias (Element_List_Bias) to subscript values in the same array that is
+   --  tree (see package Atree for further details). They are formed by adding
+   --  a bias (Element_List_Bias) to subscript values in the same array that is
    --  used for node list headers.
 
    type Elist_Id is range Elist_Low_Bound .. Elist_High_Bound;
@@ -789,24 +787,25 @@ package Types is
 
       PE_Access_Before_Elaboration,      -- 14
       PE_Accessibility_Check_Failed,     -- 15
-      PE_All_Guards_Closed,              -- 16
-      PE_Current_Task_In_Entry_Body,     -- 17
-      PE_Duplicated_Entry_Address,       -- 18
-      PE_Explicit_Raise,                 -- 19
-      PE_Finalize_Raised_Exception,      -- 20
-      PE_Implicit_Return,                -- 21
-      PE_Misaligned_Address_Value,       -- 22
-      PE_Missing_Return,                 -- 23
-      PE_Overlaid_Controlled_Object,     -- 24
-      PE_Potentially_Blocking_Operation, -- 25
-      PE_Stubbed_Subprogram_Called,      -- 26
-      PE_Unchecked_Union_Restriction,    -- 27
-      PE_Non_Transportable_Actual,       -- 28
+      PE_Address_Of_Intrinsic,           -- 16
+      PE_All_Guards_Closed,              -- 17
+      PE_Current_Task_In_Entry_Body,     -- 18
+      PE_Duplicated_Entry_Address,       -- 19
+      PE_Explicit_Raise,                 -- 20
+      PE_Finalize_Raised_Exception,      -- 21
+      PE_Implicit_Return,                -- 22
+      PE_Misaligned_Address_Value,       -- 23
+      PE_Missing_Return,                 -- 24
+      PE_Overlaid_Controlled_Object,     -- 25
+      PE_Potentially_Blocking_Operation, -- 26
+      PE_Stubbed_Subprogram_Called,      -- 27
+      PE_Unchecked_Union_Restriction,    -- 28
+      PE_Non_Transportable_Actual,       -- 29
 
-      SE_Empty_Storage_Pool,             -- 29
-      SE_Explicit_Raise,                 -- 30
-      SE_Infinite_Recursion,             -- 31
-      SE_Object_Too_Large);              -- 32
+      SE_Empty_Storage_Pool,             -- 30
+      SE_Explicit_Raise,                 -- 31
+      SE_Infinite_Recursion,             -- 32
+      SE_Object_Too_Large);              -- 33
 
    subtype RT_CE_Exceptions is RT_Exception_Code range
      CE_Access_Check_Failed ..

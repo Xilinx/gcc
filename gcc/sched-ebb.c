@@ -1,6 +1,6 @@
 /* Instruction scheduling pass.
    Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Michael Tiemann (tiemann@cygnus.com) Enhanced by,
    and currently maintained by, Jim Wilson (wilson@cygnus.com)
@@ -286,6 +286,7 @@ static struct haifa_sched_info ebb_sched_info =
   rank,
   ebb_print_insn,
   ebb_contributes_to_priority,
+  NULL, /* insn_finishes_block_p */
 
   NULL, NULL,
   NULL, NULL,
@@ -606,9 +607,9 @@ schedule_ebbs (void)
 	 a note or two.  */
       while (head != tail)
 	{
-	  if (NOTE_P (head))
+	  if (NOTE_P (head) || BOUNDARY_DEBUG_INSN_P (head))
 	    head = NEXT_INSN (head);
-	  else if (NOTE_P (tail))
+	  else if (NOTE_P (tail) || BOUNDARY_DEBUG_INSN_P (tail))
 	    tail = PREV_INSN (tail);
 	  else if (LABEL_P (head))
 	    head = NEXT_INSN (head);

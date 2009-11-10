@@ -6,25 +6,23 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -38,11 +36,6 @@
 --  all the time, we use a system of soft links where the links are
 --  initialized to non-tasking versions, and then if the tasking support is
 --  initialized, they are set to the real tasking versions.
-
-pragma Warnings (Off);
---  When compiling this package with older compilers, there are many warnings,
---  so we suppress them throughout most of this file. Pragmas Compiler_Unit,
---  Preelaborate_05, and Favor_Top_Level are not supported by older compilers.
 
 pragma Compiler_Unit;
 
@@ -132,7 +125,6 @@ package System.Soft_Links is
                Len       : Natural)
                return      String;
    pragma Favor_Top_Level (Traceback_Decorator_Wrapper_Call);
-   pragma Warnings (On);
 
    --  Declarations for the no tasking versions of the required routines
 
@@ -215,11 +207,11 @@ package System.Soft_Links is
    --    Locked_Processing : begin
    --       System.Soft_Links.Lock_Task.all;
    --       ...
-   --       System.Soft_Links..Unlock_Task.all;
+   --       System.Soft_Links.Unlock_Task.all;
    --
    --    exception
    --       when others =>
-   --          System.Soft_Links..Unlock_Task.all;
+   --          System.Soft_Links.Unlock_Task.all;
    --          raise;
    --    end Locked_Processing;
    --
@@ -250,7 +242,7 @@ package System.Soft_Links is
    function Get_Exc_Stack_Addr_NT return Address;
    Get_Exc_Stack_Addr : Get_Address_Call := Get_Exc_Stack_Addr_NT'Access;
 
-   function  Get_Current_Excep_NT return EOA;
+   function Get_Current_Excep_NT return EOA;
 
    Get_Current_Excep : Get_EOA_Call := Get_Current_Excep_NT'Access;
 
@@ -314,35 +306,35 @@ package System.Soft_Links is
    ------------------------
 
    --  Here we define a single type that encapsulates the various task
-   --  specific data. This type is used to store the necessary data into
-   --  the Task_Control_Block or into a global variable in the non tasking
-   --  case.
+   --  specific data. This type is used to store the necessary data into the
+   --  Task_Control_Block or into a global variable in the non tasking case.
 
    type TSD is record
       Pri_Stack_Info : aliased Stack_Checking.Stack_Info;
-      --  Information on stack (Base/Limit/Size) that is used
-      --  by System.Stack_Checking. If this TSD does not belong to
-      --  the environment task, the Size field must be initialized
-      --  to the tasks requested stack size before the task can do
-      --  its first stack check.
+      --  Information on stack (Base/Limit/Size) used by System.Stack_Checking.
+      --  If this TSD does not belong to the environment task, the Size field
+      --  must be initialized to the tasks requested stack size before the task
+      --  can do its first stack check.
 
       pragma Warnings (Off);
+      --  Needed because we are giving a non-static default to an object in
+      --  a preelaborated unit, which is formally not permitted, but OK here.
+
       Jmpbuf_Address : System.Address := System.Null_Address;
-      --  Address of jump buffer used to store the address of the
-      --  current longjmp/setjmp buffer for exception management.
-      --  These buffers are threaded into a stack, and the address
-      --  here is the top of the stack. A null address means that
-      --  no exception handler is currently active.
+      --  Address of jump buffer used to store the address of the current
+      --  longjmp/setjmp buffer for exception management. These buffers are
+      --  threaded into a stack, and the address here is the top of the stack.
+      --  A null address means that no exception handler is currently active.
 
       Sec_Stack_Addr : System.Address := System.Null_Address;
       pragma Warnings (On);
       --  Address of currently allocated secondary stack
 
       Current_Excep : aliased EO;
-      --  Exception occurrence that contains the information for the
-      --  current exception. Note that any exception in the same task
-      --  destroys this information, so the data in this variable must
-      --  be copied out before another exception can occur.
+      --  Exception occurrence that contains the information for the current
+      --  exception. Note that any exception in the same task destroys this
+      --  information, so the data in this variable must be copied out before
+      --  another exception can occur.
       --
       --  Also act as a list of the active exceptions in the case of the GCC
       --  exception mechanism, organized as a stack with the most recent first.

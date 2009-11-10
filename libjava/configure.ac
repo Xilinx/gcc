@@ -1,5 +1,5 @@
 dnl # Process this with autoconf to create configure
-AC_PREREQ(2.59)
+AC_PREREQ(2.64)
 # Still use "libjava" here to placate dejagnu.
 AC_INIT([libjava], [version-unused],, [libjava])
 
@@ -55,15 +55,15 @@ AC_ARG_ENABLE(version-specific-runtime-libs,
     [version_specific_libs=no]
 )
 
-AC_ARG_ENABLE(plugin,
-  AS_HELP_STRING([--enable-plugin],
+AC_ARG_ENABLE(browser-plugin,
+  AS_HELP_STRING([--enable-browser-plugin],
                  [build gcjwebplugin web browser plugin]),
     [case "$enableval" in
-      yes) plugin_enabled=yes ;;
-      no)  plugin_enabled=no ;;
-      *)   AC_MSG_ERROR([Unknown argument to enable/disable plugin]);;
+      yes) browser_plugin_enabled=yes ;;
+      no)  browser_plugin_enabled=no ;;
+      *)   AC_MSG_ERROR([Unknown argument to enable/disable browser plugin]);;
      esac],
-    [plugin_enabled=no]
+    [browser_plugin_enabled=no]
 )
 
 AC_ARG_ENABLE(gconf-peer,
@@ -159,7 +159,7 @@ CXXFLAGS="$CXXFLAGS -fno-builtin"
 AC_PROG_CC
 AC_PROG_CXX
 CXXFLAGS="$save_CXXFLAGS"
-m4_rename([glibcxx_PRECIOUS],[_AC_ARG_VAR_PRECIOUS])
+m4_rename_force([glibcxx_PRECIOUS],[_AC_ARG_VAR_PRECIOUS])
 AC_SUBST(CFLAGS)
 AC_SUBST(CXXFLAGS)
 AC_SUBST(LDFLAGS)
@@ -206,10 +206,14 @@ AC_EXEEXT
 #	libgcj_cflags    - host specific C compiler flags
 #	libgcj_cxxflags  - host specific C++ compiler flags
 #	libgcj_javaflags - host specific Java compiler flags
+#	libgcj_sublib_ltflags - host specific Libtool flags 
+#                          (only used when building sublibs)
+# and a number of others; see the list at the start of the file.
 
 libgcj_cflags=
 libgcj_cxxflags=
 libgcj_javaflags=
+libgcj_sublib_ltflags=
 
 . ${srcdir}/configure.host
 
@@ -222,11 +226,13 @@ fi
 LIBGCJ_CFLAGS="${libgcj_cflags}"
 LIBGCJ_CXXFLAGS="${libgcj_cxxflags}"
 LIBGCJ_JAVAFLAGS="${libgcj_javaflags}"
+LIBGCJ_SUBLIB_LTFLAGS="${libgcj_sublib_ltflags}"
 LIBGCJ_LD_SYMBOLIC="${libgcj_ld_symbolic}"
 LIBGCJ_LD_SYMBOLIC_FUNCTIONS="${libgcj_ld_symbolic_functions}"
 AC_SUBST(LIBGCJ_CFLAGS)
 AC_SUBST(LIBGCJ_CXXFLAGS)
 AC_SUBST(LIBGCJ_JAVAFLAGS)
+AC_SUBST(LIBGCJ_SUBLIB_LTFLAGS)
 AC_SUBST(LIBGCJ_LD_SYMBOLIC)
 AC_SUBST(LIBGCJ_LD_SYMBOLIC_FUNCTIONS)
 
@@ -237,6 +243,26 @@ fi
 
 AC_CONFIG_HEADERS([include/config.h gcj/libgcj-config.h])
 
+# Possibly build libgcj as many sub-libraries.
+AC_ARG_ENABLE(libgcj-sublibs,
+  AS_HELP_STRING([--enable-libgcj-sublibs],
+                 [build libgcj as many sub-libraries]))
+
+if test -z "$enable_libgcj_sublibs"; then
+   enable_libgcj_sublibs=$enable_libgcj_sublibs_default
+fi
+AM_CONDITIONAL(BUILD_SUBLIBS, test "$enable_libgcj_sublibs" = yes)
+if test "$enable_libgcj_sublibs" = yes ; then
+  # In theory we could make do with only one override and simply
+  # tag "_bc" onto the end of it when we use it to generate the
+  # spec, but that's an ugly thing to do when there are multiple
+  # words in the string and you're relying on the ordering to
+  # append the correct one.
+  libgcj_spec_lgcj_override="-lgcj-noncore -lgcj"
+  libgcj_spec_lgcj_bc_override="-lgcj-noncore -lgcj_bc"
+fi
+
+
 # See if the user has requested runtime debugging.
 LIBGCJDEBUG="disable"
 AC_SUBST(LIBGCJDEBUG)
@@ -244,7 +270,7 @@ AC_ARG_ENABLE(libgcj-debug,
   AS_HELP_STRING([--enable-libgcj-debug],
                  [enable runtime debugging code]),
   [if test "$enable_libgcj_debug" = yes; then
-    AC_DEFINE(DEBUG, 1, [Define this if you want runtime debugging enabled.])
+    AC_DEFINE(__GCJ_DEBUG, 1, [Define this if you want runtime debugging enabled.])
     LIBGCJDEBUG="enable"
   fi])
 
@@ -409,23 +435,33 @@ else
      which_gcj=path
   fi
 fi
+libgcjdir=`${PWDCMD-pwd}`
+case $GCJ in
+*" -B"*)
+  # Just in case there is a comma in the build dir, quote it for the
+  # sed command below.
+  case $libgcjdir in
+  *[[,\\]]*) qlibgcjdir=`echo "$libgcjdir" | sed 's:[[,\\]]:\\&:g'`;;
+  *) qlibgcjdir=$libgcjdir;;
+  esac
+  GCJ=`echo "$GCJ" | sed "s, -B, -B$qlibgcjdir/&,"`
+  ;;
+*)
+  GCJ=$GCJ" -B$libgcjdir/"
+  ;;
+esac
 case "${which_gcj}" in
    built)
-      GCJ="$built_gcc_dir/gcj -B`${PWDCMD-pwd}`/ -B$built_gcc_dir/"
       GCJH='$(top_builddir)/$(MULTIBUILDTOP)../../$(host_subdir)/gcc/gcjh'
    ;;
    cross)
       if test "x${with_newlib}" = "xyes"; then
          # FIXME (comment): Why is this needed?
          GCC_UNWIND_INCLUDE=
-         GCJ="${target_noncanonical}-gcj"
-      else
-         GCJ="${target_noncanonical}-gcj -B`${PWDCMD-pwd}`/"
       fi
       GCJH='$(target_noncanonical)-gcjh'
    ;;
    path)
-      GCJ="gcj -B`${PWDCMD-pwd}`/"
       GCJH=gcjh
    ;;
 esac
@@ -455,8 +491,10 @@ ac_configure_args="$ac_configure_args --disable-core-jni"
 dnl FIXME?
 ac_configure_args="$ac_configure_args --disable-examples"
 ac_configure_args="$ac_configure_args --with-glibj=build"
-if test "$plugin_enabled" != yes; then
+if test "$browser_plugin_enabled" != yes; then
   ac_configure_args="$ac_configure_args --disable-plugin"
+else
+  ac_configure_args="$ac_configure_args --enable-plugin"
 fi
 if test "$gconf_enabled" != yes; then
   ac_configure_args="$ac_configure_args --disable-gconf-peer"
@@ -675,6 +713,9 @@ if AC_TRY_EVAL(ac_compile); then
     enable_sjlj_exceptions=yes
   elif grep _Unwind_Resume conftest.s >/dev/null 2>&1 ; then
     enable_sjlj_exceptions=no
+  elif grep __cxa_end_cleanup conftest.s >/dev/null 2>&1 ; then
+    # ARM EH ABI.
+    enable_sjlj_exceptions=no
   fi
 fi
 CXXFLAGS="$old_CXXFLAGS"
@@ -830,6 +871,12 @@ AC_CONFIG_LINKS(gnu/java/nio/natVMSelector.cc:gnu/java/nio/natVMSelector${PLATFO
 test -d gnu/java/nio/channels || mkdir gnu/java/nio/channels
 AC_CONFIG_LINKS(gnu/java/nio/channels/natFileChannelImpl.cc:gnu/java/nio/channels/natFileChannel${FILE-${PLATFORM}}.cc)
 
+# Likewise for natVMSecureRandom.cc
+test -d gnu/java/security || mkdir gnu/java/security
+test -d gnu/java/security/jce || mkdir gnu/java/security/jce
+test -d gnu/java/security/jce/prng || mkdir gnu/java/security/jce/prng
+AC_CONFIG_LINKS(gnu/java/security/jce/prng/natVMSecureRandom.cc:gnu/java/security/jce/prng/natVMSecureRandom${FILE-${PLATFORM}}.cc)
+
 case "${host}" in
     *mingw*)
       SYSTEMSPEC="-lgdi32 -lws2_32"
@@ -877,6 +924,9 @@ arm*linux*eabi)
     extra_ldflags='-L$(here)/../libstdc++-v3/src/.libs -lstdc++'
     LIBSTDCXXSPEC=-lstdc++
     LIBGCJTESTSPEC="-L`${PWDCMD-pwd}`/.libs -L`${PWDCMD-pwd}`/../libstdc++-v3/src/.libs -rpath `${PWDCMD-pwd}`/.libs:`${PWDCMD-pwd}`/../libstdc++-v3/src/.libs -lstdc++"
+    ;;
+*-*-cygwin)
+    extra_ldflags_libjava=-liconv
     ;;
 esac
 AC_SUBST(extra_ldflags_libjava)
@@ -1056,11 +1106,21 @@ AC_CONFIG_LINKS(sysdep/locks.h:sysdep/$sysdeps_dir/locks.h)
 AC_CONFIG_LINKS(sysdep/backtrace.h:$fallback_backtrace_h)
 AC_CONFIG_LINKS(sysdep/descriptor.h:$descriptor_h)
 
-LIBGCJ_SPEC="%{s-bc-abi:} -lgcj"
+LIBGCJ_SPEC_LGCJ=-lgcj
+LIBGCJ_SPEC_LGCJ_BC=-lgcj_bc
+if test x"$libgcj_spec_lgcj_override" != x ; then
+  LIBGCJ_SPEC_LGCJ=$libgcj_spec_lgcj_override
+fi
+if test x"$libgcj_spec_lgcj_bc_override" != x ; then
+  LIBGCJ_SPEC_LGCJ_BC=$libgcj_spec_lgcj_bc_override
+fi
+LIBGCJ_SPEC="%{s-bc-abi:} $LIBGCJ_SPEC_LGCJ"
 if test "$use_libgcj_bc" = yes; then
-  LIBGCJ_SPEC="%{static|static-libgcj|!s-bc-abi:-lgcj;:-lgcj_bc}"
+  LIBGCJ_SPEC="%{static|static-libgcj|!s-bc-abi:$LIBGCJ_SPEC_LGCJ;:$LIBGCJ_SPEC_LGCJ_BC}"
+  LIBGCJ_BC_SPEC="%{findirect-dispatch:-fPIC}"
 fi
 AC_SUBST(LIBGCJ_SPEC)
+AC_SUBST(LIBGCJ_BC_SPEC)
 
 HASH_SYNC_SPEC=
 # Hash synchronization is only useful with posix threads right now.
@@ -1428,6 +1488,7 @@ AC_SUBST(CHECKREFSPEC)
 AC_SUBST(EXCEPTIONSPEC)
 AC_SUBST(BACKTRACESPEC)
 AC_SUBST(IEEESPEC)
+AC_SUBST(ATOMICSPEC)
 
 AM_CONDITIONAL(NATIVE, test "$NATIVE" = yes)
 AM_CONDITIONAL(ENABLE_SHARED, test "$enable_shared" = yes)
@@ -1635,7 +1696,7 @@ case "${host}" in
  m68*-*-linux*)
     SIGNAL_HANDLER=include/dwarf2-signal.h
     ;;
- powerpc*-*-darwin* | i?86-*-darwin9* | x86_64-*-darwin9*)
+ powerpc*-*-darwin* | i?86-*-darwin[[912]]* | x86_64-*-darwin[[912]]*)
     SIGNAL_HANDLER=include/darwin-signal.h
     ;;
  powerpc*-*-aix*)
@@ -1802,8 +1863,7 @@ then
   AC_SUBST(BUILD_VERSION)
   AC_MSG_RESULT(Java version: ${JAVA_VERSION})
 
-  jre_dir=java-${JAVA_VERSION}-${origin_name}-${JAVA_VERSION}.${BUILD_VERSION}${arch_suffix}/jre
-  sdk_dir=java-${JAVA_VERSION}-${origin_name}-${JAVA_VERSION}.${BUILD_VERSION}${arch_suffix}
+  jre_dir=jre
   jre_lnk=jre-${JAVA_VERSION}-${origin_name}
   sdk_lnk=java-${JAVA_VERSION}-${origin_name}
 
@@ -1815,15 +1875,12 @@ then
   AC_SUBST(JVM_JAR_ROOT_DIR)
   AC_MSG_RESULT(JVM JAR ROOT directory: ${JVM_JAR_ROOT_DIR})
 
-  JVM_JAR_DIR=${jvm_jar_dir}/${sdk_dir}
+  JVM_JAR_DIR=${jvm_jar_dir}
   AC_SUBST(JVM_JAR_DIR)
   AC_MSG_RESULT(JVM JAR directory: ${JVM_JAR_DIR})
 
   JRE_DIR=${jre_dir}
   AC_SUBST(JRE_DIR)
-
-  SDK_DIR=${sdk_dir}
-  AC_SUBST(SDK_DIR)
 
   JRE_LNK=${jre_lnk}
   AC_SUBST(JRE_LNK)
@@ -1831,15 +1888,15 @@ then
   SDK_LNK=${sdk_lnk}
   AC_SUBST(SDK_LNK)
 
-  SDK_BIN_DIR=${jvm_root_dir}/${sdk_dir}/bin
+  SDK_BIN_DIR=${jvm_root_dir}/bin
   AC_SUBST(SDK_BIN_DIR)
   AC_MSG_RESULT(SDK tools directory: ${SDK_BIN_DIR})
 
-  SDK_LIB_DIR=${jvm_root_dir}/${sdk_dir}/lib
+  SDK_LIB_DIR=${jvm_root_dir}/lib
   AC_SUBST(SDK_LIB_DIR)
   AC_MSG_RESULT(SDK jar directory: ${SDK_LIB_DIR})
 
-  SDK_INCLUDE_DIR=${jvm_root_dir}/${sdk_dir}/include
+  SDK_INCLUDE_DIR=${jvm_root_dir}/include
   AC_SUBST(SDK_INCLUDE_DIR)
   AC_MSG_RESULT(SDK include directory: ${SDK_INCLUDE_DIR})
 
@@ -1861,7 +1918,7 @@ then
   AC_SUBST(GCJ_BIN_DIR)
   AC_MSG_RESULT(GCJ tools directory: ${GCJ_BIN_DIR})
 
-  echo host is ${host}
+  AC_MSG_RESULT(host is ${host})
   if test "x${host_cpu}" = "x"
   then
     case ${host} in
@@ -1869,6 +1926,8 @@ then
         host_cpu=x86;;
       i486-* | i586-* | i686-*)
         host_cpu=i386;;
+      x86_64-*)
+        host_cpu=amd64;;
       *)
         host_cpu=${host_cpu};;
     esac
@@ -1916,6 +1975,7 @@ testsuite/Makefile
 contrib/aotcompile.py
 contrib/aot-compile
 contrib/aot-compile-rpm
+contrib/generate-cacerts.pl
 contrib/rebuild-gcj-db
 ])
 

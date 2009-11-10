@@ -1,11 +1,11 @@
 // { dg-options "-std=gnu++0x" }
 
-// Copyright (C) 2005, 2006, 2007, 2008 Free Software Foundation
+// Copyright (C) 2005, 2006, 2007, 2008, 2009 Free Software Foundation
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -14,9 +14,8 @@
 // GNU General Public License for more details.
 
 // You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// with this library; see the file COPYING3.  If not see
+// <http://www.gnu.org/licenses/>.
 
 // 20.6.6.2 Template class shared_ptr [util.smartptr.shared]
 
@@ -34,9 +33,9 @@ test01()
   bool test __attribute__((unused)) = true;
 
   const std::shared_ptr<A> p1;
-  VERIFY( p1 == false );
+  VERIFY( static_cast<bool>(p1) == false );
   const std::shared_ptr<A> p2(p1);
-  VERIFY( p2 == false );
+  VERIFY( static_cast<bool>(p2) == false );
 }
 
 void
@@ -45,12 +44,12 @@ test02()
   bool test __attribute__((unused)) = true;
 
   std::shared_ptr<A> p1(new A);
-  VERIFY( p1 );
+  VERIFY( static_cast<bool>(p1) );
   std::shared_ptr<A> p2(p1);
-  VERIFY( p2 );
+  VERIFY( static_cast<bool>(p2) );
   p1.reset();
-  VERIFY( !p1 );
-  VERIFY( p2 );
+  VERIFY( !static_cast<bool>(p1) );
+  VERIFY( static_cast<bool>(p2) );
 }
 
 void
@@ -61,8 +60,8 @@ test03()
   std::shared_ptr<A> p1(new A);
   std::shared_ptr<A> p2(p1);
   p2.reset(new A);
-  VERIFY( p1 );
-  VERIFY( p2 );
+  VERIFY( static_cast<bool>(p1) );
+  VERIFY( static_cast<bool>(p2) );
 }
 
 

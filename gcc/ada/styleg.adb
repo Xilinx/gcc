@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -27,11 +27,14 @@
 --  checking rules. For documentation of these rules, see comments on the
 --  individual procedures.
 
+with Atree;    use Atree;
 with Casing;   use Casing;
 with Csets;    use Csets;
+with Einfo;    use Einfo;
 with Err_Vars; use Err_Vars;
 with Opt;      use Opt;
 with Scans;    use Scans;
+with Sinfo;    use Sinfo;
 with Sinput;   use Sinput;
 with Stylesw;  use Stylesw;
 
@@ -145,7 +148,8 @@ package body Styleg is
    begin
       if Style_Check_Attribute_Casing then
          if Determine_Token_Casing /= Mixed_Case then
-            Error_Msg_SC ("(style) bad capitalization, mixed case required");
+            Error_Msg_SC -- CODEFIX
+              ("(style) bad capitalization, mixed case required");
          end if;
       end if;
    end Check_Attribute_Name;
@@ -164,6 +168,84 @@ package body Styleg is
          Require_Following_Space;
       end if;
    end Check_Binary_Operator;
+
+   ----------------------------
+   -- Check_Boolean_Operator --
+   ----------------------------
+
+   procedure Check_Boolean_Operator (Node : Node_Id) is
+
+      function OK_Boolean_Operand (N : Node_Id) return Boolean;
+      --  Returns True for simple variable, or "not X1" or "X1 and X2" or
+      --  "X1 or X2" where X1, X2 are recursively OK_Boolean_Operand's.
+
+      ------------------------
+      -- OK_Boolean_Operand --
+      ------------------------
+
+      function OK_Boolean_Operand (N : Node_Id) return Boolean is
+      begin
+         if Nkind_In (N, N_Identifier, N_Expanded_Name) then
+            return True;
+
+         elsif Nkind (N) = N_Op_Not then
+            return OK_Boolean_Operand (Original_Node (Right_Opnd (N)));
+
+         elsif Nkind_In (N, N_Op_And, N_Op_Or) then
+            return OK_Boolean_Operand (Original_Node (Left_Opnd (N)))
+                     and then
+                   OK_Boolean_Operand (Original_Node (Right_Opnd (N)));
+
+         else
+            return False;
+         end if;
+      end OK_Boolean_Operand;
+
+   --  Start of processig for Check_Boolean_Operator
+   begin
+      if Style_Check_Boolean_And_Or
+        and then Comes_From_Source (Node)
+      then
+         declare
+            Orig : constant Node_Id := Original_Node (Node);
+
+         begin
+            if Nkind_In (Orig, N_Op_And, N_Op_Or) then
+               declare
+                  L : constant Node_Id := Original_Node (Left_Opnd  (Orig));
+                  R : constant Node_Id := Original_Node (Right_Opnd (Orig));
+
+               begin
+                  --  First OK case, simple boolean constants/identifiers
+
+                  if OK_Boolean_Operand (L)
+                       and then
+                     OK_Boolean_Operand (R)
+                  then
+                     return;
+
+                  --  Second OK case, modular types
+
+                  elsif Is_Modular_Integer_Type (Etype (Node)) then
+                     return;
+
+                  --  Third OK case, array types
+
+                  elsif Is_Array_Type (Etype (Node)) then
+                     return;
+
+                  --  Otherwise we have an error
+
+                  elsif Nkind (Orig) = N_Op_And then
+                     Error_Msg ("(style) `AND THEN` required", Sloc (Orig));
+                  else
+                     Error_Msg ("(style) `OR ELSE` required", Sloc (Orig));
+                  end if;
+               end;
+            end if;
+         end;
+      end if;
+   end Check_Boolean_Operator;
 
    ---------------
    -- Check_Box --
@@ -379,7 +461,8 @@ package body Styleg is
          if Style_Check_Indentation /= 0 then
             if Start_Column rem Style_Check_Indentation /= 0 then
                if not Same_Column_As_Next_Non_Blank_Line then
-                  Error_Msg_S ("(style) bad column");
+                  Error_Msg_S -- CODEFIX
+                    ("(style) bad column");
                end if;
 
                return;
@@ -605,16 +688,20 @@ package body Styleg is
          end if;
       end if;
 
-      --  Check DOS line terminator (ignore EOF, since we only get called
-      --  with an EOF if it is the last character in the buffer, and was
-      --  therefore not present in the sources
+      --  Check DOS line terminator
 
       if Style_Check_DOS_Line_Terminator then
+
+      --  Ignore EOF, since we only get called with an EOF if it is the last
+      --  character in the buffer (and was therefore not in the source file),
+      --  since the terminating EOF is added to stop the scan.
+
          if Source (Scan_Ptr) = EOF then
             null;
-         elsif Source (Scan_Ptr) /= LF
-           or else Source (Scan_Ptr + 1) = CR
-         then
+
+         --  Bad terminator if we don't have an LF
+
+         elsif Source (Scan_Ptr) /= LF then
             Error_Msg_S ("(style) incorrect line terminator");
          end if;
       end if;
@@ -652,7 +739,7 @@ package body Styleg is
 
       else
          if Style_Check_Blank_Lines and then Blank_Lines > 1 then
-            Error_Msg
+            Error_Msg -- CODEFIX
               ("(style) multiple blank lines", Blank_Line_Location);
          end if;
 
@@ -716,7 +803,8 @@ package body Styleg is
    begin
       if Style_Check_Pragma_Casing then
          if Determine_Token_Casing /= Mixed_Case then
-            Error_Msg_SC ("(style) bad capitalization, mixed case required");
+            Error_Msg_SC -- CODEFIX
+              ("(style) bad capitalization, mixed case required");
          end if;
       end if;
    end Check_Pragma_Name;
@@ -974,7 +1062,8 @@ package body Styleg is
    procedure Non_Lower_Case_Keyword is
    begin
       if Style_Check_Keyword_Casing then
-         Error_Msg_SC ("(style) reserved words must be all lower case");
+         Error_Msg_SC -- CODEIX
+           ("(style) reserved words must be all lower case");
       end if;
    end Non_Lower_Case_Keyword;
 
@@ -1001,14 +1090,5 @@ package body Styleg is
          Error_Space_Required (Token_Ptr);
       end if;
    end Require_Preceding_Space;
-
-   ---------------------
-   -- RM_Column_Check --
-   ---------------------
-
-   function RM_Column_Check return Boolean is
-   begin
-      return Style_Check and Style_Check_Layout;
-   end RM_Column_Check;
 
 end Styleg;

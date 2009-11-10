@@ -6,46 +6,46 @@
 --                                                                          --
 --                                   S p e c                                --
 --                                                                          --
---            Copyright (C) 2008, Free Software Foundation, Inc.            --
+--            Copyright (C) 2008-2009, Free Software Foundation, Inc.       --
 --                                                                          --
--- GNARL is free software; you can  redistribute it  and/or modify it under --
+-- GNARL is free software;  you can redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
--- sion. GNARL is distributed in the hope that it will be useful, but WITH- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
+-- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNARL; see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 ------------------------------------------------------------------------------
 
 --  This package provides vxworks specific support functions needed
 --  by System.OS_Interface.
 
---  This is the VxWorks 6 rtp version of this package
+--  This is the VxWorks 6 RTP version of this package
 
 with Interfaces.C;
 
 package System.VxWorks.Ext is
    pragma Preelaborate;
 
+   subtype SEM_ID is Long_Integer;
+   --  typedef struct semaphore *SEM_ID;
+
    type t_id is new Long_Integer;
    subtype int is Interfaces.C.int;
 
-   function Task_Cont (tid : t_id) return int;
-   pragma Inline (Task_Cont);
+   type Interrupt_Handler is access procedure (parameter : System.Address);
+   pragma Convention (C, Interrupt_Handler);
 
-   function Task_Stop (tid : t_id) return int;
-   pragma Inline (Task_Stop);
+   type Interrupt_Vector is new System.Address;
 
    function Int_Lock return int;
    pragma Inline (Int_Lock);
@@ -53,13 +53,41 @@ package System.VxWorks.Ext is
    function Int_Unlock return int;
    pragma Inline (Int_Unlock);
 
+   function Interrupt_Connect
+     (Vector    : Interrupt_Vector;
+      Handler   : Interrupt_Handler;
+      Parameter : System.Address := System.Null_Address) return int;
+   pragma Convention (C, Interrupt_Connect);
+
+   function Interrupt_Number_To_Vector
+     (intNum : int) return Interrupt_Vector;
+   pragma Convention (C, Interrupt_Number_To_Vector);
+
+   function semDelete (Sem : SEM_ID) return int;
+   pragma Import (C, semDelete, "semDelete");
+
+   function Task_Cont (tid : t_id) return int;
+   pragma Import (C, Task_Cont, "taskResume");
+
+   function Task_Stop (tid : t_id) return int;
+   pragma Import (C, Task_Stop, "taskSuspend");
+
    function kill (pid : t_id; sig : int) return int;
    pragma Import (C, kill, "taskKill");
+
+   function getpid return t_id;
+   pragma Import (C, getpid, "getpid");
 
    function Set_Time_Slice (ticks : int) return int;
    pragma Inline (Set_Time_Slice);
 
-   function getpid return t_id;
-   pragma Import (C, getpid, "getpid");
+   --------------------------------
+   -- Processor Affinity for SMP --
+   --------------------------------
+
+   function taskCpuAffinitySet (tid : t_id; CPU : int) return int;
+   pragma Convention (C, taskCpuAffinitySet);
+   --  For SMP run-times set the CPU affinity.
+   --  For uniprocessor systems return ERROR status.
 
 end System.VxWorks.Ext;

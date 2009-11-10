@@ -1,5 +1,5 @@
 ;; Machine description for ST Microelectronics Loongson-2E/2F.
-;; Copyright (C) 2008 Free Software Foundation, Inc.
+;; Copyright (C) 2008, 2009 Free Software Foundation, Inc.
 ;; Contributed by CodeSourcery.
 ;;
 ;; This file is part of GCC.
@@ -358,7 +358,7 @@
   [(set_attr "type" "fadd")])
 
 ;; Sum of unsigned byte integers.
-(define_insn "reduc_uplus_<mode>"
+(define_insn "loongson_biadd"
   [(set (match_operand:<V_stretch_half> 0 "register_operand" "=f")
         (unspec:<V_stretch_half> [(match_operand:VB 1 "register_operand" "f")]
 				 UNSPEC_LOONGSON_BIADD))]

@@ -1,11 +1,11 @@
-/* Copyright (C) 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+/* Copyright (C) 2002, 2003, 2004, 2005, 2009 Free Software Foundation, Inc.
    Contributed by Zack Weinberg <zack@codesourcery.com>
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -13,17 +13,14 @@ WARRANTY; without even the implied warranty of MERCHANTABILITY or
 FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
-You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+Under Section 7 of GPL version 3, you are granted additional
+permissions described in the GCC Runtime Library Exception, version
+3.1, as published by the Free Software Foundation.
 
-/* As a special exception, if you link this library with other files,
-   some of which are compiled with GCC, to produce an executable,
-   this library does not by itself cause the resulting executable
-   to be covered by the GNU General Public License.
-   This exception does not however invalidate any other reasons why
-   the executable file might be covered by the GNU General Public License.  */
+You should have received a copy of the GNU General Public License and
+a copy of the GCC Runtime Library Exception along with this program;
+see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+<http://www.gnu.org/licenses/>.  */
 
 /* Threads compatibility routines for libgcc2 for VxWorks.
    These are out-of-line routines called from gthr-vxworks.h. 
@@ -94,9 +91,9 @@ struct tls_data
    include a pointer to a local variable in the TLS data object.  */
 static int self_owner;
 
-/* The number of threads for this module which have active TLS data.
-   This is protected by tls_lock.  */
-static int active_tls_threads;
+/* Flag to check whether the delete hook is installed.  Once installed
+   it is only removed when unloading this module.  */
+static volatile int delete_hook_installed;
 
 /* kernel provided routines */
 extern void *__gthread_get_tls_data (void);
@@ -169,7 +166,11 @@ tls_delete_hook (void *tcb ATTRIBUTE_UNUSED)
   
   if (data && data->owner == &self_owner)
     {
+#ifdef __RTP__
       __gthread_enter_tls_dtor_context ();
+#else
+      __gthread_enter_tsd_dtor_context (tcb);
+#endif
       for (key = 0; key < MAX_KEYS; key++)
 	{
 	  if (data->generation[key] == tls_keys.generation[key])
@@ -181,22 +182,17 @@ tls_delete_hook (void *tcb ATTRIBUTE_UNUSED)
 	    }
 	}
       free (data);
+#ifdef __RTP__
+      __gthread_leave_tls_dtor_context ();
+#else
+      __gthread_leave_tsd_dtor_context ();
+#endif
 
-      /* We can't handle an error here, so just leave the thread
-	 marked as loaded if one occurs.  */
-      if (__gthread_mutex_lock (&tls_lock) != ERROR)
-	{
-	  active_tls_threads--;
-	  if (active_tls_threads == 0)
-	    taskDeleteHookDelete ((FUNCPTR)tls_delete_hook);
-	  __gthread_mutex_unlock (&tls_lock);
-	}
 #ifdef __RTP__
       __gthread_set_tls_data (0);
 #else
       __gthread_set_tsd_data (tcb, 0);
 #endif
-      __gthread_leave_tls_dtor_context ();
     }
 } 
 
@@ -214,13 +210,10 @@ tls_destructor (void)
 #ifdef __RTP__
   /* All threads but this one should have exited by now.  */
   tls_delete_hook (NULL);
-#else
-  /* Unregister the hook forcibly.  The counter of active threads may
-     be incorrect, because constructors (like the C++ library's) and
-     destructors (like this one) run in the context of the shell rather
-     than in a task spawned from this module.  */
-  taskDeleteHookDelete ((FUNCPTR)tls_delete_hook);
 #endif
+  /* Unregister the hook.  */
+  if (delete_hook_installed)
+    taskDeleteHookDelete ((FUNCPTR)tls_delete_hook);
 
   if (tls_init_guard.done && __gthread_mutex_lock (&tls_lock) != ERROR)
     semDelete (tls_lock);
@@ -334,12 +327,18 @@ __gthread_setspecific (__gthread_key_t key, void *value)
   data = __gthread_get_tls_data ();
   if (!data)
     {
-      if (__gthread_mutex_lock (&tls_lock) == ERROR)
-	return ENOMEM;
-      if (active_tls_threads == 0)
-	taskDeleteHookAdd ((FUNCPTR)tls_delete_hook);
-      active_tls_threads++;
-      __gthread_mutex_unlock (&tls_lock);
+      if (!delete_hook_installed)
+	{
+	  /* Install the delete hook.  */
+	  if (__gthread_mutex_lock (&tls_lock) == ERROR)
+	    return ENOMEM;
+	  if (!delete_hook_installed)
+	    {
+	      taskDeleteHookAdd ((FUNCPTR)tls_delete_hook);
+	      delete_hook_installed = 1;
+	    }
+	  __gthread_mutex_unlock (&tls_lock);
+	}
 
       data = malloc (sizeof (struct tls_data));
       if (!data)

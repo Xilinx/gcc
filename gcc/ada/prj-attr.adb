@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2001-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 2001-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -68,6 +68,7 @@ package body Prj.Attr is
    --  General
 
    "SVRname#" &
+   "SVRproject_dir#" &
    "lVmain#" &
    "LVlanguages#" &
    "SVmain_language#" &
@@ -111,10 +112,12 @@ package body Prj.Attr is
 
    "SVdefault_language#" &
    "LVrun_path_option#" &
+   "SVseparate_run_path_options#" &
    "Satoolchain_version#" &
    "Satoolchain_description#" &
    "Saobject_generated#" &
    "Saobjects_linked#" &
+   "SVtarget#" &
 
    --  Configuration - Libraries
 
@@ -139,6 +142,7 @@ package body Prj.Attr is
    "LVshared_library_minimum_switches#" &
    "LVlibrary_version_switches#" &
    "Saruntime_library_dir#" &
+   "Saruntime_source_dir#" &
 
    --  package Naming
 
@@ -169,8 +173,12 @@ package body Prj.Attr is
 
    "Sadriver#" &
    "Larequired_switches#" &
+   "Laleading_required_switches#" &
+   "Latrailing_required_switches#" &
    "Lapic_option#" &
    "Sapath_syntax#" &
+   "Saobject_file_suffix#" &
+   "Laobject_file_switches#" &
 
    --  Configuration - Mapping files
 
@@ -243,6 +251,12 @@ package body Prj.Attr is
    "LVexecutable_switch#" &
    "SVlib_dir_switch#" &
    "SVlib_name_switch#" &
+
+   --  Configuration - Response files
+
+   "SVmax_command_line_length#" &
+   "SVresponse_file_format#" &
+   "LVresponse_file_switches#" &
 
    --  package Cross_Reference
 
@@ -467,9 +481,9 @@ package body Prj.Attr is
 
                for Index in First_Package .. Package_Attributes.Last loop
                   if Package_Name = Package_Attributes.Table (Index).Name then
-                     Osint.Fail ("duplicate name """,
-                           Initialization_Data (Start .. Finish - 1),
-                           """ in predefined packages.");
+                     Osint.Fail ("duplicate name """
+                                 & Initialization_Data (Start .. Finish - 1)
+                                 & """ in predefined packages.");
                   end if;
                end loop;
 
@@ -576,9 +590,9 @@ package body Prj.Attr is
 
                for Index in First_Attribute .. Attrs.Last - 1 loop
                   if Attribute_Name = Attrs.Table (Index).Name then
-                     Osint.Fail ("duplicate attribute """,
-                           Initialization_Data (Start .. Finish - 1),
-                           """ in " & Attribute_Location);
+                     Osint.Fail ("duplicate attribute """
+                                 & Initialization_Data (Start .. Finish - 1)
+                                 & """ in " & Attribute_Location);
                   end if;
                end loop;
 
@@ -716,8 +730,9 @@ package body Prj.Attr is
       end if;
 
       if In_Package = Empty_Package then
-         Fail ("attempt to add attribute """, Name,
-               """ to an undefined package");
+         Fail ("attempt to add attribute """
+               & Name
+               & """ to an undefined package");
          raise Project_Error;
       end if;
 
@@ -731,11 +746,12 @@ package body Prj.Attr is
       Curr_Attr := First_Attr;
       while Curr_Attr /= Empty_Attr loop
          if Attrs.Table (Curr_Attr).Name = Attr_Name then
-            Fail ("duplicate attribute name """, Name,
-                  """ in package """ &
-                  Get_Name_String
-                    (Package_Attributes.Table (In_Package.Value).Name) &
-                  """");
+            Fail ("duplicate attribute name """
+                  & Name
+                  & """ in package """
+                  & Get_Name_String
+                     (Package_Attributes.Table (In_Package.Value).Name)
+                  & """");
             raise Project_Error;
          end if;
 
@@ -794,8 +810,9 @@ package body Prj.Attr is
 
       for Index in Package_Attributes.First .. Package_Attributes.Last loop
          if Package_Attributes.Table (Index).Name = Pkg_Name then
-            Fail ("cannot register a package with a non unique name""",
-                  Name, """");
+            Fail ("cannot register a package with a non unique name"""
+                  & Name
+                  & """");
             Id := Empty_Package;
             return;
          end if;
@@ -831,8 +848,9 @@ package body Prj.Attr is
 
       for Index in Package_Attributes.First .. Package_Attributes.Last loop
          if Package_Attributes.Table (Index).Name = Pkg_Name then
-            Fail ("cannot register a package with a non unique name""",
-                  Name, """");
+            Fail ("cannot register a package with a non unique name"""
+                  & Name
+                  & """");
             raise Project_Error;
          end if;
       end loop;
@@ -843,8 +861,11 @@ package body Prj.Attr is
          Curr_Attr := First_Attr;
          while Curr_Attr /= Empty_Attr loop
             if Attrs.Table (Curr_Attr).Name = Attr_Name then
-               Fail ("duplicate attribute name """, Attributes (Index).Name,
-                     """ in new package """ & Name & """");
+               Fail ("duplicate attribute name """
+                     & Attributes (Index).Name
+                     & """ in new package """
+                     & Name
+                     & """");
                raise Project_Error;
             end if;
 

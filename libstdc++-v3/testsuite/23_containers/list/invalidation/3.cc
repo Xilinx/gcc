@@ -1,11 +1,11 @@
 // List iterator invalidation tests
 
-// Copyright (C) 2003, 2004, 2005, 2006 Free Software Foundation, Inc.
+// Copyright (C) 2003, 2004, 2005, 2006, 2009 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -14,29 +14,28 @@
 // GNU General Public License for more details.
 
 // You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// with this library; see the file COPYING3.  If not see
+// <http://www.gnu.org/licenses/>.
 
 #include <debug/list>
 #include <iterator>
 #include <testsuite_hooks.h>
 
-using __gnu_debug::list;
-using std::advance;
-
-bool test = true;
-
 // Erase
 void test03()
 {
-  list<int> v(20, 42);
+  using std::advance;
+  
+  bool test __attribute__((unused)) = true;
+  typedef __gnu_debug::list<int> list_type;
+
+  list_type v(20, 42);
 
   // Single element erase (middle)
-  list<int>::iterator before = v.begin();
-  list<int>::iterator at = before;
+  list_type::iterator before = v.begin();
+  list_type::iterator at = before;
   advance(at, 3);
-  list<int>::iterator after = at;
+  list_type::iterator after = at;
   at = v.erase(at);
   VERIFY(before._M_dereferenceable());
   VERIFY(at._M_dereferenceable());
@@ -64,7 +63,7 @@ void test03()
 
   // clear()
   before = v.begin();
-  list<int>::iterator finish = v.end();
+  list_type::iterator finish = v.end();
   VERIFY(before._M_dereferenceable());
   v.clear();
   VERIFY(before._M_singular());

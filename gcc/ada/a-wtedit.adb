@@ -6,25 +6,23 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -488,7 +486,8 @@ package body Ada.Wide_Text_IO.Editing is
       for J in reverse Attrs.Start_Of_Int .. Attrs.End_Of_Int loop
 
          while Answer (Position) /= '9'
-           and Answer (Position) /= Pic.Floater
+                 and then
+               Answer (Position) /= Pic.Floater
          loop
             if Answer (Position) = '_' then
                Answer (Position) := Separator_Character;
@@ -730,7 +729,7 @@ package body Ada.Wide_Text_IO.Editing is
 
             for J in Last .. Answer'Last loop
 
-               if Answer (J) = '9' or Answer (J) = Pic.Floater then
+               if Answer (J) = '9' or else Answer (J) = Pic.Floater then
                   Answer (J) := To_Wide (Rounded (Position));
 
                   if Rounded (Position) /= '0' then
@@ -858,7 +857,7 @@ package body Ada.Wide_Text_IO.Editing is
 
       --  Now get rid of Blank_when_Zero and complete Star fill
 
-      if Zero and Pic.Blank_When_Zero then
+      if Zero and then Pic.Blank_When_Zero then
 
          --  Value is zero, and blank it
 
@@ -875,7 +874,7 @@ package body Ada.Wide_Text_IO.Editing is
 
          return Wide_String'(1 .. Last => ' ');
 
-      elsif Zero and Pic.Star_Fill then
+      elsif Zero and then Pic.Star_Fill then
          Last := Answer'Last;
 
          if Dollar then
@@ -2086,7 +2085,7 @@ package body Ada.Wide_Text_IO.Editing is
                Pic.Picture.Expanded (Index) := 'C';
                Skip;
 
-               if Look = 'R' or Look = 'r' then
+               if Look = 'R' or else Look = 'r' then
                   Pic.Second_Sign := Index;
                   Pic.Picture.Expanded (Index) := 'R';
                   Skip;
@@ -2102,7 +2101,7 @@ package body Ada.Wide_Text_IO.Editing is
                Pic.Picture.Expanded (Index) := 'D';
                Skip;
 
-               if Look = 'B' or Look = 'b' then
+               if Look = 'B' or else Look = 'b' then
                   Pic.Second_Sign := Index;
                   Pic.Picture.Expanded (Index) := 'B';
                   Skip;
@@ -2471,14 +2470,15 @@ package body Ada.Wide_Text_IO.Editing is
          end case;
 
          --  Blank when zero either if the PIC does not contain a '9' or if
-         --  requested by the user and no '*'
+         --  requested by the user and no '*'.
 
          Pic.Blank_When_Zero :=
-           (Computed_BWZ or Pic.Blank_When_Zero) and not Pic.Star_Fill;
+           (Computed_BWZ or else Pic.Blank_When_Zero)
+             and then not Pic.Star_Fill;
 
          --  Star fill if '*' and no '9'
 
-         Pic.Star_Fill := Pic.Star_Fill and Computed_BWZ;
+         Pic.Star_Fill := Pic.Star_Fill and then Computed_BWZ;
 
          if not At_End then
             Set_State (Reject);

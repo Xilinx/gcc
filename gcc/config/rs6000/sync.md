@@ -1,5 +1,5 @@
 ;; Machine description for PowerPC synchronization instructions.
-;; Copyright (C) 2005, 2007 Free Software Foundation, Inc.
+;; Copyright (C) 2005, 2007, 2008, 2009 Free Software Foundation, Inc.
 ;; Contributed by Geoffrey Keating.
 
 ;; This file is part of GCC.
@@ -616,7 +616,7 @@
   if (TARGET_NO_LWSYNC)
     return "sync";
   else
-    return ".long 0x7c2004ac";
+    return (TARGET_LWSYNC_INSTRUCTION) ? "lwsync" : ".long 0x7c2004ac";
 }
   [(set_attr "type" "sync")])
 

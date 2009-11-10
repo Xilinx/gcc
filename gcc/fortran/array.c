@@ -607,7 +607,8 @@ gfc_append_constructor (gfc_expr *base, gfc_expr *new_expr)
 
   c->expr = new_expr;
 
-  if (new_expr->ts.type != base->ts.type || new_expr->ts.kind != base->ts.kind)
+  if (new_expr
+      && (new_expr->ts.type != base->ts.type || new_expr->ts.kind != base->ts.kind))
     gfc_internal_error ("gfc_append_constructor(): New node has wrong kind");
 }
 
@@ -906,7 +907,7 @@ gfc_match_array_constructor (gfc_expr **result)
   seen_ts = false;
 
   /* Try to match an optional "type-spec ::"  */
-  if (gfc_match_type_spec (&ts, 0) == MATCH_YES)
+  if (gfc_match_decl_type_spec (&ts, 0) == MATCH_YES)
     {
       seen_ts = (gfc_match (" ::") == MATCH_YES);
 
@@ -967,8 +968,8 @@ done:
   else
     expr->ts.type = BT_UNKNOWN;
   
-  if (expr->ts.cl)
-    expr->ts.cl->length_from_typespec = seen_ts;
+  if (expr->ts.u.cl)
+    expr->ts.u.cl->length_from_typespec = seen_ts;
 
   expr->where = where;
   expr->rank = 1;
@@ -1587,27 +1588,25 @@ gfc_resolve_character_array_constructor (gfc_expr *expr)
   gcc_assert (expr->expr_type == EXPR_ARRAY);
   gcc_assert (expr->ts.type == BT_CHARACTER);
 
-  if (expr->ts.cl == NULL)
+  if (expr->ts.u.cl == NULL)
     {
       for (p = expr->value.constructor; p; p = p->next)
-	if (p->expr->ts.cl != NULL)
+	if (p->expr->ts.u.cl != NULL)
 	  {
 	    /* Ensure that if there is a char_len around that it is
 	       used; otherwise the middle-end confuses them!  */
-	    expr->ts.cl = p->expr->ts.cl;
+	    expr->ts.u.cl = p->expr->ts.u.cl;
 	    goto got_charlen;
 	  }
 
-      expr->ts.cl = gfc_get_charlen ();
-      expr->ts.cl->next = gfc_current_ns->cl_list;
-      gfc_current_ns->cl_list = expr->ts.cl;
+      expr->ts.u.cl = gfc_new_charlen (gfc_current_ns, NULL);
     }
 
 got_charlen:
 
   found_length = -1;
 
-  if (expr->ts.cl->length == NULL)
+  if (expr->ts.u.cl->length == NULL)
     {
       /* Check that all constant string elements have the same length until
 	 we reach the end or find a variable-length one.  */
@@ -1631,11 +1630,11 @@ got_charlen:
 		- mpz_get_ui (ref->u.ss.start->value.integer) + 1;
 	      current_length = (int) j;
 	    }
-	  else if (p->expr->ts.cl && p->expr->ts.cl->length
-		   && p->expr->ts.cl->length->expr_type == EXPR_CONSTANT)
+	  else if (p->expr->ts.u.cl && p->expr->ts.u.cl->length
+		   && p->expr->ts.u.cl->length->expr_type == EXPR_CONSTANT)
 	    {
 	      long j;
-	      j = mpz_get_si (p->expr->ts.cl->length->value.integer);
+	      j = mpz_get_si (p->expr->ts.u.cl->length->value.integer);
 	      current_length = (int) j;
 	    }
 	  else
@@ -1659,18 +1658,18 @@ got_charlen:
       gcc_assert (found_length != -1);
 
       /* Update the character length of the array constructor.  */
-      expr->ts.cl->length = gfc_int_expr (found_length);
+      expr->ts.u.cl->length = gfc_int_expr (found_length);
     }
   else 
     {
       /* We've got a character length specified.  It should be an integer,
 	 otherwise an error is signalled elsewhere.  */
-      gcc_assert (expr->ts.cl->length);
+      gcc_assert (expr->ts.u.cl->length);
 
       /* If we've got a constant character length, pad according to this.
 	 gfc_extract_int does check for BT_INTEGER and EXPR_CONSTANT and sets
 	 max_length only if they pass.  */
-      gfc_extract_int (expr->ts.cl->length, &found_length);
+      gfc_extract_int (expr->ts.u.cl->length, &found_length);
 
       /* Now pad/truncate the elements accordingly to the specified character
 	 length.  This is ok inside this conditional, as in the case above
@@ -1684,16 +1683,16 @@ got_charlen:
 	      int current_length = -1;
 	      bool has_ts;
 
-	      if (p->expr->ts.cl && p->expr->ts.cl->length)
+	      if (p->expr->ts.u.cl && p->expr->ts.u.cl->length)
 	      {
-		cl = p->expr->ts.cl->length;
+		cl = p->expr->ts.u.cl->length;
 		gfc_extract_int (cl, &current_length);
 	      }
 
 	      /* If gfc_extract_int above set current_length, we implicitly
 		 know the type is BT_INTEGER and it's EXPR_CONSTANT.  */
 
-	      has_ts = (expr->ts.cl && expr->ts.cl->length_from_typespec);
+	      has_ts = (expr->ts.u.cl && expr->ts.u.cl->length_from_typespec);
 
 	      if (! cl
 		  || (current_length != -1 && current_length < found_length))
@@ -1876,14 +1875,14 @@ spec_size (gfc_array_spec *as, mpz_t *result)
 
 /* Get the number of elements in an array section.  */
 
-static gfc_try
-ref_dimen_size (gfc_array_ref *ar, int dimen, mpz_t *result)
+gfc_try
+gfc_ref_dimen_size (gfc_array_ref *ar, int dimen, mpz_t *result)
 {
   mpz_t upper, lower, stride;
   gfc_try t;
 
   if (dimen < 0 || ar == NULL || dimen > ar->dimen - 1)
-    gfc_internal_error ("ref_dimen_size(): Bad dimension");
+    gfc_internal_error ("gfc_ref_dimen_size(): Bad dimension");
 
   switch (ar->dimen_type[dimen])
     {
@@ -1957,7 +1956,7 @@ ref_dimen_size (gfc_array_ref *ar, int dimen, mpz_t *result)
       return t;
 
     default:
-      gfc_internal_error ("ref_dimen_size(): Bad dimen_type");
+      gfc_internal_error ("gfc_ref_dimen_size(): Bad dimen_type");
     }
 
   return t;
@@ -1974,7 +1973,7 @@ ref_size (gfc_array_ref *ar, mpz_t *result)
 
   for (d = 0; d < ar->dimen; d++)
     {
-      if (ref_dimen_size (ar, d, &size) == FAILURE)
+      if (gfc_ref_dimen_size (ar, d, &size) == FAILURE)
 	{
 	  mpz_clear (*result);
 	  return FAILURE;
@@ -2020,7 +2019,7 @@ gfc_array_dimen_size (gfc_expr *array, int dimen, mpz_t *result)
 		if (ref->u.ar.dimen_type[i] != DIMEN_ELEMENT)
 		  dimen--;
 
-	      return ref_dimen_size (&ref->u.ar, i - 1, result);
+	      return gfc_ref_dimen_size (&ref->u.ar, i - 1, result);
 	    }
 	}
 
@@ -2148,7 +2147,7 @@ gfc_array_ref_shape (gfc_array_ref *ar, mpz_t *shape)
 	{
 	  if (ar->dimen_type[i] != DIMEN_ELEMENT)
 	    {
-	      if (ref_dimen_size (ar, i, &shape[d]) == FAILURE)
+	      if (gfc_ref_dimen_size (ar, i, &shape[d]) == FAILURE)
 		goto cleanup;
 	      d++;
 	    }

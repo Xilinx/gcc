@@ -10,10 +10,10 @@
 @cindex representation of RTL
 @cindex Register Transfer Language (RTL)
 
-Most of the work of the compiler is done on an intermediate representation
-called register transfer language.  In this language, the instructions to be
-output are described, pretty much one by one, in an algebraic form that
-describes what the instruction does.
+The last part of the compiler work is done on a low-level intermediate
+representation called Register Transfer Language.  In this language, the
+instructions to be output are described, pretty much one by one, in an
+algebraic form that describes what the instruction does.
 
 RTL is inspired by Lisp lists.  It has both an internal form, made up of
 structures that point at other structures, and a textual form that is used
@@ -887,6 +887,14 @@ Stored in the @code{volatil} field and printed as @samp{/v}.
 Most uses of @code{SYMBOL_REF_FLAG} are historic and may be subsumed
 by @code{SYMBOL_REF_FLAGS}.  Certainly use of @code{SYMBOL_REF_FLAGS}
 is mandatory if the target requires more than one bit of storage.
+
+@findex PREFETCH_SCHEDULE_BARRIER_P
+@cindex @code{prefetch} and @samp{/v}
+@cindex @code{volatile}, in @code{prefetch}
+@item PREFETCH_SCHEDULE_BARRIER_P (@var{x})
+In a @code{prefetch}, indicates that the prefetch is a scheduling barrier.
+No other INSNs will be moved over it.
+Stored in the @code{volatil} field and printed as @samp{/v}.
 @end table
 
 These are the fields to which the above macros refer:
@@ -1038,6 +1046,9 @@ In an @code{insn}, 1 means the insn has been deleted.
 
 In @code{label_ref} and @code{reg_label} expressions, 1 means a reference
 to a non-local label.
+
+In @code{prefetch} expressions, 1 means that the containing insn is a
+scheduling barrier.
 
 In an RTL dump, this flag is represented as @samp{/v}.
 @end table
@@ -2358,9 +2369,14 @@ Similar but represent left and right rotate.  If @var{c} is a constant,
 use @code{rotate}.
 
 @findex abs
+@findex ss_abs
 @cindex absolute value
 @item (abs:@var{m} @var{x})
+@item (ss_abs:@var{m} @var{x})
 Represents the absolute value of @var{x}, computed in mode @var{m}.
+@code{ss_abs} ensures that an out-of-bounds result saturates to the
+maximum signed value.
+
 
 @findex sqrt
 @cindex square root
@@ -2955,7 +2971,7 @@ store a value in @var{x}.  @var{x} must be a @code{reg} expression.
 In some situations, it may be tempting to add a @code{use} of a
 register in a @code{parallel} to describe a situation where the value
 of a special register will modify the behavior of the instruction.
-An hypothetical example might be a pattern for an addition that can
+A hypothetical example might be a pattern for an addition that can
 either wrap around or use saturating addition depending on the value
 of a special control register:
 
@@ -3261,7 +3277,7 @@ mode @var{m1} is the mode of the sum @code{x+y}; @var{m2} is that of
 
 When an @code{asm} statement has multiple output values, its insn has
 several such @code{set} RTX's inside of a @code{parallel}.  Each @code{set}
-contains a @code{asm_operands}; all of these share the same assembler
+contains an @code{asm_operands}; all of these share the same assembler
 template and vectors, but each contains the constraint for the respective
 output operand.  They are also distinguished by the output-operand index
 number, which is 0, 1, @dots{} for successive output operands.
@@ -3685,7 +3701,7 @@ used, and flow optimization to build an accurate flow graph.
 
 @findex REG_LABEL_TARGET
 @item REG_LABEL_TARGET
-This insn is a @code{jump_insn} but not a @code{addr_vec} or
+This insn is a @code{jump_insn} but not an @code{addr_vec} or
 @code{addr_diff_vec}.  It uses @var{op}, a @code{code_label} as a
 direct or indirect jump target.  Its purpose is similar to that of
 @code{REG_LABEL_OPERAND}.  This note is only present if the insn has
@@ -3695,7 +3711,7 @@ insn-field) goes into the @code{JUMP_LABEL} field and does not have a
 
 @findex REG_CROSSING_JUMP
 @item REG_CROSSING_JUMP
-This insn is an branching instruction (either an unconditional jump or
+This insn is a branching instruction (either an unconditional jump or
 an indirect jump) which crosses between hot and cold sections, which
 could potentially be very far apart in the executable.  The presence
 of this note indicates to other optimizations that this branching

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -36,37 +36,39 @@ package Rtsfind is
    -- Runtime Unit Table --
    ------------------------
 
-   --  The following type includes an enumeration entry for each runtime
-   --  unit. The enumeration literal represents the fully qualified
-   --  name of the unit, as follows:
+   --  The following type includes an enumeration entry for each runtime unit.
+   --  The enumeration literal represents the fully qualified name of the unit,
+   --  as follows:
 
-   --    Names of the form Ada_xxx are first level children of Ada, whose
-   --    name is Ada.xxx. For example, the name Ada_Tags refers to package
-   --    Ada.Tags.
+   --    Names of the form Ada_xxx are first level children of Ada, whose name
+   --    is Ada.xxx. For example, the name Ada_Tags refers to package Ada.Tags.
 
-   --    Names of the form Ada_Calendar_xxx are second level children
-   --    of Ada.Calendar. This is part of a temporary implementation of
-   --    delays; eventually, packages implementing delays will be found
-   --    relative to the package that declares the time type.
+   --    Names of the form Ada_Calendar_xxx are second level children of
+   --    Ada.Calendar. This is part of a temporary implementation of delays;
+   --    eventually, packages implementing delays will be found relative to
+   --    the package that declares the time type.
 
-   --    Names of the form Ada_Finalization_xxx are second level children
-   --    of Ada.Finalization.
+   --    Names of the form Ada_Finalization_xxx are second level children of
+   --    Ada.Finalization.
 
-   --    Names of the form Ada_Interrupts_xxx are second level children
-   --    of Ada.Interrupts. This is needed for Ada.Interrupts.Names which
-   --    is used by pragma Interrupt_State.
+   --    Names of the form Ada_Interrupts_xxx are second level children of
+   --    Ada.Interrupts. This is needed for Ada.Interrupts.Names which is used
+   --    by pragma Interrupt_State.
 
-   --    Names of the form Ada_Real_Time_xxx are second level children
-   --    of Ada.Real_Time.
+   --    Names of the form Ada_Real_Time_xxx are second level children of
+   --    Ada.Real_Time.
 
    --    Names of the form Ada_Streams_xxx are second level children
    --    of Ada.Streams.
 
-   --    Names of the form Ada_Text_IO_xxx are second level children
-   --    of Ada.Text_IO.
+   --    Names of the form Ada_Strings_xxx are second level children
+   --    of Ada.Strings.
 
-   --    Names of the form Ada_Wide_Text_IO_xxx are second level children
-   --    of Ada.Wide_Text_IO.
+   --    Names of the form Ada_Text_IO_xxx are second level children of
+   --    Ada.Text_IO.
+
+   --    Names of the form Ada_Wide_Text_IO_xxx are second level children of
+   --    Ada.Wide_Text_IO.
 
    --    Names of the form Ada_Wide_Wide_Text_IO_xxx are second level children
    --    of Ada.Wide_Wide_Text_IO.
@@ -88,22 +90,22 @@ package Rtsfind is
    --    Other names stand for themselves (e.g. System for package System)
 
    --  This list can contain both subprogram and package unit names. For
-   --  packages, the accessible entities in the package are separately
-   --  listed in the package entity table. The units must be either library
-   --  level package declarations, or library level subprogram declarations.
-   --  Generic units, library level instantiations and subprogram bodies
-   --  acting as specs may not be referenced (all these cases could be added
-   --  at the expense of additional complexity in the body of Rtsfind, but
-   --  it doesn't seem worthwhile, since the implementation controls the
-   --  set of units that are referenced, and this restriction is easily met.
+   --  packages, the accessible entities in the package are separately listed
+   --  in the package entity table. The units must be either library level
+   --  package declarations, or library level subprogram declarations. Generic
+   --  units, library level instantiations and subprogram bodies acting as
+   --  specs may not be referenced (all these cases could be added at the
+   --  expense of additional complexity in the body of Rtsfind, but it doesn't
+   --  seem worthwhile, since the implementation controls the set of units that
+   --  are referenced, and this restriction is easily met.
 
-   --  IMPORTANT NOTE: the specs of packages and procedures with'ed using
-   --  this mechanism may not contain use clauses. This is because these
-   --  subprograms are compiled in the current visibility environment, and
-   --  it would be too much trouble to establish a clean environment for the
-   --  compilation. The presence of extraneous visible stuff has no effect
-   --  on the compilation except in the presence of use clauses (which might
-   --  result in unexpected ambiguities).
+   --  IMPORTANT NOTE: the specs of packages and procedures with'ed using this
+   --  mechanism may not contain use clauses. This is because these subprograms
+   --  are compiled in the current visibility environment, and it would be too
+   --  much trouble to establish a clean environment for the compilation. The
+   --  presence of extraneous visible stuff has no effect on the compilation
+   --  except in the presence of use clauses (which might result in unexpected
+   --  ambiguities).
 
    type RTU_Id is (
       --  Runtime packages, for list of accessible entities in each
@@ -121,6 +123,7 @@ package Rtsfind is
       Ada_Interrupts,
       Ada_Real_Time,
       Ada_Streams,
+      Ada_Strings,
       Ada_Tags,
       Ada_Task_Identification,
       Ada_Task_Termination,
@@ -149,6 +152,10 @@ package Rtsfind is
       --  Children of Ada.Streams
 
       Ada_Streams_Stream_IO,
+
+      --  Children of Ada.Strings
+
+      Ada_Strings_Unbounded,
 
       --  Children of Ada.Text_IO (for Text_IO_Kludge)
 
@@ -208,6 +215,14 @@ package Rtsfind is
       System_Compare_Array_Unsigned_32,
       System_Compare_Array_Unsigned_64,
       System_Compare_Array_Unsigned_8,
+      System_Concat_2,
+      System_Concat_3,
+      System_Concat_4,
+      System_Concat_5,
+      System_Concat_6,
+      System_Concat_7,
+      System_Concat_8,
+      System_Concat_9,
       System_DSA_Services,
       System_DSA_Types,
       System_Exception_Table,
@@ -322,10 +337,6 @@ package Rtsfind is
       System_Storage_Elements,
       System_Storage_Pools,
       System_Stream_Attributes,
-      System_String_Ops,
-      System_String_Ops_Concat_3,
-      System_String_Ops_Concat_4,
-      System_String_Ops_Concat_5,
       System_Task_Info,
       System_Tasking,
       System_Threads,
@@ -401,6 +412,11 @@ package Rtsfind is
 
    subtype Ada_Streams_Child is Ada_Child
      range Ada_Streams_Stream_IO .. Ada_Streams_Stream_IO;
+   --  Range of values for children of Ada.Streams
+
+   subtype Ada_Strings_Child is Ada_Child
+     range Ada_Strings_Unbounded .. Ada_Strings_Unbounded;
+   --  Range of values for children of Ada.Strings
 
    subtype Ada_Text_IO_Child is Ada_Child
      range Ada_Text_IO_Decimal_IO .. Ada_Text_IO_Modular_IO;
@@ -487,6 +503,7 @@ package Rtsfind is
      RE_Exception_Message,               -- Ada.Exceptions
      RE_Exception_Name_Simple,           -- Ada.Exceptions
      RE_Exception_Occurrence,            -- Ada.Exceptions
+     RE_Null_Id,                         -- Ada.Exceptions
      RE_Null_Occurrence,                 -- Ada.Exceptions
      RE_Poll,                            -- Ada.Exceptions
      RE_Raise_Exception,                 -- Ada.Exceptions
@@ -525,6 +542,8 @@ package Rtsfind is
      RE_Stream_Element,                  -- Ada.Streams
 
      RE_Stream_Access,                   -- Ada.Streams.Stream_IO
+
+     RE_Unbounded_String,                -- Ada.Strings.Unbounded
 
      RE_Access_Level,                    -- Ada.Tags
      RE_Address_Array,                   -- Ada.Tags
@@ -692,6 +711,24 @@ package Rtsfind is
      RE_Compare_Array_U32,               -- System.Compare_Array_Unsigned_16
 
      RE_Compare_Array_U64,               -- System.Compare_Array_Unsigned_16
+
+     RE_Str_Concat_2,                    -- System.Concat_2
+     RE_Str_Concat_3,                    -- System.Concat_3
+     RE_Str_Concat_4,                    -- System.Concat_4
+     RE_Str_Concat_5,                    -- System.Concat_5
+     RE_Str_Concat_6,                    -- System.Concat_6
+     RE_Str_Concat_7,                    -- System.Concat_7
+     RE_Str_Concat_8,                    -- System.Concat_8
+     RE_Str_Concat_9,                    -- System.Concat_9
+
+     RE_Str_Concat_Bounds_2,             -- System.Concat_2
+     RE_Str_Concat_Bounds_3,             -- System.Concat_3
+     RE_Str_Concat_Bounds_4,             -- System.Concat_4
+     RE_Str_Concat_Bounds_5,             -- System.Concat_5
+     RE_Str_Concat_Bounds_6,             -- System.Concat_6
+     RE_Str_Concat_Bounds_7,             -- System.Concat_7
+     RE_Str_Concat_Bounds_8,             -- System.Concat_8
+     RE_Str_Concat_Bounds_9,             -- System.Concat_9
 
      RE_Get_Active_Partition_Id,         -- System.DSA_Services
      RE_Get_Local_Partition_Id,          -- System.DSA_Services
@@ -1139,6 +1176,7 @@ package Rtsfind is
      RE_Request_Arguments,               -- System.Partition_Interface
      RE_Request_Set_Out,                 -- System.Partition_Interface
      RE_Request_Raise_Occurrence,        -- System.Partition_Interface
+     RE_Request_Destroy,                 -- System.Partition_Interface
      RE_Nil_Exc_List,                    -- System.Partition_Interface
      RE_Servant,                         -- System.Partition_Interface
      RE_Move_Any_Value,                  -- System.Partition_Interface
@@ -1155,7 +1193,6 @@ package Rtsfind is
      RE_Get_Reference,                   -- System.Partition_Interface
      RE_Asynchronous_P_To_Sync_Scope,    -- System.Partition_Interface
      RE_Buffer_Stream_Type,              -- System.Partition_Interface
-     RE_Allocate_Buffer,                 -- System.Partition_Interface
      RE_Release_Buffer,                  -- System.Partition_Interface
      RE_BS_To_Any,                       -- System.Partition_Interface
      RE_Any_To_BS,                       -- System.Partition_Interface
@@ -1203,6 +1240,7 @@ package Rtsfind is
      RE_TA_WWC,                          -- System.Partition_Interface
      RE_TA_String,                       -- System.Partition_Interface
      RE_TA_ObjRef,                       -- System.Partition_Interface
+     RE_TA_Std_String,                   -- System.Partition_Interface
      RE_TA_TC,                           -- System.Partition_Interface
 
      RE_TC_Alias,                        -- System.Partition_Interface
@@ -1319,17 +1357,6 @@ package Rtsfind is
      RE_W_U,                             -- System.Stream_Attributes
      RE_W_WC,                            -- System.Stream_Attributes
      RE_W_WWC,                           -- System.Stream_Attributes
-
-     RE_Str_Concat,                      -- System.String_Ops
-     RE_Str_Concat_CC,                   -- System.String_Ops
-     RE_Str_Concat_CS,                   -- System.String_Ops
-     RE_Str_Concat_SC,                   -- System.String_Ops
-
-     RE_Str_Concat_3,                    -- System.String_Ops_Concat_3
-
-     RE_Str_Concat_4,                    -- System.String_Ops_Concat_4
-
-     RE_Str_Concat_5,                    -- System.String_Ops_Concat_5
 
      RE_String_Input,                    -- System.Strings.Stream_Ops
      RE_String_Input_Blk_IO,             -- System.Strings.Stream_Ops
@@ -1622,7 +1649,7 @@ package Rtsfind is
    --  function to determine the unit containing the given entity. This table
    --  is sorted in order of package names.
 
-   RE_Unit_Table : array (RE_Id) of RTU_Id := (
+   RE_Unit_Table : constant array (RE_Id) of RTU_Id := (
 
      RE_Null                             => RTU_Null,
 
@@ -1641,6 +1668,7 @@ package Rtsfind is
      RE_Exception_Message                => Ada_Exceptions,
      RE_Exception_Name_Simple            => Ada_Exceptions,
      RE_Exception_Occurrence             => Ada_Exceptions,
+     RE_Null_Id                          => Ada_Exceptions,
      RE_Null_Occurrence                  => Ada_Exceptions,
      RE_Poll                             => Ada_Exceptions,
      RE_Raise_Exception                  => Ada_Exceptions,
@@ -1679,6 +1707,8 @@ package Rtsfind is
      RE_Stream_Element                   => Ada_Streams,
 
      RE_Stream_Access                    => Ada_Streams_Stream_IO,
+
+     RE_Unbounded_String                 => Ada_Strings_Unbounded,
 
      RE_Access_Level                     => Ada_Tags,
      RE_Address_Array                    => Ada_Tags,
@@ -1846,6 +1876,24 @@ package Rtsfind is
      RE_Compare_Array_U32                => System_Compare_Array_Unsigned_32,
 
      RE_Compare_Array_U64                => System_Compare_Array_Unsigned_64,
+
+     RE_Str_Concat_2                     => System_Concat_2,
+     RE_Str_Concat_3                     => System_Concat_3,
+     RE_Str_Concat_4                     => System_Concat_4,
+     RE_Str_Concat_5                     => System_Concat_5,
+     RE_Str_Concat_6                     => System_Concat_6,
+     RE_Str_Concat_7                     => System_Concat_7,
+     RE_Str_Concat_8                     => System_Concat_8,
+     RE_Str_Concat_9                     => System_Concat_9,
+
+     RE_Str_Concat_Bounds_2              => System_Concat_2,
+     RE_Str_Concat_Bounds_3              => System_Concat_3,
+     RE_Str_Concat_Bounds_4              => System_Concat_4,
+     RE_Str_Concat_Bounds_5              => System_Concat_5,
+     RE_Str_Concat_Bounds_6              => System_Concat_6,
+     RE_Str_Concat_Bounds_7              => System_Concat_7,
+     RE_Str_Concat_Bounds_8              => System_Concat_8,
+     RE_Str_Concat_Bounds_9              => System_Concat_9,
 
      RE_Get_Active_Partition_Id          => System_DSA_Services,
      RE_Get_Local_Partition_Id           => System_DSA_Services,
@@ -2284,6 +2332,7 @@ package Rtsfind is
      RE_Request_Arguments                => System_Partition_Interface,
      RE_Request_Set_Out                  => System_Partition_Interface,
      RE_Request_Raise_Occurrence         => System_Partition_Interface,
+     RE_Request_Destroy                  => System_Partition_Interface,
      RE_Nil_Exc_List                     => System_Partition_Interface,
      RE_Servant                          => System_Partition_Interface,
      RE_Move_Any_Value                   => System_Partition_Interface,
@@ -2300,7 +2349,6 @@ package Rtsfind is
      RE_Get_Reference                    => System_Partition_Interface,
      RE_Asynchronous_P_To_Sync_Scope     => System_Partition_Interface,
      RE_Buffer_Stream_Type               => System_Partition_Interface,
-     RE_Allocate_Buffer                  => System_Partition_Interface,
      RE_Release_Buffer                   => System_Partition_Interface,
      RE_BS_To_Any                        => System_Partition_Interface,
      RE_Any_To_BS                        => System_Partition_Interface,
@@ -2348,6 +2396,7 @@ package Rtsfind is
      RE_TA_WWC                           => System_Partition_Interface,
      RE_TA_String                        => System_Partition_Interface,
      RE_TA_ObjRef                        => System_Partition_Interface,
+     RE_TA_Std_String                    => System_Partition_Interface,
      RE_TA_TC                            => System_Partition_Interface,
 
      RE_TC_Alias                         => System_Partition_Interface,
@@ -2473,17 +2522,6 @@ package Rtsfind is
      RE_W_U                              => System_Stream_Attributes,
      RE_W_WC                             => System_Stream_Attributes,
      RE_W_WWC                            => System_Stream_Attributes,
-
-     RE_Str_Concat                       => System_String_Ops,
-     RE_Str_Concat_CC                    => System_String_Ops,
-     RE_Str_Concat_CS                    => System_String_Ops,
-     RE_Str_Concat_SC                    => System_String_Ops,
-
-     RE_Str_Concat_3                     => System_String_Ops_Concat_3,
-
-     RE_Str_Concat_4                     => System_String_Ops_Concat_4,
-
-     RE_Str_Concat_5                     => System_String_Ops_Concat_5,
 
      RE_String_Input                     => System_Strings_Stream_Ops,
      RE_String_Input_Blk_IO              => System_Strings_Stream_Ops,
@@ -2901,7 +2939,7 @@ package Rtsfind is
    --  Returns True if the given Nam is an Expanded Name, whose Prefix is Ada,
    --  and whose selector is either Text_IO.xxx or Wide_Text_IO.xxx or
    --  Wide_Wide_Text_IO.xxx, where xxx is one of the subpackages of Text_IO
-   --  that is specially handled as described above for Text_IO_Kludge.
+   --  that is specially handled as described below for Text_IO_Kludge.
 
    function RTE (E : RE_Id) return Entity_Id;
    --  Given the entity defined in the above tables, as identified by the

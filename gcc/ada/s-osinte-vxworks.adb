@@ -6,25 +6,23 @@
 --                                                                          --
 --                                   B o d y                                --
 --                                                                          --
---         Copyright (C) 1997-2008, Free Software Foundation, Inc.          --
+--         Copyright (C) 1997-2009, Free Software Foundation, Inc.          --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
--- sion. GNARL is distributed in the hope that it will be useful, but WITH- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
+-- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNARL; see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNARL was developed by the GNARL team at Florida State University.       --
 -- Extensive contributions were provided by Ada Core Technologies, Inc.     --
@@ -47,15 +45,6 @@ package body System.OS_Interface is
    Low_Priority : constant := 255;
    --  VxWorks native (default) lowest scheduling priority
 
-   ----------
-   -- kill --
-   ----------
-
-   function kill (pid : t_id; sig : Signal) return int is
-   begin
-      return System.VxWorks.Ext.kill (pid, int (sig));
-   end kill;
-
    -------------
    -- sigwait --
    -------------
@@ -75,7 +64,7 @@ package body System.OS_Interface is
 
       if Result /= -1 then
          sig.all := Signal (Result);
-         return 0;
+         return OK;
       else
          sig.all := 0;
          return errno;
@@ -144,7 +133,7 @@ package body System.OS_Interface is
 
    begin
       if D < 0.0 then
-         return -1;
+         return ERROR;
       end if;
 
       --  Ensure that the duration can be converted to ticks
@@ -215,6 +204,15 @@ package body System.OS_Interface is
       return semFlush (SEM_ID (ID));
    end Binary_Semaphore_Flush;
 
+   ----------
+   -- kill --
+   ----------
+
+   function kill (pid : t_id; sig : Signal) return int is
+   begin
+      return System.VxWorks.Ext.kill (pid, int (sig));
+   end kill;
+
    -----------------------
    -- Interrupt_Connect --
    -----------------------
@@ -222,11 +220,13 @@ package body System.OS_Interface is
    function Interrupt_Connect
      (Vector    : Interrupt_Vector;
       Handler   : Interrupt_Handler;
-      Parameter : System.Address := System.Null_Address) return int
-   is
-      pragma Unreferenced (Vector, Handler, Parameter);
+      Parameter : System.Address := System.Null_Address) return int is
    begin
-      return 0;
+      return
+        System.VxWorks.Ext.Interrupt_Connect
+        (System.VxWorks.Ext.Interrupt_Vector (Vector),
+         System.VxWorks.Ext.Interrupt_Handler (Handler),
+         Parameter);
    end Interrupt_Connect;
 
    --------------------------------
@@ -236,7 +236,8 @@ package body System.OS_Interface is
    function Interrupt_Number_To_Vector
      (intNum : int) return Interrupt_Vector is
    begin
-      return Interrupt_Vector (intNum);
+      return Interrupt_Vector
+        (System.VxWorks.Ext.Interrupt_Number_To_Vector (intNum));
    end Interrupt_Number_To_Vector;
 
 end System.OS_Interface;

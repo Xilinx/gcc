@@ -1,5 +1,5 @@
 /* Matrix layout transformations.
-   Copyright (C) 2006, 2007, 2008 Free Software Foundation, Inc.
+   Copyright (C) 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
    Contributed by Razya Ladelsky <razya@il.ibm.com>
    Originally written by Revital Eres and Mustafa Hagog.
    
@@ -115,7 +115,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm.h"
 #include "tree.h"
 #include "rtl.h"
-#include "c-tree.h"
 #include "tree-inline.h"
 #include "tree-flow.h"
 #include "tree-flow-inline.h"
@@ -131,7 +130,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "timevar.h"
 #include "params.h"
 #include "fibheap.h"
-#include "c-common.h"
 #include "intl.h"
 #include "function.h"
 #include "basic-block.h"
@@ -142,6 +140,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-data-ref.h"
 #include "tree-chrec.h"
 #include "tree-scalar-evolution.h"
+#include "tree-ssa-sccvn.h"
 
 /* We need to collect a lot of data from the original malloc,
    particularly as the gimplifier has converted:
@@ -245,6 +244,14 @@ typedef struct access_site_info *access_site_info_p;
 DEF_VEC_P (access_site_info_p);
 DEF_VEC_ALLOC_P (access_site_info_p, heap);
 
+/* Calls to free when flattening a matrix.  */
+
+struct free_info
+{
+  gimple stmt;
+  tree func;
+};
+
 /* Information about matrix to flatten.  */
 struct matrix_info
 {
@@ -261,9 +268,6 @@ struct matrix_info
 
   gimple min_indirect_level_escape_stmt;
 
-  /* Is the matrix transposed.  */
-  bool is_transposed_p;
-
   /* Hold the allocation site for each level (dimension).
      We can use NUM_DIMS as the upper bound and allocate the array
      once with this number of elements and no need to use realloc and
@@ -272,16 +276,15 @@ struct matrix_info
 
   int max_malloced_level;
 
+  /* Is the matrix transposed.  */
+  bool is_transposed_p;
+
   /* The location of the allocation sites (they must be in one
      function).  */
   tree allocation_function_decl;
 
   /* The calls to free for each level of indirection.  */
-  struct free_info
-  {
-    gimple stmt;
-    tree func;
-  } *free_stmts;
+  struct free_info *free_stmts;
 
   /* An array which holds for each dimension its size. where
      dimension 0 is the outer most (one that contains all the others).
@@ -303,7 +306,7 @@ struct matrix_info
 
   /* An array of the accesses to be flattened.
      elements are of type "struct access_site_info *".  */
-    VEC (access_site_info_p, heap) * access_l;
+  VEC (access_site_info_p, heap) * access_l;
 
   /* A map of how the dimensions will be organized at the end of 
      the analyses.  */
@@ -930,7 +933,7 @@ analyze_transpose (void **slot, void *data ATTRIBUTE_UNUSED)
 	      free (acc_info);
 	      continue;
 	    }
-	  if (simple_iv (loop, acc_info->stmt, acc_info->offset, &iv, true))
+	  if (simple_iv (loop, loop, acc_info->offset, &iv, true))
 	    {
 	      if (iv.step != NULL)
 		{
@@ -1865,8 +1868,9 @@ transform_access_sites (void **slot, void *data ATTRIBUTE_UNUSED)
 		    tmp = create_tmp_var (TREE_TYPE (lhs), "new");
 		    add_referenced_var (tmp);
 		    rhs = gimple_assign_rhs1 (acc_info->stmt);
-		    new_stmt = gimple_build_assign (tmp,
-						    TREE_OPERAND (rhs, 0));
+		    rhs = fold_convert (TREE_TYPE (tmp),
+					TREE_OPERAND (rhs, 0));
+		    new_stmt = gimple_build_assign (tmp, rhs);
 		    tmp = make_ssa_name (tmp, new_stmt);
 		    gimple_assign_set_lhs (new_stmt, tmp);
 		    gsi = gsi_for_stmt (acc_info->stmt);
@@ -2419,12 +2423,11 @@ struct simple_ipa_opt_pass pass_ipa_matrix_reorg =
   NULL,				/* sub */
   NULL,				/* next */
   0,				/* static_pass_number */
-  0,				/* tv_id */
+  TV_NONE,			/* tv_id */
   0,				/* properties_required */
-  PROP_trees,			/* properties_provided */
+  0,				/* properties_provided */
   0,				/* properties_destroyed */
   0,				/* todo_flags_start */
   TODO_dump_cgraph | TODO_dump_func	/* todo_flags_finish */
  }
 };
-

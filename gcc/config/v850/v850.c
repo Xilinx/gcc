@@ -1,6 +1,6 @@
 /* Subroutines for insn-output.c for NEC V850 series
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
-   2006, 2007 Free Software Foundation, Inc.
+   2006, 2007, 2008, 2009 Free Software Foundation, Inc.
    Contributed by Jeff Law (law@cygnus.com).
 
    This file is part of GCC.
@@ -58,7 +58,6 @@ static void substitute_ep_register   (rtx, rtx, int, int, rtx *, rtx *);
 static void v850_reorg		     (void);
 static int  ep_memory_offset         (enum machine_mode, int);
 static void v850_set_data_area       (tree, v850_data_area);
-const struct attribute_spec v850_attribute_table[];
 static tree v850_handle_interrupt_attribute (tree *, tree, tree, int, bool *);
 static tree v850_handle_data_area_attribute (tree *, tree, tree, int, bool *);
 static void v850_insert_attributes   (tree, tree *);
@@ -67,12 +66,16 @@ static section *v850_select_section (tree, int, unsigned HOST_WIDE_INT);
 static void v850_encode_data_area    (tree, rtx);
 static void v850_encode_section_info (tree, rtx, int);
 static bool v850_return_in_memory    (const_tree, const_tree);
+static rtx v850_function_value (const_tree, const_tree, bool);
 static void v850_setup_incoming_varargs (CUMULATIVE_ARGS *, enum machine_mode,
 					 tree, int *, int);
 static bool v850_pass_by_reference (CUMULATIVE_ARGS *, enum machine_mode,
 				    const_tree, bool);
 static int v850_arg_partial_bytes (CUMULATIVE_ARGS *, enum machine_mode,
 				   tree, bool);
+static bool v850_can_eliminate       (const int, const int);
+static void v850_asm_trampoline_template (FILE *);
+static void v850_trampoline_init (rtx, tree, rtx);
 
 /* Information about the various small memory areas.  */
 struct small_memory_info small_memory[ (int)SMALL_MEMORY_max ] =
@@ -103,6 +106,20 @@ static GTY(()) section *rozdata_section;
 static GTY(()) section *tdata_section;
 static GTY(()) section *zdata_section;
 static GTY(()) section *zbss_section;
+
+/* V850 specific attributes.  */
+
+static const struct attribute_spec v850_attribute_table[] =
+{
+  /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler } */
+  { "interrupt_handler", 0, 0, true,  false, false, v850_handle_interrupt_attribute },
+  { "interrupt",         0, 0, true,  false, false, v850_handle_interrupt_attribute },
+  { "sda",               0, 0, true,  false, false, v850_handle_data_area_attribute },
+  { "tda",               0, 0, true,  false, false, v850_handle_data_area_attribute },
+  { "zda",               0, 0, true,  false, false, v850_handle_data_area_attribute },
+  { NULL,                0, 0, false, false, false, NULL }
+};
+
 
 /* Initialize the GCC target structure.  */
 #undef TARGET_ASM_ALIGNED_HI_OP
@@ -148,6 +165,9 @@ static GTY(()) section *zbss_section;
 #undef TARGET_RETURN_IN_MEMORY
 #define TARGET_RETURN_IN_MEMORY v850_return_in_memory
 
+#undef TARGET_FUNCTION_VALUE
+#define TARGET_FUNCTION_VALUE v850_function_value
+
 #undef TARGET_PASS_BY_REFERENCE
 #define TARGET_PASS_BY_REFERENCE v850_pass_by_reference
 
@@ -159,6 +179,14 @@ static GTY(()) section *zbss_section;
 
 #undef TARGET_ARG_PARTIAL_BYTES
 #define TARGET_ARG_PARTIAL_BYTES v850_arg_partial_bytes
+
+#undef TARGET_CAN_ELIMINATE
+#define TARGET_CAN_ELIMINATE v850_can_eliminate
+
+#undef TARGET_ASM_TRAMPOLINE_TEMPLATE
+#define TARGET_ASM_TRAMPOLINE_TEMPLATE v850_asm_trampoline_template
+#undef TARGET_TRAMPOLINE_INIT
+#define TARGET_TRAMPOLINE_INIT v850_trampoline_init
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 
@@ -420,10 +448,12 @@ const_costs (rtx r, enum rtx_code c)
 
 static bool
 v850_rtx_costs (rtx x,
-                int code,
+                int codearg,
                 int outer_code ATTRIBUTE_UNUSED,
                 int * total, bool speed)
 {
+  enum rtx_code code = (enum rtx_code) codearg;
+
   switch (code)
     {
     case CONST_INT:
@@ -463,6 +493,11 @@ v850_rtx_costs (rtx x,
       else
 	*total = 20;
       return true;
+
+    case ZERO_EXTRACT:
+      if (outer_code == COMPARE)
+	*total = 0;
+      return false;
 
     default:
       return false;
@@ -1857,7 +1892,7 @@ Saved %d bytes via epilogue function (%d vs. %d) in function %s\n",
 	init_stack_free = (signed) actual_fsize;
 
       /* Deallocate the rest of the stack if it is > 32K.  */
-      if (actual_fsize > init_stack_free)
+      if ((unsigned int) actual_fsize > init_stack_free)
 	{
 	  int diff;
 
@@ -1931,7 +1966,7 @@ Saved %d bytes via epilogue function (%d vs. %d) in function %s\n",
       else if (actual_fsize)
 	emit_jump_insn (gen_return_internal ());
       else
-	emit_jump_insn (gen_return ());
+	emit_jump_insn (gen_return_simple ());
     }
 
   v850_interrupt_cache_p = FALSE;
@@ -2023,17 +2058,6 @@ v850_set_data_area (tree decl, v850_data_area data_area)
     (name, NULL, DECL_ATTRIBUTES (decl));
 }
 
-const struct attribute_spec v850_attribute_table[] =
-{
-  /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler } */
-  { "interrupt_handler", 0, 0, true,  false, false, v850_handle_interrupt_attribute },
-  { "interrupt",         0, 0, true,  false, false, v850_handle_interrupt_attribute },
-  { "sda",               0, 0, true,  false, false, v850_handle_data_area_attribute },
-  { "tda",               0, 0, true,  false, false, v850_handle_data_area_attribute },
-  { "zda",               0, 0, true,  false, false, v850_handle_data_area_attribute },
-  { NULL,                0, 0, false, false, false, NULL }
-};
-
 /* Handle an "interrupt" attribute; arguments as in
    struct attribute_spec.handler.  */
 static tree
@@ -2045,8 +2069,8 @@ v850_handle_interrupt_attribute (tree * node,
 {
   if (TREE_CODE (*node) != FUNCTION_DECL)
     {
-      warning (OPT_Wattributes, "%qs attribute only applies to functions",
-	       IDENTIFIER_POINTER (name));
+      warning (OPT_Wattributes, "%qE attribute only applies to functions",
+	       name);
       *no_add_attrs = true;
     }
 
@@ -2081,8 +2105,9 @@ v850_handle_data_area_attribute (tree* node,
     case VAR_DECL:
       if (current_function_decl != NULL_TREE)
 	{
-          error ("%Jdata area attributes cannot be specified for "
-                 "local variables", decl);
+          error_at (DECL_SOURCE_LOCATION (decl),
+		    "data area attributes cannot be specified for "
+		    "local variables");
 	  *no_add_attrs = true;
 	}
 
@@ -2934,6 +2959,17 @@ v850_return_in_memory (const_tree type, const_tree fntype ATTRIBUTE_UNUSED)
   /* Return values > 8 bytes in length in memory.  */
   return int_size_in_bytes (type) > 8 || TYPE_MODE (type) == BLKmode;
 }
+
+/* Worker function for TARGET_FUNCTION_VALUE.  */
+
+rtx
+v850_function_value (const_tree valtype, 
+                    const_tree fn_decl_or_type ATTRIBUTE_UNUSED,
+                    bool outgoing ATTRIBUTE_UNUSED)
+{
+  return gen_rtx_REG (TYPE_MODE (valtype), 10);
+}
+
 
 /* Worker function for TARGET_SETUP_INCOMING_VARARGS.  */
 
@@ -2947,4 +2983,43 @@ v850_setup_incoming_varargs (CUMULATIVE_ARGS *ca,
   ca->anonymous_args = (!TARGET_GHS ? 1 : 0);
 }
 
+/* Worker function for TARGET_CAN_ELIMINATE.  */
+
+static bool
+v850_can_eliminate (const int from ATTRIBUTE_UNUSED, const int to)
+{
+  return (to == STACK_POINTER_REGNUM ? ! frame_pointer_needed : true);
+}
+
+
+/* Worker function for TARGET_ASM_TRAMPOLINE_TEMPLATE.  */
+
+static void
+v850_asm_trampoline_template (FILE *f)
+{
+  fprintf (f, "\tjarl .+4,r12\n");
+  fprintf (f, "\tld.w 12[r12],r20\n");
+  fprintf (f, "\tld.w 16[r12],r12\n");
+  fprintf (f, "\tjmp [r12]\n");
+  fprintf (f, "\tnop\n");
+  fprintf (f, "\t.long 0\n");
+  fprintf (f, "\t.long 0\n");
+}
+
+/* Worker function for TARGET_TRAMPOLINE_INIT.  */
+
+static void
+v850_trampoline_init (rtx m_tramp, tree fndecl, rtx chain_value)
+{
+  rtx mem, fnaddr = XEXP (DECL_RTL (fndecl), 0);
+
+  emit_block_move (m_tramp, assemble_trampoline_template (),
+		   GEN_INT (TRAMPOLINE_SIZE), BLOCK_OP_NORMAL);
+
+  mem = adjust_address (m_tramp, SImode, 16);
+  emit_move_insn (mem, chain_value);
+  mem = adjust_address (m_tramp, SImode, 20);
+  emit_move_insn (mem, fnaddr);
+}
+
 #include "gt-v850.h"

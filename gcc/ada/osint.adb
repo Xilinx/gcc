@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -29,6 +29,8 @@ with System.Case_Util; use System.Case_Util;
 
 with GNAT.HTable;
 
+with Alloc;
+with Debug;
 with Fmap;             use Fmap;
 with Gnatvsn;          use Gnatvsn;
 with Hostparm;
@@ -111,6 +113,9 @@ package body Osint is
    --  Converts a C String to an Ada String. Are we doing this to avoid withing
    --  Interfaces.C.Strings ???
 
+   function Include_Dir_Default_Prefix return String_Access;
+   --  Same as exported version, except returns a String_Access
+
    ------------------------------
    -- Other Local Declarations --
    ------------------------------
@@ -136,6 +141,20 @@ package body Osint is
    --  Respectively full name (with directory info) and time stamp of the
    --  latest source, library and object files opened by Read_Source_File and
    --  Read_Library_Info.
+
+   package File_Name_Chars is new Table.Table (
+     Table_Component_Type => Character,
+     Table_Index_Type     => Int,
+     Table_Low_Bound      => 1,
+     Table_Initial        => Alloc.File_Name_Chars_Initial,
+     Table_Increment      => Alloc.File_Name_Chars_Increment,
+     Table_Name           => "File_Name_Chars");
+   --  Table to store text to be printed by Dump_Source_File_Names
+
+   The_Include_Dir_Default_Prefix : String_Access := null;
+   --  Value returned by Include_Dir_Default_Prefix. We don't initialize it
+   --  here, because that causes an elaboration cycle with Sdefault; we
+   --  initialize it lazily instead.
 
    ------------------
    -- Search Paths --
@@ -300,7 +319,7 @@ package body Osint is
 
          Status : Boolean;
          pragma Warnings (Off, Status);
-         --  For the call to Close
+         --  For the call to Close where status is ignored
 
       begin
          File_FD := Open_Read (Buffer'Address, Binary);
@@ -373,6 +392,9 @@ package body Osint is
          procedure Strncpy (X : Address; Y : Address; Length : Integer);
          pragma Import (C, Strncpy, "strncpy");
 
+         procedure C_Free (Str : Address);
+         pragma Import (C, C_Free, "free");
+
          Result_Ptr    : Address;
          Result_Length : Integer;
          Out_String    : String_Ptr;
@@ -383,6 +405,9 @@ package body Osint is
 
          Out_String := new String (1 .. Result_Length);
          Strncpy (Out_String.all'Address, Result_Ptr, Result_Length);
+
+         C_Free (Result_Ptr);
+
          return Out_String;
       end Get_Libraries_From_Registry;
 
@@ -643,7 +668,7 @@ package body Osint is
       Fdesc := Create_File (Name_Buffer'Address, Fmode);
 
       if Fdesc = Invalid_FD then
-         Fail ("Cannot create: ", Name_Buffer (1 .. Name_Len));
+         Fail ("Cannot create: " & Name_Buffer (1 .. Name_Len));
       end if;
    end Create_File_And_Check;
 
@@ -710,6 +735,16 @@ package body Osint is
          return Src_Search_Directories.Table (Primary_Directory + Position);
       end if;
    end Dir_In_Src_Search_Path;
+
+   ----------------------------
+   -- Dump_Source_File_Names --
+   ----------------------------
+
+   procedure Dump_Source_File_Names is
+      subtype Rng is Int range File_Name_Chars.First .. File_Name_Chars.Last;
+   begin
+      Write_Str (String (File_Name_Chars.Table (Rng)));
+   end Dump_Source_File_Names;
 
    ---------------------
    -- Executable_Name --
@@ -900,7 +935,7 @@ package body Osint is
    -- Fail --
    ----------
 
-   procedure Fail (S1 : String; S2 : String := ""; S3 : String := "") is
+   procedure Fail (S : String) is
    begin
       --  We use Output in case there is a special output set up.
       --  In this case Set_Standard_Error will have no immediate effect.
@@ -908,9 +943,7 @@ package body Osint is
       Set_Standard_Error;
       Osint.Write_Program_Name;
       Write_Str (": ");
-      Write_Str (S1);
-      Write_Str (S2);
-      Write_Str (S3);
+      Write_Str (S);
       Write_Eol;
 
       Exit_Program (E_Fatal);
@@ -1083,7 +1116,7 @@ package body Osint is
 
       if Command_Name (Cindex2) in '0' .. '9' then
          for J in reverse Cindex1 .. Cindex2 loop
-            if Command_Name (J) = '.' or Command_Name (J) = ';' then
+            if Command_Name (J) = '.' or else Command_Name (J) = ';' then
                Cindex2 := J - 1;
                exit;
             end if;
@@ -1388,22 +1421,19 @@ package body Osint is
    -- Include_Dir_Default_Prefix --
    --------------------------------
 
-   function Include_Dir_Default_Prefix return String is
-      Include_Dir : String_Access :=
-                      String_Access (Update_Path (Include_Dir_Default_Name));
-
+   function Include_Dir_Default_Prefix return String_Access is
    begin
-      if Include_Dir = null then
-         return "";
-
-      else
-         declare
-            Result : constant String := Include_Dir.all;
-         begin
-            Free (Include_Dir);
-            return Result;
-         end;
+      if The_Include_Dir_Default_Prefix = null then
+         The_Include_Dir_Default_Prefix :=
+           String_Access (Update_Path (Include_Dir_Default_Name));
       end if;
+
+      return The_Include_Dir_Default_Prefix;
+   end Include_Dir_Default_Prefix;
+
+   function Include_Dir_Default_Prefix return String is
+   begin
+      return Include_Dir_Default_Prefix.all;
    end Include_Dir_Default_Prefix;
 
    ----------------
@@ -2102,7 +2132,7 @@ package body Osint is
 
       if Current_Full_Lib_Name = No_File then
          if Fatal_Err then
-            Fail ("Cannot find: ", Name_Buffer (1 .. Name_Len));
+            Fail ("Cannot find: " & Name_Buffer (1 .. Name_Len));
          else
             Current_Full_Obj_Stamp := Empty_Time_Stamp;
             return null;
@@ -2121,7 +2151,7 @@ package body Osint is
 
       if Lib_FD = Invalid_FD then
          if Fatal_Err then
-            Fail ("Cannot open: ",  Name_Buffer (1 .. Name_Len));
+            Fail ("Cannot open: " & Name_Buffer (1 .. Name_Len));
          else
             Current_Full_Obj_Stamp := Empty_Time_Stamp;
             return null;
@@ -2147,7 +2177,7 @@ package body Osint is
 
                --  No need to check the status, we fail anyway
 
-               Fail ("Cannot find: ", Name_Buffer (1 .. Name_Len));
+               Fail ("Cannot find: " & Name_Buffer (1 .. Name_Len));
 
             else
                Current_Full_Obj_Stamp := Empty_Time_Stamp;
@@ -2189,7 +2219,7 @@ package body Osint is
          loop
             Actual_Len := Read (Lib_FD, Text (Hi)'Address, Len);
             Hi := Hi + Text_Ptr (Actual_Len);
-            exit when Actual_Len = Len or Actual_Len <= 0;
+            exit when Actual_Len = Len or else Actual_Len <= 0;
          end loop;
 
          Text (Hi) := EOF;
@@ -2240,7 +2270,7 @@ package body Osint is
 
          if N = Current_Main then
             Get_Name_String (N);
-            Fail ("Cannot find: ", Name_Buffer (1 .. Name_Len));
+            Fail ("Cannot find: " & Name_Buffer (1 .. Name_Len));
          end if;
 
          Src := null;
@@ -2263,6 +2293,32 @@ package body Osint is
          Hi  := No_Location;
          return;
       end if;
+
+      --  Print out the file name, if requested, and if it's not part of the
+      --  runtimes, store it in File_Name_Chars.
+
+      declare
+         Name : String renames Name_Buffer (1 .. Name_Len);
+         Inc  : String renames Include_Dir_Default_Prefix.all;
+
+      begin
+         if Debug.Debug_Flag_Dot_N then
+            Write_Line (Name);
+         end if;
+
+         if Inc /= ""
+           and then Inc'Length < Name_Len
+           and then Name_Buffer (1 .. Inc'Length) = Inc
+         then
+            --  Part of runtimes, so ignore it
+
+            null;
+
+         else
+            File_Name_Chars.Append_All (File_Name_Chars.Table_Type (Name));
+            File_Name_Chars.Append (ASCII.LF);
+         end if;
+      end;
 
       --  Prepare to read data from the file
 
@@ -2288,22 +2344,22 @@ package body Osint is
       begin
          --  Allocate source buffer, allowing extra character at end for EOF
 
-         --  Some systems (e.g. VMS) have file types that require one
-         --  read per line, so read until we get the Len bytes or until
-         --  there are no more characters.
+         --  Some systems (e.g. VMS) have file types that require one read per
+         --  line, so read until we get the Len bytes or until there are no
+         --  more characters.
 
          Hi := Lo;
          loop
             Actual_Len := Read (Source_File_FD, Actual_Ptr (Hi)'Address, Len);
             Hi := Hi + Source_Ptr (Actual_Len);
-            exit when Actual_Len = Len or Actual_Len <= 0;
+            exit when Actual_Len = Len or else Actual_Len <= 0;
          end loop;
 
          Actual_Ptr (Hi) := EOF;
 
          --  Now we need to work out the proper virtual origin pointer to
-         --  return. This is exactly Actual_Ptr (0)'Address, but we have
-         --  to be careful to suppress checks to compute this address.
+         --  return. This is exactly Actual_Ptr (0)'Address, but we have to
+         --  be careful to suppress checks to compute this address.
 
          declare
             pragma Suppress (All_Checks);
@@ -2561,7 +2617,7 @@ package body Osint is
 
    exception
       when others =>
-         Fail ("erroneous directory spec: ", Host_Dir);
+         Fail ("erroneous directory spec: " & Host_Dir);
          return null;
    end To_Canonical_Dir_Spec;
 
@@ -2654,7 +2710,7 @@ package body Osint is
 
    exception
       when others =>
-         Fail ("erroneous file spec: ", Host_File);
+         Fail ("erroneous file spec: " & Host_File);
          return null;
    end To_Canonical_File_Spec;
 
@@ -2687,7 +2743,7 @@ package body Osint is
 
    exception
       when others =>
-         Fail ("erroneous path spec: ", Host_Path);
+         Fail ("erroneous path spec: " & Host_Path);
          return null;
    end To_Canonical_Path_Spec;
 

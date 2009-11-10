@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -32,6 +32,7 @@ with Nmake;    use Nmake;
 with Opt;      use Opt;
 with Restrict; use Restrict;
 with Rident;   use Rident;
+with Sem_Aux;  use Sem_Aux;
 with Sinfo;    use Sinfo;
 with Snames;   use Snames;
 with Stand;    use Stand;
@@ -435,6 +436,23 @@ package body Tbuild is
           Strval => End_String);
    end Make_String_Literal;
 
+   --------------------
+   -- Make_Temporary --
+   --------------------
+
+   function Make_Temporary
+     (Loc          : Source_Ptr;
+      Id           : Character;
+      Related_Node : Node_Id := Empty) return Node_Id
+   is
+      Temp : constant Node_Id :=
+               Make_Defining_Identifier (Loc,
+                 Chars => New_Internal_Name (Id));
+   begin
+      Set_Related_Expression (Temp, Related_Node);
+      return Temp;
+   end Make_Temporary;
+
    ---------------------------
    -- Make_Unsuppress_Block --
    ---------------------------
@@ -510,8 +528,7 @@ package body Tbuild is
 
       if Suffix /= ' ' then
          pragma Assert (Is_OK_Internal_Letter (Suffix));
-         Name_Len := Name_Len + 1;
-         Name_Buffer (Name_Len) := Suffix;
+         Add_Char_To_Name_Buffer (Suffix);
       end if;
 
       if Suffix_Index /= 0 then
@@ -636,10 +653,8 @@ package body Tbuild is
    is
    begin
       Get_Name_String (Related_Id);
-      Name_Len := Name_Len + 1;
-      Name_Buffer (Name_Len) := '_';
-      Name_Buffer (Name_Len + 1 .. Name_Len + Suffix'Length) := Suffix;
-      Name_Len := Name_Len + Suffix'Length;
+      Add_Char_To_Name_Buffer ('_');
+      Add_Str_To_Name_Buffer (Suffix);
       return Name_Find;
    end New_Suffixed_Name;
 

@@ -1,33 +1,29 @@
 /* DWARF2 EH unwinding support for IA64 Linux.
-   Copyright (C) 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2009 Free Software Foundation, Inc.
 
    This file is part of GCC.
 
    GCC is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published
-   by the Free Software Foundation; either version 2, or (at your
+   by the Free Software Foundation; either version 3, or (at your
    option) any later version.
-
-   In addition to the permissions in the GNU General Public License,
-   the Free Software Foundation gives you unlimited permission to link
-   the compiled version of this file with other programs, and to
-   distribute those programs without any restriction coming from the
-   use of this file.  (The General Public License restrictions do
-   apply in other respects; for example, they cover modification of
-   the file, and distribution when not linked into another program.)
 
    GCC is distributed in the hope that it will be useful, but WITHOUT
    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
    or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
    License for more details.
 
-   You should have received a copy of the GNU General Public License
-   along with GCC; see the file COPYING.  If not, write to the
-   Free Software Foundation, 51 Franklin Street, Fifth Floor, Boston,
-   MA 02110-1301, USA.  */
+   Under Section 7 of GPL version 3, you are granted additional
+   permissions described in the GCC Runtime Library Exception, version
+   3.1, as published by the Free Software Foundation.
+
+   You should have received a copy of the GNU General Public License and
+   a copy of the GCC Runtime Library Exception along with this program;
+   see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+   <http://www.gnu.org/licenses/>.  */
 
 /* Do code reading to identify a signal frame, and set the frame
-   state data appropriately.  See unwind-dw2.c for the structs.  */
+   state data appropriately.  See unwind-ia64.c for the structs.  */
 
 /* This works only for glibc-2.3 and later, because sigcontext is different
    in glibc-2.2.4.  */
@@ -70,7 +66,7 @@ ia64_fallback_frame_state (struct _Unwind_Context *context,
       }
 
       context->fpsr_loc = &(sc->sc_ar_fpsr);
-      context->pfs_loc = &(sc->sc_ar_pfs);
+      context->signal_pfs_loc = &(sc->sc_ar_pfs);
       context->lc_loc = &(sc->sc_ar_lc);
       context->unat_loc = &(sc->sc_ar_unat);
       context->br_loc[0] = &(sc->sc_br[0]);
@@ -109,10 +105,16 @@ ia64_fallback_frame_state (struct _Unwind_Context *context,
 	  ia64_rse_skip_regs ((unsigned long *)(sc->sc_ar_bsp), -sof);
       }
 
+      /* Account for use of br.ret to resume execution of user code.  */
       fs->curr.reg[UNW_REG_RP].where = UNW_WHERE_SPREL;
       fs->curr.reg[UNW_REG_RP].val
 	= (unsigned long)&(sc->sc_ip) - context->psp;
       fs->curr.reg[UNW_REG_RP].when = -1;
+
+      fs->curr.reg[UNW_REG_PFS].where = UNW_WHERE_SPREL;
+      fs->curr.reg[UNW_REG_PFS].val
+	= (unsigned long)&(sc->sc_cfm) - context->psp;
+      fs ->curr.reg[UNW_REG_PFS].when = -1;
 
       return _URC_NO_REASON;
     }
@@ -121,11 +123,16 @@ ia64_fallback_frame_state (struct _Unwind_Context *context,
 
 #define MD_HANDLE_UNWABI ia64_handle_unwabi
 
+#define ABI_MARKER_OLD_LINUX_SIGTRAMP	((0 << 8) | 's')
+#define ABI_MARKER_OLD_LINUX_INTERRUPT	((0 << 8) | 'i')
+#define ABI_MARKER_LINUX_SIGTRAMP	((3 << 8) | 's')
+#define ABI_MARKER_LINUX_INTERRUPT	((3 << 8) | 'i')
+
 static void
 ia64_handle_unwabi (struct _Unwind_Context *context, _Unwind_FrameState *fs)
 {
-  if (fs->unwabi == ((3 << 8) | 's')
-      || fs->unwabi == ((0 << 8) | 's'))
+  if (fs->unwabi == ABI_MARKER_LINUX_SIGTRAMP
+      || fs->unwabi == ABI_MARKER_OLD_LINUX_SIGTRAMP)
     {
       struct sigframe {
 	char scratch[16];
@@ -148,7 +155,7 @@ ia64_handle_unwabi (struct _Unwind_Context *context, _Unwind_FrameState *fs)
 	  context->ireg[i - 2].loc = &sc->sc_gr[i];
       }
 
-      context->pfs_loc = &(sc->sc_ar_pfs);
+      context->signal_pfs_loc = &(sc->sc_ar_pfs);
       context->lc_loc = &(sc->sc_ar_lc);
       context->unat_loc = &(sc->sc_ar_unat);
       context->br_loc[0] = &(sc->sc_br[0]);
@@ -185,9 +192,8 @@ ia64_handle_unwabi (struct _Unwind_Context *context, _Unwind_FrameState *fs)
 	  ia64_rse_skip_regs ((unsigned long *)(sc->sc_ar_bsp), -sof);
       }
 
-      /* pfs_loc already set above.  Without this pfs_loc would point
-	 incorrectly to sc_cfm instead of sc_ar_pfs.  */
-      fs->curr.reg[UNW_REG_PFS].where = UNW_WHERE_NONE;
+      /* The use of br.ret to resume execution of user code is already
+	 accounted for in the unwind ABI.  */
     }
 }
 #endif /* glibc-2.3 or better */

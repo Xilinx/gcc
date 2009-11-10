@@ -21,10 +21,8 @@ along with GCC; see the file COPYING3.  If not see
 #ifdef RTX_CODE
 
 extern void mn10300_override_options (void);
-extern struct rtx_def *legitimize_address (rtx, rtx, enum machine_mode);
 extern rtx legitimize_pic_address (rtx, rtx);
 extern int legitimate_pic_operand_p (rtx);
-extern bool legitimate_address_p (enum machine_mode, rtx, int);
 extern void print_operand (FILE *, rtx, int);
 extern void print_operand_address (FILE *, rtx);
 extern void mn10300_print_reg_list (FILE *, int);

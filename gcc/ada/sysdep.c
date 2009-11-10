@@ -6,24 +6,23 @@
  *                                                                          *
  *                          C Implementation File                           *
  *                                                                          *
- *         Copyright (C) 1992-2008, Free Software Foundation, Inc.          *
+ *         Copyright (C) 1992-2009, Free Software Foundation, Inc.          *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
- * ware  Foundation;  either version 2,  or (at your option) any later ver- *
+ * ware  Foundation;  either version 3,  or (at your option) any later ver- *
  * sion.  GNAT is distributed in the hope that it will be useful, but WITH- *
  * OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY *
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License *
- * for  more details.  You should have  received  a copy of the GNU General *
- * Public License  distributed with GNAT;  see file COPYING.  If not, write *
- * to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, *
- * Boston, MA 02110-1301, USA.                                              *
+ * or FITNESS FOR A PARTICULAR PURPOSE.                                     *
  *                                                                          *
- * As a  special  exception,  if you  link  this file  with other  files to *
- * produce an executable,  this file does not by itself cause the resulting *
- * executable to be covered by the GNU General Public License. This except- *
- * ion does not  however invalidate  any other reasons  why the  executable *
- * file might be covered by the  GNU Public License.                        *
+ * As a special exception under Section 7 of GPL version 3, you are granted *
+ * additional permissions described in the GCC Runtime Library Exception,   *
+ * version 3.1, as published by the Free Software Foundation.               *
+ *                                                                          *
+ * You should have received a copy of the GNU General Public License and    *
+ * a copy of the GCC Runtime Library Exception along with this program;     *
+ * see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    *
+ * <http://www.gnu.org/licenses/>.                                          *
  *                                                                          *
  * GNAT was originally developed  by the GNAT team at  New York University. *
  * Extensive contributions were provided by Ada Core Technologies Inc.      *
@@ -36,7 +35,7 @@
 #ifdef __vxworks
 #include "ioLib.h"
 #include "dosFsLib.h"
-#ifndef __RTP__
+#if ! defined ( __RTP__) && ! defined (VTHREADS)
 # include "nfsLib.h"
 #endif
 #include "selectLib.h"
@@ -349,7 +348,7 @@ __gnat_ttyname (int filedes)
   || defined (__MACHTEN__) || defined (__hpux__) || defined (_AIX) \
   || (defined (__svr4__) && defined (i386)) || defined (__Lynx__) \
   || defined (__CYGWIN__) || defined (__FreeBSD__) || defined (__OpenBSD__) \
-  || defined (__GLIBC__)
+  || defined (__GLIBC__) || defined (__APPLE__)
 
 #ifdef __MINGW32__
 #if OLD_MINGW
@@ -407,7 +406,7 @@ getc_immediate_common (FILE *stream,
     || defined (__CYGWIN32__) || defined (__MACHTEN__) || defined (__hpux__) \
     || defined (_AIX) || (defined (__svr4__) && defined (i386)) \
     || defined (__Lynx__) || defined (__FreeBSD__) || defined (__OpenBSD__) \
-    || defined (__GLIBC__)
+    || defined (__GLIBC__) || defined (__APPLE__)
   char c;
   int nread;
   int good_one = 0;
@@ -427,7 +426,7 @@ getc_immediate_common (FILE *stream,
     || defined (__osf__) || defined (__MACHTEN__) || defined (__hpux__) \
     || defined (_AIX) || (defined (__svr4__) && defined (i386)) \
     || defined (__Lynx__) || defined (__FreeBSD__) || defined (__OpenBSD__) \
-    || defined (__GLIBC__)
+    || defined (__GLIBC__) || defined (__APPLE__)
       eof_ch = termios_rec.c_cc[VEOF];
 
       /* If waiting (i.e. Get_Immediate (Char)), set MIN = 1 and wait for
@@ -744,30 +743,81 @@ extern void (*Unlock_Task) (void);
 
 /* Reentrant localtime for Windows and OS/2. */
 
-extern struct tm *
-__gnat_localtime_tzoff (const time_t *, struct tm *, long *);
+extern void
+__gnat_localtime_tzoff (const time_t *, long *);
 
-struct tm *
-__gnat_localtime_tzoff (const time_t *timer, struct tm *tp, long *off)
+static const unsigned long long w32_epoch_offset = 11644473600ULL;
+void
+__gnat_localtime_tzoff (const time_t *timer, long *off)
 {
-  DWORD dwRet;
-  struct tm *tmp;
+  union
+  {
+    FILETIME ft_time;
+    unsigned long long ull_time;
+  } utc_time, local_time;
+
+  SYSTEMTIME utc_sys_time, local_sys_time;
   TIME_ZONE_INFORMATION tzi;
 
+  BOOL  status = 1;
+  DWORD tzi_status;
+
   (*Lock_Task) ();
-  tmp = localtime (timer);
-  memcpy (tp, tmp, sizeof (struct tm));
-  dwRet = GetTimeZoneInformation (&tzi);
+
+#ifdef RTX
+
+  tzi_status = GetTimeZoneInformation (&tzi);
   *off = tzi.Bias;
-  if (tp->tm_isdst > 0)
-    *off = *off + tzi.DaylightBias;
+  if (tzi_status == TIME_ZONE_ID_STANDARD)
+     /* The system is operating in the range covered by the StandardDate
+        member. */
+     *off = *off + tzi.StandardBias;
+  else if (tzi_status == TIME_ZONE_ID_DAYLIGHT)
+     /* The system is operating in the range covered by the DaylightDate
+        member. */
+     *off = *off + tzi.DaylightBias;
   *off = *off * -60;
+
+#else
+
+  /* First convert unix time_t structure to windows FILETIME format.  */
+  utc_time.ull_time = ((unsigned long long) *timer + w32_epoch_offset)
+                      * 10000000ULL;
+
+  tzi_status = GetTimeZoneInformation (&tzi);
+
+  /* If GetTimeZoneInformation does not return a value between 0 and 2 then
+     it means that we were not able to retrieve timezone informations.
+     Note that we cannot use here FileTimeToLocalFileTime as Windows will use
+     in always in this case the current timezone setting. As suggested on
+     MSDN we use the following three system calls to get the right information.
+     Note also that starting with Windows Vista new functions are provided to
+     get timezone settings that depend on the year. We cannot use them as we
+     still support Windows XP and Windows 2003.  */
+  status = (tzi_status >= 0 && tzi_status <= 2)
+     && FileTimeToSystemTime (&utc_time.ft_time, &utc_sys_time)
+     && SystemTimeToTzSpecificLocalTime (&tzi, &utc_sys_time, &local_sys_time)
+     && SystemTimeToFileTime (&local_sys_time, &local_time.ft_time);
+
+  if (!status)
+     /* An error occurs so return invalid_tzoff.  */
+     *off = __gnat_invalid_tzoff;
+  else
+     if (local_time.ull_time > utc_time.ull_time)
+        *off = (long) ((local_time.ull_time - utc_time.ull_time) / 10000000ULL);
+     else
+        *off = - (long) ((utc_time.ull_time - local_time.ull_time) / 10000000ULL);
+
+#endif
+
   (*Unlock_Task) ();
-  return tp;
 }
 
 #else
-#if defined (__Lynx__) && defined (___THREADS_POSIX4ad4__)
+
+/* On Lynx, all time values are treated in GMT */
+
+#if defined (__Lynx__)
 
 /* As of LynxOS 3.1.0a patch level 040, LynuxWorks changes the
    prototype to the C library function localtime_r from the POSIX.4
@@ -775,59 +825,66 @@ __gnat_localtime_tzoff (const time_t *timer, struct tm *tp, long *off)
    spec is required. Only use when ___THREADS_POSIX4ad4__ is defined,
    the Lynx convention when building against the legacy API. */
 
-extern struct tm *
-__gnat_localtime_tzoff (const time_t *, struct tm *, long *);
+extern void
+__gnat_localtime_tzoff (const time_t *, long *);
 
-struct tm *
-__gnat_localtime_tzoff (const time_t *timer, struct tm *tp, long *off)
+void
+__gnat_localtime_tzoff (const time_t *timer, long *off)
 {
-  /* Treat all time values in GMT */
-  localtime_r (tp, timer);
   *off = 0;
-  return NULL;
 }
 
 #else
+
+/* VMS does not need __gnat_locatime_tzoff */
+
 #if defined (VMS)
 
-/* __gnat_localtime_tzoff is not needed on VMS */
+/* Other targets except Lynx, VMS and Windows provide a standard locatime_r */
 
 #else
 
-/* All other targets provide a standard localtime_r */
+#define Lock_Task system__soft_links__lock_task
+extern void (*Lock_Task) (void);
 
-extern struct tm *
-__gnat_localtime_tzoff (const time_t *, struct tm *, long *);
+#define Unlock_Task system__soft_links__unlock_task
+extern void (*Unlock_Task) (void);
 
-struct tm *
-__gnat_localtime_tzoff (const time_t *timer, struct tm *tp, long *off)
+extern void
+__gnat_localtime_tzoff (const time_t *, long *);
+
+void
+__gnat_localtime_tzoff (const time_t *timer, long *off)
 {
-   localtime_r (timer, tp);
+  struct tm tp;
 
 /* AIX, HPUX, SGI Irix, Sun Solaris */
 #if defined (_AIX) || defined (__hpux__) || defined (sgi) || defined (sun)
-  /* The contents of external variable "timezone" may not always be
-     initialized. Instead of returning an incorrect offset, treat the local
-     time zone as 0 (UTC). The value of 28 hours is the maximum valid offset
-     allowed by Ada.Calendar.Time_Zones. */
-  if ((timezone < -28 * 3600) || (timezone > 28 * 3600))
-    *off = 0;
-  else
-  {
-    *off = (long) -timezone;
-    if (tp->tm_isdst > 0)
-      *off = *off + 3600;
-   }
-/* Lynx - Treat all time values in GMT */
-#elif defined (__Lynx__)
-  *off = 0;
+{
+  (*Lock_Task) ();
+
+  localtime_r (timer, &tp);
+  *off = (long) -timezone;
+
+  (*Unlock_Task) ();
+
+  /* Correct the offset if Daylight Saving Time is in effect */
+
+  if (tp.tm_isdst > 0)
+    *off = *off + 3600;
+}
 
 /* VxWorks */
 #elif defined (__vxworks)
 #include <stdlib.h>
 {
+  (*Lock_Task) ();
+
+  localtime_r (timer, &tp);
+
   /* Try to read the environment variable TIMEZONE. The variable may not have
      been initialize, in that case return an offset of zero (0) for UTC. */
+
   char *tz_str = getenv ("TIMEZONE");
 
   if ((tz_str == NULL) || (*tz_str == '\0'))
@@ -842,26 +899,42 @@ __gnat_localtime_tzoff (const time_t *timer, struct tm *tp, long *off)
        the value of U involves setting two pointers, one at the beginning and
        one at the end of the value. The end pointer is then set to null in
        order to delimit a string slice for atol to process. */
+
     tz_start = index (tz_str, ':') + 2;
     tz_end = index (tz_start, ':');
     tz_end = '\0';
 
-    /* The Ada layer expects an offset in seconds */
-    *off = atol (tz_start) * 60;
+    /* The Ada layer expects an offset in seconds. Note that we must reverse
+       the sign of the result since west is positive and east is negative on
+       VxWorks targets. */
+
+    *off = -atol (tz_start) * 60;
+
+    /* Correct the offset if Daylight Saving Time is in effect */
+
+    if (tp.tm_isdst > 0)
+      *off = *off + 3600;
   }
+
+  (*Unlock_Task) ();
 }
 
-/* Darwin, Free BSD, Linux, Tru64, where there exists a component tm_gmtoff
-   in struct tm */
+/* Darwin, Free BSD, Linux, Tru64, where component tm_gmtoff is present in
+   struct tm */
+
 #elif defined (__APPLE__) || defined (__FreeBSD__) || defined (linux) ||\
      (defined (__alpha__) && defined (__osf__)) || defined (__GLIBC__)
-  *off = tp->tm_gmtoff;
+{
+  localtime_r (timer, &tp);
+  *off = tp.tm_gmtoff;
+}
 
-/* All other platforms: Treat all time values in GMT */
+/* Default: treat all time values in GMT */
+
 #else
   *off = 0;
+
 #endif
-   return NULL;
 }
 
 #endif
@@ -876,7 +949,8 @@ __gnat_localtime_tzoff (const time_t *timer, struct tm *tp, long *off)
    function returns the options to be set when creating a new task. It fetches
    the options assigned to the current task (parent), so offering some user
    level control over the options for a task hierarchy. It forces VX_FP_TASK
-   because it is almost always required. */
+   because it is almost always required. On processors with the SPE
+   category, VX_SPE_TASK is needed to enable the SPE. */
 extern int __gnat_get_task_options (void);
 
 int
@@ -889,6 +963,9 @@ __gnat_get_task_options (void)
 
   /* Force VX_FP_TASK because it is almost always required */
   options |= VX_FP_TASK;
+#if defined (__SPE__)
+  options |= VX_SPE_TASK;
+#endif
 
   /* Mask those bits that are not under user control */
 #ifdef VX_USR_TASK_OPTIONS
@@ -909,7 +986,7 @@ __gnat_is_file_not_found_error (int errno_val) {
        * filesystem-specific variants of this error.
        */
       case S_dosFsLib_FILE_NOT_FOUND:
-#ifndef __RTP__
+#if ! defined (__RTP__) && ! defined (VTHREADS)
       case S_nfsLib_NFSERR_NOENT:
 #endif
 #endif

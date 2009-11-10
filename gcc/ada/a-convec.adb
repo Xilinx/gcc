@@ -6,25 +6,23 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2004-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 2004-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- This unit was originally developed by Matthew J Heaney.                  --
 ------------------------------------------------------------------------------
@@ -232,7 +230,7 @@ package body Ada.Containers.Vectors is
    -- "=" --
    ---------
 
-   function "=" (Left, Right : Vector) return Boolean is
+   overriding function "=" (Left, Right : Vector) return Boolean is
    begin
       if Left'Address = Right'Address then
          return True;
@@ -269,10 +267,15 @@ package body Ada.Containers.Vectors is
 
       begin
          Container.Elements := null;
-         Container.Last := No_Index;
          Container.Busy := 0;
          Container.Lock := 0;
 
+         --  Note: it may seem that the following assignment to Container.Last
+         --  is useless, since we assign it to L below. However this code is
+         --  used in case 'new Elements_Type' below raises an exception, to
+         --  keep Container in a consistent state.
+
+         Container.Last := No_Index;
          Container.Elements := new Elements_Type'(L, EA);
          Container.Last := L;
       end;
@@ -487,11 +490,10 @@ package body Ada.Containers.Vectors is
 
       Index := Int'Base (Container.Last) - Int'Base (Count);
 
-      if Index < Index_Type'Pos (Index_Type'First) then
-         Container.Last := No_Index;
-      else
-         Container.Last := Index_Type (Index);
-      end if;
+      Container.Last :=
+         (if Index < Index_Type'Pos (Index_Type'First)
+          then No_Index
+          else Index_Type (Index));
    end Delete_Last;
 
    -------------
@@ -883,7 +885,6 @@ package body Ada.Containers.Vectors is
            and then Index_Type'Last >= 0
          then
             CC := UInt (Index_Type'Last) + UInt (-Index_Type'First) + 1;
-
          else
             CC := UInt (Int (Index_Type'Last) - First + 1);
          end if;
@@ -1327,7 +1328,6 @@ package body Ada.Containers.Vectors is
            and then Index_Type'Last >= 0
          then
             CC := UInt (Index_Type'Last) + UInt (-Index_Type'First) + 1;
-
          else
             CC := UInt (Int (Index_Type'Last) - First + 1);
          end if;
@@ -1955,13 +1955,10 @@ package body Ada.Containers.Vectors is
          raise Program_Error with "Position cursor denotes wrong container";
       end if;
 
-      if Position.Container = null
-        or else Position.Index > Container.Last
-      then
-         Last := Container.Last;
-      else
-         Last := Position.Index;
-      end if;
+      Last :=
+        (if Position.Container = null or else Position.Index > Container.Last
+         then Container.Last
+         else Position.Index);
 
       for Indx in reverse Index_Type'First .. Last loop
          if Container.Elements.EA (Indx) = Item then
@@ -1981,15 +1978,10 @@ package body Ada.Containers.Vectors is
       Item      : Element_Type;
       Index     : Index_Type := Index_Type'Last) return Extended_Index
    is
-      Last : Index_Type'Base;
+      Last : constant Index_Type'Base :=
+               Index_Type'Min (Container.Last, Index);
 
    begin
-      if Index > Container.Last then
-         Last := Container.Last;
-      else
-         Last := Index;
-      end if;
-
       for Indx in reverse Index_Type'First .. Last loop
          if Container.Elements.EA (Indx) = Item then
             return Indx;

@@ -1,11 +1,11 @@
 // -*- C++ -*-
 
-// Copyright (C) 2005, 2006, 2008 Free Software Foundation, Inc.
+// Copyright (C) 2005, 2006, 2008, 2009 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the terms
 // of the GNU General Public License as published by the Free Software
-// Foundation; either version 2, or (at your option) any later
+// Foundation; either version 3, or (at your option) any later
 // version.
 
 // This library is distributed in the hope that it will be useful, but
@@ -14,19 +14,9 @@
 // General Public License for more details.
 
 // You should have received a copy of the GNU General Public License
-// along with this library; see the file COPYING.  If not, write to
-// the Free Software Foundation, 59 Temple Place - Suite 330, Boston,
-// MA 02111-1307, USA.
+// along with this library; see the file COPYING3.  If not see
+// <http://www.gnu.org/licenses/>.
 
-// As a special exception, you may use this file as part of a free
-// software library without restriction.  Specifically, if other files
-// instantiate templates or use macros or inline functions from this
-// file, or you compile this file and link it with other files to
-// produce an executable, this file does not by itself cause the
-// resulting executable to be covered by the GNU General Public
-// License.  This exception does not however invalidate any other
-// reasons why the executable file might be covered by the GNU General
-// Public License.
 
 // Copyright (C) 2004 Ami Tavory and Vladimir Dreizin, IBM-HRL.
 
@@ -70,7 +60,7 @@ default_constructor()
 {
   PB_DS_TRACE("default_constructor");
   bool done = true;
-  m_alloc.set_throw_prob(m_tp);
+  m_alloc.set_probability(m_tp);
 
   try
     {
@@ -93,9 +83,9 @@ PB_DS_CLASS_C_DEC::
 swap()
 {
   PB_DS_TRACE("swap");
-  m_alloc.set_throw_prob(0);
+  m_alloc.set_probability(0);
   Cntnr* p_c = new Cntnr;
-  m_alloc.set_throw_prob(1);
+  m_alloc.set_probability(1);
   p_c->swap(*m_p_c);
   std::swap(p_c, m_p_c);
   delete p_c;
@@ -110,9 +100,9 @@ copy_constructor()
   PB_DS_TRACE("copy_constructor");
   bool done = true;
   Cntnr* p_c = NULL;
-  m_alloc.set_throw_prob(m_tp);
+  m_alloc.set_probability(m_tp);
 
-  typedef typename allocator_type::group_throw_prob_adjustor adjustor;
+  typedef typename allocator_type::group_adjustor adjustor;
   adjustor adjust(m_p_c->size());
 
   try
@@ -138,9 +128,9 @@ assignment_operator()
   PB_DS_TRACE("assignment operator");
   bool done = true;
   Cntnr* p_c = NULL;
-  m_alloc.set_throw_prob(m_tp);
+  m_alloc.set_probability(m_tp);
 
-  typedef typename allocator_type::group_throw_prob_adjustor adjustor;
+  typedef typename allocator_type::group_adjustor adjustor;
   adjustor adjust(m_p_c->size());
 
   try
@@ -166,8 +156,8 @@ it_constructor()
 {
   bool done = true;
   Cntnr* p_c = NULL;
-  m_alloc.set_throw_prob(m_tp);
-  typedef typename allocator_type::group_throw_prob_adjustor adjustor;
+  m_alloc.set_probability(m_tp);
+  typedef typename allocator_type::group_adjustor adjustor;
   adjustor adjust(m_p_c->size());
 
   try
@@ -211,7 +201,7 @@ cmp(const Cntnr& c, const native_type& native, const std::string& callfn)
 
   try
     {
-      m_alloc.set_throw_prob(1);
+      m_alloc.set_probability(1);
       
       const size_t size = c.size();
       const size_t native_size = native.size();
@@ -258,7 +248,7 @@ operator()()
 			       string_form<Cntnr>::desc());
 
   m_g.init(m_seed);
-  m_alloc.init(m_seed);
+  m_alloc.seed(m_seed);
 
   // The __throw_allocator::_S_label defaults to 0, so to make things
   // easier and more precise when debugging, start at 1.
@@ -373,7 +363,7 @@ operator()()
     }
 
   // Reset throw probability.
-  m_alloc.set_throw_prob(0);
+  m_alloc.set_probability(0);
 
   if (m_disp)
     {
@@ -435,9 +425,9 @@ push()
 
     try
       {
-        m_alloc.set_throw_prob(0);
+        m_alloc.set_probability(0);
         value_type v = test_traits::generate_value(m_g, m_m);
-        m_alloc.set_throw_prob(m_tp);
+        m_alloc.set_probability(m_tp);
         const typename cntnr::size_type sz = m_p_c->size();
         m_p_c->push(v);
         _GLIBCXX_THROW_IF(sz != m_p_c->size() - 1, sz, m_p_c, &m_native_c);
@@ -470,10 +460,10 @@ modify()
   bool done = true;
   try
     {
-      m_alloc.set_throw_prob(0);
+      m_alloc.set_probability(0);
       value_type v = test_traits::generate_value(m_g, m_m);
 
-      m_alloc.set_throw_prob(m_tp);
+      m_alloc.set_probability(m_tp);
       typename cntnr::iterator it = m_p_c->begin();
       std::advance(it, m_g.get_unsigned_long(0, m_p_c->size()));
       if (it != m_p_c->end())
@@ -520,7 +510,7 @@ pop()
   bool done = true;
   try
     {
-      m_alloc.set_throw_prob(1);
+      m_alloc.set_probability(1);
       if (!m_p_c->empty())
         {
 	  m_p_c->pop();
@@ -553,7 +543,7 @@ erase_if()
 	typename std::iterator_traits<typename cntnr::iterator>::reference
 	it_const_reference;
       
-      m_alloc.set_throw_prob(1);
+      m_alloc.set_probability(1);
       
       typedef
 	typename test_traits::template erase_if_fn<value_type>
@@ -592,7 +582,7 @@ erase_it()
   bool done = true;
   try
     {
-      m_alloc.set_throw_prob(1);      
+      m_alloc.set_probability(1);      
       typename cntnr::iterator it = m_p_c->begin();      
       std::advance(it, m_g.get_unsigned_long(0, m_p_c->size()));
       
@@ -699,11 +689,11 @@ split_join()
   bool done = true;
   try
     {
-      m_alloc.set_throw_prob(0);
+      m_alloc.set_probability(0);
       Cntnr lhs(*m_p_c);
       Cntnr rhs;
       native_type native_lhs(m_native_c);
-      m_alloc.set_throw_prob(m_tp);
+      m_alloc.set_probability(m_tp);
       
       typedef typename test_traits::template erase_if_fn<value_type> split_fn_t;
       lhs.split(split_fn_t(), rhs);
@@ -716,7 +706,7 @@ split_join()
       PB_DS_COND_COMPARE(lhs, native_lhs);
       PB_DS_COND_COMPARE(rhs, native_rhs);
       
-      m_alloc.set_throw_prob(m_tp);
+      m_alloc.set_probability(m_tp);
       
       if (m_g.get_prob() < 0.5)
 	lhs.swap(rhs);      
@@ -825,7 +815,7 @@ void
 PB_DS_CLASS_C_DEC::
 print_container(const native_type& cnt, std::ostream& os) const
 {
-  m_alloc.set_throw_prob(0);
+  m_alloc.set_probability(0);
   native_type cpy(cnt);
   while (!cpy.empty())
     {
@@ -840,7 +830,7 @@ PB_DS_CLASS_C_DEC::
 print_container(const cntnr& cnt, std::ostream& os) const
 {
   typedef typename cntnr::const_iterator const_iterator;
-  m_alloc.set_throw_prob(0);
+  m_alloc.set_probability(0);
   for (const_iterator it = cnt.begin(); it != cnt.end(); ++it)
     os << *it << std::endl;
 }

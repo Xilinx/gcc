@@ -1,7 +1,7 @@
 /* Breadth-first and depth-first routines for
    searching multiple-inheritance lattice for GNU C++.
    Copyright (C) 1987, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2002, 2003, 2004, 2005, 2007, 2008
+   1999, 2000, 2002, 2003, 2004, 2005, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Michael Tiemann (tiemann@cygnus.com)
 
@@ -395,12 +395,10 @@ lookup_field_1 (tree type, tree name, bool want_type)
        The TYPE_FIELDS of TYPENAME_TYPE is its TYPENAME_TYPE_FULLNAME.  */
     return NULL_TREE;
 
-  if (TYPE_NAME (type)
-      && DECL_LANG_SPECIFIC (TYPE_NAME (type))
-      && DECL_SORTED_FIELDS (TYPE_NAME (type)))
+  if (CLASSTYPE_SORTED_FIELDS (type))
     {
-      tree *fields = &DECL_SORTED_FIELDS (TYPE_NAME (type))->elts[0];
-      int lo = 0, hi = DECL_SORTED_FIELDS (TYPE_NAME (type))->len;
+      tree *fields = &CLASSTYPE_SORTED_FIELDS (type)->elts[0];
+      int lo = 0, hi = CLASSTYPE_SORTED_FIELDS (type)->len;
       int i;
 
       while (lo < hi)
@@ -1382,6 +1380,8 @@ lookup_fnfields_1 (tree type, tree name)
 	    lazily_declare_fn (sfk_constructor, type);
 	  if (CLASSTYPE_LAZY_COPY_CTOR (type))
 	    lazily_declare_fn (sfk_copy_constructor, type);
+	  if (CLASSTYPE_LAZY_MOVE_CTOR (type))
+	    lazily_declare_fn (sfk_move_constructor, type);
 	}
       else if (name == ansi_assopname(NOP_EXPR)
 	       && CLASSTYPE_LAZY_ASSIGNMENT_OP (type))

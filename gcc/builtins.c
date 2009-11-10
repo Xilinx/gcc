@@ -58,6 +58,9 @@ along with GCC; see the file COPYING3.  If not see
 #ifndef PAD_VARARGS_DOWN
 #define PAD_VARARGS_DOWN BYTES_BIG_ENDIAN
 #endif
+#ifdef HAVE_mpc
+static tree do_mpc_arg1 (tree, tree, int (*)(mpc_ptr, mpc_srcptr, mpc_rnd_t));
+#endif
 
 /* Define the names of the builtin function types and codes.  */
 const char *const built_in_class_names[4]
@@ -109,102 +112,88 @@ static rtx expand_builtin_next_arg (void);
 static rtx expand_builtin_va_start (tree);
 static rtx expand_builtin_va_end (tree);
 static rtx expand_builtin_va_copy (tree);
-static rtx expand_builtin_memchr (tree, rtx, enum machine_mode);
 static rtx expand_builtin_memcmp (tree, rtx, enum machine_mode);
-static rtx expand_builtin_strcmp (tree, rtx, enum machine_mode);
+static rtx expand_builtin_strcmp (tree, rtx);
 static rtx expand_builtin_strncmp (tree, rtx, enum machine_mode);
 static rtx builtin_memcpy_read_str (void *, HOST_WIDE_INT, enum machine_mode);
-static rtx expand_builtin_strcat (tree, tree, rtx, enum machine_mode);
-static rtx expand_builtin_strncat (tree, rtx, enum machine_mode);
-static rtx expand_builtin_strspn (tree, rtx, enum machine_mode);
-static rtx expand_builtin_strcspn (tree, rtx, enum machine_mode);
-static rtx expand_builtin_memcpy (tree, rtx, enum machine_mode);
+static rtx expand_builtin_memcpy (tree, rtx);
 static rtx expand_builtin_mempcpy (tree, rtx, enum machine_mode);
-static rtx expand_builtin_mempcpy_args (tree, tree, tree, tree, rtx, 
+static rtx expand_builtin_mempcpy_args (tree, tree, tree, rtx, 
 					enum machine_mode, int);
-static rtx expand_builtin_memmove (tree, rtx, enum machine_mode, int);
-static rtx expand_builtin_memmove_args (tree, tree, tree, tree, rtx, 
-					enum machine_mode, int);
-static rtx expand_builtin_bcopy (tree, int);
-static rtx expand_builtin_strcpy (tree, tree, rtx, enum machine_mode);
-static rtx expand_builtin_strcpy_args (tree, tree, tree, rtx, enum machine_mode);
+static rtx expand_builtin_strcpy (tree, rtx);
+static rtx expand_builtin_strcpy_args (tree, tree, rtx);
 static rtx expand_builtin_stpcpy (tree, rtx, enum machine_mode);
-static rtx expand_builtin_strncpy (tree, rtx, enum machine_mode);
+static rtx expand_builtin_strncpy (tree, rtx);
 static rtx builtin_memset_gen_str (void *, HOST_WIDE_INT, enum machine_mode);
 static rtx expand_builtin_memset (tree, rtx, enum machine_mode);
 static rtx expand_builtin_memset_args (tree, tree, tree, rtx, enum machine_mode, tree);
 static rtx expand_builtin_bzero (tree);
 static rtx expand_builtin_strlen (tree, rtx, enum machine_mode);
-static rtx expand_builtin_strstr (tree, rtx, enum machine_mode);
-static rtx expand_builtin_strpbrk (tree, rtx, enum machine_mode);
-static rtx expand_builtin_strchr (tree, rtx, enum machine_mode);
-static rtx expand_builtin_strrchr (tree, rtx, enum machine_mode);
 static rtx expand_builtin_alloca (tree, rtx);
 static rtx expand_builtin_unop (enum machine_mode, tree, rtx, rtx, optab);
 static rtx expand_builtin_frame_address (tree, tree);
-static rtx expand_builtin_fputs (tree, rtx, bool);
 static rtx expand_builtin_printf (tree, rtx, enum machine_mode, bool);
 static rtx expand_builtin_fprintf (tree, rtx, enum machine_mode, bool);
 static rtx expand_builtin_sprintf (tree, rtx, enum machine_mode);
-static tree stabilize_va_list (tree, int);
+static tree stabilize_va_list_loc (location_t, tree, int);
 static rtx expand_builtin_expect (tree, rtx);
 static tree fold_builtin_constant_p (tree);
-static tree fold_builtin_expect (tree, tree);
+static tree fold_builtin_expect (location_t, tree, tree);
 static tree fold_builtin_classify_type (tree);
-static tree fold_builtin_strlen (tree);
-static tree fold_builtin_inf (tree, int);
+static tree fold_builtin_strlen (location_t, tree);
+static tree fold_builtin_inf (location_t, tree, int);
 static tree fold_builtin_nan (tree, tree, int);
-static tree rewrite_call_expr (tree, int, tree, int, ...);
+static tree rewrite_call_expr (location_t, tree, int, tree, int, ...);
 static bool validate_arg (const_tree, enum tree_code code);
 static bool integer_valued_real_p (tree);
-static tree fold_trunc_transparent_mathfn (tree, tree);
+static tree fold_trunc_transparent_mathfn (location_t, tree, tree);
 static bool readonly_data_expr (tree);
 static rtx expand_builtin_fabs (tree, rtx, rtx);
 static rtx expand_builtin_signbit (tree, rtx);
-static tree fold_builtin_sqrt (tree, tree);
-static tree fold_builtin_cbrt (tree, tree);
-static tree fold_builtin_pow (tree, tree, tree, tree);
-static tree fold_builtin_powi (tree, tree, tree, tree);
-static tree fold_builtin_cos (tree, tree, tree);
-static tree fold_builtin_cosh (tree, tree, tree);
+static tree fold_builtin_sqrt (location_t, tree, tree);
+static tree fold_builtin_cbrt (location_t, tree, tree);
+static tree fold_builtin_pow (location_t, tree, tree, tree, tree);
+static tree fold_builtin_powi (location_t, tree, tree, tree, tree);
+static tree fold_builtin_cos (location_t, tree, tree, tree);
+static tree fold_builtin_cosh (location_t, tree, tree, tree);
 static tree fold_builtin_tan (tree, tree);
-static tree fold_builtin_trunc (tree, tree);
-static tree fold_builtin_floor (tree, tree);
-static tree fold_builtin_ceil (tree, tree);
-static tree fold_builtin_round (tree, tree);
-static tree fold_builtin_int_roundingfn (tree, tree);
+static tree fold_builtin_trunc (location_t, tree, tree);
+static tree fold_builtin_floor (location_t, tree, tree);
+static tree fold_builtin_ceil (location_t, tree, tree);
+static tree fold_builtin_round (location_t, tree, tree);
+static tree fold_builtin_int_roundingfn (location_t, tree, tree);
 static tree fold_builtin_bitop (tree, tree);
-static tree fold_builtin_memory_op (tree, tree, tree, tree, bool, int);
-static tree fold_builtin_strchr (tree, tree, tree);
-static tree fold_builtin_memchr (tree, tree, tree, tree);
-static tree fold_builtin_memcmp (tree, tree, tree);
-static tree fold_builtin_strcmp (tree, tree);
-static tree fold_builtin_strncmp (tree, tree, tree);
-static tree fold_builtin_signbit (tree, tree);
-static tree fold_builtin_copysign (tree, tree, tree, tree);
-static tree fold_builtin_isascii (tree);
-static tree fold_builtin_toascii (tree);
-static tree fold_builtin_isdigit (tree);
-static tree fold_builtin_fabs (tree, tree);
-static tree fold_builtin_abs (tree, tree);
-static tree fold_builtin_unordered_cmp (tree, tree, tree, enum tree_code,
+static tree fold_builtin_memory_op (location_t, tree, tree, tree, tree, bool, int);
+static tree fold_builtin_strchr (location_t, tree, tree, tree);
+static tree fold_builtin_memchr (location_t, tree, tree, tree, tree);
+static tree fold_builtin_memcmp (location_t, tree, tree, tree);
+static tree fold_builtin_strcmp (location_t, tree, tree);
+static tree fold_builtin_strncmp (location_t, tree, tree, tree);
+static tree fold_builtin_signbit (location_t, tree, tree);
+static tree fold_builtin_copysign (location_t, tree, tree, tree, tree);
+static tree fold_builtin_isascii (location_t, tree);
+static tree fold_builtin_toascii (location_t, tree);
+static tree fold_builtin_isdigit (location_t, tree);
+static tree fold_builtin_fabs (location_t, tree, tree);
+static tree fold_builtin_abs (location_t, tree, tree);
+static tree fold_builtin_unordered_cmp (location_t, tree, tree, tree, enum tree_code,
 					enum tree_code);
-static tree fold_builtin_n (tree, tree *, int, bool);
-static tree fold_builtin_0 (tree, bool);
-static tree fold_builtin_1 (tree, tree, bool);
-static tree fold_builtin_2 (tree, tree, tree, bool);
-static tree fold_builtin_3 (tree, tree, tree, tree, bool);
-static tree fold_builtin_4 (tree, tree, tree, tree, tree, bool);
-static tree fold_builtin_varargs (tree, tree, bool);
+static tree fold_builtin_n (location_t, tree, tree *, int, bool);
+static tree fold_builtin_0 (location_t, tree, bool);
+static tree fold_builtin_1 (location_t, tree, tree, bool);
+static tree fold_builtin_2 (location_t, tree, tree, tree, bool);
+static tree fold_builtin_3 (location_t, tree, tree, tree, tree, bool);
+static tree fold_builtin_4 (location_t, tree, tree, tree, tree, tree, bool);
+static tree fold_builtin_varargs (location_t, tree, tree, bool);
 
-static tree fold_builtin_strpbrk (tree, tree, tree);
-static tree fold_builtin_strstr (tree, tree, tree);
-static tree fold_builtin_strrchr (tree, tree, tree);
-static tree fold_builtin_strcat (tree, tree);
-static tree fold_builtin_strncat (tree, tree, tree);
-static tree fold_builtin_strspn (tree, tree);
-static tree fold_builtin_strcspn (tree, tree);
-static tree fold_builtin_sprintf (tree, tree, tree, int);
+static tree fold_builtin_strpbrk (location_t, tree, tree, tree);
+static tree fold_builtin_strstr (location_t, tree, tree, tree);
+static tree fold_builtin_strrchr (location_t, tree, tree, tree);
+static tree fold_builtin_strcat (location_t, tree, tree);
+static tree fold_builtin_strncat (location_t, tree, tree, tree);
+static tree fold_builtin_strspn (location_t, tree, tree);
+static tree fold_builtin_strcspn (location_t, tree, tree);
+static tree fold_builtin_sprintf (location_t, tree, tree, tree, int);
 
 static rtx expand_builtin_object_size (tree);
 static rtx expand_builtin_memory_chk (tree, rtx, enum machine_mode,
@@ -213,11 +202,11 @@ static void maybe_emit_chk_warning (tree, enum built_in_function);
 static void maybe_emit_sprintf_chk_warning (tree, enum built_in_function);
 static void maybe_emit_free_warning (tree);
 static tree fold_builtin_object_size (tree, tree);
-static tree fold_builtin_strcat_chk (tree, tree, tree, tree);
-static tree fold_builtin_strncat_chk (tree, tree, tree, tree, tree);
-static tree fold_builtin_sprintf_chk (tree, enum built_in_function);
-static tree fold_builtin_printf (tree, tree, tree, bool, enum built_in_function);
-static tree fold_builtin_fprintf (tree, tree, tree, tree, bool,
+static tree fold_builtin_strcat_chk (location_t, tree, tree, tree, tree);
+static tree fold_builtin_strncat_chk (location_t, tree, tree, tree, tree, tree);
+static tree fold_builtin_sprintf_chk (location_t, tree, enum built_in_function);
+static tree fold_builtin_printf (location_t, tree, tree, tree, bool, enum built_in_function);
+static tree fold_builtin_fprintf (location_t, tree, tree, tree, tree, bool,
 				  enum built_in_function);
 static bool init_target_chars (void);
 
@@ -241,18 +230,40 @@ static tree do_mpfr_bessel_n (tree, tree, tree,
 static tree do_mpfr_remquo (tree, tree, tree);
 static tree do_mpfr_lgamma_r (tree, tree, tree);
 
-/* Return true if NODE should be considered for inline expansion regardless
-   of the optimization level.  This means whenever a function is invoked with
-   its "internal" name, which normally contains the prefix "__builtin".  */
+/* Return true if NAME starts with __builtin_ or __sync_.  */
 
-static bool called_as_built_in (tree node)
+bool
+is_builtin_name (const char *name)
 {
-  const char *name = IDENTIFIER_POINTER (DECL_NAME (node));
   if (strncmp (name, "__builtin_", 10) == 0)
     return true;
   if (strncmp (name, "__sync_", 7) == 0)
     return true;
   return false;
+}
+
+
+/* Return true if DECL is a function symbol representing a built-in.  */
+
+bool
+is_builtin_fn (tree decl)
+{
+  return TREE_CODE (decl) == FUNCTION_DECL && DECL_BUILT_IN (decl);
+}
+
+
+/* Return true if NODE should be considered for inline expansion regardless
+   of the optimization level.  This means whenever a function is invoked with
+   its "internal" name, which normally contains the prefix "__builtin".  */
+
+static bool
+called_as_built_in (tree node)
+{
+  /* Note that we must use DECL_NAME, not DECL_ASSEMBLER_NAME_SET_P since
+     we want the name used to call the function, not the name it
+     will have. */
+  const char *name = IDENTIFIER_POINTER (DECL_NAME (node));
+  return is_builtin_name (name);
 }
 
 /* Return the alignment in bits of EXP, an object.
@@ -331,6 +342,16 @@ get_object_alignment (tree exp, unsigned int align, unsigned int max_align)
   return MIN (align, max_align);
 }
 
+/* Returns true iff we can trust that alignment information has been
+   calculated properly.  */
+
+bool
+can_trust_pointer_alignment (void)
+{
+  /* We rely on TER to compute accurate alignment information.  */
+  return (optimize && flag_tree_ter);
+}
+
 /* Return the alignment in bits of EXP, a pointer valued expression.
    But don't return more than MAX_ALIGN no matter what.
    The alignment returned is, by default, the alignment of the thing that
@@ -344,8 +365,7 @@ get_pointer_alignment (tree exp, unsigned int max_align)
 {
   unsigned int align, inner;
 
-  /* We rely on TER to compute accurate alignment information.  */
-  if (!(optimize && flag_tree_ter))
+  if (!can_trust_pointer_alignment ())
     return 0;
 
   if (!POINTER_TYPE_P (TREE_TYPE (exp)))
@@ -457,7 +477,7 @@ c_strlen (tree src, int only_value)
 	 and return that.  This would perhaps not be valid if we were dealing
 	 with named arrays in addition to literal string constants.  */
 
-      return size_diffop (size_int (max), offset_node);
+      return size_diffop_loc (input_location, size_int (max), offset_node);
     }
 
   /* We have a known offset into the string.  Start searching there for
@@ -733,13 +753,17 @@ expand_builtin_setjmp_setup (rtx buf_addr, rtx receiver_label)
 void
 expand_builtin_setjmp_receiver (rtx receiver_label ATTRIBUTE_UNUSED)
 {
+  rtx chain;
+
   /* Clobber the FP when we get here, so we have to make sure it's
      marked as used by this function.  */
   emit_use (hard_frame_pointer_rtx);
 
   /* Mark the static chain as clobbered here so life information
      doesn't get messed up for it.  */
-  emit_clobber (static_chain_rtx);
+  chain = targetm.calls.static_chain (current_function_decl, true);
+  if (chain && REG_P (chain))
+    emit_clobber (chain);
 
   /* Now put in the code to restore the frame pointer, and argument
      pointer, if needed.  */
@@ -817,11 +841,8 @@ expand_builtin_longjmp (rtx buf_addr, rtx value)
 
   buf_addr = force_reg (Pmode, buf_addr);
 
-  /* We used to store value in static_chain_rtx, but that fails if pointers
-     are smaller than integers.  We instead require that the user must pass
-     a second argument of 1, because that is what builtin_setjmp will
-     return.  This also makes EH slightly more efficient, since we are no
-     longer copying around a value that we don't care about.  */
+  /* We require that the user must pass a second argument of 1, because
+     that is what builtin_setjmp will return.  */
   gcc_assert (value == const1_rtx);
 
   last = get_last_insn ();
@@ -1156,7 +1177,7 @@ get_memory_rtx (tree exp, tree len)
 	  gcc_assert (TREE_CODE (inner) == COMPONENT_REF);
 
 	  if (MEM_OFFSET (mem)
-	      && GET_CODE (MEM_OFFSET (mem)) == CONST_INT)
+	      && CONST_INT_P (MEM_OFFSET (mem)))
 	    offset = INTVAL (MEM_OFFSET (mem));
 
 	  if (offset >= 0 && len && host_integerp (len, 0))
@@ -1519,7 +1540,7 @@ expand_builtin_apply (rtx function, rtx arguments, rtx argsize)
 
   dest = virtual_outgoing_args_rtx;
 #ifndef STACK_GROWS_DOWNWARD
-  if (GET_CODE (argsize) == CONST_INT)
+  if (CONST_INT_P (argsize))
     dest = plus_constant (dest, -INTVAL (argsize));
   else
     dest = gen_rtx_PLUS (Pmode, dest, negate_rtx (Pmode, argsize));
@@ -1568,7 +1589,7 @@ expand_builtin_apply (rtx function, rtx arguments, rtx argsize)
     }
 
   /* All arguments and registers used for the call are set up by now!  */
-  function = prepare_call_address (function, NULL, &call_fusage, 0, 0);
+  function = prepare_call_address (NULL, function, NULL, &call_fusage, 0, 0);
 
   /* Ensure address is valid.  SYMBOL_REF is already valid, so no need,
      and we don't want to load it into a register as an optimization,
@@ -1863,8 +1884,8 @@ expand_errno_check (tree exp, rtx target)
 
   /* Test the result; if it is NaN, set errno=EDOM because
      the argument was not in the domain.  */
-  emit_cmp_and_jump_insns (target, target, EQ, 0, GET_MODE (target),
-			   0, lab);
+  do_compare_rtx_and_jump (target, target, EQ, 0, GET_MODE (target),
+                           NULL_RTX, NULL_RTX, lab);
 
 #ifdef TARGET_EDOM
   /* If this built-in doesn't throw an exception, set errno directly.  */
@@ -1962,6 +1983,8 @@ expand_builtin_mathfn (tree exp, rtx target, rtx subtarget)
       /* Else fallthrough and expand as rint.  */
     CASE_FLT_FN (BUILT_IN_RINT):
       builtin_optab = rint_optab; break;
+    CASE_FLT_FN (BUILT_IN_SIGNIFICAND):
+      builtin_optab = significand_optab; break;
     default:
       gcc_unreachable ();
     }
@@ -2223,6 +2246,50 @@ expand_builtin_mathfn_3 (tree exp, rtx target, rtx subtarget)
   return target;
 }
 
+/* Given an interclass math builtin decl FNDECL and it's argument ARG
+   return an RTL instruction code that implements the functionality.
+   If that isn't possible or available return CODE_FOR_nothing.  */
+
+static enum insn_code
+interclass_mathfn_icode (tree arg, tree fndecl)
+{
+  bool errno_set = false;
+  optab builtin_optab = 0;
+  enum machine_mode mode;
+
+  switch (DECL_FUNCTION_CODE (fndecl))
+    {
+    CASE_FLT_FN (BUILT_IN_ILOGB):
+      errno_set = true; builtin_optab = ilogb_optab; break;
+    CASE_FLT_FN (BUILT_IN_ISINF):
+      builtin_optab = isinf_optab; break;
+    case BUILT_IN_ISNORMAL:
+    case BUILT_IN_ISFINITE:
+    CASE_FLT_FN (BUILT_IN_FINITE):
+    case BUILT_IN_FINITED32:
+    case BUILT_IN_FINITED64:
+    case BUILT_IN_FINITED128:
+    case BUILT_IN_ISINFD32:
+    case BUILT_IN_ISINFD64:
+    case BUILT_IN_ISINFD128:
+      /* These builtins have no optabs (yet).  */
+      break;
+    default:
+      gcc_unreachable ();
+    }
+
+  /* There's no easy way to detect the case we need to set EDOM.  */
+  if (flag_errno_math && errno_set)
+    return CODE_FOR_nothing;
+
+  /* Optab mode depends on the mode of the input argument.  */
+  mode = TYPE_MODE (TREE_TYPE (arg));
+
+  if (builtin_optab)
+    return optab_handler (builtin_optab, mode)->insn_code;
+  return CODE_FOR_nothing;
+}
+
 /* Expand a call to one of the builtin math functions that operate on
    floating point argument and output an integer result (ilogb, isinf,
    isnan, etc).
@@ -2234,45 +2301,19 @@ expand_builtin_mathfn_3 (tree exp, rtx target, rtx subtarget)
 static rtx
 expand_builtin_interclass_mathfn (tree exp, rtx target, rtx subtarget)
 {
-  optab builtin_optab = 0;
   enum insn_code icode = CODE_FOR_nothing;
   rtx op0;
   tree fndecl = get_callee_fndecl (exp);
   enum machine_mode mode;
-  bool errno_set = false;
   tree arg;
 
   if (!validate_arglist (exp, REAL_TYPE, VOID_TYPE))
     return NULL_RTX;
 
   arg = CALL_EXPR_ARG (exp, 0);
-
-  switch (DECL_FUNCTION_CODE (fndecl))
-    {
-    CASE_FLT_FN (BUILT_IN_ILOGB):
-      errno_set = true; builtin_optab = ilogb_optab; break;
-    CASE_FLT_FN (BUILT_IN_ISINF):
-      builtin_optab = isinf_optab; break;
-    case BUILT_IN_ISNORMAL:
-    case BUILT_IN_ISFINITE:
-    CASE_FLT_FN (BUILT_IN_FINITE):
-      /* These builtins have no optabs (yet).  */
-      break;
-    default:
-      gcc_unreachable ();
-    }
-
-  /* There's no easy way to detect the case we need to set EDOM.  */
-  if (flag_errno_math && errno_set)
-    return NULL_RTX;
-
-  /* Optab mode depends on the mode of the input argument.  */
+  icode = interclass_mathfn_icode (arg, fndecl);
   mode = TYPE_MODE (TREE_TYPE (arg));
 
-  if (builtin_optab)
-    icode = optab_handler (builtin_optab, mode)->insn_code;
- 
-  /* Before working hard, check whether the instruction is available.  */
   if (icode != CODE_FOR_nothing)
     {
       /* Make a suitable register to place result in.  */
@@ -2299,71 +2340,7 @@ expand_builtin_interclass_mathfn (tree exp, rtx target, rtx subtarget)
       return target;
     }
 
-  /* If there is no optab, try generic code.  */
-  switch (DECL_FUNCTION_CODE (fndecl))
-    {
-      tree result;
-
-    CASE_FLT_FN (BUILT_IN_ISINF):
-      {
-	/* isinf(x) -> isgreater(fabs(x),DBL_MAX).  */
-	tree const isgr_fn = built_in_decls[BUILT_IN_ISGREATER];
-	tree const type = TREE_TYPE (arg);
-	REAL_VALUE_TYPE r;
-	char buf[128];
-
-	get_max_float (REAL_MODE_FORMAT (mode), buf, sizeof (buf));
-	real_from_string (&r, buf);
-	result = build_call_expr (isgr_fn, 2,
-				  fold_build1 (ABS_EXPR, type, arg),
-				  build_real (type, r));
-	return expand_expr (result, target, VOIDmode, EXPAND_NORMAL);
-      }
-    CASE_FLT_FN (BUILT_IN_FINITE):
-    case BUILT_IN_ISFINITE:
-      {
-	/* isfinite(x) -> islessequal(fabs(x),DBL_MAX).  */
-	tree const isle_fn = built_in_decls[BUILT_IN_ISLESSEQUAL];
-	tree const type = TREE_TYPE (arg);
-	REAL_VALUE_TYPE r;
-	char buf[128];
-
-	get_max_float (REAL_MODE_FORMAT (mode), buf, sizeof (buf));
-	real_from_string (&r, buf);
-	result = build_call_expr (isle_fn, 2,
-				  fold_build1 (ABS_EXPR, type, arg),
-				  build_real (type, r));
-	return expand_expr (result, target, VOIDmode, EXPAND_NORMAL);
-      }
-    case BUILT_IN_ISNORMAL:
-      {
-	/* isnormal(x) -> isgreaterequal(fabs(x),DBL_MIN) &
-	   islessequal(fabs(x),DBL_MAX).  */
-	tree const isle_fn = built_in_decls[BUILT_IN_ISLESSEQUAL];
-	tree const isge_fn = built_in_decls[BUILT_IN_ISGREATEREQUAL];
-	tree const type = TREE_TYPE (arg);
-	REAL_VALUE_TYPE rmax, rmin;
-	char buf[128];
-
-	get_max_float (REAL_MODE_FORMAT (mode), buf, sizeof (buf));
-	real_from_string (&rmax, buf);
-	sprintf (buf, "0x1p%d", REAL_MODE_FORMAT (mode)->emin - 1);
-	real_from_string (&rmin, buf);
-	arg = builtin_save_expr (fold_build1 (ABS_EXPR, type, arg));
-	result = build_call_expr (isle_fn, 2, arg,
-				  build_real (type, rmax));
-	result = fold_build2 (BIT_AND_EXPR, integer_type_node, result,
-			      build_call_expr (isge_fn, 2, arg,
-					       build_real (type, rmin)));
-	return expand_expr (result, target, VOIDmode, EXPAND_NORMAL);
-      }
-    default:
-      break;
-    }
-
-  target = expand_call (exp, target, target == const0_rtx);
-
-  return target;
+  return NULL_RTX;
 }
 
 /* Expand a call to the builtin sincos math function.
@@ -2378,6 +2355,7 @@ expand_builtin_sincos (tree exp)
   enum machine_mode mode;
   tree arg, sinp, cosp;
   int result;
+  location_t loc = EXPR_LOCATION (exp);
 
   if (!validate_arglist (exp, REAL_TYPE,
  			 POINTER_TYPE, POINTER_TYPE, VOID_TYPE))
@@ -2398,8 +2376,8 @@ expand_builtin_sincos (tree exp)
   target2 = gen_reg_rtx (mode);
 
   op0 = expand_normal (arg);
-  op1 = expand_normal (build_fold_indirect_ref (sinp));
-  op2 = expand_normal (build_fold_indirect_ref (cosp));
+  op1 = expand_normal (build_fold_indirect_ref_loc (loc, sinp));
+  op2 = expand_normal (build_fold_indirect_ref_loc (loc, cosp));
 
   /* Compute into target1 and target2.
      Set TARGET to wherever the result comes back.  */
@@ -2426,6 +2404,7 @@ expand_builtin_cexpi (tree exp, rtx target, rtx subtarget)
   tree arg, type;
   enum machine_mode mode;
   rtx op0, op1, op2;
+  location_t loc = EXPR_LOCATION (exp);
 
   if (!validate_arglist (exp, REAL_TYPE, VOID_TYPE))
     return NULL_RTX;
@@ -2507,7 +2486,7 @@ expand_builtin_cexpi (tree exp, rtx target, rtx subtarget)
 	  fn = build_fn_decl (name, fntype);
 	}
 
-      narg = fold_build2 (COMPLEX_EXPR, ctype,
+      narg = fold_build2_loc (loc, COMPLEX_EXPR, ctype,
 			  build_real (type, dconst0), arg);
 
       /* Make sure not to fold the cexp call again.  */
@@ -2522,6 +2501,27 @@ expand_builtin_cexpi (tree exp, rtx target, rtx subtarget)
 			      make_tree (TREE_TYPE (arg), op1)),
 		      target, VOIDmode, EXPAND_NORMAL);
 }
+
+/* Conveniently construct a function call expression.  FNDECL names the
+   function to be called, N is the number of arguments, and the "..."
+   parameters are the argument expressions.  Unlike build_call_exr
+   this doesn't fold the call, hence it will always return a CALL_EXPR.  */
+
+static tree
+build_call_nofold_loc (location_t loc, tree fndecl, int n, ...)
+{
+  va_list ap;
+  tree fntype = TREE_TYPE (fndecl);
+  tree fn = build1 (ADDR_EXPR, build_pointer_type (fntype), fndecl);
+
+  va_start (ap, n);
+  fn = build_call_valist (TREE_TYPE (fntype), fn, n, ap);
+  va_end (ap);
+  SET_EXPR_LOCATION (fn, loc);
+  return fn;
+}
+#define build_call_nofold(...) \
+  build_call_nofold_loc (UNKNOWN_LOCATION, __VA_ARGS__)
 
 /* Expand a call to one of the builtin rounding functions gcc defines
    as an extension (lfloor and lceil).  As these are gcc extensions we
@@ -2639,7 +2639,7 @@ expand_builtin_int_roundingfn (tree exp, rtx target)
       fallback_fndecl = build_fn_decl (name, fntype);
     }
 
-  exp = build_call_expr (fallback_fndecl, 1, arg);
+  exp = build_call_nofold (fallback_fndecl, 1, arg);
 
   tmp = expand_normal (exp);
 
@@ -2989,7 +2989,7 @@ expand_builtin_pow (tree exp, rtx target, rtx subtarget)
 	       && powi_cost (n/2) <= POWI_MAX_MULTS)
 	      || n == 1))
 	{
-	  tree call_expr = build_call_expr (fn, 1, narg0);
+	  tree call_expr = build_call_nofold (fn, 1, narg0);
 	  /* Use expand_expr in case the newly built call expression
 	     was folded to a non-call.  */
 	  op = expand_expr (call_expr, subtarget, mode, EXPAND_NORMAL);
@@ -3034,7 +3034,7 @@ expand_builtin_pow (tree exp, rtx target, rtx subtarget)
 	       && powi_cost (n/3) <= POWI_MAX_MULTS)
 	      || n == 1))
 	{
-	  tree call_expr = build_call_expr (fn, 1,narg0);
+	  tree call_expr = build_call_nofold (fn, 1,narg0);
 	  op = expand_builtin (call_expr, NULL_RTX, subtarget, mode, 0);
 	  if (abs (n) % 3 == 2)
 	    op = expand_simple_binop (mode, MULT, op, op, op,
@@ -3232,80 +3232,6 @@ expand_builtin_strlen (tree exp, rtx target,
     }
 }
 
-/* Expand a call to the strstr builtin.  Return NULL_RTX if we failed the
-   caller should emit a normal call, otherwise try to get the result
-   in TARGET, if convenient (and in mode MODE if that's convenient).  */
-
-static rtx
-expand_builtin_strstr (tree exp, rtx target, enum machine_mode mode)
-{
-  if (validate_arglist (exp, POINTER_TYPE, POINTER_TYPE, VOID_TYPE))
-    {
-      tree type = TREE_TYPE (exp);
-      tree result = fold_builtin_strstr (CALL_EXPR_ARG (exp, 0),
-					 CALL_EXPR_ARG (exp, 1), type);
-      if (result)
-	return expand_expr (result, target, mode, EXPAND_NORMAL);
-    }
-  return NULL_RTX;
-}
-
-/* Expand a call to the strchr builtin.  Return NULL_RTX if we failed the
-   caller should emit a normal call, otherwise try to get the result
-   in TARGET, if convenient (and in mode MODE if that's convenient).  */
-
-static rtx
-expand_builtin_strchr (tree exp, rtx target, enum machine_mode mode)
-{
-  if (validate_arglist (exp, POINTER_TYPE, INTEGER_TYPE, VOID_TYPE))
-    {
-      tree type = TREE_TYPE (exp);
-      tree result = fold_builtin_strchr (CALL_EXPR_ARG (exp, 0),
-					 CALL_EXPR_ARG (exp, 1), type);
-      if (result)
-	return expand_expr (result, target, mode, EXPAND_NORMAL);
-
-      /* FIXME: Should use strchrM optab so that ports can optimize this.  */
-    }
-  return NULL_RTX;
-}
-
-/* Expand a call to the strrchr builtin.  Return NULL_RTX if we failed the
-   caller should emit a normal call, otherwise try to get the result
-   in TARGET, if convenient (and in mode MODE if that's convenient).  */
-
-static rtx
-expand_builtin_strrchr (tree exp, rtx target, enum machine_mode mode)
-{
-  if (validate_arglist (exp, POINTER_TYPE, INTEGER_TYPE, VOID_TYPE))
-    {
-      tree type = TREE_TYPE (exp);
-      tree result = fold_builtin_strrchr (CALL_EXPR_ARG (exp, 0),
-					  CALL_EXPR_ARG (exp, 1), type);
-      if (result)
-	return expand_expr (result, target, mode, EXPAND_NORMAL);
-    }
-  return NULL_RTX;
-}
-
-/* Expand a call to the strpbrk builtin.  Return NULL_RTX if we failed the
-   caller should emit a normal call, otherwise try to get the result
-   in TARGET, if convenient (and in mode MODE if that's convenient).  */
-
-static rtx
-expand_builtin_strpbrk (tree exp, rtx target, enum machine_mode mode)
-{
-  if (validate_arglist (exp, POINTER_TYPE, POINTER_TYPE, VOID_TYPE))
-    {
-      tree type = TREE_TYPE (exp);
-      tree result = fold_builtin_strpbrk (CALL_EXPR_ARG (exp, 0),
-					  CALL_EXPR_ARG (exp, 1), type);
-      if (result)
-	return expand_expr (result, target, mode, EXPAND_NORMAL);
-    }
-  return NULL_RTX;
-}
-
 /* Callback routine for store_by_pieces.  Read GET_MODE_BITSIZE (MODE)
    bytes from constant string DATA + OFFSET and return it as target
    constant.  */
@@ -3329,10 +3255,8 @@ builtin_memcpy_read_str (void *data, HOST_WIDE_INT offset,
    mode MODE if that's convenient).  */
 
 static rtx
-expand_builtin_memcpy (tree exp, rtx target, enum machine_mode mode)
+expand_builtin_memcpy (tree exp, rtx target)
 {
-  tree fndecl = get_callee_fndecl (exp);
-
   if (!validate_arglist (exp,
  			 POINTER_TYPE, POINTER_TYPE, INTEGER_TYPE, VOID_TYPE))
     return NULL_RTX;
@@ -3346,23 +3270,9 @@ expand_builtin_memcpy (tree exp, rtx target, enum machine_mode mode)
       unsigned int dest_align
 	= get_pointer_alignment (dest, BIGGEST_ALIGNMENT);
       rtx dest_mem, src_mem, dest_addr, len_rtx;
-      tree result = fold_builtin_memory_op (dest, src, len, 
-					    TREE_TYPE (TREE_TYPE (fndecl)),
-					    false, /*endp=*/0);
       HOST_WIDE_INT expected_size = -1;
       unsigned int expected_align = 0;
       tree_ann_common_t ann;
-
-      if (result)
-	{
-	  while (TREE_CODE (result) == COMPOUND_EXPR)
-	    {
-	      expand_expr (TREE_OPERAND (result, 0), const0_rtx, VOIDmode,
-			   EXPAND_NORMAL);
-	      result = TREE_OPERAND (result, 1);
-	    }
-	  return expand_expr (result, target, mode, EXPAND_NORMAL);
-	}
 
       /* If DEST is not a pointer type, call the normal function.  */
       if (dest_align == 0)
@@ -3388,7 +3298,7 @@ expand_builtin_memcpy (tree exp, rtx target, enum machine_mode mode)
 	 by pieces, we can avoid loading the string from memory
 	 and only stored the computed constants.  */
       if (src_str
-	  && GET_CODE (len_rtx) == CONST_INT
+	  && CONST_INT_P (len_rtx)
 	  && (unsigned HOST_WIDE_INT) INTVAL (len_rtx) <= strlen (src_str) + 1
 	  && can_store_by_pieces (INTVAL (len_rtx), builtin_memcpy_read_str,
 				  CONST_CAST (char *, src_str),
@@ -3398,7 +3308,7 @@ expand_builtin_memcpy (tree exp, rtx target, enum machine_mode mode)
 				      builtin_memcpy_read_str,
 				      CONST_CAST (char *, src_str),
 				      dest_align, false, 0);
-	  dest_mem = force_operand (XEXP (dest_mem, 0), NULL_RTX);
+	  dest_mem = force_operand (XEXP (dest_mem, 0), target);
 	  dest_mem = convert_memory_address (ptr_mode, dest_mem);
 	  return dest_mem;
 	}
@@ -3414,7 +3324,7 @@ expand_builtin_memcpy (tree exp, rtx target, enum machine_mode mode)
 
       if (dest_addr == 0)
 	{
-	  dest_addr = force_operand (XEXP (dest_mem, 0), NULL_RTX);
+	  dest_addr = force_operand (XEXP (dest_mem, 0), target);
 	  dest_addr = convert_memory_address (ptr_mode, dest_addr);
 	}
       return dest_addr;
@@ -3441,7 +3351,6 @@ expand_builtin_mempcpy (tree exp, rtx target, enum machine_mode mode)
       tree src = CALL_EXPR_ARG (exp, 1);
       tree len = CALL_EXPR_ARG (exp, 2);
       return expand_builtin_mempcpy_args (dest, src, len,
-					  TREE_TYPE (exp),
 					  target, mode, /*endp=*/ 1);
     }
 }
@@ -3449,25 +3358,18 @@ expand_builtin_mempcpy (tree exp, rtx target, enum machine_mode mode)
 /* Helper function to do the actual work for expand_builtin_mempcpy.  The
    arguments to the builtin_mempcpy call DEST, SRC, and LEN are broken out
    so that this can also be called without constructing an actual CALL_EXPR.
-   TYPE is the return type of the call.  The other arguments and return value
-   are the same as for expand_builtin_mempcpy.  */
+   The other arguments and return value are the same as for
+   expand_builtin_mempcpy.  */
 
 static rtx
-expand_builtin_mempcpy_args (tree dest, tree src, tree len, tree type,
+expand_builtin_mempcpy_args (tree dest, tree src, tree len,
 			     rtx target, enum machine_mode mode, int endp)
 {
     /* If return value is ignored, transform mempcpy into memcpy.  */
   if (target == const0_rtx && implicit_built_in_decls[BUILT_IN_MEMCPY])
     {
       tree fn = implicit_built_in_decls[BUILT_IN_MEMCPY];
-      tree result = build_call_expr (fn, 3, dest, src, len);
-
-      while (TREE_CODE (result) == COMPOUND_EXPR)
-	{
-	  expand_expr (TREE_OPERAND (result, 0), const0_rtx, VOIDmode,
-		       EXPAND_NORMAL);
-	  result = TREE_OPERAND (result, 1);
-	}
+      tree result = build_call_nofold (fn, 3, dest, src, len);
       return expand_expr (result, target, mode, EXPAND_NORMAL);
     }
   else
@@ -3477,18 +3379,6 @@ expand_builtin_mempcpy_args (tree dest, tree src, tree len, tree type,
       unsigned int dest_align
 	= get_pointer_alignment (dest, BIGGEST_ALIGNMENT);
       rtx dest_mem, src_mem, len_rtx;
-      tree result = fold_builtin_memory_op (dest, src, len, type, false, endp);
-
-      if (result)
-	{
-	  while (TREE_CODE (result) == COMPOUND_EXPR)
-	    {
-	      expand_expr (TREE_OPERAND (result, 0), const0_rtx, VOIDmode,
-			   EXPAND_NORMAL);
-	      result = TREE_OPERAND (result, 1);
-	    }
-	  return expand_expr (result, target, mode, EXPAND_NORMAL);
-	}
 
       /* If either SRC or DEST is not a pointer type, don't do this
 	 operation in-line.  */
@@ -3506,7 +3396,7 @@ expand_builtin_mempcpy_args (tree dest, tree src, tree len, tree type,
 	 by pieces, we can avoid loading the string from memory
 	 and only stored the computed constants.  */
       if (src_str
-	  && GET_CODE (len_rtx) == CONST_INT
+	  && CONST_INT_P (len_rtx)
 	  && (unsigned HOST_WIDE_INT) INTVAL (len_rtx) <= strlen (src_str) + 1
 	  && can_store_by_pieces (INTVAL (len_rtx), builtin_memcpy_read_str,
 				  CONST_CAST (char *, src_str),
@@ -3523,7 +3413,7 @@ expand_builtin_mempcpy_args (tree dest, tree src, tree len, tree type,
 	  return dest_mem;
 	}
 
-      if (GET_CODE (len_rtx) == CONST_INT
+      if (CONST_INT_P (len_rtx)
 	  && can_move_by_pieces (INTVAL (len_rtx),
 				 MIN (dest_align, src_align)))
 	{
@@ -3540,80 +3430,6 @@ expand_builtin_mempcpy_args (tree dest, tree src, tree len, tree type,
 
       return NULL_RTX;
     }
-}
-
-/* Expand expression EXP, which is a call to the memmove builtin.  Return 
-   NULL_RTX if we failed; the caller should emit a normal call.  */
-
-static rtx
-expand_builtin_memmove (tree exp, rtx target, enum machine_mode mode, int ignore)
-{
-  if (!validate_arglist (exp,
- 			 POINTER_TYPE, POINTER_TYPE, INTEGER_TYPE, VOID_TYPE))
-    return NULL_RTX;
-  else
-    {
-      tree dest = CALL_EXPR_ARG (exp, 0);
-      tree src = CALL_EXPR_ARG (exp, 1);
-      tree len = CALL_EXPR_ARG (exp, 2);
-      return expand_builtin_memmove_args (dest, src, len, TREE_TYPE (exp), 
-					  target, mode, ignore);
-    }
-}
-
-/* Helper function to do the actual work for expand_builtin_memmove.  The
-   arguments to the builtin_memmove call DEST, SRC, and LEN are broken out
-   so that this can also be called without constructing an actual CALL_EXPR.
-   TYPE is the return type of the call.  The other arguments and return value
-   are the same as for expand_builtin_memmove.  */
-
-static rtx
-expand_builtin_memmove_args (tree dest, tree src, tree len,
-			     tree type, rtx target, enum machine_mode mode, 
-                             int ignore)
-{
-  tree result = fold_builtin_memory_op (dest, src, len, type, ignore, /*endp=*/3);
-
-  if (result)
-    {
-      STRIP_TYPE_NOPS (result);
-      while (TREE_CODE (result) == COMPOUND_EXPR)
-	{
-	  expand_expr (TREE_OPERAND (result, 0), const0_rtx, VOIDmode,
-		       EXPAND_NORMAL);
-	  result = TREE_OPERAND (result, 1);
-	}
-      return expand_expr (result, target, mode, EXPAND_NORMAL);
-    }
-  
-  /* Otherwise, call the normal function.  */
-  return NULL_RTX;
-}
-
-/* Expand expression EXP, which is a call to the bcopy builtin.  Return 
-   NULL_RTX if we failed the caller should emit a normal call.  */
-
-static rtx
-expand_builtin_bcopy (tree exp, int ignore)
-{
-  tree type = TREE_TYPE (exp);
-  tree src, dest, size;
-
-  if (!validate_arglist (exp,
- 			 POINTER_TYPE, POINTER_TYPE, INTEGER_TYPE, VOID_TYPE))
-    return NULL_RTX;
-
-  src = CALL_EXPR_ARG (exp, 0);
-  dest = CALL_EXPR_ARG (exp, 1);
-  size = CALL_EXPR_ARG (exp, 2);
-
-  /* Transform bcopy(ptr x, ptr y, int z) to memmove(ptr y, ptr x, size_t z).
-     This is done this way so that if it isn't expanded inline, we fall
-     back to calling bcopy instead of memmove.  */
-  return expand_builtin_memmove_args (dest, src,
- 				      fold_convert (sizetype, size),
- 				      type, const0_rtx, VOIDmode, 
-				      ignore);
 }
 
 #ifndef HAVE_movstr
@@ -3689,13 +3505,13 @@ expand_movstr (tree dest, tree src, rtx target, int endp)
    convenient).  */
 
 static rtx
-expand_builtin_strcpy (tree fndecl, tree exp, rtx target, enum machine_mode mode)
+expand_builtin_strcpy (tree exp, rtx target)
 {
   if (validate_arglist (exp, POINTER_TYPE, POINTER_TYPE, VOID_TYPE))
    {
      tree dest = CALL_EXPR_ARG (exp, 0);
      tree src = CALL_EXPR_ARG (exp, 1);
-     return expand_builtin_strcpy_args (fndecl, dest, src, target, mode);
+     return expand_builtin_strcpy_args (dest, src, target);
    }
    return NULL_RTX;
 }
@@ -3707,14 +3523,9 @@ expand_builtin_strcpy (tree fndecl, tree exp, rtx target, enum machine_mode mode
    expand_builtin_strcpy.  */
 
 static rtx
-expand_builtin_strcpy_args (tree fndecl, tree dest, tree src,
-			    rtx target, enum machine_mode mode)
+expand_builtin_strcpy_args (tree dest, tree src, rtx target)
 {
-  tree result = fold_builtin_strcpy (fndecl, dest, src, 0);
-  if (result)
-    return expand_expr (result, target, mode, EXPAND_NORMAL);
   return expand_movstr (dest, src, target, /*endp=*/0);
-
 }
 
 /* Expand a call EXP to the stpcpy builtin.
@@ -3726,6 +3537,7 @@ static rtx
 expand_builtin_stpcpy (tree exp, rtx target, enum machine_mode mode)
 {
   tree dst, src;
+  location_t loc = EXPR_LOCATION (exp);
 
   if (!validate_arglist (exp, POINTER_TYPE, POINTER_TYPE, VOID_TYPE))
     return NULL_RTX;
@@ -3737,15 +3549,7 @@ expand_builtin_stpcpy (tree exp, rtx target, enum machine_mode mode)
   if (target == const0_rtx && implicit_built_in_decls[BUILT_IN_STRCPY])
     {
       tree fn = implicit_built_in_decls[BUILT_IN_STRCPY];
-      tree result = build_call_expr (fn, 2, dst, src);
-
-      STRIP_NOPS (result);
-      while (TREE_CODE (result) == COMPOUND_EXPR)
-	{
-	  expand_expr (TREE_OPERAND (result, 0), const0_rtx, VOIDmode,
-		       EXPAND_NORMAL);
-	  result = TREE_OPERAND (result, 1);
-	}
+      tree result = build_call_nofold (fn, 2, dst, src);
       return expand_expr (result, target, mode, EXPAND_NORMAL);
     }
   else
@@ -3760,8 +3564,8 @@ expand_builtin_stpcpy (tree exp, rtx target, enum machine_mode mode)
       if (! c_getstr (src) || ! (len = c_strlen (src, 0)))
 	return expand_movstr (dst, src, target, /*endp=*/2);
 
-      lenp1 = size_binop (PLUS_EXPR, len, ssize_int (1));
-      ret = expand_builtin_mempcpy_args (dst, src, lenp1, TREE_TYPE (exp),
+      lenp1 = size_binop_loc (loc, PLUS_EXPR, len, ssize_int (1));
+      ret = expand_builtin_mempcpy_args (dst, src, lenp1,
  					 target, mode, /*endp=*/2);
 
       if (ret)
@@ -3771,10 +3575,9 @@ expand_builtin_stpcpy (tree exp, rtx target, enum machine_mode mode)
 	{
 	  rtx len_rtx = expand_normal (len);
 
-	  if (GET_CODE (len_rtx) == CONST_INT)
+	  if (CONST_INT_P (len_rtx))
 	    {
-	      ret = expand_builtin_strcpy_args (get_callee_fndecl (exp),
-						dst, src, target, mode);
+	      ret = expand_builtin_strcpy_args (dst, src, target);
 
 	      if (ret)
 		{
@@ -3821,9 +3624,9 @@ builtin_strncpy_read_str (void *data, HOST_WIDE_INT offset,
    NULL_RTX if we failed the caller should emit a normal call.  */
 
 static rtx
-expand_builtin_strncpy (tree exp, rtx target, enum machine_mode mode)
+expand_builtin_strncpy (tree exp, rtx target)
 {
-  tree fndecl = get_callee_fndecl (exp);
+  location_t loc = EXPR_LOCATION (exp);
 
   if (validate_arglist (exp,
  			POINTER_TYPE, POINTER_TYPE, INTEGER_TYPE, VOID_TYPE))
@@ -3832,24 +3635,12 @@ expand_builtin_strncpy (tree exp, rtx target, enum machine_mode mode)
       tree src = CALL_EXPR_ARG (exp, 1);
       tree len = CALL_EXPR_ARG (exp, 2);
       tree slen = c_strlen (src, 1);
-      tree result = fold_builtin_strncpy (fndecl, dest, src, len, slen);
-
-      if (result)
-	{
-	  while (TREE_CODE (result) == COMPOUND_EXPR)
-	    {
-	      expand_expr (TREE_OPERAND (result, 0), const0_rtx, VOIDmode,
-			   EXPAND_NORMAL);
-	      result = TREE_OPERAND (result, 1);
-	    }
-	  return expand_expr (result, target, mode, EXPAND_NORMAL);
-	}
 
       /* We must be passed a constant len and src parameter.  */
       if (!host_integerp (len, 1) || !slen || !host_integerp (slen, 1))
 	return NULL_RTX;
 
-      slen = size_binop (PLUS_EXPR, slen, ssize_int (1));
+      slen = size_binop_loc (loc, PLUS_EXPR, slen, ssize_int (1));
 
       /* We're required to pad with trailing zeros if the requested
 	 len is greater than strlen(s2)+1.  In that case try to
@@ -3872,7 +3663,7 @@ expand_builtin_strncpy (tree exp, rtx target, enum machine_mode mode)
 	  store_by_pieces (dest_mem, tree_low_cst (len, 1),
 			   builtin_strncpy_read_str,
 			   CONST_CAST (char *, p), dest_align, false, 0);
-	  dest_mem = force_operand (XEXP (dest_mem, 0), NULL_RTX);
+	  dest_mem = force_operand (XEXP (dest_mem, 0), target);
 	  dest_mem = convert_memory_address (ptr_mode, dest_mem);
 	  return dest_mem;
 	}
@@ -4062,13 +3853,13 @@ expand_builtin_memset_args (tree dest, tree val, tree len,
   fndecl = get_callee_fndecl (orig_exp);
   fcode = DECL_FUNCTION_CODE (fndecl);
   if (fcode == BUILT_IN_MEMSET)
-    fn = build_call_expr (fndecl, 3, dest, val, len);
+    fn = build_call_nofold (fndecl, 3, dest, val, len);
   else if (fcode == BUILT_IN_BZERO)
-    fn = build_call_expr (fndecl, 2, dest, len);
+    fn = build_call_nofold (fndecl, 2, dest, len);
   else
     gcc_unreachable ();
-  if (TREE_CODE (fn) == CALL_EXPR)
-    CALL_EXPR_TAILCALL (fn) = CALL_EXPR_TAILCALL (orig_exp);
+  gcc_assert (TREE_CODE (fn) == CALL_EXPR);
+  CALL_EXPR_TAILCALL (fn) = CALL_EXPR_TAILCALL (orig_exp);
   return expand_call (fn, target, target == const0_rtx);
 }
 
@@ -4079,6 +3870,7 @@ static rtx
 expand_builtin_bzero (tree exp)
 {
   tree dest, size;
+  location_t loc = EXPR_LOCATION (exp);
 
   if (!validate_arglist (exp, POINTER_TYPE, INTEGER_TYPE, VOID_TYPE))
     return NULL_RTX;
@@ -4092,28 +3884,8 @@ expand_builtin_bzero (tree exp)
      calling bzero instead of memset.  */
 
   return expand_builtin_memset_args (dest, integer_zero_node,
-				     fold_convert (sizetype, size),
+				     fold_convert_loc (loc, sizetype, size),
 				     const0_rtx, VOIDmode, exp);
-}
-
-/* Expand a call to the memchr builtin.  Return NULL_RTX if we failed the
-   caller should emit a normal call, otherwise try to get the result
-   in TARGET, if convenient (and in mode MODE if that's convenient).  */
-
-static rtx
-expand_builtin_memchr (tree exp, rtx target, enum machine_mode mode)
-{
-  if (validate_arglist (exp, POINTER_TYPE, INTEGER_TYPE,
-			INTEGER_TYPE, VOID_TYPE))
-    {
-      tree type = TREE_TYPE (exp);
-      tree result = fold_builtin_memchr (CALL_EXPR_ARG (exp, 0),
-					 CALL_EXPR_ARG (exp, 1),
-					 CALL_EXPR_ARG (exp, 2), type);
-      if (result)
-	return expand_expr (result, target, mode, EXPAND_NORMAL);
-    }
-  return NULL_RTX;
 }
 
 /* Expand expression EXP, which is a call to the memcmp built-in function.
@@ -4122,19 +3894,14 @@ expand_builtin_memchr (tree exp, rtx target, enum machine_mode mode)
    TARGET, if convenient (and in mode MODE, if that's convenient).  */
 
 static rtx
-expand_builtin_memcmp (tree exp, rtx target, enum machine_mode mode)
+expand_builtin_memcmp (tree exp, ATTRIBUTE_UNUSED rtx target,
+		       ATTRIBUTE_UNUSED enum machine_mode mode)
 {
+  location_t loc ATTRIBUTE_UNUSED = EXPR_LOCATION (exp);
+
   if (!validate_arglist (exp,
  			 POINTER_TYPE, POINTER_TYPE, INTEGER_TYPE, VOID_TYPE))
     return NULL_RTX;
-  else
-    {
-      tree result = fold_builtin_memcmp (CALL_EXPR_ARG (exp, 0),
- 					 CALL_EXPR_ARG (exp, 1),
- 					 CALL_EXPR_ARG (exp, 2));
-      if (result)
-	return expand_expr (result, target, mode, EXPAND_NORMAL);
-    }
 
 #if defined HAVE_cmpmemsi || defined HAVE_cmpstrnsi
   {
@@ -4176,10 +3943,10 @@ expand_builtin_memcmp (tree exp, rtx target, enum machine_mode mode)
 
     arg1_rtx = get_memory_rtx (arg1, len);
     arg2_rtx = get_memory_rtx (arg2, len);
-    arg3_rtx = expand_normal (len);
+    arg3_rtx = expand_normal (fold_convert_loc (loc, sizetype, len));
 
     /* Set MEM_SIZE as appropriate.  */
-    if (GET_CODE (arg3_rtx) == CONST_INT)
+    if (CONST_INT_P (arg3_rtx))
       {
 	set_mem_size (arg1_rtx, arg3_rtx);
 	set_mem_size (arg2_rtx, arg3_rtx);
@@ -4232,17 +3999,10 @@ expand_builtin_memcmp (tree exp, rtx target, enum machine_mode mode)
    the result in TARGET, if convenient.  */
 
 static rtx
-expand_builtin_strcmp (tree exp, rtx target, enum machine_mode mode)
+expand_builtin_strcmp (tree exp, ATTRIBUTE_UNUSED rtx target)
 {
   if (!validate_arglist (exp, POINTER_TYPE, POINTER_TYPE, VOID_TYPE))
     return NULL_RTX;
-  else
-    {
-      tree result = fold_builtin_strcmp (CALL_EXPR_ARG (exp, 0),
- 					 CALL_EXPR_ARG (exp, 1));
-      if (result)
-	return expand_expr (result, target, mode, EXPAND_NORMAL);
-    }
 
 #if defined HAVE_cmpstrsi || defined HAVE_cmpstrnsi
   if (cmpstr_optab[SImode] != CODE_FOR_nothing
@@ -4349,6 +4109,7 @@ expand_builtin_strcmp (tree exp, rtx target, enum machine_mode mode)
 
       if (insn)
 	{
+	  enum machine_mode mode;
 	  emit_insn (insn);
 
 	  /* Return the value in the proper mode for this function.  */
@@ -4367,9 +4128,9 @@ expand_builtin_strcmp (tree exp, rtx target, enum machine_mode mode)
     do_libcall:
 #endif
       fndecl = get_callee_fndecl (exp);
-      fn = build_call_expr (fndecl, 2, arg1, arg2);
-      if (TREE_CODE (fn) == CALL_EXPR)
-	CALL_EXPR_TAILCALL (fn) = CALL_EXPR_TAILCALL (exp);
+      fn = build_call_nofold (fndecl, 2, arg1, arg2);
+      gcc_assert (TREE_CODE (fn) == CALL_EXPR);
+      CALL_EXPR_TAILCALL (fn) = CALL_EXPR_TAILCALL (exp);
       return expand_call (fn, target, target == const0_rtx);
     }
 #endif
@@ -4381,19 +4142,14 @@ expand_builtin_strcmp (tree exp, rtx target, enum machine_mode mode)
    the result in TARGET, if convenient.  */
 
 static rtx
-expand_builtin_strncmp (tree exp, rtx target, enum machine_mode mode)
+expand_builtin_strncmp (tree exp, ATTRIBUTE_UNUSED rtx target,
+			ATTRIBUTE_UNUSED enum machine_mode mode)
 {
+  location_t loc ATTRIBUTE_UNUSED = EXPR_LOCATION (exp);
+
   if (!validate_arglist (exp,
  			 POINTER_TYPE, POINTER_TYPE, INTEGER_TYPE, VOID_TYPE))
     return NULL_RTX;
-  else
-    {
-      tree result = fold_builtin_strncmp (CALL_EXPR_ARG (exp, 0),
- 					  CALL_EXPR_ARG (exp, 1),
- 					  CALL_EXPR_ARG (exp, 2));
-      if (result)
-	return expand_expr (result, target, mode, EXPAND_NORMAL);
-    }
 
   /* If c_strlen can determine an expression for one of the string
      lengths, and it doesn't have side effects, then emit cmpstrnsi
@@ -4420,9 +4176,9 @@ expand_builtin_strncmp (tree exp, rtx target, enum machine_mode mode)
     len2 = c_strlen (arg2, 1);
 
     if (len1)
-      len1 = size_binop (PLUS_EXPR, ssize_int (1), len1);
+      len1 = size_binop_loc (loc, PLUS_EXPR, ssize_int (1), len1);
     if (len2)
-      len2 = size_binop (PLUS_EXPR, ssize_int (1), len2);
+      len2 = size_binop_loc (loc, PLUS_EXPR, ssize_int (1), len2);
 
     /* If we don't have a constant length for the first, use the length
        of the second, if we know it.  We don't require a constant for
@@ -4453,8 +4209,8 @@ expand_builtin_strncmp (tree exp, rtx target, enum machine_mode mode)
       return NULL_RTX;
 
     /* The actual new length parameter is MIN(len,arg3).  */
-    len = fold_build2 (MIN_EXPR, TREE_TYPE (len), len,
-		       fold_convert (TREE_TYPE (len), arg3));
+    len = fold_build2_loc (loc, MIN_EXPR, TREE_TYPE (len), len,
+		       fold_convert_loc (loc, TREE_TYPE (len), arg3));
 
     /* If we don't have POINTER_TYPE, call the function.  */
     if (arg1_align == 0 || arg2_align == 0)
@@ -4494,122 +4250,12 @@ expand_builtin_strncmp (tree exp, rtx target, enum machine_mode mode)
     /* Expand the library call ourselves using a stabilized argument
        list to avoid re-evaluating the function's arguments twice.  */
     fndecl = get_callee_fndecl (exp);
-    fn = build_call_expr (fndecl, 3, arg1, arg2, len);
-    if (TREE_CODE (fn) == CALL_EXPR)
-      CALL_EXPR_TAILCALL (fn) = CALL_EXPR_TAILCALL (exp);
+    fn = build_call_nofold (fndecl, 3, arg1, arg2, len);
+    gcc_assert (TREE_CODE (fn) == CALL_EXPR);
+    CALL_EXPR_TAILCALL (fn) = CALL_EXPR_TAILCALL (exp);
     return expand_call (fn, target, target == const0_rtx);
   }
 #endif
-  return NULL_RTX;
-}
-
-/* Expand expression EXP, which is a call to the strcat builtin.
-   Return NULL_RTX if we failed the caller should emit a normal call,
-   otherwise try to get the result in TARGET, if convenient.  */
-
-static rtx
-expand_builtin_strcat (tree fndecl, tree exp, rtx target, enum machine_mode mode)
-{
-  if (!validate_arglist (exp, POINTER_TYPE, POINTER_TYPE, VOID_TYPE))
-    return NULL_RTX;
-  else
-    {
-      tree dst = CALL_EXPR_ARG (exp, 0);
-      tree src = CALL_EXPR_ARG (exp, 1);
-      const char *p = c_getstr (src);
-
-      /* If the string length is zero, return the dst parameter.  */
-      if (p && *p == '\0')
-	return expand_expr (dst, target, mode, EXPAND_NORMAL);
-
-      if (optimize_insn_for_speed_p ())
-	{
-	  /* See if we can store by pieces into (dst + strlen(dst)).  */
-	  tree newsrc, newdst,
-	    strlen_fn = implicit_built_in_decls[BUILT_IN_STRLEN];
-	  rtx insns;
-
-	  /* Stabilize the argument list.  */
-	  newsrc = builtin_save_expr (src);
-	  dst = builtin_save_expr (dst);
-
-	  start_sequence ();
-
-	  /* Create strlen (dst).  */
-	  newdst = build_call_expr (strlen_fn, 1, dst);
-	  /* Create (dst p+ strlen (dst)).  */
-
-	  newdst = fold_build2 (POINTER_PLUS_EXPR, TREE_TYPE (dst), dst, newdst);
-	  newdst = builtin_save_expr (newdst);
-
-	  if (!expand_builtin_strcpy_args (fndecl, newdst, newsrc, target, mode))
-	    {
-	      end_sequence (); /* Stop sequence.  */
-	      return NULL_RTX;
-	    }
-
-	  /* Output the entire sequence.  */
-	  insns = get_insns ();
-	  end_sequence ();
-	  emit_insn (insns);
-
-	  return expand_expr (dst, target, mode, EXPAND_NORMAL);
-	}
-
-      return NULL_RTX;
-    }
-}
-
-/* Expand expression EXP, which is a call to the strncat builtin.
-   Return NULL_RTX if we failed the caller should emit a normal call,
-   otherwise try to get the result in TARGET, if convenient.  */
-
-static rtx
-expand_builtin_strncat (tree exp, rtx target, enum machine_mode mode)
-{
-  if (validate_arglist (exp,
- 			POINTER_TYPE, POINTER_TYPE, INTEGER_TYPE, VOID_TYPE))
-    {
-      tree result = fold_builtin_strncat (CALL_EXPR_ARG (exp, 0),
-					  CALL_EXPR_ARG (exp, 1),
-					  CALL_EXPR_ARG (exp, 2));
-      if (result)
-	return expand_expr (result, target, mode, EXPAND_NORMAL);
-    }
-  return NULL_RTX;
-}
-
-/* Expand expression EXP, which is a call to the strspn builtin.
-   Return NULL_RTX if we failed the caller should emit a normal call,
-   otherwise try to get the result in TARGET, if convenient.  */
-
-static rtx
-expand_builtin_strspn (tree exp, rtx target, enum machine_mode mode)
-{
-  if (validate_arglist (exp, POINTER_TYPE, POINTER_TYPE, VOID_TYPE))
-    {
-      tree result = fold_builtin_strspn (CALL_EXPR_ARG (exp, 0),
-					 CALL_EXPR_ARG (exp, 1));
-      if (result)
-	return expand_expr (result, target, mode, EXPAND_NORMAL);
-    }
-  return NULL_RTX;
-}
-
-/* Expand expression EXP, which is a call to the strcspn builtin.
-   Return NULL_RTX if we failed the caller should emit a normal call,
-   otherwise try to get the result in TARGET, if convenient.  */
-
-static rtx
-expand_builtin_strcspn (tree exp, rtx target, enum machine_mode mode)
-{
-  if (validate_arglist (exp, POINTER_TYPE, POINTER_TYPE, VOID_TYPE))
-    {
-      tree result = fold_builtin_strcspn (CALL_EXPR_ARG (exp, 0),
-					  CALL_EXPR_ARG (exp, 1));
-      if (result)
-	return expand_expr (result, target, mode, EXPAND_NORMAL);
-    }
   return NULL_RTX;
 }
 
@@ -4699,7 +4345,7 @@ expand_builtin_next_arg (void)
    from multiple evaluations.  */
 
 static tree
-stabilize_va_list (tree valist, int needs_lvalue)
+stabilize_va_list_loc (location_t loc, tree valist, int needs_lvalue)
 {
   tree vatype = targetm.canonical_va_list_type (TREE_TYPE (valist));
 
@@ -4717,7 +4363,7 @@ stabilize_va_list (tree valist, int needs_lvalue)
       if (TREE_CODE (TREE_TYPE (valist)) == ARRAY_TYPE)
 	{
 	  tree p1 = build_pointer_type (TREE_TYPE (vatype));
-	  valist = build_fold_addr_expr_with_type (valist, p1);
+	  valist = build_fold_addr_expr_with_type_loc (loc, valist, p1);
 	}
     }
   else
@@ -4730,13 +4376,13 @@ stabilize_va_list (tree valist, int needs_lvalue)
 	    return valist;
 
 	  pt = build_pointer_type (vatype);
-	  valist = fold_build1 (ADDR_EXPR, pt, valist);
+	  valist = fold_build1_loc (loc, ADDR_EXPR, pt, valist);
 	  TREE_SIDE_EFFECTS (valist) = 1;
 	}
 
       if (TREE_SIDE_EFFECTS (valist))
 	valist = save_expr (valist);
-      valist = build_fold_indirect_ref (valist);
+      valist = build_fold_indirect_ref_loc (loc, valist);
     }
 
   return valist;
@@ -4810,10 +4456,11 @@ expand_builtin_va_start (tree exp)
 {
   rtx nextarg;
   tree valist;
+  location_t loc = EXPR_LOCATION (exp);
 
   if (call_expr_nargs (exp) < 2)
     {
-      error ("too few arguments to function %<va_start%>");
+      error_at (loc, "too few arguments to function %<va_start%>");
       return const0_rtx;
     }
 
@@ -4821,7 +4468,7 @@ expand_builtin_va_start (tree exp)
     return const0_rtx;
 
   nextarg = expand_builtin_next_arg ();
-  valist = stabilize_va_list (CALL_EXPR_ARG (exp, 0), 1);
+  valist = stabilize_va_list_loc (loc, CALL_EXPR_ARG (exp, 0), 1);
 
   if (targetm.expand_builtin_va_start)
     targetm.expand_builtin_va_start (valist, nextarg);
@@ -4874,7 +4521,8 @@ std_gimplify_va_arg_expr (tree valist, tree type, gimple_seq *pre_p,
       && !integer_zerop (TYPE_SIZE (type)))
     {
       t = build2 (MODIFY_EXPR, TREE_TYPE (valist), valist_tmp,
-		  fold_build2 (POINTER_PLUS_EXPR, TREE_TYPE (valist),
+		  fold_build2 (POINTER_PLUS_EXPR,
+			       TREE_TYPE (valist),
 			       valist_tmp, size_int (boundary - 1)));
       gimplify_and_add (t, pre_p);
 
@@ -4910,10 +4558,12 @@ std_gimplify_va_arg_expr (tree valist, tree type, gimple_seq *pre_p,
   if (PAD_VARARGS_DOWN && !integer_zerop (rounded_size))
     {
       /* Small args are padded downward.  */
-      t = fold_build2 (GT_EXPR, sizetype, rounded_size, size_int (align));
+      t = fold_build2_loc (input_location, GT_EXPR, sizetype,
+		       rounded_size, size_int (align));
       t = fold_build3 (COND_EXPR, sizetype, t, size_zero_node,
 		       size_binop (MINUS_EXPR, rounded_size, type_size));
-      addr = fold_build2 (POINTER_PLUS_EXPR, TREE_TYPE (addr), addr, t);
+      addr = fold_build2 (POINTER_PLUS_EXPR,
+			  TREE_TYPE (addr), addr, t);
     }
 
   /* Compute new value for AP.  */
@@ -4934,7 +4584,7 @@ std_gimplify_va_arg_expr (tree valist, tree type, gimple_seq *pre_p,
 tree
 build_va_arg_indirect_ref (tree addr)
 {
-  addr = build_fold_indirect_ref (addr);
+  addr = build_fold_indirect_ref_loc (EXPR_LOCATION (addr), addr);
 
   if (flag_mudflap) /* Don't instrument va_arg INDIRECT_REF.  */
     mf_mark (addr);
@@ -4962,6 +4612,7 @@ gimplify_va_arg_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p)
   tree valist = TREE_OPERAND (*expr_p, 0);
   tree type = TREE_TYPE (*expr_p);
   tree t;
+  location_t loc = EXPR_LOCATION (*expr_p);
 
   /* Verify that valist is of the proper type.  */
   have_va_type = TREE_TYPE (valist);
@@ -4971,7 +4622,7 @@ gimplify_va_arg_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p)
 
   if (have_va_type == NULL_TREE)
     {
-      error ("first argument to %<va_arg%> not of type %<va_list%>");
+      error_at (loc, "first argument to %<va_arg%> not of type %<va_list%>");
       return GS_ERROR;
     }
 
@@ -4986,20 +4637,25 @@ gimplify_va_arg_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p)
       /* Unfortunately, this is merely undefined, rather than a constraint
 	 violation, so we cannot make this an error.  If this call is never
 	 executed, the program is still strictly conforming.  */
-      warned = warning (0, "%qT is promoted to %qT when passed through %<...%>",
-			type, promoted_type);
+      warned = warning_at (loc, 0,
+	  		   "%qT is promoted to %qT when passed through %<...%>",
+			   type, promoted_type);
       if (!gave_help && warned)
 	{
 	  gave_help = true;
-	  inform (input_location, "(so you should pass %qT not %qT to %<va_arg%>)",
-		   promoted_type, type);
+	  inform (loc, "(so you should pass %qT not %qT to %<va_arg%>)",
+		  promoted_type, type);
 	}
 
       /* We can, however, treat "undefined" any way we please.
 	 Call abort to encourage the user to fix the program.  */
       if (warned)
-	inform (input_location, "if this code is reached, the program will abort");
-      t = build_call_expr (implicit_built_in_decls[BUILT_IN_TRAP], 0);
+	inform (loc, "if this code is reached, the program will abort");
+      /* Before the abort, allow the evaluation of the va_list
+	 expression to exit or longjmp.  */
+      gimplify_and_add (valist, pre_p);
+      t = build_call_expr_loc (loc,
+			       implicit_built_in_decls[BUILT_IN_TRAP], 0);
       gimplify_and_add (t, pre_p);
 
       /* This is dead code, but go ahead and finish so that the
@@ -5020,7 +4676,8 @@ gimplify_va_arg_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p)
 	  if (TREE_CODE (TREE_TYPE (valist)) == ARRAY_TYPE)
 	    {
 	      tree p1 = build_pointer_type (TREE_TYPE (have_va_type));
-	      valist = build_fold_addr_expr_with_type (valist, p1);
+	      valist = fold_convert_loc (loc, p1,
+					 build_fold_addr_expr_loc (loc, valist));
 	    }
 
 	  gimplify_expr (&valist, pre_p, post_p, is_gimple_val, fb_rvalue);
@@ -5061,12 +4718,13 @@ static rtx
 expand_builtin_va_copy (tree exp)
 {
   tree dst, src, t;
+  location_t loc = EXPR_LOCATION (exp);
 
   dst = CALL_EXPR_ARG (exp, 0);
   src = CALL_EXPR_ARG (exp, 1);
 
-  dst = stabilize_va_list (dst, 1);
-  src = stabilize_va_list (src, 0);
+  dst = stabilize_va_list_loc (loc, dst, 1);
+  src = stabilize_va_list_loc (loc, src, 0);
 
   gcc_assert (cfun != NULL && cfun->decl != NULL_TREE);
 
@@ -5161,10 +4819,8 @@ expand_builtin_alloca (tree exp, rtx target)
   rtx op0;
   rtx result;
 
-  /* In -fmudflap-instrumented code, alloca() and __builtin_alloca()
-     should always expand to function calls.  These can be intercepted
-     in libmudflap.  */
-  if (flag_mudflap)
+  /* Emit normal call if marked not-inlineable.  */
+  if (CALL_CANNOT_INLINE_P (exp)) 
     return NULL_RTX;
 
   if (!validate_arglist (exp, INTEGER_TYPE, VOID_TYPE))
@@ -5230,25 +4886,6 @@ expand_builtin_unop (enum machine_mode target_mode, tree exp, rtx target,
   return convert_to_mode (target_mode, target, 0);
 }
 
-/* If the string passed to fputs is a constant and is one character
-   long, we attempt to transform this call into __builtin_fputc().  */
-
-static rtx
-expand_builtin_fputs (tree exp, rtx target, bool unlocked)
-{
-  /* Verify the arguments in the original call.  */
-  if (validate_arglist (exp, POINTER_TYPE, POINTER_TYPE, VOID_TYPE))
-    {
-      tree result = fold_builtin_fputs (CALL_EXPR_ARG (exp, 0),
- 					CALL_EXPR_ARG (exp, 1),
-					(target == const0_rtx),
-					unlocked, NULL_TREE);
-      if (result)
-	return expand_expr (result, target, VOIDmode, EXPAND_NORMAL);
-    }
-  return NULL_RTX;
-}
-
 /* Expand a call to __builtin_expect.  We just return our argument 
    as the builtin_expect semantic should've been already executed by
    tree branch prediction pass. */
@@ -5279,6 +4916,17 @@ expand_builtin_trap (void)
   else
 #endif
     emit_library_call (abort_libfunc, LCT_NORETURN, VOIDmode, 0);
+  emit_barrier ();
+}
+
+/* Expand a call to __builtin_unreachable.  We do nothing except emit
+   a barrier saying that control flow will not pass here.
+
+   It is the responsibility of the program being compiled to ensure
+   that control flow does never reach __builtin_unreachable.  */
+static void
+expand_builtin_unreachable (void)
+{
   emit_barrier ();
 }
 
@@ -5397,7 +5045,7 @@ expand_builtin_printf (tree exp, rtx target, enum machine_mode mode,
 	  || ! POINTER_TYPE_P (TREE_TYPE (CALL_EXPR_ARG (exp, 1))))
 	return NULL_RTX;
       if (fn_puts)
-	fn = build_call_expr (fn_puts, 1, CALL_EXPR_ARG (exp, 1));
+	fn = build_call_nofold (fn_puts, 1, CALL_EXPR_ARG (exp, 1));
     }
   /* If the format specifier was "%c", call __builtin_putchar(arg).  */
   else if (strcmp (fmt_str, target_percent_c) == 0)
@@ -5406,7 +5054,7 @@ expand_builtin_printf (tree exp, rtx target, enum machine_mode mode,
 	  || TREE_CODE (TREE_TYPE (CALL_EXPR_ARG (exp, 1))) != INTEGER_TYPE)
 	return NULL_RTX;
       if (fn_putchar)
-	fn = build_call_expr (fn_putchar, 1, CALL_EXPR_ARG (exp, 1));
+	fn = build_call_nofold (fn_putchar, 1, CALL_EXPR_ARG (exp, 1));
     }
   else
     {
@@ -5428,7 +5076,7 @@ expand_builtin_printf (tree exp, rtx target, enum machine_mode mode,
 	     function.  */
 	  arg = build_int_cst (NULL_TREE, fmt_str[0]);
 	  if (fn_putchar)
-	    fn = build_call_expr (fn_putchar, 1, arg);
+	    fn = build_call_nofold (fn_putchar, 1, arg);
 	}
       else
 	{
@@ -5443,7 +5091,7 @@ expand_builtin_printf (tree exp, rtx target, enum machine_mode mode,
 	      newstr[len - 1] = 0;
 	      arg = build_string_literal (len, newstr);
 	      if (fn_puts)
-		fn = build_call_expr (fn_puts, 1, arg);
+		fn = build_call_nofold (fn_puts, 1, arg);
 	    }
 	  else
 	    /* We'd like to arrange to call fputs(string,stdout) here,
@@ -5454,8 +5102,8 @@ expand_builtin_printf (tree exp, rtx target, enum machine_mode mode,
 
   if (!fn)
     return NULL_RTX;
-  if (TREE_CODE (fn) == CALL_EXPR)
-    CALL_EXPR_TAILCALL (fn) = CALL_EXPR_TAILCALL (exp);
+  gcc_assert (TREE_CODE (fn) == CALL_EXPR);
+  CALL_EXPR_TAILCALL (fn) = CALL_EXPR_TAILCALL (exp);
   return expand_expr (fn, target, mode, EXPAND_NORMAL);
 }
 
@@ -5509,7 +5157,7 @@ expand_builtin_fprintf (tree exp, rtx target, enum machine_mode mode,
 	return NULL_RTX;
       arg = CALL_EXPR_ARG (exp, 2);
       if (fn_fputs)
-	fn = build_call_expr (fn_fputs, 2, arg, fp);
+	fn = build_call_nofold (fn_fputs, 2, arg, fp);
     }
   /* If the format specifier was "%c", call __builtin_fputc(arg,fp).  */
   else if (strcmp (fmt_str, target_percent_c) == 0)
@@ -5519,7 +5167,7 @@ expand_builtin_fprintf (tree exp, rtx target, enum machine_mode mode,
 	return NULL_RTX;
       arg = CALL_EXPR_ARG (exp, 2);
       if (fn_fputc)
-	fn = build_call_expr (fn_fputc, 2, arg, fp);
+	fn = build_call_nofold (fn_fputc, 2, arg, fp);
     }
   else
     {
@@ -5542,13 +5190,13 @@ expand_builtin_fprintf (tree exp, rtx target, enum machine_mode mode,
 	 fprintf(stream,string) with fputs(string,stream).  The fputs
 	 builtin will take care of special cases like length == 1.  */
       if (fn_fputs)
-	fn = build_call_expr (fn_fputs, 2, fmt, fp);
+	fn = build_call_nofold (fn_fputs, 2, fmt, fp);
     }
 
   if (!fn)
     return NULL_RTX;
-  if (TREE_CODE (fn) == CALL_EXPR)
-    CALL_EXPR_TAILCALL (fn) = CALL_EXPR_TAILCALL (exp);
+  gcc_assert (TREE_CODE (fn) == CALL_EXPR);
+  CALL_EXPR_TAILCALL (fn) = CALL_EXPR_TAILCALL (exp);
   return expand_expr (fn, target, mode, EXPAND_NORMAL);
 }
 
@@ -5590,7 +5238,7 @@ expand_builtin_sprintf (tree exp, rtx target, enum machine_mode mode)
 
       if ((nargs > 2) || ! fn)
 	return NULL_RTX;
-      expand_expr (build_call_expr (fn, 2, dest, fmt),
+      expand_expr (build_call_nofold (fn, 2, dest, fmt),
 		   const0_rtx, VOIDmode, EXPAND_NORMAL);
       if (target == const0_rtx)
 	return const0_rtx;
@@ -5620,7 +5268,7 @@ expand_builtin_sprintf (tree exp, rtx target, enum machine_mode mode)
       else
 	len = NULL_TREE;
 
-      expand_expr (build_call_expr (fn, 2, dest, arg),
+      expand_expr (build_call_nofold (fn, 2, dest, arg),
 		   const0_rtx, VOIDmode, EXPAND_NORMAL);
 
       if (target == const0_rtx)
@@ -5737,10 +5385,7 @@ static rtx
 expand_builtin_init_trampoline (tree exp)
 {
   tree t_tramp, t_func, t_chain;
-  rtx r_tramp, r_func, r_chain;
-#ifdef TRAMPOLINE_TEMPLATE
-  rtx blktramp;
-#endif
+  rtx m_tramp, r_tramp, r_chain, tmp;
 
   if (!validate_arglist (exp, POINTER_TYPE, POINTER_TYPE,
 			 POINTER_TYPE, VOID_TYPE))
@@ -5751,20 +5396,36 @@ expand_builtin_init_trampoline (tree exp)
   t_chain = CALL_EXPR_ARG (exp, 2);
 
   r_tramp = expand_normal (t_tramp);
-  r_func = expand_normal (t_func);
+  m_tramp = gen_rtx_MEM (BLKmode, r_tramp);
+  MEM_NOTRAP_P (m_tramp) = 1;
+
+  /* The TRAMP argument should be the address of a field within the
+     local function's FRAME decl.  Let's see if we can fill in the
+     to fill in the MEM_ATTRs for this memory.  */
+  if (TREE_CODE (t_tramp) == ADDR_EXPR)
+    set_mem_attributes_minus_bitpos (m_tramp, TREE_OPERAND (t_tramp, 0),
+				     true, 0);
+
+  tmp = round_trampoline_addr (r_tramp);
+  if (tmp != r_tramp)
+    {
+      m_tramp = change_address (m_tramp, BLKmode, tmp);
+      set_mem_align (m_tramp, TRAMPOLINE_ALIGNMENT);
+      set_mem_size (m_tramp, GEN_INT (TRAMPOLINE_SIZE));
+    }
+
+  /* The FUNC argument should be the address of the nested function.
+     Extract the actual function decl to pass to the hook.  */
+  gcc_assert (TREE_CODE (t_func) == ADDR_EXPR);
+  t_func = TREE_OPERAND (t_func, 0);
+  gcc_assert (TREE_CODE (t_func) == FUNCTION_DECL);
+
   r_chain = expand_normal (t_chain);
 
   /* Generate insns to initialize the trampoline.  */
-  r_tramp = round_trampoline_addr (r_tramp);
-#ifdef TRAMPOLINE_TEMPLATE
-  blktramp = gen_rtx_MEM (BLKmode, r_tramp);
-  set_mem_align (blktramp, TRAMPOLINE_ALIGNMENT);
-  emit_block_move (blktramp, assemble_trampoline_template (),
-		   GEN_INT (TRAMPOLINE_SIZE), BLOCK_OP_NORMAL);
-#endif
-  trampolines_created = 1;
-  INITIALIZE_TRAMPOLINE (r_tramp, r_func, r_chain);
+  targetm.calls.trampoline_init (m_tramp, t_func, r_chain);
 
+  trampolines_created = 1;
   return const0_rtx;
 }
 
@@ -5778,9 +5439,8 @@ expand_builtin_adjust_trampoline (tree exp)
 
   tramp = expand_normal (CALL_EXPR_ARG (exp, 0));
   tramp = round_trampoline_addr (tramp);
-#ifdef TRAMPOLINE_ADJUST_ADDRESS
-  TRAMPOLINE_ADJUST_ADDRESS (tramp);
-#endif
+  if (targetm.calls.trampoline_adjust_address)
+    tramp = targetm.calls.trampoline_adjust_address (tramp);
 
   return tramp;
 }
@@ -5804,6 +5464,7 @@ expand_builtin_signbit (tree exp, rtx target)
   int word, bitpos;
   enum insn_code icode;
   rtx temp;
+  location_t loc = EXPR_LOCATION (exp);
 
   if (!validate_arglist (exp, REAL_TYPE, VOID_TYPE))
     return NULL_RTX;
@@ -5837,7 +5498,7 @@ expand_builtin_signbit (tree exp, rtx target)
     if (fmt->has_signed_zero && HONOR_SIGNED_ZEROS (fmode))
       return NULL_RTX;
 
-    arg = fold_build2 (LT_EXPR, TREE_TYPE (exp), arg,
+    arg = fold_build2_loc (loc, LT_EXPR, TREE_TYPE (exp), arg,
 		       build_real (TREE_TYPE (arg), dconst0));
     return expand_expr (arg, target, VOIDmode, EXPAND_NORMAL);
   }
@@ -5957,14 +5618,15 @@ expand_builtin_fork_or_exec (tree fn, tree exp, rtx target, int ignore)
       gcc_unreachable ();
     }
 
-  decl = build_decl (FUNCTION_DECL, id, TREE_TYPE (fn));
+  decl = build_decl (DECL_SOURCE_LOCATION (fn),
+		     FUNCTION_DECL, id, TREE_TYPE (fn));
   DECL_EXTERNAL (decl) = 1;
   TREE_PUBLIC (decl) = 1;
   DECL_ARTIFICIAL (decl) = 1;
   TREE_NOTHROW (decl) = 1;
   DECL_VISIBILITY (decl) = VISIBILITY_DEFAULT;
   DECL_VISIBILITY_SPECIFIED (decl) = 1;
-  call = rewrite_call_expr (exp, 0, decl, 0);
+  call = rewrite_call_expr (EXPR_LOCATION (exp), exp, 0, decl, 0);
   return expand_call (call, target, ignore);
  }
   
@@ -6023,6 +5685,7 @@ expand_builtin_sync_operation (enum machine_mode mode, tree exp,
 {
   rtx val, mem;
   enum machine_mode old_mode;
+  location_t loc = EXPR_LOCATION (exp);
 
   if (code == NOT && warn_sync_nand)
     {
@@ -6043,8 +5706,7 @@ expand_builtin_sync_operation (enum machine_mode mode, tree exp,
 	    break;
 
 	  fndecl = implicit_built_in_decls[BUILT_IN_FETCH_AND_NAND_N];
-	  inform (input_location,
-		  "%qD changed semantics in GCC 4.4", fndecl);
+	  inform (loc, "%qD changed semantics in GCC 4.4", fndecl);
 	  warned_f_a_n = true;
 	  break;
 
@@ -6058,8 +5720,7 @@ expand_builtin_sync_operation (enum machine_mode mode, tree exp,
 	    break;
 
 	  fndecl = implicit_built_in_decls[BUILT_IN_NAND_AND_FETCH_N];
-	  inform (input_location,
-		  "%qD changed semantics in GCC 4.4", fndecl);
+	  inform (loc, "%qD changed semantics in GCC 4.4", fndecl);
 	  warned_n_a_f = true;
 	  break;
 
@@ -6156,7 +5817,8 @@ expand_builtin_lock_test_and_set (enum machine_mode mode, tree exp,
 static void
 expand_builtin_synchronize (void)
 {
-  tree x;
+  gimple x;
+  VEC (tree, gc) *v_clobbers;
 
 #ifdef HAVE_memory_barrier
   if (HAVE_memory_barrier)
@@ -6174,10 +5836,12 @@ expand_builtin_synchronize (void)
 
   /* If no explicit memory barrier instruction is available, create an
      empty asm stmt with a memory clobber.  */
-  x = build4 (ASM_EXPR, void_type_node, build_string (0, ""), NULL, NULL,
-	      tree_cons (NULL, build_string (6, "memory"), NULL));
-  ASM_VOLATILE_P (x) = 1;
-  expand_asm_expr (x);
+  v_clobbers = VEC_alloc (tree, gc, 1);
+  VEC_quick_push (tree, v_clobbers,
+		  tree_cons (NULL, build_string (6, "memory"), NULL));
+  x = gimple_build_asm_vec ("", NULL, NULL, v_clobbers, NULL);
+  gimple_asm_set_volatile (x, true);
+  expand_asm_stmt (x);
 }
 
 /* Expand the __sync_lock_release intrinsic.  EXP is the CALL_EXPR.  */
@@ -6302,6 +5966,7 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
     CASE_FLT_FN (BUILT_IN_ASIN):
     CASE_FLT_FN (BUILT_IN_ACOS):
     CASE_FLT_FN (BUILT_IN_ATAN):
+    CASE_FLT_FN (BUILT_IN_SIGNIFICAND):
       /* Treat these like sqrt only if unsafe math optimizations are allowed,
 	 because of possible accuracy problems.  */
       if (! flag_unsafe_math_optimizations)
@@ -6554,13 +6219,13 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
       break;
 
     case BUILT_IN_STRCPY:
-      target = expand_builtin_strcpy (fndecl, exp, target, mode);
+      target = expand_builtin_strcpy (exp, target);
       if (target)
 	return target;
       break;
 
     case BUILT_IN_STRNCPY:
-      target = expand_builtin_strncpy (exp, target, mode);
+      target = expand_builtin_strncpy (exp, target);
       if (target)
 	return target;
       break;
@@ -6571,76 +6236,14 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
 	return target;
       break;
 
-    case BUILT_IN_STRCAT:
-      target = expand_builtin_strcat (fndecl, exp, target, mode);
-      if (target)
-	return target;
-      break;
-
-    case BUILT_IN_STRNCAT:
-      target = expand_builtin_strncat (exp, target, mode);
-      if (target)
-	return target;
-      break;
-
-    case BUILT_IN_STRSPN:
-      target = expand_builtin_strspn (exp, target, mode);
-      if (target)
-	return target;
-      break;
-
-    case BUILT_IN_STRCSPN:
-      target = expand_builtin_strcspn (exp, target, mode);
-      if (target)
-	return target;
-      break;
-
-    case BUILT_IN_STRSTR:
-      target = expand_builtin_strstr (exp, target, mode);
-      if (target)
-	return target;
-      break;
-
-    case BUILT_IN_STRPBRK:
-      target = expand_builtin_strpbrk (exp, target, mode);
-      if (target)
-	return target;
-      break;
-
-    case BUILT_IN_INDEX:
-    case BUILT_IN_STRCHR:
-      target = expand_builtin_strchr (exp, target, mode);
-      if (target)
-	return target;
-      break;
-
-    case BUILT_IN_RINDEX:
-    case BUILT_IN_STRRCHR:
-      target = expand_builtin_strrchr (exp, target, mode);
-      if (target)
-	return target;
-      break;
-
     case BUILT_IN_MEMCPY:
-      target = expand_builtin_memcpy (exp, target, mode);
+      target = expand_builtin_memcpy (exp, target);
       if (target)
 	return target;
       break;
 
     case BUILT_IN_MEMPCPY:
       target = expand_builtin_mempcpy (exp, target, mode);
-      if (target)
-	return target;
-      break;
-
-    case BUILT_IN_MEMMOVE:
-      target = expand_builtin_memmove (exp, target, mode, ignore);
-      if (target)
-	return target;
-      break;
-
-    case BUILT_IN_BCOPY:
-      target = expand_builtin_bcopy (exp, ignore);
       if (target)
 	return target;
       break;
@@ -6658,19 +6261,13 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
       break;
 
     case BUILT_IN_STRCMP:
-      target = expand_builtin_strcmp (exp, target, mode);
+      target = expand_builtin_strcmp (exp, target);
       if (target)
 	return target;
       break;
 
     case BUILT_IN_STRNCMP:
       target = expand_builtin_strncmp (exp, target, mode);
-      if (target)
-	return target;
-      break;
-
-    case BUILT_IN_MEMCHR:
-      target = expand_builtin_memchr (exp, target, mode);
       if (target)
 	return target;
       break;
@@ -6779,6 +6376,10 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
       expand_builtin_trap ();
       return const0_rtx;
 
+    case BUILT_IN_UNREACHABLE:
+      expand_builtin_unreachable ();
+      return const0_rtx;
+
     case BUILT_IN_PRINTF:
       target = expand_builtin_printf (exp, target, mode, false);
       if (target)
@@ -6787,17 +6388,6 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
 
     case BUILT_IN_PRINTF_UNLOCKED:
       target = expand_builtin_printf (exp, target, mode, true);
-      if (target)
-	return target;
-      break;
-
-    case BUILT_IN_FPUTS:
-      target = expand_builtin_fputs (exp, target, false);
-      if (target)
-	return target;
-      break;
-    case BUILT_IN_FPUTS_UNLOCKED:
-      target = expand_builtin_fputs (exp, target, true);
       if (target)
 	return target;
       break;
@@ -6856,6 +6446,12 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
 #endif
     case BUILT_IN_EXTEND_POINTER:
       return expand_builtin_extend_pointer (CALL_EXPR_ARG (exp, 0));
+    case BUILT_IN_EH_POINTER:
+      return expand_builtin_eh_pointer (exp);
+    case BUILT_IN_EH_FILTER:
+      return expand_builtin_eh_filter (exp);
+    case BUILT_IN_EH_COPY_VALUES:
+      return expand_builtin_eh_copy_values (exp);
 
     case BUILT_IN_VA_START:
       return expand_builtin_va_start (exp);
@@ -7245,7 +6841,7 @@ fold_builtin_constant_p (tree arg)
    return it as a truthvalue.  */
 
 static tree
-build_builtin_expect_predicate (tree pred, tree expected)
+build_builtin_expect_predicate (location_t loc, tree pred, tree expected)
 {
   tree fn, arg_types, pred_type, expected_type, call_expr, ret_type;
 
@@ -7255,9 +6851,9 @@ build_builtin_expect_predicate (tree pred, tree expected)
   pred_type = TREE_VALUE (arg_types);
   expected_type = TREE_VALUE (TREE_CHAIN (arg_types));
 
-  pred = fold_convert (pred_type, pred);
-  expected = fold_convert (expected_type, expected);
-  call_expr = build_call_expr (fn, 2, pred, expected);
+  pred = fold_convert_loc (loc, pred_type, pred);
+  expected = fold_convert_loc (loc, expected_type, expected);
+  call_expr = build_call_expr_loc (loc, fn, 2, pred, expected);
 
   return build2 (NE_EXPR, TREE_TYPE (pred), call_expr,
 		 build_int_cst (ret_type, 0));
@@ -7267,7 +6863,7 @@ build_builtin_expect_predicate (tree pred, tree expected)
    NULL_TREE if no simplification is possible.  */
 
 static tree
-fold_builtin_expect (tree arg0, tree arg1)
+fold_builtin_expect (location_t loc, tree arg0, tree arg1)
 {
   tree inner, fndecl;
   enum tree_code code;
@@ -7300,11 +6896,11 @@ fold_builtin_expect (tree arg0, tree arg1)
       tree op0 = TREE_OPERAND (inner, 0);
       tree op1 = TREE_OPERAND (inner, 1);
 
-      op0 = build_builtin_expect_predicate (op0, arg1);
-      op1 = build_builtin_expect_predicate (op1, arg1);
+      op0 = build_builtin_expect_predicate (loc, op0, arg1);
+      op1 = build_builtin_expect_predicate (loc, op1, arg1);
       inner = build2 (code, TREE_TYPE (inner), op0, op1);
 
-      return fold_convert (TREE_TYPE (arg0), inner);
+      return fold_convert_loc (loc, TREE_TYPE (arg0), inner);
     }
 
   /* If the argument isn't invariant then there's nothing else we can do.  */
@@ -7348,7 +6944,7 @@ fold_builtin_classify_type (tree arg)
 /* Fold a call to __builtin_strlen with argument ARG.  */
 
 static tree
-fold_builtin_strlen (tree arg)
+fold_builtin_strlen (location_t loc, tree arg)
 {
   if (!validate_arg (arg, POINTER_TYPE))
     return NULL_TREE;
@@ -7360,7 +6956,7 @@ fold_builtin_strlen (tree arg)
 	{
 	  /* Convert from the internal "sizetype" type to "size_t".  */
 	  if (size_type_node)
-	    len = fold_convert (size_type_node, len);
+	    len = fold_convert_loc (loc, size_type_node, len);
 	  return len;
 	}
 
@@ -7371,7 +6967,7 @@ fold_builtin_strlen (tree arg)
 /* Fold a call to __builtin_inf or __builtin_huge_val.  */
 
 static tree
-fold_builtin_inf (tree type, int warn)
+fold_builtin_inf (location_t loc, tree type, int warn)
 {
   REAL_VALUE_TYPE real;
 
@@ -7383,7 +6979,7 @@ fold_builtin_inf (tree type, int warn)
      Thus we pedwarn to ensure this constraint violation is
      diagnosed.  */
   if (!MODE_HAS_INFINITIES (TYPE_MODE (type)) && warn)
-    pedwarn (input_location, 0, "target format does not support infinity");
+    pedwarn (loc, 0, "target format does not support infinity");
 
   real_inf (&real);
   return build_real (type, real);
@@ -7486,7 +7082,7 @@ integer_valued_real_p (tree t)
    Do the transformation for a call with argument ARG.  */
 
 static tree
-fold_trunc_transparent_mathfn (tree fndecl, tree arg)
+fold_trunc_transparent_mathfn (location_t loc, tree fndecl, tree arg)
 {
   enum built_in_function fcode = DECL_FUNCTION_CODE (fndecl);
 
@@ -7511,9 +7107,11 @@ fold_trunc_transparent_mathfn (tree fndecl, tree arg)
 
       if (TYPE_PRECISION (newtype) < TYPE_PRECISION (ftype)
 	  && (decl = mathfn_built_in (newtype, fcode)))
-	return fold_convert (ftype,
-			     build_call_expr (decl, 1,
-					      fold_convert (newtype, arg0)));
+	return fold_convert_loc (loc, ftype,
+				 build_call_expr_loc (loc, decl, 1,
+						  fold_convert_loc (loc,
+								    newtype,
+								    arg0)));
     }
   return NULL_TREE;
 }
@@ -7523,7 +7121,7 @@ fold_trunc_transparent_mathfn (tree fndecl, tree arg)
    Do the transformation for a call with argument ARG.  */
 
 static tree
-fold_fixed_mathfn (tree fndecl, tree arg)
+fold_fixed_mathfn (location_t loc, tree fndecl, tree arg)
 {
   enum built_in_function fcode = DECL_FUNCTION_CODE (fndecl);
 
@@ -7533,7 +7131,8 @@ fold_fixed_mathfn (tree fndecl, tree arg)
   /* If argument is already integer valued, and we don't need to worry
      about setting errno, there's no need to perform rounding.  */
   if (! flag_errno_math && integer_valued_real_p (arg))
-    return fold_build1 (FIX_TRUNC_EXPR, TREE_TYPE (TREE_TYPE (fndecl)), arg);
+    return fold_build1_loc (loc, FIX_TRUNC_EXPR,
+			TREE_TYPE (TREE_TYPE (fndecl)), arg);
 
   if (optimize)
     {
@@ -7544,7 +7143,8 @@ fold_fixed_mathfn (tree fndecl, tree arg)
 
       if (TYPE_PRECISION (newtype) < TYPE_PRECISION (ftype)
 	  && (decl = mathfn_built_in (newtype, fcode)))
-	return build_call_expr (decl, 1, fold_convert (newtype, arg0));
+	return build_call_expr_loc (loc, decl, 1,
+				fold_convert_loc (loc, newtype, arg0));
     }
 
   /* Canonicalize llround (x) to lround (x) on LP64 targets where
@@ -7577,8 +7177,9 @@ fold_fixed_mathfn (tree fndecl, tree arg)
 
       if (newfn)
 	{
-	  tree newcall = build_call_expr(newfn, 1, arg);
-	  return fold_convert (TREE_TYPE (TREE_TYPE (fndecl)), newcall);
+	  tree newcall = build_call_expr_loc (loc, newfn, 1, arg);
+	  return fold_convert_loc (loc,
+				   TREE_TYPE (TREE_TYPE (fndecl)), newcall);
 	}
     }
 
@@ -7589,11 +7190,11 @@ fold_fixed_mathfn (tree fndecl, tree arg)
    return type.  Return NULL_TREE if no simplification can be made.  */
 
 static tree
-fold_builtin_cabs (tree arg, tree type, tree fndecl)
+fold_builtin_cabs (location_t loc, tree arg, tree type, tree fndecl)
 {
   tree res;
 
-  if (TREE_CODE (TREE_TYPE (arg)) != COMPLEX_TYPE
+  if (!validate_arg (arg, COMPLEX_TYPE)
       || TREE_CODE (TREE_TYPE (TREE_TYPE (arg))) != REAL_TYPE)
     return NULL_TREE;
 
@@ -7610,9 +7211,9 @@ fold_builtin_cabs (tree arg, tree type, tree fndecl)
       
       /* If either part is zero, cabs is fabs of the other.  */
       if (real_zerop (real))
-	return fold_build1 (ABS_EXPR, type, imag);
+	return fold_build1_loc (loc, ABS_EXPR, type, imag);
       if (real_zerop (imag))
-	return fold_build1 (ABS_EXPR, type, real);
+	return fold_build1_loc (loc, ABS_EXPR, type, real);
 
       /* cabs(x+xi) -> fabs(x)*sqrt(2).  */
       if (flag_unsafe_math_optimizations
@@ -7621,8 +7222,8 @@ fold_builtin_cabs (tree arg, tree type, tree fndecl)
 	  const REAL_VALUE_TYPE sqrt2_trunc
 	    = real_value_truncate (TYPE_MODE (type), dconst_sqrt2 ());
 	  STRIP_NOPS (real);
-	  return fold_build2 (MULT_EXPR, type,
-			      fold_build1 (ABS_EXPR, type, real),
+	  return fold_build2_loc (loc, MULT_EXPR, type,
+			      fold_build1_loc (loc, ABS_EXPR, type, real),
 			      build_real (type, sqrt2_trunc));
 	}
     }
@@ -7630,7 +7231,7 @@ fold_builtin_cabs (tree arg, tree type, tree fndecl)
   /* Optimize cabs(-z) and cabs(conj(z)) as cabs(z).  */
   if (TREE_CODE (arg) == NEGATE_EXPR
       || TREE_CODE (arg) == CONJ_EXPR)
-    return build_call_expr (fndecl, 1, TREE_OPERAND (arg, 0));
+    return build_call_expr_loc (loc, fndecl, 1, TREE_OPERAND (arg, 0));
 
   /* Don't do this when optimizing for size.  */
   if (flag_unsafe_math_optimizations
@@ -7644,19 +7245,19 @@ fold_builtin_cabs (tree arg, tree type, tree fndecl)
 
 	  arg = builtin_save_expr (arg);
 
-	  rpart = fold_build1 (REALPART_EXPR, type, arg);
-	  ipart = fold_build1 (IMAGPART_EXPR, type, arg);
+	  rpart = fold_build1_loc (loc, REALPART_EXPR, type, arg);
+	  ipart = fold_build1_loc (loc, IMAGPART_EXPR, type, arg);
 
 	  rpart = builtin_save_expr (rpart);
 	  ipart = builtin_save_expr (ipart);
 
-	  result = fold_build2 (PLUS_EXPR, type,
-				fold_build2 (MULT_EXPR, type,
+	  result = fold_build2_loc (loc, PLUS_EXPR, type,
+				fold_build2_loc (loc, MULT_EXPR, type,
 					     rpart, rpart),
-				fold_build2 (MULT_EXPR, type,
+				fold_build2_loc (loc, MULT_EXPR, type,
 					     ipart, ipart));
 
-	  return build_call_expr (sqrtfn, 1, result);
+	  return build_call_expr_loc (loc, sqrtfn, 1, result);
 	}
     }
 
@@ -7667,7 +7268,7 @@ fold_builtin_cabs (tree arg, tree type, tree fndecl)
    Return NULL_TREE if no simplification can be made.  */
 
 static tree
-fold_builtin_sqrt (tree arg, tree type)
+fold_builtin_sqrt (location_t loc, tree arg, tree type)
 {
 
   enum built_in_function fcode;
@@ -7685,10 +7286,10 @@ fold_builtin_sqrt (tree arg, tree type)
   if (flag_unsafe_math_optimizations && BUILTIN_EXPONENT_P (fcode))
     {
       tree expfn = TREE_OPERAND (CALL_EXPR_FN (arg), 0);
-      arg = fold_build2 (MULT_EXPR, type,
+      arg = fold_build2_loc (loc, MULT_EXPR, type,
 			 CALL_EXPR_ARG (arg, 0),
 			 build_real (type, dconsthalf));
-      return build_call_expr (expfn, 1, arg);
+      return build_call_expr_loc (loc, expfn, 1, arg);
     }
 
   /* Optimize sqrt(Nroot(x)) -> pow(x,1/(2*N)).  */
@@ -7713,7 +7314,7 @@ fold_builtin_sqrt (tree arg, tree type)
 	  SET_REAL_EXP (&dconstroot, REAL_EXP (&dconstroot) - 1);
 	  dconstroot = real_value_truncate (TYPE_MODE (type), dconstroot);
 	  tree_root = build_real (type, dconstroot);
-	  return build_call_expr (powfn, 2, arg0, tree_root);
+	  return build_call_expr_loc (loc, powfn, 2, arg0, tree_root);
 	}
     }
 
@@ -7729,9 +7330,9 @@ fold_builtin_sqrt (tree arg, tree type)
       tree narg1;
       if (!tree_expr_nonnegative_p (arg0))
 	arg0 = build1 (ABS_EXPR, type, arg0);
-      narg1 = fold_build2 (MULT_EXPR, type, arg1,
+      narg1 = fold_build2_loc (loc, MULT_EXPR, type, arg1,
 			   build_real (type, dconsthalf));
-      return build_call_expr (powfn, 2, arg0, narg1);
+      return build_call_expr_loc (loc, powfn, 2, arg0, narg1);
     }
 
   return NULL_TREE;
@@ -7741,7 +7342,7 @@ fold_builtin_sqrt (tree arg, tree type)
    Return NULL_TREE if no simplification can be made.  */
 
 static tree
-fold_builtin_cbrt (tree arg, tree type)
+fold_builtin_cbrt (location_t loc, tree arg, tree type)
 {
   const enum built_in_function fcode = builtin_mathfn_code (arg);
   tree res;
@@ -7761,10 +7362,10 @@ fold_builtin_cbrt (tree arg, tree type)
 	  tree expfn = TREE_OPERAND (CALL_EXPR_FN (arg), 0);
 	  const REAL_VALUE_TYPE third_trunc =
 	    real_value_truncate (TYPE_MODE (type), dconst_third ());
-	  arg = fold_build2 (MULT_EXPR, type,
+	  arg = fold_build2_loc (loc, MULT_EXPR, type,
 			     CALL_EXPR_ARG (arg, 0),
 			     build_real (type, third_trunc));
-	  return build_call_expr (expfn, 1, arg);
+	  return build_call_expr_loc (loc, expfn, 1, arg);
 	}
 
       /* Optimize cbrt(sqrt(x)) -> pow(x,1/6).  */
@@ -7781,7 +7382,7 @@ fold_builtin_cbrt (tree arg, tree type)
 	      SET_REAL_EXP (&dconstroot, REAL_EXP (&dconstroot) - 1);
 	      dconstroot = real_value_truncate (TYPE_MODE (type), dconstroot);
 	      tree_root = build_real (type, dconstroot);
-	      return build_call_expr (powfn, 2, arg0, tree_root);
+	      return build_call_expr_loc (loc, powfn, 2, arg0, tree_root);
 	    }
 	}
 
@@ -7802,7 +7403,7 @@ fold_builtin_cbrt (tree arg, tree type)
                                    dconst_third_ptr (), dconst_third_ptr ());
 		  dconstroot = real_value_truncate (TYPE_MODE (type), dconstroot);
 		  tree_root = build_real (type, dconstroot);
-		  return build_call_expr (powfn, 2, arg0, tree_root);
+		  return build_call_expr_loc (loc, powfn, 2, arg0, tree_root);
 		}
 	    }
 	}
@@ -7819,9 +7420,9 @@ fold_builtin_cbrt (tree arg, tree type)
 	      tree powfn = TREE_OPERAND (CALL_EXPR_FN (arg), 0);
 	      const REAL_VALUE_TYPE dconstroot
 		= real_value_truncate (TYPE_MODE (type), dconst_third ());
-	      tree narg01 = fold_build2 (MULT_EXPR, type, arg01,
+	      tree narg01 = fold_build2_loc (loc, MULT_EXPR, type, arg01,
 					 build_real (type, dconstroot));
-	      return build_call_expr (powfn, 2, arg00, narg01);
+	      return build_call_expr_loc (loc, powfn, 2, arg00, narg01);
 	    }
 	}
     }
@@ -7833,7 +7434,8 @@ fold_builtin_cbrt (tree arg, tree type)
    simplification can be made.  */
 
 static tree
-fold_builtin_cos (tree arg, tree type, tree fndecl)
+fold_builtin_cos (location_t loc,
+		  tree arg, tree type, tree fndecl)
 {
   tree res, narg;
 
@@ -7846,7 +7448,7 @@ fold_builtin_cos (tree arg, tree type, tree fndecl)
   
   /* Optimize cos(-x) into cos (x).  */
   if ((narg = fold_strip_sign_ops (arg)))
-    return build_call_expr (fndecl, 1, narg);
+    return build_call_expr_loc (loc, fndecl, 1, narg);
 
   return NULL_TREE;
 }
@@ -7855,7 +7457,7 @@ fold_builtin_cos (tree arg, tree type, tree fndecl)
    Return NULL_TREE if no simplification can be made.  */
 
 static tree
-fold_builtin_cosh (tree arg, tree type, tree fndecl)
+fold_builtin_cosh (location_t loc, tree arg, tree type, tree fndecl)
 {
   if (validate_arg (arg, REAL_TYPE))
     {
@@ -7867,9 +7469,37 @@ fold_builtin_cosh (tree arg, tree type, tree fndecl)
   
       /* Optimize cosh(-x) into cosh (x).  */
       if ((narg = fold_strip_sign_ops (arg)))
-	return build_call_expr (fndecl, 1, narg);
+	return build_call_expr_loc (loc, fndecl, 1, narg);
     }
   
+  return NULL_TREE;
+}
+
+/* Fold function call to builtin ccos (or ccosh if HYPER is TRUE) with
+   argument ARG.  TYPE is the type of the return value.  Return
+   NULL_TREE if no simplification can be made.  */
+
+static tree
+fold_builtin_ccos (location_t loc,
+		   tree arg, tree type ATTRIBUTE_UNUSED, tree fndecl,
+		   bool hyper ATTRIBUTE_UNUSED)
+{
+  if (validate_arg (arg, COMPLEX_TYPE)
+      && TREE_CODE (TREE_TYPE (TREE_TYPE (arg))) == REAL_TYPE)
+    {
+      tree tmp;
+
+#ifdef HAVE_mpc
+      /* Calculate the result when the argument is a constant.  */
+      if ((tmp = do_mpc_arg1 (arg, type, (hyper ? mpc_cosh : mpc_cos))))
+	return tmp;
+#endif
+  
+      /* Optimize fn(-x) into fn(x).  */
+      if ((tmp = fold_strip_sign_ops (arg)))
+	return build_call_expr_loc (loc, fndecl, 1, tmp);
+    }
+
   return NULL_TREE;
 }
 
@@ -7904,7 +7534,8 @@ fold_builtin_tan (tree arg, tree type)
    NULL_TREE if no simplification can be made.  */
 
 static tree
-fold_builtin_sincos (tree arg0, tree arg1, tree arg2)
+fold_builtin_sincos (location_t loc,
+		     tree arg0, tree arg1, tree arg2)
 {
   tree type;
   tree res, fn, call;
@@ -7927,15 +7558,15 @@ fold_builtin_sincos (tree arg0, tree arg1, tree arg2)
   if (!fn)
     return NULL_TREE;
 
-  call = build_call_expr (fn, 1, arg0);
+  call = build_call_expr_loc (loc, fn, 1, arg0);
   call = builtin_save_expr (call);
 
-  return build2 (COMPOUND_EXPR, type,
+  return build2 (COMPOUND_EXPR, void_type_node,
 		 build2 (MODIFY_EXPR, void_type_node,
-			 build_fold_indirect_ref (arg1),
+			 build_fold_indirect_ref_loc (loc, arg1),
 			 build1 (IMAGPART_EXPR, type, call)),
 		 build2 (MODIFY_EXPR, void_type_node,
-			 build_fold_indirect_ref (arg2),
+			 build_fold_indirect_ref_loc (loc, arg2),
 			 build1 (REALPART_EXPR, type, call)));
 }
 
@@ -7943,14 +7574,24 @@ fold_builtin_sincos (tree arg0, tree arg1, tree arg2)
    NULL_TREE if no simplification can be made.  */
 
 static tree
-fold_builtin_cexp (tree arg0, tree type)
+fold_builtin_cexp (location_t loc, tree arg0, tree type)
 {
   tree rtype;
   tree realp, imagp, ifn;
+#ifdef HAVE_mpc
+  tree res;
+#endif
 
-  if (!validate_arg (arg0, COMPLEX_TYPE))
+  if (!validate_arg (arg0, COMPLEX_TYPE)
+      || TREE_CODE (TREE_TYPE (TREE_TYPE (arg0))) != REAL_TYPE)
     return NULL_TREE;
 
+#ifdef HAVE_mpc
+  /* Calculate the result when the argument is a constant.  */
+  if ((res = do_mpc_arg1 (arg0, type, mpc_exp)))
+    return res;
+#endif
+  
   rtype = TREE_TYPE (TREE_TYPE (arg0));
 
   /* In case we can figure out the real part of arg0 and it is constant zero
@@ -7961,11 +7602,11 @@ fold_builtin_cexp (tree arg0, tree type)
   if (!ifn)
     return NULL_TREE;
 
-  if ((realp = fold_unary (REALPART_EXPR, rtype, arg0))
+  if ((realp = fold_unary_loc (loc, REALPART_EXPR, rtype, arg0))
       && real_zerop (realp))
     {
-      tree narg = fold_build1 (IMAGPART_EXPR, rtype, arg0);
-      return build_call_expr (ifn, 1, narg);
+      tree narg = fold_build1_loc (loc, IMAGPART_EXPR, rtype, arg0);
+      return build_call_expr_loc (loc, ifn, 1, narg);
     }
 
   /* In case we can easily decompose real and imaginary parts split cexp
@@ -7979,21 +7620,23 @@ fold_builtin_cexp (tree arg0, tree type)
       if (!rfn)
 	return NULL_TREE;
 
-      imagp = fold_unary (IMAGPART_EXPR, rtype, arg0);
+      imagp = fold_unary_loc (loc, IMAGPART_EXPR, rtype, arg0);
       if (!imagp)
 	return NULL_TREE;
 
-      icall = build_call_expr (ifn, 1, imagp);
+      icall = build_call_expr_loc (loc, ifn, 1, imagp);
       icall = builtin_save_expr (icall);
-      rcall = build_call_expr (rfn, 1, realp);
+      rcall = build_call_expr_loc (loc, rfn, 1, realp);
       rcall = builtin_save_expr (rcall);
-      return fold_build2 (COMPLEX_EXPR, type,
-			  fold_build2 (MULT_EXPR, rtype,
+      return fold_build2_loc (loc, COMPLEX_EXPR, type,
+			  fold_build2_loc (loc, MULT_EXPR, rtype,
 				       rcall,
-			 	       fold_build1 (REALPART_EXPR, rtype, icall)),
-			  fold_build2 (MULT_EXPR, rtype,
+			 	       fold_build1_loc (loc, REALPART_EXPR,
+						    rtype, icall)),
+			  fold_build2_loc (loc, MULT_EXPR, rtype,
 				       rcall,
-				       fold_build1 (IMAGPART_EXPR, rtype, icall)));
+				       fold_build1_loc (loc, IMAGPART_EXPR,
+						    rtype, icall)));
     }
 
   return NULL_TREE;
@@ -8003,7 +7646,7 @@ fold_builtin_cexp (tree arg0, tree type)
    Return NULL_TREE if no simplification can be made.  */
 
 static tree
-fold_builtin_trunc (tree fndecl, tree arg)
+fold_builtin_trunc (location_t loc, tree fndecl, tree arg)
 {
   if (!validate_arg (arg, REAL_TYPE))
     return NULL_TREE;
@@ -8019,14 +7662,14 @@ fold_builtin_trunc (tree fndecl, tree arg)
       return build_real (type, r);
     }
 
-  return fold_trunc_transparent_mathfn (fndecl, arg);
+  return fold_trunc_transparent_mathfn (loc, fndecl, arg);
 }
 
 /* Fold function call to builtin floor, floorf or floorl with argument ARG.
    Return NULL_TREE if no simplification can be made.  */
 
 static tree
-fold_builtin_floor (tree fndecl, tree arg)
+fold_builtin_floor (location_t loc, tree fndecl, tree arg)
 {
   if (!validate_arg (arg, REAL_TYPE))
     return NULL_TREE;
@@ -8052,17 +7695,17 @@ fold_builtin_floor (tree fndecl, tree arg)
     {
       tree truncfn = mathfn_built_in (TREE_TYPE (arg), BUILT_IN_TRUNC);
       if (truncfn)
-	return build_call_expr (truncfn, 1, arg);
+	return build_call_expr_loc (loc, truncfn, 1, arg);
     }
 
-  return fold_trunc_transparent_mathfn (fndecl, arg);
+  return fold_trunc_transparent_mathfn (loc, fndecl, arg);
 }
 
 /* Fold function call to builtin ceil, ceilf or ceill with argument ARG.
    Return NULL_TREE if no simplification can be made.  */
 
 static tree
-fold_builtin_ceil (tree fndecl, tree arg)
+fold_builtin_ceil (location_t loc, tree fndecl, tree arg)
 {
   if (!validate_arg (arg, REAL_TYPE))
     return NULL_TREE;
@@ -8083,14 +7726,14 @@ fold_builtin_ceil (tree fndecl, tree arg)
 	}
     }
 
-  return fold_trunc_transparent_mathfn (fndecl, arg);
+  return fold_trunc_transparent_mathfn (loc, fndecl, arg);
 }
 
 /* Fold function call to builtin round, roundf or roundl with argument ARG.
    Return NULL_TREE if no simplification can be made.  */
 
 static tree
-fold_builtin_round (tree fndecl, tree arg)
+fold_builtin_round (location_t loc, tree fndecl, tree arg)
 {
   if (!validate_arg (arg, REAL_TYPE))
     return NULL_TREE;
@@ -8111,7 +7754,7 @@ fold_builtin_round (tree fndecl, tree arg)
 	}
     }
 
-  return fold_trunc_transparent_mathfn (fndecl, arg);
+  return fold_trunc_transparent_mathfn (loc, fndecl, arg);
 }
 
 /* Fold function call to builtin lround, lroundf or lroundl (or the
@@ -8120,7 +7763,7 @@ fold_builtin_round (tree fndecl, tree arg)
    can be made.  */
 
 static tree
-fold_builtin_int_roundingfn (tree fndecl, tree arg)
+fold_builtin_int_roundingfn (location_t loc, tree fndecl, tree arg)
 {
   if (!validate_arg (arg, REAL_TYPE))
     return NULL_TREE;
@@ -8171,13 +7814,13 @@ fold_builtin_int_roundingfn (tree fndecl, tree arg)
     CASE_FLT_FN (BUILT_IN_LLFLOOR):
       /* Fold lfloor (x) where x is nonnegative to FIX_TRUNC (x).  */
       if (tree_expr_nonnegative_p (arg))
-	return fold_build1 (FIX_TRUNC_EXPR, TREE_TYPE (TREE_TYPE (fndecl)),
-			    arg);
+	return fold_build1_loc (loc, FIX_TRUNC_EXPR,
+			    TREE_TYPE (TREE_TYPE (fndecl)), arg);
       break;
     default:;
     }
 
-  return fold_fixed_mathfn (fndecl, arg);
+  return fold_fixed_mathfn (loc, fndecl, arg);
 }
 
 /* Fold function call to builtin ffs, clz, ctz, popcount and parity
@@ -8331,27 +7974,12 @@ fold_builtin_bswap (tree fndecl, tree arg)
   return NULL_TREE;
 }
 
-/* Return true if EXPR is the real constant contained in VALUE.  */
-
-static bool
-real_dconstp (tree expr, const REAL_VALUE_TYPE *value)
-{
-  STRIP_NOPS (expr);
-
-  return ((TREE_CODE (expr) == REAL_CST
-	   && !TREE_OVERFLOW (expr)
-	   && REAL_VALUES_EQUAL (TREE_REAL_CST (expr), *value))
-	  || (TREE_CODE (expr) == COMPLEX_CST
-	      && real_dconstp (TREE_REALPART (expr), value)
-	      && real_zerop (TREE_IMAGPART (expr))));
-}
-
 /* A subroutine of fold_builtin to fold the various logarithmic
    functions.  Return NULL_TREE if no simplification can me made.
    FUNC is the corresponding MPFR logarithm function.  */
 
 static tree
-fold_builtin_logarithm (tree fndecl, tree arg,
+fold_builtin_logarithm (location_t loc, tree fndecl, tree arg,
 			int (*func)(mpfr_ptr, mpfr_srcptr, mp_rnd_t))
 {
   if (validate_arg (arg, REAL_TYPE))
@@ -8359,17 +7987,6 @@ fold_builtin_logarithm (tree fndecl, tree arg,
       tree type = TREE_TYPE (TREE_TYPE (fndecl));
       tree res;
       const enum built_in_function fcode = builtin_mathfn_code (arg);
-
-      /* Optimize log(e) = 1.0.  We're never passed an exact 'e',
-	 instead we'll look for 'e' truncated to MODE.  So only do
-	 this if flag_unsafe_math_optimizations is set.  */
-      if (flag_unsafe_math_optimizations && func == mpfr_log)
-        {
-	  const REAL_VALUE_TYPE e_truncated =
-	    real_value_truncate (TYPE_MODE (type), dconst_e ());
-	  if (real_dconstp (arg, &e_truncated))
-	    return build_real (type, dconst1);
-	}
 
       /* Calculate the result when the argument is a constant.  */
       if ((res = do_mpfr_arg1 (arg, type, func, &dconst0, NULL, false)))
@@ -8386,7 +8003,7 @@ fold_builtin_logarithm (tree fndecl, tree arg,
 		      || fcode == BUILT_IN_EXP2F
 		      || fcode == BUILT_IN_EXP2L))
 	      || (func == mpfr_log10 && (BUILTIN_EXP10_P (fcode)))))
-	return fold_convert (type, CALL_EXPR_ARG (arg, 0));
+	return fold_convert_loc (loc, type, CALL_EXPR_ARG (arg, 0));
 
       /* Optimize logN(func()) for various exponential functions.  We
 	 want to determine the value "x" and the power "exponent" in
@@ -8441,8 +8058,8 @@ fold_builtin_logarithm (tree fndecl, tree arg,
 	  /* Now perform the optimization.  */
 	  if (x && exponent)
 	    {
-	      tree logfn = build_call_expr (fndecl, 1, x);
-	      return fold_build2 (MULT_EXPR, type, exponent, logfn);
+	      tree logfn = build_call_expr_loc (loc, fndecl, 1, x);
+	      return fold_build2_loc (loc, MULT_EXPR, type, exponent, logfn);
 	    }
 	}
     }
@@ -8454,7 +8071,8 @@ fold_builtin_logarithm (tree fndecl, tree arg,
    NULL_TREE if no simplification can be made.  */
 
 static tree
-fold_builtin_hypot (tree fndecl, tree arg0, tree arg1, tree type)
+fold_builtin_hypot (location_t loc, tree fndecl,
+		    tree arg0, tree arg1, tree type)
 {
   tree res, narg0, narg1;
 
@@ -8472,15 +8090,15 @@ fold_builtin_hypot (tree fndecl, tree arg0, tree arg1, tree type)
   narg1 = fold_strip_sign_ops (arg1);
   if (narg0 || narg1)
     {
-      return build_call_expr (fndecl, 2, narg0 ? narg0 : arg0, 
+      return build_call_expr_loc (loc, fndecl, 2, narg0 ? narg0 : arg0, 
 			      narg1 ? narg1 : arg1);
     }
   
   /* If either argument is zero, hypot is fabs of the other.  */
   if (real_zerop (arg0))
-    return fold_build1 (ABS_EXPR, type, arg1);
+    return fold_build1_loc (loc, ABS_EXPR, type, arg1);
   else if (real_zerop (arg1))
-    return fold_build1 (ABS_EXPR, type, arg0);
+    return fold_build1_loc (loc, ABS_EXPR, type, arg0);
       
   /* hypot(x,x) -> fabs(x)*sqrt(2).  */
   if (flag_unsafe_math_optimizations
@@ -8488,8 +8106,8 @@ fold_builtin_hypot (tree fndecl, tree arg0, tree arg1, tree type)
     {
       const REAL_VALUE_TYPE sqrt2_trunc
 	= real_value_truncate (TYPE_MODE (type), dconst_sqrt2 ());
-      return fold_build2 (MULT_EXPR, type,
-			  fold_build1 (ABS_EXPR, type, arg0),
+      return fold_build2_loc (loc, MULT_EXPR, type,
+			  fold_build1_loc (loc, ABS_EXPR, type, arg0),
 			  build_real (type, sqrt2_trunc));
     }
 
@@ -8500,7 +8118,7 @@ fold_builtin_hypot (tree fndecl, tree arg0, tree arg1, tree type)
 /* Fold a builtin function call to pow, powf, or powl.  Return
    NULL_TREE if no simplification can be made.  */
 static tree
-fold_builtin_pow (tree fndecl, tree arg0, tree arg1, tree type)
+fold_builtin_pow (location_t loc, tree fndecl, tree arg0, tree arg1, tree type)
 {
   tree res;
 
@@ -8514,7 +8132,7 @@ fold_builtin_pow (tree fndecl, tree arg0, tree arg1, tree type)
 
   /* Optimize pow(1.0,y) = 1.0.  */
   if (real_onep (arg0))
-    return omit_one_operand (type, build_real (type, dconst1), arg1);
+    return omit_one_operand_loc (loc, type, build_real (type, dconst1), arg1);
 
   if (TREE_CODE (arg1) == REAL_CST
       && !TREE_OVERFLOW (arg1))
@@ -8527,7 +8145,7 @@ fold_builtin_pow (tree fndecl, tree arg0, tree arg1, tree type)
 
       /* Optimize pow(x,0.0) = 1.0.  */
       if (REAL_VALUES_EQUAL (c, dconst0))
-	return omit_one_operand (type, build_real (type, dconst1),
+	return omit_one_operand_loc (loc, type, build_real (type, dconst1),
 				 arg0);
 
       /* Optimize pow(x,1.0) = x.  */
@@ -8536,7 +8154,7 @@ fold_builtin_pow (tree fndecl, tree arg0, tree arg1, tree type)
 
       /* Optimize pow(x,-1.0) = 1.0/x.  */
       if (REAL_VALUES_EQUAL (c, dconstm1))
-	return fold_build2 (RDIV_EXPR, type,
+	return fold_build2_loc (loc, RDIV_EXPR, type,
 			    build_real (type, dconst1), arg0);
 
       /* Optimize pow(x,0.5) = sqrt(x).  */
@@ -8546,7 +8164,7 @@ fold_builtin_pow (tree fndecl, tree arg0, tree arg1, tree type)
 	  tree sqrtfn = mathfn_built_in (type, BUILT_IN_SQRT);
 
 	  if (sqrtfn != NULL_TREE)
-	    return build_call_expr (sqrtfn, 1, arg0);
+	    return build_call_expr_loc (loc, sqrtfn, 1, arg0);
 	}
 
       /* Optimize pow(x,1.0/3.0) = cbrt(x).  */
@@ -8559,7 +8177,7 @@ fold_builtin_pow (tree fndecl, tree arg0, tree arg1, tree type)
 	    {
 	      tree cbrtfn = mathfn_built_in (type, BUILT_IN_CBRT);
 	      if (cbrtfn != NULL_TREE)
-		  return build_call_expr (cbrtfn, 1, arg0);
+		return build_call_expr_loc (loc, cbrtfn, 1, arg0);
 	    }
 	}
 
@@ -8590,7 +8208,7 @@ fold_builtin_pow (tree fndecl, tree arg0, tree arg1, tree type)
 	    {
 	      tree narg0 = fold_strip_sign_ops (arg0);
 	      if (narg0)
-		return build_call_expr (fndecl, 2, narg0, arg1);
+		return build_call_expr_loc (loc, fndecl, 2, narg0, arg1);
 	    }
 	}
     }
@@ -8604,17 +8222,17 @@ fold_builtin_pow (tree fndecl, tree arg0, tree arg1, tree type)
 	{
 	  tree expfn = TREE_OPERAND (CALL_EXPR_FN (arg0), 0);
 	  tree arg = CALL_EXPR_ARG (arg0, 0);
-	  arg = fold_build2 (MULT_EXPR, type, arg, arg1);
-	  return build_call_expr (expfn, 1, arg);
+	  arg = fold_build2_loc (loc, MULT_EXPR, type, arg, arg1);
+	  return build_call_expr_loc (loc, expfn, 1, arg);
 	}
 
       /* Optimize pow(sqrt(x),y) = pow(x,y*0.5).  */
       if (BUILTIN_SQRT_P (fcode))
 	{
 	  tree narg0 = CALL_EXPR_ARG (arg0, 0);
-	  tree narg1 = fold_build2 (MULT_EXPR, type, arg1,
+	  tree narg1 = fold_build2_loc (loc, MULT_EXPR, type, arg1,
 				    build_real (type, dconsthalf));
-	  return build_call_expr (fndecl, 2, narg0, narg1);
+	  return build_call_expr_loc (loc, fndecl, 2, narg0, narg1);
 	}
 
       /* Optimize pow(cbrt(x),y) = pow(x,y/3) iff x is nonnegative.  */
@@ -8625,21 +8243,24 @@ fold_builtin_pow (tree fndecl, tree arg0, tree arg1, tree type)
 	    {
 	      const REAL_VALUE_TYPE dconstroot
 		= real_value_truncate (TYPE_MODE (type), dconst_third ());
-	      tree narg1 = fold_build2 (MULT_EXPR, type, arg1,
+	      tree narg1 = fold_build2_loc (loc, MULT_EXPR, type, arg1,
 					build_real (type, dconstroot));
-	      return build_call_expr (fndecl, 2, arg, narg1);
+	      return build_call_expr_loc (loc, fndecl, 2, arg, narg1);
 	    }
 	}
 
-      /* Optimize pow(pow(x,y),z) = pow(x,y*z).  */
+      /* Optimize pow(pow(x,y),z) = pow(x,y*z) iff x is nonnegative.  */
       if (fcode == BUILT_IN_POW
 	  || fcode == BUILT_IN_POWF
 	  || fcode == BUILT_IN_POWL)
 	{
 	  tree arg00 = CALL_EXPR_ARG (arg0, 0);
-	  tree arg01 = CALL_EXPR_ARG (arg0, 1);
-	  tree narg1 = fold_build2 (MULT_EXPR, type, arg01, arg1);
-	  return build_call_expr (fndecl, 2, arg00, narg1);
+	  if (tree_expr_nonnegative_p (arg00))
+	    {
+	      tree arg01 = CALL_EXPR_ARG (arg0, 1);
+	      tree narg1 = fold_build2_loc (loc, MULT_EXPR, type, arg01, arg1);
+	      return build_call_expr_loc (loc, fndecl, 2, arg00, narg1);
+	    }
 	}
     }
 
@@ -8649,7 +8270,7 @@ fold_builtin_pow (tree fndecl, tree arg0, tree arg1, tree type)
 /* Fold a builtin function call to powi, powif, or powil with argument ARG.
    Return NULL_TREE if no simplification can be made.  */
 static tree
-fold_builtin_powi (tree fndecl ATTRIBUTE_UNUSED,
+fold_builtin_powi (location_t loc, tree fndecl ATTRIBUTE_UNUSED,
 		   tree arg0, tree arg1, tree type)
 {
   if (!validate_arg (arg0, REAL_TYPE)
@@ -8658,7 +8279,7 @@ fold_builtin_powi (tree fndecl ATTRIBUTE_UNUSED,
 
   /* Optimize pow(1.0,y) = 1.0.  */
   if (real_onep (arg0))
-    return omit_one_operand (type, build_real (type, dconst1), arg1);
+    return omit_one_operand_loc (loc, type, build_real (type, dconst1), arg1);
 
   if (host_integerp (arg1, 0))
     {
@@ -8676,7 +8297,7 @@ fold_builtin_powi (tree fndecl ATTRIBUTE_UNUSED,
 
       /* Optimize pow(x,0) = 1.0.  */
       if (c == 0)
-	return omit_one_operand (type, build_real (type, dconst1),
+	return omit_one_operand_loc (loc, type, build_real (type, dconst1),
 				 arg0);
 
       /* Optimize pow(x,1) = x.  */
@@ -8685,7 +8306,7 @@ fold_builtin_powi (tree fndecl ATTRIBUTE_UNUSED,
 
       /* Optimize pow(x,-1) = 1.0/x.  */
       if (c == -1)
-	return fold_build2 (RDIV_EXPR, type,
+	return fold_build2_loc (loc, RDIV_EXPR, type,
 			   build_real (type, dconst1), arg0);
     }
 
@@ -8697,7 +8318,7 @@ fold_builtin_powi (tree fndecl ATTRIBUTE_UNUSED,
    FUNC is the corresponding MPFR exponent function.  */
 
 static tree
-fold_builtin_exponent (tree fndecl, tree arg,
+fold_builtin_exponent (location_t loc, tree fndecl, tree arg,
 		       int (*func)(mpfr_ptr, mpfr_srcptr, mp_rnd_t))
 {
   if (validate_arg (arg, REAL_TYPE))
@@ -8726,7 +8347,7 @@ fold_builtin_exponent (tree fndecl, tree arg,
 		  && (fcode == BUILT_IN_LOG10
 		      || fcode == BUILT_IN_LOG10F
 		      || fcode == BUILT_IN_LOG10L)))
-	    return fold_convert (type, CALL_EXPR_ARG (arg, 0));
+	    return fold_convert_loc (loc, type, CALL_EXPR_ARG (arg, 0));
 	}
     }
 
@@ -8748,9 +8369,10 @@ var_decl_component_p (tree var)
    NULL_TREE if no simplification can be made.  */
 
 static tree
-fold_builtin_memset (tree dest, tree c, tree len, tree type, bool ignore)
+fold_builtin_memset (location_t loc, tree dest, tree c, tree len,
+		     tree type, bool ignore)
 {
-  tree var, ret;
+  tree var, ret, etype;
   unsigned HOST_WIDE_INT length, cval;
 
   if (! validate_arg (dest, POINTER_TYPE)
@@ -8763,7 +8385,7 @@ fold_builtin_memset (tree dest, tree c, tree len, tree type, bool ignore)
 
   /* If the LEN parameter is zero, return DEST.  */
   if (integer_zerop (len))
-    return omit_one_operand (type, dest, c);
+    return omit_one_operand_loc (loc, type, dest, c);
 
   if (! host_integerp (c, 1) || TREE_SIDE_EFFECTS (dest))
     return NULL_TREE;
@@ -8777,15 +8399,19 @@ fold_builtin_memset (tree dest, tree c, tree len, tree type, bool ignore)
   if (TREE_THIS_VOLATILE (var))
     return NULL_TREE;
 
-  if (!INTEGRAL_TYPE_P (TREE_TYPE (var))
-      && !POINTER_TYPE_P (TREE_TYPE (var)))
+  etype = TREE_TYPE (var);
+  if (TREE_CODE (etype) == ARRAY_TYPE)
+    etype = TREE_TYPE (etype);
+
+  if (!INTEGRAL_TYPE_P (etype)
+      && !POINTER_TYPE_P (etype))
     return NULL_TREE;
 
   if (! var_decl_component_p (var))
     return NULL_TREE;
 
   length = tree_low_cst (len, 1);
-  if (GET_MODE_SIZE (TYPE_MODE (TREE_TYPE (var))) != length
+  if (GET_MODE_SIZE (TYPE_MODE (etype)) != length
       || get_pointer_alignment (dest, BIGGEST_ALIGNMENT) / BITS_PER_UNIT
 	 < (int) length)
     return NULL_TREE;
@@ -8807,19 +8433,23 @@ fold_builtin_memset (tree dest, tree c, tree len, tree type, bool ignore)
       cval |= (cval << 31) << 1;
     }
 
-  ret = build_int_cst_type (TREE_TYPE (var), cval);
-  ret = build2 (MODIFY_EXPR, TREE_TYPE (var), var, ret);
+  ret = build_int_cst_type (etype, cval);
+  var = build_fold_indirect_ref_loc (loc,
+				 fold_convert_loc (loc,
+						   build_pointer_type (etype),
+						   dest));
+  ret = build2 (MODIFY_EXPR, etype, var, ret);
   if (ignore)
     return ret;
 
-  return omit_one_operand (type, dest, ret);
+  return omit_one_operand_loc (loc, type, dest, ret);
 }
 
 /* Fold function call to builtin memset.  Return
    NULL_TREE if no simplification can be made.  */
 
 static tree
-fold_builtin_bzero (tree dest, tree size, bool ignore)
+fold_builtin_bzero (location_t loc, tree dest, tree size, bool ignore)
 {
   if (! validate_arg (dest, POINTER_TYPE)
       || ! validate_arg (size, INTEGER_TYPE))
@@ -8833,8 +8463,8 @@ fold_builtin_bzero (tree dest, tree size, bool ignore)
      so that if it isn't expanded inline, we fallback to
      calling bzero instead of memset.  */
 
-  return fold_builtin_memset (dest, integer_zero_node,
-			      fold_convert (sizetype, size),
+  return fold_builtin_memset (loc, dest, integer_zero_node,
+			      fold_convert_loc (loc, sizetype, size),
 			      void_type_node, ignore);
 }
 
@@ -8847,7 +8477,8 @@ fold_builtin_bzero (tree dest, tree size, bool ignore)
    (memmove).   */
 
 static tree
-fold_builtin_memory_op (tree dest, tree src, tree len, tree type, bool ignore, int endp)
+fold_builtin_memory_op (location_t loc, tree dest, tree src,
+			tree len, tree type, bool ignore, int endp)
 {
   tree destvar, srcvar, expr;
 
@@ -8858,7 +8489,7 @@ fold_builtin_memory_op (tree dest, tree src, tree len, tree type, bool ignore, i
 
   /* If the LEN parameter is zero, return DEST.  */
   if (integer_zerop (len))
-    return omit_one_operand (type, dest, src);
+    return omit_one_operand_loc (loc, type, dest, src);
 
   /* If SRC and DEST are the same (and not volatile), return
      DEST{,+LEN,+LEN-1}.  */
@@ -8879,16 +8510,75 @@ fold_builtin_memory_op (tree dest, tree src, tree len, tree type, bool ignore, i
 	     really mandatory?
 
 	     If either SRC is readonly or length is 1, we can use memcpy.  */
-	  if (dest_align && src_align
-	      && (readonly_data_expr (src)
-	          || (host_integerp (len, 1)
-		      && (MIN (src_align, dest_align) / BITS_PER_UNIT >=
-			  tree_low_cst (len, 1)))))
+	  if (!dest_align || !src_align)
+	    return NULL_TREE;
+	  if (readonly_data_expr (src)
+	      || (host_integerp (len, 1)
+		  && (MIN (src_align, dest_align) / BITS_PER_UNIT
+		      >= tree_low_cst (len, 1))))
 	    {
 	      tree fn = implicit_built_in_decls[BUILT_IN_MEMCPY];
 	      if (!fn)
 		return NULL_TREE;
-              return build_call_expr (fn, 3, dest, src, len);
+              return build_call_expr_loc (loc, fn, 3, dest, src, len);
+	    }
+
+	  /* If *src and *dest can't overlap, optimize into memcpy as well.  */
+	  srcvar = build_fold_indirect_ref_loc (loc, src);
+	  destvar = build_fold_indirect_ref_loc (loc, dest);
+	  if (srcvar
+	      && !TREE_THIS_VOLATILE (srcvar)
+	      && destvar
+	      && !TREE_THIS_VOLATILE (destvar))
+	    {
+	      tree src_base, dest_base, fn;
+	      HOST_WIDE_INT src_offset = 0, dest_offset = 0;
+	      HOST_WIDE_INT size = -1;
+	      HOST_WIDE_INT maxsize = -1;
+
+	      src_base = srcvar;
+	      if (handled_component_p (src_base))
+		src_base = get_ref_base_and_extent (src_base, &src_offset,
+						    &size, &maxsize);
+	      dest_base = destvar;
+	      if (handled_component_p (dest_base))
+		dest_base = get_ref_base_and_extent (dest_base, &dest_offset,
+						     &size, &maxsize);
+	      if (host_integerp (len, 1))
+		{
+		  maxsize = tree_low_cst (len, 1);
+		  if (maxsize
+		      > INTTYPE_MAXIMUM (HOST_WIDE_INT) / BITS_PER_UNIT)
+		    maxsize = -1;
+		  else
+		    maxsize *= BITS_PER_UNIT;
+		}
+	      else
+		maxsize = -1;
+	      if (SSA_VAR_P (src_base)
+		  && SSA_VAR_P (dest_base))
+		{
+		  if (operand_equal_p (src_base, dest_base, 0)
+		      && ranges_overlap_p (src_offset, maxsize,
+					   dest_offset, maxsize))
+		    return NULL_TREE;
+		}
+	      else if (TREE_CODE (src_base) == INDIRECT_REF
+		       && TREE_CODE (dest_base) == INDIRECT_REF)
+		{
+		  if (! operand_equal_p (TREE_OPERAND (src_base, 0),
+					 TREE_OPERAND (dest_base, 0), 0)
+		      || ranges_overlap_p (src_offset, maxsize,
+					   dest_offset, maxsize))
+		    return NULL_TREE;
+		}
+	      else
+		return NULL_TREE;
+
+	      fn = implicit_built_in_decls[BUILT_IN_MEMCPY];
+	      if (!fn)
+		return NULL_TREE;
+	      return build_call_expr_loc (loc, fn, 3, dest, src, len);
 	    }
 	  return NULL_TREE;
 	}
@@ -8901,8 +8591,39 @@ fold_builtin_memory_op (tree dest, tree src, tree len, tree type, bool ignore, i
 	 Perhaps we ought to inherit type from non-VOID argument here?  */
       STRIP_NOPS (src);
       STRIP_NOPS (dest);
+      /* As we fold (void *)(p + CST) to (void *)p + CST undo this here.  */
+      if (TREE_CODE (src) == POINTER_PLUS_EXPR)
+	{
+	  tree tem = TREE_OPERAND (src, 0);
+	  STRIP_NOPS (tem);
+	  if (tem != TREE_OPERAND (src, 0))
+	    src = build1 (NOP_EXPR, TREE_TYPE (tem), src);
+	}
+      if (TREE_CODE (dest) == POINTER_PLUS_EXPR)
+	{
+	  tree tem = TREE_OPERAND (dest, 0);
+	  STRIP_NOPS (tem);
+	  if (tem != TREE_OPERAND (dest, 0))
+	    dest = build1 (NOP_EXPR, TREE_TYPE (tem), dest);
+	}
       srctype = TREE_TYPE (TREE_TYPE (src));
+      if (srctype
+	  && TREE_CODE (srctype) == ARRAY_TYPE
+	  && !tree_int_cst_equal (TYPE_SIZE_UNIT (srctype), len))
+	{
+	  srctype = TREE_TYPE (srctype);
+	  STRIP_NOPS (src);
+	  src = build1 (NOP_EXPR, build_pointer_type (srctype), src);
+	}
       desttype = TREE_TYPE (TREE_TYPE (dest));
+      if (desttype
+	  && TREE_CODE (desttype) == ARRAY_TYPE
+	  && !tree_int_cst_equal (TYPE_SIZE_UNIT (desttype), len))
+	{
+	  desttype = TREE_TYPE (desttype);
+	  STRIP_NOPS (dest);
+	  dest = build1 (NOP_EXPR, build_pointer_type (desttype), dest);
+	}
       if (!srctype || !desttype
 	  || !TYPE_SIZE_UNIT (srctype)
 	  || !TYPE_SIZE_UNIT (desttype)
@@ -8924,10 +8645,10 @@ fold_builtin_memory_op (tree dest, tree src, tree len, tree type, bool ignore, i
       srcvar = NULL_TREE;
       if (tree_int_cst_equal (TYPE_SIZE_UNIT (srctype), len))
 	{
-	  srcvar = build_fold_indirect_ref (src);
+	  srcvar = build_fold_indirect_ref_loc (loc, src);
 	  if (TREE_THIS_VOLATILE (srcvar))
 	    return NULL_TREE;
-	  else if (!tree_int_cst_equal (lang_hooks.expr_size (srcvar), len))
+	  else if (!tree_int_cst_equal (tree_expr_size (srcvar), len))
 	    srcvar = NULL_TREE;
 	  /* With memcpy, it is possible to bypass aliasing rules, so without
 	     this check i.e. execute/20060930-2.c would be misoptimized,
@@ -8942,10 +8663,10 @@ fold_builtin_memory_op (tree dest, tree src, tree len, tree type, bool ignore, i
       destvar = NULL_TREE;
       if (tree_int_cst_equal (TYPE_SIZE_UNIT (desttype), len))
 	{
-	  destvar = build_fold_indirect_ref (dest);
+	  destvar = build_fold_indirect_ref_loc (loc, dest);
 	  if (TREE_THIS_VOLATILE (destvar))
 	    return NULL_TREE;
-	  else if (!tree_int_cst_equal (lang_hooks.expr_size (destvar), len))
+	  else if (!tree_int_cst_equal (tree_expr_size (destvar), len))
 	    destvar = NULL_TREE;
 	  else if (!var_decl_component_p (destvar))
 	    destvar = NULL_TREE;
@@ -8973,8 +8694,8 @@ fold_builtin_memory_op (tree dest, tree src, tree len, tree type, bool ignore, i
 	      TYPE_PACKED (srctype) = 1;
 	    }
 	  srcptype = build_pointer_type_for_mode (srctype, ptr_mode, true);
-	  src = fold_convert (srcptype, src);
-	  srcvar = build_fold_indirect_ref (src);
+	  src = fold_convert_loc (loc, srcptype, src);
+	  srcvar = build_fold_indirect_ref_loc (loc, src);
 	}
       else if (destvar == NULL_TREE)
 	{
@@ -8995,8 +8716,8 @@ fold_builtin_memory_op (tree dest, tree src, tree len, tree type, bool ignore, i
 	      TYPE_PACKED (desttype) = 1;
 	    }
 	  destptype = build_pointer_type_for_mode (desttype, ptr_mode, true);
-	  dest = fold_convert (destptype, dest);
-	  destvar = build_fold_indirect_ref (dest);
+	  dest = fold_convert_loc (loc, destptype, dest);
+	  destvar = build_fold_indirect_ref_loc (loc, dest);
 	}
 
       if (srctype == desttype
@@ -9007,9 +8728,10 @@ fold_builtin_memory_op (tree dest, tree src, tree len, tree type, bool ignore, i
 	   || POINTER_TYPE_P (TREE_TYPE (srcvar)))
 	  && (INTEGRAL_TYPE_P (TREE_TYPE (destvar))
 	      || POINTER_TYPE_P (TREE_TYPE (destvar))))
-	expr = fold_convert (TREE_TYPE (destvar), srcvar);
+	expr = fold_convert_loc (loc, TREE_TYPE (destvar), srcvar);
       else
-	expr = fold_build1 (VIEW_CONVERT_EXPR, TREE_TYPE (destvar), srcvar);
+	expr = fold_build1_loc (loc, VIEW_CONVERT_EXPR,
+			    TREE_TYPE (destvar), srcvar);
       expr = build2 (MODIFY_EXPR, TREE_TYPE (destvar), destvar, expr);
     }
 
@@ -9017,20 +8739,20 @@ fold_builtin_memory_op (tree dest, tree src, tree len, tree type, bool ignore, i
     return expr;
 
   if (endp == 0 || endp == 3)
-    return omit_one_operand (type, dest, expr);
+    return omit_one_operand_loc (loc, type, dest, expr);
 
   if (expr == len)
     expr = NULL_TREE;
 
   if (endp == 2)
-    len = fold_build2 (MINUS_EXPR, TREE_TYPE (len), len,
+    len = fold_build2_loc (loc, MINUS_EXPR, TREE_TYPE (len), len,
 		       ssize_int (1));
 
-  len = fold_convert (sizetype, len);
-  dest = fold_build2 (POINTER_PLUS_EXPR, TREE_TYPE (dest), dest, len);
-  dest = fold_convert (type, dest);
+  len = fold_convert_loc (loc, sizetype, len);
+  dest = fold_build2_loc (loc, POINTER_PLUS_EXPR, TREE_TYPE (dest), dest, len);
+  dest = fold_convert_loc (loc, type, dest);
   if (expr)
-    dest = omit_one_operand (type, dest, expr);
+    dest = omit_one_operand_loc (loc, type, dest, expr);
   return dest;
 }
 
@@ -9039,7 +8761,7 @@ fold_builtin_memory_op (tree dest, tree src, tree len, tree type, bool ignore, i
    copied.  Return NULL_TREE if no simplification can be made.  */
 
 tree
-fold_builtin_strcpy (tree fndecl, tree dest, tree src, tree len)
+fold_builtin_strcpy (location_t loc, tree fndecl, tree dest, tree src, tree len)
 {
   tree fn;
 
@@ -9049,7 +8771,7 @@ fold_builtin_strcpy (tree fndecl, tree dest, tree src, tree len)
 
   /* If SRC and DEST are the same (and not volatile), return DEST.  */
   if (operand_equal_p (src, dest, 0))
-    return fold_convert (TREE_TYPE (TREE_TYPE (fndecl)), dest);
+    return fold_convert_loc (loc, TREE_TYPE (TREE_TYPE (fndecl)), dest);
 
   if (optimize_function_for_size_p (cfun))
     return NULL_TREE;
@@ -9065,9 +8787,49 @@ fold_builtin_strcpy (tree fndecl, tree dest, tree src, tree len)
 	return NULL_TREE;
     }
 
-  len = size_binop (PLUS_EXPR, len, ssize_int (1));
-  return fold_convert (TREE_TYPE (TREE_TYPE (fndecl)),
-		       build_call_expr (fn, 3, dest, src, len));
+  len = size_binop_loc (loc, PLUS_EXPR, len, ssize_int (1));
+  return fold_convert_loc (loc, TREE_TYPE (TREE_TYPE (fndecl)),
+			   build_call_expr_loc (loc, fn, 3, dest, src, len));
+}
+
+/* Fold function call to builtin stpcpy with arguments DEST and SRC.
+   Return NULL_TREE if no simplification can be made.  */
+
+static tree
+fold_builtin_stpcpy (location_t loc, tree fndecl, tree dest, tree src)
+{
+  tree fn, len, lenp1, call, type;
+
+  if (!validate_arg (dest, POINTER_TYPE)
+      || !validate_arg (src, POINTER_TYPE))
+    return NULL_TREE;
+
+  len = c_strlen (src, 1);
+  if (!len
+      || TREE_CODE (len) != INTEGER_CST)
+    return NULL_TREE;
+
+  if (optimize_function_for_size_p (cfun)
+      /* If length is zero it's small enough.  */
+      && !integer_zerop (len))
+    return NULL_TREE;
+
+  fn = implicit_built_in_decls[BUILT_IN_MEMCPY];
+  if (!fn)
+    return NULL_TREE;
+
+  lenp1 = size_binop_loc (loc, PLUS_EXPR, len, ssize_int (1));
+  /* We use dest twice in building our expression.  Save it from
+     multiple expansions.  */
+  dest = builtin_save_expr (dest);
+  call = build_call_expr_loc (loc, fn, 3, dest, src, lenp1);
+
+  type = TREE_TYPE (TREE_TYPE (fndecl));
+  len = fold_convert_loc (loc, sizetype, len);
+  dest = fold_build2_loc (loc, POINTER_PLUS_EXPR, TREE_TYPE (dest), dest, len);
+  dest = fold_convert_loc (loc, type, dest);
+  dest = omit_one_operand_loc (loc, type, dest, call);
+  return dest;
 }
 
 /* Fold function call to builtin strncpy with arguments DEST, SRC, and LEN.
@@ -9075,7 +8837,8 @@ fold_builtin_strcpy (tree fndecl, tree dest, tree src, tree len)
    Return NULL_TREE if no simplification can be made.  */
 
 tree
-fold_builtin_strncpy (tree fndecl, tree dest, tree src, tree len, tree slen)
+fold_builtin_strncpy (location_t loc, tree fndecl, tree dest,
+		      tree src, tree len, tree slen)
 {
   tree fn;
 
@@ -9086,7 +8849,7 @@ fold_builtin_strncpy (tree fndecl, tree dest, tree src, tree len, tree slen)
 
   /* If the LEN parameter is zero, return DEST.  */
   if (integer_zerop (len))
-    return omit_one_operand (TREE_TYPE (TREE_TYPE (fndecl)), dest, src);
+    return omit_one_operand_loc (loc, TREE_TYPE (TREE_TYPE (fndecl)), dest, src);
 
   /* We can't compare slen with len as constants below if len is not a
      constant.  */
@@ -9100,7 +8863,7 @@ fold_builtin_strncpy (tree fndecl, tree dest, tree src, tree len, tree slen)
   if (slen == 0 || TREE_CODE (slen) != INTEGER_CST)
     return NULL_TREE;
 
-  slen = size_binop (PLUS_EXPR, slen, ssize_int (1));
+  slen = size_binop_loc (loc, PLUS_EXPR, slen, ssize_int (1));
 
   /* We do not support simplification of this case, though we do
      support it when expanding trees into RTL.  */
@@ -9112,8 +8875,8 @@ fold_builtin_strncpy (tree fndecl, tree dest, tree src, tree len, tree slen)
   fn = implicit_built_in_decls[BUILT_IN_MEMCPY];
   if (!fn)
     return NULL_TREE;
-  return fold_convert (TREE_TYPE (TREE_TYPE (fndecl)),
-		       build_call_expr (fn, 3, dest, src, len));
+  return fold_convert_loc (loc, TREE_TYPE (TREE_TYPE (fndecl)),
+			   build_call_expr_loc (loc, fn, 3, dest, src, len));
 }
 
 /* Fold function call to builtin memchr.  ARG1, ARG2 and LEN are the
@@ -9121,7 +8884,7 @@ fold_builtin_strncpy (tree fndecl, tree dest, tree src, tree len, tree slen)
    Return NULL_TREE if no simplification can be made.  */
 
 static tree
-fold_builtin_memchr (tree arg1, tree arg2, tree len, tree type)
+fold_builtin_memchr (location_t loc, tree arg1, tree arg2, tree len, tree type)
 {
   if (!validate_arg (arg1, POINTER_TYPE)
       || !validate_arg (arg2, INTEGER_TYPE)
@@ -9150,9 +8913,9 @@ fold_builtin_memchr (tree arg1, tree arg2, tree len, tree type)
 	  if (r == NULL)
 	    return build_int_cst (TREE_TYPE (arg1), 0);
 
-	  tem = fold_build2 (POINTER_PLUS_EXPR, TREE_TYPE (arg1), arg1,
+	  tem = fold_build2_loc (loc, POINTER_PLUS_EXPR, TREE_TYPE (arg1), arg1,
 			     size_int (r - p1));
-	  return fold_convert (type, tem);
+	  return fold_convert_loc (loc, type, tem);
 	}
       return NULL_TREE;
     }
@@ -9162,7 +8925,7 @@ fold_builtin_memchr (tree arg1, tree arg2, tree len, tree type)
    Return NULL_TREE if no simplification can be made.  */
 
 static tree
-fold_builtin_memcmp (tree arg1, tree arg2, tree len)
+fold_builtin_memcmp (location_t loc, tree arg1, tree arg2, tree len)
 {
   const char *p1, *p2;
 
@@ -9173,12 +8936,12 @@ fold_builtin_memcmp (tree arg1, tree arg2, tree len)
 
   /* If the LEN parameter is zero, return zero.  */
   if (integer_zerop (len))
-    return omit_two_operands (integer_type_node, integer_zero_node,
+    return omit_two_operands_loc (loc, integer_type_node, integer_zero_node,
 			      arg1, arg2);
 
   /* If ARG1 and ARG2 are the same (and not volatile), return zero.  */
   if (operand_equal_p (arg1, arg2, 0))
-    return omit_one_operand (integer_type_node, integer_zero_node, len);
+    return omit_one_operand_loc (loc, integer_type_node, integer_zero_node, len);
 
   p1 = c_getstr (arg1);
   p2 = c_getstr (arg2);
@@ -9207,15 +8970,19 @@ fold_builtin_memcmp (tree arg1, tree arg2, tree len)
       tree cst_uchar_ptr_node
 	= build_pointer_type_for_mode (cst_uchar_node, ptr_mode, true);
 
-      tree ind1 = fold_convert (integer_type_node,
-				build1 (INDIRECT_REF, cst_uchar_node,
-					fold_convert (cst_uchar_ptr_node,
+      tree ind1
+	= fold_convert_loc (loc, integer_type_node,
+			    build1 (INDIRECT_REF, cst_uchar_node,
+				    fold_convert_loc (loc,
+						      cst_uchar_ptr_node,
 						      arg1)));
-      tree ind2 = fold_convert (integer_type_node,
-				build1 (INDIRECT_REF, cst_uchar_node,
-					fold_convert (cst_uchar_ptr_node,
+      tree ind2
+	= fold_convert_loc (loc, integer_type_node,
+			    build1 (INDIRECT_REF, cst_uchar_node,
+				    fold_convert_loc (loc,
+						      cst_uchar_ptr_node,
 						      arg2)));
-      return fold_build2 (MINUS_EXPR, integer_type_node, ind1, ind2);
+      return fold_build2_loc (loc, MINUS_EXPR, integer_type_node, ind1, ind2);
     }
 
   return NULL_TREE;
@@ -9225,7 +8992,7 @@ fold_builtin_memcmp (tree arg1, tree arg2, tree len)
    Return NULL_TREE if no simplification can be made.  */
 
 static tree
-fold_builtin_strcmp (tree arg1, tree arg2)
+fold_builtin_strcmp (location_t loc, tree arg1, tree arg2)
 {
   const char *p1, *p2;
 
@@ -9258,10 +9025,11 @@ fold_builtin_strcmp (tree arg1, tree arg2)
       tree cst_uchar_ptr_node
 	= build_pointer_type_for_mode (cst_uchar_node, ptr_mode, true);
 
-      return fold_convert (integer_type_node,
-			   build1 (INDIRECT_REF, cst_uchar_node,
-				   fold_convert (cst_uchar_ptr_node,
-						 arg1)));
+      return fold_convert_loc (loc, integer_type_node,
+			       build1 (INDIRECT_REF, cst_uchar_node,
+				       fold_convert_loc (loc,
+							 cst_uchar_ptr_node,
+							 arg1)));
     }
 
   /* If the first arg is "", return -*(const unsigned char*)arg2.  */
@@ -9271,11 +9039,13 @@ fold_builtin_strcmp (tree arg1, tree arg2)
       tree cst_uchar_ptr_node
 	= build_pointer_type_for_mode (cst_uchar_node, ptr_mode, true);
 
-      tree temp = fold_convert (integer_type_node,
-				build1 (INDIRECT_REF, cst_uchar_node,
-					fold_convert (cst_uchar_ptr_node,
+      tree temp
+	= fold_convert_loc (loc, integer_type_node,
+			    build1 (INDIRECT_REF, cst_uchar_node,
+				    fold_convert_loc (loc,
+						      cst_uchar_ptr_node,
 						      arg2)));
-      return fold_build1 (NEGATE_EXPR, integer_type_node, temp);
+      return fold_build1_loc (loc, NEGATE_EXPR, integer_type_node, temp);
     }
 
   return NULL_TREE;
@@ -9285,7 +9055,7 @@ fold_builtin_strcmp (tree arg1, tree arg2)
    Return NULL_TREE if no simplification can be made.  */
 
 static tree
-fold_builtin_strncmp (tree arg1, tree arg2, tree len)
+fold_builtin_strncmp (location_t loc, tree arg1, tree arg2, tree len)
 {
   const char *p1, *p2;
 
@@ -9296,12 +9066,12 @@ fold_builtin_strncmp (tree arg1, tree arg2, tree len)
 
   /* If the LEN parameter is zero, return zero.  */
   if (integer_zerop (len))
-    return omit_two_operands (integer_type_node, integer_zero_node,
+    return omit_two_operands_loc (loc, integer_type_node, integer_zero_node,
 			      arg1, arg2);
 
   /* If ARG1 and ARG2 are the same (and not volatile), return zero.  */
   if (operand_equal_p (arg1, arg2, 0))
-    return omit_one_operand (integer_type_node, integer_zero_node, len);
+    return omit_one_operand_loc (loc, integer_type_node, integer_zero_node, len);
 
   p1 = c_getstr (arg1);
   p2 = c_getstr (arg2);
@@ -9327,10 +9097,11 @@ fold_builtin_strncmp (tree arg1, tree arg2, tree len)
       tree cst_uchar_ptr_node
 	= build_pointer_type_for_mode (cst_uchar_node, ptr_mode, true);
 
-      return fold_convert (integer_type_node,
-			   build1 (INDIRECT_REF, cst_uchar_node,
-				   fold_convert (cst_uchar_ptr_node,
-						 arg1)));
+      return fold_convert_loc (loc, integer_type_node,
+			       build1 (INDIRECT_REF, cst_uchar_node,
+				       fold_convert_loc (loc,
+							 cst_uchar_ptr_node,
+							 arg1)));
     }
 
   /* If the first arg is "", and the length is greater than zero,
@@ -9343,11 +9114,12 @@ fold_builtin_strncmp (tree arg1, tree arg2, tree len)
       tree cst_uchar_ptr_node
 	= build_pointer_type_for_mode (cst_uchar_node, ptr_mode, true);
 
-      tree temp = fold_convert (integer_type_node,
-				build1 (INDIRECT_REF, cst_uchar_node,
-					fold_convert (cst_uchar_ptr_node,
-						      arg2)));
-      return fold_build1 (NEGATE_EXPR, integer_type_node, temp);
+      tree temp = fold_convert_loc (loc, integer_type_node,
+				    build1 (INDIRECT_REF, cst_uchar_node,
+					    fold_convert_loc (loc,
+							      cst_uchar_ptr_node,
+							      arg2)));
+      return fold_build1_loc (loc, NEGATE_EXPR, integer_type_node, temp);
     }
 
   /* If len parameter is one, return an expression corresponding to
@@ -9358,15 +9130,17 @@ fold_builtin_strncmp (tree arg1, tree arg2, tree len)
       tree cst_uchar_ptr_node
 	= build_pointer_type_for_mode (cst_uchar_node, ptr_mode, true);
 
-      tree ind1 = fold_convert (integer_type_node,
-				build1 (INDIRECT_REF, cst_uchar_node,
-					fold_convert (cst_uchar_ptr_node,
-						      arg1)));
-      tree ind2 = fold_convert (integer_type_node,
-				build1 (INDIRECT_REF, cst_uchar_node,
-					fold_convert (cst_uchar_ptr_node,
-						      arg2)));
-      return fold_build2 (MINUS_EXPR, integer_type_node, ind1, ind2);
+      tree ind1 = fold_convert_loc (loc, integer_type_node,
+				    build1 (INDIRECT_REF, cst_uchar_node,
+					    fold_convert_loc (loc,
+							      cst_uchar_ptr_node,
+							      arg1)));
+      tree ind2 = fold_convert_loc (loc, integer_type_node,
+				    build1 (INDIRECT_REF, cst_uchar_node,
+					    fold_convert_loc (loc,
+							      cst_uchar_ptr_node,
+							      arg2)));
+      return fold_build2_loc (loc, MINUS_EXPR, integer_type_node, ind1, ind2);
     }
 
   return NULL_TREE;
@@ -9376,7 +9150,7 @@ fold_builtin_strncmp (tree arg1, tree arg2, tree len)
    ARG.  Return NULL_TREE if no simplification can be made.  */
 
 static tree
-fold_builtin_signbit (tree arg, tree type)
+fold_builtin_signbit (location_t loc, tree arg, tree type)
 {
   tree temp;
 
@@ -9391,16 +9165,16 @@ fold_builtin_signbit (tree arg, tree type)
 
       c = TREE_REAL_CST (arg);
       temp = REAL_VALUE_NEGATIVE (c) ? integer_one_node : integer_zero_node;
-      return fold_convert (type, temp);
+      return fold_convert_loc (loc, type, temp);
     }
 
   /* If ARG is non-negative, the result is always zero.  */
   if (tree_expr_nonnegative_p (arg))
-    return omit_one_operand (type, integer_zero_node, arg);
+    return omit_one_operand_loc (loc, type, integer_zero_node, arg);
 
   /* If ARG's format doesn't have signed zeros, return "arg < 0.0".  */
   if (!HONOR_SIGNED_ZEROS (TYPE_MODE (TREE_TYPE (arg))))
-    return fold_build2 (LT_EXPR, type, arg,
+    return fold_build2_loc (loc, LT_EXPR, type, arg,
 			build_real (TREE_TYPE (arg), dconst0));
 
   return NULL_TREE;
@@ -9411,7 +9185,8 @@ fold_builtin_signbit (tree arg, tree type)
    be made.  */
 
 static tree
-fold_builtin_copysign (tree fndecl, tree arg1, tree arg2, tree type)
+fold_builtin_copysign (location_t loc, tree fndecl,
+		       tree arg1, tree arg2, tree type)
 {
   tree tem;
 
@@ -9421,7 +9196,7 @@ fold_builtin_copysign (tree fndecl, tree arg1, tree arg2, tree type)
 
   /* copysign(X,X) is X.  */
   if (operand_equal_p (arg1, arg2, 0))
-    return fold_convert (type, arg1);
+    return fold_convert_loc (loc, type, arg1);
 
   /* If ARG1 and ARG2 are compile-time constants, determine the result.  */
   if (TREE_CODE (arg1) == REAL_CST
@@ -9441,14 +9216,14 @@ fold_builtin_copysign (tree fndecl, tree arg1, tree arg2, tree type)
   /* copysign(X, Y) is fabs(X) when Y is always non-negative.
      Remember to evaluate Y for side-effects.  */
   if (tree_expr_nonnegative_p (arg2))
-    return omit_one_operand (type,
-			     fold_build1 (ABS_EXPR, type, arg1),
+    return omit_one_operand_loc (loc, type,
+			     fold_build1_loc (loc, ABS_EXPR, type, arg1),
 			     arg2);
 
   /* Strip sign changing operations for the first argument.  */
   tem = fold_strip_sign_ops (arg1);
   if (tem)
-    return build_call_expr (fndecl, 2, tem, arg2);
+    return build_call_expr_loc (loc, fndecl, 2, tem, arg2);
 
   return NULL_TREE;
 }
@@ -9456,17 +9231,17 @@ fold_builtin_copysign (tree fndecl, tree arg1, tree arg2, tree type)
 /* Fold a call to builtin isascii with argument ARG.  */
 
 static tree
-fold_builtin_isascii (tree arg)
+fold_builtin_isascii (location_t loc, tree arg)
 {
   if (!validate_arg (arg, INTEGER_TYPE))
     return NULL_TREE;
   else
     {
       /* Transform isascii(c) -> ((c & ~0x7f) == 0).  */
-      arg = build2 (BIT_AND_EXPR, integer_type_node, arg,
-		    build_int_cst (NULL_TREE,
-				   ~ (unsigned HOST_WIDE_INT) 0x7f));
-      return fold_build2 (EQ_EXPR, integer_type_node,
+      arg = fold_build2 (BIT_AND_EXPR, integer_type_node, arg,
+			 build_int_cst (NULL_TREE,
+					~ (unsigned HOST_WIDE_INT) 0x7f));
+      return fold_build2_loc (loc, EQ_EXPR, integer_type_node,
 			  arg, integer_zero_node);
     }
 }
@@ -9474,20 +9249,20 @@ fold_builtin_isascii (tree arg)
 /* Fold a call to builtin toascii with argument ARG.  */
 
 static tree
-fold_builtin_toascii (tree arg)
+fold_builtin_toascii (location_t loc, tree arg)
 {
   if (!validate_arg (arg, INTEGER_TYPE))
     return NULL_TREE;
       
   /* Transform toascii(c) -> (c & 0x7f).  */
-  return fold_build2 (BIT_AND_EXPR, integer_type_node, arg,
+  return fold_build2_loc (loc, BIT_AND_EXPR, integer_type_node, arg,
 		      build_int_cst (NULL_TREE, 0x7f));
 }
 
 /* Fold a call to builtin isdigit with argument ARG.  */
 
 static tree
-fold_builtin_isdigit (tree arg)
+fold_builtin_isdigit (location_t loc, tree arg)
 {
   if (!validate_arg (arg, INTEGER_TYPE))
     return NULL_TREE;
@@ -9502,10 +9277,10 @@ fold_builtin_isdigit (tree arg)
       if (target_digit0 == 0)
 	return NULL_TREE;
 
-      arg = fold_convert (unsigned_type_node, arg);
-      arg = build2 (MINUS_EXPR, unsigned_type_node, arg,
-		    build_int_cst (unsigned_type_node, target_digit0));
-      return fold_build2 (LE_EXPR, integer_type_node, arg,
+      arg = fold_convert_loc (loc, unsigned_type_node, arg);
+      arg = fold_build2 (MINUS_EXPR, unsigned_type_node, arg,
+			 build_int_cst (unsigned_type_node, target_digit0));
+      return fold_build2_loc (loc, LE_EXPR, integer_type_node, arg,
 			  build_int_cst (unsigned_type_node, 9));
     }
 }
@@ -9513,35 +9288,36 @@ fold_builtin_isdigit (tree arg)
 /* Fold a call to fabs, fabsf or fabsl with argument ARG.  */
 
 static tree
-fold_builtin_fabs (tree arg, tree type)
+fold_builtin_fabs (location_t loc, tree arg, tree type)
 {
   if (!validate_arg (arg, REAL_TYPE))
     return NULL_TREE;
 
-  arg = fold_convert (type, arg);
+  arg = fold_convert_loc (loc, type, arg);
   if (TREE_CODE (arg) == REAL_CST)
     return fold_abs_const (arg, type);
-  return fold_build1 (ABS_EXPR, type, arg);
+  return fold_build1_loc (loc, ABS_EXPR, type, arg);
 }
 
 /* Fold a call to abs, labs, llabs or imaxabs with argument ARG.  */
 
 static tree
-fold_builtin_abs (tree arg, tree type)
+fold_builtin_abs (location_t loc, tree arg, tree type)
 {
   if (!validate_arg (arg, INTEGER_TYPE))
     return NULL_TREE;
 
-  arg = fold_convert (type, arg);
+  arg = fold_convert_loc (loc, type, arg);
   if (TREE_CODE (arg) == INTEGER_CST)
     return fold_abs_const (arg, type);
-  return fold_build1 (ABS_EXPR, type, arg);
+  return fold_build1_loc (loc, ABS_EXPR, type, arg);
 }
 
 /* Fold a call to builtin fmin or fmax.  */
 
 static tree
-fold_builtin_fmin_fmax (tree arg0, tree arg1, tree type, bool max)
+fold_builtin_fmin_fmax (location_t loc, tree arg0, tree arg1,
+			tree type, bool max)
 {
   if (validate_arg (arg0, REAL_TYPE) && validate_arg (arg1, REAL_TYPE))
     {
@@ -9558,16 +9334,16 @@ fold_builtin_fmin_fmax (tree arg0, tree arg1, tree type, bool max)
 	  && real_isnan (&TREE_REAL_CST (arg0))
 	  && (! HONOR_SNANS (TYPE_MODE (TREE_TYPE (arg0)))
 	      || ! TREE_REAL_CST (arg0).signalling))
-	return omit_one_operand (type, arg1, arg0);
+	return omit_one_operand_loc (loc, type, arg1, arg0);
       if (TREE_CODE (arg1) == REAL_CST
 	  && real_isnan (&TREE_REAL_CST (arg1))
 	  && (! HONOR_SNANS (TYPE_MODE (TREE_TYPE (arg1)))
 	      || ! TREE_REAL_CST (arg1).signalling))
-	return omit_one_operand (type, arg0, arg1);
+	return omit_one_operand_loc (loc, type, arg0, arg1);
 
       /* Transform fmin/fmax(x,x) -> x.  */
       if (operand_equal_p (arg0, arg1, OEP_PURE_SAME))
-	return omit_one_operand (type, arg0, arg1);
+	return omit_one_operand_loc (loc, type, arg0, arg1);
       
       /* Convert fmin/fmax to MIN_EXPR/MAX_EXPR.  C99 requires these
 	 functions to return the numeric arg if the other one is NaN.
@@ -9575,9 +9351,9 @@ fold_builtin_fmin_fmax (tree arg0, tree arg1, tree type, bool max)
 	 -ffinite-math-only is set.  C99 doesn't require -0.0 to be
 	 handled, so we don't have to worry about it either.  */
       if (flag_finite_math_only)
-	return fold_build2 ((max ? MAX_EXPR : MIN_EXPR), type,
-			    fold_convert (type, arg0),
-			    fold_convert (type, arg1));
+	return fold_build2_loc (loc, (max ? MAX_EXPR : MIN_EXPR), type,
+			    fold_convert_loc (loc, type, arg0),
+			    fold_convert_loc (loc, type, arg1));
     }
   return NULL_TREE;
 }
@@ -9585,18 +9361,19 @@ fold_builtin_fmin_fmax (tree arg0, tree arg1, tree type, bool max)
 /* Fold a call to builtin carg(a+bi) -> atan2(b,a).  */
 
 static tree
-fold_builtin_carg (tree arg, tree type)
+fold_builtin_carg (location_t loc, tree arg, tree type)
 {
-  if (validate_arg (arg, COMPLEX_TYPE))
+  if (validate_arg (arg, COMPLEX_TYPE)
+      && TREE_CODE (TREE_TYPE (TREE_TYPE (arg))) == REAL_TYPE)
     {
       tree atan2_fn = mathfn_built_in (type, BUILT_IN_ATAN2);
       
       if (atan2_fn)
         {
   	  tree new_arg = builtin_save_expr (arg);
-	  tree r_arg = fold_build1 (REALPART_EXPR, type, new_arg);
-	  tree i_arg = fold_build1 (IMAGPART_EXPR, type, new_arg);
-	  return build_call_expr (atan2_fn, 2, i_arg, r_arg);
+	  tree r_arg = fold_build1_loc (loc, REALPART_EXPR, type, new_arg);
+	  tree i_arg = fold_build1_loc (loc, IMAGPART_EXPR, type, new_arg);
+	  return build_call_expr_loc (loc, atan2_fn, 2, i_arg, r_arg);
 	}
     }
   
@@ -9606,7 +9383,7 @@ fold_builtin_carg (tree arg, tree type)
 /* Fold a call to builtin logb/ilogb.  */
 
 static tree
-fold_builtin_logb (tree arg, tree rettype)
+fold_builtin_logb (location_t loc, tree arg, tree rettype)
 {
   if (! validate_arg (arg, REAL_TYPE))
     return NULL_TREE;
@@ -9623,7 +9400,7 @@ fold_builtin_logb (tree arg, tree rettype)
       case rvc_inf:
 	/* If arg is Inf or NaN and we're logb, return it.  */
 	if (TREE_CODE (rettype) == REAL_TYPE)
-	  return fold_convert (rettype, arg);
+	  return fold_convert_loc (loc, rettype, arg);
 	/* Fall through... */
       case rvc_zero:
 	/* Zero may set errno and/or raise an exception for logb, also
@@ -9635,8 +9412,9 @@ fold_builtin_logb (tree arg, tree rettype)
 	   want the exponent as if they were [1.0, 2.0) so get the
 	   exponent and subtract 1.  */
 	if (REAL_MODE_FORMAT (TYPE_MODE (TREE_TYPE (arg)))->b == 2)
-	  return fold_convert (rettype, build_int_cst (NULL_TREE,
-						       REAL_EXP (value)-1));
+	  return fold_convert_loc (loc, rettype,
+				   build_int_cst (NULL_TREE,
+						  REAL_EXP (value)-1));
 	break;
       }
     }
@@ -9647,7 +9425,7 @@ fold_builtin_logb (tree arg, tree rettype)
 /* Fold a call to builtin significand, if radix == 2.  */
 
 static tree
-fold_builtin_significand (tree arg, tree rettype)
+fold_builtin_significand (location_t loc, tree arg, tree rettype)
 {
   if (! validate_arg (arg, REAL_TYPE))
     return NULL_TREE;
@@ -9664,7 +9442,7 @@ fold_builtin_significand (tree arg, tree rettype)
       case rvc_nan:
       case rvc_inf:
 	/* If arg is +-0, +-Inf or +-NaN, then return it.  */
-	return fold_convert (rettype, arg);
+	return fold_convert_loc (loc, rettype, arg);
       case rvc_normal:
 	/* For normal numbers, proceed iff radix == 2.  */
 	if (REAL_MODE_FORMAT (TYPE_MODE (TREE_TYPE (arg)))->b == 2)
@@ -9686,7 +9464,7 @@ fold_builtin_significand (tree arg, tree rettype)
 /* Fold a call to builtin frexp, we can assume the base is 2.  */
 
 static tree
-fold_builtin_frexp (tree arg0, tree arg1, tree rettype)
+fold_builtin_frexp (location_t loc, tree arg0, tree arg1, tree rettype)
 {
   if (! validate_arg (arg0, REAL_TYPE) || ! validate_arg (arg1, POINTER_TYPE))
     return NULL_TREE;
@@ -9696,7 +9474,7 @@ fold_builtin_frexp (tree arg0, tree arg1, tree rettype)
   if (!(TREE_CODE (arg0) == REAL_CST && ! TREE_OVERFLOW (arg0)))
     return NULL_TREE;
   
-  arg1 = build_fold_indirect_ref (arg1);
+  arg1 = build_fold_indirect_ref_loc (loc, arg1);
 
   /* Proceed if a valid pointer type was passed in.  */
   if (TYPE_MAIN_VARIANT (TREE_TYPE (arg1)) == integer_type_node)
@@ -9714,7 +9492,7 @@ fold_builtin_frexp (tree arg0, tree arg1, tree rettype)
       case rvc_nan:
       case rvc_inf:
 	/* For +-NaN or +-Inf, *exp is unspecified, return arg0.  */
-	return omit_one_operand (rettype, arg0, arg1);
+	return omit_one_operand_loc (loc, rettype, arg0, arg1);
       case rvc_normal:
 	{
 	  /* Since the frexp function always expects base 2, and in
@@ -9731,9 +9509,9 @@ fold_builtin_frexp (tree arg0, tree arg1, tree rettype)
       }
 		
       /* Create the COMPOUND_EXPR (*arg1 = trunc, frac). */
-      arg1 = fold_build2 (MODIFY_EXPR, rettype, arg1, exp);
+      arg1 = fold_build2_loc (loc, MODIFY_EXPR, rettype, arg1, exp);
       TREE_SIDE_EFFECTS (arg1) = 1;
-      return fold_build2 (COMPOUND_EXPR, rettype, arg1, frac);
+      return fold_build2_loc (loc, COMPOUND_EXPR, rettype, arg1, frac);
     }
 
   return NULL_TREE;
@@ -9744,7 +9522,8 @@ fold_builtin_frexp (tree arg0, tree arg1, tree rettype)
    check the mode of the TYPE parameter in certain cases.  */
 
 static tree
-fold_builtin_load_exponent (tree arg0, tree arg1, tree type, bool ldexp)
+fold_builtin_load_exponent (location_t loc, tree arg0, tree arg1,
+			    tree type, bool ldexp)
 {
   if (validate_arg (arg0, REAL_TYPE) && validate_arg (arg1, INTEGER_TYPE))
     {
@@ -9755,7 +9534,7 @@ fold_builtin_load_exponent (tree arg0, tree arg1, tree type, bool ldexp)
       if (real_zerop (arg0) || integer_zerop (arg1)
 	  || (TREE_CODE (arg0) == REAL_CST
 	      && !real_isfinite (&TREE_REAL_CST (arg0))))
-	return omit_one_operand (type, arg0, arg1);
+	return omit_one_operand_loc (loc, type, arg0, arg1);
       
       /* If both arguments are constant, then try to evaluate it.  */
       if ((ldexp || REAL_MODE_FORMAT (TYPE_MODE (type))->b == 2)
@@ -9802,7 +9581,7 @@ fold_builtin_load_exponent (tree arg0, tree arg1, tree type, bool ldexp)
 /* Fold a call to builtin modf.  */
 
 static tree
-fold_builtin_modf (tree arg0, tree arg1, tree rettype)
+fold_builtin_modf (location_t loc, tree arg0, tree arg1, tree rettype)
 {
   if (! validate_arg (arg0, REAL_TYPE) || ! validate_arg (arg1, POINTER_TYPE))
     return NULL_TREE;
@@ -9812,7 +9591,7 @@ fold_builtin_modf (tree arg0, tree arg1, tree rettype)
   if (!(TREE_CODE (arg0) == REAL_CST && ! TREE_OVERFLOW (arg0)))
     return NULL_TREE;
   
-  arg1 = build_fold_indirect_ref (arg1);
+  arg1 = build_fold_indirect_ref_loc (loc, arg1);
 
   /* Proceed if a valid pointer type was passed in.  */
   if (TYPE_MAIN_VARIANT (TREE_TYPE (arg1)) == TYPE_MAIN_VARIANT (rettype))
@@ -9845,13 +9624,103 @@ fold_builtin_modf (tree arg0, tree arg1, tree rettype)
       }
 	      
       /* Create the COMPOUND_EXPR (*arg1 = trunc, frac). */
-      arg1 = fold_build2 (MODIFY_EXPR, rettype, arg1,
+      arg1 = fold_build2_loc (loc, MODIFY_EXPR, rettype, arg1,
 			  build_real (rettype, trunc));
       TREE_SIDE_EFFECTS (arg1) = 1;
-      return fold_build2 (COMPOUND_EXPR, rettype, arg1,
+      return fold_build2_loc (loc, COMPOUND_EXPR, rettype, arg1,
 			  build_real (rettype, frac));
     }
   
+  return NULL_TREE;
+}
+
+/* Given a location LOC, an interclass builtin function decl FNDECL
+   and its single argument ARG, return an folded expression computing
+   the same, or NULL_TREE if we either couldn't or didn't want to fold
+   (the latter happen if there's an RTL instruction available).  */
+
+static tree
+fold_builtin_interclass_mathfn (location_t loc, tree fndecl, tree arg)
+{
+  enum machine_mode mode;
+
+  if (!validate_arg (arg, REAL_TYPE))
+    return NULL_TREE;
+
+  if (interclass_mathfn_icode (arg, fndecl) != CODE_FOR_nothing)
+    return NULL_TREE;
+
+  mode = TYPE_MODE (TREE_TYPE (arg));
+
+  /* If there is no optab, try generic code.  */
+  switch (DECL_FUNCTION_CODE (fndecl))
+    {
+      tree result;
+
+    CASE_FLT_FN (BUILT_IN_ISINF):
+      {
+	/* isinf(x) -> isgreater(fabs(x),DBL_MAX).  */
+	tree const isgr_fn = built_in_decls[BUILT_IN_ISGREATER];
+	tree const type = TREE_TYPE (arg);
+	REAL_VALUE_TYPE r;
+	char buf[128];
+
+	get_max_float (REAL_MODE_FORMAT (mode), buf, sizeof (buf));
+	real_from_string (&r, buf);
+	result = build_call_expr (isgr_fn, 2,
+				  fold_build1_loc (loc, ABS_EXPR, type, arg),
+				  build_real (type, r));
+	return result;
+      }
+    CASE_FLT_FN (BUILT_IN_FINITE):
+    case BUILT_IN_ISFINITE:
+      {
+	/* isfinite(x) -> islessequal(fabs(x),DBL_MAX).  */
+	tree const isle_fn = built_in_decls[BUILT_IN_ISLESSEQUAL];
+	tree const type = TREE_TYPE (arg);
+	REAL_VALUE_TYPE r;
+	char buf[128];
+
+	get_max_float (REAL_MODE_FORMAT (mode), buf, sizeof (buf));
+	real_from_string (&r, buf);
+	result = build_call_expr (isle_fn, 2,
+				  fold_build1_loc (loc, ABS_EXPR, type, arg),
+				  build_real (type, r));
+	/*result = fold_build2_loc (loc, UNGT_EXPR,
+				  TREE_TYPE (TREE_TYPE (fndecl)),
+				  fold_build1_loc (loc, ABS_EXPR, type, arg),
+				  build_real (type, r));
+	result = fold_build1_loc (loc, TRUTH_NOT_EXPR,
+				  TREE_TYPE (TREE_TYPE (fndecl)),
+				  result);*/
+	return result;
+      }
+    case BUILT_IN_ISNORMAL:
+      {
+	/* isnormal(x) -> isgreaterequal(fabs(x),DBL_MIN) &
+	   islessequal(fabs(x),DBL_MAX).  */
+	tree const isle_fn = built_in_decls[BUILT_IN_ISLESSEQUAL];
+	tree const isge_fn = built_in_decls[BUILT_IN_ISGREATEREQUAL];
+	tree const type = TREE_TYPE (arg);
+	REAL_VALUE_TYPE rmax, rmin;
+	char buf[128];
+
+	get_max_float (REAL_MODE_FORMAT (mode), buf, sizeof (buf));
+	real_from_string (&rmax, buf);
+	sprintf (buf, "0x1p%d", REAL_MODE_FORMAT (mode)->emin - 1);
+	real_from_string (&rmin, buf);
+	arg = builtin_save_expr (fold_build1_loc (loc, ABS_EXPR, type, arg));
+	result = build_call_expr (isle_fn, 2, arg,
+				  build_real (type, rmax));
+	result = fold_build2 (BIT_AND_EXPR, integer_type_node, result,
+			      build_call_expr (isge_fn, 2, arg,
+					       build_real (type, rmin)));
+	return result;
+      }
+    default:
+      break;
+    }
+
   return NULL_TREE;
 }
 
@@ -9859,7 +9728,7 @@ fold_builtin_modf (tree arg0, tree arg1, tree rettype)
    ARG is the argument for the call.  */
 
 static tree
-fold_builtin_classify (tree fndecl, tree arg, int builtin_index)
+fold_builtin_classify (location_t loc, tree fndecl, tree arg, int builtin_index)
 {
   tree type = TREE_TYPE (TREE_TYPE (fndecl));
   REAL_VALUE_TYPE r;
@@ -9871,7 +9740,7 @@ fold_builtin_classify (tree fndecl, tree arg, int builtin_index)
     {
     case BUILT_IN_ISINF:
       if (!HONOR_INFINITIES (TYPE_MODE (TREE_TYPE (arg))))
-	return omit_one_operand (type, integer_zero_node, arg);
+	return omit_one_operand_loc (loc, type, integer_zero_node, arg);
 
       if (TREE_CODE (arg) == REAL_CST)
 	{
@@ -9899,17 +9768,18 @@ fold_builtin_classify (tree fndecl, tree arg, int builtin_index)
 
 	if (signbit_fn && isinf_fn)
 	  {
-	    tree signbit_call = build_call_expr (signbit_fn, 1, arg);
-	    tree isinf_call = build_call_expr (isinf_fn, 1, arg);
+	    tree signbit_call = build_call_expr_loc (loc, signbit_fn, 1, arg);
+	    tree isinf_call = build_call_expr_loc (loc, isinf_fn, 1, arg);
 
-	    signbit_call = fold_build2 (NE_EXPR, integer_type_node,
+	    signbit_call = fold_build2_loc (loc, NE_EXPR, integer_type_node,
 					signbit_call, integer_zero_node);
-	    isinf_call = fold_build2 (NE_EXPR, integer_type_node,
+	    isinf_call = fold_build2_loc (loc, NE_EXPR, integer_type_node,
 				      isinf_call, integer_zero_node);
 	    
-	    tmp = fold_build3 (COND_EXPR, integer_type_node, signbit_call,
+	    tmp = fold_build3_loc (loc, COND_EXPR, integer_type_node, signbit_call,
 			       integer_minus_one_node, integer_one_node);
-	    tmp = fold_build3 (COND_EXPR, integer_type_node, isinf_call, tmp,
+	    tmp = fold_build3_loc (loc, COND_EXPR, integer_type_node,
+			       isinf_call, tmp,
 			       integer_zero_node);
 	  }
 
@@ -9919,7 +9789,7 @@ fold_builtin_classify (tree fndecl, tree arg, int builtin_index)
     case BUILT_IN_ISFINITE:
       if (!HONOR_NANS (TYPE_MODE (TREE_TYPE (arg)))
 	  && !HONOR_INFINITIES (TYPE_MODE (TREE_TYPE (arg))))
-	return omit_one_operand (type, integer_one_node, arg);
+	return omit_one_operand_loc (loc, type, integer_one_node, arg);
 
       if (TREE_CODE (arg) == REAL_CST)
 	{
@@ -9931,7 +9801,7 @@ fold_builtin_classify (tree fndecl, tree arg, int builtin_index)
 
     case BUILT_IN_ISNAN:
       if (!HONOR_NANS (TYPE_MODE (TREE_TYPE (arg))))
-	return omit_one_operand (type, integer_zero_node, arg);
+	return omit_one_operand_loc (loc, type, integer_zero_node, arg);
 
       if (TREE_CODE (arg) == REAL_CST)
 	{
@@ -9940,7 +9810,7 @@ fold_builtin_classify (tree fndecl, tree arg, int builtin_index)
 	}
 
       arg = builtin_save_expr (arg);
-      return fold_build2 (UNORDERED_EXPR, type, arg, arg);
+      return fold_build2_loc (loc, UNORDERED_EXPR, type, arg, arg);
 
     default:
       gcc_unreachable ();
@@ -9956,7 +9826,7 @@ fold_builtin_classify (tree fndecl, tree arg, int builtin_index)
    one floating point argument which is "type generic".  */
 
 static tree
-fold_builtin_fpclassify (tree exp)
+fold_builtin_fpclassify (location_t loc, tree exp)
 {
   tree fp_nan, fp_infinite, fp_normal, fp_subnormal, fp_zero,
     arg, type, res, tmp;
@@ -9978,7 +9848,7 @@ fold_builtin_fpclassify (tree exp)
   arg = CALL_EXPR_ARG (exp, 5);
   type = TREE_TYPE (arg);
   mode = TYPE_MODE (type);
-  arg = builtin_save_expr (fold_build1 (ABS_EXPR, type, arg));
+  arg = builtin_save_expr (fold_build1_loc (loc, ABS_EXPR, type, arg));
 
   /* fpclassify(x) -> 
        isnan(x) ? FP_NAN :
@@ -9986,27 +9856,30 @@ fold_builtin_fpclassify (tree exp)
 	   (fabs(x) >= DBL_MIN ? FP_NORMAL :
 	     (x == 0 ? FP_ZERO : FP_SUBNORMAL))).  */
   
-  tmp = fold_build2 (EQ_EXPR, integer_type_node, arg,
+  tmp = fold_build2_loc (loc, EQ_EXPR, integer_type_node, arg,
 		     build_real (type, dconst0));
-  res = fold_build3 (COND_EXPR, integer_type_node, tmp, fp_zero, fp_subnormal);
+  res = fold_build3_loc (loc, COND_EXPR, integer_type_node,
+		     tmp, fp_zero, fp_subnormal);
 
   sprintf (buf, "0x1p%d", REAL_MODE_FORMAT (mode)->emin - 1);
   real_from_string (&r, buf);
-  tmp = fold_build2 (GE_EXPR, integer_type_node, arg, build_real (type, r));
-  res = fold_build3 (COND_EXPR, integer_type_node, tmp, fp_normal, res);
+  tmp = fold_build2_loc (loc, GE_EXPR, integer_type_node,
+		     arg, build_real (type, r));
+  res = fold_build3_loc (loc, COND_EXPR, integer_type_node, tmp, fp_normal, res);
   
   if (HONOR_INFINITIES (mode))
     {
       real_inf (&r);
-      tmp = fold_build2 (EQ_EXPR, integer_type_node, arg,
+      tmp = fold_build2_loc (loc, EQ_EXPR, integer_type_node, arg,
 			 build_real (type, r));
-      res = fold_build3 (COND_EXPR, integer_type_node, tmp, fp_infinite, res);
+      res = fold_build3_loc (loc, COND_EXPR, integer_type_node, tmp,
+			 fp_infinite, res);
     }
 
   if (HONOR_NANS (mode))
     {
-      tmp = fold_build2 (ORDERED_EXPR, integer_type_node, arg, arg);
-      res = fold_build3 (COND_EXPR, integer_type_node, tmp, res, fp_nan);
+      tmp = fold_build2_loc (loc, ORDERED_EXPR, integer_type_node, arg, arg);
+      res = fold_build3_loc (loc, COND_EXPR, integer_type_node, tmp, res, fp_nan);
     }
   
   return res;
@@ -10021,7 +9894,7 @@ fold_builtin_fpclassify (tree exp)
    the rest.  */
 
 static tree
-fold_builtin_unordered_cmp (tree fndecl, tree arg0, tree arg1,
+fold_builtin_unordered_cmp (location_t loc, tree fndecl, tree arg0, tree arg1,
 			    enum tree_code unordered_code,
 			    enum tree_code ordered_code)
 {
@@ -10046,20 +9919,20 @@ fold_builtin_unordered_cmp (tree fndecl, tree arg0, tree arg1,
   else if (code0 == INTEGER_TYPE && code1 == REAL_TYPE)
     cmp_type = type1;
 
-  arg0 = fold_convert (cmp_type, arg0);
-  arg1 = fold_convert (cmp_type, arg1);
+  arg0 = fold_convert_loc (loc, cmp_type, arg0);
+  arg1 = fold_convert_loc (loc, cmp_type, arg1);
 
   if (unordered_code == UNORDERED_EXPR)
     {
       if (!HONOR_NANS (TYPE_MODE (TREE_TYPE (arg0))))
-	return omit_two_operands (type, integer_zero_node, arg0, arg1);
-      return fold_build2 (UNORDERED_EXPR, type, arg0, arg1);
+	return omit_two_operands_loc (loc, type, integer_zero_node, arg0, arg1);
+      return fold_build2_loc (loc, UNORDERED_EXPR, type, arg0, arg1);
     }
 
   code = HONOR_NANS (TYPE_MODE (TREE_TYPE (arg0))) ? unordered_code
 						   : ordered_code;
-  return fold_build1 (TRUTH_NOT_EXPR, type,
-		      fold_build2 (code, type, arg0, arg1));
+  return fold_build1_loc (loc, TRUTH_NOT_EXPR, type,
+		      fold_build2_loc (loc, code, type, arg0, arg1));
 }
 
 /* Fold a call to built-in function FNDECL with 0 arguments.
@@ -10067,7 +9940,7 @@ fold_builtin_unordered_cmp (tree fndecl, tree arg0, tree arg1,
    function returns NULL_TREE if no simplification was possible.  */
 
 static tree
-fold_builtin_0 (tree fndecl, bool ignore ATTRIBUTE_UNUSED)
+fold_builtin_0 (location_t loc, tree fndecl, bool ignore ATTRIBUTE_UNUSED)
 {
   tree type = TREE_TYPE (TREE_TYPE (fndecl));
   enum built_in_function fcode = DECL_FUNCTION_CODE (fndecl);
@@ -10077,10 +9950,10 @@ fold_builtin_0 (tree fndecl, bool ignore ATTRIBUTE_UNUSED)
     case BUILT_IN_INFD32:
     case BUILT_IN_INFD64:
     case BUILT_IN_INFD128:
-      return fold_builtin_inf (type, true);
+      return fold_builtin_inf (loc, type, true);
 
     CASE_FLT_FN (BUILT_IN_HUGE_VAL):
-      return fold_builtin_inf (type, false);
+      return fold_builtin_inf (loc, type, false);
 
     case BUILT_IN_CLASSIFY_TYPE:
       return fold_builtin_classify_type (NULL_TREE);
@@ -10096,7 +9969,7 @@ fold_builtin_0 (tree fndecl, bool ignore ATTRIBUTE_UNUSED)
    function returns NULL_TREE if no simplification was possible.  */
 
 static tree
-fold_builtin_1 (tree fndecl, tree arg0, bool ignore)
+fold_builtin_1 (location_t loc, tree fndecl, tree arg0, bool ignore)
 {
   tree type = TREE_TYPE (TREE_TYPE (fndecl));
   enum built_in_function fcode = DECL_FUNCTION_CODE (fndecl);
@@ -10120,54 +9993,128 @@ fold_builtin_1 (tree fndecl, tree arg0, bool ignore)
       return fold_builtin_classify_type (arg0);
 
     case BUILT_IN_STRLEN:
-      return fold_builtin_strlen (arg0);
+      return fold_builtin_strlen (loc, arg0);
 
     CASE_FLT_FN (BUILT_IN_FABS):
-      return fold_builtin_fabs (arg0, type);
+      return fold_builtin_fabs (loc, arg0, type);
 
     case BUILT_IN_ABS:
     case BUILT_IN_LABS:
     case BUILT_IN_LLABS:
     case BUILT_IN_IMAXABS:
-      return fold_builtin_abs (arg0, type);
+      return fold_builtin_abs (loc, arg0, type);
 
     CASE_FLT_FN (BUILT_IN_CONJ):
-      if (validate_arg (arg0, COMPLEX_TYPE))
-	return fold_build1 (CONJ_EXPR, type, arg0);
+      if (validate_arg (arg0, COMPLEX_TYPE)
+	&& TREE_CODE (TREE_TYPE (TREE_TYPE (arg0))) == REAL_TYPE) 
+	return fold_build1_loc (loc, CONJ_EXPR, type, arg0);
     break;
 
     CASE_FLT_FN (BUILT_IN_CREAL):
-      if (validate_arg (arg0, COMPLEX_TYPE))
-	return non_lvalue (fold_build1 (REALPART_EXPR, type, arg0));;
+      if (validate_arg (arg0, COMPLEX_TYPE)
+	&& TREE_CODE (TREE_TYPE (TREE_TYPE (arg0))) == REAL_TYPE) 
+	return non_lvalue_loc (loc, fold_build1_loc (loc, REALPART_EXPR, type, arg0));;
     break;
 
     CASE_FLT_FN (BUILT_IN_CIMAG):
-      if (validate_arg (arg0, COMPLEX_TYPE))
-	return non_lvalue (fold_build1 (IMAGPART_EXPR, type, arg0));
+      if (validate_arg (arg0, COMPLEX_TYPE)
+	  && TREE_CODE (TREE_TYPE (TREE_TYPE (arg0))) == REAL_TYPE)
+	return non_lvalue_loc (loc, fold_build1_loc (loc, IMAGPART_EXPR, type, arg0));
     break;
 
     CASE_FLT_FN (BUILT_IN_CCOS):
+      return fold_builtin_ccos(loc, arg0, type, fndecl, /*hyper=*/ false);
+    
     CASE_FLT_FN (BUILT_IN_CCOSH):
-      /* These functions are "even", i.e. f(x) == f(-x).  */
-      if (validate_arg (arg0, COMPLEX_TYPE))
-	{
-	  tree narg = fold_strip_sign_ops (arg0);
-	  if (narg)
-	    return build_call_expr (fndecl, 1, narg);
-	}
+      return fold_builtin_ccos(loc, arg0, type, fndecl, /*hyper=*/ true);
+    
+#ifdef HAVE_mpc
+    CASE_FLT_FN (BUILT_IN_CSIN):
+      if (validate_arg (arg0, COMPLEX_TYPE)
+	  && TREE_CODE (TREE_TYPE (TREE_TYPE (arg0))) == REAL_TYPE) 
+	return do_mpc_arg1 (arg0, type, mpc_sin);
     break;
-
+    
+    CASE_FLT_FN (BUILT_IN_CSINH):
+      if (validate_arg (arg0, COMPLEX_TYPE)
+	  && TREE_CODE (TREE_TYPE (TREE_TYPE (arg0))) == REAL_TYPE) 
+	return do_mpc_arg1 (arg0, type, mpc_sinh);
+    break;
+    
+    CASE_FLT_FN (BUILT_IN_CTAN):
+      if (validate_arg (arg0, COMPLEX_TYPE)
+	  && TREE_CODE (TREE_TYPE (TREE_TYPE (arg0))) == REAL_TYPE) 
+	return do_mpc_arg1 (arg0, type, mpc_tan);
+    break;
+    
+    CASE_FLT_FN (BUILT_IN_CTANH):
+      if (validate_arg (arg0, COMPLEX_TYPE)
+	  && TREE_CODE (TREE_TYPE (TREE_TYPE (arg0))) == REAL_TYPE) 
+	return do_mpc_arg1 (arg0, type, mpc_tanh);
+    break;
+    
+    CASE_FLT_FN (BUILT_IN_CLOG):
+      if (validate_arg (arg0, COMPLEX_TYPE)
+	  && TREE_CODE (TREE_TYPE (TREE_TYPE (arg0))) == REAL_TYPE) 
+	return do_mpc_arg1 (arg0, type, mpc_log);
+    break;
+    
+    CASE_FLT_FN (BUILT_IN_CSQRT):
+      if (validate_arg (arg0, COMPLEX_TYPE)
+	  && TREE_CODE (TREE_TYPE (TREE_TYPE (arg0))) == REAL_TYPE) 
+	return do_mpc_arg1 (arg0, type, mpc_sqrt);
+    break;
+    
+#ifdef HAVE_mpc_arc
+    CASE_FLT_FN (BUILT_IN_CASIN):
+      if (validate_arg (arg0, COMPLEX_TYPE)
+	  && TREE_CODE (TREE_TYPE (TREE_TYPE (arg0))) == REAL_TYPE) 
+	return do_mpc_arg1 (arg0, type, mpc_asin);
+    break;
+    
+    CASE_FLT_FN (BUILT_IN_CACOS):
+      if (validate_arg (arg0, COMPLEX_TYPE)
+	  && TREE_CODE (TREE_TYPE (TREE_TYPE (arg0))) == REAL_TYPE) 
+	return do_mpc_arg1 (arg0, type, mpc_acos);
+    break;
+    
+    CASE_FLT_FN (BUILT_IN_CATAN):
+      if (validate_arg (arg0, COMPLEX_TYPE)
+	  && TREE_CODE (TREE_TYPE (TREE_TYPE (arg0))) == REAL_TYPE) 
+	return do_mpc_arg1 (arg0, type, mpc_atan);
+    break;
+    
+    CASE_FLT_FN (BUILT_IN_CASINH):
+      if (validate_arg (arg0, COMPLEX_TYPE)
+	  && TREE_CODE (TREE_TYPE (TREE_TYPE (arg0))) == REAL_TYPE) 
+	return do_mpc_arg1 (arg0, type, mpc_asinh);
+    break;
+    
+    CASE_FLT_FN (BUILT_IN_CACOSH):
+      if (validate_arg (arg0, COMPLEX_TYPE)
+	  && TREE_CODE (TREE_TYPE (TREE_TYPE (arg0))) == REAL_TYPE) 
+	return do_mpc_arg1 (arg0, type, mpc_acosh);
+    break;
+    
+    CASE_FLT_FN (BUILT_IN_CATANH):
+      if (validate_arg (arg0, COMPLEX_TYPE)
+	  && TREE_CODE (TREE_TYPE (TREE_TYPE (arg0))) == REAL_TYPE) 
+	return do_mpc_arg1 (arg0, type, mpc_atanh);
+    break;
+#endif /* HAVE_mpc_arc */
+#endif /* HAVE_mpc */
+    
     CASE_FLT_FN (BUILT_IN_CABS):
-      return fold_builtin_cabs (arg0, type, fndecl);
+      return fold_builtin_cabs (loc, arg0, type, fndecl);
 
     CASE_FLT_FN (BUILT_IN_CARG):
-      return fold_builtin_carg (arg0, type);
+      return fold_builtin_carg (loc, arg0, type);
 
     CASE_FLT_FN (BUILT_IN_SQRT):
-      return fold_builtin_sqrt (arg0, type);
+      return fold_builtin_sqrt (loc, arg0, type);
 
     CASE_FLT_FN (BUILT_IN_CBRT):
-      return fold_builtin_cbrt (arg0, type);
+      return fold_builtin_cbrt (loc, arg0, type);
 
     CASE_FLT_FN (BUILT_IN_ASIN):
       if (validate_arg (arg0, REAL_TYPE))
@@ -10209,14 +10156,13 @@ fold_builtin_1 (tree fndecl, tree arg0, bool ignore)
     break;
 
     CASE_FLT_FN (BUILT_IN_COS):
-      return fold_builtin_cos (arg0, type, fndecl);
-    break;
+      return fold_builtin_cos (loc, arg0, type, fndecl);
 
     CASE_FLT_FN (BUILT_IN_TAN):
       return fold_builtin_tan (arg0, type);
 
     CASE_FLT_FN (BUILT_IN_CEXP):
-      return fold_builtin_cexp (arg0, type);
+      return fold_builtin_cexp (loc, arg0, type);
 
     CASE_FLT_FN (BUILT_IN_CEXPI):
       if (validate_arg (arg0, REAL_TYPE))
@@ -10229,7 +10175,7 @@ fold_builtin_1 (tree fndecl, tree arg0, bool ignore)
     break;
 
     CASE_FLT_FN (BUILT_IN_COSH):
-      return fold_builtin_cosh (arg0, type, fndecl);
+      return fold_builtin_cosh (loc, arg0, type, fndecl);
 
     CASE_FLT_FN (BUILT_IN_TANH):
       if (validate_arg (arg0, REAL_TYPE))
@@ -10252,14 +10198,14 @@ fold_builtin_1 (tree fndecl, tree arg0, bool ignore)
     break;
  
     CASE_FLT_FN (BUILT_IN_EXP):
-      return fold_builtin_exponent (fndecl, arg0, mpfr_exp);
+      return fold_builtin_exponent (loc, fndecl, arg0, mpfr_exp);
 
     CASE_FLT_FN (BUILT_IN_EXP2):
-      return fold_builtin_exponent (fndecl, arg0, mpfr_exp2);
+      return fold_builtin_exponent (loc, fndecl, arg0, mpfr_exp2);
 
     CASE_FLT_FN (BUILT_IN_EXP10):
     CASE_FLT_FN (BUILT_IN_POW10):
-      return fold_builtin_exponent (fndecl, arg0, mpfr_exp10);
+      return fold_builtin_exponent (loc, fndecl, arg0, mpfr_exp10);
 
     CASE_FLT_FN (BUILT_IN_EXPM1):
       if (validate_arg (arg0, REAL_TYPE))
@@ -10267,13 +10213,13 @@ fold_builtin_1 (tree fndecl, tree arg0, bool ignore)
     break;
  
     CASE_FLT_FN (BUILT_IN_LOG):
-      return fold_builtin_logarithm (fndecl, arg0, mpfr_log);
+    return fold_builtin_logarithm (loc, fndecl, arg0, mpfr_log);
 
     CASE_FLT_FN (BUILT_IN_LOG2):
-      return fold_builtin_logarithm (fndecl, arg0, mpfr_log2);
+      return fold_builtin_logarithm (loc, fndecl, arg0, mpfr_log2);
 
     CASE_FLT_FN (BUILT_IN_LOG10):
-      return fold_builtin_logarithm (fndecl, arg0, mpfr_log10);
+      return fold_builtin_logarithm (loc, fndecl, arg0, mpfr_log10);
 
     CASE_FLT_FN (BUILT_IN_LOG1P):
       if (validate_arg (arg0, REAL_TYPE))
@@ -10315,20 +10261,20 @@ fold_builtin_1 (tree fndecl, tree arg0, bool ignore)
       return fold_builtin_nan (arg0, type, false);
 
     CASE_FLT_FN (BUILT_IN_FLOOR):
-      return fold_builtin_floor (fndecl, arg0);
+      return fold_builtin_floor (loc, fndecl, arg0);
 
     CASE_FLT_FN (BUILT_IN_CEIL):
-      return fold_builtin_ceil (fndecl, arg0);
+      return fold_builtin_ceil (loc, fndecl, arg0);
 
     CASE_FLT_FN (BUILT_IN_TRUNC):
-      return fold_builtin_trunc (fndecl, arg0);
+      return fold_builtin_trunc (loc, fndecl, arg0);
 
     CASE_FLT_FN (BUILT_IN_ROUND):
-      return fold_builtin_round (fndecl, arg0);
+      return fold_builtin_round (loc, fndecl, arg0);
 
     CASE_FLT_FN (BUILT_IN_NEARBYINT):
     CASE_FLT_FN (BUILT_IN_RINT):
-      return fold_trunc_transparent_mathfn (fndecl, arg0);
+      return fold_trunc_transparent_mathfn (loc, fndecl, arg0);
 
     CASE_FLT_FN (BUILT_IN_LCEIL):
     CASE_FLT_FN (BUILT_IN_LLCEIL):
@@ -10336,11 +10282,11 @@ fold_builtin_1 (tree fndecl, tree arg0, bool ignore)
     CASE_FLT_FN (BUILT_IN_LLFLOOR):
     CASE_FLT_FN (BUILT_IN_LROUND):
     CASE_FLT_FN (BUILT_IN_LLROUND):
-      return fold_builtin_int_roundingfn (fndecl, arg0);
+      return fold_builtin_int_roundingfn (loc, fndecl, arg0);
 
     CASE_FLT_FN (BUILT_IN_LRINT):
     CASE_FLT_FN (BUILT_IN_LLRINT):
-      return fold_fixed_mathfn (fndecl, arg0);
+      return fold_fixed_mathfn (loc, fndecl, arg0);
 
     case BUILT_IN_BSWAP32:
     case BUILT_IN_BSWAP64:
@@ -10354,50 +10300,63 @@ fold_builtin_1 (tree fndecl, tree arg0, bool ignore)
       return fold_builtin_bitop (fndecl, arg0);
 
     CASE_FLT_FN (BUILT_IN_SIGNBIT):
-      return fold_builtin_signbit (arg0, type);
+      return fold_builtin_signbit (loc, arg0, type);
 
     CASE_FLT_FN (BUILT_IN_SIGNIFICAND):
-      return fold_builtin_significand (arg0, type);
+      return fold_builtin_significand (loc, arg0, type);
 
     CASE_FLT_FN (BUILT_IN_ILOGB):
     CASE_FLT_FN (BUILT_IN_LOGB):
-      return fold_builtin_logb (arg0, type);
+      return fold_builtin_logb (loc, arg0, type);
 
     case BUILT_IN_ISASCII:
-      return fold_builtin_isascii (arg0);
+      return fold_builtin_isascii (loc, arg0);
 
     case BUILT_IN_TOASCII:
-      return fold_builtin_toascii (arg0);
+      return fold_builtin_toascii (loc, arg0);
 
     case BUILT_IN_ISDIGIT:
-      return fold_builtin_isdigit (arg0);
+      return fold_builtin_isdigit (loc, arg0);
 
     CASE_FLT_FN (BUILT_IN_FINITE):
     case BUILT_IN_FINITED32:
     case BUILT_IN_FINITED64:
     case BUILT_IN_FINITED128:
     case BUILT_IN_ISFINITE:
-      return fold_builtin_classify (fndecl, arg0, BUILT_IN_ISFINITE);
+      {
+	tree ret = fold_builtin_classify (loc, fndecl, arg0, BUILT_IN_ISFINITE);
+	if (ret)
+	  return ret;
+	return fold_builtin_interclass_mathfn (loc, fndecl, arg0);
+      }
 
     CASE_FLT_FN (BUILT_IN_ISINF):
     case BUILT_IN_ISINFD32:
     case BUILT_IN_ISINFD64:
     case BUILT_IN_ISINFD128:
-      return fold_builtin_classify (fndecl, arg0, BUILT_IN_ISINF);
+      {
+	tree ret = fold_builtin_classify (loc, fndecl, arg0, BUILT_IN_ISINF);
+	if (ret)
+	  return ret;
+	return fold_builtin_interclass_mathfn (loc, fndecl, arg0);
+      }
+
+    case BUILT_IN_ISNORMAL:
+      return fold_builtin_interclass_mathfn (loc, fndecl, arg0);
 
     case BUILT_IN_ISINF_SIGN:
-      return fold_builtin_classify (fndecl, arg0, BUILT_IN_ISINF_SIGN);
+      return fold_builtin_classify (loc, fndecl, arg0, BUILT_IN_ISINF_SIGN);
 
     CASE_FLT_FN (BUILT_IN_ISNAN):
     case BUILT_IN_ISNAND32:
     case BUILT_IN_ISNAND64:
     case BUILT_IN_ISNAND128:
-      return fold_builtin_classify (fndecl, arg0, BUILT_IN_ISNAN);
+      return fold_builtin_classify (loc, fndecl, arg0, BUILT_IN_ISNAN);
 
     case BUILT_IN_PRINTF:
     case BUILT_IN_PRINTF_UNLOCKED:
     case BUILT_IN_VPRINTF:
-      return fold_builtin_printf (fndecl, arg0, NULL_TREE, ignore, fcode);
+      return fold_builtin_printf (loc, fndecl, arg0, NULL_TREE, ignore, fcode);
 
     default:
       break;
@@ -10412,7 +10371,7 @@ fold_builtin_1 (tree fndecl, tree arg0, bool ignore)
    function returns NULL_TREE if no simplification was possible.  */
 
 static tree
-fold_builtin_2 (tree fndecl, tree arg0, tree arg1, bool ignore)
+fold_builtin_2 (location_t loc, tree fndecl, tree arg0, tree arg1, bool ignore)
 {
   tree type = TREE_TYPE (TREE_TYPE (fndecl));
   enum built_in_function fcode = DECL_FUNCTION_CODE (fndecl);
@@ -10459,51 +10418,62 @@ fold_builtin_2 (tree fndecl, tree arg0, tree arg1, bool ignore)
     break;
 
     CASE_FLT_FN (BUILT_IN_HYPOT):
-      return fold_builtin_hypot (fndecl, arg0, arg1, type);
+      return fold_builtin_hypot (loc, fndecl, arg0, arg1, type);
+
+#ifdef HAVE_mpc_pow
+    CASE_FLT_FN (BUILT_IN_CPOW):
+      if (validate_arg (arg0, COMPLEX_TYPE)
+	  && TREE_CODE (TREE_TYPE (TREE_TYPE (arg0))) == REAL_TYPE
+	  && validate_arg (arg1, COMPLEX_TYPE)
+	  && TREE_CODE (TREE_TYPE (TREE_TYPE (arg1))) == REAL_TYPE) 
+	return do_mpc_arg2 (arg0, arg1, type, /*do_nonfinite=*/ 0, mpc_pow);
+    break;
+#endif
 
     CASE_FLT_FN (BUILT_IN_LDEXP):
-      return fold_builtin_load_exponent (arg0, arg1, type, /*ldexp=*/true);
+      return fold_builtin_load_exponent (loc, arg0, arg1, type, /*ldexp=*/true);
     CASE_FLT_FN (BUILT_IN_SCALBN):
     CASE_FLT_FN (BUILT_IN_SCALBLN):
-      return fold_builtin_load_exponent (arg0, arg1, type, /*ldexp=*/false);
+      return fold_builtin_load_exponent (loc, arg0, arg1,
+					 type, /*ldexp=*/false);
 
     CASE_FLT_FN (BUILT_IN_FREXP):
-      return fold_builtin_frexp (arg0, arg1, type);
+      return fold_builtin_frexp (loc, arg0, arg1, type);
 
     CASE_FLT_FN (BUILT_IN_MODF):
-      return fold_builtin_modf (arg0, arg1, type);
+      return fold_builtin_modf (loc, arg0, arg1, type);
 
     case BUILT_IN_BZERO:
-      return fold_builtin_bzero (arg0, arg1, ignore);
+      return fold_builtin_bzero (loc, arg0, arg1, ignore);
 
     case BUILT_IN_FPUTS:
-      return fold_builtin_fputs (arg0, arg1, ignore, false, NULL_TREE);
+      return fold_builtin_fputs (loc, arg0, arg1, ignore, false, NULL_TREE);
 
     case BUILT_IN_FPUTS_UNLOCKED:
-      return fold_builtin_fputs (arg0, arg1, ignore, true, NULL_TREE);
+      return fold_builtin_fputs (loc, arg0, arg1, ignore, true, NULL_TREE);
 
     case BUILT_IN_STRSTR:
-      return fold_builtin_strstr (arg0, arg1, type);
+      return fold_builtin_strstr (loc, arg0, arg1, type);
 
     case BUILT_IN_STRCAT:
-      return fold_builtin_strcat (arg0, arg1);
+      return fold_builtin_strcat (loc, arg0, arg1);
 
     case BUILT_IN_STRSPN:
-      return fold_builtin_strspn (arg0, arg1);
+      return fold_builtin_strspn (loc, arg0, arg1);
 
     case BUILT_IN_STRCSPN:
-      return fold_builtin_strcspn (arg0, arg1);
+      return fold_builtin_strcspn (loc, arg0, arg1);
 
     case BUILT_IN_STRCHR:
     case BUILT_IN_INDEX:
-      return fold_builtin_strchr (arg0, arg1, type);
+      return fold_builtin_strchr (loc, arg0, arg1, type);
 
     case BUILT_IN_STRRCHR:
     case BUILT_IN_RINDEX:
-      return fold_builtin_strrchr (arg0, arg1, type);
+      return fold_builtin_strrchr (loc, arg0, arg1, type);
 
     case BUILT_IN_STRCPY:
-      return fold_builtin_strcpy (fndecl, arg0, arg1, NULL_TREE);
+      return fold_builtin_strcpy (loc, fndecl, arg0, arg1, NULL_TREE);
 
     case BUILT_IN_STPCPY:
       if (ignore)
@@ -10512,46 +10482,54 @@ fold_builtin_2 (tree fndecl, tree arg0, tree arg1, bool ignore)
 	  if (!fn)
 	    break;
 
-	  return build_call_expr (fn, 2, arg0, arg1);
+	  return build_call_expr_loc (loc, fn, 2, arg0, arg1);
 	}
+      else
+	return fold_builtin_stpcpy (loc, fndecl, arg0, arg1);
       break;
 
     case BUILT_IN_STRCMP:
-      return fold_builtin_strcmp (arg0, arg1);
+      return fold_builtin_strcmp (loc, arg0, arg1);
 
     case BUILT_IN_STRPBRK:
-      return fold_builtin_strpbrk (arg0, arg1, type);
+      return fold_builtin_strpbrk (loc, arg0, arg1, type);
 
     case BUILT_IN_EXPECT:
-      return fold_builtin_expect (arg0, arg1);
+      return fold_builtin_expect (loc, arg0, arg1);
 
     CASE_FLT_FN (BUILT_IN_POW):
-      return fold_builtin_pow (fndecl, arg0, arg1, type);
+      return fold_builtin_pow (loc, fndecl, arg0, arg1, type);
 
     CASE_FLT_FN (BUILT_IN_POWI):
-      return fold_builtin_powi (fndecl, arg0, arg1, type);
+      return fold_builtin_powi (loc, fndecl, arg0, arg1, type);
 
     CASE_FLT_FN (BUILT_IN_COPYSIGN):
-      return fold_builtin_copysign (fndecl, arg0, arg1, type);
+      return fold_builtin_copysign (loc, fndecl, arg0, arg1, type);
 
     CASE_FLT_FN (BUILT_IN_FMIN):
-      return fold_builtin_fmin_fmax (arg0, arg1, type, /*max=*/false);
+      return fold_builtin_fmin_fmax (loc, arg0, arg1, type, /*max=*/false);
 
     CASE_FLT_FN (BUILT_IN_FMAX):
-      return fold_builtin_fmin_fmax (arg0, arg1, type, /*max=*/true);
+      return fold_builtin_fmin_fmax (loc, arg0, arg1, type, /*max=*/true);
 
     case BUILT_IN_ISGREATER:
-      return fold_builtin_unordered_cmp (fndecl, arg0, arg1, UNLE_EXPR, LE_EXPR);
+      return fold_builtin_unordered_cmp (loc, fndecl,
+					 arg0, arg1, UNLE_EXPR, LE_EXPR);
     case BUILT_IN_ISGREATEREQUAL:
-      return fold_builtin_unordered_cmp (fndecl, arg0, arg1, UNLT_EXPR, LT_EXPR);
+      return fold_builtin_unordered_cmp (loc, fndecl,
+					 arg0, arg1, UNLT_EXPR, LT_EXPR);
     case BUILT_IN_ISLESS:
-      return fold_builtin_unordered_cmp (fndecl, arg0, arg1, UNGE_EXPR, GE_EXPR);
+      return fold_builtin_unordered_cmp (loc, fndecl,
+					 arg0, arg1, UNGE_EXPR, GE_EXPR);
     case BUILT_IN_ISLESSEQUAL:
-      return fold_builtin_unordered_cmp (fndecl, arg0, arg1, UNGT_EXPR, GT_EXPR);
+      return fold_builtin_unordered_cmp (loc, fndecl,
+					 arg0, arg1, UNGT_EXPR, GT_EXPR);
     case BUILT_IN_ISLESSGREATER:
-      return fold_builtin_unordered_cmp (fndecl, arg0, arg1, UNEQ_EXPR, EQ_EXPR);
+      return fold_builtin_unordered_cmp (loc, fndecl,
+					 arg0, arg1, UNEQ_EXPR, EQ_EXPR);
     case BUILT_IN_ISUNORDERED:
-      return fold_builtin_unordered_cmp (fndecl, arg0, arg1, UNORDERED_EXPR,
+      return fold_builtin_unordered_cmp (loc, fndecl,
+					 arg0, arg1, UNORDERED_EXPR,
 					 NOP_EXPR);
 
       /* We do the folding for va_start in the expander.  */
@@ -10559,7 +10537,7 @@ fold_builtin_2 (tree fndecl, tree arg0, tree arg1, bool ignore)
       break;
 
     case BUILT_IN_SPRINTF:
-      return fold_builtin_sprintf (arg0, arg1, NULL_TREE, ignore);
+      return fold_builtin_sprintf (loc, arg0, arg1, NULL_TREE, ignore);
 
     case BUILT_IN_OBJECT_SIZE:
       return fold_builtin_object_size (arg0, arg1);
@@ -10567,7 +10545,7 @@ fold_builtin_2 (tree fndecl, tree arg0, tree arg1, bool ignore)
     case BUILT_IN_PRINTF:
     case BUILT_IN_PRINTF_UNLOCKED:
     case BUILT_IN_VPRINTF:
-      return fold_builtin_printf (fndecl, arg0, arg1, ignore, fcode);
+      return fold_builtin_printf (loc, fndecl, arg0, arg1, ignore, fcode);
 
     case BUILT_IN_PRINTF_CHK:
     case BUILT_IN_VPRINTF_CHK:
@@ -10575,13 +10553,14 @@ fold_builtin_2 (tree fndecl, tree arg0, tree arg1, bool ignore)
 	  || TREE_SIDE_EFFECTS (arg0))
 	return NULL_TREE;
       else
-	return fold_builtin_printf (fndecl, arg1, NULL_TREE, ignore, fcode);
+	return fold_builtin_printf (loc, fndecl,
+				    arg1, NULL_TREE, ignore, fcode);
     break;
 
     case BUILT_IN_FPRINTF:
     case BUILT_IN_FPRINTF_UNLOCKED:
     case BUILT_IN_VFPRINTF:
-      return fold_builtin_fprintf (fndecl, arg0, arg1, NULL_TREE,
+      return fold_builtin_fprintf (loc, fndecl, arg0, arg1, NULL_TREE,
 				   ignore, fcode);
 
     default:
@@ -10595,7 +10574,8 @@ fold_builtin_2 (tree fndecl, tree arg0, tree arg1, bool ignore)
    This function returns NULL_TREE if no simplification was possible.  */
 
 static tree
-fold_builtin_3 (tree fndecl, tree arg0, tree arg1, tree arg2, bool ignore)
+fold_builtin_3 (location_t loc, tree fndecl,
+		tree arg0, tree arg1, tree arg2, bool ignore)
 {
   tree type = TREE_TYPE (TREE_TYPE (fndecl));
   enum built_in_function fcode = DECL_FUNCTION_CODE (fndecl);
@@ -10603,7 +10583,7 @@ fold_builtin_3 (tree fndecl, tree arg0, tree arg1, tree arg2, bool ignore)
     {
 
     CASE_FLT_FN (BUILT_IN_SINCOS):
-      return fold_builtin_sincos (arg0, arg1, arg2);
+      return fold_builtin_sincos (loc, arg0, arg1, arg2);
 
     CASE_FLT_FN (BUILT_IN_FMA):
       if (validate_arg (arg0, REAL_TYPE)
@@ -10620,46 +10600,50 @@ fold_builtin_3 (tree fndecl, tree arg0, tree arg1, tree arg2, bool ignore)
     break;
 
     case BUILT_IN_MEMSET:
-      return fold_builtin_memset (arg0, arg1, arg2, type, ignore);
+      return fold_builtin_memset (loc, arg0, arg1, arg2, type, ignore);
 
     case BUILT_IN_BCOPY:
-	return fold_builtin_memory_op (arg1, arg0, arg2, void_type_node, true, /*endp=*/3);
+      return fold_builtin_memory_op (loc, arg1, arg0, arg2,
+				     void_type_node, true, /*endp=*/3);
 
     case BUILT_IN_MEMCPY:
-      return fold_builtin_memory_op (arg0, arg1, arg2, type, ignore, /*endp=*/0);
+      return fold_builtin_memory_op (loc, arg0, arg1, arg2,
+				     type, ignore, /*endp=*/0);
 
     case BUILT_IN_MEMPCPY:
-      return fold_builtin_memory_op (arg0, arg1, arg2, type, ignore, /*endp=*/1);
+      return fold_builtin_memory_op (loc, arg0, arg1, arg2,
+				     type, ignore, /*endp=*/1);
 
     case BUILT_IN_MEMMOVE:
-      return fold_builtin_memory_op (arg0, arg1, arg2, type, ignore, /*endp=*/3);
+      return fold_builtin_memory_op (loc, arg0, arg1, arg2,
+				     type, ignore, /*endp=*/3);
 
     case BUILT_IN_STRNCAT:
-      return fold_builtin_strncat (arg0, arg1, arg2);
+      return fold_builtin_strncat (loc, arg0, arg1, arg2);
 
     case BUILT_IN_STRNCPY:
-      return fold_builtin_strncpy (fndecl, arg0, arg1, arg2, NULL_TREE);
+      return fold_builtin_strncpy (loc, fndecl, arg0, arg1, arg2, NULL_TREE);
 
     case BUILT_IN_STRNCMP:
-      return fold_builtin_strncmp (arg0, arg1, arg2);
+      return fold_builtin_strncmp (loc, arg0, arg1, arg2);
 
     case BUILT_IN_MEMCHR:
-      return fold_builtin_memchr (arg0, arg1, arg2, type);
+      return fold_builtin_memchr (loc, arg0, arg1, arg2, type);
 
     case BUILT_IN_BCMP:
     case BUILT_IN_MEMCMP:
-      return fold_builtin_memcmp (arg0, arg1, arg2);;
+      return fold_builtin_memcmp (loc, arg0, arg1, arg2);;
 
     case BUILT_IN_SPRINTF:
-      return fold_builtin_sprintf (arg0, arg1, arg2, ignore);
+      return fold_builtin_sprintf (loc, arg0, arg1, arg2, ignore);
 
     case BUILT_IN_STRCPY_CHK:
     case BUILT_IN_STPCPY_CHK:
-      return fold_builtin_stxcpy_chk (fndecl, arg0, arg1, arg2, NULL_TREE,
+      return fold_builtin_stxcpy_chk (loc, fndecl, arg0, arg1, arg2, NULL_TREE,
 				      ignore, fcode);
 
     case BUILT_IN_STRCAT_CHK:
-      return fold_builtin_strcat_chk (fndecl, arg0, arg1, arg2);
+      return fold_builtin_strcat_chk (loc, fndecl, arg0, arg1, arg2);
 
     case BUILT_IN_PRINTF_CHK:
     case BUILT_IN_VPRINTF_CHK:
@@ -10667,13 +10651,14 @@ fold_builtin_3 (tree fndecl, tree arg0, tree arg1, tree arg2, bool ignore)
 	  || TREE_SIDE_EFFECTS (arg0))
 	return NULL_TREE;
       else
-	return fold_builtin_printf (fndecl, arg1, arg2, ignore, fcode);
+	return fold_builtin_printf (loc, fndecl, arg1, arg2, ignore, fcode);
     break;
 
     case BUILT_IN_FPRINTF:
     case BUILT_IN_FPRINTF_UNLOCKED:
     case BUILT_IN_VFPRINTF:
-      return fold_builtin_fprintf (fndecl, arg0, arg1, arg2, ignore, fcode);
+      return fold_builtin_fprintf (loc, fndecl, arg0, arg1, arg2,
+				   ignore, fcode);
 
     case BUILT_IN_FPRINTF_CHK:
     case BUILT_IN_VFPRINTF_CHK:
@@ -10681,7 +10666,7 @@ fold_builtin_3 (tree fndecl, tree arg0, tree arg1, tree arg2, bool ignore)
 	  || TREE_SIDE_EFFECTS (arg1))
 	return NULL_TREE;
       else
-	return fold_builtin_fprintf (fndecl, arg0, arg2, NULL_TREE,
+	return fold_builtin_fprintf (loc, fndecl, arg0, arg2, NULL_TREE,
 				     ignore, fcode);
 
     default:
@@ -10696,8 +10681,8 @@ fold_builtin_3 (tree fndecl, tree arg0, tree arg1, tree arg2, bool ignore)
    possible.  */
  
 static tree
-fold_builtin_4 (tree fndecl, tree arg0, tree arg1, tree arg2, tree arg3,
-		bool ignore)
+fold_builtin_4 (location_t loc, tree fndecl,
+		tree arg0, tree arg1, tree arg2, tree arg3, bool ignore)
 {
   enum built_in_function fcode = DECL_FUNCTION_CODE (fndecl);
 
@@ -10707,15 +10692,15 @@ fold_builtin_4 (tree fndecl, tree arg0, tree arg1, tree arg2, tree arg3,
     case BUILT_IN_MEMPCPY_CHK:
     case BUILT_IN_MEMMOVE_CHK:
     case BUILT_IN_MEMSET_CHK:
-      return fold_builtin_memory_chk (fndecl, arg0, arg1, arg2, arg3,
+      return fold_builtin_memory_chk (loc, fndecl, arg0, arg1, arg2, arg3,
 				      NULL_TREE, ignore,
 				      DECL_FUNCTION_CODE (fndecl));
 
     case BUILT_IN_STRNCPY_CHK:
-      return fold_builtin_strncpy_chk (arg0, arg1, arg2, arg3, NULL_TREE);
+      return fold_builtin_strncpy_chk (loc, arg0, arg1, arg2, arg3, NULL_TREE);
 
     case BUILT_IN_STRNCAT_CHK:
-      return fold_builtin_strncat_chk (fndecl, arg0, arg1, arg2, arg3);
+      return fold_builtin_strncat_chk (loc, fndecl, arg0, arg1, arg2, arg3);
 
     case BUILT_IN_FPRINTF_CHK:
     case BUILT_IN_VFPRINTF_CHK:
@@ -10723,7 +10708,7 @@ fold_builtin_4 (tree fndecl, tree arg0, tree arg1, tree arg2, tree arg3,
 	  || TREE_SIDE_EFFECTS (arg1))
 	return NULL_TREE;
       else
-	return fold_builtin_fprintf (fndecl, arg0, arg2, arg3,
+	return fold_builtin_fprintf (loc, fndecl, arg0, arg2, arg3,
 				     ignore, fcode);
     break;
 
@@ -10744,26 +10729,26 @@ fold_builtin_4 (tree fndecl, tree arg0, tree arg1, tree arg2, tree arg3,
 #define MAX_ARGS_TO_FOLD_BUILTIN 4
  
 static tree
-fold_builtin_n (tree fndecl, tree *args, int nargs, bool ignore)
+fold_builtin_n (location_t loc, tree fndecl, tree *args, int nargs, bool ignore)
 {
   tree ret = NULL_TREE;
 
   switch (nargs)
     {
     case 0:
-      ret = fold_builtin_0 (fndecl, ignore);
+      ret = fold_builtin_0 (loc, fndecl, ignore);
       break;
     case 1:
-      ret = fold_builtin_1 (fndecl, args[0], ignore);
+      ret = fold_builtin_1 (loc, fndecl, args[0], ignore);
       break;
     case 2:
-      ret = fold_builtin_2 (fndecl, args[0], args[1], ignore);
+      ret = fold_builtin_2 (loc, fndecl, args[0], args[1], ignore);
       break;
     case 3:
-      ret = fold_builtin_3 (fndecl, args[0], args[1], args[2], ignore);
+      ret = fold_builtin_3 (loc, fndecl, args[0], args[1], args[2], ignore);
       break;
     case 4:
-      ret = fold_builtin_4 (fndecl, args[0], args[1], args[2], args[3],
+      ret = fold_builtin_4 (loc, fndecl, args[0], args[1], args[2], args[3],
  			    ignore);
       break;
     default:
@@ -10772,6 +10757,7 @@ fold_builtin_n (tree fndecl, tree *args, int nargs, bool ignore)
   if (ret)
     {
       ret = build1 (NOP_EXPR, TREE_TYPE (ret), ret);
+      SET_EXPR_LOCATION (ret, loc);
       TREE_NO_WARNING (ret) = 1;
       return ret;
     }
@@ -10786,7 +10772,8 @@ fold_builtin_n (tree fndecl, tree *args, int nargs, bool ignore)
    result of the function call is ignored.  */
 
 static tree
-fold_builtin_varargs (tree fndecl, tree exp, bool ignore ATTRIBUTE_UNUSED)
+fold_builtin_varargs (location_t loc, tree fndecl, tree exp,
+		      bool ignore ATTRIBUTE_UNUSED)
 {
   enum built_in_function fcode = DECL_FUNCTION_CODE (fndecl);
   tree ret = NULL_TREE;
@@ -10795,16 +10782,16 @@ fold_builtin_varargs (tree fndecl, tree exp, bool ignore ATTRIBUTE_UNUSED)
     {
     case BUILT_IN_SPRINTF_CHK:
     case BUILT_IN_VSPRINTF_CHK:
-      ret = fold_builtin_sprintf_chk (exp, fcode);
+      ret = fold_builtin_sprintf_chk (loc, exp, fcode);
       break;
 
     case BUILT_IN_SNPRINTF_CHK:
     case BUILT_IN_VSNPRINTF_CHK:
-      ret = fold_builtin_snprintf_chk (exp, NULL_TREE, fcode);
+      ret = fold_builtin_snprintf_chk (loc, exp, NULL_TREE, fcode);
       break;
 
     case BUILT_IN_FPCLASSIFY:
-      ret = fold_builtin_fpclassify (exp);
+      ret = fold_builtin_fpclassify (loc, exp);
       break;
 
     default:
@@ -10813,6 +10800,7 @@ fold_builtin_varargs (tree fndecl, tree exp, bool ignore ATTRIBUTE_UNUSED)
   if (ret)
     {
       ret = build1 (NOP_EXPR, TREE_TYPE (ret), ret);
+      SET_EXPR_LOCATION (ret, loc);
       TREE_NO_WARNING (ret) = 1;
       return ret;
     }
@@ -10840,7 +10828,7 @@ avoid_folding_inline_builtin (tree fndecl)
    call node earlier than the warning is generated.  */
 
 tree
-fold_call_expr (tree exp, bool ignore)
+fold_call_expr (location_t loc, tree exp, bool ignore)
 {
   tree ret = NULL_TREE;
   tree fndecl = get_callee_fndecl (exp);
@@ -10878,28 +10866,12 @@ fold_call_expr (tree exp, bool ignore)
 	  if (nargs <= MAX_ARGS_TO_FOLD_BUILTIN)
 	    {
 	      tree *args = CALL_EXPR_ARGP (exp);
-	      ret = fold_builtin_n (fndecl, args, nargs, ignore);
+	      ret = fold_builtin_n (loc, fndecl, args, nargs, ignore);
 	    }
 	  if (!ret)
-	    ret = fold_builtin_varargs (fndecl, exp, ignore);
+	    ret = fold_builtin_varargs (loc, fndecl, exp, ignore);
 	  if (ret)
-	    {
-	      /* Propagate location information from original call to
-		 expansion of builtin.  Otherwise things like
-		 maybe_emit_chk_warning, that operate on the expansion
-		 of a builtin, will use the wrong location information.  */
-	      if (CAN_HAVE_LOCATION_P (exp) && EXPR_HAS_LOCATION (exp))
-		{
-		  tree realret = ret;
-		  if (TREE_CODE (ret) == NOP_EXPR)
-		    realret = TREE_OPERAND (ret, 0);
-		  if (CAN_HAVE_LOCATION_P (realret)
-		      && !EXPR_HAS_LOCATION (realret))
-		    SET_EXPR_LOCATION (realret, EXPR_LOCATION (exp));
-		  return realret;
-		}
-	      return ret;
-	    }
+	    return ret;
 	}
     }
   return NULL_TREE;
@@ -10909,17 +10881,17 @@ fold_call_expr (tree exp, bool ignore)
     function to be called and ARGLIST is a TREE_LIST of arguments.  */
  
 tree
-build_function_call_expr (tree fndecl, tree arglist)
+build_function_call_expr (location_t loc, tree fndecl, tree arglist)
 {
   tree fntype = TREE_TYPE (fndecl);
   tree fn = build1 (ADDR_EXPR, build_pointer_type (fntype), fndecl);
   int n = list_length (arglist);
   tree *argarray = (tree *) alloca (n * sizeof (tree));
   int i;
-  
+
   for (i = 0; i < n; i++, arglist = TREE_CHAIN (arglist))
     argarray[i] = TREE_VALUE (arglist);
-  return fold_builtin_call_array (TREE_TYPE (fntype), fn, n, argarray);
+  return fold_builtin_call_array (loc, TREE_TYPE (fntype), fn, n, argarray);
 }
 
 /* Conveniently construct a function call expression.  FNDECL names the
@@ -10927,7 +10899,7 @@ build_function_call_expr (tree fndecl, tree arglist)
    parameters are the argument expressions.  */
  
 tree
-build_call_expr (tree fndecl, int n, ...)
+build_call_expr_loc (location_t loc, tree fndecl, int n, ...)
 {
   va_list ap;
   tree fntype = TREE_TYPE (fndecl);
@@ -10939,14 +10911,14 @@ build_call_expr (tree fndecl, int n, ...)
   for (i = 0; i < n; i++)
     argarray[i] = va_arg (ap, tree);
   va_end (ap);
-  return fold_builtin_call_array (TREE_TYPE (fntype), fn, n, argarray);
+  return fold_builtin_call_array (loc, TREE_TYPE (fntype), fn, n, argarray);
 }
 
 /* Construct a CALL_EXPR with type TYPE with FN as the function expression.
    N arguments are passed in the array ARGARRAY.  */
 
 tree
-fold_builtin_call_array (tree type,
+fold_builtin_call_array (location_t loc, tree type,
 			 tree fn,
 			 int n,
 			 tree *argarray)
@@ -10970,10 +10942,10 @@ fold_builtin_call_array (tree type,
 		&& TREE_CODE (fndecl2) == FUNCTION_DECL
 		&& DECL_BUILT_IN_CLASS (fndecl2) == BUILT_IN_NORMAL
 		&& DECL_FUNCTION_CODE (fndecl2) == BUILT_IN_VA_ARG_PACK)
-	      return build_call_array (type, fn, n, argarray);
+	      return build_call_array_loc (loc, type, fn, n, argarray);
 	  }
 	if (avoid_folding_inline_builtin (fndecl))
-	  return build_call_array (type, fn, n, argarray);
+	  return build_call_array_loc (loc, type, fn, n, argarray);
         if (DECL_BUILT_IN_CLASS (fndecl) == BUILT_IN_MD)
           {
             tree arglist = NULL_TREE;
@@ -10982,25 +10954,25 @@ fold_builtin_call_array (tree type,
             ret = targetm.fold_builtin (fndecl, arglist, false);
             if (ret)
               return ret;
-	    return build_call_array (type, fn, n, argarray);
+	    return build_call_array_loc (loc, type, fn, n, argarray);
           }
         else if (n <= MAX_ARGS_TO_FOLD_BUILTIN)
           {
             /* First try the transformations that don't require consing up
                an exp.  */
-            ret = fold_builtin_n (fndecl, argarray, n, false);
+            ret = fold_builtin_n (loc, fndecl, argarray, n, false);
             if (ret)
               return ret;
           }
 
         /* If we got this far, we need to build an exp.  */
-        exp = build_call_array (type, fn, n, argarray);
-        ret = fold_builtin_varargs (fndecl, exp, false);
+        exp = build_call_array_loc (loc, type, fn, n, argarray);
+        ret = fold_builtin_varargs (loc, fndecl, exp, false);
         return ret ? ret : exp;
       }
   }
 
-  return build_call_array (type, fn, n, argarray);
+  return build_call_array_loc (loc, type, fn, n, argarray);
 }
 
 /* Construct a new CALL_EXPR using the tail of the argument list of EXP
@@ -11009,7 +10981,7 @@ fold_builtin_call_array (tree type,
    to do varargs-to-varargs transformations.  */
 
 static tree
-rewrite_call_expr (tree exp, int skip, tree fndecl, int n, ...)
+rewrite_call_expr (location_t loc, tree exp, int skip, tree fndecl, int n, ...)
 {
   int oldnargs = call_expr_nargs (exp);
   int nargs = oldnargs - skip + n;
@@ -11033,7 +11005,7 @@ rewrite_call_expr (tree exp, int skip, tree fndecl, int n, ...)
   else 
     buffer = CALL_EXPR_ARGP (exp) + skip;
 
-  return fold (build_call_array (TREE_TYPE (exp), fn, nargs, buffer));
+  return fold (build_call_array_loc (loc, TREE_TYPE (exp), fn, nargs, buffer));
 }
 
 /* Validate a single argument ARG against a tree code CODE representing
@@ -11074,7 +11046,7 @@ validate_gimple_arglist (const_gimple call, ...)
 
   do
     {
-      code = va_arg (ap, enum tree_code);
+      code = (enum tree_code) va_arg (ap, int);
       switch (code)
 	{
 	case 0:
@@ -11125,7 +11097,7 @@ validate_arglist (const_tree callexpr, ...)
 
   do
     {
-      code = va_arg (ap, enum tree_code);
+      code = (enum tree_code) va_arg (ap, int);
       switch (code)
 	{
 	case 0:
@@ -11214,7 +11186,7 @@ readonly_data_expr (tree exp)
    form of the builtin function call.  */
 
 static tree
-fold_builtin_strstr (tree s1, tree s2, tree type)
+fold_builtin_strstr (location_t loc, tree s1, tree s2, tree type)
 {
   if (!validate_arg (s1, POINTER_TYPE)
       || !validate_arg (s2, POINTER_TYPE))
@@ -11238,15 +11210,15 @@ fold_builtin_strstr (tree s1, tree s2, tree type)
 	    return build_int_cst (TREE_TYPE (s1), 0);
 
 	  /* Return an offset into the constant string argument.  */
-	  tem = fold_build2 (POINTER_PLUS_EXPR, TREE_TYPE (s1),
+	  tem = fold_build2_loc (loc, POINTER_PLUS_EXPR, TREE_TYPE (s1),
 			     s1, size_int (r - p1));
-	  return fold_convert (type, tem);
+	  return fold_convert_loc (loc, type, tem);
 	}
 
       /* The argument is const char *, and the result is char *, so we need
 	 a type conversion here to avoid a warning.  */
       if (p2[0] == '\0')
-	return fold_convert (type, s1);
+	return fold_convert_loc (loc, type, s1);
 
       if (p2[1] != '\0')
 	return NULL_TREE;
@@ -11257,7 +11229,7 @@ fold_builtin_strstr (tree s1, tree s2, tree type)
 
       /* New argument list transforming strstr(s1, s2) to
 	 strchr(s1, s2[0]).  */
-      return build_call_expr (fn, 2, s1, build_int_cst (NULL_TREE, p2[0]));
+      return build_call_expr_loc (loc, fn, 2, s1, build_int_cst (NULL_TREE, p2[0]));
     }
 }
 
@@ -11280,7 +11252,7 @@ fold_builtin_strstr (tree s1, tree s2, tree type)
    form of the builtin function call.  */
 
 static tree
-fold_builtin_strchr (tree s1, tree s2, tree type)
+fold_builtin_strchr (location_t loc, tree s1, tree s2, tree type)
 {
   if (!validate_arg (s1, POINTER_TYPE)
       || !validate_arg (s2, INTEGER_TYPE))
@@ -11308,9 +11280,9 @@ fold_builtin_strchr (tree s1, tree s2, tree type)
 	    return build_int_cst (TREE_TYPE (s1), 0);
 
 	  /* Return an offset into the constant string argument.  */
-	  tem = fold_build2 (POINTER_PLUS_EXPR, TREE_TYPE (s1),
+	  tem = fold_build2_loc (loc, POINTER_PLUS_EXPR, TREE_TYPE (s1),
 			     s1, size_int (r - p1));
-	  return fold_convert (type, tem);
+	  return fold_convert_loc (loc, type, tem);
 	}
       return NULL_TREE;
     }
@@ -11335,7 +11307,7 @@ fold_builtin_strchr (tree s1, tree s2, tree type)
    form of the builtin function call.  */
 
 static tree
-fold_builtin_strrchr (tree s1, tree s2, tree type)
+fold_builtin_strrchr (location_t loc, tree s1, tree s2, tree type)
 {
   if (!validate_arg (s1, POINTER_TYPE)
       || !validate_arg (s2, INTEGER_TYPE))
@@ -11364,9 +11336,9 @@ fold_builtin_strrchr (tree s1, tree s2, tree type)
 	    return build_int_cst (TREE_TYPE (s1), 0);
 
 	  /* Return an offset into the constant string argument.  */
-	  tem = fold_build2 (POINTER_PLUS_EXPR, TREE_TYPE (s1),
+	  tem = fold_build2_loc (loc, POINTER_PLUS_EXPR, TREE_TYPE (s1),
 			     s1, size_int (r - p1));
-	  return fold_convert (type, tem);
+	  return fold_convert_loc (loc, type, tem);
 	}
 
       if (! integer_zerop (s2))
@@ -11377,7 +11349,7 @@ fold_builtin_strrchr (tree s1, tree s2, tree type)
 	return NULL_TREE;
 
       /* Transform strrchr(s1, '\0') to strchr(s1, '\0').  */
-      return build_call_expr (fn, 2, s1, s2);
+      return build_call_expr_loc (loc, fn, 2, s1, s2);
     }
 }
 
@@ -11400,7 +11372,7 @@ fold_builtin_strrchr (tree s1, tree s2, tree type)
    form of the builtin function call.  */
 
 static tree
-fold_builtin_strpbrk (tree s1, tree s2, tree type)
+fold_builtin_strpbrk (location_t loc, tree s1, tree s2, tree type)
 {
   if (!validate_arg (s1, POINTER_TYPE)
       || !validate_arg (s2, POINTER_TYPE))
@@ -11424,15 +11396,15 @@ fold_builtin_strpbrk (tree s1, tree s2, tree type)
 	    return build_int_cst (TREE_TYPE (s1), 0);
 
 	  /* Return an offset into the constant string argument.  */
-	  tem = fold_build2 (POINTER_PLUS_EXPR, TREE_TYPE (s1),
+	  tem = fold_build2_loc (loc, POINTER_PLUS_EXPR, TREE_TYPE (s1),
 			     s1, size_int (r - p1));
-	  return fold_convert (type, tem);
+	  return fold_convert_loc (loc, type, tem);
 	}
 
       if (p2[0] == '\0')
 	/* strpbrk(x, "") == NULL.
 	   Evaluate and ignore s1 in case it had side-effects.  */
-	return omit_one_operand (TREE_TYPE (s1), integer_zero_node, s1);
+	return omit_one_operand_loc (loc, TREE_TYPE (s1), integer_zero_node, s1);
 
       if (p2[1] != '\0')
 	return NULL_TREE;  /* Really call strpbrk.  */
@@ -11443,7 +11415,7 @@ fold_builtin_strpbrk (tree s1, tree s2, tree type)
 
       /* New argument list transforming strpbrk(s1, s2) to
 	 strchr(s1, s2[0]).  */
-      return build_call_expr (fn, 2, s1, build_int_cst (NULL_TREE, p2[0]));
+      return build_call_expr_loc (loc, fn, 2, s1, build_int_cst (NULL_TREE, p2[0]));
     }
 }
 
@@ -11466,7 +11438,7 @@ fold_builtin_strpbrk (tree s1, tree s2, tree type)
    form of the builtin function call.  */
 
 static tree
-fold_builtin_strcat (tree dst, tree src)
+fold_builtin_strcat (location_t loc ATTRIBUTE_UNUSED, tree dst, tree src)
 {
   if (!validate_arg (dst, POINTER_TYPE)
       || !validate_arg (src, POINTER_TYPE))
@@ -11479,6 +11451,42 @@ fold_builtin_strcat (tree dst, tree src)
       if (p && *p == '\0')
 	return dst;
 
+      if (optimize_insn_for_speed_p ())
+	{
+	  /* See if we can store by pieces into (dst + strlen(dst)).  */
+	  tree newdst, call;
+	  tree strlen_fn = implicit_built_in_decls[BUILT_IN_STRLEN];
+	  tree strcpy_fn = implicit_built_in_decls[BUILT_IN_STRCPY];
+
+	  if (!strlen_fn || !strcpy_fn)
+	    return NULL_TREE;
+
+	  /* If we don't have a movstr we don't want to emit an strcpy
+	     call.  We have to do that if the length of the source string
+	     isn't computable (in that case we can use memcpy probably
+	     later expanding to a sequence of mov instructions).  If we 
+	     have movstr instructions we can emit strcpy calls.  */
+	  if (!HAVE_movstr)
+	    {
+	      tree len = c_strlen (src, 1);
+	      if (! len || TREE_SIDE_EFFECTS (len))
+		return NULL_TREE;
+	    }
+
+	  /* Stabilize the argument list.  */
+	  dst = builtin_save_expr (dst);
+
+	  /* Create strlen (dst).  */
+	  newdst = build_call_expr_loc (loc, strlen_fn, 1, dst);
+	  /* Create (dst p+ strlen (dst)).  */
+
+	  newdst = fold_build2_loc (loc, POINTER_PLUS_EXPR,
+				TREE_TYPE (dst), dst, newdst);
+	  newdst = builtin_save_expr (newdst);
+
+	  call = build_call_expr_loc (loc, strcpy_fn, 2, newdst, src);
+	  return build2 (COMPOUND_EXPR, TREE_TYPE (dst), call, dst);
+	}
       return NULL_TREE;
     }
 }
@@ -11502,7 +11510,7 @@ fold_builtin_strcat (tree dst, tree src)
    form of the builtin function call.  */
 
 static tree
-fold_builtin_strncat (tree dst, tree src, tree len)
+fold_builtin_strncat (location_t loc, tree dst, tree src, tree len)
 {
   if (!validate_arg (dst, POINTER_TYPE)
       || !validate_arg (src, POINTER_TYPE)
@@ -11515,7 +11523,7 @@ fold_builtin_strncat (tree dst, tree src, tree len)
       /* If the requested length is zero, or the src parameter string
 	 length is zero, return the dst parameter.  */
       if (integer_zerop (len) || (p && *p == '\0'))
-	return omit_two_operands (TREE_TYPE (dst), dst, src, len);
+	return omit_two_operands_loc (loc, TREE_TYPE (dst), dst, src, len);
 
       /* If the requested len is greater than or equal to the string
 	 length, call strcat.  */
@@ -11529,7 +11537,7 @@ fold_builtin_strncat (tree dst, tree src, tree len)
 	  if (!fn)
 	    return NULL_TREE;
 
-	  return build_call_expr (fn, 2, dst, src);
+	  return build_call_expr_loc (loc, fn, 2, dst, src);
 	}
       return NULL_TREE;
     }
@@ -11554,7 +11562,7 @@ fold_builtin_strncat (tree dst, tree src, tree len)
    form of the builtin function call.  */
 
 static tree
-fold_builtin_strspn (tree s1, tree s2)
+fold_builtin_strspn (location_t loc, tree s1, tree s2)
 {
   if (!validate_arg (s1, POINTER_TYPE)
       || !validate_arg (s2, POINTER_TYPE))
@@ -11574,7 +11582,7 @@ fold_builtin_strspn (tree s1, tree s2)
       if ((p1 && *p1 == '\0') || (p2 && *p2 == '\0'))
 	/* Evaluate and ignore both arguments in case either one has
 	   side-effects.  */
-	return omit_two_operands (size_type_node, size_zero_node,
+	return omit_two_operands_loc (loc, size_type_node, size_zero_node,
 				  s1, s2);
       return NULL_TREE;
     }
@@ -11599,7 +11607,7 @@ fold_builtin_strspn (tree s1, tree s2)
    form of the builtin function call.  */
 
 static tree
-fold_builtin_strcspn (tree s1, tree s2)
+fold_builtin_strcspn (location_t loc, tree s1, tree s2)
 {
   if (!validate_arg (s1, POINTER_TYPE)
       || !validate_arg (s2, POINTER_TYPE))
@@ -11620,7 +11628,7 @@ fold_builtin_strcspn (tree s1, tree s2)
 	{
 	  /* Evaluate and ignore argument s2 in case it has
 	     side-effects.  */
-	  return omit_one_operand (size_type_node,
+	  return omit_one_operand_loc (loc, size_type_node,
 				   size_zero_node, s2);
 	}
 
@@ -11634,7 +11642,7 @@ fold_builtin_strcspn (tree s1, tree s2)
 	  if (!fn)
 	    return NULL_TREE;
 
-	  return build_call_expr (fn, 1, s1);
+	  return build_call_expr_loc (loc, fn, 1, s1);
 	}
       return NULL_TREE;
     }
@@ -11648,7 +11656,8 @@ fold_builtin_strcspn (tree s1, tree s2)
    was possible.  */
 
 tree
-fold_builtin_fputs (tree arg0, tree arg1, bool ignore, bool unlocked, tree len)
+fold_builtin_fputs (location_t loc, tree arg0, tree arg1,
+		    bool ignore, bool unlocked, tree len)
 {
   /* If we're using an unlocked function, assume the other unlocked
      functions exist explicitly.  */
@@ -11678,7 +11687,8 @@ fold_builtin_fputs (tree arg0, tree arg1, bool ignore, bool unlocked, tree len)
   switch (compare_tree_int (len, 1))
     {
     case -1: /* length is 0, delete the call entirely .  */
-      return omit_one_operand (integer_type_node, integer_zero_node, arg1);;
+      return omit_one_operand_loc (loc, integer_type_node,
+			       integer_zero_node, arg1);;
 
     case 0: /* length is 1, call fputc.  */
       {
@@ -11687,7 +11697,7 @@ fold_builtin_fputs (tree arg0, tree arg1, bool ignore, bool unlocked, tree len)
 	if (p != NULL)
 	  {
  	    if (fn_fputc)
-	      return build_call_expr (fn_fputc, 2,
+	      return build_call_expr_loc (loc, fn_fputc, 2,
 				      build_int_cst (NULL_TREE, p[0]), arg1);
 	    else
 	      return NULL_TREE;
@@ -11702,7 +11712,8 @@ fold_builtin_fputs (tree arg0, tree arg1, bool ignore, bool unlocked, tree len)
 	/* New argument list transforming fputs(string, stream) to
 	   fwrite(string, 1, len, stream).  */
 	if (fn_fwrite)
-	  return build_call_expr (fn_fwrite, 4, arg0, size_one_node, len, arg1);
+	  return build_call_expr_loc (loc, fn_fwrite, 4, arg0,
+				  size_one_node, len, arg1);
 	else
 	  return NULL_TREE;
       }
@@ -11758,6 +11769,9 @@ fold_builtin_next_arg (tree exp, bool va_start_p)
 	}
       arg = CALL_EXPR_ARG (exp, 0);
     }
+
+  if (TREE_CODE (arg) == SSA_NAME)
+    arg = SSA_NAME_VAR (arg);
 
   /* We destructively modify the call to be __builtin_va_start (ap, 0)
      or __builtin_next_arg (0) the first time we see it, after checking 
@@ -11816,7 +11830,8 @@ fold_builtin_next_arg (tree exp, bool va_start_p)
    the caller does not use the returned value of the function.  */
 
 static tree
-fold_builtin_sprintf (tree dest, tree fmt, tree orig, int ignored)
+fold_builtin_sprintf (location_t loc, tree dest, tree fmt,
+		      tree orig, int ignored)
 {
   tree call, retval;
   const char *fmt_str = NULL;
@@ -11855,7 +11870,7 @@ fold_builtin_sprintf (tree dest, tree fmt, tree orig, int ignored)
 
       /* Convert sprintf (str, fmt) into strcpy (str, fmt) when
 	 'format' is known to contain no % formats.  */
-      call = build_call_expr (fn, 2, dest, fmt);
+      call = build_call_expr_loc (loc, fn, 2, dest, fmt);
       if (!ignored)
 	retval = build_int_cst (NULL_TREE, strlen (fmt_str));
     }
@@ -11880,13 +11895,13 @@ fold_builtin_sprintf (tree dest, tree fmt, tree orig, int ignored)
 	  if (!retval || TREE_CODE (retval) != INTEGER_CST)
 	    return NULL_TREE;
 	}
-      call = build_call_expr (fn, 2, dest, orig);
+      call = build_call_expr_loc (loc, fn, 2, dest, orig);
     }
 
   if (call && retval)
     {
-      retval = fold_convert
-	(TREE_TYPE (TREE_TYPE (implicit_built_in_decls[BUILT_IN_SPRINTF])),
+      retval = fold_convert_loc
+	(loc, TREE_TYPE (TREE_TYPE (implicit_built_in_decls[BUILT_IN_SPRINTF])),
 	 retval);
       return build2 (COMPOUND_EXPR, TREE_TYPE (retval), call, retval);
     }
@@ -11962,8 +11977,9 @@ expand_builtin_memory_chk (tree exp, rtx target, enum machine_mode mode,
 
       if (! integer_all_onesp (size) && tree_int_cst_lt (size, len))
 	{
-	  warning (0, "%Kcall to %D will always overflow destination buffer",
-		   exp, get_callee_fndecl (exp));
+	  warning_at (tree_nonartificial_location (exp),
+		      0, "%Kcall to %D will always overflow destination buffer",
+		      exp, get_callee_fndecl (exp));
 	  return NULL_RTX;
 	}
 
@@ -11991,16 +12007,9 @@ expand_builtin_memory_chk (tree exp, rtx target, enum machine_mode mode,
       if (! fn)
 	return NULL_RTX;
 
-      fn = build_call_expr (fn, 3, dest, src, len);
-      STRIP_TYPE_NOPS (fn);
-      while (TREE_CODE (fn) == COMPOUND_EXPR)
-	{
-	  expand_expr (TREE_OPERAND (fn, 0), const0_rtx, VOIDmode,
-		       EXPAND_NORMAL);
-	  fn = TREE_OPERAND (fn, 1);
-	}
-      if (TREE_CODE (fn) == CALL_EXPR)
-	CALL_EXPR_TAILCALL (fn) = CALL_EXPR_TAILCALL (exp);
+      fn = build_call_nofold (fn, 3, dest, src, len);
+      gcc_assert (TREE_CODE (fn) == CALL_EXPR);
+      CALL_EXPR_TAILCALL (fn) = CALL_EXPR_TAILCALL (exp);
       return expand_expr (fn, target, mode, EXPAND_NORMAL);
     }
   else if (fcode == BUILT_IN_MEMSET_CHK)
@@ -12046,16 +12055,9 @@ expand_builtin_memory_chk (tree exp, rtx target, enum machine_mode mode,
 	      tree fn = built_in_decls[BUILT_IN_MEMCPY_CHK];
 	      if (!fn)
 		return NULL_RTX;
-	      fn = build_call_expr (fn, 4, dest, src, len, size);
-	      STRIP_TYPE_NOPS (fn);
-	      while (TREE_CODE (fn) == COMPOUND_EXPR)
-		{
-		  expand_expr (TREE_OPERAND (fn, 0), const0_rtx, VOIDmode,
-			       EXPAND_NORMAL);
-		  fn = TREE_OPERAND (fn, 1);
-		}
-	      if (TREE_CODE (fn) == CALL_EXPR)
-		CALL_EXPR_TAILCALL (fn) = CALL_EXPR_TAILCALL (exp);
+	      fn = build_call_nofold (fn, 4, dest, src, len, size);
+	      gcc_assert (TREE_CODE (fn) == CALL_EXPR);
+	      CALL_EXPR_TAILCALL (fn) = CALL_EXPR_TAILCALL (exp);
 	      return expand_expr (fn, target, mode, EXPAND_NORMAL);
 	    }
 	}
@@ -12070,6 +12072,7 @@ maybe_emit_chk_warning (tree exp, enum built_in_function fcode)
 {
   int is_strlen = 0;
   tree len, size;
+  location_t loc = tree_nonartificial_location (exp);
 
   switch (fcode)
     {
@@ -12116,8 +12119,8 @@ maybe_emit_chk_warning (tree exp, enum built_in_function fcode)
       src = c_strlen (src, 1);
       if (! src || ! host_integerp (src, 1))
 	{
-	  warning (0, "%Kcall to %D might overflow destination buffer",
-		   exp, get_callee_fndecl (exp));
+	  warning_at (loc, 0, "%Kcall to %D might overflow destination buffer",
+		      exp, get_callee_fndecl (exp));
 	  return;
 	}
       else if (tree_int_cst_lt (src, size))
@@ -12126,8 +12129,8 @@ maybe_emit_chk_warning (tree exp, enum built_in_function fcode)
   else if (! host_integerp (len, 1) || ! tree_int_cst_lt (size, len))
     return;
 
-  warning (0, "%Kcall to %D will always overflow destination buffer",
-	   exp, get_callee_fndecl (exp));
+  warning_at (loc, 0, "%Kcall to %D will always overflow destination buffer",
+	      exp, get_callee_fndecl (exp));
 }
 
 /* Emit warning if a buffer overflow is detected at compile time
@@ -12184,10 +12187,9 @@ maybe_emit_sprintf_chk_warning (tree exp, enum built_in_function fcode)
     return;
 
   if (! tree_int_cst_lt (len, size))
-    {
-      warning (0, "%Kcall to %D will always overflow destination buffer",
-	       exp, get_callee_fndecl (exp));
-    }
+    warning_at (tree_nonartificial_location (exp),
+		0, "%Kcall to %D will always overflow destination buffer",
+		exp, get_callee_fndecl (exp));
 }
 
 /* Emit warning if a free is called with address of a variable.  */
@@ -12206,9 +12208,11 @@ maybe_emit_free_warning (tree exp)
     return;
 
   if (SSA_VAR_P (arg))
-    warning (0, "%Kattempt to free a non-heap object %qD", exp, arg);
+    warning_at (tree_nonartificial_location (exp),
+		0, "%Kattempt to free a non-heap object %qD", exp, arg);
   else
-    warning (0, "%Kattempt to free a non-heap object", exp);
+    warning_at (tree_nonartificial_location (exp),
+		0, "%Kattempt to free a non-heap object", exp);
 }
 
 /* Fold a call to __builtin_object_size with arguments PTR and OST,
@@ -12274,7 +12278,7 @@ fold_builtin_object_size (tree ptr, tree ost)
    passed as third argument.  */
 
 tree
-fold_builtin_memory_chk (tree fndecl,
+fold_builtin_memory_chk (location_t loc, tree fndecl,
 			 tree dest, tree src, tree len, tree size,
 			 tree maxlen, bool ignore,
 			 enum built_in_function fcode)
@@ -12294,11 +12298,13 @@ fold_builtin_memory_chk (tree fndecl,
   if (fcode != BUILT_IN_MEMSET_CHK && operand_equal_p (src, dest, 0))
     {
       if (fcode != BUILT_IN_MEMPCPY_CHK)
-	return omit_one_operand (TREE_TYPE (TREE_TYPE (fndecl)), dest, len);
+	return omit_one_operand_loc (loc, TREE_TYPE (TREE_TYPE (fndecl)),
+				 dest, len);
       else
 	{
-	  tree temp = fold_build2 (POINTER_PLUS_EXPR, TREE_TYPE (dest), dest, len);
-	  return fold_convert (TREE_TYPE (TREE_TYPE (fndecl)), temp);
+	  tree temp = fold_build2_loc (loc, POINTER_PLUS_EXPR, TREE_TYPE (dest),
+				   dest, len);
+	  return fold_convert_loc (loc, TREE_TYPE (TREE_TYPE (fndecl)), temp);
 	}
     }
 
@@ -12322,7 +12328,7 @@ fold_builtin_memory_chk (tree fndecl,
 		  if (!fn)
 		    return NULL_TREE;
 
-		  return build_call_expr (fn, 4, dest, src, len, size);
+		  return build_call_expr_loc (loc, fn, 4, dest, src, len, size);
 		}
 	      return NULL_TREE;
 	    }
@@ -12358,7 +12364,7 @@ fold_builtin_memory_chk (tree fndecl,
   if (!fn)
     return NULL_TREE;
 
-  return build_call_expr (fn, 3, dest, src, len);
+  return build_call_expr_loc (loc, fn, 3, dest, src, len);
 }
 
 /* Fold a call to the __st[rp]cpy_chk builtin.
@@ -12368,7 +12374,8 @@ fold_builtin_memory_chk (tree fndecl,
    strings passed as second argument.  */
 
 tree
-fold_builtin_stxcpy_chk (tree fndecl, tree dest, tree src, tree size,
+fold_builtin_stxcpy_chk (location_t loc, tree fndecl, tree dest,
+			 tree src, tree size,
 			 tree maxlen, bool ignore,
 			 enum built_in_function fcode)
 {
@@ -12381,7 +12388,7 @@ fold_builtin_stxcpy_chk (tree fndecl, tree dest, tree src, tree size,
 
   /* If SRC and DEST are the same (and not volatile), return DEST.  */
   if (fcode == BUILT_IN_STRCPY_CHK && operand_equal_p (src, dest, 0))
-    return fold_convert (TREE_TYPE (TREE_TYPE (fndecl)), dest);
+    return fold_convert_loc (loc, TREE_TYPE (TREE_TYPE (fndecl)), dest);
 
   if (! host_integerp (size, 1))
     return NULL_TREE;
@@ -12407,7 +12414,7 @@ fold_builtin_stxcpy_chk (tree fndecl, tree dest, tree src, tree size,
 		  if (!fn)
 		    return NULL_TREE;
 
-		  return build_call_expr (fn, 3, dest, src, size);
+		  return build_call_expr_loc (loc, fn, 3, dest, src, size);
 		}
 
 	      if (! len || TREE_SIDE_EFFECTS (len))
@@ -12419,10 +12426,10 @@ fold_builtin_stxcpy_chk (tree fndecl, tree dest, tree src, tree size,
 	      if (!fn)
 		return NULL_TREE;
 
-	      len = size_binop (PLUS_EXPR, len, ssize_int (1));
-	      return fold_convert (TREE_TYPE (TREE_TYPE (fndecl)),
-				   build_call_expr (fn, 4,
-						    dest, src, len, size));
+	      len = size_binop_loc (loc, PLUS_EXPR, len, ssize_int (1));
+	      return fold_convert_loc (loc, TREE_TYPE (TREE_TYPE (fndecl)),
+				       build_call_expr_loc (loc, fn, 4,
+							dest, src, len, size));
 	    }
 	}
       else
@@ -12438,7 +12445,7 @@ fold_builtin_stxcpy_chk (tree fndecl, tree dest, tree src, tree size,
   if (!fn)
     return NULL_TREE;
 
-  return build_call_expr (fn, 2, dest, src);
+  return build_call_expr_loc (loc, fn, 2, dest, src);
 }
 
 /* Fold a call to the __strncpy_chk builtin.  DEST, SRC, LEN, and SIZE
@@ -12446,8 +12453,8 @@ fold_builtin_stxcpy_chk (tree fndecl, tree dest, tree src, tree size,
    length passed as third argument.  */
 
 tree
-fold_builtin_strncpy_chk (tree dest, tree src, tree len, tree size,
-			  tree maxlen)
+fold_builtin_strncpy_chk (location_t loc, tree dest, tree src,
+			  tree len, tree size, tree maxlen)
 {
   tree fn;
 
@@ -12482,14 +12489,15 @@ fold_builtin_strncpy_chk (tree dest, tree src, tree len, tree size,
   if (!fn)
     return NULL_TREE;
 
-  return build_call_expr (fn, 3, dest, src, len);
+  return build_call_expr_loc (loc, fn, 3, dest, src, len);
 }
 
 /* Fold a call to the __strcat_chk builtin FNDECL.  DEST, SRC, and SIZE
    are the arguments to the call.  */
 
 static tree
-fold_builtin_strcat_chk (tree fndecl, tree dest, tree src, tree size)
+fold_builtin_strcat_chk (location_t loc, tree fndecl, tree dest,
+			 tree src, tree size)
 {
   tree fn;
   const char *p;
@@ -12502,7 +12510,7 @@ fold_builtin_strcat_chk (tree fndecl, tree dest, tree src, tree size)
   p = c_getstr (src);
   /* If the SRC parameter is "", return DEST.  */
   if (p && *p == '\0')
-    return omit_one_operand (TREE_TYPE (TREE_TYPE (fndecl)), dest, src);
+    return omit_one_operand_loc (loc, TREE_TYPE (TREE_TYPE (fndecl)), dest, src);
 
   if (! host_integerp (size, 1) || ! integer_all_onesp (size))
     return NULL_TREE;
@@ -12512,14 +12520,14 @@ fold_builtin_strcat_chk (tree fndecl, tree dest, tree src, tree size)
   if (!fn)
     return NULL_TREE;
 
-  return build_call_expr (fn, 2, dest, src);
+  return build_call_expr_loc (loc, fn, 2, dest, src);
 }
 
 /* Fold a call to the __strncat_chk builtin with arguments DEST, SRC,
    LEN, and SIZE.  */
 
 static tree
-fold_builtin_strncat_chk (tree fndecl,
+fold_builtin_strncat_chk (location_t loc, tree fndecl,
 			  tree dest, tree src, tree len, tree size)
 {
   tree fn;
@@ -12534,9 +12542,9 @@ fold_builtin_strncat_chk (tree fndecl,
   p = c_getstr (src);
   /* If the SRC parameter is "" or if LEN is 0, return DEST.  */
   if (p && *p == '\0')
-    return omit_one_operand (TREE_TYPE (TREE_TYPE (fndecl)), dest, len);
+    return omit_one_operand_loc (loc, TREE_TYPE (TREE_TYPE (fndecl)), dest, len);
   else if (integer_zerop (len))
-    return omit_one_operand (TREE_TYPE (TREE_TYPE (fndecl)), dest, src);
+    return omit_one_operand_loc (loc, TREE_TYPE (TREE_TYPE (fndecl)), dest, src);
 
   if (! host_integerp (size, 1))
     return NULL_TREE;
@@ -12554,7 +12562,7 @@ fold_builtin_strncat_chk (tree fndecl,
 	  if (!fn)
 	    return NULL_TREE;
 
-	  return build_call_expr (fn, 3, dest, src, size);
+	  return build_call_expr_loc (loc, fn, 3, dest, src, size);
 	}
       return NULL_TREE;
     }
@@ -12564,7 +12572,7 @@ fold_builtin_strncat_chk (tree fndecl,
   if (!fn)
     return NULL_TREE;
 
-  return build_call_expr (fn, 3, dest, src, len);
+  return build_call_expr_loc (loc, fn, 3, dest, src, len);
 }
 
 /* Fold a call EXP to __{,v}sprintf_chk.  Return NULL_TREE if
@@ -12572,7 +12580,8 @@ fold_builtin_strncat_chk (tree fndecl,
    inline.  FCODE is either BUILT_IN_SPRINTF_CHK or BUILT_IN_VSPRINTF_CHK.  */
 
 static tree
-fold_builtin_sprintf_chk (tree exp, enum built_in_function fcode)
+fold_builtin_sprintf_chk (location_t loc, tree exp,
+			  enum built_in_function fcode)
 {
   tree dest, size, len, fn, fmt, flag;
   const char *fmt_str;
@@ -12655,7 +12664,7 @@ fold_builtin_sprintf_chk (tree exp, enum built_in_function fcode)
   if (!fn)
     return NULL_TREE;
 
-  return rewrite_call_expr (exp, 4, fn, 2, dest, fmt);
+  return rewrite_call_expr (loc, exp, 4, fn, 2, dest, fmt);
 }
 
 /* Fold a call EXP to {,v}snprintf.  Return NULL_TREE if
@@ -12665,7 +12674,7 @@ fold_builtin_sprintf_chk (tree exp, enum built_in_function fcode)
    passed as second argument.  */
 
 tree
-fold_builtin_snprintf_chk (tree exp, tree maxlen,
+fold_builtin_snprintf_chk (location_t loc, tree exp, tree maxlen,
 			   enum built_in_function fcode)
 {
   tree dest, size, len, fn, fmt, flag;
@@ -12732,7 +12741,7 @@ fold_builtin_snprintf_chk (tree exp, tree maxlen,
   if (!fn)
     return NULL_TREE;
 
-  return rewrite_call_expr (exp, 5, fn, 3, dest, len, fmt);
+  return rewrite_call_expr (loc, exp, 5, fn, 3, dest, len, fmt);
 }
 
 /* Fold a call to the {,v}printf{,_unlocked} and __{,v}printf_chk builtins.
@@ -12744,7 +12753,8 @@ fold_builtin_snprintf_chk (tree exp, tree maxlen,
    code of the function to be simplified.  */
 
 static tree
-fold_builtin_printf (tree fndecl, tree fmt, tree arg, bool ignore,
+fold_builtin_printf (location_t loc, tree fndecl, tree fmt,
+		     tree arg, bool ignore,
 		     enum built_in_function fcode)
 {
   tree fn_putchar, fn_puts, newarg, call = NULL_TREE;
@@ -12817,7 +12827,7 @@ fold_builtin_printf (tree fndecl, tree fmt, tree arg, bool ignore,
 	     function.  */
 	  newarg = build_int_cst (NULL_TREE, str[0]);
 	  if (fn_putchar)
-	    call = build_call_expr (fn_putchar, 1, newarg);
+	    call = build_call_expr_loc (loc, fn_putchar, 1, newarg);
 	}
       else
 	{
@@ -12833,7 +12843,7 @@ fold_builtin_printf (tree fndecl, tree fmt, tree arg, bool ignore,
 
 	      newarg = build_string_literal (len, newstr);
 	      if (fn_puts)
-		call = build_call_expr (fn_puts, 1, newarg);
+		call = build_call_expr_loc (loc, fn_puts, 1, newarg);
 	    }
 	  else
 	    /* We'd like to arrange to call fputs(string,stdout) here,
@@ -12852,7 +12862,7 @@ fold_builtin_printf (tree fndecl, tree fmt, tree arg, bool ignore,
       if (!arg || !validate_arg (arg, POINTER_TYPE))
 	return NULL_TREE;
       if (fn_puts)
-	call = build_call_expr (fn_puts, 1, arg);
+	call = build_call_expr_loc (loc, fn_puts, 1, arg);
     }
 
   /* If the format specifier was "%c", call __builtin_putchar(arg).  */
@@ -12861,13 +12871,13 @@ fold_builtin_printf (tree fndecl, tree fmt, tree arg, bool ignore,
       if (!arg || !validate_arg (arg, INTEGER_TYPE))
 	return NULL_TREE;
       if (fn_putchar)
-	call = build_call_expr (fn_putchar, 1, arg);
+	call = build_call_expr_loc (loc, fn_putchar, 1, arg);
     }
 
   if (!call)
     return NULL_TREE;
 
-  return fold_convert (TREE_TYPE (TREE_TYPE (fndecl)), call);
+  return fold_convert_loc (loc, TREE_TYPE (TREE_TYPE (fndecl)), call);
 }
 
 /* Fold a call to the {,v}fprintf{,_unlocked} and __{,v}printf_chk builtins.
@@ -12879,7 +12889,8 @@ fold_builtin_printf (tree fndecl, tree fmt, tree arg, bool ignore,
    code of the function to be simplified.  */
 
 static tree
-fold_builtin_fprintf (tree fndecl, tree fp, tree fmt, tree arg, bool ignore,
+fold_builtin_fprintf (location_t loc, tree fndecl, tree fp,
+		      tree fmt, tree arg, bool ignore,
 		      enum built_in_function fcode)
 {
   tree fn_fputc, fn_fputs, call = NULL_TREE;
@@ -12938,7 +12949,7 @@ fold_builtin_fprintf (tree fndecl, tree fp, tree fmt, tree arg, bool ignore,
 	 fprintf (fp, string) with fputs (string, fp).  The fputs
 	 builtin will take care of special cases like length == 1.  */
       if (fn_fputs)
-	call = build_call_expr (fn_fputs, 2, fmt, fp);
+	call = build_call_expr_loc (loc, fn_fputs, 2, fmt, fp);
     }
 
   /* The other optimizations can be done only on the non-va_list variants.  */
@@ -12951,7 +12962,7 @@ fold_builtin_fprintf (tree fndecl, tree fp, tree fmt, tree arg, bool ignore,
       if (!arg || !validate_arg (arg, POINTER_TYPE))
 	return NULL_TREE;
       if (fn_fputs)
-	call = build_call_expr (fn_fputs, 2, arg, fp);
+	call = build_call_expr_loc (loc, fn_fputs, 2, arg, fp);
     }
 
   /* If the format specifier was "%c", call __builtin_fputc (arg, fp).  */
@@ -12960,12 +12971,12 @@ fold_builtin_fprintf (tree fndecl, tree fp, tree fmt, tree arg, bool ignore,
       if (!arg || !validate_arg (arg, INTEGER_TYPE))
 	return NULL_TREE;
       if (fn_fputc)
-	call = build_call_expr (fn_fputc, 2, arg, fp);
+	call = build_call_expr_loc (loc, fn_fputc, 2, arg, fp);
     }
 
   if (!call)
     return NULL_TREE;
-  return fold_convert (TREE_TYPE (TREE_TYPE (fndecl)), call);
+  return fold_convert_loc (loc, TREE_TYPE (TREE_TYPE (fndecl)), call);
 }
 
 /* Initialize format string characters in the target charset.  */
@@ -13038,6 +13049,55 @@ do_mpfr_ckconv (mpfr_srcptr m, tree type, int inexact)
     }
   return NULL_TREE;
 }
+
+#ifdef HAVE_mpc
+/* Helper function for do_mpc_arg*().  Ensure M is a normal complex
+   number and no overflow/underflow occurred.  INEXACT is true if M
+   was not exactly calculated.  TYPE is the tree type for the result.
+   This function assumes that you cleared the MPFR flags and then
+   calculated M to see if anything subsequently set a flag prior to
+   entering this function.  Return NULL_TREE if any checks fail, if
+   FORCE_CONVERT is true, then bypass the checks.  */
+
+static tree
+do_mpc_ckconv (mpc_srcptr m, tree type, int inexact, int force_convert)
+{
+  /* Proceed iff we get a normal number, i.e. not NaN or Inf and no
+     overflow/underflow occurred.  If -frounding-math, proceed iff the
+     result of calling FUNC was exact.  */
+  if (force_convert
+      || (mpfr_number_p (mpc_realref (m)) && mpfr_number_p (mpc_imagref (m))
+	  && !mpfr_overflow_p () && !mpfr_underflow_p ()
+	  && (!flag_rounding_math || !inexact)))
+    {
+      REAL_VALUE_TYPE re, im;
+
+      real_from_mpfr (&re, mpc_realref (m), type, GMP_RNDN);
+      real_from_mpfr (&im, mpc_imagref (m), type, GMP_RNDN);
+      /* Proceed iff GCC's REAL_VALUE_TYPE can hold the MPFR values,
+	 check for overflow/underflow.  If the REAL_VALUE_TYPE is zero
+	 but the mpft_t is not, then we underflowed in the
+	 conversion.  */
+      if (force_convert
+	  || (real_isfinite (&re) && real_isfinite (&im)
+	      && (re.cl == rvc_zero) == (mpfr_zero_p (mpc_realref (m)) != 0)
+	      && (im.cl == rvc_zero) == (mpfr_zero_p (mpc_imagref (m)) != 0)))
+        {
+	  REAL_VALUE_TYPE re_mode, im_mode;
+
+	  real_convert (&re_mode, TYPE_MODE (TREE_TYPE (type)), &re);
+	  real_convert (&im_mode, TYPE_MODE (TREE_TYPE (type)), &im);
+	  /* Proceed iff the specified mode can hold the value.  */
+	  if (force_convert
+	      || (real_identical (&re_mode, &re)
+		  && real_identical (&im_mode, &im)))
+	    return build_complex (type, build_real (TREE_TYPE (type), re_mode),
+				  build_real (TREE_TYPE (type), im_mode));
+	}
+    }
+  return NULL_TREE;
+}
+#endif /* HAVE_mpc */
 
 /* If argument ARG is a REAL_CST, call the one-argument mpfr function
    FUNC on it and return the resulting value as a tree with type TYPE.
@@ -13435,6 +13495,114 @@ do_mpfr_lgamma_r (tree arg, tree arg_sg, tree type)
   return result;
 }
 
+#ifdef HAVE_mpc
+/* If argument ARG is a COMPLEX_CST, call the one-argument mpc
+   function FUNC on it and return the resulting value as a tree with
+   type TYPE.  The mpfr precision is set to the precision of TYPE.  We
+   assume that function FUNC returns zero if the result could be
+   calculated exactly within the requested precision.  */
+
+static tree
+do_mpc_arg1 (tree arg, tree type, int (*func)(mpc_ptr, mpc_srcptr, mpc_rnd_t))
+{
+  tree result = NULL_TREE;
+  
+  STRIP_NOPS (arg);
+
+  /* To proceed, MPFR must exactly represent the target floating point
+     format, which only happens when the target base equals two.  */
+  if (TREE_CODE (arg) == COMPLEX_CST && !TREE_OVERFLOW (arg)
+      && TREE_CODE (TREE_TYPE (TREE_TYPE (arg))) == REAL_TYPE
+      && REAL_MODE_FORMAT (TYPE_MODE (TREE_TYPE (TREE_TYPE (arg))))->b == 2)
+    {
+      const REAL_VALUE_TYPE *const re = TREE_REAL_CST_PTR (TREE_REALPART (arg));
+      const REAL_VALUE_TYPE *const im = TREE_REAL_CST_PTR (TREE_IMAGPART (arg));
+
+      if (real_isfinite (re) && real_isfinite (im))
+        {
+	  const struct real_format *const fmt =
+	    REAL_MODE_FORMAT (TYPE_MODE (TREE_TYPE (type)));
+	  const int prec = fmt->p;
+	  const mp_rnd_t rnd = fmt->round_towards_zero ? GMP_RNDZ : GMP_RNDN;
+	  const mpc_rnd_t crnd = fmt->round_towards_zero ? MPC_RNDZZ : MPC_RNDNN;
+	  int inexact;
+	  mpc_t m;
+	  
+	  mpc_init2 (m, prec);
+	  mpfr_from_real (mpc_realref(m), re, rnd);
+	  mpfr_from_real (mpc_imagref(m), im, rnd);
+	  mpfr_clear_flags ();
+	  inexact = func (m, m, crnd);
+	  result = do_mpc_ckconv (m, type, inexact, /*force_convert=*/ 0);
+	  mpc_clear (m);
+	}
+    }
+
+  return result;
+}
+
+/* If arguments ARG0 and ARG1 are a COMPLEX_CST, call the two-argument
+   mpc function FUNC on it and return the resulting value as a tree
+   with type TYPE.  The mpfr precision is set to the precision of
+   TYPE.  We assume that function FUNC returns zero if the result
+   could be calculated exactly within the requested precision.  If
+   DO_NONFINITE is true, then fold expressions containing Inf or NaN
+   in the arguments and/or results.  */
+
+#ifdef HAVE_mpc
+tree
+do_mpc_arg2 (tree arg0, tree arg1, tree type, int do_nonfinite,
+	     int (*func)(mpc_ptr, mpc_srcptr, mpc_srcptr, mpc_rnd_t))
+{
+  tree result = NULL_TREE;
+  
+  STRIP_NOPS (arg0);
+  STRIP_NOPS (arg1);
+
+  /* To proceed, MPFR must exactly represent the target floating point
+     format, which only happens when the target base equals two.  */
+  if (TREE_CODE (arg0) == COMPLEX_CST && !TREE_OVERFLOW (arg0)
+      && TREE_CODE (TREE_TYPE (TREE_TYPE (arg0))) == REAL_TYPE
+      && TREE_CODE (arg1) == COMPLEX_CST && !TREE_OVERFLOW (arg1)
+      && TREE_CODE (TREE_TYPE (TREE_TYPE (arg1))) == REAL_TYPE
+      && REAL_MODE_FORMAT (TYPE_MODE (TREE_TYPE (TREE_TYPE (arg0))))->b == 2)
+    {
+      const REAL_VALUE_TYPE *const re0 = TREE_REAL_CST_PTR (TREE_REALPART (arg0));
+      const REAL_VALUE_TYPE *const im0 = TREE_REAL_CST_PTR (TREE_IMAGPART (arg0));
+      const REAL_VALUE_TYPE *const re1 = TREE_REAL_CST_PTR (TREE_REALPART (arg1));
+      const REAL_VALUE_TYPE *const im1 = TREE_REAL_CST_PTR (TREE_IMAGPART (arg1));
+
+      if (do_nonfinite
+	  || (real_isfinite (re0) && real_isfinite (im0)
+	      && real_isfinite (re1) && real_isfinite (im1)))
+        {
+	  const struct real_format *const fmt =
+	    REAL_MODE_FORMAT (TYPE_MODE (TREE_TYPE (type)));
+	  const int prec = fmt->p;
+	  const mp_rnd_t rnd = fmt->round_towards_zero ? GMP_RNDZ : GMP_RNDN;
+	  const mpc_rnd_t crnd = fmt->round_towards_zero ? MPC_RNDZZ : MPC_RNDNN;
+	  int inexact;
+	  mpc_t m0, m1;
+	  
+	  mpc_init2 (m0, prec);
+	  mpc_init2 (m1, prec);
+	  mpfr_from_real (mpc_realref(m0), re0, rnd);
+	  mpfr_from_real (mpc_imagref(m0), im0, rnd);
+	  mpfr_from_real (mpc_realref(m1), re1, rnd);
+	  mpfr_from_real (mpc_imagref(m1), im1, rnd);
+	  mpfr_clear_flags ();
+	  inexact = func (m0, m0, m1, crnd);
+	  result = do_mpc_ckconv (m0, type, inexact, do_nonfinite);
+	  mpc_clear (m0);
+	  mpc_clear (m1);
+	}
+    }
+
+  return result;
+}
+# endif
+#endif /* HAVE_mpc */
+
 /* FIXME tuples.
    The functions below provide an alternate interface for folding
    builtin function calls presented as GIMPLE_CALL statements rather
@@ -13459,6 +13627,7 @@ gimple_rewrite_call_expr (gimple stmt, int skip, tree fndecl, int n, ...)
   tree *buffer;
   int i, j;
   va_list ap;
+  location_t loc = gimple_location (stmt);
 
   buffer = XALLOCAVEC (tree, nargs);
   va_start (ap, n);
@@ -13468,7 +13637,7 @@ gimple_rewrite_call_expr (gimple stmt, int skip, tree fndecl, int n, ...)
   for (j = skip; j < oldnargs; j++, i++)
     buffer[i] = gimple_call_arg (stmt, j);
 
-  return fold (build_call_array (TREE_TYPE (fntype), fn, nargs, buffer));
+  return fold (build_call_array_loc (loc, TREE_TYPE (fntype), fn, nargs, buffer));
 }
 
 /* Fold a call STMT to __{,v}sprintf_chk.  Return NULL_TREE if
@@ -13647,7 +13816,8 @@ gimple_fold_builtin_snprintf_chk (gimple stmt, tree maxlen,
    result of the function call is ignored.  */
 
 static tree
-gimple_fold_builtin_varargs (tree fndecl, gimple stmt, bool ignore ATTRIBUTE_UNUSED)
+gimple_fold_builtin_varargs (tree fndecl, gimple stmt,
+			     bool ignore ATTRIBUTE_UNUSED)
 {
   enum built_in_function fcode = DECL_FUNCTION_CODE (fndecl);
   tree ret = NULL_TREE;
@@ -13684,6 +13854,7 @@ fold_call_stmt (gimple stmt, bool ignore)
 {
   tree ret = NULL_TREE;
   tree fndecl = gimple_call_fndecl (stmt);
+  location_t loc = gimple_location (stmt);
   if (fndecl
       && TREE_CODE (fndecl) == FUNCTION_DECL
       && DECL_BUILT_IN (fndecl)
@@ -13710,7 +13881,7 @@ fold_call_stmt (gimple stmt, bool ignore)
               int i;
               for (i = 0; i < nargs; i++)
                 args[i] = gimple_call_arg (stmt, i);
-	      ret = fold_builtin_n (fndecl, args, nargs, ignore);
+	      ret = fold_builtin_n (loc, fndecl, args, nargs, ignore);
 	    }
 	  if (!ret)
 	    ret = gimple_fold_builtin_varargs (fndecl, stmt, ignore);
@@ -13727,7 +13898,7 @@ fold_call_stmt (gimple stmt, bool ignore)
 		    realret = TREE_OPERAND (ret, 0);
 		  if (CAN_HAVE_LOCATION_P (realret)
 		      && !EXPR_HAS_LOCATION (realret))
-		    SET_EXPR_LOCATION (realret, gimple_location (stmt));
+		    SET_EXPR_LOCATION (realret, loc);
                   return realret;
                 }
 	      return ret;
@@ -13735,4 +13906,42 @@ fold_call_stmt (gimple stmt, bool ignore)
 	}
     }
   return NULL_TREE;
+}
+
+/* Look up the function in built_in_decls that corresponds to DECL
+   and set ASMSPEC as its user assembler name.  DECL must be a
+   function decl that declares a builtin.  */
+
+void
+set_builtin_user_assembler_name (tree decl, const char *asmspec)
+{
+  tree builtin;
+  gcc_assert (TREE_CODE (decl) == FUNCTION_DECL
+	      && DECL_BUILT_IN_CLASS (decl) == BUILT_IN_NORMAL
+	      && asmspec != 0);
+
+  builtin = built_in_decls [DECL_FUNCTION_CODE (decl)];
+  set_user_assembler_name (builtin, asmspec);
+  switch (DECL_FUNCTION_CODE (decl))
+    {
+    case BUILT_IN_MEMCPY:
+      init_block_move_fn (asmspec);
+      memcpy_libfunc = set_user_assembler_libfunc ("memcpy", asmspec);
+      break;
+    case BUILT_IN_MEMSET:
+      init_block_clear_fn (asmspec);
+      memset_libfunc = set_user_assembler_libfunc ("memset", asmspec);
+      break;
+    case BUILT_IN_MEMMOVE:
+      memmove_libfunc = set_user_assembler_libfunc ("memmove", asmspec);
+      break;
+    case BUILT_IN_MEMCMP:
+      memcmp_libfunc = set_user_assembler_libfunc ("memcmp", asmspec);
+      break;
+    case BUILT_IN_ABORT:
+      abort_libfunc = set_user_assembler_libfunc ("abort", asmspec);
+      break;
+    default:
+      break;
+    }
 }

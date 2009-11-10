@@ -6,25 +6,23 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -51,12 +49,12 @@ package body Einfo is
    -- Usage of Fields in Defining Entity Nodes --
    ----------------------------------------------
 
-   --  Four of these fields are defined in Sinfo, since they in are the
-   --  base part of the node. The access routines for these fields and
-   --  the corresponding set procedures are defined in Sinfo. These fields
-   --  are present in all entities. Note that Homonym is also in the base
-   --  part of the node, but has access routines that are more properly
-   --  part of Einfo, which is why they are defined here.
+   --  Four of these fields are defined in Sinfo, since they in are the base
+   --  part of the node. The access routines for these four fields and the
+   --  corresponding set procedures are defined in Sinfo. These fields are
+   --  present in all entities. Note that Homonym is also in the base part of
+   --  the node, but has access routines that are more properly part of Einfo,
+   --  which is why they are defined here.
 
    --    Chars                           Name1
    --    Next_Entity                     Node2
@@ -79,6 +77,7 @@ package body Einfo is
    --    Hiding_Loop_Variable            Node8
    --    Mechanism                       Uint8 (but returns Mechanism_Type)
    --    Normalized_First_Bit            Uint8
+   --    Postcondition_Proc              Node8
    --    Return_Applies_To               Node8
 
    --    Class_Wide_Type                 Node9
@@ -206,7 +205,9 @@ package body Einfo is
    --    Protection_Object               Node23
    --    Stored_Constraint               Elist23
 
+   --    Related_Expression              Node24
    --    Spec_PPC_List                   Node24
+   --    Underlying_Record_View          Node24
 
    --    Interface_Alias                 Node25
    --    Interfaces                      Elist25
@@ -214,7 +215,7 @@ package body Einfo is
    --    DT_Offset_To_Top_Func           Node25
    --    Task_Body_Procedure             Node25
 
-   --    Dispatch_Table_Wrapper          Node26
+   --    Dispatch_Table_Wrappers         Elist26
    --    Last_Assignment                 Node26
    --    Overridden_Operation            Node26
    --    Package_Instantiation           Node26
@@ -421,6 +422,7 @@ package body Einfo is
    --    Debug_Info_Off                  Flag166
    --    Sec_Stack_Needed_For_Return     Flag167
    --    Materialize_Entity              Flag168
+   --    Has_Pragma_Thread_Local_Storage Flag169
    --    Is_Known_Valid                  Flag170
 
    --    Is_Hidden_Open_Scope            Flag171
@@ -460,7 +462,7 @@ package body Einfo is
    --    Itype_Printed                   Flag202
    --    Has_Pragma_Pure                 Flag203
    --    Is_Known_Null                   Flag204
-   --    Low_Bound_Known                 Flag205
+   --    Low_Bound_Tested                Flag205
    --    Is_Visible_Formal               Flag206
    --    Known_To_Have_Preelab_Init      Flag207
    --    Must_Have_Preelab_Init          Flag208
@@ -505,9 +507,8 @@ package body Einfo is
    --    Overlays_Constant               Flag243
    --    Is_RACW_Stub_Type               Flag244
    --    Is_Private_Primitive            Flag245
-
-   --    (unused)                        Flag246
-   --    (unused)                        Flag247
+   --    Is_Underlying_Record_View       Flag246
+   --    OK_To_Rename                    Flag247
 
    -----------------------
    -- Local subprograms --
@@ -664,7 +665,8 @@ package body Einfo is
    begin
       pragma Assert
         (Ekind (Id) = E_Record_Subtype
-         or else Ekind (Id) = E_Class_Wide_Subtype);
+           or else
+         Ekind (Id) = E_Class_Wide_Subtype);
       return Node16 (Id);
    end Cloned_Subtype;
 
@@ -690,6 +692,7 @@ package body Einfo is
 
    function Component_Type (Id : E) return E is
    begin
+      pragma Assert (Is_Array_Type (Id) or else Is_String_Type (Id));
       return Node20 (Implementation_Base_Type (Id));
    end Component_Type;
 
@@ -807,6 +810,7 @@ package body Einfo is
 
    function Directly_Designated_Type (Id : E) return E is
    begin
+      pragma Assert (Is_Access_Type (Id));
       return Node20 (Id);
    end Directly_Designated_Type;
 
@@ -850,11 +854,11 @@ package body Einfo is
       return Uint15 (Id);
    end Discriminant_Number;
 
-   function Dispatch_Table_Wrapper (Id : E) return E is
+   function Dispatch_Table_Wrappers (Id : E) return L is
    begin
       pragma Assert (Is_Tagged_Type (Id));
-      return Node26 (Implementation_Base_Type (Id));
-   end Dispatch_Table_Wrapper;
+      return Elist26 (Implementation_Base_Type (Id));
+   end Dispatch_Table_Wrappers;
 
    function DT_Entry_Count (Id : E) return U is
    begin
@@ -1345,6 +1349,11 @@ package body Einfo is
    begin
       return Flag179 (Id);
    end Has_Pragma_Pure_Function;
+
+   function Has_Pragma_Thread_Local_Storage (Id : E) return B is
+   begin
+      return Flag169 (Id);
+   end Has_Pragma_Thread_Local_Storage;
 
    function Has_Pragma_Unmodified (Id : E) return B is
    begin
@@ -2060,6 +2069,11 @@ package body Einfo is
       return Flag117 (Implementation_Base_Type (Id));
    end Is_Unchecked_Union;
 
+   function Is_Underlying_Record_View (Id : E) return B is
+   begin
+      return Flag246 (Id);
+   end Is_Underlying_Record_View;
+
    function Is_Unsigned_Type (Id : E) return B is
    begin
       pragma Assert (Is_Type (Id));
@@ -2155,10 +2169,10 @@ package body Einfo is
       return Node16 (Id);
    end Lit_Strings;
 
-   function Low_Bound_Known (Id : E) return B is
+   function Low_Bound_Tested (Id : E) return B is
    begin
       return Flag205 (Id);
-   end Low_Bound_Known;
+   end Low_Bound_Tested;
 
    function Machine_Radix_10 (Id : E) return B is
    begin
@@ -2281,6 +2295,12 @@ package body Einfo is
       return Uint10 (Id);
    end Normalized_Position_Max;
 
+   function OK_To_Rename (Id : E) return B is
+   begin
+      pragma Assert (Ekind (Id) = E_Variable);
+      return Flag247 (Id);
+   end OK_To_Rename;
+
    function OK_To_Reorder_Components (Id : E) return B is
    begin
       pragma Assert (Is_Record_Type (Id));
@@ -2347,9 +2367,15 @@ package body Einfo is
 
    function Parent_Subtype (Id : E) return E is
    begin
-      pragma Assert (Ekind (Id) = E_Record_Type);
-      return Node19 (Id);
+      pragma Assert (Is_Record_Type (Id));
+      return Node19 (Base_Type (Id));
    end Parent_Subtype;
+
+   function Postcondition_Proc (Id : E) return E is
+   begin
+      pragma Assert (Ekind (Id) = E_Procedure);
+      return Node8 (Id);
+   end Postcondition_Proc;
 
    function Primitive_Operations (Id : E) return L is
    begin
@@ -2440,6 +2466,12 @@ package body Einfo is
       pragma Assert (Is_Array_Type (Id));
       return Node19 (Id);
    end Related_Array_Object;
+
+   function Related_Expression (Id : E) return N is
+   begin
+      pragma Assert (Ekind (Id) = E_Constant or else Ekind (Id) = E_Variable);
+      return Node24 (Id);
+   end Related_Expression;
 
    function Related_Instance (Id : E) return E is
    begin
@@ -2660,6 +2692,11 @@ package body Einfo is
       pragma Assert (Ekind (Id) in Private_Kind);
       return Node19 (Id);
    end Underlying_Full_View;
+
+   function Underlying_Record_View (Id : E) return E is
+   begin
+      return Node24 (Id);
+   end Underlying_Record_View;
 
    function Universal_Aliasing (Id : E) return B is
    begin
@@ -3256,11 +3293,11 @@ package body Einfo is
       Set_Uint15 (Id, V);
    end Set_Discriminant_Number;
 
-   procedure Set_Dispatch_Table_Wrapper (Id : E; V : E) is
+   procedure Set_Dispatch_Table_Wrappers (Id : E; V : L) is
    begin
       pragma Assert (Is_Tagged_Type (Id) and then Id = Base_Type (Id));
-      Set_Node26 (Id, V);
-   end Set_Dispatch_Table_Wrapper;
+      Set_Elist26 (Id, V);
+   end Set_Dispatch_Table_Wrappers;
 
    procedure Set_DT_Entry_Count (Id : E; V : U) is
    begin
@@ -3770,6 +3807,11 @@ package body Einfo is
    begin
       Set_Flag179 (Id, V);
    end Set_Has_Pragma_Pure_Function;
+
+   procedure Set_Has_Pragma_Thread_Local_Storage (Id : E; V : B := True) is
+   begin
+      Set_Flag169 (Id, V);
+   end Set_Has_Pragma_Thread_Local_Storage;
 
    procedure Set_Has_Pragma_Unmodified (Id : E; V : B := True) is
    begin
@@ -4520,6 +4562,12 @@ package body Einfo is
       Set_Flag117 (Id, V);
    end Set_Is_Unchecked_Union;
 
+   procedure Set_Is_Underlying_Record_View (Id : E; V : B := True) is
+   begin
+      pragma Assert (Ekind (Id) = E_Record_Type);
+      Set_Flag246 (Id, V);
+   end Set_Is_Underlying_Record_View;
+
    procedure Set_Is_Unsigned_Type (Id : E; V : B := True) is
    begin
       pragma Assert (Is_Discrete_Or_Fixed_Point_Type (Id));
@@ -4611,11 +4659,11 @@ package body Einfo is
       Set_Node16 (Id, V);
    end Set_Lit_Strings;
 
-   procedure Set_Low_Bound_Known (Id : E; V : B := True) is
+   procedure Set_Low_Bound_Tested (Id : E; V : B := True) is
    begin
       pragma Assert (Is_Formal (Id));
       Set_Flag205 (Id, V);
-   end Set_Low_Bound_Known;
+   end Set_Low_Bound_Tested;
 
    procedure Set_Machine_Radix_10 (Id : E; V : B := True) is
    begin
@@ -4744,6 +4792,12 @@ package body Einfo is
       Set_Uint10 (Id, V);
    end Set_Normalized_Position_Max;
 
+   procedure Set_OK_To_Rename (Id : E; V : B := True) is
+   begin
+      pragma Assert (Ekind (Id) = E_Variable);
+      Set_Flag247 (Id, V);
+   end Set_OK_To_Rename;
+
    procedure Set_OK_To_Reorder_Components (Id : E; V : B := True) is
    begin
       pragma Assert
@@ -4814,6 +4868,12 @@ package body Einfo is
       pragma Assert (Ekind (Id) = E_Record_Type);
       Set_Node19 (Id, V);
    end Set_Parent_Subtype;
+
+   procedure Set_Postcondition_Proc (Id : E; V : E) is
+   begin
+      pragma Assert (Ekind (Id) = E_Procedure);
+      Set_Node8 (Id, V);
+   end Set_Postcondition_Proc;
 
    procedure Set_Primitive_Operations (Id : E; V : L) is
    begin
@@ -4904,6 +4964,11 @@ package body Einfo is
       pragma Assert (Is_Array_Type (Id));
       Set_Node19 (Id, V);
    end Set_Related_Array_Object;
+
+   procedure Set_Related_Expression (Id : E; V : N) is
+   begin
+      Set_Node24 (Id, V);
+   end Set_Related_Expression;
 
    procedure Set_Related_Instance (Id : E; V : E) is
    begin
@@ -5129,6 +5194,12 @@ package body Einfo is
       pragma Assert (Ekind (Id) in Private_Kind);
       Set_Node19 (Id, V);
    end Set_Underlying_Full_View;
+
+   procedure Set_Underlying_Record_View (Id : E; V : E) is
+   begin
+      pragma Assert (Ekind (Id) = E_Record_Type);
+      Set_Node24 (Id, V);
+   end Set_Underlying_Record_View;
 
    procedure Set_Universal_Aliasing (Id : E; V : B := True) is
    begin
@@ -5475,40 +5546,6 @@ package body Einfo is
       return Rep_Clause (Id, Name_Alignment);
    end Alignment_Clause;
 
-   ----------------------
-   -- Ancestor_Subtype --
-   ----------------------
-
-   function Ancestor_Subtype (Id : E) return E is
-   begin
-      --  If this is first subtype, or is a base type, then there is no
-      --  ancestor subtype, so we return Empty to indicate this fact.
-
-      if Is_First_Subtype (Id) or else Id = Base_Type (Id) then
-         return Empty;
-      end if;
-
-      declare
-         D : constant Node_Id := Declaration_Node (Id);
-
-      begin
-         --  If we have a subtype declaration, get the ancestor subtype
-
-         if Nkind (D) = N_Subtype_Declaration then
-            if Nkind (Subtype_Indication (D)) = N_Subtype_Indication then
-               return Entity (Subtype_Mark (Subtype_Indication (D)));
-            else
-               return Entity (Subtype_Indication (D));
-            end if;
-
-         --  If not, then no subtype indication is available
-
-         else
-            return Empty;
-         end if;
-      end;
-   end Ancestor_Subtype;
-
    -------------------
    -- Append_Entity --
    -------------------
@@ -5525,31 +5562,6 @@ package body Einfo is
       Set_Scope (Id, V);
       Set_Last_Entity (Id => V, V => Id);
    end Append_Entity;
-
-   --------------------
-   -- Available_View --
-   --------------------
-
-   function Available_View (Id : E) return E is
-   begin
-      if Is_Incomplete_Type (Id)
-        and then Present (Non_Limited_View (Id))
-      then
-         --  The non-limited view may itself be an incomplete type, in
-         --  which case get its full view.
-
-         return Get_Full_View (Non_Limited_View (Id));
-
-      elsif Is_Class_Wide_Type (Id)
-        and then Is_Incomplete_Type (Etype (Id))
-        and then Present (Non_Limited_View (Etype (Id)))
-      then
-         return Class_Wide_Type (Non_Limited_View (Etype (Id)));
-
-      else
-         return Id;
-      end if;
-   end Available_View;
 
    ---------------
    -- Base_Type --
@@ -5621,61 +5633,6 @@ package body Einfo is
       end if;
    end Component_Alignment;
 
-   --------------------
-   -- Constant_Value --
-   --------------------
-
-   function Constant_Value (Id : E) return N is
-      D      : constant Node_Id := Declaration_Node (Id);
-      Full_D : Node_Id;
-
-   begin
-      --  If we have no declaration node, then return no constant value.
-      --  Not clear how this can happen, but it does sometimes ???
-      --  To investigate, remove this check and compile discrim_po.adb.
-
-      if No (D) then
-         return Empty;
-
-      --  Normal case where a declaration node is present
-
-      elsif Nkind (D) = N_Object_Renaming_Declaration then
-         return Renamed_Object (Id);
-
-      --  If this is a component declaration whose entity is constant, it
-      --  is a prival within a protected function. It does not have
-      --  a constant value.
-
-      elsif Nkind (D) = N_Component_Declaration then
-         return Empty;
-
-      --  If there is an expression, return it
-
-      elsif Present (Expression (D)) then
-         return (Expression (D));
-
-      --  For a constant, see if we have a full view
-
-      elsif Ekind (Id) = E_Constant
-        and then Present (Full_View (Id))
-      then
-         Full_D := Parent (Full_View (Id));
-
-         --  The full view may have been rewritten as an object renaming
-
-         if Nkind (Full_D) = N_Object_Renaming_Declaration then
-            return Name (Full_D);
-         else
-            return Expression (Full_D);
-         end if;
-
-      --  Otherwise we have no expression to return
-
-      else
-         return Empty;
-      end if;
-   end Constant_Value;
-
    ----------------------
    -- Declaration_Node --
    ----------------------
@@ -5733,49 +5690,6 @@ package body Einfo is
       end if;
    end Designated_Type;
 
-   -----------------------------
-   -- Enclosing_Dynamic_Scope --
-   -----------------------------
-
-   function Enclosing_Dynamic_Scope (Id : E) return E is
-      S  : Entity_Id;
-
-   begin
-      --  The following test is an error defense against some syntax
-      --  errors that can leave scopes very messed up.
-
-      if Id = Standard_Standard then
-         return Id;
-      end if;
-
-      --  Normal case, search enclosing scopes
-
-      --  Note: the test for Present (S) should not be required, it is a
-      --  defence against an ill-formed tree.
-
-      S := Scope (Id);
-      loop
-         --  If we somehow got an empty value for Scope, the tree must be
-         --  malformed. Rather than blow up we return Standard in this case.
-
-         if No (S) then
-            return Standard_Standard;
-
-         --  Quit if we get to standard or a dynamic scope
-
-         elsif S = Standard_Standard
-           or else Is_Dynamic_Scope (S)
-         then
-            return S;
-
-         --  Otherwise keep climbing
-
-         else
-            S := Scope (S);
-         end if;
-      end loop;
-   end Enclosing_Dynamic_Scope;
-
    ----------------------
    -- Entry_Index_Type --
    ----------------------
@@ -5827,46 +5741,6 @@ package body Einfo is
 
       return Comp_Id;
    end First_Component_Or_Discriminant;
-
-   ------------------------
-   -- First_Discriminant --
-   ------------------------
-
-   function First_Discriminant (Id : E) return E is
-      Ent : Entity_Id;
-
-   begin
-      pragma Assert
-        (Has_Discriminants (Id)
-          or else Has_Unknown_Discriminants (Id));
-
-      Ent := First_Entity (Id);
-
-      --  The discriminants are not necessarily contiguous, because access
-      --  discriminants will generate itypes. They are not the first entities
-      --  either, because tag and controller record must be ahead of them.
-
-      if Chars (Ent) = Name_uTag then
-         Ent := Next_Entity (Ent);
-      end if;
-
-      if Chars (Ent) = Name_uController then
-         Ent := Next_Entity (Ent);
-      end if;
-
-      --  Skip all hidden stored discriminants if any
-
-      while Present (Ent) loop
-         exit when Ekind (Ent) = E_Discriminant
-           and then not Is_Completely_Hidden (Ent);
-
-         Ent := Next_Entity (Ent);
-      end loop;
-
-      pragma Assert (Ekind (Ent) = E_Discriminant);
-
-      return Ent;
-   end First_Discriminant;
 
    ------------------
    -- First_Formal --
@@ -5923,130 +5797,6 @@ package body Einfo is
          end if;
       end if;
    end First_Formal_With_Extras;
-
-   -------------------------------
-   -- First_Stored_Discriminant --
-   -------------------------------
-
-   function First_Stored_Discriminant (Id : E) return E is
-      Ent : Entity_Id;
-
-      function Has_Completely_Hidden_Discriminant (Id : E) return Boolean;
-      --  Scans the Discriminants to see whether any are Completely_Hidden
-      --  (the mechanism for describing non-specified stored discriminants)
-
-      ----------------------------------------
-      -- Has_Completely_Hidden_Discriminant --
-      ----------------------------------------
-
-      function Has_Completely_Hidden_Discriminant (Id : E) return Boolean is
-         Ent : Entity_Id := Id;
-
-      begin
-         pragma Assert (Ekind (Id) = E_Discriminant);
-
-         while Present (Ent) and then Ekind (Ent) = E_Discriminant loop
-            if Is_Completely_Hidden (Ent) then
-               return True;
-            end if;
-
-            Ent := Next_Entity (Ent);
-         end loop;
-
-         return False;
-      end Has_Completely_Hidden_Discriminant;
-
-   --  Start of processing for First_Stored_Discriminant
-
-   begin
-      pragma Assert
-        (Has_Discriminants (Id)
-          or else Has_Unknown_Discriminants (Id));
-
-      Ent := First_Entity (Id);
-
-      if Chars (Ent) = Name_uTag then
-         Ent := Next_Entity (Ent);
-      end if;
-
-      if Chars (Ent) = Name_uController then
-         Ent := Next_Entity (Ent);
-      end if;
-
-      if Has_Completely_Hidden_Discriminant (Ent) then
-
-         while Present (Ent) loop
-            exit when Is_Completely_Hidden (Ent);
-            Ent := Next_Entity (Ent);
-         end loop;
-
-      end if;
-
-      pragma Assert (Ekind (Ent) = E_Discriminant);
-
-      return Ent;
-   end First_Stored_Discriminant;
-
-   -------------------
-   -- First_Subtype --
-   -------------------
-
-   function First_Subtype (Id : E) return E is
-      B   : constant Entity_Id := Base_Type (Id);
-      F   : constant Node_Id   := Freeze_Node (B);
-      Ent : Entity_Id;
-
-   begin
-      --  If the base type has no freeze node, it is a type in standard,
-      --  and always acts as its own first subtype unless it is one of
-      --  the predefined integer types. If the type is formal, it is also
-      --  a first subtype, and its base type has no freeze node. On the other
-      --  hand, a subtype of a generic formal is not its own first_subtype.
-      --  Its base type, if anonymous, is attached to the formal type decl.
-      --  from which the first subtype is obtained.
-
-      if No (F) then
-
-         if B = Base_Type (Standard_Integer) then
-            return Standard_Integer;
-
-         elsif B = Base_Type (Standard_Long_Integer) then
-            return Standard_Long_Integer;
-
-         elsif B = Base_Type (Standard_Short_Short_Integer) then
-            return Standard_Short_Short_Integer;
-
-         elsif B = Base_Type (Standard_Short_Integer) then
-            return Standard_Short_Integer;
-
-         elsif B = Base_Type (Standard_Long_Long_Integer) then
-            return Standard_Long_Long_Integer;
-
-         elsif Is_Generic_Type (Id) then
-            if Present (Parent (B)) then
-               return Defining_Identifier (Parent (B));
-            else
-               return Defining_Identifier (Associated_Node_For_Itype (B));
-            end if;
-
-         else
-            return B;
-         end if;
-
-      --  Otherwise we check the freeze node, if it has a First_Subtype_Link
-      --  then we use that link, otherwise (happens with some Itypes), we use
-      --  the base type itself.
-
-      else
-         Ent := First_Subtype_Link (F);
-
-         if Present (Ent) then
-            return Ent;
-         else
-            return B;
-         end if;
-      end if;
-   end First_Subtype;
 
    -------------------------------------
    -- Get_Attribute_Definition_Clause --
@@ -6318,104 +6068,6 @@ package body Einfo is
       return Root_Type (Id) = Standard_Boolean;
    end Is_Boolean_Type;
 
-   ---------------------
-   -- Is_By_Copy_Type --
-   ---------------------
-
-   function Is_By_Copy_Type (Id : E) return B is
-   begin
-      --  If Id is a private type whose full declaration has not been seen,
-      --  we assume for now that it is not a By_Copy type. Clearly this
-      --  attribute should not be used before the type is frozen, but it is
-      --  needed to build the associated record of a protected type. Another
-      --  place where some lookahead for a full view is needed ???
-
-      return
-        Is_Elementary_Type (Id)
-          or else (Is_Private_Type (Id)
-                     and then Present (Underlying_Type (Id))
-                     and then Is_Elementary_Type (Underlying_Type (Id)));
-   end Is_By_Copy_Type;
-
-   --------------------------
-   -- Is_By_Reference_Type --
-   --------------------------
-
-   --  This function knows too much semantics, it should be in sem_util ???
-
-   function Is_By_Reference_Type (Id : E) return B is
-      Btype : constant Entity_Id := Base_Type (Id);
-
-   begin
-      if Error_Posted (Id)
-        or else Error_Posted (Btype)
-      then
-         return False;
-
-      elsif Is_Private_Type (Btype) then
-         declare
-            Utyp : constant Entity_Id := Underlying_Type (Btype);
-         begin
-            if No (Utyp) then
-               return False;
-            else
-               return Is_By_Reference_Type (Utyp);
-            end if;
-         end;
-
-      elsif Is_Incomplete_Type (Btype) then
-         declare
-            Ftyp : constant Entity_Id := Full_View (Btype);
-         begin
-            if No (Ftyp) then
-               return False;
-            else
-               return Is_By_Reference_Type (Ftyp);
-            end if;
-         end;
-
-      elsif Is_Concurrent_Type (Btype) then
-         return True;
-
-      elsif Is_Record_Type (Btype) then
-         if Is_Limited_Record (Btype)
-           or else Is_Tagged_Type (Btype)
-           or else Is_Volatile (Btype)
-         then
-            return True;
-
-         else
-            declare
-               C : Entity_Id;
-
-            begin
-               C := First_Component (Btype);
-               while Present (C) loop
-                  if Is_By_Reference_Type (Etype (C))
-                    or else Is_Volatile (Etype (C))
-                  then
-                     return True;
-                  end if;
-
-                  C := Next_Component (C);
-               end loop;
-            end;
-
-            return False;
-         end if;
-
-      elsif Is_Array_Type (Btype) then
-         return
-           Is_Volatile (Btype)
-             or else Is_By_Reference_Type (Component_Type (Btype))
-             or else Is_Volatile (Component_Type (Btype))
-             or else Has_Volatile_Components (Btype);
-
-      else
-         return False;
-      end if;
-   end Is_By_Reference_Type;
-
    ------------------------
    -- Is_Constant_Object --
    ------------------------
@@ -6426,35 +6078,6 @@ package body Einfo is
       return
         K = E_Constant or else K = E_In_Parameter or else K = E_Loop_Parameter;
    end Is_Constant_Object;
-
-   ---------------------
-   -- Is_Derived_Type --
-   ---------------------
-
-   function Is_Derived_Type (Id : E) return B is
-      Par : Node_Id;
-
-   begin
-      if Is_Type (Id)
-        and then Base_Type (Id) /= Root_Type (Id)
-        and then not Is_Class_Wide_Type (Id)
-      then
-         if not Is_Numeric_Type (Root_Type (Id)) then
-            return True;
-
-         else
-            Par := Parent (First_Subtype (Id));
-
-            return Present (Par)
-              and then Nkind (Par) = N_Full_Type_Declaration
-              and then Nkind (Type_Definition (Par)) =
-                         N_Derived_Type_Definition;
-         end if;
-
-      else
-         return False;
-      end if;
-   end Is_Derived_Type;
 
    --------------------
    -- Is_Discriminal --
@@ -6514,175 +6137,6 @@ package body Einfo is
         or else (Kind = N_Attribute_Reference
                   and then Is_Entity_Attribute_Name (Attribute_Name (N)));
    end Is_Entity_Name;
-
-   ---------------------------
-   -- Is_Indefinite_Subtype --
-   ---------------------------
-
-   function Is_Indefinite_Subtype (Id : Entity_Id) return B is
-      K : constant Entity_Kind := Ekind (Id);
-
-   begin
-      if Is_Constrained (Id) then
-         return False;
-
-      elsif K in Array_Kind
-        or else K in Class_Wide_Kind
-        or else Has_Unknown_Discriminants (Id)
-      then
-         return True;
-
-      --  Known discriminants: indefinite if there are no default values
-
-      elsif K in Record_Kind
-        or else Is_Incomplete_Or_Private_Type (Id)
-        or else Is_Concurrent_Type (Id)
-      then
-         return (Has_Discriminants (Id)
-           and then No (Discriminant_Default_Value (First_Discriminant (Id))));
-
-      else
-         return False;
-      end if;
-   end Is_Indefinite_Subtype;
-
-   --------------------------------
-   -- Is_Inherently_Limited_Type --
-   --------------------------------
-
-   function Is_Inherently_Limited_Type (Id : E) return B is
-      Btype : constant Entity_Id := Base_Type (Id);
-
-   begin
-      if Is_Private_Type (Btype) then
-         declare
-            Utyp : constant Entity_Id := Underlying_Type (Btype);
-         begin
-            if No (Utyp) then
-               return False;
-            else
-               return Is_Inherently_Limited_Type (Utyp);
-            end if;
-         end;
-
-      elsif Is_Concurrent_Type (Btype) then
-         return True;
-
-      elsif Is_Record_Type (Btype) then
-         if Is_Limited_Record (Btype) then
-            return not Is_Interface (Btype)
-              or else Is_Protected_Interface (Btype)
-              or else Is_Synchronized_Interface (Btype)
-              or else Is_Task_Interface (Btype);
-
-         elsif Is_Class_Wide_Type (Btype) then
-            return Is_Inherently_Limited_Type (Root_Type (Btype));
-
-         else
-            declare
-               C : Entity_Id;
-
-            begin
-               C := First_Component (Btype);
-               while Present (C) loop
-                  if Is_Inherently_Limited_Type (Etype (C)) then
-                     return True;
-                  end if;
-
-                  C := Next_Component (C);
-               end loop;
-            end;
-
-            return False;
-         end if;
-
-      elsif Is_Array_Type (Btype) then
-         return Is_Inherently_Limited_Type (Component_Type (Btype));
-
-      else
-         return False;
-      end if;
-   end Is_Inherently_Limited_Type;
-
-   ---------------------
-   -- Is_Limited_Type --
-   ---------------------
-
-   function Is_Limited_Type (Id : E) return B is
-      Btype : constant E := Base_Type (Id);
-      Rtype : constant E := Root_Type (Btype);
-
-   begin
-      if not Is_Type (Id) then
-         return False;
-
-      elsif Ekind (Btype) = E_Limited_Private_Type
-        or else Is_Limited_Composite (Btype)
-      then
-         return True;
-
-      elsif Is_Concurrent_Type (Btype) then
-         return True;
-
-         --  The Is_Limited_Record flag normally indicates that the type is
-         --  limited. The exception is that a type does not inherit limitedness
-         --  from its interface ancestor. So the type may be derived from a
-         --  limited interface, but is not limited.
-
-      elsif Is_Limited_Record (Id)
-        and then not Is_Interface (Id)
-      then
-         return True;
-
-      --  Otherwise we will look around to see if there is some other reason
-      --  for it to be limited, except that if an error was posted on the
-      --  entity, then just assume it is non-limited, because it can cause
-      --  trouble to recurse into a murky erroneous entity!
-
-      elsif Error_Posted (Id) then
-         return False;
-
-      elsif Is_Record_Type (Btype) then
-
-         if Is_Limited_Interface (Id) then
-            return True;
-
-         --  AI-419: limitedness is not inherited from a limited interface
-
-         elsif Is_Limited_Record (Rtype) then
-            return not Is_Interface (Rtype)
-              or else Is_Protected_Interface (Rtype)
-              or else Is_Synchronized_Interface (Rtype)
-              or else Is_Task_Interface (Rtype);
-
-         elsif Is_Class_Wide_Type (Btype) then
-            return Is_Limited_Type (Rtype);
-
-         else
-            declare
-               C : E;
-
-            begin
-               C := First_Component (Btype);
-               while Present (C) loop
-                  if Is_Limited_Type (Etype (C)) then
-                     return True;
-                  end if;
-
-                  C := Next_Component (C);
-               end loop;
-            end;
-
-            return False;
-         end if;
-
-      elsif Is_Array_Type (Btype) then
-         return Is_Limited_Type (Component_Type (Btype));
-
-      else
-         return False;
-      end if;
-   end Is_Limited_Type;
 
    -----------------------------------
    -- Is_Package_Or_Generic_Package --
@@ -6955,25 +6409,6 @@ package body Einfo is
          return N;
       end if;
    end Number_Dimensions;
-
-   --------------------------
-   -- Number_Discriminants --
-   --------------------------
-
-   function Number_Discriminants (Id : E) return Pos is
-      N     : Int;
-      Discr : Entity_Id;
-
-   begin
-      N := 0;
-      Discr := First_Discriminant (Id);
-      while Present (Discr) loop
-         N := N + 1;
-         Discr := Next_Discriminant (Discr);
-      end loop;
-
-      return N;
-   end Number_Discriminants;
 
    --------------------
    -- Number_Entries --
@@ -7253,72 +6688,6 @@ package body Einfo is
       return Kind;
    end Subtype_Kind;
 
-   -------------------------
-   -- First_Tag_Component --
-   -------------------------
-
-   function First_Tag_Component (Id : E) return E is
-      Comp : Entity_Id;
-      Typ  : Entity_Id := Id;
-
-   begin
-      pragma Assert (Is_Tagged_Type (Typ));
-
-      if Is_Class_Wide_Type (Typ) then
-         Typ := Root_Type (Typ);
-      end if;
-
-      if Is_Private_Type (Typ) then
-         Typ := Underlying_Type (Typ);
-
-         --  If the underlying type is missing then the source program has
-         --  errors and there is nothing else to do (the full-type declaration
-         --  associated with the private type declaration is missing).
-
-         if No (Typ) then
-            return Empty;
-         end if;
-      end if;
-
-      Comp := First_Entity (Typ);
-      while Present (Comp) loop
-         if Is_Tag (Comp) then
-            return Comp;
-         end if;
-
-         Comp := Next_Entity (Comp);
-      end loop;
-
-      --  No tag component found
-
-      return Empty;
-   end First_Tag_Component;
-
-   ------------------------
-   -- Next_Tag_Component --
-   ------------------------
-
-   function Next_Tag_Component (Id : E) return E is
-      Comp : Entity_Id;
-
-   begin
-      pragma Assert (Is_Tag (Id));
-
-      Comp := Next_Entity (Id);
-      while Present (Comp) loop
-         if Is_Tag (Comp) then
-            pragma Assert (Chars (Comp) /= Name_uTag);
-            return Comp;
-         end if;
-
-         Comp := Next_Entity (Comp);
-      end loop;
-
-      --  No tag component found
-
-      return Empty;
-   end Next_Tag_Component;
-
    ---------------------
    -- Type_High_Bound --
    ---------------------
@@ -7516,6 +6885,7 @@ package body Einfo is
       W ("Has_Pragma_Preelab_Init",         Flag221 (Id));
       W ("Has_Pragma_Pure",                 Flag203 (Id));
       W ("Has_Pragma_Pure_Function",        Flag179 (Id));
+      W ("Has_Pragma_Thread_Local_Storage", Flag169 (Id));
       W ("Has_Pragma_Unmodified",           Flag233 (Id));
       W ("Has_Pragma_Unreferenced",         Flag180 (Id));
       W ("Has_Pragma_Unreferenced_Objects", Flag212 (Id));
@@ -7639,6 +7009,7 @@ package body Einfo is
       W ("Is_Trivial_Subprogram",           Flag235 (Id));
       W ("Is_True_Constant",                Flag163 (Id));
       W ("Is_Unchecked_Union",              Flag117 (Id));
+      W ("Is_Underlying_Record_View",       Flag246 (Id));
       W ("Is_Unsigned_Type",                Flag144 (Id));
       W ("Is_VMS_Exception",                Flag133 (Id));
       W ("Is_Valued_Procedure",             Flag127 (Id));
@@ -7650,7 +7021,7 @@ package body Einfo is
       W ("Kill_Range_Checks",               Flag33  (Id));
       W ("Kill_Tag_Checks",                 Flag34  (Id));
       W ("Known_To_Have_Preelab_Init",      Flag207 (Id));
-      W ("Low_Bound_Known",                 Flag205 (Id));
+      W ("Low_Bound_Tested",                Flag205 (Id));
       W ("Machine_Radix_10",                Flag84  (Id));
       W ("Materialize_Entity",              Flag168 (Id));
       W ("Must_Be_On_Byte_Boundary",        Flag183 (Id));
@@ -7663,6 +7034,7 @@ package body Einfo is
       W ("No_Strict_Aliasing",              Flag136 (Id));
       W ("Non_Binary_Modulus",              Flag58  (Id));
       W ("Nonzero_Is_True",                 Flag162 (Id));
+      W ("OK_To_Rename",                    Flag247 (Id));
       W ("OK_To_Reorder_Components",        Flag239 (Id));
       W ("Optimize_Alignment_Space",        Flag241 (Id));
       W ("Optimize_Alignment_Time",         Flag242 (Id));
@@ -7866,6 +7238,9 @@ package body Einfo is
 
          when E_Package                                    =>
             Write_Str ("Dependent_Instances");
+
+         when E_Procedure                                  =>
+            Write_Str ("Postcondition_Proc");
 
          when E_Return_Statement                           =>
             Write_Str ("Return_Applies_To");
@@ -8585,6 +7960,12 @@ package body Einfo is
          when Subprogram_Kind                              =>
             Write_Str ("Spec_PPC_List");
 
+         when E_Record_Type                                =>
+            Write_Str ("Underlying record view");
+
+         when E_Variable | E_Constant                      =>
+            Write_Str ("Related expression");
+
          when others                                       =>
             Write_Str ("???");
       end case;
@@ -8647,10 +8028,10 @@ package body Einfo is
 
          when E_Record_Type                                |
               E_Record_Type_With_Private                   =>
-            Write_Str ("Dispatch_Table_Wrapper");
+            Write_Str ("Dispatch_Table_Wrappers");
 
-         when E_In_Out_Parameter                               |
-              E_Out_Parameter                           |
+         when E_In_Out_Parameter                           |
+              E_Out_Parameter                              |
               E_Variable                                   =>
             Write_Str ("Last_Assignment");
 

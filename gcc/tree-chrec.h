@@ -1,5 +1,6 @@
 /* Chains of recurrences.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Free Software Foundation, Inc.
    Contributed by Sebastian Pop <pop@cri.ensmp.fr>
 
 This file is part of GCC.
@@ -85,6 +86,7 @@ extern bool evolution_function_is_univariate_p (const_tree);
 extern unsigned nb_vars_in_chrec (tree);
 extern bool evolution_function_is_invariant_p (tree, int);
 extern bool scev_is_linear_expression (tree);
+extern bool evolution_function_right_is_integer_cst (const_tree);
 
 /* Determines whether CHREC is equal to zero.  */
 
@@ -113,6 +115,7 @@ no_evolution_in_loop_p (tree chrec, unsigned loop_num, bool *res)
       || chrec_contains_symbols_defined_in_loop (chrec, loop_num))
     return false;
 
+  STRIP_NOPS (chrec);
   scev = hide_evolution_in_other_loops_than_loop (chrec, loop_num);
   *res = !tree_is_chrec (scev);
   return true;
@@ -131,7 +134,8 @@ build_polynomial_chrec (unsigned loop_num,
       || right == chrec_dont_know)
     return chrec_dont_know;
 
-  if (no_evolution_in_loop_p (left, loop_num, &val) && !val)
+  if (!no_evolution_in_loop_p (left, loop_num, &val)
+      || !val)
     return chrec_dont_know;
 
   /* Pointer types should occur only on the left hand side, i.e. in

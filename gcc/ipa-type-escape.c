@@ -43,10 +43,10 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-pass.h"
 #include "langhooks.h"
 #include "pointer-set.h"
+#include "splay-tree.h"
 #include "ggc.h"
 #include "ipa-utils.h"
 #include "ipa-type-escape.h"
-#include "c-common.h"
 #include "gimple.h"
 #include "cgraph.h"
 #include "output.h"
@@ -1128,9 +1128,6 @@ check_operand (tree t)
 static void
 check_tree (tree t)
 {
-  if ((TREE_CODE (t) == EXC_PTR_EXPR) || (TREE_CODE (t) == FILTER_EXPR))
-    return;
-
   /* We want to catch here also REALPART_EXPR and IMAGEPART_EXPR,
      but they already included in handled_component_p.  */
   while (handled_component_p (t))
@@ -1987,9 +1984,7 @@ type_escape_execute (void)
      they may cause a type variable to escape.  
   */
   for (node = cgraph_nodes; node; node = node->next)
-    if (node->analyzed 
-	&& (cgraph_is_master_clone (node)
-	    || (cgraph_function_body_availability (node) == AVAIL_OVERWRITABLE)))
+    if (node->analyzed)
       analyze_function (node);
 
 
