@@ -1,3 +1,60 @@
+2009-11-09  Jason Merrill  <jason@redhat.com>
+
+	PR c++/41972
+	* parser.c (cp_parser_template_argument): Accept SCOPE_REF around
+	VAR_DECL.
+
+	PR c++/41994
+	* pt.c (tsubst_baselink): tsubst the name.
+
+2009-11-07  Jason Merrill  <jason@redhat.com>
+
+	PR c++/37920
+	* pt.c (tsubst) [TYPEOF_TYPE]: Set cp_unevaluated_operand.
+
+	PR c++/18451
+	PR c++/40738
+	* cp-tree.h (cp_decl_specifier_seq): Add any_type_specifiers_p.
+	* parser.c (cp_parser_single_declaration): Call
+	cp_parser_parse_and_diagnose_invalid_type_name here, too.
+	(cp_parser_parameter_declaration): And here.
+	(cp_parser_parse_and_diagnose_invalid_type_name): Be
+	less picky about declarator form.  Don't skip to
+	the end of the block if	we're in a declarator.
+	(cp_parser_decl_specifier_seq): Set any_type_specifiers_p.
+	(cp_parser_simple_declaration): Check it.
+	(cp_parser_member_declaration): Likewise.
+	(cp_parser_diagnose_invalid_type_name): Tweak error message.
+	(cp_parser_expression_statement): Likewise.
+	* decl2.c (grokfield): Mention decltype instead of typeof.
+
+2009-11-06  Jason Merrill  <jason@redhat.com>
+
+	PR c++/15946
+	* parser.c (cp_parser_check_template_parameters): Don't talk about
+	specialization at function scope.
+	(cp_parser_diagnose_invalid_type_name): Handle dependent scope.
+	(cp_parser_parse_and_diagnose_invalid_type_name): Likewise.
+	(cp_parser_expression_statement): Suggest typename.
+	* error.c (dump_decl) [SCOPE_REF]: Print the type here.
+	(dump_expr) [SCOPE_REF]: Call it.
+	(dump_type) [UNBOUND_CLASS_TEMPLATE]: Check TFF_UNQUALIFIED_NAME.
+	* cxx-pretty-print.c (pp_cxx_unqualified_id): Print class template
+	args.
+
+	PR c++/9381
+	* decl2.c (build_memfn_type): Preserve attributes.
+	(cp_reconstruct_complex_type): Likewise.
+	(maybe_retrofit_in_chrg): Likewise.
+	* class.c (adjust_clone_args): Likewise.
+	* call.c (standard_conversion): Use build_memfn_type.
+	* pt.c (tsubst): Likewise.
+	* decl.c (build_ptrmem_type): Likewise
+	(check_function_type): Preserve attributes.
+	* tree.c (cp_build_type_attribute_variant): Propagate exception
+	specs on METHOD_TYPE, too.
+	(strip_typedefs): Preserve exception specs and attributes.
+
 2009-11-06  Andrew Pinski  <andrew_pinski@playstation.sony.com>
 
 	PR c++/41536

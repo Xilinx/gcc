@@ -1,3 +1,111 @@
+2009-11-09  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* doc/doxygen/user.cfg.in: Regenerate, add files.
+	* libsupc++/eh_ptr.cc: Format.
+	* libsupc++/exception_ptr.h: Same.
+	* libsupc++/cxxabi.h(recursive_init_error): Move declaration here.
+	* libsupc++/guard.cc: From here.
+	* libsupc++/nested_exception.h: Add markup.
+
+2009-11-09  Johannes Singler  <singler@kit.edu>
+
+	* include/parallel/multiway_merge.h (multiway_merge_*,
+	__sequential_multiway_merge, parallel_multiway_merge): Replace
+	int by appropriate difference_type (typedef to _SeqNumber) or
+	_ThreadIndex.
+	* include/parallel/multiseq_selection.h (multiseq_partition,
+	multiseq_selection): Replace int by appropriate difference_type
+	(typedef to _SeqNumber)
+	* include/parallel/base.h (__get_max_threads): Replace int by
+	_ThreadIndex.
+	* include/parallel/balanced_quicksort.h
+	(__qsb_local_sort_with_helping, __parallel_sort_qsb): Likewise.
+	* include/parallel/set_operations.h (__parallel_set_operation):
+	Likewise.
+	* include/parallel/unique_copy.h (__parallel_unique_copy): Likewise.
+	* include/parallel/multiway_mergesort.h (_SplitConsistently,
+	parallel_sort_mwms_pu, parallel_sort_mwms): Likewise.
+	* include/parallel/partial_sum.h (__parallel_partial_sum_linear):
+	Likewise.
+	* include/parallel/partition.h (__parallel_partition): Replace int
+	by appropriate difference_type or _ThreadIndex.
+
+2009-11-08  Jason Merrill  <jason@redhat.com>
+
+	* include/ext/sso_string_base.h (_M_mutate): Remove extra 'const'.
+
+2009-11-06  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* doc/doxygen/user.cfg.in: Adjust includes.
+
+	* doc/doxygen/doxygroups.cc: Move group markup.
+	* include/tr1_impl/regex: Change " to '. Add group markup.
+	* include/std/utility: Same.
+	* include/std/type_traits: Same.
+	* include/std/streambuf: Same.
+	* include/std/iosfwd: Same.
+	* include/std/limits: Same.
+	* include/std/sstream: Same.
+	* include/profile/impl/profiler_state.h: Same.
+	* include/profile/impl/profiler_hashtable_size.h: Same.
+	* include/bits/stl_algobase.h: Same.
+	* include/bits/stl_iterator_base_types.h: Same.
+	* include/bits/stream_iterator.h: Same.
+	* include/bits/stl_iterator.h: Same.
+	* include/bits/stl_tempbuf.h: Same.
+	* include/bits/streambuf_iterator.h: Same.
+	* libsupc++/exception: Same.
+	* libsupc++/cxxabi.h: Same.
+	* include/tr1_impl/type_traits: Same.
+
+	* include/parallel/multiway_merge.h: Change @__c to @c, @__f to @f.
+	* include/parallel/list_partition.h: Same.
+	* include/parallel/for_each.h: Same.
+	* include/parallel/workstealing.h: Same.
+	* include/parallel/base.h: Same.
+	* include/parallel/equally_split.h: Same.
+	* include/parallel/random_shuffle.h: Same.
+	* include/parallel/balanced_quicksort.h: Same.
+	* include/parallel/merge.h: Same.
+	* include/parallel/multiway_mergesort.h: Same.
+	* include/parallel/compatibility.h: Same.
+	* include/parallel/queue.h: Same.
+	* include/parallel/checkers.h: Same.
+	* include/parallel/random_number.h: Same.
+
+
+	* include/c_global/csignal: Change # to \#.
+	* include/c_global/cstdlib: Same.
+	* include/c_global/cstdio: Same.
+	* include/c_global/cstdarg: Same.
+	* include/c_global/cctype: Same.
+	* include/c_global/cerrno: Same.
+	* include/c_global/cstdatomic: Same.
+	* include/c_global/cmath: Same.
+	* include/c_global/ciso646: Same.
+	* include/c_global/ctime: Same.
+	* include/c_global/clocale: Same.
+	* include/c_global/climits: Same.
+	* include/c_global/cassert: Same.
+	* include/c_global/csetjmp: Same.
+	* include/c_global/cwchar: Same.
+	* include/c_global/cfloat: Same.
+	* include/c_global/cstring: Same.
+	* include/c_global/cstddef: Same.
+	* include/c_global/cwctype: Same.
+
+	* include/std/memory: Only dance around boost_sp_counted_base.h.
+	* include/tr1_impl/boost_sp_counted_base.h: Add markup.
+	* include/tr1/shared_ptr.h: Strip markup.
+	* include/bits/shared_ptr.h: Move base types...
+	* include/bits/shared_ptr_base.h: ...here.
+	* include/Makefile.am: Add.
+	* include/Makefile.in: Regenerate.
+	* configure: Same.
+	* testsuite/20_util/make_signed/requirements/typedefs_neg.cc:
+	Adjust line numbers.
+	* testsuite/20_util/make_unsigned/requirements/typedefs_neg.cc: Same.
+
 2009-11-06  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	* include/parallel/multiway_merge.h: Simple formatting and

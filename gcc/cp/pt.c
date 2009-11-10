@@ -10015,13 +10015,8 @@ tsubst (tree t, tree args, tsubst_flags_t complain, tree in_decl)
 	  {
 	    /* The type of the implicit object parameter gets its
 	       cv-qualifiers from the FUNCTION_TYPE. */
-	    tree method_type;
-	    tree this_type = cp_build_qualified_type (TYPE_MAIN_VARIANT (r),
-						      cp_type_quals (type));
 	    tree memptr;
-	    method_type = build_method_type_directly (this_type,
-						      TREE_TYPE (type),
-						      TYPE_ARG_TYPES (type));
+	    tree method_type = build_memfn_type (type, r, cp_type_quals (type));
 	    memptr = build_ptrmemfunc_type (build_pointer_type (method_type));
 	    return cp_build_qualified_type_real (memptr, cp_type_quals (t),
 						 complain);
@@ -10225,10 +10220,17 @@ tsubst (tree t, tree args, tsubst_flags_t complain, tree in_decl)
       {
 	tree type;
 
-	type = finish_typeof (tsubst_expr 
-			      (TYPEOF_TYPE_EXPR (t), args,
-			       complain, in_decl,
-			       /*integral_constant_expression_p=*/false));
+	++cp_unevaluated_operand;
+	++c_inhibit_evaluation_warnings;
+
+	type = tsubst_expr (TYPEOF_TYPE_EXPR (t), args,
+			    complain, in_decl,
+			    /*integral_constant_expression_p=*/false);
+
+	--cp_unevaluated_operand;
+	--c_inhibit_evaluation_warnings;
+
+	type = finish_typeof (type);
 	return cp_build_qualified_type_real (type,
 					     cp_type_quals (t)
 					     | cp_type_quals (type),
@@ -10316,7 +10318,7 @@ tsubst_baselink (tree baselink, tree object_type,
     qualifying_scope = tsubst (qualifying_scope, args,
 			       complain, in_decl);
     fns = BASELINK_FUNCTIONS (baselink);
-    optype = BASELINK_OPTYPE (baselink);
+    optype = tsubst (BASELINK_OPTYPE (baselink), args, complain, in_decl);
     if (TREE_CODE (fns) == TEMPLATE_ID_EXPR)
       {
 	template_id_p = true;
@@ -10327,6 +10329,8 @@ tsubst_baselink (tree baselink, tree object_type,
 						complain, in_decl);
       }
     name = DECL_NAME (get_first_fn (fns));
+    if (IDENTIFIER_TYPENAME_P (name))
+      name = mangle_conv_op_name_for_type (optype);
     baselink = lookup_fnfields (qualifying_scope, name, /*protect=*/1);
 
     /* If lookup found a single function, mark it as used at this
@@ -10345,8 +10349,7 @@ tsubst_baselink (tree baselink, tree object_type,
 		    BASELINK_FUNCTIONS (baselink),
 		    template_args);
     /* Update the conversion operator type.  */
-    BASELINK_OPTYPE (baselink) 
-      = tsubst (optype, args, complain, in_decl);
+    BASELINK_OPTYPE (baselink) = optype;
 
     if (!object_type)
       object_type = current_class_type;

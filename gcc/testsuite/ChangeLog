@@ -1,3 +1,87 @@
+2009-11-09  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/40946
+	* gcc.dg/pr40946.c: New test.
+
+2009-11-09  Jason Merrill  <jason@redhat.com>
+
+	PR c++/41972
+	* g++.dg/template/ref4.C: New.
+
+	PR c++/41994
+	* g++.dg/template/conv10.C: New.
+
+2009-11-07  Jason Merrill  <jason@redhat.com>
+
+	PR c++/37920
+	* g++.dg/ext/typeof11.C: New.
+
+2009-11-08  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/41985
+	* gcc.target/i386/pr41985.c: New test.
+
+2009-11-08  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/torture/pta-escape-1.c: New testcase.
+
+2009-11-08  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/rep_clause4.adb: New test.
+
+2009-11-08  Richard Guenther  <rguenther@suse.de>
+
+	PR rtl-optimization/41928
+	* gfortran.dg/pr41928.f90: New testcase.
+
+2009-11-07  Jason Merrill  <jason@redhat.com>
+
+	PR c++/18451
+	PR c++/40738
+	* g++.dg/parse/error36.C: Add parameter and template cases.
+	* g++.dg/cpp0x/variadic-ex1.C: Update expected errors.
+	* g++.dg/ext/typedef-init.C: Likewise.
+	* g++.dg/lookup/hidden-class1.C: Likewise.
+	* g++.dg/lookup/hidden-class10.C: Likewise.
+	* g++.dg/lookup/hidden-class5.C: Likewise.
+	* g++.dg/lookup/hidden-class7.C: Likewise.
+	* g++.dg/lookup/hidden-temp-class1.C: Likewise.
+	* g++.dg/lookup/hidden-temp-class4.C: Likewise.
+	* g++.dg/lookup/hidden-temp-class7.C: Likewise.
+	* g++.dg/lookup/strong-using-2.C: Likewise.
+	* g++.dg/other/typedef1.C: Likewise.
+	* g++.dg/parse/access10.C: Likewise.
+	* g++.dg/parse/constructor1.C: Likewise.
+	* g++.dg/parse/crash38.C: Likewise.
+	* g++.dg/parse/error3.C: Likewise.
+	* g++.dg/parse/typespec1.C: Likewise.
+	* g++.dg/template/typedef5.C: Likewise.
+	* g++.old-deja/g++.pt/typename3.C: Likewise.
+	* g++.old-deja/g++.pt/typename4.C: Likewise.
+	* g++.old-deja/g++.pt/typename6.C: Likewise.
+	* g++.old-deja/g++.robertl/eb94.C: Likewise.
+
+	* g++.dg/abi/regparm1.C: Fix execute test.
+
+2009-11-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/41643
+	* gcc.dg/pr41643.c: New test.
+
+2009-11-06  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/41909
+	* gfortran.dg/recursive_check_15.f90: New test.
+
+2009-11-06  Jason Merrill  <jason@redhat.com>
+
+	PR c++/15946
+	* g++.dg/parse/error36.C: New.
+	* g++.old-deja/g++.other/typename1.C: Adjust.
+
+	PR c++/9381
+	* g++.dg/abi/regparm1.C: New.
+
 2009-11-06  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* g++.dg/plugin/pragma_plugin-test-1.C: new testcase for
@@ -412,7 +496,7 @@
 2009-10-29  Martin Jambor  <mjambor@suse.cz>
 
 	PR tree-optimization/41775
-	* testsuite/g++.dg/torture/pr41775.C: New testcase.
+	* g++.dg/torture/pr41775.C: New testcase.
 
 2009-10-28  Jason Merrill  <jason@redhat.com>
 
@@ -585,7 +669,7 @@
 2009-10-26  Dodji Seketeli  <dodji@redhat.com>
 
 	PR c++/41785
-	* gcc/testsuite/g++.dg/cpp0x/variadic96.C: New test.
+	* g++.dg/cpp0x/variadic96.C: New test.
 
 2009-10-26  Nick Clifton  <nickc@redhat.com>
 
