@@ -1,5 +1,9 @@
 2009-11-10  Jeff Law <law@redhat.com>
 
+	2009-11-10  Vladimir Makarov <vmakarov@redhat.com>
+	* ira-color.c (allocno_reload_assign): Avoid accumulating
+	reload registers in ALLOCNO_TOTAL_CONFLICT_HARD_REGS.
+
 	* ira-reload.c (ira_bad_reload_regno_1): If the pseudo wants a
 	singleton register, then consider everything else bad.
 
