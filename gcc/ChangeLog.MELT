@@ -1,8 +1,12 @@
-2009-11-09  Basile Starynkevitch  <basile@starynkevitch.net>
+2009-11-10  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normal.melt: still working on letrec... Added class_nrep_letrec.
+	* testsuite/melt/tletrec.melt: even more simple case first.
+
+22009-11-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normal.melt: still working on letrec...
 	* testsuite/melt/tletrec.melt: added a simplistic case first.
 
-2009-11-07  Basile Starynkevitch  <basile@starynkevitch.net>
+009-11-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normal.melt: misplaced compile_warning in a
 	multicall in normletrec_lambda.
 	* melt/warmelt-macro.melt: added check for called s-expr in

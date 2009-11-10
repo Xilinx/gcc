@@ -18,17 +18,17 @@
 	      (g x yy)))
 	   (g 
 	    (lambda (u v) 
-	      (kk 
-	       (f u) 
-	       v)))
+	      (kk u v f)))
 	   (t
-	     (tuple xx yy 
-		    (f xx) 
-		    (g xx yy)))
+	     (tuple xx yy
+		    (lambda (w) 
+		      (f 
+		       (g w yy))))
 	   )
 	  t))
 ;;
 
+#|
 (defun testletrec (u :long j)
   (letrec (
 	   (fa (lambda (x :long n)
@@ -50,5 +50,6 @@
 	   )
 	  (fa u j)
 	  ))
-       
+
+|#       
 ;; eof tletrec.melt

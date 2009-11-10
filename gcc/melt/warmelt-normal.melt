@@ -53,12 +53,16 @@
 ;; a normalized expression should never be the result of normal_exp;
 ;; it should only appear in bindings!
 (defclass class_nrep_expr
+  :doc #{Common superclass $CLASS_NREP_EXPR of normalized expressions
+  which can only appear in normal bindings.}#
   :super class_nrep
   :fields (
 	   ))
 
 ;; normalized typed expressions also have a ctype
 (defclass class_nrep_typexpr
+  :doc #{Common super-class $CLASS_NREP_TYPEXPR of typed normalized
+  expressions. $NEXPR_CTYP gives its c-type.}#
   :super class_nrep_expr
   :fields (nexpr_ctyp			;the ctype
 	   ))
@@ -113,6 +117,13 @@
   :fields (nlet_bindings		;a tuple of class_normal_let_binding-s
 	   nlet_body
 	   ))
+
+;; normal letrec 
+(defclass class_nrep_letrec
+  :super class_nrep_let
+  :fields (				; the nlet_bindings is a tuple
+					; of constructive binding
+))
 
 ;; normal return have a main & supplementary subexpressions
 (defclass class_nrep_return
@@ -240,9 +251,10 @@
 (defclass class_normal_constructor_binding
   :doc #{The internal $CLASS_NORMAL_CONSTRUCTOR_BINDING is the common
 super-class of constructor bindings in LETREC... Field $NCONSB_LOC
-gives the optional location, and field $NCONSB_DISCR gives the normalized discriminant.}#
+gives the optional location, field $NCONSB_DISCR gives the normalized
+discriminant, and field $NCONSB_NLETREC gives the normal letrec containing it..}#
   :super class_any_binding
-  :fields (nconsb_loc nconsb_discr)
+  :fields (nconsb_loc nconsb_discr nconsb_nletrec)
 )
 
 (defclass class_normal_constructed_tuple_binding
@@ -546,6 +558,7 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
  class_nrep_initproc
  class_nrep_lambda
  class_nrep_let
+ class_nrep_letrec
  class_nrep_locsymocc
  class_nrep_instance
  class_nrep_msend
@@ -905,7 +918,7 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
 		     )
 		;; cache the result
 		(mapobject_put sycmap recv fxocc)
-		(debug_msg fxocc "normexp_symbol value fxocc")
+		(debug_msg fxocc "normexp_symbol const value fxocc")
 		;; put the const occurrence if needed in the const list of each proc
 		(list_every
 		 procs
@@ -925,7 +938,7 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
 	    (progn
 	      ;; cache the result
 	      (mapobject_put sycmap recv bvar)
-	      (debug_msg bvar "normexp_symbol value bvar")
+	      (debug_msg bvar "normexp_symbol local value bvar")
 	      bvar
 	      )
 	    )))
@@ -3450,13 +3463,14 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
 	 (sbinds (unsafe_get_field :slet_bindings recv))
 	 (sbody (unsafe_get_field :slet_body recv))
 	 (:long nbbind (multiple_length sbinds))
+	 (bindlist (make_list discr_list))
 	 (consbindlist (make_list discr_list))
 	 (newenv (fresh_env env))
 	 (:long maplen (+i 5 (*i nbbind 2)))
 	 (symbexprmap (make_mapobject discr_map_objects maplen))
 	 (symbindmap (make_mapobject discr_map_objects maplen))
 	 )
-    ;;; first preparation loop
+;;; first preparation loop
     (foreach_in_multiple
      (sbinds)
      (cursbind :long sbix)
@@ -3503,66 +3517,118 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
        )
      )
     (debug_msg consbindlist "normexp_letrec consbindlist")
-    ;;
-    ;; second loop to make an environment where each constructive
-    ;; binding is set
-    (foreach_in_list
-     (consbindlist)
-     (curpair curcbind)
-     (debug_msg curcbind "normexp_letrec curcbind")
-     (assert_msg "check curcbind" (is_a curcbind class_normal_constructor_binding))
-     (let ( (curbdiscr (unsafe_get_field :nconsb_discr curcbind)) 
-	    (curbinder (unsafe_get_field :binder curcbind))
-	    )
-       (if (null curbdiscr)
-	   (let ( (clabind (get_field :ninstb_clabind curcbind))
-		  (clasym (get_field :binder clabind))
-		  )
-	     (debug_msg clabind "normexp_letrec clabind")
-	     (debug_msg clasym "normexp_letrec clasym")
-	     ;; the only case when this happens is for instance constructors...
-	     (assert_msg "check curcbind for instance" (is_a curcbind class_normal_constructed_instance_binding))
-	     (let ( ;; we normalize the class symbol in the parent environment, not the new one! 
-		   (cladata (normal_exp clasym env ncx sloc)) 
+    (let (
+	  (:long nbconsbind (list_length consbindlist))
+	  (:long curcix 0)
+	  (ncbindtup (make_multiple discr_multiple nbconsbind))
+	  (nletrec (instance class_nrep_letrec
+			     :nrep_loc sloc
+			     :nlet_bindings ncbindtup
+			     :nlet_body ()
+			     )) 
+	  )
+      (debug_msg nletrec "normexp_letrec unfilled nletrec")
+      ;;
+      ;; second loop to make an environment where each constructive
+      ;; binding is set
+      (foreach_in_list
+       (consbindlist)
+       (curpair curcbind)
+       (debug_msg curcbind "normexp_letrec curcbind")
+       (assert_msg "check curcbind" (is_a curcbind class_normal_constructor_binding))
+       (multiple_put_nth ncbindtup curcix curcbind)
+       (put_int curcbind curcix)
+       (put_fields curcbind :nconsb_nletrec nletrec)
+       (setq curcix (+i curcix 1))
+       (let ( (curbdiscr (unsafe_get_field :nconsb_discr curcbind)) 
+	      (curbinder (unsafe_get_field :binder curcbind))
+	      )
+	 (if (null curbdiscr)
+	     (let ( (clabind (get_field :ninstb_clabind curcbind))
+		    (clasym (get_field :binder clabind))
 		    )
-	       (debug_msg cladata "normexp_letrec cladata")
-	       (assert_msg "check cladata" (is_a cladata class_nrep))
-	       (put_fields curcbind :nconsb_discr cladata)
-	     )))
+	       (debug_msg clabind "normexp_letrec clabind")
+	       (debug_msg clasym "normexp_letrec clasym")
+	       ;; the only case when this happens is for instance constructors...
+	       (assert_msg "check curcbind for instance" (is_a curcbind class_normal_constructed_instance_binding))
+	       (let ( ;; we normalize the class symbol in the parent environment, not the new one! 
+		     (cladata (normal_exp clasym env ncx sloc)) 
+		     )
+		 (debug_msg cladata "normexp_letrec cladata")
+		 (assert_msg "check cladata" (is_a cladata class_nrep))
+		 (put_fields curcbind :nconsb_discr cladata)
+		 )))
+	 )
+       (put_env newenv curcbind)
+       (compile_warning "normexp_letrec should normalize the expression using symbexprmap & curbinder...")
        )
-     (put_env newenv curcbind)
-     (compile_warning "normexp_letrec should normalize the expression using symbexprmap & curbinder...")
-     )
-    ;;; third loop to normalize the bindings content
-    (foreach_in_multiple
-     (sbinds)
-     (cursbind :long sbix)
-     (debug_msg cursbind "normexp_letrec thirdloop cursbind")
-     (assert_msg "check cursbind" (is_a cursbind class_source_letrec_binding))
-     (let ( (locb (or (unsafe_get_field :loca_location cursbind) sloc psloc))
-	    (cursymb (unsafe_get_field :sletb_binder cursbind))
-	    (curexpr (unsafe_get_field :sletb_expr cursbind))
-	    (curbind (mapobject_get symbindmap cursymb))
-	    (cursexpr (mapobject_get symbexprmap cursymb))
-	    )
-       (debug_msg curexpr "normexp_letrec thirdloop curexpr")
-       (debug_msg cursymb "normexp_letrec thirdloop cursymb")
-       (debug_msg curbind "normexp_letrec thirdloop curbind")
-       (debug_msg cursexpr "normexp_letrec thirdloop cursexpr")
-       (assert_msg "check curxpr same cursexpr" (== curexpr cursexpr))
-       (normal_letrec_constructive curexpr cursymb curbind newenv ncx sloc)
-       (debug_msg curexpr "normexp_letrec thirdloop done curexpr")
+;;; third loop to normalize the bindings content
+      (foreach_in_multiple
+       (sbinds)
+       (cursbind :long sbix)
+       (debug_msg cursbind "normexp_letrec thirdloop cursbind")
+       (assert_msg "check cursbind" (is_a cursbind class_source_letrec_binding))
+       (let ( (locb (or (unsafe_get_field :loca_location cursbind) sloc psloc))
+	      (cursymb (unsafe_get_field :sletb_binder cursbind))
+	      (curexpr (unsafe_get_field :sletb_expr cursbind))
+	      (curbind (mapobject_get symbindmap cursymb))
+	      (cursexpr (mapobject_get symbexprmap cursymb))
+	      )
+	 (debug_msg curexpr "normexp_letrec thirdloop curexpr")
+	 (debug_msg cursymb "normexp_letrec thirdloop cursymb")
+	 (debug_msg curbind "normexp_letrec thirdloop curbind")
+	 (debug_msg cursexpr "normexp_letrec thirdloop cursexpr")
+	 (assert_msg "check curxpr same cursexpr" (== curexpr cursexpr))
+	 (normal_letrec_constructive curexpr cursymb curbind newenv ncx sloc)
+	 (debug_msg curexpr "normexp_letrec thirdloop done curexpr")
+	 )
        )
-     )
-    ;; perhaps we need a normal_letrec selector...?
-    ;; to send to curbind cursymb curexpr ncx ....???
-    (compile_warning "normexp_letrec incomplete - perhaps need a normal_letrec selector?")
-    (error_plain sloc "unimplemented LETREC normalization")
-    (assert_msg "@$@unimplemented LETREC" ())
-    ))
+;;; normalize the body
+      (multicall
+       (nbody nbodbindings)
+       (normalize_tuple sbody newenv ncx sloc)
+       (list_append2list bindlist  nbodbindings)
+       (assert_msg "normexp_letrec check bindlist" (is_list_or_null bindlist))
+       (list_every
+	bindlist
+	(lambda (cbnd) 
+	  (assert_msg "normexp_letrec check cbnd" (is_a cbnd class_normal_let_binding))))
+;;; remove every locally bound symbol from the symbol cache map
+       (let ( (sycmap (unsafe_get_field :nctx_symbcachemap ncx)) )
+	 (foreach_in_list
+	  (bindlist)
+	  (curpair bnd)
+	  (debug_msg bnd "normexp_letrec remobing from sycmap bnd")
+	  (mapobject_remove sycmap (unsafe_get_field :binder bnd))
+	  ))
+;;;; make the result
+       (let (
+	     (nlastbody (multiple_nth nbody -1))
+	     ;; the type of a let with empty body is void
+	     (nlastyp (or (get_ctype nlastbody newenv) ctype_void))
+	     (csym (clone_symbol 'letrec_))
+	     (cbind (instance class_normal_let_binding
+			      :binder csym
+			      :letbind_loc sloc
+			      :letbind_type nlastyp
+			      :letbind_expr nletrec))
+	     (clocc (instance class_nrep_locsymocc
+			      :nrep_loc sloc
+			      :nocc_ctyp nlastyp
+			      :nocc_bind cbind))
+	     (resbinds (make_list discr_list))
+	     )
+	 (list_append resbinds cbind)
+	 (debug_msg clocc "normexp_letrec result clocc")
+	 (debug_msg resbinds "normexp_letrec result resbinds")
+	 (return clocc resbinds)
+	 (compile_warning "normexp_letrec incomplete - perhaps need a normal_letrec selector?")
+	 )))))
 (install_method class_source_letrec normal_exp normexp_letrec)
 
-;;;;;;;;;;;;;;;;
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;; create the normal predef (or fail with a msg) 
 (defun normal_predef (pred ncx sloc msg)
