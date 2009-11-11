@@ -7,7 +7,6 @@
  implicit none
 
  intrinsic :: extends_type_of
- integer :: extends_type_of
 
  type :: t1
    integer :: i = 42

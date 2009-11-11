@@ -4701,7 +4701,16 @@ gfc_build_class_symbol (gfc_typespec *ts, symbol_attribute *attr,
       c->initializer->expr_type = EXPR_NULL;
     }
 
-  fclass->attr.extension = 1;
+  /* Since the extension field is 8 bit wide, we can only have
+     up to 255 extension levels.  */
+  if (ts->u.derived->attr.extension == 255)
+    {
+      gfc_error ("Maximum extension level reached with type '%s' at %L",
+		 ts->u.derived->name, &ts->u.derived->declared_at);
+      return FAILURE;
+    }
+    
+  fclass->attr.extension = ts->u.derived->attr.extension + 1;
   fclass->attr.is_class = 1;
   ts->u.derived = fclass;
   attr->allocatable = attr->pointer = attr->dimension = 0;

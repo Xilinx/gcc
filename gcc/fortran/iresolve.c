@@ -851,7 +851,7 @@ gfc_resolve_extends_type_of (gfc_expr *f, gfc_expr *a, gfc_expr *mo)
     }
 
   f->ts.type = BT_LOGICAL;
-  f->ts.kind = gfc_default_logical_kind;
+  f->ts.kind = 4;
   /* Call library function.  */
   f->value.function.name = gfc_get_string (PREFIX ("is_extension_of"));
 }

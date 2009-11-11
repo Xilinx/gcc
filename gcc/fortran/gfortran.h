@@ -670,7 +670,7 @@ typedef struct
   unsigned untyped:1;		/* No implicit type could be found.  */
 
   unsigned is_bind_c:1;		/* say if is bound to C.  */
-  unsigned extension:1;		/* extends a derived type.  */
+  unsigned extension:8;		/* extension level of a derived type.  */
   unsigned is_class:1;		/* is a CLASS container.  */
   unsigned class_ok:1;		/* is a CLASS object with correct attributes.  */
   unsigned vtab:1;		/* is a derived type vtab.  */

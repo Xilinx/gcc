@@ -77,7 +77,7 @@ along with GCC; see the file COPYING3.  If not see
 
 /* Don't put any single quote (') in MOD_VERSION, 
    if yout want it to be recognized.  */
-#define MOD_VERSION "3"
+#define MOD_VERSION "4"
 
 
 /* Structure that describes a position within a module file.  */
@@ -1672,7 +1672,7 @@ typedef enum
   AB_CRAY_POINTER, AB_CRAY_POINTEE, AB_THREADPRIVATE, AB_ALLOC_COMP,
   AB_POINTER_COMP, AB_PRIVATE_COMP, AB_VALUE, AB_VOLATILE, AB_PROTECTED,
   AB_IS_BIND_C, AB_IS_C_INTEROP, AB_IS_ISO_C, AB_ABSTRACT, AB_ZERO_COMP,
-  AB_EXTENSION, AB_IS_CLASS, AB_PROCEDURE, AB_PROC_POINTER
+  AB_IS_CLASS, AB_PROCEDURE, AB_PROC_POINTER
 }
 ab_attribute;
 
@@ -1712,7 +1712,6 @@ static const mstring attr_bits[] =
     minit ("ZERO_COMP", AB_ZERO_COMP),
     minit ("PROTECTED", AB_PROTECTED),
     minit ("ABSTRACT", AB_ABSTRACT),
-    minit ("EXTENSION", AB_EXTENSION),
     minit ("IS_CLASS", AB_IS_CLASS),
     minit ("PROCEDURE", AB_PROCEDURE),
     minit ("PROC_POINTER", AB_PROC_POINTER),
@@ -1772,7 +1771,7 @@ static void
 mio_symbol_attribute (symbol_attribute *attr)
 {
   atom_type t;
-  unsigned ext_attr;
+  unsigned ext_attr,extension_level;
 
   mio_lparen ();
 
@@ -1781,9 +1780,14 @@ mio_symbol_attribute (symbol_attribute *attr)
   attr->proc = MIO_NAME (procedure_type) (attr->proc, procedures);
   attr->if_source = MIO_NAME (ifsrc) (attr->if_source, ifsrc_types);
   attr->save = MIO_NAME (save_state) (attr->save, save_status);
+  
   ext_attr = attr->ext_attr;
   mio_integer ((int *) &ext_attr);
   attr->ext_attr = ext_attr;
+
+  extension_level = attr->extension;
+  mio_integer ((int *) &extension_level);
+  attr->extension = extension_level;
 
   if (iomode == IO_OUTPUT)
     {
@@ -1859,8 +1863,6 @@ mio_symbol_attribute (symbol_attribute *attr)
 	MIO_NAME (ab_attribute) (AB_PRIVATE_COMP, attr_bits);
       if (attr->zero_comp)
 	MIO_NAME (ab_attribute) (AB_ZERO_COMP, attr_bits);
-      if (attr->extension)
-	MIO_NAME (ab_attribute) (AB_EXTENSION, attr_bits);
       if (attr->is_class)
 	MIO_NAME (ab_attribute) (AB_IS_CLASS, attr_bits);
       if (attr->procedure)
@@ -1984,9 +1986,6 @@ mio_symbol_attribute (symbol_attribute *attr)
 	      break;
 	    case AB_ZERO_COMP:
 	      attr->zero_comp = 1;
-	      break;
-	    case AB_EXTENSION:
-	      attr->extension = 1;
 	      break;
 	    case AB_IS_CLASS:
 	      attr->is_class = 1;

@@ -6846,13 +6846,23 @@ gfc_match_derived_decl (void)
 
       /* Add the extended derived type as the first component.  */
       gfc_add_component (sym, parent, &p);
-      sym->attr.extension = attr.extension;
       extended->refs++;
       gfc_set_sym_referenced (extended);
 
       p->ts.type = BT_DERIVED;
       p->ts.u.derived = extended;
       p->initializer = gfc_default_initializer (&p->ts);
+      
+      /* Set extension level.  */
+      if (extended->attr.extension == 255)
+	{
+	  /* Since the extension field is 8 bit wide, we can only have
+	     up to 255 extension levels.  */
+	  gfc_error ("Maximum extension level reached with type '%s' at %L",
+		     extended->name, &extended->declared_at);
+	  return MATCH_ERROR;
+	}
+      sym->attr.extension = extended->attr.extension + 1;
 
       /* Provide the links between the extended type and its extension.  */
       if (!extended->f2k_derived)

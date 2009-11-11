@@ -1,3 +1,18 @@
+2009-11-11  Janus Weil  <janus@gcc.gnu.org>
+
+	* decl.c (gfc_match_derived_decl): Set extension level.
+	* gfortran.h (symbol_attribute): Expand 'extension' bit field to 8 bit.
+	* iresolve.c (gfc_resolve_extends_type_of): Return value of
+	'is_extension_of' has kind=4.
+	* match.c (select_type_set_tmp,gfc_match_class_is): Create temporary
+	for CLASS IS blocks.
+	* module.c (MOD_VERSION): Bump module version.
+	(ab_attribute,attr_bits): Remove AB_EXTENSION.
+	(mio_symbol_attribute): Handle expanded 'extension' field.
+	* resolve.c (resolve_select_type): Implement CLASS IS blocks.
+	(resolve_fl_variable_derived): Show correct type name.
+	* symbol.c (gfc_build_class_symbol): Set extension level.
+
 2009-11-07  Janus Weil  <janus@gcc.gnu.org>
 
 	* intrinsic.h (gfc_resolve_extends_type_of): Add prototype.
