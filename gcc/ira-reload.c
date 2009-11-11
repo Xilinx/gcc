@@ -439,7 +439,7 @@ create_new_allocno_for_spilling (int nreg, int oreg)
   ALLOCNO_TOTAL_NO_STACK_REG_P (to) = ALLOCNO_TOTAL_NO_STACK_REG_P (from);
 #endif
   ALLOCNO_NREFS (to) = ALLOCNO_NREFS (from);
-  ALLOCNO_FREQ (to) = ALLOCNO_FREQ (from);
+  ALLOCNO_FREQ (to) = REG_FREQ (nreg);
   ALLOCNO_CALL_FREQ (to) = ALLOCNO_CALL_FREQ (from);
   ALLOCNO_CALLS_CROSSED_NUM (to) = ALLOCNO_CALLS_CROSSED_NUM (from);
   ALLOCNO_EXCESS_PRESSURE_POINTS_NUM (to)
@@ -792,6 +792,7 @@ localize_pseudos (basic_block bb, bitmap pseudos_to_localize)
 	  reg_max_ref_width[nregno] = reg_max_ref_width[i];
 	  reg_renumber[nregno] = reg_renumber[i];
 	  REG_N_CALLS_CROSSED (nregno) = REG_N_CALLS_CROSSED (i);
+	  REG_FREQ (nregno) = (pseudo_nuses[i] + pseudo_nsets[i]) * REG_FREQ_FROM_BB (bb);
 
 	  /* We don't really care other than to be sure there's a set and ref.  */
 	  SET_REG_N_SETS (nregno, 1);

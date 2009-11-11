@@ -1,5 +1,10 @@
 2009-11-10  Jeff Law <law@redhat.com>
 
+	* ira-reload.c (localize_pseudos): Set REG_FREQ for the newly
+	created pseudos.
+	(create_new_allocno_for_spilling): Set ALLOCNO_FREQ based on the
+	new pseudo's REG_FREQ.
+
 	2009-11-10  Vladimir Makarov <vmakarov@redhat.com>
 	* ira-color.c (allocno_reload_assign): Avoid accumulating
 	reload registers in ALLOCNO_TOTAL_CONFLICT_HARD_REGS.
