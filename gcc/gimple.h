@@ -983,6 +983,7 @@ extern bool walk_stmt_load_store_ops (gimple, void *,
 				      bool (*)(gimple, tree, void *),
 				      bool (*)(gimple, tree, void *));
 extern bool gimple_ior_addresses_taken (bitmap, gimple);
+extern const_tree strip_invariant_refs (const_tree);
 
 /* In gimplify.c  */
 extern tree create_tmp_var_raw (tree, const char *);

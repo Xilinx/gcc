@@ -2633,7 +2633,7 @@ is_gimple_address (const_tree t)
 /* Strip out all handled components that produce invariant
    offsets.  */
 
-static const_tree
+const_tree
 strip_invariant_refs (const_tree op)
 {
   while (handled_component_p (op))

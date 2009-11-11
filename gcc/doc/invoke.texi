@@ -8452,6 +8452,13 @@ parameters only when their cumulative size is less or equal to
 @option{ipa-sra-ptr-growth-factor} times the size of the original
 pointer parameter.
 
+@item tm-max-aggregate-size
+When making copies of thread-local variables in a transaction, this
+parameter specifies the size in bytes after which variables will be
+saved with the logging functions as opposed to save/restore code
+sequence pairs.  This option only applies when using
+@option{-fgnu-tm}.
+
 @end table
 @end table
 

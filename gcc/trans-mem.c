@@ -35,6 +35,7 @@
 #include "output.h"
 #include "trans-mem.h"
 #include "ggc.h"
+#include "params.h"
 #include "target.h"
 
 
@@ -703,10 +704,19 @@ typedef struct tm_log_entry
   tree addr;
   /* Dominating statements the store occurs in.  */
   gimple_vec stmts;
+  /* Initially, while we are building the log, we place a nonzero
+     value here to mean that this address *will* be saved with a
+     save/restore sequence.  Later, when generating the save sequence
+     we place the SSA temp generated here.  */
+  tree save_var;
 } *tm_log_entry_t;
 
 /* The actual log.  */
 static htab_t tm_log;
+
+/* True if any of the entries in the log must be generated with a
+   save/restore sequence.  */
+static bool tm_log_must_generate_saves;
 
 /* Htab support.  Return hash value for a `tm_log_entry'.  */
 static hashval_t
@@ -746,7 +756,7 @@ tm_log_init (void)
    tree.
 
    If we find the address in the log, make sure it's either the same
-   address, or an equivalent one that dominates ADDR.  Return it.
+   address, or an equivalent one that dominates ADDR.
 
    If we find the address, but neither ADDR dominates the found
    address, nor the found one dominates ADDR, we're on different
@@ -763,6 +773,7 @@ tm_log_add (tree addr, gimple stmt)
     {
       lp = XNEW (struct tm_log_entry);
       lp->addr = addr;
+      lp->save_var = NULL;
       lp->stmts = VEC_alloc (gimple, heap, 5);
       VEC_quick_push (gimple, lp->stmts, stmt);
       *slot = lp;
@@ -791,38 +802,242 @@ tm_log_add (tree addr, gimple stmt)
     }
 }
 
-/* Dump the local memory log.  */
+/* Gimplify the address of a TARGET_MEM_REF.  Return the SSA_NAME
+   result, insert the new statements before GSI.  */
+
+static tree
+gimplify_addr (gimple_stmt_iterator *gsi, tree x)
+{
+  if (TREE_CODE (x) == TARGET_MEM_REF)
+    x = tree_mem_ref_addr (build_pointer_type (TREE_TYPE (x)), x);
+  else
+    x = build_fold_addr_expr (x);
+  return force_gimple_operand_gsi (gsi, x, true, NULL, true, GSI_SAME_STMT);
+}
+
+/* Instrument one address with the logging functions.
+   ADDR is the address to save.
+   STMT is the statement before which to place it.  */
 static void
-tm_log_dump (void)
+tm_log_emit_stmt (tree addr, gimple stmt)
+{
+  tree type = TREE_TYPE (addr);
+  tree size = TYPE_SIZE_UNIT (type);
+  gimple_stmt_iterator gsi = gsi_for_stmt (stmt);
+  gimple log;
+  enum built_in_function code;
+
+  if (type == float_type_node)
+    code = BUILT_IN_TM_LOG_FLOAT;
+  else if (type == double_type_node)
+    code = BUILT_IN_TM_LOG_DOUBLE;
+  else if (type == long_double_type_node)
+    code = BUILT_IN_TM_LOG_LDOUBLE;
+  else if (host_integerp (size, 1))
+    switch (tree_low_cst (size, 1))
+      {
+      case 1:
+	code = BUILT_IN_TM_LOG_1;
+	break;
+      case 2:
+	code = BUILT_IN_TM_LOG_2;
+	break;
+      case 4:
+	code = BUILT_IN_TM_LOG_4;
+	break;
+      case 8:
+	code = BUILT_IN_TM_LOG_8;
+	break;
+      default:
+	code = BUILT_IN_TM_LOG;
+	break;
+      }
+
+  addr = gimplify_addr (&gsi, addr);
+  if (code == BUILT_IN_TM_LOG)
+    log = gimple_build_call (built_in_decls[code], 2, addr,  size);
+  else
+    log = gimple_build_call (built_in_decls[code], 1, addr);
+  gsi_insert_before (&gsi, log, GSI_SAME_STMT);
+}
+
+/* Return true if MEM is a transaction invariant memory for the TM
+   region starting at REGION_ENTRY_BLOCK.  */
+static bool
+transaction_invariant_address_p (const_tree mem, basic_block region_entry_block)
+{
+  if (TREE_CODE (mem) == SSA_NAME)
+    return dominated_by_p (CDI_DOMINATORS,
+			   region_entry_block,
+			   gimple_bb (SSA_NAME_DEF_STMT (mem)));
+
+  mem = strip_invariant_refs (mem);
+  return mem && (CONSTANT_CLASS_P (mem) || decl_address_invariant_p (mem));
+}
+
+/* Go through the log and instrument address that must be instrumented
+   with the logging functions.  Mark the save/restore addresses for
+   later.
+
+   REGION_ENTRY_BLOCK is the entry block of the TM region in question.  */
+static void
+tm_log_emit (basic_block region_entry_block)
 {
   htab_iterator hi;
   struct tm_log_entry *lp;
-  bool first = true;
 
-  if (!dump_file)
-    return;
-
+  tm_log_must_generate_saves = false;
   FOR_EACH_HTAB_ELEMENT (tm_log, lp, tm_log_entry_t, hi)
     {
       size_t i;
       gimple stmt;
+      tree type = TREE_TYPE (lp->addr);
 
-      if (first)
+      if (dump_file)
 	{
-	  fprintf (dump_file, "TM log\n------\n");
-	  first = false;
+	  fprintf (dump_file, "TM thread private mem logging: ");
+	  print_generic_expr (dump_file, lp->addr, 0);
+	  fprintf (dump_file, "\n");
 	}
-      fprintf (dump_file, "Address: ");
-      print_generic_expr (dump_file, lp->addr, 0);
-      fprintf (dump_file, "\n");
+
+      /* Small invariant addresses can be handled as save/restores
+	 later in tm_log_emit_save_restores.  */
+      if (transaction_invariant_address_p (lp->addr, region_entry_block)
+	  && TYPE_SIZE_UNIT (type) != NULL
+	  && host_integerp (TYPE_SIZE_UNIT (type), 1)
+	  && (tree_low_cst (TYPE_SIZE_UNIT (type), 1)
+	      < PARAM_VALUE (PARAM_TM_MAX_AGGREGATE_SIZE))
+	  /* We must be able to copy this type normally.  I.e., no
+	     special constructors and the like.  */
+	  && !TREE_ADDRESSABLE (type))
+	{
+	  lp->save_var = error_mark_node;
+	  tm_log_must_generate_saves = true;
+	  if (dump_file)
+	    fprintf (dump_file, "DUMPING to variable\n");
+	  continue;
+	}
+      else if (dump_file)
+	fprintf (dump_file, "DUMPING with logging functions\n");
+
       for (i = 0; VEC_iterate (gimple, lp->stmts, i, stmt); ++i)
-	{
-	  fprintf (dump_file, "BB=%d\t", gimple_bb (stmt)->index);
-	  print_gimple_stmt (dump_file, stmt, 0, 0);
-	}
+	tm_log_emit_stmt (lp->addr, stmt);
     }
-  if (!first)
-    fprintf (dump_file, "--------------\n\n\n");
+}
+
+/* Emit the save sequence for the corresponding addresses in the log.
+   BB is the basic block to insert the code in.  */
+static void
+tm_log_emit_saves (basic_block bb)
+{
+  htab_iterator hi;
+  struct tm_log_entry *lp;
+  gimple_stmt_iterator gsi = gsi_last_bb (bb);
+  gimple stmt;
+
+  /* FIXME: Instead of the hash order below, figure out a way to do
+     the stores in dominator tree order of where the original
+     statements are.  That way overlaps will work correctly.
+
+     Either that, or use the logging functions for any possibly
+     overlapping memories, and forget about any order.  */
+  FOR_EACH_HTAB_ELEMENT (tm_log, lp, tm_log_entry_t, hi)
+    {
+      if (!lp->save_var)
+	continue;
+
+      lp->save_var = create_tmp_var (TREE_TYPE (lp->addr), "tm_save");
+      add_referenced_var (lp->save_var);
+      stmt = gimple_build_assign (lp->save_var, unshare_expr (lp->addr));
+      lp->save_var = make_ssa_name (lp->save_var, stmt);
+      gimple_assign_set_lhs (stmt, lp->save_var);
+      gsi_insert_before (&gsi, stmt, GSI_SAME_STMT);
+    }
+}
+
+/* Emit the restore sequence for the corresponding addresses in the log.
+   BB is the basic block to insert the code in.  */
+static void
+tm_log_emit_restores (basic_block bb)
+{
+  htab_iterator hi;
+  struct tm_log_entry *lp;
+  gimple_stmt_iterator gsi;
+  gimple stmt;
+
+  FOR_EACH_HTAB_ELEMENT (tm_log, lp, tm_log_entry_t, hi)
+      {
+	if (!lp->save_var)
+	  continue;
+
+	/* Restores are in LIFO order from the saves in case we have
+	   overlaps.  */
+	gsi = gsi_start_bb (bb);
+
+	stmt = gimple_build_assign (unshare_expr (lp->addr), lp->save_var);
+	gsi_insert_after (&gsi, stmt, GSI_CONTINUE_LINKING);
+      }
+}
+
+/* Emit the checks for performing either a save or a restore sequence.
+
+   TRXN_PROP is either A_SAVELIVEVARIABLES or A_RESTORELIVEVARIABLES.
+
+   The code sequence is inserted in a new basic block created in
+   END_BB which is inserted between BEFORE_BB and the destination of
+   FALLTHRU_EDGE.
+
+   STATUS is the return value from _ITM_beginTransaction.
+   EMITF is a callback to emit the actual save/restore code.
+
+   The basic block containing the conditional checking for TRXN_PROP
+   is returned.  */
+static basic_block
+tm_log_emit_save_or_restores (unsigned trxn_prop,
+			      tree status,
+			      void (*emitf)(basic_block),
+			      basic_block before_bb,
+			      edge fallthru_edge,
+			      basic_block *end_bb)
+{
+  edge e;
+  basic_block cond_bb, after_bb, code_bb;
+  gimple cond_stmt, stmt;
+  gimple_stmt_iterator gsi;
+  tree t1, t2;
+  int old_flags = fallthru_edge->flags;
+
+  cond_bb = create_empty_bb (before_bb);
+  code_bb = create_empty_bb (cond_bb);
+  *end_bb = create_empty_bb (code_bb);
+  after_bb = fallthru_edge->dest;
+  redirect_edge_pred (fallthru_edge, *end_bb);
+  fallthru_edge->flags = EDGE_FALLTHRU;
+  e = make_edge (before_bb, cond_bb, old_flags);
+
+  set_immediate_dominator (CDI_DOMINATORS, cond_bb, before_bb);
+  set_immediate_dominator (CDI_DOMINATORS, code_bb, cond_bb);
+
+  gsi = gsi_last_bb (cond_bb);
+
+  /* t1 = status & A_{property}.  */
+  t1 = make_rename_temp (TREE_TYPE (status), NULL);
+  t2 = build_int_cst (TREE_TYPE (status), trxn_prop);
+  stmt = gimple_build_assign_with_ops (BIT_AND_EXPR, t1, status, t2);
+  gsi_insert_after (&gsi, stmt, GSI_CONTINUE_LINKING);
+
+  /* if (t1).  */
+  t2 = build_int_cst (TREE_TYPE (status), 0);
+  cond_stmt = gimple_build_cond (NE_EXPR, t1, t2, NULL, NULL);
+  gsi_insert_after (&gsi, cond_stmt, GSI_CONTINUE_LINKING);
+
+  emitf (code_bb);
+
+  e = make_edge (cond_bb, code_bb, EDGE_TRUE_VALUE);
+  e = make_edge (cond_bb, *end_bb, EDGE_FALSE_VALUE);
+  e = make_edge (code_bb, *end_bb, EDGE_FALLTHRU);
+
+  return cond_bb;
 }
 
 static tree lower_sequence_tm (gimple_stmt_iterator *, bool *,
@@ -1295,20 +1510,6 @@ tm_atomic_subcode_ior (struct tm_region *region, unsigned flags)
     }
 }
 
-
-/* Gimplify the address of a TARGET_MEM_REF.  Return the SSA_NAME
-   result, insert the new statements before GSI.  */
-
-static tree
-gimplify_addr (gimple_stmt_iterator *gsi, tree x)
-{
-  if (TREE_CODE (x) == TARGET_MEM_REF)
-    x = tree_mem_ref_addr (build_pointer_type (TREE_TYPE (x)), x);
-  else
-    x = build_fold_addr_expr (x);
-  return force_gimple_operand_gsi (gsi, x, true, NULL, true, GSI_SAME_STMT);
-}
-
 /* Construct a memory load in a transactional context.  */
 
 static gimple
@@ -1632,8 +1833,7 @@ execute_tm_mark (void)
 	  FOR_EACH_BB (bb)
 	    expand_block_tm (region, bb);
 	}
-      tm_log_dump ();
-      htab_delete (tm_log);
+      tm_log_emit (region->entry_block);
     }
 
   VEC_free (basic_block, heap, queue);
@@ -1711,7 +1911,7 @@ expand_block_edges (struct tm_region *region, basic_block bb)
       /* ??? TM_COMMIT (and any other ECF_TM_OPS function) in a nested
 	 transaction has an abnormal edge back to the outer-most transaction
 	 (there are no nested retries), while a TM_ABORT also has an abnormal
-	 backedge to the inner-most transaction.  We havn't actually saved
+	 backedge to the inner-most transaction.  We haven't actually saved
 	 the inner-most transaction here.  We should be able to get to it
 	 via the region_nr saved on STMT, and read the tm_atomic_stmt from
 	 that, and find the first region block from there.  */
@@ -1739,7 +1939,7 @@ static void
 expand_tm_atomic (struct tm_region *region)
 {
   tree status, tm_start;
-  basic_block atomic_bb;
+  basic_block atomic_bb, slice_bb;
   gimple_stmt_iterator gsi;
   tree t1, t2;
   gimple g;
@@ -1763,9 +1963,24 @@ expand_tm_atomic (struct tm_region *region)
   gimple_call_set_lhs (g, status);
 
   atomic_bb = gimple_bb (region->tm_atomic_stmt);
+
+  if (tm_log_must_generate_saves)
+    tm_log_emit_saves (atomic_bb);
+
   gsi = gsi_last_bb (atomic_bb);
   gsi_insert_before (&gsi, g, GSI_SAME_STMT);
   gsi_remove (&gsi, true);
+
+  if (tm_log_must_generate_saves)
+    region->entry_block =
+      tm_log_emit_save_or_restores (A_RESTORELIVEVARIABLES,
+				    status,
+				    tm_log_emit_restores,
+				    atomic_bb,
+				    FALLTHRU_EDGE (atomic_bb),
+				    &slice_bb);
+  else
+    slice_bb = atomic_bb;
 
   /* If we have an ABORT statement, create a test following the start
      call to perform the abort.  */
@@ -1774,7 +1989,9 @@ expand_tm_atomic (struct tm_region *region)
       edge e;
       basic_block test_bb;
 
-      region->entry_block = test_bb = create_empty_bb (atomic_bb);
+      test_bb = create_empty_bb (slice_bb);
+      if (!tm_log_must_generate_saves)
+	region->entry_block = test_bb;
       gsi = gsi_last_bb (test_bb);
 
       t1 = make_rename_temp (TREE_TYPE (status), NULL);
@@ -1786,7 +2003,7 @@ expand_tm_atomic (struct tm_region *region)
       g = gimple_build_cond (NE_EXPR, t1, t2, NULL, NULL);
       gsi_insert_after (&gsi, g, GSI_CONTINUE_LINKING);
 
-      e = FALLTHRU_EDGE (atomic_bb);
+      e = FALLTHRU_EDGE (slice_bb);
       redirect_edge_pred (e, test_bb);
       e->flags = EDGE_FALSE_VALUE;
       e->probability = PROB_ALWAYS - PROB_VERY_UNLIKELY;
@@ -1796,7 +2013,7 @@ expand_tm_atomic (struct tm_region *region)
       e->flags = EDGE_TRUE_VALUE;
       e->probability = PROB_VERY_UNLIKELY;
 
-      e = make_edge (atomic_bb, test_bb, EDGE_FALLTHRU);
+      e = make_edge (slice_bb, test_bb, EDGE_FALLTHRU);
     }
 
   /* If we've no abort, but we do have PHIs at the beginning of the atomic
@@ -1862,6 +2079,7 @@ execute_tm_edges (void)
 	EXECUTE_IF_SET_IN_BITMAP (blocks, 0, i, iter)
 	  expand_block_edges (region, BASIC_BLOCK (i));
       }
+  htab_delete (tm_log);
 
   VEC_free (basic_block, heap, queue);
   BITMAP_FREE (blocks);

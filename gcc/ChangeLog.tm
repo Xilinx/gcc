@@ -1,3 +1,27 @@
+2009-11-11  Aldy Hernandez  <aldyh@redhat.com>
+
+	* trans-mem.c: Include params.h.  New global
+	tm_log_must_generate_saves.
+	(tm_log_entry): Add save_var entry.
+	(tm_log_add): Initialize save_var.
+	(tm_log_emit_stmt): New.
+	(transaction_invariant_address_p): New.
+	(tm_log_dump): Rename.  Handle transaction invariants.
+	(tm_log_emit_saves): New.
+	(tm_log_emit_restores): New.
+	(tm_log_emit_save_or_restores): New.
+	(execute_tm_mark): Call tm_log_emit.
+	(expand_block_edges): Fix typo.
+	(expand_tm_atomic): Emit save/restore sequences.
+	(execute_tm_edges): Call htab_delete.
+	* doc/invoke.texi: Document tm-max-aggregate-size.
+	* builtin-types.def: Define BT_FN_VOID_VPTR_SIZE.
+	* gtm-builtins.def: Define TM_LOG* builtins.
+	* Makefile.in (trans-mem.o): Add PARAM_H dependency.
+	* gimple.c (strip_invariant_refs): Unconstify.
+	* gimple.h (strip_invariant_refs): Add prototype.
+	* params.def: Define PARAM_TM_MAX_AGGREGATE_SIZE.
+
 2009-10-28  Richard Henderson  <rth@redhat.com>
 
 	* c-common.c (c_common_attribute_table): Add
