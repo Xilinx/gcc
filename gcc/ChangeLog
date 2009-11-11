@@ -1,3 +1,59 @@
+2009-11-10  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR target/10127
+	PR ada/20548
+	* expr.h (anti_adjust_stack_and_probe): Declare.
+	* explow.c (anti_adjust_stack_and_probe): Make global, add ADJUST_BACK
+	parameter and rewrite head comment.
+	(allocate_dynamic_stack_space): Adjust call to above function.
+	* function.c (expand_function_end): Handle STACK_CHECK_MOVING_SP.
+
+	* tree.h (dwarf2out_args_size): Delete.
+	* dwarf2out.c (dwarf2out_args_size): Make static and move around.
+	(dwarf2out_args_size_adjust): Delete prototype and move around.
+	(dwarf2out_frame_debug_expr): Do not record arg size adjustments for
+	ACCUMULATE_OUTGOING_ARGS targets.
+
+2009-11-10  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* config/sparc/sparc.c (print_operand) <')'>: Test for a non-null
+	DECL_SIZE of DECL_RESULT before evaluating it.
+
+2009-11-10  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	PR tree-optimization/41987
+	* fold-const.c (const_binop): Avoid using fold_buildN().
+
+2009-11-10  Martin Jambor  <mjambor@suse.cz>
+
+	* tree-pass.h (struct ipa_opt_pass_d): Added stmt_fixup field.
+	(execute_all_ipa_stmt_fixups): Declare.
+	* ipa-cp.c (pass_ipa_cp): Added stmt_fixup value.
+	* ipa-inline.c (pass_ipa_inline): Likewise.
+	* ipa-pure-const.c (pass_ipa_pure_cons): Likewise.
+	* ipa-reference.c (pass_ipa_reference): Likewise.
+	* ipa.c (pass_ipa_whole_program_visibility): Likewise.
+	* lto-streamer-out.c (pass_ipa_lto_gimple_out): Likewise.
+	(pass_ipa_lto_finish_out): Likewise.
+	* lto-wpa-fixup.c (pass_ipa_lto_wpa_fixup): Likewise.
+	* passes.c (execute_ipa_stmt_fixups): New function.
+	(execute_all_ipa_stmt_fixups): New function.
+	* lto-streamer-in.c (input_function): Call execute_all_ipa_stmt_fixups.
+
+2009-11-10  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR ada/20548
+	* explow.c (probe_stack_range): Fix typo.
+	* config/sparc/sparc.md (probe_stack): New expander.
+
+2009-11-09  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	* config/i386/cygwin.h (LINK_SPEC): Add -tsaware flag if !mno-cygwin.
+
+2009-11-09  Jason Merrill  <jason@redhat.com>
+
+	* gdbinit.in (pgq): New function for printing gimple sequence.
+
 2009-11-09  Paul Brook  <paul@codesourcery.com>
 	Daniel Jacobowitz  <dan@codesourcery.com>
 	Sandra Loosemore  <sandra@codesourcery.com>

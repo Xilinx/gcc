@@ -1,3 +1,39 @@
+2009-11-10  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/init/placement5.C: New.
+
+	PR c++/34158
+	* g++.dg/init/placement4.C: New.
+
+2009-11-10  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.dg/vect/vect-multitypes-5.c: XFAIL on SPARC 32-bit.
+	* gcc.dg/vect/vect-multitypes-6.c: Likewise.
+	* gcc.dg/vect/vect-multitypes-12.c: Likewise.
+	* gcc.dg/vect/slp-multitypes-3.c: Likewise.
+
+2009-11-10  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.c-torture/execute/ipa-sra-2.c: Use calloc instead of malloc.
+	* gcc.dg/pr41963.c: Do not include math.h.  Declare fabsf manually.
+
+2009-11-10  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* gcc.c-torture/compile/pr41987.c: New.
+
+2009-11-09  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/40946
+	* gcc.dg/pr40946.c: New test.
+
+2009-11-09  Jason Merrill  <jason@redhat.com>
+
+	PR c++/41972
+	* g++.dg/template/ref4.C: New.
+
+	PR c++/41994
+	* g++.dg/template/conv10.C: New.
+
 2009-11-07  Jason Merrill  <jason@redhat.com>
 
 	PR c++/37920

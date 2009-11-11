@@ -191,7 +191,6 @@ static tree tsubst_decl (tree, tree, tsubst_flags_t);
 static void perform_typedefs_access_check (tree tmpl, tree targs);
 static void append_type_to_template_for_access_check_1 (tree, tree, tree);
 static hashval_t iterative_hash_template_arg (tree arg, hashval_t val);
-static bool primary_template_instantiation_p (const_tree);
 static tree listify (tree);
 static tree listify_autos (tree, tree);
 
@@ -2739,7 +2738,7 @@ make_ith_pack_parameter_name (tree name, int i)
 /* Return true if T is a primary function
    or class template instantiation.  */
 
-static bool
+bool
 primary_template_instantiation_p (const_tree t)
 {
   if (!t)
@@ -10318,7 +10317,7 @@ tsubst_baselink (tree baselink, tree object_type,
     qualifying_scope = tsubst (qualifying_scope, args,
 			       complain, in_decl);
     fns = BASELINK_FUNCTIONS (baselink);
-    optype = BASELINK_OPTYPE (baselink);
+    optype = tsubst (BASELINK_OPTYPE (baselink), args, complain, in_decl);
     if (TREE_CODE (fns) == TEMPLATE_ID_EXPR)
       {
 	template_id_p = true;
@@ -10329,6 +10328,8 @@ tsubst_baselink (tree baselink, tree object_type,
 						complain, in_decl);
       }
     name = DECL_NAME (get_first_fn (fns));
+    if (IDENTIFIER_TYPENAME_P (name))
+      name = mangle_conv_op_name_for_type (optype);
     baselink = lookup_fnfields (qualifying_scope, name, /*protect=*/1);
 
     /* If lookup found a single function, mark it as used at this
@@ -10347,8 +10348,7 @@ tsubst_baselink (tree baselink, tree object_type,
 		    BASELINK_FUNCTIONS (baselink),
 		    template_args);
     /* Update the conversion operator type.  */
-    BASELINK_OPTYPE (baselink) 
-      = tsubst (optype, args, complain, in_decl);
+    BASELINK_OPTYPE (baselink) = optype;
 
     if (!object_type)
       object_type = current_class_type;
