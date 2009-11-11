@@ -1,3 +1,12 @@
+2009-11-11  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h: melt_assertmsg & melt_checkmsg expanded to a
+	do{}while(0) with MELT_UNLIKELY
+	* melt-runtime.c (do_initial_mode): Added an explicit modstr
+	argument. Removed uselesss #if 0-ed code. Acccepts comma separated
+	multiple modes.
+	* doc/melt.texi: document that the mode can be multiple,
+	comma-separated.
+
 2009-11-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normal.melt: still working on letrec... Added class_nrep_letrec.
 	* testsuite/melt/tletrec.melt: even more simple case first.

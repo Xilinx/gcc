@@ -4096,7 +4096,7 @@ meltgc_remove_mapstrings (struct meltmapstrings_st *
       || oldat == HTAB_DELETED_ENTRY)
     goto end;
   if (!melt_is_young (oldat))
-    ggc_free (CONST_CAST(char *, oldat));
+    ggc_free (CONST_CAST (char *, oldat));
   map_mapstringv->entab[ix].e_at = (char *) HTAB_DELETED_ENTRY;
   valuv = map_mapstringv->entab[ix].e_va;
   map_mapstringv->entab[ix].e_va = NULL;
@@ -7499,13 +7499,15 @@ end:
 #undef valv
 }
 
+
+
+/* handle the inital mode or modes if it is a comma separated list of modes */
 static void
-do_initial_mode (melt_ptr_t modata_p)
+do_initial_mode (melt_ptr_t modata_p, const char* modstr)
 {
-#if 0 && uselesscode
-  int oldmode = 0;
-#endif
-  const char* modstr = NULL;
+  char* curmodstr = NULL;
+  char* dupmodstr = NULL;
+  char* comma = NULL;
   MELT_ENTERFRAME (10, NULL);
 #define dictv     curfram__.varptr[0]
 #define closv     curfram__.varptr[1]
@@ -7539,90 +7541,66 @@ do_initial_mode (melt_ptr_t modata_p)
       debugeprintf("do_initial_mode invalid dictv %p", dictv);
       goto end;
     };
-  cmdv =
-    melt_get_mapstrings ((struct meltmapstrings_st *) dictv,
-			 modstr);
-  debugeprintf ("do_initial_mode cmdv=%p", cmdv);
-#if 0 && uselesscode
-  /* this is a temporary hack to maintain compatibility with old stuff */
-  if (melt_magic_discr ((melt_ptr_t) cmdv) == OBMAG_CLOSURE)
+  if (strchr (modstr, ',')) 
+    curmodstr = dupmodstr = xstrdup (modstr);
+  else
+    curmodstr = CONST_CAST (char *, modstr);
+  do 
     {
-      closv = cmdv;
-      cmdv = NULL;
-      oldmode = 1;
-      warning (0, "MELT mode %s is associated with a closure, not a mode object",
-	       modstr);
-      goto got_closure;
-    }
-#endif
-  if (!melt_is_instance_of ((melt_ptr_t) cmdv,
-			    (melt_ptr_t) MELT_PREDEF (CLASS_MELT_MODE)))
-    {
-      debugeprintf ("do_initial_mode invalid cmdv %p", cmdv);
-      error ("unknown MELT mode %s", modstr);
-      goto end;
-    };
-  closv = melt_object_nth_field ((melt_ptr_t) cmdv, FMELTCMD_FUN);
-#if 0 && uselesscode
- got_closure:
-#endif
-  if (melt_magic_discr ((melt_ptr_t) closv) != OBMAG_CLOSURE)
-    {
-      debugeprintf ("do_initial_mode invalid closv %p", closv);
-      error ("no closure for melt mode %s", modstr);
-      goto end;
-    };
-  {
-    union meltparam_un pararg[4];
-    memset (pararg, 0, sizeof (pararg));
-#if 0 && uselesscode
-    if (oldmode)
+      comma = strchr (curmodstr, ',');
+      if (comma)
+	*comma = (char)0;
+      /* the mode exit is builtin */
+      if (curmodstr && !strcmp (curmodstr, "exit"))
+	{
+	  exit_after_options = true;
+	  goto end;
+	}
+      else
+	cmdv =
+	  melt_get_mapstrings ((struct meltmapstrings_st *) dictv,
+			       curmodstr);
+      debugeprintf ("do_initial_mode cmdv=%p", cmdv);
+      if (!melt_is_instance_of ((melt_ptr_t) cmdv,
+				(melt_ptr_t) MELT_PREDEF (CLASS_MELT_MODE)))
+	{
+	  debugeprintf ("do_initial_mode invalid cmdv %p", cmdv);
+	  error ("unknown MELT mode %s", modstr);
+	  goto end;
+	};
+      closv = melt_object_nth_field ((melt_ptr_t) cmdv, FMELTCMD_FUN);
+      if (melt_magic_discr ((melt_ptr_t) closv) != OBMAG_CLOSURE)
+	{
+	  debugeprintf ("do_initial_mode invalid closv %p", closv);
+	  error ("no closure for melt mode %s", modstr);
+	  goto end;
+	};
       {
-	/* oldmode: apply the closure to the system data, the first
-	   argument, the output argument */
-	const char * argstr = melt_argument ("arg");
-	const char * outstr = melt_argument ("output");
-	cstrv = NULL;
-	csecstrv = NULL;
-	if (argstr && argstr[0])
-	  cstrv = meltgc_new_stringdup
-	    ((meltobject_ptr_t) MELT_PREDEF (DISCR_STRING),
-	     argstr);
-	if (outstr && outstr[0])
-	  csecstrv =
-	    meltgc_new_string ((meltobject_ptr_t) MELT_PREDEF (DISCR_STRING),
-			       outstr);
-	pararg[0].bp_aptr = (melt_ptr_t *) &cstrv;
-	pararg[1].bp_aptr = (melt_ptr_t *) &csecstrv;
-	pararg[2].bp_aptr = (melt_ptr_t *) &modatav;
-	debugeprintf ("do_initial_mode before old apply closv %p", closv);
-	MELT_LOCATION_HERE ("do_initial_mode before apply");
-	resv = melt_apply ((meltclosure_ptr_t) closv,
-			   (melt_ptr_t) MELT_PREDEF  (INITIAL_SYSTEM_DATA),
-			   BPARSTR_PTR BPARSTR_PTR BPARSTR_PTR, pararg, "",
-			   NULL);
-	debugeprintf ("do_initial_mode after old apply closv %p resv %p",
-		      closv, resv);
+	union meltparam_un pararg[4];
+	memset (pararg, 0, sizeof (pararg));
+	{
+	  /* apply the closure to the mode & the module data */
+	  pararg[0].bp_aptr = (melt_ptr_t *) & modatav;
+	  debugeprintf ("do_initial_mode before apply closv %p", closv);
+	  MELT_LOCATION_HERE ("do_initial_mode before apply");
+	  resv = melt_apply ((meltclosure_ptr_t) closv,
+			     (melt_ptr_t) cmdv,
+			     BPARSTR_PTR, pararg, "",
+			     NULL);
+	  debugeprintf ("do_initial_mode after apply closv %p resv %p",
+			closv, resv);
+	}
+	exit_after_options = (resv == NULL);
+	/* force a minor GC to be sure nothing stays in young region */
+	melt_garbcoll (0, MELT_ONLY_MINOR);
       }
-    else
-#endif
-      {
-	/* apply the closure to the mode & the module data */
-	pararg[0].bp_aptr = (melt_ptr_t *) & modatav;
-	debugeprintf ("do_initial_mode before apply closv %p", closv);
-	MELT_LOCATION_HERE ("do_initial_mode before apply");
-	resv = melt_apply ((meltclosure_ptr_t) closv,
-			   (melt_ptr_t) cmdv,
-			   BPARSTR_PTR, pararg, "",
-			   NULL);
-	debugeprintf ("do_initial_mode after apply closv %p resv %p",
-		      closv, resv);
-      }
-    exit_after_options = (resv == NULL);
-    /* force a minor GC to be sure nothing stays in young region */
-    melt_garbcoll (0, MELT_ONLY_MINOR);
-  }
+      if (comma)
+	curmodstr = comma+1;
+    } while (comma);
  end:
+  if (dupmodstr)
+    free (dupmodstr);
+  dupmodstr = NULL;
   debugeprintf ("do_initial_mode end %s", modstr);
   MELT_EXITFRAME ();
 #undef dictv
@@ -7742,11 +7720,7 @@ load_melt_modules_and_do_mode (void)
   /**
    * then we do the mode if needed 
    **/
-  /* the mode exit is builtin */
-  if (modstr && !strcmp (modstr, "exit"))
-    exit_after_options = true;
-  /* other modes */
-  else if (melt_get_inisysdata (FSYSDAT_MODE_DICT) && modstr
+  if (melt_get_inisysdata (FSYSDAT_MODE_DICT) && modstr
 	   && modstr[0])
     {
       debugeprintf
@@ -7754,7 +7728,7 @@ load_melt_modules_and_do_mode (void)
 	 modstr);
       MELT_LOCATION_HERE
 	("load_initial_melt_modules before do_initial_mode");
-      do_initial_mode ((melt_ptr_t) modatv);
+      do_initial_mode ((melt_ptr_t) modatv, modstr);
       debugeprintf
 	("load_melt_modules_and_do_mode after do_initial_mode  mode_string %s",
 	 modstr);

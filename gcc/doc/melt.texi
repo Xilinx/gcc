@@ -233,6 +233,9 @@ be used for their side-effects. In particular, the compilation of MELT
 lisp source file @code{*.melt} into C code @code{*.c} is done this
 way.
 
+Several modes may be given by separating them with commas. They are
+handled in that case in succession.
+
 @item -fmelt-arg=
 @gccoptlist{-fplugin-arg-melt-arg=}
 @opindex fmelt-arg=
