@@ -16,6 +16,7 @@ vpath % $(strip $(search_path))
 
 AM_CPPFLAGS = $(addprefix -I, $(search_path))
 AM_CFLAGS = $(XCFLAGS)
+AM_CXXFLAGS = -std=gnu++0x -fno-rtti $(XCFLAGS)
 AM_CCASFLAGS = $(XCFLAGS)
 AM_LDFLAGS = $(XLDFLAGS) $(SECTION_LDFLAGS) $(OPT_LDFLAGS)
 
@@ -28,17 +29,25 @@ else
 libitm_version_script =
 endif
 libitm_version_info = -version-info $(libtool_VERSION)
+
+## Force link with C, not C++.  For now, while we're using C++ we don't
+## want or need libstdc++.
+libitm_la_LINK = $(LINK)
 libitm_la_LDFLAGS = $(libitm_version_info) $(libitm_version_script) \
         -no-undefined
 
 libitm_la_SOURCES = \
-	aatree.c alloc.c alloc_c.c alloc_cpp.c barrier.c beginend.c	\
-	clone.c copymask.c eh_cpp.c local.c memcpy.c memset.c page.c	\
-	query.c retry.c rwlock.c serial.c useraction.c sjlj.S futex.c	\
-	method-readonly.c method-wbetl.c
+	aatree.cc alloc.cc alloc_c.cc alloc_cpp.cc barrier.cc beginend.cc \
+	clone.cc cacheline.cc cachepage.cc eh_cpp.cc local.cc memcpy.cc \
+	memset.cc query.cc retry.cc rwlock.cc serial.cc useraction.cc util.cc \
+	sjlj.S method-readonly.cc method-wbetl.cc
 
 if ARCH_X86
-libitm_la_SOURCES += x86_sse.c x86_avx.c
-x86_sse.lo : AM_CFLAGS += -msse
-x86_avx.lo : AM_CFLAGS += -mavx
+libitm_la_SOURCES += x86_sse.cc x86_avx.cc
+x86_sse.lo : XCFLAGS += -msse
+x86_avx.lo : XCFLAGS += -mavx
+endif
+
+if ARCH_FUTEX
+libitm_la_SOURCES += futex.cc
 endif

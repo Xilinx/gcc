@@ -103,6 +103,7 @@ AC_SUBST(toolexeclibdir)
 m4_rename([_AC_ARG_VAR_PRECIOUS],[real_PRECIOUS])
 m4_define([_AC_ARG_VAR_PRECIOUS],[])
 AC_PROG_CC
+AC_PROG_CXX
 AM_PROG_AS
 m4_rename_force([real_PRECIOUS],[_AC_ARG_VAR_PRECIOUS])
 
@@ -153,6 +154,15 @@ ACX_HEADER_STRING
 AC_CHECK_HEADERS(unistd.h semaphore.h sys/time.h malloc.h)
 
 GCC_HEADER_STDINT(gstdint.h)
+
+GCC_AC_FUNC_MMAP_BLACKLIST
+
+AC_C_BIGENDIAN
+# I don't like the default behaviour of WORDS_BIGENDIAN undefined for LE.
+AH_BOTTOM(
+[#ifndef WORDS_BIGENDIAN
+#define WORDS_BIGENDIAN 0
+#endif])
 
 # Check to see if -pthread or -lpthread is needed.  Prefer the former.
 # In case the pthread.h system header is not found, this test will fail.
@@ -210,7 +220,9 @@ CFLAGS="$save_CFLAGS $XCFLAGS"
 # had a chance to set XCFLAGS.
 LIBITM_CHECK_SYNC_BUILTINS
 
-GCC_AC_FUNC_MMAP_BLACKLIST
+# Cleanup and exit.
+CFLAGS="$save_CFLAGS"
+AC_CACHE_SAVE
 
 # Add -Wall -Werror if we are using GCC.
 if test "x$GCC" = "xyes"; then
@@ -222,10 +234,6 @@ XCFLAGS="$XCFLAGS $XPCFLAGS"
 AC_SUBST(config_path)
 AC_SUBST(XCFLAGS)
 AC_SUBST(XLDFLAGS)
-
-# Cleanup and exit.
-CFLAGS="$save_CFLAGS"
-AC_CACHE_SAVE
 
 if test ${multilib} = yes; then
   multilib_arg="--enable-multilib"
@@ -245,6 +253,7 @@ fi
 AC_SUBST(link_itm)
 
 AM_CONDITIONAL([ARCH_X86], [test "$ARCH" = x86])
+AM_CONDITIONAL([ARCH_FUTEX], [test $enable_linux_futex = yes])
 
 AC_CONFIG_FILES(Makefile testsuite/Makefile libitm.spec)
 AC_OUTPUT

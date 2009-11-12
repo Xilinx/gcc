@@ -22,36 +22,28 @@
    see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
    <http://www.gnu.org/licenses/>.  */
 
+#include "libitm_i.h"
+
+
 namespace GTM HIDDEN {
 
-typedef struct gtm_jmpbuf
+void
+gtm_cacheline::copy_mask (gtm_cacheline * __restrict d,
+			  const gtm_cacheline * __restrict s,
+			  gtm_cacheline_mask m)
 {
-  unsigned long pc;
-  unsigned long s[7];
-  unsigned long cfa;
-  unsigned long f[8];
-} gtm_jmpbuf;
+  const size_t n = sizeof (gtm_word);
 
-/* Alpha generally uses a fixed page size of 8K.  */
-#define PAGE_SIZE	8192
-#define FIXED_PAGE_SIZE	1
+  if (m == (gtm_cacheline_mask) -1)
+    {
+      *d = *s;
+      return;
+    }
+  if (__builtin_expect (m == 0, 0))
+    return;
 
-static inline void
-cpu_relax (void)
-{
-  __asm volatile ("" : : : "memory");
-}
-
-static inline void
-atomic_read_barrier (void)
-{
-  __sync_synchronize ();
-}
-
-static inline void
-atomic_write_barrier (void)
-{
-  __asm volatile ("wmb" : : : "memory");
+  for (size_t i = 0; i < CACHELINE_SIZE / n; ++i, m >>= n)
+    store_mask (&d->w[i], s->w[i], m);
 }
 
 } // namespace GTM

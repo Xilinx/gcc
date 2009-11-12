@@ -1,4 +1,4 @@
-/* Copyright (C) 2008, 2009 Free Software Foundation, Inc.
+/* Copyright (C) 2009 Free Software Foundation, Inc.
    Contributed by Richard Henderson <rth@redhat.com>.
 
    This file is part of the GNU Transactional Memory Library (libitm).
@@ -25,6 +25,8 @@
 #ifndef GTM_RWLOCK_H
 #define GTM_RWLOCK_H
 
+#include <pthread.h>
+
 namespace GTM HIDDEN {
 
 // This datastructure is similar to the POSIX pthread_rwlock_t except
@@ -37,26 +39,25 @@ namespace GTM HIDDEN {
 
 class gtm_rwlock
 {
- private:
-  // A collection of bits that may be set in SUMMARY:
-  static const int s_lock	= 1;	// The strucure as a whole is locked.
-  static const int a_writer	= 2;	// An active writer.
-  static const int w_writer	= 4;	// The w_writers field != 0
-  static const int a_reader	= 8;	// The a_readers field != 0
-  static const int w_reader	= 16;	// The w_readers field != 0
-  static const int rw_upgrade	= 32;	// A reader waiting for upgrade.
+  pthread_mutex_t mutex;	// Held if manipulating any field.
+  pthread_cond_t c_readers;	// Readers wait here
+  pthread_cond_t c_writers;	// Writers wait here
+  pthread_cond_t c_upgrade;	// An upgrader waits here
 
-  // All fields must be "int", since they're all given to the futex syscall.
-  int summary;
-  int a_readers;
-  int w_readers;
-  int w_writers;
+  static const unsigned w_upgrade  = 1;		// A reader waiting for upgrade
+  static const unsigned a_writer   = 2;		// An active writer.
+  static const unsigned w_writer   = 4;		// The w_writers field != 0
+  static const unsigned a_reader   = 8;		// The a_readers field != 0
+  static const unsigned w_reader   = 16;	// The w_readers field != 0
 
-  int lock_summary ();
+  unsigned int summary;		// Bitmask of the above.
+  unsigned int a_readers;	// Nr active readers
+  unsigned int w_readers;	// Nr waiting readers
+  unsigned int w_writers;	// Nr waiting writers
 
  public:
-  // ??? Uncomment if we have non-static users or if constexpr is supported.
-  // gtm_rwlock() : summary(0), a_readers(0), w_readers(0), w_writers(0) { }
+  gtm_rwlock();
+  ~gtm_rwlock();
 
   void read_lock ();
   void read_unlock ();

@@ -30,222 +30,113 @@
 #define LIBITM_I_H 1
 
 #include "libitm.h"
-
 #include "config.h"
 
-#include <assert.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cassert>
+#include <cstdlib>
+#include <cstring>
 #include <unwind.h>
+#include <type_traits>
 
 #define UNUSED		__attribute__((unused))
-
-/* Control how gtm_copy_cacheline_mask operates.  If set, we use byte masking
-   to update D, which *does* write to bytes not affected by the mask.  It's
-   unclear if this optimization is correct.  */
-#define ALLOW_UNMASKED_STORES 0
-
+#define ALWAYS_INLINE	__attribute__((always_inline))
 #ifdef HAVE_ATTRIBUTE_VISIBILITY
-# pragma GCC visibility push(hidden)
+# define HIDDEN		__attribute__((visibility("hidden")))
+#else
+# define HIDDEN
 #endif
+
+#define likely(X)	__builtin_expect((X) != 0, 1)
+#define unlikely(X)	__builtin_expect((X), 0)
+
+namespace GTM HIDDEN {
+
+using namespace std;
+
+// A helper template for accessing an unsigned integral of SIZE bytes.
+template<size_t SIZE> struct sized_integral { };
+template<> struct sized_integral<1> { typedef uint8_t type; };
+template<> struct sized_integral<2> { typedef uint16_t type; };
+template<> struct sized_integral<4> { typedef uint32_t type; };
+template<> struct sized_integral<8> { typedef uint64_t type; };
+
+typedef unsigned int gtm_word __attribute__((mode (word)));
+
+// Locally defined protected allocation functions.
+//
+// To avoid dependency on libstdc++ new/delete, as well as to not
+// interfere with the wrapping of the global new/delete we wrap for
+// the user in alloc_cpp.cc, use class-local versions that defer
+// to malloc/free.  Recall that operator new/delete does not go through
+// normal lookup and so we cannot simply inject a version into the
+// GTM namespace.
+
+extern void * xmalloc (size_t s) __attribute__((malloc, nothrow));
+extern void * xrealloc (void *p, size_t s) __attribute__((malloc, nothrow));
+
+} // namespace GTM
 
 #include "target.h"
 #include "rwlock.h"
 #include "aatree.h"
+#include "cacheline.h"
+#include "cachepage.h"
+#include "stmlock.h"
 
-/* A gtm_cacheline_mask stores a modified bit for every modified byte
-   in the cacheline with which it is associated.  */
-#if CACHELINE_SIZE == 8
-typedef uint8_t gtm_cacheline_mask;
-#elif CACHELINE_SIZE == 16
-typedef uint16_t gtm_cacheline_mask;
-#elif CACHELINE_SIZE == 32
-typedef uint32_t gtm_cacheline_mask;
-#elif CACHELINE_SIZE == 64
-typedef uint64_t gtm_cacheline_mask;
-#else
-#error "Unsupported cacheline size"
-#endif
+namespace GTM HIDDEN {
 
-typedef unsigned int gtm_word __attribute__((mode (word)));
-
-/* A cacheline.  The smallest unit with which locks are associated.  */
-typedef union gtm_cacheline
+// A dispatch table parameterizes the implementation of the STM.
+struct gtm_dispatch
 {
-  /* Byte access to the cacheline.  */
-  unsigned char b[CACHELINE_SIZE] __attribute__((aligned(CACHELINE_SIZE)));
+ public:
+  enum lock_type { NOLOCK, R, RaR, RaW, RfW, W, WaR, WaW };
 
-  /* Larger sized access to the cacheline.  */
-  uint16_t u16[CACHELINE_SIZE / sizeof(uint16_t)];
-  uint32_t u32[CACHELINE_SIZE / sizeof(uint32_t)];
-  uint64_t u64[CACHELINE_SIZE / sizeof(uint64_t)];
-  gtm_word w[CACHELINE_SIZE / sizeof(gtm_word)];
+  struct mask_pair
+  {
+    gtm_cacheline *line;
+    gtm_cacheline_mask *mask;
 
-#if defined(__i386__) || defined(__x86_64__)
-  /* ??? The definitions of gtm_cacheline_copy{,_mask} require all three
-     of these types depending on the implementation, making it difficult
-     to hide these inside the target header file.  */
-# ifdef __SSE__
-  __m128 m128[CACHELINE_SIZE / sizeof(__m128)];
-# endif
-# ifdef __SSE2__
-  __m128i m128i[CACHELINE_SIZE / sizeof(__m128i)];
-# endif
-# ifdef __AVX__
-  __m256 m256[CACHELINE_SIZE / sizeof(__m256)];
-# endif
-#endif
-} gtm_cacheline;
+    mask_pair() = default;
+    mask_pair(gtm_cacheline *l, gtm_cacheline_mask *m) : line(l), mask(m) { }
+  };
 
-/* A "page" worth of saved cachelines plus modification masks.  This
-   arrangement is intended to minimize the overhead of alignment.  The
-   PAGE_SIZE defined by the target must be a constant for this to work,
-   which means that this definition may not be the same as the real
-   system page size.  */
+ private:
+  // Disallow copies
+  gtm_dispatch(const gtm_dispatch &) = delete;
+  gtm_dispatch& operator=(const gtm_dispatch &) = delete;
 
-#define CACHELINES_PER_PAGE \
-	((PAGE_SIZE - sizeof(void *)) \
-	 / (CACHELINE_SIZE + sizeof(gtm_cacheline_mask)))
+ public:
+  // The default version of these is pass-through.  This merely gives the
+  // a single location to instantiate the base class vtable.
+  virtual const gtm_cacheline *read_lock(const gtm_cacheline *, lock_type);
+  virtual mask_pair write_lock(gtm_cacheline *, lock_type);
 
-typedef struct gtm_cacheline_page
-{
-  gtm_cacheline lines[CACHELINES_PER_PAGE] __attribute__((aligned(PAGE_SIZE)));
-  gtm_cacheline_mask masks[CACHELINES_PER_PAGE];
-  struct gtm_cacheline_page *prev;
-} gtm_cacheline_page;
+  virtual bool trycommit() = 0;
+  virtual void rollback() = 0;
+  virtual void reinit() = 0;
 
-static inline gtm_cacheline_page *
-gtm_page_for_line (gtm_cacheline *c)
-{
-  return (gtm_cacheline_page *)((uintptr_t)c & -PAGE_SIZE);
-}
+  // Use fini instead of dtor to support a static subclasses that uses
+  // a unique object and so we don't want to destroy it from common code.
+  virtual void fini() = 0;
 
-static inline gtm_cacheline_mask *
-gtm_mask_for_line (gtm_cacheline *c)
-{
-  gtm_cacheline_page *p = gtm_page_for_line (c);
-  size_t index = c - &p->lines[0];
-  return &p->masks[index];
-}
+  bool read_only () const { return m_read_only; }
+  bool write_through() const { return m_write_through; }
 
-/* A read lock function locks a cacheline.  PTR must be cacheline aligned.
-   The return value is the cacheline address (equal to PTR for a write-through
-   implementation, and something else for a write-back implementation).  */
-typedef gtm_cacheline *(*gtm_read_lock_fn)(uintptr_t cacheline);
+  static void *operator new(size_t s) { return xmalloc (s); }
+  static void operator delete(void *p) { free (p); }
 
-/* A write lock function locks a cacheline.  PTR must be cacheline aligned.
-   The return value is a pair of the cacheline address and a mask that must
-   be updated with the bytes that are subsequently modified.  We hope that
-   the target implements small structure return efficiently so that this
-   comes back in a pair of registers.  If not, we're not really worse off
-   than returning the second value via a second argument to the function.  */
+ protected:
+  const bool m_read_only;
+  const bool m_write_through;
+  gtm_dispatch(bool ro, bool wt) : m_read_only(ro), m_write_through(wt) { }
 
-typedef struct gtm_cacheline_mask_pair
-{
-  gtm_cacheline *line;
-  gtm_cacheline_mask *mask;
-} gtm_cacheline_mask_pair;
+  static gtm_cacheline_mask mask_sink;
+};
 
-typedef gtm_cacheline_mask_pair (*gtm_write_lock_fn)(uintptr_t cacheline);
-
-/* A versioned write lock on a cacheline.  This must be wide enough to 
-   store a pointer, and preferably wide enough to avoid overflowing the
-   version counter.  Thus we use a "word", which should be 64-bits on
-   64-bit systems even when their pointer size is forced smaller.  */
-typedef gtm_word gtm_stmlock;
-
-/* This has to be the same size as gtm_stmlock, we just use this name
-   for documentation purposes.  */
-typedef gtm_word gtm_version;
-
-/* The maximum value a version number can have.  This is a consequence
-   of having the low bit of gtm_stmlock reserved for the owned bit.  */
-#define GTM_VERSION_MAX		(~(gtm_version)0 >> 1)
-
-/* A value that may be used to indicate "uninitialized" for a version.  */
-#define GTM_VERSION_INVALID	(~(gtm_version)0)
-
-/* This bit is set when the write lock is held.  When set, the balance of
-   the bits in the lock is a pointer that references STM backend specific
-   data; it is up to the STM backend to determine if this thread holds the
-   lock.  If this bit is clear, the balance of the bits are the last 
-   version number committed to the cacheline.  */
-static inline bool
-gtm_stmlock_owned_p (gtm_stmlock lock)
-{
-  return lock & 1;
-}
-
-static inline gtm_stmlock
-gtm_stmlock_set_owned (void *data)
-{
-  return (gtm_stmlock)(uintptr_t)data | 1;
-}
-
-static inline void *
-gtm_stmlock_get_addr (gtm_stmlock lock)
-{
-  return (void *)((uintptr_t)lock & ~(uintptr_t)1);
-}
-
-static inline gtm_version
-gtm_stmlock_get_version (gtm_stmlock lock)
-{
-  return lock >> 1;
-}
-
-static inline gtm_stmlock
-gtm_stmlock_set_version (gtm_version ver)
-{
-  return ver << 1;
-}
-
-/* We use a fixed set of locks for all memory, hashed into the
-   following table.  */
-#define LOCK_ARRAY_SIZE  (1024 * 1024)
-extern gtm_stmlock gtm_stmlock_array[LOCK_ARRAY_SIZE];
-
-static inline gtm_stmlock *
-gtm_get_stmlock (uintptr_t addr)
-{
-  size_t idx = (addr / CACHELINE_SIZE) % LOCK_ARRAY_SIZE;
-  return gtm_stmlock_array + idx;
-}
-
-/* The current global version number.  */
-extern gtm_version gtm_clock;
-
-/* A dispatch table parameterizes the implementation of the STM.  */
-typedef struct gtm_dispatch
-{
-  gtm_read_lock_fn R;
-  gtm_read_lock_fn RaR;
-  gtm_read_lock_fn RaW;
-  gtm_read_lock_fn RfW;
-
-  gtm_write_lock_fn W;
-  gtm_write_lock_fn WaR;
-  gtm_write_lock_fn WaW;
-
-  bool (*trycommit) (void);
-  void (*rollback) (void);
-  void (*init) (bool);
-  void (*fini) (void);
-
-  bool write_through;
-} gtm_dispatch;
-
-
-/* These values define a mask used in gtm_transaction.state.  */
-#define STATE_READONLY		0x0001
-#define STATE_SERIAL		0x0002
-#define STATE_IRREVOKABLE	0x0004
-#define STATE_ABORTING		0x0008
-
-/* These values are given to GTM_restart_transaction and indicate the
-   reason for the restart.  The reason is used to decide what STM 
-   implementation should be used during the next iteration.  */
-typedef enum gtm_restart_reason
+// These values are given to GTM_restart_transaction and indicate the
+// reason for the restart.  The reason is used to decide what STM
+// implementation should be used during the next iteration.
+enum gtm_restart_reason
 {
   RESTART_REALLOCATE,
   RESTART_LOCKED_READ,
@@ -253,220 +144,140 @@ typedef enum gtm_restart_reason
   RESTART_VALIDATE_READ,
   RESTART_VALIDATE_WRITE,
   RESTART_VALIDATE_COMMIT,
+  RESTART_SERIAL_IRR,
   RESTART_NOT_READONLY,
   NUM_RESTARTS
-} gtm_restart_reason;
+};
 
+// This type is private to alloc.c.
+struct gtm_alloc_action;
 
-/* This type is private to local.c.  */
+// This type is private to local.c.
 struct gtm_local_undo;
 
-/* This type is private to useraction.c.  */
+// This type is private to useraction.c.
 struct gtm_user_action;
 
-/* This type is private to the STM implementation.  */
-struct gtm_method;
-
-
-/* All data relevant to a single transaction.  */
-typedef struct gtm_transaction
+// All data relevant to a single transaction.
+struct gtm_transaction
 {
-  /* The jump buffer by which GTM_longjmp restarts the transaction.
-     This field *must* be at the beginning of the transaction.  */
+  // The jump buffer by which GTM_longjmp restarts the transaction.
+  // This field *must* be at the beginning of the transaction.
   gtm_jmpbuf jb;
 
-  /* Data used by local.c for the local memory undo log.  */
+  // Data used by local.c for the local memory undo log.
   struct gtm_local_undo **local_undo;
   size_t n_local_undo;
   size_t size_local_undo;
 
-  /* Data used by alloc.c for the malloc/free undo log.  */
-  aa_tree alloc_actions;
+  // Data used by alloc.c for the malloc/free undo log.
+  aa_tree<uintptr_t, gtm_alloc_action> alloc_actions;
 
-  /* Data used by useraction.c for the user defined undo log.  */
+  // Data used by useraction.c for the user defined undo log.
   struct gtm_user_action *commit_actions;
   struct gtm_user_action *undo_actions;
 
-  /* Data used by the STM implementation.  */
-  struct gtm_method *m;
-
-  /* A pointer to the "outer" transaction.  */
+  // A pointer to the "outer" transaction.
   struct gtm_transaction *prev;
 
-  /* A numerical identifier for this transaction.  */
+  // A numerical identifier for this transaction.
   _ITM_transactionId_t id;
 
-  /* The _ITM_codeProperties of this transaction as given by the compiler.  */
+  // The _ITM_codeProperties of this transaction as given by the compiler.
   uint32_t prop;
 
-  /* The nesting depth of this transaction.  */
+  // The nesting depth of this transaction.
   uint32_t nesting;
 
-  /* A mask of bits indicating the current status of the transaction.  */
+  // Set if this transaction owns the serial write lock.
+  static const uint32_t STATE_SERIAL		= 0x0001;
+  // Set if the serial-irrevocable dispatch table is installed.
+  // Implies that no logging is being done, and abort is not possible.
+  static const uint32_t STATE_IRREVOCABLE	= 0x0002;
+  // Set if we're in the process of aborting the transaction.  This is
+  // used when _ITM_rollbackTransaction is called to begin the abort
+  // and ends with _ITM_commitTransaction.
+  static const uint32_t STATE_ABORTING		= 0x0004;
+
+  // A bitmask of the above.
   uint32_t state;
 
-  /* Data used by eh_cpp.c for managing exceptions within the transaction.  */
+  // Data used by eh_cpp.c for managing exceptions within the transaction.
   uint32_t cxa_catch_count;
   void *cxa_unthrown;
   void *eh_in_flight;
 
-  /* Data used by retry.c for deciding what STM implementation should
-     be used for the next iteration of the transaction.  */
+  // Data used by retry.c for deciding what STM implementation should
+  // be used for the next iteration of the transaction.
   uint32_t restart_reason[NUM_RESTARTS];
   uint32_t restart_total;
-} gtm_transaction;
 
-/* The maximum number of free gtm_transaction structs to be kept.
-   This number must be greater than 1 in order for transaction abort
-   to be handled properly.  */
-#define MAX_FREE_TX	8
+  // The lock that provides access to serial mode.  Non-serialized
+  // transactions acquire read locks; a serialized transaction aquires
+  // a write lock.
+  static gtm_rwlock serial_lock;
 
-/* All thread-local data required by the entire library.  */
-typedef struct gtm_thread
-{
-#ifndef HAVE_ARCH_GTM_THREAD_TX
-  /* The currently active transaction.  Elided if the target provides
-     some efficient mechanism for storing this.  */
-  gtm_transaction *tx;
-#endif
-#ifndef HAVE_ARCH_GTM_THREAD_DISP
-  /* The dispatch table for the STM implementation currently in use.  Elided
-     if the target provides some efficient mechanism for storing this.  */
-  const gtm_dispatch *disp;
-#endif
+  // In alloc.cc
+  void commit_allocations (bool);
+  void record_allocation (void *, size_t, void (*)(void *));
+  void forget_allocation (void *, void (*)(void *));
+  size_t get_allocation_size (void *);
 
-  /* A queue of free gtm_transaction structs.  */
-  gtm_transaction *free_tx[MAX_FREE_TX];
-  unsigned free_tx_idx, free_tx_count;
+  // In beginend.cc
+  void rollback ();
+  bool trycommit ();
+  bool trycommit_and_finalize ();
+  void restart (gtm_restart_reason) ITM_NORETURN;
 
-  /* The value returned by _ITM_getThreadnum to identify this thread.  */
-  /* ??? At present, this is densely allocated beginning with 1 and
-     we don't bother filling in this value until it is requested.
-     Which means that the value returned is, as far as the user is
-     concerned, essentially arbitrary.  We wouldn't need this at all
-     if we knew that pthread_t is integral and fits into an int.  */
-  /* ??? Consider using gettid on Linux w/ NPTL.  At least that would
-     be a value meaningful to the user.  */
-  int thread_num;
-} gtm_thread;
+  // Invoked from assembly language, thus the "asm" specifier on
+  // the name, avoiding complex name mangling.
+  static uint32_t begin_transaction(uint32_t, const gtm_jmpbuf *)
+	__asm__("GTM_begin_transaction");
 
-/* Don't access this variable directly; use the functions below.  */
-extern __thread gtm_thread _gtm_thr;
+  // In eh_cpp.cc
+  void revert_cpp_exceptions ();
 
-#include "target_i.h"
+  // In local.cc
+  void commit_local (void);
+  void rollback_local (void);
 
-#ifndef HAVE_ARCH_GTM_THREAD
-/* If the target does not provide optimized access to the thread-local
-   data, simply access the TLS variable defined above.  */
-static inline void setup_gtm_thr(void) { }
-static inline gtm_thread *gtm_thr(void) { return &_gtm_thr; }
-#endif
+  // In retry.cc
+  void decide_retry_strategy (gtm_restart_reason);
 
-#ifndef HAVE_ARCH_GTM_THREAD_TX
-/* If the target does not provide optimized access to the currently
-   active transaction, simply access via GTM_THR.  */
-static inline gtm_transaction * gtm_tx(void) { return gtm_thr()->tx; }
-static inline void set_gtm_tx(gtm_transaction *x) { gtm_thr()->tx = x; }
-#endif
+  // In serial.cc
+  void serialirr_mode ();
 
-#ifndef HAVE_ARCH_GTM_THREAD_DISP
-/* If the target does not provide optimized access to the currently
-   active dispatch table, simply access via GTM_THR.  */
-static inline const gtm_dispatch * gtm_disp(void) { return gtm_thr()->disp; }
-static inline void set_gtm_disp(const gtm_dispatch *x) { gtm_thr()->disp = x; }
-#endif
+  // In useraction.cc
+  static void run_actions (struct gtm_user_action **);
+  static void free_actions (struct gtm_user_action **);
+};
 
-#ifndef HAVE_ARCH_GTM_CACHELINE_COPY
-/* Copy S to D, with S and D both aligned no overlap.  */
-static inline void
-gtm_cacheline_copy (gtm_cacheline * __restrict d,
-		    const gtm_cacheline * __restrict s)
-{
-  *d = *s;
-}
-#endif
+} // namespace GTM
 
-/* Similarly, but only modify bytes with bits set in M.  */
-extern void gtm_cacheline_copy_mask (gtm_cacheline * __restrict d,
-				     const gtm_cacheline * __restrict s,
-				     gtm_cacheline_mask m);
+#include "tls.h"
 
-#ifndef HAVE_ARCH_GTM_CCM_WRITE_BARRIER
-/* A write barrier to emit after gtm_copy_cacheline_mask.  */
-static inline void
-gtm_ccm_write_barrier (void)
-{
-  atomic_write_barrier ();
-}
-#endif
+namespace GTM HIDDEN {
 
-/* The lock that provides access to serial mode.  Non-serialized transactions
-   acquire read locks; the serialized transaction aquires a write lock.  */
-extern gtm_rwlock gtm_serial_lock;
-
-/* An unscaled count of the number of times we should spin attempting to 
-   acquire locks before we block the current thread and defer to the OS.
-   This variable isn't used when the standard POSIX lock implementations
-   are used.  */
+// An unscaled count of the number of times we should spin attempting to 
+// acquire locks before we block the current thread and defer to the OS.
+// This variable isn't used when the standard POSIX lock implementations
+// are used.
 extern uint64_t gtm_spin_count_var;
 
-extern uint32_t GTM_begin_transaction(uint32_t, const gtm_jmpbuf *);
-extern uint32_t GTM_longjmp (const gtm_jmpbuf *, uint32_t, uint32_t)
+extern "C" uint32_t GTM_longjmp (const gtm_jmpbuf *, uint32_t, uint32_t)
 	ITM_NORETURN;
 
-extern void GTM_commit_local (void);
-extern void GTM_rollback_local (void);
-extern void GTM_LB (const void *, size_t) ITM_REGPARM;
+extern "C" void GTM_LB (const void *, size_t) ITM_REGPARM;
 
-extern void GTM_serialmode (bool, bool);
-extern void GTM_decide_retry_strategy (gtm_restart_reason);
-extern void GTM_restart_transaction (gtm_restart_reason) ITM_NORETURN;
+extern void GTM_error (const char *fmt, ...)
+	__attribute__((format (printf, 1, 2)));
+extern void GTM_fatal (const char *fmt, ...)
+	__attribute__((noreturn, format (printf, 1, 2)));
 
-extern void GTM_run_actions (struct gtm_user_action **);
-extern void GTM_free_actions (struct gtm_user_action **);
+extern gtm_dispatch *dispatch_wbetl();
+extern gtm_dispatch *dispatch_readonly();
+extern gtm_dispatch *dispatch_serial();
 
-extern void GTM_record_allocation (void *, size_t, void (*)(void *));
-extern void GTM_forget_allocation (void *, void (*)(void *));
-extern size_t GTM_get_allocation_size (void *);
-extern void GTM_commit_allocations (bool);
+} // namespace GTM
 
-extern void GTM_revert_cpp_exceptions (void);
-
-extern gtm_cacheline_page *GTM_page_alloc (void);
-extern void GTM_page_release (gtm_cacheline_page *, gtm_cacheline_page *);
-
-extern gtm_cacheline *GTM_null_read_lock (uintptr_t);
-extern gtm_cacheline_mask_pair GTM_null_write_lock (uintptr_t);
-
-static inline gtm_version
-gtm_get_clock (void)
-{
-  gtm_version r;
-
-  __sync_synchronize ();
-  r = gtm_clock;
-  atomic_read_barrier ();
-
-  return r;
-}
-
-static inline gtm_version
-gtm_inc_clock (void)
-{
-  gtm_version r = __sync_add_and_fetch (&gtm_clock, 1);
-
-  /* ??? Ought to handle wraparound for 32-bit.  */
-  if (sizeof(r) < 8 && r > GTM_VERSION_MAX)
-    abort ();
-
-  return r;
-}
-
-extern const gtm_dispatch dispatch_wbetl;
-extern const gtm_dispatch dispatch_readonly;
-
-#ifdef HAVE_ATTRIBUTE_VISIBILITY
-# pragma GCC visibility pop
-#endif
-
-#endif /* LIBITM_I_H */
+#endif // LIBITM_I_H

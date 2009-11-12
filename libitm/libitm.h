@@ -32,6 +32,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #ifdef __i386__
 # define ITM_REGPARM	__attribute__((regparm(2)))
@@ -263,5 +266,22 @@ extern void _ITM_memmoveRtaWWtaW(void *, const void *, size_t) ITM_REGPARM;
 extern void _ITM_memsetW(void *, int, size_t) ITM_REGPARM;
 extern void _ITM_memsetWaR(void *, int, size_t) ITM_REGPARM;
 extern void _ITM_memsetWaW(void *, int, size_t) ITM_REGPARM;
+
+// ??? These are not yet in the official spec; still work-in-progress.
+
+extern void *_ITM_getTMCloneOrIrrevokable (void *) ITM_REGPARM;
+extern void *_ITM_getTMCloneSafe (void *) ITM_REGPARM;
+extern void _ITM_registerTMCloneTable (void *, size_t);
+extern void _ITM_deregisterTMCloneTable (void *);
+
+extern void *_ITM_cxa_allocate_exception (size_t);
+extern void _ITM_cxa_throw (void *obj, void *tinfo, void *dest);
+extern void *_ITM_cxa_begin_catch (void *exc_ptr);
+extern void _ITM_cxa_end_catch (void);
+extern void _ITM_commitTransactionEH(void *exc_ptr) ITM_REGPARM;
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
 
 #endif /* LIBITM_H */

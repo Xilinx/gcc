@@ -84,7 +84,7 @@ case "${target_cpu}" in
 esac
   
 # Since we require POSIX threads, assume a POSIX system by default.
-config_path="$ARCH posix"
+config_path="$ARCH posix generic"
 
 # Other system configury
 case "${target}" in
@@ -100,15 +100,15 @@ case "${target}" in
 	;;
 
   *-*-mingw32*)
-	config_path="$ARCH mingw32 posix"
+	config_path="$ARCH mingw32 posix generic"
 	;;
 
   *-*-solaris2.[56]*)
-	config_path="$ARCH posix95 posix"
+	config_path="$ARCH posix95 posix generic"
 	XLDFLAGS="${XLDFLAGS} -lposix4"
 	;;
 
   *-*-darwin*)
-	config_path="$ARCH bsd posix"
+	config_path="$ARCH bsd posix generic"
 	;;
 esac

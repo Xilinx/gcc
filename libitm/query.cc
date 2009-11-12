@@ -22,18 +22,66 @@
    see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
    <http://www.gnu.org/licenses/>.  */
 
-/* Provide access to the futex system call.  */
+#include "libitm_i.h"
 
-#ifndef GTM_FUTEX_H
-#define GTM_FUTEX_H 1
+using namespace GTM;
 
-namespace GTM HIDDEN {
-
-#include "futex_bits.h"
-
-extern void futex_wait (int *addr, int val);
-extern void futex_wake (int *addr, int count);
-
+int ITM_REGPARM
+_ITM_versionCompatible (int version)
+{
+  return version == _ITM_VERSION_NO;
 }
 
-#endif /* GTM_FUTEX_H */
+
+const char * ITM_REGPARM
+_ITM_libraryVersion (void)
+{
+  return "GNU libitm " _ITM_VERSION;
+}
+
+
+_ITM_howExecuting ITM_REGPARM
+_ITM_inTransaction (void)
+{
+  struct gtm_transaction *tx = gtm_tx();
+  if (tx)
+    {
+      if (tx->state & gtm_transaction::STATE_IRREVOCABLE)
+	return inIrrevocableTransaction;
+      else
+	return inRetryableTransaction;
+    }
+  return outsideTransaction;
+}
+
+
+_ITM_transactionId_t ITM_REGPARM
+_ITM_getTransactionId (void)
+{
+  struct gtm_transaction *tx = gtm_tx();
+  return tx ? tx->id : _ITM_noTransactionId;
+}
+
+
+int ITM_REGPARM
+_ITM_getThreadnum (void)
+{
+  static int global_num;
+  struct gtm_thread *thr = gtm_thr();
+  int num = thr->thread_num;
+
+  if (num == 0)
+    {
+      num = __sync_add_and_fetch (&global_num, 1);
+      thr->thread_num = num;
+    }
+
+  return num;
+}
+
+
+void ITM_REGPARM ITM_NORETURN
+_ITM_error (const _ITM_srcLocation * loc UNUSED, int errorCode UNUSED)
+{
+  abort ();
+}

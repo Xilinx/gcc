@@ -22,6 +22,8 @@
    see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
    <http://www.gnu.org/licenses/>.  */
 
+namespace GTM HIDDEN {
+
 #ifdef __x86_64__
 /* ??? This doesn't work for Win64.  */
 typedef struct gtm_jmpbuf
@@ -47,18 +49,6 @@ typedef struct gtm_jmpbuf
 } gtm_jmpbuf;
 #endif
 
-/* The "cacheline" as defined by the STM need not be the same as the
-   cacheline defined by the processor.  It ought to be big enough for
-   any of the basic types to be stored (aligned) in one line.  It ought
-   to be small enough for efficient manipulation of the modification
-   mask.  The cacheline copy routines assume that if SSE is present
-   that we can use it, which implies a minimum cacheline size of 16.  */
-#ifdef __x86_64__
-# define CACHELINE_SIZE 64
-#else
-# define CACHELINE_SIZE 32
-#endif
-
 /* x86 doesn't require strict alignment for the basic types.  */
 #define STRICT_ALIGNMENT 0
 
@@ -66,5 +56,39 @@ typedef struct gtm_jmpbuf
 #define PAGE_SIZE       4096
 #define FIXED_PAGE_SIZE 1
 
-/* We'll be using some of the cpu builtins, and their associated types.  */
+static inline void
+cpu_relax (void)
+{
+  __asm volatile ("rep; nop" : : : "memory");
+}
+
+static inline void
+atomic_read_barrier (void)
+{
+  /* x86 is a strong memory ordering machine.  */
+  __asm volatile ("" : : : "memory");
+}
+
+static inline void
+atomic_write_barrier (void)
+{
+  /* x86 is a strong memory ordering machine.  */
+  __asm volatile ("" : : : "memory");
+}
+
+} // namespace GTM
+
+// We'll be using some of the cpu builtins, and their associated types.
+#ifndef __cplusplus
+/* ??? It's broken for C++. */
 #include <x86intrin.h>
+#else
+# ifdef __SSE2__
+#  include <emmintrin.h>
+# elif defined(__SSE__)
+#  include <xmmintrin.h>
+# endif
+# ifdef __AVX__
+#  include <immintrin.h>
+# endif
+#endif

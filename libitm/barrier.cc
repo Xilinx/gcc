@@ -1,4 +1,4 @@
-/* Copyright (C) 2009 Free Software Foundation, Inc.
+/* Copyright (C) 2008, 2009 Free Software Foundation, Inc.
    Contributed by Richard Henderson <rth@redhat.com>.
 
    This file is part of the GNU Transactional Memory Library (libitm).
@@ -22,36 +22,16 @@
    see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
    <http://www.gnu.org/licenses/>.  */
 
-namespace GTM HIDDEN {
+#include "libitm_i.h"
+#include "barrier.tpl"
 
-typedef struct gtm_jmpbuf
-{
-  unsigned long pc;
-  unsigned long s[7];
-  unsigned long cfa;
-  unsigned long f[8];
-} gtm_jmpbuf;
-
-/* Alpha generally uses a fixed page size of 8K.  */
-#define PAGE_SIZE	8192
-#define FIXED_PAGE_SIZE	1
-
-static inline void
-cpu_relax (void)
-{
-  __asm volatile ("" : : : "memory");
-}
-
-static inline void
-atomic_read_barrier (void)
-{
-  __sync_synchronize ();
-}
-
-static inline void
-atomic_write_barrier (void)
-{
-  __asm volatile ("wmb" : : : "memory");
-}
-
-} // namespace GTM
+ITM_BARRIERS(U1)
+ITM_BARRIERS(U2)
+ITM_BARRIERS(U4)
+ITM_BARRIERS(U8)
+ITM_BARRIERS(F)
+ITM_BARRIERS(D)
+ITM_BARRIERS(E)
+ITM_BARRIERS(CF)
+ITM_BARRIERS(CD)
+ITM_BARRIERS(CE)

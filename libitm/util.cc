@@ -22,36 +22,58 @@
    see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
    <http://www.gnu.org/licenses/>.  */
 
+#include "libitm_i.h"
+#include <stdarg.h>
+#include <stdio.h>
+
 namespace GTM HIDDEN {
 
-typedef struct gtm_jmpbuf
+static void
+gtm_verror (const char *fmt, va_list list)
 {
-  unsigned long pc;
-  unsigned long s[7];
-  unsigned long cfa;
-  unsigned long f[8];
-} gtm_jmpbuf;
-
-/* Alpha generally uses a fixed page size of 8K.  */
-#define PAGE_SIZE	8192
-#define FIXED_PAGE_SIZE	1
-
-static inline void
-cpu_relax (void)
-{
-  __asm volatile ("" : : : "memory");
+  fputs ("\nlibitm: ", stderr);
+  vfprintf (stderr, fmt, list);
+  fputc ('\n', stderr);
 }
 
-static inline void
-atomic_read_barrier (void)
+void
+GTM_error (const char *fmt, ...)
 {
-  __sync_synchronize ();
+  va_list list;
+
+  va_start (list, fmt);
+  gtm_verror (fmt, list);
+  va_end (list);
 }
 
-static inline void
-atomic_write_barrier (void)
+void
+GTM_fatal (const char *fmt, ...)
 {
-  __asm volatile ("wmb" : : : "memory");
+  va_list list;
+
+  va_start (list, fmt);
+  gtm_verror (fmt, list);
+  va_end (list);
+
+  exit (EXIT_FAILURE);
+}
+
+void *
+xmalloc (size_t size)
+{
+  void *r = malloc (size);
+  if (r == 0)
+    GTM_fatal ("Out of memory allocating %lu bytes", (unsigned long) size);
+  return r;
+}
+
+void *
+xrealloc (void *old, size_t size)
+{
+  void *r = realloc (old, size);
+  if (r == 0)
+    GTM_fatal ("Out of memory allocating %lu bytes", (unsigned long) size);
+  return r;
 }
 
 } // namespace GTM

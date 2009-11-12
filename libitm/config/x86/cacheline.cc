@@ -22,36 +22,52 @@
    see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
    <http://www.gnu.org/licenses/>.  */
 
+#include "libitm_i.h"
+
 namespace GTM HIDDEN {
 
-typedef struct gtm_jmpbuf
+uint32_t const gtm_bit_to_byte_mask[16] =
 {
-  unsigned long pc;
-  unsigned long s[7];
-  unsigned long cfa;
-  unsigned long f[8];
-} gtm_jmpbuf;
+  0x00000000,
+  0x000000ff,
+  0x0000ff00,
+  0x0000ffff,
+  0x00ff0000,
+  0x00ff00ff,
+  0x00ffff00,
+  0x00ffffff,
+  0xff000000,
+  0xff0000ff,
+  0xff00ff00,
+  0xff00ffff,
+  0xffff0000,
+  0xffff00ff,
+  0xffffff00,
+  0xffffffff
+};
 
-/* Alpha generally uses a fixed page size of 8K.  */
-#define PAGE_SIZE	8192
-#define FIXED_PAGE_SIZE	1
+#ifdef __SSE2__
+# define MEMBER	m128i
+#else
+# define MEMBER	w
+#endif
 
-static inline void
-cpu_relax (void)
+void
+gtm_cacheline::copy_mask (gtm_cacheline * __restrict d,
+			  const gtm_cacheline * __restrict s,
+			  gtm_cacheline_mask m)
 {
-  __asm volatile ("" : : : "memory");
-}
+  if (m == (gtm_cacheline_mask)-1)
+    {
+      *d = *s;
+      return;
+    }
+  if (__builtin_expect (m == 0, 0))
+    return;
 
-static inline void
-atomic_read_barrier (void)
-{
-  __sync_synchronize ();
-}
-
-static inline void
-atomic_write_barrier (void)
-{
-  __asm volatile ("wmb" : : : "memory");
+  size_t n = sizeof(d->MEMBER[0]);
+  for (size_t i = 0; i < CACHELINE_SIZE / n; ++i, m >>= n)
+    store_mask (&d->MEMBER[i], s->MEMBER[i], m);
 }
 
 } // namespace GTM
