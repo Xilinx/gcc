@@ -1839,6 +1839,29 @@
 (install_method class_nrep_let compile_obj compilobj_nrep_let)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; compile of LETREC
+(defun compilobj_nrep_letrec (rlet gcx)
+  (assert_msg "check rlet" (is_a rlet class_nrep_letrec))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
+  (let ( (loc (unsafe_get_field :nrep_loc rlet))
+	 (bnds (unsafe_get_field :nlet_bindings rlet))
+	 (bdy (unsafe_get_field :nlet_body rlet))
+	 (locmap (unsafe_get_field :gncx_locmap gcx))
+	 (obodl (make_list discr_list))
+	 (oepil (make_list discr_list))
+	 (oblock (instance class_objblock
+			   :obi_loc loc
+			   :oblo_bodyl obodl
+			   :oblo_epil oepil))
+	 )
+    (debug_msg rlet "compilobj_nrep_letrec initial rlet")
+    (debug_msg loc "compilobj_nrep_letrec initial loc")
+    (compile_warning "unimplemented compilobj_nrep_letrec")
+    (assert_msg "@$@unimplemented compilobj_nrep_letrec" ())
+    ))
+(install_method class_nrep_letrec compile_obj compilobj_nrep_letrec)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun compilobj_nrep_citeration (nciter gcx)
   (assert_msg "check nciter" (is_a nciter class_nrep_citeration))

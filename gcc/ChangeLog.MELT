@@ -1,3 +1,13 @@
+2009-11-12  Basile Starynkevitch  <basile@starynkevitch.net>
+	* plugin.c (FMT_FOR_PLUGIN_EVENT): added defintion.
+	(dump_active_plugins): output to file everything. Use
+	internationalized dump & FMT_FOR_PLUGIN_EVENT.
+	* testsuite/melt/tletrec.melt: simplified.
+	* melt/warmelt-normal.melt: more debug printing... not sure of the
+	oldenv & newenv in call to normalize_lambda inside
+	normletrec_lambda.
+	* melt/warmelt-genobj.melt: added stub for compilobj_nrep_letrec.
+
 2009-11-11  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h: melt_assertmsg & melt_checkmsg expanded to a
 	do{}while(0) with MELT_UNLIKELY

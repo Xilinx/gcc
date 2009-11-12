@@ -1056,6 +1056,8 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
       ( (is_a bind class_normal_constructor_binding)
 	(debug_msg bind "normexp_symbol constructed bind")
 	(debug_msg procs "normexp_symbol constructed procs")
+	(debug_msg env "normexp_symbol constructed in env")
+	(debug_msg recv "normexp_symbol constructed for recv")
 	(compile_warning "@$@normexp_symbol unimplemented constructed binding")
 	(assert_msg "@$@normexp_symbol unimplemented constructed binding" ())
 	)
@@ -2972,6 +2974,8 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
   (assert_msg "check newenv" (is_a newenv class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
   (debug_msg recv "normalize_lambda recv")
+  (debug_msg env "normalize_lambda env")
+  (debug_msg newenv "normalize_lambda newenv")
   (let ( (sloc (unsafe_get_field :loca_location recv))
 	 (sargs (unsafe_get_field :slam_argbind recv))
 	 (sbody (unsafe_get_field :slam_body recv))
@@ -3013,6 +3017,7 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
        (put_env newenv fbi)))
     (unsafe_put_fields newenv :env_proc nproc)
     (debug_msg newenv "normalize_lambda updated :env_proc of newenv")
+    (shortbacktrace_dbg "normalize_lambda" 15)
     ;; add nproc into ncx
     (list_append (unsafe_get_field :nctx_proclist ncx) nproc)
     (multicall
@@ -3316,7 +3321,8 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
     (assert_msg "check newenv" (is_a newenv class_environment))
     (multicall
      (nproc csym clocc constrout clovtup sloc oldproc ndatarout :long insideflag)
-     (normalize_lambda cexpr env newenv ncx psloc)
+     (normalize_lambda cexpr newenv newenv ncx psloc)
+;;was     (normalize_lambda cexpr env newenv ncx psloc)
      (debug_msg csym "normletrec_lambda after normalize_lambda csym")
      (debug_msg clocc "normletrec_lambda after normalize_lambda clocc")
      (debug_msg constrout "normletrec_lambda after normalize_lambda constrout")
@@ -3621,6 +3627,7 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
 	 (list_append resbinds cbind)
 	 (debug_msg clocc "normexp_letrec result clocc")
 	 (debug_msg resbinds "normexp_letrec result resbinds")
+	 (shortbacktrace_dbg "normexp_letrec ending" 15)
 	 (return clocc resbinds)
 	 (compile_warning "normexp_letrec incomplete - perhaps need a normal_letrec selector?")
 	 )))))

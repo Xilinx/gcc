@@ -23,7 +23,7 @@
 	     (tuple xx yy
 		    (lambda (w) 
 		      (f 
-		       (g w yy))))
+		       (g w yy)))))
 	   )
 	  t))
 ;;
