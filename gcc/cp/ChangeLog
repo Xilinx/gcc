@@ -1,3 +1,17 @@
+2009-11-12  Jan Hubicka  <jh@suse.cz>
+
+	* decl2.c (constrain_visibility): Clear WEAK and COMMON flags.
+
+2009-11-11  Jason Merrill  <jason@redhat.com>
+
+	PR c++/39131
+	* rtti.c (emit_support_tinfos): Add DFP types.
+
+2009-11-11  Jason Merrill  <jason@redhat.com>
+
+	* call.c (build_op_delete_call): Downgrade error about
+	placement/non-placement confusion to permerror.
+
 2009-11-10  Jason Merrill  <jason@redhat.com>
 
 	* call.c (build_op_delete_call): Tweak error.

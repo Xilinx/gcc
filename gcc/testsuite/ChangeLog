@@ -1,3 +1,41 @@
+2009-11-11  Jason Merrill  <jason@redhat.com>
+
+	PR c++/39131
+	* g++.dg/dfp/typeid1.C: New.
+
+2009-11-11  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/41978
+	* gfortran.dg/proc_ptr_comp_22.f90: New test.
+
+2009-11-11  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR testsuite/42001
+	* gcc.dg/lto/lto.exp: Pass no-mathlib to lto_init.  Call
+	lto_finish at the end.
+
+	* lib/lto.exp (lto_init): Set mathlib to " " for no-mathlib.
+	(lto_finish): New. Restore mathlib.
+
+2009-11-11  Kai Tietz  <kai.tietz@onevision.com>
+
+	* g++.dg/torture/pushpop_macro.C: New testcase.
+	* gcc.c-torture/execute/pushpop_macro.c: New testcase.
+	* gcc.dg/cpp/pragma-pop_macro-1.c: Allow test for all
+	targets.
+
+2009-11-11  Jon Beniston <jon@beniston.com>
+
+	* lib/target-supports.exp (check_profiling_available): lm32 target 
+	  doesn't support profiling.
+	* gcc.dg/20020312-2.c: Add lm32 support.
+	* g++.dg/other/packed1.C: Expect to fail on lm32.        
+	* g++.old-deja/g++.jason/thunk3.C: Likewise.                 
+
+2009-11-11  Daniel Jacobowitz  <dan@codesourcery.com>
+
+	* gcc.target/arm/neon: Regenerate generated tests.
+
 2009-11-10  Jason Merrill  <jason@redhat.com>
 
 	* g++.dg/init/placement5.C: New.
