@@ -282,10 +282,10 @@ one. Field $NLISTB_PAIRSB gives the tuple of constructed pair bindings}#
 (compile_warning "think about class_normal_constructed_lambda_binding")
 (defclass class_normal_constructed_lambda_binding
   :doc #{The internal $CLASS_NORMAL_CONSTRUCTED_LAMBDA_BINDING is the
-class of lambda constructor bindings. Field $NLAMBDAB_NLAMBDA gives
-the normalized lambda.}#
+class of lambda constructor bindings. Field $NLAMBDAB_NCLOSED gives
+the normalized closed values, and $NLAMBDA_NROUTDATA gives the normalized routine data.}#
   :super  class_normal_constructor_binding
-  :fields (nlambdab_nlambda))
+  :fields (nlambdab_nclosed nlambdab_rout))
 
 (defclass class_normal_constructed_instance_binding
   :doc #{The internal $CLASS_NORMAL_CONSTRUCTED_INSTANCE_BINDING is
@@ -3315,6 +3315,7 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
   (debug_msg symb "normletrec_lambda symb")
   (debug_msg cbind "normletrec_lambda cbind")
   (debug_msg env "normletrec_lambda env")
+  (assert_msg "check cbind" (is_a cbind class_normal_constructed_lambda_binding))
   (let ( (newenv (fresh_env env))
 	 )
     (debug_msg newenv "normletrec_lambda newenv")
@@ -3322,17 +3323,20 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
     (multicall
      (nproc csym clocc constrout clovtup sloc oldproc ndatarout :long insideflag)
      (normalize_lambda cexpr newenv newenv ncx psloc)
-;;was     (normalize_lambda cexpr env newenv ncx psloc)
+     ;;was     (normalize_lambda cexpr env newenv ncx psloc)
      (debug_msg csym "normletrec_lambda after normalize_lambda csym")
      (debug_msg clocc "normletrec_lambda after normalize_lambda clocc")
      (debug_msg constrout "normletrec_lambda after normalize_lambda constrout")
      (debug_msg clovtup  "normletrec_lambda after normalize_lambda clovtup")
      (debug_msg oldproc  "normletrec_lambda after normalize_lambda oldproc")
      (debug_msg ndatarout  "normletrec_lambda after normalize_lambda ndatarout")
-     )
-    (compile_warning "unimplemented normletrec_lambda, maybe store the newenv in the cbind")
-    (assert_msg "@$@unimplemented normletrec_lambda" ())
-    ))
+     (put_fields cbind 
+		 :nlambdab_nclosed clovtup 
+		 :nlambdab_rout ndatarout)
+     (debug_msg cbind "normletrec_lambda updated cbind")
+     (compile_warning "unimplemented normletrec_lambda, maybe store the newenv in the cbind")
+     (shortbacktrace_dbg "normletrec_lambda ended" 15)
+     )))
 (install_method class_source_lambda normal_letrec_constructive normletrec_lambda)
 
 ;;;;;;;;;;;;;;;;
@@ -3363,9 +3367,21 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
   (debug_msg cexpr "normletrec_tuple cexpr")
   (debug_msg symb "normletrec_tuple symb")
   (debug_msg cbind "normletrec_tuple cbind")
-  (compile_warning "unimplemented normletrec_tuple")
-  (assert_msg "@$@unimplemented normletrec_tuple" ())
-)
+  (assert_msg "check cexpr" (is_a cexpr class_source_tuple))
+  (assert_msg "check env" (is_a env class_environment))
+  (let ( 
+	(loc (or (get_field :loca_location cexpr) sloc))
+	(sargs (unsafe_get_field :sargop_args cexpr))
+	)
+    (debug_msg sargs "normletrec_tuple sargs")
+    (multicall
+     (nargs nbinds)
+     (normalize_tuple sargs env ncx loc)
+     (debug_msg nargs "normalize_tuple nargs")
+     (debug_msg nbinds "normalize_tuple nbinds")
+     (compile_warning "unimplemented normletrec_tuple")
+     (assert_msg "@$@unimplemented normletrec_tuple" ())
+     )))
 (install_method class_source_tuple normal_letrec_constructive normletrec_tuple)
 
 ;;;;;;;;;;;;;;;;
