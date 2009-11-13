@@ -1,3 +1,8 @@
+2009-11-13  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* config/arm/arm.c (arm_init_machine_status): Fix whitespace in
+	the last commit.
+
 2009-11-09  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
 
 	* config/arm/arm.c (arm_init_machine_status): Use typed GC
