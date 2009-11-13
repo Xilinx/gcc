@@ -1,3 +1,225 @@
+2009-11-13  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (call_value): Fix comment.
+	(sibcall_value): Ditto.
+
+2009-11-13  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* config/i386/linux-unwind.h (x86_frob_update_context): New function.
+	(MD_FROB_UPDATE_CONTEXT): Define.
+
+2009-11-12  Eric Botcazou  <ebotcazou@adacore.com>
+	    Laurent GUERBY  <laurent@guerby.net>
+
+	* config/sparc/linux-unwind.h (sparc64_fallback_frame_state): Tidy.
+	Do not schedule an %sp restore.  Compensate for RETURN_ADDR_OFFSET.
+	(sparc_fallback_frame_state): Tidy.  Compensate for RETURN_ADDR_OFFSET.
+
+2009-11-12  Jan Hubicka  <jh@suse.cz>
+
+	* ipa.c (function_and_variable_visibility): Fix my accidentail commit
+	and clear DECL_COMMON on localized declarations.
+
+2009-11-12  Bernd Schmidt  <bernd.schmidt@analog.com>
+
+	PR rtl-opt/38582
+	* regrename.c (struct du_head): New structure; some elements moved
+	from...
+	(struct du_chain): ... this one.
+	(open_chains, closed_chains): Now of type struct du_head *.
+	(do_replace): Accept du_head argument, not du_chain.  All callers
+	changed.  Modified code to match new data structures.
+	(build_def_use): Return a list of du_head structures.  Modified code
+	to match new data structures.
+	(dump_def_use_chain): Accept du_head argument, not du_chain.  All
+	callers changed.  Modified code to match new data structures.
+	(merge_overlapping_regs): Accept du_head argument, not du_chain.  All
+	callers changed.  Modified code to match new data structures.
+	(scan_rtx_reg): Change type of this_regno and this_nregs to unsigned.
+	Allocate a du_head structure as well as a du_chain when creating a
+	new chain.  Modified other code to match new data structures.
+
+2009-11-12  Jan Hubicka  <jh@suse.cz>
+
+	* cgraph.h (varpool_node_name): Declare.
+	* cgraphunit.c (process_function_and_variable_attributes): Set
+	force_output flag on used variables.
+	* ipa.c (function_and_variable_visibility): Dump externally visible
+	and needed variables.
+	* varpool.c (varpool_node_name): Export.
+	(decide_is_variable_needed): Check COMDAT for externally visible vars;
+	ignore needed flag.
+
+2009-11-12  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR middle-end/41930
+	* simplify-rtx.c (simplify_replace_fn_rtx) <case 'e'>: Skip
+	processing if XEXP (x, i) is NULL.
+
+2009-11-12  Jan Hubicka  <jh@suse.cz>
+
+	* ipa.c (function_and_variable_visibility): Verify that WEAK || COMMON
+	imply PUBLIC || EXTERNAL.
+
+2009-11-11  Andy Hutchinson  <hutchinsonandy@gcc.gnu.org>
+
+	PR middle-end/41440
+	* cfgexpand.c (expand_gimple_basic_block): Append NOP to a fallthru,
+	single successor block, ending with jump created by RTL expander.
+	
+2009-11-11  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/41729
+	* ipa.c (function_and_variable_visibility): Do not privatize COMDAT
+	and WEAK variables at -fwhole-program.
+
+	PR middle-end/41735
+	* ipa.c (whole_program_function_and_variable_visility): COMDAT
+	functions/variables are not needed even if they are externally visible.
+
+2009-11-11  Jan Hubicka  <jh@suse.cz>
+
+	(patch by Richard Guenther)
+	* lto-streamer-out.c (output_function): Output head of argument list
+	earlier.
+	* lto-streamer-in.c (input_function): Re-map arguments into merged
+	declaration.
+
+2009-11-11  Jan Hubicka  <jh@suse.cz>
+
+	* lto-cgraph.c: Include gcov-io.h
+	(output_profile_summary): New function.
+	(output_cgraph): Use it.
+	(input_profile_summary): New function.
+	(input_cgraph): Use it.
+	* coverage.c (build_ctr_info_value): Use varpool; initalize
+	DECL_ASSEMBLER_NAME.
+	(create_coverage): Likewise.
+	* tree-profile.c (tree_init_ic_make_global_vars): Likewise.
+	(tree_init_edge_profiler): Likewise.
+	* Makefile.in (lto-cgraph.o): Add dependency on gcov-io.h.
+
+2009-11-11  Kai Tietz  <kai.tietz@onevision.com>
+
+	* config/i386/cygming.h (HANDLE_PRAGMA_PUSH_POP_MACRO): Removed.
+	* c-pragma.c (def_pragma_macro_value): Likewise.
+	(def_pragma_macro): Likewise.
+	(pushed_macro_table): Likewise.
+	(HANDLE_PRAGMA_PUSH_POP_MACRO): Remove guarded code.
+	* doc/tm.texi (HANDLE_PRAGMA_PUSH_POP_MACRO): Removed.
+
+2009-11-11  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* doc/plugins.texi (Registering custom attributes): section
+	renamed as (Registering custom attributes or pragmas).
+	Mentions custom attributes & pragmas, and c_register_pragma, with
+	a small example.
+	* doc/cpp.texi (Pragmas): Mentions that plugins can provide their
+	pragmas.
+	* doc/extend.texi (Function Attributes): Mentions that plugin can
+	provide their attributes.
+
+2009-11-11  Jon Beniston  <jon@beniston.com>
+
+	* config.gcc: Add lm32 elf and uclinux targets.
+	* config/lm32: New directory.
+	* config/lm32/lm32.c: New file.
+	* config/lm32/lm32.h: New file.
+	* config/lm32/lm32.md: New file.
+	* config/lm32/lm32.opt: New file.
+	* config/lm32/lm32-protos.h: New file.
+	* config/lm32/constraints.md: New file.
+	* config/lm32/predicates.md: New file.
+	* config/lm32/sfp-machine.h: New file.
+	* config/lm32/t-fprules-softfp: New file.
+	* config/lm32/uclinux-elf.h: New file.
+	* doc/invoke.texi: Document lm32 options.
+	* doc/contrib.texi: Document lm32 porter.
+	* doc/install.texi: Document lm32 targets.
+
+2009-11-11  Martin Jambor  <mjambor@suse.cz>
+
+	PR lto/41932
+	* ipa-prop.c (ipa_update_after_lto_read): Call
+	ipa_check_create_node_params and ipa_check_create_edge_args.  Also
+	call ipa_initialize_node_params instead of ipa_populate_param_decls.
+
+2009-11-11  Daniel Jacobowitz  <dan@codesourcery.com>
+
+	* config/arm/arm.c (neon_vdup_constant, neon_make_constant): New.
+	(neon_expand_vector_init): Use them.  Also handle non-constant
+	vectors with identical elements and vectors with only one
+	non-constant element.
+	(arm_print_operand): Handle 'y' modifier.
+	* config/arm/arm-protos.h (neon_make_constant): Declare.
+	* config/arm/neon.md (neon_vdup_n<mode>): Split into two
+	patterns.  Use VX instead of VDQW for the first one.  Allow
+	a VFP alternative and V32 modes for the second one.
+	* config/arm/neon.ml (shape_elt): Add Alternatives.
+	(ops): Use Alternatives for vdup lane instructions.
+	* config/arm/neon-testgen.ml (analyze_shape): Handle Alternatives.
+	* config/arm/vec-common.md (mov<mode>): Use neon_make_constant.
+
+2009-11-11  Daniel Jacobowitz  <dan@codesourcery.com>
+
+	* config/arm/neon.md (*neon_mov<mode>): Reject two non-register
+	operands.
+	(movti, mov<mode>): Call force_reg on one operand if required.
+	* config/arm/vec-common.md (mov<mode>): Likewise.
+
+2009-11-11  Daniel Jacobowitz  <dan@codesourcery.com>
+
+	* config/arm/arm.c (arm_override_options): Enable scheduling for
+	Thumb-2.
+
+2009-11-10  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR target/10127
+	PR ada/20548
+	* expr.h (anti_adjust_stack_and_probe): Declare.
+	* explow.c (anti_adjust_stack_and_probe): Make global, add ADJUST_BACK
+	parameter and rewrite head comment.
+	(allocate_dynamic_stack_space): Adjust call to above function.
+	* function.c (expand_function_end): Handle STACK_CHECK_MOVING_SP.
+
+	* tree.h (dwarf2out_args_size): Delete.
+	* dwarf2out.c (dwarf2out_args_size): Make static and move around.
+	(dwarf2out_args_size_adjust): Delete prototype and move around.
+	(dwarf2out_frame_debug_expr): Do not record arg size adjustments for
+	ACCUMULATE_OUTGOING_ARGS targets.
+
+2009-11-10  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* config/sparc/sparc.c (print_operand) <')'>: Test for a non-null
+	DECL_SIZE of DECL_RESULT before evaluating it.
+
+2009-11-10  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	PR tree-optimization/41987
+	* fold-const.c (const_binop): Avoid using fold_buildN().
+
+2009-11-10  Martin Jambor  <mjambor@suse.cz>
+
+	* tree-pass.h (struct ipa_opt_pass_d): Added stmt_fixup field.
+	(execute_all_ipa_stmt_fixups): Declare.
+	* ipa-cp.c (pass_ipa_cp): Added stmt_fixup value.
+	* ipa-inline.c (pass_ipa_inline): Likewise.
+	* ipa-pure-const.c (pass_ipa_pure_cons): Likewise.
+	* ipa-reference.c (pass_ipa_reference): Likewise.
+	* ipa.c (pass_ipa_whole_program_visibility): Likewise.
+	* lto-streamer-out.c (pass_ipa_lto_gimple_out): Likewise.
+	(pass_ipa_lto_finish_out): Likewise.
+	* lto-wpa-fixup.c (pass_ipa_lto_wpa_fixup): Likewise.
+	* passes.c (execute_ipa_stmt_fixups): New function.
+	(execute_all_ipa_stmt_fixups): New function.
+	* lto-streamer-in.c (input_function): Call execute_all_ipa_stmt_fixups.
+
+2009-11-10  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR ada/20548
+	* explow.c (probe_stack_range): Fix typo.
+	* config/sparc/sparc.md (probe_stack): New expander.
+
 2009-11-09  Dave Korn  <dave.korn.cygwin@gmail.com>
 
 	* config/i386/cygwin.h (LINK_SPEC): Add -tsaware flag if !mno-cygwin.
@@ -7,8 +229,8 @@
 	* gdbinit.in (pgq): New function for printing gimple sequence.
 
 2009-11-09  Paul Brook  <paul@codesourcery.com>
-	Daniel Jacobowitz  <dan@codesourcery.com>
-	Sandra Loosemore  <sandra@codesourcery.com>
+	    Daniel Jacobowitz  <dan@codesourcery.com>
+	    Sandra Loosemore  <sandra@codesourcery.com>
 
 	* doc/extend.texi (Half-Precision): Update wording to reflect
 	that there are now multiple -mfpu options that enable fp16
@@ -22,9 +244,9 @@
 	when undesirable.
 	(aapcs_vfp_is_return_candidate, aapcs_vfp_is_call_candidate,
 	aapcs_vfp_allocate_return_reg): Use use_vfp_abi.
-        (arm_rtx_costs_1, arm_size_rtx_costs, arm_fastmul_rtx_costs,
-        arm_9e_rtx_costs): Only expect double-precision operations if the FPU
-        provides them.
+	(arm_rtx_costs_1, arm_size_rtx_costs, arm_fastmul_rtx_costs,
+	arm_9e_rtx_costs): Only expect double-precision operations if the FPU
+	provides them.
 	(coproc_secondary_reload_class): Reload HFmode via GENERAL_REGS if no
 	NEON.
 	(arm_print_operand): Handle 'p' modifier.
@@ -36,8 +258,8 @@
 	does not provide them.
 	(arm_movdi_vfp, thumb2_movdi_vfp): Use fcpys to move
 	double-precision values on a single-precision FPU.
-        (movdf_vfp, thumb2_movdf_vfp): Likewise.  Use "Dy" for
-        double-precision constants.
+	(movdf_vfp, thumb2_movdf_vfp): Likewise.  Use "Dy" for
+	double-precision constants.
 	(movhf_vfp_neon): New pattern (was movhf_vfp).
 	(movhf_vfp): Remove NEON instructions.
 	* config/arm/constraints.md: Add new "Dy" constraint for
@@ -62,7 +284,7 @@
 	* exec-tool.in (ORIGINAL_PLUGIN_LD_FOR_TARGET): New.
 	(collect-ld): Use ORIGINAL_PLUGIN_LD_FOR_TARGET for -plugin.
 
-2009-11-08  Jonathan Gray <jsg@openbsd.org>
+2009-11-08  Jonathan Gray  <jsg@openbsd.org>
 
 	* config/openbsd-stdint.h: Change to reflect what
 	c_common_nodes_and_builtins expects.
@@ -237,7 +459,7 @@
 2009-11-04  Kenneth Zadeck  <zadeck@naturalbridge.com>
 
 	* df-scan.c (df-uses-record): Add case zero_extract of mem.
-	
+
 2009-11-04  Eric Botcazou  <ebotcazou@adacore.com>
 
 	PR target/10127
@@ -257,11 +479,11 @@
 	* config/i386/cpuid.h (bit_LWP): Define LWP bit.
 	* config/i386/x86intrin.h: Add LWP check and lwpintrin.h.
 	* config/i386/i386-c.c (ix86_target_macros_internal): Check
-	ISA_FLAG for LWP. 
+	ISA_FLAG for LWP.
 	* config/i386/i386.h (TARGET_LWP): New macro for LWP.
 	* config/i386/i386.opt (-mlwp): New switch for LWP support.
 	* config/i386/i386.c (OPTION_MASK_ISA_LWP_SET): New.
-	(OPTION_MASK_ISA_LWP_UNSET): New.	
+	(OPTION_MASK_ISA_LWP_UNSET): New.
 	(ix86_handle_option): Handle -mlwp.
 	(isa_opts): Handle -mlwp.
 	(enum pta_flags): Add PTA_LWP.
@@ -282,7 +504,7 @@
 	(builtin_description): Ditto.
 	(ix86_init_mmx_sse_builtins): Ditto.
 	(ix86_expand_special_args_builtin): Ditto.
-	* config/i386/i386.md (UNSPEC_LLWP_INTRINSIC): Add new UNSPEC for 
+	* config/i386/i386.md (UNSPEC_LLWP_INTRINSIC): Add new UNSPEC for
 	LWP support.
 	(UNSPEC_SLWP_INTRINSIC): Ditto.
 	(UNSPECV_LWPVAL_INTRINSIC): Ditto.
@@ -299,22 +521,22 @@
 	(lwp_lwpinshi3): Ditto.
 	(lwp_lwpinssi3): Ditto.
 	(lwp_lwpinsdi3): Ditto.
-	
+
 2009-11-04  Andrew Pinski  <andrew_pinski@playstation.sony.com>
-            Trevor Smigiel <Trevor_Smigiel@playstation.sony.com>
+	    Trevor Smigiel <Trevor_Smigiel@playstation.sony.com>
 
 	PR rtl-opt/41833
 	* simplify-rtx.c (simplify_binary_operation_1): Simplify vec_select of
 	a vec_duplicate.
 
 2009-11-04  Richard Guenther  <rguenther@suse.de>
-            Rafael Avila de Espindola  <espindola@google.com>
- 
+	    Rafael Avila de Espindola  <espindola@google.com>
+
 	* gcc.c (process_command): Handle arguments name@offset.
 
 2009-11-04  Harsha Jagasia  <harsha.jagasia@amd.com>
 	    Dwarakanath Rajagopal  <dwarak.rajagopal@amd.com>
-	
+
 	* config.gcc (i[34567]86-*-*): Include xopintrin.h.
 	(x86_64-*-*): Ditto.
 	* config/i386/xopintrin.h: New file, provide common x86 compiler
@@ -322,7 +544,7 @@
 	* config/i386/cpuid.h (bit_XOP): Define XOP bit.
 	* config/i386/x86intrin.h: Add XOP check and xopintrin.h.
 	* config/i386/i386-c.c(ix86_target_macros_internal): Check
-	ISA_FLAG for XOP. 
+	ISA_FLAG for XOP.
 	* config/i386/i386.h(TARGET_XOP): New macro for XOP.
 	* config/i386/i386.opt (-mxop): New switch for XOP support.
 	* config/i386/i386.md (UNSPEC_XOP_UNSIGNED_CMP)
@@ -332,7 +554,7 @@
 	(PPERM_*): New constants for vpperm instruction.
 	(xop_pcmov_<mode>): Add XOP conditional mov instructions.
 	* config/i386/i386.c (OPTION_MASK_ISA_XOP_SET): New.
-	(OPTION_MASK_ISA_XOP_UNSET): New.	
+	(OPTION_MASK_ISA_XOP_UNSET): New.
 	(OPTION_MASK_ISA_XOP_UNSET): Change definition to depend on XOP.
 	(ix86_handle_option): Handle -mxop.
 	(isa_opts): Handle -mxop.
@@ -511,7 +733,7 @@
 	(xop_pmadcsswd): Ditto.
 	(xop_pmadcswd): Ditto.
 	(xop_pcmov_<mode>): Ditto.
-	(xop_pcmov_<mode>)256: Ditto.
+	(xop_pcmov_<mode>256): Ditto.
 	(xop_phaddbw): Ditto.
 	(xop_phaddbd): Ditto.
 	(xop_phaddbq): Ditto.
@@ -546,7 +768,7 @@
 	(ashrv2di3): Ditto.
 	(xop_frcz<mode>2): Ditto.
 	(xop_vmfrcz<mode>2): Ditto.
-	(xop_frcz<mode>2256): Ditto.	
+	(xop_frcz<mode>2256): Ditto.
 	(xop_maskcmp<mode>3): Ditto.
 	(xop_maskcmp_uns<mode>3): Ditto.
 	(xop_maskcmp_uns2<mode>3): Ditto.
@@ -554,7 +776,7 @@
 
 	* doc/invoke.texi (-mxop): Add documentation.
 	* doc/extend.texi (x86 intrinsics): Add XOP intrinsics.
-	
+
 2009-11-03  Mark Mitchell  <mark@codesourcery.com>
 
 	PR driver/11810
@@ -830,7 +1052,7 @@
 	* config/frv/frv.c (frv_function_value, frv_libcall_value,
 	frv_function_value_regno_p): New functions.
 	(TARGET_FUNCTION_VALUE, TARGET_LIBCALL_VALUE): Declare.
-	* config/frv/frv.h: (FUNCTION_VALUE, LIBCALL_VALUE): Remove.
+	* config/frv/frv.h (FUNCTION_VALUE, LIBCALL_VALUE): Remove.
 	(FUNCTION_VALUE_REGNO_P): Redefine, use frv_function_value_regno_p.
 	* config/frv/frv-protos.h (frv_function_value_regno_p): Declare.
 
@@ -840,7 +1062,7 @@
 	new 'outgoing' argument.
 	(mn10300_libcall_value, mn10300_function_value_regno_p): New functions.
 	(TARGET_FUNCTION_VALUE, TARGET_LIBCALL_VALUE): Declare.
-	* config/mn10300/mn10300.h: (FUNCTION_VALUE, FUNCTION_OUTGOING_VALUE,
+	* config/mn10300/mn10300.h (FUNCTION_VALUE, FUNCTION_OUTGOING_VALUE,
 	LIBCALL_VALUE): Remove.
 	(FUNCTION_VALUE_REGNO_P): Redefine, use mn10300_function_value_regno_p.
 	* config/mn10300/mn10300-protos.h (mn10300_function_value): Remove.
@@ -848,7 +1070,7 @@
 
 2009-10-31  Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
 
-        * config/arm/cortex-a9.md: New - integer pipeline description.
+	* config/arm/cortex-a9.md: New - integer pipeline description.
 
 2009-10-31  Eric Botcazou  <ebotcazou@adacore.com>
 
@@ -9907,7 +10129,7 @@
 	* arm.c (aapcs_vfp_is_call_or_return_candidate): Change base_mode
 	to pointer to enum machine_mode.  Update all callers as needed.
 
-2009-08-21 Uros Bizjak <ubizjak@gmail.com>
+2009-08-21  Uros Bizjak  <ubizjak@gmail.com>
 
 	* config/alpha/alpha.md (exception_receiver): Emit alternative
 	GP load sequence if flag_reorder_blocks_and_partition is set.

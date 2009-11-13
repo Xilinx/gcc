@@ -1,3 +1,14 @@
+2009-11-12  Tobias Burnus  <burnus@net-b.de>
+
+	* intrinsic.texi (XOR): Refer also to .NEQV.
+	(ISO_FORTRAN_ENV): State which parameters are F2008.
+
+2009-11-11  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/41978
+	* resolve.c (resolve_ref): Take care of procedure pointer component
+	references.
+
 2009-11-06  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
 
 	PR fortran/41909

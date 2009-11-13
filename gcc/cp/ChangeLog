@@ -1,3 +1,53 @@
+2009-11-12  Jason Merrill  <jason@redhat.com>
+
+	PR c++/27078
+	* parser.c (cp_parser_primary_expression): Don't give a duplicate
+	ambiguity error.
+
+	PR c++/39560
+	* decl2.c (build_anon_union_vars): Set DECL_ARTIFICIAL.
+
+	PR c++/37037
+	* decl.c (grokdeclarator): Don't generate a void PARM_DECL.
+
+	PR c++/42013
+	* call.c (build_conditional_expr): Check specifically for folding
+	to CALL_EXPR rather than TREE_SIDE_EFFECTS.
+
+	* typeck.c (cv_qualified_p): New fn.
+	(decay_conversion): Use it.
+	* cp-tree.h: Declare it.
+	* tree.c (rvalue): Use it and cv_unqualified.
+	* init.c (build_aggr_init): Likewise.
+
+	PR c++/42013
+	* call.c (build_conditional_expr): Don't fold a TREE_SIDE_EFFECTS
+	COND_EXPR in unevaluated context.
+
+2009-11-12  Jan Hubicka  <jh@suse.cz>
+
+	* decl2.c (constrain_visibility): Clear WEAK and COMMON flags.
+
+2009-11-11  Jason Merrill  <jason@redhat.com>
+
+	PR c++/39131
+	* rtti.c (emit_support_tinfos): Add DFP types.
+
+	* call.c (build_op_delete_call): Downgrade error about
+	placement/non-placement confusion to permerror.
+
+2009-11-10  Jason Merrill  <jason@redhat.com>
+
+	* call.c (build_op_delete_call): Tweak error.
+
+	PR c++/34158
+	PR c++/36406
+	* call.c (non_placement_deallocation_fn_p): Split out...
+	(build_op_delete_call): ...from here.  Use instantiate_type
+	for placement delete.  Simplify logic.
+	* pt.c (primary_template_instantiation_p): Non-static.
+	* cp-tree.h: Declare it.
+
 2009-11-09  Jason Merrill  <jason@redhat.com>
 
 	PR c++/41972

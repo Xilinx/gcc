@@ -1,3 +1,46 @@
+2009-11-12  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/type_traits (declval): Add, per DR 1255.
+	(__is_convertible_helper, common_type): Use it.
+	* include/bits/move.h: Mention std::declval.
+	* testsuite/20_util/declval/requirements/1.cc: New.
+	* testsuite/20_util/declval/requirements/1_neg.cc: Likewise.
+	* testsuite/20_util/common_type/requirements/typedefs-2.cc: Likewise.
+	* testsuite/20_util/common_type/requirements/
+	explicit_instantiation.cc: Extend.
+	* testsuite/20_util/make_signed/requirements/typedefs_neg.cc: Adjust
+	dg-error line numbers.
+	* testsuite/20_util/make_unsigned/requirements/typedefs_neg.cc:
+	Likewise.
+
+2009-11-12  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/stl_algobase.h: Include the full <utility>, per
+	UK-300.
+	* include/bits/stl_algo.h: Tweak includes.
+
+2009-11-11  Jason Merrill  <jason@redhat.com>
+
+	* testsuite/Makefile.am: Remove use of baseline_file.
+	* testsuite/Makefile.in: Likewise.
+
+	PR c++/39131
+	* config/abi/pre/gnu.ver: Add DFP types.
+	* testsuite/util/testsuite_abi.cc (check_version): Add CXXABI_1.3.4.
+
+2009-11-11  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/basic_string.h (to_string(int), to_string(unsigned),
+	to_string(long), to_string(unsigned long), to_string(float),
+	to_string(double), to_wstring(int), to_wstring(unsigned),
+	to_wstring(long), to_wstring(unsigned long), to_wstring(float),
+	to_wstring(double)): Add, per resolution of DR 1261.
+	* include/ext/vstring.h: Likewise.
+	* testsuite/21_strings/basic_string/numeric_conversions/char/
+	dr1261.cc: Add.
+	* testsuite/21_strings/basic_string/numeric_conversions/wchar_t/
+	dr1261.cc: Likewise.
+
 2009-11-09  Benjamin Kosnik  <bkoz@redhat.com>
 
 	* doc/doxygen/user.cfg.in: Regenerate, add files.

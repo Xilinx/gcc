@@ -1,3 +1,54 @@
+2009-11-12  Eric Botcazou  <ebotcazou@adacore.com>
+            Laurent GUERBY  <laurent@guerby.net>
+
+	* init.c (GNU/Linux Section): Enable for all architectures.
+
+2009-11-10  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR ada/20548
+	* system-linux-alpha.ads (Stack_Check_Probes): Set to true.
+	* system-linux-hppa.ads (Stack_Check_Probes): Likewise.
+	* system-linux-sparc.ads (Stack_Check_Probes): Likewise.
+	* system-linux-sparcv9.ads (Stack_Check_Probes): Likewise.
+
+2009-11-10  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* system-linux-alpha.ads (AAMP, Compiler_System_Version, OpenVMS,
+	Front_End_ZCX_Support, High_Integrity_Mode, Long_Shifts_Inlined):
+	Delete.
+	(Stack_Check_Limits, Always_Compatible_Rep): New.
+	* system-linux-mips.ads (AAMP, Compiler_System_Version, OpenVMS,
+	Front_End_ZCX_Support, High_Integrity_Mode, Long_Shifts_Inlined):
+	Delete.
+	(Stack_Check_Limits, Always_Compatible_Rep): New.
+	* system-linux-mips64el.ads (AAMP, Compiler_System_Version, OpenVMS,
+	Functions_Return_By_DSP, Front_End_ZCX_Support, High_Integrity_Mode,
+	Long_Shifts_Inlined): Delete.
+	(Stack_Check_Limits, Always_Compatible_Rep): New.
+	* system-linux-mipsel.ads (AAMP, Compiler_System_Version, OpenVMS,
+	Front_End_ZCX_Support, High_Integrity_Mode, Long_Shifts_Inlined):
+	Delete.
+	(Stack_Check_Limits, Always_Compatible_Rep): New.
+	* system-linux-s390.ads (AAMP, Compiler_System_Version, OpenVMS,
+	Front_End_ZCX_Support, High_Integrity_Mode, Long_Shifts_Inlined):
+	Delete.
+	(Stack_Check_Limits, Always_Compatible_Rep): New.
+	* system-linux-s390x.ads (AAMP, Compiler_System_Version, OpenVMS,
+	Front_End_ZCX_Support, High_Integrity_Mode, Long_Shifts_Inlined):
+	Delete.
+	(Stack_Check_Limits, Always_Compatible_Rep): New.
+	* system-linux-sh4.ads (Stack_Check_Limits, Always_Compatible_Rep):
+	New.
+	* system-linux-sparc.ads (AAMP, Compiler_System_Version, OpenVMS,
+	Front_End_ZCX_Support): Delete.
+	(Stack_Check_Limits, Always_Compatible_Rep): New.
+	* system-linux-sparcv9.ads (AAMP, Compiler_System_Version, OpenVMS,
+	Front_End_ZCX_Support, High_Integrity_Mode, Long_Shifts_Inlined):
+	Delete.
+	(Stack_Check_Limits, Always_Compatible_Rep): New.
+	* system-rtems.ads (OpenVMS): Delete.
+	(Stack_Check_Limits, Always_Compatible_Rep): New.
+
 2009-11-08  Eric Botcazou  <ebotcazou@adacore.com>
 
 	* gcc-interface/decl.c (make_packable_type): Fix oversight.
@@ -5204,7 +5255,7 @@
 	* s-oscons-tmplt.c (System.OS_Constants): Do not use special definition
 	of Msg_Iovlen_T for VMS.
 
-2009-05-04   Laurent GUERBY  <laurent@guerby.net>
+2009-05-04  Laurent GUERBY  <laurent@guerby.net>
 
 	PR ada/38874
 	* make.adb (Scan_Make_Arg): Pass --param= to compiler and linker.
