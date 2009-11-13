@@ -1,3 +1,12 @@
+2009-11-13  Richard Henderson  <rth@redhat.com>
+
+	* gimple.def (GIMPLE_TRANSACTION): Rename from GIMPLE_TM_ATOMIC.
+	* tree.def (TRANSACTION_EXPR): Rename from TM_ATOMIC.
+	* c-typeck.c, cp/semantics.c, gimple-low.c, gimple-pretty-print.c,
+	gimple.c, gimple.h, gimplify.c, gssstruct.def, omp-low.c, trans-mem.c,
+	tree-cfg.c, tree-inline.c, tree-pretty-print.c: Update to match.
+	Global replace tm_atomic with transaction.
+
 2009-11-11  Aldy Hernandez  <aldyh@redhat.com>
 
 	* trans-mem.c: Include params.h.  New global

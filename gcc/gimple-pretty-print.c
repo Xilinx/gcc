@@ -535,7 +535,7 @@ dump_gimple_call (pretty_printer *buffer, gimple gs, int spc, int flags)
     pp_string (buffer, " [return slot optimization]");
   if (gimple_call_tail_p (gs))
     pp_string (buffer, " [tail call]");
-  if (gimple_call_in_tm_atomic_p (gs))
+  if (gimple_call_in_transaction_p (gs))
     pp_string (buffer, " [in atomic]");
 
   /* Dump the arguments of _ITM_beginTransaction sanely.  */
@@ -1172,19 +1172,19 @@ dump_gimple_omp_return (pretty_printer *buffer, gimple gs, int spc, int flags)
     }
 }
 
-/* Dump a GIMPLE_TM_ATOMIC tuple on the pretty_printer BUFFER.  */
+/* Dump a GIMPLE_TRANSACTION tuple on the pretty_printer BUFFER.  */
 
 static void
-dump_gimple_tm_atomic (pretty_printer *buffer, gimple gs, int spc, int flags)
+dump_gimple_transaction (pretty_printer *buffer, gimple gs, int spc, int flags)
 {
-  unsigned subcode = gimple_tm_atomic_subcode (gs);
+  unsigned subcode = gimple_transaction_subcode (gs);
 
   if (flags & TDF_RAW)
     {
       dump_gimple_fmt (buffer, spc, flags,
 		       "%G [SUBCODE=%x,LABEL=%T] <%+BODY <%S> >",
-		       gs, subcode,
-		       gimple_tm_atomic_label (gs), gimple_tm_atomic_body (gs));
+		       gs, subcode, gimple_transaction_label (gs),
+		       gimple_transaction_body (gs));
     }
   else
     {
@@ -1195,13 +1195,13 @@ dump_gimple_tm_atomic (pretty_printer *buffer, gimple gs, int spc, int flags)
 	pp_string (buffer, " [[relaxed]]");
       subcode &= ~GTMA_DECLARATION_MASK;
 
-      if (subcode || gimple_tm_atomic_label (gs))
+      if (subcode || gimple_transaction_label (gs))
 	{
 	  pp_string (buffer, "  //");
-	  if (gimple_tm_atomic_label (gs))
+	  if (gimple_transaction_label (gs))
 	    {
 	      pp_string (buffer, " LABEL=");
-	      dump_generic_node (buffer, gimple_tm_atomic_label (gs),
+	      dump_generic_node (buffer, gimple_transaction_label (gs),
 				 spc, flags, false);
 	    }
 	  if (subcode)
@@ -1238,12 +1238,13 @@ dump_gimple_tm_atomic (pretty_printer *buffer, gimple gs, int spc, int flags)
 	    }
 	}
 
-      if (!gimple_seq_empty_p (gimple_tm_atomic_body (gs)))
+      if (!gimple_seq_empty_p (gimple_transaction_body (gs)))
 	{
 	  newline_and_indent (buffer, spc + 2);
 	  pp_character (buffer, '{');
 	  pp_newline (buffer);
-	  dump_gimple_seq (buffer, gimple_tm_atomic_body (gs), spc + 4, flags);
+	  dump_gimple_seq (buffer, gimple_transaction_body (gs),
+			   spc + 4, flags);
 	  newline_and_indent (buffer, spc + 2);
 	  pp_character (buffer, '}');
 	}
@@ -1825,8 +1826,8 @@ dump_gimple_stmt (pretty_printer *buffer, gimple gs, int spc, int flags)
       pp_string (buffer, " predictor.");
       break;
 
-    case GIMPLE_TM_ATOMIC:
-      dump_gimple_tm_atomic (buffer, gs, spc, flags);
+    case GIMPLE_TRANSACTION:
+      dump_gimple_transaction (buffer, gs, spc, flags);
       break;
 
     default:

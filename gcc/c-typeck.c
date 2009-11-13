@@ -10187,11 +10187,11 @@ c_finish_omp_clauses (tree clauses)
 tree
 c_finish_transaction (location_t loc, tree block, int flags)
 {
-  tree stmt = build_stmt (loc, TM_ATOMIC, block);
+  tree stmt = build_stmt (loc, TRANSACTION_EXPR, block);
   if (flags & TM_STMT_ATTR_OUTER)
-    TM_ATOMIC_OUTER (stmt) = 1;
+    TRANSACTION_EXPR_OUTER (stmt) = 1;
   if (flags & TM_STMT_ATTR_RELAXED)
-    TM_ATOMIC_RELAXED (stmt) = 1;
+    TRANSACTION_EXPR_RELAXED (stmt) = 1;
   return add_stmt (stmt);
 }
 

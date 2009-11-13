@@ -4589,7 +4589,7 @@ begin_transaction_stmt (location_t loc, tree *pcompound)
   if (pcompound)
     *pcompound = begin_compound_stmt (0);
 
-  r = build_stmt (loc, TM_ATOMIC, NULL_TREE);
+  r = build_stmt (loc, TRANSACTION_EXPR, NULL_TREE);
 
   /* Only add the statement to the function if support enabled.  */
   if (flag_tm)
@@ -4598,7 +4598,7 @@ begin_transaction_stmt (location_t loc, tree *pcompound)
     error_at (loc, "%<__transaction%> without transactional memory "
 	      "support enabled");
 
-  TM_ATOMIC_BODY (r) = push_stmt_list ();
+  TRANSACTION_EXPR_BODY (r) = push_stmt_list ();
   return r;
 }
 
@@ -4608,9 +4608,9 @@ begin_transaction_stmt (location_t loc, tree *pcompound)
 void
 finish_transaction_stmt (tree stmt, tree compound_stmt, int flags)
 {
-  TM_ATOMIC_BODY (stmt) = pop_stmt_list (TM_ATOMIC_BODY (stmt));
-  TM_ATOMIC_OUTER (stmt) = (flags & TM_STMT_ATTR_OUTER) != 0;
-  TM_ATOMIC_RELAXED (stmt) = (flags & TM_STMT_ATTR_RELAXED) != 0;
+  TRANSACTION_EXPR_BODY (stmt) = pop_stmt_list (TRANSACTION_EXPR_BODY (stmt));
+  TRANSACTION_EXPR_OUTER (stmt) = (flags & TM_STMT_ATTR_OUTER) != 0;
+  TRANSACTION_EXPR_RELAXED (stmt) = (flags & TM_STMT_ATTR_RELAXED) != 0;
 
   if (compound_stmt)
     finish_compound_stmt (compound_stmt);

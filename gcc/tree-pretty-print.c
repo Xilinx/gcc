@@ -2051,18 +2051,18 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
       is_expr = false;
       break;
 
-    case TM_ATOMIC:
+    case TRANSACTION_EXPR:
       pp_string (buffer, "__transaction");
-      if (TM_ATOMIC_OUTER (node))
+      if (TRANSACTION_EXPR_OUTER (node))
 	pp_string (buffer, " [[outer]]");
-      else if (TM_ATOMIC_RELAXED (node))
+      else if (TRANSACTION_EXPR_RELAXED (node))
 	pp_string (buffer, " [[relaxed]]");
-      if (!(flags & TDF_SLIM) && TM_ATOMIC_BODY (node))
+      if (!(flags & TDF_SLIM) && TRANSACTION_EXPR_BODY (node))
         {
           newline_and_indent (buffer, spc);
           pp_character (buffer, '{');
           newline_and_indent (buffer, spc + 2);
-          dump_generic_node (buffer, TM_ATOMIC_BODY (node),
+          dump_generic_node (buffer, TRANSACTION_EXPR_BODY (node),
 			     spc + 2, flags, false);
           newline_and_indent (buffer, spc);
           pp_character (buffer, '}');

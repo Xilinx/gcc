@@ -1018,14 +1018,14 @@ gimple_build_omp_atomic_store (tree val)
   return p;
 }
 
-/* Build a GIMPLE_TM_ATOMIC statement.  */
+/* Build a GIMPLE_TRANSACTION statement.  */
 
 gimple
-gimple_build_tm_atomic (gimple_seq body, tree label)
+gimple_build_transaction (gimple_seq body, tree label)
 {
-  gimple p = gimple_alloc (GIMPLE_TM_ATOMIC, 0);
-  gimple_tm_atomic_set_body (p, body);
-  gimple_tm_atomic_set_label (p, label);
+  gimple p = gimple_alloc (GIMPLE_TRANSACTION, 0);
+  gimple_transaction_set_body (p, body);
+  gimple_transaction_set_label (p, label);
   return p;
 }
 
@@ -1547,8 +1547,8 @@ walk_gimple_op (gimple stmt, walk_tree_fn callback_op,
 	return ret;
       break;
 
-    case GIMPLE_TM_ATOMIC:
-      ret = walk_tree (gimple_tm_atomic_label_ptr (stmt), callback_op,
+    case GIMPLE_TRANSACTION:
+      ret = walk_tree (gimple_transaction_label_ptr (stmt), callback_op,
 		       wi, pset);
       if (ret)
 	return ret;
@@ -1716,8 +1716,8 @@ walk_gimple_stmt (gimple_stmt_iterator *gsi, walk_stmt_fn callback_stmt,
 	return wi->callback_result;
       break;
 
-    case GIMPLE_TM_ATOMIC:
-      ret = walk_gimple_seq (gimple_tm_atomic_body (stmt),
+    case GIMPLE_TRANSACTION:
+      ret = walk_gimple_seq (gimple_transaction_body (stmt),
 			     callback_stmt, callback_op, wi);
       if (ret)
 	return wi->callback_result;
@@ -2167,9 +2167,9 @@ gimple_copy (gimple stmt)
 	  gimple_omp_set_body (copy, new_seq);
 	  break;
 
-        case GIMPLE_TM_ATOMIC:
-	  new_seq = gimple_seq_copy (gimple_tm_atomic_body (stmt));
-	  gimple_tm_atomic_set_body (copy, new_seq);
+        case GIMPLE_TRANSACTION:
+	  new_seq = gimple_seq_copy (gimple_transaction_body (stmt));
+	  gimple_transaction_set_body (copy, new_seq);
 	  break;
 
 	case GIMPLE_WITH_CLEANUP_EXPR:

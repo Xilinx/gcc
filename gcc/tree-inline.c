@@ -1332,10 +1332,10 @@ remap_gimple_stmt (gimple stmt, copy_body_data *id)
 	    = gimple_build_omp_critical (s1, gimple_omp_critical_name (stmt));
 	  break;
 
-	case GIMPLE_TM_ATOMIC:
-	  s1 = remap_gimple_seq (gimple_tm_atomic_body (stmt), id);
-	  copy = gimple_build_tm_atomic (s1, gimple_tm_atomic_label (stmt));
-	  gimple_tm_atomic_set_subcode (copy, gimple_tm_atomic_subcode (stmt));
+	case GIMPLE_TRANSACTION:
+	  s1 = remap_gimple_seq (gimple_transaction_body (stmt), id);
+	  copy = gimple_build_transaction (s1, gimple_transaction_label (stmt));
+	  gimple_transaction_set_subcode (copy, gimple_transaction_subcode (stmt));
 	  break;
 
 	default:
@@ -3407,9 +3407,9 @@ estimate_num_insns (gimple stmt, eni_weights *weights)
       return (weights->omp_cost
               + estimate_num_insns_seq (gimple_omp_body (stmt), weights));
 
-    case GIMPLE_TM_ATOMIC:
+    case GIMPLE_TRANSACTION:
       return (weights->tm_cost
-	      + estimate_num_insns_seq (gimple_tm_atomic_body (stmt),
+	      + estimate_num_insns_seq (gimple_transaction_body (stmt),
 					weights));
 
     default:

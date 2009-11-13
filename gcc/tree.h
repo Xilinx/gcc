@@ -1699,9 +1699,12 @@ extern void protected_set_expr_location (tree, location_t);
   (&(TREE_OPERAND (CALL_EXPR_CHECK (NODE), 0)) + 3)
 
 /* TM directives and accessors.  */
-#define TM_ATOMIC_BODY(NODE)	TREE_OPERAND (TM_ATOMIC_CHECK (NODE), 0)
-#define TM_ATOMIC_OUTER(NODE)	(TM_ATOMIC_CHECK (NODE)->base.static_flag)
-#define TM_ATOMIC_RELAXED(NODE)	(TM_ATOMIC_CHECK (NODE)->base.public_flag)
+#define TRANSACTION_EXPR_BODY(NODE) \
+  TREE_OPERAND (TRANSACTION_EXPR_CHECK (NODE), 0)
+#define TRANSACTION_EXPR_OUTER(NODE) \
+  (TRANSACTION_EXPR_CHECK (NODE)->base.static_flag)
+#define TRANSACTION_EXPR_RELAXED(NODE) \
+  (TRANSACTION_EXPR_CHECK (NODE)->base.public_flag)
 
 /* OpenMP directive and clause accessors.  */
 

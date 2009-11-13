@@ -443,8 +443,8 @@ lower_stmt (gimple_stmt_iterator *gsi, struct lower_data *data)
       data->cannot_fallthru = false;
       return;
 
-    case GIMPLE_TM_ATOMIC:
-      lower_sequence (gimple_tm_atomic_body (stmt), data);
+    case GIMPLE_TRANSACTION:
+      lower_sequence (gimple_transaction_body (stmt), data);
       break;
 
     default:

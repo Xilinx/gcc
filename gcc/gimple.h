@@ -105,7 +105,7 @@ enum gf_mask {
     GF_CALL_RETURN_SLOT_OPT	= 1 << 2,
     GF_CALL_TAILCALL		= 1 << 3,
     GF_CALL_VA_ARG_PACK		= 1 << 4,
-    GF_CALL_IN_TM_ATOMIC	= 1 << 5,
+    GF_CALL_IN_TRANSACTION	= 1 << 5,
     GF_CALL_NOTHROW		= 1 << 6,
     GF_CALL_NOINLINE		= 1 << 7,
     GF_OMP_PARALLEL_COMBINED	= 1 << 0,
@@ -735,9 +735,9 @@ struct GTY(()) gimple_statement_omp_atomic_store {
   tree val;
 };
 
-/* GIMPLE_TM_ATOMIC.  */
+/* GIMPLE_TRANSACTION.  */
 
-/* Bits to be stored in the GIMPLE_TM_ATOMIC subcode.  */
+/* Bits to be stored in the GIMPLE_TRANSACTION subcode.  */
 
 /* The __transaction was declared [[outer]] or [[relaxed]].  */
 #define GTMA_IS_OUTER			(1u << 0)
@@ -759,7 +759,7 @@ struct GTY(()) gimple_statement_omp_atomic_store {
    serial-irrevocable mode.  */
 #define GTMA_DOES_GO_IRREVOCABLE	(1u << 6)
 
-struct GTY(()) gimple_statement_tm_atomic
+struct GTY(()) gimple_statement_transaction
 {
   /* [ WORD 1-10 ]  */
   struct gimple_statement_with_memory_ops_base gsbase;
@@ -806,7 +806,7 @@ union GTY ((desc ("gimple_statement_structure (&%h)"))) gimple_statement_d {
   struct gimple_statement_omp_continue GTY ((tag ("GSS_OMP_CONTINUE"))) gimple_omp_continue;
   struct gimple_statement_omp_atomic_load GTY ((tag ("GSS_OMP_ATOMIC_LOAD"))) gimple_omp_atomic_load;
   struct gimple_statement_omp_atomic_store GTY ((tag ("GSS_OMP_ATOMIC_STORE"))) gimple_omp_atomic_store;
-  struct gimple_statement_tm_atomic GTY((tag ("GSS_TM_ATOMIC"))) gimple_tm_atomic;
+  struct gimple_statement_transaction GTY((tag ("GSS_TRANSACTION"))) gimple_transaction;
 };
 
 /* In gimple.c.  */
@@ -871,7 +871,7 @@ gimple gimple_build_omp_single (gimple_seq, tree);
 gimple gimple_build_cdt (tree, tree);
 gimple gimple_build_omp_atomic_load (tree, tree);
 gimple gimple_build_omp_atomic_store (tree);
-gimple gimple_build_tm_atomic (gimple_seq, tree);
+gimple gimple_build_transaction (gimple_seq, tree);
 gimple gimple_build_predict (enum br_predictor, enum prediction);
 enum gimple_statement_structure_enum gss_for_assign (enum tree_code);
 void sort_case_labels (VEC(tree,heap) *);
@@ -1147,7 +1147,7 @@ gimple_has_substatements (gimple g)
     case GIMPLE_OMP_SINGLE:
     case GIMPLE_OMP_CRITICAL:
     case GIMPLE_WITH_CLEANUP_EXPR:
-    case GIMPLE_TM_ATOMIC:
+    case GIMPLE_TRANSACTION:
       return true;
 
     default:
@@ -2240,17 +2240,17 @@ gimple_call_va_arg_pack_p (gimple s)
 }
 
 
-/* If IN_TM_ATOMIC_P is true, GIMPLE_CALL S is within the dynamic scope of
-   a GIMPLE_TM_ATOMIC transaction.  */
+/* If IN_TRANSACTION_P is true, GIMPLE_CALL S is within the dynamic scope of
+   a GIMPLE_TRANSACTION transaction.  */
 
 static inline void
-gimple_call_set_in_tm_atomic (gimple s, bool in_tm_atomic_p)
+gimple_call_set_in_transaction (gimple s, bool in_transaction_p)
 {
   GIMPLE_CHECK (s, GIMPLE_CALL);
-  if (in_tm_atomic_p)
-    s->gsbase.subcode |= GF_CALL_IN_TM_ATOMIC;
+  if (in_transaction_p)
+    s->gsbase.subcode |= GF_CALL_IN_TRANSACTION;
   else
-    s->gsbase.subcode &= ~GF_CALL_IN_TM_ATOMIC;
+    s->gsbase.subcode &= ~GF_CALL_IN_TRANSACTION;
 }
   
 
@@ -2258,10 +2258,10 @@ gimple_call_set_in_tm_atomic (gimple s, bool in_tm_atomic_p)
    a transaction.  */
 
 static inline bool
-gimple_call_in_tm_atomic_p (gimple s)
+gimple_call_in_transaction_p (gimple s)
 {
   GIMPLE_CHECK (s, GIMPLE_CALL);
-  return (s->gsbase.subcode & GF_CALL_IN_TM_ATOMIC) != 0;
+  return (s->gsbase.subcode & GF_CALL_IN_TRANSACTION) != 0;
 }
 
 
@@ -4376,64 +4376,64 @@ gimple_omp_continue_set_control_use (gimple g, tree use)
   g->gimple_omp_continue.control_use = use;
 }
 
-/* Return the body for the GIMPLE_TM_ATOMIC statement GS.  */
+/* Return the body for the GIMPLE_TRANSACTION statement GS.  */
 
 static inline gimple_seq 
-gimple_tm_atomic_body (gimple gs)
+gimple_transaction_body (gimple gs)
 {
-  GIMPLE_CHECK (gs, GIMPLE_TM_ATOMIC);
-  return gs->gimple_tm_atomic.body;
+  GIMPLE_CHECK (gs, GIMPLE_TRANSACTION);
+  return gs->gimple_transaction.body;
 }
 
-/* Return the label associated with a GIMPLE_TM_ATOMIC.  */
+/* Return the label associated with a GIMPLE_TRANSACTION.  */
 
 static inline tree
-gimple_tm_atomic_label (const_gimple gs)
+gimple_transaction_label (const_gimple gs)
 {
-  GIMPLE_CHECK (gs, GIMPLE_TM_ATOMIC);
-  return gs->gimple_tm_atomic.label;
+  GIMPLE_CHECK (gs, GIMPLE_TRANSACTION);
+  return gs->gimple_transaction.label;
 }
 
 static inline tree *
-gimple_tm_atomic_label_ptr (gimple gs)
+gimple_transaction_label_ptr (gimple gs)
 {
-  GIMPLE_CHECK (gs, GIMPLE_TM_ATOMIC);
-  return &gs->gimple_tm_atomic.label;
+  GIMPLE_CHECK (gs, GIMPLE_TRANSACTION);
+  return &gs->gimple_transaction.label;
 }
 
-/* Return the subcode associated with a GIMPLE_TM_ATOMIC.  */
+/* Return the subcode associated with a GIMPLE_TRANSACTION.  */
 
 static inline unsigned int
-gimple_tm_atomic_subcode (const_gimple gs)
+gimple_transaction_subcode (const_gimple gs)
 {
-  GIMPLE_CHECK (gs, GIMPLE_TM_ATOMIC);
+  GIMPLE_CHECK (gs, GIMPLE_TRANSACTION);
   return gs->gsbase.subcode;
 }
 
-/* Set BODY to be the body for the GIMPLE_TM_ATOMIC statement GS.  */
+/* Set BODY to be the body for the GIMPLE_TRANSACTION statement GS.  */
 
 static inline void
-gimple_tm_atomic_set_body (gimple gs, gimple_seq body)
+gimple_transaction_set_body (gimple gs, gimple_seq body)
 {
-  GIMPLE_CHECK (gs, GIMPLE_TM_ATOMIC);
-  gs->gimple_tm_atomic.body = body;
+  GIMPLE_CHECK (gs, GIMPLE_TRANSACTION);
+  gs->gimple_transaction.body = body;
 }
 
-/* Set the label associated with a GIMPLE_TM_ATOMIC.  */
+/* Set the label associated with a GIMPLE_TRANSACTION.  */
 
 static inline void
-gimple_tm_atomic_set_label (gimple gs, tree label)
+gimple_transaction_set_label (gimple gs, tree label)
 {
-  GIMPLE_CHECK (gs, GIMPLE_TM_ATOMIC);
-  gs->gimple_tm_atomic.label = label;
+  GIMPLE_CHECK (gs, GIMPLE_TRANSACTION);
+  gs->gimple_transaction.label = label;
 }
 
-/* Set the subcode associated with a GIMPLE_TM_ATOMIC.  */
+/* Set the subcode associated with a GIMPLE_TRANSACTION.  */
 
 static inline void
-gimple_tm_atomic_set_subcode (gimple gs, unsigned int subcode)
+gimple_transaction_set_subcode (gimple gs, unsigned int subcode)
 {
-  GIMPLE_CHECK (gs, GIMPLE_TM_ATOMIC);
+  GIMPLE_CHECK (gs, GIMPLE_TRANSACTION);
   gs->gsbase.subcode = subcode;
 }
 

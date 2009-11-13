@@ -662,9 +662,9 @@ make_edges (void)
 		}
 	      break;
 
-	    case GIMPLE_TM_ATOMIC:
+	    case GIMPLE_TRANSACTION:
 	      {
-		tree abort_label = gimple_tm_atomic_label (last);
+		tree abort_label = gimple_transaction_label (last);
 		if (abort_label)
 		  make_edge (bb, label_to_block (abort_label), 0);
 		fallthru = true;
@@ -1253,14 +1253,14 @@ cleanup_dead_labels (void)
 	    }
 	  break;
 
-	case GIMPLE_TM_ATOMIC:
+	case GIMPLE_TRANSACTION:
 	  {
-	    tree label = gimple_tm_atomic_label (stmt);
+	    tree label = gimple_transaction_label (stmt);
 	    if (label)
 	      {
 		tree new_label = main_block_label (label);
 		if (new_label != label)
-		  gimple_tm_atomic_set_label (stmt, new_label);
+		  gimple_transaction_set_label (stmt, new_label);
 	      }
 	  }
 	  break;
@@ -2299,7 +2299,7 @@ is_ctrl_altering_stmt (gimple t)
       /* OpenMP directives alter control flow.  */
       return true;
 
-    case GIMPLE_TM_ATOMIC:
+    case GIMPLE_TRANSACTION:
       /* A transaction start alters control flow.  */
       return true;
 
@@ -3709,13 +3709,13 @@ verify_gimple_switch (gimple stmt)
   return false;
 }
 
-/* Verify the contents of a GIMPLE_TM_ATOMIC.  Returns true if there
+/* Verify the contents of a GIMPLE_TRANSACTION.  Returns true if there
    is a problem, otherwise false.  */
 
 static bool
-verify_gimple_tm_atomic (gimple stmt)
+verify_gimple_transaction (gimple stmt)
 {
-  tree lab = gimple_tm_atomic_label (stmt);
+  tree lab = gimple_transaction_label (stmt);
   if (lab != NULL && TREE_CODE (lab) != LABEL_DECL)
     return true;
   return false;
@@ -3814,8 +3814,8 @@ verify_types_in_gimple_stmt (gimple stmt)
     case GIMPLE_PHI:
       return verify_gimple_phi (stmt);
 
-    case GIMPLE_TM_ATOMIC:
-      return verify_gimple_tm_atomic (stmt);
+    case GIMPLE_TRANSACTION:
+      return verify_gimple_transaction (stmt);
 
     /* Tuples that do not have tree operands.  */
     case GIMPLE_NOP:
@@ -3878,7 +3878,7 @@ verify_types_in_gimple_seq_2 (gimple_seq stmts)
 	  err |= verify_types_in_gimple_seq_2 (gimple_catch_handler (stmt));
 	  break;
 
-	case GIMPLE_TM_ATOMIC:
+	case GIMPLE_TRANSACTION:
 	  err |= verify_types_in_gimple_seq_2 (gimple_omp_body (stmt));
 	  break;
 
@@ -4754,12 +4754,12 @@ gimple_redirect_edge_and_branch (edge e, basic_block dest)
 	redirect_eh_dispatch_edge (stmt, e, dest);
       break;
 
-    case GIMPLE_TM_ATOMIC:
+    case GIMPLE_TRANSACTION:
       /* The ABORT edge has a stored label associated with it, otherwise
 	 the edges are simply redirectable.  */
       /* ??? We don't really need this label after the cfg is created.  */
       if (e->flags == 0)
-	gimple_tm_atomic_set_label (stmt, gimple_block_label (dest));
+	gimple_transaction_set_label (stmt, gimple_block_label (dest));
       break;
 
     default:

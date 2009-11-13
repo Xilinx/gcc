@@ -6250,11 +6250,11 @@ gimplify_omp_atomic (tree *expr_p, gimple_seq *pre_p)
    return GS_ALL_DONE;
 }
 
-/* Gimplify the contents of a TM_ATOMIC statement.  This involves
+/* Gimplify the contents of a TRANSACTION_EXPR statement.  This involves
    gimplification of the body, and adding some EH bits.  */
 
 static enum gimplify_status
-gimplify_tm_atomic (tree *expr_p, gimple_seq *pre_p)
+gimplify_transaction (tree *expr_p, gimple_seq *pre_p)
 {
   tree expr = *expr_p;
   gimple g;
@@ -6264,18 +6264,18 @@ gimplify_tm_atomic (tree *expr_p, gimple_seq *pre_p)
 
   push_gimplify_context (&gctx);
 
-  g = gimplify_and_return_first (TM_ATOMIC_BODY (expr), &body);
+  g = gimplify_and_return_first (TRANSACTION_EXPR_BODY (expr), &body);
   if (g && gimple_code (g) == GIMPLE_BIND)
     pop_gimplify_context (g);
   else
     pop_gimplify_context (NULL);
 
-  g = gimple_build_tm_atomic (body, NULL);
-  if (TM_ATOMIC_OUTER (expr))
+  g = gimple_build_transaction (body, NULL);
+  if (TRANSACTION_EXPR_OUTER (expr))
     subcode = GTMA_IS_OUTER;
-  else if (TM_ATOMIC_RELAXED (expr))
+  else if (TRANSACTION_EXPR_RELAXED (expr))
     subcode = GTMA_IS_RELAXED;
-  gimple_tm_atomic_set_subcode (g, subcode);
+  gimple_transaction_set_subcode (g, subcode);
 
   gimplify_seq_add_stmt (pre_p, g);
   *expr_p = NULL_TREE;
@@ -6936,8 +6936,8 @@ gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 	  ret = gimplify_omp_atomic (expr_p, pre_p);
 	  break;
 
-        case TM_ATOMIC:
-          ret = gimplify_tm_atomic (expr_p, pre_p);
+        case TRANSACTION_EXPR:
+          ret = gimplify_transaction (expr_p, pre_p);
           break;
 
 	case POINTER_PLUS_EXPR:
