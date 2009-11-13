@@ -1,3 +1,8 @@
+2009-11-13  Richard Henderson  <rth@redhat.com>
+
+	* Makefile.def (lang_env_dependencies): libitm is c++.
+	* Makefile.in: Rebuild.
+
 2009-11-03  Richard Henderson  <rth@redhat.com>
 
 	* config/mmap.m4: New file.

@@ -517,6 +517,7 @@ dependencies = { module=all-uudecode; on=all-build-texinfo; };
 // on libgcc and newlib/libgloss.
 lang_env_dependencies = { module=gperf; cxx=true; };
 lang_env_dependencies = { module=libjava; cxx=true; };
+lang_env_dependencies = { module=libitm; cxx=true; };
 lang_env_dependencies = { module=newlib; no_c=true; };
 lang_env_dependencies = { module=libgloss; no_c=true; };
 lang_env_dependencies = { module=libgcc; no_gcc=true; no_c=true; };

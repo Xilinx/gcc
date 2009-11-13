@@ -57411,6 +57411,7 @@ configure-target-libada: maybe-all-target-newlib maybe-all-target-libgloss
 configure-target-libgomp: maybe-all-target-newlib maybe-all-target-libgloss
 
 configure-target-libitm: maybe-all-target-newlib maybe-all-target-libgloss
+configure-target-libitm: maybe-all-target-libstdc++-v3
 
 
 CONFIGURE_GDB_TK = @CONFIGURE_GDB_TK@
