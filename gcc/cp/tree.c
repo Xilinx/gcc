@@ -555,8 +555,8 @@ rvalue (tree expr)
 
      Non-class rvalues always have cv-unqualified types.  */
   type = TREE_TYPE (expr);
-  if (!CLASS_TYPE_P (type) && cp_type_quals (type))
-    type = cp_build_qualified_type (type, TYPE_UNQUALIFIED);
+  if (!CLASS_TYPE_P (type) && cv_qualified_p (type))
+    type = cv_unqualified (type);
 
   /* We need to do this for rvalue refs as well to get the right answer
      from decltype; see c++/36628.  */
@@ -1065,6 +1065,14 @@ strip_typedefs (tree t)
   if (TYPE_ATTRIBUTES (t))
     result = cp_build_type_attribute_variant (result, TYPE_ATTRIBUTES (t));
   return cp_build_qualified_type (result, cp_type_quals (t));
+}
+
+/* Returns true iff TYPE is a type variant created for a typedef. */
+
+bool
+typedef_variant_p (tree type)
+{
+  return is_typedef_decl (TYPE_NAME (type));
 }
 
 

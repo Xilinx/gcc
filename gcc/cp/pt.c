@@ -3150,6 +3150,8 @@ expand_template_argument_pack (tree args)
   for (in_arg = 0; in_arg < nargs; ++in_arg)
     {
       tree arg = TREE_VEC_ELT (args, in_arg);
+      if (arg == NULL_TREE)
+	return args;
       if (ARGUMENT_PACK_P (arg))
         {
           int num_packed = TREE_VEC_LENGTH (ARGUMENT_PACK_ARGS (arg));
@@ -4927,6 +4929,27 @@ convert_nontype_argument (tree type, tree expr)
 	 shall be one of: [...]
 
 	 -- the address of an object or function with external linkage.  */
+      if (TREE_CODE (expr) == INDIRECT_REF
+	  && TYPE_REF_OBJ_P (TREE_TYPE (TREE_OPERAND (expr, 0))))
+	{
+	  expr = TREE_OPERAND (expr, 0);
+	  if (DECL_P (expr))
+	    {
+	      error ("%q#D is not a valid template argument for type %qT "
+		     "because a reference variable does not have a constant "
+		     "address", expr, type);
+	      return NULL_TREE;
+	    }
+	}
+
+      if (!DECL_P (expr))
+	{
+	  error ("%qE is not a valid template argument for type %qT "
+		 "because it is not an object with external linkage",
+		 expr, type);
+	  return NULL_TREE;
+	}
+
       if (!DECL_EXTERNAL_LINKAGE_P (expr))
 	{
 	  error ("%qE is not a valid template argument for type %qT "
@@ -5451,7 +5474,7 @@ convert_template_argument (tree parm,
 		      error ("type/value mismatch at argument %d in "
 			     "template parameter list for %qD",
 			     i + 1, in_decl);
-		      error ("  expected a template of type %qD, got %qD",
+		      error ("  expected a template of type %qD, got %qT",
 			     parm, orig_arg);
 		    }
 
@@ -6350,7 +6373,6 @@ lookup_template_class (tree d1,
 
 	  type_decl = create_implicit_typedef (DECL_NAME (gen_tmpl), t);
 	  DECL_CONTEXT (type_decl) = TYPE_CONTEXT (t);
-	  TYPE_STUB_DECL (t) = type_decl;
 	  DECL_SOURCE_LOCATION (type_decl)
 	    = DECL_SOURCE_LOCATION (TYPE_STUB_DECL (template_type));
 	}
@@ -17688,6 +17710,9 @@ resolve_typename_type (tree type, bool only_current_p)
   /* If the SCOPE is not the current instantiation, there's no reason
      to look inside it.  */
   if (only_current_p && !currently_open_class (scope))
+    return type;
+  /* If this is a typedef, we don't want to look inside (c++/11987).  */
+  if (typedef_variant_p (type))
     return type;
   /* If SCOPE isn't the template itself, it will not have a valid
      TYPE_FIELDS list.  */

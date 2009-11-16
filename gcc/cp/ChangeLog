@@ -1,3 +1,66 @@
+2009-11-16  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/32056
+	* decl.h (enum decl_context): Add TPARM enumerator.
+	* decl.c (grokdeclarator): Per 14.1/2, error out if a storage class
+	is specified in a template parameter declaration.
+	* parser.c (cp_parser_template_parameter): Call grokdeclarator with
+	TPARM as third argument.
+
+2009-11-13  Jason Merrill  <jason@redhat.com>
+
+	PR c++/27425
+	PR c++/34274
+	* pt.c (expand_template_argument_pack): Handle null arg gracefully.
+	(convert_template_argument): Use %T for type.
+
+	PR c++/29363
+	* decl.c (create_implicit_typedef): Set TYPE_STUB_DECL here.
+	(cxx_init_decl_processing): Not here.
+	* name-lookup.c (pushtag): Or here.
+	* pt.c (lookup_template_class): Or here.
+
+	PR c++/35075
+	* pt.c (convert_nontype_argument): Give helpful error about
+	reference variable argument to reference template parameter.
+
+	PR c++/21008, DR 515
+	* semantics.c (finish_non_static_data_member): Don't check
+	derivation in a template.
+
+	PR c++/11987
+	* parser.c (cp_parser_direct_declarator): Give helpful error about
+	trying to define member of a dependent typedef.
+	* pt.c (resolve_typename_type): Don't resolve a typedef typename.
+	* tree.c (typedef_variant_p): New.
+	* cp-tree.h: Declare it.
+
+2009-11-12  Jason Merrill  <jason@redhat.com>
+
+	PR c++/27078
+	* parser.c (cp_parser_primary_expression): Don't give a duplicate
+	ambiguity error.
+
+	PR c++/39560
+	* decl2.c (build_anon_union_vars): Set DECL_ARTIFICIAL.
+
+	PR c++/37037
+	* decl.c (grokdeclarator): Don't generate a void PARM_DECL.
+
+	PR c++/42013
+	* call.c (build_conditional_expr): Check specifically for folding
+	to CALL_EXPR rather than TREE_SIDE_EFFECTS.
+
+	* typeck.c (cv_qualified_p): New fn.
+	(decay_conversion): Use it.
+	* cp-tree.h: Declare it.
+	* tree.c (rvalue): Use it and cv_unqualified.
+	* init.c (build_aggr_init): Likewise.
+
+	PR c++/42013
+	* call.c (build_conditional_expr): Don't fold a TREE_SIDE_EFFECTS
+	COND_EXPR in unevaluated context.
+
 2009-11-12  Jan Hubicka  <jh@suse.cz>
 
 	* decl2.c (constrain_visibility): Clear WEAK and COMMON flags.
@@ -6,8 +69,6 @@
 
 	PR c++/39131
 	* rtti.c (emit_support_tinfos): Add DFP types.
-
-2009-11-11  Jason Merrill  <jason@redhat.com>
 
 	* call.c (build_op_delete_call): Downgrade error about
 	placement/non-placement confusion to permerror.

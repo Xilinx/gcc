@@ -3509,6 +3509,16 @@ cp_parser_primary_expression (cp_parser *parser,
 	  {
 	    tree ambiguous_decls;
 
+	    /* If we already know that this lookup is ambiguous, then
+	       we've already issued an error message; there's no reason
+	       to check again.  */
+	    if (id_expr_token->type == CPP_NAME
+		&& id_expr_token->ambiguous_p)
+	      {
+		cp_parser_simulate_error (parser);
+		return error_mark_node;
+	      }
+
 	    decl = cp_parser_lookup_name (parser, id_expression,
 					  none_type,
 					  template_p,
@@ -10498,7 +10508,7 @@ cp_parser_template_parameter (cp_parser* parser, bool *is_non_type,
 
   parm = grokdeclarator (parameter_declarator->declarator,
 			 &parameter_declarator->decl_specifiers,
-			 PARM, /*initialized=*/0,
+			 TPARM, /*initialized=*/0,
 			 /*attrlist=*/NULL);
   if (parm == error_mark_node)
     return error_mark_node;
@@ -14181,10 +14191,17 @@ cp_parser_direct_declarator (cp_parser* parser,
 					      /*only_current_p=*/false);
 		/* If that failed, the declarator is invalid.  */
 		if (TREE_CODE (type) == TYPENAME_TYPE)
-		  error_at (declarator_id_start_token->location,
-			    "%<%T::%E%> is not a type",
-			    TYPE_CONTEXT (qualifying_scope),
-			    TYPE_IDENTIFIER (qualifying_scope));
+		  {
+		    if (typedef_variant_p (type))
+		      error_at (declarator_id_start_token->location,
+				"cannot define member of dependent typedef "
+				"%qT", type);
+		    else
+		      error_at (declarator_id_start_token->location,
+				"%<%T::%E%> is not a type",
+				TYPE_CONTEXT (qualifying_scope),
+				TYPE_IDENTIFIER (qualifying_scope));
+		  }
 		qualifying_scope = type;
 	      }
 
