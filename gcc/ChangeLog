@@ -1,3 +1,126 @@
+2009-11-14  Andy Hutchinson   <hutchinsonandy@gcc.gnu.org>
+
+	PR target/21078, 21080
+	* config/avr/avr.c (avr_return_addr_rtx): New function for
+	builtin_return_address.
+	(expand_prologue): Calculate stack usage.
+	(avr_asm_function_end_prologue): Output stack size and offset label.
+	* config/avr/avr.h (RETURN_ADDR_RTX): Replace.
+	(machine_function): Add stack_usage.
+	* config/avr/avr-protos.h (avr_return_addr_rtx): New function.
+
+2009-11-14  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/iq2000/iq2000.c (iq2000_function_value): Make static, add
+	new 'outgoing' argument.
+	(iq2000_libcall_value, iq2000_function_value_regno_p): New functions.
+	(TARGET_FUNCTION_VALUE, TARGET_LIBCALL_VALUE): Declare.
+	* config/iq2000/iq2000.h: (FUNCTION_VALUE_REGNO_P): Redefine, use
+	iq2000_function_value_regno_p.
+	(FUNCTION_VALUE, LIBCALL_VALUE): Remove.
+	* config/iq2000/iq2000-protos.h (iq2000_function_value_regno_p):
+	Declare.
+
+2009-11-14  Richard Earnshaw  <rearnsha@arm.com>
+
+	PR target/42031
+	* arm.md (adddi_sesidi_di): Place tied contraint first.
+	(adddi_zesidi_di, subdi_di_zesidi, subdi_di_sesidi): Likewise
+	(subdi_zesidi_di, subdi_sesidi_di): Likewise.
+	(mulsi3_compare0, mulsi_compare0_scratch): Likewise.
+	(mulsi3addsi, mulsi3addsi_compare0): Likewise.
+	(mulsi3addsi_compare0_scratch, smulsi3_highpart_nov6): Likewise.
+	(umulsi3_highpart_nov6, anddi_zesidi_di, anddi_sesdi_di): Likewise.
+	(anddi_notdi_di, iordi_sesidi_di, xordi_sesidi_di): Likewise.
+	(andsi_iorsi3_notsi, arm_ashldi3_1bit, arm_ashrdi3_1_bit): Likewise.
+	(arm_lshrdi3_1bit, one_cmpldi2): Likewise.
+
+2009-11-14  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/predicates.md (call_register_no_elim_operand):
+	New predicate.  Reject stack register as valid call operand
+	for 32bit targets.
+	(call_insn_operand): Use call_register_no_elim_operand.
+
+2009-11-13  Richard Henderson  <rth@redhat.com>
+
+	* function.c (stack_protect_prologue): Don't bypass expand_expr
+	for stack_protect_guard and guard_decl.
+	(stack_protect_epilogue): Likewise.
+
+2009-11-13  Jan Hubicka  <jh@suse.cz>
+
+	* ipa.c (function_and_variable_visibility): Clear COMDAT on functions
+	when to PUBLIC is set.
+
+2009-11-13  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/42029
+	* gimplify.c (gimplify_omp_atomic): Set DECL_GIMPLE_REG_P on
+	tmp_load if needed.
+
+2009-11-13  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/41900
+	* config/i386/i386.md (*call_pop_1, *call_1, *call_value_pop_1,
+	*call_value_1): Use "lsm" as operand 1 constraint.
+	* config/i386/predicates.md (call_insn_operand): Depend on
+	index_register_operand to avoid %esp register.
+
+2009-11-13  Uros Bizjak  <ubizjak@gmail.com>
+
+	Revert:
+	2009-11-03  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/41900
+	* config/i386/i386.h (ix86_arch_indices) <X86_ARCH_CALL_ESP>: New.
+	(TARGET_CALL_ESP): New define.
+	* config/i386/i386.c (initial_ix86_tune_features): Initialize
+	X86_ARCH_CALL_ESP.
+	* config/i386/i386.md (*call_pop_1_esp, *call_1_esp,
+	*call_value_pop_1_esp, *call_value_1_esp): Rename from *call_pop_1,
+	*call_1, *call_value_pop_1 and *call_value_1.  Depend on
+	TARGET_CALL_ESP.
+	(*call_pop_1, *call_1, *call_value_pop_1, *call_value_1):
+	New patterns, use "lsm" as operand 1 constraint.
+	* config/i386/predicates.md (call_insn_operand): Depend on
+	index_register_operand for !TARGET_CALL_ESP to avoid %esp register.
+
+2009-11-13  Jason Merrill  <jason@redhat.com>
+
+	PR debug/26965
+	* dwarf2out.c (gen_variable_die): Don't worry about DECL_COMDAT.
+	Don't emit a second declaration at any scope.
+
+2009-11-13  Andrey Belevantsev  <abel@ispras.ru>
+
+	PR rtl-optimization/41697
+	* sel-sched-ir.c (fallthru_bb_of_jump): Bail out when a block with
+	a conditional jump has a single successor.
+
+2009-11-13  Andrey Belevantsev  <abel@ispras.ru>
+
+	* sched-deps.c (init_deps): New parameter lazy_reg_last.  Don't
+	allocate reg_last when in case lazy_reg_last is true.
+	(init_deps_reg_last): New.
+	(free_deps): When max_reg is 0, this context is already freed.
+	* sched-int.h (init_deps_reg_last): Export.
+	(init_deps): Update prototype.
+	* sched-ebb.c (schedule_ebb): Update the call to init_deps.
+	* sched-rgn.c (sched_rgn_compute_dependencies): Likewise.
+	* ddg.c (build_intra_loop_deps): Likewise.
+	* sel-sched-ir.c (copy_deps_context, create_deps_context,
+	reset_deps_context, deps_init_id): Likewise.
+	(init_first_time_insn_data): Lazy allocate INSN_DEPS_CONTEXT.
+	(free_data_for_scheduled_insn): New, break down from ...
+	(free_first_time_insn_data): ... here.
+	(has_dependence_p): Allocate reg_last now, when it is needed.
+	(extend_insn_data): When maximal LUID is big enough, allocate
+	per-insn data in smaller chunks.
+	* sel-sched-ir.h (free_data_for_scheduled_insn): Export.
+	* sel-sched.c (update_seqnos_and_stage): Free INSN_DEPS_CONTEXT
+	in scheduled insn.
+
 2009-11-13  Uros Bizjak  <ubizjak@gmail.com>
 
 	* config/i386/i386.md (call_value): Fix comment.
@@ -66,7 +189,7 @@
 	PR middle-end/41440
 	* cfgexpand.c (expand_gimple_basic_block): Append NOP to a fallthru,
 	single successor block, ending with jump created by RTL expander.
-	
+
 2009-11-11  Jan Hubicka  <jh@suse.cz>
 
 	PR middle-end/41729
@@ -5182,6 +5305,34 @@
 	(expand_debug_expr): Convert base address and offset to the same
 	mode.  Use it to convert addresses to other modes.  Accept
 	ptr_mode addresses.
+
+2009-09-23  Dodji Seketeli <dodji@redhat.com>
+
+	PR debug/41065
+	* function.h (types_used_by_vars_hash): Declare new hash table.
+	(types_used_by_vars_eq, types_used_by_var_decl_insert): Declare
+	equality and hash function for the hash table.
+	(types_used_by_cur_var_decl): Declare a new global chained list.
+	(types_used_by_var_decl_insert): Declare new function.
+	* function.c (types_used_by_vars_hash): Define the hashtable ...
+	(types_used_by_vars_eq, types_used_by_vars_do_hash): ... as well as
+	its equality and hash functions.
+	(hash_types_used_by_vars_entry): New hash helper.
+	(types_used_by_cur_var_decl): Define the global chained list.
+	(used_types_insert): Update the list of types used by the global
+	variable being parsed.
+	(types_used_by_var_decl_insert): Define new function.
+	* c-common.h (record_types_used_by_current_var_decl): Declare ...
+	* c-common.c (record_types_used_by_current_var_decl): ... new
+	function.
+	* c-decl.c (finish_decl): Record the types used by the global
+	variable declaration we've just parsed.
+	* dwarf2out.c (premark_used_types): Insert a new line between
+	comment and function.
+	(premark_used_types_helper): Fix comment.
+	(premark_types_used_by_global_vars_helper,
+	premark_types_used_by_global_vars): New functions.
+	(prune_unused_types): Do not prune types used by global variables.
 
 2009-09-23  Richard Guenther  <rguenther@suse.de>
 

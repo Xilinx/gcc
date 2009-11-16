@@ -1,3 +1,36 @@
+2009-11-15  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/42048
+	* gfortran.dg/typebound_call_11.f03: New test.
+
+2009-11-15  Hans-Peter Nilsson  <hp@axis.com>
+
+	* gcc.dg/lto/lto.exp: For non-lto, bail out before calling
+	init functions.
+
+2009-11-13  Jason Merrill  <jason@redhat.com>
+
+	PR c++/27425
+	PR c++/34274
+	* g++.dg/template/arg7.C: New.
+
+	PR c++/29363
+	* g++.dg/template/error43.C: New.
+
+	PR debug/26965
+	* g++.dg/debug/dwarf2/static-data-member2.C: New.
+
+	PR c++/35075
+	* g++.dg/template/ref5.C: New.
+
+	PR c++/21008, DR 515
+	* g++.dg/template/inherit4.C: New.
+	* g++.dg/lookup/scoped8.C: Adjust.
+
+	PR c++/11987
+	* g++.dg/parse/typename11.C: New.
+	* g++.dg/template/crash48.C: Adjust.
+
 2009-11-13  Uros Bizjak  <ubizjak@gmail.com>
 
 	PR testsuite/42001
