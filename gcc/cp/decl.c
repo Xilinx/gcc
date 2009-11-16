@@ -849,6 +849,7 @@ create_implicit_typedef (tree name, tree type)
      amongst these.  */
   SET_DECL_IMPLICIT_TYPEDEF_P (decl);
   TYPE_NAME (type) = decl;
+  TYPE_STUB_DECL (type) = decl;
 
   return decl;
 }
@@ -3456,7 +3457,6 @@ cxx_init_decl_processing (void)
     bad_alloc_decl
       = create_implicit_typedef (bad_alloc_id, bad_alloc_type_node);
     DECL_CONTEXT (bad_alloc_decl) = current_namespace;
-    TYPE_STUB_DECL (bad_alloc_type_node) = bad_alloc_decl;
     pop_namespace ();
 
     ptr_ftype_sizetype
@@ -7574,11 +7574,13 @@ check_var_type (tree identifier, tree type)
       try to parse.
      PARM for a parameter declaration (either within a function prototype
       or before a function body).  Make a PARM_DECL, or return void_type_node.
+     TPARM for a template parameter declaration.
      CATCHPARM for a parameter declaration before a catch clause.
      TYPENAME if for a typename (in a cast or sizeof).
       Don't make a DECL node; just return the ..._TYPE node.
      FIELD for a struct or union field; make a FIELD_DECL.
      BITFIELD for a field with specified width.
+
    INITIALIZED is as for start_decl.
 
    ATTRLIST is a pointer to the list of attributes, which may be NULL
@@ -7662,6 +7664,7 @@ grokdeclarator (const cp_declarator *declarator,
   bool type_was_error_mark_node = false;
   bool parameter_pack_p = declarator? declarator->parameter_pack_p : false;
   bool template_type_arg = false;
+  bool template_parm_flag = false;
   bool constexpr_p = declspecs->specs[(int) ds_constexpr];
   const char *errmsg;
 
@@ -7680,6 +7683,8 @@ grokdeclarator (const cp_declarator *declarator,
     bitfield = 1, decl_context = FIELD;
   else if (decl_context == TEMPLATE_TYPE_ARG)
     template_type_arg = true, decl_context = TYPENAME;
+  else if (decl_context == TPARM)
+    template_parm_flag = true, decl_context = PARM;
 
   if (initialized > 1)
     funcdef_flag = true;
@@ -8177,6 +8182,11 @@ grokdeclarator (const cp_declarator *declarator,
       if (declspecs->specs[(int)ds_typedef])
 	{
 	  error ("typedef declaration invalid in parameter declaration");
+	  return error_mark_node;
+	}
+      else if (template_parm_flag && storage_class != sc_none)
+	{
+	  error ("storage class specified for template parameter %qs", name);
 	  return error_mark_node;
 	}
       else if (storage_class == sc_static
@@ -8993,7 +9003,9 @@ grokdeclarator (const cp_declarator *declarator,
       tree decls = NULL_TREE;
       tree args;
 
-      for (args = TYPE_ARG_TYPES (type); args; args = TREE_CHAIN (args))
+      for (args = TYPE_ARG_TYPES (type);
+	   args && args != void_list_node;
+	   args = TREE_CHAIN (args))
 	{
 	  tree decl = cp_build_parm_decl (NULL_TREE, TREE_VALUE (args));
 

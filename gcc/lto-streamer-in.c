@@ -1261,6 +1261,8 @@ input_function (tree fn_decl, struct data_in *data_in,
   gimple *stmts;
   basic_block bb;
   struct bitpack_d *bp;
+  struct cgraph_node *node;
+  tree args, narg, oarg;
 
   fn = DECL_STRUCT_FUNCTION (fn_decl);
   tag = input_record_start (ib);
@@ -1295,6 +1297,22 @@ input_function (tree fn_decl, struct data_in *data_in,
   /* Read all the local symbols.  */
   fn->local_decls = lto_input_tree (ib, data_in);
 
+  /* Read all function arguments.  We need to re-map them here to the
+     arguments of the merged function declaration.  */
+  args = lto_input_tree (ib, data_in); 
+  for (oarg = args, narg = DECL_ARGUMENTS (fn_decl);
+       oarg && narg;
+       oarg = TREE_CHAIN (oarg), narg = TREE_CHAIN (narg))
+    {
+      int ix;
+      bool res;
+      res = lto_streamer_cache_lookup (data_in->reader_cache, oarg, &ix);
+      gcc_assert (res);
+      /* Replace the argument in the streamer cache.  */
+      lto_streamer_cache_insert_at (data_in->reader_cache, narg, ix);
+    }
+  gcc_assert (!oarg && !narg);
+
   /* Read all the SSA names.  */
   input_ssa_names (ib, data_in, fn);
 
@@ -1305,9 +1323,6 @@ input_function (tree fn_decl, struct data_in *data_in,
   DECL_INITIAL (fn_decl) = lto_input_tree (ib, data_in);
   gcc_assert (DECL_INITIAL (fn_decl));
   DECL_SAVED_TREE (fn_decl) = NULL_TREE;
-
-  /* Read all function arguments.  */
-  DECL_ARGUMENTS (fn_decl) = lto_input_tree (ib, data_in); 
 
   /* Read all the basic blocks.  */
   tag = input_record_start (ib);
@@ -1340,7 +1355,9 @@ input_function (tree fn_decl, struct data_in *data_in,
     gimple_set_body (fn_decl, bb_seq (ei_edge (ei)->dest));
   }
 
-  fixup_call_stmt_edges (cgraph_node (fn_decl), stmts);
+  node = cgraph_node (fn_decl);
+  fixup_call_stmt_edges (node, stmts);
+  execute_all_ipa_stmt_fixups (node, stmts);
 
   update_ssa (TODO_update_ssa_only_virtuals); 
   free_dominance_info (CDI_DOMINATORS);
@@ -1459,15 +1476,6 @@ lto_read_body (struct lto_file_decl_data *file_data, tree fn_decl,
       /* Restore decl state */
       file_data->current_decl_state = file_data->global_decl_state;
 
-      /* FIXME: ipa_transforms_to_apply holds list of passes that have optimization
-         summaries computed and needs to apply changes.  At the moment WHOPR only
-         supports inlining, so we can push it here by hand.  In future we need to stream
-         this field into ltrans compilation.  This will also need to move the field
-	 from struct function into cgraph node where it belongs.  */
-      if (flag_ltrans && !cgraph_node (fn_decl)->global.inlined_to)
-	 VEC_safe_push (ipa_opt_pass, heap,
-			cfun->ipa_transforms_to_apply,
-			(ipa_opt_pass)&pass_ipa_inline);
       pop_cfun ();
     }
   else 

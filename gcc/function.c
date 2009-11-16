@@ -4269,12 +4269,8 @@ stack_protect_prologue (void)
   tree guard_decl = targetm.stack_protect_guard ();
   rtx x, y;
 
-  /* Avoid expand_expr here, because we don't want guard_decl pulled
-     into registers unless absolutely necessary.  And we know that
-     crtl->stack_protect_guard is a local stack slot, so this skips
-     all the fluff.  */
-  x = validize_mem (DECL_RTL (crtl->stack_protect_guard));
-  y = validize_mem (DECL_RTL (guard_decl));
+  x = expand_normal (crtl->stack_protect_guard);
+  y = expand_normal (guard_decl);
 
   /* Allow the target to copy from Y to X without leaking Y into a
      register.  */
@@ -4307,12 +4303,8 @@ stack_protect_epilogue (void)
   rtx label = gen_label_rtx ();
   rtx x, y, tmp;
 
-  /* Avoid expand_expr here, because we don't want guard_decl pulled
-     into registers unless absolutely necessary.  And we know that
-     crtl->stack_protect_guard is a local stack slot, so this skips
-     all the fluff.  */
-  x = validize_mem (DECL_RTL (crtl->stack_protect_guard));
-  y = validize_mem (DECL_RTL (guard_decl));
+  x = expand_normal (crtl->stack_protect_guard);
+  y = expand_normal (guard_decl);
 
   /* Allow the target to compare Y with X without leaking either into
      a register.  */
@@ -4642,9 +4634,12 @@ expand_function_end (void)
       for (insn = get_insns (); insn; insn = NEXT_INSN (insn))
 	if (CALL_P (insn))
 	  {
+	    rtx max_frame_size = GEN_INT (STACK_CHECK_MAX_FRAME_SIZE);
 	    start_sequence ();
-	    probe_stack_range (STACK_OLD_CHECK_PROTECT,
-			       GEN_INT (STACK_CHECK_MAX_FRAME_SIZE));
+	    if (STACK_CHECK_MOVING_SP)
+	      anti_adjust_stack_and_probe (max_frame_size, true);
+	    else
+	      probe_stack_range (STACK_OLD_CHECK_PROTECT, max_frame_size);
 	    seq = get_insns ();
 	    end_sequence ();
 	    emit_insn_before (seq, stack_check_probe_note);
