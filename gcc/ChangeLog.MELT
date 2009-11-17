@@ -1,3 +1,22 @@
+2009-11-17  Basile Starynkevitch  <basile@starynkevitch.net>
+        * melt-make.mk: added warmelt2b target...
+        * run-melt.mk: removed commented code...
+        * melt/warmelt-normal.melt: renamed:
+             class_nrep_expr -> class_nrep_expression
+             class_nrep_typexpr -> class_nrep_typed_expression;
+        added class_nrep_typed_expression_with_arguments with nexp_args field.
+        * melt/warmelt-normatch.melt: renamed as above.
+        * melt/warmelt-genobj.melt: ditto
+        * melt/warmelt-outobj.melt: ditto, added debug_msg & assert...
+	{regenerated files several times}
+	* melt/warmelt-macro-0.c: regenerated.
+	* melt/warmelt-outobj-0.c: regenerated.
+	* melt/warmelt-genobj-0.c: regenerated.
+	* melt/warmelt-normatch-0.c: regenerated.
+	* melt/warmelt-normal-0.c: regenerated.
+	* melt/warmelt-first-0.c: regenerated.
+
+
 2009-11-12  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normal.melt: normletrec_lambda could be ok.
 	normletrec_tuple is incomplete.

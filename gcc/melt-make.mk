@@ -360,13 +360,37 @@ warmelt-first-2.c: $(melt_make_source_dir)/warmelt-first.melt warmelt1.modlis $(
 
 
 
-warmelt-%-2.c: $(melt_make_source_dir)/warmelt-%.melt warmelt1.modlis $(WARMELT_BASE1SO)  $(melt_cc1) $(WARMELT_BASE1NSO)  empty-file-for-melt.c
+warmelt-%-2.c: $(melt_make_source_dir)/warmelt-%.melt warmelt1.modlis $(WARMELT_BASE1SO)  $(melt_cc1)  empty-file-for-melt.c
 	$(MELTCCFILE1) $(meltarg_init)="@warmelt1" \
 	        -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_arg)=$< \
 	      $(meltarg_output)=$@  empty-file-for-melt.c
+####
 
+warmelt2b.modlis: warmeltbig-1.so
+	date +"#$@ generated %F" > $@-tmp
+	for f in  $(WARMELT_BASE2); do printf "%sb\n" $$f >> $@-tmp; done
+	$(melt_make_move) $@-tmp $@
+
+warmelt-first-2b.c: $(melt_make_source_dir)/warmelt-first.melt warmeltbig-1.so  $(melt_cc1)
+	$(MELTCCINIT1) $(meltarg_init)="warmeltbig-1" \
+	      $(meltarg_arg)=$< \
+	      $(meltarg_output)=$@
+
+
+
+warmelt-%-2b.c: $(melt_make_source_dir)/warmelt-%.melt warmeltbig-1.so   $(melt_cc1)  empty-file-for-melt.c
+	$(MELTCCFILE1) $(meltarg_init)="warmeltbig-1" \
+	        -frandom-seed=$(shell md5sum $< | cut -b-24) \
+	      $(meltarg_arg)=$< \
+	      $(meltarg_output)=$@  empty-file-for-melt.c
+
+.PHONY: warmelt2b
+warmelt2b: $(patsubst %,%b.so, $(WARMELT_BASE2))
+
+###
 warmelt-normal-2.c: warmelt-predef.melt
+warmelt-normal-2b.c: warmelt-predef.melt
 warmelt-normal-3.c: warmelt-predef.melt
 
 ## apparently, these dependencies are explicitly needed... because

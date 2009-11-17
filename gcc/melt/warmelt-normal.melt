@@ -40,42 +40,60 @@
 ;;; common superclass for normalized representations
 (defclass class_nrep
   :super class_root
+  :doc #{The $CLASS_NREP is the common super class of normalized
+representations. Its $NREP_LOC field gives the location in source,
+if any.}#
   :fields (nrep_loc			;location in source
 	   ))
 
 ;; a simple stuff is a non-object, a symbol (or keyword or clonedsym),
 ;; ...
 (defclass class_nrep_simple
+  :doc #{The $CLASS_NREP_SIMPLE is for simple normal things -e.g. normal
+  symbols.}#
   :super class_nrep
-  :fields (
-	   ))
+  :fields ( ))
 
 ;; a normalized expression should never be the result of normal_exp;
 ;; it should only appear in bindings!
-(defclass class_nrep_expr
-  :doc #{Common superclass $CLASS_NREP_EXPR of normalized expressions
+(defclass class_nrep_expression
+  :doc #{Common superclass $CLASS_NREP_EXPRESSION of normalized expressions
   which can only appear in normal bindings.}#
   :super class_nrep
-  :fields (
-	   ))
+  :fields ( ))
 
 ;; normalized typed expressions also have a ctype
-(defclass class_nrep_typexpr
-  :doc #{Common super-class $CLASS_NREP_TYPEXPR of typed normalized
+(defclass class_nrep_typed_expression
+  :doc #{Common super-class $CLASS_NREP_TYPED_EXPRESSION of typed normalized
   expressions. $NEXPR_CTYP gives its c-type.}#
-  :super class_nrep_expr
+  :super class_nrep_expression
   :fields (nexpr_ctyp			;the ctype
 	   ))
 
+;; normalized typed expressions with arguments
+(defclass class_nrep_typed_expression_with_arguments
+  :doc #{Common super-class
+$CLASS_NREP_TYPED_EXPRESSION_WITH_ARGUMENTS of typed normalized
+expressions with normalized arguments. $NEXPR_ARGS is the tuple of
+normalized arguments.}#
+  :super class_nrep_typed_expression
+  :fields (nexpr_args))
+
 ;; normal applications have simple functions & arguments
 (defclass class_nrep_apply
-  :super class_nrep_expr
+  :super class_nrep_typed_expression_with_arguments
+  :doc #{The $CLASS_NREP_APPLY class is for normal
+applications. $NAPP_FUN is the simple function to apply to $NEXPR_ARGS.}#
   :fields (napp_fun			;simple function to apply
-	   napp_args			;tuple of simple arguments
 	   ))
+
 
 ;; normalized multiresult apply
 (defclass class_nrep_multiapply
+  :doc #{The $CLASS_NREP_MULTIAPPLY is for normal applications of
+functions with several results within $MULTICALL. $NMULAPP_BINDINGS is
+the tuple of formal result bindings. $NMULAPP_BODY is the normal
+body.}#
   :super class_nrep_apply
   :fields (nmulapp_bindings 		;a tuple of formal result bindings
 	   nmulapp_body			;body normexp
@@ -83,16 +101,21 @@
 
 ;;; normal message sending
 (defclass class_nrep_msend
-  :super class_nrep_expr
+  :doc #{The $CLASS_NREP_SEND is for normal message send, with a
+single result. $NSEND_SEL is the normalized selector, $NSEND_RECV
+the normalized reciever, with $NEXPR_ARGS giving the normalized arguments.}#
+  :super class_nrep_typed_expression_with_arguments
   :fields (nsend_sel		   ;the normalized selector occurrence
 	   nsend_recv		   ;the reciever
-	   nsend_args		   ;the tuple of simple arguments
 	   ))
 
 
 
 ;; normalized multiresult message send
 (defclass class_nrep_multimsend
+  :doc #{The $CLASS_NREP_MULTIMSEND is for normal message sends with
+multiple results thru $MULTICALL. $NMULSEND_BINDINGS is the tuple of
+formal result bindings, and $NMULSEND_BODY is the normalized body.}#
   :super class_nrep_msend
   :fields (nmulsend_bindings		;tuple of formal bindings
 	   nmulsend_body		;body normexp
@@ -100,42 +123,58 @@
 
 ;; normal chunk is a normalized expansion of primitive
 (defclass class_nrep_chunk
-  :super class_nrep_typexpr
+  :doc #{The $CLASS_NREP_CHUNK is for normalized expansion of
+primitive or cmatcher expressions. Field $NCHUNK_EXPANSION is the
+expansion - where strings of $DISCR_VERBATIM_STRING are handled
+specifically. Field $NCHUNK_OPER is the operator.}#
+  :super class_nrep_typed_expression
   :fields (nchunk_expansion		;the expansion
 	   nchunk_oper			;the operator (primitive or cmatcher)
 	   ))
 
 ;; normal comment is a normalized comment
 (defclass class_nrep_comment
-  :super class_nrep_expr
+  :doc #{The $CLASS_NREP_COMMENT if for normalized comments in the
+generated C code. The field $NCOMM_STRING gives the comment.}#
+  :super class_nrep_expression
   :fields (ncomm_string	;the comment
 	   ))
 
 ;; normal lets have simple binding & body subexpressions
 (defclass class_nrep_let
-  :super class_nrep_expr
+  :doc #{The $CLASS_NREP_LET is for normalized lets. The
+$NLET_BINDINGS field is a tuple of $CLASS_NORMAL_LET_BINDING
+instances. The $NLET_BODY field is the normal body. The normalization
+process introduce many such normal lets.}#
+  :super class_nrep_expression
   :fields (nlet_bindings		;a tuple of class_normal_let_binding-s
 	   nlet_body
 	   ))
 
 ;; normal letrec 
 (defclass class_nrep_letrec
+  :doc #{The $CLASS_NREP_LETREC is for normalized letrec. The field
+$NLETREC_BINDINGS is the list of internal normal bindings.}#
   :super class_nrep_let
-  :fields (				; the nlet_bindings is a tuple
-					; of constructive binding
+  :fields (
+	   ;; the nlet_bindings is a tuple of constructive bindings
+	   nletrec_bindings 
 ))
 
 ;; normal return have a main & supplementary subexpressions
 (defclass class_nrep_return
-  :super class_nrep_expr
+  :doc #{The $CLASS_NREP_RETURN is for normalized returns. The primary
+returned value is given thru $NRET_MAIN field. The secondary
+returned things are thru $NRET_REST tuple.}#
+  :super class_nrep_expression
   :fields (nret_main			;main normal expression to return
 	   nret_rest			;tuple of normal expr...
 	   ))
 
-
+(compile_warning "should add documentation below")
 ;; common normal for if & ifisa
 (defclass class_nrep_ifcommon
-  :super class_nrep_typexpr
+  :super class_nrep_typed_expression
   :fields (nif_then
 	   nif_else
 	   ))
@@ -155,7 +194,7 @@
 
 ;; normal ifcpp have a symbol and a ctyp
 (defclass class_nrep_cppif
-  :super class_nrep_expr
+  :super class_nrep_expression
   :fields (nifp_cond
 	   nifp_then
 	   nifp_else
@@ -164,34 +203,34 @@
 
 ;; normal progn has a distingished last
 (defclass class_nrep_progn
-  :super class_nrep_expr
+  :super class_nrep_expression
   :fields (nprogn_seq			;tuple of all but last
 	   nprogn_last
 	   ))
 
 ;; normalized unsafe get field
 (defclass class_nrep_unsafe_get_field
-  :super class_nrep_expr
+  :super class_nrep_expression
   :fields (nuget_obj
 	   nuget_field))
 
 
 ;; normalized unsafe_put_field
 (defclass class_nrep_unsafe_put_fields
-  :super class_nrep_expr
+  :super class_nrep_expression
   :fields (nuput_obj
 	   nuput_fields))
 
 ;; normalized setq
 (defclass class_nrep_setq
-  :super class_nrep_expr
+  :super class_nrep_expression
   :fields (nstq_var
 	   nstq_exp
 	   ))
 
 ;; normalized forever
 (defclass class_nrep_forever
-  :super class_nrep_expr
+  :super class_nrep_expression
   :fields (nforever_bind 		;the label binding
 	   nforever_body		;a tuple
 	   nforever_result		;cloned symbol for result
@@ -199,7 +238,7 @@
 
 ;; normalized exit
 (defclass class_nrep_exit
-  :super class_nrep_expr
+  :super class_nrep_expression
   :fields (nexit_bind			;the label binding
 	   nexit_val			;the exited value
 	   ))
@@ -213,7 +252,7 @@
 
 ;; normalized make instance
 (defclass class_nrep_instance
-  :super class_nrep_expr
+  :super class_nrep_expression
   :fields (nmins_class			;the instanciated class
 	   nmins_cladata		;its data
 	   nmins_fields			;the tuple of field assignments
@@ -221,7 +260,7 @@
 
 ;; normalized lambda
 (defclass class_nrep_lambda 
-  :super class_nrep_expr
+  :super class_nrep_expression
   :fields (nlambda_proc			;the procedure
 	   nlambda_constrout		;the constant routine
 	   nlambda_closedv		;the tuple of closed normal values
@@ -230,7 +269,7 @@
 
 ;; normalized citeration
 (defclass class_nrep_citeration
-  :super class_nrep_expr
+  :super class_nrep_expression
   :fields (nciter_citerator		;the citerator
 	   nciter_chunkbefore		;the expansed chunk before
 	   nciter_chunkafter		;the expansed chunk after
@@ -242,7 +281,7 @@
 
 ;; normalized tests sequence, used for matches
 (defclass class_nrep_tests
-  :super class_nrep_expr
+  :super class_nrep_expression
   :fields (ntests_testseq		;the tuples of normal tests
 	   ;;;; see file warmelt-normatch.melt
 ))
@@ -279,7 +318,6 @@ one. Field $NLISTB_PAIRSB gives the tuple of constructed pair bindings}#
   :super  class_normal_constructor_binding
   :fields (nlistb_first nlistb_last nlistb_pairsb))
 
-(compile_warning "think about class_normal_constructed_lambda_binding")
 (defclass class_normal_constructed_lambda_binding
   :doc #{The internal $CLASS_NORMAL_CONSTRUCTED_LAMBDA_BINDING is the
 class of lambda constructor bindings. Field $NLAMBDAB_NCLOSED gives
@@ -489,7 +527,7 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
 ;; translates into melt_field_object(<obj>,<off>) of obj is not a
 ;; datainstance and directly to the field if it is a datainstance
 (defclass class_nrep_fieldacc
-  :super class_nrep_expr
+  :super class_nrep_expression
   :fields (naccf_obj			;data for the object to be accessed 
 	   naccf_fld			;rank or field to be accessoed
 	   ))
@@ -498,21 +536,21 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
 ;; this translates into melt_multiple_nth(<mul>,<ix>) if mul is not
 ;; a datatuple and directly to the component if it is a datatuple
 (defclass class_nrep_multacc
-  :super class_nrep_expr
+  :super class_nrep_expression
   :fields (naccm_mul			;data for the multiple to be accessed
 	   naccm_ix			;index to be accessed (a boxed integer)
 	   ))
 
 ;; normalized store predefined
 (defclass class_nrep_store_predefined
-  :super class_nrep_expr
+  :super class_nrep_expression
   :fields (nstpd_predef
 	   nstpd_value
 	   ))
 
 ;; normalized update current module environment box
 (defclass class_nrep_update_current_module_environment_container
-  :super class_nrep_expr
+  :super class_nrep_expression
   :fields (
 	   nucmeb_expr			;the normalized expression
 					;computing the box
@@ -548,7 +586,7 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
  class_nrep_datasymbol
  class_nrep_datatuple
  class_nrep_exit
- class_nrep_expr
+ class_nrep_expression
  class_nrep_fieldacc
  class_nrep_fieldassign
  class_nrep_forever
@@ -581,15 +619,20 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
  class_nrep_importedval
  class_nrep_store_predefined
  class_nrep_symocc
- class_nrep_typexpr
+ class_nrep_typed_expression
+ class_nrep_typed_expression_with_arguments
  class_nrep_unsafe_get_field
  class_nrep_unsafe_put_fields
  class_nrep_update_current_module_environment_container
  )					;end of export normal classes
 
 
-(export_synonym class_nrep_make_instance class_nrep_instance)
-
+;(compile_warning "obsolete synonyms for class_nrep_*")
+;(export_synonym class_nrep_make_instance class_nrep_instance)
+;(export_synonym class_nrep_expr class_nrep_expression)
+;(export_synonym class_nrep_typexpr class_nrep_typed_expression)
+;(export_synonym napp_args nexpr_args)
+;(export_synonym nsend_args nexpr_args)
 
 ;;;;;;; primitive for extra warnings
 (defprimitive has_extra_warnings () :long "(extra_warnings)")
@@ -778,7 +821,7 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
 		  (normal_exp comp env ncx psloc)
 		  ;(debug_msg norcomp "normalize_tuple norcomp")
 		  (assert_msg "check nbinds" (is_list_or_null nbinds))
-		  (assert_msg "check norcomp not nrep_expr" (is_not_a norcomp class_nrep_expr))
+		  (assert_msg "check norcomp not nrep_expr" (is_not_a norcomp class_nrep_expression))
 		  (if (is_list nbinds)
 		      (list_every 
 		       nbinds
@@ -1515,9 +1558,10 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
 				   :letbind_type ctype_value 
 				   :letbind_expr 
 				   (instance class_nrep_apply
+					     :nexpr_ctyp ctype_value
 					     :nrep_loc sloc
 					     :napp_fun clocc
-					     :napp_args nargs
+					     :nexpr_args nargs
 					     ))) 
 		 (calocc  (instance  class_nrep_locsymocc
 				     :nrep_loc sloc
@@ -1562,8 +1606,9 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
 			      :letbind_expr 
 			      (instance class_nrep_apply
 					:nrep_loc sloc
+					:nexpr_ctyp ctype_value
 					:napp_fun nfun
-					:napp_args nargs
+					:nexpr_args nargs
 					))) 
 	     (clocc  (instance  class_nrep_locsymocc
 				:nrep_loc sloc
@@ -1630,9 +1675,11 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
 	     (csym (clone_symbol selnam)) 
 	     (nsend (instance class_nrep_msend
 			      :nrep_loc sloc
+			      :nexpr_ctyp ctype_value
 			      :nsend_sel nsel
 			      :nsend_recv nrecv
-			      :nsend_args nargs)) 
+			      :nexpr_args nargs
+			      )) 
 	     (cbind (instance class_normal_let_binding
 			      :letbind_loc sloc
 			      :binder csym
@@ -1644,6 +1691,8 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
 				:nocc_symb csym
 				:nocc_bind cbind)) 
 	     )
+	(debug_msg nsend "normexp_msend nsend middle")
+	(assert_msg "check nrecv" (is_object nrecv))
 	(if (is_multiple selformals)
 	    (let ( (recvformal (multiple_nth selformals 0))
 		   (:long nbformals (multiple_length selformals))
@@ -3175,7 +3224,8 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
 	       (let ( (nres (instance class_nrep_multiapply
 				      :nrep_loc sloc
 				      :napp_fun (unsafe_get_field :napp_fun nrealcall)
-				      :napp_args (unsafe_get_field :napp_args nrealcall)
+				      :nexpr_args (unsafe_get_field :nexpr_args nrealcall)
+				      :nexpr_ctyp lastntype
 				      :nmulapp_bindings sresbind
 				      :nmulapp_body wnbodylet)) )
 		 (unsafe_put_fields cbind :letbind_expr nres)
@@ -3187,15 +3237,20 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
 	       )
 	     ( (is_a scall class_source_msend)
 	       (debug_msg nrealcall "normexp_multicall multicall nrealcall")
-	       (compile_warning "in normexp_multicall we should check against the formal of the selector if available")
+	       (compile_warning "in normexp_multicall we should check against the formals of the selector if available")
 	       (assert_msg "normexp_multicall check nrealcall send" (is_a nrealcall class_nrep_msend))
-	       (let ( (nres (instance class_nrep_multimsend
-				      :nrep_loc sloc
+	       (let ( (nrecv (get_field :nsend_recv nrealcall)) 
+		      (nres (instance class_nrep_multimsend
+				      :nrep_loc sloc			      
+				      :nexpr_ctyp lastntype 
 				      :nsend_sel (unsafe_get_field :nsend_sel nrealcall)
-				      :nsend_recv (unsafe_get_field :nsend_recv nrealcall)
-				      :nsend_args (unsafe_get_field :nsend_args nrealcall)
+				      :nsend_recv nrecv
+				      :nexpr_args (unsafe_get_field :nexpr_args nrealcall)
 				      :nmulsend_bindings sresbind
-				      :nmulsend_body wnbodylet)) )
+				      :nmulsend_body wnbodylet)) 
+		      )
+		 (debug_msg nrecv "normexp_multicall nrecv from multicall")
+		 (assert_msg "check nrecv" (is_object nrecv))
 		 (unsafe_put_fields cbind :letbind_expr nres)
 		 (list_append nincallbindings cbind)
 		 (debug_msg clocc "normexp_multicall multisend result clocc")
@@ -3369,18 +3424,35 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
   (debug_msg cbind "normletrec_tuple cbind")
   (assert_msg "check cexpr" (is_a cexpr class_source_tuple))
   (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check cbind" (is_a cbind class_normal_constructed_tuple_binding))
   (let ( 
 	(loc (or (get_field :loca_location cexpr) sloc))
 	(sargs (unsafe_get_field :sargop_args cexpr))
+	(bcomp (get_field :ntupb_comp cbind))
+	(nletrec (get_field :nconsb_nletrec cbind))
+	(nrecbinds (get_field :nletrec_bindings nletrec))
 	)
     (debug_msg sargs "normletrec_tuple sargs")
+    (debug_msg bcomp "normletrec_tuple bcomp")
+    (debug_msg nletrec "normletrec_tuple nletrec")
+    (debug_msg nrecbinds "normletrec_tuple nrecbinds")
+    (assert_msg "check nletrec" (is_a nletrec class_nrep_letrec))
+    (assert_msg "check nrecbinds" (is_list nrecbinds))
     (multicall
      (nargs nbinds)
      (normalize_tuple sargs env ncx loc)
      (debug_msg nargs "normalize_tuple nargs")
      (debug_msg nbinds "normalize_tuple nbinds")
-     (compile_warning "unimplemented normletrec_tuple")
-     (assert_msg "@$@unimplemented normletrec_tuple" ())
+     (assert_msg "check nargs & bcomp samelength" (==i (multiple_length bcomp) (multiple_length nargs)))
+     (assert_msg "check nbinds" (is_list_or_null nbinds))
+     (foreach_in_multiple 
+      (nargs)
+      (curnarg :long nix)
+      (multiple_put_nth bcomp nix curnarg))
+     (debug_msg bcomp "normalize_tuple updated bcomp")
+     (list_append2list nrecbinds nbinds)
+     (debug_msg nrecbinds "normalize_tuple updated nrecbinds")
+     (shortbacktrace_dbg "normletrec_tuple ended" 15)
      )))
 (install_method class_source_tuple normal_letrec_constructive normletrec_tuple)
 
@@ -3543,10 +3615,12 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
 	  (:long nbconsbind (list_length consbindlist))
 	  (:long curcix 0)
 	  (ncbindtup (make_multiple discr_multiple nbconsbind))
+	  (recbindings (make_list discr_list))
 	  (nletrec (instance class_nrep_letrec
 			     :nrep_loc sloc
 			     :nlet_bindings ncbindtup
 			     :nlet_body ()
+			     :nletrec_bindings recbindings 
 			     )) 
 	  )
       (debug_msg nletrec "normexp_letrec unfilled nletrec")
@@ -5059,14 +5133,17 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
      ;;; if we are not at topevel it has no sense to call the cont_fresh_env!
      (list_append2list bindslist curenvbinds)
      (let (
+	   (argtup  (make_tuple3 discr_multiple symdata nexp ncurenvbox))
 	   (cbind (instance class_normal_let_binding
 			    :letbind_loc psloc
 			    :binder csymexpo
 			    :letbind_type ctype_void
 			    :letbind_expr (instance class_nrep_apply
 						    :nrep_loc psloc
+						    :nexpr_ctyp ctype_value
 						    :napp_fun nvaluexp
-						    :napp_args (make_tuple3 discr_multiple symdata nexp ncurenvbox))))
+						    :nexpr_args argtup
+						    )))
 	   (syocc (instance class_nrep_locsymocc
 			    :nrep_loc psloc
 			    :nocc_ctyp ctype_void 
@@ -5338,14 +5415,17 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
      (debug_msg curenvbinds "normal_exported_macro curenvbinds")
      (if (is_list curenvbinds) (list_append2list bindslist curenvbinds))
      (let (
+	   (argtup (make_tuple3 discr_multiple symdata nexp ncurenvbox))
 	   (cbind (instance class_normal_let_binding
 			    :letbind_loc psloc
 			    :binder csymexpo
 			    :letbind_type ctype_void
 			    :letbind_expr (instance class_nrep_apply
 						    :nrep_loc psloc
+						    :nexpr_ctyp ctype_void
 						    :napp_fun nmacroxp
-						    :napp_args (make_tuple3 discr_multiple symdata nexp ncurenvbox))))
+						    :nexpr_args argtup
+						    )))
 	   (syocc (instance class_nrep_locsymocc
 			    :nrep_loc psloc
 			    :nocc_ctyp ctype_void 
@@ -5426,14 +5506,17 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
      (debug_msg curenvbinds "normal_exported_patmacro curenvbinds")
      (if (is_list curenvbinds) (list_append2list bindslist curenvbinds))
      (let (
+	   (argtup  (make_tuple4 discr_multiple symdata nmacroxp npattxp ncurenvbox))
 	   (cbind (instance class_normal_let_binding
 			    :letbind_loc psloc
 			    :binder csymexpo
 			    :letbind_type ctype_void
 			    :letbind_expr (instance class_nrep_apply
 						    :nrep_loc psloc
+						    :nexpr_ctyp ctype_void
 						    :napp_fun nexp
-						    :napp_args (make_tuple4 discr_multiple symdata nmacroxp npattxp ncurenvbox))))
+						    :nexpr_args argtup
+						    )))
 	   (syocc (instance class_nrep_locsymocc
 			    :nrep_loc psloc
 			    :nocc_ctyp ctype_void 

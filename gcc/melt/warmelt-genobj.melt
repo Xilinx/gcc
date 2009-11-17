@@ -1349,9 +1349,9 @@
 
 ;;;;;;;;;;;;;;;;
 (defun getctype_typexpr (recv env)
-  (assert_msg "check recv" (is_a recv class_nrep_typexpr))
+  (assert_msg "check recv" (is_a recv class_nrep_typed_expression))
    (unsafe_get_field :nexpr_ctyp recv))
-(install_method class_nrep_typexpr get_ctype getctype_typexpr)
+(install_method class_nrep_typed_expression get_ctype getctype_typexpr)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_nrep_nil (nilo gcx)
@@ -2250,7 +2250,7 @@
   (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (let ( (loc (unsafe_get_field :nrep_loc napp))
 	 (fun (unsafe_get_field :napp_fun napp))
-	 (args (unsafe_get_field :napp_args napp))
+	 (args (unsafe_get_field :nexpr_args napp))
 	 )
     (debug_msg napp "compilobj_nrep_apply napp")
     (let ( (oclos (compile_obj fun gcx)) 
@@ -2283,7 +2283,7 @@
   (let ( (loc (unsafe_get_field :nrep_loc nmapp))
 	 (rbinds (unsafe_get_field :nmulapp_bindings nmapp))
 	 (fun (unsafe_get_field :napp_fun nmapp))
-	 (args (unsafe_get_field :napp_args nmapp))
+	 (args (unsafe_get_field :nexpr_args nmapp))
 	 (nbody (unsafe_get_field :nmulapp_body nmapp))
 	 (locmap (unsafe_get_field :gncx_locmap gcx))
 	 (:long nbres (multiple_length rbinds))
@@ -2368,14 +2368,23 @@
   (let ( (loc (unsafe_get_field :nrep_loc nsnd))
 	 (nsel (unsafe_get_field :nsend_sel nsnd))
 	 (nrecv (unsafe_get_field :nsend_recv nsnd))
-	 (nargs (unsafe_get_field :nsend_args nsnd))
+	 (nargs (unsafe_get_field :nexpr_args nsnd))
 	 )
     (debug_msg nsnd "compilobj_nrep_msend nsnd")
+    (debug_msg nrecv "compilobj_nrep_msend nrecv")
+    (assert_msg "check nrecv" (is_object nrecv))
     (let ( (osel (compile_obj nsel gcx))
 	   (orecv (compile_obj nrecv gcx))
-	   (oargs (multiple_map nargs
-				(lambda (comp :long ix)
-				  (compile_obj comp gcx))))
+	   (oargs (multiple_map 
+		   nargs
+		   (lambda (ncurarg :long ix)
+		     (debug_msg ncurarg "compilobj_nrep_msend ncurarg")
+		     (let ( (ocurarg (compile_obj ncurarg gcx)) 
+			    )
+		       (debug_msg ocurarg "compilobj_nrep_msend ocurarg")
+		       (assert_msg "check ocurarg not tuple" (not (is_multiple ocurarg)))
+		       ocurarg
+		       ))))
 	   (osend
 	    (instance 
 	     class_objmsend
@@ -2387,6 +2396,7 @@
 	     ))
 	   )
       (debug_msg osend "compilobj_nrep_msend osend")
+      (assert_msg "check orecv" (is_object orecv))
       osend
       )))
 (install_method class_nrep_msend compile_obj compilobj_nrep_msend)
@@ -2402,7 +2412,7 @@
 	 (nbody (unsafe_get_field :nmulsend_body nmsnd))  ; a single normalized expression
 	 (nsel (unsafe_get_field :nsend_sel nmsnd))
 	 (nrecv (unsafe_get_field :nsend_recv nmsnd))
-	 (nargs (unsafe_get_field :nsend_args nmsnd))
+	 (nargs (unsafe_get_field :nexpr_args nmsnd))
 	 (locmap (unsafe_get_field :gncx_locmap gcx))
 	 (:long nbres (multiple_length rbinds))
 	 (reslocs 
@@ -2448,6 +2458,8 @@
 			   :obmultsnd_xres oxres))
 	 )
     (debug_msg reslocs "compilobj_nrep_multimsend reslocs")
+    (debug_msg omsend "compilobj_nrep_multimsend omsend middle")
+    (assert_msg "check orecv" (is_object orecv))
     (if firstres (list_append reslist firstres))
     ;; add every compiled argument to the resulting block unless it is a pure value
     (multiple_every 

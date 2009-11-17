@@ -358,7 +358,7 @@
 
 ;; all the testers share a common superclass
 (defclass class_normtester_any 
-  :super class_nrep_expr	;inherit fields: nrep_loc
+  :super class_nrep_expression	;inherit fields: nrep_loc
   :fields (ntest_matched       	;normal matched thing
 	   ntest_then		;tester to run if successful
 	   ntest_else		;tester to run if failed
@@ -418,7 +418,7 @@
 
 ;;;;;;;;;;;;;;;;
 (defclass class_nrep_match
-  :super class_nrep_typexpr
+  :super class_nrep_typed_expression
   :fields (nmatch_tests			;sequence of tests
 	   nmatch_stuffmap		;mapping matched stuff with
 					;list or normal tests
