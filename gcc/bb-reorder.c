@@ -1368,7 +1368,7 @@ estimate_size_of_insns_in_bb (basic_block bb)
   
   /* Loop through all of the basic-block's insns.  */
   FOR_BB_INSNS (bb, insn)   
-    if (INSN_P (insn))
+    if (NONDEBUG_INSN_P (insn))
       {
 	/* Retrieve the size of the instruction. */
 	if (insns_aux [INSN_UID (insn)].insn)
@@ -1405,7 +1405,7 @@ split_bb (basic_block bb, unsigned HOST_WIDE_INT first_partition_size,
   /* Loop through all of the basic-block's insns.  */
   FOR_BB_INSNS (bb, insn)
     {
-      if (INSN_P (insn))
+      if (NONDEBUG_INSN_P (insn))
 	{
 	  prev_size = size;
 	  
@@ -2806,7 +2806,7 @@ record_insns_size_estimation (void)
       
       /* Loop through all of the basic-block's insns.  */
       FOR_BB_INSNS (bb, insn) 
-	if (INSN_P (insn) || NOTE_P (insn))
+	if (NONDEBUG_INSN_P (insn) || NOTE_P (insn))
 	  {
 	    if (targetm.bb_partitioning.estimate_instruction_size != 0)
 	      size = targetm.bb_partitioning.estimate_instruction_size (insn);
@@ -2877,7 +2877,7 @@ record_loops_boundaries (void)
       
       for (insn = start; insn != NEXT_INSN (end); insn = NEXT_INSN (insn))
 	{
-	  if (INSN_P (insn))
+	  if (NONDEBUG_INSN_P (insn))
 	    {
 	      /* Retrieve the size of the instruction. */
 	      if (insns_aux[INSN_UID (insn)].insn)
@@ -3252,7 +3252,7 @@ instruction_size_exceeds_threshold (void)
     {
       FOR_BB_INSNS (bb, insn)
 	{
-	  if (INSN_P (insn) || NOTE_P (insn))
+	  if (NONDEBUG_INSN_P (insn) || NOTE_P (insn))
 	    {
 	      if (targetm.bb_partitioning.estimate_instruction_size != 0)
 		size = targetm.bb_partitioning.estimate_instruction_size (insn);
@@ -3374,7 +3374,7 @@ check_sections (void)
 
   for (insn = get_insns (); insn; insn = NEXT_INSN (insn))
     {
-      if (INSN_P (insn))
+      if (NONDEBUG_INSN_P (insn))
 	{
 	  section_size += get_attr_min_length (insn);
 	  continue;
