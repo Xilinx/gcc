@@ -1472,6 +1472,7 @@ copy_bb (copy_body_data *id, basic_block bb, int frequency_scale,
   gimple_stmt_iterator gsi, copy_gsi, seq_gsi;
   basic_block copy_basic_block;
   tree decl;
+  gcov_type freq;
 
   /* create_basic_block() will append every new block to
      basic_block_info automatically.  */
@@ -1481,11 +1482,12 @@ copy_bb (copy_body_data *id, basic_block bb, int frequency_scale,
 
   /* We are going to rebuild frequencies from scratch.  These values
      have just small importance to drive canonicalize_loop_headers.  */
-  copy_basic_block->frequency = ((gcov_type)bb->frequency
-				 * frequency_scale / REG_BR_PROB_BASE);
+  freq = ((gcov_type)bb->frequency * frequency_scale / REG_BR_PROB_BASE);
 
-  if (copy_basic_block->frequency > BB_FREQ_MAX)
-    copy_basic_block->frequency = BB_FREQ_MAX;
+  /* We recompute frequencies after inlining, so this is quite safe.  */
+  if (freq > BB_FREQ_MAX)
+    freq = BB_FREQ_MAX;
+  copy_basic_block->frequency = freq;
 
   copy_gsi = gsi_start_bb (copy_basic_block);
 
@@ -1631,10 +1633,34 @@ copy_bb (copy_body_data *id, basic_block bb, int frequency_scale,
 		case CB_CGE_DUPLICATE:
 		  edge = cgraph_edge (id->src_node, orig_stmt);
 		  if (edge)
-		    edge = cgraph_clone_edge (edge, id->dst_node, stmt,
-					      gimple_uid (stmt),
-					      REG_BR_PROB_BASE, 1,
-					      edge->frequency, true);
+		    {
+		      int edge_freq = edge->frequency;
+		      edge = cgraph_clone_edge (edge, id->dst_node, stmt,
+					        gimple_uid (stmt),
+					        REG_BR_PROB_BASE, CGRAPH_FREQ_BASE,
+					        edge->frequency, true);
+		      /* We could also just rescale the frequency, but
+		         doing so would introduce roundoff errors and make
+			 verifier unhappy.  */
+		      edge->frequency 
+		        = compute_call_stmt_bb_frequency (id->dst_node->decl,
+							  copy_basic_block);
+		      if (dump_file
+		      	  && profile_status_for_function (cfun) != PROFILE_ABSENT
+			  && (edge_freq > edge->frequency + 10
+			      || edge_freq < edge->frequency - 10))
+			{
+			  fprintf (dump_file, "Edge frequency estimated by "
+			           "cgraph %i diverge from inliner's estimate %i\n",
+			  	   edge_freq,
+				   edge->frequency);
+			  fprintf (dump_file,
+			  	   "Orig bb: %i, orig bb freq %i, new bb freq %i\n",
+				   bb->index,
+				   bb->frequency,
+				   copy_basic_block->frequency);
+			}
+		    }
 		  break;
 
 		case CB_CGE_MOVE_CLONES:
@@ -1665,14 +1691,17 @@ copy_bb (copy_body_data *id, basic_block bb, int frequency_scale,
 
 		  /* We have missing edge in the callgraph.  This can happen
 		     when previous inlining turned an indirect call into a
-		     direct call by constant propagating arguments.  In all
+		     direct call by constant propagating arguments or we are
+		     producing dead clone (for further clonning).  In all
 		     other cases we hit a bug (incorrect node sharing is the
 		     most common reason for missing edges).  */
-		  gcc_assert (dest->needed || !dest->analyzed);
+		  gcc_assert (dest->needed || !dest->analyzed
+		  	      || !id->src_node->analyzed);
 		  if (id->transform_call_graph_edges == CB_CGE_MOVE_CLONES)
 		    cgraph_create_edge_including_clones
 		      (id->dst_node, dest, stmt, bb->count,
-		       compute_call_stmt_bb_frequency (id->dst_node->decl, bb),
+		       compute_call_stmt_bb_frequency (id->dst_node->decl, 
+		       				       copy_basic_block),
 		       bb->loop_depth, CIF_ORIGINALLY_INDIRECT_CALL);
 		  else
 		    cgraph_create_edge (id->dst_node, dest, stmt,
@@ -1946,24 +1975,16 @@ remap_decl_1 (tree decl, void *data)
    NEW_FNDECL to be build.  CALLEE_FNDECL is the original */
 
 static void
-initialize_cfun (tree new_fndecl, tree callee_fndecl, gcov_type count,
-		 int frequency)
+initialize_cfun (tree new_fndecl, tree callee_fndecl, gcov_type count)
 {
   struct function *src_cfun = DECL_STRUCT_FUNCTION (callee_fndecl);
-  gcov_type count_scale, frequency_scale;
+  gcov_type count_scale;
 
   if (ENTRY_BLOCK_PTR_FOR_FUNCTION (src_cfun)->count)
     count_scale = (REG_BR_PROB_BASE * count
 		   / ENTRY_BLOCK_PTR_FOR_FUNCTION (src_cfun)->count);
   else
-    count_scale = 1;
-
-  if (ENTRY_BLOCK_PTR_FOR_FUNCTION (src_cfun)->frequency)
-    frequency_scale = (REG_BR_PROB_BASE * frequency
-		       /
-		       ENTRY_BLOCK_PTR_FOR_FUNCTION (src_cfun)->frequency);
-  else
-    frequency_scale = count_scale;
+    count_scale = REG_BR_PROB_BASE;
 
   /* Register specific tree functions.  */
   gimple_register_cfg_hooks ();
@@ -1983,9 +2004,6 @@ initialize_cfun (tree new_fndecl, tree callee_fndecl, gcov_type count,
   cfun->function_end_locus = src_cfun->function_end_locus;
   cfun->curr_properties = src_cfun->curr_properties;
   cfun->last_verified = src_cfun->last_verified;
-  if (src_cfun->ipa_transforms_to_apply)
-    cfun->ipa_transforms_to_apply = VEC_copy (ipa_opt_pass, heap,
-					      src_cfun->ipa_transforms_to_apply);
   cfun->va_list_gpr_size = src_cfun->va_list_gpr_size;
   cfun->va_list_fpr_size = src_cfun->va_list_fpr_size;
   cfun->function_frequency = src_cfun->function_frequency;
@@ -1999,18 +2017,17 @@ initialize_cfun (tree new_fndecl, tree callee_fndecl, gcov_type count,
 
   init_empty_tree_cfg ();
 
+  profile_status_for_function (cfun) = profile_status_for_function (src_cfun);
   ENTRY_BLOCK_PTR->count =
     (ENTRY_BLOCK_PTR_FOR_FUNCTION (src_cfun)->count * count_scale /
      REG_BR_PROB_BASE);
-  ENTRY_BLOCK_PTR->frequency =
-    (ENTRY_BLOCK_PTR_FOR_FUNCTION (src_cfun)->frequency *
-     frequency_scale / REG_BR_PROB_BASE);
+  ENTRY_BLOCK_PTR->frequency
+    = ENTRY_BLOCK_PTR_FOR_FUNCTION (src_cfun)->frequency;
   EXIT_BLOCK_PTR->count =
     (EXIT_BLOCK_PTR_FOR_FUNCTION (src_cfun)->count * count_scale /
      REG_BR_PROB_BASE);
   EXIT_BLOCK_PTR->frequency =
-    (EXIT_BLOCK_PTR_FOR_FUNCTION (src_cfun)->frequency *
-     frequency_scale / REG_BR_PROB_BASE);
+    EXIT_BLOCK_PTR_FOR_FUNCTION (src_cfun)->frequency;
   if (src_cfun->eh)
     init_eh_for_function ();
 
@@ -2027,7 +2044,7 @@ initialize_cfun (tree new_fndecl, tree callee_fndecl, gcov_type count,
    another function.  Walks FN via CFG, returns new fndecl.  */
 
 static tree
-copy_cfg_body (copy_body_data * id, gcov_type count, int frequency,
+copy_cfg_body (copy_body_data * id, gcov_type count, int frequency_scale,
 	       basic_block entry_block_map, basic_block exit_block_map)
 {
   tree callee_fndecl = id->src_fn;
@@ -2036,21 +2053,14 @@ copy_cfg_body (copy_body_data * id, gcov_type count, int frequency,
   struct function *cfun_to_copy;
   basic_block bb;
   tree new_fndecl = NULL;
-  gcov_type count_scale, frequency_scale;
+  gcov_type count_scale;
   int last;
 
   if (ENTRY_BLOCK_PTR_FOR_FUNCTION (src_cfun)->count)
     count_scale = (REG_BR_PROB_BASE * count
 		   / ENTRY_BLOCK_PTR_FOR_FUNCTION (src_cfun)->count);
   else
-    count_scale = 1;
-
-  if (ENTRY_BLOCK_PTR_FOR_FUNCTION (src_cfun)->frequency)
-    frequency_scale = (REG_BR_PROB_BASE * frequency
-		       /
-		       ENTRY_BLOCK_PTR_FOR_FUNCTION (src_cfun)->frequency);
-  else
-    frequency_scale = count_scale;
+    count_scale = REG_BR_PROB_BASE;
 
   /* Register specific tree functions.  */
   gimple_register_cfg_hooks ();
@@ -2205,7 +2215,7 @@ copy_tree_body (copy_body_data *id)
    another function.  */
 
 static tree
-copy_body (copy_body_data *id, gcov_type count, int frequency,
+copy_body (copy_body_data *id, gcov_type count, int frequency_scale,
 	   basic_block entry_block_map, basic_block exit_block_map)
 {
   tree fndecl = id->src_fn;
@@ -2213,7 +2223,7 @@ copy_body (copy_body_data *id, gcov_type count, int frequency,
 
   /* If this body has a CFG, walk CFG and copy.  */
   gcc_assert (ENTRY_BLOCK_PTR_FOR_FUNCTION (DECL_STRUCT_FUNCTION (fndecl)));
-  body = copy_cfg_body (id, count, frequency, entry_block_map, exit_block_map);
+  body = copy_cfg_body (id, count, frequency_scale, entry_block_map, exit_block_map);
   copy_debug_stmts (id);
 
   return body;
@@ -3733,12 +3743,23 @@ expand_call_inline (basic_block bb, gimple stmt, copy_body_data *id)
 				       cfun->local_decls);
     }
 
+  if (dump_file && (dump_flags & TDF_DETAILS))
+    {
+      fprintf (dump_file, "Inlining ");
+      print_generic_expr (dump_file, id->src_fn, 0); 
+      fprintf (dump_file, " to ");
+      print_generic_expr (dump_file, id->dst_fn, 0); 
+      fprintf (dump_file, " with frequency %i\n", cg_edge->frequency);
+    }
+
   /* This is it.  Duplicate the callee body.  Assume callee is
      pre-gimplified.  Note that we must not alter the caller
      function in any way before this point, as this CALL_EXPR may be
      a self-referential call; if we're calling ourselves, we need to
      duplicate our body before altering anything.  */
-  copy_body (id, bb->count, bb->frequency, bb, return_block);
+  copy_body (id, bb->count,
+  	     cg_edge->frequency * REG_BR_PROB_BASE / CGRAPH_FREQ_BASE,
+	     bb, return_block);
 
   /* Reset the escaped and callused solutions.  */
   if (cfun->gimple_df)
@@ -3822,6 +3843,10 @@ expand_call_inline (basic_block bb, gimple stmt, copy_body_data *id)
   (*debug_hooks->outlining_inline_function) (cg_edge->callee->decl);
 
   /* Update callgraph if needed.  */
+  if (cg_edge->callee->clone_of
+      && !cg_edge->callee->clone_of->next_sibling_clone
+      && !cg_edge->callee->analyzed)
+    cgraph_remove_node (cg_edge->callee);
   cgraph_remove_node (cg_edge->callee);
 
   id->block = NULL_TREE;
@@ -4729,30 +4754,6 @@ delete_unreachable_blocks_update_callgraph (copy_body_data *id)
 
   if (changed)
     tidy_fallthru_edges ();
-#ifdef ENABLE_CHECKING0
-  verify_cgraph_node (id->dst_node);
-  if (id->transform_call_graph_edges == CB_CGE_MOVE_CLONES
-      && id->dst_node->clones)
-    {
-      struct cgraph_node *node;
-      for (node = id->dst_node->clones; node != id->dst_node;)
-	{
-	  verify_cgraph_node (node);
-	   
-	  if (node->clones)
-	    node = node->clones;
-	  else if (node->next_sibling_clone)
-	    node = node->next_sibling_clone;
-	  else
-	    {
-	      while (node != id->dst_node && !node->next_sibling_clone)
-		node = node->clone_of;
-	      if (node != id->dst_node)
-		node = node->next_sibling_clone;
-	    }
-	}
-     }
-#endif
   return changed;
 }
 
@@ -4848,6 +4849,19 @@ tree_function_versioning (tree old_decl, tree new_decl,
   id.src_node = old_version_node;
   id.dst_node = new_version_node;
   id.src_cfun = DECL_STRUCT_FUNCTION (old_decl);
+  if (id.src_node->ipa_transforms_to_apply)
+    {
+      VEC(ipa_opt_pass,heap) * old_transforms_to_apply = id.dst_node->ipa_transforms_to_apply;
+      unsigned int i;
+
+      id.dst_node->ipa_transforms_to_apply = VEC_copy (ipa_opt_pass, heap,
+					               id.src_node->ipa_transforms_to_apply);
+      for (i = 0; i < VEC_length (ipa_opt_pass, old_transforms_to_apply); i++)
+        VEC_safe_push (ipa_opt_pass, heap, id.dst_node->ipa_transforms_to_apply,
+		       VEC_index (ipa_opt_pass,
+		       		  old_transforms_to_apply,
+				  i));
+    }
   
   id.copy_decl = copy_decl_no_change;
   id.transform_call_graph_edges
@@ -4860,8 +4874,7 @@ tree_function_versioning (tree old_decl, tree new_decl,
   old_entry_block = ENTRY_BLOCK_PTR_FOR_FUNCTION
     (DECL_STRUCT_FUNCTION (old_decl));
   initialize_cfun (new_decl, old_decl,
-		   old_entry_block->count,
-		   old_entry_block->frequency);
+		   old_entry_block->count);
   push_cfun (DECL_STRUCT_FUNCTION (new_decl));
   
   /* Copy the function's static chain.  */
@@ -4931,7 +4944,7 @@ tree_function_versioning (tree old_decl, tree new_decl,
       }
   
   /* Copy the Function's body.  */
-  copy_body (&id, old_entry_block->count, old_entry_block->frequency,
+  copy_body (&id, old_entry_block->count, REG_BR_PROB_BASE,
 	     ENTRY_BLOCK_PTR, EXIT_BLOCK_PTR);
   
   if (DECL_RESULT (old_decl) != NULL_TREE)

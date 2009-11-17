@@ -327,8 +327,8 @@
 (define_predicate "x86_64_szext_general_operand"
   (if_then_else (match_test "TARGET_64BIT")
     (ior (match_operand 0 "nonimmediate_operand")
-	 (ior (match_operand 0 "x86_64_immediate_operand")
-	      (match_operand 0 "x86_64_zext_immediate_operand")))
+	 (match_operand 0 "x86_64_immediate_operand")
+	 (match_operand 0 "x86_64_zext_immediate_operand"))
     (match_operand 0 "general_operand")))
 
 ;; Return nonzero if OP is nonmemory operand representable on x86_64.
@@ -342,8 +342,8 @@
 (define_predicate "x86_64_szext_nonmemory_operand"
   (if_then_else (match_test "TARGET_64BIT")
     (ior (match_operand 0 "register_operand")
-	 (ior (match_operand 0 "x86_64_immediate_operand")
-	      (match_operand 0 "x86_64_zext_immediate_operand")))
+	 (match_operand 0 "x86_64_immediate_operand")
+	 (match_operand 0 "x86_64_zext_immediate_operand"))
     (match_operand 0 "nonmemory_operand")))
 
 ;; Return true when operand is PIC expression that can be computed by lea
@@ -577,8 +577,8 @@
 ;; Test for a valid operand for a call instruction.
 (define_predicate "call_insn_operand"
   (ior (match_operand 0 "constant_call_address_operand")
-       (ior (match_operand 0 "call_register_no_elim_operand")
-	    (match_operand 0 "memory_operand"))))
+       (match_operand 0 "call_register_no_elim_operand")
+       (match_operand 0 "memory_operand")))
 
 ;; Similarly, but for tail calls, in which we cannot allow memory references.
 (define_predicate "sibcall_insn_operand"
@@ -1125,23 +1125,6 @@
   (ior (match_code "plus,and,ior,xor,ashift")
        (and (match_code "mult")
 	    (match_test "TARGET_TUNE_PROMOTE_HIMODE_IMUL"))))
-
-;; To avoid problems when jump re-emits comparisons like testqi_ext_ccno_0,
-;; re-recognize the operand to avoid a copy_to_mode_reg that will fail.
-;;
-;; ??? It seems likely that this will only work because cmpsi is an
-;; expander, and no actual insns use this.
-
-(define_predicate "cmpsi_operand"
-  (ior (match_operand 0 "nonimmediate_operand")
-       (and (match_code "and")
-	    (match_code "zero_extract" "0")
-	    (match_code "const_int"    "1")
-	    (match_code "const_int"    "01")
-	    (match_code "const_int"    "02")
-	    (match_test "INTVAL (XEXP (XEXP (op, 0), 1)) == 8")
-	    (match_test "INTVAL (XEXP (XEXP (op, 0), 2)) == 8")
-       )))
 
 (define_predicate "compare_operator"
   (match_code "compare"))

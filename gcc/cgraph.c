@@ -1000,10 +1000,10 @@ cgraph_update_edges_for_call_stmt_node (struct cgraph_node *node,
 	  /* Otherwise remove edge and create new one; we can't simply redirect
 	     since function has changed, so inline plan and other information
 	     attached to edge is invalid.  */
-	  cgraph_remove_edge (e);
 	  count = e->count;
 	  frequency = e->frequency;
 	  loop_nest = e->loop_nest;
+	  cgraph_remove_edge (e);
 	}
       else
 	{
@@ -1132,7 +1132,7 @@ cgraph_release_function_body (struct cgraph_node *node)
       pop_cfun();
       gimple_set_body (node->decl, NULL);
       VEC_free (ipa_opt_pass, heap,
-      		DECL_STRUCT_FUNCTION (node->decl)->ipa_transforms_to_apply);
+      		node->ipa_transforms_to_apply);
       /* Struct function hangs a lot of data that would leak if we didn't
          removed all pointers to it.   */
       ggc_free (DECL_STRUCT_FUNCTION (node->decl));
@@ -1159,6 +1159,8 @@ cgraph_remove_node (struct cgraph_node *node)
   cgraph_call_node_removal_hooks (node);
   cgraph_node_remove_callers (node);
   cgraph_node_remove_callees (node);
+  VEC_free (ipa_opt_pass, heap,
+            node->ipa_transforms_to_apply);
 
   /* Incremental inlining access removed nodes stored in the postorder list.
      */
@@ -1639,8 +1641,12 @@ cgraph_clone_edge (struct cgraph_edge *e, struct cgraph_node *n,
 {
   struct cgraph_edge *new_edge;
   gcov_type count = e->count * count_scale / REG_BR_PROB_BASE;
-  gcov_type freq = e->frequency * (gcov_type) freq_scale / CGRAPH_FREQ_BASE;
+  gcov_type freq;
 
+  /* We do not want to ignore loop nest after frequency drops to 0.  */
+  if (!freq_scale)
+    freq_scale = 1;
+  freq = e->frequency * (gcov_type) freq_scale / CGRAPH_FREQ_BASE;
   if (freq > CGRAPH_FREQ_MAX)
     freq = CGRAPH_FREQ_MAX;
   new_edge = cgraph_create_edge (n, e->callee, call_stmt, count, freq,

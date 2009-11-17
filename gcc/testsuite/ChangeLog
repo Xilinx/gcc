@@ -1,3 +1,36 @@
+2009-11-17  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/42061
+	* g++.dg/cpp0x/initlist27.C: New test.
+
+	PR c++/42059
+	* g++.dg/cpp0x/initlist26.C: New test.
+
+2009-11-16  Jason Merrill  <jason@redhat.com>
+
+	PR c++/189, c++/9937, c++/13950, DR 176
+	* g++.dg/tc1/dr176.C: Adjust.
+	* g++.dg/template/injected1.C: New.
+	* g++.dg/template/inherit.C: Adjust.
+	* g++.old-deja/g++.brendan/crash56.C: Adjust.
+	* g++.old-deja/g++.pt/lookup8.C: Adjust.
+	* g++.old-deja/g++.pt/ttp22.C: Adjust.
+	* g++.old-deja/g++.pt/ttp23.C: Adjust.
+
+2009-11-16  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/42055
+	* testsuite/g++.dg/template/crash92.C: New.
+
+2009-11-16  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/32056
+	* testsuite/g++.dg/template/error44.C: New.
+
+2009-11-16  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* gcc.c-torture/execute/pr41919.c: Mark chars explicitely as signed.
+
 2009-11-15  Janus Weil  <janus@gcc.gnu.org>
 
 	PR fortran/42048

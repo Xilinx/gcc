@@ -620,6 +620,18 @@ verify_cgraph_node (struct cgraph_node *node)
 	  error ("caller edge frequency is too large");
 	  error_found = true;
 	}
+      if (gimple_has_body_p (e->caller->decl)
+          && !e->caller->global.inlined_to
+          && (e->frequency
+	      != compute_call_stmt_bb_frequency (e->caller->decl,
+						 gimple_bb (e->call_stmt))))
+	{
+	  error ("caller edge frequency %i does not match BB freqency %i",
+	  	 e->frequency,
+		 compute_call_stmt_bb_frequency (e->caller->decl,
+						 gimple_bb (e->call_stmt)));
+	  error_found = true;
+	}
       if (!e->inline_failed)
 	{
 	  if (node->global.inlined_to
@@ -1777,8 +1789,8 @@ save_inline_function_body (struct cgraph_node *node)
   TREE_PUBLIC (first_clone->decl) = 0;
   DECL_COMDAT (first_clone->decl) = 0;
   VEC_free (ipa_opt_pass, heap,
-            DECL_STRUCT_FUNCTION (first_clone->decl)->ipa_transforms_to_apply);
-  DECL_STRUCT_FUNCTION (first_clone->decl)->ipa_transforms_to_apply = NULL;
+            first_clone->ipa_transforms_to_apply);
+  first_clone->ipa_transforms_to_apply = NULL;
 
 #ifdef ENABLE_CHECKING
   verify_cgraph_node (first_clone);
@@ -1810,6 +1822,8 @@ cgraph_materialize_clone (struct cgraph_node *node)
     node->clone_of->clones = node->next_sibling_clone;
   node->next_sibling_clone = NULL;
   node->prev_sibling_clone = NULL;
+  if (!node->clone_of->analyzed && !node->clone_of->clones)
+    cgraph_remove_node (node->clone_of);
   node->clone_of = NULL;
   bitmap_obstack_release (NULL);
 }
