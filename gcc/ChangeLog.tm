@@ -1,3 +1,23 @@
+2009-11-18  Aldy Hernandez  <aldyh@redhat.com>
+
+	* trans-mem.c: Remove tm_log_must_generate_saves.
+	Add tm_log_save_addresses.
+	(tm_log_init): Initialize vector.
+	(tm_log_delete): New.
+	(transaction_invariant_address_p): Move up.
+	(tm_log_add): Categorize addresses and save transaction invariants
+	in a separate data structure.
+	(tm_log_emit): Do not categorize addresses here.
+	(tm_log_emit_saves): Handle overlaps.  Remove fixme.
+	(tm_log_emit_restores): Same.
+	(requires_barrier): New parameter.
+	(expand_assign_tm): New argument to requires_barrier.
+	(expand_call_tm): Same.
+	(build_tm_store): Fix typo.
+	(execute_tm_mark): Remove argument to tm_log_emit.
+	(expand_transaction): Do not use tm_log_must_generate_saves.
+	(execute_tm_edges): Call tm_log_delete.
+
 2009-16-11  Aldy Hernandez  <aldyh@redhat.com>
 
 	* trans-mem.c (tm_memopt_transform_blocks): Check for simple loads

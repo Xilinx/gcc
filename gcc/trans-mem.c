@@ -766,9 +766,9 @@ typedef struct tm_log_entry
 /* The actual log.  */
 static htab_t tm_log;
 
-/* True if any of the entries in the log must be generated with a
-   save/restore sequence.  */
-static bool tm_log_must_generate_saves;
+/* Addresses to log with a save/restore sequence.  These should be in
+   dominator order.  */
+static VEC(tree,heap) *tm_log_save_addresses;
 
 /* Htab support.  Return hash value for a `tm_log_entry'.  */
 static hashval_t
@@ -796,11 +796,34 @@ tm_log_free (void *p)
   free (lp);
 }
 
-/* Htab support.  Initialize log.  */
+/* Initialize logging data structures.  */
 static void
 tm_log_init (void)
 {
   tm_log = htab_create (10, tm_log_hash, tm_log_eq, tm_log_free);
+  tm_log_save_addresses = VEC_alloc (tree, heap, 5);
+}
+
+/* Free logging data structures.  */
+static void
+tm_log_delete (void)
+{
+  htab_delete (tm_log);
+  VEC_free (tree, heap, tm_log_save_addresses);
+}
+
+/* Return true if MEM is a transaction invariant memory for the TM
+   region starting at REGION_ENTRY_BLOCK.  */
+static bool
+transaction_invariant_address_p (const_tree mem, basic_block region_entry_block)
+{
+  if (TREE_CODE (mem) == SSA_NAME)
+    return dominated_by_p (CDI_DOMINATORS,
+			   region_entry_block,
+			   gimple_bb (SSA_NAME_DEF_STMT (mem)));
+
+  mem = strip_invariant_refs (mem);
+  return mem && (CONSTANT_CLASS_P (mem) || decl_address_invariant_p (mem));
 }
 
 /* Given an address ADDR in STMT, find it in the memory log or add it,
@@ -812,9 +835,12 @@ tm_log_init (void)
 
    If we find the address, but neither ADDR dominates the found
    address, nor the found one dominates ADDR, we're on different
-   execution paths.  Add it.  */
+   execution paths.  Add it.
+
+   If known, ENTRY_BLOCK is the entry block for the region, otherwise
+   NULL.  */
 static void
-tm_log_add (tree addr, gimple stmt)
+tm_log_add (basic_block entry_block, tree addr, gimple stmt)
 {
   void **slot;
   struct tm_log_entry l, *lp;
@@ -823,12 +849,38 @@ tm_log_add (tree addr, gimple stmt)
   slot = htab_find_slot (tm_log, &l, INSERT);
   if (!*slot)
     {
+      tree type = TREE_TYPE (addr);
+
       lp = XNEW (struct tm_log_entry);
       lp->addr = addr;
-      lp->save_var = NULL;
-      lp->stmts = VEC_alloc (gimple, heap, 5);
-      VEC_quick_push (gimple, lp->stmts, stmt);
       *slot = lp;
+
+      /* Small invariant addresses can be handled as save/restores.  */
+      if (entry_block
+	  && transaction_invariant_address_p (lp->addr, entry_block)
+	  && TYPE_SIZE_UNIT (type) != NULL
+	  && host_integerp (TYPE_SIZE_UNIT (type), 1)
+	  && (tree_low_cst (TYPE_SIZE_UNIT (type), 1)
+	      < PARAM_VALUE (PARAM_TM_MAX_AGGREGATE_SIZE))
+	  /* We must be able to copy this type normally.  I.e., no
+	     special constructors and the like.  */
+	  && !TREE_ADDRESSABLE (type))
+	{
+	  lp->save_var = create_tmp_var (TREE_TYPE (lp->addr), "tm_save");
+	  add_referenced_var (lp->save_var);
+	  lp->stmts = NULL;
+	  /* Save addresses separately in dominator order so we don't
+	     get confused by overlapping addresses in the save/restore
+	     sequence.  */
+	  VEC_safe_push (tree, heap, tm_log_save_addresses, lp->addr);
+	}
+      else
+	{
+	  /* Use the logging functions.  */
+	  lp->stmts = VEC_alloc (gimple, heap, 5);
+	  VEC_quick_push (gimple, lp->stmts, stmt);
+	  lp->save_var = NULL;
+	}
     }
   else
     {
@@ -836,6 +888,12 @@ tm_log_add (tree addr, gimple stmt)
       gimple oldstmt;
 
       lp = (struct tm_log_entry *) *slot;
+
+      /* If we're generating a save/restore sequence, we don't care
+	 about statements.  */
+      if (lp->save_var)
+	return;
+
       for (i = 0; VEC_iterate (gimple, lp->stmts, i, oldstmt); ++i)
 	{
 	  if (stmt == oldstmt)
@@ -913,37 +971,19 @@ tm_log_emit_stmt (tree addr, gimple stmt)
   gsi_insert_before (&gsi, log, GSI_SAME_STMT);
 }
 
-/* Return true if MEM is a transaction invariant memory for the TM
-   region starting at REGION_ENTRY_BLOCK.  */
-static bool
-transaction_invariant_address_p (const_tree mem, basic_block region_entry_block)
-{
-  if (TREE_CODE (mem) == SSA_NAME)
-    return dominated_by_p (CDI_DOMINATORS,
-			   region_entry_block,
-			   gimple_bb (SSA_NAME_DEF_STMT (mem)));
-
-  mem = strip_invariant_refs (mem);
-  return mem && (CONSTANT_CLASS_P (mem) || decl_address_invariant_p (mem));
-}
-
 /* Go through the log and instrument address that must be instrumented
-   with the logging functions.  Mark the save/restore addresses for
-   later.
-
-   REGION_ENTRY_BLOCK is the entry block of the TM region in question.  */
+   with the logging functions.  Leave the save/restore addresses for
+   later.  */
 static void
-tm_log_emit (basic_block region_entry_block)
+tm_log_emit (void)
 {
   htab_iterator hi;
   struct tm_log_entry *lp;
 
-  tm_log_must_generate_saves = false;
   FOR_EACH_HTAB_ELEMENT (tm_log, lp, tm_log_entry_t, hi)
     {
       size_t i;
       gimple stmt;
-      tree type = TREE_TYPE (lp->addr);
 
       if (dump_file)
 	{
@@ -952,28 +992,19 @@ tm_log_emit (basic_block region_entry_block)
 	  fprintf (dump_file, "\n");
 	}
 
-      /* Small invariant addresses can be handled as save/restores
-	 later in tm_log_emit_save_restores.  */
-      if (transaction_invariant_address_p (lp->addr, region_entry_block)
-	  && TYPE_SIZE_UNIT (type) != NULL
-	  && host_integerp (TYPE_SIZE_UNIT (type), 1)
-	  && (tree_low_cst (TYPE_SIZE_UNIT (type), 1)
-	      < PARAM_VALUE (PARAM_TM_MAX_AGGREGATE_SIZE))
-	  /* We must be able to copy this type normally.  I.e., no
-	     special constructors and the like.  */
-	  && !TREE_ADDRESSABLE (type))
+      if (lp->save_var)
 	{
-	  lp->save_var = error_mark_node;
-	  tm_log_must_generate_saves = true;
 	  if (dump_file)
 	    fprintf (dump_file, "DUMPING to variable\n");
 	  continue;
 	}
-      else if (dump_file)
-	fprintf (dump_file, "DUMPING with logging functions\n");
-
-      for (i = 0; VEC_iterate (gimple, lp->stmts, i, stmt); ++i)
-	tm_log_emit_stmt (lp->addr, stmt);
+      else
+	{
+	  if (dump_file)
+	    fprintf (dump_file, "DUMPING with logging functions\n");
+	  for (i = 0; VEC_iterate (gimple, lp->stmts, i, stmt); ++i)
+	    tm_log_emit_stmt (lp->addr, stmt);
+	}
     }
 }
 
@@ -982,24 +1013,17 @@ tm_log_emit (basic_block region_entry_block)
 static void
 tm_log_emit_saves (basic_block bb)
 {
-  htab_iterator hi;
-  struct tm_log_entry *lp;
+  size_t i;
   gimple_stmt_iterator gsi = gsi_last_bb (bb);
   gimple stmt;
+  struct tm_log_entry l, *lp;
 
-  /* FIXME: Instead of the hash order below, figure out a way to do
-     the stores in dominator tree order of where the original
-     statements are.  That way overlaps will work correctly.
-
-     Either that, or use the logging functions for any possibly
-     overlapping memories, and forget about any order.  */
-  FOR_EACH_HTAB_ELEMENT (tm_log, lp, tm_log_entry_t, hi)
+  for (i = 0; i < VEC_length (tree, tm_log_save_addresses); ++i)
     {
-      if (!lp->save_var)
-	continue;
+      l.addr = VEC_index (tree, tm_log_save_addresses, i);
+      lp = (struct tm_log_entry *) *htab_find_slot (tm_log, &l, NO_INSERT);
+      gcc_assert (lp->save_var != NULL);
 
-      lp->save_var = create_tmp_var (TREE_TYPE (lp->addr), "tm_save");
-      add_referenced_var (lp->save_var);
       stmt = gimple_build_assign (lp->save_var, unshare_expr (lp->addr));
       lp->save_var = make_ssa_name (lp->save_var, stmt);
       gimple_assign_set_lhs (stmt, lp->save_var);
@@ -1012,23 +1036,24 @@ tm_log_emit_saves (basic_block bb)
 static void
 tm_log_emit_restores (basic_block bb)
 {
-  htab_iterator hi;
-  struct tm_log_entry *lp;
+  int i;
+  struct tm_log_entry l, *lp;
   gimple_stmt_iterator gsi;
   gimple stmt;
 
-  FOR_EACH_HTAB_ELEMENT (tm_log, lp, tm_log_entry_t, hi)
-      {
-	if (!lp->save_var)
-	  continue;
+  for (i = VEC_length (tree, tm_log_save_addresses) - 1; i >= 0; i--)
+    {
+      l.addr = VEC_index (tree, tm_log_save_addresses, i);
+      lp = (struct tm_log_entry *) *htab_find_slot (tm_log, &l, NO_INSERT);
+      gcc_assert (lp->save_var != NULL);
 
-	/* Restores are in LIFO order from the saves in case we have
-	   overlaps.  */
-	gsi = gsi_start_bb (bb);
+      /* Restores are in LIFO order from the saves in case we have
+	 overlaps.  */
+      gsi = gsi_start_bb (bb);
 
-	stmt = gimple_build_assign (unshare_expr (lp->addr), lp->save_var);
-	gsi_insert_after (&gsi, stmt, GSI_CONTINUE_LINKING);
-      }
+      stmt = gimple_build_assign (unshare_expr (lp->addr), lp->save_var);
+      gsi_insert_after (&gsi, stmt, GSI_CONTINUE_LINKING);
+    }
 }
 
 /* Emit the checks for performing either a save or a restore sequence.
@@ -1098,10 +1123,12 @@ static tree lower_sequence_no_tm (gimple_stmt_iterator *, bool *,
 				  struct walk_stmt_info *);
 
 /* Determine whether X has to be instrumented using a read
-   or write barrier.  */
+   or write barrier.
 
+   ENTRY_BLOCK is the entry block for the region where stmt resides
+   in.  NULL if unknown.  */
 static bool
-requires_barrier (tree x, gimple stmt)
+requires_barrier (basic_block entry_block, tree x, gimple stmt)
 {
   tree orig = x;
   while (handled_component_p (x))
@@ -1149,7 +1176,7 @@ requires_barrier (tree x, gimple stmt)
 	     function to dynamically save and restore on restart
 	     (ITM_L*).  */
 	  if (stmt)
-	    tm_log_add (orig, stmt);
+	    tm_log_add (entry_block, orig, stmt);
 	  return false;
 	}
 
@@ -1166,9 +1193,9 @@ examine_assign_tm (unsigned *state, gimple_stmt_iterator *gsi)
 {
   gimple stmt = gsi_stmt (*gsi);
 
-  if (requires_barrier (gimple_assign_rhs1 (stmt), NULL))
+  if (requires_barrier (/*entry_block=*/NULL, gimple_assign_rhs1 (stmt), NULL))
     *state |= GTMA_HAVE_LOAD;
-  if (requires_barrier (gimple_assign_lhs (stmt), NULL))
+  if (requires_barrier (/*entry_block=*/NULL, gimple_assign_lhs (stmt), NULL))
     *state |= GTMA_HAVE_STORE;
 }
 
@@ -1668,7 +1695,7 @@ build_tm_store (tree lhs, tree rhs, gimple_stmt_iterator *gsi)
 
   if (code == END_BUILTINS)
     {
-      sorry ("transactional load for %T not supported", type);
+      sorry ("transactional store for %T not supported", type);
       code = BUILT_IN_TM_STORE_4;
     }
 
@@ -1704,8 +1731,8 @@ expand_assign_tm (struct tm_region *region, gimple_stmt_iterator *gsi)
   gimple stmt = gsi_stmt (*gsi);
   tree lhs = gimple_assign_lhs (stmt);
   tree rhs = gimple_assign_rhs1 (stmt);
-  bool store_p = requires_barrier (lhs, stmt);
-  bool load_p = requires_barrier (rhs, NULL);
+  bool store_p = requires_barrier (region->entry_block, lhs, stmt);
+  bool load_p = requires_barrier (region->entry_block, rhs, NULL);
   gimple gcall;
 
   if (!load_p && !store_p)
@@ -1788,7 +1815,7 @@ expand_call_tm (struct tm_region *region,
       return true;
     }
 
-  if (lhs && requires_barrier (lhs, stmt))
+  if (lhs && requires_barrier (region->entry_block, lhs, stmt))
     transaction_subcode_ior (region, GTMA_HAVE_STORE);
 
   return is_tm_ending_fndecl (fn_decl);
@@ -1886,7 +1913,7 @@ execute_tm_mark (void)
 	  FOR_EACH_BB (bb)
 	    expand_block_tm (region, bb);
 	}
-      tm_log_emit (region->entry_block);
+      tm_log_emit ();
     }
 
   VEC_free (basic_block, heap, queue);
@@ -2017,14 +2044,14 @@ expand_transaction (struct tm_region *region)
 
   atomic_bb = gimple_bb (region->transaction_stmt);
 
-  if (tm_log_must_generate_saves)
+  if (!VEC_empty (tree, tm_log_save_addresses))
     tm_log_emit_saves (atomic_bb);
 
   gsi = gsi_last_bb (atomic_bb);
   gsi_insert_before (&gsi, g, GSI_SAME_STMT);
   gsi_remove (&gsi, true);
 
-  if (tm_log_must_generate_saves)
+  if (!VEC_empty (tree, tm_log_save_addresses))
     region->entry_block =
       tm_log_emit_save_or_restores (A_RESTORELIVEVARIABLES,
 				    status,
@@ -2043,7 +2070,7 @@ expand_transaction (struct tm_region *region)
       basic_block test_bb;
 
       test_bb = create_empty_bb (slice_bb);
-      if (!tm_log_must_generate_saves)
+      if (VEC_empty (tree, tm_log_save_addresses))
 	region->entry_block = test_bb;
       gsi = gsi_last_bb (test_bb);
 
@@ -2132,7 +2159,7 @@ execute_tm_edges (void)
 	EXECUTE_IF_SET_IN_BITMAP (blocks, 0, i, iter)
 	  expand_block_edges (region, BASIC_BLOCK (i));
       }
-  htab_delete (tm_log);
+  tm_log_delete ();
 
   VEC_free (basic_block, heap, queue);
   BITMAP_FREE (blocks);
