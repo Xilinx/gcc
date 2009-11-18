@@ -1,3 +1,45 @@
+2009-11-17  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/42058
+	* typeck2.c (digest_init_r): Check init for error_operand_p.
+	* decl.c (reshape_init_class): Check return value of reshape_init_r
+	for error_mark_node.
+
+2009-11-17  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/42061
+	* call.c (reference_binding): Return NULL for initializer list with
+	error operand inside of it.
+
+	PR c++/42059
+	* typeck.c (cp_build_modify_expr): For initializer list call
+	check_array_initializer to make sure lhs isn't a VLA.
+
+2009-11-16  Jason Merrill  <jason@redhat.com>
+
+	PR c++/189, c++/9937, c++/13950, DR 176
+	* search.c (lookup_field_r): Allow lookup to find the
+	injected-class-name from a template base.
+	(template_self_reference_p): Remove.
+	* decl.c (make_typename_type): Diagnose ambiguity.  Use
+	maybe_get_template_decl_from_type_decl.
+	* parser.c (cp_parser_template_name): Pass true to is_template
+	rather than use maybe_get_template_decl_from_type_decl.
+	(cp_parser_lookup_name): Use maybe_get_template_decl_from_type_decl.
+	* pt.c (maybe_get_template_decl_from_type_decl): Handle ambiguity.
+	Use DECL_SELF_REFERENCE_P.
+
+	* parser.c (cp_parser_parse_and_diagnose_invalid_type_name):
+	Avoid duplicate ambiguity error.
+	* error.c (dump_decl): Don't say "typedef" for injected-class-name.
+	* pt.c (convert_template_argument): Tweak logic.
+
+2009-11-16  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/42055
+	* pt.c (determine_specialization): Assign to candidates the return
+	value of the chainon called before print_candidates.
+
 2009-11-16  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	PR c++/32056
