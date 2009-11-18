@@ -1,3 +1,12 @@
+2009-11-18  Jeff Law <law@redhat.com>
+
+	* ira-reload.c (build_conflicts_for_new_allocnos): Take HEAD and
+	TAIL arguments instead of BB.  Iterate from tail back to head building
+	conflicts.
+	(localize_pseudos): Accept new VISITED argument.  Operate on
+	extended basic blocks starting with BB.
+	(ira_reload): Refine to work with extended basic blocks.
+
 2009-11-10  Jeff Law <law@redhat.com>
 
 	* ira-reload.c (localize_pseudos): Set REG_FREQ for the newly

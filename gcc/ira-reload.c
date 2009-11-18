@@ -590,19 +590,18 @@ mark_live (rtx reg)
 }
 
 static void
-build_conflicts_for_new_allocnos (basic_block bb,
+build_conflicts_for_new_allocnos (rtx head, rtx tail,
 				  bitmap pseudos_to_localize,
 				  int orig_max_reg_num)
 {
   rtx insn;
+  basic_block bb = NULL;
 
 
   live = BITMAP_ALLOC (NULL);
 
-  /* Starting state is the live-out pseudos - pseudos we're localizing.  */
-  bitmap_and_compl (live, DF_LIVE_OUT (bb), pseudos_to_localize);
 
-  FOR_BB_INSNS_REVERSE (bb, insn)
+  for (insn = tail; insn != PREV_INSN (head); insn = PREV_INSN (insn))
     {
       df_ref *def_rec, *use_rec;
       int call_p;
@@ -610,6 +609,14 @@ build_conflicts_for_new_allocnos (basic_block bb,
       if (!NONDEBUG_INSN_P (insn))
 	continue;
 
+      /* Anytime we start processing a block we have to merge in the
+         registers live at the end of that block - pseudos_to_localize.  */
+      if (bb != BLOCK_FOR_INSN (insn))
+	{
+	  bb = BLOCK_FOR_INSN (insn);
+          bitmap_ior_and_compl_into (live, DF_LIVE_OUT (bb), pseudos_to_localize);
+	}
+	
       call_p = CALL_P (insn);
       /* Mark conflicts for any values defined in this insn.  */
       for (def_rec = DF_INSN_DEFS (insn); *def_rec; def_rec++)
@@ -636,11 +643,11 @@ build_conflicts_for_new_allocnos (basic_block bb,
    and stores.  Definitely worth some experimentation.  */
 
 static void
-localize_pseudos (basic_block bb, bitmap pseudos_to_localize)
+localize_pseudos (basic_block bb, bitmap pseudos_to_localize, bitmap visited)
 {
   int orig_max_reg_num = max_reg_num ();
   int i;
-  rtx insn;
+  rtx insn, head, tail;
 
   regs_to_store = BITMAP_ALLOC (NULL);
   regs_to_load = BITMAP_ALLOC (NULL);
@@ -655,17 +662,59 @@ localize_pseudos (basic_block bb, bitmap pseudos_to_localize)
    
   bitmap_copy (regs_to_store, pseudos_to_localize);
 
+  head = BB_HEAD (bb);
+  for (;;)
+    {
+      edge e;
+      edge_iterator ei;
+      tail = BB_END (bb);
+      if (bb->next_bb == EXIT_BLOCK_PTR
+	  || LABEL_P (BB_HEAD (bb->next_bb)))
+	break;
+      FOR_EACH_EDGE (e, ei, bb->succs)
+	if ((e->flags & EDGE_FALLTHRU) != 0)
+	  break;
+      if (! e)
+	break;
+      bb = bb->next_bb;
+    }
+
   /* First walk over the insns in this region and identify singleton
      uses of registers in PSEUDOS_TO_LOCALIZE.  We want to know if a
      use is a singleton so that we can change the use to a MEM.  We
      need this information prior to emitting localizing stores so that
      we can change both the use and set in a single insn to a MEM.  */
-  FOR_BB_INSNS_REVERSE (bb, insn)
+  for (insn = tail; insn != PREV_INSN (head); insn = PREV_INSN (insn))
     {
       df_ref *def_rec, *use_rec;
 
       if (!NONDEBUG_INSN_P (insn))
 	continue;
+
+      bitmap_set_bit (visited, BLOCK_FOR_INSN (insn)->index);
+
+      /* If we have traversed into a new basic block, then reset NO_USES_AFTER_LAST_SET for any
+	 pseudo we want to localize that is live-out on the edge(s) that we did NOT
+	 traverse.  */
+      if (bb != BLOCK_FOR_INSN (insn))
+	{
+	  edge e;
+	  edge_iterator ei;
+
+	  bb = BLOCK_FOR_INSN (insn);
+	  FOR_EACH_EDGE (e, ei, bb->succs)
+	    {
+	      if ((e->flags & EDGE_FALLTHRU) == 0)
+		{
+		  unsigned int i;
+		  bitmap_iterator bi;
+
+		  EXECUTE_IF_AND_IN_BITMAP (pseudos_to_localize, DF_LIVE_IN (e->dest), 0, i, bi)
+		    bitmap_clear_bit (no_uses_after_last_set, i);
+		}
+		bitmap_ior_and_into (regs_to_store, pseudos_to_localize, DF_LIVE_IN (e->dest));
+	    }
+	}
 
       for (def_rec = DF_INSN_DEFS (insn); *def_rec; def_rec++)
 	identify_singleton_sets (DF_REF_REG (*def_rec));
@@ -677,13 +726,29 @@ localize_pseudos (basic_block bb, bitmap pseudos_to_localize)
   /* Next emit a store after the last assignment of each pseudo in
      PSEUDOS_TO_LOCALIZE within the region.  Collect list of pseudos
      we'll need to load as well.  */
-  FOR_BB_INSNS_REVERSE (bb, insn)
+  for (bb = BLOCK_FOR_INSN (tail), insn = tail; insn != PREV_INSN (BB_HEAD (BLOCK_FOR_INSN (head))); insn = PREV_INSN (insn))
     {
       df_ref *def_rec, *use_rec;
       int status;
 
       if (!NONDEBUG_INSN_P (insn))
 	continue;
+
+      /* If we have traversed into a new basic block, then reset regs_to_store for any
+	 pseudo we want to localize that is live-out on the edge(s) that we did NOT
+	 traverse.  */
+      if (bb != BLOCK_FOR_INSN (insn))
+	{
+	  edge e;
+	  edge_iterator ei;
+
+	  bb = BLOCK_FOR_INSN (insn);
+	  FOR_EACH_EDGE (e, ei, bb->succs)
+	    {
+	      if ((e->flags & EDGE_FALLTHRU) == 0)
+		bitmap_ior_and_into (regs_to_store, pseudos_to_localize, DF_LIVE_IN (e->dest));
+	    }
+	}
 
       status = 0;
       for (def_rec = DF_INSN_DEFS (insn); *def_rec; def_rec++)
@@ -709,7 +774,7 @@ localize_pseudos (basic_block bb, bitmap pseudos_to_localize)
      the first use of each pseudo that we're localizing and change
      each reference from an unallocated pseudo to a new block local
      spill register.  */
-  FOR_BB_INSNS (bb, insn)
+  for (insn = head; insn != NEXT_INSN (BB_END (BLOCK_FOR_INSN (tail))); insn = NEXT_INSN (insn))
     {
       df_ref *def_rec, *use_rec;
       int need_rescan;
@@ -827,7 +892,7 @@ localize_pseudos (basic_block bb, bitmap pseudos_to_localize)
 	 We wait until after we've created all the new allocnos for this block
 	 so that we can update the conflict graph with a single backwards walk
 	 through this block.  */
-      build_conflicts_for_new_allocnos (bb, pseudos_to_localize, orig_max_reg_num);
+      build_conflicts_for_new_allocnos (head, tail, pseudos_to_localize, orig_max_reg_num);
 
       /* We added new live-range objects, so rebuild the chains.  */
       ira_rebuild_start_finish_chains ();
@@ -856,16 +921,54 @@ ira_reload (void)
 
   if (ira_conflicts_p)
     {
-      unsigned int i, j;
+      unsigned int i;
       bitmap_iterator bi;
       basic_block bb;
+      bitmap visited;
 
       pseudos_to_localize = BITMAP_ALLOC (NULL);
       max_regno = max_reg_num ();
-      /* Collect all the registers we want to localize into a bitmap.  */
-      for (j = FIRST_PSEUDO_REGISTER; j < (unsigned) max_regno; j++)
-	if (localize_pseudo_p (j))
-	  bitmap_set_bit (pseudos_to_localize, j);
+      visited = BITMAP_ALLOC (NULL);
+
+      /* Collect all the registers we want to localize into a bitmap.
+         We don't want to localize pseudos which are contained wholly
+         within an EBB, so we look for pseudos which are live at the
+         start of the EBB or at the end of the EBB.  */
+      FOR_EACH_BB (bb)
+        {
+	  if (!bitmap_bit_p (visited, bb->index))
+	    {
+	      rtx tail;
+
+	      /* This collects pseudos live at the start of the EBB.  */
+	      EXECUTE_IF_SET_IN_BITMAP (DF_LIVE_IN (bb), FIRST_PSEUDO_REGISTER, i, bi)
+		if (localize_pseudo_p (i))
+		  bitmap_set_bit (pseudos_to_localize, i);
+
+	      for (;;)
+		{
+		  edge e;
+		  edge_iterator ei;
+		  bitmap_set_bit (visited, bb->index);
+		  tail = BB_END (bb);
+		  if (bb->next_bb == EXIT_BLOCK_PTR
+		      || LABEL_P (BB_HEAD (bb->next_bb)))
+		    break;
+		  FOR_EACH_EDGE (e, ei, bb->succs)
+		    if ((e->flags & EDGE_FALLTHRU) != 0)
+		      break;
+		  if (! e)
+		    break;
+		  bb = bb->next_bb;
+		}
+
+	      /* This collects pseudos live at the end of the EBB.  */
+	      EXECUTE_IF_SET_IN_BITMAP (DF_LIVE_OUT (bb), FIRST_PSEUDO_REGISTER, i, bi)
+		if (localize_pseudo_p (i))
+		  bitmap_set_bit (pseudos_to_localize, i);
+	    }
+	}
+	  
 
       /* Assign stack slots for pseudos live at block boundaries which did not
          get hard regs.  This unfortunately turns pseudos into hard regs which
@@ -878,8 +981,10 @@ ira_reload (void)
 
       if (!bitmap_empty_p (pseudos_to_localize))
 	{
+	  bitmap_clear (visited);
           FOR_EACH_BB (bb)
-	    localize_pseudos (bb, pseudos_to_localize);
+	    if (!bitmap_bit_p (visited, bb->index))
+	      localize_pseudos (bb, pseudos_to_localize, visited);
 	}
 
       /* Now we want to remove each allocnos associated with the pseudos we
