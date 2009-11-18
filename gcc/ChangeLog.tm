@@ -1,3 +1,10 @@
+2009-16-11  Aldy Hernandez  <aldyh@redhat.com>
+
+	* trans-mem.c (tm_memopt_transform_blocks): Check for simple loads
+	and stores.
+	(is_tm_simple_load): New.
+	(is_tm_simple_store): New.
+
 2009-11-13  Richard Henderson  <rth@redhat.com>
 
 	* gimple.def (GIMPLE_TRANSACTION): Rename from GIMPLE_TM_ATOMIC.

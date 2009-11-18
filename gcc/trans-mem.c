@@ -324,6 +324,32 @@ is_tm_load (gimple stmt)
 	  && BUILTIN_TM_LOAD_P (DECL_FUNCTION_CODE (fndecl)));
 }
 
+/* Same as above, but for simple TM loads, that is, not the
+   after-write, after-read, etc optimized variants.  */
+
+static bool
+is_tm_simple_load (gimple stmt)
+{
+  tree fndecl;
+
+  if (gimple_code (stmt) != GIMPLE_CALL)
+    return false;
+
+  fndecl = gimple_call_fndecl (stmt);
+  if (fndecl && DECL_BUILT_IN_CLASS (fndecl) == BUILT_IN_NORMAL)
+    {
+      enum built_in_function fcode = DECL_FUNCTION_CODE (fndecl);
+      return (fcode == BUILT_IN_TM_LOAD_1
+	      || fcode == BUILT_IN_TM_LOAD_2
+	      || fcode == BUILT_IN_TM_LOAD_4
+	      || fcode == BUILT_IN_TM_LOAD_8
+	      || fcode == BUILT_IN_TM_LOAD_FLOAT
+	      || fcode == BUILT_IN_TM_LOAD_DOUBLE
+	      || fcode == BUILT_IN_TM_LOAD_LDOUBLE);
+    }
+  return false;
+}
+
 /* Return true if STMT is a TM store.  */
 
 static bool
@@ -337,6 +363,32 @@ is_tm_store (gimple stmt)
   fndecl = gimple_call_fndecl (stmt);
   return (fndecl && DECL_BUILT_IN_CLASS (fndecl) == BUILT_IN_NORMAL
 	  && BUILTIN_TM_STORE_P (DECL_FUNCTION_CODE (fndecl)));
+}
+
+/* Same as above, but for simple TM stores, that is, not the
+   after-write, after-read, etc optimized variants.  */
+
+static bool
+is_tm_simple_store (gimple stmt)
+{
+  tree fndecl;
+
+  if (gimple_code (stmt) != GIMPLE_CALL)
+    return false;
+
+  fndecl = gimple_call_fndecl (stmt);
+  if (fndecl && DECL_BUILT_IN_CLASS (fndecl) == BUILT_IN_NORMAL)
+    {
+      enum built_in_function fcode = DECL_FUNCTION_CODE (fndecl);
+      return (fcode == BUILT_IN_TM_STORE_1
+	      || fcode == BUILT_IN_TM_STORE_2
+	      || fcode == BUILT_IN_TM_STORE_4
+	      || fcode == BUILT_IN_TM_STORE_8
+	      || fcode == BUILT_IN_TM_STORE_FLOAT
+	      || fcode == BUILT_IN_TM_STORE_DOUBLE
+	      || fcode == BUILT_IN_TM_STORE_LDOUBLE);
+    }
+  return false;
 }
 
 /* Return true if FNDECL is BUILT_IN_TM_ABORT.  */
@@ -2652,11 +2704,7 @@ tm_memopt_transform_blocks (VEC (basic_block, heap) *blocks)
 	  bitmap store_antic = STORE_ANTIC_OUT (bb);
 	  unsigned int loc;
 
-	  /* FIXME: Make sure we're not transforming something like a
-	     user-coded read-after-write, etc.  Check for simple
-	     loads, not the optimized variants.  Similarly for
-	     is_tm_store below.  */
-	  if (is_tm_load (stmt))
+	  if (is_tm_simple_load (stmt))
 	    {
 	      loc = tm_memopt_value_number (stmt, NO_INSERT);
 	      if (store_avail && bitmap_bit_p (store_avail, loc))
@@ -2671,7 +2719,7 @@ tm_memopt_transform_blocks (VEC (basic_block, heap) *blocks)
 	      else
 		bitmap_set_bit (read_avail, loc);
 	    }
-	  else if (is_tm_store (stmt))
+	  else if (is_tm_simple_store (stmt))
 	    {
 	      loc = tm_memopt_value_number (stmt, NO_INSERT);
 	      if (store_avail && bitmap_bit_p (store_avail, loc))
