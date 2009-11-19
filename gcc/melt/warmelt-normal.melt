@@ -154,11 +154,13 @@ process introduce many such normal lets.}#
 ;; normal letrec 
 (defclass class_nrep_letrec
   :doc #{The $CLASS_NREP_LETREC is for normalized letrec. The field
-$NLETREC_BINDINGS is the list of internal normal bindings.}#
+$NLETREC_BINDINGS is the list of internal normal bindings. 
+The field $NLETREC_LOCSYMS is the tuple of local symbol occurrences.}#
   :super class_nrep_let
   :fields (
 	   ;; the nlet_bindings is a tuple of constructive bindings
 	   nletrec_bindings 
+	   nletrec_locsyms
 ))
 
 ;; normal return have a main & supplementary subexpressions
@@ -1101,9 +1103,31 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
 	(debug_msg procs "normexp_symbol constructed procs")
 	(debug_msg env "normexp_symbol constructed in env")
 	(debug_msg recv "normexp_symbol constructed for recv")
-	(compile_warning "@$@normexp_symbol unimplemented constructed binding")
-	(assert_msg "@$@normexp_symbol unimplemented constructed binding" ())
-	)
+	(let ( 
+	      (nletrec (get_field :nconsb_nletrec bind))
+	      )
+	  (debug_msg nletrec "normexp_symbol nletrec")
+	  (assert_msg "normexp_symbol check nletrec" (is_a nletrec class_nrep_letrec))
+	  (let ( (nlocsyms (get_field :nletrec_locsyms nletrec))
+		 (ourlocsym ())
+		 )
+	    (debug_msg nlocsyms "normexp_symbol nlocsyms")
+	    ;; find the right locsym in nlocsyms and cache it
+	    (foreach_in_multiple
+	     (nlocsyms)
+	     (curlocsym :long syix)
+	     (if (== (get_field :nocc_bind curlocsym) bind)
+		 (progn
+		   (setq syix -99)	;to exit the loop [-1 don't work!]
+		   (setq ourlocsym curlocsym)))
+	     )
+	    (debug_msg ourlocsym "normexp_symbol ourlocsym")
+	    (assert_msg "normexp_symbol should have ourlocsym"
+			(is_a ourlocsym class_nrep_locsymocc))
+	    ;; cache the result & return it
+	    (mapobject_put sycmap recv ourlocsym)
+	    (return ourlocsym)
+	    )))
       ;; all other cases are constants, probably unusual, so we warn
       (:else 
        (debug_msg bind "normexp_symbol const? bind")
@@ -3614,6 +3638,7 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
     (let (
 	  (:long nbconsbind (list_length consbindlist))
 	  (:long curcix 0)
+	  (nlocsyms (make_multiple discr_multiple nbconsbind))
 	  (ncbindtup (make_multiple discr_multiple nbconsbind))
 	  (recbindings (make_list discr_list))
 	  (nletrec (instance class_nrep_letrec
@@ -3621,12 +3646,13 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
 			     :nlet_bindings ncbindtup
 			     :nlet_body ()
 			     :nletrec_bindings recbindings 
+			     :nletrec_locsyms nlocsyms 
 			     )) 
 	  )
       (debug_msg nletrec "normexp_letrec unfilled nletrec")
       ;;
       ;; second loop to make an environment where each constructive
-      ;; binding is set
+      ;; binding is set, and to create the local symbol occurrences
       (foreach_in_list
        (consbindlist)
        (curpair curcbind)
@@ -3635,10 +3661,17 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
        (multiple_put_nth ncbindtup curcix curcbind)
        (put_int curcbind curcix)
        (put_fields curcbind :nconsb_nletrec nletrec)
-       (setq curcix (+i curcix 1))
        (let ( (curbdiscr (unsafe_get_field :nconsb_discr curcbind)) 
 	      (curbinder (unsafe_get_field :binder curcbind))
+	      (nlocsym (instance class_nrep_locsymocc
+				 :nrep_loc (or (get_field :nconsb_loc curcbind) 
+					       sloc psloc)
+				 :nocc_ctyp ctype_value
+				 :nocc_symb curbinder
+				 :nocc_bind curcbind
+			))
 	      )
+	 (multiple_put_nth nlocsyms curcix nlocsym)
 	 (if (null curbdiscr)
 	     (let ( (clabind (get_field :ninstb_clabind curcbind))
 		    (clasym (get_field :binder clabind))
@@ -3655,6 +3688,7 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
 		 (put_fields curcbind :nconsb_discr cladata)
 		 )))
 	 )
+       (setq curcix (+i curcix 1))
        (put_env newenv curcbind)
        (compile_warning "normexp_letrec should normalize the expression using symbexprmap & curbinder...")
        )
@@ -3679,7 +3713,9 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
 	 (debug_msg curexpr "normexp_letrec thirdloop done curexpr")
 	 )
        )
+;;;
 ;;; normalize the body
+      (debug_msg sbody "normexp_letrec normalizing sbody")
       (multicall
        (nbody nbodbindings)
        (normalize_tuple sbody newenv ncx sloc)

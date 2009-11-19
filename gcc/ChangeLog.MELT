@@ -1,4 +1,9 @@
 2009-11-19  Basile Starynkevitch  <basile@starynkevitch.net>
+	* warmelt-first.melt: foreach_in_multiple changed to use the given
+	index which can be assigned for skipping or loop exiting purposes.
+	* warmelt-normal.melt: added normalization of letrec-bound symbols
+
+2009-11-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in (MELT_CFLAGS): don't put -gtoogle inside.
 	(built-melt-cc-script,install-melt-cc-script): also depends upon
 	Makefile.

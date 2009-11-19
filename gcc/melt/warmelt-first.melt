@@ -3348,14 +3348,13 @@ of pairs.}#
   :doc #{Iterate in the given tuple $TUP for each component $COMP at index $IX}#
   #{ /* start $eachtup: */
    long  $eachtup#_ln = melt_multiple_length((melt_ptr_t)$tup);
-   long  $eachtup#_ix = 0;
-   for ($eachtup#_ix = 0;  
-	$eachtup#_ix <  $eachtup#_ln;  
-	$eachtup#_ix++) {
-   $comp = melt_multiple_nth((melt_ptr_t)($tup),  $eachtup#_ix);
-   $ix  =  $eachtup#_ix;
+   for ($ix = 0;  
+	($ix >= 0) && ($ix <  $eachtup#_ln);  
+	$ix++) {
+   $comp = melt_multiple_nth((melt_ptr_t)($tup),  $ix);
    }#
-   #{ } /* end $eachtup */ }#
+   #{ if ($ix<0) break;
+   } /* end $eachtup */ }#
 )
 
 (defciterator foreach_in_multiple_backward
