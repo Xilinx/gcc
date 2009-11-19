@@ -5039,8 +5039,8 @@ MELT_RAW_CFLAGS= $(X_CFLAGS) $(CFLAGS) $(XCFLAGS) $(INTERNAL_CFLAGS) @DEFS@
 ## optimization is no more than -O1 because MELT generated C code has
 ## giant routines and structures, and with -O2 they need too much
 ## space (more than 4Gbytes) and CPU time (more than 1hour on a 2.5GHz
-## IntelCore2) to be compiled.
-MELT_CFLAGS= $(shell echo $(MELT_RAW_CFLAGS) | sed 's/ -O[2-9]/ -O1/')
+## IntelCore2) to be compiled. Likewise, avoid passing -gtoggle.
+MELT_CFLAGS= $(shell echo $(MELT_RAW_CFLAGS) | sed 's/ -O[2-9]/ -O1/' | sed 's/ -g[a-z0-9-]*/ -g/')
 
 # we want to generate all the direct (non system) dependencies of run-melt.h
 # the following should work if $(CC) is some recent version of GCC (probably >= 4.x)
@@ -5216,7 +5216,7 @@ install-melt-headers-cp: install-melt-include-dir
 .PHONY: install-melt-cc-script
 
 ## this file is actually built
-built-melt-cc-script: melt-cc-script.proto  run-melt-deps
+built-melt-cc-script: melt-cc-script.proto  run-melt-deps Makefile
 ## the #:! lines should be removed, and in first twenty lines :MELT_GCC:
 ## :MELT_CFLAGS: :MELT_HEADERDIR: :MELT_SCRIPT: should be substituted
 	sed -e s/^.:!.*// -e '1,30s|:GCCMELT_CC:|$(CC)|' \
@@ -5235,7 +5235,7 @@ install-melt-include-dir: installdirs
 	mkdir $(DESTDIR)$(melt_private_include_dir)
 	-chmod a+rx $(DESTDIR)$(melt_private_include_dir)
 
-install-melt-cc-script: melt-cc-script.proto
+install-melt-cc-script: melt-cc-script.proto Makefile
 ## the #:! lines should be removed, and in first twenty lines :MELT_GCC:
 ## :MELT_CFLAGS: :MELT_HEADERDIR: :MELT_SCRIPT: should be substituted
 # Nicolas Vigier suggested the | char which is very uncommon in file paths

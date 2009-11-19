@@ -1,3 +1,8 @@
+2009-11-19  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in (MELT_CFLAGS): don't put -gtoogle inside.
+	(built-melt-cc-script,install-melt-cc-script): also depends upon
+	Makefile.
+
 2009-11-17  Basile Starynkevitch  <basile@starynkevitch.net>
         * melt-make.mk: added warmelt2b target...
         * run-melt.mk: removed commented code...
