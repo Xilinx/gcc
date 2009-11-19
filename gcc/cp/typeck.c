@@ -1690,7 +1690,7 @@ decay_conversion (tree exp)
 
      Non-class rvalues always have cv-unqualified types.  */
   type = TREE_TYPE (exp);
-  if (!CLASS_TYPE_P (type) && cp_type_quals (type))
+  if (!CLASS_TYPE_P (type) && cv_qualified_p (type))
     exp = build_nop (cv_unqualified (type), exp);
 
   return exp;
@@ -5368,6 +5368,14 @@ build_static_cast_1 (tree type, tree expr, bool c_cast_p,
 
   orig = expr;
 
+  /* Resolve overloaded address here rather than once in
+     implicit_conversion and again in the inverse code below.  */
+  if (TYPE_PTRMEMFUNC_P (type) && type_unknown_p (expr))
+    {
+      expr = instantiate_type (type, expr, complain);
+      intype = TREE_TYPE (expr);
+    }
+
   /* [expr.static.cast]
 
      An expression e can be explicitly converted to a type T using a
@@ -6261,7 +6269,11 @@ cp_build_modify_expr (tree lhs, enum tree_code modifycode, tree rhs,
       int from_array;
 
       if (BRACE_ENCLOSED_INITIALIZER_P (rhs))
-	rhs = digest_init (lhstype, rhs);
+	{
+	  if (check_array_initializer (lhs, lhstype, rhs))
+	    return error_mark_node;
+	  rhs = digest_init (lhstype, rhs);
+	}
 
       else if (!same_or_base_type_p (TYPE_MAIN_VARIANT (lhstype),
 				     TYPE_MAIN_VARIANT (TREE_TYPE (rhs))))
@@ -7431,6 +7443,15 @@ cp_type_readonly (const_tree type)
      argument unmodified and we assign it to a const_tree.  */
   type = strip_array_types (CONST_CAST_TREE(type));
   return TYPE_READONLY (type);
+}
+
+/* Returns nonzero if TYPE is const or volatile.  */
+
+bool
+cv_qualified_p (const_tree type)
+{
+  int quals = cp_type_quals (type);
+  return (quals & (TYPE_QUAL_CONST|TYPE_QUAL_VOLATILE)) != 0;
 }
 
 /* Returns nonzero if the TYPE contains a mutable member.  */

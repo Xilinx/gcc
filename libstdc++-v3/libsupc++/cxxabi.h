@@ -100,7 +100,7 @@ namespace __cxxabiv1
   
   void 
   __cxa_vec_cleanup(void* __array_address, size_t __element_count,
-		    size_t __element_size, __cxa_cdtor_type destructor) _GLIBCXX_NOTHROW;
+		    size_t __s, __cxa_cdtor_type destructor) _GLIBCXX_NOTHROW;
   
   // Destruct and release array.
   void 
@@ -164,7 +164,7 @@ namespace __cxxabiv1
    *
    *  @param __status @a *__status is set to one of the following values:
    *   0: The demangling operation succeeded.
-   *  -1: A memory allocation failiure occurred.
+   *  -1: A memory allocation failure occurred.
    *  -2: @a mangled_name is not a valid name under the C++ ABI mangling rules.
    *  -3: One of the arguments is invalid.
    *
@@ -601,6 +601,27 @@ namespace __cxxabiv1
 */
 namespace abi = __cxxabiv1;
 
+namespace __gnu_cxx
+{
+  /**
+   *  @brief Exception thrown by __cxa_guard_acquire.
+   *  @ingroup exceptions
+   *
+   *  6.7[stmt.dcl]/4: If control re-enters the declaration (recursively)
+   *  while the object is being initialized, the behavior is undefined.
+   *
+   *  Since we already have a library function to handle locking, we might
+   *  as well check for this situation and throw an exception.
+   *  We use the second byte of the guard variable to remember that we're
+   *  in the middle of an initialization.
+   */
+  class recursive_init_error: public std::exception
+  {
+  public:
+    recursive_init_error() throw() { }
+    virtual ~recursive_init_error() throw ();
+  };
+}
 #endif // __cplusplus
 
 #pragma GCC visibility pop

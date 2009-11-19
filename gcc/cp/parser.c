@@ -2430,6 +2430,14 @@ cp_parser_parse_and_diagnose_invalid_type_name (cp_parser *parser)
   tree id;
   cp_token *token = cp_lexer_peek_token (parser->lexer);
 
+  /* Avoid duplicate error about ambiguous lookup.  */
+  if (token->type == CPP_NESTED_NAME_SPECIFIER)
+    {
+      cp_token *next = cp_lexer_peek_nth_token (parser->lexer, 2);
+      if (next->type == CPP_NAME && next->ambiguous_p)
+	goto out;
+    }
+
   cp_parser_parse_tentatively (parser);
   id = cp_parser_id_expression (parser,
 				/*template_keyword_p=*/false,
@@ -2451,6 +2459,7 @@ cp_parser_parse_and_diagnose_invalid_type_name (cp_parser *parser)
   /* Emit a diagnostic for the invalid type.  */
   cp_parser_diagnose_invalid_type_name (parser, parser->scope,
 					id, token->location);
+ out:
   /* If we aren't in the middle of a declarator (i.e. in a
      parameter-declaration-clause), skip to the end of the declaration;
      there's no point in trying to process it.  */
@@ -3320,7 +3329,7 @@ cp_parser_primary_expression (cp_parser *parser,
       if (c_dialect_objc ())
         /* We have an Objective-C++ message. */
         return cp_parser_objc_expression (parser);
-      maybe_warn_cpp0x ("lambda expressions");
+      maybe_warn_cpp0x (CPP0X_LAMBDA_EXPR);
       return cp_parser_lambda_expression (parser);
 
     case CPP_OBJC_STRING:
@@ -3508,6 +3517,16 @@ cp_parser_primary_expression (cp_parser *parser,
 	else
 	  {
 	    tree ambiguous_decls;
+
+	    /* If we already know that this lookup is ambiguous, then
+	       we've already issued an error message; there's no reason
+	       to check again.  */
+	    if (id_expr_token->type == CPP_NAME
+		&& id_expr_token->ambiguous_p)
+	      {
+		cp_parser_simulate_error (parser);
+		return error_mark_node;
+	      }
 
 	    decl = cp_parser_lookup_name (parser, id_expression,
 					  none_type,
@@ -5256,7 +5275,7 @@ cp_parser_parenthesized_expression_list (cp_parser* parser,
 	    if (cp_lexer_next_token_is (parser->lexer, CPP_OPEN_BRACE))
 	      {
 		/* A braced-init-list.  */
-		maybe_warn_cpp0x ("extended initializer lists");
+		maybe_warn_cpp0x (CPP0X_INITIALIZER_LISTS);
 		expr = cp_parser_braced_list (parser, &expr_non_constant_p);
 		if (non_constant_p && expr_non_constant_p)
 		  *non_constant_p = true;
@@ -5973,7 +5992,7 @@ cp_parser_new_initializer (cp_parser* parser)
     {
       tree t;
       bool expr_non_constant_p;
-      maybe_warn_cpp0x ("extended initializer lists");
+      maybe_warn_cpp0x (CPP0X_INITIALIZER_LISTS);
       t = cp_parser_braced_list (parser, &expr_non_constant_p);
       CONSTRUCTOR_IS_DIRECT_INIT (t) = 1;
       expression_list = make_tree_vector_single (t);
@@ -6534,7 +6553,7 @@ cp_parser_assignment_expression (cp_parser* parser, bool cast_p,
 	      tree rhs = cp_parser_initializer_clause (parser, &non_constant_p);
 
 	      if (BRACE_ENCLOSED_INITIALIZER_P (rhs))
-		maybe_warn_cpp0x ("extended initializer lists");
+		maybe_warn_cpp0x (CPP0X_INITIALIZER_LISTS);
 
 	      /* An assignment may not appear in a
 		 constant-expression.  */
@@ -8124,7 +8143,7 @@ cp_parser_condition (cp_parser* parser)
 	      initializer = cp_parser_initializer_clause (parser, &non_constant_p);
 	    }
 	  if (BRACE_ENCLOSED_INITIALIZER_P (initializer))
-	    maybe_warn_cpp0x ("extended initializer lists");
+	    maybe_warn_cpp0x (CPP0X_INITIALIZER_LISTS);
 
 	  if (!non_constant_p)
 	    initializer = fold_non_dependent_expr (initializer);
@@ -8388,7 +8407,7 @@ cp_parser_jump_statement (cp_parser* parser)
 
 	if (cp_lexer_next_token_is (parser->lexer, CPP_OPEN_BRACE))
 	  {
-	    maybe_warn_cpp0x ("extended initializer lists");
+	    maybe_warn_cpp0x (CPP0X_INITIALIZER_LISTS);
 	    expr = cp_parser_braced_list (parser, &expr_non_constant_p);
 	  }
 	else if (cp_lexer_next_token_is_not (parser->lexer, CPP_SEMICOLON))
@@ -9903,7 +9922,7 @@ cp_parser_mem_initializer (cp_parser* parser)
   if (cp_lexer_next_token_is (parser->lexer, CPP_OPEN_BRACE))
     {
       bool expr_non_constant_p;
-      maybe_warn_cpp0x ("extended initializer lists");
+      maybe_warn_cpp0x (CPP0X_INITIALIZER_LISTS);
       expression_list = cp_parser_braced_list (parser, &expr_non_constant_p);
       CONSTRUCTOR_IS_DIRECT_INIT (expression_list) = 1;
       expression_list = build_tree_list (NULL_TREE, expression_list);
@@ -10498,7 +10517,7 @@ cp_parser_template_parameter (cp_parser* parser, bool *is_non_type,
 
   parm = grokdeclarator (parameter_declarator->declarator,
 			 &parameter_declarator->decl_specifiers,
-			 PARM, /*initialized=*/0,
+			 TPARM, /*initialized=*/0,
 			 /*attrlist=*/NULL);
   if (parm == error_mark_node)
     return error_mark_node;
@@ -11076,12 +11095,11 @@ cp_parser_template_name (cp_parser* parser,
   /* Look up the name.  */
   decl = cp_parser_lookup_name (parser, identifier,
 				none_type,
-				/*is_template=*/false,
+				/*is_template=*/true,
 				/*is_namespace=*/false,
 				check_dependency_p,
 				/*ambiguous_decls=*/NULL,
 				token->location);
-  decl = maybe_get_template_decl_from_type_decl (decl);
 
   /* If DECL is a template, then the name was a template-name.  */
   if (TREE_CODE (decl) == TEMPLATE_DECL)
@@ -11368,18 +11386,26 @@ cp_parser_template_argument (cp_parser* parser)
 	cp_parser_abort_tentative_parse (parser);
       else
 	{
+	  tree probe;
+
 	  if (TREE_CODE (argument) == INDIRECT_REF)
 	    {
 	      gcc_assert (REFERENCE_REF_P (argument));
 	      argument = TREE_OPERAND (argument, 0);
 	    }
 
-	  if (TREE_CODE (argument) == VAR_DECL)
+	  /* If we're in a template, we represent a qualified-id referring
+	     to a static data member as a SCOPE_REF even if the scope isn't
+	     dependent so that we can check access control later.  */
+	  probe = argument;
+	  if (TREE_CODE (probe) == SCOPE_REF)
+	    probe = TREE_OPERAND (probe, 1);
+	  if (TREE_CODE (probe) == VAR_DECL)
 	    {
 	      /* A variable without external linkage might still be a
 		 valid constant-expression, so no error is issued here
 		 if the external-linkage check fails.  */
-	      if (!address_p && !DECL_EXTERNAL_LINKAGE_P (argument))
+	      if (!address_p && !DECL_EXTERNAL_LINKAGE_P (probe))
 		cp_parser_simulate_error (parser);
 	    }
 	  else if (is_overloaded_fn (argument))
@@ -11907,7 +11933,7 @@ cp_parser_simple_type_specifier (cp_parser* parser,
       break;
       
     case RID_AUTO:
-      maybe_warn_cpp0x ("C++0x auto");
+      maybe_warn_cpp0x (CPP0X_AUTO);
       type = make_auto ();
       break;
 
@@ -12214,7 +12240,7 @@ cp_parser_elaborated_type_specifier (cp_parser* parser,
           || cp_lexer_next_token_is_keyword (parser->lexer, RID_STRUCT))
         {
           if (cxx_dialect == cxx98)
-            maybe_warn_cpp0x ("scoped enums");
+            maybe_warn_cpp0x (CPP0X_SCOPED_ENUMS);
 
           /* Consume the `struct' or `class'.  */
           cp_lexer_consume_token (parser->lexer);
@@ -12551,7 +12577,7 @@ cp_parser_enum_specifier (cp_parser* parser)
       || cp_lexer_next_token_is_keyword (parser->lexer, RID_STRUCT))
     {
       if (cxx_dialect == cxx98)
-        maybe_warn_cpp0x ("scoped enums");
+        maybe_warn_cpp0x (CPP0X_SCOPED_ENUMS);
 
       /* Consume the `struct' or `class' token.  */
       cp_lexer_consume_token (parser->lexer);
@@ -12585,7 +12611,7 @@ cp_parser_enum_specifier (cp_parser* parser)
 	return NULL_TREE;
 
       if (cxx_dialect == cxx98)
-        maybe_warn_cpp0x ("scoped enums");
+        maybe_warn_cpp0x (CPP0X_SCOPED_ENUMS);
 
       has_underlying_type = true;
 
@@ -14173,10 +14199,17 @@ cp_parser_direct_declarator (cp_parser* parser,
 					      /*only_current_p=*/false);
 		/* If that failed, the declarator is invalid.  */
 		if (TREE_CODE (type) == TYPENAME_TYPE)
-		  error_at (declarator_id_start_token->location,
-			    "%<%T::%E%> is not a type",
-			    TYPE_CONTEXT (qualifying_scope),
-			    TYPE_IDENTIFIER (qualifying_scope));
+		  {
+		    if (typedef_variant_p (type))
+		      error_at (declarator_id_start_token->location,
+				"cannot define member of dependent typedef "
+				"%qT", type);
+		    else
+		      error_at (declarator_id_start_token->location,
+				"%<%T::%E%> is not a type",
+				TYPE_CONTEXT (qualifying_scope),
+				TYPE_IDENTIFIER (qualifying_scope));
+		  }
 		qualifying_scope = type;
 	      }
 
@@ -15392,7 +15425,7 @@ cp_parser_initializer (cp_parser* parser, bool* is_direct_init,
     }
   else if (token->type == CPP_OPEN_BRACE)
     {
-      maybe_warn_cpp0x ("extended initializer lists");
+      maybe_warn_cpp0x (CPP0X_INITIALIZER_LISTS);
       init = cp_parser_braced_list (parser, non_constant_p);
       CONSTRUCTOR_IS_DIRECT_INIT (init) = 1;
     }
@@ -16862,7 +16895,7 @@ cp_parser_pure_specifier (cp_parser* parser)
   if (token->keyword == RID_DEFAULT
       || token->keyword == RID_DELETE)
     {
-      maybe_warn_cpp0x ("defaulted and deleted functions");
+      maybe_warn_cpp0x (CPP0X_DEFAULTED_DELETED);
       return token->u.value;
     }
 
@@ -18020,6 +18053,10 @@ cp_parser_lookup_name (cp_parser *parser, tree name,
   if (!decl || decl == error_mark_node)
     return error_mark_node;
 
+  /* Pull out the template from an injected-class-name (or multiple).  */
+  if (is_template)
+    decl = maybe_get_template_decl_from_type_decl (decl);
+
   /* If it's a TREE_LIST, the result of the lookup was ambiguous.  */
   if (TREE_CODE (decl) == TREE_LIST)
     {
@@ -18858,7 +18895,7 @@ cp_parser_functional_cast (cp_parser* parser, tree type)
 
   if (cp_lexer_next_token_is (parser->lexer, CPP_OPEN_BRACE))
     {
-      maybe_warn_cpp0x ("extended initializer lists");
+      maybe_warn_cpp0x (CPP0X_INITIALIZER_LISTS);
       expression_list = cp_parser_braced_list (parser, &nonconst_p);
       CONSTRUCTOR_IS_DIRECT_INIT (expression_list) = 1;
       if (TREE_CODE (type) == TYPE_DECL)

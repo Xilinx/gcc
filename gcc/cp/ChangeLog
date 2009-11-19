@@ -1,3 +1,185 @@
+2009-11-19  Jason Merrill  <jason@redhat.com>
+
+	PR c++/561
+	* decl.c (static_fn_type): Split out...
+	(revert_static_member_fn): ...from here.
+	* cp-tree.h: Declare it.
+	* class.c (resolve_address_of_overloaded_function): Use it to compare
+	pointers to member functions.
+	* typeck.c (build_static_cast_1): Call instantiate_type.
+
+2009-11-18  Shujing Zhao  <pearly.zhao@oracle.com>
+
+	PR c++/40892
+	* error.c (maybe_warn_cpp0x): Accept enum cpp0x_warn_str as argument.
+	(maybe_warn_variadic_templates): Update the maybe_warn_cpp0x calls to
+	match the new declaration.
+	* cp-tree.h (cpp0x_warn_str): New type.
+	(maybe_warn_cpp0x): Adjust prototype with new argument.
+	* call.c (reference_binding): Update the maybe_warn_cpp0x calls.
+	* decl.c (reshape_init_r, check_initializer, grokdeclarator):
+	Likewise.
+	* parser.c (cp_parser_primary_expression)
+	(cp_parser_parenthesized_expression_list, cp_parser_new_initializer)
+	(cp_parser_assignment_expression, cp_parser_condition)
+	(cp_parser_jump_statement, cp_parser_mem_initializer)
+	(cp_parser_simple_type_specifier, cp_parser_elaborated_type_specifier)
+	(cp_parser_enum_specifier, cp_parser_initializer)
+	(cp_parser_pure_specifier, cp_parser_functional_cast): Likewise.
+
+2009-11-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/3187
+	* cp-tree.h (expand_or_defer_fn_1): New prototype.
+	* decl2.c (cp_write_global_declarations): Mark as !DECL_EXTERNAL
+	also all same_body aliases.
+	* semantics.c (expand_or_defer_fn): Move most of the function
+	except registering with cgraph to ...
+	(expand_or_defer_fn_1): ... here.  New function.
+	* optimize.c: Include cgraph.h.
+	(maybe_clone_body): If in charge parm is not used and both base
+	and complete clones are created and are not comdat, tell cgraph
+	they have the same body.
+	* Make-lang.in (cp/optimize.o): Depend on $(CGRAPH_H).
+
+2009-11-17  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/42058
+	* typeck2.c (digest_init_r): Check init for error_operand_p.
+	* decl.c (reshape_init_class): Check return value of reshape_init_r
+	for error_mark_node.
+
+2009-11-17  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/42061
+	* call.c (reference_binding): Return NULL for initializer list with
+	error operand inside of it.
+
+	PR c++/42059
+	* typeck.c (cp_build_modify_expr): For initializer list call
+	check_array_initializer to make sure lhs isn't a VLA.
+
+2009-11-16  Jason Merrill  <jason@redhat.com>
+
+	PR c++/189, c++/9937, c++/13950, DR 176
+	* search.c (lookup_field_r): Allow lookup to find the
+	injected-class-name from a template base.
+	(template_self_reference_p): Remove.
+	* decl.c (make_typename_type): Diagnose ambiguity.  Use
+	maybe_get_template_decl_from_type_decl.
+	* parser.c (cp_parser_template_name): Pass true to is_template
+	rather than use maybe_get_template_decl_from_type_decl.
+	(cp_parser_lookup_name): Use maybe_get_template_decl_from_type_decl.
+	* pt.c (maybe_get_template_decl_from_type_decl): Handle ambiguity.
+	Use DECL_SELF_REFERENCE_P.
+
+	* parser.c (cp_parser_parse_and_diagnose_invalid_type_name):
+	Avoid duplicate ambiguity error.
+	* error.c (dump_decl): Don't say "typedef" for injected-class-name.
+	* pt.c (convert_template_argument): Tweak logic.
+
+2009-11-16  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/42055
+	* pt.c (determine_specialization): Assign to candidates the return
+	value of the chainon called before print_candidates.
+
+2009-11-16  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/32056
+	* decl.h (enum decl_context): Add TPARM enumerator.
+	* decl.c (grokdeclarator): Per 14.1/2, error out if a storage class
+	is specified in a template parameter declaration.
+	* parser.c (cp_parser_template_parameter): Call grokdeclarator with
+	TPARM as third argument.
+
+2009-11-13  Jason Merrill  <jason@redhat.com>
+
+	PR c++/27425
+	PR c++/34274
+	* pt.c (expand_template_argument_pack): Handle null arg gracefully.
+	(convert_template_argument): Use %T for type.
+
+	PR c++/29363
+	* decl.c (create_implicit_typedef): Set TYPE_STUB_DECL here.
+	(cxx_init_decl_processing): Not here.
+	* name-lookup.c (pushtag): Or here.
+	* pt.c (lookup_template_class): Or here.
+
+	PR c++/35075
+	* pt.c (convert_nontype_argument): Give helpful error about
+	reference variable argument to reference template parameter.
+
+	PR c++/21008, DR 515
+	* semantics.c (finish_non_static_data_member): Don't check
+	derivation in a template.
+
+	PR c++/11987
+	* parser.c (cp_parser_direct_declarator): Give helpful error about
+	trying to define member of a dependent typedef.
+	* pt.c (resolve_typename_type): Don't resolve a typedef typename.
+	* tree.c (typedef_variant_p): New.
+	* cp-tree.h: Declare it.
+
+2009-11-12  Jason Merrill  <jason@redhat.com>
+
+	PR c++/27078
+	* parser.c (cp_parser_primary_expression): Don't give a duplicate
+	ambiguity error.
+
+	PR c++/39560
+	* decl2.c (build_anon_union_vars): Set DECL_ARTIFICIAL.
+
+	PR c++/37037
+	* decl.c (grokdeclarator): Don't generate a void PARM_DECL.
+
+	PR c++/42013
+	* call.c (build_conditional_expr): Check specifically for folding
+	to CALL_EXPR rather than TREE_SIDE_EFFECTS.
+
+	* typeck.c (cv_qualified_p): New fn.
+	(decay_conversion): Use it.
+	* cp-tree.h: Declare it.
+	* tree.c (rvalue): Use it and cv_unqualified.
+	* init.c (build_aggr_init): Likewise.
+
+	PR c++/42013
+	* call.c (build_conditional_expr): Don't fold a TREE_SIDE_EFFECTS
+	COND_EXPR in unevaluated context.
+
+2009-11-12  Jan Hubicka  <jh@suse.cz>
+
+	* decl2.c (constrain_visibility): Clear WEAK and COMMON flags.
+
+2009-11-11  Jason Merrill  <jason@redhat.com>
+
+	PR c++/39131
+	* rtti.c (emit_support_tinfos): Add DFP types.
+
+	* call.c (build_op_delete_call): Downgrade error about
+	placement/non-placement confusion to permerror.
+
+2009-11-10  Jason Merrill  <jason@redhat.com>
+
+	* call.c (build_op_delete_call): Tweak error.
+
+	PR c++/34158
+	PR c++/36406
+	* call.c (non_placement_deallocation_fn_p): Split out...
+	(build_op_delete_call): ...from here.  Use instantiate_type
+	for placement delete.  Simplify logic.
+	* pt.c (primary_template_instantiation_p): Non-static.
+	* cp-tree.h: Declare it.
+
+2009-11-09  Jason Merrill  <jason@redhat.com>
+
+	PR c++/41972
+	* parser.c (cp_parser_template_argument): Accept SCOPE_REF around
+	VAR_DECL.
+
+	PR c++/41994
+	* pt.c (tsubst_baselink): tsubst the name.
+
 2009-11-07  Jason Merrill  <jason@redhat.com>
 
 	PR c++/37920

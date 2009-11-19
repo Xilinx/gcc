@@ -191,7 +191,6 @@ static tree tsubst_decl (tree, tree, tsubst_flags_t);
 static void perform_typedefs_access_check (tree tmpl, tree targs);
 static void append_type_to_template_for_access_check_1 (tree, tree, tree);
 static hashval_t iterative_hash_template_arg (tree arg, hashval_t val);
-static bool primary_template_instantiation_p (const_tree);
 static tree listify (tree);
 static tree listify_autos (tree, tree);
 
@@ -1942,7 +1941,7 @@ determine_specialization (tree template_id,
     {
       error ("ambiguous template specialization %qD for %q+D",
 	     template_id, decl);
-      chainon (candidates, templates);
+      candidates = chainon (candidates, templates);
       print_candidates (candidates);
       return error_mark_node;
     }
@@ -2739,7 +2738,7 @@ make_ith_pack_parameter_name (tree name, int i)
 /* Return true if T is a primary function
    or class template instantiation.  */
 
-static bool
+bool
 primary_template_instantiation_p (const_tree t)
 {
   if (!t)
@@ -3151,6 +3150,8 @@ expand_template_argument_pack (tree args)
   for (in_arg = 0; in_arg < nargs; ++in_arg)
     {
       tree arg = TREE_VEC_ELT (args, in_arg);
+      if (arg == NULL_TREE)
+	return args;
       if (ARGUMENT_PACK_P (arg))
         {
           int num_packed = TREE_VEC_LENGTH (ARGUMENT_PACK_ARGS (arg));
@@ -4928,6 +4929,27 @@ convert_nontype_argument (tree type, tree expr)
 	 shall be one of: [...]
 
 	 -- the address of an object or function with external linkage.  */
+      if (TREE_CODE (expr) == INDIRECT_REF
+	  && TYPE_REF_OBJ_P (TREE_TYPE (TREE_OPERAND (expr, 0))))
+	{
+	  expr = TREE_OPERAND (expr, 0);
+	  if (DECL_P (expr))
+	    {
+	      error ("%q#D is not a valid template argument for type %qT "
+		     "because a reference variable does not have a constant "
+		     "address", expr, type);
+	      return NULL_TREE;
+	    }
+	}
+
+      if (!DECL_P (expr))
+	{
+	  error ("%qE is not a valid template argument for type %qT "
+		 "because it is not an object with external linkage",
+		 expr, type);
+	  return NULL_TREE;
+	}
+
       if (!DECL_EXTERNAL_LINKAGE_P (expr))
 	{
 	  error ("%qE is not a valid template argument for type %qT "
@@ -5429,7 +5451,7 @@ convert_template_argument (tree parm,
 						  complain, in_decl,
 						  args))
 		{
-		  val = orig_arg;
+		  val = arg;
 
 		  /* TEMPLATE_TEMPLATE_PARM node is preferred over
 		     TEMPLATE_DECL.  */
@@ -5437,12 +5459,8 @@ convert_template_argument (tree parm,
                     {
                       if (DECL_TEMPLATE_TEMPLATE_PARM_P (val))
                         val = TREE_TYPE (val);
-                      else if (TREE_CODE (val) == TYPE_PACK_EXPANSION
-                               && DECL_TEMPLATE_TEMPLATE_PARM_P (arg))
-                        {
-                          val = TREE_TYPE (arg);
-                          val = make_pack_expansion (val);
-                        }
+		      if (TREE_CODE (orig_arg) == TYPE_PACK_EXPANSION)
+			val = make_pack_expansion (val);
                     }
 		}
 	      else
@@ -5452,7 +5470,7 @@ convert_template_argument (tree parm,
 		      error ("type/value mismatch at argument %d in "
 			     "template parameter list for %qD",
 			     i + 1, in_decl);
-		      error ("  expected a template of type %qD, got %qD",
+		      error ("  expected a template of type %qD, got %qT",
 			     parm, orig_arg);
 		    }
 
@@ -5968,15 +5986,43 @@ lookup_template_function (tree fns, tree arglist)
    TEMPLATE_DECL.  If DECL is a TYPE_DECL for current_class_type,
    or one of its enclosing classes, and that type is a template,
    return the associated TEMPLATE_DECL.  Otherwise, the original
-   DECL is returned.  */
+   DECL is returned.
+
+   Also handle the case when DECL is a TREE_LIST of ambiguous
+   injected-class-names from different bases.  */
 
 tree
 maybe_get_template_decl_from_type_decl (tree decl)
 {
+  if (decl == NULL_TREE)
+    return decl;
+
+  /* DR 176: A lookup that finds an injected-class-name (10.2
+     [class.member.lookup]) can result in an ambiguity in certain cases
+     (for example, if it is found in more than one base class). If all of
+     the injected-class-names that are found refer to specializations of
+     the same class template, and if the name is followed by a
+     template-argument-list, the reference refers to the class template
+     itself and not a specialization thereof, and is not ambiguous.  */
+  if (TREE_CODE (decl) == TREE_LIST)
+    {
+      tree t, tmpl = NULL_TREE;
+      for (t = decl; t; t = TREE_CHAIN (t))
+	{
+	  tree elt = maybe_get_template_decl_from_type_decl (TREE_VALUE (t));
+	  if (!tmpl)
+	    tmpl = elt;
+	  else if (tmpl != elt)
+	    break;
+	}
+      if (tmpl && t == NULL_TREE)
+	return tmpl;
+      else
+	return decl;
+    }
+
   return (decl != NULL_TREE
-	  && TREE_CODE (decl) == TYPE_DECL
-	  && DECL_ARTIFICIAL (decl)
-	  && CLASS_TYPE_P (TREE_TYPE (decl))
+	  && DECL_SELF_REFERENCE_P (decl)
 	  && CLASSTYPE_TEMPLATE_INFO (TREE_TYPE (decl)))
     ? CLASSTYPE_TI_TEMPLATE (TREE_TYPE (decl)) : decl;
 }
@@ -6351,7 +6397,6 @@ lookup_template_class (tree d1,
 
 	  type_decl = create_implicit_typedef (DECL_NAME (gen_tmpl), t);
 	  DECL_CONTEXT (type_decl) = TYPE_CONTEXT (t);
-	  TYPE_STUB_DECL (t) = type_decl;
 	  DECL_SOURCE_LOCATION (type_decl)
 	    = DECL_SOURCE_LOCATION (TYPE_STUB_DECL (template_type));
 	}
@@ -10318,7 +10363,7 @@ tsubst_baselink (tree baselink, tree object_type,
     qualifying_scope = tsubst (qualifying_scope, args,
 			       complain, in_decl);
     fns = BASELINK_FUNCTIONS (baselink);
-    optype = BASELINK_OPTYPE (baselink);
+    optype = tsubst (BASELINK_OPTYPE (baselink), args, complain, in_decl);
     if (TREE_CODE (fns) == TEMPLATE_ID_EXPR)
       {
 	template_id_p = true;
@@ -10329,6 +10374,8 @@ tsubst_baselink (tree baselink, tree object_type,
 						complain, in_decl);
       }
     name = DECL_NAME (get_first_fn (fns));
+    if (IDENTIFIER_TYPENAME_P (name))
+      name = mangle_conv_op_name_for_type (optype);
     baselink = lookup_fnfields (qualifying_scope, name, /*protect=*/1);
 
     /* If lookup found a single function, mark it as used at this
@@ -10347,8 +10394,7 @@ tsubst_baselink (tree baselink, tree object_type,
 		    BASELINK_FUNCTIONS (baselink),
 		    template_args);
     /* Update the conversion operator type.  */
-    BASELINK_OPTYPE (baselink) 
-      = tsubst (optype, args, complain, in_decl);
+    BASELINK_OPTYPE (baselink) = optype;
 
     if (!object_type)
       object_type = current_class_type;
@@ -17688,6 +17734,9 @@ resolve_typename_type (tree type, bool only_current_p)
   /* If the SCOPE is not the current instantiation, there's no reason
      to look inside it.  */
   if (only_current_p && !currently_open_class (scope))
+    return type;
+  /* If this is a typedef, we don't want to look inside (c++/11987).  */
+  if (typedef_variant_p (type))
     return type;
   /* If SCOPE isn't the template itself, it will not have a valid
      TYPE_FIELDS list.  */

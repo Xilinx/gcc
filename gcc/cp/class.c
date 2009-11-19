@@ -6066,6 +6066,7 @@ resolve_address_of_overloaded_function (tree target_type,
      interoperability with most_specialized_instantiation.  */
   tree matches = NULL_TREE;
   tree fn;
+  tree target_fn_type;
 
   is_ifunc = (current_function_decl != NULL
 	      && DECL_IS_IFUNC (current_function_decl)
@@ -6105,6 +6106,15 @@ resolve_address_of_overloaded_function (tree target_type,
       return error_mark_node;
     }
 
+  /* Non-member functions and static member functions match targets of type
+     "pointer-to-function" or "reference-to-function."  Nonstatic member
+     functions match targets of type "pointer-to-member-function;" the
+     function type of the pointer to member is used to select the member
+     function from the set of overloaded member functions.
+
+     So figure out the FUNCTION_TYPE that we want to match against.  */
+  target_fn_type = static_fn_type (target_type);
+
   /* If we can find a non-template function that matches, we can just
      use it.  There's no point in generating template instantiations
      if we're just going to throw them out anyhow.  But, of course, we
@@ -6116,7 +6126,6 @@ resolve_address_of_overloaded_function (tree target_type,
       for (fns = overload; fns; fns = OVL_NEXT (fns))
 	{
 	  tree fn = OVL_CURRENT (fns);
-	  tree fntype;
 
 	  if (TREE_CODE (fn) == TEMPLATE_DECL)
 	    /* We're not looking for templates just yet.  */
@@ -6134,13 +6143,7 @@ resolve_address_of_overloaded_function (tree target_type,
 	    continue;
 
 	  /* See if there's a match.  */
-	  fntype = TREE_TYPE (fn);
-	  if (is_ptrmem)
-	    fntype = build_ptrmemfunc_type (build_pointer_type (fntype));
-	  else if (!is_reference)
-	    fntype = build_pointer_type (fntype);
-
-	  if (can_convert_arg (target_type, fntype, fn, LOOKUP_NORMAL))
+	  if (same_type_p (target_fn_type, static_fn_type (fn)))
 	    matches = tree_cons (fn, NULL_TREE, matches);
 	}
     }
@@ -6150,7 +6153,6 @@ resolve_address_of_overloaded_function (tree target_type,
      match we need to look at them, too.  */
   if (!matches)
     {
-      tree target_fn_type;
       tree target_arg_types;
       tree target_ret_type;
       tree fns;
@@ -6158,17 +6160,8 @@ resolve_address_of_overloaded_function (tree target_type,
       unsigned int nargs, ia;
       tree arg;
 
-      if (is_ptrmem)
-	target_fn_type
-	  = TREE_TYPE (TYPE_PTRMEMFUNC_FN_TYPE (target_type));
-      else
-	target_fn_type = TREE_TYPE (target_type);
       target_arg_types = TYPE_ARG_TYPES (target_fn_type);
       target_ret_type = TREE_TYPE (target_fn_type);
-
-      /* Never do unification on the 'this' parameter.  */
-      if (TREE_CODE (target_fn_type) == METHOD_TYPE)
-	target_arg_types = TREE_CHAIN (target_arg_types);
 
       nargs = list_length (target_arg_types);
       args = XALLOCAVEC (tree, nargs);
@@ -6182,7 +6175,6 @@ resolve_address_of_overloaded_function (tree target_type,
 	{
 	  tree fn = OVL_CURRENT (fns);
 	  tree instantiation;
-	  tree instantiation_type;
 	  tree targs;
 
 	  if (TREE_CODE (fn) != TEMPLATE_DECL)
@@ -6210,14 +6202,7 @@ resolve_address_of_overloaded_function (tree target_type,
 	    continue;
 
 	  /* See if there's a match.  */
-	  instantiation_type = TREE_TYPE (instantiation);
-	  if (is_ptrmem)
-	    instantiation_type =
-	      build_ptrmemfunc_type (build_pointer_type (instantiation_type));
-	  else if (!is_reference)
-	    instantiation_type = build_pointer_type (instantiation_type);
-	  if (can_convert_arg (target_type, instantiation_type, instantiation,
-			       LOOKUP_NORMAL))
+	  if (same_type_p (target_fn_type, static_fn_type (instantiation)))
 	    matches = tree_cons (instantiation, fn, matches);
 	}
 

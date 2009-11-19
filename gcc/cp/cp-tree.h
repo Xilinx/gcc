@@ -382,6 +382,28 @@ typedef enum cp_id_kind
   CP_ID_KIND_QUALIFIED
 } cp_id_kind;
 
+
+/* The various kinds of C++0x warnings we encounter. */
+
+typedef enum cpp0x_warn_str
+{
+  /* extended initializer lists */
+  CPP0X_INITIALIZER_LISTS,
+  /* explicit conversion operators */
+  CPP0X_EXPLICIT_CONVERSION,
+  /* variadic templates */
+  CPP0X_VARIADIC_TEMPLATES,
+  /* lambda expressions */
+  CPP0X_LAMBDA_EXPR,
+  /* C++0x auto */
+  CPP0X_AUTO,
+  /* scoped enums */
+  CPP0X_SCOPED_ENUMS,
+  /* defaulted and deleted functions */
+  CPP0X_DEFAULTED_DELETED
+} cpp0x_warn_str;
+  
+
 /* Macros for access to language-specific slots in an identifier.  */
 
 #define IDENTIFIER_NAMESPACE_BINDINGS(NODE)	\
@@ -4594,6 +4616,7 @@ extern void maybe_register_incomplete_var	(tree);
 extern void maybe_commonize_var			(tree);
 extern void complete_vars			(tree);
 extern void finish_stmt				(void);
+extern tree static_fn_type			(tree);
 extern void revert_static_member_fn		(tree);
 extern void fixup_anonymous_aggr		(tree);
 extern int check_static_variable_definition	(tree, tree);
@@ -4678,7 +4701,7 @@ extern const char *language_to_string		(enum languages);
 extern const char *class_key_or_enum_as_string	(tree);
 extern void print_instantiation_context		(void);
 extern void maybe_warn_variadic_templates       (void);
-extern void maybe_warn_cpp0x			(const char *);
+extern void maybe_warn_cpp0x			(cpp0x_warn_str str);
 extern bool pedwarn_cxx98                       (location_t, int, const char *, ...) ATTRIBUTE_GCC_CXXDIAG(3,4);
 
 /* in except.c */
@@ -4859,6 +4882,7 @@ extern struct tinst_level *outermost_tinst_level(void);
 extern bool parameter_of_template_p		(tree, tree);
 extern void init_template_processing		(void);
 bool template_template_parameter_p		(const_tree);
+extern bool primary_template_instantiation_p    (const_tree);
 extern tree get_primary_template_innermost_parameters	(const_tree);
 extern tree get_template_innermost_arguments	(const_tree);
 extern tree get_template_argument_pack_elems	(const_tree);
@@ -5042,6 +5066,7 @@ extern void finish_eh_cleanup			(tree);
 extern void emit_associated_thunks		(tree);
 extern void finish_mem_initializers		(tree);
 extern tree check_template_template_default_arg (tree);
+extern bool expand_or_defer_fn_1		(tree);
 extern void expand_or_defer_fn			(tree);
 extern void check_accessibility_of_qualified_id (tree, tree, tree);
 extern tree finish_qualified_id_expr		(tree, tree, bool, bool,
@@ -5103,6 +5128,7 @@ extern bool type_has_nontrivial_copy_init	(const_tree);
 extern bool class_tmpl_impl_spec_p		(const_tree);
 extern int zero_init_p				(const_tree);
 extern tree strip_typedefs			(tree);
+extern bool typedef_variant_p			(tree);
 extern tree copy_binfo				(tree, tree, tree,
 						 tree *, int);
 extern int member_p				(const_tree);
@@ -5154,6 +5180,7 @@ extern tree move				(tree);
 extern tree cp_build_qualified_type_real	(tree, int, tsubst_flags_t);
 #define cp_build_qualified_type(TYPE, QUALS) \
   cp_build_qualified_type_real ((TYPE), (QUALS), tf_warning_or_error)
+extern bool cv_qualified_p			(const_tree);
 extern tree cv_unqualified			(tree);
 extern special_function_kind special_function_p (const_tree);
 extern int count_trees				(tree);

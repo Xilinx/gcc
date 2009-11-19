@@ -1376,15 +1376,6 @@ update_properties_after_pass (void *data)
 		           & ~pass->properties_destroyed;
 }
 
-/* Schedule IPA transform pass DATA for CFUN.  */
-
-static void
-add_ipa_transform_pass (void *data)
-{
-  struct ipa_opt_pass_d *ipa_pass = (struct ipa_opt_pass_d *) data;
-  VEC_safe_push (ipa_opt_pass, heap, cfun->ipa_transforms_to_apply, ipa_pass);
-}
-
 /* Execute summary generation for all of the passes in IPA_PASS.  */
 
 void
@@ -1464,19 +1455,22 @@ execute_one_ipa_transform_pass (struct cgraph_node *node,
 void
 execute_all_ipa_transforms (void)
 {
-  if (cfun && cfun->ipa_transforms_to_apply)
+  struct cgraph_node *node;
+  if (!cfun)
+    return;
+  node = cgraph_node (current_function_decl);
+  if (node->ipa_transforms_to_apply)
     {
       unsigned int i;
-      struct cgraph_node *node = cgraph_node (current_function_decl);
 
-      for (i = 0; i < VEC_length (ipa_opt_pass, cfun->ipa_transforms_to_apply);
+      for (i = 0; i < VEC_length (ipa_opt_pass, node->ipa_transforms_to_apply);
 	   i++)
 	execute_one_ipa_transform_pass (node,
 					VEC_index (ipa_opt_pass,
-						   cfun->ipa_transforms_to_apply,
+						   node->ipa_transforms_to_apply,
 						   i));
-      VEC_free (ipa_opt_pass, heap, cfun->ipa_transforms_to_apply);
-      cfun->ipa_transforms_to_apply = NULL;
+      VEC_free (ipa_opt_pass, heap, node->ipa_transforms_to_apply);
+      node->ipa_transforms_to_apply = NULL;
     }
 }
 
@@ -1551,7 +1545,13 @@ execute_one_pass (struct opt_pass *pass)
   execute_todo (todo_after | pass->todo_flags_finish);
   verify_interpass_invariants ();
   if (pass->type == IPA_PASS)
-    do_per_function (add_ipa_transform_pass, pass);
+    {
+      struct cgraph_node *node;
+      for (node = cgraph_nodes; node; node = node->next)
+        if (node->analyzed)
+          VEC_safe_push (ipa_opt_pass, heap, node->ipa_transforms_to_apply,
+			 (struct ipa_opt_pass_d *)pass);
+    }
 
   if (!current_function_decl)
     cgraph_process_new_functions ();
@@ -1660,7 +1660,23 @@ ipa_write_summaries (void)
   gcc_assert (order_pos == cgraph_n_nodes);
 
   for (i = order_pos - 1; i >= 0; i--)
-    cgraph_node_set_add (set, order[i]);
+    {
+      struct cgraph_node *node = order[i];
+
+      if (node->analyzed)
+	{
+	  /* When streaming out references to statements as part of some IPA
+	     pass summary, the statements need to have uids assigned and the
+	     following does that for all the IPA passes here. Naturally, this
+	     ordering then matches the one IPA-passes get in their stmt_fixup
+	     hooks.  */
+
+	  push_cfun (DECL_STRUCT_FUNCTION (node->decl));
+	  renumber_gimple_stmt_uids ();
+	  pop_cfun ();
+	}
+      cgraph_node_set_add (set, node);
+    }
 
   ipa_write_summaries_1 (set);
   lto_delete_extern_inline_states ();
@@ -1754,6 +1770,50 @@ execute_ipa_pass_list (struct opt_pass *pass)
     }
   while (pass);
 }
+
+/* Execute stmt fixup hooks of all passes in PASS for NODE and STMTS.  */
+
+static void
+execute_ipa_stmt_fixups (struct opt_pass *pass,
+			  struct cgraph_node *node, gimple *stmts)
+{
+  while (pass)
+    {
+      /* Execute all of the IPA_PASSes in the list.  */
+      if (pass->type == IPA_PASS
+	  && (!pass->gate || pass->gate ()))
+	{
+	  struct ipa_opt_pass_d *ipa_pass = (struct ipa_opt_pass_d *) pass;
+
+	  if (ipa_pass->stmt_fixup)
+	    {
+	      pass_init_dump_file (pass);
+	      /* If a timevar is present, start it.  */
+	      if (pass->tv_id)
+		timevar_push (pass->tv_id);
+
+	      ipa_pass->stmt_fixup (node, stmts);
+
+	      /* Stop timevar.  */
+	      if (pass->tv_id)
+		timevar_pop (pass->tv_id);
+	      pass_fini_dump_file (pass);
+	    }
+	  if (pass->sub)
+	    execute_ipa_stmt_fixups (pass->sub, node, stmts);
+	}
+      pass = pass->next;
+    }
+}
+
+/* Execute stmt fixup hooks of all IPA passes for NODE and STMTS.  */
+
+void
+execute_all_ipa_stmt_fixups (struct cgraph_node *node, gimple *stmts)
+{
+  execute_ipa_stmt_fixups (all_regular_ipa_passes, node, stmts);
+}
+
 
 extern void debug_properties (unsigned int);
 extern void dump_properties (FILE *, unsigned int);

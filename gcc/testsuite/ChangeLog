@@ -1,3 +1,227 @@
+2009-11-19  Jason Merrill  <jason@redhat.com>
+
+	PR c++/561
+	* g++.dg/overload/pmf2.C: New.
+
+2009-11-18  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/42090
+	* gfortran.dg/direct_io_11.f90: New test.
+
+2009-11-18  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc.misc-tests/linkage.exp: Also check -m32 for i*86-*-linux*.
+
+2009-11-18  Nick Clifton  <nickc@redhat.com>
+	
+	* g++.dg/lto/20091002-1_0.C: Replace -shared with -r -nostlib.
+	* g++.dg/lto/20081120-1_0.C: Likewise.
+	* g++.dg/lto/20091002-2_0.C: Likewise.
+	* g++.dg/lto/20081120-2_0.C: Likewise.
+	* g++.dg/lto/20091002-3_0.C: Likewise.
+	* g++.dg/lto/20081123_0.C: Likewise.
+	* g++.dg/lto/20090313_0.C: Likewise.
+	* g++.dg/lto/20081109-1_0.C: Likewise.
+	* g++.dg/lto/20081219_0.C: Likewise.
+	* g++.dg/lto/20081204-1_0.C: Likewise.
+	* g++.dg/lto/20090302_0.C: Likewise.
+	* g++.dg/lto/20081119-1_0.C: Likewise.
+	* g++.dg/lto/20081118_0.C: Likewise.
+
+2009-11-18  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR testsuite/41913
+	* lib/lto.exp (scan-symbol): Properly check if target exist.
+
+2009-11-18  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/42072
+	* gfortran.dg/proc_ptr_8.f90: Extended.
+
+2009-11-18  Shujing Zhao  <pearly.zhao@oracle.com>
+
+	* g++.old-deja/g++.other/crash28.C: Make expected dg-error strings
+	explicit.
+	* g++.dg/inherit/error4.C: Likewise.
+	* g++.dg/template/crash90.C: Likewise.
+
+2009-11-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/3187
+	* g++.dg/abi/mangle26.C: Also match *C2* definition.
+	* g++.dg/abi/mangle27.C: Likewise.
+	* g++.dg/abi/mangle28.C: Likewise.
+	* g++.dg/abi/mangle29.C: Likewise.
+
+2009-11-18  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/41926
+	* gcc.dg/vect/vect-debug-pr41926.c: New.
+
+2009-11-17  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/42058
+	* testsuite/g++.dg/init/array26.C: New.
+	* testsuite/g++.dg/init/array27.C: Likewise.
+	* testsuite/g++.old-deja/g++.benjamin/13478.C: Adjust dg-errors.
+
+2009-11-17  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/42061
+	* g++.dg/cpp0x/initlist27.C: New test.
+
+	PR c++/42059
+	* g++.dg/cpp0x/initlist26.C: New test.
+
+2009-11-16  Jason Merrill  <jason@redhat.com>
+
+	PR c++/189, c++/9937, c++/13950, DR 176
+	* g++.dg/tc1/dr176.C: Adjust.
+	* g++.dg/template/injected1.C: New.
+	* g++.dg/template/inherit.C: Adjust.
+	* g++.old-deja/g++.brendan/crash56.C: Adjust.
+	* g++.old-deja/g++.pt/lookup8.C: Adjust.
+	* g++.old-deja/g++.pt/ttp22.C: Adjust.
+	* g++.old-deja/g++.pt/ttp23.C: Adjust.
+
+2009-11-16  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/42055
+	* testsuite/g++.dg/template/crash92.C: New.
+
+2009-11-16  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/32056
+	* testsuite/g++.dg/template/error44.C: New.
+
+2009-11-16  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* gcc.c-torture/execute/pr41919.c: Mark chars explicitely as signed.
+
+2009-11-15  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/42048
+	* gfortran.dg/typebound_call_11.f03: New test.
+
+2009-11-15  Hans-Peter Nilsson  <hp@axis.com>
+
+	* gcc.dg/lto/lto.exp: For non-lto, bail out before calling
+	init functions.
+
+2009-11-13  Jason Merrill  <jason@redhat.com>
+
+	PR c++/27425
+	PR c++/34274
+	* g++.dg/template/arg7.C: New.
+
+	PR c++/29363
+	* g++.dg/template/error43.C: New.
+
+	PR debug/26965
+	* g++.dg/debug/dwarf2/static-data-member2.C: New.
+
+	PR c++/35075
+	* g++.dg/template/ref5.C: New.
+
+	PR c++/21008, DR 515
+	* g++.dg/template/inherit4.C: New.
+	* g++.dg/lookup/scoped8.C: Adjust.
+
+	PR c++/11987
+	* g++.dg/parse/typename11.C: New.
+	* g++.dg/template/crash48.C: Adjust.
+
+2009-11-13  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR testsuite/42001
+	* g++.dg/lto/lto.exp: Pass no-mathlib to lto_init.  Call
+	lto_finish at the end.
+	* gfortran.dg/lto/lto.exp: Ditto.
+
+2009-11-12  Jason Merrill  <jason@redhat.com>
+
+	PR c++/39560
+	* g++.dg/lookup/anon7.C: New.
+
+	PR c++/37037
+	* g++.dg/template/typedef21.C: New.
+
+	PR c++/42013
+	* g++.dg/cpp0x/decltype19.C: New.
+
+2009-11-11  Jason Merrill  <jason@redhat.com>
+
+	PR c++/39131
+	* g++.dg/dfp/typeid1.C: New.
+
+2009-11-11  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/41978
+	* gfortran.dg/proc_ptr_comp_22.f90: New test.
+
+2009-11-11  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR testsuite/42001
+	* gcc.dg/lto/lto.exp: Pass no-mathlib to lto_init.  Call
+	lto_finish at the end.
+
+	* lib/lto.exp (lto_init): Set mathlib to " " for no-mathlib.
+	(lto_finish): New. Restore mathlib.
+
+2009-11-11  Kai Tietz  <kai.tietz@onevision.com>
+
+	* g++.dg/torture/pushpop_macro.C: New testcase.
+	* gcc.c-torture/execute/pushpop_macro.c: New testcase.
+	* gcc.dg/cpp/pragma-pop_macro-1.c: Allow test for all targets.
+
+2009-11-11  Jon Beniston  <jon@beniston.com>
+
+	* lib/target-supports.exp (check_profiling_available): lm32 target
+	  doesn't support profiling.
+	* gcc.dg/20020312-2.c: Add lm32 support.
+	* g++.dg/other/packed1.C: Expect to fail on lm32.
+	* g++.old-deja/g++.jason/thunk3.C: Likewise.
+
+2009-11-11  Daniel Jacobowitz  <dan@codesourcery.com>
+
+	* gcc.target/arm/neon: Regenerate generated tests.
+
+2009-11-10  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/init/placement5.C: New.
+
+	PR c++/34158
+	* g++.dg/init/placement4.C: New.
+
+2009-11-10  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.dg/vect/vect-multitypes-5.c: XFAIL on SPARC 32-bit.
+	* gcc.dg/vect/vect-multitypes-6.c: Likewise.
+	* gcc.dg/vect/vect-multitypes-12.c: Likewise.
+	* gcc.dg/vect/slp-multitypes-3.c: Likewise.
+
+2009-11-10  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.c-torture/execute/ipa-sra-2.c: Use calloc instead of malloc.
+	* gcc.dg/pr41963.c: Do not include math.h.  Declare fabsf manually.
+
+2009-11-10  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* gcc.c-torture/compile/pr41987.c: New.
+
+2009-11-09  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/40946
+	* gcc.dg/pr40946.c: New test.
+
+2009-11-09  Jason Merrill  <jason@redhat.com>
+
+	PR c++/41972
+	* g++.dg/template/ref4.C: New.
+
+	PR c++/41994
+	* g++.dg/template/conv10.C: New.
+
 2009-11-07  Jason Merrill  <jason@redhat.com>
 
 	PR c++/37920
@@ -73,10 +297,9 @@
 
 	* g++.dg/plugin/pragma_plugin-test-1.C: new testcase for
 	PLUGIN_PRAGMAS.
-	* g++.dg/plugin/pragma_plugin.c: new test plugin for
-	PLUGIN_PRAGMAS.
-	* g++.dg/plugin/plugin.exp (plugin_test_list): Add pragma_plugin.c and
-	pragma_plugin-test-1.C.
+	* g++.dg/plugin/pragma_plugin.c: new test plugin for PLUGIN_PRAGMAS.
+	* g++.dg/plugin/plugin.exp (plugin_test_list): Add pragma_plugin.c
+	and pragma_plugin-test-1.C.
 
 2009-11-06  Andrew Pinski  <andrew_pinski@playstation.sony.com>
 
@@ -195,7 +418,7 @@
 	* gcc.target/i386/xop-shift2-vector.c: Ditto.
 	* gcc.target/i386/xop-shift3-vector.c: Ditto.
 	* gcc.target/i386/i386.exp:  Add check_effective_target_xop.
-	* gcc.target/i386/sse-12.c: Update with new compile options to 
+	* gcc.target/i386/sse-12.c: Update with new compile options to
 	activate and check xopintrin.h intrinsic file.
 	* gcc.target/i386/sse-13.c: Ditto.
 	* gcc.target/i386/sse-14.c: Ditto.
