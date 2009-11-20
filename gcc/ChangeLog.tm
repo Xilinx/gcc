@@ -1,3 +1,8 @@
+2009-11-20  Aldy Hernandez  <aldyh@redhat.com>
+
+	* trans-mem.c (tm_log_emit_saves): Do not generate SSA names for
+	aggregates.
+
 2009-11-18  Aldy Hernandez  <aldyh@redhat.com>
 
 	* trans-mem.c: Remove tm_log_must_generate_saves.

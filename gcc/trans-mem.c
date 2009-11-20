@@ -1025,8 +1025,16 @@ tm_log_emit_saves (basic_block bb)
       gcc_assert (lp->save_var != NULL);
 
       stmt = gimple_build_assign (lp->save_var, unshare_expr (lp->addr));
-      lp->save_var = make_ssa_name (lp->save_var, stmt);
-      gimple_assign_set_lhs (stmt, lp->save_var);
+
+      /* Make sure we can create an SSA_NAME for this type.  For
+	 instance, aggregates aren't allowed, in which case the system
+	 will create a VOP for us and everything will just work.  */
+      if (is_gimple_reg_type (TREE_TYPE (lp->save_var)))
+	{
+	  lp->save_var = make_ssa_name (lp->save_var, stmt);
+	  gimple_assign_set_lhs (stmt, lp->save_var);
+	}
+
       gsi_insert_before (&gsi, stmt, GSI_SAME_STMT);
     }
 }
