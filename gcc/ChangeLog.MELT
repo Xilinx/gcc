@@ -1,3 +1,10 @@
+2009-11-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normal.melt: export_synonym should generate a
+	classlen__ or fldoff__
+	* melt/warmelt-genobj.melt: added class_objmultiallocblock for
+	compilation of letrec.
+	* melt/warmelt-outobj.melt: added outpucod_objmultiallocblock stub.
+
 2009-11-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	* warmelt-first.melt: foreach_in_multiple changed to use the given
 	index which can be assigned for skipping or loop exiting purposes.

@@ -5261,6 +5261,11 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
     (debug_msg oldname "normexp_export_synonym oldname")
     (assert_msg "check newname" (is_a newname class_symbol))
     (assert_msg "check oldname" (is_a oldname class_symbol))
+    ;; when a class has a synonym, we should generate in the C code 
+    ;;; const int classlen__<SYNONYMNAME>
+    ;; when a field has a synonym, we should generate in the C code
+    ;;; const int fieldoff__<SYNONYMNAME> 
+    (compile_warning "export_synonym should also generate a class length or field offset when needed")
     (multicall
      (noldsym noldsymbinds)
      (normal_exp oldname env ncx sloc)

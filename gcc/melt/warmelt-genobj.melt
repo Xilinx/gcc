@@ -203,6 +203,13 @@
 	    oblo_epil			;epilogue list
 	    ))
 
+;; multi-allocation block instruction, used for letrec compilation
+(defclass class_objmultiallocblock
+  :super class_objblock
+  :fields ( omalblo_allstruct		;the allocated structure is a
+					;tuple of class_objinitelem
+))
+
 ;; a block with a comment string appearing in the generated code
 (defclass class_objcommentedblock
   :super class_objblock
@@ -498,6 +505,7 @@
  class_objlocv
  class_objloop
  class_objmsend
+ class_objmultiallocblock
  class_objmultiapply
  class_objmultiblock
  class_objmultimsend
@@ -1845,17 +1853,26 @@
   (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (let ( (loc (unsafe_get_field :nrep_loc rlet))
 	 (bnds (unsafe_get_field :nlet_bindings rlet))
+	 (recbnds (unsafe_get_field :nletrec_bindings rlet))
+	 (:long nbbnds (multiple_length bnds))
+	 (:long nbrecbnds (multiple_length recbnds))
+	 (nlocsyms (unsafe_get_field :nletrec_locsyms rlet))
 	 (bdy (unsafe_get_field :nlet_body rlet))
 	 (locmap (unsafe_get_field :gncx_locmap gcx))
 	 (obodl (make_list discr_list))
 	 (oepil (make_list discr_list))
-	 (oblock (instance class_objblock
+	 (oallstruct (make_multiple discr_multiple nbbnds))
+	 (oblock (instance class_objmultiallocblock
 			   :obi_loc loc
 			   :oblo_bodyl obodl
-			   :oblo_epil oepil))
+			   :oblo_epil oepil
+			   :omalblo_allstruct oallstruct
+			   ))
 	 )
     (debug_msg rlet "compilobj_nrep_letrec initial rlet")
     (debug_msg loc "compilobj_nrep_letrec initial loc")
+    (debug_msg oblock "compilobj_nrep_letrec incomplete oblock")
+    ;;;; we need an aggregation of class_objinitelem...
     (compile_warning "unimplemented compilobj_nrep_letrec")
     (assert_msg "@$@unimplemented compilobj_nrep_letrec" ())
     ))

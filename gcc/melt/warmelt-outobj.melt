@@ -1371,6 +1371,15 @@
   )
 (install_method class_objblock output_c_code outpucod_objblock)
 
+;; output code for objmultiallocblock
+(defun outpucod_objmultiallocblock (oblo declbuf implbuf :long depth)
+  (debug_msg oblo "outpucod_objmultiallocblock oblo")
+  (assert_msg "check oblo" (is_a oblo class_objmultiallocblock))
+  (compile_warning "unimplemented outpucod_objmultiallocblock")
+  (assert_msg "@$@unimplemented outpucod_objmultiallocblock" ())
+)
+(install_method class_objmultiallocblock output_c_code outpucod_objmultiallocblock)
+
 ;; output code for objciterblock
 (defun outpucod_objciterblock (obcit  declbuf implbuf :long depth)
   (assert_msg "check obcit" (is_a obcit class_objciterblock))
