@@ -1,3 +1,174 @@
+2009-11-21  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* gcc.dg/tree-ssa/vrp47.c: Fix target check.
+
+2009-11-20  Jason Merrill  <jason@redhat.com>
+
+	PR c++/9050, DR 147, DR 318
+	* g++.dg/template/ctor9.C: New.
+	* g++.dg/tc1/dr147.C: Remove xfails.
+	* g++.dg/lookup/name-clash4.C: Adjust.
+	* g++.old-deja/g++.jason/temporary5.C: Adjust.
+	* g++.old-deja/g++.pt/ctor2.C: Adjust.
+
+2009-11-21  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/42078
+	* gcc.dg/pr42078.c: New test.
+
+2009-11-19  Andy Hutchinson  <hutchinsonandy@gcc.gnu.org>
+
+	PR Testsuite/42114
+	* gcc-dg/c99-stdint-1.c: Condition test for target without signal.h.
+	XFAIL ptrdiff range test for avr.
+	* gcc-dg/c99-stdint-2.c: XFAIL for avr target.
+	* gcc-dg/c99-stdint-5.c: Condition test for target without signal.h.
+	* gcc-dg/c99-stdint-6.c: Ditto.
+
+2009-11-20  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* gcc/testsuite/gcc.target/powerpc/vsx-vrsave.c: Delete,
+	2009-10-23 change to set VRSAVE if VSX has been reverted.
+
+2009-11-20  Simon Martin  <simartin@users.sourceforge.net>
+
+	PR c++/38646
+	* g++.dg/cpp0x/pr38646.C: New test.
+
+2009-11-20  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* gcc.dg/c99-stdint-6.c: Set dg-options for alpha*-dec-osf5*.
+	Wrap *int_least*_t tests in !NO_LEAST_TYPES.
+	Wrap *intmax_t tests in !NO_MAX_TYPES.
+
+2009-11-20  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/42060
+	* g++.dg/cpp0x/initlist28.C: New.
+
+2009-11-20  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gfortran.dg/proc_ptr_comp_23.f90: Add a missing space.
+
+2009-11-20  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* gcc.dg/tree-ssa/vrp47.c: Skip on S/390.
+
+2009-11-20  Shujing Zhao  <pearly.zhao@oracle.com>
+
+	* g++.old-deja/g++.jason/rfg20.C: Make expected dg-error strings
+	explicit.
+	* g++.old-deja/g++.rfg/00321_01-.C: Likewise.
+	* g++.old-deja/g++.rfg/00324_02-.C: Likewise.
+	* g++.old-deja/g++.law/typeck1.C: Likewise.
+	* g++.old-deja/g++.bugs/900324_02.C: Likewise.
+	* g++.dg/conversion/ptrmem9.C: Likewise.
+	* g++.dg/expr/cond2.C: Likewise.
+
+2009-11-20  Paul Thomas  <pault@gcc.gnu.org>
+	    Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/42104
+	* gfortran.dg/proc_ptr_comp_23.f90: New test.
+
+2009-11-19  Jason Merrill  <jason@redhat.com>
+
+	PR c++/42115
+	* g++.dg/init/placement5.C: Add positive test.
+
+	DR 176 permissiveness
+	* g++.dg/ext/injected-ttp.C: New.
+	* g++.old-deja/g++.pt/niklas01a.C: Adjust.
+	* g++.old-deja/g++.pt/ttp41.C: Adjust.
+
+2009-11-19  Andy Hutchinson  <hutchinsonandy@gcc.gnu.org>
+
+	* gcc.c-torture/compile/pr40204.c: Test only for int32 target.
+	* gcc.c-torture/compile/pr41181.c: Skip test for avr target.
+
+2009-11-19  Andy Hutchinson  <hutchinsonandy@gcc.gnu.org>
+
+	* gcc-dg/raw-string-1.c: Skip test for avr target.
+	* gcc-dg/utf-array-short-wchar.c: Ditto.
+	* gcc-dg/utf-array.c: Ditto.
+	* gcc-dg/utf8-2.c: Ditto.
+
+2009-11-19  Rafael Avila de Espindola  <espindola@google.com>
+
+	* g++.dg/plugin/selfassign.c: Include plugin-version.h.
+	(plugin_init): Pass correct version to plugin_default_version_check.
+	* gcc.dg/plugin/ggcplug.c: Include plugin-version.h.
+	(plugin_init): Pass correct version to plugin_default_version_check.
+	* gcc.dg/plugin/selfassign.c: Include plugin-version.h.
+	(plugin_init): Pass correct version to plugin_default_version_check.
+
+2009-11-19  Jason Merrill  <jason@redhat.com>
+
+	PR c++/561
+	* g++.dg/overload/pmf2.C: New.
+
+2009-11-18  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/42090
+	* gfortran.dg/direct_io_11.f90: New test.
+
+2009-11-18  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc.misc-tests/linkage.exp: Also check -m32 for i*86-*-linux*.
+
+2009-11-18  Nick Clifton  <nickc@redhat.com>
+	
+	* g++.dg/lto/20091002-1_0.C: Replace -shared with -r -nostlib.
+	* g++.dg/lto/20081120-1_0.C: Likewise.
+	* g++.dg/lto/20091002-2_0.C: Likewise.
+	* g++.dg/lto/20081120-2_0.C: Likewise.
+	* g++.dg/lto/20091002-3_0.C: Likewise.
+	* g++.dg/lto/20081123_0.C: Likewise.
+	* g++.dg/lto/20090313_0.C: Likewise.
+	* g++.dg/lto/20081109-1_0.C: Likewise.
+	* g++.dg/lto/20081219_0.C: Likewise.
+	* g++.dg/lto/20081204-1_0.C: Likewise.
+	* g++.dg/lto/20090302_0.C: Likewise.
+	* g++.dg/lto/20081119-1_0.C: Likewise.
+	* g++.dg/lto/20081118_0.C: Likewise.
+
+2009-11-18  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR testsuite/41913
+	* lib/lto.exp (scan-symbol): Properly check if target exist.
+
+2009-11-18  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/42072
+	* gfortran.dg/proc_ptr_8.f90: Extended.
+
+2009-11-18  Shujing Zhao  <pearly.zhao@oracle.com>
+
+	* g++.old-deja/g++.other/crash28.C: Make expected dg-error strings
+	explicit.
+	* g++.dg/inherit/error4.C: Likewise.
+	* g++.dg/template/crash90.C: Likewise.
+
+2009-11-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/3187
+	* g++.dg/abi/mangle26.C: Also match *C2* definition.
+	* g++.dg/abi/mangle27.C: Likewise.
+	* g++.dg/abi/mangle28.C: Likewise.
+	* g++.dg/abi/mangle29.C: Likewise.
+
+2009-11-18  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/41926
+	* gcc.dg/vect/vect-debug-pr41926.c: New.
+
+2009-11-17  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/42058
+	* g++.dg/init/array26.C: New.
+	* g++.dg/init/array27.C: Likewise.
+	* g++.old-deja/g++.benjamin/13478.C: Adjust dg-errors.
+
 2009-11-17  Jakub Jelinek  <jakub@redhat.com>
 
 	PR c++/42061
@@ -20,12 +191,12 @@
 2009-11-16  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	PR c++/42055
-	* testsuite/g++.dg/template/crash92.C: New.
+	* g++.dg/template/crash92.C: New.
 
 2009-11-16  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	PR c++/32056
-	* testsuite/g++.dg/template/error44.C: New.
+	* g++.dg/template/error44.C: New.
 
 2009-11-16  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
 

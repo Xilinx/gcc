@@ -66,6 +66,9 @@ const char *plugin_event_name[] =
 /* a printf format large enough for the largest event above */
 #define FMT_FOR_PLUGIN_EVENT "%-26s"
 
+/* A printf format large enough for the largest event above.  */
+#define FMT_FOR_PLUGIN_EVENT "%-26s"
+
 /* Hash table for the plugin_name_args objects created during command-line
    parsing.  */
 static htab_t plugin_name_args_tab = NULL;

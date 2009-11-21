@@ -1,3 +1,112 @@
+2009-11-20  Jason Merrill  <jason@redhat.com>
+
+	PR c++/9050, DR 147, DR 318
+	* parser.c (cp_parser_lookup_name): If the name matches the explicit
+	class scope, we're naming the constructor.
+	(cp_parser_constructor_declarator_p): Just use cp_parser_unqualified_id
+	if we have a nested-name-specifier.
+	(cp_parser_direct_declarator): Handle getting an overload set as a
+	constructor declarator.
+	(cp_parser_unqualified_id): Avoid looking up the constructor when
+	naming the destructor.
+	(cp_parser_diagnose_invalid_type_name): Give good
+	diagnostic for improper use of constructor as template.
+	* typeck.c (finish_class_member_access_expr): Give good diagnostic
+	about calling constructor.
+
+	* error.c (dump_aggr_type): Don't print A::A for injected-class-name.
+
+2009-11-20  Simon Martin  <simartin@users.sourceforge.net>
+
+	PR c++/38646
+	* pt.c (process_partial_specialization): Do not turn wrongly located
+	parameter pack arguments into error_mark_node.
+	Split too long lines into two.
+
+2009-11-20  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/42060
+	* except.c (build_throw): Check the tree returned by
+	decay_conversion for error_mark_node.
+
+2009-11-20  Shujing Zhao  <pearly.zhao@oracle.com>
+
+	PR c++/29017
+	* cp-tree.h (composite_pointer_operation): New type.
+	(composite_pointer_type): Adjust prototype with new argument.
+	* typeck.c (composite_pointer_type): Accept
+	composite_pointer_operation as argument and emit diagnostic to be
+	visible to gettext and checked at compile time.
+	(composite_pointer_type_r): Likewise.
+	(common_pointer_type): Update call to composite_pointer_type.
+	(cp_build_binary_op): Likewise.
+	* call.c (build_conditional_expr): Likewise.
+
+2009-11-19  Jason Merrill  <jason@redhat.com>
+
+	PR c++/42115
+	* call.c (build_op_delete_call): Don't complain about using
+	op delete (void *, size_t) for placement delete if there's an
+	op delete (void *).
+
+	DR 176 permissiveness
+	* class.c (build_self_reference): Call set_underlying_type.
+	* decl.c (check_elaborated_type_specifier): Don't complain about
+	injected-class-name.
+	(type_is_deprecated): Use TYPE_MAIN_VARIANT.
+	* pt.c (convert_template_argument): Handle injected-class-name used
+	as template template argument.
+	* typeck2.c (abstract_virtuals_error): Use TYPE_MAIN_VARIANT.
+
+	PR c++/561
+	* decl.c (static_fn_type): Split out...
+	(revert_static_member_fn): ...from here.
+	* cp-tree.h: Declare it.
+	* class.c (resolve_address_of_overloaded_function): Use it to compare
+	pointers to member functions.
+	* typeck.c (build_static_cast_1): Call instantiate_type.
+
+2009-11-18  Shujing Zhao  <pearly.zhao@oracle.com>
+
+	PR c++/40892
+	* error.c (maybe_warn_cpp0x): Accept enum cpp0x_warn_str as argument.
+	(maybe_warn_variadic_templates): Update the maybe_warn_cpp0x calls to
+	match the new declaration.
+	* cp-tree.h (cpp0x_warn_str): New type.
+	(maybe_warn_cpp0x): Adjust prototype with new argument.
+	* call.c (reference_binding): Update the maybe_warn_cpp0x calls.
+	* decl.c (reshape_init_r, check_initializer, grokdeclarator):
+	Likewise.
+	* parser.c (cp_parser_primary_expression)
+	(cp_parser_parenthesized_expression_list, cp_parser_new_initializer)
+	(cp_parser_assignment_expression, cp_parser_condition)
+	(cp_parser_jump_statement, cp_parser_mem_initializer)
+	(cp_parser_simple_type_specifier, cp_parser_elaborated_type_specifier)
+	(cp_parser_enum_specifier, cp_parser_initializer)
+	(cp_parser_pure_specifier, cp_parser_functional_cast): Likewise.
+
+2009-11-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/3187
+	* cp-tree.h (expand_or_defer_fn_1): New prototype.
+	* decl2.c (cp_write_global_declarations): Mark as !DECL_EXTERNAL
+	also all same_body aliases.
+	* semantics.c (expand_or_defer_fn): Move most of the function
+	except registering with cgraph to ...
+	(expand_or_defer_fn_1): ... here.  New function.
+	* optimize.c: Include cgraph.h.
+	(maybe_clone_body): If in charge parm is not used and both base
+	and complete clones are created and are not comdat, tell cgraph
+	they have the same body.
+	* Make-lang.in (cp/optimize.o): Depend on $(CGRAPH_H).
+
+2009-11-17  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/42058
+	* typeck2.c (digest_init_r): Check init for error_operand_p.
+	* decl.c (reshape_init_class): Check return value of reshape_init_r
+	for error_mark_node.
+
 2009-11-17  Jakub Jelinek  <jakub@redhat.com>
 
 	PR c++/42061

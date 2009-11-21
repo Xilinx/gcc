@@ -32,9 +32,10 @@ along with GCC; see the file COPYING3.  If not see
 
 /* Initialize FILE, an LTO file object for FILENAME.  */
 static void
-lto_file_init (lto_file *file, const char *filename)
+lto_file_init (lto_file *file, const char *filename, off_t offset)
 {
   file->filename = filename;
+  file->offset = offset;
 }
 
 /* An ELF file.  */
@@ -542,6 +543,7 @@ lto_elf_file_open (const char *filename, bool writable)
   lto_elf_file *elf_file;
   lto_file *result = NULL;
   off_t offset;
+  off_t header_offset;
   const char *offset_p;
   char *fname;
 
@@ -550,30 +552,25 @@ lto_elf_file_open (const char *filename, bool writable)
     {
       fname = xstrdup (filename);
       offset = 0;
+      header_offset = 0;
     }
   else
     {
       fname = (char *) xmalloc (offset_p - filename + 1);
       memcpy (fname, filename, offset_p - filename);
       fname[offset_p - filename] = '\0';
-      offset_p++;
-      errno = 0;
-      offset = strtoll (offset_p, NULL, 10);
-      if (errno != 0)
-        {
-          error ("could not parse offset %s", offset_p);
-          goto fail;
-        }
+      offset_p += 3; /* skip the @0x */
+      offset = lto_parse_hex (offset_p);
       /* elf_rand expects the offset to point to the ar header, not the
          object itself. Subtract the size of the ar header (60 bytes).
          We don't uses sizeof (struct ar_hd) to avoid including ar.h */
-      offset -= 60;
+      header_offset = offset - 60;
     }
 
   /* Set up.  */
   elf_file = XCNEW (lto_elf_file);
   result = (lto_file *) elf_file;
-  lto_file_init (result, fname);
+  lto_file_init (result, fname, offset);
   elf_file->fd = -1;
 
   /* Open the file.  */
@@ -603,8 +600,8 @@ lto_elf_file_open (const char *filename, bool writable)
   if (offset != 0)
     {
       Elf *e;
-      off_t t = elf_rand (elf_file->elf, offset);
-      if (t != offset)
+      off_t t = elf_rand (elf_file->elf, header_offset);
+      if (t != header_offset)
         {
           error ("could not seek in archive");
           goto fail;
