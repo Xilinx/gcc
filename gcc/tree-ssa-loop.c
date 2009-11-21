@@ -311,10 +311,6 @@ gate_graphite_transforms (void)
       || flag_graphite_identity || flag_loop_parallelize_all)
     flag_graphite = 1;
 
-  /* Disable Graphite passes at -O1 and below.  */
-  if (optimize < 2)
-    flag_graphite = 0;
-
   return flag_graphite != 0;
 }
 
