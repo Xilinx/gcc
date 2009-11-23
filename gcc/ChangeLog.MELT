@@ -1,3 +1,8 @@
+2009-11-23  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-make.mk: added warmelt1 warmelt2 warmelt3 targets.
+	* melt/warmelt-normal.melt: better normletrec_lambda...
+	* melt/warmelt-genobj.melt: more in compilobj_conslambdabind...
+
 2009-11-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normal.melt: export_synonym should generate a
 	classlen__ or fldoff__

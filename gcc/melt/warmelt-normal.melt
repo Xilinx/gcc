@@ -323,9 +323,9 @@ one. Field $NLISTB_PAIRSB gives the tuple of constructed pair bindings}#
 (defclass class_normal_constructed_lambda_binding
   :doc #{The internal $CLASS_NORMAL_CONSTRUCTED_LAMBDA_BINDING is the
 class of lambda constructor bindings. Field $NLAMBDAB_NCLOSED gives
-the normalized closed values, and $NLAMBDA_NROUTDATA gives the normalized routine data.}#
+the normalized closed values, and $NLAMBDAB_DATAROUT gives the normalized routine data, and $NLAMBDAB_CONSTROUT its constant.}#
   :super  class_normal_constructor_binding
-  :fields (nlambdab_nclosed nlambdab_rout))
+  :fields (nlambdab_nclosed nlambdab_constrout nlambdab_datarout))
 
 (defclass class_normal_constructed_instance_binding
   :doc #{The internal $CLASS_NORMAL_CONSTRUCTED_INSTANCE_BINDING is
@@ -3409,9 +3409,12 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
      (debug_msg clovtup  "normletrec_lambda after normalize_lambda clovtup")
      (debug_msg oldproc  "normletrec_lambda after normalize_lambda oldproc")
      (debug_msg ndatarout  "normletrec_lambda after normalize_lambda ndatarout")
+     (if insideflag
+	 (list_append (unsafe_get_field :nrpro_const oldproc) ndatarout))
      (put_fields cbind 
 		 :nlambdab_nclosed clovtup 
-		 :nlambdab_rout ndatarout)
+		 :nlambdab_constrout constrout
+		 :nlambdab_datarout ndatarout)
      (debug_msg cbind "normletrec_lambda updated cbind")
      (compile_warning "unimplemented normletrec_lambda, maybe store the newenv in the cbind")
      (shortbacktrace_dbg "normletrec_lambda ended" 15)

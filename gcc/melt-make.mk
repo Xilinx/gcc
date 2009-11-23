@@ -151,6 +151,11 @@ WARMELT_BASE3ROW:=$(shell echo $(WARMELT_BASE3)|sed 's/ /:/g')
 ## force a dependency
 $(WARMELT_BASE0SO): empty-file-for-melt.c run-melt.h melt-runtime.h
 
+.PHONY: warmelt1 warmelt2 warmelt3
+
+warmelt1: warmelt1.modlis $(WARMELT_BASE1SO)
+warmelt2: warmelt2.modlis $(WARMELT_BASE2SO)
+warmelt3: warmelt2.modlis $(WARMELT_BASE3SO)
 
 ################
 ## the analysis MELT files. They are not needed to bootstrap the MELT
@@ -260,7 +265,7 @@ warmeltbig-3.c: $(WARMELT_SRCFILES) warmeltbig-2.so $(melt_cc1) empty-file-for-m
 
 
 
-.PHONY: warmeltallbig 
+.PHONY: warmeltallbig
 
 ### this is only useful rarely ... it regenerated the warmelt*0.c
 ### files using the big monolithic version of the translator... to be
