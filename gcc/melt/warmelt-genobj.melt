@@ -1656,9 +1656,6 @@
 	 (nbody (unsafe_get_field :nforever_body nfor))
 	 (nres (unsafe_get_field :nforever_result nfor)) 
 	 (oresv (get_free_objlocptr gcx nres))
-;;;; the 99bis are useless - just for devbugging! should be removed later
-	 (nbind99bis (unsafe_get_field :nforever_bind nfor))
-	 (oresv99bis oresv)
 	 )
     (debug_msg nbind "compilobj_nrep_forever initial nbind")
     (debug_msg (discrim nbind) "compilobj_nrep_forever initial nbind's class")
@@ -1668,9 +1665,6 @@
     (assert_msg "check oresv" (is_a oresv class_objlocv))
     (unsafe_put_fields nbind :labind_res oresv)
     (assert_msg "check again nbind" (is_object nbind))
-    (debug_msg (unsafe_get_field :labind_clonsy nbind99bis) ":labind_clonsy in nbind99bis")
-    (assert_msg "check 99bis nbind" (== nbind99bis nbind))
-    (assert_msg "check 99bis oresv" (== oresv99bis oresv))
     (debug_msg nbind "compilobj_nrep_forever updated nbind")
     (let ( (closy (unsafe_get_field :labind_clonsy nbind)) 
 	   (bodyl (make_list discr_list))
@@ -1847,8 +1841,34 @@
 (install_method class_nrep_let compile_obj compilobj_nrep_let)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; selector to compile the fill inside a letrec
+;;; reciever: the normalized constructrive binding
+;;; arguments: 
+;;;; * GCX the code generation context
+;;; result = the obj instruction or value
+
+(defselector compile_letrec_fill class_selector
+  :doc #{The selector $COMPILE_LETREC_FILL is used to compile the fill
+  for a $LETREC. The $RECV is usually a constructive binding. $OBVA is
+  the object variable, and $OBDOL is the list for the body, $GCX being
+  the generation context. $SLOC is the source location}#
+  :formals (recv obva obodl gcx sloc)
+  )
+(export_values compile_letrec_fill)
+
+(defun fail_compiletrecfill (recv obva obodl gcx sloc)
+  (debug_msg recv "fail_compiletrecfill recv")
+  (debug_msg obva "fail_compiletrecfill obva")
+  (let ( (d (discrim recv)) )
+    (error_strv sloc "unimplemented discriminant for compile_letrec_fill"
+		(get_field :named_name d))
+    (assert_msg "fail_compiletrecfill unexpected" ())
+))
+(install_method discr_any_receiver compile_letrec_fill fail_compiletrecfill)
+
 ;;; compile of LETREC
 (defun compilobj_nrep_letrec (rlet gcx)
+  (debug_msg rlet "compilobj_nrep_letrec initial rlet")
   (assert_msg "check rlet" (is_a rlet class_nrep_letrec))
   (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (let ( (loc (unsafe_get_field :nrep_loc rlet))
@@ -1857,6 +1877,8 @@
 	 (:long nbbnds (multiple_length bnds))
 	 (:long nbrecbnds (multiple_length recbnds))
 	 (nlocsyms (unsafe_get_field :nletrec_locsyms rlet))
+	 (:long nblocsym (multiple_length nlocsyms))
+	 (tuploc (make_multiple discr_multiple nblocsym))
 	 (bdy (unsafe_get_field :nlet_body rlet))
 	 (locmap (unsafe_get_field :gncx_locmap gcx))
 	 (obodl (make_list discr_list))
@@ -1869,8 +1891,21 @@
 			   :omalblo_allstruct oallstruct
 			   ))
 	 )
-    (debug_msg rlet "compilobj_nrep_letrec initial rlet")
     (debug_msg loc "compilobj_nrep_letrec initial loc")
+    (debug_msg nlocsyms "compilobj_nrep_letrec initial nlocsyms")
+    (foreach_in_multiple
+     (nlocsyms)
+     (curlocsym :long symix)
+     (debug_msg curlocsym "compilobj_nrep_letrec curlocsym")
+     (assert_msg "check curlocsym" (is_a curlocsym class_nrep_locsymocc))
+     (let ( (curobva (get_free_objloctyped gcx (get_field :nocc_symb curlocsym) ctype_value))
+	   )
+       (debug_msg curobva "compilobj_nrep_letrec curobva")
+       (multiple_put_nth tuploc symix curobva)
+       (mapobject_put locmap (multiple_nth bnds symix) curobva)
+       )
+     )
+    ;;
     (debug_msg oblock "compilobj_nrep_letrec incomplete oblock")
     (foreach_in_multiple
      (bnds)
@@ -1879,11 +1914,24 @@
      (let ( (obnd (compile_obj curbnd gcx)) 
 	    )
        (debug_msg obnd "compilobj_nrep_letrec obnd")
+       (multiple_put_nth oallstruct bndix obnd)
        )
      )
-    ;;;; we need an aggregation of class_objinitelem...
+    (debug_msg oallstruct "compilobj_nrep_letrec oallstruct")
+    ;;; generate the fill
+    (foreach_in_multiple
+     (bnds)
+     (curbnd :long bndix)
+     (let ( (obva (multiple_nth tuploc bndix))
+	    )
+       (debug_msg obva "compilobj_nrep_letrec again obva")
+       (debug_msg curbnd "compilobj_nrep_letrec again curbnd")
+       (compile_letrec_fill curbnd obva obodl gcx loc)
+     ))
+    ;; should compile the body
     (compile_warning "unimplemented compilobj_nrep_letrec")
-    (assert_msg "@$@unimplemented compilobj_nrep_letrec" ())
+    (debug_msg oblock "compilobj_nrep_letrec final oblock")
+    oblock
     ))
 (install_method class_nrep_letrec compile_obj compilobj_nrep_letrec)
 
@@ -2584,8 +2632,10 @@
     (debug_msg nconstrout "compilobj_conslambdabind nconstrout")
     (let ( 
 	  (orout (compile_obj nconstrout gcx))
+	  (oloc (compile_obj locsymocc gcx))
 	  )
       (debug_msg orout "compilobj_conslambdabind orout")
+      (debug_msg oloc "compilobj_conslambdabind oloc")
       (add2sbuf_strconst nambuf "rclo_")
       (add2sbuf_longdec nambuf bindnum)
       (add2sbuf_strconst nambuf "__")
@@ -2593,18 +2643,56 @@
       (let ( (iniclos (instance class_objinitclosure
 				:obv_type ctype_value
 				:oie_discr odiscr
-				:oie_locvar (compile_warning "compilobj_conslambdabind oielocvar")
+				:oie_locvar oloc
 				:oie_cname (strbuf2string discr_string nambuf)
 				))
 	     )
 	(debug_msg bind "compilobj_conslambdabind returning for bind")
 	(debug_msg nletrec "compilobj_conslambdabind nletrec")
 	(debug_msg locsymocc "compilobj_conslambdabind locsymocc")
-	(debug_msg iniclos "compilobj_conslambdabind iniclos")
-	(compile_warning "$@$unimplemented compilobj_conslambdabind")
-	(assert_msg "$@$unimplemented compilobj_conslambdabind" ())
+	(debug_msg iniclos "compilobj_conslambdabind returning iniclos")
+	iniclos
 	))))
 (install_method class_normal_constructed_lambda_binding compile_obj compilobj_conslambdabind)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun compilobj_constuplebind (bind gcx)
+  (debug_msg bind "compilobj_constuplebind bind")
+  (assert_msg "check bind" (is_a bind class_normal_constructed_tuple_binding))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
+  (let ( (symb (unsafe_get_field :binder bind))
+	 (nloc (unsafe_get_field :nconsb_loc bind))
+	 (ndiscr (unsafe_get_field :nconsb_discr bind))
+	 (nletrec (unsafe_get_field :nconsb_nletrec bind))
+	 (ntupb (unsafe_get_field :ntupb_comp bind))
+	 (odiscr (compile_obj ndiscr gcx))
+	 (nambuf (make_strbuf discr_strbuf))
+	 (nletrec (unsafe_get_field :nconsb_nletrec bind))
+	 (nlocsyms (get_field :nletrec_locsyms nletrec))
+	 (:long bindnum (get_int bind))
+	 (:long lentup (multiple_length ntupb))
+	 (locsymocc (multiple_nth nlocsyms bindnum))
+	 )
+      (add2sbuf_strconst nambuf "rtup_")
+      (add2sbuf_longdec nambuf bindnum)
+      (add2sbuf_strconst nambuf "__")
+      (add2sbuf_cident nambuf (unsafe_get_field :named_name symb))
+      (let ( 
+	    (oloc (compile_obj locsymocc gcx))
+	    (tupval (make_multiple discr_multiple lentup))
+	    (initup (instance class_objinitmultiple
+			       :obv_type ctype_value
+			       :oie_discr odiscr
+			       :oie_locvar oloc
+			       :oie_cname (strbuf2string discr_string nambuf)
+			       :oim_tupval tupval
+			       ))
+	    )
+	(debug_msg initup "compilobj_constuplebind result initup")
+	initup
+	)
+    ))
+(install_method class_normal_constructed_tuple_binding compile_obj compilobj_constuplebind)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun putobjdest_objvalue (recv desto)
