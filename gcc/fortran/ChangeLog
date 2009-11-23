@@ -1,3 +1,43 @@
+2009-11-21  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/41807
+	* trans-const.c (gfc_conv_const): Fix typo in comment. Replace assert
+	with error message if not constant.
+	* resolve.c (next_data_value): Delete check for constant.
+
+2009-11-20  Janus Weil  <janus@gcc.gnu.org>
+
+	* intrinsic.texi (C_F_PROCPOINTER): Remove obsolete comment.
+
+2009-11-20  Paul Thomas  <pault@gcc.gnu.org>
+	    Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/42104
+	* trans-expr.c (gfc_conv_procedure_call): If procedure pointer
+	component call, use the component's 'always_explicit' attr
+	for array arguments.
+
+2009-11-19  Janus Weil  <janus@gcc.gnu.org>
+
+	* trans-expr.c (conv_isocbinding_procedure): New function.
+	(gfc_conv_procedure_call): Move ISO_C_BINDING stuff to
+	separate function.
+
+2009-11-19  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.texi (Interoperable Subroutines and Functions): Fix
+	example.
+
+2009-11-18  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/42072
+	* trans-expr.c (gfc_conv_procedure_call): Handle procedure pointer
+	dummies which are passed to C_F_PROCPOINTER.
+
+2009-11-18  Alexandre Oliva  <aoliva@redhat.com>
+
+	* module.c (mio_f2k_derived): Initialize op.
+
 2009-11-15  Janus Weil  <janus@gcc.gnu.org>
 
 	PR fortran/42048

@@ -161,7 +161,7 @@ build_tools="build-texinfo build-byacc build-flex build-bison build-m4 build-fix
 
 # these libraries are used by various programs built for the host environment
 #
-host_libs="intl mmalloc libiberty opcodes bfd readline tcl tk itcl libgui zlib libcpp libdecnumber gmp mpfr mpc ppl cloog libiconv"
+host_libs="intl mmalloc libiberty opcodes bfd readline tcl tk itcl libgui zlib libcpp libdecnumber gmp mpfr mpc ppl cloog libelf libiconv"
 
 # these tools are built for the host environment
 # Note, the powerpc-eabi build depends on sim occurring before gdb in order to
@@ -1481,21 +1481,6 @@ AC_ARG_WITH(stage1-libs,
 [stage1_libs=$with_host_libstdcxx])
 AC_SUBST(stage1_libs)
 
-# Linker flags to use for stage2 and later builds.
-AC_ARG_WITH(boot-ldflags,
-[  --with-boot-ldflags=FLAGS Linker flags for stage2 and later],
-[if test "$withval" = "no" -o "$withval" = "yes"; then
-   poststage1_ldflags=
- else
-   poststage1_ldflags=$withval
- fi],
-[if test "$ENABLE_BUILD_WITH_CXX" = "yes"; then
-   poststage1_ldflags=-static-libstdc++
- else
-   poststage1_ldflags=
- fi])
-AC_SUBST(poststage1_ldflags)
-
 # Libraries to use for stage2 and later builds.  This defaults to the
 # argument passed to --with-host-libstdcxx.
 AC_ARG_WITH(boot-libs,
@@ -1508,6 +1493,23 @@ AC_ARG_WITH(boot-libs,
 [poststage1_libs=$with_host_libstdcxx])
 AC_SUBST(poststage1_libs)
 
+# Linker flags to use for stage2 and later builds.
+AC_ARG_WITH(boot-ldflags,
+[  --with-boot-ldflags=FLAGS Linker flags for stage2 and later],
+[if test "$withval" = "no" -o "$withval" = "yes"; then
+   poststage1_ldflags=
+ else
+   poststage1_ldflags=$withval
+ fi],
+[poststage1_ldflags=
+ # With --enable-build-with-cxx, default to linking libstdc++ and
+ # libgcc statically.  But if the user explicitly specified the
+ # libraries to use, trust that they are doing what they want.
+ if test "$ENABLE_BUILD_WITH_CXX" = "yes" -a "$poststage1_libs" = ""; then
+   poststage1_ldflags="-static-libstdc++ -static-libgcc"
+ fi])
+AC_SUBST(poststage1_ldflags)
+
 # Check for PPL
 ppl_major_version=0
 ppl_minor_version=10
@@ -1516,7 +1518,7 @@ pplinc=
 
 AC_ARG_WITH(ppl, [  --with-ppl=PATH         Specify prefix directory for the installed PPL package
                           Equivalent to --with-ppl-include=PATH/include
-                          plus --with-ppl-lib=PATH/lib],, with_ppl=yes)
+                          plus --with-ppl-lib=PATH/lib])
 AC_ARG_WITH(ppl_include, [  --with-ppl-include=PATH Specify directory for installed PPL include files])
 AC_ARG_WITH(ppl_lib, [  --with-ppl-lib=PATH     Specify the directory for the installed PPL library])
 
@@ -1524,7 +1526,7 @@ case $with_ppl in
   no)
     ppllibs=
     ;;
-  yes)
+  "" | yes)
     ;;
   *)
     ppllibs="-L$with_ppl/lib -lppl_c -lppl -lgmpxx"
@@ -1538,8 +1540,9 @@ if test "x$with_ppl_lib" != x; then
   ppllibs="-L$with_ppl_lib -lppl_c -lppl -lgmpxx"
 fi
 if test "x$with_ppl$with_ppl_include$with_ppl_lib" = x && test -d ${srcdir}/ppl; then
-  ppllibs='-L$$r/$(HOST_SUBDIR)/ppl/.libs -L$$r/$(HOST_SUBDIR)/ppl/_libs -lppl_c -lppl -lgmpxx '
-  pplinc='-I$$r/$(HOST_SUBDIR)/ppl/include -I$$s/ppl/include '
+  ppllibs='-L$$r/$(HOST_SUBDIR)/ppl/interfaces/C/.libs -L$$r/$(HOST_SUBDIR)/ppl/interfaces/C/_libs -L$$r/$(HOST_SUBDIR)/ppl/src/.libs -L$$r/$(HOST_SUBDIR)/ppl/src/_libs -lppl_c -lppl -lgmpxx '
+  pplinc='-I$$r/$(HOST_SUBDIR)/ppl/src -I$$r/$(HOST_SUBDIR)/ppl/interfaces/C '
+  enable_ppl_version_check=no
 fi
 
 AC_ARG_ENABLE(ppl-version-check,
@@ -1570,7 +1573,7 @@ clooginc=" -DCLOOG_PPL_BACKEND "
 
 AC_ARG_WITH(cloog, [  --with-cloog=PATH       Specify prefix directory for the installed CLooG-PPL package
                           Equivalent to --with-cloog-include=PATH/include
-                          plus --with-cloog-lib=PATH/lib],, with_cloog=yes)
+                          plus --with-cloog-lib=PATH/lib])
 AC_ARG_WITH(cloog_include, [  --with-cloog-include=PATH Specify directory for installed CLooG include files])
 AC_ARG_WITH(cloog_lib, [  --with-cloog-lib=PATH   Specify the directory for the installed CLooG library])
 
@@ -1583,7 +1586,7 @@ case $with_cloog in
     clooglibs=
     clooginc=
     ;;
-  yes)
+  "" | yes)
     ;;
   *)
     clooglibs="-L$with_cloog/lib -lcloog"
@@ -1599,6 +1602,7 @@ fi
 if test "x$with_cloog$with_cloog_include$with_cloog_lib" = x && test -d ${srcdir}/cloog; then
   clooglibs='-L$$r/$(HOST_SUBDIR)/cloog/.libs -L$$r/$(HOST_SUBDIR)/cloog/_libs -lcloog '
   clooginc='-I$$r/$(HOST_SUBDIR)/cloog/include -I$$s/cloog/include -DCLOOG_PPL_BACKEND '
+  enable_cloog_version_check=no
 fi
 
 AC_ARG_ENABLE(cloog-version-check,
@@ -1665,10 +1669,11 @@ if test x"$enable_lto" = x"yes" ; then
 
   if test "x$with_libelf$with_libelf_include$with_libelf_lib" = x \
      && test -d ${srcdir}/libelf; then
-    libelflibs='-L$$r/$(HOST_SUBDIR)/libelf/.libs -L$$r/$(HOST_SUBDIR)/libelf/_libs -lelf '
-    libelfinc='-I$$r/$(HOST_SUBDIR)/libelf/include -I$$s/libelf/include'
+    libelflibs='-L$$r/$(HOST_SUBDIR)/libelf/lib -lelf '
+    libelfinc='-D__LIBELF_INTERNAL__ -I$$r/$(HOST_SUBDIR)/libelf/lib -I$$s/libelf/lib'
     LIBS="$libelflibs $LIBS"
-  fi
+
+ else
 
   CFLAGS="$CFLAGS $libelfinc"
   CPPFLAGS="$CPPFLAGS $libelfinc"
@@ -1737,6 +1742,8 @@ to specify its location.])
   CFLAGS="$saved_CFLAGS"
   CPPFLAGS="$saved_CPPFLAGS"
   LIBS="$saved_LIBS"
+
+ fi
 
   # Flags needed for libelf.
   AC_SUBST(libelflibs)
@@ -1850,7 +1857,8 @@ if test -d ${srcdir}/gcc; then
           exit 1
         fi
 
-	if test "$language" = "c++" -a "$ENABLE_BUILD_WITH_CXX" = "yes"; then
+	if test "$language" = "c++" \
+	   && test "$ENABLE_BUILD_WITH_CXX" = "yes"; then
 	  boot_language=yes
 	fi
 
@@ -3367,6 +3375,9 @@ compare_exclusions="gcc/cc*-checksum\$(objext) | gcc/ada/*tools/*"
 case "$target" in
   hppa*64*-*-hpux*) ;;
   hppa*-*-hpux*) compare_exclusions="gcc/cc*-checksum\$(objext) | */libgcc/lib2funcs* | gcc/ada/*tools/*" ;;
+esac
+case " $configdirs " in
+*" ppl "*) compare_exclusions="$compare_exclusions | ppl/src/ppl-config.o" ;;
 esac
 AC_SUBST(compare_exclusions)
 

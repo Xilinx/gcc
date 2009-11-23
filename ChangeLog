@@ -1,3 +1,48 @@
+2009-11-21  Ian Lance Taylor  <iant@google.com>
+
+	* configure.ac: Change default of poststage1_ldflags to be empty if
+	poststage1_libs is set.  When poststage1_libs is empty, and
+	ENABLE_BUILD_WITH_CXX is set, add -static-libgcc.
+	* configure: Rebuild.
+
+2009-11-21  Adam Nemet  <adambnmet@gmail.com>
+
+	* MAINTAINERS (Write After Approval): Update my email address.
+
+2009-11-20  Ben Elliston  <bje@au.ibm.com>
+
+	* config.guess: Update from upstream sources.
+
+2009-11-16  Alexandre Oliva  <aoliva@redhat.com>
+
+	* Makefile.def: Restore host and target settings for gmp.
+	* Makefile.in: Rebuild.
+
+2009-11-16  Alexandre Oliva  <aoliva@redhat.com>
+
+	* configure.ac: Add libelf to host_libs.  Enable in-tree configury
+	of ppl and cloog.  Fix in-tree configury of libelf, skip tests.
+	Fix portability of test of C++ as bootstrap language.  Add
+	ppl/src/ppl-config.o to the bootstrap compare exclusion list.
+	* configure: Rebuild.
+	* Makefile.def: Drop host and target settings from gmp, mpfr, ppl,
+	and cloog.  Fix in-tree ppl configuration.  Introduce libelf
+	in-tree building.
+	* Makefile.tpl (POSTSTAGE1_CXX_EXPORT): New.
+	(POSTSTAGE1_HOST_EXPORTS): Use it.
+	(STAGE[+id+]_CXXFLAGS): New.
+	(BASE_FLAGS_TO_PASS): Pass it down.
+	(configure-stage[+id+]-[+prefix+][+module+]): Use it.  Add
+	extra_exports.
+	(all-stage[+id+]-[+prefix+][+module+]): Likewise.
+	(configure-[+prefix+][+module+], all-[+prefix+][+module+]): Add
+	extra_exports.
+	* Makefile.in: Rebuild.
+
+2009-11-17  Ben Elliston  <bje@au.ibm.com>
+
+	* config.sub, config.guess: Update from upstream sources.
+
 2009-11-12  Jan Kratochvil  <jan.kratochvil@redhat.com>
 
 	* MAINTAINERS (Write After Approval): Add myself.

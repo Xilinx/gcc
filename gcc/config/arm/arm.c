@@ -574,6 +574,8 @@ static int thumb_call_reg_needed;
 #define FL_DIV	      (1 << 18)	      /* Hardware divide.  */
 #define FL_VFPV3      (1 << 19)       /* Vector Floating Point V3.  */
 #define FL_NEON       (1 << 20)       /* Neon instructions.  */
+#define FL_ARCH7EM    (1 << 21)	      /* Instructions present in the ARMv7E-M
+					 architecture.  */
 
 #define FL_IWMMXT     (1 << 29)	      /* XScale v2 or "Intel Wireless MMX technology".  */
 
@@ -598,6 +600,7 @@ static int thumb_call_reg_needed;
 #define FL_FOR_ARCH7A	(FL_FOR_ARCH7 | FL_NOTM)
 #define FL_FOR_ARCH7R	(FL_FOR_ARCH7A | FL_DIV)
 #define FL_FOR_ARCH7M	(FL_FOR_ARCH7 | FL_DIV)
+#define FL_FOR_ARCH7EM  (FL_FOR_ARCH7M | FL_ARCH7EM)
 
 /* The bits in this mask specify which
    instructions we are allowed to generate.  */
@@ -633,6 +636,9 @@ int arm_arch6k = 0;
 
 /* Nonzero if instructions not present in the 'M' profile can be used.  */
 int arm_arch_notm = 0;
+
+/* Nonzero if instructions present in ARMv7E-M can be used.  */
+int arm_arch7em = 0;
 
 /* Nonzero if this chip can benefit from load scheduling.  */
 int arm_ld_sched = 0;
@@ -772,6 +778,7 @@ static const struct processors all_architectures[] =
   {"armv7-a", cortexa8,	  "7A",	 FL_CO_PROC |		  FL_FOR_ARCH7A, NULL},
   {"armv7-r", cortexr4,	  "7R",	 FL_CO_PROC |		  FL_FOR_ARCH7R, NULL},
   {"armv7-m", cortexm3,	  "7M",	 FL_CO_PROC |		  FL_FOR_ARCH7M, NULL},
+  {"armv7e-m",   cortexm3, "7EM", FL_CO_PROC |		  FL_FOR_ARCH7EM, NULL},
   {"ep9312",  ep9312,     "4T",  FL_LDSCHED | FL_CIRRUS | FL_FOR_ARCH4, NULL},
   {"iwmmxt",  iwmmxt,     "5TE", FL_LDSCHED | FL_STRONG | FL_FOR_ARCH5TE | FL_XSCALE | FL_IWMMXT , NULL},
   {"iwmmxt2", iwmmxt2,     "5TE", FL_LDSCHED | FL_STRONG | FL_FOR_ARCH5TE | FL_XSCALE | FL_IWMMXT , NULL},
@@ -823,6 +830,10 @@ static const struct arm_fpu_desc all_fpus[] =
   {"vfpv3xd-fp16",	ARM_FP_MODEL_VFP, 3, VFP_REG_SINGLE, false, true},
   {"neon",		ARM_FP_MODEL_VFP, 3, VFP_REG_D32, true , false},
   {"neon-fp16",		ARM_FP_MODEL_VFP, 3, VFP_REG_D32, true , true },
+  {"vfpv4",		ARM_FP_MODEL_VFP, 4, VFP_REG_D32, false, true},
+  {"vfpv4-d16",		ARM_FP_MODEL_VFP, 4, VFP_REG_D16, false, true},
+  {"fpv4-sp-d16",	ARM_FP_MODEL_VFP, 4, VFP_REG_SINGLE, false, true},
+  {"neon-vfpv4",	ARM_FP_MODEL_VFP, 4, VFP_REG_D32, true, true},
   /* Compatibility aliases.  */
   {"vfp3",		ARM_FP_MODEL_VFP, 3, VFP_REG_D32, false, false},
 };
@@ -1540,6 +1551,7 @@ arm_override_options (void)
   arm_arch6 = (insn_flags & FL_ARCH6) != 0;
   arm_arch6k = (insn_flags & FL_ARCH6K) != 0;
   arm_arch_notm = (insn_flags & FL_NOTM) != 0;
+  arm_arch7em = (insn_flags & FL_ARCH7EM) != 0;
   arm_arch_thumb2 = (insn_flags & FL_THUMB2) != 0;
   arm_arch_xscale = (insn_flags & FL_XSCALE) != 0;
   arm_arch_cirrus = (insn_flags & FL_CIRRUS) != 0;
@@ -12819,6 +12831,20 @@ arm_compute_save_reg0_reg12_mask (void)
 	  && crtl->uses_pic_offset_table)
 	save_reg_mask |= 1 << PIC_OFFSET_TABLE_REGNUM;
     }
+  else if (IS_VOLATILE(func_type))
+    {
+      /* For noreturn functions we historically omitted register saves
+	 altogether.  However this really messes up debugging.  As a
+	 compromise save just the fame pointers.  Combined with the link
+	 register saved elsewhere this should be sufficient to get
+	 a backtrace.  */
+      if (frame_pointer_needed)
+	save_reg_mask |= 1 << HARD_FRAME_POINTER_REGNUM;
+      if (df_regs_ever_live_p (ARM_HARD_FRAME_POINTER_REGNUM))
+	save_reg_mask |= 1 << ARM_HARD_FRAME_POINTER_REGNUM;
+      if (df_regs_ever_live_p (THUMB_HARD_FRAME_POINTER_REGNUM))
+	save_reg_mask |= 1 << THUMB_HARD_FRAME_POINTER_REGNUM;
+    }
   else
     {
       /* In the normal case we only need to save those registers
@@ -12904,11 +12930,6 @@ arm_compute_save_reg_mask (void)
       | (1 << IP_REGNUM)
       | (1 << LR_REGNUM)
       | (1 << PC_REGNUM);
-
-  /* Volatile functions do not return, so there
-     is no need to save any other registers.  */
-  if (IS_VOLATILE (func_type))
-    return save_reg_mask;
 
   save_reg_mask |= arm_compute_save_reg0_reg12_mask ();
 
