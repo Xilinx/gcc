@@ -7035,6 +7035,14 @@ resolve_select_type (gfc_code *code)
 	      for (c1 = &class_is; (*c1) && (*c1)->block; c1 = &((*c1)->block))
 		{
 		  c2 = (*c1)->block;
+		  /* F03:C817 (check for doubles).  */
+		  if ((*c1)->ext.case_list->ts.u.derived->hash_value
+		      == c2->ext.case_list->ts.u.derived->hash_value)
+		    {
+		      gfc_error ("Double CLASS IS block in SELECT TYPE "
+				 "statement at %L", &c2->ext.case_list->where);
+		      return;
+		    }
 		  if ((*c1)->ext.case_list->ts.u.derived->attr.extension
 		      < c2->ext.case_list->ts.u.derived->attr.extension)
 		    {

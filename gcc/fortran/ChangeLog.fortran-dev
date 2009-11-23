@@ -1,5 +1,11 @@
+2009-11-23  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/42053
+	* resolve.c (resolve_select_type): Check for duplicate CLASS IS blocks.
+
 2009-11-11  Janus Weil  <janus@gcc.gnu.org>
 
+	PR fortran/41631
 	* decl.c (gfc_match_derived_decl): Set extension level.
 	* gfortran.h (symbol_attribute): Expand 'extension' bit field to 8 bit.
 	* iresolve.c (gfc_resolve_extends_type_of): Return value of

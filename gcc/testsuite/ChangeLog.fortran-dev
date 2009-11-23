@@ -1,5 +1,11 @@
+2009-11-23  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/42053
+	* gfortran.dg/select_type_9.f03: New.
+
 2009-11-11  Janus Weil  <janus@gcc.gnu.org>
 
+	PR fortran/41631
 	* gfortran.dg/extends_type_of_1.f03: Fix invalid test case.
 	* gfortran.dg/module_md5_1.f90: Adjusted MD5 sum.
 	* gfortran.dg/select_type_1.f03: Remove FIXMEs.
