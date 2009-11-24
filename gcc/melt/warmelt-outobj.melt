@@ -906,7 +906,7 @@
     (if (or (is_mixint orloc) (is_mixloc orloc))
 	(output_raw_location orloc declbuf 0 "procdecl")
       )
-    (add2sbuf_strconst declbuf "static melt_ptr_t ")
+    (add2sbuf_strconst declbuf "melt_ptr_t MELT_MODULE_VISIBILITY ")
     (add2sbuf_string declbuf onam)
     (add2sbuf_strconst declbuf "(meltclosure_ptr_t closp_,")
     (add2sbuf_strconst declbuf " melt_ptr_t firstargp_,")
@@ -919,7 +919,7 @@
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_indentnl implbuf 0)
-    (add2sbuf_strconst implbuf "static melt_ptr_t")
+    (add2sbuf_strconst implbuf "melt_ptr_t MELT_MODULE_VISIBILITY ")
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_string implbuf onam)
     (add2sbuf_strconst implbuf "(meltclosure_ptr_t closp_,")
@@ -2956,7 +2956,7 @@
   (assert_msg "check inienv" (is_a inienv class_environment))
   (let (
 	(modctx (instance class_module_context
-			  :mocx_modulename modnamstr
+			  :mocx_modulename  (make_string_nakedbasename discr_string modnamstr)
 			  :mocx_expfieldict (make_mapstring discr_map_strings 90)
 			  :mocx_expclassdict (make_mapstring discr_map_strings 40)
 			  :mocx_initialenv inienv

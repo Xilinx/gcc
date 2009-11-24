@@ -1,3 +1,22 @@
+2009-11-24  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-make.mk: generate warmelt*.[0-3].c files instead of
+	warmelt*-[0-3].c and so on...
+	* run-melt.h: added MELT_MODULE_VISIBILITY
+	* melt-runtime.c (meltgc_load_melt_module): don't accept + in
+	module names. special hack for warmelt*.1.n files.
+	* melt/warmelt-genobj.melt: Generated routines have more unique
+	names.
+	* melt/warmelt-outobj.melt: the mocx_modulename is naked in module
+	contexts. Generated routines have MELT_MODULE_VISIBILITY.
+	* melt/warmelt-macro.0.c: regenerated.
+	* melt/warmelt-outobj.0.c: regenerated.
+	* melt/warmelt-genobj.0.c: regenerated.
+	* melt/warmelt-normatch.0.c: regenerated.
+	* melt/warmelt-normal.0.c: regenerated.
+	* melt/warmelt-first.0.c: regenerated.
+
+	* testsuite/g++.dg/init/placement5.C merged from trunk.
+
 2009-11-23  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-genobj.melt: compile_letrec_fill = new selector.
 	compilobj_nrep_letrec doing more.

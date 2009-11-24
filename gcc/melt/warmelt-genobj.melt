@@ -689,8 +689,10 @@
   (let ( (namsbuf (make_strbuf discr_strbuf)) 
 	 (routfunam ())
 	 )
-    (add2sbuf_strconst namsbuf "rout_")
+    (add2sbuf_strconst namsbuf "meltrout_")
     (add2sbuf_longdec namsbuf num)
+    (add2sbuf_strconst namsbuf "_")
+    (add2sbuf_cident namsbuf (get_field :mocx_modulename modctx))
     (if (is_a pro class_nrep_routproc)
 	(let ( (pronam (unsafe_get_field :nrpro_name pro)) 
 	       )
@@ -1866,6 +1868,14 @@
 ))
 (install_method discr_any_receiver compile_letrec_fill fail_compiletrecfill)
 
+;;;;;;;;;;;;;;;;
+(defun compiletrec_lambda (recv obva obodl gcx sloc)
+  (debug_msg recv "compiletrec_lambda recv")
+  (debug_msg obva "compiletrec_lambda obva")
+  (assert_msg "$@$unimplemented compiletrec_lambda" ())
+)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; compile of LETREC
 (defun compilobj_nrep_letrec (rlet gcx)
   (debug_msg rlet "compilobj_nrep_letrec initial rlet")

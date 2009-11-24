@@ -69,7 +69,7 @@ vpath %.melt $(melt_make_source_dir) . $(melt_source_dir)
 ## all the warm*.so need ./built-melt-cc-script to be built, but we
 ## don't add a dependency to avoid them being rebuilt at install time.
 ##
-warmelt-%-0.d.so: warmelt-%-0.c $(melt_make_compile_script)
+warmelt-%.0.d.so: warmelt-%.0.c $(melt_make_compile_script)
 	$(melt_make_compile_script) -d $< $@
 warmelt-%-h.d.so: warmelt-%-h.c $(melt_make_compile_script)
 	$(melt_make_compile_script) -d $< $@
@@ -107,15 +107,15 @@ WARMELT_BASE= $(basename $(WARMELT_FILES))
 WARMELT_REST= $(basename $(WARMELT_RESTFILES))
 WARMELT_BASELIST:=$(shell echo $(WARMELT_BASE)|sed 's: :,:g')
 
-WARMELT_BASE0= $(patsubst %, %-0, $(WARMELT_BASE))
-WARMELT_BASE0C= $(patsubst %, %-0.c, $(WARMELT_BASE))
-WARMELT_BASE0SO= $(patsubst %, %-0.so, $(WARMELT_BASE))
+WARMELT_BASE0= $(patsubst %, %.0, $(WARMELT_BASE))
+WARMELT_BASE0C= $(patsubst %, %.0.c, $(WARMELT_BASE))
+WARMELT_BASE0SO= $(patsubst %, %.0.so, $(WARMELT_BASE))
 ## the file warmelt-first should never be C compiled in "dynamic"
 ## mode, otherwise it cannot have private [non-exported] classes like
 ## class_delayed_queue
-WARMELT_BASE0DSO= warmelt-first-0.so $(patsubst %, %-0.d.so, $(WARMELT_REST))
+WARMELT_BASE0DSO= warmelt-first.0.so $(patsubst %, %.0.d.so, $(WARMELT_REST))
 WARMELT_BASE0ROW:=$(shell echo $(WARMELT_BASE0)|sed 's/ /:/g')
-WARMELT_BASE0DROW:=$(shell echo $(patsubst %, %-0.d, $(WARMELT_BASE))|sed 's/ /:/g')
+WARMELT_BASE0DROW:=$(shell echo $(patsubst %, %.0.d, $(WARMELT_BASE))|sed 's/ /:/g')
 ##
 WARMELT_BASEH= $(patsubst %, %-h, $(WARMELT_BASE))
 WARMELT_BASEHSO= $(patsubst %, %-h.so, $(WARMELT_BASE))
@@ -131,21 +131,21 @@ WARMELT_BASEH2DSO= warmelt-first-h2.so $(patsubst %, %-h2.d.so, $(WARMELT_BASE))
 WARMELT_BASEH2C= $(patsubst %, %-h2.c, $(WARMELT_BASE))
 WARMELT_BASEH2ROW:=$(shell echo $(WARMELT_BASEH2)|sed 's/ /:/g')
 ##
-WARMELT_BASE1= $(patsubst %, %-1, $(WARMELT_BASE))
-WARMELT_BASE1SO= $(patsubst %, %-1.so, $(WARMELT_BASE))
-WARMELT_BASE1NSO= $(patsubst %, %-1.n.so, $(WARMELT_BASE))
-WARMELT_BASE1C= $(patsubst %, %-1.c, $(WARMELT_BASE))
+WARMELT_BASE1= $(patsubst %, %.1, $(WARMELT_BASE))
+WARMELT_BASE1SO= $(patsubst %, %.1.so, $(WARMELT_BASE))
+WARMELT_BASE1NSO= $(patsubst %, %.1.n.so, $(WARMELT_BASE))
+WARMELT_BASE1C= $(patsubst %, %.1.c, $(WARMELT_BASE))
 WARMELT_BASE1ROW:=$(shell echo $(WARMELT_BASE1)|sed 's/ /:/g')
 ##
-WARMELT_BASE2= $(patsubst %, %-2, $(WARMELT_BASE))
-WARMELT_BASE2SO= $(patsubst %, %-2.so, $(WARMELT_BASE))
-WARMELT_BASE2NSO= $(patsubst %, %-2.n.so, $(WARMELT_BASE))
-WARMELT_BASE2C= $(patsubst %, %-2.c, $(WARMELT_BASE))
+WARMELT_BASE2= $(patsubst %, %.2, $(WARMELT_BASE))
+WARMELT_BASE2SO= $(patsubst %, %.2.so, $(WARMELT_BASE))
+WARMELT_BASE2NSO= $(patsubst %, %.2.n.so, $(WARMELT_BASE))
+WARMELT_BASE2C= $(patsubst %, %.2.c, $(WARMELT_BASE))
 WARMELT_BASE2ROW:=$(shell echo $(WARMELT_BASE2)|sed 's/ /:/g')
 ##
-WARMELT_BASE3= $(patsubst %, %-3, $(WARMELT_BASE))
-WARMELT_BASE3SO= $(patsubst %, %-3.so, $(WARMELT_BASE))
-WARMELT_BASE3C= $(patsubst %, %-3.c, $(WARMELT_BASE))
+WARMELT_BASE3= $(patsubst %, %.3, $(WARMELT_BASE))
+WARMELT_BASE3SO= $(patsubst %, %.3.so, $(WARMELT_BASE))
+WARMELT_BASE3C= $(patsubst %, %.3.c, $(WARMELT_BASE))
 WARMELT_BASE3ROW:=$(shell echo $(WARMELT_BASE3)|sed 's/ /:/g')
 
 ## force a dependency
@@ -193,14 +193,14 @@ warmelt1n.modlis: $(WARMELT_BASE1NSO)
 	for f in  $(WARMELT_BASE1); do echo $$f.n >> $@-tmp; done
 	$(melt_make_move) $@-tmp $@
 
-### we need ad hoc rules, since warmelt-first-1 is build using the
-### warmelt*0.c files from SVN repository but warmelt-macro-1 is build
-### using wamelt-first-1.so
+### we need ad hoc rules, since warmelt-first.1 is build using the
+### warmelt*0.c files from SVN repository but warmelt-macro.1 is build
+### using wamelt-first.1.so
 empty-file-for-melt.c:
 	date +"/* empty-file-for-melt.c %c */" > $@-tmp
 	$(melt_make_move) $@-tmp $@
 
-warmelt-first-1.c: $(melt_make_source_dir)/warmelt-first.melt warmelt0.modlis $(melt_cc1)  $(WARMELT_BASE0DSO) empty-file-for-melt.c
+warmelt-first.1.c: $(melt_make_source_dir)/warmelt-first.melt warmelt0.modlis $(melt_cc1)  $(WARMELT_BASE0DSO) empty-file-for-melt.c
 	$(MELTCCINIT1) $(meltarg_init)=$(WARMELT_BASE0DROW) \
 	      $(meltarg_arg)=$< \
 	      $(meltarg_output)=$@  empty-file-for-melt.c
@@ -216,7 +216,7 @@ warmelt-first-h.c: $(melt_make_source_dir)/warmelt-first.melt warmelt0.modlis $(
 warmelt-%-h.c: $(melt_make_source_dir)/warmelt-%.melt $(melt_cc1) \
 	 $(WARMELT_BASE0DSO) warmelt-first-h.d.so  empty-file-for-melt.c
 	$(MELTCCFILE1) \
-	$(meltarg_init)=$(subst warmelt-first-0.d,warmelt-first-h.d,$(WARMELT_BASE0DROW)) \
+	$(meltarg_init)=$(subst warmelt-first.0.d,warmelt-first-h.d,$(WARMELT_BASE0DROW)) \
 	      $(meltarg_arg)=$< \
 	      $(meltarg_output)=$@  empty-file-for-melt.c
 
@@ -248,18 +248,18 @@ warmelt-%-h2.c: $(melt_make_source_dir)/warmelt-%.melt $(melt_cc1) \
 ## compiled without any optimisation, otherwise the C compiler suffers
 ## too much..
 
-warmeltbig-1.c: $(WARMELT_SRCFILES) warmelt0.modlis $(melt_cc1)  $(WARMELT_BASE0DSO) empty-file-for-melt.c warmelt-predef.melt $(WARMELT_SRCFILES)
+warmeltbig.1.c: $(WARMELT_SRCFILES) warmelt0.modlis $(melt_cc1)  $(WARMELT_BASE0DSO) empty-file-for-melt.c warmelt-predef.melt $(WARMELT_SRCFILES)
 	$(MELTCCINIT1) $(meltarg_init)=$(WARMELT_BASE0DROW) \
 	      $(meltarg_arglist)=$(WARMELT_SRCARGLIST) \
 	      $(meltarg_output)=$@  empty-file-for-melt.c
 
-warmeltbig-2.c: $(WARMELT_SRCFILES) warmeltbig-1.so $(melt_cc1) empty-file-for-melt.c warmelt-predef.melt $(WARMELT_SRCFILES)
-	$(MELTCCINIT1) $(meltarg_init)=warmeltbig-1 \
+warmeltbig.2.c: $(WARMELT_SRCFILES) warmeltbig.1.so $(melt_cc1) empty-file-for-melt.c warmelt-predef.melt $(WARMELT_SRCFILES)
+	$(MELTCCINIT1) $(meltarg_init)=warmeltbig.1 \
 	      $(meltarg_arglist)=$(WARMELT_SRCARGLIST) \
 	      $(meltarg_output)=$@  empty-file-for-melt.c
 
-warmeltbig-3.c: $(WARMELT_SRCFILES) warmeltbig-2.so $(melt_cc1) empty-file-for-melt.c warmelt-predef.melt $(WARMELT_SRCFILES)
-	$(MELTCCINIT1) $(meltarg_init)=warmeltbig-2 \
+warmeltbig.3.c: $(WARMELT_SRCFILES) warmeltbig.2.so $(melt_cc1) empty-file-for-melt.c warmelt-predef.melt $(WARMELT_SRCFILES)
+	$(MELTCCINIT1) $(meltarg_init)=warmeltbig.2 \
 	      $(meltarg_arglist)=$(WARMELT_SRCARGLIST) \
 	      $(meltarg_output)=$@  empty-file-for-melt.c
 
@@ -270,16 +270,16 @@ warmeltbig-3.c: $(WARMELT_SRCFILES) warmeltbig-2.so $(melt_cc1) empty-file-for-m
 ### this is only useful rarely ... it regenerated the warmelt*0.c
 ### files using the big monolithic version of the translator... to be
 ### used carefully when desperate!
-warmeltallbig: $(melt_cc1) $(melt_compile_script)  warmeltbig-1.c warmeltbig-3.so
+warmeltallbig: $(melt_cc1) $(melt_compile_script)  warmeltbig.1.c warmeltbig.3.so
 	wc warmeltbig*.c
-	$(MELTCCINIT1) $(meltarg_init)=warmeltbig-3 \
+	$(MELTCCINIT1) $(meltarg_init)=warmeltbig.3 \
 	      $(meltarg_arg)=$(melt_make_source_dir)/warmelt-first.melt  \
-	      $(meltarg_output)=warmelt-first-0.c  empty-file-for-melt.c
+	      $(meltarg_output)=warmelt-first.0.c  empty-file-for-melt.c
 	for f in $(WARMELT_SRCRESTFILES); do \
 	   $(MELTCCFILE1) \
-	     $(meltarg_init)=warmeltbig-3 \
+	     $(meltarg_init)=warmeltbig.3 \
 	      $(meltarg_arg)=$$f \
-	      $(meltarg_output)=`basename $$f .melt`-0.c  empty-file-for-melt.c ; \
+	      $(meltarg_output)=`basename $$f .melt`.0.c  empty-file-for-melt.c ; \
 	done
 
 
@@ -289,66 +289,66 @@ warmelth2.modlis: $(WARMELT_BASEH2SO)
 	$(melt_make_move) $@-tmp $@
 
 
-warmelt-macro-1.c: $(melt_make_source_dir)/warmelt-macro.melt $(melt_cc1) \
-	 warmelt-first-1.so  \
-	 warmelt-macro-0.d.so  \
-	 warmelt-normal-0.d.so \
-	 warmelt-normatch-0.d.so \
-	 warmelt-genobj-0.d.so \
-	 warmelt-outobj-0.d.so   empty-file-for-melt.c
+warmelt-macro.1.c: $(melt_make_source_dir)/warmelt-macro.melt $(melt_cc1) \
+	 warmelt-first.1.so  \
+	 warmelt-macro.0.d.so  \
+	 warmelt-normal.0.d.so \
+	 warmelt-normatch.0.d.so \
+	 warmelt-genobj.0.d.so \
+	 warmelt-outobj.0.d.so   empty-file-for-melt.c
 	$(MELTCCFILE1) \
-	$(meltarg_init)=warmelt-first-1:warmelt-macro-0.d:warmelt-normal-0.d:warmelt-normatch-0.d:warmelt-genobj-0.d:warmelt-outobj-0.d \
+	$(meltarg_init)=warmelt-first.1:warmelt-macro.0.d:warmelt-normal.0.d:warmelt-normatch.0.d:warmelt-genobj.0.d:warmelt-outobj.0.d \
 	      $(meltarg_arg)=$< \
 	      $(meltarg_output)=$@  empty-file-for-melt.c
 
 
-warmelt-normal-1.c: $(melt_make_source_dir)/warmelt-normal.melt $(melt_cc1) \
-	 warmelt-first-1.so  \
-	 warmelt-macro-1.so  \
-	 warmelt-normal-0.d.so \
-	 warmelt-normatch-0.d.so \
-	 warmelt-genobj-0.d.so \
-	 warmelt-outobj-0.d.so \
+warmelt-normal.1.c: $(melt_make_source_dir)/warmelt-normal.melt $(melt_cc1) \
+	 warmelt-first.1.so  \
+	 warmelt-macro.1.so  \
+	 warmelt-normal.0.d.so \
+	 warmelt-normatch.0.d.so \
+	 warmelt-genobj.0.d.so \
+	 warmelt-outobj.0.d.so \
 	 warmelt-predef.melt  empty-file-for-melt.c
 	$(MELTCCFILE1) \
-	$(meltarg_init)=warmelt-first-1:warmelt-macro-1:warmelt-normal-0.d:warmelt-normatch-0.d:warmelt-genobj-0.d:warmelt-outobj-0.d \
+	$(meltarg_init)=warmelt-first.1:warmelt-macro.1:warmelt-normal.0.d:warmelt-normatch.0.d:warmelt-genobj.0.d:warmelt-outobj.0.d \
 	      $(meltarg_arg)=$< \
 	      $(meltarg_output)=$@  empty-file-for-melt.c
 
 
-warmelt-normatch-1.c: $(melt_make_source_dir)/warmelt-normatch.melt $(melt_cc1) \
-	 warmelt-first-1.so  \
-	 warmelt-macro-1.so  \
-	 warmelt-normal-1.so \
-	 warmelt-normatch-0.d.so \
-	 warmelt-genobj-0.d.so \
-	 warmelt-outobj-0.d.so  empty-file-for-melt.c
+warmelt-normatch.1.c: $(melt_make_source_dir)/warmelt-normatch.melt $(melt_cc1) \
+	 warmelt-first.1.so  \
+	 warmelt-macro.1.so  \
+	 warmelt-normal.1.so \
+	 warmelt-normatch.0.d.so \
+	 warmelt-genobj.0.d.so \
+	 warmelt-outobj.0.d.so  empty-file-for-melt.c
 	$(MELTCCFILE1) \
-	$(meltarg_init)=warmelt-first-1:warmelt-macro-1:warmelt-normal-1:warmelt-normatch-0.d:warmelt-genobj-0.d:warmelt-outobj-0.d \
+	$(meltarg_init)=warmelt-first.1:warmelt-macro.1:warmelt-normal.1:warmelt-normatch.0.d:warmelt-genobj.0.d:warmelt-outobj.0.d \
 	      $(meltarg_arg)=$< \
 	      $(meltarg_output)=$@  empty-file-for-melt.c
 
-warmelt-genobj-1.c: $(melt_make_source_dir)/warmelt-genobj.melt $(melt_cc1) \
-	 warmelt-first-1.so  \
-	 warmelt-macro-1.so  \
-	 warmelt-normal-1.so \
-	 warmelt-normatch-1.so \
-	 warmelt-genobj-0.d.so \
-	 warmelt-outobj-0.d.so   empty-file-for-melt.c
+warmelt-genobj.1.c: $(melt_make_source_dir)/warmelt-genobj.melt $(melt_cc1) \
+	 warmelt-first.1.so  \
+	 warmelt-macro.1.so  \
+	 warmelt-normal.1.so \
+	 warmelt-normatch.1.so \
+	 warmelt-genobj.0.d.so \
+	 warmelt-outobj.0.d.so   empty-file-for-melt.c
 	$(MELTCCFILE1) \
-	$(meltarg_init)=warmelt-first-1:warmelt-macro-1:warmelt-normal-1:warmelt-normatch-1:warmelt-genobj-0.d:warmelt-outobj-0.d \
+	$(meltarg_init)=warmelt-first.1:warmelt-macro.1:warmelt-normal.1:warmelt-normatch.1:warmelt-genobj.0.d:warmelt-outobj.0.d \
 	      $(meltarg_arg)=$< \
 	      $(meltarg_output)=$@  empty-file-for-melt.c
 
-warmelt-outobj-1.c: $(melt_make_source_dir)/warmelt-outobj.melt $(melt_cc1) \
-	 warmelt-first-1.so  \
-	 warmelt-macro-1.so  \
-	 warmelt-normal-1.so \
-	 warmelt-normatch-1.so \
-	 warmelt-genobj-1.so \
-	 warmelt-outobj-0.d.so warmelt-predef.melt  empty-file-for-melt.c
+warmelt-outobj.1.c: $(melt_make_source_dir)/warmelt-outobj.melt $(melt_cc1) \
+	 warmelt-first.1.so  \
+	 warmelt-macro.1.so  \
+	 warmelt-normal.1.so \
+	 warmelt-normatch.1.so \
+	 warmelt-genobj.1.so \
+	 warmelt-outobj.0.d.so warmelt-predef.melt  empty-file-for-melt.c
 	$(MELTCCFILE1) \
-	$(meltarg_init)=warmelt-first-1:warmelt-macro-1:warmelt-normal-1:warmelt-normatch-1:warmelt-genobj-1:warmelt-outobj-0.d \
+	$(meltarg_init)=warmelt-first.1:warmelt-macro.1:warmelt-normal.1:warmelt-normatch.1:warmelt-genobj.1:warmelt-outobj.0.d \
 	      $(meltarg_arg)=$< \
 	      $(meltarg_output)=$@  empty-file-for-melt.c
 
@@ -358,34 +358,34 @@ warmelt2.modlis: $(WARMELT_BASE2SO)
 	for f in  $(WARMELT_BASE2); do echo $$f >> $@-tmp; done
 	$(melt_make_move) $@-tmp $@
 
-warmelt-first-2.c: $(melt_make_source_dir)/warmelt-first.melt warmelt1.modlis $(WARMELT_BASE1SO) $(melt_cc1)
+warmelt-first.2.c: $(melt_make_source_dir)/warmelt-first.melt warmelt1.modlis $(WARMELT_BASE1SO) $(melt_cc1)
 	$(MELTCCINIT1) $(meltarg_init)="@warmelt1" \
 	      $(meltarg_arg)=$< \
 	      $(meltarg_output)=$@
 
 
 
-warmelt-%-2.c: $(melt_make_source_dir)/warmelt-%.melt warmelt1.modlis $(WARMELT_BASE1SO)  $(melt_cc1)  empty-file-for-melt.c
+warmelt-%.2.c: $(melt_make_source_dir)/warmelt-%.melt warmelt1.modlis $(WARMELT_BASE1SO)  $(melt_cc1)  empty-file-for-melt.c
 	$(MELTCCFILE1) $(meltarg_init)="@warmelt1" \
 	        -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_arg)=$< \
 	      $(meltarg_output)=$@  empty-file-for-melt.c
 ####
 
-warmelt2b.modlis: warmeltbig-1.so
+warmelt2b.modlis: warmeltbig.1.so
 	date +"#$@ generated %F" > $@-tmp
 	for f in  $(WARMELT_BASE2); do printf "%sb\n" $$f >> $@-tmp; done
 	$(melt_make_move) $@-tmp $@
 
-warmelt-first-2b.c: $(melt_make_source_dir)/warmelt-first.melt warmeltbig-1.so  $(melt_cc1)
-	$(MELTCCINIT1) $(meltarg_init)="warmeltbig-1" \
+warmelt-first.2b.c: $(melt_make_source_dir)/warmelt-first.melt warmeltbig.1.so  $(melt_cc1)
+	$(MELTCCINIT1) $(meltarg_init)="warmeltbig.1" \
 	      $(meltarg_arg)=$< \
 	      $(meltarg_output)=$@
 
 
 
-warmelt-%-2b.c: $(melt_make_source_dir)/warmelt-%.melt warmeltbig-1.so   $(melt_cc1)  empty-file-for-melt.c
-	$(MELTCCFILE1) $(meltarg_init)="warmeltbig-1" \
+warmelt-%.2b.c: $(melt_make_source_dir)/warmelt-%.melt warmeltbig.1.so   $(melt_cc1)  empty-file-for-melt.c
+	$(MELTCCFILE1) $(meltarg_init)="warmeltbig.1" \
 	        -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_arg)=$< \
 	      $(meltarg_output)=$@  empty-file-for-melt.c
@@ -394,14 +394,14 @@ warmelt-%-2b.c: $(melt_make_source_dir)/warmelt-%.melt warmeltbig-1.so   $(melt_
 warmelt2b: $(patsubst %,%b.so, $(WARMELT_BASE2))
 
 ###
-warmelt-normal-2.c: warmelt-predef.melt
-warmelt-normal-2b.c: warmelt-predef.melt
-warmelt-normal-3.c: warmelt-predef.melt
+warmelt-normal.2.c: warmelt-predef.melt
+warmelt-normal.2b.c: warmelt-predef.melt
+warmelt-normal.3.c: warmelt-predef.melt
 
 ## apparently, these dependencies are explicitly needed... because
 ## melt.encap target is making explicitly these
-warmelt-normatch-2.so: warmelt-normatch-2.c
-warmelt-outobj-3.so: warmelt-outobj-3.c 
+warmelt-normatch.2.so: warmelt-normatch.2.c
+warmelt-outobj.3.so: warmelt-outobj.3.c 
 
 warmelt2n.modlis: $(WARMELT_BASE2NSO)
 	date +"#$@ generated %c" > $@-tmp
@@ -409,7 +409,7 @@ warmelt2n.modlis: $(WARMELT_BASE2NSO)
 	$(melt_make_move) $@-tmp $@
 
 ####
-warmelt-%-3.c: $(melt_make_source_dir)/warmelt-%.melt  warmelt2.modlis $(WARMELT_BASE2SO)  $(melt_cc1)  empty-file-for-melt.c
+warmelt-%.3.c: $(melt_make_source_dir)/warmelt-%.melt  warmelt2.modlis $(WARMELT_BASE2SO)  $(melt_cc1)  empty-file-for-melt.c
 	@echo generating $@ using $(WARMELT_BASE2SO)
 	-rm -f $@
 	$(MELTCCFILE1) $(meltarg_init)="@warmelt2" \
@@ -421,7 +421,7 @@ warmelt3.modlis: $(WARMELT_BASE2SO)
 	for f in  $(WARMELT_BASE3); do echo $$f >> $@-tmp; done
 	$(SHELL) $(srcdir)/../move-if-change $@-tmp $@
 
-warmelt-first-3.c: $(melt_make_source_dir)/warmelt-first.melt warmelt2.modlis $(WARMELT_BASE2SO) $(melt_cc1)
+warmelt-first.3.c: $(melt_make_source_dir)/warmelt-first.melt warmelt2.modlis $(WARMELT_BASE2SO) $(melt_cc1)
 	-rm -f $@ 
 	@echo generating $@ using $(WARMELT_BASE2SO)
 	$(MELTCCINIT1) $(meltarg_init)="@warmelt2" \
@@ -431,10 +431,10 @@ warmelt-first-3.c: $(melt_make_source_dir)/warmelt-first.melt warmelt2.modlis $(
 
 
 ####
-diff-warmelt-2-3: $(WARMELT_BASE3SO)
+diff-warmelt.2.3: $(WARMELT_BASE3SO)
 	echo WARMELT_BASE3ROW= $(WARMELT_BASE3ROW)
 	for f in $(WARMELT_BASE); do; \
-	  diff $$f-2.c $$f-3.c || true; \
+	  diff $$f.2.c $$f.3.c || true; \
 	done
 
 

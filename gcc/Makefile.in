@@ -5108,12 +5108,12 @@ melt.encap: run-melt.d
 	echo melt.encap making run-melt-deps built-melt-cc-script 
 	$(MAKE) run-melt-deps built-melt-cc-script 
 # this is working probably only on Linux machines (hosts); we should use libtool here also!
-	echo melt.encap making warmelt-first-1.so
-	$(MAKE) warmelt-first-1.so
-	echo melt.encap making warmelt-normatch-2.so
-	$(MAKE) warmelt-normatch-2.so
-	echo melt.encap making warmelt-outobj-3.so
-	$(MAKE) warmelt-outobj-3.so
+	echo melt.encap making warmelt-first.1.so
+	$(MAKE) warmelt-first.1.so
+	echo melt.encap making warmelt-normatch.2.so
+	$(MAKE) warmelt-normatch.2.so
+	echo melt.encap making warmelt-outobj.3.so
+	$(MAKE) warmelt-outobj.3.so
 	echo melt.encap making $(ANAMELT_BASESO)
 	$(MAKE) $(ANAMELT_BASESO)
 	echo making $(melt_default_modules_list).modlis
@@ -5169,7 +5169,7 @@ install-melt-meltfiles: installdirs $(WARMELT_SRCFILES) $(ANAMELT_SRCFILES)
 
 
 #### this phony target is given manually to copy the generated
-#### warmelt*-3.c into the source directory it should be only
+#### warmelt*.3.c into the source directory it should be only
 #### explicitly given
 .PHONY: upgrade-warmelt upgrade-bigmelt
 
@@ -5177,11 +5177,11 @@ upgrade-warmelt: $(WARMELT_BASE3SO)
 	$(MAKE) Makefile
 	@echo upgrade-warmelt show diff of "warmelt-*2.c & warmelt-*3.c"
 	for f in $(WARMELT_BASE); do \
-	  diff $$f-2.c $$f-3.c || true; \
+	  diff $$f.2.c $$f.3.c || true; \
 	done
 	for f in $(WARMELT_BASE); do \
-	  grep -v '^#line' $$f-3.c | unifdef -UMELTGCC_NOLINENUMBERING | sed -e 's:$$f-3:$$f-0:' > $$f-0.c-tmp ; \
-	  $(SHELL) $(srcdir)/../move-if-change $$f-0.c-tmp $(srcdir)/melt/$$f-0.c; \
+	  grep -v '^#line' $$f.3.c | unifdef -UMELTGCC_NOLINENUMBERING | sed -e 's:$$f.3:$$f-0:' > $$f.0.c-tmp ; \
+	  $(SHELL) $(srcdir)/../move-if-change $$f.0.c-tmp $(srcdir)/melt/$$f.0.c; \
 	done
 
 upgrade-bigmelt: warmeltallbig
@@ -5189,11 +5189,11 @@ upgrade-bigmelt: warmeltallbig
 	$(MAKE)  $(WARMELT_BASE3SO)
 	@echo upgrade-bigmelt show diff of "warmelt-*2.c & warmelt-*3.c"
 	for f in $(WARMELT_BASE); do \
-	  diff $$f-2.c $$f-3.c || true; \
+	  diff $$f.2.c $$f.3.c || true; \
 	done
 	for f in $(WARMELT_BASE); do \
-	  grep -v '^#line' $$f-3.c | unifdef -UMELTGCC_NOLINENUMBERING | sed -e 's:$$f-3:$$f-0:' > $$f-0.c-tmp ; \
-	  $(SHELL) $(srcdir)/../move-if-change $$f-0.c-tmp $(srcdir)/melt/$$f-0.c; \
+	  grep -v '^#line' $$f.3.c | unifdef -UMELTGCC_NOLINENUMBERING | sed -e 's:$$f.3:$$f.0:' > $$f.0.c-tmp ; \
+	  $(SHELL) $(srcdir)/../move-if-change $$f.0.c-tmp $(srcdir)/melt/$$f.0.c; \
 	done
 
 

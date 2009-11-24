@@ -4646,7 +4646,7 @@ meltgc_new_string_nakedbasename (meltobject_ptr_t discr_p,
     *dot = 0;
   strv =
     meltgc_allocate (sizeof (struct meltstring_st),
-			strlen (basestr) + 1);
+		     strlen (basestr) + 1);
   str_strv->discr = obj_discrv;
   strcpy (str_strv->val, basestr);
 end:
@@ -5395,14 +5395,15 @@ meltgc_load_melt_module (melt_ptr_t modata_p, const char *modulnam)
     const char* p = 0;
     for (p=modulnam; *p; p++)
       {
-	/* special hack for names like warmelt-first-0.d or
-	   warmelt-foo-1.n */
-	if (p[0] == '.' && ISALNUM(p[1]) && !p[2])
+	/* special hack for names like warmelt-first.0.d or
+	   warmelt-foo.1.n */
+	if (p[0] == '.' && ISALPHA(p[1]) && !p[2])
 	  {
 	    specialsuffix = 1;
 	    break;
 	  };
-	if (!ISALNUM(*p) && *p != '+' && *p != '-' && *p != '_')
+	if (!ISALNUM(*p) && *p != '-' && *p != '_'
+	    && (*p == '.' && !ISALNUM(p[1])))
 	  {
 	    error ("invalid MELT module name %s to load", modulnam);
 	    goto end;
@@ -5469,7 +5470,7 @@ meltgc_load_melt_module (melt_ptr_t modata_p, const char *modulnam)
   tmpath = NULL;
   /* we didn't found the source */
   debugeprintf ("meltgc_load_melt_module cannot find source for mudule %s", dupmodulnam);
-  warning (0, "Didn't find MELT module %s 's C source code; perhaps need -fmelt-srcpath=...", dupmodulnam);
+  warning (0, "didn't find MELT module %s 's C source code; perhaps need -fmelt-srcpath=...", dupmodulnam);
   inform (UNKNOWN_LOCATION, "MELT temporary source path tried %s for C source code", 
 	  melt_tempdir_path (dupmodulnam, ".c"));
   {
