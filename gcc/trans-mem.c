@@ -1134,7 +1134,11 @@ static tree lower_sequence_no_tm (gimple_stmt_iterator *, bool *,
    or write barrier.
 
    ENTRY_BLOCK is the entry block for the region where stmt resides
-   in.  NULL if unknown.  */
+   in.  NULL if unknown.
+
+   STMT is the statement in which X occurs in.  It is used for thread
+   private memory instrumentation.  If no TPM instrumentation is
+   desired, STMT should be null.  */
 static bool
 requires_barrier (basic_block entry_block, tree x, gimple stmt)
 {
@@ -1739,12 +1743,14 @@ expand_assign_tm (struct tm_region *region, gimple_stmt_iterator *gsi)
   gimple stmt = gsi_stmt (*gsi);
   tree lhs = gimple_assign_lhs (stmt);
   tree rhs = gimple_assign_rhs1 (stmt);
-  bool store_p = requires_barrier (region->entry_block, lhs, stmt);
+  bool store_p = requires_barrier (region->entry_block, lhs, NULL);
   bool load_p = requires_barrier (region->entry_block, rhs, NULL);
   gimple gcall;
 
   if (!load_p && !store_p)
     {
+      /* Add thread private addresses to log if applicable.  */
+      requires_barrier (region->entry_block, lhs, stmt);
       gsi_next (gsi);
       return;
     }
@@ -1773,6 +1779,11 @@ expand_assign_tm (struct tm_region *region, gimple_stmt_iterator *gsi)
       transaction_subcode_ior (region, GTMA_HAVE_STORE);
       gcall = build_tm_store (lhs, rhs, gsi);
     }
+
+  /* Now that we have the load/store in its instrumented form, add
+     thread private addresses to the log if applicable.  */
+  if (!store_p)
+    requires_barrier (region->entry_block, lhs, gcall);
 
   /* add_stmt_to_tm_region  (region, gcall); */
 }

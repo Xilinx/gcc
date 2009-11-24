@@ -1,3 +1,9 @@
+2009-11-24  Aldy Hernandez  <aldyh@redhat.com>
+
+	* trans-mem.c (requires_barrier): Document STMT argument.
+	(expand_assign_tm): Call requires_barrier after assignment has
+	been expanded.
+
 2009-11-20  Aldy Hernandez  <aldyh@redhat.com>
 
 	* trans-mem.c (tm_log_emit_saves): Do not generate SSA names for
