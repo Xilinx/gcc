@@ -1,3 +1,135 @@
+2009-11-23  Andy Hutchinson  <hutchinsonandy@gcc.gnu.org>
+
+	* gcc.c-torture/execute/pr40404.c: Use long for bitfield on 16bit
+	int targets.
+
+2009-11-23  Andy Hutchinson  <hutchinsonandy@gcc.gnu.org>
+
+	* gcc-dg/Wtype-limits.c: Add line to correct line numbers.
+
+2009-11-23  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR testsuite/42086
+	* gcc.target/ia64/fptr-1.c: Make it a compile test.
+
+2009-11-23  Janis Johnson  <janis187@us.ibm.com>
+
+	* lib/lto.exp (lto_option_list): Rename from option_list.
+	* lib/compat.exp (compat_option_list): Rename from option_list.
+
+2009-11-23  Andy Hutchinson  <hutchinsonandy@gcc.gnu.org>
+
+	* gcc-dg/raw-string-1.c: Require-effective-target wchar.
+	* gcc-dg/raw-string-2.c: Ditto.
+	* gcc-dg/utf-array-short-wchar.c: Ditto.
+	* gcc-dg/utf-array.c: Ditto.
+	* gcc-dg/utf8-2.c: Ditto. 
+
+2009-11-23  Andy Hutchinson  <hutchinsonandy@gcc.gnu.org>
+
+	* gcc.dg/torture/pr37868.c: Use smaller bitfield for 16bit int
+	targets.
+
+2009-11-23  Andy Hutchinson  <hutchinsonandy@gcc.gnu.org>
+
+	* gcc.dg/tree-ssa/pr33920.c: Remove warning check for 16 bit target.
+
+2009-11-23  Andy Hutchinson  <hutchinsonandy@gcc.gnu.org>
+
+	* gcc-dg/Wtype-limits.c: Remove XFAIL for avr target.
+
+2009-11-23  Andy Hutchinson  <hutchinsonandy@gcc.gnu.org>
+
+	PR testsuite/36470
+	* gcc.dg/utf-cvt.c: Skip int test for 16bit int targets.
+	Enable short test for avr target.
+	* gcc.dg/utf32-1.c: Enable test for avr and m32 targets.
+	* gcc.dg/utf32-2.c: Ditto.
+	* gcc.dg/utf32-3.c: Ditto.
+	* gcc.dg/utf32-4.c: Enable test for non-32bit targets.
+
+2009-11-23  Andy Hutchinson  <hutchinsonandy@gcc.gnu.org>
+
+	* gcc.dg/tree-ssa/asmgoto-1.c: Suppress warnings.
+
+2009-11-23  Andy Hutchinson  <hutchinsonandy@gcc.gnu.org>
+
+	* gcc.c-torture/execute/ipa-sra-2.x: New. Skip for 16bit targets.
+
+
+2009-11-23  Andy Hutchinson  <hutchinsonandy@gcc.gnu.org>
+
+	* gcc.dg/sms-6.c: Use long for 16 bit int targets.
+	* gcc.dg/sms-7.c: Ditto.
+
+2009-11-23  Andy Hutchinson  <hutchinsonandy@gcc.gnu.org>
+
+	* gcc.dg/pr36998.c: Frame pointer required for avr target.
+	* gcc.dg/debug/pr41264-1.c: Use long if int size 16bit or smaller.
+	* gcc.dg/pr39226.c: Use smaller bitfield if int size is 16bit.
+	* gcc.dg/pr41340.c: Test requires long pointer target.
+	* gcc.dg/profile-generate-3.c: Test requires profiling support.
+
+2009-11-23  Andy Hutchinson  <hutchinsonandy@gcc.gnu.org>
+
+	* gcc.dg/graphite/block-1.c: Require 32-bit or larger array support.
+	* gcc.dg/graphite/block-3.c: Ditto.
+	* gcc.dg/graphite/block-4.c: Ditto.
+	* gcc.dg/graphite/block-5.c: Ditto.
+	* gcc.dg/graphite/block-6.c: Ditto.
+	* gcc.dg/graphite/interchange-0.c: Ditto.
+	* gcc.dg/graphite/interchange-1.c: Ditto.
+	* gcc.dg/graphite/interchange-2.c: Ditto.
+	* gcc.dg/graphite/interchange-3.c: Ditto.
+	* gcc.dg/graphite/interchange-4.c: Ditto.
+	* gcc.dg/graphite/interchange-5.c: Ditto.
+	* gcc.dg/graphite/interchange-6.c: Ditto.
+	* gcc.dg/graphite/run-id-1.c: Ditto.
+	* gcc.dg/graphite/scop-16.c: Ditto.
+	* gcc.dg/graphite/scop-17.c: Ditto.
+	* gcc.dg/graphite/scop-18.c: Ditto.
+	* gcc.dg/graphite/scop-matmult.c: Ditto.
+	* gcc.dg/graphite/pr40157.c: Require 32bit or larger int.
+	* gcc.dg/graphite/id-15.c: Ditto.
+
+2009-11-23  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/specs/weak1.ads: New test.
+
+2009-11-23  Steve Ellcey  <sje@cup.hp.com>
+
+	* gcc.dg/debug/dwarf2/inline2.c: Modify scan.
+
+2009-11-23  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/14777
+	* g++.dg/template/typedef13.C: Adjust.
+	* g++.dg/template/typedef19.C: Adjust.
+	* g++.dg/template/typedef20.C: Adjust.
+	* g++.dg/template/typedef22.C: New test.
+
+2009-11-22  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/42113
+	* gcc.target/alpha/pr42113.c: New test.
+
+2009-11-21  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/41807
+	* gfortran.dg/data_value_1.f90: Update test.
+	* gfortran.dg/array_constructor_32.f90: New test.
+
+2009-11-21  Martin Jambor  <mjambor@suse.cz>
+
+	PR middle-end/42025
+	* gcc.c-torture/compile/pr42025-1.c: New test.
+	* gcc.c-torture/compile/pr42025-2.c: New test.
+
+2009-11-21  Adam Nemet  <adambnemet@gmail.com>
+
+	* gcc.target/mips/mult-1.c: Forbid octeon.
+	* gcc.target/mips/octeon-dmul-3.c: New test.
+
 2009-11-21  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
 
 	* gcc.dg/tree-ssa/vrp47.c: Fix target check.
@@ -16,7 +148,7 @@
 	PR tree-optimization/42078
 	* gcc.dg/pr42078.c: New test.
 
-2009-11-19  Andy Hutchinson  <hutchinsonandy@gcc.gnu.org>
+2009-11-20  Andy Hutchinson  <hutchinsonandy@gcc.gnu.org>
 
 	PR Testsuite/42114
 	* gcc-dg/c99-stdint-1.c: Condition test for target without signal.h.

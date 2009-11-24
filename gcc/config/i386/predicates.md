@@ -1056,11 +1056,6 @@
   enum machine_mode inmode = GET_MODE (XEXP (op, 0));
   enum rtx_code code = GET_CODE (op);
 
-  if (!REG_P (XEXP (op, 0))
-      || REGNO (XEXP (op, 0)) != FLAGS_REG
-      || XEXP (op, 1) != const0_rtx)
-    return 0;
-
   if (inmode == CCFPmode || inmode == CCFPUmode)
     {
       if (!ix86_trivial_fp_comparison_operator (op, mode))
@@ -1148,3 +1143,24 @@
 
   return 1;
 })
+
+;; Return 1 if OP is a parallel for a vpermilp[ds] permute.
+;; ??? It would be much easier if the PARALLEL for a VEC_SELECT
+;; had a mode, but it doesn't.  So we have 4 copies and install
+;; the mode by hand.
+
+(define_predicate "avx_vpermilp_v8sf_operand"
+  (and (match_code "parallel")
+       (match_test "avx_vpermilp_parallel (op, V8SFmode)")))
+
+(define_predicate "avx_vpermilp_v4df_operand"
+  (and (match_code "parallel")
+       (match_test "avx_vpermilp_parallel (op, V4DFmode)")))
+
+(define_predicate "avx_vpermilp_v4sf_operand"
+  (and (match_code "parallel")
+       (match_test "avx_vpermilp_parallel (op, V4SFmode)")))
+
+(define_predicate "avx_vpermilp_v2df_operand"
+  (and (match_code "parallel")
+       (match_test "avx_vpermilp_parallel (op, V2DFmode)")))

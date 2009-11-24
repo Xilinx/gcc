@@ -1,3 +1,131 @@
+2009-11-24  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (add<mode>3_carry): Change insn pattern
+	to expander.
+	(sub<mode>3_carry): Ditto.
+	(x86_mov<mode>cc_0_m1): Ditto.
+	(*add<mode>3_carry): New insn pattern.  Use VOIDmode match_operator
+	for ix86_carry_flag_operator operator predicate.
+	(*sub<mode>3_carry): Ditto.
+	(*x86_mov<mode>cc_0_m1): Ditto.
+	(*addsi3_carry_zext): Use VOIDmode match_operator for
+	ix86_carry_flag_operator operator predicate.
+	(*subsi3_carry_zext): Ditto.
+	(*x86_mov<mode>cc_0_m1_s): Ditto.
+	(*x86_mov<mode>cc_0_m1_neg): Ditto.
+	* config/i386/predocates.md (ix86_carry_flag_operator): Do not
+	check operator sub-expressions for FLAGS_REG and const0_rtx.
+	* config/i386/i386.c (*ix86_gen_sub3_carry): Update prototype.
+	(ix86_expand_int_movcc): Update calls to gen_x86_mov{si,di}cc_0_m1.
+	(ix86_expand_int_addcc): Update calls to
+	gen_{add,sub}{qi,hi,si,di}3_carry.  Do not set mode of compare_op.
+	(ix86_expand_strlensi_unroll_1): Update calls to ix86_gen_sub3_carry.
+	Do not set mode of compare operation.
+
+2009-11-23  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/42151
+	* ipa-inline.c (inline_transform): Avoid ICE when transform is called
+	twice.
+
+2009-11-23  Jan Hubicka  <jh@suse.cz>
+
+	* ipa-cp.c (ipcp_compute_node_scale): Work around completely
+	wrong profile updates.
+	* predict.c (counts_to_freqs): Be expected for ENTRY/EXIT block
+	having largest frequency.
+	* ira-live.c (ira_implicitly_set_insn_hard_regs): Silecne
+	used uninitalized warning.
+	* tree-optimize.c (execute_fixup_cfg): Rescale entry and exit block
+	frequencies.
+
+2009-11-23  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/alpha/alpha.md (*cmp_sadd_sidi): Use gen_lowpart instead
+	of gen_rtx_REG to generate operand 5.
+	(*cmp_ssub_sidi): Ditto.
+
+2009-11-23  Richard Henderson  <rth@redhat.com>
+
+	* config/i386/i386.c (avx_vpermilp_parallel): Fix sign compare
+	mismatch.
+
+2009-11-23  Paul Brook  <paul@codesourcery.com>
+
+	* config/arm/arm.c (arm_compute_save_reg0_reg12_mask): Add special
+	case for noreturn functions.
+	(arm_compute_save_reg_mask): Remove special noreturn handling.
+
+2009-11-23  Richard Guenther  <rguenther@suse.de>
+
+	* tree-dfa.c (get_ref_base_and_extent): Adjust maximum access
+	size for DECL bases.
+
+2009-11-22  Richard Henderson  <rth@redhat.com>
+
+	* i386.c (avx_vpermilp_parallel): New function.
+	* i386-protos.h: Declare it.
+	* predicates.md (avx_vpermilp_v8sf_operand, avx_vpermilp_v4df_operand,
+	avx_vpermilp_v4sf_operand, avx_vpermilp_v2df_operand): New.
+	* sse.md (AVXMODEFDP, AVXMODEFSP): New iterators.
+	(ssescalarnum, ssedoublesizemode): Add AVX modes.
+	(vpermilbits): Remove.
+	(avx_vpermil<mode>): Change insns to expanders.
+	(*avx_vpermil<mode>): New.  Use vec_select.
+
+2009-11-22  Richard Earnshaw  <rearnsha@arm.com>
+
+	* opts.c (decode_options): Don't enable flag_schedule_insns
+	when optimizing for size.
+	* doc/invoke.texi: Document change.
+
+2009-11-22  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/42113
+	* config/alpha/alpha.md (*cmp_sadd_si): Change mode
+	of scratch register to SImode.
+	(*cmp_sadd_sidi): Ditto.
+	(*cmp_ssub_si): Ditto.
+	(*cmp_ssub_sidi): Ditto.
+
+2009-11-21  Ian Lance Taylor  <iant@google.com>
+
+	* Makefile.in (HOST_LIBS): Move higher in file.
+	(LINKER, LINKER_FLAGS): If ENABLE_BUILD_WITH_CXX, but $(HOST_LIBS)
+	is not empty, set to $(CC) and $(CFLAGS).
+
+2009-11-22  Martin Jambor  <mjambor@suse.cz>
+
+	* tree-cfg.c (verify_types_in_gimple_reference): Error out on
+	V_C_E of an SSA_NAME or an invariant if lvalue is required.
+	(verify_gimple_call): Verify LHS also with with
+	verify_types_in_gimple_reference.
+
+2009-11-21  Martin Jambor  <mjambor@suse.cz>
+
+	PR middle-end/42025
+	* tree-sra.c (access_precludes_ipa_sra_p): New function.
+	(splice_param_accesses): Check all accesses by calling
+	access_precludes_ipa_sra_p.
+	(sra_ipa_modify_expr): Rename argument erite to dont_convert and do
+	not convert types if it is true.
+	(sra_ipa_modify_assign): Convert types in case of mismatch.
+
+2009-11-21  Kaushik Phatak  <kaushik.phatak@kpitcummins.com>
+
+	* config/sh/sh.md (cmpeqsi_t-1): Use logical_operand predicate
+	for operand 1.
+
+2009-11-21  Adam Nemet  <adambnemet@gmail.com>
+
+	* config/mips/mips-protos.h (mulsidi3_gen_fn): New typedef.
+	(mips_mulsidi3_gen_fn): Declare new function.
+	* config/mips/mips.c (mips_mulsidi3_gen_fn): New function.
+	* config/mips/mips.md (<u>mulsidi3): Change condition to use
+	mips_mulsidi3_gen_fn.  Use mips_mulsidi3_gen_fn to generate the insn.
+	(<u>mulsidi3_64bit): Don't match for ISA_HAS_DMUL3.
+	(mulsidi3_64bit_dmul): New define_insn.
+
 2009-11-21  Ben Elliston  <bje@au.ibm.com>
 
 	* gengtype-lex.l: Enable noinput flex option.
@@ -85,7 +213,7 @@
 	(INT8_TYPE, INT16_TYPE, INT32_TYPE, INT64_TYPE): Define.
 	(UINT8_TYPE, UINT16_TYPE, UINT32_TYPE, UINT64_TYPE): Define.
 	(INT_LEAST8_TYPE, INT_LEAST16_TYPE, INT_LEAST32_TYPE,
-	(INT_LEAST64_TYPE): Define.
+	INT_LEAST64_TYPE): Define.
 	(UINT_LEAST8_TYPE, UINT_LEAST16_TYPE, UINT_LEAST32_TYPE,
 	UINT_LEAST64_TYPE): Define.
 	(INT_FAST8_TYPE, INT_FAST16_TYPE, INT_FAST32_TYPE,
@@ -105,11 +233,10 @@
 	* dwarf2out.c (get_context_die): Take TYPE_MAIN_VARIANT.
 
 2009-11-19  Basile Starynkevitch  <basile@starynkevitch.net>
-            Rafael Avila de Espindola  <espindola@google.com>
+	    Rafael Avila de Espindola  <espindola@google.com>
 
 	* doc/plugins.texi (Plugin initialization): Added advices for
-	retrieving the version of GCC at plugin compilation and loading
-	times.
+	retrieving the version of GCC at plugin compilation and loading times.
 
 2009-11-19  Basile Starynkevitch  <basile@starynkevitch.net>
 
@@ -156,11 +283,10 @@
 
 2009-11-18  Daniel Jacobowitz  <dan@codesourcery.com>
 
-	* config/arm/neon-docgen.ml (analyze_shape_elt): Handle
-	Alternatives.
+	* config/arm/neon-docgen.ml (analyze_shape_elt): Handle alternatives.
 
 2009-11-18  Paul Brook  <paul@codesourcery.com>
-	Daniel Jacobowitz  <dan@codesourcery.com>
+	    Daniel Jacobowitz  <dan@codesourcery.com>
 
 	* config/arm/arm.c (FL_ARCH7EM, FL_FOR_ARCH7EM): Define.
 	(arm_arch7em): New variable.
@@ -210,14 +336,13 @@
 2009-11-18  Shujing Zhao  <pearly.zhao@oracle.com>
 	
 	PR middle-end/22201
-	* params.def (PARAM_INLINE_UNIT_GROWTH)
-	PARAM_IPCP_UNIT_GROWTH)
+	* params.def (PARAM_INLINE_UNIT_GROWTH, PARAM_IPCP_UNIT_GROWTH)
 	(PARAM_EARLY_INLINING_INSNS, PARAM_IRA_MAX_LOOPS_NUM)
 	(PARAM_IRA_MAX_CONFLICT_TABLE_SIZE)
 	(PARAM_LOOP_INVARIANT_MAX_BBS_IN_LOOP)
 	(PARAM_MIN_INSN_TO_PREFETCH_RATIO)
 	(PARAM_PREFETCH_MIN_INSN_TO_MEM_RATIO)
-	PARAM_IPA_SRA_PTR_GROWTH_FACTOR): Uppercase the	first letter of the
+	(PARAM_IPA_SRA_PTR_GROWTH_FACTOR): Uppercase the first letter of the
 	description string.
 
 2009-11-18  Jakub Jelinek  <jakub@redhat.com>

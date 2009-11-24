@@ -1808,7 +1808,7 @@ static rtx (*ix86_gen_leave) (void);
 static rtx (*ix86_gen_pop1) (rtx);
 static rtx (*ix86_gen_add3) (rtx, rtx, rtx);
 static rtx (*ix86_gen_sub3) (rtx, rtx, rtx);
-static rtx (*ix86_gen_sub3_carry) (rtx, rtx, rtx, rtx);
+static rtx (*ix86_gen_sub3_carry) (rtx, rtx, rtx, rtx, rtx);
 static rtx (*ix86_gen_one_cmpl2) (rtx, rtx);
 static rtx (*ix86_gen_monitor) (rtx, rtx, rtx);
 static rtx (*ix86_gen_andsp) (rtx, rtx, rtx);
@@ -15404,15 +15404,20 @@ ix86_expand_int_movcc (rtx operands[])
 
           if (!sign_bit_compare_p)
 	    {
+	      rtx flags;
+	      rtx (*insn)(rtx, rtx, rtx);
 	      bool fpcmp = false;
 
 	      compare_code = GET_CODE (compare_op);
 
-	      if (GET_MODE (XEXP (compare_op, 0)) == CCFPmode
-		  || GET_MODE (XEXP (compare_op, 0)) == CCFPUmode)
+	      flags = XEXP (compare_op, 0);
+
+	      if (GET_MODE (flags) == CCFPmode
+		  || GET_MODE (flags) == CCFPUmode)
 		{
 		  fpcmp = true;
-		  compare_code = ix86_fp_compare_code_to_integer (compare_code);
+		  compare_code
+		    = ix86_fp_compare_code_to_integer (compare_code);
 		}
 
 	      /* To simplify rest of code, restrict to the GEU case.  */
@@ -15431,7 +15436,8 @@ ix86_expand_int_movcc (rtx operands[])
 			      reverse_condition_maybe_unordered
 			        (GET_CODE (compare_op)));
 		  else
-		    PUT_CODE (compare_op, reverse_condition (GET_CODE (compare_op)));
+		    PUT_CODE (compare_op,
+			      reverse_condition (GET_CODE (compare_op)));
 		}
 	      diff = ct - cf;
 
@@ -15440,10 +15446,11 @@ ix86_expand_int_movcc (rtx operands[])
 		tmp = gen_reg_rtx (mode);
 
 	      if (mode == DImode)
-		emit_insn (gen_x86_movdicc_0_m1 (tmp, compare_op));
+		insn = gen_x86_movdicc_0_m1;
 	      else
-		emit_insn (gen_x86_movsicc_0_m1 (gen_lowpart (SImode, tmp),
-						 compare_op));
+		insn = gen_x86_movsicc_0_m1;
+
+	      emit_insn (insn (tmp, flags, compare_op));
 	    }
 	  else
 	    {
@@ -16377,11 +16384,12 @@ int
 ix86_expand_int_addcc (rtx operands[])
 {
   enum rtx_code code = GET_CODE (operands[1]);
-  rtx (*insn)(rtx, rtx, rtx, rtx);
+  rtx flags;
+  rtx (*insn)(rtx, rtx, rtx, rtx, rtx);
   rtx compare_op;
   rtx val = const0_rtx;
   bool fpcmp = false;
-  enum machine_mode mode = GET_MODE (operands[0]);
+  enum machine_mode mode;
 
   ix86_compare_op0 = XEXP (operands[1], 0);
   ix86_compare_op1 = XEXP (operands[1], 1);
@@ -16393,8 +16401,10 @@ ix86_expand_int_addcc (rtx operands[])
      return 0;
   code = GET_CODE (compare_op);
 
-  if (GET_MODE (XEXP (compare_op, 0)) == CCFPmode
-      || GET_MODE (XEXP (compare_op, 0)) == CCFPUmode)
+  flags = XEXP (compare_op, 0);
+
+  if (GET_MODE (flags) == CCFPmode
+      || GET_MODE (flags) == CCFPUmode)
     {
       fpcmp = true;
       code = ix86_fp_compare_code_to_integer (code);
@@ -16410,12 +16420,13 @@ ix86_expand_int_addcc (rtx operands[])
       else
 	PUT_CODE (compare_op, reverse_condition (GET_CODE (compare_op)));
     }
-  PUT_MODE (compare_op, mode);
+
+  mode = GET_MODE (operands[0]);
 
   /* Construct either adc or sbb insn.  */
   if ((code == LTU) == (operands[3] == constm1_rtx))
     {
-      switch (GET_MODE (operands[0]))
+      switch (mode)
 	{
 	  case QImode:
 	    insn = gen_subqi3_carry;
@@ -16435,7 +16446,7 @@ ix86_expand_int_addcc (rtx operands[])
     }
   else
     {
-      switch (GET_MODE (operands[0]))
+      switch (mode)
 	{
 	  case QImode:
 	    insn = gen_addqi3_carry;
@@ -16453,7 +16464,7 @@ ix86_expand_int_addcc (rtx operands[])
 	    gcc_unreachable ();
 	}
     }
-  emit_insn (insn (operands[0], operands[2], val, compare_op));
+  emit_insn (insn (operands[0], operands[2], val, flags, compare_op));
 
   return 1; /* DONE */
 }
@@ -18986,7 +18997,6 @@ ix86_expand_strlensi_unroll_1 (rtx out, rtx src, rtx align_rtx)
 			       gen_rtx_IF_THEN_ELSE (Pmode, tmp,
 						     reg2,
 						     out)));
-
     }
   else
     {
@@ -19013,8 +19023,9 @@ ix86_expand_strlensi_unroll_1 (rtx out, rtx src, rtx align_rtx)
   /* Avoid branch in fixing the byte.  */
   tmpreg = gen_lowpart (QImode, tmpreg);
   emit_insn (gen_addqi3_cc (tmpreg, tmpreg, tmpreg));
-  cmp = gen_rtx_LTU (Pmode, gen_rtx_REG (CCmode, FLAGS_REG), const0_rtx);
-  emit_insn ((*ix86_gen_sub3_carry) (out, out, GEN_INT (3), cmp));
+  tmp = gen_rtx_REG (CCmode, FLAGS_REG);
+  cmp = gen_rtx_LTU (VOIDmode, tmp, const0_rtx);
+  emit_insn ((*ix86_gen_sub3_carry) (out, out, GEN_INT (3), tmp, cmp));
 
   emit_label (end_0_label);
 }
@@ -24527,6 +24538,82 @@ ix86_builtin_reciprocal (unsigned int fn, bool md_fn,
 	return NULL_TREE;
       }
 }
+
+/* Helper for avx_vpermilps256_operand et al.  This is also used by
+   the expansion functions to turn the parallel back into a mask.
+   The return value is 0 for no match and the imm8+1 for a match.  */
+
+int
+avx_vpermilp_parallel (rtx par, enum machine_mode mode)
+{
+  unsigned i, nelt = GET_MODE_NUNITS (mode);
+  unsigned mask = 0;
+  unsigned char ipar[8];
+
+  if (XVECLEN (par, 0) != (int) nelt)
+    return 0;
+
+  /* Validate that all of the elements are constants, and not totally
+     out of range.  Copy the data into an integral array to make the
+     subsequent checks easier.  */
+  for (i = 0; i < nelt; ++i)
+    {
+      rtx er = XVECEXP (par, 0, i);
+      unsigned HOST_WIDE_INT ei;
+
+      if (!CONST_INT_P (er))
+	return 0;
+      ei = INTVAL (er);
+      if (ei >= nelt)
+	return 0;
+      ipar[i] = ei;
+    }
+
+  switch (mode)
+    {
+    case V4DFmode:
+      /* In the 256-bit DFmode case, we can only move elements within
+         a 128-bit lane.  */
+      for (i = 0; i < 2; ++i)
+	{
+	  if (ipar[i] >= 2)
+	    return 0;
+	  mask |= ipar[i] << i;
+	}
+      for (i = 2; i < 4; ++i)
+	{
+	  if (ipar[i] < 2)
+	    return 0;
+	  mask |= (ipar[i] - 2) << i;
+	}
+      break;
+
+    case V8SFmode:
+      /* In the 256-bit SFmode case, we have full freedom of movement
+	 within the low 128-bit lane, but the high 128-bit lane must
+	 mirror the exact same pattern.  */
+      for (i = 0; i < 4; ++i)
+	if (ipar[i] + 4 != ipar[i + 4])
+	  return 0;
+      nelt = 4;
+      /* FALLTHRU */
+
+    case V2DFmode:
+    case V4SFmode:
+      /* In the 128-bit case, we've full freedom in the placement of
+	 the elements from the source operand.  */
+      for (i = 0; i < nelt; ++i)
+	mask |= ipar[i] << (i * (nelt / 2));
+      break;
+
+    default:
+      gcc_unreachable ();
+    }
+
+  /* Make sure success has a non-zero value by adding one.  */
+  return mask + 1;
+}
+
 
 /* Store OPERAND to the memory after reload is completed.  This means
    that we can't easily use assign_stack_local.  */
