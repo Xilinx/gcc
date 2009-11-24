@@ -1,3 +1,25 @@
+2009-11-24  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* g++.dg/debug/dwarf2/anonname1.C: Escape backslash in
+	scan-assembler-not regular expression.
+
+2009-11-24  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/42142
+	* gcc.c-torture/execute/pr42142.c: New testcase.
+
+2009-11-24  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/42154
+	* gcc.c-torture/execute/pr42154.c: New test.
+
+2009-11-24  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/42045
+	* gfortran.dg/proc_ptr_comp_2.f90: Correct invalid test case.
+	* gfortran.dg/proc_ptr_comp_3.f90: Extended test case.
+	* gfortran.dg/proc_ptr_comp_24.f90: New.
+
 2009-11-23  Andy Hutchinson  <hutchinsonandy@gcc.gnu.org>
 
 	* gcc.c-torture/execute/pr40404.c: Use long for bitfield on 16bit

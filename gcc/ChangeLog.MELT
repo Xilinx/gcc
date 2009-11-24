@@ -1,4 +1,13 @@
 2009-11-24  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c: all included files are now plugin installed!
+	Replaced all basename () calls with lbasename.
+	Added parsedmeltfilevect so free the melt file paths at end.
+	(meltgc_read_file): Added parsedmeltfilevect & push filenamdup
+	inside.  Check that the MELT file name is good looking (no + sign
+	in the basename part).
+	(do_finalize_melt): free the parsedmeltfilevect.
+
+2009-11-24  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-make.mk: generate warmelt*.[0-3].c files instead of
 	warmelt*-[0-3].c and so on...
 	* run-melt.h: added MELT_MODULE_VISIBILITY

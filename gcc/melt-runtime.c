@@ -47,23 +47,23 @@ along with GCC; see the file COPYING3.   If not see
 #include "tree-dump.h"
 #include "tree-flow.h" 
 #include "tree-iterator.h" 
-#include "tree-inline.h" /*notpluginexported*/
+#include "tree-inline.h" 
 #include "basic-block.h"
 #include "timevar.h"
 
 
 #include "ggc.h"
 #include "cgraph.h" 
-#include "diagnostic.h" /*notpluginexported*/
-#include "flags.h" /*notpluginexported*/
+#include "diagnostic.h" 
+#include "flags.h" 
 #include "toplev.h"
 #include "options.h"
-#include "params.h" /*notpluginexported*/
+#include "params.h" 
 #include "real.h" 
-#include "prefix.h" /*notpluginexported*/
-#include "md5.h" /*notpluginexported*/
+#include "prefix.h" 
+#include "md5.h" 
 #include "plugin.h" 
-#include "cppdefault.h" /*notpluginexported*/
+#include "cppdefault.h" 
 
 /* some system or library headers needed to MELT */
 #include <dirent.h>
@@ -77,7 +77,6 @@ along with GCC; see the file COPYING3.   If not see
 
 /* the generating GGC marking routine */
 extern void gt_ggc_mx_melt_un (void *);
-
 
 #ifdef MELT_IS_PLUGIN
 int flag_melt_debug;
@@ -192,6 +191,12 @@ static GTY(()) VEC(melt_ptr_t,gc) *bscanvec;
 static void* proghandle;
 
 
+typedef char *char_p;
+
+DEF_VEC_P (char_p);
+DEF_VEC_ALLOC_P (char_p, heap);
+static VEC (char_p, heap)* parsedmeltfilevect;
+							   
 /* *INDENT-ON* */
 
 /* to code case ALL_OBMAG_SPECIAL_CASES: */
@@ -424,7 +429,7 @@ check_pointer_at (const char msg[], long count, melt_ptr_t * pptr,
   if (!ptr->u_discr)
     fatal_error
       ("<%s#%ld> corrupted pointer %p (at %p) without discr at %s:%d", msg,
-       count, (void *) ptr, (void *) pptr, basename (filenam), lineno);
+       count, (void *) ptr, (void *) pptr, lbasename (filenam), lineno);
   switch (ptr->u_discr->object_magic)
     {
     case OBMAG_OBJECT:
@@ -459,7 +464,7 @@ check_pointer_at (const char msg[], long count, melt_ptr_t * pptr,
     default:
       fatal_error ("<%s#%ld> bad pointer %p (at %p) bad magic %d at %s:%d",
 		   msg, count, (void *) ptr, (void *) pptr,
-		   (int) ptr->u_discr->object_magic, basename (filenam),
+		   (int) ptr->u_discr->object_magic, lbasename (filenam),
 		   lineno);
     }
 }
@@ -512,7 +517,7 @@ melt_check_call_frames_at (int noyoungflag, const char *msg,
     {
       debugeprintf
 	("start check_call_frames#%ld {%s} from %s:%d",
-	 nbcheckcallframes, msg, basename (filenam), lineno);
+	 nbcheckcallframes, msg, lbasename (filenam), lineno);
     }
   for (cfram = melt_topframe; cfram != NULL; cfram = cfram->prev)
     {
@@ -524,7 +529,7 @@ melt_check_call_frames_at (int noyoungflag, const char *msg,
 	    fatal_error
 	      ("bad frame <%s#%ld> unexpected young closure %p in frame %p at %s:%d",
 	       msg, nbcheckcallframes,
-	       (void *) cfram->clos, (void *) cfram, basename (filenam),
+	       (void *) cfram->clos, (void *) cfram, lbasename (filenam),
 	       lineno);
 
 	  check_pointer_at (msg, nbcheckcallframes,
@@ -534,7 +539,7 @@ melt_check_call_frames_at (int noyoungflag, const char *msg,
 	    fatal_error
 	      ("bad frame <%s#%ld> invalid closure %p in frame %p at %s:%d",
 	       msg, nbcheckcallframes,
-	       (void *) cfram->clos, (void *) cfram, basename (filenam),
+	       (void *) cfram->clos, (void *) cfram, lbasename (filenam),
 	       lineno);
 	}
       for (varix = ((int) cfram->nbvar) - 1; varix >= 0; varix--)
@@ -545,7 +550,7 @@ melt_check_call_frames_at (int noyoungflag, const char *msg,
 	    fatal_error
 	      ("bad frame <%s#%ld> unexpected young pointer %p in frame %p at %s:%d",
 	       msg, nbcheckcallframes, (void *) cfram->varptr[varix],
-	       (void *) cfram, basename (filenam), lineno);
+	       (void *) cfram, lbasename (filenam), lineno);
 
 	  check_pointer_at (msg, nbcheckcallframes, &cfram->varptr[varix],
 			    filenam, lineno);
@@ -554,13 +559,13 @@ melt_check_call_frames_at (int noyoungflag, const char *msg,
   if (thresholdcheckcallframes > 0
       && nbcheckcallframes > thresholdcheckcallframes)
     debugeprintf ("end check_call_frames#%ld {%s} %d frames/%d vars %s:%d",
-		  nbcheckcallframes, msg, nbfram, nbvar, basename (filenam),
+		  nbcheckcallframes, msg, nbfram, nbvar, lbasename (filenam),
 		  lineno);
   if (debughack_file)
     {
       fprintf (debughack_file,
 	       "check_call_frames#%ld {%s} %d frames/%d vars %s:%d\n",
-	       nbcheckcallframes, msg, nbfram, nbvar, basename (filenam),
+	       nbcheckcallframes, msg, nbfram, nbvar, lbasename (filenam),
 	       lineno);
       fflush (debughack_file);
     }
@@ -573,10 +578,10 @@ melt_caught_assign_at (void *ptr, const char *fil, int lin,
   if (debughack_file)
     {
       fprintf (debughack_file, "caught assign %p at %s:%d /// %s\n", ptr,
-	       basename (fil), lin, msg);
+	       lbasename (fil), lin, msg);
       fflush (debughack_file);
     }
-  debugeprintf ("caught assign %p at %s:%d /// %s", ptr, basename (fil), lin,
+  debugeprintf ("caught assign %p at %s:%d /// %s", ptr, lbasename (fil), lin,
 		msg);
 }
 
@@ -589,10 +594,10 @@ melt_cbreak_at (const char *msg, const char *fil, int lin)
   if (debughack_file)
     {
       fprintf (debughack_file, "CBREAK#%ld AT %s:%d - %s\n", nbcbreak,
-	       basename (fil), lin, msg);
+	       lbasename (fil), lin, msg);
       fflush (debughack_file);
     };
-  debugeprintf_raw ("%s:%d: CBREAK#%ld %s\n", basename (fil), lin, nbcbreak,
+  debugeprintf_raw ("%s:%d: CBREAK#%ld %s\n", lbasename (fil), lin, nbcbreak,
 		    msg);
 }
 
@@ -750,7 +755,7 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
     {
       fprintf (debughack_file,
 	       "%s:%d free previous young %p - %p GC#%ld\n",
-	       basename (__FILE__), __LINE__, melt_startalz,
+	       lbasename (__FILE__), __LINE__, melt_startalz,
 	       melt_endalz, melt_nb_garbcoll);
       fflush (debughack_file);
     }
@@ -4668,7 +4673,7 @@ meltgc_new_string_tempname_suffixed (meltobject_ptr_t
 {
   int slen = 0;
   char suffix[16];
-  const char *basestr = xstrdup(lbasename(namstr));
+  const char *basestr = xstrdup (lbasename (namstr));
   const char* tempnampath = 0;
   char *dot = 0;
   MELT_ENTERFRAME (2, NULL);
@@ -5648,7 +5653,7 @@ meltgc_load_melt_module (melt_ptr_t modata_p, const char *modulnam)
     memset (locbuf, 0, sizeof (locbuf));
     snprintf (locbuf, sizeof (locbuf) - 1,
 	      "%s:%d:meltgc_load_melt_module before calling module %s",
-	      basename (__FILE__), __LINE__, dupmodulnam);
+	      lbasename (__FILE__), __LINE__, dupmodulnam);
     curfram__.flocs = locbuf;
   }
 #endif
@@ -5811,7 +5816,7 @@ loadit:
     memset (locbuf, 0, sizeof (locbuf));
     snprintf (locbuf, sizeof (locbuf) - 1,
 	      "%s:%d:meltgc_load_modulelist before reading module list : %s",
-	      basename (__FILE__), __LINE__, modlistpath);
+	      lbasename (__FILE__), __LINE__, modlistpath);
     curfram__.flocs = locbuf;
   }
 #endif
@@ -5862,7 +5867,7 @@ static struct obstack bstring_obstack;
     LINEMAP_POSITION_FOR_COLUMN (rd->rsrcloc, line_table, rd->rcol);	\
   error_at(rd->rsrcloc, Fmt, ##__VA_ARGS__);				\
   fatal_error("MELT read failure <%s:%d>",				\
-	      basename(__FILE__), __LINE__);				\
+	      lbasename(__FILE__), __LINE__);				\
 } while(0)
 /* readval returns the read value and sets *PGOT to true if something
    was read */
@@ -7333,15 +7338,31 @@ meltgc_read_file (const char *filnam, const char *locnam)
   if (!filnam || !filnam[0])
     goto end;
   if (!locnam || !locnam[0])
-    locnam = basename (filnam);
-  filnamdup = xstrdup (filnam);	/* filnamdup is never freed */
-  debugeprintf ("meltgc_read_file filnam %s locnam %s", filnam, locnam);
-  fil = fopen (filnam, "rt");
+    locnam = lbasename (filnam);
+  filnamdup = xstrdup (filnam);
+  /* Store the filnamdup in the parsedmeltfilevect vector to be able
+     to free them at end; we need to duplicate filnam because
+     linemap_add store pointers to it. */
+  VEC_safe_push (char_p, heap, parsedmeltfilevect, filnamdup);
+  debugeprintf ("meltgc_read_file filnamdup %s locnam %s", filnamdup, locnam);
+  fil = fopen (filnamdup, "rt");
   if (!fil)
-    fatal_error ("cannot open MELT file %s - %m", filnam);
+    fatal_error ("cannot open MELT file %s - %m", filnamdup);
+  /* warn if the filename has strange characters in its base name,
+     notably + */
+  {
+    const char* filbase;
+    for (filbase = lbasename (filnamdup); *filbase; filbase++)
+      {
+	if (ISALNUM (*filbase) || *filbase=='-'
+	    || *filbase=='_' || *filbase=='.')
+	  continue;
+	warning (0, "MELT file name %s has strange characters", filnamdup);
+      }
+  }
   /*  debugeprintf ("starting loading file %s", filnamdup); */
   rds.rfil = fil;
-  rds.rpath = filnam;
+  rds.rpath = filnamdup;
   rds.rlineno = 0;
   linemap_add (line_table, LC_RENAME, false, filnamdup, 0);
   rd = &rds;
@@ -7364,12 +7385,12 @@ meltgc_read_file (const char *filnam, const char *locnam)
 end:
   if (!seqv)
     {
-      debugeprintf ("meltgc_read_file filnam %s fail & return NULL", filnam);
-      warning(0, "MELT file %s read without content, perhaps failed.", filnam);
+      debugeprintf ("meltgc_read_file filnam %s fail & return NULL", filnamdup);
+      warning(0, "MELT file %s read without content, perhaps failed.", filnamdup);
     }
   else
     debugeprintf ("meltgc_read_file filnam %s return list of %d elem",
-		  filnam, melt_list_length ((melt_ptr_t) seqv));
+		  filnamdup, melt_list_length ((melt_ptr_t) seqv));
   MELT_EXITFRAME ();
   return (melt_ptr_t) seqv;
 #undef vecshv
@@ -7889,6 +7910,8 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
   modstr = melt_argument ("mode");
   inistr = melt_argument ("init");
   countdbgstr = melt_argument ("debugskip");
+  parsedmeltfilevect = VEC_alloc (char_p, heap, 12);
+
 #ifdef MELT_IS_PLUGIN
   { 
     const char *dbgstr = melt_argument ("debug");
@@ -7983,10 +8006,6 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
 
 
 
-typedef char *char_p;
-
-DEF_VEC_P (char_p);
-DEF_VEC_ALLOC_P (char_p, heap);
 
 static void
 do_finalize_melt (void)
@@ -8049,6 +8068,15 @@ do_finalize_melt (void)
 	warning (0, "failed to rmdir melt tempdir %s (%s)",
 		 tempdir_melt, strerror (errno));
     }
+  /* clear the vector of MELT file paths read */
+      while (parsedmeltfilevect && !VEC_empty (char_p, parsedmeltfilevect))
+	{
+	  char *parsedfilnam = VEC_pop (char_p, parsedmeltfilevect);
+	  if (parsedfilnam)
+	    *parsedfilnam = 0;
+	  free (parsedfilnam);
+	};
+      VEC_free (char_p, heap, parsedmeltfilevect);
  end:
   MELT_EXITFRAME ();
 #undef finclosv
@@ -9850,14 +9878,14 @@ melt_assert_failed (const char *msg, const char *filnam,
     fun = "??no-func??";
   if (melt_dbgcounter > 0)
     snprintf (msgbuf, sizeof (msgbuf) - 1,
-	      "%s:%d: MELT ASSERT #!%ld: %s {%s}", basename (filnam),
+	      "%s:%d: MELT ASSERT #!%ld: %s {%s}", lbasename (filnam),
 	      lineno, melt_dbgcounter, fun, msg);
   else
     snprintf (msgbuf, sizeof (msgbuf) - 1, "%s:%d: MELT ASSERT: %s {%s}",
-	      basename (filnam), lineno, fun, msg);
+	      lbasename (filnam), lineno, fun, msg);
   melt_dbgshortbacktrace (msgbuf, 100);
   fatal_error ("%s:%d: MELT ASSERT FAILED <%s> : %s\n",
-	       basename (filnam), lineno, fun, msg);
+	       lbasename (filnam), lineno, fun, msg);
 }
 
 void
@@ -9873,14 +9901,14 @@ melt_check_failed (const char *msg, const char *filnam,
     fun = "??no-func??";
   if (melt_dbgcounter > 0)
     snprintf (msgbuf, sizeof (msgbuf) - 1,
-	      "%s:%d: MELT CHECK #!%ld: %s {%s}", basename (filnam),
+	      "%s:%d: MELT CHECK #!%ld: %s {%s}", lbasename (filnam),
 	      lineno, melt_dbgcounter, fun, msg);
   else
     snprintf (msgbuf, sizeof (msgbuf) - 1, "%s:%d: MELT CHECK: %s {%s}",
-	      basename (filnam), lineno, fun, msg);
+	      lbasename (filnam), lineno, fun, msg);
   melt_dbgshortbacktrace (msgbuf, 100);
   warning (0, "%s:%d: MELT CHECK FAILED <%s> : %s\n",
-	   basename (filnam), lineno, fun, msg);
+	   lbasename (filnam), lineno, fun, msg);
 }
 
 
@@ -10024,7 +10052,7 @@ meltgc_gimple_gate(void)
     memset (locbuf, 0, sizeof (locbuf));
     snprintf (locbuf, sizeof (locbuf) - 1,
 	      "%s:%d:meltgc_gimple_gate pass %s before apply",
-	      basename (__FILE__), __LINE__, current_pass->name);
+	      lbasename (__FILE__), __LINE__, current_pass->name);
     curfram__.flocs = locbuf;
   }
 #endif
@@ -10115,7 +10143,7 @@ meltgc_gimple_execute(void)
     memset (locbuf, 0, sizeof (locbuf));
     snprintf (locbuf, sizeof (locbuf) - 1,
 	      "%s:%d:meltgc_gimple_execute pass %s before apply",
-	      basename (__FILE__), __LINE__, current_pass->name);
+	      lbasename (__FILE__), __LINE__, current_pass->name);
     curfram__.flocs = locbuf;
   }
 #endif
@@ -10197,7 +10225,7 @@ meltgc_rtl_gate(void)
     memset (locbuf, 0, sizeof (locbuf));
     snprintf (locbuf, sizeof (locbuf) - 1,
 	      "%s:%d:meltgc_rtl_gate pass %s before apply",
-	      basename (__FILE__), __LINE__, current_pass->name);
+	      lbasename (__FILE__), __LINE__, current_pass->name);
     curfram__.flocs = locbuf;
   }
 #endif
@@ -10280,7 +10308,7 @@ meltgc_rtl_execute(void)
     memset (locbuf, 0, sizeof (locbuf));
     snprintf (locbuf, sizeof (locbuf) - 1,
 	      "%s:%d:meltgc_rtl_execute pass %s before apply",
-	      basename (__FILE__), __LINE__, current_pass->name);
+	      lbasename (__FILE__), __LINE__, current_pass->name);
     curfram__.flocs = locbuf;
   }
 #endif
@@ -10362,7 +10390,7 @@ meltgc_simple_ipa_gate(void)
     memset (locbuf, 0, sizeof (locbuf));
     snprintf (locbuf, sizeof (locbuf) - 1,
 	      "%s:%d:meltgc_simple_ipa_gate pass %s before apply",
-	      basename (__FILE__), __LINE__, current_pass->name);
+	      lbasename (__FILE__), __LINE__, current_pass->name);
     curfram__.flocs = locbuf;
   }
 #endif
@@ -10452,7 +10480,7 @@ meltgc_simple_ipa_execute(void)
     memset (locbuf, 0, sizeof (locbuf));
     snprintf (locbuf, sizeof (locbuf) - 1,
 	      "%s:%d:meltgc_simple_ipa_execute pass %s before apply",
-	      basename (__FILE__), __LINE__, current_pass->name);
+	      lbasename (__FILE__), __LINE__, current_pass->name);
     curfram__.flocs = locbuf;
   }
 #endif
@@ -10704,7 +10732,7 @@ melt_handle_melt_attribute (tree decl, tree name, const char *attrstr,
     memset (locbuf, 0, sizeof (locbuf));
     snprintf (locbuf, sizeof (locbuf) - 1,
 	      "%s:%d:melt_handle_melt_attribute %s before apply",
-	      basename (__FILE__), __LINE__, attrstr);
+	      lbasename (__FILE__), __LINE__, attrstr);
     curfram__.flocs = locbuf;
   }
 #endif
