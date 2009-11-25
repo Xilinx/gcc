@@ -1,3 +1,29 @@
+2009-11-25  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	{painfully removing the melt-cc-script, and using a melt-module.mk
+	makefile instead. The code is unstable, and not even tested in
+	plugin mode!}
+
+	* melt-cc-script.proto: removed file.
+	* melt-module.mk: added file.
+	* melt-make.mk: using make instead of melt-cc-script... so has
+	been CHANGED A LOT!!!
+	* common.opt: removed -fmelt-compile-script= and added
+	fmelt-module-makefile= & fmelt-module-make-command=
+	* Makefile.in: removed all the tricks related to melt-cc-script.
+	(melt-runtime.o): added default MELT_MODULE_MAKEFILE &
+	MELT_MODULE_MAKE_COMMAND.
+	* melt-runtime.c (melt_module_make_command, melt_module_makefile):
+	new variables.
+	(melt_argument): handle module-makefile &
+	module-make-command but no more compile-script.
+	(obstack_add_escaped_path): new function.
+	(compile_to_dyl): removed, since renamed as
+	(compile_module_to_binary) which gets an extra argument for the
+	work directory.
+	* melt/warmelt-outobj.melt: added a warning to consider outputting
+	to several C files...
+
 2009-11-24  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c: all included files are now plugin installed!
 	Replaced all basename () calls with lbasename.

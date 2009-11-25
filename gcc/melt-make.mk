@@ -26,14 +26,14 @@
 ### melt_private_include_dir - header files for MELT generated C code
 ### melt_source_dir - directory containing *.melt (& corresponding *.c) file
 ### melt_module_dir - directory containing *.so MELT module files
-### melt_compile_script - script file to compile MELT generated *.c files
-### melt_make_compile_script - likewise when making MELT
+### melt_module_makefile - our melt-module.mk Makefile
 ### melt_make_source_dir - directory containing the *.melt files when making MELT
 ### melt_make_module_dir - directory containing the *.so files when making MELT
 ### melt_default_modules_list - basename of the default module list
 ### melt_cc1 - cc1 program with MELT (or loading MELT plugin)
 ### melt_is_plugin - should be non empty in plugin mode
 ### melt_make_move - a copy or move command for files
+### melt_cflags - the CFLAGS for compiling MELT generated C code
 
 ## the various arguments to MELT - avoid spaces in them!
 meltarg_mode=$(if $(melt_is_plugin),-fplugin-arg-melt-mode,-fmelt)
@@ -41,8 +41,10 @@ meltarg_init=$(if $(melt_is_plugin),-fplugin-arg-melt-init,-fmelt-init)
 meltarg_module_path=$(if $(melt_is_plugin),-fplugin-arg-melt-module-path,-fmelt-module-path)
 meltarg_source_path=$(if $(melt_is_plugin),-fplugin-arg-melt-source-path,-fmelt-source-path)
 meltarg_tempdir=$(if $(melt_is_plugin),-fplugin-arg-melt-tempdir,-fmelt-tempdir)
-meltarg_compile_script=$(if $(melt_is_plugin),-fplugin-arg-melt-compile-script,-fmelt-compile-script)
+
 meltarg_arg=$(if $(melt_is_plugin),-fplugin-arg-melt-arg,-fmelt-arg)
+meltarg_makefile=$(if $(melt_is_plugin),-fplugin-arg-melt-module-makefile,-fmelt-module-makefile)
+meltarg_makecmd=$(if $(melt_is_plugin),-fplugin-arg-melt-module-make-command,-fmelt-module-make-command)
 meltarg_arglist=$(if $(melt_is_plugin),-fplugin-arg-melt-arglist,-fmelt-arglist)
 meltarg_output=$(if $(melt_is_plugin),-fplugin-arg-melt-output,-fmelt-output)
 
@@ -50,15 +52,17 @@ meltarg_output=$(if $(melt_is_plugin),-fplugin-arg-melt-output,-fmelt-output)
 ## the invocation to translate the very first initial MELT file
 MELTCCINIT1=$(melt_cc1) $(melt_cc1flags) -Wno-shadow $(meltarg_mode)=translateinit  \
 	      $(meltarg_module_path)=.:$(melt_make_module_dir) \
+	      $(meltarg_makefile)=$(melt_module_makefile) \
+	      $(meltarg_makecmd)=$(MAKE) \
 	      $(meltarg_source_path)=.:$(melt_make_source_dir):$(melt_source_dir) \
-	      $(meltarg_compile_script)=$(melt_make_compile_script) \
 	      $(meltarg_tempdir)=.  $(MELT_DEBUG)
 
 ## the invocation to translate the other files
 MELTCCFILE1=$(melt_cc1)  $(melt_cc1flags) -Wno-shadow $(meltarg_mode)=translatefile  \
 	      $(meltarg_module_path)=.:$(melt_make_module_dir) \
+	      $(meltarg_makefile)=$(melt_module_makefile) \
+	      $(meltarg_makecmd)=$(MAKE) \
 	      $(meltarg_source_path)=.:$(melt_make_source_dir):$(melt_source_dir) \
-	      $(meltarg_compile_script)=$(melt_make_compile_script) \
 	      $(meltarg_tempdir)=.  $(MELT_DEBUG)
 
 
@@ -69,28 +73,49 @@ vpath %.melt $(melt_make_source_dir) . $(melt_source_dir)
 ## all the warm*.so need ./built-melt-cc-script to be built, but we
 ## don't add a dependency to avoid them being rebuilt at install time.
 ##
-warmelt-%.0.d.so: warmelt-%.0.c $(melt_make_compile_script)
-	$(melt_make_compile_script) -d $< $@
-warmelt-%-h.d.so: warmelt-%-h.c $(melt_make_compile_script)
-	$(melt_make_compile_script) -d $< $@
-warmelt-%-h2.d.so: warmelt-%-h2.c $(melt_make_compile_script)
-	$(melt_make_compile_script) -d $< $@
-warm%.n.so: warm%.c $(melt_make_compile_script)
-	$(melt_make_compile_script) -n $< $@
+warmelt-%.0.d.so: warmelt-%.0.c $(melt_module_makefile)
+	$(MAKE) -f $(melt_module_makefile) meltmodulerawdynamic \
+	      GCCMELT_CFLAGS="$(melt_cflags)" \
+	      GCCMELT_MODULE_SOURCE=$< GCCMELT_MODULE_BINARY=$@
+warmelt-%-h.d.so: warmelt-%-h.c $(melt_module_makefile)
+	$(MAKE) -f $(melt_module_makefile) meltmodulerawdynamic \
+	      GCCMELT_CFLAGS="$(melt_cflags)" \
+	      GCCMELT_MODULE_SOURCE=$< GCCMELT_MODULE_BINARY=$@
+warmelt-%-h2.d.so: warmelt-%-h2.c $(melt_module_makefile)
+	$(MAKE) -f $(melt_module_makefile) meltmodulerawdynamic \
+	      GCCMELT_CFLAGS="$(melt_cflags)" \
+	      GCCMELT_MODULE_SOURCE=$< GCCMELT_MODULE_BINARY=$@
+
+warm%.n.so: warm%.c $(melt_module_makefile)
+	$(MAKE) -f $(melt_module_makefile) meltmodulerawwithoutline \
+	      GCCMELT_CFLAGS="$(melt_cflags)" \
+	      GCCMELT_MODULE_SOURCE=$< GCCMELT_MODULE_BINARY=$@
 ## warmeltbig*.c is so big that it can only be compiled with -O0
-warmeltbig-%.so: warmeltbig-%.c $(melt_make_compile_script)
-	$(melt_make_compile_script) -O0 $< $@
-warm%.so: warm%.c $(melt_make_compile_script)
-	$(melt_make_compile_script) $< $@
+warmeltbig-%.so: warmeltbig-%.c $(melt_module_makefile)
+	$(MAKE) -f $(melt_module_makefile) meltmodule \
+	      GCCMELT_CFLAGS="$(melt_cflags) -O0"   \
+	      GCCMELT_MODULE_SOURCE=$< GCCMELT_MODULE_BINARY=$@
+warm%.so: warm%.c  $(melt_module_makefile)
+	$(MAKE) -f $(melt_module_makefile) meltmodule \
+	      GCCMELT_CFLAGS="$(melt_cflags)" \
+	      GCCMELT_MODULE_SOURCE=$< GCCMELT_MODULE_BINARY=$@
 
 ###
 
-ana%.n.so: ana%.c $(melt_make_compile_script)
-	$(melt_make_compile_script) -n $< $@
-ana%.d.so: ana%.c $(melt_make_compile_script)
-	$(melt_make_compile_script) -d $< $@
-ana%.so: ana%.c $(melt_make_compile_script)
-	$(melt_make_compile_script)  $< $@
+ana%.n.so: ana%.c $(melt_module_makefile)
+	$(MAKE) -f $(melt_module_makefile) meltmodulerawwithoutline \
+	      GCCMELT_CFLAGS="$(melt_cflags)" \
+	      GCCMELT_MODULE_SOURCE=$< GCCMELT_MODULE_BINARY=$@
+
+ana%.d.so: ana%.c $(melt_module_makefile)
+	$(MAKE) -f $(melt_module_makefile) meltmodulerawdynamic \
+	      GCCMELT_CFLAGS="$(melt_cflags)" \
+	      GCCMELT_MODULE_SOURCE=$< GCCMELT_MODULE_BINARY=$@
+
+ana%.so: ana%.c $(melt_module_makefile)
+	$(MAKE) -f $(melt_module_makefile) meltmodule \
+	      GCCMELT_CFLAGS="$(melt_cflags)" \
+	      GCCMELT_MODULE_SOURCE=$< GCCMELT_MODULE_BINARY=$@
 
 ## the warmelt files - order is important!
 WARMELT_RESTFILES= \

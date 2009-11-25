@@ -2723,10 +2723,10 @@ $(MELT_OBJ):  $(MELT_C)  \
    $(CONFIG_H) $(SYSTEM_H) $(TIMEVAR_H) $(TM_H)  $(TREE_H)  $(GGC_H)  \
    tree-pass.h $(MELT_H) gt-melt-runtime.h $(PLUGIN_H) $(TOPLEV_H) $(VERSION_H)
 	$(CC) $(ALL_CFLAGS) $(ALL_CPPFLAGS) \
-	  -DMELT_PRIVATE_INCLUDE_DIR=\"$(melt_private_include_dir)\" \
 	  -DMELT_SOURCE_DIR=\"$(melt_source_dir)\" \
 	  -DMELT_MODULE_DIR=\"$(melt_module_dir)\" \
-	  -DMELT_COMPILE_SCRIPT=\"$(melt_compile_script)\" \
+	  -DMELT_MODULE_MAKE_COMMAND=\"$(MAKE)\" \
+	  -DMELT_MODULE_MAKEFILE=\"$(melt_module_makefile)\" \
 	  -DMELT_DEFAULT_MODLIS=\"$(melt_default_modules_list)\" \
 	  -c $(MELT_C) $(OUTPUT_OPTION)
 melt-predef.h: $(srcdir)/make-melt-predefh.awk $(srcdir)/melt-predef.list
@@ -4282,7 +4282,6 @@ distclean: clean lang.distclean
 	-rm -f cxxmain.c
 	-rm -f gccbug .gdbinit configargs.h
 	-rm -f gcov.pod
-	-rm -f built-melt-cc-script
 # Delete po/*.gmo only if we are not building in the source directory.
 	-if [ ! -f po/exgettext ]; then rm -f po/*.gmo; fi
 	-rmdir ada cp f java objc intl po testsuite 2>/dev/null
@@ -5026,8 +5025,8 @@ melt_source_dir=$(libexecsubdir)/melt-source/
 ## this is the installation directory of melt dynamic modules (*.so)
 melt_module_dir=$(libexecsubdir)/melt-module/
 
-## this is the installed path of the script compiling MELT generated C file
-melt_compile_script=$(libexecsubdir)/melt-cc-script
+## this is the installed path of the MELT module makefile
+melt_module_makefile=$(libexecsubdir)/melt-module.mk
 
 ## this is the local build directory (which should be copied during
 ## installation into the installation directory above) for include-d *.h
@@ -5040,10 +5039,6 @@ melt_build_include_dir= melt-private-build-include
 
 melt_default_modules_list=melt-default-modules
 
-## the C flags (without any gcc -I...stuff) to be included in
-## compilation of MELT generated C code thru the melt-cc-script do not
-## put $(INTERNAL_CFLAGS) $(COVERAGE_FLAGS) $(WARN_CFLAGS) $(T_CFLAGS)
-## there!
 
 ## the raw CFLAGS for MELT 
 MELT_RAW_CFLAGS= $(X_CFLAGS) $(CFLAGS) $(XCFLAGS) $(INTERNAL_CFLAGS) @DEFS@ 
@@ -5053,7 +5048,7 @@ MELT_RAW_CFLAGS= $(X_CFLAGS) $(CFLAGS) $(XCFLAGS) $(INTERNAL_CFLAGS) @DEFS@
 ## giant routines and structures, and with -O2 they need too much
 ## space (more than 4Gbytes) and CPU time (more than 1hour on a 2.5GHz
 ## IntelCore2) to be compiled. Likewise, avoid passing -gtoggle.
-MELT_CFLAGS= $(shell echo $(MELT_RAW_CFLAGS) | sed 's/ -O[2-9]/ -O1/' | sed 's/ -g[a-z0-9-]*/ -g/')
+MELTHERE_CFLAGS= $(shell echo $(MELT_RAW_CFLAGS) | sed 's/ -O[2-9]/ -O1/' | sed 's/ -g[a-z0-9-]*/ -g/')
 
 # we want to generate all the direct (non system) dependencies of run-melt.h
 # the following should work if $(CC) is some recent version of GCC (probably >= 4.x)
@@ -5109,8 +5104,8 @@ ifdef MELT_OBJ
 melt.encap: run-melt.d 
 	echo melt.encap making Makefile
 	$(MAKE) Makefile
-	echo melt.encap making run-melt-deps built-melt-cc-script 
-	$(MAKE) run-melt-deps built-melt-cc-script 
+	echo melt.encap making run-melt-deps
+	$(MAKE) run-melt-deps
 # this is working probably only on Linux machines (hosts); we should use libtool here also!
 	echo melt.encap making warmelt-first.1.so
 	$(MAKE) warmelt-first.1.so
@@ -5127,21 +5122,20 @@ melt.encap: run-melt.d
 
 .PHONY: install-all-melt install-melt-headers update-warmelt diff-warm-1-2 diff-warm-2-3  diff-warm-4-5 diff-warmelt-2-3 install-melt-dynlib install-melt-cfiles install-melt-meltfiles
 
-install-melt-headers: melt.encap $(INSTALL_MELT_HEADERS_DIR) install-melt-cc-script
+install-melt-headers: melt.encap $(INSTALL_MELT_HEADERS_DIR)
 
 melt_cc1=./cc1$(exeext)
-melt_make_compile_script=$(objdir)/built-melt-cc-script
+melt_module_makefile=$(srcdir)/melt-module.mk
 melt_make_source_dir=$(srcdir)/melt
 melt_make_module_dir=$(objdir)
 melt_make_move=$(SHELL) $(srcdir)/../move-if-change
-
+melt_cflags:=$(MELTHERE_CFLAGS) -I $(melt_build_include_dir)
 ## leave melt_is_plugin as empty 
 melt_is_plugin=
 
 include $(srcdir)/melt-make.mk
 
 
-$(melt_make_compile_script): built-melt-cc-script
 ####
 #### installing melt generated shared object plugins (at MELT 3rd
 #### stage) and the default melt module list
@@ -5226,19 +5220,8 @@ install-melt-headers-cpio:  install-melt-include-dir
 install-melt-headers-cp: install-melt-include-dir
 	cp -p -r $(melt_build_include_dir) $(DESTDIR)$(melt_private_include_dir)
 
-.PHONY: install-melt-cc-script
+.PHONY: 
 
-## this file is actually built
-built-melt-cc-script: melt-cc-script.proto  run-melt-deps Makefile
-## the #:! lines should be removed, and in first twenty lines :MELT_GCC:
-## :MELT_CFLAGS: :MELT_HEADERDIR: :MELT_SCRIPT: should be substituted
-	sed -e s/^.:!.*// -e '1,30s|:GCCMELT_CC:|$(CC)|' \
-	    -e '1,30s|:GCCMELT_CFLAGS:|$(MELT_CFLAGS)|' \
-	    -e '1,30s|:GCCMELT_SCRIPT:|$(melt_compile_script)|' \
-	    -e '1,30s|:GCCMELT_HEADERDIR:|$(realpath $(melt_build_include_dir))|' \
-	< $< > tmp-built-melt-cc-script
-	$(SHELL) $(srcdir)/../move-if-change  tmp-built-melt-cc-script built-melt-cc-script
-	chmod u+x built-melt-cc-script
 
 
 # Create or recreate the gcc melt private include file directory.
@@ -5248,20 +5231,8 @@ install-melt-include-dir: installdirs
 	mkdir $(DESTDIR)$(melt_private_include_dir)
 	-chmod a+rx $(DESTDIR)$(melt_private_include_dir)
 
-install-melt-cc-script: melt-cc-script.proto Makefile
-## the #:! lines should be removed, and in first twenty lines :MELT_GCC:
-## :MELT_CFLAGS: :MELT_HEADERDIR: :MELT_SCRIPT: should be substituted
-# Nicolas Vigier suggested the | char which is very uncommon in file paths
-	sed -e s/^.:!.*// -e '1,30s|:GCCMELT_CC:|$(CC)|' \
-	    -e '1,30s|:GCCMELT_CFLAGS:|$(MELT_CFLAGS)|' \
-	    -e '1,30s|:GCCMELT_SCRIPT:|$(melt_compile_script)|' \
-	    -e '1,30s|:GCCMELT_HEADERDIR:|$(melt_private_include_dir)|' \
-	< $^ > tmp-installed-melt-cc-script
-	chmod a+x tmp-installed-melt-cc-script
-	$(INSTALL_SCRIPT) tmp-installed-melt-cc-script $(DESTDIR)$(melt_compile_script)
-	-rm -f tmp-installed-melt-cc-script
 
-install-all-melt: install-melt-include-dir install-melt-cc-script \
+install-all-melt: install-melt-include-dir \
 	install-melt-dynlib install-melt-cfiles install-melt-meltfiles
 else
 melt.encap:

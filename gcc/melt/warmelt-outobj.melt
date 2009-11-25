@@ -3062,6 +3062,8 @@
 	     objlist
 	     (lambda (obel)
 	       (debug_msg obel "compile_list_sexpr obel")
+	       ;; we want to generate several C files...
+	       (compile_warning "should consider outputting to other impbuf...")
 	       (output_c_code obel declbuf implbuf 0)))
 	    (debug_msg modnamstr "compile_list_sexpr final modnamstr") 
 	    (debug_msg iniobj "compile_list_sexpr outputting iniobj")
