@@ -337,6 +337,8 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; procedures
 (defclass class_nrep_anyproc
+  :doc #{The $CLASS_NREP_ANYPROC is the common super-class for
+procedures. Field $NPROC_BODY is the normalized body.}#
   :super class_nrep
   :fields (
 	   nproc_body
@@ -346,12 +348,23 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
 ;; the class of the initial procedure
 (defclass class_nrep_initproc
   :super class_nrep_anyproc
+  :doc #{The $CLASS_NREP_ANYPROC is the class for the initial
+procedure in a module. Field $NINIT_TOPL is the list of top-level
+normalized expressions.}#
   :fields (ninit_topl			;list of toplevel nrep
 	   ))
 
 ;; normal routine procedure
 (defclass class_nrep_routproc
   :super class_nrep_anyproc
+  :doc #{The $CLASS_NREP_ROUTPROC is the class for normal routine
+procedures, representing $DEFUN or $LAMBDA code. Field $NRPRO_NAME
+is the name, field $NRPRO_ARGB is the formal arguments
+binding. Field $NRPRO_CLOSEDB is the list of closed bindings. Field
+$NRPRO_CONST is the list of constants. Field $NRPRO_DATAROUT is the
+routine data object. Field $NRPRO_DATACLOS is the closure data
+object. Field $NRPRO_THUNKLIST is the list of thunks to be called
+when compiling it.}#
   :fields (
 	   nrpro_name			;name (if any)
 	   nrpro_argb			;argument bindings
@@ -361,6 +374,18 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
 	   nrpro_dataclos		;closure data object
 	   nrpro_thunklist		;list of thunks to be called when compiling it
 	   ))
+
+(defclass class_nrep_lambdaroutproc
+  :super class_nrep_routproc
+  :doc #{The $CLASS_NREP_LAMBDAROUTPROC is the class for $LAMBDA
+related routine procedures.}#
+  :fields ())
+
+(defclass class_nrep_defunroutproc
+  :super class_nrep_routproc
+  :doc #{The $CLASS_NREP_DEFUNROUTPROC is the class for $DEFUN related
+routine procedures.}#
+  :fields ())
 
 
 ;;; static normalized predef
@@ -562,12 +587,12 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
 
 ;;; export all the normalized representations classes
 (export_class ;; normal representations classes in alphabetical order
- class_normal_constructor_binding
- class_normal_constructed_tuple_binding
- class_normal_constructed_pair_binding
- class_normal_constructed_list_binding
- class_normal_constructed_lambda_binding
+
  class_normal_constructed_instance_binding
+ class_normal_constructed_lambda_binding
+ class_normal_constructed_list_binding
+ class_normal_constructed_pair_binding
+ class_normal_constructed_tuple_binding
  class_nrep
  class_nrep_anyproc
  class_nrep_apply
@@ -587,6 +612,7 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
  class_nrep_datastring
  class_nrep_datasymbol
  class_nrep_datatuple
+ class_nrep_defunroutproc
  class_nrep_exit
  class_nrep_expression
  class_nrep_fieldacc
@@ -595,12 +621,14 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
  class_nrep_if
  class_nrep_ifcommon
  class_nrep_ifisa
+ class_nrep_importedval
  class_nrep_initproc
+ class_nrep_instance
  class_nrep_lambda
+ class_nrep_lambdaroutproc
  class_nrep_let
  class_nrep_letrec
  class_nrep_locsymocc
- class_nrep_instance
  class_nrep_msend
  class_nrep_multacc
  class_nrep_multiapply
@@ -618,7 +646,6 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
  class_nrep_routproc
  class_nrep_setq
  class_nrep_simple
- class_nrep_importedval
  class_nrep_store_predefined
  class_nrep_symocc
  class_nrep_typed_expression
@@ -626,6 +653,8 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
  class_nrep_unsafe_get_field
  class_nrep_unsafe_put_fields
  class_nrep_update_current_module_environment_container
+class_normal_constructor_binding
+
  )					;end of export normal classes
 
 
@@ -2955,7 +2984,7 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
 	 (oldproc (unsafe_get_field :nctx_curproc ncx))
 	 (oldsymbcache (unsafe_get_field :nctx_symbcachemap ncx))
 	 (closblis (make_list discr_list))
-	 (nproc (instance class_nrep_routproc
+	 (nproc (instance class_nrep_defunroutproc
 ;;; dont forget to put the nil fields at end
 			  :nrep_loc sloc
 			  :nproc_body () ;filled later
@@ -3060,7 +3089,7 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
 	 (oldproc (unsafe_get_field :nctx_curproc ncx))
 	 (savedcachemap (unsafe_get_field :nctx_symbcachemap ncx))
 	 (closedblist (make_list discr_list))
-	 (nproc (instance class_nrep_routproc
+	 (nproc (instance class_nrep_lambdaroutproc
 			  :nrep_loc sloc
 			  :nproc_body () ;filled later
 			  :nrpro_name csym
@@ -5265,9 +5294,9 @@ tuple of the normalized slots, and $NINSTB_CLABIND is the class binding.}#
     (assert_msg "check newname" (is_a newname class_symbol))
     (assert_msg "check oldname" (is_a oldname class_symbol))
     ;; when a class has a synonym, we should generate in the C code 
-    ;;; const int classlen__<SYNONYMNAME>
+    ;;; const int meltclasslen__<SYNONYMNAME>
     ;; when a field has a synonym, we should generate in the C code
-    ;;; const int fieldoff__<SYNONYMNAME> 
+    ;;; const int meltfieldoff__<SYNONYMNAME> 
     (compile_warning "export_synonym should also generate a class length or field offset when needed")
     (multicall
      (noldsym noldsymbinds)

@@ -268,6 +268,8 @@ melt_argument (const char* argname)
     return melt_gdbmstate_string;
   else if (!strcmp (argname, "source-path"))
     return melt_srcpath_string;
+  else if (!strcmp (argname, "single-c-file"))
+    return flag_melt_single_c_file?"yes":NULL;
   else if (!strcmp (argname, "init"))
     return melt_init_string;
   else if (!strcmp (argname, "output"))
@@ -8263,7 +8265,7 @@ melt_dynobjstruct_fieldoffset_at (const char *fldnam, const char *fil,
 {
   char *nam = 0;
   void *ptr = 0;
-  nam = concat ("fieldoff__", fldnam, NULL);
+  nam = concat ("meltfieldoff__", fldnam, NULL);
   ptr = melt_dlsym_all (nam);
   if (!ptr)
     fatal_error ("melt failed to find field offset %s - %s (%s:%d)", nam,
@@ -8279,7 +8281,7 @@ melt_dynobjstruct_classlength_at (const char *clanam, const char *fil,
 {
   char *nam = 0;
   void *ptr = 0;
-  nam = concat ("classlen__", clanam, NULL);
+  nam = concat ("meltclasslen__", clanam, NULL);
   ptr = melt_dlsym_all (nam);
   if (!ptr)
     fatal_error ("melt failed to find class length %s - %s (%s:%d)", nam,
@@ -9995,12 +9997,25 @@ melt_output_cfile_decl_impl (melt_ptr_t unitnam,
   /* we compare oldfil & cfil; if they are the same we don't overwrite
      the oldfil; this is for the happiness of make utility. */
   samefil = oldfil != NULL;
+  if (samefil) 
+    {
+      /* files of different sizes are different */
+      struct stat cfilstat, oldfilstat;
+      memset (&cfilstat, 0, sizeof (cfilstat));
+      memset (&oldfilstat, 0, sizeof (oldfilstat));
+      if (fstat (fileno(cfil), &cfilstat)
+	  || fstat (fileno (oldfil), &oldfilstat)
+	  || cfilstat.st_size != oldfilstat.st_size)
+	samefil = false;
+    }
   while (samefil) 
     {
       int c = getc (cfil);
       int o = getc (oldfil);
       if (c != o)
 	samefil = false;
+      if (c < 0) 
+	break;
     };
   samefil = samefil && feof(cfil) && feof(oldfil);
   fclose (cfil);

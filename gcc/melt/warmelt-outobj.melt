@@ -2919,7 +2919,7 @@
      (lambda (fld :long ix)
        (assert_msg "check fld" (is_a fld class_field))
        (add2sbuf_indentnl implbuf 0)
-       (add2sbuf_strconst implbuf "const int fieldoff__")
+       (add2sbuf_strconst implbuf "const int meltfieldoff__")
        (add2sbuf_cident implbuf (unsafe_get_field :named_name fld))
        (add2sbuf_strconst implbuf " = ")
        (add2sbuf_longdec implbuf (get_int fld))
@@ -2933,7 +2933,7 @@
      (lambda (cla :long ix)
        (assert_msg "check cla" (is_a cla class_class))
        (add2sbuf_indentnl implbuf 0)
-       (add2sbuf_strconst implbuf "const int classlen__")
+       (add2sbuf_strconst implbuf "const int meltclasslen__")
        (add2sbuf_cident implbuf (unsafe_get_field :named_name cla))
        (add2sbuf_strconst implbuf " = ")	
        (add2sbuf_longdec implbuf 
@@ -2943,6 +2943,42 @@
     (add2sbuf_indentnl implbuf 0)
     ))
 
+
+;;; the internal class for secondary generated C files
+(defclass class_secondary_c_file
+  :super class_root
+  :fields (secfil_modnam 		;the module name
+	   secfil_path			;the file path
+	   secfil_declbuf		;the declaration buffer
+	   secfil_implbuf		;the implementation buffer
+	   ))
+
+;;; retrieve or create the nth secondary file in a module
+(defun nth_secundary_file (modctx modnamstr declbuf :long ix)
+  (assert_msg "check modctx" (is_a modctx class_module_context))
+  (assert_msg "check modnamstr" (is_string modnamstr))
+  (assert_msg "check declbuf" (is_strbuf declbuf))
+  (let ( (mofiles (get_field :mocx_filetuple modctx))
+	 (:long nbfiles (multiple_length mofiles))
+	 (nthfile (multiple_nth mofiles ix))
+	 )
+    (if nthfile (return nthfile))
+    (if (<=i ix 0) (return))
+    (if (>=i ix nbfiles) (return))
+    (compile_warning "nth_secundary_file incomplete")
+    (let ( 	 
+	  (pathbuf (make_strbuf discr_strbuf))
+	  (implbuf (make_strbuf discr_strbuf))
+	  (newfile (instance class_secondary_c_file
+			      :secfil_modnam modnamstr
+			      :secfil_path ()
+			      :secfil_declbuf declbuf
+			      :secfil_implbuf implbuf))
+	   )
+      (put_int newfile ix)
+      (multiple_put_nth mofiles ix newfile)
+      (return newfile)
+  )))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; compile a list of sexpressions as a module starting from a given environment
@@ -2960,6 +2996,8 @@
 			  :mocx_expfieldict (make_mapstring discr_map_strings 90)
 			  :mocx_expclassdict (make_mapstring discr_map_strings 40)
 			  :mocx_initialenv inienv
+			  :mocx_funcount (make_integerbox discr_integer 0)
+			  :mocx_filetuple ()
 			  ))
 	(ncx (create_normcontext modctx)) )
     (debug_msg ncx "compile_list_sexpr initial ncx")
@@ -3057,14 +3095,15 @@
 	    (outcstring_err "** of checksum ")
 	    (out_cplugin_md5_checksum_err)
 	    (outnewline_err)
-;;;
-	    (list_every
-	     objlist
-	     (lambda (obel)
-	       (debug_msg obel "compile_list_sexpr obel")
-	       ;; we want to generate several C files...
-	       (compile_warning "should consider outputting to other impbuf...")
-	       (output_c_code obel declbuf implbuf 0)))
+            ;;;
+	    (foreach_in_list
+	     (objlist)
+	     (pairel obel)
+	     (debug_msg obel "compile_list_sexpr obel")
+	     ;; we want to generate several C files...
+	     (compile_warning "should consider outputting to other implbuf...")
+	     (output_c_code obel declbuf implbuf 0))
+	    ;;;
 	    (debug_msg modnamstr "compile_list_sexpr final modnamstr") 
 	    (debug_msg iniobj "compile_list_sexpr outputting iniobj")
 	    (output_c_code iniobj declbuf implbuf 0)

@@ -94,8 +94,6 @@ $(GCCMELT_MODULE_WORKSPACE)/%.nolpic.o: $(MELTMODULE_SRCDIR)/%.c
 	$(GCCMELT_CC) $(GCCMELT_CFLAGS)  -DMELTGCC_NOLINENUMBERING -fPIC -c -o $@ $<
 
 $(MELTSTAMP): $(MELTMODULE_CFILES)
-	echo MELTMODULE_CFILES= $(MELTMODULE_CFILES)
-	echo MELTSTAMP= $(MELTSTAMP)
 	echo '/*' generated file $(MELTSTAMP) '*/' > $@-tmp
 	date "+const char melt_compiled_timestamp[]=\"%c $(MELTMODULE)\";" >> $@-tmp
 	echo "const char melt_md5[]=\"\\" >> $@-tmp

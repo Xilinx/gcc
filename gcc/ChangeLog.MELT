@@ -1,3 +1,35 @@
+2009-11-26  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	[preparing to generate secondary C files foo+1.c with foo.c for
+	MELT file foo.melt]
+	
+	* common.opt: added -fmelt-single-c-file.
+	* run-melt.h: Updated comment.
+	* melt-runtime.c:
+	(melt_argument): added "single-c-file".
+	(melt_dynobjstruct_fieldoffset_at): uses the "meltfieldoff__"
+	prefix.
+	(melt_dynobjstruct_classlength_at): uses the "meltclasslen__"
+	prefix.
+	(melt_output_cfile_decl_impl): detects correctly equal old & new c
+	files, and uses stat to get their length.
+	* melt/melt-first.melt: added mocx_funcount & mocx_filetuple to
+	class_module_context.
+	* melt/warmelt-normal.melt: added class_nrep_defunroutproc &
+	class_nrep_lambdaroutproc, and instanciate them appropriately.
+	* melt/warmelt-genobj.melt: added oprout_filenum to
+	class_procroutineobj & compute it.
+	* melt/warmelt-outobj.melt: still incomplete, but added more.
+	* melt-module.mk: removed echo.
+	{{regenerated files, because added fields to class_module_context
+	which are "forard referenced"}}
+	* melt/warmelt-macro.0.c: regenerated.
+	* melt/warmelt-outobj.0.c: regenerated.
+	* melt/warmelt-genobj.0.c: regenerated.
+	* melt/warmelt-normatch.0.c: regenerated.
+	* melt/warmelt-normal.0.c: regenerated.
+	* melt/warmelt-first.0.c: regenerated.
+
 2009-11-25  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	{painfully removing the melt-cc-script, and using a melt-module.mk

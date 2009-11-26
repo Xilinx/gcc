@@ -382,6 +382,11 @@ fmelt-source-path=
 Common Report Var(melt_srcpath_string) RejectNegative Joined
 Source colon-separated path for MELT [or $GCCMELT_SOURCE_PATH]
 
+; force generation of a single C file for a MELT module
+fmelt-single-c-file
+Common Report Var(flag_melt_single_c_file) 
+Force the generation of a single C file from a MELT module
+
 ; initial C or dynamic lib modules for above analysis
 fmelt-init=
 Common Report Var(melt_init_string) RejectNegative Joined

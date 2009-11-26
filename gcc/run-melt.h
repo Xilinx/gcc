@@ -1,4 +1,4 @@
-/* Basile's static analysis (should have a better name) run-mmelt.h
+/*  MELT file run-melt.h included in every generated file.
    all include files for generated code
    
    Copyright 2008 Free Software Foundation, Inc.

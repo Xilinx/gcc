@@ -453,6 +453,7 @@
   :fields (oprout_getargs		;the get arguments tuple of instructions
 	   oprout_loc			;the source location
 	   oprout_funam			;function name
+	   oprout_filenum		;boxed C file number
 	   ))
 
 ;; initial routine
@@ -688,7 +689,12 @@
   (assert_msg "check modctx" (is_a modctx class_module_context))
   (let ( (namsbuf (make_strbuf discr_strbuf)) 
 	 (routfunam ())
+	 (mofuncount  (get_field :mocx_funcount modctx))
+	 (mofiles (get_field :mocx_filetuple modctx))
+	 (:long funum (+i 1 (get_int mofuncount)))
 	 )
+    (if (is_a pro class_nrep_defunroutproc)
+	  (put_int mofuncount funum))
     (add2sbuf_strconst namsbuf "meltrout_")
     (add2sbuf_longdec namsbuf num)
     (add2sbuf_strconst namsbuf "_")
@@ -707,6 +713,8 @@
 	  (nloc (unsafe_get_field :nrep_loc pro))
 	  (nargb (if (is_a pro class_nrep_routproc) (unsafe_get_field :nrpro_argb pro)))
 	  (obodylist (make_list discr_list))
+	  (:long filenum (/iraw funum 16))
+	  (:long nbfiles (multiple_length mofiles))
 	  (obrout (instance class_procroutineobj
 			    :named_name (strbuf2string discr_string namsbuf)
 			    :obrout_proc pro
@@ -717,6 +725,7 @@
 			    :obrout_cntciter (make_integerbox discr_integer 0)
 			    :oprout_loc nloc
 			    :oprout_funam routfunam
+			    :oprout_filenum (make_integerbox discr_constant_integer filenum)
 			    )) 
 	  (locmap (make_mapobject discr_map_objects (+i 20 (*i 3 (multiple_length nargb)))))
 	  (gcx (instance class_c_generation_context
@@ -762,6 +771,17 @@
 		))
 	    ))
 	  )
+      ;;; grow the file tuple if needed
+      (if (>=i filenum nbfiles)
+	  (let ( (:long newnbfiles (+i nbfiles (+i 2 (/iraw filenum 4))))
+		 (newfiletup (make_multiple discr_multiple newnbfiles))
+		)
+	    (put_fields modctx :mocx_filetuple newfiletup)
+	    (foreach_in_multiple 
+	     (mofiles)
+	     (curfile :long curix)
+	     (multiple_put_nth newfiletup curix curfile))
+	      ))
       ;; associate the procedure with its objroutine in the compiler cache
       (mapobject_put compicache pro obrout)
       (unsafe_put_fields obrout :oprout_getargs gtatup)

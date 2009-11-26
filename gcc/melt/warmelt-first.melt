@@ -653,12 +653,17 @@ subclasses are produced by macro expanders.}# )
 	   mocx_expfieldict		;dict of exported fields
 	   mocx_expclassdict		;dict of exported classes
 	   mocx_initialenv		;the initial environment
+	   mocx_funcount		;a boxed counter for defined functions
+	   mocx_filetuple		;vector for different generated files
 	   )
   :doc #{The internal $CLASS_MODULE_CONTEXT describes the whole module
 context of a translation. $MOCX_MODULENAME gives the module name,
 $MOCX_EXPFIELDICT gives the dictionnary of exported fields,
 $MOCX_EXPCLASSDICT gives the dictionnary of exported classes, and
-$MOCX_INITIALENV the initial environment. For gurus!}# )
+$MOCX_INITIALENV the initial environment. $MOCX_FUNCOUNT is a boxed
+integer counting the defined functions (excluding $LAMBDA-s, counting
+only $DEFUN), used to help generate C code in several files, described
+in $MOCX_FILETUPLE.  For gurus!}# )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; normalization context
