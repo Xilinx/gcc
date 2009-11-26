@@ -58,6 +58,8 @@
 (define_mode_iterator AVX256MODE8P [V8SI V8SF])
 (define_mode_iterator AVXMODEF2P [V4SF V2DF V8SF V4DF])
 (define_mode_iterator AVXMODEF4P [V4SF V4DF])
+(define_mode_iterator AVXMODEFDP [V2DF V4DF])
+(define_mode_iterator AVXMODEFSP [V4SF V8SF])
 (define_mode_iterator AVXMODEDCVTDQ2PS [V4SF V8SF])
 (define_mode_iterator AVXMODEDCVTPS2DQ [V4SI V8SI])
 
@@ -68,6 +70,14 @@
 ;; Modes handled by integer vcond pattern
 (define_mode_iterator SSEMODE124C8 [V16QI V8HI V4SI
 				    (V2DI "TARGET_SSE4_2")])
+
+;; Modes handled by vec_extract_even/odd pattern.
+(define_mode_iterator SSEMODE_EO
+  [(V4SF "TARGET_SSE")
+   (V2DF "TARGET_SSE2")
+   (V2DI "TARGET_SSE2") (V4SI "TARGET_SSE2")
+   (V8HI "TARGET_SSE2") (V16QI "TARGET_SSE2")
+   (V4DF "TARGET_AVX") (V8SF "TARGET_AVX")])
 
 ;; Mapping from float mode to required SSE level
 (define_mode_attr sse [(SF "sse") (DF "sse2") (V4SF "sse") (V2DF "sse2")])
@@ -95,13 +105,16 @@
 				 (V4SI "SI") (V2DI "DI")])
 
 ;; Mapping of vector modes to a vector mode of double size
-(define_mode_attr ssedoublesizemode [(V2DF "V4DF") (V2DI "V4DI")
-				     (V4SF "V8SF") (V4SI "V8SI")])
+(define_mode_attr ssedoublesizemode
+  [(V2DF "V4DF") (V2DI "V4DI") (V4SF "V8SF") (V4SI "V8SI")
+   (V8HI "V16HI") (V16QI "V32QI")
+   (V4DF "V8DF") (V8SF "V16SF")
+   (V4DI "V8DI") (V8SI "V16SI") (V16HI "V32HI") (V32QI "V64QI")])
 
 ;; Number of scalar elements in each vector type
-(define_mode_attr ssescalarnum [(V4SF "4") (V2DF "2")
-				(V16QI "16") (V8HI "8")
-				(V4SI "4") (V2DI "2")])
+(define_mode_attr ssescalarnum
+  [(V4SF "4") (V2DF "2") (V16QI "16") (V8HI "8") (V4SI "4") (V2DI "2")
+   (V8SF "8") (V4DF "4") (V32QI "32") (V16HI "16") (V8SI "8") (V4DI "4")])
 
 ;; Mapping for AVX
 (define_mode_attr avxvecmode
@@ -133,10 +146,6 @@
 ;; Mapping of immediate bits for blend instructions
 (define_mode_attr blendbits
   [(V8SF "255") (V4SF "15") (V4DF "15") (V2DF "3")])
-
-;; Mapping of immediate bits for vpermil instructions
-(define_mode_attr vpermilbits
-  [(V8SF "255") (V4SF "255") (V4DF "15") (V2DF "3")])
 
 ;; Mapping of immediate bits for pinsr instructions
 (define_mode_attr pinsrbits [(V16QI "32768") (V8HI "128") (V4SI "8")])
@@ -2733,7 +2742,7 @@
 	     (parallel [(const_int 0)]))]
 	  UNSPEC_FIX_NOTRUNC))]
   "TARGET_SSE && TARGET_64BIT"
-  "%vcvtss2siq\t{%1, %0|%0, %1}"
+  "%vcvtss2si{q}\t{%1, %0|%0, %1}"
   [(set_attr "type" "sseicvt")
    (set_attr "athlon_decode" "double,vector")
    (set_attr "prefix_rep" "1")
@@ -2745,7 +2754,7 @@
 	(unspec:DI [(match_operand:SF 1 "nonimmediate_operand" "x,m")]
 		   UNSPEC_FIX_NOTRUNC))]
   "TARGET_SSE && TARGET_64BIT"
-  "%vcvtss2siq\t{%1, %0|%0, %1}"
+  "%vcvtss2si{q}\t{%1, %0|%0, %1}"
   [(set_attr "type" "sseicvt")
    (set_attr "athlon_decode" "double,vector")
    (set_attr "amdfam10_decode" "double,double")
@@ -2775,7 +2784,7 @@
 	    (match_operand:V4SF 1 "nonimmediate_operand" "x,m")
 	    (parallel [(const_int 0)]))))]
   "TARGET_SSE && TARGET_64BIT"
-  "%vcvttss2siq\t{%1, %0|%0, %1}"
+  "%vcvttss2si{q}\t{%1, %0|%0, %1}"
   [(set_attr "type" "sseicvt")
    (set_attr "athlon_decode" "double,vector")
    (set_attr "amdfam10_decode" "double,double")
@@ -4692,48 +4701,24 @@
 })
 
 (define_expand "vec_extract_even<mode>"
-  [(set (match_operand:SSEMODE4S 0 "register_operand" "")
-	(vec_select:SSEMODE4S
-	  (vec_concat:<ssedoublesizemode>
-	    (match_operand:SSEMODE4S 1 "register_operand" "")
-	    (match_operand:SSEMODE4S 2 "nonimmediate_operand" ""))
-	  (parallel [(const_int 0)
-		     (const_int 2)
-		     (const_int 4)
-		     (const_int 6)])))]
-  "TARGET_SSE")
+  [(match_operand:SSEMODE_EO 0 "register_operand" "")
+   (match_operand:SSEMODE_EO 1 "register_operand" "")
+   (match_operand:SSEMODE_EO 2 "register_operand" "")]
+  ""
+{
+  ix86_expand_vec_extract_even_odd (operands[0], operands[1], operands[2], 0);
+  DONE;
+})
 
 (define_expand "vec_extract_odd<mode>"
-  [(set (match_operand:SSEMODE4S 0 "register_operand" "")
-	(vec_select:SSEMODE4S
-	  (vec_concat:<ssedoublesizemode>
-	    (match_operand:SSEMODE4S 1 "register_operand" "")
-	    (match_operand:SSEMODE4S 2 "nonimmediate_operand" ""))
-	  (parallel [(const_int 1)
-		     (const_int 3)
-		     (const_int 5)
-		     (const_int 7)])))]
-  "TARGET_SSE")
-
-(define_expand "vec_extract_even<mode>"
-  [(set (match_operand:SSEMODE2D 0 "register_operand" "")
-	(vec_select:SSEMODE2D
-	  (vec_concat:<ssedoublesizemode>
-	    (match_operand:SSEMODE2D 1 "register_operand" "")
-	    (match_operand:SSEMODE2D 2 "nonimmediate_operand" ""))
-	  (parallel [(const_int 0)
-	  	     (const_int 2)])))]
-  "TARGET_SSE2")
-
-(define_expand "vec_extract_odd<mode>"
-  [(set (match_operand:SSEMODE2D 0 "register_operand" "")
-	(vec_select:SSEMODE2D
-	  (vec_concat:<ssedoublesizemode>
-	    (match_operand:SSEMODE2D 1 "register_operand" "")
-	    (match_operand:SSEMODE2D 2 "nonimmediate_operand" ""))
-	  (parallel [(const_int 1)
-	  	     (const_int 3)])))]
-  "TARGET_SSE2")
+  [(match_operand:SSEMODE_EO 0 "register_operand" "")
+   (match_operand:SSEMODE_EO 1 "register_operand" "")
+   (match_operand:SSEMODE_EO 2 "register_operand" "")]
+  ""
+{
+  ix86_expand_vec_extract_even_odd (operands[0], operands[1], operands[2], 1);
+  DONE;
+})
 
 ;; punpcklqdq and punpckhqdq are shorter than shufpd.
 (define_insn "*avx_punpckhqdq"
@@ -5242,20 +5227,16 @@
    (set_attr "prefix_data16" "1")
    (set_attr "mode" "TI")])
 
-(define_insn_and_split "mulv16qi3"
+(define_expand "mulv16qi3"
   [(set (match_operand:V16QI 0 "register_operand" "")
 	(mult:V16QI (match_operand:V16QI 1 "register_operand" "")
 		    (match_operand:V16QI 2 "register_operand" "")))]
-  "TARGET_SSE2
-   && can_create_pseudo_p ()"
-  "#"
-  "&& 1"
-  [(const_int 0)]
+  "TARGET_SSE2"
 {
-  rtx t[12];
+  rtx t[6];
   int i;
 
-  for (i = 0; i < 12; ++i)
+  for (i = 0; i < 6; ++i)
     t[i] = gen_reg_rtx (V16QImode);
 
   /* Unpack data such that we've got a source byte in each low byte of
@@ -5277,15 +5258,8 @@
 			   gen_lowpart (V8HImode, t[2]),
 			   gen_lowpart (V8HImode, t[3])));
 
-  /* Extract the relevant bytes and merge them back together.  */
-  emit_insn (gen_sse2_punpckhbw (t[6], t[5], t[4]));	/* ..AI..BJ..CK..DL */
-  emit_insn (gen_sse2_punpcklbw (t[7], t[5], t[4]));	/* ..EM..FN..GO..HP */
-  emit_insn (gen_sse2_punpckhbw (t[8], t[7], t[6]));	/* ....AEIM....BFJN */
-  emit_insn (gen_sse2_punpcklbw (t[9], t[7], t[6]));	/* ....CGKO....DHLP */
-  emit_insn (gen_sse2_punpckhbw (t[10], t[9], t[8]));	/* ........ACEGIKMO */
-  emit_insn (gen_sse2_punpcklbw (t[11], t[9], t[8]));	/* ........BDFHJLNP */
-
-  emit_insn (gen_sse2_punpcklbw (operands[0], t[11], t[10]));	/* ABCDEFGHIJKLMNOP */
+  /* Extract the even bytes and merge them back together.  */
+  ix86_expand_vec_extract_even_odd (operands[0], t[5], t[4], 0);
   DONE;
 })
 
@@ -6577,96 +6551,39 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; Reduce:
-;;      op1 = abcdefghijklmnop
-;;      op2 = qrstuvwxyz012345
-;;       h1 = aqbrcsdteufvgwhx
-;;       l1 = iyjzk0l1m2n3o4p5
-;;       h2 = aiqybjrzcks0dlt1
-;;       l2 = emu2fnv3gow4hpx5
-;;       h3 = aeimquy2bfjnrvz3
-;;       l3 = cgkosw04dhlptx15
-;;   result = bdfhjlnprtvxz135
 (define_expand "vec_pack_trunc_v8hi"
   [(match_operand:V16QI 0 "register_operand" "")
    (match_operand:V8HI 1 "register_operand" "")
    (match_operand:V8HI 2 "register_operand" "")]
   "TARGET_SSE2"
 {
-  rtx op1, op2, h1, l1, h2, l2, h3, l3;
-
-  op1 = gen_lowpart (V16QImode, operands[1]);
-  op2 = gen_lowpart (V16QImode, operands[2]);
-  h1 = gen_reg_rtx (V16QImode);
-  l1 = gen_reg_rtx (V16QImode);
-  h2 = gen_reg_rtx (V16QImode);
-  l2 = gen_reg_rtx (V16QImode);
-  h3 = gen_reg_rtx (V16QImode);
-  l3 = gen_reg_rtx (V16QImode);
-
-  emit_insn (gen_vec_interleave_highv16qi (h1, op1, op2));
-  emit_insn (gen_vec_interleave_lowv16qi (l1, op1, op2));
-  emit_insn (gen_vec_interleave_highv16qi (h2, l1, h1));
-  emit_insn (gen_vec_interleave_lowv16qi (l2, l1, h1));
-  emit_insn (gen_vec_interleave_highv16qi (h3, l2, h2));
-  emit_insn (gen_vec_interleave_lowv16qi (l3, l2, h2));
-  emit_insn (gen_vec_interleave_lowv16qi (operands[0], l3, h3));
+  rtx op1 = gen_lowpart (V16QImode, operands[1]);
+  rtx op2 = gen_lowpart (V16QImode, operands[2]);
+  ix86_expand_vec_extract_even_odd (operands[0], op1, op2, 0);
   DONE;
 })
 
-;; Reduce:
-;;      op1 = abcdefgh
-;;      op2 = ijklmnop
-;;       h1 = aibjckdl
-;;       l1 = emfngohp
-;;       h2 = aeimbfjn
-;;       l2 = cgkodhlp
-;;   result = bdfhjlnp
 (define_expand "vec_pack_trunc_v4si"
   [(match_operand:V8HI 0 "register_operand" "")
    (match_operand:V4SI 1 "register_operand" "")
    (match_operand:V4SI 2 "register_operand" "")]
   "TARGET_SSE2"
 {
-  rtx op1, op2, h1, l1, h2, l2;
-
-  op1 = gen_lowpart (V8HImode, operands[1]);
-  op2 = gen_lowpart (V8HImode, operands[2]);
-  h1 = gen_reg_rtx (V8HImode);
-  l1 = gen_reg_rtx (V8HImode);
-  h2 = gen_reg_rtx (V8HImode);
-  l2 = gen_reg_rtx (V8HImode);
-
-  emit_insn (gen_vec_interleave_highv8hi (h1, op1, op2));
-  emit_insn (gen_vec_interleave_lowv8hi (l1, op1, op2));
-  emit_insn (gen_vec_interleave_highv8hi (h2, l1, h1));
-  emit_insn (gen_vec_interleave_lowv8hi (l2, l1, h1));
-  emit_insn (gen_vec_interleave_lowv8hi (operands[0], l2, h2));
+  rtx op1 = gen_lowpart (V8HImode, operands[1]);
+  rtx op2 = gen_lowpart (V8HImode, operands[2]);
+  ix86_expand_vec_extract_even_odd (operands[0], op1, op2, 0);
   DONE;
 })
 
-;; Reduce:
-;;     op1 = abcd
-;;     op2 = efgh
-;;      h1 = aebf
-;;      l1 = cgdh
-;;  result = bdfh
 (define_expand "vec_pack_trunc_v2di"
   [(match_operand:V4SI 0 "register_operand" "")
    (match_operand:V2DI 1 "register_operand" "")
    (match_operand:V2DI 2 "register_operand" "")]
   "TARGET_SSE2"
 {
-  rtx op1, op2, h1, l1;
-
-  op1 = gen_lowpart (V4SImode, operands[1]);
-  op2 = gen_lowpart (V4SImode, operands[2]);
-  h1 = gen_reg_rtx (V4SImode);
-  l1 = gen_reg_rtx (V4SImode);
-
-  emit_insn (gen_vec_interleave_highv4si (h1, op1, op2));
-  emit_insn (gen_vec_interleave_lowv4si (l1, op1, op2));
-  emit_insn (gen_vec_interleave_lowv4si (operands[0], l1, h1));
+  rtx op1 = gen_lowpart (V4SImode, operands[1]);
+  rtx op2 = gen_lowpart (V4SImode, operands[2]);
+  ix86_expand_vec_extract_even_odd (operands[0], op1, op2, 0);
   DONE;
 })
 
@@ -7126,7 +7043,10 @@
   "TARGET_AVX"
 {
   operands[3] = GEN_INT (exact_log2 (INTVAL (operands[3])));
-  return "vpinsr<ssevecsize>\t{%3, %k2, %1, %0|%0, %1, %k2, %3}";
+  if (MEM_P (operands[2]))
+    return "vpinsr<ssevecsize>\t{%3, %2, %1, %0|%0, %1, %2, %3}";
+  else
+    return "vpinsr<ssevecsize>\t{%3, %k2, %1, %0|%0, %1, %k2, %3}";
 }
   [(set_attr "type" "sselog")
    (set (attr "prefix_extra")
@@ -7147,7 +7067,10 @@
   "TARGET_SSE4_1"
 {
   operands[3] = GEN_INT (exact_log2 (INTVAL (operands[3])));
-  return "pinsrb\t{%3, %k2, %0|%0, %k2, %3}";
+  if (MEM_P (operands[2]))
+    return "pinsrb\t{%3, %2, %0|%0, %2, %3}";
+  else
+    return "pinsrb\t{%3, %k2, %0|%0, %k2, %3}";
 }
   [(set_attr "type" "sselog")
    (set_attr "prefix_extra" "1")
@@ -7164,7 +7087,10 @@
   "TARGET_SSE2"
 {
   operands[3] = GEN_INT (exact_log2 (INTVAL (operands[3])));
-  return "pinsrw\t{%3, %k2, %0|%0, %k2, %3}";
+  if (MEM_P (operands[2]))
+    return "pinsrw\t{%3, %2, %0|%0, %2, %3}";
+  else
+    return "pinsrw\t{%3, %k2, %0|%0, %k2, %3}";
 }
   [(set_attr "type" "sselog")
    (set_attr "prefix_data16" "1")
@@ -10647,9 +10573,7 @@
 	 (match_operand:V2DI 3 "memory_operand" "m,m")))]
   "TARGET_XOP && ix86_fma4_valid_op_p (operands, insn, 4, false, -1, true)"
   "#"
-  "&& (reload_completed
-       || (!reg_mentioned_p (operands[0], operands[1])
-	   && !reg_mentioned_p (operands[0], operands[2])))"
+  "&& reload_completed"
   [(set (match_dup 0)
 	(match_dup 3))
    (set (match_dup 0)
@@ -10686,9 +10610,7 @@
 			 (const_int 3)])))))]
   "TARGET_XOP"
   "#"
-  "&& (reload_completed
-       || (!reg_mentioned_p (operands[0], operands[1])
-	   && !reg_mentioned_p (operands[0], operands[2])))"
+  "&& reload_completed"
   [(set (match_dup 0)
 	(match_dup 3))
    (set (match_dup 0)
@@ -10750,9 +10672,7 @@
 	 (match_operand:V2DI 3 "memory_operand" "m,m")))]
   "TARGET_XOP && ix86_fma4_valid_op_p (operands, insn, 4, false, -1, true)"
   "#"
-  "&& (reload_completed
-       || (!reg_mentioned_p (operands[0], operands[1])
-	   && !reg_mentioned_p (operands[0], operands[2])))"
+  "&& reload_completed"
   [(set (match_dup 0)
 	(match_dup 3))
    (set (match_dup 0)
@@ -10789,9 +10709,7 @@
 			 (const_int 2)])))))]
   "TARGET_XOP"
   "#"
-  "&& (reload_completed
-       || (!reg_mentioned_p (operands[0], operands[1])
-	   && !reg_mentioned_p (operands[0], operands[2])))"
+  "&& reload_completed"
   [(set (match_dup 0)
 	(match_dup 3))
    (set (match_dup 0)
@@ -12040,9 +11958,7 @@
 
 (define_insn "*avx_vzeroall"
   [(match_parallel 0 "vzeroall_operation"
-    [(unspec_volatile [(const_int 0)] UNSPECV_VZEROALL)
-     (set (match_operand 1 "register_operand" "=x")
-          (match_operand 2 "const0_operand" "X"))])]
+    [(unspec_volatile [(const_int 0)] UNSPECV_VZEROALL)])]
   "TARGET_AVX"
   "vzeroall"
   [(set_attr "type" "sse")
@@ -12052,58 +11968,96 @@
    (set_attr "mode" "OI")])
 
 ;; vzeroupper clobbers the upper 128bits of AVX registers.
-(define_insn "avx_vzeroupper"
-  [(unspec_volatile [(const_int 0)] UNSPECV_VZEROUPPER)
-   (clobber (reg:V8SI XMM0_REG))
-   (clobber (reg:V8SI XMM1_REG))
-   (clobber (reg:V8SI XMM2_REG))
-   (clobber (reg:V8SI XMM3_REG))
-   (clobber (reg:V8SI XMM4_REG))
-   (clobber (reg:V8SI XMM5_REG))
-   (clobber (reg:V8SI XMM6_REG))
-   (clobber (reg:V8SI XMM7_REG))]
-  "TARGET_AVX && !TARGET_64BIT"
-  "vzeroupper"
-  [(set_attr "type" "sse")
-   (set_attr "modrm" "0")
-   (set_attr "memory" "none")
-   (set_attr "prefix" "vex")
-   (set_attr "mode" "OI")])
-
-(define_insn "avx_vzeroupper_rex64"
-  [(unspec_volatile [(const_int 0)] UNSPECV_VZEROUPPER)
-   (clobber (reg:V8SI XMM0_REG))
-   (clobber (reg:V8SI XMM1_REG))
-   (clobber (reg:V8SI XMM2_REG))
-   (clobber (reg:V8SI XMM3_REG))
-   (clobber (reg:V8SI XMM4_REG))
-   (clobber (reg:V8SI XMM5_REG))
-   (clobber (reg:V8SI XMM6_REG))
-   (clobber (reg:V8SI XMM7_REG))
-   (clobber (reg:V8SI XMM8_REG))
-   (clobber (reg:V8SI XMM9_REG))
-   (clobber (reg:V8SI XMM10_REG))
-   (clobber (reg:V8SI XMM11_REG))
-   (clobber (reg:V8SI XMM12_REG))
-   (clobber (reg:V8SI XMM13_REG))
-   (clobber (reg:V8SI XMM14_REG))
-   (clobber (reg:V8SI XMM15_REG))]
-  "TARGET_AVX && TARGET_64BIT"
-  "vzeroupper"
-  [(set_attr "type" "sse")
-   (set_attr "modrm" "0")
-   (set_attr "memory" "none")
-   (set_attr "prefix" "vex")
-   (set_attr "mode" "OI")])
-
-(define_insn "avx_vpermil<mode>"
-  [(set (match_operand:AVXMODEF2P 0 "register_operand" "=x")
-	(unspec:AVXMODEF2P
-	  [(match_operand:AVXMODEF2P 1 "register_operand" "xm")
-	   (match_operand:SI 2 "const_0_to_<vpermilbits>_operand" "n")]
-	  UNSPEC_VPERMIL))]
+(define_expand "avx_vzeroupper"
+  [(match_par_dup 0 [(const_int 0)])]
   "TARGET_AVX"
-  "vpermilp<avxmodesuffixf2c>\t{%2, %1, %0|%0, %1, %2}"
+{
+  int nregs = TARGET_64BIT ? 16 : 8;
+  int regno;
+
+  operands[0] = gen_rtx_PARALLEL (VOIDmode, rtvec_alloc (nregs + 1));
+
+  XVECEXP (operands[0], 0, 0)
+    = gen_rtx_UNSPEC_VOLATILE (VOIDmode, gen_rtvec (1, const0_rtx),
+			       UNSPECV_VZEROUPPER);
+
+  for (regno = 0; regno < nregs; regno++)
+    XVECEXP (operands[0], 0, regno + 1)
+      = gen_rtx_CLOBBER (VOIDmode,
+			 gen_rtx_REG (V8SImode, SSE_REGNO (regno)));
+})
+
+(define_insn "*avx_vzeroupper"
+  [(match_parallel 0 "vzeroupper_operation"
+    [(unspec_volatile [(const_int 0)] UNSPECV_VZEROUPPER)])]
+  "TARGET_AVX"
+  "vzeroupper"
+  [(set_attr "type" "sse")
+   (set_attr "modrm" "0")
+   (set_attr "memory" "none")
+   (set_attr "prefix" "vex")
+   (set_attr "mode" "OI")])
+
+(define_expand "avx_vpermil<mode>"
+  [(set (match_operand:AVXMODEFDP 0 "register_operand" "")
+	(vec_select:AVXMODEFDP
+	  (match_operand:AVXMODEFDP 1 "nonimmediate_operand" "")
+	  (match_operand:SI 2 "const_0_to_255_operand" "")))]
+  "TARGET_AVX"
+{
+  int mask = INTVAL (operands[2]);
+  rtx perm[<ssescalarnum>];
+
+  perm[0] = GEN_INT (mask & 1);
+  perm[1] = GEN_INT ((mask >> 1) & 1);
+  if (<MODE>mode == V4DFmode)
+    {
+      perm[2] = GEN_INT (((mask >> 2) & 1) + 2);
+      perm[3] = GEN_INT (((mask >> 3) & 1) + 2);
+    }
+
+  operands[2]
+    = gen_rtx_PARALLEL (VOIDmode, gen_rtvec_v (<ssescalarnum>, perm));
+})
+
+(define_expand "avx_vpermil<mode>"
+  [(set (match_operand:AVXMODEFSP 0 "register_operand" "")
+	(vec_select:AVXMODEFSP
+	  (match_operand:AVXMODEFSP 1 "nonimmediate_operand" "")
+	  (match_operand:SI 2 "const_0_to_255_operand" "")))]
+  "TARGET_AVX"
+{
+  int mask = INTVAL (operands[2]);
+  rtx perm[<ssescalarnum>];
+
+  perm[0] = GEN_INT (mask & 3);
+  perm[1] = GEN_INT ((mask >> 2) & 3);
+  perm[2] = GEN_INT ((mask >> 4) & 3);
+  perm[3] = GEN_INT ((mask >> 6) & 3);
+  if (<MODE>mode == V8SFmode)
+    {
+      perm[4] = GEN_INT ((mask & 3) + 4);
+      perm[5] = GEN_INT (((mask >> 2) & 3) + 4);
+      perm[6] = GEN_INT (((mask >> 4) & 3) + 4);
+      perm[7] = GEN_INT (((mask >> 6) & 3) + 4);
+    }
+
+  operands[2]
+    = gen_rtx_PARALLEL (VOIDmode, gen_rtvec_v (<ssescalarnum>, perm));
+})
+
+(define_insn "*avx_vpermilp<mode>"
+  [(set (match_operand:AVXMODEF2P 0 "register_operand" "=x")
+	(vec_select:AVXMODEF2P
+	  (match_operand:AVXMODEF2P 1 "nonimmediate_operand" "xm")
+	  (match_parallel 2 "avx_vpermilp_<mode>_operand"
+	    [(match_operand 3 "const_int_operand" "")])))]
+  "TARGET_AVX"
+{
+  int mask = avx_vpermilp_parallel (operands[2], <MODE>mode) - 1;
+  operands[2] = GEN_INT (mask);
+  return "vpermilp<avxmodesuffixf2c>\t{%2, %1, %0|%0, %1, %2}";
+}
   [(set_attr "type" "sselog")
    (set_attr "prefix_extra" "1")
    (set_attr "length_immediate" "1")

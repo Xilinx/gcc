@@ -1228,7 +1228,7 @@ reference_binding (tree rto, tree rfrom, tree expr, bool c_cast_p, int flags)
 
   if (expr && BRACE_ENCLOSED_INITIALIZER_P (expr))
     {
-      maybe_warn_cpp0x ("extended initializer lists");
+      maybe_warn_cpp0x (CPP0X_INITIALIZER_LISTS);
       conv = implicit_conversion (to, from, expr, c_cast_p,
 				  flags);
       if (!CLASS_TYPE_P (to)
@@ -2581,7 +2581,7 @@ add_template_candidate_real (struct z_candidate **candidates, tree tmpl,
        for this will point at template <class T> template <> S<T>::f(int),
        so that we can find the definition.  For the purposes of
        overload resolution, however, we want the original TMPL.  */
-    cand->template_decl = tree_cons (tmpl, targs, NULL_TREE);
+    cand->template_decl = build_template_info (tmpl, targs);
   else
     cand->template_decl = DECL_TEMPLATE_INFO (fn);
 
@@ -3977,7 +3977,7 @@ build_conditional_expr (tree arg1, tree arg2, tree arg3,
 	   || (TYPE_PTRMEMFUNC_P (arg2_type) && TYPE_PTRMEMFUNC_P (arg3_type)))
     {
       result_type = composite_pointer_type (arg2_type, arg3_type, arg2,
-					    arg3, "conditional expression",
+					    arg3, CPO_CONDITIONAL_EXPR,
 					    complain);
       if (result_type == error_mark_node)
 	return error_mark_node;
@@ -4622,8 +4622,20 @@ build_op_delete_call (enum tree_code code, tree addr, tree size,
 	 allocation function, the program is ill-formed."  */
       if (non_placement_deallocation_fn_p (fn))
 	{
+	  /* But if the class has an operator delete (void *), then that is
+	     the usual deallocation function, so we shouldn't complain
+	     about using the operator delete (void *, size_t).  */
+	  for (t = BASELINK_P (fns) ? BASELINK_FUNCTIONS (fns) : fns;
+	       t; t = OVL_NEXT (t))
+	    {
+	      tree elt = OVL_CURRENT (t);
+	      if (non_placement_deallocation_fn_p (elt)
+		  && FUNCTION_ARG_CHAIN (elt) == void_list_node)
+		goto ok;
+	    }
 	  permerror (0, "non-placement deallocation function %q+D", fn);
 	  permerror (input_location, "selected for placement delete");
+	ok:;
 	}
     }
   else

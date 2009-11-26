@@ -151,8 +151,8 @@ static GTY (()) VEC(tree, gc) *static_dtors;
 
 /* When target does not have ctors and dtors, we call all constructor
    and destructor by special initialization/destruction function
-   recognized by collect2.  
-   
+   recognized by collect2.
+
    When we are going to build this function, collect all constructors and
    destructors and turn them into normal functions.  */
 
@@ -239,7 +239,7 @@ compare_ctor (const void *p1, const void *p2)
   f2 = *(const tree *)p2;
   priority1 = DECL_INIT_PRIORITY (f1);
   priority2 = DECL_INIT_PRIORITY (f2);
-  
+
   if (priority1 < priority2)
     return -1;
   else if (priority1 > priority2)
@@ -265,7 +265,7 @@ compare_dtor (const void *p1, const void *p2)
   f2 = *(const tree *)p2;
   priority1 = DECL_FINI_PRIORITY (f1);
   priority2 = DECL_FINI_PRIORITY (f2);
-  
+
   if (priority1 < priority2)
     return -1;
   else if (priority1 > priority2)
@@ -286,12 +286,12 @@ cgraph_build_cdtor_fns (void)
     {
       gcc_assert (!targetm.have_ctors_dtors);
       qsort (VEC_address (tree, static_ctors),
-	     VEC_length (tree, static_ctors), 
+	     VEC_length (tree, static_ctors),
 	     sizeof (tree),
 	     compare_ctor);
       build_cdtor (/*ctor_p=*/true,
 		   VEC_address (tree, static_ctors),
-		   VEC_length (tree, static_ctors)); 
+		   VEC_length (tree, static_ctors));
       VEC_truncate (tree, static_ctors, 0);
     }
 
@@ -299,12 +299,12 @@ cgraph_build_cdtor_fns (void)
     {
       gcc_assert (!targetm.have_ctors_dtors);
       qsort (VEC_address (tree, static_dtors),
-	     VEC_length (tree, static_dtors), 
+	     VEC_length (tree, static_dtors),
 	     sizeof (tree),
 	     compare_dtor);
       build_cdtor (/*ctor_p=*/false,
 		   VEC_address (tree, static_dtors),
-		   VEC_length (tree, static_dtors)); 
+		   VEC_length (tree, static_dtors));
       VEC_truncate (tree, static_dtors, 0);
     }
 }
@@ -1040,7 +1040,7 @@ cgraph_analyze_functions (void)
 static void
 cgraph_emit_thunks (void)
 {
-  struct cgraph_node *n;
+  struct cgraph_node *n, *alias;
 
   for (n = cgraph_nodes; n; n = n->next)
     {
@@ -1053,7 +1053,12 @@ cgraph_emit_thunks (void)
 	 cgraph_mark_functions_to_output in cgraph_optimize).  */
       if (n->reachable
 	  && !DECL_EXTERNAL (n->decl))
-	lang_hooks.callgraph.emit_associated_thunks (n->decl);
+	{
+	  lang_hooks.callgraph.emit_associated_thunks (n->decl);
+	  for (alias = n->same_body; alias; alias = alias->next)
+	    if (!DECL_EXTERNAL (alias->decl))
+	      lang_hooks.callgraph.emit_associated_thunks (alias->decl);
+	}
     }
 }
 
@@ -1175,6 +1180,14 @@ cgraph_expand_function (struct cgraph_node *node)
   /* Make sure that BE didn't give up on compiling.  */
   gcc_assert (TREE_ASM_WRITTEN (decl));
   current_function_decl = NULL;
+  if (node->same_body)
+    {
+      struct cgraph_node *alias;
+      bool saved_alias = node->alias;
+      for (alias = node->same_body; alias; alias = alias->next)
+	assemble_alias (alias->decl, DECL_ASSEMBLER_NAME (decl));
+      node->alias = saved_alias;
+    }
   gcc_assert (!cgraph_preserve_function_body_p (decl));
   cgraph_release_function_body (node);
   /* Eliminate all call edges.  This is important so the GIMPLE_CALL no longer
@@ -1676,7 +1689,7 @@ cgraph_copy_node_for_versioning (struct cgraph_node *old_version,
     TREE_MAP is a mapping of tree nodes we want to replace with
     new ones (according to results of prior analysis).
     OLD_VERSION_NODE is the node that is versioned.
-    It returns the new version's cgraph node. 
+    It returns the new version's cgraph node.
     ARGS_TO_SKIP lists arguments to be omitted from functions
     */
 
@@ -1726,7 +1739,7 @@ cgraph_function_versioning (struct cgraph_node *old_version_node,
 
   /* Update the call_expr on the edges to call the new version node. */
   update_call_expr (new_version_node);
-  
+
   cgraph_call_function_insertion_hooks (new_version_node);
   return new_version_node;
 }
@@ -1924,7 +1937,22 @@ cgraph_materialize_all_clones (void)
 	      {
 		gimple new_stmt;
 		gimple_stmt_iterator gsi;
-		
+
+		if (e->callee->same_body)
+		  {
+		    struct cgraph_node *alias;
+
+		    for (alias = e->callee->same_body;
+			 alias;
+			 alias = alias->next)
+		      if (decl == alias->decl)
+			break;
+		    /* Don't update call from same body alias to the real
+		       function.  */
+		    if (alias)
+		      continue;
+		  }
+
 		if (cgraph_dump_file)
 		  {
 		    fprintf (cgraph_dump_file, "updating call of %s in %s:",

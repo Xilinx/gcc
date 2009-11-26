@@ -49,6 +49,10 @@ along with GCC; see the file COPYING3.  If not see
    into RTL.  */
 struct ssaexpand SA;
 
+/* This variable holds the currently expanded gimple statement for purposes
+   of comminucating the profile info to the builtin expanders.  */
+gimple currently_expanding_gimple_stmt;
+
 /* Return an expression tree corresponding to the RHS of GIMPLE
    statement STMT.  */
 
@@ -57,7 +61,7 @@ gimple_assign_rhs_to_tree (gimple stmt)
 {
   tree t;
   enum gimple_rhs_class grhs_class;
-    
+
   grhs_class = get_gimple_rhs_class (gimple_expr_code (stmt));
 
   if (grhs_class == GIMPLE_BINARY_RHS)
@@ -369,7 +373,7 @@ stack_var_conflict_p (size_t x, size_t y)
   gcc_assert (index < stack_vars_conflict_alloc);
   return stack_vars_conflict[index];
 }
- 
+
 /* Returns true if TYPE is or contains a union type.  */
 
 static bool
@@ -958,7 +962,7 @@ defer_stack_allocation (tree var, bool toplevel)
 
 /* A subroutine of expand_used_vars.  Expand one variable according to
    its flavor.  Variables to be placed on the stack are not actually
-   expanded yet, merely recorded.  
+   expanded yet, merely recorded.
    When REALLY_EXPAND is false, only add stack values to be allocated.
    Return stack usage this variable is supposed to take.
 */
@@ -1281,7 +1285,7 @@ account_used_vars_for_block (tree block, bool toplevel)
 }
 
 /* Prepare for expanding variables.  */
-static void 
+static void
 init_vars_expansion (void)
 {
   tree t;
@@ -1550,7 +1554,7 @@ label_rtx_for_bb (basic_block bb ATTRIBUTE_UNUSED)
     return (rtx) *elt;
 
   /* Find the tree label if it is present.  */
-     
+
   for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
     {
       lab_stmt = gsi_stmt (gsi);
@@ -1756,7 +1760,6 @@ expand_call_stmt (gimple stmt)
 {
   tree exp;
   tree lhs = gimple_call_lhs (stmt);
-  tree fndecl = gimple_call_fndecl (stmt);
   size_t i;
 
   exp = build_vl_exp (CALL_EXPR, gimple_call_num_args (stmt) + 3);
@@ -1781,15 +1784,6 @@ expand_call_stmt (gimple stmt)
   CALL_EXPR_VA_ARG_PACK (exp) = gimple_call_va_arg_pack_p (stmt);
   SET_EXPR_LOCATION (exp, gimple_location (stmt));
   TREE_BLOCK (exp) = gimple_block (stmt);
-
-  /* Record the original call statement, as it may be used
-     to retrieve profile information during expansion.  */
-
-  if (fndecl && DECL_BUILT_IN (fndecl))
-    {
-      tree_ann_common_t ann = get_tree_common_ann (exp);
-      ann->stmt = stmt;
-    }
 
   if (lhs)
     expand_assignment (lhs, exp, false);
@@ -3106,6 +3100,7 @@ expand_gimple_basic_block (basic_block bb)
       basic_block new_bb;
 
       stmt = gsi_stmt (gsi);
+      currently_expanding_gimple_stmt = stmt;
 
       /* Expand this statement, then evaluate the resulting RTL and
 	 fixup the CFG accordingly.  */
@@ -3193,7 +3188,7 @@ expand_gimple_basic_block (basic_block bb)
 		  /* Ignore this stmt if it is in the list of
 		     replaceable expressions.  */
 		  if (SA.values
-		      && bitmap_bit_p (SA.values, 
+		      && bitmap_bit_p (SA.values,
 				       SSA_NAME_VERSION (DEF_FROM_PTR (def_p))))
 		    continue;
 		}
@@ -3202,6 +3197,8 @@ expand_gimple_basic_block (basic_block bb)
 	    }
 	}
     }
+
+  currently_expanding_gimple_stmt = NULL;
 
   /* Expand implicit goto and convert goto_locus.  */
   FOR_EACH_EDGE (e, ei, bb->succs)
@@ -3454,7 +3451,7 @@ expand_stack_alignment (void)
 
   if (! SUPPORTS_STACK_ALIGNMENT)
     return;
-  
+
   if (cfun->calls_alloca
       || cfun->has_nonlocal_label
       || crtl->has_nonlocal_goto)
@@ -3499,7 +3496,7 @@ expand_stack_alignment (void)
   /* Target has to redefine TARGET_GET_DRAP_RTX to support stack
      alignment.  */
   gcc_assert (targetm.calls.get_drap_rtx != NULL);
-  drap_rtx = targetm.calls.get_drap_rtx (); 
+  drap_rtx = targetm.calls.get_drap_rtx ();
 
   /* stack_realign_drap and drap_rtx must match.  */
   gcc_assert ((stack_realign_drap != 0) == (drap_rtx != NULL));
@@ -3578,10 +3575,10 @@ gimple_expand_cfg (void)
   if (warn_stack_protect)
     {
       if (cfun->calls_alloca)
-	warning (OPT_Wstack_protector, 
+	warning (OPT_Wstack_protector,
 		 "not protecting local variables: variable length buffer");
       if (has_short_buffer && !crtl->stack_protect_guard)
-	warning (OPT_Wstack_protector, 
+	warning (OPT_Wstack_protector,
 		 "not protecting function: no buffer at least %d bytes long",
 		 (int) PARAM_VALUE (PARAM_SSP_BUFFER_SIZE));
     }

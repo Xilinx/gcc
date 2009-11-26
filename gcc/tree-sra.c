@@ -125,7 +125,9 @@ struct access
   HOST_WIDE_INT size;
   tree base;
 
-  /* Expression.  */
+  /* Expression.  It is context dependent so do not use it to create new
+     expressions to access the original aggregate.  See PR 42154 for a
+     testcase.  */
   tree expr;
   /* Type.  */
   tree type;
@@ -2113,10 +2115,17 @@ sra_modify_expr (tree *expr, gimple_stmt_iterator *gsi, bool write,
 	 gcc.c-torture/compile/20011217-1.c.  */
       if (!is_gimple_reg_type (type))
 	{
-	  gimple stmt;
+	  tree ref = access->base;
+	  bool ok;
+
+	  ok = build_ref_for_offset (&ref, TREE_TYPE (ref),
+				     access->offset, access->type, false);
+	  gcc_assert (ok);
+
 	  if (write)
 	    {
-	      tree ref = unshare_expr (access->expr);
+	      gimple stmt;
+
 	      if (access->grp_partial_lhs)
 		ref = force_gimple_operand_gsi (gsi, ref, true, NULL_TREE,
 						 false, GSI_NEW_STMT);
@@ -2125,10 +2134,12 @@ sra_modify_expr (tree *expr, gimple_stmt_iterator *gsi, bool write,
 	    }
 	  else
 	    {
+	      gimple stmt;
+
 	      if (access->grp_partial_lhs)
 		repl = force_gimple_operand_gsi (gsi, repl, true, NULL_TREE,
 						 true, GSI_SAME_STMT);
-	      stmt = gimple_build_assign (unshare_expr (access->expr), repl);
+	      stmt = gimple_build_assign (ref, repl);
 	      gsi_insert_before (gsi, stmt, GSI_SAME_STMT);
 	    }
 	}
@@ -2227,8 +2238,6 @@ load_assign_lhs_subreplacements (struct access *lacc, struct access *top_racc,
 	    }
 	  else
 	    {
-	      bool repl_found;
-
 	      /* No suitable access on the right hand side, need to load from
 		 the aggregate.  See if we have to update it first... */
 	      if (*refreshed == SRA_UDH_NONE)
@@ -2236,9 +2245,19 @@ load_assign_lhs_subreplacements (struct access *lacc, struct access *top_racc,
 								  lhs, old_gsi);
 
 	      if (*refreshed == SRA_UDH_LEFT)
-		rhs = unshare_expr (lacc->expr);
+		{
+		  bool repl_found;
+
+		  rhs = lacc->base;
+		  repl_found = build_ref_for_offset (&rhs, TREE_TYPE (rhs),
+						     lacc->offset, lacc->type,
+						     false);
+		  gcc_assert (repl_found);
+		}
 	      else
 		{
+		  bool repl_found;
+
 		  rhs = top_racc->base;
 		  repl_found = build_ref_for_offset (&rhs,
 						     TREE_TYPE (top_racc->base),
@@ -3042,6 +3061,27 @@ unmodified_by_ref_scalar_representative (tree parm)
   return repr;
 }
 
+/* Return true iff this access precludes IPA-SRA of the parameter it is
+   associated with. */
+
+static bool
+access_precludes_ipa_sra_p (struct access *access)
+{
+  /* Avoid issues such as the second simple testcase in PR 42025.  The problem
+     is incompatible assign in a call statement (and possibly even in asm
+     statements).  This can be relaxed by using a new temporary but only for
+     non-TREE_ADDRESSABLE types and is probably not worth the complexity. (In
+     intraprocedural SRA we deal with this by keeping the old aggregate around,
+     something we cannot do in IPA-SRA.)  */
+  if (access->write
+      && (is_gimple_call (access->stmt)
+	  || gimple_code (access->stmt) == GIMPLE_ASM))
+    return true;
+
+  return false;
+}
+
+
 /* Sort collected accesses for parameter PARM, identify representatives for
    each accessed region and link them together.  Return NULL if there are
    different but overlapping accesses, return the special ptr value meaning
@@ -3073,6 +3113,8 @@ splice_param_accesses (tree parm, bool *ro_grp)
       bool modification;
       access = VEC_index (access_p, access_vec, i);
       modification = access->write;
+      if (access_precludes_ipa_sra_p (access))
+	return NULL;
 
       /* Access is about to become group representative unless we find some
 	 nasty overlap which would preclude us from breaking this parameter
@@ -3091,6 +3133,9 @@ splice_param_accesses (tree parm, bool *ro_grp)
 		break;
 	    }
 	  else if (ac2->size != access->size)
+	    return NULL;
+
+	  if (access_precludes_ipa_sra_p (ac2))
 	    return NULL;
 
 	  modification |= ac2->write;
@@ -3523,13 +3568,19 @@ replace_removed_params_ssa_names (gimple stmt, void *data)
   return true;
 }
 
-/* Callback for scan_function.  If the expression *EXPR should be replaced by a
-   reduction of a parameter, do so.  DATA is a pointer to a vector of
-   adjustments.  */
+/* Callback for scan_function and helper to sra_ipa_modify_assign.  If the
+   expression *EXPR should be replaced by a reduction of a parameter, do so.
+   DATA is a pointer to a vector of adjustments.  DONT_CONVERT specifies
+   whether the function should care about type incompatibility the current and
+   new expressions.  If it is true, the function will leave incompatibility
+   issues to the caller.
+
+   When called directly by scan_function, DONT_CONVERT is true when the EXPR is
+   a write (LHS) expression.  */
 
 static bool
 sra_ipa_modify_expr (tree *expr, gimple_stmt_iterator *gsi ATTRIBUTE_UNUSED,
-		     bool write ATTRIBUTE_UNUSED, void *data)
+		     bool dont_convert, void *data)
 {
   ipa_parm_adjustment_vec adjustments;
   int i, len;
@@ -3543,10 +3594,10 @@ sra_ipa_modify_expr (tree *expr, gimple_stmt_iterator *gsi ATTRIBUTE_UNUSED,
   if (TREE_CODE (*expr) == BIT_FIELD_REF
       || TREE_CODE (*expr) == IMAGPART_EXPR
       || TREE_CODE (*expr) == REALPART_EXPR)
-    expr = &TREE_OPERAND (*expr, 0);
-  while (TREE_CODE (*expr) == NOP_EXPR
-	 || TREE_CODE (*expr) == VIEW_CONVERT_EXPR)
-    expr = &TREE_OPERAND (*expr, 0);
+    {
+      expr = &TREE_OPERAND (*expr, 0);
+      dont_convert = false;
+    }
 
   base = get_ref_base_and_extent (*expr, &offset, &size, &max_size);
   if (!base || size == -1 || max_size == -1)
@@ -3594,13 +3645,14 @@ sra_ipa_modify_expr (tree *expr, gimple_stmt_iterator *gsi ATTRIBUTE_UNUSED,
       fprintf (dump_file, "\n");
     }
 
-  if (!useless_type_conversion_p (TREE_TYPE (*expr), cand->type))
+  if (!dont_convert
+      && !useless_type_conversion_p (TREE_TYPE (*expr), cand->type))
     {
       tree vce = build1 (VIEW_CONVERT_EXPR, TREE_TYPE (*expr), src);
       *expr = vce;
     }
-    else
-      *expr = src;
+  else
+    *expr = src;
   return true;
 }
 
@@ -3608,20 +3660,37 @@ sra_ipa_modify_expr (tree *expr, gimple_stmt_iterator *gsi ATTRIBUTE_UNUSED,
    essentially the same function like sra_ipa_modify_expr.  */
 
 static enum scan_assign_result
-sra_ipa_modify_assign (gimple *stmt_ptr,
-		       gimple_stmt_iterator *gsi ATTRIBUTE_UNUSED, void *data)
+sra_ipa_modify_assign (gimple *stmt_ptr, gimple_stmt_iterator *gsi, void *data)
 {
   gimple stmt = *stmt_ptr;
-  bool any = false;
+  tree *lhs_p, *rhs_p;
+  bool any;
 
   if (!gimple_assign_single_p (stmt))
     return SRA_SA_NONE;
 
-  any |= sra_ipa_modify_expr (gimple_assign_rhs1_ptr (stmt), gsi, false,
-			      data);
-  any |= sra_ipa_modify_expr (gimple_assign_lhs_ptr (stmt), gsi, true, data);
+  rhs_p = gimple_assign_rhs1_ptr (stmt);
+  lhs_p = gimple_assign_lhs_ptr (stmt);
 
-  return any ? SRA_SA_PROCESSED : SRA_SA_NONE;
+  any = sra_ipa_modify_expr (rhs_p, gsi, true, data);
+  any |= sra_ipa_modify_expr (lhs_p, gsi, true, data);
+  if (any)
+    {
+      if (!useless_type_conversion_p (TREE_TYPE (*lhs_p), TREE_TYPE (*rhs_p)))
+	{
+	  location_t loc = gimple_location (stmt);
+	  tree vce = fold_build1_loc (loc, VIEW_CONVERT_EXPR,
+				      TREE_TYPE (*lhs_p), *rhs_p);
+	  tree tmp = force_gimple_operand_gsi (gsi, vce, true, NULL_TREE,
+					       true, GSI_SAME_STMT);
+
+	  gimple_assign_set_rhs_from_tree (gsi, tmp);
+	}
+
+      return SRA_SA_PROCESSED;
+    }
+
+  return SRA_SA_NONE;
 }
 
 /* Call gimple_debug_bind_reset_value on all debug statements describing

@@ -1,3 +1,79 @@
+2009-11-26  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/41278
+	* trans-array.c (gfc_conv_array_transpose): Delete unnecessary assert.
+
+2009-11-26  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/42048
+	PR fortran/42167
+	* gfortran.h (gfc_is_function_return_value): New prototype.
+	* match.c (gfc_match_call): Use new function
+	'gfc_is_function_return_value'.
+	* primary.c (gfc_is_function_return_value): New function to check if a
+	symbol is the return value of an encompassing function.
+	(match_actual_arg,gfc_match_rvalue,match_variable): Use new function
+	'gfc_is_function_return_value'.
+	* resolve.c (resolve_common_blocks,resolve_actual_arglist): Ditto.
+
+2009-11-25  Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/42162
+	* trans-openmp.c (gfc_trans_omp_do): When dovar isn't a VAR_DECL,
+	don't use simple loop and handle clauses properly.
+
+2009-11-24  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/42008
+	* decl.c (variable_decl): Do not error on initialization within a
+	derived type specification of a pure procedure.
+
+2009-11-24  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/42045
+	* resolve.c (resolve_actual_arglist): Make sure procedure pointer
+	actual arguments are resolved correctly.
+	(resolve_function): An EXPR_FUNCTION which is a procedure pointer
+	component, has already been resolved.
+	(resolve_fl_derived): Procedure pointer components should not be
+	implicitly typed.
+
+2009-11-21  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/41807
+	* trans-const.c (gfc_conv_const): Fix typo in comment. Replace assert
+	with error message if not constant.
+	* resolve.c (next_data_value): Delete check for constant.
+
+2009-11-20  Janus Weil  <janus@gcc.gnu.org>
+
+	* intrinsic.texi (C_F_PROCPOINTER): Remove obsolete comment.
+
+2009-11-20  Paul Thomas  <pault@gcc.gnu.org>
+	    Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/42104
+	* trans-expr.c (gfc_conv_procedure_call): If procedure pointer
+	component call, use the component's 'always_explicit' attr
+	for array arguments.
+
+2009-11-19  Janus Weil  <janus@gcc.gnu.org>
+
+	* trans-expr.c (conv_isocbinding_procedure): New function.
+	(gfc_conv_procedure_call): Move ISO_C_BINDING stuff to
+	separate function.
+
+2009-11-19  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.texi (Interoperable Subroutines and Functions): Fix
+	example.
+
+2009-11-18  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/42072
+	* trans-expr.c (gfc_conv_procedure_call): Handle procedure pointer
+	dummies which are passed to C_F_PROCPOINTER.
+
 2009-11-18  Alexandre Oliva  <aoliva@redhat.com>
 
 	* module.c (mio_f2k_derived): Initialize op.

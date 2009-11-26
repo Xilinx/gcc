@@ -47,6 +47,8 @@ extern bool x86_extended_QIreg_mentioned_p (rtx);
 extern bool x86_extended_reg_mentioned_p (rtx);
 extern enum machine_mode ix86_cc_mode (enum rtx_code, rtx, rtx);
 
+extern int avx_vpermilp_parallel (rtx par, enum machine_mode mode);
+
 extern int ix86_expand_movmem (rtx, rtx, rtx, rtx, rtx, rtx);
 extern int ix86_expand_setmem (rtx, rtx, rtx, rtx, rtx, rtx);
 extern int ix86_expand_strlen (rtx, rtx, rtx, rtx);
@@ -216,6 +218,8 @@ extern void ix86_expand_reduc_v4sf (rtx (*)(rtx, rtx, rtx), rtx, rtx);
 
 extern bool ix86_fma4_valid_op_p (rtx [], rtx, int, bool, int, bool);
 extern void ix86_expand_fma4_multiple_memory (rtx [], int, enum machine_mode);
+
+extern void ix86_expand_vec_extract_even_odd (rtx, rtx, rtx, unsigned);
 
 /* In i386-c.c  */
 extern void ix86_target_macros (void);

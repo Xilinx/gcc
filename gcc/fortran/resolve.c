@@ -776,7 +776,7 @@ resolve_common_blocks (gfc_symtree *common_root)
     gfc_error ("COMMON block '%s' at %L is also an intrinsic procedure",
 	       sym->name, &common_root->n.common->where);
   else if (sym->attr.result
-	   ||(sym->attr.function && gfc_current_ns->proc_name == sym))
+	   || gfc_is_function_return_value (sym, gfc_current_ns))
     gfc_notify_std (GFC_STD_F2003, "Fortran 2003: COMMON block '%s' at %L "
 		    "that is also a function result", sym->name,
 		    &common_root->n.common->where);
@@ -1321,6 +1321,8 @@ resolve_actual_arglist (gfc_actual_arglist *arg, procedure_type ptype,
 		e->rank = comp->as->rank;
 	      e->expr_type = EXPR_FUNCTION;
 	    }
+	  if (gfc_resolve_expr (e) == FAILURE)                          
+	    return FAILURE; 
 	  goto argument_list;
 	}
 
@@ -1398,10 +1400,7 @@ resolve_actual_arglist (gfc_actual_arglist *arg, procedure_type ptype,
 	  /* If the symbol is the function that names the current (or
 	     parent) scope, then we really have a variable reference.  */
 
-	  if (sym->attr.function && sym->result == sym
-	      && (sym->ns->proc_name == sym
-		  || (sym->ns->parent != NULL
-		      && sym->ns->parent->proc_name == sym)))
+	  if (gfc_is_function_return_value (sym, sym->ns))
 	    goto got_variable;
 
 	  /* If all else fails, see if we have a specific intrinsic.  */
@@ -2519,6 +2518,10 @@ resolve_function (gfc_expr *expr)
   if (expr->symtree)
     sym = expr->symtree->n.sym;
 
+  /* If this is a procedure pointer component, it has already been resolved.  */
+  if (gfc_is_proc_ptr_comp (expr, NULL))
+    return SUCCESS;
+  
   if (sym && sym->attr.intrinsic
       && resolve_intrinsic (sym, &expr->where) == FAILURE)
     return FAILURE;
@@ -10329,8 +10332,9 @@ resolve_fl_derived (gfc_symbol *sym)
 	}
       else if (c->attr.proc_pointer && c->ts.type == BT_UNKNOWN)
 	{
-	  c->ts = *gfc_get_default_type (c->name, NULL);
-	  c->attr.implicit_type = 1;
+	  /* Since PPCs are not implicitly typed, a PPC without an explicit
+	     interface must be a subroutine.  */
+	  gfc_add_subroutine (&c->attr, c->name, &c->loc);
 	}
 
       /* Procedure pointer components: Check PASS arg.  */
@@ -11193,9 +11197,6 @@ next_data_value (void)
 {
   while (mpz_cmp_ui (values.left, 0) == 0)
     {
-      if (!gfc_is_constant_expr (values.vnode->expr))
-	gfc_error ("non-constant DATA value at %L",
-		   &values.vnode->expr->where);
 
       if (values.vnode->next == NULL)
 	return FAILURE;
