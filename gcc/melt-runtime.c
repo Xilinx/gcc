@@ -309,6 +309,34 @@ melt_argument (const char* argname)
 
 
 
+/* Return true if we don't want to generate several C files for a
+   given MELT module */
+bool melt_wants_single_c_file (void)
+{ 
+  bool want1 = false;
+  const char* singarg = melt_argument ("single-c-file");
+  if (!singarg) 
+    {
+      const char* singenv = getenv("GCCMELT_SINGLE_C_FILE");
+      want1 = singenv && singenv[0]!='0' 
+	&& singenv[0]!='N' && singenv[0]!='n';
+    }
+  else if (!singarg[0] || singarg[0]=='n' || singarg[0]=='N'  
+	   || singarg[0]=='0') 
+    want1 = false;
+  else want1 = true;
+#warning temporary hack to display a message if not single C file
+  if (!want1) {
+    static int warned;
+    if (!warned)
+      warning (0, "MELT does not work yet in november 2009 for generation of secondary C files.\n" 
+	       "Consider passing -fmelt-single-c-file=yes or setting GCCMELT_SINGLE_C_FILE environment variable to YES");
+    warned++;
+  }
+  return want1;
+}
+
+
 static inline void
 delete_special (struct meltspecial_st *sp)
 {
@@ -4552,6 +4580,8 @@ meltgc_new_string_raw_len (meltobject_ptr_t discr_p, const char *str, int slen)
   if (slen<0)
     slen = strlen (str);
   discrv = discr_p;
+  if (!discrv) 
+    discrv = MELT_PREDEF (DISCR_STRING);
   if (melt_magic_discr ((melt_ptr_t) discrv) != OBMAG_OBJECT)
     goto end;
   if (obj_discrv->object_magic != OBMAG_STRING)
@@ -4589,6 +4619,8 @@ meltgc_new_stringdup (meltobject_ptr_t discr_p, const char *str)
   if (!str)
     goto end;
   discrv = discr_p;
+  if (!discrv) 
+    discrv = MELT_PREDEF (DISCR_STRING);
   if (melt_magic_discr ((melt_ptr_t) discrv) != OBMAG_OBJECT)
     goto end;
   if (obj_discrv->object_magic != OBMAG_STRING)
@@ -4617,6 +4649,99 @@ end:
 }
 
 
+melt_ptr_t
+meltgc_new_string_generated_c_filename  (meltobject_ptr_t discr_p,
+					 const char* basepath,
+					 const char* dirpath,
+					 int num)
+{
+  int slen = 0;
+  int spos = 0;
+  char *strcop = NULL;
+  char numbuf[16];
+  char tinybuf[120];
+  MELT_ENTERFRAME (2, NULL);
+#define discrv     curfram__.varptr[0]
+#define strv       curfram__.varptr[1]
+#define obj_discrv  ((struct meltobject_st*)(discrv))
+#define str_strv  ((struct meltstring_st*)(strv))
+  memset (numbuf, 0, sizeof(numbuf));
+  memset (tinybuf, 0, sizeof(tinybuf));
+  discrv = discr_p;
+  if (!basepath || !basepath[0]) 
+    goto end;
+  if (num>0) 
+    snprintf (numbuf, sizeof(numbuf)-1, "+%d", num);
+  if (!discrv) 
+    discrv = MELT_PREDEF (DISCR_STRING);
+  if (melt_magic_discr ((melt_ptr_t) discrv) != OBMAG_OBJECT)
+    goto end;
+  if (obj_discrv->object_magic != OBMAG_STRING)
+    goto end;
+  slen += strlen (basepath);
+  if (dirpath) 
+    slen += strlen (dirpath);
+  slen += strlen (numbuf);
+  slen += 6;
+  /* slen is now an over-approximation of the needed space */
+  if (slen < (int) sizeof(tinybuf)-1)
+    strcop = tinybuf;
+  else
+    strcop = (char*) xcalloc (slen+1, 1);
+  if (dirpath) 
+    {
+      /* add the dirpath with a trailing slash if needed */
+      strcpy (strcop, dirpath);
+      spos = strlen (strcop);
+      if (spos>0 && strcop[spos-1] != '/')
+	strcop[spos++] = '/';
+      /* add the basename of the basepath */
+      strcpy (strcop + spos, lbasename (basepath));
+    }
+  else
+    {
+      /* no dirpath, add the entire basepath */
+      strcpy (strcop, basepath);
+    };
+  spos = strlen (strcop);
+  /* if strcop ends with .c, remove that suffix */
+  if (spos>2 && strcop[spos-1] == 'c' && strcop[spos-2] == '.')
+    {
+      strcop[spos-2] = strcop[spos-1] = (char)0;
+      spos -= 2;
+    }
+  /* remove the .so suffix if given */
+  else if (spos>3 && !strcmp (strcop+spos-3, ".so")) 
+    {
+      strcop[spos-3] = strcop[spos-2] = strcop[spos-1] = (char)0;
+      spos -= 3;
+    }
+  /* remove the .melt suffix if given */
+  else if (spos>5 && !strcmp (strcop+spos-5, ".melt"))
+    {
+      memset(strcop+spos, 0, strlen(".melt"));
+      spos -= strlen(".melt");
+    }
+  strcpy (strcop + spos, numbuf);
+  strcat (strcop + spos, ".c");
+  spos = strlen (strcop);
+  gcc_assert (spos < slen-1);
+  strv = meltgc_allocate (sizeof (struct meltstring_st), spos + 1);
+  str_strv->discr = obj_discrv;
+  strncpy (str_strv->val, strcop, spos);
+  debugeprintf ("meltgc_new_string_generated_c_filename returns %s", strcop);
+end:
+  if (strcop && strcop != tinybuf)
+    free (strcop);
+  memset (tinybuf, 0, sizeof (tinybuf));
+  MELT_EXITFRAME ();
+  return (melt_ptr_t) strv;
+#undef discrv
+#undef strv
+#undef obj_discrv
+#undef str_strv
+}
+
 
 melt_ptr_t
 meltgc_new_string_nakedbasename (meltobject_ptr_t discr_p,
@@ -4636,6 +4761,8 @@ meltgc_new_string_nakedbasename (meltobject_ptr_t discr_p,
   if (!str)
     goto end;
   discrv = discr_p;
+  if (!discrv) 
+    discrv = MELT_PREDEF (DISCR_STRING);
   if (melt_magic_discr ((melt_ptr_t) discrv) != OBMAG_OBJECT)
     goto end;
   if (obj_discrv->object_magic != OBMAG_STRING)
@@ -4698,6 +4825,8 @@ meltgc_new_string_tempname_suffixed (meltobject_ptr_t
   if (!tempnampath)
     goto end;
   discrv = discr_p;
+  if (!discrv) 
+    discrv = MELT_PREDEF (DISCR_STRING);
   if (melt_magic_discr ((melt_ptr_t) discrv) != OBMAG_OBJECT)
     goto end;
   if (obj_discrv->object_magic != OBMAG_STRING)

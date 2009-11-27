@@ -1896,7 +1896,24 @@ melt_ptr_t meltgc_new_string_nakedbasename (meltobject_ptr_t discr,
 						  const char *str);
 /* get the basename of a path inside the temporary directory with an optional suffix */
 melt_ptr_t meltgc_new_string_tempname_suffixed (meltobject_ptr_t discr,
-						      const char *namstr, const char*suffix);
+						const char *namstr, const char*suffix);
+
+/* Return as string value the name of a generated C file; if dirname
+   is given and non-empty, it is used as the directory name using the
+   basename of basepath, otherwise basepath is used. Any .melt or .so
+   or .c suffix is removed, and if the num is positive it is
+   appended. The result string is dirpath/basename+num.c, eg
+   /foo/dir/mybase+3.c if dirpath is /foo/dir and basepath is
+   /bar/mybase.c or mybase.melt etc...  and num is 3. If num is
+   non-positive it is ignored. */
+melt_ptr_t meltgc_new_string_generated_c_filename  (meltobject_ptr_t discr_p,
+						    const char* basepath,
+						    const char* dirpath,
+						    int num);
+
+/* Return true if we don't want to generate several C files for a
+   given MELT module */
+bool melt_wants_single_c_file (void);
 
 /* split a [raw] string into a list of strings using a seperator. */
 melt_ptr_t meltgc_new_split_string (const char*str, int sep, melt_ptr_t discr);

@@ -1,8 +1,28 @@
-2009-11-26  Basile Starynkevitch  <basile@starynkevitch.net>
+2009-11-27  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	{{MELT branch is still instable.
+	secondary C files generation don't work yet. Temporarily, the
+	GCCMELT_SINGLE_C_FILE environment variable should be set to YES.}}
+	* melt-runtime.h (meltgc_new_string_generated_c_filename)
+	(melt_wants_single_c_file): added new declarations.
+	* melt-runtime.c (melt_wants_single_c_file): new function, with
+	temporary warning.
+	(meltgc_new_string_raw_len, meltgc_new_stringdup)
+	(meltgc_new_string_nakedbasename): if the discriminant is null,
+	take DISCR_STRING as default.
+	(meltgc_new_string_generated_c_filename): added new function.
+	* melt-module.mk: GCCMELT_GCC is gcc by default.
+	* melt/warmelt-genobj.melt: added GENERATED_C_FILENAME &
+	WANTS_SINGLE_C_FILE internal primitives, NTH_SECUNDARY_FILE
+	internal function, but secondary C files don't work yet in
+	COMPILE_LIST_SEXPR
+
+
+2009-11-26 Basile Starynkevitch <basile@starynkevitch.net>
 
 	[preparing to generate secondary C files foo+1.c with foo.c for
 	MELT file foo.melt]
-	
+
 	* common.opt: added -fmelt-single-c-file.
 	* run-melt.h: Updated comment.
 	* melt-runtime.c:
