@@ -62,6 +62,7 @@ extern rtx frv_function_arg			(CUMULATIVE_ARGS *,
 extern void frv_function_arg_advance		(CUMULATIVE_ARGS *,
 						 enum machine_mode,
 						 tree, int);
+extern bool frv_function_value_regno_p		(const unsigned int);
 #endif /* TREE_CODE */
 
 extern int frv_expand_block_move		(rtx *);
@@ -100,7 +101,6 @@ extern void frv_ifcvt_modify_final	(ce_if_block_t *);
 extern void frv_ifcvt_modify_cancel	(ce_if_block_t *);
 #endif
 extern int frv_trampoline_size		(void);
-extern void frv_initialize_trampoline	(rtx, rtx, rtx);
 extern enum reg_class frv_secondary_reload_class
 					(enum reg_class,
 					 enum machine_mode, rtx);

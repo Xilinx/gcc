@@ -451,8 +451,8 @@ am__libgfortran_la_SOURCES_DIST = runtime/backtrace.c runtime/bounds.c \
 	intrinsics/time.c intrinsics/transpose_generic.c \
 	intrinsics/umask.c intrinsics/unlink.c \
 	intrinsics/unpack_generic.c runtime/in_pack_generic.c \
-	runtime/in_unpack_generic.c io/io.h \
-	$(srcdir)/generated/_abs_c4.F90 \
+	runtime/in_unpack_generic.c io/io.h io/fbuf.h io/format.h \
+	io/unix.h $(srcdir)/generated/_abs_c4.F90 \
 	$(srcdir)/generated/_abs_c8.F90 \
 	$(srcdir)/generated/_abs_c10.F90 \
 	$(srcdir)/generated/_abs_c16.F90 \
@@ -777,9 +777,6 @@ libgfortran_la_OBJECTS = $(am_libgfortran_la_OBJECTS)
 libgfortranbegin_la_LIBADD =
 am_libgfortranbegin_la_OBJECTS = fmain.lo
 libgfortranbegin_la_OBJECTS = $(am_libgfortranbegin_la_OBJECTS)
-libgfortranbegin_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
-	$(libgfortranbegin_la_LDFLAGS) $(LDFLAGS) -o $@
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/../depcomp
 am__depfiles_maybe = depfiles
@@ -984,6 +981,7 @@ myexeclib_LTLIBRARIES = libgfortranbegin.la
 myexeclibdir = $(libdir)/gcc/$(target_alias)/$(gcc_version)$(MULTISUBDIR)
 libgfortranbegin_la_SOURCES = fmain.c
 libgfortranbegin_la_LDFLAGS = -static
+libgfortranbegin_la_LINK = $(LINK) $(libgfortranbegin_la_LDFLAGS)
 AM_CPPFLAGS = -iquote$(srcdir)/io -I$(srcdir)/$(MULTISRCTOP)../gcc \
 	      -I$(srcdir)/$(MULTISRCTOP)../gcc/config \
 	      -I$(MULTIBUILDTOP)../../$(host_subdir)/gcc -D_GNU_SOURCE
@@ -1006,7 +1004,10 @@ io/write.c \
 io/fbuf.c
 
 gfor_io_headers = \
-io/io.h
+io/io.h \
+io/fbuf.h \
+io/format.h \
+io/unix.h
 
 gfor_helper_src = \
 intrinsics/associated.c \

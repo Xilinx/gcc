@@ -204,10 +204,8 @@ rtx final_sequence;
 static int dialect_number;
 #endif
 
-#ifdef HAVE_conditional_execution
 /* Nonnull if the insn currently being emitted was a COND_EXEC pattern.  */
 rtx current_insn_predicate;
-#endif
 
 #ifdef HAVE_ATTR_length
 static int asm_insn_count (rtx);
@@ -1081,7 +1079,7 @@ shorten_branches (rtx first ATTRIBUTE_UNUSED)
       INSN_ADDRESSES (uid) = insn_current_address + insn_lengths[uid];
 
       if (NOTE_P (insn) || BARRIER_P (insn)
-	  || LABEL_P (insn))
+	  || LABEL_P (insn) || DEBUG_INSN_P(insn))
 	continue;
       if (INSN_DELETED_P (insn))
 	continue;
@@ -1399,13 +1397,23 @@ static int
 asm_insn_count (rtx body)
 {
   const char *templ;
-  int count = 1;
 
   if (GET_CODE (body) == ASM_INPUT)
     templ = XSTR (body, 0);
   else
     templ = decode_asm_operands (body, NULL, NULL, NULL, NULL, NULL);
 
+  return asm_str_count (templ);
+}
+#endif
+
+/* Return the number of machine instructions likely to be generated for the
+   inline-asm template. */
+int
+asm_str_count (const char *templ)
+{
+  int count = 1;
+  
   if (!*templ)
     return 0;
 
@@ -1416,7 +1424,6 @@ asm_insn_count (rtx body)
 
   return count;
 }
-#endif
 
 /* ??? This is probably the wrong place for these.  */
 /* Structure recording the mapping from source file and directory
@@ -1484,6 +1491,20 @@ remap_debug_filename (const char *filename)
   return ggc_strdup (s);
 }
 
+/* Return true if DWARF2 debug info can be emitted for DECL.  */
+
+static bool
+dwarf2_debug_info_emitted_p (tree decl)
+{
+  if (write_symbols != DWARF2_DEBUG && write_symbols != VMS_AND_DWARF2_DEBUG)
+    return false;
+
+  if (DECL_IGNORED_P (decl))
+    return false;
+
+  return true;
+}
+
 /* Output assembler code for the start of a function,
    and initialize some of the variables in this file
    for the new function.  The label for the function and associated
@@ -1508,10 +1529,11 @@ final_start_function (rtx first ATTRIBUTE_UNUSED, FILE *file,
 
   high_block_linenum = high_function_linenum = last_linenum;
 
-  (*debug_hooks->begin_prologue) (last_linenum, last_filename);
+  if (!DECL_IGNORED_P (current_function_decl))
+    debug_hooks->begin_prologue (last_linenum, last_filename);
 
 #if defined (DWARF2_UNWIND_INFO) || defined (TARGET_UNWIND_INFO)
-  if (write_symbols != DWARF2_DEBUG && write_symbols != VMS_AND_DWARF2_DEBUG)
+  if (!dwarf2_debug_info_emitted_p (current_function_decl))
     dwarf2out_begin_prologue (0, NULL);
 #endif
 
@@ -1579,12 +1601,14 @@ profile_function (FILE *file ATTRIBUTE_UNUSED)
 #ifndef NO_PROFILE_COUNTERS
 # define NO_PROFILE_COUNTERS	0
 #endif
-#if defined(ASM_OUTPUT_REG_PUSH)
-  int sval = cfun->returns_struct;
-  rtx svrtx = targetm.calls.struct_value_rtx (TREE_TYPE (current_function_decl), 1);
-#if defined(STATIC_CHAIN_INCOMING_REGNUM) || defined(STATIC_CHAIN_REGNUM)
-  int cxt = cfun->static_chain_decl != NULL;
-#endif
+#ifdef ASM_OUTPUT_REG_PUSH
+  rtx sval = NULL, chain = NULL;
+
+  if (cfun->returns_struct)
+    sval = targetm.calls.struct_value_rtx (TREE_TYPE (current_function_decl),
+					   true);
+  if (cfun->static_chain_decl)
+    chain = targetm.calls.static_chain (current_function_decl, true);
 #endif /* ASM_OUTPUT_REG_PUSH */
 
   if (! NO_PROFILE_COUNTERS)
@@ -1598,44 +1622,20 @@ profile_function (FILE *file ATTRIBUTE_UNUSED)
 
   switch_to_section (current_function_section ());
 
-#if defined(ASM_OUTPUT_REG_PUSH)
-  if (sval && svrtx != NULL_RTX && REG_P (svrtx))
-    {
-      ASM_OUTPUT_REG_PUSH (file, REGNO (svrtx));
-    }
-#endif
-
-#if defined(STATIC_CHAIN_INCOMING_REGNUM) && defined(ASM_OUTPUT_REG_PUSH)
-  if (cxt)
-    ASM_OUTPUT_REG_PUSH (file, STATIC_CHAIN_INCOMING_REGNUM);
-#else
-#if defined(STATIC_CHAIN_REGNUM) && defined(ASM_OUTPUT_REG_PUSH)
-  if (cxt)
-    {
-      ASM_OUTPUT_REG_PUSH (file, STATIC_CHAIN_REGNUM);
-    }
-#endif
+#ifdef ASM_OUTPUT_REG_PUSH
+  if (sval && REG_P (sval))
+    ASM_OUTPUT_REG_PUSH (file, REGNO (sval));
+  if (chain && REG_P (chain))
+    ASM_OUTPUT_REG_PUSH (file, REGNO (chain));
 #endif
 
   FUNCTION_PROFILER (file, current_function_funcdef_no);
 
-#if defined(STATIC_CHAIN_INCOMING_REGNUM) && defined(ASM_OUTPUT_REG_PUSH)
-  if (cxt)
-    ASM_OUTPUT_REG_POP (file, STATIC_CHAIN_INCOMING_REGNUM);
-#else
-#if defined(STATIC_CHAIN_REGNUM) && defined(ASM_OUTPUT_REG_PUSH)
-  if (cxt)
-    {
-      ASM_OUTPUT_REG_POP (file, STATIC_CHAIN_REGNUM);
-    }
-#endif
-#endif
-
-#if defined(ASM_OUTPUT_REG_PUSH)
-  if (sval && svrtx != NULL_RTX && REG_P (svrtx))
-    {
-      ASM_OUTPUT_REG_POP (file, REGNO (svrtx));
-    }
+#ifdef ASM_OUTPUT_REG_PUSH
+  if (chain && REG_P (chain))
+    ASM_OUTPUT_REG_POP (file, REGNO (chain));
+  if (sval && REG_P (sval))
+    ASM_OUTPUT_REG_POP (file, REGNO (sval));
 #endif
 }
 
@@ -1648,17 +1648,19 @@ final_end_function (void)
 {
   app_disable ();
 
-  (*debug_hooks->end_function) (high_function_linenum);
+  if (!DECL_IGNORED_P (current_function_decl))
+    debug_hooks->end_function (high_function_linenum);
 
   /* Finally, output the function epilogue:
      code to restore the stack frame and return to the caller.  */
   targetm.asm_out.function_epilogue (asm_out_file, get_frame_size ());
 
   /* And debug output.  */
-  (*debug_hooks->end_epilogue) (last_linenum, last_filename);
+  if (!DECL_IGNORED_P (current_function_decl))
+    debug_hooks->end_epilogue (last_linenum, last_filename);
 
 #if defined (DWARF2_UNWIND_INFO)
-  if (write_symbols != DWARF2_DEBUG && write_symbols != VMS_AND_DWARF2_DEBUG
+  if (!dwarf2_debug_info_emitted_p (current_function_decl)
       && dwarf2out_do_frame ())
     dwarf2out_end_epilogue (last_linenum, last_filename);
 #endif
@@ -1839,7 +1841,8 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 	    dwarf2out_switch_text_section ();
 	  else
 #endif
-	    (*debug_hooks->switch_text_section) ();
+	  if (!DECL_IGNORED_P (current_function_decl))
+	    debug_hooks->switch_text_section ();
 
 	  switch_to_section (current_function_section ());
 	  break;
@@ -1905,7 +1908,8 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 
 	case NOTE_INSN_FUNCTION_BEG:
 	  app_disable ();
-	  (*debug_hooks->end_prologue) (last_linenum, last_filename);
+	  if (!DECL_IGNORED_P (current_function_decl))
+	    debug_hooks->end_prologue (last_linenum, last_filename);
 
 	  if ((*seen & (SEEN_EMITTED | SEEN_NOTE)) == SEEN_NOTE)
 	    {
@@ -1931,7 +1935,8 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 	      high_block_linenum = last_linenum;
 
 	      /* Output debugging info about the symbol-block beginning.  */
-	      (*debug_hooks->begin_block) (last_linenum, n);
+	      if (!DECL_IGNORED_P (current_function_decl))
+		debug_hooks->begin_block (last_linenum, n);
 
 	      /* Mark this block as output.  */
 	      TREE_ASM_WRITTEN (NOTE_BLOCK (insn)) = 1;
@@ -1965,7 +1970,8 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 	      --block_depth;
 	      gcc_assert (block_depth >= 0);
 
-	      (*debug_hooks->end_block) (high_block_linenum, n);
+	      if (!DECL_IGNORED_P (current_function_decl))
+		debug_hooks->end_block (high_block_linenum, n);
 	    }
 	  if (write_symbols == DBX_DEBUG
 	      || write_symbols == SDB_DEBUG)
@@ -1995,7 +2001,8 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 	  break;
 
 	case NOTE_INSN_VAR_LOCATION:
-	  (*debug_hooks->var_location) (insn);
+	  if (!DECL_IGNORED_P (current_function_decl))
+	    debug_hooks->var_location (insn);
 	  break;
 
 	default:
@@ -2038,8 +2045,8 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
       CC_STATUS_INIT;
 #endif
 
-      if (LABEL_NAME (insn))
-	(*debug_hooks->label) (insn);
+      if (!DECL_IGNORED_P (current_function_decl) && LABEL_NAME (insn))
+	debug_hooks->label (insn);
 
       app_disable ();
 
@@ -2093,10 +2100,9 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 	const char *templ;
 	bool is_stmt;
 
-#ifdef HAVE_conditional_execution
 	/* Reset this early so it is correct for ASM statements.  */
 	current_insn_predicate = NULL_RTX;
-#endif
+
 	/* An INSN, JUMP_INSN or CALL_INSN.
 	   First check for special kinds that recog doesn't recognize.  */
 
@@ -2193,13 +2199,10 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 	  }
 	/* Output this line note if it is the first or the last line
 	   note in a row.  */
-	if (notice_source_line (insn, &is_stmt))
-	  {
-	    (*debug_hooks->source_line) (last_linenum,
-	                                 last_filename,
-	                                 last_discriminator,
-	                                 is_stmt);
-	  }
+	if (!DECL_IGNORED_P (current_function_decl)
+	    && notice_source_line (insn, &is_stmt))
+	  (*debug_hooks->source_line) (last_linenum, last_filename,
+				       last_discriminator, is_stmt);
 
 	if (GET_CODE (body) == ASM_INPUT)
 	  {
@@ -2584,10 +2587,9 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 	FINAL_PRESCAN_INSN (insn, recog_data.operand, recog_data.n_operands);
 #endif
 
-#ifdef HAVE_conditional_execution
-	if (GET_CODE (PATTERN (insn)) == COND_EXEC)
+	if (targetm.have_conditional_execution ()
+	    && GET_CODE (PATTERN (insn)) == COND_EXEC)
 	  current_insn_predicate = COND_EXEC_TEST (PATTERN (insn));
-#endif
 
 #ifdef HAVE_cc0
 	cc_prev_status = cc_status;
@@ -2677,6 +2679,26 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 
 	/* Output assembler code from the template.  */
 	output_asm_insn (templ, recog_data.operand);
+
+	/* Record point-of-call information for ICF debugging.  */
+	if (flag_enable_icf_debug && CALL_P (insn))
+	  {
+	    rtx x = call_from_call_insn (insn);
+	    x = XEXP (x, 0);
+	    if (x && MEM_P (x))
+	      {
+	        if (GET_CODE (XEXP (x, 0)) == SYMBOL_REF)
+	          {
+		    tree t;
+		    x = XEXP (x, 0);
+		    t = SYMBOL_REF_DECL (x);
+		    if (t)
+		      (*debug_hooks->direct_call) (t);
+	          }
+	        else
+	          (*debug_hooks->virtual_call) (INSN_UID (insn));
+	      }
+	  }
 
 	/* Some target machines need to postscan each insn after
 	   it is output.  */
@@ -4261,7 +4283,8 @@ rest_of_handle_final (void)
      *will* be routed past here.  */
 
   timevar_push (TV_SYMOUT);
-  (*debug_hooks->function_decl) (current_function_decl);
+  if (!DECL_IGNORED_P (current_function_decl))
+    debug_hooks->function_decl (current_function_decl);
   timevar_pop (TV_SYMOUT);
 
   /* Release the blocks that are linked to DECL_INITIAL() to free the memory.  */
@@ -4284,7 +4307,7 @@ struct rtl_opt_pass pass_final =
 {
  {
   RTL_PASS,
-  NULL,                                 /* name */
+  "final",                              /* name */
   NULL,                                 /* gate */
   rest_of_handle_final,                 /* execute */
   NULL,                                 /* sub */

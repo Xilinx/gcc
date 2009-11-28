@@ -1005,16 +1005,9 @@ typedef struct m68hc11_args
    for profiling a function entry.  */
 #define FUNCTION_PROFILER(FILE, LABELNO)		\
     fprintf (FILE, "\tldy\t.LP%d\n\tjsr mcount\n", (LABELNO))
+
 /* Length in units of the trampoline for entering a nested function.  */
 #define TRAMPOLINE_SIZE		(TARGET_M6811 ? 11 : 9)
-
-/* A C statement to initialize the variable parts of a trampoline.
-   ADDR is an RTX for the address of the trampoline; FNADDR is an
-   RTX for the address of the nested function; STATIC_CHAIN is an
-   RTX for the static chain value that should be passed to the
-   function when it is called.  */
-#define INITIALIZE_TRAMPOLINE(TRAMP, FNADDR, CXT) \
-  m68hc11_initialize_trampoline ((TRAMP), (FNADDR), (CXT))
 
 
 /* Addressing modes, and classification of registers for them.  */
@@ -1114,9 +1107,6 @@ extern unsigned char m68hc11_reg_valid_for_index[FIRST_PSEUDO_REGISTER];
     ((GET_CODE (operand) == MEM) \
      && (GET_CODE (XEXP (operand, 0)) == POST_INC) \
      && (SP_REG_P (XEXP (XEXP (operand, 0), 0))))
-
-/* 1 if X is an rtx for a constant that is a valid address.  */
-#define CONSTANT_ADDRESS_P(X)	(CONSTANT_P (X))
 
 /* Maximum number of registers that can appear in a valid memory address */
 #define MAX_REGS_PER_ADDRESS	2

@@ -454,12 +454,7 @@ enum reg_class
 /* Trampolines for Nested Functions.  */
 
 #define TRAMPOLINE_SIZE 8
-
 #define TRAMPOLINE_ALIGNMENT 16
-
-#define INITIALIZE_TRAMPOLINE(ADDR, FNADDR, STATIC_CHAIN) \
-  xstormy16_initialize_trampoline (ADDR, FNADDR, STATIC_CHAIN)
-
 
 /* Define this macro to override the type used by the library routines to pick
    up arguments of type `float'.  (By default, they use a union of `float' and
@@ -526,8 +521,6 @@ enum reg_class
 #define HAVE_POST_INCREMENT 1
 
 #define HAVE_PRE_DECREMENT 1
-
-#define CONSTANT_ADDRESS_P(X) CONSTANT_P (X)
 
 #define MAX_REGS_PER_ADDRESS 1
 

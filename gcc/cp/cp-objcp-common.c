@@ -138,6 +138,10 @@ cp_tree_size (enum tree_code code)
     case TRAIT_EXPR:
       return sizeof (struct tree_trait_expr);
 
+    case LAMBDA_EXPR:           return sizeof (struct tree_lambda_expr);
+
+    case TEMPLATE_INFO:         return sizeof (struct tree_template_info);
+
     default:
       gcc_unreachable ();
     }

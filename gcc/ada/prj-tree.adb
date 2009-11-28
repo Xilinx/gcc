@@ -23,9 +23,10 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Unchecked_Deallocation;
 with Osint;   use Osint;
 with Prj.Err;
+
+with Ada.Unchecked_Deallocation;
 
 package body Prj.Tree is
 
@@ -983,6 +984,10 @@ package body Prj.Tree is
    begin
       Project_Node_Table.Init (Tree.Project_Nodes);
       Projects_Htable.Reset (Tree.Projects_HT);
+
+      --  Do not reset the external references, in case we are reloading a
+      --  project, since we want to preserve the current environment
+      --  Name_To_Name_HTable.Reset (Tree.External_References);
    end Initialize;
 
    ----------
@@ -996,6 +1001,8 @@ package body Prj.Tree is
       if Proj /= null then
          Project_Node_Table.Free (Proj.Project_Nodes);
          Projects_Htable.Reset (Proj.Projects_HT);
+         Name_To_Name_HTable.Reset (Proj.External_References);
+         Free (Proj.Project_Path);
          Unchecked_Free (Proj);
       end if;
    end Free;
@@ -2854,6 +2861,7 @@ package body Prj.Tree is
             Name,
             Prj.Tree.Tree_Private_Part.Project_Name_And_Node'
               (Name           => Name,
+               Display_Name   => Name,
                Canonical_Path => No_Path,
                Node           => Project,
                Extended       => False,

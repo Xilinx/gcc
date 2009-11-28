@@ -151,9 +151,6 @@ make_thunk (tree function, bool this_adjusting,
   DECL_CONSTRUCTOR_P (thunk) = 0;
   DECL_EXTERNAL (thunk) = 1;
   DECL_ARTIFICIAL (thunk) = 1;
-  /* Even if this thunk is a member of a local class, we don't
-     need a static chain.  */
-  DECL_NO_STATIC_CHAIN (thunk) = 1;
   /* The THUNK is not a pending inline, even if the FUNCTION is.  */
   DECL_PENDING_INLINE_P (thunk) = 0;
   DECL_DECLARED_INLINE_P (thunk) = 0;
@@ -281,7 +278,6 @@ make_alias_for (tree function, tree newid)
   DECL_CONSTRUCTOR_P (alias) = 0;
   DECL_EXTERNAL (alias) = 0;
   DECL_ARTIFICIAL (alias) = 1;
-  DECL_NO_STATIC_CHAIN (alias) = 1;
   DECL_PENDING_INLINE_P (alias) = 0;
   DECL_DECLARED_INLINE_P (alias) = 0;
   DECL_USE_TEMPLATE (alias) = 0;
@@ -382,7 +378,7 @@ use_thunk (tree thunk_fndecl, bool emit_p)
   DECL_VISIBILITY (thunk_fndecl) = DECL_VISIBILITY (function);
   DECL_VISIBILITY_SPECIFIED (thunk_fndecl)
     = DECL_VISIBILITY_SPECIFIED (function);
-  if (DECL_ONE_ONLY (function))
+  if (DECL_ONE_ONLY (function) || DECL_WEAK (function))
     make_decl_one_only (thunk_fndecl, cxx_comdat_group (thunk_fndecl));
 
   if (flag_syntax_only)
@@ -534,12 +530,13 @@ use_thunk (tree thunk_fndecl, bool emit_p)
 
 /* Code for synthesizing methods which have default semantics defined.  */
 
-/* Generate code for default X(X&) constructor.  */
+/* Generate code for default X(X&) or X(X&&) constructor.  */
 
 static void
 do_build_copy_constructor (tree fndecl)
 {
   tree parm = FUNCTION_FIRST_USER_PARM (fndecl);
+  bool move_p = DECL_MOVE_CONSTRUCTOR_P (fndecl);
 
   parm = convert_from_reference (parm);
 
@@ -559,6 +556,7 @@ do_build_copy_constructor (tree fndecl)
       int cvquals = cp_type_quals (TREE_TYPE (parm));
       int i;
       tree binfo, base_binfo;
+      tree init;
       VEC(tree,gc) *vbases;
 
       /* Initialize all the base-classes with the parameter converted
@@ -569,11 +567,12 @@ do_build_copy_constructor (tree fndecl)
       for (vbases = CLASSTYPE_VBASECLASSES (current_class_type), i = 0;
 	   VEC_iterate (tree, vbases, i, binfo); i++)
 	{
+	  init = build_base_path (PLUS_EXPR, parm, binfo, 1);
+	  if (move_p)
+	    init = move (init);
 	  member_init_list
 	    = tree_cons (binfo,
-			 build_tree_list (NULL_TREE,
-					  build_base_path (PLUS_EXPR, parm,
-							   binfo, 1)),
+			 build_tree_list (NULL_TREE, init),
 			 member_init_list);
 	}
 
@@ -583,17 +582,17 @@ do_build_copy_constructor (tree fndecl)
 	  if (BINFO_VIRTUAL_P (base_binfo))
 	    continue;
 
+	  init = build_base_path (PLUS_EXPR, parm, base_binfo, 1);
+	  if (move_p)
+	    init = move (init);
 	  member_init_list
 	    = tree_cons (base_binfo,
-			 build_tree_list (NULL_TREE,
-					  build_base_path (PLUS_EXPR, parm,
-							   base_binfo, 1)),
+			 build_tree_list (NULL_TREE, init),
 			 member_init_list);
 	}
 
       for (; fields; fields = TREE_CHAIN (fields))
 	{
-	  tree init = parm;
 	  tree field = fields;
 	  tree expr_type;
 
@@ -623,10 +622,13 @@ do_build_copy_constructor (tree fndecl)
 
 	      if (DECL_MUTABLE_P (field))
 		quals &= ~TYPE_QUAL_CONST;
+	      quals |= TYPE_QUALS (expr_type);
 	      expr_type = cp_build_qualified_type (expr_type, quals);
 	    }
 
-	  init = build3 (COMPONENT_REF, expr_type, init, field, NULL_TREE);
+	  init = build3 (COMPONENT_REF, expr_type, parm, field, NULL_TREE);
+	  if (move_p && TREE_CODE (expr_type) != REFERENCE_TYPE)
+	    init = move (init);
 	  init = build_tree_list (NULL_TREE, init);
 
 	  member_init_list = tree_cons (field, init, member_init_list);
@@ -940,6 +942,8 @@ locate_copy (tree type, void *client_)
 	 it now.  */
       if (CLASSTYPE_LAZY_COPY_CTOR (type))
 	lazily_declare_fn (sfk_copy_constructor, type);
+      if (CLASSTYPE_LAZY_MOVE_CTOR (type))
+	lazily_declare_fn (sfk_move_constructor, type);
       fns = CLASSTYPE_CONSTRUCTORS (type);
     }
   else
@@ -1040,6 +1044,7 @@ implicitly_declare_fn (special_function_kind kind, tree type, bool const_p)
 
     case sfk_copy_constructor:
     case sfk_assignment_operator:
+    case sfk_move_constructor:
     {
       struct copy_data data;
 
@@ -1061,7 +1066,9 @@ implicitly_declare_fn (special_function_kind kind, tree type, bool const_p)
 	}
       else
 	rhs_parm_type = type;
-      rhs_parm_type = build_reference_type (rhs_parm_type);
+      rhs_parm_type
+	= cp_build_reference_type (rhs_parm_type,
+				   kind == sfk_move_constructor);
       parameter_types = tree_cons (NULL_TREE, rhs_parm_type, parameter_types);
       raises = synthesize_exception_spec (type, &locate_copy, &data);
       break;
@@ -1076,7 +1083,8 @@ implicitly_declare_fn (special_function_kind kind, tree type, bool const_p)
     fn_type = build_exception_variant (fn_type, raises);
   fn = build_lang_decl (FUNCTION_DECL, name, fn_type);
   DECL_SOURCE_LOCATION (fn) = DECL_SOURCE_LOCATION (TYPE_NAME (type));
-  if (kind == sfk_constructor || kind == sfk_copy_constructor)
+  if (kind == sfk_constructor || kind == sfk_copy_constructor
+      || kind == sfk_move_constructor)
     DECL_CONSTRUCTOR_P (fn) = 1;
   else if (kind == sfk_destructor)
     DECL_DESTRUCTOR_P (fn) = 1;
@@ -1123,6 +1131,88 @@ implicitly_declare_fn (special_function_kind kind, tree type, bool const_p)
   return fn;
 }
 
+/* Gives any errors about defaulted functions which need to be deferred
+   until the containing class is complete.  */
+
+void
+defaulted_late_check (tree fn)
+{
+  /* Complain about invalid signature for defaulted fn.  */
+  tree ctx = DECL_CONTEXT (fn);
+  special_function_kind kind = special_function_p (fn);
+  bool fn_const_p = (copy_fn_p (fn) == 2);
+  tree implicit_fn = implicitly_declare_fn (kind, ctx, fn_const_p);
+
+  if (!same_type_p (TREE_TYPE (TREE_TYPE (fn)),
+		    TREE_TYPE (TREE_TYPE (implicit_fn)))
+      || !compparms (TYPE_ARG_TYPES (TREE_TYPE (fn)),
+		     TYPE_ARG_TYPES (TREE_TYPE (implicit_fn))))
+    {
+      error ("defaulted declaration %q+D", fn);
+      error_at (DECL_SOURCE_LOCATION (fn),
+		"does not match expected signature %qD", implicit_fn);
+    }
+}
+
+/* Returns true iff FN can be explicitly defaulted, and gives any
+   errors if defaulting FN is ill-formed.  */
+
+bool
+defaultable_fn_check (tree fn)
+{
+  special_function_kind kind = sfk_none;
+
+  if (DECL_CONSTRUCTOR_P (fn))
+    {
+      if (FUNCTION_FIRST_USER_PARMTYPE (fn) == void_list_node)
+	kind = sfk_constructor;
+      else if (copy_fn_p (fn) > 0
+	       && (TREE_CHAIN (FUNCTION_FIRST_USER_PARMTYPE (fn))
+		   == void_list_node))
+	kind = sfk_copy_constructor;
+      else if (move_fn_p (fn))
+	kind = sfk_move_constructor;
+    }
+  else if (DECL_DESTRUCTOR_P (fn))
+    kind = sfk_destructor;
+  else if (DECL_ASSIGNMENT_OPERATOR_P (fn)
+	   && DECL_OVERLOADED_OPERATOR_P (fn) == NOP_EXPR
+	   && copy_fn_p (fn))
+    kind = sfk_assignment_operator;
+
+  if (kind == sfk_none)
+    {
+      error ("%qD cannot be defaulted", fn);
+      return false;
+    }
+  else
+    {
+      tree t = FUNCTION_FIRST_USER_PARMTYPE (fn);
+      for (; t && t != void_list_node; t = TREE_CHAIN (t))
+	if (TREE_PURPOSE (t))
+	  {
+	    error ("defaulted function %q+D with default argument", fn);
+	    break;
+	  }
+      if (TYPE_BEING_DEFINED (DECL_CONTEXT (fn)))
+	{
+	  if (DECL_NONCONVERTING_P (fn))
+	    error ("%qD declared explicit cannot be defaulted in the class "
+		   "body", fn);
+	  if (current_access_specifier != access_public_node)
+	    error ("%qD declared with non-public access cannot be defaulted "
+		   "in the class body", fn);
+	  if (TYPE_RAISES_EXCEPTIONS (TREE_TYPE (fn)))
+	    error ("function %q+D defaulted on its first declaration "
+		   "must not have an exception-specification", fn);
+	}
+      else if (!processing_template_decl)
+	defaulted_late_check (fn);
+
+      return true;
+    }
+}
+
 /* Add an implicit declaration to TYPE for the kind of function
    indicated by SFK.  Return the FUNCTION_DECL for the new implicit
    declaration.  */
@@ -1161,7 +1251,7 @@ lazily_declare_fn (special_function_kind sfk, tree type)
       /* G++ 3.2 put the implicit destructor at the *beginning* of the
 	 TYPE_METHODS list, which cause the destructor to be emitted
 	 in an incorrect location in the vtable.  */
-      if (warn_abi && DECL_VIRTUAL_P (fn))
+      if (warn_abi && sfk == sfk_destructor && DECL_VIRTUAL_P (fn))
 	warning (OPT_Wabi, "vtable layout for class %qT may not be ABI-compliant"
 		 "and may change in a future version of GCC due to "
 		 "implicit virtual destructor",
@@ -1179,6 +1269,8 @@ lazily_declare_fn (special_function_kind sfk, tree type)
 	CLASSTYPE_LAZY_DEFAULT_CTOR (type) = 0;
       else if (sfk == sfk_copy_constructor)
 	CLASSTYPE_LAZY_COPY_CTOR (type) = 0;
+      else if (sfk == sfk_move_constructor)
+	CLASSTYPE_LAZY_MOVE_CTOR (type) = 0;
       else if (sfk == sfk_destructor)
 	CLASSTYPE_LAZY_DESTRUCTOR (type) = 0;
       /* Create appropriate clones.  */

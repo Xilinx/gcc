@@ -1,6 +1,4 @@
 ! { dg-do compile }
-! { dg-options "-w" }
-! FIXME: Remove -w when CLASS is fully implemented.
 
 ! Type-bound procedures
 ! Check for errors with operator calls.
@@ -39,7 +37,7 @@ CONTAINS
   PURE SUBROUTINE assign_int (dest, from)
     CLASS(myint), INTENT(OUT) :: dest
     INTEGER, INTENT(IN) :: from
-    dest = myint (from)
+    dest%value = from
   END SUBROUTINE assign_int
 
   TYPE(myreal) FUNCTION add_real (a, b)
@@ -51,7 +49,7 @@ CONTAINS
   SUBROUTINE assign_real (dest, from)
     CLASS(myreal), INTENT(OUT) :: dest
     REAL, INTENT(IN) :: from
-    dest = myreal (from)
+    dest%value = from
   END SUBROUTINE assign_real
 
   SUBROUTINE in_module ()

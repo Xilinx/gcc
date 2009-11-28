@@ -1768,10 +1768,10 @@ expand_call_stmt (gimple stmt)
   for (i = 0; i < gimple_call_num_args (stmt); i++)
     CALL_EXPR_ARG (exp, i) = gimple_call_arg (stmt, i);
 
-  if (!(gimple_call_flags (stmt) & (ECF_CONST | ECF_PURE)))
+  if (gimple_has_side_effects (stmt))
     TREE_SIDE_EFFECTS (exp) = 1;
 
-  if (gimple_call_flags (stmt) & ECF_NOTHROW)
+  if (gimple_call_nothrow_p (stmt))
     TREE_NOTHROW (exp) = 1;
 
   CALL_EXPR_TAILCALL (exp) = gimple_call_tail_p (stmt);
@@ -1819,9 +1819,6 @@ expand_gimple_stmt_1 (gimple stmt)
       break;
     case GIMPLE_NOP:
     case GIMPLE_PREDICT:
-      break;
-    case GIMPLE_RESX:
-      expand_resx_stmt (stmt);
       break;
     case GIMPLE_SWITCH:
       expand_case (stmt);
@@ -1920,19 +1917,19 @@ expand_gimple_stmt_1 (gimple stmt)
 	      ;
 	    else if (promoted)
 	      {
-		bool unsigndp = SUBREG_PROMOTED_UNSIGNED_P (target);
+		int unsignedp = SUBREG_PROMOTED_UNSIGNED_P (target);
 		/* If TEMP is a VOIDmode constant, use convert_modes to make
 		   sure that we properly convert it.  */
 		if (CONSTANT_P (temp) && GET_MODE (temp) == VOIDmode)
 		  {
 		    temp = convert_modes (GET_MODE (target),
 					  TYPE_MODE (ops.type),
-					  temp, unsigndp);
+					  temp, unsignedp);
 		    temp = convert_modes (GET_MODE (SUBREG_REG (target)),
-					  GET_MODE (target), temp, unsigndp);
+					  GET_MODE (target), temp, unsignedp);
 		  }
 
-		convert_move (SUBREG_REG (target), temp, unsigndp);
+		convert_move (SUBREG_REG (target), temp, unsignedp);
 	      }
 	    else if (nontemporal && emit_storent_insn (target, temp))
 	      ;
@@ -1961,7 +1958,7 @@ expand_gimple_stmt_1 (gimple stmt)
 static rtx
 expand_gimple_stmt (gimple stmt)
 {
-  int rn = -1;
+  int lp_nr = 0;
   rtx last = NULL;
   location_t saved_location = input_location;
 
@@ -1993,8 +1990,8 @@ expand_gimple_stmt (gimple stmt)
   input_location = saved_location;
 
   /* Mark all insns that may trap.  */
-  rn = lookup_stmt_eh_region (stmt);
-  if (rn >= 0)
+  lp_nr = lookup_stmt_eh_lp (stmt);
+  if (lp_nr)
     {
       rtx insn;
       for (insn = next_real_insn (last); insn;
@@ -2005,9 +2002,8 @@ expand_gimple_stmt (gimple stmt)
 		 may_trap_p instruction may throw.  */
 	      && GET_CODE (PATTERN (insn)) != CLOBBER
 	      && GET_CODE (PATTERN (insn)) != USE
-	      && (CALL_P (insn)
-		  || (flag_non_call_exceptions && may_trap_p (PATTERN (insn)))))
-	    add_reg_note (insn, REG_EH_REGION, GEN_INT (rn));
+	      && insn_could_throw_p (insn))
+	    make_reg_eh_region_note (insn, 0, lp_nr);
 	}
     }
 
@@ -2198,44 +2194,36 @@ round_udiv_adjust (enum machine_mode mode, rtx mod, rtx op1)
      const1_rtx, const0_rtx);
 }
 
-/* Wrap modeless constants in CONST:MODE.  */
-rtx
-wrap_constant (enum machine_mode mode, rtx x)
+/* Convert X to MODE, that must be Pmode or ptr_mode, without emitting
+   any rtl.  */
+
+static rtx
+convert_debug_memory_address (enum machine_mode mode, rtx x)
 {
-  if (GET_MODE (x) != VOIDmode)
+  enum machine_mode xmode = GET_MODE (x);
+
+#ifndef POINTERS_EXTEND_UNSIGNED
+  gcc_assert (mode == Pmode);
+  gcc_assert (xmode == mode || xmode == VOIDmode);
+#else
+  gcc_assert (mode == Pmode || mode == ptr_mode);
+
+  if (GET_MODE (x) == mode || GET_MODE (x) == VOIDmode)
     return x;
 
-  if (CONST_INT_P (x)
-      || GET_CODE (x) == CONST_FIXED
-      || GET_CODE (x) == CONST_DOUBLE
-      || GET_CODE (x) == LABEL_REF)
-    {
-      gcc_assert (mode != VOIDmode);
-
-      x = gen_rtx_CONST (mode, x);
-    }
+  if (GET_MODE_BITSIZE (mode) < GET_MODE_BITSIZE (xmode))
+    x = simplify_gen_subreg (mode, x, xmode,
+			     subreg_lowpart_offset
+			     (mode, xmode));
+  else if (POINTERS_EXTEND_UNSIGNED > 0)
+    x = gen_rtx_ZERO_EXTEND (mode, x);
+  else if (!POINTERS_EXTEND_UNSIGNED)
+    x = gen_rtx_SIGN_EXTEND (mode, x);
+  else
+    gcc_unreachable ();
+#endif /* POINTERS_EXTEND_UNSIGNED */
 
   return x;
-}
-
-/* Remove CONST wrapper added by wrap_constant().  */
-rtx
-unwrap_constant (rtx x)
-{
-  rtx ret = x;
-
-  if (GET_CODE (x) != CONST)
-    return x;
-
-  x = XEXP (x, 0);
-
-  if (CONST_INT_P (x)
-      || GET_CODE (x) == CONST_FIXED
-      || GET_CODE (x) == CONST_DOUBLE
-      || GET_CODE (x) == LABEL_REF)
-    ret = x;
-
-  return ret;
 }
 
 /* Return an RTX equivalent to the value of the tree expression
@@ -2247,6 +2235,9 @@ expand_debug_expr (tree exp)
   rtx op0 = NULL_RTX, op1 = NULL_RTX, op2 = NULL_RTX;
   enum machine_mode mode = TYPE_MODE (TREE_TYPE (exp));
   int unsignedp = TYPE_UNSIGNED (TREE_TYPE (exp));
+  addr_space_t as;
+  enum machine_mode address_mode;
+  enum machine_mode pointer_mode;
 
   switch (TREE_CODE_CLASS (TREE_CODE (exp)))
     {
@@ -2309,6 +2300,9 @@ expand_debug_expr (tree exp)
     case STRING_CST:
       if (!lookup_constant_def (exp))
 	{
+	  if (strlen (TREE_STRING_POINTER (exp)) + 1
+	      != (size_t) TREE_STRING_LENGTH (exp))
+	    return NULL_RTX;
 	  op0 = gen_rtx_CONST_STRING (Pmode, TREE_STRING_POINTER (exp));
 	  op0 = gen_rtx_MEM (BLKmode, op0);
 	  set_mem_attributes (op0, exp, 0);
@@ -2325,10 +2319,20 @@ expand_debug_expr (tree exp)
     case COMPLEX_CST:
       gcc_assert (COMPLEX_MODE_P (mode));
       op0 = expand_debug_expr (TREE_REALPART (exp));
-      op0 = wrap_constant (GET_MODE_INNER (mode), op0);
       op1 = expand_debug_expr (TREE_IMAGPART (exp));
-      op1 = wrap_constant (GET_MODE_INNER (mode), op1);
       return gen_rtx_CONCAT (mode, op0, op1);
+
+    case DEBUG_EXPR_DECL:
+      op0 = DECL_RTL_IF_SET (exp);
+
+      if (op0)
+	return op0;
+
+      op0 = gen_rtx_DEBUG_EXPR (mode);
+      DEBUG_EXPR_TREE_DECL (op0) = exp;
+      SET_DECL_RTL (exp, op0);
+
+      return op0;
 
     case VAR_DECL:
     case PARM_DECL:
@@ -2340,9 +2344,24 @@ expand_debug_expr (tree exp)
 
       /* This decl was probably optimized away.  */
       if (!op0)
-	return NULL;
+	{
+	  if (TREE_CODE (exp) != VAR_DECL
+	      || DECL_EXTERNAL (exp)
+	      || !TREE_STATIC (exp)
+	      || !DECL_NAME (exp)
+	      || DECL_HARD_REGISTER (exp)
+	      || mode == VOIDmode)
+	    return NULL;
 
-      op0 = copy_rtx (op0);
+	  op0 = DECL_RTL (exp);
+ 	  SET_DECL_RTL (exp, NULL);
+	  if (!MEM_P (op0)
+	      || GET_CODE (XEXP (op0, 0)) != SYMBOL_REF
+	      || SYMBOL_REF_DECL (XEXP (op0, 0)) != exp)
+	    return NULL;
+	}
+      else
+	op0 = copy_rtx (op0);
 
       if (GET_MODE (op0) == BLKmode)
 	{
@@ -2413,19 +2432,29 @@ expand_debug_expr (tree exp)
       if (!op0)
 	return NULL;
 
-      gcc_assert (GET_MODE (op0) == Pmode
+      if (POINTER_TYPE_P (TREE_TYPE (exp)))
+	as = TYPE_ADDR_SPACE (TREE_TYPE (TREE_TYPE (exp)));
+      else
+	as = ADDR_SPACE_GENERIC;
+
+      address_mode = targetm.addr_space.address_mode (as);
+      pointer_mode = targetm.addr_space.pointer_mode (as);
+
+      gcc_assert (GET_MODE (op0) == address_mode
+		  || GET_MODE (op0) == pointer_mode
 		  || GET_CODE (op0) == CONST_INT
 		  || GET_CODE (op0) == CONST_DOUBLE);
 
       if (TREE_CODE (exp) == ALIGN_INDIRECT_REF)
 	{
 	  int align = TYPE_ALIGN_UNIT (TREE_TYPE (exp));
-	  op0 = gen_rtx_AND (Pmode, op0, GEN_INT (-align));
+	  op0 = gen_rtx_AND (address_mode, op0, GEN_INT (-align));
 	}
 
       op0 = gen_rtx_MEM (mode, op0);
 
       set_mem_attributes (op0, exp, 0);
+      set_mem_addr_space (op0, as);
 
       return op0;
 
@@ -2439,13 +2468,19 @@ expand_debug_expr (tree exp)
       if (!op0)
 	return NULL;
 
-      gcc_assert (GET_MODE (op0) == Pmode
+      as = TYPE_ADDR_SPACE (TREE_TYPE (exp));
+      address_mode = targetm.addr_space.address_mode (as);
+      pointer_mode = targetm.addr_space.pointer_mode (as);
+
+      gcc_assert (GET_MODE (op0) == address_mode
+		  || GET_MODE (op0) == pointer_mode
 		  || GET_CODE (op0) == CONST_INT
 		  || GET_CODE (op0) == CONST_DOUBLE);
 
       op0 = gen_rtx_MEM (mode, op0);
 
       set_mem_attributes (op0, exp, 0);
+      set_mem_addr_space (op0, as);
 
       return op0;
 
@@ -2465,6 +2500,9 @@ expand_debug_expr (tree exp)
 					&mode1, &unsignedp, &volatilep, false);
 	rtx orig_op0;
 
+	if (bitsize == 0)
+	  return NULL;
+
 	orig_op0 = op0 = expand_debug_expr (tem);
 
 	if (!op0)
@@ -2472,17 +2510,39 @@ expand_debug_expr (tree exp)
 
 	if (offset)
 	  {
+	    enum machine_mode addrmode, offmode;
+
 	    gcc_assert (MEM_P (op0));
+
+	    op0 = XEXP (op0, 0);
+	    addrmode = GET_MODE (op0);
+	    if (addrmode == VOIDmode)
+	      addrmode = Pmode;
 
 	    op1 = expand_debug_expr (offset);
 	    if (!op1)
 	      return NULL;
 
-	    op0 = gen_rtx_MEM (mode, gen_rtx_PLUS (Pmode, XEXP (op0, 0), op1));
+	    offmode = GET_MODE (op1);
+	    if (offmode == VOIDmode)
+	      offmode = TYPE_MODE (TREE_TYPE (offset));
+
+	    if (addrmode != offmode)
+	      op1 = simplify_gen_subreg (addrmode, op1, offmode,
+					 subreg_lowpart_offset (addrmode,
+								offmode));
+
+	    /* Don't use offset_address here, we don't need a
+	       recognizable address, and we don't want to generate
+	       code.  */
+	    op0 = gen_rtx_MEM (mode, gen_rtx_PLUS (addrmode, op0, op1));
 	  }
 
 	if (MEM_P (op0))
 	  {
+	    if (mode1 == VOIDmode)
+	      /* Bitfield.  */
+	      mode1 = smallest_mode_for_size (bitsize, MODE_INT);
 	    if (bitpos >= BITS_PER_UNIT)
 	      {
 		op0 = adjust_address_nv (op0, mode1, bitpos / BITS_PER_UNIT);
@@ -2490,7 +2550,8 @@ expand_debug_expr (tree exp)
 	      }
 	    else if (bitpos < 0)
 	      {
-		int units = (-bitpos + BITS_PER_UNIT - 1) / BITS_PER_UNIT;
+		HOST_WIDE_INT units
+		  = (-bitpos + BITS_PER_UNIT - 1) / BITS_PER_UNIT;
 		op0 = adjust_address_nv (op0, mode1, units);
 		bitpos += units * BITS_PER_UNIT;
 	      }
@@ -2507,6 +2568,9 @@ expand_debug_expr (tree exp)
 
 	if (bitpos == 0 && mode == GET_MODE (op0))
 	  return op0;
+
+        if (bitpos < 0)
+          return NULL;
 
 	if ((bitpos % BITS_PER_UNIT) == 0
 	    && bitsize == GET_MODE_BITSIZE (mode1))
@@ -2539,15 +2603,6 @@ expand_debug_expr (tree exp)
 				     ? GET_MODE (op0) : mode1,
 				     op0, GEN_INT (bitsize), GEN_INT (bitpos));
       }
-
-    case EXC_PTR_EXPR:
-      /* ??? Do not call get_exception_pointer(), we don't want to gen
-	 it if it hasn't been created yet.  */
-      return get_exception_pointer ();
-
-    case FILTER_EXPR:
-      /* Likewise get_exception_filter().  */
-      return get_exception_filter ();
 
     case ABS_EXPR:
       return gen_rtx_ABS (mode, op0);
@@ -2793,12 +2848,54 @@ expand_debug_expr (tree exp)
 	op1 = gen_rtx_CONST (GET_MODE_INNER (mode), op1);
       return gen_rtx_CONCAT (mode, op0, op1);
 
+    case CONJ_EXPR:
+      if (GET_CODE (op0) == CONCAT)
+	return gen_rtx_CONCAT (mode, XEXP (op0, 0),
+			       gen_rtx_NEG (GET_MODE_INNER (mode),
+					    XEXP (op0, 1)));
+      else
+	{
+	  enum machine_mode imode = GET_MODE_INNER (mode);
+	  rtx re, im;
+
+	  if (MEM_P (op0))
+	    {
+	      re = adjust_address_nv (op0, imode, 0);
+	      im = adjust_address_nv (op0, imode, GET_MODE_SIZE (imode));
+	    }
+	  else
+	    {
+	      enum machine_mode ifmode = int_mode_for_mode (mode);
+	      enum machine_mode ihmode = int_mode_for_mode (imode);
+	      rtx halfsize;
+	      if (ifmode == BLKmode || ihmode == BLKmode)
+		return NULL;
+	      halfsize = GEN_INT (GET_MODE_BITSIZE (ihmode));
+	      re = op0;
+	      if (mode != ifmode)
+		re = gen_rtx_SUBREG (ifmode, re, 0);
+	      re = gen_rtx_ZERO_EXTRACT (ihmode, re, halfsize, const0_rtx);
+	      if (imode != ihmode)
+		re = gen_rtx_SUBREG (imode, re, 0);
+	      im = copy_rtx (op0);
+	      if (mode != ifmode)
+		im = gen_rtx_SUBREG (ifmode, im, 0);
+	      im = gen_rtx_ZERO_EXTRACT (ihmode, im, halfsize, halfsize);
+	      if (imode != ihmode)
+		im = gen_rtx_SUBREG (imode, im, 0);
+	    }
+	  im = gen_rtx_NEG (imode, im);
+	  return gen_rtx_CONCAT (mode, re, im);
+	}
+
     case ADDR_EXPR:
       op0 = expand_debug_expr (TREE_OPERAND (exp, 0));
       if (!op0 || !MEM_P (op0))
 	return NULL;
 
-      return XEXP (op0, 0);
+      op0 = convert_debug_memory_address (mode, XEXP (op0, 0));
+
+      return op0;
 
     case VECTOR_CST:
       exp = build_constructor_from_list (TREE_TYPE (exp),
@@ -3123,6 +3220,18 @@ expand_gimple_basic_block (basic_block bb)
 	}
     }
 
+  /* Expanded RTL can create a jump in the last instruction of block.
+     This later might be assumed to be a jump to successor and break edge insertion.
+     We need to insert dummy move to prevent this. PR41440. */
+  if (single_succ_p (bb)
+      && (single_succ_edge (bb)->flags & EDGE_FALLTHRU)
+      && (last = get_last_insn ())
+      && JUMP_P (last))
+    {
+      rtx dummy = gen_reg_rtx (SImode);
+      emit_insn_after_noloc (gen_move_insn (dummy, dummy), last, NULL);
+    }
+
   do_pending_stack_adjust ();
 
   /* Find the block tail.  The last insn in the block is the insn
@@ -3351,8 +3460,18 @@ expand_stack_alignment (void)
       || crtl->has_nonlocal_goto)
     crtl->need_drap = true;
 
-  gcc_assert (crtl->stack_alignment_needed
-	      <= crtl->stack_alignment_estimated);
+  /* Call update_stack_boundary here again to update incoming stack
+     boundary.  It may set incoming stack alignment to a different
+     value after RTL expansion.  TARGET_FUNCTION_OK_FOR_SIBCALL may
+     use the minimum incoming stack alignment to check if it is OK
+     to perform sibcall optimization since sibcall optimization will
+     only align the outgoing stack to incoming stack boundary.  */
+  if (targetm.calls.update_stack_boundary)
+    targetm.calls.update_stack_boundary ();
+
+  /* The incoming stack frame has to be aligned at least at
+     parm_stack_boundary.  */
+  gcc_assert (crtl->parm_stack_boundary <= INCOMING_STACK_BOUNDARY);
 
   /* Update crtl->stack_alignment_estimated and use it later to align
      stack.  We check PREFERRED_STACK_BOUNDARY if there may be non-call
@@ -3367,6 +3486,9 @@ expand_stack_alignment (void)
     crtl->stack_alignment_estimated = preferred_stack_boundary;
   if (preferred_stack_boundary > crtl->stack_alignment_needed)
     crtl->stack_alignment_needed = preferred_stack_boundary;
+
+  gcc_assert (crtl->stack_alignment_needed
+	      <= crtl->stack_alignment_estimated);
 
   crtl->stack_realign_needed
     = INCOMING_STACK_BOUNDARY < crtl->stack_alignment_estimated;
@@ -3444,7 +3566,7 @@ gimple_expand_cfg (void)
   targetm.expand_to_rtl_hook ();
   crtl->stack_alignment_needed = STACK_BOUNDARY;
   crtl->max_used_stack_slot_alignment = STACK_BOUNDARY;
-  crtl->stack_alignment_estimated = STACK_BOUNDARY;
+  crtl->stack_alignment_estimated = 0;
   crtl->preferred_stack_boundary = STACK_BOUNDARY;
   cfun->cfg->max_jumptable_ents = 0;
 
@@ -3508,23 +3630,6 @@ gimple_expand_cfg (void)
   if (crtl->stack_protect_guard)
     stack_protect_prologue ();
 
-  /* Update stack boundary if needed.  */
-  if (SUPPORTS_STACK_ALIGNMENT)
-    {
-      /* Call update_stack_boundary here to update incoming stack
-	 boundary before TARGET_FUNCTION_OK_FOR_SIBCALL is called.
-	 TARGET_FUNCTION_OK_FOR_SIBCALL needs to know the accurate
-	 incoming stack alignment to check if it is OK to perform
-	 sibcall optimization since sibcall optimization will only
-	 align the outgoing stack to incoming stack boundary.  */
-      if (targetm.calls.update_stack_boundary)
-	targetm.calls.update_stack_boundary ();
-      
-      /* The incoming stack frame has to be aligned at least at
-	 parm_stack_boundary.  */
-      gcc_assert (crtl->parm_stack_boundary <= INCOMING_STACK_BOUNDARY);
-    }
-
   expand_phi_nodes (&SA);
 
   /* Register rtl specific functions for cfg.  */
@@ -3556,12 +3661,10 @@ gimple_expand_cfg (void)
   set_curr_insn_block (DECL_INITIAL (current_function_decl));
   insn_locators_finalize ();
 
-  /* Convert tree EH labels to RTL EH labels and zap the tree EH table.  */
-  convert_from_eh_region_ranges ();
+  /* Zap the tree EH table.  */
   set_eh_throw_stmt_table (cfun, NULL);
 
   rebuild_jump_labels (get_insns ());
-  find_exception_handler_labels ();
 
   FOR_BB_BETWEEN (bb, ENTRY_BLOCK_PTR, EXIT_BLOCK_PTR, next_bb)
     {

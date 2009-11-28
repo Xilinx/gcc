@@ -235,8 +235,73 @@ sese_build_liveouts_bb (sese region, bitmap liveouts, basic_block bb)
 			       PHI_ARG_DEF_FROM_EDGE (gsi_stmt (bsi), e));
 
   for (bsi = gsi_start_bb (bb); !gsi_end_p (bsi); gsi_next (&bsi))
-    FOR_EACH_SSA_USE_OPERAND (use_p, gsi_stmt (bsi), iter, SSA_OP_ALL_USES)
-      sese_build_liveouts_use (region, liveouts, bb, USE_FROM_PTR (use_p));
+    {
+      gimple stmt = gsi_stmt (bsi);
+
+      if (is_gimple_debug (stmt))
+	continue;
+
+      FOR_EACH_SSA_USE_OPERAND (use_p, stmt, iter, SSA_OP_ALL_USES)
+	sese_build_liveouts_use (region, liveouts, bb, USE_FROM_PTR (use_p));
+    }
+}
+
+/* For a USE in BB, return true if BB is outside REGION and it's not
+   in the LIVEOUTS set.  */
+
+static bool
+sese_bad_liveouts_use (sese region, bitmap liveouts, basic_block bb,
+		       tree use)
+{
+  unsigned ver;
+  basic_block def_bb;
+
+  if (TREE_CODE (use) != SSA_NAME)
+    return false;
+
+  ver = SSA_NAME_VERSION (use);
+
+  /* If it's in liveouts, the variable will get a new PHI node, and
+     the debug use will be properly adjusted.  */
+  if (bitmap_bit_p (liveouts, ver))
+    return false;
+
+  def_bb = gimple_bb (SSA_NAME_DEF_STMT (use));
+
+  if (!def_bb
+      || !bb_in_sese_p (def_bb, region)
+      || bb_in_sese_p (bb, region))
+    return false;
+
+  return true;
+}
+
+/* Reset debug stmts that reference SSA_NAMES defined in REGION that
+   are not marked as liveouts.  */
+
+static void
+sese_reset_debug_liveouts_bb (sese region, bitmap liveouts, basic_block bb)
+{
+  gimple_stmt_iterator bsi;
+  ssa_op_iter iter;
+  use_operand_p use_p;
+
+  for (bsi = gsi_start_bb (bb); !gsi_end_p (bsi); gsi_next (&bsi))
+    {
+      gimple stmt = gsi_stmt (bsi);
+
+      if (!is_gimple_debug (stmt))
+	continue;
+
+      FOR_EACH_SSA_USE_OPERAND (use_p, stmt, iter, SSA_OP_ALL_USES)
+	if (sese_bad_liveouts_use (region, liveouts, bb,
+				   USE_FROM_PTR (use_p)))
+	  {
+	    gimple_debug_bind_reset_value (stmt);
+	    update_stmt (stmt);
+	    break;
+	  }
+    }
 }
 
 /* Build the LIVEOUTS of REGION: the set of variables defined inside
@@ -249,6 +314,9 @@ sese_build_liveouts (sese region, bitmap liveouts)
 
   FOR_EACH_BB (bb)
     sese_build_liveouts_bb (region, liveouts, bb);
+  if (MAY_HAVE_DEBUG_INSNS)
+    FOR_EACH_BB (bb)
+      sese_reset_debug_liveouts_bb (region, liveouts, bb);
 }
 
 /* Builds a new SESE region from edges ENTRY and EXIT.  */
@@ -544,7 +612,19 @@ rename_variables_in_stmt (gimple stmt, htab_t map, gimple_stmt_iterator *insert_
 	  || (TREE_CODE (expr) != SSA_NAME
 	      && is_gimple_reg (use)))
 	{
-	  tree var = create_tmp_var (type_use, "var");
+	  tree var;
+
+	  if (is_gimple_debug (stmt))
+	    {
+	      if (gimple_debug_bind_p (stmt))
+		gimple_debug_bind_reset_value (stmt);
+	      else
+		gcc_unreachable ();
+
+	      break;
+	    }
+
+	  var = create_tmp_var (type_use, "var");
 
 	  if (type_use != type_expr)
 	    expr = fold_convert (type_use, expr);
@@ -836,6 +916,16 @@ expand_scalar_variables_stmt (gimple stmt, basic_block bb, sese region,
 
       if (use_expr == use)
 	continue;
+
+      if (is_gimple_debug (stmt))
+	{
+	  if (gimple_debug_bind_p (stmt))
+	    gimple_debug_bind_reset_value (stmt);
+	  else
+	    gcc_unreachable ();
+
+	  break;
+	}
 
       if (TREE_CODE (use_expr) != SSA_NAME)
 	{
@@ -1196,7 +1286,6 @@ graphite_copy_stmts_from_block (basic_block bb, basic_block new_bb, htab_t map)
     {
       def_operand_p def_p;
       ssa_op_iter op_iter;
-      int region;
       gimple stmt = gsi_stmt (gsi);
       gimple copy;
 
@@ -1209,9 +1298,7 @@ graphite_copy_stmts_from_block (basic_block bb, basic_block new_bb, htab_t map)
       gsi_insert_after (&gsi_tgt, copy, GSI_NEW_STMT);
       mark_sym_for_renaming (gimple_vop (cfun));
 
-      region = lookup_stmt_eh_region (stmt);
-      if (region >= 0)
-	add_stmt_to_eh_region (copy, region);
+      maybe_duplicate_eh_stmt (copy, stmt);
       gimple_duplicate_stmt_histograms (cfun, copy, cfun, stmt);
 
       /* Create new names for all the definitions created by COPY and

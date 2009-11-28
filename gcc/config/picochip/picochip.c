@@ -111,6 +111,8 @@ picochip_asm_named_section (const char *name,
 			    unsigned int flags ATTRIBUTE_UNUSED,
 			    tree decl ATTRIBUTE_UNUSED);
 
+static rtx picochip_static_chain (const_tree, bool);
+
 /* Lookup table mapping a register number to the earliest containing
    class.  Used by REGNO_REG_CLASS.  */
 const enum reg_class picochip_regno_reg_class[FIRST_PSEUDO_REGISTER] =
@@ -288,6 +290,9 @@ static char picochip_get_vliw_alu_id (void);
 
 #undef TARGET_RETURN_IN_MEMORY
 #define TARGET_RETURN_IN_MEMORY picochip_return_in_memory
+
+#undef TARGET_STATIC_CHAIN
+#define TARGET_STATIC_CHAIN picochip_static_chain
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 
@@ -2920,7 +2925,7 @@ reorder_var_tracking_notes (void)
 	{
 	  next = NEXT_INSN (insn);
 
-	  if (INSN_P (insn))
+	  if (NONDEBUG_INSN_P (insn))
 	    {
 	      /* Emit queued up notes before the first instruction of a bundle.  */
 	      if (GET_MODE (insn) == TImode)
@@ -3016,7 +3021,7 @@ picochip_reorg (void)
                   INSN_LOCATOR (insn1) = vliw_insn_location;
               }
               /* Tag subsequent instructions with the same location. */
-              if (INSN_P (insn))
+              if (NONDEBUG_INSN_P (insn))
                 INSN_LOCATOR (insn) = vliw_insn_location;
 	    }
 	}
@@ -3160,7 +3165,7 @@ picochip_reset_vliw (rtx insn)
   local_insn = insn;
   do
     {
-      if (NOTE_P (local_insn))
+      if (NOTE_P (local_insn) || DEBUG_INSN_P(local_insn))
 	{
 	  local_insn = NEXT_INSN (local_insn);
 	  continue;
@@ -3599,7 +3604,7 @@ picochip_final_prescan_insn (rtx insn, rtx * opvec ATTRIBUTE_UNUSED,
   for (local_insn = NEXT_INSN (local_insn); local_insn;
        local_insn = NEXT_INSN (local_insn))
     {
-      if (NOTE_P (local_insn))
+      if (NOTE_P (local_insn) || DEBUG_INSN_P(local_insn))
 	continue;
       else if (!INSN_P (local_insn))
 	break;
@@ -3611,7 +3616,7 @@ picochip_final_prescan_insn (rtx insn, rtx * opvec ATTRIBUTE_UNUSED,
   /* Set the continuation flag if the next instruction can be packed
      with the current instruction (i.e., the next instruction is
      valid, and isn't the start of a new cycle). */
-  picochip_vliw_continuation = (local_insn && INSN_P (local_insn) &&
+  picochip_vliw_continuation = (local_insn && NONDEBUG_INSN_P (local_insn) &&
 				(GET_MODE (local_insn) != TImode));
 
 }
@@ -4402,3 +4407,14 @@ picochip_check_conditional_copy (rtx * operands)
 
 }
 
+
+static rtx
+picochip_static_chain (const_tree ARG_UNUSED (fndecl), bool incoming_p)
+{
+  rtx addr;
+  if (incoming_p)
+    addr = arg_pointer_rtx;
+  else
+    addr = plus_constant (stack_pointer_rtx, -2 * UNITS_PER_WORD);
+  return gen_frame_mem (Pmode, addr);
+}

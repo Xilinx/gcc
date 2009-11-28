@@ -146,6 +146,7 @@ typedef struct GTY(()) mem_attrs
   rtx size;			/* Size in bytes, as a CONST_INT.  */
   alias_set_type alias;		/* Memory alias set.  */
   unsigned int align;		/* Alignment of MEM in bits.  */
+  unsigned char addrspace;	/* Address space (0 for generic).  */
 } mem_attrs;
 
 /* Structure used to describe the attributes of a REG in similar way as
@@ -255,8 +256,7 @@ struct GTY((chain_next ("RTX_NEXT (&%h)"),
        ECF_LOOPING_CONST_OR_PURE and DECL_LOOPING_CONST_OR_PURE_P. */
   unsigned int call : 1;
   /* 1 in a REG, MEM, or CONCAT if the value is set at most once, anywhere.
-     1 in a SUBREG if it references an unsigned object whose mode has been
-     from a promoted to a wider mode.
+     1 in a SUBREG used for SUBREG_PROMOTED_UNSIGNED_P.
      1 in a SYMBOL_REF if it addresses something in the per-function
      constants pool.
      1 in a CALL_INSN logically equivalent to ECF_CONST and TREE_READONLY. 
@@ -268,10 +268,12 @@ struct GTY((chain_next ("RTX_NEXT (&%h)"),
      if it has been deleted.
      1 in a REG expression if corresponds to a variable declared by the user,
      0 for an internally generated temporary.
-     1 in a SUBREG with a negative value.
+     1 in a SUBREG used for SUBREG_PROMOTED_UNSIGNED_P.
      1 in a LABEL_REF, REG_LABEL_TARGET or REG_LABEL_OPERAND note for a
      non-local label.
-     In a SYMBOL_REF, this flag is used for machine-specific purposes.  */
+     In a SYMBOL_REF, this flag is used for machine-specific purposes.
+     In a PREFETCH, this flag indicates that it should be considered a scheduling
+     barrier.  */
   unsigned int volatil : 1;
   /* 1 in a MEM referring to a field of an aggregate.
      0 if the MEM was a variable or the result of a * operator in C;
@@ -761,7 +763,7 @@ extern void rtl_check_failed_flag (const char *, const_rtx, const char *,
 #define INSN_LOCATOR(INSN) XINT (INSN, 4)
 /* LOCATION of an RTX if relevant.  */
 #define RTL_LOCATION(X) (INSN_P (X) ? \
-			 locator_location (INSN_LOCATOR (x)) \
+			 locator_location (INSN_LOCATOR (X)) \
 			 : UNKNOWN_LOCATION)
 /* LOCATION of current INSN.  */
 #define CURR_INSN_LOCATION (locator_location (curr_insn_locator ()))
@@ -928,6 +930,9 @@ extern const char * const reg_note_name[];
    the call returns.  */
 #define NOTE_DURING_CALL_P(RTX)				\
   (RTL_FLAG_CHECK1("NOTE_VAR_LOCATION_DURING_CALL_P", (RTX), NOTE)->call)
+
+/* DEBUG_EXPR_DECL corresponding to a DEBUG_EXPR RTX.  */
+#define DEBUG_EXPR_TREE_DECL(RTX) XCTREE (RTX, 0, DEBUG_EXPR)
 
 /* Possible initialization status of a variable.   When requested
    by the user, this information is tracked and recorded in the DWARF
@@ -1118,7 +1123,7 @@ rhs_regno (const_rtx x)
 
 extern void init_rtlanal (void);
 extern int rtx_cost (rtx, enum rtx_code, bool);
-extern int address_cost (rtx, enum machine_mode, bool);
+extern int address_cost (rtx, enum machine_mode, addr_space_t, bool);
 extern unsigned int subreg_lsb (const_rtx);
 extern unsigned int subreg_lsb_1 (enum machine_mode, enum machine_mode,
 				  unsigned int);
@@ -1159,6 +1164,15 @@ do {									\
     _rtx->unchanging = (VAL);						\
   }									\
 } while (0)
+
+/* Valid for subregs which are SUBREG_PROMOTED_VAR_P().  In that case
+   this gives the necessary extensions:
+   0  - signed
+   1  - normal unsigned
+   -1 - pointer unsigned, which most often can be handled like unsigned
+        extension, except for generating instructions where we need to
+	emit special code (ptr_extend insns) on some architectures.  */
+
 #define SUBREG_PROMOTED_UNSIGNED_P(RTX)	\
   ((RTL_FLAG_CHECK1("SUBREG_PROMOTED_UNSIGNED_P", (RTX), SUBREG)->volatil) \
    ? -1 : (int) (RTX)->unchanging)
@@ -1178,7 +1192,10 @@ do {									\
   XSTR (XCVECEXP (RTX, 4, N, ASM_OPERANDS), 0)
 #define ASM_OPERANDS_INPUT_MODE(RTX, N)  \
   GET_MODE (XCVECEXP (RTX, 4, N, ASM_OPERANDS))
-#define ASM_OPERANDS_SOURCE_LOCATION(RTX) XCUINT (RTX, 5, ASM_OPERANDS)
+#define ASM_OPERANDS_LABEL_VEC(RTX) XCVEC (RTX, 5, ASM_OPERANDS)
+#define ASM_OPERANDS_LABEL_LENGTH(RTX) XCVECLEN (RTX, 5, ASM_OPERANDS)
+#define ASM_OPERANDS_LABEL(RTX, N) XCVECEXP (RTX, 5, N, ASM_OPERANDS)
+#define ASM_OPERANDS_SOURCE_LOCATION(RTX) XCUINT (RTX, 6, ASM_OPERANDS)
 #define ASM_INPUT_SOURCE_LOCATION(RTX) XCUINT (RTX, 1, ASM_INPUT)
 
 /* 1 if RTX is a mem that is statically allocated in read-only memory.  */
@@ -1252,6 +1269,10 @@ do {						\
 /* For a MEM rtx, the offset from the start of MEM_EXPR, if known, as a
    RTX that is always a CONST_INT.  */
 #define MEM_OFFSET(RTX) (MEM_ATTRS (RTX) == 0 ? 0 : MEM_ATTRS (RTX)->offset)
+
+/* For a MEM rtx, the address space.  */
+#define MEM_ADDR_SPACE(RTX) (MEM_ATTRS (RTX) == 0 ? ADDR_SPACE_GENERIC \
+						  : MEM_ATTRS (RTX)->addrspace)
 
 /* For a MEM rtx, the size in bytes of the MEM, if known, as an RTX that
    is always a CONST_INT.  */
@@ -1423,6 +1444,10 @@ do {						\
    offset within that block.  */
 #define SYMBOL_REF_BLOCK_OFFSET(RTX) (BLOCK_SYMBOL_CHECK (RTX)->offset)
 
+/* True if RTX is flagged to be a scheduling barrier.  */
+#define PREFETCH_SCHEDULE_BARRIER_P(RTX)					\
+  (RTL_FLAG_CHECK1("PREFETCH_SCHEDULE_BARRIER_P", (RTX), PREFETCH)->volatil)
+
 /* Indicate whether the machine has any sort of auto increment addressing.
    If not, we can avoid checking for REG_INC notes.  */
 
@@ -1548,6 +1573,7 @@ extern rtx rtx_alloc_stat (RTX_CODE MEM_STAT_DECL);
 #define rtx_alloc(c) rtx_alloc_stat (c MEM_STAT_INFO)
 
 extern rtvec rtvec_alloc (int);
+extern rtvec shallow_copy_rtvec (rtvec);
 extern bool shared_const_p (const_rtx);
 extern rtx copy_rtx (rtx);
 extern void dump_rtx_statistics (void);
@@ -1587,7 +1613,10 @@ extern unsigned int subreg_highpart_offset (enum machine_mode,
 					    enum machine_mode);
 extern int byte_lowpart_offset (enum machine_mode, enum machine_mode);
 extern rtx make_safe_from (rtx, rtx);
-extern rtx convert_memory_address (enum machine_mode, rtx);
+extern rtx convert_memory_address_addr_space (enum machine_mode, rtx,
+					      addr_space_t);
+#define convert_memory_address(to_mode,x) \
+	convert_memory_address_addr_space ((to_mode), (x), ADDR_SPACE_GENERIC)
 extern rtx get_insns (void);
 extern const char *get_insn_name (int);
 extern rtx get_last_insn (void);
@@ -1748,6 +1777,8 @@ extern rtx simplify_subreg (enum machine_mode, rtx, enum machine_mode,
 			    unsigned int);
 extern rtx simplify_gen_subreg (enum machine_mode, rtx, enum machine_mode,
 				unsigned int);
+extern rtx simplify_replace_fn_rtx (rtx, const_rtx,
+				    rtx (*fn) (rtx, void *), void *);
 extern rtx simplify_replace_rtx (rtx, const_rtx, rtx);
 extern rtx simplify_rtx (const_rtx);
 extern rtx avoid_constant_pool_reference (rtx);
@@ -1827,6 +1858,13 @@ extern int volatile_insn_p (const_rtx);
 extern int may_trap_p_1 (const_rtx, unsigned);
 extern int may_trap_p (const_rtx);
 extern int may_trap_or_fault_p (const_rtx);
+extern bool can_throw_internal (const_rtx);
+extern bool can_throw_external (const_rtx);
+extern bool insn_could_throw_p (const_rtx);
+extern bool insn_nothrow_p (const_rtx);
+extern bool can_nonlocal_goto (const_rtx);
+extern void copy_reg_eh_region_note_forward (rtx, rtx, rtx);
+extern void copy_reg_eh_region_note_backward(rtx, rtx, rtx);
 extern int inequality_comparisons_p (const_rtx);
 extern rtx replace_rtx (rtx, rtx, rtx);
 extern int replace_label (rtx *, void *);
@@ -1903,8 +1941,11 @@ extern void init_move_cost (enum machine_mode);
 extern bool resize_reg_info (void);
 /* Free up register info memory.  */
 extern void free_reg_info (void);
+extern void init_subregs_of_mode (void);
+extern void finish_subregs_of_mode (void);
 
 /* recog.c */
+extern rtx extract_asm_operands (rtx);
 extern int asm_noperands (const_rtx);
 extern const char *decode_asm_operands (rtx, rtx *, rtx **, const char **,
 					enum machine_mode *, location_t *);
@@ -1999,8 +2040,6 @@ extern GTY(()) rtx global_rtl[GR_MAX];
 #define arg_pointer_rtx		(global_rtl[GR_ARG_POINTER])
 
 extern GTY(()) rtx pic_offset_table_rtx;
-extern GTY(()) rtx static_chain_rtx;
-extern GTY(()) rtx static_chain_incoming_rtx;
 extern GTY(()) rtx return_address_pointer_rtx;
 
 /* Include the RTL generation functions.  */
@@ -2381,8 +2420,6 @@ extern void invert_br_probabilities (rtx);
 extern bool expensive_function_p (int);
 /* In cfgexpand.c */
 extern void add_reg_br_prob_note (rtx last, int probability);
-extern rtx wrap_constant (enum machine_mode, rtx);
-extern rtx unwrap_constant (rtx);
 
 /* In var-tracking.c */
 extern unsigned int variable_tracking_main (void);
@@ -2401,6 +2438,7 @@ extern void simplify_using_condition (rtx, rtx *, struct bitmap_head_def *);
 
 /* In final.c  */
 extern unsigned int compute_alignments (void);
+extern int asm_str_count (const char *templ);
 
 struct rtl_hooks
 {

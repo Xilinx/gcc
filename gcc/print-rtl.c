@@ -305,9 +305,9 @@ print_rtx (const_rtx in_rtx)
 		break;
 	      }
 	  }
-	else if (i == 9 && JUMP_P (in_rtx) && XEXP (in_rtx, i) != NULL)
+	else if (i == 8 && JUMP_P (in_rtx) && JUMP_LABEL (in_rtx) != NULL)
 	  /* Output the JUMP_LABEL reference.  */
-	  fprintf (outfile, "\n -> %d", INSN_UID (XEXP (in_rtx, i)));
+	  fprintf (outfile, "\n -> %d", INSN_UID (JUMP_LABEL (in_rtx)));
 	else if (i == 0 && GET_CODE (in_rtx) == VALUE)
 	  {
 #ifndef GENERATOR_FILE
@@ -316,6 +316,13 @@ print_rtx (const_rtx in_rtx)
 	    fprintf (outfile, " %i", val->value);
 	    dump_addr (outfile, " @", in_rtx);
 	    dump_addr (outfile, "/", (void*)val);
+#endif
+	  }
+	else if (i == 0 && GET_CODE (in_rtx) == DEBUG_EXPR)
+	  {
+#ifndef GENERATOR_FILE
+	    fprintf (outfile, " D#%i",
+		     DEBUG_TEMP_UID (DEBUG_EXPR_TREE_DECL (in_rtx)));
 #endif
 	  }
 	break;
@@ -376,6 +383,22 @@ print_rtx (const_rtx in_rtx)
 		when there is no location information available.  */
 	    if (INSN_LOCATOR (in_rtx) && insn_file (in_rtx))
 	      fprintf(outfile, " %s:%i", insn_file (in_rtx), insn_line (in_rtx));
+#endif
+	  }
+	else if (i == 6 && GET_CODE (in_rtx) == ASM_OPERANDS)
+	  {
+#ifndef GENERATOR_FILE
+	    fprintf (outfile, " %s:%i",
+		     locator_file (ASM_OPERANDS_SOURCE_LOCATION (in_rtx)),
+		     locator_line (ASM_OPERANDS_SOURCE_LOCATION (in_rtx)));
+#endif
+	  }
+	else if (i == 1 && GET_CODE (in_rtx) == ASM_INPUT)
+	  {
+#ifndef GENERATOR_FILE
+	    fprintf (outfile, " %s:%i",
+		     locator_file (ASM_INPUT_SOURCE_LOCATION (in_rtx)),
+		     locator_line (ASM_INPUT_SOURCE_LOCATION (in_rtx)));
 #endif
 	  }
 	else if (i == 6 && NOTE_P (in_rtx))
@@ -538,6 +561,9 @@ print_rtx (const_rtx in_rtx)
 
       if (MEM_ALIGN (in_rtx) != 1)
 	fprintf (outfile, " A%u", MEM_ALIGN (in_rtx));
+
+      if (!ADDR_SPACE_GENERIC_P (MEM_ADDR_SPACE (in_rtx)))
+	fprintf (outfile, " AS%u", MEM_ADDR_SPACE (in_rtx));
 
       fputc (']', outfile);
       break;

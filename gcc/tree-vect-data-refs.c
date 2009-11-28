@@ -1138,8 +1138,8 @@ vect_enhance_data_refs_alignment (loop_vec_info loop_vinfo)
   /* While cost model enhancements are expected in the future, the high level
      view of the code at this time is as follows:
 
-     A) If there is an unsupported misaligned access then see if peeling
-        to align this access can make all data references satisfy
+     A) If there is a misaligned access then see if peeling to align
+        this access can make all data references satisfy
         vect_supportable_dr_alignment.  If so, update data structures
         as needed and return true.
 
@@ -1176,7 +1176,6 @@ vect_enhance_data_refs_alignment (loop_vec_info loop_vinfo)
     {
       stmt = DR_STMT (dr);
       stmt_info = vinfo_for_stmt (stmt);
-      supportable_dr_alignment = vect_supportable_dr_alignment (dr);
 
       /* For interleaving, only the alignment of the first access
          matters.  */
@@ -1184,7 +1183,7 @@ vect_enhance_data_refs_alignment (loop_vec_info loop_vinfo)
           && DR_GROUP_FIRST_DR (stmt_info) != stmt)
         continue;
 
-      if (!supportable_dr_alignment)
+      if (!DR_IS_READ (dr) && !aligned_access_p (dr))
         {
 	  do_peeling = vector_alignment_reachable_p (dr);
 	  if (do_peeling)
@@ -2369,9 +2368,22 @@ vect_create_data_ref_ptr (gimple stmt, struct loop *at_loop,
   vect_ptr_type = build_pointer_type (vectype);
   vect_ptr = vect_get_new_vect_var (vect_ptr_type, vect_pointer_var,
                                     get_name (base_name));
-  /* If any of the data-references in the stmt group does not conflict
-     with the created vector data-reference use a ref-all pointer instead.  */
-  if (STMT_VINFO_DR_GROUP_SIZE (stmt_info) > 1)
+
+  /* Vector types inherit the alias set of their component type by default so
+     we need to use a ref-all pointer if the data reference does not conflict
+     with the created vector data reference because it is not addressable.  */
+  if (!alias_sets_conflict_p (get_deref_alias_set (vect_ptr),
+			      get_alias_set (DR_REF (dr))))
+    {
+      vect_ptr_type
+	= build_pointer_type_for_mode (vectype,
+				       TYPE_MODE (vect_ptr_type), true);
+      vect_ptr = vect_get_new_vect_var (vect_ptr_type, vect_pointer_var,
+					get_name (base_name));
+    }
+
+  /* Likewise for any of the data references in the stmt group.  */
+  else if (STMT_VINFO_DR_GROUP_SIZE (stmt_info) > 1)
     {
       gimple orig_stmt = STMT_VINFO_DR_GROUP_FIRST_DR (stmt_info);
       do
@@ -2380,10 +2392,12 @@ vect_create_data_ref_ptr (gimple stmt, struct loop *at_loop,
 	  if (!alias_sets_conflict_p (get_deref_alias_set (vect_ptr),
 				      get_alias_set (lhs)))
 	    {
-	      vect_ptr_type = build_pointer_type_for_mode (vectype,
-							   ptr_mode, true);
-	      vect_ptr = vect_get_new_vect_var (vect_ptr_type, vect_pointer_var,
-						get_name (base_name));
+	      vect_ptr_type
+		= build_pointer_type_for_mode (vectype,
+					       TYPE_MODE (vect_ptr_type), true);
+	      vect_ptr
+		= vect_get_new_vect_var (vect_ptr_type, vect_pointer_var,
+					 get_name (base_name));
 	      break;
 	    }
 
@@ -3455,6 +3469,9 @@ vect_supportable_dr_alignment (struct data_reference *dr)
 
   if (DR_IS_READ (dr))
     {
+      bool is_packed = false;
+      tree type = (TREE_TYPE (DR_REF (dr)));
+
       if (optab_handler (vec_realign_load_optab, mode)->insn_code != 
 						   	     CODE_FOR_nothing
 	  && (!targetm.vectorize.builtin_mask_for_load
@@ -3468,18 +3485,39 @@ vect_supportable_dr_alignment (struct data_reference *dr)
 	  else
 	    return dr_explicit_realign_optimized;
 	}
-
-      if (optab_handler (movmisalign_optab, mode)->insn_code != 
-							     CODE_FOR_nothing)
+      if (!known_alignment_for_access_p (dr))
+	{
+	  tree ba = DR_BASE_OBJECT (dr);
+	  
+	  if (ba)
+	    is_packed = contains_packed_reference (ba);
+	}
+     
+      if (targetm.vectorize.
+	  builtin_support_vector_misalignment (mode, type,
+					       DR_MISALIGNMENT (dr), is_packed))
 	/* Can't software pipeline the loads, but can at least do them.  */
 	return dr_unaligned_supported;
     }
-   else
-     {
-       if (movmisalign_optab->handlers[mode].insn_code != CODE_FOR_nothing)
-         return dr_unaligned_supported;
-     }
+  else
+    {
+      bool is_packed = false;
+      tree type = (TREE_TYPE (DR_REF (dr)));
 
+      if (!known_alignment_for_access_p (dr))
+	{
+	  tree ba = DR_BASE_OBJECT (dr);
+	  
+	  if (ba)
+	    is_packed = contains_packed_reference (ba);
+	}
+     
+     if (targetm.vectorize.
+         builtin_support_vector_misalignment (mode, type, 
+					      DR_MISALIGNMENT (dr), is_packed))
+       return dr_unaligned_supported;
+    }
+  
   /* Unsupported.  */
   return dr_unaligned_unsupported;
 }

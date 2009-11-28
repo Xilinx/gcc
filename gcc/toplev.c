@@ -198,6 +198,17 @@ int optimize = 0;
 
 int optimize_size = 0;
 
+/* True if this is the lto front end.  This is used to disable
+   gimple generation and lowering passes that are normally run on the
+   output of a front end.  These passes must be bypassed for lto since
+   they have already been done before the gimple was written.  */ 
+
+bool in_lto_p = false;
+
+/* Nonzero if we should write GIMPLE bytecode for link-time optimization.  */
+
+int flag_generate_lto;
+
 /* The FUNCTION_DECL for the function currently being compiled,
    or 0 if between functions.  */
 tree current_function_decl;
@@ -713,7 +724,7 @@ output_file_directive (FILE *asm_file, const char *input_name)
 #else
   fprintf (asm_file, "\t.file\t");
   output_quoted_string (asm_file, na);
-  fputc ('\n', asm_file);
+  putc ('\n', asm_file);
 #endif
 }
 
@@ -1089,6 +1100,14 @@ compile_file (void)
   /* Flush any pending external directives.  */
   process_pending_assemble_externals ();
 
+  /* Emit LTO marker if LTO info has been previously emitted.  This is
+     used by collect2 to determine whether an object file contains IL.
+     We used to emit an undefined reference here, but this produces
+     link errors if an object file with IL is stored into a shared
+     library without invoking lto1.  */
+  if (flag_generate_lto)
+    fprintf (asm_out_file,"\t.comm\tgnu_lto_v1,1,1\n");
+
   /* Attach a special .ident directive to the end of the file to identify
      the version of GCC which compiled this code.  The format of the .ident
      string is patterned after the ones produced by native SVR4 compilers.  */
@@ -1273,7 +1292,7 @@ print_to_asm_out_file (print_switch_type type, const char * text)
     case SWITCH_TYPE_ENABLED:
       if (prepend_sep)
 	fputc (' ', asm_out_file);
-      fprintf (asm_out_file, text);
+      fputs (text, asm_out_file);
       /* No need to return the length here as
 	 print_single_switch has already done it.  */
       return 0;
@@ -1302,7 +1321,7 @@ print_to_stderr (print_switch_type type, const char * text)
       /* Drop through.  */
 
     case SWITCH_TYPE_DESCRIPTIVE:
-      fprintf (stderr, text);
+      fputs (text, stderr);
       /* No need to return the length here as
 	 print_single_switch has already done it.  */
       return 0;
@@ -1494,7 +1513,7 @@ init_asm_output (const char *name)
 	     into the assembler file as comments.  */
 	  print_version (asm_out_file, ASM_COMMENT_START);
 	  print_switch_values (print_to_asm_out_file);
-	  fprintf (asm_out_file, "\n");
+	  putc ('\n', asm_out_file);
 	}
 #endif
     }
@@ -1858,11 +1877,12 @@ process_options (void)
 
   /* The loop unrolling code assumes that cse will be run after loop.
      web and rename-registers also help when run after loop unrolling.  */
-
   if (flag_rerun_cse_after_loop == AUTODETECT_VALUE)
     flag_rerun_cse_after_loop = flag_unroll_loops || flag_peel_loops;
+
   if (flag_web == AUTODETECT_VALUE)
     flag_web = flag_unroll_loops || flag_peel_loops;
+
   if (flag_rename_registers == AUTODETECT_VALUE)
     flag_rename_registers = flag_unroll_loops || flag_peel_loops;
 
@@ -1917,7 +1937,12 @@ process_options (void)
   if (flag_gtoggle)
     {
       if (debug_info_level == DINFO_LEVEL_NONE)
-	debug_info_level = DINFO_LEVEL_NORMAL;
+	{
+	  debug_info_level = DINFO_LEVEL_NORMAL;
+
+	  if (write_symbols == NO_DEBUG)
+	    write_symbols = PREFERRED_DEBUGGING_TYPE;
+	}
       else
 	debug_info_level = DINFO_LEVEL_NONE;
     }
@@ -1938,6 +1963,11 @@ process_options (void)
 	  flag_dump_final_insns = NULL;
 	}
     }
+
+  /* Unless over-ridden for the target, assume that all DWARF levels
+     may be emitted, if DWARF2_DEBUG is selected.  */
+  if (dwarf_strict < 0) 
+    dwarf_strict = 0;
 
   /* A lot of code assumes write_symbols == NO_DEBUG if the debugging
      level is 0.  */
@@ -1996,9 +2026,8 @@ process_options (void)
     error ("target system does not support the \"%s\" debug format",
 	   debug_type_names[write_symbols]);
 
-  /* Now we know which debug output will be used so we can set
-     flag_var_tracking, flag_rename_registers if the user has
-     not specified them.  */
+  /* We know which debug output will be used so we can set flag_var_tracking
+     and flag_var_tracking_uninit if the user has not specified them.  */
   if (debug_info_level < DINFO_LEVEL_NORMAL
       || debug_hooks->var_location == do_nothing_debug_hooks.var_location)
     {
@@ -2016,15 +2045,18 @@ process_options (void)
       flag_var_tracking_uninit = 0;
     }
 
-  if (flag_rename_registers == AUTODETECT_VALUE)
-    flag_rename_registers = default_debug_hooks->var_location
-	    		    != do_nothing_debug_hooks.var_location;
+  /* If the user specifically requested variable tracking with tagging
+     uninitialized variables, we need to turn on variable tracking.
+     (We already determined above that variable tracking is feasible.)  */
+  if (flag_var_tracking_uninit)
+    flag_var_tracking = 1;
 
   if (flag_var_tracking == AUTODETECT_VALUE)
     flag_var_tracking = optimize >= 1;
 
   if (flag_var_tracking_assignments == AUTODETECT_VALUE)
-    flag_var_tracking_assignments = 0;
+    flag_var_tracking_assignments = flag_var_tracking
+      && !(flag_selective_scheduling || flag_selective_scheduling2);
 
   if (flag_var_tracking_assignments_toggle)
     flag_var_tracking_assignments = !flag_var_tracking_assignments;
@@ -2032,18 +2064,16 @@ process_options (void)
   if (flag_var_tracking_assignments && !flag_var_tracking)
     flag_var_tracking = flag_var_tracking_assignments = -1;
 
+  if (flag_var_tracking_assignments
+      && (flag_selective_scheduling || flag_selective_scheduling2))
+    warning (0, "var-tracking-assignments changes selective scheduling");
+
   if (flag_tree_cselim == AUTODETECT_VALUE)
 #ifdef HAVE_conditional_move
     flag_tree_cselim = 1;
 #else
     flag_tree_cselim = 0;
 #endif
-
-  /* If the user specifically requested variable tracking with tagging
-     uninitialized variables, we need to turn on variable tracking.
-     (We already determined above that variable tracking is feasible.)  */
-  if (flag_var_tracking_uninit)
-    flag_var_tracking = 1;
 
   /* If auxiliary info generation is desired, open the output file.
      This goes in the same directory as the source file--unlike
@@ -2363,6 +2393,8 @@ finalize (void)
 	fatal_error ("error writing to %s: %m", asm_file_name);
       if (fclose (asm_out_file) != 0)
 	fatal_error ("error closing %s: %m", asm_file_name);
+      if (flag_wpa)
+	unlink_if_ordinary (asm_file_name);
     }
 
   statistics_fini ();

@@ -311,7 +311,13 @@ dump_template_bindings (tree parms, tree args, VEC(tree,gc)* typenames)
 	  pp_equal (cxx_pp);
 	  pp_cxx_whitespace (cxx_pp);
 	  if (arg)
-	    dump_template_argument (arg, TFF_PLAIN_IDENTIFIER);
+	    {
+	      if (ARGUMENT_PACK_P (arg))
+		pp_cxx_left_brace (cxx_pp);
+	      dump_template_argument (arg, TFF_PLAIN_IDENTIFIER);
+	      if (ARGUMENT_PACK_P (arg))
+		pp_cxx_right_brace (cxx_pp);
+	    }
 	  else
 	    pp_string (cxx_pp, M_("<missing>"));
 
@@ -460,8 +466,11 @@ dump_type (tree t, int flags)
       break;
 
     case UNBOUND_CLASS_TEMPLATE:
-      dump_type (TYPE_CONTEXT (t), flags);
-      pp_cxx_colon_colon (cxx_pp);
+      if (! (flags & TFF_UNQUALIFIED_NAME))
+	{
+	  dump_type (TYPE_CONTEXT (t), flags);
+	  pp_cxx_colon_colon (cxx_pp);
+	}
       pp_cxx_ws_string (cxx_pp, "template");
       dump_type (DECL_NAME (TYPE_NAME (t)), flags);
       break;
@@ -559,10 +568,11 @@ dump_aggr_type (tree t, int flags)
     {
       typdef = !DECL_ARTIFICIAL (name);
 
-      if (typdef
-	  && ((flags & TFF_CHASE_TYPEDEF)
-	      || (!flag_pretty_templates && DECL_LANG_SPECIFIC (name)
-		  && DECL_TEMPLATE_INFO (name))))
+      if ((typdef
+	   && ((flags & TFF_CHASE_TYPEDEF)
+	       || (!flag_pretty_templates && DECL_LANG_SPECIFIC (name)
+		   && DECL_TEMPLATE_INFO (name))))
+	  || DECL_SELF_REFERENCE_P (name))
 	{
 	  t = TYPE_MAIN_VARIANT (t);
 	  name = TYPE_NAME (t);
@@ -596,6 +606,15 @@ dump_aggr_type (tree t, int flags)
 	pp_string (cxx_pp, M_("<anonymous>"));
       else
 	pp_printf (pp_base (cxx_pp), M_("<anonymous %s>"), variety);
+    }
+  else if (LAMBDANAME_P (name))
+    {
+      /* A lambda's "type" is essentially its signature.  */
+      pp_string (cxx_pp, M_("<lambda"));
+      if (lambda_function (t))
+	dump_parameters (FUNCTION_FIRST_USER_PARMTYPE (lambda_function (t)),
+			 flags);
+      pp_character(cxx_pp, '>');
     }
   else
     pp_cxx_tree_identifier (cxx_pp, name);
@@ -890,7 +909,8 @@ dump_decl (tree t, int flags)
 	  dump_type (TREE_TYPE (t), flags);
 	  break;
 	}
-      if (flags & TFF_DECL_SPECIFIERS)
+      if ((flags & TFF_DECL_SPECIFIERS)
+	  && !DECL_SELF_REFERENCE_P (t))
 	pp_cxx_ws_string (cxx_pp, "typedef");
       dump_simple_decl (t, DECL_ORIGINAL_TYPE (t)
 			? DECL_ORIGINAL_TYPE (t) : TREE_TYPE (t),
@@ -932,7 +952,9 @@ dump_decl (tree t, int flags)
       break;
 
     case SCOPE_REF:
-      pp_expression (cxx_pp, t);
+      dump_type (TREE_OPERAND (t, 0), flags);
+      pp_string (cxx_pp, "::");
+      dump_decl (TREE_OPERAND (t, 1), flags|TFF_UNQUALIFIED_NAME);
       break;
 
     case ARRAY_REF:
@@ -1159,7 +1181,8 @@ dump_template_decl (tree t, int flags)
 }
 
 /* find_typenames looks through the type of the function template T
-   and returns a VEC containing any typedefs or TYPENAME_TYPEs it finds.  */
+   and returns a VEC containing any typedefs, decltypes or TYPENAME_TYPEs
+   it finds.  */
 
 struct find_typenames_t
 {
@@ -1176,7 +1199,8 @@ find_typenames_r (tree *tp, int *walk_subtrees ATTRIBUTE_UNUSED, void *data)
   if (TYPE_P (*tp) && is_typedef_decl (TYPE_NAME (*tp)))
     /* Add the type of the typedef without any additional cv-quals.  */
     mv = TREE_TYPE (TYPE_NAME (*tp));
-  else if (TREE_CODE (*tp) == TYPENAME_TYPE)
+  else if (TREE_CODE (*tp) == TYPENAME_TYPE
+	   || TREE_CODE (*tp) == DECLTYPE_TYPE)
     /* Add the typename without any cv-qualifiers.  */
     mv = TYPE_MAIN_VARIANT (*tp);
 
@@ -1221,6 +1245,14 @@ dump_function_decl (tree t, int flags)
   int do_outer_scope = ! (flags & TFF_UNQUALIFIED_NAME);
   tree exceptions;
   VEC(tree,gc) *typenames = NULL;
+
+  if (LAMBDA_FUNCTION_P (t))
+    {
+      /* A lambda's signature is essentially its "type", so defer.  */
+      gcc_assert (LAMBDA_TYPE_P (DECL_CONTEXT (t)));
+      dump_type (DECL_CONTEXT (t), flags);
+      return;
+    }
 
   flags &= ~TFF_UNQUALIFIED_NAME;
   if (TREE_CODE (t) == TEMPLATE_DECL)
@@ -1399,7 +1431,12 @@ dump_function_name (tree t, int flags)
   /* Don't let the user see __comp_ctor et al.  */
   if (DECL_CONSTRUCTOR_P (t)
       || DECL_DESTRUCTOR_P (t))
-    name = constructor_name (DECL_CONTEXT (t));
+    {
+      if (LAMBDA_TYPE_P (DECL_CONTEXT (t)))
+	name = get_identifier ("<lambda>");
+      else
+	name = constructor_name (DECL_CONTEXT (t));
+    }
 
   if (DECL_DESTRUCTOR_P (t))
     {
@@ -2189,6 +2226,9 @@ dump_expr (tree t, int flags)
       break;
 
     case SCOPE_REF:
+      dump_decl (t, flags);
+      break;
+
     case EXPR_PACK_EXPANSION:
     case TYPEID_EXPR:
     case MEMBER_REF:
@@ -2674,6 +2714,8 @@ function_category (tree fn)
 	return _("In constructor %qs");
       else if (DECL_DESTRUCTOR_P (fn))
 	return _("In destructor %qs");
+      else if (LAMBDA_FUNCTION_P (fn))
+	return _("In lambda function");
       else
 	return _("In member function %qs");
     }
@@ -2844,20 +2886,57 @@ cp_printer (pretty_printer *pp, text_info *text, const char *spec,
 
 /* Warn about the use of C++0x features when appropriate.  */
 void
-maybe_warn_cpp0x (const char* str)
+maybe_warn_cpp0x (cpp0x_warn_str str)
 {
   if ((cxx_dialect == cxx98) && !in_system_header)
     /* We really want to suppress this warning in system headers,
        because libstdc++ uses variadic templates even when we aren't
        in C++0x mode. */
-    pedwarn (input_location, 0, "%s only available with -std=c++0x or -std=gnu++0x", str);
+    switch (str)
+      {
+      case CPP0X_INITIALIZER_LISTS:
+	pedwarn (input_location, 0, 
+		 "extended initializer lists "
+		 "only available with -std=c++0x or -std=gnu++0x");
+	break;
+      case CPP0X_EXPLICIT_CONVERSION:
+	pedwarn (input_location, 0,
+		 "explicit conversion operators "
+		 "only available with -std=c++0x or -std=gnu++0x"); 
+	break;
+      case CPP0X_VARIADIC_TEMPLATES:
+	pedwarn (input_location, 0,
+		 "variadic templates "
+		 "only available with -std=c++0x or -std=gnu++0x");
+	break;
+      case CPP0X_LAMBDA_EXPR:
+	pedwarn (input_location, 0,
+		 "lambda expressions "
+		  "only available with -std=c++0x or -std=gnu++0x");
+	break;
+      case CPP0X_AUTO:
+	pedwarn (input_location, 0,
+		 "C++0x auto only available with -std=c++0x or -std=gnu++0x");
+	break;
+      case CPP0X_SCOPED_ENUMS:
+	pedwarn (input_location, 0,
+		 "scoped enums only available with -std=c++0x or -std=gnu++0x");
+	break;
+      case CPP0X_DEFAULTED_DELETED:
+	pedwarn (input_location, 0,
+		 "defaulted and deleted functions "
+		 "only available with -std=c++0x or -std=gnu++0x");
+	break;	
+      default:
+	gcc_unreachable();
+      }
 }
 
 /* Warn about the use of variadic templates when appropriate.  */
 void
 maybe_warn_variadic_templates (void)
 {
-  maybe_warn_cpp0x ("variadic templates");
+  maybe_warn_cpp0x (CPP0X_VARIADIC_TEMPLATES);
 }
 
 

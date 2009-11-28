@@ -422,20 +422,9 @@ typedef struct iq2000_args
   (((N) >= GP_ARG_FIRST && (N) <= GP_ARG_LAST))			
 
 
-/* How Scalar Function Values are Returned.  */
-
-#define FUNCTION_VALUE(VALTYPE, FUNC)	iq2000_function_value (VALTYPE, FUNC)
-
-#define LIBCALL_VALUE(MODE)				\
-  gen_rtx_REG (((GET_MODE_CLASS (MODE) != MODE_INT	\
-		 || GET_MODE_SIZE (MODE) >= 4)		\
-		? (MODE)				\
-		: SImode),				\
-	       GP_RETURN)
-
 /* On the IQ2000, R2 and R3 are the only register thus used.  */
 
-#define FUNCTION_VALUE_REGNO_P(N) ((N) == GP_RETURN)
+#define FUNCTION_VALUE_REGNO_P(N) iq2000_function_value_regno_p (N)
 
 
 /* How Large Values are Returned.  */
@@ -469,43 +458,9 @@ typedef struct iq2000_args
 
 /* Trampolines for Nested Functions.  */
 
-/* A C statement to output, on the stream FILE, assembler code for a
-   block of data that contains the constant parts of a trampoline.
-   This code should not include a label--the label is taken care of
-   automatically.  */
-
-#define TRAMPOLINE_TEMPLATE(STREAM)					 \
-{									 \
-  fprintf (STREAM, "\t.word\t0x03e00821\t\t# move   $1,$31\n");		\
-  fprintf (STREAM, "\t.word\t0x04110001\t\t# bgezal $0,.+8\n");		\
-  fprintf (STREAM, "\t.word\t0x00000000\t\t# nop\n");			\
-  if (Pmode == DImode)							\
-    {									\
-      fprintf (STREAM, "\t.word\t0xdfe30014\t\t# ld     $3,20($31)\n");	\
-      fprintf (STREAM, "\t.word\t0xdfe2001c\t\t# ld     $2,28($31)\n");	\
-    }									\
-  else									\
-    {									\
-      fprintf (STREAM, "\t.word\t0x8fe30014\t\t# lw     $3,20($31)\n");	\
-      fprintf (STREAM, "\t.word\t0x8fe20018\t\t# lw     $2,24($31)\n");	\
-    }									\
-  fprintf (STREAM, "\t.word\t0x0060c821\t\t# move   $25,$3 (abicalls)\n"); \
-  fprintf (STREAM, "\t.word\t0x00600008\t\t# jr     $3\n");		\
-  fprintf (STREAM, "\t.word\t0x0020f821\t\t# move   $31,$1\n");		\
-  fprintf (STREAM, "\t.word\t0x00000000\t\t# <function address>\n"); \
-  fprintf (STREAM, "\t.word\t0x00000000\t\t# <static chain value>\n"); \
-}
-
-#define TRAMPOLINE_SIZE (40)
-
-#define TRAMPOLINE_ALIGNMENT 32
-
-#define INITIALIZE_TRAMPOLINE(ADDR, FUNC, CHAIN)			    \
-{									    \
-  rtx addr = ADDR;							    \
-    emit_move_insn (gen_rtx_MEM (SImode, plus_constant (addr, 32)), FUNC); \
-    emit_move_insn (gen_rtx_MEM (SImode, plus_constant (addr, 36)), CHAIN);\
-}
+#define TRAMPOLINE_CODE_SIZE  (8*4)
+#define TRAMPOLINE_SIZE       (TRAMPOLINE_CODE_SIZE + 2*GET_MODE_SIZE (Pmode))
+#define TRAMPOLINE_ALIGNMENT  GET_MODE_ALIGNMENT (Pmode)
 
 
 /* Addressing Modes.  */

@@ -599,10 +599,8 @@ gfc_check_associated (gfc_expr *pointer, gfc_expr *target)
 
   where = &pointer->where;
 
-  if (pointer->expr_type == EXPR_VARIABLE)
-    attr1 = gfc_variable_attr (pointer, NULL);
-  else if (pointer->expr_type == EXPR_FUNCTION)
-    attr1 = pointer->symtree->n.sym->attr;
+  if (pointer->expr_type == EXPR_VARIABLE || pointer->expr_type == EXPR_FUNCTION)
+    attr1 = gfc_expr_attr (pointer);
   else if (pointer->expr_type == EXPR_NULL)
     goto null_arg;
   else
@@ -624,10 +622,8 @@ gfc_check_associated (gfc_expr *pointer, gfc_expr *target)
   if (target->expr_type == EXPR_NULL)
     goto null_arg;
 
-  if (target->expr_type == EXPR_VARIABLE)
-    attr2 = gfc_variable_attr (target, NULL);
-  else if (target->expr_type == EXPR_FUNCTION)
-    attr2 = target->symtree->n.sym->attr;
+  if (target->expr_type == EXPR_VARIABLE || target->expr_type == EXPR_FUNCTION)
+    attr2 = gfc_expr_attr (target);
   else
     {
       gfc_error ("'%s' argument of '%s' intrinsic at %L must be a pointer "
@@ -2135,9 +2131,6 @@ gfc_check_move_alloc (gfc_expr *from, gfc_expr *to)
   if (variable_check (from, 0) == FAILURE)
     return FAILURE;
 
-  if (array_check (from, 0) == FAILURE)
-    return FAILURE;
-
   attr = gfc_variable_attr (from, NULL);
   if (!attr.allocatable)
     {
@@ -2150,9 +2143,6 @@ gfc_check_move_alloc (gfc_expr *from, gfc_expr *to)
   if (variable_check (to, 0) == FAILURE)
     return FAILURE;
 
-  if (array_check (to, 0) == FAILURE)
-    return FAILURE;
-
   attr = gfc_variable_attr (to, NULL);
   if (!attr.allocatable)
     {
@@ -2162,7 +2152,7 @@ gfc_check_move_alloc (gfc_expr *from, gfc_expr *to)
       return FAILURE;
     }
 
-  if (same_type_check (from, 0, to, 1) == FAILURE)
+  if (same_type_check (to, 1, from, 0) == FAILURE)
     return FAILURE;
 
   if (to->rank != from->rank)
@@ -2640,6 +2630,46 @@ gfc_check_reshape (gfc_expr *source, gfc_expr *shape,
 	      return FAILURE;
 	    }
 	}
+    }
+
+  return SUCCESS;
+}
+
+
+gfc_try
+gfc_check_same_type_as (gfc_expr *a, gfc_expr *b)
+{
+
+  if (a->ts.type != BT_DERIVED && a->ts.type != BT_CLASS)
+    {
+      gfc_error ("'%s' argument of '%s' intrinsic at %L "
+		 "must be of a derived type", gfc_current_intrinsic_arg[0],
+		 gfc_current_intrinsic, &a->where);
+      return FAILURE;
+    }
+
+  if (!gfc_type_is_extensible (a->ts.u.derived))
+    {
+      gfc_error ("'%s' argument of '%s' intrinsic at %L "
+		 "must be of an extensible type", gfc_current_intrinsic_arg[0],
+		 gfc_current_intrinsic, &a->where);
+      return FAILURE;
+    }
+
+  if (b->ts.type != BT_DERIVED && b->ts.type != BT_CLASS)
+    {
+      gfc_error ("'%s' argument of '%s' intrinsic at %L "
+		 "must be of a derived type", gfc_current_intrinsic_arg[1],
+		 gfc_current_intrinsic, &b->where);
+      return FAILURE;
+    }
+
+  if (!gfc_type_is_extensible (b->ts.u.derived))
+    {
+      gfc_error ("'%s' argument of '%s' intrinsic at %L "
+		 "must be of an extensible type", gfc_current_intrinsic_arg[1],
+		 gfc_current_intrinsic, &b->where);
+      return FAILURE;
     }
 
   return SUCCESS;

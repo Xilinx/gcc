@@ -84,7 +84,7 @@
 #define TARGET_ASM_INTERNAL_LABEL default_internal_label
 #endif
 
-#ifndef TARGET_ARM_TTYPE
+#ifndef TARGET_ASM_TTYPE
 #define TARGET_ASM_TTYPE hook_bool_rtx_false
 #endif
 
@@ -247,6 +247,8 @@
 #define TARGET_ASM_RECORD_GCC_SWITCHES_SECTION ".GCC.command.line"
 #endif
 
+#define TARGET_ASM_TRAMPOLINE_TEMPLATE NULL
+
 #define TARGET_ASM_ALIGNED_INT_OP				\
 		       {TARGET_ASM_ALIGNED_HI_OP,		\
 			TARGET_ASM_ALIGNED_SI_OP,		\
@@ -296,7 +298,8 @@
 			TARGET_ASM_RECORD_GCC_SWITCHES_SECTION,	\
 			TARGET_ASM_OUTPUT_ANCHOR,		\
 			TARGET_ASM_OUTPUT_DWARF_DTPREL,		\
-			TARGET_ASM_FINAL_POSTSCAN_INSN}
+			TARGET_ASM_FINAL_POSTSCAN_INSN,		\
+			TARGET_ASM_TRAMPOLINE_TEMPLATE }
 
 /* Scheduler hooks.  All of these default to null pointers, which
    haifa-sched.c looks for and handles.  */
@@ -388,6 +391,9 @@
 #define TARGET_VECTOR_ALIGNMENT_REACHABLE \
   default_builtin_vector_alignment_reachable
 #define TARGET_VECTORIZE_BUILTIN_VEC_PERM 0
+#define TARGET_SUPPORT_VECTOR_MISALIGNMENT \
+  default_builtin_support_vector_misalignment 
+   
 
 #define TARGET_VECTORIZE                                                \
   {									\
@@ -398,10 +404,13 @@
     TARGET_VECTORIZE_BUILTIN_MUL_WIDEN_ODD,				\
     TARGET_VECTORIZE_BUILTIN_VECTORIZATION_COST,			\
     TARGET_VECTOR_ALIGNMENT_REACHABLE,                                  \
-    TARGET_VECTORIZE_BUILTIN_VEC_PERM                                   \
+    TARGET_VECTORIZE_BUILTIN_VEC_PERM,					\
+    TARGET_SUPPORT_VECTOR_MISALIGNMENT				\
   }
 
 #define TARGET_DEFAULT_TARGET_FLAGS 0
+
+#define TARGET_OVERRIDE_OPTIONS_AFTER_CHANGE hook_void_void
 
 #define TARGET_HANDLE_OPTION hook_bool_size_t_constcharptr_int_true
 #define TARGET_HELP NULL
@@ -430,6 +439,7 @@
 #define TARGET_EXPAND_BUILTIN default_expand_builtin
 #define TARGET_RESOLVE_OVERLOADED_BUILTIN NULL
 #define TARGET_FOLD_BUILTIN hook_tree_tree_tree_bool_null
+#define TARGET_BUILTIN_DECL NULL
 
 /* In tree-ssa-math-opts.c  */
 #define TARGET_BUILTIN_RECIPROCAL default_builtin_reciprocal
@@ -463,6 +473,48 @@
 #define TARGET_VALID_POINTER_MODE default_valid_pointer_mode
 #endif
 
+#ifndef TARGET_ADDR_SPACE_POINTER_MODE
+#define TARGET_ADDR_SPACE_POINTER_MODE default_addr_space_pointer_mode
+#endif
+
+#ifndef TARGET_ADDR_SPACE_ADDRESS_MODE
+#define TARGET_ADDR_SPACE_ADDRESS_MODE default_addr_space_address_mode
+#endif
+
+#ifndef TARGET_ADDR_SPACE_VALID_POINTER_MODE
+#define TARGET_ADDR_SPACE_VALID_POINTER_MODE \
+	default_addr_space_valid_pointer_mode
+#endif
+
+#ifndef TARGET_ADDR_SPACE_LEGITIMATE_ADDRESS_P
+#define TARGET_ADDR_SPACE_LEGITIMATE_ADDRESS_P \
+  default_addr_space_legitimate_address_p
+#endif
+
+#ifndef TARGET_ADDR_SPACE_LEGITIMIZE_ADDRESS
+#define TARGET_ADDR_SPACE_LEGITIMIZE_ADDRESS \
+  default_addr_space_legitimize_address
+#endif
+
+#ifndef TARGET_ADDR_SPACE_SUBSET_P
+#define TARGET_ADDR_SPACE_SUBSET_P default_addr_space_subset_p
+#endif
+
+#ifndef TARGET_ADDR_SPACE_CONVERT
+#define TARGET_ADDR_SPACE_CONVERT default_addr_space_convert
+#endif
+
+#define TARGET_ADDR_SPACE_HOOKS			\
+  {						\
+    TARGET_ADDR_SPACE_POINTER_MODE,		\
+    TARGET_ADDR_SPACE_ADDRESS_MODE,		\
+    TARGET_ADDR_SPACE_VALID_POINTER_MODE,	\
+    TARGET_ADDR_SPACE_LEGITIMATE_ADDRESS_P,	\
+    TARGET_ADDR_SPACE_LEGITIMIZE_ADDRESS,	\
+    TARGET_ADDR_SPACE_SUBSET_P,			\
+    TARGET_ADDR_SPACE_CONVERT,			\
+  }
+
 #ifndef TARGET_SCALAR_MODE_SUPPORTED_P
 #define TARGET_SCALAR_MODE_SUPPORTED_P default_scalar_mode_supported_p
 #endif
@@ -484,6 +536,7 @@
 #define TARGET_BRANCH_TARGET_REGISTER_CLASS \
   default_branch_target_register_class
 #define TARGET_BRANCH_TARGET_REGISTER_CALLEE_SAVED hook_bool_bool_false
+#define TARGET_HAVE_CONDITIONAL_EXECUTION default_have_conditional_execution
 #define TARGET_CANNOT_FORCE_CONST_MEM hook_bool_rtx_false
 #define TARGET_CANNOT_COPY_INSN_P NULL
 #define TARGET_COMMUTATIVE_P hook_bool_const_rtx_commutative_p
@@ -603,6 +656,9 @@
 #define TARGET_UPDATE_STACK_BOUNDARY NULL
 #define TARGET_GET_DRAP_RTX NULL
 #define TARGET_ALLOCATE_STACK_SLOTS_FOR_ARGS hook_bool_void_true
+#define TARGET_STATIC_CHAIN default_static_chain
+#define TARGET_TRAMPOLINE_INIT default_trampoline_init
+#define TARGET_TRAMPOLINE_ADJUST_ADDRESS NULL
 
 #define TARGET_CALLS {						\
    TARGET_PROMOTE_FUNCTION_MODE,				\
@@ -625,7 +681,10 @@
    TARGET_INTERNAL_ARG_POINTER,					\
    TARGET_UPDATE_STACK_BOUNDARY,				\
    TARGET_GET_DRAP_RTX,						\
-   TARGET_ALLOCATE_STACK_SLOTS_FOR_ARGS				\
+   TARGET_ALLOCATE_STACK_SLOTS_FOR_ARGS,			\
+   TARGET_STATIC_CHAIN,						\
+   TARGET_TRAMPOLINE_INIT,					\
+   TARGET_TRAMPOLINE_ADJUST_ADDRESS				\
    }
 
 #ifndef TARGET_UNWIND_TABLES_DEFAULT
@@ -848,6 +907,7 @@
   TARGET_SCHED,					\
   TARGET_VECTORIZE,				\
   TARGET_DEFAULT_TARGET_FLAGS,			\
+  TARGET_OVERRIDE_OPTIONS_AFTER_CHANGE,		\
   TARGET_HANDLE_OPTION,				\
   TARGET_HELP,					\
   TARGET_EH_RETURN_FILTER_MODE,			\
@@ -867,6 +927,7 @@
   TARGET_ALIGN_ANON_BITFIELD,			\
   TARGET_NARROW_VOLATILE_BITFIELD,		\
   TARGET_INIT_BUILTINS,				\
+  TARGET_BUILTIN_DECL,				\
   TARGET_EXPAND_BUILTIN,			\
   TARGET_RESOLVE_OVERLOADED_BUILTIN,		\
   TARGET_FOLD_BUILTIN,				\
@@ -877,6 +938,7 @@
   TARGET_CANNOT_MODIFY_JUMPS_P,			\
   TARGET_BRANCH_TARGET_REGISTER_CLASS,		\
   TARGET_BRANCH_TARGET_REGISTER_CALLEE_SAVED,	\
+  TARGET_HAVE_CONDITIONAL_EXECUTION,		\
   TARGET_CANNOT_FORCE_CONST_MEM,		\
   TARGET_CANNOT_COPY_INSN_P,			\
   TARGET_COMMUTATIVE_P,				\
@@ -898,6 +960,7 @@
   TARGET_MIN_DIVISIONS_FOR_RECIP_MUL,		\
   TARGET_MODE_REP_EXTENDED,			\
   TARGET_VALID_POINTER_MODE,                    \
+  TARGET_ADDR_SPACE_HOOKS,			\
   TARGET_SCALAR_MODE_SUPPORTED_P,		\
   TARGET_VECTOR_MODE_SUPPORTED_P,               \
   TARGET_RTX_COSTS,				\

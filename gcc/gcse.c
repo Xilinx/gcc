@@ -1353,9 +1353,11 @@ hash_scan_set (rtx pat, rtx insn, struct hash_table_d *table)
 	  /* Don't GCSE something if we can't do a reg/reg copy.  */
 	  && can_copy_p (GET_MODE (dest))
 	  /* GCSE commonly inserts instruction after the insn.  We can't
-	     do that easily for EH_REGION notes so disable GCSE on these
-	     for now.  */
-	  && !find_reg_note (insn, REG_EH_REGION, NULL_RTX)
+	     do that easily for EH edges so disable GCSE on these for now.  */
+	  /* ??? We can now easily create new EH landing pads at the
+	     gimple level, for splitting edges; there's no reason we
+	     can't do the same thing at the rtl level.  */
+	  && !can_throw_internal (insn)
 	  /* Is SET_SRC something we want to gcse?  */
 	  && want_to_gcse_p (src)
 	  /* Don't CSE a nop.  */
@@ -1415,9 +1417,8 @@ hash_scan_set (rtx pat, rtx insn, struct hash_table_d *table)
 	   /* Don't GCSE something if we can't do a reg/reg copy.  */
 	   && can_copy_p (GET_MODE (src))
 	   /* GCSE commonly inserts instruction after the insn.  We can't
-	      do that easily for EH_REGION notes so disable GCSE on these
-	      for now.  */
-	   && ! find_reg_note (insn, REG_EH_REGION, NULL_RTX)
+	      do that easily for EH edges so disable GCSE on these for now.  */
+	   && !can_throw_internal (insn)
 	   /* Is SET_DEST something we want to gcse?  */
 	   && want_to_gcse_p (dest)
 	   /* Don't CSE a nop.  */
@@ -2275,8 +2276,7 @@ try_replace_reg (rtx from, rtx to, rtx insn)
      with our replacement.  */
   if (note != 0 && REG_NOTE_KIND (note) == REG_EQUAL)
     set_unique_reg_note (insn, REG_EQUAL,
-			 simplify_replace_rtx (XEXP (note, 0), from,
-			 copy_rtx (to)));
+			 simplify_replace_rtx (XEXP (note, 0), from, to));
   if (!success && set && reg_mentioned_p (from, SET_SRC (set)))
     {
       /* If above failed and this is a single set, try to simplify the source of
@@ -3037,12 +3037,12 @@ bypass_block (basic_block bb, rtx setcc, rtx jump)
 	  src = SET_SRC (pc_set (jump));
 
 	  if (setcc != NULL)
-	      src = simplify_replace_rtx (src,
-					  SET_DEST (PATTERN (setcc)),
-					  SET_SRC (PATTERN (setcc)));
+	    src = simplify_replace_rtx (src,
+					SET_DEST (PATTERN (setcc)),
+					SET_SRC (PATTERN (setcc)));
 
 	  new_rtx = simplify_replace_rtx (src, reg_used->reg_rtx,
-				      SET_SRC (set->expr));
+					  SET_SRC (set->expr));
 
 	  /* Jump bypassing may have already placed instructions on
 	     edges of the CFG.  We can't bypass an outgoing edge that
@@ -5147,7 +5147,7 @@ struct rtl_opt_pass pass_rtl_pre =
 {
  {
   RTL_PASS,
-  "pre",                                /* name */
+  "rtl pre",                            /* name */
   gate_rtl_pre,                         /* gate */   
   execute_rtl_pre,    			/* execute */       
   NULL,                                 /* sub */

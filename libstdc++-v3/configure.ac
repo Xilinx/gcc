@@ -128,6 +128,7 @@ GLIBCXX_ENABLE_SJLJ_EXCEPTIONS
 GLIBCXX_ENABLE_PCH($is_hosted)
 GLIBCXX_ENABLE_THREADS
 GLIBCXX_ENABLE_ATOMIC_BUILTINS
+GLIBCXX_ENABLE_DECIMAL_FLOAT
 
 # Checks for compiler support that doesn't require linking.
 GLIBCXX_CHECK_COMPILER_FEATURES
@@ -404,9 +405,12 @@ AC_CONFIG_FILES(AC_FOREACH([DIR], glibcxx_SUBDIRS, [DIR/Makefile ]),
 s!`test -f '$<' || echo '$(srcdir)/'`!!
 _EOF
    sed -f vpsed$$ $ac_file > tmp$$
-   grep '^MULTISUBDIR =' Makefile >> tmp$$
    mv tmp$$ $ac_file
    rm vpsed$$
+   echo 'MULTISUBDIR =' >> $ac_file
+   ml_norecursion=yes
+   . ${multi_basedir}/config-ml.in
+   AS_UNSET([ml_norecursion])
 ])
 
 AC_CONFIG_COMMANDS([generate-headers],

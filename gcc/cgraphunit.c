@@ -140,7 +140,6 @@ static void cgraph_expand_all_functions (void);
 static void cgraph_mark_functions_to_output (void);
 static void cgraph_expand_function (struct cgraph_node *);
 static void cgraph_output_pending_asms (void);
-static void cgraph_optimize (void);
 static void cgraph_analyze_function (struct cgraph_node *);
 
 static FILE *cgraph_dump_file;
@@ -314,16 +313,9 @@ cgraph_build_cdtor_fns (void)
    either outside this translation unit, something magic in the system
    configury.  */
 
-static bool
-decide_is_function_needed (struct cgraph_node *node, tree decl)
+bool
+cgraph_decide_is_function_needed (struct cgraph_node *node, tree decl)
 {
-  if (MAIN_NAME_P (DECL_NAME (decl))
-      && TREE_PUBLIC (decl))
-    {
-      node->local.externally_visible = true;
-      return true;
-    }
-
   /* If the user told us it is used, then it must be so.  */
   if (node->local.externally_visible)
     return true;
@@ -361,7 +353,9 @@ decide_is_function_needed (struct cgraph_node *node, tree decl)
 	|| (!optimize && !node->local.disregard_inline_limits
 	    && !DECL_DECLARED_INLINE_P (decl)
 	    && !node->origin))
-      && !flag_whole_program)
+       && !flag_whole_program
+       && !flag_lto
+       && !flag_whopr)
       && !DECL_COMDAT (decl) && !DECL_EXTERNAL (decl))
     return true;
 
@@ -522,7 +516,7 @@ cgraph_finalize_function (tree decl, bool nested)
   node->finalized_by_frontend = true;
   record_cdtor_fn (node->decl);
 
-  if (decide_is_function_needed (node, decl))
+  if (cgraph_decide_is_function_needed (node, decl))
     cgraph_mark_needed_node (node);
 
   /* Since we reclaim unreachable nodes at the end of every language
@@ -551,7 +545,7 @@ void
 cgraph_mark_if_needed (tree decl)
 {
   struct cgraph_node *node = cgraph_node (decl);
-  if (node->local.finalized && decide_is_function_needed (node, decl))
+  if (node->local.finalized && cgraph_decide_is_function_needed (node, decl))
     cgraph_mark_needed_node (node);
 }
 
@@ -594,6 +588,21 @@ verify_cgraph_node (struct cgraph_node *node)
       error ("Execution count is negative");
       error_found = true;
     }
+  if (node->global.inlined_to && node->local.externally_visible)
+    {
+      error ("Externally visible inline clone");
+      error_found = true;
+    }
+  if (node->global.inlined_to && node->address_taken)
+    {
+      error ("Inline clone with address taken");
+      error_found = true;
+    }
+  if (node->global.inlined_to && node->needed)
+    {
+      error ("Inline clone is needed");
+      error_found = true;
+    }
   for (e = node->callers; e; e = e->next_caller)
     {
       if (e->count < 0)
@@ -609,6 +618,18 @@ verify_cgraph_node (struct cgraph_node *node)
       if (e->frequency > CGRAPH_FREQ_MAX)
 	{
 	  error ("caller edge frequency is too large");
+	  error_found = true;
+	}
+      if (gimple_has_body_p (e->caller->decl)
+          && !e->caller->global.inlined_to
+          && (e->frequency
+	      != compute_call_stmt_bb_frequency (e->caller->decl,
+						 gimple_bb (e->call_stmt))))
+	{
+	  error ("caller edge frequency %i does not match BB freqency %i",
+	  	 e->frequency,
+		 compute_call_stmt_bb_frequency (e->caller->decl,
+						 gimple_bb (e->call_stmt)));
 	  error_found = true;
 	}
       if (!e->inline_failed)
@@ -692,7 +713,8 @@ verify_cgraph_node (struct cgraph_node *node)
 
   if (node->analyzed && gimple_has_body_p (node->decl)
       && !TREE_ASM_WRITTEN (node->decl)
-      && (!DECL_EXTERNAL (node->decl) || node->global.inlined_to))
+      && (!DECL_EXTERNAL (node->decl) || node->global.inlined_to)
+      && !flag_wpa)
     {
       if (this_cfun->cfg)
 	{
@@ -864,12 +886,8 @@ process_function_and_variable_attributes (struct cgraph_node *first,
 	    warning_at (DECL_SOURCE_LOCATION (node->decl), OPT_Wattributes,
 			"%<externally_visible%>"
 			" attribute have effect only on public objects");
-	  else
-	    {
-	      if (node->local.finalized)
-		cgraph_mark_needed_node (node);
-	      node->local.externally_visible = true;
-	    }
+	  else if (node->local.finalized)
+	     cgraph_mark_needed_node (node);
 	}
     }
   for (vnode = varpool_nodes; vnode != first_var; vnode = vnode->next)
@@ -878,6 +896,7 @@ process_function_and_variable_attributes (struct cgraph_node *first,
       if (lookup_attribute ("used", DECL_ATTRIBUTES (decl)))
 	{
 	  mark_decl_referenced (decl);
+	  vnode->force_output = true;
 	  if (vnode->finalized)
 	    varpool_mark_needed_node (vnode);
 	}
@@ -887,12 +906,8 @@ process_function_and_variable_attributes (struct cgraph_node *first,
 	    warning_at (DECL_SOURCE_LOCATION (vnode->decl), OPT_Wattributes,
 			"%<externally_visible%>"
 			" attribute have effect only on public objects");
-	  else
-	    {
-	      if (vnode->finalized)
-		varpool_mark_needed_node (vnode);
-	      vnode->externally_visible = true;
-	    }
+	  else if (vnode->finalized)
+	    varpool_mark_needed_node (vnode);
 	}
     }
 }
@@ -949,8 +964,8 @@ cgraph_analyze_functions (void)
 	  continue;
 	}
 
-      gcc_assert (!node->analyzed && node->reachable);
-      cgraph_analyze_function (node);
+      if (!node->analyzed)
+	cgraph_analyze_function (node);
 
       for (edge = node->callees; edge; edge = edge->next_callee)
 	if (!edge->callee->reachable)
@@ -1018,15 +1033,54 @@ cgraph_analyze_functions (void)
   ggc_collect ();
 }
 
+
+/* Emit thunks for every node in the cgraph.
+   FIXME: We really ought to emit thunks only for functions that are needed.  */
+
+static void
+cgraph_emit_thunks (void)
+{
+  struct cgraph_node *n, *alias;
+
+  for (n = cgraph_nodes; n; n = n->next)
+    {
+      /* Only emit thunks on functions defined in this TU.
+	 Note that this may emit more thunks than strictly necessary.
+	 During optimization some nodes may disappear.  It would be
+	 nice to only emit thunks only for the functions that will be
+	 emitted, but we cannot know that until the inliner and other
+	 IPA passes have run (see the sequencing of the call to
+	 cgraph_mark_functions_to_output in cgraph_optimize).  */
+      if (n->reachable
+	  && !DECL_EXTERNAL (n->decl))
+	{
+	  lang_hooks.callgraph.emit_associated_thunks (n->decl);
+	  for (alias = n->same_body; alias; alias = alias->next)
+	    if (!DECL_EXTERNAL (alias->decl))
+	      lang_hooks.callgraph.emit_associated_thunks (alias->decl);
+	}
+    }
+}
+
+
 /* Analyze the whole compilation unit once it is parsed completely.  */
 
 void
 cgraph_finalize_compilation_unit (void)
 {
+  timevar_push (TV_CGRAPH);
+
   /* Do not skip analyzing the functions if there were errors, we
      miss diagnostics for following functions otherwise.  */
 
+  /* Emit size functions we didn't inline.  */
   finalize_size_functions ();
+
+  /* Call functions declared with the "constructor" or "destructor"
+     attribute.  */
+  cgraph_build_cdtor_fns ();
+
+  /* Mark alias targets necessary and emit diagnostics.  */
   finish_aliases_1 ();
 
   if (!quiet_flag)
@@ -1035,11 +1089,24 @@ cgraph_finalize_compilation_unit (void)
       fflush (stderr);
     }
 
-  timevar_push (TV_CGRAPH);
+  /* Gimplify and lower all functions, compute reachability and
+     remove unreachable nodes.  */
   cgraph_analyze_functions ();
-  timevar_pop (TV_CGRAPH);
 
+  /* Emit thunks for reachable nodes, if needed.  */
+  if (lang_hooks.callgraph.emit_associated_thunks)
+    cgraph_emit_thunks ();
+
+  /* Mark alias targets necessary and emit diagnostics.  */
+  finish_aliases_1 ();
+
+  /* Gimplify and lower thunks.  */
+  cgraph_analyze_functions ();
+
+  /* Finally drive the pass manager.  */
   cgraph_optimize ();
+
+  timevar_pop (TV_CGRAPH);
 }
 
 
@@ -1113,6 +1180,14 @@ cgraph_expand_function (struct cgraph_node *node)
   /* Make sure that BE didn't give up on compiling.  */
   gcc_assert (TREE_ASM_WRITTEN (decl));
   current_function_decl = NULL;
+  if (node->same_body)
+    {
+      struct cgraph_node *alias;
+      bool saved_alias = node->alias;
+      for (alias = node->same_body; alias; alias = alias->next)
+	assemble_alias (alias->decl, DECL_ASSEMBLER_NAME (decl));
+      node->alias = saved_alias;
+    }
   gcc_assert (!cgraph_preserve_function_body_p (decl));
   cgraph_release_function_body (node);
   /* Eliminate all call edges.  This is important so the GIMPLE_CALL no longer
@@ -1308,46 +1383,42 @@ ipa_passes (void)
   current_function_decl = NULL;
   gimple_register_cfg_hooks ();
   bitmap_obstack_initialize (NULL);
-  execute_ipa_pass_list (all_ipa_passes);
 
-  /* Generate coverage variables and constructors.  */
-  coverage_finish ();
+  if (!in_lto_p)
+    execute_ipa_pass_list (all_small_ipa_passes);
 
-  /* Process new functions added.  */
-  set_cfun (NULL);
-  current_function_decl = NULL;
-  cgraph_process_new_functions ();
+  /* If pass_all_early_optimizations was not scheduled, the state of
+     the cgraph will not be properly updated.  Update it now.  */
+  if (cgraph_state < CGRAPH_STATE_IPA_SSA)
+    cgraph_state = CGRAPH_STATE_IPA_SSA;
+
+  if (!in_lto_p)
+    {
+      /* Generate coverage variables and constructors.  */
+      coverage_finish ();
+
+      /* Process new functions added.  */
+      set_cfun (NULL);
+      current_function_decl = NULL;
+      cgraph_process_new_functions ();
+
+      execute_ipa_summary_passes ((struct ipa_opt_pass_d *) all_regular_ipa_passes);
+    }
+  execute_ipa_summary_passes ((struct ipa_opt_pass_d *) all_lto_gen_passes);
+
+  if (!in_lto_p)
+    ipa_write_summaries ();
+
+  if (!flag_ltrans)
+    execute_ipa_pass_list (all_regular_ipa_passes);
 
   bitmap_obstack_release (NULL);
 }
 
 
-/* Emit thunks for every node in the cgraph.
-   FIXME: We really ought to emit thunks only for functions that are needed.  */
-
-static void
-cgraph_emit_thunks (void)
-{
-  struct cgraph_node *n;
-
-  for (n = cgraph_nodes; n; n = n->next)
-    {
-      /* Only emit thunks on functions defined in this TU.
-	 Note that this may emit more thunks than strictly necessary.
-	 During optimization some nodes may disappear.  It would be
-	 nice to only emit thunks only for the functions that will be
-	 emitted, but we cannot know that until the inliner and other
-	 IPA passes have run (see the sequencing of the call to
-	 cgraph_mark_functions_to_output in cgraph_optimize).  */
-      if (!DECL_EXTERNAL (n->decl))
-	lang_hooks.callgraph.emit_associated_thunks (n->decl);
-    }
-}
-
-
 /* Perform simple optimizations based on callgraph.  */
 
-static void
+void
 cgraph_optimize (void)
 {
   if (errorcount || sorrycount)
@@ -1357,22 +1428,9 @@ cgraph_optimize (void)
   verify_cgraph ();
 #endif
 
-  /* Emit thunks, if needed.  */
-  if (lang_hooks.callgraph.emit_associated_thunks)
-    {
-      cgraph_emit_thunks ();
-      if (errorcount || sorrycount)
-	return;
-    }
-
-  /* Call functions declared with the "constructor" or "destructor"
-     attribute.  */
-  cgraph_build_cdtor_fns ();
-
   /* Frontend may output common variables after the unit has been finalized.
      It is safe to deal with them here as they are always zero initialized.  */
   varpool_analyze_pending_decls ();
-  cgraph_analyze_functions ();
 
   timevar_push (TV_CGRAPHOPT);
   if (pre_ipa_mem_report)
@@ -1390,7 +1448,10 @@ cgraph_optimize (void)
 
   /* Do nothing else if any IPA pass found errors.  */
   if (errorcount || sorrycount)
-    return;
+    {
+      timevar_pop (TV_CGRAPHOPT);
+      return;
+    }
 
   /* This pass remove bodies of extern inline functions we never inlined.
      Do this later so other IPA passes see what is really going on.  */
@@ -1410,6 +1471,7 @@ cgraph_optimize (void)
   timevar_pop (TV_CGRAPHOPT);
 
   /* Output everything.  */
+  (*debug_hooks->assembly_start) ();
   if (!quiet_flag)
     fprintf (stderr, "Assembling functions:\n");
 #ifdef ENABLE_CHECKING
@@ -1550,10 +1612,7 @@ update_call_expr (struct cgraph_node *new_version)
     {
       struct function *inner_function = DECL_STRUCT_FUNCTION (e->caller->decl);
       gimple_call_set_fndecl (e->call_stmt, new_version->decl);
-      /* Update EH information too, just in case.  */
-      if (!stmt_could_throw_p (e->call_stmt)
-          && lookup_stmt_eh_region_fn (inner_function, e->call_stmt))
-        remove_stmt_from_eh_region_fn (inner_function, e->call_stmt);
+      maybe_clean_eh_stmt_fn (inner_function, e->call_stmt);
     }
 }
 
@@ -1590,7 +1649,8 @@ cgraph_copy_node_for_versioning (struct cgraph_node *old_version,
       also cloned.  */
    for (e = old_version->callees;e; e=e->next_callee)
      {
-       new_e = cgraph_clone_edge (e, new_version, e->call_stmt, 0, e->frequency,
+       new_e = cgraph_clone_edge (e, new_version, e->call_stmt,
+				  e->lto_stmt_uid, 0, e->frequency,
 				  e->loop_nest, true);
        new_e->count = e->count;
      }
@@ -1742,8 +1802,8 @@ save_inline_function_body (struct cgraph_node *node)
   TREE_PUBLIC (first_clone->decl) = 0;
   DECL_COMDAT (first_clone->decl) = 0;
   VEC_free (ipa_opt_pass, heap,
-            DECL_STRUCT_FUNCTION (first_clone->decl)->ipa_transforms_to_apply);
-  DECL_STRUCT_FUNCTION (first_clone->decl)->ipa_transforms_to_apply = NULL;
+            first_clone->ipa_transforms_to_apply);
+  first_clone->ipa_transforms_to_apply = NULL;
 
 #ifdef ENABLE_CHECKING
   verify_cgraph_node (first_clone);
@@ -1775,6 +1835,8 @@ cgraph_materialize_clone (struct cgraph_node *node)
     node->clone_of->clones = node->next_sibling_clone;
   node->next_sibling_clone = NULL;
   node->prev_sibling_clone = NULL;
+  if (!node->clone_of->analyzed && !node->clone_of->clones)
+    cgraph_remove_node (node->clone_of);
   node->clone_of = NULL;
   bitmap_obstack_release (NULL);
 }
@@ -1875,7 +1937,22 @@ cgraph_materialize_all_clones (void)
 	      {
 		gimple new_stmt;
 		gimple_stmt_iterator gsi;
-		
+
+		if (e->callee->same_body)
+		  {
+		    struct cgraph_node *alias;
+
+		    for (alias = e->callee->same_body;
+			 alias;
+			 alias = alias->next)
+		      if (decl == alias->decl)
+			break;
+		    /* Don't update call from same body alias to the real
+		       function.  */
+		    if (alias)
+		      continue;
+		  }
+
 		if (cgraph_dump_file)
 		  {
 		    fprintf (cgraph_dump_file, "updating call of %s in %s:",
@@ -1898,9 +1975,7 @@ cgraph_materialize_all_clones (void)
 		gsi_replace (&gsi, new_stmt, true);
 
 		/* Update EH information too, just in case.  */
-		if (!stmt_could_throw_p (new_stmt)
-		    && lookup_stmt_eh_region (new_stmt))
-		  remove_stmt_from_eh_region (new_stmt);
+		maybe_clean_or_replace_eh_stmt (e->call_stmt, new_stmt);
 
 		cgraph_set_call_stmt_including_clones (node, e->call_stmt, new_stmt);
 

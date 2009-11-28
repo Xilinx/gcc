@@ -873,12 +873,12 @@ package Exp_Dbug is
       --  the element type for AT1 might have a type defined as if it had
       --  been written:
       --
-      --     type at1___C_PAD is record null; end record;
-      --     for at1___C_PAD'Size use 16 * 8;
+      --     type at1___PAD is record null; end record;
+      --     for at1___PAD'Size use 16 * 8;
       --
       --  and there would also be
       --
-      --     type at1___C_PAD___XVS is record t1: Integer; end record;
+      --     type at1___PAD___XVS is record t1: Integer; end record;
       --     type t1 is ...
       --
       --  Had the subtype Int been dynamic:
@@ -888,7 +888,7 @@ package Exp_Dbug is
       --  Then the compiler would also generate a declaration whose effect
       --  would be
       --
-      --     at1___C_PAD___XVZ: constant Integer := 32 + M * 8 + padding term;
+      --     at1___PAD___XVZ: constant Integer := 32 + M * 8 + padding term;
       --
       --  Not all unconstrained types are so encoded; the XVS convention may be
       --  unnecessary for unconstrained types of fixed size. However, this
@@ -1094,8 +1094,8 @@ package Exp_Dbug is
    -- Packed Array Encoding --
    ---------------------------
 
-   --  For every packed array, two types are created, and both appear in
-   --  the debugging output.
+   --  For every constrained packed array, two types are created, and both
+   --  appear in the debugging output:
 
    --    The original declared array type is a perfectly normal array type,
    --    and its index bounds indicate the original bounds of the array.
@@ -1110,12 +1110,27 @@ package Exp_Dbug is
    --    ttt___XPnnn
 
    --  where
+
    --    ttt is the name of the original declared array
    --    nnn is the component size in bits (1-31)
 
-   --  When the debugger sees that an object is of a type that is encoded
-   --  in this manner, it can use the original type to determine the bounds,
-   --  and the component size to determine the packing details.
+   --  When the debugger sees that an object is of a type that is encoded in
+   --  this manner, it can use the original type to determine the bounds and
+   --  the component type, and the component size to determine the packing
+   --  details.
+
+   --  For an unconstrained packed array, the corresponding packed array type
+   --  is neither used in the generated code nor for debugging information,
+   --  only the original type is used. In order to convey the packing in the
+   --  debugging information, the compiler generates the associated fat- and
+   --  thin-pointer types (see the Pointers to Unconstrained Array section
+   --  below) using the name of the corresponding packed array type as the
+   --  base name, i.e. ttt___XPnnn___XUP and ttt___XPnnn___XUT respectively.
+
+   --  When the debugger sees that an object is of a type that is encoded in
+   --  this manner, it can use the type of the fields to determine the bounds
+   --  and the component type, and the component size to determine the packing
+   --  details.
 
    -------------------------------------------
    -- Packed Array Representation in Memory --
@@ -1257,6 +1272,7 @@ package Exp_Dbug is
    --      fat-pointer type whose name is "arr___XUP", where "arr" is the name
    --      of the array type, and use it to represent the array type itself in
    --      the debugging information.
+
    --      For each pointer to this unconstrained array type, the compiler will
    --      generate a typedef that points to the above "arr___XUP" fat-pointer
    --      type. As a consequence, when it comes to fat-pointer types:

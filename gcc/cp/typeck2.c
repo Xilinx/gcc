@@ -236,6 +236,7 @@ abstract_virtuals_error (tree decl, tree type)
      be abstract.  */
   if (!CLASS_TYPE_P (type))
     return 0;
+  type = TYPE_MAIN_VARIANT (type);
 
   /* If the type is incomplete, we register it within a hash table,
      so that we can check again once it is completed. This makes sense
@@ -723,7 +724,7 @@ digest_init_r (tree type, tree init, bool nested, int flags)
 {
   enum tree_code code = TREE_CODE (type);
 
-  if (init == error_mark_node)
+  if (error_operand_p (init))
     return error_mark_node;
 
   gcc_assert (init);
@@ -838,6 +839,12 @@ digest_init_r (tree type, tree init, bool nested, int flags)
       if (TREE_CODE (type) == ARRAY_TYPE
 	  && TREE_CODE (init) != CONSTRUCTOR)
 	{
+	  /* Allow the result of build_array_copy.  */
+	  if (TREE_CODE (init) == TARGET_EXPR
+	      && (same_type_ignoring_top_level_qualifiers_p
+		  (type, TREE_TYPE (init))))
+	    return init;
+
 	  error ("array must be initialized with a brace-enclosed"
 		 " initializer");
 	  return error_mark_node;

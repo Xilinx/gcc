@@ -167,7 +167,7 @@ create_ddg_dep_from_intra_loop_link (ddg_ptr g, ddg_node_ptr src_node,
     t = OUTPUT_DEP;
 
   gcc_assert (!DEBUG_INSN_P (dest_node->insn) || t == ANTI_DEP);
-  gcc_assert (!DEBUG_INSN_P (src_node->insn) || DEBUG_INSN_P (dest_node->insn));
+  gcc_assert (!DEBUG_INSN_P (src_node->insn) || t == ANTI_DEP);
 
   /* We currently choose not to create certain anti-deps edges and
      compensate for that by generating reg-moves based on the life-range
@@ -213,7 +213,7 @@ create_ddg_dep_no_link (ddg_ptr g, ddg_node_ptr from, ddg_node_ptr to,
   struct _dep _dep, *dep = &_dep;
 
   gcc_assert (!DEBUG_INSN_P (to->insn) || d_t == ANTI_DEP);
-  gcc_assert (!DEBUG_INSN_P (from->insn) || DEBUG_INSN_P (to->insn));
+  gcc_assert (!DEBUG_INSN_P (from->insn) || d_t == ANTI_DEP);
 
   if (d_t == ANTI_DEP)
     dep_kind = REG_DEP_ANTI;
@@ -388,7 +388,7 @@ build_intra_loop_deps (ddg_ptr g)
 
   /* Build the dependence information, using the sched_analyze function.  */
   init_deps_global ();
-  init_deps (&tmp_deps);
+  init_deps (&tmp_deps, false);
 
   /* Do the intra-block data dependence analysis for the given block.  */
   get_ebb_head_tail (g->bb, g->bb, &head, &tail);

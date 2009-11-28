@@ -393,9 +393,13 @@ extern GTY(()) int darwin_ms_struct;
       shared-libgcc|fexceptions|fgnu-runtime:				   \
        %:version-compare(!> 10.5 mmacosx-version-min= -lgcc_s.10.4)	   \
        %:version-compare(>= 10.5 mmacosx-version-min= -lgcc_s.10.5)	   \
+       %:version-compare(!> 10.5 mmacosx-version-min= -lgcc_ext.10.4)	   \
+       %:version-compare(>= 10.5 mmacosx-version-min= -lgcc_ext.10.5)	   \
        -lgcc;								   \
       :%:version-compare(>< 10.3.9 10.5 mmacosx-version-min= -lgcc_s.10.4) \
        %:version-compare(>= 10.5 mmacosx-version-min= -lgcc_s.10.5)	   \
+       %:version-compare(!> 10.5 mmacosx-version-min= -lgcc_ext.10.4)	   \
+       %:version-compare(>= 10.5 mmacosx-version-min= -lgcc_ext.10.5)	   \
        -lgcc}"
 
 /* We specify crt0.o as -lcrt0.o so that ld will search the library path.
@@ -446,7 +450,7 @@ extern GTY(()) int darwin_ms_struct;
 
 #define DBX_DEBUGGING_INFO 1
 
-#define DWARF2_DEBUGGING_INFO
+#define DWARF2_DEBUGGING_INFO 1
 #define PREFERRED_DEBUGGING_TYPE DBX_DEBUG
 
 #define DEBUG_FRAME_SECTION	"__DWARF,__debug_frame,regular,debug"
@@ -982,7 +986,7 @@ void add_framework_path (char *);
 #endif
 
 /* Attempt to turn on execute permission for the stack.  This may be
-    used by INITIALIZE_TRAMPOLINE of the target needs it (that is,
+    used by TARGET_TRAMPOLINE_INIT if the target needs it (that is,
     if the target machine can change execute permissions on a page).
 
     There is no way to query the execute permission of the stack, so

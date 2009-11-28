@@ -1395,6 +1395,9 @@ _eligible_successor_edge_p (edge e1, succ_iterator *ip)
           && !(flags & SUCCS_OUT))
         return false;
 
+      if (EDGE_COUNT (bb->succs) == 0)
+	return false;
+
       e2 = EDGE_SUCC (bb, 0);
       bb = e2->dest;
     }
@@ -1643,6 +1646,7 @@ extern void init_lv_sets (void);
 extern void free_lv_sets (void);
 extern void setup_nop_and_exit_insns (void);
 extern void free_nop_and_exit_insns (void);
+extern void free_data_for_scheduled_insn (insn_t);
 extern void setup_nop_vinsn (void);
 extern void free_nop_vinsn (void);
 extern void sel_set_sched_flags (void);

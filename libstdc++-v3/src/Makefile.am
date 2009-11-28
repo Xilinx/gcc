@@ -140,12 +140,12 @@ sources = \
 	mt_allocator.cc \
 	codecvt.cc \
 	compatibility.cc \
+	compatibility-c++0x.cc \
 	complex_io.cc \
 	ctype.cc \
 	debug.cc \
 	functexcept.cc \
 	hash_tr1.cc \
-	hash_c++0x.cc \
 	globals_io.cc \
 	hashtable_tr1.cc \
 	hashtable_c++0x.cc \
@@ -209,6 +209,8 @@ libstdc___la_DEPENDENCIES = \
 libstdc___la_LDFLAGS = \
 	-version-info $(libtool_VERSION) ${version_arg} -lm 
 
+libstdc___la_LINK = $(CXXLINK) $(libstdc___la_LDFLAGS)
+
 # Use special rules for the deprecated source files so that they find
 # deprecated include files.
 GLIBCXX_INCLUDE_DIR=$(glibcxx_builddir)/include
@@ -258,9 +260,9 @@ condition_variable.lo: condition_variable.cc
 condition_variable.o: condition_variable.cc
 	$(CXXCOMPILE) -std=gnu++0x -c $<
 
-hash_c++0x.lo: hash_c++0x.cc
+compatibility-c++0x.lo: compatibility-c++0x.cc
 	$(LTCXXCOMPILE) -std=gnu++0x -c $<
-hash_c++0x.o: hash_c++0x.cc
+compatibility-c++0x.o: compatibility-c++0x.cc
 	$(CXXCOMPILE) -std=gnu++0x -c $<
 
 hashtable_c++0x.lo: hashtable_c++0x.cc

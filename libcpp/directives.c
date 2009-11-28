@@ -126,6 +126,8 @@ static int parse_answer (cpp_reader *, struct answer **, int, source_location);
 static cpp_hashnode *parse_assertion (cpp_reader *, struct answer **, int);
 static struct answer ** find_answer (cpp_hashnode *, const struct answer *);
 static void handle_assertion (cpp_reader *, const char *, int);
+static void do_pragma_push_macro (cpp_reader *);
+static void do_pragma_pop_macro (cpp_reader *);
 
 /* This is the table of directive handlers.  It is ordered by
    frequency of occurrence; the numbers at the end are directive
@@ -151,11 +153,11 @@ D(error,	T_ERROR,	STDC89,    0)		   /*    475 */ \
 D(pragma,	T_PRAGMA,	STDC89,    IN_I)	   /*    195 */ \
 D(warning,	T_WARNING,	EXTENSION, 0)		   /*     22 */ \
 D(include_next,	T_INCLUDE_NEXT,	EXTENSION, INCL | EXPAND)  /*     19 */ \
-D(ident,	T_IDENT,	EXTENSION, IN_I | DEPRECATED) /*     11 */ \
+D(ident,	T_IDENT,	EXTENSION, IN_I)           /*     11 */ \
 D(import,	T_IMPORT,	EXTENSION, INCL | EXPAND)  /* 0 ObjC */	\
 D(assert,	T_ASSERT,	EXTENSION, DEPRECATED)	   /* 0 SVR4 */	\
 D(unassert,	T_UNASSERT,	EXTENSION, DEPRECATED)	   /* 0 SVR4 */	\
-D(sccs,		T_SCCS,		EXTENSION, IN_I | DEPRECATED) /* 0 SVR4? */
+D(sccs,		T_SCCS,		EXTENSION, IN_I)           /* 0 SVR4? */
 
 /* #sccs is synonymous with #ident.  */
 #define do_sccs do_ident
@@ -697,7 +699,8 @@ parse_include (cpp_reader *pfile, int *pangle_brackets,
   /* Allow macro expansion.  */
   header = get_token_no_padding (pfile);
   *location = header->src_loc;
-  if (header->type == CPP_STRING || header->type == CPP_HEADER_NAME)
+  if ((header->type == CPP_STRING && header->val.str.text[0] != 'R')
+      || header->type == CPP_HEADER_NAME)
     {
       fname = XNEWVEC (char, header->val.str.len - 1);
       memcpy (fname, header->val.str.text + 1, header->val.str.len - 2);
@@ -1243,6 +1246,8 @@ _cpp_init_internal_pragmas (cpp_reader *pfile)
 {
   /* Pragmas in the global namespace.  */
   register_pragma_internal (pfile, 0, "once", do_pragma_once);
+  register_pragma_internal (pfile, 0, "push_macro", do_pragma_push_macro);
+  register_pragma_internal (pfile, 0, "pop_macro", do_pragma_pop_macro);
 
   /* New GCC-specific pragmas should be put in the GCC namespace.  */
   register_pragma_internal (pfile, "GCC", "poison", do_pragma_poison);
@@ -1422,6 +1427,96 @@ do_pragma_once (cpp_reader *pfile)
   _cpp_mark_file_once_only (pfile, pfile->buffer->file);
 }
 
+/* Handle #pragma push_macro(STRING).  */
+static void
+do_pragma_push_macro (cpp_reader *pfile)
+{
+  char *macroname, *dest;
+  const char *limit, *src;
+  const cpp_token *txt;
+  struct def_pragma_macro *c;
+
+  txt = get__Pragma_string (pfile);
+  if (!txt)
+    {
+      source_location src_loc = pfile->cur_token[-1].src_loc;
+      cpp_error_with_line (pfile, CPP_DL_ERROR, src_loc, 0,
+		 "invalid #pragma push_macro directive");
+      check_eol (pfile, false);
+      skip_rest_of_line (pfile);
+      return;
+    }
+  dest = macroname = (char *) alloca (txt->val.str.len + 2);
+  src = (const char *) (txt->val.str.text + 1 + (txt->val.str.text[0] == 'L'));
+  limit = (const char *) (txt->val.str.text + txt->val.str.len - 1);
+  while (src < limit)
+    {
+      /* We know there is a character following the backslash.  */
+      if (*src == '\\' && (src[1] == '\\' || src[1] == '"'))
+	src++;
+      *dest++ = *src++;
+    }
+  *dest = 0;
+  check_eol (pfile, false);
+  skip_rest_of_line (pfile);
+  c = XNEW (struct def_pragma_macro);
+  c->name = XNEWVAR (char, strlen (macroname) + 1);
+  strcpy (c->name, macroname);
+  c->next = pfile->pushed_macros;
+  c->value = cpp_push_definition (pfile, c->name);
+  pfile->pushed_macros = c;
+}
+
+/* Handle #pragma pop_macro(STRING).  */
+static void
+do_pragma_pop_macro (cpp_reader *pfile)
+{
+  char *macroname, *dest;
+  const char *limit, *src;
+  const cpp_token *txt;
+  struct def_pragma_macro *l = NULL, *c = pfile->pushed_macros;
+  txt = get__Pragma_string (pfile);
+  if (!txt)
+    {
+      source_location src_loc = pfile->cur_token[-1].src_loc;
+      cpp_error_with_line (pfile, CPP_DL_ERROR, src_loc, 0,
+		 "invalid #pragma pop_macro directive");
+      check_eol (pfile, false);
+      skip_rest_of_line (pfile);
+      return;
+    }
+  dest = macroname = (char *) alloca (txt->val.str.len + 2);
+  src = (const char *) (txt->val.str.text + 1 + (txt->val.str.text[0] == 'L'));
+  limit = (const char *) (txt->val.str.text + txt->val.str.len - 1);
+  while (src < limit)
+    {
+      /* We know there is a character following the backslash.  */
+      if (*src == '\\' && (src[1] == '\\' || src[1] == '"'))
+	src++;
+      *dest++ = *src++;
+    }
+  *dest = 0;
+  check_eol (pfile, false);
+  skip_rest_of_line (pfile);
+
+  while (c != NULL)
+    {
+      if (!strcmp (c->name, macroname))
+	{
+	  if (!l)
+	    pfile->pushed_macros = c->next;
+	  else
+	    l->next = c->next;
+	  cpp_pop_definition (pfile, c->name, c->value);
+	  free (c->name);
+	  free (c);
+	  break;
+	}
+      l = c;
+      c = c->next;
+    }
+}
+
 /* Handle #pragma GCC poison, to poison one or more identifiers so
    that the lexer produces a hard error for each subsequent usage.  */
 static void
@@ -1537,7 +1632,8 @@ get__Pragma_string (cpp_reader *pfile)
   if (string->type == CPP_EOF)
     _cpp_backup_tokens (pfile, 1);
   if (string->type != CPP_STRING && string->type != CPP_WSTRING
-      && string->type != CPP_STRING32 && string->type != CPP_STRING16)
+      && string->type != CPP_STRING32 && string->type != CPP_STRING16
+      && string->type != CPP_UTF8STRING)
     return NULL;
 
   paren = get_token_no_padding (pfile);
@@ -1712,6 +1808,8 @@ do_ifdef (cpp_reader *pfile)
 		    pfile->cb.used_undef (pfile, pfile->directive_line, node);
 		}
 	    }
+	  if (pfile->cb.used)
+	    pfile->cb.used (pfile, pfile->directive_line, node);
 	  check_eol (pfile, false);
 	}
     }
@@ -1748,6 +1846,8 @@ do_ifndef (cpp_reader *pfile)
 		    pfile->cb.used_undef (pfile, pfile->directive_line, node);
 		}
 	    }
+	  if (pfile->cb.used)
+	    pfile->cb.used (pfile, pfile->directive_line, node);
 	  check_eol (pfile, false);
 	}
     }
@@ -2156,7 +2256,8 @@ do_unassert (cpp_reader *pfile)
 void
 cpp_define (cpp_reader *pfile, const char *str)
 {
-  char *buf, *p;
+  char *buf;
+  const char *p;
   size_t count;
 
   /* Copy the entire option so we can modify it.
@@ -2222,28 +2323,11 @@ cpp_undef (cpp_reader *pfile, const char *macro)
   run_directive (pfile, T_UNDEF, buf, len);
 }
 
-/* Like lex_macro_node, but read the input from STR.  */
-static cpp_hashnode *
-lex_macro_node_from_str (cpp_reader *pfile, const char *str)
-{
-  size_t len = strlen (str);
-  uchar *buf = (uchar *) alloca (len + 1);
-  cpp_hashnode *node;
-
-  memcpy (buf, str, len);
-  buf[len] = '\n';
-  cpp_push_buffer (pfile, buf, len, true);
-  node = lex_macro_node (pfile, true);
-  _cpp_pop_buffer (pfile);
-
-  return node;
-}
-
 /* If STR is a defined macro, return its definition node, else return NULL.  */
 cpp_macro *
 cpp_push_definition (cpp_reader *pfile, const char *str)
 {
-  cpp_hashnode *node = lex_macro_node_from_str (pfile, str);
+  cpp_hashnode *node = _cpp_lex_identifier (pfile, str);
   if (node && node->type == NT_MACRO)
     return node->value.macro;
   else
@@ -2255,7 +2339,7 @@ cpp_push_definition (cpp_reader *pfile, const char *str)
 void
 cpp_pop_definition (cpp_reader *pfile, const char *str, cpp_macro *dfn)
 {
-  cpp_hashnode *node = lex_macro_node_from_str (pfile, str);
+  cpp_hashnode *node = _cpp_lex_identifier (pfile, str);
   if (node == NULL)
     return;
 

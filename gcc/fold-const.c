@@ -206,14 +206,8 @@ fit_double_type (unsigned HOST_WIDE_INT l1, HOST_WIDE_INT h1,
 {
   unsigned HOST_WIDE_INT low0 = l1;
   HOST_WIDE_INT high0 = h1;
-  unsigned int prec;
+  unsigned int prec = int_or_pointer_precision (type);
   int sign_extended_type;
-
-  if (POINTER_TYPE_P (type)
-      || TREE_CODE (type) == OFFSET_TYPE)
-    prec = POINTER_SIZE;
-  else
-    prec = TYPE_PRECISION (type);
 
   /* Size types *are* sign extended.  */
   sign_extended_type = (!TYPE_UNSIGNED (type)
@@ -1974,7 +1968,9 @@ const_binop (enum tree_code code, tree arg1, tree arg2, int notrunc)
 	case MULT_EXPR:
 #ifdef HAVE_mpc
 	  if (COMPLEX_FLOAT_TYPE_P (type))
-	    return do_mpc_arg2 (arg1, arg2, type, mpc_mul);
+	    return do_mpc_arg2 (arg1, arg2, type,
+				/* do_nonfinite= */ folding_initializer,
+				mpc_mul);
 #endif
 
 	  real = const_binop (MINUS_EXPR,
@@ -1990,10 +1986,25 @@ const_binop (enum tree_code code, tree arg1, tree arg2, int notrunc)
 	case RDIV_EXPR:
 #ifdef HAVE_mpc
 	  if (COMPLEX_FLOAT_TYPE_P (type))
-	    return do_mpc_arg2 (arg1, arg2, type, mpc_div);
+	    return do_mpc_arg2 (arg1, arg2, type,
+                                /* do_nonfinite= */ folding_initializer,
+				mpc_div);
+	  /* Fallthru ... */
 #endif
 
+	case TRUNC_DIV_EXPR:
+	case CEIL_DIV_EXPR:
+	case FLOOR_DIV_EXPR:
+	case ROUND_DIV_EXPR:
+	  if (flag_complex_method == 0)
 	  {
+	    /* Keep this algorithm in sync with
+	       tree-complex.c:expand_complex_div_straight().
+
+	       Expand complex division to scalars, straightforward algorithm.
+	       a / b = ((ar*br + ai*bi)/t) + i((ai*br - ar*bi)/t)
+	       t = br*br + bi*bi
+	    */
 	    tree magsquared
 	      = const_binop (PLUS_EXPR,
 			     const_binop (MULT_EXPR, r2, r2, notrunc),
@@ -2010,11 +2021,65 @@ const_binop (enum tree_code code, tree arg1, tree arg2, int notrunc)
 			     const_binop (MULT_EXPR, r1, i2, notrunc),
 			     notrunc);
 
-	    if (INTEGRAL_TYPE_P (TREE_TYPE (r1)))
-	      code = TRUNC_DIV_EXPR;
-
 	    real = const_binop (code, t1, magsquared, notrunc);
 	    imag = const_binop (code, t2, magsquared, notrunc);
+	  }
+	  else
+	  {
+	    /* Keep this algorithm in sync with
+               tree-complex.c:expand_complex_div_wide().
+
+	       Expand complex division to scalars, modified algorithm to minimize
+	       overflow with wide input ranges.  */
+	    tree compare = fold_build2 (LT_EXPR, boolean_type_node,
+					fold_abs_const (r2, TREE_TYPE (type)),
+					fold_abs_const (i2, TREE_TYPE (type)));
+	    
+	    if (integer_nonzerop (compare))
+	      {
+		/* In the TRUE branch, we compute
+		   ratio = br/bi;
+		   div = (br * ratio) + bi;
+		   tr = (ar * ratio) + ai;
+		   ti = (ai * ratio) - ar;
+		   tr = tr / div;
+		   ti = ti / div;  */
+		tree ratio = const_binop (code, r2, i2, notrunc);
+		tree div = const_binop (PLUS_EXPR, i2,
+					const_binop (MULT_EXPR, r2, ratio,
+						     notrunc),
+					notrunc);
+		real = const_binop (MULT_EXPR, r1, ratio, notrunc);
+		real = const_binop (PLUS_EXPR, real, i1, notrunc);
+		real = const_binop (code, real, div, notrunc);
+
+		imag = const_binop (MULT_EXPR, i1, ratio, notrunc);
+		imag = const_binop (MINUS_EXPR, imag, r1, notrunc);
+		imag = const_binop (code, imag, div, notrunc);
+	      }
+	    else
+	      {
+		/* In the FALSE branch, we compute
+		   ratio = d/c;
+		   divisor = (d * ratio) + c;
+		   tr = (b * ratio) + a;
+		   ti = b - (a * ratio);
+		   tr = tr / div;
+		   ti = ti / div;  */
+		tree ratio = const_binop (code, i2, r2, notrunc);
+		tree div = const_binop (PLUS_EXPR, r2,
+                                        const_binop (MULT_EXPR, i2, ratio,
+						     notrunc),
+					notrunc);
+
+		real = const_binop (MULT_EXPR, i1, ratio, notrunc);
+		real = const_binop (PLUS_EXPR, real, r1, notrunc);
+		real = const_binop (code, real, div, notrunc);
+
+		imag = const_binop (MULT_EXPR, r1, ratio, notrunc);
+		imag = const_binop (MINUS_EXPR, i1, imag, notrunc);
+		imag = const_binop (code, imag, div, notrunc);
+	      }
 	  }
 	  break;
 
@@ -2578,8 +2643,16 @@ fold_convert_loc (location_t loc, tree type, tree arg)
 
   switch (TREE_CODE (type))
     {
+    case POINTER_TYPE:
+    case REFERENCE_TYPE:
+      /* Handle conversions between pointers to different address spaces.  */
+      if (POINTER_TYPE_P (orig)
+	  && (TYPE_ADDR_SPACE (TREE_TYPE (type))
+	      != TYPE_ADDR_SPACE (TREE_TYPE (orig))))
+	return fold_build1_loc (loc, ADDR_SPACE_CONVERT_EXPR, type, arg);
+      /* fall through */
+
     case INTEGER_TYPE: case ENUMERAL_TYPE: case BOOLEAN_TYPE:
-    case POINTER_TYPE: case REFERENCE_TYPE:
     case OFFSET_TYPE:
       if (TREE_CODE (arg) == INTEGER_CST)
 	{
@@ -2761,8 +2834,6 @@ maybe_lvalue_p (const_tree x)
   case TARGET_EXPR:
   case COND_EXPR:
   case BIND_EXPR:
-  case MIN_EXPR:
-  case MAX_EXPR:
     break;
 
   default:
@@ -3110,6 +3181,12 @@ operand_equal_p (const_tree arg0, const_tree arg1, unsigned int flags)
      two non-pointers as well.  */
   if (TYPE_UNSIGNED (TREE_TYPE (arg0)) != TYPE_UNSIGNED (TREE_TYPE (arg1))
       || POINTER_TYPE_P (TREE_TYPE (arg0)) != POINTER_TYPE_P (TREE_TYPE (arg1)))
+    return 0;
+
+  /* We cannot consider pointers to different address space equal.  */
+  if (POINTER_TYPE_P (TREE_TYPE (arg0)) && POINTER_TYPE_P (TREE_TYPE (arg1))
+      && (TYPE_ADDR_SPACE (TREE_TYPE (TREE_TYPE (arg0)))
+	  != TYPE_ADDR_SPACE (TREE_TYPE (TREE_TYPE (arg1)))))
     return 0;
 
   /* If both types don't have the same precision, then it is not safe
@@ -6443,7 +6520,19 @@ extract_muldiv_1 (tree t, tree c, enum tree_code code, tree wide_type,
       /* If this was a subtraction, negate OP1 and set it to be an addition.
 	 This simplifies the logic below.  */
       if (tcode == MINUS_EXPR)
-	tcode = PLUS_EXPR, op1 = negate_expr (op1);
+	{
+	  tcode = PLUS_EXPR, op1 = negate_expr (op1);
+	  /* If OP1 was not easily negatable, the constant may be OP0.  */
+	  if (TREE_CODE (op0) == INTEGER_CST)
+	    {
+	      tree tem = op0;
+	      op0 = op1;
+	      op1 = tem;
+	      tem = t1;
+	      t1 = t2;
+	      t2 = tem;
+	    }
+	}
 
       if (TREE_CODE (op1) != INTEGER_CST)
 	break;
@@ -8603,6 +8692,11 @@ fold_unary_loc (location_t loc, enum tree_code code, tree type, tree op0)
       tem = fold_convert_const (code, type, op0);
       return tem ? tem : NULL_TREE;
 
+    case ADDR_SPACE_CONVERT_EXPR:
+      if (integer_zerop (arg0))
+	return fold_convert_const (code, type, arg0);
+      return NULL_TREE;
+
     case FIXED_CONVERT_EXPR:
       tem = fold_convert_const (code, type, arg0);
       return tem ? tem : NULL_TREE;
@@ -10055,7 +10149,6 @@ fold_binary_loc (location_t loc,
 	  tem = fold_build2_loc (loc, code, type,
 			     fold_convert_loc (loc, TREE_TYPE (op0),
 					       TREE_OPERAND (arg0, 1)), op1);
-	  protected_set_expr_location (tem, loc);
 	  tem = build2 (COMPOUND_EXPR, type, TREE_OPERAND (arg0, 0), tem);
 	  goto fold_binary_exit;
 	}
@@ -10065,7 +10158,6 @@ fold_binary_loc (location_t loc,
 	  tem = fold_build2_loc (loc, code, type, op0,
 			     fold_convert_loc (loc, TREE_TYPE (op1),
 					       TREE_OPERAND (arg1, 1)));
-	  protected_set_expr_location (tem, loc);
 	  tem = build2 (COMPOUND_EXPR, type, TREE_OPERAND (arg1, 0), tem);
 	  goto fold_binary_exit;
 	}
@@ -12534,6 +12626,11 @@ fold_binary_loc (location_t loc,
           && code == EQ_EXPR)
         return fold_build1_loc (loc, TRUTH_NOT_EXPR, type,
 			    fold_convert_loc (loc, type, arg0));
+
+      /* !exp != 0 becomes !exp */
+      if (TREE_CODE (arg0) == TRUTH_NOT_EXPR && integer_zerop (arg1)
+	  && code == NE_EXPR)
+        return non_lvalue_loc (loc, fold_convert_loc (loc, type, arg0));
 
       /* If this is an equality comparison of the address of two non-weak,
 	 unaliased symbols neither of which are extern (since we do not
@@ -15224,9 +15321,7 @@ tree_expr_nonnegative_warnv_p (tree t, bool *strict_overflow_p)
     case ASSERT_EXPR:
     case ADDR_EXPR:
     case WITH_SIZE_EXPR:
-    case EXC_PTR_EXPR:
     case SSA_NAME:
-    case FILTER_EXPR:
       return tree_single_nonnegative_warnv_p (t, strict_overflow_p);
 
     default:
@@ -15518,9 +15613,7 @@ tree_expr_nonzero_warnv_p (tree t, bool *strict_overflow_p)
     case ASSERT_EXPR:
     case ADDR_EXPR:
     case WITH_SIZE_EXPR:
-    case EXC_PTR_EXPR:
     case SSA_NAME:
-    case FILTER_EXPR:
       return tree_single_nonzero_warnv_p (t, strict_overflow_p);
 
     case COMPOUND_EXPR:

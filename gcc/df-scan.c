@@ -829,7 +829,8 @@ df_ref_create (rtx reg, rtx *loc, rtx insn,
   /* By adding the ref directly, df_insn_rescan my not find any
      differences even though the block will have changed.  So we need
      to mark the block dirty ourselves.  */  
-  df_set_bb_dirty (bb);
+  if (!DEBUG_INSN_P (DF_REF_INSN (ref)))
+    df_set_bb_dirty (bb);
 
   return ref;
 }
@@ -1027,7 +1028,8 @@ df_ref_remove (df_ref ref)
   /* By deleting the ref directly, df_insn_rescan my not find any
      differences even though the block will have changed.  So we need
      to mark the block dirty ourselves.  */  
-  df_set_bb_dirty (DF_REF_BB (ref));
+  if (!DEBUG_INSN_P (DF_REF_INSN (ref)))
+    df_set_bb_dirty (DF_REF_BB (ref));
   df_reg_chain_unlink (ref);
 }
 
@@ -3248,10 +3250,23 @@ df_uses_record (enum df_ref_class cl, struct df_collection_rec *collection_rec,
 		    width = INTVAL (XEXP (dst, 1));
 		    offset = INTVAL (XEXP (dst, 2));
 		    mode = GET_MODE (dst);
-		    df_uses_record (DF_REF_EXTRACT, collection_rec, &XEXP (dst, 0), 
-				DF_REF_REG_USE, bb, insn_info, 
-				DF_REF_READ_WRITE | DF_REF_ZERO_EXTRACT, 
-				width, offset, mode);
+		    if (GET_CODE (XEXP (dst,0)) == MEM)
+		      {
+			/* Handle the case of zero_extract(mem(...)) in the set dest.
+			   This special case is allowed only if the mem is a single byte and 
+			   is useful to set a bitfield in memory.  */
+			df_uses_record (DF_REF_EXTRACT, collection_rec, &XEXP (XEXP (dst,0), 0),
+					DF_REF_REG_MEM_STORE, bb, insn_info,
+					DF_REF_ZERO_EXTRACT,
+					width, offset, mode);
+		      }
+		    else
+		      {
+			df_uses_record (DF_REF_EXTRACT, collection_rec, &XEXP (dst, 0), 
+					DF_REF_REG_USE, bb, insn_info, 
+					DF_REF_READ_WRITE | DF_REF_ZERO_EXTRACT, 
+					width, offset, mode);
+		      }
 		  }
 		else 
 		  {
@@ -3601,18 +3616,6 @@ df_recompute_luids (basic_block bb)
 }
 
 
-/* Returns true if the function entry needs to 
-   define the static chain register.  */
-
-static bool
-df_need_static_chain_reg (struct function *fun)
-{
-  tree fun_context = decl_function_context (fun->decl);
-  return fun_context
-         && DECL_NO_STATIC_CHAIN (fun_context) == false;
-}
-
-
 /* Collect all artificial refs at the block level for BB and add them
    to COLLECTION_REC.  */
 
@@ -3891,21 +3894,14 @@ df_get_entry_block_def_set (bitmap entry_block_defs)
 	if ((call_used_regs[i] == 0) && (df_regs_ever_live_p (i)))
 	  bitmap_set_bit (entry_block_defs, i);
     }
-  else
-    {
-      /* If STATIC_CHAIN_INCOMING_REGNUM == STATIC_CHAIN_REGNUM
-	 only STATIC_CHAIN_REGNUM is defined.  If they are different,
-	 we only care about the STATIC_CHAIN_INCOMING_REGNUM.  */
-#ifdef STATIC_CHAIN_INCOMING_REGNUM
-      bitmap_set_bit (entry_block_defs, STATIC_CHAIN_INCOMING_REGNUM);
-#else 
-#ifdef STATIC_CHAIN_REGNUM
-      bitmap_set_bit (entry_block_defs, STATIC_CHAIN_REGNUM);
-#endif
-#endif
-    }
 
   r = targetm.calls.struct_value_rtx (current_function_decl, true);
+  if (r && REG_P (r))
+    bitmap_set_bit (entry_block_defs, REGNO (r));
+
+  /* If the function has an incoming STATIC_CHAIN, it has to show up
+     in the entry def set.  */
+  r = targetm.calls.static_chain (current_function_decl, true);
   if (r && REG_P (r))
     bitmap_set_bit (entry_block_defs, REGNO (r));
 
@@ -3946,19 +3942,6 @@ df_get_entry_block_def_set (bitmap entry_block_defs)
 #endif
             
   targetm.live_on_entry (entry_block_defs);
-
-  /* If the function has an incoming STATIC_CHAIN,
-     it has to show up in the entry def set.  */
-  if (df_need_static_chain_reg (cfun))
-    {
-#ifdef STATIC_CHAIN_INCOMING_REGNUM
-      bitmap_set_bit (entry_block_defs, STATIC_CHAIN_INCOMING_REGNUM);
-#else 
-#ifdef STATIC_CHAIN_REGNUM
-      bitmap_set_bit (entry_block_defs, STATIC_CHAIN_REGNUM);
-#endif
-#endif
-    }
 }
 
 

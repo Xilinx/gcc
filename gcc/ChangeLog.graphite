@@ -1,3 +1,7 @@
+2009-11-28 Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* Merge from mainline (151362:151806).
+
 2009-11-24  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite-clast-to-gimple.c (try_mark_loop_parallel,

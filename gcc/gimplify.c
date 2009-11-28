@@ -777,23 +777,6 @@ should_carry_location_p (gimple gs)
   return true;
 }
 
-/* Same, but for a tree.  */
-
-static bool
-tree_should_carry_location_p (const_tree stmt)
-{
-  /* Don't emit a line note for a label.  We particularly don't want to
-     emit one for the break label, since it doesn't actually correspond
-     to the beginning of the loop/switch.  */
-  if (TREE_CODE (stmt) == LABEL_EXPR)
-    return false;
-
-  /* Do not annotate empty statements, since it confuses gcov.  */
-  if (!TREE_SIDE_EFFECTS (stmt))
-    return false;
-
-  return true;
-}
 
 /* Return true if a location should not be emitted for this statement
    by annotate_one_with_location.  */
@@ -824,16 +807,6 @@ annotate_one_with_location (gimple gs, location_t location)
       && !gimple_do_not_emit_location_p (gs)
       && should_carry_location_p (gs))
     gimple_set_location (gs, location);
-}
-
-/* Same, but for tree T.  */
-
-static void
-tree_annotate_one_with_location (tree t, location_t location)
-{
-  if (CAN_HAVE_LOCATION_P (t)
-      && ! EXPR_HAS_LOCATION (t) && tree_should_carry_location_p (t))
-    SET_EXPR_LOCATION (t, location);
 }
 
 
@@ -869,29 +842,6 @@ annotate_all_with_location (gimple_seq stmt_p, location_t location)
     {
       gimple gs = gsi_stmt (i);
       annotate_one_with_location (gs, location);
-    }
-}
-
-/* Same, but for statement or statement list in *STMT_P.  */
-
-void
-tree_annotate_all_with_location (tree *stmt_p, location_t location)
-{
-  tree_stmt_iterator i;
-
-  if (!*stmt_p)
-    return;
-
-  for (i = tsi_start (*stmt_p); !tsi_end_p (i); tsi_next (&i))
-    {
-      tree t = tsi_stmt (i);
-
-      /* Assuming we've already been gimplified, we shouldn't
-	  see nested chaining constructs anymore.  */
-      gcc_assert (TREE_CODE (t) != STATEMENT_LIST
-		  && TREE_CODE (t) != COMPOUND_EXPR);
-
-      tree_annotate_one_with_location (t, location);
     }
 }
 
@@ -4765,13 +4715,14 @@ gimplify_asm_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p)
   VEC(tree, gc) *inputs;
   VEC(tree, gc) *outputs;
   VEC(tree, gc) *clobbers;
+  VEC(tree, gc) *labels;
   tree link_next;
   
   expr = *expr_p;
   noutputs = list_length (ASM_OUTPUTS (expr));
   oconstraints = (const char **) alloca ((noutputs) * sizeof (const char *));
 
-  inputs = outputs = clobbers = NULL;
+  inputs = outputs = clobbers = labels = NULL;
 
   ret = GS_ALL_DONE;
   link_next = NULL_TREE;
@@ -4953,13 +4904,16 @@ gimplify_asm_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p)
     }
   
   for (link = ASM_CLOBBERS (expr); link; ++i, link = TREE_CHAIN (link))
-      VEC_safe_push (tree, gc, clobbers, link);
+    VEC_safe_push (tree, gc, clobbers, link);
+
+  for (link = ASM_LABELS (expr); link; ++i, link = TREE_CHAIN (link))
+    VEC_safe_push (tree, gc, labels, link);
 
   /* Do not add ASMs with errors to the gimple IL stream.  */
   if (ret != GS_ERROR)
     {
       stmt = gimple_build_asm_vec (TREE_STRING_POINTER (ASM_STRING (expr)),
-				   inputs, outputs, clobbers);
+				   inputs, outputs, clobbers, labels);
 
       gimple_asm_set_volatile (stmt, ASM_VOLATILE_P (expr));
       gimple_asm_set_input (stmt, ASM_INPUT_P (expr));
@@ -6277,6 +6231,8 @@ gimplify_omp_atomic (tree *expr_p, gimple_seq *pre_p)
   tree tmp_load;
 
    tmp_load = create_tmp_var (type, NULL);
+   if (TREE_CODE (type) == COMPLEX_TYPE || TREE_CODE (type) == VECTOR_TYPE)
+     DECL_GIMPLE_REG_P (tmp_load) = 1;
    if (goa_stabilize_expr (&rhs, pre_p, addr, tmp_load) < 0)
      return GS_ERROR;
 
@@ -6645,11 +6601,6 @@ gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 	  ret = gimplify_decl_expr (expr_p, pre_p);
 	  break;
 
-	case EXC_PTR_EXPR:
-	  /* FIXME make this a decl.  */
-	  ret = GS_ALL_DONE;
-	  break;
-
 	case BIND_EXPR:
 	  ret = gimplify_bind_expr (expr_p, pre_p);
 	  break;
@@ -6841,8 +6792,6 @@ gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 	    gimplify_and_add (EH_FILTER_FAILURE (*expr_p), &failure);
 	    ehf = gimple_build_eh_filter (EH_FILTER_TYPES (*expr_p), failure);
 	    gimple_set_no_warning (ehf, TREE_NO_WARNING (*expr_p));
-	    gimple_eh_filter_set_must_not_throw
-	      (ehf, EH_FILTER_MUST_NOT_THROW (*expr_p));
 	    gimplify_seq_add_stmt (pre_p, ehf);
 	    ret = GS_ALL_DONE;
 	    break;
@@ -7178,7 +7127,6 @@ gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 		  && code != GOTO_EXPR
 		  && code != LABEL_EXPR
 		  && code != LOOP_EXPR
-		  && code != RESX_EXPR
 		  && code != SWITCH_EXPR
 		  && code != TRY_FINALLY_EXPR
 		  && code != OMP_CRITICAL

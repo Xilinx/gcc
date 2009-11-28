@@ -531,7 +531,9 @@ execute_cse_reciprocals (void)
 		      || DECL_BUILT_IN_CLASS (fndecl) == BUILT_IN_MD))
 		{
 		  enum built_in_function code;
-		  bool md_code;
+		  bool md_code, fail;
+		  imm_use_iterator ui;
+		  use_operand_p use_p;
 
 		  code = DECL_FUNCTION_CODE (fndecl);
 		  md_code = DECL_BUILT_IN_CLASS (fndecl) == BUILT_IN_MD;
@@ -540,12 +542,37 @@ execute_cse_reciprocals (void)
 		  if (!fndecl)
 		    continue;
 
+		  /* Check that all uses of the SSA name are divisions,
+		     otherwise replacing the defining statement will do
+		     the wrong thing.  */
+		  fail = false;
+		  FOR_EACH_IMM_USE_FAST (use_p, ui, arg1)
+		    {
+		      gimple stmt2 = USE_STMT (use_p);
+		      if (is_gimple_debug (stmt2))
+			continue;
+		      if (!is_gimple_assign (stmt2)
+			  || gimple_assign_rhs_code (stmt2) != RDIV_EXPR
+			  || gimple_assign_rhs1 (stmt2) == arg1
+			  || gimple_assign_rhs2 (stmt2) != arg1)
+			{
+			  fail = true;
+			  break;
+			}
+		    }
+		  if (fail)
+		    continue;
+
+		  gimple_replace_lhs (stmt1, arg1);
 		  gimple_call_set_fndecl (stmt1, fndecl);
 		  update_stmt (stmt1);
 
-		  gimple_assign_set_rhs_code (stmt, MULT_EXPR);
-		  fold_stmt_inplace (stmt);
-		  update_stmt (stmt);
+		  FOR_EACH_IMM_USE_STMT (stmt, ui, arg1)
+		    {
+		      gimple_assign_set_rhs_code (stmt, MULT_EXPR);
+		      fold_stmt_inplace (stmt);
+		      update_stmt (stmt);
+		    }
 		}
 	    }
 	}
@@ -778,98 +805,6 @@ struct gimple_opt_pass pass_cse_sincos =
   "sincos",				/* name */
   gate_cse_sincos,			/* gate */
   execute_cse_sincos,			/* execute */
-  NULL,					/* sub */
-  NULL,					/* next */
-  0,					/* static_pass_number */
-  TV_NONE,				/* tv_id */
-  PROP_ssa,				/* properties_required */
-  0,					/* properties_provided */
-  0,					/* properties_destroyed */
-  0,					/* todo_flags_start */
-  TODO_dump_func | TODO_update_ssa | TODO_verify_ssa
-    | TODO_verify_stmts                 /* todo_flags_finish */
- }
-};
-
-/* Find all expressions in the form of sqrt(a/b) and
-   convert them to rsqrt(b/a).  */
-
-static unsigned int
-execute_convert_to_rsqrt (void)
-{
-  basic_block bb;
-
-  FOR_EACH_BB (bb)
-    {
-      gimple_stmt_iterator gsi;
-
-      for (gsi = gsi_after_labels (bb); !gsi_end_p (gsi); gsi_next (&gsi))
-        {
-	  gimple stmt = gsi_stmt (gsi);
-	  tree fndecl;
-
-	  if (is_gimple_call (stmt)
-	      && gimple_call_lhs (stmt)
-	      && (fndecl = gimple_call_fndecl (stmt))
-	      && (DECL_BUILT_IN_CLASS (fndecl) == BUILT_IN_NORMAL
-		  || DECL_BUILT_IN_CLASS (fndecl) == BUILT_IN_MD))
-	    {
-	      enum built_in_function code;
-	      bool md_code;
-	      tree arg1;
-	      gimple stmt1;
-
-	      code = DECL_FUNCTION_CODE (fndecl);
-	      md_code = DECL_BUILT_IN_CLASS (fndecl) == BUILT_IN_MD;
-
-	      fndecl = targetm.builtin_reciprocal (code, md_code, true);
-	      if (!fndecl)
-		continue;
-
-	      arg1 = gimple_call_arg (stmt, 0);
-
-	      if (TREE_CODE (arg1) != SSA_NAME)
-		continue;
-
-	      stmt1 = SSA_NAME_DEF_STMT (arg1);
-
-	      if (is_gimple_assign (stmt1)
-		  && gimple_assign_rhs_code (stmt1) == RDIV_EXPR)
-		{
-		  tree arg10, arg11;
-
-		  arg10 = gimple_assign_rhs1 (stmt1);
-		  arg11 = gimple_assign_rhs2 (stmt1);
-
-		  /* Swap operands of RDIV_EXPR.  */
-		  gimple_assign_set_rhs1 (stmt1, arg11);
-		  gimple_assign_set_rhs2 (stmt1, arg10);
-		  fold_stmt_inplace (stmt1);
-		  update_stmt (stmt1);
-
-		  gimple_call_set_fndecl (stmt, fndecl);
-		  update_stmt (stmt);
-		}
-	    }
-	}
-    }
-
-  return 0;
-}
-
-static bool
-gate_convert_to_rsqrt (void)
-{
-  return flag_unsafe_math_optimizations && optimize;
-}
-
-struct gimple_opt_pass pass_convert_to_rsqrt =
-{
- {
-  GIMPLE_PASS,
-  "rsqrt",				/* name */
-  gate_convert_to_rsqrt,		/* gate */
-  execute_convert_to_rsqrt,		/* execute */
   NULL,					/* sub */
   NULL,					/* next */
   0,					/* static_pass_number */

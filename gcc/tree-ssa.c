@@ -279,7 +279,7 @@ find_released_ssa_name (tree *tp, int *walk_subtrees, void *data_)
 {
   struct walk_stmt_info *wi = (struct walk_stmt_info *) data_;
 
-  if (wi->is_lhs)
+  if (wi && wi->is_lhs)
     return NULL_TREE;
 
   if (TREE_CODE (*tp) == SSA_NAME)
@@ -295,153 +295,273 @@ find_released_ssa_name (tree *tp, int *walk_subtrees, void *data_)
   return NULL_TREE;
 }
 
-/* Given a VAR whose definition STMT is to be moved to the iterator
-   position TOGSIP in the TOBB basic block, verify whether we're
-   moving it across any of the debug statements that use it, and
-   adjust them as needed.  If TOBB is NULL, then the definition is
-   understood as being removed, and TOGSIP is unused.  */
+/* Insert a DEBUG BIND stmt before the DEF of VAR if VAR is referenced
+   by other DEBUG stmts, and replace uses of the DEF with the
+   newly-created debug temp.  */
+
 void
-propagate_var_def_into_debug_stmts (tree var,
-				    basic_block tobb,
-				    const gimple_stmt_iterator *togsip)
+insert_debug_temp_for_var_def (gimple_stmt_iterator *gsi, tree var)
 {
   imm_use_iterator imm_iter;
-  gimple stmt;
   use_operand_p use_p;
+  gimple stmt;
+  gimple def_stmt = NULL;
+  int usecount = 0;
   tree value = NULL;
-  bool no_value = false;
 
   if (!MAY_HAVE_DEBUG_STMTS)
     return;
 
-  FOR_EACH_IMM_USE_STMT (stmt, imm_iter, var)
+  /* First of all, check whether there are debug stmts that reference
+     this variable and, if there are, decide whether we should use a
+     debug temp.  */
+  FOR_EACH_IMM_USE_FAST (use_p, imm_iter, var)
     {
-      basic_block bb;
-      gimple_stmt_iterator si;
+      stmt = USE_STMT (use_p);
 
-      if (!is_gimple_debug (stmt))
+      if (!gimple_debug_bind_p (stmt))
 	continue;
 
-      if (tobb)
+      if (usecount++)
+	break;
+
+      if (gimple_debug_bind_get_value (stmt) != var)
 	{
-	  bb = gimple_bb (stmt);
-
-	  if (bb != tobb)
-	    {
-	      gcc_assert (dom_info_available_p (CDI_DOMINATORS));
-	      if (dominated_by_p (CDI_DOMINATORS, bb, tobb))
-		continue;
-	    }
-	  else
-	    {
-	      si = *togsip;
-
-	      if (gsi_end_p (si))
-		continue;
-
-	      do
-		{
-		  gsi_prev (&si);
-		  if (gsi_end_p (si))
-		    break;
-		}
-	      while (gsi_stmt (si) != stmt);
-
-	      if (gsi_end_p (si))
-		continue;
-	    }
+	  /* Count this as an additional use, so as to make sure we
+	     use a temp unless VAR's definition has a SINGLE_RHS that
+	     can be shared.  */
+	  usecount++;
+	  break;
 	}
+    }
 
-      /* Here we compute (lazily) the value assigned to VAR, but we
-	 remember if we tried before and failed, so that we don't try
-	 again.  */
-      if (!value && !no_value)
+  if (!usecount)
+    return;
+
+  if (gsi)
+    def_stmt = gsi_stmt (*gsi);
+  else
+    def_stmt = SSA_NAME_DEF_STMT (var);
+
+  /* If we didn't get an insertion point, and the stmt has already
+     been removed, we won't be able to insert the debug bind stmt, so
+     we'll have to drop debug information.  */
+  if (gimple_code (def_stmt) == GIMPLE_PHI)
+    {
+      value = degenerate_phi_result (def_stmt);
+      if (value && walk_tree (&value, find_released_ssa_name, NULL, NULL))
+	value = NULL;
+    }
+  else if (is_gimple_assign (def_stmt))
+    {
+      bool no_value = false;
+
+      if (!dom_info_available_p (CDI_DOMINATORS))
 	{
-	  gimple def_stmt = SSA_NAME_DEF_STMT (var);
+	  struct walk_stmt_info wi;
 
-	  if (is_gimple_assign (def_stmt))
-	    {
-	      if (!dom_info_available_p (CDI_DOMINATORS))
-		{
-		  struct walk_stmt_info wi;
+	  memset (&wi, 0, sizeof (wi));
 
-		  memset (&wi, 0, sizeof (wi));
+	  /* When removing blocks without following reverse dominance
+	     order, we may sometimes encounter SSA_NAMEs that have
+	     already been released, referenced in other SSA_DEFs that
+	     we're about to release.  Consider:
 
-		  /* When removing blocks without following reverse
-		     dominance order, we may sometimes encounter SSA_NAMEs
-		     that have already been released, referenced in other
-		     SSA_DEFs that we're about to release.  Consider:
+	     <bb X>:
+	     v_1 = foo;
 
-		     <bb X>:
-		     v_1 = foo;
+	     <bb Y>:
+	     w_2 = v_1 + bar;
+	     # DEBUG w => w_2
 
-		     <bb Y>:
-		     w_2 = v_1 + bar;
-		     # DEBUG w => w_2
+	     If we deleted BB X first, propagating the value of w_2
+	     won't do us any good.  It's too late to recover their
+	     original definition of v_1: when it was deleted, it was
+	     only referenced in other DEFs, it couldn't possibly know
+	     it should have been retained, and propagating every
+	     single DEF just in case it might have to be propagated
+	     into a DEBUG STMT would probably be too wasteful.
 
-		     If we deleted BB X first, propagating the value of
-		     w_2 won't do us any good.  It's too late to recover
-		     their original definition of v_1: when it was
-		     deleted, it was only referenced in other DEFs, it
-		     couldn't possibly know it should have been retained,
-		     and propagating every single DEF just in case it
-		     might have to be propagated into a DEBUG STMT would
-		     probably be too wasteful.
-
-		     When dominator information is not readily
-		     available, we check for and accept some loss of
-		     debug information.  But if it is available,
-		     there's no excuse for us to remove blocks in the
-		     wrong order, so we don't even check for dead SSA
-		     NAMEs.  SSA verification shall catch any
-		     errors.  */
-		  if (!walk_gimple_op (def_stmt, find_released_ssa_name, &wi))
-		    no_value = true;
-		}
-
-	      if (!no_value)
-		value = gimple_assign_rhs_to_tree (def_stmt);
-	    }
-
-	  if (!value)
+	     When dominator information is not readily available, we
+	     check for and accept some loss of debug information.  But
+	     if it is available, there's no excuse for us to remove
+	     blocks in the wrong order, so we don't even check for
+	     dead SSA NAMEs.  SSA verification shall catch any
+	     errors.  */
+	  if ((!gsi && !gimple_bb (def_stmt))
+	      || walk_gimple_op (def_stmt, find_released_ssa_name, &wi))
 	    no_value = true;
 	}
 
-      if (no_value)
-	gimple_debug_bind_reset_value (stmt);
+      if (!no_value)
+	value = gimple_assign_rhs_to_tree (def_stmt);
+    }
+
+  if (value)
+    {
+      /* If there's a single use of VAR, and VAR is the entire debug
+	 expression (usecount would have been incremented again
+	 otherwise), and the definition involves only constants and
+	 SSA names, then we can propagate VALUE into this single use,
+	 avoiding the temp.
+
+	 We can also avoid using a temp if VALUE can be shared and
+	 propagated into all uses, without generating expressions that
+	 wouldn't be valid gimple RHSs.
+
+	 Other cases that would require unsharing or non-gimple RHSs
+	 are deferred to a debug temp, although we could avoid temps
+	 at the expense of duplication of expressions.  */
+
+      if (CONSTANT_CLASS_P (value)
+	  || gimple_code (def_stmt) == GIMPLE_PHI
+	  || (usecount == 1
+	      && (!gimple_assign_single_p (def_stmt)
+		  || is_gimple_min_invariant (value)))
+	  || is_gimple_reg (value))
+	value = unshare_expr (value);
       else
+	{
+	  gimple def_temp;
+	  tree vexpr = make_node (DEBUG_EXPR_DECL);
+
+	  def_temp = gimple_build_debug_bind (vexpr,
+					      unshare_expr (value),
+					      def_stmt);
+
+	  DECL_ARTIFICIAL (vexpr) = 1;
+	  TREE_TYPE (vexpr) = TREE_TYPE (value);
+	  if (DECL_P (value))
+	    DECL_MODE (vexpr) = DECL_MODE (value);
+	  else
+	    DECL_MODE (vexpr) = TYPE_MODE (TREE_TYPE (value));
+
+	  if (gsi)
+	    gsi_insert_before (gsi, def_temp, GSI_SAME_STMT);
+	  else
+	    {
+	      gimple_stmt_iterator ngsi = gsi_for_stmt (def_stmt);
+	      gsi_insert_before (&ngsi, def_temp, GSI_SAME_STMT);
+	    }
+
+	  value = vexpr;
+	}
+    }
+
+  FOR_EACH_IMM_USE_STMT (stmt, imm_iter, var)
+    {
+      if (!gimple_debug_bind_p (stmt))
+	continue;
+
+      if (value)
 	FOR_EACH_IMM_USE_ON_STMT (use_p, imm_iter)
-	  SET_USE (use_p, unshare_expr (value));
+	  /* unshare_expr is not needed here.  vexpr is either a
+	     SINGLE_RHS, that can be safely shared, some other RHS
+	     that was unshared when we found it had a single debug
+	     use, or a DEBUG_EXPR_DECL, that can be safely
+	     shared.  */
+	  SET_USE (use_p, value);
+      else
+	gimple_debug_bind_reset_value (stmt);
 
       update_stmt (stmt);
     }
 }
 
 
-/* Given a STMT to be moved to the iterator position TOBSIP in the
-   TOBB basic block, verify whether we're moving it across any of the
-   debug statements that use it.  If TOBB is NULL, then the definition
-   is understood as being removed, and TOBSIP is unused.  */
+/* Insert a DEBUG BIND stmt before STMT for each DEF referenced by
+   other DEBUG stmts, and replace uses of the DEF with the
+   newly-created debug temp.  */
 
 void
-propagate_defs_into_debug_stmts (gimple def, basic_block tobb,
-				 const gimple_stmt_iterator *togsip)
+insert_debug_temps_for_defs (gimple_stmt_iterator *gsi)
 {
+  gimple stmt;
   ssa_op_iter op_iter;
   def_operand_p def_p;
 
   if (!MAY_HAVE_DEBUG_STMTS)
     return;
 
-  FOR_EACH_SSA_DEF_OPERAND (def_p, def, op_iter, SSA_OP_DEF)
+  stmt = gsi_stmt (*gsi);
+
+  FOR_EACH_PHI_OR_STMT_DEF (def_p, stmt, op_iter, SSA_OP_DEF)
     {
       tree var = DEF_FROM_PTR (def_p);
 
       if (TREE_CODE (var) != SSA_NAME)
 	continue;
 
-      propagate_var_def_into_debug_stmts (var, tobb, togsip);
+      insert_debug_temp_for_var_def (gsi, var);
     }
+}
+
+/* Delete SSA DEFs for SSA versions in the TOREMOVE bitmap, removing
+   dominated stmts before their dominators, so that release_ssa_defs
+   stands a chance of propagating DEFs into debug bind stmts.  */
+
+void
+release_defs_bitset (bitmap toremove)
+{
+  unsigned j;
+  bitmap_iterator bi;
+
+  /* Performing a topological sort is probably overkill, this will
+     most likely run in slightly superlinear time, rather than the
+     pathological quadratic worst case.  */
+  while (!bitmap_empty_p (toremove))
+    EXECUTE_IF_SET_IN_BITMAP (toremove, 0, j, bi)
+      {
+	bool remove_now = true;
+	tree var = ssa_name (j);
+	gimple stmt;
+	imm_use_iterator uit;
+
+	FOR_EACH_IMM_USE_STMT (stmt, uit, var)
+	  {
+	    ssa_op_iter dit;
+	    def_operand_p def_p;
+
+	    /* We can't propagate PHI nodes into debug stmts.  */
+	    if (gimple_code (stmt) == GIMPLE_PHI
+		|| is_gimple_debug (stmt))
+	      continue;
+
+	    /* If we find another definition to remove that uses
+	       the one we're looking at, defer the removal of this
+	       one, so that it can be propagated into debug stmts
+	       after the other is.  */
+	    FOR_EACH_SSA_DEF_OPERAND (def_p, stmt, dit, SSA_OP_DEF)
+	      {
+		tree odef = DEF_FROM_PTR (def_p);
+
+		if (bitmap_bit_p (toremove, SSA_NAME_VERSION (odef)))
+		  {
+		    remove_now = false;
+		    break;
+		  }
+	      }
+
+	    if (!remove_now)
+	      BREAK_FROM_IMM_USE_STMT (uit);
+	  }
+
+	if (remove_now)
+	  {
+	    gimple def = SSA_NAME_DEF_STMT (var);
+	    gimple_stmt_iterator gsi = gsi_for_stmt (def);
+
+	    if (gimple_code (def) == GIMPLE_PHI)
+	      remove_phi_node (&gsi, true);
+	    else
+	      {
+		gsi_remove (&gsi, true);
+		release_defs (def);
+	      }
+
+	    bitmap_clear_bit (toremove, j);
+	  }
+      }
 }
 
 /* Return true if SSA_NAME is malformed and mark it visited.
@@ -1078,15 +1198,15 @@ useless_type_conversion_p (tree outer_type, tree inner_type)
   if (POINTER_TYPE_P (inner_type)
       && POINTER_TYPE_P (outer_type))
     {
+      /* Do not lose casts between pointers to different address spaces.  */
+      if (TYPE_ADDR_SPACE (TREE_TYPE (outer_type))
+	  != TYPE_ADDR_SPACE (TREE_TYPE (inner_type)))
+	return false;
+
       /* If the outer type is (void *) or a pointer to an incomplete
 	 record type or a pointer to an unprototyped function,
 	 then the conversion is not necessary.  */
       if (VOID_TYPE_P (TREE_TYPE (outer_type))
-	  || (AGGREGATE_TYPE_P (TREE_TYPE (outer_type))
-	      && TREE_CODE (TREE_TYPE (outer_type)) != ARRAY_TYPE
-	      && (TREE_CODE (TREE_TYPE (outer_type))
-		  == TREE_CODE (TREE_TYPE (inner_type)))
-	      && !COMPLETE_TYPE_P (TREE_TYPE (outer_type)))
 	  || ((TREE_CODE (TREE_TYPE (outer_type)) == FUNCTION_TYPE
 	       || TREE_CODE (TREE_TYPE (outer_type)) == METHOD_TYPE)
 	      && (TREE_CODE (TREE_TYPE (outer_type))
@@ -1289,7 +1409,8 @@ useless_type_conversion_p (tree outer_type, tree inner_type)
       if (!TYPE_ARG_TYPES (outer_type))
 	return true;
 
-      /* If the argument types are compatible the conversion is useless.  */
+      /* If the unqualified argument types are compatible the conversion
+	 is useless.  */
       if (TYPE_ARG_TYPES (outer_type) == TYPE_ARG_TYPES (inner_type))
 	return true;
 
@@ -1298,8 +1419,9 @@ useless_type_conversion_p (tree outer_type, tree inner_type)
 	   outer_parm && inner_parm;
 	   outer_parm = TREE_CHAIN (outer_parm),
 	   inner_parm = TREE_CHAIN (inner_parm))
-	if (!useless_type_conversion_p (TREE_VALUE (outer_parm),
-					TREE_VALUE (inner_parm)))
+	if (!useless_type_conversion_p
+	       (TYPE_MAIN_VARIANT (TREE_VALUE (outer_parm)),
+		TYPE_MAIN_VARIANT (TREE_VALUE (inner_parm))))
 	  return false;
 
       /* If there is a mismatch in the number of arguments the functions
@@ -1740,7 +1862,7 @@ struct gimple_opt_pass pass_early_warn_uninitialized =
 {
  {
   GIMPLE_PASS,
-  NULL,					/* name */
+  "*early_warn_uninitialized",		/* name */
   gate_warn_uninitialized,		/* gate */
   execute_early_warn_uninitialized,	/* execute */
   NULL,					/* sub */
@@ -1759,7 +1881,7 @@ struct gimple_opt_pass pass_late_warn_uninitialized =
 {
  {
   GIMPLE_PASS,
-  NULL,					/* name */
+  "*late_warn_uninitialized",		/* name */
   gate_warn_uninitialized,		/* gate */
   execute_late_warn_uninitialized,	/* execute */
   NULL,					/* sub */
@@ -1893,7 +2015,8 @@ execute_update_addresses_taken (bool do_optimize)
 	    {
 	      gimple stmt = gsi_stmt (gsi);
 
-	      if (gimple_references_memory_p (stmt))
+	      if (gimple_references_memory_p (stmt)
+		  || is_gimple_debug (stmt))
 		update_stmt (stmt);
 	    }
 

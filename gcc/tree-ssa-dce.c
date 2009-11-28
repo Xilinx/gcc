@@ -322,19 +322,16 @@ mark_stmt_if_obviously_necessary (gimple stmt, bool aggressive)
     case GIMPLE_ASSIGN:
       if (!lhs)
         lhs = gimple_assign_lhs (stmt);
-      /* These values are mildly magic bits of the EH runtime.  We can't
-	 see the entire lifetime of these values until landing pads are
-	 generated.  */
-      if (TREE_CODE (lhs) == EXC_PTR_EXPR
-	  || TREE_CODE (lhs) == FILTER_EXPR)
-	{
-	  mark_stmt_necessary (stmt, true);
-	  return;
-	}
       break;
 
     case GIMPLE_DEBUG:
-      mark_stmt_necessary (stmt, false);
+      /* Debug temps without a value are not useful.  ??? If we could
+	 easily locate the debug temp bind stmt for a use thereof,
+	 would could refrain from marking all debug temps here, and
+	 mark them only if they're used.  */
+      if (gimple_debug_bind_has_value_p (stmt)
+	  || TREE_CODE (gimple_debug_bind_get_var (stmt)) != DEBUG_EXPR_DECL)
+	mark_stmt_necessary (stmt, false);
       return;
 
     case GIMPLE_GOTO:
@@ -817,28 +814,33 @@ propagate_necessity (struct edge_list *el)
 /* Replace all uses of result of PHI by underlying variable and mark it
    for renaming.  */
 
-static void
+void
 mark_virtual_phi_result_for_renaming (gimple phi)
 {
   bool used = false;
   imm_use_iterator iter;
   use_operand_p use_p;
   gimple stmt;
+  tree result_ssa, result_var;
+
   if (dump_file && (dump_flags & TDF_DETAILS))
     {
       fprintf (dump_file, "Marking result for renaming : ");
       print_gimple_stmt (dump_file, phi, 0, TDF_SLIM);
       fprintf (dump_file, "\n");
     }
-  FOR_EACH_IMM_USE_STMT (stmt, iter, gimple_phi_result (phi))
+
+  result_ssa = gimple_phi_result (phi);
+  result_var = SSA_NAME_VAR (result_ssa);
+  FOR_EACH_IMM_USE_STMT (stmt, iter, result_ssa)
     {
       FOR_EACH_IMM_USE_ON_STMT (use_p, iter)
-        SET_USE (use_p, SSA_NAME_VAR (gimple_phi_result (phi)));
+        SET_USE (use_p, result_var);
       update_stmt (stmt);
       used = true;
     }
   if (used)
-    mark_sym_for_renaming (SSA_NAME_VAR (PHI_RESULT (phi)));
+    mark_sym_for_renaming (result_var);
 }
 
 /* Remove dead PHI nodes from block BB.  */
@@ -1075,7 +1077,7 @@ eliminate_unnecessary_stmts (void)
 {
   bool something_changed = false;
   basic_block bb;
-  gimple_stmt_iterator gsi;
+  gimple_stmt_iterator gsi, psi;
   gimple stmt;
   tree call;
   VEC (basic_block, heap) *h;
@@ -1115,25 +1117,21 @@ eliminate_unnecessary_stmts (void)
       bb = VEC_pop (basic_block, h);
 
       /* Remove dead statements.  */
-      for (gsi = gsi_last_bb (bb); !gsi_end_p (gsi);)
+      for (gsi = gsi_last_bb (bb); !gsi_end_p (gsi); gsi = psi)
 	{
 	  stmt = gsi_stmt (gsi);
+
+	  psi = gsi;
+	  gsi_prev (&psi);
 
 	  stats.total++;
 
 	  /* If GSI is not necessary then remove it.  */
 	  if (!gimple_plf (stmt, STMT_NECESSARY))
 	    {
+	      if (!is_gimple_debug (stmt))
+		something_changed = true;
 	      remove_dead_stmt (&gsi, bb);
-	      something_changed = true;
-
-	      /* If stmt was the last stmt in the block, we want to
-		 move gsi to the stmt that became the last stmt, but
-		 gsi_prev would crash.  */
-	      if (gsi_end_p (gsi))
-		gsi = gsi_last_bb (bb);
-	      else
-		gsi_prev (&gsi);
 	    }
 	  else if (is_gimple_call (stmt))
 	    {
@@ -1163,10 +1161,7 @@ eliminate_unnecessary_stmts (void)
 		    }
 		  notice_special_calls (stmt);
 		}
-	      gsi_prev (&gsi);
 	    }
-	  else
-	    gsi_prev (&gsi);
 	}
     }
 

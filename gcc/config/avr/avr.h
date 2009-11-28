@@ -367,8 +367,7 @@ enum reg_class {
 #define INITIAL_ELIMINATION_OFFSET(FROM, TO, OFFSET)			\
   OFFSET = avr_initial_elimination_offset (FROM, TO)
 
-#define RETURN_ADDR_RTX(count, x) \
-  gen_rtx_MEM (Pmode, memory_address (Pmode, plus_constant (tem, 1)))
+#define RETURN_ADDR_RTX(count, tem) avr_return_addr_rtx (count, tem)
 
 /* Don't use Push rounding. expr.c: emit_single_push_insn is broken 
    for POST_DEC targets (PR27386).  */
@@ -405,8 +404,6 @@ extern int avr_reg_order[];
 
 #define HAVE_POST_INCREMENT 1
 #define HAVE_PRE_DECREMENT 1
-
-#define CONSTANT_ADDRESS_P(X) CONSTANT_P (X)
 
 #define MAX_REGS_PER_ADDRESS 1
 
@@ -722,16 +719,8 @@ fprintf (STREAM, "\t.skip %lu,0\n", (unsigned long)(N))
 
 #define NO_DOLLAR_IN_LABEL 1
 
-#define TRAMPOLINE_TEMPLATE(FILE) \
-  internal_error ("trampolines not supported")
-
 #define TRAMPOLINE_SIZE 4
 
-#define INITIALIZE_TRAMPOLINE(TRAMP, FNADDR, CXT)			      \
-{									      \
-  emit_move_insn (gen_rtx_MEM (HImode, plus_constant ((TRAMP), 2)), CXT);    \
-  emit_move_insn (gen_rtx_MEM (HImode, plus_constant ((TRAMP), 6)), FNADDR); \
-}
 /* Store in cc_status the expressions
    that the condition codes will describe
    after execution of an instruction whose pattern is EXP.
@@ -849,9 +838,6 @@ mmcu=*:-mmcu=%*}"
    This is added to the cfun structure.  */
 struct GTY(()) machine_function
 {
-  /* 'true' - if the current function is a leaf function.  */
-  int is_leaf;
-
   /* 'true' - if current function is a naked function.  */
   int is_naked;
 
@@ -870,4 +856,7 @@ struct GTY(()) machine_function
   /* 'true' - if current function is a 'main' function 
      as specified by the "OS_main" attribute.  */
   int is_OS_main;
+  
+  /* Current function stack size.  */
+  int stack_usage;
 };

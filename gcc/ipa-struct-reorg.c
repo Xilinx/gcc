@@ -258,15 +258,21 @@ find_field_in_struct_1 (tree str_type, tree field)
 {
   tree str_field;
 
+  if (!DECL_NAME (field))
+    return NULL;
+
   for (str_field = TYPE_FIELDS (str_type); str_field; 
        str_field = TREE_CHAIN (str_field))
     {
-      const char * str_field_name;
-      const char * field_name;
+      const char *str_field_name;
+      const char *field_name;
+
+      if (!DECL_NAME (str_field))
+	continue;
 
       str_field_name = IDENTIFIER_POINTER (DECL_NAME (str_field));
       field_name = IDENTIFIER_POINTER (DECL_NAME (field));
-      
+
       gcc_assert (str_field_name);
       gcc_assert (field_name);
 
@@ -274,7 +280,7 @@ find_field_in_struct_1 (tree str_type, tree field)
 	{
 	  /* Check field types.  */	  
 	  if (is_equal_types (TREE_TYPE (str_field), TREE_TYPE (field)))
-	      return str_field;
+	    return str_field;
 	}
     }
 
@@ -862,6 +868,7 @@ struct ref_pos
 {
   tree *pos;
   tree ref;
+  tree container;
 };
 
 
@@ -884,6 +891,7 @@ find_pos_in_stmt_1 (tree *tp, int *walk_subtrees, void * data)
       return t;
     }
 
+  r_pos->container = t;
   *walk_subtrees = 1;      
   return NULL_TREE;
 }
@@ -893,18 +901,18 @@ find_pos_in_stmt_1 (tree *tp, int *walk_subtrees, void * data)
    It returns it, if found, and NULL otherwise.  */
 
 static tree *
-find_pos_in_stmt (gimple stmt, tree ref)
+find_pos_in_stmt (gimple stmt, tree ref, struct ref_pos * r_pos)
 {
-  struct ref_pos r_pos;
   struct walk_stmt_info wi;
 
-  r_pos.ref = ref;
-  r_pos.pos = NULL;
+  r_pos->ref = ref;
+  r_pos->pos = NULL;
+  r_pos->container = NULL_TREE;
   memset (&wi, 0, sizeof (wi));
-  wi.info = &r_pos;
+  wi.info = r_pos;
   walk_gimple_op (stmt, find_pos_in_stmt_1, &wi);
 
-  return r_pos.pos;
+  return r_pos->pos;
 }
 
 /* This structure is used to represent array 
@@ -942,6 +950,7 @@ replace_field_acc (struct field_access_site *acc, tree new_type)
   tree field_id = DECL_NAME (acc->field_decl);
   VEC (type_wrapper_t, heap) *wrapper = VEC_alloc (type_wrapper_t, heap, 10);
   type_wrapper_t *wr_p = NULL;
+  struct ref_pos r_pos;
   
   while (TREE_CODE (ref_var) == INDIRECT_REF
 	 || TREE_CODE (ref_var) == ARRAY_REF)
@@ -993,14 +1002,14 @@ replace_field_acc (struct field_access_site *acc, tree new_type)
 	gimple_assign_set_rhs1 (acc->stmt, new_acc);
       else
 	{
-	  pos = find_pos_in_stmt (acc->stmt, acc->comp_ref);
+	  pos = find_pos_in_stmt (acc->stmt, acc->comp_ref, &r_pos);
 	  gcc_assert (pos);
 	  *pos = new_acc;
 	}
     }
   else
     {
-      pos = find_pos_in_stmt (acc->stmt, acc->comp_ref);
+      pos = find_pos_in_stmt (acc->stmt, acc->comp_ref, &r_pos);
       gcc_assert (pos);
       *pos = new_acc;
     }
@@ -1238,6 +1247,35 @@ create_new_stmts_for_cond_expr (gimple stmt)
     }
 }
 
+/* This function looks for VAR in STMT, and replace it with NEW_VAR.
+   If needed, it wraps NEW_VAR in pointers and indirect references 
+   before insertion.  */
+
+static void
+insert_new_var_in_stmt (gimple stmt, tree var, tree new_var)
+{
+  struct ref_pos r_pos;
+  tree *pos;
+
+  pos = find_pos_in_stmt (stmt, var, &r_pos);
+  gcc_assert (pos);
+
+  while (r_pos.container && (TREE_CODE(r_pos.container) == INDIRECT_REF
+			     || TREE_CODE(r_pos.container) == ADDR_EXPR))
+    {
+      tree type = TREE_TYPE (TREE_TYPE (new_var));
+
+      if (TREE_CODE(r_pos.container) == INDIRECT_REF)		    
+	new_var = build1 (INDIRECT_REF, type, new_var);
+      else
+	new_var = build_fold_addr_expr (new_var);
+      pos = find_pos_in_stmt (stmt, r_pos.container, &r_pos);
+    }
+	      
+  *pos = new_var;
+}
+
+
 /* Create a new general access to replace original access ACC
    for structure type NEW_TYPE.  */
 
@@ -1258,7 +1296,6 @@ create_general_new_stmt (struct access_site *acc, tree new_type)
 
   for (i = 0; VEC_iterate (tree, acc->vars, i, var); i++)
     {
-      tree *pos;
       tree new_var = find_new_var_of_type (var, new_type);
       tree lhs, rhs = NULL_TREE;
 
@@ -1290,20 +1327,10 @@ create_general_new_stmt (struct access_site *acc, tree new_type)
 	  else if (rhs == var)
 	    gimple_assign_set_rhs1 (new_stmt, new_var);
 	  else
-	    {
-	      pos = find_pos_in_stmt (new_stmt, var);
-	      gcc_assert (pos);
-	      /* ???  This misses adjustments to the type of the
-	         INDIRECT_REF we possibly replace the operand of.  */
-	      *pos = new_var;
-	    }      
+	    insert_new_var_in_stmt (new_stmt, var, new_var);
 	}
       else
-	{
-	  pos = find_pos_in_stmt (new_stmt, var);
-	  gcc_assert (pos);
-	  *pos = new_var;
-	}
+	insert_new_var_in_stmt (new_stmt, var, new_var);
     }
 
   finalize_stmt (new_stmt);
@@ -1684,7 +1711,10 @@ update_cgraph_with_malloc_call (gimple malloc_stmt, tree context)
   src = cgraph_node (context);
   dest = cgraph_node (malloc_fn_decl);
   cgraph_create_edge (src, dest, malloc_stmt, 
-		      0, 0, gimple_bb (malloc_stmt)->loop_depth);
+		      gimple_bb (malloc_stmt)->count,
+		      compute_call_stmt_bb_frequency
+		        (context, gimple_bb (malloc_stmt)),
+		      gimple_bb (malloc_stmt)->loop_depth);
 }
 
 /* This function generates set of statements required 
@@ -3373,6 +3403,14 @@ build_data_structure (VEC (tree, heap) **unsuitable_types)
 	       var = TREE_CHAIN (var))
 	      if (is_candidate (var, &type, unsuitable_types))
 		add_structure (type);
+
+	  if (fn == NULL)
+	    {
+	      /* Skip cones that haven't been materialized yet.  */
+	      gcc_assert (c_node->clone_of
+			  && c_node->clone_of->decl != c_node->decl);
+	      continue;
+	    }
 
 	  /* Check function local variables.  */
 	  for (var_list = fn->local_decls; var_list; 

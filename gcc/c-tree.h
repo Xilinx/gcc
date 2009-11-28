@@ -277,6 +277,8 @@ struct c_declspecs {
   BOOL_BITFIELD restrict_p : 1;
   /* Whether "_Sat" was specified.  */
   BOOL_BITFIELD saturating_p : 1;
+  /* The address space that the declaration belongs to.  */
+  addr_space_t address_space;
 };
 
 /* The various kinds of declarators in C.  */
@@ -427,7 +429,6 @@ extern struct c_spot_bindings *c_get_switch_bindings (void);
 extern void c_release_switch_bindings (struct c_spot_bindings *);
 extern bool c_check_switch_jump_warnings (struct c_spot_bindings *,
 					  location_t, location_t);
-extern void c_maybe_initialize_eh (void);
 extern void finish_decl (tree, location_t, tree, tree, tree);
 extern tree finish_enum (tree, tree, tree);
 extern void finish_function (void);
@@ -477,6 +478,8 @@ extern struct c_declspecs *declspecs_add_type (location_t,
 					       struct c_typespec);
 extern struct c_declspecs *declspecs_add_scspec (struct c_declspecs *, tree);
 extern struct c_declspecs *declspecs_add_attrs (struct c_declspecs *, tree);
+extern struct c_declspecs *declspecs_add_addrspace (struct c_declspecs *,
+						    addr_space_t);
 extern struct c_declspecs *finish_declspecs (struct c_declspecs *);
 
 /* in c-objc-common.c */
@@ -542,7 +545,7 @@ extern tree build_compound_literal (location_t, tree, tree, bool);
 extern void check_compound_literal_type (location_t, struct c_type_name *);
 extern tree c_start_case (location_t, location_t, tree);
 extern void c_finish_case (tree);
-extern tree build_asm_expr (location_t, tree, tree, tree, tree, bool);
+extern tree build_asm_expr (location_t, tree, tree, tree, tree, tree, bool);
 extern tree build_asm_stmt (tree, tree);
 extern int c_types_compatible_p (tree, tree);
 extern tree c_begin_compound_stmt (bool);
@@ -588,9 +591,6 @@ extern int system_header_p;
    says we are in file scope.  */
 
 extern bool c_override_global_bindings_to_false;
-
-/* True means we've initialized exception handling.  */
-extern bool c_eh_initialized_p;
 
 /* In c-decl.c */
 extern void c_finish_incomplete_decl (tree);

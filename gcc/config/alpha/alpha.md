@@ -3863,7 +3863,7 @@
    (set (match_operand:SF 0 "register_operand" "")
 	(if_then_else:SF (eq (match_dup 3) (match_dup 4))
 			 (match_dup 1) (match_dup 2)))]
-  "TARGET_FP"
+  "TARGET_FP && alpha_fptm < ALPHA_FPTM_SU"
 {
   operands[3] = gen_reg_rtx (DFmode);
   operands[4] = CONST0_RTX (DFmode);
@@ -3876,7 +3876,7 @@
    (set (match_operand:SF 0 "register_operand" "")
 	(if_then_else:SF (ne (match_dup 3) (match_dup 4))
 		      (match_dup 1) (match_dup 2)))]
-  "TARGET_FP"
+  "TARGET_FP && alpha_fptm < ALPHA_FPTM_SU"
 {
   operands[3] = gen_reg_rtx (DFmode);
   operands[4] = CONST0_RTX (DFmode);
@@ -4197,7 +4197,7 @@
 		 (match_dup 4)))]
 {
   if (can_create_pseudo_p ())
-    operands[5] = gen_reg_rtx (DImode);
+    operands[5] = gen_reg_rtx (SImode);
   else if (reg_overlap_mentioned_p (operands[5], operands[4]))
     operands[5] = operands[0];
 })
@@ -4223,9 +4223,9 @@
 				 (match_dup 4))))]
 {
   if (can_create_pseudo_p ())
-    operands[5] = gen_reg_rtx (DImode);
+    operands[5] = gen_reg_rtx (SImode);
   else if (reg_overlap_mentioned_p (operands[5], operands[4]))
-    operands[5] = operands[0];
+    operands[5] = gen_lowpart (SImode, operands[0]);
 })
 
 (define_insn_and_split "*cmp_ssub_di"
@@ -4273,7 +4273,7 @@
 		 (match_dup 4)))]
 {
   if (can_create_pseudo_p ())
-    operands[5] = gen_reg_rtx (DImode);
+    operands[5] = gen_reg_rtx (SImode);
   else if (reg_overlap_mentioned_p (operands[5], operands[4]))
     operands[5] = operands[0];
 })
@@ -4299,9 +4299,9 @@
 				  (match_dup 4))))]
 {
   if (can_create_pseudo_p ())
-    operands[5] = gen_reg_rtx (DImode);
+    operands[5] = gen_reg_rtx (SImode);
   else if (reg_overlap_mentioned_p (operands[5], operands[4]))
-    operands[5] = operands[0];
+    operands[5] = gen_lowpart (SImode, operands[0]);
 })
 
 ;; Here are the CALL and unconditional branch insns.  Calls on NT and OSF
@@ -4869,7 +4869,7 @@
   "jmp $31,(%0),0"
   [(set_attr "type" "ibr")])
 
-;; Cache flush.  Used by INITIALIZE_TRAMPOLINE.  0x86 is PAL_imb, but we don't
+;; Cache flush.  Used by alpha_trampoline_init.  0x86 is PAL_imb, but we don't
 ;; want to have to include pal.h in our .s file.
 (define_insn "imb"
   [(unspec_volatile [(const_int 0)] UNSPECV_IMB)]
@@ -5861,7 +5861,7 @@
 	(mem:DI (and:DI (match_operand:DI 0 "address_operand" "")
 			(const_int -8))))
    (set (match_operand:DI 2 "register_operand" "")
-	(plus:DI (match_dup 0) (const_int 1)))
+	(plus:DI (match_dup 5) (const_int 1)))
    (set (match_dup 3)
 	(and:DI (not:DI (ashift:DI
 			  (const_int 65535)
@@ -5876,7 +5876,7 @@
    (set (mem:DI (and:DI (match_dup 0) (const_int -8)))
 	(match_dup 4))]
   "WORDS_BIG_ENDIAN"
-  "")
+  "operands[5] = force_reg (DImode, operands[0]);")
 
 ;; Here are the define_expand's for QI and HI moves that use the above
 ;; patterns.  We have the normal sets, plus the ones that need scratch

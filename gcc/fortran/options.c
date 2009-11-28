@@ -242,6 +242,10 @@ gfc_post_options (const char **pfilename)
   if (flag_whole_program)
     gfc_option.flag_whole_file = 1;
 
+  /* Enable whole-file mode if LTO is in effect.  */
+  if (flag_lto || flag_whopr)
+    gfc_option.flag_whole_file = 1;
+
   /* -fbounds-check is equivalent to -fcheck=bounds */
   if (flag_bounds_check)
     gfc_option.rtcheck |= GFC_RTCHECK_BOUNDS;

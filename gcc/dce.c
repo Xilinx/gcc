@@ -79,13 +79,7 @@ deletable_insn_p_1 (rtx body)
       return false;
 
     default:
-      if (volatile_refs_p (body))
-	return false;
-
-      if (flag_non_call_exceptions && may_trap_p (body))
-	return false;
-
-      return true;
+      return !volatile_refs_p (body);
     }
 }
 
@@ -98,6 +92,14 @@ deletable_insn_p (rtx insn, bool fast, bitmap arg_stores)
 {
   rtx body, x;
   int i;
+
+  /* Don't delete jumps, notes and the like.  */
+  if (!NONJUMP_INSN_P (insn))
+    return false;
+
+  /* Don't delete insns that can throw.  */
+  if (!insn_nothrow_p (insn))
+    return false;
 
   if (CALL_P (insn)
       /* We cannot delete calls inside of the recursive dce because
@@ -112,13 +114,6 @@ deletable_insn_p (rtx insn, bool fast, bitmap arg_stores)
       && (RTL_CONST_OR_PURE_CALL_P (insn)
 	  && !RTL_LOOPING_CONST_OR_PURE_CALL_P (insn)))
     return find_call_stack_args (insn, false, fast, arg_stores);
-
-  if (!NONJUMP_INSN_P (insn))
-    return false;
-
-  /* Similarly, we cannot delete other insns that can throw either.  */
-  if (df_in_progress && flag_non_call_exceptions && can_throw_internal (insn))
-    return false;
 
   body = PATTERN (insn);
   switch (GET_CODE (body))
@@ -743,9 +738,9 @@ struct rtl_opt_pass pass_ud_rtl_dce =
 {
  {
   RTL_PASS,
-  "dce",                                /* name */
-  gate_ud_dce,                        /* gate */
-  rest_of_handle_ud_dce,              /* execute */
+  "ud dce",                             /* name */
+  gate_ud_dce,                          /* gate */
+  rest_of_handle_ud_dce,                /* execute */
   NULL,                                 /* sub */
   NULL,                                 /* next */
   0,                                    /* static_pass_number */
@@ -1128,7 +1123,7 @@ struct rtl_opt_pass pass_fast_rtl_dce =
 {
  {
   RTL_PASS,
-  "dce",                                /* name */
+  "rtl dce",                            /* name */
   gate_fast_dce,                        /* gate */
   rest_of_handle_fast_dce,              /* execute */
   NULL,                                 /* sub */

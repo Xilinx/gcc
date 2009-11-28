@@ -39,6 +39,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "sbitmap.h"
 #include "langhooks.h"
 #include "target.h"
+#include "debug.h"
 #include "cgraph.h"
 #include "except.h"
 #include "dbgcnt.h"
@@ -166,7 +167,7 @@ static void restore_fixed_argument_area (rtx, rtx, int, int);
    CALL_INSN_FUNCTION_USAGE information.  */
 
 rtx
-prepare_call_address (rtx funexp, rtx static_chain_value,
+prepare_call_address (tree fndecl, rtx funexp, rtx static_chain_value,
 		      rtx *call_fusage, int reg_parm_seen, int sibcallp)
 {
   /* Make a valid memory address and copy constants through pseudo-regs,
@@ -187,11 +188,15 @@ prepare_call_address (rtx funexp, rtx static_chain_value,
 
   if (static_chain_value != 0)
     {
-      static_chain_value = convert_memory_address (Pmode, static_chain_value);
-      emit_move_insn (static_chain_rtx, static_chain_value);
+      rtx chain;
 
-      if (REG_P (static_chain_rtx))
-	use_reg (call_fusage, static_chain_rtx);
+      gcc_assert (fndecl);
+      chain = targetm.calls.static_chain (fndecl, false);
+      static_chain_value = convert_memory_address (Pmode, static_chain_value);
+
+      emit_move_insn (chain, static_chain_value);
+      if (REG_P (chain))
+	use_reg (call_fusage, chain);
     }
 
   return funexp;
@@ -376,10 +381,8 @@ emit_call_1 (rtx funexp, tree fntree ATTRIBUTE_UNUSED, tree fndecl ATTRIBUTE_UNU
   if (ecf_flags & ECF_LOOPING_CONST_OR_PURE)
     RTL_LOOPING_CONST_OR_PURE_CALL_P (call_insn) = 1;
 
-  /* If this call can't throw, attach a REG_EH_REGION reg note to that
-     effect.  */
-  if (ecf_flags & ECF_NOTHROW)
-    add_reg_note (call_insn, REG_EH_REGION, const0_rtx);
+  /* Create a nothrow REG_EH_REGION note, if needed.  */
+  make_reg_eh_region_note (call_insn, ecf_flags, 0);
 
   if (ecf_flags & ECF_NORETURN)
     add_reg_note (call_insn, REG_NORETURN, const0_rtx);
@@ -391,6 +394,11 @@ emit_call_1 (rtx funexp, tree fntree ATTRIBUTE_UNUSED, tree fndecl ATTRIBUTE_UNU
     }
 
   SIBLING_CALL_P (call_insn) = ((ecf_flags & ECF_SIBCALL) != 0);
+
+  /* Record debug information for virtual calls.  */
+  if (flag_enable_icf_debug && fndecl == NULL)
+    (*debug_hooks->virtual_call_token) (CALL_EXPR_FN (fntree),
+                                        INSN_UID (call_insn));
 
   /* Restore this now, so that we do defer pops for this call's args
      if the context of the call as a whole permits.  */
@@ -581,12 +589,9 @@ int
 flags_from_decl_or_type (const_tree exp)
 {
   int flags = 0;
-  const_tree type = exp;
 
   if (DECL_P (exp))
     {
-      type = TREE_TYPE (exp);
-
       /* The function exp may have the `malloc' attribute.  */
       if (DECL_IS_MALLOC (exp))
 	flags |= ECF_MALLOC;
@@ -2809,7 +2814,7 @@ expand_call (tree exp, rtx target, int ignore)
 	}
 
       after_args = get_last_insn ();
-      funexp = prepare_call_address (funexp, static_chain_value,
+      funexp = prepare_call_address (fndecl, funexp, static_chain_value,
 				     &call_fusage, reg_parm_seen, pass == 0);
 
       load_register_parameters (args, num_actuals, &call_fusage, flags,
@@ -3012,7 +3017,10 @@ expand_call (tree exp, rtx target, int ignore)
 	}
       else if (TYPE_MODE (rettype) == BLKmode)
 	{
-	  target = copy_blkmode_from_reg (target, valreg, rettype);
+	  rtx val = valreg;
+	  if (GET_MODE (val) != BLKmode)
+	    val = avoid_likely_spilled_reg (val);
+	  target = copy_blkmode_from_reg (target, val, rettype);
 
 	  /* We can not support sibling calls for this case.  */
 	  sibcall_failure = 1;
@@ -3737,7 +3745,7 @@ emit_library_call_value_1 (int retval, rtx orgfun, rtx value,
   else
     argnum = 0;
 
-  fun = prepare_call_address (fun, NULL, &call_fusage, 0, 0);
+  fun = prepare_call_address (NULL, fun, NULL, &call_fusage, 0, 0);
 
   /* Now load any reg parms into their regs.  */
 

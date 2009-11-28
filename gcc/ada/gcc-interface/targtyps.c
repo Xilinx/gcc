@@ -28,8 +28,9 @@
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
-#include "tm.h"
 #include "tree.h"
+#include "tm.h"
+#include "tm_p.h"
 
 #include "ada.h"
 #include "types.h"
@@ -159,10 +160,21 @@ get_target_maximum_default_alignment (void)
    handy and what alignment it honors).  In the meantime, resort to malloc
    considerations only.  */
 
+/* Account for MALLOC_OBSERVABLE_ALIGNMENTs here.  Use this or the ABI
+   guaranteed alignment if greater.  */
+
+#ifdef MALLOC_OBSERVABLE_ALIGNMENT
+#define MALLOC_ALIGNMENT MALLOC_OBSERVABLE_ALIGNMENT
+#else
+#define MALLOC_OBSERVABLE_ALIGNMENT (2 * LONG_TYPE_SIZE)
+#define MALLOC_ALIGNMENT \
+  MAX (MALLOC_ABI_ALIGNMENT, MALLOC_OBSERVABLE_ALIGNMENT)
+#endif
+
 Pos
 get_target_default_allocator_alignment (void)
 {
-  return MALLOC_ABI_ALIGNMENT / BITS_PER_UNIT;
+  return MALLOC_ALIGNMENT / BITS_PER_UNIT;
 }
 
 /* Standard'Maximum_Allowed_Alignment.  Maximum alignment that we may

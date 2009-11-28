@@ -1,4 +1,5 @@
 /* { dg-options "-O2 -floop-block" } */
+/* { dg-require-effective-target int32plus } */
 
 int buffer[256*256];
 int main(void)

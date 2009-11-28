@@ -502,6 +502,12 @@ struct deps
      Used to prevent register lifetimes from expanding unnecessarily.  */
   rtx last_function_call;
 
+  /* A list of the last function calls that may not return normally
+     we have seen.  We use a list to represent last function calls from
+     multiple predecessor blocks.  Used to prevent moving trapping insns
+     across such calls.  */
+  rtx last_function_call_may_noreturn;
+
   /* A list of insns which use a pseudo register that does not already
      cross a call.  We create dependencies between each of those insn
      and the next call insn, to ensure that they won't cross a call after
@@ -1193,7 +1199,8 @@ extern bool sched_insns_conditions_mutex_p (const_rtx, const_rtx);
 extern bool sched_insn_is_legitimate_for_speculation_p (const_rtx, ds_t);
 extern void add_dependence (rtx, rtx, enum reg_note);
 extern void sched_analyze (struct deps *, rtx, rtx);
-extern void init_deps (struct deps *);
+extern void init_deps (struct deps *, bool);
+extern void init_deps_reg_last (struct deps *);
 extern void free_deps (struct deps *);
 extern void init_deps_global (void);
 extern void finish_deps_global (void);

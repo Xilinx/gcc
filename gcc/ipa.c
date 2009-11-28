@@ -52,7 +52,9 @@ cgraph_postorder (struct cgraph_node **order)
   for (pass = 0; pass < 2; pass++)
     for (node = cgraph_nodes; node; node = node->next)
       if (!node->aux
-	  && (pass || (node->needed && !node->address_taken)))
+	  && (pass
+	      || (!cgraph_only_called_directly_p (node)
+	  	  && !node->address_taken)))
 	{
 	  node2 = node;
 	  if (!node->callers)
@@ -119,6 +121,7 @@ bool
 cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
 {
   struct cgraph_node *first = (struct cgraph_node *) (void *) 1;
+  struct cgraph_node *processed = (struct cgraph_node *) (void *) 2;
   struct cgraph_node *node, *next;
   bool changed = false;
 
@@ -132,16 +135,21 @@ cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
     gcc_assert (!node->aux);
 #endif
   for (node = cgraph_nodes; node; node = node->next)
-    if (node->needed && !node->global.inlined_to
+    if (!cgraph_can_remove_if_no_direct_calls_p (node)
 	&& ((!DECL_EXTERNAL (node->decl)) 
             || !node->analyzed
             || before_inlining_p))
       {
+        gcc_assert (!node->global.inlined_to);
 	node->aux = first;
 	first = node;
+	node->reachable = true;
       }
     else
-      gcc_assert (!node->aux);
+      {
+        gcc_assert (!node->aux);
+	node->reachable = false;
+      }
 
   /* Perform reachability analysis.  As a special case do not consider
      extern inline functions not inlined as live because we won't output
@@ -151,17 +159,26 @@ cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
       struct cgraph_edge *e;
       node = first;
       first = (struct cgraph_node *) first->aux;
+      node->aux = processed;
 
-      for (e = node->callees; e; e = e->next_callee)
-	if (!e->callee->aux
-	    && node->analyzed
-	    && (!e->inline_failed || !e->callee->analyzed
-		|| (!DECL_EXTERNAL (e->callee->decl))
-                || before_inlining_p))
-	  {
-	    e->callee->aux = first;
-	    first = e->callee;
-	  }
+      if (node->reachable)
+        for (e = node->callees; e; e = e->next_callee)
+	  if (!e->callee->reachable
+	      && node->analyzed
+	      && (!e->inline_failed || !e->callee->analyzed
+		  || (!DECL_EXTERNAL (e->callee->decl))
+                  || before_inlining_p))
+	    {
+	      bool prev_reachable = e->callee->reachable;
+	      e->callee->reachable |= node->reachable;
+	      if (!e->callee->aux
+	          || (e->callee->aux == processed
+		      && prev_reachable != e->callee->reachable))
+	        {
+	          e->callee->aux = first;
+	          first = e->callee;
+	        }
+	    }
       while (node->clone_of && !node->clone_of->aux && !gimple_has_body_p (node->decl))
         {
 	  node = node->clone_of;
@@ -181,13 +198,18 @@ cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
   for (node = cgraph_nodes; node; node = next)
     {
       next = node->next;
+      if (node->aux && !node->reachable)
+        {
+	  cgraph_node_remove_callees (node);
+	  node->analyzed = false;
+	  node->local.inlinable = false;
+	}
       if (!node->aux)
 	{
           node->global.inlined_to = NULL;
 	  if (file)
 	    fprintf (file, " %s", cgraph_node_name (node));
-	  if (!node->analyzed || !DECL_EXTERNAL (node->decl)
-	      || before_inlining_p)
+	  if (!node->analyzed || !DECL_EXTERNAL (node->decl) || before_inlining_p)
 	    cgraph_remove_node (node);
 	  else
 	    {
@@ -216,6 +238,12 @@ cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
 		      node->analyzed = false;
 		      node->local.inlinable = false;
 		    }
+		  if (node->prev_sibling_clone)
+		    node->prev_sibling_clone->next_sibling_clone = node->next_sibling_clone;
+		  else if (node->clone_of)
+		    node->clone_of->clones = node->next_sibling_clone;
+		  if (node->next_sibling_clone)
+		    node->next_sibling_clone->prev_sibling_clone = node->prev_sibling_clone;
 		}
 	      else
 		cgraph_remove_node (node);
@@ -248,6 +276,28 @@ cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
   return changed;
 }
 
+static bool
+cgraph_externally_visible_p (struct cgraph_node *node, bool whole_program)
+{
+  if (!node->local.finalized)
+    return false;
+  if (!DECL_COMDAT (node->decl)
+      && (!TREE_PUBLIC (node->decl) || DECL_EXTERNAL (node->decl)))
+    return false;
+  if (!whole_program)
+    return true;
+  /* COMDAT functions must be shared only if they have address taken,
+     otherwise we can produce our own private implementation with
+     -fwhole-program.  */
+  if (DECL_COMDAT (node->decl) && (node->address_taken || !node->analyzed))
+    return true;
+  if (MAIN_NAME_P (DECL_NAME (node->decl)))
+    return true;
+  if (lookup_attribute ("externally_visible", DECL_ATTRIBUTES (node->decl)))
+    return true;
+  return false;
+}
+
 /* Mark visibility of all functions.
 
    A local function is one whose calls can occur only in the current
@@ -260,39 +310,65 @@ cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
    via visibilities for the backend point of view.  */
 
 static unsigned int
-function_and_variable_visibility (void)
+function_and_variable_visibility (bool whole_program)
 {
   struct cgraph_node *node;
   struct varpool_node *vnode;
 
   for (node = cgraph_nodes; node; node = node->next)
     {
-      if (node->reachable
-	  && (DECL_COMDAT (node->decl)
-	      || (!flag_whole_program
-		  && TREE_PUBLIC (node->decl) && !DECL_EXTERNAL (node->decl))))
-	node->local.externally_visible = true;
+      /* C++ FE on lack of COMDAT support create local COMDAT functions
+	 (that ought to be shared but can not due to object format
+	 limitations).  It is neccesary to keep the flag to make rest of C++ FE
+	 happy.  Clear the flag here to avoid confusion in middle-end.  */
+      if (DECL_COMDAT (node->decl) && !TREE_PUBLIC (node->decl))
+        DECL_COMDAT (node->decl) = 0;
+      gcc_assert ((!DECL_WEAK (node->decl) && !DECL_COMDAT (node->decl))
+      	          || TREE_PUBLIC (node->decl) || DECL_EXTERNAL (node->decl));
+      if (cgraph_externally_visible_p (node, whole_program))
+        {
+	  gcc_assert (!node->global.inlined_to);
+	  node->local.externally_visible = true;
+	}
+      else
+	node->local.externally_visible = false;
       if (!node->local.externally_visible && node->analyzed
 	  && !DECL_EXTERNAL (node->decl))
 	{
-	  gcc_assert (flag_whole_program || !TREE_PUBLIC (node->decl));
+	  gcc_assert (whole_program || !TREE_PUBLIC (node->decl));
 	  TREE_PUBLIC (node->decl) = 0;
+	  DECL_COMDAT (node->decl) = 0;
+	  DECL_WEAK (node->decl) = 0;
 	}
-      node->local.local = (!node->needed
+      node->local.local = (cgraph_only_called_directly_p (node)
 			   && node->analyzed
 			   && !DECL_EXTERNAL (node->decl)
 			   && !node->local.externally_visible);
     }
   for (vnode = varpool_nodes_queue; vnode; vnode = vnode->next_needed)
     {
+      if (!vnode->finalized)
+        continue;
+      gcc_assert ((!DECL_WEAK (vnode->decl) && !DECL_COMMON (vnode->decl))
+      		  || TREE_PUBLIC (vnode->decl) || DECL_EXTERNAL (vnode->decl));
       if (vnode->needed
-	  && !flag_whole_program
-	  && (DECL_COMDAT (vnode->decl) || TREE_PUBLIC (vnode->decl)))
-	vnode->externally_visible = 1;
+	  && (DECL_COMDAT (vnode->decl) || TREE_PUBLIC (vnode->decl))
+	  && (!whole_program
+	      /* We can privatize comdat readonly variables whose address is not taken,
+	         but doing so is not going to bring us optimization oppurtunities until
+	         we start reordering datastructures.  */
+	      || DECL_COMDAT (vnode->decl)
+	      || DECL_WEAK (vnode->decl)
+	      || lookup_attribute ("externally_visible",
+				   DECL_ATTRIBUTES (vnode->decl))))
+	vnode->externally_visible = true;
+      else
+        vnode->externally_visible = false;
       if (!vnode->externally_visible)
 	{
-	  gcc_assert (flag_whole_program || !TREE_PUBLIC (vnode->decl));
+	  gcc_assert (whole_program || !TREE_PUBLIC (vnode->decl));
 	  TREE_PUBLIC (vnode->decl) = 0;
+	  DECL_COMMON (vnode->decl) = 0;
 	}
      gcc_assert (TREE_STATIC (vnode->decl));
     }
@@ -309,9 +385,23 @@ function_and_variable_visibility (void)
 	if (node->local.externally_visible)
 	  fprintf (dump_file, " %s", cgraph_node_name (node));
       fprintf (dump_file, "\n\n");
+      fprintf (dump_file, "\nMarking externally visible variables:");
+      for (vnode = varpool_nodes_queue; vnode; vnode = vnode->next_needed)
+	if (vnode->externally_visible)
+	  fprintf (dump_file, " %s", varpool_node_name (vnode));
+      fprintf (dump_file, "\n\n");
     }
   cgraph_function_flags_ready = true;
   return 0;
+}
+
+/* Local function pass handling visibilities.  This happens before LTO streaming
+   so in particular -fwhole-program should be ignored at this level.  */
+
+static unsigned int
+local_function_and_variable_visibility (void)
+{
+  return function_and_variable_visibility (flag_whole_program && !flag_lto && !flag_whopr);
 }
 
 struct simple_ipa_opt_pass pass_ipa_function_and_variable_visibility = 
@@ -320,7 +410,7 @@ struct simple_ipa_opt_pass pass_ipa_function_and_variable_visibility =
   SIMPLE_IPA_PASS,
   "visibility",				/* name */
   NULL,					/* gate */
-  function_and_variable_visibility,	/* execute */
+  local_function_and_variable_visibility,/* execute */
   NULL,					/* sub */
   NULL,					/* next */
   0,					/* static_pass_number */
@@ -333,6 +423,68 @@ struct simple_ipa_opt_pass pass_ipa_function_and_variable_visibility =
  }
 };
 
+/* Do not re-run on ltrans stage.  */
+
+static bool
+gate_whole_program_function_and_variable_visibility (void)
+{
+  return !flag_ltrans;
+}
+
+/* Bring functionss local at LTO time whith -fwhole-program.  */
+
+static unsigned int
+whole_program_function_and_variable_visibility (void)
+{
+  struct cgraph_node *node;
+  struct varpool_node *vnode;
+
+  function_and_variable_visibility (flag_whole_program);
+
+  for (node = cgraph_nodes; node; node = node->next)
+    if ((node->local.externally_visible && !DECL_COMDAT (node->decl))
+        && node->local.finalized)
+      cgraph_mark_needed_node (node);
+  for (vnode = varpool_nodes_queue; vnode; vnode = vnode->next_needed)
+    if (vnode->externally_visible && !DECL_COMDAT (vnode->decl))
+      varpool_mark_needed_node (vnode);
+  if (dump_file)
+    {
+      fprintf (dump_file, "\nNeeded variables:");
+      for (vnode = varpool_nodes_queue; vnode; vnode = vnode->next_needed)
+	if (vnode->needed)
+	  fprintf (dump_file, " %s", varpool_node_name (vnode));
+      fprintf (dump_file, "\n\n");
+    }
+  return 0;
+}
+
+struct ipa_opt_pass_d pass_ipa_whole_program_visibility =
+{
+ {
+  IPA_PASS,
+  "whole-program",			/* name */
+  gate_whole_program_function_and_variable_visibility,/* gate */
+  whole_program_function_and_variable_visibility,/* execute */
+  NULL,					/* sub */
+  NULL,					/* next */
+  0,					/* static_pass_number */
+  TV_CGRAPHOPT,				/* tv_id */
+  0,	                                /* properties_required */
+  0,					/* properties_provided */
+  0,					/* properties_destroyed */
+  0,					/* todo_flags_start */
+  TODO_dump_cgraph | TODO_remove_functions/* todo_flags_finish */
+ },
+ NULL,					/* generate_summary */
+ NULL,					/* write_summary */
+ NULL,					/* read_summary */
+ NULL,					/* function_read_summary */
+ NULL,					/* stmt_fixup */
+ 0,					/* TODOs */
+ NULL,					/* function_transform */
+ NULL,					/* variable_transform */
+};
 
 /* Hash a cgraph node set element.  */
 

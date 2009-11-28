@@ -735,8 +735,8 @@ static void
 get_tmr_operands (gimple stmt, tree expr, int flags)
 {
   /* First record the real operands.  */
-  get_expr_operands (stmt, &TMR_BASE (expr), opf_use);
-  get_expr_operands (stmt, &TMR_INDEX (expr), opf_use);
+  get_expr_operands (stmt, &TMR_BASE (expr), opf_use | (flags & opf_no_vops));
+  get_expr_operands (stmt, &TMR_INDEX (expr), opf_use | (flags & opf_no_vops));
 
   if (TMR_SYMBOL (expr))
     mark_address_taken (TMR_SYMBOL (expr));
@@ -894,6 +894,10 @@ get_expr_operands (gimple stmt, tree *expr_p, int flags)
       add_stmt_operand (expr_p, stmt, flags);
       return;
 
+    case DEBUG_EXPR_DECL:
+      gcc_assert (gimple_debug_bind_p (stmt));
+      return;
+
     case MISALIGNED_INDIRECT_REF:
       get_expr_operands (stmt, &TREE_OPERAND (expr, 1), flags);
       /* fall through */
@@ -1000,8 +1004,6 @@ get_expr_operands (gimple stmt, tree *expr_p, int flags)
     case LABEL_DECL:
     case CONST_DECL:
     case CASE_LABEL_EXPR:
-    case FILTER_EXPR:
-    case EXC_PTR_EXPR:
       /* Expressions that make no memory references.  */
       return;
 

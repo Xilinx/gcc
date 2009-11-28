@@ -835,8 +835,8 @@ package body Exp_Ch9 is
       end loop;
 
       --  If we are in a package body, the activation chain variable is
-      --  declared in the body, but the Activation_Chain_Entity is attached to
-      --  the spec.
+      --  declared in the body, but the Activation_Chain_Entity is attached
+      --  to the spec.
 
       if Nkind (P) = N_Package_Body then
          Decls := Declarations (P);
@@ -3983,9 +3983,21 @@ package body Exp_Ch9 is
       Spec_Id : Entity_Id;
 
    begin
-      Spec_Id :=
-        Make_Defining_Identifier (Loc,
-          Chars => New_External_Name (Chars (T), 'B'));
+      --  Case of explicit task type, suffix TB
+
+      if Comes_From_Source (T) then
+         Spec_Id :=
+           Make_Defining_Identifier (Loc,
+             Chars => New_External_Name (Chars (T), "TB"));
+
+      --  Case of anonymous task type, suffix B
+
+      else
+         Spec_Id :=
+           Make_Defining_Identifier (Loc,
+             Chars => New_External_Name (Chars (T), 'B'));
+      end if;
+
       Set_Is_Internal (Spec_Id);
 
       --  Associate the procedure with the task, if this is the declaration
@@ -7821,20 +7833,23 @@ package body Exp_Ch9 is
 
                declare
                   Old_Comp : constant Node_Id   := Component_Definition (Priv);
-                  Pent     : constant Entity_Id := Defining_Identifier (Priv);
+                  Oent     : constant Entity_Id := Defining_Identifier (Priv);
                   New_Comp : Node_Id;
+                  Nent     : constant Entity_Id :=
+                               Make_Defining_Identifier (Sloc (Oent),
+                                 Chars => Chars (Oent));
 
                begin
                   if Present (Subtype_Indication (Old_Comp)) then
                      New_Comp :=
-                       Make_Component_Definition (Sloc (Pent),
+                       Make_Component_Definition (Sloc (Oent),
                          Aliased_Present    => False,
                          Subtype_Indication =>
                            New_Copy_Tree (Subtype_Indication (Old_Comp),
                                            Discr_Map));
                   else
                      New_Comp :=
-                       Make_Component_Definition (Sloc (Pent),
+                       Make_Component_Definition (Sloc (Oent),
                          Aliased_Present    => False,
                          Access_Definition  =>
                            New_Copy_Tree (Access_Definition (Old_Comp),
@@ -7843,10 +7858,12 @@ package body Exp_Ch9 is
 
                   New_Priv :=
                     Make_Component_Declaration (Loc,
-                      Defining_Identifier =>
-                        Make_Defining_Identifier (Sloc (Pent), Chars (Pent)),
+                      Defining_Identifier  => Nent,
                       Component_Definition => New_Comp,
-                      Expression => Expression (Priv));
+                      Expression           => Expression (Priv));
+
+                  Set_Has_Per_Object_Constraint (Nent,
+                    Has_Per_Object_Constraint (Oent));
 
                   Append_To (Cdecls, New_Priv);
                end;

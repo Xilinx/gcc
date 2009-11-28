@@ -2623,6 +2623,10 @@ exp_equiv_p (const_rtx x, const_rtx y, int validate, bool for_gcse)
   if (GET_MODE (x) != GET_MODE (y))
     return 0;
 
+  /* MEMs refering to different address space are not equivalent.  */
+  if (code == MEM && MEM_ADDR_SPACE (x) != MEM_ADDR_SPACE (y))
+    return 0;
+
   switch (code)
     {
     case PC:
@@ -6544,9 +6548,9 @@ count_reg_usage (rtx x, int *counts, rtx dest, int incr)
     case CALL_INSN:
     case INSN:
     case JUMP_INSN:
-    /* We expect dest to be NULL_RTX here.  If the insn may trap, mark
-       this fact by setting DEST to pc_rtx.  */
-      if (flag_non_call_exceptions && may_trap_p (PATTERN (x)))
+      /* We expect dest to be NULL_RTX here.  If the insn may trap, mark
+         this fact by setting DEST to pc_rtx.  */
+      if (insn_could_throw_p (x))
 	dest = pc_rtx;
       if (code == CALL_INSN)
 	count_reg_usage (CALL_INSN_FUNCTION_USAGE (x), counts, dest, incr);
@@ -6658,7 +6662,7 @@ static bool
 insn_live_p (rtx insn, int *counts)
 {
   int i;
-  if (flag_non_call_exceptions && may_trap_p (PATTERN (insn)))
+  if (insn_could_throw_p (insn))
     return true;
   else if (GET_CODE (PATTERN (insn)) == SET)
     return set_live_p (PATTERN (insn), insn, counts);
