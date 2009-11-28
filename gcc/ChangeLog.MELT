@@ -1,3 +1,16 @@
+2009-11-28  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	secondary C file generation seems to work.
+	* testsuite/melt/tmultifil.melt: added new file.
+	* melt-runtime.h (melt_output_cfile_decl_impl_secondary): new
+	declaration.
+	(melt_output_cfile_decl_impl) inlined function.
+	* melt-runtime.c (melt_output_cfile_decl_impl) renamed as
+	(melt_output_cfile_decl_impl_secondary) and handle filrank
+	argument.
+	* melt/warmelt-outobj.melt: some components of secfiles can be
+	nil. Calling melt_output_cfile_decl_impl_secondary.
+
 2009-11-27  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	{{MELT branch is still instable.

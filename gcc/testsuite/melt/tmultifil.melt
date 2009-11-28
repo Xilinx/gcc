@@ -1,0 +1,58 @@
+; -*- lisp -*-
+;; file tmutltifil.melt
+
+;; test the ability to generate secondary C files when having many functions
+
+#| run in buildir/gcc
+ ./cc1 -fmelt=translatefile  -fmelt-module-path=.    \
+    -fmelt-source-path=.:$GCCMELTSOURCE/gcc/melt \
+    -fmelt-compile-script=./built-melt-cc-script \
+    -fmelt-tempdir=/tmp -fmelt-init=@warmelt2 \
+    -fmelt-single-c-file=no \
+    -fmelt-arg=$GCCMELTSOURCE/gcc/testsuite/melt/tmultifil.melt \
+    -fmelt-debug empty-file-for-melt.c
+|#
+
+(defun f00 (g x) (g x 0))
+
+(defun f01 (g x) (g x 1))
+
+(defun f02 (g x) (g x 2))
+
+(defun f03 (g x) (g x 3))
+
+(defun f04 (g x) (g x 4))
+
+(defun f05 (g x) (g x 5))
+
+(defun f06 (g x) (g x 6))
+
+(defun f07 (g x) (g x 7))
+
+(defun f08 (g x) (g x 8))
+
+(defun f09 (g x) (g x 9))
+
+(defun f10 (g x) (g x 10))
+
+(defun f11 (g x) (g x 11))
+
+(defun f12 (g x) (g x 12))
+
+(defun f13 (g x) (g x 13))
+
+(defun f14 (g x) (g x 14))
+
+(defun f15 (g x) (g x 15))
+
+(defun f16 (g x) (g x 16))
+
+(defun f17 (g x) (g x 17))
+
+(defun f18 (g x) (g x 18))
+
+(defun f19 (g x) (g x 19))
+
+(defun f20 (g x) (g x 20))
+
+;;; eof tmultifil.melt

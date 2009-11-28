@@ -10039,8 +10039,9 @@ static void melt_ppl_error_handler(enum ppl_enum_error_code err, const char* des
  * on disk before, to help the "make" utility.
  ***********************************************************/
 void
-melt_output_cfile_decl_impl (melt_ptr_t unitnam,
-			     melt_ptr_t declbuf, melt_ptr_t implbuf)
+melt_output_cfile_decl_impl_secondary (melt_ptr_t unitnam,
+				       melt_ptr_t declbuf, melt_ptr_t implbuf,
+				       int filrank)
 {
   bool samefil = false;
   char *dotcnam = NULL;
@@ -10085,6 +10086,9 @@ melt_output_cfile_decl_impl (melt_ptr_t unitnam,
     fatal_error ("failed to open melt generated file %s - %m", dotempnam);
   fprintf (cfil,
 	   "/* GCC MELT GENERATED FILE %s - DO NOT EDIT */\n", dotcnam);
+  if (filrank <= 0)
+    {
+      
   /* we protect genversionstr_melt with MELTGCC_DYNAMIC_OBJSTRUCT since
      for sure when compiling the warmelt*0.c it would mismatch, and we
      want to avoid a useless warning */
@@ -10104,6 +10108,10 @@ melt_output_cfile_decl_impl (melt_ptr_t unitnam,
     fputc ('\"', cfil);
   };
   fprintf (cfil, ";\n" "#endif\n" "\n");
+    }
+  else
+    fprintf (cfil, "/* secondary MELT generated C file of rank #%d */\n",
+	     filrank);
   fprintf (cfil, "#include \"run-melt.h\"\n");
   fprintf (cfil, "\n/**** %s declarations ****/\n",
 	   melt_string_str (unitnam));
