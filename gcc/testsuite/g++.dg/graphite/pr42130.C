@@ -3,7 +3,7 @@
 
 using std::vector;
 
-vector<unsigned> & __attribute__((noinline)) foo(unsigned n, unsigned k)
+vector<unsigned> & __attribute__((noinline, noclone)) foo(unsigned n)
 {
   vector<unsigned> *vv = new vector<unsigned>(n, 0u);
   return *vv;
@@ -13,6 +13,7 @@ vector<unsigned> & __attribute__((noinline)) foo(unsigned n, unsigned k)
 int main()
 {
   foo(0, 1);
+  return 0;
 }
 /* { dg-do run  } */
 
