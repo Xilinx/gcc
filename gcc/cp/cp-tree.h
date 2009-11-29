@@ -111,6 +111,7 @@ framework extensions, you must include this file before toplev.h, not after.
    6: IDENTIFIER_REPO_CHOSEN (in IDENTIFIER_NODE)
       DECL_CONSTRUCTION_VTABLE_P (in VAR_DECL)
       TYPE_MARKED_P (in _TYPE)
+   7: COMPILE_TIME_CONSTANT_P (in _EXPR or _REF)
 
    Usage of TYPE_LANG_FLAG_?:
    0: TYPE_DEPENDENT_P
@@ -2168,6 +2169,21 @@ struct GTY(()) lang_decl {
    && INTEGRAL_OR_ENUMERATION_TYPE_P (TREE_TYPE (NODE))	\
    && DECL_INITIALIZED_BY_CONSTANT_EXPRESSION_P (NODE))
 
+/* True if the expression tree NODE represents an object that can
+   be taken apart at compile time.  This is not to be confused with
+   link-time constants or load-time constants.  A compiler constant
+   may still be an expression that the middle end may be able to
+   reduce further.  */
+#define COMPILE_TIME_CONSTANT_P(NODE) \
+  (TREE_LANG_FLAG_7 (NODE))
+
+/* Same as COMPILE_TIME_CONSTANT_P, except that it includes literal
+   values too, such as INTEGER_CST, PTRMEM_CST, or address of
+   variables with static storage.  */
+#define VALID_FOR_STATIC_INITIALIZATION_P(NODE) \
+  (CONSTANT_CLASS_P (NODE) || COMPILE_TIME_CONSTANT_P (NODE))
+
+
 /* Nonzero if the DECL was initialized in the class definition itself,
    rather than outside the class.  This is used for both static member
    VAR_DECLS, and FUNCTION_DECLS that are defined in the class.  */
@@ -3178,6 +3194,10 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
 /* Returns true if NODE is a pointer.  */
 #define TYPE_PTR_P(NODE)			\
   (TREE_CODE (NODE) == POINTER_TYPE)
+
+/* Return true if NODE is an array type.  */
+#define TYPE_ARRAY_P(NODE)                      \
+  (TREE_CODE (NODE) == ARRAY_TYPE)
 
 /* Returns true if NODE is an object type:
 
@@ -5001,6 +5021,8 @@ extern tree get_template_argument_pack_elems	(const_tree);
 extern tree get_function_template_decl		(const_tree);
 extern tree resolve_nondeduced_context		(tree);
 
+extern hashval_t hash_constexpr_args (tree, hashval_t);
+
 /* in repo.c */
 extern void init_repo				(void);
 extern int repo_emit_p				(tree);
@@ -5126,7 +5148,13 @@ extern void finish_handler			(tree);
 extern void finish_cleanup			(tree, tree);
 extern bool literal_type_p (tree);
 extern tree validate_constexpr_fundecl (tree);
+extern tree register_constexpr_fundef (tree, tree);
 extern tree ensure_literal_type_for_constexpr_object (tree);
+extern tree cxx_constant_value (tree);
+
+/* True if C++0x-style conctant expresions are allowed.  */
+#define generalized_constant_expression_allowed() \
+  ((cxx_dialect != cxx98) || in_system_header)
 
 enum {
   BCS_NO_SCOPE = 1,

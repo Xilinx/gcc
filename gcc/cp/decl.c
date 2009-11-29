@@ -1112,6 +1112,25 @@ check_redeclaration_exception_specification (tree new_decl,
     }
 }
 
+/* Return true if both OLD_DECL and NEW_DECL agrees on constexprnes.
+   Otherwise issue diagnostics.  */
+
+static bool
+validate_constexpr_redeclaration (tree old_decl, tree new_decl)
+{
+  old_decl = STRIP_TEMPLATE (old_decl);
+  new_decl = STRIP_TEMPLATE (new_decl);
+  if (!VAR_OR_FUNCTION_DECL_P (old_decl)
+      || !VAR_OR_FUNCTION_DECL_P (new_decl))
+    return true;
+  if (DECL_DECLARED_CONSTEXPR_P (old_decl)
+      == DECL_DECLARED_CONSTEXPR_P (new_decl))
+    return true;
+  error ("redeclaration %qD differs in %<constexpr%>", new_decl);
+  error ("from previous declaration %q+D", old_decl);
+  return false;
+}
+
 #define GNU_INLINE_P(fn) (DECL_DECLARED_INLINE_P (fn)			\
 			  && lookup_attribute ("gnu_inline",		\
 					       DECL_ATTRIBUTES (fn)))
@@ -1590,6 +1609,9 @@ duplicate_decls (tree newdecl, tree olddecl, bool newdecl_is_friend)
   /* If new decl is `static' and an `extern' was seen previously,
      warn about it.  */
   warn_extern_redeclared_static (newdecl, olddecl);
+
+  if (!validate_constexpr_redeclaration (olddecl, newdecl))
+    return error_mark_node;
 
   /* We have committed to returning 1 at this point.  */
   if (TREE_CODE (newdecl) == FUNCTION_DECL)
@@ -5669,6 +5691,12 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
 	}
     }
 
+  if (!processing_template_decl
+      && FUNCTION_DECL_P (decl)
+      && !DECL_CLONED_FUNCTION_P (decl)
+      && DECL_DECLARED_CONSTEXPR_P (decl))
+     validate_constexpr_fundecl (decl);
+
   if (init && TREE_CODE (decl) == FUNCTION_DECL)
     {
       tree clone;
@@ -5711,7 +5739,9 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
 	  DECL_INITIAL (decl) = NULL_TREE;
 	}
 
-      if (init && init_const_expr_p && TREE_CODE (decl) == VAR_DECL)
+      if (init
+          && (init_const_expr_p || DECL_DECLARED_CONSTEXPR_P (decl))
+          && VAR_DECL_P (decl))
 	{
 	  DECL_INITIALIZED_BY_CONSTANT_EXPRESSION_P (decl) = 1;
 	  if (DECL_INTEGRAL_CONSTANT_VAR_P (decl))
@@ -5844,7 +5874,7 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
 	  if (init)
 	    {
 	      DECL_NONTRIVIALLY_INITIALIZED_P (decl) = 1;
-	      if (init_const_expr_p)
+	      if (init_const_expr_p || DECL_DECLARED_CONSTEXPR_P (decl))
 		{
 		  DECL_INITIALIZED_BY_CONSTANT_EXPRESSION_P (decl) = 1;
 		  if (DECL_INTEGRAL_CONSTANT_VAR_P (decl))
@@ -7981,6 +8011,12 @@ grokdeclarator (const cp_declarator *declarator,
   if (name == NULL)
     name = decl_context == PARM ? "parameter" : "type name";
 
+  if (constexpr_p && declspecs->specs[(int)ds_typedef])
+    {
+      error ("%<constexpr%> cannot appear in a typedef declaration");
+      return error_mark_node;
+    }
+
   /* If there were multiple types specified in the decl-specifier-seq,
      issue an error message.  */
   if (declspecs->multiple_types_p)
@@ -9293,6 +9329,10 @@ grokdeclarator (const cp_declarator *declarator,
 	    int publicp = 0;
 	    tree function_context;
 
+            if (constexpr_p && !staticp && !friendp
+                && sfk != sfk_constructor && sfk != sfk_destructor)
+              memfn_quals |= TYPE_QUAL_CONST;
+            
 	    if (friendp == 0)
 	      {
 		if (ctype == NULL_TREE)
@@ -9348,7 +9388,10 @@ grokdeclarator (const cp_declarator *declarator,
 		    return error_mark_node;
 		  }
                 if (constexpr_p)
-                  error ("a destructor cannot be %<constexpr%>");
+                  {
+                    error ("a destructor cannot be %<constexpr%>");
+                    return error_mark_node;
+                  }
 	      }
 	    else if (sfk == sfk_constructor && friendp)
 	      {
@@ -11683,10 +11726,6 @@ check_function_type (tree decl, tree current_function_parms)
   /* In a function definition, arg types must be complete.  */
   require_complete_types_for_parms (current_function_parms);
 
-  /* constexpr functions must have literal argument types and
-     literal return type.  */
-  validate_constexpr_fundecl (decl);
-
   if (dependent_type_p (return_type))
     return;
   if (!COMPLETE_OR_VOID_TYPE_P (return_type)
@@ -12452,6 +12491,30 @@ outer_curly_brace_block (tree fndecl)
   return block;
 }
 
+/* Subroutine of finish_function.
+   Save the body of constexpr functions for possible
+   future compile time evaluation.  */
+
+static void
+maybe_save_function_definition (tree fun)
+{
+  if (!processing_template_decl
+      && DECL_DECLARED_CONSTEXPR_P (fun)
+      && !DECL_CLONED_FUNCTION_P (fun))
+    {
+      if (DECL_NONSTATIC_MEMBER_FUNCTION_P (fun)
+          && !DECL_CONSTRUCTOR_P (fun)
+          && !literal_type_p (DECL_CONTEXT (fun)))
+        {
+          error ("containing class of %qD is not a literal type",
+                 DECL_CONTEXT (fun));
+          DECL_DECLARED_CONSTEXPR_P (fun) = false;
+          return;
+        }
+      register_constexpr_fundef (fun, DECL_SAVED_TREE (fun));
+    }
+}
+
 /* Finish up a function declaration and compile that function
    all the way to assembler language output.  The free the storage
    for the function definition.
@@ -12571,6 +12634,10 @@ finish_function (int flags)
   /* Statements should always be full-expressions at the outermost set
      of curly braces for a function.  */
   gcc_assert (stmts_are_full_exprs_p ());
+
+  /* Save constexpr function body before it gets munged by
+     the NRV transformation.   */
+  maybe_save_function_definition (fndecl);
 
   /* Set up the named return value optimization, if we can.  Candidate
      variables are selected in check_return_expr.  */
