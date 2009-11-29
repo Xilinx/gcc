@@ -124,7 +124,7 @@ error () {
 	if [ "${GIT_SRC}x" != "x" ]; then
 		cd ${SRC_DIR_CURRENT}
 		build_git_tag
-		git tag -F ${LOG_DIR_CURRENT}/git.tag test_${DATE}_error
+		git tag -F ${LOG_DIR_CURRENT}/git.tag test/error/${DATE}
 		git push --tags origin
 	fi
 	exit 1
@@ -280,7 +280,7 @@ mail_success
 ln -s ${LOG_DIR_CURRENT} ${LOG_DIR_CURRENT}_success
 if [ "${GIT_SRC}x" != "x" ]; then
 	build_git_tag
-	git tag -F ${LOG_DIR_CURRENT}/git.tag test_${DATE}_success
+	git tag -F ${LOG_DIR_CURRENT}/git.tag test/success/${DATE}
 	git push --tags origin
 fi
 rm -f ${LOG_DIR}/running

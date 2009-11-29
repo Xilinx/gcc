@@ -1,3 +1,7 @@
+2009-11-29  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* automatic_tester/run_build.sh: Put test results tags in directories.
+
 2009-09-17  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* automatic_tester/run_build.sh (update_src): Compute
