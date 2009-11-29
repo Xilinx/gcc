@@ -32,7 +32,7 @@ fi
 # Run the command on every yet untested branch head
 for branch in `git branch -a | sed -e 's/\*//;s/(no branch)//'` ; do
        echo Checking \'$branch\' for new commits
-       if test -z "`git tag -l --contains $branch test_\*`"; then
+       if test -z "`git tag -l --contains $branch test/\*`"; then
 	  run_command_for_branch $branch
        fi
 
