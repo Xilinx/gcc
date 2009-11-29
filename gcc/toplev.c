@@ -201,7 +201,7 @@ int optimize_size = 0;
 /* True if this is the lto front end.  This is used to disable
    gimple generation and lowering passes that are normally run on the
    output of a front end.  These passes must be bypassed for lto since
-   they have already been done before the gimple was written.  */ 
+   they have already been done before the gimple was written.  */
 
 bool in_lto_p = false;
 
@@ -888,9 +888,9 @@ check_global_declaration_1 (tree decl)
       && ! (TREE_CODE (decl) == VAR_DECL && DECL_REGISTER (decl))
       /* Otherwise, ask the language.  */
       && lang_hooks.decls.warn_unused_global (decl))
-    warning ((TREE_CODE (decl) == FUNCTION_DECL) 
-	     ? OPT_Wunused_function 
-             : OPT_Wunused_variable, 
+    warning ((TREE_CODE (decl) == FUNCTION_DECL)
+	     ? OPT_Wunused_function
+             : OPT_Wunused_variable,
 	     "%q+D defined but not used", decl);
 }
 
@@ -1125,7 +1125,7 @@ compile_file (void)
 
   /* Invoke registered plugin callbacks.  */
   invoke_plugin_callbacks (PLUGIN_FINISH_UNIT, NULL);
-  
+
   /* This must be at the end.  Some target ports emit end of file directives
      into the assembly file here, and hence we can not output anything to the
      assembly file after this point.  */
@@ -1314,7 +1314,7 @@ print_to_stderr (print_switch_type type, const char * text)
 
     case SWITCH_TYPE_LINE_START:
       return 0;
-      
+
     case SWITCH_TYPE_PASSED:
     case SWITCH_TYPE_ENABLED:
       fputc (' ', stderr);
@@ -1966,7 +1966,7 @@ process_options (void)
 
   /* Unless over-ridden for the target, assume that all DWARF levels
      may be emitted, if DWARF2_DEBUG is selected.  */
-  if (dwarf_strict < 0) 
+  if (dwarf_strict < 0)
     dwarf_strict = 0;
 
   /* A lot of code assumes write_symbols == NO_DEBUG if the debugging
@@ -2216,13 +2216,7 @@ backend_init_target (void)
 static void
 backend_init (void)
 {
-  init_emit_once (debug_info_level == DINFO_LEVEL_NORMAL
-		  || debug_info_level == DINFO_LEVEL_VERBOSE
-#ifdef VMS_DEBUGGING_INFO
-		    /* Enable line number info for traceback.  */
-		    || debug_info_level > DINFO_LEVEL_NONE
-#endif
-		    || flag_test_coverage);
+  init_emit_once ();
 
   init_rtlanal ();
   init_inline_once ();
@@ -2479,7 +2473,7 @@ toplev_main (int argc, char **argv)
   if (!exit_after_options)
     do_compile ();
 
-  if (warningcount || errorcount) 
+  if (warningcount || errorcount)
     print_ignored_options ();
 
   /* Invoke registered plugin callbacks if any.  */

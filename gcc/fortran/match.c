@@ -1,5 +1,5 @@
 /* Matching subroutines in all sizes, shapes and colors.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -2901,11 +2901,8 @@ done:
 static match
 match_typebound_call (gfc_symtree* varst)
 {
-  gfc_symbol* var;
   gfc_expr* base;
   match m;
-
-  var = varst->n.sym;
 
   base = gfc_get_expr ();
   base->expr_type = EXPR_VARIABLE;
@@ -2975,7 +2972,8 @@ gfc_match_call (void)
 
   /* If this is a variable of derived-type, it probably starts a type-bound
      procedure call.  */
-  if ((sym->attr.flavor != FL_PROCEDURE || sym == gfc_current_ns->proc_name)
+  if ((sym->attr.flavor != FL_PROCEDURE
+       || gfc_is_function_return_value (sym, gfc_current_ns))
       && (sym->ts.type == BT_DERIVED || sym->ts.type == BT_CLASS))
     return match_typebound_call (st);
 

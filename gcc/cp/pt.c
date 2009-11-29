@@ -1646,29 +1646,36 @@ explicit_class_specialization_p (tree type)
   return !uses_template_parms (CLASSTYPE_TI_ARGS (type));
 }
 
+/* Print the list of overloaded FNS in an error message.   */
+
+static void
+print_overloaded_functions (tree fns, const char **str)
+{
+  tree fn;
+  for (fn = fns; fn; fn = OVL_NEXT (fn))
+    {
+      if (TREE_CODE (fn) == TREE_LIST)
+	print_candidates (fn);
+      else
+	error ("%s %+#D", *str, OVL_CURRENT (fn));
+      *str = "               ";
+    }
+}
+
 /* Print the list of candidate FNS in an error message.  */
 
 void
 print_candidates (tree fns)
 {
-  tree fn;
-  tree f;
-
   const char *str = "candidates are:";
 
   if (is_overloaded_fn (fns))
+    print_overloaded_functions (fns, &str);
+  else
     {
-      for (f = fns; f; f = OVL_NEXT (f))
-	{
-	  error ("%s %+#D", str, OVL_CURRENT (f));
-	  str = "               ";
-	}
-    }
-  else for (fn = fns; fn != NULL_TREE; fn = TREE_CHAIN (fn))
-    {
-      for (f = TREE_VALUE (fn); f; f = OVL_NEXT (f))
-	error ("%s %+#D", str, OVL_CURRENT (f));
-      str = "               ";
+      tree fn;
+      for (fn = fns; fn != NULL_TREE; fn = TREE_CHAIN (fn))
+	print_overloaded_functions (TREE_VALUE (fn), &str);
     }
 }
 
@@ -1945,6 +1952,10 @@ determine_specialization (tree template_id,
     {
       error ("template-id %qD for %q+D does not match any template "
 	     "declaration", template_id, decl);
+      if (header_count && header_count != template_count + 1)
+	inform (input_location, "saw %d %<template<>%>, need %d for "
+		"specializing a member function template",
+		header_count, template_count + 1);
       return error_mark_node;
     }
   else if ((templates && TREE_CHAIN (templates))
@@ -12532,6 +12543,11 @@ tsubst_copy_and_build (tree t,
 		     integral_constant_expression_p);
 	stmt_expr = finish_stmt_expr (stmt_expr, false);
 	cur_stmt_expr = old_stmt_expr;
+
+	/* If the resulting list of expression statement is empty,
+	   fold it further into void_zero_node.  */
+	if (empty_expr_stmt_p (cur_stmt_expr))
+	  cur_stmt_expr = void_zero_node;
 
 	return stmt_expr;
       }
