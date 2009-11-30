@@ -1367,7 +1367,7 @@ if test -d ${srcdir}/gcc && test "x$have_gmp" = xno; then
     CFLAGS="$CFLAGS $mpcinc"
     AC_MSG_CHECKING([for the correct version of mpc.h])
     AC_TRY_COMPILE([#include <mpc.h>],[
-    #if MPC_VERSION < MPC_VERSION_NUM (0,7,0)
+    #if MPC_VERSION < MPC_VERSION_NUM (0,8,0)
     choke me
     #endif
     ], [AC_MSG_RESULT([yes]); have_mpc=maybe],
@@ -1414,6 +1414,7 @@ if test -d ${srcdir}/gcc && test "x$have_gmp" = xno; then
     mpc_neg (n, n, MPC_RNDNN);
     mpc_sqr (n, n, MPC_RNDNN);
     mpc_pow (n, n, n, MPC_RNDNN);
+    mpc_acosh (n, n, MPC_RNDNN);
     mpc_clear (n);
     ], [AC_MSG_RESULT([yes]); have_mpc=yes],
        [AC_MSG_RESULT([no]); have_mpc=no; mpclibs= ; mpcinc= ])
@@ -1613,9 +1614,9 @@ ENABLE_CLOOG_CHECK=yes)
 if test "x$with_cloog" != "xno" -a "${ENABLE_CLOOG_CHECK}" = "yes"; then
   saved_CFLAGS="$CFLAGS"
   CFLAGS="$CFLAGS $clooginc $gmpinc $pplinc"
-  AC_MSG_CHECKING([for correct version of CLooG])
+  AC_MSG_CHECKING([for version 0.15.5 (or later revision) of CLooG])
   AC_TRY_COMPILE([#include "cloog/cloog.h"],[
-  #if CLOOG_VERSION_MAJOR != 0 || CLOOG_VERSION_MINOR != 15
+  #if CLOOG_VERSION_MAJOR != 0 || CLOOG_VERSION_MINOR != 15 || CLOOG_VERSION_REVISION < 5
   choke me
   #endif
   ], [AC_MSG_RESULT([yes])], [AC_MSG_RESULT([no]); clooglibs= ; clooginc= ])

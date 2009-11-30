@@ -344,7 +344,7 @@ not installed in your default library search path.
 
 Necessary to build libgcj, the GCJ runtime.
 
-@item MPC Library version 0.7.0 (or later)
+@item MPC Library version 0.8.0 (or later)
 
 Optional when building GCC@.  Having this library will enable
 additional optimizations on complex numbers.  It can be downloaded
@@ -1118,7 +1118,8 @@ RTEMS thread support.
 @item single
 Disable thread support, should work for all platforms.
 @item solaris
-Sun Solaris 2 thread support.
+Sun Solaris 2/Unix International thread support.  Only use this if you
+really need to use this legacy API instead of the default, @samp{posix}.
 @item vxworks
 VxWorks thread support.
 @item win32

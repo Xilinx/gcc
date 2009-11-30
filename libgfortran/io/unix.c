@@ -1287,7 +1287,9 @@ find_file (const char *file, gfc_charlen_type file_len)
   char path[PATH_MAX + 1];
   struct stat st[2];
   gfc_unit *u;
-  uint64_t id;
+#if defined(__MINGW32__) && !HAVE_WORKING_STAT
+  uint64_t id = 0ULL;
+#endif
 
   if (unpack_filename (path, file, file_len))
     return NULL;
@@ -1297,8 +1299,6 @@ find_file (const char *file, gfc_charlen_type file_len)
 
 #if defined(__MINGW32__) && !HAVE_WORKING_STAT
   id = id_from_path (path);
-#else
-  id = 0;
 #endif
 
   __gthread_mutex_lock (&unit_lock);

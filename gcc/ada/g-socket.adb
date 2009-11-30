@@ -46,7 +46,8 @@ with GNAT.Sockets.Linker_Options;
 pragma Warnings (Off, GNAT.Sockets.Linker_Options);
 --  Need to include pragma Linker_Options which is platform dependent
 
-with System; use System;
+with System;               use System;
+with System.Communication; use System.Communication;
 
 package body GNAT.Sockets is
 
@@ -162,7 +163,7 @@ package body GNAT.Sockets is
    function To_Host_Entry (E : Hostent) return Host_Entry_Type;
    --  Conversion function
 
-   function To_Service_Entry (E : Servent) return Service_Entry_Type;
+   function To_Service_Entry (E : Servent_Access) return Service_Entry_Type;
    --  Conversion function
 
    function To_Timeval (Val : Timeval_Duration) return Timeval;
@@ -248,14 +249,6 @@ package body GNAT.Sockets is
 
    function Err_Code_Image (E : Integer) return String;
    --  Return the value of E surrounded with brackets
-
-   function Last_Index
-     (First : Stream_Element_Offset;
-      Count : C.int) return Stream_Element_Offset;
-   --  Compute the Last OUT parameter for the various Receive_Socket
-   --  subprograms: returns First + Count - 1, except for the case
-   --  where First = Stream_Element_Offset'First and Res = 0, in which
-   --  case Stream_Element_Offset'Last is returned instead.
 
    procedure Initialize (X : in out Sockets_Library_Controller);
    procedure Finalize   (X : in out Sockets_Library_Controller);
@@ -977,7 +970,7 @@ package body GNAT.Sockets is
 
       --  Translate from the C format to the API format
 
-      return To_Service_Entry (Res);
+      return To_Service_Entry (Res'Unchecked_Access);
    end Get_Service_By_Name;
 
    -------------------------
@@ -1003,7 +996,7 @@ package body GNAT.Sockets is
 
       --  Translate from the C format to the API format
 
-      return To_Service_Entry (Res);
+      return To_Service_Entry (Res'Unchecked_Access);
    end Get_Service_By_Port;
 
    ---------------------
@@ -1415,22 +1408,6 @@ package body GNAT.Sockets is
         and then Socket <= Item.Last
         and then Is_Socket_In_Set (Item.Set'Access, C.int (Socket)) /= 0;
    end Is_Set;
-
-   ----------------
-   -- Last_Index --
-   ----------------
-
-   function Last_Index
-     (First : Stream_Element_Offset;
-      Count : C.int) return Stream_Element_Offset
-   is
-   begin
-      if First = Stream_Element_Offset'First and then Count = 0 then
-         return Stream_Element_Offset'Last;
-      else
-         return First + Stream_Element_Offset (Count - 1);
-      end if;
-   end Last_Index;
 
    -------------------
    -- Listen_Socket --
@@ -2375,17 +2352,17 @@ package body GNAT.Sockets is
    -- To_Service_Entry --
    ----------------------
 
-   function To_Service_Entry (E : Servent) return Service_Entry_Type is
+   function To_Service_Entry (E : Servent_Access) return Service_Entry_Type is
       use type C.size_t;
 
-      Official : constant String := C.Strings.Value (E.S_Name);
+      Official : constant String := C.Strings.Value (Servent_S_Name (E));
 
       Aliases : constant Chars_Ptr_Array :=
-                  Chars_Ptr_Pointers.Value (E.S_Aliases);
+                  Chars_Ptr_Pointers.Value (Servent_S_Aliases (E));
       --  S_Aliases points to a list of name aliases. The list is
       --  terminated by a NULL pointer.
 
-      Protocol : constant String := C.Strings.Value (E.S_Proto);
+      Protocol : constant String := C.Strings.Value (Servent_S_Proto (E));
 
       Result : Service_Entry_Type (Aliases_Length => Aliases'Length - 1);
       --  The last element is a null pointer
@@ -2406,7 +2383,7 @@ package body GNAT.Sockets is
       end loop;
 
       Result.Port :=
-        Port_Type (Network_To_Short (C.unsigned_short (E.S_Port)));
+        Port_Type (Network_To_Short (C.unsigned_short (Servent_S_Port (E))));
 
       Result.Protocol := To_Name (Protocol);
       return Result;

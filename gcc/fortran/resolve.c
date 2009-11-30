@@ -776,7 +776,7 @@ resolve_common_blocks (gfc_symtree *common_root)
     gfc_error ("COMMON block '%s' at %L is also an intrinsic procedure",
 	       sym->name, &common_root->n.common->where);
   else if (sym->attr.result
-	   ||(sym->attr.function && gfc_current_ns->proc_name == sym))
+	   || gfc_is_function_return_value (sym, gfc_current_ns))
     gfc_notify_std (GFC_STD_F2003, "Fortran 2003: COMMON block '%s' at %L "
 		    "that is also a function result", sym->name,
 		    &common_root->n.common->where);
@@ -1321,6 +1321,8 @@ resolve_actual_arglist (gfc_actual_arglist *arg, procedure_type ptype,
 		e->rank = comp->as->rank;
 	      e->expr_type = EXPR_FUNCTION;
 	    }
+	  if (gfc_resolve_expr (e) == FAILURE)                          
+	    return FAILURE; 
 	  goto argument_list;
 	}
 
@@ -1398,10 +1400,7 @@ resolve_actual_arglist (gfc_actual_arglist *arg, procedure_type ptype,
 	  /* If the symbol is the function that names the current (or
 	     parent) scope, then we really have a variable reference.  */
 
-	  if (sym->attr.function && sym->result == sym
-	      && (sym->ns->proc_name == sym
-		  || (sym->ns->parent != NULL
-		      && sym->ns->parent->proc_name == sym)))
+	  if (gfc_is_function_return_value (sym, sym->ns))
 	    goto got_variable;
 
 	  /* If all else fails, see if we have a specific intrinsic.  */
@@ -2519,6 +2518,10 @@ resolve_function (gfc_expr *expr)
   if (expr->symtree)
     sym = expr->symtree->n.sym;
 
+  /* If this is a procedure pointer component, it has already been resolved.  */
+  if (gfc_is_proc_ptr_comp (expr, NULL))
+    return SUCCESS;
+  
   if (sym && sym->attr.intrinsic
       && resolve_intrinsic (sym, &expr->where) == FAILURE)
     return FAILURE;
@@ -5119,7 +5122,6 @@ check_members (gfc_symbol *derived)
 static void 
 check_class_members (gfc_symbol *derived)
 {
-  gfc_symbol* tbp_sym;
   gfc_expr *e;
   gfc_symtree *tbp;
   gfc_class_esym_list *etmp;
@@ -5139,8 +5141,6 @@ check_class_members (gfc_symbol *derived)
 
   if (tbp->n.tb->is_generic)
     {
-      tbp_sym = NULL;
-
       /* If we have to match a passed class member, force the actual
 	 expression to have the correct type.  */
       if (!tbp->n.tb->nopass)
@@ -5153,8 +5153,6 @@ check_class_members (gfc_symbol *derived)
           e->value.compcall.base_object->ts.u.derived = derived;
 	}
     }
-  else
-    tbp_sym = tbp->n.tb->u.specific->n.sym;
 
   e->value.compcall.tbp = tbp->n.tb;
   e->value.compcall.name = tbp->name;
@@ -7607,14 +7605,12 @@ resolve_ordinary_assign (gfc_code *code, gfc_namespace *ns)
 
   if (gfc_extend_assign (code, ns) == SUCCESS)
     {
-      gfc_symbol* assign_proc;
       gfc_expr** rhsptr;
 
       if (code->op == EXEC_ASSIGN_CALL)
 	{
 	  lhs = code->ext.actual->expr;
 	  rhsptr = &code->ext.actual->next->expr;
-	  assign_proc = code->symtree->n.sym;
 	}
       else
 	{
@@ -7629,7 +7625,6 @@ resolve_ordinary_assign (gfc_code *code, gfc_namespace *ns)
 
 	  tbp = code->expr1->value.compcall.tbp;
 	  gcc_assert (!tbp->is_generic);
-	  assign_proc = tbp->u.specific->n.sym;
 	}
 
       /* Make a temporary rhs when there is a default initializer
@@ -10219,8 +10214,9 @@ resolve_fl_derived (gfc_symbol *sym)
 	}
       else if (c->attr.proc_pointer && c->ts.type == BT_UNKNOWN)
 	{
-	  c->ts = *gfc_get_default_type (c->name, NULL);
-	  c->attr.implicit_type = 1;
+	  /* Since PPCs are not implicitly typed, a PPC without an explicit
+	     interface must be a subroutine.  */
+	  gfc_add_subroutine (&c->attr, c->name, &c->loc);
 	}
 
       /* Procedure pointer components: Check PASS arg.  */
@@ -11686,10 +11682,8 @@ resolve_equivalence (gfc_equiv *eq)
   seq_type eq_type, last_eq_type;
   gfc_typespec *last_ts;
   int object, cnt_protected;
-  const char *value_name;
   const char *msg;
 
-  value_name = NULL;
   last_ts = &eq->expr->symtree->n.sym->ts;
 
   first_sym = eq->expr->symtree->n.sym;

@@ -125,7 +125,9 @@ struct access
   HOST_WIDE_INT size;
   tree base;
 
-  /* Expression.  */
+  /* Expression.  It is context dependent so do not use it to create new
+     expressions to access the original aggregate.  See PR 42154 for a
+     testcase.  */
   tree expr;
   /* Type.  */
   tree type;
@@ -2113,10 +2115,17 @@ sra_modify_expr (tree *expr, gimple_stmt_iterator *gsi, bool write,
 	 gcc.c-torture/compile/20011217-1.c.  */
       if (!is_gimple_reg_type (type))
 	{
-	  gimple stmt;
+	  tree ref = access->base;
+	  bool ok;
+
+	  ok = build_ref_for_offset (&ref, TREE_TYPE (ref),
+				     access->offset, access->type, false);
+	  gcc_assert (ok);
+
 	  if (write)
 	    {
-	      tree ref = unshare_expr (access->expr);
+	      gimple stmt;
+
 	      if (access->grp_partial_lhs)
 		ref = force_gimple_operand_gsi (gsi, ref, true, NULL_TREE,
 						 false, GSI_NEW_STMT);
@@ -2125,10 +2134,12 @@ sra_modify_expr (tree *expr, gimple_stmt_iterator *gsi, bool write,
 	    }
 	  else
 	    {
+	      gimple stmt;
+
 	      if (access->grp_partial_lhs)
 		repl = force_gimple_operand_gsi (gsi, repl, true, NULL_TREE,
 						 true, GSI_SAME_STMT);
-	      stmt = gimple_build_assign (unshare_expr (access->expr), repl);
+	      stmt = gimple_build_assign (ref, repl);
 	      gsi_insert_before (gsi, stmt, GSI_SAME_STMT);
 	    }
 	}
@@ -2227,8 +2238,6 @@ load_assign_lhs_subreplacements (struct access *lacc, struct access *top_racc,
 	    }
 	  else
 	    {
-	      bool repl_found;
-
 	      /* No suitable access on the right hand side, need to load from
 		 the aggregate.  See if we have to update it first... */
 	      if (*refreshed == SRA_UDH_NONE)
@@ -2236,9 +2245,19 @@ load_assign_lhs_subreplacements (struct access *lacc, struct access *top_racc,
 								  lhs, old_gsi);
 
 	      if (*refreshed == SRA_UDH_LEFT)
-		rhs = unshare_expr (lacc->expr);
+		{
+		  bool repl_found;
+
+		  rhs = lacc->base;
+		  repl_found = build_ref_for_offset (&rhs, TREE_TYPE (rhs),
+						     lacc->offset, lacc->type,
+						     false);
+		  gcc_assert (repl_found);
+		}
 	      else
 		{
+		  bool repl_found;
+
 		  rhs = top_racc->base;
 		  repl_found = build_ref_for_offset (&rhs,
 						     TREE_TYPE (top_racc->base),
@@ -3459,7 +3478,10 @@ get_replaced_param_substitute (struct ipa_parm_adjustment *adj)
     {
       char *pretty_name = make_fancy_name (adj->base);
 
-      repl = make_rename_temp (TREE_TYPE (adj->base), "ISR");
+      repl = create_tmp_var (TREE_TYPE (adj->base), "ISR");
+      if (TREE_CODE (TREE_TYPE (repl)) == COMPLEX_TYPE
+	  || TREE_CODE (TREE_TYPE (repl)) == VECTOR_TYPE)
+	DECL_GIMPLE_REG_P (repl) = 1;
       DECL_NAME (repl) = get_identifier (pretty_name);
       obstack_free (&name_obstack, pretty_name);
 
@@ -3497,7 +3519,8 @@ get_adjustment_for_base (ipa_parm_adjustment_vec adjustments, tree base)
 /* Callback for scan_function.  If the statement STMT defines an SSA_NAME of a
    parameter which is to be removed because its value is not used, replace the
    SSA_NAME with a one relating to a created VAR_DECL and replace all of its
-   uses too.  DATA is a pointer to an adjustments vector.  */
+   uses too and return true (update_stmt is then issued for the statement by
+   the caller).  DATA is a pointer to an adjustments vector.  */
 
 static bool
 replace_removed_params_ssa_names (gimple stmt, void *data)

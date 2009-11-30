@@ -637,7 +637,7 @@ has_nonexceptional_receiver (void)
   /* If we're not optimizing, then just err on the safe side.  */
   if (!optimize)
     return true;
-  
+
   /* First determine which blocks can reach exit via normal paths.  */
   tos = worklist = XNEWVEC (basic_block, n_basic_blocks + 1);
 
@@ -647,7 +647,7 @@ has_nonexceptional_receiver (void)
   /* Place the exit block on our worklist.  */
   EXIT_BLOCK_PTR->flags |= BB_REACHABLE;
   *tos++ = EXIT_BLOCK_PTR;
-  
+
   /* Iterate: find everything reachable from what we've already seen.  */
   while (tos != worklist)
     {
@@ -787,7 +787,7 @@ reload (rtx first, int global)
 
   for (n = 0, i = LAST_VIRTUAL_REGISTER + 1; i < max_regno; i++)
     alter_reg (i, -1, false);
-  
+
   /* If we have some registers we think can be eliminated, scan all insns to
      see if there is an insn that sets one of these registers to something
      other than itself plus a constant.  If so, the register cannot be
@@ -952,7 +952,7 @@ reload (rtx first, int global)
 	something_changed = 1;
 
       /* Even if the frame size remained the same, we might still have
-	 changed elimination offsets, e.g. if find_reloads called 
+	 changed elimination offsets, e.g. if find_reloads called
 	 force_const_mem requiring the back end to allocate a constant
 	 pool base register that needs to be saved on the stack.  */
       else if (!verify_initial_elim_offsets ())
@@ -1063,7 +1063,7 @@ reload (rtx first, int global)
   if (! frame_pointer_needed)
     FOR_EACH_BB (bb)
       bitmap_clear_bit (df_get_live_in (bb), HARD_FRAME_POINTER_REGNUM);
-	
+
   /* Come here (with failure set nonzero) if we can't get enough spill
      regs.  */
  failed:
@@ -3378,7 +3378,7 @@ eliminate_regs_in_insn (rtx insn, int replace)
 		/* First see if this insn remains valid when we make the
 		   change.  If not, try to replace the whole pattern with
 		   a simple set (this may help if the original insn was a
-		   PARALLEL that was only recognized as single_set due to 
+		   PARALLEL that was only recognized as single_set due to
 		   REG_UNUSED notes).  If this isn't valid either, keep
 		   the INSN_CODE the same and let reload fix it up.  */
 		if (!validate_change (insn, &SET_SRC (old_set), new_src, 0))
@@ -3753,7 +3753,7 @@ update_eliminables (HARD_REG_SET *pset)
   struct elim_table *ep;
 
   for (ep = reg_eliminate; ep < &reg_eliminate[NUM_ELIMINABLE_REGS]; ep++)
-    if ((ep->from == HARD_FRAME_POINTER_REGNUM 
+    if ((ep->from == HARD_FRAME_POINTER_REGNUM
          && targetm.frame_pointer_required ())
 #ifdef ELIMINABLE_REGS
 	|| ! targetm.can_eliminate (ep->from, ep->to)
@@ -3864,7 +3864,7 @@ init_elim_table (void)
       ep->can_eliminate = ep->can_eliminate_previous
 	= (targetm.can_eliminate (ep->from, ep->to)
 	   && ! (ep->to == STACK_POINTER_REGNUM
-		 && frame_pointer_needed 
+		 && frame_pointer_needed
 		 && (! SUPPORTS_STACK_ALIGNMENT
 		     || ! stack_realign_fp)));
     }
@@ -3963,7 +3963,7 @@ finish_spills (int global)
 	   in pseudo_previous_regs so we avoid reallocating it to the
 	   same hard reg in a later pass.  */
 	gcc_assert (reg_renumber[i] >= 0);
-	
+
 	SET_HARD_REG_BIT (pseudo_previous_regs[i], reg_renumber[i]);
 	/* Mark it as no longer having a hard register home.  */
 	reg_renumber[i] = -1;
@@ -4485,7 +4485,7 @@ reload_as_needed (int live_known)
    unless X is an output reload reg of the current insn.
 
    X may be a hard reg (the reload reg)
-   or it may be a pseudo reg that was reloaded from.  
+   or it may be a pseudo reg that was reloaded from.
 
    When DATA is non-NULL just mark the registers in regset
    to be forgotten later.  */
@@ -5252,11 +5252,11 @@ gen_reload_chain_without_interm_reg_p (int r1, int r2)
 	     reload has completed.  */
 	  result = constrain_operands (1);
 	}
-      
+
       delete_insns_since (last);
       return result;
     }
-  
+
   /* It looks like other cases in gen_reload are not possible for
      chain reloads or do need an intermediate hard registers.  */
   return true;
@@ -8132,7 +8132,7 @@ emit_reload_insns (struct insn_chain *chain)
 		      SET_HARD_REG_BIT (reg_reloaded_valid, src_regno + k);
 		      if (HARD_REGNO_CALL_PART_CLOBBERED (src_regno + k,
 							  mode))
-			SET_HARD_REG_BIT (reg_reloaded_call_part_clobbered, 
+			SET_HARD_REG_BIT (reg_reloaded_call_part_clobbered,
 					  src_regno + k);
 		      else
 			CLEAR_HARD_REG_BIT (reg_reloaded_call_part_clobbered,
@@ -8144,7 +8144,7 @@ emit_reload_insns (struct insn_chain *chain)
 			CLEAR_HARD_REG_BIT (reg_reloaded_died, src_regno);
 		    }
 		  reg_last_reload_reg[out_regno] = src_reg;
-		  /* We have to set reg_has_output_reload here, or else 
+		  /* We have to set reg_has_output_reload here, or else
 		     forget_old_reloads_1 will clear reg_last_reload_reg
 		     right away.  */
 		  SET_REGNO_REG_SET (&reg_has_output_reload,
@@ -8978,7 +8978,7 @@ fixup_abnormal_edges (void)
 	    }
 
 	  /* It may be that we don't find any such trapping insn.  In this
-	     case we discovered quite late that the insn that had been 
+	     case we discovered quite late that the insn that had been
 	     marked as can_throw_internal in fact couldn't trap at all.
 	     So we should in fact delete the EH edges out of the block.  */
 	  else

@@ -58,7 +58,7 @@ ira_loop_tree_node_t ira_bb_nodes;
    array.  */
 ira_loop_tree_node_t ira_loop_nodes;
 
-/* Map regno -> allocnos with given regno (see comments for 
+/* Map regno -> allocnos with given regno (see comments for
    allocno member `next_regno_allocno').  */
 ira_allocno_t *ira_regno_allocno_map;
 
@@ -895,7 +895,7 @@ ira_copy_allocno_live_range_list (allocno_live_range_t r)
 /* Merge ranges R1 and R2 and returns the result.  The function
    maintains the order of ranges and tries to minimize number of the
    result ranges.  */
-allocno_live_range_t 
+allocno_live_range_t
 ira_merge_allocno_live_ranges (allocno_live_range_t r1,
 			       allocno_live_range_t r2)
 {
@@ -1426,7 +1426,7 @@ ira_traverse_loop_tree (bool bb_p, ira_loop_tree_node_t loop_node,
 
   if (preorder_func != NULL)
     (*preorder_func) (loop_node);
-  
+
   if (bb_p)
     for (subloop_node = loop_node->children;
 	 subloop_node != NULL;
@@ -1435,11 +1435,11 @@ ira_traverse_loop_tree (bool bb_p, ira_loop_tree_node_t loop_node,
 	{
 	  if (preorder_func != NULL)
 	    (*preorder_func) (subloop_node);
-  
+
 	  if (postorder_func != NULL)
 	    (*postorder_func) (subloop_node);
 	}
-  
+
   for (subloop_node = loop_node->subloops;
        subloop_node != NULL;
        subloop_node = subloop_node->subloop_next)
@@ -1481,7 +1481,7 @@ create_insn_allocnos (rtx x, bool output_p)
 
 	  if ((a = ira_curr_regno_allocno_map[regno]) == NULL)
 	    a = ira_create_allocno (regno, false, ira_curr_loop_tree_node);
-	  
+
 	  ALLOCNO_NREFS (a)++;
 	  ALLOCNO_FREQ (a) += REG_FREQ_FROM_BB (curr_bb);
 	  if (output_p)
@@ -1505,7 +1505,7 @@ create_insn_allocnos (rtx x, bool output_p)
       create_insn_allocnos (XEXP (x, 0), false);
       return;
     }
-  else if (code == PRE_DEC || code == POST_DEC || code == PRE_INC || 
+  else if (code == PRE_DEC || code == POST_DEC || code == PRE_INC ||
 	   code == POST_INC || code == POST_MODIFY || code == PRE_MODIFY)
     {
       create_insn_allocnos (XEXP (x, 0), true);
@@ -1596,7 +1596,7 @@ create_loop_tree_node_allocnos (ira_loop_tree_node_t loop_node)
       FOR_EACH_EDGE (e, ei, loop_node->loop->header->preds)
 	if (e->src != loop_node->loop->latch)
 	  create_loop_allocnos (e);
-      
+
       edges = get_loop_exit_edges (loop_node->loop);
       for (i = 0; VEC_iterate (edge, edges, i, e); i++)
 	create_loop_allocnos (e);
@@ -1710,10 +1710,10 @@ low_pressure_loop_node_p (ira_loop_tree_node_t node)
 {
   int i;
   enum reg_class cover_class;
-  
+
   if (node->bb != NULL)
     return false;
-  
+
   for (i = 0; i < ira_reg_class_cover_size; i++)
     {
       cover_class = ira_reg_class_cover[i];
@@ -1920,7 +1920,7 @@ ira_rebuild_regno_allocno_list (int regno)
        a = ALLOCNO_NEXT_REGNO_ALLOCNO (a))
     regno_allocnos[n++] = a;
   ira_assert (n > 0);
-  qsort (regno_allocnos, n, sizeof (ira_allocno_t), 
+  qsort (regno_allocnos, n, sizeof (ira_allocno_t),
 	 regno_allocno_order_compare_func);
   for (i = 1; i < n; i++)
     ALLOCNO_NEXT_REGNO_ALLOCNO (regno_allocnos[i - 1]) = regno_allocnos[i];
@@ -2349,7 +2349,7 @@ setup_min_max_conflict_allocno_ids (void)
 					 [first_not_finished]))
 	    first_not_finished++;
 	  min = first_not_finished;
-	}	  
+	}
       if (min == i)
 	/* We could increase min further in this case but it is good
 	   enough.  */
@@ -2559,7 +2559,7 @@ ira_flattening (int max_regno_before_emit, int ira_max_point_before_emit)
 	      continue;
 	    }
 	  ira_assert (ALLOCNO_CAP_MEMBER (parent_a) == NULL);
-	  
+
 	  if (ALLOCNO_MEM_OPTIMIZED_DEST (a) != NULL)
 	    mem_dest_p = true;
 	  if (REGNO (ALLOCNO_REG (a)) == REGNO (ALLOCNO_REG (parent_a)))
@@ -2670,7 +2670,7 @@ ira_flattening (int max_regno_before_emit, int ira_max_point_before_emit)
 		    ira_add_allocno_conflict (a, live_a);
 		}
 	    }
-	  
+
 	  for (r = ira_finish_point_ranges[i]; r != NULL; r = r->finish_next)
 	    sparseset_clear_bit (allocnos_live, ALLOCNO_NUM (r->allocno));
 	}
