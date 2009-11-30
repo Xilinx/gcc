@@ -2392,7 +2392,8 @@ expand_case (gimple stmt)
 		  as negative numbers.  */
 	       || compare_tree_int (range, 0) < 0
 	       || ((targetm.bb_partitioning.dont_create_jumptable != 0)
-	           && targetm.bb_partitioning.dont_create_jumptable (count))
+	           && targetm.bb_partitioning.dont_create_jumptable
+		   (tree_low_cst (range, 0) + 1))
 #ifndef ASM_OUTPUT_ADDR_DIFF_ELT
 	       || flag_pic
 #endif

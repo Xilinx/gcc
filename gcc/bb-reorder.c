@@ -1518,6 +1518,8 @@ start_new_section_for_loop (basic_block bb,
   if (last_section_size == 0)
     return false;
 
+  gcc_assert (estimate_max_section_size != 0);
+
   /* The loops are sorted in loops_info_list according to the loop size
      (in bytes); where the loop with the samllest layout appears first.
    */
@@ -1541,6 +1543,62 @@ start_new_section_for_loop (basic_block bb,
 	}
     }
   return false;
+}
+
+/* The overhead (in bytes) of creating a new section includes adding
+   unconditional branch instruction between sections should also be
+   taken into account.  */
+static void
+get_estimate_section_overhead (basic_block bb)
+{
+  edge e;
+  edge_iterator ei;
+
+  gcc_assert (flag_partition_functions_into_sections != 0);
+
+  estimate_section_overhead = 0;
+  estimate_max_section_size = 0;
+
+  if (uncond_jump_length == 0)
+    uncond_jump_length = get_uncond_jump_length ();
+
+  if (dump_file)
+    fprintf (dump_file, ";; In get_estimate_section_overhead\n");
+  /* If the basic-block does not have fallthru edge then no need
+     to add overhead for it.  */
+  FOR_EACH_EDGE (e, ei, bb->succs)
+  {
+    if (dump_file)
+      {
+	dump_edge_info (dump_file, e, 1);
+	fprintf (dump_file, "\n");
+      }
+    if ((e->flags & EDGE_CAN_FALLTHRU) || (e->flags & EDGE_FALLTHRU))
+      {
+	if (dump_file)
+	  {
+	    fprintf (dump_file, "Found fallthru edge: ");
+	    dump_edge_info (dump_file, e, 1);
+	    fprintf (dump_file, "\n");
+	  }
+
+	if (targetm.bb_partitioning.fallthru_edge_overhead != 0)
+	  {
+	    /* The machine depndent pass could add extra instructions
+	       as a result of the new branches.  */
+	    estimate_section_overhead =
+	      targetm.bb_partitioning.fallthru_edge_overhead ();
+	    return;
+	  }
+	else
+	  {
+	    estimate_section_overhead = uncond_jump_length;
+	    return;
+	  }
+      }
+  }
+  if (dump_file)
+    fprintf (dump_file, ";; Fallthru edge does not exist\n");
 }
 
 /* Create sections for the current function.  Return the edges that
@@ -1581,15 +1639,18 @@ create_sections (void)
   unsigned HOST_WIDE_INT last_section_size = 0;
   int current_section_id = 0;
   unsigned HOST_WIDE_INT first_partition_actual_size;
-  
+  int split_section_overhead = 0;
+
+  if (targetm.bb_partitioning.fallthru_edge_overhead != 0)
+    split_section_overhead = targetm.bb_partitioning.fallthru_edge_overhead ();
+  else
+    split_section_overhead = uncond_jump_length;
+
   /* Mark which section each basic block belongs in.  */
   if (dump_file)
     fprintf (dump_file,
-	     "\n\n--- partition functions into sections --- (%dB)\n\n"
-	     ";; section overhead size %dB\n" ";; max section size %dB\n\n",
-	     flag_partition_functions_into_sections,
-	     (int) estimate_section_overhead,
-	     (int) estimate_max_section_size);
+	     "\n\n--- partition functions into sections --- (%dB)\n\n",
+	     flag_partition_functions_into_sections);
   
   FOR_EACH_BB (bb)
     {
@@ -1597,17 +1658,24 @@ create_sections (void)
       bool start_new_section_for_loop_p = false;
       bool start_new_section_due_to_hotness_prop_p = false;
       bool start_new_sction_md_p = false;
+      unsigned HOST_WIDE_INT first_partition_size = 0;
       
       /* Validate that fbb_data array has a corresponding element for
 	 this bb, so we could access it directly.  */
       validate_fbb_data_element (bb->index);
-      
+      get_estimate_section_overhead (bb);
+      /* Update the maximum section size (in bytes).  */
+      estimate_max_section_size =
+	flag_partition_functions_into_sections - estimate_section_overhead;
       bb_size = estimate_size_of_insns_in_bb (bb);
       if (dump_file)
 	fprintf (dump_file,
 		 ";; Trying to add bb %d (" HOST_WIDE_INT_PRINT_DEC
-		 "B) to section %d", bb->index, bb_size, current_section_id);
-     
+		 "B) to section %d \n;; section overhead size %dB\n"
+		 ";; max section size %dB\n\n", bb->index, bb_size, 
+		 current_section_id, (int) estimate_section_overhead,
+		 (int) estimate_max_section_size);
+      
       if (targetm.bb_partitioning.start_new_section != 0)
         start_new_sction_md_p =
           targetm.bb_partitioning.start_new_section (bb->index, bb_size,
@@ -1683,8 +1751,9 @@ create_sections (void)
 	     3) The hotness property of this basic block is different then
 	     the previous.  
              4) There is a machine-specific reasons.  */
-	  if ((last_section_size != 0
-	       && bb_size <= estimate_max_section_size)
+ 	  if ((last_section_size != 0
+ 	       && bb_size <= estimate_max_section_size)
+              || last_section_size > estimate_max_section_size / 2 
 	      || start_new_section_for_loop_p
 	      || start_new_section_due_to_hotness_prop_p
 	      || start_new_sction_md_p)
@@ -1699,12 +1768,16 @@ create_sections (void)
 	      continue;
 	    }
 
+	  first_partition_size = flag_partition_functions_into_sections
+	    - last_section_size - split_section_overhead;
+	  if (dump_file)
+	    fprintf (dump_file, ";; Split bb with first partition size: " 
+		     HOST_WIDE_INT_PRINT_DEC "\n", first_partition_size);
 	  /* Split the basic-block.  Try to insert it's first partition
 	     to the last section such that the section size will not exceed
 	     the section size threshold.  */
 	  new_bb =
-	    split_bb (bb,
-		      estimate_max_section_size - last_section_size,
+	    split_bb (bb, first_partition_size,
 		      &first_partition_actual_size);
 	  
 	  if (new_bb != NULL)
@@ -3212,33 +3285,6 @@ struct rtl_opt_pass pass_partition_blocks_hot_cold =
  }
 };
 
-/* The overhead (in bytes) of creating a new section includes adding
-   unconditional branch instruction between sections should also be
-   taken into account.  */
-static void
-get_estimate_section_overhead (void)
-{
-  gcc_assert (flag_partition_functions_into_sections != 0);
-
-  estimate_section_overhead = 0;
-  estimate_max_section_size = 0;
-
-  if (uncond_jump_length == 0)
-    uncond_jump_length = get_uncond_jump_length ();
-
-  if (targetm.bb_partitioning.estimate_section_overhead != 0)
-    {
-      /* The machine depndent pass could add extra instructions
-         as a result of the new branches.  */
-      estimate_section_overhead =
-        targetm.bb_partitioning.estimate_section_overhead ();
-    }
-  /* Add the size of the new branch that will be created for each
-     sections.  */
-  else
-    estimate_section_overhead += uncond_jump_length;
-}
-
 /* Return TRUE if an instruction exists such that it exceeds the threshold
    of the section size.  Otherwise return FALSE.  */
 static bool
@@ -3250,6 +3296,11 @@ instruction_size_exceeds_threshold (void)
 
   FOR_EACH_BB (bb)
     {
+      /* Estimate the overhead in creating new section in term of the new
+	 instruction that are needed to support it and need to be
+	 considered.  */
+      get_estimate_section_overhead (bb);
+      
       FOR_BB_INSNS (bb, insn)
 	{
 	  if (NONDEBUG_INSN_P (insn) || NOTE_P (insn))
@@ -3277,15 +3328,9 @@ static bool
 gate_handle_partition_blocks_size (void)
 {
   if ((flag_partition_functions_into_sections == 0)
-      || DECL_ONE_ONLY (current_function_decl)
       || user_defined_section_attribute)
     return 0;
  
-  /* Estimate the overhead in creating new section in term of the new
-     instruction that are needed to support it and need to be
-     considered.  */
-  get_estimate_section_overhead ();
-    
   /* Make sure there is no instruction with size that exceeds the
      estimated section size.  */
   return (!instruction_size_exceeds_threshold ());
@@ -3354,7 +3399,7 @@ struct rtl_opt_pass pass_partition_blocks_size =
    0,                                    /* properties_required */
    0,                                    /* properties_provided */
    0,                                    /* properties_destroyed */
-   TODO_dump_func,                       /* todo_flags_start */
+   0,                                    /* todo_flags_start */
    TODO_dump_func,                       /* todo_flags_finish */
   }
 };

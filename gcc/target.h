@@ -805,10 +805,6 @@ struct gcc_target
   /* Functions relating to basic-block partitioning into sections.  */
   struct bb_partitioning_into_sections
   {
-    /* Estimate the number of extra instructions that will be added for each
-       section.  Called when partitioning a function into sections.  */
-    unsigned HOST_WIDE_INT (* estimate_section_overhead) (void);
-
     /* Return the size of instruction in bytes.  Take into account the
        size of extra machine depndent instructions that can be added as
        a result of insn. (like branch-hints for branch instructions).
@@ -833,6 +829,11 @@ struct gcc_target
     bool (* dont_create_jumptable) (unsigned int table_size);
     /* Free the data structures needed for function partitioning.  */
     void (* fpart_finalize) (void);
+    /* Estimate the number of extra instructions (in bytes) that will
+       be added for a fallthru edge that might be converted into a branch
+       between two sections.  Called when partitioning a function into
+       sections.  */
+    unsigned HOST_WIDE_INT (* fallthru_edge_overhead) (void);
   } bb_partitioning;
 
   /* Create the __builtin_va_list type.  */

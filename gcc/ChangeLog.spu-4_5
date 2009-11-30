@@ -1,3 +1,31 @@
+2009-11-30  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+	    Revital Eres  <eres@il.ibm.com>
+
+	* target.h (bb_partitioning_into_sections): Rename
+	estimate_section_overhead to fallthru_edge_overhead.
+	* target-def.h (TARGET_ESTIMATE_SECTION_OVERHEAD): Rename to...
+	(TARGET_FALLTHRU_EDGE_OVERHEAD): This.
+	* bb-reorder.c  (start_new_section_for_loop): Add assert.
+	(get_estimate_section_overhead): Consider only basic-blocks with
+	fallthru edges.
+	(create_sections): Add cost of branch overhead when splitting
+	basic-blocks, change condition when to start a new section and
+	call get_estimate_section_overhead.
+	(instruction_size_exceeds_threshold): Call
+	get_estimate_section_overhead for each basic-block.
+	(gate_handle_partition_blocks_size): Remove DECL_ONE_ONLY
+	restriction and the call to get_estimate_section_overhead.
+	* config/spu/spu.c (spu_estimate_section_overhead): Rename to...
+	(spu_fallthru_edge_overhead): This.
+	(TARGET_ESTIMATE_SECTION_OVERHEAD): Rename to...
+	(TARGET_FALLTHRU_EDGE_OVERHEAD): This.
+	(get_stub_size): Do'nt add stub size for jump-tables.
+	(spu_dont_create_jumptable): Change table-size calculation.
+	(record_link_elements_liveness): Add missing REGNO.
+	(pass_partition_block): Remove TODO_dump_func from todo_flags_start. 
+	* stmt.c (expand_case): Pass range instead of count to
+	dont_create_jumptable.
+
 2009-11-17  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
 
 	* bb-reorder.c (estimate_size_of_insns_in_bb): Skip debug insns.

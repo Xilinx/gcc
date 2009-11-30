@@ -1,5 +1,5 @@
 /* { dg-do compile } */
-/* { dg-options "-O2 -msoftware-icache -fdump-rtl-fpart" } */
+/* { dg-options "-O2 -msoftware-icache" } */
 
 #include <stdarg.h>
 
@@ -51,6 +51,4 @@ main (void)
   return 0;
 }
 
-/* { dg-final { scan-rtl-dump-times "icache_ptr_handler" 1 "fpart" } } */
-/* { dg-final { cleanup-rtl-dump "fpart" } } */
-
+ /* { dg-final { scan-assembler-times "icache_ptr_handler" 1 } } */

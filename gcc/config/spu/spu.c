@@ -245,7 +245,7 @@ static section *spu_select_section (tree, int, unsigned HOST_WIDE_INT);
 static void spu_unique_section (tree, int);
 static rtx spu_expand_load (rtx, rtx, rtx, int);
 static void spu_trampoline_init (rtx, tree, rtx);
-static unsigned HOST_WIDE_INT spu_estimate_section_overhead (void);
+static unsigned HOST_WIDE_INT spu_fallthru_edge_overhead (void);
 static unsigned HOST_WIDE_INT spu_estimate_instruction_size (rtx);
 static bool begin_critical_section (rtx, enum critical_section_type *);
 static bool end_critical_section (rtx, enum critical_section_type *);
@@ -498,8 +498,8 @@ static const struct attribute_spec spu_attribute_table[] =
 #undef TARGET_TRAMPOLINE_INIT
 #define TARGET_TRAMPOLINE_INIT spu_trampoline_init
 
-#undef TARGET_ESTIMATE_SECTION_OVERHEAD
-#define TARGET_ESTIMATE_SECTION_OVERHEAD spu_estimate_section_overhead
+#undef TARGET_FALLTHRU_EDGE_OVERHEAD
+#define TARGET_FALLTHRU_EDGE_OVERHEAD spu_fallthru_edge_overhead
 
 #undef TARGET_ESTIMATE_INSTRUCTION_SIZE
 #define TARGET_ESTIMATE_INSTRUCTION_SIZE spu_estimate_instruction_size
@@ -2267,9 +2267,9 @@ get_stub_size (rtx insn)
       /* If the branch instruction and the branch target are in the
          same basic-block they will probably be in the same section
          as well.  Do not add the stub size in this case.  */
-      if (!tablejump_p (insn, NULL, NULL)
-	  && JUMP_LABEL (insn)
-	  && (BLOCK_NUM (JUMP_LABEL (insn)) == BLOCK_NUM (insn)))
+      if (tablejump_p (insn, NULL, NULL)
+	  || (JUMP_LABEL (insn)
+	      && BLOCK_NUM (JUMP_LABEL (insn)) == BLOCK_NUM (insn)))
 	stub_size = 0;
       
       /* For indirect branches including jump-tables (not including the
@@ -2435,14 +2435,14 @@ spu_estimate_instruction_size (rtx insn)
   return size;
 }
 
-/* Estimate the size in bytes of the extra instructions that will be
-   generated for each section as a result of creating a new branch for
-   that section.  Called when partitioning a function into sections.  */
+/* Estimate the number of extra instructions (in bytes) that will be added
+   for a fallthru edge that might be converted into a branch between
+   two sections.  Called when partitioning a function into sections.  */
 static unsigned HOST_WIDE_INT
-spu_estimate_section_overhead (void)
+spu_fallthru_edge_overhead (void)
 {
   int extra_branch_insns = 0;
-  
+
   if (TARGET_BRANCH_HINTS && optimize != 0)
     {
       /* Add the nops and branch hint which are added for each branch.
@@ -3104,11 +3104,11 @@ spu_dont_create_jumptable (unsigned int ncases)
   /* For the software icache scheme we should take into account the
      inline check.  */
   if (TARGET_SOFTWARE_ICACHE)
-    table_size += (12 * 4);
+    table_size += (TARGET_LARGE_MEM? 30 : 18) * 4;
 
   if (flag_partition_functions_into_sections == 0)
     return false;
-  
+
   if ((table_size) > (unsigned int)flag_partition_functions_into_sections)
     return true;
   return false;
@@ -3220,7 +3220,7 @@ record_link_elements_liveness (void)
 	  else if (REG_P (dest)
 		   && REGNO (dest) == STACK_POINTER_REGNUM
 		   && GET_CODE (src) == PLUS
-		   && XEXP (src, 0) == STACK_POINTER_REGNUM
+		   && REGNO (XEXP (src, 0)) == STACK_POINTER_REGNUM
 		   && (GET_CODE (XEXP (src, 1)) == CONST_INT)
 		   && (INTVAL (XEXP (src, 1)) > 0))
 
