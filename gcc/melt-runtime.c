@@ -308,35 +308,6 @@ melt_argument (const char* argname)
 #endif
 
 
-
-/* Return true if we don't want to generate several C files for a
-   given MELT module */
-bool melt_wants_single_c_file (void)
-{ 
-  bool want1 = false;
-  const char* singarg = melt_argument ("single-c-file");
-  if (!singarg) 
-    {
-      const char* singenv = getenv("GCCMELT_SINGLE_C_FILE");
-      want1 = singenv && singenv[0]!='0' 
-	&& singenv[0]!='N' && singenv[0]!='n';
-    }
-  else if (!singarg[0] || singarg[0]=='n' || singarg[0]=='N'  
-	   || singarg[0]=='0') 
-    want1 = false;
-  else want1 = true;
-#warning temporary hack to display a message if not single C file
-  if (!want1) {
-    static int warned;
-    if (!warned)
-      warning (0, "MELT does not work yet in november 2009 for generation of secondary C files.\n" 
-	       "Consider passing -fmelt-single-c-file=yes or setting GCCMELT_SINGLE_C_FILE environment variable to YES");
-    warned++;
-  }
-  return want1;
-}
-
-
 static inline void
 delete_special (struct meltspecial_st *sp)
 {
@@ -10030,6 +10001,29 @@ static void melt_ppl_error_handler(enum ppl_enum_error_code err, const char* des
   default:
     fatal_error("Melt unexpected PPL error #%d - %s", err, descr);
   }
+}
+
+
+/******************************************************************/
+
+/* Return true if we don't want to generate several C files for a
+   given MELT module */
+bool melt_wants_single_c_file (void)
+{ 
+  bool want1 = false;
+  const char* singarg = melt_argument ("single-c-file");
+  if (!singarg) 
+    {
+      const char* singenv = getenv("GCCMELT_SINGLE_C_FILE");
+      want1 = singenv && singenv[0]!='0' 
+	&& singenv[0]!='N' && singenv[0]!='n';
+    }
+  else if (!singarg[0] || singarg[0]=='n' || singarg[0]=='N'  
+	   || singarg[0]=='0') 
+    want1 = false;
+  else want1 = true;
+  debugeprintf ("melt_wants_single_c_file return %s", want1?"true":"false");
+  return want1;
 }
 
 

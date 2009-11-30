@@ -1,3 +1,14 @@
+2009-11-30  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* doc/melt.texi (Invoking MELT): documenting -fmelt-single-c-file
+	& moved @end table...
+	* melt-make.mk: added warmelt2 & warmelt3 targets..
+	* testsuite/melt/tmultifil.melt: added more functions up to f49.
+	* melt/warmelt-genobj.melt: ratio of number of functions per
+	secondary file increased to 32.
+	* melt-runtime.c (melt_wants_single_c_file): moved function
+	downwards, and removed the temporary warning message..
+
 2009-11-28  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	secondary C file generation seems to work.

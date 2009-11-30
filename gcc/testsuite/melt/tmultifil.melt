@@ -14,45 +14,58 @@
 |#
 
 (defun f00 (g x) (g x 0))
-
 (defun f01 (g x) (g x 1))
-
 (defun f02 (g x) (g x 2))
-
 (defun f03 (g x) (g x 3))
-
 (defun f04 (g x) (g x 4))
-
 (defun f05 (g x) (g x 5))
-
 (defun f06 (g x) (g x 6))
-
 (defun f07 (g x) (g x 7))
-
 (defun f08 (g x) (g x 8))
-
 (defun f09 (g x) (g x 9))
 
 (defun f10 (g x) (g x 10))
-
 (defun f11 (g x) (g x 11))
-
 (defun f12 (g x) (g x 12))
-
 (defun f13 (g x) (g x 13))
-
 (defun f14 (g x) (g x 14))
-
 (defun f15 (g x) (g x 15))
-
 (defun f16 (g x) (g x 16))
-
 (defun f17 (g x) (g x 17))
-
 (defun f18 (g x) (g x 18))
-
 (defun f19 (g x) (g x 19))
 
 (defun f20 (g x) (g x 20))
+(defun f21 (g x) (g x 21))
+(defun f22 (g x) (g x 22))
+(defun f23 (g x) (g x 23))
+(defun f24 (g x) (g x 24))
+(defun f25 (g x) (g x 25))
+(defun f26 (g x) (g x 26))
+(defun f27 (g x) (g x 27))
+(defun f28 (g x) (g x 28))
+(defun f29 (g x) (g x 29))
+
+(defun f30 (g x) (g x 30))
+(defun f31 (g x) (g x 31))
+(defun f32 (g x) (g x 32))
+(defun f33 (g x) (g x 33))
+(defun f34 (g x) (g x 34))
+(defun f35 (g x) (g x 35))
+(defun f36 (g x) (g x 36))
+(defun f37 (g x) (g x 37))
+(defun f38 (g x) (g x 38))
+(defun f39 (g x) (g x 39))
+
+(defun f40 (g x) (g x 40))
+(defun f41 (g x) (g x 41))
+(defun f42 (g x) (g x 42))
+(defun f43 (g x) (g x 43))
+(defun f44 (g x) (g x 44))
+(defun f45 (g x) (g x 45))
+(defun f46 (g x) (g x 46))
+(defun f47 (g x) (g x 47))
+(defun f48 (g x) (g x 48))
+(defun f49 (g x) (g x 49))
 
 ;;; eof tmultifil.melt

@@ -713,7 +713,9 @@
 	  (nloc (unsafe_get_field :nrep_loc pro))
 	  (nargb (if (is_a pro class_nrep_routproc) (unsafe_get_field :nrpro_argb pro)))
 	  (obodylist (make_list discr_list))
-	  (:long filenum (/iraw funum 16))
+	  ;; the number 32 below is the ratio of number of functions
+	  ;; per secondary generated C file. Change it carefully!
+	  (:long filenum (/iraw funum 32))
 	  (:long nbfiles (multiple_length mofiles))
 	  (obrout (instance class_procroutineobj
 			    :named_name (strbuf2string discr_string namsbuf)

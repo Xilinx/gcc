@@ -335,16 +335,30 @@ default module list called @file{melt-default-modules.modlis} so the
 default value of this flag is
 @code{-fmelt-init=@@melt-default-modules}.
 
+@item -fmelt-single-c-file
+@gccoptlist{-fplugin-arg-melt-single-c-file=yes}
+@opindex fmelt-single-c-file
+@opindex fplugin-arg-melt-single-c-file=
+This flag (very rarely useful) forces the generation of a single C
+file per each MELT module. Otherwise, and by default, MELT source
+files like @file{foo.melt} are translated into one primary C file
+@file{foo.c} and some other secondary C files like @file{foo+1.c}
+@file{foo+2.c} etc. If the @code{GCCMELT_SINGLE_C_FILE} environment
+variable is set to a value such as @code{yes} or @code{1} which is not
+@code{0} or starting with @code{1}, it forces the generation of a
+single C file.
+
+
 @item -fmelt-tempdir=
 @gccoptlist{-fplugin-arg-melt-tempdir=}
 @opindex fmelt-tempdir=
 @opindex fplugin-arg-melt-melt-tempdir=
-@end table
 This flags sets the temporary MELT directory. If specified it is not
 cleaned. If it does not exist, it is mkdir-ed and cleaned. Avoid
 setting it to a non-empty directory which may contain files named like
 MELT modules (such as @file{warmelt-*.so} etc.).
 
+@end table
 
 
 

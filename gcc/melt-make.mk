@@ -180,7 +180,7 @@ $(WARMELT_BASE0SO): empty-file-for-melt.c run-melt.h melt-runtime.h
 
 warmelt1: warmelt1.modlis $(WARMELT_BASE1SO)
 warmelt2: warmelt2.modlis $(WARMELT_BASE2SO)
-warmelt3: warmelt2.modlis $(WARMELT_BASE3SO)
+warmelt3: warmelt3.modlis $(WARMELT_BASE3SO)
 
 ################
 ## the analysis MELT files. They are not needed to bootstrap the MELT
@@ -212,6 +212,7 @@ warmelt1.modlis: $(WARMELT_BASE1SO)
 	date +"#$@ generated %F" > $@-tmp
 	for f in  $(WARMELT_BASE1); do echo $$f >> $@-tmp; done
 	$(melt_make_move) $@-tmp $@
+
 
 warmelt1n.modlis: $(WARMELT_BASE1NSO)
 	date +"#$@ generated %F" > $@-tmp
