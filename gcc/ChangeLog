@@ -1,3 +1,33 @@
+2009-11-30  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* config/sparc/sparc.c (DF_MODES): Simplify.
+	(TF_ONLY_MODES, OF_ONLY_MODES): Delete.
+	(TF_MODES, OF_MODES): Adjust for above change.
+	(TF_MODES_NO_S, OF_MODES_NO_S): Likewise.
+	*  config/sparc/sparc.h (REGNO_REG_CLASS): Move around.
+
+2009-11-30  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR rtl-optimization/41812
+	* fwprop.c (local_md, local_lr): New globals.
+	(process_defs, process_uses): Remove local_md argument.  Never
+	consider dead pseudos to have singleton def-use chains.
+	(single_def_use_enter_block): Perform LR simulation.
+	(build_single_def_use_links): Remove local_md local variable.
+	Add DF_NOTE.  Allocate local_lr.
+	(fwprop_done): Do not remove DF_CHAIN, we do not use it anymore.
+	* df-problems.c (df_md_scratch): New.
+	(df_md_alloc, df_md_free): Allocate/free it.
+	(df_md_local_compute): Only include live registers in init.
+	(df_md_transfer_function): Prune the in-set computed by
+	the confluence function, and the gen-set too.
+
+2009-11-30  Hans-Peter Nilsson  <hp@axis.com>
+
+	PR rtl-optimization/40086
+	* reorg.c (relax_delay_slots): When looking for redundant insn at
+	the branch target, use next_real_insn, not next_active_insn.
+
 2009-11-30  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
 
 	* doc/install.texi: Update minimum MPC version to 0.8.
