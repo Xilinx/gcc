@@ -1847,6 +1847,35 @@ stmt_expr_value_expr (tree stmt_expr)
   return t;
 }
 
+/* Return TRUE iff EXPR_STMT is an empty list of
+   expression statements.  */
+
+bool
+empty_expr_stmt_p (tree expr_stmt)
+{
+  tree body = NULL_TREE;
+
+  if (expr_stmt == void_zero_node)
+    return true;
+
+  if (expr_stmt)
+    {
+      if (TREE_CODE (expr_stmt) == EXPR_STMT)
+	body = EXPR_STMT_EXPR (expr_stmt);
+      else if (TREE_CODE (expr_stmt) == STATEMENT_LIST)
+	body = expr_stmt;
+    }
+
+  if (body)
+    {
+      if (TREE_CODE (body) == STATEMENT_LIST)
+	return tsi_end_p (tsi_start (body));
+      else
+	return empty_expr_stmt_p (body);
+    }
+  return false;
+}
+
 /* Perform Koenig lookup.  FN is the postfix-expression representing
    the function (or functions) to call; ARGS are the arguments to the
    call.  Returns the functions to be considered by overload
@@ -3419,6 +3448,7 @@ expand_or_defer_fn (tree fn)
 
       /* Expand or defer, at the whim of the compilation unit manager.  */
       cgraph_finalize_function (fn, function_depth > 1);
+      emit_associated_thunks (fn);
 
       function_depth--;
     }

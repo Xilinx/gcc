@@ -1,3 +1,79 @@
+2009-11-29  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR tree-optimization/41961
+	* g++.dg/tree-ssa/pr41961.C: New.
+
+2009-11-29  Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/42193
+	* gcc.dg/vect/pr42193.c: New test.
+
+2009-11-28  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/36408
+	* g++.dg/template/stmtexpr2.C: New test.
+
+2009-11-28  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/42183
+	* g++.dg/torture/pr42183.C: New testcase.
+
+2009-11-28  Kai Tietz  <kai.tietz@onevision.com>
+
+	* gcc.dg/lto/20081210-1_0.c (uintptr_t): Use for
+	w64 target type 'unsigned long long'.
+
+2009-11-27  Martin Jambor  <mjambor@suse.cz>
+
+	PR middle-end/42006
+	* gcc.c-torture/execute/pr42006.c: New test.
+
+2009-11-27  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/38656
+	* g++.dg/cpp0x/error2.C: New.
+
+2009-11-27  Michael Matz  <matz@suse.de>
+
+	PR rtl-optimization/42084
+	* gcc.dg/pr42084.c: New test.
+
+2009-11-27  Michael Matz  <matz@suse.de>
+
+	PR c++/41906
+	* g++.dg/tree-ssa/pr41906.C: New testcase.
+
+2009-11-27  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.dg/O16384.c: New test.
+
+2009-11-27  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/35112
+	* g++.dg/parse/crash53.C: New.
+	* g++.dg/parse/error17.C: Adjust, error messages are not
+	duplicated anymore.
+	* g++.dg/template/dtor7.C: Remove xfail-ed dg-bogus directives.
+
+2009-11-27  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.target/i386/vperm-v4sf-1.c (dg-options): Use -msse2.
+	* gcc.target/i386/vperm-v4sf-2.c: Require effective target ssse3.
+	* gcc.target/i386/vperm-v4si-2.c: Ditto.
+	* gcc.target/i386/vperm-v4si-2x.c: Require effective target xop.
+
+2009-11-26  Richard Henderson  <rth@redhat.com>
+
+	* gcc.target/i386/xop-imul64-vector.c: Look for vpmulld not vpmacsdd.
+
+2009-11-26  Jason Merrill  <jason@redhat.com>
+
+	PR c++/42026, DR 239
+	* g++.dg/lookup/koenig8.C: New.
+
+	PR c++/10690
+	* g++.dg/template/explicit-args2.C: Add typeid cases.
+
 2009-11-26  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
 
 	PR fortran/41278
@@ -47,7 +123,7 @@
 	* gcc.target/powerpc/regnames-1.c: New test.
 
 2009-11-25  Eric Botcazou  <ebotcazou@adacore.com>
-            John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+	    John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
 
 	PR ada/42170
 	* ada/acats/run_acats: Bump stack limit to 16MB.

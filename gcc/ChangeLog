@@ -1,3 +1,364 @@
+2009-11-30  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR rtl-optimization/41812
+	* fwprop.c (local_md, local_lr): New globals.
+	(process_defs, process_uses): Remove local_md argument.  Never
+	consider dead pseudos to have singleton def-use chains.
+	(single_def_use_enter_block): Perform LR simulation.
+	(build_single_def_use_links): Remove local_md local variable.
+	Add DF_NOTE.  Allocate local_lr.
+	(fwprop_done): Do not remove DF_CHAIN, we do not use it anymore.
+	* df-problems.c (df_md_scratch): New.
+	(df_md_alloc, df_md_free): Allocate/free it.
+	(df_md_local_compute): Only include live registers in init.
+	(df_md_transfer_function): Prune the in-set computed by
+	the confluence function, and the gen-set too.
+	(df_simulate_one_insn_forwards): Fix typo.
+
+2009-11-30  Hans-Peter Nilsson  <hp@axis.com>
+
+	PR rtl-optimization/40086
+	* reorg.c (relax_delay_slots): When looking for redundant insn at
+	the branch target, use next_real_insn, not next_active_insn.
+
+2009-11-30  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* doc/install.texi: Update minimum MPC version to 0.8.
+
+2009-09-09  Segher Boessenkool  <segher@kernel.crashing.org>
+
+	* config/rs6000/rs6000.md (fnmaddsf4_powerpc_1): Remove
+	HONOR_SIGNED_ZEROS final condition.
+	(fnmsubsf4_powerpc_1): Same.
+	(fnmadddf4_fpr_1): Same.
+	(fnmsubdf4_fpr_1): Same.
+
+2009-11-29  Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/42193
+	* tree-vect-stmts.c (vectorizable_operation): Set vectorization factor
+	to 1 in case of basic block SLP.
+	(vectorizable_load): Likewise.
+
+2009-11-28  Jan Hubicka  <jh@suse.cz>
+
+	* cgraph.c (same_body_alias_1): Break out of
+	(same_body_alias): ... here; remove comdat check; it is handled
+	in cp already.
+	(cgraph_add_thunk): New.
+	(dump_cgraph_node): Dump aliases and thunks.
+	* cgraph.h (cgraph_thunk_info): New structure.
+	(struct cgraph_node): Add thunk info.
+	(cgraph_add_thunk): New.
+	* cgraphunit.c (cgraph_emit_thunks): Remove.
+	(cgraph_finalize_compilation_unit): Do not call cgraph_emit_thunks.
+	(assemble_thunk): New function.
+	(cgraph_expand_function): Handle thunks.
+	(thunk_adjust): New.
+	(init_lowered_empty_function): New.
+	* cp-objcp-common.h (LANG_HOOKS_CALLGRAPH_EMIT_ASSOCIATED_THUNKS): Remove.
+	* lto-cgraph.c (lto_output_node): Stream thunk info.
+	(input_node): Likewise.
+	* langhooks.h (lang_hooks_for_callgraph): Remove emit_associated_thunks.
+	* langhooks-def.h (LANG_HOOKS_CALLGRAPH_EMIT_ASSOCIATED_THUNKS): Remove.
+	(LANG_HOOKS_CALLGRAPH_INITIALIZER): Update.
+	* i386.c (x86_output_mi_thunk): Make output prettier.
+
+2009-11-28  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/42183
+	* tree-nrv.c (tree_nrv): Bail out if the RESULT_DECL has its
+	address taken.  Merge the addressable state of the NRV
+	variable and the result instead of copying it.
+
+2009-11-28  Jakub Jelinek  <jakub@redhat.com>
+
+	* matrix-reorg.c (analyze_matrix_allocation_site): Remove unused
+	malloc_fname variable.
+	(check_allocation_function): Remove unused gsi and bb_level_0
+	variables.
+	(transform_access_sites): Remove unused d_type_size and d_type_size_k
+	variables.
+	* omega.c (resurrect_subs): Remove unused n variable.
+	(omega_solve_geq): Remove unused neweqns variable.
+	* lto-streamer-in.c (lto_read_tree): Remove unused end_marker variable.
+	* tree-inline.c (declare_return_variable): Remove USE_P argument,
+	return use instead of var.
+	(remap_decl, remap_block): Remove unused fn variable.
+	(expand_call_inline): Remove unused retvar variable, adjust
+	declare_return_variable caller.
+	(optimize_inline_calls): Remove unused prev_fn variable.
+	* tree-vect-slp.c (vect_analyze_slp_instance): Remove unused ncopies
+	variable.
+	(vect_create_mask_and_perm): Remove unused group_size and dr_chain_size
+	variables.
+	* tree-ssa-loop-niter.c (split_to_var_and_offset): Handle MINUS_EXPR
+	properly.
+	* tree-vect-loop.c (vect_analyze_loop_form): Remove unused backedge
+	variable.
+	(vect_create_epilog_for_reduction): Remove unused bytesize variable.
+	* omp-low.c (workshare_safe_to_combine_p): Remove par_entry_bb
+	parameter.  Remove unused par_stmt variable.
+	(determine_parallel_type): Adjust workshare_safe_to_combine_p caller.
+	(expand_omp_sections): Remove unused l1 variable.
+	(lower_omp_for): Remove unused ilist variable.
+	* tree-loop-distribution.c (mark_nodes_having_upstream_mem_writes):
+	Remove unused has_upstream_mem_write_p variable.
+	* recog.c (decode_asm_operands): Remove unused noperands variable.
+	* tree-ssa-alias.c (refs_may_alias_p_1): Remove unused size1 and
+	size2 variable.
+	* libgcov.c (__gcov_merge_delta): Remove unused last variable.
+	* tree-call-cdce.c (gen_conditions_for_pow_int_base): Remove unused
+	base_nm variable.
+	(gen_conditions_for_pow): Remove unused ec variable.
+	* tree-ssa-sccvn.c (vn_reference_lookup_3): Remove unused size
+	variable.
+	* ipa-struct-reorg.c (program_redefines_malloc_p): Remove unused
+	fndecl variable.
+	* tree-ssa-sink.c (statement_sink_location): Remove unused code
+	variable.
+	* regmove.c (copy_src_to_dest): Remove unused insn_uid and move_uid
+	variables.
+	* tree-complex.c (create_one_component_var): Remove unused inner_type
+	variable.
+	* calls.c (emit_call_1): Don't GEN_INT (struct_value_size)
+	unnecessarily when GEN_*CALL omits that argument.
+	* regrename.c (regrename_optimize): Remove unused regs_seen variable.
+	(build_def_use): Remove unused icode variable.
+	* ipa-pure-const.c (check_call): Remove unused callee and avail
+	variables.
+	* tree-dfa.c (add_referenced_var): Remove unused v_ann variable.
+	* tree-vect-patterns.c (vect_recog_pow_pattern): Remove unused type
+	variable.
+	(vect_pattern_recog): Remove unused stmt variable.
+	* sel-sched-ir.c (make_regions_from_the_rest): Remove unused
+	new_regions variable.
+	* postreload.c (reload_cse_simplify_operands): Remove unused mode
+	variable.
+	* tree-parloops.c (create_call_for_reduction_1): Remove unused
+	addr_type variable.
+	(create_parallel_loop): Remove unused res variable.
+	(gen_parallel_loop): Remove unused nloop variable.
+	* tree-vect-loop-manip.c (vect_loop_versioning): Likewise.
+	* value-prof.c (gimple_mod_subtract_transform,
+	gimple_stringops_transform): Remove unused value variable.
+	(gimple_stringops_values_to_profile): Remove unused fcode variable.
+	* tree-vrp.c (register_new_assert_for): Remove unused found variable.
+	(vrp_visit_switch_stmt): Remove unused n variable.
+	* tree-vect-stmts.c (vectorizable_conversion): Remove unused expr
+	variable.
+	(vectorizable_operation): Remove unused shift_p variable.
+	(vectorizable_store): Remove unused first_stmt_vinfo variable.
+	* tree-ssa-operands.c (add_stmt_operand): Remove unused v_ann variable.
+	* tree-vect-data-refs.c (vect_analyze_data_refs): Remove unused bb
+	variable.
+	(vect_permute_store_chain): Remove unused scalar_dest variable.
+	(vect_supportable_dr_alignment): Remove unused invariant_in_outerloop
+	variable.
+	* tree-ssa-threadupdate.c (thread_single_edge): Remove unused
+	local_info variable.
+	* tree-optimize.c (tree_rest_of_compilation): Remove unused node
+	variable.
+	* optabs.c (expand_binop): Remove unused equiv_value variable.
+	(emit_libcall_block): Remove unused prev variable.
+	(init_optabs): Remove unused int_mode variable.
+	* tree-ssa-structalias.c (scc_visit): Remove unused have_ref_node
+	variable.
+	(do_structure_copy): Remove unused lhsbase and rhsbase variables.
+	(find_func_aliases): Remove unused rhstype variable.
+	(ipa_pta_execute): Remove unused varid variable.
+
+2009-11-28  Andy Hutchinson  <hutchinsonandy@gcc.gnu.org>
+
+	* config/avr/avr.h (ASM_OUTPUT_EXTERNAL): Add. 
+
+2009-11-28  David Binderman  <dcb314@hotmail.com>
+
+	* ira-color.c (put_allocno_into_bucket): Remove set but not used
+	local variable hard_regs_num.
+	* ira-lives.c (process_single_reg_class_operands): Remove cover_class.
+	* loop-unswitch.c (unswitch_loop): Remove zero_bitmap.
+	* lower-subreg.c (decompose_multiword_subregs): Remove next.
+
+2009-11-27  Martin Jambor  <mjambor@suse.cz>
+
+	PR middle-end/42006
+	* tree-sra.c (get_replaced_param_substitute): Call create_tmp_var
+	instead of create_tmp_var.  Set DECL_GIMPLE_REG_P to one manually
+	for vector and complex types.
+	(get_adjustment_for_base): Describe return value in the comment.
+
+2009-11-27  Nick Clifton  <nickc@redhat.com>
+
+	* longlong.h (count_leading_zeros): Define macro for stormy16
+	target.
+	(COUNT_LEADING_ZEROS_0): Likewise.	
+	* config/stormy16/stormy16-lib2.c: Arrange for separate
+	compilation of each function.
+	(__ffshi2): New function.
+	(__stormy16_count_leading_zeros): New function.
+	* config/stormy16/t-stormy16 (LIB2FUNCS_EXTRA): Use stub files to
+	compile each function into its own object file.
+	(stormy16-lib2-ashlsi3.c): New stub file.
+	(stormy16-lib2-ashrsi3.c): New stub file.
+	(stormy16-lib2-clzhi2.c): New stub file.
+	(stormy16-lib2-count-leading-zeros.c): New stub file.
+	(stormy16-lib2-ctzhi2.c): New stub file.
+	(stormy16-lib2-divsi3.c): New stub file.
+	(stormy16-lib2-ffshi2.c): New stub file.
+	(stormy16-lib2-lshrsi3.c): New stub file.
+	(stormy16-lib2-modsi3.c): New stub file.
+	(stormy16-lib2-parityhi2.c): New stub file.
+	(stormy16-lib2-popcounthi2.c): New stub file.
+	(stormy16-lib2-udivmodsi4.c): New stub file.
+	(stormy16-lib2-udivsi3.c): New stub file.
+	(stormy16-lib2-umodsi3.c): New stub file.
+
+2009-11-27  Richard Henderson  <rth@redhat.com>
+
+	* config/i386/sse.md (vec_interleave_highv16qi,
+	vec_interleave_lowv16qi, vec_interleave_highv8hi,
+	vec_interleave_lowv8hi, vec_interleave_highv4si,
+	vec_interleave_lowv4si, vec_interleave_highv2di,
+	vec_interleave_lowv2di, vec_interleave_highv4sf,
+	vec_interleave_lowv4sf, vec_interleave_highv2df,
+	vec_interleave_lowv2df): Remove expanders.
+	(sse_unpcklps, sse_unpckhps, sse2_unpckhpd_exp, sse2_unpcklpd_exp,
+	sse2_punpckhqdq, sse2_punpcklqdq, sse2_punpckhbw, sse2_punpcklbw,
+	sse2_punpckhwd, sse2_punpcklwd, sse2_punpckhdq, sse2_punpckldq):
+	Rename to their proper vec_interleave equivalent.  Update all users
+	to the new name.
+	* config/i386/i386.c, config/i386/i386.md: Update all users.
+
+2009-11-27  Michael Matz  <matz@suse.de>
+
+	PR rtl-optimization/42084
+	* cfgexpand.c (maybe_cleanup_end_of_block): Add new parameter,
+	use it to stop walking.
+	(expand_gimple_cond): Adjust call to above.
+
+2009-11-27  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR target/41810
+	* gthr-solaris.h (__gthread_mutex_destroy): Remove UNUSED.
+	[SUPPORTS_WEAK && GTHREAD_USE_WEAK] (__gthread_active_p): Use
+	__extension__ to allow cast from function pointer to object
+	pointer in C++.
+	* doc/install.texi (--enable-threads): Clarify use of Solaris
+	threads.
+
+2009-11-27  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* config/ia64/itanium1.md: Remove.
+	* config/ia64/ia64.md: Do not include it.
+	* config/ia64/ia64.c (ia64_handle_option): Remove "itanium",
+	"itanium1", and "merced" from the processor alias table.
+	(clocks, add_cycles): Remove global variables.
+	(ia64_sched_reorder2): Don't set/use them.
+	(ia64_dfa_new_cycle, ia64_h_i_d_extended, ia64_reorg): Likewise.
+	(bundling): Likewise. Remove extra pass for MMMUL/MMSHF.
+
+2009-11-27  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* config/s390/s390.c (last_scheduled_insn): New variable.
+	(s390_fpload_toreg, s390_z10_prevent_earlyload_conflicts): New
+	functions.
+	(s390_sched_reorder, s390_sched_variable_issue): New functions.
+	(TARGET_SCHED_VARIABLE_ISSUE, TARGET_SCHED_REORDER): Target hooks
+	defined.
+
+2009-11-27  Michael Matz  <matz@suse.de>
+
+	PR c++/41906
+	* tree-eh.c (lower_catch): Stop after expanding a catch-all.
+
+2009-11-27  Richard Guenther  <rguenther@suse.de>
+
+	* timevar.def (TV_LOOP_MOVE_INVARIANTS, TV_LOOP_UNSWITCH,
+	TV_LOOP_UNROLL, TV_LOOP_DOLOOP): New timevars.
+	* loop-init.c (pass_rtl_move_loop_invariants): Use
+	TV_LOOP_MOVE_INVARIANTS.
+	(pass_rtl_unswitch): Use TV_LOOP_UNSWITCH.
+	(pass_rtl_unroll_and_peel): Use TV_LOOP_UNROLL.
+	(pass_rtl_doloop): Use TV_LOOP_DOLOOP.
+
+2009-11-27  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* emit-rtl.c (next_active_insn, prev_active_insn): Correct
+	comment.
+
+2009-11-27  Jakub Jelinek  <jakub@redhat.com>
+
+	* config/i386/i386.c (ix86_emit_restore_sse_regs_using_mov): Remove
+	unused insn variable.
+	* genemit.c (output_peephole2_scratches): Only declare and initialize
+	_regs_allocated if it will be ever used.
+	* cfgloopmanip.c (create_empty_if_region_on_edge): Remove unused
+	succ_bb variable.
+	(create_empty_loop_on_edge): Remove unused freq and cnt variables.
+	* unwind-c.c (PERSONALITY_FUNCTION): Remove unused action_record
+	variable.
+
+	* opts.c (decode_options): If optimize is bigger than 255,
+	set it to 255.
+
+2009-11-26  Richard Henderson  <rth@redhat.com>
+
+	* config/i386/sse.md (mulv16qi3): Change back from an expander
+	to an insn-and-split.
+	(mulv4si): Mention AVX not XOP for AVX exception.
+	(*sse2_mulv4si3): Likewise.
+	(mulv2di3): Use vmulld not vpmacsdd for XOP expansion.  Tidy.
+
+2009-11-26  Bernd Schmidt  <bernd.schmidt@analog.com>
+
+	* cfgexpand (n_stack_vars_conflict): New static variable.
+	(triangular_index): Reduce likelyhood of overflow by performing
+	the division before the multiplication.
+	(resize_stack_vars_conflict): Call fatal_error if overflow
+	occurred in triangular_index.  Update n_stack_vars_conflict.
+
+	PR rtl-opt/38582
+	* regrename.c (struct du_chain): Remove member earlyclobber.
+	(scan_rtx_reg): Don't set it.  Remove argument earlyclobber,
+	all callers changed.
+	(scan_rtx): Remove argument earlyclobber, all callers changed.
+	(hide_operands, restore_operands, record_out_operands): New functions,
+	broken out of build_def_use.
+	(build_def_use): Call them as necessary.
+
+	* regrename.c (struct du_head): New members id, conflicts,
+	hard_conflicts and cannot_rename.
+	(enum scan_actions): Remove terminate_all_read and
+	terminate_overlapping_read; add mark_all_read.
+	(scan_actions_name): Likewise.
+	(du_head_p): New typedef.  Define a vector type for it.
+	(id_to_chain): New static variable.
+	(note_sets, clear_dead_regs): Delete functions.
+	(free_chain_data): New function.
+	(merge_overlapping_regs): Simply walk the conflicts bitmap.
+	Remove argument B, all callers changed.
+	(regrename_optimize): Allocate id_to_chain.  Ignore chains that have
+	the cannot_rename bit set.  Update regno and nregs of a renamed chain.
+	Call free_chain_data when done.
+	(do_replace): Remove death notes when the renamed reg is set in the
+	last insn; add them if not.
+	(mark_conflict, note_sets_clobbers): New static function.
+	(fail_current_block, current_id, open_chains_set, live_hard_regs): New
+	static variables.
+	(scan_rtx_reg): Keep track of conflicts between chains, and between
+	chains and hard regs.  Don't terminate chains when we find a read we
+	can't handle, mark it unrenameable instead.  For terminate_write,
+	terminate chains that are written with an exact match or a superset
+	of registers.  Set fail_current_block if multi-word lifetimes are too
+	complex to handle.
+	(scan_rtx_address): Use mark_all_read instead of terminate_all_read.
+	(build_def_use): Initialize current_id, live_chains and live_hard_regs;
+	free memory for them when done.
+	Rearrange the steps so that earlyclobbers are noted before reads
+	are processed.  Add new steps to keep track of hard register lifetimes
+	outside insn operands.
+
 2009-11-26  Richard Guenther  <rguenther@suse.de>
 
 	* tree-ssa-dce.c (nr_walks): New variable.

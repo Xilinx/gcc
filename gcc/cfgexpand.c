@@ -217,6 +217,7 @@ static size_t *stack_vars_sorted;
    is lower triangular.  */
 static bool *stack_vars_conflict;
 static size_t stack_vars_conflict_alloc;
+static size_t n_stack_vars_conflict;
 
 /* The phase of the stack frame.  This is the known misalignment of
    virtual_stack_vars_rtx from PREFERRED_STACK_BOUNDARY.  That is,
@@ -335,7 +336,11 @@ triangular_index (size_t i, size_t j)
       size_t t;
       t = i, i = j, j = t;
     }
-  return (i * (i + 1)) / 2 + j;
+
+  if (i & 1)
+    return ((i + 1) / 2) * i + j;
+  else
+    return (i / 2) * (i + 1) + j;
 }
 
 /* Ensure that STACK_VARS_CONFLICT is large enough for N objects.  */
@@ -346,12 +351,17 @@ resize_stack_vars_conflict (size_t n)
   size_t size = triangular_index (n-1, n-1) + 1;
 
   if (size <= stack_vars_conflict_alloc)
-    return;
+    {
+      if (n > n_stack_vars_conflict)
+	fatal_error ("program is too large to be compiled on this machine");
+      return;
+    }
 
   stack_vars_conflict = XRESIZEVEC (bool, stack_vars_conflict, size);
   memset (stack_vars_conflict + stack_vars_conflict_alloc, 0,
 	  (size - stack_vars_conflict_alloc) * sizeof (bool));
   stack_vars_conflict_alloc = size;
+  n_stack_vars_conflict = n;
 }
 
 /* Make the decls associated with luid's X and Y conflict.  */
@@ -1576,10 +1586,11 @@ label_rtx_for_bb (basic_block bb ATTRIBUTE_UNUSED)
 
 /* A subroutine of expand_gimple_cond.  Given E, a fallthrough edge
    of a basic block where we just expanded the conditional at the end,
-   possibly clean up the CFG and instruction sequence.  */
+   possibly clean up the CFG and instruction sequence.  LAST is the
+   last instruction before the just emitted jump sequence.  */
 
 static void
-maybe_cleanup_end_of_block (edge e)
+maybe_cleanup_end_of_block (edge e, rtx last)
 {
   /* Special case: when jumpif decides that the condition is
      trivial it emits an unconditional jump (and the necessary
@@ -1594,7 +1605,6 @@ maybe_cleanup_end_of_block (edge e)
      normally isn't there in a cleaned CFG), fix it here.  */
   if (BARRIER_P (get_last_insn ()))
     {
-      basic_block bb = e->src;
       rtx insn;
       remove_edge (e);
       /* Now, we have a single successor block, if we have insns to
@@ -1610,7 +1620,7 @@ maybe_cleanup_end_of_block (edge e)
       /* Make sure we have an unconditional jump.  Otherwise we're
 	 confused.  */
       gcc_assert (JUMP_P (insn) && !any_condjump_p (insn));
-      for (insn = PREV_INSN (insn); insn != BB_HEAD (bb);)
+      for (insn = PREV_INSN (insn); insn != last;)
 	{
 	  insn = PREV_INSN (insn);
 	  if (JUMP_P (NEXT_INSN (insn)))
@@ -1689,7 +1699,7 @@ expand_gimple_cond (basic_block bb, gimple stmt)
 	}
       true_edge->goto_block = NULL;
       false_edge->flags |= EDGE_FALLTHRU;
-      maybe_cleanup_end_of_block (false_edge);
+      maybe_cleanup_end_of_block (false_edge, last);
       return NULL;
     }
   if (true_edge->dest == bb->next_bb)
@@ -1705,7 +1715,7 @@ expand_gimple_cond (basic_block bb, gimple stmt)
 	}
       false_edge->goto_block = NULL;
       true_edge->flags |= EDGE_FALLTHRU;
-      maybe_cleanup_end_of_block (true_edge);
+      maybe_cleanup_end_of_block (true_edge, last);
       return NULL;
     }
 
