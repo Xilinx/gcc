@@ -2170,7 +2170,7 @@ struct GTY(()) lang_decl {
    && DECL_INITIALIZED_BY_CONSTANT_EXPRESSION_P (NODE))
 
 /* True if the expression tree NODE represents an object that can
-   be taken apart at compile time.  This is not to be confused with
+   be taken apart by the front end.  This is not to be confused with
    link-time constants or load-time constants.  A compiler constant
    may still be an expression that the middle end may be able to
    reduce further.  */
@@ -2179,7 +2179,7 @@ struct GTY(()) lang_decl {
 
 /* Same as COMPILE_TIME_CONSTANT_P, except that it includes literal
    values too, such as INTEGER_CST, PTRMEM_CST, or address of
-   variables with static storage.  */
+   variables with static storage or combination thereof.  */
 #define VALID_FOR_STATIC_INITIALIZATION_P(NODE) \
   (CONSTANT_CLASS_P (NODE) || COMPILE_TIME_CONSTANT_P (NODE))
 

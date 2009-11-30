@@ -5538,7 +5538,7 @@ constexpr_call_hash (const void *p)
    Otherwise, return 0.  */
 
 static int
-constexpr_call_equal(const void *p, const void *q)
+constexpr_call_equal (const void *p, const void *q)
 {
   const constexpr_call *lhs = (const constexpr_call *) p;
   const constexpr_call *rhs = (const constexpr_call *) q;
@@ -5554,8 +5554,7 @@ constexpr_call_equal(const void *p, const void *q)
     {
       tree lhs_arg = TREE_VALUE (lhs_bindings);
       tree rhs_arg = TREE_VALUE (rhs_bindings);
-      if (!same_type_p (TREE_TYPE (lhs_arg), TREE_TYPE (rhs_arg)))
-        return 0;
+      gcc_assert (TREE_TYPE (lhs_arg) == TREE_TYPE (rhs_arg));
       if (!cp_tree_equal (lhs_arg, rhs_arg))
         return 0;
       lhs_bindings = TREE_CHAIN (lhs_bindings);
@@ -5639,13 +5638,9 @@ get_nth_callarg (tree t, int n)
 static tree
 lookup_parameter_binding (const constexpr_call *call, tree t)
 {
-  tree b;
-  for (b = call->bindings; b != NULL; b = TREE_CHAIN (b))
-    if (TREE_PURPOSE (b) == t)
-      return TREE_VALUE (b);
-  
-  gcc_unreachable();
-  return error_mark_node;
+  tree b = purpose_member (t, call->bindings);
+  gcc_assert(b != NULL);
+  return b;
 }
 
 /* Attempt to evaluate T which represents a call to a builtin function.
@@ -5694,7 +5689,7 @@ cxx_bind_parameters_in_call (const constexpr_call *old_call, tree t,
       /* For member function, the first argument is a pointer to the implied
          object.  And for an object contruction, don't bind `this' before
          it is fully constructed.  */
-      if (i == 0 && TREE_CODE (t) == AGGR_INIT_EXPR)
+      if (i == 0 && DECL_CONSTRUCTOR_P (fun))
         continue;
       else if (i == 0 && DECL_NONSTATIC_MEMBER_P (fun))
         {
@@ -5776,7 +5771,7 @@ cxx_eval_call_expression (const constexpr_call *old_call, tree t)
       return (*slot)->result;
     }
   new_call.result =
-    cxx_eval_constant_expression(&new_call, new_call.fundef->body);
+    cxx_eval_constant_expression (&new_call, new_call.fundef->body);
   *slot = GGC_NEW (constexpr_call);
   **slot = new_call;
   return new_call.result;
@@ -5859,8 +5854,8 @@ cxx_eval_array_reference (const constexpr_call *call, tree t)
       error ("array subscript out of bound");
       return error_mark_node;
     }
-  return VEC_index(constructor_elt, CONSTRUCTOR_ELTS (ary),
-                   tree_low_cst (index, 0))->value;
+  return VEC_index (constructor_elt, CONSTRUCTOR_ELTS (ary),
+                    tree_low_cst (index, 0))->value;
 }
 
 /* Subroutine of cxx_eval_constant_expression.
@@ -5955,6 +5950,13 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t)
     case NON_LVALUE_EXPR:
       return cxx_eval_constant_expression (call, TREE_OPERAND (t, 0));
 
+    case ADDR_EXPR:
+      if (TREE_STATIC (TREE_OPERAND (t, 0)))
+        {
+          COMPILE_TIME_CONSTANT_P (t) = true;
+          return t;
+        }
+      /* Fall through.  */
     case REALPART_EXPR:
     case IMAGPART_EXPR:
     case CONJ_EXPR:
@@ -5969,6 +5971,14 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t)
     case FIXED_CONVERT_EXPR:
       return cxx_eval_unary_expression (call, t);
 
+    case POINTER_PLUS_EXPR:
+      if (VALID_FOR_STATIC_INITIALIZATION_P (TREE_OPERAND (t, 0))
+          && VALID_FOR_STATIC_INITIALIZATION_P (TREE_OPERAND (t, 1)))
+        {
+          COMPILE_TIME_CONSTANT_P (t) = true;
+          return t;
+        }
+      /* Fall through.  */
     case COMPOUND_EXPR:
     case PLUS_EXPR:
     case MULT_EXPR:
@@ -6005,7 +6015,7 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t)
     case RANGE_EXPR:
     case COMPLEX_EXPR:
       return cxx_eval_binary_expression (call, t);
-      
+
     case TRUTH_ANDIF_EXPR:
       return cxx_eval_logical_expression (call, t, boolean_false_node,
                                           boolean_true_node);
@@ -6077,6 +6087,32 @@ has_automatic_or_tls (tree decl)
 }
 
 
+/* Return true if the DECL designates a builtin function that is
+   morally constexpr in the sense that, its parameter types and
+   return type are literal types, and the compiler is allowed to
+   fold its invocations.  */
+static bool
+morally_constexpr_builtin_function_p (tree decl)
+{
+  tree funtype = TREE_TYPE (decl);
+  tree t;
+
+  if (!is_builtin_fn (decl))
+    return false;
+  if (!literal_type_p (TREE_TYPE (funtype)))
+    return false;
+  for (t = TYPE_ARG_TYPES (funtype); t != NULL ; t = TREE_CHAIN (t))
+    {
+      if (t == void_list_node)
+        return true;
+      if (!literal_type_p (TREE_VALUE (t)))
+        return false;
+    }
+  /* We don't want to mess with varargs functions, yet.  */
+  return t != NULL;
+}
+
+
 /* Return true if T denotes a potential constant expressions.
    Issue diagnostic as appropriate under control of flags.  Variables
    with static storage duration initialized by constant expressions
@@ -6125,12 +6161,6 @@ potential_constant_expression (tree t, tsubst_flags_t flags)
       return true;
 
     case AGGR_INIT_EXPR:
-      if (AGGR_INIT_VIA_CTOR_P (t) && !CLASSTYPE_LITERAL_P (TREE_TYPE (t)))
-        {
-          error ("object of non-literal type is not potential constant");
-          return false;
-        }
-      /* fall through.  */
     case CALL_EXPR:
       /* -- an invocation of a function other than a constexpr function
             or a constexpr constructor.  */
@@ -6148,7 +6178,8 @@ potential_constant_expression (tree t, tsubst_flags_t flags)
           fun = DECL_CLONED_FUNCTION (fun);
         if (builtin_valid_in_constant_expr_p (fun))
           return true;
-        if (!DECL_DECLARED_CONSTEXPR_P (fun))
+        if (!DECL_DECLARED_CONSTEXPR_P (fun)
+            && !morally_constexpr_builtin_function_p (fun))
           {
             if (flags & tf_error)
               error ("%qD is not %<constexpr%>", fun);
@@ -6161,8 +6192,7 @@ potential_constant_expression (tree t, tsubst_flags_t flags)
                address of the implied object as first argument.
                If this is an rvalue object, don't look into its storage.  */
             if (i == 0 && DECL_NONSTATIC_MEMBER_P (fun)
-                && (TREE_CODE (t) != AGGR_INIT_EXPR
-                    || !AGGR_INIT_VIA_CTOR_P (t)))
+                && !DECL_CONSTRUCTOR_P (fun))
               {
                 gcc_assert (TREE_CODE (x) == ADDR_EXPR);
                 if (!potential_constant_expression (x, flags))
