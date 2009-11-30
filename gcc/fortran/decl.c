@@ -1656,12 +1656,10 @@ variable_decl (int elem)
   match m;
   gfc_try t;
   gfc_symbol *sym;
-  locus old_locus;
 
   initializer = NULL;
   as = NULL;
   cp_as = NULL;
-  old_locus = gfc_current_locus;
 
   /* When we get here, we've just matched a list of attributes and
      maybe a type and a double colon.  The next thing we expect to see
@@ -1865,7 +1863,7 @@ variable_decl (int elem)
 	      m = MATCH_ERROR;
 	    }
 
-	  if (gfc_pure (NULL))
+	  if (gfc_pure (NULL) && gfc_state_stack->state != COMP_DERIVED)
 	    {
 	      gfc_error ("Initialization of pointer at %C is not allowed in "
 			 "a PURE procedure");

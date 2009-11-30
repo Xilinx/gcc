@@ -1354,7 +1354,6 @@ scc_visit (constraint_graph_t graph, struct scc_info *si, unsigned int n)
 	  && si->dfs[VEC_last (unsigned, si->scc_stack)] >= my_dfs)
 	{
 	  bitmap scc = BITMAP_ALLOC (NULL);
-	  bool have_ref_node = n >= FIRST_REF_NODE;
 	  unsigned int lowest_node;
 	  bitmap_iterator bi;
 
@@ -1366,8 +1365,6 @@ scc_visit (constraint_graph_t graph, struct scc_info *si, unsigned int n)
 	      unsigned int w = VEC_pop (unsigned, si->scc_stack);
 
 	      bitmap_set_bit (scc, w);
-	      if (w >= FIRST_REF_NODE)
-		have_ref_node = true;
 	    }
 
 	  lowest_node = bitmap_first_set_bit (scc);
@@ -1444,10 +1441,10 @@ unify_nodes (constraint_graph_t graph, unsigned int to, unsigned int from,
 	      changed_count++;
 	    }
 	}
-      
+
       BITMAP_FREE (get_varinfo (from)->solution);
       BITMAP_FREE (get_varinfo (from)->oldsolution);
-      
+
       if (stats.iterations > 0)
 	{
 	  BITMAP_FREE (get_varinfo (to)->oldsolution);
@@ -2288,10 +2285,10 @@ unite_pointer_equivalences (constraint_graph_t graph)
       if (label)
 	{
 	  int label_rep = graph->pe_rep[label];
-	  
+
 	  if (label_rep == -1)
 	    continue;
-	  
+
 	  label_rep = find (label_rep);
 	  if (label_rep >= 0 && unite (label_rep, find (i)))
 	    unify_nodes (graph, label_rep, i, false);
@@ -2368,7 +2365,7 @@ rewrite_constraints (constraint_graph_t graph,
 	{
 	  if (dump_file && (dump_flags & TDF_DETAILS))
 	    {
-	      
+
 	      fprintf (dump_file, "%s is a non-pointer variable,"
 		       "ignoring constraint:",
 		       get_varinfo (lhs.var)->name);
@@ -2382,7 +2379,7 @@ rewrite_constraints (constraint_graph_t graph,
 	{
 	  if (dump_file && (dump_flags & TDF_DETAILS))
 	    {
-	      
+
 	      fprintf (dump_file, "%s is a non-pointer variable,"
 		       "ignoring constraint:",
 		       get_varinfo (rhs.var)->name);
@@ -3283,14 +3280,11 @@ do_structure_copy (tree lhsop, tree rhsop)
 	   && (rhsp->type == SCALAR
 	       || rhsp->type == ADDRESSOF))
     {
-      tree lhsbase, rhsbase;
       HOST_WIDE_INT lhssize, lhsmaxsize, lhsoffset;
       HOST_WIDE_INT rhssize, rhsmaxsize, rhsoffset;
       unsigned k = 0;
-      lhsbase = get_ref_base_and_extent (lhsop, &lhsoffset,
-					 &lhssize, &lhsmaxsize);
-      rhsbase = get_ref_base_and_extent (rhsop, &rhsoffset,
-					 &rhssize, &rhsmaxsize);
+      get_ref_base_and_extent (lhsop, &lhsoffset, &lhssize, &lhsmaxsize);
+      get_ref_base_and_extent (rhsop, &rhsoffset, &rhssize, &rhsmaxsize);
       for (j = 0; VEC_iterate (ce_s, lhsc, j, lhsp);)
 	{
 	  varinfo_t lhsv, rhsv;
@@ -3640,11 +3634,9 @@ find_func_aliases (gimple origt)
 	  get_constraint_for (gimple_phi_result (t), &lhsc);
 	  for (i = 0; i < gimple_phi_num_args (t); i++)
 	    {
-	      tree rhstype;
 	      tree strippedrhs = PHI_ARG_DEF (t, i);
 
 	      STRIP_NOPS (strippedrhs);
-	      rhstype = TREE_TYPE (strippedrhs);
 	      get_constraint_for (gimple_phi_arg_def (t, i), &rhsc);
 
 	      for (j = 0; VEC_iterate (ce_s, lhsc, j, c); j++)
@@ -4752,7 +4744,7 @@ shared_bitmap_add (bitmap pt_vars)
 
 /* Set bits in INTO corresponding to the variable uids in solution set FROM.  */
 
-static void 
+static void
 set_uids_in_ptset (bitmap into, bitmap from, struct pt_solution *pt)
 {
   unsigned int i;
@@ -5424,16 +5416,16 @@ solve_constraints (void)
 	     "substitution\n");
 
   init_graph (VEC_length (varinfo_t, varmap) * 2);
-  
+
   if (dump_file)
     fprintf (dump_file, "Building predecessor graph\n");
   build_pred_graph ();
-  
+
   if (dump_file)
     fprintf (dump_file, "Detecting pointer and location "
 	     "equivalences\n");
   si = perform_var_substitution (graph);
-  
+
   if (dump_file)
     fprintf (dump_file, "Rewriting constraints and unifying "
 	     "variables\n");
@@ -5681,8 +5673,6 @@ ipa_pta_execute (void)
   /* Build the constraints.  */
   for (node = cgraph_nodes; node; node = node->next)
     {
-      unsigned int varid;
-
       /* Nodes without a body are not interesting.  Especially do not
          visit clones at this point for now - we get duplicate decls
 	 there for inline clones at least.  */
@@ -5696,8 +5686,8 @@ ipa_pta_execute (void)
       if (node->local.externally_visible)
 	continue;
 
-      varid = create_function_info_for (node->decl,
-					cgraph_node_name (node));
+      create_function_info_for (node->decl,
+				cgraph_node_name (node));
     }
 
   for (node = cgraph_nodes; node; node = node->next)

@@ -1,3 +1,8 @@
+
+2009-11-30  Basile Starynkevitch  <basile@starynkevitch.net>
+
+        MELT branch merged with trunk rev 154750 (or near)
+
 2009-11-24  Basile Starynkevitch  <basile@starynkevitch.net>
         MELT branch merged with trunk rev 154500
 	so all plugin headers needed by MELT are available...
