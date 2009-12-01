@@ -37,3 +37,5 @@ for branch in `git branch -a | sed -e 's/\*//;s/(no branch)//'` ; do
        fi
 
 done
+
+git push push
