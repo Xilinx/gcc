@@ -1,3 +1,27 @@
+2009-12-01  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* Makefile.in (upgrade-warmelt, upgrade-bigmelt): recoded entirely
+	the commands to consider secondarily generated C files.
+	{{regenerated, and added secondary C files}}
+	* melt/warmelt-first.0+1.c: regenerated & added.
+	* melt/warmelt-first.0+2.c: regenerated & added.
+	* melt/warmelt-first.0.c: regenerated.
+	* melt/warmelt-genobj.0+1.c: regenerated & added.
+	* melt/warmelt-genobj.0+2.c: regenerated & added.
+	* melt/warmelt-genobj.0+3.c: regenerated & added.
+	* melt/warmelt-genobj.0.c: regenerated.
+	* melt/warmelt-macro.0+1.c: regenerated & added.
+	* melt/warmelt-macro.0+2.c: regenerated & added.
+	* melt/warmelt-macro.0.c: regenerated.
+	* melt/warmelt-normal.0+1.c: regenerated & added.
+	* melt/warmelt-normal.0+2.c: regenerated & added.
+	* melt/warmelt-normal.0.c: regenerated.
+	* melt/warmelt-normatch.0.c: regenerated.
+	* melt/warmelt-outobj.0+1.c: regenerated & added.
+	* melt/warmelt-outobj.0+2.c: regenerated & added.
+	* melt/warmelt-outobj.0+3.c: regenerated & added.
+	* melt/warmelt-outobj.0.c: regenerated.
+
 2009-11-30  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* doc/melt.texi (Invoking MELT): documenting -fmelt-single-c-file
