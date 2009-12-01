@@ -346,6 +346,7 @@ emit_localizing_stores (rtx dest, rtx insn)
 	  && occurrences == nuses
 	  && validate_replace_rtx (dest, mem, insn))
 	{
+	  pseudo_nsets[REGNO (dest)]--;
 	  df_clear_flags (DF_NO_INSN_RESCAN);
 	  retval = 1;
 	}
@@ -356,6 +357,7 @@ emit_localizing_stores (rtx dest, rtx insn)
 	       && nsets == 1
 	       && validate_replace_rtx (dest, mem, insn))
 	{
+	  pseudo_nsets[REGNO (dest)]--;
 	  df_clear_flags (DF_NO_INSN_RESCAN);
 	  retval = 1;
 	}
@@ -400,7 +402,7 @@ emit_localizing_stores (rtx dest, rtx insn)
 	   && (GET_MODE_SIZE (GET_MODE (orig))
 		< GET_MODE_SIZE (GET_MODE (dest))))
     bitmap_set_bit (regs_to_load, regno);
-  else
+  else if (retval == 0)
     bitmap_clear_bit (regs_to_load, REGNO (dest));
   return retval;
 }

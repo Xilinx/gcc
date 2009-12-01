@@ -1,3 +1,9 @@
+2009-12-01  Jeff Law <law@redhat.com>
+
+	* ira-reload.c (emit_localizing_stores): Decrement pseudo_nsets
+	if we eliminate a store to a pseudo we want to localize.  Do not
+	clear regs_to_load if we eliminated a store to the pseudo reg.
+
 2009-11-18  Jeff Law <law@redhat.com>
 
 	* ira-reload.c (build_conflicts_for_new_allocnos): Take HEAD and
