@@ -12,7 +12,7 @@ vector<unsigned> & __attribute__((noinline, noclone)) foo(unsigned n)
 
 int main()
 {
-  foo(0, 1);
+  foo(0);
   return 0;
 }
 /* { dg-do run  } */
