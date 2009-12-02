@@ -1,3 +1,8 @@
+2009-12-02  Jeff Law <law@redhat.com>
+
+	* ira-reload.c (emit_localizing_stores): Allow replacement of
+	pseudo with MEM if there are 2 stores and no uses.
+
 2009-12-01  Jeff Law <law@redhat.com>
 
 	* ira-reload.c (no_uses_after_this_set): New function.

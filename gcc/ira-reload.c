@@ -378,7 +378,7 @@ emit_localizing_stores (rtx dest, rtx insn, rtx tail)
       /* Similarly if this insn sets a pseudo we want to localize and
 	 there are no uses after this set, then try to replace the pseudo
 	 with its equivalent memory location.  */
-      else if (nsets == 1
+      else if ((nsets == 1 || (nsets == 2 && nuses == 0))
 	       && no_uses_after_this_set (dest, insn, tail)
 	       && validate_replace_rtx (dest, mem, insn))
 	{
