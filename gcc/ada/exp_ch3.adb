@@ -8104,6 +8104,11 @@ package body Exp_Ch3 is
       elsif Restriction_Active (No_Finalization) then
          null;
 
+      --  Skip these for CIL Value types, where finalization is not available
+
+      elsif Is_Value_Type (Tag_Typ) then
+         null;
+
       elsif Etype (Tag_Typ) = Tag_Typ
         or else Needs_Finalization (Tag_Typ)
 
