@@ -1891,12 +1891,76 @@
 (install_method discr_any_receiver compile_letrec_fill fail_compiletrecfill)
 
 ;;;;;;;;;;;;;;;;
+;; generate inside the body list the code for filling lambda in letrecs
 (defun compiletrec_lambda (recv obva obodl gcx sloc)
   (debug_msg recv "compiletrec_lambda recv")
   (debug_msg obva "compiletrec_lambda obva")
-  (assert_msg "$@$unimplemented compiletrec_lambda" ())
-)
+  (assert_msg "check recv" (is_a recv class_normal_constructed_lambda_binding))
+  (assert_msg "check obva" (is_a obva class_objlocv))
+  (assert_msg "check obodl" (is_list obodl))
+  (let ( (loc (or (get_field :nconsb_loc recv) sloc))
+	 (nclosed (get_field :nlambdab_nclosed recv))
+	 (nrout (get_field :nlambdab_datarout recv))
+	 )
+    (debug_msg nclosed "compiletrec_lambda nclosed tuple")
+    (foreach_in_multiple 
+     (nclosed) 
+     (curclosed :long curix)
+     (debug_msg curclosed "compiletrec_lambda curclosed")
+     (let ( (oclosed (compile_obj curclosed gcx)) 
+	    )
+       (debug_msg oclosed "compiletrec_lambda oclosed")
+       (if (is_not_a oclosed class_objpurevalue)
+	   (list_append obodl oclosed))
+       (let ( (oputclo (instance class_objputclosedv
+				 :obi_loc loc
+				 :opclov_clos obva
+				 :opclov_off (make_integerbox discr_integer curix)
+				 :opclov_cval oclosed
+				 )) 
+	      )
+	 (debug_msg oputclo "compiletrec_lambda oputclo")
+	 (list_append obodl oputclo)
+	 ;; do we need to touch the obva?
+	 (compile_warning "maybe compiletrec_lambda should add a touch objcode")
+	 ))
+     (debug_msg obodl "compiletrec_lambda final obodl")
+     )))
+(install_method class_normal_constructed_lambda_binding compile_letrec_fill compiletrec_lambda)
 
+;; generate inside the body list the code for filling tuple in letrecs
+(defun compiletrec_tuple (recv obva obodl gcx sloc)
+  (debug_msg recv "compiletrec_tuple recv")
+  (debug_msg obva "compiletrec_tuple obva")
+  (assert_msg "check recv" (is_a recv class_normal_constructed_tuple_binding))
+  (assert_msg "check obva" (is_a obva class_objlocv))
+  (assert_msg "check obodl" (is_list obodl))
+  (let ( (loc (or (get_field :nconsb_loc recv) sloc))
+	 (ncomptup (get_field :ntupb_comp recv))
+	 )
+    (debug_msg ncomptup "compiletrec_tuple ncomptup")
+    (foreach_in_multiple
+     (ncomptup)
+     (ncurcomp :long ix)
+     (debug_msg ncurcomp "compiletrec_tuple ncurcomp")
+     (let ( (ocomp (compile_obj ncurcomp gcx)) 
+	    (oputn (instance class_objputuple
+			     :obi_loc loc
+			     :oputu_tupled obva
+			     :oputu_offset (make_integerbox discr_integer ix)
+			     :oputu_value ocomp
+			     ))
+	    )
+       (debug_msg ocomp "compiletrec_tuple ocomp")
+       (if (is_not_a ocomp class_objpurevalue)
+	   (list_append obodl ocomp))
+       (list_append obodl oputn)
+     ))
+    ;; do we need to touch the obva?
+    (compile_warning "maybe compiletrec_tuple should add a touch objcode")
+    (debug_msg obodl "compiletrec_tuple final obodl")
+    ))
+(install_method class_normal_constructed_tuple_binding compile_letrec_fill compiletrec_tuple)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; compile of LETREC
 (defun compilobj_nrep_letrec (rlet gcx)
@@ -1959,6 +2023,7 @@
        (debug_msg obva "compilobj_nrep_letrec again obva")
        (debug_msg curbnd "compilobj_nrep_letrec again curbnd")
        (compile_letrec_fill curbnd obva obodl gcx loc)
+       (debug_msg obodl "compilobj_nrep_letrec letrecfilled obodl")
      ))
     ;; should compile the body
     (compile_warning "unimplemented compilobj_nrep_letrec")

@@ -1,3 +1,13 @@
+2009-12-02  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	{{more work for letrec, but tletrec.melt test is failing still}}
+	* melt/REAME-MELT: updated a bit, don't mention melt-cc-script
+	anymore.
+	* melt/warmelt-genobj.melt: added compiletrec_lambda &
+	compiletrec_tuple but they probably don't work yet.
+	* melt/warmelt-outobj.melt: don't inform about generated C files,
+	since the runtime inform about these..
+
 2009-12-01  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* Makefile.in (upgrade-warmelt, upgrade-bigmelt): recoded entirely

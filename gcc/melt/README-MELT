@@ -5,16 +5,13 @@ and my GCC summit 2007 paper
 Multi-stage construction of a global static analyser by Basile Starynkevitch, pages 143 - 152
 
 This directory contains melt files. MELT is a dialect of Lisp compiled
-into C code which should be compilable (by the strange melt-cc-script
-invoking any GCC [or perhaps even another compiler?] with the
-appropriate -fPIC and -I options (and using some melt-private-headers
-directory containing the required *.h files from GCC source tree
-needed to compile the MELT generated C code).
+into C code which should be compilable with the appropriate -fPIC and
+-I options (perhaps using some melt-private-headers directory containing
+the required *.h files from GCC source tree needed to compile the MELT
+generated C code).
 
 The MELT source files -a lisp like code- are *.melt and used to be
 .bysl before April 9th 2009 (MELT branch rev 145716)
-
-
 
 See the gcc/doc/melt.texi  file.
 

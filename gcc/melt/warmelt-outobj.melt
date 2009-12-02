@@ -3125,7 +3125,7 @@
 						    (melt_ptr_t)($declbuf),
 						    (melt_ptr_t)($implbuf)) ;
 			}#)
-	    (informsg_strv "warmelt generated module C file" modnamstr)
+	    ;(informsg_strv "warmelt generated module C file" modnamstr)
 	    (if (not (wants_single_c_file))
 		(let ( (secfiles (get_field :mocx_filetuple modctx)) )
 		  (debug_msg secfiles "compile_list_sexpr secfiles")
@@ -3151,7 +3151,7 @@
 							(melt_ptr_t)($secimplbuf),
 							$filix) ;
 			    }#)
-			   (informsg_strv "warmelt generated secondary C file" secfilpath)
+			   ;(informsg_strv "warmelt generated secondary C file" secfilpath)
 			   ))
 		     )))))))))
   (message_dbg "ended compile_list_sexpr")
