@@ -1,5 +1,12 @@
 2009-12-01  Jeff Law <law@redhat.com>
 
+	* ira-reload.c (no_uses_after_this_set): New function.
+	(emit_localizing_stores): Use no_uses_after_this_set, accept
+	new argument TAIL.  Remove references to no_uses_after_last_set.
+	(localize_pseudos): Remove references to no_uses_after_last_set.
+	(identify_singleton_sets): Likewise.
+	(no_uses_after_last_set): Delete bitmap.
+
 	* ira-reload.c (emit_localizing_stores): Decrement pseudo_nsets
 	if we eliminate a store to a pseudo we want to localize.  Do not
 	clear regs_to_load if we eliminated a store to the pseudo reg.

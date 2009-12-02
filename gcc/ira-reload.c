@@ -49,7 +49,6 @@ along with GCC; see the file COPYING3.  If not see
 static bitmap pseudos_to_localize;
 static bitmap regs_to_load;
 static bitmap regs_to_store;
-static bitmap no_uses_after_last_set;
 static int *pseudo_nuses;
 static int *pseudo_nsets;
 static rtx *reg_map;
@@ -151,11 +150,37 @@ identify_singleton_sets (rtx dest)
 
   /* If DEST isn't maked for spilling, then there is nothing to do.  */
   if (bitmap_bit_p (pseudos_to_localize, REGNO (dest)))
+    pseudo_nsets[REGNO (dest)]++;
+}
+
+/* Return true if there are no uses of DEST between (START, STOP].  */
+
+static bool
+no_uses_after_this_set (rtx dest, rtx start, rtx stop)
+{
+  rtx insn;
+	  
+  for (insn = NEXT_INSN (start);
+       insn != NEXT_INSN (BB_END (BLOCK_FOR_INSN (stop)));
+       insn = NEXT_INSN (insn))
     {
-      if (pseudo_nuses[REGNO (dest)] == 0 && pseudo_nsets[REGNO (dest)] == 0)
-	bitmap_set_bit (no_uses_after_last_set, REGNO (dest));
-      pseudo_nsets[REGNO (dest)]++;
+      df_ref *use_rec;
+      rtx use = NULL_RTX;
+
+      if (!NONDEBUG_INSN_P (insn))
+	continue;
+
+      for (use_rec = DF_INSN_USES (insn); *use_rec; use_rec++)
+	{
+	  use = DF_REF_REG (*use_rec);
+	  if (GET_CODE (use) == SUBREG)
+	    use = SUBREG_REG (use);
+
+	  if (use == dest)
+	    return false;
+	}
     }
+  return true;
 }
 
 /* Collect (into REGS_TO_LOAD) USE if it is a pseudo marked for
@@ -298,7 +323,7 @@ rename_sets (rtx dest, rtx insn)
    Return -1 if INSN should be deleted.  */
 
 static int
-emit_localizing_stores (rtx dest, rtx insn)
+emit_localizing_stores (rtx dest, rtx insn, rtx tail)
 {
   unsigned int regno;
   int retval = 0;
@@ -353,8 +378,8 @@ emit_localizing_stores (rtx dest, rtx insn)
       /* Similarly if this insn sets a pseudo we want to localize and
 	 there are no uses after this set, then try to replace the pseudo
 	 with its equivalent memory location.  */
-      else if (bitmap_bit_p (no_uses_after_last_set, (REGNO (dest)))
-	       && nsets == 1
+      else if (nsets == 1
+	       && no_uses_after_this_set (dest, insn, tail)
 	       && validate_replace_rtx (dest, mem, insn))
 	{
 	  pseudo_nsets[REGNO (dest)]--;
@@ -379,7 +404,7 @@ emit_localizing_stores (rtx dest, rtx insn)
               && rtx_equal_p (SET_SRC (single_set (insn)),
 			  SET_DEST (single_set (insns))))
 	    {
-	      if (bitmap_bit_p (no_uses_after_last_set, REGNO (dest)))
+	      if (no_uses_after_this_set (dest, insn, tail))
 		retval = -1;
 	    }
           else
@@ -653,7 +678,6 @@ localize_pseudos (basic_block bb, bitmap pseudos_to_localize, bitmap visited)
 
   regs_to_store = BITMAP_ALLOC (NULL);
   regs_to_load = BITMAP_ALLOC (NULL);
-  no_uses_after_last_set = BITMAP_ALLOC (NULL);
   pseudo_nuses = (int *) xmalloc (max_reg_num () * sizeof (int));
   memset (pseudo_nuses, 0, max_reg_num () * sizeof (int));
   pseudo_nsets = (int *) xmalloc (max_reg_num () * sizeof (int));
@@ -705,17 +729,7 @@ localize_pseudos (basic_block bb, bitmap pseudos_to_localize, bitmap visited)
 
 	  bb = BLOCK_FOR_INSN (insn);
 	  FOR_EACH_EDGE (e, ei, bb->succs)
-	    {
-	      if ((e->flags & EDGE_FALLTHRU) == 0)
-		{
-		  unsigned int i;
-		  bitmap_iterator bi;
-
-		  EXECUTE_IF_AND_IN_BITMAP (pseudos_to_localize, DF_LIVE_IN (e->dest), 0, i, bi)
-		    bitmap_clear_bit (no_uses_after_last_set, i);
-		}
-		bitmap_ior_and_into (regs_to_store, pseudos_to_localize, DF_LIVE_IN (e->dest));
-	    }
+	    bitmap_ior_and_into (regs_to_store, pseudos_to_localize, DF_LIVE_IN (e->dest));
 	}
 
       for (def_rec = DF_INSN_DEFS (insn); *def_rec; def_rec++)
@@ -754,7 +768,7 @@ localize_pseudos (basic_block bb, bitmap pseudos_to_localize, bitmap visited)
 
       status = 0;
       for (def_rec = DF_INSN_DEFS (insn); *def_rec; def_rec++)
-	status |= emit_localizing_stores (DF_REF_REG (*def_rec), insn);
+	status |= emit_localizing_stores (DF_REF_REG (*def_rec), insn, tail);
 
       /* A return status of -1 indicates INSN should be removed.  */
       if (status == -1 && single_set (insn))
@@ -906,8 +920,6 @@ localize_pseudos (basic_block bb, bitmap pseudos_to_localize, bitmap visited)
   regs_to_store = NULL;
   BITMAP_FREE (regs_to_load);
   regs_to_load = NULL;
-  BITMAP_FREE (no_uses_after_last_set);
-  no_uses_after_last_set = NULL;
   free (pseudo_nuses);
   pseudo_nuses = NULL;
   free (pseudo_nsets);
