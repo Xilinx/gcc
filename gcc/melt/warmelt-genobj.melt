@@ -1901,6 +1901,10 @@
   (let ( (loc (or (get_field :nconsb_loc recv) sloc))
 	 (nclosed (get_field :nlambdab_nclosed recv))
 	 (nrout (get_field :nlambdab_datarout recv))
+	 (otouch (instance class_objtouch
+		    :obi_loc loc
+		    :otouch_val obva
+		    ))
 	 )
     (debug_msg nclosed "compiletrec_lambda nclosed tuple")
     (foreach_in_multiple 
@@ -1910,8 +1914,12 @@
      (let ( (oclosed (compile_obj curclosed gcx)) 
 	    )
        (debug_msg oclosed "compiletrec_lambda oclosed")
-       (if (is_not_a oclosed class_objpurevalue)
-	   (list_append obodl oclosed))
+       (cond ( (is_not_a oclosed class_objpurevalue)
+	       (if (>i curix 0)
+		   (list_append obodl otouch))
+	       (list_append obodl oclosed) 
+	       )
+	     )
        (let ( (oputclo (instance class_objputclosedv
 				 :obi_loc loc
 				 :opclov_clos obva
@@ -1921,11 +1929,11 @@
 	      )
 	 (debug_msg oputclo "compiletrec_lambda oputclo")
 	 (list_append obodl oputclo)
-	 ;; do we need to touch the obva?
-	 (compile_warning "maybe compiletrec_lambda should add a touch objcode")
 	 ))
-     (debug_msg obodl "compiletrec_lambda final obodl")
-     )))
+     )
+    (list_append obodl otouch)
+    (debug_msg obodl "compiletrec_lambda final obodl")
+    ))
 (install_method class_normal_constructed_lambda_binding compile_letrec_fill compiletrec_lambda)
 
 ;; generate inside the body list the code for filling tuple in letrecs
@@ -1937,6 +1945,10 @@
   (assert_msg "check obodl" (is_list obodl))
   (let ( (loc (or (get_field :nconsb_loc recv) sloc))
 	 (ncomptup (get_field :ntupb_comp recv))
+	 (otouch (instance class_objtouch
+			   :obi_loc loc
+			   :otouch_val obva
+			   ))
 	 )
     (debug_msg ncomptup "compiletrec_tuple ncomptup")
     (foreach_in_multiple
@@ -1952,12 +1964,14 @@
 			     ))
 	    )
        (debug_msg ocomp "compiletrec_tuple ocomp")
-       (if (is_not_a ocomp class_objpurevalue)
-	   (list_append obodl ocomp))
+       (cond ( (is_not_a ocomp class_objpurevalue)
+	       (list_append obodl otouch)
+	       (list_append obodl ocomp)
+	       )
+	     )
        (list_append obodl oputn)
-     ))
-    ;; do we need to touch the obva?
-    (compile_warning "maybe compiletrec_tuple should add a touch objcode")
+       ))
+    (list_append obodl otouch)
     (debug_msg obodl "compiletrec_tuple final obodl")
     ))
 (install_method class_normal_constructed_tuple_binding compile_letrec_fill compiletrec_tuple)
@@ -1995,7 +2009,7 @@
      (debug_msg curlocsym "compilobj_nrep_letrec curlocsym")
      (assert_msg "check curlocsym" (is_a curlocsym class_nrep_locsymocc))
      (let ( (curobva (get_free_objloctyped gcx (get_field :nocc_symb curlocsym) ctype_value))
-	   )
+	    )
        (debug_msg curobva "compilobj_nrep_letrec curobva")
        (multiple_put_nth tuploc symix curobva)
        (mapobject_put locmap (multiple_nth bnds symix) curobva)
@@ -2011,10 +2025,32 @@
 	    )
        (debug_msg obnd "compilobj_nrep_letrec obnd")
        (multiple_put_nth oallstruct bndix obnd)
+       (list_append obodl obnd)
+       (debug_msg obodl "compilobj_nrep_letrec updated obodl")
        )
      )
+    ;; 
+    ;; maybe we should reserve the recobva before compiling nrecexp
+    (debug_msg recbnds "compilobj_nrep_letrec recbnds")
+    (foreach_in_multiple
+     (recbnds)
+     (curecbnd :long recbix)
+     (debug_msg curecbnd "compilobj_nrep_letrec curecbnd")
+     (let ( (rbder (unsafe_get_field :binder curecbnd))
+	    (rcty (unsafe_get_field :letbind_type curecbnd))
+	    (nrecexp (unsafe_get_field :letbind_expr curecbnd))
+	    (recobva (get_free_objloctyped gcx rbder rcty))
+	    )
+       (debug_msg recobva "compilobj_nrep_letrec current normbinding recobva")
+       (mapobject_put locmap rbder recobva)
+       (debug_msg nrecexp "compilobj_nrep_letrec current recbinding nexp")
+       (let ( (robnx (compile_obj nrecexp gcx)) )
+	 (debug_msg robnx "compilobj_nrep_letrec robnx")
+	 ))
+     )
+    ;;
     (debug_msg oallstruct "compilobj_nrep_letrec oallstruct")
-    ;;; generate the fill
+;;; generate the fill
     (foreach_in_multiple
      (bnds)
      (curbnd :long bndix)
@@ -2024,10 +2060,11 @@
        (debug_msg curbnd "compilobj_nrep_letrec again curbnd")
        (compile_letrec_fill curbnd obva obodl gcx loc)
        (debug_msg obodl "compilobj_nrep_letrec letrecfilled obodl")
-     ))
-    ;; should compile the body
-    (compile_warning "unimplemented compilobj_nrep_letrec")
+       ))
+    ;; should compile the body & free our objlocs...
     (debug_msg oblock "compilobj_nrep_letrec final oblock")
+    (compile_warning "unimplemented compilobj_nrep_letrec")
+    (assert_msg "$@$incomplete compilobj_nrep_letrec" ())
     oblock
     ))
 (install_method class_nrep_letrec compile_obj compilobj_nrep_letrec)

@@ -3164,11 +3164,11 @@
 
 (defun install_melt_mode (mode)
   :doc #{$INSTALL_MELT_MODE installs a new MELT mode, ie an instance of $CLASS_MELT_MODE.}#
-  (debug_msg mode "install_melt_mode mode")
   (assert_msg "check mode" (is_a mode class_melt_mode))
   (let ( (cmdict (get_field :sysdata_mode_dict initial_system_data))
 	 (cnam (get_field :named_name mode))
 	 )
+    (debug_msg mode "install_melt_mode mode")
     (mapstring_putstr cmdict cnam mode)
 ))
 

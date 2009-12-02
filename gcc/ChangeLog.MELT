@@ -1,5 +1,13 @@
 2009-12-02  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	{{more work for letrec but incomplete}}
+	* melt/warmelt-genobj.melt: added touch generation in
+	compiletrec_tuple & compiletrec_lambda. compilobj_nrep_letrec
+	still incomplete.
+	* melt/warmelt-outobj.melt: moved debug_msg in install_melt_mode.
+
+2009-12-02  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	{{more work for letrec, but tletrec.melt test is failing still}}
 	* melt/REAME-MELT: updated a bit, don't mention melt-cc-script
 	anymore.
