@@ -1,6 +1,0 @@
-2009-11-07  Janus Weil  <janus@gcc.gnu.org>
-
-	* gfortran.map: Add _gfortran_is_extension_of.
-	* Makefile.am: Add intrinsics/extends_type_of.c.
-	* Makefile.in: Regenerated.
-	* intrinsics/extends_type_of.c: New file. 

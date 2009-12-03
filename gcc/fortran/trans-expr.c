@@ -1522,7 +1522,6 @@ get_proc_ptr_comp (gfc_expr *e)
 }
 
 
-
 static void
 conv_function_val (gfc_se * se, gfc_symbol * sym, gfc_expr * expr)
 {

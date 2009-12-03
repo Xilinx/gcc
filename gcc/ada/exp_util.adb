@@ -2761,6 +2761,7 @@ package body Exp_Util is
                N_SCIL_Dispatch_Table_Object_Init        |
                N_SCIL_Dispatch_Table_Tag_Init           |
                N_SCIL_Dispatching_Call                  |
+               N_SCIL_Membership_Test                   |
                N_SCIL_Tag_Init                          |
                N_Selected_Component                     |
                N_Signed_Integer_Type_Definition         |
@@ -3411,17 +3412,49 @@ package body Exp_Util is
    --------------------
 
    procedure Kill_Dead_Code (N : Node_Id; Warn : Boolean := False) is
+      W : Boolean := Warn;
+      --  Set False if warnings suppressed
+
    begin
       if Present (N) then
          Remove_Warning_Messages (N);
 
-         if Warn then
-            Error_Msg_F
-              ("?this code can never be executed and has been deleted!", N);
+         --  Generate warning if appropriate
+
+         if W then
+
+            --  We suppress the warning if this code is under control of an
+            --  if statement, whose condition is a simple identifier, and
+            --  either we are in an instance, or warnings off is set for this
+            --  identifier. The reason for killing it in the instance case is
+            --  that it is common and reasonable for code to be deleted in
+            --  instances for various reasons.
+
+            if Nkind (Parent (N)) = N_If_Statement then
+               declare
+                  C : constant Node_Id := Condition (Parent (N));
+               begin
+                  if Nkind (C) = N_Identifier
+                    and then
+                      (In_Instance
+                        or else (Present (Entity (C))
+                                   and then Has_Warnings_Off (Entity (C))))
+                  then
+                     W := False;
+                  end if;
+               end;
+            end if;
+
+            --  Generate warning if not suppressed
+
+            if W then
+               Error_Msg_F
+                 ("?this code can never be executed and has been deleted!", N);
+            end if;
          end if;
 
          --  Recurse into block statements and bodies to process declarations
-         --  and statements
+         --  and statements.
 
          if Nkind (N) = N_Block_Statement
            or else Nkind (N) = N_Subprogram_Body

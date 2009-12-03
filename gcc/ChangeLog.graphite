@@ -1,3 +1,65 @@
+2009-11-29  Alexander Monakov <amonakov@gcc.gnu.org>
+
+	* testsuite/g++.dg/graphite/pr42130.C: Correct testcase.
+
+2009-11-24  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* graphite-clast-to-gimple.c (try_mark_loop_parallel,
+	graphite_create_new_loop_guard, translate_clast_for): Fix comments.
+
+2009-11-23  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	PR middle-end/42130
+	* graphite-clast-to-gimple.c (graphite_create_new_loop_guard,
+	translate_clast_for_loop): New.
+	(translate_clast_for): Add a condition around the loop, to do not
+	execute loops with zero iterations.
+	* testsuite/g++.dg/graphite/pr42130.C: New.
+	* testsuite/gcc.dg/graphite/pr35356-2.c: Adapt.
+
+2009-11-23  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* graphite-clast-to-gimple.c (try_mark_loop_parallel): New.
+	(translate_clast_for, translate_clast_guard, translate_clast, gloog):
+	Remove context_loop and level.
+
+2009-11-23  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* graphite-clast-to-gimple.c (translate_clast_user,
+	translate_clast_for, translate_clast_guard): Simplify and move common
+	elements to translate_clast().
+	(translate_clast): Simplify and get common elements.
+
+2009-11-23  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* graphite-clast-to-gimple.c (translate_clast_user,
+	translate_clast_for, translate_clast_guard): Split out of
+	translate_clast.
+
+2009-11-21  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* graphite-clast-to-gimple.c (clast_name_index, new_clast_name_index,
+	clast_name_to_index, save_clast_name_index, debug_clast_name_index,
+	debug_clast_name_indexes_1, debug_clast_name_indexes,
+	clast_name_index_elt_info, eq_clast_name_indexes): Moved from sese.h.
+	(clast_name_to_gcc, clast_to_gcc_expression,
+	clast_to_gcc_expression_red, gcc_type_for_clast_expr,
+	gcc_type_for_clast_eq, graphite_translate_clast_equation,
+	graphite_create_guard_cond_expr, graphite_create_new_loop,
+	translate_clast): Add params_index.
+	(initialize_cloog_names): Create parameter strings from scratch, do
+	not reference other strings.
+	(create_params_index): New.
+	(gloog): Initialize params_index.
+	* graphite-scop-detection (free_scops_1): Removed.
+	(limit_scops): Use normal free_scops.
+	* graphite-sese-to-poly.c (save_var_names): Removed.
+	(parameter_index_in_region): Do not initialize SESE_PARAM_NAMES
+	and SESE_PARAMS_INDEX.
+	* sese.c (new_sese, free_sese): Dito.
+	* sese.h (struct sese): Remove params_index, params_names.
+	(SESE_PARAMS_INDEX, SESE_PARAMS_NAMES): Removed.
+
 2009-11-20  Sebastian Pop  <sebastian.pop@amd.com>
 
 	Revert the following patch from 2009-09-14:

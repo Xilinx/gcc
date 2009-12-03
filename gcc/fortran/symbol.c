@@ -5050,6 +5050,7 @@ add_generics_to_declared_vtab (gfc_symbol *declared, gfc_symbol *vtype,
     }
 }
 
+
 /* Find the symbol for a derived type's vtab.  A vtab has the following
    fields:
    $hash	a hash value used to identify the derived type

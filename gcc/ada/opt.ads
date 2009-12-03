@@ -861,6 +861,12 @@ package Opt is
    --  This flag is set True if a No_Run_Time pragma is encountered. See
    --  spec of Rtsfind for a full description of handling of this pragma.
 
+   No_Split_Units : Boolean := False;
+   --  GPRBUILD
+   --  Set to True with switch --no-split-units. When True, unit sources, spec,
+   --  body and subunits, must all be in the same project.This is checked after
+   --  each compilation.
+
    No_Stdinc : Boolean := False;
    --  GNAT, GNATBIND, GNATMAKE, GNATFIND, GNATXREF
    --  Set to True if no default source search dirs added to search list
@@ -1041,6 +1047,10 @@ package Opt is
    --  Set to True if a shared libgnat is requested by using the -shared option
    --  for GNATBIND and to False when using the -static option. The value of
    --  this flag is set by Gnatbind.Scan_Bind_Arg.
+
+   Short_Circuit_And_Or : Boolean := False;
+   --  GNAT
+   --  Set True if a pragma Short_Circuit_And_Or applies to the current unit.
 
    Sprint_Line_Limit : Nat := 72;
    --  Limit values for chopping long lines in Sprint output, can be reset
@@ -1547,6 +1557,18 @@ package Opt is
    --  used to set the initial value of Fast_Math at the start of each new
    --  compilation unit.
 
+   Init_Or_Norm_Scalars_Config : Boolean;
+   --  GNAT
+   --  This is the value of the configuration switch that is set by one
+   --  of the pragmas Initialize_Scalars or Normalize_Scalars.
+
+   Initialize_Scalars_Config : Boolean;
+   --  GNAT
+   --  This is the value of the configuration switch that is set by the
+   --  pragma Initialize_Scalars when it appears in the gnat.adc file.
+   --  This switch is not set when the pragma appears ahead of a given
+   --  unit, so it does not affect the compilation of other units.
+
    Optimize_Alignment_Config : Character;
    --  GNAT
    --  This is the value of the configuration switch that controls the
@@ -1695,6 +1717,8 @@ private
       External_Name_Exp_Casing       : External_Casing_Type;
       External_Name_Imp_Casing       : External_Casing_Type;
       Fast_Math                      : Boolean;
+      Init_Or_Norm_Scalars           : Boolean;
+      Initialize_Scalars             : Boolean;
       Optimize_Alignment             : Character;
       Optimize_Alignment_Local       : Boolean;
       Persistent_BSS_Mode            : Boolean;

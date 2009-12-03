@@ -5526,6 +5526,13 @@ convert_template_argument (tree parm,
       if (TYPE_P (val))
 	val = strip_typedefs (val);
     }
+  else if (TREE_CODE (orig_arg) == SCOPE_REF)
+    {
+      /* Strip typedefs from the SCOPE_REF.  */
+      tree type = strip_typedefs (TREE_TYPE (orig_arg));
+      tree scope = strip_typedefs (TREE_OPERAND (orig_arg, 0));
+      val = build2 (SCOPE_REF, type, scope, TREE_OPERAND (orig_arg, 1));
+    }
   else
     {
       tree t = tsubst (TREE_TYPE (parm), args, complain, in_decl);
@@ -8000,7 +8007,7 @@ tsubst_pack_expansion (tree t, tree args, tsubst_flags_t complain,
 {
   tree pattern;
   tree pack, packs = NULL_TREE, unsubstituted_packs = NULL_TREE;
-  tree first_arg_pack; int i, len = -1;
+  int i, len = -1;
   tree result;
   int incomplete = 0;
   bool very_local_specializations = false;
@@ -8084,10 +8091,7 @@ tsubst_pack_expansion (tree t, tree args, tsubst_flags_t complain,
             incomplete = 1;
 
           if (len < 0)
-            {
-              len = my_len;
-              first_arg_pack = arg_pack;
-            }
+	    len = my_len;
           else if (len != my_len)
             {
 	      if (incomplete)
@@ -10037,10 +10041,10 @@ tsubst (tree t, tree args, tsubst_flags_t complain, tree in_decl)
 	      {
 		if (TREE_CODE (type) == VOID_TYPE)
 		  error ("forming reference to void");
-		else
-		  error ("forming %s to reference type %qT",
-			 (code == POINTER_TYPE) ? "pointer" : "reference",
-			 type);
+               else if (code == POINTER_TYPE)
+                 error ("forming pointer to reference type %qT", type);
+               else
+		  error ("forming reference to reference type %qT", type);
 		last_loc = input_location;
 	      }
 

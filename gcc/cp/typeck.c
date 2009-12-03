@@ -3021,7 +3021,6 @@ cp_build_function_call_vec (tree function, VEC(tree,gc) **params,
 			    tsubst_flags_t complain)
 {
   tree fntype, fndecl;
-  tree name = NULL_TREE;
   int is_method;
   tree original = function;
   int nargs;
@@ -3044,8 +3043,6 @@ cp_build_function_call_vec (tree function, VEC(tree,gc) **params,
 
   if (TREE_CODE (function) == FUNCTION_DECL)
     {
-      name = DECL_NAME (function);
-
       mark_used (function);
       fndecl = function;
 
@@ -4465,8 +4462,8 @@ cp_build_unary_op (enum tree_code code, tree xarg, int noconvert,
 	arg = build_expr_type_conversion (flags, arg, true);
 	if (!arg)
 	  errstring = (code == NEGATE_EXPR
-		       ? "wrong type argument to unary minus"
-		       : "wrong type argument to unary plus");
+		       ? _("wrong type argument to unary minus")
+		       : _("wrong type argument to unary plus"));
 	else
 	  {
 	    if (!noconvert && CP_INTEGRAL_TYPE_P (TREE_TYPE (arg)))
@@ -4489,14 +4486,14 @@ cp_build_unary_op (enum tree_code code, tree xarg, int noconvert,
       else if (!(arg = build_expr_type_conversion (WANT_INT | WANT_ENUM
 						   | WANT_VECTOR,
 						   arg, true)))
-	errstring = "wrong type argument to bit-complement";
+	errstring = _("wrong type argument to bit-complement");
       else if (!noconvert && CP_INTEGRAL_TYPE_P (TREE_TYPE (arg)))
 	arg = perform_integral_promotions (arg);
       break;
 
     case ABS_EXPR:
       if (!(arg = build_expr_type_conversion (WANT_ARITH | WANT_ENUM, arg, true)))
-	errstring = "wrong type argument to abs";
+	errstring = _("wrong type argument to abs");
       else if (!noconvert)
 	arg = default_conversion (arg);
       break;
@@ -4504,7 +4501,7 @@ cp_build_unary_op (enum tree_code code, tree xarg, int noconvert,
     case CONJ_EXPR:
       /* Conjugating a real value is a no-op, but allow it anyway.  */
       if (!(arg = build_expr_type_conversion (WANT_ARITH | WANT_ENUM, arg, true)))
-	errstring = "wrong type argument to conjugation";
+	errstring = _("wrong type argument to conjugation");
       else if (!noconvert)
 	arg = default_conversion (arg);
       break;
@@ -4515,7 +4512,7 @@ cp_build_unary_op (enum tree_code code, tree xarg, int noconvert,
       val = invert_truthvalue_loc (input_location, arg);
       if (arg != error_mark_node)
 	return val;
-      errstring = "in argument to unary !";
+      errstring = _("in argument to unary !");
       break;
 
     case NOP_EXPR:
@@ -4576,13 +4573,13 @@ cp_build_unary_op (enum tree_code code, tree xarg, int noconvert,
 					      arg, true)))
 	{
 	  if (code == PREINCREMENT_EXPR)
-	    errstring ="no pre-increment operator for type";
+	    errstring = _("no pre-increment operator for type");
 	  else if (code == POSTINCREMENT_EXPR)
-	    errstring ="no post-increment operator for type";
+	    errstring = _("no post-increment operator for type");
 	  else if (code == PREDECREMENT_EXPR)
-	    errstring ="no pre-decrement operator for type";
+	    errstring = _("no pre-decrement operator for type");
 	  else
-	    errstring ="no post-decrement operator for type";
+	    errstring = _("no post-decrement operator for type");
 	  break;
 	}
       else if (arg == error_mark_node)
@@ -4596,7 +4593,7 @@ cp_build_unary_op (enum tree_code code, tree xarg, int noconvert,
           if (complain & tf_error)
             readonly_error (arg, ((code == PREINCREMENT_EXPR
                                    || code == POSTINCREMENT_EXPR)
-                                  ? "increment" : "decrement"));
+                                  ? REK_INCREMENT : REK_DECREMENT));
           else
             return error_mark_node;
         }
@@ -6330,7 +6327,7 @@ cp_build_modify_expr (tree lhs, enum tree_code modifycode, tree rhs,
 	      && C_TYPE_FIELDS_READONLY (lhstype))))
     {
       if (complain & tf_error)
-	readonly_error (lhs, "assignment");
+	readonly_error (lhs, REK_ASSIGNMENT);
       else
 	return error_mark_node;
     }

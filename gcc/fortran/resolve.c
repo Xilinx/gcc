@@ -6883,7 +6883,7 @@ resolve_select_type (gfc_code *code)
 	  tail->next = NULL;
 	  default_case = tail;
 	}
-      
+
       /* More than one CLASS IS block?  */
       if (class_is->block)
 	{
