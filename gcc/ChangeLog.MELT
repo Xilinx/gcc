@@ -1,3 +1,10 @@
+2009-12-03  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	{{more work for letrec still incomplete}}
+	* melt/warmelt-genobj.melt: compilobj_nrep_letrec clearing
+	location and splitting free location allocation from use, so loops
+	twice on recbnds
+
 2009-12-02  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	{{more work for letrec but incomplete}}

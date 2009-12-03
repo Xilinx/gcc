@@ -1874,8 +1874,8 @@
 (defselector compile_letrec_fill class_selector
   :doc #{The selector $COMPILE_LETREC_FILL is used to compile the fill
   for a $LETREC. The $RECV is usually a constructive binding. $OBVA is
-  the object variable, and $OBDOL is the list for the body, $GCX being
-  the generation context. $SLOC is the source location}#
+  the object variable, and $OBODL is the list for the body, $GCX being
+  the generation context. $SLOC is the source location.}#
   :formals (recv obva obodl gcx sloc)
   )
 (export_values compile_letrec_fill)
@@ -2009,14 +2009,25 @@
      (debug_msg curlocsym "compilobj_nrep_letrec curlocsym")
      (assert_msg "check curlocsym" (is_a curlocsym class_nrep_locsymocc))
      (let ( (curobva (get_free_objloctyped gcx (get_field :nocc_symb curlocsym) ctype_value))
+	    (ocurclear (instance class_objclear
+				 :obi_loc loc
+				 :oclr_vloc curobva))
+	    (cursbnd (multiple_nth bnds symix))
 	    )
+       (debug_msg curlocsym "compilobj_nrep_letrec curlocsym again")
        (debug_msg curobva "compilobj_nrep_letrec curobva")
+       (debug_msg cursbnd "compilobj_nrep_letrec cursbnd")
+       (debug_msg ocurclear "compilobj_nrep_letrec ocurclear")
        (multiple_put_nth tuploc symix curobva)
-       (mapobject_put locmap (multiple_nth bnds symix) curobva)
+       (mapobject_put locmap cursbnd curobva)
+       (list_append obodl ocurclear)
+       (list_append oepil ocurclear)
        )
      )
     ;;
+    (debug_msg locmap "compilobj_nrep_letrec locmap")
     (debug_msg oblock "compilobj_nrep_letrec incomplete oblock")
+    (debug_msg bnds "compilobj_nrep_letrec compiling each of bnds")
     (foreach_in_multiple
      (bnds)
      (curbnd :long bndix)
@@ -2032,24 +2043,46 @@
     ;; 
     ;; maybe we should reserve the recobva before compiling nrecexp
     (debug_msg recbnds "compilobj_nrep_letrec recbnds")
-    (foreach_in_multiple
+    (assert_msg "check recbnds" (is_list_or_null recbnds))
+    ;; first loop to reserve the recobva
+    (foreach_in_list
      (recbnds)
-     (curecbnd :long recbix)
-     (debug_msg curecbnd "compilobj_nrep_letrec curecbnd")
+     (curecpair curecbnd)
+     (debug_msg curecbnd "compilobj_nrep_letrec curecbnd getfreeobjloc")
+     (assert_msg "check curecbnd" (is_a curecbnd class_normal_let_binding))
+     (let ( (rbder (unsafe_get_field :binder curecbnd))
+	    (rcty (unsafe_get_field :letbind_type curecbnd))
+	    (rloc (unsafe_get_field :letbind_loc curecbnd))
+	    (recobva (get_free_objloctyped gcx rbder rcty))
+	    (oreclear (instance class_objclear
+				:obi_loc (or rloc loc)
+				:oclr_vloc recobva
+				))
+	    )
+       (debug_msg recobva "compilobj_nrep_letrec current normbinding recobva")
+       (mapobject_put locmap curecbnd recobva)
+       (debug_msg oreclear "compilobj_nrep_letrec oreclear")
+       (list_append obodl oreclear)
+     ))
+    (debug_msg locmap "compilobj_nrep_letrec locmap again")
+    ;; second loop to compile the recbindings
+    (foreach_in_list
+     (recbnds)
+     (curecpair curecbnd)
+     (debug_msg curecbnd "compilobj_nrep_letrec curecbnd compil")
+     (assert_msg "check curecbnd" (is_a curecbnd class_normal_let_binding))
      (let ( (rbder (unsafe_get_field :binder curecbnd))
 	    (rcty (unsafe_get_field :letbind_type curecbnd))
 	    (nrecexp (unsafe_get_field :letbind_expr curecbnd))
-	    (recobva (get_free_objloctyped gcx rbder rcty))
 	    )
-       (debug_msg recobva "compilobj_nrep_letrec current normbinding recobva")
-       (mapobject_put locmap rbder recobva)
-       (debug_msg nrecexp "compilobj_nrep_letrec current recbinding nexp")
+       (debug_msg nrecexp "compilobj_nrep_letrec current recbinding nrecexp")
        (let ( (robnx (compile_obj nrecexp gcx)) )
 	 (debug_msg robnx "compilobj_nrep_letrec robnx")
 	 ))
      )
     ;;
     (debug_msg oallstruct "compilobj_nrep_letrec oallstruct")
+    (debug_msg bnds "compilobj_nrep_letrec filling each of bnds")
 ;;; generate the fill
     (foreach_in_multiple
      (bnds)
@@ -3267,6 +3300,8 @@
 			   :oblo_bodyl olis))
 	 (destlist (make_list discr_list))
 	 )
+    (debug_msg nam "compilobj_nrep_lambda nam")
+    (debug_msg locv "compilobj_nrep_lambda locv")
     (list_append destlist locv)
     (list_append olis 
 		 (instance 
