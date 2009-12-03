@@ -490,6 +490,26 @@ create_new_allocno_for_spilling (int nreg, int oreg)
   CLEAR_HARD_REG_SET (ALLOCNO_CONFLICT_HARD_REGS (to));
   CLEAR_HARD_REG_SET (ALLOCNO_TOTAL_CONFLICT_HARD_REGS (to));
 
+  /* ?!? This is a hack.
+     If the original allocno conflicts will all hard registers, then it must
+     have crossed a setjmp call or something similar.  Just copy the conflicts
+     in this one case.
+
+     Long term we'll catch this elsewhere as the new allocno may have not
+     have the same constraints on allocation that the original allocno had.  */
+  {
+    HARD_REG_SET x;
+
+    COMPL_HARD_REG_SET (x, ALLOCNO_CONFLICT_HARD_REGS (from));
+    if (hard_reg_set_empty_p (x))
+      {
+	COPY_HARD_REG_SET (ALLOCNO_CONFLICT_HARD_REGS (to), ALLOCNO_CONFLICT_HARD_REGS (from));
+	COPY_HARD_REG_SET (ALLOCNO_TOTAL_CONFLICT_HARD_REGS (to), ALLOCNO_TOTAL_CONFLICT_HARD_REGS (from));
+      }
+  }
+  
+
+     
   /* Count the number of conflicts on the original allocno.  We use that count
      as an estimate for the number of conflicts in the new allocno.  The new
      allocno should have fewer conflicts than the original as the new allocno
@@ -640,8 +660,15 @@ build_conflicts_for_new_allocnos (rtx head, rtx tail,
          registers live at the end of that block - pseudos_to_localize.  */
       if (bb != BLOCK_FOR_INSN (insn))
 	{
+	  hard_reg_set_iterator hrsi;
+	  unsigned int i;
+
 	  bb = BLOCK_FOR_INSN (insn);
           bitmap_ior_and_compl_into (live, DF_LIVE_OUT (bb), pseudos_to_localize);
+	  EXECUTE_IF_SET_IN_HARD_REG_SET (eliminable_regset, 0, i, hrsi)
+	    bitmap_clear_bit (live, i);
+	  EXECUTE_IF_SET_IN_HARD_REG_SET (ira_no_alloc_regs, 0, i, hrsi)
+	    bitmap_clear_bit (live, i);
 	}
 	
       call_p = CALL_P (insn);

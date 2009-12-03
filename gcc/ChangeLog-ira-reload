@@ -1,5 +1,12 @@
 2009-12-02  Jeff Law <law@redhat.com>
 
+	* ira-reload.c (create_new_allocno_for_spilling): If the original
+	allocno conflicts with all hard regs, then make the new allocno
+	conflict with all hard regs too.
+
+	* ira-reload.c (build_conflicts_for_new_allocnos): Clear 
+	ELIMINABLE_REGSET and IRA_NO_ALLOC_REGS from LIVE.
+
 	* ira-reload.c (emit_localizing_stores): Allow replacement of
 	pseudo with MEM if there are 2 stores and no uses.
 
