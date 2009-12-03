@@ -3676,9 +3676,10 @@ class_normal_constructor_binding
 	  (nletrec (instance class_nrep_letrec
 			     :nrep_loc sloc
 			     :nlet_bindings ncbindtup
-			     :nlet_body ()
 			     :nletrec_bindings recbindings 
 			     :nletrec_locsyms nlocsyms 
+			     ;; nlet_body is put after
+			     :nlet_body ()
 			     )) 
 	  )
       (debug_msg nletrec "normexp_letrec unfilled nletrec")
@@ -3751,6 +3752,11 @@ class_normal_constructor_binding
       (multicall
        (nbody nbodbindings)
        (normalize_tuple sbody newenv ncx sloc)
+       (debug_msg nbody "normexp_letrec nbody")
+       (debug_msg nbodbindings "normexp_letrec nbodbindings")
+       (put_fields nletrec 
+		   :nlet_body nbody)
+       (debug_msg nletrec "normexp_letrec updated nletrec")
        (list_append2list bindlist  nbodbindings)
        (assert_msg "normexp_letrec check bindlist" (is_list_or_null bindlist))
        (list_every

@@ -1,5 +1,12 @@
 2009-12-03  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	{{letrec still incomplete}}
+	* melt/warmelt-normal.melt: normexp_letrec puts the nbody..
+	* melt/warmelt-genobj.melt: compilobj_nrep_letrec should have the
+	nbdy..
+
+2009-12-03  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	{{more work for letrec still incomplete}}
 	* melt/warmelt-genobj.melt: compilobj_nrep_letrec clearing
 	location and splitting free location allocation from use, so loops
