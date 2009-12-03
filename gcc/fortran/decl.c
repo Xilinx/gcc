@@ -1103,7 +1103,7 @@ build_sym (const char *name, gfc_charlen *cl,
       sym->attr.class_ok = (sym->attr.dummy
 			      || sym->attr.pointer
 			      || sym->attr.allocatable) ? 1 : 0;
-      gfc_build_class_symbol (&sym->ts, &sym->attr, &sym->as);
+      gfc_build_class_symbol (&sym->ts, &sym->attr, &sym->as, false);
     }
 
   return SUCCESS;
@@ -1512,7 +1512,7 @@ build_struct (const char *name, gfc_charlen *cl, gfc_expr **init,
 
 scalar:
   if (c->ts.type == BT_CLASS)
-    gfc_build_class_symbol (&c->ts, &c->attr, &c->as);
+    gfc_build_class_symbol (&c->ts, &c->attr, &c->as, true);
 
   return t;
 }

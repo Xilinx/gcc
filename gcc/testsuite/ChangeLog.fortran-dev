@@ -1,3 +1,11 @@
+2009-12-03  Paul Thomas  <pault@gcc.gnu.org>
+	    Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/41829
+	* gfortran.dg/dynamic_dispatch_5.f03 : Change to "run".
+	* gfortran.dg/dynamic_dispatch_6.f03 : New test.
+	* gfortran.dg/dynamic_dispatch_7.f03 : New test.
+
 2009-11-23  Janus Weil  <janus@gcc.gnu.org>
 
 	PR fortran/42053

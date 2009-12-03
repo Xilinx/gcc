@@ -4924,7 +4924,7 @@ resolve_typebound_static (gfc_expr* e, gfc_symtree** target,
    the expression into a call of that binding.  */
 
 static gfc_try
-resolve_typebound_generic_call (gfc_expr* e)
+resolve_typebound_generic_call (gfc_expr* e, const char **name)
 {
   gfc_typebound_proc* genproc;
   const char* genname;
@@ -4980,6 +4980,10 @@ resolve_typebound_generic_call (gfc_expr* e)
 	  if (matches)
 	    {
 	      e->value.compcall.tbp = g->specific;
+	      /* Pass along the name for CLASS methods, where the vtab
+		 procedure pointer component has to be referenced.  */
+	      if (name)
+		*name = target->name;
 	      goto success;
 	    }
 	}
@@ -4998,7 +5002,7 @@ success:
 /* Resolve a call to a type-bound subroutine.  */
 
 static gfc_try
-resolve_typebound_call (gfc_code* c)
+resolve_typebound_call (gfc_code* c, const char **name)
 {
   gfc_actual_arglist* newactual;
   gfc_symtree* target;
@@ -5014,7 +5018,12 @@ resolve_typebound_call (gfc_code* c)
   if (check_typebound_baseobject (c->expr1) == FAILURE)
     return FAILURE;
 
-  if (resolve_typebound_generic_call (c->expr1) == FAILURE)
+  /* Pass along the name for CLASS methods, where the vtab
+     procedure pointer component has to be referenced.  */
+  if (name)
+    *name = c->expr1->value.compcall.name;
+
+  if (resolve_typebound_generic_call (c->expr1, name) == FAILURE)
     return FAILURE;
 
   /* Transform into an ordinary EXEC_CALL for now.  */
@@ -5038,28 +5047,17 @@ resolve_typebound_call (gfc_code* c)
 }
 
 
-/* Resolve a component-call expression.  This originally was intended
-   only to see functions.  However, it is convenient to use it in 
-   resolving subroutine class methods, since we do not have to add a
-   gfc_code each time. */
+/* Resolve a component-call expression.  */
 static gfc_try
-resolve_compcall (gfc_expr* e, bool fcn)
+resolve_compcall (gfc_expr* e, const char **name)
 {
   gfc_actual_arglist* newactual;
   gfc_symtree* target;
 
   /* Check that's really a FUNCTION.  */
-  if (fcn && !e->value.compcall.tbp->function)
+  if (!e->value.compcall.tbp->function)
     {
       gfc_error ("'%s' at %L should be a FUNCTION",
-		 e->value.compcall.name, &e->where);
-      return FAILURE;
-    }
-  else if (!fcn && !e->value.compcall.tbp->subroutine)
-    {
-      /* To resolve class member calls, we borrow this bit
-         of code to select the specific procedures.  */
-      gfc_error ("'%s' at %L should be a SUBROUTINE",
 		 e->value.compcall.name, &e->where);
       return FAILURE;
     }
@@ -5070,7 +5068,12 @@ resolve_compcall (gfc_expr* e, bool fcn)
   if (check_typebound_baseobject (e) == FAILURE)
     return FAILURE;
 
-  if (resolve_typebound_generic_call (e) == FAILURE)
+  /* Pass along the name for CLASS methods, where the vtab
+     procedure pointer component has to be referenced.  */
+  if (name)
+    *name = e->value.compcall.name;
+
+  if (resolve_typebound_generic_call (e, name) == FAILURE)
     return FAILURE;
   gcc_assert (!e->value.compcall.tbp->is_generic);
 
@@ -5087,7 +5090,6 @@ resolve_compcall (gfc_expr* e, bool fcn)
   e->value.function.actual = newactual;
   e->value.function.name = e->value.compcall.name;
   e->value.function.esym = target->n.sym;
-  e->value.function.class_esym = NULL;
   e->value.function.isym = NULL;
   e->symtree = target;
   e->ts = target->n.sym->ts;
@@ -5096,157 +5098,7 @@ resolve_compcall (gfc_expr* e, bool fcn)
   /* Resolution is not necessary if this is a class subroutine; this
      function only has to identify the specific proc. Resolution of
      the call will be done next in resolve_typebound_call.  */
-  return fcn ? gfc_resolve_expr (e) : SUCCESS;
-}
-
-
-/* Resolve a typebound call for the members in a class.  This group of
-   functions implements dynamic dispatch in the provisional version
-   of f03 OOP.  As soon as vtables are in place and contain pointers
-   to methods, this will no longer be necessary.  */
-static gfc_expr *list_e;
-static void check_class_members (gfc_symbol *);
-static gfc_try class_try;
-static bool fcn_flag;
-static gfc_symbol *class_object;
-
-
-static void
-check_members (gfc_symbol *derived)
-{
-  if (derived->attr.flavor == FL_DERIVED)
-    check_class_members (derived);
-}
-
-
-static void 
-check_class_members (gfc_symbol *derived)
-{
-  gfc_expr *e;
-  gfc_symtree *tbp;
-  gfc_class_esym_list *etmp;
-
-  e = gfc_copy_expr (list_e);
-
-  tbp = gfc_find_typebound_proc (derived, &class_try,
-				 e->value.compcall.name,
-				 false, &e->where);
-
-  if (tbp == NULL)
-    {
-      gfc_error ("no typebound available procedure named '%s' at %L",
-		 e->value.compcall.name, &e->where);
-      return;
-    }
-
-  if (tbp->n.tb->is_generic)
-    {
-      /* If we have to match a passed class member, force the actual
-	 expression to have the correct type.  */
-      if (!tbp->n.tb->nopass)
-	{
-	  if (e->value.compcall.base_object == NULL)
-	    e->value.compcall.base_object =
-			extract_compcall_passed_object (e);
-
-          e->value.compcall.base_object->ts.type = BT_DERIVED;
-          e->value.compcall.base_object->ts.u.derived = derived;
-	}
-    }
-
-  e->value.compcall.tbp = tbp->n.tb;
-  e->value.compcall.name = tbp->name;
-
-  /* Let the original expresssion catch the assertion in
-     resolve_compcall, since this flag does not appear to be reset or
-     copied in some systems.  */
-  e->value.compcall.assign = 0;
-
-  /* Do the renaming, PASSing, generic => specific and other
-     good things for each class member.  */
-  class_try = (resolve_compcall (e, fcn_flag) == SUCCESS)
-				? class_try : FAILURE;
-
-  /* Now transfer the found symbol to the esym list.  */
-  if (class_try == SUCCESS)
-    {
-      etmp = list_e->value.function.class_esym;
-      list_e->value.function.class_esym
-		= gfc_get_class_esym_list();
-      list_e->value.function.class_esym->next = etmp;
-      list_e->value.function.class_esym->derived = derived;
-      list_e->value.function.class_esym->esym
-		= e->value.function.esym;
-    }
-
-  gfc_free_expr (e);
-  
-  /* Burrow down into grandchildren types.  */
-  if (derived->f2k_derived)
-    gfc_traverse_ns (derived->f2k_derived, check_members);
-}
-
-
-/* Eliminate esym_lists where all the members point to the
-   typebound procedure of the declared type; ie. one where
-   type selection has no effect..  */
-static void
-resolve_class_esym (gfc_expr *e)
-{
-  gfc_class_esym_list *p, *q;
-  bool empty = true;
-
-  gcc_assert (e && e->expr_type == EXPR_FUNCTION);
-
-  p = e->value.function.class_esym;
-  if (p == NULL)
-    return;
-
-  for (; p; p = p->next)
-    empty = empty && (e->value.function.esym == p->esym);
-
-  if (empty)
-    {
-      p = e->value.function.class_esym;
-      for (; p; p = q)
-	{
-	  q = p->next;
-	  gfc_free (p);
-	}
-      e->value.function.class_esym = NULL;
-   }
-}
-
-
-/* Generate an expression for the hash value, given the reference to
-   the class of the final expression (class_ref), the base of the
-   full reference list (new_ref), the declared type and the class
-   object (st).  */
-static gfc_expr*
-hash_value_expr (gfc_ref *class_ref, gfc_ref *new_ref, gfc_symtree *st)
-{
-  gfc_expr *hash_value;
-
-  /* Build an expression for the correct hash_value; ie. that of the last
-     CLASS reference.  */
-  if (class_ref)
-    {
-      class_ref->next = NULL;
-    }
-  else
-    {
-      gfc_free_ref_list (new_ref);
-      new_ref = NULL;
-    }
-  hash_value = gfc_get_expr ();
-  hash_value->expr_type = EXPR_VARIABLE;
-  hash_value->symtree = st;
-  hash_value->symtree->n.sym->refs++;
-  hash_value->ref = new_ref;
-  gfc_add_component_ref (hash_value, "$vptr");
-  gfc_add_component_ref (hash_value, "$hash");
-
-  return hash_value;
+  return gfc_resolve_expr (e);
 }
 
 
@@ -5283,33 +5135,21 @@ get_declared_from_expr (gfc_ref **class_ref, gfc_ref **new_ref,
 }
 
 
-/* Resolve the argument expressions so that any arguments expressions
-   that include class methods are resolved before the current call.
-   This is necessary because of the static variables used in CLASS
-   method resolution.  */
-static void
-resolve_arg_exprs (gfc_actual_arglist *arg)
-{ 
-  /* Resolve the actual arglist expressions.  */
-  for (; arg; arg = arg->next)
-    {
-      if (arg->expr)
-	gfc_resolve_expr (arg->expr);
-    }
-}
-
-
 /* Resolve a CLASS typebound function, or 'method'.  */
+
 static gfc_try
 resolve_class_compcall (gfc_expr* e)
 {
-  gfc_symbol *derived, *declared;
+  gfc_symbol *declared;
+  gfc_component *c;
   gfc_ref *new_ref;
   gfc_ref *class_ref;
   gfc_symtree *st;
+  const char *name;
+  const char *genname;
+  gfc_typespec ts;
 
   st = e->symtree;
-  class_object = st->n.sym;
 
   /* Get the CLASS declared type.  */
   declared = get_declared_from_expr (&class_ref, &new_ref, e);
@@ -5318,53 +5158,67 @@ resolve_class_compcall (gfc_expr* e)
   if (class_ref && class_ref->u.c.component->ts.type == BT_DERIVED)
     {
       gfc_free_ref_list (new_ref);
-      return resolve_compcall (e, true);
+      return resolve_compcall (e, NULL);
     }
 
-  /* Resolve the argument expressions,  */
-  resolve_arg_exprs (e->value.function.actual); 
+  c = gfc_find_component (declared, "$data", true, true);
+  declared = c->ts.u.derived;
 
-  /* Get the data component, which is of the declared type.  */
-  derived = declared->components->ts.u.derived;
+  /* Keep the generic name so that the vtab reference can be made.  */
+  genname = NULL; 
+  if (e->value.compcall.tbp->is_generic)
+    genname = e->value.compcall.name;
 
-  /* Resolve the function call for each member of the class.  */
-  class_try = SUCCESS;
-  fcn_flag = true;
-  list_e = gfc_copy_expr (e);
-  check_class_members (derived);
+  /* Treat the call as if it is a typebound procedure, in order to roll
+     out the correct name for the specific function.  */
+  resolve_compcall (e, &name);
+  ts = e->ts;
 
-  class_try = (resolve_compcall (e, true) == SUCCESS)
-		 ? class_try : FAILURE;
+  /* Then convert the expression to a procedure pointer component call.  */
+  e->value.function.esym = NULL;
+  e->symtree = st;
 
-  /* Transfer the class list to the original expression.  Note that
-     the class_esym list is cleaned up in trans-expr.c, as the calls
-     are translated.  */
-  e->value.function.class_esym = list_e->value.function.class_esym;
-  list_e->value.function.class_esym = NULL;
-  gfc_free_expr (list_e);
+  if (class_ref)  
+    {
+      gfc_free_ref_list (class_ref->next);
+      e->ref = new_ref;
+    }
 
-  resolve_class_esym (e);
+  /* '$vptr' points to the vtab, which contains the procedure pointers.  */
+  gfc_add_component_ref (e, "$vptr");
+  if (genname)
+    {
+      /* A generic procedure needs the subsidiary vtabs and vtypes for
+	 the specific procedures to have been build.  */
+      gfc_symbol *vtab;
+      vtab = gfc_find_derived_vtab (declared, true);
+      gcc_assert (vtab);
+      gfc_add_component_ref (e, genname);
+    }
+  gfc_add_component_ref (e, name);
 
-  /* More than one typebound procedure so transmit an expression for
-     the hash_value as the selector.  */
-  if (e->value.function.class_esym != NULL)
-    e->value.function.class_esym->hash_value
-		= hash_value_expr (class_ref, new_ref, st);
-
-  return class_try;
+  /* Recover the typespec for the expression.  This is really only
+     necessary for generic procedures, where the additional call
+     to gfc_add_component_ref seems to throw the collection of the
+     correct typespec.  */
+  e->ts = ts;
+  return SUCCESS;
 }
 
 /* Resolve a CLASS typebound subroutine, or 'method'.  */
 static gfc_try
 resolve_class_typebound_call (gfc_code *code)
 {
-  gfc_symbol *derived, *declared;
+  gfc_symbol *declared;
+  gfc_component *c;
   gfc_ref *new_ref;
   gfc_ref *class_ref;
   gfc_symtree *st;
+  const char *genname;
+  const char *name;
+  gfc_typespec ts;
 
   st = code->expr1->symtree;
-  class_object = st->n.sym;
 
   /* Get the CLASS declared type.  */
   declared = get_declared_from_expr (&class_ref, &new_ref, code->expr1);
@@ -5373,40 +5227,49 @@ resolve_class_typebound_call (gfc_code *code)
   if (class_ref && class_ref->u.c.component->ts.type == BT_DERIVED)
     {
       gfc_free_ref_list (new_ref);
-      return resolve_typebound_call (code);
+      return resolve_typebound_call (code, NULL);
     } 
 
-  /* Resolve the argument expressions,  */
-  resolve_arg_exprs (code->expr1->value.compcall.actual); 
+  c = gfc_find_component (declared, "$data", true, true);
+  declared = c->ts.u.derived;
 
-  /* Get the data component, which is of the declared type.  */
-  derived = declared->components->ts.u.derived;
+  /* Keep the generic name so that the vtab reference can be made.  */
+  genname = NULL; 
+  if (code->expr1->value.compcall.tbp->is_generic)
+    genname = code->expr1->value.compcall.name;
 
-  class_try = SUCCESS;
-  fcn_flag = false;
-  list_e = gfc_copy_expr (code->expr1);
-  check_class_members (derived);
+  resolve_typebound_call (code, &name);
+  ts = code->expr1->ts;
 
-  class_try = (resolve_typebound_call (code) == SUCCESS)
-		 ? class_try : FAILURE;
+  /* Then convert the expression to a procedure pointer component call.  */
+  code->expr1->value.function.esym = NULL;
+  code->expr1->symtree = st;
 
-  /* Transfer the class list to the original expression.  Note that
-     the class_esym list is cleaned up in trans-expr.c, as the calls
-     are translated.  */
-  code->expr1->value.function.class_esym
-			= list_e->value.function.class_esym;
-  list_e->value.function.class_esym = NULL;
-  gfc_free_expr (list_e);
+  if (class_ref)  
+    {
+      gfc_free_ref_list (class_ref->next);
+      code->expr1->ref = new_ref;
+    }
 
-  resolve_class_esym (code->expr1);
+  /* '$vptr' points to the vtab, which contains the procedure pointers.  */
+  gfc_add_component_ref (code->expr1, "$vptr");
+  if (genname)
+    {
+      /* A generic procedure needs the subsidiary vtabs and vtypes for
+	 the specific procedures to have been build.  */
+      gfc_symbol *vtab;
+      vtab = gfc_find_derived_vtab (declared, true);
+      gcc_assert (vtab);
+      gfc_add_component_ref (code->expr1, genname);
+    }
+  gfc_add_component_ref (code->expr1, name);
 
-  /* More than one typebound procedure so transmit an expression for
-     the hash_value as the selector.  */
-  if (code->expr1->value.function.class_esym != NULL)
-    code->expr1->value.function.class_esym->hash_value
-		= hash_value_expr (class_ref, new_ref, st);
-
-  return class_try;
+  /* Recover the typespec for the expression.  This is really only
+     necessary for generic procedures, where the additional call
+     to gfc_add_component_ref seems to throw the collection of the
+     correct typespec.  */
+  code->expr1->ts = ts;
+  return SUCCESS;
 }
 
 
@@ -5523,7 +5386,7 @@ gfc_resolve_expr (gfc_expr *e)
       if (e->symtree && e->symtree->n.sym->ts.type == BT_CLASS)
 	t = resolve_class_compcall (e);
       else
-	t = resolve_compcall (e, true);
+	t = resolve_compcall (e, NULL);
       break;
 
     case EXPR_SUBSTRING:
@@ -7076,7 +6939,7 @@ resolve_select_type (gfc_code *code)
 	  new_st->expr1->value.function.actual = gfc_get_actual_arglist ();
 	  new_st->expr1->value.function.actual->expr = gfc_get_variable_expr (code->expr1->symtree);
 	  gfc_add_component_ref (new_st->expr1->value.function.actual->expr, "$vptr");
-	  vtab = gfc_find_derived_vtab (body->ext.case_list->ts.u.derived);
+	  vtab = gfc_find_derived_vtab (body->ext.case_list->ts.u.derived, true);
 	  st = gfc_find_symtree (vtab->ns->sym_root, vtab->name);
 	  new_st->expr1->value.function.actual->next = gfc_get_actual_arglist ();
 	  new_st->expr1->value.function.actual->next->expr = gfc_get_variable_expr (st);
@@ -8048,7 +7911,7 @@ resolve_code (gfc_code *code, gfc_namespace *ns)
 		&& code->expr1->symtree->n.sym->ts.type == BT_CLASS)
 	    resolve_class_typebound_call (code);
 	  else
-	    resolve_typebound_call (code);
+	    resolve_typebound_call (code, NULL);
 	  break;
 
 	case EXEC_CALL_PPC:
@@ -10254,7 +10117,7 @@ resolve_fl_derived (gfc_symbol *sym)
     {
       if (c->attr.proc_pointer && c->ts.interface)
 	{
-	  if (c->ts.interface->attr.procedure)
+	  if (c->ts.interface->attr.procedure && !sym->attr.vtype)
 	    gfc_error ("Interface '%s', used by procedure pointer component "
 		       "'%s' at %L, is declared in a later PROCEDURE statement",
 		       c->ts.interface->name, c->name, &c->loc);
@@ -10314,7 +10177,7 @@ resolve_fl_derived (gfc_symbol *sym)
 		  gfc_expr_replace_comp (c->ts.u.cl->length, c);
 		}
 	    }
-	  else if (c->ts.interface->name[0] != '\0')
+	  else if (c->ts.interface->name[0] != '\0' && !sym->attr.vtype)
 	    {
 	      gfc_error ("Interface '%s' of procedure pointer component "
 			 "'%s' at %L must be explicit", c->ts.interface->name,
@@ -10330,7 +10193,8 @@ resolve_fl_derived (gfc_symbol *sym)
 	}
 
       /* Procedure pointer components: Check PASS arg.  */
-      if (c->attr.proc_pointer && !c->tb->nopass && c->tb->pass_arg_num == 0)
+      if (c->attr.proc_pointer && !c->tb->nopass && c->tb->pass_arg_num == 0
+	  && !sym->attr.vtype)
 	{
 	  gfc_symbol* me_arg;
 

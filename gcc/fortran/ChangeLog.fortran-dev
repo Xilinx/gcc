@@ -1,3 +1,62 @@
+2009-12-03  Paul Thomas  <pault@gcc.gnu.org>
+	    Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/42104
+	* trans-expr.c (select_class_proc): Remove function.
+	(conv_function_val): Delete reference to previous.
+	(gfc_conv_derived_to_class): Add second argument to the call to
+	gfc_find_derived_vtab.
+	(gfc_conv_structure): Exclude proc_pointer components when
+	accessing $data field of class objects.
+	(gfc_trans_assign_vtab_procs): New function.
+	(gfc_trans_class_assign): Add second argument to the call to
+	gfc_find_derived_vtab.
+	* symbol.c (gfc_build_class_symbol): Add delayed_vtab arg and
+	implement holding off searching for the vptr derived type.
+	(add_proc_component): New function.
+	(add_proc_comps): New function.
+	(add_procs_to_declared_vtab1): New function.
+	(copy_vtab_proc_comps): New function.
+	(add_procs_to_declared_vtab): New function.
+	(void add_generic_specifics): New function.
+	(add_generics_to_declared_vtab): New function.
+	(gfc_find_derived_vtab): Add second argument to the call to
+	gfc_find_derived_vtab. Add the calls to
+	add_procs_to_declared_vtab and add_generics_to_declared_vtab.
+	* decl.c (build_sym, build_struct): Use new arg in calls to
+	gfc_build_class_symbol.
+	* gfortran.h : Add vtype bitfield to symbol_attr. Remove the
+	definition of struct gfc_class_esym_list. Modify prototypes
+	of gfc_build_class_symbol and gfc_find_derived_vtab.
+	* trans-stmt.c (gfc_trans_allocate): Add second argument to the
+	call to gfc_find_derived_vtab.
+	* module.c : Add the vtype attribute.
+	* trans.h : Add prototype for gfc_trans_assign_vtab_procs.
+	* resolve.c (resolve_typebound_generic_call): Add second arg
+	to pass along the generic name for class methods.
+	(resolve_typebound_call): The same.
+	(resolve_compcall): Use the second arg to carry the generic
+	name from the above. Remove the reference to class_esym.
+	(check_members, check_class_members, resolve_class_esym,
+	hash_value_expr): Remove functions.
+	(resolve_class_compcall, resolve_class_typebound_call): Modify
+	to use vtable rather than member by member calls.
+	(gfc_resolve_expr): Modify second arg in call to
+	resolve_compcall.
+	(resolve_select_type): Add second arg in call to
+	gfc_find_derived_vtab.
+	(resolve_code): Add second arg in call resolve_typebound_call.
+	(resolve_fl_derived): Exclude vtypes from check for late
+	procedure definitions. Likewise for checking of explicit
+	interface and checking of pass arg.
+	* iresolve.c (gfc_resolve_extends_type_of): Add second arg in
+	calls to gfc_find_derived_vtab.
+	* match.c (select_type_set_tmp): Use new arg in call to
+	gfc_build_class_symbol.
+	* trans-decl.c (gfc_get_symbol_decl): Complete vtable if
+	necessary.
+	* parse.c (endType): Finish incomplete classes.
+	
 2009-11-23  Janus Weil  <janus@gcc.gnu.org>
 
 	PR fortran/42053
