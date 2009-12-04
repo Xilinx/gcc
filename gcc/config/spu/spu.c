@@ -216,7 +216,6 @@ static int store_with_one_insn_p (rtx mem);
 static int mem_is_padded_component_ref (rtx x);
 static int reg_aligned_for_addr (rtx x);
 static bool spu_assemble_integer (rtx x, unsigned int size, int aligned_p);
-
 static void spu_asm_globalize_label (FILE * file, const char *name);
 static unsigned char spu_rtx_costs (rtx x, int code, int outer_code,
 				    int *total, bool speed);
@@ -507,14 +506,14 @@ static const struct attribute_spec spu_attribute_table[] =
 #undef TARGET_START_NEW_SECTION
 #define TARGET_START_NEW_SECTION spu_start_new_section
 
-#undef TARGET_LEGAL_BREAKPOINT 
+#undef TARGET_LEGAL_BREAKPOINT
 #define TARGET_LEGAL_BREAKPOINT spu_legal_breakpoint
 
 #undef TARGET_DONT_CREATE_JUMPTABLE
 #define TARGET_DONT_CREATE_JUMPTABLE spu_dont_create_jumptable
 
 #undef TARGET_FPART_FINALIZE
-#define TARGET_FPART_FINALIZE fpart_finalize 
+#define TARGET_FPART_FINALIZE fpart_finalize
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 
@@ -565,7 +564,7 @@ spu_override_options (void)
       flag_partition_functions_into_sections = ICACHE_LINESIZE;
       flag_function_sections = 1;
       /* A stub is 8 words of information.  */
-      spu_stub_size = 16; 
+      spu_stub_size = 16;
       fix_range ("75-79");
     }
 
@@ -1929,8 +1928,7 @@ need_to_save_reg (int regno, int saving)
       && regno == PIC_OFFSET_TABLE_REGNUM
       && (!saving || crtl->uses_pic_offset_table)
       && (!saving
-	  || !current_function_is_leaf 
-	  || df_regs_ever_live_p (LAST_ARG_REGNUM)))
+	  || !current_function_is_leaf || df_regs_ever_live_p (LAST_ARG_REGNUM)))
     return 1;
   return 0;
 }
@@ -2062,11 +2060,8 @@ spu_expand_prologue (void)
     + crtl->outgoing_args_size
     + crtl->args.pretend_args_size;
 
-  /* To simplify the lr liveness analysis in the software i-cache we
-     always save the lr on the stack.  */ 
   if (!current_function_is_leaf
-      || cfun->calls_alloca 
-      || total_size > 0)
+      || cfun->calls_alloca || total_size > 0)
     total_size += STACK_POINTER_OFFSET;
 
   /* Save this first because code after this might use the link
@@ -2077,7 +2072,7 @@ spu_expand_prologue (void)
       RTX_FRAME_RELATED_P (insn) = 1;
     }
 
-   if (TARGET_SOFTWARE_ICACHE && (total_size > 0))
+  if (TARGET_SOFTWARE_ICACHE && (total_size > 0))
     {
       rtx insn = emit_insn (gen_blockage ());
 
@@ -2199,8 +2194,7 @@ spu_expand_epilogue (bool sibcall_p)
     + crtl->args.pretend_args_size;
 
   if (!current_function_is_leaf
-      || cfun->calls_alloca 
-      || total_size > 0)
+      || cfun->calls_alloca || total_size > 0)
     total_size += STACK_POINTER_OFFSET;
 
   if (total_size > 0)
@@ -2252,18 +2246,18 @@ spu_return_addr (int count, rtx frame ATTRIBUTE_UNUSED)
 
 /* Return the size of the stub that the linker will insert for INSN that
    are branches to another section.  */
-static unsigned HOST_WIDE_INT 
+static unsigned HOST_WIDE_INT
 get_stub_size (rtx insn)
 {
   unsigned HOST_WIDE_INT stub_size = 0;
-  
+
   if (!JUMP_P (insn) && !CALL_P (insn))
     return 0;
-  
+
   if (JUMP_P (insn))
     {
       rtx set, src;
-      
+
       stub_size = spu_stub_size;
 
       /* If the branch instruction and the branch target are in the
@@ -2273,7 +2267,7 @@ get_stub_size (rtx insn)
 	  || (JUMP_LABEL (insn)
 	      && BLOCK_NUM (JUMP_LABEL (insn)) == BLOCK_NUM (insn)))
 	stub_size = 0;
-      
+
       /* For indirect branches including jump-tables (not including the
          cases) and indirect function calls; stubs will be created in the
          non-overlay local store so their stub size is not inserted to the
@@ -2281,28 +2275,28 @@ get_stub_size (rtx insn)
       /* Return statements */
       if (GET_CODE (PATTERN (insn)) == RETURN)
 	stub_size = 0;
-      
+
       /* jump table */
       if (GET_CODE (PATTERN (insn)) == ADDR_VEC
 	  || GET_CODE (PATTERN (insn)) == ADDR_DIFF_VEC)
 	stub_size = 0;
-      
+
       set = single_set (insn);
       if (set)
 	{
 	  src = SET_SRC (set);
 	  if (GET_CODE (SET_DEST (set)) != PC)
 	    abort ();
-	 	      
+
 	  if (GET_CODE (src) == IF_THEN_ELSE)
 	    {
 	      rtx lab = 0;
-	      
+
 	      if (GET_CODE (XEXP (src, 1)) != PC)
 		lab = XEXP (src, 1);
 	      else if (GET_CODE (XEXP (src, 2)) != PC)
 		lab = XEXP (src, 2);
-	      
+
 	      if (lab && REG_P (lab))
 		stub_size = 0;
 	    }
@@ -2311,7 +2305,7 @@ get_stub_size (rtx insn)
   else if (CALL_P (insn))
     {
       rtx call;
-      
+
       stub_size = spu_stub_size;
       /* All of our call patterns are in a PARALLEL and the CALL is
          the first pattern in the PARALLEL. */
@@ -2325,7 +2319,7 @@ get_stub_size (rtx insn)
       if (REG_P (XEXP (XEXP (call, 0), 0)))
 	stub_size = 0;
     }
-  
+
   return stub_size;
 }
 
@@ -2347,7 +2341,7 @@ static int spu_dual_nops_counter = 0;
    size of extra machine depndent instructions that can be added
    as a result of insn (like branch-hints for branch instructions).
    Called when partitioning a function into sections.  */
-static unsigned HOST_WIDE_INT 
+static unsigned HOST_WIDE_INT
 spu_estimate_instruction_size (rtx insn)
 {
   unsigned HOST_WIDE_INT size;
@@ -2355,7 +2349,7 @@ spu_estimate_instruction_size (rtx insn)
   /* For dual issues the worst case is 1 nop for every 3
      instructions.  */
   int dual_nops = spu_dual_nops > 0 ? 3 : 0;
-  
+
   if (NOTE_P (insn))
     {
       /* Reset the counters if needed.  */
@@ -2369,23 +2363,23 @@ spu_estimate_instruction_size (rtx insn)
 	mem_ref_counter = 0;
       return 0;
     }
-  
+
   size = get_attr_min_length (insn);
   if (tablejump_p (insn, NULL, &table))
     {
       rtvec vec;
-      
+
       if (GET_CODE (PATTERN (table)) == ADDR_VEC)
         vec = XVEC (PATTERN (table), 0);
       else
         vec = XVEC (PATTERN (table), 1);
-      
+
       /* Add the size of the table to the insn size.  */
       size += (GET_NUM_ELEM (vec) * 4);
     }
   safe_hints_counter += 1;
   spu_dual_nops_counter += 1;
-  
+
   /* The compiler inserts 1 hbrp instruction for every 16 instructions
      in the worst case.  */
   if (TARGET_SAFE_HINTS && safe_hints_counter >= 16)
@@ -2394,12 +2388,12 @@ spu_estimate_instruction_size (rtx insn)
       safe_hints_counter = 0;
       spu_dual_nops_counter += 1;
     }
-  
+
   size += get_stub_size (insn);
-  
+
   if (!TARGET_BRANCH_HINTS || optimize == 0)
     return size;
-  
+
   /* Add the nops and branch hint which are added for each branch.
      For hints the worst case is 4 nops for every branch.  */
   if ((JUMP_P (insn) || CALL_P (insn))
@@ -2410,7 +2404,7 @@ spu_estimate_instruction_size (rtx insn)
       safe_hints_counter += 5;
       spu_dual_nops_counter += 5;
     }
-  
+
   if (mem_read_insn_p (insn) || mem_write_insn_p (insn))
     {
       mem_ref_counter++;
@@ -2425,7 +2419,7 @@ spu_estimate_instruction_size (rtx insn)
     }
   else
     mem_ref_counter = 0;
-  
+
   /* For dual issues the worst case is 1 nop for every 3
      instructions.  */
   if (dual_nops && spu_dual_nops_counter >= dual_nops)
@@ -2509,15 +2503,15 @@ dump_critical_section_type (enum critical_section_type type)
 
 /* Dump information regarding critical section:
    TYPE - it's type.
-   START_P - true if INSN indicates the start 
+   START_P - true if INSN indicates the start
    of the critical section.  */
 static void
-dump_critical_section_info (enum critical_section_type type, 
+dump_critical_section_info (enum critical_section_type type,
 			    bool start_p, rtx insn)
 {
   if (!dump_file)
     return;
-  
+
   if (start_p)
     fprintf (dump_file, "\n\t;;start critical section of type ");
   else
@@ -2541,12 +2535,12 @@ begin_critical_section (rtx insn, enum critical_section_type *type)
 
   if (TARGET_SOFTWARE_ICACHE)
     {
-      rtx note = find_reg_note (insn, REG_BRANCH_INFO, NULL_RTX); 
+      rtx note = find_reg_note (insn, REG_BRANCH_INFO, NULL_RTX);
 
       if (note)
 	{
 	  const char *info = XSTR (XEXP (note, 0), 0);
-  
+
           if (strcmp (info, "jumptable start") == 0)
           {
              *type = JUMP_TABLE;
@@ -2559,7 +2553,7 @@ begin_critical_section (rtx insn, enum critical_section_type *type)
                return true;
              }
 	  if (strcmp (info, "ibranch_seq") == 0)
-	    {  
+	    {
 	      *type = IBRANCH_SEQ;
 	      dump_critical_section_info (IBRANCH_SEQ, true, insn);
 	      return true;
@@ -2568,14 +2562,14 @@ begin_critical_section (rtx insn, enum critical_section_type *type)
     }
 
   set = single_set (insn);
- 
+
   if (set != 0)
     {
       rtx src, dest;
 
       src = SET_SRC (set);
       dest = SET_DEST (set);
-     
+
       /* We are looking for this type of instruction:
 
          (insn (set (reg)
@@ -2585,7 +2579,7 @@ begin_critical_section (rtx insn, enum critical_section_type *type)
 	if (XINT (src, 1) == UNSPEC_RDCH)
 	  {
 	    rtx tmp = XVECEXP (src, 0, 0);
-	    
+
 	    if (tmp && GET_CODE (tmp) == CONST_INT && INTVAL (tmp) == 0)
 	      {
 		*type = CRITICAL_EVENT_MASK;
@@ -2593,7 +2587,7 @@ begin_critical_section (rtx insn, enum critical_section_type *type)
 		return true;
 	      }
 	  }
-      
+
       if (!TARGET_SOFTWARE_ICACHE && GET_CODE (src) == LABEL_REF)
 	{
 	  *type = JUMP_TABLE;
@@ -2603,18 +2597,18 @@ begin_critical_section (rtx insn, enum critical_section_type *type)
   else
     {
       /* We are looking for this type of instruction:
-	 
-         (insn (unspec_volatile [(const_int) (subreg)])  
+
+         (insn (unspec_volatile [(const_int) (subreg)])
          {spu_wrch_noclobber})
       */
-      
+
       body = PATTERN (insn);
-      
+
       if (GET_CODE (body) == UNSPEC_VOLATILE)
 	if (XINT (body, 1) == UNSPEC_WRCH)
 	  {
 	    rtx tmp = XVECEXP (body, 0, 0);
-	    
+
 	    /* MFC_LSA 16  */
 	    if (tmp && (GET_CODE (tmp) == CONST_INT) && INTVAL (tmp) == 16)
 	      {
@@ -2623,7 +2617,7 @@ begin_critical_section (rtx insn, enum critical_section_type *type)
 		return true;
 	      }
 	  }
-      
+
     }
   return false;
 }
@@ -2635,11 +2629,11 @@ is_ibranch_seq_end (rtx insn)
 {
   rtx call, set;
 
-  gcc_assert (TARGET_SOFTWARE_ICACHE);  
+  gcc_assert (TARGET_SOFTWARE_ICACHE);
   if (JUMP_P (insn))
     {
       rtx src;
-      
+
       /* Return statements */
       if (GET_CODE (PATTERN (insn)) == RETURN)
         return false;
@@ -2650,19 +2644,19 @@ is_ibranch_seq_end (rtx insn)
 	  src = SET_SRC (set);
 	  if (GET_CODE (SET_DEST (set)) != PC)
 	    abort ();
-	  
+
 	  if (REG_P (src) && REGNO (src) == 75)
 	    return true;
 
 	  if (GET_CODE (src) == IF_THEN_ELSE)
 	    {
 	      rtx lab = 0;
-	      
+
 	      if (GET_CODE (XEXP (src, 1)) != PC)
 		lab = XEXP (src, 1);
 	      else if (GET_CODE (XEXP (src, 2)) != PC)
 		lab = XEXP (src, 2);
-                
+
               if (lab && REG_P (lab) && REGNO (lab) == 75)
                 return true;
             }
@@ -2677,7 +2671,7 @@ is_ibranch_seq_end (rtx insn)
 	call = SET_SRC (call);
       if (GET_CODE (call) != CALL)
 	abort ();
-      if (REG_P (XEXP (XEXP (call, 0), 0)) 
+      if (REG_P (XEXP (XEXP (call, 0), 0))
 	  && REGNO (XEXP (XEXP (call, 0), 0)) == 75)
 	return true;
     }
@@ -2696,7 +2690,7 @@ end_critical_section (rtx insn, enum critical_section_type *type)
 
   if (TARGET_SOFTWARE_ICACHE)
     {
-      rtx note = find_reg_note (insn, REG_BRANCH_INFO, NULL_RTX); 
+      rtx note = find_reg_note (insn, REG_BRANCH_INFO, NULL_RTX);
       if (note)
 	{
 	  const char *info = XSTR (XEXP (note, 0), 0);
@@ -2750,17 +2744,17 @@ end_critical_section (rtx insn, enum critical_section_type *type)
     {
       /* We are looking for the following type of instruction:
 
-        (insn (unspec_volatile [(const_int 2]) (subreg)])  
-               (spu_wrch_noclobber}) 
+        (insn (unspec_volatile [(const_int 2]) (subreg)])
+               (spu_wrch_noclobber})
          or
-      
+
         (insn (unspec_volatile [(const_int 21]) (subreg)])
                (spu_wrch_noclobber})  */
       if (GET_CODE (body) == UNSPEC_VOLATILE)
         if (XINT (body, 1) == UNSPEC_WRCH)
           {
             rtx tmp = XVECEXP (body, 0, 0);
-	    
+
             /*  SPU_WrEventAck 2  */
             if (tmp && (GET_CODE (tmp) == CONST_INT) && INTVAL (tmp) == 2)
               {
@@ -2769,15 +2763,14 @@ end_critical_section (rtx insn, enum critical_section_type *type)
                 return true;
               }
             /* MFC_Cmd 21  */
-            else if (!TARGET_SAFE_DMA 
-		     && tmp 
-		     && (GET_CODE (tmp) == CONST_INT) 
+            else if (!TARGET_SAFE_DMA
+		     && tmp
+		     && (GET_CODE (tmp) == CONST_INT)
 		     && INTVAL (tmp) == 21)
 	      {
 		*type = CRITICAL_DMA_SEQ;
                 dump_critical_section_info (CRITICAL_DMA_SEQ, false, insn);
 		return true;
-		
 	      }
           }
     }
@@ -2792,7 +2785,7 @@ spu_legal_breakpoint (rtx insn)
   int i;
   critical_sections_p crit;
   rtx tmp;
-  
+
   for (i = 0; VEC_iterate (critical_sections_p, critical_sections, i, crit);
        i++)
     {
@@ -2807,8 +2800,8 @@ spu_legal_breakpoint (rtx insn)
    The critical section should contain the jump-table and code that
    reads the table to make sure they will appear in the same section.
    We are looking for the following sequence of instructions:
- 
-   ila ,label 
+
+   ila ,label
    .
    .
    .
@@ -2821,7 +2814,7 @@ spu_legal_breakpoint (rtx insn)
    end of table
    LAST_INSN_CRITICAL SECTION denotes the jump_insn which is the last
    instruction in the section (excluding the table itself).  */
-static unsigned HOST_WIDE_INT  
+static unsigned HOST_WIDE_INT
 record_jump_table (rtx ila_insn, rtx *last_insn_critical_section)
 {
   rtx insn;
@@ -2830,7 +2823,7 @@ record_jump_table (rtx ila_insn, rtx *last_insn_critical_section)
   bool *bb_aux;
   bool found_jump_table = false;
   unsigned HOST_WIDE_INT size = 0;
- 
+
   bb_aux = (bool *)xmalloc (last_basic_block * sizeof (bool));
   memset (bb_aux, false, last_basic_block * sizeof (bool));
 
@@ -2844,7 +2837,7 @@ record_jump_table (rtx ila_insn, rtx *last_insn_critical_section)
   mem_ref_counter = 0;
   safe_hints_counter = 0;
   spu_dual_nops_counter = 0;
-  
+
   for (insn = ila_insn; insn != NULL; insn = NEXT_INSN (insn))
     {
       if (!INSN_P (insn))
@@ -2857,7 +2850,7 @@ record_jump_table (rtx ila_insn, rtx *last_insn_critical_section)
 
       if (!tablejump_p (insn, &label1, NULL))
 	continue;
-      
+
       if ((!TARGET_SOFTWARE_ICACHE && rtx_equal_p (label, label1))
           || TARGET_SOFTWARE_ICACHE)
 	{
@@ -2865,14 +2858,14 @@ record_jump_table (rtx ila_insn, rtx *last_insn_critical_section)
           *last_insn_critical_section = insn;
 	  break;
 	}
-       
+
     }
-  
+
   if (found_jump_table)
     {
       int i;
-     
-       dump_critical_section_info (JUMP_TABLE, true, ila_insn); 
+
+       dump_critical_section_info (JUMP_TABLE, true, ila_insn);
       /* Mark the bb's between the jump-table and the code that
          reads the table so they reside in the same section.  */
       for (i = 0; i < last_basic_block; i++)
@@ -2881,9 +2874,9 @@ record_jump_table (rtx ila_insn, rtx *last_insn_critical_section)
     }
   else
     size = 0;
-  
+
   free (bb_aux);
-  
+
   return size;
 }
 
@@ -2893,7 +2886,7 @@ record_jump_table (rtx ila_insn, rtx *last_insn_critical_section)
    of type TYPE.  */
 static void
 close_critical_sections (VEC (critical_sections_p, gc) *start_sequence,
-			 basic_block bb, enum critical_section_type type, 
+			 basic_block bb, enum critical_section_type type,
 			 rtx insn)
 {
   unsigned int i;
@@ -2949,8 +2942,8 @@ fpart_finalize (void)
 /* Return true if the basic-block with index BB_INDEX should be put in
    a new section.
    The following are all taking into account in the decision:
-  
-   BB_SIZE - The size of the basic-block, 
+
+   BB_SIZE - The size of the basic-block,
    ESTIMATE_MAX_SECTION_SIZE - The maximum size of a section,
    LAST_SECTION_SIZE - The size of the last section.  */
 bool
@@ -2988,15 +2981,15 @@ spu_start_new_section (int bb_index, unsigned HOST_WIDE_INT bb_size,
     {
       if (tablejump_p (insn, NULL, NULL) && !bb->il.rtl->skip && !TARGET_SOFTWARE_ICACHE)
 	warning (0, "Unexpected jump-table in basic-block %d.  ", bb->index);
-      
+
       /* Check whether this insn can begin a critical sections.  */
       if (begin_critical_section (insn, &type))
 	{
 	  struct critical_sections_t crit;
           rtx last_insn_critical_section = NULL_RTX;
-	  
+
 	  size = bb_size;
-	  
+
 	  if (type == JUMP_TABLE)
 	    {
 	      size = record_jump_table (insn, &last_insn_critical_section);
@@ -3008,7 +3001,7 @@ spu_start_new_section (int bb_index, unsigned HOST_WIDE_INT bb_size,
                continue;
 	    }
 	  if (type == JUMP_TABLE)
-            has_jump_table = true; 
+            has_jump_table = true;
 	  crit.size = size;
 	  crit.type = type;
 	  crit.start = insn;
@@ -3041,10 +3034,10 @@ spu_start_new_section (int bb_index, unsigned HOST_WIDE_INT bb_size,
 	  close_critical_sections (start_sequence, bb, type, insn);
 	}
     }
-  
+
   if (dump_file && VEC_length (critical_sections_p, start_sequence))
     fprintf (dump_file, "\n;; bb %d starts a critical section", bb->index);
-   
+
   for (i = 0; VEC_iterate (critical_sections_p, start_sequence, i, crit1);
        i++)
     {
@@ -3062,11 +3055,11 @@ spu_start_new_section (int bb_index, unsigned HOST_WIDE_INT bb_size,
     }
   if (last_section_size == 0)
     start_new_section_p = false;
-  
+
   VEC_free (critical_sections_p, gc, start_sequence);
- 
+
   if (TARGET_SOFTWARE_ICACHE
-      && !has_jump_table 
+      && !has_jump_table
       && (estimate_number_of_external_branches_in_section
 	  > (unsigned)icache_branch_limit))
     {
@@ -3091,7 +3084,7 @@ spu_start_new_section (int bb_index, unsigned HOST_WIDE_INT bb_size,
 	  return true;
 	}
     }
-  
+
   return start_new_section_p;
 }
 
@@ -3138,7 +3131,7 @@ spu_dont_create_jumptable (unsigned int ncases)
    function, the indicator would be "011".  If the function then allocates
    a new stack frame, the indicator would be "001".  If a leaf proceedure
    creates a new stack frame, the indicator would transition from "101"
-   to "100".  */ 
+   to "100".  */
 static void
 record_link_elements_liveness (void)
 {
@@ -3397,24 +3390,24 @@ record_branch_info (void)
   FOR_EACH_BB (bb)
     {
       rtx insn, set, src;
-      
+
       FOR_BB_INSNS (bb, insn)
 	{
 	  edge e = NULL;
-	  
-	  if (INSN_P (insn) 
+
+	  if (INSN_P (insn)
 	      && ((GET_CODE (insn) == JUMP_INSN)
 		  || (GET_CODE (insn) == CALL_INSN)))
 	    {
               struct branch_info_def branchi;
-	      
+
               branchi.insn = insn;
-	      
+
 	      if (GET_CODE (insn) == JUMP_INSN)
 		{
 		  if (GET_CODE (PATTERN (insn)) == RETURN)
 		    continue;
-		  
+
 		  set = single_set (insn);
 		  if (set)
 		    {
@@ -3424,16 +3417,16 @@ record_branch_info (void)
 
 		      if (REG_P (src))
 			continue;
-		      
+
 		      if (GET_CODE (src) == IF_THEN_ELSE)
 			{
 			  rtx lab = 0;
-			  
+
 			  if (GET_CODE (XEXP (src, 1)) != PC)
 			    lab = XEXP (src, 1);
 			  else if (GET_CODE (XEXP (src, 2)) != PC)
 			    lab = XEXP (src, 2);
-			  
+
 			  if (lab && REG_P (lab))
 			    continue;
 			}
@@ -3443,14 +3436,14 @@ record_branch_info (void)
 		  if (e && e->probability)
 		    {
 		      branchi.frequency = EDGE_FREQUENCY (e);
-		      VEC_safe_push (branch_info, heap, 
-				     branches_priority, &branchi);  
+		      VEC_safe_push (branch_info, heap,
+				     branches_priority, &branchi);
 		    }
 		}
 	      else
 		{
 		  rtx call;
-		  
+
 		  if (GET_CODE (PATTERN (insn)) != PARALLEL)
 		    abort ();
 		  call = XVECEXP (PATTERN (insn), 0, 0);
@@ -3465,7 +3458,7 @@ record_branch_info (void)
 		  if (bb->frequency)
 		    {
 		      branchi.frequency = bb->frequency;
-		      VEC_safe_push (branch_info, heap, 
+		      VEC_safe_push (branch_info, heap,
 				     branches_priority, &branchi);
 		    }
 		}
@@ -3478,12 +3471,12 @@ record_branch_info (void)
       VEC_free (branch_info, heap, branches_priority);
       return;
     }
- 
-  /* Sort the branches according to their frequency.  */ 
-  qsort (VEC_address (branch_info, branches_priority), num_of_branches, 
+
+  /* Sort the branches according to their frequency.  */
+  qsort (VEC_address (branch_info, branches_priority), num_of_branches,
 	 sizeof (struct branch_info_def),
 	 branch_info_compare_frequency);
-  
+
   /* Count the number of branches with different frequency.  */
   num_of_unique_frequencies = 0;
   prev = -1;
@@ -4818,9 +4811,9 @@ classify_immediate (rtx op, enum machine_mode mode)
     {
     case SYMBOL_REF:
     case LABEL_REF:
-      return (TARGET_LARGE_MEM 
-	      || (TARGET_SOFTWARE_ICACHE 
-		  && (GET_CODE (op) == SYMBOL_REF) 
+      return (TARGET_LARGE_MEM
+	      || (TARGET_SOFTWARE_ICACHE
+		  && (GET_CODE (op) == SYMBOL_REF)
 		  && SYMBOL_REF_FUNCTION_P (op))) ? IC_IL2s : IC_IL1s;
 
     case CONST:

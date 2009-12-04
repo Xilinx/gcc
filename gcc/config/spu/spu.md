@@ -2867,7 +2867,7 @@
   [(set (pc) (match_operand:SI 0 "spu_reg_operand" "r"))]
   ""
   {
-    if (TARGET_SOFTWARE_ICACHE && (REGNO (operands[0]) != LINK_REGISTER_REGNUM)) 
+    if (TARGET_SOFTWARE_ICACHE && (REGNO (operands[0]) != LINK_REGISTER_REGNUM))
       {
         rtx tag_size_sym = gen_rtx_SYMBOL_REF (Pmode, "__icache_tag_array_mask");
         rtx tag_arr_sym = gen_rtx_SYMBOL_REF (Pmode, "__icache_tag_array_pointer");
@@ -3999,7 +3999,7 @@ selb\t%0,%4,%0,%3"
       emit_jump_insn (gen_tablejump (addr, operands[3]));
 
     }
-    else 
+    else
     {
       emit_move_insn (table, gen_rtx_LABEL_REF (SImode, operands[3]));
 
@@ -4243,7 +4243,7 @@ selb\t%0,%4,%0,%3"
     if ((!TARGET_SOFTWARE_ICACHE) || (!REG_P (XEXP (operands[0], 0))))
       {
         if (! call_operand (operands[0], QImode))
-          XEXP (operands[0], 0) = copy_to_mode_reg (Pmode, XEXP (operands[0], 0));   
+          XEXP (operands[0], 0) = copy_to_mode_reg (Pmode, XEXP (operands[0], 0));
       }
     else
       {
@@ -4322,7 +4322,7 @@ selb\t%0,%4,%0,%3"
       if (! call_operand (operands[1], QImode))
         XEXP (operands[1], 0) = copy_to_mode_reg (Pmode, XEXP (operands[1], 0));
     }
-    else 
+    else
     {
         rtx tag_size_sym = gen_rtx_SYMBOL_REF (Pmode, "__icache_tag_array_mask");
         rtx tag_arr_sym = gen_rtx_SYMBOL_REF (Pmode, "__icache_tag_array_pointer");

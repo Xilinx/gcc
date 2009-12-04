@@ -24,7 +24,7 @@ foo1 (int a)
   return (2 * a - 3);
 }
 
-static void __attribute__((noinline)) 
+static void __attribute__((noinline))
 compute_output (int *out, func f, int elem)
 {
   *out = (*f) (elem);

@@ -15,21 +15,21 @@ float fir_out[N];
 void foo (){
   int i,j,k;
   float diff;
-  
+
   for (i = 0; i < N; i++) {
     out[i] = 0;
   }
-  
+
   for (k = 0; k < 4; k++) {
     for (i = 0; i < N; i++) {
     diff = 0;
     for (j = k; j < M; j+=4) {
-      diff += in[j+i]*coeff[j]; 
+      diff += in[j+i]*coeff[j];
     }
     out[i] += diff;
     }
   }
-  
+
 }
 
 /* Vectorized. Changing misalignment in the inner-loop.  */
@@ -51,7 +51,7 @@ int main (void)
 {
   int i, j;
   float diff;
-  
+
   for (i = 0; i < M; i++)
     coeff[i] = i;
   for (i = 0; i < N+M; i++)

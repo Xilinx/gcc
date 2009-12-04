@@ -338,7 +338,7 @@ enum bb_flags
   BB_NONTHREADABLE_BLOCK = 1 << 11,
 
   /* Set on blocks that are first in a section.  */
-  BB_FIRST_AFTER_SECTION_SWITCH = 1 << 12 
+  BB_FIRST_AFTER_SECTION_SWITCH = 1 << 12
 
 };
 

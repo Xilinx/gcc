@@ -1,3 +1,13 @@
+2009-12-04  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* gcc.dg/section/prof/section-prof-1.c: Fix whitespace.
+	* gcc.dg/section/prof/sections-prof.exp: Likewise.
+	* gcc.dg/section/section-debug-1.c: Likewise.
+	* gcc.dg/section/section.exp: Likewise.
+	* gcc.dg/section/section-size-2.c: Likewise.
+	* gcc.dg/section/section-size-4.c: Likewise.
+	* gcc.target/spu/icache-1.c: Likewise.
+
 2009-11-30  Revital Eres  <eres@il.ibm.com>
 
 	* gcc.target/spu/icache-1.c: Change dump check.

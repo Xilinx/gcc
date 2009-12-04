@@ -1,5 +1,15 @@
 2009-12-04  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
 
+	* basic-block.h: Fix whitespace.
+	* bb-reorder.c: Likewise.
+	* target.h: Likewise.
+	* toplev.c: Likewise.
+	* varasm.c: Likewise.
+	* config/spu/spu.c: Likewise.
+	* config/spu/spu.md: Likewise.
+
+2009-12-04  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
 	Update to mainline revision 154980.
 
 2009-11-30  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>

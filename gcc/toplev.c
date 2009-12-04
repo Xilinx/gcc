@@ -2082,7 +2082,7 @@ process_options (void)
 	       "it makes profiling impossible");
       flag_partition_functions_into_sections = 0;
     }
-   
+
 #ifndef HAVE_prefetch
   if (flag_prefetch_loop_arrays)
     {

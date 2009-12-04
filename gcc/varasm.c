@@ -1759,7 +1759,7 @@ output_sections (void)
      beginning of its address range.  */
   for (i = 1;
        VEC_iterate (const_str, crtl->subsections.section_start_labels, i,
-		    tmp); 
+		    tmp);
        i++)
     {
       switch_to_section (text_part_section (i));
@@ -1791,9 +1791,9 @@ assemble_start_function (tree decl, const char *fnname)
       unsigned i;
       int length = crtl->subsections.number_of_sections;
 
-      crtl->subsections.section_start_labels = 
+      crtl->subsections.section_start_labels =
           VEC_alloc (const_str, gc, length);
-      crtl->subsections.section_end_labels = 
+      crtl->subsections.section_end_labels =
       VEC_alloc (const_str, gc, length);
 
       for (i = 0; i < crtl->subsections.number_of_sections; i++)

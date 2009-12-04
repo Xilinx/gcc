@@ -823,7 +823,7 @@ struct gcc_target
        ESTIMATE_MAX_SECTION_SIZE - The maximum size of a section,
        LAST_SECTION_SIZE - The size of the last section.  */
     bool (* start_new_section) (int bb_index, unsigned HOST_WIDE_INT bb_size,
-                                unsigned HOST_WIDE_INT estimate_max_section_size, 
+                                unsigned HOST_WIDE_INT estimate_max_section_size,
                                 unsigned HOST_WIDE_INT last_section_size);
     /* Return true if INSN is a valid insn to break a basic-block.
        Otherwise return false.  */
