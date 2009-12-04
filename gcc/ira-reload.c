@@ -682,6 +682,47 @@ build_conflicts_for_new_allocnos (rtx head, rtx tail,
 	mark_live (DF_REF_REG (*use_rec));
     }
 
+  /* Now that we have conflicts, walk over the insns again looking for copies.  */
+  for (insn = tail; insn != PREV_INSN (head); insn = PREV_INSN (insn))
+    {
+      if (!NONDEBUG_INSN_P (insn))
+	continue;
+
+      /* If this is a simple copy where one of the two registers is a
+	 newly created pseudo, then we have data structures to update.  */
+      if (GET_CODE (PATTERN (insn)) == SET
+	  && GET_CODE (SET_SRC (PATTERN (insn))) == REG
+	  && GET_CODE (SET_DEST (PATTERN (insn))) == REG
+	  && (REGNO (SET_SRC (PATTERN (insn))) > (unsigned) orig_max_reg_num
+	      || REGNO (SET_DEST (PATTERN (insn))) > (unsigned) orig_max_reg_num))
+	{
+	  rtx reg0 = SET_SRC (PATTERN (insn));
+	  rtx reg1 = SET_DEST (PATTERN (insn));
+	  ira_allocno_t a0;
+	  ira_allocno_t a1;
+	  ira_allocno_t conflict_a;
+	  ira_allocno_conflict_iterator aci;
+
+	  /* Temporary.  */
+	  if (REGNO (reg0) < FIRST_PSEUDO_REGISTER
+	      || REGNO (reg1) < FIRST_PSEUDO_REGISTER)
+	    continue;
+	
+	  /* If A0 and A1 do not conflict, then record the copy.  */
+	  a0 = ira_regno_allocno_map[REGNO (reg0)];
+	  a1 = ira_regno_allocno_map[REGNO (reg1)];
+	  FOR_EACH_ALLOCNO_CONFLICT (a0, conflict_a, aci)
+	    if (conflict_a == a1)
+	      break;
+
+	  if (conflict_a != a1)
+	    ira_add_allocno_copy (a0, a1,
+				  REG_FREQ_FROM_BB (BLOCK_FOR_INSN (insn)),
+				  0, insn, NULL);
+	}
+    }
+
+
   BITMAP_FREE (live);
 }
 

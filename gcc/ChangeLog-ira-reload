@@ -1,3 +1,13 @@
+2009-12-04  Jeff Law <law@redhat.com>
+
+	* ira-reload.c (build_conflicts_for_new_allocnos): Look for
+	copies to/from new pseudos/allocnos and create ira copies for them.
+
+	* ira-color.c (ira_reassign_conflict_pseudos): Remove bogus asserts.
+	Free UPDATED_HARD_REG_COSTS and UPDATED_CONFLICT_HARD_REG_COSTS.
+	(allocno_reload_assign): Likewise.
+
+
 2009-12-02  Jeff Law <law@redhat.com>
 
 	* ira-reload.c (create_new_allocno_for_spilling): If the original

@@ -2319,8 +2319,7 @@ ira_reassign_conflict_allocnos (int start_regno)
     {
       a = sorted_allocnos[i];
       ALLOCNO_ASSIGNED_P (a) = false;
-      ira_assert (ALLOCNO_UPDATED_HARD_REG_COSTS (a) == NULL);
-      ira_assert (ALLOCNO_UPDATED_CONFLICT_HARD_REG_COSTS (a) == NULL);
+      ira_free_allocno_updated_costs (a);
       update_curr_costs (a);
     }
   for (i = 0; i < allocnos_to_color_num; i++)
@@ -2786,8 +2785,7 @@ allocno_reload_assign (ira_allocno_t a, HARD_REG_SET forbidden_regs)
   if (! flag_caller_saves && ALLOCNO_CALLS_CROSSED_NUM (a) != 0)
     IOR_HARD_REG_SET (ALLOCNO_TOTAL_CONFLICT_HARD_REGS (a), call_used_reg_set);
   ALLOCNO_ASSIGNED_P (a) = false;
-  ira_assert (ALLOCNO_UPDATED_HARD_REG_COSTS (a) == NULL);
-  ira_assert (ALLOCNO_UPDATED_CONFLICT_HARD_REG_COSTS (a) == NULL);
+  ira_free_allocno_updated_costs (a);
   cover_class = ALLOCNO_COVER_CLASS (a);
   update_curr_costs (a);
   assign_hard_reg (a, true);
