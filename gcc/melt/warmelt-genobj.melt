@@ -1993,6 +1993,7 @@
 	 (locmap (unsafe_get_field :gncx_locmap gcx))
 	 (obodl (make_list discr_list))
 	 (oepil (make_list discr_list))
+	 (ofreelocs (make_list discr_list))
 	 (oallstruct (make_multiple discr_multiple nbbnds))
 	 (oblock (instance class_objmultiallocblock
 			   :obi_loc loc
@@ -2022,6 +2023,7 @@
        (mapobject_put locmap cursbnd curobva)
        (list_append obodl ocurclear)
        (list_append oepil ocurclear)
+       (list_append ofreelocs curobva)
        )
      )
     ;;
@@ -2063,7 +2065,8 @@
        (mapobject_put locmap curecbnd recobva)
        (debug_msg oreclear "compilobj_nrep_letrec oreclear")
        (list_append obodl oreclear)
-     ))
+       (list_append ofreelocs recobva)
+       ))
     (debug_msg locmap "compilobj_nrep_letrec locmap again")
     ;; second loop to compile the recbindings
     (foreach_in_list
@@ -2094,13 +2097,37 @@
        (compile_letrec_fill curbnd obva obodl gcx loc)
        (debug_msg obodl "compilobj_nrep_letrec letrecfilled obodl")
        ))
-    ;; should compile the body & free our objlocs...
+    ;;
+    (debug_msg oallstruct "compilobj_nrep_letrec oallstruct")
+    ;; compile the body
     (debug_msg nbdy "compilobj_nrep_letrec nbdy")
+    ;; compile the body
     (assert_msg "check nbdy" (is_multiple_or_null nbdy))
+    (foreach_in_multiple
+     (nbdy)
+     (curbdy :long bdix)
+     (debug_msg curbdy "compilobj_nrep_letrec curbdy")
+     (let ( (ocurb (compile_obj curbdy gcx)) )
+       (debug_msg ocurb "compilobj_nrep_letrec ocurb")
+       (list_append obodl ocurb)))
+    (debug_msg obodl "compilobj_nrep_letrec final obodl")
+    ;; should clear and free our objlocs...
+    (foreach_in_list
+     (ofreelocs)
+     (curlpair curlocva)
+     (debug_msg curlocva "compilobj_nrep_letrec disposing curlocva")
+     (let ( (oclear (instance class_objclear
+			      :obi_loc loc
+			      :oclr_vloc curlocva))
+	    )
+       (list_append oepil oclear)
+       (dispose_objloc curlocva gcx)
+       (debug_msg oclear "compilobj_nrep_letrec final oclear")
+       ))
     ;;
     (debug_msg oblock "compilobj_nrep_letrec final oblock")
-    (compile_warning "unimplemented compilobj_nrep_letrec")
-    (assert_msg "$@$incomplete compilobj_nrep_letrec" ())
+    (debug_msg oallstruct "compilobj_nrep_letrec final oallstruct")
+    (compile_warning "maybe incomplete compilobj_nrep_letrec; is oallstruct filled ok?")
     oblock
     ))
 (install_method class_nrep_letrec compile_obj compilobj_nrep_letrec)

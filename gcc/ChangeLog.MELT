@@ -1,3 +1,8 @@
+2009-12-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{letrec still incomplete}}
+	* melt/warmelt-genobj.melt: compilobj_nrep_letrec, added free &
+	clear of our objloc and compilation of the body..
+
 2009-12-03  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	{{letrec still incomplete}}
