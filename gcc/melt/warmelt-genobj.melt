@@ -208,6 +208,7 @@
   :super class_objblock
   :fields ( omalblo_allstruct		;the allocated structure is a
 					;tuple of class_objinitelem
+	    omalblo_name		;unique name
 ))
 
 ;; a block with a comment string appearing in the generated code
@@ -445,6 +446,7 @@
 					;cstrings, ...)
 	   obrout_retval		;the main return value
 	   obrout_cntciter		;the boxed counter of citerations
+	   obrout_cntletrec		;the boxed counter of letrecs
 	   ))
 
 ;; procedure routine
@@ -725,6 +727,7 @@
 			    :obrout_nblong (make_integerbox discr_integer 0)
 			    :obrout_others (make_list discr_list)
 			    :obrout_cntciter (make_integerbox discr_integer 0)
+			    :obrout_cntletrec (make_integerbox discr_integer 0)
 			    :oprout_loc nloc
 			    :oprout_funam routfunam
 			    :oprout_filenum (make_integerbox discr_constant_integer filenum)
@@ -847,6 +850,7 @@
 		   :obrout_nblong (make_integerbox discr_integer 0)
 		   :obrout_others (make_list discr_list)
 		   :obrout_cntciter (make_integerbox discr_integer 0)
+		   :obrout_cntletrec (make_integerbox discr_integer 0)
 		   :oirout_fill (make_list discr_list)
 		   :oirout_prolog oiniprolog
 		   ))
@@ -1994,16 +1998,28 @@
 	 (obodl (make_list discr_list))
 	 (oepil (make_list discr_list))
 	 (ofreelocs (make_list discr_list))
+	 (obrout (get_field :gncx_objrout gcx))
+	 (obcntletrec (get_field :obrout_cntletrec obrout))
+	 (:long cntletrec (+i 1 (get_int obcntletrec)))
 	 (oallstruct (make_multiple discr_multiple nbbnds))
+	 (namstr 
+	  (let (  (nambuf (make_strbuf discr_strbuf)) )
+	    (add2sbuf_strconst nambuf "meltletrec_")
+	    (add2sbuf_longdec nambuf cntletrec)
+	    (strbuf2string discr_verbatim_string nambuf)
+	    ))
 	 (oblock (instance class_objmultiallocblock
 			   :obi_loc loc
 			   :oblo_bodyl obodl
 			   :oblo_epil oepil
 			   :omalblo_allstruct oallstruct
+			   :omalblo_name namstr
 			   ))
 	 )
     (debug_msg loc "compilobj_nrep_letrec initial loc")
     (debug_msg nlocsyms "compilobj_nrep_letrec initial nlocsyms")
+    (put_int obcntletrec cntletrec)
+    (debug_msg obcntletrec "compilobj_nrep_letrec updated obcntletrec")
     (foreach_in_multiple
      (nlocsyms)
      (curlocsym :long symix)
@@ -2127,6 +2143,7 @@
     ;;
     (debug_msg oblock "compilobj_nrep_letrec final oblock")
     (debug_msg oallstruct "compilobj_nrep_letrec final oallstruct")
+    (debug_msg gcx "compilobj_nrep_letrec final gcx")
     (compile_warning "maybe incomplete compilobj_nrep_letrec; is oallstruct filled ok?")
     oblock
     ))

@@ -1,5 +1,32 @@
 2009-12-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{letrec still incomplete}}
+	* melt/warmelt-genobj.melt: added obrout_cntletrec & omalblo_name
+	fields. compilobj_nrep_letrec generates a name.
+	* melt/warmelt-outobj.melt: adding outpucod_objmultiallocblock.
+	* melt-module.mk (meltmodulerawdynamic): added override. 
+
+	{{regenerated}}
+	* melt/warmelt-first.0+1.c: regenerated.
+	* melt/warmelt-first.0+2.c: regenerated.
+	* melt/warmelt-first.0.c: regenerated.
+	* melt/warmelt-genobj.0+1.c: regenerated.
+	* melt/warmelt-genobj.0+2.c: regenerated.
+	* melt/warmelt-genobj.0+3.c: regenerated.
+	* melt/warmelt-genobj.0.c: regenerated.
+	* melt/warmelt-macro.0+1.c: regenerated.
+	* melt/warmelt-macro.0+2.c: regenerated.
+	* melt/warmelt-macro.0.c: regenerated.
+	* melt/warmelt-normal.0+1.c: regenerated.
+	* melt/warmelt-normal.0+2.c: regenerated.
+	* melt/warmelt-normal.0.c: regenerated.
+	* melt/warmelt-normatch.0.c: regenerated.
+	* melt/warmelt-outobj.0+1.c: regenerated.
+	* melt/warmelt-outobj.0+2.c: regenerated.
+	* melt/warmelt-outobj.0+3.c: regenerated.
+	* melt/warmelt-outobj.0.c: regenerated.
+
+2009-12-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{letrec still incomplete}}
 	* melt/warmelt-genobj.melt: compilobj_nrep_letrec, added free &
 	clear of our objloc and compilation of the body..
 
