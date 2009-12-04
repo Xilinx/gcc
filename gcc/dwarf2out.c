@@ -505,8 +505,6 @@ static void output_cfi (dw_cfi_ref, dw_fde_ref, int);
 static void output_cfi_directive (dw_cfi_ref);
 static void output_call_frame_info (int);
 static void dwarf2out_note_section_used (void);
-static void dwarf2out_stack_adjust (rtx, bool);
-static void dwarf2out_args_size_adjust (HOST_WIDE_INT, const char *);
 static void flush_queued_reg_saves (void);
 static bool clobbers_queued_reg_save (const_rtx);
 static void dwarf2out_frame_debug_expr (rtx, const char *);
@@ -841,7 +839,7 @@ add_fde_cfi (const char *label, dw_cfi_ref cfi)
 
       /* Emit the state save.  */
       emit_cfa_remember = false;
-      cfi_remember = new_cfi (); 
+      cfi_remember = new_cfi ();
       cfi_remember->dw_cfi_opc = DW_CFA_remember_state;
       add_fde_cfi (label, cfi_remember);
     }
@@ -1079,7 +1077,7 @@ def_cfa_1 (const char *label, dw_cfa_location *loc_p)
   if (loc.reg == old_cfa.reg && !loc.indirect)
     {
       /* Construct a "DW_CFA_def_cfa_offset <offset>" instruction, indicating
-	 the CFA register did not change but the offset did.  The data 
+	 the CFA register did not change but the offset did.  The data
 	 factoring for DW_CFA_def_cfa_offset_sf happens in output_cfi, or
 	 in the assembler via the .cfi_def_cfa_offset directive.  */
       if (loc.offset < 0)
@@ -1189,25 +1187,6 @@ dwarf2out_window_save (const char *label)
   dw_cfi_ref cfi = new_cfi ();
 
   cfi->dw_cfi_opc = DW_CFA_GNU_window_save;
-  add_fde_cfi (label, cfi);
-}
-
-/* Add a CFI to update the running total of the size of arguments
-   pushed onto the stack.  */
-
-void
-dwarf2out_args_size (const char *label, HOST_WIDE_INT size)
-{
-  dw_cfi_ref cfi;
-
-  if (size == old_args_size)
-    return;
-
-  old_args_size = size;
-
-  cfi = new_cfi ();
-  cfi->dw_cfi_opc = DW_CFA_GNU_args_size;
-  cfi->dw_cfi_oprnd1.dw_cfi_offset = size;
   add_fde_cfi (label, cfi);
 }
 
@@ -1561,13 +1540,58 @@ compute_barrier_args_size (void)
   VEC_free (rtx, heap, next);
 }
 
-
-/* Check INSN to see if it looks like a push or a stack adjustment, and
-   make a note of it if it does.  EH uses this information to find out how
-   much extra space it needs to pop off the stack.  */
+/* Add a CFI to update the running total of the size of arguments
+   pushed onto the stack.  */
 
 static void
-dwarf2out_stack_adjust (rtx insn, bool after_p)
+dwarf2out_args_size (const char *label, HOST_WIDE_INT size)
+{
+  dw_cfi_ref cfi;
+
+  if (size == old_args_size)
+    return;
+
+  old_args_size = size;
+
+  cfi = new_cfi ();
+  cfi->dw_cfi_opc = DW_CFA_GNU_args_size;
+  cfi->dw_cfi_oprnd1.dw_cfi_offset = size;
+  add_fde_cfi (label, cfi);
+}
+
+/* Record a stack adjustment of OFFSET bytes.  */
+
+static void
+dwarf2out_stack_adjust (HOST_WIDE_INT offset, const char *label)
+{
+  if (cfa.reg == STACK_POINTER_REGNUM)
+    cfa.offset += offset;
+
+  if (cfa_store.reg == STACK_POINTER_REGNUM)
+    cfa_store.offset += offset;
+
+  if (ACCUMULATE_OUTGOING_ARGS)
+    return;
+
+#ifndef STACK_GROWS_DOWNWARD
+  offset = -offset;
+#endif
+
+  args_size += offset;
+  if (args_size < 0)
+    args_size = 0;
+
+  def_cfa_1 (label, &cfa);
+  if (flag_asynchronous_unwind_tables)
+    dwarf2out_args_size (label, args_size);
+}
+
+/* Check INSN to see if it looks like a push or a stack adjustment, and
+   make a note of it if it does.  EH uses this information to find out
+   how much extra space it needs to pop off the stack.  */
+
+static void
+dwarf2out_notice_stack_adjust (rtx insn, bool after_p)
 {
   HOST_WIDE_INT offset;
   const char *label;
@@ -1651,31 +1675,7 @@ dwarf2out_stack_adjust (rtx insn, bool after_p)
     return;
 
   label = dwarf2out_cfi_label (false);
-  dwarf2out_args_size_adjust (offset, label);
-}
-
-/* Adjust args_size based on stack adjustment OFFSET.  */
-
-static void
-dwarf2out_args_size_adjust (HOST_WIDE_INT offset, const char *label)
-{
-  if (cfa.reg == STACK_POINTER_REGNUM)
-    cfa.offset += offset;
-
-  if (cfa_store.reg == STACK_POINTER_REGNUM)
-    cfa_store.offset += offset;
-
-#ifndef STACK_GROWS_DOWNWARD
-  offset = -offset;
-#endif
-
-  args_size += offset;
-  if (args_size < 0)
-    args_size = 0;
-
-  def_cfa_1 (label, &cfa);
-  if (flag_asynchronous_unwind_tables)
-    dwarf2out_args_size (label, args_size);
+  dwarf2out_stack_adjust (offset, label);
 }
 
 #endif
@@ -1920,7 +1920,7 @@ dwarf2out_frame_debug_cfa_offset (rtx set, const char *label)
   addr = XEXP (set, 0);
   gcc_assert (MEM_P (addr));
   addr = XEXP (addr, 0);
-  
+
   /* As documented, only consider extremely simple addresses.  */
   switch (GET_CODE (addr))
     {
@@ -2253,7 +2253,7 @@ dwarf2out_frame_debug_expr (rtx expr, const char *label)
 	      HOST_WIDE_INT offset = stack_adjust_offset (elem, args_size, 0);
 
 	      if (offset != 0)
-		dwarf2out_args_size_adjust (offset, label);
+		dwarf2out_stack_adjust (offset, label);
 	    }
 	}
       return;
@@ -2746,10 +2746,13 @@ dwarf2out_frame_debug (rtx insn, bool after_p)
   if (!NONJUMP_INSN_P (insn) || clobbers_queued_reg_save (insn))
     flush_queued_reg_saves ();
 
-  if (! RTX_FRAME_RELATED_P (insn))
+  if (!RTX_FRAME_RELATED_P (insn))
     {
+      /* ??? This should be done unconditionally since stack adjustments
+	 matter if the stack pointer is not the CFA register anymore but
+	 is still used to save registers.  */
       if (!ACCUMULATE_OUTGOING_ARGS)
-	dwarf2out_stack_adjust (insn, after_p);
+	dwarf2out_notice_stack_adjust (insn, after_p);
       return;
     }
 
@@ -2907,7 +2910,7 @@ dwarf2out_begin_epilogue (rtx insn)
 void
 dwarf2out_frame_debug_restore_state (void)
 {
-  dw_cfi_ref cfi = new_cfi (); 
+  dw_cfi_ref cfi = new_cfi ();
   const char *label = dwarf2out_cfi_label (false);
 
   cfi->dw_cfi_opc = DW_CFA_restore_state;
@@ -9902,7 +9905,7 @@ htab_decl_del (void *what)
   free (entry);
 }
 
-/* Copy DIE and its ancestors, up to, but not including, the compile unit 
+/* Copy DIE and its ancestors, up to, but not including, the compile unit
    or type unit entry, to a new tree.  Adds the new tree to UNIT and returns
    a pointer to the copy of DIE.  If DECL_TABLE is provided, it is used
    to check if the ancestor has already been copied into UNIT.  */
@@ -11596,7 +11599,6 @@ output_file_names (void)
   int ndirs;
   int idx_offset;
   int i;
-  int idx;
 
   if (!last_emitted_file)
     {
@@ -11723,7 +11725,6 @@ output_file_names (void)
     }
 
   /* Emit the directory name table.  */
-  idx = 1;
   idx_offset = dirs[0].length > 0 ? 1 : 0;
   for (i = 1 - idx_offset; i < ndirs; i++)
     dw2_asm_output_nstring (dirs[i].path,
@@ -14390,7 +14391,7 @@ add_loc_descr_to_each (dw_loc_list_ref list, dw_loc_descr_ref ref)
 
    TODO: We handle only simple cases of RET or LIST having at most one
    element. General case would inolve sorting the lists in program order
-   and merging them that will need some additional work.  
+   and merging them that will need some additional work.
    Adding that will improve quality of debug info especially for SRA-ed
    structures.  */
 
@@ -14653,13 +14654,17 @@ loc_list_from_tree (tree loc, int want_address)
     case RESULT_DECL:
     case FUNCTION_DECL:
       {
-	rtx rtl = rtl_for_decl_location (loc);
+	rtx rtl;
 	var_loc_list *loc_list = lookup_decl_loc (loc);
 
 	if (loc_list && loc_list->first
 	    && (list_ret = dw_loc_list (loc_list, loc, want_address)))
-	  have_address = want_address != 0;
-	else if (rtl == NULL_RTX)
+	  {
+	    have_address = want_address != 0;
+	    break;
+	  }
+	rtl = rtl_for_decl_location (loc);
+	if (rtl == NULL_RTX)
 	  {
 	    expansion_failed (loc, NULL_RTX, "DECL has no RTL");
 	    return 0;
@@ -14774,7 +14779,7 @@ loc_list_from_tree (tree loc, int want_address)
 	if (bytepos > 0)
 	  add_loc_descr_to_each (list_ret, new_loc_descr (DW_OP_plus_uconst, bytepos, 0));
 	else if (bytepos < 0)
-	  loc_list_plus_const (list_ret, bytepos); 
+	  loc_list_plus_const (list_ret, bytepos);
 
 	have_address = 1;
 	break;
@@ -15383,11 +15388,11 @@ add_data_member_location_attribute (dw_die_ref die, tree decl)
       else
 	{
 	  enum dwarf_location_atom op;
-	  
+
 	  /* The DWARF2 standard says that we should assume that the structure
 	     address is already on the stack, so we can specify a structure
 	     field address by using DW_OP_plus_uconst.  */
-	  
+
 #ifdef MIPS_DEBUGGING_INFO
 	  /* ??? The SGI dwarf reader does not handle the DW_OP_plus_uconst
 	     operator correctly.  It works only if we leave the offset on the
@@ -15396,7 +15401,7 @@ add_data_member_location_attribute (dw_die_ref die, tree decl)
 #else
 	  op = DW_OP_plus_uconst;
 #endif
-	  
+
 	  loc_descr = new_loc_descr (op, offset, 0);
 	}
     }
@@ -15949,6 +15954,27 @@ rtl_for_decl_location (tree decl)
   if (rtl)
     rtl = avoid_constant_pool_reference (rtl);
 
+  /* Try harder to get a rtl.  If this symbol ends up not being emitted
+     in the current CU, resolve_addr will remove the expression referencing
+     it.  */
+  if (rtl == NULL_RTX
+      && TREE_CODE (decl) == VAR_DECL
+      && !DECL_EXTERNAL (decl)
+      && TREE_STATIC (decl)
+      && DECL_NAME (decl)
+      && !DECL_HARD_REGISTER (decl)
+      && DECL_MODE (decl) != VOIDmode)
+    {
+      rtl = DECL_RTL (decl);
+      /* Reset DECL_RTL back, as various parts of the compiler expects
+	 DECL_RTL set meaning it is actually going to be output.  */
+      SET_DECL_RTL (decl, NULL);
+      if (!MEM_P (rtl)
+	  || GET_CODE (XEXP (rtl, 0)) != SYMBOL_REF
+	  || SYMBOL_REF_DECL (XEXP (rtl, 0)) != decl)
+	rtl = NULL_RTX;
+    }
+
   return rtl;
 }
 
@@ -16040,11 +16066,9 @@ add_location_or_const_value_attribute (dw_die_ref die, tree decl,
   loc_list = lookup_decl_loc (decl);
   if (loc_list && loc_list->first && loc_list->first == loc_list->last)
     {
-      enum var_init_status status;
       struct var_loc_node *node;
 
       node = loc_list->first;
-      status = NOTE_VAR_LOCATION_STATUS (node->var_loc_note);
       rtl = NOTE_VAR_LOCATION (node->var_loc_note);
       if (GET_CODE (rtl) == VAR_LOCATION
 	  && GET_CODE (XEXP (rtl, 1)) != PARALLEL)
@@ -17327,7 +17351,7 @@ gen_array_type_die (tree type, dw_die_ref context_die)
     add_subscript_info (array_die, type, collapse_nested_arrays);
 
   /* Add representation of the type of the elements of this array type and
-     emit the corresponding DIE if we haven't done it already.  */  
+     emit the corresponding DIE if we haven't done it already.  */
   element_type = TREE_TYPE (type);
   if (collapse_nested_arrays)
     while (TREE_CODE (element_type) == ARRAY_TYPE)
@@ -18342,7 +18366,7 @@ gen_subprogram_die (tree decl, dw_die_ref context_die)
 	 of the pack. Note that the set of pack arguments can be empty.
 	 In that case, the DW_TAG_GNU_formal_parameter_pack DIE will not have any
 	 children DIE.
-	
+
 	 Otherwise, we just consider the parameters of DECL.  */
       while (generic_decl_parm || parm)
 	{
@@ -18455,26 +18479,6 @@ gen_variable_die (tree decl, tree origin, dw_die_ref context_die)
   dw_die_ref old_die = decl ? lookup_decl_die (decl) : NULL;
   dw_die_ref origin_die;
   int declaration = (DECL_EXTERNAL (decl_or_origin)
-		     /* If DECL is COMDAT and has not actually been
-			emitted, we cannot take its address; there
-			might end up being no definition anywhere in
-			the program.  For example, consider the C++
-			test case:
-
-			  template <class T>
-			  struct S { static const int i = 7; };
-
-			  template <class T>
-			  const int S<T>::i;
-
-			  int f() { return S<int>::i; }
-
-			Here, S<int>::i is not DECL_EXTERNAL, but no
-			definition is required, so the compiler will
-			not emit a definition.  */
-		     || (TREE_CODE (decl_or_origin) == VAR_DECL
-			 && DECL_COMDAT (decl_or_origin)
-			 && !TREE_ASM_WRITTEN (decl_or_origin))
 		     || class_or_namespace_scope_p (context_die));
 
   if (!origin)
@@ -18486,7 +18490,6 @@ gen_variable_die (tree decl, tree origin, dw_die_ref context_die)
      of a data member.  */
   if (com_decl)
     {
-      tree field;
       dw_die_ref com_die;
       dw_loc_list_ref loc;
       die_node com_die_arg;
@@ -18524,7 +18527,6 @@ gen_variable_die (tree decl, tree origin, dw_die_ref context_die)
 	  = htab_create_ggc (10, common_block_die_table_hash,
 			     common_block_die_table_eq, NULL);
 
-      field = TREE_OPERAND (DECL_VALUE_EXPR (decl), 0);
       com_die_arg.decl_id = DECL_UID (com_decl);
       com_die_arg.die_parent = context_die;
       com_die = (dw_die_ref) htab_find (common_block_die_table, &com_die_arg);
@@ -18588,8 +18590,7 @@ gen_variable_die (tree decl, tree origin, dw_die_ref context_die)
      and if we already emitted a DIE for it, don't emit a second
      DIE for it again.  */
   if (old_die
-      && declaration
-      && old_die->die_parent == context_die)
+      && declaration)
     return;
 
   /* For static data members, the declaration in the class is supposed
@@ -19708,7 +19709,7 @@ get_context_die (tree context)
     {
       /* Find die that represents this context.  */
       if (TYPE_P (context))
-	return force_type_die (context);
+	return force_type_die (TYPE_MAIN_VARIANT (context));
       else
 	return force_decl_die (context);
     }
@@ -20584,7 +20585,7 @@ gen_remaining_tmpl_value_param_die_attribute (void)
 
 
 /* Replace DW_AT_name for the decl with name.  */
- 
+
 static void
 dwarf2out_set_name (tree decl, tree name)
 {
@@ -21265,7 +21266,7 @@ prune_unused_types_mark (dw_die_ref die, int dokids)
 	 breaking out types into comdat sections, do this
 	 for all type definitions.  */
       if (die->die_tag == DW_TAG_array_type
-          || (dwarf_version >= 4 
+          || (dwarf_version >= 4
               && is_type_die (die) && ! is_declaration_die (die)))
 	FOR_EACH_CHILD (die, c, prune_unused_types_mark (c, 1));
       else

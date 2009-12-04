@@ -367,8 +367,7 @@ enum reg_class {
 #define INITIAL_ELIMINATION_OFFSET(FROM, TO, OFFSET)			\
   OFFSET = avr_initial_elimination_offset (FROM, TO)
 
-#define RETURN_ADDR_RTX(count, x) \
-  gen_rtx_MEM (Pmode, memory_address (Pmode, plus_constant (tem, 1)))
+#define RETURN_ADDR_RTX(count, tem) avr_return_addr_rtx (count, tem)
 
 /* Don't use Push rounding. expr.c: emit_single_push_insn is broken 
    for POST_DEC targets (PR27386).  */
@@ -704,6 +703,9 @@ fprintf (STREAM, "\t.skip %lu,0\n", (unsigned long)(N))
           fprintf (STREAM, "\t.p2align\t%d\n", POWER);	\
   } while (0)
 
+#define ASM_OUTPUT_EXTERNAL(FILE, DECL, NAME) \
+  default_elf_asm_output_external (FILE, DECL, NAME)
+
 #define CASE_VECTOR_MODE HImode
 
 #undef WORD_REGISTER_OPERATIONS
@@ -857,4 +859,7 @@ struct GTY(()) machine_function
   /* 'true' - if current function is a 'main' function 
      as specified by the "OS_main" attribute.  */
   int is_OS_main;
+  
+  /* Current function stack size.  */
+  int stack_usage;
 };

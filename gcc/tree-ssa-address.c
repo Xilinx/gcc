@@ -1,18 +1,18 @@
 /* Memory address lowering and addressing mode selection.
    Copyright (C) 2004, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
-   
+
 This file is part of GCC.
-   
+
 GCC is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the
 Free Software Foundation; either version 3, or (at your option) any
 later version.
-   
+
 GCC is distributed in the hope that it will be useful, but WITHOUT
 ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
 FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
-   
+
 You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
@@ -46,7 +46,7 @@ along with GCC; see the file COPYING3.  If not see
 
 /* TODO -- handling of symbols (according to Richard Hendersons
    comments, http://gcc.gnu.org/ml/gcc-patches/2005-04/msg00949.html):
-   
+
    There are at least 5 different kinds of symbols that we can run up against:
 
      (1) binds_local_p, small data area.
@@ -178,7 +178,7 @@ gen_addr_rtx (enum machine_mode address_mode,
 
 /* Returns address for TARGET_MEM_REF with parameters given by ADDR
    in address space AS.
-   If REALLY_EXPAND is false, just make fake registers instead 
+   If REALLY_EXPAND is false, just make fake registers instead
    of really expanding the operands, and perform the expansion in-place
    by using one of the "templates".  */
 
@@ -400,6 +400,7 @@ move_hint_to_base (tree type, struct mem_address *parts, tree base_hint,
 {
   unsigned i;
   tree val = NULL_TREE;
+  int qual;
 
   for (i = 0; i < addr->n; i++)
     {
@@ -414,7 +415,12 @@ move_hint_to_base (tree type, struct mem_address *parts, tree base_hint,
   if (i == addr->n)
     return;
 
-  /* Cast value to appropriate pointer type.  */
+  /* Cast value to appropriate pointer type.  We cannot use a pointer
+     to TYPE directly, as the back-end will assume registers of pointer
+     type are aligned, and just the base itself may not actually be.
+     We use void pointer to the type's address space instead.  */
+  qual = ENCODE_QUAL_ADDR_SPACE (TYPE_ADDR_SPACE (type));
+  type = build_qualified_type (void_type_node, qual);
   parts->base = fold_convert (build_pointer_type (type), val);
   aff_combination_remove_elt (addr, i);
 }
@@ -520,7 +526,7 @@ most_expensive_mult_to_index (tree type, struct mem_address *parts,
     {
       amult = addr->elts[i].coef;
       amult_neg = double_int_ext_for_comb (double_int_neg (amult), addr);
- 
+
       if (double_int_equal_p (amult, best_mult))
 	op_code = PLUS_EXPR;
       else if (double_int_equal_p (amult_neg, best_mult))
@@ -541,7 +547,7 @@ most_expensive_mult_to_index (tree type, struct mem_address *parts,
 	mult_elt = fold_build1 (NEGATE_EXPR, sizetype, elt);
     }
   addr->n = j;
-  
+
   parts->index = mult_elt;
   parts->step = double_int_to_tree (sizetype, best_mult);
 }
@@ -646,7 +652,7 @@ create_mem_ref (gimple_stmt_iterator *gsi, tree type, aff_tree *addr,
 					     parts.index, parts.step),
 				true, NULL_TREE, true, GSI_SAME_STMT);
       parts.step = NULL_TREE;
-  
+
       mem_ref = create_mem_ref_raw (type, &parts);
       if (mem_ref)
 	return mem_ref;
@@ -656,7 +662,7 @@ create_mem_ref (gimple_stmt_iterator *gsi, tree type, aff_tree *addr,
     {
       tmp = build_addr (parts.symbol, current_function_decl);
       gcc_assert (is_gimple_val (tmp));
-    
+
       /* Add the symbol to base, eventually forcing it to register.  */
       if (parts.base)
 	{
@@ -714,7 +720,7 @@ create_mem_ref (gimple_stmt_iterator *gsi, tree type, aff_tree *addr,
       if (parts.base)
 	{
 	  atype = TREE_TYPE (parts.base);
-	  parts.base = force_gimple_operand_gsi (gsi, 
+	  parts.base = force_gimple_operand_gsi (gsi,
 			fold_build2 (POINTER_PLUS_EXPR, atype,
 				     parts.base,
 				     fold_convert (sizetype, parts.offset)),
@@ -810,7 +816,7 @@ maybe_fold_tmr (tree ref)
 
   if (!changed)
     return NULL_TREE;
-  
+
   ret = create_mem_ref_raw (TREE_TYPE (ref), &addr);
   if (!ret)
     return NULL_TREE;

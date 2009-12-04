@@ -4254,7 +4254,12 @@ remove_zero_width_bit_fields (tree t)
     {
       if (TREE_CODE (*fieldsp) == FIELD_DECL
 	  && DECL_C_BIT_FIELD (*fieldsp)
-	  && DECL_INITIAL (*fieldsp))
+          /* We should not be confused by the fact that grokbitfield
+	     temporarily sets the width of the bit field into
+	     DECL_INITIAL (*fieldsp).
+	     check_bitfield_decl eventually sets DECL_SIZE (*fieldsp)
+	     to that width.  */
+	  && integer_zerop (DECL_SIZE (*fieldsp)))
 	*fieldsp = TREE_CHAIN (*fieldsp);
       else
 	fieldsp = &TREE_CHAIN (*fieldsp);
@@ -6059,12 +6064,12 @@ resolve_address_of_overloaded_function (tree target_type,
        selected function.  */
 
   int is_ptrmem = 0;
-  int is_reference = 0;
   /* We store the matches in a TREE_LIST rooted here.  The functions
      are the TREE_PURPOSE, not the TREE_VALUE, in this list, for easy
      interoperability with most_specialized_instantiation.  */
   tree matches = NULL_TREE;
   tree fn;
+  tree target_fn_type;
 
   /* By the time we get here, we should be seeing only real
      pointer-to-member types, not the internal POINTER_TYPE to
@@ -6081,12 +6086,9 @@ resolve_address_of_overloaded_function (tree target_type,
     /* This is OK, too.  */
     is_ptrmem = 1;
   else if (TREE_CODE (target_type) == FUNCTION_TYPE)
-    {
-      /* This is OK, too.  This comes from a conversion to reference
-	 type.  */
-      target_type = build_reference_type (target_type);
-      is_reference = 1;
-    }
+    /* This is OK, too.  This comes from a conversion to reference
+       type.  */
+    target_type = build_reference_type (target_type);
   else
     {
       if (flags & tf_error)
@@ -6095,6 +6097,15 @@ resolve_address_of_overloaded_function (tree target_type,
 	       DECL_NAME (OVL_FUNCTION (overload)), target_type);
       return error_mark_node;
     }
+
+  /* Non-member functions and static member functions match targets of type
+     "pointer-to-function" or "reference-to-function."  Nonstatic member
+     functions match targets of type "pointer-to-member-function;" the
+     function type of the pointer to member is used to select the member
+     function from the set of overloaded member functions.
+
+     So figure out the FUNCTION_TYPE that we want to match against.  */
+  target_fn_type = static_fn_type (target_type);
 
   /* If we can find a non-template function that matches, we can just
      use it.  There's no point in generating template instantiations
@@ -6107,7 +6118,6 @@ resolve_address_of_overloaded_function (tree target_type,
       for (fns = overload; fns; fns = OVL_NEXT (fns))
 	{
 	  tree fn = OVL_CURRENT (fns);
-	  tree fntype;
 
 	  if (TREE_CODE (fn) == TEMPLATE_DECL)
 	    /* We're not looking for templates just yet.  */
@@ -6125,13 +6135,7 @@ resolve_address_of_overloaded_function (tree target_type,
 	    continue;
 
 	  /* See if there's a match.  */
-	  fntype = TREE_TYPE (fn);
-	  if (is_ptrmem)
-	    fntype = build_ptrmemfunc_type (build_pointer_type (fntype));
-	  else if (!is_reference)
-	    fntype = build_pointer_type (fntype);
-
-	  if (can_convert_arg (target_type, fntype, fn, LOOKUP_NORMAL))
+	  if (same_type_p (target_fn_type, static_fn_type (fn)))
 	    matches = tree_cons (fn, NULL_TREE, matches);
 	}
     }
@@ -6141,7 +6145,6 @@ resolve_address_of_overloaded_function (tree target_type,
      match we need to look at them, too.  */
   if (!matches)
     {
-      tree target_fn_type;
       tree target_arg_types;
       tree target_ret_type;
       tree fns;
@@ -6149,17 +6152,8 @@ resolve_address_of_overloaded_function (tree target_type,
       unsigned int nargs, ia;
       tree arg;
 
-      if (is_ptrmem)
-	target_fn_type
-	  = TREE_TYPE (TYPE_PTRMEMFUNC_FN_TYPE (target_type));
-      else
-	target_fn_type = TREE_TYPE (target_type);
       target_arg_types = TYPE_ARG_TYPES (target_fn_type);
       target_ret_type = TREE_TYPE (target_fn_type);
-
-      /* Never do unification on the 'this' parameter.  */
-      if (TREE_CODE (target_fn_type) == METHOD_TYPE)
-	target_arg_types = TREE_CHAIN (target_arg_types);
 
       nargs = list_length (target_arg_types);
       args = XALLOCAVEC (tree, nargs);
@@ -6173,7 +6167,6 @@ resolve_address_of_overloaded_function (tree target_type,
 	{
 	  tree fn = OVL_CURRENT (fns);
 	  tree instantiation;
-	  tree instantiation_type;
 	  tree targs;
 
 	  if (TREE_CODE (fn) != TEMPLATE_DECL)
@@ -6201,14 +6194,7 @@ resolve_address_of_overloaded_function (tree target_type,
 	    continue;
 
 	  /* See if there's a match.  */
-	  instantiation_type = TREE_TYPE (instantiation);
-	  if (is_ptrmem)
-	    instantiation_type =
-	      build_ptrmemfunc_type (build_pointer_type (instantiation_type));
-	  else if (!is_reference)
-	    instantiation_type = build_pointer_type (instantiation_type);
-	  if (can_convert_arg (target_type, instantiation_type, instantiation,
-			       LOOKUP_NORMAL))
+	  if (same_type_p (target_fn_type, static_fn_type (instantiation)))
 	    matches = tree_cons (instantiation, fn, matches);
 	}
 
@@ -6528,6 +6514,7 @@ build_self_reference (void)
   DECL_CONTEXT (value) = current_class_type;
   DECL_ARTIFICIAL (value) = 1;
   SET_DECL_SELF_REFERENCE_P (value);
+  set_underlying_type (value);
 
   if (processing_template_decl)
     value = push_template_decl (value);
@@ -8057,12 +8044,10 @@ build_rtti_vtbl_entries (tree binfo, vtbl_init_data* vid)
 {
   tree b;
   tree t;
-  tree basetype;
   tree offset;
   tree decl;
   tree init;
 
-  basetype = BINFO_TYPE (binfo);
   t = BINFO_TYPE (vid->rtti_binfo);
 
   /* To find the complete object, we will first convert to our most

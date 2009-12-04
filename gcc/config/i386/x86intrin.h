@@ -77,4 +77,8 @@
 #include <lwpintrin.h>
 #endif
 
+#ifdef __ABM__
+#include <abmintrin.h>
+#endif
+
 #endif /* _X86INTRIN_H_INCLUDED */

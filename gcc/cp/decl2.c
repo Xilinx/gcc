@@ -1313,6 +1313,7 @@ build_anon_union_vars (tree type, tree object)
 	  decl = build_decl (input_location,
 			     VAR_DECL, DECL_NAME (field), TREE_TYPE (field));
 	  DECL_ANON_UNION_VAR_P (decl) = 1;
+	  DECL_ARTIFICIAL (decl) = 1;
 
 	  base = get_base_address (object);
 	  TREE_PUBLIC (decl) = TREE_PUBLIC (base);
@@ -1573,8 +1574,7 @@ comdat_linkage (tree decl)
 	}
     }
 
-  if (DECL_LANG_SPECIFIC (decl))
-    DECL_COMDAT (decl) = 1;
+  DECL_COMDAT (decl) = 1;
 }
 
 /* For win32 we also want to put explicit instantiations in
@@ -1883,6 +1883,8 @@ constrain_visibility (tree decl, int visibility)
       if (!DECL_EXTERN_C_P (decl))
 	{
 	  TREE_PUBLIC (decl) = 0;
+	  DECL_WEAK (decl) = 0;
+	  DECL_COMMON (decl) = 0;
 	  DECL_COMDAT_GROUP (decl) = NULL_TREE;
 	  DECL_INTERFACE_KNOWN (decl) = 1;
 	  if (DECL_LANG_SPECIFIC (decl))
@@ -2552,7 +2554,9 @@ get_guard (tree decl)
       TREE_PUBLIC (guard) = TREE_PUBLIC (decl);
       TREE_STATIC (guard) = TREE_STATIC (decl);
       DECL_COMMON (guard) = DECL_COMMON (decl);
-      DECL_COMDAT_GROUP (guard) = DECL_COMDAT_GROUP (decl);
+      DECL_COMDAT (guard) = DECL_COMDAT (decl);
+      if (DECL_ONE_ONLY (decl))
+	make_decl_one_only (guard, cxx_comdat_group (guard));
       if (TREE_PUBLIC (decl))
 	DECL_WEAK (guard) = DECL_WEAK (decl);
       DECL_VISIBILITY (guard) = DECL_VISIBILITY (decl);
@@ -3655,7 +3659,19 @@ cp_write_global_declarations (void)
 	  if (DECL_NOT_REALLY_EXTERN (decl)
 	      && DECL_INITIAL (decl)
 	      && decl_needed_p (decl))
-	    DECL_EXTERNAL (decl) = 0;
+	    {
+	      struct cgraph_node *node = cgraph_get_node (decl), *alias;
+
+	      DECL_EXTERNAL (decl) = 0;
+	      /* If we mark !DECL_EXTERNAL one of the same body aliases,
+		 we need to mark all of them that way.  */
+	      if (node && node->same_body)
+		{
+		  DECL_EXTERNAL (node->decl) = 0;
+		  for (alias = node->same_body; alias; alias = alias->next)
+		    DECL_EXTERNAL (alias->decl) = 0;
+		}
+	    }
 
 	  /* If we're going to need to write this function out, and
 	     there's already a body for it, create RTL for it now.

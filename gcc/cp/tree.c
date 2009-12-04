@@ -37,6 +37,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "target.h"
 #include "convert.h"
 #include "tree-flow.h"
+#include "cgraph.h"
 
 static tree bot_manip (tree *, int *, void *);
 static tree bot_replace (tree *, int *, void *);
@@ -555,8 +556,8 @@ rvalue (tree expr)
 
      Non-class rvalues always have cv-unqualified types.  */
   type = TREE_TYPE (expr);
-  if (!CLASS_TYPE_P (type) && cp_type_quals (type))
-    type = cp_build_qualified_type (type, TYPE_UNQUALIFIED);
+  if (!CLASS_TYPE_P (type) && cv_qualified_p (type))
+    type = cv_unqualified (type);
 
   /* We need to do this for rvalue refs as well to get the right answer
      from decltype; see c++/36628.  */
@@ -1067,6 +1068,14 @@ strip_typedefs (tree t)
   return cp_build_qualified_type (result, cp_type_quals (t));
 }
 
+/* Returns true iff TYPE is a type variant created for a typedef. */
+
+bool
+typedef_variant_p (tree type)
+{
+  return is_typedef_decl (TYPE_NAME (type));
+}
+
 
 /* Makes a copy of BINFO and TYPE, which is to be inherited into a
    graph dominated by T.  If BINFO is NULL, TYPE is a dependent base,
@@ -1482,8 +1491,7 @@ bind_template_template_parm (tree t, tree newargs)
   TEMPLATE_TYPE_PARM_INDEX (t2) = copy_node (TEMPLATE_TYPE_PARM_INDEX (t));
   TEMPLATE_PARM_DECL (TEMPLATE_TYPE_PARM_INDEX (t2)) = decl;
   TEMPLATE_TEMPLATE_PARM_TEMPLATE_INFO (t2)
-    = tree_cons (TEMPLATE_TEMPLATE_PARM_TEMPLATE_DECL (t),
-		 newargs, NULL_TREE);
+    = build_template_info (TEMPLATE_TEMPLATE_PARM_TEMPLATE_DECL (t), newargs);
 
   TREE_TYPE (decl) = t2;
   TYPE_NAME (t2) = decl;
@@ -3118,7 +3126,16 @@ cp_fix_function_decl_p (tree decl)
   if (!gimple_has_body_p (decl)
       && !DECL_THUNK_P (decl)
       && !DECL_EXTERNAL (decl))
-    return true;
+    {
+      struct cgraph_node *node = cgraph_get_node (decl);
+
+      /* Don't fix same_body aliases.  Although they don't have their own
+	 CFG, they share it with what they alias to.  */
+      if (!node
+	  || node->decl == decl
+	  || !node->same_body)
+	return true;
+    }
 
   return false;
 }

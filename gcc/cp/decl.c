@@ -39,6 +39,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "cp-tree.h"
 #include "tree-inline.h"
 #include "decl.h"
+#include "intl.h"
 #include "output.h"
 #include "except.h"
 #include "toplev.h"
@@ -520,8 +521,6 @@ poplevel (int keep, int reverse, int functionbody)
   /* The chain of decls was accumulated in reverse order.
      Put it into forward order, just for cleanliness.  */
   tree decls;
-  int tmp = functionbody;
-  int real_functionbody;
   tree subblocks;
   tree block;
   tree decl;
@@ -535,8 +534,8 @@ poplevel (int keep, int reverse, int functionbody)
 
   gcc_assert (current_binding_level->kind != sk_class);
 
-  real_functionbody = (current_binding_level->kind == sk_cleanup
-		       ? ((functionbody = 0), tmp) : functionbody);
+  if (current_binding_level->kind == sk_cleanup)
+    functionbody = 0;
   subblocks = functionbody >= 0 ? current_binding_level->blocks : 0;
 
   gcc_assert (!VEC_length(cp_class_binding,
@@ -849,6 +848,7 @@ create_implicit_typedef (tree name, tree type)
      amongst these.  */
   SET_DECL_IMPLICIT_TYPEDEF_P (decl);
   TYPE_NAME (type) = decl;
+  TYPE_STUB_DECL (type) = decl;
 
   return decl;
 }
@@ -1034,8 +1034,6 @@ decls_match (tree newdecl, tree olddecl)
 void
 warn_extern_redeclared_static (tree newdecl, tree olddecl)
 {
-  tree name;
-
   if (TREE_CODE (newdecl) == TYPE_DECL
       || TREE_CODE (newdecl) == TEMPLATE_DECL
       || TREE_CODE (newdecl) == CONST_DECL
@@ -1058,7 +1056,6 @@ warn_extern_redeclared_static (tree newdecl, tree olddecl)
       && DECL_ARTIFICIAL (olddecl))
     return;
 
-  name = DECL_ASSEMBLER_NAME (newdecl);
   permerror (input_location, "%qD was declared %<extern%> and later %<static%>", newdecl);
   permerror (input_location, "previous declaration of %q+D", olddecl);
 }
@@ -3039,11 +3036,11 @@ make_typename_type (tree context, tree name, enum tag_types tag_type,
   if (!dependent_scope_p (context))
     /* We should only set WANT_TYPE when we're a nested typename type.
        Then we can give better diagnostics if we find a non-type.  */
-    t = lookup_field (context, name, 0, /*want_type=*/true);
+    t = lookup_field (context, name, 2, /*want_type=*/true);
   else
     t = NULL_TREE;
 
-  if (!t && dependent_type_p (context)) 
+  if ((!t || TREE_CODE (t) == TREE_LIST) && dependent_type_p (context))
     return build_typename_type (context, name, fullname, tag_type);
 
   want_template = TREE_CODE (fullname) == TEMPLATE_ID_EXPR;
@@ -3056,6 +3053,20 @@ make_typename_type (tree context, tree name, enum tag_types tag_type,
       return error_mark_node;
     }
   
+  /* Pull out the template from an injected-class-name (or multiple).  */
+  if (want_template)
+    t = maybe_get_template_decl_from_type_decl (t);
+
+  if (TREE_CODE (t) == TREE_LIST)
+    {
+      if (complain & tf_error)
+	{
+	  error ("lookup of %qT in %qT is ambiguous", name, context);
+	  print_candidates (t);
+	}
+      return error_mark_node;
+    }
+
   if (want_template && !DECL_CLASS_TEMPLATE_P (t))
     {
       if (complain & tf_error)
@@ -3073,6 +3084,11 @@ make_typename_type (tree context, tree name, enum tag_types tag_type,
   
   if (complain & tf_error)
     perform_or_defer_access_check (TYPE_BINFO (context), t, t);
+
+  /* If we are currently parsing a template and if T is a typedef accessed
+     through CONTEXT then we need to remember and check access of T at
+     template instantiation time.  */
+  add_typedef_to_current_template_for_access_check (t, context, input_location);
 
   if (want_template)
     return lookup_template_class (t, TREE_OPERAND (fullname, 1),
@@ -3456,7 +3472,6 @@ cxx_init_decl_processing (void)
     bad_alloc_decl
       = create_implicit_typedef (bad_alloc_id, bad_alloc_type_node);
     DECL_CONTEXT (bad_alloc_decl) = current_namespace;
-    TYPE_STUB_DECL (bad_alloc_type_node) = bad_alloc_decl;
     pop_namespace ();
 
     ptr_ftype_sizetype
@@ -4052,7 +4067,6 @@ start_decl (const cp_declarator *declarator,
 	    tree *pushed_scope_p)
 {
   tree decl;
-  tree type;
   tree context;
   bool was_public;
   int flags;
@@ -4074,8 +4088,6 @@ start_decl (const cp_declarator *declarator,
   if (decl == NULL_TREE || TREE_CODE (decl) == VOID_TYPE
       || decl == error_mark_node)
     return error_mark_node;
-
-  type = TREE_TYPE (decl);
 
   context = DECL_CONTEXT (decl);
 
@@ -4864,6 +4876,9 @@ reshape_init_class (tree type, reshape_iter *d, bool first_initializer_p)
 
       field_init = reshape_init_r (TREE_TYPE (field), d,
 				   /*first_initializer_p=*/false);
+      if (field_init == error_mark_node)
+	return error_mark_node;
+
       CONSTRUCTOR_APPEND_ELT (CONSTRUCTOR_ELTS (new_init), field, field_init);
 
       /* [dcl.init.aggr]
@@ -4912,7 +4927,7 @@ reshape_init_r (tree type, reshape_iter *d, bool first_initializer_p)
 	      init = error_mark_node;
 	    }
 	  else
-	    maybe_warn_cpp0x ("extended initializer lists");
+	    maybe_warn_cpp0x (CPP0X_INITIALIZER_LISTS);
 	}
 
       d->cur++;
@@ -5156,7 +5171,7 @@ check_initializer (tree decl, tree init, int flags, tree *cleanup)
 	{
 	  if (init_len == 0)
 	    {
-	      maybe_warn_cpp0x ("extended initializer lists");
+	      maybe_warn_cpp0x (CPP0X_INITIALIZER_LISTS);
 	      init = build_zero_init (type, NULL_TREE, false);
 	    }
 	  else if (init_len != 1)
@@ -6696,7 +6711,7 @@ grokfndecl (tree ctype,
 	    }
 	  gcc_assert (TREE_CODE (fns) == IDENTIFIER_NODE
 		      || TREE_CODE (fns) == OVERLOAD);
-	  DECL_TEMPLATE_INFO (decl) = tree_cons (fns, args, NULL_TREE);
+	  DECL_TEMPLATE_INFO (decl) = build_template_info (fns, args);
 
 	  for (t = TYPE_ARG_TYPES (TREE_TYPE (decl)); t; t = TREE_CHAIN (t))
 	    if (TREE_PURPOSE (t)
@@ -7417,38 +7432,44 @@ create_array_type_for_decl (tree name, tree type, tree size)
   /* Assume that everything will go OK.  */
   error_msg = NULL;
 
-  /* There are some types which cannot be array elements.  */
+  /* If there are some types which cannot be array elements,
+     issue an error-message and return.  */
   switch (TREE_CODE (type))
     {
     case VOID_TYPE:
-      error_msg = "array of void";
+      if (name)
+        error ("declaration of %qD as array of void", name);
+      else
+        error ("creating array of void");
+      return error_mark_node;
       break;
 
     case FUNCTION_TYPE:
-      error_msg = "array of functions";
+      if (name)
+        error ("declaration of %qD as array of functions", name);
+      else
+        error ("creating array of functions");
+      return error_mark_node;
       break;
 
     case REFERENCE_TYPE:
-      error_msg = "array of references";
+      if (name)
+        error ("declaration of %qD as array of references", name);
+      else
+        error ("creating array of references");
+      return error_mark_node;
       break;
 
     case METHOD_TYPE:
-      error_msg = "array of function members";
+      if (name)
+        error ("declaration of %qD as array of function members", name);
+      else
+        error ("creating array of function members");
+      return error_mark_node;
       break;
 
     default:
       break;
-    }
-
-  /* If something went wrong, issue an error-message and return.  */
-  if (error_msg)
-    {
-      if (name)
-	error ("declaration of %qD as %s", name, error_msg);
-      else
-	error ("creating %s", error_msg);
-
-      return error_mark_node;
     }
 
   /* [dcl.array]
@@ -7574,11 +7595,13 @@ check_var_type (tree identifier, tree type)
       try to parse.
      PARM for a parameter declaration (either within a function prototype
       or before a function body).  Make a PARM_DECL, or return void_type_node.
+     TPARM for a template parameter declaration.
      CATCHPARM for a parameter declaration before a catch clause.
      TYPENAME if for a typename (in a cast or sizeof).
       Don't make a DECL node; just return the ..._TYPE node.
      FIELD for a struct or union field; make a FIELD_DECL.
      BITFIELD for a field with specified width.
+
    INITIALIZED is as for start_decl.
 
    ATTRLIST is a pointer to the list of attributes, which may be NULL
@@ -7662,6 +7685,7 @@ grokdeclarator (const cp_declarator *declarator,
   bool type_was_error_mark_node = false;
   bool parameter_pack_p = declarator? declarator->parameter_pack_p : false;
   bool template_type_arg = false;
+  bool template_parm_flag = false;
   bool constexpr_p = declspecs->specs[(int) ds_constexpr];
   const char *errmsg;
 
@@ -7680,6 +7704,8 @@ grokdeclarator (const cp_declarator *declarator,
     bitfield = 1, decl_context = FIELD;
   else if (decl_context == TEMPLATE_TYPE_ARG)
     template_type_arg = true, decl_context = TYPENAME;
+  else if (decl_context == TPARM)
+    template_parm_flag = true, decl_context = PARM;
 
   if (initialized > 1)
     funcdef_flag = true;
@@ -8179,6 +8205,11 @@ grokdeclarator (const cp_declarator *declarator,
 	  error ("typedef declaration invalid in parameter declaration");
 	  return error_mark_node;
 	}
+      else if (template_parm_flag && storage_class != sc_none)
+	{
+	  error ("storage class specified for template parameter %qs", name);
+	  return error_mark_node;
+	}
       else if (storage_class == sc_static
 	       || storage_class == sc_extern
 	       || thread_p)
@@ -8499,7 +8530,7 @@ grokdeclarator (const cp_declarator *declarator,
 	      {
 		if (explicitp == 1)
 		  {
-		    maybe_warn_cpp0x ("explicit conversion operators");
+		    maybe_warn_cpp0x (CPP0X_EXPLICIT_CONVERSION);
 		    explicitp = 2;
 		  }
 	      }
@@ -8767,7 +8798,7 @@ grokdeclarator (const cp_declarator *declarator,
              membership class as `constexpr'.  */
           if (constexpr_p)
             error ("a constexpr function cannot be defined "
-                   "outside of its class.");
+                   "outside of its class");
 
 	  if (TREE_CODE (sname) == IDENTIFIER_NODE
 	      && NEW_DELETE_OPNAME_P (sname))
@@ -8993,7 +9024,9 @@ grokdeclarator (const cp_declarator *declarator,
       tree decls = NULL_TREE;
       tree args;
 
-      for (args = TYPE_ARG_TYPES (type); args; args = TREE_CHAIN (args))
+      for (args = TYPE_ARG_TYPES (type);
+	   args && args != void_list_node;
+	   args = TREE_CHAIN (args))
 	{
 	  tree decl = cp_build_parm_decl (NULL_TREE, TREE_VALUE (args));
 
@@ -9758,6 +9791,10 @@ type_is_deprecated (tree type)
       && TREE_DEPRECATED (TYPE_NAME (type)))
     return type;
 
+  /* Do warn about using typedefs to a deprecated class.  */
+  if (TAGGED_TYPE_P (type) && type != TYPE_MAIN_VARIANT (type))
+    return type_is_deprecated (TYPE_MAIN_VARIANT (type));
+
   code = TREE_CODE (type);
 
   if (code == POINTER_TYPE || code == REFERENCE_TYPE
@@ -9874,9 +9911,12 @@ grokparms (tree parmlist, tree *parms)
 		  t = TREE_TYPE (t);
 		}
 	      if (TREE_CODE (t) == ARRAY_TYPE)
-		error ("parameter %qD includes %s to array of unknown "
-		       "bound %qT",
-		       decl, ptr ? "pointer" : "reference", t);
+		error (ptr
+                       ? G_("parameter %qD includes pointer to array of "
+                            "unknown bound %qT")
+                       : G_("parameter %qD includes reference to array of "
+                            "unknown bound %qT"),
+                       decl, t);
 	    }
 
 	  if (any_error)
@@ -10323,28 +10363,38 @@ grok_op_properties (tree decl, bool complain)
 	{
 	  tree t = TREE_TYPE (name);
 	  int ref = (TREE_CODE (t) == REFERENCE_TYPE);
-	  const char *what = 0;
 
 	  if (ref)
 	    t = TYPE_MAIN_VARIANT (TREE_TYPE (t));
 
 	  if (TREE_CODE (t) == VOID_TYPE)
-	    what = "void";
+            warning (OPT_Wconversion,
+                     ref
+                     ? G_("conversion to a reference to void "
+                          "will never use a type conversion operator")
+                     : G_("conversion to void "
+                          "will never use a type conversion operator"));
 	  else if (class_type)
 	    {
 	      if (t == class_type)
-		what = "the same type";
+                warning (OPT_Wconversion,
+                     ref
+                     ? G_("conversion to a reference to the same type "
+                          "will never use a type conversion operator")
+                     : G_("conversion to the same type "
+                          "will never use a type conversion operator"));		
 	      /* Don't force t to be complete here.  */
 	      else if (MAYBE_CLASS_TYPE_P (t)
 		       && COMPLETE_TYPE_P (t)
 		       && DERIVED_FROM_P (t, class_type))
-		what = "a base class";
+                 warning (OPT_Wconversion,
+                          ref
+                          ? G_("conversion to a reference to a base class "
+                               "will never use a type conversion operator")
+                          : G_("conversion to a base class "
+                               "will never use a type conversion operator"));		
 	    }
 
-	  if (what)
-	    warning (OPT_Wconversion, "conversion to %s%s will never use a type "
-		     "conversion operator",
-		     ref ? "a reference to " : "", what);
 	}
 
       if (operator_code == COND_EXPR)
@@ -10579,6 +10629,7 @@ check_elaborated_type_specifier (enum tag_types tag_code,
      elaborated type specifier is the implicit typedef created when
      the type is declared.  */
   else if (!DECL_IMPLICIT_TYPEDEF_P (decl)
+	   && !DECL_SELF_REFERENCE_P (decl)
 	   && tag_code != typename_type)
     {
       error ("using typedef-name %qD after %qs", decl, tag_name (tag_code));
@@ -12783,26 +12834,47 @@ finish_stmt (void)
 {
 }
 
+/* Return the FUNCTION_TYPE that corresponds to MEMFNTYPE, which can be a
+   FUNCTION_DECL, METHOD_TYPE, FUNCTION_TYPE, pointer or reference to
+   METHOD_TYPE or FUNCTION_TYPE, or pointer to member function.  */
+
+tree
+static_fn_type (tree memfntype)
+{
+  tree fntype;
+  tree args;
+  int quals;
+
+  if (TYPE_PTRMEMFUNC_P (memfntype))
+    memfntype = TYPE_PTRMEMFUNC_FN_TYPE (memfntype);
+  if (POINTER_TYPE_P (memfntype)
+      || TREE_CODE (memfntype) == FUNCTION_DECL)
+    memfntype = TREE_TYPE (memfntype);
+  if (TREE_CODE (memfntype) == FUNCTION_TYPE)
+    return memfntype;
+  gcc_assert (TREE_CODE (memfntype) == METHOD_TYPE);
+  args = TYPE_ARG_TYPES (memfntype);
+  fntype = build_function_type (TREE_TYPE (memfntype), TREE_CHAIN (args));
+  quals = cp_type_quals (TREE_TYPE (TREE_VALUE (args)));
+  fntype = build_qualified_type (fntype, quals);
+  fntype = (cp_build_type_attribute_variant
+	    (fntype, TYPE_ATTRIBUTES (memfntype)));
+  fntype = (build_exception_variant
+	    (fntype, TYPE_RAISES_EXCEPTIONS (memfntype)));
+  return fntype;
+}
+
 /* DECL was originally constructed as a non-static member function,
    but turned out to be static.  Update it accordingly.  */
 
 void
 revert_static_member_fn (tree decl)
 {
-  tree tmp;
-  tree function = TREE_TYPE (decl);
-  tree args = TYPE_ARG_TYPES (function);
+  TREE_TYPE (decl) = static_fn_type (decl);
 
-  if (cp_type_quals (TREE_TYPE (TREE_VALUE (args)))
-      != TYPE_UNQUALIFIED)
+  if (cp_type_quals (TREE_TYPE (decl)) != TYPE_UNQUALIFIED)
     error ("static member function %q#D declared with type qualifiers", decl);
 
-  args = TREE_CHAIN (args);
-  tmp = build_function_type (TREE_TYPE (function), args);
-  tmp = build_qualified_type (tmp, cp_type_quals (function));
-  tmp = build_exception_variant (tmp,
-				 TYPE_RAISES_EXCEPTIONS (function));
-  TREE_TYPE (decl) = tmp;
   if (DECL_ARGUMENTS (decl))
     DECL_ARGUMENTS (decl) = TREE_CHAIN (DECL_ARGUMENTS (decl));
   DECL_STATIC_FUNCTION_P (decl) = 1;
@@ -12826,6 +12898,7 @@ cp_tree_node_structure (union lang_tree_node * t)
     case ARGUMENT_PACK_SELECT:  return TS_CP_ARGUMENT_PACK_SELECT;
     case TRAIT_EXPR:		return TS_CP_TRAIT_EXPR;
     case LAMBDA_EXPR:		return TS_CP_LAMBDA_EXPR;
+    case TEMPLATE_INFO:		return TS_CP_TEMPLATE_INFO;
     default:			return TS_CP_GENERIC;
     }
 }

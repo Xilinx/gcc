@@ -125,7 +125,9 @@ struct access
   HOST_WIDE_INT size;
   tree base;
 
-  /* Expression.  */
+  /* Expression.  It is context dependent so do not use it to create new
+     expressions to access the original aggregate.  See PR 42154 for a
+     testcase.  */
   tree expr;
   /* Type.  */
   tree type;
@@ -196,6 +198,10 @@ struct access
   /* Does this access and/or group contain a write access through a
      BIT_FIELD_REF?  */
   unsigned grp_partial_lhs : 1;
+
+  /* Does this group contain accesses to different types? (I.e. through a union
+     or a similar mechanism).  */
+  unsigned grp_different_types : 1;
 
   /* Set when a scalar replacement should be created for this variable.  We do
      the decision and creation at different places because create_tmp_var
@@ -337,12 +343,14 @@ dump_access (FILE *f, struct access *access, bool grp)
     fprintf (f, ", grp_write = %d, grp_read = %d, grp_hint = %d, "
 	     "grp_covered = %d, grp_unscalarizable_region = %d, "
 	     "grp_unscalarized_data = %d, grp_partial_lhs = %d, "
-	     "grp_to_be_replaced = %d\n grp_maybe_modified = %d, "
+	     "grp_different_types = %d, grp_to_be_replaced = %d, "
+	     "grp_maybe_modified = %d, "
 	     "grp_not_necessarilly_dereferenced = %d\n",
 	     access->grp_write, access->grp_read, access->grp_hint,
 	     access->grp_covered, access->grp_unscalarizable_region,
 	     access->grp_unscalarized_data, access->grp_partial_lhs,
-	     access->grp_to_be_replaced, access->grp_maybe_modified,
+	     access->grp_different_types, access->grp_to_be_replaced,
+	     access->grp_maybe_modified,
 	     access->grp_not_necessarilly_dereferenced);
   else
     fprintf (f, ", write = %d, grp_partial_lhs = %d\n", access->write,
@@ -1110,14 +1118,25 @@ compare_access_positions (const void *a, const void *b)
     {
       /* Put any non-aggregate type before any aggregate type.  */
       if (!is_gimple_reg_type (f1->type)
-	       && is_gimple_reg_type (f2->type))
+	  && is_gimple_reg_type (f2->type))
 	return 1;
       else if (is_gimple_reg_type (f1->type)
 	       && !is_gimple_reg_type (f2->type))
 	return -1;
+      /* Put any complex or vector type before any other scalar type.  */
+      else if (TREE_CODE (f1->type) != COMPLEX_TYPE
+	       && TREE_CODE (f1->type) != VECTOR_TYPE
+	       && (TREE_CODE (f2->type) == COMPLEX_TYPE
+		   || TREE_CODE (f2->type) == VECTOR_TYPE))
+	return 1;
+      else if ((TREE_CODE (f1->type) == COMPLEX_TYPE
+		|| TREE_CODE (f1->type) == VECTOR_TYPE)
+	       && TREE_CODE (f2->type) != COMPLEX_TYPE
+	       && TREE_CODE (f2->type) != VECTOR_TYPE)
+	return -1;
       /* Put the integral type with the bigger precision first.  */
       else if (INTEGRAL_TYPE_P (f1->type)
-	  && INTEGRAL_TYPE_P (f2->type))
+	       && INTEGRAL_TYPE_P (f2->type))
 	return TYPE_PRECISION (f1->type) > TYPE_PRECISION (f2->type) ? -1 : 1;
       /* Put any integral type with non-full precision last.  */
       else if (INTEGRAL_TYPE_P (f1->type)
@@ -1415,6 +1434,7 @@ sort_and_splice_var_accesses (tree var)
       bool grp_read = !access->write;
       bool multiple_reads = false;
       bool grp_partial_lhs = access->grp_partial_lhs;
+      bool grp_different_types = false;
       bool first_scalar = is_gimple_reg_type (access->type);
       bool unscalarizable_region = access->grp_unscalarizable_region;
 
@@ -1446,6 +1466,7 @@ sort_and_splice_var_accesses (tree var)
 		grp_read = true;
 	    }
 	  grp_partial_lhs |= ac2->grp_partial_lhs;
+	  grp_different_types |= !types_compatible_p (access->type, ac2->type);
 	  unscalarizable_region |= ac2->grp_unscalarizable_region;
 	  relink_to_new_repr (access, ac2);
 
@@ -1464,6 +1485,7 @@ sort_and_splice_var_accesses (tree var)
       access->grp_read = grp_read;
       access->grp_hint = multiple_reads;
       access->grp_partial_lhs = grp_partial_lhs;
+      access->grp_different_types = grp_different_types;
       access->grp_unscalarizable_region = unscalarizable_region;
       if (access->first_link)
 	add_access_to_work_queue (access);
@@ -2110,13 +2132,27 @@ sra_modify_expr (tree *expr, gimple_stmt_iterator *gsi, bool write,
          access expression to extract the scalar component afterwards.
 	 This happens if scalarizing a function return value or parameter
 	 like in gcc.c-torture/execute/20041124-1.c, 20050316-1.c and
-	 gcc.c-torture/compile/20011217-1.c.  */
-      if (!is_gimple_reg_type (type))
+	 gcc.c-torture/compile/20011217-1.c.
+
+         We also want to use this when accessing a complex or vector which can
+         be accessed as a different type too, potentially creating a need for
+         type conversion  (see PR42196).  */
+      if (!is_gimple_reg_type (type)
+	  || (access->grp_different_types
+	      && (TREE_CODE (type) == COMPLEX_TYPE
+		  || TREE_CODE (type) == VECTOR_TYPE)))
 	{
-	  gimple stmt;
+	  tree ref = access->base;
+	  bool ok;
+
+	  ok = build_ref_for_offset (&ref, TREE_TYPE (ref),
+				     access->offset, access->type, false);
+	  gcc_assert (ok);
+
 	  if (write)
 	    {
-	      tree ref = unshare_expr (access->expr);
+	      gimple stmt;
+
 	      if (access->grp_partial_lhs)
 		ref = force_gimple_operand_gsi (gsi, ref, true, NULL_TREE,
 						 false, GSI_NEW_STMT);
@@ -2125,10 +2161,12 @@ sra_modify_expr (tree *expr, gimple_stmt_iterator *gsi, bool write,
 	    }
 	  else
 	    {
+	      gimple stmt;
+
 	      if (access->grp_partial_lhs)
 		repl = force_gimple_operand_gsi (gsi, repl, true, NULL_TREE,
 						 true, GSI_SAME_STMT);
-	      stmt = gimple_build_assign (unshare_expr (access->expr), repl);
+	      stmt = gimple_build_assign (ref, repl);
 	      gsi_insert_before (gsi, stmt, GSI_SAME_STMT);
 	    }
 	}
@@ -2227,8 +2265,6 @@ load_assign_lhs_subreplacements (struct access *lacc, struct access *top_racc,
 	    }
 	  else
 	    {
-	      bool repl_found;
-
 	      /* No suitable access on the right hand side, need to load from
 		 the aggregate.  See if we have to update it first... */
 	      if (*refreshed == SRA_UDH_NONE)
@@ -2236,9 +2272,19 @@ load_assign_lhs_subreplacements (struct access *lacc, struct access *top_racc,
 								  lhs, old_gsi);
 
 	      if (*refreshed == SRA_UDH_LEFT)
-		rhs = unshare_expr (lacc->expr);
+		{
+		  bool repl_found;
+
+		  rhs = lacc->base;
+		  repl_found = build_ref_for_offset (&rhs, TREE_TYPE (rhs),
+						     lacc->offset, lacc->type,
+						     false);
+		  gcc_assert (repl_found);
+		}
 	      else
 		{
+		  bool repl_found;
+
 		  rhs = top_racc->base;
 		  repl_found = build_ref_for_offset (&rhs,
 						     TREE_TYPE (top_racc->base),
@@ -3042,6 +3088,27 @@ unmodified_by_ref_scalar_representative (tree parm)
   return repr;
 }
 
+/* Return true iff this access precludes IPA-SRA of the parameter it is
+   associated with. */
+
+static bool
+access_precludes_ipa_sra_p (struct access *access)
+{
+  /* Avoid issues such as the second simple testcase in PR 42025.  The problem
+     is incompatible assign in a call statement (and possibly even in asm
+     statements).  This can be relaxed by using a new temporary but only for
+     non-TREE_ADDRESSABLE types and is probably not worth the complexity. (In
+     intraprocedural SRA we deal with this by keeping the old aggregate around,
+     something we cannot do in IPA-SRA.)  */
+  if (access->write
+      && (is_gimple_call (access->stmt)
+	  || gimple_code (access->stmt) == GIMPLE_ASM))
+    return true;
+
+  return false;
+}
+
+
 /* Sort collected accesses for parameter PARM, identify representatives for
    each accessed region and link them together.  Return NULL if there are
    different but overlapping accesses, return the special ptr value meaning
@@ -3073,6 +3140,8 @@ splice_param_accesses (tree parm, bool *ro_grp)
       bool modification;
       access = VEC_index (access_p, access_vec, i);
       modification = access->write;
+      if (access_precludes_ipa_sra_p (access))
+	return NULL;
 
       /* Access is about to become group representative unless we find some
 	 nasty overlap which would preclude us from breaking this parameter
@@ -3091,6 +3160,9 @@ splice_param_accesses (tree parm, bool *ro_grp)
 		break;
 	    }
 	  else if (ac2->size != access->size)
+	    return NULL;
+
+	  if (access_precludes_ipa_sra_p (ac2))
 	    return NULL;
 
 	  modification |= ac2->write;
@@ -3433,7 +3505,10 @@ get_replaced_param_substitute (struct ipa_parm_adjustment *adj)
     {
       char *pretty_name = make_fancy_name (adj->base);
 
-      repl = make_rename_temp (TREE_TYPE (adj->base), "ISR");
+      repl = create_tmp_var (TREE_TYPE (adj->base), "ISR");
+      if (TREE_CODE (TREE_TYPE (repl)) == COMPLEX_TYPE
+	  || TREE_CODE (TREE_TYPE (repl)) == VECTOR_TYPE)
+	DECL_GIMPLE_REG_P (repl) = 1;
       DECL_NAME (repl) = get_identifier (pretty_name);
       obstack_free (&name_obstack, pretty_name);
 
@@ -3471,7 +3546,8 @@ get_adjustment_for_base (ipa_parm_adjustment_vec adjustments, tree base)
 /* Callback for scan_function.  If the statement STMT defines an SSA_NAME of a
    parameter which is to be removed because its value is not used, replace the
    SSA_NAME with a one relating to a created VAR_DECL and replace all of its
-   uses too.  DATA is a pointer to an adjustments vector.  */
+   uses too and return true (update_stmt is then issued for the statement by
+   the caller).  DATA is a pointer to an adjustments vector.  */
 
 static bool
 replace_removed_params_ssa_names (gimple stmt, void *data)
@@ -3523,13 +3599,19 @@ replace_removed_params_ssa_names (gimple stmt, void *data)
   return true;
 }
 
-/* Callback for scan_function.  If the expression *EXPR should be replaced by a
-   reduction of a parameter, do so.  DATA is a pointer to a vector of
-   adjustments.  */
+/* Callback for scan_function and helper to sra_ipa_modify_assign.  If the
+   expression *EXPR should be replaced by a reduction of a parameter, do so.
+   DATA is a pointer to a vector of adjustments.  DONT_CONVERT specifies
+   whether the function should care about type incompatibility the current and
+   new expressions.  If it is true, the function will leave incompatibility
+   issues to the caller.
+
+   When called directly by scan_function, DONT_CONVERT is true when the EXPR is
+   a write (LHS) expression.  */
 
 static bool
 sra_ipa_modify_expr (tree *expr, gimple_stmt_iterator *gsi ATTRIBUTE_UNUSED,
-		     bool write ATTRIBUTE_UNUSED, void *data)
+		     bool dont_convert, void *data)
 {
   ipa_parm_adjustment_vec adjustments;
   int i, len;
@@ -3543,10 +3625,10 @@ sra_ipa_modify_expr (tree *expr, gimple_stmt_iterator *gsi ATTRIBUTE_UNUSED,
   if (TREE_CODE (*expr) == BIT_FIELD_REF
       || TREE_CODE (*expr) == IMAGPART_EXPR
       || TREE_CODE (*expr) == REALPART_EXPR)
-    expr = &TREE_OPERAND (*expr, 0);
-  while (TREE_CODE (*expr) == NOP_EXPR
-	 || TREE_CODE (*expr) == VIEW_CONVERT_EXPR)
-    expr = &TREE_OPERAND (*expr, 0);
+    {
+      expr = &TREE_OPERAND (*expr, 0);
+      dont_convert = false;
+    }
 
   base = get_ref_base_and_extent (*expr, &offset, &size, &max_size);
   if (!base || size == -1 || max_size == -1)
@@ -3594,13 +3676,14 @@ sra_ipa_modify_expr (tree *expr, gimple_stmt_iterator *gsi ATTRIBUTE_UNUSED,
       fprintf (dump_file, "\n");
     }
 
-  if (!useless_type_conversion_p (TREE_TYPE (*expr), cand->type))
+  if (!dont_convert
+      && !useless_type_conversion_p (TREE_TYPE (*expr), cand->type))
     {
       tree vce = build1 (VIEW_CONVERT_EXPR, TREE_TYPE (*expr), src);
       *expr = vce;
     }
-    else
-      *expr = src;
+  else
+    *expr = src;
   return true;
 }
 
@@ -3608,20 +3691,47 @@ sra_ipa_modify_expr (tree *expr, gimple_stmt_iterator *gsi ATTRIBUTE_UNUSED,
    essentially the same function like sra_ipa_modify_expr.  */
 
 static enum scan_assign_result
-sra_ipa_modify_assign (gimple *stmt_ptr,
-		       gimple_stmt_iterator *gsi ATTRIBUTE_UNUSED, void *data)
+sra_ipa_modify_assign (gimple *stmt_ptr, gimple_stmt_iterator *gsi, void *data)
 {
   gimple stmt = *stmt_ptr;
-  bool any = false;
+  tree *lhs_p, *rhs_p;
+  bool any;
 
   if (!gimple_assign_single_p (stmt))
     return SRA_SA_NONE;
 
-  any |= sra_ipa_modify_expr (gimple_assign_rhs1_ptr (stmt), gsi, false,
-			      data);
-  any |= sra_ipa_modify_expr (gimple_assign_lhs_ptr (stmt), gsi, true, data);
+  rhs_p = gimple_assign_rhs1_ptr (stmt);
+  lhs_p = gimple_assign_lhs_ptr (stmt);
 
-  return any ? SRA_SA_PROCESSED : SRA_SA_NONE;
+  any = sra_ipa_modify_expr (rhs_p, gsi, true, data);
+  any |= sra_ipa_modify_expr (lhs_p, gsi, true, data);
+  if (any)
+    {
+      tree new_rhs = NULL_TREE;
+
+      if (!useless_type_conversion_p (TREE_TYPE (*lhs_p), TREE_TYPE (*rhs_p)))
+	new_rhs = fold_build1_loc (gimple_location (stmt), VIEW_CONVERT_EXPR,
+				   TREE_TYPE (*lhs_p), *rhs_p);
+      else if (REFERENCE_CLASS_P (*rhs_p)
+	       && is_gimple_reg_type (TREE_TYPE (*lhs_p))
+	       && !is_gimple_reg (*lhs_p))
+	/* This can happen when an assignment in between two single field
+	   structures is turned into an assignment in between two pointers to
+	   scalars (PR 42237).  */
+	new_rhs = *rhs_p;
+
+      if (new_rhs)
+	{
+	  tree tmp = force_gimple_operand_gsi (gsi, new_rhs, true, NULL_TREE,
+					       true, GSI_SAME_STMT);
+
+	  gimple_assign_set_rhs_from_tree (gsi, tmp);
+	}
+
+      return SRA_SA_PROCESSED;
+    }
+
+  return SRA_SA_NONE;
 }
 
 /* Call gimple_debug_bind_reset_value on all debug statements describing

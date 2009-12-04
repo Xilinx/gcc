@@ -356,7 +356,6 @@ enum omp_clause_code
 
    See the accessor macros, defined below, for documentation of the
    fields.  */
-union tree_ann_d;
 
 struct GTY(()) tree_base {
   ENUM_BITFIELD(tree_code) code : 16;
@@ -398,8 +397,6 @@ struct GTY(()) tree_base {
      in tree_base instead of tree_type is to save space.  The size of the
      field must be large enough to hold addr_space_t values.  */
   unsigned address_space : 8;
-
-  union tree_ann_d *ann;
 };
 
 struct GTY(()) tree_common {
@@ -1257,7 +1254,7 @@ extern void omp_clause_range_check_failed (const_tree, const char *, int,
 #define TREE_THIS_NOTRAP(NODE) ((NODE)->base.nothrow_flag)
 
 /* In a VAR_DECL, PARM_DECL or FIELD_DECL, or any kind of ..._REF node,
-   nonzero means it may not be the lhs of an assignment.  
+   nonzero means it may not be the lhs of an assignment.
    Nonzero in a FUNCTION_DECL means this function should be treated
    as "const" function (can only read its arguments).  */
 #define TREE_READONLY(NODE) (NON_TYPE_CHECK (NODE)->base.readonly_flag)
@@ -2080,7 +2077,7 @@ extern enum machine_mode vector_type_mode (const_tree);
 /* The "canonical" type for this type node, which can be used to
    compare the type for equality with another type. If two types are
    equal (based on the semantics of the language), then they will have
-   equivalent TYPE_CANONICAL entries. 
+   equivalent TYPE_CANONICAL entries.
 
    As a special case, if TYPE_CANONICAL is NULL_TREE, then it cannot
    be used for comparison against other types. Instead, the type is
@@ -2854,8 +2851,10 @@ struct GTY(()) tree_label_decl {
   int eh_landing_pad_nr;
 };
 
+struct var_ann_d;
 struct GTY(()) tree_result_decl {
   struct tree_decl_with_rtl common;
+  struct var_ann_d *ann;
 };
 
 struct GTY(()) tree_const_decl {
@@ -2873,6 +2872,7 @@ struct GTY(()) tree_const_decl {
 struct GTY(()) tree_parm_decl {
   struct tree_decl_with_rtl common;
   rtx incoming_rtl;
+  struct var_ann_d *ann;
 };
 
 
@@ -2912,12 +2912,12 @@ struct GTY(()) tree_parm_decl {
 /* A replaceable function is one which may be replaced at link-time
    with an entirely different definition, provided that the
    replacement has the same type.  For example, functions declared
-   with __attribute__((weak)) on most systems are replaceable.  
+   with __attribute__((weak)) on most systems are replaceable.
 
    COMDAT functions are not replaceable, since all definitions of the
    function must be equivalent.  It is important that COMDAT functions
    not be treated as replaceable so that use of C++ template
-   instantiations is not penalized.  
+   instantiations is not penalized.
 
    For example, DECL_REPLACEABLE is used to determine whether or not a
    function (including a template instantiation) which is not
@@ -3048,7 +3048,7 @@ extern void decl_fini_priority_insert (tree, priority_type);
   (VAR_DECL_CHECK (NODE)->decl_with_vis.init_priority_p)
 
 /* For a VAR_DECL or FUNCTION_DECL the initialization priority of
-   NODE.  */ 
+   NODE.  */
 #define DECL_INIT_PRIORITY(NODE) \
   (decl_init_priority_lookup (NODE))
 /* Set the initialization priority for NODE to VAL.  */
@@ -3082,8 +3082,15 @@ extern void decl_fini_priority_insert (tree, priority_type);
 #define DECL_THREAD_LOCAL_P(NODE) \
   (VAR_DECL_CHECK (NODE)->decl_with_vis.tls_model >= TLS_MODEL_REAL)
 
+#define DECL_VAR_ANN_PTR(NODE) \
+  (TREE_CODE (NODE) == VAR_DECL ? &(NODE)->var_decl.ann \
+   : TREE_CODE (NODE) == PARM_DECL ? &(NODE)->parm_decl.ann \
+   : TREE_CODE (NODE) == RESULT_DECL ? &(NODE)->result_decl.ann \
+   : NULL)
+
 struct GTY(()) tree_var_decl {
   struct tree_decl_with_vis common;
+  struct var_ann_d *ann;
 };
 
 
@@ -4703,7 +4710,6 @@ extern const char *get_name (tree);
 extern bool stdarg_p (tree);
 extern bool prototype_p (tree);
 extern bool auto_var_in_fn_p (const_tree, const_tree);
-extern unsigned int int_or_pointer_precision (const_tree);
 extern tree build_low_bits_mask (tree, unsigned);
 extern tree tree_strip_nop_conversions (tree);
 extern tree tree_strip_sign_nop_conversions (tree);
@@ -4945,7 +4951,7 @@ extern tree fold_call_stmt (gimple, bool);
 extern tree gimple_fold_builtin_snprintf_chk (gimple, tree, enum built_in_function);
 extern tree make_range (tree, int *, tree *, tree *, bool *);
 extern tree build_range_check (location_t, tree, tree, int, tree, tree);
-extern bool merge_ranges (int *, tree *, tree *, int, tree, tree, int, 
+extern bool merge_ranges (int *, tree *, tree *, int, tree, tree, int,
 			  tree, tree);
 extern void set_builtin_user_assembler_name (tree decl, const char *asmspec);
 
@@ -5161,11 +5167,6 @@ extern void dwarf2out_def_cfa (const char *, unsigned, HOST_WIDE_INT);
 
 extern void dwarf2out_window_save (const char *);
 
-/* Add a CFI to update the running total of the size of arguments pushed
-   onto the stack.  */
-
-extern void dwarf2out_args_size (const char *, HOST_WIDE_INT);
-
 /* Entry point for saving a register to the stack.  */
 
 extern void dwarf2out_reg_save (const char *, unsigned, HOST_WIDE_INT);
@@ -5330,7 +5331,7 @@ void init_inline_once (void);
 /* In ipa-reference.c.  Used for parsing attributes of asm code.  */
 extern GTY(()) tree memory_identifier_string;
 
-/* Compute the number of operands in an expression node NODE.  For 
+/* Compute the number of operands in an expression node NODE.  For
    tcc_vl_exp nodes like CALL_EXPRs, this is stored in the node itself,
    otherwise it is looked up from the node's code.  */
 static inline int

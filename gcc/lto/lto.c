@@ -249,12 +249,34 @@ lto_read_decls (struct lto_file_decl_data *decl_data, const void *data,
   lto_data_in_delete (data_in);
 }
 
+/* strtoll is not portable. */
+int64_t
+lto_parse_hex (const char *p) {
+  uint64_t ret = 0;
+  for (; *p != '\0'; ++p)
+    {
+      char c = *p;
+      unsigned char part;
+      ret <<= 4;
+      if (c >= '0' && c <= '9')
+        part = c - '0';
+      else if (c >= 'a' && c <= 'f')
+        part = c - 'a' + 10;
+      else if (c >= 'A' && c <= 'F')
+        part = c - 'A' + 10;
+      else
+        internal_error ("could not parse hex number");
+      ret |= part;
+    }
+  return ret;
+}
+
 /* Read resolution for file named FILE_NAME. The resolution is read from
    RESOLUTION. An array with the symbol resolution is returned. The array
    size is written to SIZE. */
 
 static VEC(ld_plugin_symbol_resolution_t,heap) *
-lto_resolution_read (FILE *resolution, const char *file_name)
+lto_resolution_read (FILE *resolution, lto_file *file)
 {
   /* We require that objects in the resolution file are in the same
      order as the lto1 command line. */
@@ -268,15 +290,27 @@ lto_resolution_read (FILE *resolution, const char *file_name)
   if (!resolution)
     return NULL;
 
-  name_len = strlen (file_name);
+  name_len = strlen (file->filename);
   obj_name = XNEWVEC (char, name_len + 1);
   fscanf (resolution, " ");   /* Read white space. */
 
   fread (obj_name, sizeof (char), name_len, resolution);
   obj_name[name_len] = '\0';
-  if (strcmp (obj_name, file_name) != 0)
+  if (strcmp (obj_name, file->filename) != 0)
     internal_error ("unexpected file name %s in linker resolution file. "
-		    "Expected %s", obj_name, file_name);
+		    "Expected %s", obj_name, file->filename);
+  if (file->offset != 0)
+    {
+      int t;
+      char offset_p[17];
+      int64_t offset;
+      t = fscanf (resolution, "@0x%16s", offset_p);
+      if (t != 1)
+        internal_error ("could not parse file offset");
+      offset = lto_parse_hex (offset_p);
+      if (offset != file->offset)
+        internal_error ("unexpected offset");
+    }
 
   free (obj_name);
 
@@ -284,6 +318,7 @@ lto_resolution_read (FILE *resolution, const char *file_name)
 
   for (i = 0; i < num_symbols; i++)
     {
+      int t;
       unsigned index;
       char r_str[27];
       enum ld_plugin_symbol_resolution r;
@@ -291,7 +326,9 @@ lto_resolution_read (FILE *resolution, const char *file_name)
       unsigned int lto_resolution_str_len =
 	sizeof (lto_resolution_str) / sizeof (char *);
 
-      fscanf (resolution, "%u %26s", &index, r_str);
+      t = fscanf (resolution, "%u %26s %*[^\n]\n", &index, r_str);
+      if (t != 2)
+        internal_error ("Invalid line in the resolution file.");
       if (index > max_index)
 	max_index = index;
 
@@ -303,9 +340,8 @@ lto_resolution_read (FILE *resolution, const char *file_name)
 	      break;
 	    }
 	}
-      if (j >= lto_resolution_str_len)
-	internal_error ("tried to read past the end of the linker resolution "
-			"file");
+      if (j == lto_resolution_str_len)
+	internal_error ("Invalid resolution in the resolution file.");
 
       VEC_safe_grow_cleared (ld_plugin_symbol_resolution_t, heap, ret,
 			     index + 1);
@@ -330,7 +366,7 @@ lto_file_read (lto_file *file, FILE *resolution_file)
   size_t len;
   VEC(ld_plugin_symbol_resolution_t,heap) *resolutions;
   
-  resolutions = lto_resolution_read (resolution_file, file->filename);
+  resolutions = lto_resolution_read (resolution_file, file);
 
   file_data = XCNEW (struct lto_file_decl_data);
   file_data->file_name = file->filename;
@@ -1824,9 +1860,19 @@ read_cgraph_and_symbols (unsigned nfiles, const char **fnames)
      phase. */
   if (flag_ltrans)
     for (node = cgraph_nodes; node; node = node->next)
-      if (!node->global.inlined_to
-	  && cgraph_decide_is_function_needed (node, node->decl))
-        cgraph_mark_needed_node (node);
+      {
+        if (!node->global.inlined_to
+	    && cgraph_decide_is_function_needed (node, node->decl))
+          cgraph_mark_needed_node (node);
+	/* FIXME: ipa_transforms_to_apply holds list of passes that have optimization
+	   summaries computed and needs to apply changes.  At the moment WHOPR only
+	   supports inlining, so we can push it here by hand.  In future we need to stream
+	   this field into ltrans compilation.  */
+	if (node->analyzed)
+	  VEC_safe_push (ipa_opt_pass, heap,
+			 node->ipa_transforms_to_apply,
+			 (ipa_opt_pass)&pass_ipa_inline);
+      }
 
   timevar_push (TV_IPA_LTO_DECL_IO);
 

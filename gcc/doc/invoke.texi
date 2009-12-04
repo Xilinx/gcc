@@ -632,6 +632,10 @@ Objective-C and Objective-C++ Dialects}.
 @emph{IA-64/VMS Options}
 @gccoptlist{-mvms-return-codes -mdebug-main=@var{prefix} -mmalloc64}
 
+@emph{LM32 Options}
+@gccoptlist{-mbarrel-shift-enabled -mdivide-enabled -mmultiply-enabled @gol
+-msign-extend-enabled -muser-enabled}
+
 @emph{M32R/D Options}
 @gccoptlist{-m32r2 -m32rx -m32r @gol
 -mdebug @gol
@@ -5357,6 +5361,11 @@ file name.
 Dump each function after applying vectorization of loops.  The file name is
 made by appending @file{.vect} to the source file name.
 
+@item slp
+@opindex fdump-tree-slp
+Dump each function after applying vectorization of basic blocks.  The file name
+is made by appending @file{.slp} to the source file name.
+
 @item vrp
 @opindex fdump-tree-vrp
 Dump each function after Value Range Propagation (VRP).  The file name
@@ -5382,14 +5391,16 @@ inner-most, single-bb, single-entry/exit loops.  This is the same verbosity
 level that @option{-fdump-tree-vect-stats} uses.
 Higher verbosity levels mean either more information dumped for each
 reported loop, or same amount of information reported for more loops:
-If @var{n}=3, alignment related information is added to the reports.
-If @var{n}=4, data-references related information (e.g.@: memory dependences,
+if @var{n}=3, vectorizer cost model information is reported.
+If @var{n}=4, alignment related information is added to the reports.
+If @var{n}=5, data-references related information (e.g.@: memory dependences,
 memory access-patterns) is added to the reports.
-If @var{n}=5, the vectorizer reports also non-vectorized inner-most loops
+If @var{n}=6, the vectorizer reports also non-vectorized inner-most loops
 that did not pass the first analysis phase (i.e., may not be countable, or
 may have complicated control-flow).
-If @var{n}=6, the vectorizer reports also non-vectorized nested loops.
-For @var{n}=7, all the information the vectorizer generates during its
+If @var{n}=7, the vectorizer reports also non-vectorized nested loops.
+If @var{n}=8, SLP related information is added to the reports.
+For @var{n}=9, all the information the vectorizer generates during its
 analysis and transformation is reported.  This is the same verbosity level
 that @option{-fdump-tree-vect-details} uses.
 
@@ -6292,7 +6303,7 @@ helps machines that have slow floating point or memory load instructions
 by allowing other instructions to be issued until the result of the load
 or floating point instruction is required.
 
-Enabled at levels @option{-O2}, @option{-O3}, @option{-Os}.
+Enabled at levels @option{-O2}, @option{-O3}.
 
 @item -fschedule-insns2
 @opindex fschedule-insns2
@@ -6814,6 +6825,11 @@ enabled by default at @option{-O} and higher.
 @opindex ftree-vectorize
 Perform loop vectorization on trees. This flag is enabled by default at
 @option{-O3}.
+
+@item -ftree-slp-vectorize
+@opindex ftree-slp-vectorize
+Perform basic block vectorization on trees. This flag is enabled by default at
+@option{-O3} and when @option{-ftree-vectorize} is enabled.
 
 @item -ftree-vect-loop-version
 @opindex ftree-vect-loop-version
@@ -7733,7 +7749,7 @@ debug information format adopted by the target, however, it can
 make debugging impossible, since variables will no longer stay in
 a ``home register''.
 
-Enabled by default with @option{-funroll-loops}.
+Enabled by default with @option{-funroll-loops} and @option{-fpeel-loops}.
 
 @item -ftracer
 @opindex ftracer
@@ -9545,6 +9561,7 @@ platform.
 * i386 and x86-64 Windows Options::
 * IA-64 Options::
 * IA-64/VMS Options::
+* LM32 Options::
 * M32C Options::
 * M32R/D Options::
 * M680x0 Options::
@@ -9761,7 +9778,7 @@ assembly code.  Permissible names are: @samp{arm2}, @samp{arm250},
 @samp{arm10e}, @samp{arm1020e}, @samp{arm1022e},
 @samp{arm1136j-s}, @samp{arm1136jf-s}, @samp{mpcore}, @samp{mpcorenovfp},
 @samp{arm1156t2-s}, @samp{arm1156t2f-s}, @samp{arm1176jz-s}, @samp{arm1176jzf-s},
-@samp{cortex-a8}, @samp{cortex-a9},
+@samp{cortex-a5}, @samp{cortex-a8}, @samp{cortex-a9},
 @samp{cortex-r4}, @samp{cortex-r4f}, @samp{cortex-m3},
 @samp{cortex-m1},
 @samp{cortex-m0},
@@ -9801,7 +9818,8 @@ This specifies what floating point hardware (or hardware emulation) is
 available on the target.  Permissible names are: @samp{fpa}, @samp{fpe2},
 @samp{fpe3}, @samp{maverick}, @samp{vfp}, @samp{vfpv3}, @samp{vfpv3-fp16},
 @samp{vfpv3-d16}, @samp{vfpv3-d16-fp16}, @samp{vfpv3xd}, @samp{vfpv3xd-fp16},
-@samp{neon}, and @samp{neon-fp16}.
+@samp{neon}, @samp{neon-fp16}, @samp{vfpv4}, @samp{vfpv4-d16},
+@samp{fpv4-sp-d16} and @samp{neon-vfpv4}.
 @option{-mfp} and @option{-mfpe} are synonyms for
 @option{-mfpu}=@samp{fpe}@var{number}, for compatibility with older versions
 of GCC@.
@@ -12574,6 +12592,35 @@ routine for the debugger.
 @item -mmalloc64
 @opindex mmalloc64
 Default to 64bit memory allocation routines.
+@end table
+
+@node LM32 Options
+@subsection LM32 Options
+@cindex LM32 options
+
+These @option{-m} options are defined for the Lattice Mico32 architecture:
+
+@table @gcctabopt
+@item -mbarrel-shift-enabled
+@opindex mbarrel-shift-enabled
+Enable barrel-shift instructions.
+
+@item -mdivide-enabled
+@opindex mdivide-enabled
+Enable divide and modulus instructions.
+
+@item -mmultiply-enabled
+@opindex multiply-enabled
+Enable multiply instructions.
+
+@item -msign-extend-enabled
+@opindex msign-extend-enabled
+Enable sign extend instructions.
+
+@item -muser-enabled
+@opindex muser-enabled
+Enable user-defined instructions.
+
 @end table
 
 @node M32C Options

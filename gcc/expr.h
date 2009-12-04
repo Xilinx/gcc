@@ -395,7 +395,7 @@ extern rtx builtin_strncpy_read_str (void *, HOST_WIDE_INT, enum machine_mode);
 
 /* Functions from expr.c:  */
 
-/* This is run during target initialization to set up which modes can be 
+/* This is run during target initialization to set up which modes can be
    used directly in memory and to initialize the block move optab.  */
 extern void init_expr_target (void);
 
@@ -484,7 +484,7 @@ extern rtx clear_storage_hints (rtx, rtx, enum block_op_methods,
 rtx set_storage_via_libcall (rtx, rtx, rtx, bool);
 
 /* Expand a setmem pattern; return true if successful.  */
-extern bool set_storage_via_setmem (rtx, rtx, rtx, unsigned int, 
+extern bool set_storage_via_setmem (rtx, rtx, rtx, unsigned int,
 				    unsigned int, HOST_WIDE_INT);
 
 /* Determine whether the LEN bytes can be moved by using several move
@@ -546,7 +546,7 @@ extern rtx store_expr (tree, rtx, int, bool);
 extern rtx force_operand (rtx, rtx);
 
 /* Work horses for expand_expr.  */
-extern rtx expand_expr_real (tree, rtx, enum machine_mode, 
+extern rtx expand_expr_real (tree, rtx, enum machine_mode,
 			     enum expand_modifier, rtx *);
 extern rtx expand_expr_real_1 (tree, rtx, enum machine_mode,
 			       enum expand_modifier, rtx *);
@@ -766,6 +766,9 @@ extern void adjust_stack (rtx);
 
 /* Add some bytes to the stack.  An rtx says how many.  */
 extern void anti_adjust_stack (rtx);
+
+/* Add some bytes to the stack while probing it.  An rtx says how many. */
+extern void anti_adjust_stack_and_probe (rtx, bool);
 
 /* This enum is used for the following two functions.  */
 enum save_level {SAVE_BLOCK, SAVE_FUNCTION, SAVE_NONLOCAL};
