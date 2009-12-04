@@ -1,3 +1,57 @@
+2009-12-04  David Daney  <ddaney@caviumnetworks.com>
+
+	PR rtl-optimization/42164
+	* gcc.c-torture/compile/pr42164.c: New test.
+
+2009-12-04  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/specs/size_attribute1.ads: New test.
+	* gnat.dg/specs/size_attribute1_pkg1.ad[sb]: New helper.
+	* gnat.dg/specs/size_attribute1_pkg2.ad[sb]: Likewise.
+
+2009-12-04  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/42218
+	* g++.dg/other/error33.C: New test.
+
+2009-12-03  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/abi/guard2.C: Run on *-*-linux* rather than x86-*-*
+
+	PR c++/41611
+	* g++.dg/abi/guard2.C: New.
+
+	PR c++/42266
+	* g++.dg/cpp0x/variadic97.C: New.
+
+2009-12-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/42049
+	* gcc.c-torture/compile/pr42049.c: New test.
+
+2009-12-03  Quentin Ochem  <ochem@adacore.com>
+
+	* gnat.dg/controlled5.adb: New test.
+	* gnat.dg/controlled5_pkg.ad[sb]: New helper.
+
+2009-12-03  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/42217
+	* g++.dg/other/bitfield4.C: New test.
+
+2009-12-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/42256
+	* g++.dg/inherit/thunk11.C: New test.
+	* g++.dg/inherit/thunk11.h: New file.
+	* g++.dg/inherit/thunk11-aux.cc: New file.
+
+2009-12-02  Richard Guenther  <rguenther@suse.de>
+
+	* g++.dg/ipa/iinline-1.C: Adjust.
+	* g++.dg/template/cond2.C: Likewise.
+	* g++.dg/template/pr35240.C: Likewise.
+
 2009-12-02  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
 
 	PR middle-end/42224

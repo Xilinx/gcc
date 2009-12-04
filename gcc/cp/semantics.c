@@ -1254,7 +1254,7 @@ finish_asm_stmt (int volatile_p, tree string, tree output_operands,
 		     effectively const.  */
 		  || (CLASS_TYPE_P (TREE_TYPE (operand))
 		      && C_TYPE_FIELDS_READONLY (TREE_TYPE (operand)))))
-	    readonly_error (operand, "assignment (via 'asm' output)");
+	    readonly_error (operand, REK_ASSIGNMENT_ASM);
 
 	  constraint = TREE_STRING_POINTER (TREE_VALUE (TREE_PURPOSE (t)));
 	  oconstraints[i] = constraint;
@@ -2385,6 +2385,9 @@ begin_class_definition (tree t, tree attributes)
       t = make_class_type (RECORD_TYPE);
       pushtag (make_anon_name (), t, /*tag_scope=*/ts_current);
     }
+
+  /* Update the location of the decl.  */
+  DECL_SOURCE_LOCATION (TYPE_NAME (t)) = input_location;
 
   if (TYPE_BEING_DEFINED (t))
     {

@@ -1,3 +1,140 @@
+2009-12-04  David Daney  <ddaney@caviumnetworks.com>
+
+	PR rtl-optimization/42164
+	* combine.c (combine_simplify_rtx): Handle truncation of integer
+	constants.
+
+2009-12-04  Richard Guenther  <rguenther@suse.de>
+
+	* lto-streamer-out.c (pack_ts_decl_common_value_fields):
+	Revert previous change.
+	(lto_output_ts_decl_common_tree_pointers): Stream DECL_VALUE_EXPR.
+	* lto-streamer-in.c (lto_input_ts_decl_common_tree_pointers):
+	Likewise.
+
+2009-12-04  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-alias.c (ref_maybe_used_by_call_p_1): Handle
+	BUILT_IN_MALLOC.
+	(call_may_clobber_ref_p_1): Likewise.
+
+2009-12-04  Matthias Klose  <doko@ubuntu.com>
+	    John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR target/40134
+        * config.gcc (hppa*-*-linux*): Use config/t-slibgcc-libgcc.
+	* config/pa/pa-linux.h (LIB_SPEC): Remove.
+
+2009-12-03  Sebastian Pop  <sebastian.pop@amd.com>
+	    Richard Henderson  <rth@redhat.com>
+
+	* config/i386/i386-protos.h (ix86_fma4_valid_op_p): Remove.
+	* config/i386/i386.c (ix86_fma4_valid_op_p): Remove.
+	* config/i386/i386.md: Do not use ix86_fma4_valid_op_p.
+	* config/i386/sse.md (fma4_*): Remove alternative with operand 1
+	matching a memory access.  Do not use ix86_fma4_valid_op_p.
+	(xop_*): Same.
+	Do not use ix86_fma4_valid_op_p in FMA4 and XOP splitters.
+
+2009-12-03  Richard Henderson  <rth@redhat.com>
+
+	* config/i386/i386.c (ix86_fixup_binary_operands): For FMA4, force
+	all operands into registers.
+
+2009-12-03  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* config/i386/i386.c (ix86_expand_fma4_multiple_memory): Remove unused
+	parameter.
+	* config/i386/i386-protos.h (ix86_expand_fma4_multiple_memory): Same.
+	* config/i386/sse.md: Same.
+
+2009-12-03  Richard Guenther  <rguenther@suse.de>
+
+	* cgraphunit.c (assemble_thunk): Use DECL_ASSEMBLER_NAME
+	instead of DECL_NAME for the entry point.
+
+2009-12-03  Richard Earnshaw  <rearnsha@arm.com>
+
+	* arm/linux-atomic.c (SYNC_LOCK_RELEASE): Place memory barrier
+	before the lock release.
+
+2009-12-03  Michael Matz  <matz@suse.de>
+
+	PR middle-end/38474
+	* cfgexpand.c (struct stack_var): Add conflicts member.
+	(stack_vars_conflict, stack_vars_conflict_alloc,
+	n_stack_vars_conflict): Remove.
+	(add_stack_var): Initialize conflicts member.
+	(triangular_index, resize_stack_vars_conflict): Remove.
+	(add_stack_var_conflict, stack_var_conflict_p): Rewrite in
+	terms of new member.
+	(union_stack_vars): Only run over the conflicts.
+	(partition_stack_vars): Remove special case.
+	(expand_used_vars_for_block): Don't call resize_stack_vars_conflict,
+	don't create self-conflicts.
+	(account_used_vars_for_block): Don't create any conflicts.
+	(fini_vars_expansion): Free bitmaps, don't free or clear removed
+	globals.
+
+2009-12-03  Bernd Schmidt  <bernd.schmidt@analog.com>
+
+	PR middle-end/42202
+	* regrename.c (live_in_chains): New variable.
+	(verify_reg_tracked): New static function.
+	(scan_rtx_reg): Update live_in_chains.
+	(scan_rtx): Only promote sets in COND_EXEC to OP_INOUT if
+	we're already tracking the reg.
+	(build_def_use): Likewise.  Initialize live_in_chains.
+
+2009-12-03  Ken Werner  <ken.werner@de.ibm.com>
+
+	* config/spu/spu-elf.h (STARTFILE_SPEC): Add support for gprof
+	startup files.
+	* config/spu/spu-protos.h (spu_function_profiler): Add prototype.
+	* config/spu/spu.c (spu_function_profiler): New function.
+	* config/spu/spu.h (FUNCTION_PROFILER): Invoke
+	spu_function_profiler.
+	(NO_PROFILE_COUNTERS): Define.
+	(PROFILE_BEFORE_PROLOGUE): Likewise.
+
+2009-12-03  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	* ggc-page.c (struct free_object): Pull definition out ...
+	(struct globals): .. from here.
+
+2009-12-02  Richard Guenther  <rguenther@suse.de>
+
+	* fold-const.c (div_if_zero_remainder): Honor that sizetypes
+	are sign-extending.  Simplify.
+
+2009-12-02  Richard Henderson  <rth@redhat.com>
+
+	PR tree-opt/42215
+	* tree-loop-distribution.c (build_size_arg_loc): Tidy.
+	(generate_memset_zero): Convert to sizetype properly.  Tidy.
+
+2009-12-02  Richard Guenther  <rguenther@suse.de>
+
+	* lto-streamer-out.c (pack_ts_decl_common_value_fields):
+	Do not pretend we have value exprs.
+
+2009-12-02  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/41491
+	* fold-const.c (try_move_mult_to_index): Do not leak
+	domain types into the IL.
+
+2009-12-02  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/42088
+	* tree.c (free_lang_data): Disable if not using LTO.
+
+2009-12-02  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/42229
+	* cfgloopmanip.c (remove_path): Avoid cancelling loops
+	twice.
+
 2009-12-02  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
 
 	PR middle-end/42224
