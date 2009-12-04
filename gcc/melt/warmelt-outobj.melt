@@ -4465,6 +4465,10 @@
  install_melt_mode
  melt_argument
  )
+
+;;if we don't export these the warmelt-outobj.0.d.so cannot be dlopened!
+(export_class class_secondary_c_file class_makedoc_info)
+
 ;;;;;;;;;;;;;;;;
 
 

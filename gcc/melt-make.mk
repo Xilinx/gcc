@@ -73,8 +73,12 @@ vpath %.melt $(melt_make_source_dir) . $(melt_source_dir)
 ## all the warm*.so need ./built-melt-cc-script to be built, but we
 ## don't add a dependency to avoid them being rebuilt at install time.
 ##
+warmelt-%.0.so: warmelt-%.0.c $(melt_module_makefile)
+	$(MAKE) -f $(melt_module_makefile) meltmodule \
+	      GCCMELT_CFLAGS="$(melt_cflags)" \
+	      GCCMELT_MODULE_SOURCE=$< GCCMELT_MODULE_BINARY=$@
 warmelt-%.0.d.so: warmelt-%.0.c $(melt_module_makefile)
-	$(MAKE) -f $(melt_module_makefile) meltmodulerawdynamic \
+	$(MAKE) -f $(melt_module_makefile) meltmoduledynamic \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< GCCMELT_MODULE_BINARY=$@
 warmelt-%-h.d.so: warmelt-%-h.c $(melt_module_makefile)
@@ -201,7 +205,7 @@ ANAMELT_BASEROW:=$(shell echo $(ANAMELT_BASE)|sed 's/ /:/g')
 ## keep the generated warm*.c files!
 .SECONDARY:$(WARMELT_BASE1C) $(WARMELT_BASE2C) $(WARMELT_BASE3C) $(ANAMELT_BASEC) $(WARMELT_BASEHC) $(WARMELT_BASEH2C)
 
-warmelt0.modlis: $(WARMELT_BASE0DSO)
+warmelt0.modlis: $(WARMELT_BASE0SO)
 	date +"#$@ generated %F" > $@-tmp
 	for f in  $(WARMELT_BASE0); do echo $$f >> $@-tmp; done
 	$(melt_make_move) $@-tmp $@

@@ -67,7 +67,7 @@ meltmodule: $(GCCMELT_MODULE_BINARY)
 
 meltmoduledynamic: $(MELTMODULE_DYNAMIC)
 meltmodulerawdynamic: $(GCCMELT_MODULE_BINARY)
-meltmodulerawdynamic: override GCCMELT_CFLAGS +=  -DMELTGCC_DYNAMIC_OBJSTRUCT
+# meltmodulerawdynamic: override GCCMELT_CFLAGS +=  -DMELTGCC_DYNAMIC_OBJSTRUCT
 
 meltmodulewithoutline: $(MELTMODULE_NOLINE)
 meltmodulerawwithoutline: $(GCCMELT_MODULE_BINARY)

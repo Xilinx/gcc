@@ -3,7 +3,7 @@
 #ifndef MELTGCC_DYNAMIC_OBJSTRUCT
 /* version string of the gcc executable generating this file: */
 const char genversionstr_melt[]=
- "4.5.0 20091202 (experimental) [melt-branch revision 154978]";
+ "4.5.0 20091204 (experimental) [melt-branch revision 154978]";
 #endif
 
 #include "run-melt.h"
@@ -27565,7 +27565,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_3__CLASS_ROOT));
   melt_assertmsg("iniobj checkdiscr dobj_5__CLASS_NREP", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_5__CLASS_NREP.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_5__CLASS_NREP.obj_num = OBMAG_OBJECT;
-  cdat->dobj_5__CLASS_NREP.obj_hash = 1038500570;
+  cdat->dobj_5__CLASS_NREP.obj_hash = 8108460;
   cdat->dobj_5__CLASS_NREP.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_5__CLASS_NREP));
  
@@ -27601,7 +27601,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_9__NREP_LOC));
   melt_assertmsg("iniobj checkdiscr dobj_11__NREP_LOC", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_11__NREP_LOC.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_11__NREP_LOC.obj_num = 0;
-  cdat->dobj_11__NREP_LOC.obj_hash = 221838049;
+  cdat->dobj_11__NREP_LOC.obj_hash = 303582466;
   cdat->dobj_11__NREP_LOC.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_11__NREP_LOC));
  
@@ -27629,7 +27629,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_13__CLASS_NREP_SIMPLE));
   melt_assertmsg("iniobj checkdiscr dobj_15__CLASS_NREP_SIMPLE", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_15__CLASS_NREP_SIMPLE.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_15__CLASS_NREP_SIMPLE.obj_num = OBMAG_OBJECT;
-  cdat->dobj_15__CLASS_NREP_SIMPLE.obj_hash = 551453546;
+  cdat->dobj_15__CLASS_NREP_SIMPLE.obj_hash = 374329809;
   cdat->dobj_15__CLASS_NREP_SIMPLE.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_15__CLASS_NREP_SIMPLE));
  
@@ -27665,7 +27665,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_19__CLASS_NREP_EXPRESSION
   melt_assertmsg("iniobj checkdiscr dobj_21__CLASS_NREP_EXPRESSION", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_21__CLASS_NREP_EXPRESSION.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_21__CLASS_NREP_EXPRESSION.obj_num = OBMAG_OBJECT;
-  cdat->dobj_21__CLASS_NREP_EXPRESSION.obj_hash = 979421229;
+  cdat->dobj_21__CLASS_NREP_EXPRESSION.obj_hash = 741784793;
   cdat->dobj_21__CLASS_NREP_EXPRESSION.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_21__CLASS_NREP_EXPRESSION));
  
@@ -27701,7 +27701,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_25__CLASS_NREP_TYPED_EXPR
   melt_assertmsg("iniobj checkdiscr dobj_27__CLASS_NREP_TYPED_EXPRESSION", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_27__CLASS_NREP_TYPED_EXPRESSION.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_27__CLASS_NREP_TYPED_EXPRESSION.obj_num = OBMAG_OBJECT;
-  cdat->dobj_27__CLASS_NREP_TYPED_EXPRESSION.obj_hash = 274724026;
+  cdat->dobj_27__CLASS_NREP_TYPED_EXPRESSION.obj_hash = 143389772;
   cdat->dobj_27__CLASS_NREP_TYPED_EXPRESSION.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_27__CLASS_NREP_TYPED_EXPRESSION));
  
@@ -27737,7 +27737,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_31__NEXPR_CTYP));
   melt_assertmsg("iniobj checkdiscr dobj_33__NEXPR_CTYP", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_33__NEXPR_CTYP.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_33__NEXPR_CTYP.obj_num = 1;
-  cdat->dobj_33__NEXPR_CTYP.obj_hash = 353970649;
+  cdat->dobj_33__NEXPR_CTYP.obj_hash = 827981079;
   cdat->dobj_33__NEXPR_CTYP.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_33__NEXPR_CTYP));
  
@@ -27765,7 +27765,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_35__CLASS_NREP_TYPED_EXPR
   melt_assertmsg("iniobj checkdiscr dobj_37__CLASS_NREP_TYPED_EXPRESSION_WITH_ARGUMENTS", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_37__CLASS_NREP_TYPED_EXPRESSION_WITH_ARGUMENTS.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_37__CLASS_NREP_TYPED_EXPRESSION_WITH_ARGUMENTS.obj_num = OBMAG_OBJECT;
-  cdat->dobj_37__CLASS_NREP_TYPED_EXPRESSION_WITH_ARGUMENTS.obj_hash = 893569370;
+  cdat->dobj_37__CLASS_NREP_TYPED_EXPRESSION_WITH_ARGUMENTS.obj_hash = 921519421;
   cdat->dobj_37__CLASS_NREP_TYPED_EXPRESSION_WITH_ARGUMENTS.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_37__CLASS_NREP_TYPED_EXPRESSION_WITH_ARGUMENTS));
  
@@ -27801,7 +27801,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_41__NEXPR_ARGS));
   melt_assertmsg("iniobj checkdiscr dobj_43__NEXPR_ARGS", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_43__NEXPR_ARGS.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_43__NEXPR_ARGS.obj_num = 2;
-  cdat->dobj_43__NEXPR_ARGS.obj_hash = 597838795;
+  cdat->dobj_43__NEXPR_ARGS.obj_hash = 459097554;
   cdat->dobj_43__NEXPR_ARGS.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_43__NEXPR_ARGS));
  
@@ -27829,7 +27829,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_45__CLASS_NREP_APPLY));
   melt_assertmsg("iniobj checkdiscr dobj_47__CLASS_NREP_APPLY", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_47__CLASS_NREP_APPLY.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_47__CLASS_NREP_APPLY.obj_num = OBMAG_OBJECT;
-  cdat->dobj_47__CLASS_NREP_APPLY.obj_hash = 206858956;
+  cdat->dobj_47__CLASS_NREP_APPLY.obj_hash = 593613949;
   cdat->dobj_47__CLASS_NREP_APPLY.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_47__CLASS_NREP_APPLY));
  
@@ -27865,7 +27865,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_51__NAPP_FUN));
   melt_assertmsg("iniobj checkdiscr dobj_53__NAPP_FUN", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_53__NAPP_FUN.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_53__NAPP_FUN.obj_num = 3;
-  cdat->dobj_53__NAPP_FUN.obj_hash = 595527546;
+  cdat->dobj_53__NAPP_FUN.obj_hash = 790421514;
   cdat->dobj_53__NAPP_FUN.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_53__NAPP_FUN));
  
@@ -27893,7 +27893,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_55__CLASS_NREP_MULTIAPPLY
   melt_assertmsg("iniobj checkdiscr dobj_57__CLASS_NREP_MULTIAPPLY", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_57__CLASS_NREP_MULTIAPPLY.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_57__CLASS_NREP_MULTIAPPLY.obj_num = OBMAG_OBJECT;
-  cdat->dobj_57__CLASS_NREP_MULTIAPPLY.obj_hash = 998010704;
+  cdat->dobj_57__CLASS_NREP_MULTIAPPLY.obj_hash = 65647681;
   cdat->dobj_57__CLASS_NREP_MULTIAPPLY.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_57__CLASS_NREP_MULTIAPPLY));
  
@@ -27929,7 +27929,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_61__NMULAPP_BINDINGS));
   melt_assertmsg("iniobj checkdiscr dobj_63__NMULAPP_BINDINGS", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_63__NMULAPP_BINDINGS.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_63__NMULAPP_BINDINGS.obj_num = 4;
-  cdat->dobj_63__NMULAPP_BINDINGS.obj_hash = 829253658;
+  cdat->dobj_63__NMULAPP_BINDINGS.obj_hash = 569316769;
   cdat->dobj_63__NMULAPP_BINDINGS.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_63__NMULAPP_BINDINGS));
  
@@ -27957,7 +27957,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_65__NMULAPP_BODY));
   melt_assertmsg("iniobj checkdiscr dobj_67__NMULAPP_BODY", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_67__NMULAPP_BODY.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_67__NMULAPP_BODY.obj_num = 5;
-  cdat->dobj_67__NMULAPP_BODY.obj_hash = 801527377;
+  cdat->dobj_67__NMULAPP_BODY.obj_hash = 301916041;
   cdat->dobj_67__NMULAPP_BODY.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_67__NMULAPP_BODY));
  
@@ -27985,7 +27985,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_69__CLASS_NREP_MSEND));
   melt_assertmsg("iniobj checkdiscr dobj_71__CLASS_NREP_MSEND", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_71__CLASS_NREP_MSEND.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_71__CLASS_NREP_MSEND.obj_num = OBMAG_OBJECT;
-  cdat->dobj_71__CLASS_NREP_MSEND.obj_hash = 1015507891;
+  cdat->dobj_71__CLASS_NREP_MSEND.obj_hash = 1042119627;
   cdat->dobj_71__CLASS_NREP_MSEND.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_71__CLASS_NREP_MSEND));
  
@@ -28021,7 +28021,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_75__NSEND_SEL));
   melt_assertmsg("iniobj checkdiscr dobj_77__NSEND_SEL", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_77__NSEND_SEL.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_77__NSEND_SEL.obj_num = 3;
-  cdat->dobj_77__NSEND_SEL.obj_hash = 450707991;
+  cdat->dobj_77__NSEND_SEL.obj_hash = 798941994;
   cdat->dobj_77__NSEND_SEL.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_77__NSEND_SEL));
  
@@ -28049,7 +28049,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_79__NSEND_RECV));
   melt_assertmsg("iniobj checkdiscr dobj_81__NSEND_RECV", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_81__NSEND_RECV.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_81__NSEND_RECV.obj_num = 4;
-  cdat->dobj_81__NSEND_RECV.obj_hash = 495229915;
+  cdat->dobj_81__NSEND_RECV.obj_hash = 937115631;
   cdat->dobj_81__NSEND_RECV.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_81__NSEND_RECV));
  
@@ -28077,7 +28077,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_83__CLASS_NREP_MULTIMSEND
   melt_assertmsg("iniobj checkdiscr dobj_85__CLASS_NREP_MULTIMSEND", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_85__CLASS_NREP_MULTIMSEND.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_85__CLASS_NREP_MULTIMSEND.obj_num = OBMAG_OBJECT;
-  cdat->dobj_85__CLASS_NREP_MULTIMSEND.obj_hash = 449757218;
+  cdat->dobj_85__CLASS_NREP_MULTIMSEND.obj_hash = 238397848;
   cdat->dobj_85__CLASS_NREP_MULTIMSEND.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_85__CLASS_NREP_MULTIMSEND));
  
@@ -28113,7 +28113,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_89__NMULSEND_BINDINGS));
   melt_assertmsg("iniobj checkdiscr dobj_91__NMULSEND_BINDINGS", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_91__NMULSEND_BINDINGS.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_91__NMULSEND_BINDINGS.obj_num = 5;
-  cdat->dobj_91__NMULSEND_BINDINGS.obj_hash = 860927116;
+  cdat->dobj_91__NMULSEND_BINDINGS.obj_hash = 810008534;
   cdat->dobj_91__NMULSEND_BINDINGS.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_91__NMULSEND_BINDINGS));
  
@@ -28141,7 +28141,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_93__NMULSEND_BODY));
   melt_assertmsg("iniobj checkdiscr dobj_95__NMULSEND_BODY", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_95__NMULSEND_BODY.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_95__NMULSEND_BODY.obj_num = 6;
-  cdat->dobj_95__NMULSEND_BODY.obj_hash = 821076257;
+  cdat->dobj_95__NMULSEND_BODY.obj_hash = 274829106;
   cdat->dobj_95__NMULSEND_BODY.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_95__NMULSEND_BODY));
  
@@ -28169,7 +28169,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_97__CLASS_NREP_CHUNK));
   melt_assertmsg("iniobj checkdiscr dobj_99__CLASS_NREP_CHUNK", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_99__CLASS_NREP_CHUNK.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_99__CLASS_NREP_CHUNK.obj_num = OBMAG_OBJECT;
-  cdat->dobj_99__CLASS_NREP_CHUNK.obj_hash = 40277672;
+  cdat->dobj_99__CLASS_NREP_CHUNK.obj_hash = 135804265;
   cdat->dobj_99__CLASS_NREP_CHUNK.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_99__CLASS_NREP_CHUNK));
  
@@ -28205,7 +28205,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_103__NCHUNK_EXPANSION));
   melt_assertmsg("iniobj checkdiscr dobj_105__NCHUNK_EXPANSION", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_105__NCHUNK_EXPANSION.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_105__NCHUNK_EXPANSION.obj_num = 2;
-  cdat->dobj_105__NCHUNK_EXPANSION.obj_hash = 483490637;
+  cdat->dobj_105__NCHUNK_EXPANSION.obj_hash = 511958184;
   cdat->dobj_105__NCHUNK_EXPANSION.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_105__NCHUNK_EXPANSION));
  
@@ -28233,7 +28233,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_107__NCHUNK_OPER));
   melt_assertmsg("iniobj checkdiscr dobj_109__NCHUNK_OPER", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_109__NCHUNK_OPER.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_109__NCHUNK_OPER.obj_num = 3;
-  cdat->dobj_109__NCHUNK_OPER.obj_hash = 334175111;
+  cdat->dobj_109__NCHUNK_OPER.obj_hash = 732551903;
   cdat->dobj_109__NCHUNK_OPER.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_109__NCHUNK_OPER));
  
@@ -28261,7 +28261,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_111__CLASS_NREP_COMMENT))
   melt_assertmsg("iniobj checkdiscr dobj_113__CLASS_NREP_COMMENT", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_113__CLASS_NREP_COMMENT.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_113__CLASS_NREP_COMMENT.obj_num = OBMAG_OBJECT;
-  cdat->dobj_113__CLASS_NREP_COMMENT.obj_hash = 982043000;
+  cdat->dobj_113__CLASS_NREP_COMMENT.obj_hash = 301499152;
   cdat->dobj_113__CLASS_NREP_COMMENT.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_113__CLASS_NREP_COMMENT));
  
@@ -28297,7 +28297,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_117__NCOMM_STRING));
   melt_assertmsg("iniobj checkdiscr dobj_119__NCOMM_STRING", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_119__NCOMM_STRING.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_119__NCOMM_STRING.obj_num = 1;
-  cdat->dobj_119__NCOMM_STRING.obj_hash = 55690841;
+  cdat->dobj_119__NCOMM_STRING.obj_hash = 733001793;
   cdat->dobj_119__NCOMM_STRING.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_119__NCOMM_STRING));
  
@@ -28325,7 +28325,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_121__CLASS_NREP_LET));
   melt_assertmsg("iniobj checkdiscr dobj_123__CLASS_NREP_LET", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_123__CLASS_NREP_LET.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_123__CLASS_NREP_LET.obj_num = OBMAG_OBJECT;
-  cdat->dobj_123__CLASS_NREP_LET.obj_hash = 462330356;
+  cdat->dobj_123__CLASS_NREP_LET.obj_hash = 315039285;
   cdat->dobj_123__CLASS_NREP_LET.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_123__CLASS_NREP_LET));
  
@@ -28361,7 +28361,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_127__NLET_BINDINGS));
   melt_assertmsg("iniobj checkdiscr dobj_129__NLET_BINDINGS", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_129__NLET_BINDINGS.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_129__NLET_BINDINGS.obj_num = 1;
-  cdat->dobj_129__NLET_BINDINGS.obj_hash = 729042039;
+  cdat->dobj_129__NLET_BINDINGS.obj_hash = 829453891;
   cdat->dobj_129__NLET_BINDINGS.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_129__NLET_BINDINGS));
  
@@ -28389,7 +28389,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_131__NLET_BODY));
   melt_assertmsg("iniobj checkdiscr dobj_133__NLET_BODY", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_133__NLET_BODY.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_133__NLET_BODY.obj_num = 2;
-  cdat->dobj_133__NLET_BODY.obj_hash = 486016984;
+  cdat->dobj_133__NLET_BODY.obj_hash = 296202257;
   cdat->dobj_133__NLET_BODY.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_133__NLET_BODY));
  
@@ -28417,7 +28417,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_135__CLASS_NREP_LETREC));
   melt_assertmsg("iniobj checkdiscr dobj_137__CLASS_NREP_LETREC", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_137__CLASS_NREP_LETREC.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_137__CLASS_NREP_LETREC.obj_num = OBMAG_OBJECT;
-  cdat->dobj_137__CLASS_NREP_LETREC.obj_hash = 78372704;
+  cdat->dobj_137__CLASS_NREP_LETREC.obj_hash = 402473960;
   cdat->dobj_137__CLASS_NREP_LETREC.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_137__CLASS_NREP_LETREC));
  
@@ -28453,7 +28453,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_141__NLETREC_BINDINGS));
   melt_assertmsg("iniobj checkdiscr dobj_143__NLETREC_BINDINGS", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_143__NLETREC_BINDINGS.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_143__NLETREC_BINDINGS.obj_num = 3;
-  cdat->dobj_143__NLETREC_BINDINGS.obj_hash = 408230791;
+  cdat->dobj_143__NLETREC_BINDINGS.obj_hash = 62241041;
   cdat->dobj_143__NLETREC_BINDINGS.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_143__NLETREC_BINDINGS));
  
@@ -28481,7 +28481,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_145__NLETREC_LOCSYMS));
   melt_assertmsg("iniobj checkdiscr dobj_147__NLETREC_LOCSYMS", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_147__NLETREC_LOCSYMS.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_147__NLETREC_LOCSYMS.obj_num = 4;
-  cdat->dobj_147__NLETREC_LOCSYMS.obj_hash = 106000318;
+  cdat->dobj_147__NLETREC_LOCSYMS.obj_hash = 699820887;
   cdat->dobj_147__NLETREC_LOCSYMS.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_147__NLETREC_LOCSYMS));
  
@@ -28509,7 +28509,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_149__CLASS_NREP_RETURN));
   melt_assertmsg("iniobj checkdiscr dobj_151__CLASS_NREP_RETURN", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_151__CLASS_NREP_RETURN.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_151__CLASS_NREP_RETURN.obj_num = OBMAG_OBJECT;
-  cdat->dobj_151__CLASS_NREP_RETURN.obj_hash = 875224289;
+  cdat->dobj_151__CLASS_NREP_RETURN.obj_hash = 651160545;
   cdat->dobj_151__CLASS_NREP_RETURN.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_151__CLASS_NREP_RETURN));
  
@@ -28545,7 +28545,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_155__NRET_MAIN));
   melt_assertmsg("iniobj checkdiscr dobj_157__NRET_MAIN", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_157__NRET_MAIN.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_157__NRET_MAIN.obj_num = 1;
-  cdat->dobj_157__NRET_MAIN.obj_hash = 855869310;
+  cdat->dobj_157__NRET_MAIN.obj_hash = 449003867;
   cdat->dobj_157__NRET_MAIN.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_157__NRET_MAIN));
  
@@ -28573,7 +28573,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_159__NRET_REST));
   melt_assertmsg("iniobj checkdiscr dobj_161__NRET_REST", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_161__NRET_REST.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_161__NRET_REST.obj_num = 2;
-  cdat->dobj_161__NRET_REST.obj_hash = 568918646;
+  cdat->dobj_161__NRET_REST.obj_hash = 235070486;
   cdat->dobj_161__NRET_REST.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_161__NRET_REST));
  
@@ -28601,7 +28601,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_163__CLASS_NREP_IFCOMMON)
   melt_assertmsg("iniobj checkdiscr dobj_165__CLASS_NREP_IFCOMMON", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_165__CLASS_NREP_IFCOMMON.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_165__CLASS_NREP_IFCOMMON.obj_num = OBMAG_OBJECT;
-  cdat->dobj_165__CLASS_NREP_IFCOMMON.obj_hash = 918693502;
+  cdat->dobj_165__CLASS_NREP_IFCOMMON.obj_hash = 322903532;
   cdat->dobj_165__CLASS_NREP_IFCOMMON.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_165__CLASS_NREP_IFCOMMON));
  
@@ -28637,7 +28637,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_169__NIF_THEN));
   melt_assertmsg("iniobj checkdiscr dobj_171__NIF_THEN", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_171__NIF_THEN.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_171__NIF_THEN.obj_num = 2;
-  cdat->dobj_171__NIF_THEN.obj_hash = 492522360;
+  cdat->dobj_171__NIF_THEN.obj_hash = 284733976;
   cdat->dobj_171__NIF_THEN.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_171__NIF_THEN));
  
@@ -28665,7 +28665,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_173__NIF_ELSE));
   melt_assertmsg("iniobj checkdiscr dobj_175__NIF_ELSE", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_175__NIF_ELSE.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_175__NIF_ELSE.obj_num = 3;
-  cdat->dobj_175__NIF_ELSE.obj_hash = 711540026;
+  cdat->dobj_175__NIF_ELSE.obj_hash = 794524252;
   cdat->dobj_175__NIF_ELSE.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_175__NIF_ELSE));
  
@@ -28693,7 +28693,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_177__CLASS_NREP_IFISA));
   melt_assertmsg("iniobj checkdiscr dobj_179__CLASS_NREP_IFISA", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_179__CLASS_NREP_IFISA.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_179__CLASS_NREP_IFISA.obj_num = OBMAG_OBJECT;
-  cdat->dobj_179__CLASS_NREP_IFISA.obj_hash = 196796603;
+  cdat->dobj_179__CLASS_NREP_IFISA.obj_hash = 624818795;
   cdat->dobj_179__CLASS_NREP_IFISA.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_179__CLASS_NREP_IFISA));
  
@@ -28729,7 +28729,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_183__NIFA_VAL));
   melt_assertmsg("iniobj checkdiscr dobj_185__NIFA_VAL", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_185__NIFA_VAL.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_185__NIFA_VAL.obj_num = 4;
-  cdat->dobj_185__NIFA_VAL.obj_hash = 888164061;
+  cdat->dobj_185__NIFA_VAL.obj_hash = 857553196;
   cdat->dobj_185__NIFA_VAL.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_185__NIFA_VAL));
  
@@ -28757,7 +28757,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_187__NIFA_CLASS));
   melt_assertmsg("iniobj checkdiscr dobj_189__NIFA_CLASS", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_189__NIFA_CLASS.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_189__NIFA_CLASS.obj_num = 5;
-  cdat->dobj_189__NIFA_CLASS.obj_hash = 1038485118;
+  cdat->dobj_189__NIFA_CLASS.obj_hash = 982906350;
   cdat->dobj_189__NIFA_CLASS.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_189__NIFA_CLASS));
  
@@ -28785,7 +28785,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_191__CLASS_NREP_IF));
   melt_assertmsg("iniobj checkdiscr dobj_193__CLASS_NREP_IF", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_193__CLASS_NREP_IF.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_193__CLASS_NREP_IF.obj_num = OBMAG_OBJECT;
-  cdat->dobj_193__CLASS_NREP_IF.obj_hash = 688658474;
+  cdat->dobj_193__CLASS_NREP_IF.obj_hash = 291393377;
   cdat->dobj_193__CLASS_NREP_IF.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_193__CLASS_NREP_IF));
  
@@ -28821,7 +28821,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_197__NIF_TEST));
   melt_assertmsg("iniobj checkdiscr dobj_199__NIF_TEST", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_199__NIF_TEST.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_199__NIF_TEST.obj_num = 4;
-  cdat->dobj_199__NIF_TEST.obj_hash = 907483698;
+  cdat->dobj_199__NIF_TEST.obj_hash = 257929343;
   cdat->dobj_199__NIF_TEST.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_199__NIF_TEST));
  
@@ -28849,7 +28849,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_201__CLASS_NREP_CPPIF));
   melt_assertmsg("iniobj checkdiscr dobj_203__CLASS_NREP_CPPIF", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_203__CLASS_NREP_CPPIF.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_203__CLASS_NREP_CPPIF.obj_num = OBMAG_OBJECT;
-  cdat->dobj_203__CLASS_NREP_CPPIF.obj_hash = 607191862;
+  cdat->dobj_203__CLASS_NREP_CPPIF.obj_hash = 236860176;
   cdat->dobj_203__CLASS_NREP_CPPIF.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_203__CLASS_NREP_CPPIF));
  
@@ -28885,7 +28885,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_207__NIFP_COND));
   melt_assertmsg("iniobj checkdiscr dobj_209__NIFP_COND", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_209__NIFP_COND.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_209__NIFP_COND.obj_num = 1;
-  cdat->dobj_209__NIFP_COND.obj_hash = 539603204;
+  cdat->dobj_209__NIFP_COND.obj_hash = 1029418248;
   cdat->dobj_209__NIFP_COND.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_209__NIFP_COND));
  
@@ -28913,7 +28913,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_211__NIFP_THEN));
   melt_assertmsg("iniobj checkdiscr dobj_213__NIFP_THEN", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_213__NIFP_THEN.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_213__NIFP_THEN.obj_num = 2;
-  cdat->dobj_213__NIFP_THEN.obj_hash = 69295222;
+  cdat->dobj_213__NIFP_THEN.obj_hash = 155518923;
   cdat->dobj_213__NIFP_THEN.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_213__NIFP_THEN));
  
@@ -28941,7 +28941,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_215__NIFP_ELSE));
   melt_assertmsg("iniobj checkdiscr dobj_217__NIFP_ELSE", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_217__NIFP_ELSE.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_217__NIFP_ELSE.obj_num = 3;
-  cdat->dobj_217__NIFP_ELSE.obj_hash = 998679488;
+  cdat->dobj_217__NIFP_ELSE.obj_hash = 367243371;
   cdat->dobj_217__NIFP_ELSE.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_217__NIFP_ELSE));
  
@@ -28969,7 +28969,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_219__NIFP_CTYP));
   melt_assertmsg("iniobj checkdiscr dobj_221__NIFP_CTYP", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_221__NIFP_CTYP.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_221__NIFP_CTYP.obj_num = 4;
-  cdat->dobj_221__NIFP_CTYP.obj_hash = 168900236;
+  cdat->dobj_221__NIFP_CTYP.obj_hash = 997473421;
   cdat->dobj_221__NIFP_CTYP.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_221__NIFP_CTYP));
  
@@ -28997,7 +28997,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_223__CLASS_NREP_PROGN));
   melt_assertmsg("iniobj checkdiscr dobj_225__CLASS_NREP_PROGN", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_225__CLASS_NREP_PROGN.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_225__CLASS_NREP_PROGN.obj_num = OBMAG_OBJECT;
-  cdat->dobj_225__CLASS_NREP_PROGN.obj_hash = 1071720482;
+  cdat->dobj_225__CLASS_NREP_PROGN.obj_hash = 370577519;
   cdat->dobj_225__CLASS_NREP_PROGN.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_225__CLASS_NREP_PROGN));
  
@@ -29033,7 +29033,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_229__NPROGN_SEQ));
   melt_assertmsg("iniobj checkdiscr dobj_231__NPROGN_SEQ", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_231__NPROGN_SEQ.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_231__NPROGN_SEQ.obj_num = 1;
-  cdat->dobj_231__NPROGN_SEQ.obj_hash = 103064682;
+  cdat->dobj_231__NPROGN_SEQ.obj_hash = 839576454;
   cdat->dobj_231__NPROGN_SEQ.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_231__NPROGN_SEQ));
  
@@ -29061,7 +29061,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_233__NPROGN_LAST));
   melt_assertmsg("iniobj checkdiscr dobj_235__NPROGN_LAST", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_235__NPROGN_LAST.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_235__NPROGN_LAST.obj_num = 2;
-  cdat->dobj_235__NPROGN_LAST.obj_hash = 148190345;
+  cdat->dobj_235__NPROGN_LAST.obj_hash = 89882785;
   cdat->dobj_235__NPROGN_LAST.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_235__NPROGN_LAST));
  
@@ -29089,7 +29089,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_237__CLASS_NREP_UNSAFE_GE
   melt_assertmsg("iniobj checkdiscr dobj_239__CLASS_NREP_UNSAFE_GET_FIELD", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_239__CLASS_NREP_UNSAFE_GET_FIELD.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_239__CLASS_NREP_UNSAFE_GET_FIELD.obj_num = OBMAG_OBJECT;
-  cdat->dobj_239__CLASS_NREP_UNSAFE_GET_FIELD.obj_hash = 227579694;
+  cdat->dobj_239__CLASS_NREP_UNSAFE_GET_FIELD.obj_hash = 880663402;
   cdat->dobj_239__CLASS_NREP_UNSAFE_GET_FIELD.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_239__CLASS_NREP_UNSAFE_GET_FIELD));
  
@@ -29125,7 +29125,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_243__NUGET_OBJ));
   melt_assertmsg("iniobj checkdiscr dobj_245__NUGET_OBJ", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_245__NUGET_OBJ.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_245__NUGET_OBJ.obj_num = 1;
-  cdat->dobj_245__NUGET_OBJ.obj_hash = 918285689;
+  cdat->dobj_245__NUGET_OBJ.obj_hash = 648339583;
   cdat->dobj_245__NUGET_OBJ.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_245__NUGET_OBJ));
  
@@ -29153,7 +29153,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_247__NUGET_FIELD));
   melt_assertmsg("iniobj checkdiscr dobj_249__NUGET_FIELD", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_249__NUGET_FIELD.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_249__NUGET_FIELD.obj_num = 2;
-  cdat->dobj_249__NUGET_FIELD.obj_hash = 619004237;
+  cdat->dobj_249__NUGET_FIELD.obj_hash = 561614680;
   cdat->dobj_249__NUGET_FIELD.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_249__NUGET_FIELD));
  
@@ -29181,7 +29181,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_251__CLASS_NREP_UNSAFE_PU
   melt_assertmsg("iniobj checkdiscr dobj_253__CLASS_NREP_UNSAFE_PUT_FIELDS", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_253__CLASS_NREP_UNSAFE_PUT_FIELDS.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_253__CLASS_NREP_UNSAFE_PUT_FIELDS.obj_num = OBMAG_OBJECT;
-  cdat->dobj_253__CLASS_NREP_UNSAFE_PUT_FIELDS.obj_hash = 258961485;
+  cdat->dobj_253__CLASS_NREP_UNSAFE_PUT_FIELDS.obj_hash = 701716425;
   cdat->dobj_253__CLASS_NREP_UNSAFE_PUT_FIELDS.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_253__CLASS_NREP_UNSAFE_PUT_FIELDS));
  
@@ -29217,7 +29217,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_257__NUPUT_OBJ));
   melt_assertmsg("iniobj checkdiscr dobj_259__NUPUT_OBJ", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_259__NUPUT_OBJ.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_259__NUPUT_OBJ.obj_num = 1;
-  cdat->dobj_259__NUPUT_OBJ.obj_hash = 15234023;
+  cdat->dobj_259__NUPUT_OBJ.obj_hash = 83265893;
   cdat->dobj_259__NUPUT_OBJ.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_259__NUPUT_OBJ));
  
@@ -29245,7 +29245,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_261__NUPUT_FIELDS));
   melt_assertmsg("iniobj checkdiscr dobj_263__NUPUT_FIELDS", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_263__NUPUT_FIELDS.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_263__NUPUT_FIELDS.obj_num = 2;
-  cdat->dobj_263__NUPUT_FIELDS.obj_hash = 1045723334;
+  cdat->dobj_263__NUPUT_FIELDS.obj_hash = 934108329;
   cdat->dobj_263__NUPUT_FIELDS.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_263__NUPUT_FIELDS));
  
@@ -29273,7 +29273,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_265__CLASS_NREP_SETQ));
   melt_assertmsg("iniobj checkdiscr dobj_267__CLASS_NREP_SETQ", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_267__CLASS_NREP_SETQ.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_267__CLASS_NREP_SETQ.obj_num = OBMAG_OBJECT;
-  cdat->dobj_267__CLASS_NREP_SETQ.obj_hash = 271964479;
+  cdat->dobj_267__CLASS_NREP_SETQ.obj_hash = 1035100080;
   cdat->dobj_267__CLASS_NREP_SETQ.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_267__CLASS_NREP_SETQ));
  
@@ -29309,7 +29309,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_271__NSTQ_VAR));
   melt_assertmsg("iniobj checkdiscr dobj_273__NSTQ_VAR", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_273__NSTQ_VAR.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_273__NSTQ_VAR.obj_num = 1;
-  cdat->dobj_273__NSTQ_VAR.obj_hash = 986071383;
+  cdat->dobj_273__NSTQ_VAR.obj_hash = 671252398;
   cdat->dobj_273__NSTQ_VAR.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_273__NSTQ_VAR));
  
@@ -29337,7 +29337,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_275__NSTQ_EXP));
   melt_assertmsg("iniobj checkdiscr dobj_277__NSTQ_EXP", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_277__NSTQ_EXP.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_277__NSTQ_EXP.obj_num = 2;
-  cdat->dobj_277__NSTQ_EXP.obj_hash = 268803421;
+  cdat->dobj_277__NSTQ_EXP.obj_hash = 364292168;
   cdat->dobj_277__NSTQ_EXP.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_277__NSTQ_EXP));
  
@@ -29365,7 +29365,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_279__CLASS_NREP_FOREVER))
   melt_assertmsg("iniobj checkdiscr dobj_281__CLASS_NREP_FOREVER", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_281__CLASS_NREP_FOREVER.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_281__CLASS_NREP_FOREVER.obj_num = OBMAG_OBJECT;
-  cdat->dobj_281__CLASS_NREP_FOREVER.obj_hash = 84670314;
+  cdat->dobj_281__CLASS_NREP_FOREVER.obj_hash = 61109779;
   cdat->dobj_281__CLASS_NREP_FOREVER.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_281__CLASS_NREP_FOREVER));
  
@@ -29401,7 +29401,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_285__NFOREVER_BIND));
   melt_assertmsg("iniobj checkdiscr dobj_287__NFOREVER_BIND", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_287__NFOREVER_BIND.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_287__NFOREVER_BIND.obj_num = 1;
-  cdat->dobj_287__NFOREVER_BIND.obj_hash = 454499475;
+  cdat->dobj_287__NFOREVER_BIND.obj_hash = 1032089576;
   cdat->dobj_287__NFOREVER_BIND.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_287__NFOREVER_BIND));
  
@@ -29429,7 +29429,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_289__NFOREVER_BODY));
   melt_assertmsg("iniobj checkdiscr dobj_291__NFOREVER_BODY", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_291__NFOREVER_BODY.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_291__NFOREVER_BODY.obj_num = 2;
-  cdat->dobj_291__NFOREVER_BODY.obj_hash = 332943604;
+  cdat->dobj_291__NFOREVER_BODY.obj_hash = 904022660;
   cdat->dobj_291__NFOREVER_BODY.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_291__NFOREVER_BODY));
  
@@ -29457,7 +29457,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_293__NFOREVER_RESULT));
   melt_assertmsg("iniobj checkdiscr dobj_295__NFOREVER_RESULT", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_295__NFOREVER_RESULT.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_295__NFOREVER_RESULT.obj_num = 3;
-  cdat->dobj_295__NFOREVER_RESULT.obj_hash = 934702981;
+  cdat->dobj_295__NFOREVER_RESULT.obj_hash = 811878444;
   cdat->dobj_295__NFOREVER_RESULT.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_295__NFOREVER_RESULT));
  
@@ -29485,7 +29485,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_297__CLASS_NREP_EXIT));
   melt_assertmsg("iniobj checkdiscr dobj_299__CLASS_NREP_EXIT", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_299__CLASS_NREP_EXIT.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_299__CLASS_NREP_EXIT.obj_num = OBMAG_OBJECT;
-  cdat->dobj_299__CLASS_NREP_EXIT.obj_hash = 122261123;
+  cdat->dobj_299__CLASS_NREP_EXIT.obj_hash = 357183805;
   cdat->dobj_299__CLASS_NREP_EXIT.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_299__CLASS_NREP_EXIT));
  
@@ -29521,7 +29521,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_303__NEXIT_BIND));
   melt_assertmsg("iniobj checkdiscr dobj_305__NEXIT_BIND", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_305__NEXIT_BIND.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_305__NEXIT_BIND.obj_num = 1;
-  cdat->dobj_305__NEXIT_BIND.obj_hash = 495621732;
+  cdat->dobj_305__NEXIT_BIND.obj_hash = 816463521;
   cdat->dobj_305__NEXIT_BIND.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_305__NEXIT_BIND));
  
@@ -29549,7 +29549,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_307__NEXIT_VAL));
   melt_assertmsg("iniobj checkdiscr dobj_309__NEXIT_VAL", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_309__NEXIT_VAL.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_309__NEXIT_VAL.obj_num = 2;
-  cdat->dobj_309__NEXIT_VAL.obj_hash = 443092185;
+  cdat->dobj_309__NEXIT_VAL.obj_hash = 446559236;
   cdat->dobj_309__NEXIT_VAL.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_309__NEXIT_VAL));
  
@@ -29577,7 +29577,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_311__CLASS_NREP_FIELDASSI
   melt_assertmsg("iniobj checkdiscr dobj_313__CLASS_NREP_FIELDASSIGN", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_313__CLASS_NREP_FIELDASSIGN.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_313__CLASS_NREP_FIELDASSIGN.obj_num = OBMAG_OBJECT;
-  cdat->dobj_313__CLASS_NREP_FIELDASSIGN.obj_hash = 117410786;
+  cdat->dobj_313__CLASS_NREP_FIELDASSIGN.obj_hash = 455522750;
   cdat->dobj_313__CLASS_NREP_FIELDASSIGN.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_313__CLASS_NREP_FIELDASSIGN));
  
@@ -29613,7 +29613,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_317__NFLA_FIELD));
   melt_assertmsg("iniobj checkdiscr dobj_319__NFLA_FIELD", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_319__NFLA_FIELD.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_319__NFLA_FIELD.obj_num = 1;
-  cdat->dobj_319__NFLA_FIELD.obj_hash = 871387075;
+  cdat->dobj_319__NFLA_FIELD.obj_hash = 554184902;
   cdat->dobj_319__NFLA_FIELD.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_319__NFLA_FIELD));
  
@@ -29641,7 +29641,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_321__NFLA_VAL));
   melt_assertmsg("iniobj checkdiscr dobj_323__NFLA_VAL", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_323__NFLA_VAL.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_323__NFLA_VAL.obj_num = 2;
-  cdat->dobj_323__NFLA_VAL.obj_hash = 640247906;
+  cdat->dobj_323__NFLA_VAL.obj_hash = 268728751;
   cdat->dobj_323__NFLA_VAL.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_323__NFLA_VAL));
  
@@ -29669,7 +29669,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_325__CLASS_NREP_INSTANCE)
   melt_assertmsg("iniobj checkdiscr dobj_327__CLASS_NREP_INSTANCE", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_327__CLASS_NREP_INSTANCE.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_327__CLASS_NREP_INSTANCE.obj_num = OBMAG_OBJECT;
-  cdat->dobj_327__CLASS_NREP_INSTANCE.obj_hash = 466139418;
+  cdat->dobj_327__CLASS_NREP_INSTANCE.obj_hash = 643138286;
   cdat->dobj_327__CLASS_NREP_INSTANCE.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_327__CLASS_NREP_INSTANCE));
  
@@ -29705,7 +29705,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_331__NMINS_CLASS));
   melt_assertmsg("iniobj checkdiscr dobj_333__NMINS_CLASS", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_333__NMINS_CLASS.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_333__NMINS_CLASS.obj_num = 1;
-  cdat->dobj_333__NMINS_CLASS.obj_hash = 525666984;
+  cdat->dobj_333__NMINS_CLASS.obj_hash = 610259253;
   cdat->dobj_333__NMINS_CLASS.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_333__NMINS_CLASS));
  
@@ -29733,7 +29733,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_335__NMINS_CLADATA));
   melt_assertmsg("iniobj checkdiscr dobj_337__NMINS_CLADATA", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_337__NMINS_CLADATA.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_337__NMINS_CLADATA.obj_num = 2;
-  cdat->dobj_337__NMINS_CLADATA.obj_hash = 720306009;
+  cdat->dobj_337__NMINS_CLADATA.obj_hash = 894601520;
   cdat->dobj_337__NMINS_CLADATA.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_337__NMINS_CLADATA));
  
@@ -29761,7 +29761,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_339__NMINS_FIELDS));
   melt_assertmsg("iniobj checkdiscr dobj_341__NMINS_FIELDS", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_341__NMINS_FIELDS.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_341__NMINS_FIELDS.obj_num = 3;
-  cdat->dobj_341__NMINS_FIELDS.obj_hash = 332692423;
+  cdat->dobj_341__NMINS_FIELDS.obj_hash = 793203126;
   cdat->dobj_341__NMINS_FIELDS.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_341__NMINS_FIELDS));
  
@@ -29789,7 +29789,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_343__CLASS_NREP_LAMBDA));
   melt_assertmsg("iniobj checkdiscr dobj_345__CLASS_NREP_LAMBDA", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_345__CLASS_NREP_LAMBDA.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_345__CLASS_NREP_LAMBDA.obj_num = OBMAG_OBJECT;
-  cdat->dobj_345__CLASS_NREP_LAMBDA.obj_hash = 1025815105;
+  cdat->dobj_345__CLASS_NREP_LAMBDA.obj_hash = 651865312;
   cdat->dobj_345__CLASS_NREP_LAMBDA.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_345__CLASS_NREP_LAMBDA));
  
@@ -29825,7 +29825,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_349__NLAMBDA_PROC));
   melt_assertmsg("iniobj checkdiscr dobj_351__NLAMBDA_PROC", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_351__NLAMBDA_PROC.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_351__NLAMBDA_PROC.obj_num = 1;
-  cdat->dobj_351__NLAMBDA_PROC.obj_hash = 53944436;
+  cdat->dobj_351__NLAMBDA_PROC.obj_hash = 683233410;
   cdat->dobj_351__NLAMBDA_PROC.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_351__NLAMBDA_PROC));
  
@@ -29853,7 +29853,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_353__NLAMBDA_CONSTROUT));
   melt_assertmsg("iniobj checkdiscr dobj_355__NLAMBDA_CONSTROUT", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_355__NLAMBDA_CONSTROUT.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_355__NLAMBDA_CONSTROUT.obj_num = 2;
-  cdat->dobj_355__NLAMBDA_CONSTROUT.obj_hash = 80928493;
+  cdat->dobj_355__NLAMBDA_CONSTROUT.obj_hash = 891222633;
   cdat->dobj_355__NLAMBDA_CONSTROUT.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_355__NLAMBDA_CONSTROUT));
  
@@ -29881,7 +29881,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_357__NLAMBDA_CLOSEDV));
   melt_assertmsg("iniobj checkdiscr dobj_359__NLAMBDA_CLOSEDV", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_359__NLAMBDA_CLOSEDV.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_359__NLAMBDA_CLOSEDV.obj_num = 3;
-  cdat->dobj_359__NLAMBDA_CLOSEDV.obj_hash = 166153282;
+  cdat->dobj_359__NLAMBDA_CLOSEDV.obj_hash = 253993105;
   cdat->dobj_359__NLAMBDA_CLOSEDV.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_359__NLAMBDA_CLOSEDV));
  
@@ -29909,7 +29909,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_361__CLASS_NREP_CITERATIO
   melt_assertmsg("iniobj checkdiscr dobj_363__CLASS_NREP_CITERATION", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_363__CLASS_NREP_CITERATION.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_363__CLASS_NREP_CITERATION.obj_num = OBMAG_OBJECT;
-  cdat->dobj_363__CLASS_NREP_CITERATION.obj_hash = 439250461;
+  cdat->dobj_363__CLASS_NREP_CITERATION.obj_hash = 548853167;
   cdat->dobj_363__CLASS_NREP_CITERATION.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_363__CLASS_NREP_CITERATION));
  
@@ -29945,7 +29945,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_367__NCITER_CITERATOR));
   melt_assertmsg("iniobj checkdiscr dobj_369__NCITER_CITERATOR", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_369__NCITER_CITERATOR.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_369__NCITER_CITERATOR.obj_num = 1;
-  cdat->dobj_369__NCITER_CITERATOR.obj_hash = 87764828;
+  cdat->dobj_369__NCITER_CITERATOR.obj_hash = 708895846;
   cdat->dobj_369__NCITER_CITERATOR.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_369__NCITER_CITERATOR));
  
@@ -29973,7 +29973,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_371__NCITER_CHUNKBEFORE))
   melt_assertmsg("iniobj checkdiscr dobj_373__NCITER_CHUNKBEFORE", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_373__NCITER_CHUNKBEFORE.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_373__NCITER_CHUNKBEFORE.obj_num = 2;
-  cdat->dobj_373__NCITER_CHUNKBEFORE.obj_hash = 811585822;
+  cdat->dobj_373__NCITER_CHUNKBEFORE.obj_hash = 706269309;
   cdat->dobj_373__NCITER_CHUNKBEFORE.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_373__NCITER_CHUNKBEFORE));
  
@@ -30001,7 +30001,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_375__NCITER_CHUNKAFTER));
   melt_assertmsg("iniobj checkdiscr dobj_377__NCITER_CHUNKAFTER", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_377__NCITER_CHUNKAFTER.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_377__NCITER_CHUNKAFTER.obj_num = 3;
-  cdat->dobj_377__NCITER_CHUNKAFTER.obj_hash = 115449589;
+  cdat->dobj_377__NCITER_CHUNKAFTER.obj_hash = 148778701;
   cdat->dobj_377__NCITER_CHUNKAFTER.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_377__NCITER_CHUNKAFTER));
  
@@ -30029,7 +30029,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_379__NCITER_BODY));
   melt_assertmsg("iniobj checkdiscr dobj_381__NCITER_BODY", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_381__NCITER_BODY.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_381__NCITER_BODY.obj_num = 4;
-  cdat->dobj_381__NCITER_BODY.obj_hash = 31520439;
+  cdat->dobj_381__NCITER_BODY.obj_hash = 241679327;
   cdat->dobj_381__NCITER_BODY.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_381__NCITER_BODY));
  
@@ -30057,7 +30057,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_383__NCITER_STATOCC));
   melt_assertmsg("iniobj checkdiscr dobj_385__NCITER_STATOCC", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_385__NCITER_STATOCC.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_385__NCITER_STATOCC.obj_num = 5;
-  cdat->dobj_385__NCITER_STATOCC.obj_hash = 227160826;
+  cdat->dobj_385__NCITER_STATOCC.obj_hash = 961485196;
   cdat->dobj_385__NCITER_STATOCC.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_385__NCITER_STATOCC));
  
@@ -30085,7 +30085,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_387__NCITER_LOCBINDINGS))
   melt_assertmsg("iniobj checkdiscr dobj_389__NCITER_LOCBINDINGS", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_389__NCITER_LOCBINDINGS.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_389__NCITER_LOCBINDINGS.obj_num = 6;
-  cdat->dobj_389__NCITER_LOCBINDINGS.obj_hash = 950831498;
+  cdat->dobj_389__NCITER_LOCBINDINGS.obj_hash = 627565385;
   cdat->dobj_389__NCITER_LOCBINDINGS.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_389__NCITER_LOCBINDINGS));
  
@@ -30113,7 +30113,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_391__NCITER_BODBINDINGS))
   melt_assertmsg("iniobj checkdiscr dobj_393__NCITER_BODBINDINGS", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_393__NCITER_BODBINDINGS.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_393__NCITER_BODBINDINGS.obj_num = 7;
-  cdat->dobj_393__NCITER_BODBINDINGS.obj_hash = 1037697817;
+  cdat->dobj_393__NCITER_BODBINDINGS.obj_hash = 995091084;
   cdat->dobj_393__NCITER_BODBINDINGS.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_393__NCITER_BODBINDINGS));
  
@@ -30141,7 +30141,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_395__CLASS_NREP_TESTS));
   melt_assertmsg("iniobj checkdiscr dobj_397__CLASS_NREP_TESTS", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_397__CLASS_NREP_TESTS.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_397__CLASS_NREP_TESTS.obj_num = OBMAG_OBJECT;
-  cdat->dobj_397__CLASS_NREP_TESTS.obj_hash = 720411685;
+  cdat->dobj_397__CLASS_NREP_TESTS.obj_hash = 443185496;
   cdat->dobj_397__CLASS_NREP_TESTS.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_397__CLASS_NREP_TESTS));
  
@@ -30177,7 +30177,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_401__NTESTS_TESTSEQ));
   melt_assertmsg("iniobj checkdiscr dobj_403__NTESTS_TESTSEQ", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_403__NTESTS_TESTSEQ.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_403__NTESTS_TESTSEQ.obj_num = 1;
-  cdat->dobj_403__NTESTS_TESTSEQ.obj_hash = 599457648;
+  cdat->dobj_403__NTESTS_TESTSEQ.obj_hash = 742086153;
   cdat->dobj_403__NTESTS_TESTSEQ.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_403__NTESTS_TESTSEQ));
  
@@ -30218,7 +30218,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_407__CLASS_ANY_BINDING));
   melt_assertmsg("iniobj checkdiscr dobj_409__CLASS_NORMAL_CONSTRUCTOR_BINDING", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_409__CLASS_NORMAL_CONSTRUCTOR_BINDING.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_409__CLASS_NORMAL_CONSTRUCTOR_BINDING.obj_num = OBMAG_OBJECT;
-  cdat->dobj_409__CLASS_NORMAL_CONSTRUCTOR_BINDING.obj_hash = 725546635;
+  cdat->dobj_409__CLASS_NORMAL_CONSTRUCTOR_BINDING.obj_hash = 350914290;
   cdat->dobj_409__CLASS_NORMAL_CONSTRUCTOR_BINDING.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_409__CLASS_NORMAL_CONSTRUCTOR_BINDING));
  
@@ -30254,7 +30254,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_413__NCONSB_LOC));
   melt_assertmsg("iniobj checkdiscr dobj_415__NCONSB_LOC", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_415__NCONSB_LOC.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_415__NCONSB_LOC.obj_num = 1;
-  cdat->dobj_415__NCONSB_LOC.obj_hash = 722712798;
+  cdat->dobj_415__NCONSB_LOC.obj_hash = 242007376;
   cdat->dobj_415__NCONSB_LOC.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_415__NCONSB_LOC));
  
@@ -30282,7 +30282,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_417__NCONSB_DISCR));
   melt_assertmsg("iniobj checkdiscr dobj_419__NCONSB_DISCR", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_419__NCONSB_DISCR.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_419__NCONSB_DISCR.obj_num = 2;
-  cdat->dobj_419__NCONSB_DISCR.obj_hash = 795561418;
+  cdat->dobj_419__NCONSB_DISCR.obj_hash = 813695083;
   cdat->dobj_419__NCONSB_DISCR.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_419__NCONSB_DISCR));
  
@@ -30310,7 +30310,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_421__NCONSB_NLETREC));
   melt_assertmsg("iniobj checkdiscr dobj_423__NCONSB_NLETREC", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_423__NCONSB_NLETREC.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_423__NCONSB_NLETREC.obj_num = 3;
-  cdat->dobj_423__NCONSB_NLETREC.obj_hash = 1049581784;
+  cdat->dobj_423__NCONSB_NLETREC.obj_hash = 636117811;
   cdat->dobj_423__NCONSB_NLETREC.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_423__NCONSB_NLETREC));
  
@@ -30338,7 +30338,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_425__CLASS_NORMAL_CONSTRU
   melt_assertmsg("iniobj checkdiscr dobj_427__CLASS_NORMAL_CONSTRUCTED_TUPLE_BINDING", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_427__CLASS_NORMAL_CONSTRUCTED_TUPLE_BINDING.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_427__CLASS_NORMAL_CONSTRUCTED_TUPLE_BINDING.obj_num = OBMAG_OBJECT;
-  cdat->dobj_427__CLASS_NORMAL_CONSTRUCTED_TUPLE_BINDING.obj_hash = 935696444;
+  cdat->dobj_427__CLASS_NORMAL_CONSTRUCTED_TUPLE_BINDING.obj_hash = 297304159;
   cdat->dobj_427__CLASS_NORMAL_CONSTRUCTED_TUPLE_BINDING.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_427__CLASS_NORMAL_CONSTRUCTED_TUPLE_BINDING));
  
@@ -30374,7 +30374,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_431__NTUPB_COMP));
   melt_assertmsg("iniobj checkdiscr dobj_433__NTUPB_COMP", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_433__NTUPB_COMP.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_433__NTUPB_COMP.obj_num = 4;
-  cdat->dobj_433__NTUPB_COMP.obj_hash = 869750419;
+  cdat->dobj_433__NTUPB_COMP.obj_hash = 575688525;
   cdat->dobj_433__NTUPB_COMP.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_433__NTUPB_COMP));
  
@@ -30402,7 +30402,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_435__CLASS_NORMAL_CONSTRU
   melt_assertmsg("iniobj checkdiscr dobj_437__CLASS_NORMAL_CONSTRUCTED_PAIR_BINDING", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_437__CLASS_NORMAL_CONSTRUCTED_PAIR_BINDING.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_437__CLASS_NORMAL_CONSTRUCTED_PAIR_BINDING.obj_num = OBMAG_OBJECT;
-  cdat->dobj_437__CLASS_NORMAL_CONSTRUCTED_PAIR_BINDING.obj_hash = 560479885;
+  cdat->dobj_437__CLASS_NORMAL_CONSTRUCTED_PAIR_BINDING.obj_hash = 254616429;
   cdat->dobj_437__CLASS_NORMAL_CONSTRUCTED_PAIR_BINDING.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_437__CLASS_NORMAL_CONSTRUCTED_PAIR_BINDING));
  
@@ -30438,7 +30438,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_441__NPAIRB_HEAD));
   melt_assertmsg("iniobj checkdiscr dobj_443__NPAIRB_HEAD", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_443__NPAIRB_HEAD.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_443__NPAIRB_HEAD.obj_num = 4;
-  cdat->dobj_443__NPAIRB_HEAD.obj_hash = 527767541;
+  cdat->dobj_443__NPAIRB_HEAD.obj_hash = 733854815;
   cdat->dobj_443__NPAIRB_HEAD.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_443__NPAIRB_HEAD));
  
@@ -30466,7 +30466,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_445__NPAIRB_TAIL));
   melt_assertmsg("iniobj checkdiscr dobj_447__NPAIRB_TAIL", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_447__NPAIRB_TAIL.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_447__NPAIRB_TAIL.obj_num = 5;
-  cdat->dobj_447__NPAIRB_TAIL.obj_hash = 596135003;
+  cdat->dobj_447__NPAIRB_TAIL.obj_hash = 576198957;
   cdat->dobj_447__NPAIRB_TAIL.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_447__NPAIRB_TAIL));
  
@@ -30494,7 +30494,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_449__CLASS_NORMAL_CONSTRU
   melt_assertmsg("iniobj checkdiscr dobj_451__CLASS_NORMAL_CONSTRUCTED_LIST_BINDING", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_451__CLASS_NORMAL_CONSTRUCTED_LIST_BINDING.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_451__CLASS_NORMAL_CONSTRUCTED_LIST_BINDING.obj_num = OBMAG_OBJECT;
-  cdat->dobj_451__CLASS_NORMAL_CONSTRUCTED_LIST_BINDING.obj_hash = 590967524;
+  cdat->dobj_451__CLASS_NORMAL_CONSTRUCTED_LIST_BINDING.obj_hash = 27635049;
   cdat->dobj_451__CLASS_NORMAL_CONSTRUCTED_LIST_BINDING.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_451__CLASS_NORMAL_CONSTRUCTED_LIST_BINDING));
  
@@ -30530,7 +30530,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_455__NLISTB_FIRST));
   melt_assertmsg("iniobj checkdiscr dobj_457__NLISTB_FIRST", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_457__NLISTB_FIRST.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_457__NLISTB_FIRST.obj_num = 4;
-  cdat->dobj_457__NLISTB_FIRST.obj_hash = 377489736;
+  cdat->dobj_457__NLISTB_FIRST.obj_hash = 956465877;
   cdat->dobj_457__NLISTB_FIRST.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_457__NLISTB_FIRST));
  
@@ -30558,7 +30558,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_459__NLISTB_LAST));
   melt_assertmsg("iniobj checkdiscr dobj_461__NLISTB_LAST", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_461__NLISTB_LAST.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_461__NLISTB_LAST.obj_num = 5;
-  cdat->dobj_461__NLISTB_LAST.obj_hash = 290328059;
+  cdat->dobj_461__NLISTB_LAST.obj_hash = 988005937;
   cdat->dobj_461__NLISTB_LAST.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_461__NLISTB_LAST));
  
@@ -30586,7 +30586,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_463__NLISTB_PAIRSB));
   melt_assertmsg("iniobj checkdiscr dobj_465__NLISTB_PAIRSB", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_465__NLISTB_PAIRSB.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_465__NLISTB_PAIRSB.obj_num = 6;
-  cdat->dobj_465__NLISTB_PAIRSB.obj_hash = 519673533;
+  cdat->dobj_465__NLISTB_PAIRSB.obj_hash = 951932023;
   cdat->dobj_465__NLISTB_PAIRSB.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_465__NLISTB_PAIRSB));
  
@@ -30614,7 +30614,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_467__CLASS_NORMAL_CONSTRU
   melt_assertmsg("iniobj checkdiscr dobj_469__CLASS_NORMAL_CONSTRUCTED_LAMBDA_BINDING", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_469__CLASS_NORMAL_CONSTRUCTED_LAMBDA_BINDING.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_469__CLASS_NORMAL_CONSTRUCTED_LAMBDA_BINDING.obj_num = OBMAG_OBJECT;
-  cdat->dobj_469__CLASS_NORMAL_CONSTRUCTED_LAMBDA_BINDING.obj_hash = 95924277;
+  cdat->dobj_469__CLASS_NORMAL_CONSTRUCTED_LAMBDA_BINDING.obj_hash = 210527095;
   cdat->dobj_469__CLASS_NORMAL_CONSTRUCTED_LAMBDA_BINDING.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_469__CLASS_NORMAL_CONSTRUCTED_LAMBDA_BINDING));
  
@@ -30650,7 +30650,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_473__NLAMBDAB_NCLOSED));
   melt_assertmsg("iniobj checkdiscr dobj_475__NLAMBDAB_NCLOSED", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_475__NLAMBDAB_NCLOSED.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_475__NLAMBDAB_NCLOSED.obj_num = 4;
-  cdat->dobj_475__NLAMBDAB_NCLOSED.obj_hash = 271157376;
+  cdat->dobj_475__NLAMBDAB_NCLOSED.obj_hash = 511810250;
   cdat->dobj_475__NLAMBDAB_NCLOSED.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_475__NLAMBDAB_NCLOSED));
  
@@ -30678,7 +30678,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_477__NLAMBDAB_CONSTROUT))
   melt_assertmsg("iniobj checkdiscr dobj_479__NLAMBDAB_CONSTROUT", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_479__NLAMBDAB_CONSTROUT.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_479__NLAMBDAB_CONSTROUT.obj_num = 5;
-  cdat->dobj_479__NLAMBDAB_CONSTROUT.obj_hash = 956783247;
+  cdat->dobj_479__NLAMBDAB_CONSTROUT.obj_hash = 66283902;
   cdat->dobj_479__NLAMBDAB_CONSTROUT.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_479__NLAMBDAB_CONSTROUT));
  
@@ -30706,7 +30706,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_481__NLAMBDAB_DATAROUT));
   melt_assertmsg("iniobj checkdiscr dobj_483__NLAMBDAB_DATAROUT", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_483__NLAMBDAB_DATAROUT.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_483__NLAMBDAB_DATAROUT.obj_num = 6;
-  cdat->dobj_483__NLAMBDAB_DATAROUT.obj_hash = 385198109;
+  cdat->dobj_483__NLAMBDAB_DATAROUT.obj_hash = 197946909;
   cdat->dobj_483__NLAMBDAB_DATAROUT.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_483__NLAMBDAB_DATAROUT));
  
@@ -30734,7 +30734,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_485__CLASS_NORMAL_CONSTRU
   melt_assertmsg("iniobj checkdiscr dobj_487__CLASS_NORMAL_CONSTRUCTED_INSTANCE_BINDING", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_487__CLASS_NORMAL_CONSTRUCTED_INSTANCE_BINDING.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_487__CLASS_NORMAL_CONSTRUCTED_INSTANCE_BINDING.obj_num = OBMAG_OBJECT;
-  cdat->dobj_487__CLASS_NORMAL_CONSTRUCTED_INSTANCE_BINDING.obj_hash = 309247604;
+  cdat->dobj_487__CLASS_NORMAL_CONSTRUCTED_INSTANCE_BINDING.obj_hash = 611125609;
   cdat->dobj_487__CLASS_NORMAL_CONSTRUCTED_INSTANCE_BINDING.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_487__CLASS_NORMAL_CONSTRUCTED_INSTANCE_BINDING));
  
@@ -30770,7 +30770,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_491__NINSTB_SLOTS));
   melt_assertmsg("iniobj checkdiscr dobj_493__NINSTB_SLOTS", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_493__NINSTB_SLOTS.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_493__NINSTB_SLOTS.obj_num = 4;
-  cdat->dobj_493__NINSTB_SLOTS.obj_hash = 337148304;
+  cdat->dobj_493__NINSTB_SLOTS.obj_hash = 367548013;
   cdat->dobj_493__NINSTB_SLOTS.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_493__NINSTB_SLOTS));
  
@@ -30798,7 +30798,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_495__NINSTB_CLABIND));
   melt_assertmsg("iniobj checkdiscr dobj_497__NINSTB_CLABIND", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_497__NINSTB_CLABIND.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_497__NINSTB_CLABIND.obj_num = 5;
-  cdat->dobj_497__NINSTB_CLABIND.obj_hash = 451004937;
+  cdat->dobj_497__NINSTB_CLABIND.obj_hash = 760989379;
   cdat->dobj_497__NINSTB_CLABIND.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_497__NINSTB_CLABIND));
  
@@ -30826,7 +30826,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_499__CLASS_NREP_ANYPROC))
   melt_assertmsg("iniobj checkdiscr dobj_501__CLASS_NREP_ANYPROC", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_501__CLASS_NREP_ANYPROC.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_501__CLASS_NREP_ANYPROC.obj_num = OBMAG_OBJECT;
-  cdat->dobj_501__CLASS_NREP_ANYPROC.obj_hash = 899009385;
+  cdat->dobj_501__CLASS_NREP_ANYPROC.obj_hash = 881568857;
   cdat->dobj_501__CLASS_NREP_ANYPROC.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_501__CLASS_NREP_ANYPROC));
  
@@ -30862,7 +30862,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_505__NPROC_BODY));
   melt_assertmsg("iniobj checkdiscr dobj_507__NPROC_BODY", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_507__NPROC_BODY.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_507__NPROC_BODY.obj_num = 1;
-  cdat->dobj_507__NPROC_BODY.obj_hash = 890747287;
+  cdat->dobj_507__NPROC_BODY.obj_hash = 439632902;
   cdat->dobj_507__NPROC_BODY.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_507__NPROC_BODY));
  
@@ -30890,7 +30890,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_509__CLASS_NREP_INITPROC)
   melt_assertmsg("iniobj checkdiscr dobj_511__CLASS_NREP_INITPROC", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_511__CLASS_NREP_INITPROC.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_511__CLASS_NREP_INITPROC.obj_num = OBMAG_OBJECT;
-  cdat->dobj_511__CLASS_NREP_INITPROC.obj_hash = 546364611;
+  cdat->dobj_511__CLASS_NREP_INITPROC.obj_hash = 387246101;
   cdat->dobj_511__CLASS_NREP_INITPROC.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_511__CLASS_NREP_INITPROC));
  
@@ -30926,7 +30926,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_515__NINIT_TOPL));
   melt_assertmsg("iniobj checkdiscr dobj_517__NINIT_TOPL", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_517__NINIT_TOPL.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_517__NINIT_TOPL.obj_num = 2;
-  cdat->dobj_517__NINIT_TOPL.obj_hash = 941573522;
+  cdat->dobj_517__NINIT_TOPL.obj_hash = 835971584;
   cdat->dobj_517__NINIT_TOPL.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_517__NINIT_TOPL));
  
@@ -30954,7 +30954,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_519__CLASS_NREP_ROUTPROC)
   melt_assertmsg("iniobj checkdiscr dobj_521__CLASS_NREP_ROUTPROC", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_521__CLASS_NREP_ROUTPROC.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_521__CLASS_NREP_ROUTPROC.obj_num = OBMAG_OBJECT;
-  cdat->dobj_521__CLASS_NREP_ROUTPROC.obj_hash = 12654739;
+  cdat->dobj_521__CLASS_NREP_ROUTPROC.obj_hash = 383489163;
   cdat->dobj_521__CLASS_NREP_ROUTPROC.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_521__CLASS_NREP_ROUTPROC));
  
@@ -30990,7 +30990,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_525__NRPRO_NAME));
   melt_assertmsg("iniobj checkdiscr dobj_527__NRPRO_NAME", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_527__NRPRO_NAME.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_527__NRPRO_NAME.obj_num = 2;
-  cdat->dobj_527__NRPRO_NAME.obj_hash = 690180930;
+  cdat->dobj_527__NRPRO_NAME.obj_hash = 923412428;
   cdat->dobj_527__NRPRO_NAME.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_527__NRPRO_NAME));
  
@@ -31018,7 +31018,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_529__NRPRO_ARGB));
   melt_assertmsg("iniobj checkdiscr dobj_531__NRPRO_ARGB", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_531__NRPRO_ARGB.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_531__NRPRO_ARGB.obj_num = 3;
-  cdat->dobj_531__NRPRO_ARGB.obj_hash = 749796329;
+  cdat->dobj_531__NRPRO_ARGB.obj_hash = 745260987;
   cdat->dobj_531__NRPRO_ARGB.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_531__NRPRO_ARGB));
  
@@ -31046,7 +31046,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_533__NRPRO_CLOSEDB));
   melt_assertmsg("iniobj checkdiscr dobj_535__NRPRO_CLOSEDB", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_535__NRPRO_CLOSEDB.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_535__NRPRO_CLOSEDB.obj_num = 4;
-  cdat->dobj_535__NRPRO_CLOSEDB.obj_hash = 404435649;
+  cdat->dobj_535__NRPRO_CLOSEDB.obj_hash = 530483923;
   cdat->dobj_535__NRPRO_CLOSEDB.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_535__NRPRO_CLOSEDB));
  
@@ -31074,7 +31074,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_537__NRPRO_CONST));
   melt_assertmsg("iniobj checkdiscr dobj_539__NRPRO_CONST", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_539__NRPRO_CONST.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_539__NRPRO_CONST.obj_num = 5;
-  cdat->dobj_539__NRPRO_CONST.obj_hash = 14962889;
+  cdat->dobj_539__NRPRO_CONST.obj_hash = 199882761;
   cdat->dobj_539__NRPRO_CONST.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_539__NRPRO_CONST));
  
@@ -31102,7 +31102,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_541__NRPRO_DATAROUT));
   melt_assertmsg("iniobj checkdiscr dobj_543__NRPRO_DATAROUT", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_543__NRPRO_DATAROUT.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_543__NRPRO_DATAROUT.obj_num = 6;
-  cdat->dobj_543__NRPRO_DATAROUT.obj_hash = 282300987;
+  cdat->dobj_543__NRPRO_DATAROUT.obj_hash = 259143486;
   cdat->dobj_543__NRPRO_DATAROUT.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_543__NRPRO_DATAROUT));
  
@@ -31130,7 +31130,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_545__NRPRO_DATACLOS));
   melt_assertmsg("iniobj checkdiscr dobj_547__NRPRO_DATACLOS", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_547__NRPRO_DATACLOS.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_547__NRPRO_DATACLOS.obj_num = 7;
-  cdat->dobj_547__NRPRO_DATACLOS.obj_hash = 87841924;
+  cdat->dobj_547__NRPRO_DATACLOS.obj_hash = 212424608;
   cdat->dobj_547__NRPRO_DATACLOS.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_547__NRPRO_DATACLOS));
  
@@ -31158,7 +31158,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_549__NRPRO_THUNKLIST));
   melt_assertmsg("iniobj checkdiscr dobj_551__NRPRO_THUNKLIST", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_551__NRPRO_THUNKLIST.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_551__NRPRO_THUNKLIST.obj_num = 8;
-  cdat->dobj_551__NRPRO_THUNKLIST.obj_hash = 315870693;
+  cdat->dobj_551__NRPRO_THUNKLIST.obj_hash = 818095196;
   cdat->dobj_551__NRPRO_THUNKLIST.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_551__NRPRO_THUNKLIST));
  
@@ -31186,7 +31186,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_553__CLASS_NREP_LAMBDAROU
   melt_assertmsg("iniobj checkdiscr dobj_555__CLASS_NREP_LAMBDAROUTPROC", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_555__CLASS_NREP_LAMBDAROUTPROC.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_555__CLASS_NREP_LAMBDAROUTPROC.obj_num = OBMAG_OBJECT;
-  cdat->dobj_555__CLASS_NREP_LAMBDAROUTPROC.obj_hash = 556883943;
+  cdat->dobj_555__CLASS_NREP_LAMBDAROUTPROC.obj_hash = 555522799;
   cdat->dobj_555__CLASS_NREP_LAMBDAROUTPROC.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_555__CLASS_NREP_LAMBDAROUTPROC));
  
@@ -31222,7 +31222,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_559__CLASS_NREP_DEFUNROUT
   melt_assertmsg("iniobj checkdiscr dobj_561__CLASS_NREP_DEFUNROUTPROC", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_561__CLASS_NREP_DEFUNROUTPROC.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_561__CLASS_NREP_DEFUNROUTPROC.obj_num = OBMAG_OBJECT;
-  cdat->dobj_561__CLASS_NREP_DEFUNROUTPROC.obj_hash = 650129208;
+  cdat->dobj_561__CLASS_NREP_DEFUNROUTPROC.obj_hash = 1073498085;
   cdat->dobj_561__CLASS_NREP_DEFUNROUTPROC.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_561__CLASS_NREP_DEFUNROUTPROC));
  
@@ -31258,7 +31258,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_565__CLASS_NREP_PREDEF));
   melt_assertmsg("iniobj checkdiscr dobj_567__CLASS_NREP_PREDEF", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_567__CLASS_NREP_PREDEF.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_567__CLASS_NREP_PREDEF.obj_num = OBMAG_OBJECT;
-  cdat->dobj_567__CLASS_NREP_PREDEF.obj_hash = 877162349;
+  cdat->dobj_567__CLASS_NREP_PREDEF.obj_hash = 171725589;
   cdat->dobj_567__CLASS_NREP_PREDEF.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_567__CLASS_NREP_PREDEF));
  
@@ -31294,7 +31294,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_571__NRPREDEF));
   melt_assertmsg("iniobj checkdiscr dobj_573__NRPREDEF", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_573__NRPREDEF.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_573__NRPREDEF.obj_num = 1;
-  cdat->dobj_573__NRPREDEF.obj_hash = 648197999;
+  cdat->dobj_573__NRPREDEF.obj_hash = 389917386;
   cdat->dobj_573__NRPREDEF.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_573__NRPREDEF));
  
@@ -31322,7 +31322,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_575__CLASS_NREP_NIL));
   melt_assertmsg("iniobj checkdiscr dobj_577__CLASS_NREP_NIL", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_577__CLASS_NREP_NIL.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_577__CLASS_NREP_NIL.obj_num = OBMAG_OBJECT;
-  cdat->dobj_577__CLASS_NREP_NIL.obj_hash = 839330535;
+  cdat->dobj_577__CLASS_NREP_NIL.obj_hash = 343859642;
   cdat->dobj_577__CLASS_NREP_NIL.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_577__CLASS_NREP_NIL));
  
@@ -31358,7 +31358,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_581__CLASS_NREP_QUASIDATA
   melt_assertmsg("iniobj checkdiscr dobj_583__CLASS_NREP_QUASIDATA", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_583__CLASS_NREP_QUASIDATA.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_583__CLASS_NREP_QUASIDATA.obj_num = OBMAG_OBJECT;
-  cdat->dobj_583__CLASS_NREP_QUASIDATA.obj_hash = 910176543;
+  cdat->dobj_583__CLASS_NREP_QUASIDATA.obj_hash = 122063799;
   cdat->dobj_583__CLASS_NREP_QUASIDATA.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_583__CLASS_NREP_QUASIDATA));
  
@@ -31394,7 +31394,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_587__CLASS_NREP_DATA));
   melt_assertmsg("iniobj checkdiscr dobj_589__CLASS_NREP_DATA", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_589__CLASS_NREP_DATA.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_589__CLASS_NREP_DATA.obj_num = OBMAG_OBJECT;
-  cdat->dobj_589__CLASS_NREP_DATA.obj_hash = 654416973;
+  cdat->dobj_589__CLASS_NREP_DATA.obj_hash = 698633102;
   cdat->dobj_589__CLASS_NREP_DATA.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_589__CLASS_NREP_DATA));
  
@@ -31430,7 +31430,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_593__NDATA_NAME));
   melt_assertmsg("iniobj checkdiscr dobj_595__NDATA_NAME", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_595__NDATA_NAME.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_595__NDATA_NAME.obj_num = 1;
-  cdat->dobj_595__NDATA_NAME.obj_hash = 265472788;
+  cdat->dobj_595__NDATA_NAME.obj_hash = 775114638;
   cdat->dobj_595__NDATA_NAME.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_595__NDATA_NAME));
  
@@ -31458,7 +31458,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_597__NDATA_DISCRX));
   melt_assertmsg("iniobj checkdiscr dobj_599__NDATA_DISCRX", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_599__NDATA_DISCRX.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_599__NDATA_DISCRX.obj_num = 2;
-  cdat->dobj_599__NDATA_DISCRX.obj_hash = 608807904;
+  cdat->dobj_599__NDATA_DISCRX.obj_hash = 107821360;
   cdat->dobj_599__NDATA_DISCRX.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_599__NDATA_DISCRX));
  
@@ -31486,7 +31486,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_601__NDATA_RANK));
   melt_assertmsg("iniobj checkdiscr dobj_603__NDATA_RANK", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_603__NDATA_RANK.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_603__NDATA_RANK.obj_num = 3;
-  cdat->dobj_603__NDATA_RANK.obj_hash = 425393227;
+  cdat->dobj_603__NDATA_RANK.obj_hash = 272025300;
   cdat->dobj_603__NDATA_RANK.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_603__NDATA_RANK));
  
@@ -31514,7 +31514,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_605__NDATA_LOCBIND));
   melt_assertmsg("iniobj checkdiscr dobj_607__NDATA_LOCBIND", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_607__NDATA_LOCBIND.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_607__NDATA_LOCBIND.obj_num = 4;
-  cdat->dobj_607__NDATA_LOCBIND.obj_hash = 6500710;
+  cdat->dobj_607__NDATA_LOCBIND.obj_hash = 14026068;
   cdat->dobj_607__NDATA_LOCBIND.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_607__NDATA_LOCBIND));
  
@@ -31542,7 +31542,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_609__CLASS_NREP_DATAINSTA
   melt_assertmsg("iniobj checkdiscr dobj_611__CLASS_NREP_DATAINSTANCE", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_611__CLASS_NREP_DATAINSTANCE.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_611__CLASS_NREP_DATAINSTANCE.obj_num = OBMAG_OBJECT;
-  cdat->dobj_611__CLASS_NREP_DATAINSTANCE.obj_hash = 181683961;
+  cdat->dobj_611__CLASS_NREP_DATAINSTANCE.obj_hash = 470175160;
   cdat->dobj_611__CLASS_NREP_DATAINSTANCE.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_611__CLASS_NREP_DATAINSTANCE));
  
@@ -31578,7 +31578,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_615__NINST_OBJNUM));
   melt_assertmsg("iniobj checkdiscr dobj_617__NINST_OBJNUM", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_617__NINST_OBJNUM.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_617__NINST_OBJNUM.obj_num = 5;
-  cdat->dobj_617__NINST_OBJNUM.obj_hash = 1054140064;
+  cdat->dobj_617__NINST_OBJNUM.obj_hash = 299684782;
   cdat->dobj_617__NINST_OBJNUM.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_617__NINST_OBJNUM));
  
@@ -31606,7 +31606,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_619__NINST_PREDEF));
   melt_assertmsg("iniobj checkdiscr dobj_621__NINST_PREDEF", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_621__NINST_PREDEF.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_621__NINST_PREDEF.obj_num = 6;
-  cdat->dobj_621__NINST_PREDEF.obj_hash = 423087829;
+  cdat->dobj_621__NINST_PREDEF.obj_hash = 253023160;
   cdat->dobj_621__NINST_PREDEF.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_621__NINST_PREDEF));
  
@@ -31634,7 +31634,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_623__NINST_HASH));
   melt_assertmsg("iniobj checkdiscr dobj_625__NINST_HASH", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_625__NINST_HASH.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_625__NINST_HASH.obj_num = 7;
-  cdat->dobj_625__NINST_HASH.obj_hash = 850588267;
+  cdat->dobj_625__NINST_HASH.obj_hash = 945115093;
   cdat->dobj_625__NINST_HASH.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_625__NINST_HASH));
  
@@ -31662,7 +31662,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_627__NINST_SLOTS));
   melt_assertmsg("iniobj checkdiscr dobj_629__NINST_SLOTS", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_629__NINST_SLOTS.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_629__NINST_SLOTS.obj_num = 8;
-  cdat->dobj_629__NINST_SLOTS.obj_hash = 829046601;
+  cdat->dobj_629__NINST_SLOTS.obj_hash = 535341668;
   cdat->dobj_629__NINST_SLOTS.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_629__NINST_SLOTS));
  
@@ -31690,7 +31690,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_631__CLASS_NREP_DATASTRIN
   melt_assertmsg("iniobj checkdiscr dobj_633__CLASS_NREP_DATASTRING", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_633__CLASS_NREP_DATASTRING.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_633__CLASS_NREP_DATASTRING.obj_num = OBMAG_OBJECT;
-  cdat->dobj_633__CLASS_NREP_DATASTRING.obj_hash = 715515988;
+  cdat->dobj_633__CLASS_NREP_DATASTRING.obj_hash = 382795812;
   cdat->dobj_633__CLASS_NREP_DATASTRING.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_633__CLASS_NREP_DATASTRING));
  
@@ -31726,7 +31726,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_637__NSTR_STRING));
   melt_assertmsg("iniobj checkdiscr dobj_639__NSTR_STRING", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_639__NSTR_STRING.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_639__NSTR_STRING.obj_num = 5;
-  cdat->dobj_639__NSTR_STRING.obj_hash = 863344946;
+  cdat->dobj_639__NSTR_STRING.obj_hash = 220026825;
   cdat->dobj_639__NSTR_STRING.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_639__NSTR_STRING));
  
@@ -31754,7 +31754,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_641__CLASS_NREP_DATABOXED
   melt_assertmsg("iniobj checkdiscr dobj_643__CLASS_NREP_DATABOXEDINTEGER", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_643__CLASS_NREP_DATABOXEDINTEGER.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_643__CLASS_NREP_DATABOXEDINTEGER.obj_num = OBMAG_OBJECT;
-  cdat->dobj_643__CLASS_NREP_DATABOXEDINTEGER.obj_hash = 114790510;
+  cdat->dobj_643__CLASS_NREP_DATABOXEDINTEGER.obj_hash = 297155207;
   cdat->dobj_643__CLASS_NREP_DATABOXEDINTEGER.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_643__CLASS_NREP_DATABOXEDINTEGER));
  
@@ -31790,7 +31790,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_647__NBOXINT_NUM));
   melt_assertmsg("iniobj checkdiscr dobj_649__NBOXINT_NUM", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_649__NBOXINT_NUM.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_649__NBOXINT_NUM.obj_num = 5;
-  cdat->dobj_649__NBOXINT_NUM.obj_hash = 163424883;
+  cdat->dobj_649__NBOXINT_NUM.obj_hash = 156617292;
   cdat->dobj_649__NBOXINT_NUM.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_649__NBOXINT_NUM));
  
@@ -31818,7 +31818,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_651__CLASS_NREP_DATATUPLE
   melt_assertmsg("iniobj checkdiscr dobj_653__CLASS_NREP_DATATUPLE", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_653__CLASS_NREP_DATATUPLE.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_653__CLASS_NREP_DATATUPLE.obj_num = OBMAG_OBJECT;
-  cdat->dobj_653__CLASS_NREP_DATATUPLE.obj_hash = 461615051;
+  cdat->dobj_653__CLASS_NREP_DATATUPLE.obj_hash = 780942730;
   cdat->dobj_653__CLASS_NREP_DATATUPLE.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_653__CLASS_NREP_DATATUPLE));
  
@@ -31854,7 +31854,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_657__NTUP_COMP));
   melt_assertmsg("iniobj checkdiscr dobj_659__NTUP_COMP", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_659__NTUP_COMP.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_659__NTUP_COMP.obj_num = 5;
-  cdat->dobj_659__NTUP_COMP.obj_hash = 565583650;
+  cdat->dobj_659__NTUP_COMP.obj_hash = 403548592;
   cdat->dobj_659__NTUP_COMP.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_659__NTUP_COMP));
  
@@ -31882,7 +31882,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_661__CLASS_NREP_DATASYMBO
   melt_assertmsg("iniobj checkdiscr dobj_663__CLASS_NREP_DATASYMBOL", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_663__CLASS_NREP_DATASYMBOL.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_663__CLASS_NREP_DATASYMBOL.obj_num = OBMAG_OBJECT;
-  cdat->dobj_663__CLASS_NREP_DATASYMBOL.obj_hash = 32321569;
+  cdat->dobj_663__CLASS_NREP_DATASYMBOL.obj_hash = 366510479;
   cdat->dobj_663__CLASS_NREP_DATASYMBOL.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_663__CLASS_NREP_DATASYMBOL));
  
@@ -31918,7 +31918,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_667__NDSY_NAMESTR));
   melt_assertmsg("iniobj checkdiscr dobj_669__NDSY_NAMESTR", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_669__NDSY_NAMESTR.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_669__NDSY_NAMESTR.obj_num = 9;
-  cdat->dobj_669__NDSY_NAMESTR.obj_hash = 809933916;
+  cdat->dobj_669__NDSY_NAMESTR.obj_hash = 690150517;
   cdat->dobj_669__NDSY_NAMESTR.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_669__NDSY_NAMESTR));
  
@@ -31946,7 +31946,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_671__CLASS_NREP_DATAKEYWO
   melt_assertmsg("iniobj checkdiscr dobj_673__CLASS_NREP_DATAKEYWORD", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_673__CLASS_NREP_DATAKEYWORD.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_673__CLASS_NREP_DATAKEYWORD.obj_num = OBMAG_OBJECT;
-  cdat->dobj_673__CLASS_NREP_DATAKEYWORD.obj_hash = 61444642;
+  cdat->dobj_673__CLASS_NREP_DATAKEYWORD.obj_hash = 622311843;
   cdat->dobj_673__CLASS_NREP_DATAKEYWORD.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_673__CLASS_NREP_DATAKEYWORD));
  
@@ -31982,7 +31982,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_677__CLASS_NREP_DATAROUTI
   melt_assertmsg("iniobj checkdiscr dobj_679__CLASS_NREP_DATAROUTINE", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_679__CLASS_NREP_DATAROUTINE.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_679__CLASS_NREP_DATAROUTINE.obj_num = OBMAG_OBJECT;
-  cdat->dobj_679__CLASS_NREP_DATAROUTINE.obj_hash = 81509463;
+  cdat->dobj_679__CLASS_NREP_DATAROUTINE.obj_hash = 804647770;
   cdat->dobj_679__CLASS_NREP_DATAROUTINE.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_679__CLASS_NREP_DATAROUTINE));
  
@@ -32018,7 +32018,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_683__NDROU_PROC));
   melt_assertmsg("iniobj checkdiscr dobj_685__NDROU_PROC", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_685__NDROU_PROC.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_685__NDROU_PROC.obj_num = 5;
-  cdat->dobj_685__NDROU_PROC.obj_hash = 945857518;
+  cdat->dobj_685__NDROU_PROC.obj_hash = 1057751196;
   cdat->dobj_685__NDROU_PROC.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_685__NDROU_PROC));
  
@@ -32046,7 +32046,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_687__CLASS_NREP_DATACLOSU
   melt_assertmsg("iniobj checkdiscr dobj_689__CLASS_NREP_DATACLOSURE", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_689__CLASS_NREP_DATACLOSURE.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_689__CLASS_NREP_DATACLOSURE.obj_num = OBMAG_OBJECT;
-  cdat->dobj_689__CLASS_NREP_DATACLOSURE.obj_hash = 230546942;
+  cdat->dobj_689__CLASS_NREP_DATACLOSURE.obj_hash = 692036770;
   cdat->dobj_689__CLASS_NREP_DATACLOSURE.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_689__CLASS_NREP_DATACLOSURE));
  
@@ -32082,7 +32082,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_693__NDCLO_PROC));
   melt_assertmsg("iniobj checkdiscr dobj_695__NDCLO_PROC", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_695__NDCLO_PROC.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_695__NDCLO_PROC.obj_num = 5;
-  cdat->dobj_695__NDCLO_PROC.obj_hash = 467696435;
+  cdat->dobj_695__NDCLO_PROC.obj_hash = 478745644;
   cdat->dobj_695__NDCLO_PROC.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_695__NDCLO_PROC));
  
@@ -32110,7 +32110,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_697__NDCLO_CLOSV));
   melt_assertmsg("iniobj checkdiscr dobj_699__NDCLO_CLOSV", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_699__NDCLO_CLOSV.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_699__NDCLO_CLOSV.obj_num = 6;
-  cdat->dobj_699__NDCLO_CLOSV.obj_hash = 127111990;
+  cdat->dobj_699__NDCLO_CLOSV.obj_hash = 477726946;
   cdat->dobj_699__NDCLO_CLOSV.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_699__NDCLO_CLOSV));
  
@@ -32138,7 +32138,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_701__CLASS_NREP_IMPORTEDV
   melt_assertmsg("iniobj checkdiscr dobj_703__CLASS_NREP_IMPORTEDVAL", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_703__CLASS_NREP_IMPORTEDVAL.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_703__CLASS_NREP_IMPORTEDVAL.obj_num = OBMAG_OBJECT;
-  cdat->dobj_703__CLASS_NREP_IMPORTEDVAL.obj_hash = 621269746;
+  cdat->dobj_703__CLASS_NREP_IMPORTEDVAL.obj_hash = 737328748;
   cdat->dobj_703__CLASS_NREP_IMPORTEDVAL.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_703__CLASS_NREP_IMPORTEDVAL));
  
@@ -32174,7 +32174,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_707__NIMPORT_SYMB));
   melt_assertmsg("iniobj checkdiscr dobj_709__NIMPORT_SYMB", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_709__NIMPORT_SYMB.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_709__NIMPORT_SYMB.obj_num = 1;
-  cdat->dobj_709__NIMPORT_SYMB.obj_hash = 940122436;
+  cdat->dobj_709__NIMPORT_SYMB.obj_hash = 347497375;
   cdat->dobj_709__NIMPORT_SYMB.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_709__NIMPORT_SYMB));
  
@@ -32202,7 +32202,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_711__NIMPORT_SYDATA));
   melt_assertmsg("iniobj checkdiscr dobj_713__NIMPORT_SYDATA", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_713__NIMPORT_SYDATA.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_713__NIMPORT_SYDATA.obj_num = 2;
-  cdat->dobj_713__NIMPORT_SYDATA.obj_hash = 724682921;
+  cdat->dobj_713__NIMPORT_SYDATA.obj_hash = 136073534;
   cdat->dobj_713__NIMPORT_SYDATA.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_713__NIMPORT_SYDATA));
  
@@ -32230,7 +32230,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_715__CLASS_NREP_SYMOCC));
   melt_assertmsg("iniobj checkdiscr dobj_717__CLASS_NREP_SYMOCC", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_717__CLASS_NREP_SYMOCC.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_717__CLASS_NREP_SYMOCC.obj_num = OBMAG_OBJECT;
-  cdat->dobj_717__CLASS_NREP_SYMOCC.obj_hash = 309520064;
+  cdat->dobj_717__CLASS_NREP_SYMOCC.obj_hash = 245185539;
   cdat->dobj_717__CLASS_NREP_SYMOCC.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_717__CLASS_NREP_SYMOCC));
  
@@ -32266,7 +32266,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_721__NOCC_SYMB));
   melt_assertmsg("iniobj checkdiscr dobj_723__NOCC_SYMB", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_723__NOCC_SYMB.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_723__NOCC_SYMB.obj_num = 1;
-  cdat->dobj_723__NOCC_SYMB.obj_hash = 116040377;
+  cdat->dobj_723__NOCC_SYMB.obj_hash = 97912837;
   cdat->dobj_723__NOCC_SYMB.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_723__NOCC_SYMB));
  
@@ -32294,7 +32294,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_725__NOCC_CTYP));
   melt_assertmsg("iniobj checkdiscr dobj_727__NOCC_CTYP", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_727__NOCC_CTYP.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_727__NOCC_CTYP.obj_num = 2;
-  cdat->dobj_727__NOCC_CTYP.obj_hash = 483934440;
+  cdat->dobj_727__NOCC_CTYP.obj_hash = 426503936;
   cdat->dobj_727__NOCC_CTYP.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_727__NOCC_CTYP));
  
@@ -32322,7 +32322,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_729__NOCC_BIND));
   melt_assertmsg("iniobj checkdiscr dobj_731__NOCC_BIND", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_731__NOCC_BIND.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_731__NOCC_BIND.obj_num = 3;
-  cdat->dobj_731__NOCC_BIND.obj_hash = 647035528;
+  cdat->dobj_731__NOCC_BIND.obj_hash = 85574553;
   cdat->dobj_731__NOCC_BIND.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_731__NOCC_BIND));
  
@@ -32350,7 +32350,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_733__CLASS_NREP_LOCSYMOCC
   melt_assertmsg("iniobj checkdiscr dobj_735__CLASS_NREP_LOCSYMOCC", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_735__CLASS_NREP_LOCSYMOCC.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_735__CLASS_NREP_LOCSYMOCC.obj_num = OBMAG_OBJECT;
-  cdat->dobj_735__CLASS_NREP_LOCSYMOCC.obj_hash = 635210500;
+  cdat->dobj_735__CLASS_NREP_LOCSYMOCC.obj_hash = 741869911;
   cdat->dobj_735__CLASS_NREP_LOCSYMOCC.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_735__CLASS_NREP_LOCSYMOCC));
  
@@ -32386,7 +32386,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_739__CLASS_NREP_CLOSEDOCC
   melt_assertmsg("iniobj checkdiscr dobj_741__CLASS_NREP_CLOSEDOCC", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_741__CLASS_NREP_CLOSEDOCC.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_741__CLASS_NREP_CLOSEDOCC.obj_num = OBMAG_OBJECT;
-  cdat->dobj_741__CLASS_NREP_CLOSEDOCC.obj_hash = 913258025;
+  cdat->dobj_741__CLASS_NREP_CLOSEDOCC.obj_hash = 157077503;
   cdat->dobj_741__CLASS_NREP_CLOSEDOCC.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_741__CLASS_NREP_CLOSEDOCC));
  
@@ -32422,7 +32422,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_745__NCLOC_PROCS));
   melt_assertmsg("iniobj checkdiscr dobj_747__NCLOC_PROCS", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_747__NCLOC_PROCS.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_747__NCLOC_PROCS.obj_num = 4;
-  cdat->dobj_747__NCLOC_PROCS.obj_hash = 919587331;
+  cdat->dobj_747__NCLOC_PROCS.obj_hash = 386147118;
   cdat->dobj_747__NCLOC_PROCS.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_747__NCLOC_PROCS));
  
@@ -32450,7 +32450,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_749__CLASS_NREP_CONSTOCC)
   melt_assertmsg("iniobj checkdiscr dobj_751__CLASS_NREP_CONSTOCC", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_751__CLASS_NREP_CONSTOCC.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_751__CLASS_NREP_CONSTOCC.obj_num = OBMAG_OBJECT;
-  cdat->dobj_751__CLASS_NREP_CONSTOCC.obj_hash = 536958834;
+  cdat->dobj_751__CLASS_NREP_CONSTOCC.obj_hash = 151889950;
   cdat->dobj_751__CLASS_NREP_CONSTOCC.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_751__CLASS_NREP_CONSTOCC));
  
@@ -32486,7 +32486,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_755__CLASS_NREP_QUASICONS
   melt_assertmsg("iniobj checkdiscr dobj_757__CLASS_NREP_QUASICONSTANT", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_757__CLASS_NREP_QUASICONSTANT.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_757__CLASS_NREP_QUASICONSTANT.obj_num = OBMAG_OBJECT;
-  cdat->dobj_757__CLASS_NREP_QUASICONSTANT.obj_hash = 265096300;
+  cdat->dobj_757__CLASS_NREP_QUASICONSTANT.obj_hash = 39868463;
   cdat->dobj_757__CLASS_NREP_QUASICONSTANT.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_757__CLASS_NREP_QUASICONSTANT));
  
@@ -32522,7 +32522,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_761__NCONST_SVAL));
   melt_assertmsg("iniobj checkdiscr dobj_763__NCONST_SVAL", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_763__NCONST_SVAL.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_763__NCONST_SVAL.obj_num = 1;
-  cdat->dobj_763__NCONST_SVAL.obj_hash = 908501578;
+  cdat->dobj_763__NCONST_SVAL.obj_hash = 519025734;
   cdat->dobj_763__NCONST_SVAL.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_763__NCONST_SVAL));
  
@@ -32550,7 +32550,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_765__NCONST_PROC));
   melt_assertmsg("iniobj checkdiscr dobj_767__NCONST_PROC", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_767__NCONST_PROC.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_767__NCONST_PROC.obj_num = 2;
-  cdat->dobj_767__NCONST_PROC.obj_hash = 143780993;
+  cdat->dobj_767__NCONST_PROC.obj_hash = 533247767;
   cdat->dobj_767__NCONST_PROC.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_767__NCONST_PROC));
  
@@ -32578,7 +32578,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_769__NCONST_DATA));
   melt_assertmsg("iniobj checkdiscr dobj_771__NCONST_DATA", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_771__NCONST_DATA.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_771__NCONST_DATA.obj_num = 3;
-  cdat->dobj_771__NCONST_DATA.obj_hash = 908446903;
+  cdat->dobj_771__NCONST_DATA.obj_hash = 130972985;
   cdat->dobj_771__NCONST_DATA.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_771__NCONST_DATA));
  
@@ -32606,7 +32606,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_773__CLASS_NREP_CONSTANT)
   melt_assertmsg("iniobj checkdiscr dobj_775__CLASS_NREP_CONSTANT", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_775__CLASS_NREP_CONSTANT.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_775__CLASS_NREP_CONSTANT.obj_num = OBMAG_OBJECT;
-  cdat->dobj_775__CLASS_NREP_CONSTANT.obj_hash = 861671730;
+  cdat->dobj_775__CLASS_NREP_CONSTANT.obj_hash = 548642369;
   cdat->dobj_775__CLASS_NREP_CONSTANT.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_775__CLASS_NREP_CONSTANT));
  
@@ -32642,7 +32642,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_779__CLASS_NREP_QUASICONS
   melt_assertmsg("iniobj checkdiscr dobj_781__CLASS_NREP_QUASICONST_CURRENT_MODULE_ENVIRONMENT_CONTAINER", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_781__CLASS_NREP_QUASICONST_CURRENT_MODULE_ENVIRONMENT_CONTAINER.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_781__CLASS_NREP_QUASICONST_CURRENT_MODULE_ENVIRONMENT_CONTAINER.obj_num = OBMAG_OBJECT;
-  cdat->dobj_781__CLASS_NREP_QUASICONST_CURRENT_MODULE_ENVIRONMENT_CONTAINER.obj_hash = 133000240;
+  cdat->dobj_781__CLASS_NREP_QUASICONST_CURRENT_MODULE_ENVIRONMENT_CONTAINER.obj_hash = 774043453;
   cdat->dobj_781__CLASS_NREP_QUASICONST_CURRENT_MODULE_ENVIRONMENT_CONTAINER.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_781__CLASS_NREP_QUASICONST_CURRENT_MODULE_ENVIRONMENT_CONTAINER));
  
@@ -32678,7 +32678,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_785__NQCMEC_COMMENT));
   melt_assertmsg("iniobj checkdiscr dobj_787__NQCMEC_COMMENT", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_787__NQCMEC_COMMENT.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_787__NQCMEC_COMMENT.obj_num = 4;
-  cdat->dobj_787__NQCMEC_COMMENT.obj_hash = 117318268;
+  cdat->dobj_787__NQCMEC_COMMENT.obj_hash = 955932272;
   cdat->dobj_787__NQCMEC_COMMENT.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_787__NQCMEC_COMMENT));
  
@@ -32706,7 +32706,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_789__CLASS_NREP_QUASIDATA
   melt_assertmsg("iniobj checkdiscr dobj_791__CLASS_NREP_QUASIDATA_CURRENT_MODULE_ENVIRONMENT_CONTAINER", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_791__CLASS_NREP_QUASIDATA_CURRENT_MODULE_ENVIRONMENT_CONTAINER.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_791__CLASS_NREP_QUASIDATA_CURRENT_MODULE_ENVIRONMENT_CONTAINER.obj_num = OBMAG_OBJECT;
-  cdat->dobj_791__CLASS_NREP_QUASIDATA_CURRENT_MODULE_ENVIRONMENT_CONTAINER.obj_hash = 214794217;
+  cdat->dobj_791__CLASS_NREP_QUASIDATA_CURRENT_MODULE_ENVIRONMENT_CONTAINER.obj_hash = 590048880;
   cdat->dobj_791__CLASS_NREP_QUASIDATA_CURRENT_MODULE_ENVIRONMENT_CONTAINER.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_791__CLASS_NREP_QUASIDATA_CURRENT_MODULE_ENVIRONMENT_CONTAINER));
  
@@ -32742,7 +32742,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_795__CLASS_NREP_QUASICONS
   melt_assertmsg("iniobj checkdiscr dobj_797__CLASS_NREP_QUASICONST_PARENT_MODULE_ENVIRONMENT", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_797__CLASS_NREP_QUASICONST_PARENT_MODULE_ENVIRONMENT.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_797__CLASS_NREP_QUASICONST_PARENT_MODULE_ENVIRONMENT.obj_num = OBMAG_OBJECT;
-  cdat->dobj_797__CLASS_NREP_QUASICONST_PARENT_MODULE_ENVIRONMENT.obj_hash = 900643089;
+  cdat->dobj_797__CLASS_NREP_QUASICONST_PARENT_MODULE_ENVIRONMENT.obj_hash = 84316996;
   cdat->dobj_797__CLASS_NREP_QUASICONST_PARENT_MODULE_ENVIRONMENT.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_797__CLASS_NREP_QUASICONST_PARENT_MODULE_ENVIRONMENT));
  
@@ -32778,7 +32778,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_801__CLASS_NREP_QUASIDATA
   melt_assertmsg("iniobj checkdiscr dobj_803__CLASS_NREP_QUASIDATA_PARENT_MODULE_ENVIRONMENT", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_803__CLASS_NREP_QUASIDATA_PARENT_MODULE_ENVIRONMENT.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_803__CLASS_NREP_QUASIDATA_PARENT_MODULE_ENVIRONMENT.obj_num = OBMAG_OBJECT;
-  cdat->dobj_803__CLASS_NREP_QUASIDATA_PARENT_MODULE_ENVIRONMENT.obj_hash = 349096126;
+  cdat->dobj_803__CLASS_NREP_QUASIDATA_PARENT_MODULE_ENVIRONMENT.obj_hash = 1043124504;
   cdat->dobj_803__CLASS_NREP_QUASIDATA_PARENT_MODULE_ENVIRONMENT.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_803__CLASS_NREP_QUASIDATA_PARENT_MODULE_ENVIRONMENT));
  
@@ -32814,7 +32814,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_807__CLASS_NREP_FIELDACC)
   melt_assertmsg("iniobj checkdiscr dobj_809__CLASS_NREP_FIELDACC", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_809__CLASS_NREP_FIELDACC.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_809__CLASS_NREP_FIELDACC.obj_num = OBMAG_OBJECT;
-  cdat->dobj_809__CLASS_NREP_FIELDACC.obj_hash = 587944719;
+  cdat->dobj_809__CLASS_NREP_FIELDACC.obj_hash = 696932609;
   cdat->dobj_809__CLASS_NREP_FIELDACC.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_809__CLASS_NREP_FIELDACC));
  
@@ -32850,7 +32850,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_813__NACCF_OBJ));
   melt_assertmsg("iniobj checkdiscr dobj_815__NACCF_OBJ", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_815__NACCF_OBJ.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_815__NACCF_OBJ.obj_num = 1;
-  cdat->dobj_815__NACCF_OBJ.obj_hash = 931748404;
+  cdat->dobj_815__NACCF_OBJ.obj_hash = 340754660;
   cdat->dobj_815__NACCF_OBJ.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_815__NACCF_OBJ));
  
@@ -32878,7 +32878,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_817__NACCF_FLD));
   melt_assertmsg("iniobj checkdiscr dobj_819__NACCF_FLD", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_819__NACCF_FLD.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_819__NACCF_FLD.obj_num = 2;
-  cdat->dobj_819__NACCF_FLD.obj_hash = 369440045;
+  cdat->dobj_819__NACCF_FLD.obj_hash = 1069456113;
   cdat->dobj_819__NACCF_FLD.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_819__NACCF_FLD));
  
@@ -32906,7 +32906,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_821__CLASS_NREP_MULTACC))
   melt_assertmsg("iniobj checkdiscr dobj_823__CLASS_NREP_MULTACC", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_823__CLASS_NREP_MULTACC.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_823__CLASS_NREP_MULTACC.obj_num = OBMAG_OBJECT;
-  cdat->dobj_823__CLASS_NREP_MULTACC.obj_hash = 942892125;
+  cdat->dobj_823__CLASS_NREP_MULTACC.obj_hash = 705729853;
   cdat->dobj_823__CLASS_NREP_MULTACC.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_823__CLASS_NREP_MULTACC));
  
@@ -32942,7 +32942,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_827__NACCM_MUL));
   melt_assertmsg("iniobj checkdiscr dobj_829__NACCM_MUL", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_829__NACCM_MUL.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_829__NACCM_MUL.obj_num = 1;
-  cdat->dobj_829__NACCM_MUL.obj_hash = 208126905;
+  cdat->dobj_829__NACCM_MUL.obj_hash = 930156700;
   cdat->dobj_829__NACCM_MUL.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_829__NACCM_MUL));
  
@@ -32970,7 +32970,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_831__NACCM_IX));
   melt_assertmsg("iniobj checkdiscr dobj_833__NACCM_IX", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_833__NACCM_IX.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_833__NACCM_IX.obj_num = 2;
-  cdat->dobj_833__NACCM_IX.obj_hash = 330665811;
+  cdat->dobj_833__NACCM_IX.obj_hash = 535653870;
   cdat->dobj_833__NACCM_IX.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_833__NACCM_IX));
  
@@ -32998,7 +32998,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_835__CLASS_NREP_STORE_PRE
   melt_assertmsg("iniobj checkdiscr dobj_837__CLASS_NREP_STORE_PREDEFINED", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_837__CLASS_NREP_STORE_PREDEFINED.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_837__CLASS_NREP_STORE_PREDEFINED.obj_num = OBMAG_OBJECT;
-  cdat->dobj_837__CLASS_NREP_STORE_PREDEFINED.obj_hash = 373359134;
+  cdat->dobj_837__CLASS_NREP_STORE_PREDEFINED.obj_hash = 710284562;
   cdat->dobj_837__CLASS_NREP_STORE_PREDEFINED.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_837__CLASS_NREP_STORE_PREDEFINED));
  
@@ -33034,7 +33034,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_841__NSTPD_PREDEF));
   melt_assertmsg("iniobj checkdiscr dobj_843__NSTPD_PREDEF", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_843__NSTPD_PREDEF.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_843__NSTPD_PREDEF.obj_num = 1;
-  cdat->dobj_843__NSTPD_PREDEF.obj_hash = 789145545;
+  cdat->dobj_843__NSTPD_PREDEF.obj_hash = 858221784;
   cdat->dobj_843__NSTPD_PREDEF.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_843__NSTPD_PREDEF));
  
@@ -33062,7 +33062,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_845__NSTPD_VALUE));
   melt_assertmsg("iniobj checkdiscr dobj_847__NSTPD_VALUE", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_847__NSTPD_VALUE.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_847__NSTPD_VALUE.obj_num = 2;
-  cdat->dobj_847__NSTPD_VALUE.obj_hash = 490159391;
+  cdat->dobj_847__NSTPD_VALUE.obj_hash = 402297212;
   cdat->dobj_847__NSTPD_VALUE.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_847__NSTPD_VALUE));
  
@@ -33090,7 +33090,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_849__CLASS_NREP_UPDATE_CU
   melt_assertmsg("iniobj checkdiscr dobj_851__CLASS_NREP_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER", NULL != (void*)((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_851__CLASS_NREP_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
   cdat->dobj_851__CLASS_NREP_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER.obj_num = OBMAG_OBJECT;
-  cdat->dobj_851__CLASS_NREP_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER.obj_hash = 42328775;
+  cdat->dobj_851__CLASS_NREP_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER.obj_hash = 248173224;
   cdat->dobj_851__CLASS_NREP_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER.obj_len = 8;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_851__CLASS_NREP_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER));
  
@@ -33126,7 +33126,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_855__NUCMEB_EXPR));
   melt_assertmsg("iniobj checkdiscr dobj_857__NUCMEB_EXPR", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_857__NUCMEB_EXPR.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_857__NUCMEB_EXPR.obj_num = 1;
-  cdat->dobj_857__NUCMEB_EXPR.obj_hash = 77556644;
+  cdat->dobj_857__NUCMEB_EXPR.obj_hash = 691962665;
   cdat->dobj_857__NUCMEB_EXPR.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_857__NUCMEB_EXPR));
  
@@ -33154,7 +33154,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_859__NCUMEB_COMMENT));
   melt_assertmsg("iniobj checkdiscr dobj_861__NCUMEB_COMMENT", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_861__NCUMEB_COMMENT.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
   cdat->dobj_861__NCUMEB_COMMENT.obj_num = 2;
-  cdat->dobj_861__NCUMEB_COMMENT.obj_hash = 92344412;
+  cdat->dobj_861__NCUMEB_COMMENT.obj_hash = 754030916;
   cdat->dobj_861__NCUMEB_COMMENT.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_861__NCUMEB_COMMENT));
  
@@ -33181,7 +33181,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_863__HAS_EXTRA_WARNINGS))
  if (!/*_.VALDATA___V1029*/ curfptr[1028]) /*_.VALDATA___V1029*/ curfptr[1028] = (void*)&cdat->dobj_865__HAS_EXTRA_WARNINGS;
   melt_assertmsg("iniobj checkdiscr dobj_865__HAS_EXTRA_WARNINGS", NULL != (void*)((void*)(MELT_PREDEF(CLASS_PRIMITIVE))));
   cdat->dobj_865__HAS_EXTRA_WARNINGS.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_PRIMITIVE))));
-  cdat->dobj_865__HAS_EXTRA_WARNINGS.obj_hash = 12801679;
+  cdat->dobj_865__HAS_EXTRA_WARNINGS.obj_hash = 901723555;
   cdat->dobj_865__HAS_EXTRA_WARNINGS.obj_len = 5;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_865__HAS_EXTRA_WARNINGS));
  
@@ -34220,7 +34220,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_1024__LAST_GLOBPREDEF_IND
  if (!/*_.VALDATA___V1190*/ curfptr[1189]) /*_.VALDATA___V1190*/ curfptr[1189] = (void*)&cdat->dobj_1026__LAST_GLOBPREDEF_INDEX;
   melt_assertmsg("iniobj checkdiscr dobj_1026__LAST_GLOBPREDEF_INDEX", NULL != (void*)((void*)(MELT_PREDEF(CLASS_PRIMITIVE))));
   cdat->dobj_1026__LAST_GLOBPREDEF_INDEX.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_PRIMITIVE))));
-  cdat->dobj_1026__LAST_GLOBPREDEF_INDEX.obj_hash = 513594812;
+  cdat->dobj_1026__LAST_GLOBPREDEF_INDEX.obj_hash = 428633642;
   cdat->dobj_1026__LAST_GLOBPREDEF_INDEX.obj_len = 5;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_1026__LAST_GLOBPREDEF_INDEX));
  
@@ -34298,7 +34298,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_1037__NORMAL_EXP));
  if (!/*_.VALDATA___V1203*/ curfptr[1202]) /*_.VALDATA___V1203*/ curfptr[1202] = (void*)&cdat->dobj_1039__NORMAL_EXP;
   melt_assertmsg("iniobj checkdiscr dobj_1039__NORMAL_EXP", NULL != (void*)/*_.CLASS_SELECTOR__V16*/ curfptr[15]);
   cdat->dobj_1039__NORMAL_EXP.obj_class = (meltobject_ptr_t)(/*_.CLASS_SELECTOR__V16*/ curfptr[15]);
-  cdat->dobj_1039__NORMAL_EXP.obj_hash = 1035297302;
+  cdat->dobj_1039__NORMAL_EXP.obj_hash = 310602815;
   cdat->dobj_1039__NORMAL_EXP.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_1039__NORMAL_EXP));
  
@@ -34400,7 +34400,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_1053__GET_CTYPE));
  if (!/*_.VALDATA___V1219*/ curfptr[1218]) /*_.VALDATA___V1219*/ curfptr[1218] = (void*)&cdat->dobj_1055__GET_CTYPE;
   melt_assertmsg("iniobj checkdiscr dobj_1055__GET_CTYPE", NULL != (void*)/*_.CLASS_SELECTOR__V16*/ curfptr[15]);
   cdat->dobj_1055__GET_CTYPE.obj_class = (meltobject_ptr_t)(/*_.CLASS_SELECTOR__V16*/ curfptr[15]);
-  cdat->dobj_1055__GET_CTYPE.obj_hash = 129331203;
+  cdat->dobj_1055__GET_CTYPE.obj_hash = 624757667;
   cdat->dobj_1055__GET_CTYPE.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_1055__GET_CTYPE));
  
@@ -34427,7 +34427,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_1057__COMPILE_OBJ));
  if (!/*_.VALDATA___V1223*/ curfptr[1222]) /*_.VALDATA___V1223*/ curfptr[1222] = (void*)&cdat->dobj_1059__COMPILE_OBJ;
   melt_assertmsg("iniobj checkdiscr dobj_1059__COMPILE_OBJ", NULL != (void*)/*_.CLASS_SELECTOR__V16*/ curfptr[15]);
   cdat->dobj_1059__COMPILE_OBJ.obj_class = (meltobject_ptr_t)(/*_.CLASS_SELECTOR__V16*/ curfptr[15]);
-  cdat->dobj_1059__COMPILE_OBJ.obj_hash = 373111313;
+  cdat->dobj_1059__COMPILE_OBJ.obj_hash = 858181173;
   cdat->dobj_1059__COMPILE_OBJ.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_1059__COMPILE_OBJ));
  
@@ -36207,7 +36207,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_1333__RECV));
   melt_assertmsg("iniobj checkdiscr dobj_1335", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FORMAL_BINDING))));
   cdat->dobj_1335.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FORMAL_BINDING))));
   cdat->dobj_1335.obj_num = 0;
-  cdat->dobj_1335.obj_hash = 895008393;
+  cdat->dobj_1335.obj_hash = 547563016;
   cdat->dobj_1335.obj_len = 2;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_1335));
  
@@ -36230,7 +36230,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_1336__SYMB));
   melt_assertmsg("iniobj checkdiscr dobj_1338", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FORMAL_BINDING))));
   cdat->dobj_1338.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FORMAL_BINDING))));
   cdat->dobj_1338.obj_num = 1;
-  cdat->dobj_1338.obj_hash = 125760753;
+  cdat->dobj_1338.obj_hash = 529500641;
   cdat->dobj_1338.obj_len = 2;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_1338));
  
@@ -36253,7 +36253,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_1339__NCX));
   melt_assertmsg("iniobj checkdiscr dobj_1341", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FORMAL_BINDING))));
   cdat->dobj_1341.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FORMAL_BINDING))));
   cdat->dobj_1341.obj_num = 2;
-  cdat->dobj_1341.obj_hash = 369102748;
+  cdat->dobj_1341.obj_hash = 998333877;
   cdat->dobj_1341.obj_len = 2;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_1341));
  
@@ -36276,7 +36276,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_1342__SLOC));
   melt_assertmsg("iniobj checkdiscr dobj_1344", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FORMAL_BINDING))));
   cdat->dobj_1344.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FORMAL_BINDING))));
   cdat->dobj_1344.obj_num = 3;
-  cdat->dobj_1344.obj_hash = 30820248;
+  cdat->dobj_1344.obj_hash = 81081662;
   cdat->dobj_1344.obj_len = 2;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_1344));
  
@@ -36289,7 +36289,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_1344));
  if (!/*_.VALDATA___V1514*/ curfptr[1513]) /*_.VALDATA___V1514*/ curfptr[1513] = (void*)&cdat->dobj_1346__PREPARE_CONSTRUCTOR_BINDING;
   melt_assertmsg("iniobj checkdiscr dobj_1346__PREPARE_CONSTRUCTOR_BINDING", NULL != (void*)/*_.CLASS_SELECTOR__V16*/ curfptr[15]);
   cdat->dobj_1346__PREPARE_CONSTRUCTOR_BINDING.obj_class = (meltobject_ptr_t)(/*_.CLASS_SELECTOR__V16*/ curfptr[15]);
-  cdat->dobj_1346__PREPARE_CONSTRUCTOR_BINDING.obj_hash = 384852281;
+  cdat->dobj_1346__PREPARE_CONSTRUCTOR_BINDING.obj_hash = 741366587;
   cdat->dobj_1346__PREPARE_CONSTRUCTOR_BINDING.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_1346__PREPARE_CONSTRUCTOR_BINDING));
  
@@ -36342,7 +36342,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_1352__CEXPR));
   melt_assertmsg("iniobj checkdiscr dobj_1354", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FORMAL_BINDING))));
   cdat->dobj_1354.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FORMAL_BINDING))));
   cdat->dobj_1354.obj_num = 0;
-  cdat->dobj_1354.obj_hash = 1054722852;
+  cdat->dobj_1354.obj_hash = 147665051;
   cdat->dobj_1354.obj_len = 2;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_1354));
  
@@ -36352,7 +36352,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_1354));
   melt_assertmsg("iniobj checkdiscr dobj_1355", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FORMAL_BINDING))));
   cdat->dobj_1355.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FORMAL_BINDING))));
   cdat->dobj_1355.obj_num = 1;
-  cdat->dobj_1355.obj_hash = 294365547;
+  cdat->dobj_1355.obj_hash = 679375168;
   cdat->dobj_1355.obj_len = 2;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_1355));
  
@@ -36375,7 +36375,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_1356__CBIND));
   melt_assertmsg("iniobj checkdiscr dobj_1358", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FORMAL_BINDING))));
   cdat->dobj_1358.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FORMAL_BINDING))));
   cdat->dobj_1358.obj_num = 2;
-  cdat->dobj_1358.obj_hash = 565920712;
+  cdat->dobj_1358.obj_hash = 870294434;
   cdat->dobj_1358.obj_len = 2;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_1358));
  
@@ -36398,7 +36398,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dsym_1359__ENV));
   melt_assertmsg("iniobj checkdiscr dobj_1361", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FORMAL_BINDING))));
   cdat->dobj_1361.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FORMAL_BINDING))));
   cdat->dobj_1361.obj_num = 3;
-  cdat->dobj_1361.obj_hash = 863957153;
+  cdat->dobj_1361.obj_hash = 852189007;
   cdat->dobj_1361.obj_len = 2;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_1361));
  
@@ -36408,7 +36408,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_1361));
   melt_assertmsg("iniobj checkdiscr dobj_1362", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FORMAL_BINDING))));
   cdat->dobj_1362.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FORMAL_BINDING))));
   cdat->dobj_1362.obj_num = 4;
-  cdat->dobj_1362.obj_hash = 989273206;
+  cdat->dobj_1362.obj_hash = 876524719;
   cdat->dobj_1362.obj_len = 2;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_1362));
  
@@ -36418,7 +36418,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_1362));
   melt_assertmsg("iniobj checkdiscr dobj_1363", NULL != (void*)((void*)(MELT_PREDEF(CLASS_FORMAL_BINDING))));
   cdat->dobj_1363.obj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FORMAL_BINDING))));
   cdat->dobj_1363.obj_num = 5;
-  cdat->dobj_1363.obj_hash = 18734256;
+  cdat->dobj_1363.obj_hash = 244702752;
   cdat->dobj_1363.obj_len = 2;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_1363));
  
@@ -36431,7 +36431,7 @@ melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_1363));
  if (!/*_.VALDATA___V1533*/ curfptr[1532]) /*_.VALDATA___V1533*/ curfptr[1532] = (void*)&cdat->dobj_1365__NORMAL_LETREC_CONSTRUCTIVE;
   melt_assertmsg("iniobj checkdiscr dobj_1365__NORMAL_LETREC_CONSTRUCTIVE", NULL != (void*)/*_.CLASS_SELECTOR__V16*/ curfptr[15]);
   cdat->dobj_1365__NORMAL_LETREC_CONSTRUCTIVE.obj_class = (meltobject_ptr_t)(/*_.CLASS_SELECTOR__V16*/ curfptr[15]);
-  cdat->dobj_1365__NORMAL_LETREC_CONSTRUCTIVE.obj_hash = 830194251;
+  cdat->dobj_1365__NORMAL_LETREC_CONSTRUCTIVE.obj_hash = 59037398;
   cdat->dobj_1365__NORMAL_LETREC_CONSTRUCTIVE.obj_len = 4;
 melt_object_set_serial((meltobject_ptr_t) (&cdat->dobj_1365__NORMAL_LETREC_CONSTRUCTIVE));
  
