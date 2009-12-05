@@ -514,7 +514,7 @@ meltroutine_st
 /* unsafely set inside the meltroutine_st pointed by Rptr the
    routine function pointer to Rout */
 #define MELT_ROUTINE_SET_ROUTCODE(Rptr,Rout) do {	\
-  ((struct meltroutine_st*)(Rptr))->routfunad	\
+  ((struct meltroutine_st*)(Rptr))->routfunad		\
      = (Rout);						\
 } while(0)
 
@@ -523,11 +523,11 @@ meltroutine_st
 
 #define MELT_ROUTINE_STRUCT(N) {		\
   meltobject_ptr_t discr;			\
-  char routdescr[MELT_ROUTDESCR_LEN];	\
+  char routdescr[MELT_ROUTDESCR_LEN];		\
   meltroutfun_t* routfunad;			\
-  melt_ptr_t routdata;			\
+  melt_ptr_t routdata;				\
   unsigned nbval;				\
-  melt_ptr_t tabval[N];			\
+  melt_ptr_t tabval[N];				\
   long _gap; }
 
 

@@ -1,8 +1,8 @@
-/* GCC MELT GENERATED FILE warmelt-macro.0+2.c - DO NOT EDIT */
+/* GCC MELT GENERATED FILE warmelt-macro.0+02.c - DO NOT EDIT */
 /* secondary MELT generated C file of rank #2 */
 #include "run-melt.h"
 
-/**** warmelt-macro.0+2.c declarations ****/
+/**** warmelt-macro.0+02.c declarations ****/
 #define MELT_HAS_INITIAL_ENVIRONMENT 1
 
 /**!!** ***
@@ -612,7 +612,7 @@ void mark_module_melt(void*);
 void* initial_frame_melt;
 
 
-/**** warmelt-macro.0+2.c implementations ****/
+/**** warmelt-macro.0+02.c implementations ****/
 
 
 
@@ -12327,4 +12327,4 @@ melt_trace_end("MEXPAND_STORE_PREDEFINED", callcount);  melt_topframe = (struct 
 
 
 
-/**** end of warmelt-macro.0+2.c ****/
+/**** end of warmelt-macro.0+02.c ****/

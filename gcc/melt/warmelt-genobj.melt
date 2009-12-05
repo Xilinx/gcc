@@ -536,6 +536,10 @@
 ;;; reciever some objinielem
 ;;; argument strbuf
 (defselector output_c_declinit class_selector
+  :doc #{$OUTPUT_C_DECLINIT is the selector to generate the
+declaration of some initial element $RECV into the string-buffer
+$SBUF.}#
+  :formals (recv sbuf)
   )
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; selector to put a destination into an objcode
@@ -554,25 +558,36 @@
 ;;; result is not used
 
 (defselector output_c_code class_selector
+  :doc #{$OUTPUT_C_CODE is the selector to generate C code. $RECV is
+  the reciever, $DECLBUF is the string-buffer for declarations,
+  $IMPLBUF is the string-buffer for implementations, $DEPTH is the raw
+  integer depth.}#
+  :formals (recv declbuf implbuf :long depth)
   )
 
 ;;;; selector to generate the initial fill of some objinit
 ;;; reciever some objinitelem
 ;;; argument a stringbuffer
-(defselector output_c_initfill class_selector
-  )
+(defselector output_c_initial_fill class_selector
+  :doc #{$OUTPUT_C_INITIAL_FILL is the selector to generate the filling of
+  some initalized object $RECV. $IMPLBUF is the string-buffer for
+  implementations, $PTRSTR is the string value of the pointer to fill,
+  and $DEPTH is the raw integer depth.}#
+  :formals (recv implbuf ptrstr :long depth)
+)
 
 ;;;; selector to generate the predef fill of some objinit
 ;;; reciever some objinitelem
 ;;; argument a stringbuffer
-(defselector output_c_initpredef class_selector
+(defselector output_c_initial_predef class_selector
+  :formals (recv sbuf prtrstr :long depth)
   )
 
 (export_values
  output_c_code
  output_c_declinit
- output_c_initfill
- output_c_initpredef 
+ output_c_initial_fill
+ output_c_initial_predef 
  put_objdest
  )
 

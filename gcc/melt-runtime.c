@@ -4642,7 +4642,7 @@ meltgc_new_string_generated_c_filename  (meltobject_ptr_t discr_p,
   if (!basepath || !basepath[0]) 
     goto end;
   if (num>0) 
-    snprintf (numbuf, sizeof(numbuf)-1, "+%d", num);
+    snprintf (numbuf, sizeof(numbuf)-1, "+%02d", num);
   if (!discrv) 
     discrv = MELT_PREDEF (DISCR_STRING);
   if (melt_magic_discr ((melt_ptr_t) discrv) != OBMAG_OBJECT)

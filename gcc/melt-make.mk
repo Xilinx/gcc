@@ -70,8 +70,6 @@ vpath %.so $(melt_make_module_dir) .
 vpath %.c $(melt_make_source_dir) . $(melt_source_dir)
 vpath %.melt $(melt_make_source_dir) . $(melt_source_dir)
 
-## all the warm*.so need ./built-melt-cc-script to be built, but we
-## don't add a dependency to avoid them being rebuilt at install time.
 ##
 warmelt-%.0.so: warmelt-%.0.c $(melt_module_makefile)
 	$(MAKE) -f $(melt_module_makefile) meltmodule \
@@ -80,7 +78,7 @@ warmelt-%.0.so: warmelt-%.0.c $(melt_module_makefile)
 warmelt-%.0.d.so: warmelt-%.0.c $(melt_module_makefile)
 	$(MAKE) -f $(melt_module_makefile) meltmoduledynamic \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=$< GCCMELT_MODULE_BINARY=$@
+	      GCCMELT_MODULE_SOURCE=$< GCCMELT_MODULE_BINARY=$(shell basename $@ .d.so).so
 warmelt-%-h.d.so: warmelt-%-h.c $(melt_module_makefile)
 	$(MAKE) -f $(melt_module_makefile) meltmodulerawdynamic \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
@@ -230,8 +228,8 @@ empty-file-for-melt.c:
 	date +"/* empty-file-for-melt.c %c */" > $@-tmp
 	$(melt_make_move) $@-tmp $@
 
-warmelt-first.1.c: $(melt_make_source_dir)/warmelt-first.melt warmelt0.modlis $(melt_cc1)  $(WARMELT_BASE0DSO) empty-file-for-melt.c
-	$(MELTCCINIT1) $(meltarg_init)=$(WARMELT_BASE0DROW) \
+warmelt-first.1.c: $(melt_make_source_dir)/warmelt-first.melt warmelt0.modlis $(melt_cc1)  $(WARMELT_BASE0SO) empty-file-for-melt.c
+	$(MELTCCINIT1) $(meltarg_init)=$(WARMELT_BASE0ROW) \
 	      $(meltarg_arg)=$< \
 	      $(meltarg_output)=$@  empty-file-for-melt.c
 
@@ -278,8 +276,8 @@ warmelt-%-h2.c: $(melt_make_source_dir)/warmelt-%.melt $(melt_cc1) \
 ## compiled without any optimisation, otherwise the C compiler suffers
 ## too much..
 
-warmeltbig.1.c: $(WARMELT_SRCFILES) warmelt0.modlis $(melt_cc1)  $(WARMELT_BASE0DSO) empty-file-for-melt.c warmelt-predef.melt $(WARMELT_SRCFILES)
-	$(MELTCCINIT1) $(meltarg_init)=$(WARMELT_BASE0DROW) \
+warmeltbig.1.c: $(WARMELT_SRCFILES) warmelt0.modlis $(melt_cc1)  $(WARMELT_BASE0SO) empty-file-for-melt.c warmelt-predef.melt $(WARMELT_SRCFILES)
+	$(MELTCCINIT1) $(meltarg_init)=$(WARMELT_BASE0ROW) \
 	      $(meltarg_arglist)=$(WARMELT_SRCARGLIST) \
 	      $(meltarg_output)=$@  empty-file-for-melt.c
 

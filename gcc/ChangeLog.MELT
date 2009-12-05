@@ -1,4 +1,46 @@
 2009-12-05  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-make.mk: the warmelt*0.so is not dynamic, but the
+	warmelt*0.c are made both as dynamic modules and as ordinary ones.
+	* run-melt.h: Updated copyright year & comment (GPLv3+).
+	* melt-runtime.c (meltgc_new_string_generated_c_filename):
+	generate names like warmelt*+02.c ..
+	* melt-runtime.h: typos & indentation of macros.
+	* melt/warmelt-genobj.melt: output_c_initfill &
+	output_c_initpredef selectors renamed as output_c_initial_fill &
+	output_c_initial_predef selectors with different signature, taking
+	the pointer string [=the C name of the pointer to be filled] &
+	depth as explicit argument.
+	* melt/warmelt-outobj.melt: all outcinit* functions,
+	i.e. methods for above output_c_initial_fill &
+	output_c_initial_predef selectors, and their call sites, updated
+	to use the new pointer string & depth arguments, etc.
+
+	{regenerated all twice}
+	* melt/warmelt*+[1-9].c: renamed as
+	gcc/melt/warmelt*+0[1-9].c, so warmelt*+1.c renamed as
+	warmelt*+01.c etc...
+
+	* melt/warmelt-normal.0.c: regnerated.
+	* melt/warmelt-outobj.0.c: regnerated.
+	* melt/warmelt-first.0+01.c: regnerated.
+	* melt/warmelt-first.0+02.c: regnerated.
+	* melt/warmelt-normal.0+01.c: regnerated.
+	* melt/warmelt-normal.0+02.c: regnerated.
+	* melt/warmelt-macro.0+01.c: regnerated.
+	* melt/warmelt-macro.0+02.c: regnerated.
+	* melt/warmelt-outobj.0+01.c: regnerated.
+	* melt/warmelt-outobj.0+02.c: regnerated.
+	* melt/warmelt-outobj.0+03.c: regnerated.
+	* melt/warmelt-first.0.c: regnerated.
+	* melt/warmelt-macro.0.c: regnerated.
+	* melt/warmelt-genobj.0.c: regnerated.
+	* melt/warmelt-normatch.0.c: regnerated.
+	* melt/warmelt-genobj.0+01.c: regnerated.
+	* melt/warmelt-genobj.0+02.c: regnerated.
+	* melt/warmelt-genobj.0+03.c: regnerated.
+
+2009-12-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	* plugin.c (FMT_FOR_PLUGIN_EVENT): was defined twice.
 
 2009-12-04  Basile Starynkevitch  <basile@starynkevitch.net>
@@ -2277,24 +2319,24 @@
 	* testsuite/melt/tmultilong.bysl renamed as testsuite/melt/tmultilong.melt
 	* testsuite/melt/tputf-1.bysl renamed as testsuite/melt/tputf-1.melt
 
-	* gcc/melt/ana-base.melt: new renamed file
-	* gcc/melt/ana-simple.melt: new renamed file
-	* gcc/melt/warmelt-first.melt: new renamed file
-	* gcc/melt/warmelt-genobj.melt: new renamed file
-	* gcc/melt/warmelt-macro.melt: new renamed file
-	* gcc/melt/warmelt-normal.melt: new renamed file
-	* gcc/melt/warmelt-normatch.melt: new renamed file
-	* gcc/melt/warmelt-outobj.melt: new renamed file
-	* gcc/testsuite/melt/t2iter.melt: new renamed file
-	* gcc/testsuite/melt/tcond-1.melt: new renamed file
-	* gcc/testsuite/melt/test1.melt: new renamed file
-	* gcc/testsuite/melt/testrun1.melt: new renamed file
-	* gcc/testsuite/melt/tmacrostring.melt: new renamed file
-	* gcc/testsuite/melt/tmatch-1.melt: new renamed file
-	* gcc/testsuite/melt/tmatch-2.melt: new renamed file
-	* gcc/testsuite/melt/tmatch-3.melt: new renamed file
-	* gcc/testsuite/melt/tmultilong.melt: new renamed file
-	* gcc/testsuite/melt/tputf-1.melt: new renamed file
+	* melt/ana-base.melt: new renamed file
+	* melt/ana-simple.melt: new renamed file
+	* melt/warmelt-first.melt: new renamed file
+	* melt/warmelt-genobj.melt: new renamed file
+	* melt/warmelt-macro.melt: new renamed file
+	* melt/warmelt-normal.melt: new renamed file
+	* melt/warmelt-normatch.melt: new renamed file
+	* melt/warmelt-outobj.melt: new renamed file
+	* testsuite/melt/t2iter.melt: new renamed file
+	* testsuite/melt/tcond-1.melt: new renamed file
+	* testsuite/melt/test1.melt: new renamed file
+	* testsuite/melt/testrun1.melt: new renamed file
+	* testsuite/melt/tmacrostring.melt: new renamed file
+	* testsuite/melt/tmatch-1.melt: new renamed file
+	* testsuite/melt/tmatch-2.melt: new renamed file
+	* testsuite/melt/tmatch-3.melt: new renamed file
+	* testsuite/melt/tmultilong.melt: new renamed file
+	* testsuite/melt/tputf-1.melt: new renamed file
 	* warmelt-first-0.c: regenerated.
 	* warmelt-macro-0.c: regenerated.
 	* warmelt-normal-0.c: regenerated.
