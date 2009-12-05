@@ -1,3 +1,6 @@
+2009-12-05  Basile Starynkevitch  <basile@starynkevitch.net>
+	* plugin.c (FMT_FOR_PLUGIN_EVENT): was defined twice.
+
 2009-12-04  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	{{regenerated several times; the previous commit didn't build!!}}
@@ -11,7 +14,7 @@
 	* melt/warmelt-genobj.0.c: regenerated.
 	* melt/warmelt-normatch.0.c: regenerated.
 	{{other regenerated files didn't change}}
-	
+
 2009-12-04  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	{{letrec still incomplete}}

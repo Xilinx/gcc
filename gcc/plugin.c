@@ -54,8 +54,6 @@ static const char *plugin_event_name_init[] =
 # include "plugin.def"
 # undef DEFEVENT
 };
-/* a printf format large enough for the largest event above */
-#define FMT_FOR_PLUGIN_EVENT "%-26s"
 
 /* A printf format large enough for the largest event above.  */
 #define FMT_FOR_PLUGIN_EVENT "%-32s"
