@@ -1,4 +1,11 @@
 2009-12-07  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	{{tletrec.c is generated, but probably incomplete}}
+	* melt-make.mk: set the random-seed systematically.
+	* melt/warmelt-outobj.melt: outpucod_objmultiallocblock coded a
+	bit more.
+
+2009-12-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in: generated C files goes into gcc/melt/generated/
 	* melt-make.mk: added empty warmelt-infixsyntax.melt and the
 	warmelt-infixsyntax module.  added melt/generated/ directory to

@@ -407,7 +407,7 @@ warmelt2.modlis: $(WARMELT_BASE2SO)
 
 warmelt-first.2.c: $(melt_make_source_dir)/warmelt-first.melt warmelt1.modlis $(WARMELT_BASE1SO) $(melt_cc1)
 	$(MELTCCINIT1) $(meltarg_init)="@warmelt1" \
-	      $(meltarg_arg)=$< \
+	      $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_output)=$@
 
 
@@ -472,7 +472,7 @@ warmelt-first.3.c: $(melt_make_source_dir)/warmelt-first.melt warmelt2.modlis $(
 	-rm -f $@ 
 	@echo generating $@ using $(WARMELT_BASE2SO)
 	$(MELTCCINIT1) $(meltarg_init)="@warmelt2" \
-	      $(meltarg_arg)=$< \
+	      $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_output)=$@  empty-file-for-melt.c
 	ls -l $@
 
