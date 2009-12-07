@@ -1,4 +1,8 @@
 2009-12-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* doc/melt.texi (MELT syntax constructs): fixed typo by adding
+	missing brace.
+
+2009-12-07  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	{{tletrec.c is generated, but probably incomplete}}
 	* melt-make.mk: set the random-seed systematically.

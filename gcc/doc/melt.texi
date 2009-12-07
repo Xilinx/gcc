@@ -1684,7 +1684,7 @@ expression, done with the new bindings.
 
 @item letrec
 @cindex @code{letrec} MELT syntax
-@code{(let (@var{letrec-binding} @var{@dots{}}) @var{body} @var{@dots{}}) is a
+@code{(let (@var{letrec-binding} @var{@dots{}}) @var{body} @var{@dots{}})} is a
 recursive binding construct. The letrec bindings should only bind
 @emph{constructive expressions}, that is @code{lambda}-s, @code{tuple}-s,
 @code{instance}-s and @code{list}-s.
