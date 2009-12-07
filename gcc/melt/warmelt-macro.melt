@@ -5075,8 +5075,6 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
 (export_synonym class_source_letbinding class_source_let_binding)
 ;;; class_source_casematch is renamed class_source_match_case
 (export_synonym class_source_casematch class_source_match_case)
-;;; class_source_make_instance is renamed class_source_instance
-(export_synonym class_source_make_instance class_source_instance)
 ;;; class_sourcepattern_any renamed as class_source_pattern
 (export_synonym class_sourcepattern_any class_source_pattern)
 ;;; class_sourcepattern_anymatch renamed as class_source_pattern_matcher

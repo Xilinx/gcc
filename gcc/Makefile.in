@@ -5190,10 +5190,10 @@ upgrade-warmelt: $(WARMELT_BASE3SO)
 	$(MELTCCINIT1) $(meltarg_init)="@warmelt3" \
 	      $(meltarg_arg)=$(melt_source_dir)/warmelt-first.melt \
 	      $(meltarg_output)=warmelt-first.0.c  empty-file-for-melt.c
-	rm -f $(srcdir)/melt/warmelt-first.0*.c
+	rm -f $(srcdir)/melt/generated/warmelt-first.0*.c
 	for f in warmelt-first.0*.c; do \
 	  grep -v '^#line' $$f | unifdef -UMELTGCC_NOLINENUMBERING  > $(srcdir)/melt/$$f-tmp; \
-	  $(SHELL) $(srcdir)/../move-if-change  $(srcdir)/melt/$$f-tmp  $(srcdir)/melt/$$f; \
+	  $(SHELL) $(srcdir)/../move-if-change  $(srcdir)/melt/$$f-tmp  $(srcdir)/melt/generated/$$f; \
 	done
 ## build other warmelt-*.0*.c
 	for r in $(WARMELT_REST); do \
@@ -5202,10 +5202,10 @@ upgrade-warmelt: $(WARMELT_BASE3SO)
 	  $(MELTCCFILE1) $(meltarg_init)="@warmelt3" \
 	      $(meltarg_arg)=$(srcdir)/melt/$$r.melt \
 	      $(meltarg_output)=$$r.0.c  empty-file-for-melt.c ; \
-	  rm -f $(srcdir)/melt/$$r.0*.c; \
+	  rm -f $(srcdir)/melt/generated/$$r.0*.c; \
 	  for f in $$r.0*.c ; do \
 	    grep -v '^#line' $$f | unifdef -UMELTGCC_NOLINENUMBERING  > $(srcdir)/melt/$$f-tmp; \
-	    $(SHELL) $(srcdir)/../move-if-change  $(srcdir)/melt/$$f-tmp  $(srcdir)/melt/$$f; \
+	    $(SHELL) $(srcdir)/../move-if-change  $(srcdir)/melt/$$f-tmp  $(srcdir)/melt/generated/$$f; \
           done; \
 	done
 ## rebuild warmelt1 to be sure

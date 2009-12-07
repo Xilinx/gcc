@@ -6191,6 +6191,50 @@ readagain:
 	return rdcurc();
       goto readagain;
     }
+  /** The comment ;;## <linenum> [<filename>]
+      is handled like #line, inspired by _cpp_do_file_change in
+      libcpp/directives.c */
+  else if (c == ';' && rdfollowc (1) == ';'
+	   && rdfollowc (2) == '#' && rdfollowc (3) == '#' 
+	   && comh == COMMENT_SKIP)
+    { 
+      const struct line_map *map = 0;
+      char *endp = 0;
+      char *newpath = 0;
+      char* newpathdup = 0;
+      long newlineno = strtol (&rdfollowc (4), &endp, 10);
+      /* take as filename from the first non-space to the last non-space */
+      while (endp && *endp && ISSPACE(*endp)) endp++;
+      if (endp && *endp) newpath=endp;
+      if (endp && newpath) endp += strlen(endp) - 1;
+      while (newpath && ISSPACE(*endp)) endp--;
+      debugeprintf (";;## directive for line newlineno=%ld newpath=%s", newlineno, newpath);
+      if (newlineno>0 && newpath) 
+	{
+	  int ix= 0;
+	  char *curpath=0;
+	  /* find the newpath in the parsedmeltfilevect or push it
+	     there */
+	  for (ix = 0;
+	       VEC_iterate (char_p, parsedmeltfilevect, ix, curpath);
+	       ix++) 
+	    {
+	      if (curpath && !strcmp(newpath, curpath))
+		  newpathdup = curpath;
+	    }
+	  if (!newpathdup)
+	    {
+	      newpathdup = xstrdup (newpath);
+	      VEC_safe_push (char_p, heap, parsedmeltfilevect, newpathdup);
+	    }
+	  map = linemap_add(line_table, LC_RENAME_VERBATIM,
+			    false, newpathdup, newlineno);
+	}
+      else if (newlineno>0)
+	{
+	}
+      goto readline;
+    }
   else if (c == ';' && comh == COMMENT_SKIP)
     goto readline;
   else if (c == '#' && comh == COMMENT_SKIP && rdfollowc (1) == '|')
@@ -6644,56 +6688,6 @@ readsexpr (struct reading_st *rd, int endc)
 }
 
 
-static melt_ptr_t
-readassoc (struct reading_st *rd)
-{
-  int sz = 0, c = 0, ln = 0, pos = 0;
-  MELT_ENTERFRAME (3, NULL);
-#define mapv  curfram__.varptr[0]
-#define attrv curfram__.varptr[1]
-#define valv   curfram__.varptr[2]
-  /* maybe read the size */
-  if (rdcurc () == '/')
-    {
-      sscanf (&rdcurc (), "/%d%n", &sz, &pos);
-      if (pos > 0)
-	rd->rcol += pos;
-    };
-  if (sz > MELT_MAXLEN)
-    sz = MELT_MAXLEN;
-  else if (sz < 0)
-    sz = 2;
-  mapv = meltgc_new_mapobjects ((meltobject_ptr_t) MELT_PREDEF (DISCR_MAP_OBJECTS), sz);
-  c = skipspace_getc (rd, COMMENT_SKIP);
-  while (c != '}' && !rdeof ())
-    {
-      bool gotat = FALSE, gotva = FALSE;
-      ln = rd->rlineno;
-      attrv = readval (rd, &gotat);
-      if (!gotat || !attrv
-	  || melt_magic_discr ((melt_ptr_t) attrv) != OBMAG_OBJECT)
-	READ_ERROR ("MELT: bad attribute in mapoobject line %d", ln);
-      c = skipspace_getc (rd, COMMENT_SKIP);
-      if (c != '=')
-	READ_ERROR ("MELT: expected equal = after attribute but got %c",
-		    ISPRINT (c) ? c : ' ');
-      rdnext ();
-      ln = rd->rlineno;
-      valv = readval (rd, &gotva);
-      if (!valv)
-	READ_ERROR ("MELT: null or missing value in mapobject line %d", ln);
-      c = skipspace_getc (rd, COMMENT_SKIP);
-      if (c == '.')
-	c = skipspace_getc (rd, COMMENT_SKIP);
-    }
-  if (c == '}')
-    rdnext ();
-  MELT_EXITFRAME ();
-  return (melt_ptr_t) mapv;
-#undef mapv
-#undef attrv
-#undef valv
-}
 
 
 /* if the string ends with "_ call gettext on it to have it
@@ -7217,14 +7211,7 @@ readval (struct reading_st *rd, bool * pgot)
       readv = readsexpr (rd, ']');
       *pgot = TRUE;
       goto end;
-    }				/* end if '[' */
-  else if (c == '{')
-    {
-      rdnext ();
-      readv = readassoc (rd);
-      *pgot = TRUE;
-      goto end;
-    }
+    }	
   else if (c == '#')
     {
       rdnext ();

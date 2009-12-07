@@ -1646,24 +1646,24 @@ given) should have the same ctype.
 @item instance
 @cindex @code{instance} MELT syntax
 @code{(instance @var{class-name} [@var{:field-name} @var{field-value}]
-@var{@dots{}})} where the @var{class-name} is the name of a class (it
-cannot be a complex expression but should be a class statically known)
-and where each @var{:field-name} keyword (starting with a colon) is
-the name of some field (direct or inherited) of the class and the
-following @var{field-value} is an expression giving its initial value;
-the result of @code{instance} is a freshly built instance of the given
+@var{@dots{}})} is a constrctive expression for instances, where the
+@var{class-name} is the name of a class (it cannot be a complex
+expression but should be a class statically known) and where each
+@var{:field-name} keyword (starting with a colon) is the name of some
+field (direct or inherited) of the class and the following
+@var{field-value} is an expression giving its initial value; the
+result of @code{instance} is a freshly built instance of the given
 @var{class-name} initialized with the fields (fields which are not
-mentionned are initialized with nil). @code{make_instance} is a
-deprecated synonym of @code{instance}.
+mentionned are initialized with nil).
 
 @item lambda
 @cindex @code{lambda} MELT syntax
-@code{(lambda @var{formal-args} @var{body} @var{@dots{}})} is a function
-abstraction, it returns a closure, the anonymous function taking
-@var{formal-args} as arguments and evaluating sequentially the
-@var{body} expressions, returning the value of the last one. The first
-argument of a function and the first result that it is returning
-should be a @code{:value}.
+@code{(lambda @var{formal-args} @var{body} @var{@dots{}})} is a
+constructive expression for function abstraction, it returns a
+closure, the anonymous function taking @var{formal-args} as arguments
+and evaluating sequentially the @var{body} expressions, returning the
+value of the last one. The first argument of a function and the first
+result that it is returning should be a @code{:value}.
 
 @item let
 @cindex @code{let} MELT syntax
@@ -1682,12 +1682,19 @@ stuff (like a plain long integer). The result of the whole @code{let}
 expression is the result of the evaluation of the last body
 expression, done with the new bindings.
 
-@item make_instance
-@cindex @code{make_instance} MELT syntax
-[Deprecated] @code{(make_instance @var{class-name} [@var{:field-name}
-@var{field-value}] @var{@dots{}})} is a deprecated equivalent of
-@code{instance} MELT syntax @code{(make_instance @var{class-name}
-[@var{:field-name} @var{field-value}] @var{@dots{}})}
+@item letrec
+@cindex @code{letrec} MELT syntax
+@code{(let (@var{letrec-binding} @var{@dots{}}) @var{body} @var{@dots{}}) is a
+recursive binding construct. The letrec bindings should only bind
+@emph{constructive expressions}, that is @code{lambda}-s, @code{tuple}-s,
+@code{instance}-s and @code{list}-s.
+
+@item list
+@cindex @code{list} MELT syntax
+@code{(list @var{expr} @var{@dots{}})} is a constructive expressions
+for lists. It returns a tuple
+made of the arguments.
+
 
 @item match
 @cindex @code{match} MELT syntax
@@ -1781,8 +1788,13 @@ have the same ctype.
 
 @item store_predefined
 @cindex @code{store_predefined} MELT syntax
-[Expert] @code{(store_predefined @var{predef-name-or-number} @var{expr})}
-Don't use it if you don't understand.
+[Expert] @code{(store_predefined @var{predef-name-or-number}
+@var{expr})} Don't use it if you don't understand. 
+
+@item tuple
+@cindex @code{tuple} MELT syntax
+@code{(tuple @var{expr} @var{@dots{}})} is a constructive expressions
+for tuples (or multiples). It returns a tuple made of the arguments.
 
 @item unsafe_get_field
 @cindex @code{unsafe_get_field} MELT syntax

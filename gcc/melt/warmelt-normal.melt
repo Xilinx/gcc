@@ -593,6 +593,7 @@ routine procedures.}#
  class_normal_constructed_list_binding
  class_normal_constructed_pair_binding
  class_normal_constructed_tuple_binding
+ class_normal_constructor_binding
  class_nrep
  class_nrep_anyproc
  class_nrep_apply
@@ -653,17 +654,10 @@ routine procedures.}#
  class_nrep_unsafe_get_field
  class_nrep_unsafe_put_fields
  class_nrep_update_current_module_environment_container
-class_normal_constructor_binding
 
  )					;end of export normal classes
 
 
-;(compile_warning "obsolete synonyms for class_nrep_*")
-;(export_synonym class_nrep_make_instance class_nrep_instance)
-;(export_synonym class_nrep_expr class_nrep_expression)
-;(export_synonym class_nrep_typexpr class_nrep_typed_expression)
-;(export_synonym napp_args nexpr_args)
-;(export_synonym nsend_args nexpr_args)
 
 ;;;;;;; primitive for extra warnings
 (defprimitive has_extra_warnings () :long "(extra_warnings)")

@@ -1,3 +1,42 @@
+2009-12-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in: generated C files goes into gcc/melt/generated/
+	* melt-make.mk: added empty warmelt-infixsyntax.melt and the
+	warmelt-infixsyntax module.  added melt/generated/ directory to
+	vpath for %.c
+	* melt-runtime.c (readassoc): removed  and the { .. } syntax for
+	them.
+	(skipspace_getc): handling ;;## comments specially, like a #line
+	directive in C.
+	* melt/warmelt-infixsyntax.melt: new empty file.
+	* melt/warmelt-normal.melt: typos.
+	* melt/warmelt-macro.melt: no more class_source_make_instance as
+	synonym..
+	* doc/melt.texi: updated documentation (no more make_instance and
+	mention letrec tuple list ... constructive expressions).
+
+	* melt/generated/ : added directory and moved bootstrapped
+	generated C files inside.
+	{{regenerated all files}}
+	* melt/generated/warmelt-first.0+01.c: regnerated.
+	* melt/generated/warmelt-first.0+02.c: regnerated.
+	* melt/generated/warmelt-first.0.c: regnerated.
+	* melt/generated/warmelt-genobj.0+01.c: regnerated.
+	* melt/generated/warmelt-genobj.0+02.c: regnerated.
+	* melt/generated/warmelt-genobj.0+03.c: regnerated.
+	* melt/generated/warmelt-genobj.0.c: regnerated.
+	* melt/generated/warmelt-infixsyntax.0.c: regnerated.
+	* melt/generated/warmelt-macro.0+01.c: regnerated.
+	* melt/generated/warmelt-macro.0+02.c: regnerated.
+	* melt/generated/warmelt-macro.0.c: regnerated.
+	* melt/generated/warmelt-normal.0+01.c: regnerated.
+	* melt/generated/warmelt-normal.0+02.c: regnerated.
+	* melt/generated/warmelt-normal.0.c: regnerated.
+	* melt/generated/warmelt-normatch.0.c: regnerated.
+	* melt/generated/warmelt-outobj.0+01.c: regnerated.
+	* melt/generated/warmelt-outobj.0+02.c: regnerated.
+	* melt/generated/warmelt-outobj.0+03.c: regnerated.
+	* melt/generated/warmelt-outobj.0.c: regnerated.
+
 2009-12-05  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt-make.mk: the warmelt*0.so is not dynamic, but the
