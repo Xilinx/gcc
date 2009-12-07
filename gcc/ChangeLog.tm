@@ -1,3 +1,12 @@
+2009-12-07  Aldy Hernandez  <aldyh@redhat.com>
+
+	* trans-mem.c: (tm_new_mem_hash): Declare.
+	(tm_new_mem_map): Declare.
+	(tm_log_init): Initialize tm_new_mem_hash.
+	(tm_log_delete): Free htab_delete.
+	(transaction_local_new_memory_p): New.
+	(requires_barrier): Call transaction_local_new_memory_p.
+
 2009-11-24  Aldy Hernandez  <aldyh@redhat.com>
 
 	* trans-mem.c (requires_barrier): Document STMT argument.

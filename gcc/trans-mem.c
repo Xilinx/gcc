@@ -770,6 +770,19 @@ static htab_t tm_log;
    dominator order.  */
 static VEC(tree,heap) *tm_log_save_addresses;
 
+/* Map for an SSA_NAME originally pointing to a non aliased new piece
+   of memory (malloc, alloc, etc).  */
+static htab_t tm_new_mem_hash;
+
+typedef struct tm_new_mem_map
+{
+  /* SSA_NAME being dereferenced.  */
+  tree val;
+  /* True if dereferenced memory is a non aliased new piece of
+     memory.  */
+  bool local_new_memory_p;
+} tm_new_mem_map_t;
+
 /* Htab support.  Return hash value for a `tm_log_entry'.  */
 static hashval_t
 tm_log_hash (const void *p)
@@ -801,6 +814,7 @@ static void
 tm_log_init (void)
 {
   tm_log = htab_create (10, tm_log_hash, tm_log_eq, tm_log_free);
+  tm_new_mem_hash = htab_create (5, struct_ptr_hash, struct_ptr_eq, free);
   tm_log_save_addresses = VEC_alloc (tree, heap, 5);
 }
 
@@ -809,6 +823,7 @@ static void
 tm_log_delete (void)
 {
   htab_delete (tm_log);
+  htab_delete (tm_new_mem_hash);
   VEC_free (tree, heap, tm_log_save_addresses);
 }
 
@@ -1130,6 +1145,92 @@ static tree lower_sequence_tm (gimple_stmt_iterator *, bool *,
 static tree lower_sequence_no_tm (gimple_stmt_iterator *, bool *,
 				  struct walk_stmt_info *);
 
+/* Given an address that is being dereferenced, return TRUE if we can
+   prove that the memory being dereferenced is a non aliased new chunk
+   of memory local to the transaction (malloc, alloca, etc), which
+   therefore requires no instrumentation.
+
+   ENTRY_BLOCK is the entry block to the transaction containing the
+   dereference of X.  */
+static bool
+transaction_local_new_memory_p (basic_block entry_block, tree x)
+{
+  gimple stmt = NULL;
+  enum tree_code code;
+  void **slot;
+  tm_new_mem_map_t elt, *elt_p;
+
+  if (!entry_block)
+    return false;
+
+  if (TREE_CODE (x) != SSA_NAME)
+    return false;
+
+  /* Look in cache first.  */
+  elt.val = x;
+  slot = htab_find_slot (tm_new_mem_hash, &elt, INSERT);
+  elt_p = (tm_new_mem_map_t *) *slot;
+  if (elt_p)
+    return elt_p->local_new_memory_p;
+  else
+    {
+      elt_p = XNEW (tm_new_mem_map_t);
+      elt_p->val = x;
+      elt_p->local_new_memory_p = false;
+      *slot = elt_p;
+    }
+
+  /* Search back through the DEF chain to find the original definition
+     of this address.  */
+  do
+    {
+      if (ptr_deref_may_alias_global_p (x))
+	{
+	  /* Pointed to address escapes.  This is not thread-private.  */
+	  return false;
+	}
+
+      stmt = SSA_NAME_DEF_STMT (x);
+
+      /* Bail if the malloc call is outside the transaction.  We only
+	 care about transaction local mallocs.  There are no edges
+	 into a transaction from without, so a simple dominance test
+	 will do.  */
+      if (!dominated_by_p (CDI_DOMINATORS, gimple_bb (stmt), entry_block))
+	return false;
+
+      if (is_gimple_assign (stmt))
+	{
+	  code = gimple_assign_rhs_code (stmt);
+	  /* x = foo ==> foo */
+	  if (code == SSA_NAME)
+	    x = gimple_assign_rhs1 (stmt);
+	  /* x = foo + n ==> foo */
+	  else if (code == POINTER_PLUS_EXPR)
+	    x = gimple_assign_rhs1 (stmt);
+	  /* x = (cast*) foo ==> foo */
+	  else if (code == VIEW_CONVERT_EXPR || code == NOP_EXPR)
+	    x = gimple_assign_rhs1 (stmt);
+	  else
+	    return false;
+	}
+      else
+	break;
+    }
+  while (TREE_CODE (x) == SSA_NAME);
+
+  if (stmt && is_gimple_call (stmt) && gimple_call_flags (stmt) & ECF_MALLOC)
+    {
+      /* No logging to do.  For alloca, the stack pointer gets reset
+	 by the retry and we reallocate.  For malloc, a transaction
+	 restart frees the memory and we reallocate.  Similarly for
+	 user-defined malloc type routines, which should release the
+	 memory on a transaction restart.  */
+      return elt_p->local_new_memory_p = true;
+    }
+  return false;
+}
+
 /* Determine whether X has to be instrumented using a read
    or write barrier.
 
@@ -1149,6 +1250,8 @@ requires_barrier (basic_block entry_block, tree x, gimple stmt)
   switch (TREE_CODE (x))
     {
     case INDIRECT_REF:
+      if (transaction_local_new_memory_p (entry_block, TREE_OPERAND (x, 0)))
+	return false;
       return true;
 
     case ALIGN_INDIRECT_REF:
