@@ -1,3 +1,22 @@
+2009-12-06  Andy Hutchinson  <hutchinsonandy@gcc.gnu.org>
+
+	* gcc.c-torture/execute/vla-dealloc-1.c: Use lower loop count
+	for 16bit int targets.
+
+2009-12-06  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/41478
+	PR fortran/42268
+	* gfortran.dg/intrinsic_pack_5.f90: New test.
+
+2009-12-04  Jason Merrill  <jason@redhat.com>
+
+	PR c++/42010
+	* g++.dg/abi/local2.C: New.
+
+	PR c++/42277
+	* g++.dg/cpp0x/decltype20.C: New.
+
 2009-12-04  David Daney  <ddaney@caviumnetworks.com>
 
 	PR rtl-optimization/42164

@@ -1,3 +1,70 @@
+2009-12-06  Richard Henderson  <rth@redhat.com>
+
+	PR debug/42234
+	* tree-ssa-dom.c (degenerate_phi_result): Check for NULL phi
+	argument earlier.
+
+2009-12-06  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* doc/install.texi: Document MPC is required.
+
+2009-12-06  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386-md (g): Add HImode and QImode.
+	(general_szext_operand): New mode attribute.
+	(*test<mode>_1): Macroize insn from *test{qi,hi,si}_1 using
+	SWI124 mode iterator.
+	(and<mode>3): Macroize expander from and{qi,hi,si,di}3 using
+	SWIM mode iterator.
+	(*and<mode>_2): Macroize insn from *and{qi,hi,si}_2 using
+	SWI124 mode iterator.
+	(ior<mode>3): Macroize expander from ior{qi,hi,si,di}3 using
+	SWIM mode iterator.
+	(*ior<mode>_1): Macroize insn from *ior{hi,si,di}_1 using
+	SWI248 mode iterator.
+	(*ior<mode>_2): Macroize insn from *ior{qi,hi,si,di}_2 using
+	SWI mode iterator.
+	(*ior<mode>_3): Macroize insn from *ior{qi,hi,si,di}_3 using
+	SWI mode iterator.
+	(xor<mode>3): Macroize expander from xor{qi,hi,si,di}3 using
+	SWIM mode iterator.
+	(*xor<mode>_1): Macroize insn from *xor{hi,si,di}_1 using
+	SWI248 mode iterator.
+	(*xor<mode>_2): Macroize insn from *xor{qi,hi,si,di}_2 using
+	SWI mode iterator.
+	(*xor<mode>_3): Macroize insn from *xor{qi,hi,si,di}_3 using
+	SWI mode iterator.
+
+2009-12-05  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* config/i386/i386.c (TARGET_DEFAULT_TARGET_FLAGS): Add
+	MASK_FUSED_MADD.
+	* config/i386/i386.h (CC1_CPU_SPEC_1): Remove
+	"'-mfused-madd' was removed".
+	* config/i386/i386.opt (mfused-madd): New.
+	* config/i386/sse.md: Add TARGET_FUSED_MADD to FMA4 insns.
+	* doc/invoke.texi (-mfused-madd, -mno-fused-madd): Document.
+
+2009-12-05  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	* pa64-hpux.h (LIB_SPEC): Handle -rdynamic.
+	* pa-hpux10.h (LIB_SPEC): Likewise.
+	* pa-hpux11.h (LIB_SPEC): Likewise.
+
+	PR ada/41912
+	* pa/linux-unwind.h (pa32_fallback_frame_state): Set fs->signal_frame
+	for signal frames.
+	* pa/hpux-unwind.h (pa32_fallback_frame_state): Likewise.
+
+2009-12-05  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure: Regenerate.
+
+2009-12-05  Richard Earnshaw  <rearnsha@arm.com>
+
+	* arm/thumb2.md (thumb2_mulsi_short_compare0): Use a low-register
+	for the scratch.
+
 2009-12-04  David Daney  <ddaney@caviumnetworks.com>
 
 	PR rtl-optimization/42164
