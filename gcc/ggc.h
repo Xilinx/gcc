@@ -163,8 +163,6 @@ extern void *ggc_internal_cleared_alloc_stat (size_t MEM_STAT_DECL);
 /* Resize a block.  */
 extern void *ggc_realloc_stat (void *, size_t MEM_STAT_DECL);
 
-#define ggc_realloc(s,z) ggc_realloc_stat (s,z MEM_STAT_INFO)
-
 /* Free a block.  To be used when known for certain it's not reachable.  */
 extern void ggc_free (void *);
 

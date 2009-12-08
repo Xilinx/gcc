@@ -1,3 +1,11 @@
+2009-12-08  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* ggc.h (ggc_realloc): Remove.
+
+	* config/pa/pa.c (pa_init_machine_status): Use typed GC allocation.
+	(get_deferred_plabel): Use typed GC allocation.  Replace
+	ggc_realloc with GGC_RESIZEVEC.
+
 2009-11-30  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
 
 	* config/ia64/ia64.c (ia64_init_machine_status): Use typed GC
