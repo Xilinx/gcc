@@ -1919,12 +1919,21 @@ $SBUF.}#
   (assert_msg "check obodl" (is_list obodl))
   (let ( (loc (or (get_field :nconsb_loc recv) sloc))
 	 (nclosed (get_field :nlambdab_nclosed recv))
-	 (nrout (get_field :nlambdab_datarout recv))
+	 (nconstrout (get_field :nlambdab_constrout recv))
 	 (otouch (instance class_objtouch
 		    :obi_loc loc
 		    :otouch_val obva
 		    ))
+	 (ocrout (compile_obj nconstrout gcx))
+	 (oputrout (instance class_objputclosurout
+			     :obi_loc loc
+			     :opclor_clos obva
+			     :opclor_rout ocrout
+			     ))
 	 )
+    (debug_msg oputrout "compiletrec_lambda oputclo")
+    (list_append obodl oputrout)
+    ;;
     (debug_msg nclosed "compiletrec_lambda nclosed tuple")
     (foreach_in_multiple 
      (nclosed) 
@@ -1939,7 +1948,8 @@ $SBUF.}#
 	       (list_append obodl oclosed) 
 	       )
 	     )
-       (let ( (oputclo (instance class_objputclosedv
+       (let ( 	    
+	     (oputclo (instance class_objputclosedv
 				 :obi_loc loc
 				 :opclov_clos obva
 				 :opclov_off (make_integerbox discr_integer curix)
@@ -2018,7 +2028,7 @@ $SBUF.}#
 	 (:long cntletrec (+i 1 (get_int obcntletrec)))
 	 (oallstruct (make_multiple discr_multiple nbbnds))
 	 (namstr 
-	  (let (  (nambuf (make_strbuf discr_strbuf)) )
+	  (let ( (nambuf (make_strbuf discr_strbuf)) )
 	    (add2sbuf_strconst nambuf "meltletrec_")
 	    (add2sbuf_longdec nambuf cntletrec)
 	    (strbuf2string discr_verbatim_string nambuf)
@@ -2052,7 +2062,6 @@ $SBUF.}#
        (debug_msg ocurclear "compilobj_nrep_letrec ocurclear")
        (multiple_put_nth tuploc symix curobva)
        (mapobject_put locmap cursbnd curobva)
-       (list_append obodl ocurclear)
        (list_append oepil ocurclear)
        (list_append ofreelocs curobva)
        )
@@ -2095,7 +2104,7 @@ $SBUF.}#
        (debug_msg recobva "compilobj_nrep_letrec current normbinding recobva")
        (mapobject_put locmap curecbnd recobva)
        (debug_msg oreclear "compilobj_nrep_letrec oreclear")
-       (list_append obodl oreclear)
+       (list_append oepil oreclear)
        (list_append ofreelocs recobva)
        ))
     (debug_msg locmap "compilobj_nrep_letrec locmap again")
@@ -2919,6 +2928,7 @@ $SBUF.}#
 			       :oim_tupval tupval
 			       ))
 	    )
+	(put_int initup lentup)
 	(debug_msg initup "compilobj_constuplebind result initup")
 	initup
 	)

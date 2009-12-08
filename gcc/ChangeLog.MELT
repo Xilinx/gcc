@@ -1,5 +1,10 @@
 2009-12-08  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-genobj.melt: compiletrec_lambda is filling the
+	lambda, and compilobj_nrep_letrec is clearing in the epilogue...
+
+2009-12-08  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* Makefile.in (melt-runtime.o): Passing quoted
 	-DMELT_MODULE_CFLAGS.
 	* common.opt: added -fmelt-module-cflags.
