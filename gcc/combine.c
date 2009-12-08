@@ -1377,19 +1377,23 @@ setup_incoming_promotions (rtx first)
 
       /* Eliminate sign extensions in the callee when possible.  Only
          do this when:
-	 (a) a mode promotion has occurred;
-	 (b) the mode of the register is the same as the mode of
+	 (a) A mode promotion has occurred;
+	 (b) The mode of the register is the same as the mode of
 	     the argument as it is passed; and
-	 (c) the signedness does not change across any of the promotions; and
-	 (d) when no language-level promotions (which we cannot guarantee
+	 (c) Either there's no language level extension, or the extension
+	     from source to end result is valid.  The later case is true
+	     when the signedness of the extensions match, or when the 
+	     language level extension is unsigned.  In the later case,
+	     a zero extension followed by a sign extension is the same
+	     as one big zero extension.
+	 (d) When no language-level promotions (which we cannot guarantee
 	     will have been done by an external caller) are necessary,
 	     unless we know that this function is only ever called from
 	     the current compilation unit -- all of whose call sites will
 	     do the mode1 --> mode2 promotion.  */
       if (mode1 != mode3
           && mode3 == mode4
-          && uns1 == uns3
-	  && (mode1 == mode2 || strictly_local))
+	  && (mode1 == mode2 || ((uns1 || !uns3) && strictly_local)))
         {
 	  /* Record that the value was promoted from mode1 to mode3,
 	     so that any sign extension at the head of the current
@@ -5155,6 +5159,10 @@ combine_simplify_rtx (rtx x, enum machine_mode op0_mode, int in_dest)
 	SUBST (XEXP (x, 0),
 	       force_to_mode (XEXP (x, 0), GET_MODE (XEXP (x, 0)),
 			      GET_MODE_MASK (mode), 0));
+
+      /* We can truncate a constant value and return it.  */
+      if (CONST_INT_P (XEXP (x, 0)))
+	return gen_int_mode (INTVAL (XEXP (x, 0)), mode);
 
       /* Similarly to what we do in simplify-rtx.c, a truncate of a register
 	 whose value is a comparison can be replaced with a subreg if

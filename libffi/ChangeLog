@@ -1,3 +1,57 @@
+2009-12-07  David Edelsohn  <edelsohn@gnu.org>
+
+	* src/powerpc/aix_closure.S (libffi_closure_ASM): Fix tablejump
+	typo.
+
+2009-12-05  David Edelsohn  <edelsohn@gnu.org>
+
+	* src/powerpc/aix.S: Update AIX32 code to be consistent with AIX64
+	code.
+	* src/powerpc/aix_closure.S: Same.
+	
+2009-12-05  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* Makefile.in: Regenerate.
+	* configure: Regenerate.
+	* include/Makefile.in: Regenerate.
+	* man/Makefile.in: Regenerate.
+	* testsuite/Makefile.in: Regenerate.
+
+2009-12-04  David Edelsohn  <edelsohn@gnu.org>
+
+	* src/powerpc/aix_closure.S: Reorganize 64-bit code to match
+        linux64_closure.S.
+	
+2009-12-04  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR libffi/41908
+	* src/x86/ffi64.c (classify_argument): Update from
+	gcc/config/i386/i386.c.
+	(ffi_closure_unix64_inner): Do not use the address of two consecutive
+	SSE registers directly.
+	* testsuite/libffi.call/cls_dbls_struct.c (main): Remove xfail
+	for x86_64 linux targets.
+
+2009-12-04  David Edelsohn  <edelsohn@gnu.org>
+
+	* src/powerpc/ffi_darwin.c (ffi_closure_helper_DARWIN): Increment
+	pfr for long double split between fpr13 and stack.
+
+2009-12-03  David Edelsohn  <edelsohn@gnu.org>
+
+	* src/powerpc/ffi_darwin.c (ffi_prep_args): Increment next_arg and
+	fparg_count twice for long double.
+
+2009-12-03  David Edelsohn  <edelsohn@gnu.org>
+
+	PR libffi/42243
+	* src/powerpc/ffi_darwin.c (ffi_prep_args): Remove extra parentheses.
+
+2009-12-03  Uros Bizjak  <ubizjak@gmail.com>
+
+	* testsuite/libffi.call/cls_longdouble_va.c (main): Fix format string.
+	Remove xfails for x86 linux targets.
+
 2009-12-02  David Edelsohn  <edelsohn@gnu.org>
 
 	* src/powerpc/ffi_darwin.c (ffi_prep_args): Fix typo in INT64

@@ -654,6 +654,11 @@ typedef struct
     dummy:1, result:1, assign:1, threadprivate:1, not_always_present:1,
     implied_index:1, subref_array_pointer:1, proc_pointer:1;
 
+  /* For CLASS containers, the pointer attribute is sometimes set internally
+     even though it was not directly specified.  In this case, keep the
+     "real" (original) value here.  */
+  unsigned class_pointer:1;
+
   ENUM_BITFIELD (save_state) save:2;
 
   unsigned data:1,		/* Symbol is named in a DATA statement.  */
@@ -1614,19 +1619,7 @@ gfc_intrinsic_sym;
 
 #include <gmp.h>
 #include <mpfr.h>
-#ifdef HAVE_mpc
 #include <mpc.h>
-# if MPC_VERSION >= MPC_VERSION_NUM(0,6,1)
-#  define HAVE_mpc_pow
-# endif
-# if MPC_VERSION >= MPC_VERSION_NUM(0,7,1)
-#  define HAVE_mpc_arc
-#  define HAVE_mpc_pow_z
-# endif
-#else
-#define mpc_realref(X) ((X).r)
-#define mpc_imagref(X) ((X).i)
-#endif
 #define GFC_RND_MODE GMP_RNDN
 #define GFC_MPC_RND_MODE MPC_RNDNN
 
@@ -1685,15 +1678,7 @@ typedef struct gfc_expr
 
     mpfr_t real;
 
-#ifdef HAVE_mpc
-    mpc_t
-#else
-    struct
-    {
-      mpfr_t r, i;
-    }
-#endif
-    complex;
+    mpc_t complex;
 
     struct
     {

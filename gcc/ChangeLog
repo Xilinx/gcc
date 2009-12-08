@@ -1,3 +1,327 @@
+2009-12-08  Michael Matz  <matz@suse.de>
+
+	PR middle-end/38474
+	* function.c (free_temp_slots): Only walk the temp slot
+	addresses and combine slots if we actually changes something.
+	(pop_temp_slots): Ditto.
+
+2009-12-08  Olga Golovanevsky  <olga@il.ibm.com>
+
+	PR middle-end/41843
+	* ipa-struct-reorg.c (compare_fields): New function.
+	(find_field_in_struct_1): Use compare_fields function.
+	(is_equal_types): Likewise.
+
+2009-12-07  DJ Delorie  <dj@redhat.com>
+
+	PR c/42312
+	* config/mep/mep.c (mep_expand_prologue): Set
+	really_need_stack_frame after frame_size is set.
+
+2009-12-07  Richard Henderson  <rth@redhat.com>
+
+	PR rtl-opt/42269
+	* combine.c (setup_incoming_promotions): Improve the conditions
+	under which we respect the promotions applied.
+
+2009-12-07  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* config/sparc/linux.h (ASM_SPEC): Pass -K PIC if -findirect-dispatch.
+	* config/sparc/linux64.h (ASM_SPEC): Likewise.
+
+2009-12-07  Richard Henderson  <rth@redhat.com>
+
+	PR debug/42299
+	PR debug/42166
+	* tree-ssa.c (insert_debug_temp_for_var_def): Skip propagation
+	for ssa names already registered for update.
+
+2009-12-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/42244
+	* ddg.c (add_inter_loop_mem_dep): Use ANTI_DEP if from or to
+	is a DEBUG_INSN.
+
+2009-12-07  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* config/i386/driver-i386.c (host_detect_local_cpu): Add -mlwp to the
+	options when bit_LWP is set.
+
+2009-12-07  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* config/i386/cpuid.h (bit_ABM): New.
+	* config/i386/driver-i386.c (host_detect_local_cpu): Add -mabm to the
+	options when bit_ABM is set.
+
+2009-12-07  Jakub Jelinek  <jakub@redhat.com>
+
+	* config/i386/i386.c (bdesc_special_args): Move __builtin_clzs from
+	this array ...
+	(bdesc_args): ... here.
+	* config.gcc (i[34567]86-*-*): Include abmintrin.h.
+	(x86_64-*-*): Likewise.
+
+2009-12-07  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* config.gcc (i[34567]86-*-*, x86_64-*-*): Add popcntintrin.h.
+	* config/i386/abmintrin.h (_mm_popcnt_u32, _mm_popcnt_u64): Moved...
+	* config/i386/i386-c.c (__POPCNT__): Defined.
+	* config/i386/popcntintrin.h: ...here.  New file.
+	* config/i386/smmintrin.h (_mm_popcnt_u32, _mm_popcnt_u64): Moved...
+	Include popcntintrin.h.
+	* config/i386/x86intrin.h: Include popcntintrin.h when __POPCNT__
+	is defined.
+
+2009-12-07  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* config/i386/i386-protos.h (ix86_expand_fma4_multiple_memory):
+	Removed.
+	* config/i386/i386.c (ix86_expand_fma4_multiple_memory): Removed.
+	* config/i386/sse.md: Remove all XOP splitters.
+	Allow the second and fourth operands of XOP multiply-add insns
+	to be nonimmediate.
+
+2009-12-07  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* config/i386/sse.md: Remove all FMA4 splitters.
+	Allow the second operand of FMA4 insns to be a nonimmediate.
+	Fix comments punctuation.
+
+2009-12-07  Julian Brown  <julian@codesourcery.com>
+
+	* config/arm/constraints.md (Ps, Pt): New constraint letters.
+	* config/arm/thumb2.md (*thumb2_addsi_short): Tighten constraints.
+
+2009-12-07  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	PR other/40302
+	* configure.ac (HAVE_mpc): Don't define.
+	* config.in, configure: Regenerate.
+
+	PR other/40302
+	* builtins.c: Remove HAVE_mpc* checks throughout.
+	* fold-const.c: Likewise.
+	* real.h: Likewise.
+	* toplev.c: Likewise.
+
+2009-12-07  Edmar Wienskoski  <edmar@freescale.com>
+
+	* config.gcc (cpu_is_64bit): Add new core e500mc64.
+	(powerpc*-*-*): Add new core e500mc64.
+	* config/rs6000/e500mc64.md: New file.
+	* config/rs6000/rs6000.c (processor_costs): Add new costs for
+	e500mc64.
+	(rs6000_override_options): Add e500mc64 case to
+	processor_target_table. Altivec and Spe options not allowed with
+	e500mc64. Disable string instructions for e500mc64. Enable branch
+	targets alignment for both e500mc and e500mc64. Initialize
+	rs6000_cost for e500mc64.
+	(rs6000_emit_sISEL): New function.
+	(rs6000_emit_sCOND): Call rs6000_emit_sISEL for isel targets.
+	(rs6000_emit_int_cmove): Fix mode of 64 bit isel pattern
+	generation.
+	(rs6000_issue_rate): Set issue rate for e500mc64.
+	(rs6000_rtx_costs): Set more accurate cost for mfcr instruction
+	on architectures with isel.
+	* config/rs6000/rs6000-protos.h (rs6000_emit_sISEL): Declare.
+	* config/rs6000/rs6000.h (processor_type): Add
+	PROCESSOR_PPCE500MC64.
+	(ASM_CPU_SPEC): Add e500mc64.
+	* config/rs6000/rs6000.md (define_attr "cpu"): Add ppce500mc64.
+	Include e500mc64.md.
+	(abssi2_isel): Expand pattern to handle DImode.
+	(nabs<mode>2_isel): New pattern.
+	(absdi2): Change pattern to handle 64 bit isel targets.
+	(absdi2_internal): Exclude ISEL targets.
+	(nabsdi2): Exclude ISEL targets.
+	* doc/invoke.texi: Add e500mc64 to list of cpus.
+
+2009-12-07  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (any_or): New code iterator.
+	(any_logic): Rename from plogic code iterator.
+	(logicprefix): Rename from plogicprefix code attribute.
+	(<code><mode>3): Macroize expander from {ior,xor}<mode>3 using
+	any_or code iterator.
+	(*<code><mode>_1): Macroize insn from *{ior,xor}<mode>_1 using
+	any_or code iterator.
+	(*<code><mode>_2): Ditto from *{ior,xor}<mode>_2.
+	(*<code><mode>_3): Ditto from *{ior,xor}<mode>_3.
+	(ior and xor splitters): Ditto.
+	* config/i386/mmx.md: Updated for rename.
+	* config/i386/sse.md: Ditto.
+
+2009-12-07  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (float<SSEMODEI24:mode><X87MODEF:mode>2):
+	Remove quotes around condition logic code.
+
+2009-12-06  Richard Henderson  <rth@redhat.com>
+
+	PR debug/42234
+	* tree-ssa-dom.c (degenerate_phi_result): Check for NULL phi
+	argument earlier.
+
+2009-12-06  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* doc/install.texi: Document MPC is required.
+
+2009-12-06  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (g): Add HImode and QImode.
+	(general_szext_operand): New mode attribute.
+	(*test<mode>_1): Macroize insn from *test{qi,hi,si}_1 using
+	SWI124 mode iterator.
+	(and<mode>3): Macroize expander from and{qi,hi,si,di}3 using
+	SWIM mode iterator.
+	(*and<mode>_2): Macroize insn from *and{qi,hi,si}_2 using
+	SWI124 mode iterator.
+	(ior<mode>3): Macroize expander from ior{qi,hi,si,di}3 using
+	SWIM mode iterator.
+	(*ior<mode>_1): Macroize insn from *ior{hi,si,di}_1 using
+	SWI248 mode iterator.
+	(*ior<mode>_2): Macroize insn from *ior{qi,hi,si,di}_2 using
+	SWI mode iterator.
+	(*ior<mode>_3): Macroize insn from *ior{qi,hi,si,di}_3 using
+	SWI mode iterator.
+	(xor<mode>3): Macroize expander from xor{qi,hi,si,di}3 using
+	SWIM mode iterator.
+	(*xor<mode>_1): Macroize insn from *xor{hi,si,di}_1 using
+	SWI248 mode iterator.
+	(*xor<mode>_2): Macroize insn from *xor{qi,hi,si,di}_2 using
+	SWI mode iterator.
+	(*xor<mode>_3): Macroize insn from *xor{qi,hi,si,di}_3 using
+	SWI mode iterator.
+
+2009-12-05  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* config/i386/i386.c (TARGET_DEFAULT_TARGET_FLAGS): Add
+	MASK_FUSED_MADD.
+	* config/i386/i386.h (CC1_CPU_SPEC_1): Remove
+	"'-mfused-madd' was removed".
+	* config/i386/i386.opt (mfused-madd): New.
+	* config/i386/sse.md: Add TARGET_FUSED_MADD to FMA4 insns.
+	* doc/invoke.texi (-mfused-madd, -mno-fused-madd): Document.
+
+2009-12-05  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	* pa64-hpux.h (LIB_SPEC): Handle -rdynamic.
+	* pa-hpux10.h (LIB_SPEC): Likewise.
+	* pa-hpux11.h (LIB_SPEC): Likewise.
+
+	PR ada/41912
+	* pa/linux-unwind.h (pa32_fallback_frame_state): Set fs->signal_frame
+	for signal frames.
+	* pa/hpux-unwind.h (pa32_fallback_frame_state): Likewise.
+
+2009-12-05  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure: Regenerate.
+
+2009-12-05  Richard Earnshaw  <rearnsha@arm.com>
+
+	* arm/thumb2.md (thumb2_mulsi_short_compare0): Use a low-register
+	for the scratch.
+
+2009-12-04  David Daney  <ddaney@caviumnetworks.com>
+
+	PR rtl-optimization/42164
+	* combine.c (combine_simplify_rtx): Handle truncation of integer
+	constants.
+
+2009-12-04  Richard Guenther  <rguenther@suse.de>
+
+	* lto-streamer-out.c (pack_ts_decl_common_value_fields):
+	Revert previous change.
+	(lto_output_ts_decl_common_tree_pointers): Stream DECL_VALUE_EXPR.
+	* lto-streamer-in.c (lto_input_ts_decl_common_tree_pointers):
+	Likewise.
+
+2009-12-04  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-alias.c (ref_maybe_used_by_call_p_1): Handle
+	BUILT_IN_MALLOC.
+	(call_may_clobber_ref_p_1): Likewise.
+
+2009-12-04  Matthias Klose  <doko@ubuntu.com>
+	    John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR target/40134
+	* config.gcc (hppa*-*-linux*): Use config/t-slibgcc-libgcc.
+	* config/pa/pa-linux.h (LIB_SPEC): Remove.
+
+2009-12-03  Sebastian Pop  <sebastian.pop@amd.com>
+	    Richard Henderson  <rth@redhat.com>
+
+	* config/i386/i386-protos.h (ix86_fma4_valid_op_p): Remove.
+	* config/i386/i386.c (ix86_fma4_valid_op_p): Remove.
+	* config/i386/i386.md: Do not use ix86_fma4_valid_op_p.
+	* config/i386/sse.md (fma4_*): Remove alternative with operand 1
+	matching a memory access.  Do not use ix86_fma4_valid_op_p.
+	(xop_*): Same.
+	Do not use ix86_fma4_valid_op_p in FMA4 and XOP splitters.
+
+2009-12-03  Richard Henderson  <rth@redhat.com>
+
+	* config/i386/i386.c (ix86_fixup_binary_operands): For FMA4, force
+	all operands into registers.
+
+2009-12-03  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* config/i386/i386.c (ix86_expand_fma4_multiple_memory): Remove unused
+	parameter.
+	* config/i386/i386-protos.h (ix86_expand_fma4_multiple_memory): Same.
+	* config/i386/sse.md: Same.
+
+2009-12-03  Richard Guenther  <rguenther@suse.de>
+
+	* cgraphunit.c (assemble_thunk): Use DECL_ASSEMBLER_NAME
+	instead of DECL_NAME for the entry point.
+
+2009-12-03  Richard Earnshaw  <rearnsha@arm.com>
+
+	* arm/linux-atomic.c (SYNC_LOCK_RELEASE): Place memory barrier
+	before the lock release.
+
+2009-12-03  Michael Matz  <matz@suse.de>
+
+	PR middle-end/38474
+	* cfgexpand.c (struct stack_var): Add conflicts member.
+	(stack_vars_conflict, stack_vars_conflict_alloc,
+	n_stack_vars_conflict): Remove.
+	(add_stack_var): Initialize conflicts member.
+	(triangular_index, resize_stack_vars_conflict): Remove.
+	(add_stack_var_conflict, stack_var_conflict_p): Rewrite in
+	terms of new member.
+	(union_stack_vars): Only run over the conflicts.
+	(partition_stack_vars): Remove special case.
+	(expand_used_vars_for_block): Don't call resize_stack_vars_conflict,
+	don't create self-conflicts.
+	(account_used_vars_for_block): Don't create any conflicts.
+	(fini_vars_expansion): Free bitmaps, don't free or clear removed
+	globals.
+
+2009-12-03  Bernd Schmidt  <bernd.schmidt@analog.com>
+
+	PR middle-end/42202
+	* regrename.c (live_in_chains): New variable.
+	(verify_reg_tracked): New static function.
+	(scan_rtx_reg): Update live_in_chains.
+	(scan_rtx): Only promote sets in COND_EXEC to OP_INOUT if
+	we're already tracking the reg.
+	(build_def_use): Likewise.  Initialize live_in_chains.
+
+2009-12-03  Ken Werner  <ken.werner@de.ibm.com>
+
+	* config/spu/spu-elf.h (STARTFILE_SPEC): Add support for gprof
+	startup files.
+	* config/spu/spu-protos.h (spu_function_profiler): Add prototype.
+	* config/spu/spu.c (spu_function_profiler): New function.
+	* config/spu/spu.h (FUNCTION_PROFILER): Invoke
+	spu_function_profiler.
+	(NO_PROFILE_COUNTERS): Define.
+	(PROFILE_BEFORE_PROLOGUE): Likewise.
+
 2009-12-03  Dave Korn  <dave.korn.cygwin@gmail.com>
 
 	* ggc-page.c (struct free_object): Pull definition out ...
@@ -33,8 +357,7 @@
 2009-12-02  Richard Guenther  <rguenther@suse.de>
 
 	PR middle-end/42229
-	* cfgloopmanip.c (remove_path): Avoid cancelling loops
-	twice.
+	* cfgloopmanip.c (remove_path): Avoid cancelling loops twice.
 
 2009-12-02  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
 
@@ -65,8 +388,7 @@
 	to save the accumulator.
 	(rx_expand_prologue): Create a stack frame for fast interrupt
 	handlers, if necessary.
-	(rx_expand_builtin_mvfc): Handle the case where there is no
-	target.
+	(rx_expand_builtin_mvfc): Handle the case where there is no target.
 
 2009-12-01  Sebastian Pop  <sebastian.pop@amd.com>
 
@@ -222,7 +544,7 @@
 	(sh_function_value, sh_libcall_value, sh_function_value_regno_p): New
 	functions.
 	(TARGET_FUNCTION_VALUE, TARGET_LIBCALL_VALUE): Declare.
-	* config/sh/sh.h: (FUNCTION_VALUE_REGNO_P): Redefine, use
+	* config/sh/sh.h (FUNCTION_VALUE_REGNO_P): Redefine, use
 	sh_function_value_regno_p.
 	(FUNCTION_VALUE, LIBCALL_VALUE): Remove.
 	* config/sh/sh-protos.h (sh_function_value_regno_p): Declare.
