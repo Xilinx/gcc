@@ -1,3 +1,15 @@
+2009-12-08  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* Makefile.in (melt-runtime.o): Passing quoted
+	-DMELT_MODULE_CFLAGS.
+	* common.opt: added -fmelt-module-cflags.
+	* melt-runtime.c (MELT_MODULE_CFLAGS melt_module_cflags): new
+	constant & variable.
+	(compile_module_to_binary): handle -fmelt-module-cflags defaulted
+	by GCCMELT_MODULE_CFLAGS environment variable if any.
+	* testsuite/melt/tletrec.melt: removed -fmelt-compile-script in
+	comment.
+
 2009-12-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	* doc/melt.texi (MELT syntax constructs): fixed typo by adding
 	missing brace.

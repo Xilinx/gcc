@@ -121,20 +121,25 @@ xstrndup (const char *s, size_t n)
 #error MELT_DEFAULT_MODLIS is not defined thru compile flags
 #endif
 
+#ifndef MELT_MODULE_CFLAGS
+#error MELT_MODULE_CFLAGS is not defined thru compile flags
+#endif
+
+
 /* we use the plugin registration facilities, so this is the plugin
    name in use */
 static const char* melt_plugin_name;
-
-
-
 
 /* *INDENT-OFF* */
 static const char melt_source_dir[] = MELT_SOURCE_DIR;
 static const char melt_module_dir[] = MELT_MODULE_DIR;
 static const char melt_module_make_command[] = MELT_MODULE_MAKE_COMMAND;
 static const char melt_module_makefile[] = MELT_MODULE_MAKEFILE;
+static const char melt_module_cflags[] = MELT_MODULE_CFLAGS;
+
 
 melt_ptr_t melt_globarr[MELTGLOB__LASTGLOB]={0};
+
 void* melt_startalz=NULL;
 void* melt_endalz=NULL;
 char* melt_curalz=NULL;
@@ -264,6 +269,8 @@ melt_argument (const char* argname)
     return count_melt_debugskip_string;
   else if (!strcmp (argname, "module-path"))
     return melt_dynmodpath_string;
+  else if (!strcmp (argname, "module-cflags"))
+    return melt_module_cflags_string;
   else if (!strcmp (argname, "gdbmstate"))
     return melt_gdbmstate_string;
   else if (!strcmp (argname, "source-path"))
@@ -5182,6 +5189,7 @@ compile_module_to_binary (const char *srcfile, const char *binfile, const char*w
   char pwdbuf[500];
   const char* ourmakecommand=0;
   const char* ourmakefile=0;
+  const char* ourcflags=0;
   memset(pwdbuf, 0, sizeof(pwdbuf));
   /* the name of the source module argument to 'make'. */
 #define SOURCE_MODULE_ARG "GCCMELT_MODULE_SOURCE="
@@ -5189,6 +5197,8 @@ compile_module_to_binary (const char *srcfile, const char *binfile, const char*w
 #define BINARY_MODULE_ARG "GCCMELT_MODULE_BINARY="
   /* the name of the workspace directory */
 #define WORKSPACE_ARG "GCCMELT_MODULE_WORKSPACE="
+  /* the additional C flags */
+#define CFLAGS_ARG "GCCMELT_CFLAGS="
   debugeprintf ("compile_module_to_binary start srcfile %s binfile %s", srcfile, binfile);
   if (flag_melt_debug) {
     char* cwd = getcwd (pwdbuf, sizeof(pwdbuf)-1);
@@ -5226,13 +5236,18 @@ compile_module_to_binary (const char *srcfile, const char *binfile, const char*w
   debugeprintf ("compile_module_to_binary ourmakefile: %s", ourmakefile);
   gcc_assert (ourmakefile[0]);
 
+  ourcflags = melt_argument ("module-cflags");
+  if (!ourcflags || !ourcflags[0]) ourcflags = getenv ("GCCMELT_MODULE_CFLAGS");
+  if (!ourcflags || !ourcflags[0]) ourcflags = melt_module_cflags;
+  
   fflush (stdout);
   fflush (stderr);
 
 #ifdef MELT_IS_PLUGIN
   {
     /* In plugin mode, we sadly don't have the pex_run function
-       available.  See
+       available, because libiberty is statically linked into cc1
+       which don't need pex_run.  See
        http://gcc.gnu.org/ml/gcc-patches/2009-11/msg01419.html etc.
        So we unfortunately have to use system(3), using an obstack for
        the command string. */
@@ -5275,6 +5290,15 @@ compile_module_to_binary (const char *srcfile, const char *binfile, const char*w
       warning (0, "escaped character[s] in MELT binary module %s", dlfile);
     obstack_1grow (&cmd_obstack, ' ');
 
+    /* add the cflag argument if needed */
+    if (ourcflags && ourcflags[0]) 
+      {
+	/* don't warn about escapes for cflags, they contain spaces...*/
+	obstack_grow0 (&cmd_obstack, CFLAGS_ARG, strlen (CFLAGS_ARG));
+	obstack_add_escaped_path (&cmd_obstack, ourcflags);
+	obstack_1grow (&cmd_obstack, ' ');
+      };
+
     /* add the workspace argument if needed, that is if workdir is
        provided not as '.' */
     if (workdir && workdir[0] && (workdir[0] != '.' || workdir[1]))
@@ -5309,9 +5333,10 @@ compile_module_to_binary (const char *srcfile, const char *binfile, const char*w
     int err = 0;
     int cstatus = 0;
     const char *errmsg = 0;
-    const char *argv[8] = { 0,0,0,0,0,0,0,0 };
+    const char *argv[9] = { 0,0,0,0,0,0,0,0,0 };
     char* srcarg = 0;
     char* binarg = 0;
+    char* cflagsarg = 0;
     char* workarg = 0;
     struct pex_obj* pex = 0;
     struct pex_time ptime;
@@ -5336,6 +5361,12 @@ compile_module_to_binary (const char *srcfile, const char *binfile, const char*w
     /* the binary argument */
     binarg = concat (BINARY_MODULE_ARG, binfile, NULL);
     argv[argc++] = binarg;
+
+    if (ourcflags && ourcflags[0])
+      {
+	cflagsarg = concat (CFLAGS_ARG, ourcflags, NULL);
+	argv[argc++] = cflagsarg;
+      }
     
     /* add the workspace argument if needed, that is if workdir is
        provided not as '.' */
@@ -5352,8 +5383,9 @@ compile_module_to_binary (const char *srcfile, const char *binfile, const char*w
     argv[argc] = NULL;
     gcc_assert ((int) argc < (int) (sizeof(argv)/sizeof(*argv)));
     
-    debugeprintf("compile_module_to_binary pex: %s -f %s %s %s %s",
-		 ourmakecommand, ourmakefile, srcarg, binarg, workarg?workarg:"");
+    debugeprintf("compile_module_to_binary pex: %s -f %s %s %s %s %s",
+		 ourmakecommand, ourmakefile, srcarg, binarg,
+		 workarg?workarg:"", cflagsarg?cflagsarg:"");
     errmsg =
       pex_run (pex, PEX_LAST | PEX_SEARCH, ourmakecommand, 
 	       CONST_CAST (char**, argv),
@@ -5687,7 +5719,7 @@ meltgc_load_melt_module (melt_ptr_t modata_p, const char *modulnam)
     }
   }
   else 
-    envpath = getenv("GCCMELT_SOURCE_PATH");
+    envpath = getenv ("GCCMELT_SOURCE_PATH");
   /* look into the GCCMELT_SOURCE_PATH environment variable if no
      source path was given */
   if (envpath && *envpath) 
@@ -5993,7 +6025,7 @@ meltgc_load_modulelist (melt_ptr_t modata_p, const char *modlistbase)
 	goto loadit;
     }
   else
-    envpath = getenv("GCCMELT_SOURCE_PATH");
+    envpath = getenv ("GCCMELT_SOURCE_PATH");
   /* check for module list in $GCCMELT_SOURCE_PATH */
   if (envpath && envpath[0]) 
     {
@@ -6017,7 +6049,7 @@ meltgc_load_modulelist (melt_ptr_t modata_p, const char *modlistbase)
 	goto loadit;
     }
   else
-    envpath = getenv("GCCMELT_MODULE_PATH");
+    envpath = getenv ("GCCMELT_MODULE_PATH");
   /* check for module list in $GCCMELT_MODULE_PATH */
   if (envpath && envpath[0]) 
     {
@@ -10001,7 +10033,7 @@ bool melt_wants_single_c_file (void)
   const char* singarg = melt_argument ("single-c-file");
   if (!singarg) 
     {
-      const char* singenv = getenv("GCCMELT_SINGLE_C_FILE");
+      const char* singenv = getenv ("GCCMELT_SINGLE_C_FILE");
       want1 = singenv && singenv[0]!='0' 
 	&& singenv[0]!='N' && singenv[0]!='n';
     }

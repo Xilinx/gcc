@@ -2728,6 +2728,7 @@ $(MELT_OBJ):  $(MELT_C)  \
 	  -DMELT_SOURCE_DIR=\"$(melt_source_dir)\" \
 	  -DMELT_MODULE_DIR=\"$(melt_module_dir)\" \
 	  -DMELT_MODULE_MAKE_COMMAND=\"$(MAKE)\" \
+	  '-DMELT_MODULE_CFLAGS="$(melt_cflags)"' \
 	  -DMELT_MODULE_MAKEFILE=\"$(melt_module_makefile)\" \
 	  -DMELT_DEFAULT_MODLIS=\"$(melt_default_modules_list)\" \
 	  -c $(MELT_C) $(OUTPUT_OPTION)

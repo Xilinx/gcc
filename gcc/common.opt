@@ -382,6 +382,11 @@ fmelt-source-path=
 Common Report Var(melt_srcpath_string) RejectNegative Joined
 Source colon-separated path for MELT [or $GCCMELT_SOURCE_PATH]
 
+; CFLAGS passed by MELT to compile the C-code of modules
+fmelt-module-cflags=
+Common Report Var(melt_module_cflags_string) RejectNegative Joined
+Compiler CFLAGS used by MELT to compile MELT-generated C code [or $GCCMELT_MODULE_CFLAGS]
+
 ; force generation of a single C file for a MELT module
 fmelt-single-c-file
 Common Report Var(flag_melt_single_c_file) 
