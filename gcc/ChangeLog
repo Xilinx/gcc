@@ -1,3 +1,71 @@
+2009-12-07  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* config/sparc/linux.h (ASM_SPEC): Pass -K PIC if -findirect-dispatch.
+	* config/sparc/linux64.h (ASM_SPEC): Likewise.
+
+2009-12-07  Richard Henderson  <rth@redhat.com>
+
+	PR debug/42299
+	PR debug/42166
+	* tree-ssa.c (insert_debug_temp_for_var_def): Skip propagation
+	for ssa names already registered for update.
+
+2009-12-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/42244
+	* ddg.c (add_inter_loop_mem_dep): Use ANTI_DEP if from or to
+	is a DEBUG_INSN.
+
+2009-12-07  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* config/i386/driver-i386.c (host_detect_local_cpu): Add -mlwp to the
+	options when bit_LWP is set.
+
+2009-12-07  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* config/i386/cpuid.h (bit_ABM): New.
+	* config/i386/driver-i386.c (host_detect_local_cpu): Add -mabm to the
+	options when bit_ABM is set.
+
+2009-12-07  Jakub Jelinek  <jakub@redhat.com>
+
+	* config/i386/i386.c (bdesc_special_args): Move __builtin_clzs from
+	this array ...
+	(bdesc_args): ... here.
+	* config.gcc (i[34567]86-*-*): Include abmintrin.h.
+	(x86_64-*-*): Likewise.
+
+2009-12-07  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* config.gcc (i[34567]86-*-*, x86_64-*-*): Add popcntintrin.h.
+	* config/i386/abmintrin.h (_mm_popcnt_u32, _mm_popcnt_u64): Moved...
+	* config/i386/i386-c.c (__POPCNT__): Defined.
+	* config/i386/popcntintrin.h: ...here.  New file.
+	* config/i386/smmintrin.h (_mm_popcnt_u32, _mm_popcnt_u64): Moved...
+	Include popcntintrin.h.
+	* config/i386/x86intrin.h: Include popcntintrin.h when __POPCNT__
+	is defined.
+
+2009-12-07  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* config/i386/i386-protos.h (ix86_expand_fma4_multiple_memory):
+	Removed.
+	* config/i386/i386.c (ix86_expand_fma4_multiple_memory): Removed.
+	* config/i386/sse.md: Remove all XOP splitters.
+	Allow the second and fourth operands of XOP multiply-add insns
+	to be nonimmediate.
+
+2009-12-07  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* config/i386/sse.md: Remove all FMA4 splitters.
+	Allow the second operand of FMA4 insns to be a nonimmediate.
+	Fix comments punctuation.
+
+2009-12-07  Julian Brown  <julian@codesourcery.com>
+
+	* config/arm/constraints.md (Ps, Pt): New constraint letters.
+	* config/arm/thumb2.md (*thumb2_addsi_short): Tighten constraints.
+
 2009-12-07  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
 
 	PR other/40302
